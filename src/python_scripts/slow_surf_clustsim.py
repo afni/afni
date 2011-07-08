@@ -25,10 +25,17 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
    1. basic: give 3 required inputs, all else is default
 
-        slow_surf_clustsim.py -print_script             \\
-            -uvar spec_file sb23_lh_141_std.spec        \\
-            -uvar surf_vol sb23_SurfVol_aligned+orig    \\
+        slow_surf_clustsim.py -save_script surf.clustsim \\
+            -uvar spec_file sb23_lh_141_std.spec         \\
+            -uvar surf_vol sb23_SurfVol_aligned+orig     \\
             -uvar vol_mask mask_3mm+orig
+
+   2. basic, but on the surface (so no vol_mask is provided)
+
+        slow_surf_clustsim.py -save_script surf.sim.2    \\
+            -on_surface                                  \\
+            -uvar spec_file sb23_lh_141_std.spec         \\
+            -uvar surf_vol sb23_SurfVol_aligned+orig
 
 ------------------------------------------
 
@@ -58,6 +65,8 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
       -ver                      : show current version
 
    other options
+      -on_surface               : start from noise on the surface
+                                  (so no volume data is involved)
       -print_script             : print script to terminal
       -save_script FILE         : save script to given file
       -uvar value ...           : set the user variable
@@ -100,6 +109,8 @@ class MyInterface:
       vopts.add_opt('-uvar', -2, [], helpstr='set user variable to value')
 
       # general options
+      vopts.add_opt('-on_surface', 1, [],
+                    helpstr='work directly on the surface (yes/no)')
       vopts.add_opt('-print_script', 0, [],
                     helpstr='print script to terminal window')
       vopts.add_opt('-save_script', 1, [],
@@ -173,6 +184,14 @@ class MyInterface:
 
          # now go after "normal" options
 
+         elif opt.name == '-on_surface':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val != None and err: return -1
+            if self.cvars.set_var_with_defs(opt.name[1:],val,CLUST.g_ctrl_defs,
+                        as_type=1, oname='cvars', verb=self.verb) < 0:
+               errs += 1
+               continue
+
          # cvar requires at least 2 parameters, name and value
          elif opt.name == '-cvar':
             val, err = uopts.get_string_list('', opt=opt)
@@ -196,6 +215,12 @@ class MyInterface:
          else:
             print '** unknown option %s' % opt.name
             errs += 1
+
+      if self.verb > 2:
+         print '-' * 75
+         self.uvars.show('post-init uvars', name=0)
+         self.cvars.show('post-init cvars', name=0)
+         print '-' * 75
 
       if errs:    return -1
       else:       return  0     # no error, and continue on return

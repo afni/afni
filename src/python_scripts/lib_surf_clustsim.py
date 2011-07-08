@@ -17,9 +17,10 @@ g_history = """
   slow_surf_clustsim.py history
 
     0.0  20 Jun, 2011: initial revision
+    0.1  08 Jul, 2011: added -on_surface, which might not be so useful
 """
 
-g_version = '0.0 (June 20, 2011)'
+g_version = '0.1 (July 8, 2011)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -39,6 +40,7 @@ g_ctrl_defs = SUBJ.VarsObject("slow_surf_clustsim control defaults")
 g_ctrl_defs.proc_dir     = '.'   # process dir: holds scripts and result dir
 g_ctrl_defs.time_process = 'yes' # run /usr/bin/time on commands?
                                  # rcr - default to 'no'
+g_ctrl_defs.on_surface   = 'no'  # default to starting from the volume
 
 # ---- user variables: process control, alignment inputs and options ----
 
@@ -50,7 +52,7 @@ g_user_defs.results_dir    = 'clust.results' # where script puts results
 # required inputs
 g_user_defs.spec_file      = ''
 g_user_defs.surf_vol       = ''
-g_user_defs.vol_mask       = ''
+g_user_defs.vol_mask       = ''  # required only if not on_surface
 
 # other inputs
 g_user_defs.niter          = 20         # total number of iterations
@@ -72,6 +74,25 @@ g_user_defs.nsteps         = 10
 g_cdef_strs = g_ctrl_defs.copy(as_strings=1)
 g_udef_strs = g_user_defs.copy(as_strings=1)
 
+
+g_make_empty_surf_str = """
+# ------------------------------------------------------------
+# for data on the surface, make an empty surface dataset
+
+# get number of nodes
+SurfMeasures -spec $spec_file -sv $surf_vol -surf_A $surfA -out_1D nodes.1D
+set last_node = `tail -n 1 nodes.1D`
+if ( $last_node <= 0 ) then
+    echo "** failed to count nodes from surface $surfA"
+    exit
+endif
+
+# make $empty_surf of that size
+set empty_surf = empty.gii
+ConvertDset -o_gii -input nodes.1D -prefix $empty_surf   \\
+            -add_node_index -pad_to_node $last_node
+
+"""
 
 # main class definition
 class SurfClust(object):
@@ -135,8 +156,10 @@ class SurfClust(object):
       if self.uvars.is_empty('surf_vol'):
          self.errors.append('** unspecified surf_vol dataset')
 
-      if self.uvars.is_empty('vol_mask'):
-         self.errors.append('** unspecified vol_mask (result grid) dataset')
+      if self.cvars.val('on_surface') != 'yes':
+         # if not on surface, a volume mask is required
+         if self.uvars.is_empty('vol_mask'):
+            self.errors.append('** unspecified vol_mask (result grid) dataset')
 
       return len(self.errors)
 
@@ -144,7 +167,9 @@ class SurfClust(object):
       """always use $top_dir with absolute paths to datasets
       """
 
-      inputs = [self.uvars.surf_vol, self.uvars.vol_mask, self.uvars.spec_file]
+      inputs = [self.uvars.surf_vol, self.uvars.spec_file]
+      if self.cvars.val('on_surface') != 'yes':
+         inputs.append(self.uvars.vol_mask)
 
       # try converting to absolute paths
       try: inputs = [ os.path.abspath(fname) for fname in inputs ]
@@ -160,11 +185,17 @@ class SurfClust(object):
       self.LV.short_names = short_names # if top_dir is used, they are under it
 
       if self.uvars.verb > 2:
-         print '-- set_dirs: top_dir         = %s\n' \
-               '             short surf_vol  = %s\n' \
-               '             short vol_mask  = %s\n' \
-               '             short spec_file = %s\n' % (self.LV.top_dir,
-                  short_names[0][0], short_names[0][1], short_names[0][2])
+         if self.cvars.val('on_surface') != 'yes':
+            print '-- set_dirs: top_dir         = %s\n' \
+                  '             short surf_vol  = %s\n' \
+                  '             short spec_file = %s\n' \
+                  '             short vol_mask  = %s\n' % (self.LV.top_dir,
+                     short_names[0][0], short_names[0][1], short_names[0][2])
+         else: # on surface
+            print '-- set_dirs: top_dir         = %s\n' \
+                  '             short surf_vol  = %s\n' \
+                  '             short spec_file = %s\n' % (self.LV.top_dir,
+                     short_names[0][0], short_names[0][1])
 
       # if top_dir isn't long enough, do not bother with it
       if self.LV.top_dir.count('/') < 2:
@@ -263,7 +294,9 @@ class SurfClust(object):
 
       # prepare contents of foreach loop
       cmd_3dcalc = self.script_do_3dcalc(indent=3)
-      cmd_v2s    = self.script_do_3dv2s(indent=3)
+      if self.cvars.val('on_surface') != 'yes':
+         cmd_v2s = self.script_do_3dv2s(indent=3)
+      else: cmd_v2s = ''
       cmd_ss     = self.script_do_surfsmooth(indent=3)
       cmd_clust  = self.script_do_surfclust(indent=3)
 
@@ -300,13 +333,20 @@ class SurfClust(object):
    def script_do_surfsmooth(self, indent=0):
       istr = ' '*indent
 
+      if self.cvars.val('on_surface') == 'yes':
+         inset = 'surf.noise.$iter.gii'
+         niter = 5
+      else:
+         inset = 'surf.noise.$iter.niml.dset'
+         niter = 10
+
       clist = [ \
         '# smooth to the given target FWHM\n',
         self.LV.time_str,
         'SurfSmooth -spec $spec_file -surf_A $surfA           \\\n',
-        '           -input surf.noise.$iter.niml.dset         \\\n',
+        '           -input %s         \\\n' % inset,
         '           -met HEAT_07 -target_fwhm $blur           \\\n',
-        '           -Niter 10 -output smooth.noise.$iter.gii\n\n' ]
+        '           -Niter %d -output smooth.noise.$iter.gii\n\n' % niter ]
 
       return istr + istr.join(clist)
 
@@ -331,18 +371,28 @@ class SurfClust(object):
    def script_do_3dcalc(self, indent=3):
       istr = ' '*indent
 
-      clist = [ '# do not include single TR "time series" in 3dcalc\n',
+      if self.cvars.val('on_surface') == 'yes': domain = 'surface'
+      else:                                     domain = 'volume'
+
+      dlist = [ '# do not include single TR "time series" in 3dcalc\n',
                 'if ( $itersize > 1 ) then\n',
                 '   set bset = "-b dummy.TRs.$itersize.1D"\n',
                 'else\n',
                 '   set bset = ""\n',
                 'endif\n\n',
-                '# generate noise volume (possibly of $itersize TRs)\n',
-                self.LV.time_str,
-                '3dcalc -a $vol_mask $bset -expr "bool(a)*gran(0,1)" \\\n',
-                '       -prefix vol.noise.$iter -datum float\n\n' ]
+                '# generate noise %s (possibly of $itersize TRs)\n' % domain,
+                self.LV.time_str]
 
-      return istr + istr.join(clist)
+      if self.cvars.val('on_surface') == 'yes':
+         clist = [ \
+            '3dcalc -a $empty_surf $bset -expr "gran(0,1)" \\\n',
+            '       -prefix surf.noise.$iter.gii -datum float\n\n' ]
+      else:
+         clist = [ \
+            '3dcalc -a $vol_mask $bset -expr "bool(a)*gran(0,1)" \\\n',
+            '       -prefix vol.noise.$iter -datum float\n\n' ]
+
+      return istr + istr.join(dlist) + istr + istr.join(clist)
 
    def script_analysis_prep(self):
       """return a set of commands to:
@@ -366,6 +416,9 @@ class SurfClust(object):
 
       cmd += '# divide niter by itersize (take ceiling)\n'              \
              '@ niter = ( $niter + $itersize - 1 ) / $itersize\n\n'
+
+      if self.cvars.val('on_surface') == 'yes':
+         cmd += g_make_empty_surf_str
 
       return cmd
 
@@ -416,23 +469,26 @@ class SurfClust(object):
 
       # surf_vol and vol_mask might use top_dir
       if self.LV.is_trivial_dir('top_dir'):
-         self.LV.svol  = U.surf_vol
+         if self.cvars.val('on_surface') != 'yes': self.LV.svol  = U.surf_vol
          self.LV.vmask = U.vol_mask
          self.LV.spec  = U.spec_file
       else:
          self.LV.svol  = '$top_dir/%s' % self.LV.short_names[0][0]
-         self.LV.vmask = '$top_dir/%s' % self.LV.short_names[0][1]
-         self.LV.spec  = '$top_dir/%s' % self.LV.short_names[0][2]
+         self.LV.spec  = '$top_dir/%s' % self.LV.short_names[0][1]
+         if self.cvars.val('on_surface') != 'yes':
+            self.LV.vmask = '$top_dir/%s' % self.LV.short_names[0][2]
 
       cmd += '# input datasets and surface specification file\n'         \
              '# (absolute paths are used since inputs are not copied)\n' \
              'set surf_vol    = %s\n'   \
-             'set vol_mask    = %s\n'   \
-             'set spec_file   = %s\n\n' \
-             % (self.LV.svol, self.LV.vmask, self.LV.spec)
+             'set spec_file   = %s\n' % (self.LV.svol, self.LV.spec)
+
+      if self.cvars.val('on_surface') != 'yes':
+         cmd += 'set vol_mask    = %s\n' % self.LV.vmask
 
       plist =  [ '%g'%p for p in U.pthr_list ]
-      cmd += '# iterations and blur/clust parameters\n' \
+      cmd += '\n'                                       \
+             '# iterations and blur/clust parameters\n' \
              'set niter       = %d\n'                   \
              'set itersize    = %d\n'                   \
              'set pthr_list   = ( %s )\n\n'             \
