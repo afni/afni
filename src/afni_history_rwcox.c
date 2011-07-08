@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 5 , JUL , 2011 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+  { 8 , JUL , 2011 , RWC , "AFNI" , MICRO , TYPE_BUG_FIX ,
+   "Tips HTML window crashes on kampos (Solaris)" ,
+   "Debugging shows XmHTML crashed when rendering different-than-normal\n"
+   "fonts.  Solution = strip font-changing HTML tags out of file before\n"
+   "display -- only on systems marked as evil in this way." } ,
+
+ { 5 , JUL , 2011 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "add -NOLINE to include clipping of points outside the box" ,
    NULL } ,
 
