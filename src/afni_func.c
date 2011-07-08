@@ -5622,7 +5622,7 @@ ENTRY("AFNI_tips_CB") ;
    if( tips_open && tips_hw != NULL ){
      XMapRaised( XtDisplay(tips_hw->wshell) , XtWindow(tips_hw->wshell) ) ;
      EXRETURN ;
-   } else {
+   } else if( !AFNI_noenv("AFNI_DONT_USE_HTMLWIN") ){
      fpt = THD_find_regular_file("afnigui.html") ;
      if( fpt != NULL && *fpt != '\0' ){
        inf = (char *)malloc(sizeof(char)*(strlen(fpt)+16)) ;
