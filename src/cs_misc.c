@@ -224,9 +224,12 @@ char *format_value_4print(double value, int oform, char *formatstr)
 }
 
 /*----------------------------------------------------------------------------*/
-/* Substitute repl for targ in src.  Return is NULL if nothing was done;
-   otherwise, return value is a new malloc-ed string with the changes made.
-   Not particularly efficient, but seems to work.  [RWCox - 01 Jul 2011]
+/* Substitute repl for targ in src.
+   * Return is NULL if nothing was done (e.g., no copies of targ inside src)
+   * Return value is a new maLloc-ed string with the changes made
+   * src and targ can't be NULL, but repl can be NULL if you just want to
+     delete targ from the src string
+  ** Not particularly efficient, but seems to work.  [RWCox - 01 Jul 2011]
 *//*--------------------------------------------------------------------------*/
 
 char * string_substitute( char *src , char *targ , char *repl )
