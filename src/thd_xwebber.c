@@ -45,6 +45,8 @@ static void armCB( Widget w, XtPointer arg1, XmAnyCallbackStruct *href_data)
 static void anchorCB( Widget widget, XtPointer client_data,
                       XmHTMLAnchorCallbackStruct *cbs      )
 {
+ENTRY("anchorCB") ;
+
   switch( cbs->url_type ){
 
     case ANCHOR_JUMP:                                /* internal jumps */
@@ -70,7 +72,7 @@ static void anchorCB( Widget widget, XtPointer client_data,
 
   }
 
-  return ;
+  EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -292,6 +294,8 @@ STATUS("manage HTML widgets") ;
 
    if( mymsg != msg ) free(mymsg) ;               /* toss the trash */
 
+STATUS("force HTML redisplay") ;
+
    RWC_sleep(66) ; XmHTMLRedisplay( hw->whtml ) ; /* force redraw to be safe */
 
    RETURN(hw) ;
@@ -326,17 +330,19 @@ static void MCW_htmlwin_CB( Widget w, XtPointer client_data, XtPointer call_data
    MCW_htmlwin *hw = (MCW_htmlwin *)client_data ;
    char *wname     = XtName(w) ;
 
-   if( client_data == NULL ) return ;
+ENTRY("MCW_htmlwin_CB") ;
+
+   if( client_data == NULL ) EXRETURN ;
 
    if( strcmp(wname,"Quit") == 0 ){
       if( hw->kill_func != NULL )
         AFNI_CALL_VOID_1ARG( hw->kill_func , XtPointer , hw->kill_data ) ;
       XtDestroyWidget( hw->wshell ) ;
       myXtFree( hw ) ;
-      return ;
+      EXRETURN ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -346,11 +352,13 @@ static void MCW_htmlwinkill_CB( Widget w, XtPointer client_data, XtPointer call_
 {
    MCW_htmlwin *hw = (MCW_htmlwin *) client_data ;
 
+ENTRY("MCW_htmlwinkill_CB") ;
+
    if( hw->kill_func != NULL )
      AFNI_CALL_VOID_1ARG( hw->kill_func , XtPointer , hw->kill_data ) ;
    XtDestroyWidget( hw->wshell ) ;
    myXtFree( hw ) ;
-   return ;
+   EXRETURN ;
 }
 
 #endif /* DONT_USE_HTMLWIN */
