@@ -4908,7 +4908,7 @@ STATUS("making prog->rowcol") ;
 
    vwid->picture       = NULL ;  /* default ==> no picture */
    vwid->picture_index = 0 ;
-   vwid->tips_pb       = NULL ;
+   vwid->tips_pb       = NULL ;  /* not always created */
 
 #ifdef WANT_LOGO_BITMAP
    if( im3d->type == AFNI_3DDATA_VIEW ){
@@ -4933,7 +4933,7 @@ STATUS("making prog->rowcol") ;
              NULL ) ;
       MCW_register_help( vwid->picture , AFNI_abohelp ) ;
 
-      if( num_entry == 1 ){
+      if( num_entry == 1 && !ALLOW_realtime ){
         vwid->tips_pb =
            XtVaCreateManagedWidget(
               "dialog" , xmPushButtonWidgetClass , vwid->top_form ,

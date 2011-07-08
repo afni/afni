@@ -76,7 +76,6 @@ ENTRY("anchorCB") ;
 }
 
 /*----------------------------------------------------------------------------*/
-#ifdef UNFONTIZE_HTMLWIN
 
 #undef  SSUB
 #define SSUB(a,b)                                        \
@@ -117,14 +116,12 @@ static char * unfontize( char *msg )
    return mmm ;
 }
 
-#endif /* UNFONTIZE_HTMLWIN */
-
 /*----------------------------------------------------------------------------*/
 /* Mangle a message to be good HTML for display */
 
 static char * htmlize( char *msg )
 {
-   char *mmm=NULL ;
+   char *mmm=NULL ; int dounf ;
 
 ENTRY("htmlize") ;
 
@@ -166,10 +163,14 @@ ENTRY("htmlize") ;
    }
 
 #ifdef UNFONTIZE_HTMLWIN
-   { char *qqq = unfontize(mmm) ;
+   dounf = 1 ;
+#else
+   dounf = AFNI_yesenv("AFNI_UNFONTIZE_HTML") ;
+#endif
+   if( dounf ){
+     char *qqq = unfontize(mmm) ;
      if( qqq != mmm ){ free(mmm) ; mmm = qqq ; }
    }
-#endif
 
    RETURN(mmm) ;
 }
