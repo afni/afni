@@ -3020,6 +3020,14 @@ static char * readme_env[] = {
    "and so on.  The variable AFNI_ORT_COLORS can similarly be used to specify\n" ,
    "the colors for the FIM Ort overlay.\n" ,
    "\n" ,
+   "-------------------------------\n" ,
+   "Variable: AFNI_DONT_USE_HTMLWIN\n" ,
+   "-------------------------------\n" ,
+   "If this variable is set to NO, then the 'AFNI Tips' button will not\n" ,
+   "use the HTML window to display the requested information -- a plain\n" ,
+   "text window will be used.  You should only need to use this variable\n" ,
+   "if the AFNI Tips window crashes on your system.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -3343,4 +3351,4 @@ static char * readme_env[] = {
    "size is used.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3343
+#define NUM_readme_env 3351
