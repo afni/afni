@@ -3027,6 +3027,14 @@ use the HTML window to display the requested information -- a plain
 text window will be used.  You should only need to use this variable
 if the AFNI Tips window crashes on your system.
 
+-----------------------------
+Variable: AFNI_UNFONTIZE_HTML
+-----------------------------
+If this variable is set to YES, then font-changing HTML tags will be
+deleted before opening the 'AFNI Tips' HTML window.  Try this first
+to avoid crashes, before using the previous variable to turn off the
+HTML tips entirely.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
