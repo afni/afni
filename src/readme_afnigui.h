@@ -2,6 +2,12 @@ static char * readme_afnigui[] = {
    "================================================================================\n" ,
    "                ----===|  Usage Tips for the AFNI GUI  |===----\n" ,
    "================================================================================\n" ,
+   "Tip #1:\n" ,
+   "  When the AFNI sunrise logo is displayed in the square to right of the 'done'\n" ,
+   "  button, this means that something is happening that might take a long time\n" ,
+   "  (e.g., reading a big file).  The AFNI GUI will not respond to clicks or\n" ,
+   "  keystrokes during this time.\n" ,
+   "--------------------------------------------------------------------------------\n" ,
    "                    ***** AFNI For Absolute Beginners *****\n" ,
    "\n" ,
    "(1) To use AFNI, you must have some data stored in a format that the program\n" ,
@@ -56,9 +62,9 @@ static char * readme_afnigui[] = {
    "      with more help than the simple popup hints.\n" ,
    "  (h) Sample datasets and all the AFNI course materials are in the big file\n" ,
    "      CD.tgz (more than 1 Gbyte) at\n" ,
-   "        http://afni.nimh.nih.gov/pub/dist/edu/data\n" ,
+   "         http://afni.nimh.nih.gov/pub/dist/edu/data\n" ,
    "      And don't forget the AFNI message board at\n" ,
-   "        http://afni.nimh.nih.gov/afni/community/board\n" ,
+   "         http://afni.nimh.nih.gov/afni/community/board\n" ,
    "--------------------------------------------------------------------------------\n" ,
    "             ***** Cursor Shapes and Right-Click Popup Menus *****\n" ,
    "\n" ,
@@ -221,4 +227,4 @@ static char * readme_afnigui[] = {
    "    slice index slider to move 1 slice backward or forward at a time.\n" ,
    "--------------------------------------------------------------------------------\n" ,
    NULL } ;
-#define NUM_readme_afnigui 221
+#define NUM_readme_afnigui 227
