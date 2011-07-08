@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 8, JUL, 2011, RCR, "slow_surf_clustsim.py", MINOR, TYPE_MODIFY,
+   "added -on_surface, which might not end up being so useful",
+   NULL
+ } ,
+
  { 6, JUL, 2011, RCR, "uber_align_test.py", MICRO, TYPE_MODIFY,
    "test use of SUBJ.set_var_with_defs",
    NULL
