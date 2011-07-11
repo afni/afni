@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, JUL, 2011, RCR, "gen_ss_review_scripts.py", MAJOR, TYPE_NEW_PROG,
+   "for generating single subject review scripts",
+   "To be run by the afni_proc.py proc script or directly by users."
+ } ,
+
  { 8, JUL, 2011, RCR, "slow_surf_clustsim.py", MINOR, TYPE_MODIFY,
    "added -on_surface, which might not end up being so useful",
    NULL
