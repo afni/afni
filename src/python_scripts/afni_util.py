@@ -1367,6 +1367,23 @@ def data_to_hex_str(data):
 
    return retstr
 
+def section_divider(hname, maxlen=74, hchar='=', endchar=''):
+    """return a title string of 'hchar's with the middle chars set to 'hname'
+       if endchar is set, put at both ends of header
+       e.g. block_header('volreg', endchar='##') """
+    if len(hname) > 0: name = ' %s ' % hname
+    else:              name = ''
+
+    if endchar != '': maxlen -= 2*len(endchar)
+    rmlen = len(name)
+    if rmlen >= maxlen:
+        print "** S_DIV_STR, rmlen=%d exceeds maxlen=%d" % (rmlen, maxlen)
+        return name
+    prelen  = (maxlen - rmlen) // 2     # basically half the chars
+    postlen = maxlen - rmlen - prelen   # other 'half'
+
+    return endchar + prelen*hchar + name + postlen*hchar + endchar
+
 # ----------------------------------------------------------------------
 # wildcard construction functions
 # ----------------------------------------------------------------------
