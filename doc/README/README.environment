@@ -3284,9 +3284,9 @@ Variable: AFNI_TEMPLATE_SPACE_LIST
 This list contains the names of the template spaces that are shown when whereami reports the coordinates among various spaces. By default, the list contain "TLRC,MNI,MNI_ANAT". As for the AFNI_ATLAS_LIST, this list may also be set to "ALL".
 
 ----------------------------
-Variable: AFNI_DEFAULT_ATLAS (editable)
+Variable: AFNI_ATLAS_COLORS (editable)
 ----------------------------
-This variable sets which atlas to use in the AFNI GUI for "Show Atlas Colors", "Go to Atlas location", "Draw Dataset" and "Renderer" functions.
+This variable sets which atlas to use in the AFNI GUI for "Atlas Colors", "Go to Atlas location", "Draw Dataset" and "Renderer" functions.
 
 -------------------------
 Variable: AFNI_PLUGINPATH
