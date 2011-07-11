@@ -121,7 +121,7 @@ static void ENV_redisplay( char * );      /* 21 Mar 2005 */
 static void ENV_setjpegquality(char *);   /* 11 May 2006 */
 static void ENV_wami_maxrad(char *vname); /* 27 Jun 2011 */
 static void ENV_wami_maxfind(char *vname); /* 27 Jun 2011 */
-
+static void ENV_atlas_reset(char *atlas); /* 05 Jul 2011 */
 #ifdef USE_SESSTRAIL
 static void ENV_sesstrail( char * ) ;
 #endif
@@ -544,6 +544,10 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_string( "AFNI_WHEREAMI_MAX_RAD" ,
                 "Maximum radius for structures from an atlas for whereami output" ,
                  0, NULL, ENV_wami_maxrad ) ;
+   /* 01 Jul 2011 [DRG] */
+   ENV_add_string( "AFNI_ATLAS_COLORS" ,
+          "Atlas to use in Atlas colors, Draw Dataset,  Go to atlas location" ,
+                 0, NULL, ENV_atlas_reset ) ;
 
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
@@ -1021,6 +1025,13 @@ static void ENV_wami_maxfind(char *vname)
    maxfind = atoi(str);
    if(maxfind<=0) return;
    Set_Whereami_Max_Find(maxfind);
+}
+
+static void ENV_atlas_reset(char *atlas)
+{
+   TTRR_resetup();
+   reset_atlas_ovdset();
+   return ;
 }
 
 #endif

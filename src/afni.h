@@ -1968,6 +1968,8 @@ extern void AFNI_process_timeindex  ( Three_D_View * ) ; /* 29 Jan 2003 */
 extern void AFNI_do_bkgd_lab( Three_D_View * ) ;         /* 08 Mar 2002 */
 
 extern MRI_IMAGE * AFNI_ttatlas_overlay(Three_D_View *, int,int,int,int, MRI_IMAGE *) ;
+extern void reset_atlas_ovdset(void);
+extern THD_3dim_dataset *current_atlas_ovdset(void);
 
 extern void AFNI_3d_linefill( int  ,int * ,int * ,int * ,
                               int *,int **,int **,int ** ) ;
@@ -1994,7 +1996,7 @@ extern void TTRR_popup( Three_D_View * ) ;  /* 12 Jul 2001 */
 typedef struct {
    int num , meth , hemi ;
    byte *ttbrik ;
-   byte *ttval  ;
+   short *ttval  ;
    byte *ttovc  ;
 } TTRR_params ;
 

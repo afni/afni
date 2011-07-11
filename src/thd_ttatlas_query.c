@@ -6657,3 +6657,15 @@ env_dec_places()
       return(decplaces);
    decplaces = tp;
 }
+
+
+/* uses string from environment copy, or default - don't free */
+char *Current_Atlas_Default_Name()
+{
+   char *ept;
+
+   ept = getenv( "AFNI_ATLAS_COLORS" ) ;
+   if( ept != NULL ) return( ept ) ;
+
+   return("TT_Daemon");
+}

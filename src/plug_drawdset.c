@@ -154,7 +154,6 @@ typedef struct {
    int reg_num ;                 /* number of regions     */
    char **reg_label  ; /* region labels                   */
    short *reg_tto    ; /* index into afni.h TTO_list      */
-   short *reg_ttbrik ; /* which sub-brick in TTatlas+tlrc */
    short *reg_ttval  ; /* what value in TTatlas+tlrc      */
 } ttatlas_compendium ;
 
@@ -477,12 +476,10 @@ ttatlas_compendium * New_ttatlas_compendium(char *atname)
 
    if (!atname) return(ttatlas_llist);
    if ((tto_count = atlas_n_points(atname)) <= 0) return(ttatlas_llist);
-   
    ttatlas_llist = (ttatlas_compendium *) calloc(1,sizeof(ttatlas_compendium));
    ttatlas_llist->reg_num = 0;
    ttatlas_llist->reg_label = (char **)calloc(tto_count,sizeof(char *));
    ttatlas_llist->reg_tto = (short *)calloc(tto_count,sizeof(short));
-   ttatlas_llist->reg_ttbrik = (short *)calloc(tto_count,sizeof(short));
    ttatlas_llist->reg_ttval = (short *)calloc(tto_count,sizeof(short));
 
    return(ttatlas_llist);
@@ -492,7 +489,8 @@ void DRAW_make_widgets(void)
 {
    XmString xstr ;
    ATLAS_POINT *tto_list=NULL;
-   
+   char title_str[256];
+
    /*** top level shell for window manager ***/
 
    shell =
@@ -889,7 +887,7 @@ void DRAW_make_widgets(void)
    } /* end of fillin */
 
    /*** 22 Aug 2001: stuff for TT Atlas Regions ***/
-   if( Atlas_With_Trimming("TT_Daemon",1, NULL) > 0 ){
+   if( Atlas_With_Trimming(Current_Atlas_Default_Name(),1, NULL) > 0 ){
       Widget rc ;
       int ii , jj , nr , qq ;
       XmString xstr ;
@@ -916,8 +914,10 @@ void DRAW_make_widgets(void)
                    NULL ) ;
 
        /*** label at top ***/
+       sprintf(title_str, "       Region to load from Atlas: %s",
+          Current_Atlas_Default_Name());
 
-       xstr = XmStringCreateLtoR( "       TT Atlas Region to Load" ,
+       xstr = XmStringCreateLtoR( title_str ,
                                   XmFONTLIST_DEFAULT_TAG ) ;
        (void) XtVaCreateManagedWidget(
                     "dialog" , xmLabelWidgetClass , rc ,
@@ -928,37 +928,19 @@ void DRAW_make_widgets(void)
                     NULL ) ;
        XmStringFree(xstr) ;
 
-       /*** make list of TT atlas regions to include ***/
+       /*** make list of atlas regions to include ***/
 
-      if (!(ttatlas_list = New_ttatlas_compendium("TT_Daemon"))) {
+      if (!(ttatlas_list = New_ttatlas_compendium(Current_Atlas_Default_Name()))) {
          ERROR_message("Failed compending. This should not happen");
       }
-      tto_list = atlas_points("TT_Daemon");
+      tto_list = atlas_points(Current_Atlas_Default_Name());
       nr = 0 ;
-      for( ii=0 ; ii < atlas_n_points("TT_Daemon") ; ii++ ){
-
-         if( strncmp(tto_list[ii].name,"Left  ",6) != 0 ) continue ; /* skip */
-         if( tto_list[ii].tdval == 0 )                    continue ; /* skip */
-
-         ttatlas_list->reg_label [nr] = strdup(tto_list[ii].name+6) ;
+      for( ii=0 ; ii < atlas_n_points(Current_Atlas_Default_Name()) ; ii++ ){
+         ttatlas_list->reg_label [nr] = strdup(tto_list[ii].name) ;
          ttatlas_list->reg_tto   [nr] = ii ;
-         ttatlas_list->reg_ttbrik[nr] = (tto_list[ii].tdlev==2) ? 0 : 1 ;
          ttatlas_list->reg_ttval [nr] = tto_list[ii].tdval ;
 
-         /* trim trailing '.'s */
-
-         qq = 0 ;
-         for( jj=strlen(ttatlas_list->reg_label[nr])-1         ;
-              jj > 0 && ttatlas_list->reg_label[nr][jj] == '.' ; jj -- ){
-
-            ttatlas_list->reg_label[nr][jj] = '\0' ; qq++ ;
-         }
-         if( qq > 0 ){
-            jj = strlen(ttatlas_list->reg_label[nr]) ;
-            ttatlas_list->reg_label[nr][jj] = ' ' ;
-         }
-
-         nr++ ;
+         nr++ ;  /* count how many regions actually have some non-zero value */
       }
       ttatlas_list->reg_num = nr ;
 
@@ -1443,21 +1425,22 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            and then use Fill in the A-P direction with a maximum\n"
   "            gap setting of 3 to fill in the slices you didn't draw.\n"
   "            (Then you could manually fix up the intermediate slices.)\n"
-  "        * TT Atlas Regions can be loaded into the edited volume.  The\n"
-  "            chosen region+hemisphere(s) will be loaded with the current\n"
-  "            Value.  'OverWrite' loading means that all voxels from\n"
-  "            the TT region will be replaced with the Value.\n"
+  "        * Atlas regions can be loaded from the current default atlas\n"
+  "            into the edited volume.  The chosen region+hemisphere(s)\n"
+  "            will be loaded with the current value.\n"
+  "            'OverWrite' loading means that all voxels from\n"
+  "               the atlas region will be replaced with the Value.\n"
   "            'InFill' loading means that only voxels that are currently\n"
   "            zero in the TT region will be replaced with the Value.\n"
-  "           N.B.: TT Atlas regions may not be good representations of\n"
+  "           N.B.: Atlas regions may not be good representations of\n"
   "                   any given subject's anatomy.  You will probably\n"
   "                   want to edit the mask after doing the loading.\n"
-  "                 This feature requires the presence of the TTatlas+tlrc\n"
-  "                   (or TTatlas.nii.gz) dataset in the plugin directory.\n"
+  "                 This feature requires the presence of the atlas\n"
+  "                   dataset (default is TTatlas+tlrc) in the plugin directory.\n"
   "                   It also requires that you be editing in +tlrc coordinates,\n"
   "                   or in +orig coordinates with a mapping to +tlrc\n"
   "                   coordinates having already been established.\n"
-  "                 Unlike Linear Fillin, TT Atlas drawing can be undone.\n"
+  "                 Unlike Linear Fillin, atlas drawing can be undone.\n"
   "\n"
   "Step 6) Undo and Redo.\n"
   "        * The last drawing operation can be undone -- that is,\n"
@@ -3024,7 +3007,10 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
 void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    THD_3dim_dataset *dseTT ;
-   byte *bb , *voxout , bval ;
+   byte *voxout , *bb;
+   short *ss, sval ;
+   float *ff;
+   MRI_IMAGE *b0im;
    int nvoxTT, nvoxout , xx , brik , iv,jv,kv , ijk ;
    int hbot,htop , nzTT,nyTT,nxTT,nxyTT ,
        nxout,nyout,nzout,nxyout , i,j,k,ip,jp,kp , nftot ;
@@ -3032,6 +3018,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
    float dxout,dyout,dzout , xorgout,yorgout,zorgout ;
    float z1,z2 , y1,y2 , x1,x2 , xx1,xx2,yy1,yy2,zz1,zz2 ;
    float f1,f2,f , g1,g2,g , h1,h2,h , sx,sy,sz , tx,ty,tz , sxyz ;
+   int at_sbi, fim_type, at_nsb; 
    THD_fvec3 vv ;
 
    /* sanity checks */
@@ -3040,19 +3027,16 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    if( !CAN_TALTO(im3d) ){ XBell(dc->display,100); return; }
 
-   /* get TTatlas+tlrc dataset */
+   /* get default atlas dataset, maybe TTatlas+tlrc */
    
-   if (!(dseTT = TT_retrieve_atlas_dset("TT_Daemon", 1))) {
+   if (!(dseTT = TT_retrieve_atlas_dset(Current_Atlas_Default_Name(), 1))) {
       return;   
    }
    DSET_load(dseTT) ;
 
    /* setup other info */
 
-   bval = ttatlas_list->reg_ttval [ ttatlas_region_av->ival ] ;
-   brik = ttatlas_list->reg_ttbrik[ ttatlas_region_av->ival ] ;
-   bb   = DSET_ARRAY(dseTT,brik) ;
-   if( bb == NULL ){ XBell(dc->display,100); return; }
+   sval = ttatlas_list->reg_ttval [ ttatlas_region_av->ival ] ;
 
    nvoxTT= DSET_NVOX(dseTT) ;
    nxTT  =dseTT->daxes->nxx  ; nyTT  =dseTT->daxes->nyy  ; nzTT  =dseTT->daxes->nzz  ;
@@ -3075,81 +3059,117 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
       case TTRR_HEMI_BOTH:  hbot= 0       ; htop=nxTT     ; break ;
    }
 
-   /* loop over voxels in the TTatlas+tlrc dataset,
+
+   /* loop over voxels in the default atlas dataset,
       transform to current dataset coordinates,
       count overlap (a la 3dfractionize)            */
 
-   for( kv=0 ; kv < nzTT ; kv++ ){
-    z1 = zorgTT + dzTT * (kv-0.5) ; z2 = zorgTT + dzTT * (kv+0.49999) ;
-
-    for( jv=0 ; jv < nyTT ; jv++ ){
-     y1 = yorgTT + dyTT * (jv-0.5) ; y2 = yorgTT + dyTT * (jv+0.49999) ;
-
-     for( iv=hbot ; iv < htop ; iv++ ){
-      ijk = iv + jv*nxTT + kv*nxyTT ;   /* 1D index of voxel (iv,jv,kv) */
-      if( bb[ijk] != bval ) continue ;  /* not the right value, so skip it */
-
-      x1 = xorgTT + dxTT * (iv-0.5) ; x2 = xorgTT + dxTT * (iv+0.49999) ;
-
-      /* input voxel (iv,jv,kv) spans coordinates [x1,x2] X [y1,y2] X [z1,z2] */
-
-      /* transform these corner coordinates to output dataset grid coordinates */
-
-      if( dset->view_type == VIEW_TALAIRACH_TYPE ){
-         xx1 = x1 ; yy1 = y1 ; zz1 = z1 ;
-         xx2 = x2 ; yy2 = y2 ; zz2 = z2 ;
-      } else {
-         LOAD_FVEC3(vv , x1,y1,z1) ;
-         vv = AFNI_transform_vector( im3d->anat_dset[VIEW_TALAIRACH_TYPE] ,
-                                     vv , im3d->anat_now ) ;
-         vv = THD_dicomm_to_3dmm( dset , vv );
-         UNLOAD_FVEC3(vv , xx1,yy1,zz1) ;
-
-         LOAD_FVEC3(vv , x2,y2,z2) ;
-         vv = AFNI_transform_vector( im3d->anat_dset[VIEW_TALAIRACH_TYPE] ,
-                                     vv , im3d->anat_now ) ;
-         vv = THD_dicomm_to_3dmm( dset , vv ) ;
-         UNLOAD_FVEC3(vv , xx2,yy2,zz2) ;
+   at_nsb = DSET_NVALS(dseTT);
+   for( at_sbi=0; at_sbi < at_nsb; at_sbi++) {
+      b0im = DSET_BRICK(dseTT, at_sbi);
+      if( b0im == NULL )
+         return ;
+      fim_type = b0im->kind ;
+      switch( fim_type ){
+         default:
+            return ;
+         case MRI_byte:
+            bb = MRI_BYTE_PTR(b0im);
+         break ;
+         case MRI_short:
+            ss = MRI_SHORT_PTR(b0im);
+         break ;
+         case MRI_float:
+            ff = MRI_FLOAT_PTR(b0im);
+         break ;
       }
 
-      /* [xx1,xx2] X [yy1,yy2] X [zz1,zz2] is now in coordinates of output dataset */
+      for( kv=0 ; kv < nzTT ; kv++ ){
+       z1 = zorgTT + dzTT * (kv-0.5) ; z2 = zorgTT + dzTT * (kv+0.49999) ;
 
-      /* compute indices into output dataset voxel (keeping fractions) */
+       for( jv=0 ; jv < nyTT ; jv++ ){
+        y1 = yorgTT + dyTT * (jv-0.5) ; y2 = yorgTT + dyTT * (jv+0.49999) ;
 
-      f1 = (xx1-xorgout)/dxout + 0.49999 ; f2 = (xx2-xorgout)/dxout + 0.49999 ;
-      if( f1 > f2 ){ tx = f1 ; f1 = f2 ; f2 = tx ; }
-      if( f1 >= nxout || f2 <= 0.0 ) continue ;
-      if( f1 < 0.0 ) f1 = 0.0 ;  if( f2 >= nxout ) f2 = nxout - 0.001 ;
+        for( iv=hbot ; iv < htop ; iv++ ){
+         ijk = iv + jv*nxTT + kv*nxyTT ;   /* 1D index of voxel (iv,jv,kv) */
 
-      g1 = (yy1-yorgout)/dyout + 0.49999 ; g2 = (yy2-yorgout)/dyout + 0.49999 ;
-      if( g1 > g2 ){ ty = g1 ; g1 = g2 ; g2 = ty ; }
-      if( g1 >= nyout || g2 <= 0.0 ) continue ;
-      if( g1 < 0.0 ) g1 = 0.0 ;  if( g2 >= nyout ) g2 = nyout - 0.001 ;
+         switch( fim_type ){
+            default:
+               continue ;  /* shouldn't ever get to this */
+            case MRI_byte:
+               if( bb[ijk] != (byte) sval ) continue ;  /* not the right value, so skip it */
+            break ;
+            case MRI_short:
+               if( ss[ijk] != sval ) continue ;  /* not the right value, so skip it */
+            break ;
+            case MRI_float:
+               if( ff[ijk] != (float) sval ) continue ;  /* not the right value, so skip it */
+            break ;
+         }
 
-      h1 = (zz1-zorgout)/dzout + 0.49999 ; h2 = (zz2-zorgout)/dzout + 0.49999 ;
-      if( h1 > h2 ){ tz = h1 ; h1 = h2 ; h2 = tz ; }
-      if( h1 >= nzout || h2 <= 0.0 ) continue ;
-      if( h1 < 0.0 ) h1 = 0.0 ;  if( h2 >= nzout ) h2 = nzout - 0.001 ;
 
-      /* input voxel covers voxels [f1,f2] X [g1,g2] X [h1,h2] in the output */
 
-      /* For example, [6.3,7.2] X [9.3,9.6] X [11.7,13.4], which must be     */
-      /* distributed into these voxels:                                      */
-      /*  (6,9,11), (7,9,11), (6,9,12), (7,9,12), (6,9,13), and (7,9,13)     */
+         x1 = xorgTT + dxTT * (iv-0.5) ; x2 = xorgTT + dxTT * (iv+0.49999) ;
 
-      for( f=f1 ; f < f2 ; f = ip ){
-         i = (int) f ; ip = i+1 ; tx = MIN(ip,f2) ; sx = tx - f ;
-         for( g=g1 ; g < g2 ; g = jp ){
-            j = (int) g ; jp = j+1 ; ty = MIN(jp,g2) ; sy = ty - g ;
-            for( h=h1 ; h < h2 ; h = kp ){
-               k = (int) h ; kp = k+1 ; tz = MIN(kp,h2) ; sz = tz - h ;
-               sxyz = sx * sy * sz ;
-               voxout[ i + j*nxout + k * nxyout ] += (byte)(100.0*sxyz) ;
+         /* input voxel (iv,jv,kv) spans coordinates [x1,x2] X [y1,y2] X [z1,z2] */
+
+         /* transform these corner coordinates to output dataset grid coordinates */
+
+         if( dset->view_type == VIEW_TALAIRACH_TYPE ){
+            xx1 = x1 ; yy1 = y1 ; zz1 = z1 ;
+            xx2 = x2 ; yy2 = y2 ; zz2 = z2 ;
+         } else {
+            LOAD_FVEC3(vv , x1,y1,z1) ;
+            vv = AFNI_transform_vector( im3d->anat_dset[VIEW_TALAIRACH_TYPE] ,
+                                        vv , im3d->anat_now ) ;
+            vv = THD_dicomm_to_3dmm( dset , vv );
+            UNLOAD_FVEC3(vv , xx1,yy1,zz1) ;
+
+            LOAD_FVEC3(vv , x2,y2,z2) ;
+            vv = AFNI_transform_vector( im3d->anat_dset[VIEW_TALAIRACH_TYPE] ,
+                                        vv , im3d->anat_now ) ;
+            vv = THD_dicomm_to_3dmm( dset , vv ) ;
+            UNLOAD_FVEC3(vv , xx2,yy2,zz2) ;
+         }
+
+         /* [xx1,xx2] X [yy1,yy2] X [zz1,zz2] is now in coordinates of output dataset */
+
+         /* compute indices into output dataset voxel (keeping fractions) */
+
+         f1 = (xx1-xorgout)/dxout + 0.49999 ; f2 = (xx2-xorgout)/dxout + 0.49999 ;
+         if( f1 > f2 ){ tx = f1 ; f1 = f2 ; f2 = tx ; }
+         if( f1 >= nxout || f2 <= 0.0 ) continue ;
+         if( f1 < 0.0 ) f1 = 0.0 ;  if( f2 >= nxout ) f2 = nxout - 0.001 ;
+
+         g1 = (yy1-yorgout)/dyout + 0.49999 ; g2 = (yy2-yorgout)/dyout + 0.49999 ;
+         if( g1 > g2 ){ ty = g1 ; g1 = g2 ; g2 = ty ; }
+         if( g1 >= nyout || g2 <= 0.0 ) continue ;
+         if( g1 < 0.0 ) g1 = 0.0 ;  if( g2 >= nyout ) g2 = nyout - 0.001 ;
+
+         h1 = (zz1-zorgout)/dzout + 0.49999 ; h2 = (zz2-zorgout)/dzout + 0.49999 ;
+         if( h1 > h2 ){ tz = h1 ; h1 = h2 ; h2 = tz ; }
+         if( h1 >= nzout || h2 <= 0.0 ) continue ;
+         if( h1 < 0.0 ) h1 = 0.0 ;  if( h2 >= nzout ) h2 = nzout - 0.001 ;
+
+         /* input voxel covers voxels [f1,f2] X [g1,g2] X [h1,h2] in the output */
+
+         /* For example, [6.3,7.2] X [9.3,9.6] X [11.7,13.4], which must be     */
+         /* distributed into these voxels:                                      */
+         /*  (6,9,11), (7,9,11), (6,9,12), (7,9,12), (6,9,13), and (7,9,13)     */
+
+         for( f=f1 ; f < f2 ; f = ip ){
+            i = (int) f ; ip = i+1 ; tx = MIN(ip,f2) ; sx = tx - f ;
+            for( g=g1 ; g < g2 ; g = jp ){
+               j = (int) g ; jp = j+1 ; ty = MIN(jp,g2) ; sy = ty - g ;
+               for( h=h1 ; h < h2 ; h = kp ){
+                  k = (int) h ; kp = k+1 ; tz = MIN(kp,h2) ; sz = tz - h ;
+                  sxyz = sx * sy * sz ;
+                  voxout[ i + j*nxout + k * nxyout ] += (byte)(100.0*sxyz) ;
+               }
             }
          }
-      }
 
-   }}} /* end of loop over voxels */
+   }}}} /* end of loop over voxels and sub-bricks */
 
    /** at this point, voxout[ijk] stores how much overlap each output
        voxel has with an Atlas voxel which had the target value;
@@ -3180,7 +3200,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
      SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
      if( recv_open ) AFNI_process_drawnotice( im3d ) ;
    } else {
-      fprintf(stderr,"++ No TT Atlas voxels found for some reason!?\a\n") ;
+      fprintf(stderr,"++ No atlas voxels found at all for some reason!?\a\n") ;
    }
 
    free(voxout) ; /* toss trash */

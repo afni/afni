@@ -8200,8 +8200,8 @@ STATUS(" -- managing Go to atlas position button, etc") ;
 
 #if 1
    XtSetSensitive( im3d->vwid->func->see_ttatlas_bbox->wrowcol ,
-             (Boolean)( im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE &&
-                        TT_retrieve_atlas_dset("TT_Daemon", 0)    != NULL                  ) ) ;
+          (Boolean)( im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE &&
+          TT_retrieve_atlas_dset(Current_Atlas_Default_Name(), 0) != NULL) ) ;
 #else
    XtSetSensitive( im3d->vwid->func->see_ttatlas_bbox->wrowcol , False ) ;
 #endif
@@ -8927,7 +8927,7 @@ ENTRY("AFNI_imag_pop_CB") ;
       }
    }
 
-   /*-- jump to a predetermined Talairach anatomical reference point --*/
+   /*-- jump to a predetermined atlas-based anatomical reference point --*/
 
    else if( w == im3d->vwid->imag->pop_talto_pb &&
             im3d->type == AFNI_3DDATA_VIEW      &&
@@ -8936,15 +8936,19 @@ ENTRY("AFNI_imag_pop_CB") ;
       {  /* initialize labels */
          char **at_labels=NULL ;
          int iii;
-         at_labels = atlas_chooser_formatted_labels("TT_Daemon");
+         char title_str[256];
+
+         at_labels = atlas_chooser_formatted_labels(Current_Atlas_Default_Name());
          if( ISQ_REALZ(seq) && at_labels ){
            if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) MCW_set_browse_select(1) ;
+
+           sprintf(title_str, "Brain Structure (from %s)", Current_Atlas_Default_Name());
            MCW_choose_strlist( seq->wbar ,
-                       "Brain Structure (from San Antonio Talairach Daemon)" ,
-                       atlas_n_points("TT_Daemon") , atlas_current_structure ,
+                       title_str ,
+                       atlas_n_points(Current_Atlas_Default_Name()) , atlas_current_structure ,
                        at_labels ,
                        AFNI_talto_CB , (XtPointer) im3d ) ;
-            for (iii=0; iii<atlas_n_points("TT_Daemon"); ++iii) {
+            for (iii=0; iii<atlas_n_points(Current_Atlas_Default_Name()); ++iii) {
                if (at_labels[iii]) free(at_labels[iii]);
             }
             free(at_labels); at_labels=NULL;
@@ -9004,32 +9008,29 @@ ENTRY("AFNI_imag_pop_CB") ;
 
          MCW_register_help( im3d->vwid->imag->pop_whereami_twin->wtext ,
           "Lists the brain structures near the crosshair focus point\n"
-          "according to the Talairach Daemon database (kindly provided\n"
-          "by Jack Lancaster and Peter Fox of RIC UTHSCSA).\n"
+          "according to a set of atlases defined in AFNI_atlas_spaces.niml\n"
+          "and limited by the environment variable,AFNI_ATLAS_LIST.\n"
+          "The default list includes the original Talairach Daemon database\n"
+          "(kindly provided by Jack Lancaster and Peter Fox of RIC UTHSCSA,\n"
+          "the cytoarchitectonic and macrolabel atlases provided by Simon\n"
+          "Eickhoff and Karl Zilles, and the probabilistic atlases provided\n"
+          "Rutvik Desai.\n"
           "\n"
           "The search is conducted outwards from the focus point, until\n"
-          "9 different structures are found, or a 7 mm radius is reached,\n"
+          "9 different structures are found, or a 7.5 mm radius is reached,\n"
           "whichever occurs first. (Distances are rounded to nearest 1 mm,\n"
-          "the grid spacing on which the database is constructed.) Labels\n"
-          "reported on different output lines came from different voxels.\n"
+          "by default.) The defaults can be adjusted with AFNI environment\n"
+          "Please see whereami help, README.environment for more details.\n"
           "\n"
-          "In the database, some voxels have 2 labels - a larger scale\n"
-          "'gyral' name and a finer scale 'area' name.  Locations that\n"
-          "are doubly labeled will appear with a listing like\n"
+          "In the database, voxels may have multiple labels for a particular\n"
+          "atlas. For example, the voxels may a larger scale 'gyral' name\n"
+          "and a finer scale 'area' name.  Locations that are doubly labeled\n"
+          "will appear with a listing like\n"
           "    Within 2 mm: Right Precuneus -AND- Right Brodmann area 31\n"
-          "In the database there are\n"
-          "    1,205,737 voxels with at least one label\n"
-          "      709,953 voxels with only a 'gyral' label\n"
-          "       15,898 voxels with only a 'area' label\n"
-          "      479,886 voxels with both types of labels\n"
-          "A list of all the labels (of either type) is presented by the\n"
-          "'Go to atlas location' control.\n"
-          "  In the TT_Daemon database,there are\n"
-          "           50 'gyral' labels (times 2 for Left and Right)\n"
-          "           68 'area' labels\n"
-          "          355 distinct combinations of labels\n"
+          "A list of all the labels for the principal default atlas is\n"
+          "presented by the 'Go to atlas location' control or from the\n"
+          "command line program, 'whereami -show_atlas_code', for any atlas.\n"
           "Note Very Well:\n"
-          "* This feature of AFNI is experimental, and is subject to change.\n"
           "* The Atlas is only useful as a ROUGH guide to determining where\n"
           "    you are in any individual brain.  Do not rely exclusively on\n"
           "    the Atlas for brain region identification: you must use your\n"
@@ -9114,7 +9115,8 @@ ENTRY("AFNI_imag_pop_CB") ;
 }
 
 /*---------------------------------------------------------------------
-   called when the talto chooser is set
+   called when the talto chooser is set - now "Go to Atlas position"
+   for generic atlas usage
 -----------------------------------------------------------------------*/
 
 void AFNI_talto_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
@@ -9140,13 +9142,13 @@ ENTRY("AFNI_talto_CB") ;
       EXRETURN ;
    }
 
-   if (!(tto_list = atlas_points("TT_Daemon"))) {
-      BEEPIT ; WARNING_message("Can't get daemon!@!#x!") ;
+   if (!(tto_list = atlas_points(Current_Atlas_Default_Name()))) {
+      BEEPIT ; WARNING_message("Can't get atlas: %s", Current_Atlas_Default_Name()) ;
       EXRETURN ;
    }
 
    nn = cbs->ival ;
-   if( nn < 0 || nn >= atlas_n_points("TT_Daemon") ) EXRETURN ;
+   if( nn < 0 || nn >= atlas_n_points(Current_Atlas_Default_Name()) ) EXRETURN ;
    atlas_current_structure = nn ;  /* index for structure in list for atlas */
 
    /* transform point from Dicom to local coords and go there */

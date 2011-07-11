@@ -274,7 +274,7 @@ ENTRY("THD_open_analyze") ;
      if( ori == NULL || strlen(ori) < 3 ) {
       static int nwarn=0 ;
       ori = "LPI"; /* set default LPI */
-      if( nwarn < 2 ){
+      if( nwarn < 1 ){
         WARNING_message("Assuming ANALYZE orientaion is LPI.\n"
                         "++    To change orientation or silence this message,\n"
                         "++    Set AFNI_ANALYZE_ORIENT to the proper orientation\n"
@@ -303,7 +303,7 @@ ENTRY("THD_open_analyze") ;
 
    if( AFNI_yesenv("AFNI_ANALYZE_AUTOCENTER") ){
      static int nwarn=0 ;
-     if( nwarn < 2 )
+     if( nwarn < 1 )
        WARNING_message("Autocentering datasets because"
                        " AFNI_ANALYZE_AUTOCENTER is set");
      orgxyz.xyz[0] = -0.5 * (nx-1) * dx ;
@@ -318,7 +318,7 @@ ENTRY("THD_open_analyze") ;
       if (!vie) {
         static int nwarn = 0 ;
         iview = VIEW_ORIGINAL_TYPE; 
-        if( nwarn < 2 ){
+        if( nwarn < 1 ){
           WARNING_message("Assuming view is +orig.\n"
                           "++    To change view or silence this message,\n"
                           "++    Set AFNI_ANALYZE_VIEW to the proper view\n"
@@ -331,7 +331,7 @@ ENTRY("THD_open_analyze") ;
               if (strcmp(vie, "tlrc") == 0) iview = VIEW_TALAIRACH_TYPE; 
          else if (strcmp(vie, "orig") == 0) iview = VIEW_ORIGINAL_TYPE;
          else if (strcmp(vie, "acpc") == 0) iview = VIEW_ACPCALIGNED_TYPE;
-         else if( nwarn < 2 ) {
+         else if( nwarn < 1 ) {
             WARNING_message("Bad value (%s) for environment \n"
                             "++    variable AFNI_ANALYZE_VIEW. Choose from:\n"
                             "++      orig or acpc or tlrc.\n"
