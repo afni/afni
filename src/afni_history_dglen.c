@@ -49,9 +49,19 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 11 , JUL, 2011 , DRG , "whereami" , 
+    MINOR , TYPE_NEW_ENV, 
+    "AFNI_ATLAS_COLORS and default atlas in AFNI GUI",
+    "Set atlas to use for Atlas colors, Go to atlas location,\n"
+    "Draw Dataset and Renderer. Name of atlas can be set in\n"
+    "environment and modified in the AFNI GUI environmentalism menu.\n"
+    "Several other environmental variables regarding atlas usage\n"
+    "can also be modified there too."
+} ,
+
 { 27 , JUN, 2011 , DRG , "whereami" , 
     MINOR , TYPE_NEW_ENV, 
-    "AFNI_WAMI_DEC_PLACES",
+    "AFNI_WHEREAMI_DEC_PLACES",
     "Set precision for whereami output\n"
     "Higher field data and animal atlases require higher precision.\n"
     "The default value used for focus point among template spaces is\n"
