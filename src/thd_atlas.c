@@ -16,6 +16,11 @@ extern int * SUMA_Dijkstra_generic (int N_Node,
                      int *N_isNodeInMesh, int Method_Number, 
                      float *Lfinal, int *N_Path,
                      int verb);
+static void niml_to_atlas_list(ATLAS_POINT_LIST *atp, char *atlas_file);
+static void adjust_atlas_point_list(ATLAS_POINT_LIST *atp, char *match_str,
+            float addval);
+static ATLAS_POINT_LIST *AFNI_atlas_list_to_atlas_point_list(
+        ATLAS_POINT *afni_at_pts, int npts);
 
 static char *preferred_atlas_name = NULL;
 static int **FirstNeighb=NULL;
@@ -1210,6 +1215,39 @@ void print_point_lists(ATLAS_LIST *xal)
       }
    }
    INFO_message("--------------------------");
+}
+
+/* return max length of a label in an atlas point list */
+int
+atlas_max_label_length(ATLAS_POINT *ap, int n_points)
+{
+   int i,len,maxlen=0;
+   
+   if(ap==NULL)
+      return;
+
+   for(i=0;i<n_points;i++) {
+      len = strlen(ap[i].name);
+      if(len>maxlen) maxlen = len;
+   }
+
+   return(maxlen);
+}
+
+/* mark if any atlas points have a non-zero level associated with them */
+int
+atlas_level(ATLAS_POINT *ap, int n_points)
+{
+   int i;
+   
+   if(ap==NULL)
+      return;
+
+   for(i=0;i<n_points;i++) {
+      if(ap[i].tdlev) return(1);
+   }
+
+   return(0);
 }
 
 /* print info about an atlas coordinate */

@@ -26,7 +26,7 @@ typedef struct {
 static TTRR_controls *ttc = NULL ;
 
 /*-- prototypes for internal functions --*/
-
+static void TTRR_setup_widgets( MCW_DC * dc );
 static void TTRR_action_CB       ( Widget, XtPointer, XtPointer ) ;
 static void TTRR_delete_window_CB( Widget, XtPointer, XtPointer ) ;
 static void TTRR_av_CB           ( MCW_arrowval * , XtPointer   ) ;
@@ -34,7 +34,7 @@ static void TTRR_av_CB           ( MCW_arrowval * , XtPointer   ) ;
 static void TTRR_load_file( char * ) ;                             /* 08 Aug 2002 */
 static void TTRR_save_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
 static void TTRR_load_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
-
+static void fill_str(char * instr, char ch, int maxlength);
 /*----------------------------------------------------------------------------
   Routine to create widgets for the TT atlas rendering controls
 ------------------------------------------------------------------------------*/
@@ -67,10 +67,10 @@ static MCW_action_item TTRR_act[] = {
 
 #define NMETHOD     5
 #define METHOD_OFF "Off"
-#define METHOD_GAF "Gyral/Area/Func"
-#define METHOD_AGF "Area/Gyral/Func"
-#define METHOD_FGA "Func/Gyral/Area"
-#define METHOD_FAG "Func/Area/Gyral"
+#define METHOD_GAF "First atlas then Overlay"
+#define METHOD_AGF "Last atlas then Overlay"
+#define METHOD_FGA "Overlay then first atlas"
+#define METHOD_FAG "Overlay then last atlas"
 
 static char *METHOD_strings[NMETHOD] = {
   METHOD_OFF ,  METHOD_GAF ,  METHOD_AGF ,  METHOD_FGA ,  METHOD_FAG
@@ -84,29 +84,23 @@ static char *METHOD_strings[NMETHOD] = {
 static char *HEMI_strings[NHEMI] = { HEMI_LEFT , HEMI_RIGHT , HEMI_BOTH } ;
 
 static char helpstring[] =
-  "The purpose of these controls is to enable display of the brain\n"
-  "regions defined by the Talairach Daemon database (generously\n"
-  "contributed by Jack Lancaster and Peter Fox of RIC UTHSCSA).\n"
-  "\n"
-  "In the database, some voxels have 2 labels - a larger scale\n"
-  "'gyral' name and a finer scale 'area' name; these are marked\n"
-  "with [G] and [A] in the region list.\n"
-  "In the database there are\n"
-  "    1,205,737 voxels with at least one label\n"
-  "      709,953 voxels with only a 'gyral' label\n"
-  "       15,898 voxels with only a 'area' label\n"
-  "      479,886 voxels with both types of labels\n"
-  "For example, the Parahippocampal Gyrus and the Hippocampus (area)\n"
-  "have a great deal of overlap.\n"
+ "The default list includes the original Talairach Daemon database\n"
+ "(kindly provided by Jack Lancaster and Peter Fox of RIC UTHSCSA,\n"
+ "the cytoarchitectonic and macrolabel atlases provided by Simon\n"
+ "Eickhoff and Karl Zilles, and the probabilistic atlases provided\n"
+ "Rutvik Desai.\n"
+ "\n"
+ "In the database, voxels may have multiple labels for a particular\n"
+ "atlas. For example, the voxels may a larger scale 'gyral' [G] name\n"
+ "and a finer scale 'area' [A] name. A list of all the labels for the\n"
+ "principal default atlas is presented here or from the command\n"
+ "line program, 'whereami -show_atlas_code', for any atlas.\n"
   "\n"
   "Method:\n"
   "  To enable display of the selected regions, you must choose the\n"
   "  Method to be something other than 'Off'.  The other Method choices\n"
-  "  determine the order in which color overlays take place; for example,\n"
-  "  'Gyral/Area/Func' means that a 'gyral' color, if present in a voxel,\n"
-  "  will overlay on top of any 'area' color there, which would in turn\n"
-  "  overlay on top of any functional color there.  At this time, there\n"
-  "  is no way to blend the colors from overlapping results.\n"
+  "  determine the order in which color overlays take place. At this\n"
+  "  time, there is no way to blend the colors from overlapping results.\n"
   "\n"
   "Hemisphere(s):\n"
   "  Use this to control which side(s) of the brain will have brain\n"
@@ -134,13 +128,9 @@ static char helpstring[] =
   "     button to force the proper redisplay ('Draw' isn't enough).\n"
   " * The region rendering only works if the dataset being drawn in the\n"
   "     2D image viewers and/or Render Dataset plugin is in the +tlrc\n"
-  "     coordinates sytem, and is at 1 mm resolution.\n"
-  " * The regions used here are derived from the axial slices in the\n"
-  "     Talairach-Tournoux Atlas.  Since these slices are several mm\n"
-  "     apart, the resolution of the regions in the I-S direction is\n"
-  "     fairly crude.  This means that the regions look 'blocky' in\n"
-  "     sagittal and coronal 2D images, but look smoother in axial images.\n"
-  " * The Atlas is only useful as a ROUGH guide to determining where you\n"
+  "     coordinates sytem. The atlas regions are resample to the underlay\n"
+  "     resolution.\n"
+  " * The atlas is only useful as a ROUGH guide to determining where you\n"
   "     are in any individual brain.  Do not rely exclusively on the Atlas\n"
   "     for brain region labeling: you must use your knowledge, skills,\n"
   "     and abilities as well.\n"
@@ -166,38 +156,62 @@ TTRR_controls * New_TTRR_controls(char *atname)
    ttlc->reg_ttbrik = (short *)calloc(tto_count,sizeof(short));
    ttlc->reg_ttval = (short *)calloc(tto_count,sizeof(short));
    ttlc->reg_ttovc = (short *)calloc(tto_count,sizeof(short));
-   
    return(ttlc);
 }
+
+void Free_TTRR_controls(TTRR_controls *ttlc)
+{
+   if(!ttlc) return;
+   free(ttlc->reg_av);
+   free(ttlc->reg_label);
+   free(ttlc->reg_tto);
+   free(ttlc->reg_ttbrik);
+   free(ttlc->reg_ttval);
+   free(ttlc->reg_ttovc);
+   free(ttlc);
+}
+
+
+void TTRR_resetup()
+{
+   MCW_DC *dc;
+   if(!ttc) return;  /* hasn't been setup yet, just wait for setup  */
+   dc= ttc->dc;
+   Free_TTRR_controls(ttc);
+   ttc = NULL;
+/*   TTRR_setup_widgets(dc);*/
+}
+
 
 static void TTRR_setup_widgets( MCW_DC * dc )
 {
    XmString xstr ;
-   char lbuf[256] , *ept ;
+   char lbuf[256] , *ept, TTRR_title[256] ;
    Widget toprc , bar=NULL , actar , frame , separator , label ;
-   int ww,hh,bww , ii ;
+   int ww,hh,bww , ii, n_points, maxlength, levelmark ;
    ATLAS_POINT *tto_list=NULL;
    
 ENTRY("TTRR_setup_widgets") ;
 
    /**** sanity checks ****/
 
-   if( dc == NULL || ttc != NULL ) EXRETURN ;
-
+   if( dc == NULL || ttc != NULL ) EXRETURN ;   /* might be better to check ttc->dc */
+                                                
    SHOW_AFNI_PAUSE ;
 
-   if (!(tto_list = atlas_points("TT_Daemon"))) {
+   if (!(tto_list = atlas_points(Current_Atlas_Default_Name()))) {
       ERROR_message("No atlas points!");
       EXRETURN ;
    }
-   
+
    /**** create output structure ****/
 
-   ttc = New_TTRR_controls("TT_Daemon"); /* will live forever */
+   ttc = New_TTRR_controls(Current_Atlas_Default_Name()); /* will live forever */
 
    ttc->dc = dc ;
 
-   ttc->av_invert = AFNI_yesenv( "AFNI_TTRR_INVERT" ) ;
+   /* if this is YES, inverts the whole line that contains the structure */
+   ttc->av_invert = AFNI_yesenv( "AFNI_TTRR_INVERT" ) ; 
 
    /**** create Shell that can be opened up later ****/
 
@@ -239,9 +253,9 @@ ENTRY("TTRR_setup_widgets") ;
              NULL ) ;
 
    /**** Label to inform the cretinous user what he's looking at ****/
+   sprintf(TTRR_title, "-- Control atlas: %s colors --",Current_Atlas_Default_Name());
 
-   xstr = XmStringCreateLtoR("-- Control Talairach Daemon display colors --" ,
-                             XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( TTRR_title, XmFONTLIST_DEFAULT_TAG ) ;
    label = XtVaCreateManagedWidget(
              "AFNI" , xmLabelWidgetClass ,  toprc ,
                 XmNlabelString , xstr ,
@@ -374,18 +388,28 @@ ENTRY("TTRR_setup_widgets") ;
            NULL ) ;
 
    /** compute information about regions **/
-   
-   ttc->reg_num = 0 ;
-   for( ii=0 ; ii < atlas_n_points("TT_Daemon") ; ii++ ){
+   n_points =  atlas_n_points(Current_Atlas_Default_Name());
+   maxlength = atlas_max_label_length(tto_list, n_points); /*maximum length of name */
+   levelmark = atlas_level(tto_list, n_points);   /* any structures marked with a level */
+   if(levelmark)
+      maxlength = maxlength+4; /*allow for [G]  or [A] in string */
 
-      if( strncmp(tto_list[ii].name,"Left  ",6) != 0 ) continue ; /* skip */
-      if( tto_list[ii].tdval == 0 )                    continue ; /* skip */
+   if(maxlength<20) maxlength = 20;  /* looks better with some trailing ....*/
+
+   ttc->reg_num = 0 ;
+   for( ii=0 ; ii < n_points ; ii++ ){
+      /*if( tto_list[ii].tdval == 0 )    continue ; */ /* skip */
 
            if( tto_list[ii].tdlev == 2 ) strcpy(lbuf,"[G] ") ;
       else if( tto_list[ii].tdlev == 4 ) strcpy(lbuf,"[A] ") ;
-      else                               continue ;               /* skip */
+      if((tto_list[ii].tdlev == 2)||(tto_list[ii].tdlev == 4)) {
+          strcat(lbuf,tto_list[ii].name) ;
+      }
+      else {
+          strcpy(lbuf,tto_list[ii].name) ;
+      }
 
-      strcat(lbuf,tto_list[ii].name+6) ;
+      fill_str(lbuf,'.', maxlength);   /* add periods up to a length of maxlength*/
 
       ttc->reg_label [ttc->reg_num] = strdup(lbuf) ;
       ttc->reg_tto   [ttc->reg_num] = ii ;
@@ -430,7 +454,7 @@ ENTRY("TTRR_setup_widgets") ;
    XtManageChild( frame ) ;
    XtManageChild( ttc->scrollw ) ;
    XtManageChild( toprc ) ;
-   XtRealizeWidget( ttc->shell ) ; NI_sleep(1) ;
+   XtRealizeWidget( ttc->shell ) ; NI_sleep(5) ;
 
    WATCH_cursorize( ttc->shell ) ;
    XmUpdateDisplay( ttc->shell ) ;
@@ -439,7 +463,6 @@ ENTRY("TTRR_setup_widgets") ;
 
 #define LUCK   5  /* we all need some */
 #define CMMAX 17  /* vertical size = CMMAX colormenus high */
-
    MCW_widget_geom( ttc->reg_av[0]->wrowcol , &ww , &hh , NULL,NULL ) ;
 
    XtVaGetValues( ttc->scrollw , XmNverticalScrollBar , &bar , NULL ) ;
@@ -450,7 +473,6 @@ ENTRY("TTRR_setup_widgets") ;
 
    /* but make sure window is at least wide
       enough for the Method and Hemisphere(s) widgets */
-
    MCW_widget_geom( ttc->meth_av->wrowcol , &ii  , NULL,NULL,NULL ) ;
    MCW_widget_geom( ttc->hemi_av->wrowcol , &bww , NULL,NULL,NULL ) ;
    bww += ii + LUCK ;
@@ -495,7 +517,6 @@ ENTRY("TTRR_setup_widgets") ;
    if( ept != NULL ) TTRR_load_file( ept ) ;
 
    /*** done!!! ***/
-
    SHOW_AFNI_READY ; EXRETURN ;
 }
 
@@ -617,7 +638,7 @@ ENTRY("TTRR_get_params") ;
    if( ttp == NULL ){
       ttp = myXtNew(TTRR_params) ;
       ttp->ttbrik = (byte *) malloc(sizeof(byte)*ttc->reg_num) ;
-      ttp->ttval  = (byte *) malloc(sizeof(byte)*ttc->reg_num) ;
+      ttp->ttval  = (short *) malloc(sizeof(short)*ttc->reg_num) ;
       ttp->ttovc  = (byte *) malloc(sizeof(byte)*ttc->reg_num) ;
    }
 
@@ -632,7 +653,7 @@ ENTRY("TTRR_get_params") ;
       ttc->reg_ttovc[ii] = ttc->reg_av[ii]->ival ;
       if( ttc->reg_ttovc[ii] > 0 ){
          ttp->ttbrik[jj] = (byte) ttc->reg_ttbrik[ii] ;
-         ttp->ttval [jj] = (byte) ttc->reg_ttval [ii] ;
+         ttp->ttval [jj] = (short) ttc->reg_ttval [ii] ;
          ttp->ttovc [jj] = (byte) ttc->reg_ttovc [ii] ;
          jj++ ;
       }
@@ -731,4 +752,15 @@ static void TTRR_save_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
      fprintf(fp, "%s = %s\n",name,color) ;
    }
    fclose(fp) ; return ;
+}
+
+/* add periods up to a length of maxlength*/
+static void
+fill_str(char * instr, char ch, int maxlength)
+{
+   int i;
+
+   for(i=strlen(instr); i<maxlength;i++)
+      instr[i] = ch;  /* replace characters in place in original string */
+   instr[maxlength] = '\0';
 }

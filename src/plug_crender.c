@@ -65,6 +65,7 @@ static char g_cren_hist[] =
 /***********************************************************************/
 
 #include "afni.h"
+#include "thd_atlas.h"
 #include "cox_render.h"
 #include "mcw_graf.h"
 #include "parser.h"
@@ -127,7 +128,7 @@ static float cutout_fstep = 5.0 ;
 
 #define RCREND_NUM_interp_modes    3
 static char * interp_mode_strings[] = { "Neighbor" , "Twostep" , "Linear" } ;
-static int    interp_mode[]    = { CREN_NN,CREN_TWOSTEP,CREN_LINEAR } ;
+/*static int    interp_mode[]    = { CREN_NN,CREN_TWOSTEP,CREN_LINEAR } ;*/
 
 static int   interp_ival   = CREN_NN ;
 
@@ -357,7 +358,7 @@ static int new_dset = 0 ;              /* Is it new?      */
 static int new_fset = 0 ;              /* Is func new?  28 June 2002 - rickr */
 static int dset_ival = 0 ;             /* Sub-brick index */
 static char dset_title[THD_MAX_NAME] ; /* Title string */
-
+static THD_3dim_dataset *atlas_ovdset; /* atlas overlay dataset - 07 Jul 2011 drg */
 static MRI_IMAGE * grim=NULL ;         /* volumes to render */
 
 static MRI_IMAGE * grim_showthru=NULL ;      /* 07 Jan 2000 */
@@ -4004,7 +4005,7 @@ void RCREND_accum_lab_CB( Widget w , XtPointer fd , MCW_choose_cbs *cbs )
      MCW_strncpy( accum_label , cbs->cval , 255 ) ;
 
      if( accum_lab_replace && renderings != NULL && imseq != NULL ){
-       int nn=-1 ; MRI_IMAGE *rim ;
+       int nn=-1 ;
        drive_MCW_imseq( imseq , isqDR_getimnr , (XtPointer)&nn ) ;
        if( nn >= 0 && nn < IMARR_COUNT(renderings) ){
          MRI_IMAGE *rim = IMARR_SUBIM(renderings,nn) ;
@@ -5271,8 +5272,11 @@ char * RCREND_choose_av_label_CB( MCW_arrowval * av , XtPointer cd )
 {
    static char blab[32] ;
    THD_3dim_dataset * dset = (THD_3dim_dataset *) cd ;
-   static char * lfmt[3] = { "#%1d %-14.14s" , "#%2d %-14.14s" , "#%3d %-14.14s"  } ;
+#ifdef USE_RIGHT_BUCK_LABELS
    static char * rfmt[3] = { "%-14.14s #%1d" , "%-14.14s #%2d" , "%-14.14s #%3d"  } ;
+#else
+   static char * lfmt[3] = { "#%1d %-14.14s" , "#%2d %-14.14s" , "#%3d %-14.14s"  } ;
+#endif
 
 ENTRY( "RCREND_choose_av_label_CB" );
 
@@ -5900,7 +5904,7 @@ ENTRY( "RCREND_func_widgets" );
                                             MCW_BB_noframe ,
                                             RCREND_see_ttatlas_CB , NULL ) ;
 
-     if( TT_retrieve_atlas_dset("TT_Daemon",0) == NULL )
+     if( TT_retrieve_atlas_dset(Current_Atlas_Default_Name(),0) == NULL )
        XtSetSensitive( wfunc_see_ttatlas_bbox->wrowcol , False ) ;
 
      XtManageChild(wrc) ;                                          /* 24 Jul 2001 */
@@ -7200,40 +7204,54 @@ void RCREND_overlay_ttatlas(void)
 {
    TTRR_params *ttp ;
    THD_3dim_dataset *dseTT ;
-   byte *b0 , *b1 , *ovar ;
-   int nvox , ii,jj , xx ;
-   int fwin , gwin , nreg , hemi, hbot=0; /* ZSS: initialized hbot 01/07/09*/
-   byte *brik , *val , *ovc , g_ov , a_ov , final_ov ;
+
+   int nvox;
+   int hemi, hbot=0; /* ZSS: initialized hbot 01/07/09*/
+
+   byte *b0, *brik, *ovc,  *ovar ;
+   short *s0, *val ;
+   float *f0;
+   MRI_IMAGE *b0im;
+   int gwin , fwin , nreg , ii,jj , nov ;
+   int at_sbi, fim_type, at_nsb; 
+   byte at_vox;
 
 ENTRY( "RCREND_overlay_ttatlas" );
-
-   /* sanity checks and setup */
-
-   if( ovim == NULL ) EXRETURN ;
-
-   nvox = ovim->nvox ;
 
 #if 0
 # define RET(s) do{fprintf(stderr,s);return;}while(0)
 #else
 # define RET(s) EXRETURN
 #endif
+   /* sanity checks and setup */
 
-   /* 01 Aug 2001: retrieve Atlas dataset depending on size of brick */
-#if 1
-   dseTT = TT_retrieve_atlas_dset_nz(ovim->nz) ;
-                                 if( dseTT == NULL ) RET("no dataset\n") ;
-#else
-   dseTT = TT_retrieve_atlas_dset("TT_Daemon",0) ; 
-   if( dseTT == NULL ) RET("no dataset\n") ;
-#endif
-
-   if( DSET_NVOX(dseTT) != nvox )                    RET("dataset mismatch\n");
+   if( ovim == NULL ) EXRETURN ; /* mri_image volume of overlay */
    ttp   = TTRR_get_params()   ; if( ttp   == NULL ) RET("no ttp\n") ;
 
-   DSET_load(dseTT) ;
-   b0 = DSET_ARRAY(dseTT,0) ; b1 = DSET_ARRAY(dseTT,1) ;
-   if( b0 == NULL || b1 == NULL )                    RET("no bricks\n") ;
+   nvox = ovim->nvox ;
+
+
+   /* 01 Aug 2001: retrieve Atlas dataset depending on size of brick */
+   STATUS("checking if Atlas dataset can be loaded") ;
+   /* note the renderer uses the setting from the Atlas colors menu,
+      so the atlas should be loaded, and color settings should
+      already exist */
+
+/*   atlas_ovdset = current_atlas_ovdset();*/
+   if((!atlas_ovdset) || 
+      ( DSET_NVOX(atlas_ovdset) != nvox)){
+       if(atlas_ovdset)     /* reset the atlas overlay dataset */
+          DSET_unload(atlas_ovdset);
+       dseTT = TT_retrieve_atlas_dset(Current_Atlas_Default_Name(),0);
+       if( dseTT == NULL ) RET("no atlas dataset\n") ;
+       DSET_load(dseTT) ;
+       /* resample dataset to match underlay (consequently overlay dataset )*/
+       atlas_ovdset = r_new_resam_dset ( dseTT, dset,  0, 0, 0, NULL, 
+                                       MRI_NN, NULL, 1, 0);
+       if(!atlas_ovdset) RET("could not resample atlas dataset\n");
+   }
+
+   if( DSET_NVOX(atlas_ovdset) != nvox )    RET("dataset mismatch\n");
 
    ovar = MRI_BYTE_PTR(ovim) ;
 
@@ -7245,6 +7263,7 @@ ENTRY( "RCREND_overlay_ttatlas" );
    val  = ttp->ttval ;
    ovc  = ttp->ttovc ;
 
+   /* not using the hemisphere stuff for now */
    hemi = ttp->hemi ;
    switch( hemi ){
       case TTRR_HEMI_LEFT:  hbot=HEMX+1 ; break ;
@@ -7252,33 +7271,55 @@ ENTRY( "RCREND_overlay_ttatlas" );
       case TTRR_HEMI_BOTH:  hbot= 0     ; break ;
    }
 
-   /* ready to do something */
-
-   for( xx=0,ii=hbot ; ii < nvox ; ii++ ){
-
-      if( hemi != TTRR_HEMI_BOTH ){
-         if( xx == HEMX ){
-            xx = 0 ; ii += HEMX ; continue ;  /* skip ahead 1/2 row */
-         }
-         xx++ ;
+   STATUS("doing Atlas overlay") ;
+   at_nsb = DSET_NVALS(atlas_ovdset);
+   nov = 0;
+   /* check each sub-brick of the atlas for matches */
+   for( at_sbi=0; at_sbi < at_nsb; at_sbi++) {
+      b0im = DSET_BRICK(atlas_ovdset,at_sbi);
+      if( b0im == NULL )
+         EXRETURN ;
+      fim_type = b0im->kind ;
+      switch( fim_type ){
+         default:
+            EXRETURN ;
+         case MRI_byte:
+            b0 = MRI_BYTE_PTR(b0im);
+         break ;
+         case MRI_short:
+            s0 = MRI_SHORT_PTR(b0im);
+         break ;
+         case MRI_float:
+            f0 = MRI_FLOAT_PTR(b0im);
+         break ;
       }
-
-      if( ovar[ii] && fwin ) continue ;  /* function wins */
 
       /* check atlas dataset for hits */
+      for( ii=0 ; ii < ovim->nvox ; ii++ ){
+         /* if the overlay array is already set in the overlay */
+         /* earlier atlas voxel, keep it*/
+         if( (ovar[ii] && gwin ) ) continue ;
 
-      g_ov = a_ov = 0 ;
-      for( jj=0 ; (g_ov==0 || a_ov==0) && jj<nreg ; jj++ ){
-              if( b0[ii] == val[jj] ) g_ov = ovc[jj] ;
-         else if( b1[ii] == val[jj] ) a_ov = ovc[jj] ;
+         for( jj=0 ; jj<nreg ; jj++ ){
+               switch( fim_type ){
+                  default:
+                  case MRI_byte:
+                     at_vox = (byte) b0[ii];
+                  break ;
+                  case MRI_short:
+                     at_vox = (byte) s0[ii];
+                  break ;
+                  case MRI_float:
+                     at_vox = (byte) (f0[ii]+.1); /* show in overlay if >=0.4 */
+                  break ;
+               }
+
+               if( at_vox == val[jj] ) {
+                  ovar[ii] = ovc[jj] ;
+                  nov++ ;
+               }
+         }
       }
-
-      if( g_ov==0 && a_ov==0 ) continue ;  /* no hit */
-
-      if( g_ov && (gwin || a_ov==0) ) final_ov = g_ov ;
-      else                            final_ov = a_ov ;
-
-      ovar[ii] = final_ov ;
    }
 
    EXRETURN ;

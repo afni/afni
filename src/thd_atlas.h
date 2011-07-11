@@ -132,16 +132,7 @@ NI_element *NI_find_next_element(NI_stream ns, char *name);
 void AFNI_atlas_list_to_niml(void);
 void atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file,
              int n_regions);
-/*static int write_niml_string(char *nimlstring, NI_stream ns);*/
 NI_element *atlas_point_to_niml_element(ATLAS_POINT *at_pt);
 char *atlas_point_to_niml_string(ATLAS_POINT *at_pt);
-static void niml_to_atlas_list(ATLAS_POINT_LIST *atp, char *atlas_file);
-static void adjust_atlas_point_list(ATLAS_POINT_LIST *atp, char *match_str,
-            float addval);
-
-/* static void niml_string_to_atlas_point(char *niml_string, ATLAS_POINT *at_pt);
- */
-static ATLAS_POINT_LIST *AFNI_atlas_list_to_atlas_point_list(
-        ATLAS_POINT *afni_at_pts, int npts);
 int genx_load_atlas_dset(ATLAS *atlas);
 int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas);

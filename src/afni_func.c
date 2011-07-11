@@ -8,6 +8,9 @@
 
 #include "afni.h"
 #include "afni_plugout.h"
+#include "thd_atlas.h"
+
+static THD_3dim_dataset *atlas_ovdset = NULL;
 
 /*-------------------------------------------------------------------
    This routine is also used by the macros
@@ -1705,116 +1708,164 @@ MRI_IMAGE * AFNI_ttatlas_overlay( Three_D_View *im3d ,
 {
    THD_3dim_dataset *dseTT ;
    TTRR_params *ttp ;
-   byte *b0 , *b1 , *brik, *val, *ovc , g_ov,a_ov,final_ov ;
-   short *ovar ;
-   MRI_IMAGE *ovim=NULL , *b0im , *b1im ;
+   byte *b0 , *b1 , *brik,  *ovc , g_ov,a_ov,final_ov ;
+   short *s0, *ovar, *val, *fovar ;
+   float *f0;
+   MRI_IMAGE *ovim=NULL , *b0im, *fovim=NULL;
    int gwin , fwin , nreg , ii,jj , nov ;
+   float fimfac;
+   int at_sbi, fim_type, at_vox, at_nsb; 
 
 ENTRY("AFNI_ttatlas_overlay") ;
 
    /* setup and sanity checks */
 
-   STATUS("checking if have Atlas dataset") ;
-
-   /* 01 Aug 2001: retrieve atlas based on z-axis size of underlay dataset */
-   dseTT = TT_retrieve_atlas_dset_nz( DSET_NZ(im3d->anat_now) ) ;
-                                 if( dseTT == NULL )      RETURN(NULL) ;
-
-   /* make sure Atlas and current dataset match in size */
-
-   STATUS("checking if Atlas and anat dataset match") ;
-
-   if( DSET_NVOX(dseTT) != DSET_NVOX(im3d->anat_now) )    RETURN(NULL) ;
-
    /* make sure we are actually drawing something */
 
    STATUS("checking if Atlas Colors is on") ;
-
    ttp = TTRR_get_params() ; if( ttp == NULL )            RETURN(NULL) ;
 
-   /* at this time, hemisphere processing doesn't work in this function */
+   STATUS("checking if Atlas dataset can be loaded") ;
 
-#if 0
-   switch( ttp->hemi ){
-      case TTRR_HEMI_LEFT:  hbot=HEMX+1 ; break ;
-      case TTRR_HEMI_RIGHT: hbot= 0     ; break ;
-      case TTRR_HEMI_BOTH:  hbot= 0     ; break ;
+   if((!atlas_ovdset) || 
+      ( DSET_NVOX(atlas_ovdset) != DSET_NVOX(im3d->anat_now))){
+       if(atlas_ovdset)
+          DSET_unload(atlas_ovdset);
+       dseTT = TT_retrieve_atlas_dset(Current_Atlas_Default_Name(),0);
+       if( dseTT == NULL ) RETURN(NULL) ;
+       DSET_load(dseTT) ;
+       if(atlas_ovdset)    /* reset the atlas overlay dataset */
+          DSET_unload(atlas_ovdset);
+       atlas_ovdset = r_new_resam_dset ( dseTT, im3d->anat_now,  0, 0, 0, NULL, 
+                                       MRI_NN, NULL, 1, 0);
+/*       DSET_unload(dseTT);*/
+       if(!atlas_ovdset) RETURN(NULL);
    }
-#endif
 
+   if( DSET_NVOX(atlas_ovdset) != DSET_NVOX(im3d->anat_now) ){
+      WARNING_message(
+         "Voxels do not match between resampled atlas and the underlay dataset");
+      RETURN(NULL) ;
+   }
    /* get slices from TTatlas dataset */
-
    STATUS("loading Atlas bricks") ;
 
-   DSET_load(dseTT) ;
-   b0im = AFNI_slice_flip( n , 0 , RESAM_NN_TYPE , ax_1,ax_2,ax_3 , dseTT ) ;
-   if( b0im == NULL )                                     RETURN(NULL) ;
-
-   b1im = AFNI_slice_flip( n , 1 , RESAM_NN_TYPE , ax_1,ax_2,ax_3 , dseTT ) ;
-   if( b1im == NULL ){ mri_free(b0im) ;                   RETURN(NULL) ; }
+   /* extract slice from right direction from atlas */
+   b0im = AFNI_slice_flip( n , 0 , RESAM_NN_TYPE , ax_1,ax_2,ax_3 ,
+                           atlas_ovdset ) ;
+   if( b0im == NULL )
+      RETURN(NULL) ;
 
    /* make a new overlay image, or just operate on the old one */
+   STATUS("making new overlay for Atlas") ;
+   ovim = mri_new_conforming( b0im , MRI_short ) ;   /* new overlay */
+   ovar = MRI_SHORT_PTR(ovim) ;
+   memset( ovar , 0 , ovim->nvox * sizeof(short) ) ;
 
-   if( fov == NULL ){
-      STATUS("making new overlay for Atlas") ;
-      ovim = mri_new_conforming( b0im , MRI_short ) ;   /* new overlay */
-      ovar = MRI_SHORT_PTR(ovim) ;
-      memset( ovar , 0 , ovim->nvox * sizeof(short) ) ;
-   } else{
-      STATUS("re-using old overlay for Atlas") ;
-      ovim = fov ;                                      /* old overlay */
-      ovar = MRI_SHORT_PTR(ovim) ;
-      if( ovim->nvox != b0im->nvox ){                     /* shouldn't */
-         mri_free(b0im) ; mri_free(b1im) ; RETURN(NULL) ; /* happen!  */
-      }
-   }
-
-   b0 = MRI_BYTE_PTR(b0im) ; b1 = MRI_BYTE_PTR(b1im) ;
-
-   /* fwin => function 'wins' over Atlas */
-   /* gwin => gyral Atlas brick 'wins' over 'area' Atlas brick */
+   /* fwin => function 'wins' over Atlas - overlay image gets priority */
+   /* gwin => gyral Atlas brick 'wins' over 'area' Atlas brick - */
 
    fwin = (ttp->meth == TTRR_METH_FGA) || (ttp->meth == TTRR_METH_FAG) ;
    gwin = (ttp->meth == TTRR_METH_FGA) || (ttp->meth == TTRR_METH_GAF) ;
-
    nreg = ttp->num ;    /* number of 'on' regions     */
    brik = ttp->ttbrik ; /* which sub-brick in atlas    */
    val  = ttp->ttval ;  /* which code in that sub-brick */
    ovc  = ttp->ttovc ;  /* which overlay color index   */
 
    /* loop over image voxels, find overlays from Atlas */
-
    STATUS("doing Atlas overlay") ;
-
-   for( nov=ii=0 ; ii < ovim->nvox ; ii++ ){
-
-      if( ovar[ii] && fwin ) continue ; /* function wins */
-
-      /* check Atlas 'on' regions for hits */
-
-      g_ov = a_ov = 0 ;
-      for( jj=0 ; (g_ov==0 || a_ov==0) && jj<nreg ; jj++ ){
-              if( b0[ii] == val[jj] ) g_ov = ovc[jj] ;
-         else if( b1[ii] == val[jj] ) a_ov = ovc[jj] ;
+   at_nsb = DSET_NVALS(atlas_ovdset);
+   nov = 0;
+   for( at_sbi=0; at_sbi < at_nsb; at_sbi++) {
+      b0im = AFNI_slice_flip( n,at_sbi,RESAM_NN_TYPE,ax_1,ax_2,ax_3,
+                             atlas_ovdset);
+      if( b0im == NULL )
+         RETURN(NULL) ;
+      fim_type = b0im->kind ;
+      switch( fim_type ){
+         default:
+            RETURN(NULL) ;
+         case MRI_byte:
+            b0 = MRI_BYTE_PTR(b0im);
+         break ;
+         case MRI_short:
+            s0 = MRI_SHORT_PTR(b0im);
+         break ;
+         case MRI_float:
+            f0 = MRI_FLOAT_PTR(b0im);
+         break ;
       }
 
-      if( g_ov==0 && a_ov==0 ) continue ;  /* no hit */
+      for( ii=0 ; ii < ovim->nvox ; ii++ ){
+         /* if the overlay array is already set in the overlay */
+         /* earlier atlas voxel, keep it*/
+         if( (ovar[ii] && gwin ) ) continue ;
 
-      /* find the winner */
+         /* check Atlas 'on' regions for hits */
+         for( jj=0 ; jj<nreg ; jj++ ){
+            switch( fim_type ){
+               default:
+               case MRI_byte:
+                  at_vox = (int) b0[ii];
+               break ;
+               case MRI_short:
+                  at_vox = (int) s0[ii];
+               break ;
+               case MRI_float:
+                  at_vox = (int) (f0[ii]+.1); /* show in overlay if >=0.4 */
+               break ;
+            }
 
-      if( g_ov && (gwin || a_ov==0) ) final_ov = g_ov ;
-      else                            final_ov = a_ov ;
+            if( at_vox == val[jj] ) {
+               ovar[ii] = ovc[jj] ;
+               nov++ ;
+            }
+         }
 
-      ovar[ii] = final_ov ;  /* and the winner is ... */
-      nov++ ;
+      }
+      mri_free(b0im) ;
    }
 
-   mri_free(b0im) ; mri_free(b1im) ;  /* free at last */
+   if(PRINT_TRACING)
+      { char str[256]; sprintf(str,"Atlas overlaid %d pixels",nov); STATUS(str); }
 
-if(PRINT_TRACING)
-{ char str[256]; sprintf(str,"Atlas overlaid %d pixels",nov); STATUS(str); }
+   if(fov == NULL)   /* if there was no overlay, return what we have */
+      RETURN(ovim);
 
-   RETURN(ovim) ;
+   STATUS("re-using old overlay for Atlas") ;
+   fovim = fov ;                                      /* old overlay */
+   fovar = MRI_SHORT_PTR(ovim) ;
+   if( fovim->nvox != b0im->nvox ){                    /* shouldn't happen!  */
+         mri_free(ovim); RETURN(NULL) ;          
+   }
+   nov = 0;
+   for( ii=0 ; ii < ovim->nvox ; ii++ ){
+      /* if the overlay array is already set in the overlay, keep it*/
+      if( (fovar[ii]!=0) && fwin ) continue;
+      if(ovar[ii]!=0) {
+         fovar[ii] = ovar[ii];
+         nov++;
+      }
+   }
+
+   mri_free(b0im);
+   mri_free(ovim);
+   RETURN(fovim);
+}
+
+/* use to force reload of atlas for new default */
+void
+reset_atlas_ovdset()
+{
+   DSET_unload(atlas_ovdset);
+   atlas_ovdset = NULL;
+}
+
+/* get the current resampled dataset used for overlay
+THD_3dim_dataset *
+current_atlas_ovdset()
+{
+   return(atlas_ovdset);
 }
 
 /*---------------------------------------------------------------------*/
