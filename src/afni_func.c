@@ -1861,7 +1861,7 @@ reset_atlas_ovdset()
    atlas_ovdset = NULL;
 }
 
-/* get the current resampled dataset used for overlay
+/* get the current resampled dataset used for overlay */
 THD_3dim_dataset *
 current_atlas_ovdset()
 {
