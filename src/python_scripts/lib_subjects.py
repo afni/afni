@@ -792,6 +792,7 @@ class SubjectList(object):
          print '** constant dataset names (%s)' % dlist[0]
          print '   trying directories...'
          dlist = [s.dset for s in self.subjects]
+
       slist = UTIL.list_minus_glob_form(dlist, hpad, tpad)
 
       # in the case of diretories, check for success
@@ -1054,7 +1055,12 @@ class SubjectList(object):
 
       sstr = ''
       for subj in self.subjects:
-         if sdir: dset = '$%s/%s' % (sdir, subj.dfile)
+         if sdir:
+            # see if the dataset is in a directory underneath
+            cdir = UTIL.child_dir_name(self.common_dir, subj.ddir)
+            if UTIL.is_trivial_dir(cdir): cstr = ''
+            else: cstr = '%s/' % cdir
+            dset = '$%s/%s%s' % (sdir, cstr, subj.dfile)
          else:    dset = subj.dset
          sstr += '%*s%s "%s[%s]" \\\n%*s "%s[%s]" \\\n' % \
                  (indent,    '', subj.sid, dset, bsub,
@@ -1079,9 +1085,15 @@ class SubjectList(object):
 
       sstr = ''
       for subj in self.subjects:
-         if sdir: dset = '$%s/%s' % (sdir, subj.dfile)
+         if sdir:
+            # see if the dataset is in a directory underneath
+            cdir = UTIL.child_dir_name(self.common_dir, subj.ddir)
+            if UTIL.is_trivial_dir(cdir): cstr = ''
+            else: cstr = '%s/' % cdir
+            dset = '$%s/%s%s' % (sdir, cstr, subj.dfile)
          else:    dset = subj.dset
          sstr += '%*s%s "%s[%s]" \\\n' % (indent, '', subj.sid, dset, bsub)
+
       return sstr
 
 if __name__ == '__main__':

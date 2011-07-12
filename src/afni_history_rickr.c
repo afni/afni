@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, JUL, 2011, RCR, "gen_group_command.py", MINOR, TYPE_BUG_FIX,
+   "fixed case of partial path match to dsets",
+   "Problem found by J Jarcho."
+ } ,
+
  { 11, JUL, 2011, RCR, "gen_ss_review_scripts.py", MAJOR, TYPE_NEW_PROG,
    "for generating single subject review scripts",
    "To be run by the afni_proc.py proc script or directly by users."
