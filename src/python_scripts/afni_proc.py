@@ -267,12 +267,15 @@ g_history = """
     2.56 Jul 06, 2011:
         - create anat_final dset, to be clear it is aligned with the stats
         - suggest uber_subject.py in -ask_me dialog
+    2.57 Jul 13, 2011:
+        - run gen_ss_review_scripts.py: generate single subject review scripts
+        - and execute any resulting 'basic' review script
 """
 
-g_version = "version 2.56, July 6, 2011"
+g_version = "version 2.57, July 13, 2011"
 
 # version of AFNI required for script execution
-g_requires_afni = "4 Nov 2010"
+g_requires_afni = "13 Jul 2011"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -352,9 +355,11 @@ class SubjProcSream:
         self.align_epre = 'ext_align_epi' # copied align epi base prefix
         self.rm_rm      = 1             # remove rm.* files (user option)
         self.have_rm    = 0             # have rm.* files (such files exist)
-        self.gen_review = '@epi_review.$subj' # filename for gen_epi_review.py
-        self.test_stims = 1             # test stim_files for appropriateness
-        self.test_dsets = 1             # test datasets for existence
+        self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
+        self.made_ssr_scr = 0           # did we make subj review scripts
+        self.ssr_basic    = '@ss_review_basic' # basic review script
+        self.test_stims   = 1           # test stim_files for appropriateness
+        self.test_dsets   = 1           # test datasets for existence
 
         self.ricor_reg    = None        # ricor reg to apply in regress block
         self.ricor_nreg   = 0           # number of regs in ricor_reg
@@ -797,10 +802,10 @@ class SubjProcSream:
             self.tlrcanat = self.anat.new(new_view='+tlrc')
 
         opt = opt_list.find_opt('-gen_epi_review')  # name epi review script
-        if opt != None: self.gen_review = opt.parlist[0]
+        if opt != None: self.epi_review = opt.parlist[0]
 
         opt = opt_list.find_opt('-no_epi_review') # no epi review script
-        if opt != None: self.gen_review = None
+        if opt != None: self.epi_review = None
 
         opt = opt_list.find_opt('-keep_rm_files')
         if opt != None: self.rm_rm = 0
@@ -1091,12 +1096,12 @@ class SubjProcSream:
                 if self.verb>3: block.show('+d post command creation: ')
                 if self.verb>4: print '+d %s cmd: \n%s'%(block.label, cmd_str)
 
-        if self.gen_review:
+        if self.epi_review:
             cmd_str = db_cmd_gen_review(self)
             if cmd_str:
                 self.fp.write(add_line_wrappers(cmd_str))
                 if self.verb > 1:
-                    print "+d generated EPI review script %s" % self.gen_review
+                    print "+d generated EPI review script %s" % self.epi_review
             else:
                 errs += 1
                 if self.verb > 1:
@@ -1479,13 +1484,14 @@ class SubjProcSream:
 
     # and last steps
     def finalize_script(self):
-        str = '# %s\n\n' % block_header('auto block: cleanup')
+        str = '# %s\n\n' % block_header('auto block: finalize')
         self.fp.write(str)
 
         if self.rm_rm and self.have_rm:
             self.fp.write('# remove temporary rm.* files\n'
                           '\\rm -f rm.*\n\n')
 
+        # move or remove pre-processing files
         if self.user_opts.find_opt('-move_preproc_files'):
             cmd_str = \
               "# move preprocessing files to 'preproc.data' directory\n"   \
@@ -1497,6 +1503,13 @@ class SubjProcSream:
               "# remove preprocessing files to save disk space\n"   \
               "\\rm dfile.r??.1D pb??.$subj.r??.* rm.*\n\n"
             self.fp.write(add_line_wrappers(cmd_str))
+
+        # at the end, if the basic review script is here, run it
+        if self.epi_review:
+           ss = '# if the basic subject review script is here, run it\n' \
+                '# (want this to be the last text output)\n'             \
+                'if ( -e %s ) ./%s\n\n' % (self.ssr_basic, self.ssr_basic)
+           self.fp.write(ss)
 
         self.fp.write('# return to parent directory\n'
                       'cd ..\n\n')
