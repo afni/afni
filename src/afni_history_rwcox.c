@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 8 , JUL , 2011 , RWC , "AFNI" , MICRO , TYPE_BUG_FIX ,
+  { 13 , JUL , 2011 , RWC , "3dTcorrMap" , MINOR , TYPE_BUG_FIX ,
+   "Bug in computation of indx" ,
+   "The mask is turned into an index table of active voxel indx[].  However,\n"
+   "constant voxels were removed from the mask AFTER indx[] was created,\n"
+   "which is stupid.  This is fixed now, and Zhark will be chastised." } ,
+
+ { 8 , JUL , 2011 , RWC , "AFNI" , MICRO , TYPE_BUG_FIX ,
    "Tips HTML window crashes on kampos (Solaris)" ,
    "Debugging shows XmHTML crashed when rendering different-than-normal\n"
    "fonts.  Solution = strip font-changing HTML tags out of file before\n"

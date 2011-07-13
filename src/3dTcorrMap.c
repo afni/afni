@@ -250,6 +250,14 @@ int main( int argc , char *argv[] )
        "Output Options: (at least one of these must be given!)\n"
        "---------------\n"
        "  -Mean pp  = Save average correlations into dataset prefix 'pp'\n"
+       "            ** As pointed out to me by NK, '-Mean' is the same\n"
+       "               as computing the correlation map with the 1D file\n"
+       "               that is the mean of all the normalized time series\n"
+       "               in the mask -- that is, a form of the global signal.\n"
+       "               Such a calculation could be done much faster with\n"
+       "               program 3dTcorr1D.\n"
+       "            ** Nonlinear combinations of the correlations, as done by\n"
+       "               the options below, can't be done in such a simple way.\n"
        "  -Zmean pp = Save tanh of mean arctanh(correlation) into 'pp'\n"
        "  -Qmean pp = Save RMS(correlation) into 'pp'\n"
        "  -Pmean pp = Save average of squared positive correlations into 'pp'\n"
@@ -660,6 +668,30 @@ int main( int argc , char *argv[] )
      INFO_message("computing for all %d voxels!",nmask) ;
    }
 
+   /*--- load input data ---*/
+
+   if( !DSET_LOADED(xset) ){
+     INFO_message("Loading input dataset") ;
+     DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
+   }
+
+   /* check for constant voxels, and remove them from the mask */
+
+   xsar = (float *)malloc( sizeof(float)*ntime ) ;
+   for( ii=0 ; ii < nvox ; ii++ ){
+     if( mask[ii] == 0 ) continue ;
+     (void)THD_extract_array( ii , xset , 0 , xsar ) ;
+     for( kk=1 ; kk < ntime && xsar[kk] == xsar[0] ; kk++ ) ; /*nada*/
+     if( kk == ntime ) mask[ii] = 0 ; /* xsar is constant */
+   }
+   free(xsar) ;
+   ii = THD_countmask( nvox , mask ) ;
+   if( ii < nmask ){
+     if( ii > 9 ) ININFO_message("only %d voxels in dataset are non-constant"  ,ii);
+     else         ERROR_exit    ("only %d voxels in dataset are non-constant!?",ii);
+     nmask = ii ;
+   }
+
    /* create indx[jj] = voxel index in dataset whence
                         jj-th extracted time series comes from */
 
@@ -891,30 +923,6 @@ int main( int argc , char *argv[] )
        ERROR_exit("Output dataset %s already exists!",
                   DSET_HEADNAME(HHset)) ;
      tross_Make_History( "3dTcorrMap" , argc,argv , HHset ) ;
-   }
-
-   /*--- load input data and pre-process it ---*/
-
-   if( !DSET_LOADED(xset) ){
-     INFO_message("Loading input dataset") ;
-     DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
-   }
-
-   /* check for constant voxels, and remove them from the mask */
-
-   xsar = (float *)malloc( sizeof(float)*ntime ) ;
-   for( ii=0 ; ii < nvox ; ii++ ){
-     if( mask[ii] == 0 ) continue ;
-     (void)THD_extract_array( ii , xset , 0 , xsar ) ;
-     for( kk=1 ; kk < ntime && xsar[kk] == xsar[0] ; kk++ ) ; /*nada*/
-     if( kk == ntime ) mask[ii] = 0 ; /* xsar is constant */
-   }
-   free(xsar) ;
-   ii = THD_countmask( nvox , mask ) ;
-   if( ii < nmask ){
-     if( ii > 9 ) ININFO_message("only %d voxels in dataset are non-constant"  ,ii);
-     else         ERROR_exit    ("only %d voxels in dataset are non-constant!?",ii);
-     nmask = ii ;
    }
 
    /* make neighborhood mask for -Mseed, if needed */
@@ -1230,6 +1238,12 @@ int main( int argc , char *argv[] )
      Tcount = Mcsum = Zcsum = Qcsum = 0.0f ;
      Pcsum = 0.0f ; nPcsum = 0 ;
      for( iv=0 ; iv < N_iv ; ++iv ) Tvcount[iv] = 0.0f ;
+
+if( 0 ){
+  INFO_message("correlations for ii=%d indx=%d",ii,indx[ii]) ;
+  for( jj=0 ; jj < nmask ; jj++ ) fprintf(stderr," %.3f",ccar[jj]) ;
+  fprintf(stderr,"\n") ;
+}
 
      if (COset) {
          int ijk = (COmask) ? ii : indx[ii] ;
