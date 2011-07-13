@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, JUL, 2011, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "run gen_ss_review_scripts.py and any resulting 'basic' review script",
+   NULL
+ } ,
+
+ { 13, JUL, 2011, RCR, "gen_group_command.py", MICRO, TYPE_NEW_OPT,
+   "added -exit0 and babbled about possible artifact tests",
+   NULL
+ } ,
+
  { 11, JUL, 2011, RCR, "gen_group_command.py", MINOR, TYPE_BUG_FIX,
    "fixed case of partial path match to dsets",
    "Problem found by J Jarcho."

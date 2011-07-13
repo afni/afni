@@ -18,9 +18,10 @@ g_history = """
 
     0.0  20 Jun, 2011: initial revision
     0.1  08 Jul, 2011: added -on_surface, which might not be so useful
+    0.2  13 Jul, 2011: let plist be list of strings or floats
 """
 
-g_version = '0.1 (July 8, 2011)'
+g_version = '0.2 (July 13, 2011)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -486,7 +487,8 @@ class SurfClust(object):
       if self.cvars.val('on_surface') != 'yes':
          cmd += 'set vol_mask    = %s\n' % self.LV.vmask
 
-      plist =  [ '%g'%p for p in U.pthr_list ]
+      # as a list, these might come is as strings or floats, be generic
+      plist =  [ '%s'%p for p in U.pthr_list ]
       cmd += '\n'                                       \
              '# iterations and blur/clust parameters\n' \
              'set niter       = %d\n'                   \
