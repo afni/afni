@@ -25,6 +25,7 @@ or keystrokes during this time.
  <li> <a href="#imageviewerkeys">Keyboard Shortcuts: Image Viewer Window</a>
  <li> <a href="#graphviewerkeys">Keyboard Shortcuts: Graph Viewer Window</a>
  <li> <a href="#sliderkeys">Keyboard Shortcuts: Threshold Slider</a>
+ <li> <a href="#locks">Locking Controllers Together</a>
 </ul>
 
 <hr><p>
@@ -95,7 +96,7 @@ To use AFNI, you must have some data stored in a format that the program underst
       the 'UnderLay' and 'OverLay' button in the second column of the AFNI
       controller.
   <ul>
-       <li> To control whether the color overlay is visible, click on the 
+       <li> To control whether the color overlay is visible, click on the
           'See OverLay' toggle button.
        <li> To manage how the numbers in the overlay dataset are converted into
           colors, click on 'Define OverLay' to open up a new control panel.
@@ -346,6 +347,93 @@ slider's 'thumb' to move the keyboard input focus to this control.
 <p>
 The Left and Right arrow keys can similarly be used in the image viewer
 slice index slider to move 1 slice backward or forward at a time.
+
+<p><hr>
+<a name="locks"></a>
+<center><h2>Locking Controllers Together
+  &nbsp; &nbsp; <small><a href="#top">** Top **</a></small>
+</h2></center>
+
+AFNI controllers are labeled by letters in the window title bars;
+the first one is [A], the second one is [B], and so on.  You use
+the 'New' button in the lower left corner to open a new AFNI controller.
+You close an AFNI controller (and all of it child viewer windows)
+with the 'done' button, or with the windowing system's controls.
+
+<p>
+Multiple AFNI controllers can have some
+of their viewing controls locked together, so that changing an item
+in one controller changes the same item in the other one.
+To be less mysterious, here are the different items that can
+be locked, some via the use of Unix environment variables:
+<p>
+<ul>
+  <li> <b><tt>AFNI_ALWAYS_LOCK</tt></b>:<br>
+       Crosshair xyz-coordinates: this feature is turned on by
+       default, so that clicking in a viewer window (image or graph)
+       in one controller causes ALL windows in all controllers to
+       jump to the same focus location.  If you want the viewers
+       belonging separate controllers to operate independently,
+       set this variable to NO.
+       <ul><li> On the 'Define Datamode' control panel, at the
+                bottom is a menu labeled 'Lock'.  This menu lets
+                you micro-manage some details about how the
+                lock between controllers is enforced.
+           <li> You can exempt some controllers from being locked
+                by clicking OFF their toggle buttons on this menu.
+           <li> You can have the time indexes of different controllers
+                also be locked by clicking ON the 'Time&nbsp;Lock' toggle button.
+           <li> You can lock spatial coordinates by the voxel 3D ijk-indexes
+                (rather than xyz-coordinate) by clicking ON the 'IJK&nbsp;Lock'
+                toggle button.
+       </ul>
+
+<p><li> <b><tt>AFNI_THRESH_LOCK</tt></b>:<br>
+        This variable is used to lock the Define Overlay threshold
+        sliders together.  There are 3 values that you can use:
+        <ul><li> NO = each controller's slider is independent
+            <li> YES = the numerical value on the sliders are locked
+            <li> P-VALUE = the p-value for the sliders are locked
+        </ul>
+        When you drag a threshold slider, the other ones will only
+        change when you release the mouse button -- they don't slide
+        together, but will just jump to the final value.
+
+<p><li> <b><tt>AFNI_PBAR_LOCK</tt></b>:<br>
+        If this variable is set to YES, then the DEFINE OVERLAY
+        color bars (the "pbars") will be coordinated.  Changes to
+        one pbar will be transmitted to the other controllers.
+
+<p><li> <b><tt>AFNI_RANGE_LOCK</tt></b>:<br>
+        If this variable is set to YES, then the OLay range values of
+        different AFNI controllers that are Lock-ed together will be
+        coordinated.  Changes in one controller will be reflected in
+        the others immediately.
+
+<p><li> <b><tt>AFNI_SLAVE_THRTIME</tt></b>:<br>
+        When the underlay and overlay datasets both are time-dependent, switching
+        the time index will change both the underlay and overlay sub-bricks, but
+        NOT the threshold sub-brick.  If you want the time index control to change
+        the threshold sub-brick also, then set this variable to YES.
+
+<p><li> <b><tt>AFNI_SLAVE_FUNCTIME</tt></b>:<br>
+        When the underlay and overlay datasets both are time-dependent, switching
+        the time index will change both the underlay and overlay sub-bricks.  If
+        you want the time index control to change ONLY the underlay sub-brick,
+        then set this variable to NO.
+
+<p><li> <b><tt>AFNI_SLAVE_BUCKETS_TOO</tt></b>:<br>
+        Set this to YES if you want to make changing the time index in the underlay
+        dataset change the sub-brick index in the overlay dataset even when the
+        overlay is a 'bucket' dataset without a time axis (e.g., TR is undefined).
+
+<p><li> Right-click popup menu above slider: item '<b><tt>Thr&nbsp;=&nbsp;OLay+1&nbsp;?</tt></b>'<br>
+        If you click this toggle button ON, then changing the OLay sub-brick index will cause the
+        Thr sub-brick index to change the the OLay index plus one.  This feature is to make it
+        easy to navigate through 3dDeconvolve or 3dREMLfit output datasets, where each beta
+        fit coefficient is immediately followed by its t-statistic.
+
+</ul>
 
 </body>
 </html>
