@@ -1239,11 +1239,11 @@ int main( int argc , char *argv[] )
      Pcsum = 0.0f ; nPcsum = 0 ;
      for( iv=0 ; iv < N_iv ; ++iv ) Tvcount[iv] = 0.0f ;
 
-if( 0 ){
+#if 0
   INFO_message("correlations for ii=%d indx=%d",ii,indx[ii]) ;
   for( jj=0 ; jj < nmask ; jj++ ) fprintf(stderr," %.3f",ccar[jj]) ;
   fprintf(stderr,"\n") ;
-}
+#endif
 
      if (COset) {
          int ijk = (COmask) ? ii : indx[ii] ;
