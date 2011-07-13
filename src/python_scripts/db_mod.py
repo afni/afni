@@ -2463,16 +2463,17 @@ def db_cmd_regress(proc, block):
     nopt = block.opts.find_opt('-regress_no_ideal_sum')
     # opt should always be set, so let nopt override
     if opt and opt.parlist and not nopt:
-        first = (polort+1) * proc.runs
-        last = first + len(proc.stims) - 1
         # get regressors of interest from X-matrix, rather than in python
         # (this requires check_date of 2 Nov 2010)
         cmd = cmd +                                                        \
                "# compute sum of non-baseline regressors from the X-matrix\n" \
                "# (use 1d_tool.py to get list of regressor colums)\n"      \
                "set reg_cols = `1d_tool.py -infile %s -show_%s`\n"         \
-               '3dTstat -sum -prefix %s %s"[$reg_cols]"\n\n' %             \
-               (proc.xmat, "indices_interest", opt.parlist[0], proc.xmat)
+               '3dTstat -sum -prefix %s %s"[$reg_cols]"\n\n'               \
+               '# also, create a stimulus-only X-matrix, for easy review\n'\
+               '1dcat %s"[$reg_cols]" > X.stim.xmat.1D\n\n'                \
+                % (proc.xmat, "indices_interest", opt.parlist[0],
+                   proc.xmat, proc.xmat)
 
     # make a copy of the "final" anatomy, called "anat_final.$subj"
     if proc.view == '+tlrc': aset = proc.tlrcanat
@@ -3222,15 +3223,20 @@ def db_cmd_empty(proc, block):
 
 # create a gen_epi_review.py command
 def db_cmd_gen_review(proc):
-    if not proc.gen_review: return None
+    if not proc.epi_review: return None
 
     tblk = proc.find_block('tcat')
 
-    cmd = "# %s\n"                                                      \
+    cmd = "# %s\n\n"                                                    \
           "# generate a review script for the unprocessed EPI data\n"   \
           "gen_epi_review.py -script %s \\\n"                           \
-          "    -dsets %s\n\n" % (block_header('auto block: gen_epi_review.py'),
-               proc.gen_review, proc.dset_form_wild('tcat',proc.origview))
+          "    -dsets %s\n\n"                                           \
+          % (block_header('auto block: generate review scripts'),
+               proc.epi_review, proc.dset_form_wild('tcat',proc.origview))
+
+    cmd += '# generate scripts to review single subject results\n'      \
+           '# (try with defaults, but do not allow bad exit status)\n'  \
+           'gen_ss_review_scripts.py -exit0\n\n'
 
     return cmd
 
