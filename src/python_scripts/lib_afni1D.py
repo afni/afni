@@ -1197,6 +1197,78 @@ class Afni1D:
       if verb > 0: print 'rows = %d, cols = %d' % (self.nt, self.nvec)
       else:        print '%d %d' % (self.nt, self.nvec)
 
+   def get_max_displacement(self, dtype=1):
+      """dtype = 1: enorm
+
+            compute the maximum pairwise euclidean displacement among the
+            N-dimensional coordinates (e.g. motion params)
+
+            - so compute max(dist(x,y)) over all x, y coordinate pairs
+
+         dtype = 0: max abs
+
+            compute max absolue pairwise displacement among the N dimensions
+
+            - so compute max(abs(v_i,j - v_i,k)) over all all dimensions i
+              and j,k index pairs
+            - or compute as max(max(v_i)-min(v_i)) over dimensions i
+      """
+
+      maxdiff = 0
+
+      if dtype == 0:    # max vector displacement
+         maxdiff = max([max(vec)-min(vec) for vec in self.mat])
+
+      else:             # max euclidean distance
+
+         # get all distances, a 2D list of the form [[DIST, i, j]]
+         # (so length is NT choose 2 = (NT*(NT-1)/2), which is possibly long)
+
+         mat = self.mat                 # help the text to fit
+         en = UTIL.euclidean_norm
+         dlist = [[en([mat[i][r1]-mat[i][r2] for i in range(self.nvec)]),
+                     r1, r2] for r1 in range(self.nt) for r2 in range(r1)]
+
+         # and grab the biggest
+         dlist.sort()
+         maxdiff = dlist[-1][0]
+         
+         if self.verb > 1:
+            i = dlist[-1][1]
+            j = dlist[-1][2]
+            print '++ max edisp %s between indices %d and %d' % (maxdiff, i, j)
+
+         del(dlist)
+
+      return maxdiff
+
+   def get_max_displacement_str(self, mesg='', enorm=2, verb=1):
+      """display the maximum displacement based on enorm
+            enorm = 1   : absolute displacement over dims only
+            enorm = 2   : enorm only
+            enorm = 3   : both
+      """
+
+      rstr = ''         # return string
+
+      if enorm == 1 or enorm == 3:
+         maxabval = self.get_max_displacement(0)
+      if enorm:
+         maxenorm = self.get_max_displacement(1)
+
+      if verb > 0:
+         if enorm == 1:   rstr = 'max_param_diff = %g' % maxabval
+         elif enorm == 3: rstr = 'max_param_diff = %g, max_enorm_diff = %g' \
+                                 % (maxabval, maxenorm)
+         else:            rstr = 'max_enorm_diff = %g' % maxenorm
+      else:
+         if enorm == 1:   rstr = '%g' % maxabval
+         elif enorm == 3: rstr = '%g %g' % (maxabval, maxenorm)
+         else:            rstr = '%g' % maxenorm
+
+      if mesg: return "%s %s" % (mesg, rstr)
+      else: return rstr
+
    def get_indices_str(self, ind_types):
       """return an index list (sub-brick selector form) for the
          following groups:

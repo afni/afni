@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, JUL, 2011, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -show_max_displace, for maximum motion displacement",
+   NULL
+ } ,
+
+ { 14, JUL, 2011, RCR, "slow_surf_clustsim.py", MICRO, TYPE_ENHANCE,
+   "show date per iter block and add ./ to 3dcalc prefix",
+   NULL
+ } ,
+
  { 13, JUL, 2011, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "run gen_ss_review_scripts.py and any resulting 'basic' review script",
    NULL
