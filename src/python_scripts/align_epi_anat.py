@@ -2535,7 +2535,7 @@ class RegWrap:
             self.exists_msg(n.input())
       elif use_ss == '3dAutomask': #Automask epi
          n = e.new(prefix)
-         j = e.new("junk")
+         j = e.new("__tt_am_%s" % prefix)
          if (not n.exist() or ps.rewrite or ps.dry_run()):
             n.delete(ps.oexec)
             com = shell_com(  \
