@@ -70,7 +70,7 @@ int main( int argc , char *argv[] )
    }
 
    mainENTRY("3dTcorr1D main"); machdep(); AFNI_logger("3dTcorr1D",argc,argv);
-   PRINT_VERSION("3dTcorr1D") ;
+   PRINT_VERSION("3dTcorr1D") ; THD_check_AFNI_version("3dTcorr1D") ;
 
    /*-- option processing --*/
 
