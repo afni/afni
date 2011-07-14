@@ -3472,6 +3472,7 @@ int main
   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
    PRINT_VERSION("3dNLfim") ; AUTHOR(PROGRAM_AUTHOR);
    mainENTRY("3dNLfim main") ; machdep() ;
+   THD_check_AFNI_version("3dNLfim") ;
 
   {
     int new_argc ; char ** new_argv ;
