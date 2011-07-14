@@ -764,9 +764,13 @@ class TcshCommandWindow(QtGui.QMainWindow):
       # create layout, for either 1 or 2 sub-windows
       layout = QtGui.QGridLayout()
 
+      # try to apply a fixed-with font
+      set_font_family(self.Edit_out, "courier", bold=True)
+
       if sepwin:
          offset = 8
          self.Edit_err = QtGui.QTextEdit()
+         set_font_family(self.Edit_err, "courier", bold=True)
          layout.addWidget(self.Edit_out, 0, 0, offset, 5)
          layout.addWidget(self.Edit_err, offset, 0, offset, 5)
          offset += 8
@@ -928,9 +932,13 @@ class ProcessWindow(QtGui.QMainWindow):
       # create layout, for either 1 or 2 sub-windows
       layout = QtGui.QGridLayout()
 
+      set_font_family(self.Edit_out, "courier")
+      set_font_family(self.Edit_hist, "courier")
+
       if sepwin:
          offset = 8
          self.Edit_err = QtGui.QTextEdit()
+         set_font_family(self.Edit_err, "courier")
          layout.addWidget(self.Edit_out, 0, 0, offset, 5)
          layout.addWidget(self.Edit_err, offset, 0, offset, 5)
          offset += 8
@@ -1119,6 +1127,27 @@ class PyCommandWindow(QtGui.QMainWindow):
 
 # end PyCommandWindow class
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# generic functions
+def set_font_family(obj, family, bold=False):
+   """set an object's font class and bold type"""
+
+   # none of this seems to work, what am I missing?
+
+   font = obj.currentFont()
+   font.setFamily(family)
+   font.setBold(bold)
+   obj.setCurrentFont(font)
+
+   # obj.setCurrentFont(QtGui.QFont('fixed'))
+
+   #qtf = QtGui.QTextCharFormat()
+   #qtf.setFontFixedPitch(True)
+   #obj.setCurrentCharFormat(qtf)
+
+   return
+
 
 if __name__ == '__main__':
    app = QtGui.QApplication(sys.argv)

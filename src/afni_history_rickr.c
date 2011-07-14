@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, JUL, 2011, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "added 'max motion displacement' to basic script",
+   NULL
+ } ,
+
  { 14, JUL, 2011, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -show_max_displace, for maximum motion displacement",
    NULL
