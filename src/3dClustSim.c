@@ -1084,6 +1084,7 @@ int main( int argc , char **argv )
   mainENTRY("3dClustSim"); machdep();
   AFNI_logger("3dClustSim",argc,argv);
   PRINT_VERSION("3dClustSim"); AUTHOR("RW Cox and BD Ward");
+  THD_check_AFNI_version("3dClustSim") ;
 
   get_options( argc , argv ) ;
 

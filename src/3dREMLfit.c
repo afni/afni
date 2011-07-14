@@ -1275,6 +1275,7 @@ int main( int argc , char *argv[] )
    PRINT_VERSION("3dREMLfit"); mainENTRY("3dREMLfit main"); machdep();
    AFNI_logger("3dREMLfit",argc,argv); AUTHOR("RWCox");
    (void)COX_clock_time() ;
+   THD_check_AFNI_version("3dREMLfit");
 
    /**------- scan command line --------**/
 
