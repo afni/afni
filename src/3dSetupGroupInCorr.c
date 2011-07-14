@@ -248,6 +248,7 @@ int main( int argc , char * argv[] )
    mainENTRY("3dSetupGroupInCorr"); machdep();
    AFNI_logger("3dSetupGroupInCorr",argc,argv);
    PRINT_VERSION("3dSetupGroupInCorr"); AUTHOR("RW Cox");
+   THD_check_AFNI_version("3dSetupGroupInCorr") ;
 
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){

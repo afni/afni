@@ -175,6 +175,7 @@ main (int argc, char *argv[])
   machdep ();
   AFNI_logger ("3dDWItoDT", argc, argv);
   PRINT_VERSION("3dDWItoDT") ; AUTHOR("Daniel Glen") ;
+  THD_check_AFNI_version("3dDWItoDT") ;
 
   nopt = 1;
   nbriks = 6;		/* output contains 6 sub-briks by default */
