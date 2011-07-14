@@ -19,9 +19,10 @@ g_history = """
     0.0  20 Jun, 2011: initial revision
     0.1  08 Jul, 2011: added -on_surface, which might not be so useful
     0.2  13 Jul, 2011: let plist be list of strings or floats
+    0.3  14 Jul, 2011: show date per iter block and use ./ in 3dcalc prefix
 """
 
-g_version = '0.2 (July 13, 2011)'
+g_version = '0.3 (July 14, 2011)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -304,6 +305,8 @@ class SurfClust(object):
       cmd +=                                                               \
         '# for each iteration block, process $itersize sets of z-scores\n' \
         'foreach iter ( `count -digits 3 1 $niter` )\n\n'                  \
+        '   # track time for each iteration\n'                             \
+        '   echo "== iter block $iter (size $itersize) @ `date`"\n\n'      \
         + cmd_3dcalc + cmd_v2s + cmd_ss + cmd_clust +                      \
         'end   # of foreach iter loop\n\n'
 
@@ -387,11 +390,11 @@ class SurfClust(object):
       if self.cvars.val('on_surface') == 'yes':
          clist = [ \
             '3dcalc -a $empty_surf $bset -expr "gran(0,1)" \\\n',
-            '       -prefix surf.noise.$iter.gii -datum float\n\n' ]
+            '       -prefix ./surf.noise.$iter.gii -datum float\n\n' ]
       else:
          clist = [ \
             '3dcalc -a $vol_mask $bset -expr "bool(a)*gran(0,1)" \\\n',
-            '       -prefix vol.noise.$iter -datum float\n\n' ]
+            '       -prefix ./vol.noise.$iter -datum float\n\n' ]
 
       return istr + istr.join(dlist) + istr + istr.join(clist)
 

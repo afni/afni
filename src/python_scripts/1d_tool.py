@@ -224,6 +224,17 @@ examples (very basic for now):
                     -set_nruns 3                        \\
                     -split_into_pad_runs mot.padded
 
+   15. Show the maximum pairwise displacement in the motion parameter file.
+       So over all TRs pairs, find the biggest displacement.
+
+       In one direction it is easy (AP say).  If the minimum AP shift is -0.8
+       and the maximum is 1.5, then the maximum displacement is 2.3 mm.  It
+       is less clear in 6-D space, and instead of trying to find an enveloping
+       set of "coordinates", distances between all N choose 2 pairs are
+       evaluated (brute force).
+
+        1d_tool.py -infile dfile.rall.1D -show_max_displace
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -366,6 +377,8 @@ general options:
    -show_indices_baseline       : display column indices for baseline
    -show_indices_motion         : display column indices for motion regressors
    -show_indices_interest       : display column indices for regs of interest
+   -show_max_displace           : display max displacement (from motion params)
+                                  - the maximum pairwise distance (enorm)
    -show_rows_cols              : display the number of rows and columns
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
@@ -471,9 +484,13 @@ g_history = """
    0.22 Nov  4, 2010 - fixed print vs. return problem in -show_indices
    0.23 Dec 16, 2010 - updates to file type (looks like) errors and warnings
    0.24 May 27, 2010 - added -split_into_pad_runs (for regress motion per run)
+   1.00 Jul 14, 2011
+        - call this a release version, kept forgetting
+          (maybe release v2 can be when dealing with married timing is robust)
+        - added -show_max_displace (see example 15)
 """
 
-g_version = "1d_tool.py version 0.24, May 27, 2011"
+g_version = "1d_tool.py version 1.00, July 14, 2011"
 
 
 class A1DInterface:
@@ -511,6 +528,7 @@ class A1DInterface:
       self.cormat_cutoff   = -1         # if > 0, apply to show_cormat_warns
       self.show_censor_count= 0         # show count of censored TRs
       self.show_cormat_warn= 0          # show cormat warnings
+      self.show_displace   = 0          # max_displacement (0,1,2)
       self.show_indices    = 0          # bitmask for index lists to show
                                         # (base, motion, regs of interest)
       self.show_label_ord  = 0          # show the label ordering
@@ -696,6 +714,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_labels', 0, [], 
                       helpstr='display the labels from the file')
+
+      self.valid_opts.add_opt('-show_max_displace', 0, [], 
+                      helpstr='display maximum displacements over TRs')
 
       self.valid_opts.add_opt('-show_rows_cols', 0, [], 
                       helpstr='display the number of rows and columns')
@@ -935,6 +956,9 @@ class A1DInterface:
          elif opt.name == '-show_labels':
             self.show_labels = 1
 
+         elif opt.name == '-show_max_displace':
+            self.show_displace = 3
+
          elif opt.name == '-show_rows_cols':
             self.show_rows_cols = 1
 
@@ -1099,6 +1123,9 @@ class A1DInterface:
       if self.show_indices:
          istr = self.adata.get_indices_str(self.show_indices)
          print istr
+
+      if self.show_displace:
+         print self.adata.get_max_displacement_str(verb=self.verb)
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
