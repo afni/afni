@@ -59,6 +59,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       tcat_dset            pb00.FT.r01.tcat+orig.HEAD
       outlier_dset         outcount.rall.1D
       enorm_dset           motion_FT_enorm.1D
+      motion_dset          dfile.rall.1D
       volreg_dset          pb02.FT.r01.volreg+tlrc.HEAD
       xmat_regress         X.xmat.1D
       stats_dset           stats.FT+tlrc.HEAD
@@ -93,8 +94,9 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       -subj SID                 : subject ID
       -rm_trs N                 : number of TRs removed per run
       -num_stim N               : number of main stimulus classes
-      -enorm_dset DSET          : euclidean norm of motion params
+      -motion_dset DSET         : motion parameters
       -outlier_dset DSET        : outlier fraction time series
+      -enorm_dset DSET          : euclidean norm of motion params
       -mot_limit LIMIT          : (optional) motion limit - maybe for censoring
       -out_limit LIMIT          : (optional) outlier fraction limit
       -xmat_regress XMAT        : X-matrix file used in regression (X.xmat.1D)
@@ -198,6 +200,12 @@ echo "average motion (per TR)   : $mmean"
 set mcount = `1deval -a $enorm_dset -expr "step(a-$mot_limit)"      \\
                         | grep -v ' 0$' | wc -l`
 echo "num TRs above mot limit   : $mcount"
+
+if ( $?motion_dset ) then
+    # compute the maximum motion displacement over all TR pairs
+    set disp = `1d_tool.py -infile $motion_dset -show_max_displace -verb 0`
+    echo "max motion displacement   : $disp"
+endif
 
 # ------------------------------------------------------------
 # report outlier limit, average and number of TRs exceeding limit
@@ -356,6 +364,7 @@ g_eg_uvar.subj            = 'FT'
 g_eg_uvar.rm_trs          = 2
 g_eg_uvar.num_stim        = 2
 g_eg_uvar.enorm_dset      = 'motion_FT_enorm.1D'
+g_eg_uvar.motion_dset     = 'dfile.rall.1D'
 g_eg_uvar.outlier_dset    = 'outcount.rall.1D'
 g_eg_uvar.mot_limit       = 0.3
 g_eg_uvar.out_limit       = 0.1
@@ -374,6 +383,7 @@ g_uvar_dict = {
  'rm_trs'           :'set number of TRs removed per run',
  'num_stim'         :'set number of main stimulus classes',
  'enorm_dset'       :'set motion_enorm file',
+ 'motion_dset'      :'set motion parameter file',
  'outlier_dset'     :'set outcount.rall file',
  'mot_limit'        :'set motion limit (maybe for censoring)',
  'out_limit'        :'set outlier limit (maybe for censoring)',
@@ -408,19 +418,14 @@ g_history = """
    0.2  Jul 11, 2011
         - added -exit0, so errors would not terminate scripts 
         - babbled in -help about our old list of artifacts to ponder
+   0.3  Jul 14, 2011 - added 'max motion displacement' to basic script
 """
 
-g_version = "gen_ss_review_scripts.py version 0.1, July 11, 2011"
+g_version = "gen_ss_review_scripts.py version 0.3, July 14, 2011"
 
 g_todo_str = """
-   x write basic script
-   x write inspect script
-   * in help: note required files, then tested files
-   * figure out (or pass in) final_anat and template_space
-   x mean motion
-   - reliable for all regression cases?
-     (what AP options are needed?)
-   - outliers post or separate from censoring (motion sep from censor?)
+   - figure out template_space
+   - add @epi_review execution as a run-time choice (in the 'drive' script)
    - generate and evaluate overlap mask(s) (atlas regions)
    - execute basic?  save output?
 """
@@ -626,7 +631,7 @@ class MyInterface:
            - censor_dset     : afni_name (used iff censor limits passed)
 
          fill some of the basic vars:
-           - subj, rm_trs, enorm_dset, outlier_dset,
+           - subj, rm_trs, enorm_dset, motion_dset, outlier_dset,
              num_stim, xmat_regress, xmat_uncensored,
              stats_dset, final_view, final_anat
 
@@ -646,6 +651,7 @@ class MyInterface:
       if self.guess_final_view():  return 1
       if self.guess_volreg_dset(): return 1
       if self.guess_enorm_dset():  return 1
+      if self.guess_motion_dset(): return 1
       if self.guess_outlier_dset():return 1
       if self.guess_final_anat():  return 1
       if self.guess_mask_dset():   return 1
@@ -1115,6 +1121,23 @@ class MyInterface:
 
       return 1
 
+   def guess_motion_dset(self):
+      """set uvars.motion_dset"""
+
+      # check if already set
+      if self.uvars.is_not_empty('motion_dset'):
+         if self.cvars.verb > 3:
+            print '-- already set: motion_dset = %s' % self.uvars.motion_dset
+
+      gstr = 'dfile.rall.1D'
+      if os.path.isfile(gstr):
+         self.uvars.motion_dset = gstr
+         return 0
+
+      print '** failed to find motion parameter dset, continuing...'
+
+      return 0  # not fatal
+
    def guess_outlier_dset(self):
       """set uvars.outlier_dset"""
 
@@ -1429,6 +1452,10 @@ class MyInterface:
       else:
          print '** basic script: missing variable %s' % var
          errs += 1
+
+      var = 'motion_dset'
+      if uvars.is_not_empty(var):
+         txt += format % ('motion_dset', uvars.val(var))
 
       var = 'outlier_dset'
       if uvars.is_not_empty(var):
