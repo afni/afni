@@ -418,10 +418,12 @@ g_history = """
    0.2  Jul 11, 2011
         - added -exit0, so errors would not terminate scripts 
         - babbled in -help about our old list of artifacts to ponder
-   0.3  Jul 14, 2011 - added 'max motion displacement' to basic script
+   0.3  Jul 15, 2011
+        - added 'max motion displacement' to basic script
+        - check if X.stim.xmat.1D already exists
 """
 
-g_version = "gen_ss_review_scripts.py version 0.3, July 14, 2011"
+g_version = "gen_ss_review_scripts.py version 0.3, July 15, 2011"
 
 g_todo_str = """
    - figure out template_space
@@ -1409,12 +1411,13 @@ class MyInterface:
       txt = g_overview_str + astr + 'echo ""\n' + g_mot_n_trs_str
 
       txt += \
-         '# ------------------------------------------------------------\n'   \
-         '# restrct complete X-matrix to non-baseline regressos\n'            \
-         'set xstim = %s\n'                                       \
-         'set reg_cols = `1d_tool.py -infile $xmat -show_indices_interest`\n' \
-         '1d_tool.py -infile $xmat"[$reg_cols]" -overwrite -write $xstim\n'   \
-         % self.cvars.xstim
+        '# ------------------------------------------------------------\n'   \
+        '# make non-basline X-matrix, if one is not already here\n'          \
+        'set xstim = %s\n'                                                   \
+        'if ( ! -f $xstim ) then\n'                                          \
+        '   set reg_cols = `1d_tool.py -infile $xmat -show_indices_interest`\n'\
+        '   1d_tool.py -infile $xmat"[$reg_cols]" -overwrite -write $xstim\n'  \
+        'endif\n' % self.cvars.xstim
 
       self.text_basic += txt
 
