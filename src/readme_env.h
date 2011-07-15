@@ -886,6 +886,15 @@ static char * readme_env[] = {
    "Using layouts with a window manager that requires user placement\n" ,
    "of new windows (e.g., twm) is a futile and frustrating exercise.\n" ,
    "\n" ,
+   "If you do NOT have any layout file defined, then AFNI will choose\n" ,
+   "a layout for you that includes opening image viewers.  Some people\n" ,
+   "find this very annoying.  The simplest way to avoid this annoyance\n" ,
+   "is to set AFNI_LAYOUT_FILE to a name of a file that doesn't exist\n" ,
+   "(e.g., 'ElvisIsAliveOnPlanetZork').  The reason for this default\n" ,
+   "layout behavior (added Dec 2010) is that we received complaints\n" ,
+   "that novice users were finding AFNI too confusing on startup.\n" ,
+   "(Hard to believe, but true.)\n" ,
+   "\n" ,
    "-------------------------\n" ,
    "Variable: AFNI_tsplotgeom\n" ,
    "-------------------------\n" ,
@@ -3391,4 +3400,4 @@ static char * readme_env[] = {
    "If this variable is set to 'SMALL' or a negative number, then a smaller font\n" ,
    "size is used.\n" ,
    NULL } ;
-#define NUM_readme_env 3391
+#define NUM_readme_env 3400
