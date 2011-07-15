@@ -56,6 +56,8 @@ static void display_help(void)
  "                  its 0th sub-brick will be used.\n"
  "              * Do not use quotes inside the 'opts' string!\n"
  "\n");
+#if 0 
+   /* Not implemented */
   printf ("  -cg a|m       Specifies whether to center each row\n"
           "                in the data\n"
           "                a: Subtract the mean of each row\n"
@@ -70,6 +72,7 @@ static void display_help(void)
           "                (default is no centering)\n");
   printf ("  -na           Specifies to normalize each column in the data\n"
           "                (default is no normalization)\n");
+#endif
   printf ("  -u jobname    Allows you to specify a different name for the \n"
           "                output files.\n"
           "                (default is derived from the input file name)\n");
@@ -125,10 +128,12 @@ static void display_help(void)
           "                          If CLUST_INIT has a labeltable and \n"
           "                          you do not specify one then CLUST_INIT's\n"
           "                          table is used for the output\n");
+#if 0
   printf ("  -c number     Force the program to do hierarchical clsutering\n"
           "                and specifies the number of clusters for tree\n"
           "                cutting after hierarchical clustering.\n"
           "       Options -c and -k are mutually exclusive\n");
+#endif
   printf ("  -r number     For k-means clustering, the number of times the\n"
           "                k-means clustering algorithm is run\n"
           "                (default: 0 with -clust_init, 1 otherwise)\n");
