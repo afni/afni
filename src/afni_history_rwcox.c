@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 13 , JUL , 2011 , RWC , "3dTcorrMap" , MINOR , TYPE_BUG_FIX ,
+  { 15 , JUL , 2011 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
+   "Add -center option for covariates (cf. Chen Gang)" ,
+   NULL } ,
+
+ { 13 , JUL , 2011 , RWC , "3dTcorrMap" , MINOR , TYPE_BUG_FIX ,
    "Bug in computation of indx" ,
    "The mask is turned into an index table of active voxel indx[].  However,\n"
    "constant voxels were removed from the mask AFTER indx[] was created,\n"
