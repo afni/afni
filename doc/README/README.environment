@@ -885,6 +885,15 @@ possible (which still may not be all that fast).
 Using layouts with a window manager that requires user placement
 of new windows (e.g., twm) is a futile and frustrating exercise.
 
+If you do NOT have any layout file defined, then AFNI will choose
+a layout for you that includes opening image viewers.  Some people
+find this very annoying.  The simplest way to avoid this annoyance
+is to set AFNI_LAYOUT_FILE to a name of a file that doesn't exist
+(e.g., 'ElvisIsAliveOnPlanetZork').  The reason for this default
+layout behavior (added Dec 2010) is that we received complaints
+that novice users were finding AFNI too confusing on startup.
+(Hard to believe, but true.)
+
 -------------------------
 Variable: AFNI_tsplotgeom
 -------------------------
