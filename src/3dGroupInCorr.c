@@ -3,14 +3,14 @@
 /***
   Ideas for making this program more cromulently embiggened:
    ++ 2-way case: produce 1-way result sub-bricks as well  -- DONE!
-   ++ Rank or other robust analog to t-test
-   ++ Send sub-brick data as scaled shorts
-   ++ Fix shm: bug in AFNI libray (but how?)
+   ++ Rank or other robust analog to t-test (slow)         -- TBD
+   ++ Send sub-brick data as scaled shorts                 -- TBD
+   ++ Fix shm: bug in AFNI libray (but how?)               -- TBD
    ++ Have non-server modes:
     -- To input a 1D file as the seed vector set           -- DONE!
     -- To input a mask file to define the seed vector set  -- DONE!
     -- To output dataset(s) to disk                        -- DONE!
-    -- 3dTcorrMap-like scan through whole brain as seed
+    -- 3dTcorrMap-like scan through whole brain as seed    -- TBD
    ++ Per-subject covariates                               -- DONE!
    ++ Send per-subject correlations to AFNI (as an option) -- DONE!
 ***/
@@ -38,6 +38,14 @@ static unsigned short xran[3] = { 0x330e , 0x747a , 0x9754 } ;
 #define UINT32 unsigned int  /* 20 May 2010 */
 #undef  MAXCOV
 #define MAXCOV 31
+
+#define CENTER_NONE 0        /* 15 Jul 2011 */
+#define CENTER_DIFF 1
+#define CENTER_SAME 2
+#define CENTER_VALS 3
+
+static int center_code = CENTER_DIFF ;
+static MRI_IMAGE *center_valimA=NULL , *center_valimB=NULL ;
 
 void regress_toz( int numA , float *zA ,
                   int numB , float *zB , int opcode ,
@@ -751,7 +759,7 @@ void GRINCOR_seedvec_ijklist_pvec( MRI_shindss *shd ,
   #define SUMA_GICORR_PORT 53224          /* TCP/IP port that SUMA uses */
   /*  Replace               With
       AFNI_NIML_PORT        get_port_named("AFNI_GroupInCorr_NIML");
-      SUMA_GICORR_PORT      get_port_named("SUMA_GroupInCorr_NIML"); 
+      SUMA_GICORR_PORT      get_port_named("SUMA_GroupInCorr_NIML");
    ZSS. June 2011 */
 #endif
 
@@ -1090,10 +1098,10 @@ int main( int argc , char *argv[] )
       "        ++ If you use -paired, then the covariates for -setB will be the same\n"
       "            as those for -setA, even if the dataset labels are different!\n"
       "            -- This restriction may be lifted in the future.  Or maybe not.\n"
-      "        ++ Each covariate column in the regression matrix will have its mean\n"
-      "            removed (centered). If there are 2 sets of subjects, each set's\n"
-      "            matrix will be centered separately.\n"
-      "            -- See the discussion of CENTERING in the help for 3dttest++\n"
+      "        ++ By default, each covariate column in the regression matrix will have\n"
+      "            its mean removed (centered). If there are 2 sets of subjects, each\n"
+      "            set's matrix will be centered separately.\n"
+      "            -- See the '-center' option (below) to alter this default.\n"
       "        ++ For each covariate, 2 sub-bricks are produced:\n"
       "            -- The estimated slope of arctanh(correlation) vs covariate\n"
       "            -- The Z-score of the t-statistic of this slope\n"
@@ -1127,6 +1135,32 @@ int main( int argc , char *argv[] )
       "           setB labels with 'B_'.\n"
       "    ***+++ A maximum of 31 covariates are allowed.  If you need more, then please\n"
       "           consider the possibility that you are completely deranged or demented.\n"
+      "\n"
+      " -center NONE = Do not remove the mean of any covariate.\n"
+      " -center DIFF = Each set will have the means removed separately.\n"
+      " -center SAME = The means across both sets will be computed and removed.\n"
+      "                (This option only applies to a 2-sample unpaired test.)\n"
+      " -center VALS A.1D [B.1D]\n"
+      "                This option (for Gang Chen) allows you to specify the\n"
+      "                values that will be subtracted from each covariate before\n"
+      "                the regression analysis.  If you use this option, then\n"
+      "                you must supply a 1D file that gives the values to be\n"
+      "                subtracted from the covariates; if there are 3 covariates,\n"
+      "                then the 1D file for the setA datasets should have 3 numbers,\n"
+      "                and the 1D file for the setB datasets (if present) should\n"
+      "                also have 3 numbers.\n"
+      "              * For example, to put these values directly on the command line,\n"
+      "                you could do something like this:\n"
+      "                  -center VALS '1D: 3 7 9' '1D: 3.14159 2.71828 0.91597'\n"
+      "              * As a special case, if you want the same values used for\n"
+      "                the B.1D file as in the A.1D file, you can use the word\n"
+      "                'DITTO' in place of repeating the A.1D filename.\n"
+      "              * Of course, you only have to give the B.1D filename if there\n"
+      "                is a setB collection of datasets.\n"
+      "\n"
+      " Please see the discussion of CENTERING in the 3dttest++ help output.  If\n"
+      " you change away from the default 'DIFF', you should really understand what\n"
+      " you are doing, or an elephant may sit on your head, which no one wants.\n"
       "\n"
       "---------------------------*** Other Options ***---------------------------\n"
       "\n"
@@ -1415,8 +1449,8 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
-#if 0 /* This is now handled in AFNI_prefilter_args(). ZSS, June 2011 
-         Delete soon.                                                */ 
+#if 0 /* This is now handled in AFNI_prefilter_args(). ZSS, June 2011
+         Delete soon.                                                */
      if( strcasecmp(argv[nopt],"-np") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("GIC: need 1 argument after option '%s'",argv[nopt-1]) ;
        nport = (int)strtod(argv[nopt],NULL) ;
@@ -1445,6 +1479,42 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-paired") == 0 ){
        ttest_opcode = 2 ; nopt++ ; continue ;
      }
+
+     if( strcmp(argv[nopt],"-center") == 0 ){  /* 15 Jul 2011 */
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+       switch( argv[nopt][0] ){
+         case 'n': case 'N': center_code = CENTER_NONE ; break ;
+         case 'd': case 'D': center_code = CENTER_DIFF ; break ;
+         case 's': case 'S': center_code = CENTER_SAME ; break ;
+
+         case 'v': case 'V':
+           center_code = CENTER_VALS ;
+           if( ++nopt > argc )
+             ERROR_exit("Need a second argument after '%s %s'",argv[nopt-2],argv[nopt-1]) ;
+           center_valimA = mri_read_1D( argv[nopt] ) ;
+           if( center_valimA == NULL )
+             ERROR_exit("Can't read 1D file '%s'",argv[nopt]) ;
+           if( ++nopt < argc && argv[nopt][0] != '-' ){
+             if( strcasecmp(argv[nopt],"DITTO") == 0 ){
+               center_valimB = center_valimA ;
+             } else {
+               center_valimB = mri_read_1D( argv[nopt] ) ;
+               if( center_valimB == NULL )
+                 ERROR_exit("Can't read 1D file '%s'",argv[nopt]) ;
+             }
+           }
+         break ;
+
+         default:
+           WARNING_message(
+             "Unknown -center option '%s' -- using 'DIFF'",argv[nopt]) ;
+           center_code = CENTER_DIFF ;
+         break ;
+       }
+       nopt++ ; continue ;
+     }
+
 
      if( strcasecmp(argv[nopt],"-covariates") == 0 ){  /* 20 May 2010 */
        char *lab ; float sig ; int nbad ;
@@ -1628,6 +1698,11 @@ int main( int argc , char *argv[] )
      ttest_opcode = 0 ;
    }
 
+   if( shd_BBB == NULL && center_code == CENTER_SAME )  /* 15 Jul 2011 */
+     center_code = CENTER_DIFF ;
+   else if( shd_BBB != NULL && ttest_opcode == 2 && center_code == CENTER_SAME )
+     center_code = CENTER_DIFF ;
+
 #if 0
    /*-- attach use list to dataset collections [07 Apr 2010] --*/
 
@@ -1663,13 +1738,15 @@ int main( int argc , char *argv[] )
 
    if( mcov > 0 ){
      int nbad=0 , nA , nB ;
+     float *ctrA=NULL , *ctrB=NULL ;
+     MRI_IMARR *impr ;
 
-     /* simple tests for stoopid users [is there any other kind?] */
+     /* simmple tests to gaurd against stoopid users [is there any other kind?] */
 
      if( shd_AAA->dslab == NULL ){
        ERROR_message("GIC: Can't use covariates, since setA doesn't have dataset labels!") ;
        nbad++ ;
-     if( shd_BBB != NULL && shd_BBB->dslab == NULL )
+     if( shd_BBB != NULL && shd_BBB->dslab == NULL && ttest_opcode != 2 )
        ERROR_message("GIC: Can't use covariates, since setB doesn't have dataset labels!") ;
        nbad++ ;
      }
@@ -1687,11 +1764,11 @@ int main( int argc , char *argv[] )
          ndset_BBB,mcov,ndset_BBB-3) ;
      }
 
-     if( nbad ) ERROR_exit("GIC: Can't continue :-(") ;
+     if( nbad ) ERROR_exit("GIC: Can't continue after such simple misteaks :-(") ;
 
      if( verb ) INFO_message("GIC: Setting up regression matrices for covariates") ;
 
-     /*--- setup the setA regression matrix ---*/
+     /*--- setup the setA regression matrix (uncentered) ---*/
 
      nA    = shd_AAA->ndset ;
      axxim = mri_new( nA , mcov+1 , MRI_float ) ;
@@ -1700,39 +1777,17 @@ int main( int argc , char *argv[] )
        ii = string_search( shd_AAA->dslab[kk] , /* find which covariate */
                            covnel->vec_len , (char **)covnel->vec[0] ) ;
        if( ii < 0 ){
-         ERROR_message("GIC: Can't find dataset label '%s' in covariates file" ,
+         ERROR_message("GIC: Can't find setA dataset label '%s' in covariates file" ,
                        shd_AAA->dslab[kk] ) ;
          nbad++ ;
-       } else {             /* ii-th row of covariates == kk-th dataset */
-         AXX(kk,0) = 1.0f ;
-         for( jj=1 ; jj <= mcov ; jj++ )
+       } else {                   /* ii-th row of covariates == kk-th dataset */
+         AXX(kk,0) = 1.0f ; /* first element in kk-th row is 1 == mean effect */
+         for( jj=1 ; jj <= mcov ; jj++ )     /* later elements are covariates */
            AXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
        }
      }
-     if( nbad == 0 ){  /* process the matrix */
-       MRI_IMARR *impr ; float sum ;
-       for( jj=1 ; jj <= mcov ; jj++ ){  /* demean the columns */
-         for( sum=0.0f,kk=0 ; kk < shd_AAA->ndset ; kk++ ) sum += AXX(kk,jj) ;
-         sum /= shd_AAA->ndset ;
-         for( kk=0 ; kk < shd_AAA->ndset ; kk++ ) AXX(kk,jj) -= sum ;
-       }
-       /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
-       impr = mri_matrix_psinv_pair( axxim , 0.0f ) ;
-       if( impr == NULL ) ERROR_exit("GIC: Can't process setA covariate matrix?! :-(") ;
-       axxim_psinv  = IMARR_SUBIM(impr,0) ; axx_psinv  = MRI_FLOAT_PTR(axxim_psinv ) ;
-       axxim_xtxinv = IMARR_SUBIM(impr,1) ; axx_xtxinv = MRI_FLOAT_PTR(axxim_xtxinv) ;
 
-#if defined(COVTEST) && 0
-       ININFO_message("GIC: axx matrix: %d X %d",axxim->nx,axxim->ny) ;
-        mri_write_1D("stderr:",axxim) ;
-       ININFO_message("GIC: axxim_psinv matrix: %d X %d",axxim_psinv->nx,axxim_psinv->ny) ;
-        mri_write_1D("stderr:",axxim_psinv) ;
-       ININFO_message("GIC: axxim_xtxinv matrix: %d X %d",axxim_xtxinv->nx,axxim_xtxinv->ny) ;
-        mri_write_1D("stderr:",axxim_xtxinv) ;
-#endif
-     }
-
-     /*--- setup the setB regression matrix ---*/
+     /*--- ditto for the setB matrix (uncentered), if any ---*/
 
      if( shd_BBB != NULL && ttest_opcode != 2 ){  /* un-paired case */
        nB    = shd_BBB->ndset ;
@@ -1742,7 +1797,7 @@ int main( int argc , char *argv[] )
          ii = string_search( shd_BBB->dslab[kk] , /* find which covariate */
                              covnel->vec_len , (char **)covnel->vec[0] ) ;
          if( ii < 0 ){
-           ERROR_message("GIC: Can't find dataset label '%s' in covariates file" ,
+           ERROR_message("GIC: Can't find setB dataset label '%s' in covariates file" ,
                          shd_BBB->dslab[kk] ) ;
            nbad++ ;
          } else {             /* ii-th row of covariates == kk-th dataset */
@@ -1751,19 +1806,91 @@ int main( int argc , char *argv[] )
              BXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
          }
        }
-       if( nbad == 0 ){  /* process the matrix */
-         MRI_IMARR *impr ; float sum ;
-         for( jj=1 ; jj <= mcov ; jj++ ){  /* demean the columns */
-           for( sum=0.0f,kk=0 ; kk < shd_BBB->ndset ; kk++ ) sum += BXX(kk,jj) ;
-           sum /= shd_BBB->ndset ;
-           for( kk=0 ; kk < shd_BBB->ndset ; kk++ ) BXX(kk,jj) -= sum ;
+     }
+
+     if( nbad )
+       ERROR_exit("GIC: Can't continue past the above covariates errors :-((") ;
+
+     /*--- setup for centering: create 1D images of the values to subtract ---*/
+
+     switch( center_code ){
+
+       case CENTER_VALS:
+         if( center_valimA == NULL )  /* should never happenstance */
+           ERROR_exit("Can't do -center VALS without a valid input image") ;
+         if( center_valimA->nx < mcov )
+           ERROR_exit("-center VALS setA 1D file has %d rows, but need at least %d",
+                      center_valimA->nx , mcov ) ;
+         if( shd_BBB != NULL && ttest_opcode != 2 ){  /* unpaired */
+           if( center_valimB == NULL ){
+             center_valimB = center_valimA ;
+             WARNING_message("Don't have setB 1D file for -center VALS; using setA's file") ;
+           } else if( center_valimB->nx < mcov ){
+             ERROR_exit("-center VALS setB 1D file has %d rows, but need at least %d",
+                        center_valimB->nx , mcov ) ;
+           }
          }
-         /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
-         impr = mri_matrix_psinv_pair( bxxim , 0.0f ) ;
-         if( impr == NULL ) ERROR_exit("GIC: Can't process setB covariate matrix?! :-(") ;
-         bxxim_psinv  = IMARR_SUBIM(impr,0) ; bxx_psinv  = MRI_FLOAT_PTR(bxxim_psinv ) ;
-         bxxim_xtxinv = IMARR_SUBIM(impr,1) ; bxx_xtxinv = MRI_FLOAT_PTR(bxxim_xtxinv) ;
+       break ;
+
+       case CENTER_NONE:
+         center_valimA = center_valimB = mri_new(mcov,1,MRI_float) ; /* zeros */
+       break ;
+
+       case CENTER_DIFF:{
+         float sum ;
+         center_valimA = mri_new(mcov,1,MRI_float) ; ctrA = MRI_FLOAT_PTR(center_valimA) ;
+         for( jj=1 ; jj <= mcov ; jj++ ){  /* average the columns */
+           for( sum=0.0f,kk=0 ; kk < shd_AAA->ndset ; kk++ ) sum += AXX(kk,jj) ;
+           ctrA[jj-1] = sum / shd_AAA->ndset ;
+         }
+         if( shd_BBB != NULL && ttest_opcode != 2 ){  /* unpaired */
+           center_valimB = mri_new(mcov,1,MRI_float) ; ctrB = MRI_FLOAT_PTR(center_valimB) ;
+           for( jj=1 ; jj <= mcov ; jj++ ){  /* average the columns */
+             for( sum=0.0f,kk=0 ; kk < shd_BBB->ndset ; kk++ ) sum += BXX(kk,jj) ;
+             ctrB[jj-1] = sum / shd_BBB->ndset ;
+           }
+         }
        }
+       break ;
+
+       case CENTER_SAME:{  /* only possible in 2 sample unpaired case */
+         float sum ;
+         center_valimA = mri_new(mcov,1,MRI_float) ; ctrA = MRI_FLOAT_PTR(center_valimA) ;
+         for( jj=1 ; jj <= mcov ; jj++ ){  /* average the columns */
+           for( sum=0.0f,kk=0 ; kk < shd_AAA->ndset ; kk++ ) sum += AXX(kk,jj) ;
+           for(          kk=0 ; kk < shd_BBB->ndset ; kk++ ) sum += BXX(kk,jj) ;
+           ctrA[jj-1] = sum / (shd_AAA->ndset + shd_BBB->ndset) ;
+         }
+         center_valimB = center_valimA ;
+       }
+       break ;
+
+     } /* end of switch on center_code */
+
+     /*--- process the matrix for setA ---*/
+
+     ctrA = MRI_FLOAT_PTR(center_valimA) ;
+     for( jj=1 ; jj <= mcov ; jj++ ){  /* center the columns */
+       for( kk=0 ; kk < shd_AAA->ndset ; kk++ ) AXX(kk,jj) -= ctrA[jj-1] ;
+     }
+     /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
+     impr = mri_matrix_psinv_pair( axxim , 0.0f ) ;
+     if( impr == NULL ) ERROR_exit("GIC: Can't process setA covariate matrix?! :-(") ;
+     axxim_psinv  = IMARR_SUBIM(impr,0) ; axx_psinv  = MRI_FLOAT_PTR(axxim_psinv ) ;
+     axxim_xtxinv = IMARR_SUBIM(impr,1) ; axx_xtxinv = MRI_FLOAT_PTR(axxim_xtxinv) ;
+
+     /*--- process the setB matrix ---*/
+
+     if( shd_BBB != NULL && ttest_opcode != 2 ){  /* un-paired case */
+       ctrB = MRI_FLOAT_PTR(center_valimB) ;
+       for( jj=1 ; jj <= mcov ; jj++ ){  /* center the columns */
+         for( kk=0 ; kk < shd_BBB->ndset ; kk++ ) BXX(kk,jj) -= ctrB[jj-1] ;
+       }
+       /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
+       impr = mri_matrix_psinv_pair( bxxim , 0.0f ) ;
+       if( impr == NULL ) ERROR_exit("GIC: Can't process setB covariate matrix?! :-(") ;
+       bxxim_psinv  = IMARR_SUBIM(impr,0) ; bxx_psinv  = MRI_FLOAT_PTR(bxxim_psinv ) ;
+       bxxim_xtxinv = IMARR_SUBIM(impr,1) ; bxx_xtxinv = MRI_FLOAT_PTR(bxxim_xtxinv) ;
 
      } else if( shd_BBB != NULL && ttest_opcode == 2 ){  /* paired case */
 
@@ -1771,14 +1898,11 @@ int main( int argc , char *argv[] )
 
      }
 
-     if( nbad )
-       ERROR_exit("GIC: Can't continue past the above covariates errors :-((") ;
+   } /*---------- covariates regression matrices now setup ----------*/
 
-   } /* covariates regression matrices now setup */
-
-   /* scan through all the data, which will make it be page faulted
-      into RAM, which will make the correlation-izing process faster;
-      the downside is that this may take quite a while, which is boring */
+   /*--- scan through all the data, which will make it be page faulted
+         into RAM, which will make the correlation-izing process faster;
+         the downside is that this may take quite a while, which is boring ---*/
 
 #undef  BSTEP
 #define BSTEP 256
@@ -1901,7 +2025,7 @@ int main( int argc , char *argv[] )
 
    if( !bmode ){
      if( nport <= 0 ) {
-      nport = (TalkToAfni) ?  get_port_named("AFNI_GroupInCorr_NIML") : 
+      nport = (TalkToAfni) ?  get_port_named("AFNI_GroupInCorr_NIML") :
                               get_port_named("SUMA_GroupInCorr_NIML") ;
      }
      sprintf( nsname , "tcp:%s:%d" , afnihost , nport ) ;
@@ -2623,7 +2747,7 @@ int main( int argc , char *argv[] )
      if( !bmode && do_shm > 0 && strcmp(afnihost,"localhost") == 0 && !shm_active ){
        char nsnew[128] ;
        kk = (nout+nsaar) / 2 ; if( kk < 1 ) kk = 1 ; else if( kk > 3 ) kk = 3 ;
-             /* using nport in nsnew below is no longer necessary, 
+             /* using nport in nsnew below is no longer necessary,
                 but it does not hurt. ZSS June 2011               */
        sprintf( nsnew , "shm:GrpInCorr_%d:%dM+4K" , nport , kk ) ;
        INFO_message("GIC: Reconnecting to %s with shared memory channel %s",pname,nsnew) ;
