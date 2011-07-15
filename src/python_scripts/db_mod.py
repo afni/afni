@@ -2199,14 +2199,16 @@ def db_cmd_regress(proc, block):
     if proc.censor_file: censor_str = '    -censor %s \\\n' % proc.censor_file
     else:                censor_str = ''
 
-    cmd = cmd + '# run the regression analysis\n'       \
-                '3dDeconvolve -input %s \\\n'           \
-                '%s'                                    \
-                '    -polort %d %s\\\n'                 \
-                '%s%s%s'                                \
-                '    -num_stimts %d \\\n'               \
-                % ( proc.prev_dset_form_wild(), censor_str, polort, datum,
-                    mask, normall, times_type, total_nstim )
+    # make actual 3dDeconvolve command as string c3d
+
+    c3d = '# run the regression analysis\n'       \
+          '3dDeconvolve -input %s \\\n'           \
+          '%s'                                    \
+          '    -polort %d %s\\\n'                 \
+          '%s%s%s'                                \
+          '    -num_stimts %d \\\n'               \
+          % ( proc.prev_dset_form_wild(), censor_str, polort, datum,
+          mask, normall, times_type, total_nstim )
 
     # verify labels (now that we know the list of stimulus files)
     opt = block.opts.find_opt('-regress_stim_labels')
@@ -2264,14 +2266,14 @@ def db_cmd_regress(proc, block):
         # rcr - allow -stim_times_AM/IM here?  make user choose one?
         #       (so mabye -stim_times can be set from proc.stim_times_opt)
         if sfiles:  # then -stim_file and no basis function
-            cmd = cmd + "    -stim_file %d %s \\\n" % (ind+1,proc.stims[ind])
+            c3d = c3d + "    -stim_file %d %s \\\n" % (ind+1,proc.stims[ind])
         else:
-            cmd = cmd + "    -stim_times %d %s '%s' \\\n"  % \
+            c3d = c3d + "    -stim_times %d %s '%s' \\\n"  % \
                         (ind+1, proc.stims[ind], basis[ind])
         # and add the label
         if ind+1 in roni_list: rstr = '-stim_base %d ' % (ind+1)
         else:                  rstr = ''
-        cmd = cmd + "    -stim_label %d %s %s\\\n" % (ind+1, labels[ind], rstr)
+        c3d = c3d + "    -stim_label %d %s %s\\\n" % (ind+1, labels[ind], rstr)
 
     # accumulate offset for current regressor list (3dD input is 1-based)
     regindex = len(proc.stims) + 1
@@ -2282,7 +2284,7 @@ def db_cmd_regress(proc, block):
             sind = ind+regindex
             if sind in roni_list: rstr = '-stim_base %d ' % sind
             else:                 rstr = ''
-            cmd = cmd + "    -stim_file %d %s \\\n"    \
+            c3d = c3d + "    -stim_file %d %s \\\n"    \
                         "    -stim_label %d %s %s\\\n" %  \
                         (sind,proc.extra_stims[ind],sind,exlabs[ind],rstr)
         regindex += len(proc.extra_stims)
@@ -2296,7 +2298,7 @@ def db_cmd_regress(proc, block):
                 if nmf > 1: mlab = '%s_%02d' % (proc.mot_labs[ind], findex+1)
                 else:       mlab = '%s'      % (proc.mot_labs[ind])
                 sind = regindex + nlabs*findex + ind
-                cmd = cmd + "    -stim_file %d %s'[%d]' "       \
+                c3d = c3d + "    -stim_file %d %s'[%d]' "       \
                         "-stim_base %d -stim_label %d %s \\\n"  \
                         % (sind, mfile, ind, sind, sind, mlab)
         regindex += nmotion
@@ -2304,13 +2306,13 @@ def db_cmd_regress(proc, block):
     # write out ricor param lines (put labels afterwards)
     if proc.ricor_reg and proc.ricor_nreg > 0:
         for ind in range(proc.ricor_nreg):
-            cmd = cmd + "    -stim_file %02d %s'[%02d]' "       \
+            c3d = c3d + "    -stim_file %02d %s'[%02d]' "       \
                         "-stim_base %02d \\\n"                  \
                         % (ind+regindex, proc.ricor_reg, ind, ind+regindex)
-        cmd = cmd + '    '
+        c3d = c3d + '    '
         for ind in range(proc.ricor_nreg):
-            cmd = cmd + "-stim_label %02d ricor%02d " % (ind+regindex, ind)
-        cmd = cmd + '\\\n'
+            c3d = c3d + "-stim_label %02d ricor%02d " % (ind+regindex, ind)
+        c3d = c3d + '\\\n'
         regindex += proc.ricor_nreg
 
     # -------------------- fitts and errts setup --------------------
@@ -2372,14 +2374,18 @@ def db_cmd_regress(proc, block):
     else:                       cbuck_str = ""
 
     # add misc options
-    cmd = cmd + iresp
-    cmd = cmd + other_opts
-    cmd = cmd + "    %s-tout -x1D %s -xjpeg X.jpg \\\n" % (fout_str, proc.xmat)
+    c3d = c3d + iresp
+    c3d = c3d + other_opts
+    c3d = c3d + "    %s-tout -x1D %s -xjpeg X.jpg \\\n" % (fout_str, proc.xmat)
     if proc.censor_file:
         newmat = 'X.nocensor.xmat.1D'
-        cmd += "    -x1D_uncensored %s \\\n" % newmat
-    cmd = cmd + fitts + errts + stop_opt + cbuck_str
-    cmd = cmd + "    -bucket stats.$subj\n\n\n"
+        c3d += "    -x1D_uncensored %s \\\n" % newmat
+    c3d = c3d + fitts + errts + stop_opt + cbuck_str
+    c3d = c3d + "    -bucket stats.$subj\n\n\n"
+
+    # done creating 3dDeconvolve command c3d, add to cmd string
+
+    cmd += c3d
 
     # if 3dDeconvolve fails, terminate the script
     cmd = cmd + "# if 3dDeconvolve fails, terminate the script\n"       \

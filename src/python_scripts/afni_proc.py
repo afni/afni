@@ -270,9 +270,10 @@ g_history = """
     2.57 Jul 13, 2011:
         - run gen_ss_review_scripts.py: generate single subject review scripts
         - and execute any resulting 'basic' review script
+    2.58 Jul 15, 2011: save output from ss_review in out.ss_review.txt
 """
 
-g_version = "version 2.57, July 13, 2011"
+g_version = "version 2.58, July 15, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "13 Jul 2011"
@@ -1508,7 +1509,8 @@ class SubjProcSream:
         if self.epi_review:
            ss = '# if the basic subject review script is here, run it\n' \
                 '# (want this to be the last text output)\n'             \
-                'if ( -e %s ) ./%s\n\n' % (self.ssr_basic, self.ssr_basic)
+                'if ( -e %s ) ./%s |& tee out.ss_review.$subj.txt\n\n'   \
+                % (self.ssr_basic, self.ssr_basic)
            self.fp.write(ss)
 
         self.fp.write('# return to parent directory\n'
