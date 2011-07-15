@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, JUL, 2011, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "applied -d as -defaults",
+   NULL
+ } ,
+
  { 15, JUL, 2011, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "save output from ss_review in out.ss_review.$subj.txt",
    NULL
