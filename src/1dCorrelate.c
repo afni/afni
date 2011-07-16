@@ -198,8 +198,10 @@ int main( int argc , char *argv[] )
      if( tim == NULL ) ERROR_exit("Can't read 1D file %s",argv[iarg]) ;
      if( nx == 0 ){
        nx = tim->nx ;
-       if( nx < 7 )
-         ERROR_exit("1D file %s length=%d is less than 7",argv[iarg],nx) ;
+       if( nx < 3 )
+         ERROR_exit("1D file %s length=%d is less than 3",argv[iarg],nx) ;
+       else
+         WARNING_message("1D file %s length=%d is less than 7",argv[iarg],nx) ;
      } else if( tim->nx != nx ){
        ERROR_exit("Length of 1D file %s [%d] doesn't match first file [%d]",
                    argv[iarg] , tim->nx , nx );
