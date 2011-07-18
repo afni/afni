@@ -844,7 +844,7 @@ class RegWrap:
                  "Output datasets are kept in the 'orig' view")
       self.valid_opts.add_opt('-skullstrip_opts', -1, [], \
                helpstr="Alternate options for 3dSkullstrip.\n"
-                       "like -rat or -orig_vol")
+                       "like -rat or -blur_fwhm 2")
       self.valid_opts.add_opt('-feature_size', 1, [],\
             helpstr="Minimal size in mm of structures in images to match.\n"\
                     "Changes options for 3dAllineate for the coarse\n" \
@@ -2525,7 +2525,7 @@ class RegWrap:
          if (not n.exist() or ps.rewrite or ps.dry_run()):
             n.delete(ps.oexec)
             com = shell_com(  \
-                  "3dSkullStrip %s -input %s -prefix %s" \
+                  "3dSkullStrip -orig_vol %s -input %s -prefix %s" \
                   % (skullstrip_opt, e.input(), n.out_prefix()) , ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
@@ -2768,7 +2768,7 @@ class RegWrap:
                        ps.dset1_generic_name)
 
             com = shell_com(  \
-                  "%s %s -input %s -prefix %s" \
+                  "%s -orig_vol %s -input %s -prefix %s" \
                   % (ps.skullstrip_method, ps.skullstrip_opt, a.input(), n.out_prefix()), ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):

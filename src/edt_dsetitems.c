@@ -836,12 +836,14 @@ fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
    if( new_tunits ){
       THD_timeaxis * taxis = dset->taxis ;
 
-      if( taxis == NULL ){
-         EDERR("have new_tunits but have no time axis") ;
-         RETURN(errnum) ;
+      if( taxis == NULL) {
+         if (DSET_NVALS(dset) > 1) {
+            EDERR("have new_tunits but have no time axis") ;
+            RETURN(errnum) ;
+         }
+      } else {
+         taxis->units_type = tunits ;
       }
-
-      taxis->units_type = tunits ;
    }
 
    /**--------------- Need to redo dataset type codes? ------------**/
