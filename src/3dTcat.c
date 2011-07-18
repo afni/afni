@@ -655,7 +655,9 @@ int main( int argc , char *argv[] )
                           ADN_ttorg  , torg ,
                           ADN_ttdur  , tdur ,
                        ADN_none ) ;
-      WARNING_message("Set TR of output dataset to 1.0 s") ;
+      if (DSET_NVALS(new_dset) > 1) {
+         WARNING_message("Set TR of output dataset to 1.0 s") ;
+      }
    }
 
    /* 10 Dec 2007: check if time steps are coherent */
@@ -663,7 +665,8 @@ int main( int argc , char *argv[] )
    nTR = DSET_TIMESTEP(new_dset) ;
    for( ids=0 ; ids < ninp ; ids++ ){
      dset = DSUB(ids) ; dTR = DSET_TIMESTEP(dset) ;
-     if( dTR > 0.0f && fabsf(dTR-nTR) > 0.001f )
+     if( dTR > 0.0f && fabsf(dTR-nTR) > 0.001f &&
+         DSET_NVALS(new_dset) > 1)
        WARNING_message("TR=%g in dataset %s; differs from output TR=%g",
                        dTR , DSET_HEADNAME(dset) , nTR ) ;
    }
