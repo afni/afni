@@ -95,6 +95,7 @@ build.labeltable <- function(labeltable=NULL, keys=NULL,
       if (is.null(lab <- keylabel.labeltable(key=key, ltfile=labeltable))) {
          return(NULL);
       }
+     
       lt$labels <- c(lt$labels, lab)
       if (!is.null(grp.label)) {
          nn <- 0

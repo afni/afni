@@ -270,7 +270,15 @@ read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
       '-featscale' = apl(n=1, d = 1, h = paste(
    "-featscale : 0/[1] scaling of features\n"
                         ) ),
-                  
+      '-min_samples' = apl(n=1, d = 100, h=paste(
+   "-min_samples MINL : Min number of training samples\n"
+                        ) ), 
+      '-max_samples' = apl(n=1, d = 100, h=paste(
+   "-max_samples MAX : Max number of training samples\n"
+                        ) ),
+      '-samples_frac' = apl(n=1, d = 0.03, h=paste(
+   "-samples_frac FRAC : Fraction of voxels for training samples\n"
+                        ) ),                             
       '-verb' = apl(n=1, d = 0, h = paste(
    "-verb VERB: VERB is an integer specifying verbosity level.\n",
    "            0 for quiet (Default). 1 or more: talkative.\n"
@@ -311,6 +319,9 @@ read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
              class = lop$Tset <- parse.CSet.opts(lop$Tset, ops[[i]]),
              odir = lop$odir <- ops[[i]],
              opref = lop$opref <- ops[[i]],
+             min_samples = lop$min_samples <- as.numeric(ops[[i]]),
+             max_samples = lop$max_samples <- as.numeric(ops[[i]]),
+             samples_frac = lop$samples_frac <- as.numeric(ops[[i]]),
              vol_suffix = lop$volsuffix  <- ops[[i]],
              train_suffix = lop$trainsuffix  <- ops[[i]],
              test_suffix = lop$testsuffix  <- ops[[i]],

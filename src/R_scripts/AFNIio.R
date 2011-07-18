@@ -1320,9 +1320,11 @@ r.NI_read_element <- function (fname, HeadOnly = TRUE) {
    for (i in (stpv[1]+1):(strv[2]-1)) {
       #browser()
       if (is.null(nel$dat)) 
-         nel$dat <- rbind(r.NI_dequotestring(strsplit(ff[i],split=' ')[[1]]))
+         nel$dat <- rbind(r.NI_dequotestring(
+                  strsplit(deblank.string(ff[i]),split=' ')[[1]]))
       else nel$dat <- rbind(nel$dat,
-                           r.NI_dequotestring(strsplit(ff[i],split=' ')[[1]]))
+                           r.NI_dequotestring(strsplit(
+                              deblank.string(ff[i]),split=' ')[[1]]))
    }
    return(nel)
 }
