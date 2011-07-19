@@ -1,14 +1,14 @@
 #include "mrilib.h"
 
-#define NCOR 4
+#define NCOR 5
 
-static char *cor_name[NCOR] = { "Pearson" , "Spearman" , "Quadrant" , "K-Tau-b" } ;
+static char *cor_name[NCOR] = { "Pearson" , "Spearman" , "Quadrant" , "K-Tau-b" , "TicTacToe" } ;
 
 /* list of functions to compute correlations [cf. thd_correlate.c] */
 
 typedef float (*ccfun)(int,float *,float *) ;
 static ccfun cor_func[NCOR] =
- { THD_pearson_corr , THD_spearman_corr , THD_quadrant_corr , THD_ktaub_corr } ;
+ { THD_pearson_corr, THD_spearman_corr, THD_quadrant_corr, THD_ktaub_corr, THD_tictactoe_corr } ;
 
 /* prototype for function to bootstrap the correlations */
 
@@ -161,6 +161,7 @@ int main( int argc , char *argv[] )
      if( toupper(argv[iarg][1]) == 'S' ){ cormeth = 1 ; iarg++ ; continue ; }
      if( toupper(argv[iarg][1]) == 'Q' ){ cormeth = 2 ; iarg++ ; continue ; }
      if( toupper(argv[iarg][1]) == 'K' ){ cormeth = 3 ; iarg++ ; continue ; }
+     if( toupper(argv[iarg][1]) == 'T' ){ cormeth = 4 ; iarg++ ; continue ; }
 
      /*--- set nboot ---*/
 
