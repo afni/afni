@@ -184,6 +184,18 @@ float tictactoe_corr( int n , float *x , float rv , float *r )
    return ( ss/sqrtf(rv*xv) ) ;
 }
 
+/*------------------------------------------------------------------------------*/
+
+float THD_tictactoe_corr( int n , float *x , float *y )
+{
+   float yv , xv ; register float ss ; register int ii ;
+   if( n < 3 ) return 0.0f ;
+   xv = tictactoe_corr_prepare(n,x) ; if( xv <= 0.0f ) return 0.0f ;
+   yv = tictactoe_corr_prepare(n,y) ; if( yv <= 0.0f ) return 0.0f ;
+   for( ii=0,ss=0.0f ; ii < n ; ii++ ) ss += x[ii]*y[ii] ;
+   return( ss / sqrtf(xv*yv) ) ;
+}
+
 /*=============================================================================
   Compute correlations, destructively (i.e., mangling the input arrays)
 ===============================================================================*/
