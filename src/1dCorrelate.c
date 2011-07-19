@@ -23,6 +23,8 @@ static float_pair PCorrCI( int npt , float cor , float alpha ) ;
 
 #undef  NBOOT
 #define NBOOT 4000
+#undef  NBMIN
+#define NBMIN 400
 
 static int   nboot = NBOOT ;   /* changed by the -nboot option */
 static float alpha = 0.05f ;   /* changed by the -alpha option */
@@ -47,19 +49,21 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 1dCorrelate [options] 1Dfile 1Dfile ...\n"
             "------\n"
-            " * Each input 1D column is a collection of data points; the correlation\n"
-            "   coefficient between each column pair is computed, along with its\n"
-            "   confidence interval.\n"
-            " * The minimum column length is 7.\n"
+            " * Each input 1D column is a collection of data points.\n"
+            " * The correlation coefficient between each column pair is computed, along\n"
+            "   with its confidence interval (via a bias-corrected bootstrap procedure).\n"
+            " * The minimum sensible column length is 7.\n"
             " * At least 2 columns are needed [in 1 or more .1D files].\n"
             " * If there are N input columns, there will be N*(N-1)/2 output rows.\n"
-            " * Output appears on stdout; redirect as needed.\n"
+            " * Output appears on stdout; redirect ('>' or '>>') as needed.\n"
             " * Only one correlation method can be used in one run of this program.\n"
-            " * This program is basically the bastard offspring of program 1ddot.\n"
+            " * This program is basically the basterd offspring of program 1ddot.\n"
+            " * Also see http://en.wikipedia.org/wiki/Confidence_interval\n"
             "\n"
             "-------\n"
             "Methods   [actually, only the first letter is needed to choose a method]\n"
             "-------   [and the case doesn't matter: '-P' and '-p' both = '-Pearson']\n"
+            "\n"
             " -Pearson  = Pearson correlation                    [the default method]\n"
             " -Spearman = Spearman (rank) correlation      [more robust vs. outliers]\n"
             " -Quadrant = Quadrant (binarized) correlation  [most robust, but weaker]\n"
@@ -68,8 +72,9 @@ int main( int argc , char *argv[] )
             "-------------\n"
             "Other Options  [these options cannot be abbreviated!]\n"
             "-------------\n"
+            "\n"
             " -nboot B  = Set the number of bootstrap replicates to 'B'.\n"
-            "             * The default (and minimum allowed) value of B is %d.\n"
+            "             * The default value of B is %d.\n"
             "             * A larger number will give somewhat more accurate\n"
             "               confidence intervals, at the cost of more CPU time.\n"
             "\n"
@@ -77,6 +82,9 @@ int main( int argc , char *argv[] )
             "             * The default value of A is 5, giving the 2.5..97.5%% interval.\n"
             "             * The smallest allowed A is 1 (0.5%%..99.5%%) and the largest\n"
             "               allowed value of A is 20 (10%%..90%%).\n"
+            "             * If you are interested assessing if the 'p-value' of a\n"
+            "               correlation is smaller than 5%% (say), then you should use\n"
+            "               '-alpha 10' and see if the confidence interval includes 0.\n"
             "\n"
             " -block    = Attempt to allow for serial correlation in the data by doing\n"
             "   *OR*      variable-length block resampling, rather than completely\n"
@@ -125,7 +133,7 @@ int main( int argc , char *argv[] )
             "\n"
             "* Using the same data with the '-S' option gives the table below, again\n"
             "  indicating that there is no significant correlation between the columns\n"
-            "  (note the lack of the 'N:' results for Spearman correlation):\n"
+            "  (note also the lack of the 'N:' results for Spearman correlation):\n"
             "\n"
             "# Spearman correlation [n=12 #col=2]\n"
             "# Name      Name       Value   BiasCorr   5.00%%   95.00%%\n"
@@ -147,20 +155,26 @@ int main( int argc , char *argv[] )
    iarg = 1 ; nvec = 0 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+     /*--- methods ---*/
+
      if( toupper(argv[iarg][1]) == 'P' ){ cormeth = 0 ; iarg++ ; continue ; }
      if( toupper(argv[iarg][1]) == 'S' ){ cormeth = 1 ; iarg++ ; continue ; }
      if( toupper(argv[iarg][1]) == 'Q' ){ cormeth = 2 ; iarg++ ; continue ; }
      if( toupper(argv[iarg][1]) == 'K' ){ cormeth = 3 ; iarg++ ; continue ; }
 
+     /*--- set nboot ---*/
+
      if( strcasecmp(argv[iarg],"-nboot") == 0 || strcasecmp(argv[iarg],"-num") == 0 ){
        iarg++ ; if( iarg >= argc ) ERROR_exit("Need argument after '-nboot'") ;
        nboot = (int)strtod(argv[iarg],NULL) ;
-       if( nboot < NBOOT ){
-         WARNING_message("Replacing -nboot %d with %d",nboot,NBOOT) ;
-         nboot = NBOOT ;
+       if( nboot < NBMIN ){
+         WARNING_message("Replacing -nboot %d with %d",nboot,NBMIN) ;
+         nboot = NBMIN ;
        }
        iarg++ ; continue ;
      }
+
+     /*--- set alpha ---*/
 
      if( strcasecmp(argv[iarg],"-alpha") == 0 ){
        iarg++ ; if( iarg >= argc ) ERROR_exit("Need argument after '-alpha'") ;
@@ -177,38 +191,48 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*--- block resampling ---*/
+
      if( strcasecmp(argv[iarg],"-blk") == 0 || strcasecmp(argv[iarg],"-block") == 0 ){
        doblk = 1 ; iarg++ ; continue ;
      }
 
+     /*--- user should be flogged ---*/
+
      ERROR_exit("Monstrously illegal option '%s'",argv[iarg]) ;
    }
+
+   /*--- user should be flogged twice ---*/
 
    if( iarg == argc )
      ERROR_exit("No 1D files on command line!?\n") ;
 
-   corfun = cor_func[cormeth] ;  /* the function to compute correlation */
+   /* the function to compute the correlation */
 
-   /* input 1D files */
+   corfun = cor_func[cormeth] ;
+
+   /* check and assemble list of input 1D files */
 
    ff = iarg ;
    INIT_IMARR(tar) ;
    for( ; iarg < argc ; iarg++ ){
      tim = mri_read_1D( argv[iarg] ) ;
-     if( tim == NULL ) ERROR_exit("Can't read 1D file %s",argv[iarg]) ;
+     if( tim == NULL ) ERROR_exit("Can't read 1D file '%s'",argv[iarg]) ;
      if( nx == 0 ){
        nx = tim->nx ;
        if( nx < 3 )
-         ERROR_exit("1D file %s length=%d is less than 3",argv[iarg],nx) ;
+         ERROR_exit("1D file '%.77s' length=%d is less than 3",argv[iarg],nx) ;
        else if( nx < 7 )
-         WARNING_message("1D file %s length=%d is less than 7",argv[iarg],nx) ;
+         WARNING_message("1D file '%.77s' length=%d is less than 7",argv[iarg],nx) ;
      } else if( tim->nx != nx ){
-       ERROR_exit("Length of 1D file %s [%d] doesn't match first file [%d]",
+       ERROR_exit("Length of 1D file '%.77s' [%d] doesn't match first file [%d]",
                    argv[iarg] , tim->nx , nx );
      }
      nvec += tim->ny ;
      ADDTO_IMARR(tar,tim) ;
    }
+
+   /* user is really an idiot -- flogging's too good for him */
 
    if( nvec < 2 ) ERROR_exit("Must have at least 2 input columns!") ;
 
@@ -226,6 +250,8 @@ int main( int argc , char *argv[] )
      vecnam[jj] = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
    }
 
+   /* copy data into new space, create output labels, check for stoopiditees */
+
    for( kk=mm=0 ; mm < IMARR_COUNT(tar) ; mm++ ){
      tim = IMARR_SUBIM(tar,mm) ;
      far = MRI_FLOAT_PTR(tim) ;
@@ -240,7 +266,7 @@ int main( int argc , char *argv[] )
    }
    DESTROY_IMARR(tar) ;
 
-   /* Print a beeyootiful header */
+   /*--- Print a beeyootiful header ---*/
 
    printf("# %s correlation [n=%d #col=%d]\n",cor_name[cormeth],nx,nvec) ;
    sprintf(fmt,"# %%-%ds  %%-%ds",vlen,vlen) ;
@@ -284,7 +310,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-   /* Finished -- go back to watching Star Trek reruns -- Tribbles ahoy! */
+   /* Finished -- go back to watching Star Trek reruns -- Tribbles ahoy, Cap'n! */
 
    exit(0) ;
 }
@@ -308,7 +334,7 @@ static float_quad Corrboot( int n , float *x , float *y ,
 
 ENTRY("Corrboot") ;
 
-   if( nn < 7 || x == NULL || y == NULL || cfun == NULL ) RETURN(res) ;
+   if( nn < 3 || x == NULL || y == NULL || cfun == NULL ) RETURN(res) ;
 
    /* workspaces */
 
@@ -359,6 +385,7 @@ ENTRY("Corrboot") ;
    /* this is good */
 
    res.a = corst ; res.b = bci.a ; res.c = bci.b ; res.d = bci.c ;
+
    RETURN(res) ;
 }
 
