@@ -108,14 +108,20 @@ static int mybsearch_int( int tt , int nar , int *ar )
 
 static int string_search( char *targ , int nstr , char **str )
 {
-   int ii ;
+   int ii ; char *npt , *ttt , *sss ;
 
    if( targ == NULL || *targ == '\0' || str == NULL || nstr < 1 ) return -1 ;
 
-   for( ii=0 ; ii < nstr ; ii++ )
-     if( str[ii] != NULL && strcmp(targ,str[ii]) == 0 ) return ii ;
+   ttt = strdup(targ); npt = strstr(ttt,".nii"); if( npt != NULL ) *npt = '\0';
+   for( ii=0 ; ii < nstr ; ii++ ){
+     if( str[ii] != NULL ){
+       sss = strdup(str[ii]); npt = strstr(sss,".nii"); if( npt != NULL ) *npt = '\0';
+       if( strcmp(ttt,sss) == 0 ){ free(sss); free(ttt); return ii; }
+       free(sss) ;
+     }
+   }
 
-   return -1 ;
+   free(ttt) ; return -1 ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1075,6 +1081,7 @@ int main( int argc , char *argv[] )
       "                      Ethel   109   49\n"
       "                      Lucy    133   32\n"
       "        This file format should be compatible with 3dMEMA.\n"
+      "\n"
       "        ++ The first column contains the labels that must match the dataset\n"
       "            labels stored in the input *.grpincorr.niml files, which are\n"
       "            either the dataset prefixes or whatever you supplied in the\n"
@@ -1082,39 +1089,55 @@ int main( int argc , char *argv[] )
       "            -- If you ran 3dSetupGroupInCorr before this update, its output\n"
       "               .grpincorr.niml file will NOT have dataset labels included.\n"
       "               Such a file cannot be used with -covariates -- Sorry.\n"
+      "\n"
       "        ++ The later columns contain numbers: the covariate values for each\n"
       "            input dataset.\n"
       "            -- 3dGroupInCorr does not allow voxel-level covariates.  If you\n"
       "               need these, you will have to use 3dttest++ on the '-sendall'\n"
       "               output (of individual dataset correlations), which might best\n"
       "               be done using '-batch' mode (cf. far below).\n"
+      "\n"
       "        ++ The first line contains column headers.  The header label for the\n"
       "            first column isn't used for anything.  The later header labels are\n"
       "            used in the sub-brick labels sent to AFNI.\n"
+      "\n"
+      "        ++ If you want to omit some columns in file 'cf' from the analysis,\n"
+      "            you can do so with the standard AFNI column selector '[...]'.\n"
+      "            However, you MUST include column #0 (the dataset labels) and at\n"
+      "            least one more numeric column.  For example:\n"
+      "              -covariates Cov.table'[0,2..4]'\n"
+      "            to skip column #1 but keep columns #2, #3, and #4.\n"
+      "\n"
       "        ++ At this time, only the -paired and -pooled options can be used with\n"
       "            covariates.  If you use -unpooled, it will be changed to -pooled.\n"
       "            -unpooled still works with a pure t-test (no -covariates option).\n"
       "            -- This restriction might be lifted in the future.  Or it mightn't.\n"
+      "\n"
       "        ++ If you use -paired, then the covariates for -setB will be the same\n"
       "            as those for -setA, even if the dataset labels are different!\n"
       "            -- This restriction may be lifted in the future.  Or maybe not.\n"
+      "\n"
       "        ++ By default, each covariate column in the regression matrix will have\n"
       "            its mean removed (centered). If there are 2 sets of subjects, each\n"
       "            set's matrix will be centered separately.\n"
       "            -- See the '-center' option (below) to alter this default.\n"
+      "\n"
       "        ++ For each covariate, 2 sub-bricks are produced:\n"
       "            -- The estimated slope of arctanh(correlation) vs covariate\n"
       "            -- The Z-score of the t-statistic of this slope\n"
+      "\n"
       "        ++ If there are 2 sets of subjects, then each pair of sub-bricks is\n"
       "            produced for the setA-setB, setA, and setB cases, so that you'll\n"
       "            get 6 sub-bricks per covariate (plus 6 more for the mean, which\n"
       "            is treated as a special covariate whose values are all 1).\n"
       "            -- At present, there is no way to tell 3dGroupInCorr not to send\n"
       "               all this information back to AFNI/SUMA.\n"
+      "\n"
       "        ++ EXAMPLE:\n"
       "           If there are 2 groups of datasets (with setA labeled 'Pat', and setB\n"
       "           labeled 'Ctr'), and one covariate (labeled IQ), then the following\n"
       "           sub-bricks will be produced:\n"
+      "\n"
       "       # 0: Pat-Ctr_mean    = mean difference in arctanh(correlation)\n"
       "       # 1: Pat-Ctr_Zscr    = Z score of t-statistic for above difference\n"
       "       # 2: Pat-Ctr_IQ      = difference in slope of arctanh(correlation) vs IQ\n"
@@ -1127,12 +1150,15 @@ int main( int argc , char *argv[] )
       "       # 9: Ctr_Zscr        = Z score of t-statistic for above mean\n"
       "       #10: Ctr_IQ          = slope of arctanh(correlation) vs IQ for setB\n"
       "       #11: Ctr_IQ_Zscr     = Z score of t-statistic for above slope\n"
+      "\n"
       "        ++ However, the single-set results (sub-bricks #4-11) will NOT be\n"
       "           computed if the '-nosix' option is used.\n"
+      "\n"
       "        ++ If '-sendall' is used, the individual dataset arctanh(correlation)\n"
       "           maps (labeled with '_zcorr' at the end) will be appended to this\n"
       "           list.  These setA sub-brick labels will start with 'A_' and these\n"
       "           setB labels with 'B_'.\n"
+      "\n"
       "    ***+++ A maximum of 31 covariates are allowed.  If you need more, then please\n"
       "           consider the possibility that you are completely deranged or demented.\n"
       "\n"
@@ -1145,11 +1171,14 @@ int main( int argc , char *argv[] )
       "   data[i] = mean + slope * ( covariate[i] - value )\n"
       " where i is the dataset index.  The standard (default) operation is that 'value'\n"
       " is the mean of the covariate[i] numbers.\n"
-      
+      "\n"
       " -center NONE = Do not remove the mean of any covariate.\n"
+      "\n"
       " -center DIFF = Each set will have the means removed separately [default].\n"
+      "\n"
       " -center SAME = The means across both sets will be computed and subtracted.\n"
       "                (This option only applies to a 2-sample unpaired test.)\n"
+      "\n"
       " -center VALS A.1D [B.1D]\n"
       "                This option (for Gang Chen) allows you to specify the\n"
       "                values that will be subtracted from each covariate before\n"

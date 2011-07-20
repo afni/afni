@@ -13,7 +13,7 @@ NI_element * THD_simple_table_read( char *fname )
 {
    NI_str_array *sar ;
    char *dname , *cpt , *dpt , lbuf[NLL] ;
-   int ii , ibot , nlab , row=0 , *ivlist ;
+   int ii,jj , ibot , nlab , row=0 , *ivlist , niv=0 ;
    NI_element *nel ;
    FILE *fts ;
    float val ;
@@ -72,16 +72,38 @@ ENTRY("THD_simple_table_read") ;
      fclose(fts) ; NI_delete_str_array(sar) ; RETURN(NULL) ;
    }
 
+   if( cpt != NULL ){
+     ivlist = MCW_get_intlist( nlab , cpt ) ;
+     if( ivlist != NULL ){
+       if( ivlist[0] <= 1 || ivlist[1] != 0 ){
+         free(ivlist) ; ivlist=NULL ;
+         WARNING_message("Ignoring selector '%s' for table file '%s'",cpt,dname) ;
+       } else {
+         niv = ivlist[0] ;
+       }
+     }
+   }
+
    /* setup output data structure */
 
    nel = NI_new_data_element( "AFNI_table" , LVEC ) ;
 
    NI_add_column( nel , NI_STRING , NULL ) ;
-   for( ii=1 ; ii < nlab ; ii++ ) NI_add_column( nel , NI_FLOAT , NULL ) ;
+   if( niv <= 1 )
+     for( ii=1 ; ii < nlab ; ii++ ) NI_add_column( nel , NI_FLOAT , NULL ) ;
+   else
+     for( jj=2 ; jj <= niv ; jj++ ) NI_add_column( nel , NI_FLOAT , NULL ) ;
 
    strcpy( lbuf , sar->str[0] ) ;
-   for( ii=1 ; ii < nlab ; ii++ ){
-     strcat( lbuf , ";" ) ; strcat( lbuf , sar->str[ii] ) ;
+   if( niv <= 1 ){
+     for( ii=1 ; ii < nlab ; ii++ ){
+       strcat( lbuf , ";" ) ; strcat( lbuf , sar->str[ii] ) ;
+     }
+   } else {
+     for( jj=2 ; jj <= niv ; jj++ ){
+       ii = ivlist[jj] ;
+       strcat( lbuf , ";" ) ; strcat( lbuf , sar->str[ii] ) ;
+     }
    }
    NI_set_attribute( nel , "Labels" , lbuf ) ;
    NI_delete_str_array(sar) ;
@@ -115,12 +137,23 @@ ENTRY("THD_simple_table_read") ;
      /* put values from this line into this row of the table */
 
      NI_insert_string( nel , row , 0 , sar->str[0] ) ;
-     for( ii=1 ; ii < nlab ; ii++ ){
-       if( ii < sar->num )
-         val = (float)strtod( sar->str[ii] , NULL ) ;
-       else
-         val = 0.0f ;
-       NI_insert_value( nel , row , ii , &val ) ;
+     if( niv <= 1 ){
+       for( ii=1 ; ii < nlab ; ii++ ){
+         if( ii < sar->num )
+           val = (float)strtod( sar->str[ii] , NULL ) ;
+         else
+           val = 0.0f ;
+         NI_insert_value( nel , row , ii , &val ) ;
+       }
+     } else {
+       for( jj=2 ; jj <= niv ; jj++ ){
+         ii = ivlist[jj] ;
+         if( ii < sar->num )
+           val = (float)strtod( sar->str[ii] , NULL ) ;
+         else
+           val = 0.0f ;
+         NI_insert_value( nel , row , jj-1 , &val ) ;
+       }
      }
 
      row++ ;  /* have one more row! */
