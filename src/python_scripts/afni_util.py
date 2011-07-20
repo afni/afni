@@ -354,6 +354,93 @@ def get_last_history_command(dname, substr):
 
    return ''
 
+def get_3dinfo(dname, lines=0, verb=0):
+   """run 3dinfo, possibly -verb or -VERB
+      if lines, splitlines
+      return text, or None on failure (applies to string or lines)
+   """
+   vstr = ' '
+   if verb == 1: vstr = ' -verb'
+   elif verb > 1: vstr = ' -VERB'
+   command = '3dinfo%s %s' % (vstr, dname)
+   status, output = exec_tcsh_command(command)
+   if status: return None
+
+   if lines: return output.splitlines()
+
+   return output
+
+def get_3d_statpar(dname, vindex, statcode='', verb=0):
+   """return a single stat param at the given sub-brick index
+      if statcode, verify
+      return -1 on error
+   """
+   ilines = get_3dinfo(dname, lines=1, verb=1)
+   if ilines == None:
+      print '** failed get_3dinfo(%s)' % dname
+      return -1
+
+   N = len(ilines)
+
+   # find 'At sub-brick #v' line
+   sstr = 'At sub-brick #%d' % vindex
+   posn = -1
+   for ind, line in enumerate(ilines):
+      posn = line.find(sstr)
+      if posn >= 0: break
+
+   if posn < 0:
+      print '** 3d_statpar: no %s[%d]' % (dname, vindex)
+      return -1       # failure
+
+   # check statcode?
+   lind = ind + 1
+   if lind >= N:
+      if verb > 1: print '** 3d_statpar: no space for statpar line'
+      return -1
+
+   sline = ilines[lind]
+   plist = sline.split()
+   if statcode: 
+      olist = find_opt_and_params(sline, 'statcode', 2)
+      if len(olist) < 3:
+         print '** 3d_statpar: missing expected statcode'
+         return -1
+      code = olist[2]
+      if code[-1] == ';': code = code[:-1]
+      if code != statcode:
+         print '** 3d_statpar: statcode %s does not match expected %s'\
+               % (code, statcode)
+         return -1
+      if verb > 2: print '-- found %s' % olist
+
+   # now get something like "statpar = 32 x x"
+   olist = find_opt_and_params(sline, 'statpar', 4)
+   if len(olist) < 3:
+      if verb: print '** 3d_statpar: missing expected statpar'
+      if verb > 2: print '   found %s in %s' % (olist, sline)
+      return -1 
+   if verb > 2: print '-- found %s' % olist
+
+   par = -1
+   try: par = int(olist[2])
+   except:
+      if verb: print '** 3d_statpar: bad stat par[2] in %s' % olist
+      return -1 
+
+   return par
+
+def find_opt_and_params(text, opt, nopt=0):
+   """given some text, return the option with that text, as well as
+      the following 'nopt' parameters (truncated list if not found)"""
+   tlist = text.split()
+
+   if not opt in tlist: return []
+
+   tind = tlist.index(opt)
+
+   return tlist[tind:tind+1+nopt]
+
 def get_truncated_grid_dim(dset, verb=1):
     """return a new (isotropic) grid dimension based on the current grid
        - given md = min(DELTAS), return md truncated to 3 significant bits
@@ -2074,6 +2161,34 @@ def ttest_2sam_unpooled(data0, data1):
     if v0 <= 0.0 or v1 <= 0.0: return 0.0
 
     return (m1-m0)/math.sqrt(v0/N0 + v1/N1)
+
+
+def p2q(plist, do_min=1, verb=1):
+    """convert list of p-value to a list of q-value, where
+         q_i = minimum (for m >= i) of N * p_m / m
+       if do min is not set, simply compute q-i = N*p_i/i
+
+       return q-values in increasing significance
+              (i.e. as p goes large to small, or gets more significant)
+    """
+
+    q = plist[:]
+    q.sort()
+    N = len(q)
+
+    # work from index N down to 0 (so index using i-1)
+    min = 1
+    for i in range(N,0,-1):
+       ind = i-1
+       q[ind] = N * q[ind] / i
+       if do_min:
+          if q[ind] < min: min = q[ind]
+          if min < q[ind]: q[ind] = min
+
+    # and flip results
+    q.reverse()
+
+    return q
 
 # ----------------------------------------------------------------------
 # random list routines: shuffle, merge, swap, extreme checking
