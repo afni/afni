@@ -943,11 +943,9 @@ def db_cmd_volreg(proc, block):
     else: basevol = None
 
     if proc.verb > 0:
-        if basevol:
-            print "-- %s: using base dset %s" % (block.label,basevol)
-        else:
-            print "-- %s: base/sub indices are %d, %d" % \
-                  (block.label,dset_ind,sub)
+        if basevol: print "-- %s: using base dset %s" % (block.label,basevol)
+        else:       print "-- %s: base/sub indices are %d, %d" % \
+                          (block.label,dset_ind,sub)
 
     # get base prefix (run is index+1)
     base = proc.prev_prefix_form(dset_ind+1, view=1)
