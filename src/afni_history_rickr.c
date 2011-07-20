@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, JUL, 2011, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fixed aea.py -epi_base when: aea.py, -volreg_a2 last, variable run lens",
+   "thanks to S Brislin and S White for noting the problem"
+ } ,
+
  { 20, JUL, 2011, RCR, "make_pq_script.py", MINOR, TYPE_NEW_PROG,
    "program will generate a script to produce a p-value/q-value curve pair",
    NULL

@@ -183,7 +183,7 @@ g_history = """
     2.24 May 12 2010 : added -regress_censor_first_trs
     2.25 May 29 2010 :
         - fixed use of -volreg_regress_per_run and -regress_censor_motion pair
-          (problem noted by D Drake)
+          (thanks to D Drake for noting the problem)
     2.26 Jun 04 2010 :
         - if only one regressor, use 1dcat for "sum" ideal
         - added -outlier_count, default to "yes"
@@ -192,7 +192,7 @@ g_history = """
         - added -regress_censor_outliers and -regress_skip_first_outliers
         - specified 'auto block:' in block headers for those not chosen by user
     2.28 Jun 10 2010 : fixed copying EPI and anat as NIfTI
-          (problem noted by S Tambalo)
+          (thanks to S Tambalo for noting the problem)
     2.29 Jun 17 2010 : apply default polort in 3dToutcount
     2.30 Jun 17 2010 :
         - 3dToutcount detrending now defaults to Legendre polynomials and
@@ -223,11 +223,11 @@ g_history = """
     2.40 Nov 10 2010 : added new NOTE sections for ANAT/EPI ALIGNMENT to -help
     2.41 Nov 18 2010 :
         - fixed stim_files to stim_times conversion after multi_basis change
-        - problem noted by M Weber
+          (thanks to M Weber for noting the problem)
     2.42 Nov 22 2010 : improved line wrapping
     2.43 Dec 14 2010 :
         - fixed problem with timing file tests on 'empty' files with '*'
-        - problem noted by C Deveney and R Momenan
+          (thanks to C Deveney and R Momenan for noting the problem)
     2.44 Dec 16 2010 : small changes to file type warnings
     2.45 Jan 13 2011 : small changes to warnings for missing stimulus files
     2.46 Mar 07 2011 : make proc script executable
@@ -235,9 +235,9 @@ g_history = """
     2.48 Mar 15 2011 : use X.nocensor.1D (just to save 2 spaces)
     2.49 Apr 22 2011 :
         - if manual tlrc and -volreg_tlrc_adwarp, also transform extents mask
-          (noted by J Britton)
+          (thanks to J Britton for noting the problem)
         - if -regress_reml_exec, insert 3dClustSim table in stats_REML
-          (noted by R Momenan)
+          (thanks to R Momenan for noting the problem)
     2.50 Apr 29 2011 :
         - added -align_epi_strip_method for align_epi_anat.py skull strip
         - added help for -volreg_no_extent_mask
@@ -271,9 +271,13 @@ g_history = """
         - run gen_ss_review_scripts.py: generate single subject review scripts
         - and execute any resulting 'basic' review script
     2.58 Jul 15, 2011: save output from ss_review in out.ss_review.txt
+    2.59 Jul 20, 2011:
+        - fixed aea.py -epi_base in case of:
+          'align' and '-volreg_align_to last' and run lengths vary
+          (thanks to S Brislin and S White for noting the problem)
 """
 
-g_version = "version 2.58, July 15, 2011"
+g_version = "version 2.59, July 20, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "13 Jul 2011"
@@ -1196,10 +1200,15 @@ class SubjProcSream:
 
         if not opt:
             if self.verb > 2: print '-- no -volreg_base_ind opt for vr_base'
-            return proc.runs-1, proc.reps-1  # defaults
+            if len(self.reps_all) == self.runs:
+               return self.runs-1, self.reps_all[-1]-1  # defaults
+            return self.runs-1, self.reps-1  # defaults
 
         # if parlist values are -1, set to last TR
         if opt.parlist[0] < 0 or opt.parlist[1] < 0:
+            # if going after last volume, maybe run lengths vary
+            if len(self.reps_all) == self.runs:
+               return self.runs-1, self.reps_all[-1]-1  # defaults
             return self.runs-1, self.reps-1
 
         return opt.parlist[0], opt.parlist[1]
