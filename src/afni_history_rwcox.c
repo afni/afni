@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 15 , JUL , 2011 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
+  { 20 , JUL , 2011 , RWC , "3dGroupInCorr" , MICRO , TYPE_MODIFY ,
+   "Allow sub-brick selectors on the -covariates table" ,
+   NULL } ,
+
+ { 15 , JUL , 2011 , RWC , "3dGroupInCorr" , MICRO , TYPE_NEW_OPT ,
    "Add -center option for covariates (cf. Chen Gang)" ,
    NULL } ,
 
