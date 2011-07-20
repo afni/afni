@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, JUL, 2011, RCR, "make_pq_script.py", MINOR, TYPE_NEW_PROG,
+   "program will generate a script to produce a p-value/q-value curve pair",
+   NULL
+ } ,
+
  { 15, JUL, 2011, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "applied -d as -defaults",
    NULL
