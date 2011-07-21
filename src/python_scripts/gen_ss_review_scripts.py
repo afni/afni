@@ -198,7 +198,7 @@ set mmean = `3dTstat -prefix - -mean $enorm_dset\\' | & tail -n 1`
 echo "average motion (per TR)   : $mmean"
 
 set mcount = `1deval -a $enorm_dset -expr "step(a-$mot_limit)"      \\
-                        | grep -v ' 0$' | wc -l`
+                        | awk '$1 != 0 {print}' | wc -l`
 echo "num TRs above mot limit   : $mcount"
 
 if ( $?motion_dset ) then
@@ -216,7 +216,7 @@ set mmean = `3dTstat -prefix - -mean $outlier_dset\\' | & tail -n 1`
 echo "average outlier frac (TR) : $mmean"
 
 set mcount = `1deval -a $outlier_dset -expr "step(a-$out_limit)"      \\
-                        | grep -v ' 0$' | wc -l`
+                        | awk '$1 != 0 {print}' | wc -l`
 echo "num TRs above out limit   : $mcount"
 
 
@@ -421,6 +421,7 @@ g_history = """
    0.3  Jul 15, 2011
         - added 'max motion displacement' to basic script
         - check if X.stim.xmat.1D already exists
+   0.4  Jul 21, 2011: changed TR counts to come via awk instead of grep
 """
 
 g_version = "gen_ss_review_scripts.py version 0.3, July 15, 2011"

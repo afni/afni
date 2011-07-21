@@ -425,7 +425,8 @@ STATUS("start y FFTs") ;
 
    /** 03 Oct 2005: perhaps do the z-blur in real-space? **/
 
-   if( nz < 2 || sigmay <= 0.0 ){
+   /* sigmay to sizmaz, noted by Patryk on MB   21 July, 2011 [rickr] */
+   if( nz < 2 || sigmaz <= 0.0 ){
      STATUS("skip z blur") ; fir_num++ ; goto ALL_DONE_NOW ;
    }
 
