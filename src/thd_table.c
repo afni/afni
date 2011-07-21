@@ -6,6 +6,12 @@
 #undef  LVEC
 #define LVEC 666
 
+/*** Modified 20-21 Jul 2011 to all column selectors []
+     for the table.  Column #0 must be the first one!
+     Row selectors {} don't really make sense, given that
+     the actual rows used are supposed to be taken using
+     column #0 as a key, and unselected rows are to be ignored. ***/
+
 /*------------------------------------------------------------------------*/
 /* Simple table: first column = labels, the rest are numbers. */
 
@@ -207,6 +213,9 @@ ENTRY("THD_simple_table_read") ;
 }
 
 /*------------------------------------------------------------------------*/
+/* This table has column #0 as strings (labels), and remaining
+   columns are numbers or strings.  Each column is 'pure' in type.
+*//*----------------------------------------------------------------------*/
 
 NI_element * THD_mixed_table_read( char *fname )
 {
