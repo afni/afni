@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 20, JUL , 2011 , ZSS , "1dcat" , MICRO , TYPE_NEW_OPT,
+   "added -sel option to 1dcat",
+   "with -sel one can apply the same selection of columns and rows\n"
+   "to all files on the command line, allowing the use of wildcards\n"
+   "when specifying input 1D files.\n"
+  } ,
+
  { 24, JUN , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
    "added global option -pif which is used to flag certain commands.",
    "-pif PROCESS_ID_FLAG is used to flag a particular AFNI command\n"

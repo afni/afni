@@ -389,10 +389,16 @@ int main( int argc , char * argv[] )
            ERROR_exit("-matvec file not a 3x4 matrix!\n");
          matar = MRI_FLOAT_PTR(matim) ;
        }
-
-       use_matvec = (strstr(argv[nopt-1],"_in2out") != NULL) ? 
-                        MATVEC_FOR : MATVEC_BAC ;
-
+       
+       if (!strcmp(argv[nopt-1],"-matvec_in2out")) {
+         use_matvec = MATVEC_FOR;  
+       } else if (!strcmp(argv[nopt-1],"-matvec_out2in")) {
+         use_matvec = MATVEC_BAC;  
+       } else {
+         ERROR_exit( "Your -matvec option must end with either \n"
+                     "_in2out or _out2in. You have %s\n",
+                     argv[nopt-1]+7);
+       }
        switch( use_matvec ){
 
          case MATVEC_FOR:

@@ -8250,7 +8250,8 @@ double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
    /* make sure that's a closed surface */
    if (SOc->EL->max_N_Hosts != 2 || SOc->EL->min_N_Hosts != 2) {
       SUMA_SL_Err("Created surface is not a closed one.\n"
-                  "Or patches have tessellation problems.");
+                  "Or patches have tessellation problems.\n"
+                  "Small holes in the ROI could cause such a problem.");
       if (LocalHead) {
          int Inci[200], N_Inci=-1;
          if (!(SUMA_Save_Surface_Object_Wrap ( "BadPatch.ply", NULL,
