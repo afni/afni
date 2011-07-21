@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 20 , JUL , 2011 , RWC , "3dGroupInCorr" , MICRO , TYPE_MODIFY ,
+  { 21 , JUL , 2011 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Add column selection to -covariates for this, also" ,
+   NULL } ,
+
+ { 20 , JUL , 2011 , RWC , "3dGroupInCorr" , MICRO , TYPE_MODIFY ,
    "Allow sub-brick selectors on the -covariates table" ,
    NULL } ,
 
