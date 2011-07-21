@@ -11,8 +11,8 @@ int main( int argc , char * argv[] )
 {
    int nim , ii , jj , kk , nx, narg, oform ;
    MRI_IMAGE **inim ;
-   float *far ;
-   char *formatstr=NULL;
+   float *far;
+   char *formatstr=NULL, *sel=NULL, *fname=NULL;
    int nonconst=0 , ncol,ncold , cc , nonfixed=0 ;
    intvec *ncv=NULL ;
    char *hline=NULL ;
@@ -49,6 +49,14 @@ int main( int argc , char * argv[] )
 "The '-form' option indicates the format of the numbers to be output.\n"
 "For help on -form's usage, see ccalc's help for the option of the same name.\n"
 "\n"
+"The '-sel SEL' options allows you to apply the same column/row selection\n"
+"string to all of the filenames on the command line.\n"
+"For example 1dcat -sel '[0,2]' f1.1D f2.1D\n"
+"is the same as: 1dcat f1.1D'[1,2]' f2.1D'[1,2]'\n"
+"the advantage of the option is that it allows wildcard use\n"
+"in file specification so that you can run something like:\n"
+"  1dcat -sel '[0,2]' f?.1D\n"
+"\n"
 "EXAMPLE:\n"
 "--------\n"
 "  Input file 1:\n   1\n   2\n   3\n   4\n"
@@ -65,6 +73,7 @@ int main( int argc , char * argv[] )
 
    /* do we have any options? */
    oform = CCALC_NOT_SET; 
+   sel = NULL;
    narg = 1;
    while (narg < argc && argv[narg][0] == '-') {
 
@@ -98,6 +107,13 @@ int main( int argc , char * argv[] )
             exit (1);
          }
          ++narg;
+      } else if (strcmp(argv[narg],"-sel") == 0) {
+         ++narg;
+         if (narg >= argc)  {
+	         fprintf (stderr, "need argument after -sel ");
+	         exit (1);
+         }
+         sel = argv[narg]; ++narg;
       } else if (strncmp(argv[narg],"-d",2) == 0) {
          oform = CCALC_DOUBLE; ++narg;
       } else if (strncmp(argv[narg],"-n",2) == 0) {
@@ -133,12 +149,19 @@ int main( int argc , char * argv[] )
       } else
 #endif
 
-      inim[jj] = mri_read_1D( argv[jj+narg] ) ;
+      if (sel) {
+         fname = (char *)
+                  calloc((strlen(argv[jj+narg])+strlen(sel)+1), sizeof(char));
+         strcat(fname, argv[jj+narg]); strcat(fname, sel);
+      } else {
+         fname = argv[jj+narg];  
+      }
+      inim[jj] = mri_read_1D( fname ) ;
       if( inim[jj] == NULL )
-        ERROR_exit("Can't read input file '%s'",argv[jj+narg]) ;
+        ERROR_exit("Can't read input file '%s'",fname) ;
       if( jj > 0 && inim[jj]->nx != inim[0]->nx )
         ERROR_exit("Input file %s doesn't match first file %s in length!",
-                   argv[jj+narg],argv[1]) ;
+                   fname,argv[1]) ;
 
       ncold = ncol ; ncol += inim[jj]->ny ;
       if( ncv != NULL ){     /* check for constant columns [04 Dec 2010] */
@@ -154,7 +177,7 @@ int main( int argc , char * argv[] )
           }
         }
         if( nonfixed ){
-          char *hl = mri_read_1D_headerlines( argv[jj+narg] ) ;
+          char *hl = mri_read_1D_headerlines( fname ) ;
           if( hl != NULL && *hl == '#' ){
             char *spt = strchr(hl,'\n') ;
             if( spt != NULL ) spt = strchr(spt,'#') ; /* start of line 2 */
@@ -175,7 +198,9 @@ int main( int argc , char * argv[] )
           }
         }
       } /* end of computing ncv = array marking non-constant vectors */
-
+      if (sel) {
+         free(fname); fname = NULL;
+      }
    } /* end of input loop */
 
    /* now do the output */
