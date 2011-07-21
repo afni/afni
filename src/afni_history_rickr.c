@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, JUL, 2011, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_MODIFY,
+   "changed TR counts to come via awk instead of grep",
+   NULL
+ } ,
+
+ { 21, JUL, 2011, RCR, "edt_blur.c", MICRO, TYPE_BUG_FIX,
+   "fixed nz/sigmay typo, found by Patryk (on message board)",
+   NULL
+ } ,
+
  { 20, JUL, 2011, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fixed aea.py -epi_base when: aea.py, -volreg_a2 last, variable run lens",
    "thanks to S Brislin and S White for noting the problem"
