@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, JUL, 2011, RCR, "slow_surf_clustsim.py", MINOR, TYPE_BUG_FIX,
+   "after blur, rescale noise to be normally distributed",
+   NULL
+ } ,
+
  { 21, JUL, 2011, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_MODIFY,
    "changed TR counts to come via awk instead of grep",
    NULL
