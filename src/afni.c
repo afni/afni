@@ -1773,6 +1773,10 @@ int main( int argc , char *argv[] )
        GLOBAL_library.controller_lock |= (1<<ii) ;
    }
 
+   if( AFNI_yesenv("AFNI_TIME_LOCK") ){
+       GLOBAL_library.time_lock = 1 ;
+   }
+   
    /*-- now create first display context: MAIN_dc --*/
 
    GLOBAL_library.dc = MAIN_dc =

@@ -402,6 +402,13 @@ Notice that the Time Lock feature is not automatically enabled
 by this -- you must still actuate it manually from the Lock menu
 on the Define Datamode panel.
 
+--------------------------
+Variable: AFNI_TIME_LOCK
+--------------------------
+Setting this YES/NO variable to YES tells AFNI to start up with 
+Time Lock turned on. The Time Lock feature is can be set manually 
+from the Lock menu on the Define Datamode panel.
+
 ------------------------
 Variables: AFNI_RENDER_* (editable)
 ------------------------
