@@ -20,9 +20,11 @@ g_history = """
     0.1  08 Jul, 2011: added -on_surface, which might not be so useful
     0.2  13 Jul, 2011: let plist be list of strings or floats
     0.3  14 Jul, 2011: show date per iter block and use ./ in 3dcalc prefix
+    0.4  22 Jul, 2011: scale smoothed data to be normally distributed
+                       (i.e. divide by stdev)
 """
 
-g_version = '0.3 (July 14, 2011)'
+g_version = '0.4 (July 22, 2011)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -78,8 +80,8 @@ g_udef_strs = g_user_defs.copy(as_strings=1)
 
 
 g_make_empty_surf_str = """
-# ------------------------------------------------------------
-# for data on the surface, make an empty surface dataset
+# ------------------------------
+# make an empty surface dataset (for data on surface and 3dmaskave)
 
 # get number of nodes
 SurfMeasures -spec $spec_file -sv $surf_vol -surf_A $surfA -out_1D nodes.1D
@@ -94,6 +96,8 @@ set empty_surf = empty.gii
 ConvertDset -o_gii -input nodes.1D -prefix $empty_surf   \\
             -add_node_index -pad_to_node $last_node
 
+# make an all-1 surface for 3dmaskave
+3dcalc -a $empty_surf -expr 1 -prefix all_1.gii
 """
 
 # main class definition
@@ -300,6 +304,7 @@ class SurfClust(object):
          cmd_v2s = self.script_do_3dv2s(indent=3)
       else: cmd_v2s = ''
       cmd_ss     = self.script_do_surfsmooth(indent=3)
+      cmd_scale  = self.rescale_stdev(indent=3)
       cmd_clust  = self.script_do_surfclust(indent=3)
 
       cmd +=                                                               \
@@ -307,7 +312,7 @@ class SurfClust(object):
         'foreach iter ( `count -digits 3 1 $niter` )\n\n'                  \
         '   # track time for each iteration\n'                             \
         '   echo "== iter block $iter (size $itersize) @ `date`"\n\n'      \
-        + cmd_3dcalc + cmd_v2s + cmd_ss + cmd_clust +                      \
+        + cmd_3dcalc + cmd_v2s + cmd_ss + cmd_scale + cmd_clust +          \
         'end   # of foreach iter loop\n\n'
 
       return cmd
@@ -326,11 +331,23 @@ class SurfClust(object):
         '   foreach zthr ( $zthr_list )\n',
         tstr,
         '      SurfClust -spec $spec_file -surf_A $surfA           \\\n',
-        '                -input smooth.noise.$iter.gii"[$index]" 0 \\\n',
+        '                -input smooth.white.$iter.gii"[$index]" 0 \\\n',
         '                -sort_area -rmm $rmm -athresh $zthr       \\\n',
         '                > clust.out.$iter.$index.$zthr\n',
         '   end\n',
         'end\n\n' ]
+
+      return istr + istr.join(clist)
+
+   def rescale_stdev(self, indent=0):
+      istr = ' '*indent
+
+      clist = [ \
+        '# rescale noise to be normally distributed\n',
+        '3dmaskave -mask all_1.gii -sigma smooth.noise.$iter.gii  \\\n',
+        "          | awk '{print $2}' > t.stdev.1D\n",
+        '3dcalc -a smooth.noise.$iter.gii -b t.stdev.1D -expr a/b \\\n',
+        '       -prefix smooth.white.$iter.gii\n\n']
 
       return istr + istr.join(clist)
 
@@ -411,7 +428,7 @@ class SurfClust(object):
              'set zthr_list = ()\n'                                     \
              'foreach pthr ( $pthr_list )\n'                            \
              '   # convert from p to z (code for N(0,1) is 5)\n'        \
-             '   set zthr = `ccalc "cdf2stat((1-$pthr),5,0,0,0)"`\n'    \
+             '   set zthr = `ccalc "cdf2stat(1-$pthr,5,0,0,0)"`\n'      \
              '   set zthr_list = ( $zthr_list $zthr )\n'                \
              'end\n\n'
 
@@ -421,8 +438,8 @@ class SurfClust(object):
       cmd += '# divide niter by itersize (take ceiling)\n'              \
              '@ niter = ( $niter + $itersize - 1 ) / $itersize\n\n'
 
-      if self.cvars.val('on_surface') == 'yes':
-         cmd += g_make_empty_surf_str
+      # always create an empty surface, and then an all-1 surface
+      cmd += g_make_empty_surf_str
 
       return cmd
 
