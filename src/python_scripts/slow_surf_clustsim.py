@@ -60,7 +60,8 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
       -help                     : show this help
       -hist                     : show module history
-      -show_default_vars        : list user variable defaults
+      -show_default_cvars       : list default control variables
+      -show_default_uvars       : list default user variables
       -show_valid_opts          : list valid options
       -ver                      : show current version
 
@@ -70,7 +71,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
       -print_script             : print script to terminal
       -save_script FILE         : save script to given file
       -uvar value ...           : set the user variable
-                                  (use -show_default_vars to see user vars)
+                                  (use -show_default_uvars to see user vars)
       -verb LEVEL               : set the verbosity level
 
 -----------------------------------------------------------------------------
@@ -101,7 +102,8 @@ class MyInterface:
       # short, terminal arguments
       vopts.add_opt('-help', 0, [], helpstr='display program help')
       vopts.add_opt('-hist', 0, [], helpstr='display the modification history')
-      vopts.add_opt('-show_default_vars',0,[],helpstr='show variable defaults')
+      vopts.add_opt('-show_default_cvars',0,[],helpstr='show default cvars')
+      vopts.add_opt('-show_default_uvars',0,[],helpstr='show default uvars')
       vopts.add_opt('-show_valid_opts',0,[],helpstr='display all valid options')
       vopts.add_opt('-ver', 0, [],helpstr='display the current version number')
 
@@ -142,7 +144,11 @@ class MyInterface:
          print CLUST.g_history
          return 1
 
-      if '-show_default_vars' in argv:
+      if '-show_default_cvars' in argv:
+         CLUST.g_ctrl_defs.show('')
+         return 1
+
+      if '-show_default_uvars' in argv:
          CLUST.g_user_defs.show('')
          return 1
 
@@ -169,8 +175,8 @@ class MyInterface:
       val, err = uopts.get_type_opt(int, '-verb')
       if val != None and not err: self.verb = val
 
-      SUBJ.set_var_str_from_def('uvars', 'verb', ['%d'%self.verb], self.uvars,
-                                 defs=CLUST.g_user_defs)
+      SUBJ.set_var_str_from_def('cvars', 'verb', ['%d'%self.verb], self.cvars,
+                                 defs=CLUST.g_ctrl_defs)
 
       # first process all setup options
       errs = 0
@@ -196,6 +202,13 @@ class MyInterface:
          elif opt.name == '-cvar':
             val, err = uopts.get_string_list('', opt=opt)
             if val != None and err: return -1
+            # go after verb, in particular
+            if val[0] == 'verb':
+               try: self.verb = int(val[1])
+               except:
+                  print "** failed to set 'verb' level"
+                  errs += 1
+                  continue
             # and set it from the form name = [value_list]
             if SUBJ.set_var_str_from_def('cvars', val[0], val[1:], self.cvars,
                         CLUST.g_ctrl_defs, verb=self.verb) < 0:

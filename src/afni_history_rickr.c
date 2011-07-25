@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, JUL, 2011, RCR, "slow_surf_clustsim.py", MINOR, TYPE_ENHANCE,
+   "added keepblocks var, to limit kept intermediate datasets",
+   NULL
+ } ,
+
  { 22, JUL, 2011, RCR, "slow_surf_clustsim.py", MINOR, TYPE_BUG_FIX,
    "after blur, rescale noise to be normally distributed",
    NULL
