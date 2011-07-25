@@ -22,9 +22,10 @@ g_history = """
     0.3  14 Jul, 2011: show date per iter block and use ./ in 3dcalc prefix
     0.4  22 Jul, 2011: scale smoothed data to be normally distributed
                        (i.e. divide by stdev)
+    0.5  25 Jul, 2011: added keepblocks var, to limit kept datasets
 """
 
-g_version = '0.4 (July 22, 2011)'
+g_version = '0.5 (July 25, 2011)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -41,15 +42,17 @@ g_res_defs.output_proc   = ''   # output from running proc script
 # ---- control variables: process control, not set by user in GUI
 
 g_ctrl_defs = SUBJ.VarsObject("slow_surf_clustsim control defaults")
+g_ctrl_defs.verb         = 1     # verbose level
 g_ctrl_defs.proc_dir     = '.'   # process dir: holds scripts and result dir
 g_ctrl_defs.time_process = 'yes' # run /usr/bin/time on commands?
                                  # rcr - default to 'no'
 g_ctrl_defs.on_surface   = 'no'  # default to starting from the volume
+g_ctrl_defs.nsteps       = 10
+g_ctrl_defs.keepblocks   = 10    # number of iteration block outputs to keep
 
 # ---- user variables: process control, alignment inputs and options ----
 
 g_user_defs = SUBJ.VarsObject("slow_surf_clustsim user defaults")
-g_user_defs.verb           = 1          # verbose level
 g_user_defs.copy_scripts   = 'yes'      # do we make .orig copies of scripts?
 g_user_defs.results_dir    = 'clust.results' # where script puts results
 
@@ -69,7 +72,6 @@ g_user_defs.rmm            = -1
 g_user_defs.surfA          = 'smoothwm'
 g_user_defs.surfB          = 'pial'
 g_user_defs.map_func       = 'ave'
-g_user_defs.nsteps         = 10
 
 
 
@@ -128,6 +130,7 @@ class SurfClust(object):
       self.LV.indent  = 8               # default indent for main options
       self.LV.istr    = ' '*self.LV.indent
       self.LV.retdir  = ''              # return directory (for jumping around)
+      self.LV.rmsets  = []              # items to delete after keepblocks
 
       # merge passed user variables with defaults
       self.cvars = g_ctrl_defs.copy()
@@ -148,7 +151,7 @@ class SurfClust(object):
       if self.check_inputs(): return    # require spec, sv, vol_mask
       if self.set_directories(): return
 
-      if self.uvars.verb > 3: self.LV.show('ready to start script')
+      if self.cvars.verb > 3: self.LV.show('ready to start script')
 
       # do the work
       self.create_script()
@@ -190,7 +193,7 @@ class SurfClust(object):
       self.LV.top_dir     = parent_dirs[0]  # common parent dir
       self.LV.short_names = short_names # if top_dir is used, they are under it
 
-      if self.uvars.verb > 2:
+      if self.cvars.verb > 2:
          if self.cvars.val('on_surface') != 'yes':
             print '-- set_dirs: top_dir         = %s\n' \
                   '             short surf_vol  = %s\n' \
@@ -206,7 +209,7 @@ class SurfClust(object):
       # if top_dir isn't long enough, do not bother with it
       if self.LV.top_dir.count('/') < 2:
          self.LV.top_dir = ''
-         if self.uvars.verb > 2: print '   (top_dir not worth using...)'
+         if self.cvars.verb > 2: print '   (top_dir not worth using...)'
 
       return 0
 
@@ -307,15 +310,39 @@ class SurfClust(object):
       cmd_scale  = self.rescale_stdev(indent=3)
       cmd_clust  = self.script_do_surfclust(indent=3)
 
+      cmd_keepb  = self.script_keepblocks(indent=3)
+
       cmd +=                                                               \
         '# for each iteration block, process $itersize sets of z-scores\n' \
         'foreach iter ( `count -digits 3 1 $niter` )\n\n'                  \
         '   # track time for each iteration\n'                             \
         '   echo "== iter block $iter (size $itersize) @ `date`"\n\n'      \
-        + cmd_3dcalc + cmd_v2s + cmd_ss + cmd_scale + cmd_clust +          \
+        + cmd_3dcalc + cmd_v2s + cmd_ss + cmd_scale                        \
+        + cmd_clust + cmd_keepb +                                          \
         'end   # of foreach iter loop\n\n'
 
       return cmd
+
+   def script_keepblocks(self, indent=0):
+
+      # are we using keepblocks and have something to delete?
+      if self.cvars.verb > 1: print '-- keepblocks: kb=%d, rmsets=%d)' \
+                              % (self.cvars.keepblocks, len(self.LV.rmsets))
+      if self.cvars.keepblocks <= 0 or len(self.LV.rmsets) == 0: return ''
+
+      istr = ' '*indent
+
+      clist = [ \
+        '# if we are past keepblocks iterations, delete current datasets\n',
+        'set icount = `ccalc -i $iter`  # avoid octal question\n',
+        'if ( $icount > $keepblocks ) then\n']
+
+      # add all of the delete linse
+      for rmset in self.LV.rmsets: clist.append('   rm -f %s\n' % rmset)
+
+      clist.append('endif\n\n')
+
+      return istr + istr.join(clist)
 
    def script_do_surfclust(self, indent=0):
       istr = ' '*indent
@@ -349,6 +376,9 @@ class SurfClust(object):
         '3dcalc -a smooth.noise.$iter.gii -b t.stdev.1D -expr a/b \\\n',
         '       -prefix smooth.white.$iter.gii\n\n']
 
+      # add current output to optional delete list
+      self.LV.rmsets.append('smooth.white.$iter.gii')
+
       return istr + istr.join(clist)
 
    def script_do_surfsmooth(self, indent=0):
@@ -369,6 +399,9 @@ class SurfClust(object):
         '           -met HEAT_07 -target_fwhm $blur           \\\n',
         '           -Niter %d -output smooth.noise.$iter.gii\n\n' % niter ]
 
+      # add current output to optional delete list
+      self.LV.rmsets.append('smooth.noise.$iter.gii')
+
       return istr + istr.join(clist)
 
    def script_do_3dv2s(self, indent=3):
@@ -386,6 +419,9 @@ class SurfClust(object):
                 '           -f_index nodes                         \\\n',
                 '           -oob_value 0                           \\\n',
                 '           -out_niml surf.noise.$iter.niml.dset\n\n' ]
+
+      # add current output to optional delete list
+      self.LV.rmsets.append('surf.noise.$iter.niml.dset')
 
       return istr + istr.join(clist)
 
@@ -408,10 +444,15 @@ class SurfClust(object):
          clist = [ \
             '3dcalc -a $empty_surf $bset -expr "gran(0,1)" \\\n',
             '       -prefix ./surf.noise.$iter.gii -datum float\n\n' ]
+         rmset = 'surf.noise.$iter.gii'
       else:
          clist = [ \
             '3dcalc -a $vol_mask $bset -expr "bool(a)*gran(0,1)" \\\n',
             '       -prefix ./vol.noise.$iter -datum float\n\n' ]
+         rmset = 'vol.noise.$iter+*'
+
+      # add current output to optional delete list
+      self.LV.rmsets.append(rmset)
 
       return istr + istr.join(dlist) + istr + istr.join(clist)
 
@@ -523,7 +564,11 @@ class SurfClust(object):
              'set surfB       = %s\n'           \
              'set map_func    = %s\n'           \
              'set nsteps      = %d\n\n'         \
-             % (U.surfA, U.surfB, U.map_func, U.nsteps)
+             % (U.surfA, U.surfB, U.map_func, self.cvars.nsteps)
+
+      if self.cvars.keepblocks > 0:
+         cmd += '# note how many blocks to keep output datasets for\n' \
+                'set keepblocks  = %d\n\n' % self.cvars.keepblocks
 
       if self.cvars.time_process:
          cmd += "# prepare to possibly time programs (/usr/bin/time or '')\n" \
@@ -587,9 +632,9 @@ class SurfClust(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
       if os.path.isfile(pfile):
          cmd = 'cp -f %s .orig.%s' % (pfile, pfile)
-         if self.uvars.verb > 1: print '++ exec: %s' % cmd
+         if self.cvars.verb > 1: print '++ exec: %s' % cmd
          os.system(cmd)
-      elif self.uvars.verb > 1: print "** no proc '%s' to copy" % pfile
+      elif self.cvars.verb > 1: print "** no proc '%s' to copy" % pfile
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
       # ------------------------- done -------------------------
 
@@ -611,7 +656,7 @@ class SurfClust(object):
       self.rvars.file_proc = name # store which file we have written to
       self.rvars.output_proc = 'output.%s' % name # file for command output
 
-      if self.uvars.verb > 0: print '++ writing script to %s' % name
+      if self.cvars.verb > 0: print '++ writing script to %s' % name
 
       # if requested, make an original copy
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
