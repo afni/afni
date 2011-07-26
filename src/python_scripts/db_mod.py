@@ -266,41 +266,69 @@ def db_cmd_align(proc, block):
                             ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
     else:   extra_opts = ''
 
+    # if there is no extra_opt that says otherwise, assume there is skull
+    has_skull = (extra_opts.find('-anat_has_skull no') < 0)
+
     # note whether this the aea output is expected to be used
-    opt = proc.find_block_opt('volreg', '-volreg_align_e2a')
-    if opt: # if the option was passed, the output is junk
-        use_output = 0
+    e2a = (proc.find_block_opt('volreg', '-volreg_align_e2a') != None)
+    astr   = '' # maybe to save skullstrip dset
+    if e2a: # if the option was passed, the output is junk
         suffix = '_al_junk'
+        if has_skull: astr = '-save_skullstrip '
     else:   # otherwise, we will use it
-        use_output = 1
         suffix = '_al_keep'
 
-    # write commands
-    cmd =       '# %s\n'                                        \
-                '# align anatomy to EPI registration base\n'    \
-                % block_header('align')
-    cmd = cmd + 'align_epi_anat.py -anat2epi -anat %s \\\n'             \
-                '       -suffix %s \\\n'                                \
-                '       -epi %s -epi_base %d \\\n'                      \
-                '%s'                                                    \
-                '%s'                                                    \
-                '       -volreg off -tshift off\n\n'                    \
-                % (proc.anat.pv(), suffix, basevol, bind, essopt, extra_opts)
+    # write main command, write hdr after anat update
+    cmd = 'align_epi_anat.py -anat2epi -anat %s \\\n'             \
+          '       %s-suffix %s \\\n'                              \
+          '       -epi %s -epi_base %d \\\n'                      \
+          '%s'                                                    \
+          '%s'                                                    \
+          '       -volreg off -tshift off\n\n'                    \
+          % (proc.anat.pv(), astr, suffix, basevol, bind, essopt, extra_opts)
 
     # store alignment matrix file for possible later use
     proc.a2e_mat = "%s%s_mat.aff12.1D" % (proc.anat.prefix, suffix)
 
-    # update anat and tlrc to aligned one, unless going e2a at volreg
-    if use_output:
+
+    # if e2a:   update anat and tlrc to '_ss' version (intermediate, stripped)
+    #           (only if skull: '-anat_has_skull no' not found in extra_opts)
+    #           (not if using adwarp)
+    # else a2e: update anat and tlrc to 'keep' version
+    # (in either case, ss will no longer be needed)
+    if e2a:
+        adwarp = (proc.find_block_opt('volreg', '-volreg_tlrc_adwarp') != None)
+        if has_skull and not adwarp:
+            suffix = '_ns'
+            proc.anat.prefix = "%s%s" % (proc.anat.prefix, suffix)
+            if proc.tlrcanat:
+                proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
+            proc.tlrc_ss = 0
+            istr = 'intermediate, stripped,'
+        else: # just set istr
+            istr = 'current'
+        astr = 'for e2a: compute anat alignment transformation'
+    else: # a2e
         proc.anat.prefix = "%s%s" % (proc.anat.prefix, suffix)
         if proc.tlrcanat:
             proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
-        proc.tlrc_ss = 0        # default to no skull-strip
+        proc.tlrc_ss = 0        # skull-strip no longer required
+
+        # also, set strings for header
+        istr = 'aligned and stripped,'
+        astr = 'a2e: align anatomy'
+
+    # now that proc.anat has been updated, write header, still depending
+    # on e2a or a2e direction
+    hdr = '# %s\n'                              \
+          '# %s to EPI registration base\n'     \
+          '# (new anat will be %s %s)\n'        \
+          % (block_header('align'), astr, istr, proc.anat.pv())
 
     # note the alignment in EPIs warp bitmap (2=a2e)
     proc.warp_epi |= WARP_EPI_ALIGN_A2E
 
-    return cmd
+    return hdr + cmd
 
 # --------------- despike ---------------
 
@@ -1194,8 +1222,8 @@ def db_cmd_volreg(proc, block):
         if do_extents:
            cmd = cmd +                                                      \
                "# and apply Talairach transformation to the extents mask\n" \
-               "    adwarp -apar %s -dpar %s \\\n"                          \
-               "           -dxyz %g -resam NN\n\n"                          \
+               "adwarp -apar %s -dpar %s \\\n"                              \
+               "       -dxyz %g -resam NN\n\n"                              \
                % (proc.tlrcanat.pv(), proc.mask_extents.pv(), dim)
            proc.mask_extents.new_view(proc.view)
 
@@ -1524,12 +1552,16 @@ def group_mask_command(proc, block):
     return cmd
 
 # if possible make a subject anatomical mask (resampled to EPI)
+#    * if -volreg_tlrc_adwarp, there is no ss anat
 #    - if -volreg_tlrc_warp, apply from tlrc anat
 #    - if a2e, apply from anat_al
-#    - if e2a, apply from anat_al with inverted transform
+#    - if e2a, apply from anat_ss (intermediate anat)
 # return None on failure
 def anat_mask_command(proc, block):
     if not proc.warp_epi: return ''
+
+    # adwarp: we cannot rely on skull-stripped anat, so just return
+    if proc.warp_epi & WARP_EPI_TLRC_ADWARP: return ''
 
     proc.mask_anat = proc.mask_epi.new('mask_anat.$subj')
     cmd = "# ---- create subject anatomy mask, %s ----\n" % proc.mask_anat.pv()
@@ -1540,37 +1572,34 @@ def anat_mask_command(proc, block):
               % proc.warp_epi
 
     # set anat, comment string text and temporary anat
-    if proc.warp_epi & (WARP_EPI_TLRC_WARP | WARP_EPI_TLRC_ADWARP):
+    if proc.warp_epi & WARP_EPI_TLRC_WARP:
         anat = proc.tlrcanat
         ss = 'tlrc'
-    elif proc.warp_epi & WARP_EPI_ALIGN_A2E:
+    elif proc.warp_epi & (WARP_EPI_ALIGN_A2E | WARP_EPI_ALIGN_E2A):
         anat = proc.anat
         ss = 'aligned'
-    elif proc.warp_epi & WARP_EPI_ALIGN_E2A:
-        # here have have a junk anat, but one that was skull stripped, so
-        # invert the stripped anat back to match the orignal anat
-        # (since there is no 'ss' version left over)
-        anat = proc.anat.new(proc.anat.prefix+'_al_junk')
-        ss = 'aligned'
+     # no longer invert e2a matrix to get ss anat, since the current
+     # anat will already be stripped
     else: # should not happen
         print '** anat_mask_command: invalid warp_epi = %d' % proc.warp_epi
         return None
     cmd = cmd + "#      (resampled from %s anat)\n" % ss
     tanat = anat.new('rm.resam.anat')   # temporary resampled anat dset
 
-    if proc.warp_epi == WARP_EPI_ALIGN_E2A:
-        cmd = cmd + '\n'                                                     \
-              "# invert a2e matrix, and warp/resample skull-stripped anat\n" \
-              "cat_matvec -ONELINE %s -I > mat.a2e.inv.aff12.1D\n"           \
-              "3dAllineate -input %s -master %s \\\n"                        \
-              "            -1Dmatrix_apply mat.a2e.inv.aff12.1D \\\n"        \
-              "            -prefix %s\n\n"                                   \
-               % (proc.a2e_mat, anat.pv(), proc.mask_epi.pv(), tanat.prefix)
-    else:
-        # resample masked anat to epi grid, output is temp anat
-        cmd = cmd + "3dresample -master %s -prefix %s \\\n"             \
-                    "           -input %s\n\n"                          \
-                    % (proc.mask_epi.pv(), tanat.prefix, anat.pv())
+    #if proc.warp_epi == WARP_EPI_ALIGN_E2A:
+    #    cmd = cmd + '\n'                                                     \
+    #          "# invert a2e matrix, and warp/resample skull-stripped anat\n" \
+    #          "cat_matvec -ONELINE %s -I > mat.a2e.inv.aff12.1D\n"           \
+    #          "3dAllineate -input %s -master %s \\\n"                        \
+    #          "            -1Dmatrix_apply mat.a2e.inv.aff12.1D \\\n"        \
+    #          "            -prefix %s\n\n"                                   \
+    #           % (proc.a2e_mat, anat.pv(), proc.mask_epi.pv(), tanat.prefix)
+    #else:
+
+    # resample masked anat to epi grid, output is temp anat
+    cmd = cmd + "3dresample -master %s -prefix %s \\\n"             \
+                "           -input %s\n\n"                          \
+                % (proc.mask_epi.pv(), tanat.prefix, anat.pv())
 
     # and finally, convert to the binary mask of choice
     cmd = cmd + "# convert resampled anat brain to binary mask\n"   \
@@ -1696,13 +1725,6 @@ def db_mod_regress(block, proc, user_opts):
         if not UTIL.basis_has_known_response(bopt.parlist[0], warn=1):
             if not user_opts.find_opt('-regress_iresp_prefix'):
                 block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=1)
-        # rcr - maybe let 1d_tool.py compute sum in any case
-        #       1d_tool -infile X.xmat.1D -show_indices_interest
-        # uopt = user_opts.find_opt('-regress_make_ideal_sum')
-        # if uopt and not UTIL.basis_has_known_response(bopt.parlist[0]):
-        #    print '** -regress_make_ideal_sum is inappropriate for basis %s'\
-        #          % bopt.parlist[0]
-        #    errs += 1
 
     # handle processing one basis functions per class
     uopt = user_opts.find_opt('-regress_basis_multi')
@@ -3743,10 +3765,10 @@ g_help_string = """
 
     ** Danger Will Robinson! **
 
-       This mask is considered necessary because the align/warp transformation
-       that is applied on top of the volreg alignment transformation (applied
-       at once), meaning the transformation from the EPI grid to the anatomy
-       grid will vary per TR.
+       This EPI extents mask is considered necessary because the align/warp
+       transformation that is applied on top of the volreg alignment transform
+       (applied at once), meaning the transformation from the EPI grid to the
+       anatomy grid will vary per TR.
 
        The effect of this is seen at the edge voxels (extent edge), where a
        time series could be zero for many of the TRs, but have valid data for
@@ -3776,8 +3798,8 @@ g_help_string = """
     --- masking, continued...
 
     Note that it may still not be a good idea to apply any of the masks to the
-    regression, as it would then be necessary to intersect the masks across all
-    subjects, though applying the 'group' mask might be reasonable.
+    regression, as it might then be necessary to intersect such masks across
+    all subjects, though applying the 'group' mask might be reasonable.
 
  ** Why has the default been changed?
 
@@ -3893,14 +3915,20 @@ g_help_string = """
            in alignment with the EPI base (or -align_epi_ext_dset).
 
            In the default case of anat -> EPI alignment, the aligned anatomy
-           is acutally useful going forward, and is so named 'anat_al_keep'.
+           is actually useful going forward, and is so named 'anat_al_keep'.
 
            Additionally, if the -volreg_align_e2a option is used (thus aligning
            the EPI to the original anat), then the aligned anat dataset is no
-           longer very useful, and is so named 'anat_al_junk'.  At that point
-           the pb*.volreg.* datasets are aligned with the original anat (and
-           possibly in Talairach space, if the -volreg_tlrc_warp or _adwarp
-           option was applied).
+           longer very useful, and is so named 'anat_al_junk'.  However, unless
+           an anat+tlrc dataset was copied in for use in -volreg_tlrc_adwarp,
+           the skull-striped anat (anat_ss) becomes the current one going
+           forward.  That is identical to the original anat, except that it
+           went through the skull-stripping step in align_epi_anat.py.
+
+           At that point (e2a case) the pb*.volreg.* datasets are aligned with
+           the original anat or the skull-stripped original anat (and possibly
+           in Talairach space, if the -volreg_tlrc_warp or _adwarp option was
+           applied).
 
          Checking the results:
 
@@ -3908,7 +3936,11 @@ g_help_string = """
            -volreg_align_e2a was used, it will be with the original anat.
            If not, then it will be with anat_al_keep.
 
-           So compare the volreg EPI with the appropriate anatomical dataset.
+           Note that at the end of the regress block, whichever anatomical
+           dataset is deemed "in alignment" with the stats dataset will be
+           copied to anat_final.$subj.
+
+           So compare the volreg EPI with the final anatomical dataset.
 
     --------------------------------------------------
     ANAT/EPI ALIGNMENT CORRECTIONS NOTE:
@@ -4299,20 +4331,6 @@ g_help_string = """
             processing block.  It is preferable to run the script using the
             -e option to tcsh (as suggested), but maybe the user does not wish
             to do so.
-
-        -compute_tsnr yes/no    : compute TSNR datasets
-
-                e.g. -compute_tsnr no
-
-            By default, temporal signal to noise (TSNR) datasets are created at
-            end of the volreg and regress blocks.  For the volreg block, the
-            signal and noise datasets are both just the run 01 output.  For the
-            regress block, the signal is all_runs and the noise is errts.
-
-            Note that volreg noise is not currently detrended.  Maybe it should
-            be.
-
-            The formula is average signal / stdev(noise).
 
         -copy_anat ANAT         : copy the ANAT dataset to the results dir
 
@@ -5016,6 +5034,20 @@ g_help_string = """
             See also -volreg_align_to, -tcat_remove_first_trs and
             -volreg_base_dset.
 
+        -volreg_compute_tsnr yes/no : compute TSNR datasets from volreg output
+
+                e.g. -volreg_compute_tsnr yes
+                default: no
+
+            Use this option to compute a temporal signal to noise (TSNR)
+            dataset at the end of the volreg block.  Both the signal and noise
+            datasets are from the run 1 output, where the "signal" is the mean
+            and the "noise" is the detrended time series.
+
+            TSNR = average(signal) / stdev(noise)
+
+            See also -regress_compute_tsnr.
+
         -volreg_interp METHOD   : specify the interpolation method for volreg
 
                 e.g. -volreg_interp -quintic
@@ -5525,6 +5557,29 @@ g_help_string = """
             
             See '3dToutcount -help' for more details.
             See also -regress_skip_first_outliers, -regress_censor_motion.
+
+        -regress_compute_tsnr yes/no : compute TSNR datasets from errts
+
+                e.g. -regress_compute_tsnr no
+                default: yes
+
+            By default, a temporal signal to noise (TSNR) dataset is created at
+            the end of the regress block.  The "signal" is the mean of the
+            all_runs dataset (input to 3dDeconvolve), and the "noise" is the
+            errts dataset (residuals from 3dDeconvolve).
+
+            The main difference between the TSNR datasets from the volreg and
+            regress blocks is that the data in the regress block has been
+            smoothed (plus it has been "completely" detrended, according to
+            the regression model - this includes polort, motion and even stim
+            responses).
+
+            Use this option to prevent the TSNR dataset computation in the
+            'regress' block.
+
+            TSNR = average(signal) / stdev(noise)
+
+            See also -volreg_compute_tsnr.
 
         -regress_motion_per_run : regress motion parameters from each run
 

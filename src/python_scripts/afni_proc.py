@@ -261,6 +261,7 @@ g_history = """
         - make regress TSNR dataset by default (added option -compute_tsnr)
     2.54 Jun 03 2011: volreg tsnr is not default
         - added -volreg_compute_tsnr (def no), -regress_compute_tsnr (def yes)
+        - so -compute_tsnr has been removed
     2.55 Jun 30 2011: rename aligned anat output (from align_epi_anat.py)
         - OLD_al_keep, if output anat is useful (want anat -> EPI  alignment)
         - OLD_al_junk, if output anat is not    (want EPI  -> anat alignment)
@@ -275,9 +276,15 @@ g_history = """
         - fixed aea.py -epi_base in case of:
           'align' and '-volreg_align_to last' and run lengths vary
           (thanks to S Brislin and S White for noting the problem)
+    2.60 Jul 26, 2011:
+        - if e2a, update current anat to skull-stripped anat from align block
+          (this would avoid a second skull-strip step in @auto_tlrc)
+        - added details to comments in align block
+        - replaced help for -compute_tsnr with -regress and -volreg versions
+          (thanks to B Benson for asking about obsolete -compute_tsnr)
 """
 
-g_version = "version 2.59, July 20, 2011"
+g_version = "version 2.60, July 26, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "13 Jul 2011"
@@ -353,7 +360,7 @@ class SubjProcSream:
         self.anat       = None          # anatomoy to copy (afni_name class)
         self.tlrcanat   = None          # expected name of tlrc dataset
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
-        self.tlrc_ss    = 1             # whether to assume skull strip in tlrc
+        self.tlrc_ss    = 1             # whether to do skull strip in tlrc
         self.warp_epi   = 0             # xform bitmap: tlrc, adwarp, a2e, e2a
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.align_ebase= None          # external EPI for align_epi_anat.py
@@ -804,6 +811,7 @@ class SubjProcSream:
         opt = opt_list.find_opt('-copy_anat')
         if opt != None:
             self.anat = afni_name(opt.parlist[0])
+            # rcr - set only if no view in anat?  (though still would not know)
             self.tlrcanat = self.anat.new(new_view='+tlrc')
 
         opt = opt_list.find_opt('-gen_epi_review')  # name epi review script
