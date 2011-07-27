@@ -403,6 +403,13 @@ static char * readme_env[] = {
    "by this -- you must still actuate it manually from the Lock menu\n" ,
    "on the Define Datamode panel.\n" ,
    "\n" ,
+   "--------------------------\n" ,
+   "Variable: AFNI_TIME_LOCK\n" ,
+   "--------------------------\n" ,
+   "Setting this YES/NO variable to YES tells AFNI to start up with \n" ,
+   "Time Lock turned on. The Time Lock feature is can be set manually \n" ,
+   "from the Lock menu on the Define Datamode panel.\n" ,
+   "\n" ,
    "------------------------\n" ,
    "Variables: AFNI_RENDER_* (editable)\n" ,
    "------------------------\n" ,
@@ -3400,4 +3407,4 @@ static char * readme_env[] = {
    "If this variable is set to 'SMALL' or a negative number, then a smaller font\n" ,
    "size is used.\n" ,
    NULL } ;
-#define NUM_readme_env 3400
+#define NUM_readme_env 3407
