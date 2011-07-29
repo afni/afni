@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, JUL, 2011, RCR, "3dUniformize", MINOR, TYPE_BUG_FIX,
+   "fixed checks against lower_limit in option processing (since -1 init)",
+   "Thanks to A Waite for noting the problem and cause in the code."
+ } ,
+
  { 29, JUL, 2011, RCR, "make_pq_script.py", MINOR, TYPE_MODIFY,
    "changes to handle python 2.4, where shell output has extra blank lines",
    NULL

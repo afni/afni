@@ -245,7 +245,8 @@ void get_options
 	{
 	  nopt++;
 	  if (nopt >= argc)  UN_error ("need value after -clip_low ");
-     if (option_data->lower_limit) {
+     /* compare with -1 noted by A Waite     29 Jul 2011 [rickr] */
+     if (option_data->lower_limit >= 0) {  
       UN_error ("lower clip value already set, check your options");
      }
      option_data->lower_limit = atoi(argv[nopt]); /* ZSS Sept 26 05 */
@@ -268,7 +269,7 @@ void get_options
    
    if (strncmp(argv[nopt], "-auto_clip", 8) == 0)
 	{
-     if (option_data->lower_limit) {
+     if (option_data->lower_limit >= 0) {
       UN_error ("lower clip value already set, check your options");
      }
      option_data->lower_limit = -1; /* flag for auto_clip ZSS Sept 26 05 */
