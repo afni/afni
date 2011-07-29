@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, JUL, 2011, RCR, "make_pq_script.py", MINOR, TYPE_MODIFY,
+   "changes to handle python 2.4, where shell output has extra blank lines",
+   NULL
+ } ,
+
+ { 29, JUL, 2011, RCR, "slow_surf_clustsim.py", MINOR, TYPE_ENHANCE,
+   "z.max files are now named by p-value",
+   "And suggest a quick.alpha.vals.py command."
+ } ,
+
  { 26, JUL, 2011, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "if e2a, update current anat to skull-stripped anat from align block",
    "This would avoid a second skull-strip step in @auto_tlrc."
