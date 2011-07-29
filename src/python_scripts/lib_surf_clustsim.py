@@ -246,10 +246,9 @@ class SurfClust(object):
 
       cmd = '# done, suggest how to look at some results\n'     \
             'set plast = $pthr_list[$#pthr_list]\n\n'           \
-            '@ titers = $niters * $itersize\n\n'                \
+            '@ titers = $niter * $itersize\n\n'                \
             'echo ""\n'                                         \
             'echo "finished, consider the command:"\n'          \
-            'echo "  cd $results_dir"\n'                        \
             'echo "  quick.alpha.vals.py -niter $titers %s"\n'  \
             'echo ""\n' % zfile
 
