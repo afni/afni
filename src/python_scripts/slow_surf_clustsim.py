@@ -25,17 +25,57 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
    1. basic: give 3 required inputs, all else is default
 
-        slow_surf_clustsim.py -save_script surf.clustsim \\
-            -uvar spec_file sb23_lh_141_std.spec         \\
-            -uvar surf_vol sb23_SurfVol_aligned+orig     \\
-            -uvar vol_mask mask_3mm+orig
+        slow_surf_clustsim.py -save_script surf.clustsim        \\
+            -uvar spec_file sb23_lh_141_std.spec                \\
+            -uvar surf_vol sb23_SurfVol_aligned+orig            \\
+            -uvar vol_mask mask_3mm+orig                        \\
 
-   2. basic, but on the surface (so no vol_mask is provided)
+   2. more advanced, but still based on EPI analysis
+      (specify p-values, blur size and number of iterations, along with
+      the script name and results directory)
 
-        slow_surf_clustsim.py -save_script surf.sim.2    \\
-            -on_surface                                  \\
-            -uvar spec_file sb23_lh_141_std.spec         \\
+        slow_surf_clustsim.py -save_script surf.clustsim        \\
+            -uvar spec_file sb23_lh_141_std.spec                \\
+            -uvar surf_vol sb23_SurfVol_aligned+orig            \\
+            -uvar vol_mask mask_3mm+orig                        \\
+            -uvar pthr_list 0.05 0.01 0.002 0.001 0.0002 0.0001 \\
+            -uvar blur 8.0                                      \\
+            -uvar niter 1000                                    \\
+            -save_script csim.1000                              \\
+            -uvar results_dir clust.results.1000
+
+   3. basic, but on the surface (so no vol_mask is provided)
+
+        slow_surf_clustsim.py -save_script surf.sim.2           \\
+            -on_surface                                         \\
+            -uvar spec_file sb23_lh_141_std.spec                \\
             -uvar surf_vol sb23_SurfVol_aligned+orig
+
+
+   Note: it is appropriate to use a volume mask on the same grid as the data to
+         be analyzed, which is to say either the EPI grid (for functional
+         analysis) or perhaps the anatomical grid (for anatomical analysis,
+         such as of thickness measures).
+
+------------------------------------------
+
+   applying the results:
+
+      The result of processing should be one z.max.* file for each uncorrected
+      p-value input to the program (or each default).  These files contain the
+      maximum cluster sizes (in mm^2), per z-score/p-value, and are named using
+      the corresponding p-value, e.g. z.max.area.0.001 corresponds to p=0.001.
+
+      To get the cluster size required for some uncorrected p-value, run 
+      quick.alpha.vals.py on the z.max.area file corresponding to the desired
+      p-value, and note the cluster area required for the chosen corrected p.
+
+      For example, running this:
+
+           quick.alpha.vals.py -niter 1000 z.max.area.0.001
+
+      might show that a minimum cluster size of 113 mm^2 would correspond to a
+      corrected p=0.05.
 
 ------------------------------------------
 

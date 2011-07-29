@@ -23,9 +23,12 @@ g_history = """
     0.4  22 Jul, 2011: scale smoothed data to be normally distributed
                        (i.e. divide by stdev)
     0.5  25 Jul, 2011: added keepblocks var, to limit kept datasets
+    0.6  29 Jul, 2011:
+         - name z.max files by the p-values
+         - suggest quick.alpha.vals.py command
 """
 
-g_version = '0.5 (July 25, 2011)'
+g_version = '0.6 (July 29, 2011)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -229,6 +232,7 @@ class SurfClust(object):
       self.script += self.script_results_dir()
       self.script += self.script_main_process()
       self.script += self.script_tabulate_areas()
+      self.script += self.script_finish()
 
       # add commands ...
 
@@ -236,20 +240,38 @@ class SurfClust(object):
 
       return
 
+   def script_finish(self):
+
+      zfile = '$results_dir/z.max.area.$plast'
+
+      cmd = '# done, suggest how to look at some results\n'     \
+            'set plast = $pthr_list[$#pthr_list]\n\n'           \
+            '@ titers = $niters * $itersize\n\n'                \
+            'echo ""\n'                                         \
+            'echo "finished, consider the command:"\n'          \
+            'echo "  cd $results_dir"\n'                        \
+            'echo "  quick.alpha.vals.py -niter $titers %s"\n'  \
+            'echo ""\n' % zfile
+
+      return cmd
+
    def script_tabulate_areas(self):
       """for each zthr, for each clust file, extract max area"""
 
       cmd = SUBJ.comment_section_string('extract cluster counts') + '\n'
 
-      cmd += '# tabulate all results for each z-threshold\n'              \
+      cmd += '# tabulate all results for each uncorrected p-threshold\n'  \
              'set maxa_list = ()   # track all max areas\n'               \
              'set failures = ()    # track cluster failures\n'            \
-             'foreach zthr ( $zthr_list )\n'                              \
-             '   # create empty file for this z-score\n'                  \
-             '   echo -n "" > z.max.area.$zthr\n'                         \
+             'foreach pthr ( $pthr_list )\n'                              \
+             '   # make note of current file\n'                           \
+             '   set zfile = z.max.area.$pthr\n'                          \
              '\n'                                                         \
-             '   set file_list = ( clust.out.*.$zthr )\n'                 \
-             '   echo "-- processing $#file_list files for z = $zthr"\n'  \
+             '   # create empty file for this p-value\n'                  \
+             '   echo -n "" > $zfile\n'                                   \
+             '\n'                                                         \
+             '   set file_list = ( clust.out.*.$pthr )\n'                 \
+             '   echo "-- processing $#file_list files for p = $pthr"\n'  \
              '\n'                                                         \
              '   # process each file, counting through them\n'            \
              '   foreach findex ( `count -digits 1 1 $#file_list` )\n'    \
@@ -263,33 +285,33 @@ class SurfClust(object):
              "      set maxa = `awk '$1 == 1 {print $3}' $file`\n"        \
              '\n'                                                         \
              '      # and append it to the max file (if results exist)\n' \
-             '      if ( $maxa != "" ) echo $maxa >> z.max.area.$zthr\n'  \
+             '      if ( $maxa != "" ) echo $maxa >> $zfile\n'            \
              '\n'                                                         \
              '   end  # file index\n'                                     \
              '\n'                                                         \
-             '   # grab the max area for this z-score, and add to list\n' \
+             '   # grab the max area for this p-value, and add to list\n' \
              '   # (if the max.area file is not empty for some reason)\n' \
-             '   set nlines = `cat z.max.area.$zthr | wc -l`\n'           \
+             '   set nlines = `cat $zfile | wc -l`\n'                     \
              '   if ( $nlines != 0 ) then\n'                              \
-             '      set maxa = `sort -rn z.max.area.$zthr | head -n 1`\n' \
+             '      set maxa = `sort -rn $zfile | head -n 1`\n'           \
              '   else\n'                                                  \
-             '      set failures = ( $failures $zthr )\n'                 \
+             '      set failures = ( $failures $pthr )\n'                 \
              '      set maxa = 0\n'                                       \
              '   endif\n'                                                 \
              '\n'                                                         \
              '   set maxa_list = ( $maxa_list $maxa )\n'                  \
              '\n'                                                         \
-             'end  # zthr\n'                                              \
+             'end  # pthr\n'                                              \
              '\n'                                                         \
              'echo ""\n'                                                  \
+             'echo "p-value thresholds   : $pthr_list"\n'                 \
              'echo "z-score thresholds   : $zthr_list"\n'                 \
              'echo "maximum cluster areas: $maxa_list"\n'                 \
              '\n'                                                         \
              'if ( $#failures ) then\n'                                   \
              '   echo ""\n'                                               \
-             '   echo "** no clusters for z = $failures"\n'               \
+             '   echo "** no clusters for p = $failures"\n'               \
              'endif\n'                                                    \
-             'echo ""\n'                                                  \
              '\n'
 
       return cmd
@@ -312,13 +334,13 @@ class SurfClust(object):
 
       cmd_keepb  = self.script_keepblocks(indent=3)
 
-      cmd +=                                                               \
-        '# for each iteration block, process $itersize sets of z-scores\n' \
-        'foreach iter ( `count -digits 3 1 $niter` )\n\n'                  \
-        '   # track time for each iteration\n'                             \
-        '   echo "== iter block $iter (size $itersize) @ `date`"\n\n'      \
-        + cmd_3dcalc + cmd_v2s + cmd_ss + cmd_scale                        \
-        + cmd_clust + cmd_keepb +                                          \
+      cmd +=                                                                 \
+        '# for each iteration block, process $itersize sets of p/z-scores\n' \
+        'foreach iter ( `count -digits 3 1 $niter` )\n\n'                    \
+        '   # track time for each iteration\n'                               \
+        '   echo "== iter block $iter (size $itersize) @ `date`"\n\n'        \
+        + cmd_3dcalc + cmd_v2s + cmd_ss + cmd_scale                          \
+        + cmd_clust + cmd_keepb +                                            \
         'end   # of foreach iter loop\n\n'
 
       return cmd
@@ -352,15 +374,18 @@ class SurfClust(object):
       else:                tstr = ''
 
       clist = [ \
-        '# compute cluster sizes (for each iteration and z-score)\n',
+        '# compute cluster sizes (for each iteration and p/z-score)\n',
         '@ iminus1 = $itersize - 1   # want 0-based indices\n',
         'foreach index ( `count -digits 1 0 $iminus1` )\n',
-        '   foreach zthr ( $zthr_list )\n',
+        '   foreach pind ( `count -digits 1 1 $#pthr_list` )\n',
+        '      # note corresponding p and z-values\n',
+        '      set pthr = $pthr_list[$pind]\n',
+        '      set zthr = $zthr_list[$pind]\n\n',
         tstr,
         '      SurfClust -spec $spec_file -surf_A $surfA           \\\n',
         '                -input smooth.white.$iter.gii"[$index]" 0 \\\n',
         '                -sort_area -rmm $rmm -athresh $zthr       \\\n',
-        '                > clust.out.$iter.$index.$zthr\n',
+        '                > clust.out.$iter.$index.$pthr\n',
         '   end\n',
         'end\n\n' ]
 
@@ -472,6 +497,9 @@ class SurfClust(object):
              '   set zthr = `ccalc "cdf2stat(1-$pthr,5,0,0,0)"`\n'      \
              '   set zthr_list = ( $zthr_list $zthr )\n'                \
              'end\n\n'
+
+      cmd += 'echo have p-values: $pthr_list\n' \
+             'echo have z-scores: $zthr_list\n\n'
 
       cmd += '# make a dummy time file of length $itersize for 3dcalc\n' \
              '1deval -num $itersize -expr t > dummy.TRs.$itersize.1D\n\n'
