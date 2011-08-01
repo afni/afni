@@ -3423,32 +3423,62 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
       RETURN(maskset);
    }
 
-   if (!is_Atlas_Named(atlas, "CA_N27_PM")) {
+   if (!is_probabilistic_atlas(atlas)) {
       for (sb=0; sb < DSET_NVALS(ATL_DSET(atlas)); ++sb) {
          dset_kind = DSET_BRICK_TYPE(ATL_DSET(atlas),sb);
-         if(dset_kind == MRI_short) {
-            ba = DSET_BRICK_ARRAY(ATL_DSET(atlas),sb); /* short type */
-            if (!ba) { 
-               ERROR_message("Unexpected NULL array");
-               free(bmask); bmask = NULL;
-               RETURN(maskset);
-            }
+         if (DSET_BRICK_FACTOR(ATL_DSET(atlas),sb) != 0.0 &&
+             DSET_BRICK_FACTOR(ATL_DSET(atlas),sb) != 1.0) {
+            ERROR_message("Atlas dset %s'[%d]' has a brick factor of %f!\n",
+                  Atlas_Name(atlas), sb, DSET_BRICK_FACTOR(ATL_DSET(atlas),sb));
+            free(bmask); bmask = NULL;
+            RETURN(maskset);
          }
-         else {
-            bba = DSET_BRICK_ARRAY(ATL_DSET(atlas),sb); /* byte array */
-            if (!bba) { 
-               ERROR_message("Unexpected NULL array");
+         switch(dset_kind) {
+            case MRI_short :
+               ba = DSET_BRICK_ARRAY(ATL_DSET(atlas),sb); /* short type */
+               if (!ba) { 
+                  ERROR_message("Unexpected NULL array");
+                  free(bmask); bmask = NULL;
+                  RETURN(maskset);
+               }
+               break;
+            case MRI_byte:
+               bba = DSET_BRICK_ARRAY(ATL_DSET(atlas),sb); /* byte array */
+               if (!bba) { 
+                  ERROR_message("Unexpected NULL array");
+                  free(bmask); bmask = NULL;
+                  RETURN(maskset);
+               }
+               break;
+            case MRI_float:
+               if (LocalHead) 
+                  fprintf(stderr,"A float typed atlas? What's the big idea?\n");
+               fba = DSET_BRICK_ARRAY(ATL_DSET(atlas),sb); /* byte array */
+               if (!fba) { 
+                  ERROR_message("Unexpected NULL array");
+                  free(bmask); bmask = NULL;
+                  RETURN(maskset);
+               }
+               break;  
+            default:
+               ERROR_message("Bad dset type (%d) for %s", Atlas_Name(atlas));
                free(bmask); bmask = NULL;
                RETURN(maskset);
-            }
          }
 
          for (kk=0; kk < n_codes; ++kk) {
             for (ii=0; ii< nxyz; ++ii) {
                if (dset_kind == MRI_short)
-                  ba_val = ba[ii];
-               else
+                  ba_val = (int) ba[ii];
+               else if (dset_kind == MRI_byte)
                   ba_val = (int) bba[ii];
+               else if (dset_kind == MRI_float)
+                  ba_val = (int) fba[ii];
+               else {
+                  ERROR_message("Bad dset type (%d) for %s. Should not be here!",                                 Atlas_Name(atlas));
+                  free(bmask); bmask = NULL;
+                  RETURN(maskset);
+               }
                /* if voxel value matches code value
                   make byte mask 1 at that voxel */
                if (ba_val == codes[kk]) bmask[ii] = 1; 
