@@ -6293,9 +6293,10 @@ DUMP_IVEC3("  new_id",new_id) ;
            im3d->vedset.exinfo   = NULL ;
          break ;
        }
-       if( !im3d->vedskip )
-         changed = AFNI_vedit( im3d->fim_now , im3d->vedset ,
-                               im3d->vwid->func->clu_mask    ) ;
+       if( !im3d->vedskip ){
+         byte *mmm = (im3d->vednomask) ? NULL : im3d->vwid->func->clu_mask ;
+         changed = AFNI_vedit( im3d->fim_now , im3d->vedset , mmm ) ;
+       }
        if( !DSET_VEDIT_good(im3d->fim_now) ){
          UNCLUSTERIZE(im3d) ;
        } else if( changed ){

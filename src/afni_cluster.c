@@ -27,6 +27,14 @@ char * get_alpha_string( int csiz  , float pval , Three_D_View *im3d    ) ;
 int find_cluster_thresh( float athr, float pval , CLU_threshtable *ctab ) ;
 CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d ) ;
 
+#undef  SET_CLUSTERS_LAB
+#define SET_CLUSTERS_LAB(cw,starred)                                      \
+ do{ char clab[128] =                                                     \
+       "##: __Size__  __X__  __Y__  __Z__                        Alpha" ; \
+     if( starred ) strcat(clab,"*") ;                                     \
+     MCW_set_widget_label( (cw)->clusters_lab , clab ) ;                  \
+ } while(0)
+
 /*****************************************************************************/
 /*************  Functions for all actions in the cluster group ***************/
 
@@ -50,6 +58,35 @@ void set_vedit_cluster_label( Three_D_View *im3d , int ll )
    SENSITIZE( im3d->vwid->func->clu_report_pb , (ll==1) ) ;
 
    return ;
+}
+
+/*--------------------------------------------------------------------*/
+/* Callback from the usemask toggle button */
+
+void AFNI_clus_usemask_CB( Widget w ,
+                           XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View *im3d = (Three_D_View *)client_data ;
+   AFNI_clu_widgets *cwid ;
+   int bval ;
+
+ENTRY("AFNI_clus_usemask_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
+
+   bval = MCW_val_bbox( cwid->usemask_bbox ) ;
+   if( bval == !im3d->vednomask ) EXRETURN ;
+
+   im3d->vednomask = !bval ;
+   SET_CLUSTERS_LAB(cwid,im3d->vednomask) ;
+
+   if( im3d->vinfo->func_visible ){
+     im3d->vedset.flags = 1 ;
+     AFNI_redisplay_func( im3d ) ;
+     im3d->vedset.flags = 0 ;
+   }
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------*/
@@ -169,11 +206,8 @@ ENTRY("AFNI_clu_CB") ;
                        "* Voxels   => minimum cluster size that\n"
                        "              will be kept [at least 2]\n"
                        "---------------------------------------\n"
-                       "* Use 'BHelp' on 'Cluster Edit' label\n"
-                       "  to get summary of clustering results.\n"
-                       "---------------------------------------\n"
-                       "* Click on the 'Rpt' button to open a\n"
-                       "  more complete cluster report panel.\n"
+                       "* Click on the 'Rpt' button to open\n"
+                       "  a complete cluster report panel.\n"
                        "---------------------------------------"
                        , 2 , lvec,fvec ,
                         AFNI_cluster_choose_CB , (XtPointer)im3d ) ;
@@ -488,6 +522,35 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    HLINE(cwid->rowcol) ;
 
+   /* horiz rowcol for row #0 controls */
+
+   rc = XtVaCreateWidget(
+          "menu" , xmRowColumnWidgetClass , cwid->rowcol ,
+             XmNpacking      , XmPACK_TIGHT ,
+             XmNorientation  , XmHORIZONTAL ,
+             XmNadjustMargin , True ,
+             XmNtraversalOn  , True ,
+          NULL ) ;
+
+   /* Toggle button for using the clu_mask */
+
+   { char *mask_label[1] = { "Use internal mask from 3dClustSim" } ;
+     cwid->usemask_bbox = new_MCW_bbox( rc ,
+                                        1 , mask_label ,
+                                        MCW_BB_check , MCW_BB_noframe ,
+                                        AFNI_clus_usemask_CB, (XtPointer)im3d );
+     MCW_reghint_children( cwid->usemask_bbox->wrowcol ,
+                           "Enable or disable use of internally stored mask" ) ;
+     MCW_set_bbox( cwid->usemask_bbox , !im3d->vednomask ) ;
+     SENSITIZE(cwid->usemask_bbox->wrowcol,(im3d->vwid->func->clu_mask!=NULL)) ;
+   }
+
+   XtManageChild(rc) ;  /* finished with row #0 setup */
+
+   /* Separator from other widgets */
+
+   HLINE(cwid->rowcol) ;
+
    /* horiz rowcol for row #1 controls */
 
    rc = XtVaCreateWidget(
@@ -505,7 +568,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    MCW_register_hint( cwid->index_lab , "Crosshairs are in this cluster" ) ;
    MCW_register_help( cwid->index_lab , "Shows the cluster index that\n"
                                         "contains the crosshairs point.\n"
-                                        "* '??' means that the crosshairs\n"
+                                        "* '--' means that the crosshairs\n"
                                         "  are not in a cluster right now." ) ;
    VLINE(rc) ;
 
@@ -856,11 +919,11 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* Jul 2010: header line */
 
-   ww = XtVaCreateManagedWidget( "dialog" , xmLabelWidgetClass , cwid->rowcol ,
-                                  NULL ) ;
-   MCW_set_widget_label( ww ,
-                         "##: __Size__  __X__  __Y__  __Z__                        Alpha") ;
-   MCW_set_widget_fg( ww , "white") ;
+   cwid->clusters_lab =
+     XtVaCreateManagedWidget( "dialog" , xmLabelWidgetClass , cwid->rowcol , NULL ) ;
+
+   SET_CLUSTERS_LAB(cwid,im3d->vednomask) ;
+   MCW_set_widget_fg( cwid->clusters_lab , "white") ;
 
    /* Now create rows of widgets to display results from clusters */
 
@@ -924,7 +987,12 @@ ENTRY("AFNI_clus_make_widgets") ;
                         "\n"
                         "Any other string shown indicates an error in the\n"
                         "Clusterize software logic.  If this happens, please\n"
-                        "blame anyone but RW Cox, who is completely innocent."
+                        "blame anyone but RW Cox, who is COMPLETELY innocent.\n"
+                        "\n"
+                        "==>> If a '*' appears after the Alpha label, this means\n"
+                        "     since the 3dClustSim mask has been turned off, the\n"
+                        "     Alpha values are not precise, since the Alpha table\n"
+                        "     from 3dClustSim was computed with using that mask."
                       ) ;
    }
 
@@ -1026,7 +1094,7 @@ static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd )
 
        im3d->vwid->func->clu_index = ncl ; /* not used at this time; someday? */
        if( ncl >= 0 ) sprintf(lab,"#%d",ncl+1) ;
-       else           strcpy(lab,"??") ;
+       else           strcpy(lab,"--") ;
        MCW_set_widget_label( cwid->index_lab , lab ) ;
      break ;
 
@@ -1123,6 +1191,8 @@ ENTRY("AFNI_clus_update_widgets") ;
      AFNI_clus_make_widgets( im3d , nclu ) ;
      cwid = im3d->vwid->func->cwid ;
    }
+
+   SENSITIZE(cwid->usemask_bbox->wrowcol,(im3d->vwid->func->clu_mask!=NULL)) ;
 
    if( nclu == 0 || cld == NULL ){
      for( ii=0 ; ii < cwid->nrow ; ii++ ) XtUnmanageChild( cwid->clu_rc[ii] ) ;
@@ -1514,9 +1584,9 @@ ENTRY("AFNI_clus_action_CB") ;
      char *cmd = AFNI_clus_3dclust(im3d) ;
      if( cmd != NULL ){
        INFO_message("3dclust command:\n %s",cmd) ;
-       if( im3d->vwid->func->clu_mask != NULL ){
+       if( im3d->vwid->func->clu_mask != NULL && !im3d->vednomask ){
          WARNING_message("3dclust does not deal with the built-in 3dClustSim mask,") ;
-         ININFO_message (" so 3dclust and AFNI Clusterize results might differ!") ;
+         ININFO_message ("         so 3dclust and AFNI Clusterize results might differ!") ;
        }
      } else {
        ERROR_message("Can't generate 3dclust command!") ;
@@ -1876,7 +1946,8 @@ ENTRY("AFNI_clus_action_CB") ;
          im3d->vedset.param[4] = im3d->vinfo->thr_sign ;
          im3d->vedset.param[5] = im3d->vinfo->use_posfunc ;
          im3d->vedset.exinfo   = NULL ;
-         (void) AFNI_vedit( fset, im3d->vedset, im3d->vwid->func->clu_mask ) ;
+         (void) AFNI_vedit( fset, im3d->vedset,
+                            (im3d->vednomask) ? NULL : im3d->vwid->func->clu_mask ) ;
        }
        if( ISVALID_DSET(fset) && fset->dblk->vedim != NULL && clar != NULL ){
          double tz , tt ; int ss ;
