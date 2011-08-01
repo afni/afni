@@ -1793,7 +1793,7 @@ int main( int argc , char *argv[] )
    if( AFNI_yesenv("AFNI_TIME_LOCK") ){
        GLOBAL_library.time_lock = 1 ;
    }
-   
+
    /*-- now create first display context: MAIN_dc --*/
 
    GLOBAL_library.dc = MAIN_dc =
@@ -8821,6 +8821,11 @@ ENTRY("AFNI_crosshair_relabel") ;
   callback for crosshair label popup menu [12 Mar 2004]
 --------------------------------------------------------------------*/
 
+static char *last_jumpto_xyz_string = NULL ;  /* 23 Sep 2008 */
+static char *last_jumpto_ijk_string = NULL ;
+static char *last_mnito_string      = NULL ;
+static char *last_sumato_string     = NULL ;
+
 void AFNI_crosshair_pop_CB( Widget w ,
                             XtPointer client_data , XtPointer call_data )
 {
@@ -8832,6 +8837,24 @@ void AFNI_crosshair_pop_CB( Widget w ,
 ENTRY("AFNI_crosshair_pop_CB") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   /*-- jumpto stuff added 01 Aug 2011 --*/
+
+   if( w == im3d->vwid->imag->crosshair_jtxyz_pb ){
+     char tbuf[128] ;
+     sprintf(tbuf , "Enter new x y z (%s mm):" , GLOBAL_library.cord.orcode ) ;
+     MCW_choose_string( im3d->vwid->imag->crosshair_label , tbuf ,
+                        last_jumpto_xyz_string,
+                        AFNI_jumpto_CB, (XtPointer) im3d ) ;
+     EXRETURN ;
+   } else if ( w == im3d->vwid->imag->crosshair_jtijk_pb ){
+     MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k:" ,
+                        last_jumpto_ijk_string ,
+                        AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
+     EXRETURN ;
+   }
+
+   /*-- the other options --*/
 
         if( w == im3d->vwid->imag->crosshair_dicom_pb ) val = cord_dicom ;
    else if( w == im3d->vwid->imag->crosshair_spm_pb   ) val = cord_spm   ;
@@ -8861,15 +8884,10 @@ ENTRY("AFNI_crosshair_pop_CB") ;
   callback for non-marker buttons on the popup
 --------------------------------------------------------------------*/
 
-static char *last_jumpto_xyz_string = NULL ;  /* 23 Sep 2008 */
-static char *last_jumpto_ijk_string = NULL ;
-static char *last_mnito_string      = NULL ;
-static char *last_sumato_string     = NULL ;
-
 void AFNI_imag_pop_CB( Widget w ,
                        XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View *im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *)client_data ;
    MCW_imseq *seq=NULL ;
 
 ENTRY("AFNI_imag_pop_CB") ;
