@@ -3532,6 +3532,7 @@ STATUS("making func->rowcol") ;
          NULL ) ;
    im3d->vedset.code = 0 ; im3d->vedset.ival = -1 ;
    im3d->vedskip = 0 ;  /* 20 Dec 2007 */
+   im3d->vednomask = 0 ; /* 01 Aug 2011 */
 
    func->clu_cluster_pb =
       XtVaCreateManagedWidget(
