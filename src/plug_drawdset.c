@@ -870,9 +870,31 @@ void DRAW_make_widgets(void)
                                       NULL , NULL ,
                                       MCW_av_substring_CB , fillin_dir_strings ) ;
 
+#if 0    /* Need big gaps. ZSS Aug. 2011 */
      fillin_gap_av = new_MCW_optmenu( rc , " Gap" ,
                                       1 , NFILLIN_GAP , 4 , 0 ,
                                       NULL,NULL,NULL,NULL ) ;
+#else
+     fillin_gap_av = new_MCW_arrowval( rc             ,    /* parent */
+                       "Gap"            ,    /* label */
+                       MCW_AV_downup  ,    /* arrow directions */
+                       1              ,    /* min value (0.1 mm from decim) */
+                       999            ,    /* max value (99.9 mm) */
+                       4             ,    /* init value */
+                       MCW_AV_editext ,    /* input/output text display */
+                       0              ,    /* decimal shift */
+                       NULL           ,    /* routine to call when button */
+                       NULL           ,    /* is pressed, and its data */
+                       NULL,NULL           /* no special display */
+                              ) ;
+     XtVaSetValues( fillin_gap_av->wtext   , XmNcolumns , 5 , NULL ) ;
+     MCW_reghint_children( fillin_gap_av->wrowcol , "Fill Gap" ) ;
+     MCW_reghelp_children( fillin_gap_av->wrowcol ,
+                            " \n"
+                            "Sets the maximum voxel gap that gets filled in.\n"
+                          ) ;
+     XtManageChild( fillin_gap_av->wrowcol ) ;   
+#endif
 
      xstr = XmStringCreateLtoR( "*Do the Fill*" , XmFONTLIST_DEFAULT_TAG ) ;
      fillin_doit_pb = XtVaCreateManagedWidget( "AFNI" , xmPushButtonWidgetClass , rc ,
@@ -2930,7 +2952,11 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
 
    if( dcode < 0 ){ XBell(dc->display,100) ; return ; } /* should not happen! */
 
+   #if 0    /* Need big gaps. ZSS Aug. 2011 */
    maxgap = fillin_gap_av->ival ;
+   #else
+   maxgap = (int)fillin_gap_av->fval;
+   #endif
    if( maxgap < 1 ){ XBell(dc->display,100) ; return ; } /* should not happen! */
 
    bim  = DSET_BRICK(dset,0) ;  /* 21 Nov 2003: for undo */
