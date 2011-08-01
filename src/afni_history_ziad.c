@@ -65,6 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 1, AUG , 2011 , ZSS , "whereami" , MINOR , TYPE_BUG_FIX,
+   "Whereami's symbolic notation failed with float valued atlases",
+   "This is now fixed. Code also checks for scale factors.\n"
+   "There was another bug waiting to happen with:\n"
+   "!is_Atlas_Named(atlas, \"CA_N27_PM\"), which is now:\n"
+   "!is_probabilistic_atlas(atlas)\n"
+  } ,
+
+ { 22, JUL , 2011 , ZSS , "afni" , MICRO , TYPE_NEW_ENV,
+   "Added AFNI_TIME_LOCK to turn on AFNI's Time Lock by default",
+   NULL
+  } ,
+
  { 20, JUL , 2011 , ZSS , "1dcat" , MICRO , TYPE_NEW_OPT,
    "added -sel option to 1dcat",
    "with -sel one can apply the same selection of columns and rows\n"
