@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 21 , JUL , 2011 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+  { 1 , AUG , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Clusterize minor changes" ,
+   "* Shift+3clust button = actually run the 3dclust command, in addition\n"
+   "printing it out\n"
+   "* Add a warning message if an internal 3dClustSim mask is present, since\n"
+   "3dclust results will vary from Clusterize\n"
+   "* Add Jumpto buttons to AFNI crosshair label popup menu" } ,
+
+ { 21 , JUL , 2011 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
    "Add column selection to -covariates for this, also" ,
    NULL } ,
 

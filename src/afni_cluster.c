@@ -545,13 +545,18 @@ ENTRY("AFNI_clus_make_widgets") ;
    MCW_register_hint( cwid->clust3d_pb , "Output equivalent 3dclust command" ) ;
    MCW_register_help( cwid->clust3d_pb ,
                        "Writes the equivalent 3dclust\n"
-                       "command to the terminal (stdout)\n"
+                       "command to the terminal (stdout).\n"
                        "* However, at this time, 3dclust\n"
                        "   has no way to use the 3dClustSim\n"
                        "   mask (if any) stored in the\n"
                        "   Overlay dataset's header, so\n"
                        "   the results might not be exactly\n"
-                       "   identical to AFNI's Clusterize."
+                       "   identical to AFNI's Clusterize.\n"
+                       "* If you hold down the keyboard Shift\n"
+                       "   key while you click this button,\n"
+                       "   then AFNI will execute the 3dclust\n"
+                       "   command as well as write it to\n"
+                       "   the screen."
                     ) ;
 
    /* row #1: SaveTabl button */
@@ -1505,9 +1510,22 @@ ENTRY("AFNI_clus_action_CB") ;
    /*--------- 3dclust button ---------*/
 
    if( w == cwid->clust3d_pb ){
+     XmPushButtonCallbackStruct *pbcbs = (XmPushButtonCallbackStruct *)cbs ;
      char *cmd = AFNI_clus_3dclust(im3d) ;
-     if( cmd != NULL ) INFO_message("3dclust command:\n %s",cmd) ;
-     else              ERROR_message("Can't generate 3dclust command!") ;
+     if( cmd != NULL ){
+       INFO_message("3dclust command:\n %s",cmd) ;
+       if( im3d->vwid->func->clu_mask != NULL ){
+         WARNING_message("3dclust does not deal with the built-in 3dClustSim mask,") ;
+         ININFO_message (" so 3dclust and AFNI Clusterize results might differ!") ;
+       }
+     } else {
+       ERROR_message("Can't generate 3dclust command!") ;
+     }
+
+     if( cmd != NULL && pbcbs != NULL &&                       /* 01 Aug 2011 */
+         ( ((XButtonEvent *)(pbcbs->event))->state & ShiftMask ) )
+       system(cmd) ;
+
      EXRETURN ;
    }
 

@@ -368,7 +368,8 @@ typedef struct {
       Widget crosshair_frame , crosshair_rowcol , crosshair_label ;
 
       Widget crosshair_menu, crosshair_dicom_pb, crosshair_spm_pb ; /* 12 Mar 2004 */
-      Widget crosshair_ijk_pb ;   /* 04 Oct 2010 */
+      Widget crosshair_ijk_pb ;                                     /* 04 Oct 2010 */
+      Widget crosshair_jtxyz_pb , crosshair_jtijk_pb ;              /* 01 Aug 2011 */
 
       Widget        xhair_rowcol ;
       MCW_arrowval *crosshair_av ;
@@ -1598,6 +1599,7 @@ extern void AFNI_see_func_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_marks_edits_CB       ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_marks_transform_CB   ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_imag_pop_CB          ( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_crosshair_pop_CB     ( Widget , XtPointer , XtPointer ) ; /* 01 Aug 2011 */
 extern void AFNI_define_CB            ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_underlay_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_choose_dataset_CB    ( Widget , XtPointer , XtPointer ) ;
