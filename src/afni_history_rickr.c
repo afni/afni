@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, AUG, 2011, RCR, "uber_skel.py", MICRO, TYPE_MODIFY,
+   "main class inherits object - for older versions of python",
+   NULL
+ } ,
+
+ {  2, AUG, 2011, RCR, "uber_align_test.py", MICRO, TYPE_MODIFY,
+   "main class inherits object - for older versions of python",
+   NULL
+ } ,
+
  { 29, JUL, 2011, RCR, "3dUniformize", MINOR, TYPE_BUG_FIX,
    "fixed checks against lower_limit in option processing (since -1 init)",
    "Thanks to A Waite for noting the problem and cause in the code."
