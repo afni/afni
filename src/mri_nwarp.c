@@ -12,27 +12,6 @@ typedef struct {
 
 /*---------------------------------------------------------------------------*/
 
-IndexWarp3D * IW3D_copy( IndexWarp3D *AA )
-{
-   IndexWarp3D *BB ;
-
-   if( AA == NULL ) return NULL ;
-
-   BB = IW3D_create( AA->nx , AA->ny , AA->nz ) ;
-
-   memcpy( BB->xd , AA->xd , sizeof(float)*nx*ny*nz ) ;
-   memcpy( BB->yd , AA->yd , sizeof(float)*nx*ny*nz ) ;
-   memcpy( BB->zd , AA->zd , sizeof(float)*nx*ny*nz ) ;
-
-   BB->xxoff = AA->xxoff ; BB->xxdel = AA->xxdel ;
-   BB->yyoff = AA->yyoff ; BB->yydel = AA->yydel ;
-   BB->zzoff = AA->zzoff ; BB->zzdel = AA->zzdel ;
-
-   return BB ;
-}
-
-/*---------------------------------------------------------------------------*/
-
 IndexWarp3D * IW3D_create( int nx , int ny , int nz )
 {
    IndexWarp3D *WW ;
@@ -59,6 +38,29 @@ void IW3D_destroy( IndexWarp3D *AA )
      free(AA) ;
    }
    return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+IndexWarp3D * IW3D_copy( IndexWarp3D *AA )
+{
+   IndexWarp3D *BB ; int nxyz ;
+
+   if( AA == NULL ) return NULL ;
+
+   BB = IW3D_create( AA->nx , AA->ny , AA->nz ) ;
+
+   nxyz = AA->nx * AA->ny * AA->nz ;
+
+   memcpy( BB->xd , AA->xd , sizeof(float)*nxyz ) ;
+   memcpy( BB->yd , AA->yd , sizeof(float)*nxyz ) ;
+   memcpy( BB->zd , AA->zd , sizeof(float)*nxyz ) ;
+
+   BB->xxoff = AA->xxoff ; BB->xxdel = AA->xxdel ;
+   BB->yyoff = AA->yyoff ; BB->yydel = AA->yydel ;
+   BB->zzoff = AA->zzoff ; BB->zzdel = AA->zzdel ;
+
+   return BB ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -310,13 +312,13 @@ void IW3D_interp( int icode ,
      case MRI_NN:
      case MRI_LINEAR:
        IW3D_interp_linear( nxx , nyy , nzz , aar , bar , car ,
-                           npp , ip  , jp  , kp  , uar , var , *war ) ;
+                           npp , ip  , jp  , kp  , uar , var , war ) ;
      break ;
 
      default:
      case MRI_WSINC5:
        IW3D_interp_wsinc5( nxx , nyy , nzz , aar , bar , car ,
-                           npp , ip  , jp  , kp  , uar , var , *war ) ;
+                           npp , ip  , jp  , kp  , uar , var , war ) ;
      break ;
    }
 
