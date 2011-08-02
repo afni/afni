@@ -76,7 +76,7 @@ Examples:
 ===========================================================================
 """
 
-class AlignInterface():
+class AlignInterface(object):
    def __init__(self):
 
       self.verb       = 1
