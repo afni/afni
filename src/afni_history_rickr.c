@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, AUG, 2011, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "added control var out_prefix, a prefix for output files",
+   NULL
+ } ,
+
  {  2, AUG, 2011, RCR, "uber_skel.py", MICRO, TYPE_MODIFY,
    "main class inherits object - for older versions of python",
    NULL
