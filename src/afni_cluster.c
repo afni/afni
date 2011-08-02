@@ -1578,12 +1578,8 @@ ENTRY("AFNI_clus_action_CB") ;
      char *cmd = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
      if( cmd != NULL ){
        INFO_message("3dclust command:\n %s",cmd) ;
-       if( im3d->vwid->func->clu_mask != NULL && !im3d->vednomask ){
-         WARNING_message("3dclust does not deal with the built-in 3dClustSim mask,") ;
-         ININFO_message ("         so 3dclust and AFNI Clusterize results might differ!") ;
-       }
      } else {
-       ERROR_message("Can't generate 3dclust command!") ;
+       ERROR_message("Can't generate 3dclust command!") ; /* shouldn't happen */
      }
 
      if( cmd != NULL && pbcbs != NULL &&               /* 01 Aug 2011: run it */
