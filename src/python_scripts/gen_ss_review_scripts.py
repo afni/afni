@@ -50,6 +50,15 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
                         -cvar cmds_drive ~/tmp/s.cmds \\
                         -cvar xstim ~/tmp/x.stim.1D
 
+       2b. Similar to 2, but put all scripts and intermediate files under
+           a new ~/tmp/gen_dir.  So as an example for testing:
+
+                mkdir ~/tmp/gen_dir
+                gen_ss_review_scripts.py -cvar out_prefix ~/tmp/gen_dir/
+
+           Note that if out_prefix is a directory, it will need a trailing
+           '/', since it is a file name prefix.
+
 ------------------------------------------
 
    required files/datasets (these must exist in the current directory):
@@ -105,7 +114,8 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       -final_anat DSET          : final anatomical dataset
       -final_view VIEW          : final view of data (e.g. 'orig' or 'tlrc')
 
-      -uvar VAR PARAMS ...      : generic option form
+      -uvar VAR PARAMS ...      : generic option form for control variables
+      -uvar VAR PARAMS ...      : generic option form for user variables
 
 
 -----------------------------------------------------------------------------
@@ -405,7 +415,11 @@ g_cvars_defs.scr_basic  = '@ss_review_basic'
 g_cvars_defs.scr_drive  = '@ss_review_driver'
 g_cvars_defs.cmds_drive = '@ss_review_driver_commands'
 g_cvars_defs.xstim      = 'X.stim.xmat.1D'
+g_cvars_defs.out_prefix = ''    # if set, use as prefix to cvar files
 g_cvars_defs.exit0      = 0     # if set, return 0 even on errors
+
+# this is a corresponding list of control vars that define output files
+g_outfile_cvars = ['scr_basic', 'scr_drive', 'cmds_drive', 'xstim' ]
 
 g_history = """
    gen_ss_review_scripts.py history:
@@ -422,6 +436,7 @@ g_history = """
         - added 'max motion displacement' to basic script
         - check if X.stim.xmat.1D already exists
    0.4  Jul 21, 2011: changed TR counts to come via awk instead of grep
+   0.5  Aug 02, 2011: added control var out_prefix, a prefix for output files
 """
 
 g_version = "gen_ss_review_scripts.py version 0.3, July 15, 2011"
@@ -566,6 +581,9 @@ class MyInterface:
       # make list to process user vars by name
       ukeys = g_uvar_dict.keys()
 
+      # convenience
+      C = self.cvars
+
       # ------------------------------------------------------------
       # process options sequentially, to make them like a script
       errs = 0
@@ -581,7 +599,7 @@ class MyInterface:
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return -1
             if self.uvars.set_var_with_defs(uvar, val, g_eg_uvar,
-                        as_type=1, oname='uvars', verb=self.cvars.verb) < 0:
+                        as_type=1, oname='uvars', verb=C.verb) < 0:
                errs += 1
                continue
 
@@ -590,7 +608,7 @@ class MyInterface:
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return -1
             if self.uvars.set_var_with_defs(val[0], val[1:], g_eg_uvar,
-                        as_type=1, oname='uvars', verb=self.cvars.verb) < 0:
+                        as_type=1, oname='uvars', verb=C.verb) < 0:
                errs += 1
                continue
 
@@ -598,8 +616,8 @@ class MyInterface:
          elif opt.name == '-cvar':
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return -1
-            if self.cvars.set_var_with_defs(val[0], val[1:], g_cvars_defs,
-                        as_type=1, oname='cvars', verb=self.cvars.verb) < 0:
+            if C.set_var_with_defs(val[0], val[1:], g_cvars_defs,
+                        as_type=1, oname='cvars', verb=C.verb) < 0:
                errs += 1
                continue
 
@@ -608,18 +626,30 @@ class MyInterface:
             if val == None or err:
                errs +=1
                continue
-            self.cvars.scr_basic = val
+            C.scr_basic = val
          elif opt.name == '-script_driver':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err:
                errs +=1
                continue
-            self.cvars.scr_drive = val
+            C.scr_drive = val
          else:
             print '** unknown option %d: %s' % (oind+1, opt.name)
             errs += 1
 
       if errs: return -1
+
+      # ------------------------------------------------------------
+      # apply any trailing logic
+
+      # if out prefix is set, apply to any file names in g_outfile_cvars
+      # (unless they have a full path)
+      if C.is_not_empty('out_prefix'):
+         for filevar in g_outfile_cvars:
+            if C.is_not_empty(filevar):
+               fname = C.val(filevar)
+               # if not an absolute path, apply prefix
+               if fname[0]!='/': C.set_var(filevar,'%s%s'%(C.out_prefix,fname))
 
       return 0
 
