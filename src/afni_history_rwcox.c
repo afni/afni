@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , AUG , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+  { 2 , AUG , 2011 , RWC , "3dclust" , MINOR , TYPE_NEW_OPT ,
+   "Add '-inmask' option, to use internal mask" ,
+   "To be compatible with AFNI's Clusterize GUI, which was also modified to\n"
+   "output this option when appropriate." } ,
+
+ { 1 , AUG , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Clusterize minor changes" ,
    "* Shift+3clust button = actually run the 3dclust command, in addition\n"
    "printing it out\n"

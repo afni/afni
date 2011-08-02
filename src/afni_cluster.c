@@ -609,17 +609,11 @@ ENTRY("AFNI_clus_make_widgets") ;
    MCW_register_help( cwid->clust3d_pb ,
                        "Writes the equivalent 3dclust\n"
                        "command to the terminal (stdout).\n"
-                       "* However, at this time, 3dclust\n"
-                       "   has no way to use the 3dClustSim\n"
-                       "   mask (if any) stored in the\n"
-                       "   Overlay dataset's header, so\n"
-                       "   the results might not be exactly\n"
-                       "   identical to AFNI's Clusterize.\n"
-                       "* If you hold down the keyboard Shift\n"
-                       "   key while you click this button,\n"
-                       "   then AFNI will execute the 3dclust\n"
-                       "   command as well as write it to\n"
-                       "   the screen."
+                       "\n"
+                       "If you hold down the keyboard Shift\n"
+                       "key while you click this button, then\n"
+                       "AFNI will execute the 3dclust command\n"
+                       "as well as write it to the screen."
                     ) ;
 
    /* row #1: SaveTabl button */
@@ -1463,7 +1457,7 @@ ENTRY("AFNI_clus_action_CB") ;
      if( fp == NULL ){
        ERROR_message("Can't open file %s for writing",fnam) ;
      } else {
-       ppp = AFNI_clus_3dclust(im3d) ;
+       ppp = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
        if( ppp != NULL )
          fprintf(fp,"# AFNI interactive cluster table\n# %s\n" , ppp ) ;
        fprintf(fp, "#Coordinate order = %s\n"
@@ -1508,7 +1502,7 @@ ENTRY("AFNI_clus_action_CB") ;
      ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
      if( !THD_filename_pure(ppp) || strcmp(ppp,"-") == 0 ) ppp = "Clust" ;
      sprintf(pref,"%s_mask",ppp) ;
-     cmd = AFNI_clus_3dclust(im3d) ;
+     cmd = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
 
      mset = EDIT_empty_copy(fset) ;
      tross_Copy_History(fset,mset) ;
@@ -1581,7 +1575,7 @@ ENTRY("AFNI_clus_action_CB") ;
 
    if( w == cwid->clust3d_pb ){
      XmPushButtonCallbackStruct *pbcbs = (XmPushButtonCallbackStruct *)cbs ;
-     char *cmd = AFNI_clus_3dclust(im3d) ;
+     char *cmd = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
      if( cmd != NULL ){
        INFO_message("3dclust command:\n %s",cmd) ;
        if( im3d->vwid->func->clu_mask != NULL && !im3d->vednomask ){
@@ -1592,7 +1586,7 @@ ENTRY("AFNI_clus_action_CB") ;
        ERROR_message("Can't generate 3dclust command!") ;
      }
 
-     if( cmd != NULL && pbcbs != NULL &&                       /* 01 Aug 2011 */
+     if( cmd != NULL && pbcbs != NULL &&               /* 01 Aug 2011: run it */
          ( ((XButtonEvent *)(pbcbs->event))->state & ShiftMask ) )
        system(cmd) ;
 
@@ -1751,7 +1745,7 @@ ENTRY("AFNI_clus_action_CB") ;
            if( fp == NULL ){
              ERROR_message("Can't open file %s for writing",fnam) ;
            } else {
-             ppp = AFNI_clus_3dclust(im3d) ;
+             ppp = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
              if( ppp != NULL )
                fprintf(fp,"# Histogram of %s[%d..%d]\n"
                           "# over Cluster #%d from\n"
@@ -1903,7 +1897,7 @@ ENTRY("AFNI_clus_action_CB") ;
            if( fp == NULL ){
              ERROR_message("Can't open file %s for writing",fnam) ;
            } else {
-             ppp = AFNI_clus_3dclust(im3d) ;
+             ppp = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
              if( ppp != NULL )
                fprintf(fp,"# %s of %s[%d..%d]\n"
                           "# over Cluster #%d from\n"
@@ -2068,6 +2062,11 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d )
 
    if( thb < tht )
      sprintf(cmd+strlen(cmd)," -2thresh %g %g",thb,tht) ;
+
+   if( im3d->vwid->func->clu_mask != NULL ){  /* 02 Aug 2011 */
+     if( im3d->vednomask ) sprintf(cmd+strlen(cmd)," -no_inmask") ;
+     else                  sprintf(cmd+strlen(cmd)," -inmask") ;
+   }
 
    if( rmm <= 0.0f ){
      strcat(cmd," -dxyz=1") ;
