@@ -7,6 +7,30 @@ typedef struct {
         xxdel , yydel , zzdel  ;
 } IndexWarp3D ;
 
+#undef  FREEIFNN
+#define FREEIFNN(x) do{ if((x)!=NULL) free((void *)(x)); } while(0)
+
+/*---------------------------------------------------------------------------*/
+
+IndexWarp3D * IW3D_copy( IndexWarp3D *AA )
+{
+   IndexWarp3D *BB ;
+
+   if( AA == NULL ) return NULL ;
+
+   BB = IW3D_create( AA->nx , AA->ny , AA->nz ) ;
+
+   memcpy( BB->xd , AA->xd , sizeof(float)*nx*ny*nz ) ;
+   memcpy( BB->yd , AA->yd , sizeof(float)*nx*ny*nz ) ;
+   memcpy( BB->zd , AA->zd , sizeof(float)*nx*ny*nz ) ;
+
+   BB->xxoff = AA->xxoff ; BB->xxdel = AA->xxdel ;
+   BB->yyoff = AA->yyoff ; BB->yydel = AA->yydel ;
+   BB->zzoff = AA->zzoff ; BB->zzdel = AA->zzdel ;
+
+   return BB ;
+}
+
 /*---------------------------------------------------------------------------*/
 
 IndexWarp3D * IW3D_create( int nx , int ny , int nz )
@@ -24,6 +48,17 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
    WW->xxdel = WW->yydel = WW->zzdel = 1.0f ;
 
    return WW ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void IW3D_destroy( IndexWarp3D *AA )
+{
+   if( AA != NULL ){
+     FREEIFNN(AA->xd) ; FREEIFNN(AA->yd) ; FREEIFNN(AA->zd) ;
+     free(AA) ;
+   }
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -265,8 +300,33 @@ ENTRY("IW3D_interp_wsinc5") ;
 
 /*---------------------------------------------------------------------------*/
 
+void IW3D_interp( int icode ,
+                  int nxx , int nyy , int nzz ,
+                  float *aar , float *bar , float *car ,
+                  int npp, float *ip, float *jp, float *kp,
+                  float *uar , float *var , float *war     )
+{
+   switch( icode ){
+     case MRI_NN:
+     case MRI_LINEAR:
+       IW3D_interp_linear( nxx , nyy , nzz , aar , bar , car ,
+                           npp , ip  , jp  , kp  , uar , var , *war ) ;
+     break ;
+
+     default:
+     case MRI_WSINC5:
+       IW3D_interp_wsinc5( nxx , nyy , nzz , aar , bar , car ,
+                           npp , ip  , jp  , kp  , uar , var , *war ) ;
+     break ;
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
 #undef  NPER
-#define NPER 1048576  /* 4 Mbyte per float array */
+#define NPER 524288  /* 2 Mbyte per float array */
 
 /*---------------------------------------------------------------------------*/
 /* Compute B(A(x)) */
@@ -279,7 +339,8 @@ IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB , int icode )
 
 ENTRY("IW3D_compose") ;
 
-   if( AA == NULL ) RETURN(BB) ; else if( BB == NULL ) RETURN(AA) ;
+        if( AA == NULL ){ CC = IW3D_copy(BB) ; RETURN(CC) ; }
+   else if( BB == NULL ){ CC = IW3D_copy(AA) ; RETURN(CC) ; }
 
    nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
 
@@ -299,27 +360,35 @@ ENTRY("IW3D_compose") ;
    xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
 
    ii = -1 ; jj = kk = 0 ;
-   for( pp=0 ; pp < nxyz ; pp+=nall ){
-     qtop = MIN( nxyz , pp+nall ) ;
+   for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
+
+     qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
+
      for( qq=pp ; qq < qtop ; qq++ ){
-       ii++ ;
-       if( ii == nx ){
+
+       ii++ ;          /* get the 3D index from the 1D index */
+       if( ii == nx ){ /* allowing for wraparounds at nx, ny */
          ii = 0 ; jj++ ; if( jj == ny ){ jj = 0 ; kk++ ; }
        }
-       xq[qq-pp] = ii + xda[qq] ;
+       xq[qq-pp] = ii + xda[qq] ;  /* x+A(x) warped indexes */
        yq[qq-pp] = jj + yda[qq] ;
        zq[qq-pp] = kk + zda[qq] ;
      }
 
-     IW3D_interp_linear( nx,ny,nz , BB->xd, BB->yd, BB->zd ,
+     /* Interpolate B() warp index displacments at the A() locations */
+
+     IW3D_interp( icode, nx,ny,nz , BB->xd, BB->yd, BB->zd ,
                          qtop-pp  , xq    , yq    , zq     ,
                                     xdc+pp, ydc+pp, zdc+pp  ) ;
+
+     /* Add in the A() displacments to get the total
+        index displacment from each original position: A(x) + B(x+A(x)) */
 
      for( qq=pp ; qq < qtop ; qq++ ){
        xdc[qq] += xda[qq] ; ydc[qq] += yda[qq] ; zdc[qq] += zda[qq] ;
      }
 
-   }
+   } /* end of loop over segments of length NPER (or less) */
 
    free(zq) ; free(yq) ; free(xq) ; RETURN(CC) ;
 }
