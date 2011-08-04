@@ -7,14 +7,31 @@
 typedef struct {
   int    nx ,  ny ,  nz ;
   float *xd , *yd , *zd , *hv ;
-  float xxoff , yyoff , zzoff ,
-        xxdel , yydel , zzdel  ;
+  mat44 cmat , imat ;
+  char *geomstring ;
 } IndexWarp3D ;
+
+/* prototypes */
+
+IndexWarp3D * IW3D_create( int nx , int ny , int nz ) ;
+void IW3D_destroy( IndexWarp3D *AA ) ;
+float IW3D_normL1  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
+float IW3D_normL2  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
+float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB ) ;
+IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA ) ;
+IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac ) ;
+IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset ) ;
+THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix ) ;
+void IW3D_load_hexvol( IndexWarp3D *AA ) ;
+IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB     , int icode ) ;
+IndexWarp3D * IW3D_sqrt   ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
+IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
 
 #undef  FREEIFNN
 #define FREEIFNN(x) do{ if((x)!=NULL) free((void *)(x)); } while(0)
 
 /*---------------------------------------------------------------------------*/
+/* Creation ex nihilo! */
 
 IndexWarp3D * IW3D_create( int nx , int ny , int nz )
 {
@@ -27,25 +44,29 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
    AA->xd = (float *)calloc(nx*ny*nz,sizeof(float)) ;
    AA->yd = (float *)calloc(nx*ny*nz,sizeof(float)) ;
    AA->zd = (float *)calloc(nx*ny*nz,sizeof(float)) ;
-   AA->hv = NULL ;
-   AA->xxoff = AA->yyoff = AA->zzoff = 0.0f ;
-   AA->xxdel = AA->yydel = AA->zzdel = 1.0f ;
+   AA->hv = NULL ;  /* to be filled in later, maybe */
+   LOAD_DIAG_MAT44(AA->cmat,1.0f,1.0f,1.0f) ;
+   LOAD_DIAG_MAT44(AA->imat,1.0f,1.0f,1.0f) ;
+   AA->geomstring = NULL ;
 
    return AA ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Into the valley of death! */
 
 void IW3D_destroy( IndexWarp3D *AA )
 {
    if( AA != NULL ){
      FREEIFNN(AA->xd); FREEIFNN(AA->yd); FREEIFNN(AA->zd); FREEIFNN(AA->hv);
+     FREEIFNN(AA->geomstring) ;
      free(AA);
    }
    return ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* If BB == NULL, just the norm of AA.  Otherwise, the norm of AA-BB. */
 
 float IW3D_normL1( IndexWarp3D *AA , IndexWarp3D *BB )
 {
@@ -60,19 +81,20 @@ float IW3D_normL1( IndexWarp3D *AA , IndexWarp3D *BB )
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
 
    sum = 0.0f ;
-   if( BB == NULL ){
+   if( BB == NULL || BB->nx != AA->nx || BB->ny != AA->ny || BB->nz != AA->nz ){
      for( qq=0 ; qq < nxyz ; qq++ )
        sum += fabsf(xda[qq])+fabsf(yda[qq])+fabsf(zda[qq]) ;
-   } else if( BB->nx == AA->nx && BB->ny == AA->ny && BB->nz == AA->nz ){
+   } else {
      float *xdb=BB->xd , *ydb = BB->yd , *zdb = BB->zd ;
      for( qq=0 ; qq < nxyz ; qq++ )
        sum += fabsf(xda[qq]-xdb[qq])+fabsf(yda[qq]-ydb[qq])+fabsf(zda[qq]-zdb[qq]) ;
    }
 
-   return sum ;
+   return (sum/nxyz) ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* If BB == NULL, just the norm of AA.  Otherwise, the norm of AA-BB. */
 
 float IW3D_normL2( IndexWarp3D *AA , IndexWarp3D *BB )
 {
@@ -87,19 +109,52 @@ float IW3D_normL2( IndexWarp3D *AA , IndexWarp3D *BB )
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
 
    sum = 0.0f ;
-   if( BB == NULL ){
+   if( BB == NULL || BB->nx != AA->nx || BB->ny != AA->ny || BB->nz != AA->nz ){
      for( qq=0 ; qq < nxyz ; qq++ )
        sum += SQR(xda[qq])+SQR(yda[qq])+SQR(zda[qq]) ;
-   } else if( BB->nx == AA->nx && BB->ny == AA->ny && BB->nz == AA->nz ){
+   } else {
      float *xdb=BB->xd , *ydb = BB->yd , *zdb = BB->zd ;
      for( qq=0 ; qq < nxyz ; qq++ )
        sum += SQR(xda[qq]-xdb[qq])+SQR(yda[qq]-ydb[qq])+SQR(zda[qq]-zdb[qq]) ;
    }
 
-   return sqrtf(sum) ;
+   return sqrtf(sum/nxyz) ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* If BB == NULL, just the norm of AA.  Otherwise, the norm of AA-BB. */
+
+float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB )
+{
+   int qq , nxyz ; float vmax,val , *xda,*yda,*zda ;
+
+   if( AA == NULL ){
+     if( BB == NULL ) return 0.0f ;
+     AA = BB ; BB = NULL ;
+   }
+
+   nxyz = AA->nx * AA->ny * AA->nz ;
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+
+   vmax = 0.0f ;
+   if( BB == NULL || BB->nx != AA->nx || BB->ny != AA->ny || BB->nz != AA->nz ){
+     for( qq=0 ; qq < nxyz ; qq++ ){
+       val = SQR(xda[qq])+SQR(yda[qq])+SQR(zda[qq]) ;
+       if( val > vmax ) vmax = val ;
+     }
+   } else {
+     float *xdb=BB->xd , *ydb = BB->yd , *zdb = BB->zd ;
+     for( qq=0 ; qq < nxyz ; qq++ ){
+       val = SQR(xda[qq]-xdb[qq])+SQR(yda[qq]-ydb[qq])+SQR(zda[qq]-zdb[qq]) ;
+       if( val > vmax ) vmax = val ;
+     }
+   }
+
+   return sqrtf(vmax) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Same setup, but contents are zero. */
 
 IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA )
 {
@@ -109,14 +164,16 @@ IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA )
 
    BB = IW3D_create( AA->nx , AA->ny , AA->nz ) ;
 
-   BB->xxoff = AA->xxoff ; BB->xxdel = AA->xxdel ;
-   BB->yyoff = AA->yyoff ; BB->yydel = AA->yydel ;
-   BB->zzoff = AA->zzoff ; BB->zzdel = AA->zzdel ;
+   BB->cmat = AA->cmat ; BB->imat = AA->imat ;
+
+   if( AA->geomstring != NULL )
+     BB->geomstring = strdup(AA->geomstring) ;
 
    return BB ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Make a copy, scaling displacements by fac. */
 
 IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac )
 {
@@ -142,6 +199,109 @@ IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac )
    }
 
    return BB ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Convert a 3D dataset of displacments to an index warp. */
+
+IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset )
+{
+   IndexWarp3D *AA ;
+   MRI_IMAGE *xim , *yim , *zim ;
+   mat44 cmat , imat ;
+   int nx,ny,nz , nxy,nxyz , ii ;
+   float *xar,*yar,*zar , *xda,*yda,*zda ;
+   char *gstr ;
+
+ENTRY("IW3D_from_dataset") ;
+
+   if( dset == NULL || DSET_NVALS(dset) < 3 ) RETURN(NULL) ;
+
+   DSET_load(dset) ; if( !DSET_LOADED(dset) ) RETURN(NULL) ;
+
+   xim = THD_extract_float_brick(0,dset) ; xar = MRI_FLOAT_PTR(xim) ;
+   yim = THD_extract_float_brick(1,dset) ; yar = MRI_FLOAT_PTR(yim) ;
+   zim = THD_extract_float_brick(2,dset) ; zar = MRI_FLOAT_PTR(zim) ;
+
+   DSET_unload(dset) ;
+
+   if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )
+     THD_daxes_to_mat44(dset->daxes) ;
+
+   cmat = dset->daxes->ijk_to_dicom ;  /* takes ijk to xyz */
+   imat = MAT44_INV(cmat) ;            /* takes xyz to ijk */
+
+   nx = xim->nx ; ny = xim->ny ; nz = xim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   AA = IW3D_create(nx,ny,nz) ;
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+
+   for( ii=0 ; ii < nxyz ; ii++ ){
+     MAT33_VEC( imat , xar[ii],yar[ii],zar[ii] , xda[ii],yda[ii],zda[ii] ) ;
+   }
+
+   AA->cmat = cmat ; AA->imat = imat ;
+
+   gstr = EDIT_get_geometry_string(dset) ;
+   if( gstr != NULL ) AA->geomstring = strdup(gstr) ;
+
+   RETURN(AA) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Convert an index warp to a 3D dataset of spatial displacmements */
+
+THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix )
+{
+   THD_3dim_dataset *dset ;
+   float *xar,*yar,*zar,*har , *xda,*yda,*zda,*hva , hfac ;
+   mat44 cmat ;
+   int ii , nxyz ;
+
+ENTRY("IW3D_to_dataset") ;
+
+   if( AA == NULL ) RETURN(NULL) ;
+
+   if( AA->geomstring == NULL ){
+     char *gstr = EDIT_imat_to_geometry_string(AA->imat,AA->nx,AA->ny,AA->nz) ;
+     if( gstr == NULL ) RETURN(NULL) ;  /* should not transpire */
+     AA->geomstring = strdup(gstr) ;
+   }
+
+   dset = EDIT_geometry_constructor( AA->geomstring , prefix ) ;
+
+   EDIT_dset_items( dset ,
+                      ADN_nvals     , 4         ,
+                      ADN_datum_all , MRI_float ,
+                    NULL ) ;
+   EDIT_BRICK_LABEL( dset , 0 , "x_delta" ) ;
+   EDIT_BRICK_LABEL( dset , 1 , "y_delta" ) ;
+   EDIT_BRICK_LABEL( dset , 2 , "z_delta" ) ;
+   EDIT_BRICK_LABEL( dset , 3 , "hexvol"  ) ;
+
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+   nxyz = AA->nx * AA->ny * AA->nz ;
+   cmat = AA->cmat ;
+
+   xar = (float *)malloc(sizeof(float)*nxyz) ;
+   yar = (float *)malloc(sizeof(float)*nxyz) ;
+   zar = (float *)malloc(sizeof(float)*nxyz) ;
+   har = (float *)malloc(sizeof(float)*nxyz) ;
+
+   if( AA->hv == NULL ) IW3D_load_hexvol(AA) ;
+   hva = AA->hv ; hfac = MAT44_DET(cmat) ;
+
+   for( ii=0 ; ii < nxyz ; ii++ ){
+     MAT33_VEC( cmat , xda[ii],yda[ii],zda[ii] , xar[ii],yar[ii],zar[ii] ) ;
+     har[ii] = hfac * hva[ii] ;
+   }
+
+   EDIT_substitute_brick( dset , 0 , MRI_float , xar ) ;
+   EDIT_substitute_brick( dset , 1 , MRI_float , yar ) ;
+   EDIT_substitute_brick( dset , 2 , MRI_float , zar ) ;
+   EDIT_substitute_brick( dset , 3 , MRI_float , har ) ;
+
+   RETURN(dset) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -190,6 +350,7 @@ static INLINE float hexahedron_volume( float_triple x0 , float_triple x1 ,
 #undef DC
 
 /*---------------------------------------------------------------------------*/
+/* Load the volumes of each hexahedral element in the displaced grid. */
 
 #undef  IJK
 #define IJK(i,j,k) ((i)+(j)*nx+(k)*nxy)
@@ -243,6 +404,8 @@ void IW3D_load_hexvol( IndexWarp3D *AA )
 }
 
 /*---------------------------------------------------------------------------*/
+/* The following functions are for interpolating all 3 components of an index
+   warp at one time, and are shamelessly ripped off from mri_genalign_util.c */
 
 #undef  CLIP
 #define CLIP(mm,nn) if(mm < 0)mm=0; else if(mm > nn)mm=nn
@@ -258,8 +421,6 @@ void IW3D_interp_linear( int nxx , int nyy , int nzz ,
                          int npp, float *ip, float *jp, float *kp,
                          float *uar , float *var , float *war     )
 {
-ENTRY("IW3D_interp_linear") ;
-
  AFNI_OMP_START ;
 #pragma omp parallel if(npp > 9999)
  {
@@ -320,7 +481,7 @@ ENTRY("IW3D_interp_linear") ;
  } /* end OpenMP */
  AFNI_OMP_END ;
 
-   EXRETURN ;
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -369,8 +530,6 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
                          int npp, float *ip, float *jp, float *kp,
                          float *uar , float *var , float *war     )
 {
-ENTRY("IW3D_interp_wsinc5") ;
-
  AFNI_OMP_START ;
 #pragma omp parallel if(npp > 6666)
  {
@@ -473,10 +632,11 @@ ENTRY("IW3D_interp_wsinc5") ;
  } /* end OpenMP */
  AFNI_OMP_END ;
 
-   EXRETURN ;
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Generic interpolation of warp components, given icode specifying method. */
 
 void IW3D_interp( int icode ,
                   int nxx , int nyy , int nzz ,
@@ -570,6 +730,7 @@ ENTRY("IW3D_compose") ;
 
 /*---------------------------------------------------------------------------*/
 /* Compute B( 2x - A(B(x)) ) = Newton step for computing Ainv(x) */
+/* [[This function has nothing to do with Newt Gingrich]] */
 
 static IndexWarp3D * IW3D_invert_newt( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
 {
@@ -663,8 +824,10 @@ ENTRY("IW3D_invert_newt") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Find the inverse warp BB(x) to AA(x).  If not NULL, BBinit is the
+   initial estimate for BB(x).  icode tells how to interpolate warps. */
 
-IndexWarp3D * IW3D_invert( IndexWarp3D *AA , int icode )
+IndexWarp3D * IW3D_invert( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode )
 {
    IndexWarp3D *BB , *CC ;
    float normAA , normBC ;
@@ -674,27 +837,43 @@ ENTRY("IW3D_invert") ;
 
    if( AA == NULL ) RETURN(NULL) ;
 
-   normAA = IW3D_normL1( AA , NULL ) ;
+   normAA = IW3D_normL2( AA , NULL ) ;
    if( normAA == 0.0f ){
      BB = IW3D_empty_copy(AA) ; RETURN(BB) ;
    }
 
-   /* initial guess at inverse */
+   /* BB = initial guess at inverse */
 
-   BB = IW3D_copy( AA , -0.666f ) ;  /* how beastly */
+   if( BBinit == NULL ){
+     int pp = (int)ceil(log2(normAA)) ;
+     if( pp < 1 ) pp = 1 ; else if( pp > 4 ) pp = 4 ;
+     BB = IW3D_copy( AA , -pow(0.5,pp) ) ;
+     for( ii=0 ; ii < pp ; ii++ ){
+       CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
+     }
+   } else {
+     BB = IW3D_copy( BBinit , 1.0f ) ;
+   }
 
    /* take 2 Newton steps: BB -> CC -> BB */
 
    CC = IW3D_invert_newt(AA,BB,jcode) ; IW3D_destroy(BB) ;
    BB = IW3D_invert_newt(AA,CC,jcode) ;
 
+   /* iterate some more, until convergence or exhaustion */
+
    for( ii=0 ; ii < 19 ; ii++ ){
 
-     normBC = IW3D_normL1( BB , CC ) ; IW3D_destroy(CC) ;
+     /* At this stage have BB=latest iterate, CC=previous iterate */
+     /* Check for distance between them, then toss CC on the trash heap */
+
+     normBC = IW3D_normL2( BB , CC ) ; IW3D_destroy(CC) ;
+
+     /* check for convergence of B and C */
 
      if( normBC/normAA < 0.001f ){
        if( jcode == icode ) RETURN(BB) ;  /* converged */
-       jcode = icode ;
+       jcode = icode ;  /* switch to final interp code */
      }
 
      /* take another Newton step */
@@ -702,7 +881,15 @@ ENTRY("IW3D_invert") ;
      CC = BB ; BB = IW3D_invert_newt(AA,CC,jcode) ;
    }
 
-   /* failed to converge */
+   /* failed to converge, return latest result anyhoo */
 
    IW3D_destroy(CC) ; RETURN(BB) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Find the square root of warp AA(x) -- BB(x) such that BB(BB(x)) = AA(x). */
+
+IndexWarp3D * IW3D_sqrt( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode )
+{
+   return NULL ;
 }
