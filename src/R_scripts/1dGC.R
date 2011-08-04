@@ -2,15 +2,13 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.2.0,  Apr. 5, 2011")
+print("Version 1.2.1,  Aug. 4, 2011")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
 libLoad <- function(myLib) {
-   sucLoad <- FALSEplotNet(surviveR, selfLoop, surviveR*edgeScaleG, arrowScaleG, 3-sign(surviveR), "Network of Group2-Group1")
-
    sucCheck <- FALSE
    try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
    if (sucLoad) {print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE} else {
