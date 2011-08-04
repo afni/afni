@@ -282,12 +282,17 @@ g_history = """
         - added details to comments in align block
         - replaced help for -compute_tsnr with -regress and -volreg versions
           (thanks to B Benson for asking about obsolete -compute_tsnr)
+    2.61 Aug 03, 2011:
+        - changed aea.py -save_skullstrip to -save_orig_skullstrip
+        - previously the stripped anat would be warped to match any obliquity
+          of the EPI, which would throw off the alignment
+        - thanks to Z Saad for helping to figure this out
 """
 
-g_version = "version 2.60, July 26, 2011"
+g_version = "version 2.61, August 3, 2011"
 
 # version of AFNI required for script execution
-g_requires_afni = "13 Jul 2011"
+g_requires_afni = "3 Aug 2011"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
