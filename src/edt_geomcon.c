@@ -100,9 +100,9 @@ ENTRY("EDIT_geometry_constructor") ;
    nxyz.ijk[0] = nx ; nxyz.ijk[1] = ny ; nxyz.ijk[2] = nz ;
    EDIT_dset_items( dset , ADN_nxyz,nxyz , ADN_none ) ;
 
-#ifdef MANUAL_ORIENT   /* This one does not work. 
+#ifdef MANUAL_ORIENT   /* This one does not work.
                            Changed #ifndef to #ifdef
-                           One below seems to work. 
+                           One below seems to work.
                                     ZSS, RKR, Jan 22 10 */
    /* fprintf(stderr,"ZSS: Calling THD_daxes_from_mat44\n"); */
    THD_daxes_from_mat44( dset->daxes ) ;
@@ -145,11 +145,11 @@ ENTRY("EDIT_geometry_constructor") ;
                       ADN_func_type   , FUNC_BUCK_TYPE ,
                     ADN_none ) ;
 
-   /* 
-   fprintf(stderr,"ZSS: Orient %d %d %d\n", 
+   /*
+   fprintf(stderr,"ZSS: Orient %d %d %d\n",
         dset->daxes->xxorient, dset->daxes->yyorient, dset->daxes->zzorient);
    */
-   
+
    RETURN(dset) ;
 }
 
@@ -157,29 +157,39 @@ ENTRY("EDIT_geometry_constructor") ;
 
 char * EDIT_get_geometry_string( THD_3dim_dataset *dset )
 {
-   static char gstr[666] ;
-   float a11,a12,a13,a14 ;
-   float a21,a22,a23,a24 ;
-   float a31,a32,a33,a34 ;
-   int nx,ny,nz ;
-   char b11[32],b12[32],b13[32],b14[32] ;
-   char b21[32],b22[32],b23[32],b24[32] ;
-   char b31[32],b32[32],b33[32],b34[32] ;
+   char *ggg ;
 
    if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom_real) ){
      THD_daxes_to_mat44(dset->daxes) ;
      dset->daxes->ijk_to_dicom_real = dset->daxes->ijk_to_dicom ;
    }
 
-   UNLOAD_MAT44( dset->daxes->ijk_to_dicom_real ,
+   ggg = EDIT_imat_to_geometry_string( dset->daxes->ijk_to_dicom_real ,
+                                       DSET_NX(dset),DSET_NY(dset),DSET_NZ(dset) ) ;
+   return ggg ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+char * EDIT_imat_to_geometry_string( mat44 imat , int nx,int ny,int nz )
+{
+   static char gstr[666] ;
+   float a11,a12,a13,a14 ;
+   float a21,a22,a23,a24 ;
+   float a31,a32,a33,a34 ;
+   char b11[32],b12[32],b13[32],b14[32] ;
+   char b21[32],b22[32],b23[32],b24[32] ;
+   char b31[32],b32[32],b33[32],b34[32] ;
+
+   UNLOAD_MAT44( imat ,
                  a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ) ;
 
-   MV_fval_to_char(a11,b11); MV_fval_to_char(a12,b12);
-   MV_fval_to_char(a13,b13); MV_fval_to_char(a14,b14); nx = DSET_NX(dset);
-   MV_fval_to_char(a21,b21); MV_fval_to_char(a22,b22);
-   MV_fval_to_char(a23,b23); MV_fval_to_char(a24,b24); ny = DSET_NY(dset);
-   MV_fval_to_char(a31,b31); MV_fval_to_char(a32,b32);
-   MV_fval_to_char(a33,b33); MV_fval_to_char(a34,b34); nz = DSET_NZ(dset);
+   MV_fval_to_char(a11,b11) ; MV_fval_to_char(a12,b12) ;
+   MV_fval_to_char(a13,b13) ; MV_fval_to_char(a14,b14) ;
+   MV_fval_to_char(a21,b21) ; MV_fval_to_char(a22,b22) ;
+   MV_fval_to_char(a23,b23) ; MV_fval_to_char(a24,b24) ;
+   MV_fval_to_char(a31,b31) ; MV_fval_to_char(a32,b32) ;
+   MV_fval_to_char(a33,b33) ; MV_fval_to_char(a34,b34) ;
 
    sprintf( gstr ,
       "MATRIX(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s):%d,%d,%d" ,
