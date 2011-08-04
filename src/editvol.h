@@ -436,6 +436,7 @@ extern THD_3dim_dataset * EDIT_full_copy ( THD_3dim_dataset * , char * ) ;
 extern int                EDIT_dset_items( THD_3dim_dataset * , ... ) ;
 extern THD_3dim_dataset * EDIT_geometry_constructor( char * , char * ) ; /* 05 Jan 2008 */
 extern char * EDIT_get_geometry_string( THD_3dim_dataset *dset ) ;
+extern char * EDIT_imat_to_geometry_string( mat44 imat , int nx,int ny,int nz ) ;
 
 extern int THD_volDXYZscale(  THD_dataxes  *daxes,
                               float xyzscale,
