@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 1, AUG , 2011 , ZSS , "Draw Dataset" , MINOR , TYPE_MODIFY,
+   "Changed the gap selection to arrows to allow for much larger gaps",
+   NULL
+  } ,
+
  { 1, AUG , 2011 , ZSS , "whereami" , MINOR , TYPE_BUG_FIX,
    "Whereami's symbolic notation failed with float valued atlases",
    "This is now fixed. Code also checks for scale factors.\n"
