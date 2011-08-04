@@ -1329,7 +1329,7 @@ ENTRY("refit_MCW_optmenu") ;
                    with maxbut from environment variable */
 
    maxbut = AFNI_numenv( "AFNI_MAX_OPTMENU" ) ;
-        if( maxbut <= 0 ) maxbut = 255 ;
+        if( maxbut <= 0 ) maxbut = 1024 ; /* up from 255 ZSS Aug. 4 2011 */
    else if( maxbut < 99 ) maxbut = 99 ;
    if( maxval > minval+maxbut ) {
       if (!iwarn % 15) {   /* ZSS June 2011 */
