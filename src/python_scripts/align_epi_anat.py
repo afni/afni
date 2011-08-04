@@ -345,6 +345,9 @@ g_help_string = """
       -save_epi_ns      : save skull-stripped epi
       -save_all         : save all the above datasets
 
+      Not included with -save_all (since parameters are required):
+
+      -save_orig_skullstrip PREFIX : save original skull-stripped dset
 
    Alternative cost functions and methods:
      The default method used in this script is the LPC (Localized Pearson 
@@ -582,6 +585,7 @@ class RegWrap:
       self.save_tsh = 0    # don't save tshifted epi
       self.save_vr = 0     # don't save volume registered epi
       self.save_skullstrip = 0 # don't save skullstripped (not aligned)
+      self.save_origstrip  = '' # prefix for simple skullstripped dset
       self.save_rep = 0     # don't save representative tstat epi
       self.save_resample = 0 # don't save resampled epi
       self.save_epi_ns = 0  # don't save skull-stripped epi
@@ -877,6 +881,9 @@ class RegWrap:
       # save skullstripped anat before alignment
       self.valid_opts.add_opt('-save_skullstrip', 0, [],    \
                helpstr = "Save unaligned, skullstripped dataset")
+      # save skullstripped anat before alignment and without oblique xform
+      self.valid_opts.add_opt('-save_orig_skullstrip', 1, [],    \
+               helpstr = "Save simply skullstripped dataset")
       # save skullstripped epi before alignment
       self.valid_opts.add_opt('-save_epi_ns', 0, [],    \
                helpstr = "Save unaligned, skullstripped EPI dataset")
@@ -1043,6 +1050,14 @@ class RegWrap:
          if opt == None:  self.volreg_flag = 1     # turn on volreg processing
       opt = opt_list.find_opt('-save_skullstrip')  # save unaligned skullstripped
       if opt != None: self.save_skullstrip = 1
+      # save unaligned, unobliqued dataset
+      opt = opt_list.find_opt('-save_orig_skullstrip')
+      if opt != None:
+         val, err = opt_list.get_string_opt('', opt=opt)
+         if val == None or err:
+            ps.self_help()
+            ps.ciao(0)  # terminate
+         self.save_origstrip = val
       opt = opt_list.find_opt('-save_epi_ns')      # save unaligned skullstripped epi
       if opt != None: self.save_epi_ns = 1
       opt = opt_list.find_opt('-save_rep')         # save unaligned representative epi
@@ -2840,6 +2855,14 @@ class RegWrap:
          ao_ns = ain.new("%s_ns" % ain.out_prefix())
          self.copy_dset( ps.anat_ns, ao_ns, 
           "Creating final output: skullstripped %s data" % \
+                          self.dset1_generic_name, ps.oexec)
+
+      # maybe save pre-obliqued skull stripped anat before alignment
+      # 3 Aug 2011 [rickr]
+      if(ps.skullstrip and ps.save_origstrip):
+         ao_ons = ain.new(ps.save_origstrip)
+         self.copy_dset( ps.anat_ns0, ao_ons, 
+          "Creating final output: skullstripped original %s data" % \
                           self.dset1_generic_name, ps.oexec)
 
       # save anatomy aligned to epi 

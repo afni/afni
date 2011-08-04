@@ -49,6 +49,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, AUG, 2011, RCR, "align_epi_anat.py", MICRO, TYPE_NEW_OPT,
+   "added -save_orig_skullstrip, to avoid oblique transforms",
+   "This was added for afni_proc.py.\n"
+   "Thanks to Ziad for help figuring this out."
+ } ,
+
+ {  3, AUG, 2011, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "changed aea.py -save_skullstrip to -save_orig_skullstrip",
+   "The -save_skullstrip dataset might have an oblique transformation\n"
+   "applied (which would throw off EPI if it is then sent to standard\n"
+   "space).  Apply the new option to grab a simple skull-stripped anat."
+ } ,
+
  {  2, AUG, 2011, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
    "added control var out_prefix, a prefix for output files",
    NULL
