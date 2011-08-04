@@ -286,7 +286,8 @@ g_history = """
         - changed aea.py -save_skullstrip to -save_orig_skullstrip
         - previously the stripped anat would be warped to match any obliquity
           of the EPI, which would throw off the alignment
-        - thanks to Z Saad for helping to figure this out
+        - thanks to A Ellenstein for noting the problem and to Z Saad for
+          helping to figure it out
 """
 
 g_version = "version 2.61, August 3, 2011"
