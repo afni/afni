@@ -96,6 +96,10 @@ typedef void * ptr_t;
 
 #include "mcw_glob.h"
 
+/* it would be nice to put these in the library           4 Aug 2011 [rickr] */
+static char * loc_strcpy_realloc(char ** dest, char * src, int * dlen);
+static char * loc_strcat_realloc(char ** dest, char * src, int * dlen);
+
 /* added for direction control on sorting                14 Feb 2005 [rickr] */
 /* (copied from rickr/l_mcw_glob.c)                       4 Jan 2011 [rickr] */
 static int g_sort_dir = 1 ;       /* 1 = small to large, -1 = large to small */
@@ -820,12 +824,20 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
    int    ii , gnum, gold , ilen ;
    char **gout ;
    char *fn , *ehome ;
-   char prefix[4] , fpre[128] , fname[2048] ;
+   char prefix[4] , fpre[128] ;
    int  b1,b2,b3,b4,b5 , ib,ig , lpre=0 ;
    char *eee ;
-   char sel[2048] ; int save_sel=0,nsel=0 ;  /* 09 Mar 2011 */
+
+   /* apply fname, sel as char *, not s[2048]    4 Aug 2011 [rickr] */
+   char *fname, *sel ;
+   int   flen = 2048, slen = 2048 ;
+   int save_sel=0,nsel=0 ;  /* 09 Mar 2011 */
 
    if( nin <= 0 ){ *nout = 0 ; return ; }
+
+   /* init resizable arrays */
+   fname = (char *)malloc(flen*sizeof(char));
+   sel   = (char *)malloc(slen*sizeof(char));
 
    gnum  = 0 ;
    gout  = NULL ;
@@ -882,11 +894,14 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
          }
       }
 
-      if( fname[0] == '\0' ) strcpy(fname,fn) ;
+      if( fname[0] == '\0' ) loc_strcpy_realloc(&fname, fn, &flen) ;
       if( ehome != NULL && fname[0] == TILDE && fname[1] == '/' ){
-        char qname[1024] ;
-        strcpy(qname,ehome); strcat(qname,fname+1);
-        strcpy(fname,qname);
+        /* char qname[1024] ; another static string... */
+        /* strcpy(qname,ehome); strcat(qname,fname+1); strcpy(fname,qname); */
+        char * qname = NULL;  int qlen = 0;
+        loc_strcpy_realloc(&qname, ehome, &qlen);       /* fill qname    */
+        loc_strcat_realloc(&qname, fname+1, &qlen);     /* append fname  */
+        loc_strcpy_realloc(&fname, qname, &flen);       /* move to fname */
       }
 
       /* 09 Mar 2011 [Ash Wednesday]: save selectors for later? */
@@ -897,7 +912,8 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
         for( jj=0 ; jj < nf ; jj++ )
           if( fname[jj] == '{' || fname[jj] == '[' || fname[jj] == '<' ) break ;
         if( jj < nf ){
-          strcpy(sel,fname+jj) ; fname[jj] = '\0' ; nsel = strlen(sel) ;
+          loc_strcpy_realloc(&sel, fname+jj, &slen);
+          fname[jj] = '\0' ; nsel = strlen(sel) ;
         }
       }
 
@@ -994,6 +1010,76 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
 #endif
 
    *nout = gnum ; *fout = gout ; return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! loc_strcpy_realloc(dest, src)                      4 Aug 2011 [rickr]
+ *
+ * Basically strcpy, but with any needed realloc if the source string
+ * is longer than the passed destination length.
+ *
+ *   - dest is the address of the destination pointer, as it may change
+ *   - src is the source pointer
+ *   - dlen is the address of the destination length, as it may change
+ *   - loc_ was used since I might put strcpy_realloc in the libmri.a
+ *-----------------------------------------------------------------------*/
+static char * loc_strcpy_realloc(char ** dest, char * src, int * dlen)
+{
+   int tlen;
+
+   /* bail on any unset pointer */
+   if( !dest ) return NULL;
+   if( !src || !dlen ) return *dest;
+
+   if( !*dest && (*dlen != 0) ) *dlen = 0;      /* allow init */
+
+   tlen = strlen(src) + 1;
+
+   if( *dlen < tlen ) {
+      *dlen = tlen;
+
+      *dest = (char *)realloc(*dest, (*dlen)*sizeof(char));
+      if( ! *dest ) {
+         fprintf(stderr,"** strcpy_realloc: failed to alloc %d chars\n",*dlen);
+         return NULL;
+      }
+   }
+
+   strcpy(*dest, src);
+
+   return *dest;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! loc_strcat_realloc(dest, src)                      4 Aug 2011 [rickr]
+ *  As with strcpy.
+ *-----------------------------------------------------------------------*/
+static char * loc_strcat_realloc(char ** dest, char * src, int * dlen)
+{
+   int tlen;  /* total len */
+
+   /* bail on any unset pointer */
+   if( !dest ) return NULL;
+   if( !src || !dlen ) return *dest;
+
+   if( !*dest && (*dlen != 0) ) *dlen = 0;      /* allow init */
+
+   tlen = strlen(src) + 1;
+   if( *dest ) tlen += strlen(*dest);
+
+   if( *dlen < tlen ) {
+      *dlen = tlen;
+
+      *dest = (char *)realloc(*dest, (*dlen)*sizeof(char));
+      if( ! *dest ) {
+         fprintf(stderr,"** strcat_realloc: failed to alloc %d chars\n",*dlen);
+         return NULL;
+      }
+   }
+
+   strcat(*dest, src);
+
+   return *dest;
 }
 
 /*-----------------------------------------------------------------------*/
