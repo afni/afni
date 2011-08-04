@@ -463,6 +463,9 @@ printf(
 " the shortest path between spaces. Each transformation carries with it a\n"
 " distance attribute that is used for this computation. By modifying this\n"
 " field, the user can control which transformations are preferred.\n"
+" \n---------------\n"
+" More information about Atlases in AFNI can be found here:\n"
+"      http://afni.nimh.nih.gov/sscc/dglen/AFNIAtlases\n"
 "---------------\n"
 );
 
