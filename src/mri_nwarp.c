@@ -20,12 +20,14 @@ float IW3D_normL2  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
 float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB ) ;
 IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA ) ;
 IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac ) ;
-IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset ) ;
+void IW3D_scale( IndexWarp3D *AA , float fac ) ;
+IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty ) ;
 THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix ) ;
 void IW3D_load_hexvol( IndexWarp3D *AA ) ;
 IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB     , int icode ) ;
 IndexWarp3D * IW3D_sqrt   ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
 IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
+THD_3dim_dataset * NwarpCalcRPN( char *expr , char *prefix , int icode ) ;
 
 #undef  FREEIFNN
 #define FREEIFNN(x) do{ if((x)!=NULL) free((void *)(x)); } while(0)
@@ -201,29 +203,46 @@ IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac )
    return BB ;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Scale displacements by fac. */
+
+void IW3D_scale( IndexWarp3D *AA , float fac )
+{
+   int nxyz , qq ;
+
+   if( AA == NULL ) return ;
+
+   nxyz = AA->nx * AA->ny * AA->nz ;
+
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     AA->xd[qq] *= fac ;
+     AA->yd[qq] *= fac ;
+     AA->zd[qq] *= fac ;
+   }
+
+   return ;
+}
+
 /*----------------------------------------------------------------------------*/
 /* Convert a 3D dataset of displacments to an index warp. */
 
-IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset )
+IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty )
 {
    IndexWarp3D *AA ;
    MRI_IMAGE *xim , *yim , *zim ;
    mat44 cmat , imat ;
-   int nx,ny,nz , nxy,nxyz , ii ;
+   int nx,ny,nz , nxyz , ii ;
    float *xar,*yar,*zar , *xda,*yda,*zda ;
    char *gstr ;
 
 ENTRY("IW3D_from_dataset") ;
 
-   if( dset == NULL || DSET_NVALS(dset) < 3 ) RETURN(NULL) ;
+   if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
 
-   DSET_load(dset) ; if( !DSET_LOADED(dset) ) RETURN(NULL) ;
-
-   xim = THD_extract_float_brick(0,dset) ; xar = MRI_FLOAT_PTR(xim) ;
-   yim = THD_extract_float_brick(1,dset) ; yar = MRI_FLOAT_PTR(yim) ;
-   zim = THD_extract_float_brick(2,dset) ; zar = MRI_FLOAT_PTR(zim) ;
-
-   DSET_unload(dset) ;
+   if( !empty ){
+     if( DSET_NVALS(dset) < 3 ) RETURN(NULL) ;
+     DSET_load(dset) ; if( !DSET_LOADED(dset) ) RETURN(NULL) ;
+   }
 
    if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )
      THD_daxes_to_mat44(dset->daxes) ;
@@ -231,19 +250,24 @@ ENTRY("IW3D_from_dataset") ;
    cmat = dset->daxes->ijk_to_dicom ;  /* takes ijk to xyz */
    imat = MAT44_INV(cmat) ;            /* takes xyz to ijk */
 
-   nx = xim->nx ; ny = xim->ny ; nz = xim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+   nx = DSET_NX(dset); ny = DSET_NY(dset); nz = DSET_NZ(dset); nxyz = nx*ny*nz;
 
    AA = IW3D_create(nx,ny,nz) ;
-   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
-
-   for( ii=0 ; ii < nxyz ; ii++ ){
-     MAT33_VEC( imat , xar[ii],yar[ii],zar[ii] , xda[ii],yda[ii],zda[ii] ) ;
-   }
 
    AA->cmat = cmat ; AA->imat = imat ;
-
    gstr = EDIT_get_geometry_string(dset) ;
    if( gstr != NULL ) AA->geomstring = strdup(gstr) ;
+
+   if( !empty ){
+     xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+     xim = THD_extract_float_brick(0,dset) ; xar = MRI_FLOAT_PTR(xim) ;
+     yim = THD_extract_float_brick(1,dset) ; yar = MRI_FLOAT_PTR(yim) ;
+     zim = THD_extract_float_brick(2,dset) ; zar = MRI_FLOAT_PTR(zim) ;
+     DSET_unload(dset) ;
+     for( ii=0 ; ii < nxyz ; ii++ ){
+       MAT33_VEC( imat , xar[ii],yar[ii],zar[ii] , xda[ii],yda[ii],zda[ii] ) ;
+     }
+   }
 
    RETURN(AA) ;
 }
@@ -304,6 +328,8 @@ ENTRY("IW3D_to_dataset") ;
    RETURN(dset) ;
 }
 
+#ifndef HAVE_HEXVOL
+#define HAVE_HEXVOL
 /*----------------------------------------------------------------------------*/
 /* Volume of a hexahedron (distorted cube) given by 8 corners.
    Looking down from the top, the bottom plane points are numbered so:
@@ -348,6 +374,7 @@ static INLINE float hexahedron_volume( float_triple x0 , float_triple x1 ,
 #undef DA
 #undef DB
 #undef DC
+#endif /* HAVE_HEXVOL */
 
 /*---------------------------------------------------------------------------*/
 /* Load the volumes of each hexahedral element in the displaced grid. */
@@ -379,8 +406,8 @@ void IW3D_load_hexvol( IndexWarp3D *AA )
 #pragma omp parallel if( nxyz > 33333 )
  { float_triple x0,x1,x2,x3,x4,x5,x6,x7 ;
    int ii,jj,kk , ip,jp,kp , ijk , qq ;
-#pragma omp for
    ii = -1 ; jj = kk = 0 ;
+#pragma omp for
    for( qq=0 ; qq < nxyz ; qq++ ){
      ii++; if( ii == nx ){ ii = 0; jj++; if( jj == ny ){ jj = 0; kk++; } }
      ip = ii+1 ; jp = jj+1 ; kp = kk+1 ;
@@ -892,4 +919,211 @@ ENTRY("IW3D_invert") ;
 IndexWarp3D * IW3D_sqrt( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode )
 {
    return NULL ;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+static int verb_rpn=0 ;
+void NwarpCalcRPN_verb(int i){ verb_rpn = i; }
+
+#undef  KILL_iwstk
+#define KILL_iwstk                                                   \
+ do{ if( iwstk != NULL ){                                            \
+       int qq; for( qq=0; qq < nstk; qq++ ) IW3D_destroy(iwstk[qq]); \
+       free(iwstk) ;                                                 \
+ } } while(0)
+
+#undef  ERREX
+#define ERREX(sss)                                                     \
+  do{ ERROR_message("NwarpCalcRPN('%s') at '%s': %s" , expr,cmd,sss ); \
+      KILL_iwstk; NI_delete_str_array(sar); FREEIFNN(geomstring);      \
+      RETURN(NULL);                                                    \
+  } while(0)
+
+#undef  ADDTO_iwstk
+#define ADDTO_iwstk(W)                                                       \
+ do{ iwstk = (IndexWarp3D **)realloc(iwstk,sizeof(IndexWarp3D *)*(nstk+1)) ; \
+     iwstk[nstk] = W ; nstk++ ;                                              \
+ } while(0)
+
+/*---------------------------------------------------------------------------*/
+/* nwarp RPN calculator function */
+
+THD_3dim_dataset * NwarpCalcRPN( char *expr , char *prefix , int icode )
+{
+   NI_str_array *sar ;
+   char *cmd , mess[2048] ;
+   IndexWarp3D **iwstk=NULL ;
+   int            nstk=0 , ii , ss ;
+   IndexWarp3D *AA , *BB ;
+   THD_3dim_dataset *oset=NULL ;
+   int nx=0,ny=0,nz=0 ;
+   mat44 cmat , imat ;
+   char *geomstring=NULL ;
+
+ENTRY("NwarpCalcRPN") ;
+
+   /** break string into sub-strings, delimited by whitespace **/
+
+   sar = NI_decode_string_list( expr , "`" ) ;
+   if( sar == NULL ) RETURN(NULL) ;
+
+   /** loop thru and process commands **/
+
+   if(verb_rpn)INFO_message("NwarpCalcRPN('%s')",expr) ;
+
+   for( ss=0 ; ss < sar->num ; ss++ ){
+
+     cmd = sar->str[ss] ;
+
+     if(verb_rpn)ININFO_message(" + nstk=%d  cmd='%s'",nstk,cmd) ;
+
+     if( *cmd == '\0' ) continue ;
+
+     /* read warp from a dataset */
+
+     else if( strncasecmp(cmd,"&readnwarp(",11) == 0 ){
+       char *buf=strdup(cmd+11) , *bp ; THD_3dim_dataset *dset ;
+       for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
+       if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
+       dset = THD_open_dataset(buf) ;
+       if( dset == NULL ){
+         sprintf(mess,"can't read file '%s'",buf); free(buf); ERREX(mess);
+       }
+       AA = IW3D_from_dataset(dset,0) ; DSET_delete(dset) ;
+       if( AA == NULL ){
+         sprintf(mess,"can't make warp from '%s'",buf); free(buf); ERREX(mess);
+       }
+       if( geomstring == NULL ){
+         geomstring = strdup(AA->geomstring) ;
+         nx = AA->nx; ny = AA->ny; nz = AA->nz; cmat = AA->cmat; imat = AA->imat;
+       } else if( AA->nx != nx || AA->ny != ny || AA->nz != nz ){
+         sprintf(mess,"non-conforming warp from '%s'",buf); free(buf); ERREX(mess);
+       }
+       ADDTO_iwstk(AA) ; free(buf) ;
+     }
+
+     /* make identity warp from a dataset */
+
+     else if( strncasecmp(cmd,"&identwarp(",11) == 0 ){
+       char *buf=strdup(cmd+11) , *bp ; THD_3dim_dataset *dset ;
+       for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
+       if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
+       dset = THD_open_dataset(buf) ;
+       if( dset == NULL ){
+         sprintf(mess,"can't read file '%s'",buf); free(buf); ERREX(mess);
+       }
+       AA = IW3D_from_dataset(dset,1) ; DSET_delete(dset) ;
+       if( AA == NULL ){
+         sprintf(mess,"can't make identwarp from '%s'",buf); free(buf); ERREX(mess);
+       }
+       if( geomstring == NULL ){
+         geomstring = strdup(AA->geomstring) ;
+         nx = AA->nx; ny = AA->ny; nz = AA->nz; cmat = AA->cmat; imat = AA->imat;
+       } else if( AA->nx != nx || AA->ny != ny || AA->nz != nz ){
+         sprintf(mess,"non-conforming warp from '%s'",buf); free(buf); ERREX(mess);
+       }
+       ADDTO_iwstk(AA) ; free(buf) ;
+     }
+
+     /* write it out, babee */
+
+     else if( strncasecmp(cmd,"write(",6) == 0 ){
+       char *buf=strdup(cmd+11) , *bp ; THD_3dim_dataset *dset ;
+       if( nstk < 1 ){ free(buf); ERREX("nothing on stack"); }
+       for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
+       if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
+       AA = iwstk[nstk-1] ;
+       FREEIFNN(AA->geomstring) ;
+       AA->geomstring = strdup(geomstring) ; AA->cmat = cmat ; AA->imat = imat ;
+       dset = IW3D_to_dataset( AA , prefix ) ;
+       DSET_write(dset) ; DSET_delete(dset) ;
+     }
+
+     /* duplication */
+
+     else if( strcasecmp(cmd,"&dup") == 0 ){
+       if( nstk < 1 ) ERREX("nothing on stack") ;
+       AA = IW3D_copy( iwstk[nstk-1] , 1.0f ) ;
+       ADDTO_iwstk(AA) ;
+     }
+
+     /* pop tart time! */
+
+     else if( strcasecmp(cmd,"&pop") == 0 ){
+        if( nstk < 1 ) ERREX("nothing on stack") ;
+        IW3D_destroy( iwstk[nstk-1] ) ;
+        nstk-- ;
+     }
+
+     /* swap-eroni */
+
+     else if( strcasecmp(cmd,"&swap") == 0 ){
+        if( nstk < 2 ) ERREX("stack too short") ;
+        AA = iwstk[nstk-2] ; BB = iwstk[nstk-1] ;
+        iwstk[nstk-2] = BB ; iwstk[nstk-1] = AA ;
+     }
+
+     /* go to Australia (viz., invert) */
+
+     else if( strcasecmp(cmd,"&invert") == 0 || strcasecmp(cmd,"&inverse") == 0 ){
+        if( nstk < 1 ) ERREX("nothing on stack") ;
+        AA = IW3D_invert( iwstk[nstk-1] , NULL , icode ) ;
+        if( AA == NULL ) ERREX("inversion failed") ;
+        IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ;
+     }
+
+     /* compose */
+
+     else if( strcasecmp(cmd,"&compose") == 0 || strcasecmp(cmd,"&*") == 0 ){
+        if( nstk < 2 ) ERREX("stack too short") ;
+        AA = IW3D_compose( iwstk[nstk-1] , iwstk[nstk-2] , icode ) ;
+        if( AA == NULL ) ERREX("composition failed") ;
+        IW3D_destroy( iwstk[nstk-1] ) ; IW3D_destroy( iwstk[nstk-2] ) ;
+        iwstk[nstk-2] = AA ; nstk-- ;
+     }
+
+     /* totally square, man */
+
+     else if( strcasecmp(cmd,"&sqr") == 0 ){
+        if( nstk < 1 ) ERREX("nothing on stack") ;
+        AA = IW3D_compose( iwstk[nstk-1] , iwstk[nstk-1] , icode ) ;
+        if( AA == NULL ) ERREX("composition failed") ;
+        IW3D_destroy( iwstk[nstk-1] ) ;
+        iwstk[nstk-1] = AA ;
+     }
+
+     /* scale */
+
+     else if( strncasecmp(cmd,"&scale(",7) == 0 ){
+       char *buf=strdup(cmd+7) , *bp ; float val ;
+       if( nstk < 1 ){ free(buf); ERREX("nothing on stack"); }
+       for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
+       if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
+       val = (float)strtod(buf,NULL) ; free(buf) ;
+       IW3D_scale( iwstk[nstk-1] , val ) ;
+     }
+
+     else {
+       ERREX("unknown operation :-(") ;
+     }
+
+   } /* end of loop over operations */
+
+   if(verb_rpn)INFO_message("end of evaluation loop") ;
+
+   NI_delete_str_array(sar) ;
+
+   if( nstk > 0 ){
+     AA = iwstk[nstk-1] ;
+     FREEIFNN(AA->geomstring) ;
+     AA->geomstring = strdup(geomstring) ; AA->cmat = cmat ; AA->imat = imat ;
+     oset = IW3D_to_dataset( AA , prefix ) ;
+   }
+
+   KILL_iwstk ; NI_delete_str_array(sar) ; FREEIFNN(geomstring) ;
+
+   RETURN(oset) ;
 }

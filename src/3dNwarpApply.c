@@ -299,7 +299,7 @@ int main( int argc , char *argv[] )
       "* Program 3dNwarpCalc could be used to operate on 3D warps:\n"
       "  ++ Catenate them; invert them; pre- or post-apply an affine warp.\n"
       "  ++ Alas!  3dNwarpCalc has yet to be written.  If AFNI survives the\n"
-      "     coming budget cuts, then it will be forthcoming later in 2011.\n"
+      "     coming budget crises, then it will be forthcoming later in 2011.\n"
      ) ;
      exit(0) ;
    }
