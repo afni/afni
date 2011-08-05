@@ -1208,7 +1208,7 @@ ENTRY("mri_matrix_evalrpn") ;
         *bp = '\0' ;
         imc = mri_read_1D(buf) ;
         if( imc == NULL ){
-          free(buf); sprintf(mess,"can't read file '%s'",buf); ERREX(mess);
+          sprintf(mess,"can't read file '%s'",buf); free(buf); ERREX(mess);
         }
         ADDTO_IMARR(imstk,imc) ;
         if( heq ) matrix_name_assign( bp+2 , imc ) ;
@@ -1222,7 +1222,7 @@ ENTRY("mri_matrix_evalrpn") ;
         *bp = '\0' ;
         imc = mri_read_4x4AffXfrm_1D(buf) ;
         if( imc == NULL ){
-          free(buf); sprintf(mess,"can't read file '%s'",buf); ERREX(mess);
+          sprintf(mess,"can't read file '%s'",buf); free(buf); ERREX(mess);
         }
         ADDTO_IMARR(imstk,imc) ;
         if( heq ) matrix_name_assign( bp+2 , imc ) ;

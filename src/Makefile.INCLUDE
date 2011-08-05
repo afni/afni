@@ -1139,6 +1139,10 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dNwarpApply 3dNwarpApply.o $(LFLAGS) $(LLIBS)
 
+3dNwarpCalc:3dNwarpCalc.o mri_nwarp.c
+	$(RM) $@
+	$(CCOMP) -o 3dNwarpCalc 3dNwarpCalc.o $(LFLAGS) $(LLIBS)
+
 3dRBFdset:3dRBFdset.o mri_rbfinterp.o
 	$(RM) $@
 	$(CCOMP) -o 3dRBFdset 3dRBFdset.o $(LFLAGS) $(LLIBS)
@@ -1162,6 +1166,10 @@ mri_rbfinterp.o:mri_rbfinterp.c
 3dNwarpApply.o:3dNwarpApply.c
 	$(RM) $@
 	$(CCOMP) -c 3dNwarpApply.c $(INFLAGS)
+
+3dNwarpCalc.o:3dNwarpCalc.c
+	$(RM) $@
+	$(CCOMP) -c 3dNwarpCalc.c $(INFLAGS)
 
 3dTcorrMap.o:3dTcorrMap.c
 	$(RM) $@

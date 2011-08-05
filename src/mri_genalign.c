@@ -1782,6 +1782,8 @@ ENTRY("mri_genalign_scalar_warpone") ;
    RETURN(wim) ;
 }
 
+#ifndef HAVE_HEXVOL
+#define HAVE_HEXVOL
 /*----------------------------------------------------------------------------*/
 /* Volume of a hexahedron (distorted cube) given by 8 corners.
    Looking down from the top, the bottom plane points are numbered so:
@@ -1826,6 +1828,7 @@ static float hexahedron_volume( float_triple x0 , float_triple x1 ,
 #undef DA
 #undef DB
 #undef DC
+#endif /* HAVE_HEXVOL */
 
 /*----------------------------------------------------------------------------*/
 
