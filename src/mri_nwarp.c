@@ -7,7 +7,7 @@
 typedef struct {
   int    nx ,  ny ,  nz ;
   float *xd , *yd , *zd , *hv ;
-  mat44 cmat , imat ;
+  mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
   char *geomstring ;
 } IndexWarp3D ;
 
@@ -20,6 +20,7 @@ float IW3D_normL2  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
 float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB ) ;
 IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA ) ;
 IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac ) ;
+IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac ) ;
 void IW3D_scale( IndexWarp3D *AA , float fac ) ;
 IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty ) ;
 THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix ) ;
@@ -27,10 +28,14 @@ void IW3D_load_hexvol( IndexWarp3D *AA ) ;
 IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB     , int icode ) ;
 IndexWarp3D * IW3D_sqrt   ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
 IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
+IndexWarp3D * IW3D_from_poly( int npar, float *par, IndexWarp3D *WW ) ;
 THD_3dim_dataset * NwarpCalcRPN( char *expr , char *prefix , int icode ) ;
 
 #undef  FREEIFNN
 #define FREEIFNN(x) do{ if((x)!=NULL) free((void *)(x)); } while(0)
+
+static int verb_rpn=0 ;
+void NwarpCalcRPN_verb(int i){ verb_rpn = i; }
 
 /*---------------------------------------------------------------------------*/
 /* Creation ex nihilo! */
@@ -223,6 +228,30 @@ void IW3D_scale( IndexWarp3D *AA , float fac )
    return ;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Sum with factors. */
+
+IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac )
+{
+   IndexWarp3D *CC ; int nxyz , qq ;
+
+   if( AA == NULL || BB == NULL ) return NULL ;
+
+   nxyz = AA->nx * AA->ny * AA->nz ;
+
+   if( BB->nx * BB->ny * BB->nz != nxyz ) return NULL ;
+
+   CC = IW3D_empty_copy(AA) ;  /* all zero displacements */
+
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     CC->xd[qq] = Afac * AA->xd[qq] + Bfac * BB->xd[qq] ;
+     CC->yd[qq] = Afac * AA->yd[qq] + Bfac * BB->yd[qq] ;
+     CC->zd[qq] = Afac * AA->zd[qq] + Bfac * BB->zd[qq] ;
+   }
+
+   return CC ;
+}
+
 /*----------------------------------------------------------------------------*/
 /* Convert a 3D dataset of displacments to an index warp. */
 
@@ -406,10 +435,9 @@ void IW3D_load_hexvol( IndexWarp3D *AA )
 #pragma omp parallel if( nxyz > 33333 )
  { float_triple x0,x1,x2,x3,x4,x5,x6,x7 ;
    int ii,jj,kk , ip,jp,kp , ijk , qq ;
-   ii = -1 ; jj = kk = 0 ;
 #pragma omp for
    for( qq=0 ; qq < nxyz ; qq++ ){
-     ii++; if( ii == nx ){ ii = 0; jj++; if( jj == ny ){ jj = 0; kk++; } }
+     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
      ip = ii+1 ; jp = jj+1 ; kp = kk+1 ;
      C2F(ii,jj,kk,x0); C2F(ip,jj,kk,x1); C2F(ii,jp,kk,x2); C2F(ip,jp,kk,x3);
      C2F(ii,jj,kp,x4); C2F(ip,jj,kp,x5); C2F(ii,jp,kp,x6); C2F(ip,jp,kp,x7);
@@ -722,16 +750,12 @@ ENTRY("IW3D_compose") ;
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
    xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
 
-   ii = -1 ; jj = kk = 0 ;
    for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
 
      qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
 
      for( qq=pp ; qq < qtop ; qq++ ){
-       ii++ ;          /* get the 3D index from the 1D index */
-       if( ii == nx ){ /* allowing for wraparounds at nx, ny */
-         ii = 0 ; jj++ ; if( jj == ny ){ jj = 0 ; kk++ ; }
-       }
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
        xq[qq-pp] = ii + xda[qq] ;  /* x+A(x) warped indexes */
        yq[qq-pp] = jj + yda[qq] ;
        zq[qq-pp] = kk + zda[qq] ;
@@ -757,11 +781,10 @@ ENTRY("IW3D_compose") ;
 
 /*---------------------------------------------------------------------------*/
 /* Compute B( 2x - A(B(x)) ) = Newton step for computing Ainv(x) */
-/* [[This function has nothing to do with Newt Gingrich]] */
 
 static IndexWarp3D * IW3D_invert_newt( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
 {
-   int nx,ny,nz,nxy,nxyz , nall , ii,jj,kk,iold,jold,kold , pp,qq,qtop ;
+   int nx,ny,nz,nxy,nxyz , nall , ii,jj,kk , pp,qq,qtop ;
    float *xda,*yda,*zda , *xq,*yq,*zq,*xr,*yr,*zr , *xdc,*ydc,*zdc , *xdb,*ydb,*zdb ;
    IndexWarp3D *CC ;
 
@@ -778,6 +801,7 @@ ENTRY("IW3D_invert_newt") ;
    xq = (float *)malloc(sizeof(float)*nall) ;  /* workspace */
    yq = (float *)malloc(sizeof(float)*nall) ;
    zq = (float *)malloc(sizeof(float)*nall) ;
+
    xr = (float *)malloc(sizeof(float)*nall) ;
    yr = (float *)malloc(sizeof(float)*nall) ;
    zr = (float *)malloc(sizeof(float)*nall) ;
@@ -795,19 +819,14 @@ ENTRY("IW3D_invert_newt") ;
       2x - A(B(x))      = x - b(x) - a(x+b(x))
       B( 2x - A(B(x)) ) = x - b(x) - a(x+b(x)) + b(x-b(x)-a(x+b(x))) */
 
-   ii = -1 ; jj = kk = 0 ;
    for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
 
      qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
-     iold = ii ; jold = jj ; kold = kk ;
 
      /* Compute [xq,yq,zq] = x+b(x) */
 
      for( qq=pp ; qq < qtop ; qq++ ){
-       ii++ ;          /* get the 3D index from the 1D index */
-       if( ii == nx ){ /* allowing for wraparounds at nx, ny */
-         ii = 0 ; jj++ ; if( jj == ny ){ jj = 0 ; kk++ ; }
-       }
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
        xq[qq-pp] = ii + xdb[qq] ;
        yq[qq-pp] = jj + ydb[qq] ;
        zq[qq-pp] = kk + zdb[qq] ;
@@ -821,9 +840,8 @@ ENTRY("IW3D_invert_newt") ;
 
      /* Compute [xr,yr,zr] = x - b(x) - a(x+b(x)) */
 
-     ii = iold ; jj = jold ; kk = kold ;
      for( qq=pp ; qq < qtop ; qq++ ){
-       ii++; if( ii == nx ){ ii = 0; jj++; if( jj == ny ){ jj = 0; kk++; } }
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
        xr[qq-pp] = ii - xdb[qq] - xr[qq-pp] ;
        yr[qq-pp] = jj - ydb[qq] - yr[qq-pp] ;
        zr[qq-pp] = kk - zdb[qq] - zr[qq-pp] ;
@@ -837,9 +855,8 @@ ENTRY("IW3D_invert_newt") ;
 
      /* Compute result = -b(x) - a(x+b(x)) + b(x-b(x)-a(x+b(x))) */
 
-     ii = iold ; jj = jold ; kk = kold ;
      for( qq=pp ; qq < qtop ; qq++ ){
-       ii++; if( ii == nx ){ ii = 0; jj++; if( jj == ny ){ jj = 0; kk++; } }
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
        xdc[qq] = xr[qq-pp] - ii + xq[qq-pp] ;
        ydc[qq] = yr[qq-pp] - jj + yq[qq-pp] ;
        zdc[qq] = zr[qq-pp] - kk + zq[qq-pp] ;
@@ -857,60 +874,72 @@ ENTRY("IW3D_invert_newt") ;
 IndexWarp3D * IW3D_invert( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode )
 {
    IndexWarp3D *BB , *CC ;
-   float normAA , normBC ;
-   int ii , jcode=MRI_LINEAR ;
+   float normAA , normBC , nrat ;
+   int ii , jcode=icode , nnewt=0 ;
 
 ENTRY("IW3D_invert") ;
 
    if( AA == NULL ) RETURN(NULL) ;
 
-   normAA = IW3D_normL2( AA , NULL ) ;
+   normAA = IW3D_normLinf( AA , NULL ) ;
    if( normAA == 0.0f ){
      BB = IW3D_empty_copy(AA) ; RETURN(BB) ;
    }
 
    /* BB = initial guess at inverse */
 
+   if( verb_rpn ) ININFO_message("  -- invert normAA=%f",normAA) ;
+
    if( BBinit == NULL ){
-     int pp = (int)ceil(log2(normAA)) ;
-     if( pp < 1 ) pp = 1 ; else if( pp > 4 ) pp = 4 ;
-     BB = IW3D_copy( AA , -pow(0.5,pp) ) ;
+     int pp = (int)ceil(log2(normAA)) ; float qq ;
+     if( pp < 1 ) pp = 1 ;
+     pp++ ; qq = pow(0.5,pp) ;
+     if( verb_rpn ) ININFO_message("   - init pp=%d qq=%f",pp,qq) ;
+     BB = IW3D_copy( AA , sqrtf(0.5f*qq*(1.0f+qq)) ) ;
+     CC = IW3D_compose(CC,CC,jcode) ; IW3D_destroy(BB) ;
+     BB = IW3D_sum( AA,-qq , CC,1.0f ) ; IW3D_destroy(CC) ;
      for( ii=0 ; ii < pp ; ii++ ){
+       if( verb_rpn ) ININFO_message("   - init step %d",ii+1) ;
        CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
      }
    } else {
      BB = IW3D_copy( BBinit , 1.0f ) ;
    }
 
-   /* take 2 Newton steps: BB -> CC -> BB */
+   normAA = IW3D_normL2( AA , NULL ) ;
 
-   CC = IW3D_invert_newt(AA,BB,jcode) ; IW3D_destroy(BB) ;
-   BB = IW3D_invert_newt(AA,CC,jcode) ;
-
-   /* iterate some more, until convergence or exhaustion */
+   /* iterate some, until convergence or exhaustion */
 
    for( ii=0 ; ii < 19 ; ii++ ){
 
-     /* At this stage have BB=latest iterate, CC=previous iterate */
-     /* Check for distance between them, then toss CC on the trash heap */
+     /* take a Newton step from BB to CC */
+
+     CC = BB ; BB = IW3D_invert_newt(AA,CC,jcode) ;
+
+     /* how close are they now? */
 
      normBC = IW3D_normL2( BB , CC ) ; IW3D_destroy(CC) ;
+     nrat   = normBC / normAA ;
 
      /* check for convergence of B and C */
 
-     if( normBC/normAA < 0.001f ){
-       if( jcode == icode ) RETURN(BB) ;  /* converged */
+     if( nrat < 0.001f ){
+       if( jcode == icode ){
+         if( verb_rpn ) ININFO_message(" -- converged nrat=%f") ;
+         RETURN(BB) ;   /* converged */
+       }
+       if( verb_rpn ) ININFO_message("  - linear interp converged; switching") ;
        jcode = icode ;  /* switch to final interp code */
      }
 
-     /* take another Newton step */
+     if( verb_rpn ) ININFO_message("   - Newton %d nrat=%f",++nnewt,nrat) ;
 
-     CC = BB ; BB = IW3D_invert_newt(AA,CC,jcode) ;
    }
 
    /* failed to converge, return latest result anyhoo */
 
-   IW3D_destroy(CC) ; RETURN(BB) ;
+   if( verb_rpn ) ININFO_message("  -- failed to converge") ;
+   RETURN(BB) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -923,10 +952,78 @@ IndexWarp3D * IW3D_sqrt( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode )
 
 /****************************************************************************/
 /****************************************************************************/
-/****************************************************************************/
 
-static int verb_rpn=0 ;
-void NwarpCalcRPN_verb(int i){ verb_rpn = i; }
+/*---------------------------------------------------------------------------*/
+/* Create a warp from a set of parameters, matching a template warp. */
+
+IndexWarp3D * IW3D_from_poly( int npar, float *par, IndexWarp3D *WW )
+{
+   GA_warpfunc *wfunc ;
+   int nall , ii,jj,kk , nx,ny,nz,nxy,nxyz , pp,qq,qtop ;
+   IndexWarp3D *AA ;
+   float *xda,*yda,*zda , *xq,*yq,*zq ;
+
+ENTRY("IW3D_from_poly") ;
+
+   if( par == NULL || WW == NULL ) RETURN(NULL) ;  /* should not happen */
+
+   /* cmat takes ijk -> xyz  ;  imat is cmat's inverse */
+
+   mri_genalign_affine_set_befafter( &(WW->cmat) , &(WW->imat) ) ;
+
+   /* choose the warping function, based on number of parameters */
+
+   switch( npar ){
+     default: RETURN(NULL) ;
+     case  12: wfunc = mri_genalign_affine  ; break ;
+     case  64: wfunc = mri_genalign_cubic   ; break ;
+     case 172: wfunc = mri_genalign_quintic ; break ;
+     case 364: wfunc = mri_genalign_heptic  ; break ;
+     case 668: wfunc = mri_genalign_nonic   ; break ;
+   }
+
+   /* setup the output warp */
+
+   nx = WW->nx ; ny = WW->ny ; nz = WW->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+   nxyz = nx*ny*nz ; nall = MIN(nxyz,NPER) ;
+
+   AA = IW3D_empty_copy( WW ) ;
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+
+   xq = (float *)malloc(sizeof(float)*nall) ;
+   yq = (float *)malloc(sizeof(float)*nall) ;
+   zq = (float *)malloc(sizeof(float)*nall) ;
+
+   for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
+
+     qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
+
+     /* input coords are indexes */
+
+     for( qq=pp ; qq < qtop ; qq++ ){
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+       xq[qq-pp] = ii ; yq[qq-pp] = jj ; zq[qq-pp] = kk ;
+     }
+
+     /* compute index-to-index warp */
+
+     wfunc( npar , NULL , qtop-pp , xq,yq,zq , xda+pp,yda+pp,zda+pp ) ;
+
+     /* subtract off base indexes to make the result just be displacments */
+
+     for( qq=pp ; qq < qtop ; qq++ ){
+       xda[qq] -= xq[qq-pp] ; yda[qq] -= yq[qq-pp] ; zda[qq] -= zq[qq-pp] ;
+     }
+   }
+
+   /* time to trot, Bwana */
+
+   free(zq) ; free(yq) ; free(xq) ; RETURN(AA) ;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 #undef  KILL_iwstk
 #define KILL_iwstk                                                   \
@@ -937,7 +1034,8 @@ void NwarpCalcRPN_verb(int i){ verb_rpn = i; }
 
 #undef  ERREX
 #define ERREX(sss)                                                     \
-  do{ ERROR_message("NwarpCalcRPN('%s') at '%s': %s" , expr,cmd,sss ); \
+  do{ ERROR_message("NwarpCalcRPN('%s')\n"                             \
+         "           at '%s': %s" , expr,cmd,sss );                    \
       KILL_iwstk; NI_delete_str_array(sar); FREEIFNN(geomstring);      \
       RETURN(NULL);                                                    \
   } while(0)
@@ -960,17 +1058,17 @@ THD_3dim_dataset * NwarpCalcRPN( char *expr , char *prefix , int icode )
    IndexWarp3D *AA , *BB ;
    THD_3dim_dataset *oset=NULL ;
    int nx=0,ny=0,nz=0 ;
-   mat44 cmat , imat ;
+   mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
    char *geomstring=NULL ;
 
 ENTRY("NwarpCalcRPN") ;
 
-   /** break string into sub-strings, delimited by whitespace **/
+   /**----- break string into sub-strings, delimited by whitespace -----**/
 
    sar = NI_decode_string_list( expr , "`" ) ;
    if( sar == NULL ) RETURN(NULL) ;
 
-   /** loop thru and process commands **/
+   /**----- loop thru and process commands -----**/
 
    if(verb_rpn)INFO_message("NwarpCalcRPN('%s')",expr) ;
 
@@ -980,9 +1078,9 @@ ENTRY("NwarpCalcRPN") ;
 
      if(verb_rpn)ININFO_message(" + nstk=%d  cmd='%s'",nstk,cmd) ;
 
-     if( *cmd == '\0' ) continue ;
+     if( *cmd == '\0' ) continue ;  /* WTF?! */
 
-     /* read warp from a dataset */
+     /*--- read warp from a dataset ---*/
 
      else if( strncasecmp(cmd,"&readnwarp(",11) == 0 ){
        char *buf=strdup(cmd+11) , *bp ; THD_3dim_dataset *dset ;
@@ -1005,7 +1103,7 @@ ENTRY("NwarpCalcRPN") ;
        ADDTO_iwstk(AA) ; free(buf) ;
      }
 
-     /* make identity warp from a dataset */
+     /*--- make identity warp from a dataset ---*/
 
      else if( strncasecmp(cmd,"&identwarp(",11) == 0 ){
        char *buf=strdup(cmd+11) , *bp ; THD_3dim_dataset *dset ;
@@ -1028,21 +1126,41 @@ ENTRY("NwarpCalcRPN") ;
        ADDTO_iwstk(AA) ; free(buf) ;
      }
 
-     /* write it out, babee */
+     /*--- create a warp from a set of polynomial parameters ---*/
 
-     else if( strncasecmp(cmd,"write(",6) == 0 ){
-       char *buf=strdup(cmd+11) , *bp ; THD_3dim_dataset *dset ;
+     else if( strncasecmp(cmd,"&readpoly(",10) == 0 ){
+       char *buf=strdup(cmd+10) , *bp ; MRI_IMAGE *qim,*fim ; float *far ;
+       if( nstk < 1 ){ free(buf); ERREX("nothing on stack"); }
+       for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
+       if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
+       qim = mri_read_1D(buf) ;
+       if( qim == NULL ){
+         sprintf(mess,"can't read file '%s'",buf); free(buf); ERREX(mess);
+       }
+       fim = mri_transpose(qim) ; mri_free(qim) ; far = MRI_FLOAT_PTR(fim) ;
+       AA = IW3D_from_poly( fim->nx , far , iwstk[nstk-1] ) ;
+       if( AA == NULL ){
+         sprintf(mess,"can't use file '%s' -- num param=%d",buf,fim->nx);
+         mri_free(fim); free(buf); ERREX(mess);
+       }
+       mri_free(fim) ; ADDTO_iwstk(AA) ; free(buf) ;
+     }
+
+     /*--- write it out, babee ---*/
+
+     else if( strncasecmp(cmd,"&write(",7) == 0 ){
+       char *buf=strdup(cmd+7) , *bp ; THD_3dim_dataset *dset ;
        if( nstk < 1 ){ free(buf); ERREX("nothing on stack"); }
        for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
        if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
        AA = iwstk[nstk-1] ;
        FREEIFNN(AA->geomstring) ;
        AA->geomstring = strdup(geomstring) ; AA->cmat = cmat ; AA->imat = imat ;
-       dset = IW3D_to_dataset( AA , prefix ) ;
-       DSET_write(dset) ; DSET_delete(dset) ;
+       dset = IW3D_to_dataset( AA , buf ) ;
+       DSET_write(dset) ; DSET_delete(dset) ; free(buf) ;
      }
 
-     /* duplication */
+     /*--- duplication ---*/
 
      else if( strcasecmp(cmd,"&dup") == 0 ){
        if( nstk < 1 ) ERREX("nothing on stack") ;
@@ -1050,7 +1168,7 @@ ENTRY("NwarpCalcRPN") ;
        ADDTO_iwstk(AA) ;
      }
 
-     /* pop tart time! */
+     /*--- pop tart time! ---*/
 
      else if( strcasecmp(cmd,"&pop") == 0 ){
         if( nstk < 1 ) ERREX("nothing on stack") ;
@@ -1058,7 +1176,7 @@ ENTRY("NwarpCalcRPN") ;
         nstk-- ;
      }
 
-     /* swap-eroni */
+     /*--- swap-eroni ---*/
 
      else if( strcasecmp(cmd,"&swap") == 0 ){
         if( nstk < 2 ) ERREX("stack too short") ;
@@ -1066,7 +1184,7 @@ ENTRY("NwarpCalcRPN") ;
         iwstk[nstk-2] = BB ; iwstk[nstk-1] = AA ;
      }
 
-     /* go to Australia (viz., invert) */
+     /*--- go to Australia (viz., invert) ---*/
 
      else if( strcasecmp(cmd,"&invert") == 0 || strcasecmp(cmd,"&inverse") == 0 ){
         if( nstk < 1 ) ERREX("nothing on stack") ;
@@ -1075,7 +1193,7 @@ ENTRY("NwarpCalcRPN") ;
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ;
      }
 
-     /* compose */
+     /*--- compose ---*/
 
      else if( strcasecmp(cmd,"&compose") == 0 || strcasecmp(cmd,"&*") == 0 ){
         if( nstk < 2 ) ERREX("stack too short") ;
@@ -1085,7 +1203,7 @@ ENTRY("NwarpCalcRPN") ;
         iwstk[nstk-2] = AA ; nstk-- ;
      }
 
-     /* totally square, man */
+     /*--- totally square, man ---*/
 
      else if( strcasecmp(cmd,"&sqr") == 0 ){
         if( nstk < 1 ) ERREX("nothing on stack") ;
@@ -1095,7 +1213,7 @@ ENTRY("NwarpCalcRPN") ;
         iwstk[nstk-1] = AA ;
      }
 
-     /* scale */
+     /*--- scale ---*/
 
      else if( strncasecmp(cmd,"&scale(",7) == 0 ){
        char *buf=strdup(cmd+7) , *bp ; float val ;
@@ -1106,15 +1224,15 @@ ENTRY("NwarpCalcRPN") ;
        IW3D_scale( iwstk[nstk-1] , val ) ;
      }
 
+     /*--- No worst, there is none ---*/
+
      else {
        ERREX("unknown operation :-(") ;
      }
 
-   } /* end of loop over operations */
+   } /*----- end of loop over operations -----*/
 
    if(verb_rpn)INFO_message("end of evaluation loop") ;
-
-   NI_delete_str_array(sar) ;
 
    if( nstk > 0 ){
      AA = iwstk[nstk-1] ;
