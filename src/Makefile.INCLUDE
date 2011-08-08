@@ -1139,7 +1139,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dNwarpApply 3dNwarpApply.o $(LFLAGS) $(LLIBS)
 
-3dNwarpCalc:3dNwarpCalc.o mri_nwarp.c
+3dNwarpCalc:3dNwarpCalc.o
 	$(RM) $@
 	$(CCOMP) -o 3dNwarpCalc 3dNwarpCalc.o $(LFLAGS) $(LLIBS)
 
@@ -1167,7 +1167,7 @@ mri_rbfinterp.o:mri_rbfinterp.c
 	$(RM) $@
 	$(CCOMP) -c 3dNwarpApply.c $(INFLAGS)
 
-3dNwarpCalc.o:3dNwarpCalc.c
+3dNwarpCalc.o:3dNwarpCalc.c mri_nwarp.c
 	$(RM) $@
 	$(CCOMP) -c 3dNwarpCalc.c $(INFLAGS)
 
