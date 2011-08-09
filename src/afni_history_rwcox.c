@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 2 , AUG , 2011 , RWC , "3dclust" , MINOR , TYPE_NEW_OPT ,
+  { 9 , AUG , 2011 , RWC , "3dNwarpCalc" , MINOR , TYPE_NEW_PROG ,
+   "Implemented about 80% of it" ,
+   "Seems to work, but needs a fair amount of fine tuning and testing." } ,
+
+ { 9 , AUG , 2011 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+   "Add '-cvarinv' option for Vinai" ,
+   NULL } ,
+
+ { 2 , AUG , 2011 , RWC , "3dclust" , MINOR , TYPE_NEW_OPT ,
    "Add '-inmask' option, to use internal mask" ,
    "To be compatible with AFNI's Clusterize GUI, which was also modified to\n"
    "output this option when appropriate." } ,
