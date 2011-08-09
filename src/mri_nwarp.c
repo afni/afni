@@ -24,8 +24,9 @@ IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac
 void IW3D_scale( IndexWarp3D *AA , float fac ) ;
 IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty ) ;
 THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix ) ;
-void IW3D_load_hexvol( IndexWarp3D *AA ) ;
+float_pair IW3D_load_hexvol( IndexWarp3D *AA ) ;
 IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB     , int icode ) ;
+IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
 IndexWarp3D * IW3D_sqrt   ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
 IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
 IndexWarp3D * IW3D_from_poly( int npar, float *par, IndexWarp3D *WW ) ;
@@ -33,6 +34,12 @@ THD_3dim_dataset * NwarpCalcRPN( char *expr , char *prefix , int icode ) ;
 
 #undef  FREEIFNN
 #define FREEIFNN(x) do{ if((x)!=NULL) free((void *)(x)); } while(0)
+
+#undef  HVPRINT
+#define HVPRINT(lab,ZZ)                                                         \
+ do{ float_pair bt = IW3D_load_hexvol(ZZ) ;                                      \
+     if( bt.b > bt.a ) ININFO_message("%s hexvol range %f .. %f",lab,bt.a,bt.b) ; \
+ } while(0)
 
 static int verb_rpn=0 ;
 void NwarpCalcRPN_verb(int i){ verb_rpn = i; }
@@ -46,7 +53,7 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
 
    if( nx < 9 || ny < 9 || nz < 9 ) return NULL ;
 
-   AA = (IndexWarp3D *)malloc(sizeof(IndexWarp3D)) ;
+   AA = (IndexWarp3D *)calloc(1,sizeof(IndexWarp3D)) ;
    AA->nx = nx ; AA->ny = ny ; AA->nz = nz ;
    AA->xd = (float *)calloc(nx*ny*nz,sizeof(float)) ;
    AA->yd = (float *)calloc(nx*ny*nz,sizeof(float)) ;
@@ -209,7 +216,7 @@ IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac )
 }
 
 /*---------------------------------------------------------------------------*/
-/* Scale displacements by fac. */
+/* Scale displacements by fac (in-place). */
 
 void IW3D_scale( IndexWarp3D *AA , float fac )
 {
@@ -229,13 +236,19 @@ void IW3D_scale( IndexWarp3D *AA , float fac )
 }
 
 /*---------------------------------------------------------------------------*/
-/* Sum with factors. */
+/* Sum displacements, with factors. */
 
 IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac )
 {
    IndexWarp3D *CC ; int nxyz , qq ;
 
-   if( AA == NULL || BB == NULL ) return NULL ;
+   if( AA == NULL && BB == NULL ) return NULL ;
+
+   if( AA == NULL || Afac == 0.0f ){
+     CC = IW3D_copy( BB , Bfac ) ; return CC ;
+   } else if( BB == NULL || Bfac == 0.0f ){
+     CC = IW3D_copy( AA , Afac ) ; return CC ;
+   }
 
    nxyz = AA->nx * AA->ny * AA->nz ;
 
@@ -341,7 +354,7 @@ ENTRY("IW3D_to_dataset") ;
    zar = (float *)malloc(sizeof(float)*nxyz) ;
    har = (float *)malloc(sizeof(float)*nxyz) ;
 
-   if( AA->hv == NULL ) IW3D_load_hexvol(AA) ;
+   if( AA->hv == NULL ) (void)IW3D_load_hexvol(AA) ;
    hva = AA->hv ; hfac = MAT44_DET(cmat) ;
 
    for( ii=0 ; ii < nxyz ; ii++ ){
@@ -417,12 +430,13 @@ static INLINE float hexahedron_volume( float_triple x0 , float_triple x1 ,
 #undef  D2F
 #define D2F(pqr,xx)   ( (xx).a+=xda[pqr], (xx).b+=yda[pqr], (xx).c+=zda[pqr] )
 
-void IW3D_load_hexvol( IndexWarp3D *AA )
+float_pair IW3D_load_hexvol( IndexWarp3D *AA )
 {
-   float *xda, *yda , *zda , *hva ;
-   int nx,ny,nz , nxy,nxyz ;
+   float *xda, *yda , *zda , *hva , top,bot ;
+   int nx,ny,nz , nxy,nxyz , ii ;
+   float_pair hvm = {0.0f,0.0f} ;
 
-   if( AA == NULL ) return ;
+   if( AA == NULL ) return hvm ;
 
    nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
 
@@ -455,7 +469,12 @@ void IW3D_load_hexvol( IndexWarp3D *AA )
  }
  AFNI_OMP_END ;
 
- return ;
+  top = bot = hva[0] ;
+  for( ii=1 ; ii < nxyz ; ii++ ){
+         if( hva[ii] > top ) top = hva[ii] ;
+    else if( hva[ii] < bot ) bot = hva[ii] ;
+  }
+  hvm.a = bot ; hvm.b = top ; return hvm ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -490,9 +509,15 @@ void IW3D_interp_linear( int nxx , int nyy , int nzz ,
 
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
+#if 0
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ uar[pp]=var[pp]=war[pp]=0.0f; continue;}
      yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ uar[pp]=var[pp]=war[pp]=0.0f; continue;}
      zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ uar[pp]=var[pp]=war[pp]=0.0f; continue;}
+#else
+     xx = ip[pp] ; if( xx < -0.499f ) xx = -0.499f ; else if( xx > nxh ) xx = nxh ;
+     yy = jp[pp] ; if( yy < -0.499f ) yy = -0.499f ; else if( yy > nyh ) yy = nyh ;
+     zz = kp[pp] ; if( zz < -0.499f ) zz = -0.499f ; else if( zz > nzh ) zz = nzh ;
+#endif
 
      ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
      jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
@@ -908,20 +933,33 @@ ENTRY("IW3D_invert") ;
    /* BB = initial guess at inverse */
 
    if( verb_rpn ) ININFO_message(" -- invert max|AA|=%f",normAA) ;
+   if( verb_rpn ) HVPRINT("  -",AA) ;
 
    if( BBinit == NULL ){
-     int pp = 2+(int)ceil(log2(normAA)) ; float qq , qf , sqA ;
+     int pp = (int)ceil(log2(normAA)) ; float qq , qf , sqA ;
      if( pp < 2 ) pp = 2 ;
-     qq = pow(0.5,pp) ; qf = sqrtf(0.5f*qq*(1.0f+qq)) ; sqA = sqrtf(normAA) ;
-     if( qf*sqA > 0.2f ) qf = 0.2f / sqA ;
+     qq = pow(0.5,pp) ;
+#if 0
+     qf = sqrtf(0.5f*qq*(1.0f+qq)) ; sqA = sqrtf(normAA) ;
+     if( qf*sqA > 0.01f ) qf = 0.01f / sqA ;
      if( verb_rpn )
        ININFO_message("  - init nstep=%d qq=1/2^%d=%f qf=%f",pp,pp,qq,qf) ;
-     BB = IW3D_copy( AA , qf ) ;
-     CC = IW3D_compose(CC,CC,icode) ; IW3D_destroy(BB) ;
-     BB = IW3D_sum( AA,-qq , CC,1.0f ) ; IW3D_destroy(CC) ;
+#else
+     qf = 0.0f ;
+     if( verb_rpn )
+       ININFO_message("  - init nstep=%d qq=1/2^%d=%f",pp,pp,qq) ;
+#endif
+     if( qf > 0.0f ){
+       BB = IW3D_copy( AA , qf ) ;
+       CC = IW3D_compose(BB,BB,icode) ; IW3D_destroy(BB) ;
+       BB = IW3D_sum( AA,-qq , CC,1.0f ) ; IW3D_destroy(CC) ;
+     } else {
+       BB = IW3D_copy( AA,-qq ) ;
+     }
      for( ii=0 ; ii < pp ; ii++ ){
        if( verb_rpn ) ININFO_message("  - init step %d",ii+1) ;
        CC = IW3D_compose(BB,BB,icode) ; IW3D_destroy(BB) ; BB = CC ;
+       if( verb_rpn ) HVPRINT("    -",BB) ;
      }
    } else {
      BB = IW3D_copy( BBinit , 1.0f ) ;
@@ -929,16 +967,16 @@ ENTRY("IW3D_invert") ;
 
    normAA = IW3D_normL2( AA , NULL ) ;
 
-   newtfac = 1.0f / (1.0f+sqrtf(normAA)) ;
+   newtfac = 1.0f / (1.0f+sqrtf(normAA)) ;  /* Damped Newton */
 
    if( verb_rpn )
      ININFO_message("  - start iterations: normAA=%f newtfac=%f",normAA,newtfac) ;
 
    /* iterate some, until convergence or exhaustion */
 
-   orat = 666.666f ;
+   nrat = 666.666f ;
 
-   for( nss=ii=0 ; ii < 39 ; ii++ ){
+   for( nss=ii=0 ; ii < 49 ; ii++ ){
 
      /* take a Newton step from BB to CC */
 
@@ -947,22 +985,24 @@ ENTRY("IW3D_invert") ;
      /* how close are they now? */
 
      normBC = IW3D_normL2( BB , CC ) ; IW3D_destroy(CC) ;
-     nrat   = normBC / normAA ;
+
+     orat = nrat ; nrat = normBC / normAA ;
 
      if( verb_rpn ) ININFO_message("  - iterate %d nrat=%f",++nnewt,nrat) ;
+     if( verb_rpn ) HVPRINT("    -",BB) ;
 
      /* check for convergence of B and C */
 
-     if( nrat < 0.001f ){
+     if( nrat < 0.0002f ){
        if( verb_rpn ) ININFO_message(" -- iteration converged") ;
        RETURN(BB) ;   /* converged */
      }
 
-     if( nss > 0 && nrat < 0.123f && nrat < orat && newtfac < 0.888f ){
-       nss = 0 ; newtfac *= 1.333f ; if( newtfac > 0.888f ) newtfac = 0.888f ;
+     if( nss > 0 && nrat < 0.199f && nrat < orat && newtfac < 0.888888f ){
+       nss = 0 ; newtfac *= 1.444f ; if( newtfac > 0.888888f ) newtfac = 0.888888f ;
        if( verb_rpn ) ININFO_message("  - switch to newtfac=%f",newtfac) ;
      } else if( nss > 0 && nrat > orat ){
-       nss = 0 ; newtfac *= 0.777f ;
+       nss = 0 ; newtfac *= 0.666f ;
        if( verb_rpn ) ININFO_message("  - switch to newtfac=%f",newtfac) ;
      } else {
        nss++ ;
