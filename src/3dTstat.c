@@ -56,7 +56,10 @@
 
 #define METH_CENTROMEAN   31  /* RWC 01 Nov 2010 */
 
-#define MAX_NUM_OF_METHS  32
+#define METH_CVARINV      32  /* RWC 09 Aug 2011 */
+#define METH_CVARINVNOD   33
+
+#define MAX_NUM_OF_METHS  34
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 4
@@ -82,7 +85,8 @@ static char *meth_names[] = {
    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
    "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
-   "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"
+   "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
+   "CVarInv"       , "CvarInv (NOD)"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -132,9 +136,10 @@ int main( int argc , char *argv[] )
  "             [      the slope has been removed]\n"
  " -cvar   = compute coefficient of variation of input\n"
  "             voxels = stdev/fabs(mean)\n"
- "   **N.B.: You can add NOD to the end of the above 2\n"
- "           options only, to turn off detrending, as in\n"
- "             -stdevNOD  and/or  -cvarNOD\n"
+ " -cvarinv= 1.0/cvar = 'signal to noise ratio' [for Vinai]\n"
+ "           **N.B.: You can add NOD to the end of the above 3\n"
+ "                   options only, to turn off detrending, as in\n"
+ "                     -stdevNOD  and/or  -cvarNOD  and/or  -cvarinvNOD\n"
  "\n"
  " -MAD    = compute MAD (median absolute deviation) of\n"
  "             input voxels = median(|voxel-median(voxel)|)\n"
@@ -343,6 +348,12 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-cvarinv") == 0 ){
+         meth[nmeths++] = METH_CVARINV ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
       if( strcasecmp(argv[nopt],"-stdevNOD") == 0 ||
           strcasecmp(argv[nopt],"-sigmaNOD") == 0   ){  /* 07 Dec 2001 */
 
@@ -353,6 +364,12 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-cvarNOD") == 0 ){     /* 07 Dec 2001 */
          meth[nmeths++] = METH_CVAR_NOD ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-cvarinvNOD") == 0 ){
+         meth[nmeths++] = METH_CVARINVNOD ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -803,29 +820,36 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 
       case METH_SLOPE: val[out_index] = ts_slope ; break ;
 
-      case METH_CVAR_NOD:
+      case METH_CVAR_NOD:     /* methods that depend on the mean and stdev */
       case METH_SIGMA_NOD:
+      case METH_CVARINVNOD:
       case METH_CVAR:
+      case METH_CVARINV:
       case METH_SIGMA:{
         register int ii ;
         register double sum ;
 
+        int mm = meth[meth_index] ;
+        int nod = (mm == METH_CVAR_NOD)  ||   /* no detrend flag */
+                  (mm == METH_SIGMA_NOD) ||
+                  (mm == METH_CVARINVNOD)  ;
+
         sum = 0.0 ;
-        if((meth[meth_index] == METH_CVAR) || (meth[meth_index] == METH_SIGMA )){
+        if( !nod ){   /* not no detrend ==> use detrended data */
           for( ii=0 ; ii < npts ; ii++ ) sum += ts_det[ii] * ts_det[ii] ;
-        } else {
+        } else {      /* use data as God gave it to us */
           for( ii=0 ; ii < npts ; ii++ ) sum += (ts[ii]-ts_mean)
                                                *(ts[ii]-ts_mean) ;
         }
 
-        sum = sqrt( sum/(npts-1) ) ;
+        sum = sqrt( sum/(npts-1.0) ) ;  /* stdev */
 
-        if((meth[meth_index] == METH_SIGMA) || (meth[meth_index] == METH_SIGMA_NOD))
+        if( mm == METH_SIGMA ||  mm == METH_SIGMA_NOD )
           val[out_index] = sum ;
-        else if( ts_mean != 0.0 )
-          val[out_index] = sum / fabs(ts_mean) ;
+        else if( mm == METH_CVAR || mm == METH_CVAR_NOD )
+          val[out_index] = (ts_mean != 0.0) ? sum/fabs(ts_mean) : 0.0 ;
         else
-          val[out_index] = 0.0 ;
+          val[out_index] = (sum     != 0.0) ? fabs(ts_mean)/sum : 0.0 ;
       }
       break ;
 
