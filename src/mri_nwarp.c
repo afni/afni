@@ -605,9 +605,15 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
 
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
+#if 0
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ uar[pp]=var[pp]=war[pp]=0.0f; continue;}
      yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ uar[pp]=var[pp]=war[pp]=0.0f; continue;}
      zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ uar[pp]=var[pp]=war[pp]=0.0f; continue;}
+#else
+     xx = ip[pp] ; if( xx < -0.499f ) xx = -0.499f ; else if( xx > nxh ) xx = nxh ;
+     yy = jp[pp] ; if( yy < -0.499f ) yy = -0.499f ; else if( yy > nyh ) yy = nyh ;
+     zz = kp[pp] ; if( zz < -0.499f ) zz = -0.499f ; else if( zz > nzh ) zz = nzh ;
+#endif
 
      ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
      jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
@@ -782,6 +788,8 @@ ENTRY("IW3D_compose") ;
 /*---------------------------------------------------------------------------*/
 /* Compute B( 2x - A(B(x)) ) = Newton step for computing Ainv(x) */
 
+static float newtfac = 0.5f ;
+
 static IndexWarp3D * IW3D_invert_newt( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
 {
    int nx,ny,nz,nxy,nxyz , nall , ii,jj,kk , pp,qq,qtop ;
@@ -855,11 +863,22 @@ ENTRY("IW3D_invert_newt") ;
 
      /* Compute result = -b(x) - a(x+b(x)) + b(x-b(x)-a(x+b(x))) */
 
-     for( qq=pp ; qq < qtop ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       xdc[qq] = xr[qq-pp] - ii + xq[qq-pp] ;
-       ydc[qq] = yr[qq-pp] - jj + yq[qq-pp] ;
-       zdc[qq] = zr[qq-pp] - kk + zq[qq-pp] ;
+     if( newtfac <= 0.0f ){
+       for( qq=pp ; qq < qtop ; qq++ ){
+         ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+         xdc[qq] = xr[qq-pp] - ii + xq[qq-pp] ;
+         ydc[qq] = yr[qq-pp] - jj + yq[qq-pp] ;
+         zdc[qq] = zr[qq-pp] - kk + zq[qq-pp] ;
+       }
+     } else {
+       register float nf , nf1 ;
+       nf = newtfac ; nf1 = 1.0f - nf ;
+       for( qq=pp ; qq < qtop ; qq++ ){
+         ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+         xdc[qq] = nf * (xr[qq-pp]-ii+xq[qq-pp]) + nf1*xdb[qq] ;
+         ydc[qq] = nf * (yr[qq-pp]-jj+yq[qq-pp]) + nf1*ydb[qq] ;
+         zdc[qq] = nf * (zr[qq-pp]-kk+zq[qq-pp]) + nf1*zdb[qq] ;
+       }
      }
 
    } /* end of loop over segments of length NPER (or less) */
@@ -874,8 +893,8 @@ ENTRY("IW3D_invert_newt") ;
 IndexWarp3D * IW3D_invert( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode )
 {
    IndexWarp3D *BB , *CC ;
-   float normAA , normBC , nrat ;
-   int ii , jcode=icode , nnewt=0 ;
+   float normAA , normBC , nrat , orat ;
+   int ii , nnewt=0 , nss ;
 
 ENTRY("IW3D_invert") ;
 
@@ -888,19 +907,21 @@ ENTRY("IW3D_invert") ;
 
    /* BB = initial guess at inverse */
 
-   if( verb_rpn ) ININFO_message("  -- invert normAA=%f",normAA) ;
+   if( verb_rpn ) ININFO_message(" -- invert max|AA|=%f",normAA) ;
 
    if( BBinit == NULL ){
-     int pp = (int)ceil(log2(normAA)) ; float qq ;
-     if( pp < 1 ) pp = 1 ;
-     pp++ ; qq = pow(0.5,pp) ;
-     if( verb_rpn ) ININFO_message("   - init pp=%d qq=%f",pp,qq) ;
-     BB = IW3D_copy( AA , sqrtf(0.5f*qq*(1.0f+qq)) ) ;
-     CC = IW3D_compose(CC,CC,jcode) ; IW3D_destroy(BB) ;
+     int pp = 2+(int)ceil(log2(normAA)) ; float qq , qf , sqA ;
+     if( pp < 2 ) pp = 2 ;
+     qq = pow(0.5,pp) ; qf = sqrtf(0.5f*qq*(1.0f+qq)) ; sqA = sqrtf(normAA) ;
+     if( qf*sqA > 0.2f ) qf = 0.2f / sqA ;
+     if( verb_rpn )
+       ININFO_message("  - init nstep=%d qq=1/2^%d=%f qf=%f",pp,pp,qq,qf) ;
+     BB = IW3D_copy( AA , qf ) ;
+     CC = IW3D_compose(CC,CC,icode) ; IW3D_destroy(BB) ;
      BB = IW3D_sum( AA,-qq , CC,1.0f ) ; IW3D_destroy(CC) ;
      for( ii=0 ; ii < pp ; ii++ ){
-       if( verb_rpn ) ININFO_message("   - init step %d",ii+1) ;
-       CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
+       if( verb_rpn ) ININFO_message("  - init step %d",ii+1) ;
+       CC = IW3D_compose(BB,BB,icode) ; IW3D_destroy(BB) ; BB = CC ;
      }
    } else {
      BB = IW3D_copy( BBinit , 1.0f ) ;
@@ -908,37 +929,50 @@ ENTRY("IW3D_invert") ;
 
    normAA = IW3D_normL2( AA , NULL ) ;
 
+   newtfac = 1.0f / (1.0f+sqrtf(normAA)) ;
+
+   if( verb_rpn )
+     ININFO_message("  - start iterations: normAA=%f newtfac=%f",normAA,newtfac) ;
+
    /* iterate some, until convergence or exhaustion */
 
-   for( ii=0 ; ii < 19 ; ii++ ){
+   orat = 666.666f ;
+
+   for( nss=ii=0 ; ii < 39 ; ii++ ){
 
      /* take a Newton step from BB to CC */
 
-     CC = BB ; BB = IW3D_invert_newt(AA,CC,jcode) ;
+     CC = BB ; BB = IW3D_invert_newt(AA,CC,icode) ;
 
      /* how close are they now? */
 
      normBC = IW3D_normL2( BB , CC ) ; IW3D_destroy(CC) ;
      nrat   = normBC / normAA ;
 
+     if( verb_rpn ) ININFO_message("  - iterate %d nrat=%f",++nnewt,nrat) ;
+
      /* check for convergence of B and C */
 
      if( nrat < 0.001f ){
-       if( jcode == icode ){
-         if( verb_rpn ) ININFO_message(" -- converged nrat=%f") ;
-         RETURN(BB) ;   /* converged */
-       }
-       if( verb_rpn ) ININFO_message("  - linear interp converged; switching") ;
-       jcode = icode ;  /* switch to final interp code */
+       if( verb_rpn ) ININFO_message(" -- iteration converged") ;
+       RETURN(BB) ;   /* converged */
      }
 
-     if( verb_rpn ) ININFO_message("   - Newton %d nrat=%f",++nnewt,nrat) ;
+     if( nss > 0 && nrat < 0.123f && nrat < orat && newtfac < 0.888f ){
+       nss = 0 ; newtfac *= 1.333f ; if( newtfac > 0.888f ) newtfac = 0.888f ;
+       if( verb_rpn ) ININFO_message("  - switch to newtfac=%f",newtfac) ;
+     } else if( nss > 0 && nrat > orat ){
+       nss = 0 ; newtfac *= 0.777f ;
+       if( verb_rpn ) ININFO_message("  - switch to newtfac=%f",newtfac) ;
+     } else {
+       nss++ ;
+     }
 
    }
 
    /* failed to converge, return latest result anyhoo */
 
-   if( verb_rpn ) ININFO_message("  -- failed to converge") ;
+   WARNING_message("&invert: iterations failed to converge") ;
    RETURN(BB) ;
 }
 
