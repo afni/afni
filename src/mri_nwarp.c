@@ -9,6 +9,7 @@ typedef struct {
   float *xd , *yd , *zd , *hv ;
   mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
   char *geomstring ;
+  int view ;
 } IndexWarp3D ;
 
 /* prototypes */
@@ -41,8 +42,8 @@ THD_3dim_dataset * NwarpCalcRPN( char *expr , char *prefix , int icode ) ;
      if( bt.b > bt.a ) ININFO_message("%s hexvol range %f .. %f",lab,bt.a,bt.b) ; \
  } while(0)
 
-static int verb_rpn=0 ;
-void NwarpCalcRPN_verb(int i){ verb_rpn = i; }
+static int verb_nww=0 ;
+void NwarpCalcRPN_verb(int i){ verb_nww = i; }
 
 /*---------------------------------------------------------------------------*/
 /* Creation ex nihilo! */
@@ -62,6 +63,7 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
    LOAD_DIAG_MAT44(AA->cmat,1.0f,1.0f,1.0f) ;
    LOAD_DIAG_MAT44(AA->imat,1.0f,1.0f,1.0f) ;
    AA->geomstring = NULL ;
+   AA->view = VIEW_ORIGINAL_TYPE ;
 
    return AA ;
 }
@@ -183,6 +185,8 @@ IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA )
    if( AA->geomstring != NULL )
      BB->geomstring = strdup(AA->geomstring) ;
 
+   BB->view = AA->view ;
+
    return BB ;
 }
 
@@ -222,7 +226,7 @@ void IW3D_scale( IndexWarp3D *AA , float fac )
 {
    int nxyz , qq ;
 
-   if( AA == NULL ) return ;
+   if( AA == NULL || fac == 1.0f ) return ;
 
    nxyz = AA->nx * AA->ny * AA->nz ;
 
@@ -300,15 +304,18 @@ ENTRY("IW3D_from_dataset") ;
    gstr = EDIT_get_geometry_string(dset) ;
    if( gstr != NULL ) AA->geomstring = strdup(gstr) ;
 
+   AA->view = dset->view_type ;
+
    if( !empty ){
      xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
      xim = THD_extract_float_brick(0,dset) ; xar = MRI_FLOAT_PTR(xim) ;
      yim = THD_extract_float_brick(1,dset) ; yar = MRI_FLOAT_PTR(yim) ;
      zim = THD_extract_float_brick(2,dset) ; zar = MRI_FLOAT_PTR(zim) ;
      DSET_unload(dset) ;
-     for( ii=0 ; ii < nxyz ; ii++ ){
+     for( ii=0 ; ii < nxyz ; ii++ ){  /* convert mm to index displacements */
        MAT33_VEC( imat , xar[ii],yar[ii],zar[ii] , xda[ii],yda[ii],zda[ii] ) ;
      }
+     mri_free(zim) ; mri_free(yim) ; mri_free(xim) ;
    }
 
    RETURN(AA) ;
@@ -339,6 +346,7 @@ ENTRY("IW3D_to_dataset") ;
    EDIT_dset_items( dset ,
                       ADN_nvals     , 4         ,
                       ADN_datum_all , MRI_float ,
+                      ADN_view_type , AA->view  ,
                     NULL ) ;
    EDIT_BRICK_LABEL( dset , 0 , "x_delta" ) ;
    EDIT_BRICK_LABEL( dset , 1 , "y_delta" ) ;
@@ -722,6 +730,230 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
 }
 
 /*---------------------------------------------------------------------------*/
+/* define quintic interpolation polynomials (Lagrange) */
+
+#undef  Q_M2
+#undef  Q_M1
+#undef  Q_00
+#undef  Q_P1
+#undef  Q_P2
+#undef  Q_P3
+#define Q_M2(x)  (x*(x*x-1.0f)*(2.0f-x)*(x-3.0f)*0.008333333f)
+#define Q_M1(x)  (x*(x*x-4.0f)*(x-1.0f)*(x-3.0f)*0.041666667f)
+#define Q_00(x)  ((x*x-4.0f)*(x*x-1.0f)*(3.0f-x)*0.083333333f)
+#define Q_P1(x)  (x*(x*x-4.0f)*(x+1.0f)*(x-3.0f)*0.083333333f)
+#define Q_P2(x)  (x*(x*x-1.0f)*(x+2.0f)*(3.0f-x)*0.041666667f)
+#define Q_P3(x)  (x*(x*x-1.0f)*(x*x-4.0f)*0.008333333f)
+
+/*---------------------------------------------------------------------------*/
+
+void IW3D_interp_quintic( int nxx , int nyy , int nzz ,
+                          float *aar , float *bar , float *car ,
+                          int npp, float *ip, float *jp, float *kp,
+                          float *uar , float *var , float *war     )
+{
+ AFNI_OMP_START ;
+#pragma omp parallel if(npp > 9999)
+ {
+   int nx=nxx , ny=nyy , nz=nzz , nxy=nx*ny , pp ;
+   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
+   float fx,fy,fz ;
+   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
+   int ix_m2,ix_m1,ix_00,ix_p1,ix_p2,ix_p3 ; /* interpolation indices */
+   int jy_m2,jy_m1,jy_00,jy_p1,jy_p2,jy_p3 ; /* (input image) */
+   int kz_m2,kz_m1,kz_00,kz_p1,kz_p2,kz_p3 ;
+
+   float wt_m2,wt_m1,wt_00,wt_p1,wt_p2,wt_p3 ; /* interpolation weights */
+
+   float f_jm2_km2, f_jm1_km2, f_j00_km2, f_jp1_km2, f_jp2_km2, f_jp3_km2,
+         f_jm2_km1, f_jm1_km1, f_j00_km1, f_jp1_km1, f_jp2_km1, f_jp3_km1,
+         f_jm2_k00, f_jm1_k00, f_j00_k00, f_jp1_k00, f_jp2_k00, f_jp3_k00,
+         f_jm2_kp1, f_jm1_kp1, f_j00_kp1, f_jp1_kp1, f_jp2_kp1, f_jp3_kp1,
+         f_jm2_kp2, f_jm1_kp2, f_j00_kp2, f_jp1_kp2, f_jp2_kp2, f_jp3_kp2,
+         f_jm2_kp3, f_jm1_kp3, f_j00_kp3, f_jp1_kp3, f_jp2_kp3, f_jp3_kp3,
+         f_km2    , f_km1    , f_k00    , f_kp1    , f_kp2    , f_kp3     ;
+   float g_jm2_km2, g_jm1_km2, g_j00_km2, g_jp1_km2, g_jp2_km2, g_jp3_km2,
+         g_jm2_km1, g_jm1_km1, g_j00_km1, g_jp1_km1, g_jp2_km1, g_jp3_km1,
+         g_jm2_k00, g_jm1_k00, g_j00_k00, g_jp1_k00, g_jp2_k00, g_jp3_k00,
+         g_jm2_kp1, g_jm1_kp1, g_j00_kp1, g_jp1_kp1, g_jp2_kp1, g_jp3_kp1,
+         g_jm2_kp2, g_jm1_kp2, g_j00_kp2, g_jp1_kp2, g_jp2_kp2, g_jp3_kp2,
+         g_jm2_kp3, g_jm1_kp3, g_j00_kp3, g_jp1_kp3, g_jp2_kp3, g_jp3_kp3,
+         g_km2    , g_km1    , g_k00    , g_kp1    , g_kp2    , g_kp3     ;
+   float h_jm2_km2, h_jm1_km2, h_j00_km2, h_jp1_km2, h_jp2_km2, h_jp3_km2,
+         h_jm2_km1, h_jm1_km1, h_j00_km1, h_jp1_km1, h_jp2_km1, h_jp3_km1,
+         h_jm2_k00, h_jm1_k00, h_j00_k00, h_jp1_k00, h_jp2_k00, h_jp3_k00,
+         h_jm2_kp1, h_jm1_kp1, h_j00_kp1, h_jp1_kp1, h_jp2_kp1, h_jp3_kp1,
+         h_jm2_kp2, h_jm1_kp2, h_j00_kp2, h_jp1_kp2, h_jp2_kp2, h_jp3_kp2,
+         h_jm2_kp3, h_jm1_kp3, h_j00_kp3, h_jp1_kp3, h_jp2_kp3, h_jp3_kp3,
+         h_km2    , h_km1    , h_k00    , h_kp1    , h_kp2    , h_kp3     ;
+#pragma omp for
+   for( pp=0 ; pp < npp ; pp++ ){
+#if 0
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ uar[pp]=var[pp]=war[pp]=0.0f; continue;}
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ uar[pp]=var[pp]=war[pp]=0.0f; continue;}
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ uar[pp]=var[pp]=war[pp]=0.0f; continue;}
+#else
+     xx = ip[pp] ; if( xx < -0.499f ) xx = -0.499f ; else if( xx > nxh ) xx = nxh ;
+     yy = jp[pp] ; if( yy < -0.499f ) yy = -0.499f ; else if( yy > nyh ) yy = nyh ;
+     zz = kp[pp] ; if( zz < -0.499f ) zz = -0.499f ; else if( zz > nzh ) zz = nzh ;
+#endif
+
+     ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
+     jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
+     kz = floorf(zz) ;  fz = zz - kz ;
+
+     /* compute indexes from which to interpolate (-2,-1,0,+1,+2,+3),
+        but clipped to lie inside input image volume                 */
+
+     ix_m1 = ix-1    ; ix_00 = ix      ; ix_p1 = ix+1    ; ix_p2 = ix+2    ;
+     CLIP(ix_m1,nx1) ; CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ; CLIP(ix_p2,nx1) ;
+     ix_m2 = ix-2    ; ix_p3 = ix+3 ;
+     CLIP(ix_m2,nx1) ; CLIP(ix_p3,nx1) ;
+
+     jy_m1 = jy-1    ; jy_00 = jy      ; jy_p1 = jy+1    ; jy_p2 = jy+2    ;
+     CLIP(jy_m1,ny1) ; CLIP(jy_00,ny1) ; CLIP(jy_p1,ny1) ; CLIP(jy_p2,ny1) ;
+     jy_m2 = jy-2    ; jy_p3 = jy+3 ;
+     CLIP(jy_m2,ny1) ; CLIP(jy_p3,ny1) ;
+
+     kz_m1 = kz-1    ; kz_00 = kz      ; kz_p1 = kz+1    ; kz_p2 = kz+2    ;
+     CLIP(kz_m1,nz1) ; CLIP(kz_00,nz1) ; CLIP(kz_p1,nz1) ; CLIP(kz_p2,nz1) ;
+     kz_m2 = kz-2    ; kz_p3 = kz+3 ;
+     CLIP(kz_m2,nz1) ; CLIP(kz_p3,nz1) ;
+
+     wt_m1 = Q_M1(fx) ; wt_00 = Q_00(fx) ;  /* interpolation weights */
+     wt_p1 = Q_P1(fx) ; wt_p2 = Q_P2(fx) ;  /* in x-direction        */
+     wt_m2 = Q_M2(fx) ; wt_p3 = Q_P3(fx) ;
+
+#undef  XINT
+#define XINT(aaa,j,k) wt_m2*aaa[IJK(ix_m2,j,k)]+wt_m1*aaa[IJK(ix_m1,j,k)] \
+                     +wt_00*aaa[IJK(ix_00,j,k)]+wt_p1*aaa[IJK(ix_p1,j,k)] \
+                     +wt_p2*aaa[IJK(ix_p2,j,k)]+wt_p3*aaa[IJK(ix_p3,j,k)]
+
+     /* interpolate to location ix+fx at each jy,kz level */
+
+     f_jm2_km2 = XINT(aar,jy_m2,kz_m2) ; f_jm1_km2 = XINT(aar,jy_m1,kz_m2) ;
+     f_j00_km2 = XINT(aar,jy_00,kz_m2) ; f_jp1_km2 = XINT(aar,jy_p1,kz_m2) ;
+     f_jp2_km2 = XINT(aar,jy_p2,kz_m2) ; f_jp3_km2 = XINT(aar,jy_p3,kz_m2) ;
+     f_jm2_km1 = XINT(aar,jy_m2,kz_m1) ; f_jm1_km1 = XINT(aar,jy_m1,kz_m1) ;
+     f_j00_km1 = XINT(aar,jy_00,kz_m1) ; f_jp1_km1 = XINT(aar,jy_p1,kz_m1) ;
+     f_jp2_km1 = XINT(aar,jy_p2,kz_m1) ; f_jp3_km1 = XINT(aar,jy_p3,kz_m1) ;
+     f_jm2_k00 = XINT(aar,jy_m2,kz_00) ; f_jm1_k00 = XINT(aar,jy_m1,kz_00) ;
+     f_j00_k00 = XINT(aar,jy_00,kz_00) ; f_jp1_k00 = XINT(aar,jy_p1,kz_00) ;
+     f_jp2_k00 = XINT(aar,jy_p2,kz_00) ; f_jp3_k00 = XINT(aar,jy_p3,kz_00) ;
+     f_jm2_kp1 = XINT(aar,jy_m2,kz_p1) ; f_jm1_kp1 = XINT(aar,jy_m1,kz_p1) ;
+     f_j00_kp1 = XINT(aar,jy_00,kz_p1) ; f_jp1_kp1 = XINT(aar,jy_p1,kz_p1) ;
+     f_jp2_kp1 = XINT(aar,jy_p2,kz_p1) ; f_jp3_kp1 = XINT(aar,jy_p3,kz_p1) ;
+     f_jm2_kp2 = XINT(aar,jy_m2,kz_p2) ; f_jm1_kp2 = XINT(aar,jy_m1,kz_p2) ;
+     f_j00_kp2 = XINT(aar,jy_00,kz_p2) ; f_jp1_kp2 = XINT(aar,jy_p1,kz_p2) ;
+     f_jp2_kp2 = XINT(aar,jy_p2,kz_p2) ; f_jp3_kp2 = XINT(aar,jy_p3,kz_p2) ;
+     f_jm2_kp3 = XINT(aar,jy_m2,kz_p3) ; f_jm1_kp3 = XINT(aar,jy_m1,kz_p3) ;
+     f_j00_kp3 = XINT(aar,jy_00,kz_p3) ; f_jp1_kp3 = XINT(aar,jy_p1,kz_p3) ;
+     f_jp2_kp3 = XINT(aar,jy_p2,kz_p3) ; f_jp3_kp3 = XINT(aar,jy_p3,kz_p3) ;
+
+     g_jm2_km2 = XINT(bar,jy_m2,kz_m2) ; g_jm1_km2 = XINT(bar,jy_m1,kz_m2) ;
+     g_j00_km2 = XINT(bar,jy_00,kz_m2) ; g_jp1_km2 = XINT(bar,jy_p1,kz_m2) ;
+     g_jp2_km2 = XINT(bar,jy_p2,kz_m2) ; g_jp3_km2 = XINT(bar,jy_p3,kz_m2) ;
+     g_jm2_km1 = XINT(bar,jy_m2,kz_m1) ; g_jm1_km1 = XINT(bar,jy_m1,kz_m1) ;
+     g_j00_km1 = XINT(bar,jy_00,kz_m1) ; g_jp1_km1 = XINT(bar,jy_p1,kz_m1) ;
+     g_jp2_km1 = XINT(bar,jy_p2,kz_m1) ; g_jp3_km1 = XINT(bar,jy_p3,kz_m1) ;
+     g_jm2_k00 = XINT(bar,jy_m2,kz_00) ; g_jm1_k00 = XINT(bar,jy_m1,kz_00) ;
+     g_j00_k00 = XINT(bar,jy_00,kz_00) ; g_jp1_k00 = XINT(bar,jy_p1,kz_00) ;
+     g_jp2_k00 = XINT(bar,jy_p2,kz_00) ; g_jp3_k00 = XINT(bar,jy_p3,kz_00) ;
+     g_jm2_kp1 = XINT(bar,jy_m2,kz_p1) ; g_jm1_kp1 = XINT(bar,jy_m1,kz_p1) ;
+     g_j00_kp1 = XINT(bar,jy_00,kz_p1) ; g_jp1_kp1 = XINT(bar,jy_p1,kz_p1) ;
+     g_jp2_kp1 = XINT(bar,jy_p2,kz_p1) ; g_jp3_kp1 = XINT(bar,jy_p3,kz_p1) ;
+     g_jm2_kp2 = XINT(bar,jy_m2,kz_p2) ; g_jm1_kp2 = XINT(bar,jy_m1,kz_p2) ;
+     g_j00_kp2 = XINT(bar,jy_00,kz_p2) ; g_jp1_kp2 = XINT(bar,jy_p1,kz_p2) ;
+     g_jp2_kp2 = XINT(bar,jy_p2,kz_p2) ; g_jp3_kp2 = XINT(bar,jy_p3,kz_p2) ;
+     g_jm2_kp3 = XINT(bar,jy_m2,kz_p3) ; g_jm1_kp3 = XINT(bar,jy_m1,kz_p3) ;
+     g_j00_kp3 = XINT(bar,jy_00,kz_p3) ; g_jp1_kp3 = XINT(bar,jy_p1,kz_p3) ;
+     g_jp2_kp3 = XINT(bar,jy_p2,kz_p3) ; g_jp3_kp3 = XINT(bar,jy_p3,kz_p3) ;
+
+     h_jm2_km2 = XINT(car,jy_m2,kz_m2) ; h_jm1_km2 = XINT(car,jy_m1,kz_m2) ;
+     h_j00_km2 = XINT(car,jy_00,kz_m2) ; h_jp1_km2 = XINT(car,jy_p1,kz_m2) ;
+     h_jp2_km2 = XINT(car,jy_p2,kz_m2) ; h_jp3_km2 = XINT(car,jy_p3,kz_m2) ;
+     h_jm2_km1 = XINT(car,jy_m2,kz_m1) ; h_jm1_km1 = XINT(car,jy_m1,kz_m1) ;
+     h_j00_km1 = XINT(car,jy_00,kz_m1) ; h_jp1_km1 = XINT(car,jy_p1,kz_m1) ;
+     h_jp2_km1 = XINT(car,jy_p2,kz_m1) ; h_jp3_km1 = XINT(car,jy_p3,kz_m1) ;
+     h_jm2_k00 = XINT(car,jy_m2,kz_00) ; h_jm1_k00 = XINT(car,jy_m1,kz_00) ;
+     h_j00_k00 = XINT(car,jy_00,kz_00) ; h_jp1_k00 = XINT(car,jy_p1,kz_00) ;
+     h_jp2_k00 = XINT(car,jy_p2,kz_00) ; h_jp3_k00 = XINT(car,jy_p3,kz_00) ;
+     h_jm2_kp1 = XINT(car,jy_m2,kz_p1) ; h_jm1_kp1 = XINT(car,jy_m1,kz_p1) ;
+     h_j00_kp1 = XINT(car,jy_00,kz_p1) ; h_jp1_kp1 = XINT(car,jy_p1,kz_p1) ;
+     h_jp2_kp1 = XINT(car,jy_p2,kz_p1) ; h_jp3_kp1 = XINT(car,jy_p3,kz_p1) ;
+     h_jm2_kp2 = XINT(car,jy_m2,kz_p2) ; h_jm1_kp2 = XINT(car,jy_m1,kz_p2) ;
+     h_j00_kp2 = XINT(car,jy_00,kz_p2) ; h_jp1_kp2 = XINT(car,jy_p1,kz_p2) ;
+     h_jp2_kp2 = XINT(car,jy_p2,kz_p2) ; h_jp3_kp2 = XINT(car,jy_p3,kz_p2) ;
+     h_jm2_kp3 = XINT(car,jy_m2,kz_p3) ; h_jm1_kp3 = XINT(car,jy_m1,kz_p3) ;
+     h_j00_kp3 = XINT(car,jy_00,kz_p3) ; h_jp1_kp3 = XINT(car,jy_p1,kz_p3) ;
+     h_jp2_kp3 = XINT(car,jy_p2,kz_p3) ; h_jp3_kp3 = XINT(car,jy_p3,kz_p3) ;
+
+     /* interpolate to jy+fy at each kz level */
+
+     wt_m1 = Q_M1(fy) ; wt_00 = Q_00(fy) ; wt_p1 = Q_P1(fy) ;
+     wt_p2 = Q_P2(fy) ; wt_m2 = Q_M2(fy) ; wt_p3 = Q_P3(fy) ;
+
+     f_km2 =  wt_m2 * f_jm2_km2 + wt_m1 * f_jm1_km2 + wt_00 * f_j00_km2
+            + wt_p1 * f_jp1_km2 + wt_p2 * f_jp2_km2 + wt_p3 * f_jp3_km2 ;
+     f_km1 =  wt_m2 * f_jm2_km1 + wt_m1 * f_jm1_km1 + wt_00 * f_j00_km1
+            + wt_p1 * f_jp1_km1 + wt_p2 * f_jp2_km1 + wt_p3 * f_jp3_km1 ;
+     f_k00 =  wt_m2 * f_jm2_k00 + wt_m1 * f_jm1_k00 + wt_00 * f_j00_k00
+            + wt_p1 * f_jp1_k00 + wt_p2 * f_jp2_k00 + wt_p3 * f_jp3_k00 ;
+     f_kp1 =  wt_m2 * f_jm2_kp1 + wt_m1 * f_jm1_kp1 + wt_00 * f_j00_kp1
+            + wt_p1 * f_jp1_kp1 + wt_p2 * f_jp2_kp1 + wt_p3 * f_jp3_kp1 ;
+     f_kp2 =  wt_m2 * f_jm2_kp2 + wt_m1 * f_jm1_kp2 + wt_00 * f_j00_kp2
+            + wt_p1 * f_jp1_kp2 + wt_p2 * f_jp2_kp2 + wt_p3 * f_jp3_kp2 ;
+     f_kp3 =  wt_m2 * f_jm2_kp3 + wt_m1 * f_jm1_kp3 + wt_00 * f_j00_kp3
+            + wt_p1 * f_jp1_kp3 + wt_p2 * f_jp2_kp3 + wt_p3 * f_jp3_kp3 ;
+
+     g_km2 =  wt_m2 * g_jm2_km2 + wt_m1 * g_jm1_km2 + wt_00 * g_j00_km2
+            + wt_p1 * g_jp1_km2 + wt_p2 * g_jp2_km2 + wt_p3 * g_jp3_km2 ;
+     g_km1 =  wt_m2 * g_jm2_km1 + wt_m1 * g_jm1_km1 + wt_00 * g_j00_km1
+            + wt_p1 * g_jp1_km1 + wt_p2 * g_jp2_km1 + wt_p3 * g_jp3_km1 ;
+     g_k00 =  wt_m2 * g_jm2_k00 + wt_m1 * g_jm1_k00 + wt_00 * g_j00_k00
+            + wt_p1 * g_jp1_k00 + wt_p2 * g_jp2_k00 + wt_p3 * g_jp3_k00 ;
+     g_kp1 =  wt_m2 * g_jm2_kp1 + wt_m1 * g_jm1_kp1 + wt_00 * g_j00_kp1
+            + wt_p1 * g_jp1_kp1 + wt_p2 * g_jp2_kp1 + wt_p3 * g_jp3_kp1 ;
+     g_kp2 =  wt_m2 * g_jm2_kp2 + wt_m1 * g_jm1_kp2 + wt_00 * g_j00_kp2
+            + wt_p1 * g_jp1_kp2 + wt_p2 * g_jp2_kp2 + wt_p3 * g_jp3_kp2 ;
+     g_kp3 =  wt_m2 * g_jm2_kp3 + wt_m1 * g_jm1_kp3 + wt_00 * g_j00_kp3
+            + wt_p1 * g_jp1_kp3 + wt_p2 * g_jp2_kp3 + wt_p3 * g_jp3_kp3 ;
+
+     h_km2 =  wt_m2 * h_jm2_km2 + wt_m1 * h_jm1_km2 + wt_00 * h_j00_km2
+            + wt_p1 * h_jp1_km2 + wt_p2 * h_jp2_km2 + wt_p3 * h_jp3_km2 ;
+     h_km1 =  wt_m2 * h_jm2_km1 + wt_m1 * h_jm1_km1 + wt_00 * h_j00_km1
+            + wt_p1 * h_jp1_km1 + wt_p2 * h_jp2_km1 + wt_p3 * h_jp3_km1 ;
+     h_k00 =  wt_m2 * h_jm2_k00 + wt_m1 * h_jm1_k00 + wt_00 * h_j00_k00
+            + wt_p1 * h_jp1_k00 + wt_p2 * h_jp2_k00 + wt_p3 * h_jp3_k00 ;
+     h_kp1 =  wt_m2 * h_jm2_kp1 + wt_m1 * h_jm1_kp1 + wt_00 * h_j00_kp1
+            + wt_p1 * h_jp1_kp1 + wt_p2 * h_jp2_kp1 + wt_p3 * h_jp3_kp1 ;
+     h_kp2 =  wt_m2 * h_jm2_kp2 + wt_m1 * h_jm1_kp2 + wt_00 * h_j00_kp2
+            + wt_p1 * h_jp1_kp2 + wt_p2 * h_jp2_kp2 + wt_p3 * h_jp3_kp2 ;
+     h_kp3 =  wt_m2 * h_jm2_kp3 + wt_m1 * h_jm1_kp3 + wt_00 * h_j00_kp3
+            + wt_p1 * h_jp1_kp3 + wt_p2 * h_jp2_kp3 + wt_p3 * h_jp3_kp3 ;
+
+     /* interpolate to kz+fz to get output */
+
+     wt_m1 = Q_M1(fz) ; wt_00 = Q_00(fz) ; wt_p1 = Q_P1(fz) ;
+     wt_p2 = Q_P2(fz) ; wt_m2 = Q_M2(fz) ; wt_p3 = Q_P3(fz) ;
+
+     uar[pp] =  wt_m2 * f_km2 + wt_m1 * f_km1 + wt_00 * f_k00
+              + wt_p1 * f_kp1 + wt_p2 * f_kp2 + wt_p3 * f_kp3 ;
+
+     var[pp] =  wt_m2 * g_km2 + wt_m1 * g_km1 + wt_00 * g_k00
+              + wt_p1 * g_kp1 + wt_p2 * g_kp2 + wt_p3 * g_kp3 ;
+
+     war[pp] =  wt_m2 * h_km2 + wt_m1 * h_km1 + wt_00 * h_k00
+              + wt_p1 * h_kp1 + wt_p2 * h_kp2 + wt_p3 * h_kp3 ;
+   }
+
+ } /* end OpenMP */
+ AFNI_OMP_END ;
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Generic interpolation of warp components, given icode specifying method. */
 
 void IW3D_interp( int icode ,
@@ -735,6 +967,12 @@ void IW3D_interp( int icode ,
      case MRI_LINEAR:
        IW3D_interp_linear( nxx , nyy , nzz , aar , bar , car ,
                            npp , ip  , jp  , kp  , uar , var , war ) ;
+     break ;
+
+     case MRI_CUBIC:
+     case MRI_QUINTIC:
+       IW3D_interp_quintic( nxx , nyy , nzz , aar , bar , car ,
+                            npp , ip  , jp  , kp  , uar , var , war ) ;
      break ;
 
      default:
@@ -919,7 +1157,7 @@ IndexWarp3D * IW3D_invert( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode )
 {
    IndexWarp3D *BB , *CC ;
    float normAA , normBC , nrat , orat ;
-   int ii , nnewt=0 , nss ;
+   int ii , nnewt=0 , nss , jcode=MRI_LINEAR ;
 
 ENTRY("IW3D_invert") ;
 
@@ -932,44 +1170,28 @@ ENTRY("IW3D_invert") ;
 
    /* BB = initial guess at inverse */
 
-   if( verb_rpn ) ININFO_message(" -- invert max|AA|=%f",normAA) ;
-   if( verb_rpn ) HVPRINT("  -",AA) ;
+   if( verb_nww     ) ININFO_message(" -- invert max|AA|=%f",normAA) ;
+   if( verb_nww > 1 ) HVPRINT("  -",AA) ;
 
    if( BBinit == NULL ){
-     int pp = (int)ceil(log2(normAA)) ; float qq , qf , sqA ;
+     int pp = (int)ceil(log2(normAA)) ; float qq ;
      if( pp < 2 ) pp = 2 ;
      qq = pow(0.5,pp) ;
-#if 0
-     qf = sqrtf(0.5f*qq*(1.0f+qq)) ; sqA = sqrtf(normAA) ;
-     if( qf*sqA > 0.01f ) qf = 0.01f / sqA ;
-     if( verb_rpn )
-       ININFO_message("  - init nstep=%d qq=1/2^%d=%f qf=%f",pp,pp,qq,qf) ;
-#else
-     qf = 0.0f ;
-     if( verb_rpn )
-       ININFO_message("  - init nstep=%d qq=1/2^%d=%f",pp,pp,qq) ;
-#endif
-     if( qf > 0.0f ){
-       BB = IW3D_copy( AA , qf ) ;
-       CC = IW3D_compose(BB,BB,icode) ; IW3D_destroy(BB) ;
-       BB = IW3D_sum( AA,-qq , CC,1.0f ) ; IW3D_destroy(CC) ;
-     } else {
-       BB = IW3D_copy( AA,-qq ) ;
-     }
+     if( verb_nww ) ININFO_message("  - init nstep=%d qq=1/2^%d=%f",pp,pp,qq) ;
+     BB = IW3D_copy( AA,-qq ) ;
      for( ii=0 ; ii < pp ; ii++ ){
-       if( verb_rpn ) ININFO_message("  - init step %d",ii+1) ;
-       CC = IW3D_compose(BB,BB,icode) ; IW3D_destroy(BB) ; BB = CC ;
-       if( verb_rpn ) HVPRINT("    -",BB) ;
+       if( verb_nww > 1 ) ININFO_message("  - init step %d",ii+1) ;
+       CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
+       if( verb_nww > 1 ) HVPRINT("    -",BB) ;
      }
    } else {
      BB = IW3D_copy( BBinit , 1.0f ) ;
    }
 
-   normAA = IW3D_normL2( AA , NULL ) ;
+   normAA  = IW3D_normL2( AA , NULL ) ;
+   newtfac = 1.0f / (1.0f+sqrtf(normAA)) ;  /* Newton damping factor */
 
-   newtfac = 1.0f / (1.0f+sqrtf(normAA)) ;  /* Damped Newton */
-
-   if( verb_rpn )
+   if( verb_nww )
      ININFO_message("  - start iterations: normAA=%f newtfac=%f",normAA,newtfac) ;
 
    /* iterate some, until convergence or exhaustion */
@@ -980,7 +1202,7 @@ ENTRY("IW3D_invert") ;
 
      /* take a Newton step from BB to CC */
 
-     CC = BB ; BB = IW3D_invert_newt(AA,CC,icode) ;
+     CC = BB ; BB = IW3D_invert_newt(AA,CC,jcode) ;
 
      /* how close are they now? */
 
@@ -988,22 +1210,30 @@ ENTRY("IW3D_invert") ;
 
      orat = nrat ; nrat = normBC / normAA ;
 
-     if( verb_rpn ) ININFO_message("  - iterate %d nrat=%f",++nnewt,nrat) ;
-     if( verb_rpn ) HVPRINT("    -",BB) ;
+     if( verb_nww     ) ININFO_message("  - iterate %d nrat=%f",++nnewt,nrat) ;
+     if( verb_nww > 1 ) HVPRINT("    -",BB) ;
 
      /* check for convergence of B and C */
 
-     if( nrat < 0.0002f ){
-       if( verb_rpn ) ININFO_message(" -- iteration converged") ;
+     if( jcode != icode ){
+       if( nrat < 0.005f ){
+         jcode = icode ; nss = 0 ;
+         if( verb_nww ) ININFO_message("  - switching from linear interp") ;
+         continue ;
+       }
+     }
+
+     if( nrat < 0.0001f ){
+       if( verb_nww ) ININFO_message(" -- iteration converged") ;
        RETURN(BB) ;   /* converged */
      }
 
      if( nss > 0 && nrat < 0.199f && nrat < orat && newtfac < 0.888888f ){
        nss = 0 ; newtfac *= 1.444f ; if( newtfac > 0.888888f ) newtfac = 0.888888f ;
-       if( verb_rpn ) ININFO_message("  - switch to newtfac=%f",newtfac) ;
+       if( verb_nww > 1 ) ININFO_message("  - switch to newtfac=%f",newtfac) ;
      } else if( nss > 0 && nrat > orat ){
        nss = 0 ; newtfac *= 0.666f ;
-       if( verb_rpn ) ININFO_message("  - switch to newtfac=%f",newtfac) ;
+       if( verb_nww > 1 ) ININFO_message("  - switch to newtfac=%f",newtfac) ;
      } else {
        nss++ ;
      }
@@ -1144,13 +1374,13 @@ ENTRY("NwarpCalcRPN") ;
 
    /**----- loop thru and process commands -----**/
 
-   if(verb_rpn)INFO_message("NwarpCalcRPN('%s')",expr) ;
+   if(verb_nww)INFO_message("NwarpCalcRPN('%s')",expr) ;
 
    for( ss=0 ; ss < sar->num ; ss++ ){
 
      cmd = sar->str[ss] ;
 
-     if(verb_rpn)ININFO_message(" + nstk=%d  cmd='%s'",nstk,cmd) ;
+     if(verb_nww)ININFO_message(" + nstk=%d  cmd='%s'",nstk,cmd) ;
 
      if( *cmd == '\0' ) continue ;  /* WTF?! */
 
@@ -1261,30 +1491,39 @@ ENTRY("NwarpCalcRPN") ;
      /*--- go to Australia (viz., invert) ---*/
 
      else if( strcasecmp(cmd,"&invert") == 0 || strcasecmp(cmd,"&inverse") == 0 ){
+        double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
         AA = IW3D_invert( iwstk[nstk-1] , NULL , icode ) ;
         if( AA == NULL ) ERREX("inversion failed") ;
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ;
+        if( verb_nww )
+          ININFO_message(" -- invert CPU time = %.1f s",COX_cpu_time()-ct) ;
      }
 
      /*--- compose ---*/
 
      else if( strcasecmp(cmd,"&compose") == 0 || strcasecmp(cmd,"&*") == 0 ){
+        double ct = COX_cpu_time() ;
         if( nstk < 2 ) ERREX("stack too short") ;
         AA = IW3D_compose( iwstk[nstk-1] , iwstk[nstk-2] , icode ) ;
         if( AA == NULL ) ERREX("composition failed") ;
         IW3D_destroy( iwstk[nstk-1] ) ; IW3D_destroy( iwstk[nstk-2] ) ;
         iwstk[nstk-2] = AA ; nstk-- ;
+        if( verb_nww )
+          ININFO_message(" -- compose CPU time = %.1f s",COX_cpu_time()-ct) ;
      }
 
      /*--- totally square, man ---*/
 
      else if( strcasecmp(cmd,"&sqr") == 0 ){
+        double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
         AA = IW3D_compose( iwstk[nstk-1] , iwstk[nstk-1] , icode ) ;
         if( AA == NULL ) ERREX("composition failed") ;
         IW3D_destroy( iwstk[nstk-1] ) ;
         iwstk[nstk-1] = AA ;
+        if( verb_nww )
+          ININFO_message(" -- sqr CPU time = %.1f s",COX_cpu_time()-ct) ;
      }
 
      /*--- scale ---*/
@@ -1306,7 +1545,7 @@ ENTRY("NwarpCalcRPN") ;
 
    } /*----- end of loop over operations -----*/
 
-   if(verb_rpn)INFO_message("end of evaluation loop") ;
+   if(verb_nww)INFO_message("end of evaluation loop") ;
 
    if( nstk > 0 ){
      AA = iwstk[nstk-1] ;
