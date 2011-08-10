@@ -44,17 +44,23 @@ void NWC_help(void)
     " -interp iii   == 'iii' is the interpolation mode:\n"
     "                  ++ Modes allowed are a subset of those in 3dAllineate:\n"
     "                       linear  quintic  wsinc5\n"
-    "                  ++ 'wsinc5' is the most accurate\n"
-    "                     -- and the slowest\n"
-    "                     -- and the default, if you don't make a choice\n"
+    "                  ++ The default interpolation mode is 'quintic'.\n"
     "\n"
     " -verb         == print (to stderr) various fun messages along the road\n"
+    "                  ++ A second '-verb' gives you even more fun!\n"
     "\n"
     "BUT WHERE DO WARPS COME FROM, MOMMY?\n"
     "------------------------------------\n"
     " * The program 3dAllineate with the -nwarp_save option will save a\n"
     "    displacement representation of a nonlinear warp to a 3D dataset\n"
     "    with 3 sub-bricks (1 for each of xyz).\n"
+    " * The contents of these sub-bricks are the displacments in mm.\n"
+    "    The identity warp would be all zero, for example.\n"
+    " * An input warp dataset can contain extra sub-bricks -- only the first 3\n"
+    "    are used.\n"
+    " * Warp datasets output by this program have a 4th sub-brick, labeled\n"
+    "    'hexvol', which contains the volume of each distorted hexahedron in\n"
+    "    the grid.\n"
     "\n"
     "OPERATORS\n"
     "---------\n"
@@ -116,6 +122,8 @@ void NWC_help(void)
     "\n"
     "&invert        == Replace top element of the stack with its inverse:\n"
     "                   the warp J(x) such that A(J(x)) = x.\n"
+    "                  ++ Inversion is done using a Newton-oidal iteration:\n"
+    "                       Jnew(x) = Jold( 2x - A(Jold(x)) )\n"
     "\n"
     "&sqrt          == Replace top element of the stack with its 'square root':\n"
     "                   the warp Q(x) such that Q(Q(x)) = A(x).\n"
@@ -142,34 +150,55 @@ void NWC_help(void)
     "                  ++ NOTE: this might make the warp non-invertible, for\n"
     "                     large enough 'a'.  Proceed at your own risk.\n"
     "                  ++ If a=0, then the result is the identity warp, since\n"
-    "                     all the displacements are 0.\n"
+    "                     all the displacements are now 0.\n"
     "\n"
     "EXAMPLES\n"
     "--------\n"
-    "Nuthin yet :-(\n"
+    "** Read a warp from a dataset, invert it, save the inverse.\n"
+    "\n"
+    " 3dNwarpCalc '&read(Warp+tlrc.HEAD) &invert &write(WarpInv)'\n"
+    "\n"
+    "** Do the same, but also compute the composition of the warp with the inverse,\n"
+    "   and save that -- ideally, the output warp displacements would be identically\n"
+    "   zero (i.e., the identity warp), and the 'hexvol' entries would be constant\n"
+    "   and equal to the voxel volume.\n"
+    "\n"
+    " 3dNwarpCalc '&read(Warp+tlrc.HEAD) &dup &invert &write(WarpInv) &compose &write(WarpIdent)'\n"
    ) ;
 
-   exit(0) ;
+   printf(
+    "\n"
+    "AUTHOR -- RWCox -- August 2011\n"
+   ) ;
+
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
-   int iarg=1 , verb=0 , interp_code=MRI_WSINC5 ;
+   int iarg=1 , verb=0 , interp_code=MRI_QUINTIC ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) NWC_help() ;
+
+   mainENTRY("3dNwarpCalc"); machdep();
+   AFNI_logger("3dNwarpCalc",argc,argv);
+   PRINT_VERSION("3dNwarpCalc"); AUTHOR("Bob the Warper");
+   (void)COX_clock_time() ;
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcasecmp(argv[iarg],"-NN") == 0 || strncasecmp(argv[iarg],"-nearest",6) == 0 ){
-       ERROR_exit("NN interpolation not legal here") ;
+       WARNING_message("NN interpolation not legal here -- switched to linear") ;
+       interp_code = MRI_LINEAR ; iarg++ ; continue ;
      }
      if( strncasecmp(argv[iarg],"-linear",4)==0 || strncasecmp(argv[iarg],"-trilinear",6)==0 ){
        interp_code = MRI_LINEAR ; iarg++ ; continue ;
      }
      if( strncasecmp(argv[iarg],"-cubic",4)==0 || strncasecmp(argv[iarg],"-tricubic",6)==0 ){
-       ERROR_exit("cubic interplation not legal here") ;
+       WARNING_message("cubic interplation not legal here -- switched to quintic") ;
+       interp_code = MRI_QUINTIC ; iarg++ ; continue ;
      }
      if( strncasecmp(argv[iarg],"-quintic",4)==0 || strncasecmp(argv[iarg],"-triquintic",6)==0 ){
        interp_code = MRI_QUINTIC ; iarg++ ; continue ;
@@ -181,41 +210,45 @@ int main( int argc , char *argv[] )
        char *inam ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        inam = argv[iarg] ; if( *inam == '-' ) inam++ ;
-       if( strcasecmp(inam,"NN")==0 || strncasecmp(inam,"nearest",5)==0 )
-         ERROR_exit("NN interpolation not legal here") ;
-       else
-       if( strncasecmp(inam,"linear",3)==0 || strncasecmp(inam,"trilinear",5)==0 )
+       if( strcasecmp(inam,"NN")==0 || strncasecmp(inam,"nearest",5)==0 ){
+         WARNING_message("NN interpolation not legal here -- changed to linear") ;
          interp_code = MRI_LINEAR ;
-       else
-       if( strncasecmp(inam,"cubic",3)==0 || strncasecmp(inam,"tricubic",5)==0 )
-         ERROR_exit("cubic interplation not legal here") ;
-       else
-       if( strncasecmp(inam,"quintic",3)==0 || strncasecmp(inam,"triquintic",5)==0 )
+       } else if( strncasecmp(inam,"linear",3)==0 || strncasecmp(inam,"trilinear",5)==0 ){
+         interp_code = MRI_LINEAR ;
+       } else if( strncasecmp(inam,"cubic",3)==0 || strncasecmp(inam,"tricubic",5)==0 ){
+         WARNING_message("cubic interplation not legal here -- changed to quintic") ;
          interp_code = MRI_QUINTIC ;
-       else
-       if( strncasecmp(inam,"WSINC",5)==0 )
+       } else if( strncasecmp(inam,"quintic",3)==0 || strncasecmp(inam,"triquintic",5)==0 ){
+         interp_code = MRI_QUINTIC ;
+       } else if( strncasecmp(inam,"wsinc",4)==0 ){
          interp_code = MRI_WSINC5 ;
-       else
+       } else {
          ERROR_exit("Unknown code '%s' after '%s' :-(",argv[iarg],argv[iarg-1]) ;
+       }
        iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-verb") == 0 ){
-       NwarpCalcRPN_verb(1) ; iarg++ ; continue ;
+       verb++ ; iarg++ ; continue ;
      }
 
      /*---------------*/
 
-     ERROR_exit("Unknown, Illegal, and Fattening option '%s' :-( :-(",argv[iarg]) ;
+     ERROR_exit("Unknown, Illegal, and Fattening option '%s' :-(",argv[iarg]) ;
    }
 
    if( iarg >= argc ) ERROR_exit("No command line expression :-(") ;
 
    /*--- All the work is done herein ---*/
 
+   NwarpCalcRPN_verb(verb) ;
+
    (void)NwarpCalcRPN( argv[iarg] , NULL , interp_code ) ;
 
    /*--- run away screaming into the night ---*/
+
+   INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
+                COX_cpu_time() , COX_clock_time() ) ;
 
    exit(0) ;
 }
