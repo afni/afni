@@ -42,7 +42,8 @@ static INLINE float median9f(float *p)
 
 
 /*-------------------------------------------------------------------------*/
-/*!  Return value is the number of spikes that were squashed [RWCox].
+/*!  Return value is the number of spikes that were squashed
+     (bigger spikes count more).
 *//*-----------------------------------------------------------------------*/
 
 float MYY_despike9( int num , float *vec )
@@ -70,6 +71,10 @@ float MYY_despike9( int num , float *vec )
 #undef mead9
 
 /*----------------------------------------------------------------------*/
+/* Count spikes.
+   Then count steps as spikes in the first difference
+   -- after isolated spikes were squashed.
+*//*--------------------------------------------------------------------*/
 
 float_pair THD_countspikes( int num , float *vec )
 {
@@ -106,6 +111,9 @@ int main( int argc , char * argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
        "Usage: 3dCountSpikes dataset\n"
+       "\n"
+       "Does this program do something useful?\n"
+       "If it does, that circumstance is completely accidental.\n"
      ) ;
      exit(0) ;
    }

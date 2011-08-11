@@ -89,7 +89,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
-           1dCorrelate                                                          \
+           1dCorrelate 3dCountSpikes                                            \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -121,7 +121,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   afni_history 3dUpsample 1dUpsample 3dmatmult 3dABoverlap          \
                   3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase     \
                   3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat 3dPolyfit        \
-                  3dNwarpApply 1dCorrelate                                          \
+                  3dNwarpApply 1dCorrelate 3dCountSpikes                            \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -568,6 +568,10 @@ dsetdup:dsetdup.o
 3dToutcount:3dToutcount.o
 	$(RM) $@
 	$(CC) -o 3dToutcount 3dToutcount.o $(LFLAGS) $(LLIBS)
+	
+3dCountSpikes:3dCountSpikes.o
+	$(RM) $@
+	$(CC) -o 3dCountSpikes 3dCountSpikes.o $(LFLAGS) $(LLIBS)
 
 3dTsmooth:3dTsmooth.o
 	$(RM) $@
