@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , AUG , 2011 , RWC , "3dNwarpCalc" , MINOR , TYPE_NEW_PROG ,
+  { 11 , AUG , 2011 , RWC , "3dNwarpCalc" , MICRO , TYPE_GENERAL ,
+   "Added sqrt of a nonlinear warp to the repertoire." ,
+   NULL } ,
+
+ { 9 , AUG , 2011 , RWC , "3dNwarpCalc" , MINOR , TYPE_NEW_PROG ,
    "Implemented about 80% of it" ,
    "Seems to work, but needs a fair amount of fine tuning and testing." } ,
 
