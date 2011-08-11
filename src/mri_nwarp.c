@@ -28,7 +28,7 @@ THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix ) ;
 float_pair IW3D_load_hexvol( IndexWarp3D *AA ) ;
 IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB     , int icode ) ;
 IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
-IndexWarp3D * IW3D_sqrt   ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
+IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
 IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
 IndexWarp3D * IW3D_from_poly( int npar, float *par, IndexWarp3D *WW ) ;
 THD_3dim_dataset * NwarpCalcRPN( char *expr , char *prefix , int icode ) ;
@@ -1051,7 +1051,7 @@ ENTRY("IW3D_compose") ;
 /*---------------------------------------------------------------------------*/
 /* Compute B( 2x - A(B(x)) ) = Newton step for computing Ainv(x) */
 
-static float newtfac = 0.5f ;
+static float inewtfac = 0.5f ;
 
 static IndexWarp3D * IW3D_invert_newt( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
 {
@@ -1126,7 +1126,7 @@ ENTRY("IW3D_invert_newt") ;
 
      /* Compute result = -b(x) - a(x+b(x)) + b(x-b(x)-a(x+b(x))) */
 
-     if( newtfac <= 0.0f ){
+     if( inewtfac <= 0.0f ){
        for( qq=pp ; qq < qtop ; qq++ ){
          ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
          xdc[qq] = xr[qq-pp] - ii + xq[qq-pp] ;
@@ -1135,7 +1135,7 @@ ENTRY("IW3D_invert_newt") ;
        }
      } else {
        register float nf , nf1 ;
-       nf = newtfac ; nf1 = 1.0f - nf ;
+       nf = inewtfac ; nf1 = 1.0f - nf ;
        for( qq=pp ; qq < qtop ; qq++ ){
          ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
          xdc[qq] = nf * (xr[qq-pp]-ii+xq[qq-pp]) + nf1*xdb[qq] ;
@@ -1189,18 +1189,19 @@ ENTRY("IW3D_invert") ;
    }
 
    normAA  = IW3D_normL2( AA , NULL ) ;
-   newtfac = 1.0f / (1.0f+sqrtf(normAA)) ;  /* Newton damping factor */
+   inewtfac = 2.0f / (2.0f+sqrtf(normAA)) ;  /* Newton damping factor */
+   if( inewtfac > 0.333f ) inewtfac = 0.333f ;
 
    if( verb_nww )
-     ININFO_message("  - start iterations: normAA=%f newtfac=%f",normAA,newtfac) ;
+     ININFO_message("  - start iterations: normAA=%f inewtfac=%f",normAA,inewtfac) ;
 
    /* iterate some, until convergence or exhaustion */
 
    nrat = 666.666f ;
 
-   for( nss=ii=0 ; ii < 49 ; ii++ ){
+   for( nss=ii=0 ; ii < 69 ; ii++ ){
 
-     /* take a Newton step from BB to CC */
+     /* take a Newton step */
 
      CC = BB ; BB = IW3D_invert_newt(AA,CC,jcode) ;
 
@@ -1215,12 +1216,10 @@ ENTRY("IW3D_invert") ;
 
      /* check for convergence of B and C */
 
-     if( jcode != icode ){
-       if( nrat < 0.005f ){
-         jcode = icode ; nss = 0 ;
-         if( verb_nww ) ININFO_message("  - switching from linear interp") ;
-         continue ;
-       }
+     if( jcode != icode && nrat < 0.002f ){
+       jcode = icode ; nss = 0 ;
+       if( verb_nww ) ININFO_message("  - switching from linear interp") ;
+       continue ;
      }
 
      if( nrat < 0.0001f ){
@@ -1228,12 +1227,12 @@ ENTRY("IW3D_invert") ;
        RETURN(BB) ;   /* converged */
      }
 
-     if( nss > 0 && nrat < 0.199f && nrat < orat && newtfac < 0.888888f ){
-       nss = 0 ; newtfac *= 1.444f ; if( newtfac > 0.888888f ) newtfac = 0.888888f ;
-       if( verb_nww > 1 ) ININFO_message("  - switch to newtfac=%f",newtfac) ;
+     if( nss > 0 && nrat < 0.199f && nrat < orat && inewtfac < 0.888888f ){
+       nss = 0 ; inewtfac *= 1.444f ; if( inewtfac > 0.888888f ) inewtfac = 0.888888f ;
+       if( verb_nww > 1 ) ININFO_message("  - switch to inewtfac=%f",inewtfac) ;
      } else if( nss > 0 && nrat > orat ){
-       nss = 0 ; newtfac *= 0.666f ;
-       if( verb_nww > 1 ) ININFO_message("  - switch to newtfac=%f",newtfac) ;
+       nss = -66 ; inewtfac *= 0.444f ;
+       if( verb_nww > 1 ) ININFO_message("  - switch to inewtfac=%f",inewtfac) ;
      } else {
        nss++ ;
      }
@@ -1242,16 +1241,220 @@ ENTRY("IW3D_invert") ;
 
    /* failed to converge, return latest result anyhoo */
 
-   WARNING_message("&invert: iterations failed to converge") ;
+   WARNING_message("invert: iterations failed to converge") ;
    RETURN(BB) ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Find the square root of warp AA(x) -- BB(x) such that BB(BB(x)) = AA(x). */
+/* Iteration step for sqrt:  Bnew(x) = B( 1.5*x - 0.5*A(B(B(x))) )
+   This is actually a step to produce the square root of inverse(A). */
 
-IndexWarp3D * IW3D_sqrt( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode )
+static float sstepfac = 0.5f ;
+
+static IndexWarp3D * IW3D_sqrtinv_step( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
 {
-   return NULL ;
+   int nx,ny,nz,nxy,nxyz , nall , ii,jj,kk , pp,qq,qtop ;
+   float *xda,*yda,*zda , *xq,*yq,*zq,*xr,*yr,*zr , *xdc,*ydc,*zdc , *xdb,*ydb,*zdb ;
+   IndexWarp3D *CC ;
+
+ENTRY("IW3D_sqrtinv_step") ;
+
+   if( AA == NULL || BB == NULL ) RETURN(NULL) ;  /* stoopidd luser */
+
+   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   if( nx != BB->nx || ny != BB->ny || nz != BB->nz ) RETURN(NULL) ;
+
+   nall = MIN(nxyz,NPER) ;
+
+   xq = (float *)malloc(sizeof(float)*nall) ;  /* workspace */
+   yq = (float *)malloc(sizeof(float)*nall) ;
+   zq = (float *)malloc(sizeof(float)*nall) ;
+
+   xr = (float *)malloc(sizeof(float)*nall) ;
+   yr = (float *)malloc(sizeof(float)*nall) ;
+   zr = (float *)malloc(sizeof(float)*nall) ;
+
+   CC = IW3D_empty_copy(AA) ;
+
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+   xdb = BB->xd ; ydb = BB->yd ; zdb = BB->zd ;
+   xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
+
+   /* Warps are stored as displacments:
+       A(x) = x + a(x)
+       B(x) = x + b(x)  et cetera */
+
+   for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
+
+     qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
+
+     /* Compute [xq,yq,zq] = B(x) = x+b(x) */
+
+     for( qq=pp ; qq < qtop ; qq++ ){
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+       xq[qq-pp] = ii + xdb[qq] ;
+       yq[qq-pp] = jj + ydb[qq] ;
+       zq[qq-pp] = kk + zdb[qq] ;
+     }
+
+     /* Compute [xr,yr,zr] = b(B(x)) */
+
+     IW3D_interp( icode, nx,ny,nz , xdb, ydb, zdb,
+                         qtop-pp  , xq , yq , zq ,
+                                    xr , yr , zr  ) ;
+
+     /* Compute [xr,yr,zr] = B(B(x)) = B(x) + b(B(x)) */
+
+     for( qq=pp ; qq < qtop ; qq++ ){
+       xr[qq-pp] += xq[qq-pp] ;
+       yr[qq-pp] += yq[qq-pp] ;
+       zr[qq-pp] += zq[qq-pp] ;
+     }
+
+     /* Compute [xq,yq,zq] = a(B(B(x))) */
+
+     IW3D_interp( icode, nx,ny,nz , xda, yda, zda,
+                         qtop-pp  , xr , yr , zr ,
+                                    xq , yq , zq  ) ;
+
+     /* Compute [xq,yq,zq] = 1.5*x - 0.5*A(B(B(x)))
+                           = 1.5*x - 0.5*( B(B(x)) + a(B(B(x))) ) */
+
+     for( qq=pp ; qq < qtop ; qq++ ){
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+       xq[qq-pp] = 1.5f*ii - 0.5f*( xr[qq-pp] + xq[qq-pp] ) ;
+       yq[qq-pp] = 1.5f*jj - 0.5f*( yr[qq-pp] + yq[qq-pp] ) ;
+       zq[qq-pp] = 1.5f*kk - 0.5f*( zr[qq-pp] + zq[qq-pp] ) ;
+     }
+
+     /* Compute [xr,yr,zr] = b(1.5*x - 0.5*A(B(B(x)))) */
+
+     IW3D_interp( icode, nx,ny,nz , xdb, ydb, zdb,
+                         qtop-pp  , xq , yq , zq ,
+                                    xr , yr , zr  ) ;
+
+     /* Compute the answer: B(1.5*x - 0.5*A(B(B(x))))
+                          = 1.5*x - 0.5*A(B(B(x))) + b(1.5*x - 0.5*A(B(B(x)))) */
+
+     if( sstepfac <= 0.0f ){
+       for( qq=pp ; qq < qtop ; qq++ ){
+         xdc[qq] = xq[qq-pp] + xr[qq-pp] - ii ; /* must subtract off x [ii,jj,kk] */
+         ydc[qq] = yq[qq-pp] + yr[qq-pp] - jj ; /* to make result be displacments */
+         zdc[qq] = zq[qq-pp] + zr[qq-pp] - kk ;
+       }
+     } else {
+       register float sf , sf1 ;
+       sf = sstepfac ; sf1 = 1.0f - sf ;
+       for( qq=pp ; qq < qtop ; qq++ ){
+         ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+         xdc[qq] = sf * (xq[qq-pp] + xr[qq-pp] - ii) + sf1 * xdb[qq] ;
+         ydc[qq] = sf * (yq[qq-pp] + yr[qq-pp] - jj) + sf1 * ydb[qq] ;
+         zdc[qq] = sf * (zq[qq-pp] + zr[qq-pp] - kk) + sf1 * zdb[qq] ;
+       }
+     }
+
+   } /* end of loop over segments of length NPER (or less) */
+
+   free(zr); free(yr); free(xr); free(zq); free(yq); free(xq); RETURN(CC);
+}
+
+/*---------------------------------------------------------------------------*/
+/* Find the inverse square root of warp AA(x):
+      the warp BB(x) such that AA(BB(BB(x))) = identity.
+   If you want the square root of AA(x), then either invert AA
+   before calling this function, or invert the result afterwards. */
+
+IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode )
+{
+   IndexWarp3D *BB , *CC ;
+   float normAA , normBC , nrat , orat ;
+   int ii , nstep=0 , nss , jcode=MRI_LINEAR ;
+
+ENTRY("IW3D_sqrtinv") ;
+
+   if( AA == NULL ) RETURN(NULL) ;
+
+   normAA = IW3D_normLinf( AA , NULL ) ;
+   if( normAA == 0.0f ){
+     BB = IW3D_empty_copy(AA) ; RETURN(BB) ;
+   }
+
+   /* BB = initial guess at inverse square root */
+
+   if( verb_nww     ) ININFO_message(" -- sqrtinv max|AA|=%f",normAA) ;
+   if( verb_nww > 1 ) HVPRINT("  -",AA) ;
+
+   if( BBinit == NULL ){
+     int pp = (int)ceil(log2(normAA)) ; float qq ;
+     if( pp < 2 ) pp = 2 ;
+     qq = pow(0.5,pp+1.0) ;
+     if( verb_nww ) ININFO_message("  - init nstep=%d qq=1/2^%d=%f",pp,pp+1,qq) ;
+     BB = IW3D_copy( AA,-qq ) ;
+     for( ii=0 ; ii < pp ; ii++ ){
+       if( verb_nww > 1 ) ININFO_message("  - init step %d",ii+1) ;
+       CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
+       if( verb_nww > 1 ) HVPRINT("    -",BB) ;
+     }
+   } else {
+     BB = IW3D_copy( BBinit , 1.0f ) ;
+   }
+
+   normAA   = IW3D_normL2( AA , NULL ) ;
+   sstepfac = 1.0f / (1.0f+sqrtf(normAA)) ;  /* Newton damping factor */
+   if( sstepfac > 0.3f ) sstepfac = 0.3f ;
+
+   if( verb_nww )
+     ININFO_message("  - start iterations: normAA=%f sstepfac=%f",normAA,sstepfac) ;
+
+   /* iterate some, until convergence or exhaustion */
+
+   nrat = 666.666f ;
+
+   for( nss=ii=0 ; ii < 49 ; ii++ ){
+
+     /* take a step */
+
+     CC = BB ; BB = IW3D_sqrtinv_step(AA,CC,jcode) ;
+
+     /* how close are they now? */
+
+     normBC = IW3D_normL2( BB , CC ) ; IW3D_destroy(CC) ;
+
+     orat = nrat ; nrat = normBC / normAA ;
+
+     if( verb_nww     ) ININFO_message("  - iterate %d nrat=%f",++nstep,nrat) ;
+     if( verb_nww > 1 ) HVPRINT("    -",BB) ;
+
+     /* check for convergence of B and C */
+
+     if( jcode != icode && nrat < 0.002f ){
+       jcode = icode ; nss = 0 ;
+       if( verb_nww ) ININFO_message("  - switching from linear interp") ;
+       continue ;
+     }
+
+     if( nrat < 0.0001f ){
+       if( verb_nww ) ININFO_message(" -- iteration converged") ;
+       RETURN(BB) ;   /* converged */
+     }
+
+     if( nss > 0 && nrat < 0.199f && nrat < orat && sstepfac < 0.555555f ){
+       nss = 0 ; sstepfac *= 1.333f ; if( sstepfac > 0.555555f ) sstepfac = 0.555555f ;
+       if( verb_nww > 1 ) ININFO_message("  - switch to sstepfac=%f",sstepfac) ;
+     } else if( nss > 0 && nrat > orat ){
+       nss = -66 ; sstepfac *= 0.444f ;
+       if( verb_nww > 1 ) ININFO_message("  - switch to sstepfac=%f",sstepfac) ;
+     } else {
+       nss++ ;
+     }
+
+   }
+
+   /* failed to converge, return latest result anyhoo */
+
+   WARNING_message("sqrt: iterations failed to converge") ;
+   RETURN(BB) ;
 }
 
 /****************************************************************************/
@@ -1498,6 +1701,32 @@ ENTRY("NwarpCalcRPN") ;
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ;
         if( verb_nww )
           ININFO_message(" -- invert CPU time = %.1f s",COX_cpu_time()-ct) ;
+     }
+
+     /*--- inverse square root ---*/
+
+     else if( strcasecmp(cmd,"&sqrtinv") == 0 || strcasecmp(cmd,"&invsqrt") == 0 ){
+        double ct = COX_cpu_time() ;
+        if( nstk < 1 ) ERREX("nothing on stack") ;
+        AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
+        if( AA == NULL ) ERREX("inverse square root failed") ;
+        IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ;
+        if( verb_nww )
+          ININFO_message(" -- inverse square root CPU time = %.1f s",COX_cpu_time()-ct) ;
+     }
+
+     /*--- square root ---*/
+
+     else if( strcasecmp(cmd,"&sqrt") == 0 ){
+        double ct = COX_cpu_time() ;
+        if( nstk < 1 ) ERREX("nothing on stack") ;
+        AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
+        if( AA == NULL ) ERREX("inverse square root failed") ;
+        BB = IW3D_invert( AA , NULL , icode ) ; IW3D_destroy(AA) ;
+        if( BB == NULL ) ERREX("inversion after sqrtinv failed") ;
+        IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = BB ;
+        if( verb_nww )
+          ININFO_message(" -- square root CPU time = %.1f s",COX_cpu_time()-ct) ;
      }
 
      /*--- compose ---*/
