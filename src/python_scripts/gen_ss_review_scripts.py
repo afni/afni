@@ -437,9 +437,10 @@ g_history = """
         - check if X.stim.xmat.1D already exists
    0.4  Jul 21, 2011: changed TR counts to come via awk instead of grep
    0.5  Aug 02, 2011: added control var out_prefix, a prefix for output files
+   0.6  Aug 12, 2011: gave volreg 3dAllineate command priority for final anat
 """
 
-g_version = "gen_ss_review_scripts.py version 0.3, July 15, 2011"
+g_version = "gen_ss_review_scripts.py version 0.6, August 12, 2011"
 
 g_todo_str = """
    - figure out template_space
@@ -1065,6 +1066,12 @@ class MyInterface:
             self.dsets.final_anat = BASE.afni_name(fname)
             return 0
 
+      anat = self.guess_anat_from_volreg()
+      if anat: 
+         self.uvars.final_anat = anat
+         self.dsets.final_anat = BASE.afni_name(gstr)
+         return 0
+
       # else, _al, use to get the rest of the file name
       gstr = '*_al+*.HEAD'
       glist = glob.glob(gstr)
@@ -1093,12 +1100,6 @@ class MyInterface:
                self.dsets.final_anat = BASE.afni_name(gstr)
                return 0
 
-      anat = self.guess_anat_from_volreg()
-      if anat: 
-         self.uvars.final_anat = anat
-         self.dsets.final_anat = BASE.afni_name(gstr)
-         return 0
-
       # else, go after mask_anat
       # find -input for (command line "-prefix rm.resam.anat")
       # rcr - todo
@@ -1115,7 +1116,7 @@ class MyInterface:
       vset = self.uvars.volreg_dset
 
       # go after 3dAllineate -base ANAT
-      cmd = UTIL.get_last_history_command(self.dsets.tcat_dset.pv(),
+      cmd = UTIL.get_last_history_command(self.dsets.volreg_dset.pv(),
                                           '3dAllineate')
       if cmd:   
          copts = self.find_opt_and_params(cmd, '-base', 1)
