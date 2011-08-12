@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, AUG, 2011, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "gave volreg 3dAllineate command priority for final anat",
+   NULL
+ } ,
+
  {  4, AUG, 2011, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "wrote loc_strcpy(/cat)_realloc for MCW_file_expand",
    "This is to allow for long sub-brick selectors."
