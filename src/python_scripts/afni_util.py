@@ -357,7 +357,7 @@ def get_last_history_command(dname, substr):
 
    # work backwards
    for ind in range(olen-1, -1, -1):
-      if olines[ind].find(substr): return olines[ind]
+      if olines[ind].find(substr) >= 0: return olines[ind]
 
    return ''
 
@@ -1925,7 +1925,9 @@ def fractional_offsets(times, dur):
     return olist
 
 def stdev_ub(data):
-    """unbiased standard deviation (divide by len-1, not just len)"""
+    """unbiased standard deviation (divide by len-1, not just len)
+              stdev_ub = sqrt( (sumsq - N*mean^2)/(N-1) )
+    """
 
     length = len(data)
     if length <  2: return 0.0
