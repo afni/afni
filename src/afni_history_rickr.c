@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, AUG, 2011, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "altered SUMA_ParseFname for parsing of relative pathnames",
+   "Problem noted by Ryan of Princeton."
+ } ,
+
  { 12, AUG, 2011, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
    "gave volreg 3dAllineate command priority for final anat",
    NULL
