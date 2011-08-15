@@ -12713,8 +12713,13 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
       } else {
          char *ptmp = NewName->Path;
          if (ptmp[0] == '.') {
-            if (strstr(NewName->Path,"./") && ptmp[1] == '/') ptmp = ptmp+2;
-            else ptmp = ptmp+1;   
+            /* just searching for ./ here?                  15 Aug 2011 [rickr]
+             * ... problem noted by Ryan from Princeton
+             * if (strstr(NewName->Path,"./") && ptmp[1] == '/') ptmp = ptmp+2;
+             * else ptmp = ptmp+1;                                           */
+
+            if ( ptmp[1] == '/' ) ptmp = ptmp+2;
+            else if ( ptmp[1] == '\0' ) ptmp = ptmp+1;
          } 
          NewName->AbsPath = SUMA_append_replace_string(cwd, ptmp, "/", 0);
          ptmp = NULL;
