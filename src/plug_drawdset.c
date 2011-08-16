@@ -9,6 +9,7 @@
 #ifndef ALLOW_PLUGINS
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
+extern char **Atlas_Names_List(ATLAS_LIST *atl);
 
 #undef  BGCOLOR_ARG
 #define BGCOLOR_ARG(str) \
@@ -76,6 +77,11 @@ static int infill_mode = 0 ;
 
 void DRAW_set_value_label(void) ;
 char * DRAW_value_string( float val ) ;
+static void choose_new_atlas_CB(MCW_arrowval * , XtPointer );
+static MCW_arrowval *Atlas_chooser(Widget rc);
+static void free_plugdraw_atlas_list();
+
+static char *plugdraw_atlasname;
 
 /***********************************************************************
    Set up the interface to the user.  Note that we bypass the
@@ -107,7 +113,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 /* Interface widgets */
 
-static Widget shell=NULL , rowcol , info_lab , choose_pb ;
+static Widget shell=NULL , rowcol , info_lab , choose_pb, choose_atlas ;
 static Widget done_pb, undo_pb,redo_pb, help_pb, quit_pb, save_pb, saveas_pb ;
 static MCW_arrowval *value_av , *color_av , *mode_av ;
 static MCW_arrowval *rad_av ;                         /* 16 Oct 2002 */
@@ -130,7 +136,8 @@ static Widget fillin_doit_pb ;
 
 static Widget         ttatlas_rowcol=NULL ;             /* 22 Aug 2001 */
 static MCW_arrowval * ttatlas_region_av ,
-                    * ttatlas_hemisphere_av ;
+                    * ttatlas_hemisphere_av,
+                    * atlas_chooser_av ;
 static Widget         ttatlas_actar ;
 
 #define HAVE_TTATLAS (ttatlas_rowcol != NULL)
@@ -356,6 +363,10 @@ static THD_dataxes dax_save ;    /* save this for later reference */
 
 static int old_stroke_autoplot = 0 ;  /* 27 Oct 2003 */
 
+static char **atlas_names; /* list of atlases to select among */
+
+
+
 char * DRAW_main( PLUGIN_interface *plint )
 {
    XmString xstr ;
@@ -400,8 +411,9 @@ char * DRAW_main( PLUGIN_interface *plint )
 
    /*-- 22 Aug 2001: perhaps allow TT Atlas stuff --*/
 
-   if( HAVE_TTATLAS )
+   if( HAVE_TTATLAS ) {
       XtSetSensitive( ttatlas_rowcol , CAN_TALTO(im3d) ) ;
+   }
 
    /*-- pop the widget up --*/
 
@@ -936,7 +948,7 @@ void DRAW_make_widgets(void)
                    NULL ) ;
 
        /*** label at top ***/
-       sprintf(title_str, "       Region to load from Atlas: %s",
+       sprintf(title_str, "Select Atlas and Region (Current Atlas: %s)",
           Current_Atlas_Default_Name());
 
        xstr = XmStringCreateLtoR( title_str ,
@@ -950,14 +962,18 @@ void DRAW_make_widgets(void)
                     NULL ) ;
        XmStringFree(xstr) ;
 
-       /*** make list of atlas regions to include ***/
+      atlas_chooser_av = Atlas_chooser(rc);
 
-      if (!(ttatlas_list = New_ttatlas_compendium(Current_Atlas_Default_Name()))) {
+      /*** make list of atlas regions to include ***/
+      plugdraw_atlasname = Current_Atlas_Default_Name(); /* use default atlas name first */
+
+      if (!(ttatlas_list = New_ttatlas_compendium(plugdraw_atlasname))) {
          ERROR_message("Failed compending. This should not happen");
       }
-      tto_list = atlas_points(Current_Atlas_Default_Name());
+      
+      tto_list = atlas_points(plugdraw_atlasname);
       nr = 0 ;
-      for( ii=0 ; ii < atlas_n_points(Current_Atlas_Default_Name()) ; ii++ ){
+      for( ii=0 ; ii < atlas_n_points(plugdraw_atlasname) ; ii++ ){
          ttatlas_list->reg_label [nr] = strdup(tto_list[ii].name) ;
          ttatlas_list->reg_tto   [nr] = ii ;
          ttatlas_list->reg_ttval [nr] = tto_list[ii].tdval ;
@@ -985,6 +1001,7 @@ void DRAW_make_widgets(void)
       /*** row of pushbuttons ***/
 
       ttatlas_actar = MCW_action_area( rc , TTATLAS_act , NUM_TTATLAS_ACT ) ;
+
 
       XtManageChild( rc ) ;
 
@@ -3055,7 +3072,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    /* get default atlas dataset, maybe TTatlas+tlrc */
    
-   if (!(dseTT = TT_retrieve_atlas_dset(Current_Atlas_Default_Name(), 1))) {
+   if (!(dseTT = TT_retrieve_atlas_dset(plugdraw_atlasname, 1))) {
       return;   
    }
    DSET_load(dseTT) ;
@@ -3738,3 +3755,125 @@ static void DRAW_collapsar( int *npt , int *xyzn )
    *npt = jj+1 ; return ;
 }
 #endif  /* USE_COLLAPSAR */
+
+static MCW_arrowval *
+Atlas_chooser(Widget rc)
+{
+   int k, nr , qq, atlasind ;
+   XmString xstr ;
+   char title_str[256];
+   ATLAS_LIST *atl=NULL;
+   MCW_arrowval *atlas_av;
+   
+   if( Atlas_With_Trimming(Current_Atlas_Default_Name(),1, NULL) <= 0 )
+      return(NULL);
+
+    /*** make list of atlases to include ***/
+ 
+   atl = env_atlas_list();
+   nr = atl->natlases;
+   if (!(atlas_names = Atlas_Names_List(atl))) {
+      WARNING_message("No atlases in default list.");
+      return(NULL);
+   }
+ 
+   /* get the actual atlas index to put in as default */
+
+   for (k=0; k<nr; ++k) {
+     if(strcmp(Current_Atlas_Default_Name(), atlas_names[k])==0)
+        atlasind = k; 
+   }
+
+
+   /*** Atlas chooser ***/
+   atlas_av = new_MCW_optmenu( rc , "Choose Atlas" ,
+                                        0 , nr-1 , atlasind , 0 ,
+                                        choose_new_atlas_CB, NULL ,
+                                        MCW_av_substring_CB ,
+                                        atlas_names ) ;
+
+    MCW_reghelp_children( atlas_av->wrowcol ,
+                       "Use this to popup a\n"
+                       "'chooser' that lets\n"
+                       "you select which\n"
+                       "atlas to edit. The list\n"
+                       "comes from AFNI_ATLAS_LIST\n"
+                       "or default list\n"
+                     ) ;
+    MCW_reghint_children( atlas_av->wrowcol , "Popup an atlas chooser" ) ;
+
+   XtManageChild( rc ) ;
+
+   return(atlas_av);
+}
+
+/* callback function for choosing a new atlas */
+static void 
+choose_new_atlas_CB(MCW_arrowval *av , XtPointer cd )
+{
+   int ii, nr;
+   ATLAS_POINT *tto_list=NULL;
+   char **textdata;
+   char *tempatlasname;
+   
+   textdata = av->text_data;
+   
+
+   /* check if the atlas is the same one we already have */
+   if(strcmp(plugdraw_atlasname, textdata[av->ival])==0)
+      return;
+
+
+   tempatlasname = textdata[av->ival]; /* point to current atlas name */
+   if(atlas_n_points(tempatlasname)<=0){
+      ERROR_message(
+          "atlas %s not available.\n"
+          "Check that it exists or remove from AFNI_ATLAS_LIST", tempatlasname);
+      return;
+   }
+   plugdraw_atlasname = textdata[av->ival]; /* point to current atlas name */
+   free_plugdraw_atlas_list();
+  
+   /*** make list of atlas regions to include ***/
+   if (!(ttatlas_list = New_ttatlas_compendium(plugdraw_atlasname))) {
+      ERROR_message("Failed compending on atlas change.");
+   }
+   tto_list = atlas_points(plugdraw_atlasname);
+   nr = 0 ;
+   for( ii=0 ; ii < atlas_n_points(plugdraw_atlasname) ; ii++ ){
+      ttatlas_list->reg_label [nr] = strdup(tto_list[ii].name) ;
+      ttatlas_list->reg_tto   [nr] = ii ;
+      ttatlas_list->reg_ttval [nr] = tto_list[ii].tdval ;
+
+      nr++ ;  /* count how many regions actually have some non-zero value */
+   }
+   ttatlas_list->reg_num = nr ;
+
+   /*** Update region chooser ***/
+   refit_MCW_optmenu( ttatlas_region_av ,
+                      0 , nr-1 , 0 , 0 ,
+                      MCW_av_substring_CB ,
+                      ttatlas_list->reg_label ) ;
+
+   AVOPT_columnize( ttatlas_region_av , 3 ) ;
+
+
+   return;
+}
+
+/* free the region names from menu list */
+static void
+free_plugdraw_atlas_list()
+{
+   int i;
+
+   for(i=0;i<ttatlas_list->reg_num;i++){
+      free(ttatlas_list->reg_label[i]);
+   }
+   free(ttatlas_list->reg_label);
+   free(ttatlas_list->reg_tto);
+   free(ttatlas_list->reg_ttval);
+   free(ttatlas_list);
+
+   return;
+}

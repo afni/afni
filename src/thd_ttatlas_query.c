@@ -6699,3 +6699,21 @@ char *Current_Atlas_Default_Name()
 
    return("TT_Daemon");
 }
+
+
+/* return list of atlas names */
+char **Atlas_Names_List(ATLAS_LIST *atl)
+{
+   char **atlas_names = NULL;
+   int k, natl=0;
+
+   if (atl->natlases == 0)
+      return(NULL);
+
+   /* use all atlases */
+   for (k=0; k<atl->natlases; ++k) {
+      atlas_names = add_to_names_list(atlas_names, &natl,
+          Atlas_Name(&(atl->atlas[k])));
+   }
+   return(atlas_names);
+}
