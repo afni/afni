@@ -345,6 +345,7 @@ NI_stream open_atlas_niml(char * nimlname);
 ATLAS_LIST *env_atlas_list(void);
 char **env_space_list(int *);
 char *Current_Atlas_Default_Name(void);
+char **Atlas_Names_List(ATLAS_LIST *atl);
 
 /* Transforms for going from one space to another */
 #if 0

@@ -9,6 +9,7 @@
 #include "afni.h"
 #include "afni_plugout.h"
 #include "thd_atlas.h"
+extern char **Atlas_Names_List(ATLAS_LIST *atl);
 
 static THD_3dim_dataset *atlas_ovdset = NULL;
 

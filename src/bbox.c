@@ -887,6 +887,19 @@ void enter_EV( Widget w , XtPointer client_data ,
    #endif  
 }
 
+/* create a chooser list of text strings */
+/* label - title string to the left of the chooser dropdown
+   minval - minimum value of index (usually 0)
+   maxval - maximum value of index (usually the number of strings - 1
+   inival - initial value of index (to get default string shown)
+   decim - number of decimal places to shift a number in a string (I haven't used this yet)
+   delta_value - callback function when item is changed (use void function)
+   delta_data - ?
+   text_proc - function to use as the chooser list is filled
+               (usually MCW_av_substring_CB)
+   text_data - list of strings to fill chooser list (char **)
+               (probably should not freed (static may be good too) )
+*/
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
                                 char *label ,
                                 int   minval , int maxval , int inival , 
