@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, AUG, 2011, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "fixed some final anat dset assignments",
+   NULL
+ } ,
+
  { 15, AUG, 2011, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "altered SUMA_ParseFname for parsing of relative pathnames",
    "Problem noted by Ryan of Princeton."
