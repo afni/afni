@@ -438,9 +438,10 @@ g_history = """
    0.4  Jul 21, 2011: changed TR counts to come via awk instead of grep
    0.5  Aug 02, 2011: added control var out_prefix, a prefix for output files
    0.6  Aug 12, 2011: gave volreg 3dAllineate command priority for final anat
+   0.7  Aug 17, 2011: fixed some final anat dset assignments
 """
 
-g_version = "gen_ss_review_scripts.py version 0.6, August 12, 2011"
+g_version = "gen_ss_review_scripts.py version 0.7, August 17, 2011"
 
 g_todo_str = """
    - figure out template_space
@@ -1039,7 +1040,14 @@ class MyInterface:
       glen = len(glist)
       if glen >= 1:     # shouldn't be more than 1, but to be safe
          self.uvars.final_anat = glist[0]
-         self.dsets.final_anat = BASE.afni_name(gstr)
+         self.dsets.final_anat = BASE.afni_name(self.uvars.final_anat)
+         return 0
+
+      # else, maybe there is a 3dAllineate command in volreg
+      anat = self.guess_anat_from_volreg()
+      if anat: 
+         self.uvars.final_anat = anat
+         self.dsets.final_anat = BASE.afni_name(self.uvars.final_anat)
          return 0
 
       # else, _al_keep
@@ -1048,7 +1056,7 @@ class MyInterface:
       glen = len(glist)
       if glen >= 1:     # shouldn't be more than 1, but to be safe
          self.uvars.final_anat = glist[0]
-         self.dsets.final_anat = BASE.afni_name(gstr)
+         self.dsets.final_anat = BASE.afni_name(self.uvars.final_anat)
          return 0
 
       # else, _al_junk, use to get the rest of the file name
@@ -1063,14 +1071,8 @@ class MyInterface:
             print '-- final anat: found %s, trying %s...' % (name, fname)
          if os.path.isfile(fname):
             self.uvars.final_anat = fname
-            self.dsets.final_anat = BASE.afni_name(fname)
+            self.dsets.final_anat = BASE.afni_name(self.uvars.final_anat)
             return 0
-
-      anat = self.guess_anat_from_volreg()
-      if anat: 
-         self.uvars.final_anat = anat
-         self.dsets.final_anat = BASE.afni_name(gstr)
-         return 0
 
       # else, _al, use to get the rest of the file name
       gstr = '*_al+*.HEAD'
@@ -1090,14 +1092,14 @@ class MyInterface:
             anat = self.guess_anat_from_volreg()
             if not anat: anat = glist[0]
             self.uvars.final_anat = anat
-            self.dsets.final_anat = BASE.afni_name(gstr)
+            self.dsets.final_anat = BASE.afni_name(self.uvars.final_anat)
             return 0
 
       if glen > 1:
          for gname in glist:
             if gname.find(self.uvars.final_view) > 0:
                self.uvars.final_anat = gname
-               self.dsets.final_anat = BASE.afni_name(gstr)
+               self.dsets.final_anat = BASE.afni_name(self.uvars.final_anat)
                return 0
 
       # else, go after mask_anat
