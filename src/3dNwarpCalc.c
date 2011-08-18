@@ -125,7 +125,7 @@ void NWC_help(void)
     "&readpoly(FF)  == The input is a text file with one line of numbers\n"
     "                   specifying a warp as a polynomial, as output from\n"
     "                   '3dAllineate -1Dparam_save'.\n"
-    "                  ++ The count of values determines\the type of warp:\n"
+    "                  ++ The count of values determines the type of warp:\n"
     "                         12 ==> affine (shifts+angles+scales+shears)\n"
     "                         64 ==> cubic (3rd order) polyomial\n"
     "                        172 ==> quintic (5th order) polynomial\n"
