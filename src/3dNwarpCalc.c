@@ -46,6 +46,9 @@ void NWC_help(void)
     "      functional dataset, for example -- 3dNwarpApply will figure it out.\n"
     "   ++ On the other hand, all the warps in 3dNwarpCalc must be defined on\n"
     "      the same spatial grid!\n"
+    "   ++ You can use the &apply command to transform a 3D dataset from\n"
+    "      within 3dNwarpCalc, if you don't need the special capabilities\n"
+    "      of 3dNwarpApply.\n"
     "\n"
     " * Operations such as &invert and &sqrt may produce artifacts and be\n"
     "    inaccurate near the edges of the 3D grid, since they might require\n"
@@ -58,7 +61,7 @@ void NWC_help(void)
     "   ++ But note that since the '&' character is special to the shell, you\n"
     "      have to put the expression string(s) inside single quote ' or double\n"
     "      quote \" pairs, or else bad things will happen.\n"
-    "      (Not as bad as having a hippopotamus sit on your head, but close.)\n"
+    "      (Not as bad as having a hippopotamus step on your head, but close.)\n"
     "\n"
     "OPTIONS\n"
     "-------\n"
@@ -66,6 +69,14 @@ void NWC_help(void)
     "                  ++ Modes allowed are a subset of those in 3dAllineate:\n"
     "                       linear  quintic  wsinc5\n"
     "                  ++ The default interpolation mode is 'quintic'.\n"
+    "                  ++ 'linear' is much faster but less accurate.\n"
+    "                  ++ 'wsinc5' is much slower but more accurate.\n"
+    "\n"
+    " -ainterp jjj  == 'jjj' is the interpolation mode for the '&apply' operation.\n"
+    "                  ++ Modes allowed here are\n"
+    "                       NN linear cubic quintic wsinc5\n"
+    "                  ++ If this option isn't given, then the value from '-interp'\n"
+    "                     is used.\n"
     "\n"
     " -verb         == print (to stderr) various fun messages along the road\n"
     "                  ++ A second '-verb' gives you even more fun!\n"
@@ -199,9 +210,11 @@ void NWC_help(void)
     "                   whose name is given by the 'DD' argument, to produce\n"
     "                   a dataset whose prefix is given by the 'PP' argument.\n"
     "                 ++ This operation does not affect the stack of warps.\n"
+    "                 ++ &apply is provided to make your life simpler and happier.\n"
     "                 ++ Program 3dNwarpApply provides more options to control\n"
     "                    the way that a warp is applied to a dataset.\n"
-    "               ++++ NOT YET IMPLEMENTED\n"
+    "                 ++ &apply is like 3dNwarpApply with wfac=1 and with the\n"
+    "                    output dataset PP being on the same grid as the input DD.\n"
     "\n"
     "EXAMPLES\n"
     "--------\n"
@@ -236,7 +249,7 @@ void NWC_help(void)
 
 int main( int argc , char *argv[] )
 {
-   int iarg=1 , verb=0 , interp_code=MRI_QUINTIC ;
+   int iarg=1 , verb=0 , interp_code=MRI_QUINTIC , ainterp_code=-666 ;
    char *expr ; int nexpr , narg ;
    THD_3dim_dataset *oset ;
 
@@ -288,6 +301,26 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strncasecmp(argv[iarg],"-ainterp",6)==0 ){
+       char *inam ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
+       inam = argv[iarg] ; if( *inam == '-' ) inam++ ;
+       if( strcasecmp(inam,"NN")==0 || strncasecmp(inam,"nearest",5)==0 ){
+         ainterp_code = MRI_NN ;
+       } else if( strncasecmp(inam,"linear",3)==0 || strncasecmp(inam,"trilinear",5)==0 ){
+         ainterp_code = MRI_LINEAR ;
+       } else if( strncasecmp(inam,"cubic",3)==0 || strncasecmp(inam,"tricubic",5)==0 ){
+         ainterp_code = MRI_CUBIC ;
+       } else if( strncasecmp(inam,"quintic",3)==0 || strncasecmp(inam,"triquintic",5)==0 ){
+         ainterp_code = MRI_QUINTIC ;
+       } else if( strncasecmp(inam,"wsinc",4)==0 ){
+         ainterp_code = MRI_WSINC5 ;
+       } else {
+         ERROR_exit("Unknown code '%s' after '%s' :-(",argv[iarg],argv[iarg-1]) ;
+       }
+       iarg++ ; continue ;
+     }
+
      if( strcasecmp(argv[iarg],"-verb") == 0 ){
        verb++ ; iarg++ ; continue ;
      }
@@ -309,11 +342,13 @@ int main( int argc , char *argv[] )
      strcat(expr," ") ; strcat(expr,argv[iarg]) ;
    }
 
+   if( ainterp_code < 0 ) ainterp_code = interp_code ;
+
    /*--- All the work is done herein ---*/
 
    NwarpCalcRPN_verb(verb) ;
 
-   oset = NwarpCalcRPN( expr , NULL , interp_code ) ;
+   oset = NwarpCalcRPN( expr , NULL , interp_code , ainterp_code ) ;
 
    /*--- run away screaming into the night, never to be seen again ---*/
 
