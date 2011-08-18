@@ -254,13 +254,16 @@ void display_help_menu(void)
       "* COVAR_FILE is the name of a text file with a table for the covariate(s).\n"
       "   Each column in the file is treated as a separate covariate, and each\n"
       "   row contains the values of these covariates for one sample (dataset). Note\n"
-      "   that you can use '-covariates' only once -- the COVAR_FILE should contain\n"
+      "   that you can use '-covariates' only ONCE -- the COVAR_FILE should contain\n"
       "   the covariates for ALL input samples from both sets.\n"
       "\n"
-      "* Rows in COVAR_FILE that don't match a dataset label are ignored (silently).\n"
+      "* Rows in COVAR_FILE whose first column don't match a dataset label are\n"
+      "   ignored (silently).\n"
       "\n"
-      "* A dataset label that doesn't match a row in COVAR_FILE, on the other hand,\n"
-      "   is a fatal error.\n"
+      "* An input dataset label that doesn't match a row in COVAR_FILE, on the other\n"
+      "   hand, is a fatal error.\n"
+      "  ++ The program doesn't know how to get the covariate values for such a\n"
+      "     dataset, so it can't continue.\n"
       "\n"
       "* There is no provision for missing values -- the entire table must be filled!\n"
       "\n"
@@ -278,7 +281,7 @@ void display_help_menu(void)
       "   for the first column (#0) isn't used for anything.  The later header labels\n"
       "   are used in the sub-brick labels stored in the output dataset.\n"
       "\n"
-      "* The first column contains the labels that must match the dataset\n"
+      "* The first column contains the dataset labels that must match the dataset\n"
       "   LABL_K labels given in the '-setX' option(s).\n"
       "\n"
       "* If you used a short form '-setX' option, each dataset label is\n"
@@ -295,6 +298,7 @@ void display_help_menu(void)
       "* The later columns in COVAR_FILE contain numbers (e.g., 'IQ' and 'age',\n"
       "    above), OR dataset names.  In the latter case, you are specifying a\n"
       "    voxel-wise covariate (e.g., 'GMfrac').\n"
+      "  ++ Do NOT put the dataset names or labels in this file in quotes.\n"
       "\n"
       "* A column can contain numbers only, OR datasets names only.  But one\n"
       "   column CANNOT contain a mix of numbers and dataset names!\n"
@@ -305,6 +309,11 @@ void display_help_menu(void)
       " ++ You are not required to make the columns and rows line up neatly,\n"
       "    (separating entries in the same row with 1 or more blanks is OK),\n"
       "    but your life will be much nicer if you DO make them well organized.\n"
+      "\n"
+      "* You cannot enter covariates as pure labels (e.g., 'Male' and 'Female').\n"
+      "   To assign such categorical covariates, you must use numeric values.\n"
+      "   A column in the covariates file that contains strings rather than\n"
+      "   numbers is assumed to be a list of dataset names, not category labels!\n"
      "\n"
       "* If you want to omit some columns in COVAR_FILE from the analysis, you\n"
       "   can do so with the standard AFNI column selector '[...]'.  However,\n"
@@ -734,7 +743,7 @@ int main( int argc , char *argv[] )
    /*--- record things for posterity, et cetera ---*/
 
    mainENTRY("3dttest++ main"); machdep(); AFNI_logger("3dttest++",argc,argv);
-   PRINT_VERSION("3dttest++") ; AUTHOR("The Bob") ;
+   PRINT_VERSION("3dttest++") ; AUTHOR("The Bob++") ;
 
 #if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
@@ -988,7 +997,7 @@ int main( int argc , char *argv[] )
      /*----- covariates -----*/
 
      if( strcasecmp(argv[nopt],"-covariates") == 0 ){  /* 20 May 2010 */
-       char *lab ; float sig ;
+       char *lab ; float sig , men ; char nlab[2048] , dlab[2048] ;
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
        if( covnel != NULL ) ERROR_exit("can't use -covariates twice!") ;
        covnel = THD_mixed_table_read( argv[nopt] ) ;
@@ -1010,20 +1019,40 @@ int main( int argc , char *argv[] )
        } else {
          ERROR_exit("Can't get labels from -covariates file '%s'",argv[nopt]) ;
        }
+       nlab[0] = dlab[0] = '\0' ;
        for( nbad=0,jj=1 ; jj <= mcov ; jj++ ){
          if( covnel->vec_typ[jj] == NI_FLOAT ){  /* numeric column */
-           meansigma_float(covnel->vec_len,(float *)covnel->vec[jj],NULL,&sig) ;
+           meansigma_float(covnel->vec_len,(float *)covnel->vec[jj],&men,&sig) ;
            if( sig <= 0.0f ){
-             ERROR_message("Covariate '%s' is constant; how can this be used?!" ,
-                           covlab->str[jj] ) ; nbad++ ;
+             ERROR_message(
+               "Numeric covariate column '%s' is constant '%f'; can't be used!" ,
+               covlab->str[jj] , men ) ; nbad++ ;
            }
+           strcat(nlab,covlab->str[jj]) ; strcat(nlab," ") ;
          } else {                                /* string column: */
+           char **qpt = (char **)covnel->vec[jj] ; int nsame=1 ;
+           for( kk=1 ; kk < covnel->vec_len ; kk++ ){
+             if( strcmp(qpt[0],qpt[kk]) == 0 ) nsame++ ;
+           }
+           if( nsame == covnel->vec_len ){
+             ERROR_message(
+               "Dataset covariate column '%s' is constant '%s'; can't be used!",
+               covlab->str[jj] , qpt[0] ) ; nbad++ ;
+           }
            num_covset_col++ ;              /* count number of them */
+           strcat(dlab,covlab->str[jj]) ; strcat(dlab," ") ;
          }
          LTRUNC(covlab->str[jj]) ;
        }
        if( nbad > 0 ) ERROR_exit("Cannot continue past above ERROR%s :-(",
                                   (nbad==1) ? "\0" : "s" ) ;
+       if( mcov-num_covset_col > 0 )
+         ININFO_message("Found %d numeric column%s: %s",
+                        mcov-num_covset_col , (mcov-num_covset_col==1) ? "\0" : "s" ,
+                        nlab ) ;
+       if( num_covset_col > 0 )
+         ININFO_message("Found %d dataset name column%s: %s",
+                      num_covset_col , (num_covset_col==1) ? "\0" : "s" , dlab ) ;
        nopt++ ; continue ;
      }
 
