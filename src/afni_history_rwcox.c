@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , AUG , 2011 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
+  { 18 , AUG , 2011 , RWC , "3dNwarpCalc" , MICRO , TYPE_GENERAL ,
+   "Add '&apply' function" ,
+   "To apply a calculated 3D warp to a dataset, without having to use\n"
+   "3dNwarpApply" } ,
+
+ { 18 , AUG , 2011 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
    "Add some clarify text about covariates to the -help output" ,
    "Also add an addition check to see if dataset name covariates are all the\n"
    "same, and print out some info about the covariates." } ,
