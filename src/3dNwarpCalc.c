@@ -47,6 +47,19 @@ void NWC_help(void)
     "   ++ On the other hand, all the warps in 3dNwarpCalc must be defined on\n"
     "      the same spatial grid!\n"
     "\n"
+    " * Operations such as &invert and &sqrt may produce artifacts and be\n"
+    "    inaccurate near the edges of the 3D grid, since they might require\n"
+    "    extrapolating the warp to the exterior of the grid, where there\n"
+    "    is no information.\n"
+    "\n"
+    " * For convenience, you can break the expression up into multiple strings\n"
+    "    (after all the options), and they will be re-assembled into the single\n"
+    "    expression string the controlling C function needs to work.\n"
+    "   ++ But note that since the '&' character is special to the shell, you\n"
+    "      have to put the expression string(s) inside single quote ' or double\n"
+    "      quote \" pairs, or else bad things will happen.\n"
+    "      (Not as bad as having a hippopotamus sit on your head, but close.)\n"
+    "\n"
     "OPTIONS\n"
     "-------\n"
     " -interp iii   == 'iii' is the interpolation mode:\n"
@@ -61,20 +74,28 @@ void NWC_help(void)
     "------------------------------------\n"
     " * The program 3dAllineate with the -nwarp_save option will save a\n"
     "    displacement representation of a nonlinear warp to a 3D dataset\n"
-    "    with 3 sub-bricks (1 for each of xyz).\n"
+    "    with 3 sub-bricks (1 for each of x, y, and z).\n"
     "\n"
-    " * The contents of these sub-bricks are the displacments in mm.\n"
-    "    The identity warp would be all zero, for example.\n"
+    " * The contents of these sub-bricks are the displacments of each voxel in mm.\n"
+    "   ++ The identity warp would be all zero, for example.\n"
     "\n"
     " * An input warp dataset can contain extra sub-bricks -- only the first 3\n"
     "    are used.\n"
     "\n"
     " * Warp datasets output by this program have a 4th sub-brick, labeled\n"
     "    'hexvol', which contains the volume of each distorted hexahedron in\n"
-    "    the grid.\n"
+    "    the grid.  This sub-brick is NOT used in any application of the\n"
+    "    warp, such as 3dNwarpApply or further runs of 3dNwarpCalc, but can\n"
+    "    help you understand how much distortion is present in the warp.\n"
+    "   ++ If there are any negative values in the hexvol sub-brick, this\n"
+    "      indicates that something bad happened in the warp calculation.\n"
     "\n"
     "OPERATORS\n"
     "---------\n"
+    " * In the explanations below, the single character 'x' represents a 3D\n"
+    "    coordinate vector, and a capital letter such as 'A' represents a\n"
+    "    whole 3D warp function, whose output at a particular location is 'A(x)'.\n"
+    "\n"
     "&readnwarp(FF) == Read a 3D warp from a file and place it on top of the stack.\n"
     "                   The input file should be a 3D dataset with 3 sub-bricks\n"
     "                   (volumes) storing the xyz displacments of each grid point.\n"
@@ -104,6 +125,7 @@ void NWC_help(void)
     "                     fattening, and will make you get red pimples on your nose.\n"
     "                  ++ The parameters could come, for example, from using\n"
     "                     3dAllineate with the '-1Dparam_save' and '-nwarp' options.\n"
+    "               ++++ NOT YET IMPLEMENTED\n"
     "\n"
     "&read4x4(FF)   == Read an affine 4x4 transform matrix directly; the input\n"
     "                   file should contain 12 numbers, which will be organized\n"
@@ -116,7 +138,7 @@ void NWC_help(void)
     "\n"
     "&write(FF)     == Write the 3D warp on the top of the stack to a file.\n"
     "                   The output file is always in a 3D nwarp (dataset) format\n"
-    "                   -- never a matrix or polynomial.\n"
+    "                   -- NEVER a matrix or polynomial.\n"
     "\n"
     "&dup           == Push the duplicate of the top of the stack onto the stack:\n"
     "                   [ A B C ... ] goes to [ A A B C ... ]  after &dup.\n"
@@ -130,38 +152,56 @@ void NWC_help(void)
     "&compose       == If the stack is [ A(x) B(x) C(x) ... ], compute the warp\n"
     "                   B(A(x)) and replace these top 2 elements with the result:\n"
     "                   [ A B C ... ] goes to [ B(A(x)) C(x) ... ] after &compose\n"
+    "                  ++ If you wanted to compute A(B(x)), then you would use the\n"
+    "                     combination '&swap &compose'.\n"
     "\n"
     "&invert        == Replace top element of the stack with its inverse:\n"
     "                   the warp J(x) such that A(J(x)) = x.\n"
     "                  ++ Inversion is done using a functional iteration:\n"
     "                       Jnew(x) = Jold( 2*x - A(Jold(x)) )\n"
+    "                     which requires 1 warp composition and 1 warp interpolation\n"
+    "                     for each step.\n"
+    "                  ++ The '-verb' option to 3dNwarpCalc will show you the\n"
+    "                     progress of the iterations for &invert and &invsqrt.\n"
     "\n"
     "&sqrt          == Replace top element of the stack with its 'square root':\n"
     "                   the warp Q(x) such that Q(Q(x)) = A(x).\n"
     "                  ++ NOTE: not all warps have square roots, so this operation\n"
     "                     is not guaranteed to work.  Be careful out there.\n"
     "                  ++ The basic algorithm used computes the inverse of Q(x),\n"
-    "                     as in &invsqrt, so an extra warp inversion is required,\n"
+    "                     as in &invsqrt, so an extra warp inversion is required\n"
     "                     here, which makes this operation slower than &invsqrt.\n"
     "\n"
     "&invsqrt       == Replace the top element of the stack with the inverse of\n"
     "                   its square root: the warp R(x) such that A(R(R(x)) = x.\n"
-    "                  ++ '&sqrtinv' is a synonym for this operation, since I\n"
-    "                     have trouble remembering which one is correct-imundo.\n"
+    "                  ++ '&sqrtinv' is a synonym for this operation, since I always\n"
+    "                     have trouble remembering which one is correct-imundo-ific.\n"
     "                  ++ This operation is based on the iteration\n"
     "                       Rnew(x) = Rold( 1.5*x - 0.5*A(Rold(Rold(x))) )\n"
     "                     which is adapted from the Schulz iteration for matrix\n"
-    "                     square roots.\n"
+    "                     square roots, and requires 2 warp compositions and 1 warp\n"
+    "                     interpolation for each step.\n"
     "\n"
     "&sqr           == Replace the top element of the stack with its 'square':\n"
     "                   the warp S(x) = A(A(x)).  Equivalent to '&dup &compose'.\n"
+    "                  ++ To compute the fourth power of a warp: '&sqr &sqr'\n"
+    "                  ++ To compute the third power of a warp:  '&dup &sqr &compose'\n"
     "\n"
     "&scale(a)      == Scale the top-of-stack warp displacements by numerical\n"
     "                   factor 'a' in all 3 dimensions.\n"
-    "                  ++ NOTE: this might make the warp non-invertible, for\n"
-    "                     large enough 'a'.  Proceed at your own risk.\n"
+    "                  ++ NOTE: this might make the warp non-invertible, (e.g., give\n"
+    "                     negative results in 'hexvol') for large enough 'a'.\n"
+    "                     Proceed at your own risk!\n"
     "                  ++ If a=0, then the result is the identity warp, since\n"
     "                     all the displacements are now 0.\n"
+    "\n"
+    "&apply(DD,PP)  == Apply the 3D warp at the top of the stack to a dataset\n"
+    "                   whose name is given by the 'DD' argument, to produce\n"
+    "                   a dataset whose prefix is given by the 'PP' argument.\n"
+    "                 ++ This operation does not affect the stack of warps.\n"
+    "                 ++ Program 3dNwarpApply provides more options to control\n"
+    "                    the way that a warp is applied to a dataset.\n"
+    "               ++++ NOT YET IMPLEMENTED\n"
     "\n"
     "EXAMPLES\n"
     "--------\n"
@@ -174,7 +214,8 @@ void NWC_help(void)
     "   zero (i.e., the identity warp), and the 'hexvol' entries would be constant\n"
     "   and equal to the voxel volume.\n"
     "\n"
-    " 3dNwarpCalc '&read(Warp+tlrc.HEAD) &dup &invert &write(WarpInv) &compose &write(WarpOut)'\n"
+    " 3dNwarpCalc -verb '&read(Warp+tlrc.HEAD) &dup &invert' \\\n"
+    "             '&write(WarpInv) &compose &write(WarpOut)'\n"
     "\n"
     "** Read in a warp, compute its inverse square root, then square that, and compose\n"
     "   the result with the original warp -- the result should be the identity warp.\n"
@@ -187,7 +228,8 @@ void NWC_help(void)
     "AUTHOR -- RWCox -- August 2011\n"
    ) ;
 
-   PRINT_COMPILE_DATE ; exit(0) ;
+   PRINT_AFNI_OMP_USAGE("3dNwarpCalc",NULL) ; PRINT_COMPILE_DATE ;
+   exit(0) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -195,12 +237,14 @@ void NWC_help(void)
 int main( int argc , char *argv[] )
 {
    int iarg=1 , verb=0 , interp_code=MRI_QUINTIC ;
+   char *expr ; int nexpr , narg ;
+   THD_3dim_dataset *oset ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) NWC_help() ;
 
    mainENTRY("3dNwarpCalc"); machdep();
    AFNI_logger("3dNwarpCalc",argc,argv);
-   PRINT_VERSION("3dNwarpCalc"); AUTHOR("Bob the Warper");
+   PRINT_VERSION("3dNwarpCalc"); AUTHOR("Bob the Warped");
    (void)COX_clock_time() ;
 
    while( iarg < argc && argv[iarg][0] == '-' ){
@@ -255,13 +299,25 @@ int main( int argc , char *argv[] )
 
    if( iarg >= argc ) ERROR_exit("No command line expression :-(") ;
 
+   /*--- Assemble all remaining args into the expression ---*/
+
+   expr = strdup(argv[iarg++]) ;
+   for( ; iarg < argc ; iarg++ ){
+     nexpr = strlen(expr) ;
+     narg  = strlen(argv[iarg]) ; if( narg == 0 ) continue ;
+     expr  = (char *)realloc( expr , sizeof(char)*(nexpr+narg+4) ) ;
+     strcat(expr," ") ; strcat(expr,argv[iarg]) ;
+   }
+
    /*--- All the work is done herein ---*/
 
    NwarpCalcRPN_verb(verb) ;
 
-   (void)NwarpCalcRPN( argv[iarg] , NULL , interp_code ) ;
+   oset = NwarpCalcRPN( expr , NULL , interp_code ) ;
 
-   /*--- run away screaming into the night ---*/
+   /*--- run away screaming into the night, never to be seen again ---*/
+
+   free(expr) ; if( oset != NULL ) DSET_delete(oset) ;
 
    INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
                 COX_cpu_time() , COX_clock_time() ) ;
