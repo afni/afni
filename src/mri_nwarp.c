@@ -363,7 +363,7 @@ ENTRY("IW3D_to_dataset") ;
    har = (float *)malloc(sizeof(float)*nxyz) ;
 
    if( AA->hv == NULL ) (void)IW3D_load_hexvol(AA) ;
-   hva = AA->hv ; hfac = MAT44_DET(cmat) ;
+   hva = AA->hv ; hfac = MAT44_DET(cmat) ; hfac = fabsf(hfac) ;
 
    for( ii=0 ; ii < nxyz ; ii++ ){
      MAT33_VEC( cmat , xda[ii],yda[ii],zda[ii] , xar[ii],yar[ii],zar[ii] ) ;

@@ -301,6 +301,8 @@ int main( int argc , char *argv[] )
       "  ++ Alas!  3dNwarpCalc has yet to be written.  If AFNI survives the\n"
       "     coming budget crises, then it will be forthcoming later in 2011.\n"
      ) ;
+
+     PRINT_AFNI_OMP_USAGE("3dNwarpApply",NULL) ; PRINT_COMPILE_DATE ;
      exit(0) ;
    }
 
