@@ -2123,6 +2123,50 @@ extern MRI_IMAGE * mri_first_principal_vector( MRI_IMARR *imar ) ;
 extern int mri_principal_vectors( MRI_IMARR *imar, int nvec, float *sval, float *uvec ) ;
 
 /*----------------------------------------------------------------------------*/
+/* for mri_nwarp.c */
+
+typedef struct {
+  int    nx ,  ny ,  nz ;
+  float *xd , *yd , *zd , *hv ;
+  mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
+  char *geomstring ;
+  int view ;
+} IndexWarp3D ;
+
+extern IndexWarp3D * IW3D_create( int nx , int ny , int nz ) ;
+extern void IW3D_destroy( IndexWarp3D *AA ) ;
+extern float IW3D_normL1  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
+extern float IW3D_normL2  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
+extern float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB ) ;
+extern IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA ) ;
+extern IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac ) ;
+extern IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac ) ;
+extern void IW3D_scale( IndexWarp3D *AA , float fac ) ;
+extern IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty ) ;
+extern THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix ) ;
+extern float_pair IW3D_load_hexvol( IndexWarp3D *AA ) ;
+extern IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB     , int icode ) ;
+extern IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
+extern IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
+extern IndexWarp3D * IW3D_from_poly( int npar, float *par, IndexWarp3D *WW ) ;
+extern THD_3dim_dataset * NwarpCalcRPN( char *expr, char *prefix, int icode, int acode ) ;
+extern void NwarpCalcRPN_verb(int i) ;
+
+extern void THD_interp_floatim( MRI_IMAGE *fim ,
+                                int np , float *ip , float *jp , float *kp ,
+                                int code, float *outar ) ;
+extern MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim ,
+                                    int incode      , float wfac     ,
+                                    mat44 cmat_src  ,
+                                    mat44 cmat_out  ,
+                                    int nx_out      , int ny_out     , int nz_out  ) ;
+extern THD_3dim_dataset * THD_nwarp_dataset( THD_3dim_dataset *dset_nwarp ,
+                                             THD_3dim_dataset *dset_src  ,
+                                             THD_3dim_dataset *dset_mast ,
+                                             char *prefix , int interp_code ,
+                                             float dxyz_mast , float wfac ) ;
+
+/*----------------------------------------------------------------------------*/
 
 #define CPU_IS_64_BIT() ((sizeof(void *) == 8) ? 1 : 0 )
 

@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , AUG , 2011 , RWC , "3dNwarpCalc" , MICRO , TYPE_GENERAL ,
+  { 19 , AUG , 2011 , RWC , "3dNwarpCalc" , MINOR , TYPE_MODIFY ,
+   "Fix &readpoly() and implement &read4x4()" ,
+   "Modify 3dNwarpApply to use same function as &apply() so that the 2\n"
+   "programs are in sync.\n"
+   "Release 3dNwarpCalc into the wild:\n"
+   "\n"
+   "Born free, and code is worth running, but only worth running, because\n"
+   "you're born freeware!" } ,
+
+ { 18 , AUG , 2011 , RWC , "3dNwarpCalc" , MICRO , TYPE_GENERAL ,
    "Add '&apply' function" ,
    "To apply a calculated 3D warp to a dataset, without having to use\n"
    "3dNwarpApply" } ,
