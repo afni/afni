@@ -145,6 +145,7 @@ void NWC_help(void)
     "                      0.0   0.0   0.0   1.0\n"
     "                 ++ This matrix defines the transformation from input spatial\n"
     "                    DICOM coordinates (x,y,z) to output coordinates, in mm.\n"
+    "                 ++ One way to get this matrix is via '3dAllineate -1Dmatrix_save'.\n"
     "                 ++ This matrix should have non-zero determinant!\n"
     "\n"
     "&write(FF)     == Write the 3D warp on the top of the stack to a file.\n"
