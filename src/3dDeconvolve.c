@@ -515,6 +515,11 @@ void basis_write_sresp( int argc , char *argv[] ,
                         basis_expansion *be , float dt ,
                         float *mse ,
                         int pbot, matrix cvar, char *output_filename ) ;
+void basis_write_sresp_1D( int argc , char *argv[] ,
+                        struct DC_options *option_data ,
+                        basis_expansion *be , float dt ,
+                        float *mse ,
+                        int pbot, matrix cvar, char *output_filename ) ;
 
 /** global variables for stimulus basis expansions **/
 
@@ -7974,11 +7979,19 @@ void output_results
   for (is = 0;  is < num_stimts;  is++)
     {
       if( basis_stim[is] != NULL ){                     /* until later */
-        if( option_data->sresp_filename[is] != NULL )
-          basis_write_sresp( argc , argv , option_data ,
-                             basis_stim[is] , basis_dtout ,
-                             mse_vol , ib , XtXinv ,
-                             option_data->sresp_filename[is] ) ;
+        if( option_data->sresp_filename[is] != NULL ) {
+          if( option_data->input_filename )
+             basis_write_sresp( argc , argv , option_data ,
+                                basis_stim[is] , basis_dtout ,
+                                mse_vol , ib , XtXinv ,
+                                option_data->sresp_filename[is] ) ;
+          /* 19 Aug 2011 [rickr] */
+          else if( option_data->input1D_filename )
+             basis_write_sresp_1D( argc , argv , option_data ,
+                                basis_stim[is] , basis_dtout ,
+                                mse_vol , ib , XtXinv ,
+                                option_data->sresp_filename[is] ) ;
+        }
           ib += basis_stim[is]->nparm ;
         continue ;
       }
@@ -11377,9 +11390,9 @@ void basis_write_sresp( int argc , char *argv[] ,
 
    /* evaluate basis vectors for output on dt time grid */
 
-   bb = (float ** ) malloc( sizeof(float *) * nf ) ;
+   bb = (float **) malloc( sizeof(float *) * nf ) ;
    for( pp=0 ; pp < nf ; pp++ ){
-     bb[pp] = (float * ) malloc( sizeof(float  ) * ts_length ) ;
+     bb[pp] = (float *) malloc( sizeof(float) * ts_length ) ;
      for( ib=0 ; ib < ts_length ; ib++ )
        bb[pp][ib] = basis_funceval( be->bfunc[pp] , tt[ib] ) ;
    }
@@ -11436,6 +11449,87 @@ void basis_write_sresp( int argc , char *argv[] ,
     INFO_message("Wrote sresp 3D+time dataset into %s\n",DSET_BRIKNAME(out_dset)) ;
 
    DSET_delete( out_dset ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------*/
+/* similarly, make 1D version of write_sresp        19 Aug 2011 [rickr] */
+void basis_write_sresp_1D( int argc , char *argv[] ,
+                        struct DC_options *option_data ,
+                        basis_expansion *be , float dt ,
+                        float *mse ,
+                        int pbot, matrix cvar, char *output_filename )
+{
+   int nvox, ii, nf, allz, ts_length ;
+   register int pp,qq, ib ;
+   register float sum ;
+   float *vv , *tt , **hout , factor , **bb ;
+   short *bar ;
+   char label[512] ;
+   const float EPSILON = 1.0e-10 ;
+
+   nvox = 1 ; /* from basis_write_sresp(), but use 1 voxel */
+
+   if( option_data->force_TR > 0.0 ) dt = 1.0f ;
+   if( dt <= 0.0f ) dt = 1.0f ;
+
+   ts_length = 1 + (int)myceil( (be->ttop - be->tbot)/dt ) ;
+
+   /* create output bricks */
+
+   hout = (float **) malloc( sizeof(float *) * ts_length ) ;
+   for( ib=0 ; ib < ts_length ; ib++ )
+     hout[ib] = (float *)calloc(sizeof(float),nvox) ;
+
+   nf = be->nfunc ;
+   tt = (float *) malloc( sizeof(float) * ts_length ) ;
+
+   for( ib=0 ; ib < ts_length ; ib++ )     /* output time grid */
+     tt[ib] = be->tbot + ib*dt ;
+
+   /* evaluate basis vectors for output on dt time grid */
+
+   bb = (float **) malloc( sizeof(float *) * nf ) ;
+   for( pp=0 ; pp < nf ; pp++ ){
+     bb[pp] = (float *) malloc( sizeof(float) * ts_length ) ;
+     for( ib=0 ; ib < ts_length ; ib++ )
+       bb[pp][ib] = basis_funceval( be->bfunc[pp] , tt[ib] ) ;
+   }
+   free((void *)tt) ;
+
+   /* evaluate unscaled variance on dt time grid */
+
+   vv = (float *) malloc( sizeof(float) * ts_length ) ;
+   for( ib=0 ; ib < ts_length ; ib++ ){
+     sum = 0.0f ;
+     for( pp=0 ; pp < nf ; pp++ ){
+       for( qq=0 ; qq < nf ; qq++ )
+         sum += cvar.elts[pbot+pp][pbot+qq] * bb[pp][ib] * bb[qq][ib] ;
+     }
+     vv[ib] = (sum >= 0.0f) ? sum : 0.0f ;
+   }
+   for( pp=0 ; pp < nf ; pp++ ) free((void *)bb[pp]) ;
+   free((void *)bb) ;
+
+   /* loop over voxels, scale by mse to get variance */
+
+   for( ii=0 ; ii < nvox ; ii++ ){
+     for( ib=0 ; ib < ts_length ; ib++ )
+       hout[ib][ii] = sqrt( vv[ib] * mse[ii] ) ;
+   }
+   free((void *)vv) ;
+
+   /* write output */
+   write_one_ts( output_filename , ts_length , hout ) ;
+
+   /* and free results */
+   for( ib=0 ; ib < ts_length ; ib++ )
+       free((void *)hout[ib]) ;
+   free((void *)hout) ;
+
+   if( verb )
+    INFO_message("Wrote sresp 1D dataset into %s\n",output_filename) ;
+
    return ;
 }
 
