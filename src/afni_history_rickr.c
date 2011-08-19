@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, AUG, 2011, RCR, "3dDeconvolve", MINOR, TYPE_MODIFY,
+   "added the ability to output 1D sresp datasets",
+   "Requested by S Baum."
+ } ,
+
  { 17, AUG, 2011, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
    "fixed some final anat dset assignments",
    NULL
