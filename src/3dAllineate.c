@@ -3644,7 +3644,7 @@ STATUS("zeropad weight dataset") ;
          dset_mast = qset ;
          THD_daxes_to_mat44(dset_mast->daxes) ;
          if( verb )
-           INFO_message("changing output grid spacing to %.3f mm",dxyz_mast) ;
+           INFO_message("changing output grid spacing to %.4f mm",dxyz_mast) ;
        }
      }
      if( !ISVALID_MAT44(dset_mast->daxes->ijk_to_dicom) ) /* make sure have */
@@ -4808,7 +4808,7 @@ STATUS("zeropad weight dataset") ;
          }
          free((void *)aval) ;
          fprintf(stderr," + Median of Parameters =") ;
-         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) fprintf(stderr," %.4f",pval[jj]) ;
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) fprintf(stderr," %.6f",pval[jj]) ;
          fprintf(stderr,"\n") ;
          if( meth_median_replace ){  /* replace final results with median! */
            ININFO_message("Replacing Final parameters with Median") ;
@@ -4825,7 +4825,7 @@ STATUS("zeropad weight dataset") ;
      if( warp_freeze && DSET_NVALS(dset_targ) > 1 ){  /* 10 Oct 2006 */
        for( jj=6 ; jj < stup.wfunc_numpar ; jj++ ){
          if( !stup.wfunc_param[jj].fixed ){
-           if( verb > 1 ) INFO_message("Freezing parameter #%d [%s] = %.5f",
+           if( verb > 1 ) INFO_message("Freezing parameter #%d [%s] = %.6f",
                                        jj+1 , stup.wfunc_param[jj].name ,
                                               stup.wfunc_param[jj].val_out ) ;
            stup.wfunc_param[jj].fixed = 2 ;
@@ -5064,7 +5064,7 @@ mri_genalign_set_pgmat(1) ;
      fprintf(fp,"\n") ;
      for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-         fprintf(fp," %.5f",parsave[kk][jj]) ;
+         fprintf(fp," %.6f",parsave[kk][jj]) ;
        fprintf(fp,"\n") ;                           /* oops */
      }
      if( fp != stdout ){

@@ -1,246 +1,11 @@
 #include "mrilib.h"
-#include "r_new_resam_dset.h"
 
 #ifdef USE_OMP
 #include <omp.h>
 #include "mri_genalign_util.c"
+#include "mri_genalign.c"
+#include "mri_nwarp.c"
 #endif
-
-/*----------------------------------------------------------------------------*/
-/* interpolate from a float image to a set of indexes */
-
-void mri_interp_floatim( MRI_IMAGE *fim ,
-                         int np , float *ip , float *jp , float *kp ,
-                         int code, float *outar )
-{
-   ENTRY("mri_interp_floatim") ;
-
-   switch( code ){
-     case MRI_NN:      GA_interp_NN     ( fim, np,ip,jp,kp, outar ) ; break ;
-     case MRI_LINEAR:  GA_interp_linear ( fim, np,ip,jp,kp, outar ) ; break ;
-     case MRI_CUBIC:   GA_interp_cubic  ( fim, np,ip,jp,kp, outar ) ; break ;
-     default:
-     case MRI_QUINTIC: GA_interp_quintic( fim, np,ip,jp,kp, outar ) ; break ;
-     case MRI_WSINC5:  GA_interp_wsinc5 ( fim, np,ip,jp,kp, outar ) ; break ;
-   }
-
-   if( MRI_HIGHORDER(code) ){
-     int ii,nn=fim->nvox ; float bot,top , *far=MRI_FLOAT_PTR(fim) ;
-     bot = top = far[0] ;
-     for( ii=1 ; ii < nn ; ii++ ) if( bot > far[ii] ) bot = far[ii] ;
-                             else if( top < far[ii] ) top = far[ii] ;
-     for( ii=0 ; ii < np ; ii++ ) if( outar[ii] < bot ) outar[ii] = bot ;
-                             else if( outar[ii] > top ) outar[ii] = top ;
-   }
-
-   EXRETURN ;
-}
-
-/*----------------------------------------------------------------------------*/
-/* interpolate from 1 image to another, preserving type */
-
-void mri_interp( MRI_IMAGE *inim ,
-                 int np , float *ip , float *jp , float *kp ,
-                 int code, void *outar )
-{
-   MRI_IMAGE *fim=inim ; float *far ; register int ii ;
-
-   switch( fim->kind ){
-
-     default:
-       ERROR_message("Illegal input type %d in mri_interp()",(int)fim->kind) ;
-     break ;
-
-     /*--------------------*/
-
-     case MRI_float:
-       mri_interp_floatim( inim , np,ip,jp,kp , code,(float *)outar ) ;
-     break ;
-
-     /*--------------------*/
-
-     case MRI_fvect:{
-       int kk , vd=inim->vdim ; float *oar=(float *)outar ;
-       far = (float *)malloc(sizeof(float)*np) ;
-       for( kk=0 ; kk < vd ; kk++ ){
-         fim = mri_fvect_subimage(inim,kk) ;
-         mri_interp_floatim( inim , np,ip,jp,kp , code,far ) ;
-         for( ii=0 ; ii < np ; ii++ ) oar[ii*vd+kk] = far[ii] ;
-         mri_free(fim) ;
-       }
-       free(far) ;
-     }
-     break ;
-
-     /*--------------------*/
-
-     case MRI_short:{
-       short *sar=(short *)outar ;
-       fim = mri_to_float(inim) ; far = (float *)malloc(sizeof(float)*np) ;
-       mri_interp_floatim( inim , np,ip,jp,kp , code,far ) ;
-       for( ii=0 ; ii < np ;  ii++ ) sar[ii] = SHORTIZE(far[ii]) ;
-       free(far) ; mri_free(fim) ;
-     }
-     break ;
-
-     /*--------------------*/
-
-     case MRI_byte:{
-       byte *bar=(byte *)outar ;
-       fim = mri_to_float(inim) ; far = (float *)malloc(sizeof(float)*np) ;
-       mri_interp_floatim( inim , np,ip,jp,kp , code,far ) ;
-       for( ii=0 ; ii < np ;  ii++ ) bar[ii] = BYTEIZE(far[ii]) ;
-       free(far) ; mri_free(fim) ;
-     }
-     break ;
-
-     /*--------------------*/
-
-     case MRI_complex:{
-       complex *car=(complex *)outar ; MRI_IMARR *imar ; float *gar ;
-       far = (float *)malloc(sizeof(float)*np) ;
-       gar = (float *)malloc(sizeof(float)*np) ;
-       imar = mri_complex_to_pair(inim) ;
-       mri_interp_floatim( IMARR_SUBIM(imar,0) , np,ip,jp,kp , code,far ) ;
-       mri_interp_floatim( IMARR_SUBIM(imar,1) , np,ip,jp,kp , code,gar ) ;
-       for( ii=0 ; ii < np ; ii++ ){ car[ii].r = far[ii]; car[ii].i = gar[ii]; }
-       DESTROY_IMARR(imar) ; free(gar) ; free(far) ;
-     }
-     break ;
-
-     /*--------------------*/
-
-     case MRI_rgb:{
-       MRI_IMARR *imar ; float *gar , *har ; byte *bar=(byte *)outar ;
-       far = (float *)malloc(sizeof(float)*np) ;
-       gar = (float *)malloc(sizeof(float)*np) ;
-       har = (float *)malloc(sizeof(float)*np) ;
-       imar = mri_rgb_to_3float(inim) ;
-       mri_interp_floatim( IMARR_SUBIM(imar,0) , np,ip,jp,kp , code,far ) ;
-       mri_interp_floatim( IMARR_SUBIM(imar,1) , np,ip,jp,kp , code,gar ) ;
-       mri_interp_floatim( IMARR_SUBIM(imar,2) , np,ip,jp,kp , code,har ) ;
-       for( ii=0 ; ii < np ; ii++ ){
-         bar[3*ii  ] = BYTEIZE(far[ii]) ;
-         bar[3*ii+1] = BYTEIZE(gar[ii]) ;
-         bar[3*ii+2] = BYTEIZE(har[ii]) ;
-       }
-       DESTROY_IMARR(imar) ; free(har) ; free(gar) ; free(far) ;
-     }
-     break ;
-
-   }
-
-   return ;
-}
-
-/*----------------------------------------------------------------------------*/
-/* Setup to warp images given
-     bimar    = array of DICOM (x,y,z) deltas == 3D warp displacment function
-     cmat_bim = matrix to transform indexes (ib,jb,kb) to DICOM (xb,yb,zb)
-     cmat_src = similar matrix for source dataset to be warped from
-     cmat_out = similar matrix for output dataset to be warped to
-
-   foreach (io,jo,ko) in output dataset do {
-     (xo,yo,zo) =    [cmat_out](io,jo,ko)
-     (ib,jb,kb) = inv[cmat_bim](xo,yo,zo)
-     (xs,ys,zs) = (xo,yo,zo) + bimar interpolated at (ib,jb,kb)
-     (is,js,ks) = inv[cmat_src](xs,ys,zs)
-   }
-
-   The output is the array of images of (is,js,ks) = indexes in the source
-   dataset, for each point to interpolated to in the output dataset (io,jo,ko).
-   This set of images can be used, in turn, to interpolate a src grid image
-   to an out grid warped image via mri_interp_floatim().
-*//*--------------------------------------------------------------------------*/
-
-MRI_IMARR * mri_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim ,
-                             int incode      , float wfac     ,
-                             mat44 cmat_src  ,
-                             mat44 cmat_out  ,
-                             int nx_out      , int ny_out     , int nz_out  )
-{
-   int nx,ny,nz,nxy,nxyz ;
-   float *xp, *yp, *zp ;
-   MRI_IMAGE *wxim, *wyim, *wzim ; MRI_IMARR *wimar ; mat44 tmat ;
-
-ENTRY("mri_apply_nwarp") ;
-
-   if( bimar == NULL ) RETURN(NULL) ;
-
-   nx = nx_out ; ny = ny_out ; nz = nz_out ; nxy = nx*ny ; nxyz = nxy*nz ;
-
-   /* space for indexes/coordinates */
-
-   xp = (float *)malloc(sizeof(float)*nxyz) ;
-   yp = (float *)malloc(sizeof(float)*nxyz) ;
-   zp = (float *)malloc(sizeof(float)*nxyz) ;
-
-   if( !MAT44_FLEQ(cmat_bim,cmat_out) ){
-     int qq,ii,jj,kk ; mat44 imat_out_to_bim ;
-
-     tmat = MAT44_INV(cmat_bim) ; imat_out_to_bim = MAT44_MUL(tmat,cmat_out) ;
-
-     /* compute indexes of each point in output image
-        (the _out grid) in the warp space (the _bim grid),
-        using the imat_out_to_bim matrix computed just above */
-
-     for( qq=0 ; qq < nxyz ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       MAT44_VEC( imat_out_to_bim , ii,jj,kk , xp[qq],yp[qq],zp[qq] ) ;
-     }
-
-   } else {   /* case where cmat_bim and cmat_out are equal */
-     int qq,ii,jj,kk ;
-
-     for( qq=0 ; qq < nxyz ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       xp[qq] = ii ; yp[qq] = jj ; zp[qq] = kk ;
-     }
-
-   }
-
-   /* now interpolate the warp delta volumes from the bim
-      grid to the out grid, using the indexes computed just above */
-
-   wxim = mri_new_vol(nx,ny,nz,MRI_float) ;
-   mri_interp_floatim( IMARR_SUBIM(bimar,0), nxyz,xp,yp,zp,
-                                             incode, MRI_FLOAT_PTR(wxim) ) ;
-   wyim = mri_new_vol(nx,ny,nz,MRI_float) ;
-   mri_interp_floatim( IMARR_SUBIM(bimar,1), nxyz,xp,yp,zp,
-                                             incode, MRI_FLOAT_PTR(wyim) ) ;
-   wzim = mri_new_vol(nx,ny,nz,MRI_float) ;
-   mri_interp_floatim( IMARR_SUBIM(bimar,2), nxyz,xp,yp,zp,
-                                             incode, MRI_FLOAT_PTR(wzim) ) ;
-
-   free(zp) ; zp = MRI_FLOAT_PTR(wzim) ;
-   free(yp) ; yp = MRI_FLOAT_PTR(wyim) ;
-   free(xp) ; xp = MRI_FLOAT_PTR(wxim) ;
-
-   /* now convert to index warp from src to out space */
-
-   tmat = MAT44_INV(cmat_src) ;  /* takes (x,y,z) to (i,j,k) in src space */
-
- AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 33333 )
- { int qq,ii,jj,kk ; float xx,yy,zz , fac ;
-   fac = (wfac == 0.0f) ? 1.0f : wfac ;
-#pragma omp for
-   for( qq=0 ; qq < nxyz ; qq++ ){
-     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-     MAT44_VEC( cmat_out , ii,jj,kk , xx,yy,zz ) ;         /* compute (xo,yo,zo) */
-     xx += fac*xp[qq]; yy += fac*yp[qq]; zz += fac*zp[qq]; /* add in the deltas */
-     MAT44_VEC( tmat, xx,yy,zz, xp[qq],yp[qq],zp[qq] ) ;   /* ==> to (is,js,ks) */
-   }
- }
- AFNI_OMP_END ;
-
-   /* package results for delivery to the (ab)user */
-
-   INIT_IMARR(wimar) ;
-   ADDTO_IMARR(wimar,wxim) ; ADDTO_IMARR(wimar,wyim) ; ADDTO_IMARR(wimar,wzim) ;
-
-   RETURN(wimar) ;
-}
 
 /*----------------------------------------------------------------------------*/
 
@@ -249,7 +14,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_nwarp=NULL , *dset_src=NULL , *dset_mast=NULL ;
    MRI_IMARR *imar_nwarp=NULL , *im_src ;
    char *prefix     = NULL ;
-   double dxyz_mast = 0.0 ;
+   float dxyz_mast  = 0.0f ;
    int interp_code  = MRI_WSINC5 ;
    int iarg , kk , verb=1 , iv ;
    mat44 src_cmat, nwarp_cmat, mast_cmat ;
@@ -265,8 +30,9 @@ int main( int argc , char *argv[] )
      printf(
       "Usage: 3dNwarpApply [options] sourcedataset\n"
       "\n"
-      "Program to apply a nonlinear warp saved from 3dAllineate -nwarp_save\n"
-      "to a dataset, to produce a warped version of the source dataset.\n"
+      "Program to apply a nonlinear 3D warp saved from 3dAllineate -nwarp_save\n"
+      "(or from 3dNwarpCalc) to a 3D dataset, to produce a warped version of\n"
+      "the source dataset.\n"
       "\n"
       "OPTIONS:\n"
       "--------\n"
@@ -294,12 +60,20 @@ int main( int argc , char *argv[] )
       "NOTES:\n"
       "------\n"
       "* At present, this program doesn't work with 2D warps, only with 3D.\n"
+      "\n"
       "* At present, the output is always in float format, no matter what\n"
       "   absurd data type is in the input.\n"
+      "\n"
       "* Program 3dNwarpCalc could be used to operate on 3D warps:\n"
-      "  ++ Catenate them; invert them; pre- or post-apply an affine warp.\n"
-      "  ++ Alas!  3dNwarpCalc has yet to be written.  If AFNI survives the\n"
-      "     coming budget crises, then it will be forthcoming later in 2011.\n"
+      "  ++ e.g.: catenate (compose) them; invert or square root them.\n"
+      "  ++ 3dNwarpCalc also has built-in a slightly simplified version\n"
+      "     of 3dNwarpApply's functionality, so that you can calculate a\n"
+      "     warp and apply it to a dataset in one program.\n"
+     ) ;
+
+     printf(
+      "\n"
+      "AUTHOR -- RWCox -- Anno Domini Two Thousand Eleven\n"
      ) ;
 
      PRINT_AFNI_OMP_USAGE("3dNwarpApply",NULL) ; PRINT_COMPILE_DATE ;
@@ -387,10 +161,10 @@ int main( int argc , char *argv[] )
          strcasecmp(argv[iarg],"-newgrid"  ) == 0   ){
 
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
-       dxyz_mast = strtod(argv[iarg],NULL) ;
-       if( dxyz_mast <= 0.0 )
+       dxyz_mast = (float)strtod(argv[iarg],NULL) ;
+       if( dxyz_mast <= 0.0f )
          ERROR_exit("Illegal value '%s' after -mast_dxyz :-(",argv[iarg]) ;
-       if( dxyz_mast <= 0.5 )
+       if( dxyz_mast <= 0.5f )
          WARNING_message("Small value %g after -mast_dxyz :-(",dxyz_mast) ;
        iarg++ ; continue ;
      }
@@ -437,7 +211,7 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     ERROR_exit("Unknown and Illegal option '%s' :-( :-( :-(",argv[iarg]) ;
+     ERROR_exit("Unknown, Illegal, and Fattening option '%s' :-( :-( :-(",argv[iarg]) ;
    }
 
    /*-------- check inputs to see if the user is completely demented ---------*/
@@ -455,123 +229,14 @@ int main( int argc , char *argv[] )
      }
    }
 
-   if( dset_mast == NULL ) dset_mast = dset_src ;  /* default master */
+   /*--- the actual work (bow your head in reverence) ---*/
 
-   if( prefix == NULL ){                         /* fake up a prefix */
-     char *cpt ;
-     prefix = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
-     strcpy( prefix , DSET_PREFIX(dset_src) ) ;
-     cpt = strstr(prefix,".nii") ; if( cpt != NULL ) *cpt = '\0' ;
-     strcat( prefix , "_nwarp" ) ; if( cpt != NULL ) strcat(prefix,".nii") ;
-     INFO_message("No '-prefix' option ==> using '%s'",prefix) ;
-   }
-
-   /*---------- manufacture the empty shell of the output dataset ----------*/
-
-   if( !ISVALID_MAT44(dset_src->daxes->ijk_to_dicom) )
-     THD_daxes_to_mat44(dset_src->daxes) ;
-   src_cmat = dset_src->daxes->ijk_to_dicom ;
-
-   if( !ISVALID_MAT44(dset_nwarp->daxes->ijk_to_dicom) )
-     THD_daxes_to_mat44(dset_nwarp->daxes) ;
-   nwarp_cmat = dset_nwarp->daxes->ijk_to_dicom ;
-
-   if( dxyz_mast > 0.0 ){
-     THD_3dim_dataset *qset ;
-     qset = r_new_resam_dset( dset_mast , NULL ,
-                              dxyz_mast,dxyz_mast,dxyz_mast ,
-                              NULL , RESAM_NN_TYPE , NULL , 0 , 0) ;
-     if( qset != NULL ){
-       dset_mast = qset ;
-       THD_daxes_to_mat44(dset_mast->daxes) ;
-       if( verb )
-         INFO_message("changing output grid spacing to %.3f mm",dxyz_mast) ;
-     }
-   }
-
-   if( !ISVALID_MAT44(dset_mast->daxes->ijk_to_dicom) ) /* make sure have */
-     THD_daxes_to_mat44(dset_mast->daxes) ;      /* index-to-DICOM matrix */
-
-   mast_cmat = dset_mast->daxes->ijk_to_dicom ;
-
-   nvals    = DSET_NVALS(dset_src) ;
-   dset_out = EDIT_empty_copy( dset_mast ) ;  /* create the output dataset! */
-   EDIT_dset_items( dset_out ,                /* and patch it up */
-                      ADN_prefix    , prefix ,
-                      ADN_nvals     , nvals ,
-                      ADN_datum_all , MRI_float ,
-                    ADN_none ) ;
-   if( DSET_NUM_TIMES(dset_src) > 1 )
-     EDIT_dset_items( dset_out ,
-                        ADN_ntt   , nvals ,
-                        ADN_ttdel , DSET_TR(dset_src) ,
-                        ADN_tunits, UNITS_SEC_TYPE ,
-                        ADN_nsl   , 0 ,
-                      ADN_none ) ;
-   else
-     EDIT_dset_items( dset_out ,
-                        ADN_func_type , ISANAT(dset_out) ? ANAT_BUCK_TYPE
-                                                         : FUNC_BUCK_TYPE ,
-                      ADN_none ) ;
-
-   /* copy brick info into output */
-
-   THD_copy_datablock_auxdata( dset_src->dblk , dset_out->dblk ) ;
-   for( kk=0 ; kk < nvals ; kk++ )
-     EDIT_BRICK_FACTOR(dset_out,kk,0.0) ;
+   dset_out = THD_nwarp_dataset( dset_nwarp , dset_src , dset_mast ,
+                                 prefix , interp_code , dxyz_mast , wfac ) ;
 
    tross_Copy_History( dset_src , dset_out ) ;        /* hysterical records */
    tross_Make_History( "3dNwarpApply" , argc,argv , dset_out ) ;
 
-   THD_daxes_to_mat44(dset_out->daxes) ;           /* save coord transforms */
-
-   /*----- create warping indexes from warp dataset -----*/
-
-   if( verb )
-     INFO_message("Setting up index-to-index warp from xyz-to-xyz warp") ;
-
-   DSET_load(dset_nwarp) ; CHECK_LOAD_ERROR(dset_nwarp) ;
-   INIT_IMARR(imar_nwarp) ;
-   fim = THD_extract_float_brick(0,dset_nwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
-   fim = THD_extract_float_brick(1,dset_nwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
-   fim = THD_extract_float_brick(2,dset_nwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
-   DSET_unload(dset_nwarp) ;
-
-   nx = DSET_NX(dset_out) ;
-   ny = DSET_NY(dset_out) ;
-   nz = DSET_NZ(dset_out) ; nxyz = nx*ny*nz ;
-
-   /* the actual work of setting up the warp */
-
-   im_src = mri_setup_nwarp( imar_nwarp, nwarp_cmat, interp_code, wfac ,
-                             src_cmat , mast_cmat , nx , ny , nz        ) ;
-
-   ip = MRI_FLOAT_PTR( IMARR_SUBIM(im_src,0) ) ;
-   jp = MRI_FLOAT_PTR( IMARR_SUBIM(im_src,1) ) ;
-   kp = MRI_FLOAT_PTR( IMARR_SUBIM(im_src,2) ) ;
-
-   DESTROY_IMARR(imar_nwarp) ;
-
-   /*----- warp each sub-brick of the input -----*/
-
-   DSET_load(dset_src) ; CHECK_LOAD_ERROR(dset_src) ;
-
-   if( verb == 1 || (verb > 0 && nvals == 1) )
-     INFO_message("Starting warp of source dataset sub-bricks") ;
-   else if( verb > 1 && nvals > 1 )
-     fprintf(stderr,"Sub-brick warp loop") ;
-
-   for( iv=0 ; iv < nvals ; iv++ ){
-     fim = THD_extract_float_brick(iv,dset_src) ; DSET_unload_one(dset_src,iv) ;
-     wim = mri_new_conforming( fim , MRI_float ) ;
-     mri_interp_floatim( fim, nxyz,ip,jp,kp, interp_code, MRI_FLOAT_PTR(wim) ) ;
-     EDIT_substitute_brick( dset_out , iv , MRI_float , MRI_FLOAT_PTR(wim) ) ;
-     mri_clear_and_free(wim) ;
-     if( verb > 1 && nvals > 1 ) fprintf(stderr,".") ;
-   }
-   if( verb > 1 && nvals > 1 ) fprintf(stderr,"\n") ;
-
-   DSET_unload(dset_src) ; DESTROY_IMARR(im_src) ;
    DSET_write(dset_out) ; WROTE_DSET(dset_out) ;
    exit(0) ;
 }

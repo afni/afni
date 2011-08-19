@@ -5,47 +5,7 @@
 #include <omp.h>
 #endif
 
-typedef struct {
-  int    nx ,  ny ,  nz ;
-  float *xd , *yd , *zd , *hv ;
-  mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
-  char *geomstring ;
-  int view ;
-} IndexWarp3D ;
-
-/* prototypes */
-
-IndexWarp3D * IW3D_create( int nx , int ny , int nz ) ;
-void IW3D_destroy( IndexWarp3D *AA ) ;
-float IW3D_normL1  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
-float IW3D_normL2  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
-float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB ) ;
-IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA ) ;
-IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac ) ;
-IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac ) ;
-void IW3D_scale( IndexWarp3D *AA , float fac ) ;
-IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty ) ;
-THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix ) ;
-float_pair IW3D_load_hexvol( IndexWarp3D *AA ) ;
-IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB     , int icode ) ;
-IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
-IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
-IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
-IndexWarp3D * IW3D_from_poly( int npar, float *par, IndexWarp3D *WW ) ;
-THD_3dim_dataset * NwarpCalcRPN( char *expr, char *prefix, int icode, int acode ) ;
-void THD_interp_floatim( MRI_IMAGE *fim ,
-                         int np , float *ip , float *jp , float *kp ,
-                         int code, float *outar ) ;
-MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim ,
-                             int incode      , float wfac     ,
-                             mat44 cmat_src  ,
-                             mat44 cmat_out  ,
-                             int nx_out      , int ny_out     , int nz_out  ) ;
-THD_3dim_dataset * THD_nwarp_dataset( THD_3dim_dataset *dset_nwarp ,
-                                      THD_3dim_dataset *dset_src  ,
-                                      THD_3dim_dataset *dset_mast ,
-                                      char *prefix , int interp_code ,
-                                      float dxyz_mast , float wfac ) ;
+/*---------------------------------------------------------------------------*/
 
 #undef  FREEIFNN
 #define FREEIFNN(x) do{ if((x)!=NULL) free((void *)(x)); } while(0)
@@ -1563,15 +1523,23 @@ ENTRY("IW3D_sqrtinv") ;
 /****************************************************************************/
 /****************************************************************************/
 
+#undef AFF_PARAM
+#undef AFF_MATRIX
+
+#define AFF_PARAM  1
+#define AFF_MATRIX 2
+
+static int affmode = AFF_PARAM ;
+
 /*---------------------------------------------------------------------------*/
 /* Create a warp from a set of parameters, matching a template warp. */
 
 IndexWarp3D * IW3D_from_poly( int npar, float *par, IndexWarp3D *WW )
 {
-   GA_warpfunc *wfunc ;
+   GA_warpfunc *wfunc ; char *wname ;
    int nall , ii,jj,kk , nx,ny,nz,nxy,nxyz , pp,qq,qtop ;
    IndexWarp3D *AA ;
-   float *xda,*yda,*zda , *xq,*yq,*zq ;
+   float *xda,*yda,*zda , *xq,*yq,*zq , afpar[12] ;
 
 ENTRY("IW3D_from_poly") ;
 
@@ -1585,11 +1553,23 @@ ENTRY("IW3D_from_poly") ;
 
    switch( npar ){
      default: RETURN(NULL) ;
-     case  12: wfunc = mri_genalign_affine  ; break ;
-     case  64: wfunc = mri_genalign_cubic   ; break ;
-     case 172: wfunc = mri_genalign_quintic ; break ;
-     case 364: wfunc = mri_genalign_heptic  ; break ;
-     case 668: wfunc = mri_genalign_nonic   ; break ;
+     case  64: wfunc = mri_genalign_cubic   ; wname = "poly3"  ; break ;
+     case 172: wfunc = mri_genalign_quintic ; wname = "poly5"  ; break ;
+     case 364: wfunc = mri_genalign_heptic  ; wname = "poly7"  ; break ;
+     case 664: wfunc = mri_genalign_nonic   ; wname = "poly9"  ; break ;
+
+     case  12:
+       if( affmode == AFF_PARAM ){
+         wfunc = mri_genalign_affine ; wname = "affine_param" ;
+       } else {
+         mat44 wmat , qmat , amat ;                  /* create index warp  */
+         LOAD_MAT44_AR(amat,par) ;                   /* matrix from coord  */
+         wmat = MAT44_MUL(amat,WW->cmat) ;           /* warp matrix, and   */
+         qmat = MAT44_MUL(WW->imat,wmat) ;           /* substitute for the */
+         UNLOAD_MAT44_AR(qmat,afpar) ; par = afpar ; /* input parameters   */
+         wfunc = mri_genalign_mat44  ; wname = "affine_matrix" ;
+       }
+     break ;
    }
 
    /* setup the output warp */
@@ -1600,9 +1580,17 @@ ENTRY("IW3D_from_poly") ;
    AA = IW3D_empty_copy( WW ) ;
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
 
-   xq = (float *)malloc(sizeof(float)*nall) ;
+   xq = (float *)malloc(sizeof(float)*nall) ;  /* workspace */
    yq = (float *)malloc(sizeof(float)*nall) ;
    zq = (float *)malloc(sizeof(float)*nall) ;
+
+   /* send parameters to warping function, for setup */
+
+   if( verb_nww > 1 ) ININFO_message("  - warp name = '%s' has %d parameters",wname,npar) ;
+
+   wfunc( npar , par , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
+
+   /* do the work, Jake */
 
    for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
 
@@ -1973,8 +1961,6 @@ ENTRY("THD_nwarp_dataset") ;
    for( kk=0 ; kk < nvals ; kk++ )
      EDIT_BRICK_FACTOR(dset_out,kk,0.0) ;
 
-   tross_Copy_History( dset_src , dset_out ) ;        /* hysterical records */
-
    THD_daxes_to_mat44(dset_out->daxes) ;           /* save coord transforms */
 
    /*----- create warping indexes from warp dataset -----*/
@@ -2046,7 +2032,7 @@ ENTRY("THD_nwarp_dataset") ;
 THD_3dim_dataset * NwarpCalcRPN( char *expr, char *prefix, int icode, int acode )
 {
    NI_str_array *sar ;
-   char *cmd , mess[2048] ;
+   char *cmd , acmd[4096] , mess[4096] ;
    IndexWarp3D **iwstk=NULL ;
    int            nstk=0 , ii , ss ;
    IndexWarp3D *AA , *BB ;
@@ -2072,9 +2058,13 @@ ENTRY("NwarpCalcRPN") ;
 
      cmd = sar->str[ss] ;
 
-     if(verb_nww)ININFO_message(" + nstk=%d  cmd='%s'",nstk,cmd) ;
+     if(verb_nww)ININFO_message(" + stack size=%d  next operation='%s'",nstk,cmd) ;
 
      if( *cmd == '\0' ) continue ;  /* WTF?! */
+
+     if( *cmd != '&' ){
+       acmd[0] = '&' ; strcpy(acmd+1,cmd) ; cmd = acmd ;  /* a cheap trick */
+     }
 
      /*--- read warp from a dataset ---*/
 
@@ -2126,7 +2116,7 @@ ENTRY("NwarpCalcRPN") ;
 
      else if( strncasecmp(cmd,"&readpoly(",10) == 0 ){
        char *buf=strdup(cmd+10) , *bp ; MRI_IMAGE *qim,*fim ; float *far ;
-       if( nstk < 1 ){ free(buf); ERREX("nothing on stack"); }
+       if( nstk < 1 ){ free(buf); ERREX("nothing on stack -- needed for template"); }
        for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
        if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
        qim = mri_read_1D(buf) ;
@@ -2134,9 +2124,35 @@ ENTRY("NwarpCalcRPN") ;
          sprintf(mess,"can't read file '%s'",buf); free(buf); ERREX(mess);
        }
        fim = mri_transpose(qim) ; mri_free(qim) ; far = MRI_FLOAT_PTR(fim) ;
+       affmode = AFF_PARAM ;
        AA = IW3D_from_poly( fim->nx , far , iwstk[nstk-1] ) ;
        if( AA == NULL ){
          sprintf(mess,"can't use file '%s' -- num param=%d",buf,fim->nx);
+         mri_free(fim); free(buf); ERREX(mess);
+       }
+       mri_free(fim) ; ADDTO_iwstk(AA) ; free(buf) ;
+     }
+
+     /*--- create a warp from a matrix ---*/
+
+     else if( strncasecmp(cmd,"&read4x4(",9) == 0 ){
+       char *buf=strdup(cmd+9) , *bp ; MRI_IMAGE *qim,*fim ; float *far ;
+       if( nstk < 1 ){ free(buf); ERREX("nothing on stack -- needed for template"); }
+       for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
+       if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
+       qim = mri_read_1D(buf) ;
+       if( qim == NULL ){
+         sprintf(mess,"can't read file '%s'",buf); free(buf); ERREX(mess);
+       }
+       fim = mri_transpose(qim) ; mri_free(qim) ; far = MRI_FLOAT_PTR(fim) ;
+       if( fim->nvox < 12 ){
+         sprintf(mess,"file '%s' has fewer than 12 numbers",buf);
+         free(buf) ; mri_free(fim) ; ERREX(mess) ;
+       }
+       affmode = AFF_MATRIX ;
+       AA = IW3D_from_poly( 12 , far , iwstk[nstk-1] ) ;
+       if( AA == NULL ){
+         sprintf(mess,"can't make matrix from file '%s'",buf);
          mri_free(fim); free(buf); ERREX(mess);
        }
        mri_free(fim) ; ADDTO_iwstk(AA) ; free(buf) ;
@@ -2187,7 +2203,7 @@ ENTRY("NwarpCalcRPN") ;
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
         AA = IW3D_invert( iwstk[nstk-1] , NULL , icode ) ;
-        if( AA == NULL ) ERREX("inversion failed") ;
+        if( AA == NULL ) ERREX("inversion failed :-(") ;
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ;
         if( verb_nww )
           ININFO_message(" -- invert CPU time = %.1f s",COX_cpu_time()-ct) ;
@@ -2199,7 +2215,7 @@ ENTRY("NwarpCalcRPN") ;
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
         AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
-        if( AA == NULL ) ERREX("inverse square root failed") ;
+        if( AA == NULL ) ERREX("inverse square root failed :-(") ;
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ;
         if( verb_nww )
           ININFO_message(" -- inverse square root CPU time = %.1f s",COX_cpu_time()-ct) ;
@@ -2211,9 +2227,9 @@ ENTRY("NwarpCalcRPN") ;
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
         AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
-        if( AA == NULL ) ERREX("inverse square root failed") ;
+        if( AA == NULL ) ERREX("inverse square root failed :-(") ;
         BB = IW3D_invert( AA , NULL , icode ) ; IW3D_destroy(AA) ;
-        if( BB == NULL ) ERREX("inversion after sqrtinv failed") ;
+        if( BB == NULL ) ERREX("inversion after sqrtinv failed :-(") ;
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = BB ;
         if( verb_nww )
           ININFO_message(" -- square root CPU time = %.1f s",COX_cpu_time()-ct) ;
@@ -2225,7 +2241,7 @@ ENTRY("NwarpCalcRPN") ;
         double ct = COX_cpu_time() ;
         if( nstk < 2 ) ERREX("stack too short") ;
         AA = IW3D_compose( iwstk[nstk-1] , iwstk[nstk-2] , icode ) ;
-        if( AA == NULL ) ERREX("composition failed") ;
+        if( AA == NULL ) ERREX("composition failed :-(") ;
         IW3D_destroy( iwstk[nstk-1] ) ; IW3D_destroy( iwstk[nstk-2] ) ;
         iwstk[nstk-2] = AA ; nstk-- ;
         if( verb_nww )
@@ -2238,7 +2254,7 @@ ENTRY("NwarpCalcRPN") ;
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
         AA = IW3D_compose( iwstk[nstk-1] , iwstk[nstk-1] , icode ) ;
-        if( AA == NULL ) ERREX("composition failed") ;
+        if( AA == NULL ) ERREX("composition failed :-(") ;
         IW3D_destroy( iwstk[nstk-1] ) ;
         iwstk[nstk-1] = AA ;
         if( verb_nww )
@@ -2265,7 +2281,7 @@ ENTRY("NwarpCalcRPN") ;
        for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
        if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
        for( bp=buf ; *bp != '\0' && *bp != ',' ; bp++ ) ; /*nada*/
-       if( *bp != ',' ){ free(buf); ERREX("no comma"); }
+       if( *bp != ',' ){ free(buf); ERREX("no comma for prefix"); }
        *bp = '\0' ; pref = bp+1 ;     /* delete comma */
        if( !THD_filename_ok(pref) ){ free(buf); ERREX("illegal prefix"); }
        AA = iwstk[nstk-1] ; FREEIFNN(AA->geomstring) ;
@@ -2276,8 +2292,9 @@ ENTRY("NwarpCalcRPN") ;
        }
        wset = IW3D_to_dataset( AA , buf ) ;
        oset = THD_nwarp_dataset( wset, iset, NULL, pref, acode, 0.0f, 1.0f ) ;
-       DSET_delete(iset) ; DSET_delete(wset) ;
-       DSET_write(oset) ;
+                                               tross_Copy_History  (iset,oset) ;
+       sprintf(mess,"NwarpCalcRPN '%s'",cmd) ; tross_Append_History(oset,mess) ;
+       DSET_delete(iset) ; DSET_delete(wset) ; DSET_write(oset) ;
        if( verb_nww ) ININFO_message(" -- wrote dataset %s",DSET_BRIKNAME(oset)) ;
        DSET_delete(oset) ; free(buf) ;
      }
@@ -2285,7 +2302,7 @@ ENTRY("NwarpCalcRPN") ;
      /*--- No worst, there is none ---*/
 
      else {
-       ERREX("unknown operation :-(") ;
+       ERREX("unknown operation :-((") ;
      }
 
    } /*----- end of loop over operations -----*/
