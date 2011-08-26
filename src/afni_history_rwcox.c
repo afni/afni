@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 19 , AUG , 2011 , RWC , "3dNwarpCalc" , MINOR , TYPE_MODIFY ,
+  { 26 , AUG , 2011 , RWC , "3dclust" , MICRO , TYPE_NEW_OPT ,
+   "add -savemask option" ,
+   NULL } ,
+
+ { 26 , AUG , 2011 , RWC , "afni Clusterize" , MICRO , TYPE_GENERAL ,
+   "Modify to print out 3dclust and whereami commands when used" ,
+   "Per the suggestion of Andy Connolly of Dartmouth College." } ,
+
+ { 19 , AUG , 2011 , RWC , "3dNwarpCalc" , MINOR , TYPE_MODIFY ,
    "Fix &readpoly() and implement &read4x4()" ,
    "Modify 3dNwarpApply to use same function as &apply() so that the 2\n"
    "programs are in sync.\n"
