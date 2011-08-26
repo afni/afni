@@ -5,7 +5,7 @@ static void AFNI_cluster_widgkill( Three_D_View *im3d ) ;
 static void AFNI_cluster_widgize( Three_D_View *im3d , int force ) ;
 static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl ) ;
 static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd ) ;
-static char * AFNI_clus_3dclust( Three_D_View *im3d ) ;
+static char * AFNI_clus_3dclust( Three_D_View *im3d , char *extraopts ) ;
 
 #undef  SET_INDEX_LAB
 #define SET_INDEX_LAB(iq) \
@@ -1457,7 +1457,7 @@ ENTRY("AFNI_clus_action_CB") ;
      if( fp == NULL ){
        ERROR_message("Can't open file %s for writing",fnam) ;
      } else {
-       ppp = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
+       ppp = AFNI_clus_3dclust(im3d,NULL) ;  /* get the 3dclust command */
        if( ppp != NULL )
          fprintf(fp,"# AFNI interactive cluster table\n# %s\n" , ppp ) ;
        fprintf(fp, "#Coordinate order = %s\n"
@@ -1487,7 +1487,7 @@ ENTRY("AFNI_clus_action_CB") ;
    /*--------- SaveMsk button ---------*/
 
    if( w == cwid->savemask_pb || w == cwid->whermask_pb ){  /* 01 May 2008 */
-     char pref[128] , *ppp , *cmd ;
+     char pref[128] , *ppp , *cmd , exopt[128] ;
      THD_3dim_dataset  *fset = im3d->fim_now , *mset ;
      MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
      MCW_cluster *cl ;
@@ -1502,7 +1502,8 @@ ENTRY("AFNI_clus_action_CB") ;
      ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
      if( !THD_filename_pure(ppp) || strcmp(ppp,"-") == 0 ) ppp = "Clust" ;
      sprintf(pref,"%s_mask",ppp) ;
-     cmd = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
+     sprintf(exopt,"-savemask %s",pref) ;
+     cmd = AFNI_clus_3dclust(im3d,exopt) ;  /* get the 3dclust command */
 
      mset = EDIT_empty_copy(fset) ;
      tross_Copy_History(fset,mset) ;
@@ -1534,9 +1535,9 @@ ENTRY("AFNI_clus_action_CB") ;
      }
      THD_force_ok_overwrite(1) ;
      INFO_message("Writing mask dataset %s",DSET_BRIKNAME(mset)) ;
-     DSET_write(mset) ;
-     DSET_delete(mset) ;
+     DSET_write(mset) ; DSET_delete(mset) ;
      THD_force_ok_overwrite(0) ;
+     ININFO_message("%s",cmd) ;
 
 #undef  WSIZ
 #define WSIZ 4096
@@ -1548,7 +1549,8 @@ ENTRY("AFNI_clus_action_CB") ;
        sprintf(wout,"%s -omask %s",wherprog,DSET_HEADNAME(mset)) ;
        if( jtop >= clar->num_clu ) strcpy (ct," ") ;
        else                        sprintf(ct," [first %d clusters]",jtop) ;
-       INFO_message("Running '%s'%s" , wout , ct ) ;
+       INFO_message("Running WamI command:%s",ct) ;
+       ININFO_message("%s",wout) ;
        fp = popen( wout , "r" ) ;
        if( fp == NULL ){
          (void)MCW_popup_message(w," \n*** Can't run whereami command? ***\n ",
@@ -1575,7 +1577,7 @@ ENTRY("AFNI_clus_action_CB") ;
 
    if( w == cwid->clust3d_pb ){
      XmPushButtonCallbackStruct *pbcbs = (XmPushButtonCallbackStruct *)cbs ;
-     char *cmd = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
+     char *cmd = AFNI_clus_3dclust(im3d,NULL) ;  /* get the 3dclust command */
      if( cmd != NULL ){
        INFO_message("3dclust command:\n %s",cmd) ;
      } else {
@@ -1741,7 +1743,7 @@ ENTRY("AFNI_clus_action_CB") ;
            if( fp == NULL ){
              ERROR_message("Can't open file %s for writing",fnam) ;
            } else {
-             ppp = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
+             ppp = AFNI_clus_3dclust(im3d,NULL) ;  /* get the 3dclust command */
              if( ppp != NULL )
                fprintf(fp,"# Histogram of %s[%d..%d]\n"
                           "# over Cluster #%d from\n"
@@ -1893,7 +1895,7 @@ ENTRY("AFNI_clus_action_CB") ;
            if( fp == NULL ){
              ERROR_message("Can't open file %s for writing",fnam) ;
            } else {
-             ppp = AFNI_clus_3dclust(im3d) ;  /* get the 3dclust command */
+             ppp = AFNI_clus_3dclust(im3d,NULL) ;  /* get the 3dclust command */
              if( ppp != NULL )
                fprintf(fp,"# %s of %s[%d..%d]\n"
                           "# over Cluster #%d from\n"
@@ -2030,7 +2032,7 @@ ENTRY("AFNI_clus_av_CB") ;
 
 /* return the equivalent 3dclust command string */
 
-static char * AFNI_clus_3dclust( Three_D_View *im3d )
+static char * AFNI_clus_3dclust( Three_D_View *im3d , char *extraopts )
 {
    static char cmd[3333] ;
    VEDIT_settings vednew ;
@@ -2075,6 +2077,8 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d )
      float vmin=2.0f*DSET_VOXVOL(im3d->fim_now) ;
      vmul = MAX(vmin,vmul) ;
    }
+
+   if( extraopts != NULL ) sprintf(cmd+strlen(cmd)," %s",extraopts) ;
 
    sprintf(cmd+strlen(cmd)," %g %g %s",
            rmm , vmul , DSET_HEADNAME(im3d->fim_now) ) ;

@@ -58,6 +58,7 @@ voxels per original voxel
 /*-- 29 Nov 2001: RWCox adds the -prefix option --*/
 /*-- 30 Apr 2002: RWCox adds the -mni option --*/
 /*-- 21 Jul 2005: P Christidis modified -help menu --*/
+/*-- 26 Aug 2011: RWCox adds the -savemask option --*/
 
 /*---------------------------------------------------------------------------*/
 #include <stdio.h>
@@ -79,6 +80,7 @@ static int CL_verbose = 0 ; /* RWC 01 Nov 1999 */
 static int CL_quiet = 0;   /* MSB 02 Dec 1999 */
 
 static char * CL_prefix = NULL ; /* 29 Nov 2001 -- RWCox */
+static char * CL_savemask = NULL ; /* 26 Aug 2011 */
 
 static int    CL_do_mni = 0 ;    /* 30 Apr 2002 -- RWCox */
 
@@ -260,6 +262,11 @@ int main( int argc , char * argv[] )
   "                                                                        \n"
   "           N.B.:  Use of the -prefix option only affects the            \n"
   "                  first input dataset.                                  \n"
+  "\n"
+  "* -savemask q => Write a new dataset that is an ordered mask, such      \n"
+  "                 that the largest cluster is labeled '1', the next      \n"
+  "                 largest '2' and so forth.  Should be the same as       \n"
+  "                 '3dmerge -1clust_order' or Clusterize 'SaveMsk'.       \n"
   "\n"
   "----------------------------------------------------------------------- \n"
   " N.B.: 'N.B.' is short for 'Nota Bene', Latin for 'Note Well';          \n"
@@ -617,97 +624,121 @@ int main( int argc , char * argv[] )
 
       /** end of June 1995 addition **/
 
+      /** sort clusters by size, to make a nice report **/
+
+      if( clar->num_clu < 3333 ){
+         SORT_CLARR(clar) ;
+      } else if( CL_summarize != 1 ){
+         printf("%s** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n", c1d) ;
+      }
+
       /*-- 29 Nov 2001: write out an edited dataset? --*/
 
-      if( CL_prefix != NULL ){
+      if( CL_prefix != NULL || CL_savemask != NULL ){
+
         if (iarg == nopt) {
-           int qv ; byte *mmm ;
+           int qv ; short *mmm=NULL  ;
 
            /* make a mask of voxels to keep */
 
-           mmm = (byte *) calloc(sizeof(byte),nxyz) ;
+           mmm = (short *) calloc(sizeof(short),nxyz) ;
            for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
              cl = clar->clar[iclu] ; if( cl == NULL ) continue ;
              for( ipt=0 ; ipt < cl->num_pt ; ipt++ ){
                ii = cl->i[ipt] ; jj = cl->j[ipt] ; kk = cl->k[ipt] ;
-               mmm[ii+jj*nx+kk*nxy] = 1 ;
+               mmm[ii+jj*nx+kk*nxy] = (short)(iclu+1) ;
              }
            }
 
-           DSET_load( dset ) ;             /* reload data from disk */
+           if( CL_prefix != NULL ){
+             DSET_load( dset ) ;             /* reload data from disk */
 
-           /* needs a new ID, but after loading     30 May 2006 [rickr] */
-           dset->idcode = MCW_new_idcode() ;
+             /* needs a new ID, but after loading     30 May 2006 [rickr] */
+             dset->idcode = MCW_new_idcode() ;
 
-           EDIT_dset_items( dset ,         /* rename dataset internally */
-                              ADN_prefix , CL_prefix ,
-                            ADN_none ) ;
+             EDIT_dset_items( dset ,         /* rename dataset internally */
+                                ADN_prefix , CL_prefix ,
+                              ADN_none ) ;
 
-           tross_Make_History( "3dclust" , argc , argv , dset ) ;
+             tross_Make_History( "3dclust" , argc , argv , dset ) ;
 
-           /* mask out each sub-brick */
+             /* mask out each sub-brick */
 
-           for( qv=0 ; qv < DSET_NVALS(dset) ; qv++ ){
+             for( qv=0 ; qv < DSET_NVALS(dset) ; qv++ ){
 
-              switch( DSET_BRICK_TYPE(dset,qv) ){
+                switch( DSET_BRICK_TYPE(dset,qv) ){
 
-                case MRI_short:{
-                  short *bar = (short *) DSET_ARRAY(dset,qv) ;
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                    if( mmm[ii] == 0 ) bar[ii] = 0 ;
-                }
-                break ;
+                  case MRI_short:{
+                    short *bar = (short *) DSET_ARRAY(dset,qv) ;
+                    for( ii=0 ; ii < nxyz ; ii++ )
+                      if( mmm[ii] == 0 ) bar[ii] = 0 ;
+                  }
+                  break ;
 
-                case MRI_byte:{
-                  byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                    if( mmm[ii] == 0 ) bar[ii] = 0 ;
-                }
-                break ;
+                  case MRI_byte:{
+                    byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
+                    for( ii=0 ; ii < nxyz ; ii++ )
+                      if( mmm[ii] == 0 ) bar[ii] = 0 ;
+                  }
+                  break ;
+  
+                  case MRI_int:{
+                    int *bar = (int *) DSET_ARRAY(dset,qv) ;
+                    for( ii=0 ; ii < nxyz ; ii++ )
+                      if( mmm[ii] == 0 ) bar[ii] = 0 ;
+                  }
+                  break ;
+  
+                  case MRI_float:{
+                    float *bar = (float *) DSET_ARRAY(dset,qv) ;
+                    for( ii=0 ; ii < nxyz ; ii++ )
+                      if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
+                  }
+                  break ;
+  
+                  case MRI_double:{
+                    double *bar = (double *) DSET_ARRAY(dset,qv) ;
+                    for( ii=0 ; ii < nxyz ; ii++ )
+                      if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
+                  }
+                  break ;
+  
+                  case MRI_complex:{
+                    complex *bar = (complex *) DSET_ARRAY(dset,qv) ;
+                    for( ii=0 ; ii < nxyz ; ii++ )
+                      if( mmm[ii] == 0 ) bar[ii].r = bar[ii].i = 0.0 ;
+                  }
+                  break ;
+  
+                  case MRI_rgb:{
+                    byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
+                    for( ii=0 ; ii < nxyz ; ii++ )
+                      if( mmm[ii] == 0 ) bar[3*ii] = bar[3*ii+1] = bar[3*ii+2] = 0 ;
+                  }
+                  break ;
+               } /* end of switch over sub-brick type */
+             } /* end of loop over sub-bricks */
 
-                case MRI_int:{
-                  int *bar = (int *) DSET_ARRAY(dset,qv) ;
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                    if( mmm[ii] == 0 ) bar[ii] = 0 ;
-                }
-                break ;
+             /* write dataset out */
 
-                case MRI_float:{
-                  float *bar = (float *) DSET_ARRAY(dset,qv) ;
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                    if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
-                }
-                break ;
+             DSET_write(dset) ; WROTE_DSET(dset) ; PURGE_DSET(dset) ;
+          }
 
-                case MRI_double:{
-                  double *bar = (double *) DSET_ARRAY(dset,qv) ;
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                    if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
-                }
-                break ;
+          if( CL_savemask != NULL ){  /* 26 Aug 2011 */
+            THD_3dim_dataset *qset ;
+            qset = EDIT_empty_copy(dset) ;
+            EDIT_dset_items( qset ,
+                               ADN_prefix , CL_savemask ,
+                               ADN_nvals  , 1 ,
+                             ADN_none ) ;
+            EDIT_substitute_brick(qset,0,MRI_short,mmm) ; mmm = NULL ;
+            tross_Make_History( "3dclust" , argc , argv , dset ) ;
+            DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+          }
 
-                case MRI_complex:{
-                  complex *bar = (complex *) DSET_ARRAY(dset,qv) ;
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                    if( mmm[ii] == 0 ) bar[ii].r = bar[ii].i = 0.0 ;
-                }
-                break ;
+          if( mmm != NULL ) free(mmm) ;
 
-                case MRI_rgb:{
-                  byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                    if( mmm[ii] == 0 ) bar[3*ii] = bar[3*ii+1] = bar[3*ii+2] = 0 ;
-                }
-                break ;
-             } /* end of switch over sub-brick type */
-           } /* end of loop over sub-bricks */
-
-           /* write dataset out */
-
-           DSET_write(dset) ;
-           fprintf(stderr,"++ Wrote dataset %s\n",DSET_BRIKNAME(dset)) ;
-           PURGE_DSET(dset) ; free(mmm) ;
-         } else {
+         } else {             /** Bad news **/
             WARNING_message(
                "Output volume not written for input %s . You either \n"
             "have bad datasets on the command line (check output warnings),\n"
@@ -715,15 +746,9 @@ int main( int argc , char * argv[] )
             "-prefix does not work.\n",
                               DSET_BRIKNAME(dset));
          }
-      }
 
-      /** sort clusters by size, to make a nice report **/
+      } /* end of saving a dataset */
 
-      if( clar->num_clu < 1000 ){
-         SORT_CLARR(clar) ;
-      } else if( CL_summarize != 1 ){
-         printf("%s** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n", c1d) ;
-      }
       ndet = 0 ;
 
       vol_total = nvox_total = 0 ;
@@ -944,6 +969,19 @@ void CL_read_opts( int argc , char * argv[] )
          CL_prefix = argv[nopt] ;
          if( !THD_filename_ok(CL_prefix) ){
             fprintf(stderr,"-prefix string is illegal: %s\n",CL_prefix); exit(1);
+         }
+         nopt++ ; continue ;
+      }
+
+      /**** 26 Aug 2011: -savemask ****/
+
+      if( strcmp(argv[nopt],"-savemask") == 0 ){
+         if( ++nopt >= argc ){
+            fprintf(stderr,"need an argument after -savemask!\n") ; exit(1) ;
+         }
+         CL_savemask = argv[nopt] ;
+         if( !THD_filename_ok(CL_savemask) ){
+            fprintf(stderr,"-savemask string is illegal: %s\n",CL_savemask); exit(1);
          }
          nopt++ ; continue ;
       }
