@@ -1414,8 +1414,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Farewell, and may an elephant never sit on your computer"      ,
      "So long, and may the bluebird of happiness fly up your nose"   ,
      "Ta ta, and may an elephant caress you gently with his toes"    ,
-     "The square root of -1 said to Pi, 'Get Real'"                  ,
-     "Pi told the square root of -1 to 'Be Rational'"                ,
+     "The Square Root of -1 said to Pi, 'Be Rational'"               ,
+     "Pi told the Square Root of -1 to 'Get Real'"                   ,
 
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
