@@ -194,6 +194,71 @@ IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Cut out a box-shaped piece of pie. */
+
+IndexWarp3D * IW3D_cutoutbox( IndexWarp3D *AA , int ibot , int itop ,
+                              int jbot , int jtop , int kbot , int ktop )
+{
+   IndexWarp3D *BB ;
+   int ii,jj,kk , nx,ny,nz,nxy , aoff,boff , qx,qy,qz,qxy ; size_t qrow ;
+
+   if( AA == NULL || ibot < 0 || itop >= AA->nx || ibot > itop ||
+                     jbot < 0 || jtop >= AA->ny || jbot > jtop ||
+                     kbot < 0 || ktop >= AA->nz || kbot > ktop   ) return NULL ;
+
+   qx  = itop - ibot + 1 ; nx  = AA->nx ;
+   qy  = jtop - jbot + 1 ; ny  = AA->ny ;
+   qz  = ktop - kbot + 1 ; nz  = AA->nz ;
+   qxy = qx*qy           ; nxy = nx*ny  ; qrow = qx*sizeof(float) ;
+
+   BB = IW3D_create(qx,qy,qz) ;
+
+   for( kk=kbot ; kk <= ktop ; kk++ ){
+    for( jj=jbot ; jj <= jtop ; jj++ ){
+      aoff =  kk      *nxy +  jj      *nx + ibot ;
+      boff = (kk-kbot)*qxy + (jj-jbot)*qx ;
+      memcpy( BB->xd + boff , AA->xd + aoff , qrow ) ;
+      memcpy( BB->yd + boff , AA->yd + aoff , qrow ) ;
+      memcpy( BB->zd + boff , AA->zd + aoff , qrow ) ;
+   }}
+
+   return BB ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Paste in a box-shaped piece of pie. */
+
+void IW3D_pasteinbox( IndexWarp3D *AA , IndexWarp3D *BB ,
+                      int ibot , int jbot , int kbot     )
+{
+   int ii,jj,kk , nx,ny,nz,nxy , aoff,boff , qx,qy,qz,qxy , jtop,ktop ;
+   size_t qrow ;
+
+   if( AA == NULL || ibot < 0 || ibot >= AA->nx ||
+       BB == NULL || jbot < 0 || jbot >= AA->ny ||
+                     kbot < 0 || kbot >= AA->nz   ) return ;
+
+   qx = BB->nx ; nx = AA->nx ; qrow = qx * sizeof(float) ;
+   qy = BB->ny ; ny = AA->ny ; qxy = qx*qy ; nxy = nx*ny ;
+   qz = BB->nz ; nz = AA->nz ;
+
+   if( ibot+qx >= nx || jbot+qy >= ny || kbot+qz >= nz ) return ;
+
+   jtop = jbot + qy - 1 ; ktop = kbot + qz - 1 ;
+
+   for( kk=kbot ; kk <= ktop ; kk++ ){
+    for( jj=jbot ; jj <= jtop ; jj++ ){
+      aoff =  kk      *nxy +  jj      *nx + ibot ;
+      boff = (kk-kbot)*qxy + (jj-jbot)*qx ;
+      memcpy( AA->xd + aoff , BB->xd + boff , qrow ) ;
+      memcpy( AA->yd + aoff , BB->yd + boff , qrow ) ;
+      memcpy( AA->zd + aoff , BB->zd + boff , qrow ) ;
+   }}
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Scale displacements by fac (in-place). */
 
 void IW3D_scale( IndexWarp3D *AA , float fac )
@@ -2250,7 +2315,7 @@ ENTRY("NwarpCalcRPN") ;
 
      /*--- totally square, man ---*/
 
-     else if( strcasecmp(cmd,"&sqr") == 0 ){
+     else if( strcasecmp(cmd,"&sqr") == 0 || strcasecmp(cmd,"&square") == 0 ){
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
         AA = IW3D_compose( iwstk[nstk-1] , iwstk[nstk-1] , icode ) ;
