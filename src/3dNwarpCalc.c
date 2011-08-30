@@ -209,6 +209,7 @@ void NWC_help(void)
     "                   the warp S(x) = A(A(x)).  Equivalent to '&dup &compose'.\n"
     "                  ++ To compute the fourth power of a warp: '&sqr &sqr'\n"
     "                  ++ To compute the third power of a warp:  '&dup &sqr &compose'\n"
+    "                  ++ '&square' is a synonym for this operation.\n"
     "\n"
     "&scale(a)      == Scale the top-of-stack warp displacements by numerical\n"
     "                   factor 'a' in all 3 dimensions.\n"
