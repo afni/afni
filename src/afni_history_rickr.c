@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, AUG, 2011, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "update volume delta to mean dz",
+   "From text in DICOM files, initial dz values may not be sufficiently\n"
+   "accurate, leaing to 'volume toasted' errors.\n"
+   "Thanks to B Benson for noting the problem."
+ } ,
+
  { 19, AUG, 2011, RCR, "3dDeconvolve", MINOR, TYPE_MODIFY,
    "added the ability to output 1D sresp datasets",
    "Requested by S Baum."
@@ -61,7 +68,7 @@ afni_history_struct rickr_history[] = {
 
  { 15, AUG, 2011, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "altered SUMA_ParseFname for parsing of relative pathnames",
-   "Problem noted by Ryan of Princeton."
+   "Thanks to Ryan of Princeton for noting the problem."
  } ,
 
  { 12, AUG, 2011, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
