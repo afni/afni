@@ -113,7 +113,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 /* Interface widgets */
 
-static Widget shell=NULL , rowcol , info_lab , choose_pb, choose_atlas ;
+static Widget shell=NULL , rowcol , info_lab , choose_pb;
+static Widget atlas_panel, choose_atlas ;
 static Widget done_pb, undo_pb,redo_pb, help_pb, quit_pb, save_pb, saveas_pb ;
 static MCW_arrowval *value_av , *color_av , *mode_av ;
 static MCW_arrowval *rad_av ;                         /* 16 Oct 2002 */
@@ -953,7 +954,7 @@ void DRAW_make_widgets(void)
 
        xstr = XmStringCreateLtoR( title_str ,
                                   XmFONTLIST_DEFAULT_TAG ) ;
-       (void) XtVaCreateManagedWidget(
+       atlas_panel = XtVaCreateManagedWidget(
                     "dialog" , xmLabelWidgetClass , rc ,
                        XmNlabelString   , xstr  ,
                        XmNrecomputeSize , False ,
@@ -3815,6 +3816,8 @@ choose_new_atlas_CB(MCW_arrowval *av , XtPointer cd )
    ATLAS_POINT *tto_list=NULL;
    char **textdata;
    char *tempatlasname;
+   char title_str[256];
+   XmString xstr ;
    
    textdata = av->text_data;
    
@@ -3856,6 +3859,14 @@ choose_new_atlas_CB(MCW_arrowval *av , XtPointer cd )
                       ttatlas_list->reg_label ) ;
 
    AVOPT_columnize( ttatlas_region_av , 3 ) ;
+   sprintf(title_str, "Select Atlas and Region (Current Atlas: %s)",
+      plugdraw_atlasname);
+
+   xstr = XmStringCreateLtoR( title_str , XmFONTLIST_DEFAULT_TAG ) ;
+   XtVaSetValues( atlas_panel ,
+                    XmNlabelString , xstr ,
+                  NULL ) ;
+   XmStringFree(xstr) ;
 
 
    return;
