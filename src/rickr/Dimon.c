@@ -66,10 +66,13 @@ static char * g_history[] =
     "        for the case of Siemens mosaic\n",
     " 3.3  Apr 25, 2011 [rickr]\n"
     "      - if Siemens timing: pass TPATTERN explicit to RT plugin\n"
+    " 3.4  Aug 30, 2011 [rickr]\n"
+    "      - update volume delta to mean dz, to accomodate truncated initial\n"
+    "        values leading to 'volume toasted' (problem noted by B Benson)\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.3 (Apr 25, 2011)"
+#define DIMON_VERSION "version 3.4 (Aug 30, 2011)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -731,6 +734,8 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     finfo_t * fp;
     float     delta, z_orig, prev_z, dz;
     int       run0, run1, first, next, last;
+    double    zsum;
+    int       zcount;
 
     if( bound <= start )
     {
@@ -817,6 +822,11 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     run1   = fp->geh.uv17;
     dz     = delta;
 
+    /* also, modify detla to be an average across 'valid' dz, to prevent
+     * exacerbating a poor initial value (for B Benson)      30 Aug 2011 */
+    zsum = 0.0;
+    zcount = 0;
+
     /* scan for volume break */
     next = first + 2;                           /* next z to look at      */
     while ( (next < bound) && (fabs(dz - delta) < gD_epsilon) &&
@@ -824,11 +834,21 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     {
         fp++;                             /* good index so get new values */
 
+        zsum += dz;  zcount++;            /* accumulate good values */
+
         dz     = fp->geh.zoff - prev_z;
         run1   = fp->geh.uv17;
         prev_z = fp->geh.zoff;
 
         next++;
+    }
+
+    /* now modify delta to be the mean dz, not just the first  30 Aug 2011 */
+    if( zcount > 0 ) {
+        if( p->opts.debug > 2 )
+            fprintf(stderr,"++ updating delta (%f) to mean dz (%f)\n",
+                    delta, zsum/zcount);
+        delta = zsum/zcount;
     }
 
     /* note final image in current volume -                        */
@@ -839,7 +859,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     /* set return values */
     *r_first = first;
     *r_last  = last;
-    *r_delta = delta;
+    *r_delta = delta;  /* was just delta  30 Aug 2011 */
 
     if( gD.level > 1 )
         fprintf(stderr,"+d cov: returning first, last, delta = %d, %d, %g\n",
