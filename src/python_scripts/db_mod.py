@@ -146,6 +146,8 @@ def make_outlier_commands(proc):
         else:
             proc.censor_file = cfile
             proc.censor_count = 1
+
+        proc.out_cen_lim = censor       # and note outlier censor limit
     else:
         cs0 = ''
         cs1 = ''
@@ -3016,6 +3018,8 @@ def db_cmd_regress_censor_motion(proc, block):
                 '    -censor_motion %g %s\n\n'                  \
                 % (proc.tr, prev_str, cfstr, limit, mot_prefix)
 
+    proc.mot_cen_lim = limit
+
     if cfs: cmd += cfs
 
     return 0, cmd
@@ -3260,9 +3264,13 @@ def db_cmd_gen_review(proc):
           % (block_header('auto block: generate review scripts'),
                proc.epi_review, proc.dset_form_wild('tcat',proc.origview))
 
+    lopts = ' '
+    if proc.mot_cen_lim > 0.0: lopts += '-mot_limit %s ' % proc.mot_cen_lim
+    if proc.out_cen_lim > 0.0: lopts += '-out_limit %s ' % proc.out_cen_lim
+        
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
-           'gen_ss_review_scripts.py -exit0\n\n'
+           'gen_ss_review_scripts.py%s-exit0\n\n' % lopts
 
     return cmd
 
@@ -5580,6 +5588,30 @@ g_help_string = """
             TSNR = average(signal) / stdev(noise)
 
             See also -volreg_compute_tsnr.
+
+        -regress_make_cbucket yes/no : add a -cbucket option to 3dDeconvolve
+
+                default: 'no'
+
+            Recall that the -bucket dataset (no 'c') contains beta weights and
+            various statistics, but generally not including baseline terms
+            (polort and motion).
+
+            The -cbucket dataset (with a 'c') is a little different in that it
+            contains:
+                - ONLY betas (no t-stats, no F-stats, no contrasts)
+                - ALL betas (including baseline terms)
+            So it has one volume (beta) per regressor in the X-matrix.
+
+            The use is generally for 3dSynthesize, to recreate time series
+            datasets akin to the fitts, but where the user can request any set
+            of parameters to be included (for example, the polort and the main
+            2 regressors of interest).
+
+            Setting this to 'yes' will result in the -cbucket option being
+            added to the 3dDeconvolve command.
+
+            Please see '3dDeconvolve -help' for more details.
 
         -regress_motion_per_run : regress motion parameters from each run
 

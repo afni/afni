@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, AUG, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "if censoring motion or outliers, add options to gen_ss_r command",
+   NULL
+ } ,
+
  { 30, AUG, 2011, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
    "update volume delta to mean dz",
    "From text in DICOM files, initial dz values may not be sufficiently\n"
