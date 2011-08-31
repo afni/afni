@@ -288,9 +288,12 @@ g_history = """
           of the EPI, which would throw off the alignment
         - thanks to A Ellenstein for noting the problem and to Z Saad for
           helping to figure it out
+    2.62 Aug 31, 2011:
+        - if censoring motion or outliers, add options to gen_ss_r command
+        - added help for -regress_make_cbucket
 """
 
-g_version = "version 2.61, August 3, 2011"
+g_version = "version 2.62, August 31, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "3 Aug 2011"
@@ -354,6 +357,9 @@ class SubjProcSream:
         self.mot_extern = ''            # from -regress_motion_file
         self.mot_demean = ''            # from demeaned motion file
         self.mot_deriv  = ''            # motion derivatives
+
+        self.mot_cen_lim= 0             # motion censor limit, if applied
+        self.out_cen_lim= 0             # outlier censor limit, if applied
 
         self.opt_src    = 'cmd'         # option source
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
