@@ -1,0 +1,519 @@
+#!/bin/tcsh
+
+# ----------------------------------------------------------------------
+# Create correlation volumes (correlate with average of local spheres)
+# to look for scanner (or maybe motion) artifacts in EPI data.
+#
+# Optionally look for large clusters of high correlations.
+#
+#    inputs: EPI datasets
+#    output: a directory containing correlation volumes
+#
+# This program was originally written to look for artifacts from coils
+# (in a multi-channel system) where the signal would drop by 10-40% for
+# significant periods of time.
+# ----------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------
+# main input variables ($run is the typical one to set)
+set nfirst = 3
+set percentile = 80
+set cthresh = 0.9       # use 0 to turn off
+set sphere_rad = 20     # use 0 to turn off
+set frac_limit = 0.02
+set min_thr = 0.45
+set rdir = corr_test.results
+set dset_list = ( )
+set do_corr = yes       # use no for testing only
+set do_clust = no       # use no to just create correlation volumes
+
+
+set prog = @radial_correlate
+
+set version = "0.2, 1 Sep, 2011"
+
+if ( $#argv < 1 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+   if ( "$argv[$ac]" == "-cthresh" ) then
+      @ ac += 1
+      set cthresh = $argv[$ac]
+   else if ( "$argv[$ac]" == "-do_clust" ) then
+      @ ac += 1
+      set do_clust = $argv[$ac]
+   else if ( "$argv[$ac]" == "-do_corr" ) then
+      @ ac += 1
+      set do_corr = $argv[$ac]
+   else if ( "$argv[$ac]" == "-frac_limit" ) then
+      @ ac += 1
+      set frac_limit = $argv[$ac]
+   else if ( "$argv[$ac]" == "-nfirst" ) then
+      @ ac += 1
+      set nfirst = $argv[$ac]
+   else if ( "$argv[$ac]" == "-min_thr" ) then
+      @ ac += 1
+      set min_thr = $argv[$ac]
+   else if ( "$argv[$ac]" == "-percentile" ) then
+      @ ac += 1
+      set percentile = $argv[$ac]
+   else if ( "$argv[$ac]" == "-rdir" ) then
+      @ ac += 1
+      set rdir = $argv[$ac]
+   else if ( "$argv[$ac]" == "-sphere_rad" ) then
+      @ ac += 1
+      set sphere_rad = $argv[$ac]
+   else if ( "$argv[$ac]" == "-help" ) then
+      goto SHOW_HELP
+   else if ( "$argv[$ac]" == "-hist" ) then
+      goto SHOW_HIST
+   else if ( "$argv[$ac]" == "-ver" ) then
+      echo "version $version"
+      exit
+   else
+      # the rest are assumed to be input datasets
+      set dset_list = ( $argv[$ac-] )
+      break
+   endif
+   @ ac += 1
+end
+
+if ( $#dset_list < 1 ) then
+   echo "** missing input datasets"
+   exit
+endif
+
+# ----------------------------------------------------------------------
+# make results dir, enter it and nuke old results
+
+if ( $do_corr == 'yes' ) then
+   if ( -d $rdir ) then
+      echo "** error, results dir already exists: $rdir"
+      exit
+   endif
+
+   mkdir $rdir
+   if ( $status ) then
+      echo "** failed to create results directory, $rdir"
+      exit
+   endif
+else if ( ! -d $rdir ) then
+   echo "** error, missing results dir : $rdir"
+   exit
+endif
+
+
+# ----------------------------------------------------------------------
+# copy inputs (minus pre-ss trs) to results dir
+
+if( $do_corr == 'yes' ) then
+   foreach index ( `count -digits 1 1 $#dset_list` )
+
+      set inset = $dset_list[$index]
+
+      3dTcat -prefix $rdir/epi.$index $inset\[$nfirst..\$]
+
+      if ( $status ) then
+          echo "** failed to copy EPI dataset $inset, exiting..."
+          exit
+      endif
+   end
+endif
+
+# ----------------------------------------------------------------------
+# enter results dir
+cd $rdir
+
+set res_list = ()
+set thr_list = ()
+set frac_list = ()
+
+# ----------------------------------------------------------------------
+# main work: compute correlation datasets and surviving threshold fractions
+foreach index ( `count -digits 1 1 $#dset_list` )
+
+   # resulting variables
+   if ( $sphere_rad != 0 ) then
+      set prefix = res.$sphere_rad.$index
+   else
+      set prefix = res.$index
+   endif
+
+   set dset = $dset_list[$index]
+   set eset = epi.$index
+   set mset = $prefix.automask
+   set sset = $prefix.scaled
+   set cset = $prefix.corr
+
+   # ----------------------------------------
+   # nuke pre-SS TRs and generate a mask
+   if ( $do_corr == 'yes' ) 3dAutomask -q -prefix $mset $eset+orig
+   set nmask = `3dBrickStat -non-zero -count $mset+orig`
+
+   if ( $do_corr == 'yes' && -f tt.scale1+orig.HEAD ) \rm -f tt.*
+
+   # ----------------------------------------
+   # compute the correlation dataset, either with the average scaled
+   # time series or within the given sphere radius
+   # (in either case, result is $cset+orig)
+
+   if ( $do_corr == 'yes' ) then
+      echo ""
+      echo "-- running correlation on dataset $dset_list[$index] ..."
+      echo ""
+
+      if ( $sphere_rad != 0 ) then
+           set rad = $sphere_rad
+           3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset+orig \
+                  -stat mean -prefix sphere.mean.$rad.$index $eset+orig
+           3dTcorrelate -prefix $cset $eset+orig sphere.mean.$rad.$index+orig
+      else
+         # get a demeaned and scaled dataset (so sumsq = 1)
+         3dTstat -mean -datum float -prefix $prefix.mean $eset+orig
+         3dcalc -a $eset+orig -b $prefix.mean+orig -c $mset+orig \
+                -expr 'c*(a-b)/b' -datum float -prefix tt.scale1
+         3dTstat -sos -datum float -prefix tt.sos tt.scale1+orig
+         3dcalc -a tt.scale1+orig -b tt.sos+orig -c $mset+orig   \
+                 -expr 'c*a/sqrt(b)' -prefix $sset
+
+         3dmaskave -quiet -mask $mset+orig $sset+orig > $prefix.mean_signal.1D
+
+         3dTcorr1D -mask $mset+orig -pearson -prefix $cset \
+                 $sset+orig $prefix.mean_signal.1D
+      endif
+   endif
+
+   # if we are not clustering, continue on to next dataset
+   if ( $do_clust != 'yes' ) continue
+
+   # ----------------------------------------
+   # now look for the largest cluster of voxels thresholded at 80-percentile
+
+   # threshold correlations via either cthresh or at the percentile
+   set thr = $cthresh
+   if ( $thr == 0 ) then
+      set thr = `3dBrickStat -mask $mset+orig -positive         \
+                -percentile $percentile 1 $percentile           \
+                $cset+orig | awk '{print $2}'`
+   endif
+   set thr_list = ( $thr_list $thr )
+
+   if ( $do_corr == 'yes' ) then
+      3dclust -quiet -nosum -2thresh -10 $thr -dxyz=1 1.01 10 \
+              $cset+orig > $prefix.clust.txt
+   endif
+
+   set maxsize = `head -n 1 $prefix.clust.txt    \
+                  | grep -v 'NO CLUSTERS' | awk '{print $1}'`
+
+   if ( $maxsize == "" ) then
+      echo "-- max clust @ thresh $thr in $cset+orig : no clusters"
+      set res_list = ( $res_list 0 )
+      set frac_list = ( $frac_list 0 )
+      continue
+   endif
+
+   # compute mask volume fraction
+   set frac = `ccalc $maxsize.0/$nmask`
+
+   echo "------------------------------------------------------------"
+   echo "-- max clust @ thresh $thr in $cset+orig : $maxsize"
+   echo "   fraction of mask volume ($nmask) : $frac"
+
+   # check for min threshold
+   set fail = `ccalc -i "step($min_thr-$thr)"`
+   if ( $fail ) then
+      echo "== dataset $dset ($eset) looks okay"
+      echo "   $percentile % threshold $thr below cutoff $min_thr, pass..."
+      set res_list = ( $res_list 1 )
+      set frac_list = ( $frac_list $frac )
+      echo "------------------------------------------------------------"
+      continue
+   endif
+
+   # check for min volume fraction
+   set bad_level = `ccalc -i "1+2.0*$frac/$frac_limit"`
+   set frac_list = ( $frac_list $frac )
+   if ( $bad_level == 1 ) then
+       set res_list = ( $res_list $bad_level )
+       echo "== dataset $dset ($eset) looks okay"
+       echo "   (max clust fraction $frac below limit $frac_limit)"
+   else if ( $bad_level == 2 ) then
+       set res_list = ( $res_list $bad_level )
+       echo "== warning: dataset $dset ($eset) might be problematic"
+       echo "   (max clust fraction $frac near limit $frac_limit)"
+   else
+       set res_list = ( $res_list $bad_level )
+       echo "== error: dataset $dset ($eset) looks problematic"
+       echo "   (max clust fraction $frac above limit $frac_limit)"
+   endif
+   echo "------------------------------------------------------------"
+
+end  # foreach index
+
+# if we did clustering, tabulate the results
+if ( $do_clust == 'yes' ) then
+   echo "============================================================"
+   if ( $sphere_rad == 0 ) then
+      echo "correlations are against spheres of radius $sphere_rad mm"
+   else
+      echo "correlations are against average time series over automask"
+   endif
+   echo ""
+   echo "result    dataset (corr thresh / cluster fraction)"
+   echo "------    --------------------------"
+
+   set thr = $cthresh
+
+   foreach index ( `count -digits 1 1 $#dset_list` )
+      set inset = $dset_list[$index]
+      set res = $res_list[$index]
+
+      if ( $res == 0 ) then
+         echo -n "pass      "
+      else if ( $res == 1 ) then
+         echo -n "pass      "
+      else if ( $res == 2 ) then
+         echo -n "warning   "
+      else
+         echo -n "FAILURE   "
+         if ( $thr == 0 ) set $thr = $thr_list[$index]
+      endif
+
+      echo "$inset ($thr_list[$index] / $frac_list[$index])"
+   end
+   echo "============================================================"
+endif  # $do_clust
+
+# be sure to provide some threshold
+if ( ! $?thr   ) set thr = 0.5
+if ( $thr == 0 ) set thr = 0.9
+
+echo ""
+echo "to review, consider looking at correlations over epi time series"
+echo "   run command: afni $rdir"
+echo "   then set:    Underlay  = epi.SOMETHING"
+echo "                Overlay   = res.SOMETHING.corr"
+echo "                threshold = $thr (for example), and maybe clusterize"
+echo ""
+
+# ----------------------------------------------------------------------
+# DONE
+
+exit
+
+
+SHOW_HELP:
+# ----------------------------------------------------------------------
+# help string
+
+echo "-----------------------------------------------------------------"
+echo "$prog       - check datasets for correlation artifact"
+echo ""
+echo "    usage : $prog [options] datasets ..."
+echo ""
+echo "This program computes the correlation at each voxel with the average"
+echo "time series in a 20 mm radius (by default).  If there is basically"
+echo "one high-correlation cluster, it is suggestive of a coil artifact."
+echo ""
+echo "Note that significant motion can also cause such an effect.  But"
+echo "while motion correlations will tend to follow the edge of the brain,"
+echo "coil artifacts will tend to appear in large, dense clusters."
+echo ""
+echo "If people really care, I may add an option to see how large a sphere"
+echo "might fit within the biggest cluster.  A big sphere would be more"
+echo "suggestive of a coil artifact, rather than motion.  But adding such"
+echo "an option sounds suspiciously like work."
+echo ""
+echo "  inputs: a list of EPI datasets (after any options)"
+echo "  output: a directory containing correlation volumes (and more)"
+echo ""
+echo "-----------------------------------------------------------------"
+echo ""
+echo "Common examples (note that datasets are always passed last):"
+echo ""
+echo "  1a. Run default operation on a list of EPI datasets (so just create"
+echo "      the correlation volumes)."
+echo ""
+echo "          $prog pb00.FT.*.HEAD"
+echo ""
+echo "  1b. Similar to 1a, but specify a results directory for correlations."
+echo ""
+echo "          $prog -rdir new.results pb00.FT.*.HEAD"
+echo ""
+echo "  2.  Do a cluster test on existing correlation volumes.  Note that"
+echo "      this still uses the results directory variable, rdir."
+echo ""
+echo "          $prog -do_corr no -do_clust yes pb00.FT.*.HEAD"
+echo ""
+echo "  3.  Run a complete test, both creating the correlation volumes, and"
+echo "      then looking for large clusters of high correlations."
+echo ""
+echo "          $prog -do_clust yes pb00.FT.*.HEAD"
+echo ""
+echo "  4.  Run a complete test, but alter some clustering options."
+echo "        - threshold at 0.7 (instead of the default 0.9)"
+echo "        - increase the minimum cluster size (frac of mask) to 0.05"
+echo "        - decrease the correlation sphere radius (from 20 mm) to 10 mm"
+echo ""
+echo "          $prog -do_clust yes                   \\"
+echo "              -cthresh 0.7 -frac_limit 0.05 -sphere_rad 10  \\"
+echo "              pb00.FT.*.HEAD"
+echo ""
+echo "-----------------------------------------------------------------"
+echo ""
+echo "Overview of processing steps: "
+echo ""
+echo "0. The first 3 TRs are removed from the input (see -nfirst),"
+echo "   and an automask is created (limiting all future computations)."
+echo "   If -do_corr is 'no', this is skipped."
+echo ""
+echo "   (see -do_corr)"
+echo ""
+echo "1. The correlation dataset is created (unless -do_corr is 'no')."
+echo ""
+echo "   (see -sphere_rad, -do_corr, -do_clust)"
+echo ""
+echo "   At each voxel, compute the correlation either within a sphere"
+echo "   or with the average masked time series."
+echo ""
+echo "   a. within a sphere (if -sphere_rad is not 0)"
+echo ""
+echo "      At each voxel, compute the average time series within a"
+echo "      sphere of radius 20 mm (see -sphere_rad), and correlate the"
+echo "      time series with this averaged result."
+echo ""
+echo "   b. with the average masked time series (if -sphere_rad is 0)"
+echo ""
+echo "      The demeaned data is scaled to have unit length (sumsq=1)."
+echo "      Then compute the mean time series over an automask ROI"
+echo "      (so across the expected brain)."
+echo "      Correlate each voxel time series with the mean time series."
+echo ""
+echo "   If -do_clust is 'no', this is the last step."
+echo ""
+echo "2. Threshold the result (if -do_clust is 'yes')."
+echo ""
+echo "   (see -cthresh, -percentile, -do_clust)"
+echo ""
+echo "   Threshold the correlations either at a static value (see -cthresh),"
+echo "   or at a certain percentile (see -percentile)."
+echo ""
+echo "   a. at r=cthresh (if -cthresh is not 0)"
+echo ""
+echo "      Simply threshold the correlations at this value, maybe 0.9."
+echo ""
+echo "      (see -cthresh)"
+echo ""
+echo "   b. at r=percentile (if -cthresh is 0)"
+echo ""
+echo "      Compute the given percentile (maybe 80), and threshold at"
+echo "      that value, whatever it turns out to be."
+echo ""
+echo "      Note that when using an 80-percent threshold, for example,"
+echo "      then 20-percent of the voxels should survive the cutoff."
+echo "      Later, the question will be how they cluster."
+echo ""
+echo "      (see -percentile)"
+echo ""
+echo "3. if the percentile threshold is too small, considered the data okay"
+echo ""
+echo "   (see -min_thr)"
+echo ""
+echo "   In the case of -percentile above (meaning -cthresh is 0), if"
+echo "   the resulting threshold is not large enough, then we do not"
+echo "   expect the data to have a problem."
+echo ""
+echo "4. compare largest cluster to mask volume"
+echo ""
+echo "   (see -frac_limit)"
+echo ""
+echo "   Compute the size of the largest correlation cluster above the"
+echo "   previous threshold (either -cthresh or via -percentile).  Then"
+echo "   compute the fraction of the mask volume that this cluster"
+echo "   occupies."
+echo ""
+echo "   If the largest cluster is a large fraction of the mask, then"
+echo "   we expect there might be a problem (because most of the high"
+echo "   correlation voxels are in one cluster)."
+echo ""
+echo "   Otherwise, if the high-correlation voxels are scattered about"
+echo "   the volume, we do not expect any problem."
+echo ""
+echo "   For example, if the largest surviving cluster is more than 5%"
+echo "   of the mask, the data is consider to FAIL (see -frac_limit)."
+echo ""
+echo "-----------------------------------------------------------------"
+echo ""
+echo "    usage : $prog [options] datasets ..."
+echo ""
+echo "---------------------------------------------"
+echo ""
+echo "general options:"
+echo ""
+echo "   -help             : show this help"
+echo ""
+echo "   -hist             : show modification history"
+echo ""
+echo "   -do_clust yes/no  : clust correlation volumes? (yes or no)"
+echo "                       default = $do_clust"
+echo ""
+echo "                       If 'no', only create the correlation volumes."
+echo "                       Otherwise, run clustering and look for large"
+echo "                       artifacts from bad coil channels."
+echo ""
+echo "   -do_corr yes/no   : create correlation volumes (yes or no)"
+echo "                       default = $do_corr"
+echo ""
+echo "                       If 'yes', create the correlation volumes."
+echo "                       If 'no', simply assume they already exist."
+echo "                       This is for re-testing a previous execution."
+echo ""
+echo "   -rdir RESULTS_DIR : directory to do computations in"
+echo "                       default = $rdir"
+echo ""
+echo "   -ver              : show version number"
+echo ""
+echo "---------------------------------------------"
+echo ""
+echo "computational options:"
+echo ""
+echo "   -cthesh THRESH    : threshold on correlation values"
+echo "                       (if 0, use percentile, else use this)"
+echo "                       default = $cthresh"
+echo ""
+echo "   -frac_limit LIMIT : min mask fraction surviving cluster"
+echo "                       default = $frac_limit"
+echo ""
+echo "   -nfirst NFIRST    : number of initial TRs to remove"
+echo "                       default = $nfirst"
+echo ""
+echo "   -min_thr THR      : min percentile threshold to be considered"
+echo "                       default = $min_thr"
+echo ""
+echo "   -percentile PERC  : percentile to use as threshold"
+echo "                       default = $percentile"
+echo ""
+echo "   -sphere_rad RAD   : generate correlations within voxel spheres"
+echo "                       (if 0, go against average time series)"
+echo "                       default = $sphere_rad"
+echo ""
+echo "R Reynolds, Aug, 2011"
+echo "------------------------------------------------------------"
+
+exit
+
+SHOW_HIST:
+
+echo "-----------------------------------------------------------------"
+echo "$prog modification history:"
+echo ""
+echo "   0.1  : Aug 16, 2011: initial version (was @check_corr_artifact)"
+echo "   0.2  : Sep  1, 2011: now $prog"
+echo "          - new default: just create correlation volumes"
+echo "          - add to AFNI distribution"
+echo "          - added -do_corr and -do_clust"
+echo ""
+
+exit
