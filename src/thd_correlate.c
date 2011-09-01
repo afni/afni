@@ -535,7 +535,7 @@ double THD_eta_squared_masked( int n, float *x , float *y, byte *mask )
 #define WW(i) ((w==NULL) ? 1.0f : w[i])   /* weight function for i'th datum */
 
 static float *xc=NULL , *yc=NULL , *xyc=NULL , nww=0.0f ;
-static int nbin=0 , nbp=0 ;
+static int nbin=0 , nbp=0 , nbm=0 ;
 
 static float *xbin=NULL , *ybin=NULL ;
 static int  nxybin=0 ;
@@ -567,7 +567,7 @@ static float yclip_bot, yclip_top ;
 
 void clear_2Dhist(void)
 {
-   FREEIF(xc); FREEIF(yc); FREEIF(xyc); nbin = nbp = 0; return;
+   FREEIF(xc); FREEIF(yc); FREEIF(xyc); nbin = nbp = nbm = 0; nww = 0.0f; return;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -806,7 +806,7 @@ int get_2Dhist_xybin( float **xb , float **yb )
     Used in the histogram-based measures of dependence between x[] and y[i].
     If something is bad on input, nbin is set to 0.  Otherwise, these global
     variables are set:
-      - nbin = # of bins, nbp = nbin+1
+      - nbin = # of bins, nbp = nbin+1 , nbm = nbin-1
       - nww  = sum of the weights used
       - xc   = marginal histogram of x[], for xc[0..nbin]
       - yc   = marginal histogram of y[], for yc[0..nbin]
@@ -828,7 +828,7 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
 {
    register int ii,jj,kk ;
    float xb,xi , yb,yi , xx,yy , x1,y1 , ww ;
-   byte *good ; int ngood , xyclip , nbm ;
+   byte *good ; int ngood , xyclip ;
 
 ENTRY("build_2Dhist") ;
 
@@ -1899,4 +1899,74 @@ ENTRY("THD_bootstrap_vectcorr") ;
      free(yar); free(xar); free(ybar); free(xbar); if(use_pv)free(pvw); }
 
    RETURN(rval) ;
+}
+
+/*============================================================================*/
+
+static double incpear_sx  = 0.0 ;
+static double incpear_sxx = 0.0 ;
+static double incpear_sy  = 0.0 ;
+static double incpear_syy = 0.0 ;
+static double incpear_sxy = 0.0 ;
+static double incpear_sw  = 0.0 ;
+static int    incpear_npt = 0   ;
+
+void THD_addto_incomplete_pearson( int n, float *x, float *y, float *w )
+{
+   int ii ; double sx,sxx , sy,syy,sxy , sw ;
+
+   if( n <= 0 || x == NULL || y == NULL ) return ;
+
+   sx = incpear_sx ; sxx = incpear_sxx ;
+   sy = incpear_sy ; syy = incpear_syy ; sxy = incpear_sxy ; sw = incpear_sw ;
+
+   if( w == NULL ){
+     double xx , yy ;
+     for( ii=0 ; ii < n ; ii++ ){
+       xx = (double)x[ii] ; yy = (double)y[ii] ;
+       sx += xx ; sxx += xx*xx ; sy += yy ; syy += yy*yy ; sxy += xx*yy ;
+     }
+     sw += (double)n ;
+   } else {
+     double xx , yy , ww ;
+     for( ii=0 ; ii < n ; ii++ ){
+       xx = (double)x[ii] ; yy = (double)y[ii] ; ww = (double)w[ii] ;
+       sx += xx*ww ; sxx += xx*xx*ww ;
+       sy += yy*ww ; syy += yy*yy*ww ; sxy += xx*yy*ww ; sw += ww ;
+     }
+   }
+
+   incpear_npt += n ;
+   incpear_sx   = sx ; incpear_sxx = sxx ;
+   incpear_sy   = sy ; incpear_syy = syy ; incpear_sxy = sxy ; incpear_sw = sw ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void THD_setup_incomplete_pearson( int n, float *x, float *y, float *w )
+{
+   incpear_sx  = 0.0 ; incpear_sxx = 0.0 ;
+   incpear_sy  = 0.0 ; incpear_syy = 0.0 ;
+   incpear_sxy = 0.0 ; incpear_sw  = 0.0 ; incpear_npt = 0 ;
+   THD_addto_incomplete_pearson( n , x , y , w ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+float THD_compute_incomplete_pearson(void)
+{
+   double xv , yv , xy , swi ;
+
+   if( incpear_sw <= 0.0 ) return 0.0f ;
+
+   swi = 1.0 / incpear_sw ;
+
+   xv = incpear_sxx - incpear_sx * incpear_sx * swi ;
+   yv = incpear_syy - incpear_sy * incpear_sy * swi ;
+   xy = incpear_sxy - incpear_sx * incpear_sy * swi ;
+
+   if( xv <= 0.0 || yv <= 0.0 ) return 0.0f ;
+   return (float)(xy/sqrt(xv*yv)) ;
 }

@@ -1416,8 +1416,8 @@ ENTRY("reload_DC_colordef") ;
 
 Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
 {
-   static MCW_DC *dcold=NULL ;
-   DC_colordef * cd = dc->cdef ;
+   static MCW_DC *dcold = NULL ;
+   DC_colordef *cd = dc->cdef ;
 
    if( cd == NULL ){ reload_DC_colordef(dc) ; cd = dc->cdef ; }
 

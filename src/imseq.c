@@ -963,6 +963,7 @@ if( PRINT_TRACING ){
 
            XmNallowShellResize , False ,       /* let code resize shell */
 
+
            XmNinitialResourcesPersistent , False ,
       NULL ) ;
 
@@ -1581,6 +1582,7 @@ if( PRINT_TRACING ){
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    XtAddCallback( newseq->wbar_rng_but, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
+   MCW_register_hint(newseq->wbar_rng_but,"Fix bot,top values for underlay") ;
 
    newseq->wbar_zer_but =
       XtVaCreateManagedWidget(
@@ -1590,12 +1592,14 @@ if( PRINT_TRACING ){
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    XtAddCallback( newseq->wbar_zer_but, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
+   MCW_register_hint(newseq->wbar_zer_but,"Color for zero value in underlay") ;
 
    { char *blab[1] = { "Automask?" } ;
      newseq->wbar_amask_bbox = new_MCW_bbox( newseq->wbar_menu ,  /* 14 Jun 2010 */
                                              1 , blab ,
                                              MCW_BB_check , MCW_BB_noframe ,
                                              ISQ_wbar_amask_CB , (XtPointer)newseq ) ;
+     MCW_reghint_children(newseq->wbar_amask_bbox->wrowcol,"Automatically zero out image exterior") ;
    }
 
 
@@ -1741,6 +1745,7 @@ STATUS("creation: widgets created") ;
                                              MCW_BB_check , MCW_BB_noframe ,
                                              ISQ_wbar_plots_CB , (XtPointer)newseq ) ;
      MCW_set_bbox( newseq->wbar_plots_bbox , 1 ) ;
+     MCW_reghint_children(newseq->wbar_plots_bbox->wrowcol,"Allow line drawing overlay stuff") ;
 
      newseq->wbar_graymap_pb =
         XtVaCreateManagedWidget(
@@ -1750,6 +1755,7 @@ STATUS("creation: widgets created") ;
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
      XtAddCallback( newseq->wbar_graymap_pb, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
+     MCW_register_hint(newseq->wbar_graymap_pb,"Graph intensity vs underlay image value") ;
 
      (void) XtVaCreateManagedWidget( "menu",
                                      xmSeparatorWidgetClass, newseq->wbar_menu,
@@ -1781,6 +1787,7 @@ STATUS("creation: widgets created") ;
                           MCW_av_substring_CB , /* text creation routine */
                           alabel                /* data for above */
                         ) ;
+     MCW_reghint_children(newseq->wbar_label_av->wrowcol,"Show coordinate label") ;
 
      iii = 1 ;
      eee = getenv("AFNI_IMAGE_LABEL_SIZE") ;
@@ -1801,6 +1808,7 @@ STATUS("creation: widgets created") ;
                           MCW_av_substring_CB , /* text creation routine */
                           slabel                /* data for above */
                         ) ;
+     MCW_reghint_children(newseq->wbar_labsz_av->wrowcol,"Set coordinate label size") ;
 
    } /* end of plots & labels stuff */
 
