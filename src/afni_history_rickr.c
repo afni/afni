@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- {  1, SEP, 2011, RCR, "@radial_correlate", MICRO, TYPE_NEW_PROG,
+ {  1, SEP, 2011, RCR, "afni_util.py", MICRO, TYPE_BUG_FIX,
+   "get_default_polort: run time should be TR * (NT-1)",
+   NULL
+ } ,
+
+ {  1, SEP, 2011, RCR, "@radial_correlate", MINOR, TYPE_NEW_PROG,
    "compute voxelwise EPI correlations with local spherical averages",
    NULL
  } ,
