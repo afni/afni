@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, SEP, 2011, RCR, "@radial_correlate", MICRO, TYPE_NEW_PROG,
+   "compute voxelwise EPI correlations with local spherical averages",
+   NULL
+ } ,
+
  { 31, AUG, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "if censoring motion or outliers, add options to gen_ss_r command",
    NULL
