@@ -288,7 +288,7 @@ def get_default_polort(tr, reps):
         print "** cannot guess polort from tr = %f, reps = %d" % (tr,reps)
         return 2        # return some default
 
-    return run_time_to_polort(tr*reps)
+    return run_time_to_polort(tr*(reps-1))
 
 def run_time_to_polort(run_time):
     """direct computation: 1+floor(run_time/150)"""
