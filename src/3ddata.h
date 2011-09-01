@@ -5015,6 +5015,10 @@ extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
 extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
 
+extern void THD_addto_incomplete_pearson( int n, float *x, float *y, float *w ) ;
+extern void THD_setup_incomplete_pearson( int n, float *x, float *y, float *w ) ;
+extern float THD_compute_incomplete_pearson(void) ;
+
 extern float THD_tictactoe_corr( int,float *,float *) ;  /* 19 Jul 2011 */
 
 extern float THD_pearson_corr_wt(int,float *,float *,float *); /* 13 Sep 2006 */

@@ -1114,6 +1114,95 @@ ENTRY("IW3D_compose") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Compute A^(2^lev) , using linear interpolation only */
+
+IndexWarp3D * IW3D_2pow( IndexWarp3D *AA , int lev )
+{
+   int nx,ny,nz,nxy,nxyz , nall , pp,qtop , ll ;
+   float *xdb,*ydb,*zdb , *xq,*yq,*zq , *xdc,*ydc,*zdc ;
+   IndexWarp3D *BB , *CC , *TT ;
+
+ENTRY("IW3D_2pow") ;
+
+   if( AA == NULL ) RETURN(NULL) ;  /* duh */
+
+   /* simple case of squaring */
+
+   if( lev == 1 ){ BB = IW3D_compose(AA,AA,MRI_LINEAR) ; RETURN(BB) ; }
+
+   BB = IW3D_copy(AA,1.0f) ;  /* BB = AA (lev=0 result) */
+
+   if( lev <= 0 ) RETURN(BB) ;
+
+   nx = BB->nx ; ny = BB->ny ; nz = BB->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   nall = MIN(nxyz,NPER) ;
+
+   xq = (float *)malloc(sizeof(float)*nall) ;  /* workspace */
+   yq = (float *)malloc(sizeof(float)*nall) ;
+   zq = (float *)malloc(sizeof(float)*nall) ;
+
+   CC = IW3D_empty_copy(BB) ;
+
+   /* input = BB ; compute CC = BB(BB(x)) ;
+      then swap so output = BB ; wash, rinse, repeat */
+
+   for( ll=1 ; ll <= lev ; ll++ ){
+
+     xdb = BB->xd ; ydb = BB->yd ; zdb = BB->zd ;
+     xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
+
+     for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
+
+       qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( qtop-pp > 44444 )
+ { int qq , ii,jj,kk ;
+#pragma omp for
+       for( qq=pp ; qq < qtop ; qq++ ){
+         ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+         xq[qq-pp] = ii + xdb[qq] ;  /* x+B(x) warped indexes */
+         yq[qq-pp] = jj + ydb[qq] ;
+         zq[qq-pp] = kk + zdb[qq] ;
+       }
+ }
+ AFNI_OMP_END ;
+
+       /* Interpolate B() warp index displacments,
+          at the B() locations, into the C() warp */
+
+       IW3D_interp_linear( nx,ny,nz , xdb   , ydb   , zdb   ,
+                           qtop-pp  , xq    , yq    , zq    ,
+                                      xdc+pp, ydc+pp, zdc+pp ) ;
+
+        /* Add in the B() displacments to get the total
+           index displacment from each original position: B(x) + B(x+B(x)) */
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( qtop-pp > 66666 )
+ { int qq ;
+#pragma omp for
+        for( qq=pp ; qq < qtop ; qq++ ){
+          xdc[qq] += xdb[qq] ; ydc[qq] += ydb[qq] ; zdc[qq] += zdb[qq] ;
+        }
+ }
+ AFNI_OMP_END ;
+
+      } /* end of loop over segments of length NPER (or less) */
+
+      /* at this point, CC = BB(BB(x)) ;
+         now swap them, to square BB again on next time thru loop */
+
+      TT = CC ; CC = BB ; BB = TT ;
+   }
+
+   /* at the end, BB is the result, and CC is trash */
+
+   IW3D_destroy(CC) ; free(zq) ; free(yq) ; free(xq) ; RETURN(BB) ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Compute B( 2x - A(B(x)) ) = Newton step for computing Ainv(x) */
 
 static float inewtfac = 0.5f ;
