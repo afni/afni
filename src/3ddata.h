@@ -5090,6 +5090,9 @@ extern int  get_2Dhist_hbin  ( void ) ;
 extern void clear_2Dhist     ( void ) ;
 extern void build_2Dhist( int n , float xbot,float xtop,float *x ,
                           float ybot,float ytop,float *y , float *w ) ;
+extern void addto_2Dhist( int n , float xbot,float xtop,float *x ,
+                          float ybot,float ytop,float *y , float *w ) ;
+extern void normalize_2Dhist(void) ;
 
 extern void set_2Dhist_xybin( int nb, float *xb, float *yb ) ; /* 07 May 2007 */
 extern int get_2Dhist_xybin( float **xb , float **yb ) ;
