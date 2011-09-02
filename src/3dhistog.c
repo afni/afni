@@ -32,10 +32,15 @@
 static EDIT_options HI_edopt ;
 
 #define NBIN_SPECIAL 65536
+#define NBIN_DEFAULT 100
 #define BIG_NUMBER 9.999e+37
 
+#define HI_UNKNOWN 0
+#define HI_INTOUT 1
+#define HI_FLOATOUT 2
+
 static int   HI_nopt ;
-static int   HI_nbin = 100 ;
+static int   HI_nbin = -1 ;
 static int   HI_log  = 0 ;
 
 static int     HI_dind  = -1 ;   /* 23 Sep 1998 */
@@ -54,12 +59,20 @@ static double  HI_max = -BIG_NUMBER;
 static char *  HI_unq = NULL;
 static char *  HI_ni = NULL;
 
+static int     HI_datatype = HI_UNKNOWN; /* DRG Aug 2011 */
+
 static short * HI_roi_unq = NULL; /* ZSS March 2011 */
 static int     HI_N_roi_unq = 0; 
 static THD_3dim_dataset *HI_roi=NULL;
 
+static int integral_dset(THD_3dim_dataset *dset, int iv_bot, int iv_top);
+static int minmax_dset(THD_3dim_dataset *dset, float *dmin, float *dmax,
+                       int iv_bot, int iv_top);
+
 #define KEEP(x) ( (HI_nomit==0) ? 1 :  \
                   (HI_nomit==1) ? ((x) != HI_omit[0]) : HI_keep(x) )
+
+#define CEIL_CHECK(x) ( use_ceil ? ceil(x) : (x) )
 
 void HI_read_opts( int , char ** ) ;
 #define HI_syntax(str) \
@@ -82,21 +95,18 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *dset ;
 
    int nx,ny,nz , nxyz , ii , kk , nopt , nbin ;
-   float fbot , ftop ;
-   int   ibot , itop , has_fac; /* to deal with multiple short sub-bricks */
-   int *fbin=NULL , *tbin=NULL ;
+   float fbot , ftop, temp_fbot, temp_ftop ;
+   /* removed ibot, itop              10 Jun 2011 [rcr,drg] */
+   int   use_ceil;
+   void *vfim = NULL;
+   int *fbin=NULL ;
    float df , dfi ;
    float fval ;
 
    float fimfac;
    int iv_fim, fim_type;
-   byte    *bfim = NULL ;
-   short   *sfim = NULL ;
-   float   *ffim = NULL ;
-   void    *vfim = NULL ;
-   long cumfbin, cumtbin;
+   long cumfbin;
    int iv_bot , iv_top ;
-   float vbot , vtop ;
    FILE *fout = NULL;
    int n_unq=0;
 
@@ -122,10 +132,29 @@ int main( int argc , char * argv[] )
    "              masked by 'm' before creating the histograms.\n"
    "  -doall    Means to include all sub-bricks in the calculation;\n"
    "              otherwise, only sub-brick #0 (or that from -dind) is used.\n"
-   "  -notit    Means to leave the title line off the output.\n"
+   "  -notitle  Means to leave the title line off the output.\n"
    "  -log10    Output log10() of the counts, instead of the count values.\n"
-   "  -min x    Means specify minimum of histogram.\n"
-   "  -max x    Means specify maximum of histogram.\n"
+   "  -min x    Means specify minimum (inclusive) of histogram.\n"
+   "  -max x    Means specify maximum (inclusive) of histogram.\n"
+   "  Output options for integer and floating point data\n"
+   "  By default, the program will determine if the data is integer or float\n"
+   "   even if the data is stored as shorts with a scale factor.\n"
+   "   Integer data will be binned by default to be 100 or the maximum number of\n"
+   "   integers in the range, whichever is less. For example, data with the range\n"
+   "   (0..20) gives 21 bins for each integer, and non-integral bin boundaries\n"
+   "   will be raised to the next integer (2.3 will be changed to 3, for instance).\n"
+   "   If the number of bins is higher than the number of integers in the range,\n"
+   "   the bins will be labeled with floating point values, and multiple bins\n"
+   "   may be zero between the integer values\n"
+   "   Float data will be binned by default to 100 bins with absolute limits for\n"
+   "   the min and max if these are specified as inclusive. For example,\n"
+   "   float data ranging from (0.0 to 20.0) will be binned into bins that\n"
+   "   are 0.2 large  (0..0.199999, 0.2..0.399999,...,19.8..20.0)\n"
+   "   To have bins divided at 1.0 instead, specify the number of bins as 20\n"
+   "   Bin 0 is 0..0.9999, Bin 1 is 1.0 to 1.9999, ..., Bin 20 is 19 to 20.0000\n"
+   "   giving a slight bias to the last bin\n"
+   "  -int      Treat data and output as integers\n"
+   "  -float    Treat data and output as floats\n"
    "  -unq U.1D Writes out the sorted unique values to file U.1D.\n"
    "            This option is not allowed for float data\n"
    "            If you have a problem with this, write\n"
@@ -157,7 +186,9 @@ int main( int argc , char * argv[] )
 
    if( nopt >=  argc ) HI_syntax("no dset argument?") ;
 
-   fbin = (int *) calloc( sizeof(int) , HI_nbin ) ;
+   /* check if user has requested number of bins */
+   nbin = (HI_nbin < 0) ? NBIN_DEFAULT : HI_nbin ;
+   fbin = (int *) calloc( sizeof(int) , nbin ) ;
    if( fbin == NULL ) HI_syntax("can't allocate histogram array!") ;
 
    iarg = nopt ;
@@ -186,46 +217,70 @@ int main( int argc , char * argv[] )
    } else {
      iv_bot = (HI_dind >= 0) ? HI_dind
                              : DSET_IS_MASTERED(dset) ? 0
-                                                      : DSET_PRINCIPAL_VALUE(dset) ;
+                                        : DSET_PRINCIPAL_VALUE(dset) ;
      iv_top = iv_bot ;
      if( iv_bot < 0 || iv_bot >= DSET_NVALS(dset) )
        ERROR_exit("Sub-brick index %d out of range for dataset %s",
                   iv_bot , argv[iarg] ) ;
    }
+
+   /* assume all sub-bricks have the same type */
    fim_type = DSET_BRICK_TYPE(dset,iv_bot) ;
 
    /* find global min and max of data in all used bricks */
 
-   fbot = BIG_NUMBER ; ftop = -fbot ;
-   itop = -32768 ; ibot = 32767 ;
-   has_fac = 0 ;
-   for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
-     vbot = mri_min( DSET_BRICK(dset,iv_fim) ) ;
-     vtop = mri_max( DSET_BRICK(dset,iv_fim) ) ;
-     fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ; if (fimfac == 0.0)  fimfac = 1.0;
+   fbot = BIG_NUMBER ; 
+   ftop = -fbot ;
 
-     /* if short, get range before applying factor */
-     if( fim_type == MRI_short || fim_type == MRI_byte ){
-        if( fimfac != 1.0 ) has_fac = 1 ;
-        if( vbot < ibot ) ibot = vbot ;
-        if( vtop > itop ) itop = vtop ;
-     }
-
-     vbot *= fimfac ; vtop *= fimfac ;
-     if( vbot < fbot ) fbot = vbot;
-     if( vtop > ftop ) ftop = vtop;
+   /* assume rounding of bin bottom limit for integer data only*/
+   if(HI_datatype == HI_UNKNOWN){
+      if(integral_dset(dset, iv_bot, iv_top)) {
+         HI_datatype = HI_INTOUT;
+      }
+      else
+      HI_datatype = HI_FLOATOUT;  
    }
 
-   if(HI_min != BIG_NUMBER)
-     fbot = HI_min;
+   if(HI_datatype == HI_INTOUT) {
+     use_ceil = 1 ;
+   } 
+   else {
+      use_ceil = 0 ;
+   }
 
-   if(HI_max != -BIG_NUMBER)
+   minmax_dset(dset, &temp_fbot, &temp_ftop, iv_bot, iv_top);
+
+   if(HI_min != BIG_NUMBER) {
+     fbot = HI_min;
+   }
+   else {
+     fbot = temp_fbot;
+   }
+
+   if(HI_max != -BIG_NUMBER) {
      ftop = HI_max;
+   }
+   else {
+     ftop = temp_ftop;
+   }
 
    if( fbot >= ftop ){
      fprintf(stderr,"** ERROR: all values in dataset are = %f!\n",fbot) ;
      exit(1) ;
    }
+
+   if( fbot > temp_ftop){
+     WARNING_message(
+        "minimum value to display is higher than maximum value in dataset!");
+   }
+
+   if( ftop < temp_fbot){
+     WARNING_message(
+        "maximum value to display is less than minimum value in dataset!");
+   }
+
+   if((HI_nbin<0) && (HI_datatype == HI_INTOUT))
+      nbin = ftop-fbot+1;
    switch( fim_type ){
       default:
         fprintf(stderr,"** ERROR: can't process data of this type!\n") ;
@@ -233,21 +288,24 @@ int main( int argc , char * argv[] )
 
       case MRI_byte:
       case MRI_short:
-        nbin = (int)(itop-ibot+1.0) ;  /* ftop -> stop (for unscaled range) */
-        if( nbin > HI_nbin ) nbin = HI_nbin ;
-        if( nbin < 2       ) nbin = 2 ;
+        /* 10 Jun 2011 */
+/*        if((HI_nbin==NBIN_SPECIAL) && use_ceil && ((ftop-fbot)<100)) {*/
+        /* integral data, calculate the default number of bins differently */
+/*        if((HI_nbin<0) && (use_ceil)) { 
+               nbin = ftop-fbot+1;
+        }*/
       break ;
 
       case MRI_float:
-        nbin = (HI_nbin==NBIN_SPECIAL) ? 100 : HI_nbin ;
         if (HI_unq) {
          fprintf(stderr,"** ERROR: Unique operation not allowed for float data.\n") ;
-      exit(1) ;
+         exit(1) ;
         }
       break ;
    }
-   df  = (ftop-fbot) / (nbin-1) ;
-   dfi = 1.0 / df ;
+   df  = (ftop-fbot) / nbin ;
+   if(df==0.0) dfi = 1;
+   else dfi = 1.0 / df ;
 
    if (HI_roi) {
       if (DSET_NVOX(HI_roi) != nxyz) {
@@ -314,6 +372,7 @@ int main( int argc , char * argv[] )
      fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ;
      if (fimfac == 0.0)  fimfac = 1.0;
      vfim = DSET_ARRAY(dset,iv_fim) ;
+     fim_type = DSET_BRICK_TYPE(dset,iv_fim) ;
 
         switch( fim_type ){
 
@@ -326,6 +385,7 @@ int main( int argc , char * argv[] )
               if( (fval >= fbot && fval <= ftop) &&
                    KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
                 kk = (int)( (fval-fbot)*dfi ) ; /* use real value */
+                if(kk>=nbin) kk = nbin-1;
                 fbin[kk]++ ;
               }
             }
@@ -352,6 +412,7 @@ int main( int argc , char * argv[] )
               if( (fval >= fbot && fval <= ftop) &&
                    KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
                 kk = (int)( (fval-fbot)*dfi ) ;
+                if(kk>=nbin) kk = nbin-1;
                 fbin[kk]++ ;
               }
             }
@@ -373,10 +434,11 @@ int main( int argc , char * argv[] )
           case MRI_float:{
             float *fim = (float *)vfim ;
             for( ii=0 ; ii < nxyz ; ii++ ){
-	      fval = fim[ii]*fimfac ;  /* thanks to Tom Holroyd for noticing this*/
+              fval = fim[ii]*fimfac ;  /* thanks to Tom Holroyd for noticing this*/
               if( (fval >= fbot && fval <= ftop) &&
                    KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
                 kk = (int)( (fval-fbot)*dfi ) ;
+                if(kk>=nbin) kk = nbin-1;
                 fbin[kk]++ ;
               }
             }
@@ -399,8 +461,13 @@ int main( int argc , char * argv[] )
 
            for( kk=0 ; kk < nbin ; kk++ ){
              cumfbin += fbin[kk];
-             printf ("%12.6f %13.6f %13.6f\n",
-                     fbot+kk*df,
+             if((use_ceil) && (nbin <= (ftop-fbot+1)))
+                printf ("%12d %13.6f %13.6f\n",
+                     (int) ceil(fbot+kk*df),
+                     log10((double)fbin[kk]+1.0), log10((double)cumfbin+1.0));
+             else
+                printf ("%12.6f %13.6f %13.6f\n",
+                     (fbot+kk*df),
                      log10((double)fbin[kk]+1.0), log10((double)cumfbin+1.0));
            }
          } else {
@@ -409,8 +476,12 @@ int main( int argc , char * argv[] )
 
            for( kk=0 ; kk < nbin ; kk++ ){
              cumfbin += fbin[kk];
-             printf ("%12.6f %13d %13ld\n",
-                     fbot+kk*df, fbin[kk], cumfbin);
+             if((use_ceil) && (nbin <= (ftop-fbot+1)))
+                printf ("%12d %13d %13ld\n",
+                     (int) ceil(fbot+kk*df), fbin[kk], cumfbin);
+             else             
+                printf ("%12.6f %13d %13ld\n",
+                     (fbot+kk*df), fbin[kk], cumfbin);
            }
          }
       } else { /*                ZSS Dec. 2010 */
@@ -423,7 +494,7 @@ int main( int argc , char * argv[] )
          for( kk=0 ; kk < nbin ; kk++ ){
           cumfbin += fbin[kk];
           cf[kk] = cumfbin;
-          bb[kk] = fbot+kk*df;
+          bb[kk] = CEIL_CHECK(fbot+kk*df);
          }
          hni = NI_new_data_element("3dhistog", nbin);
          NI_add_column(hni, NI_FLOAT, bb); 
@@ -475,11 +546,12 @@ int main( int argc , char * argv[] )
 void HI_read_opts( int argc , char * argv[] )
 {
    int nopt = 1 ;
-   float val ;
-   int  ival , kk ;
+   int  ival;
 
    INIT_EDOPT( &HI_edopt ) ;
    HI_unq = NULL;
+   HI_datatype = HI_UNKNOWN;
+   
    while( nopt < argc && argv[nopt][0] == '-' ){
 
       /**** check for editing options ****/
@@ -489,8 +561,8 @@ void HI_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-nbin",5) == 0 ){
         HI_nbin = strtol( argv[++nopt] , NULL , 10 ) ;
-        if( HI_nbin < 10 && HI_nbin != 0 ) HI_syntax("illegal value of -nbin!") ;
         if( HI_nbin == 0 ) HI_nbin = NBIN_SPECIAL ;
+        else if( HI_nbin < 1 ) HI_syntax("illegal value of -nbin!") ;
         nopt++ ; continue ;
       }
       if( strncmp(argv[nopt],"-unq",4) == 0 ){
@@ -525,17 +597,17 @@ void HI_read_opts( int argc , char * argv[] )
         nopt++ ; continue ;
       }
 
-      if( strncmp(argv[nopt],"-notit",5) == 0 ){
+      if( strncmp(argv[nopt],"-notit",6) == 0 ){
          HI_notit = 1 ;
          nopt++ ; continue ;
       }
 
-      if( strncmp(argv[nopt],"-log10",5) == 0 ){
+      if( strncmp(argv[nopt],"-log10",6) == 0 ){
          HI_log = 1 ;
          nopt++ ; continue ;
       }
 
-      if( strncmp(argv[nopt],"-prefix",5) == 0 ){
+      if( strncmp(argv[nopt],"-prefix",6) == 0 ){
          nopt++ ;
          if( nopt >= argc ) HI_syntax("need argument after -prefix!") ;         
          HI_ni = argv[nopt] ;
@@ -570,7 +642,7 @@ void HI_read_opts( int argc , char * argv[] )
       
       if( strncmp(argv[nopt],"-roi_mask",5) == 0 )
       {
-          THD_3dim_dataset * rset ; int ii,mc ;
+          THD_3dim_dataset * rset ;
           nopt++ ;
 
           if( nopt >= argc ) HI_syntax("need argument after -roi_mask!") ;
@@ -615,6 +687,16 @@ void HI_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+      if( strcmp(argv[nopt],"-int") == 0 ){
+         HI_datatype = HI_INTOUT ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-float") == 0 ){
+         HI_datatype = HI_FLOATOUT ;
+         nopt++ ; continue ;
+      }
+
 
       /**** unknown switch ****/
 
@@ -636,4 +718,55 @@ printf("*** finished with options\n") ;
 
    HI_nopt = nopt ;
    return ;
+}
+
+/* do simple check to see if data is all integer */
+static int
+integral_dset(THD_3dim_dataset *dset, int iv_bot, int iv_top)
+{
+   int iv_fim, fim_type;
+   float fimfac;
+   
+   for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
+     fim_type = DSET_BRICK_TYPE(dset,iv_fim) ;
+     fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ; 
+     if (fimfac == 0.0)  fimfac = 1.0;
+
+     /* test if all the data is integral  - used for calculating bins below */
+     if( (fim_type == MRI_short) || (fim_type == MRI_byte )){
+        if( fimfac != 1.0 ) return(0) ;
+     }
+     if( fim_type == MRI_float) return(0);
+   }
+   /* made it through all sub-bricks without float factor or datatype */
+   /*  then it must be integer */
+   return(1);
+}
+
+/* get min and max of data in range of sub-bricks of dataset */
+static int
+minmax_dset(THD_3dim_dataset *dset, float *dmin, float *dmax, int iv_bot, int iv_top)
+{
+   int iv_fim;
+   float fimfac;
+   float vbot , vtop, temp_fbot, temp_ftop ;
+
+   temp_fbot = BIG_NUMBER ; 
+   temp_ftop = -temp_fbot ;
+   
+   for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
+     /* minimum and maximum for sub-brick */
+     vbot = mri_min( DSET_BRICK(dset,iv_fim) ) ;
+     vtop = mri_max( DSET_BRICK(dset,iv_fim) ) ;
+     fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ; 
+     if (fimfac == 0.0)  fimfac = 1.0;
+     vbot *= fimfac ; vtop *= fimfac ;
+
+     /* update global min and max */
+     if( vbot < temp_fbot ) temp_fbot = vbot;
+     if( vtop > temp_ftop ) temp_ftop = vtop;
+   }
+   *dmin = temp_fbot;
+   *dmax = temp_ftop;
+   return(0);
 }

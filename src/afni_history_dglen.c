@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 02 , SEP, 2011 , DRG , "3dhistog" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Handle binning and output of integer and float data differently",
+    "Distinguish between integer and float data. Added float and int\n"
+    "options to enforce specified behavior.\n"
+    "Done with Rick Reynolds."
+} ,
+
 { 30 , AUG, 2011 , DRG , "Draw Dataset" , 
     MINOR , TYPE_BUG_FIX, 
     "Draw Dataset plugin incorrect label for current atlas",
