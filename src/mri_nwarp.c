@@ -2474,3 +2474,113 @@ ENTRY("NwarpCalcRPN") ;
 
    RETURN(oset) ;
 }
+
+/*----------------------------------------------------------------------------*/
+/***--- Each function goes to 0 at abs(x)=1 and has peak magnitude of 1. ---***/
+
+#define B0(x) (1.0f-(x)*(x))
+#define B1(x) (B00(x)*(x)*2.598076f)
+#define B2(x) (B00(x)*(1.0f-(x)*(x)*3.0f))
+#define B3(x) (B00(x)*((x)*(x)*5.0f-3.0f)*(x)*1.3499593f)
+
+/*----------------------------------------------------------------------------*/
+
+IndexWarp3DArray * IW3D_polybasis( int lev, float *junk , int nx,int ny,int nz )
+{
+   IndexWarp3DArray *iwar ;
+   int nwarp=4 , ww , ii,jj,kk,pp ;
+   float xx,yy,zz , fx,fy,fz , *xd,*yd,*zd ;
+   float *b0x , *b0y , *b0z ;
+   float *b1x , *b1y , *b1z ;
+   float *b2x , *b2y , *b2z ;
+   float *b3x , *b3y , *b3z ;
+
+   if( nx < 5 || ny < 5 || nz < 5 ) return NULL ;
+
+   if( lev < 1 ) lev = 1 ; else if( lev > 3 ) lev = 3 ;
+
+   switch( lev ){
+     case 1: nwarp =  4 ; break ;
+     case 2: nwarp = 10 ; break ;
+     case 3: nwarp = 20 ; break ;
+   }
+
+   iwar = (IndexWarp3DArray *)malloc(sizeof(IndexWarp3DArray)) ;
+   iwar->nwarp = nwarp ;
+   iwar->warp  = (IndexWarp3D **)malloc(nwarp*sizeof(IndexWarp3D *)) ;
+
+   b0x = (float *)malloc(sizeof(float)*nx) ;
+   b0y = (float *)malloc(sizeof(float)*ny) ;
+   b0z = (float *)malloc(sizeof(float)*nz) ;
+   b1x = (float *)malloc(sizeof(float)*nx) ;
+   b1y = (float *)malloc(sizeof(float)*ny) ;
+   b1z = (float *)malloc(sizeof(float)*nz) ;
+   b2x = (float *)malloc(sizeof(float)*nx) ;
+   b2y = (float *)malloc(sizeof(float)*ny) ;
+   b2z = (float *)malloc(sizeof(float)*nz) ;
+   b3x = (float *)malloc(sizeof(float)*nx) ;
+   b3y = (float *)malloc(sizeof(float)*ny) ;
+   b3z = (float *)malloc(sizeof(float)*nz) ;
+   fx = 2.0f/(nx-1.0f) ; fy = 2.0f/(ny-1.0f) ; fz = 2.0f/(nz-1.0f) ;
+   for( ii=0 ; ii < nx ; ii++ ){
+     xx = fx * ii - 1.0f ;
+     b0x[ii] = B0(xx) ; b1x[ii] = B1(xx) ; b2x[ii] = B2(xx) ; b3x[ii] = B3(xx) ;
+   }
+   for( jj=0 ; jj < ny ; jj++ ){
+     yy = fy * jj - 1.0f ;
+     b0y[jj] = B0(yy) ; b1y[jj] = B1(yy) ; b2y[jj] = B2(yy) ; b3y[jj] = B3(yy) ;
+   }
+   for( kk=0 ; kk < nz ; kk++ ){
+     zz = fz * kk - 1.0f ;
+     b0z[kk] = B0(zz) ; b1z[kk] = B1(zz) ; b2z[kk] = B2(zz) ; b3z[kk] = B3(zz) ;
+   }
+
+#undef  BLOAD
+#define BLOAD(qq,bx,by,bz)                      \
+ do{ float byz ;                                \
+     iwar->warp[ww] = IW3D_create(nx,ny,nz) ;   \
+     xd = iwar->warp[qq]->xd ;                  \
+     yd = iwar->warp[qq]->yd ;                  \
+     zd = iwar->warp[qq]->zd ;                  \
+     for( pp=kk=0 ; kk < nz ; kk++ ){           \
+      for( jj=0 ; jj < ny ; jj++ ){             \
+       byz = by[jj]*bz[kk] ;                    \
+       for( ii=0 ; ii < nx ; ii++,pp++ ){       \
+        xd[pp] = yd[pp] = zd[pp] = bx[ii]*byz ; \
+     }}}                                        \
+ } while(0)
+
+   BLOAD(0,b0x,b0y,b0z) ;
+   BLOAD(1,b1x,b0y,b0z) ;
+   BLOAD(2,b0x,b1y,b0z) ;
+   BLOAD(3,b0x,b0y,b1z) ;
+
+   if( lev > 1 ){
+     BLOAD(4,b2x,b0y,b0z) ;
+     BLOAD(5,b0x,b2y,b0z) ;
+     BLOAD(6,b0x,b0y,b2z) ;
+     BLOAD(7,b1x,b1y,b0z) ;
+     BLOAD(8,b1x,b0y,b1z) ;
+     BLOAD(9,b0x,b1y,b1z) ;
+
+     if( lev > 2 ){
+       BLOAD(10,b3x,b0y,b0z) ;
+       BLOAD(11,b0x,b3y,b0z) ;
+       BLOAD(12,b0x,b0y,b3z) ;
+       BLOAD(13,b2x,b1y,b0z) ;
+       BLOAD(14,b2x,b0y,b1z) ;
+       BLOAD(15,b1x,b2y,b0z) ;
+       BLOAD(16,b1x,b0y,b2z) ;
+       BLOAD(17,b0x,b1y,b2z) ;
+       BLOAD(18,b0x,b2y,b1z) ;
+       BLOAD(19,b1x,b1y,b1z) ;
+     }
+   }
+
+   free(b0x) ; free(b0y) ; free(b0z) ;
+   free(b1x) ; free(b1y) ; free(b1z) ;
+   free(b2x) ; free(b2y) ; free(b2z) ;
+   free(b3x) ; free(b3y) ; free(b3z) ;
+
+   return iwar ;
+}

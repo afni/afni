@@ -5106,7 +5106,7 @@ mri_genalign_set_pgmat(1) ;
      INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
                   COX_cpu_time() , COX_clock_time() ) ;
    MEMORY_CHECK("end of program (after final cleanup)") ;
-   if( verb && apply_1D == NULL ){
+   if( verb && apply_1D == NULL && prefix != NULL ){
     INFO_message("###########################################################");
     INFO_message("### Please check results visually for alignment quality ###");
    }
