@@ -2133,6 +2133,15 @@ typedef struct {
   int view ;
 } IndexWarp3D ;
 
+typedef struct {
+  int nwarp ;
+  IndexWarp3D **warp ;
+} IndexWarp3DArray ;
+
+typedef IndexWarp3DArray * (*IW3D_basisfunc)(int npar, float *par, int nx,int ny,int nz) ;
+
+IndexWarp3DArray * IW3D_polybasis( int lev, float *junk , int nx,int ny,int nz ) ;
+
 extern IndexWarp3D * IW3D_create( int nx , int ny , int nz ) ;
 extern void IW3D_destroy( IndexWarp3D *AA ) ;
 extern float IW3D_normL1  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
