@@ -1416,6 +1416,10 @@ void AFNI_sigfunc_alrm(int sig)
      "Ta ta, and may an elephant caress you gently with his toes"    ,
      "The Square Root of -1 said to Pi, 'Be Rational'"               ,
      "Pi told the Square Root of -1 to 'Get Real'"                   ,
+     "By Grapthar's Hammer, you SHALL be avenged"                    ,
+     "We live to tell the tale"                                      ,
+     "Are we there yet?"                                             ,
+     "Never give up, never surrender"                                ,
 
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
