@@ -1951,7 +1951,7 @@ MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim ,
    float *xp, *yp, *zp ;
    MRI_IMAGE *wxim, *wyim, *wzim ; MRI_IMARR *wimar ; mat44 tmat ;
 
-ENTRY("mri_apply_nwarp") ;
+ENTRY("THD_setup_nwarp") ;
 
    if( bimar == NULL ) RETURN(NULL) ;
 
@@ -2553,28 +2553,17 @@ IndexWarp3DBasis * IW3D_polybasis( int lev, float *junk , int nx,int ny,int nz )
  } while(0)
 
    BLOAD(0,b0x,b0y,b0z) ;
-   BLOAD(1,b1x,b0y,b0z) ;
-   BLOAD(2,b0x,b1y,b0z) ;
-   BLOAD(3,b0x,b0y,b1z) ;
+   BLOAD(1,b1x,b0y,b0z) ; BLOAD(2,b0x,b1y,b0z) ; BLOAD(3,b0x,b0y,b1z) ;
 
    if( lev > 1 ){
-     BLOAD(4,b2x,b0y,b0z) ;
-     BLOAD(5,b0x,b2y,b0z) ;
-     BLOAD(6,b0x,b0y,b2z) ;
-     BLOAD(7,b1x,b1y,b0z) ;
-     BLOAD(8,b1x,b0y,b1z) ;
-     BLOAD(9,b0x,b1y,b1z) ;
+     BLOAD(4,b2x,b0y,b0z) ; BLOAD(5,b0x,b2y,b0z) ; BLOAD(6,b0x,b0y,b2z) ;
+     BLOAD(7,b1x,b1y,b0z) ; BLOAD(8,b1x,b0y,b1z) ; BLOAD(9,b0x,b1y,b1z) ;
 
      if( lev > 2 ){
-       BLOAD(10,b3x,b0y,b0z) ;
-       BLOAD(11,b0x,b3y,b0z) ;
-       BLOAD(12,b0x,b0y,b3z) ;
-       BLOAD(13,b2x,b1y,b0z) ;
-       BLOAD(14,b2x,b0y,b1z) ;
-       BLOAD(15,b1x,b2y,b0z) ;
-       BLOAD(16,b1x,b0y,b2z) ;
-       BLOAD(17,b0x,b1y,b2z) ;
-       BLOAD(18,b0x,b2y,b1z) ;
+       BLOAD(10,b3x,b0y,b0z) ; BLOAD(11,b0x,b3y,b0z) ; BLOAD(12,b0x,b0y,b3z) ;
+       BLOAD(13,b2x,b1y,b0z) ; BLOAD(14,b2x,b0y,b1z) ;
+       BLOAD(15,b1x,b2y,b0z) ; BLOAD(16,b1x,b0y,b2z) ;
+       BLOAD(17,b0x,b1y,b2z) ; BLOAD(18,b0x,b2y,b1z) ;
        BLOAD(19,b1x,b1y,b1z) ;
      }
    }
@@ -2606,14 +2595,8 @@ IndexWarp3D * IW3D_warpgen( IndexWarp3DBasis *iwar , float *wt , int nsq )
 
    for( pp=0 ; pp < iwar->nbase ; pp++ ){
      wx = wt[3*pp+0] ; wy = wt[3*pp+1] ; wz = wt[3*pp+2] ; del = iwar->db[pp] ;
-     if( wx != 0.0f ){
-       for( ii=0 ; ii < nxyz ; ii++ ) xda[ii] += wx * del[ii] ;
-     }
-     if( wy != 0.0f ){
-       for( ii=0 ; ii < nxyz ; ii++ ) yda[ii] += wy * del[ii] ;
-     }
-     if( wz != 0.0f ){
-       for( ii=0 ; ii < nxyz ; ii++ ) zda[ii] += wz * del[ii] ;
+     for( ii=0 ; ii < nxyz ; ii++ ){
+       xda[ii] += wx * del[ii] ; yda[ii] += wy * del[ii] ; zda[ii] += wz * del[ii] ;
      }
    }
 
@@ -2626,3 +2609,13 @@ IndexWarp3D * IW3D_warpgen( IndexWarp3DBasis *iwar , float *wt , int nsq )
 
 /*----------------------------------------------------------------------------*/
 
+void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim ,
+                        IndexWarp3D *AA , IW3D_basisfunc basisfunc ,
+                        int ibot, int itop, int jbot, int jtop, int kbot, int ktop )
+{
+   MRI_IMAGE *warpim ;
+
+   if( basim == NULL || srcim == NULL || AA == NULL ) return ;
+
+   warpim = wsrcim ;
+}
