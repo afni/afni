@@ -2138,12 +2138,12 @@ typedef struct {
   IndexWarp3D **warp ;
 } IndexWarp3DArray ;
 
-typedef IndexWarp3DArray * (*IW3D_basisfunc)(int npar, float *par, int nx,int ny,int nz) ;
-
 typedef struct {
   int nbase , nx,ny,nz ;
   float **db ;
 } IndexWarp3DBasis ;
+
+typedef IndexWarp3DBasis * (*IW3D_basisfunc)(int npar, float *par, int nx,int ny,int nz) ;
 
 IndexWarp3DBasis * IW3D_polybasis( int lev, float *junk , int nx,int ny,int nz ) ;
 
