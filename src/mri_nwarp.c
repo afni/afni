@@ -2478,10 +2478,15 @@ ENTRY("NwarpCalcRPN") ;
 /*----------------------------------------------------------------------------*/
 /***--- Each function goes to 0 at abs(x)=1 and has peak magnitude of 1. ---***/
 
+#undef B0
+#undef B1
+#undef B2
+#undef B3
+
 #define B0(x) (1.0f-(x)*(x))
-#define B1(x) (B00(x)*(x)*2.598076f)
-#define B2(x) (B00(x)*(1.0f-(x)*(x)*3.0f))
-#define B3(x) (B00(x)*((x)*(x)*5.0f-3.0f)*(x)*1.3499593f)
+#define B1(x) (B0(x)*(x)*2.598076f)
+#define B2(x) (B0(x)*(1.0f-(x)*(x)*3.0f))
+#define B3(x) (B0(x)*((x)*(x)*5.0f-3.0f)*(x)*1.3499593f)
 
 /*----------------------------------------------------------------------------*/
 
@@ -2584,3 +2589,8 @@ IndexWarp3DArray * IW3D_polybasis( int lev, float *junk , int nx,int ny,int nz )
 
    return iwar ;
 }
+
+#undef B0
+#undef B1
+#undef B2
+#undef B3
