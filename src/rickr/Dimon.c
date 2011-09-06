@@ -69,10 +69,12 @@ static char * g_history[] =
     " 3.4  Aug 30, 2011 [rickr]\n"
     "      - update volume delta to mean dz, to accomodate truncated initial\n"
     "        values leading to 'volume toasted' (problem noted by B Benson)\n",
+    " 3.5  Sep  6, 2011 [rickr]\n"
+    "      - added -fast: short for -sleep_init 50 -sleep_vol 50\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.4 (Aug 30, 2011)"
+#define DIMON_VERSION "version 3.5 (Sep 6, 2011)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -1934,6 +1936,12 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 errors++;
             }
         }
+        else if ( ! strcmp( argv[ac], "-fast") )
+        {
+            /* equiv to -sleep_init 50 -sleep_vol 50 */
+            p->opts.sleep_init = 50;
+            p->opts.sleep_vol = 50;
+        }
         else if ( ! strncmp( argv[ac], "-gert_create_dataset", 20) )
         {
             p->opts.gert_exec = 1;      /* execute GERT_Reco script     */
@@ -3720,6 +3728,10 @@ static int usage ( char * prog, int level )
           "        about a new dataset before opening the given image window,\n"
           "        allowing afni to size the window appropriately.\n"
           "\n"
+          "    -fast              : process data very quickly\n"
+          "\n"
+          "        short for:  -sleep_init 50 -sleep_vol 50\n"
+          "\n"
           "    -host HOSTNAME     : specify the host for afni communication\n"
           "\n"
           "        e.g.  -host mycomputer.dot.my.network\n"
@@ -3799,6 +3811,8 @@ static int usage ( char * prog, int level )
           "\n"
           "        The example shows a sleep time of half of a second.\n"
           "\n"
+          "        See also -fast.\n"
+          "\n"
           "    -sleep_vol MS     : time to sleep between volume checks\n"
           "\n"
           "        e.g.  -sleep_vol 1000\n"
@@ -3809,6 +3823,8 @@ static int usage ( char * prog, int level )
           "        sleeps before checking again.  The default is 1.5*TR.\n"
           "\n"
           "        The example shows a sleep time of one second.\n"
+          "\n"
+          "        See also -fast.\n"
           "\n"
           "    -sleep_frac FRAC  : new data search, fraction of TR to sleep\n"
           "\n"

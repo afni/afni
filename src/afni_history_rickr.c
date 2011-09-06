@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, SEP, 2011, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "added -fast option, short for: -sleep_init 50 -sleep_vol 50",
+   NULL
+ } ,
+
  {  1, SEP, 2011, RCR, "afni_util.py", MICRO, TYPE_BUG_FIX,
    "get_default_polort: run time should be TR * (NT-1)",
    NULL
