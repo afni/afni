@@ -2851,9 +2851,11 @@ class RegWrap:
       ein = afni_name(opt.parlist[0])
 
       # save skull stripped anat before alignment
+      # Yikes! Rick noticed the saved skullstrip was the obliqued one
+      # and not the original. Should be original ps.anat_ns0, not ps.anat_ns
       if(ps.skullstrip and ps.save_skullstrip):
          ao_ns = ain.new("%s_ns" % ain.out_prefix())
-         self.copy_dset( ps.anat_ns, ao_ns, 
+         self.copy_dset( ps.anat_ns0, ao_ns, 
           "Creating final output: skullstripped %s data" % \
                           self.dset1_generic_name, ps.oexec)
 

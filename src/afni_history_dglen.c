@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 06 , SEP, 2011 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "save_skullstrip option saved obliqued and skullstripped data",
+    "Fixed to save only skullstripped"
+} ,
+
 { 02 , SEP, 2011 , DRG , "3dhistog" , 
     MINOR , TYPE_BUG_FIX, 
     "Handle binning and output of integer and float data differently",
