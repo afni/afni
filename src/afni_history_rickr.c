@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, SEP, 2011, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "added @radial_correlate to the install scripts (forgot earlier)",
+   NULL
+ } ,
+
  {  6, SEP, 2011, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
    "added -fast option, short for: -sleep_init 50 -sleep_vol 50",
    NULL
