@@ -2,7 +2,6 @@
 
 #########
 ##  type 4 (two groups with heteroskedasticity) should NOT be used when modeling with different slope across groups
-##  Outliers can be modeled now with EFS of Laplace assumption regarding cross-subjects variability! 
 #########
 
 #Clean up
@@ -195,7 +194,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
    
    } # if(lop$anaType==3)
    
-   #print("-----------------")
+   print("-----------------")
    print("There may have missing or zero t values at some voxels in some subjects.")
    print("The following threshold would allow the program not to waste runtime on those")
    print("voxels where most (e.g., 3/4 of total subjects) subjects have zero t-values. ")
@@ -384,10 +383,11 @@ read.MEMA.opts.interactive <- function (verb = 0) {
 MEMA.parse.set <- function (lop, op) {
    #length of op should be = 1 + Nsubj*3
    if ((length(op)-1)%%3) {
+      #cat(op, collapse=' ')
       warning(paste('Length of op must be 3*N+1\n',
                     'Make sure what follows -set is of the form:\n',
                     ' -set SETNAME <subj BetaDset TstatDset>',
-                    '<subj BetaDset TstatDset>, ...\n', 'What I have is:',
+                    '<subj BetaDset TstatDset>, ...\n', 'What I have is:', length(op), 'long:',
                     paste(op, collapse=' ')),
                 immediate.=TRUE);
       return(NULL);
@@ -515,7 +515,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.12, Jun 23 , 2011
+Version 0.1.13, July 6 , 2011
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -546,7 +546,12 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 0.1.10 (Feb 15, 2011). 
+ desirable. Version 0.1.13 (July 6, 2011). If you want to cite the analysis
+ approach, use the following at this moment:
+ 
+ Chen, G., Saad, Z. S., and Cox, R. W., Modeling multilevel variance components
+ and outliers in group analysis, 16th Annual Meeting of the Organization for 
+ Human Brian Mapping. Barcelona, Spain, 2010.
 
  The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
  or linear combination (GLT) of multiple conditions. It can be used to analyze
@@ -582,7 +587,7 @@ contrast from each subject in a group):
                   ejk  ejk+tlrc\'[happy#0_Coef]\'  ejk+tlrc\'[happy#0_Tstat]\' \\
                   ...
                   ss   ss+tlrc\'[happy#0_Coef]\'   ss+tlrc\'[happy#0_Tstat]\' \\
-               -max_zeros 4    \\
+               -missing_data 0  \\
                -HKtest         \\        
                -model_outliers \\        
                -residual_Z     \n"   
@@ -595,6 +600,7 @@ subtracing the 1st one):
    3dMEMA   -prefix ex2  \\
             -jobs 4      \\
             -conditions happy sad \\
+            -missing_data happyMiss+tlrc sadMiss+tlrc \\
             -set   happy \\
                 ac   ac_hap_B+tlrc   ac_hap_T+tlrc   \\
                 ejk  ejk_hap_B+tlrc  ejk_hap_T+tlrc  \\
@@ -605,7 +611,7 @@ subtracing the 1st one):
                 ejk  ejk_sad_B+tlrc  ejk_sad_T+tlrc  \\
                 ...
                 ss   ss_sad_B+tlrc   ss_sad_T+tlrc   \\
-            -n_nonzero 10  \n"
+            \n"
    
    ex3 <- 
 "Example 3 --- Two-sample type (one regression coefficient or general linear
@@ -617,7 +623,6 @@ interest till Memorial Day next year:
    3dMEMA   -prefix ex3  \\
             -jobs 4      \\
             -groups horses goats  \\
-            -unequal_variance     \\
             -set   healthy_horses \\
                 ac   ac_sad_B+tlrc.BRIK   ac_sad_T+tlrc.BRIK  \\
                 ejk  ejk_sad_B+tlrc.BRIK  ejk_sad_T+tlrc.BRIK \\
@@ -628,7 +633,7 @@ interest till Memorial Day next year:
                 mb   mb_sad_B+tlrc.BRIK   mb_sad_T+tlrc.BRIK  \\
                 ...
                 trr  trr_sad_B+tlrc.BRIK  trr_sad_T+tlrc.BRIK \\
-            -max_zeros 6    \\
+            -n_nonzero 18   \\
             -HKtest         \\
             -model_outliers \\
             -residual_Z     \\
@@ -728,10 +733,11 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "               missing data at those voxels but obviously too much\n",
    "               missing data is not good. Setting -max_zeros to 0.25\n",
    "               means process data only at voxels where no more than 1/4\n",
-   "               of the data is missing.\n",
-   "               The default value is 0 (no missing values allowed).\n",
-   "               MM can be a positive integer less than the number of\n",
-   "               subjects, or a fraction beteen 0 and 1.\n" 
+   "               of the data is missing. The default value is 0 (no\n",
+   "               missing values allowed). MM can be a positive integer\n",
+   "               less than the number of subjects, or a fraction \n",
+   "               between 0 and 1. Alternatively option -missing_data\n",
+   "               can be used to handle missing data.\n"
                            ) ),
                             
       '-n_nonzero' = apl(n = 1, d = -1, h = paste(
@@ -739,9 +745,10 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "               less than NN non-zero beta values. This options is\n",
    "               complimentary to -max_zeroes, and matches an option in\n",
    "               the interactive 3dMEMA mode. NN is basically (number of\n",
-   "               unique subjects - MM). \n"
+   "               unique subjects - MM). Alternatively option -missing_data\n",
+   "               can be used to handle missing data.\n"
                            )),
-                            
+                                              
       '-HKtest' = apl(0 , d = NA, h = paste(
    "-HKtest: Perform Hartung-Knapp adjustment for the output t-statistic. \n",
    "         This approach is more robust when the number of subjects\n",
@@ -759,6 +766,23 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "            Default is no masking.\n"
                      ) ),
                      
+      '-missing_data' = apl(n = c(1,2), h = paste (
+   "-missing_data: This option corrects for inflated statistics for the voxels where\n",
+   "              some subjects do not have any data available due to imperfect\n",
+   "              spatial alignment or other reasons. The absence of this option\n",
+   "              means no missing data will be assumed. Two formats of option\n",
+   "              setting exist as shown below.\n",
+   "  -missing_data 0: With this format the zero value at a voxel of each subject\n",
+   "                will be interpreted as missing data.\n",
+   "  -missing_data File1 [File2]: Information about missing data is specified\n",
+   "                              with file of 1 or 2 conditions, tasks, GLTs, or\n",
+   "                              groups (the number 1 or 2 and file order should\n",
+   "                              be consistent with those in option -conditions\n",
+   "                              or -groups. The voxel value of each file indicates\n",
+   "                              the number of sujects with missing data in that\n",
+   "                              condition, task, GLT, or group. \n"
+                     ) ),      
+      
       '-model_outliers' = apl(0, h = paste(
    "-model_outliers: Model outlier betas with a Laplace distribution of\n",
    "                 of subject-specific error.\n",
@@ -781,8 +805,11 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
                      
       '-unequal_variance' = apl(0, h = paste(
    "-unequal_variance: Model cross-subjects variability difference between\n",
-   "                   GROUP1 and GROUP2 (heteroskedasticity). Default is\n",
-   "                   -equal_variance (homoskedasticity).\n"
+   "                   GROUP1 and GROUP2 (heteroskedasticity). This option\n",
+   "                   may NOT be invoked when covariate is present in the\n",
+   "                   model. Default is -equal_variance (homoskedasticity).\n",
+   "                   This option may not be useded when covariates are\n",
+   "                   involved in the model.\n"
                      ) ),
                       
       '-equal_variance' = apl(0, h = paste(
@@ -795,7 +822,8 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "                        a table for the covariate(s). Each column in the\n",
    "                        file is treated as a separate covariate, and each\n",
    "                        row contains the values of these covariates for\n",
-   "                        each subject. \n",
+   "                        each subject. Option -unequal_variance may not be\n",
+   "                        used in the presence of covariates with two groups.\n",
    "     To avoid confusion, it is best you format COVAR_FILE in this manner\n",
    "     with BOTH row and column names: \n",
    "        subj  age   weight\n",
@@ -832,8 +860,9 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "    Example: If you had covariates age, and weight, you would use:\n",
    "           -covariates_center age = 78 55 weight = 165 198\n",
    "    If you want all covariates centered about their own mean, \n",
-   "    just use -covariates_center mean. Be alert: Default is no centering,\n",
-   "    which is NOT recommended unless you know what you're doing!!!\n"
+   "    just use -covariates_center mean. Be alert: Default is mean centering!\n",
+   "    If no centering is desired (e.g.,the covariate values have been\n",
+   "    pre-centered), set the center value as 0 with -covariates_center.\n"
                ) ),
                
       '-covariates_model' = apl(c(2),  h = paste(
@@ -877,6 +906,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       #lop$KHtest <- FALSE
       lop$KHtest <- TRUE
       lop$maskFN <- NULL
+      lop$missing_dataFN <- NULL
       lop$covFN <- NULL
       lop$lapMod <- 0
       lop$resZout <- 0
@@ -912,6 +942,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
              HKtest = lop$KHtest <- TRUE,
              no_HKtest = lop$KHtest <- FALSE,
              mask = lop$maskFN <- ops[[i]],
+             missing_data = lop$missing_dataFN <- ops[[i]],
              model_outliers = lop$lapMod <- 1,
              no_model_outliers = lop$lapMod <- 0,
              residual_Z = lop$resZout <- 1,
@@ -1338,35 +1369,7 @@ process.MEMA.opts <- function (lop, verb = 0) {
       lop$resZ_FN <- paste(strsplit(lop$outFN, "\\+")[[1]][1], 
                            "_resZ+orig", sep="") 
                   # write.AFNI doesn't handle tlrc yet
-   }
-   
-   #Get the total number of unique subjects
-   allsubj <- AllSubj.MEMA (lop$subjLab)
-   if (lop$nNonzero < 0) { 
-      if (lop$nMaxzero >= 0) {
-         if (lop$nMaxzero > 0 && lop$nMaxzero < 1) { #fraction
-            lop$nMaxzero <- round(lop$nMaxzero * length(allsubj))
-            if (lop$nMaxzero > length(allsubj)) lop$nMaxzero <- length(allsubj) 
-         }
-         lop$nNonzero <- length(allsubj) - lop$nMaxzero
-      } else {
-         lop$nNonzero <- length(allsubj)
-      }
-   } 
-   if (lop$nNonzero > 0 && lop$nNonzero < 1) {
-      lop$nNonzero <- round(lop$nNonzero*length(allsubj))
-      if (lop$nNonzero > length(allsubj)) lop$nNonzero <- length(allsubj)
-   }
-   
-   if (lop$nNonzero < 0.75 * length(allsubj)) {
-      warn.AFNI(c(
-   'You are allowing computations at voxels which may be missing \n',
-   'more than 1/3 of the data!') ) 
-   }
-   
-   if (verb) {
-      cat ('Have lop$nNonzero', lop$nNonzero, '\n');
-   }
+   }   
    return(lop)
 }
 
@@ -1940,6 +1943,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
    # n[1]: # subjects in group1; n[2]: total # subjects in both groups; n[2]-n[1]: # subjects in group2   
    fullLen <- length(inData); halfLen <- fullLen/2  # remove this line by providing halfLen as function argument later?
    Y <- inData[1: halfLen]; V <- inData[(halfLen +1): fullLen]
+   #tryCatch(sum(abs(Y)>tol) >= nNonzero, error = browser())
    if(sum(abs(Y)>tol) >= nNonzero) {  # run only when there are more than 2 non-zeros in both Y and V
    tag <- TRUE
    if(anaType==4) try(resList <- mema(Y, V, n[1], n[2], p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE) else
@@ -2046,7 +2050,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
 #################################################################################
 
 
-tolL <- 1e-8 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
 tolU <- 1e8  # upper tolerance for those variances of 0
 tTop <- 100   # upper bound for t-statistic
 
@@ -2103,7 +2107,7 @@ tTop <- 100   # upper bound for t-statistic
       stop('');
    }
    
-   exclude <- TRUE  # exclude those voxels with 0 variance
+   #exclude <- TRUE  # exclude those voxels with 0 variance
    
    # Maybe I should avoid doing this below part for those voxels in the mask!!!
    if(lop$anaType==1 | lop$anaType==2 | lop$anaType==4) {
@@ -2113,16 +2117,28 @@ tTop <- 100   # upper bound for t-statistic
          lop$varList[[ii]] <- mapply(function(x, y) 
                ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 
                lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  # variances
-         if(exclude) {
-            for (jj in 1:lop$nSubj[ii]) { 
-               lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
-                              # replace those 0 variances with a big number
-            }
-         }
+         for(jj in 1:lop$nSubj[ii])
+            lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
+                 # replace those 0 variances with a big number so they will be weighed out
+      }
+      
+      if(!is.null(lop$missing_dataFN)) { # if missing data is considered
+         grpDFList <- vector('list', lop$nGrp)      
+         # missing data is defined as 0 values at each voxel
+         if(is.numeric(lop$missing_dataFN)) { if(lop$missing_dataFN == 0) {
+            for(ii in 1:lop$nGrp) {
+               # here grpDFList[[ii]] is the number of 0 variances at each voxel for ii-th group
+               grpDFList[[ii]] <- (abs(lop$bList[[ii]][[1]]) == 0)  #0s in 1st subject in the ii-th group
+               # add #0s in other subjects in the group
+               for(jj in 2:lop$nSubj[ii]) 
+               grpDFList[[ii]] <- grpDFList[[ii]] + (abs(lop$bList[[ii]][[jj]]) == 0)
+            } } 
+         } else if(is.character(lop$missing_dataFN))  # missing data info provided by user
+            for(ii in 1:lop$nGrp) grpDFList[[ii]] <- read.AFNI(lop$missing_dataFN[ii])$brk
       }
    }
    
-   if(lop$anaType==3) {
+   if(lop$anaType==3) {  # case with two conditions
       for(ii in 1:lop$nLevel) {
          lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$brk); 
          lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$brk)
@@ -2130,12 +2146,26 @@ tTop <- 100   # upper bound for t-statistic
             mapply(function(x, y) 
                    ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 
                    lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  # variance
-         if(exclude) {
-            for (jj in 1:lop$nSubj[1]) 
-               lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
-                                    # replace those 0 variances with a big number
-         }
+         for (jj in 1:lop$nSubj[1]) 
+            lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
+                # replace those 0 variances with a big number
       }
+      if(!is.null(lop$missing_dataFN)) { # if missing data is considered
+         grpDFList <- vector('list', lop$nLevel)      
+         # missing data is defined as 0 values at each voxel
+         if(is.numeric(lop$missing_dataFN)) { if(lop$missing_dataFN == 0) {
+            for(ii in 1:lop$nLevel) {
+               # here grpDFList[[ii]] is the number of 0 variances at each voxel for ii-th group
+               grpDFList[[ii]] <- (abs(lop$bList[[ii]][[1]]) == 0)  #0s in 1st subject in the ii-th group
+               # add #0s in other subjects in the group
+               for(jj in 2:lop$nSubj[1]) 
+               grpDFList[[ii]] <- grpDFList[[ii]] + (abs(lop$bList[[ii]][[jj]]) == 0)
+            } } 
+         } else 
+         if(is.character(lop$missing_dataFN))  # missing data info provided by user
+            for(ii in 1:lop$nLevel) grpDFList[[ii]] <- read.AFNI(lop$missing_dataFN[ii])$brk
+      }
+   
       # 2nd minus 1st: keep consistent with 3dttset and the two-sample types 2 and 4
       contrBList <- mapply("-", lop$bList[[2]], lop$bList[[1]], SIMPLIFY = FALSE)
       contrVarList <- mapply("+", lop$varList[[1]], lop$varList[[2]], 
@@ -2143,8 +2173,7 @@ tTop <- 100   # upper bound for t-statistic
       
       # if one of the 2 conditions has 0 t-value, force the contrast beta ZERO here
       # even if the other beta is nonzerio since it's not worth considering a contrast for this voxel      
-      if(exclude) for (jj in 1:lop$nSubj[1])
-         contrBList[[jj]] <- ifelse(contrVarList[[jj]]>=tolU, 0, contrBList[[jj]])                     
+      for (jj in 1:lop$nSubj[1]) contrBList[[jj]] <- ifelse(contrVarList[[jj]]>=tolU, 0, contrBList[[jj]])                     
    }
    
    #rm(lop$tList)
@@ -2196,6 +2225,10 @@ tTop <- 100   # upper bound for t-statistic
       lop$maskData <- list();
    }
 
+   # minimum nonzero values at a voxel to guaranttee 1 DF?
+   if(!is.null(lop$missing_dataFN)) nNonzero <- 1+lop$nGrp+lop$nCov else 
+      nNonzero <- lop$nNonzero
+   
    outArr <- array(0, dim=c(lop$myDim[1:3], nBrick))
    outData<-vector(mode="numeric", length= nBrick)  
                      # initialization for use in runRMA: 3 beta's + 3 z-scores
@@ -2217,7 +2250,7 @@ tTop <- 100   # upper bound for t-statistic
                nGrp=lop$nGrp, n=c(lop$nSubj[1], sum(lop$nSubj)), 
                p=dim(lop$xMat)[2], xMat=lop$xMat, outData=outData, 
                mema=rmaB2, lapMod=lop$lapMod, KHtest=lop$KHtest, 
-               nNonzero=lop$nNonzero, nCov=lop$nCov, nBrick=nBrick, 
+               nNonzero=nNonzero, nCov=lop$nCov, nBrick=nBrick, 
                anaType=lop$anaType, resZout=lop$resZout, tol=tolL), 
                c(2,3,1))
             cat(  "Z slice #", ii, "done: ", 
@@ -2233,7 +2266,7 @@ tTop <- 100   # upper bound for t-statistic
                   runRMA, nGrp=lop$nGrp, n=c(lop$nSubj[1], sum(lop$nSubj)), 
                   p=dim(lop$xMat)[2], xMat=lop$xMat, outData=outData, 
                   mema=rmaB2, lapMod=lop$lapMod, KHtest=lop$KHtest, 
-                  nNonzero=lop$nNonzero, nCov=lop$nCov, nBrick=nBrick, 
+                  nNonzero=nNonzero, nCov=lop$nCov, nBrick=nBrick, 
                   anaType=lop$anaType, resZout=lop$resZout, tol=tolL), 
                   c(2,3,1))
             cat("Z slice #", ii, "done: ", 
@@ -2247,7 +2280,7 @@ tTop <- 100   # upper bound for t-statistic
                nGrp=lop$nGrp, n=sum(lop$nSubj), 
                p=dim(lop$xMat)[2], xMat=lop$xMat, 
                outData=outData, mema=rmaB, lapMod=lop$lapMod, 
-               KHtest=lop$KHtest, nNonzero=lop$nNonzero, nCov=lop$nCov, 
+               KHtest=lop$KHtest, nNonzero=nNonzero, nCov=lop$nCov, 
                nBrick=nBrick, anaType=lop$anaType, resZout=lop$resZout, 
                tol=tolL), c(2,3,1))
          cat("Z slice #", ii, "done: ", 
@@ -2263,7 +2296,7 @@ tTop <- 100   # upper bound for t-statistic
                   nGrp=lop$nGrp, n=sum(lop$nSubj), p=dim(lop$xMat)[2], 
                   xMat=lop$xMat, 
                   outData=outData, mema=rmaB, lapMod=lop$lapMod, 
-                  KHtest=lop$KHtest, nNonzero=lop$nNonzero, nCov=lop$nCov, 
+                  KHtest=lop$KHtest, nNonzero=nNonzero, nCov=lop$nCov, 
                   nBrick=nBrick, anaType=lop$anaType, resZout=lop$resZout, 
                   tol=tolL), c(2,3,1))
             cat("Z slice #", ii, "done: ", 
@@ -2335,51 +2368,61 @@ tTop <- 100   # upper bound for t-statistic
       }  
    }
    
+   # full DFs with no missing data
    nDF <- sum(lop$nFiles)/2-lop$nGrp-lop$nCov
+   if(!is.null(lop$missing_dataFN)) {
+   # voxel-wise DFs, done only for t, not chi-sq since it's unimportant
+   if(lop$anaType==1) grpDFList[[1]] <- lop$nSubj[1] - grpDFList[[1]] - lop$nGrp - lop$nCov
+   if(lop$anaType==2) for(ii in 1:lop$myDim[1]) for(jj in 1:lop$myDim[2]) for(kk in 1:lop$myDim[3])
+      grpDFList[[1]][ii,jj,kk,] <- sum(lop$nSubj) - 
+         -grpDFList[[1]][ii,jj,kk,]-grpDFList[[2]][ii,jj,kk,] - lop$nGrp - lop$nCov
+   if(lop$anaType==3) for(ii in 1:lop$myDim[1]) for(jj in 1:lop$myDim[2]) for(kk in 1:lop$myDim[3])
+      grpDFList[[1]][ii,jj,kk,] <- lop$nSubj[1] - 
+         max(grpDFList[[1]][ii,jj,kk,], grpDFList[[2]][ii,jj,kk,]) - lop$nGrp - lop$nCov
+   if(lop$anaType==4) for(ii in 1:lop$nGrp) # each group analyzed separately except for group diff
+      grpDFList[[ii]] <- lop$nSubj[ii] - grpDFList[[ii]] - 1
    
-   #statpar <- "3drefit"
-   #if (lop$KHtest) {
-   #   for (ii in 1:(2*lop$nGrp-1)) 
-   #      statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fitt ", nDF) 
-   #} else {
-   #   for (ii in 1:(2*lop$nGrp-1)) 
-   #      statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fizt")
-   #}
+   # convert each t with specific DFs to one with full DFs
+   tConvert <- function(tval, DF, fullDF) ifelse(DF>=1, qt(pt(tval, DF), fullDF), 0)
+   #tConvert <- function(tval, DF, fullDF) qt(pt(tval, ifelse(DF>=1, DF, NA)), fullDF)
+   #browser()
+   if(lop$anaType!=4) for(m in seq(2,(2+4*(lop$nGrp==2)+2*lop$nCov),2)) 
+      #outArr[,,,m] <- tConvert(outArr[,,,m], grpDFList[[1]][,,,1], nDF) else {
+      #the line above is more effecient, but gives warning!
+      for(i in 1:lop$myDim[1]) for(j in 1:lop$myDim[2]) for(k in 1:lop$myDim[3])
+         outArr[i,j,k,m] <- tConvert(outArr[i,j,k,m], grpDFList[[1]][i,j,k,1], nDF) else {    
+      # no covariate is involved with type 4
+      for(m in 1:2) # two individual group t
+         #outArr[,,,2*ii] <- tConvert(outArr[,,,2*ii], grpDFList[[ii]][,,,1], lop$nSubj[ii] - 1)
+         outArr[i,j,k,2*m] <- tConvert(outArr[i,j,k,2*m], grpDFList[[1]][i,j,k,1], lop$nSubj[m] - 1)
+      # group diff t has a different situation about DFs
+      #outArr[,,,6] <- tConvert(outArr[,,,6], sum(grpDFList[[1]], grpDFList[[2]])[,,,1]+1, nDF)
+      outArr[i,j,k,6] <- tConvert(outArr[i,j,k,6], sum(grpDFList[[1]], grpDFList[[2]])[i,j,k,1]+1, nDF)
+      }
+   }
    
    statpar <- "3drefit"
    if(lop$anaType==4) {
       for (ii in 1:lop$nGrp) statpar <- paste(statpar, " -substatpar ",
-          2*(ii-1)+1, " fitt ", lop$nSubj[ii]-lop$nCov-1)  # each group is modeled separately, thus different DFs
+          2*(ii-1)+1, " fitt ", lop$nSubj[ii]-1)  # each group is modeled separately, thus different DFs
    } else for (ii in 1:(2*lop$nGrp-1)) statpar <- paste(statpar, " -substatpar ",
                                                  2*(ii-1)+1, " fitt ", nDF)
-   
-   if(lop$nGrp==2) statpar <- paste(statpar, " -substatpar 5 ", " fitt ", nDF)  # DF for group diff
-   
+   # group diff t   
+   if(lop$nGrp==2) statpar <- paste(statpar, " -substatpar 5 ", " fitt ", nDF)
+   # doesn't apply to type 4 (invidual group t analyzed separately)
    if(anyCov) for(ii in 1:lop$nCov) statpar <- paste( statpar, " -substatpar ",
        nBrick0-3-2*(lop$nCov-ii), " fitt ", nDF)
    
-   #if(anyCov) {
-   #   if (lop$KHtest) {
-   #      for(ii in 1:lop$nCov) 
-   #         statpar <- paste( statpar, " -substatpar ", 
-   #                           nBrick0-3-2*(lop$nCov-ii), " fitt ", nDF)
-   #   } else {
-   #      for(ii in 1:lop$nCov) 
-   #         statpar <- paste(statpar, " -substatpar ", 
-   #                          nBrick0-3-2*(lop$nCov-ii), " fizt")
-   #   }
-   #}
-   if(lop$anaType==4) {
+   if(lop$anaType==4) { # no covariate involved
       statpar <- paste(statpar, " -substatpar ", nBrick0-5, " fict ", 
-                       lop$nSubj[1]-lop$nCov-1) # Chi-sq for QE: group 1
+                       lop$nSubj[1]-1) # Chi-sq for QE: group 1
       statpar <- paste(statpar, " -substatpar ", nBrick0-3, " fict ", 
-                       lop$nSubj[2]-lop$nCov-1) # Chi-sq for QE: group 2
+                       lop$nSubj[2]-1) # Chi-sq for QE: group 2
    } else {
       statpar <- paste(statpar, " -substatpar ", nBrick0-1, " fict ", nDF)
    }
    
-   # last brick: QE with chi-sq
- 
+   # last brick: QE with chi-sq. We don't care about DF subtlety here 
    # Z-score for residuals
    if(lop$resZout==1) {
       statparICC <- "3drefit"; 
