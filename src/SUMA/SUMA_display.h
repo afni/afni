@@ -274,6 +274,7 @@ void SUMA_SurfInfo_destroyed (void *SO);
 void SUMA_cb_ToggleCaseSearch (Widget widget, XtPointer client_data, XtPointer call_data);
 void SUMA_cb_helpUsage (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_helpEchoKeyPress(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpMemTrace(Widget w, XtPointer data, XtPointer callData);
 char * SUMA_FormatMessage (SUMA_MessageData *MD);
 void SUMA_PopUpMessage (SUMA_MessageData *MD);

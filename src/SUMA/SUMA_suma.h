@@ -43,6 +43,18 @@
             if (!DBG_trace) DBG_trace = 1;  \
             else DBG_trace = 0;  \
          }
+         #undef SUMA_ECHO_KEYPRESS_ON
+         #define SUMA_ECHO_KEYPRESS_ON {\
+            SUMAg_CF->Echo_KeyPress = YUP; \
+         }
+         #undef SUMA_ECHO_KEYPRESS_OFF
+         #define SUMA_ECHO_KEYPRESS_OFF {\
+            SUMAg_CF->Echo_KeyPress = NOPE; \
+         }
+         #undef SUMA_ECHO_KEYPRESS_TOGGLE
+         #define SUMA_ECHO_KEYPRESS_TOGGLE {\
+            SUMAg_CF->Echo_KeyPress = !SUMAg_CF->Echo_KeyPress; \
+         }
       #else
          #undef SUMA_INOUT_NOTIFY_ON
          #define SUMA_INOUT_NOTIFY_ON {\
@@ -55,6 +67,18 @@
          #undef SUMA_INOUT_NOTIFY_TOGGLE
          #define SUMA_INOUT_NOTIFY_TOGGLE {\
             SUMAg_CF->InOut_Notify = !SUMAg_CF->InOut_Notify; \
+         }
+         #undef SUMA_ECHO_KEYPRESS_ON
+         #define SUMA_ECHO_KEYPRESS_ON {\
+            SUMAg_CF->Echo_KeyPress = YUP; \
+         }
+         #undef SUMA_ECHO_KEYPRESS_OFF
+         #define SUMA_ECHO_KEYPRESS_OFF {\
+            SUMAg_CF->Echo_KeyPress = NOPE; \
+         }
+         #undef SUMA_ECHO_KEYPRESS_TOGGLE
+         #define SUMA_ECHO_KEYPRESS_TOGGLE {\
+            SUMAg_CF->Echo_KeyPress = !SUMAg_CF->Echo_KeyPress; \
          }
       #endif
    #endif

@@ -1903,6 +1903,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    cf->Dev = NOPE;
    cf->InOut_Notify = NOPE;
+   cf->Echo_KeyPress = NOPE;
    cf->InOut_Level = 0;
    cf->MemTrace = NOPE;
    
@@ -2753,6 +2754,7 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    #else 
       SS = SUMA_StringAppend_va(SS,"   DBG_trace = %d\n", DBG_trace);
       SS = SUMA_StringAppend_va(SS,"   InOut_Notify = %d\n", cf->InOut_Notify);
+      SS = SUMA_StringAppend_va(SS,"   Echo_KeyPress = %d\n", cf->Echo_KeyPress);
       SS = SUMA_StringAppend_va(SS,"   MemTrace = %d\n", cf->MemTrace);
    #endif
       SS = SUMA_StringAppend_va(SS,"   PointerSize = %d\n", cf->PointerSize);
