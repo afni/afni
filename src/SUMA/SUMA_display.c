@@ -2346,6 +2346,10 @@ SUMA_MenuItem Help_menu[] = {
       'I', NULL, NULL, \
       SUMA_cb_helpIO_notify, (XtPointer) SW_HelpIONotify, NULL},
       
+   {  "Echo Keypresses", &xmToggleButtonWidgetClass, \
+      'K', NULL, NULL, \
+      SUMA_cb_helpEchoKeyPress, (XtPointer) SW_HelpEchoKeyPress, NULL},
+      
    {  "MemTrace", &xmToggleButtonWidgetClass, \
       'M', NULL, NULL, \
       SUMA_cb_helpMemTrace, (XtPointer) SW_HelpMemTrace, NULL},
@@ -2644,7 +2648,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 
          XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpIONotify], 
             SUMAg_CF->InOut_Notify, NOPE);
-         
+      XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpEchoKeyPress], 
+            SUMAg_CF->Echo_KeyPress, NOPE);
  
          
         SUMAg_SVv[ic].X->CMAP = SUMA_getShareableColormap(&(SUMAg_SVv[ic]));
@@ -4185,6 +4190,7 @@ void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData)
     
    SUMA_RETURNe; 
 }
+
 void SUMA_setIO_notify(int val)
 {
    static char FuncName[] = {"SUMA_setIO_notify"};
@@ -4210,6 +4216,63 @@ void SUMA_setIO_notify(int val)
    
    SUMA_RETURNe;
 }
+
+/*!
+ function to echo key presses that reach SUMA
+ - expects nothing
+*/  
+void SUMA_cb_helpEchoKeyPress(Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_helpEchoKeyPress"};
+   int ii;
+   
+   SUMA_ENTRY;
+   
+   SUMA_ECHO_KEYPRESS_TOGGLE;
+   
+   /* must update the state of toggle buttons in otherviewers */
+   for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+      if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
+         /* you must check for both conditions because by default 
+         all viewers are initialized to isShaded = NOPE, 
+         even before they are ever opened */
+         if (w != SUMAg_SVv[ii].X->HelpMenu[SW_HelpEchoKeyPress]) {
+       XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpEchoKeyPress], 
+               SUMAg_CF->Echo_KeyPress, NOPE);
+         }
+      }
+   }
+   
+    
+   SUMA_RETURNe; 
+}
+
+void SUMA_setEcho_KeyPress(int val)
+{
+   static char FuncName[] = {"SUMA_setEcho_KeyPress"};
+   int ii;
+   
+   SUMA_ENTRY;
+   
+   if (val) {SUMA_ECHO_KEYPRESS_ON;}
+   else { SUMA_ECHO_KEYPRESS_OFF;} 
+   
+   /* must update the state of toggle buttons in otherviewers */
+   for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+      if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
+         /* you must check for both conditions because by default 
+         all viewers are initialized to isShaded = NOPE, 
+         even before they are ever opened */
+         {
+      XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpEchoKeyPress], 
+               SUMAg_CF->Echo_KeyPress, NOPE);
+         }
+      }
+   }
+   
+   SUMA_RETURNe;
+}
+
 /*!
  function to toggle the Memtrace debugging flag
  - expects nothing
