@@ -2639,9 +2639,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                              that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
 
-   /*float ft;
-   int **im, iv15[15];*/ /* keep unused variables undeclared to quite compiler */
-
    SUMA_ENTRY;
    
    /* get the callData pointer */
