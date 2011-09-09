@@ -2610,10 +2610,11 @@ IndexWarp3D * IW3D_warpgen( IndexWarp3DBasis *iwar , float *wt , int nsq )
 /*----------------------------------------------------------------------------*/
 
 void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim ,
-                        IndexWarp3D *AA , IW3D_basisfunc basisfunc ,
+                        IndexWarp3D *AA , int match_code , int basis_code ,
                         int ibot, int itop, int jbot, int jtop, int kbot, int ktop )
 {
    MRI_IMAGE *warpim ;
+   IW3D_basisfunc basisfunc ;
 
    if( basim == NULL || srcim == NULL || AA == NULL ) return ;
 
