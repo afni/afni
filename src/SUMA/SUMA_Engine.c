@@ -1794,14 +1794,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects nothing in EngineData */
             {  int N_Send, *SendList, ti=1;
                SUMA_IVEC ivec;
-               /* send to afni the list of anatomically correct surfaces and with a surface volume*/
-               /* No surfaces are sent twice because there should not be duplicate 
-               local domain parent surfaces in SUMAg_DOv */
-               /* prior to Wed Nov  6 17:47:20 EST 2002, only mappable surfaces that are related to the ones shown in the viewer
-               were being sent to AFNI. Now all mappable surfaces loaded are sent regardless of what is shown */
-               /* Jan. 08 04: All anatomically correct surfaces are now sent to AFNI */
-               SendList = SUMA_FormSOListToSendToAFNI(SUMAg_DOv , SUMAg_N_DOv, &N_Send);
-               if (N_Send) {
+               /* send to afni the list of anatomically correct surfaces 
+                  and with a surface volume*/
+               /* No surfaces are sent twice because there should not be 
+                  duplicate  local domain parent surfaces in SUMAg_DOv */
+               /* prior to Wed Nov  6 17:47:20 EST 2002, only mappable surfaces 
+                  that are related to the ones shown in the viewer
+                  were being sent to AFNI. Now all mappable surfaces loaded are 
+                  sent regardless of what is shown */
+               /* Jan. 08 04: 
+                  All anatomically correct surfaces are now sent to AFNI */
+               SendList = 
+                  SUMA_FormSOListToSendToAFNI(SUMAg_DOv , SUMAg_N_DOv, &N_Send);
+               if (N_Send > 0) {
                   ivec.v = SendList;
                   ivec.n = N_Send;
                   ED = SUMA_InitializeEngineListData (SE_SetAfniSurfList);
@@ -1833,11 +1838,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                   if (SendList) SUMA_free(SendList); SendList = NULL;   
                }else {
-                  SUMA_SLP_Warn(
-                     "None of the surfaces were marked as 'Anatomical'\n"
-                     "So none were sent to AFNI. You can label a surface\n"
-                     "as Anatomical by adding 'Anatomical = Y' where the \n"
-                     "surface is declared in the .spec file.");
+                  if (N_Send < 0) {
+                     SUMA_SLP_Warn(
+                        "None of the surfaces were marked as 'Anatomical'\n"
+                        "So none were sent to AFNI. You can label a surface\n"
+                        "as Anatomical by adding 'Anatomical = Y' where the \n"
+                        "surface is declared in the .spec file.");
+                  }
                }
 
                break;
@@ -5169,7 +5176,8 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
    \ret Prec_ID (int) index into dov of the surface object that is related to Cur_ID
 
 */
-int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *dov) 
+int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, 
+                           SUMA_DO *dov) 
 {
    int i, rel_id = -1;
    static char FuncName[]={"SUMA_MapRefRelative"};
@@ -5190,10 +5198,11 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
       if (  SO_prec == SOcur ||
             strcmp(SOcur->idcode_str, SO_prec->idcode_str) == 0 ) {
          if (N_prec_list == 1) {
-            /* if all you have is one surface in one state in SUMA then you need not worry about the rest */
+            /* if all you have is one surface in one state in SUMA 
+               then you need not worry about the rest */
          } else {
             /* this can happen if you have multiple surfaces with each being 
-            their own mappable surfaces., so it is OK too */
+               their own mappable surfaces., so it is OK too */
             /*
                fprintf(SUMA_STDERR, "\nError %s: Flow problem.\n"
                                  "Did not expect identical surfaces \n"
@@ -5204,23 +5213,28 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
          }
          /* 
          I changed the next condition: 
-         if (  strcmp(SOcur->LocalDomainParentID, SO_prec->LocalDomainParentID) == 0 || 
+         if (  strcmp(SOcur->LocalDomainParentID, 
+                      SO_prec->LocalDomainParentID) == 0 || 
             strcmp(SOcur->LocalDomainParentID, SO_prec->idcode_str) == 0 )
          to
          if (  SUMA_isRelated(SOcur, SO_prec, 1) )
-         The two are the same except for the condition when the two surfaces are identical.
-         So I put in a error message when that would happen and I'll deal with it then.
+         The two are the same except for the condition when the two surfaces 
+         are identical. So I put in a error message when that would happen and 
+         I'll deal with it then.
          ZSS Jan 08 04
          */
          
       }
       
-      if (  SUMA_isRelated(SOcur, SO_prec, 1) ) { /* Change made Jan 08 04, see note above */
+      if (  SUMA_isRelated(SOcur, SO_prec, 1) ) { 
+         /* Change made Jan 08 04, see note above */
          /* there's some relationship here, save it for return */
          if (rel_id < 0) {
             rel_id = prec_list[i];
          } else {
-            fprintf (SUMA_STDERR,"Error %s: I did not think that would occur! Ignoring other relatives for now.\n", FuncName); 
+            fprintf (SUMA_STDERR,
+                  "Error %s: I did not think that would occur!"
+                  " Ignoring other relatives for now.\n", FuncName); 
          }
 
       }
@@ -5238,6 +5252,7 @@ int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send)
    static char FuncName[]={"SUMA_FormSOListToSendToAFNI"};
    int *SendList = NULL, ii, j, s, *is_listed=NULL;
    SUMA_SurfaceObject *SO=NULL;
+   int no_need = 0;
    SUMA_SO_SIDE side=SUMA_NO_SIDE;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5256,6 +5271,7 @@ int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send)
       for (ii=0; ii<N_dov; ++ii) {
          if (SUMA_isSO(dov[ii])) {
             SO = (SUMA_SurfaceObject *)(dov[ii].OP);      
+            if (SO->SentToAfni) { no_need = 1; }
             if (SO->AnatCorrect && !SO->SentToAfni && SO->VolPar) {
                switch (s) {
                   case 0:
@@ -5302,6 +5318,12 @@ int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send)
       }
    }
    
+   if (*N_Send == 0 && !no_need) {
+      /* an indication that nothing can be sent,
+         as opposed things have been sent already
+         and need not be resent */
+      *N_Send = -1;
+   }
    SUMA_RETURN(SendList);
 
 }
