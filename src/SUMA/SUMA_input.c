@@ -2612,7 +2612,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    GLwDrawingAreaCallbackStruct *cd;
    char buffer[10], cbuf = '\0', cbuf2='\0';
    KeySym keysym;
-   int xls, ntot, id = 0, ND, ip, NP;
+   int xls=-1, ntot, id = 0, ND, ip, NP;
    float ArrowDeltaRot = 0.05; /* The larger the value, 
                         the bigger the rotation increment */
    SUMA_EngineData *ED = NULL; 
@@ -2666,38 +2666,48 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    Mev = *(XMotionEvent *) &cd->event->xmotion;
    
    /* a sample keypresses */
-   #if 0
+   if (SUMAg_CF->Echo_KeyPress) {
+      if (Kev.type == KeyPress) {
+         buffer[0] = '\0';
+         xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
+         fprintf (SUMA_STDERR,"%s KeyPress char>>%s<< sym>>%d<< ", 
+                  FuncName, buffer, (int)keysym);
+      } else {
+         fprintf (SUMA_STDERR,"%s Mouse Action: ", FuncName);
+      }
       if (Kev.state & ShiftMask) {
-         fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);
+         fprintf (SUMA_STDERR,"Shift ");
       }
       if (Kev.state & ControlMask){
-         fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);
+         fprintf (SUMA_STDERR,"Control ");
       }
       if (Kev.state & Mod1Mask){
-         fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);
+         fprintf (SUMA_STDERR,"alt ");
       }
       if (Kev.state & Mod2Mask){
-         fprintf (SUMA_STDERR,"%s: Mod2 down (apple on mac)\n", FuncName);
+         fprintf (SUMA_STDERR,"Mod2 (command on mac) ");
       }
       if (Kev.state & Mod3Mask){
-         fprintf (SUMA_STDERR,"%s: Mod3 down\n", FuncName);
+         fprintf (SUMA_STDERR,"Mod3 ");
       }
       if (Kev.state & Mod4Mask){
-         fprintf (SUMA_STDERR,"%s: Mod4 down\n", FuncName);
+         fprintf (SUMA_STDERR,"Mod4 ");
       }
       if (Kev.state & Mod5Mask){
-         fprintf (SUMA_STDERR,"%s: Mod5 down\n", FuncName);
+         fprintf (SUMA_STDERR,"Mod5 ");
       }
       if (Kev.state & SUMA_APPLE_AltOptMask){
-         fprintf (SUMA_STDERR,"%s: Apple Alt/Opt down\n", FuncName);
+         fprintf (SUMA_STDERR,"Apple Alt/Opt ");
       }
-      fprintf (SUMA_STDERR,"state %d\n\n", Kev.state);
-   #endif
+      fprintf (SUMA_STDERR,"State %d\n\n", Kev.state);
+  }
    
   switch (Kev.type) { /* switch event type */
   case KeyPress:
-      xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
-
+      if (xls < 0) { 
+         /* avoid double call in case SUMAg_CF->Echo_KeyPress called already */
+         xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
+      }
       /* XK_* are found in keysymdef.h */ 
       switch (keysym) { /* keysym */
          case XK_bracketleft: /* The left bracket */
