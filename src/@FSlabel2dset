@@ -13,12 +13,17 @@ count -column -digits 1 $v $v R$nv > /tmp/lbl.1D
 MAKE_ROI_FILE:
 1dcat /tmp/FSFILE.1D'[0]' /tmp/lbl.1D > $f:r.1D.roi
 
-MAKE_DSET: 
-ROI2dataset -overwrite -prefix $f:r -of niml -input $f:r.1D.roi
+   MAKE_DSET: 
+   ROI2dataset -overwrite -prefix $f:r'.l' -of niml -input $f:r.1D.roi
 
+   MAKE_DSET_WITH_PROBS:
+   cat $f | awk '{if (NR!=1 && NR!=2) print $1 " " $5}' > /tmp/FSFILE2.1D
+   ConvertDset -overwrite -o_niml_asc -input /tmp/FSFILE2.1D'[1]' \
+               -prefix ./$f:r'.p' -node_index_1D /tmp/FSFILE2.1D'[0]'
+            
 CLEANUP:
    if ($cleanup) then
-      \rm -f /tmp/lbl.1D /tmp/FSFILE.1D
+      \rm -f /tmp/lbl.1D /tmp/FSFILE*.1D
    endif
    
 goto END
@@ -103,6 +108,9 @@ PARSE:
 HELP:
    echo "`basename $0` A script to take a FreeSurfer ascii label file and "
    echo "              turn it to a SUMA dataset and a SUMA ROI"
+   echo "    Two datasets are written out, one assigns VAL to each node"
+   echo "    the other assigns the last column in FS_LABEL_FILE, presumably"
+   echo "    a probability value to each of the nodes."   
    echo ""
    echo "Options:"
    echo "   -fs FS_LABEL_FILE: Specify the ascii label file from FreeSurfer"
