@@ -1556,9 +1556,14 @@ invert_xform(ATLAS_XFORM *xf)
 
    xf->inverse = 0;
 
+   if(strcmp(xf->xform_type,"Identity")==0){
+      return(0); /*  inverse of identity is identity */
+   }
+
    if(strcmp(xf->xform_type,"Affine")==0){
       cc = invert_affine(xf);
    }
+
    /* for 12-piece, this just flips inverse setting 0->1*/
    if(strcmp(xf->xform_type,"12-piece")==0){
       cc = invert_12piece(xf); 

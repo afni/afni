@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 13 , SEP, 2011 , DRG , "whereami" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Added trivial ability to invert identity transformation"
+} ,
+
 { 06 , SEP, 2011 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "save_skullstrip option saved obliqued and skullstripped data",
