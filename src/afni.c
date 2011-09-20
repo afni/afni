@@ -1420,6 +1420,9 @@ void AFNI_sigfunc_alrm(int sig)
      "We live to tell the tale"                                      ,
      "Are we there yet?"                                             ,
      "Never give up, never surrender"                                ,
+     "Activate the Omega 13"                                         ,
+     "No time for pleasantries; we have a level-5 emergency!"        ,
+     "Digitize me, Fred"                                             ,
 
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
