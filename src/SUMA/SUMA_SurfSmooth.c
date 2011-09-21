@@ -6,8 +6,8 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps)
       char * s = NULL, *st = NULL, *sm = NULL, *sio=NULL;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      st = SUMA_help_talk();
-      sm = SUMA_help_mask();
+      /*st = SUMA_help_talk();*/
+      /*sm = SUMA_help_mask();*/
       printf (
 "\nUsage:  SurfSmooth <-SURF_1> <-met method> \n"
 "\n"
@@ -319,9 +319,7 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps)
 "\n"
 "%s"
 "\n"
-"%s"
-"\n"
-"%s"
+"-----------------------------------------------------------------------------\n"
 "\n"
 "   Sample commands lines for using SurfSmooth:\n"
 "         The surface used in this example had no spec file, so \n"
@@ -404,7 +402,7 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps)
 "       to load surface datasets directly into SUMA and colorize\n"
 "       them interactively."
 "\n"
-"\n", sio, sm,  st, s); 
+"\n", sio,  s); 
        SUMA_free(s); s = NULL; SUMA_free(st); 
        st = NULL; SUMA_free(sm); sm = NULL; SUMA_free(sio); sio = NULL;
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;

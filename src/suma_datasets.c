@@ -14030,7 +14030,7 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
    \sa SUMA_SS2S
 */
 
-#define MAX_APPEND 3000
+#define MAX_APPEND 10000
 
 SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
 {
