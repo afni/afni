@@ -58,6 +58,8 @@ static int do_ball = 0 ;
 
 static int do_lohi = 0 ;  /* 20 Jan 2011 -- for debugging */
 
+static int do_2sid = 0 ;  /* 21 Sep 2011 */
+
 static int do_NN[4] = { 0 , 1 , 0 , 0 } ;
 
 static unsigned int gseed = 123456789 ;
@@ -178,6 +180,16 @@ void display_help_menu()
    "-pthr p1 .. pn = list of uncorrected (per voxel) p-values at which to\n"
    "                  threshold the simulated images prior to clustering.\n"
    "                  [default = 0.02 0.01 0.005 0.002 0.001 0.0005 0.0002 0.0001]\n"
+   "\n"
+   "-2sided        = Normally, 3dClustSim does '1-sided' testing.  The random\n"
+   "                  dataset of Gaussian noise-only values is generated, and then\n"
+   "                  it is thresholded on the positive side so that the N(0,1)\n"
+   "                  upper tail probability is pthr.  If you use this option, then\n"
+   "                  the thresholding is instead done in a 2-sided way: positive\n"
+   "                  AND negative values will be clustered together, with the\n"
+   "                  thresholding chosen to have a 2-sided tail probability given\n"
+   "                  by pthr.\n"
+   "                 * This option is for experimentation, not for serious use!\n"
    "\n"
    "-athr a1 .. an = list of corrected (whole volume) alpha-values at which\n"
    "                  the simulation will print out the cluster size\n"
@@ -531,6 +543,15 @@ void get_options( int argc , char **argv )
       nopt++ ; continue ;
     }
 
+    /*-----   -2sided   ------*/
+
+    if( strcasecmp(argv[nopt],"-2sided") == 0 ){
+      do_2sid = 1 ; nopt++ ; continue ;
+    }
+    if( strcasecmp(argv[nopt],"-1sided") == 0 ){
+      do_2sid = 0 ; nopt++ ; continue ;
+    }
+
     /*-----   -pthr p   -----*/
 
     if( strcmp(argv[nopt],"-pthr") == 0 || strcmp(argv[nopt],"-pval") == 0 ){
@@ -708,7 +729,7 @@ void get_options( int argc , char **argv )
 
   zthr = (float *)malloc(sizeof(float)*npthr) ;
   for( ii=0 ; ii < npthr ; ii++ ){
-    zthr[ii] = (float)zthresh(pthr[ii]) ;
+    zthr[ii] = (float)zthresh( (do_2sid) ? 0.5*pthr[ii] : pthr[ii] ) ;
     /** ININFO_message("pthr=%8.5f  zthr=%6.3f",pthr[ii],zthr[ii]) ; **/
   }
 
@@ -754,6 +775,12 @@ void generate_image( float *fim , unsigned short xran[] )
 
   if( mask_vol != NULL ){
     for( ii=0 ; ii < nxyz ; ii++ ) if( !mask_vol[ii] ) fim[ii] = 0.0f ;
+  }
+
+  /* absolution? */
+
+  if( do_2sid ){
+    for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = fabsf(fim[ii]) ;
   }
 
   return ;
