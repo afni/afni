@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , AUG , 2011 , RWC , "3dclust" , MICRO , TYPE_NEW_OPT ,
+  { 21 , SEP , 2011 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
+   "Add -2sided option" ,
+   NULL } ,
+
+ { 26 , AUG , 2011 , RWC , "3dclust" , MICRO , TYPE_NEW_OPT ,
    "add -savemask option" ,
    NULL } ,
 
