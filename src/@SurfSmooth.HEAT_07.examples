@@ -1,4 +1,4 @@
-#!/bin/tcsh -f 
+#!/bin/tcsh -fe 
 if ("$1" == "-h" || "$1" == "-help") goto HELP
 
 
@@ -11,6 +11,9 @@ endif
 
 if ("$pt:t" != "suma_demo" || ("$pt:t" == "" && "$pt:h:t" == "suma_demo")) then
    echo "path $pt does not point to suma_demo"
+   echo "If you don't have suma_demo directory, install it"
+   echo "by following the commands specified in `basename $0` -help"
+   echo ""
    goto END
 endif
 
@@ -22,10 +25,18 @@ CREATE_DATA:
 set avelist = ()
 set ipref = DemoSubj_EccExpavir
 
-echo "--"
-echo "Map delay (statistical data) onto surface."
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+Mapping delay (statistical data) onto surface.\n\
+\n\
+Look at the shell for the commands to be executed for each step\n\
+--"`
+   if ( $l == '0') goto STEND
+
 rm -f ${ipref}.DEL.niml.dset
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 3dVol2Surf        -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec  \
                   -surf_A lh.smoothwm.asc \
@@ -33,13 +44,18 @@ set echo
                   -sv ${pt}/DemoSubj_SurfVol_Alnd_Exp+orig.HEAD   \
                   -grid_parent ${pt}/${ipref}.DEL+orig.BRIK   \
                   -map_func    ave  \
-                  -out_niml ${ipref}.DEL
+                  -out_niml ${ipref}.DEL.niml.dset
 unset echo
 
-echo "--"
-echo "Map time series data onto surface."
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+Map time series data onto surface.\n\
+--"`
+   if ( $l == '0') goto STEND
 rm -f ${ipref}.niml.dset
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 3dVol2Surf        -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec  \
                   -surf_A lh.smoothwm.asc \
@@ -47,15 +63,20 @@ set echo
                   -sv ${pt}/DemoSubj_SurfVol_Alnd_Exp+orig.HEAD   \
                   -grid_parent ${pt}/${ipref}+orig.BRIK   \
                   -map_func    ave  \
-                  -out_niml ${ipref}
+                  -out_niml ${ipref}.niml.dset
 unset echo
                  
 
-echo "--"
-echo "Map a full (all nodes) listing of the correlation coefficients,"
-echo " to be used in masking later on"
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+Map a full (all nodes) listing of the correlation coefficients,\n\
+ This listing will be used in masking later on\n\
+--"`
+   if ( $l == '0') goto STEND
 rm -f ${ipref}.Full.DEL.niml.dset
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 3dVol2Surf        -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec  \
                   -surf_A lh.smoothwm.asc \
@@ -64,17 +85,22 @@ set echo
                   -grid_parent ${pt}/${ipref}.DEL+orig.BRIK'[2]'   \
                   -oob_value 0  \
                   -map_func    ave  \
-                  -out_niml ${ipref}.Full.DEL
+                  -out_niml ${ipref}.Full.DEL.niml.dset
 unset echo
 set avelist = ($avelist ${ipref}.niml.dset )
                   
 SMOOTHING_VARIATIONS:
 
-echo "--"
-echo "Smooth the data by an ADDITIONAL 5 mm FWHM"
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+Smooth the data by an ADDITIONAL 5 mm FWHM\n\
+--"`
+   if ( $l == '0') goto STEND
 set prefout = ${ipref}_sm1
 rm -rf ${prefout}*.dset ${prefout}*.log
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 SurfSmooth     -met HEAT_07   \
                -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
@@ -87,11 +113,16 @@ SurfSmooth     -met HEAT_07   \
 unset echo
 set avelist = ($avelist ${prefout}.niml.dset )
  
-echo "--"
-echo "Smooth the data until smoothnes REACHES 7mm  FWHM"
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+Smooth the data until smoothnes REACHES 7mm  FWHM\n\
+--"`
+   if ( $l == '0') goto STEND
 set prefout = ${ipref}_sm2
 rm -rf ${prefout}*.dset ${prefout}*.log
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 SurfSmooth     -met HEAT_07   \
                -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
@@ -104,18 +135,23 @@ SurfSmooth     -met HEAT_07   \
 unset echo
 set avelist = ($avelist ${prefout}.niml.dset )
     
-echo "--"
-echo "Smooth the dataset with prespecified number of iterations, "
-echo " in order to produce same result as above (7mm target FWHM) "
-echo "Sigma and Niter were taken from the smoothing history file."
-echo "This is equivalent to adding the -blurmaster with the same."
-echo " -target_fwhm, but it is much faster because the smoothness"
-echo " parameters are pre-specified."
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+Smooth the dataset with prespecified number of iterations, \n\
+ in order to produce same result as above (7mm target FWHM) \n\
+Sigma and Niter were taken from the smoothing history file.\n\
+This is equivalent to adding the -blurmaster with the same.\n\
+ -target_fwhm, but it is much faster because the smoothness\n\
+ parameters are pre-specified.\n\
+--"`
+   if ( $l == '0') goto STEND
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 set params = `1dcat ${prefout}.1D.smrec'{$}'`
 set prefout = ${ipref}_sm3
-rm -rf ${prefout}*.dset ${prefout}*.log
+if ( -f ${prefout}.niml.dset) rm -rf ${prefout}*.dset ${prefout}*.log
 SurfSmooth     -met HEAT_07   \
                -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
@@ -126,10 +162,15 @@ unset echo
 set avelist = ($avelist ${prefout}.niml.dset )
 
 
-echo "--"
-echo "Same as the previous example, but blur to 5mm FWHM."
-echo "Now find the corresponding entry in the smoothing record."
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+Same as the previous example, but blur to 5mm FWHM.\n\
+For this we find the corresponding entry in the smoothing record.\n\
+--"`
+   if ( $l == '0') goto STEND
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 1deval -a ${ipref}_sm2.1D.smrec'[1]' -expr "abs(a-5)" > tmp_diff.1D
 3dTstat -argmin -prefix tmp_min.1D tmp_diff.1D\' 
@@ -138,13 +179,18 @@ set params = `1dcat ${ipref}_sm2.1D.smrec"{$imin}"`
 rm -f tmp_*.1D
 unset echo
 
-echo "--"
-echo "That would be $params[1] iterations at sigma of $params[3]"
-echo " according to the smoothing record"
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+That would be $params[1] iterations at sigma of $params[3]\n\
+ according to the smoothing record in ${ipref}_sm2.1D.smrec\n\
+--"`
+   if ( $l == '0') goto STEND
 
 set prefout = ${ipref}_sm4
-rm -rf ${prefout}*.dset ${prefout}*.log
+if ( -f ${prefout}.niml.dset) rm -rf ${prefout}*.dset ${prefout}*.log
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 SurfSmooth     -met HEAT_07   \
                -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
@@ -156,9 +202,11 @@ unset echo
 set avelist = ($avelist ${prefout}.niml.dset )
  
 
-echo "--"
-echo "Looking at time series from single node 5779"
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+Looking at time series from single node 5779\n\
+--"`
+   if ( $l == '0') goto STEND
 
 set node = 5779
 set nl = ()
@@ -171,15 +219,20 @@ end
 1dcat $nl | 1dplot -nopush -one -stdin &
 
 
-echo "--"
-echo "Blurring the delay data using the master timeseries"
-echo "Pretend we had no smoothing record for this master"
-echo "--" 
+   set l = `prompt_user -pause "\
+--\n\
+Blurring the delay data using the master timeseries\n\
+Pretend we had no smoothing record for this master\n\
+--"`
+   if ( $l == '0') goto STEND
 set prefout = ${ipref}.DEL_smd1
-rm -rf ${prefout}*.dset ${prefout}*.log
+if ( -f ${prefout}.niml.dset) rm -rf ${prefout}*.dset ${prefout}*.log
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 SurfSmooth     -met HEAT_07   \
-               -spec ../../SurfData/SUMA/DemoSubj_lh.spec \
+               -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
                -input ${ipref}.DEL.niml.dset     \
                -output ${prefout}   \
@@ -188,33 +241,43 @@ SurfSmooth     -met HEAT_07   \
                -target_fwhm 5 | tee ${prefout}.log
 unset echo
 
-echo "--"
-echo "We could have used the previous records still stored"
-echo " in params variable. ($params)"
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+We could have used the previous records still stored\n\
+ in params variable. ($params)\n\
+--"`
+   if ( $l == '0') goto STEND
 set prefout = ${ipref}.DEL_smd2
-rm -rf ${prefout}*.dset ${prefout}*.log
+if ( -f ${prefout}.niml.dset) rm -rf ${prefout}*.dset ${prefout}*.log
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 SurfSmooth     -met HEAT_07   \
-               -spec ../../SurfData/SUMA/DemoSubj_lh.spec \
+               -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
                -input ${ipref}.DEL.niml.dset     \
                -output ${prefout}   \
                -sigma  $params[3]    -Niter $params[1] | tee ${prefout}.log
 unset echo
 
-echo "--"
-echo "Blur a specific section (mask) only using blurmaster"
-echo "Note that mask is applied to master also so smoothness"
-echo " estimates come from mask region only and could therefore"
-echo " vary from cases where the smoothness was estimated from"
-echo " entire dataset such as in _smd1."
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+Blur a specific section (mask) only using blurmaster\n\
+Note that mask is applied to master also so smoothness\n\
+ estimates come from mask region only and could therefore\n\
+ vary from cases where the smoothness was estimated from\n\
+ entire dataset such as in _smd1.\n\
+--"`
+   if ( $l == '0') goto STEND
 set prefout = ${ipref}.DEL_smd3
-rm -rf ${prefout}*.dset ${prefout}*.log
+if ( -f ${prefout}.niml.dset) rm -rf ${prefout}*.dset ${prefout}*.log
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 SurfSmooth     -met HEAT_07   \
-               -spec ../../SurfData/SUMA/DemoSubj_lh.spec \
+               -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
                -input ${ipref}.DEL.niml.dset     \
                -cmask "-a ${ipref}.Full.DEL.niml.dset -expr step(a-0.4)" \
@@ -224,17 +287,22 @@ SurfSmooth     -met HEAT_07   \
                -target_fwhm 5 | tee ${prefout}.log
 unset echo
 
-echo "--"
-echo "Repeat the previous step, this time basing the number of iterations" 
-echo " on the smoothing record from the entire blurmaster, "
-echo " rather than the masked blurmaster."
-echo "In this case, smd4 is pretty much like smd1 inside mask zone."
-echo "--"
+   set l = `prompt_user -pause "\
+--\n\
+Repeat the previous step, this time basing the number of iterations\n\
+ on the smoothing record from the entire blurmaster, \n\
+ rather than the masked blurmaster.\n\
+In this case, smd4 is pretty much like smd1 inside mask zone.\n\
+--"`
+   if ( $l == '0') goto STEND
 set prefout = ${ipref}.DEL_smd4
-rm -rf ${prefout}*.dset ${prefout}*.log
+if ( -f ${prefout}.niml.dset) rm -rf ${prefout}*.dset ${prefout}*.log
+echo ""
+echo "Next Command(s):"
+echo "----------------"
 set echo 
 SurfSmooth     -met HEAT_07   \
-               -spec ../../SurfData/SUMA/DemoSubj_lh.spec \
+               -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
                -input ${ipref}.DEL.niml.dset     \
                -cmask "-a ${ipref}.Full.DEL.niml.dset -expr step(a-0.4)" \
@@ -242,27 +310,47 @@ SurfSmooth     -met HEAT_07   \
                -sigma  0.415305    -Niter 16| tee ${prefout}.log
 unset echo
 
+   set l = `prompt_user -pause "\
+--\n\
+To visualize results, you can launch suma with:\n\
+   suma -niml -spec $pt/../SurfData/SUMA/DemoSubj_lh.spec \\\n\
+              -sv $pt/DemoSubj_SurfVol_Alnd_Exp+orig.HEAD &\n\
+\n\
+Then load datasets:\n\
+   DemoSubj*.DEL_smd[1-4]*.niml.dset and *.Full.DEL.niml.dset\n\
+   using SUMA's control surface interface and switch between datasets \n\
+   to view the reuslts.\n\
+   You probably want to turn on '1 Only' to avoid confusion.\n\
+\n\
+Or you can cut and paste the commands echoed to the screen \n\
+after you dismiss this window and let the driver program \n\
+load all of them for you\n\
+\n\
+For more info on automation, see @DriveSuma and @DriveAfni.\n\
+\n\
+--"`
+   if ( $l == '0') goto STEND
 
 echo ""
 echo ""
 echo "------------"
-echo "--"
-echo "To visualize results, you can launch suma with:"
-echo "   suma -niml -spec $pt/../../SurfData/SUMA/DemoSubj_lh.spec -sv $pt/DemoSubj_SurfVol_Alnd_Exp+orig.HEAD &"
+echo "To load and visualize results automatically:"
 echo ""
-echo "Then load datasets:"
-echo "   DemoSubj*.DEL_smd[1-4]*.niml.dset and *.Full.DEL.niml.dset"
-echo "   using SUMA's control surface interface and switch between datasets to view the reuslts.\n"
-echo "You probably want to turn on '1 Only' to avoid confusion."
+echo "   @Quiet_Talkers -npb_val 76"
 echo ""
-echo "Or if you are lazy, cut and paste the following:"
+echo "   suma -npb 76 -niml \"
+echo "        -spec $pt/../SurfData/SUMA/DemoSubj_lh.spec \"
+echo "              -sv $pt/DemoSubj_SurfVol_Alnd_Exp+orig.HEAD &"
 echo ""
-echo 'set lst = (DemoSubj*.DEL_smd[1-4]*.niml.dset *.Full.DEL.niml.dset)'
-echo 'foreach ds ($lst)'
-echo '   DriveSuma -com surf_cont -load_dset $ds -surf_label lh.smoothwm.asc -1_only y'
-echo 'end'
+echo '   set lst = (DemoSubj*.DEL_smd[1-4]*.niml.dset *.Full.DEL.niml.dset)'
+echo '   foreach ds ($lst)'
+echo '      DriveSuma -npb 76 -com surf_cont \'
+echo '                -load_dset $ds -surf_label lh.smoothwm.asc -1_only y'
+echo '   end'
 echo ""
-echo "That will load the datasets in question for you."
+echo "That will load the datasets in question for you. Scroll through them via"
+echo "The Switch Dset interace in the Surface Controller"
+echo ""
 echo "For more info on automation, see @DriveSuma and @DriveAfni."
 echo "--"
 echo "------------"
@@ -273,9 +361,23 @@ goto END
 HELP:
 echo "Usage: `basename $0` <path_to_suma_demo>"
 echo "A script to illustrate controlled blurring of data on the surface."
-echo "Requires archive: http://afni.nimh.nih.gov/pub/dist/edu/data/SUMA_demo.tgz"
+echo "Requires the contents of archive:"
+echo "    http://afni.nimh.nih.gov/pub/dist/edu/data/SUMA_demo.tgz"
+echo ""
+echo "If you don't have suma_demo, run the following commands"
+echo "   curl -O http://afni.nimh.nih.gov/pub/dist/edu/data/SUMA_demo.tgz"
+echo "   tar xvzf SUMA_demo.tgz"
+echo ""
+echo "Then run:"
+echo "   `basename $0` suma_demo"
 echo ""
 goto END
+
+STEND:
+   echo ""
+   echo "Stopped by user"
+   goto END
+   
 
 END:
 
