@@ -43,6 +43,7 @@ void TS_syntax(char * str)
           "  use the '-ignore ii' option.\n"
           "\n"
           "* It seems to be best to use 3dTshift before using 3dvolreg.\n"
+          "  (But this statement is controversial.)\n"
           "\n"
           "Options:\n"
           "  -verbose      = print lots of messages while program runs\n"
@@ -133,6 +134,28 @@ void TS_syntax(char * str)
           "output will show where 3dTshift does a good job and where it does\n"
           "a bad job.\n"
           "\n"
+          "******* Voxel-Wise Shifting -- New Option [Sep 2011] *******\n"
+          "\n"
+          " -voxshift fset = Read in dataset 'fset' and use the values in there\n"
+          "                  to shift each input dataset's voxel's time series a\n"
+          "                  different amount.  The values in 'fset' are NOT in\n"
+          "                  units of time, but rather are fractions of a TR\n"
+          "                  to shift -- a positive value means to shift backwards.\n"
+          "                 * To compute an fset-style dataset that matches the\n"
+          "                   time pattern of an existing dataset, try\n"
+          "       set TR = 2.5\n"
+          "       3dcalc -a 'dset+orig[0..1]' -datum float -prefix Toff -expr \"t/${TR}-l\"\n"
+          "                   where you first set the shell variable TR to the true TR\n"
+          "                   of the dataset, then create a dataset Toff+orig with the\n"
+          "                   fractional shift of each slice stored in each voxel.  Then\n"
+          "                   the two commands below should give identical outputs:\n"
+          "       3dTshift -ignore 2 -tzero 0 -prefix Dold -heptic dset+orig\n"
+          "       3dTshift -ignore 2 -voxshift Toff+orig -prefix Dnew -heptic dset+orig\n"
+          "\n"
+          " Use of '-voxshift' means that options such as '-tzero' and '-tpattern' are\n"
+          " ignored -- the burden is on you to encode all the shifts into the 'fset'\n"
+          " dataset somehow.  (3dcalc can be your friend here.)\n"
+          "\n"
           "-- RWCox - 31 October 1999\n"
         ) ;
 
@@ -157,6 +180,8 @@ static int    TS_ignore  = 0 ;  /* 15 Feb 2001 */
 
 static THD_3dim_dataset *TS_dset = NULL , *TS_oset = NULL ;
 
+static THD_3dim_dataset *TS_fset = NULL ; /* 21 Sep 2011 */
+
 static char *TS_tpattern = NULL ;
 
 static char TS_prefix[THD_MAX_PREFIX] = "tshift" ;
@@ -167,8 +192,8 @@ int main( int argc , char *argv[] )
 {
    int nopt=1 ;
    int nzz, ii,jj,kk , ntt,nxx,nyy,nxy , nup ;
-   float tomax,tomin , tshift , fmin,fmax , gmin,gmax , f0,f1 , g0,g1 ;
-   float ffmin,ffmax , ggmin,ggmax ;
+   float tomax,tomin , fmin,fmax , gmin,gmax , f0,f1 , g0,g1 ;
+   float ffmin,ffmax , ggmin,ggmax , fshift,gshift ;
    MRI_IMAGE *flim , *glim ;
    float *far , *gar ;
    int ignore=0 , BAD=0 ;
@@ -183,6 +208,14 @@ int main( int argc , char *argv[] )
    SHIFT_set_method( MRI_FOURIER ) ;
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strcmp(argv[nopt],"-voxshift") == 0 ){  /* 21 Sep 2011 */
+        if( TS_fset != NULL ) ERROR_exit("Can't use -voxshift twice!") ;
+        TS_fset = TS_fset = THD_open_dataset( argv[++nopt] ) ;
+        if( TS_fset == NULL ) TS_syntax("Can't open -voxshift dataset!") ;
+        DSET_load(TS_fset) ; CHECK_LOAD_ERROR(TS_fset) ;
+        nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-BAD") == 0 ){
         BAD = 1 ; nopt++ ; continue ;
@@ -317,54 +350,70 @@ int main( int argc , char *argv[] )
 
    if( TS_ignore > ntt-5 ) TS_syntax("-ignore value is too large") ;
 
-   if( TS_dset->taxis == NULL ){
-      if( TS_TR == 0.0 || TS_tpattern == NULL )
-         TS_syntax("dataset has no time axis => you must supply -TR and -tpattern!") ;
-
-   } else if( TS_tpattern == NULL && TS_dset->taxis->toff_sl == NULL ){
-      TS_syntax("dataset is already aligned in time!") ;
-   }
-
    if( TS_TR == 0.0 ){                                    /* set TR from dataset */
-      TS_TR     = DSET_TIMESTEP(TS_dset) ;
-      TS_tunits = TS_dset->taxis->units_type ;
+      if( TS_dset->taxis != NULL ){
+        TS_TR     = DSET_TIMESTEP(TS_dset) ;
+        TS_tunits = TS_dset->taxis->units_type ;
+      } else {
+        TS_TR     = 1.0f ;
+        TS_tunits = UNITS_SEC_TYPE ;
+      }
       if( TS_verbose )
          printf("++ using dataset TR = %g %s\n",TS_TR,UNITS_TYPE_LABEL(TS_tunits)) ;
    }
 
-   if( TS_tpattern != NULL ){                                    /* set pattern */
-      TS_tpat = TS_parse_tpattern( nzz , TS_TR , TS_tpattern ) ;
+   if( TS_fset != NULL ){
+
+     if( nxx != DSET_NX(TS_fset) ||
+         nyy != DSET_NY(TS_fset) ||
+         nzz != DSET_NZ(TS_fset)   )
+       TS_syntax("-voxshift and input datasets don't match!") ;
+
    } else {
-      if( TS_dset->taxis->nsl != nzz )
+
+     if( TS_dset->taxis == NULL ){
+       if( TS_TR == 0.0 || TS_tpattern == NULL )
+         TS_syntax("dataset has no time axis => you must supply -TR and -tpattern!") ;
+     } else if( TS_tpattern == NULL && TS_dset->taxis->toff_sl == NULL ){
+       TS_syntax("dataset is already aligned in time!") ;
+     }
+
+     if( TS_tpattern != NULL ){                                    /* set pattern */
+       TS_tpat = TS_parse_tpattern( nzz , TS_TR , TS_tpattern ) ;
+     } else {
+       if( TS_dset->taxis->nsl != nzz )
          TS_syntax("dataset temporal pattern is malformed!") ; /* should not happen */
 
-      TS_tpat = (float *) malloc( sizeof(float) * nzz ) ;
-      memcpy( TS_tpat , TS_dset->taxis->toff_sl , sizeof(float)*nzz ) ;
-   }
-   if( TS_verbose ){
-      printf("++ using tpattern = ") ;
-      for( ii=0 ; ii < nzz ; ii++ ) printf("%g ",TS_tpat[ii]) ;
-      printf("%s\n",UNITS_TYPE_LABEL(TS_tunits)) ;
-   }
+       TS_tpat = (float *) malloc( sizeof(float) * nzz ) ;
+       memcpy( TS_tpat , TS_dset->taxis->toff_sl , sizeof(float)*nzz ) ;
+     }
+     if( TS_verbose ){
+       printf("++ using tpattern = ") ;
+       for( ii=0 ; ii < nzz ; ii++ ) printf("%g ",TS_tpat[ii]) ;
+       printf("%s\n",UNITS_TYPE_LABEL(TS_tunits)) ;
+     }
 
-   tomin = WAY_BIG ; tomax = -WAY_BIG ;                      /* check pattern */
-   for( ii=0 ; ii < nzz ; ii++ ){
-      if( TS_tpat[ii] > tomax ) tomax = TS_tpat[ii] ;
-      if( TS_tpat[ii] < tomin ) tomin = TS_tpat[ii] ;
-   }
-   if( tomin < 0.0 || tomax > TS_TR )
-      TS_syntax("some value in tpattern is outside 0..TR") ;
-   else if( tomin >= tomax )
-      TS_syntax("temporal pattern is already aligned in time!") ;
+     tomin = WAY_BIG ; tomax = -WAY_BIG ;                      /* check pattern */
+     for( ii=0 ; ii < nzz ; ii++ ){
+        if( TS_tpat[ii] > tomax ) tomax = TS_tpat[ii] ;
+        if( TS_tpat[ii] < tomin ) tomin = TS_tpat[ii] ;
+     }
+     if( tomin < 0.0 || tomax > TS_TR )
+        TS_syntax("some value in tpattern is outside 0..TR") ;
+     else if( tomin >= tomax )
+        TS_syntax("temporal pattern is already aligned in time!") ;
 
-   if( TS_slice >= 0 && TS_slice < nzz ){                   /* set common time point */
-      TS_tzero = TS_tpat[TS_slice] ;
-   } else if( TS_tzero < 0.0 ){
-      TS_tzero = 0.0 ;
-      for( ii=0 ; ii < nzz ; ii++ ) TS_tzero += TS_tpat[ii] ;
-      TS_tzero /= nzz ;
+
+     if( TS_slice >= 0 && TS_slice < nzz ){                   /* set common time point */
+       TS_tzero = TS_tpat[TS_slice] ;
+     } else if( TS_tzero < 0.0 ){
+       TS_tzero = 0.0 ;
+       for( ii=0 ; ii < nzz ; ii++ ) TS_tzero += TS_tpat[ii] ;
+       TS_tzero /= nzz ;
+     }
+     if( TS_verbose ) printf("++ common time point set to %g\n",TS_tzero) ;
+
    }
-   if( TS_verbose ) printf("++ common time point set to %g\n",TS_tzero) ;
 
    /*- copy input dataset, modify it to be the output -*/
 
@@ -375,7 +424,7 @@ int main( int argc , char *argv[] )
    DSET_unload( TS_dset ) ;
 
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(TS_oset)) )
-      TS_syntax("output dataset already exists!") ;
+     TS_syntax("output dataset already exists!") ;
 
    tross_Copy_History( TS_dset , TS_oset ) ;
    tross_Make_History( "3dTshift" , argc,argv , TS_oset ) ;
@@ -403,21 +452,29 @@ int main( int argc , char *argv[] )
 
    for( kk=0 ; kk < nzz ; kk++ ){       /* loop over slices */
 
-      tshift = (TS_tzero - TS_tpat[kk]) / TS_TR ;    /* rightward fractional shift */
+      if( TS_fset == NULL ){
+        fshift = (TS_tzero - TS_tpat[kk]) / TS_TR ;    /* rightward fractional shift */
 #if 1
-      if( !BAD ) tshift = -tshift ;   /* 24 Apr 2003 -- OOG */
+        if( !BAD ) fshift = -fshift ;   /* 24 Apr 2003 -- OOG */
 #endif
+        gshift = fshift ;
 
-      if( TS_verbose )
-         printf("++ slice %d: fractional shift = %g\n",kk,tshift) ;
+        if( TS_verbose )
+          printf("++ slice %d: fractional shift = %g\n",kk,fshift) ;
 
-      /* if removing any trend, process the slice       22 May 2008 [rickr] */
-      if( fabs(tshift) < 0.001 && ! TS_rlt ) continue ;  /* skip this slice */
+        /* if removing any trend, process the slice       22 May 2008 [rickr] */
+        if( fabs(fshift) < 0.001 && ! TS_rlt ) continue ;  /* skip this slice */
+      }
 
       for( ii=0 ; ii < nxy ; ii+=2 ){   /* loop over voxel pairs in slice */
 
          flim = THD_extract_series( ii+kk*nxy , TS_oset , 0 ) ;  /* get this voxel */
          far  = MRI_FLOAT_PTR(flim) ;
+
+         if( TS_fset != NULL ){  /* 21 Sep 2011 */
+           MRI_IMAGE *qim = THD_extract_series( ii+kk*nxy , TS_fset , 0 ) ;
+           float *qar = MRI_FLOAT_PTR(qim) ; fshift = qar[0] ; mri_free(qim) ;
+         }
 
          if( TS_rlt == 0 ){
             for( ffmin=ffmax=far[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
@@ -440,6 +497,11 @@ int main( int argc , char *argv[] )
             glim = THD_extract_series( ii+kk*nxy+1 , TS_oset , 0 ) ;
             gar  = MRI_FLOAT_PTR(glim) ;
 
+            if( TS_fset != NULL ){  /* 21 Sep 2011 */
+              MRI_IMAGE *qim = THD_extract_series( ii+kk*nxy+1 , TS_fset , 0 ) ;
+              float *qar = MRI_FLOAT_PTR(qim) ; gshift = qar[0] ; mri_free(qim) ;
+            }
+
             if( TS_rlt == 0 ){
                for( ggmin=ggmax=gar[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
                        if( gar[jj] < ggmin ) ggmin = gar[jj] ;
@@ -461,9 +523,9 @@ int main( int argc , char *argv[] )
          }
 
          if( gar != NULL )
-            SHIFT_two_rows( ntt-ignore,nup, tshift,far+ignore , tshift, gar+ignore ) ;
+            SHIFT_two_rows( ntt-ignore,nup, fshift,far+ignore , gshift, gar+ignore ) ;
          else
-            SHIFT_two_rows( ntt-ignore,nup, tshift,far+ignore , tshift, NULL ) ;
+            SHIFT_two_rows( ntt-ignore,nup, fshift,far+ignore , gshift, NULL ) ;
 
          for( jj=ignore ; jj < ntt ; jj++ ){
                  if( far[jj] < fmin ) far[jj] = fmin ;           /* clip to input range */
@@ -510,6 +572,8 @@ int main( int argc , char *argv[] )
          mri_free(flim) ; if( gar != NULL ) mri_free(glim) ;
       }
    }
+
+   if( TS_fset != NULL ) DSET_delete( TS_fset ) ;
 
    DSET_write( TS_oset ) ;
    if( TS_verbose ) fprintf(stderr,"++ Wrote output: %s\n",DSET_BRIKNAME(TS_oset)) ;
