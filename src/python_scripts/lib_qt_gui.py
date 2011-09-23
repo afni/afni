@@ -1,7 +1,10 @@
 
 import sys, os
 from PyQt4 import QtCore, QtGui
-import copy
+import copy, glob
+
+import lib_subjects as SUBJ
+import afni_util as UTIL
 
 g_history = """
   ...         : previous version
@@ -25,6 +28,8 @@ g_history = """
                            for the given subject)
       
 """
+
+g_layout_spacing = 1
 
 # ---------------------------------------------------------------------------
 class TextWindow(QtGui.QMainWindow):
@@ -248,6 +253,7 @@ def create_button_list_widget(labels, tips=None, cb=None, dir=0, hstr=0):
       layout.addWidget(button)
 
    bwidget.setLayout(layout)
+   layout.setMargin(1)
 
    return bwidget
 
@@ -345,10 +351,53 @@ def create_button_grid(labels, tips=None, cb=None, rlen=4):
       layout.addWidget(button, row, col)
       col += 1
 
-   layout.setSpacing(1)
+   layout.setSpacing(g_layout_spacing)
    bwidget.setLayout(layout)
 
    return bwidget
+
+def create_label_line_grid(labels, tips=None, cb=None, rlen=2):
+   """create a layout of buttons within a QWidget
+        - labels will be stored as gvars.lab_list within the returned QWidget
+        - lines will be stored as gvars.line_list within the returned QWidget
+        - if tips is set (length should match), setStatusTip
+        - rlen = number of items per row
+          (line is always extendable and last on grid row)
+      return a QWidget
+   """
+
+   # main widget to return
+   widget = QtGui.QWidget()
+   widget.gvars = SUBJ.VarsObject(name='label_line_grid')
+
+   if tips:
+      if len(tips) != len(labels):
+         print '** CLLG: %d labels does not match %d tips, discarding...' \
+               % (len(labels), len(tips))
+         tips = None
+
+   layout = QtGui.QGridLayout()
+
+   widget.gvars.lab_list = []
+   widget.gvars.line_list = []
+
+   for ind, label in enumerate(labels):
+      if tips: tip = tips[ind]
+      else:    tip = ''
+      qlab = make_label(label, tip)
+      qline = make_line('', cb)
+      if tip: qline.setStatusTip(tip)
+
+      widget.gvars.lab_list.append(qlab)
+      widget.gvars.line_list.append(qline)
+
+      layout.addWidget(qlab, ind, 0)
+      layout.addWidget(qline, ind, rlen-1)
+
+   layout.setSpacing(g_layout_spacing)
+   widget.setLayout(layout)
+
+   return widget
 
 def _set_button_style(button):
 
@@ -364,7 +413,7 @@ def print_icon_names():
 def create_menu_button(parent, name, menu_list, call_back=None):
    """with a menu button, the call_back is applied to the menu action
       (note that the text will come from the list)"""
-   pushb = QtGui.QPushButton(name)
+   pushb = make_button(name)
 
    menu = QtGui.QMenu(parent)
 
@@ -376,10 +425,12 @@ def create_menu_button(parent, name, menu_list, call_back=None):
 
    return pushb
 
-def create_display_label_pair(name, text):
+def create_display_label_pair(name, text, tip=''):
    """create a non-editable label pair (sunken panel) with the given text
         QLabel    QLabel
         (name)    (display text)
+
+      if tip, set a StatusTip for both labels
 
       return 2 labels"""
    name_label = QtGui.QLabel(name)
@@ -387,6 +438,10 @@ def create_display_label_pair(name, text):
 
    text_label.setFrameStyle(QtGui.QFrame.Panel)
    text_label.setFrameShadow(QtGui.QFrame.Sunken)
+
+   if tip:
+      name_label.setStatusTip(tip)
+      text_label.setStatusTip(tip)
 
    return name_label, text_label
 
@@ -519,6 +574,60 @@ def valid_as_identifier(text, name, warn=0, wparent=None, empty_ok=1):
 
    return 0
 
+def valid_as_sub_brick(text, name, warn=0, wparent=None, empty_ok=1,
+                      goodlist=[], badlist=[]):
+   """be simple for now, just append # in goodlist for valid_as_filename
+   """
+   return valid_as_filename(text, name, warn=warn, wparent=wparent,
+                            empty_ok=empty_ok, goodlist=['#'])
+
+def valid_as_filename(text, name, warn=0, wparent=None, empty_ok=1,
+                      goodlist=[], badlist=[]):
+   """the text can be either empty (if empty_ok) or consist of:
+        alphanum, [@%-_+=,.:/]
+
+      goodlist: items will be added to punctlist
+      badlist:  items will be removed to punctlist
+
+      if not and 'warn' is set, show a warning message
+
+      return 1 if valid, 0 otherwise
+   """
+
+   punctlist = ['@', '%', '-', '_', '+', '=', ',', '.', ':', '/']
+   # add good items and remove bad ones
+   for item in goodlist:
+      if not item in punctlist: punctlist.append(item)
+   for item in badlist:
+      if item in punctlist: punctlist.remove(item)
+   # puncttext = '@%-_+=,.:/'
+   puncttext = ''.join(punctlist)
+
+   # search for valid cases
+   if len(text) == 0:
+      if empty_ok: return 1  
+      extext = "<empty>"
+   else:
+      # replace punctlist chars with 'x' and call isalphanum
+      scopy = str(text)
+      for p in punctlist:
+         scopy = scopy.replace(p, 'x')  # swap out any punctuation
+      if scopy.isalnum(): return 1      # if alphanumeric, we're good ...
+      
+      if ' ' in text or '\t' in text: extext = '     <contains whitespace>'
+      else:                           extext = ''
+
+   # if here, invalid
+
+   if warn: guiWarning(                                         \
+               "Error: invalid name",                           \
+               "bad text: %s%s\n\n"                             \
+               "Characters in field '%s' must be alphabetic,\n" \
+               "numeric, or in : %s"                            \
+               % (text, extext, name, puncttext), wparent)
+
+   return 0
+
 def valid_as_filepath(text, name, warn=0, wparent=None, empty_ok=1):
    """text should look like a path to an existing file
       (do not allow spaces or tabs in name)
@@ -578,33 +687,595 @@ def resize_table_cols(table):
         table.horizontalHeader().setResizeMode(col,
                                  QtGui.QHeaderView.ResizeToContents)
 
-class TableWidget(QtGui.QTableWidget):
-   """sized widget containing a grid of entries"""
+# StringTable: todo
+#    - table is entirely composed of strings
+#    - delete row/subject (delete column?)
+#    - add row
+#    - sort by any column
+#       - set 'sort-by' column
+#    - init with 2D array
+#    - init with Var list and list of var attributes
+#
+#
+class StringTable(QtGui.QTableWidget):
+   """sized widget containing a grid of entries
+        Label_count is optionally set to track table length
+   """
 
-   def __init__(self, headings=[], stretch_cols=[], parent=None):
+   def __init__(self, name='no name',headings=[], stretch_cols=[], parent=None,
+                verb=1):
 
-      super(TableWidget, self).__init__(parent)
+      super(StringTable, self).__init__(parent)
 
-      ncols = len(headings)
+      self.lvars = SUBJ.VarsObject(name=name)
+      self.lvars.verb = verb
+
+      self.Label_count = None           # track table length
 
       self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+
+      self.set_col_headers(headings)
+      self.set_stretch_cols(stretch_cols)
+      self.setSortingEnabled(True)
+
+   def set_count_label(self, label):
+      """store label to track number of table entries"""
+      self.Label_count = label
+
+   def set_col_headers(self, headers):
+      if not headers: return 0
+
+      ncols = len(headers)
       self.setColumnCount(ncols)
-      self.setHorizontalHeaderLabels(headings)
+      self.setHorizontalHeaderLabels(headers)
+      if self.lvars.verb > 2: print '++ ST set headers: %s' % headers
+      return 0
+
+   def set_stretch_cols(self, stretch_cols):
+      if not stretch_cols: return 0
+
+      ncols = self.columnCount()
+      self.lvars.stretch_cols = stretch_cols[:]
 
       for col in stretch_cols:
-         if col < 0 or col >= ncols:
-            print ("** TableWidget: stretch_cols outside range of headings" \
-                   "   num headings = %d, col = %d" % (ncols, col))
-            continue
+         if col < 0 or col >= ncols: continue   # maybe table was cleared
          self.horizontalHeader().setResizeMode(col, QtGui.QHeaderView.Stretch)
 
-   def populate(self, entries):
-      """populate the table with entries
-        
-            entries     : 2D set of values (any # rows, but cols should match)
+      return 0
+
+   def populate(self, data, col_headers=None):
+      """populate with strings, maybe set column headers
+            - each row must have the same length
+            - entries of None or '' are okay
+         return 0 on success, 1 on error
+      """
+      self.clearContents()
+      self.setRowCount(0)
+      self.setColumnCount(0)
+      if not data:
+         self.resize_table()
+         return 0
+
+      if col_headers: self.set_col_headers(col_headers)
+
+      nrows = len(data)
+      ncols = len(data[0])
+
+      self.setColumnCount(ncols)
+
+      # check ncols per row
+      for row in data:
+         if len(row) != ncols:
+            guiError('Bad Table entries',
+                'inconsistent column lengths: %s' % [len(row) for row in data],
+                self)
+            return 1
+
+      # fill table with text rows
+      for row, rdata in enumerate(data):
+         self.insertRow(row)
+         for col, val in enumerate(rdata):
+            self.setItem(row, col, QtGui.QTableWidgetItem(val))
+
+      if self.lvars.verb > 2:
+         print '-- table populated: %d x %d table with %d x %d data' \
+               % (self.rowCount(), self.columnCount(), nrows, ncols)
+
+      self.resize_table()
+
+      return 0
+
+   def resize_cols(self):
+      """resize to column contents, unless it is in stretch_cols"""
+      ncols = self.columnCount()
+
+      scols = self.lvars.val('stretch_cols')
+      if scols == None: scols = []
+
+      for col in range(ncols):
+         if col in scols:
+            self.horizontalHeader().setResizeMode(col,QtGui.QHeaderView.Stretch)
+         else: self.horizontalHeader().setResizeMode(col,
+                                    QtGui.QHeaderView.ResizeToContents)
+
+   def show_size(self, mesg = ''):
+      # rcr - maybe remove all such calls?
+      if self.lvars.verb > 2:
+         print '-- table size %s: %d x %d' \
+               % (mesg, self.rowCount(), self.columnCount())
+
+   def resize_table(self):
+      """resize row heights and column widths
+         if self.Label_count is set, update the text with #rows
       """
 
-# end TableWidget class
+      lv = self.lvars
+
+      self.resizeRowsToContents()
+      self.remove_blank_table_rows()
+
+      nrows = self.rowCount()
+      if nrows > 0: rheight = self.rowHeight(0)
+      else:         rheight = 0
+
+      if lv.verb > 2:
+         print '-- resize table (%s) to row height %d' % (lv.name, rheight)
+
+      self.setAlternatingRowColors(True)
+      self.setFixedHeight(self.max_size(nrows, rheight=rheight))
+      self.resize_cols()
+
+      self.show_size('resize C')
+      if self.Label_count:
+         self.Label_count.setText('%d' % nrows)
+
+   def max_size(self, nrows, rheight=0):
+      """return the number of pixels to use based on the number of rows
+         (scale by any passed row height)"""
+      if rheight > 0: rowheight = rheight
+      else:           rowheight = 25
+
+      if nrows <= 6:   show_rows = nrows
+      elif nrows < 18: show_rows = 6+0.5*(nrows-6)  # after 6, add half, per
+      else:            show_rows = 12
+
+      return min(200, max(75, rheight*(show_rows+1.25)))
+
+   def delete_selected_rows(self):
+      """delete all table rows that are selected"""
+      sel_items = self.selectedItems()
+      if len(sel_items) == 0: return
+      for item in sel_items:
+         item.setText('')
+      self.resize_table()
+
+   def remove_blank_table_rows(self):
+      """delete rows that are blank"""
+
+      nrows = self.rowCount()
+      ncols = self.columnCount()
+
+      # work from row = nrows-1 down to 0, so deletion does not affect indices
+      for row in range(nrows-1, -1, -1):
+         found = 0
+         # search for something in this row
+         for col in range(ncols):
+            item = self.item(row, col)
+            if item != None:
+               if str(item.text()) != '':
+                  found = 1
+                  break
+         if not found: self.removeRow(row)
+
+      return 0
+
+# end StringTable class
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# class to fill a table with datasets (in many ways)
+class DatasetTableWidget(QtGui.QWidget):
+   """dataset table widget class:
+                control buttons (via create_button_list_widget)
+                dataset table
+                descriptive labels (no edit)
+                   - common directory
+                   - wildcard form
+                   - dataset count
+
+      inputs:
+        - parent
+        - list of button list widgets (from create_button_list_widget)
+            - maybe init, add, clear, help
+
+      output class contains (in self.gvars):
+         button_widgets, table, Label_common_dir, Label_wildcard, Label_ndsets
+      output class contains (in self.lvars):
+         dset_col, verb, cb_edited
+
+      todo: methods to write
+         - populate, delete selected rows?
+         - set_edited_callback
+         - get_table_data
+   """
+
+   def __init__(self, parent, button_widgets=[], verb=1):
+
+      super(DatasetTableWidget, self).__init__(parent)
+
+      self.lvars = SUBJ.VarsObject(name='DatasetTableWidget local vars')
+      self.lvars.dset_col  = 0          # column with dataset names
+      self.lvars.sid_col   = 0          # column with subject IDs
+      self.lvars.sort_col  = 0          # column to sort by, unless specified
+      self.lvars.cb_edited = None       # callback for when table is edited
+      self.lvars.verb      = verb
+
+      self.gvars = SUBJ.VarsObject(name='DatasetTableWidget GUI vars')
+      vlayout = QtGui.QVBoxLayout(self)
+
+      # add any button widgets
+      for bwid in button_widgets: vlayout.addWidget(bwid)
+      self.gvars.button_widgets = button_widgets
+
+      # add an empty table
+      self.gvars.table = StringTable(parent=self, verb=verb)
+      vlayout.addWidget(self.gvars.table)
+
+      # now add non-edit labels for common dir, wildcard and dataset count
+
+      bwidget = QtGui.QWidget()
+      layout = QtGui.QGridLayout()
+
+      nlabel, tlabel = create_display_label_pair('common directory', '')
+      layout.addWidget(nlabel, 0, 0)
+      layout.addWidget(tlabel, 0, 1)
+      self.gvars.Label_common_dir = tlabel
+
+      nlabel, tlabel = create_display_label_pair('wildcard form', '')
+      layout.addWidget(nlabel, 1, 0)
+      layout.addWidget(tlabel, 1, 1)
+      self.gvars.Label_wildcard = tlabel
+
+      nlabel, tlabel = create_display_label_pair('dataset count', '0')
+      layout.addWidget(nlabel, 2, 0)
+      layout.addWidget(tlabel, 2, 1)
+      self.gvars.Label_ndsets = tlabel
+
+      # and add count label to table
+      self.gvars.table.set_count_label(tlabel)
+
+      # basically fix column 0 and let column 1 grow
+      layout.setColumnStretch(0, 1)
+      layout.setColumnStretch(1, 20)
+
+      bwidget.setLayout(layout)
+      vlayout.addWidget(bwidget)
+      vlayout.setSpacing(g_layout_spacing)
+
+   def set_generic_col(self, name, col):
+      ncols = self.gvars.table.columnCount()
+      default = 0
+      if col < 0 or col >= ncols: col = default
+      cname = '%s_col' % name
+      self.lvars.set_var(cname, col)
+      if self.lvars.verb > 2:
+         val = self.lvars.val(cname)
+         print '++ set %s to %s %s' % (cname, val, type(val))
+
+   def get_generic_col(self, name, default=0):
+      ncols = self.gvars.table.columnCount()
+      cname = '%s_col' % name
+      val = self.lvars.val(cname)
+      if val < 0 or (val >= ncols and ncols > 0):
+         if default < 0: default = 0
+         print '** GDC: bad %s = %d (ncols = %d), resetting to %d...' \
+               % (cname, val, ncols, default)
+         self.lvars.set_var(cname, default)
+         val = default
+      if self.lvars.verb > 2:
+         print '++ get %s as %s %s' % (cname, val, type(val))
+      return val
+
+   def set_dset_col(self, col):
+      self.set_generic_col('dset', col)
+   def set_sid_col(self, col):
+      self.set_generic_col('sid', col)
+
+   def get_dset_col(self):
+      return self.get_generic_col('dset', self.gvars.table.columnCount()-1)
+   def get_sid_col(self):
+      return self.get_generic_col('sid', 0)
+
+   def get_data(self):
+      """return 2D array of data from table"""
+      table = self.gvars.table
+      nrows = table.rowCount()
+      ncols = table.columnCount()
+      if nrows == 0: return []
+
+      dcol = self.get_dset_col()
+      common_dir = str(self.gvars.Label_common_dir.text())
+
+      if self.lvars.verb > 2:
+         print '-- GD: return col %d from %dx%d table' % (dcol, nrows, ncols)
+
+      dlist = []
+      for row in range(nrows):
+         drow = []
+         for col in range(ncols):
+            item = table.item(row, col)
+            dd = str(item.text())
+            if col == dcol:   # possibly prepend common_dir to datasets
+               if common_dir: dd = '%s/%s' % (common_dir, dd)
+            drow.append(dd)
+         dlist.append(drow)
+
+      return dlist
+
+   def get_dset_list(self):
+      """return simple array of datasets, including any common directory"""
+      table = self.gvars.table
+      nrows = table.rowCount()
+      if nrows == 0: return []
+
+      dcol = self.get_dset_col()
+      common_dir = str(self.gvars.Label_common_dir.text())
+
+      if self.lvars.verb > 2:
+         print '-- GDList: return col %d from %dx%d table'%(dcol, nrows, ncols)
+
+      dlist = []
+      for row in range(nrows):
+         item = table.item(row, dcol)
+         dset = str(item.text())
+         if common_dir: dset = '%s/%s' % (common_dir, dset)
+         dlist.append(dset)
+
+      return dlist
+
+   def get_short_dset_list(self):
+      """return simple array of datasets, without any common directory"""
+      table = self.gvars.table
+      nrows = table.rowCount()
+      if nrows == 0: return []
+
+      dcol = self.get_dset_col()
+
+      if self.lvars.verb > 2:
+         print '-- GSDList: return col %d from %dx%d table'%(dcol, nrows, ncols)
+
+      dlist = []
+      for row in range(nrows):
+         item = table.item(row, dcol)
+         dlist.append(str(item.text()))
+
+      return dlist
+
+   def update_table_column(self, darray, col):
+      """modify just the given column of the table
+         (e.g. short dataset names or subject IDs)
+      """
+      table = self.gvars.table
+      nrows = table.rowCount()
+      if nrows == 0: return
+
+      if self.lvars.verb > 2:
+         print '++ update table column %d with %d elements' % (col,len(darray))
+         if self.lvars.verb > 3:
+            print '   nrows %d, elements: %s' % (nrows, darray)
+
+      for row in range(nrows):
+         item = table.item(row, col)
+         item.setText(darray[row])
+
+   def set_sort_col(self, scol):
+      """if the passed column is >= 0, apply, else apply 0"""
+      if scol >= 0: self.lvars.sort_col = scol
+      else:         self.lvars.sort_col = 0
+
+   def set_stretch_col(self, scol):
+      """if the passed column is >= 0, apply, else apply 0"""
+      if scol >= 0: self.gvars.table.set_stretch_cols([scol])
+      else:         self.gvars.table.set_stretch_cols([0])
+
+   def simple_populate(self, dsets):
+      """populate with datasets, assuming to go after sids and dsets"""
+      dlist = [['', dd] for dd in dsets]
+      self.populate(dlist, col_headers=['sid','dataset'], dset_col=1, sid_col=0)
+      self.set_stretch_col(1)
+      if self.lvars.sort_col >= 0:
+         self.gvars.table.sortItems(self.lvars.sort_col)
+
+   def populate(self, data, col_headers=None, dset_col=-1, sid_col=-1,
+                make_sids=1):
+      """fill the table with data, breaking datasets into pieces
+         if dset_col or sid_col, set them
+         if make_sids, try to create them from the dataset list
+      """
+      if self.lvars.verb > 2:
+         # rcr - keep?
+         nr = len(data)
+         nc = 0
+         if nr > 0: nc = len(data[0])
+         t = self.gvars.table
+         print '++ populate %d x %d table with %d x %d data, dc=%d, sc=%d' \
+               % (t.rowCount(), t.columnCount(), nr, nc, dset_col, sid_col)
+         
+      self.gvars.table.populate(data, col_headers)
+
+      self.set_dset_col(dset_col)
+      self.set_sid_col(sid_col)
+      dcol = self.get_dset_col()
+      scol = self.get_sid_col()
+
+      dsets = [row[dcol] for row in data]
+      cdir, snames, globstr = UTIL.flist_to_table_pieces(dsets)
+      self.update_table_column(snames, dcol)
+      self.gvars.Label_common_dir.setText(cdir)
+      self.gvars.Label_wildcard.setText(globstr)
+      self.set_sort_col(dcol)
+
+      # and try to set subject IDs
+      if make_sids and scol >= 0:
+         sids = UTIL.get_ids_from_dsets(snames)
+         self.update_table_column(sids, scol)
+         # if there is something to sort by, exptect to
+         if not UTIL.vals_are_constant(sids, ''): self.set_sort_col(scol)
+
+      if self.lvars.verb>1: print '-- populated, scol %d, dcol %d'%(scol, dcol)
+
+# end DatasetTableWidget class
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# class to fill a table with datasets (in many ways)
+class DsetChooser(QtGui.QDialog):
+   """class to fill a table with datasets, in any of many ways
+
+        - list of buttons, for ways to init or add to table
+        - 'delete selected rows' and 'clear' buttons
+        - DatasetTable
+   """
+
+   def __init__(self, name='Dset Chooser', parent=None, verb=1):
+
+      super(DsetChooser, self).__init__(parent)
+
+      self.gvars = SUBJ.VarsObject(name='DsetChooser GUI vars')
+      self.lvars = SUBJ.VarsObject(name='DsetChooser local vars')
+      self.lvars.verb = verb
+      self.lvars.pop_cb = None
+
+      vlayout = QtGui.QVBoxLayout(self)
+
+      # create button list for 
+      gbox = self.make_input_group_box()
+      vlayout.addWidget(gbox)
+
+      # create button list widget
+      labels = ['delete selected entries', 'clear table', 'help']
+      tips   = ['delete highlighted rows from table',
+                'delete all entries in table', 'display help for this section']
+      bwidget = create_button_list_widget(labels, cb=self.cb_pushb, tips=tips)
+      bwidget.blist[2].setIcon(self.style().standardIcon(
+                            QtGui.QStyle.SP_MessageBoxQuestion))
+
+      self.gvars.table_widget = DatasetTableWidget(self,
+                        button_widgets=[bwidget], verb=self.lvars.verb)
+
+      vlayout.addWidget(self.gvars.table_widget)
+
+      # and add OK and QUIT buttons
+      labels = ['OK', 'Quit']
+      tips   = ['apply dataset list to calling window',
+                'close this window and cancel the operation']
+      bwidget = create_button_list_widget(labels, cb=self.cb_pushb, tips=tips)
+      vlayout.addWidget(bwidget)
+
+      vlayout.setSpacing(g_layout_spacing)
+      self.setWindowTitle(name)
+
+   def make_input_group_box(self):
+      gbox = get_styled_group_box("init table via wildcard pattern")
+      glayout = QtGui.QGridLayout(gbox)
+
+      label1  = make_label('1. select representative file',
+                           'choose a file to alter into a wildcard pattern')
+      button1 = make_button('choose file',
+                            'choose a file to alter into a wildcard pattern',
+                            cb=self.cb_pushb)
+      label2  = make_label('2. alter name into desired wildcard pattern',
+                           'modify the filename text into a wildcard string')
+      line2   = make_line ('')
+      label3  = make_label('3. apply wildcard pattern to fill table',
+                           'fill table with files matching pattern')
+      button3 = make_button('apply pattern',
+                            'fill table with files matching pattern',
+                            cb=self.cb_pushb)
+      self.gvars.Line_wild_rep = line2
+      self.gvars.PushB_apply   = button3
+      button3.setFocus()
+      self.connect(line2, QtCore.SIGNAL('returnPressed()'),
+                   self.wildcard_return_press)
+
+      glayout.addWidget(label1,  0, 0)
+      glayout.addWidget(button1, 0, 1)
+      glayout.addWidget(label2,  1, 0)
+      glayout.addWidget(line2,   2, 0, 1, 2)
+      glayout.addWidget(label3,  3, 0)
+      glayout.addWidget(button3, 3, 1)
+
+      glayout.setColumnStretch(0, 20)
+      glayout.setColumnStretch(1, 1)
+
+      return gbox
+
+   def set_populate_cb(self, callback):
+      """the calling object should specify what to do once the user clicks
+         OK in this dataset chooser"""
+
+      self.lvars.pop_cb = callback
+
+   def cb_okay(self):
+      if not self.lvars.pop_cb:
+         print '** no callback for datasets'
+         return
+      dlist = self.gvars.table_widget.get_dset_list()
+      self.lvars.pop_cb(dlist)
+      self.cb_quit()
+
+   def cb_quit(self):
+      self.done(0)
+
+   def wildcard_return_press(self):
+      self.gvars.PushB_apply.setFocus()
+
+   def apply_pattern(self):
+      pattern = str(self.gvars.Line_wild_rep.text())
+      if not pattern: 
+         guiWarning("Error", "** no pattern to apply", self)
+         return
+      glist = glob.glob(pattern)
+      if len(glist) == 0:
+         guiWarning("Error", "** no files match wildcard pattern", self)
+         return
+      self.gvars.table_widget.simple_populate(glist)
+
+   def cb_pushb(self):
+      try:
+         sender = self.sender()
+         text = str(sender.text())
+      except:
+         print '** DsetChooser:cb_pushb: no sender text'
+         return
+
+      if text == 'delete selected entries':
+         self.gvars.table_widget.gvars.table.delete_selected_rows()
+      elif text == 'clear table':
+         self.gvars.table_widget.populate([])
+      elif text == 'help':
+         print '** rcr todo: please get help somewhere'
+      elif text == 'OK':   self.cb_okay()
+      elif text == 'Quit': self.cb_quit()
+
+      # wildcard application buttons
+      elif text == 'choose file':
+         # fill gvars.Line_wild_rep
+         fname = QtGui.QFileDialog.getOpenFileName(self,
+                    "choose representative dataset file", '',
+                    'datasets (*.HEAD *.nii *.nii.gz);;all files (*)')
+         if fname == None: return
+         fname = str(fname)
+         if not fname: return
+         if not valid_as_filepath(fname, 'choose file', 1, self, 1): return
+         self.gvars.Line_wild_rep.setText(fname)
+         self.gvars.Line_wild_rep.setFocus()
+      elif text == 'apply pattern':
+         self.apply_pattern()
+
+      else: print "** DC:cb_pushb: unexpected button text '%s'" % text
+
+# end DsetChooser class
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -1130,6 +1801,71 @@ class PyCommandWindow(QtGui.QMainWindow):
 
 # ---------------------------------------------------------------------------
 # generic functions
+
+def get_checked_group_box(title, view=True, ltype='V', cb_check=None):
+   """return a GroupBox with:
+        gbox.frame = main frame
+        gbox.mainlayout = main layout
+
+        ltype:    G, H, V = grid, horizontal or vertical layout
+        view:     whether frame is viewable (if so, it will be checked)
+        cb_check: callback for when check is toggled
+   """
+   gbox = get_styled_group_box(title)
+
+   # put frame inside gbox, which we can hide via toggled button
+   glayout = QtGui.QVBoxLayout(gbox)
+   frame = QtGui.QFrame(gbox)
+   frame.setFrameShape(QtGui.QFrame.NoFrame)
+   glayout.addWidget(frame)
+   gbox.frame = frame
+
+   gbox.setCheckable(True)
+   gbox.setChecked(view)
+   if view: gbox.frame.show()
+   else:    gbox.frame.hide()
+
+   if cb_check: gbox.connect(gbox, QtCore.SIGNAL('clicked()'), cb_check)
+
+   # make the main layout a child of frame
+   if   ltype == 'G': mainlayout = QtGui.QGridLayout(frame)
+   elif ltype == 'H': mainlayout = QtGui.QHBoxLayout(frame)
+   else:              mainlayout = QtGui.QVBoxLayout(frame)
+
+   mainlayout.setSpacing(g_layout_spacing)
+   mainlayout.setMargin(0)
+   glayout.setMargin(0)
+
+   gbox.mainlayout = mainlayout
+
+   return gbox
+
+def toggle_checked_gbox(gbox):
+   """toggle group box between checked/shown and unchecked"""
+   if gbox.isChecked():
+      tstr = str(gbox.title())
+      posn = tstr.find(' (hidden')
+      if posn > 0: gbox.setTitle(tstr[0:posn])
+
+      gbox.frame.show()
+   else:
+      tstr = str(gbox.title())
+      gbox.setTitle('%s (hidden but applied)' % tstr)
+
+      gbox.frame.hide()
+
+def get_styled_group_box(title):
+
+   gbox = QtGui.QGroupBox(title)
+
+   # set box color 
+   color = QtGui.QColor('blue').light(50)
+   palette = QtGui.QPalette(gbox.palette())
+   palette.setColor(QtGui.QPalette.Active, QtGui.QPalette.Mid, color)
+   gbox.setPalette(palette)
+
+   return gbox
+
 def set_font_family(obj, family, bold=False):
    """set an object's font class and bold type"""
 

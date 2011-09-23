@@ -175,10 +175,10 @@ class VarsObject(object):
          *** this should replace SUBJ.set_var_str_from_def ***
       """
 
-      # if name is not passed set one (for verbose output)
+      # if vname is not passed set one (for verbose output)
       if oname == '':
-         if self.valid(name): oname = self.name
-         else:                oname = '<noname>'
+         if self.valid(vname): oname = self.name
+         else:                 oname = '<noname>'
 
       if not defs.valid(vname):
          print '** SVWD: invalid %s variable: %s' % (oname, vname)
@@ -570,19 +570,26 @@ def proc_dir_file_exists(dname, fname):
 
    return os.path.isfile(pathname)
    
-def get_def_tool_path(tool_name, top_dir='tool_results', prefix='tool',
-                                 digits=3):
-   """return something of the form top_dir/prefix.0001.tool_name
+def get_def_tool_path(prog_name, top_dir='tool_results', prefix='tool',
+                                 keep_if_missing='', digits=3):
+   """return something of the form top_dir/prefix.0001.prog_name
 
       if top_dir exists:
-         look for anything of the form prefix.*, find the lowest index that
-         is not used, and return top_dir/prefix.NEW_INDEX.tname
+         - look for anything of the form prefix.*
+         - if keep_is_missing and the last entry does not contain it,
+              then return that last entry
+              ** goal is to only create new directory when process has happened
+         - find the lowest index that is not used
+         - return top_dir/prefix.NEW_INDEX.tname
+
       else: return top_dir/prefix.001.tname
+
+      e.g. tool_results/tool.004.align_test
+      e.g. group_results/test.004.3dttest++
    """
 
-   tname = tool_name            # yeah, shorter, but less descriptive ...
+   tname = prog_name            # yeah, shorter, but less descriptive ...
    tdir = top_dir
-   prefix = 'tool'
    index = 1                    # default index
 
    # generate form for name (e.g. tr/t.%03d.t); insert index later
@@ -593,20 +600,28 @@ def get_def_tool_path(tool_name, top_dir='tool_results', prefix='tool',
       return form % index
 
    # see what is under tdir, and go with default if nothing is found
-   glist = glob.glob('%s/tool.*.*' % tdir)
+   glist = glob.glob('%s/%s.*.*' % (tdir, prefix))
    if len(glist) == 0: return form % index
 
-   # if '.' in tdir, nuke tdir from list elements
-   if '.' in tdir: glist = [name.split('/')[1] for name in glist]
+   # get trailing directory name
+   tlist = [name.split('/')[-1] for name in glist]
 
    # abuse '.': make a list of integers from field 1 when split over '.'
-   try: ilist = [int(name.split('.')[1]) for name in glist]
+   try: ilist = [int(name.split('.')[1]) for name in tlist]
    except:
       print '** found non-int VAL in %s/%s.VAL.*' % (tdir, prefix)
       return form % 999
 
    ilist.sort()
    nvals = len(ilist)
+
+   # if keep_if_missing and the form dir exists for the last index and the
+   # keep_if_missing file does NOT exist underneath, return for that index
+   if keep_if_missing:
+      fdir = form % ilist[-1]
+      cdir = '%s/%s' % (fdir, keep_if_missing)
+      print '== checking cdir = %s' % cdir
+      if not os.path.exists(cdir): return fdir
 
    # quick check, if ilist[n-1] = n, just go with n+1
    # (or should we forget this, since non-unique values break logic?)
