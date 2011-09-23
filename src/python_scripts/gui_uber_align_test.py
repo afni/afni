@@ -1073,7 +1073,8 @@ class MainWindow(QtGui.QMainWindow):
 
       if self.set_pdir and set_pdir:
          # proc dir might read: tool_results/tool.0001.align_test
-         pdir =  SUBJ.get_def_tool_path('align_test')
+         pdir = SUBJ.get_def_tool_path('align_test', top_dir='tool_results',
+                   prefix='tool', keep_if_missing=self.uvars.val('results_dir'))
          if self.set_cvar('proc_dir', pdir):
             print '-- setting proc_dir to %s' % pdir
 

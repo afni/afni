@@ -37,9 +37,10 @@ g_history = """
          - added browsing of align_epi_anat.py help
     0.5  19 May, 2011: revert to /usr/bin/env python
     0.6  06 Jul, 2011: apply set_var_with_defs (mostly to test it out)
+    0.7  22 Sep, 2011: moved get_def_tool_path to library
 """
 
-g_version = '0.6 (July 6, 2011)'
+g_version = '0.7 (September 22, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
