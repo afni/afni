@@ -121,10 +121,11 @@ g_history = """
     0.23 May 11, 2011 : small help/todo update
     0.24 May 19, 2011 : revert to /usr/bin/env python
          - fink use may be ready on the macs (tried: fink install pyqt4-py27)
+    0.25 Sep 22, 2011 : altered spacing and made other minor changes
 
 """
 
-g_version = '0.24 (May 19, 2011)'
+g_version = '0.25 (September 22, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -283,7 +284,7 @@ class AP_Subject(object):
       self.ap_command += self.script_ap_regress()
 
       # alter ap_command, removing last '\'
-      self.ap_command = self.script_ap_nuke_last_LC(self.ap_command)
+      self.ap_command = UTIL.nuke_final_whitespace(self.ap_command)
 
       if len(self.errors) > 0: return   # if any errors so far, give up
 
@@ -426,18 +427,6 @@ class AP_Subject(object):
       elif self.cvars.verb > 1: print "** no proc '%s' to copy" % pfile
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
       # ------------------------- done -------------------------
-
-   def script_ap_nuke_last_LC(self, cmd):
-      """Find last useful character (not in {space, newline, '\\'}).
-         That should end the command (insert newline).
-      """
-
-      clen = len(cmd)
-      ind = clen-1
-      skipchars = [' ', '\t', '\n', '\\']
-      while ind > 0 and cmd[ind] in skipchars: ind -= 1
-
-      return cmd[0:ind+1]+'\n\n'
 
    def script_ap_regress(self):
       """add any -regress_* options
@@ -1281,7 +1270,7 @@ def update_svars_from_special(name, svars, check_sort=0):
       if nf < 2: return 0       # nothing to do
 
       if check_sort: # try to sort by implied index list
-         dir, snames, gstr = flist_to_table_pieces(fnames)
+         dir, snames, gstr = UTIL.flist_to_table_pieces(fnames)
          indlist = UTIL.list_minus_glob_form(snames)
          apply = 0
          try:
@@ -1303,7 +1292,7 @@ def update_svars_from_special(name, svars, check_sort=0):
       if nf < 2: return 0               # nothing to do
 
       # stim file names are more complex...
-      dir, snames, gstr = flist_to_table_pieces(fnames)
+      dir, snames, gstr = UTIL.flist_to_table_pieces(fnames)
       stable = UTIL.parse_as_stim_list(snames)
 
       if len(stable) != nf: return 0    # nothing to do
@@ -1337,24 +1326,6 @@ def update_svars_from_special(name, svars, check_sort=0):
             changes += 1
 
    return changes
-
-def flist_to_table_pieces(flist):
-      """return:
-           - common directory name
-           - short dlist names (after removing directory name)
-           - glob string of short names
-         note: short names will be new data (not pointers to flist)
-      """
-      if len(flist) == 0: return '', [], ''
-
-      ddir = UTIL.common_dir(flist)
-      dirlen = len(ddir)
-      if dirlen > 0: snames = [dset[dirlen+1:] for dset in flist]
-      else:          snames = [dset[:]         for dset in flist]
-
-      globstr = UTIL.glob_form_from_list(snames)
-
-      return ddir, snames, globstr
 
 
 # ===========================================================================

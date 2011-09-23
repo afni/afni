@@ -115,7 +115,8 @@ def make_single_row_string(data, row, nplaces=3, flag_empty=0):
 
    return rstr + '\n'
 
-def quotize_list(list, opt_prefix, skip_first=0, quote_wild=0):
+def quotize_list(list, opt_prefix='', skip_first=0, quote_wild=0,
+                 quote_chars='', ok_chars=''):
     """given a list of text elements, return a new list where any existing
        quotes are escaped, and then if there are special characters, put the
        whole string in single quotes
@@ -123,6 +124,8 @@ def quotize_list(list, opt_prefix, skip_first=0, quote_wild=0):
        if the first character is '-', opt_prefix will be applied
        if skip_first, do not add initial prefix
        if quote_wild, quotize any string with '*' or '?', too
+
+       add quote_chars to quote list, remove ok_chars
     """
     if not list or len(list) < 1: return list
 
@@ -131,6 +134,12 @@ def quotize_list(list, opt_prefix, skip_first=0, quote_wild=0):
     # default to ignoring wildcards, can always double-nest if needed
     if quote_wild: qlist = "[({*? "
     else:          qlist = "[({ "
+
+    for c in quote_chars:
+        if not c in qlist: qlist += c
+    for c in ok_chars:
+        posn = qlist.find(c)
+        if posn >= 0: qlist = qlist[0:posn]+qlist[posn+1:]
 
     newlist = []
     first = 1   # ugly, but easier for option processing
@@ -1224,6 +1233,15 @@ def find_last_space(istr,start,end,max_len=-1,stretch=1):
 
     return posn   # for either success or failure
 
+def nuke_final_whitespace(script, skipchars=[' ', '\t', '\n', '\\'],
+                                append='\n\n'):
+    """replace final white characters with newlines"""
+    slen = len(script)
+    ind = slen-1
+    while ind > 0 and script[ind] in skipchars: ind -= 1
+
+    return script[0:ind+1]+append
+
 # end line_wrapper functions
 # ----------------------------------------------------------------------
 
@@ -1697,6 +1715,8 @@ def _parse_leading_int(name, seplist=['.','_','-']):
 def common_dir(flist):
    """return the directory name that is common to all files"""
    dir, junk = first_last_match_strs(flist)
+   if len(dir) > 0 and dir[-1] == '/': dir = dir[0:-1]
+   if os.path.isdir(dir): return dir
    return os.path.dirname(dir)
 
 def common_parent_dirs(flists):
@@ -1768,6 +1788,64 @@ def is_trivial_dir(dname):
    if dname == '' or dname == '.' or dname == './' : return 1
 
    return 0
+
+def flist_to_table_pieces(flist):
+   """dissect a file list
+      input: list of file names
+      output:
+        - common directory name
+        - short name list (names after common directory)
+        - glob string from short names
+      note: short names will be new data, never just references to input
+   """
+   if len(flist) == 0: return '', [], ''
+
+   ddir = common_dir(flist)
+   dirlen = len(ddir)
+   if dirlen > 0: snames = [dset[dirlen+1:] for dset in flist]
+   else:          snames = [dset[:]         for dset in flist]
+
+   globstr = glob_form_from_list(snames)
+
+   return ddir, snames, globstr
+
+def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
+   """return a list of subject IDs corresponding to the datasets
+
+      Try list_minus_glob_form on the datasets.  If that fails, try
+      on the directories.
+
+      prefix, suffix: attach these to the resulting IDs
+      hpad, tpad:     padding to pass to list_minus_glob_form
+   """
+   if hpad < 0 or tpad < 0:
+      print '** get_ids_from_dsets: will not apply negative padding'
+      hpad, tpad = 0, 0
+
+   if len(dsets) == 0: return []
+
+   dlist = [dset.split('/')[-1] for dset in dsets]
+
+   # if nothing to come from file tail, try the complete path names
+   if vals_are_constant(dlist): dlist = dsets
+
+   slist = list_minus_glob_form(dlist, hpad, tpad)
+
+   # do some error checking
+   for val in slist:
+      if '/' in val:            # no directories
+         if verb > 0: print '** GIFD: IDs would have directories'
+         return ['' for dset in dsets]
+
+   if len(slist) != len(dsets): # appropriate number of entries
+      if verb > 0: print '** GIFD: length mis-match getting IDs'
+      return ['' for dset in dsets]
+
+   if not vals_are_unique(slist):
+      if verb > 0: print '** GIFD: final IDs are not unique'
+      return ['' for dset in dsets]
+
+   return slist
 
 # ----------------------------------------------------------------------
 # mathematical functions:

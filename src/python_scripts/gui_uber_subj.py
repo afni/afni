@@ -26,8 +26,8 @@ g_styles = ["windows", "motif", "cde", "plastique", "cleanlooks"]
 g_style_index = 0
 g_style_index_def = 4
 
-g_spacing = 1
-g_glayout_spacing = 1
+g_spacing = 3
+g_glayout_spacing = 2
 g_grid_spacing = 6
 
 g_LineEdittype = None                   # set this type later
@@ -164,6 +164,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # the layout for the 'input datasets' QGroupBox is vertical
       self.gvars.m2_vlayout = QtGui.QVBoxLayout(gbox)
       gbox.setLayout(self.gvars.m2_vlayout)
+      self.gvars.m2_vlayout.addSpacing(2)
 
       self.gvars.m2_gbox_inputs = gbox
 
@@ -389,6 +390,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # and finish group box
+      layout.setMargin(g_spacing)
       layout.setSpacing(g_spacing)
       glayout.addWidget(frame)
       glayout.setSpacing(g_glayout_spacing)
@@ -457,6 +459,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # and finish group box
+      layout.setMargin(g_spacing)
       layout.setSpacing(g_spacing)
       glayout.addWidget(frame)
       glayout.setSpacing(g_glayout_spacing)
@@ -549,6 +552,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # and finish group box
+      layout.setMargin(g_spacing)
       layout.setSpacing(g_spacing)
       glayout.addWidget(frame)
       glayout.setSpacing(g_glayout_spacing)
@@ -614,6 +618,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.addWidget(self.gvars.Line_motion_limit, 2, 2)
 
       frame.setLayout(layout)
+      layout.setMargin(g_spacing)
       layout.setSpacing(g_spacing)
       glayout.addWidget(frame)
       glayout.setSpacing(g_glayout_spacing)
@@ -656,7 +661,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # create the anat file browsing dialog
       gbox.FileD = self.make_file_dialog("load anatomical dataset", "",
-                     "*.HEAD;;*.nii;;*")
+                     "*.HEAD;;*.nii;;*.nii.gz;;*")
                      #".HEAD files (*.HEAD);;.nii files (*.nii);;all files (*)")
 
       # add a line for the anat name, init to anat
@@ -673,6 +678,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.connect(gbox.checkBox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
       layout.addWidget(gbox.checkBox)
 
+      layout.setMargin(g_spacing)
       layout.setSpacing(g_spacing)
       frame.setLayout(layout)
       glayout.addWidget(frame)
@@ -768,6 +774,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.setColumnStretch(0, 1)
       layout.setColumnStretch(1, 20)
 
+      layout.setMargin(g_spacing)
       layout.setSpacing(g_grid_spacing)
       bwidget.setLayout(layout)
       mainlayout.addWidget(bwidget)
@@ -782,6 +789,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       mainlayout.addWidget(gbox.checkBox_wildcard)
 
       # --------------------------------------------------
+      mainlayout.setMargin(g_spacing)
       mainlayout.setSpacing(g_spacing)
       frame.setLayout(mainlayout)
       return gbox
@@ -835,6 +843,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       bwidget = QtGui.QWidget()
       layout = QtGui.QHBoxLayout()
       layout.addWidget(self.gvars.Table_stim)
+      layout.setMargin(g_spacing)
       layout.setSpacing(g_spacing)
       bwidget.setLayout(layout)
       mainlayout.addWidget(bwidget)
@@ -865,6 +874,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.setColumnStretch(0, 1)
       layout.setColumnStretch(1, 20)
 
+      layout.setMargin(g_spacing)
       layout.setSpacing(g_grid_spacing)
       bwidget.setLayout(layout)
       mainlayout.addWidget(bwidget)
@@ -893,6 +903,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                    QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
       layout.addWidget(self.gvars.Line_apply_basis)
 
+      layout.setMargin(g_spacing)
       layout.setSpacing(g_spacing)
       bwidget.setLayout(layout)
       mainlayout.addWidget(bwidget)
@@ -907,6 +918,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       mainlayout.addWidget(gbox.checkBox_wildcard)
 
       # --------------------------------------------------
+      mainlayout.setMargin(g_spacing)
       mainlayout.setSpacing(g_spacing)
       frame.setLayout(mainlayout)
 
@@ -1002,10 +1014,12 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout.setColumnStretch(0, 1)
       layout.setColumnStretch(1, 20)
 
+      layout.setMargin(0)
       bwidget.setLayout(layout)
       mainlayout.addWidget(bwidget)
 
       # --------------------------------------------------
+      mainlayout.setMargin(g_spacing)
       mainlayout.setSpacing(g_spacing)
       frame.setLayout(mainlayout)
 
@@ -1127,7 +1141,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          return
 
       # parse the EPI list into directory, short names, glob string
-      epi_dir, short_names, globstr = USUBJ.flist_to_table_pieces(epi)
+      epi_dir, short_names, globstr = UTIL.flist_to_table_pieces(epi)
 
       # ------------------------------------------------------------
       # note wildcard form and try to create index list
@@ -1244,7 +1258,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          return
 
       # parse the stim list into directory, short names, glob string
-      stim_dir, short_names, globstr = USUBJ.flist_to_table_pieces(stim)
+      stim_dir, short_names, globstr = UTIL.flist_to_table_pieces(stim)
 
       # ------------------------------------------------------------
 
@@ -1438,7 +1452,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif text == 'browse anat':
          fname = QtGui.QFileDialog.getOpenFileName(self,
                    "load anatomical dataset", self.pick_base_dir('anat'),
-                   "datasets (*.HEAD *.nii);;all files (*)")
+                   "datasets (*.HEAD *.nii *.nii.gz);;all files (*)")
          self.update_textLine_check(self.gvars.Line_anat,
                 fname, 'anat', 'anatomical dset', QLIB.valid_as_filepath)
 
@@ -1453,7 +1467,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif text == 'browse EPI':
          fnames = QtGui.QFileDialog.getOpenFileNames(self,
                         "load EPI datasets", self.pick_base_dir('epi'),
-                        "datasets (*.HEAD *.nii);;all files (*)")
+                        "datasets (*.HEAD *.nii *.nii.gz);;all files (*)")
          if len(fnames) > 0:
             self.set_svar('epi', [str(name) for name in fnames])
             self.epi_list_to_table()

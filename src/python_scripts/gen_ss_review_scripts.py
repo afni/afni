@@ -439,9 +439,12 @@ g_history = """
    0.5  Aug 02, 2011: added control var out_prefix, a prefix for output files
    0.6  Aug 12, 2011: gave volreg 3dAllineate command priority for final anat
    0.7  Aug 17, 2011: fixed some final anat dset assignments
+   0.8  Sep 22, 2011: 
+        - added check_for_file
+        - updated find_x_mat, guess_enorm_dset, drive_view_stats
 """
 
-g_version = "gen_ss_review_scripts.py version 0.7, August 17, 2011"
+g_version = "gen_ss_review_scripts.py version 0.8, September 22, 2011"
 
 g_todo_str = """
    - figure out template_space
@@ -738,6 +741,7 @@ class MyInterface:
          return 1
 
       # we have some list now, start looking through them
+      use_xmat = ''
       for xfile in xfiles:
          ax = LAD.Afni1D(xfile, verb=0)    # try to load, no whining
          if verb > 2: print '-- testing xmat file %s' % xfile
@@ -760,11 +764,18 @@ class MyInterface:
                continue
 
          # we have a file to use
-         self.uvars.xmat_regress = xf
-         return self.set_xmat_dset_from_name(xf)
+         use_xmat = xf
+         break
 
-      if verb > 1: print '** failed to find any xmat'
-      return 1
+      # failed to get one from '3dDeconvolve -x1D' option, so search for one
+      if not use_xmat and len(xfiles) == 1:      use_xmat = xfiles[0]
+      if not use_xmat and 'X.xmat.1D' in xfiles: use_xmat = 'X.xmat.1D'
+
+      # last gasp, just use the first one in the list
+      if not use_xmat: use_xmat = xfiles[0]
+
+      self.uvars.xmat_regress = use_xmat
+      return self.set_xmat_dset_from_name(use_xmat)
 
    def set_xmat_dset_from_name(self, xname, regress=1):
       """set dsets.xmat_regress, xmat_ad, xmat_uncensored (maybe)
@@ -1147,9 +1158,10 @@ class MyInterface:
          return 0
 
       # else go after anything of the sort
-      glist = glob.glob('mot*_enorm.1D')
       glist = glob.glob(gstr)
-      if len(glist) == 1:
+      if len(glist) == 0: glist = glob.glob('mot*_enorm.1D')
+      if len(glist) == 0: glist = glob.glob('*_enorm.1D')
+      if len(glist) > 0: # grab first, for lack of anything better
          self.uvars.enorm_dset = glist[0]
          return 0
 
@@ -1189,7 +1201,6 @@ class MyInterface:
 
       # else go after anything of the sort
       glist = glob.glob('outcount*rall*')
-      glist = glob.glob(gstr)
       if len(glist) == 1:
          self.uvars.outlier_dset = glist[0]
          return 0
@@ -1315,7 +1326,7 @@ class MyInterface:
          if posn > 0: gform = copts[1]
          else:        gform = '%s*HEAD' % copts[1]
       else:
-         if verb > 2: print '-- no %s option in command ...' % opt
+         if self.cvars.verb > 2: print '-- no %s option in command ...' % opt
          gform = 'stats.*.HEAD'
 
       # now find all datasets, but remove expected REMLvar+VIEW ones
@@ -1596,17 +1607,15 @@ class MyInterface:
 
    def drive_view_stats(self):
 
-      # can we do this?
-      sset = self.dsets.stats_dset
-      aset = self.dsets.final_anat
-      mset = self.dsets.mask_dset
+      # check that dsets are okay before using them
+      errs = 0
+      emesg = 'cannot drive view_stats'
+      if self.check_for_dset('stats_dset', emesg): errs += 1
+      if self.check_for_dset('mask_dset', emesg): errs += 1
+      if errs: return 1
 
-      if not sset.exist():
-         print '** missing stats dset, cannot drive view_stats'
-         return 1
-      if not mset.exist():
-         print '** missing mask dset, cannot drive view_stats'
-         return 1
+      sset = self.dsets.val('stats_dset')
+      mset = self.dsets.val('mask_dset')
 
       txt = 'echo ' + UTIL.section_divider('view stats results',
                                            maxlen=60, hchar='-') + '\n\n'
@@ -1617,7 +1626,8 @@ class MyInterface:
       s2   = 'set thresh = $pp[2]\n'                                    \
              'echo -- thresholding F-stat at $thresh\n'
 
-      if aset.exist():
+      aset = self.dsets.val('final_anat')
+      if not self.check_for_dset('final_anat', ''):
          s3 = '              -com "SWITCH_UNDERLAY %s"      \\\n'%aset.prefix
       else: s3 = ''
 
@@ -1661,6 +1671,8 @@ class MyInterface:
           + s4 
 
       self.text_drive += txt + '\n\n'
+
+      return 0
 
    def drive_regress_xmatrix(self):
 
@@ -1707,6 +1719,8 @@ class MyInterface:
 
       self.text_drive += txt + '\n\n'
 
+      return 0
+
    def drive_regress_warnings(self):
 
       # can we do this?
@@ -1751,20 +1765,48 @@ class MyInterface:
 
       self.text_drive += txt + '\n\n'
 
+      return 0
+
+   def check_for_file(self, varname, mesg):
+      """check for existence of file
+         if not, print mesg
+         if no mesg, print nothing
+
+         e.g. if check_for_file('X.xmat.1D', 'failed basic init'): errs += 1
+      """
+      fname = self.uvars.val(varname)
+      if not fname:
+         if mesg: print '** no %s, %s' % (varname, mesg)
+         return 1
+      if not os.path.isfile(fname):
+         if mesg: print '** missing %s %s, %s' % (varname, fname, mesg)
+         return 1
+      return 0
+
+   def check_for_dset(self, dname, mesg):
+      """akin to check_for_file, but use dset.exists instead of os.path.isfile
+         and get the filename from self.dsets
+      """
+      dset = self.dsets.val(dname)
+      if not dset:
+         if mesg: print '** no %s dset, %s' % (dname, mesg)
+         return 1
+      if not dset.exist():
+         if mesg: print '** missing %s %s, %s' % (dname, dset, mesg)
+         return 1
+      return 0
+
    def drive_align_check(self):
 
-      # can we do this?
+      errs = 0
+      emesg = 'skipping align check...'
+      if self.check_for_file('final_anat', emesg): errs += 1
+      if self.check_for_file('volreg_dset', emesg): errs += 1
+      if errs: return 0  # continue
+
+      # so we are good to go with these...
       aset = self.uvars.val('final_anat')
       vset = self.uvars.val('volreg_dset')
-
-      errs = 0
-      if not os.path.isfile(aset):
-         print '** missing final_anat, skipping align check...'
-         errs += 1
-      if not os.path.isfile(vset):
-         print '** missing volreg_dset, skipping align check...'
-         errs += 1
-      if errs: return 0  # continue
 
       apre = self.dsets.final_anat.prefix
       aset = self.dsets.final_anat.pve()

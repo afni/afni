@@ -49,6 +49,32 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, SEP, 2011, RCR, "uber_ttest.py", MAJOR, TYPE_NEW_PROG,
+   "a graphical program for running either 3dttest++ or 3dMEMA",
+   "Still under destruction."
+ } ,
+
+ { 22, SEP, 2011, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "various updates",
+   "- updated quotize_list\n"
+   "- added nuke_final_whitespace, flist_to_table_pieces, get_ids_from_dsets"
+ } ,
+
+ { 22, SEP, 2011, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_MODIFY,
+   "added check_for_file and for_dset, updated find_x_mat, enorm, view_stats",
+   NULL
+ } ,
+
+ { 22, SEP, 2011, RCR, "uber_align_test.py", MICRO, TYPE_MODIFY,
+   "moved get_def_tool_path to library",
+   NULL
+ } ,
+
+ { 22, SEP, 2011, RCR, "uber_subject.py", MINOR, TYPE_MODIFY,
+   "altered spacing and made other minor changes",
+   NULL
+ } ,
+
  {  7, SEP, 2011, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
    "added @radial_correlate to the install scripts (forgot earlier)",
    NULL
