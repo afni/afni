@@ -227,6 +227,8 @@ void NWC_help(void)
     "                 ++ &apply is provided to make your life simpler and happier.\n"
     "                 ++ &apply is like 3dNwarpApply with the output dataset PP\n"
     "                    always being on the same grid as the input dataset DD.\n"
+    "                 ++ The grid of dataset DD does NOT have to be the same as the\n"
+    "                    grid defining the warp defined on the stack.\n"
     "                 ++ Program 3dNwarpApply provides more options to control\n"
     "                    the way that a warp is applied to a dataset; for example,\n"
     "                    to change the output grid spacing.\n"
