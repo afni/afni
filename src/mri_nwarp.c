@@ -2476,6 +2476,19 @@ ENTRY("NwarpCalcRPN") ;
 }
 
 /*----------------------------------------------------------------------------*/
+
+void IW3D_destroy_basis( IndexWarp3DBasis *iwar )
+{
+   if( iwar == NULL ) return ;
+   if( iwar->db != NULL ){
+     int ii ;
+     for( ii=0 ; ii < iwar->nbase ; ii++ ) FREEIFNN(iwar->db[ii]) ;
+     free(iwar->db) ;
+   }
+   free(iwar) ; return ;
+}
+
+/*----------------------------------------------------------------------------*/
 /***--- Each function goes to 0 at abs(x)=1 and has peak magnitude of 1. ---***/
 
 #undef B0
@@ -2601,7 +2614,7 @@ IndexWarp3D * IW3D_warpgen( IndexWarp3DBasis *iwar , float *wt , int nsq )
    }
 
    if( nsq > 0 ){
-     BB = IW3D_2pow( AA , nsq ) ; IW3D_destroy(AA) ; AA = BB ;
+     BB = IW3D_2pow(AA,nsq) ; IW3D_destroy(AA) ; AA = BB ;
    }
 
    return AA ;
@@ -2617,6 +2630,7 @@ void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim 
    IW3D_basisfunc basisfunc ;
 
    if( basim == NULL || srcim == NULL || AA == NULL ) return ;
+   if( itop-ibot < 6 || jtop-jbot < 6 || ktop-kbot < 6 ) return ;
 
    warpim = wsrcim ;
 }
