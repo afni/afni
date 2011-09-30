@@ -2496,10 +2496,12 @@ void IW3D_destroy_basis( IndexWarp3DBasis *iwar )
 #undef B2
 #undef B3
 
-#define B0(x) (1.0f-(x)*(x))
-#define B1(x) (B0(x)*(x)*2.598076f)
-#define B2(x) (B0(x)*(1.0f-(x)*(x)*3.0f))
-#define B3(x) (B0(x)*((x)*(x)*5.0f-3.0f)*(x)*1.3499593f)
+#define B0(x) ( aa = fabsf(x) ,                           \
+                (aa <= 0.5f) ? (1.0f-2.0f*(aa)*(aa))      \
+                             : 2.0f*(1.0f-aa)*(1.0f-aa) )
+#define B1(x) ((x)*3.67423f)
+#define B2(x) ((1.0f-(x)*(x)*3.0f))
+#define B3(x) (((x)*(x)*5.0f-3.0f)*(x)*1.577714f)
 
 /*----------------------------------------------------------------------------*/
 
@@ -2507,7 +2509,7 @@ IndexWarp3DBasis * IW3D_polybasis( int lev, float *junk , int nx,int ny,int nz )
 {
    IndexWarp3DBasis *iwar ;
    int nbase=4 , ww , ii,jj,kk,pp , nxyz ;
-   float xx,yy,zz , fx,fy,fz , *xd,*yd,*zd ;
+   float xx,yy,zz,aa,bb , fx,fy,fz , *xd,*yd,*zd ;
    float *b0x , *b0y , *b0z ;
    float *b1x , *b1y , *b1z ;
    float *b2x , *b2y , *b2z ;
@@ -2543,15 +2545,15 @@ IndexWarp3DBasis * IW3D_polybasis( int lev, float *junk , int nx,int ny,int nz )
    fx = 2.0f/(nx-1.0f) ; fy = 2.0f/(ny-1.0f) ; fz = 2.0f/(nz-1.0f) ;
    for( ii=1 ; ii < nx-1 ; ii++ ){
      xx = fx * ii - 1.0f ;
-     b0x[ii] = B0(xx) ; b1x[ii] = B1(xx) ; b2x[ii] = B2(xx) ; b3x[ii] = B3(xx) ;
+     b0x[ii] = bb = B0(xx) ; b1x[ii] = bb*B1(xx) ; b2x[ii] = bb*B2(xx) ; b3x[ii] = bb*B3(xx) ;
    }
    for( jj=1 ; jj < ny-1 ; jj++ ){
      yy = fy * jj - 1.0f ;
-     b0y[jj] = B0(yy) ; b1y[jj] = B1(yy) ; b2y[jj] = B2(yy) ; b3y[jj] = B3(yy) ;
+     b0y[jj] = bb = B0(yy) ; b1y[jj] = bb*B1(yy) ; b2y[jj] = bb*B2(yy) ; b3y[jj] = bb*B3(yy) ;
    }
    for( kk=1 ; kk < nz-1 ; kk++ ){
      zz = fz * kk - 1.0f ;
-     b0z[kk] = B0(zz) ; b1z[kk] = B1(zz) ; b2z[kk] = B2(zz) ; b3z[kk] = B3(zz) ;
+     b0z[kk] = bb = B0(zz) ; b1z[kk] = bb*B1(zz) ; b2z[kk] = bb*B2(zz) ; b3z[kk] = bb*B3(zz) ;
    }
 
 #undef  BLOAD
