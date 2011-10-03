@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, OCT, 2011, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "update ADN_ONE_STEP to ten million, allowing that many output sub-bricks",
+   "This affects programs like 3dbucket, when the output has many volumes.\n"
+   "Done for HJ Jo, J Gonzalez-Castillo, M Robinson."
+ } ,
+
  { 22, SEP, 2011, RCR, "uber_ttest.py", MAJOR, TYPE_NEW_PROG,
    "a graphical program for running either 3dttest++ or 3dMEMA",
    "Still under destruction."

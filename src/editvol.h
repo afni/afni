@@ -525,7 +525,10 @@ extern int cluster_alphaindex_64( int csize, int nz, float fw, float pv ) ;
 #define ADN_anatpar_idcode       6065     /*=  MCW_idcode * [13 Dec 1999] =*/
 
 /* 30 Nov 1997 */
-#define ADN_ONE_STEP            100000
+/* 100000 -> 10000000                            3 Oct 2011 [rickr]
+ * Allow for 10 million sub-bricks in output datasets.  Many people
+ * currently need more than just 100000 (e.g. HJ Jo, Javier, Meghan). */
+#define ADN_ONE_STEP            10000000
 #define ADN_brick_label_one             (2*ADN_ONE_STEP)  /*=  char *   =*/
 #define ADN_brick_fac_one               (3*ADN_ONE_STEP)  /*=  float    =*/
 #define ADN_brick_stataux_one           (4*ADN_ONE_STEP)  /*=  float *  =*/
