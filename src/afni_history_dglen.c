@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 13 , SEP, 2011 , DRG , "3dMean" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Added non_zero and count options"
+} ,
+
 { 13 , SEP, 2011 , DRG , "whereami" , 
     MICRO , TYPE_BUG_FIX, 
     "Added trivial ability to invert identity transformation"
