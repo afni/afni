@@ -1197,11 +1197,87 @@ class Afni1D:
       if verb > 0: print 'rows = %d, cols = %d' % (self.nt, self.nvec)
       else:        print '%d %d' % (self.nt, self.nvec)
 
-   def get_max_displacement(self, dtype=1):
-      """dtype = 1: enorm
+   def apply_censor_dset(self, cset=None):
+      """remove censored TRs from self.mat
 
-            compute the maximum pairwise euclidean displacement among the
-            N-dimensional coordinates (e.g. motion params)
+         ** for now, it becomes 1 combined run
+      """
+
+      mat = self.mat
+      nt = self.nt
+
+      if self.verb > 1: print '-- censoring input data...'
+
+      if cset == None:   return
+      if cset.nvec == 0: return
+      if self.nvec == 0: return
+
+      if cset.nt != nt:
+         print '** ACD: censort length (%d) does not match NT (%d)' \
+               % (cset.nt, nt)
+         return
+
+      clist = cset.mat[0]       # get censor list for ease of typing
+
+      if self.verb > 2:
+         nkeep = UTIL.loc_sum([v for v in clist if v])
+         print '-- censoring from length %d to length %d' % (nt, nkeep)
+
+      # if nothing is censored out, we're done
+      if UTIL.vals_are_constant(clist, 1): return
+
+      # else, make a new matrix
+      cmat = [[col[ind] for ind in range(nt) if clist[ind]] for col in mat]
+
+      del(self.mat)
+      self.mat = cmat
+
+      # now clean up some extra fields
+
+      self.nt = len(cmat[0])
+      self.nrowfull = self.nt
+
+      # could deal with run lengths here, but save for later
+      self.nruns = 1
+      self.run_len = [self.nt]
+      self.goodlist = []
+      self.runstart = []
+
+      del(self.cormat)
+      del(self.cosmat)
+      self.cormat = []
+      self.cosmat = []
+      self.cormat_ready = 0
+
+      return
+
+   def get_censored_mat(self, cset=None):
+      """return self.mat, restricted to uncensored TRs"""
+
+      mat = self.mat
+      nt = self.nt
+
+      if cset == None:   return mat
+      if cset.nvec == 0: return mat
+
+      if cset.nt != nt:
+         print '** GCM: censort length (%d) does not match NT (%d)' \
+               % (cset.nt, nt)
+         return None
+
+      clist = cset.mat[0]       # get censor list for ease of typing
+
+      # if nothing is censored out, return the original
+      if UTIL.vals_are_constant(clist, 1): return mat
+
+      # else, make a copy
+      return [[col[ind] for ind in range(nt) if clist[ind]] for col in mat]
+
+   def get_max_displacement(self, dtype=1, cset=None):
+      """compute the maximum pairwise displacement among the
+         N-dimensional coordinates (e.g. motion params)
+
+         dtype = 1: enorm
 
             - so compute max(dist(x,y)) over all x, y coordinate pairs
 
@@ -1212,22 +1288,29 @@ class Afni1D:
             - so compute max(abs(v_i,j - v_i,k)) over all all dimensions i
               and j,k index pairs
             - or compute as max(max(v_i)-min(v_i)) over dimensions i
+
+          cset is an optional censor dataset (1=keep, 0=censor)
       """
 
       maxdiff = 0
 
+      mat = self.get_censored_mat(cset)
+      if mat == None: mat = self.mat
+
+      if self.nvec > 0: nt = len(mat[0])
+      else:             nt = 0
+
       if dtype == 0:    # max vector displacement
-         maxdiff = max([max(vec)-min(vec) for vec in self.mat])
+         maxdiff = max([max(vec)-min(vec) for vec in mat])
 
       else:             # max euclidean distance
 
          # get all distances, a 2D list of the form [[DIST, i, j]]
          # (so length is NT choose 2 = (NT*(NT-1)/2), which is possibly long)
 
-         mat = self.mat                 # help the text to fit
          en = UTIL.euclidean_norm
          dlist = [[en([mat[i][r1]-mat[i][r2] for i in range(self.nvec)]),
-                     r1, r2] for r1 in range(self.nt) for r2 in range(r1)]
+                     r1, r2] for r1 in range(nt) for r2 in range(r1)]
 
          # and grab the biggest
          dlist.sort()

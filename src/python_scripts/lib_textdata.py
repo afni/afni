@@ -152,7 +152,7 @@ def read_married_file(filename, nlines = -1, verb = 1):
 
         retmat.append(mlist)    # even if empty
 
-        if verb > 2: print "+d line %d, length %d" % (lnum, len(retmat[lnum]))
+        if verb > 3: print "+d line %d, length %d" % (lnum, len(retmat[lnum]))
         lnum += 1
 
     # now just check for consistency
