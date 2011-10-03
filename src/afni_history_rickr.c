@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, OCT, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "changed default polort time back to TR*NT, to match 3dDeconvolve",
+   NULL
+ } ,
+
+ {  3, OCT, 2011, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -censor_infile (e.g. to remove TRs from motion params)",
+   "Added for N Adleman."
+ } ,
+
  {  3, OCT, 2011, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "update ADN_ONE_STEP to ten million, allowing that many output sub-bricks",
    "This affects programs like 3dbucket, when the output has many volumes.\n"
@@ -93,7 +103,7 @@ afni_history_struct rickr_history[] = {
 
  {  1, SEP, 2011, RCR, "afni_util.py", MICRO, TYPE_BUG_FIX,
    "get_default_polort: run time should be TR * (NT-1)",
-   NULL
+   "This was changed back to TR*NT, to match 3dDeconvolve (3 Oct, 2011)."
  } ,
 
  {  1, SEP, 2011, RCR, "@radial_correlate", MINOR, TYPE_NEW_PROG,

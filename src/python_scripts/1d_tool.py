@@ -224,7 +224,7 @@ examples (very basic for now):
                     -set_nruns 3                        \\
                     -split_into_pad_runs mot.padded
 
-   15. Show the maximum pairwise displacement in the motion parameter file.
+   15a. Show the maximum pairwise displacement in the motion parameter file.
        So over all TRs pairs, find the biggest displacement.
 
        In one direction it is easy (AP say).  If the minimum AP shift is -0.8
@@ -234,6 +234,11 @@ examples (very basic for now):
        evaluated (brute force).
 
         1d_tool.py -infile dfile.rall.1D -show_max_displace
+
+   15b. Similar to 15a, but do not include displacement from censored TRs.
+
+        1d_tool.py -infile dfile.rall.1D -show_max_displace \\
+                   -censor_infile motion_censor.1D
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -294,6 +299,14 @@ general options:
         and earlier as more TRs are censored).
 
         See example 12.
+
+   -censor_infile CENSOR_FILE   : apply censoring to -infile dataset
+
+        This removes TRs from the -infile dataset where the CENSOR_FILE is 0.
+        The censor file is akin to what is used with "3dDeconvolve -censor",
+        where TRs with 1 are kept and those with 0 are excluded from analysis.
+
+        See example 15b.
 
    -censor_first_trs N          : when censoring motion, also censor the first
                                   N TRs of each run
@@ -488,9 +501,11 @@ g_history = """
         - call this a release version, kept forgetting
           (maybe release v2 can be when dealing with married timing is robust)
         - added -show_max_displace (see example 15)
+   1.01 Oct  3, 2011 - added -censor_infile (e.g. to restrict motion params)
+        - added for N Adleman
 """
 
-g_version = "1d_tool.py version 1.00, July 14, 2011"
+g_version = "1d_tool.py version 1.01, October 3, 2011"
 
 
 class A1DInterface:
@@ -507,6 +522,9 @@ class A1DInterface:
 
       # action variables
       self.add_cols_file   = None       # filename to add cols from
+      self.censor_dset     = None       # censor dataset from censor_infile
+      self.censor_infile   = None       # for -censor_infile
+
       self.censor_fill     = 0          # zero-fill censored TRs
       self.censor_fill_par = ''         # same, but via this parent dset
       self.censor_first_trs= 0          # number of first TRs to also censor
@@ -635,6 +653,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-censor_first_trs', 1, [], 
                       helpstr='number of initial TRs to censor, per run')
+
+      self.valid_opts.add_opt('-censor_infile', 1, [],
+                      helpstr='apply censor file to input file')
 
       self.valid_opts.add_opt('-censor_motion', 2, [], 
                       helpstr='censor motion data with LIMIT and PREFIX')
@@ -824,6 +845,13 @@ class A1DInterface:
             else:
                print '** -set_tr must be positive'
                return 1
+
+         # ----- general options -----
+
+         if opt.name == '-censor_infile':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.censor_infile = val
 
          elif opt.name == '-censor_fill':
             self.censor_fill = 1
@@ -1033,6 +1061,13 @@ class A1DInterface:
 
       # process AfniData separately
       if self.dtype == 2: return self.process_afnidata()
+
+      if self.censor_infile:
+         cdata = LAD.Afni1D(self.censor_infile, verb=self.verb)
+         if cdata == None:
+            print '** failed to censor input file'
+            return 1
+         self.adata.apply_censor_dset(cdata)
 
       if self.add_cols_file:
          newrd = LAD.Afni1D(self.add_cols_file,verb=self.verb)
