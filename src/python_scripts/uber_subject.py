@@ -334,6 +334,8 @@ g_install_str = """
 
    ALTERNATIVE OS X METHOD:
 
+        ** this has not been working well lately, to fink is recommended
+
    B2. OS X 10.6 install (from nokia and riverbank computing):
 
       { should work on: OS X 10.5, 10.6 }

@@ -290,14 +290,15 @@ def basis_has_known_response(basis, warn=0):
     else:                                            return 0
 
 def get_default_polort(tr, reps):
-    """compute a default polort, as done in 3dDeconvolve
-       1+floor(time/150), time in seconds"""
+    """compute a default run polort, as done in 3dDeconvolve
+       (leave run_time as TR*reps, rather than TR*(reps-1), to match 3dD)
+    """
 
     if tr <= 0 or reps <= 0:
         print "** cannot guess polort from tr = %f, reps = %d" % (tr,reps)
         return 2        # return some default
 
-    return run_time_to_polort(tr*(reps-1))
+    return run_time_to_polort(tr*reps)
 
 def run_time_to_polort(run_time):
     """direct computation: 1+floor(run_time/150)"""
