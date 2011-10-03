@@ -13,9 +13,10 @@ int main( int argc , char * argv[] )
    int nx,ny,nz,nxyz,nval , ii,kk , nopt=1, nsum=0 ;
    char * prefix = "mean" ;
    int datum=-1 , verb=0 , do_sd=0, do_sum=0 , do_sqr=0, firstds=0 ;
-   int do_union=0 , do_inter=0 ;
+   int do_union=0 , do_inter=0, non_zero=0, count_flag =0 ;
    float ** sum=NULL , fsum=0.0;
    float ** sd=NULL;
+   int ** count=NULL;
 
    int fscale=0 , gscale=0 , nscale=0 ;
 
@@ -38,12 +39,14 @@ int main( int argc , char * argv[] )
              "  -nscale     = Don't do any scaling on output to byte or short datasets.\n"
              "                  ** Only use this option if you are sure you\n"
              "                     want the output dataset to be integer-valued!\n"
+             "  -non_zero   = Use only non-zero values for calculation of mean or squares\n"
              "\n"
              "  -sd *OR*    = Calculate the standard deviation (variance/n-1) instead\n"
-             "  -stdev         of the mean (cannot be used with -sqr or -sum).\n"
+             "  -stdev         of the mean (cannot be used with -sqr, -sum or -non_zero).\n"
              "\n"
              "  -sqr        = Average the squares, instead of the values.\n"
              "  -sum        = Just take the sum (don't divide by number of datasets).\n"
+             "  -count      = compute only the count of non-zero voxels.\n"
              "\n"
              "  -mask_inter = Create a simple intersection mask.\n"
              "  -mask_union = Create a simple union mask.\n"
@@ -97,6 +100,15 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-sqr") == 0 ){
          do_sqr = 1 ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-non_zero") == 0 ){
+         non_zero = 1 ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-count") == 0 ){
+         non_zero = 1;
+         count_flag = 1 ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
@@ -160,15 +172,15 @@ int main( int argc , char * argv[] )
 
    /*-- MSB: check for legal combination of options --*/
 
-   if( (do_sd) && ( do_sum || do_sqr )){
-     fprintf(stderr,"** ERROR: -sd cannot be used with -sqr or -sum \n") ;
+   if( (do_sd) && ( do_sum || do_sqr || count_flag || non_zero)){
+     fprintf(stderr,"** ERROR: -sd cannot be used with -sqr, -sum, -count or -non_zero \n") ;
      exit(1) ;
    }
 
    /* mask options cannot be combined       16 Jul 2010 [rickr] */
    if( do_union || do_inter ) {
-     if ( do_sum || do_sqr || do_sd ) {
-        fprintf(stderr,"** -sd, -sqr, -sum cannot be used with -mask_*\n") ;
+     if ( do_sum || do_sqr || do_sd || count_flag || non_zero ) {
+        fprintf(stderr,"** -sd, -sqr, -sum, -count or -non_zero cannot be used with -mask_*\n") ;
         exit(1) ;
      } else if ( do_union && do_inter ) {
         fprintf(stderr,"** cannot use both -mask_inter and -mask_union\n") ;
@@ -223,6 +235,14 @@ int main( int argc , char * argv[] )
            }
          }
 
+         /* possibly keep track of non-zero voxels only */ 
+         if(non_zero){
+            count = (int **) malloc( sizeof(int *)*nval ) ;    /* array of sub-bricks */
+            for( kk=0 ; kk < nval ; kk++ ){
+              count[kk] = (int *) malloc(sizeof(int)*nxyz) ;  /* kk-th sub-brick */
+              for( ii=0 ; ii < nxyz ; ii++ ) count[kk][ii] = 0.0f ;
+            }
+         }
          outset = EDIT_empty_copy( inset ) ;
 
          if( datum < 0 ) {                      /* 16 Jul 2010 [rickr] */
@@ -284,7 +304,11 @@ int main( int argc , char * argv[] )
                if( fac == 0.0 ) fac = 1.0 ;
                if( do_sqr )
                   for( ii=0 ; ii < nxyz ; ii++ )
-                     { val = fac * pp[ii] ; sum[kk][ii] += val*val ; }
+                     { val = fac * pp[ii] ; sum[kk][ii] += val*val ;
+                        if(non_zero){
+                           if(pp[ii]) count[kk][ii]++;
+                        }
+                     }
                else if ( do_inter )     /* 16 Jul 2010 [rickr] */
                   /* for intersection, start with full mask and clear */
                   for( ii=0 ; ii < nxyz ; ii++ ) {
@@ -295,8 +319,17 @@ int main( int argc , char * argv[] )
                   for( ii=0 ; ii < nxyz ; ii++ ) {
                      if( pp[ii] ) sum[kk][ii] = 1.0 ;
                   }
+               else if (count_flag)  /* count only 03 Oct 2010 [drg] */
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                        if(pp[ii]) count[kk][ii]++;
+                  }
                else
-                  for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                      sum[kk][ii] += fac * pp[ii] ;
+                      if(non_zero){
+                         if(pp[ii]) count[kk][ii]++;
+                      }
+                  }
             }
             break ;
 
@@ -306,7 +339,11 @@ int main( int argc , char * argv[] )
                if( fac == 0.0 ) fac = 1.0 ;
                if( do_sqr )
                   for( ii=0 ; ii < nxyz ; ii++ )
-                     { val = fac * pp[ii] ; sum[kk][ii] += val*val ; }
+                     { val = fac * pp[ii] ; sum[kk][ii] += val*val ;
+                        if(non_zero){
+                           if(pp[ii]) count[kk][ii]++;
+                        }
+                     }
                else if ( do_inter )     /* 16 Jul 2010 [rickr] */
                   /* for intersection, start with full mask and clear */
                   for( ii=0 ; ii < nxyz ; ii++ ) {
@@ -317,8 +354,17 @@ int main( int argc , char * argv[] )
                   for( ii=0 ; ii < nxyz ; ii++ ) {
                      if( pp[ii] ) sum[kk][ii] = 1.0 ;
                   }
+               else if (count_flag)  /* count only 03 Oct 2010 [drg] */
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                        if(pp[ii]) count[kk][ii]++;
+                  }
                else
-                  for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     sum[kk][ii] += fac * pp[ii] ;
+                     if(non_zero){
+                        if(pp[ii]) count[kk][ii]++;
+                     }
+                  }
             }
             break ;
 
@@ -328,7 +374,11 @@ int main( int argc , char * argv[] )
                if( fac == 0.0 ) fac = 1.0 ;
                if( do_sqr )
                   for( ii=0 ; ii < nxyz ; ii++ )
-                     { val = fac * pp[ii] ; sum[kk][ii] += val*val ; }
+                     { val = fac * pp[ii] ; sum[kk][ii] += val*val ;
+                        if(non_zero){
+                           if(pp[ii]) count[kk][ii]++;
+                        }
+                     }
                else if ( do_inter )     /* 16 Jul 2010 [rickr] */
                   /* for intersection, start with full mask and clear */
                   for( ii=0 ; ii < nxyz ; ii++ ) {
@@ -339,8 +389,17 @@ int main( int argc , char * argv[] )
                   for( ii=0 ; ii < nxyz ; ii++ ) {
                      if( pp[ii] ) sum[kk][ii] = 1.0 ;
                   }
+               else if (count_flag)  /* count only 03 Oct 2010 [drg] */
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                        if(pp[ii]) count[kk][ii]++;
+                  }
                else
-                  for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] += fac * pp[ii] ;
+                  for( ii=0 ; ii < nxyz ; ii++ ) {
+                     sum[kk][ii] += fac * pp[ii] ;
+                     if(non_zero){
+                        if(pp[ii]) count[kk][ii]++;
+                     }
+                  }
             }
             break ;
          }
@@ -351,11 +410,26 @@ int main( int argc , char * argv[] )
 
    /* scale to be mean instead of sum */
 
-   if( !do_sum && !do_inter && !do_union ){
-     fsum = 1.0 / nsum ;
-     for( kk=0 ; kk < nval ; kk++ )
-       for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] *= fsum ;
+   if( !do_sum && !do_inter && !do_union && !count_flag){
+      /* adjust for non-zeros if requested */
+      if(non_zero){
+         for( kk=0 ; kk < nval ; kk++ )
+           for( ii=0 ; ii < nxyz ; ii++ )
+              sum[kk][ii] =  sum[kk][ii]/count[kk][ii];
+      }
+      else{
+         fsum = 1.0 / nsum ;
+         for( kk=0 ; kk < nval ; kk++ )
+            for( ii=0 ; ii < nxyz ; ii++ ) sum[kk][ii] *= fsum ;
+      }
    }
+
+   if(count_flag){
+        for( kk=0 ; kk < nval ; kk++ )
+           for( ii=0 ; ii < nxyz ; ii++ )
+              sum[kk][ii] =  (float) count[kk][ii];
+   }
+   
 
    /* MSB: If calculating SD,
            loop through datasets again,
