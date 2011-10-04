@@ -5410,6 +5410,10 @@ STATUS("check output filename") ;
              user_inputs.output_filename[ii] == '/'     ) break ;
 
       if( ii < ll ){
+        if ( user_inputs.output_filename[ii] == '/' )
+         T3D_poperr( OUTERR ,
+                    "Output filename cannot contain '/' character.", perr ) ;
+        else
          T3D_poperr( OUTERR ,
                     "Output filename contains illegal character!", perr ) ;
          good = False ;
