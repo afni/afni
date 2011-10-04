@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, OCT, 2011, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "added -anat_has_skull option",
+   NULL
+ } ,
+
  {  4, OCT, 2011, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
    "added 'max censored displacement' to basic script",
    NULL

@@ -268,8 +268,14 @@ def db_cmd_align(proc, block):
                             ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
     else:   extra_opts = ''
 
-    # if there is no extra_opt that says otherwise, assume there is skull
-    has_skull = (extra_opts.find('-anat_has_skull no') < 0)
+    has_skull = proc.anat_has_skull
+    if has_skull: ss_opt = ''
+    else:         ss_opt = '       -anat_has_skull no \\\n'
+    # also, check for a user opt that specifies it
+    if extra_opts.find('-anat_has_skull no') >= 0:
+       has_skull = 0
+       proc.anat_has_skull = 0
+       ss_opt = ''      # user already passing it
 
     # note whether this the aea output is expected to be used
     e2a = (proc.find_block_opt('volreg', '-volreg_align_e2a') != None)
@@ -286,8 +292,10 @@ def db_cmd_align(proc, block):
           '       -epi %s -epi_base %d \\\n'                      \
           '%s'                                                    \
           '%s'                                                    \
+          '%s'                                                    \
           '       -volreg off -tshift off\n\n'                    \
-          % (proc.anat.pv(), astr, suffix, basevol, bind, essopt, extra_opts)
+          % (proc.anat.pv(), astr, suffix, basevol, bind, essopt, ss_opt,
+             extra_opts)
 
     # store alignment matrix file for possible later use
     proc.a2e_mat = "%s%s_mat.aff12.1D" % (proc.anat.prefix, suffix)
@@ -329,6 +337,9 @@ def db_cmd_align(proc, block):
 
     # note the alignment in EPIs warp bitmap (2=a2e)
     proc.warp_epi |= WARP_EPI_ALIGN_A2E
+
+    # in any case, our current anat is not stripped
+    proc.anat_has_skull = 0
 
     return hdr + cmd
 
@@ -1203,7 +1214,7 @@ def db_cmd_volreg(proc, block):
             "end\n\n" % (proc.view, proc.mask_extents.pv(), cur_prefix)
 
     # ---------------
-    # lastly, see if we want to apply a (manual) warp to tlrc space
+    # next, see if we want to apply a (manual) warp to tlrc space
     if block.opts.find_opt('-volreg_tlrc_adwarp'):
         if proc.view == '+tlrc':
             print '** cannot apply -volreg_tlrc_adwarp: alread in tlrc space'
@@ -1228,6 +1239,14 @@ def db_cmd_volreg(proc, block):
                "       -dxyz %g -resam NN\n\n"                              \
                % (proc.tlrcanat.pv(), proc.mask_extents.pv(), dim)
            proc.mask_extents.new_view(proc.view)
+
+    # ---------------
+    # make a copy of the "final" anatomy, called "anat_final.$subj"
+    if proc.view == '+tlrc': aset = proc.tlrcanat
+    else:                    aset = proc.anat
+    if aset != None:
+       cmd += "# create an anat_final dataset, aligned with stats\n"    \
+              "3dcopy %s anat_final.%s\n\n" % (aset.pv(), proc.subj_label)
 
     if do_extents: emask = proc.mask_extents.prefix
     else:          emask = ''
@@ -2503,13 +2522,6 @@ def db_cmd_regress(proc, block):
                 % (proc.xmat, "indices_interest", opt.parlist[0],
                    proc.xmat, proc.xmat)
 
-    # make a copy of the "final" anatomy, called "anat_final.$subj"
-    if proc.view == '+tlrc': aset = proc.tlrcanat
-    else:                    aset = proc.anat
-    if aset != None:
-       cmd += "# create an anat_final dataset, aligned with stats\n"    \
-              "3dcopy %s anat_final.%s\n\n" % (aset.pv(), proc.subj_label)
-
     # check for blur estimates
     bcmd = db_cmd_blur_est(proc, block)
     if bcmd == None: return  # error
@@ -3100,8 +3112,8 @@ def db_cmd_tlrc(proc, block):
     else:   extra_opts = ''
 
     opt = block.opts.find_opt('-tlrc_no_ss')
-    if opt or not proc.tlrc_ss: ss = ' -no_ss'
-    else:                       ss = ''
+    if opt or not proc.anat_has_skull or not proc.tlrc_ss: ss = ' -no_ss'
+    else:                                                  ss = ''
 
     opt = block.opts.find_opt('-tlrc_rmode')
     if opt: rmode = ' -rmode %s' % opt.parlist[0]
