@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, OCT, 2011, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "added 'max censored displacement' to basic script",
+   NULL
+ } ,
+
  {  4, OCT, 2011, RCR, "to3d", MICRO, TYPE_MODIFY,
    "explicitly warn about illegal '/' characters in output filename",
    NULL
