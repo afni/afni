@@ -54,9 +54,11 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- {  4, OCT, 2011, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
-   "added 'max censored displacement' to basic script",
-   NULL
+ {  4, OCT, 2011, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "changed basic script outputs",
+   "- added 'max censored displacement', 'final anat dset' and\n"
+   "        'final voxel resolution' to basic script\n"
+   "- removed 'num stim files found'"
  } ,
 
  {  4, OCT, 2011, RCR, "to3d", MICRO, TYPE_MODIFY,
