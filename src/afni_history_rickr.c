@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, OCT, 2011, RCR, "to3d", MICRO, TYPE_MODIFY,
+   "explicitly warn about illegal '/' characters in output filename",
+   NULL
+ } ,
+
  {  3, OCT, 2011, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "changed default polort time back to TR*NT, to match 3dDeconvolve",
    NULL
