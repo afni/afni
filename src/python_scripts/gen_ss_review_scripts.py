@@ -311,6 +311,7 @@ endif  # $was_censored
 
 """
 
+# rcr - do not include this...
 g_basic_count_sfiles = """
 # ------------------------------------------------------------
 # count stim files
@@ -449,7 +450,10 @@ g_history = """
    0.8  Sep 22, 2011: 
         - added check_for_file
         - updated find_x_mat, guess_enorm_dset, drive_view_stats
-   0.9  Oct  4, 2011: added 'max censored displacement' to basic script
+   0.9  Oct  4, 2011:
+        - added 'max censored displacement', 'final anat dset',
+                'final voxel resolution' to basic script
+        - removed 'num stim files found'
 """
 
 g_version = "gen_ss_review_scripts.py version 0.9, October 4, 2011"
@@ -1448,7 +1452,6 @@ class MyInterface:
 
       # most of script is just raw text
       self.text_basic += g_censor_results_str
-      self.text_basic += g_basic_count_sfiles
       if self.uvars.is_not_empty('mask_dset') and \
          self.uvars.is_not_empty('tsnr_dset'):
          self.text_basic += g_basic_tsnr_str
@@ -1461,7 +1464,15 @@ class MyInterface:
       if anat != None:
          astr = 'echo "final anatomy dset        : $final_anat"\n'
       else: astr = ''
-      txt = g_overview_str + astr + 'echo ""\n' + g_mot_n_trs_str
+
+      sset = self.uvars.val('stats_dset')
+      if sset != None:
+         sstr = 'echo "final stats dset          : $stats_dset"\n' \
+                'echo "final voxel resolution    : '               \
+                                        '`3dAttribute DELTA $stats_dset`"\n'
+      else: sstr = ''
+
+      txt = g_overview_str + astr + sstr + 'echo ""\n' + g_mot_n_trs_str
 
       txt += \
         '# ------------------------------------------------------------\n'   \
