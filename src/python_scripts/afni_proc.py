@@ -291,9 +291,10 @@ g_history = """
     2.62 Aug 31, 2011:
         - if censoring motion or outliers, add options to gen_ss_r command
         - added help for -regress_make_cbucket
+    2.63 Oct  4, 2011: added -anat_has_skull option, to avoid stripping
 """
 
-g_version = "version 2.62, August 31, 2011"
+g_version = "version 2.63, October 4, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "3 Aug 2011"
@@ -370,6 +371,8 @@ class SubjProcSream:
         self.overwrite  = 0             # overwrite script file?
         self.fp         = None          # file object
         self.anat       = None          # anatomoy to copy (afni_name class)
+        self.anat_has_skull = 1         # does the input anat have a skull
+                                        # also updated in db_cmd_align
         self.tlrcanat   = None          # expected name of tlrc dataset
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_ss    = 1             # whether to do skull strip in tlrc
@@ -478,6 +481,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-subj_id', -1, [],
                         helpstr='subject ID, used in most filenames')
 
+        self.valid_opts.add_opt('-anat_has_skull', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='does the anat have a skull (to be stripped)')
         self.valid_opts.add_opt('-ask_me', 0, [],       # QnA session
                         helpstr='have afni_proc.py as the user for options')
         self.valid_opts.add_opt('-bash', 0, [],
@@ -819,6 +825,11 @@ class SubjProcSream:
         opt = opt_list.find_opt('-exit_on_error')
         if opt and opt.parlist[0] == 'no': self.exit_on_error = 0
         else:                              self.exit_on_error = 1
+
+        opt = opt_list.find_opt('-anat_has_skull')      # 4 Oct, 2011
+        if opt != None:
+            if opt.parlist[0] == 'no': self.anat_has_skull = 0
+            else:                      self.anat_has_skull = 1
 
         opt = opt_list.find_opt('-copy_anat')
         if opt != None:
