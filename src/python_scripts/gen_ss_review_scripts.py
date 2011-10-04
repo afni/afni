@@ -42,7 +42,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
                 ./@ss_review_basic
                 ./@ss_review_driver
 
-      2. Esoteric.  Set all the file name (for now via control vars).
+      2. Esoteric.  Set all the output file names (for now via control vars).
 
                 gen_ss_review_scripts.py              \\
                         -cvar scr_basic ~/tmp/s.basic \\
@@ -215,6 +215,13 @@ if ( $?motion_dset ) then
     # compute the maximum motion displacement over all TR pairs
     set disp = `1d_tool.py -infile $motion_dset -show_max_displace -verb 0`
     echo "max motion displacement   : $disp"
+
+    if ( $was_censored ) then
+        # compute the maximum motion displacement over all TR pairs
+        set disp = `1d_tool.py -infile $motion_dset -show_max_displace \\
+                               -censor_infile $censor_dset -verb 0`
+        echo "max censored displacement : $disp"
+    endif
 endif
 
 # ------------------------------------------------------------
@@ -442,9 +449,10 @@ g_history = """
    0.8  Sep 22, 2011: 
         - added check_for_file
         - updated find_x_mat, guess_enorm_dset, drive_view_stats
+   0.9  Oct  4, 2011: added 'max censored displacement' to basic script
 """
 
-g_version = "gen_ss_review_scripts.py version 0.8, September 22, 2011"
+g_version = "gen_ss_review_scripts.py version 0.9, October 4, 2011"
 
 g_todo_str = """
    - figure out template_space
