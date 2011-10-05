@@ -122,10 +122,11 @@ g_history = """
     0.24 May 19, 2011 : revert to /usr/bin/env python
          - fink use may be ready on the macs (tried: fink install pyqt4-py27)
     0.25 Sep 22, 2011 : altered spacing and made other minor changes
-
+    0.26 Oct  5, 2011 : do not re-create proc script on proc execution
+         - was losing any user changes between creation and execution
 """
 
-g_version = '0.25 (September 22, 2011)'
+g_version = '0.26 (October 5, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
