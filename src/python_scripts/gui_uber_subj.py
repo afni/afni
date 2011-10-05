@@ -101,7 +101,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                       set_sdir=set_sdir, verb=verb)
 
       # ap_status : 0 = must create ap command, 1 = have ap, need proc script,
-      #             2 = have proc script, ready to execute
+      #             2 = have proc script, ready to execute, 3 = executing/ed
       # (meaning user must have first generated (and viewed) the command)
       self.gvars.ap_status = 0
 
@@ -2126,7 +2126,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.update_AP_result_window(text=mesg,
                                    title="output text from afni_proc.py")
 
-      self.status = 2
+      self.gvars.ap_status = 2
 
       return 0
 
@@ -2144,6 +2144,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          return
 
       if self.gvars.ap_status == 1:
+         print '===== ++++ ===== re-running ap_command....'
          # execute afni_proc.py command, return on failure
          if self.exec_ap_command(): return
 
