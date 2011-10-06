@@ -323,13 +323,14 @@ int main( int argc , char * argv[] )
                   for( ii=0 ; ii < nxyz ; ii++ ) {
                         if(pp[ii]) count[kk][ii]++;
                   }
-               else
-                  for( ii=0 ; ii < nxyz ; ii++ ) {
+               else {
+                  for( ii=0 ; ii < nxyz ; ii++ )
                       sum[kk][ii] += fac * pp[ii] ;
-                      if(non_zero){
-                         if(pp[ii]) count[kk][ii]++;
-                      }
+                  /* separate to avoid optimizer error   6 Oct 2011 [rickr] */
+                  if(non_zero) {
+                     for( ii=0 ; ii < nxyz ; ii++ ) if(pp[ii]) count[kk][ii]++;
                   }
+               }
             }
             break ;
 
@@ -358,13 +359,14 @@ int main( int argc , char * argv[] )
                   for( ii=0 ; ii < nxyz ; ii++ ) {
                         if(pp[ii]) count[kk][ii]++;
                   }
-               else
-                  for( ii=0 ; ii < nxyz ; ii++ ) {
+               else {
+                  for( ii=0 ; ii < nxyz ; ii++ )
                      sum[kk][ii] += fac * pp[ii] ;
-                     if(non_zero){
-                        if(pp[ii]) count[kk][ii]++;
-                     }
+                  /* separate to avoid optimizer error   6 Oct 2011 [rickr] */
+                  if(non_zero) {
+                     for( ii=0 ; ii < nxyz ; ii++ ) if(pp[ii]) count[kk][ii]++;
                   }
+               }
             }
             break ;
 
@@ -393,13 +395,14 @@ int main( int argc , char * argv[] )
                   for( ii=0 ; ii < nxyz ; ii++ ) {
                         if(pp[ii]) count[kk][ii]++;
                   }
-               else
-                  for( ii=0 ; ii < nxyz ; ii++ ) {
+               else {
+                  for( ii=0 ; ii < nxyz ; ii++ )
                      sum[kk][ii] += fac * pp[ii] ;
-                     if(non_zero){
-                        if(pp[ii]) count[kk][ii]++;
-                     }
+                  /* separate to avoid optimizer error   6 Oct 2011 [rickr] */
+                  if(non_zero) {
+                     for( ii=0 ; ii < nxyz ; ii++ ) if(pp[ii]) count[kk][ii]++;
                   }
+               }
             }
             break ;
          }

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, OCT, 2011, RCR, "3dMean", MICRO, TYPE_BUG_FIX,
+   "linux_xorg7_64 had optimizer error (and crashed), so altered loop method",
+   "Thanks to P Kim for noting the problem."
+ } ,
+
  {  5, OCT, 2011, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
    "do not re-create proc script on proc execution",
    NULL
