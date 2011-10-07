@@ -1715,7 +1715,7 @@ MRI_IMAGE * AFNI_ttatlas_overlay( Three_D_View *im3d ,
    MRI_IMAGE *ovim=NULL , *b0im, *fovim=NULL;
    int gwin , fwin , nreg , ii,jj , nov ;
    float fimfac;
-   int at_sbi, fim_type, at_vox, at_nsb; 
+   int at_sbi, fim_type, at_vox, at_nsb;
 
 ENTRY("AFNI_ttatlas_overlay") ;
 
@@ -1728,7 +1728,7 @@ ENTRY("AFNI_ttatlas_overlay") ;
 
    STATUS("checking if Atlas dataset can be loaded") ;
 
-   if((!atlas_ovdset) || 
+   if((!atlas_ovdset) ||
       ( DSET_NVOX(atlas_ovdset) != DSET_NVOX(im3d->anat_now))){
        if(atlas_ovdset)
           DSET_unload(atlas_ovdset);
@@ -1737,7 +1737,7 @@ ENTRY("AFNI_ttatlas_overlay") ;
        DSET_load(dseTT) ;
        if(atlas_ovdset)    /* reset the atlas overlay dataset */
           DSET_unload(atlas_ovdset);
-       atlas_ovdset = r_new_resam_dset ( dseTT, im3d->anat_now,  0, 0, 0, NULL, 
+       atlas_ovdset = r_new_resam_dset ( dseTT, im3d->anat_now,  0, 0, 0, NULL,
                                        MRI_NN, NULL, 1, 0);
 /*       DSET_unload(dseTT);*/
        if(!atlas_ovdset) RETURN(NULL);
@@ -1837,7 +1837,7 @@ ENTRY("AFNI_ttatlas_overlay") ;
    fovim = fov ;                                      /* old overlay */
    fovar = MRI_SHORT_PTR(ovim) ;
    if( fovim->nvox != b0im->nvox ){                    /* shouldn't happen!  */
-         mri_free(ovim); RETURN(NULL) ;          
+         mri_free(ovim); RETURN(NULL) ;
    }
    nov = 0;
    for( ii=0 ; ii < ovim->nvox ; ii++ ){
@@ -6521,7 +6521,7 @@ ENTRY("AFNI_hidden_CB") ;
 static void AFNI_find_poem_files(void)  /* 15 Oct 2003 */
 {
    char *epath , *elocal , *eee ;
-   char edir[THD_MAX_NAME] , **ename ;
+   char edir[THD_MAX_NAME] , fdir[THD_MAX_NAME] , *udir , **ename ;
    int epos , ll , ii , id , npoem , nep ;
    char **fpoem ;
 
@@ -6573,9 +6573,13 @@ ENTRY("AFNI_find_poem_files") ;
 
       ii = strlen(edir) ;                          /* make sure name has   */
       if( edir[ii-1] != '/' ){                     /* a trailing '/' on it */
-          edir[ii]  = '/' ; edir[ii+1] = '\0' ;
+        edir[ii]  = '/' ; edir[ii+1] = '\0' ;
       }
-      strcpy(ename[0],edir) ;
+
+      strcpy(fdir,edir) ; strcat(fdir,"funstuff") ;  /* 07 Oct 2011 */
+      if( THD_is_directory(fdir) ){ strcat(fdir,"/"); udir = fdir; } else { udir = edir; }
+
+      strcpy(ename[0],udir) ;
       strcat(ename[0],"poem_*.txt") ;        /* add filename pattern */
       nep = 1 ;
 
@@ -6589,8 +6593,15 @@ ENTRY("AFNI_find_poem_files") ;
       else
         fname_poem = (char **)realloc(fname_poem,sizeof(char *)*(num_poem+npoem));
 
-      for( ii=0 ; ii < npoem ; ii++ )
+      for( ii=0 ; ii < npoem ; ii++ ){
         fname_poem[num_poem++] = strdup(fpoem[ii]) ;
+
+        if( udir == fdir ){          /* 07 Oct 2011 */
+          char qnam[THD_MAX_NAME] ;
+          strcpy(qnam,edir) ; strcat(qnam,THD_trailname(fpoem[ii],0)) ;
+          if( THD_is_file(qnam) ) remove(qnam) ;
+        }
+      }
 
       MCW_free_expand( npoem , fpoem ) ;
 

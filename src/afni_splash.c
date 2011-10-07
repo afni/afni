@@ -655,7 +655,7 @@ ENTRY("SPLASH_decodexx") ;
 int AFNI_find_jpegs( char *prefix , char ***fname )  /* 26 Nov 2003 */
 {
    char *epath , *elocal , *eee ;
-   char edir[THD_MAX_NAME] , *ename ;
+   char edir[THD_MAX_NAME] , fdir[THD_MAX_NAME] , *ename , *udir ;
    int epos , ll , ii , id , nfile , nx,ny , num_file=0 ;
    char **ffile , **fflist=NULL ;
 
@@ -707,9 +707,12 @@ ENTRY("AFNI_find_jpegs") ;
        edir[ii]  = '/' ; edir[ii+1] = '\0' ;
      }
 
+     strcpy(fdir,edir) ; strcat(fdir,"funstuff") ;  /* 07 Oct 2011 */
+     if( THD_is_directory(fdir) ){ strcat(fdir,"/"); udir = fdir; } else { udir = edir; }
+
      /* create wildcard for JPEG files in this directory */
 
-     sprintf(ename,"%s%s*.jpg %s%s*.JPG" , edir,prefix,edir,prefix ) ;
+     sprintf(ename,"%s%s*.jpg %s%s*.JPG" , udir,prefix,udir,prefix ) ;
 
      MCW_wildcards( ename , &nfile , &ffile ) ;  /* find matching files */
      if( nfile <= 0 ) continue ;                 /* no files found */
@@ -717,11 +720,18 @@ ENTRY("AFNI_find_jpegs") ;
       /** add files we found to list **/
 
      fflist = (char **)realloc(fflist,sizeof(char *)*(num_file+nfile));
-     for( ii=0 ; ii < nfile ; ii++ )
+     for( ii=0 ; ii < nfile ; ii++ ){
        if( strstr(ffile[ii],"face_wildman.jpg") != NULL )  /* 20 May 2005 */
          remove(ffile[ii]) ;
        else
          fflist[num_file++] = strdup(ffile[ii]) ;
+
+       if( udir == fdir ){         /* 07 Oct 2011 */
+         char qnam[THD_MAX_NAME] ;
+         strcpy(qnam,edir) ; strcat(qnam,THD_trailname(ffile[ii],0)) ;
+         if( THD_is_file(qnam) ) remove(qnam) ;
+       }
+     }
 
      MCW_free_wildcards( nfile , ffile ) ;  /* toss the junk */
 
