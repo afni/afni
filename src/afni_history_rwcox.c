@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , OCT , 2011 , RWC , "1dTsort" , MICRO , TYPE_GENERAL ,
+  { 7 , OCT , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Move splashes, faces, and poems to funstuff/ subdirectory" ,
+   "funstuff/ is now a sub-directory of the binary install directory." } ,
+
+ { 7 , OCT , 2011 , RWC , "1dTsort" , MICRO , TYPE_GENERAL ,
    "Add -col option, to sort on just one column." ,
    NULL } ,
 
