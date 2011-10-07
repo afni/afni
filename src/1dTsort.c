@@ -3,7 +3,7 @@
 int main( int argc , char *argv[] )
 {
    MRI_IMAGE *im ;
-   int dec=0 , flip=0 , iarg ;
+   int dec=0 , flip=0 , iarg , csort=-1 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -18,6 +18,8 @@ int main( int argc , char *argv[] )
       "            * the INPUT can be transposed using file.1D\\'\n"
       "            * thus, to sort each ROW, do something like\n"
       "               1dTsort -flip file.1D\\' > sfile.1D\n"
+      " -col j   = sort only on column #j (counting starts at 0),\n"
+      "            and carry the rest of the columns with it.\n"
       "\n"
       "N.B.: Data will be read from standard input if the filename IS stdin,\n"
       "      and will also be row/column transposed if the filename is stdin\\'\n"
@@ -29,6 +31,13 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-col") == 0 ){  /* 07 Oct 2011 */
+       if( ++iarg >= argc ) ERROR_exit("Need a value after -col") ;
+       csort = (int)strtod(argv[iarg],NULL) ;
+       if( csort < 0 ) ERROR_exit("Illegal value after -col") ;
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-inc") == 0 ){
        dec = 0 ; iarg++ ; continue ;
@@ -50,7 +59,8 @@ int main( int argc , char *argv[] )
    im = mri_read_1D( argv[iarg] ) ;
    if( im == NULL ) ERROR_exit("Can't read 1D file %s",argv[iarg]) ;
 
-   mri_xsort_inplace( im , dec ) ;
+   if( csort < 0 ) mri_xsort_inplace( im , dec ) ;
+   else            mri_csort_inplace( im , dec , csort ) ;
 
    if( flip ){
      MRI_IMAGE *qim=mri_transpose(im) ;
