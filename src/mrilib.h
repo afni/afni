@@ -1073,6 +1073,7 @@ extern void isort_float( int , float * ) ;
 extern void isort_pair ( int , float * , int * ) ;
 
 extern void mri_xsort_inplace( MRI_IMAGE *im , int rev ) ;
+extern void mri_csort_inplace( MRI_IMAGE *im , int rev , int jc ) ; /* 07 Oct 2011 */
 
 extern MRI_IMAGE * mri_nsize( MRI_IMAGE * ) ;
 

@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 21 , SEP , 2011 , RWC , "3dTshift" , MICRO , TYPE_NEW_OPT ,
+  { 7 , OCT , 2011 , RWC , "1dTsort" , MICRO , TYPE_GENERAL ,
+   "Add -col option, to sort on just one column." ,
+   NULL } ,
+
+ { 21 , SEP , 2011 , RWC , "3dTshift" , MICRO , TYPE_NEW_OPT ,
    "Add -voxshift option" ,
    NULL } ,
 
