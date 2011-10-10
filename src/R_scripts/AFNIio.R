@@ -268,11 +268,20 @@ parse.AFNI.name <- function(filename, verb = 0) {
    #and the path
    an$path <- dirname(an$orig_name)
    
-  if (verb > 2) {
-   note.AFNI("Browser not active");
-   # browser()
-  }
-  
+   if (verb > 2) {
+      note.AFNI("Browser not active");
+      # browser()
+   }
+   if (  an$type != '1D' && (
+         !is.null(an$brsel) || !is.null(an$rosel) || 
+         !is.null(an$rasel) || !is.null(an$insel))) {
+       #Remove trailing quote if any
+       an$prefix <- gsub("'$", '', an$prefix); 
+       an$prefix <- gsub('"$', '', an$prefix);       
+       an$pprefix <- gsub("'$",'', an$pprefix); 
+       an$pprefix <- gsub('"$','', an$pprefix);       
+   } 
+
   return(an)
 }
 
