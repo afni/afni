@@ -25,9 +25,21 @@ void Syntax(void)
     "      set hous = `3dinfo -label2index House#0 AA_Decon+orig`\n"
     "      3dcalc -a AA_Decon+orig\"[$face]\" -b AA_Decon+orig\"[$hous]\" ...\n"
     "  * Added per the request and efforts of Colm Connolly.\n"
+    "\n"
+    "Alternate Alternative Usage:\n"
+    "  3dinfo <OPTION> dataset [dataset ...]\n"
+    "  Outputs a specific piece of information depending on OPTION.\n"
+    "  OPTION is one of the following:\n"
+    "   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
+    "   -space: dataset's space\n"
+    "   -av_space: AFNI format's view extension for the space\n"
+    "\n"
    ) ;
    PRINT_COMPILE_DATE ; exit(0) ;
 }
+
+typedef enum {
+   CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI } INFO_FIELDS;
 
 int main( int argc , char *argv[] )
 {
@@ -35,11 +47,13 @@ int main( int argc , char *argv[] )
    int iarg , verbose = -1 ;
    char *outbuf ;
    char *labelName = NULL;
-
+   INFO_FIELDS sing;
+   
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
-   mainENTRY("3dinfo main") ; machdep() ; PRINT_VERSION("3dinfo") ;
+   mainENTRY("3dinfo main") ; machdep() ; 
 
+   sing = CLASSIC;
    iarg = 1 ;
         if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  0; iarg++; }
         if( strncmp(argv[iarg],"-VERB" ,5) == 0 ){ verbose =  1; iarg++; }
@@ -54,8 +68,16 @@ int main( int argc , char *argv[] )
      strcpy(labelName, argv[iarg]);
      iarg++;
    }
+   else if( strncmp(argv[iarg],"-space",6) == 0) { 
+      sing = DSET_SPACE; iarg++;
+   } else if( strncmp(argv[iarg],"-av_space",6) == 0) { 
+      sing = AV_DSET_SPACE; iarg++;
+   } else if( strncmp(argv[iarg],"-is_nifti",6) == 0) { 
+      sing = IS_NIFTI; iarg++;
+   }
 
-
+   if (sing == CLASSIC) PRINT_VERSION("3dinfo") ;
+   
    THD_allow_empty_dataset(1) ;  /* 21 Mar 2007 */
 
    for( ; iarg < argc ; iarg++ ){
@@ -82,36 +104,66 @@ int main( int argc , char *argv[] )
        }
      }
 
-     if (labelName == NULL )  /*** get and output info ***/
-     {
-       outbuf = THD_dataset_info( dset , verbose ) ;
-       if( outbuf != NULL ){
-         printf("\n") ;
-         puts(outbuf) ;
-         free(outbuf) ; outbuf = NULL ;
-       } else {
-         ERROR_exit("Can't get info for dataset %s",argv[iarg]) ;
-       }
-     }
-     else   /*** get and output label ***/
-     {
-       int nval_per = dset->dblk->nvals;
-       int foundLabel = 0;
-       int ival=0;
-
-       for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
-       {
-         if (strcmp(DSET_BRICK_LAB(dset,ival), labelName) == 0)
+     switch (sing) {
+      case CLASSIC:
+         if (labelName == NULL )  /*** get and output info ***/
          {
-           printf("%d\n", ival); foundLabel = 1;
+          outbuf = THD_dataset_info( dset , verbose ) ;
+          if( outbuf != NULL ){
+            printf("\n") ;
+            puts(outbuf) ;
+            free(outbuf) ; outbuf = NULL ;
+          } else {
+            ERROR_exit("Can't get info for dataset %s",argv[iarg]) ;
+          }
          }
-       } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
-       if (!foundLabel) printf("\n");
-     }
+         else   /*** get and output label ***/
+         {
+          int nval_per = dset->dblk->nvals;
+          int foundLabel = 0;
+          int ival=0;
 
-     THD_delete_3dim_dataset( dset , False ) ;
+          for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
+          {
+            if (strcmp(DSET_BRICK_LAB(dset,ival), labelName) == 0)
+            {
+              printf("%d\n", ival); foundLabel = 1;
+            }
+          } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
+          if (!foundLabel) printf("\n");
+         }
+
+         THD_delete_3dim_dataset( dset , False ) ;
+         free(labelName);
+         break;
+      case DSET_SPACE:
+         fprintf(stdout, "%s\n", dset->atlas_space);
+         break;
+      case AV_DSET_SPACE:
+              if (!strncmp(dset->atlas_space,"ORIG",4)) 
+               fprintf(stdout, "+orig\n");
+         else if (!strncmp(dset->atlas_space,"ACPC",4)) 
+               fprintf(stdout, "+acpc\n");
+         else if (!strncmp(dset->atlas_space,"TLRC",4)) 
+               fprintf(stdout, "+tlrc\n");
+         else if (!strncmp(dset->atlas_space,"MNI",3)) 
+               fprintf(stdout, "+tlrc\n");
+         else
+               fprintf(stdout, "\n");
+         break;
+      case IS_NIFTI:
+         if (  dset->dblk->diskptr && 
+               dset->dblk->diskptr->storage_mode == STORAGE_BY_NIFTI ) {
+            fprintf(stdout,"1\n");
+         } else {
+            fprintf(stdout,"0\n");
+         }
+         break;
+      default:
+         ERROR_message("Info field not set properly (%d)\n", sing);
+         exit(1);
+     }
    }
-   free(labelName);
 
    exit(0) ;
 }
