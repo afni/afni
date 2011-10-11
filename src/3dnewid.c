@@ -16,6 +16,9 @@ void Syntax(void)
     "       3dnewid -fun [n]\n"
     "       to see what n randomly generated ID codes look like.\n"
     "       (If the integer n is not present, 1 ID code is printed.)\n"
+    " or\n"
+    "       3dnewid -hash STR\n"
+    "       to get a unique hashcode of STR\n"
     "\n"
     "How ID codes are created (here and in other AFNI programs):\n"
     "----------------------------------------------------------\n"
@@ -71,7 +74,14 @@ int main( int argc , char * argv[] )
         }
       }
       exit(0) ;
-   }
+   } else if ( strcmp(argv[1],"-hash") == 0 ){ /* Oct. 2011:for repeatable fun */
+      if( argc != 3 ) {
+         ERROR_message("You need a string following -hash");
+         exit(1);
+      }
+      printf("%s\n", UNIQ_hashcode(argv[2]));  
+      exit(0) ;
+   }       
 
    /*-- OK, not for fun --*/
 
