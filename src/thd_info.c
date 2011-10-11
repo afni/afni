@@ -53,6 +53,23 @@ const char * storage_mode_str(int mode) {
     }
 }
 
+int dset_obliquity(THD_3dim_dataset *dset , float *anglep)
+{
+   int obliquity = -1;
+   float angle= 0.0f;
+      
+   if(ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
+      angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
+      if(angle>0.0) {
+         obliquity = 1;
+      } else {
+         obliquity = 0;
+      }
+   }
+   if (anglep) *anglep = angle;
+   return(obliquity);
+}
+
 char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;
@@ -220,20 +237,16 @@ ENTRY("THD_dataset_info") ;
    }
 
    /* are we oblique ? */
-   obliquity = -1;
-   if(ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
-      angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
+   if((obliquity = dset_obliquity(dset, &angle)) >= 0) {
       if(angle>0.0) {
          sprintf (soblq,
             "Data Axes Tilt:  Oblique (%.3f deg. from plumb)\n"
             "Data Axes Approximate Orientation:",
             angle);
-         obliquity = 1;
       } else {
          sprintf (soblq,
             "Data Axes Tilt:  Plumb\n"
             "Data Axes Orientation:");
-         obliquity = 0;
       }
       { char *gstr = EDIT_get_geometry_string(dset) ;
         if( gstr != NULL && *gstr != '\0' )
