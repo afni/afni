@@ -33,13 +33,15 @@ void Syntax(void)
     "   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
     "   -space: dataset's space\n"
     "   -av_space: AFNI format's view extension for the space\n"
+    "   -is_oblique: 1 if dset is oblique\n"
     "\n"
    ) ;
    PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 typedef enum {
-   CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI } INFO_FIELDS;
+   CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI,
+   IS_OBLIQUE } INFO_FIELDS;
 
 int main( int argc , char *argv[] )
 {
@@ -74,7 +76,9 @@ int main( int argc , char *argv[] )
       sing = AV_DSET_SPACE; iarg++;
    } else if( strncmp(argv[iarg],"-is_nifti",6) == 0) { 
       sing = IS_NIFTI; iarg++;
-   }
+   } else if( strncmp(argv[iarg],"-is_oblique",6) == 0) { 
+      sing = IS_OBLIQUE; iarg++;
+   } 
 
    if (sing == CLASSIC) PRINT_VERSION("3dinfo") ;
    
@@ -154,6 +158,13 @@ int main( int argc , char *argv[] )
       case IS_NIFTI:
          if (  dset->dblk->diskptr && 
                dset->dblk->diskptr->storage_mode == STORAGE_BY_NIFTI ) {
+            fprintf(stdout,"1\n");
+         } else {
+            fprintf(stdout,"0\n");
+         }
+         break;
+      case IS_OBLIQUE:
+         if (dset_obliquity(dset,NULL) > 0) {
             fprintf(stdout,"1\n");
          } else {
             fprintf(stdout,"0\n");

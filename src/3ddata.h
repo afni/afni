@@ -3845,6 +3845,7 @@ extern void THD_append_dataset_keywords( THD_3dim_dataset * , char * ) ;
 extern char * THD_dataset_info( THD_3dim_dataset * , int ) ;
 extern const char * storage_mode_str(int);
 extern char * THD_zzprintf( char * sss , char * fmt , ... ) ;
+extern int dset_obliquity(THD_3dim_dataset *dset , float *anglep);
 
 extern void THD_set_float_atr( THD_datablock * , char * , int , float * ) ;
 extern void THD_set_int_atr  ( THD_datablock * , char * , int , int   * ) ;
