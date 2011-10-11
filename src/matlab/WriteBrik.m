@@ -5,7 +5,8 @@ function [err, ErrMessage, Info] = WriteBrik (M, Info, Opt)
 %Purpose:
 %
 %    Writes a data vector or matrix in AFNI's  format
-%    Also write data in AFNI's 1D file format
+%    Also write data in AFNI's 1D file format, 
+%    and some support for NIML format (Thanks to NNO's efforts)
 %     
 %Input Parameters:
 %   M is the brick data (in vector or matrix format)
@@ -17,6 +18,9 @@ function [err, ErrMessage, Info] = WriteBrik (M, Info, Opt)
 %
 %      Info can be empty for 1D files but if you have one from
 %      BrikLoad you should use it.
+%
+%      To write 1D, or NIML format output, set the field 'FileFormat' 
+%      in Info to '1D' or 'NIML', respectively.
 %
 %   Opt an options structure with the following fields, [default]
 %   Most of the options are irrelevant for 1D formats. 
@@ -136,10 +140,17 @@ elseif (strcmp(Info.FileFormat,'1D')),
       ErrMessage = sprintf('Error %s: M is not one or two dimensional.', FuncName);  
       errordlg(ErrMessage); return;
    end
+elseif (strcmp(Info.FileFormat,'NIML')),
+   is1D = 2;
+   if (size(M,4) ~= 1 | size(M,3) ~= 1),
+      err = 1; 
+      ErrMessage = sprintf('Error %s: M is not one or two dimensional.', FuncName);  
+      errordlg(ErrMessage); return;
+   end
 end
 
 
-if (is1D),
+if (is1D == 1),
    if (isempty(Info)), [err,Info] = Info_1D(M); end
    if (OverW == 0) Opt1D.OverWrite = 'n'; % default mode
    else Opt1D.OverWrite = 'y';
@@ -172,6 +183,18 @@ if (is1D),
 	
    Info.Extension_1D = sprintf('%s', Ext); 
    Info.RootName = sprintf('%s', Name);
+   return;
+elseif (is1D == 2), %NIML
+   if (isfield(Opt,'Slices') & ~isempty(Opt.Slices)),
+      err = 1; 
+      ErrMessage = sprintf('Error %s: .Slices cannot be used for NIML files', FuncName);  
+      errordlg(ErrMessage); return;
+   end
+   [Name, Ext] = RemoveNIMLExtension(Opt.Prefix);
+   FullName = sprintf('%s.niml.dset', Name);
+   S = BrikInfo_2_niml_writesimple(Info);
+   S.data = M;
+   afni_niml_writesimple(S,FullName);
    return;
 end
        

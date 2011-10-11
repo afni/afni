@@ -339,6 +339,23 @@ PARSE:
    set prs_in = `@parse_afni_name "$anat_in"`
    set anat_path = $prs_in[1]
    
+   set isNIFTI = `3dinfo -is_nifti "$anat_in"`
+   set delete_this = ()
+   if ($isNIFTI == 1) then
+      set NIpref = `echo "$prs_in[2]" | sed 's/.nii.gz$//g' | sed 's/.nii$//g'`
+      set RNS = `3dnewid -hash NIpref`
+      echo "Copying NIFTI volume to $prs_in[1]/${NIpref}_${RNS}"
+      3dcopy "$anat_in" $prs_in[1]/${NIpref}_${RNS}
+      set anat_in = ($prs_in[1]/${NIpref}_${RNS}*HEAD)
+      if ($#anat_in != 1) then
+         echo "Failed to copy NIFTI input"
+         goto END
+      endif
+      set delete_this = ($delete_this $prs_in[1]/${NIpref}_${RNS}*HEAD  \
+                                      $prs_in[1]/${NIpref}_${RNS}*BRIK* ) 
+      set prs_in = `@parse_afni_name "$anat_in"`
+   endif 
+   
    #Make a copy of anat_in if we are given sub-brick selectors
    if ($#prs_in > 3) then
       set anat_in2 = $prs_in[1]/$prs_in[2]"_$prs_in[4]"$prs_in[3]
@@ -418,8 +435,17 @@ PARSE:
    set rs_pref = ${tmppref}__rs_`@GetAfniPrefix "${anat_in}"`
    set tt_pref = ${anat_pref}${suf}
    
-   set out_pref = `@GetAfniPrefix "${nopre_anat_in}"`${suf}
-
+   if ($isNIFTI) then
+      if ($suf == '') set suf = '_at'
+      set out_pref = ${NIpref}${suf}
+      if ( -f ${out_pref}.nii) then
+         echo "ERROR: ${out_pref}.nii exists already"
+         goto BEND
+      endif
+   else
+      set out_pref = `@GetAfniPrefix "${nopre_anat_in}"`${suf}
+   endif
+    
    set ref_pref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
    set ref_pref_pad  = "${tmppref}_ref_`@GetAfniPrefix ${ref_in}`_${pd}pad"
    set ref_view = "`@GetAfniView ${ref_in}`"
@@ -430,14 +456,12 @@ PARSE:
 IN_CHECK:
 if ("$suf" == '' && $KeepView == 1) then
    echo "Cannot use -keep_view and -suffix none"
-   set estat = 1
-   goto END
+   goto BEND
 endif
 
-if ( `@CheckForAfniDset ${ref_in}` != 2 ) then
-   echo "Error: Template dset ${ref_in} not found."
-   set estat = 1
-   goto END
+if ( `@CheckForAfniDset ${ref_in}` < 2 ) then
+   echo "Error: Template (or -apar) dset ${ref_in} not found."
+   goto BEND
 endif
 
 set ttt_pref = "`@GetAfniPrefix ${ref_in}`"
@@ -831,6 +855,13 @@ AUTO_TLRC_MODE:
    endif
    cp ${tt_prefpad}.Xat.1D ${out_pref}.Xat.1D
    
+   if ($isNIFTI) then
+      if ( -f ${ns_pref}_WarpDrive.log) \
+         mv ${ns_pref}_WarpDrive.log ${out_pref}.nii_WarpDrive.log
+      if ( -f ${ns_pref}.Xaff12.1D) \
+         mv ${ns_pref}.Xaff12.1D ${out_pref}.nii.Xaff12.1D
+   endif
+
    OUTPUT_GRID:
    if ($user_res) then
       3dresample    -rmode Linear \
@@ -907,9 +938,17 @@ AUTO_TLRC_MODE:
          3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}
       endif
       #finally, rename the damned thing
-      3drename ${tt_prefupad}${ref_view} ${out_pref}${ref_view}
+      if ($isNIFTI) then
+         3dAFNItoNIFTI -prefix ${out_pref}.nii ${tt_prefupad}${ref_view} 
+      else
+         3drename ${tt_prefupad}${ref_view} ${out_pref}${ref_view}
+      endif
    else
-      3drename ${tt_prefupad}${anat_view} ${out_pref}${anat_view}
+      if ($isNIFTI) then
+         3dAFNItoNIFTI -prefix ${out_pref}.nii ${tt_prefupad}${anat_view} 
+      else
+         3drename ${tt_prefupad}${anat_view} ${out_pref}${anat_view}
+      endif
    endif
    
    
@@ -942,9 +981,18 @@ AUTO_TLRC_MODE:
       if ($KeepView == 0) then
          echo "Changing view of rigid_equiv anatomy"
          3drefit -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
-      endif
-      
-      
+         if ($isNIFTI) then
+            3dAFNItoNIFTI -prefix $NIpref.Xat.rigid.nii \
+                     ${out_pref}.Xat.rigid${ref_view}.HEAD 
+            \rm -f ${out_pref}.Xat.rigid${ref_view}.*
+         endif
+      else
+         if ($isNIFTI) then
+            3dAFNItoNIFTI -prefix $NIpref.Xat.rigid.nii \
+                          ${out_pref}.Xat.rigid${anat_view}.HEAD 
+            \rm -f ${out_pref}.Xat.rigid${anat_view}.*
+         endif
+      endif      
    endif
    
    goto WRAP_UP
@@ -997,6 +1045,10 @@ APAR_MODE:
             -prefix ./${tmp_out_pref} -${rmode} \
             ${tmppref}_ipad${anat_view}
       #Change view of master or else 3dresample will force a change
+      
+      if (${ref_view} == '') then
+         set ref_view = `3dinfo -av_space -av ${ref_in}`
+      endif
       3drefit -view ${anat_view} ${tmppref}_warp_grid${ref_view}
       3dresample  -master ${tmppref}_warp_grid${anat_view} \
                -prefix ./${tmp_out_pref} -inset ${tmp_out_pref}${anat_view} \
@@ -1040,28 +1092,44 @@ APAR_MODE:
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
             ${tmp_out_pref}${anat_view}
-
+   
+   if ($isNIFTI && -f ${out_pref}.nii || -f ${out_pref}.nii.gz) then
+      echo "ERROR: Final output ${out_pref}.nii.gz is already on disk"
+            echo "   Aborted command:"
+            echo "   3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}"
+            echo "Transformed dataset ${tmp_out_pref}${ref_view} not renamed"
+            goto BEND
+   endif
+   
    if ($KeepView == 0) then
       echo "Changing view of xformed volumes"
       3drefit -view ${ref_view} ${tmp_out_pref}${anat_view}.HEAD
-      if ( `@CheckForAfniDset ${out_pref}${ref_view}` < 1) then
-         3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}
+      if ($isNIFTI) then
+            3dAFNItoNIFTI -prefix ${out_pref}.nii ${tmp_out_pref}${ref_view} 
       else
-         echo "ERROR: Final output ${out_pref}${ref_view} is already on disk"
-         echo "   Aborted command:"
-         echo "   3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}"
-         echo "Transformed dataset ${tmp_out_pref}${ref_view} not renamed"
-         goto BEND
+         if ( `@CheckForAfniDset ${out_pref}${ref_view}` < 1) then
+            3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}
+         else
+            echo "ERROR: Final output ${out_pref}${ref_view} is already on disk"
+            echo "   Aborted command:"
+            echo "   3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}"
+            echo "Transformed dataset ${tmp_out_pref}${ref_view} not renamed"
+            goto BEND
+         endif
       endif
    else
-      if ( `@CheckForAfniDset ${out_pref}${anat_view}` < 1) then
-         3drename ${tmp_out_pref}${anat_view} ${out_pref}${anat_view}
+      if ($isNIFTI) then
+         3dAFNItoNIFTI -prefix ${out_pref}.nii ${tmp_out_pref}${anat_view}
       else
-         echo "ERROR: Final output ${out_pref}${anat_view} is already on disk"
-         echo "   Aborted command:"
-         echo "   3drename ${tmp_out_pref}${anat_view} ${out_pref}${anat_view}"
-         echo "Transformed dataset ${tmp_out_pref}${anat_view} not renamed"
-         goto BEND
+         if ( `@CheckForAfniDset ${out_pref}${anat_view}` < 1) then
+            3drename ${tmp_out_pref}${anat_view} ${out_pref}${anat_view}
+         else
+            echo "ERROR: Final output ${out_pref}${anat_view} is already on disk"
+            echo "   Aborted command:"
+            echo "   3drename ${tmp_out_pref}${anat_view} ${out_pref}${anat_view}"
+            echo "Transformed dataset ${tmp_out_pref}${anat_view} not renamed"
+            goto BEND
+         endif
       endif
    endif
    
@@ -1078,6 +1146,13 @@ WRAP_UP:
 if ($KeepTmp != 1) then 
    set Ret_Clean = END
    echo "Cleanup ..."
+   #Don't move this IF into CLEANUP, it is only to
+   #be execute at exit.
+   if ($#delete_this) then
+      foreach ff ($delete_this)
+         if ( -f "$ff") rm -f "$ff" >& /dev/null 
+      end
+   endif
    goto CLEANUP
 else
    goto END
@@ -1089,7 +1164,7 @@ goto END
 #ONLY SUB-ROUTINES BELOW
 
 CLEANUP:
-rm -f ${tmppref}*_ref*.????*     >& /dev/null
+rm -f ${tmppref}*ref*.????*     >& /dev/null
 rm -f ${tmppref}*_reg*.????*     >& /dev/null
 rm -f ${tmppref}*_resam*.????*   >& /dev/null
 rm -f ${tmppref}*_rs*.????*      >& /dev/null
@@ -1098,6 +1173,9 @@ rm -f ${tmppref}_acpc*.????*     >& /dev/null
 rm -f ${tmppref}*gridout*.????*  >& /dev/null
 rm -f ${tmppref}*ipad*.????*  >& /dev/null
 rm -f ${tmppref}_MP* >& /dev/null
+rm -f ${tmppref}*upad*.????*  >& /dev/null
+rm -f ${tmppref}*warp_grid*.????*  >& /dev/null
+
 goto $Ret_Clean
 
 SET_REF_PATH:
@@ -1368,7 +1446,8 @@ echo "   -suffix    SUF :  Name the output dataset by append SUF "
 echo "                     to the prefix of the input data for the output."
 echo "                     Default for SUF is NONE (see below)"
 echo "              NOTE:  You can now set SUF to 'none' or 'NONE' and enable"
-echo "                     afni's warp on demand features."                
+echo "                     afni's warp on demand features."
+echo "                     With NIFTI input volumes -suffix defaults to _at"
 echo "   -keep_view     :  Do not mark output dataset as +tlrc"
 echo "   -base_copy COPY_PREFIX: Copy base (template) dataset into COPY_PREFIX"
 echo "                           and quit. You can use ./ for COPY_PREFIX if you"

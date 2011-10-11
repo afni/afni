@@ -60,8 +60,8 @@ fprintf('\n\t5. Currently all of the following terms are modeled: main effects a
 % Grouop analysis for Volume or Surface data?
 flg = 0;
 while flg == 0,
-   data_type = input('\nGroups analysis for volume or surface data (0 - volume; 1 - surface)? ');
-	if (data_type ~= 0 & data_type ~= 1),
+   data_type = input('\nGroups analysis for volume or surface data (0 - volume; 1 - surface 1D output; 2 - surface NIML output;)? ');
+	if (data_type ~= 0 & data_type ~= 1 & data_type ~= 2),
 	   flg = 0; fprintf(2,'Error: wrong input! Please try it again.\n');
 	else flg = 1;
    end
@@ -77,6 +77,17 @@ if (data_type == 1),
 	   node_n = input('\nHow many number of nodes in the surface data? ');
 	   if (isnumeric(node_n) == 0 | isempty(node_n)),
 	      flg = 0; fprintf(2,'Error: the input is not a number. Please try it again.\n');
+	   else flg = 1; end
+   end
+elseif (data_type == 2),
+   fprintf(1,... 
+'\nEven though the output is in NIML, the input files still have to be in 1D format.'); 
+	Frame_N = input('\nWhich column corresponds to regressor coefficient in the 1D files? (1, 2, 3, ...) ');	
+	while flg == 0,
+	   node_file = input('Provide a 1D file containing node indices, or enter the total number of nodes if you have full datasets: ','s');
+      node_n=str2num(node_file);
+      if (isempty(node_n) & ~filexist(node_file)),
+         flg = 0; fprintf(2,'Error: the input is not a number, or file %s not found. Please try it again.\n');
 	   else flg = 1; end
    end
 else Opt.Frames = 1;	 % In the case of volumetric data, it's supposed to have only ONE subbrik!
@@ -1642,9 +1653,31 @@ t0 = clock;
 [err, FileInfo] = BrikInfo(file(1).nm); 
 if (data_type == 0), 
    slices = FileInfo.DATASET_DIMENSIONS(3);    % Get the number of slices along Z axis from file header
-elseif (data_type == 1),
+elseif (data_type == 1 | data_type == 2 ),
    if (Frame_N == 1), Opt.method = 1; % if being purified 
 	else Opt.method = 2; end
+   if (data_type == 2 ),
+      %finalize NI
+      %I would have liked to do it when the user enters the number or the 
+      %filename but the function: newid() seems to hang when the users
+      %use cut and paste to answer all the questions at once - don't know
+      %why that is.
+      node_n=str2num(node_file);
+      NI = [];
+      if (isempty(node_n)),
+         ropt.method = 3;
+         ropt.verb = 2;
+         NI = Read_1D(node_file,ropt);
+         node_n = length(NI);
+      else
+         NI = [0:1:node_n-1];
+      end
+      if (isempty(NI)),
+	      flg = 0; fprintf(2,'Error: the input is not a number, or 1D file reading failed. \n');
+         return;
+	   end
+   end
+   
    Opt.SliceSize_1D = 50000;  % each time run 50000 nodes due to memory limit
 	slices =  ceil(node_n/Opt.SliceSize_1D);
 end
@@ -1670,12 +1703,13 @@ for (sn = 1:1:slices),
 			
 			if (data_type == 0),  % Volume data
 			   [err, X(:, :, i), Info, ErrMessage] = BrikLoad(file(i).nm, Opt);
-			elseif (data_type == 1),	% Surface data
+			elseif (data_type == 1 | data_type == 2),	% Surface data
 			   Opt.Frames = Frame_N;
 				[err, Z, Info, ErrMessage] = BrikLoad(file(i).nm, Opt);
 				if (sn ~= 1), X(:,1,i) = zeros(size(X(:,1,i))); end 
 				% For the last chunk of nodes, which are not a whole set of 50,000. 
-				% Not an elegant solution: This would create some dangling 0's in the output file!
+				% Not an elegant solution: This would create some dangling 0's in 
+            % the output file!
 				X(1:size(Z,1), 1, i) = Z;
 				clear Z; 
 			end	
@@ -2087,8 +2121,9 @@ for (sn = 1:1:slices),
    Opt.NoCheck = 0;
    Opt.Scale = 1;
    if (data_type == 0), Opt.View = sprintf('+%s', format); 
-	elseif (data_type == 1) Opt.View = '.1D.dset'; end
-
+	elseif (data_type == 1) Opt.View = '.1D.dset'; 
+   elseif (data_type == 2) Opt.View = '.niml.dset'; end
+   
    Info.TYPESTRING = '3DIM_HEAD_FUNC'; 
    %Info.DATASET_RANK(2) = 2*N_Brik;    % Number of subbriks
 %	if (cov.do == 1), 
@@ -2220,11 +2255,34 @@ for (sn = 1:1:slices),
       [err2, ErrMessage, NewInfo] = WriteBrik(reshape(M, D1, D2, 1, Info.DATASET_RANK(2)), Info, OptW); 
 	elseif (data_type == 1), % Collapse the 2nd dimsion, which is 1 for surface data.
       [err2, ErrMessage, NewInfo] = WriteBrik(squeeze(reshape(M, D1, D2, 1, Info.DATASET_RANK(2))), Info, OptW); 
-	end	
+	elseif (data_type == 2),
+      [sstt, uid] = system('3dnewid -fun');
+      ftmp = sprintf('__GroupAna_tmp%d_%s.mat', sn, uid);
+      Mo = squeeze(reshape(M, D1, D2, 1, Info.DATASET_RANK(2)));
+      NIo = NI((1+(sn-1)*Opt.SliceSize_1D):min([length(NI) sn*Opt.SliceSize_1D]));
+      save(ftmp, 'Mo', 'NIo'); clear('Mo'); clear('NIo');
+      flist(sn) = cellstr(ftmp);
+   end	
 	fprintf(1, 'done in %f seconds\n', toc);	
 	
 end  % end of the big loop of running ANOVA and writing up: One slice a time 
-
+if (data_type == 2),
+   clear('LC'); clear ('M');
+   for (it=1:1:length(flist)),
+      F = load(char(flist(it)));
+      if (it==1),
+         M = F.Mo;
+      else 
+         M = [M ; F.Mo];
+      end
+      clear('F');
+      delete(char(flist(it)));
+   end
+   Info.FileFormat='NIML';
+   Info.NodeIndices = NI;
+   OptW.Slices = [];
+   [err2, ErrMessage, NewInfo] = WriteBrik(M, Info, OptW);
+end
 fprintf(1, '\nCongratulations, job is successfully done!!! Total runtime: %f minutes...', etime(clock,t0)/60);	
 fprintf(1, '\nOutput files are %s%s.*\n\n', Opt.Prefix, Opt.View);	
 err = 0;

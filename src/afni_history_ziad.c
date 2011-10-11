@@ -65,6 +65,17 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 4, OCT , 2011 , ZSS , "CreateIcosahedron" , MICRO , TYPE_NEW_OPT,
+   "Added -min_nodes option",
+   NULL
+  } ,
+
+ { 4, OCT , 2011 , ZSS , "GroupAna" , MINOR , TYPE_NEW_OPT,
+   "Added support for writing NIML files as output",
+   "This also required writing a few new matlab functions such as\n"
+   " BrikInfo_2_niml_writesimple."
+ } ,
+
  { 1, AUG , 2011 , ZSS , "Draw Dataset" , MINOR , TYPE_MODIFY,
    "Changed the gap selection to arrows to allow for much larger gaps",
    NULL

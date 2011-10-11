@@ -147,6 +147,42 @@ float mri_nstat( int code , int npt , float *far , float voxval)
 }
 
 /*--------------------------------------------------------------------------*/
+/*! 
+   A specialized function for speeding up computations for segmentation
+    computes  5 statistic values: mean, median, sigma, mad, and skew and 
+    stores them in fv5
+*/
+/*------------------------------------------------------------------------*/
+
+int mri_nstat_mMP2S( int npt , float *far , float voxval, float *fv5)
+{
+   /*             fv5[5]={mean, median, sigma, MAD, skew} */ 
+   register float mm,vv; 
+   register int ii ;
+   
+   fv5[0] = fv5[1] = fv5[2] = fv5[3] = fv5[4] = 0.0;
+   if( npt <= 0 || far == NULL ) return 0 ;
+   if ( npt == 1 ) {
+      fv5[0] = fv5[1] = voxval ; 
+      return 1;
+   }
+   
+   for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
+   mm /= npt ; fv5[0] = mm; 
+   for( vv=0.0,ii=0 ; ii < npt ; ii++ ) 
+                           vv += (far[ii]-mm)*(far[ii]-mm) ;
+   vv /= (npt-1) ;
+   fv5[2] = sqrt(vv) ; 
+   if (fv5[2]) {
+     qmedmad_float( npt , far , fv5+1 , fv5+3 ) ;
+     fv5[4] = 3.0 * (fv5[0] - fv5[1]) / fv5[2];
+   } else fv5[4] = 0.0;
+
+
+   return 1 ;
+}
+
+/*--------------------------------------------------------------------------*/
 
 #if 0
 static int fwhm_use_variance = 1 ;
@@ -480,7 +516,7 @@ ENTRY("THD_localstat") ;
    MRI_IMAGE *nbim=NULL ;
    THD_fvec3 fwv ;
    double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS] ;  /* no longer static */
-   float *nbar ; int nbar_num=0;
+   float *nbar , fv5[5]={0.0, 0.0, 0.0, 0.0, 0.0}; ; int nbar_num=0;
 
    /* 17 Jul 2009: create workspace for neighborhood data */
 
@@ -555,6 +591,12 @@ ENTRY("THD_localstat") ;
 
           cc += (N_mp-1) ; /* number of sub-bricks added, minus 1 */
 
+         } else if( code[cc] == NSTAT_mMP2s ){ /* 3 values, median, MAD, P2Skew*/
+           mri_nstat_mMP2S( nbar_num , nbar, brick[ijk], fv5 ) ;
+           aar[cc  ][ijk] = fv5[1]; /* median */
+           aar[cc+1][ijk] = fv5[3]; /* MAD */
+           aar[cc+2][ijk] = fv5[4]; /* Skew */ 
+           cc += 2 ;  /* skip redundant codes that follow */
          } else {   /* the "usual" (catchall) case */
 
            aar[cc][ijk] = mri_nstat( code[cc] , nbar_num , nbar, brick[ijk] ) ;
