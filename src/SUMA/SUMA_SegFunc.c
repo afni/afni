@@ -2366,7 +2366,8 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
    if (LocalHead || Opt->debug > 1) {
       SUMA_S_Note("Blurring Psset & Rset");      
    }
-#ifdef USE_OMP
+
+AFNI_OMP_START ;
 #pragma omp parallel
 {
    THD_3dim_dataset *bb[2];
@@ -2383,7 +2384,7 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
       } 
    }   
 } /* end OpenMP */
-#endif
+AFNI_OMP_END ;
 
    if (Opt->debug) { SUMA_S_Notev("%f smoothing duration %f seconds\n", 
                                    fwhm, SUMA_etime (&tti, 1)); }
