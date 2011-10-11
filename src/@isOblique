@@ -28,5 +28,8 @@ USAGE:
    echo "        0 if Hello+orig.HEAD is plumb." 
 	echo "Ziad Saad (saadz@mail.nih.gov)"
    echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
+   echo ""
+   echo "Better rely on the newer: 3dinfo -is_oblique <Name>"
+   echo ""
 	goto ENDALL
 ENDALL:
