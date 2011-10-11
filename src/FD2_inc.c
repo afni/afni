@@ -584,12 +584,14 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 #define NSTAT_FRANK       22      /* ZSS Jan 10 */
 #define NSTAT_P2SKEW      23      /* ZSS March 04 10*/
 #define NSTAT_KURT        24      /* ZSS Jan   04 11*/
+#define NSTAT_mMP2s       25  
+#define NSTAT_mMP2s1      26
+#define NSTAT_mMP2s2      27
 
 #define NSTAT_FWHMx   63
 #define NSTAT_FWHMy   64
 #define NSTAT_FWHMz   65
 #define NSTAT_FWHMbar 66
-
 
 #define NBISTAT_BASE               66601
 #define NBISTAT_SPEARMAN_CORR      66601

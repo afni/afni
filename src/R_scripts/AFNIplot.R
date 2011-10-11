@@ -535,7 +535,7 @@ plot.1D.eng <- function (P) {
    if (!is.null(P$dmat.err) && is.character(P$dmat.err)) {
       dmatv <- P$dmat.err
       for (i in 1:length(dmatv)) { #Won't work for different row numbers...
-         if (is.null(ffc <- read.AFNI.matrix(ffv[i]))) {
+         if (is.null(ffc <- read.AFNI.matrix(dmatv[i]))) {
             err.AFNI("Failed to read test file")
             return(0) 
          }
@@ -1006,8 +1006,8 @@ plot.1D.eng <- function (P) {
        
       if (!is.null(P$mat2plt.minus) && !is.null(P$mat2plt.plus)) {
          for (i in 1:length(P$dmat.colsel)) {
-            arrows(x0=x, y0=P$mat2plt[, i]-P$mat2plt.minus[,i], 
-                   x1=x, y1=P$mat2plt[, i]+P$mat2plt.plus[,i],
+            arrows(x0=xat, y0=P$mat2plt[, i]-P$mat2plt.minus[,i], 
+                   x1=xat, y1=P$mat2plt[, i]+P$mat2plt.plus[,i],
                    length=.05, angle=90, code = 3,
                    col = P$col.color[P$dmat.colsel[i]] ) 
          } 

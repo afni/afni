@@ -31,6 +31,9 @@ void SUMA_CreateIcosahedron_usage ()
 "       Ntri  = 20 * linDepth^2\n"
 "       Nedge = 30 * linDepth^2\n"
 "\n"
+"   -min_nodes MIN_NODES: Automatically select the -ld value which produces an\n"
+"                         icosahedron of at least MIN_NODES nodes.\n"
+"\n"
 "   -nums: output the number of nodes (vertices), triangles, edges, \n"
 "          total volume and total area then quit\n"
 "\n"
@@ -152,7 +155,30 @@ int main (int argc, char *argv[])
             sprintf (bin, "n");
             brk = YUP;
          }      
-      
+      if (!brk && (strcmp(argv[kar], "-min_nodes") == 0 ))
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -ld ");
+               exit (1);
+            }
+            {
+               int min_nodes = atoi(argv[kar]);
+               depth = 1;
+               while ((2 + (10 * depth * depth)) < min_nodes 
+                        && depth<500) ++depth;
+               if (depth >= 500) {
+                  fprintf (SUMA_STDERR, 
+                        "-min_nodes of %d is too big", min_nodes);
+                  exit (1);
+               }
+               fprintf (SUMA_STDERR, 
+                  "Minimum -ld to result in at least %d nodes was: %d\n",
+                     min_nodes, depth);
+            }
+            sprintf (bin, "n");
+            brk = YUP;
+         }
       if (!brk && (strcmp(argv[kar], "-nums") == 0 ))
          {
             NumOnly = 1;

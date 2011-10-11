@@ -37,7 +37,7 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
  {
   if( LocalHead && omp_get_thread_num() == 0 )
     INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
- }
+}
 #endif
 
    if (Opt->cset) {/* Hide Classes not for analysis */

@@ -114,7 +114,7 @@ if (Opt.method < 0 | Opt.method > 3),
    return;
 end
 
-if (~filexist(fname)), % try with extension
+if (~filexist(fname) & Opt.method ~= 3), % try with extension
 	fname2 = sprintf('%s.1D', fname);
    fname3 = sprintf('%s.1D.dset', fname);
    if (verb), fprintf(1,'Trying for %s or %s\n', fname2, fname3); end
@@ -306,7 +306,12 @@ elseif (Opt.method == 2),
    end
    convcom = sprintf('ConvertDset -o_1dp -input %s%s -i_1D -prefix %s', fname, ssel, ftmp);
    if (verb > 1) fprintf(2,'Command is:\n%s\n', convcom); end
-   unix(convcom);
+   [sss,www] = unix(convcom);
+   if (sss),
+      fprintf(1,'Error %s:\nFailed executing: %s\n',FuncName, convcom);
+      err = 1;
+      return;
+   end   
    v = load(ftmpout);
    unix(rmcom); 
    %slices? 
@@ -323,7 +328,7 @@ elseif (Opt.method == 2),
    end
 elseif (Opt.method == 3),
    if (verb) fprintf(1,'Running 1dcat for purging 1D file of bells and whistles\n'); end
-   ftmp = sprintf('%s_Read_1D_tmp_', fname);
+   ftmp = sprintf('r1d_%s', newid());
    ftmpout = sprintf('%s.1D.dset', ftmp);
    rmcom = sprintf('rm -f %s', ftmpout);
    if (filexist(ftmpout)), 

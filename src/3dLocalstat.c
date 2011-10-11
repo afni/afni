@@ -58,7 +58,8 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL , *outset ;
    int ncode=0 , code[MAX_NCODE] , iarg=1 , ii ;
-   float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1], redx[3]={0.0, 0.0, 0.0};
+   float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1], 
+         redx[3]={0.0, 0.0, 0.0}, mxvx=0.0;
    MCW_cluster *nbhd=NULL ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
    char *prefix="./localstat" ;
@@ -154,6 +155,10 @@ int main( int argc , char *argv[] )
       "                           3 * (mean - median) / stdev \n"
       "               * ALL    = all of the above, in that order \n"
       "                         (except for FWHMbar and perc).\n"
+      "               * mMP2s  = Exactly the same output as:\n"
+      "                          -stat median -stat MAD -stat P2skew\n"
+      "                          but it a little faster\n"
+      "\n"
       "               More than one '-stat' option can be used.\n"
       "\n"
       " -mask mset  = Read in dataset 'mset' and use the nonzero voxels\n"
@@ -197,6 +202,9 @@ int main( int argc , char *argv[] )
       "\n"
       " -reduce_restore_grid Rx [Ry Rz] = Like reduce_grid, but also resample\n"
       "                                   output back to input grid.\n"
+      " -reduce_max_vox MAX_VOX = Like -reduce_restore_grid, but automatically\n"
+      "                           set Rx Ry Rz so that the computation grid is\n"
+      "                           at a resolution of nbhd/MAX_VOX voxels.\n"
       " -grid_rmode RESAM = Interpolant to use when resampling the output with\n"
       "                     reduce_restore_grid option. The resampling method\n"        "                     string RESAM should come from the set \n"
       "                     {'NN', 'Li', 'Cu', 'Bk'}.  These stand for\n"
@@ -323,6 +331,9 @@ int main( int argc , char *argv[] )
                                                code[ncode++] = NSTAT_FWHMy ;
                                                code[ncode++] = NSTAT_FWHMz ;
                                                do_fwhm++                   ;}
+       else if( strcasecmp(cpt,"mMP2s") == 0 ){code[ncode++] = NSTAT_mMP2s ;
+                                               code[ncode++] = NSTAT_mMP2s1;
+                                               code[ncode++] = NSTAT_mMP2s2;}
        else if( strncasecmp(cpt,"perc",4) == 0) {
          /* How many you say? */
          if (LS_decode_parameters(cpt, codeparams[ncode]) <= 0) {
@@ -420,6 +431,14 @@ int main( int argc , char *argv[] )
                      redx[0], redx[1], redx[2]);
        }
        iarg++ ; continue ;
+     }
+     
+     if( strcmp(argv[iarg],"-reduce_max_vox") == 0) {
+      if( ++iarg >= argc ) 
+         ERROR_exit( "Need 1 argument after '-reduce_max_vox' ") ;
+      mxvx = (float)strtod(argv[iarg],NULL);
+      restore_grid = 1;
+      iarg++ ; continue ;
      }     
      
      if( strcmp(argv[iarg],"-grid_rmode") == 0) {
@@ -471,7 +490,10 @@ int main( int argc , char *argv[] )
      ntype = NTYPE_SPHERE ; na = -1.01f ;
      if( verb ) INFO_message("Using default neighborhood = self + 6 neighbors") ;
    }
-
+   
+   if (mxvx) {
+      redx[0] = redx[1] = redx[2] = 1.0;
+   }
    switch( ntype ){
      default:
        ERROR_exit("WTF?  ntype=%d",ntype) ;  /* should not happen */
@@ -483,6 +505,11 @@ int main( int argc , char *argv[] )
                         dy = fabsf(DSET_DY(inset)) ;
                         dz = fabsf(DSET_DZ(inset)) ; }
        nbhd = MCW_spheremask( dx,dy,dz , na ) ;
+       if (mxvx) {
+         if (na/dx > mxvx) redx[0] = na / (mxvx * dx);
+         if (na/dy > mxvx) redx[1] = na / (mxvx * dy);
+         if (na/dz > mxvx) redx[2] = na / (mxvx * dz);
+       }
      }
      break ;
 
@@ -492,6 +519,11 @@ int main( int argc , char *argv[] )
        if( nb < 0.0f ){ dy = 1.0f; nb = -nb; } else dy = fabsf(DSET_DY(inset));
        if( nc < 0.0f ){ dz = 1.0f; nc = -nc; } else dz = fabsf(DSET_DZ(inset));
        nbhd = MCW_rectmask( dx,dy,dz , na,nb,nc ) ;
+       if (mxvx) {
+         if (na/dx > mxvx) redx[0] = na / (mxvx * dx);
+         if (nb/dy > mxvx) redx[1] = nb / (mxvx * dy);
+         if (nc/dz > mxvx) redx[2] = nc / (mxvx * dz);
+       }
      }
      break ;
 
@@ -502,6 +534,11 @@ int main( int argc , char *argv[] )
                         dy = fabsf(DSET_DY(inset)) ;
                         dz = fabsf(DSET_DZ(inset)) ; }
        nbhd = MCW_rhddmask( dx,dy,dz , na ) ;
+       if (mxvx) {
+         if (na/dx > mxvx) redx[0] = na / (mxvx * dx);
+         if (na/dy > mxvx) redx[1] = na / (mxvx * dy);
+         if (na/dz > mxvx) redx[2] = na / (mxvx * dz);
+       }
      }
      break ;
 
@@ -512,12 +549,20 @@ int main( int argc , char *argv[] )
                         dy = fabsf(DSET_DY(inset)) ;
                         dz = fabsf(DSET_DZ(inset)) ; }
        nbhd = MCW_tohdmask( dx,dy,dz , na ) ;
+       if (mxvx) {
+         if (na/dx > mxvx) redx[0] = na / (mxvx * dx); 
+         if (nb/dy > mxvx) redx[1] = nb / (mxvx * dy); 
+         if (nc/dz > mxvx) redx[2] = nc / (mxvx * dz);
+       }
      }
      break ;
    }
 
    if( verb ) INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
-
+   if( verb && redx[0] > 0.0) 
+      INFO_message("Computing grid reduction: %f %f %f (%f)\n", 
+                     redx[0], redx[1], redx[2], mxvx);
+    
    if( do_fwhm && nbhd->num_pt < 19 )
      ERROR_exit("FWHM requires neighborhood of at least 19 voxels!");
 
@@ -559,6 +604,8 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_FWHMz]  = "FWHMz"; lcode[NSTAT_FWHMbar]  = "FWHMavg"; 
      lcode[NSTAT_RANK]   = "RANK" ; lcode[NSTAT_FRANK]  = "FRANK";
      lcode[NSTAT_P2SKEW] = "P2skew";lcode[NSTAT_KURT]   = "KURT"; 
+     lcode[NSTAT_mMP2s]  = "MEDIAN";lcode[NSTAT_mMP2s1] = "MAD";
+     lcode[NSTAT_mMP2s2] = "P2skew";
      
      if( DSET_NVALS(inset) == 1 ){
        ii=0;

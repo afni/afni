@@ -430,11 +430,13 @@ read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
       }
    }
    
-   if (lop$method == 'svm') {
+   if (lop$method == 'svm' || lop$method == 'SVM') {
+      lop$method <- 'svm' 
       if (is.null(lop$samples_frac)) lop$samples_frac <- 0.03
       if (is.null(lop$max_samples)) lop$max_samples <- 100
       if (is.null(lop$min_samples)) lop$min_samples <- 100
-   } else if (lop$method == 'prob') {
+   } else if (lop$method == 'prob' || lop$method == 'PROB') {
+      lop$method <- 'prob' 
       if (is.null(lop$samples_frac)) lop$samples_frac <- 0.03
       if (is.null(lop$max_samples)) lop$max_samples <- 100
       if (is.null(lop$min_samples)) lop$min_samples <- 100
