@@ -20,6 +20,39 @@
 #define ZMAX  32222        /* increased for Ziad (who else is so crazy?) */
 #define SZMAX "%.32222s"   /* same as ZMAX */
 
+const char * storage_mode_str(int mode) {
+   switch(mode) {
+      default:
+         return("Undefined");
+      case STORAGE_BY_BRICK:
+         return("BRIK") ;
+      case STORAGE_BY_MINC:
+         return("MINC\n") ; 
+      case STORAGE_BY_VOLUMES:
+         return("Volume\n") ; 
+      case STORAGE_BY_ANALYZE:
+         return("ANALYZE\n") ; 
+      case STORAGE_BY_CTFMRI:
+         return("CTF MRI\n") ; 
+      case STORAGE_BY_CTFSAM:
+         return("CTF SAM\n") ; 
+      case STORAGE_BY_1D:
+         return("AFNI .1D\n") ; 
+      case STORAGE_BY_3D:
+         return("AFNI .3D\n") ; 
+      case STORAGE_BY_NIFTI:
+         return("NIFTI\n") ; 
+      case STORAGE_BY_MPEG:
+         return("MPEG\n") ; 
+      case STORAGE_BY_NIML:   
+         return("NIML\n") ;
+      case STORAGE_BY_NI_SURF_DSET:
+         return("NI_SURF_DSET\n") ;
+      case STORAGE_BY_GIFTI:
+         return("GIFTI\n") ;
+    }
+}
+
 char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;
@@ -85,8 +118,10 @@ ENTRY("THD_dataset_info") ;
    }
 
    /*-- 21 Jun 2002: print storage mode --*/
-
    if( dset->dblk->diskptr != NULL ){
+    /* Consider calling function
+         storage_mode_str(dset->dblk->diskptr->storage_mode)
+       instead of duplicating the section below. ZSS: Oct 2011 */
     switch( dset->dblk->diskptr->storage_mode ){
       default:
         outbuf = THD_zzprintf(outbuf,"Storage Mode:    Undefined\n") ; break ;
