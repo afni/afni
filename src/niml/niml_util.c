@@ -426,7 +426,7 @@ char * quotize_float_vector( int num , float *vec , char sep )
 
    qstr = NI_malloc(char*, sizeof(char *)*num) ;
    for( ii=0 ; ii < num ; ii++ ){
-      sprintf(fbuf," %12.6g",vec[ii]) ;
+      sprintf(fbuf," %14.7g",vec[ii]) ;
       for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) /* skip trailing blanks */
         fbuf[ff] = '\0' ;
       for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;         /* skip leading blanks */
