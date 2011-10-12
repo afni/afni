@@ -918,7 +918,7 @@ void NI_val_to_text( NI_rowtype *rt , char *dpt , char *wbuf )
      case NI_FLOAT:{
        float *vpt = (float *)dpt ;
        char fbuf[32] ; int ff ;
-       sprintf(fbuf,"%12.6g",vpt[0]) ;
+       sprintf(fbuf,"%14.7g",vpt[0]) ;
        for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
        for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
        sprintf(wbuf+jj," %s",fbuf+ff) ;
@@ -928,7 +928,7 @@ void NI_val_to_text( NI_rowtype *rt , char *dpt , char *wbuf )
      case NI_DOUBLE:{
        double *vpt = (double *)dpt ;
        char fbuf[32] ; int ff ;
-       sprintf(fbuf,"%18.12g",vpt[0]) ;
+       sprintf(fbuf,"%20.14g",vpt[0]) ;
        for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
        for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
        sprintf(wbuf+jj," %s",fbuf+ff) ;
@@ -938,10 +938,10 @@ void NI_val_to_text( NI_rowtype *rt , char *dpt , char *wbuf )
      case NI_COMPLEX:{
        complex *vpt = (complex *)dpt ;
        char fbuf[32],gbuf[32] ; int ff,gg ;
-       sprintf(fbuf,"%12.6g",vpt[0].r) ;
+       sprintf(fbuf,"%14.7g",vpt[0].r) ;
        for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
        for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
-       sprintf(gbuf,"%12.6g",vpt[0].i) ;
+       sprintf(gbuf,"%14.7g",vpt[0].i) ;
        for( gg=strlen(gbuf) ; gbuf[gg]==' ' ; gg-- ) gbuf[gg] = '\0' ;
        for( gg=0 ; gbuf[gg] == ' ' ; gg++ ) ;
        sprintf(wbuf+jj,"  %s %s",fbuf+ff,gbuf+gg) ;
