@@ -346,13 +346,13 @@ PARSE:
       set RNS = `3dnewid -hash NIpref`
       echo "Copying NIFTI volume to $prs_in[1]/${NIpref}_${RNS}"
       3dcopy "$anat_in" $prs_in[1]/${NIpref}_${RNS}
-      set anat_in = ($prs_in[1]/${NIpref}_${RNS}*HEAD)
+      set anat_in = ($prs_in[1]/${NIpref}_${RNS}+????.HEAD)
       if ($#anat_in != 1) then
-         echo "Failed to copy NIFTI input"
+         echo "Failed to copy NIFTI input ($anat_in)"
          goto END
       endif
-      set delete_this = ($delete_this $prs_in[1]/${NIpref}_${RNS}*HEAD  \
-                                      $prs_in[1]/${NIpref}_${RNS}*BRIK* ) 
+      set delete_this = ($delete_this $prs_in[1]/${NIpref}_${RNS}+????.HEAD  \
+                                      $prs_in[1]/${NIpref}_${RNS}+????.BRIK* ) 
       set prs_in = `@parse_afni_name "$anat_in"`
    endif 
    
@@ -446,9 +446,13 @@ PARSE:
       set out_pref = `@GetAfniPrefix "${nopre_anat_in}"`${suf}
    endif
     
-   set ref_pref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
    set ref_pref_pad  = "${tmppref}_ref_`@GetAfniPrefix ${ref_in}`_${pd}pad"
-   set ref_view = "`@GetAfniView ${ref_in}`"
+   set ref_view = `3dinfo -av_space ${ref_in}`
+   if (`3dinfo -is_nifti $ref_in` == 1) then
+      set ref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
+   else   
+      set ref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`${ref_view}"
+   endif
    # use the template space for the transformed dataset
    set ref_space = `3dinfo ${ref_in} | grep "Template Space"` 
    set ref_space = "$ref_space[3]"
@@ -1005,7 +1009,7 @@ AUTO_TLRC_MODE:
 #######################
 APAR_MODE:
    set tmp_out_pref = ${tmppref}${out_pref}
-   echo "Applying tlrc warp from ${ref_pref_nopad}${ref_view} to ${ns_pref}${anat_view} ..."
+   echo "Applying tlrc warp from ${ref_nopad} to ${ns_pref}${anat_view} ..."
    if ( -f warp_tmp${anat_view}.HEAD) then
       rm -f warp_tmp${anat_view}.HEAD warp_tmp${anat_view}.BRIK*
    endif
@@ -1029,7 +1033,7 @@ APAR_MODE:
    endif            
    if ($OneWarp) then
       echo "Direct warping per parent transform ($rmode interpolation) ..."
-      3dWarp   -matparent ${ref_pref_nopad}${ref_view} \
+      3dWarp   -matparent ${ref_nopad} \
             -gridset ${tmppref}_warp_grid${ref_view} \
             -prefix ./${tmp_out_pref} -${rmode} \
             ${tmppref}_ipad${anat_view}
@@ -1041,13 +1045,13 @@ APAR_MODE:
       #Keep old way involving two interpolations for backward
       #compatibility
       echo "Warping per parent transform ($rmode interpolation) and resampling with $resam interpolation (use -onewarp for single interpolation) ..."
-      3dWarp   -matparent ${ref_pref_nopad}${ref_view} \
+      3dWarp   -matparent ${ref_nopad} \
             -prefix ./${tmp_out_pref} -${rmode} \
             ${tmppref}_ipad${anat_view}
       #Change view of master or else 3dresample will force a change
       
       if (${ref_view} == '') then
-         set ref_view = `3dinfo -av_space -av ${ref_in}`
+         set ref_view = `3dinfo -av_space ${ref_in}`
       endif
       3drefit -view ${anat_view} ${tmppref}_warp_grid${ref_view}
       3dresample  -master ${tmppref}_warp_grid${anat_view} \
@@ -1077,13 +1081,13 @@ APAR_MODE:
       # @auto_tlrc -apar T1High_ns+tlrc -input T1High+orig -suffix NONE
       #
       #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
-         set FromVol = ${ref_pref_nopad}${ref_view}
+         set FromVol = ${ref_nopad}
          set ToVol = ${tmp_out_pref}${anat_view}
          set RET_copy_fields = APCW
          goto COPY_FIELDS
          APCW:    
       
-      3drefit -wpar ${ref_pref_nopad}${ref_view} ${tmp_out_pref}${anat_view}
+      3drefit -wpar ${ref_nopad} ${tmp_out_pref}${anat_view}
    endif
    
    # reset the space of the output to match the template space
@@ -1221,6 +1225,7 @@ else if ($just_copy_base != "" ) then
    goto END
 endif
 echo $just_copy_base
+
 
 goto SET_REF_PATH_RETURN
 
@@ -1525,7 +1530,7 @@ WARN_notice:
       set vers_str = "Old version of TT_avg152 template found."
 echo ""
 echo "Error:"
-echo "It looks like your version of template $ref_pref_nopad is old,"
+echo "It looks like your version of template $ref_nopad is old,"
 echo "and in MNI space."
 echo "Please download new corrected version of this template "
 echo "and of ${alternate}+tlrc "

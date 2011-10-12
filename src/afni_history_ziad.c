@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 11, OCT , 2011 , ZSS , "@auto_tlrc" , MINOR , TYPE_NEW_OPT,
+   "Added support for NIFTI datasets",
+   NULL
+  } ,
+
+ { 11, OCT , 2011 , ZSS , "3dinfo" , MINOR , TYPE_NEW_OPT,
+   "Added new options for extracting field values in scripts",
+   NULL
+  } ,
+
  { 4, OCT , 2011 , ZSS , "CreateIcosahedron" , MICRO , TYPE_NEW_OPT,
    "Added -min_nodes option",
    NULL

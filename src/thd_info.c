@@ -136,54 +136,8 @@ ENTRY("THD_dataset_info") ;
 
    /*-- 21 Jun 2002: print storage mode --*/
    if( dset->dblk->diskptr != NULL ){
-    /* Consider calling function
-         storage_mode_str(dset->dblk->diskptr->storage_mode)
-       instead of duplicating the section below. ZSS: Oct 2011 */
-    switch( dset->dblk->diskptr->storage_mode ){
-      default:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    Undefined\n") ; break ;
-
-      case STORAGE_BY_BRICK:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    BRIK file\n") ; break ;
-
-      case STORAGE_BY_MINC:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    MINC file\n") ; break ;
-
-      case STORAGE_BY_VOLUMES:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    Volume file(s)\n") ; break ;
-
-      case STORAGE_BY_ANALYZE:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    ANALYZE files\n") ; break ;
-
-      case STORAGE_BY_CTFMRI:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    CTF MRI file\n") ; break ;
-
-      case STORAGE_BY_CTFSAM:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    CTF SAM file\n") ; break ;
-
-      case STORAGE_BY_1D:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    AFNI .1D file\n") ; break ;
-
-      case STORAGE_BY_3D:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    AFNI .3D file\n") ; break ;
-
-      case STORAGE_BY_NIFTI:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    NIFTI file\n") ; break ;
-
-      case STORAGE_BY_MPEG:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    MPEG file\n") ; break ;
-
-      case STORAGE_BY_NIML:   /* 26 May 2006 [rickr] */
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    NIML file\n") ; break ;
-
-      case STORAGE_BY_NI_SURF_DSET:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    NI_SURF_DSET file\n") ;
-       break ;
-
-      case STORAGE_BY_GIFTI:
-        outbuf = THD_zzprintf(outbuf,"Storage Mode:    GIFTI file\n") ;
-       break ;
-    }
+      outbuf = THD_zzprintf(outbuf,"Storage Mode:    %s\n",
+                        storage_mode_str(dset->dblk->diskptr->storage_mode));
    }
 
    tb = dset->dblk->total_bytes ;
