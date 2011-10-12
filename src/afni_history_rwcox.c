@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , OCT , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+  { 12 , OCT , 2011 , RWC , "NIML library" , MICRO , TYPE_GENERAL ,
+   "Extend printout of floats to higher precision" ,
+   NULL } ,
+
+ { 7 , OCT , 2011 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Move splashes, faces, and poems to funstuff/ subdirectory" ,
    "funstuff/ is now a sub-directory of the binary install directory." } ,
 
