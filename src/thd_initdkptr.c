@@ -78,7 +78,20 @@ ENTRY("THD_init_diskptr_names") ;
    /*-- if either viewcode or prefix changed, alter filecode --*/
 
    if( redo_filecode ){
-      PREFIX_VIEW_TO_FILECODE( dkptr->prefix, dkptr->viewcode, dkptr->filecode ) ;
+      switch (dkptr->storage_mode) { /* ZSS: Oct 2011 */
+         default: /* This makes no sense, but to keep matters
+                     as they were */ 
+            PREFIX_VIEW_TO_FILECODE( dkptr->prefix, dkptr->viewcode, 
+                                  dkptr->filecode ) ;
+            break;
+         case STORAGE_BY_BRICK:
+            PREFIX_VIEW_TO_FILECODE( dkptr->prefix, dkptr->viewcode, 
+                                  dkptr->filecode ) ;
+            break;
+         case STORAGE_BY_NIFTI:
+            strcpy(dkptr->filecode, dkptr->prefix);
+            break;
+      }
    }
 
    /*-- rewrite header_name --*/
@@ -86,17 +99,39 @@ ENTRY("THD_init_diskptr_names") ;
    if( headname != NULL && strlen(headname) > 0 ){
       MCW_strncpy( dkptr->header_name , headname , THD_MAX_NAME ) ;
    } else {
-      sprintf( dkptr->header_name , "%s%s.%s" ,
+      switch (dkptr->storage_mode) { /* ZSS: Oct 2011 */
+         case STORAGE_BY_BRICK:
+            sprintf( dkptr->header_name , "%s%s.%s" ,
                dkptr->directory_name,dkptr->filecode,DATASET_HEADER_SUFFIX ) ;
+            break;
+         default: /* same twisted logic as in previous switch */
+            sprintf( dkptr->header_name , "%s%s.%s" ,
+               dkptr->directory_name,dkptr->filecode,DATASET_HEADER_SUFFIX ) ;
+            break;
+         case STORAGE_BY_NIFTI:
+            sprintf( dkptr->header_name , "%s%s" ,
+               dkptr->directory_name,dkptr->filecode ) ;
+            break;
+      }
    }
 
    /*-- if desired, create the datafile names as well --*/
 
    if( do_datafiles ){
-
-      sprintf( dkptr->brick_name , "%s%s.%s",
-               dkptr->directory_name,dkptr->filecode,DATASET_BRICK_SUFFIX ) ;
-
+      switch (dkptr->storage_mode) { /* ZSS: Oct 2011 */
+         case STORAGE_BY_BRICK:
+            sprintf( dkptr->brick_name , "%s%s.%s",
+                     dkptr->directory_name,dkptr->filecode,DATASET_BRICK_SUFFIX);
+            break;
+         default:
+            sprintf( dkptr->brick_name , "%s%s.%s",
+                     dkptr->directory_name,dkptr->filecode,DATASET_BRICK_SUFFIX);
+            break;
+         case STORAGE_BY_NIFTI:
+            sprintf( dkptr->brick_name , "%s%s",
+                     dkptr->directory_name,dkptr->filecode);
+            break;
+      }
    }
    EXRETURN ;
 }

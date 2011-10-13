@@ -736,6 +736,7 @@ ENTRY("THD_load_nifti") ;
 
    STATUS("calling nifti_image_read_bricks") ;
    NBL.nbricks = 0 ;
+
    if( ! DBLK_IS_MASTERED(dblk) )   /* allow mastering   14 Apr 2006 [rickr] */
        nim = nifti_image_read_bricks( dkptr->brick_name, 0,NULL , &NBL ) ;
    else

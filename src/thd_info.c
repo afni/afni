@@ -27,29 +27,29 @@ const char * storage_mode_str(int mode) {
       case STORAGE_BY_BRICK:
          return("BRIK") ;
       case STORAGE_BY_MINC:
-         return("MINC\n") ; 
+         return("MINC") ; 
       case STORAGE_BY_VOLUMES:
-         return("Volume\n") ; 
+         return("Volume") ; 
       case STORAGE_BY_ANALYZE:
-         return("ANALYZE\n") ; 
+         return("ANALYZE") ; 
       case STORAGE_BY_CTFMRI:
-         return("CTF MRI\n") ; 
+         return("CTF MRI") ; 
       case STORAGE_BY_CTFSAM:
-         return("CTF SAM\n") ; 
+         return("CTF SAM") ; 
       case STORAGE_BY_1D:
-         return("AFNI .1D\n") ; 
+         return("AFNI .1D") ; 
       case STORAGE_BY_3D:
-         return("AFNI .3D\n") ; 
+         return("AFNI .3D") ; 
       case STORAGE_BY_NIFTI:
-         return("NIFTI\n") ; 
+         return("NIFTI") ; 
       case STORAGE_BY_MPEG:
-         return("MPEG\n") ; 
+         return("MPEG") ; 
       case STORAGE_BY_NIML:   
-         return("NIML\n") ;
+         return("NIML") ;
       case STORAGE_BY_NI_SURF_DSET:
-         return("NI_SURF_DSET\n") ;
+         return("NI_SURF_DSET") ;
       case STORAGE_BY_GIFTI:
-         return("GIFTI\n") ;
+         return("GIFTI") ;
     }
 }
 
