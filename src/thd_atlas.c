@@ -1007,6 +1007,55 @@ void free_atlas(ATLAS *xa)
    if (xa->adh) free_adh(xa->adh);
 } 
 
+/* return 1 is combined xform is identity */
+int is_identity_xform_list(ATLAS_XFORM_LIST *xfl, int combine)
+{
+   int i;
+   ATLAS_XFORM_LIST *cxfl=NULL;
+   ATLAS_XFORM *xf;
+
+   if(xfl==NULL) {
+      fprintf(stderr,"NULL transform\n");
+      return(0);
+   }
+   if (combine) {
+      if (!(cxfl = calc_xform_list(xfl))) return(0);
+      xfl = cxfl;
+   }
+   
+   for(i=0;i<xfl->nxforms;i++) {
+      xf = xfl->xform+i;
+      if (strcmp(xf->xform_type,"Identity")) {
+         if (cxfl) free_xform_list(cxfl);
+         return(0);
+      }
+   }
+   if (cxfl) free_xform_list(cxfl);
+   return(1);
+}
+
+/* return 1 if xform from src to dest is Identity */
+int is_identity_xform_chain(char *src, char *dest) 
+{
+   ATLAS_XFORM_LIST *xfl=NULL;
+   int ans=0;
+   
+   if (!src || !dest) return(0);
+   if (!strcmp(src,dest)) return(1);
+   
+   xfl = report_xform_chain(src, dest, 0);
+   ans = is_identity_xform_list(xfl, 1);
+   free_xform_list(xfl);
+   return(ans);
+}
+
+void print_xform_chain(char *src, char *dest)
+{
+   ATLAS_XFORM_LIST *xfl=report_xform_chain(src, dest,1);
+   if (xfl) free_xform_list(xfl);
+   return;   
+}
+
 /* print list of xforms - short form - as a chain */
 void print_xform_list(ATLAS_XFORM_LIST *xfl)
 {
@@ -1282,8 +1331,7 @@ void print_template_list(ATLAS_TEMPLATE_LIST *xtl)
 }
 
 /* calculate list of xforms */
-ATLAS_XFORM_LIST *
-calc_xform_list(ATLAS_XFORM_LIST *xfl)
+ATLAS_XFORM_LIST *calc_xform_list(ATLAS_XFORM_LIST *xfl)
 {
    int i, nxf, sl1, sl2, cc;
    ATLAS_XFORM *xf, *xf2, *xf3, *oldxfptr=NULL;
