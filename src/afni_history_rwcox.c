@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 12 , OCT , 2011 , RWC , "NIML library" , MICRO , TYPE_GENERAL ,
+  { 13 , OCT , 2011 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
+   "Fixed error in computing with un-centered covariates" ,
+   "inv[Xt*X] matrix not computed correctly in mri_matrix_psinv_pair()\n"
+   "function." } ,
+
+ { 12 , OCT , 2011 , RWC , "NIML library" , MICRO , TYPE_GENERAL ,
    "Extend printout of floats to higher precision" ,
    NULL } ,
 
