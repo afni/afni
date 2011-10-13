@@ -34,6 +34,14 @@ void Syntax(void)
     "   -space: dataset's space\n"
     "   -av_space: AFNI format's view extension for the space\n"
     "   -is_oblique: 1 if dset is oblique\n"
+    "   -prefix: Return the prefix\n"
+    "   -prefix_noext: Return the prefix without extensions\n"
+    "   -n[i|j|k]: Return the number of voxels in i, j, k dimensions\n"
+    "   -nijk: Return ni*nj*nk"
+    "   -nt: Return number of points in time, or number of sub-bricks\n"
+    " Example:\n"
+    "    3dinfo  -prefix_noext -prefix -space -ni -nj -nk -nt  \\\n"
+    "            DSET1+orig DSET2.nii\n"
     "\n"
    ) ;
    PRINT_COMPILE_DATE ; exit(0) ;
@@ -41,7 +49,8 @@ void Syntax(void)
 
 typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI,
-   IS_OBLIQUE } INFO_FIELDS;
+   IS_OBLIQUE, PREFIX , PREFIX_NOEXT, NI, NJ, NK, NT, NIJK,
+   N_FIELDS } INFO_FIELDS; /* Leave N_FIELDS at the end */
 
 int main( int argc , char *argv[] )
 {
@@ -49,38 +58,60 @@ int main( int argc , char *argv[] )
    int iarg , verbose = -1 ;
    char *outbuf ;
    char *labelName = NULL;
-   INFO_FIELDS sing;
+   INFO_FIELDS sing[512]; 
+   int iis=0, N_sing = 0;
    
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
    mainENTRY("3dinfo main") ; machdep() ; 
 
-   sing = CLASSIC;
    iarg = 1 ;
-        if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  0; iarg++; }
-        if( strncmp(argv[iarg],"-VERB" ,5) == 0 ){ verbose =  1; iarg++; }
-   else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; }
+   while (iarg < argc && argv[iarg][0] == '-') {
+           if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  0; iarg++; }
+           if( strncmp(argv[iarg],"-VERB" ,5) == 0 ){ verbose =  1; iarg++; }
+      else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; }
 
-   else if ( strncmp(argv[iarg],"-label2",7) == 0 )
-   {
-     iarg++;
-     if (iarg >= argc)
-        ERROR_exit( "3dinfo needs an argument after -label2number\n");
-     labelName = malloc(sizeof(char) * 2048);
-     strcpy(labelName, argv[iarg]);
-     iarg++;
+      else if ( strncmp(argv[iarg],"-label2",7) == 0 )
+      {
+        iarg++;
+        if (iarg >= argc)
+           ERROR_exit( "3dinfo needs an argument after -label2number\n");
+        labelName = malloc(sizeof(char) * 2048);
+        strcpy(labelName, argv[iarg]);
+        iarg++;
+      }
+      else if( strncmp(argv[iarg],"-space",6) == 0) { 
+         sing[N_sing++] = DSET_SPACE; iarg++;
+      } else if( strncmp(argv[iarg],"-av_space",6) == 0) { 
+         sing[N_sing++] = AV_DSET_SPACE; iarg++;
+      } else if( strncmp(argv[iarg],"-is_nifti",6) == 0) { 
+         sing[N_sing++] = IS_NIFTI; iarg++;
+      } else if( strncmp(argv[iarg],"-is_oblique",6) == 0) { 
+         sing[N_sing++] = IS_OBLIQUE; iarg++;
+      } else if( strcmp(argv[iarg],"-prefix") == 0) {
+         sing[N_sing++] = PREFIX; iarg++;
+      } else if( strcmp(argv[iarg],"-prefix_noext") == 0) {
+         sing[N_sing++] = PREFIX_NOEXT; iarg++;
+      } else if( strncmp(argv[iarg],"-ni",3) == 0) {
+         sing[N_sing++] = NI; iarg++;
+      } else if( strncmp(argv[iarg],"-nj",3) == 0) {
+         sing[N_sing++] = NJ; iarg++;
+      } else if( strncmp(argv[iarg],"-nk",3) == 0) {
+         sing[N_sing++] = NK; iarg++;
+      } else if( strncmp(argv[iarg],"-nt",3) == 0) {
+         sing[N_sing++] = NT; iarg++;
+      } else if( strncmp(argv[iarg],"-nijk",3) == 0) {
+         sing[N_sing++] = NIJK; iarg++;
+      } else {
+         ERROR_exit("Option %s unknown", argv[iarg]);
+      }
    }
-   else if( strncmp(argv[iarg],"-space",6) == 0) { 
-      sing = DSET_SPACE; iarg++;
-   } else if( strncmp(argv[iarg],"-av_space",6) == 0) { 
-      sing = AV_DSET_SPACE; iarg++;
-   } else if( strncmp(argv[iarg],"-is_nifti",6) == 0) { 
-      sing = IS_NIFTI; iarg++;
-   } else if( strncmp(argv[iarg],"-is_oblique",6) == 0) { 
-      sing = IS_OBLIQUE; iarg++;
-   } 
-
-   if (sing == CLASSIC) PRINT_VERSION("3dinfo") ;
+   
+   if (N_sing == 0) {
+      sing[N_sing++] = CLASSIC;
+   }
+   
+   if (sing[iis] == CLASSIC) PRINT_VERSION("3dinfo") ;
    
    THD_allow_empty_dataset(1) ;  /* 21 Mar 2007 */
 
@@ -108,72 +139,108 @@ int main( int argc , char *argv[] )
        }
      }
 
-     switch (sing) {
-      case CLASSIC:
-         if (labelName == NULL )  /*** get and output info ***/
-         {
-          outbuf = THD_dataset_info( dset , verbose ) ;
-          if( outbuf != NULL ){
-            printf("\n") ;
-            puts(outbuf) ;
-            free(outbuf) ; outbuf = NULL ;
-          } else {
-            ERROR_exit("Can't get info for dataset %s",argv[iarg]) ;
-          }
-         }
-         else   /*** get and output label ***/
-         {
-          int nval_per = dset->dblk->nvals;
-          int foundLabel = 0;
-          int ival=0;
-
-          for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
-          {
-            if (strcmp(DSET_BRICK_LAB(dset,ival), labelName) == 0)
+     for (iis = 0; iis < N_sing; ++iis) {
+        switch (sing[iis]) {
+         case CLASSIC:
+            if (labelName == NULL )  /*** get and output info ***/
             {
-              printf("%d\n", ival); foundLabel = 1;
+             outbuf = THD_dataset_info( dset , verbose ) ;
+             if( outbuf != NULL ){
+               printf("\n") ;
+               puts(outbuf) ;
+               free(outbuf) ; outbuf = NULL ;
+             } else {
+               ERROR_exit("Can't get info for dataset %s",argv[iarg]) ;
+             }
             }
-          } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
-          if (!foundLabel) printf("\n");
-         }
+            else   /*** get and output label ***/
+            {
+             int nval_per = dset->dblk->nvals;
+             int foundLabel = 0;
+             int ival=0;
 
-         THD_delete_3dim_dataset( dset , False ) ;
-         free(labelName);
-         break;
-      case DSET_SPACE:
-         fprintf(stdout, "%s\n", dset->atlas_space);
-         break;
-      case AV_DSET_SPACE:
-              if (!strncmp(dset->atlas_space,"ORIG",4)) 
-               fprintf(stdout, "+orig\n");
-         else if (!strncmp(dset->atlas_space,"ACPC",4)) 
-               fprintf(stdout, "+acpc\n");
-         else if (!strncmp(dset->atlas_space,"TLRC",4)) 
-               fprintf(stdout, "+tlrc\n");
-         else if (!strncmp(dset->atlas_space,"MNI",3)) 
-               fprintf(stdout, "+tlrc\n");
-         else
-               fprintf(stdout, "\n");
-         break;
-      case IS_NIFTI:
-         if (  dset->dblk->diskptr && 
-               dset->dblk->diskptr->storage_mode == STORAGE_BY_NIFTI ) {
-            fprintf(stdout,"1\n");
-         } else {
-            fprintf(stdout,"0\n");
-         }
-         break;
-      case IS_OBLIQUE:
-         if (dset_obliquity(dset,NULL) > 0) {
-            fprintf(stdout,"1\n");
-         } else {
-            fprintf(stdout,"0\n");
-         }
-         break;
-      default:
-         ERROR_message("Info field not set properly (%d)\n", sing);
-         exit(1);
-     }
+             for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
+             {
+               if (strcmp(DSET_BRICK_LAB(dset,ival), labelName) == 0)
+               {
+                 printf("%d\n", ival); foundLabel = 1;
+               }
+             } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
+             if (!foundLabel) printf("\n");
+            }
+
+            THD_delete_3dim_dataset( dset , False ) ;
+            free(labelName);
+            break;
+         case DSET_SPACE:
+            fprintf(stdout, "%s", dset->atlas_space);
+            break;
+         case AV_DSET_SPACE:
+                 if (!strncmp(dset->atlas_space,"ORIG",4)) 
+                  fprintf(stdout, "+orig");
+            else if (!strncmp(dset->atlas_space,"ACPC",4)) 
+                  fprintf(stdout, "+acpc");
+            else if (!strncmp(dset->atlas_space,"TLRC",4)) 
+                  fprintf(stdout, "+tlrc");
+            else if (!strncmp(dset->atlas_space,"MNI",3)) 
+                  fprintf(stdout, "+tlrc");
+            else
+                  fprintf(stdout, "-----");
+            break;
+         case IS_NIFTI:
+            if (  dset->dblk->diskptr && 
+                  dset->dblk->diskptr->storage_mode == STORAGE_BY_NIFTI ) {
+               fprintf(stdout,"1");
+            } else {
+               fprintf(stdout,"0");
+            }
+            break;
+         case IS_OBLIQUE:
+            if (dset_obliquity(dset,NULL) > 0) {
+               fprintf(stdout,"1");
+            } else {
+               fprintf(stdout,"0");
+            }
+            break;
+         case PREFIX:
+            fprintf(stdout,"%s", DSET_PREFIX(dset));
+            break;
+         case PREFIX_NOEXT:
+            { 
+               char *ppp, *eee;
+               ppp = DSET_PREFIX(dset);
+               if (!ppp) ppp = "NO_PREFIX";
+               eee = find_filename_extension( ppp );
+               if (!eee) fprintf(stdout,"%s", ppp);
+               while (ppp < eee) {
+                  fprintf(stdout,"%c", *ppp); ppp++;
+               }
+            }
+            break;
+         case NI:
+            fprintf(stdout,"%d", DSET_NX(dset));
+            break;
+         case NJ:
+            fprintf(stdout,"%d", DSET_NY(dset));
+            break;
+         case NK:
+            fprintf(stdout,"%d", DSET_NZ(dset));
+            break;
+         case NIJK:
+            fprintf(stdout,"%d", DSET_NVOX(dset));
+            break;
+         case NT:
+            fprintf(stdout,"%d", DSET_NUM_TIMES(dset));
+            break;
+         default:
+            ERROR_message("Info field not set properly (%d)\n", sing[iis]);
+            exit(1);
+        }
+        if (sing[iis] != CLASSIC) {
+         if (N_sing > 1 && iis < N_sing-1) fprintf(stdout,"\t");
+         else fprintf(stdout,"\n");
+        }
+      }
    }
 
    exit(0) ;

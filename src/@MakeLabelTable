@@ -259,7 +259,7 @@ MAKE_ATLAS_TABLE:
       foreach n (`count -digits 1 1 $ne[1] 1`)
          set lln = `sed -n ${n}p /tmp/${RNS}.___ult.txt`
          printf '<ATLAS_POINT\n data_type="atlas_point"\n' >> $labeltable
-         printf ' STRUCT=%s"\n VAL=%s\n' $lln[2] $lln[1] >> $labeltable
+         printf ' STRUCT=%s\n VAL=%s\n' $lln[2] $lln[1] >> $labeltable
          printf ' OKEY=%s\n' $lln[1] >> $labeltable
          printf ' GYoAR="0"\n COG="0.0 0.0 0.0"\n' >> $labeltable
          printf '/>\n\n' >> $labeltable
@@ -268,16 +268,29 @@ MAKE_ATLAS_TABLE:
 
 PUT_ATLAS_TABLE:
    if ($target_dset != '') then
-      3drefit -atrstring ATLAS_LABEL_TABLE file:$labeltable $target_dset   
-      3drefit -cmap INT_CMAP $target_dset  
-      printf '<ATLAS\n' > localatlas.niml
-      printf ' atlas_name="MyAtlas"\n' >> localatlas.niml
-      printf ' dset_name="%s"\n' $target_dset >> localatlas.niml
+      3drefit -atrstring ATLAS_LABEL_TABLE file:$labeltable $target_dset   \
+                                             >& /dev/null
+      3drefit -cmap INT_CMAP $target_dset  >& /dev/null
+      if ( -f ${atlas_file} ) then
+         echo "Notice: $atlas_file already exists, appending to it"
+      endif
+      if (${atlas_name} == '') then
+         set atlas_name = `3dinfo -prefix_noext $target_dset`
+      endif
+      printf '<ATLAS\n' >> ${atlas_file}
+      printf ' atlas_name="%s"\n' ${atlas_name} >> ${atlas_file}
+      printf ' dset_name="%s"\n' $target_dset >> ${atlas_file}
       printf ' template_space="%s"\n' `3dinfo -space $target_dset` \
-                                             >> localatlas.niml
-      printf ' description="My Atlas"\n' >> localatlas.niml
-      printf ' comment="None, whatsoever"\n' >> localatlas.niml
-      printf '></ATLAS>\n' >> localatlas.niml
+                                             >> ${atlas_file}
+      printf ' description="My Atlas"\n' >> ${atlas_file}
+      printf ' comment="Created from %s with:\n    %s %s"\n' \
+                  $PWD `basename $0` "$argv[*]" \
+                  >> ${atlas_file}
+      printf '></ATLAS>\n' >> ${atlas_file}
+      
+      printf 'To make AFNI see atlas %s, you will need to run:\n' $target_dset
+      printf ' setenv  AFNI_SUPP_ATLAS %s\n' $atlas_file
+      printf ' setenv AFNI_ATLAS_LIST %s\n' $atlas_name
    endif
    
    MAKE_ATLAS_TABLE_END:
@@ -303,6 +316,8 @@ PARSE:
    set word_match = 0
    set gopt = ()
    set ltype = 'roi'
+   set atlas_file = 'LocalAtlases.niml'
+   set atlas_name = ''
 	set cnt = 1
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then

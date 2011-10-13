@@ -62,7 +62,6 @@ ATLAS_LIST* get_G_atlas_list(void) {
       init_global_atlas_list();
    }
    return(global_atlas_alist); 
-
 }
 
 ATLAS_TEMPLATE_LIST *get_G_templates_list(void) { 
