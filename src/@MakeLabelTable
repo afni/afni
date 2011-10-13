@@ -259,8 +259,9 @@ MAKE_ATLAS_TABLE:
       foreach n (`count -digits 1 1 $ne[1] 1`)
          set lln = `sed -n ${n}p /tmp/${RNS}.___ult.txt`
          printf '<ATLAS_POINT\n data_type="atlas_point"\n' >> $labeltable
-         printf ' STRUCT=$lln[2]"\n VAL=$lln[1]\n' >> $labeltable
-         printf ' OKEY=$lln[1]\n GYoAR="0"\n COG="0.0 0.0 0.0"\n' >> $labeltable
+         printf ' STRUCT=%s"\n VAL=%s\n' $lln[2] $lln[1] >> $labeltable
+         printf ' OKEY=%s\n' $lln[1] >> $labeltable
+         printf ' GYoAR="0"\n COG="0.0 0.0 0.0"\n' >> $labeltable
          printf '/>\n\n' >> $labeltable
       end
       printf '</atlas_point_list>\n' >> $labeltable

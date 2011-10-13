@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13, OCT , 2011 , ZSS , "3drefit" , MINOR , TYPE_BUG_FIX,
+   "Added support for -atrstring operation on NIFTI datasets ",
+   "This required making changes to THD_init_diskptr_names functions\n"
+   "and a few more of its colleagues."
+  } ,
+
  { 11, OCT , 2011 , ZSS , "@auto_tlrc" , MINOR , TYPE_NEW_OPT,
    "Added support for NIFTI datasets",
    NULL
