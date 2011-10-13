@@ -124,7 +124,6 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    if( ! ISVALID_DATABLOCK(blk) || blk->brick == NULL ){
      STATUS("Illegal inputs"); RETURN( False );
    }
-
    ii = THD_count_databricks( blk ) ;
    if( ii == blk->nvals ) RETURN( True );   /* already loaded! */
 

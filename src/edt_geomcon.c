@@ -104,10 +104,8 @@ ENTRY("EDIT_geometry_constructor") ;
                            Changed #ifndef to #ifdef
                            One below seems to work.
                                     ZSS, RKR, Jan 22 10 */
-   /* fprintf(stderr,"ZSS: Calling THD_daxes_from_mat44\n"); */
    THD_daxes_from_mat44( dset->daxes ) ;
 #else
-   /* fprintf(stderr,"ZSS: Orientation the hard way\n");  */
    LOAD_MAT( R , a11,a12,a13 , a21,a22,a23 , a31,a32,a33 ) ;
 
    orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
@@ -144,11 +142,6 @@ ENTRY("EDIT_geometry_constructor") ;
                       ADN_type        , HEAD_FUNC_TYPE ,
                       ADN_func_type   , FUNC_BUCK_TYPE ,
                     ADN_none ) ;
-
-   /*
-   fprintf(stderr,"ZSS: Orient %d %d %d\n",
-        dset->daxes->xxorient, dset->daxes->yyorient, dset->daxes->zzorient);
-   */
 
    RETURN(dset) ;
 }

@@ -229,9 +229,12 @@ ENTRY("THD_datablock_from_atr") ;
    STATUS("checking if .BRIK file exists") ;
 
    brick_ccode = COMPRESS_filecode(dkptr->brick_name) ;
-   if( brick_ccode != COMPRESS_NOFILE )
-     dkptr->storage_mode = STORAGE_BY_BRICK ;  /* a .BRIK file */
-
+   if (dkptr->storage_mode == STORAGE_UNDEFINED) { /* ZSS: Oct. 2011 
+               the next line was being called all the time before */
+      if( brick_ccode != COMPRESS_NOFILE )
+        dkptr->storage_mode = STORAGE_BY_BRICK ;  /* a .BRIK file */
+   }
+   
    /*-- if VOLUME_FILENAMES attribute exists, make it so [20 Jun 2002] --*/
 
    if( headname != NULL && dkptr->storage_mode == STORAGE_UNDEFINED ){

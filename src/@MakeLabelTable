@@ -120,6 +120,7 @@ echo "Error: Key $LabelKey has $#labels matches in labeltable $labeltable"
 endif
 
 MAKE_TABLE:
+   if ($ltype != 'roi') goto  MAKE_TABLE_END
    set max_label = `1dcat "1D:$llistmax" | sort -rn`
    set max_label = $max_label[1]
    if ($max_label < 32) then
@@ -184,12 +185,102 @@ MAKE_TABLE:
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
       uniq /tmp/${RNS}.___lt.txt >> $labeltable
       printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
-
+   
 PUT_TABLE:
    if ($target_dset != '') then
       3drefit -labeltable $labeltable $target_dset
    endif
+   MAKE_TABLE_END:
    
+MAKE_ATLAS_TABLE:
+   if ($ltype != 'atlas') goto  MAKE_ATLAS_TABLE_END
+   set max_label = `1dcat "1D:$llistmax" | sort -rn`
+   set max_label = $max_label[1]
+   if ($max_label < 32) then
+      set pbar = "ROI_i32"
+   else if ($max_label < 64) then
+      set pbar = "ROI_i64"
+   else if ($max_label < 128) then
+      set pbar = "ROI_i128"
+   else
+      set pbar = "ROI_i256"
+   endif
+   
+   if ( -f /tmp/${RNS}.___lt.txt) rm -f /tmp/${RNS}.___lt.txt
+   if ( -f /tmp/${RNS}.___ll.txt) rm -f /tmp/${RNS}.___ll.txt
+   if ( -f /tmp/${RNS}.___kk.txt) rm -f /tmp/${RNS}.___kk.txt
+   set cnt = 1
+   foreach ll ($llist)
+      set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
+      if ($#inds > 1) then
+         set ci = 1
+         foreach ind ($inds)
+            printf '"%d" "%s%02d"\n' $ind $llist[$cnt] $ci  \
+               >> /tmp/${RNS}.___lt.txt
+            printf '%d\n' $ind >> /tmp/${RNS}.___kk.txt
+            printf '%s%02d\n' $llist[$cnt] $ci >> /tmp/${RNS}.___ll.txt
+            @ ci ++
+         end
+      else
+         printf '"%d" "%s"\n' $llistmin[$cnt] $llist[$cnt] \
+               >> /tmp/${RNS}.___lt.txt
+         printf '%d\n' $llistmin[$cnt] >> /tmp/${RNS}.___kk.txt
+         printf '%s\n' $llist[$cnt] >> /tmp/${RNS}.___ll.txt
+      endif
+      @ cnt ++
+   end
+   
+   set n = `wc -l /tmp/${RNS}.___ll.txt`
+   set n = $n[1]
+   uniq /tmp/${RNS}.___ll.txt > /tmp/${RNS}.___llu.txt
+   set nu = `wc -l /tmp/${RNS}.___llu.txt`
+   set nu = $nu[1]
+   if ($nu < $n) then
+      if (! $quiet_death) \
+         echo "ERROR: `ccalc -i $n -$nu` Labels dropped because of duplicates"
+      goto BEND
+   endif
+   set n = `wc -l /tmp/${RNS}.___kk.txt`
+   set n = $n[1]
+   uniq /tmp/${RNS}.___kk.txt > /tmp/${RNS}.___kku.txt
+   set nu = `wc -l /tmp/${RNS}.___kku.txt`
+   set nu = $nu[1]
+   if ($nu < $n) then
+      if (! $quiet_death) \
+         echo "ERROR: `ccalc -i $n -$nu` Keys dropped because of duplicates"
+      goto BEND
+   endif
+   
+   
+      uniq /tmp/${RNS}.___lt.txt > /tmp/${RNS}.___ult.txt
+      set ne = `wc -l /tmp/${RNS}.___ult.txt`
+      printf '<atlas_point_list\n' > $labeltable
+      printf ' ni_form="ni_group">\n\n' >> $labeltable
+      foreach n (`count -digits 1 1 $ne[1] 1`)
+         set lln = `sed -n ${n}p /tmp/${RNS}.___ult.txt`
+         printf '<ATLAS_POINT\n data_type="atlas_point"\n' >> $labeltable
+         printf ' STRUCT=$lln[2]"\n VAL=$lln[1]\n' >> $labeltable
+         printf ' OKEY=$lln[1]\n GYoAR="0"\n COG="0.0 0.0 0.0"\n' >> $labeltable
+         printf '/>\n\n' >> $labeltable
+      end
+      printf '</atlas_point_list>\n' >> $labeltable
+
+PUT_ATLAS_TABLE:
+   if ($target_dset != '') then
+      3drefit -atrstring ATLAS_LABEL_TABLE file:$labeltable $target_dset   
+      3drefit -cmap INT_CMAP $target_dset  
+      printf '<ATLAS\n' > localatlas.niml
+      printf ' atlas_name="MyAtlas"\n' >> localatlas.niml
+      printf ' dset_name="%s"\n' $target_dset >> localatlas.niml
+      printf ' template_space="%s"\n' `3dinfo -space $target_dset` \
+                                             >> localatlas.niml
+      printf ' description="My Atlas"\n' >> localatlas.niml
+      printf ' comment="None, whatsoever"\n' >> localatlas.niml
+      printf '></ATLAS>\n' >> localatlas.niml
+   endif
+   
+   MAKE_ATLAS_TABLE_END:
+
 goto END
 
 PARSE:
@@ -210,6 +301,7 @@ PARSE:
    set maxkey = 0
    set word_match = 0
    set gopt = ()
+   set ltype = 'roi'
 	set cnt = 1
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -286,6 +378,20 @@ PARSE:
 				@ cnt ++
 				set labeltable = `@NoExt "$argv[$cnt]" .niml .niml.lt`
             set labeltable = $labeltable.niml.lt
+            set ltype = 'roi'
+			endif
+         goto CONTINUE
+      endif
+      if ("$argv[$cnt]" == "-atlas_labeltable") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) echo "Need file after -atlas_labeltable"
+            goto BEND
+			else
+				@ cnt ++
+				set labeltable = `@NoExt "$argv[$cnt]" .niml .niml.alt`
+            set labeltable = $labeltable.niml.alt
+            set ltype = 'atlas'
 			endif
          goto CONTINUE
       endif
