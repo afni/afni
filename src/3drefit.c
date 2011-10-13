@@ -378,30 +378,30 @@ void Syntax(char *str)
 
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset * dset , * aset = NULL , *waset = NULL;
+   THD_3dim_dataset * dset = NULL, * aset = NULL , *waset = NULL;
                       int aset_code = 0    ; /* 14 Dec 1999 */
                       int waset_code = 0;
-   THD_dataxes      * daxes ;
+   THD_dataxes      * daxes = NULL;
    int new_stuff = 0 ;
-   int new_orient = 0 ; char orient_code[4] ; int xxor,yyor,zzor ;
-   int new_xorg   = 0 ; float xorg ; int cxorg=0, dxorg=0 , duporg=0 ;
-   int new_yorg   = 0 ; float yorg ; int cyorg=0, dyorg=0 ;
-   int new_zorg   = 0 ; float zorg ; int czorg=0, dzorg=0 ;
+   int new_orient = 0 ; char orient_code[4]={"LOV"} ; int xxor=0,yyor=0,zzor=0 ;
+   int new_xorg   = 0 ; float xorg = 0.0; int cxorg=0, dxorg=0 , duporg=0 ;
+   int new_yorg   = 0 ; float yorg = 0.0; int cyorg=0, dyorg=0 ;
+   int new_zorg   = 0 ; float zorg = 0.0; int czorg=0, dzorg=0 ;
    int new_tags   = 0 ; int shift_tags = 0 ; /* 08 May 2006 [rickr] */
                         float dxtag=0.0, dytag=0.0, dztag=0.0 ;
-   int new_xdel   = 0 ; float xdel ;
-   int new_ydel   = 0 ; float ydel ;
-   int new_zdel   = 0 ; float zdel ;
-   int new_TR     = 0 ; float TR ;
-   int new_Torg   = 0 ; float Torg ; /* 29 Jan 2003 */
-   int new_tunits = 0 ; int tunits ;
+   int new_xdel   = 0 ; float xdel = 0.0;
+   int new_ydel   = 0 ; float ydel = 0.0;
+   int new_zdel   = 0 ; float zdel = 0.0;
+   int new_TR     = 0 ; float TR = 0.0;
+   int new_Torg   = 0 ; float Torg = 0.0; /* 29 Jan 2003 */
+   int new_tunits = 0 ; int tunits = 0;
    int new_idcode = 0 ;
    int new_nowarp = 0 ;
    int new_stataux= 0 ; float stataux[MAX_STAT_AUX] ;
-   int new_type   = 0 ; int dtype , ftype , nvals ;
+   int new_type   = 0 ; int dtype = 0 , ftype = 0, nvals = 0;
    int new_markers= 0 ;
-   int new_view   = 0 ; int vtype ;
-   int new_key    = 0 ; char * key ;
+   int new_view   = 0 ; int vtype = 0;
+   int new_key    = 0 ; char * key = NULL;
    int new_byte_order = 0 ;          /* 25 Apr 1998 */
    int new_toff_sl    = 0 ;          /* 12 Feb 2001 */
    int clear_bstat    = 0 ;          /* 28 May 2002 */
@@ -419,7 +419,7 @@ int main( int argc , char * argv[] )
    int do_FDR = 0 ;                  /* 23 Jan 2008 [RWCox] */
    int do_killSTAT = 0 ;             /* 24 Jan 2008 [RWCox] */
    int space          = 0 ;          /* 16 Mar 2009 [drg]*/
-   char *spacename;
+   char *spacename = NULL;
    byte *FDRmask = NULL ;            /* 27 Mar 2009 [RWcox] */
    int  nFDRmask = 0 ;
    int   ndone=0 ;                   /* 18 Jul 2006 */
@@ -1967,9 +1967,15 @@ int main( int argc , char * argv[] )
       if( !did_something ){
         ININFO_message("Didn't make any changes for dataset %s !",argv[iarg]) ;
       } else {
-        if( write_output ) ININFO_message("loading and re-writing entire dataset %s",argv[iarg]) ;
-        if( write_output ) DSET_load(dset) ;    /* 20 Jun 2006 */
-        THD_force_ok_overwrite(1) ;             /* 24 Sep 2007 */
+        if( write_output ) { 
+            ININFO_message(
+               "loading and re-writing dataset %s (%s in %s storage)\n",
+                  argv[iarg], dset->dblk->diskptr->header_name,
+                  storage_mode_str(dset->dblk->diskptr->storage_mode) ) ;
+            DSET_load(dset) ;    /* 20 Jun 2006 */
+        }
+        THD_force_ok_overwrite(1);             /* 24 Sep 2007 */
+        THD_set_quiet_overwrite(1);
         THD_write_3dim_dataset( NULL,NULL , dset , write_output ) ;
       }
       THD_delete_3dim_dataset( dset , False ) ;

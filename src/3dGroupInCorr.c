@@ -2203,7 +2203,8 @@ int main( int argc , char *argv[] )
    NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
    free(bricklabels) ;
 
-   /* ZSS: set surface attributes [note Ziad's TERRIBLE use of spaces] */
+   /* ZSS: set surface attributes [note Ziad's TERRIBLE use of spaces] 
+            Perhaps, but   at least      he wraps at 80             . */
 
    if (shd_AAA->nnode[0] >= 0) {
       sprintf(buf,"%d, %d", shd_AAA->nnode[0], shd_AAA->nnode[1]);
