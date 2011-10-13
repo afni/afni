@@ -6546,6 +6546,29 @@ char **atlas_chooser_formatted_labels(char *atname) {
    return(at_labels);
 }
 
+deblank_name (char *name) {
+   int nch = 0, bb=0, ibb=0, BB=0;
+   
+   if (!name) return;
+   
+   nch = strlen(name);
+   /* deblank it, leave spaces in middle */
+   bb=0; 
+   while (name[bb] != '\0' && isspace(name[bb])) {
+      ++bb;
+   }
+   BB = nch-1;
+   while (BB > 0 && name[BB] != '\0' && isspace(name[BB])) {
+      --BB;
+   }
+   for (ibb=bb; ibb<=BB; ++ibb) {
+      name[ibb-bb] = name[ibb]; 
+   }
+   name[ibb-bb] = '\0';
+
+   return;
+}
+
 /* return the list of atlases set by the environment variable,
    AFNI_ATLAS_LIST */
 ATLAS_LIST *
@@ -6557,7 +6580,7 @@ env_atlas_list()
    int N_atlas_names = 0;
    ATLAS_LIST *atlas_rlist = NULL;
    char atlas_name_str[256], ch;
-   int ai, strind, nch;
+   int ai, strind, nch, bb=0, ibb=0;
 
 
    envlist= my_getenv("AFNI_ATLAS_LIST");
@@ -6588,6 +6611,7 @@ env_atlas_list()
       if((ch=='\0')||(ch==',')||(ch==';')||(strind==nch)) {
          if(ai>0){
             *(atlas_name_str+ai) = '\0'; /* null terminate the name */
+            deblank_name(atlas_name_str);
             /* add the name to the list of atlas names (an array of strings) */
             /* the name is duplicated into the new list */
             atlas_names = 
