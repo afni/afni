@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13, OCT , 2011 , ZSS , "whereami" , MINOR , TYPE_BUG_FIX,
+   "-omask failed if atlas was stored in float type.",
+   NULL
+  } ,
+
  { 13, OCT , 2011 , ZSS , "3drefit" , MINOR , TYPE_BUG_FIX,
    "Added support for -atrstring operation on NIFTI datasets ",
    "This required making changes to THD_init_diskptr_names functions\n"
