@@ -1381,7 +1381,7 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
       ATLAS *atlas=NULL;
       int isb, nvox_in_mask=0, *count = NULL, dset_kind;
       int *ics=NULL, *unq=NULL, n_unq=0, iroi=0, nonzero, i, k;
-      float frac=0.0, sum = 0.0;
+      float frac=0.0, sum = 0.0, *fba=NULL;
       char tmps[20];
       
       /* load the mask dset */
@@ -1390,13 +1390,15 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
          return(1);
       } 
       
-      /* are we in TLRC land? */
+      #if 0 /* No longer enforced here. See is_identity_xform_chain below*/
+      /* are we in TLRC land? */ 
       if (mset_orig->view_type != VIEW_TALAIRACH_TYPE) {
          fprintf( stderr,
                   "** Error: Mask set %s is not of the Talairach persuasion.\n", 
                   bmsk);
          return(1);
       }
+      #endif
       
       if (cmask) {
          if (ncmask != DSET_NVOX(mset_orig)) {
@@ -1463,6 +1465,18 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
                                atlas_names[k]);
                continue;
             }
+            
+            if (!is_identity_xform_chain(THD_get_space(mset_orig), 
+                                                atlas->atlas_space)) {
+               fprintf(stderr,
+            "** Error: Not ready to deal with non-Identity transform chain.\n"
+            "Path from input in %s to atlas %s in %s is:\n" , 
+                  THD_get_space(mset_orig), 
+                  Atlas_Name(atlas), atlas->atlas_space);
+               print_xform_chain(THD_get_space(mset_orig), atlas->atlas_space);
+               continue;
+            } 
+            
             if (is_probabilistic_atlas(atlas)) {
                /* not appropriate, skip*/
                continue;
@@ -1511,7 +1525,7 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
                          ba[i] >= atlas->adh->minkeyval) ++count[ba[i]]; 
                   }
                }
-               else {
+               else if(dset_kind == MRI_byte) {
                   bba = DSET_BRICK_ARRAY(ATL_DSET(atlas),isb); /* byte array */
                   if (!bba) { 
                      ERROR_message("Unexpected NULL array");
@@ -1524,6 +1538,26 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
                       if (bmask_vol[i] && 
                           bba[i] >= atlas->adh->minkeyval) ++count[bba[i]]; 
                    }
+               }
+               else if(dset_kind == MRI_float) {
+                  fba = DSET_BRICK_ARRAY(ATL_DSET(atlas),isb); /* float array */
+                  if (!fba) { 
+                     ERROR_message("Unexpected NULL array");
+                     free(bmask_vol); bmask_vol = NULL;
+                     continue;
+                  }
+                 /* Create count array for range of integral values in atlas */
+                   count = (int *)calloc(atlas->adh->maxkeyval+1, sizeof(int));
+                   for (i=0; i<DSET_NVOX(ATL_DSET(atlas)); ++i) {
+                      if (bmask_vol[i] && 
+                          fba[i] >= atlas->adh->minkeyval) ++count[(int)fba[i]]; 
+                   }
+               }
+               else {
+                  ERROR_message(
+                     "Atlas %s is not of type short, byte, or float.\n",
+                     Atlas_Name(atlas));
+                  continue;
                }
 
                /* Now form percentages */
