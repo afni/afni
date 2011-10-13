@@ -23,11 +23,11 @@ void mri_matrix_print( FILE *fp , MRI_IMAGE *ima , char *label )
    ipr = (ii == ima->nvox ) ;
 
    if( fp == NULL ) fp = stdout ;
-   if( label != NULL ) fprintf(fp,"Matrix %s\n",label) ;
+   if( label != NULL ) fprintf(fp,"Matrix [%dX%d] %s\n",nr,nc,label) ;
    for( ii=0 ; ii < nr ; ii++ ){
      for( jj=0 ; jj < nc ; jj++ ){
        if( ipr ) fprintf(fp," %3d"    , (int)A(ii,jj) ) ;
-       else      fprintf(fp," %10.4g" ,      A(ii,jj) ) ;
+       else      fprintf(fp," %11.5g" ,      A(ii,jj) ) ;
      }
      fprintf(fp,"\n") ;
    }
@@ -583,12 +583,13 @@ MRI_IMARR * mri_matrix_psinv_pair( MRI_IMAGE *imc , float alpha )
 ENTRY("mri_matrix_psinv_pair") ;
 
    if( imc == NULL || imc->kind != MRI_float ) RETURN(NULL);
-   m = imc->nx ;  /* number of rows in input */
-   n = imc->ny ;  /* number of columns */
-
-   /* deal with a single vector (of length m) */
+   m = imc->nx ;                        /* number of rows in input */
+   n = imc->ny ;                        /* number of columns */
+   if( m < 1 || n < 1 ) RETURN(NULL) ;  /* bad users should be shot! */
 
    rmat = MRI_FLOAT_PTR(imc) ;
+
+   /* deal with a single vector (of length m) */
 
    if( n == 1 ){
      for( sum=0.0,ii=0 ; ii < m ; ii++ ) sum += rmat[ii]*rmat[ii] ;
@@ -602,7 +603,7 @@ ENTRY("mri_matrix_psinv_pair") ;
      INIT_IMARR(imar); ADDTO_IMARR(imar,imp); ADDTO_IMARR(imar,imq); RETURN(imar);
    }
 
-   /* OK, have a real matrix to handle here */
+   /* OK, have a real matrix to handle here (at least 2 columns) */
 
    amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
    xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
@@ -712,6 +713,8 @@ STATUS("psinv from SVD") ;
 STATUS("inv[XtX] from SVD") ;
    imq  = mri_new( n , n , MRI_float ) ;
    qmat = MRI_FLOAT_PTR(imq) ;
+
+   for( kk=0 ; kk < n ; kk++ ) sval[kk] *= sval[kk] ;  /* 1/s^2 */
 
    for( ii=0 ; ii < n ; ii++ ){
      for( jj=0 ; jj <= ii ; jj++ ){
