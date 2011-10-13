@@ -6546,7 +6546,7 @@ char **atlas_chooser_formatted_labels(char *atname) {
    return(at_labels);
 }
 
-deblank_name (char *name) {
+void deblank_name (char *name) {
    int nch = 0, bb=0, ibb=0, BB=0;
    
    if (!name) return;
@@ -6571,8 +6571,7 @@ deblank_name (char *name) {
 
 /* return the list of atlases set by the environment variable,
    AFNI_ATLAS_LIST */
-ATLAS_LIST *
-env_atlas_list()
+ATLAS_LIST * env_atlas_list()
 {
    char *envlist = NULL;
    char *atlas_str_ptr;
@@ -6647,8 +6646,7 @@ env_atlas_list()
 
 /* return the list of spaces (as a array of strings) set by the 
    environment variable, AFNI_TEMPLATE_SPACE_LIST */
-char **
-env_space_list(int *nspaces)
+char ** env_space_list(int *nspaces)
 {
    char *envlist = NULL;
    char *atlas_str_ptr;
@@ -6722,8 +6720,7 @@ env_space_list(int *nspaces)
 
 /* return the number of decimal places to use in wami output.
    set by the environment variable, AFNI_WHEREAMI_DEC_PLACES */
-int
-env_dec_places()
+int env_dec_places()
 {
    char *envplaces = NULL;
    int decplaces = 0, tp;
