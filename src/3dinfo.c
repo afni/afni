@@ -5,6 +5,8 @@
 ******************************************************************************/
 
 #include "mrilib.h"
+#include "thd_ttatlas_query.h"
+#include "thd_atlas.h"
 
 void Syntax(void)
 {
@@ -27,9 +29,9 @@ void Syntax(void)
     "  * Added per the request and efforts of Colm Connolly.\n"
     "\n"
     "Alternate Alternative Usage:\n"
-    "  3dinfo <OPTION> dataset [dataset ...]\n"
+    "  3dinfo <OPTION> [OPTION ..] dataset [dataset ...]\n"
     "  Outputs a specific piece of information depending on OPTION.\n"
-    "  OPTION is one of the following:\n"
+    "  ========= Options producing one value (string) ============\n"
     "   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
     "   -space: dataset's space\n"
     "   -av_space: AFNI format's view extension for the space\n"
@@ -39,7 +41,12 @@ void Syntax(void)
     "   -n[i|j|k]: Return the number of voxels in i, j, k dimensions\n"
     "   -nijk: Return ni*nj*nk"
     "   -nt: Return number of points in time, or number of sub-bricks\n"
+    "  ==== Options producing multiple values (strings of multiple lines)====\n"
+    "   -labeltable: Show label table, if any\n"
+    "   -labeltable_as_atlas_points: Show label table in atlas point format.\n"
+    "\n"
     " Example:\n"
+    "    Produce a table of results using 1-value-options\n"
     "    3dinfo  -prefix_noext -prefix -space -ni -nj -nk -nt  \\\n"
     "            DSET1+orig DSET2.nii\n"
     "\n"
@@ -50,6 +57,7 @@ void Syntax(void)
 typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI,
    IS_OBLIQUE, PREFIX , PREFIX_NOEXT, NI, NJ, NK, NT, NIJK,
+   LTABLE, LTABLE_AS_ATLAS_POINT_LIST,
    N_FIELDS } INFO_FIELDS; /* Leave N_FIELDS at the end */
 
 int main( int argc , char *argv[] )
@@ -102,6 +110,10 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = NT; iarg++;
       } else if( strncmp(argv[iarg],"-nijk",3) == 0) {
          sing[N_sing++] = NIJK; iarg++;
+      } else if( strcmp(argv[iarg],"-labeltable") == 0) {
+         sing[N_sing++] = LTABLE; iarg++;
+      } else if( strcmp(argv[iarg],"-labeltable_as_atlas_points") == 0) {
+         sing[N_sing++] = LTABLE_AS_ATLAS_POINT_LIST; iarg++;
       } else {
          ERROR_exit("Option %s unknown", argv[iarg]);
       }
@@ -232,6 +244,30 @@ int main( int argc , char *argv[] )
          case NT:
             fprintf(stdout,"%d", DSET_NUM_TIMES(dset));
             break;
+         case LTABLE:
+            {
+               char *str;
+               if ((str = Dtable_to_nimlstring(DSET_Label_Dtable(dset),                                                          "VALUE_LABEL_DTABLE"))) {
+                  fprintf(stdout,"%s", str);
+                  free(str); 
+               } else {
+                  fprintf(stdout,"NO_LABEL_TABLE");
+               }
+            }
+            break;
+         case LTABLE_AS_ATLAS_POINT_LIST:
+            {
+               char *str;
+               ATLAS_POINT_LIST *apl=NULL;
+               if ((apl = 
+                     label_table_to_atlas_point_list(DSET_Label_Dtable(dset)))) {
+                  atlas_list_to_niml(apl,NULL);
+                  free_atlas_point_list(apl); 
+               } else {
+                  fprintf(stdout,"NO_LABEL_TABLE");
+               }
+            }
+            break;   
          default:
             ERROR_message("Info field not set properly (%d)\n", sing[iis]);
             exit(1);
