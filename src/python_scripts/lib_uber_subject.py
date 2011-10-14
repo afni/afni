@@ -124,9 +124,10 @@ g_history = """
     0.25 Sep 22, 2011 : altered spacing and made other minor changes
     0.26 Oct  5, 2011 : do not re-create proc script on proc execution
          - was losing any user changes between creation and execution
+    0.27 Oct 11, 2011 : small -help_install update
 """
 
-g_version = '0.26 (October 5, 2011)'
+g_version = '0.27 (October 11, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks

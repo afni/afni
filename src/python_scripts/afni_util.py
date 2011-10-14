@@ -338,7 +338,10 @@ def get_typed_dset_attr_list(dset, attr, atype, verb=1):
        dset  : (string) name of afni dataset
        attr  : (string) attribute name
        atype : (string) return type of attribute list
-       verb  : verbose level"""
+       verb  : verbose level
+
+       This ends up running 3dAttribute for the given dataset name.
+    """
 
     alist = BASE.read_attribute(dset, attr)
     if alist == None:
@@ -1639,6 +1642,78 @@ def glob_list_minus_pref_suf(pref, suf):
 
    return [d[plen:-slen] for d in glist]
 
+def okay_as_lr_spec_names(fnames, verb=0):
+   """check that names are okay as surface spec files, e.g. for afni_proc.py
+        - must be 1 or 2 file names
+        - must contain lh and rh, respectively
+        - must otherwise be identical
+
+        if verb, output why failure occurs
+        return 1 if okay, 0 otherwise
+   """
+   nfiles = len(fnames)
+   if nfiles == 0: return 1     # no problems, anyway
+   if nfiles > 2:
+      if verb: print '** only 1 or 2 spec files allowed (have %d)' % nfiles
+      return 0
+
+   if nfiles == 1:
+      if fnames[0].find('lh')>=0 or fnames[0].find('rh')>=0: return 1 # success
+      # failure
+      if verb: print "** spec file '%s' missing 'lh' or 'rh'" % fnames[0]
+      return 0
+
+   # so we have 2 files
+
+   hlist = list_minus_glob_form(fnames, tpad=1)  # go after following 'h'
+
+   for h in hlist:
+      if h != 'rh' and h != 'lh':
+         if verb: print '** multiple spec files must only differ in lh vs. rh'
+         return 0
+
+   return 1
+
+def make_spec_var(fnames, vname='hemi'):
+   """return a spec file variable and a list of replaced hemispheres
+
+        e.g. make_spec_var(['surface.lh.spec', 'surface.rh.spec']) returns
+                surface.${hemi}.spec, ['lh', 'rh']
+      given 1 or 2 spec file names, return a single variable that
+      represents them with $vname replacing the lh or rh
+
+      return '' on failure
+   """
+   if not okay_as_lr_spec_names(fnames): return '', []
+
+   nfiles = len(fnames)
+   if nfiles == 0 or nfiles > 2: return '', []
+
+   sfile = fnames[0]
+
+   if nfiles == 1:
+      # just find lh or rh and replace it
+      hh = 'lh'
+      posn = sfile.find(hh)
+      if posn < 0:
+         hh = 'rh'
+         posn = sfile.find(hh)
+      if posn < 0: return '', [] # should not happen
+
+      return sfile[0:posn] + '${%s}'%vname + sfile[posn+2:], [hh]
+
+   # so nfiles == 2, use glob
+
+   head, tail = first_last_match_strs(fnames)
+   hlen = len(head)
+
+   hemi = sfile[hlen:hlen+2]
+   if hemi != 'lh' and hemi != 'rh':
+      print '** MSV: bad lh/rh search from spec files: %s' % fnames
+      return '', []
+
+   return sfile[0:hlen] + '${%s}'%vname + sfile[hlen+2:], ['lh', 'rh']
+
 def parse_as_stim_list(flist):
    """parse filename list as PREFIX.INDEX.LABEL.SUFFIX, where the separators
         can be '.', '_' or nothing (though ignore PREFIX and SUFFIX, as well
@@ -1714,11 +1789,13 @@ def _parse_leading_int(name, seplist=['.','_','-']):
    return val, sep, name[posn:]
 
 def common_dir(flist):
-   """return the directory name that is common to all files"""
+   """return the directory name that is common to all files (unless trivial)"""
    dir, junk = first_last_match_strs(flist)
    if len(dir) > 0 and dir[-1] == '/': dir = dir[0:-1]
-   if os.path.isdir(dir): return dir
-   return os.path.dirname(dir)
+   if not os.path.isdir(dir): dir = os.path.dirname(dir)
+
+   if is_trivial_dir(dir): return ''
+   return dir
 
 def common_parent_dirs(flists):
    """return parent directories
@@ -1748,7 +1825,7 @@ def common_parent_dirs(flists):
    for flist in flists:
       # track parent dirs
       parent = common_dir(flist)
-      if parent.count('/') <= 1: parent = ''
+      if parent == '/' or is_trivial_dir(parent): parent = ''
       par_dirs.append(parent)
 
       # and make short names
@@ -1759,8 +1836,7 @@ def common_parent_dirs(flists):
 
    # top is common to all parents
    top_dir = common_dir(par_dirs)
-   if top_dir.count('/') <= 1:
-       top_dir = ''
+   if top_dir.count('/') <= 1: top_dir = ''
 
    # now get all short dir names, under top dir
    if top_dir == '': short_dirs = par_dirs
@@ -2426,6 +2502,8 @@ def test_polort_const(ntrs, nruns, verb=1):
        - make vectors of 11...10000...0 and 00...011...100..0 that are as the
          constant polort terms of the first 2 runs
        - return their correlation
+
+       - note that the correlation is easily provable as -1/(N-1) for N runs
     """
 
     if ntrs <= 0 or nruns <= 2: return -1  # flag
