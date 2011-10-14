@@ -101,7 +101,7 @@ int main( int argc , char * argv[] )
    int do_automask=1 ;
    THD_3dim_dataset *inset=NULL ;
    byte *mask=NULL ;
-   int mask_nx,mask_ny,mask_nz,nmask , verb=0 , nx,ny,nz,nvox , kk,ntime ;
+   int mask_nx=0,mask_ny=0,mask_nz=0,nmask , verb=0 , nx,ny,nz,nvox , kk,ntime ;
    float_pair spair ; float spk=0.0f , stp=0.0f ;
    MRI_vectim *mrv ;
    int nopt=1 ;
