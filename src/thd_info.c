@@ -66,13 +66,14 @@ char *DSET_prefix_noext(THD_3dim_dataset *dset)
    if (!ppp) ppp = "NO_PREFIX";
    
    ccc = (char *)malloc(sizeof(char)*(1+strlen(ppp)));
+   ccc[0]='\0';
    eee = find_filename_extension( ppp );
    if (!eee) {
       strcpy(ccc, ppp);
    } else {
       ii = 0;
       while (ppp < eee) {
-         ccc[ii] = *ppp; ppp++; +ii;
+         ccc[ii] = *ppp; ppp++; ++ii;
       }
       ccc[ii]='\0';
    }
