@@ -181,8 +181,7 @@ print_atlas_point_list(ATLAS_POINT_LIST *apl)
 }
 
 /* convert a NIML table from a dataset to an atlas list structure */
-ATLAS_POINT_LIST *
-dset_niml_to_atlas_list(THD_3dim_dataset *dset)
+ATLAS_POINT_LIST * dset_niml_to_atlas_list(THD_3dim_dataset *dset)
 {
    ATLAS_POINT_LIST *apl;
    int i, tdlev, tdval;
