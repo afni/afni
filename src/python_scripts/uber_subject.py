@@ -301,73 +301,86 @@ def get_ap_command(svars, cvars):
 
 g_install_str = """
    ------------------------------------------------------------------
-   A1. Linux install: Fedora 9? or 10+:
+   A. Linux
 
-      1. yum install PyQt4
+      A1. Fedora 10+:
 
-   A2. Linux install: Debian/Ubuntu:
+         1. yum install PyQt4
 
-      1. apt-get install python-qwt5-qt4
+   ----------
 
-   * Note: if your system libraries are old enough where this step does not
-           simply work (e.g. RHEL/CentOS 4 and 5), life becomes difficult.
-           I am not sure if there is a solution for even version 5.
+      A2. current Debian/Ubuntu:
+
+         1. apt-get install python-qwt5-qt4
+
+      * Note: if your system libraries are old enough where this step does not
+              simply work (e.g. RHEL/CentOS 4 and 5), life becomes difficult.
+              I am not sure if there is a solution for even version 5.
+
+   ----------
+
+   B. OS X 10.6 (or later)
+
+      B1. via fink (assuming python 2.7 and the x11 version of qt4):
+
+         1. install pyqt4 for python version 2.7 (might require selfupdate)
+            (might also require making a new link to python under /sw/bin)
+
+               sudo fink selfupdate
+               sudo fink install pyqt4-py27
+               sudo ln -s /sw/bin/python2.7 /sw/bin/python     (if needed)
+
+            Note: for this to apply, /sw/bin needs to be before /usr/bin in
+                  the PATH.
+
+         2. update PYTHONPATH to point to new site-packages directory
+            (put this in .cshrc)
+
+               setenv PYTHONPATH /sw/lib/qt4-x11/lib/python2.7/site-packages
+
+            Note: depending on what is installed...
+
+                - qt4-x11 might be qt4-mac
+                - 2.7 might be a different version of python
+
+   ----------
+
+      B2. directly from nokia and riverbank computing:
+
+         alternative OS X method   (NOT RECOMMENDED):
+
+      ** this has not been working well lately, so now fink is recommended
+
+         { NO LONGER RECOMMENDED, but MIGHT work on: OS X 10.5, 10.6 }
+
+         0. XCode and python (2.6) should already be installed
+
+         1. Qt SDK for mac (large: 1.1 GB download):
+            - http://qt.nokia.com/downloads
+            - download LGP version of Qt SDK
+
+         2. SIP (interface between C++ and python - small)
+            - http://www.riverbankcomputing.co.uk/software/sip/download
+            - tar xf sip-4.12.1.tar        ('tar xfz' if .tar.gz)
+            - cd sip-4.12.1                (for example)
+            - python configure.py -d /Library/Python/2.6/site-packages
+            - make
+            - sudo make install
+
+         3. PyQt (small, but may take 15-20 minutes to compile):
+            - http://www.riverbankcomputing.co.uk/software/pyqt/download
+            - download OS/X source package (e.g. PyQt-mac-gpl-4.8.3.tar.gz)
+            - cd PyQt-mac-gpl-4.8.3        (for example)
+            - python configure.py -d /Library/Python/2.6/site-packages
+            - make
+            - sudo make install
 
 
-   B1. OS X 10.6 install (via fink):
+         ** OS X 10.5 systems:
 
-      1. install pyqt4 for python version 2.7 (might require selfupdate)
-         (might also require making a new link to python under /sw/bin)
-
-            sudo fink selfupdate
-            sudo fink install pyqt4-py27
-            sudo ln -s /sw/bin/python2.7 /sw/bin/python     (if needed)
-
-         Note: for this to apply, /sw/bin needs to be before /usr/bin in
-               the PATH.
-
-      2. update PYTHONPATH to point to new site-packages directory
-         (put this in .cshrc)
-
-            setenv PYTHONPATH /sw/lib/qt4-x11/lib/python2.7/site-packages
-
-
-   ALTERNATIVE OS X METHOD:
-
-        ** this has not been working well lately, to fink is recommended
-
-   B2. OS X 10.6 install (from nokia and riverbank computing):
-
-      { should work on: OS X 10.5, 10.6 }
-
-      0. XCode and python (2.6) should already be installed
-
-      1. Qt SDK for mac (large: 1.1 GB download):
-         - http://qt.nokia.com/downloads
-         - download LGP version of Qt SDK
-
-      2. SIP (interface between C++ and python - small)
-         - http://www.riverbankcomputing.co.uk/software/sip/download
-         - tar xf sip-4.12.1.tar        ('tar xfz' if .tar.gz)
-         - cd sip-4.12.1                (for example)
-         - python configure.py -d /Library/Python/2.6/site-packages
-         - make
-         - sudo make install
-
-      3. PyQt (small, but may take 15-20 minutes to compile):
-         - http://www.riverbankcomputing.co.uk/software/pyqt/download
-         - download OS/X source package (e.g. PyQt-mac-gpl-4.8.3.tar.gz)
-         - cd PyQt-mac-gpl-4.8.3        (for example)
-         - python configure.py -d /Library/Python/2.6/site-packages
-         - make
-         - sudo make install
-
-
-      ** OS X 10.5 systems:
-
-         For python version 2.5, replace /Library/Python/2.6/site-packages in
-         the 2 'configure' commands below with directory Python/2.5, instead
-         (i.e. use /Library/Python/2.5/site-packages).
+            For python version 2.5, replace /Library/Python/2.6/site-packages
+            in the 2 'configure' commands below with directory Python/2.5,
+            instead (i.e. use /Library/Python/2.5/site-packages).
    ------------------------------------------------------------------
 """
 

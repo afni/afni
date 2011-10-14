@@ -49,6 +49,24 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, OCT, 2011, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "now processes surface data",
+   "- added 'surf' processing block, and corresponding '-surf_*' options:\n"
+   "   -surf_anat, -surf_spec, -surf_anat_aligned, -surf_anat_has_skull,\n"
+   "   -surf_A, -surf_B, -surf_blur_fwhm\n"
+   "- compute errts and TSNR by default (had required option or blur est)"
+ } ,
+
+ { 14, OCT, 2011, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "small -help_install update",
+   NULL
+ } ,
+
+ { 14, OCT, 2011, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "allow modest handling of surface results",
+   NULL
+ } ,
+
  {  6, OCT, 2011, RCR, "3dMean", MICRO, TYPE_BUG_FIX,
    "linux_xorg7_64 had optimizer error (and crashed), so altered loop method",
    "Thanks to P Kim for noting the problem."
