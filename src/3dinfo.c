@@ -219,14 +219,9 @@ int main( int argc , char *argv[] )
             break;
          case PREFIX_NOEXT:
             { 
-               char *ppp, *eee;
-               ppp = DSET_PREFIX(dset);
-               if (!ppp) ppp = "NO_PREFIX";
-               eee = find_filename_extension( ppp );
-               if (!eee) fprintf(stdout,"%s", ppp);
-               while (ppp < eee) {
-                  fprintf(stdout,"%c", *ppp); ppp++;
-               }
+               char *ppp=DSET_prefix_noext(dset);
+               fprintf(stdout,"%s", ppp);
+               free(ppp);
             }
             break;
          case NI:

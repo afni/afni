@@ -316,7 +316,7 @@ PARSE:
    set word_match = 0
    set gopt = ()
    set ltype = 'roi'
-   set atlas_file = 'LocalAtlases.niml'
+   set atlas_file = 'SessionAtlases.niml'
    set atlas_name = ''
 	set cnt = 1
    while ($cnt <= $Narg)

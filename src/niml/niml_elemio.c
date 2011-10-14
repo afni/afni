@@ -1471,3 +1471,23 @@ void * NI_read_element_fromstring( char *nstr )
    
    return (nini) ;
 }
+/*------------------------------------------------------------------------*/
+/*! Write one element to a string.  [Oct 2011 ZSS, based on Bob's]
+--------------------------------------------------------------------------*/
+char * NI_write_element_tostring( NI_element *nel )
+{
+   NI_stream ns ;
+   char *stout ;
+   int ii,jj ;
+
+   if( nel == NULL ) return (NULL) ;
+
+   ns = NI_stream_open( "str:" , "w" ) ;
+   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   stout = strdup( NI_stream_getbuf(ns) ) ;
+   NI_stream_close( ns ) ;
+   jj = strlen(stout) ;
+   for( ii=jj-1 ; ii > 0 && isspace(stout[ii]) ; ii-- ) ; /* trailing blanks */
+   stout[ii+1] = '\0' ;
+   return (stout) ;
+}

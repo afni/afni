@@ -6,6 +6,7 @@
 
 #include "afni.h"
 #include "afni_plugout.h"
+#include "thd_ttatlas_query.h"
 
 /*---------------------------------------------------------------*/
 /*------------ Stuff for logos and pixmap definitions -----------*/
@@ -6928,11 +6929,11 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
 */
 int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
 {
-/*   MCW_pbar *pbar = NULL;*/
    ATR_string *atr=NULL;
-/*   char *pbar_name=NULL;*/
-   char *str_lab=NULL, sval[128]={""};
-
+   char *str_lab1=NULL, *str_lab2=NULL, sval[128]={""};
+   ATLAS_LIST *atlas_alist=NULL;
+   ATLAS *atlas=NULL;
+   
    ENTRY("AFNI_get_dset_val_label") ;
 
    if (!str) RETURN(1);
@@ -6941,22 +6942,33 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
 
    if (!dset) RETURN(1);
 
-   if (!dset->Label_Dtable &&
-       (atr = THD_find_string_atr( dset->dblk ,
-                              "VALUE_LABEL_DTABLE" ))) {
-      dset->Label_Dtable = Dtable_from_nimlstring(atr->ch);
-   }
-
-   if (dset->Label_Dtable) {
+   
+  if ((dset->Label_Dtable = DSET_Label_Dtable(dset))) {
       /* Have hash, will travel */
       sprintf(sval,"%d", (int)val);
-      str_lab = findin_Dtable_a(sval,
+      str_lab1 = findin_Dtable_a(sval,
                                 dset->Label_Dtable);
       /* fprintf(stderr,"ZSS: Have label '%s' for value '%s'\n",
-                     str_lab ? str_lab:"NULL", sval); */
-      if (str_lab) snprintf(str,64, "%s",str_lab);
+                     str_lab1 ? str_lab1:"NULL", sval); */
+   }
+   
+   atlas_alist = get_G_atlas_list();
+   if (is_Dset_Atlasy(dset, atlas_alist)) {
+      atlas = get_Atlas_ByDsetID(DSET_IDCODE_STR(dset), atlas_alist);
+      /* Now get the name of the value */
+      str_lab2 = atlas_key_label(atlas, (int)val,NULL);
+      /* fprintf(stderr,"ZSS: Have atlas label '%s' for value %d\n",
+                     str_lab2 ? str_lab2:"NULL", (int)val);  */
    }
 
+   if (str_lab1 && str_lab2) {
+      snprintf(str,64, "%s|%s",str_lab1,str_lab2);
+   } else if (str_lab1) {
+      snprintf(str,64, "%s",str_lab1);
+   } else if (str_lab2) {
+      snprintf(str,64, "%s",str_lab2);
+   } 
+   
    RETURN(0);
 }
 

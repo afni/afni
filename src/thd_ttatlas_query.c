@@ -2045,6 +2045,7 @@ int init_global_atlas_from_niml_files()
       return(0);
    }
    
+   
    /* read atlas info from global atlas file */
    valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
           global_atlas_alist, global_atlas_spaces, global_atlas_templates);
@@ -2054,16 +2055,30 @@ int init_global_atlas_from_niml_files()
          INFO_message("opening AFNI_supp_atlas_space.niml");   
       space_niml = open_atlas_niml(ept);
       if(space_niml==NULL){
-            fprintf(stderr, "\nCould not open supplemental atlas niml file\n");
-            return(0);
+            WARNING_message("Could not open supplemental atlas niml file %s\n",
+                           ept);
+      } else {
+         /* read atlas info from supplemental atlas file */
+         /*  adding to existing structures */
+         valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
+                global_atlas_alist, global_atlas_spaces, global_atlas_templates);
       }
-      /* read atlas info from supplemental atlas file */
-      /*  adding to existing structures */
-      valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
-             global_atlas_alist, global_atlas_spaces, global_atlas_templates);
-
    }
-
+   
+   /* read default session atlas */
+   if (THD_is_file("SessionAtlases.niml")) {
+      space_niml = open_atlas_niml("SessionAtlases.niml");
+      if(space_niml==NULL){
+         WARNING_message(
+            "Bad local atlas niml file SessionAtlases.niml\n");
+      } else {
+         /* read atlas info from local atlas file */
+         /*  adding to existing structures */
+         valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
+                global_atlas_alist, global_atlas_spaces, global_atlas_templates);
+      }
+   }
+     
    /* read atlas info from local atlas file */
    ept = my_getenv("AFNI_LOCAL_ATLAS");
    if( ept ) {
@@ -2071,13 +2086,14 @@ int init_global_atlas_from_niml_files()
          INFO_message("opening AFNI_local_atlas_space.niml");   
       space_niml = open_atlas_niml(ept);
       if(space_niml==NULL){
-         fprintf(stderr, "\nCould not open local atlas niml file\n");
-         return(0);
+         ERROR_message("Could not open supplemental atlas niml file %s\n",
+                        ept);
+      } else {
+         /* read atlas info from local atlas file */
+         /*  adding to existing structures */
+         valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
+                global_atlas_alist, global_atlas_spaces, global_atlas_templates);
       }
-      /* read atlas info from local atlas file */
-      /*  adding to existing structures */
-      valid_space_niml = read_space_niml(space_niml, global_atlas_xfl,
-             global_atlas_alist, global_atlas_spaces, global_atlas_templates);
    }
   
    /* set up the neighborhood for spaces */
@@ -4828,6 +4844,100 @@ ATLAS *get_Atlas_Named(char *atname, ATLAS_LIST *atlas_list)
       }
    }
    RETURN(NULL);
+}
+
+ATLAS *get_Atlas_ByDsetID(char *dsetid, ATLAS_LIST *atlas_list)
+{
+   int i=0;
+   
+   ENTRY("get_Atlas_ByDsetID");
+   
+   if (!atlas_list && !(atlas_list = get_G_atlas_list())) {
+      ERROR_message("I don't have an atlas list");
+      RETURN(NULL);
+   }
+   if (!dsetid) {
+      ERROR_message("NULL dsetid");
+      RETURN(NULL);
+   }
+
+   for (i=0; i<atlas_list->natlases;++i) {
+      if (  atlas_list->atlas[i].adh && ATL_DSET(atlas_list->atlas+i) && 
+            !strcmp(dsetid, DSET_IDCODE_STR(ATL_DSET(atlas_list->atlas+i))) ) {
+         RETURN(&(atlas_list->atlas[i]));
+      }
+   }
+   RETURN(NULL);
+}
+
+/* Return 1 if dset can be taken in as an atlas
+   If atlas_alist is not null, add the successful candidate
+   to the list.
+   
+   NOTE: Once added to the atlas_list, the atlas dataset is
+   read anew from disk. Therefore there will be two copies 
+   of dset in AFNI memory. 
+   We'll need to discuss this.   */
+int is_Dset_Atlasy(THD_3dim_dataset *dset, ATLAS_LIST *atlas_alist) 
+{
+   NI_element *nel=NULL;
+   NI_stream ns=NULL;
+   char *str=NULL, sbuf[256]={""};
+   int OK = 0;
+   
+   ENTRY("is_Dset_Atlasy");
+   
+   if (!dset) RETURN(0);
+   if (!THD_find_string_atr( dset->dblk , "ATLAS_LABEL_TABLE" )) {
+      RETURN(0);
+   }
+   if (!atlas_alist) { /* nothing else to do, return */
+      RETURN(1);
+   }
+   
+   /* have candidate, and want to add to list */
+   if (get_Atlas_ByDsetID(DSET_IDCODE_STR(dset), atlas_alist)) {
+      /* already in, get out */
+      RETURN(1);
+   }
+   
+   /* Add that baby by creating a little niml ATLAS element for it */
+   nel = NI_new_data_element("ATLAS", 0);
+   str = DSET_prefix_noext(dset);
+   NI_set_attribute(nel, "atlas_name", str); free(str); str = NULL;
+   NI_set_attribute(nel, "dset_name", dset->dblk->diskptr->brick_name);
+   NI_set_attribute(nel, "template_space", THD_get_space(dset));
+   NI_set_attribute(nel, "description","Je vous aime");
+   NI_set_attribute(nel, "comment","Added on the fly");
+   
+   /* now stick this to the list, ugly business to get a stream
+   for read_space_niml .. but element is small */
+   if (!(ns = NI_stream_open( "str:" , "r" ))) {
+      ERROR_message("Failed to open stream");
+      goto CLEAN;
+   }
+   str = NI_write_element_tostring(nel);
+   NI_stream_setbuf( ns , str ) ;        /* start just after prolog */
+   if (!read_space_niml(ns, NULL, 
+                        atlas_alist, NULL, NULL)) {
+      ERROR_message("Failed to add to atlaslist");
+      NI_stream_close(ns); NI_free_element(nel); NI_free(str); str=NULL;
+      goto CLEAN;
+   }
+   /* Now get the atlas loaded (duplication here) */
+   if (!Atlas_With_Trimming(NI_get_attribute(nel,"atlas_name"),1,atlas_alist)) {
+      ERROR_message("Unexpected failure to setup atlas");
+      goto CLEAN;
+   }
+   
+   OK = 1;
+   
+   CLEAN:
+   if (ns) NI_stream_close(ns); 
+   if (nel) NI_free_element(nel); 
+   if (str) NI_free(str);
+      
+   RETURN(OK);
 }
 
 ATLAS_LIST *Atlas_Names_to_List(char **atnames, int natlases)
