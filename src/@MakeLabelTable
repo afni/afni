@@ -341,7 +341,7 @@ PARSE:
       if ("$argv[$cnt]" == "-labeltable_of_dset") then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
-				if (! $quiet_death) echo "Need label after -labeltable_of_dset"
+				if (! $quiet_death) echo "Need dset after -labeltable_of_dset"
             goto BEND
 			else
 				@ cnt ++
@@ -398,16 +398,97 @@ PARSE:
 			endif
          goto CONTINUE
       endif
-      if ("$argv[$cnt]" == "-atlas_labeltable") then
+      if ("$argv[$cnt]" == "-atlas_labeltable" || \
+          "$argv[$cnt]" == "-atlas_pointlist" ) then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
-				if (! $quiet_death) echo "Need file after -atlas_labeltable"
+				if (! $quiet_death) echo "Need file after -atlas_pointlist"
             goto BEND
 			else
 				@ cnt ++
 				set labeltable = `@NoExt "$argv[$cnt]" .niml .niml.alt`
             set labeltable = $labeltable.niml.alt
             set ltype = 'atlas'
+			endif
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-LT_to_atlas_PL") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) echo "Need labeltable after -LT_to_atlas_PL"
+            goto BEND
+			else
+				@ cnt ++
+				if ( ! -f $argv[$cnt] ) then
+               echo "Label table $argv[$cnt] not found"
+               goto BEND
+            endif
+            set labeltable = `@NoExt "$argv[$cnt]" .niml .niml.lt .niml.alt`
+            set labeltable = $labeltable.niml.alt
+            if ( -f $labeltable ) then
+               echo "Output atlas point list $labeltable already exists"
+               echo "Delete it if you want to recreate it"
+               goto BEND
+            endif
+            set ttdset = dset_${RNS}
+            3dUndump -dimen 3 3 3 -prefix $ttdset >& /dev/null
+            3drefit -labeltable $argv[$cnt] $ttdset*HEAD >& /dev/null
+            3dinfo -labeltable_as_atlas_points $ttdset*HEAD > $labeltable
+            \rm -f dset_*
+            echo "Atlas point list now in file $labeltable"
+            goto END
+			endif
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-dset_LT_to_atlas_PL") then
+         set SubLoc = $cnt	
+         @ 	SubLoc++
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) \
+               echo "Need dset and labeltable after -dset_LT_to_atlas_PL"
+            goto BEND
+			else
+				@ cnt ++
+				set dset = $argv[$cnt]
+            if ( ! -f `@CheckForAfniDset $argv[$cnt] ` < 1 ) then
+               echo "Dset $argv[$cnt] not found"
+               goto BEND
+            endif
+            @ cnt ++
+            set labeltable = `@NoExt "$argv[$cnt]" .niml .niml.lt .niml.alt`
+            set labeltable = $labeltable.niml.alt
+            if ( -f $labeltable ) then
+               echo "Output atlas point list $labeltable already exists"
+               echo "Delete it if you want to recreate it"
+               goto BEND
+            endif
+            3dinfo -labeltable_as_atlas_points $dset > $labeltable
+            goto END
+			endif
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-atlasize_labeled_dset") then
+         set SubLoc = $cnt	
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) \
+               echo "Need dset after -atlasize_labeled_dset"
+            goto BEND
+			else
+				@ cnt ++
+				set dset = $argv[$cnt]
+            if ( ! -f `@CheckForAfniDset $argv[$cnt] ` < 1 ) then
+               echo "Dset $argv[$cnt] not found"
+               goto BEND
+            endif
+            
+            set labeltable = lt_${RNS}.niml.alt
+            3dinfo -labeltable_as_atlas_points $dset > $labeltable
+            set target_dset = $dset
+            set ltype = atlas
+            goto PUT_ATLAS_TABLE
 			endif
          goto CONTINUE
       endif
@@ -556,10 +637,13 @@ HELP:
    echo "Script used to create a label table "
    echo ""
    echo "Usage: `basename $0` <-labeltable LABELTABLE> "
+   echo "                     [-atlas_pointlist ATLAS_POINTLIST>"
    echo "                     [<-lab_r LAB MIN MAX> <-lab_r LAB MIN MAX> <...>]"
    echo "                     [<-lab_v LAB KEY> <-lab_v LAB VAL> <...>]"
    echo "                     [<-dset DSET>]"
    echo "   -labeltable LABELTABLE: Name of output label table"
+   echo "   -atlas_pointlist ATLAS_POINTLIST: Instead of a label table"
+   echo "                                     produce an atlas point list"
    echo "   -lab_r LAB MIN MAX: Define a label LAB its minimum key MIN"
    echo "                       and its maximum value MAX. "
    echo "              For example: -lab_r GM 5 7 generates in the labeltable:"
@@ -569,21 +653,15 @@ HELP:
    echo "   -lab_v LAB KEY: Define a label LAB and its value KEY"
    echo "              For example: -lab_v  WM 8 generates in the labeltable:"
    echo '                           "8" "WM"'
-   echo "   -dset DSET: Attach the label table to dataset DSET"
+   echo "   -dset DSET: Attach the label table (or atlas point list) to "
+   echo "               dataset DSET"
    echo ""
    echo "   Note that you cannot use the same key for multiple labels."
    echo "   When redundancies occur, the script preserves just one entry."
    echo ""
-   echo "   Example 1:"
+   echo "   Example:"
    echo "      @MakeLabelTable   -lab_r CSF 1 3 -lab_r GM 5 7 -lab_v WM 8  \"
    echo "                        -labeltable example1"
-   echo ""
-   echo "Usage: `basename $0` <-surf_annot_cmap CMAP> <-sname SNAME>"
-   echo "   Return the entries matching NAME (case insensitive, partial match)"
-   echo "   from the CMAP file"
-   echo "   Example:"
-   echo "      @FS_roi_label  -sname occi \"
-   echo "                     -surf_annot_cmap lh.aparc.a2005s.annot.1D.cmap "
    echo ""
    echo "Usage mode 2: Get information about an existing labeltable"
    echo "    `basename $0` <-labeltable LABELTABLE> "
@@ -603,7 +681,18 @@ HELP:
    echo "    -quiet_death: Do not give error messages when failing"
    echo "   Options in usage 2 are mutually exclusive"
    echo ""
-   
+   echo "Usage mode 3: Transform Label Tables to Atlas Point Lists and exit"
+   echo "    `basename $0` [<-LT_to_atlas_PL LABELTABLE>] "
+   echo "                  [<-dset_LT_to_atlas_PL DSET POINTLIST]"
+   echo "    -LT_to_atlas_PL LABELTABLE: Transform Label Table LABELTABLE to "
+   echo "                                Atlas Point List"
+   echo "    -dset_LT_to_atlas_PL DSET POINTLIST: Get Label Table in"
+   echo "                                DSET and write it out as an"
+   echo "                                Atlas Point List to POINTLIST" 
+   echo ""
+   echo "   Example:"
+   echo "      @MakeLabelTable -LT_to_atlas_PL aparc.a2009s+aseg_rank.niml.lt"
+   echo ""
    goto END
 
 BEND:

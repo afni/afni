@@ -23,6 +23,7 @@
 void free_atlas_point_list(ATLAS_POINT_LIST *apl);
 void print_atlas_point_list(ATLAS_POINT_LIST *apl);
 ATLAS_POINT_LIST *dset_niml_to_atlas_list(THD_3dim_dataset *dset);
+ATLAS_POINT_LIST *label_table_to_atlas_point_list(Dtable *dtbl);
 int whereami_9yards( ATLAS_COORD ac, ATLAS_QUERY **wamip, 
                      ATLAS_LIST *atlas_alist);
 void init_custom_atlas(void);
@@ -133,8 +134,7 @@ int apply_xform_brett_mni2tt(float x, float y, float z, \
 NI_element *NI_find_next_element(NI_stream ns, char *name);
 
 void AFNI_atlas_list_to_niml(void);
-void atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file,
-             int n_regions);
+void atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file);
 NI_element *atlas_point_to_niml_element(ATLAS_POINT *at_pt);
 char *atlas_point_to_niml_string(ATLAS_POINT *at_pt);
 int genx_load_atlas_dset(ATLAS *atlas);
