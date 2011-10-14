@@ -23,6 +23,22 @@ void THD_allow_empty_dataset( int n ){ allow_nodata = n ; }
 extern int Matvec_2_WarpData(ATR_float  *atr_flo, THD_affine_warp *ww, float *wdv);
 extern int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt);
 
+void *DSET_Label_Dtable(THD_3dim_dataset *dset) 
+{
+   ATR_string *atr_str = NULL;
+   
+   if (!dset) return(NULL);
+   if (dset->Label_Dtable) return(dset->Label_Dtable);
+   
+   atr_str = THD_find_string_atr( dset->dblk , "VALUE_LABEL_DTABLE" ) ;
+   if (atr_str) {
+      dset->Label_Dtable = (void *)Dtable_from_nimlstring(atr_str->ch);
+   } else {
+      dset->Label_Dtable = NULL;
+   }
+   
+   return(dset->Label_Dtable);
+}
 /*-------------------------------------------------------------------*/
 /*!  Given a datablock, make it into a 3D dataset if possible.
 ---------------------------------------------------------------------*/
@@ -719,13 +735,8 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    }
 #endif
    
-   /* Create label table if any are present */
-   atr_str = THD_find_string_atr( blk , "VALUE_LABEL_DTABLE" ) ;
-   if (atr_str) {
-      dset->Label_Dtable = (void *)Dtable_from_nimlstring(atr_str->ch);
-   } else {
-      dset->Label_Dtable = NULL;
-   }
+   /* Create label table struct if attribute is present in header*/
+   dset->Label_Dtable = DSET_Label_Dtable(dset);
    
    RETURN( dset );
 }

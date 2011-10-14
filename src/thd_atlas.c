@@ -21,7 +21,6 @@ static void adjust_atlas_point_list(ATLAS_POINT_LIST *atp, char *match_str,
             float addval);
 static ATLAS_POINT_LIST *AFNI_atlas_list_to_atlas_point_list(
         ATLAS_POINT *afni_at_pts, int npts);
-
 static char *preferred_atlas_name = NULL;
 static int **FirstNeighb=NULL;
 static float **FirstNeighbDist=NULL; 
@@ -225,7 +224,8 @@ dset_niml_to_atlas_list(THD_3dim_dataset *dset)
    /* assume the number of elements in the group is the number of structures */
    apl->n_points = ngr->part_num; 
    apl->at_point = (ATLAS_POINT *) calloc(apl->n_points,sizeof(ATLAS_POINT));
-   if(apl->at_point == NULL) {         WARNING_message("** WARNING: Poorly formatted ATLAS_LABEL_DTABLE\n");
+   if(apl->at_point == NULL) {         
+         WARNING_message("** WARNING: Poorly formatted ATLAS_POINT_LIST\n");
          free(apl);
          RETURN(NULL);
       }
@@ -2331,7 +2331,7 @@ void AFNI_atlas_list_to_niml()
       print_atlas_point_list(temp_apl);
       INFO_message("NIMLizing TTO_list_HARD");
    }
-   atlas_list_to_niml(temp_apl, "TT_atlas.niml", TTO_COUNT_HARD);
+   atlas_list_to_niml(temp_apl, "TT_atlas.niml");
    if(wami_verb() > 1)
       INFO_message("Freeing the atlas_point_list");
    free_atlas_point_list(temp_apl);
@@ -2344,7 +2344,7 @@ void AFNI_atlas_list_to_niml()
       print_atlas_point_list(temp_apl);
       INFO_message("NIMLizing CA_EZ_list_HARD");
    }
-   atlas_list_to_niml(temp_apl, "CA_EZ_atlas.niml", CA_EZ_COUNT_HARD);
+   atlas_list_to_niml(temp_apl, "CA_EZ_atlas.niml");
    if(wami_verb() > 1)
       INFO_message("Freeing the atlas_point_list");
    free_atlas_point_list(temp_apl);
@@ -2357,7 +2357,7 @@ void AFNI_atlas_list_to_niml()
       print_atlas_point_list(temp_apl);
       INFO_message("NIMLizing ML_EZ_list_HARD");
    }
-   atlas_list_to_niml(temp_apl, "ML_EZ_atlas.niml", ML_EZ_COUNT_HARD);
+   atlas_list_to_niml(temp_apl, "ML_EZ_atlas.niml");
    if(wami_verb() > 1)
       INFO_message("Freeing the atlas_point_list");
    free_atlas_point_list(temp_apl);
@@ -2370,7 +2370,7 @@ void AFNI_atlas_list_to_niml()
       print_atlas_point_list(temp_apl);
       INFO_message("NIMLizing LR_EZ_list_HARD");
    }
-   atlas_list_to_niml(temp_apl, "LR_EZ_atlas.niml", LR_EZ_COUNT_HARD);
+   atlas_list_to_niml(temp_apl, "LR_EZ_atlas.niml");
    if(wami_verb() > 1)
       INFO_message("Freeing the atlas_point_list");
    free_atlas_point_list(temp_apl);
@@ -2417,9 +2417,51 @@ static ATLAS_POINT_LIST * AFNI_atlas_list_to_atlas_point_list(
   RETURN(apl);
 }
 
+ATLAS_POINT_LIST * label_table_to_atlas_point_list(Dtable *dtbl)
+{
+   ATLAS_POINT *temp_atp;
+   ATLAS_POINT_LIST *apl;
+   int i, nn;
+   char **la , **lb;
+
+   ENTRY("label_table_to_atlas_point_list");
+  
+   int  ii ;
+   char  *stout ;
+   NI_element *nel ;
+   NI_stream ns ;
+
+   nn = listize_Dtable( dtbl , &la , &lb ) ;
+   if( nn == 0 || la == NULL || lb == NULL ) RETURN (NULL) ;
+
+   apl = (ATLAS_POINT_LIST *) calloc(1,sizeof(ATLAS_POINT_LIST));
+   apl->n_points = nn;
+   apl->at_point = (ATLAS_POINT *) calloc(nn,sizeof(ATLAS_POINT));
+   for(i=0;i<nn;i++){
+     temp_atp = apl->at_point+i;
+     temp_atp->tdval = (int)strtol(la[i],NULL,10);
+     temp_atp->tdlev = 0;
+     temp_atp->okey = (int)strtol(la[i],NULL,10);
+     temp_atp->xx = 0.0;
+     temp_atp->yy = 0.0;
+     temp_atp->zz = 0.0;
+     NI_strncpy(temp_atp->name,lb[i],ATLAS_CMAX);
+     TRIM_STRING(temp_atp->name, '.');
+     NI_strncpy(temp_atp->sblabel,lb[i],ATLAS_CMAX);
+     TRIM_STRING(temp_atp->sblabel, '.');
+     if(wami_verb() > 1){
+        INFO_message("Dtable %d %s\n", (int)strtol(la[i],NULL,10), 
+                      lb[i]);
+        INFO_message("atlas_point %d %s temp\n", temp_atp->tdval, 
+                      temp_atp->name);
+     }
+  }
+  RETURN(apl);
+}
+
 /* convert atlas list to a NIML table in a text file */
 void
-atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file, int n_regions)
+atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file)
 {
    int i;
 /*   char *atlas_pt_niml;*/
@@ -2434,9 +2476,12 @@ atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file, int n_regions)
 
    if(wami_verb() > 1) 
       INFO_message("opening %s", atlas_file);   
-   sprintf(filestr, "file:%s", atlas_file);
+   if (atlas_file == NULL) {
+      sprintf(filestr, "stdout:");
+   } else {
+      sprintf(filestr, "file:%s", atlas_file);
+   }
    atlas_niml = NI_stream_open(filestr,"w");
-
    if(atlas_niml==NULL){
          WARNING_message("Could not open atlas file for NIML output %s");
          EXRETURN;
@@ -2445,7 +2490,7 @@ atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file, int n_regions)
    NI_rename_group(ngr, "atlas_point_list");
    /* get each segmented region - the "atlas point" into 
       a NIML formatted string */ 
-   for(i=0;i<n_regions;i++) {
+   for(i=0;i<atp->n_points;i++) {
       at_pt = atp->at_point+i;
       nel = atlas_point_to_niml_element(at_pt);
       NI_add_to_group( ngr, nel); 
