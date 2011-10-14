@@ -2216,8 +2216,10 @@ ENTRY("NwarpCalcRPN") ;
 
      if( *cmd == '\0' ) continue ;  /* WTF?! */
 
-     if( *cmd != '&' ){
-       acmd[0] = '&' ; strcpy(acmd+1,cmd) ; cmd = acmd ;  /* a cheap trick */
+     if( *cmd == '%' || *cmd == '@' ){                    /* a cheap trick */
+       *cmd = '&' ;
+     } else if( *cmd != '&' ){
+       acmd[0] = '&' ; strcpy(acmd+1,cmd) ; cmd = acmd ;  /* another cheap trick */
      }
 
      /*--- read warp from a dataset ---*/

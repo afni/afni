@@ -104,6 +104,8 @@ void NWC_help(void)
     " * In the explanations below, the single character 'x' represents a 3D\n"
     "    coordinate vector, and a capital letter such as 'A' represents a\n"
     "    whole 3D warp function, whose output at a particular location is 'A(x)'.\n"
+    " * You can replace the '&' character that starts a command with '%%' or '@',\n"
+    "    if that is more convenient for you.\n"
     "\n"
     "&readnwarp(FF) == Read a 3D warp from a file and place it on top of the stack.\n"
     "                   The input file should be a 3D dataset with 3 sub-bricks\n"
