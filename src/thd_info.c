@@ -53,6 +53,32 @@ const char * storage_mode_str(int mode) {
     }
 }
 
+/* Return the prefix of a dataset without file extensions 
+   Returned string must be freed */
+char *DSET_prefix_noext(THD_3dim_dataset *dset) 
+{ 
+   char *ppp, *eee, *ccc=NULL;
+   int ii;
+   
+   if (!dset) return(NULL);
+   
+   ppp = DSET_PREFIX(dset);
+   if (!ppp) ppp = "NO_PREFIX";
+   
+   ccc = (char *)malloc(sizeof(char)*(1+strlen(ppp)));
+   eee = find_filename_extension( ppp );
+   if (!eee) {
+      strcpy(ccc, ppp);
+   } else {
+      ii = 0;
+      while (ppp < eee) {
+         ccc[ii] = *ppp; ppp++; +ii;
+      }
+      ccc[ii]='\0';
+   }
+   return(ccc);
+}
+
 int dset_obliquity(THD_3dim_dataset *dset , float *anglep)
 {
    int obliquity = -1;

@@ -65,6 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 14, OCT , 2011 , ZSS , "afni-general" , MINOR , TYPE_GENERAL,
+   "Improvements of atlas handling in whereami and afni",
+   "1- In addition to loading atlas specs from environment variable\n"
+   "AFNI_SUPP_ATLAS, AFNI will automatically search for a file\n"
+   "named  SessionAtlases.niml which is created with @MakeLabelTable.\n"
+   "2- AFNI will check if a viewed dataset is an atlas and will\n"
+   "automatically add it to the atlas list. It will also show the label at \n"
+   "the cross-hair location.\n"
+   "New functions of interest:\n"
+   "  get_Atlas_ByDsetID, is_Dset_Atlasy, \n"
+   "  label_table_to_atlas_point_list, is_identity_xform_chain\n"
+  } ,
+
  { 13, OCT , 2011 , ZSS , "whereami" , MINOR , TYPE_BUG_FIX,
    "-omask failed if atlas was stored in float type.",
    NULL

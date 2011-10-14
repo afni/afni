@@ -8714,24 +8714,7 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
 /*-----------------------------------------------------------------*/
 /*! Turn a NIML element into a string.
 -------------------------------------------------------------------*/
-
-char * niml_element_to_string( NI_element *nel )
-{
-   NI_stream ns ;
-   char *stout ;
-   int ii,jj ;
-
-   if( nel == NULL ) return NULL ;
-
-   ns = NI_stream_open( "str:" , "w" ) ;
-   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
-   stout = strdup( NI_stream_getbuf(ns) ) ;
-   NI_stream_close( ns ) ;
-   jj = strlen(stout) ;
-   for( ii=jj-1 ; ii > 0 && isspace(stout[ii]) ; ii-- ) ; /* trailing blanks */
-   stout[ii+1] = '\0' ;
-   return stout ;
-}
+/* SEE NI_write_element_tostring() */
 #endif
 
 /*-----------------------------------------------------------------*/

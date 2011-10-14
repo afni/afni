@@ -2820,9 +2820,9 @@ extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
 #define DSET_THRESH_INDEX DSET_THRESH_VALUE
 
 /*! Return a pointer to the prefix of dataset ds */
-
 #define DSET_PREFIX(ds) (((ds)->dblk!=NULL && (ds)->dblk->diskptr!=NULL) \
                        ? ((ds)->dblk->diskptr->prefix) : "\0" )
+extern char *DSET_prefix_noext(THD_3dim_dataset *dset);
 
 extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2001 */
 extern char * THD_deplus_prefix( char *prefix ) ;                    /* 22 Nov 2002 */
