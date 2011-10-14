@@ -234,7 +234,7 @@ def db_mod_align(block, proc, user_opts):
 
 # align anat to epi -> anat gets _al suffix to its prefix
 #                   -> matrix is ${anat_prefix}_al.mat.aff12.1D
-# (adjust prefix of self.anat and self.tlrcanat)
+# (adjust prefix of proc.anat and proc.tlrcanat)
 # set a2e xform matrix
 def db_cmd_align(proc, block):
 
@@ -1245,8 +1245,10 @@ def db_cmd_volreg(proc, block):
     if proc.view == '+tlrc': aset = proc.tlrcanat
     else:                    aset = proc.anat
     if aset != None:
+       proc.anat_final = aset
        cmd += "# create an anat_final dataset, aligned with stats\n"    \
-              "3dcopy %s anat_final.%s\n\n" % (aset.pv(), proc.subj_label)
+              "3dcopy %s anat_final.%s\n\n"                             \
+              % (proc.anat_final.pv(), proc.subj_label)
 
     if do_extents: emask = proc.mask_extents.prefix
     else:          emask = ''
@@ -1278,7 +1280,255 @@ def db_cmd_volreg_tsnr(proc, block, emask=''):
            signal, signal, proc.view, mask=emask,
            name_qual='.vreg.r01',detrend=1)
 
+# check all -surf options
+def db_mod_surf(block, proc, user_opts):
+    """initialize all main surface-based proc vars, based on user_opts
+       (surf_anat should already be initialized, as it may init the Block list)
+
+       REQUIRED vars: surf_anat, surf_spec
+
+       also init computed vars:
+         - surf_sv (surf_anat or local aligned version)
+                   (also updated in update_surf_sv)
+         - surf_spec_dir (spec directory, always an absolute path)
+         - surf_spd_var (variable used for spec directory, e.g. $spec_dir)
+         - surf_spec_var_iter (iteration variable, e.g. $hemi)
+         - surf_hemilist (hemispheres to iterate over, e.g. ['lh', 'rh'])
+         - surf_spec_var (spec names, but with ${hemi} for lh/rh)
+         - surf_sv_dir  (initialized in update_surf_sv)
+         - surf_svd_var (initialized in update_surf_sv)
+
+       return None on success, else an error condition
+    """
+
+    if len(block.opts.olist) == 0: # init options
+        pass
+
+    # surf_anat must be set ahead of time, to signal surface analysis
+    if not proc.surf_anat: return None  # nothing to do
+
+    ### do we really need block.opts?  just the the proc vars here...
+
+    opt = user_opts.find_opt('-surf_spec')
+    if opt:
+       proc.surf_spec = opt.parlist
+       if not UTIL.okay_as_lr_spec_names(proc.surf_spec):
+          print '\n'                                                         \
+                '** spec files MUST contain lh or rh, and otherwise match\n' \
+                '   (consider making copies, like SUBJ.stdmesh.lh.spec)'
+          return None
+       tjunk, pdirs, sjunk, snames = UTIL.common_parent_dirs([proc.surf_spec])
+       # set spec dir (do not allow to be trivial or relative), var and dir_var
+       if len(pdirs) > 0: proc.surf_spec_dir = pdirs[0]
+       if UTIL.is_trivial_dir(proc.surf_spec_dir):
+           proc.surf_spec_dir = os.path.abspath('.')
+       else: proc.surf_spec_dir = os.path.abspath(proc.surf_spec_dir)
+       proc.surf_spd_var = 'surface_dir'
+
+       # set spec_var (and iter/ref) like 'steve.${hemi}.spec'
+       proc.surf_spec_var_iter = 'hemi'
+       if proc.sep_char == '.': proc.surf_svi_ref = '$hemi'
+       else:                    proc.surf_svi_ref = '${hemi}'
+       proc.surf_spec_var, proc.surf_hemilist = UTIL.make_spec_var(snames[0],
+                                                                vname='hemi')
+       if not proc.surf_spec_var or not proc.surf_hemilist:
+          print '** failed to make spec var from %s' % snames[0]
+          return None
+
+    opt = user_opts.find_opt('-surf_anat_aligned')
+    if opt: proc.surf_anat_aligned = opt.parlist[0]
+       
+    opt = user_opts.find_opt('-surf_anat_has_skull')
+    if opt: proc.surf_anat_has_skull = opt.parlist[0]
+       
+    opt = user_opts.find_opt('-surf_A')
+    if opt: proc.surf_A = opt.parlist[0]
+       
+    opt = user_opts.find_opt('-surf_B')
+    if opt: proc.surf_B = opt.parlist[0]
+
+    val, err = user_opts.get_type_opt(float, '-surf_blur_fwhm')
+    if err:
+        print '** -surf_blur_fwhm requires float argument'
+        return 1
+    elif val != None and val > 0.0: proc.surf_blur_fwhm = val
+
+    if proc.verb > 2:
+        print '-- surf info\n'          \
+              '   spec          : %s\n' \
+              '   anat          : %s\n' \
+              '   anat_aligned  : %s\n' \
+              '   anat_has_skull: %s\n' \
+              '   surf_A        : %s\n' \
+              '   surf_B        : %s\n' \
+              '   blur_fwhm     : %s\n' \
+              '   spec_dir      : %s\n' \
+              '   surf_spd_var  : %s\n' \
+              '   spec_var      : %s\n' \
+              % (proc.surf_spec, proc.surf_anat, proc.surf_anat_aligned,
+                 proc.surf_anat_has_skull, proc.surf_A, proc.surf_B,
+                 proc.surf_blur_fwhm, proc.surf_spec_dir, proc.surf_spd_var,
+                 proc.surf_spec_var)
+
+    errs = 0
+    if not proc.surf_anat.exist(): 
+        print '** missing -surf_anat dataset: %s' % proc.surf_anat.ppv()
+        errs += 1
+    if not proc.surf_spec:
+        print '** missing -surf_spec option'
+        return 1
+    if not os.path.isfile(proc.surf_spec[0]):
+        print '** missing -surf_spec file: %s' % proc.surf_spec[0]
+        errs += 1
+    if proc.surf_spec_dir and not os.path.isdir(proc.surf_spec_dir):
+        print '** spec file directory not found: %s' % proc.surf_spec_dir
+        errs += 1
+    if errs: return 1   # fail
+
+    # init surf_sv to surf_anat, based on remote location
+    update_surf_sv(proc, proc.surf_anat, remote_dir=1)
+
+    block.valid = 1
+
+def update_surf_sv(proc, dset, remote_dir=0):
+    """set surf_sv, surf_sv_dir, surf_svd_var 
+
+       if remote_dir and dset has no path, use cwd
+
+       if set, always use absolute path
+    """
+    if not dset: return
+
+    # might be here just to set directories
+    if proc.surf_sv != dset: proc.surf_sv = dset
+
+    if UTIL.is_trivial_dir(dset.path):
+        if remote_dir: proc.surf_sv_dir = os.path.abspath('.')
+        else:          proc.surf_sv_dir = ''
+    else: proc.surf_sv_dir = os.path.abspath(dset.path)
+
+    # set or clear sv dir var, depending on spec dir, as well
+    if proc.surf_sv_dir == proc.surf_spec_dir:
+        proc.surf_svd_var = proc.surf_spd_var
+    elif proc.surf_sv_dir:  proc.surf_svd_var = 'sv_dir'
+    else:                   proc.surf_svd_var = ''
+
+    if proc.verb > 2:
+       print '-- surf_sv       : %s\n' \
+             '   surf_sv_dir   : %s\n' \
+             '   surf_svd_var  : %s\n' \
+             % (proc.surf_sv.pv(), proc.surf_sv_dir, proc.surf_svd_var)
+
+def db_cmd_surf(proc, block):
+    """use 3dVol2Surf to map volume data to surface
+
+         - set initial variables for spec_dir and sv_dir (if different)
+
+         - call update_surf_sv(), depending on local alignment
+         - possibly align surface volume to local anat (requires -copy_anat)
+         - set variable for sv_dir (maybe spec_dir, maybe nothing)
+    """
+
+    if proc.surf_anat == None:
+        print '** missing surf_anat'
+        return None
+
+    if not proc.surf_A or not proc.surf_B:
+        print '** both surf_A and surf_B are currently required'
+        return None
+
+    cmd = "# %s\n"                                      \
+          "# map EPI data to the surface domain\n\n"    \
+          % block_header('surf (map data to surface)')
+
+    # assign surf vol and spec file directories (might just need one)
+    cmd += "# set directory variables\n"        \
+           "set %s = %s\n" % (proc.surf_spd_var, proc.surf_spec_dir)
+    if proc.surf_svd_var != proc.surf_spd_var:
+        cmd += "set %s = %s\n" % (proc.surf_svd_var, proc.surf_sv_dir)
+    cmd += '\n'
+
+    # maybe align sv to current anat
+    if proc.surf_anat_aligned != 'yes': cmd += cmd_surf_align(proc)
+
+    cmd += cmd_vol2surf(proc, block)
+
+    proc.bindex += 1            # increment block index
+    proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
+
+def cmd_vol2surf(proc, block):
+    """map volume data to each hemisphere's surface"""
+
+    # string for foreach hemi loop
+    feh_str = 'foreach %s ( %s )\n' \
+              % (proc.surf_spec_var_iter, ' '.join(proc.surf_hemilist))
+
+    # string for -spec
+    spec_str = '$%s/%s' % (proc.surf_spd_var, proc.surf_spec_var)
+
+    # string for -sv
+    if proc.surf_svd_var == '': svd_str = proc.surf_sv.pv()
+    else: svd_str = '$%s/%s' % (proc.surf_svd_var, proc.surf_sv.pv())
+
+    prev   = proc.prev_prefix_form_run(view=1)
+    proc.surf_names = 1 # from now on, we want surface based dset names
+    prefix = proc.prefix_form_run(block)
+
+    cmd = '# map volume data to the surface of each hemisphere\n'       \
+          '%s'                                                          \
+          '    foreach run ( $runs )\n'                                 \
+          '        3dVol2Surf -spec %s \\\n'                            \
+          '                   -sv %s \\\n'                              \
+          '                   -surf_A %s \\\n'                          \
+          '                   -surf_B %s \\\n'                          \
+          '                   -f_index nodes \\\n'                      \
+          '                   -f_steps 10 \\\n'                         \
+          '                   -map_func ave \\\n'                       \
+          '                   -oob_value 0 \\\n'                        \
+          '                   -grid_parent %s \\\n'                     \
+          '                   -out_niml %s \n'                          \
+          '    end\n'                                                   \
+          'end\n\n'                                                     \
+          % (feh_str, spec_str, svd_str, proc.surf_A, proc.surf_B, prev, prefix)
+
+    return cmd
+
+def cmd_surf_align(proc):
+    """return @SUMA_AlignToExperiment command"""
+
+    if not proc.surf_anat: return ''
+
+    if not proc.anat_final:
+        print '** missing final anat to align to as experiment base'
+        return None
+
+    # current surf_sv is surely remote, so apply dirctory and variables
+    if proc.surf_anat_has_skull == 'yes': sstr = ' -strip_skull surf_anat'
+    else: sstr = ''
+
+    # the new surf_sv will be the aligned one
+    newsv = proc.surf_sv.new(new_pref='${subj}_SurfVol_Alnd_Exp')
+    newsv.path = ''
+
+    cmd = '# align the surface anatomy with the current experiment anatomy\n' \
+          '@SUMA_AlignToExperiment -exp_anat %s \\\n'                         \
+          '                        -surf_anat $%s/%s \\\n'                    \
+          '                        -wd%s \\\n'                                \
+          '                        -prefix ${subj}_SurfVol_Alnd_Exp \n\n'     \
+        % (proc.anat_final.pv(), proc.surf_svd_var, proc.surf_sv.pv(), sstr)
+
+    # and apply the new surf_sv, along with directories
+    update_surf_sv(proc, newsv)
+
+    return cmd
+
 def db_mod_blur(block, proc, user_opts):
+
+    # handle surface data separately
+    if proc.surf_anat: return mod_blur_surf(block, proc, user_opts)
+
     if len(block.opts.olist) == 0: # init blur option
         block.opts.add_opt('-blur_filter', 1, ['-1blur_fwhm'], setpar=1)
         block.opts.add_opt('-blur_size', 1, [4.0], setpar=1)
@@ -1317,6 +1567,10 @@ def db_mod_blur(block, proc, user_opts):
     block.valid = 1
 
 def db_cmd_blur(proc, block):
+
+    # handle surface data separately
+    if proc.surf_anat: return cmd_blur_surf(proc, block)
+
     opt    = block.opts.find_opt('-blur_filter')
     filter = opt.parlist[0]
     opt    = block.opts.find_opt('-blur_size')
@@ -1375,6 +1629,71 @@ def db_cmd_blur(proc, block):
                 "%s"                                    \
                 "%s%s\n"                                \
                 "end\n\n" % (cstr, sstr, other_opts, prev)
+
+    proc.bindex += 1            # increment block index
+    proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
+
+def mod_blur_surf(block, proc, user_opts):
+
+    # check for option updates
+    uopt = user_opts.find_opt('-surf_smooth_niter')
+    if uopt: block.opts.add_opt('-surf_smooth_niter', 1, uopt.parlist, setpar=1)
+
+    block.valid = 1
+
+def cmd_blur_surf(proc, block):
+    """surface analysis: return a command to blur the data"""
+
+    # check for number of requested iterations
+    niter, err = block.opts.get_type_opt(int, '-surf_smooth_niter')
+    if err: return
+    if niter != None: ss_opts = ' '*23 + '-Niter %s'%niter + ' \\\n'
+    else:             ss_opts = ''
+
+    cmd = "# %s\n" % block_header('blur (on surface)')
+
+    # string for foreach hemi loop
+    feh_str = 'foreach %s ( %s )\n' \
+              % (proc.surf_spec_var_iter, ' '.join(proc.surf_hemilist))
+
+    # string for -spec
+    spec_str = '$%s/%s' % (proc.surf_spd_var, proc.surf_spec_var)
+
+    prev   = proc.prev_prefix_form_run()
+    prefix = proc.prefix_form_run(block)
+    param_file = 'surf.smooth.params.1D'
+
+    cmd +='%s'                                                          \
+          '    foreach run ( $runs )\n'                                 \
+          '        # to save time, estimate blur parameters only once\n'\
+          '        if ( ! -f %s ) then\n'                               \
+          '            SurfSmooth -spec %s \\\n'                        \
+          '                       -surf_A %s \\\n'                      \
+          '                       -input %s \\\n'                       \
+          '                       -met HEAT_07 \\\n'                    \
+          '                       -target_fwhm %s \\\n'                 \
+          '                       -blurmaster %s \\\n'                  \
+          '                       -detrend_master \\\n'                 \
+          '                       -output %s \\\n'                      \
+          '                       | tee %s \n'                          \
+          '        else\n'                                              \
+          '            set params = `1dcat %s`\n'                       \
+          '            SurfSmooth -spec %s \\\n'                        \
+          '                       -surf_A %s \\\n'                      \
+          '                       -input %s \\\n'                       \
+          '                       -met HEAT_07 \\\n'                    \
+          '                       -Niter $params[1] \\\n'               \
+          '                       -sigma $params[2] \\\n'               \
+          '                       -output %s \n'                        \
+          '        endif\n'                                             \
+          '    end\n'                                                   \
+          'end\n\n'                                                     \
+          % (feh_str,
+             param_file, spec_str, proc.surf_A, prev,
+             proc.surf_blur_fwhm, prev, prefix, param_file,
+             param_file, spec_str, proc.surf_A, prev, prefix)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -1669,6 +1988,25 @@ def db_cmd_scale(proc, block):
     if max > 100: valstr = 'min(%d, a/b*100)*step(a)*step(b)' % max
     else:         valstr = 'a/b*100*step(a)'
 
+    # options for surface analysis
+    if proc.surf_anat:
+        # string for foreach hemi loop
+        feh_str = 'foreach %s ( %s )\n' \
+                  % (proc.surf_spec_var_iter, ' '.join(proc.surf_hemilist))
+        feh_end = 'end\n'
+
+        suff = '.niml.dset'      # output suffix
+        vsuff = suff             # where view might go
+        istr = ' '*4             # extra indent, for foreach hemi loop
+        bstr = '\\\n%s           ' % istr # extr line wrap since long names
+    else:
+        feh_str = ''
+        feh_end = ''
+        suff = ''
+        vsuff = proc.view
+        istr = ''
+        bstr = ''
+
     # choose a mask: either passed, extents, or none
     mset = None
     if proc.mask and proc.regmask:  mset = proc.mask
@@ -1676,7 +2014,7 @@ def db_cmd_scale(proc, block):
   
     # if have a mask, apply it, else use any extents mask
     if mset != None:
-        mask_str = '           -c %s%s \\\n' % (mset.prefix, proc.view)
+        mask_str = '%s           -c %s%s \\\n' % (istr, mset.prefix, vsuff)
         expr     = 'c * %s' % valstr
     else:
         mask_str = ''
@@ -1687,19 +2025,27 @@ def db_cmd_scale(proc, block):
 
     prev = proc.prev_prefix_form_run(view=1)
     prefix = proc.prefix_form_run(block)
-    cmd = cmd + "# %s\n"                                                \
-                "# scale each voxel time series to have a mean of 100\n"\
-                "# (be sure no negatives creep in)\n"                   \
-                "%s"                                                    \
-                "foreach run ( $runs )\n"                               \
-                "    3dTstat -prefix rm.mean_r$run %s\n"                \
-                "    3dcalc -a %s -b rm.mean_r$run%s \\\n"              \
-                "%s"                                                    \
-                "           -expr '%s' \\\n"                            \
-                "           -prefix %s\n"                               \
-                "end\n\n" %                                             \
-                (block_header('scale'), maxstr, prev, prev, proc.view,
-                 mask_str, expr, prefix)
+    cmd += "# %s\n"                                                     \
+           "# scale each voxel time series to have a mean of 100\n"     \
+           "# (be sure no negatives creep in)\n"                        \
+           "%s"                                                         \
+           % (block_header('scale'), maxstr)
+
+    cmd += feh_str      # if surf, foreach hemi
+
+    cmd += "%sforeach run ( $runs )\n"                                  \
+           "%s    3dTstat -prefix rm.mean_r$run%s %s\n"                 \
+           "%s    3dcalc -a %s %s-b rm.mean_r$run%s \\\n"               \
+           "%s"                                                         \
+           % (istr, istr, suff, prev, istr, prev, bstr, vsuff, mask_str)
+
+    cmd += "%s           -expr '%s' \\\n"                               \
+           "%s           -prefix %s\n"                                  \
+           "%send\n"                                                    \
+           % (istr, expr, istr, prefix, istr)
+
+    cmd += feh_end + '\n'
+
     proc.have_rm = 1            # rm.* files exist
 
     proc.bindex += 1            # increment block index
@@ -2147,8 +2493,26 @@ def db_cmd_regress(proc, block):
     if opt: basis = opt.parlist # override any -regress_basis
 
     opt = block.opts.find_opt('-regress_basis_normall')
-    if opt: normall = '    -basis_normall %s \\\n' % opt.parlist[0]
+    if opt: normall = '    -basis_normall %s' % opt.parlist[0]
     else:   normall = ''
+
+    # options for surface analysis
+    if proc.surf_anat:
+        # string for foreach hemi loop
+        feh_str = 'foreach %s ( %s )\n' \
+                  % (proc.surf_spec_var_iter, ' '.join(proc.surf_hemilist))
+        feh_end = 'end\n'
+
+        # suffix needs the hemisphere iteration variable
+        suff = '.%s.niml.dset' % proc.surf_svi_ref
+        istr = ' '*4             # extra indent, for foreach hemi loop
+        vstr = suff
+    else:
+        feh_str = ''
+        feh_end = ''
+        suff = ''
+        istr = ''
+        vstr = proc.view
 
     opt = block.opts.find_opt('-regress_polort')
     polort = opt.parlist[0]
@@ -2199,25 +2563,24 @@ def db_cmd_regress(proc, block):
     # ----------------------------------------
     # possibly use a mask
     if proc.mask and proc.regmask:
-        mask = '    -mask %s%s \\\n' % (proc.mask.prefix, proc.view)
-    else:
-        mask = ''
+        mask = '    -mask %s%s' % (proc.mask.prefix, proc.view)
+    else: mask = ''
 
     # ----------------------------------------
     # maybe the user has specified global or local times
     # if so, verify the files against exactly that
     if block.opts.find_opt('-regress_global_times'):
-        times_type = '    -global_times \\\n'
+        times_type = '    -global_times'
         verify_times_type = 3
     elif block.opts.find_opt('-regress_local_times'):
-        times_type = '    -local_times \\\n' 
+        times_type = '    -local_times' 
         verify_times_type = 2
     else:
         times_type=''
         verify_times_type = 10 # either local or global
 
     # if the input datatype is float, force such output from 3dDeconvolve
-    if proc.datatype == 3: datum = '-float '
+    if proc.datatype == 3: datum = ' -float'
     else:                  datum = ''
 
     # check all input stim_times or stim_files for validity
@@ -2237,19 +2600,18 @@ def db_cmd_regress(proc, block):
                    nmotion + proc.ricor_nreg
     
     # maybe we will censor
-    if proc.censor_file: censor_str = '    -censor %s \\\n' % proc.censor_file
+    if proc.censor_file: censor_str = '    -censor %s' % proc.censor_file
     else:                censor_str = ''
 
-    # make actual 3dDeconvolve command as string c3d
+    # make actual 3dDeconvolve command as string c3d:
+    #    init c3d, add O3dd elements, finalize c3d
+    #    (O3dd = list of 3dd option lines, which may need an extra indent)
 
-    c3d = '# run the regression analysis\n'       \
-          '3dDeconvolve -input %s \\\n'           \
-          '%s'                                    \
-          '    -polort %d %s\\\n'                 \
-          '%s%s%s'                                \
-          '    -num_stimts %d \\\n'               \
-          % ( proc.prev_dset_form_wild(), censor_str, polort, datum,
-          mask, normall, times_type, total_nstim )
+    O3dd = ['%s3dDeconvolve -input %s' % (istr, proc.prev_dset_form_wild()),
+            censor_str,
+            '    -polort %d%s' % (polort, datum),
+            mask, normall, times_type,
+            '    -num_stimts %d' % total_nstim]
 
     # verify labels (now that we know the list of stimulus files)
     opt = block.opts.find_opt('-regress_stim_labels')
@@ -2293,13 +2655,13 @@ def db_cmd_regress(proc, block):
 
     # add iresp options for basis functions without known response functions
     opt = block.opts.find_opt('-regress_iresp_prefix')
-    if not opt or not opt.parlist: iresp = ''
+    if not opt or not opt.parlist: Liresp = []
     else:
-        iresp = ''
+        Liresp = []
         for index in range(len(labels)):
             if not UTIL.basis_has_known_response(basis[index]):
-                iresp = iresp + "    -iresp %d %s_%s.$subj \\\n" % \
-                                (index+1, opt.parlist[0], labels[index])
+                Liresp.append("    -iresp %d %s_%s.$subj" % \
+                              (index+1, opt.parlist[0], labels[index]))
 
     # write out stim lines (add -stim_base to any RONI)
     sfiles = block.opts.find_opt('-regress_no_stim_times')
@@ -2307,14 +2669,14 @@ def db_cmd_regress(proc, block):
         # rcr - allow -stim_times_AM/IM here?  make user choose one?
         #       (so mabye -stim_times can be set from proc.stim_times_opt)
         if sfiles:  # then -stim_file and no basis function
-            c3d = c3d + "    -stim_file %d %s \\\n" % (ind+1,proc.stims[ind])
+            O3dd.append("    -stim_file %d %s" % (ind+1,proc.stims[ind]))
         else:
-            c3d = c3d + "    -stim_times %d %s '%s' \\\n"  % \
-                        (ind+1, proc.stims[ind], basis[ind])
+            O3dd.append("    -stim_times %d %s '%s'"  % \
+                        (ind+1, proc.stims[ind], basis[ind]))
         # and add the label
-        if ind+1 in roni_list: rstr = '-stim_base %d ' % (ind+1)
+        if ind+1 in roni_list: rstr = ' -stim_base %d' % (ind+1)
         else:                  rstr = ''
-        c3d = c3d + "    -stim_label %d %s %s\\\n" % (ind+1, labels[ind], rstr)
+        O3dd.append("    -stim_label %d %s%s" % (ind+1, labels[ind],rstr))
 
     # accumulate offset for current regressor list (3dD input is 1-based)
     regindex = len(proc.stims) + 1
@@ -2323,11 +2685,10 @@ def db_cmd_regress(proc, block):
     if len(proc.extra_stims) > 0:
         for ind in range(len(proc.extra_stims)):
             sind = ind+regindex
-            if sind in roni_list: rstr = '-stim_base %d ' % sind
+            if sind in roni_list: rstr = ' -stim_base %d' % sind
             else:                 rstr = ''
-            c3d = c3d + "    -stim_file %d %s \\\n"    \
-                        "    -stim_label %d %s %s\\\n" %  \
-                        (sind,proc.extra_stims[ind],sind,exlabs[ind],rstr)
+            O3dd.append("    -stim_file %d %s" % (sind,proc.extra_stims[ind]))
+            O3dd.append("    -stim_label %d %s%s" % (sind,exlabs[ind],rstr))
         regindex += len(proc.extra_stims)
 
     # write out registration param lines
@@ -2339,21 +2700,27 @@ def db_cmd_regress(proc, block):
                 if nmf > 1: mlab = '%s_%02d' % (proc.mot_labs[ind], findex+1)
                 else:       mlab = '%s'      % (proc.mot_labs[ind])
                 sind = regindex + nlabs*findex + ind
-                c3d = c3d + "    -stim_file %d %s'[%d]' "       \
-                        "-stim_base %d -stim_label %d %s \\\n"  \
-                        % (sind, mfile, ind, sind, sind, mlab)
+                tstr = "    -stim_file %d %s'[%d]' -stim_base %d" \
+                            % (sind, mfile, ind, sind)
+                ttstr = "-stim_label %d %s" % (sind, mlab)
+                if proc.surf_anat: # if surf-based, put label on new line
+                    O3dd.append(tstr)
+                    O3dd.append('    %s' % ttstr)
+                else:
+                    O3dd.append('%s %s' % (tstr, ttstr))
         regindex += nmotion
 
     # write out ricor param lines (put labels afterwards)
     if proc.ricor_reg and proc.ricor_nreg > 0:
         for ind in range(proc.ricor_nreg):
-            c3d = c3d + "    -stim_file %02d %s'[%02d]' "       \
-                        "-stim_base %02d \\\n"                  \
-                        % (ind+regindex, proc.ricor_reg, ind, ind+regindex)
-        c3d = c3d + '    '
+            O3dd.append("    -stim_file %02d %s'[%02d]' "  \
+                        "-stim_base %02d"                  \
+                        % (ind+regindex, proc.ricor_reg, ind, ind+regindex))
+        tlist = []
         for ind in range(proc.ricor_nreg):
-            c3d = c3d + "-stim_label %02d ricor%02d " % (ind+regindex, ind)
-        c3d = c3d + '\\\n'
+            # tstr += "-stim_label %02d ricor%02d " % (ind+regindex, ind)
+            tlist.append("-stim_label %02d ricor%02d" % (ind+regindex, ind))
+        O3dd.append('    ' + ' '.join(tlist))
         regindex += proc.ricor_nreg
 
     # -------------------- fitts and errts setup --------------------
@@ -2364,21 +2731,22 @@ def db_cmd_regress(proc, block):
     if not opt or not opt.parlist: fitts = ''
     else:
         fitts_pre = opt.parlist[0]
-        fitts = '    -fitts %s \\\n' % fitts_pre
+        fitts = '    -fitts %s%s' % (fitts_pre, suff)
 
     # -- see if the user wants the error time series --
     opt = block.opts.find_opt('-regress_errts_prefix')
     bluropt = block.opts.find_opt('-regress_est_blur_errts')
+    tsnropt = block.opts.find_opt('-regress_compute_tsnr')
     # if there is no errts prefix, but the user wants to measure blur, add one
     # (or if there are no normal regressors)
-    if nregs == 0 or (not opt.parlist and bluropt):
-        opt.parlist = ['errts.$subj']
+    if nregs == 0 or (not opt.parlist and (bluropt or tsnropt)):
+        opt.parlist = ['errts.$subj%s' % suff]
 
     errts_pre = ''
     if not opt or not opt.parlist: errts = ''
     else:
         errts_pre = opt.parlist[0]
-        errts = '    -errts %s \\\n' % errts_pre
+        errts = '    -errts %s' % errts_pre
     # -- end errts --
 
     # if the user wants to compute fitts, save the prefix
@@ -2396,12 +2764,12 @@ def db_cmd_regress(proc, block):
     # see if the user has provided other options (like GLTs)
     opt = block.opts.find_opt('-regress_opts_3dD')
     if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '    %s \\\n' %         \
-               ' '.join(UTIL.quotize_list(opt.parlist, '\\\n    ', 1))
+    else: other_opts = '    %s' % \
+          ' '.join(UTIL.quotize_list(opt.parlist, '\\\n%s    '%istr, 1))
 
     # are we going to stop with the 1D matrix?
     opt = block.opts.find_opt('-regress_3dD_stop')
-    if opt: stop_opt = '    -x1D_stop \\\n'
+    if opt: stop_opt = '    -x1D_stop'
     else  : stop_opt = ''
 
     # do we want F-stats
@@ -2411,25 +2779,42 @@ def db_cmd_regress(proc, block):
 
     # do we want a cbucket dataset?
     opt = block.opts.find_opt('-regress_make_cbucket')
-    if opt.parlist[0] == 'yes': cbuck_str = "    -cbucket all_betas.$subj \\\n"
-    else:                       cbuck_str = ""
+    if opt.parlist[0] == 'yes':
+        cbuck_str = "    -cbucket all_betas.$subj%s" % suff
+    else: cbuck_str = ""
 
     # add misc options
-    c3d = c3d + iresp
-    c3d = c3d + other_opts
-    c3d = c3d + "    %s-tout -x1D %s -xjpeg X.jpg \\\n" % (fout_str, proc.xmat)
+    O3dd.extend(Liresp) # Liresp is a list
+    O3dd.append(other_opts)
+    O3dd.append("    %s-tout -x1D %s -xjpeg X.jpg" % (fout_str, proc.xmat))
     if proc.censor_file:
         newmat = 'X.nocensor.xmat.1D'
-        c3d += "    -x1D_uncensored %s \\\n" % newmat
-    c3d = c3d + fitts + errts + stop_opt + cbuck_str
-    c3d = c3d + "    -bucket stats.$subj\n\n\n"
+        O3dd.append("    -x1D_uncensored %s" % newmat)
+    O3dd.extend([fitts, errts, stop_opt, cbuck_str])
+    O3dd.append("    -bucket stats.$subj%s\n" % suff)
+
+    # possibly run the REML script (only here in the case of surfaces)
+    if block.opts.find_opt('-regress_reml_exec') and proc.surf_anat:
+        rcmd = db_cmd_reml_exec(proc, block, short=1)
+        if not rcmd: return
+        rcmd = '\n' + rcmd
+    else: rcmd = ''
+
+    # now create full 3dDeconvolve command, connecting every option
+    # line with space, backslash, a newline, and possibly another indent,
+
+    jstr = ' \\\n%s' % istr
+    c3d  = '# run the regression analysis\n' + feh_str + \
+           jstr.join([s for s in O3dd if s])
+    c3d += rcmd + feh_end + '\n\n'
 
     # done creating 3dDeconvolve command c3d, add to cmd string
-
     cmd += c3d
 
     # if 3dDeconvolve fails, terminate the script
-    cmd = cmd + "# if 3dDeconvolve fails, terminate the script\n"       \
+    # (rcr - maybe just skip this in case of surfaces)
+    if not proc.surf_anat:
+        cmd +=  "# if 3dDeconvolve fails, terminate the script\n"       \
                 "if ( $status != 0 ) then\n"                            \
                 "    echo '---------------------------------------'\n"  \
                 "    echo '** 3dDeconvolve error, failing...'\n"        \
@@ -2449,17 +2834,17 @@ def db_cmd_regress(proc, block):
     # (we waited until after the cormat warnings)
     if proc.censor_file: proc.xmat = newmat
 
-    # possibly run the REML script
-    if block.opts.find_opt('-regress_reml_exec'):
+    # possibly run the REML script (run eariler in the case of surfaces)
+    if block.opts.find_opt('-regress_reml_exec') and not proc.surf_anat:
         rcmd = db_cmd_reml_exec(proc, block)
         if not rcmd: return
-        cmd = cmd + rcmd
+        cmd = cmd + rcmd + '\n\n'
 
     # create all_runs dataset
-    all_runs = 'all_runs%s$subj' % proc.sep_char
+    all_runs = 'all_runs%s$subj%s' % (proc.sep_char, suff)
     cmd = cmd + "# create an all_runs dataset to match the fitts, errts, etc.\n"
-    cmd = cmd + "3dTcat -prefix %s %s\n\n" % \
-                (all_runs, proc.prev_dset_form_wild())
+    cmd = cmd + feh_str + "%s3dTcat -prefix %s %s\n" % \
+                (istr, all_runs, proc.prev_dset_form_wild()) + feh_end + '\n'
 
     # if errts and scaling, maybe create tsnr volume as mean/stdev(errts)
     # (if scaling, mean should be 100)
@@ -2472,19 +2857,25 @@ def db_cmd_regress(proc, block):
        else: print '-- no errts, will not compute final TSNR'
 
     # possibly create computed fitts dataset
-    if compute_fitts:
+    if compute_fitts and \
+      (stop_opt or block.opts.find_opt('-regress_reml_exec')):
+        fstr = feh_str
         # create if no -x1D_stop
         if stop_opt == '':
-            cmd = cmd + "# create fitts dataset from all_runs and errts\n"  \
-                        "3dcalc -a %s%s -b %s%s -expr a-b \\\n"             \
-                        "       -prefix %s\n\n"                             \
-                        % (all_runs, proc.view, errts_pre, proc.view, fitts_pre)
+            fstr += "%s# create fitts dataset from all_runs and errts\n" % istr
+            fstr += "%s3dcalc -a %s%s -b %s%s -expr a-b \\\n"            \
+                    "%s       -prefix %s%s\n"                            \
+                    % (istr, all_runs, vstr, errts_pre, vstr,
+                       istr, fitts_pre, suff)
         # if reml_exec, make one for the REML fitts, too
         if block.opts.find_opt('-regress_reml_exec'):
-            cmd = cmd + "# create fitts from REML errts\n"              \
-                        "3dcalc -a %s%s -b %s\_REML%s -expr a-b \\\n"   \
-                        "       -prefix %s\_REML\n\n"                   \
-                        % (all_runs, proc.view, errts_pre, proc.view, fitts_pre)
+            if stop_opt: fstr += '\n'
+            fstr += "%s# create fitts from REML errts\n" % istr
+            fstr += "%s3dcalc -a %s%s -b %s\_REML%s -expr a-b \\\n" \
+                    "%s       -prefix %s\_REML%s\n"                 \
+                    % (istr, all_runs, vstr, errts_pre, vstr,
+                       istr, fitts_pre, suff)
+        cmd = cmd + fstr + feh_end + '\n'
 
     # extract ideal regressors, and possibly make a sum
     opt = block.opts.find_opt('-regress_no_ideals')
@@ -2525,7 +2916,7 @@ def db_cmd_regress(proc, block):
     # check for blur estimates
     bcmd = db_cmd_blur_est(proc, block)
     if bcmd == None: return  # error
-    cmd = cmd + bcmd
+    if bcmd: cmd += bcmd
 
     proc.pblabel = block.label  # set 'previous' block label
 
@@ -2536,24 +2927,32 @@ def db_cmd_regress(proc, block):
 # prefix in 3dD.
 #
 # return None on failure
-def db_cmd_reml_exec(proc, block):
+def db_cmd_reml_exec(proc, block, short=0):
+    """short version does not have the status check
+       - probably used for surface analysis"""
+
     if proc.verb > 1: print '++ creating reml_exec command string'
+
+    if proc.surf_anat: istr = '    '
+    else:              istr = ''
 
     # see if the user has provided other 3dREMLfit options
     opt = block.opts.find_opt('-regress_opts_reml')
     if not opt or not opt.parlist: reml_opts = ''
     else: reml_opts = ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
 
-    cmd = '# -- execute the REML command script and check the status --\n'
-    cmd = cmd + 'tcsh -x stats.REML_cmd %s\n\n' % reml_opts
+    cmd = '%s# -- execute the 3dREMLfit script, written by 3dDeconvolve --\n' \
+          '%stcsh -x stats.REML_cmd %s\n' % (istr, istr, reml_opts)
 
     # if 3dDeconvolve fails, terminate the script
-    cmd = cmd + "# if 3dREMLfit fails, terminate the script\n"          \
-                "if ( $status != 0 ) then\n"                            \
-                "    echo '---------------------------------------'\n"  \
-                "    echo '** 3dREMLfit error, failing...'\n"           \
-                "    exit\n"                                            \
-                "endif\n\n\n"
+    if not short:
+        cmd += "\n"                                                    \
+               "# if 3dREMLfit fails, terminate the script\n"          \
+               "if ( $status != 0 ) then\n"                            \
+               "    echo '---------------------------------------'\n"  \
+               "    echo '** 3dREMLfit error, failing...'\n"           \
+               "    exit\n"                                            \
+               "endif\n"
 
     return cmd
 
@@ -2586,8 +2985,6 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
         print '** compute TSNR: missing input'
         return None
 
-    dname = 'TSNR%s%s$subj' % (name_qual, proc.sep_char)
-
     if mask:
        cstr = '\\\n       -c %s%s ' % (mask, view)
        estr = 'c*a/b'
@@ -2595,25 +2992,47 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
        cstr = ''
        estr = 'a/b'
 
+    if proc.surf_anat:
+        feh_str = 'foreach %s ( %s )\n' \
+                  % (proc.surf_spec_var_iter, ' '.join(proc.surf_hemilist))
+        feh_end = 'end\n'
+        suff    = '.%s.niml.dset' % proc.surf_svi_ref
+        vsuff   = '' # should be passed in
+        istr    = ' '*4
+    else:
+        feh_str = ''
+        feh_end = ''
+        suff    = ''
+        vsuff   = proc.view
+        istr    = ''
+
+    dname = 'TSNR%s%s$subj%s' % (name_qual, proc.sep_char, suff)
+
     if detrend:
-        polort = UTIL.get_default_polort(proc.tr, proc.reps)
-        detcmd = "3dDetrend -polort %d -prefix rm.noise.det -overwrite %s%s\n"\
-                 % (polort, noise, view)
-        noise = 'rm.noise.det'
+        polort=UTIL.get_default_polort(proc.tr, proc.reps)
+        detcmd="%s3dDetrend -polort %d -prefix rm.noise.det%s " \
+               "-overwrite %s%s\n"\
+               % (istr, polort, suff, noise, vsuff)
+        noise = 'rm.noise.det%s' % suff
     else: detcmd = ''
 
-    if name_qual == '': suff = '.all'
-    else:               suff = name_qual
+    if name_qual == '': suff = '.all%s' % suff
+    else:               suff = name_qual + suff
 
-    cmd  = "%s"                                                 \
-           "3dTstat -mean -prefix rm.signal%s %s%s\n"           \
-           "%s"                                                 \
-           "3dTstat -stdev -prefix rm.noise%s %s%s\n"           \
-           % (comment, suff, signal, view, detcmd, suff, noise, view)
+    cmd  = comment + feh_str
+    cmd += "%s3dTstat -mean -prefix rm.signal%s %s%s\n"           \
+           "%s"                                                   \
+           "%s3dTstat -stdev -prefix rm.noise%s %s%s\n"           \
+           % (istr, suff, signal, vsuff, detcmd, istr, suff, noise, vsuff)
 
-    cmd += "3dcalc -a rm.signal%s%s -b rm.noise%s%s %s\\\n"     \
-           "       -expr '%s' -prefix %s \n\n"                  \
-           % (suff, view, suff, view, cstr, estr, dname)
+    cmd += "%s3dcalc -a rm.signal%s%s \\\n"     \
+           "%s       -b rm.noise%s%s %s \\\n"   \
+           "%s       -expr '%s' -prefix %s \n"  \
+           % (istr, suff, vsuff,
+              istr, suff, vsuff, cstr,
+              istr, estr, dname)
+
+    cmd += '%s\n' % feh_end     # add final newline
 
     return cmd
 
@@ -3090,7 +3509,7 @@ def db_mod_tlrc(block, proc, user_opts):
 
 # create a command to run @auto_tlrc
 def db_cmd_tlrc(proc, block):
-    """warp self.anat to standard space"""
+    """warp proc.anat to standard space"""
 
     dname = proc.anat.pv()
     if not dname :
@@ -3269,12 +3688,14 @@ def db_cmd_gen_review(proc):
 
     tblk = proc.find_block('tcat')
 
+    # get dataset names, but be sure not to get the surface form
+    dstr = proc.dset_form_wild('tcat', proc.origview, surf_names=0)
     cmd = "# %s\n\n"                                                    \
           "# generate a review script for the unprocessed EPI data\n"   \
           "gen_epi_review.py -script %s \\\n"                           \
           "    -dsets %s\n\n"                                           \
           % (block_header('auto block: generate review scripts'),
-               proc.epi_review, proc.dset_form_wild('tcat',proc.origview))
+             proc.epi_review, dstr)
 
     lopts = ' '
     if proc.mot_cen_lim > 0.0: lopts += '-mot_limit %s ' % proc.mot_cen_lim
@@ -3462,9 +3883,10 @@ g_help_string = """
                 afni_proc.py -dsets epiRT_r1+orig epiRT_r2+orig epiRT_r3+orig \\
                              -regress_stim_files stims.1D
 
-     ***********************************************************
-     *  New and improved!  Examples that apply to AFNI_data4.  *
-     ***********************************************************
+     **************************************************************
+     *  New and improved!  Examples that apply to AFNI_data4.     *
+     *  (were quickly OLD and OBSOLETE, as we now use AFNI_data6) *
+     **************************************************************
 
         The following examples can be run from the AFNI_data4 directory, and
         are examples of how one might process the data for subject sb23.

@@ -1006,11 +1006,18 @@ class MyInterface:
          return 1
 
       view = self.dsets.stats_dset.view
+      if len(view) != 5: # maybe surface, go after volreg explicitly for now
+         glist = glob.glob('pb0?.%s.r01.volreg+orig.HEAD'%(self.uvars.subj))
+         if len(glist) > 0: view = '+orig'
+         glist = glob.glob('pb0?.%s.r01.volreg+tlrc.HEAD'%(self.uvars.subj))
+         if len(glist) > 0: view = '+tlrc'
+
       if len(view) != 5:
          print "** unknown view '%s' in stats_dset %s" \
                % (view,self.dsets.stats_dset.pv())
-         print "** failing to set final_view"
-         return 1
+         # print "** failing to set final_view"
+         # return 1
+
 
       self.uvars.final_view = view[1:]
 
@@ -1334,7 +1341,12 @@ class MyInterface:
       opt = '-bucket'
       copts = self.find_opt_and_params(ax.command, opt, 1)
       if len(copts) == 2:
+         # check for AFNI, NIML or NIfTI datasets
          posn = copts[1].find('.HEAD')
+         if posn < 0: posn = copts[1].find('.niml.dset')
+         if posn < 0: posn = copts[1].find('.nii')
+
+         # if not found, assume AFNI
          if posn > 0: gform = copts[1]
          else:        gform = '%s*HEAD' % copts[1]
       else:
@@ -1628,10 +1640,10 @@ class MyInterface:
 
       # check that dsets are okay before using them
       errs = 0
-      emesg = 'cannot drive view_stats'
+      emesg = 'cannot drive view_stats, skipping...'
       if self.check_for_dset('stats_dset', emesg): errs += 1
       if self.check_for_dset('mask_dset', emesg): errs += 1
-      if errs: return 1
+      if errs: return 0
 
       sset = self.dsets.val('stats_dset')
       mset = self.dsets.val('mask_dset')
