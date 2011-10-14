@@ -2457,7 +2457,7 @@ ccalc:parser.o parser_int.o ccalc.o
 	$(RM) $@
 	$(CC) -o 1deval 1deval.o parser.o parser_int.o $(LFLAGS) $(LLIBS)
 
-1dmatcalc:parser.o parser_int.o 1dmatcalc.o
+1dmatcalc:parser.o parser_int.o 1dmatcalc.o mri_matrix.o
 	$(RM) $@
 	$(CC) -o 1dmatcalc 1dmatcalc.o parser.o parser_int.o $(LFLAGS) $(LLIBS)
 
