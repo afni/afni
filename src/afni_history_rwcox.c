@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 13 , OCT , 2011 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
+  { 17 , OCT , 2011 , RWC , "3dhistog" , MICRO , TYPE_MODIFY ,
+   "removed DOS ctrl-M's in file, they screwed things up for compiling" ,
+   NULL } ,
+
+ { 13 , OCT , 2011 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
    "Fixed error in computing with un-centered covariates" ,
    "inv[Xt*X] matrix not computed correctly in mri_matrix_psinv_pair()\n"
    "function." } ,
