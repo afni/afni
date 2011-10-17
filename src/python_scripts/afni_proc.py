@@ -297,9 +297,10 @@ g_history = """
            -surf_anat, -surf_spec, -surf_anat_aligned, -surf_anat_has_skull,
            -surf_A, -surf_B, -surf_blur_fwhm
         - compute errts and TSNR by default (had required option or blur est)
+    3.01 Oct 17, 2011: added help for surface analysis and -surf options
 """
 
-g_version = "version 3.00, October 14, 2011"
+g_version = "version 3.01, October 17, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "3 Aug 2011"
@@ -802,7 +803,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-surf_A', 1, [],
                         helpstr="list surf_A surface (e.g. smoothwm)")
         self.valid_opts.add_opt('-surf_B', 1, [],
-                        helpstr="list surf_B surface (e.g. smoothwm)")
+                        helpstr="list surf_B surface (e.g. pial)")
         self.valid_opts.add_opt('-surf_blur_fwhm', 1, [],
                         helpstr="specify target FWHM for surface noise blur")
 
