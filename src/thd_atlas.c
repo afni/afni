@@ -1014,7 +1014,7 @@ int is_identity_xform_list(ATLAS_XFORM_LIST *xfl, int combine)
    ATLAS_XFORM *xf;
 
    if(xfl==NULL) {
-      fprintf(stderr,"NULL transform\n");
+      if (wami_verb()) fprintf(stderr,"NULL transform\n");
       return(0);
    }
    if (combine) {

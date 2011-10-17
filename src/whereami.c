@@ -1468,12 +1468,15 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
             
             if (!is_identity_xform_chain(THD_get_space(mset_orig), 
                                                 atlas->atlas_space)) {
-               fprintf(stderr,
+               if (wami_verb()) {
+                  fprintf(stderr,
             "** Error: Not ready to deal with non-Identity transform chain.\n"
             "Path from input in %s to atlas %s in %s is:\n" , 
                   THD_get_space(mset_orig), 
                   Atlas_Name(atlas), atlas->atlas_space);
-               print_xform_chain(THD_get_space(mset_orig), atlas->atlas_space);
+                  print_xform_chain(THD_get_space(mset_orig), 
+                  atlas->atlas_space);
+               }
                continue;
             } 
             
