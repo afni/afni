@@ -1314,8 +1314,8 @@ def db_mod_surf(block, proc, user_opts):
        proc.surf_spec = opt.parlist
        if not UTIL.okay_as_lr_spec_names(proc.surf_spec):
           print '\n'                                                         \
-                '** spec files MUST contain lh or rh, and otherwise match\n' \
-                '   (consider making copies, like SUBJ.stdmesh.lh.spec)'
+                '** error: spec files MUST contain lh or rh, and otherwise\n'\
+                '   match (consider making copies, like SUBJ.stdmesh.lh.spec)'
           return None
        tjunk, pdirs, sjunk, snames = UTIL.common_parent_dirs([proc.surf_spec])
        # set spec dir (do not allow to be trivial or relative), var and dir_var
@@ -1332,7 +1332,7 @@ def db_mod_surf(block, proc, user_opts):
        proc.surf_spec_var, proc.surf_hemilist = UTIL.make_spec_var(snames[0],
                                                                 vname='hemi')
        if not proc.surf_spec_var or not proc.surf_hemilist:
-          print '** failed to make spec var from %s' % snames[0]
+          print '** error: failed to make spec var from %s' % snames[0]
           return None
 
     opt = user_opts.find_opt('-surf_anat_aligned')
@@ -1349,7 +1349,7 @@ def db_mod_surf(block, proc, user_opts):
 
     val, err = user_opts.get_type_opt(float, '-surf_blur_fwhm')
     if err:
-        print '** -surf_blur_fwhm requires float argument'
+        print '** error: -surf_blur_fwhm requires float argument'
         return 1
     elif val != None and val > 0.0: proc.surf_blur_fwhm = val
 
@@ -1372,16 +1372,16 @@ def db_mod_surf(block, proc, user_opts):
 
     errs = 0
     if not proc.surf_anat.exist(): 
-        print '** missing -surf_anat dataset: %s' % proc.surf_anat.ppv()
+        print '** error: missing -surf_anat dataset: %s' % proc.surf_anat.ppv()
         errs += 1
     if not proc.surf_spec:
-        print '** missing -surf_spec option'
+        print '** error: missing -surf_spec option'
         return 1
     if not os.path.isfile(proc.surf_spec[0]):
-        print '** missing -surf_spec file: %s' % proc.surf_spec[0]
+        print '** error: missing -surf_spec file: %s' % proc.surf_spec[0]
         errs += 1
     if proc.surf_spec_dir and not os.path.isdir(proc.surf_spec_dir):
-        print '** spec file directory not found: %s' % proc.surf_spec_dir
+        print '** error: spec file directory not found: %s' % proc.surf_spec_dir
         errs += 1
     if errs: return 1   # fail
 
@@ -1430,11 +1430,11 @@ def db_cmd_surf(proc, block):
     """
 
     if proc.surf_anat == None:
-        print '** missing surf_anat'
+        print '** error: missing surf_anat'
         return None
 
     if not proc.surf_A or not proc.surf_B:
-        print '** both surf_A and surf_B are currently required'
+        print '** error: both surf_A and surf_B are currently required'
         return None
 
     cmd = "# %s\n"                                      \
@@ -4105,6 +4105,56 @@ g_help_string = """
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
+        8. Based on 3, but analyze data on the surface.
+
+           Add -surf_spec and -surf_anat to provide the required spec and
+           surface volume datasets.  The surface volume will be aligned to
+           the current anatomy in the processing script.  Two spec files
+           (lh and rh) are provided, one for each hemisphere.
+
+           Also, specify a (resulting) 6 mm FWHM blur via -surf_blur_fwhm.
+           This does not add a blur, but specifies a resulting blur level.  So
+           6 mm can be given directly for correction for multiple comparisons
+           on the surface.
+
+           Censor per-TR motion above 0.3 mm.
+
+           Note that no -regress_est_blur_errts option is given, since that
+           applies to the volume only.
+
+           The -blocks option is provided, but it is the same as the default
+           for surface-based analysis, so is not really needed here.  Note that
+           the 'surf' block is added and the 'mask' block is removed from the
+           volume-based defaults.
+
+           important options:
+
+                -blocks         : includes surf, but no mask
+                                  (default blocks for surf, so not needed)
+                -surf_anat      : volumed aligned with surface
+                -surf_spec      : spec file(s) for surface
+                -surf_blur_fwhm : specify resulting blur level
+
+           This example is intended to be run from the AFNI_data4 directory.
+
+                afni_proc.py -subj_id sb23.surf                            \\
+                        -blocks tshift align volreg surf blur scale regress\\
+                        -dsets sb23/epi_r??+orig.HEAD                      \\
+                        -copy_anat sb23/sb23_mpra+orig                     \\
+                        -tcat_remove_first_trs 3                           \\
+                        -volreg_align_to last                              \\
+                        -surf_anat SUMA/sb23_surf_SurfVol+orig             \\
+                        -surf_spec SUMA/sb23_?h_141_std.spec               \\
+                        -surf_blur_fwhm 6                                  \\
+                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                        -regress_stim_labels tneg tpos tneu eneg epos      \\
+                                             eneu fneg fpos fneu           \\
+                        -regress_basis 'BLOCK(30,1)'                       \\
+                        -regress_censor_motion 0.3                         \\
+                        -regress_opts_3dD                                  \\
+                            -gltsym 'SYM: +eneg -fneg'                     \\
+                            -glt_label 1 eneg_vs_fneg
+
     --------------------------------------------------
     -ask_me EXAMPLES:
 
@@ -5637,6 +5687,77 @@ g_help_string = """
 
             This option allows the user to specify the number of slices applied
             via the -zpad option to 3dvolreg.
+
+        -surf_anat ANAT_DSET    : specify surface volume dataset
+
+                e.g. -surf_anat SUMA/sb23_surf_SurfVol+orig
+
+            This option is required in order to do surface-based analysis.
+
+            This volumetric dataset should be the one used for generation of
+            the surface (and therefore should be in perfect alignment).  It may
+            be output by the surface generation software.
+
+            Unless specified by the user, the processing script will register
+            this anatomy with the current anatomy.
+
+            Use -surf_anat_aligned if the surf_anat is already aligned with the
+            current experiment.
+
+            Use '-surf_anat_has_skull no' if the surf_anat has already been
+            skull stripped.
+
+            Please see '@SUMA_AlignToExperiment -help' for more details.
+            See also -surf_anat_aligned, -surf_anat_has_skull.
+            See example #8 for typical usage.
+
+        -surf_spec spec1 [spec2]: specify surface specificatin file(s)
+
+                e.g. -surf_spec SUMA/sb23_?h_141_std.spec
+
+            Use this option to provide either 1 or 2 spec files for surface
+            analysis.  Each file must have lh or rh in the name (to encode
+            the hemisphere), and that can be their only difference.  So if
+            the files do not have such a naming pattern, they should probably
+            be copied to new files that do.  For example, consider the spec
+            files included with the AFNI_data4 sample data:
+
+                SUMA/sb23_lh_141_std.spec
+                SUMA/sb23_rh_141_std.spec
+
+        -surf_A surface_A       : specify first surface for mapping
+
+                e.g. -surf_A smoothwm
+                default: -surf_A smoothwm
+
+            This option allows the user to specify the first (usually inner)
+            surface for use when mapping from the volume and for blurring.
+            If the option is not given, the smoothwm surface will be assumed.
+
+        -surf_B surface_B       : specify second surface for mapping
+
+                e.g. -surf_B pial
+                default: -surf_B pial
+
+            This option allows the user to specify the second (usually outer)
+            surface for use when mapping from the volume (not for blurring).
+            If the option is not given, the pial surface will be assumed.
+
+        -surf_blur_fwhm FWHM    : specify the FWHM blur level
+
+                e.g. -surf_blur_fwhm 6.0
+                default: -surf_blur_fwhm 4.0
+
+            This option allows the user to specify the level of blur in the
+            data (noise).  The units are specified as the Full Width at Half
+            Max, describing the width of a gaussian curve.
+
+            Note that this specifies the resulting blur level, not the 
+            additional blur level, as is common to do in the volume domain.
+            It is akin to 3dBlurToFWHM in the volume.
+
+            Please see 'SurfSmooth -help' for more information.
+            Please see '3dBlurToFWHM -help' for more information.
 
         -blur_filter FILTER     : specify 3dmerge filter option
 

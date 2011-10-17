@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, OCT, 2011, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "added -help for new -surf_* options, along with example #8",
+   NULL
+ } ,
+
+ { 17, OCT, 2011, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "abin now has subdir (funstuff), so change 'mv' to 'rsync'",
+   NULL
+ } ,
+
  { 14, OCT, 2011, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
    "now processes surface data",
    "- added 'surf' processing block, and corresponding '-surf_*' options:\n"
