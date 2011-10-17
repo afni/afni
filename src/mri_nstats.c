@@ -516,7 +516,7 @@ ENTRY("THD_localstat") ;
    MRI_IMAGE *nbim=NULL ;
    THD_fvec3 fwv ;
    double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS] ;  /* no longer static */
-   float *nbar , fv5[5]={0.0, 0.0, 0.0, 0.0, 0.0}; ; int nbar_num=0;
+   float *nbar , fv5[5]={0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; int nbar_num=0;
 
    /* 17 Jul 2009: create workspace for neighborhood data */
 

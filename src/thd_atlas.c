@@ -2422,13 +2422,13 @@ ATLAS_POINT_LIST * label_table_to_atlas_point_list(Dtable *dtbl)
    ATLAS_POINT_LIST *apl;
    int i, nn;
    char **la , **lb;
-
-   ENTRY("label_table_to_atlas_point_list");
   
    int  ii ;
    char  *stout ;
    NI_element *nel ;
    NI_stream ns ;
+
+   ENTRY("label_table_to_atlas_point_list");
 
    nn = listize_Dtable( dtbl , &la , &lb ) ;
    if( nn == 0 || la == NULL || lb == NULL ) RETURN (NULL) ;
