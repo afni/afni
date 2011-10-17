@@ -62,7 +62,7 @@ static char *  HI_ni = NULL;
 static int     HI_datatype = HI_UNKNOWN; /* DRG Aug 2011 */
 
 static short * HI_roi_unq = NULL; /* ZSS March 2011 */
-static int     HI_N_roi_unq = 0; 
+static int     HI_N_roi_unq = 0;
 static THD_3dim_dataset *HI_roi=NULL;
 
 static int integral_dset(THD_3dim_dataset *dset, int iv_bot, int iv_top);
@@ -229,7 +229,7 @@ int main( int argc , char * argv[] )
 
    /* find global min and max of data in all used bricks */
 
-   fbot = BIG_NUMBER ; 
+   fbot = BIG_NUMBER ;
    ftop = -fbot ;
 
    /* assume rounding of bin bottom limit for integer data only*/
@@ -238,12 +238,12 @@ int main( int argc , char * argv[] )
          HI_datatype = HI_INTOUT;
       }
       else
-      HI_datatype = HI_FLOATOUT;  
+      HI_datatype = HI_FLOATOUT;
    }
 
    if(HI_datatype == HI_INTOUT) {
      use_ceil = 1 ;
-   } 
+   }
    else {
       use_ceil = 0 ;
    }
@@ -291,7 +291,7 @@ int main( int argc , char * argv[] )
         /* 10 Jun 2011 */
 /*        if((HI_nbin==NBIN_SPECIAL) && use_ceil && ((ftop-fbot)<100)) {*/
         /* integral data, calculate the default number of bins differently */
-/*        if((HI_nbin<0) && (use_ceil)) { 
+/*        if((HI_nbin<0) && (use_ceil)) {
                nbin = ftop-fbot+1;
         }*/
       break ;
@@ -324,7 +324,7 @@ int main( int argc , char * argv[] )
          HI_mask = (byte *)calloc(sizeof(byte), nxyz);
       }
    }
-   
+
    i_roi_unq = 0;
    do {
       if (HI_roi) {
@@ -332,7 +332,7 @@ int main( int argc , char * argv[] )
          if (!HI_roi_unq[i_roi_unq]) {
             ++i_roi_unq;
             continue; /* skipping zero ROI */
-         } 
+         }
          /* prepare mask */
          HI_mask_hits = 0;
          for( ii=0 ; ii < nxyz ; ii++ ){
@@ -353,7 +353,7 @@ int main( int argc , char * argv[] )
             fclose(fout);
             if (!THD_ok_overwrite()) {
                fprintf(stderr,
-                        "** ERROR: Output file %s exists, will not overwrite.\n", 
+                        "** ERROR: Output file %s exists, will not overwrite.\n",
                         HI_unq) ;
                exit(1) ;
             }
@@ -396,7 +396,7 @@ int main( int argc , char * argv[] )
                   exit(1) ;
                }
                fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );
-               for (ii=0; ii<n_unq; ++ii) 
+               for (ii=0; ii<n_unq; ++ii)
                   if (KEEP(funq[ii])) fprintf(fout,"%d\n", funq[ii]);
                fclose(fout); fout = NULL;
                free(funq); funq = NULL;
@@ -423,7 +423,7 @@ int main( int argc , char * argv[] )
                   exit(1) ;
                }
                fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );
-               for (ii=0; ii<n_unq; ++ii) 
+               for (ii=0; ii<n_unq; ++ii)
                   if (KEEP(funq[ii])) fprintf(fout,"%d\n", funq[ii]);
                fclose(fout); fout = NULL;
                free(funq); funq = NULL;
@@ -456,7 +456,7 @@ int main( int argc , char * argv[] )
 
          if( HI_log ){
            if( ! HI_notit )
-             printf ("%12s %13s %13s\n", 
+             printf ("%12s %13s %13s\n",
                      "#Magnitude", "Log_Freq", "Log_Cum_Freq");
 
            for( kk=0 ; kk < nbin ; kk++ ){
@@ -479,7 +479,7 @@ int main( int argc , char * argv[] )
              if((use_ceil) && (nbin <= (ftop-fbot+1)))
                 printf ("%12d %13d %13ld\n",
                      (int) ceil(fbot+kk*df), fbin[kk], cumfbin);
-             else             
+             else
                 printf ("%12.6f %13d %13ld\n",
                      (fbot+kk*df), fbin[kk], cumfbin);
            }
@@ -497,14 +497,14 @@ int main( int argc , char * argv[] )
           bb[kk] = CEIL_CHECK(fbot+kk*df);
          }
          hni = NI_new_data_element("3dhistog", nbin);
-         NI_add_column(hni, NI_FLOAT, bb); 
+         NI_add_column(hni, NI_FLOAT, bb);
          NI_add_column(hni, NI_INT, fbin);
          NI_add_column(hni, NI_DOUBLE, cf);
-         if (HI_log) 
-            NI_set_attribute(hni, "ColumnLabels", 
+         if (HI_log)
+            NI_set_attribute(hni, "ColumnLabels",
                         "Magnitude ; Log_Freq ; Log_Cum_Freq");
-         else 
-            NI_set_attribute(hni, "ColumnLabels", 
+         else
+            NI_set_attribute(hni, "ColumnLabels",
                         "Magnitude ; Freq ; Cum_Freq");
          sprintf(sstr,"%f",df);
          NI_set_attribute(hni, "BinWidth", sstr);
@@ -551,7 +551,7 @@ void HI_read_opts( int argc , char * argv[] )
    INIT_EDOPT( &HI_edopt ) ;
    HI_unq = NULL;
    HI_datatype = HI_UNKNOWN;
-   
+
    while( nopt < argc && argv[nopt][0] == '-' ){
 
       /**** check for editing options ****/
@@ -609,7 +609,7 @@ void HI_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-prefix",6) == 0 ){
          nopt++ ;
-         if( nopt >= argc ) HI_syntax("need argument after -prefix!") ;         
+         if( nopt >= argc ) HI_syntax("need argument after -prefix!") ;
          HI_ni = argv[nopt] ;
          nopt++ ; continue ;
       }
@@ -639,7 +639,7 @@ void HI_read_opts( int argc , char * argv[] )
           nopt++ ; continue ;
 
       }
-      
+
       if( strncmp(argv[nopt],"-roi_mask",5) == 0 )
       {
           THD_3dim_dataset * rset ;
@@ -653,25 +653,25 @@ void HI_read_opts( int argc , char * argv[] )
           if (DSET_NVALS(rset)!=1) {
             HI_syntax("-roi_mask must have one sub-brick");
           }
-          HI_roi = EDIT_empty_copy(rset); 
-          EDIT_dset_items( HI_roi ,   
-                          ADN_nvals, 1, 
-                          ADN_ntt, 1, 
-                          ADN_malloc_type , DATABLOCK_MEM_MALLOC ,   
-                          ADN_none ) ; 
-          EDIT_substscale_brick( HI_roi, 0, DSET_BRICK_TYPE(rset,0), 
+          HI_roi = EDIT_empty_copy(rset);
+          EDIT_dset_items( HI_roi ,
+                          ADN_nvals, 1,
+                          ADN_ntt, 1,
+                          ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                          ADN_none ) ;
+          EDIT_substscale_brick( HI_roi, 0, DSET_BRICK_TYPE(rset,0),
                                  DSET_ARRAY(rset,0), MRI_short, 1.0);
-          /* There can be a leak here if rset is not short 
+          /* There can be a leak here if rset is not short
              But that's OK */
           /* Now get unique values */
-          HI_roi_unq = UniqueShort(DSET_ARRAY(HI_roi,0), DSET_NVOX(HI_roi), 
+          HI_roi_unq = UniqueShort(DSET_ARRAY(HI_roi,0), DSET_NVOX(HI_roi),
                                     &HI_N_roi_unq, 0);
           if (!HI_roi_unq) {
              fprintf(stderr,"** ERROR: Failed to uniquate.\n") ;
              exit(1) ;
           }
-          fprintf(stdout,"# %d unique values in roi_mask %s\n", 
-                              HI_roi_unq[0] ? HI_N_roi_unq:HI_N_roi_unq-1, 
+          fprintf(stdout,"# %d unique values in roi_mask %s\n",
+                              HI_roi_unq[0] ? HI_N_roi_unq:HI_N_roi_unq-1,
                               argv[nopt] );
           nopt++ ; continue ;
       }
@@ -726,10 +726,10 @@ integral_dset(THD_3dim_dataset *dset, int iv_bot, int iv_top)
 {
    int iv_fim, fim_type;
    float fimfac;
-   
+
    for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
      fim_type = DSET_BRICK_TYPE(dset,iv_fim) ;
-     fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ; 
+     fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ;
      if (fimfac == 0.0)  fimfac = 1.0;
 
      /* test if all the data is integral  - used for calculating bins below */
@@ -751,14 +751,14 @@ minmax_dset(THD_3dim_dataset *dset, float *dmin, float *dmax, int iv_bot, int iv
    float fimfac;
    float vbot , vtop, temp_fbot, temp_ftop ;
 
-   temp_fbot = BIG_NUMBER ; 
+   temp_fbot = BIG_NUMBER ;
    temp_ftop = -temp_fbot ;
-   
+
    for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
      /* minimum and maximum for sub-brick */
      vbot = mri_min( DSET_BRICK(dset,iv_fim) ) ;
      vtop = mri_max( DSET_BRICK(dset,iv_fim) ) ;
-     fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ; 
+     fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ;
      if (fimfac == 0.0)  fimfac = 1.0;
      vbot *= fimfac ; vtop *= fimfac ;
 
