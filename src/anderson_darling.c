@@ -23,7 +23,7 @@ double anderson_darling_statistic( int npt, double *val, double (*cf)(double) )
 
 /*----------------------------------------------------------------------------*/
 
-static double cf_nor(double x){ return 1.0-qg(x) ; }
+static double cf_nor( double x ){ return 1.0-0.5*erfc(x/1.414213562373095); }
 
 /*----------------------------------------------------------------------------*/
 
@@ -47,5 +47,24 @@ double anderson_darling_normal( int npt , double *xxx )
    for( ii=0 ; ii < npt ; ii++ ) vvv[ii] = (vvv[ii]-xm) * xq ;
 
    ad = anderson_darling_statistic( npt , vvv , cf_nor ) ;
+   ad *= ( 1.0 + 4.0/npt - 25.0/(npt*npt) ) ;
    free(vvv) ; return ad ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+#include "zgaussian.c"
+
+int main( int argc , char *argv[] )
+{
+   int npt , ii ; double *xxx , ad ;
+
+   if( argc < 2 ) exit(0) ;
+   npt = (int)strtod(argv[1],NULL) ; if( npt < 10 ) exit(0) ;
+   xxx = (double *)malloc(sizeof(double)*npt) ;
+   init_rand_seed(0) ;
+   for( ii=0 ; ii < npt ; ii++ ) xxx[ii] = zgaussian()+zgaussian()+zgaussian() ;
+   ad = anderson_darling_normal( npt , xxx ) ;
+   printf( "%.5g\n" , ad ) ;
+   exit(0) ;
 }
