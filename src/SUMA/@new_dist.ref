@@ -87,7 +87,21 @@ if ("$package" == "") then
          set localX = 1
       endif
    else if ( "${thishost}" =~ Kullervo* ) then
-      set package = macosx_10.4_Intel
+      if ($openmp == 0) then
+         set openmp = 1
+      endif
+      if ($bitset == 0) then
+         set bitset = 64
+         set b64 = '_64'
+         echo "Using -64 as default for `hostname`"
+     endif 
+     set package = macosx_10.6_Intel${b64}
+      if ($lesstifing == 0) then
+         echo "Using -motif as default for `hostname`"
+         set lesstifing = -1
+      endif
+      set jpega = 1
+      set lpng = 1
    else 
       echo "Don't know what package to use for `hostname`"
       goto END

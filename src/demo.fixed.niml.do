@@ -59,7 +59,7 @@ v_align = 'top'
 /T>
 <I
 coord = '1 0 0.9'
-filename = 'face_alexmartin2.jpg'
+filename = 'funstuff/face_alexmartin2.jpg'
 h_align = 'right'
 v_align = 'bot'
 />
@@ -71,7 +71,7 @@ text = "Attached to node 0's initial position"
 mix_mode = "decal"
 coord_gen = "sphere"
 target = "ALL_SURFS"
-filename = "face_daveperlman.jpg"
+filename = "funstuff/face_daveperlman.jpg"
 />
 <Tex
 target = "FRAME"
@@ -80,7 +80,7 @@ frame_coords = "
 0.0 1.0 1
 1.0 1.0 1
 1.0 0.0 1"
-filename = "face_afniman.jpg"
+filename = "funstuff/face_afniman.jpg"
 />
 <S
 node = '0'
