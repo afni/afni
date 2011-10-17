@@ -33,7 +33,7 @@ while ( $ac <= $#argv )
         @ ac ++
         if ( $ac > $#argv ) then
             echo "** missing parameter for option '-bindir'"
-            exit
+            exit 1
         endif
         set abin = $argv[$ac]
     else if ( "$argv[$ac]" == "-curl" ) then
@@ -44,7 +44,7 @@ while ( $ac <= $#argv )
         @ ac ++
         if ( $ac > $#argv ) then
             echo "** missing parameter for option '-package'"
-            exit
+            exit 1
         endif
         set package = $argv[$ac]
     else if ( "$argv[$ac]" == "-help" ) then
@@ -90,7 +90,7 @@ if ( $help ) then
     echo "        these is not appropriate, please specify them as below."
     echo ""
     echo "    -package PACKAGE      : install distribution package PACKAGE"
-    echo "    -testing              : just attempt the download and quit"
+    echo "    -test                  : just attempt the download and quit"
     echo ""
     echo "Note that the user must have write permissions in the ABIN"
     echo "directory."
@@ -103,7 +103,7 @@ if ( $abin == "" ) then
     set abin = `which afni`
     if ( $status ) then
         echo "** failed 'which afni'"
-        exit
+        exit 1
     endif
 
     # and nuke the trailing 'afni'
@@ -115,7 +115,7 @@ if ( $package == "" ) then
    set package = `afni -ver | grep binary | awk '{print $3}' | sed 's/://g'`
    if ( $status ) then
        echo "** failed setting package from 'afni -ver'"
-       exit
+       exit 1
    endif
 endif
 
@@ -132,7 +132,7 @@ if ( $missing_wget && $missing_curl ) then
     echo "   or look it up on the AFNI message board:"
     echo "       http://afni.nimh.nih.gov/afni/community/board"
     echo ""
-    exit
+    exit 1
 endif
 
 # default to wget, else use curl
@@ -154,7 +154,7 @@ if ( -f $package.tgz || -d $package ) then
     \rm -fr $package $package.tgz
     if ( $status ) then
         echo "** failed to remove old package $package"
-        exit
+        exit 1
     endif
 endif
 
@@ -162,19 +162,19 @@ echo "++ downloading package $package..."
 $prog http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
 if ( $status ) then
     echo "** failed to download package $package.tgz"
-    exit
+    exit 1
 endif
 
 if ( $testing ) then
-    echo "just testing download via '$prog' done"
+    echo "just testing download via '$prog', done"
     exit
 endif
 
 echo "++ extracting package $package..."
 tar xfz $package.tgz
 if ( $status ) then
-    echo "** failed to download package $package.tgz"
-    exit
+    echo "** failed to extract package $package.tgz"
+    exit 1
 endif
 
 # ----------------------------------------------------------------------
@@ -189,14 +189,15 @@ endif
 
 echo "++ update needed, installing..."
 
-\mv $package/* .
+# we now have sub-directories, and cannot use a simple mv  17 Oct 2011 [rickr]
+# \mv $package/* .
+rsync -a $package/ ./
 if ( $status ) then
     echo "** failed to overwrite existing package, exiting..."
     exit
 endif
 
-rmdir $package
-\rm -f $package.tgz
+\rm -fr $package $package.tgz
 
 echo "done, yay"
 
