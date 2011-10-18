@@ -1,0 +1,269 @@
+#!/bin/tcsh -fe
+
+set stdir = $PWD
+set stat = 0
+
+goto PARSE
+RET_PARSE:
+
+CHECKS:
+if ( `@CheckForAfniDset $involume` < 2) then
+   echo "Can't find $involume"
+   goto BEND
+endif
+
+if (! -d $odir) mkdir -p $odir
+if (! -d $odir) then
+   echo "Failed to create $odir"
+   goto END
+endif
+
+set uid = `3dAttribute IDCODE_STRING $involume | sed 's/~$//g'`
+if ( ! -f $odir/anat.nii ) then
+   3dcopy $involume $odir/anat.nii 
+endif
+
+if ( $inmask != "" && ( ! -f $odir/anat.ns.nii ) ) then
+   3dcalc -a $involume -b $inmask -expr 'a*step(b)' -prefix $odir/anat.ns.nii
+endif
+
+cd $odir
+
+SPAT_PRIORS:
+if ( ! -f loc.priP+orig.HEAD) then
+   if ( ! -f anat.ns.nii ) then
+      3dSkullStrip -input anat.nii -orig_vol -prefix anat.ns.nii   
+   endif
+   @GetSpatialPriors anat.ns.nii loc.priP+orig 
+endif
+
+SIGS:
+if ( ! -f sigs+orig.HEAD) then
+   @CalculateSignatures -input anat.nii  \
+                        -stat median MAD P2skew \
+                        -statlabel medMADskew \
+                        -local 1 2 3 4 6 8 10 13 16 19 \
+                        -mask anat.nii \
+                        -spnorm2 -max_vox 5 \
+                        -odir LocSt
+   3dTcat   -prefix ./sigs   \
+                  LocSt/anat.sc5.median+orig \
+                  LocSt/anat.sc5.MAD+orig'[0..8]'  \
+                  LocSt/anat.sc5.P2skew+orig
+endif
+
+PRIORS:
+if ( "$priors" == "SVM" || "$priors" == "PROB") then
+   if ( ! -d ${priors}_priors) mkdir ${priors}_priors
+   if ( ! -f sig.${priors}.priP+orig.HEAD) then
+      3dSignatures \
+            -verb 1  -uidp Joe.${priors}.${uid} \
+            -labeltable $train_path/melabs.DepthSubClasses.niml.lt \
+            -class_labels  CSF.l1 CSF.l2 CSF.l3 \
+                      GM.l1  GM.l2  GM.l3 \
+                      WM.l1  WM.l2  WM.l3 \
+                      Out.l1 Out.l2 Out.l3 \
+            -method ${priors} \
+            -odir ./${priors}_priors   \
+            -train_suffix $train_path/train_station/train.${priors}.12class.1 \
+            -reuse_train \
+            -test_SF Joe sigs+orig.HEAD \
+            -grouped_labeltable $train_path/orig.niml.lt
+
+      3dcopy ${priors}_priors/Joe.test.${PP}.gcls+orig.HEAD  \
+                  ./sig.${priors}.priC
+      3dcopy ${priors}_priors/Joe.test.${PP}.gclsp+orig.HEAD  \
+                  ./sig.${priors}.priP 
+   endif
+endif
+
+AFNI_SEG:
+   if (${smeth} != 'AFNI') goto AFNI_SEG_END
+   set sgs = ()
+   if ( -f goldseg+orig.HEAD) set sgs = ($sgs '-gold goldseg+orig')
+   if ( -f goldbias+orig.HEAD) set sgs = ($sgs '-gold_bias goldbias+orig')
+   echo "3dSeg $priors priors  only"
+   if ( ! -f anat.pst.${priors}.nii) then
+      set osd = Joe.$priors
+      if ($priors == 'SVM' || $priors == 'PROB') then
+         3dSeg   -anat anat.nii     \
+                 -mask anat.ns.nii   \
+                 $sgs   \
+                 -classes 'CSF ; GM ; WM' \
+                 -bias_classes 'GM ; WM' -bias_fwhm 25 \
+                 -mixfrac UNI -overwrite    \
+                 -main_N 5 -Bmrf 0  \
+                 -cset sig.${priors}.priC+orig \
+                 -priCgA sig.${priors}.priP+orig'[0,1,2]' \
+                 -wA 1.0  -debug 1 \
+                 -prefix $osd
+       else if ($priors == 'NONE') then
+         3dSeg   -anat anat.nii     \
+                 -mask anat.ns.nii   \
+                 $sgs   \
+                 -classes 'CSF ; GM ; WM' \
+                 -bias_classes 'GM ; WM' -bias_fwhm 25 \
+                 -mixfrac UNI -overwrite    \
+                 -main_N 5 -Bmrf 0  \
+                 -debug 1 \
+                 -prefix $osd
+       else
+         echo "Bad prior option $priors"
+         goto BEND
+       endif
+       3dAFNItoNIFTI -prefix anat.uni.${priors}.nii  ${osd}/AnatUB+orig  
+       3dAFNItoNIFTI -prefix anat.seg.${priors}.nii  ${osd}/Classes+orig 
+       3dAFNItoNIFTI -float -prefix anat.pst.${priors}.nii ${osd}/Posterior+orig 
+   endif
+   AFNI_SEG_END:
+   
+SPM_SEG:
+   if (${smeth} != 'SPM') goto SPM_SEG_END
+   @SPM_seg -subj Joe -input anat.nii -mask anat.ns.nii \
+            -labeltable $train_path/orig.niml.lt
+   #3dAFNItoNIFTI -prefix ../anat.uni.SPM.nii AnatUB.SPM.nii
+   #3dAFNItoNIFTI -prefix ../anat.seg.SPM.nii Classes.SPM.nii
+   SPM_SEG_END:
+   
+FSL_SEG:
+   if (${smeth} != 'FSL') goto FSL_SEG_END
+   set osd = Joe.FSL
+   if ( ! -f $osd/AnatUB.FAST.nii) then
+      if ( ! -d $osd) mkdir -p $osd
+      echo "fast on anat.ns.nii ..."
+      fast -n 3 -g -b -B -o fst anat.ns.nii
+      gzip -d fst*
+      3drefit -sublabel 0 FSL-FAST fst_restore.nii
+      mv fst* $osd
+      cd $osd
+      mv fst_seg.nii Classes.FAST.nii
+      mv fst_bias.nii Bias.FAST.nii
+      mv fst_restore.nii AnatUB.FAST.nii
+      #3dAFNItoNIFTI -prefix ../anat.uni.FAST.nii AnatUB.FAST.nii
+      #3dAFNItoNIFTI -prefix ../anat.seg.FAST.nii Classes.FAST.nii
+      cd -
+   endif
+   FSL_SEG_END:
+   
+goto END
+
+
+PARSE:
+set Narg = $#
+set cnt = 1
+set starttime=`date`
+set inmask = ""
+set involume = ""
+set odir = './segscr'
+set priors = 'SVM'
+set smeth = 'AFNI'
+set train_path = /Volumes/Data/ziad/SUMA_test_dirs/3dSignatures
+if ("$1" == '') goto HELP
+while ($cnt <= $Narg)
+   set donext = 1
+
+   if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+      goto HELP
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-echo") then
+      set echo
+      set donext = 0   
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-svm") then
+      set priors = 'SVM'
+      set donext = 0   
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-prob") then
+      set priors = 'PROB'
+      set donext = 0   
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-nopri") then
+      set priors = 'NONE'
+      set donext = 0   
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-afni") then
+      set smeth = 'AFNI'
+      set donext = 0   
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-spm") then
+      set smeth = 'SPM'
+      set donext = 0   
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-fsl") then
+      set smeth = 'FSL'
+      set donext = 0   
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-mask") then
+      if ($cnt == $Narg) then
+         echo "Need mask volume after -mask"
+         goto END
+      else
+         @ cnt ++
+         set inmask = $argv[$cnt]
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-input") then
+      if ($cnt == $Narg) then
+         echo "Need volume for segmentation after -input"
+         goto END
+      else
+         @ cnt ++
+         set involume = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-odir") then
+      if ($cnt == $Narg) then
+         echo "Need directory after -odir"
+         goto END
+      else
+         @ cnt ++
+         set odir = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+
+  if ($donext) then
+      echo "Parameter $argv[$cnt] not understood"
+      goto BEND
+   else 
+      @ cnt ++
+   endif 
+
+end
+
+if ($priors == 'SVM') then
+   set PP = 'S'
+else if ($priors == 'PROB') then
+   set PP = 'P'
+else
+   set PP = ''
+endif
+
+goto RET_PARSE
+
+HELP:
+goto END
+
+BEND:
+set stat = 1
+goto END
+
+END:
+cd $stdir
+exit $stat
+
+
+
+
