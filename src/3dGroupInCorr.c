@@ -2782,6 +2782,20 @@ int main( int argc , char *argv[] )
 
      }
 
+     /*** test results to see if they are all zero! [18 Oct 2011] ***/
+
+     if( verb > 1 || nsend < NSEND_LIMIT ){
+       int nv = nelset->vec_num ;  /* # of columns */
+       int nr = nelset->vec_len ;  /* # of rows */
+       float *vv ;
+       for( kk=0 ; kk < nv ; kk++ ){
+         vv = (float *)nelset->vec[kk] ;
+         for( ii=0 ; ii < nr && vv[ii] == 0.0f ; ii++ ) ; /*nada*/
+         if( ii == nr )
+           WARNING_message("GIC: sub-brick #%d of output is all zero!",kk) ;
+       }
+     }
+
 #ifndef DONT_USE_SHM
      /** re-attach to AFNI using shared memory? **/
 
