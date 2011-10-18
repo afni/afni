@@ -24,7 +24,7 @@ set sphere_rad = 20     # use 0 to turn off
 set frac_limit = 0.02
 set min_thr = 0.45
 set rdir = corr_test.results
-set dset_list = ( )
+set din_list = ( )
 set do_corr = yes       # use no for testing only
 set do_clust = no       # use no to just create correlation volumes
 
@@ -73,14 +73,39 @@ while ( $ac <= $#argv )
       exit
    else
       # the rest are assumed to be input datasets
-      set dset_list = ( $argv[$ac-] )
+      set din_list = ( $argv[$ac-] )
       break
    endif
    @ ac += 1
 end
 
+# ----------------------------------------------------------------------
+# create dset_list from din_list, and make sure input datasets have
+# enough TRs for computation (require at least $nfirst + 2)
+@ nneeded = $nfirst + 2
+set dset_list = ()
+foreach dset ( $din_list )
+   set nvals = `3dinfo -nt $dset`
+   if ( $status ) then
+      echo ""
+      echo "** failed to get NT from dset $dset, skipping..."
+      echo ""
+      continue
+   else if ( $nvals < $nneeded ) then
+      echo ""
+      echo "** require $nneeded TRs, but have $nvals in $dset, skipping..."
+      echo ""
+      continue
+   endif
+
+   # otherwise, dataset looks good, add to list
+   set dset_list = ( $dset_list $dset )
+end
+
+# if there are no remaining datasets, bail
 if ( $#dset_list < 1 ) then
    echo "** missing input datasets"
+   echo ""
    exit
 endif
 
@@ -129,6 +154,10 @@ set res_list = ()
 set thr_list = ()
 set frac_list = ()
 
+# make a file the has name correspondence
+set name_file = dataset_names.txt
+touch $name_file
+
 # ----------------------------------------------------------------------
 # main work: compute correlation datasets and surviving threshold fractions
 foreach index ( `count -digits 1 1 $#dset_list` )
@@ -145,6 +174,8 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    set mset = $prefix.automask
    set sset = $prefix.scaled
    set cset = $prefix.corr
+
+   echo "$prefix    <---    $dset" >> $name_file
 
    # ----------------------------------------
    # nuke pre-SS TRs and generate a mask
@@ -291,11 +322,17 @@ if ( ! $?thr   ) set thr = 0.5
 if ( $thr == 0 ) set thr = 0.9
 
 echo ""
-echo "to review, consider looking at correlations over epi time series"
-echo "   run command: afni $rdir"
-echo "   then set:    Underlay  = epi.SOMETHING"
-echo "                Overlay   = res.SOMETHING.corr"
-echo "                threshold = $thr (for example), and maybe clusterize"
+echo "   ___________________________________________________________________"
+echo ""
+echo "   - to review, consider looking at correlations over epi time series"
+echo "        run command: afni $rdir"
+echo "        then set:    Underlay  = epi.SOMETHING"
+echo "                     Overlay   = res.SOMETHING.corr"
+echo "                     maybe threshold = $thr, maybe clusterize"
+echo ""
+echo "   -  processed $#dset_list of $#din_list dataset(s)"
+echo "   -  for name correspondence, see: $rdir/$name_file"
+echo "   ___________________________________________________________________"
 echo ""
 
 # ----------------------------------------------------------------------
