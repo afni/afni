@@ -1,0 +1,384 @@
+#!/bin/tcsh -fe
+set stat = 0
+set stdir = $PWD
+
+goto PARSE
+RET_PARSE:
+
+LOCALSTATS:      
+   cd $stdir
+   if ( ! -d $odir) mkdir -p $odir
+    
+   set sopt = ''
+   if ($#statvector == 3 && \
+         $statvector[1] == "median" && \
+         $statvector[2] == "MAD" && \
+         $statvector[3] == "P2skew" ) then
+      set sopt = ('-stat mMP2s')
+   else
+      foreach lstat ($statvector)
+         set sopt = ($sopt '-stat' $lstat)
+      end
+   endif
+      
+   set mopt = ''
+   if ($inmask != '') set mopt = "-mask $inmask"
+   set inpref = `@GetAfniPrefix $involume | sed 's/.nii$//g'` 
+   if ( ! -f $odir/${inpref}+orig.HEAD) then
+      3dcopy "${involume}" $odir/${inpref}+orig
+   endif
+   foreach neigh ($localvector)
+      set oneigh = `printf '%02d' $neigh`
+      set sublopt = ''
+      set cnt = 1
+      foreach lstat ($statvector)
+         set ss = $statlabelvector[$cnt].${oneigh}_mm
+         set sublopt = ($sublopt -sublabel `ccalc -i $cnt -1` $ss)
+         @ cnt ++
+      end
+      if ( ! -f $odir/${inpref}.${olabel}.${oneigh}+orig.HEAD ) then
+         echo "Running 3dLocalstat $neigh on $involume..."
+         3dLocalstat   $mopt \
+                       -nbhd "RECT($neigh,$neigh,$neigh)" \
+                       $sopt \
+                       -datum short -reduce_max_vox $max_vox \
+                       -prefix $odir/${inpref}.${olabel}.${oneigh} \
+                       "${involume}"
+         3drefit $sublopt $odir/${inpref}.${olabel}.${oneigh}+orig   
+      else
+         echo "$odir/${inpref}.${olabel}.${oneigh} exists already"
+      endif
+   end
+
+REGROUP:
+   cd $stdir
+   
+   cd $odir
+   set cnt = 1
+   foreach lstat ($statvector)
+      if ( ! -f ${inpref}.us.${lstat}+orig.HEAD) then
+         echo "Creating ${inpref}.us.${lstat} ..."
+         
+         set sbl = ()
+         foreach neigh ($localvector)
+            set oneigh = `printf '%02d' $neigh`
+            set statlabel = $statlabelvector[$cnt].${oneigh}_mm
+            set sbl = ("$sbl" ${inpref}.${olabel}.${oneigh}+orig"[$statlabel]")
+         end
+         set noglob
+         3dTcat -prefix ${inpref}.us.${lstat} $sbl
+         unset noglob
+      else
+         echo "Reusing ${inpref}.us.${lstat} ..."
+      endif
+      @ cnt ++
+   end
+   cd $stdir
+
+SCALE:
+   cd $stdir
+   
+   cd $odir
+   set cnt = 1
+   foreach lstat ($statvector)
+      set sss = "${inpref}.us.${lstat}"
+      set ttt = "${inpref}.sc${Scale}.${lstat}"
+      if ( -f ${inpref}.${lstat}+orig.HEAD) then
+         rm -f ${inpref}.${lstat}+orig.*
+      endif
+      if ($Scale == 1) then
+         echo "Scaling by each sb median (overwriting) ${sss} to ${ttt} ..."
+         @ScaleVolume -scale_by_median -input ${sss}+orig -prefix ${ttt}
+      else if ($Scale == 2) then
+         echo "Scaling by $ScaleVal (overwriting) ${sss} to ${ttt} ..."
+         3dcalc -a ${sss}+orig -prefix ${ttt} -expr "a/$ScaleVal"
+      else if ($Scale == 3) then
+         echo "normalizing (overwriting) ${sss} to ${ttt} ..."
+         @ScaleVolume -norm -input ${sss}+orig -prefix ${ttt} 
+      else if ($Scale == 4) then
+         #do nothing, deal with speciality below
+      else if ($Scale == 5) then
+         #do nothing, deal with speciality below
+      else if ($Scale == 6) then
+         #do nothing, deal with speciality below
+      else if ($Scale == 0) then
+         echo "Copying unscaled signatures"
+         3dcopy $sss+orig $ttt
+      else 
+         echo "Bad scale value of $Scale"
+         goto END
+      endif
+      @ cnt ++
+   end
+   if ($Scale == 4) then
+      #Only scale mean signature per the equations derived 
+      foreach lstat ($statvector)
+         set sss = "${inpref}.us.${lstat}"
+         set ttt = "${inpref}.sc${Scale}.${lstat}" 
+         if ($lstat =~ med*) then
+            3dDetrend -overwrite -prefix ___dt -polort 0 ${sss}+orig
+            3dcalc -overwrite -a ___dt+orig -b ${inpref}.us.MAD+orig \
+                     -expr '(step(b)*a/b)' -prefix $ttt
+            rm -f ___dt+orig* 
+         else
+            #Just copy for ease on other scripts, nothing to do
+            3dcopy $sss+orig $ttt
+         endif
+      end
+   else if ($Scale == 5 || $Scale == 6) then
+      #Only scale mean signature per the equations derived
+      #But only use last MAD sub-brick.
+      #Also, scale MAD by last sub-brick 
+      foreach lstat ($statvector)
+         set sss = "${inpref}.us.${lstat}"
+         set ttt = "${inpref}.sc${Scale}.${lstat}" 
+         if ( ! -f ${inpref}.sc${Scale}.${lstat}+orig.HEAD) then
+            echo "Creating $ttt"
+            if ($lstat =~ med*) then
+               if ($Scale == 5) then
+                  3dDetrend -overwrite -prefix ___dt -polort 0 ${sss}+orig
+               else if ($Scale == 6) then
+                  #prepend anatomy
+                  3dbucket -prefix ___adt+orig "$stdir/${involume}" ${sss}+orig 
+                  3drefit -sublabel 0 MEDIAN.00_mm ___adt+orig
+                  3dDetrend -overwrite -prefix ___dt -polort 0 ___adt+orig
+               endif
+               3dcalc -overwrite -a ___dt+orig -b ${inpref}.us.MAD+orig'[$]' \
+                        -expr '(step(b)*a/b)' -prefix $ttt
+               rm -f ___dt+orig* ___adt+orig*
+            else if ($lstat =~ MAD*) then
+               set mm = `3dnvals ${inpref}.us.MAD+orig`
+               @ mm --
+               @ mm --
+               3dcalc -overwrite -a ${inpref}.us.MAD+orig"[0..$mm]" \
+                                 -b ${inpref}.us.MAD+orig'[$]' \
+                        -expr '(step(b)*a/b)' -prefix $ttt
+            else
+               #Just copy for ease on other scripts, nothing to do
+               3dcopy $sss+orig $ttt
+            endif
+         else 
+            echo "Reusing $ttt"
+         endif
+      end
+   endif
+   cd $stdir      
+goto END
+
+
+PARSE:
+set Narg = $#
+set cnt = 1
+set starttime=`date`
+set resample = 1
+set statvector = ""
+set localvector = ""
+set cleanafter = 1
+set inmask = ""
+set odir = './'
+set olabel = 'loc_st'
+set statopen = 0
+set localopen = 0
+set Scale = 0
+set ScaleVal = 0
+set max_vox = 0
+
+if ("$1" == '') goto HELP
+while ($cnt <= $Narg)
+   set donext = 1
+
+   if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+      goto HELP
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-d") then
+      set echo
+      set donext = 0   
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-no_scale") then
+      set Scale = 0
+      set donext = 0   
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-median_scale") then
+      set Scale = 1
+      set donext = 0   
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-norm") then
+      set Scale = 3
+      set donext = 0   
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-spnorm") then
+      set Scale = 4
+      set donext = 0   
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-spnorm2") then
+      set Scale = 5
+      set donext = 0   
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-aspnorm2") then
+      set Scale = 6
+      set donext = 0   
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-scale_by_dset_median") then
+      if ($cnt == $Narg) then
+         echo "Need label after -scale_by_dset_median"
+         goto END
+      else 
+         @ cnt ++
+         set Scale = 2
+         set ScaleVal = `3dBrickStat -median $argv[$cnt]`
+         echo $ScaleVal
+         set ScaleVal = $ScaleVal[2]
+         set donext = 0   
+      endif
+      
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-statlabel") then
+      if ($cnt == $Narg) then
+         echo "Need label after -statlabel"
+         goto END
+      else 
+         @ cnt ++
+         set olabel = $argv[$cnt]
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-max_vox") then
+      if ($cnt == $Narg) then
+         echo "Need label after -max_vox"
+         goto END
+      else 
+         @ cnt ++
+         set max_vox = $argv[$cnt]
+         set donext = 0   
+      endif
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-mask") then
+      if ($cnt == $Narg) then
+         echo "Need mask volume after -mask"
+         goto END
+      else
+         @ cnt ++
+         set localopen = 0
+         set statopen = 0
+         set inmask = $argv[$cnt]
+         set donext = 0   
+         #@ cnt ++
+         #echo "MASK SET" $cnt $argv[$cnt]
+      endif
+   endif
+
+
+   if ($donext && "$argv[$cnt]" == "-input") then
+      if ($cnt == $Narg) then
+         echo "Need volume for segmentation after -input"
+         goto END
+      else
+         @ cnt ++
+         set localopen = 0
+         set statopen = 0
+         set involume = "$argv[$cnt]"
+         set donext = 0   
+         #echo "INVOLUME SET" $cnt $argv[$cnt]
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-odir") then
+      if ($cnt == $Narg) then
+         echo "Need directory after -odir"
+         goto END
+      else
+         @ cnt ++
+         set odir = "$argv[$cnt]"
+         if (! -d $odir) mkdir -p $odir
+         if (! -d $odir) then
+            echo "Failed to create $odir"
+            goto END
+         endif
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-stat") then
+      if ($cnt == $Narg) then
+         echo "Need local stat names after -stat"
+         goto END
+      else
+         @ cnt ++
+         set localopen = 0
+         set statvector = ($statvector $argv[$cnt])
+         set donext = 0   
+         set statopen = 1
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-local") then
+      if ($cnt == $Narg) then
+         echo "Need neighborhood sizes after -local"
+         goto END
+      else
+         @ cnt ++
+         set statopen = 0
+         set localvector = ($localvector $argv[$cnt])
+         set donext = 0   
+         set localopen = 1
+      endif
+   endif
+
+  if ($donext) then
+      if ($statopen == 1) then
+         set statvector = ($statvector $argv[$cnt])
+         @ cnt ++
+      endif
+      if ($localopen == 1) then
+         set localvector = ($localvector $argv[$cnt])
+         @ cnt ++
+      endif
+      if ($statopen == 0 && $localopen == 0) then
+         echo "Parameter $argv[$cnt] not understood"
+         goto END
+      endif
+   else 
+      @ cnt ++
+   endif 
+
+end
+
+set statlabelvector = ()
+foreach lstat ($statvector)
+   if ($lstat =~ med*) then
+      set statlabelvector = ($statlabelvector MEDIAN)
+   else if ($lstat =~ MAD)  then
+      set statlabelvector = ($statlabelvector MAD)
+   else if ($lstat =~ *skew*) then
+      set statlabelvector = ($statlabelvector P2skew)
+   else if ($lstat =~ *kurt*) then
+      set statlabelvector = ($statlabelvector KURT)
+   else
+      echo "Don't have label for stat $lstat"
+      set stat = 1
+      goto END
+   endif
+end
+
+goto RET_PARSE
+
+HELP:
+goto END
+
+END:
+exit $stat
+
+
+
+
