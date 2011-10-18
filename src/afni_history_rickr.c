@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, OCT, 2011, RCR, "@radial_correlate", MICRO, TYPE_ENHANCE,
+   "require enough volumes per dataset, store file name correspondence",
+   NULL
+ } ,
+
  { 17, OCT, 2011, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "added -help for new -surf_* options, along with example #8",
    NULL
