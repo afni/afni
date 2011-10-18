@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, OCT, 2011, RCR, "uber_subject.py", MINOR, TYPE_NEW_OPT,
+   "added blur size control; removed requirement of stim timing files",
+   NULL
+ } ,
+
  { 18, OCT, 2011, RCR, "@radial_correlate", MICRO, TYPE_ENHANCE,
    "require enough volumes per dataset, store file name correspondence",
    NULL

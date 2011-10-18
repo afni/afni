@@ -125,9 +125,12 @@ g_history = """
     0.26 Oct  5, 2011 : do not re-create proc script on proc execution
          - was losing any user changes between creation and execution
     0.27 Oct 11, 2011 : small -help_install update
+    0.28 Oct 18, 2011 :
+         - added blur size control
+         - removed requirement of stim timing files
 """
 
-g_version = '0.27 (October 11, 2011)'
+g_version = '0.28 (October 18, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -179,9 +182,12 @@ g_subj_defs.stim_basis    = []          # basis functions: empty=GAM,
 g_subj_defs.tcat_nfirst   = 0           # first TRs to remove from each run
 g_subj_defs.volreg_base   = g_def_vreg_base  # in g_vreg_base_list, or ''
 g_subj_defs.motion_limit  = 0.3         # in mm
+g_subj_defs.blur_size     = 4.0         # in mm
+
 # symbolic GLTs
 g_subj_defs.gltsym           = []       # list of -gltsym options (sans SYM:)
 g_subj_defs.gltsym_label     = []       # list of -gltsym options (sans SYM:)
+
 # extra regress opts
 g_subj_defs.outlier_limit    = 0.0
 g_subj_defs.regress_jobs     = 1
@@ -283,6 +289,7 @@ class AP_Subject(object):
       self.ap_command += self.script_ap_align()
       self.ap_command += self.script_ap_tlrc()
       self.ap_command += self.script_ap_volreg()
+      self.ap_command += self.script_ap_blur()
       self.ap_command += self.script_ap_regress()
 
       # alter ap_command, removing last '\'
@@ -446,7 +453,8 @@ class AP_Subject(object):
 
       # ------------------------------------------------------------
       # at end, add post 3dD options
-      cmd += '%s-regress_make_ideal_sum sum_ideal.1D \\\n' % self.LV.istr
+      if self.svars.stim:
+         cmd += '%s-regress_make_ideal_sum sum_ideal.1D \\\n' % self.LV.istr
       cmd += '%s-regress_est_blur_epits \\\n' \
              '%s-regress_est_blur_errts \\\n' % (self.LV.istr, self.LV.istr)
 
@@ -607,7 +615,7 @@ class AP_Subject(object):
               matches the list of stim names (else warning)
       """
       if not self.svars.stim:
-         self.errors.append('** error: no stim timing files given\n')
+         self.warnings.append('** warnings: no stim timing files given\n')
          return ''
       if len(self.svars.stim) == 0:
          self.errors.append('** error: no stim timing files given\n')
@@ -719,6 +727,20 @@ class AP_Subject(object):
          cmd += '%s-volreg_tlrc_warp \\\n' % self.LV.istr
       elif self.LV.warp == 'adwarp':
          cmd += '%s-volreg_tlrc_adwarp \\\n' % self.LV.istr
+
+      return cmd
+
+   def script_ap_blur(self):
+      """- possibly set the following options: -blur_size
+      """
+
+      if 'blur' not in self.svars.blocks: return ''
+
+      cmd = ''
+
+      # add the -blur_size in any case, just to be explicit
+      if self.svars.blur_size > 0:
+         cmd += '%s-blur_size %s \\\n' % (self.LV.istr, self.svars.blur_size)
 
       return cmd
 
