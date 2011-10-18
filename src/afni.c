@@ -1423,6 +1423,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Activate the Omega 13"                                         ,
      "No time for pleasantries; we have a level-5 emergency!"        ,
      "Digitize me, Fred"                                             ,
+     "Drink to me only with thine eyes, and I will drink with mine"  ,
+     "O Captain, My Captain, rise up and hear the bells"             ,
+     "Ever returning spring, trinity sure to me you bring"           ,
 
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
