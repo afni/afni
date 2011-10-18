@@ -75,9 +75,9 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while (iarg < argc && argv[iarg][0] == '-') {
-           if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  0; iarg++; }
-           if( strncmp(argv[iarg],"-VERB" ,5) == 0 ){ verbose =  1; iarg++; }
-      else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; }
+           if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  0; iarg++; continue; }
+      else if( strncmp(argv[iarg],"-VERB" ,5) == 0 ){ verbose =  1; iarg++; continue; }
+      else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; continue; }
 
       else if ( strncmp(argv[iarg],"-label2",7) == 0 )
       {
@@ -86,34 +86,34 @@ int main( int argc , char *argv[] )
            ERROR_exit( "3dinfo needs an argument after -label2number\n");
         labelName = malloc(sizeof(char) * 2048);
         strcpy(labelName, argv[iarg]);
-        iarg++;
+        iarg++; continue;
       }
       else if( strncmp(argv[iarg],"-space",6) == 0) { 
-         sing[N_sing++] = DSET_SPACE; iarg++;
+         sing[N_sing++] = DSET_SPACE; iarg++; continue;
       } else if( strncmp(argv[iarg],"-av_space",6) == 0) { 
-         sing[N_sing++] = AV_DSET_SPACE; iarg++;
+         sing[N_sing++] = AV_DSET_SPACE; iarg++; continue;
       } else if( strncmp(argv[iarg],"-is_nifti",6) == 0) { 
-         sing[N_sing++] = IS_NIFTI; iarg++;
+         sing[N_sing++] = IS_NIFTI; iarg++; continue;
       } else if( strncmp(argv[iarg],"-is_oblique",6) == 0) { 
-         sing[N_sing++] = IS_OBLIQUE; iarg++;
+         sing[N_sing++] = IS_OBLIQUE; iarg++; continue;
       } else if( strcmp(argv[iarg],"-prefix") == 0) {
-         sing[N_sing++] = PREFIX; iarg++;
+         sing[N_sing++] = PREFIX; iarg++; continue;
       } else if( strcmp(argv[iarg],"-prefix_noext") == 0) {
-         sing[N_sing++] = PREFIX_NOEXT; iarg++;
+         sing[N_sing++] = PREFIX_NOEXT; iarg++; continue;
       } else if( strncmp(argv[iarg],"-ni",3) == 0) {
-         sing[N_sing++] = NI; iarg++;
+         sing[N_sing++] = NI; iarg++; continue;
       } else if( strncmp(argv[iarg],"-nj",3) == 0) {
-         sing[N_sing++] = NJ; iarg++;
+         sing[N_sing++] = NJ; iarg++; continue;
       } else if( strncmp(argv[iarg],"-nk",3) == 0) {
-         sing[N_sing++] = NK; iarg++;
+         sing[N_sing++] = NK; iarg++; continue;
       } else if( strncmp(argv[iarg],"-nt",3) == 0) {
-         sing[N_sing++] = NT; iarg++;
+         sing[N_sing++] = NT; iarg++; continue;
       } else if( strncmp(argv[iarg],"-nijk",3) == 0) {
-         sing[N_sing++] = NIJK; iarg++;
+         sing[N_sing++] = NIJK; iarg++; continue;
       } else if( strcmp(argv[iarg],"-labeltable") == 0) {
-         sing[N_sing++] = LTABLE; iarg++;
+         sing[N_sing++] = LTABLE; iarg++; continue;
       } else if( strcmp(argv[iarg],"-labeltable_as_atlas_points") == 0) {
-         sing[N_sing++] = LTABLE_AS_ATLAS_POINT_LIST; iarg++;
+         sing[N_sing++] = LTABLE_AS_ATLAS_POINT_LIST; iarg++; continue;
       } else {
          ERROR_exit("Option %s unknown", argv[iarg]);
       }
