@@ -38,7 +38,8 @@ if ( ! -f loc.priP+orig.HEAD) then
 endif
 
 SIGS:
-if ( ! -f sigs+orig.HEAD) then
+if ( ! -f sigs+orig.HEAD && \
+      ("$priors" == "SVM" || "$priors" == "PROB") ) then
    @CalculateSignatures -input anat.nii  \
                         -stat median MAD P2skew \
                         -statlabel medMADskew \
