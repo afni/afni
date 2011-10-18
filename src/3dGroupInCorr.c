@@ -313,17 +313,27 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    atr = NI_get_attribute(nel,"datafile") ;
    if( atr == NULL ) GQUIT("datafile attribute missing") ;
    dfname = strdup(atr) ; nbytes_dfname = THD_filesize(dfname) ;
-   if( nbytes_dfname <= 0 )
-     GQUIT("datafile is missing") ;
-   else if( nbytes_dfname < nbytes_needed ){
-     char str[2048] ;
-     sprintf(str,"datafile has %s bytes but needs at least %s",
+   if( nbytes_dfname <= 0 && strstr(dfname,"/") != NULL ){
+     char *tnam = THD_trailname(atr,0) ;
+     nbytes_dfname = THD_filesize(tnam) ;
+     if( nbytes_dfname > 0 ){ free(dfname); dfname = strdup(tnam); }
+   }
+   if( nbytes_dfname <= 0 ){
+     char mess[THD_MAX_NAME+256] ;
+     sprintf(mess,"datafile is missing (%s)",dfname) ; GQUIT(mess) ;
+   } else if( nbytes_dfname < nbytes_needed ){
+     char mess[THD_MAX_NAME+1024] ;
+     sprintf(mess,"datafile %s has %s bytes but needs at least %s",
+              dfname , 
               commaized_integer_string(nbytes_dfname) ,
               commaized_integer_string(nbytes_needed) ) ;
-     GQUIT(str) ;
+     GQUIT(mess) ;
    }
    fdes = open( dfname , O_RDONLY ) ;
-   if( fdes < 0 ) GQUIT("can't open datafile") ;
+   if( fdes < 0 ){
+     char mess[THD_MAX_NAME+256] ;
+     sprintf(mess,"can't open datafile (%s)",dfname) ; GQUIT(mess) ;
+   }
 
    /* ivec[i] is the voxel spatial index of the i-th vector */
 
