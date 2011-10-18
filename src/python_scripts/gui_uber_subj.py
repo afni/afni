@@ -273,6 +273,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                             "base '%s' not in %s\n\n" \
                             % (text, ', '.join(USUBJ.g_vreg_base_list)), obj)
           
+      elif obj == self.gvars.Line_blur_size:
+         self.update_textLine_check(obj, obj.text(), 'blur_size',
+                                    'FWHM blur size', QLIB.valid_as_float)
+
       elif obj == self.gvars.Line_motion_limit:
          self.update_textLine_check(obj, obj.text(), 'motion_limit',
                                     'motion censor limit', QLIB.valid_as_float)
@@ -561,7 +565,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
    def group_box_expected(self):
       """create a group box with a VBox layout:
-         for controlling sujbect vars: tcat_nfirst, volreg_base, motion_limit
+         for controlling sujbect vars: tcat_nfirst, volreg_base, blur_size
+                                       motion_limit
       """
 
       gbox = self.get_styled_group_box("expected options")
@@ -576,6 +581,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
       layout = QtGui.QGridLayout(frame)         # now a child of frame
+      posn = 0
 
       # --------------------------------------------------
       # tcat_nfirst
@@ -586,8 +592,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.connect(self.gvars.Line_tcat_nfirst,
                    QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
-      layout.addWidget(label, 0, 0)
-      layout.addWidget(self.gvars.Line_tcat_nfirst, 0, 2)
+      layout.addWidget(label, posn, 0)
+      layout.addWidget(self.gvars.Line_tcat_nfirst, posn, 2)
+      posn += 1
 
       # --------------------------------------------------
       # volreg_base
@@ -602,9 +609,22 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.connect(self.gvars.Line_volreg_base,
                    QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
-      layout.addWidget(label, 1, 0)
-      layout.addWidget(pbut, 1, 1)
-      layout.addWidget(self.gvars.Line_volreg_base, 1, 2)
+      layout.addWidget(label, posn, 0)
+      layout.addWidget(pbut, posn, 1)
+      layout.addWidget(self.gvars.Line_volreg_base, posn, 2)
+      posn += 1
+
+      # --------------------------------------------------
+      # blur size
+      label = QtGui.QLabel("blur size (FWHM in mm)")
+      label.setStatusTip("Full Width at Half Max of gaussian blur to apply")
+      self.gvars.Line_blur_size = QtGui.QLineEdit()
+      self.gvars.Line_blur_size.setText(self.svars.blur_size)
+      self.connect(self.gvars.Line_blur_size,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
+      layout.addWidget(label, posn, 0)
+      layout.addWidget(self.gvars.Line_blur_size, posn, 2)
+      posn += 1
 
       # --------------------------------------------------
       # motion_limit
@@ -614,8 +634,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.Line_motion_limit.setText(self.svars.motion_limit)
       self.connect(self.gvars.Line_motion_limit,
                    QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
-      layout.addWidget(label, 2, 0)
-      layout.addWidget(self.gvars.Line_motion_limit, 2, 2)
+      layout.addWidget(label, posn, 0)
+      layout.addWidget(self.gvars.Line_motion_limit, posn, 2)
+      posn += 1
 
       frame.setLayout(layout)
       layout.setMargin(g_spacing)
@@ -2390,6 +2411,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif svar == 'volreg_base':  
                                    obj = self.gvars.Line_volreg_base
                                    obj.setText(self.svars.volreg_base)
+      elif svar == 'blur_size':
+                                   obj = self.gvars.Line_blur_size
+                                   obj.setText(self.svars.blur_size)
       elif svar == 'motion_limit':
                                    obj = self.gvars.Line_motion_limit
                                    obj.setText(self.svars.motion_limit)
