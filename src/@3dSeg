@@ -254,6 +254,12 @@ endif
 goto RET_PARSE
 
 HELP:
+echo "@3dSeg -input anat+orig"
+echo "@3dSeg -svm -input anat+orig -mask anat.ns+orig"
+echo "@3dSeg -prob -input anat+orig -mask anat.ns+orig"
+echo "@3dSeg -fast -input anat+orig -mask anat.ns+orig"
+echo "@3dSeg -fsl -input anat+orig -mask anat.ns+orig"
+echo "@3dSeg -nopri -input anat+orig -mask anat.ns+orig"
 goto END
 
 BEND:
