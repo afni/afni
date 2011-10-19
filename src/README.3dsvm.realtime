@@ -1,0 +1,62 @@
+
+How to configure the 3dsvm plugin for real-time experiments using plugout_drive:
+===============================================================================
+
+  plugout_drive is a command-line program that can be used to drive (control) 
+  AFNI (please see README.driver for more details) and allows the user to automate 
+  the configuration of the 3dsvm plugin for real-time experiments.
+
+  Using plugout_drive to set up the 3dsvm plugin for real-time experiments is 
+  very similar to the usage of the command-line program 3dsvm for off-line 
+  SVM analysis. Most of the 3dsvm (and SVM-Light) command-line options can be 
+  used in conjunction with plugout_drive.
+
+  Usage:
+  ------
+    
+
+    plugout_drive -com '3DSVM [options]'
+
+    
+  Examples:
+  ---------
+
+      Training:
+      plugout_drive -com '3DSVM -rt_train -trainlabels run1_categories.1D ...
+                                -mask mask+orig -model model_run1'
+
+      Testing:
+      plugout_drive -com '3DSVM -rt_test -model model_run1+orig ...
+                                -stim_ip 111.222.333.444 -stim_port 5000'
+        
+      N.B.: -rt_train and -rt_test serve as flags for the real-time training 
+            and testing modes, respectively. No brik or nifti file is 
+            specified since it is expected from the scanner (or rt_feedme).
+
+  Options:
+  --------
+  N.B. The plugout_drive options are almost identical to the "normal" 3dsvm usage, 
+       (see 3dsvm -help) but restricted to 2-class classification and regression.
+       Coming soon (or someday when asked): multi-class classification
+
+
+
+Reference:
+LaConte, S., Strother, S., Cherkassky, V. and Hu, X. 2005. Support vector
+    machines for temporal classification of block design fMRI data. 
+    NeuroImage, 26, 317-329.
+
+Specific to real-time fMRI:
+S. M. LaConte. (2011). Decoding fMRI brain states in real-time. NeuroImage, 56:440-54.
+S. M. LaConte, S. J. Peltier, and X. P. Hu. (2007). Real-time fMRI using brain-state classification. Hum Brain Mapp, 208:1033–1044. 
+
+
+Please also consider to reference:
+T. Joachims, Making Large-Scale SVM Learning Practical.
+     Advances in Kernel Methods - Support Vector Learning,
+     B. Schoelkopf and C. Burges and A. Smola (ed.), MIT Press, 1999.
+
+RW Cox. AFNI: Software for analysis and visualization of
+    functional magnetic resonance neuroimages.
+    Computers and Biomedical Research, 29:162-173, 1996.
+
