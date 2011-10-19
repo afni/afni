@@ -88,10 +88,9 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         \
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
-           niccc rbox qdelaunay 3dXYZcat 3dPolyfit 3dNwarpApply        \
+           niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
            1dCorrelate 3dCountSpikes 3dNwarpCalc                                \
            $(EXTRAS)
-#           niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -2758,11 +2757,11 @@ tsdsolve:tsdsolve.c
 #############
 #AVOVK directory
 
-#3dkmeans: avovk/3dkmeans.c avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
-#	( cd avovk ;	\
-#	./@MakeLocalMake	;\
-#	$(MAKE) afni_all  ;	\
-#	cd ../	;		)
+3dkmeans: avovk/3dkmeans.c avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
+	( cd avovk ;	\
+	./@MakeLocalMake	;\
+	$(MAKE) afni_all  ;	\
+	cd ../	;		)
 
 libsegtools.a: avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
 	( cd avovk ;	\
