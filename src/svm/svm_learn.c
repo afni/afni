@@ -20,6 +20,7 @@
 # include "svm_common.h"
 # include "svm_learn.h"
 
+static long verbosity=1;
 
 /* interface to QP-solver */
 double *optimize_qp(QP *, double *, long, double *, LEARN_PARM *);

@@ -82,11 +82,10 @@ double sprod_ss(WORD *a, WORD *b)
       }
       else {
         sum+=ai->weight * bj->weight;
-        
         ai++;
         bj++;
       }
-    } 
+    }
     
     return((double)sum);
 }
