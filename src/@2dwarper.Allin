@@ -4,6 +4,7 @@ if ("$1" =~ "" || "$1" =~ -h*)  goto HELP
 goto START
 
 HELP:
+set prog = `basename $0`
 echo " script to do 2D registration on each slice of a 3D+time"
 echo " dataset, and glue the results back together at the end"
 echo ""
@@ -20,16 +21,66 @@ echo " argument, the output dataset will be 'wilma_reg+orig'."
 echo " The output registration parameters files will"
 echo " be 'wilma_param_ssss.1D', where 'ssss' is the slice number."
 echo ""
+echo " usage: $prog [options] INPUT_PREFIX"
+echo ""
+echo "    example: $prog epi_run1"
+echo "    example: $prog -mask my_mask epi_run1"
+echo ""
+echo " options:"
+echo "    -mask MSET    : provide the prefix of an existing mask dataset"
+echo ""
 goto END
 
 START:
-set inp = $1
+set mset = ""   # mask dataset
+set inp  = ""   # input
 
-#NEED TO ADD: mask option, base option
+set ac = 1
+while ( $ac <= $#argv )
+  if ( "$argv[$ac]" == "-mask" ) then
+    @ ac ++
+    if ( $ac > $#argv ) then
+      echo "** missing parameter for option '-mask'"
+      exit 1
+    endif
+    set mset = $argv[$ac]
+  else
+    # input datset
+    if ( $inp != "" ) then
+      echo "** too many params, should have options followed by single dset"
+      echo "   (seem to have multiple inputs: $inp $argv[$ac-])"
+      exit 1
+    endif
+    set inp = $argv[$ac]
+  endif
+
+  @ ac ++
+end
+
+if ( $inp == "" ) then
+  echo "** missing input dataset"
+  exit 1
+endif
+
+#NEED TO ADD: base option
 
 ### extract number of slices into nz
 
 set qq  = ( `3dAttribute DATASET_DIMENSIONS ${inp}+orig` )
+if ( $status ) then
+  echo "** failed to get DATASET_DIMENSIONS from $inp+orig"
+  exit 1
+endif
+
+if ( $mset != "" ) then
+  set mq  = ( `3dAttribute DATASET_DIMENSIONS $mset+orig` )
+  if ( "$mq" != "$qq" ) then
+    echo "** dimensions do not match between $inp+org and $mset+orig"
+    exit 1
+  endif
+  echo "================== Have mask dataset: $mset+orig =================="
+endif
+
 set nz  = $qq[3]
 @ nz1   = $nz - 1
 
@@ -55,12 +106,18 @@ echo "========== Computing mean dataset as registration target =========="
 
 setenv AFNI_QUIET_STARTUP YES
 
+set source_mask = ""    # maybe a source mask option will be applied
+
 foreach zz ( `count 0 $nz1` )
 
   echo "____________________ processing slice #$zz ____________________"
 
   3dZcutup -keep $zz $zz -prefix ${inp}_${zz}      ${inp}+orig
   3dZcutup -keep $zz $zz -prefix ${inp}_mean_${zz} ${inp}_mean+orig
+  if ( $mset != "" ) then
+    3dZcutup -keep $zz $zz -prefix ${mset}_${zz}   ${mset}+orig
+    set source_mask = "-source_mask ${mset}_${zz}+orig"
+  endif
 
 ### process each time point in turn (-nwarp only allows 1 sub-brick)
 
@@ -70,6 +127,7 @@ foreach zz ( `count 0 $nz1` )
                 -prefix ${inp}_reg_${zz}_${tt}         \
                 -base ${inp}_mean_${zz}+orig           \
                 -input ${inp}_${zz}+orig"[$tt]"        \
+                $source_mask                           \
                 -autoweight -ls -onepass -nmatch 100%  \
                 -maxrot 10 -maxshf 10                  \
                 -maxscl 1.05 -maxshr 0.09              \
