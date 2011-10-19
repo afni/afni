@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, OCT, 2011, RCR, "@2dwarper.Allin", MICRO, TYPE_NEW_OPT,
+   "added a -mask option",
+   "Added for A Messinger."
+ } ,
+
  { 19, OCT, 2011, RCR, "GIFTI", MINOR, TYPE_ENHANCE,
    "can read/write ascii COMPLEX64, COMPLEX128, RGB24",
    "Requested by H Breman, J Mulders and N Schmansky."
