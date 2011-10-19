@@ -88,9 +88,10 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         \
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
-           niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
+           niccc rbox qdelaunay 3dXYZcat 3dPolyfit 3dNwarpApply        \
            1dCorrelate 3dCountSpikes 3dNwarpCalc                                \
            $(EXTRAS)
+#           niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -735,12 +736,16 @@ d3dmerge:3dmerge.c
 	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src            \
               $(LFLAGS) -l3DEdge $(LLIBS)
 
-### From Stephen Laconte
-3dsvm:svm/svm_common.c svm/svm_learn.c svm/3dsvm_common.c svm/svm_hideo.c svm/3dsvm.c
+### From Stephen LaConte
+3dsvm:
 	( cd svm/   ;  \
-	  $(CC) -o 3dsvm 3dsvm_common.c svm_common.c svm_hideo.c 3dsvm.c -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS) ;  \
-	  $(CP) 3dsvm ..  ;  \
-	  cd .. ;)
+	  mkdir svml ; cd svml ; cp ../patch/orig/* . ; \
+          patch -p1 < ../patch/orig.patch ; mv * ../. ; cd .. ; rmdir svml ; \
+          $(CC) -o 3dsvm 3dsvm_common.c svm_common.c svm_learn.c svm_hideo.c 3dsvm.c \
+                -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS) ;  \
+	  $(MV) 3dsvm ../. ; \
+          cd .. ;)
+
 whereami:whereami.c
 	$(RM) $@
 	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(LLIBS)
@@ -2099,14 +2104,18 @@ plug_retroicor.$(SO):plug_retroicor.c retroicor.o
 plug_render.$(SO):plug_null.o
 	$(LD) $(PLUGIN_LFLAGS) -o plug_render.$(SO) plug_null.o
 
-### From Stephen Laconte
-plug_3dsvm.$(SO):svm/plug_3dsvm.c svm/svm_common.c svm/svm_learn.c svm/3dsvm_common.c svm/svm_hideo.c
-	(  cd svm;   \
-	   $(RM) $@ ;  \
-		$(PLUGIN_CC) -c plug_3dsvm.c 3dsvm_common.c svm_common.c svm_hideo.c $(ISFLAGS)  -I.. ;  \
-		$(LD) $(PLUGIN_LFLAGS) -o plug_3dsvm.$(SO) plug_3dsvm.o 3dsvm_common.o svm_common.o svm_hideo.o -L. -L.. ; \
-	   cp plug_3dsvm.$(SO) ..  ;  \
-	   cd .. ;  )
+### From Stephen LaConte
+plug_3dsvm.$(SO):
+	( cd svm;   \
+          $(RM) ../$@ ; \
+	  mkdir svml ; cd svml ; cp ../patch/orig/* . ; \
+          patch -p1 < ../patch/orig.patch ; mv * ../. ; cd .. ; rmdir svml ; \
+          $(PLUGIN_CC) -c plug_3dsvm.c 3dsvm_common.c svm_common.c  svm_learn.c \
+            svm_hideo.c $(ISFLAGS)  -I.. ; \
+	  $(LD) $(PLUGIN_LFLAGS) -o plug_3dsvm.$(SO) plug_3dsvm.o 3dsvm_common.o \
+            svm_common.o svm_learn.o svm_hideo.o -L. -L.. ; \
+	  $(MV) plug_3dsvm.so ../. ; \
+	  cd .. ;  )
 
 # Stuff for plugins on CYGWIN:
 # Each plugin must be listed here and have 2 corresponding lines in fixed_plugins.h
@@ -2749,11 +2758,11 @@ tsdsolve:tsdsolve.c
 #############
 #AVOVK directory
 
-3dkmeans: avovk/3dkmeans.c avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
-	( cd avovk ;	\
-	./@MakeLocalMake	;\
-	$(MAKE) afni_all  ;	\
-	cd ../	;		)
+#3dkmeans: avovk/3dkmeans.c avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
+#	( cd avovk ;	\
+#	./@MakeLocalMake	;\
+#	$(MAKE) afni_all  ;	\
+#	cd ../	;		)
 
 libsegtools.a: avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
 	( cd avovk ;	\
