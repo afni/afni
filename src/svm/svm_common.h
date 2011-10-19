@@ -125,6 +125,10 @@ typedef struct learn_parm {
   double svm_unlabbound;
   double *svm_cost;            /* individual upper bounds for each var */
   long   totwords;             /* number of features */
+  
+  /* JL July 2011: Added maximum number of iterations */
+  long max_iterations;
+
 } LEARN_PARM;
 
 typedef struct kernel_parm {

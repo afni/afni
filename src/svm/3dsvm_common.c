@@ -1,9 +1,9 @@
 #include "3dsvm_common.h"
-#include "svm_learn.c"
 #include "debugtrace.h"
 
-# define PROGRAM_NAME   "3dsvm"   /* name of this program -
-                                     used to include commandline history in model */
+/* JL Sep. 2010:  Global variables used for real-time training/testing.
+ * If not declared here, unknown */
+RT_SVM_VARS GLOBAL_svm_vars = {0};
 
 /* from svm_classify.c - copied directly (print_help) for now since this file
  *                       also has main in it */
@@ -23,7 +23,7 @@ void print_help_classify(void)
  * omitting the wait_any_key()) for now since this file also has main in it */
 void print_help_learn()
 {
-  printf("\nSVM-light %s: Support Vector Machine, learning module     %s\n",
+  printf("\nSVM-light %s: Support Vector Machine, learning module     %sstim\n",
       VERSION_SVMLIGHT, VERSION_DATE_SVMLIGHT);
   copyright_notice();
   printf("   usage: svm_learn [options] example_file model_file\n\n");
@@ -115,33 +115,32 @@ void print_version()
   printf("*** 3dsvm: %s (%s), SVM-light: %s ***\n",
       VERSION_3DSVM, VERSION_DATE_3DSVM, VERSION_SVMLIGHT);
   printf("*************************************************\n");
-  printf( change_string );
+  printf("%s", change_string);
 }
-
 
 void detrend_linear_cnsrs(float *data, float *data_cnsrs, LABELS *labels)
 {
-  int nt, ntc, n_t, n_tcnsrs;
+  int t, tc, nt, ntc = 0;
   
-  ENTRY("detrend_linear_cnsrc");
+  ENTRY("detrend_linear_cnsrs");
 
-  n_t = labels->n;
-  n_tcnsrs = n_t - labels->n_cnsrs;
+  nt = labels->n;
+  ntc = nt - labels->n_cnsrs;
 
-  for(nt = 0, ntc = 0; nt < n_t, ntc < n_tcnsrs; nt++) {
-    if((labels->lbls[nt] != 9999) && (labels->lbls[nt] != -9999)) {
-      data_cnsrs[ntc] = data[nt];
-      ntc++;
+  for(t = 0, tc = 0; t < nt; t++) {
+    if((labels->lbls[t] != 9999) && (labels->lbls[t] != -9999)) {
+      data_cnsrs[tc] = data[t];
+      tc++;
       }
   }
 
-  DETREND_linear(n_t, data);
-  DETREND_linear(n_tcnsrs, data_cnsrs);
+  DETREND_linear(nt,  data);
+  DETREND_linear(ntc, data_cnsrs);
  
-  for(nt=0, ntc=0; nt<n_t, ntc<n_tcnsrs; nt++) {
-    if((labels->lbls[nt] != 9999) && (labels->lbls[nt] != -9999)) {
-      data[nt] = data_cnsrs[ntc];
-      ntc++;
+  for(t=0, tc=0; t<nt; t++) {
+    if((labels->lbls[t] != 9999) && (labels->lbls[t] != -9999)) {
+      data[t] = data_cnsrs[tc];
+      tc++;
       }
   }
   EXRETURN; 
@@ -203,10 +202,433 @@ void write_svmLight_doc(DOC *docs, long nt, long nvox,
   EXRETURN;
 }
 
+/* JL Sep. 2010 */
+/*    Mai  2011 */
+void printASLoptions(ASLoptions* options)
+{
+
+  ENTRY("printASLoptions");
+
+  INFO_message("ASLoptipns: labelFile       = %s\n", options->labelFile);
+  INFO_message("ASLoptions: censorFile      = %s\n", options->censorFile);
+  INFO_message("ASLoptions: trainFile       = %s\n", options->trainFile);
+  INFO_message("ASLoptions: maskFile        = %s\n", options->maskFile);
+  INFO_message("ASLoptions: modelFile       = %s\n", options->modelFile);
+  INFO_message("ASLoptions: docFile         = %s\n", options->docFile);
+  INFO_message("ASLoptions: docFileOnly     = %s\n", options->docFileOnly);
+  INFO_message("ASLoptions: kernelName      = %s\n", options->kernelName);
+  INFO_message("ASLoptions: svmType         = %s\n", options->svmType);
+  INFO_message("ASLoptions: outModelNoMask  = %d\n", options->outModelNoMask);
+  INFO_message("ASLoptions: noPredDetrend   = %d\n", options->noPredDetrend);
+  INFO_message("ASLoptions: noPredCensor    = %d\n", options->noPredCensor);
+  INFO_message("ASLoptions: noPredScale     = %d\n", options->noPredScale);
+  INFO_message("ASLoptions: rtTrain         = %d\n", options->rtTrain);
+  INFO_message("ASLoptions: rtTest          = %d\n", options->rtTest);
+  INFO_message("ASLoptions: rtIP            = %s\n", options->rtIP);
+  INFO_message("ASLoptions: rtPort          = %d\n", options->rtPort);
+  INFO_message("ASLoptions: classout        = %d\n", options->classout);
+  INFO_message("ASLoptions: testFile        = %d\n", options->testFile);
+  INFO_message("ASLoptions: multiclass      = %s\n", options->multiclass);
+  INFO_message("ASLoptions: predFile        = %s\n", options->predFile);
+  INFO_message("ASLoptions: testLabelFile   = %s\n", options->testLabelFile);
+  INFO_message("ASLoptions: modelAlphaFile  = %s\n", options->modelAlphaFile);
+  INFO_message("ASLoptions: modelWeightFile = %s\n", options->modelWeightFile);
+
+  EXRETURN;
+}
+
+/* JL Nov 2010 */
+void printAfniModel( AFNI_MODEL *afniModel )
+{
+
+  int i, t = 0;
+
+
+  ENTRY("printAfniModel");
+
+  if( afniModel->version < 1.00 ) {
+    ERROR_message("Can not print afniModel! Version number: '%f' outdated!",
+        afniModel->version);
+    EXRETURN;
+    }
+
+  INFO_message("afniModel: version                      = %f\n", afniModel->version);
+  INFO_message("afniModel: svm_type                     = %s\n", afniModel->svm_type);
+  INFO_message("afniModel: mask_used                    = %d\n", afniModel->mask_used);
+  INFO_message("afniModel: class_count                  = %d\n", afniModel->class_count);
+  INFO_message("afniModel: combinations                 = %d\n", afniModel->combinations);
+  INFO_message("afniModel: timepoints                   = %d\n", afniModel->timepoints);
+
+  for( i=0; i<afniModel->combinations; ++i ) {
+    INFO_message("afniModel: combName[%04d]               = %s\n", i, afniModel->combName[i]);
+    INFO_message("afniModel: kernel_custom[%04d]          = %s\n", i, afniModel->kernel_custom[i]);
+    INFO_message("afniModel: kernel_type[%04d]            = %d\n", i, afniModel->kernel_type[i]);
+    INFO_message("afniModel: polynomial_degree[%04d]      = %f\n", i, afniModel->polynomial_degree[i]);
+    INFO_message("afniModel: rbf_gamma[%04d]              = %f\n", i, afniModel->rbf_gamma[i]);
+    INFO_message("afniModel: linear_coefficient[%04d]     = %f\n", i, afniModel->linear_coefficient[i]);
+    INFO_message("afniModel: total_masked_features[%04d]  = %d\n", i, afniModel->total_masked_features[i]);
+    INFO_message("afniModel: total_support_vectors[%04d]  = %d\n", i, afniModel->total_support_vectors[i]);
+    INFO_message("afniModel: b[%04d]                      = %f\n", i, afniModel->b[i]);
+    INFO_message("afniModel: eps[%04d]                    = %f\n", i, afniModel->eps[i]);
+    INFO_message("afniModel: svm_c[%04d]                  = %f\n", i, afniModel->svm_c[i]);
+    INFO_message("afniModel: biased_hyperplane[%04d]      = %d\n", i, afniModel->biased_hyperplane[i]);
+    INFO_message("afniModel: skip_final_opt_check[%04d]   = %d\n", i, afniModel->skip_final_opt_check[i]);
+    INFO_message("afniModel: svm_maxqpsize[%04d]          = %d\n", i, afniModel->svm_maxqpsize[i]);
+    INFO_message("afniModel: svm_newvarsinqp[%04d]        = %d\n", i, afniModel->svm_newvarsinqp[i]);
+    INFO_message("afniModel: svm_iter_to_shrink[%04d]     = %d\n", i, afniModel->svm_iter_to_shrink[i]);
+    INFO_message("afniModel: transduction_posratio[%04d]  = %f\n", i, afniModel->transduction_posratio[i]);
+    INFO_message("afniModel: svm_costratio[%04d]          = %f\n", i, afniModel->svm_costratio[i]);
+    INFO_message("afniModel: svm_costratio_unlab[%04d]    = %f\n", i, afniModel->svm_costratio_unlab[i]);
+    INFO_message("afniModel: svm_unlabbound[%04d]         = %f\n", i, afniModel->svm_unlabbound[i]);
+    INFO_message("afniModel: epsilon_a[%04d]              = %f\n", i, afniModel->epsilon_a[i]);
+    INFO_message("afniModel: epsilon_crit[%04d]           = %f\n", i, afniModel->epsilon_crit[i]);
+    INFO_message("afniModel: compute_loo[%04d]            = %d\n", i, afniModel->compute_loo[i]);
+    INFO_message("afniModel: rho[%04d]                    = %f\n", i, afniModel->rho[i]);
+    INFO_message("afniModel: xa_depth[%04d]               = %d\n", i, afniModel->xa_depth[i]);
+    for( t=0; t<afniModel->timepoints; ++t ) {
+      INFO_message("afniModel: cAlphas[%04d][%04d]          = %e\n", i, t, afniModel->cAlphas[i][t]);
+      INFO_message("afniModel: alphas[%04d][%04d]           = %e\n", i, t, afniModel->alphas[i][t]);
+    }
+  }
+
+  EXRETURN;
+
+}
+
+/* JL Sep. 2010: This function was originally defined in plug_3dsvm.c. and
+ * only used by the plugin. Now it is also used by 3dsvm directly */
+void printArgv(char **myargv, int *myargc)
+{
+  int i = 0;
+
+  ENTRY("printArgv");
+
+  INFO_message("%s \\\n", myargv[0]);
+  for( i=1; i<*myargc; ++i) printf("\t%s \\\n", myargv[i]);
+  INFO_message("\n");
+
+  EXRETURN;
+}
+
+/* JL Sep. 2010: This function was originally defined in plug_3dsvm.c.
+ * and only used by the plugin. Now also used by 3dsvm directly to
+ * read command-line options from environment (e.g. .afnirc) */
+void argvAppend(char **myargv, int *myargc, char *option, char *value)
+{
+
+  ENTRY("argvAppend");
+
+  /* --- append option --- */
+  if(   (myargv[*myargc] = (char *)malloc( LONG_STRING * sizeof(char) ))   ) {
+    strncpy(myargv[*myargc], option, LONG_STRING);
+    (*myargc)++;
+  }
+  else ERROR_exit("Could not allocate option string!");
+
+  /* --- append value --- */
+  if( value[0] ) {
+    if(   (myargv[*myargc] = (char *)malloc( LONG_STRING * sizeof(char) ))   ) {
+      strncpy(myargv[*myargc],value, LONG_STRING);
+      (*myargc)++;
+    }
+    else ERROR_exit("Could not allocate argument string!");
+  }
+
+  EXRETURN;
+}
+
+void freeArgv( char **myargv, int myargc )
+{
+  int i = 0;
+
+  ENTRY("freeArgv");
+
+  for( i=0; i<myargc; i++ ) {
+    myargv[i]='\0';
+    free(myargv[i]);
+  }
+
+  EXRETURN;
+}
+
+/* JL Sep. 2010: This function goes through argv and returns 1 
+ * if option (or option && value) is present */ 
+int argvCheck(char **myargv, int *myargc, char *option, char *value)
+{
+  int i = 0;
+
+  ENTRY("argvCheck");
+
+  for( i=0; i<*myargc; ++i ) {
+    if( !strncmp(myargv[i], option, LONG_STRING) ) {
+      if( (value[0])  && (i<*myargc-2) ) {
+        if( !strncmp(myargv[i+1], value, LONG_STRING) ){
+          RETURN(1);
+        }
+      }
+      if( !value[0] ) RETURN(1);
+    }
+  }
+
+  RETURN(0);
+}
+
+/* JL Mai 2011: My poor mans way to parse the command-line into argc, argv */
+void getAllocateCmdlArgv( char *cmdl, char *progname, int *myargc, char ***myargv) 
+{
+  
+  long      nargs        =  0;
+  char **   args         = NULL;
+  char *    cmdl_copy    = NULL;
+  char *    option       = NULL;
+
+
+  ENTRY("getAllocateCmdlArgv");
+
+  
+  /* -- initialize for strtok -- */
+  cmdl_copy = strdup(cmdl);
+  option    = strtok(cmdl_copy, " ");
+  
+  while( option != NULL ) {
+    nargs++;
+    option = strtok(NULL, " ");
+  }
+  nargs++; /* +1 for program name */
+  /* fprintf(stderr, "** DBG: nargs = %ld\n", nargs); */
+
+
+  /* -- allocate args -- */
+  args = Allocate2c(nargs, LONG_STRING);
+
+  /* -- go through command line and assign to args --*/
+  strncpy(args[0], progname, LONG_STRING); /* copy program name */
+  nargs = 1;
+    
+  cmdl_copy = strdup(cmdl);
+  option    = strtok(cmdl_copy, " ");
+
+  while( option != NULL ) {
+
+    if( strlen(option) > LONG_STRING ) {
+      ERROR_exit("Command line option %s\n"
+          "               Exceeds maximum length: %d\n", option, LONG_STRING);
+    }
+      
+    strncpy(args[nargs], option, LONG_STRING);
+    /*fprintf(stderr, "** DBG: args[%ld]=%s\n", nargs, option); */
+    option = strtok(NULL, " ");
+
+    nargs++;
+  }
+
+  /* -- return pointers --*/
+  *myargv=args;
+  *myargc=nargs;
+
+  
+  EXRETURN;
+}
+
+
+/* JL Sep. 2010: This function reads the command-line options from
+ * from the environment (e.g. .afnirc) 
+ * (some of the options only can be used by the 3dsvm plugin
+ *  in real-time mode) */
+void getEnvArgv(char **myargv, int *myargc, char *name)
+{
+
+  char *ept = NULL;
+
+  ENTRY("getEnvArgv");
+
+  /* --- real-time flags ---*/
+
+  /* These options only makes sense for the 3dsvm plugin in real-time mode.
+   * and will cause error messages if 3dsvm is evoked with the "-getenv" option.
+   */
+  if( (!strncmp(name, "AFNI_3DSVM_RT_TRAIN", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_RT_TRAIN");
+    if( ept != NULL )  {
+      if( !strncmp(ept,"YES", LONG_STRING) ) {
+        argvAppend(myargv,myargc,"-rt_train","");
+      }
+    }
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_RT_TEST", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_RT_TEST");
+    if( ept != NULL )  {
+      if( !strncmp(ept,"YES", LONG_STRING) ) {
+        argvAppend(myargv,myargc,"-rt_test","");
+      }
+    }
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_RT_IP", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_RT_IP");
+    if( ept != NULL ) argvAppend(myargv, myargc,"-stim_ip", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_RT_PORT", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_RT_PORT");
+    if( ept != NULL ) argvAppend(myargv, myargc,"-stim_port", ept);
+  }
+
+  /* --- testing flags ----*/
+  if( (!strncmp(name, "AFNI_3DSVM_NOMASK", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_NOMASK");
+    if( ept != NULL )  {
+      if( !strncmp(ept,"YES", LONG_STRING) ) {
+        argvAppend(myargv,myargc,"-nomodelmask","");
+      }
+    }
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_NODETREND", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_NODETREND");
+    if( ept != NULL )  {
+      if( !strncmp(ept,"YES", LONG_STRING) ) {
+        argvAppend(myargv,myargc,"-nodetrend","");
+      }
+    }
+  }
+
+  /* --- training options --- */
+  if( (!strncmp(name, "AFNI_3DSVM_TRAIN_TYPE", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_TRAIN_TYPE");
+    if( ept != NULL ) argvAppend(myargv, myargc,"-type", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_TRAIN_DSET", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_TRAIN_DSET");
+    if( ept != NULL ) argvAppend(myargv, myargc,"-trainvol", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_TRAIN_LBLS", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_TRAIN_LBLS");
+    if( ept != NULL ) argvAppend(myargv,myargc,"-trainlabels", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_MASK_DSET", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_MASK_DSET");
+    if( ept != NULL )  {
+      argvAppend(myargv,myargc,"-mask", ept);
+    }
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_MODEL_DSET", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_MODEL_DSET");
+    if( ept != NULL ) argvAppend(myargv,myargc,"-model", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_BUCKET_DSET", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_BUCKET_DSET");
+    if( ept != NULL ) argvAppend(myargv,myargc,"-bucket", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_ALPHA_FILE", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_ALPHA_FILE");
+    if( ept != NULL ) argvAppend(myargv,myargc,"-alpha", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_PARM_C", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_PARM_C");
+    if( ept != NULL ) argvAppend(myargv,myargc,"-c", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_PARM_EPS", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_PARM_EPS");
+    if( ept != NULL ) argvAppend(myargv,myargc,"-e", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_KERNEL_TYPE", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_KERNEL_TYPE");
+    if( ept != NULL ) argvAppend(myargv,myargc,"-kernel", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_KERNEL_PARM_D", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_KERNEL_PARM_D");
+    if( ept != NULL ) argvAppend(myargv,myargc,"-d", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_KERNEL_PARM_G", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_KERNEL_PARM_G");
+    if( ept != NULL )  argvAppend(myargv,myargc,"-g", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_KERNEL_PARM_S", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_KERNEL_PARM_S");
+    if( ept != NULL )  argvAppend(myargv,myargc,"-s", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_KERNEL_PARM_R", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_KERNEL_PARM_R");
+    if( ept != NULL )  argvAppend(myargv,myargc,"-r", ept);
+  }
+
+
+  /* --- testing options --- */
+  if( (!strncmp(name, "AFNI_3DSVM_TEST_DSET", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_TEST_DSET");
+    if( ept != NULL ) argvAppend(myargv,myargc,"-testvol", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_TEST_LBLS", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_TEST_LBLS");
+    if( ept != NULL )  argvAppend(myargv,myargc,"-testlabels", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_PRED_FILE", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_PRED_FILE");
+    if( ept != NULL ) argvAppend(myargv,myargc,"-predictions", ept);
+  }
+
+  if( (!strncmp(name, "AFNI_3DSVM_MCLASS_TYPE", LONG_STRING)) ||
+      (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+    ept = my_getenv("AFNI_3DSVM_MCLASS_TYPE");
+    if( ept != NULL )  argvAppend(myargv,myargc,"-multiclass", ept);
+  }
+
+  /* --- training or testing option --- */
+  if( (!strncmp(name, "AFNI_3DSVM_CENSOR_FILE", LONG_STRING)) ||
+        (!strncmp(name, "3DSVM_ALL_OPTIONS", LONG_STRING)) ) {
+      ept = my_getenv("AFNI_3DSVM_CENSOR_FILE");
+      if( ept != NULL ) argvAppend(myargv,myargc,"-censor", ept);
+    }
+
+
+  EXRETURN;
+}
+
+
 /* JL Feb. 2009: This function calculates the squared Euclidean length of
  * a complex vector. */
-double cpxtwonorm_sq(WORD *a)
-  {
+double cpxtwonorm_sq(WORD *a) {
+
   long size_i, i;
   double Re_a, Im_a, sum;
 
@@ -237,7 +659,7 @@ double cpxtwonorm_sq(WORD *a)
   RETURN(sum);
 }
 
-/* JL Sep 2010: Remove white space, tab and '\n' from string */
+/* JL Sep 2010: Remove white space, tabs and \n from string */
 char *trimString(char *string)
 {
   char new_string[strlen(string)+1];
@@ -262,8 +684,7 @@ char *trimString(char *string)
   RETURN(string);
 }
 
-
-unsigned long int getFileSize(char *fileName)
+long getFileSize( char *fileName )
 {
     FILE *fp;
     unsigned long int lineCount=0;
@@ -286,27 +707,36 @@ unsigned long int getFileSize(char *fileName)
     RETURN(lineCount);
 }
 
+int compare_ints( const int *a, const int *b ) {
+  int tmp = *a - *b;
+  if( tmp > 0 )
+    return 1;
+  else if( tmp < 0 )
+    return -1;
+  else
+    return 0;
+}
+
+
 /* JL Mar. 2009 */
 double **Allocate2d(long index1, long index2)
 {
-  long i;
-  double **darr;
+  long i        = 0;
+  double **darr = NULL;
 
   ENTRY("Allocate2d");
+
+  /* JL June 2011: Modified error handling. Return NULL if memory 
+     can not be allocated. Don't exit! */
 
   if(   ( darr = (double **)malloc(index1*sizeof(double *)) )   ) {
     for(i = 0; i < index1; i++) {
       if(   ( darr[i] = (double *)malloc(index2*sizeof(double)) )   );
-      else {
-        ERROR_exit("Memory allocation in Allocate2d failed!\n"
-            "   Attemted to allocate [%ld][%ld]\n", 
-            "   Successfully allocated [%ld][%ld]", index1, index2, i-1,index2);
-      }
+      else RETURN(NULL);
     }
   }
-  else {
-    ERROR_exit("Memory allocation in Allocate2d failed!");
-  }
+  else RETURN(NULL);
+  
   
   RETURN(darr);
 }
@@ -348,24 +778,22 @@ void Clear2d(double **x, long index1, long index2)
  ****************************************************************/
 float **Allocate2f(long index1, long index2)
 {
-  long i;
-  float **farr;
+  long      i     = 0;
+  float **  farr  = NULL;
 
   ENTRY("Allocate2f");
+
+  /* JL June 2011: Modified error handling. Return NULL if memory 
+     can not be allocated. Don't exit! */
 
   if(   ( farr = (float **)malloc(index1*sizeof(float *)) )   ) {
     for(i = 0; i < index1; i++) {
       if(   ( farr[i] = (float *)malloc(index2*sizeof(float)) )   );
-      else {
-        ERROR_exit("Memory allocation in Allocate2f failed!\n"
-            "   Attemted to allocate [%ld][%ld]\n", 
-            "   Successfully allocated [%ld][%ld]", index1, index2, i-1,index2);
-      }
+      else RETURN(NULL);
     }
   }
-  else {
-    ERROR_exit("Memory allocation in Allocate2f failed!");
-  }
+  else RETURN(NULL);
+
 
   RETURN(farr);
 }
@@ -406,25 +834,23 @@ void Clear2f(float **x, long index1, long index2)
  ****************************************************************/
 DatasetType **Allocate2DT(long index1, long index2)
 {
-  long i;
-  DatasetType **arr;
+  long i             = 0;
+  DatasetType **arr  = NULL;
 
   ENTRY("Allocate2DT");
+
+  /* JL June 2011: Modified error handling. Return NULL if memory 
+     can not be allocated. Don't exit! */
 
   if(   ( arr = (DatasetType **)malloc(index1*sizeof(DatasetType *)) )   ) {
     for(i = 0; i < index1; i++) {
       if(   ( arr[i] = (DatasetType *)malloc(index2*sizeof(DatasetType)) )   );
-      else {
-        ERROR_exit("Memory allocation in Allocate2DT failed!\n"
-            "   Attemted to allocate [%ld][%ld]\n", 
-            "   Successfully allocated [%ld][%ld]", index1, index2, i-1,index2);
-      }
+      else RETURN(NULL);
     }
   }
-  else {
-    ERROR_exit("Memory allocation in Allocate2DT failed!");
-  }
+  else RETURN(NULL);
 
+  
   RETURN(arr);
 }
 
@@ -461,19 +887,17 @@ void Clear2DT(DatasetType **x, long index1, long index2)
 /* JL Mar. 2009 */
 char **Allocate2c(long index1, long index2)
 {
-  long i;
-  char **carr;
+  long i        = 0;
+  char **carr   = NULL;
 
   ENTRY("Allocate2c");
 
-  carr = (char **)malloc(sizeof(char *) * index1);
-  if (carr == NULL) {
-    ERROR_exit("Memory allocation in Allocate2c failed");
-  }
+  /* JL June 2011: Modified error handling. Return NULL if memory 
+     can not be allocated. Don't exit! */
+
+  if( (carr = (char **)malloc(sizeof(char *) * index1)) == NULL ) RETURN(NULL);
   for(i=0; i<index1; i++) {
-    if( (carr[i] = (char *) malloc(sizeof(char) * index2)) == NULL ) {
-      ERROR_exit("Memory allocation in Allocate2c failed");
-    }
+    if( (carr[i] = (char *)malloc(sizeof(char) * index2)) == NULL ) RETURN(NULL);
   }
   
   RETURN(carr);
@@ -508,44 +932,147 @@ void free2c(char **x, long index1)
 }
 
 
-int compare_ints( const int *a, const int *b ) {
-  int tmp = *a - *b;
-  if( tmp > 0 )
-    return 1;
-  else if( tmp < 0 )
-    return -1;
-  else
-    return 0;
-}
-
-
-void AllocateDOCwords(DOC *docs, long ndocsTime, long nvoxelWords)
+DOC * allocateDOCs(long ndocsTime, long nvoxelWords)
 {
   long i = 0;
+  DOC * docs = NULL;
 
-  ENTRY("AllocateDOCwords");
+  /* JL: July 2011: Modified function to allocate the DOCs and
+     the WORDs for the DOCs together. Return memory or NULL if 
+     memory can not be allocated */
 
-  for( i=0; i < ndocsTime; ++i ) {
-    docs[i].words = (WORD*)malloc(sizeof(WORD)*(nvoxelWords+1));
+  ENTRY("allocateDOCs");
+
+  /* -- allocate DOCs (timepoints) -- */
+  if( (docs = (DOC*)malloc(sizeof(DOC)*ndocsTime)) == NULL ) {
+    RETURN(NULL);
   }
 
-  EXRETURN;
+  /* allocate WORDs (voxels) for each DOC (timepoints) */
+  for( i=0; i < ndocsTime; ++i ) {
+    if( (docs[i].words = (WORD*)malloc(sizeof(WORD)*(nvoxelWords+1))) == NULL ) {
+      RETURN(NULL);
+    }
+  }
+
+  RETURN(docs);
 }
 
-void freeDOCwords(DOC *docs, long ndocsTime)
+void freeDOCs(DOC *docs, long ndocsTime)
 {
 
   long i = 0;
 
-  ENTRY("freeDOCwords");
+  ENTRY("freeDOCs");
 
-  for( i=0; i < ndocsTime; ++i )
-    free(docs[i].words);
+  /* Note from svm-light:
+     Warning: The model contains references to the original data 'docs'.
+     If you want to free the original data, and only keep the model, you 
+     have to make a deep copy of 'model'. */
+  /* deep_copy_of_model=copy_model(model); */
+
+  for( i=0; i < ndocsTime; ++i ) free(docs[i].words);
+
+  free(docs);
 
   EXRETURN;
 }
 
-DatasetType** getAllocateDsetArray(THD_3dim_dataset *dset)
+int allocateMultiClassArrays( float ***multiclass_dist, float **classCorrect, 
+    float **classIncorrect, long **nClass, int **classVote,
+    long n_classMax, long n_classComb, long nt, char *errorString )
+{
+  float ** tmp_mcdist           = NULL;
+  float *  tmp_classCorrect     = NULL;
+  float *  tmp_classIncorrect   = NULL;
+  long  *  tmp_nClass           = NULL;
+  int   *  tmp_classVote        = NULL;
+
+  ENTRY("allocateMultiClassArrays");
+
+  /* JL July 2011: Added this function to simplify the flow in 
+     test_classification. All arrays necessary for multiclass
+     (current method DAG and vote) are allocated here. 
+    
+     TODO: We are bit inefficient, since either 
+     DAG or vote is used, and we are allocating for both.   
+  */
+
+
+  if( (tmp_mcdist = Allocate2f(n_classComb, nt)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateMultiClassArrays: " 
+        "Memory allocation for tmp_mcdist failed!");
+    RETURN(1);
+  }
+
+  if( (tmp_classCorrect = (float *)malloc(sizeof(float)*n_classMax)) == NULL ) {
+   snprintf(errorString, LONG_STRING, "allocateMultiClassArrays: " 
+       "Memory allocation for tmp_classCorrect failed!");
+   
+   /* free and return */
+   free2f(tmp_mcdist, n_classComb);
+   RETURN(1);
+  }
+
+  if( (tmp_classIncorrect = (float *)malloc(sizeof(float)*n_classMax)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateMultiClassArrays: " 
+        "Memory allocation for tmp_classIncorrect failed!");
+    
+    /* free and return */
+    free2f(tmp_mcdist, n_classComb);
+    free(tmp_classCorrect);
+    RETURN(1);
+  }
+
+  if( (tmp_nClass = (long *)malloc(sizeof(long)*n_classMax)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateMultiClassArrays: " 
+        "Memory allocation for tmp_nClass failed!");
+    
+    /* free and return */
+    free2f(tmp_mcdist, n_classComb);
+    free(tmp_classCorrect);
+    free(tmp_classIncorrect);
+    RETURN(1);
+  }
+
+  if( (tmp_classVote = (int *)malloc(sizeof(int)*n_classMax)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateMultiClassArrays: " 
+        "Memory allocation for tmp_nClass failed!");
+    
+    /* free and return */
+    free2f(tmp_mcdist, n_classComb);
+    free(tmp_classCorrect);
+    free(tmp_classIncorrect);
+    free(tmp_nClass);
+    RETURN(1);
+  }
+
+  /* -- return pointers to allocated memory -- */
+  *multiclass_dist = tmp_mcdist;
+  *classCorrect    = tmp_classCorrect;
+  *classIncorrect  = tmp_classIncorrect;
+  *nClass          = tmp_nClass;
+  *classVote       = tmp_classVote;
+
+  RETURN(0);
+}
+
+void freeMultiClassArrays( float **multiclass_dist, float *classCorrect, 
+     float *classIncorrect, long *nClass, int *classVote, long n_classComb )
+{
+
+  ENTRY("freeMultiClassArryas");
+
+  free2f(multiclass_dist, n_classComb);
+  free(classCorrect);
+  free(classIncorrect);
+  free(nClass);
+  free(classVote);
+
+  EXRETURN;
+}
+
+DatasetType** getAllocateDsetArray( THD_3dim_dataset *dset, char *errorString )
 {
   long  v         = 0;    /* index over nvox */
   long  t         = 0;    /* index over nt */
@@ -553,20 +1080,53 @@ DatasetType** getAllocateDsetArray(THD_3dim_dataset *dset)
   long  nvox      = 0;    /* number of voxels */
   int   datum     = 0;    /* datum type */
 
-  DatasetType**
+  DatasetType **
     dsetArray     = NULL;
 
   ENTRY("getAllocateDsetArray");
 
+  /* JL June 2011: Modified error handling: Passing error string as argument
+   * to the calling function, allocated memory is freed, RETURN(1) 
+   * instead of ERROR_exit.
+  */
+  
+  /* --- just making sure we have a dset to work with --- */
+  /*      we should never get here                        */
+  if( dset == NULL) {
+    snprintf(errorString, LONG_STRING, "getAllocateDsetArray: "
+        "What happened?! Pointer to dataset is NULL!");
+
+    RETURN(NULL);
+
+  }
+  if( !DSET_LOADED(dset) ) {
+    snprintf(errorString, LONG_STRING, "getAllocateDsetArray: "
+        "What happened?! Dataset is not in memory!");
+
+    RETURN(NULL);
+  }
+
   /* --- initialize and allocate ---*/
   nvox = DSET_NVOX( dset );
   nt = DSET_NUM_TIMES( dset );
-  dsetArray = Allocate2DT( nt, nvox);
+  if( (dsetArray = Allocate2DT(nt, nvox)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "getAllocateDsetArray: "
+        "Memory allocation for dsetArray failed!");
+
+    RETURN(NULL);
+  }
+
 
   /* ---  make sure all bricks have same datum --- */
   if ( !DSET_datum_constant(dset) ) {
-    ERROR_exit("Creating dataset array failed! Sub-bricks have different "
-        "datum types!");
+    snprintf(errorString, LONG_STRING, "Creating dataset array failed! Sub-briks "
+        "have different datum types!");
+  
+    /* -- free end return -- */
+    free2DT( dsetArray, nt );
+
+    RETURN(NULL);
+
   }
 
   /* --- converting data to internal representation (DatasetType) --- */
@@ -596,29 +1156,71 @@ DatasetType** getAllocateDsetArray(THD_3dim_dataset *dset)
         }
       }
       break;
-     case MRI_byte:
-       ERROR_exit("Sorry, datum-type MRI_byte (%d) is not supported!", datum);
-       break;
-     case MRI_rgb:
-       ERROR_exit("Sorry, datum-type MRI_rgb (%d) is not supported!", datum);
-       break;
-     case MRI_complex:
-       ERROR_exit("Sorry, datum-type MRI_complex (%d) is not supported!", datum);
-       break;
-     default:
-       ERROR_exit("Unknown datum-type (%d)", datum);
-       break;
+    case MRI_byte:
+      snprintf(errorString, LONG_STRING, 
+          "Sorry, datum-type MRI_byte (%d) is not supported!", datum);
+      
+      /* free end return */
+      free2DT( dsetArray, nt );
+      RETURN(NULL);
+      break;
+
+    case MRI_rgb:
+      snprintf(errorString, LONG_STRING, 
+          "Sorry, datum-type MRI_rgb (%d) is not supported!", datum);
+      
+      /* free end return */
+      free2DT( dsetArray, nt );
+      RETURN(NULL);
+      break;  
+
+    case MRI_complex:
+      snprintf(errorString, LONG_STRING,
+          "Sorry, datum-type MRI_complex (%d) is not supported!", datum);
+
+      /* free end return */
+      free2DT( dsetArray, nt );
+      RETURN(NULL);
+ 
+      break;
+
+    default:
+      snprintf(errorString, LONG_STRING, 
+          "Unknown datum-type (%d)", datum);
+
+      /* free end return */
+      free2DT( dsetArray, nt );
+      RETURN(NULL);
+ 
+      break;
   }
 
   RETURN(dsetArray);
 }
 
-void allocateModel( MODEL *model, AFNI_MODEL *afni_model)
+/* TODO: Check if dset needs to be in memory in order to access
+   DSET_NUM_TIMES() */
+void freeDsetArray(THD_3dim_dataset *dset, DatasetType** dsetArray)
 {
-  long nsv   = 0;   /* number of support vectors */
-  long sv    = 0;   /* index over nsv */
-  long nt    = 0;   /* number of timepoints */
-  long t     = 0;   /* index over nt */
+  long  nt        = 0;    /* number of observations (time-points) total */
+
+  ENTRY("freeDsetArray");
+
+  if( dset == NULL) EXRETURN;
+  if( !DSET_LOADED(dset) ) EXRETURN; /*TODO: this might not be required ! */
+                                    
+  nt = DSET_NUM_TIMES( dset );
+  free2DT( dsetArray, nt );
+  
+  EXRETURN;
+}
+
+
+int allocateModel( MODEL *model, AFNI_MODEL *afni_model, char *errorString ) 
+{
+  long nsv          = 0;   /* number of support vectors */
+  long sv           = 0;   /* index over nsv */
+  long nvox_masked  = 0;
 
 
   ENTRY("allocateModel");
@@ -627,87 +1229,158 @@ void allocateModel( MODEL *model, AFNI_MODEL *afni_model)
    * with non-support vectors as alpha = 0
    * thus the model "documents" and number of support vectors is
    * always the number of timepoints in in the training data
+   *
+   * JL July 2011: Modified error handling: Passing error message 
+   * as argument (errorString) to the calling function, allocated memory
+   * is freed, RETURN(1) instead of ERROR_exit()
+   *               
+   * JL July 2011: Replaced svm-light's my_malloc by malloc (or mcw_malloc,
+   * I should say) this allows us to find memory problems and check
+   * for out of memory in 3dsvm rather than in svm-light.
+   * Doing that, it turns out that model->lin_weitghts causes corruption 
+   * problems.
+   *
+   * TODO: need to fix this soon. It would be good to patch svm-light and
+   * replace all my_malloc by malloc to see if there are leeks/corruption
+   * problems.
    */
 
-  nt=afni_model->timepoints;
-  nsv=afni_model->total_support_vectors[0];
+  if( afni_model == NULL ) {
+    /* we should never get here */
+    snprintf(errorString, LONG_STRING, "allocateModel: "
+        "What happened? Can't access afni model!");
 
-  /* JL July 2009: Added this part to support sv-regression */
-  if ( !strcmp(afni_model->svm_type, "regression") ) {
-
-    model->supvec = (DOC **)my_malloc(sizeof(DOC *)*(nsv+1));
-    model->alpha = (double *)my_malloc(sizeof(double)*(nsv+1));
-
-    for ( sv=1; sv<nsv; ++sv ) {
-      model->supvec[sv] = (DOC *)calloc(sizeof(DOC),1);
-      (model->supvec[sv])->words = (WORD *)calloc(sizeof(WORD),
-          afni_model->total_masked_features[0] + 1); 
-    }
+    RETURN(1);
   }
-  else {
-    model->supvec = (DOC **)my_malloc(sizeof(DOC *)*(nt+1));
-    model->alpha = (double *)my_malloc(sizeof(double)*(nt+1));
-    
-    for( t=1; t<nt+1; ++t ) {  
-      /* (timpoints +1) is svmlights number of support vectors */
+
+  /* -- initialize -- */
+  if( !strcmp(afni_model->svm_type, "regression") ) {
+    nsv = afni_model->total_support_vectors[0];
+  }
+  else if( !strcmp(afni_model->svm_type, "classification") ) {
+    nsv = afni_model->timepoints + 1; 
+     /* (timpoints  + 1) is svmlights number of support vectors */
+  }
+
+  nvox_masked = afni_model->total_masked_features[0];
+    /* [0] assumes  that all models use the same mask */
+  
+
+  /* -- allocate -- */
+  if( (model->supvec = (DOC **)malloc(sizeof(DOC *)*(nsv))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateModel: " 
+        "Memory allocation for model->supvec failed!"); 
+
+    RETURN(1);
+  }
+
+  for( sv=1; sv<nsv; ++sv ) {
+    if( (model->supvec[sv] = (DOC *)calloc(sizeof(DOC), 1)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "allocateModel: " 
+          "Memory allocation for model for model->supvec[%ld] failed!", sv);
+
+      RETURN(1);
+    }
+    if( ((model->supvec[sv])->words = 
+          (WORD *)calloc(sizeof(WORD), nvox_masked + 1)) == NULL ) {
+            /* + 1 for end of list value */
       
-      model->supvec[t] = (DOC *)calloc(sizeof(DOC),1);
-      (model->supvec[t])->words = (WORD *)calloc(sizeof(WORD),
-          afni_model->total_masked_features[0] + 1); 
-      /* +1 for end of list value */
-	  /* [0] assumes  that all models use the same mask */
+      snprintf(errorString, LONG_STRING, "allocateModel: "
+          "Memory allocation for model->supvec[%ld])->words failed!", sv);
+
+      RETURN(1);
     }
   }
 
-  if(afni_model->kernel_type[0] == LINEAR ) {
-    model->lin_weights=(double *)my_malloc(sizeof(double)*
-        (afni_model->total_masked_features[0] + 1));
+  if( (model->alpha = (double *)malloc(sizeof(double)*(nsv))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateModel: "
+          "Memory allocation for model->alpha failed!");
+
+    /* free and return */
+    free(model->supvec);
+    for( sv=1; sv<nsv; ++sv ) { 
+      free( (model->supvec[sv])->words );
+      free(model->supvec[sv]);
+    }
+    free(model->supvec);
+    
+    RETURN(1);
   }
 
-  EXRETURN;
+  if( afni_model->kernel_type[0] == LINEAR ) {
+    if( (model->lin_weights=(double *)my_malloc(sizeof(double)*nvox_masked + 1)) == NULL ) {
+
+      snprintf(errorString, LONG_STRING, "allocateModel: "
+          "Memory allocation for model->lin_weights failed!");
+
+      /* free and return */
+      free(model->supvec);
+      for( sv=1; sv<nsv; ++sv ) { 
+        free( (model->supvec[sv])->words );
+        free(model->supvec[sv]);
+      }
+      free(model->supvec);
+    
+      RETURN(1);
+    }
+  }
+
+  RETURN(0);
 }
 
-void freeModel( MODEL *model, AFNI_MODEL *afni_model)
+void freeModel( MODEL *model, AFNI_MODEL *afni_model, enum modes mode )
 {
-  long nsv  = 0;  /* number of support vectors */
-  long sv   = 0;  /* index over nsv */
-  long nt   = 0;  /* number of timepoints */
-  long t    = 0;  /* index over nt */
+
+  long nsv = 0; 
+  long sv  = 0;
 
   ENTRY("freeModel");
+
   
-  nt=afni_model->timepoints;
-  nsv=afni_model->total_support_vectors[0];
+  /* Note from svm_learn_main.c:
+     Warning: The model contains references to the original data 'docs'.
+     If you want to free the original data, and only keep the model, you 
+     have to make a deep copy of 'model'. */
+  /* deep_copy_of_model=copy_model(model); */
 
-  /* JL July 2009: Added this part to support sv-regression */
-  if ( !strcmp(afni_model->svm_type, "regression") ) {
-    nsv=afni_model->total_support_vectors[0];
+  
+  if( model == NULL ) {
+    ERROR_message("Can't free svm-light model!");
+    EXRETURN;
+  }
 
+  if( !strcmp(afni_model->svm_type, "regression") ) {
+    nsv = afni_model->total_support_vectors[0];
+  }
+  else if( !strcmp(afni_model->svm_type, "classification") ) {
+    nsv = afni_model->timepoints + 1;
+                 /* (timepoints + 1) is svmlights number of support vectors */
+  }
+
+  if( mode == TEST ) {
+    /* free the model throughly, we don't have other references to the
+       original training data */
     for( sv=1; sv<nsv; ++sv) {
       free( (model->supvec[sv])->words );
       free(model->supvec[sv]);    
     }
+    free(model->supvec);
+    free(model->alpha);
   }
-  else {
-    for( t=1; t<nt+1; t++) {  
-      /* (timpoints +1) is svmlights number of support vectors */
-    free( (model->supvec[t])->words );
-    free(model->supvec[t]);
-    }
+  else if( mode == TRAIN) {
+    /* model->supvec are freed by freeing the DOCs in freeDOCs */
+
+    free(model->supvec);
+    free(model->alpha);
+    free(model->index);
   }
 
-  if(model->kernel_parm.kernel_type == LINEAR ) {
-    free(model->lin_weights);
-  }
-  
-  free(model->supvec);
-  free(model->alpha);
+  //if(model->kernel_parm.kernel_type == LINEAR ) free(model->lin_weights);
 
   EXRETURN;
-
 }
 
-void updateModel(MODEL *model, AFNI_MODEL *afni_model, ASLoptions *options, int comb) 
+void updateModel(MODEL *model, AFNI_MODEL *afni_model, int comb) 
  
   /* fill in all values for the first (index 0) class combination */
 {
@@ -742,7 +1415,7 @@ void updateModel(MODEL *model, AFNI_MODEL *afni_model, ASLoptions *options, int 
   model->totdoc = (long) afni_model->timepoints;
   nt = (long) afni_model->timepoints;
 
-  if ( (!strcmp(afni_model->svm_type,"regression")) && (options->testFile[0]) ) {
+  if( !strcmp(afni_model->svm_type,"regression") )  {
     model->sv_num = (long) afni_model->total_support_vectors[comb];
     
     sv=1;
@@ -761,9 +1434,13 @@ void updateModel(MODEL *model, AFNI_MODEL *afni_model, ASLoptions *options, int 
     }
   }
 
-  if( model->kernel_parm.kernel_type == 0 ) {         
+  if( model->kernel_parm.kernel_type == LINEAR ) {         
     /* essentially replacing call to add_weight_vector_to_linear_model(model)*/
     /* that function mallocs, which we don't want since we are re-using */
+    
+    /* JL July 2011: This part causes memory corruption problems. Read the comment
+     * in allocateModel for more details. TODO: we should fix this soon. */
+       
     clear_vector_n(model->lin_weights,model->totwords);
     for(i=1;i<model->sv_num;i++) {
       add_vector_ns(model->lin_weights,(model->supvec[i])->words, model->alpha[i]);
@@ -784,68 +1461,155 @@ void updateModel(MODEL *model, AFNI_MODEL *afni_model, ASLoptions *options, int 
 
   EXRETURN;
 }
-/* JL May 2010: This functions produces the arrays holding the model data and
- * the model-mask */
- void getModelArrays(THD_3dim_dataset* dsetModel,
-     DatasetType** dsetModelArray, MaskType* dsetMaskArray, int* mask_used,
-     int noMaskFlag)
+
+void freeModelArrays( DatasetType** dsetModelArray,
+    MaskType* dsetMaskArray, long nt_model, int mask_used )
 {
-  long  v             = 0;  /* index over nvox */
-  long  t             = 0;  /* index over nt */
-  long  nt            = 0;  /* number of timepoints in model excluding mask*/
-  long  nvox          = 0;  /* number of voxels */
 
-  char* inModelFile          = NULL;
+  ENTRY("freeModelArrays");
+
+  if( mask_used == MASK_YES ) free(dsetMaskArray);
+  free2DT(dsetModelArray, nt_model );
+
+
+  EXRETURN;
+
+}
+/* JL May 2010: This functions produces and allocates the arrays holding the
+ * model data and the model-mask data */
+int getAllocateModelArrays(THD_3dim_dataset *dsetModel,
+     DatasetType ***dsetModelArray, MaskType **dsetMaskArray,
+     long *nt_model, long *nvox_model, int *mask_used,
+     int noMaskFlag, char *errorString )
+{
+  long  v               = 0;  /* index over nvox_model */
+  long  t               = 0;  /* index over nt_model */
+
+  THD_3dim_dataset *
+    dsetMask            = NULL;
+
+  DatasetType **
+    tmp_dsetArray       = NULL;
+
+  MaskType *
+    tmp_maskArrayPtr    = NULL;
+
+  DatasetType **
+    tmp_dsetModelArray  = NULL;
+
+  MaskType *
+    tmp_dsetMaskArray   = NULL;
+
+
+  char *inModelFile          = NULL;
   char  inModelFileMask[LONG_STRING];
-  char* inModelFileMaskExt   = MODEL_MSK_EXT;
-
-  THD_3dim_dataset*
-    dsetMask         = NULL;
-
-  DatasetType**
-    tmp_dsetArray     = NULL;
-
-  MaskType*
-    tmp_maskArray     = NULL;
+  char *inModelFileMaskExt   = MODEL_MSK_EXT;
 
 
   ENTRY("getAllocateModelArrays");
 
 
-  /* --- new way: mask is stored in last 2 bricks --- */
+  /* JL Oct. 2010: Allocating model and mask array in this function.
+   * If no mask was used for training, then dsetMaskArray == NULL. 
+   * 
+   * JL July 2011: Modified error handling: Passing error message 
+   * as argument (errorString) to the calling function, 
+   * allocated memory is freed, RETURN(1) instead of ERROR_exit().
+   */ 
+
+
+  /* --- initial error checking --- */
+  if( !DSET_LOADED(dsetModel) ) {
+    snprintf(errorString, LONG_STRING, "getAllocateModelArrays: "
+        "What happened?! Model file not in memory!");
+
+    RETURN(1);
+  }
+
+  if( (*mask_used != MASK_UNKNOWN) && (*mask_used != MASK_YES) &&
+      (*mask_used != MASK_NO) ) { 
+    snprintf(errorString, LONG_STRING, "getAllocateModelArrays: "
+        "What happened?! Mask status unknown!");
+
+    RETURN(1);
+  }
+
+
+  /* --- new way: mask is not unknown mask is stored in last 2 bricks
+   *     (even if no mask was used!) --- */
   if (*mask_used != MASK_UNKNOWN) {
-    /* -- initialize and allocate --*/
-    nvox = DSET_NVOX( dsetModel );
-    nt = DSET_NUM_TIMES( dsetModel )-2; /* mask is stored in last 2 bricks */
-    tmp_dsetArray  = getAllocateDsetArray(dsetModel);
+
+    /* -- initialize and allocate model array --*/
+    *nvox_model = DSET_NVOX( dsetModel );
+    *nt_model   = DSET_NUM_TIMES( dsetModel )-2; /* mask is stored in last 2 bricks */
+
+    if( (tmp_dsetArray  = getAllocateDsetArray(dsetModel, errorString)) == NULL ) {
+
+      RETURN(1);
+    }
+
+    if( (tmp_dsetModelArray = Allocate2DT( *nt_model, *nvox_model)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "getAllocateModelArrays: "
+          "Memory allocation for tmp_dsetModelArray failed!");
+
+      /* free and return */
+      freeDsetArray(dsetModel, tmp_dsetArray);
+      RETURN(1);
+    }
 
     /* -- create model array --*/
-    for (t=0; t<nt; ++t) {
-      for (v=0; v<nvox; ++v) {
-        dsetModelArray[t][v] = tmp_dsetArray[t][v];
+    for (t=0; t<*nt_model; ++t) {
+      for (v=0; v<*nvox_model; ++v) {
+        tmp_dsetModelArray[t][v] = tmp_dsetArray[t][v];
       }
     }
 
     /* -- create mask array -- */
     if (*mask_used == MASK_YES) {
-      for (v=0; v<nvox; ++v) {
-        dsetMaskArray[v] = (MaskType) tmp_dsetArray[nt+1][v];
+
+      /* - allocate mask array - */
+      if( (tmp_dsetMaskArray = (MaskType *)malloc(*nvox_model*sizeof(MaskType))) == NULL ) {
+        snprintf(errorString, LONG_STRING, "getAllocateModelArrays: "
+            "Memory allocation for tmp_dsetMaskArray failed!");
+      
+        /* free and return */
+        freeDsetArray(dsetModel, tmp_dsetArray);
+        free2DT(tmp_dsetModelArray, *nt_model);
+        RETURN(1);
+      }
+
+      for (v=0; v<*nvox_model; ++v) {
+        tmp_dsetMaskArray[v] = (MaskType) tmp_dsetArray[*nt_model+1][v];
       }
     }
   }
 
-  /* --- old way: trying to locate mask-dataset on disc --- */
+  /* --- old way: mask is unknown, trying to locate mask dataset on disc --- */
   else {
+
     /* -- initialize and allocate -- */
-    nvox = DSET_NVOX( dsetModel );
-    nt = DSET_NUM_TIMES( dsetModel );
+    *nvox_model = DSET_NVOX( dsetModel );
+    *nt_model = DSET_NUM_TIMES( dsetModel );
     inModelFile = DSET_PREFIX( dsetModel );
-    tmp_dsetArray  = getAllocateDsetArray(dsetModel);
+    
+    if( (tmp_dsetArray  = getAllocateDsetArray(dsetModel, errorString)) == NULL ) { 
+
+      RETURN(1);
+    }
+
+    if( (tmp_dsetModelArray = Allocate2DT( *nt_model, *nvox_model )) == NULL ) {
+      snprintf(errorString, LONG_STRING, "getAllocateModelArrays: "
+          "Memory allocation for tmp_dsetModelArray failed!");
+      
+      /* free and return */
+      freeDsetArray(dsetModel, tmp_dsetArray);
+      RETURN(1);
+    }
 
     /* -- create model array --*/
-    for (t=0; t<nt; ++t) {
-      for (v=0; v<nvox; ++v) {
-        dsetModelArray[t][v] = tmp_dsetArray[t][v];
+    for (t=0; t<*nt_model; ++t) {
+      for (v=0; v<*nvox_model; ++v) {
+        tmp_dsetModelArray[t][v] = tmp_dsetArray[t][v];
       }
     }
 
@@ -865,33 +1629,67 @@ void updateModel(MODEL *model, AFNI_MODEL *afni_model, ASLoptions *options, int 
         strncat(inModelFileMask,"+acpc", LONG_STRING);
       }
       else {
-        ERROR_exit("Viewtype of model: %s unknown!", inModelFile);
+        snprintf(errorString, LONG_STRING,
+            "Viewtype of model: %s unknown!", inModelFile);
+
+        /* free and return */
+        freeDsetArray(dsetModel, tmp_dsetArray);
+        free2DT(tmp_dsetModelArray, *nt_model);
+        RETURN(1);
       }
 
       /* - open mask dataset - */
-      dsetMask = THD_open_one_dataset( inModelFileMask );
-      if ( dsetMask != NULL ) {
+      if( (dsetMask = THD_open_one_dataset( inModelFileMask )) != NULL ) { 
+        
+        /* mask dataset found */
         *mask_used = MASK_YES;
         DSET_load( dsetMask );
 
-        tmp_maskArray = (MaskType*) DSET_ARRAY(dsetMask,0);
-        for (v=0; v<nvox; ++v) {
-          dsetMaskArray[v] = tmp_maskArray[v];
-         }
+        /* get pointer to mask array */
+        tmp_maskArrayPtr = (MaskType *)DSET_ARRAY(dsetMask,0);
 
+        if( (tmp_dsetMaskArray = (MaskType *)malloc(*nvox_model*sizeof(MaskType))) == NULL ) {
+          snprintf(errorString, LONG_STRING, "getAllocateModelArrays: "
+              "Memory allocation for tmp_dsetMaskArray failed!");
+        
+          /* free and return */
+          freeDsetArray(dsetModel, tmp_dsetArray);
+          free2DT(tmp_dsetModelArray, *nt_model);
+          DSET_unload(dsetMask);
+          RETURN(1);
+        }
+
+        for (v=0; v<*nvox_model; ++v) tmp_dsetMaskArray[v] = tmp_maskArrayPtr[v];
+
+        /* - free memory mask dataset */
         DSET_unload(dsetMask);
       }
-      else {
-        ERROR_exit("Failed to open mask dataset: %s. If not using a mask file, "
-                "you must use option -nomodelmask!", inModelFileMask );
+      else { /* mask dataset not found */
+        snprintf(errorString, LONG_STRING,
+            "Failed to open mask dataset: %s! \n\n" 
+            "   You are using an outdated model file!\n"
+            "   Make sure the mask file is in your current working directory!\n"
+            "   If no mask file was used for training use "
+            "   option -nomodelmask!", inModelFileMask );
+
+        /* free and return */
+        freeDsetArray(dsetModel, tmp_dsetArray);
+        free2DT(tmp_dsetModelArray, *nt_model);
+        RETURN(1);
       }
+    }
+    else { /* (option -nomodelmask) */
+      *mask_used = MASK_NO;
     }
   }
 
-  /* free memory */
+  /* -- free temporary memory */
   free(tmp_dsetArray);
 
-  EXRETURN;
+  *dsetMaskArray =  tmp_dsetMaskArray;
+  *dsetModelArray = tmp_dsetModelArray;
+
+  RETURN(0);
 }
 
 
@@ -997,14 +1795,12 @@ void get_svm_model(MODEL *model, DatasetType **dsetModelArray,
   EXRETURN;
 
 }
-
-void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
+int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, char *errorString )
 {
-  ATR_float *atr_float   = NULL;
-  ATR_int *atr_int       = NULL;
-  ATR_string *atr_string = NULL;
-  long i,j,c             = 0;
-  int cc, dd             = 0;
+  ATR_float *  atr_float   = NULL;
+  ATR_int *    atr_int     = NULL;
+  ATR_string * atr_string  = NULL;
+  long i,j                 = 0;
 
 
 
@@ -1014,9 +1810,11 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
   char *p                = NULL;
   char *q                = NULL;
   long max_comb          = CLASS_MAX*(CLASS_MAX-1)/2;
-  float version          = 0.0; /* holds version number */
+
 
   char headernames[LONG_STRING];
+
+
 
   ENTRY("readAllocateAfniModel");
 
@@ -1032,12 +1830,15 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
    * JL Apr. 2010: Allocating combNames and kernel_custome dynamically
    * based on CLASS_MAX and CSV_STRING
    *
-   * JL May 2010: Added 3DSVM_MASK_USED to determine if mask was used for
+   * JL May  2010: Added 3DSVM_MASK_USED to determine if mask was used for
    * training or not. (Now, the mask is a sub-brick of the model dataset)
    *
-   * JL May 2010: Trying to be backward compatible based on version number
+   * JL May  2010: Trying to be backwards compatible based on version number
    *
-   * TODO: Error checking for each model parameter would be good
+   * JL July 2011: Modified error handling: Passing error message 
+   * as argument (errorString) to the calling function. Checking allocation 
+   * for every model parameter, if malloc fails, free memory and 
+   * RETURN(1) instead of ERROR_exit().
    *
    */
 
@@ -1046,7 +1847,7 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
 
   /* version number in model header (introduced Apr. 2010) */
   if( atr_string != NULL ) {
-    version = atof((char *)(atr_string->ch+1));
+    afniModel->version = atof((char *)(atr_string->ch+1));
   }
   else { /* no version number in header, assign version number based on
    header entries */
@@ -1054,48 +1855,66 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
     /* check if 3DSVM_TYPE is present (introduced Oct. 2009)
      * assign version number 0.90 */
     atr_string = THD_find_string_atr( dsetModel->dblk, "3DSVM_SVM_TYPE" );
-    if (atr_string != NULL) version = 0.90;
+    if (atr_string != NULL) afniModel->version = 0.90;
     else { /* maybe even older */
 
       /* check if COMBO_NAMES is present
        * assign version number 0.80
        */
       atr_string = THD_find_string_atr( dsetModel->dblk, "COMBO_NAMES" );
-      if (atr_string != NULL) version = 0.80;
+      if (atr_string != NULL) afniModel->version = 0.80;
       else { /* out of luck */
-        ERROR_exit("Can not read model!");
+        snprintf(errorString, LONG_STRING, "Can not read model!");
+        RETURN(1);
       }
     }
   }
-
-  /* --- read header information based on version ---*/
-  if (version >= 0.90) {
+  /* ----------------------------------------------------------------------  */
+  /* --- read header information based on 3DSVM VERSION ---*/
+  /* ----------------------------------------------------------------------  */
+  if (afniModel->version >= 0.90) { 
+    /* -- initialize -- */
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_CLASS_COMBINATIONS" );
     afniModel->combinations = *atr_int->in;
 
-    /* --- allocate CSV strings --- */
+    /* - allocate CSV strings - */
     p_string_size = afniModel->combinations*CSV_STRING;
 
-    if ( (p = (char *)malloc(p_string_size*sizeof(char))) == NULL ) {
-      ERROR_exit("Memory allocation for csv-string in readAllocateAfniModel failed!");
+    if( (p = (char *)malloc(p_string_size*sizeof(char))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for csv-string failed!");
+      RETURN(1);
      }
+    
+    /* - allocate 2D char arrays - */
+    if( (afniModel->combName = Allocate2c(max_comb, (long)CSV_STRING)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for combName failed!");
 
-    afniModel->combName = Allocate2c(max_comb, (long)CSV_STRING);
-    afniModel->kernel_custom = Allocate2c(max_comb, (long)CSV_STRING);
-    if (afniModel->combName == NULL  || afniModel->kernel_custom == NULL ) {
-      ERROR_exit("Memory allocation for csv-string in readAllocateAfniModel failed!");
+      /* free and return */
+      free(p);
+      RETURN(1);
     }
-
     Clear2c(afniModel->combName, max_comb);
+
+    if( (afniModel->kernel_custom = Allocate2c(max_comb, (long)CSV_STRING)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for kernel_custom failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      RETURN(1);
+    }
     Clear2c(afniModel->kernel_custom, max_comb);
 
-    /* -- read header -- */
+    /* -- allocate and read header entries -- */
     /* JL Oct 2009 */
     atr_string = THD_find_string_atr( dsetModel->dblk, "3DSVM_SVM_TYPE" );
     strncpy(afniModel->svm_type, atr_string->ch, LONG_STRING);
 
-    /* JL May 2010   */
-    if (version >= 1.10) {
+    /* JL May 2010 */
+    if (afniModel->version >= 1.10) {
       atr_int = THD_find_int_atr(dsetModel->dblk, "3DSVM_MASK_USED");
       afniModel->mask_used = *atr_int->in;
     }
@@ -1112,20 +1931,43 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
     q = strtok(p,",");
     if (q != NULL) strncpy(afniModel->combName[0], q, CSV_STRING);
     else {
-      ERROR_exit("Reading model combinations in header file failed");
+      snprintf(errorString, LONG_STRING, "Reading model combinations in header "
+          "file failed");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      RETURN(1);
     }
+
     for(i = 1; i < afniModel->combinations; ++i) {
       q=strtok(NULL,",");
-
       if (q != NULL) strncpy(afniModel->combName[i], q, CSV_STRING);
       else {
-        ERROR_exit("Reading model combinations in header file failed\n"
-            "   Number does not match expected(%d)", afniModel->combinations);
+        snprintf(errorString, LONG_STRING, 
+            "Reading model combinations in header file failed! "
+            "Number does not match expected: '%d'", afniModel->combinations);
+        
+        /* free and return */
+        free(p);
+        free2c(afniModel->combName, max_comb);
+        free2c(afniModel->kernel_custom, max_comb);
+        RETURN(1);
       }
     }
 
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_KERNEL_TYPE" );
-    afniModel->kernel_type = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->kernel_type = (int *)malloc( atr_int->nin * sizeof(int) )) == NULL) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for kernel_type failed!"); 
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->kernel_type[i] = atr_int->in[i];
     }
@@ -1134,215 +1976,847 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
     strncpy(p, atr_string->ch, p_string_size);
     q = strtok(p,",");
     if (q != NULL) strncpy(afniModel->kernel_custom[0],q, CSV_STRING);
-    else ERROR_exit("Can't find KERNEL_CUSTOM in model header file");
+    else {
+      snprintf(errorString, LONG_STRING, 
+          "Can't find 3DSVM_KERNEL_CUSTOM in model header file");
 
-    for ( i=1; i<afniModel->combinations; ++i) {
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      RETURN(1);
+    }
+    for( i=1; i<afniModel->combinations; ++i ) {
       q=strtok(NULL,",");
       if (q != NULL) strncpy(afniModel->kernel_custom[i], q, CSV_STRING);
       else {
-        ERROR_exit("Reading KERNEL_CUSTOM in model header file number of class"
-            "combinations does not match expected(%d)", afniModel->combinations);
+        snprintf(errorString, LONG_STRING, 
+            "Reading 3DSVM_KERNEL_CUSTOM in model header file number of class"
+            "combinations does not match expected:'%d'", afniModel->combinations);
+
+        /* free and return */
+        free(p);
+        free2c(afniModel->combName, max_comb);
+        free2c(afniModel->kernel_custom, max_comb);
+        free(afniModel->kernel_type);
+        RETURN(1);
       }
     }
   
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_RBF_GAMMA" );
-    afniModel->rbf_gamma = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->rbf_gamma = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for rbf_gamma failed!"); 
+      
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
       afniModel->rbf_gamma[i] = atr_float->fl[i];
     }
   
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_LINEAR_COEFFICIENT" );
-    afniModel->linear_coefficient = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->linear_coefficient = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for linear_coefficient failed!");
+      
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
       afniModel->linear_coefficient[i] = atr_float->fl[i];
     }
   
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_CONSTANT_COEFFICIENT" );
-    afniModel->constant_coefficient = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->constant_coefficient = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for constant_coefficient failed!");
+      
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
       afniModel->constant_coefficient[i] = atr_float->fl[i];
     }
   
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_TOTAL_MASKED_FEATURES" );
-    afniModel->total_masked_features = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->total_masked_features = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for total_masked_features failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->total_masked_features[i] = atr_int->in[i];
     }
   
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_TOTAL_SAMPLES" );
-    afniModel->total_samples = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->total_samples = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for total_samples failed!");
+      
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->total_samples[i] = atr_int->in[i];
     }
   
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_TOTAL_SUPPORT_VECTORS" );
-    afniModel->total_support_vectors = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->total_support_vectors = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for total_support_vectors failed!");
+      
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      RETURN(1);
+    }
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->total_support_vectors[i] = atr_int->in[i];
     }
   
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_B" );
-    afniModel->b = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( ( afniModel->b = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for b failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      RETURN(1);
+    }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
       afniModel->b[i] = atr_float->fl[i];
     }
   
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_POLYNOMIAL_DEGREE" );
-    afniModel->polynomial_degree = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->polynomial_degree = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for polynomial_degree failed!");
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->polynomial_degree[i] = atr_int->in[i];
     }
   
-    afniModel->alphas = Allocate2f((long) afniModel->combinations, (long) afniModel->timepoints);
-    afniModel->cAlphas = Allocate2f((long) afniModel->combinations, (long) afniModel->timepoints);
+    if( (afniModel->alphas = Allocate2f((long) afniModel->combinations, 
+            (long) afniModel->timepoints)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for alphas failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      RETURN(1);
+    }
+
+    if( (afniModel->cAlphas = Allocate2f((long) afniModel->combinations, 
+            (long)afniModel->timepoints)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for cAlphas failed!"); 
+      
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      RETURN(1);
+    }
 
     for(i = 0; i < afniModel->combinations; ++i ) {
-      snprintf(headernames,LONG_STRING, "3DSVM_ALPHAS_%s",afniModel->combName[i]);
+      snprintf(headernames, LONG_STRING, "3DSVM_ALPHAS_%s", afniModel->combName[i]);
       atr_float = THD_find_float_atr( dsetModel->dblk, headernames); 
       for(j = 0; j < afniModel->timepoints; ++j ) {
         afniModel->alphas[i][j] = (double)atr_float->fl[j];
       }
     }
 
+
     /* JL Nov 2009: new parameters: */
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_SVM_C" );
-    afniModel->svm_c = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->svm_c = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for svm_c failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      RETURN(1);
+    }
     for (i=0; i < afniModel->combinations; ++i ) {
       afniModel->svm_c[i] = atr_float->fl[i];
     }
 
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_EPS" );
-    afniModel->eps = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->eps = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for eps failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      RETURN(1);
+    }
     for (i=0; i < afniModel->combinations; ++i ) {
       afniModel->eps[i] = atr_float->fl[i];
     }
 
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_BIASED_HYPERPLANE" );
-    afniModel->biased_hyperplane = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->biased_hyperplane = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for biased_hyperplane failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      RETURN(1);
+    }
     for( i=0; i<afniModel->combinations; ++i ) {
       afniModel->biased_hyperplane[i] = atr_int->in[i];
      }
 
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_SKIP_FINAL_OPT_CHECK" );
-    afniModel->skip_final_opt_check = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->skip_final_opt_check = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for skip_final_opt_check failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      RETURN(1);
+    }
     for( i=0; i<afniModel->combinations; ++i ) {
       afniModel->skip_final_opt_check[i] = atr_int->in[i];
     }
 
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_SVM_MAXQPSIZE" );
-    afniModel->svm_maxqpsize = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->svm_maxqpsize = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for svm_maxqpsize failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      RETURN(1);
+    }
     for( i=0; i<afniModel->combinations; ++i ) {
       afniModel->svm_maxqpsize[i] = atr_int->in[i];
     }
 
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_SVM_NEWVARSINQP" );
-    afniModel->svm_newvarsinqp = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->svm_newvarsinqp = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+       snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for svm_newvarsinqp failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      RETURN(1);
+    }
     for( i=0; i<afniModel->combinations; ++i ) {
       afniModel->svm_newvarsinqp[i] = atr_int->in[i];
     }
 
-    atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_SVM_ITER_TO_SHRINK" );
-    afniModel->svm_iter_to_shrink = (int *)malloc( atr_int->nin * sizeof(int) );
+    atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_SVM_ITER_TO_SHRINK");
+    if( (afniModel->svm_iter_to_shrink = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for svm_iter_to_shrink failed!");
+
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      free(afniModel->svm_newvarsinqp);
+      RETURN(1);
+    }
     for( i=0; i<afniModel->combinations; ++i ) {
       afniModel->svm_iter_to_shrink[i] = atr_int->in[i];
     }
 
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_TRANSDUCTION_POSRATIO" );
-    afniModel->transduction_posratio = (float *)malloc( atr_float->nfl *
-        sizeof(float) );
+    if( (afniModel->transduction_posratio = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for transduction_posratio failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      free(afniModel->svm_newvarsinqp);
+      free(afniModel->svm_iter_to_shrink);
+      RETURN(1);
+      
+    }
     for (i=0; i < afniModel->combinations; ++i ) {
       afniModel->transduction_posratio[i] = atr_float->fl[i];
     }
 
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_SVM_COSTRATIO" );
-    afniModel->svm_costratio = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->svm_costratio = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for svm_costratio failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      free(afniModel->svm_newvarsinqp);
+      free(afniModel->svm_iter_to_shrink);
+      free(afniModel->transduction_posratio);
+      RETURN(1);
+    }
     for (i=0; i < afniModel->combinations; ++i ) {
       afniModel->svm_costratio[i] = atr_float->fl[i];
     }
 
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_SVM_COSTRATIO_UNLAB" );
-    afniModel->svm_costratio_unlab = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->svm_costratio_unlab = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for svm_costratio_unlab failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      free(afniModel->svm_newvarsinqp);
+      free(afniModel->svm_iter_to_shrink);
+      free(afniModel->transduction_posratio);
+      free(afniModel->svm_costratio);
+      RETURN(1);
+    }
     for (i=0; i < afniModel->combinations; ++i ) {
       afniModel->svm_costratio_unlab[i] = atr_float->fl[i];
     }
 
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_SVM_UNLABBOUND" );
-    afniModel->svm_unlabbound = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->svm_unlabbound = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for svm_unlabbound failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      free(afniModel->svm_newvarsinqp);
+      free(afniModel->svm_iter_to_shrink);
+      free(afniModel->transduction_posratio);
+      free(afniModel->svm_costratio);
+      free(afniModel->svm_costratio_unlab);
+      RETURN(1);
+    }
     for (i=0; i < afniModel->combinations; ++i ) {
       afniModel->svm_unlabbound[i] = atr_float->fl[i];
     }
 
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_EPSILON_A" );
-    afniModel->epsilon_a = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->epsilon_a = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for epsilon_a failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      free(afniModel->svm_newvarsinqp);
+      free(afniModel->svm_iter_to_shrink);
+      free(afniModel->transduction_posratio);
+      free(afniModel->svm_costratio);
+      free(afniModel->svm_costratio_unlab);
+      RETURN(1);
+    }
     for (i=0; i < afniModel->combinations; ++i ) {
       afniModel->epsilon_a[i] = atr_float->fl[i];
     }
 
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_EPSILON_CRIT" );
-    afniModel->epsilon_crit = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->epsilon_crit = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for epsilon_crit failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      free(afniModel->svm_newvarsinqp);
+      free(afniModel->svm_iter_to_shrink);
+      free(afniModel->transduction_posratio);
+      free(afniModel->svm_costratio);
+      free(afniModel->svm_costratio_unlab);
+      free(afniModel->epsilon_a);
+      RETURN(1);
+    }
     for (i=0; i < afniModel->combinations; ++i ) {
       afniModel->epsilon_crit[i] = atr_float->fl[i];
     }
 
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_COMPUTE_LOO" );
-    afniModel->compute_loo = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->compute_loo = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for compute_loo failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      free(afniModel->svm_newvarsinqp);
+      free(afniModel->svm_iter_to_shrink);
+      free(afniModel->transduction_posratio);
+      free(afniModel->svm_costratio);
+      free(afniModel->svm_costratio_unlab);
+      free(afniModel->epsilon_a);
+      free(afniModel->epsilon_crit);
+      RETURN(1);
+    }
     for( i=0; i<afniModel->combinations; ++i ) {
       afniModel->compute_loo[i] = atr_int->in[i];
     }
 
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_RHO" );
-    afniModel->rho = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->rho = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for rho!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      free(afniModel->svm_newvarsinqp);
+      free(afniModel->svm_iter_to_shrink);
+      free(afniModel->transduction_posratio);
+      free(afniModel->svm_costratio);
+      free(afniModel->svm_costratio_unlab);
+      free(afniModel->epsilon_a);
+      free(afniModel->epsilon_crit);
+      free(afniModel->compute_loo);
+      RETURN(1);
+    }
     for (i=0; i < afniModel->combinations; ++i ) {
       afniModel->rho[i] = atr_float->fl[i];
     }
 
     atr_int = THD_find_int_atr( dsetModel->dblk, "3DSVM_XA_DEPTH" );
-    afniModel->xa_depth = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->xa_depth = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for xa_depth failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples); 
+      free(afniModel->total_support_vectors); 
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      free2f(afniModel->cAlphas, afniModel->combinations);
+      free(afniModel->svm_c);
+      free(afniModel->eps);
+      free(afniModel->biased_hyperplane);
+      free(afniModel->skip_final_opt_check);
+      free(afniModel->svm_maxqpsize);
+      free(afniModel->svm_newvarsinqp);
+      free(afniModel->svm_iter_to_shrink);
+      free(afniModel->transduction_posratio);
+      free(afniModel->svm_costratio);
+      free(afniModel->svm_costratio_unlab);
+      free(afniModel->epsilon_a);
+      free(afniModel->epsilon_crit);
+      free(afniModel->compute_loo);
+      free(afniModel->rho);
+      RETURN(1);
+    }
     for( i=0; i<afniModel->combinations; ++i ) {
       afniModel->xa_depth[i] = atr_int->in[i];
     }
   }
+
+  /* -----------------------------------------------------*/
   /* ---- naming for model parameters before Oct. 2009 ---*/
-  else if (version >= 0.80) {
+  /* -----------------------------------------------------*/
+  else if (afniModel->version >= 0.80) {
 
     atr_int = THD_find_int_atr( dsetModel->dblk, "CLASS_COMBINATIONS" );
     afniModel->combinations = *atr_int->in;
 
     /* --- allocate CSV strings --- */
     p_string_size = afniModel->combinations*CSV_STRING;
-
     if ( (p = (char *)malloc(p_string_size*sizeof(char))) == NULL ) {
-      ERROR_exit("Memory allocation for csv-string in readAllocateAfniModel failed!");
-     }
-
-    afniModel->combName = Allocate2c(max_comb, (long)CSV_STRING);
-    afniModel->kernel_custom = Allocate2c(max_comb, (long)CSV_STRING);
-    if (afniModel->combName == NULL  || afniModel->kernel_custom == NULL ) {
-      ERROR_exit("Memory allocation for csv-string in readAllocateAfniModel failed!");
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for cvs-string failed!");
+      RETURN(1);
     }
 
+    /* - allocate 2D char arrays - */
+    if( (afniModel->combName = Allocate2c(max_comb, (long)CSV_STRING)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for combName failed!");
+
+      /* free and return */
+      free(p);
+      RETURN(1);
+    }
     Clear2c(afniModel->combName, max_comb);
+
+    if( (afniModel->kernel_custom = Allocate2c(max_comb, (long)CSV_STRING)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for kernel_custom failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      RETURN(1);
+    }
     Clear2c(afniModel->kernel_custom, max_comb);
 
-    /* -- write defalut values for non-existing parameters */
+    /* -- write default values for non-existing header entries */
     strncpy(afniModel->svm_type, "classification", LONG_STRING);
     afniModel->mask_used = MASK_UNKNOWN;
 
-    /* -- read header -- */
+    /* -- allocate and read header entries -- */
     atr_string = THD_find_string_atr( dsetModel->dblk, "COMBO_NAMES" );
     strncpy(p, atr_string->ch, p_string_size);
-
     q = strtok(p,",");
     if (q != NULL) strncpy(afniModel->combName[0], q, CSV_STRING);
     else {
-      ERROR_exit("Reading model combinations in header file failed");
+      snprintf(errorString, LONG_STRING, 
+          "Reading model combinations in header file failed");
+
+      /*  free and return  */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      RETURN(1);
     }
     for(i = 1; i < afniModel->combinations; ++i) {
       q=strtok(NULL, ",");
       if (q != NULL) strncpy(afniModel->combName[i], q, CSV_STRING);
       else {
-        ERROR_exit("Reading model combinations in header file failed\n"
-            "   Number does not match expected(%d)", afniModel->combinations);
+        snprintf(errorString, LONG_STRING, 
+            "Reading model combinations in header file failed "
+            "Number does not match expected(%d)", afniModel->combinations);
+     
+        /*  free and return  */
+        free(p);
+        free2c(afniModel->combName, max_comb);
+        free2c(afniModel->kernel_custom, max_comb);
+        RETURN(1);
       }
     }
 
@@ -1353,7 +2827,17 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
     afniModel->timepoints = *atr_int->in;
 
     atr_int = THD_find_int_atr( dsetModel->dblk, "KERNEL_TYPE" );
-    afniModel->kernel_type = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->kernel_type = (int *)malloc( atr_int->nin * sizeof(int))) == NULL ) { 
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for kernel_type failed!"); 
+
+        /*  free and return  */
+        free(p);
+        free2c(afniModel->combName, max_comb);
+        free2c(afniModel->kernel_custom, max_comb);
+        RETURN(1);
+    }
+
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->kernel_type[i] = atr_int->in[i];
     }
@@ -1367,15 +2851,32 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
         strncpy(p,atr_string->ch, p_string_size);
         q = strtok(p,",");
         if (q != NULL) strncpy(afniModel->kernel_custom[0], q, CSV_STRING);
-        else ERROR_exit("Can't find KERNEL_CUSTOM in header file");
+        else {
+          snprintf(errorString, LONG_STRING, 
+              "Reading model file failed. Can't find KERNEL_CUSTOM");
+
+          /* free and return */
+          free(p);
+          free2c(afniModel->combName, max_comb);
+          free2c(afniModel->kernel_custom, max_comb); 
+          free(afniModel->kernel_type);
+          RETURN(1);
+        }
 
         for ( i=1; i<afniModel->combinations; ++i) {
           q=strtok(NULL,",");
           if (q != NULL) strncpy(afniModel->kernel_custom[i], q, p_string_size);
           else {
-            ERROR_exit("Reading KERNEL_CUSTOM in header file number of class-"
-                "combinations does not match expected(%d)\n",
+            snprintf(errorString, LONG_STRING, "Reading KERNEL_CUSTOM in model "
+                "header. Number of class-combinations does not match expected(%d)\n",
                 afniModel->combinations);
+
+            /* free and return */
+            free(p);
+            free2c(afniModel->combName, max_comb);
+            free2c(afniModel->kernel_custom, max_comb); 
+            free(afniModel->kernel_type);
+            RETURN(1);
           }
         }
       }
@@ -1386,57 +2887,206 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
     }
 
     atr_float = THD_find_float_atr( dsetModel->dblk, "RBF_GAMMA" );
-    afniModel->rbf_gamma = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->rbf_gamma = (float *)malloc( atr_float->nfl * sizeof(float) )) == NULL ) { 
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for rbf_gamma failed!");
+      
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
       afniModel->rbf_gamma[i] = atr_float->fl[i];
     }
   
     atr_float = THD_find_float_atr( dsetModel->dblk, "LINEAR_COEFFICIENT" );
-    afniModel->linear_coefficient = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->linear_coefficient = (float *)malloc( atr_float->nfl * sizeof(float) )) == NULL ) { 
+      
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for linear_coefficient failed!"); 
+      
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
       afniModel->linear_coefficient[i] = atr_float->fl[i];
     }
   
     atr_float = THD_find_float_atr( dsetModel->dblk, "CONSTANT_COEFFICIENT" );
-    afniModel->constant_coefficient = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->constant_coefficient = (float *)malloc( atr_float->nfl * sizeof(float) )) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for constant_coefficient failed!");
+
+      /* free and return */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
       afniModel->constant_coefficient[i] = atr_float->fl[i];
     }
   
     atr_int = THD_find_int_atr( dsetModel->dblk, "TOTAL_MASKED_FEATURES" );
-    afniModel->total_masked_features = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->total_masked_features = (int *)malloc( atr_int->nin * sizeof(int) )) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for total_masked_features failed!");
+
+      /* -- free and return -- */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->total_masked_features[i] = atr_int->in[i];
     }
   
     atr_int = THD_find_int_atr( dsetModel->dblk, "TOTAL_SAMPLES" );
-    afniModel->total_samples = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->total_samples = (int *)malloc( atr_int->nin * sizeof(int) )) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for total_samples failed!");
+
+      /* -- free and return -- */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->total_samples[i] = atr_int->in[i];
     }
   
     atr_int = THD_find_int_atr( dsetModel->dblk, "TOTAL_SUPPORT_VECTORS" );
-    afniModel->total_support_vectors = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->total_support_vectors = (int *)malloc( atr_int->nin * sizeof(int) )) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for total_support_vectors failed!");
+
+      /* -- free and return -- */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->total_support_vectors[i] = atr_int->in[i];
     }
   
     atr_float = THD_find_float_atr( dsetModel->dblk, "B" );
-    afniModel->b = (float *)malloc( atr_float->nfl * sizeof(float) );
+    if( (afniModel->b = (float *)malloc( atr_float->nfl * sizeof(float) )) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for b failed!");
+
+      /* -- free and return -- */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples);
+      free(afniModel->total_support_vectors);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
       afniModel->b[i] = atr_float->fl[i];
     }
   
     atr_int = THD_find_int_atr( dsetModel->dblk, "POLYNOMIAL_DEGREE" );
-    afniModel->polynomial_degree = (int *)malloc( atr_int->nin * sizeof(int) );
+    if( (afniModel->polynomial_degree = (int *)malloc( atr_int->nin * sizeof(int) )) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for polynomial_degree failed!");
+
+      /* -- free and return -- */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples);
+      free(afniModel->total_support_vectors);
+      free(afniModel->b);
+      RETURN(1);
+    }
     for( i=0 ; i<atr_int->nin ; ++i ) {
       afniModel->polynomial_degree[i] = atr_int->in[i];
     }
 
-    afniModel->alphas  = Allocate2f((long) afniModel->combinations,
-                                    (long) afniModel->timepoints);
-    afniModel->cAlphas = Allocate2f((long) afniModel->combinations,
-                                    (long) afniModel->timepoints);
+    if( (afniModel->alphas = Allocate2f((long) afniModel->combinations, 
+            (long) afniModel->timepoints)) == NULL ) {
+
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for alphas failed!");
+
+      /* -- free and return -- */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples);
+      free(afniModel->total_support_vectors);
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      RETURN(1);
+    }
+     
+    if( (afniModel->cAlphas = Allocate2f((long) afniModel->combinations,
+            (long) afniModel->timepoints)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
+          "Memory allocation for cAlphas failed!");
+
+      /* -- free and return -- */
+      free(p);
+      free2c(afniModel->combName, max_comb);
+      free2c(afniModel->kernel_custom, max_comb);
+      free(afniModel->kernel_type);
+      free(afniModel->rbf_gamma);
+      free(afniModel->linear_coefficient);
+      free(afniModel->constant_coefficient);
+      free(afniModel->total_masked_features);
+      free(afniModel->total_samples);
+      free(afniModel->total_support_vectors);
+      free(afniModel->b);
+      free(afniModel->polynomial_degree);
+      free2f(afniModel->alphas, afniModel->combinations);
+      RETURN(1);
+    }
+
     for(i = 0; i < afniModel->combinations; ++i ) {
       snprintf(headernames, LONG_STRING, "ALPHAS_%s", afniModel->combName[i]);
       atr_float = THD_find_float_atr( dsetModel->dblk, headernames); 
@@ -1446,155 +3096,109 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
     }
   }
   else {
-    ERROR_exit("Could not read model header. Version V%3.2f unknown!", version);
+    snprintf(errorString, LONG_STRING, 
+          "Could not read model header. Version V%3.2f unknown!", afniModel->version);
+    /* -- free and return -- */
+    free(p);
+    free2c(afniModel->combName, max_comb);
+    free2c(afniModel->kernel_custom, max_comb);
+    free(afniModel->kernel_type);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free(afniModel->polynomial_degree);
+    free2f(afniModel->alphas, afniModel->combinations);
+    free2f(afniModel->cAlphas, afniModel->combinations);
+    RETURN(1);
   }
     
-  
   /* --- free p string used for strtok ---*/
   free(p);
 
-  EXRETURN;
+  RETURN(0);
 }
 
-void get_afni_model(ASLoptions *options, AFNI_MODEL *afniModel,
-    THD_3dim_dataset *dsetModel, enum modes *mode, int *svm_type)
+
+int allocateModelMaps(MODEL_MAPS *maps, long n_classes, long n_vox, char *kernelName)
 {
-
-  /* JL May 2009: This functions reads in the afni model to determine model
-   * parameters before testing is performed. This may not be necessary,
-   * if training and testing are preformed all at once.
-   *
-   * JL Oct. 2009: Added viewtype postfix for modelfile if training and testing
-   * are performed together.
-   *
-   *      *************************************************
-   *      *       Don't forget to free afniModel,         *
-   *      *       when using this function!               *
-   *      *************************************************
-   *
-   */
-
-  ENTRY("get_afni_model");
-
-  /*----- VIEWTYPE POSTFIX FOR MODEL (quick fix !!!) -----*/
-  /* It would be better to not read in the model from disc */
-  if ( *mode == TRAIN_AND_TEST ) {
-    if ( strstr(options->trainFile,"+orig") != NULL ) {
-      if ( strstr(options->testFile,"+orig") == NULL ) {
-        ERROR_exit("Viewtype of train dataset: %s does not match\n"
-            "   Viewtype of test dataset: %s!", options->trainFile,
-            options->testFile);
-      }
-      else strncat(options->modelFile,"+orig", LONG_STRING);
-    }
-
-    else if ( strstr(options->trainFile,"+tlrc") != NULL ) {
-      if ( strstr(options->testFile,"+tlrc") == NULL ) {
-        ERROR_exit("Viewtype of train dataset: %s does not match\n"
-            "   Viewtype of test dataset: %s!", options->trainFile,
-            options->testFile);
-      }
-      else strncat(options->modelFile,"+tlrc", LONG_STRING);
-    }
-
-    else if ( strstr(options->trainFile,"+acpc") != NULL ) {
-      if ( strstr(options->testFile,"+acpc") == NULL ) {
-        ERROR_exit("Viewtype of train dataset: %s does not match\n"
-            "   Viewtype of test dataset: %s!", options->trainFile,
-            options->testFile);
-      }
-      else strncat(options->modelFile,"+acpc", LONG_STRING);
-    }
-
-    else ERROR_exit("Viewtype unknown!");
-  }
-
-  /*----- LOAD AFNI MODEL -----*/
-  dsetModel = THD_open_one_dataset( options->modelFile );
-  if ( dsetModel == NULL ) {
-    ERROR_exit("Failed to open model dataset: %s", options->modelFile );
-  }
-  DSET_load( dsetModel );
-
-  /*----- READ AFNI MODEL -----*/
-  readAllocateAfniModel(dsetModel, afniModel);
-
-  /* --- set svm_type ---*/
-  if( !strcmp(afniModel->svm_type, "regression") )  *svm_type = REGRESSION;
-  else  *svm_type = CLASSIFICATION;
-
-  /*----- FREE MEMORY ------*/
-  DSET_unload( dsetModel );
-
-  /* TODO: would be great to pass dsetModel to the test function and avoid
-   * loading it in twice */
-
-  EXRETURN;
-}
-
-allocateModelMaps(MODEL_MAPS *maps, long n_classes, long n_vox, char *kernelName)
-{
-  long i = 0;
   long class_comb = 0;
-    
+
   ENTRY("allocateModelMaps");
 
   /* --- initialize --- */
   class_comb = n_classes*(n_classes-1)/2;
   maps->index=0;
 
-  if ( (!strcmp(kernelName, "complex1")) ) {  
+  if ( (!strcmp(kernelName, "complex1")) ) {
+    
     /* Remember the real- and imaginary part are concatenated for kernel-
      * option complex1. I'm probably redundant here... */
-    if (n_vox%2!=0) {
-      ERROR_exit("Trying to allocate model maps: Something is wrong with"
-          "the complex-valued data representation");
+    if (n_vox%2 != 0) {
+      WARNING_message("Can not create model maps. " 
+          "Something is wrong with the complex-valued data representation");
+     
+      /* even if maps can not be generated, allocated some small chuck of memory.
+         This makes freeing memory a bit easier and doesn't cost a lot of 
+         resources. */
+      maps->nmaps = 1;
+      maps->nvox = 1;
     }
-    maps->nvox = n_vox/2;
+    else {
+      maps->nvox = n_vox/2;
 
-    /* Genearting six weight-vector maps for linear-complex kernels: 
-     * RE, IM, MAG1, MAG2, PHA1, PHA2 */
-    maps->nmaps = class_comb*6;
+      /* Generating six weight-vector maps for linear-complex kernels:
+       * RE, IM, MAG1, MAG2, PHA1, PHA2 */
+       maps->nmaps = class_comb*6;
+    }
   }
   else if ( (!strcmp(kernelName, "linear")) ) {
     maps->nmaps = class_comb;
     maps->nvox = n_vox;
   }
   else {
-    if (verbosity >= 2) {
-      INFO_message("NOTE: Can't create model maps for kernel option: %s", 
-          kernelName);
-    }
-
-    EXRETURN;
+    WARNING_message("Sorry, Can not create model maps for kernel option: %s", kernelName);
+    /* even if maps can not be generated, allocate some small chuck of memory.
+       This makes freeing memory a bit easier and doesn't cost a lot of 
+       resources. */
+    maps->nmaps = 1;
+    maps->nvox = 1;
   }
 
   /* --- allocate memory ---*/
-  maps->names = Allocate2c(maps->nmaps, (long)LONG_STRING);
-  maps->data = Allocate2d(maps->nmaps, maps->nvox);
+  if( (maps->names = Allocate2c(maps->nmaps, (long)LONG_STRING)) == NULL ) {
+    RETURN(1);
+  }
+  if( (maps->data = Allocate2d(maps->nmaps, maps->nvox)) == NULL ) {
+    free2c(maps->names, maps->nmaps);
+    RETURN(1);
+  }
 
   /* --- null allocated memory --- */
   Clear2c(maps->names, maps->nmaps);
   Clear2d(maps->data, maps->nmaps, maps->nvox);
 
-  EXRETURN;
+  RETURN(0);
 }
 
-freeModelMaps(MODEL_MAPS *maps) 
+void freeModelMaps(MODEL_MAPS *maps)
 {
   ENTRY("freeModelMaps");
 
   free2d(maps->data, maps->nmaps);
   free2c(maps->names, maps->nmaps);
-  
+
   EXRETURN;
 }
 
 void addToModelMap_bucket ( MODEL_MAPS *maps, AFNI_MODEL *afni_model,
-  DatasetType **dsetTrainArray, MaskType *dsetMaskArray, char *maskFile, 
+  DatasetType **dsetTrainArray, MaskType *dsetMaskArray, char *maskFile,
   long cc)
 {
-  long v      = 0;  
+  long v      = 0;
   long iMap   = 0;
   long nvoxh  = 0;
   long t      = 0; 
@@ -1611,10 +3215,10 @@ void addToModelMap_bucket ( MODEL_MAPS *maps, AFNI_MODEL *afni_model,
    * The kernel has to be the same for each class-combination!
    *
    * JL Aug 2009: Added regression maps
-   * JL Apr 2010: Incorporated map_index into the MPDEL_MAPS structure*/
+   * JL Apr 2010: Incorporated map_index into the MODEL_MAPS structure*/
 
   /* --- initialization ---*/
-  iMap=maps->index; /* prone for errors, should do something better than that */
+  iMap=maps->index; /* TODO: prone for errors, should do something better than that */
   
   /* --- calculate weight-vector map for regression --- */
   if( !strcmp(afni_model->svm_type, "regression")) {  
@@ -1788,12 +3392,12 @@ void addToModelMap_bucket ( MODEL_MAPS *maps, AFNI_MODEL *afni_model,
   EXRETURN;
 }
 
-void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray, 
-    THD_3dim_dataset *dsetTrain,  char *maskFile, char *modelFile, 
-    float *b, long combinations, ASLoptions* options, int argc, char **argv)
+int writeModelMap_bucket( MODEL_MAPS *maps, MaskType *dsetMaskArray, 
+    THD_3dim_dataset *dsetTrain,  char *maskFile, char *fileName, 
+    float *b, long combinations, ASLoptions* options, int argc, char **argv,
+    char *errorString )
 {
   long v     = 0;
-  long t     = 0;
   long iMap  = 0;
   long nx    = 0;
   long ny    = 0;
@@ -1802,10 +3406,9 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
 
   THD_ivec3 iv_nxyz; 
   int ierror  = 0;
-  int ityp    = 0;
 
   THD_3dim_dataset*  dsetModelMapBucket = NULL;
-  float*              scaled_map        = NULL;
+  float*             scaled_map         = NULL;
 
   char* commandline  = NULL;     /* for history */
 
@@ -1814,7 +3417,11 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
   /* Changes:
    * JL Apr. 2010: Writing VERSION_3DSVM and VERSION_3DSVM into the header
    * JL Apr. 2010: Writing B value into the header
-   * JL Jul. 2010: Writing whole command line history into the header
+   * JL Jul. 2010: Writing entire command line history into the header
+   * JL July 2011: Modified error handling: Replaced ERROR_exit() by RETURN(1).
+   *               Passing error message as argument (errorString) to the 
+   *               calling function.
+   *
    */
 
 
@@ -1831,9 +3438,9 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
      * nz/2) */
 
     if ( maps->nvox%nx_ny != 0 ) {
-      ERROR_message("Writing bucket file failed. Something is wrong with "
-          "the complex-valued data representation.");
-      EXRETURN;
+      snprintf(errorString, LONG_STRING, "Writing bucket with model maps failed! "
+          "Something is wrong with the complex-valued data representation.");
+      RETURN(1);
       }
     nz = maps->nvox/(nx*ny);
   }
@@ -1843,7 +3450,7 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
 
   LOAD_IVEC3( iv_nxyz, nx ,ny ,nz);
   ierror = EDIT_dset_items ( dsetModelMapBucket,
-                            ADN_prefix,          modelFile,
+                            ADN_prefix,          fileName,
                             ADN_type,            HEAD_FUNC_TYPE,
                             ADN_func_type,       FUNC_BUCK_TYPE,
                             ADN_datum_all,       MRI_float,
@@ -1854,7 +3461,9 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
                             ADN_none ) ;
 
   if( ierror > 0 ) {
-    ERROR_exit("%d errors in attempting to create bucket dataset!", ierror );
+    snprintf(errorString, LONG_STRING, "writeModelMap_bucket: " 
+        "%d errors in attempting to create bucket dataset!", ierror );
+    RETURN(1);
   }
 
   /* -- record history -- */
@@ -1869,9 +3478,13 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
   for (iMap=0; iMap<maps->nmaps; ++iMap) {
     
     /* -- allocate scaled_map  -- */
-    scaled_map = (float *) malloc(sizeof(float)*maps->nvox);
-    if (scaled_map == NULL) {
-      ERROR_exit("Memory allocation in writeModelMap failed!");
+    if( (scaled_map = (float *) malloc(sizeof(float)*maps->nvox)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "writeModelMap_bucket: "
+          "Memory allocation failed!"); 
+      
+      /* free and return */
+      DSET_unload(dsetModelMapBucket); 
+      RETURN(1);
     }
     
     /*  -- scaling PHA--  */
@@ -1907,26 +3520,25 @@ void writeModelMap_bucket ( MODEL_MAPS *maps, MaskType *dsetMaskArray,
       }
     }
 
-
     /* -- add current map to bucket -- */      
-    EDIT_substitute_brick( dsetModelMapBucket, iMap, MRI_float, scaled_map);
-    EDIT_BRICK_LABEL( dsetModelMapBucket, iMap, maps->names[iMap]);
+    EDIT_substitute_brick( dsetModelMapBucket, iMap, MRI_float, scaled_map );
+    EDIT_BRICK_LABEL( dsetModelMapBucket, iMap, maps->names[iMap] );
   }
 
   /* --- add information to the header --- */
-  THD_set_string_atr( dsetModelMapBucket->dblk, "3DSVM_VERSION", VERSION_3DSVM);
-  THD_set_string_atr( dsetModelMapBucket->dblk, "3DSVM_VERSION_DATE", VERSION_DATE_3DSVM);
+  THD_set_string_atr( dsetModelMapBucket->dblk, "3DSVM_VERSION", VERSION_3DSVM );
+  THD_set_string_atr( dsetModelMapBucket->dblk, "3DSVM_VERSION_DATE", VERSION_DATE_3DSVM );
   THD_set_float_atr( dsetModelMapBucket->dblk, "3DSVM_B", combinations, b );
 
   /* --- write entire bucket data set to disc --- */
   fflush(stdout);
-  INFO_message("Writing bucket dataset with %ld brick(s)...", maps->nmaps);
-  THD_write_3dim_dataset( "./", modelFile, dsetModelMapBucket, True );
+  INFO_message("Writing bucket dataset: %s with %ld brick(s)...", fileName, maps->nmaps);
+  THD_write_3dim_dataset( "./", fileName, dsetModelMapBucket, True );
  
   /* --- deallocate memory --- */
-  free (scaled_map);
+  free(scaled_map);
   
-  EXRETURN;
+  RETURN(0);
 }
 
 /*-----------------------------------------------------------*/
@@ -1938,7 +3550,7 @@ void writeModelMask( THD_3dim_dataset *dsetMask, MaskType* dsetMaskArray, char *
 
   ENTRY("writeModelMask");
   
-   /* Write out model mask (actually, just a simple copy of mask used) */
+  /* Write out model mask (actually, just a simple copy of mask used) */
   snprintf( maskCopyName, LONG_STRING, "%s%s", fileName, MODEL_MSK_EXT );
   dsetMaskCopy = EDIT_empty_copy(dsetMask);
   EDIT_dset_items( dsetMaskCopy,
@@ -1958,16 +3570,16 @@ void writeModelMask( THD_3dim_dataset *dsetMask, MaskType* dsetMaskArray, char *
   tross_Append_History( dsetMaskCopy, "a 3dsvm copy") ;
 
   fflush(stdout);
-  INFO_message("Writing model dataset mask...");
+  INFO_message("Writing model dataset mask: %s...", fileName);
   THD_write_3dim_dataset( "./", maskCopyName, dsetMaskCopy, True );
 
   EXRETURN;
 }
 
 /*-----------------------------------------------------------*/
-void writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
+int writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
     DatasetType** dsetTrainArray,MaskType* dsetMaskArray,
-    ASLoptions* options, char* fileName, int argc, char **argv)
+    ASLoptions* options, char* fileName, int argc, char **argv, char *errorString)
 {
 
   THD_3dim_dataset *dsetModel = NULL;
@@ -2005,8 +3617,14 @@ void writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
    * takes the string size as an argument.
    *
    * JL May. 2010: Writing mask as a sub brick of the model. To overcome a
-   * problem with EDIT_substitue_brick (or a header entry), the mask is written
+   * problem with EDIT_substitute_brick (or a header entry), the mask is written
    * in brick n+1 and n+2.
+   *
+   * JL Oct. 2010: Bugfix: .BRIK was not written for datum type float (casted
+   * incorrectly)
+   * 
+   * JL July 2011: Modified error handling: Replaced ERROR_exit() by RETURN(1).
+   * Passing error message as argument (errorString) to the calling function.
    *
    */
 
@@ -2023,85 +3641,96 @@ void writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
       ADN_none);
 
   if( ierror > 0 ) {
-      ERROR_exit("%d errors in attempting to create model dataset!", ierror );
-    }
+    snprintf(errorString, LONG_STRING, "writeModelBrik: "
+        "%d errors in attempting to create model dataset!", ierror );
+    RETURN(1);
+  }
 
   /* --- write mask and training data into model dataset --- */
   switch (datum) {
     case MRI_float:
       /* -- write train data into model dataset -- */
       for (t=0; t<nt; ++t) {
-        tmp_dsetArrayFloat = (float *)malloc(nvox * sizeof(float));
-        if (tmp_dsetArrayFloat == NULL) {
-          ERROR_exit("Memory allocation in writeModelBrik failed!");
+        if( (tmp_dsetArrayFloat = (float *)malloc(nvox * sizeof(float))) == NULL ) {
+          snprintf(errorString, LONG_STRING, "writeModelBrik: "
+          "Memory allocation failed!"); 
+
+          /* free and return */
+          DSET_unload(dsetModel); 
+          RETURN(1);
         }
-        for (v=0; v<nvox; ++v) {
-          tmp_dsetArrayFloat[v]= (float) dsetTrainArray[t][v];
-        }
+        for (v=0; v<nvox; ++v) tmp_dsetArrayFloat[v] = (float) dsetTrainArray[t][v];
         EDIT_substitute_brick(dsetModel, t, MRI_float, tmp_dsetArrayFloat);
       }
 
-      /* -- write mask data into last brick of model dataset */
-      tmp_dsetArrayFloat = (float *)malloc(nvox * sizeof(float));
-      if (tmp_dsetArrayFloat == NULL) {
-        ERROR_exit("Memory allocation in writeModelBrik failed!");
-      }
-      if (options->maskFile[0]) {
-        for (v=0; v<nvox; ++v) tmp_dsetArrayFloat[v] = (float) dsetMaskArray[v];
-      }
-      else {
-        for (v=0; v<nvox; ++v) tmp_dsetArrayFloat[v] = 1.0;
-      }
-      EDIT_substitute_brick( dsetModel, nt, MRI_float, tmp_dsetArrayFloat );
-
-      /* -- write last brick again -- */
-
-      /* -- write last brick again -- */
-      /* TODO: I don't know if EDIT_substitue_brick has a bug or if I'm doing
+      /* -- write last (nt-1) brick again -- */
+      /* TODO: I don't know if EDIT_substitute_brick has a bug or if I'm doing
        * something wrong, but writing the mask into brick n also writes the
        * mask in brick n-1. So I am writing brick n in n+1 and the mask in n+2,
        * to not overwrite brick n with the mask.
        */
 
-      tmp_dsetArrayFloat = (float *)malloc(nvox * sizeof(float));
-      if (tmp_dsetArrayFloat == NULL) {
-         ERROR_exit("Memory allocation in writeModelBrik failed!");
+      if( (tmp_dsetArrayFloat = (float *)malloc(nvox * sizeof(float))) == NULL ) {
+        snprintf(errorString, LONG_STRING, "writeModelBrik: "
+        "Memory allocation failed!"); 
+        
+        /* free and return */
+        DSET_unload(dsetModel); 
+        RETURN(1);
       }
-      for (v=0; v<nvox; ++v) {
-        tmp_dsetArrayFloat[v]= (short) dsetTrainArray[nt-1][v];
-       }
-      EDIT_substitute_brick( dsetModel, nt, MRI_short, tmp_dsetArrayFloat);
+      for (v=0; v<nvox; ++v) tmp_dsetArrayFloat[v]= (float) dsetTrainArray[nt-1][v];
+      EDIT_substitute_brick( dsetModel, nt, MRI_float, tmp_dsetArrayFloat);
+
+      /* -- write mask data into last brick of model dataset */
+      if( (tmp_dsetArrayFloat = (float *)malloc(nvox * sizeof(float))) == NULL ) {
+        snprintf(errorString, LONG_STRING, "writeModelBrik: "
+          "Memory allocation failed!"); 
+        
+        /* free and return */
+        DSET_unload(dsetModel); 
+        RETURN(1);
+      }
+      if (options->maskFile[0]) { 
+        for (v=0; v<nvox; ++v) tmp_dsetArrayFloat[v] = (float) dsetMaskArray[v];
+      }
+      else {
+        for (v=0; v<nvox; ++v) tmp_dsetArrayFloat[v] = 1.0;
+      }
+      EDIT_substitute_brick( dsetModel, nt+1, MRI_float, tmp_dsetArrayFloat );
 
       break;
 
     case MRI_short:
       /* -- write train data into model dataset --*/
       for (t=0; t<nt; ++t) {
-        tmp_dsetArrayShort = (short *)malloc(nvox * sizeof(short));
-        if (tmp_dsetArrayShort == NULL) {
-           ERROR_exit("Memory allocation in writeModelBrik failed!");
+        if( (tmp_dsetArrayShort = (short *)malloc(nvox * sizeof(short))) == NULL ) {
+          snprintf(errorString, LONG_STRING, "writeModelBrik: "
+          "Memory allocation failed!"); 
+          
+          /* free and return */
+          DSET_unload(dsetModel); 
+          RETURN(1);
         }
-        for (v=0; v<nvox; ++v) {
-          tmp_dsetArrayShort[v]= (short) dsetTrainArray[t][v];
-        }
-
+        for (v=0; v<nvox; ++v) tmp_dsetArrayShort[v]= (short) dsetTrainArray[t][v];
         EDIT_substitute_brick( dsetModel, t, MRI_short, tmp_dsetArrayShort);
       }
 
-      /* -- write last brick again -- */
-      /* TODO: I don't know if EDIT_substitue_brick has a bug or if I'm doing
+      /* -- write last brick (nt-1) again -- */
+      /* TODO: I don't know if EDIT_substitute_brick has a bug or if I'm doing
        * something wrong, but writing the mask into brick n also writes the
        * mask in brick n-1. So I am writing brick n in n+1 and the mask in n+2,
        * to not overwrite brick n with the mask.
        */
 
-      tmp_dsetArrayShort = (short *)malloc(nvox * sizeof(short));
-      if (tmp_dsetArrayShort == NULL) {
-         ERROR_exit("Memory allocation in writeModelBrik failed!");
+      if( (tmp_dsetArrayShort = (short *)malloc(nvox * sizeof(short))) == NULL ) {
+        snprintf(errorString, LONG_STRING, "writeModelBrik: "
+          "Memory allocation failed!"); 
+        
+        /* free and return */
+        DSET_unload(dsetModel); 
+        RETURN(1);
       }
-      for (v=0; v<nvox; ++v) {
-        tmp_dsetArrayShort[v]= (short) dsetTrainArray[nt-1][v];
-       }
+      for (v=0; v<nvox; ++v) tmp_dsetArrayShort[v]= (short) dsetTrainArray[nt-1][v];
       EDIT_substitute_brick( dsetModel, nt, MRI_short, tmp_dsetArrayShort);
 
 
@@ -2113,23 +3742,34 @@ void writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
         for (v=0; v<nvox; ++v) tmp_dsetArrayShort[v] = 1;
       }
       EDIT_substitute_brick(dsetModel, nt+1, MRI_short, tmp_dsetArrayShort);
-
+      
       break;
 
     default:
-      ERROR_exit("Writing model mask failed! Unknown datum-type (%d)", datum);
+      snprintf(errorString, LONG_STRING, "writeModelBrik: " 
+          "Writing model failed! Unknown datum-type (%d)", datum);
+
+      RETURN(1);
       break;
   }
 
   /* --- write header of model dataset --- */
   /* -- allocating csv strings -- */
   csv_string_size = afniModel->combinations*CSV_STRING;
-  if ( (csv_combName = (char *) malloc(csv_string_size * sizeof(char))) == NULL ) {
-    ERROR_exit("Could not allocate csv-string in writeModelBrik!");
+  if( (csv_combName = (char *) malloc(csv_string_size * sizeof(char))) == NULL ) {
+    snprintf(errorString, LONG_STRING, "writeModelBrik: "
+          "Memory allocation for csv_combName failed!"); 
 
+    DSET_unload(dsetModel); 
+    RETURN(1);
   }
-  if ( (csv_kernelCustom = (char *) malloc(csv_string_size * sizeof(char))) == NULL ) {
-    ERROR_exit("Could not allocate csv-string in writeModelBrik!");
+  if( (csv_kernelCustom = (char *) malloc(csv_string_size * sizeof(char))) == NULL ) {
+    snprintf(errorString, LONG_STRING, "writeModelBrik: "
+          "Memory allocation for csv_kernelCustom failed!"); 
+    
+    DSET_unload(dsetModel); 
+    free(csv_combName);
+    RETURN(1);
   }
 
   /* -- record history -- */
@@ -2151,6 +3791,10 @@ void writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
     strncat(csv_kernelCustom, afniModel->kernel_custom[i], csv_string_size);
   }
 
+  /* JL July 2011: */
+  int max_iterations = (int)afniModel->max_iterations; /* would be ideally long */
+  THD_set_int_atr( dsetModel->dblk, "3DSVM_MAX_ITERATIONS", 1, &max_iterations);
+  
   /* JL May 2010: Write if mask was used into the header */
   if (options->modelFile[0]) maskUsed = 1; else maskUsed=0;
   THD_set_int_atr( dsetModel->dblk, "3DSVM_MASK_USED", 1, &maskUsed);
@@ -2222,7 +3866,6 @@ void writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
       afniModel->combinations, afniModel->rho );
   THD_set_int_atr( dsetModel->dblk, "3DSVM_XA_DEPTH",
       afniModel->combinations, afniModel->xa_depth );
-
   for(i = 0; i < afniModel->combinations; ++i) {
     snprintf(headernames, LONG_STRING, "3DSVM_ALPHAS_%s",afniModel->combName[i]);
     THD_set_float_atr( dsetModel->dblk, headernames, afniModel->timepoints, afniModel->alphas[i] );
@@ -2230,16 +3873,14 @@ void writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
   
   /* --- write brick --- */
   fflush(stdout);
-  INFO_message( "Writing model dataset..." );
+  INFO_message( "Writing model dataset: %s...", fileName );
   THD_write_3dim_dataset( "./", fileName, dsetModel, True );
 
   /* --- free memory ---*/
   free(csv_combName);
   free(csv_kernelCustom);
-  free(tmp_dsetArrayShort);
-  free(tmp_dsetArrayFloat);
 
-  EXRETURN;
+  RETURN(0);
 }
 
 
@@ -2287,29 +3928,21 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
   nsv = model->sv_num;
   nt = afniModel->timepoints;
     
-  if ( !strncmp(options->svmType, "regression", LONG_STRING) ) {
-    /* Should always be a multiple of two for
-     * sv-regression. Just a redundant check here. */
-    if ( nt%2 != 0 ) {
-      ERROR_exit("Adding to afni model failed for sv-regression"
-          "The number of timepoints (samples) is not a mulitple of 2!");
-    }
-     nth=nt/2;
-  } 
-  
   /* --- determine timorder of alphas --- */ 
   /* -- for sv-regression -- */
    if ( !strncmp(options->svmType, "regression", LONG_STRING) ) {
     ac=0; 
     qid=0;
 
+
+    nth=nt/2;
     for( t=0, th=0; t<nt; ++t, ++th ) {
       /* - null, to make alphas for non-support vectors zero - */
       afniModel->alphas[classCount][t] =  0.0;
     
       if ( th == nth ) th=0;
       if ( abs(tmp_labels[th]) == 1) {
-        /* - serching for alpha or beta with (queryid == qid) - */ 
+        /* - searching for alpha with (queryid == qid) - */ 
         for ( sv=1; sv<nsv; ++sv ) {
           if ( (model->supvec[sv])->queryid == qid) {
             afniModel->alphas[classCount][t] = (float)model->alpha[sv];
@@ -2317,7 +3950,7 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
             /* - reset queryid for second loop through - */
             (model->supvec[sv])->queryid = -1.0;
 
-            /* - alpha or beta found. Exit for-loop over sv -*/
+            /* - alpha found. Exit for-loop over sv -*/
             break;        
           }
         }
@@ -2386,7 +4019,13 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
    *    May. 2009: Added svm_type to support sv-regression
    *    Oct. 2009: Added remaining model parameters that can be specified 
    *               via command-line 
+   *    July 2011: Added max_iterations.
+   *
+   *    TODO: Some parameters such as max_iterations don't change across
+   *    class combinations, but get assigned here. Need to put then 
+   *    in allocateAfniModel instead. 
    */
+
 
   snprintf( afniModel->svm_type, LONG_STRING, "%s", options->svmType);
   snprintf( afniModel->combName[classCount], CSV_STRING, "%d_%d", comb0, comb1 );
@@ -2400,6 +4039,10 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
   afniModel->total_samples[classCount] = (int) model->totdoc;
   afniModel->total_support_vectors[classCount] = (int) model->sv_num;
   afniModel->b[classCount] = model->b;
+  
+  /* July 2011: */
+  afniModel->max_iterations=learn_parm->max_iterations; 
+  
   /* Oct 2009: */
   afniModel->eps[classCount] = learn_parm->eps; 
   afniModel->svm_c[classCount] = learn_parm->svm_c;
@@ -2441,13 +4084,18 @@ DatasetType** getAllocateCensoredRegressionArray(DatasetType **dsetArray,
   DatasetType **dsetArrayCensored  = NULL;
 
 
-  ENTRY("getAllocateRegressionArray");
+  ENTRY("getAllocateCensoredRegressionArray");
+
+  
+  /* JL July 2011: Return NULL if memory can not be allocated */
 
   nt = labels->n;
   ntc = labels->n_cnsrs;
 
   /* allocate */
-  dsetArrayCensored = Allocate2DT(nt-ntc, nvox);
+  if( (dsetArrayCensored = Allocate2DT(nt-ntc, nvox)) == NULL ) {
+    RETURN(NULL);
+  }
 
   /* extract non-censored time-points */
   tnc=0;
@@ -2461,6 +4109,19 @@ DatasetType** getAllocateCensoredRegressionArray(DatasetType **dsetArray,
 
   RETURN(dsetArrayCensored);
 }
+
+/* JL July 2011: Added the corresponding free to 
+ *  getAllocateCensoredRegressionArray 
+ */
+void freeCensoredRegressionArray(DatasetType **dsetArray, LABELS *labels) {
+
+  ENTRY("freeCensoredRegressionArray");
+
+  free2DT(dsetArray, labels->n - labels->n_cnsrs);
+
+  EXRETURN;
+}
+  
 
 /* JL Apr. 2010: This function retrieves the training array and the targets
  * for the current class-combination based on censoredTarget
@@ -2495,15 +4156,14 @@ void getClassTrainArrayAndTarget(DatasetType **dsetTrainArray,
        ++k;
      }
    }
-
-  EXRETURN;
+  
+   EXRETURN;
 }
 
 /* JL Feb. 2009: Added 'ASLoptions *options' as an argument to
  * support handling of complex-valued data */
 void afni_dset_to_svm_doc( DOC *docs, DatasetType **dsetArray,
-    MaskType* maskArray, ASLoptions *options, long tpts, long nvoxels,
-    long nmasked )
+    MaskType* maskArray, long tpts, long nvoxels, long nmasked )
 {
   long i, j, k;    /* loop indices */
 
@@ -2542,7 +4202,7 @@ void afni_dset_to_svm_doc( DOC *docs, DatasetType **dsetArray,
   docs[i].twonorm_sq = sprod_ss(&docs[i].words[0],&docs[i].words[0]);
   }
 
-  EXRETURN;
+  EXRETURN; 
 }
 
 /*-----------------------------------------------------------*/
@@ -2551,8 +4211,9 @@ void afni_dset_to_svm_doc( DOC *docs, DatasetType **dsetArray,
  * are censored (labeled with 9999).
  *
  */
-void getCensoredClassTarget(LabelType *censoredTarget, long *sampleCount,
-    LABELS *labels, long classIndex0, long classIndex1, enum modes mode)
+int getCensoredClassTarget(LabelType *censoredTarget, long *sampleCount,
+    LABELS *labels, long classIndex0, long classIndex1, enum modes mode,
+    char *errorString)
 {
   long i = 0;
   short labelWarningFlag = 0;  /* warn users if unknown class label
@@ -2561,7 +4222,11 @@ void getCensoredClassTarget(LabelType *censoredTarget, long *sampleCount,
   int class1 = 0;
   *sampleCount = 0;
 
-  /* Changes:
+  
+  /* 
+   * JL June 2011: Modified error handling: 
+   * Replaced ERROR_exit by RETURN(1), passing error message as errorString
+   * to the calling function;
    *
    */
 
@@ -2575,13 +4240,14 @@ void getCensoredClassTarget(LabelType *censoredTarget, long *sampleCount,
     class0 = classIndex0;
     class1 = classIndex1;
   }
-  else {
-    /* We should never get here */
-    ERROR_exit("Unknown mode in getCensoredClassTarget");
+  else { /* We should never get here */
+    snprintf(errorString, LONG_STRING,
+        "What happened?! getCensoredClassTarget: unknown mode!");
+    RETURN(1);
   }
 
   /*
-   * printf("DBG: class0 = %5d, class1 = %5d, classIndex0 = %5ld, classIndex1 = %5ld\n",
+     printf("DBG: class0 = %5d, class1 = %5d, classIndex0 = %5ld, classIndex1 = %5ld\n",
       class0, class1, classIndex0, classIndex1);
    */
 
@@ -2628,60 +4294,7 @@ void getCensoredClassTarget(LabelType *censoredTarget, long *sampleCount,
   }
 
 
-  EXRETURN;
-}
-    
-/*-----------------------------------------------------------*/
-void getTmpLabels(LabelType *tmp_labels,long *sampleCount, LABELS *labels, long ind0, long ind1)
-{
-  long i;
-  short labelWarningFlag = 0;  /* warn users if unknown class label - probably from multi-class */
-  int class0 = labels->class_list[ind0];
-  int class1 = labels->class_list[ind1];
-
-
-  ENTRY("getTmpLabels");
-
-  
-  *sampleCount = 0;
-
-  if(verbosity >= 2) printf("++ ");
-  
-  for( i=0 ; i<labels->n ; ++i) {   /* convert timeseries input to one that can be used with svm light. */
-    if( (int)labels->cnsrs[i] ) {  
-      if( labels->lbls[i] == class0 ) {      
-        tmp_labels[i] = -1;
-        (*sampleCount)++;
-      }
-      else if( labels->lbls[i] == class1 ) { /* class b */
-    
-        tmp_labels[i] = 1;
-        (*sampleCount)++;
-      }
-      else if( labels->lbls[i] == -9999 ) { /* transductive sample */
-        tmp_labels[i] = 0;
-        (*sampleCount)++;
-      }
-      else if( labels->lbls[i] == 9999 ) { /* ignore sample */
-        tmp_labels[i] = 9999;
-      }
-      else {
-        tmp_labels[i] = 9999; /* invalid value - ignore */
-        labelWarningFlag = 1;
-        if(verbosity >= 2) printf("%ld,", i); /* ignored time point */
-      }
-    }
-    else {
-      tmp_labels[i] = 9999; /* censored sample - ignore */
-    }
-  }
-  if( labelWarningFlag && (verbosity >= 1) ) {
-    INFO_message("Time points ignored. If not using multi-class, check for bad labels.");
-  }
-
-  
-  EXRETURN;
-
+  RETURN(0);
 }
 
 void freeAfniModel(AFNI_MODEL *afniModel)
@@ -2700,16 +4313,17 @@ void freeAfniModel(AFNI_MODEL *afniModel)
   free( afniModel->total_samples );
   free( afniModel->total_support_vectors );
   free( afniModel->b );
-  free2f(afniModel->alphas,afniModel->combinations);
-  free2f(afniModel->cAlphas,afniModel->combinations);
-
-  /* JL Apr. 2010 */
+  free2f(afniModel->alphas,  (long) afniModel->combinations);
+  free2f(afniModel->cAlphas, (long) afniModel->combinations);
   free2c(afniModel->combName, max_comb);
-  free2c(afniModel->kernel_custom, max_comb);
+
+  /* Oct. 2008: */
+  if( afniModel->version >= 0.80 ) {
+    free2c(afniModel->kernel_custom, max_comb);
+  }
   
   /* JL Nov 2009: */
-  if ( afniModel->eps != NULL ) { /* to be backwards compatible and allow
-       testing with older 3dsvm versions */
+  if( afniModel->version >= 1.10 ) {
     free( afniModel->eps );
     free( afniModel->svm_c );
     free( afniModel->biased_hyperplane );
@@ -2731,16 +4345,23 @@ void freeAfniModel(AFNI_MODEL *afniModel)
   EXRETURN;
 }
 
-void allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels, ASLoptions *options)
+int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels, 
+    ASLoptions *options, char *errorString)
 { 
   long max_comb = CLASS_MAX*(CLASS_MAX-1)/2;
-
 
   ENTRY("allocateAfniModel");
 
 
-  /* JL June 2009: Added this part to support sv-regression */
-  /* We need to double the number of timepoints to make sv-regression work
+  /* JL June 2009: Enabled sv-regression.
+   *
+   * JL June 2011: Modified error handling: Passing error string as argument
+   * to the calling function, allocated memory is freed, RETURN(1) 
+   * instead of ERROR_exit. Checking each malloc individually. 
+   */
+
+  
+  /* JL June 2009: Doubled the number of timepoints to make sv-regression work
    * with svm-light! */
   if( !strcmp(options->svmType, "regression") ) {
     afniModel->timepoints = (int) (labels->n)*2;
@@ -2752,84 +4373,747 @@ void allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels, ASLoptions *option
   
   afniModel->class_count = (int) labels->n_classes;	/* would like to be long, but no equivalent to THD_set_int_atr */
   afniModel->combinations = (long) ( (labels->n_classes * (labels->n_classes - 1)) / 2 );
-  afniModel->kernel_type = (int *)malloc( afniModel->combinations * sizeof(int) );
-  afniModel->polynomial_degree = (int *)malloc( afniModel->combinations * sizeof(int) );
-  afniModel->rbf_gamma = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->linear_coefficient = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->constant_coefficient = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->total_masked_features = (int *)malloc( afniModel->combinations * sizeof(int) );
-  afniModel->total_samples = (int *)malloc( afniModel->combinations * sizeof(int) );
-  afniModel->total_support_vectors = (int *)malloc( afniModel->combinations * sizeof(int) );
-  afniModel->b = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->alphas = Allocate2f((long) afniModel->combinations, (long) afniModel->timepoints);
-  afniModel->cAlphas = Allocate2f((long) afniModel->combinations, (long) afniModel->timepoints);
+  if( (afniModel->kernel_type = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for kernel_type failed!");
 
-  /* JL Nov 2009: */
-  afniModel->eps = (float *)malloc( afniModel->combinations * sizeof(float) ); 
-  afniModel->svm_c = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->biased_hyperplane = (int *)malloc( afniModel->combinations * sizeof(int) ); 
-  afniModel->skip_final_opt_check = (int *)malloc( afniModel->combinations * sizeof(int) ); 
-  afniModel->svm_maxqpsize = (int *)malloc( afniModel->combinations * sizeof(int) );
-  afniModel->svm_newvarsinqp = (int *)malloc( afniModel->combinations * sizeof(int) );
-  afniModel->svm_iter_to_shrink = (int *)malloc( afniModel->combinations * sizeof(int) );
-  afniModel->transduction_posratio = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->svm_costratio = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->svm_costratio_unlab = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->svm_unlabbound = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->epsilon_a = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->epsilon_crit = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->compute_loo = (int *)malloc( afniModel->combinations * sizeof(int) );
-  afniModel->rho = (float *)malloc( afniModel->combinations * sizeof(float) );
-  afniModel->xa_depth = (int *)malloc( afniModel->combinations * sizeof(int) );
-  
-  /* JL Apr 2010: */
-  afniModel->combName = Allocate2c(max_comb, (long)CSV_STRING);
-  afniModel->kernel_custom = Allocate2c(max_comb, (long)CSV_STRING);
-  Clear2c(afniModel->combName, max_comb);
-  Clear2c(afniModel->kernel_custom, max_comb);
-  
-  /* allocation for alphas is checked in Allocate2f */
-  if( afniModel->kernel_type == NULL || 
-    afniModel->polynomial_degree == NULL ||
-    afniModel->rbf_gamma == NULL ||
-    afniModel->linear_coefficient == NULL ||
-    afniModel->constant_coefficient == NULL ||
-    afniModel->total_masked_features == NULL ||
-    afniModel->total_samples == NULL ||
-    afniModel->total_support_vectors == NULL ||
-    afniModel->b == NULL ||
-
-    /* JL Nov 2009: */
-    afniModel->eps == NULL ||
-    afniModel->svm_c == NULL ||
-    afniModel->biased_hyperplane == NULL ||
-    afniModel->svm_maxqpsize == NULL ||
-    afniModel->svm_newvarsinqp == NULL ||
-    afniModel->svm_iter_to_shrink == NULL ||
-    afniModel->transduction_posratio == NULL ||
-    afniModel->svm_costratio == NULL ||
-    afniModel->svm_costratio_unlab == NULL ||
-    afniModel->svm_unlabbound == NULL ||
-    afniModel->epsilon_a == NULL ||
-    afniModel->epsilon_crit == NULL ||
-    afniModel->compute_loo == NULL ||
-    afniModel->rho == NULL ||
-    afniModel->xa_depth == NULL ||
-
-    /* JL Apr 2010: */
-    afniModel->combName == NULL ||
-    afniModel->kernel_custom == NULL ) {
-
-    ERROR_exit("Memory allocation in allocateAfniModel failed! "
-        "Could not allocate afniModel members.\n");
+    /* return */
+    RETURN(1);
+  }
+  if( (afniModel->polynomial_degree = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for polynomial_degree failed!");
+ 
+    /* free and return */
+    free(afniModel->kernel_type);
+    RETURN(1);
   }
 
-  EXRETURN;
+  if( (afniModel->rbf_gamma = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for rbf_gamma failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    RETURN(1);
+  }
 
+  if( (afniModel->linear_coefficient = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for linear_coefficient failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    RETURN(1);
+  }
+
+
+  if( (afniModel->constant_coefficient = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for constant_coefficient failed!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    RETURN(1);
+  }
+
+  if( (afniModel->total_masked_features = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for total_masked_features failed!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    RETURN(1);
+  }
+
+  if( (afniModel->total_samples = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for total_samples failed!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    RETURN(1);
+  }
+
+  if( (afniModel->total_support_vectors = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for total_support_vectors failed!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    RETURN(1);
+  }
+
+  if( (afniModel->b = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for b failed!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    RETURN(1);
+  }
+
+  if( (afniModel->alphas = Allocate2f((long) afniModel->combinations, (long) afniModel->timepoints)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for alphas failed!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    RETURN(1);
+  }
+
+  if( (afniModel->cAlphas = Allocate2f((long) afniModel->combinations, (long) afniModel->timepoints)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for cAlphas failed!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    RETURN(1);
+  }
+
+
+  /* JL Nov 2009: Added model parameters */
+  if( (afniModel->eps = (float *)malloc( afniModel->combinations * sizeof(float) )) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for eps failed!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    RETURN(1);
+  }
+
+  if( (afniModel->svm_c = (float *)malloc( afniModel->combinations * sizeof(float) )) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_c!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    RETURN(1);
+  }
+
+  if( (afniModel->biased_hyperplane = (int *)malloc( afniModel->combinations * sizeof(int) )) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for biased_hyperplane failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    RETURN(1);
+  }
+
+  if( (afniModel->skip_final_opt_check = (int *)malloc( afniModel->combinations * sizeof(int) )) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for skip_final_opt_check failed!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    RETURN(1);
+  }
+
+  if( (afniModel->svm_maxqpsize = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_maxqpsize failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    RETURN(1);
+  }
+
+  if( (afniModel->svm_newvarsinqp = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_newvarsinqp failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    RETURN(1);
+  }
+
+  if( (afniModel->svm_iter_to_shrink = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_iter_to_shrink failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    RETURN(1);
+  }
+
+  if( (afniModel->transduction_posratio = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for transduction_posratio failed!");
+
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    RETURN(1);
+  }
+
+  if( (afniModel->svm_costratio = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_costratio failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    free(afniModel->transduction_posratio);
+    RETURN(1);
+  }
+
+  if( (afniModel->svm_costratio_unlab = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_costratio_unlab failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    free(afniModel->transduction_posratio);
+    free(afniModel->svm_costratio);
+    RETURN(1);
+  }
+
+  if( (afniModel->svm_unlabbound = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_unlabbound failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    free(afniModel->transduction_posratio);
+    free(afniModel->svm_costratio);
+    free(afniModel->svm_costratio_unlab);
+    RETURN(1);
+  }
+
+  if( (afniModel->epsilon_a = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for epsilon_a failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    free(afniModel->transduction_posratio);
+    free(afniModel->svm_costratio);
+    free(afniModel->svm_costratio_unlab);
+    free(afniModel->svm_unlabbound);
+    RETURN(1);
+  }
+
+  if( (afniModel->epsilon_crit = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for epsilon_crit failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    free(afniModel->transduction_posratio);
+    free(afniModel->svm_costratio);
+    free(afniModel->svm_costratio_unlab);
+    free(afniModel->svm_unlabbound);
+    free(afniModel->epsilon_a);
+    RETURN(1);
+  }
+
+  if( (afniModel->compute_loo = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for compute_loo failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    free(afniModel->transduction_posratio);
+    free(afniModel->svm_costratio);
+    free(afniModel->svm_costratio_unlab);
+    free(afniModel->svm_unlabbound);
+    free(afniModel->epsilon_a);
+    free(afniModel->epsilon_crit);
+    RETURN(1);
+  }
+
+  if( (afniModel->rho = (float *)malloc( afniModel->combinations * sizeof(float))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for rho failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    free(afniModel->transduction_posratio);
+    free(afniModel->svm_costratio);
+    free(afniModel->svm_costratio_unlab);
+    free(afniModel->svm_unlabbound);
+    free(afniModel->epsilon_a);
+    free(afniModel->epsilon_crit);
+    free(afniModel->compute_loo);
+    RETURN(1);
+  }
+
+  if( (afniModel->xa_depth = (int *)malloc( afniModel->combinations * sizeof(int))) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for xa_depth failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    free(afniModel->transduction_posratio);
+    free(afniModel->svm_costratio);
+    free(afniModel->svm_costratio_unlab);
+    free(afniModel->svm_unlabbound);
+    free(afniModel->epsilon_a);
+    free(afniModel->epsilon_crit);
+    free(afniModel->compute_loo);
+    free(afniModel->rho);
+    RETURN(1);
+  }
+
+  /* JL Apr 2010: Changed to dynamic allocation  */
+  if( (afniModel->combName = Allocate2c(max_comb, (long)CSV_STRING)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for combName failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    free(afniModel->transduction_posratio);
+    free(afniModel->svm_costratio);
+    free(afniModel->svm_costratio_unlab);
+    free(afniModel->svm_unlabbound);
+    free(afniModel->epsilon_a);
+    free(afniModel->epsilon_crit);
+    free(afniModel->compute_loo);
+    free(afniModel->rho);
+    free(afniModel->xa_depth);
+    RETURN(1);
+  }
+  Clear2c(afniModel->combName, max_comb);
+
+  if( (afniModel->kernel_custom = Allocate2c(max_comb, (long)CSV_STRING)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for kernel_custom failed!");
+    
+    /* free and return */
+    free(afniModel->kernel_type);
+    free(afniModel->polynomial_degree);
+    free(afniModel->rbf_gamma);
+    free(afniModel->linear_coefficient);
+    free(afniModel->constant_coefficient);
+    free(afniModel->total_masked_features);
+    free(afniModel->total_samples);
+    free(afniModel->total_support_vectors);
+    free(afniModel->b);
+    free2f(afniModel->alphas, (long) afniModel->combinations);
+    free2f(afniModel->cAlphas, (long) afniModel->combinations);
+    free(afniModel->eps);
+    free(afniModel->svm_c);
+    free(afniModel->biased_hyperplane);
+    free(afniModel->skip_final_opt_check);
+    free(afniModel->svm_maxqpsize);
+    free(afniModel->svm_newvarsinqp);
+    free(afniModel->svm_iter_to_shrink);
+    free(afniModel->transduction_posratio);
+    free(afniModel->svm_costratio);
+    free(afniModel->svm_costratio_unlab);
+    free(afniModel->svm_unlabbound);
+    free(afniModel->epsilon_a);
+    free(afniModel->epsilon_crit);
+    free(afniModel->compute_loo);
+    free(afniModel->rho);
+    free(afniModel->xa_depth);
+    free2c(afniModel->combName, max_comb);
+    RETURN(1);
+  }
+  Clear2c(afniModel->kernel_custom, max_comb);
+
+  RETURN(0);
 }
 
-void freeLabels(LABELS *labels) {
-  ENTRY("freeLabels");
+void freeAfniModelAndArrays(AFNI_MODEL *afniModel,
+    DatasetType **dsetModelArray, MaskType *dsetMaskArray,
+    long nt_model)
+{
+  ENTRY("freeAfniModelAndArrays");
+
+  freeModelArrays(dsetModelArray, dsetMaskArray, nt_model, afniModel->mask_used);
+  freeAfniModel(afniModel);
+
+  EXRETURN;
+}
+
+/* JL Oct 2010: This functions determintes the svm learn type (svm_type),
+ * reads and allocates afniModel, dsetModelArray and dsetMaskArray.
+ */
+int readAllocateAfniModelAndArrays( ASLoptions *options, AFNI_MODEL *afniModel,
+    THD_3dim_dataset *dsetModel, DatasetType ***dsetModelArray,
+    MaskType **dsetMaskArray, long *nt_model, long *nvox_model,
+    enum modes mode, int *svm_type, char *errorString )
+{
+
+  DatasetType ** tmp_dsetModelArray = NULL;
+  MaskType *     tmp_dsetMaskArray  = NULL;
+
+
+  ENTRY("readAllocateAfniModelAndArrays");
+
+
+  /* JL July 2011: Modified error handling: Passing error message 
+   * as argument (errorString) to the calling function, 
+   * allocated memory is freed, RETURN(1) instead of ERROR_exit().
+   *
+   * TODO: Should pass arrays directly to the testing functions, 
+   * (not read them from disc twice!), if training and testing 
+   * is performed at once. 
+   */
+
+
+  /*----- VIEWTYPE POSTFIX FOR MODEL (quick fix !!!) -----*/
+  /* It would be better to not read in the model from disc */
+  if( mode == TRAIN_AND_TEST ) {
+    if( strstr(options->trainFile,"+orig") != NULL ) {
+      if( strstr(options->testFile,"+orig") == NULL ) {
+        snprintf(errorString, LONG_STRING, 
+            "Viewtype of train dataset: %s does not match\n"
+            "   Viewtype of test dataset: %s!", options->trainFile,
+            options->testFile);
+
+        RETURN(1);
+      }
+      else strncat(options->modelFile,"+orig", LONG_STRING);
+    }
+    else if( strstr(options->trainFile,"+tlrc") != NULL ) {
+      if( strstr(options->testFile,"+tlrc") == NULL ) {
+        snprintf(errorString, LONG_STRING, 
+            "Viewtype of train dataset: %s does not match\n"
+            "   Viewtype of test dataset: %s!", options->trainFile,
+            options->testFile);
+
+        RETURN(1);
+      }
+      else strncat(options->modelFile,"+tlrc", LONG_STRING);
+    }
+    else if( strstr(options->trainFile,"+acpc") != NULL ) {
+      if( strstr(options->testFile,"+acpc") == NULL ) {
+        snprintf(errorString, LONG_STRING, 
+            "Viewtype of train dataset: %s does not match\n"
+            "   Viewtype of test dataset: %s!", options->trainFile,
+            options->testFile);
+
+        RETURN(1);
+      }
+      else strncat(options->modelFile,"+acpc", LONG_STRING);
+    }
+    else {  
+      snprintf(errorString, LONG_STRING, "Model viewtype unknown!");
+      RETURN(1);
+    }
+  }
+
+  /*----- LOAD AFNI MODEL -----*/
+  if( (dsetModel = THD_open_one_dataset( options->modelFile )) == NULL ) {
+    snprintf(errorString, LONG_STRING,
+        "Failed to open model dataset: %s", options->modelFile);
+
+    RETURN(1);
+  }
+  DSET_load( dsetModel );
+
+  /*----- READ AFNI MODEL -----*/
+  if( readAllocateAfniModel(dsetModel, afniModel, errorString) ) {
+    
+    /* free and return */
+    DSET_unload(dsetModel);
+    RETURN(1);
+  }
+ 
+  /*---- GET MODEL AND MASK ARRAY ------------------*/
+  if( getAllocateModelArrays(dsetModel, &tmp_dsetModelArray, &tmp_dsetMaskArray,
+     nt_model, nvox_model, &afniModel->mask_used, options->outModelNoMask,
+     errorString) ) {
+
+    /* free and return */
+    DSET_unload(dsetModel);
+    freeAfniModel(afniModel);
+    RETURN(1);
+  }
+
+  /* --- SET svm learn type ---*/
+  if( !strcmp(afniModel->svm_type, "regression") ) *svm_type = REGRESSION;
+  else  *svm_type = CLASSIFICATION;
+
+  /*----- FREE MEMORY ------*/
+  DSET_unload( dsetModel );
+
+  *dsetMaskArray = tmp_dsetMaskArray;
+  *dsetModelArray = tmp_dsetModelArray;
+
+  RETURN(0);
+}
+
+void freeClassificationLabels(LABELS *labels) {
+
+  ENTRY("freeClasssificationLabels");
 
   free(labels->lbls);
   free(labels->cnsrs);
@@ -2838,8 +5122,9 @@ void freeLabels(LABELS *labels) {
   
   EXRETURN;
 }
- 
-void getLabels(LABELS *labels, char *labelFile, char *censorFile)
+   
+int getAllocateClassificationLabels( LABELS *labels, char *labelFile, 
+    char *censorFile, char *errorString )
 {
   FILE *fp = NULL;
   int class_exists_flag = 0;
@@ -2847,94 +5132,175 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
   char labelString[LONG_STRING];
   int strLength = 0;
 
-  ENTRY("getLabels");
+  ENTRY("getAllocateClassificationLabels");
 
   /* Changes:
    * JL April 2010: Added checking for empty lines in label- and censor file
    * JL Aug.  2010: Fixed a bug in determining number of classes: Number of
-   *                of classes was calulated incorrectly if an entire class was
+   *                of classes was calculated incorrectly if an entire class was
    *                censored completely using the censorfile.
    * JL Aug. 2010:  Added lbls_cont. which holds the user-given labels
    *                converted  to continues label values (i.e. 0,1,2,...,n)
    *                (needed for calculation of multiclass prediction accuracies).
-   * JL Sep. 2010   Imporved error checking for censor file.
-   */
+   * JL Sep. 2010:  Improved error checking for censor file
+   *
+   * JL June 2011:  Modified error handling: Passing error string as argument
+   *                to the calling function, allocated memory is freed, RETURN(1)
+   *                instead of ERROR_exit.
+   */ 
 
   /*----- RETRIEVE LABEL FILE AND CENSOR FILE--------------*/
-  if( (fp = fopen(labelFile,"r")) == NULL ) {
-    ERROR_exit("Could not open .1D label file: %s",labelFile);
+  if( (fp = fopen(labelFile, "r")) == NULL ) {
+    snprintf(errorString, LONG_STRING, "Could not open .1D label file: %s", 
+        labelFile);
+
+    RETURN(1);
   }
   
+  /* --- get length --- */
   labels->n = getFileSize(labelFile);
 
   /* --- allocate labels --- */
-  labels->lbls = (LabelType*)malloc(sizeof(LabelType)*labels->n);
-  if( labels->lbls == NULL ) {
-    ERROR_exit("Memory allocation in getLabels failed! Could not allocate labels!");
+  if( (labels->lbls = (LabelType*)malloc(sizeof(LabelType)*labels->n)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "getAllocateClassifcationLabels: "
+        "Could not allocate lbls!");
+
+    /* free and return */
+    fclose(fp);
+    RETURN(1);
   }
 
-  labels->lbls_cont = (LabelType*)malloc(sizeof(LabelType)*labels->n);
-  if( labels->lbls_cont == NULL ) {
-    ERROR_exit("Memory allocation in getLabels failed! Could not allocate labels!");
+  if( (labels->lbls_cont = (LabelType*)malloc(sizeof(LabelType)*labels->n)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "getAllocateClassificationLabels: "
+        "Could not allocate lbls_cont!");
+
+    /* free and return */
+    fclose(fp);
+    free(labels->lbls);
+    RETURN(1);
   }
 
-  labels->class_list = (int *)malloc(sizeof(int)*CLASS_MAX);
-  if (labels->class_list == NULL) {
-    ERROR_exit("Memory allocation in getLabels failed! Could not allocate class list!");
+  if( (labels->class_list = (int *)malloc(sizeof(int)*CLASS_MAX)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "getAllocateClassificationLabels: "
+        "Could not allocate labels class list!");
+
+    /* free and return */
+    fclose(fp);
+    free(labels->lbls);
+    free(labels->lbls_cont);
+    RETURN(1);
   }
 
   /* --- read labels from file and do some error checking --- */
-  for(i = 0; i < labels->n; i++) {
+  for( i=0; i<labels->n; i++ ) {
     fgets(labelString, LONG_STRING, fp);
 
+    /* -- check for empty lines -- */
     if ( (strLength = strlen(labelString)) == 1 ) {
-       ERROR_exit("Labelfile: '%s' contains empty entry in line %ld!",
-           labelFile, i+1);
+      snprintf(errorString, LONG_STRING, "Labelfile: '%s' contains empty "
+          "entry in line %ld!", labelFile, i+1);
+      
+      /* free and return */
+      fclose(fp);
+      free(labels->lbls);
+      free(labels->lbls_cont);
+      free(labels->class_list);
+      RETURN(1);
     }
     else labels->lbls[i] = (LabelType) atof(labelString);
 
     /* -- check for negative entires other than -9999 */
     if ( (labels->lbls[i] < 0.0) && (labels->lbls[i] != -9999) ) {
-      ERROR_exit("Labelfile: '%s' contains a negative entry in line %ld! ",
-          labelFile, i+1);
+      snprintf(errorString, LONG_STRING, "Labelfile: '%s' contains a negative "
+          "entry in line %ld! ", labelFile, i+1);
+      /* free and return */
+      fclose(fp);
+      free(labels->lbls);
+      free(labels->lbls_cont);
+      free(labels->class_list);
+      RETURN(1);
     }
   }
   fclose(fp);
 
   /* --- allocate censors --- */
-  labels->cnsrs = (LabelType*)malloc(sizeof(LabelType)*labels->n);
-  if( labels->cnsrs == NULL ) {
-    ERROR_exit("Memory allocation in getLabels failed! Could not allocate censors!");
+  if( (labels->cnsrs = (LabelType *)malloc(sizeof(LabelType)*labels->n)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "getAllocateClassificationLabels: "
+        "Could not allocate censors!");
+
+    /* free and return */
+    free(labels->lbls);
+    free(labels->lbls_cont);
+    free(labels->class_list);
+    RETURN(1);
   }
 
   /* --- initialize censors ---*/
-  for(i=0; i<labels->n; ++i) labels->cnsrs[i] = 1.0;
+  for( i=0; i<labels->n; ++i ) labels->cnsrs[i] = 1.0;
   labels->n_cnsrs = 0;
 
   /* --- read censors from file and do some error checking --- */
   if( censorFile[0] ) {
     if( (fp = fopen(censorFile,"r")) == NULL ) {
-      ERROR_exit("Could not open .1D censor file: %s",censorFile);
+      snprintf(errorString, LONG_STRING, "Could not open .1D censor file: %s",
+          censorFile);
+     
+      /* free and return */
+      free(labels->lbls);
+      free(labels->lbls_cont);
+      free(labels->class_list);
+      free(labels->cnsrs);
+      RETURN(1);
     }
+    /* -- check if size of labelfile matches size of censorfile -- */
     if( labels->n != getFileSize(censorFile) ) {
-      ERROR_exit("Lenght of labelfile: '%s' (%ld) does not match length of "
-          "censorfile: '%s' (%ld)!", labelFile, labels->n, censorFile,
-          getFileSize(censorFile));
-    }
+      snprintf(errorString, LONG_STRING, "Lenght of labelfile: '%s' (%ld) "
+          "does not match length of censorfile: '%s' (%ld)!", 
+          labelFile, labels->n, censorFile, getFileSize(censorFile));
 
+      /* free and return */
+      free(labels->lbls);
+      free(labels->lbls_cont);
+      free(labels->class_list);
+      free(labels->cnsrs);
+      fclose(fp);
+      RETURN(1);
+    }
+    
+    /* -- read censors and do some more error checking -- */
     for(i=0; i<labels->n; ++i) {
       fgets(labelString, LONG_STRING, fp);
-
+      
+      /* - check for empty lines - */
       if ( (strLength = strlen(labelString)) == 1 ) {
-        ERROR_exit("Censorfile: '%s' line: '%ld' is empty!", censorFile, i+1);
+        snprintf(errorString, LONG_STRING, "Censorfile: '%s' line: '%ld' is "
+            "empty!", censorFile, i+1);
+
+        /* free and return */
+        free(labels->lbls);
+        free(labels->lbls_cont);
+        free(labels->class_list);
+        free(labels->cnsrs);
+        fclose(fp);
+        RETURN(1);
       }
       else labels->cnsrs[i] = (LabelType) atof(labelString);
 
-      /* -- check for values other than 1 and 0 -- */
+      /* - check for values other than 1 and 0 - */
       if ( (strcmp(trimString(labelString), "0")) &&
-           (strcmp(trimString(labelString), "1")) ) {
-        ERROR_exit("Consorfile: '%s' line: '%d' contains invalid entry: '%s'. "
-            "Only 0 or 1 is allowed!", censorFile, i+1, labelString);
+           (strcmp(trimString(labelString), "1")) ) { 
+        
+        snprintf(errorString, LONG_STRING, "Consorfile: '%s' line: '%ld' "
+            "contains invalid entry: '%s'. Only 0 or 1 is allowed!", 
+            censorFile, i+1, labelString);
+        
+        /* free and return */
+        free(labels->lbls);
+        free(labels->lbls_cont);
+        free(labels->class_list);
+        free(labels->cnsrs);
+        fclose(fp);
+        RETURN(1);
       }
     }
     fclose(fp);
@@ -2979,7 +5345,8 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
           i, labels->lbls[i], i, labels->cnsrs[i], labels->n_classes);
     */
   }
-
+  
+  /* -- sort label list -- */
   qsort( labels->class_list, CLASS_MAX, sizeof(int), (void *)compare_ints );
 
   /* -- convert user-given labels to continues label values */
@@ -3015,42 +5382,54 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
   }
 
   if (labels->n_classes >= CLASS_MAX) {
-    ERROR_exit("Max numer of classes hard coded to %d\n"
-          "   Complain to the authors if you need more.", CLASS_MAX-1);
+    snprintf(errorString, LONG_STRING, "Max numer of classes hard coded to %d! "
+          "Complain to the authors if you need more.", CLASS_MAX-1);
+
+    /* free and return */
+    free(labels->lbls);
+    free(labels->lbls_cont);
+    free(labels->class_list);
+    free(labels->cnsrs);
+    RETURN(1);
    }
 
-  fflush(stdout);
+  RETURN(0);
 }
 
-/* JL May 2009: This function may duplicate getLabels a bit, but for regression
- * a few things can be simplified:
+/* JL May 2009: This function may duplicate getAllocateClassificationLabels 
+ * a bit, but for regression a few things can be simplified:
  *
  *  - we are only supporting censoring with a separate censor file (not 9999s)
- *  - we don't have to worry about multi-class, 
- *
+ *  - we don't have to worry about multi-class
+ *  - since the target for svm-light does not need to be updated (no multi-class)
+ *    is generated here as well
  */
-LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *censorFile)
+int getAllocateRegressionLabelsAndTarget(LABELS *labels, LabelType **target, 
+    char *labelFile, char *censorFile, char *errorString)
 {
-  FILE *fp          = NULL;
-  long i, j         = 0;
-  LabelType *target = NULL;
-  long n9999        = 0;
+  FILE *fp             = NULL;
+  long i, j            = 0;
+  long n9999           = 0;
+  LabelType *tmpTarget = NULL;
+  int strLength        = 0;
   char labelString[LONG_STRING];
-  int strLength = 0;
-  
-  ENTRY("getAllocateRegressionLabels");
 
   
-  /* 
-   * JL Sep. 2010: Improved error checking for censor file and fixed a bug
-   * (length of censorfile was not determined correctly).
-   *
-   */
- 
- 
+  ENTRY("getAllocateRegressionLabelsAndTarget");
+
+  /* JL Sep. 2010: Improved error checking for censor file and fixed a bug
+   *               (length of censorfile was not determined correctly).
+   * JL July 2011: Modified error handling: Passing error string as argument
+   *               to the calling function, allocated memory is freed, 
+   *               RETURN(1) instead of ERROR_exit().
+   */ 
+
   /*--- open labelfile ---*/
   if( (fp = fopen(labelFile, "r") ) == NULL ) {
-    ERROR_exit("Could not open .1D label file: %s",labelFile);
+    snprintf(errorString, LONG_STRING, 
+        "Could not open .1D label file: %s !", labelFile);
+
+    RETURN(1);
   }
 
   /*--- initialize ---*/
@@ -3058,39 +5437,62 @@ LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *ce
   labels->n_cnsrs = 0;
 
   /* -- allocate lbls -- */
-  labels->lbls = (LabelType*)malloc(sizeof(LabelType)*labels->n);
-  if( labels->lbls == NULL ) {
-    ERROR_exit("Memory allocation in getAllocateRegressionLabels failed! Could not allocate labels.");
+  if( (labels->lbls = (LabelType*)malloc(sizeof(LabelType)*labels->n)) == NULL ) { 
+    snprintf(errorString, LONG_STRING, "getAllocateRegressionLabelsAndTarget: "
+          "Memory allocation for labels failed!");
+    
+    /* free and return */
+    fclose(fp);
+    RETURN(1);
   }
 
-  labels->class_list = (int *)malloc(sizeof(int)*CLASS_MAX);
-    if (labels->class_list == NULL) {
-      ERROR_exit("Memory allocation in getAllocateRegressionLabels failed! "
-          "Could not allocate class list.");
-    }
+ /* --------------------------------------------------------------------------*/
+ /* TODO: This is not great and needs to be cleaned up!
+  * Wasting some memory to be able to recycle existing functions
+  * written for classification. 
+  */
+  if( (labels->class_list = (int *)malloc(sizeof(int)*CLASS_MAX)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "getAllocateRegressionLabelsAndTarget: " 
+        "Memory allocation for class_list failed!");
 
- /* to be able to use existing auxiliary functions: */
-  labels->n_classes = 2;
+    /* free and return */
+    fclose(fp);
+    free(labels->lbls);
+    RETURN(1);
+
+  }
   for( j=0 ; j<CLASS_MAX ; ++j ) {
     labels->class_list[j] = 9999;
   }
+  labels->n_classes = 2;
+  /* -------------------------------------------------------------------------*/
 
   /*--- read labelfile ---*/
   for(i=0; i<labels->n; i++) {
     fgets(labelString, LONG_STRING, fp);
     if ( (strLength = strlen(labelString)) == 1 ) {
-      ERROR_exit("Labelfile: '%s' contains empty entry in line %ld!",
-          labelFile, i+1);
+    snprintf(errorString, LONG_STRING, 
+        "Labelfile: '%s' contains empty entry in line %ld!", labelFile, i+1);
+
+      /* free and return */
+      fclose(fp);
+      free(labels->lbls);
+      free(labels->class_list);
+      RETURN(1);
     }
     else labels->lbls[i] = (LabelType) atof(labelString);
   }
   fclose(fp);
 
   /*--- allocate censors ---*/
-  labels->cnsrs = (LabelType*)malloc(sizeof(LabelType)*labels->n);
-  if( labels->cnsrs == NULL ) {
-    ERROR_exit("Memory allocation in getAllocateRegressionLabels failed! "
-        "Could not allocate censors.");
+  if( (labels->cnsrs = (LabelType*)malloc(sizeof(LabelType)*labels->n)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "getAllocateRegressionLabelsAndTarget: "
+        "Memory allocation for labels->cnsrs failed!");
+
+    /* free and return */
+    free(labels->lbls);
+    free(labels->class_list);
+    RETURN(1);
   }
 
   /* --- initialize censors --- */
@@ -3098,14 +5500,29 @@ LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *ce
 
   /*--- open censorfile ---*/
   if( censorFile[0] ) {
-    if( (fp = fopen(censorFile,"r")) == NULL ) {
-      ERROR_exit("Could not open .1D censor file: %s",censorFile);
+    if( (fp = fopen(censorFile, "r")) == NULL ) {
+      snprintf(errorString, LONG_STRING, 
+          "Could not open .1D censor file: %s", censorFile);
+
+      /* free and return */
+      free(labels->lbls);
+      free(labels->class_list);
+      free(labels->cnsrs);
+      RETURN(1);
     }
 
     if( labels->n != getFileSize(censorFile) ) {
-      ERROR_exit("Lenght of labelfile: '%s' (%ld) does not match length of "
+      snprintf(errorString, LONG_STRING, 
+          "Lenght of labelfile: '%s' (%ld) does not match length of\n"
           "censorfile: '%s' (%ld)!", labelFile, labels->n, censorFile,
            getFileSize(censorFile));
+
+      /* free and return */
+      free(labels->lbls);
+      free(labels->class_list);
+      free(labels->cnsrs);
+      fclose(fp);
+      RETURN(1);
     }
 
     /*--- read censorfile and count censors ---*/
@@ -3122,8 +5539,16 @@ LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *ce
       /* -- check for values other than 0 and 1 and count censors-- */
       if ( (strcmp(trimString(labelString), "0")) &&
            (strcmp(trimString(labelString), "1")) ) {
-        ERROR_exit("Consorfile: '%s' line: '%d' contains invalid entry: '%s'. "
-            "Only 0 or 1 is allowed!", censorFile, i+1, labelString);
+        snprintf(errorString, LONG_STRING,
+            "Consorfile: '%s' line: '%ld' contains invalid entry: '%s'. "
+            "Only 0 or 1 is allowed!", censorFile, i+1, labelString); 
+        
+        /* free and return */ 
+        free(labels->lbls);
+        free(labels->class_list);
+        free(labels->cnsrs);
+        fclose(fp);
+        RETURN(1);
       }
       if( (int)labels->cnsrs[i] == 0 ) labels->n_cnsrs++;
     }
@@ -3131,10 +5556,15 @@ LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *ce
   }
 
   /*--- allocate target ---*/
-  target = (LabelType *) malloc( (labels->n-labels->n_cnsrs)*sizeof(LabelType) );
-  if( labels->cnsrs == NULL ) {
-    ERROR_exit("Memory allocation in getAllocateRegressionLabels failed! "
-        "Could not allocate target.");
+  if( (tmpTarget = (LabelType *)malloc((labels->n-labels->n_cnsrs)*sizeof(LabelType))) == NULL ) {
+    snprintf(errorString, LONG_STRING, "getAllocateRegressionLabelsAndTarget: "
+        "Memory allocation for target failed!");
+
+    /* free and return */ 
+    free(labels->lbls);
+    free(labels->class_list);
+    free(labels->cnsrs);
+    RETURN(1);
   }
 
   /*--- check labels and create target ---*/
@@ -3145,7 +5575,7 @@ LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *ce
       /* -- check for 9999 in labels -- */
       if( (int)labels->lbls[i] == 9999 ) ++n9999;
 
-      target[j] = labels->lbls[i];
+      tmpTarget[j] = labels->lbls[i];
       ++j;
     }
   }
@@ -3157,35 +5587,47 @@ LabelType* getAllocateRegressionLabels(LABELS *labels, char *labelFile, char *ce
           "   '9999' can not be used to ignore timepoints\n"
           "   Please use a censorfile (option: -censor)", labelFile, n9999 ); 
   }
+
   
-  RETURN(target);
+  *target = tmpTarget;
+  
+  RETURN(0);
 }
 
-void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel, 
-    THD_3dim_dataset *dsetTest, THD_3dim_dataset *dsetModel, int argc, char **argv)
+void freeRegressionLabelsAndTarget(LABELS *labels, LabelType *target) 
 {
 
-  DOC* docsTest           = NULL; /* svm-light datastructure used for testing */
+  ENTRY("freeRegressionLabelsAndTarget");
+
+  free(labels->lbls);
+  free(labels->cnsrs);
+  free(labels->class_list);
+  free(target);
+  
+  EXRETURN;
+}
+
+int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel, 
+    THD_3dim_dataset *dsetTest, DatasetType **dsetModelArray,
+    MaskType *dsetMaskArray, long nt_mod, long nvox_mod, 
+    int argc, char **argv, char *errorString)
+{
+
+  DOC* docsTest           = NULL; /* svm-light data structure used for testing */
 
   DatasetType**
     dsetTestArray         = NULL; /* array to hold test dataset values */
 
-  DatasetType**
-    dsetModelArray        = NULL; /* array to hold model dataset values */
-
-  MaskType
-    *dsetMaskArray        = NULL; /* array to hold mask dataset */
-
   long nt                 = 0;    /* number of time points in TEST dataset */
   long nvox               = 0;    /* number of voxels per time point in TEST dataset */
-  long nt_mod             = 0;    /* number of time points in  model dataset */
-  long nvox_mod           = 0;    /* number of voxels per time point in MODEL dataset */
+  long nvox_masked        = 0;    /* number of voxels in mask */
 
   float dist_tmp          = 0;
-  float *dist             = NULL;  /* really want this to be double, but am
-                                    * detrending - should do something smarter soon!*/
-  float *dist_cnsrs       = NULL;
-  float **multiclass_dist = NULL;
+  float *dist             = NULL;  /* holds the distance for all timepoints */
+  float *dist_cnsrs       = NULL;  /* holds the distance for non-censored timpepoints */
+                                   /* TODO: we need to write our own detrending, so we can
+                                      store the dist with double precision */ 
+  float **multiclass_dist = NULL;  
    /* doing all of the pairwise tests and storing them in principle, don't have
     * to do this with directed, acyclic graph (DAG) but each test does not take
     * that long, and we may build in more options in the future.
@@ -3196,11 +5638,9 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
 
   long cc, dd               = 0;
   long sampleCount          = 0;   /* number of samples used in training */
-  long combCount            = 0;   /* temporary variable to determine cc,dd */
 
   float correct             = 0.0;
   float incorrect           = 0.0;
-  float no_accuracy         = 0.0;
 
   long res_a                = 0;
   long res_b                = 0;
@@ -3222,15 +5662,14 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
   long classCountMax        = 0;    /* maximum number of classes, needed to for
                                      * allocation of multi-class arrays */
 
-  enum mctypes { MCTYPE_DAG,
-    MCTYPE_VOTE };                  /* types for multiclass */
-  enum mctypes mctype       = MCTYPE_DAG; /* default value */
+  enum mctypes { MCTYPE_DAG, MCTYPE_VOTE }; /* types for multiclass */
+  enum mctypes mctype       = MCTYPE_DAG;   /* default value */
 
   /* labels: */
   LABELS testLabels;
   LabelType *censoredTargets= NULL; /* contains labels in svm-light readable
     * format. Here it is only used to calculate prediction accuracies and is
-    * updated for class combination (named tmp_Labels previously)*/
+    * updated for each class combination (named tmp_Labels previously)*/
 
   /* used for strtok magic and csv strings: */
   char* p                   = NULL;
@@ -3243,155 +5682,242 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
   char predictionsFile[LONG_STRING];
 
 
-  ENTRY("test_routine");
+  ENTRY("test_classification");
 
 
   /* JL Apr. 2010: Initialized all variables
    * JL Apr. 2010: Allocating p string (for strtok) dynamically.
    *               Replaced all string functions by its equivalent that takes
    *               also the string size as an argument
-   * JL May. 2010: Mask in now read from brick 0 of model file
+   * JL May. 2010: Mask is stored in brick (n and n+1) of model file
    * JL Aug. 2010: Modified multiclass (DAG and vote) to enable calculation of
-   *               prediction accuracies for arbitary (non-continous) class labels
+   *               prediction accuracies for arbitrary (non-continuous) class labels
+   * JL July 2011: Modified error handling: Passing error message 
+   *               as argument (errorString) to the calling function, 
+   *               allocated memory is freed, RETURN(1) instead of ERROR_exit().
    */
 
   if (verbosity >= 1) INFO_message("\n++ CLASSIFICATION (testing):\n++");
 
-
   /*----- INITIAL ERROR CHECKING ------*/
-  /* afniModel is loaded in main() (get_afni_model) */
-
-  if( afniModel == NULL ) { 
-      ERROR_exit("Model could not be loaded!");
+  if( afniModel == NULL || dsetModelArray == NULL ) {
+    /* we should never get here */
+    snprintf(errorString, LONG_STRING, "test_classification: "
+        "What happened? Model could not be loaded!");
+    
+    RETURN(1);
   }
 
   /*----- LOAD TEST DATA --------*/
-  dsetTest = THD_open_one_dataset( options->testFile );
-  if ( dsetTest == NULL ) {
-    ERROR_exit("Failed to open test dataset: %s", options->testFile );
+  if( (dsetTest = THD_open_one_dataset(options->testFile)) == NULL ) {
+    snprintf(errorString, LONG_STRING, 
+        "Failed to open test dataset: %s", options->testFile );
+
+    RETURN(1);
   }
   DSET_load( dsetTest );
   nt = DSET_NUM_TIMES( dsetTest );
-  nvox = DSET_NVOX( dsetTest ); 
-
+  nvox = DSET_NVOX( dsetTest );
+  nvox_masked = afniModel->total_masked_features[0]; 
+    /* assuming same mask for all class combinations */
 
   /*----- GET TEST LABELS ------- */
   if( options->testLabelFile[0] ) {
+    if( getAllocateClassificationLabels(&testLabels, options->testLabelFile, 
+        options->censorFile, errorString) ) {
 
-    /* JL: included censor-file for testing in getLabels */
-    getLabels(&testLabels, options->testLabelFile, options->censorFile);     
-    if(testLabels.n != nt) {
-        ERROR_exit("Number of labels do not match the length of the test dataset:\n"
+      /* free and return */
+      DSET_unload(dsetTest);
+      RETURN(1);
+    }
+
+    if( testLabels.n != nt ) {
+      snprintf(errorString, LONG_STRING,
+            "Number of labels do not match the length of the test dataset:\n"
 	    "   labelfile '%s' contains %ld labels, but the \n"
-	    "   testvolume '%s' contains %ld brick(s). ",options->testLabelFile,
-        testLabels.n, options->testFile, nt);
+	    "   testvolume '%s' contains %ld brick(s). ",
+            options->testLabelFile, testLabels.n, options->testFile, nt);
+
+      /* free and return */
+      DSET_unload(dsetTest);
+      freeClassificationLabels(&testLabels);
+      RETURN(1);
     }
 
     /*----- ALLOCATE censoredTargets ---- */
-    censoredTargets = (LabelType*)malloc(sizeof(LabelType)*testLabels.n);
-    if( censoredTargets == NULL ) {
-      ERROR_exit("Memory allocation in test_routine! Could not allocate temporary labels.");
+    if( (censoredTargets = (LabelType*)malloc(sizeof(LabelType)*testLabels.n)) == NULL ) {
+      
+      snprintf(errorString, LONG_STRING, "test_classification: "
+          "Memory allocation for censoredTargets failed!");
+      
+      /* free and return */
+      DSET_unload(dsetTest);
+      freeClassificationLabels(&testLabels);
+      RETURN(1);
     }
   }
 
   /*----- PRODUCE TEST DATA ARRAY -------*/
-  dsetTestArray = getAllocateDsetArray(dsetTest);
+  if( (dsetTestArray = getAllocateDsetArray(dsetTest, errorString)) == NULL ) {
 
-  /*----- LOAD AFNI-SVM MODEL --------*/
-  dsetModel = THD_open_one_dataset( options->modelFile );
-  DSET_load( dsetModel );
-  nvox_mod = DSET_NVOX( dsetModel );
-
-  if (afniModel->mask_used != MASK_UNKNOWN) {
-    /* new way: mask is stored in last 2 bricks */
-    nt_mod = DSET_NUM_TIMES( dsetModel )-2;
+    /* free and return */
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+    if( options->testLabelFile[0] ) free(censoredTargets);
+    RETURN(1);
   }
-  else {
-    /* old way: mask is NOT stored as a sub-brick in the model dataset */
-    nt_mod = DSET_NUM_TIMES( dsetModel );
-  }
-
-
+ 
   /* JL May 2010: Make sure number of voxels/t in model matches
    * number of voxels/t in test dataset */
-  if (nvox != nvox_mod) {
-    ERROR_exit("Number of voxels in model: '%s' does not match number of voxels "
-        "in test dataset: '%s'", options->modelFile, options->testFile);
-  }
-
-  /*---- ALLOCATE MODEL AND MASK ARRAY ------------------*/
-  dsetMaskArray = (MaskType *)malloc(nvox_mod*sizeof(MaskType));
-  if (afniModel->mask_used != MASK_NO) dsetModelArray = Allocate2DT( nt_mod, nvox_mod);
-
-  /*---- PRODUCE MODEL AND MASK ARRAY ------------------*/
-  getModelArrays(dsetModel, dsetModelArray, dsetMaskArray,
-     &afniModel->mask_used, options->outModelNoMask);
-
-  if (afniModel->mask_used == MASK_UNKNOWN) {
-    /* no model mask was used for training */
-    free(dsetMaskArray);
-    dsetMaskArray = NULL;
+  if( nvox != nvox_mod ) {
+    snprintf(errorString, LONG_STRING, 
+        "Number of voxels in model: %s does not match\n"
+        "   number of voxels in test dataset: %s",
+        options->modelFile, options->testFile);
+    
+    /* free and return */
+    freeDsetArray(dsetTest, dsetTestArray);
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+    if( options->testLabelFile[0] ) free(censoredTargets);
+    RETURN(1);
   }
 
   /*---- SET MULTICLASS METHOD -----------------*/
-  if ((options->multiclass[0]) && (afniModel->class_count > 2)) { 
-      if ( !strcmp(options->multiclass,"DAG") ) mctype = MCTYPE_DAG;
-      else if ( !strcmp(options->multiclass,"vote") ) mctype = MCTYPE_VOTE;
+  if( (options->multiclass[0]) && (afniModel->class_count > 2) ) { 
+      if( !strcmp(options->multiclass, "DAG") )       mctype = MCTYPE_DAG;
+      else if( !strcmp(options->multiclass, "vote") ) mctype = MCTYPE_VOTE;
       else { 
-	    WARNING_message("-multiclass was specified with an unknown option: %s\n"
+        WARNING_message("Unknown method for multiclass: %s\n" 
             "   Setting mctype = DAG [default].", options->multiclass); 
+
         mctype = MCTYPE_DAG;
      }
   }
-  else {
-    if(verbosity >= 2) INFO_message("Setting multiclass type to DAG [default].");
+
+  /*----- ALLOCATE AND FILL SVM-LIGHT STRUCTURES -----*/
+  /* -- allocate DOCs for test dataset  -- */
+  if( (docsTest = allocateDOCs(nt, nvox_masked)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "test_classification: "
+        "Memory allocation for docsTest failed!");
+
+    /* free and return */
+    freeDsetArray(dsetTest, dsetTestArray);
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+    if( options->testLabelFile[0] ) free(censoredTargets);
+    RETURN(1);
+  }
+  
+  /* -- fill DOCs with test dataset -- */
+  afni_dset_to_svm_doc( docsTest, dsetTestArray, dsetMaskArray, nt,
+      nvox, nvox_masked);
+
+  /* -- allocate MODEL -- */
+  //model = (MODEL *)malloc(sizeof(MODEL));
+  if( allocateModel(model, afniModel, errorString) ) {
+
+    /* free and return */
+    freeDsetArray(dsetTest, dsetTestArray);
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+    if( options->testLabelFile[0] ) free(censoredTargets);
+    freeDOCs(docsTest, nt);
+    RETURN(1);
   }
 
-  /*----- FILL DOC STRUCTURE FROM TEST DATASET -----*/
-  docsTest = (DOC*)malloc(sizeof(DOC)*nt); /* svm-light data structure */
-  AllocateDOCwords(docsTest, nt, afniModel->total_masked_features[0]);
+  /* -- fill MODEL with data from AFNI_MODEL */
+  get_svm_model( model, dsetModelArray, dsetMaskArray, afniModel, nvox_mod,
+      options->outModelNoMask );
 
-  /* assuming total_masked_features are all the same and same mask for training
-   * and testing */
-  afni_dset_to_svm_doc( docsTest, dsetTestArray, dsetMaskArray, options, nt,
-      nvox, afniModel->total_masked_features[0]);
-
-  allocateModel( model, afniModel);
-  get_svm_model(model, dsetModelArray, dsetMaskArray, afniModel, nvox_mod,
-      options->outModelNoMask);
 
   /*----- ALLOCATE TEST PREDICTION ARRAYS -------*/
-  dist = (float *)malloc(sizeof(float)*nt);
-  if( (options->testLabelFile[0]) && (testLabels.n_cnsrs != 0) ) {
-  dist_cnsrs = (float *)malloc(sizeof(float)*(nt-testLabels.n_cnsrs));
+  if( (dist = (float *)malloc(sizeof(float)*nt)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "test_classification: "
+          "Memory allocation for dist failed!");
+
+    /* free and return */
+    freeDsetArray(dsetTest, dsetTestArray);
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+    if( options->testLabelFile[0] ) free(censoredTargets);
+    freeDOCs(docsTest, nt);
+    freeModel(model, afniModel, TEST);
+    RETURN(1);
   }
 
+  if( options->testLabelFile[0] ) {
+    if( (dist_cnsrs = (float *)malloc(sizeof(float)*(nt-testLabels.n_cnsrs))) == NULL ) {
+      /* dist_cnsrs hold the distance (to the hyperplane) for non-censored timepoints */
+      snprintf(errorString, LONG_STRING, "allocateModel: "
+        "Memory allocation for dist_cnsrs failed!");
+    
+      /* free and return */
+      freeDsetArray(dsetTest, dsetTestArray);
+      DSET_unload(dsetTest);
+      freeClassificationLabels(&testLabels);
+      free(censoredTargets);
+      freeDOCs(docsTest, nt);
+      freeModel(model, afniModel, TEST);
+      free(dist);
+      RETURN(1);
+    }
+  }
+
+  /* ------ ALLOCATE MULTICLASS ARRAYS ----- */
   /* JL Mar. 2009: Check if the number of classes in labelfile is grater than
    * the number of classes in model and allocate multi-class arrays based on that.
    */
   classCountMax = afniModel->class_count;
   if( options->testLabelFile[0] ) {
     if (testLabels.n_classes > afniModel->class_count) {
-	  classCountMax = testLabels.n_classes;
+      classCountMax = testLabels.n_classes;
     }
   }
 
+ 
+  /* JL July 2011: Only allocate multiclass arrays when needed */
+  if( afniModel->class_count > 2 ) { /* multiclass ! */
+    if( allocateMultiClassArrays(&multiclass_dist, &classCorrect, 
+          &classIncorrect, &nClass, &classVote,
+          classCountMax, (long) afniModel->combinations, nt, errorString) ) {
+      
+      /* free and return */
+      freeDsetArray(dsetTest, dsetTestArray);
+      DSET_unload(dsetTest);
+      if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+      if( options->testLabelFile[0] ) free(censoredTargets);
+      freeDOCs(docsTest, nt);
+      freeModel(model, afniModel, TEST);
+      free(dist);
+      if( options->testLabelFile[0] ) free(dist_cnsrs);
+      RETURN(1);
+    }
+  }
+ 
   /* JL Apr. 2010: Allocate p string for strtok */
   p_string_size = afniModel->combinations*CSV_STRING;
   if ( (p = (char *) malloc(p_string_size * sizeof (char))) == NULL ) {
-    ERROR_exit("Could no allocate csv-string in test_routine!");
+    snprintf(errorString, LONG_STRING, "test_classification: "
+        "Could not allocate csv string!");
+      
+    /* free and return */
+    freeDsetArray(dsetTest, dsetTestArray);
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+    if( options->testLabelFile[0] ) free(censoredTargets);
+    freeDOCs(docsTest, nt);
+    freeModel(model, afniModel, TEST);
+    free(dist);
+    if( options->testLabelFile[0] )   free(dist_cnsrs);
+    if( afniModel->class_count > 2 ) {
+      freeMultiClassArrays(multiclass_dist, classCorrect, 
+          classIncorrect, nClass, classVote,
+          (long) afniModel->combinations);
+    }
+    RETURN(1);
   }
 
-  /* Note: if not multiclass these may not get used - moreover, if only one
-   * multiclass approach still not everything will get used. So perhaps being a
-   * little inneficient here */
-  /* multiclass_dist = (double *)calloc(sizeof(double),nt); -- SL Aug. 08*/
-  multiclass_dist = Allocate2f((long) afniModel->combinations, (long) nt);
-  classCorrect = (float *)malloc(sizeof(float)*classCountMax);
-  classIncorrect = (float *)malloc(sizeof(float)*classCountMax);
-  nClass = (long *)malloc(sizeof(long)*classCountMax);
-  classVote = (int *)malloc(sizeof(long)*classCountMax);
-  
   for(i = 0; i < afniModel->combinations; ++i ) {
     if(verbosity >= 1) {
       INFO_message(" ");
@@ -3409,11 +5935,29 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
       q = strtok(NULL,"_");
       dd = atol(q);
 
-      getCensoredClassTarget(censoredTargets, &sampleCount, &testLabels,
-          cc, dd, TEST);
+      if( getCensoredClassTarget(censoredTargets, &sampleCount, &testLabels,
+            cc, dd, TEST, errorString) ) {
+
+        /* free and return */
+        freeDsetArray(dsetTest, dsetTestArray);
+        DSET_unload(dsetTest);
+        freeClassificationLabels(&testLabels);
+        free(censoredTargets);
+        freeDOCs(docsTest, nt);
+        freeModel(model, afniModel, TEST);
+        free(dist);
+        free(dist_cnsrs);
+        if( afniModel->class_count > 2 ) {
+          freeMultiClassArrays(multiclass_dist, classCorrect, 
+            classIncorrect, nClass, classVote,
+            (long) afniModel->combinations);
+        }
+        free(p);
+        RETURN(1);
+      }
+     
       correct=0.0; 
       incorrect=0.0;
-      no_accuracy=0.0;
       res_a=0.0;
       res_b=0.0;
       res_c=0.0;
@@ -3421,7 +5965,7 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
     }
   
     /*----- GET SVM-LIGHT MODEL STRUCTURE -----*/
-    updateModel(model, afniModel, options, (int) i); 
+    updateModel(model, afniModel, (int) i);
 
     if(afniModel->class_count == 2) {
       snprintf(predictionsFile, LONG_STRING, "%s.1D", options->predFile);
@@ -3431,7 +5975,25 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
           afniModel->combName[i]);
     }
     if( (fp = fopen( predictionsFile, "w" )) == NULL ) {
-      ERROR_exit("Could not open file for writing predictions: %s", predictionsFile );
+      snprintf(errorString, LONG_STRING,
+          "Could not open file for writing predictions: %s", predictionsFile );
+
+      /* free and return */
+      freeDsetArray(dsetTest, dsetTestArray);
+      DSET_unload(dsetTest);
+      if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+      if( options->testLabelFile[0] ) free(censoredTargets);
+      freeDOCs(docsTest, nt);
+      freeModel(model, afniModel, TEST);
+      free(dist);
+      if( options->testLabelFile[0] ) free(dist_cnsrs);
+      if( afniModel->class_count > 2 ) {
+      freeMultiClassArrays(multiclass_dist, classCorrect, 
+          classIncorrect, nClass, classVote,
+          (long) afniModel->combinations);
+      }
+      free(p);
+      RETURN(1);
     }
     
     /* JL Feb. 2009: Changed this part to support non-linear kernels */
@@ -3506,8 +6068,7 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
      * option -noPredScale: Do not scale predictions to {0,1}
      */
     for(j = 0; j < nt; ++j) {
-      /* multiclass_dist[j] += dist[j]; -- SL Aug. 08*/
-      multiclass_dist[i][j] += dist[j];
+      if( afniModel->class_count > 2 ) multiclass_dist[i][j] += dist[j];
 
       /* convert output prediction to {0,1} class scale */
       if (!options->noPredScale) dist[j] = 0.5*( dist[j] + 1 );
@@ -3532,14 +6093,14 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
 
   /* --- MULTICLASS --- */
   /* JL Aug. 2010: Modified (DAG and vote) to enable calculation of
-   *               prediction accuracies for arbitary (non-continous) class labels
+   *               prediction accuracies for (non-continuous) class labels
    */
 
-  if(afniModel->class_count > 2) {
+  if(afniModel->class_count > 2) { /* mulitclass! */
+
     if( options->testLabelFile[0] ) {
       correct=0.0; 
       incorrect=0.0;
-      no_accuracy=0.0;
       res_a=0.0;
       res_b=0.0;
       res_c=0.0;
@@ -3551,7 +6112,7 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
       }
     }
 
-    /* --- Multiclass: voting method --- */
+    /* --- multiclass: voting method --- */
     if (mctype == MCTYPE_VOTE) {
       snprintf(predictionsFile, LONG_STRING, "%s_overall_vote.1D", options->predFile);
       if( (fp = fopen( predictionsFile, "w" )) == NULL ) {
@@ -3632,7 +6193,7 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
       }
       fclose(fp);
     }
-    /* --- Multiclass:  Directed acyclic graph (DAG) ---*/
+    /* --- multiclass:  Directed acyclic graph (DAG) ---*/
     else { // if (mctype == MCTYPE_DAG)
 
    /*  Directed acyclic graph of pairwise classifiers *************************
@@ -3664,8 +6225,23 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
 
       snprintf(predictionsFile, LONG_STRING, "%s_overall_DAG.1D", options->predFile);
       if( (fp = fopen( predictionsFile, "w" )) == NULL ) {
-        ERROR_exit("Could not open file for writing predictions: %s",
-            predictionsFile );
+        snprintf(errorString, LONG_STRING,
+          "Could not open file for writing predictions: %s", predictionsFile );
+        
+        /* free and return */
+        freeDsetArray(dsetTest, dsetTestArray);
+        DSET_unload(dsetTest);
+        if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+        if( options->testLabelFile[0] ) free(censoredTargets);
+        freeDOCs(docsTest, nt);
+        freeModel(model, afniModel, TEST);
+        free(dist);
+        if( options->testLabelFile[0] ) free(dist_cnsrs);
+        freeMultiClassArrays(multiclass_dist, classCorrect, 
+          classIncorrect, nClass, classVote,
+          (long) afniModel->combinations);
+        free(p);
+        RETURN(1);
       }
 
       if(verbosity >= 1)
@@ -3739,7 +6315,9 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
       }
     fclose(fp);
     }
-  }
+  } /* multiclass done */
+
+
   if(verbosity >= 1)  INFO_message("Predictions for all categories written to %s",
     predictionsFile);
 
@@ -3767,7 +6345,7 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
     }
   }
 
-  /* JL Mar 2010 */
+  /* JL Mar 2010: */
   if( options->testLabelFile[0] ) {
     if (testLabels.n_classes > afniModel->class_count) {
   	  WARNING_message("Number of classes: %d in labelfile: %s is grater than\n"
@@ -3777,29 +6355,26 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
     }
   }
 
+  /* free */
+  if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
+  if( options->testLabelFile[0] ) free(censoredTargets);
+  freeDOCs(docsTest, nt);
+  freeModel(model, afniModel, TEST);
   free(dist);
-  free(classCorrect);
-  free(classIncorrect);
-  free(nClass);
-  free(classVote);
-  if( afniModel->mask_used == MASK_YES ) free(dsetMaskArray);
-  freeModel( model, afniModel);
-  freeAfniModel(afniModel);
-  freeDOCwords(docsTest, nt);
-  free(docsTest);
-  free2DT( dsetTestArray, nt );
-  free2DT( dsetModelArray, nt_mod );
-  DSET_unload( dsetModel );
-  free2f(multiclass_dist, afniModel->combinations);
-
-  if( (options->testLabelFile[0]) && (testLabels.n_cnsrs != 0) ) free(dist_cnsrs);
-  DSET_unload( dsetTest );
+  if( options->testLabelFile[0] ) free(dist_cnsrs);
+  if( afniModel->class_count > 2 ) {
+    freeMultiClassArrays(multiclass_dist, classCorrect, 
+        classIncorrect, nClass, classVote,
+        (long) afniModel->combinations);
+  }
   free(p);
+  freeDsetArray(dsetTest, dsetTestArray);
+  DSET_unload(dsetTest);
 
 
-  EXRETURN;
+
+  RETURN(0);
 }
-
 
 /* JL May 2009: Added this function to support sv-regression in 3dsvm.
  * It is very similar to test_routine() (a lot of code has been recycled). 
@@ -3810,28 +6385,20 @@ void test_routine (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
  *    - New function to read in the labelfile ( getAllocateRegressionLabels() )
  *    - Using rms error as a benchmark
  */ 
-
-void test_regression (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel, 
-    THD_3dim_dataset *dsetTest, THD_3dim_dataset *dsetMask, THD_3dim_dataset *dsetModel, 
-    int argc, char **argv)
+int test_regression (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel, 
+    THD_3dim_dataset *dsetTest, DatasetType **dsetModelArray,
+    MaskType *dsetMaskArray, long nt_mod, long nvox_mod, int argc, char **argv,
+    char *errorString)
 {
   long nt             = 0;        /* number of time points in test dataset */
   long nvox           = 0;        /* number of voxels per time point in test dataset */
-  long nt_mod         = 0;        /* nt for model dataset */
-  long nvox_mod       = 0;	  /* nvox for model dataset */
+  long nvox_masked    = 0;        /* number of voxels in mask */
   
-  DOC*                             /* array to hold test dataset in svm-light data */
+  DOC*                            /* array to hold test dataset in svm-light data */
     docsTest          = NULL;     /* structure */
   DatasetType**
     dsetTestArray     = NULL;	  /* array to hold test dataset values */
-  DatasetType**
-    dsetModelArray    = NULL;	  /* array to hold model dataset values */
-  DatasetType*
-    tmp_dsetArray     = NULL;	  /* temporary array to hold dataset values */
 
-  MaskType*
-    dsetMaskArray    = NULL;      /* array to hold mask dataset */
- 
   double dist_tmp     = 0;        /* temporary variable */
   double *dist        = NULL;     /* array holding the classification results for
                                      each tinepoint */
@@ -3840,97 +6407,144 @@ void test_regression (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
                                      the 'truth' is known and we want to determine
                                      the error. */ 
   LABELS testLabels;  
-  long i,j,c          = 0;
+  long j              = 0;
   FILE* fp            = NULL;
 
   char predictionsFile[LONG_STRING];
   
   double rms          = 0;         /* used to calculate rms error */
 
+  
   ENTRY("test_regression"); 
- 
+
+  /* JL July 2011: Modified error handling: Passing error message 
+  *                as argument (errorString) to the calling function, 
+  *                allocated memory is freed, RETURN(1) instead of ERROR_exit().
+  */
+
+
   if (verbosity >= 1) INFO_message("\n++ REGRESSION (testing):\n++");
 
   /*----- INITIAL ERROR CHECKING ------*/
-  /* afniModel is loaded in main() (get_afni_model) */
-   
-  if( afniModel == NULL ) { 
-      ERROR_exit("Model could not be loaded!");
+  if( afniModel == NULL || dsetModelArray == NULL ) {
+    /* we should never get here */
+    snprintf(errorString, LONG_STRING, "test_regression: "
+        "What happened? Model could not be loaded!");
+    
+    RETURN(1);
   }
 
   /*----- LOAD TEST DATA --------*/
-  dsetTest = THD_open_one_dataset( options->testFile );
-  if ( dsetTest == NULL ) {
-    ERROR_exit("Failed to open test dataset: %s", options->testFile );
+  if( (dsetTest = THD_open_one_dataset(options->testFile)) == NULL ) {
+    snprintf(errorString, LONG_STRING, 
+        "Failed to open test dataset: %s", options->testFile );
+
+    RETURN(1);
   }
   DSET_load( dsetTest );
   nt = DSET_NUM_TIMES( dsetTest );
-  nvox = DSET_NVOX( dsetTest ); 
+  nvox = DSET_NVOX( dsetTest );
+  nvox_masked = afniModel->total_masked_features[0];
+    /* assuming same mask for all class combinations */
 
   /*----- GET TEST LABELS -------*/
   if( options->testLabelFile[0] ) {
-    target = getAllocateRegressionLabels(&testLabels,options->testLabelFile,
-      options->censorFile);
+    if( getAllocateRegressionLabelsAndTarget(&testLabels, &target,
+        options->testLabelFile, options->censorFile, errorString) ) {
+
+      /* free and return */
+      DSET_unload(dsetTest);
+      RETURN(1);
+    }
 
     if( testLabels.n != nt ) {
-      ERROR_exit("Number of labels do not match the length of the test dataset:\n" 
-          "   labelfile: '%s' contains %ld labels, but the \n"
-          "   test dataset: '%s' contains %ld entries. ", 
-          options->testLabelFile, testLabels.n, options->testFile, nt);
+      snprintf(errorString, LONG_STRING,
+            "Number of labels do not match the length of the test dataset:\n"
+	    "   labelfile '%s' contains %ld labels, but the \n"
+	    "   testvolume '%s' contains %ld brick(s). ",
+            options->testLabelFile, testLabels.n, options->testFile, nt);
+
+      /* free and return */
+      DSET_unload(dsetTest);
+      freeRegressionLabelsAndTarget(&testLabels, target);
+      RETURN(1);
     }
   }
 
   /*----- PRODUCE TEST DATA ARRAY -------*/
-  dsetTestArray = getAllocateDsetArray(dsetTest);
+  if( (dsetTestArray = getAllocateDsetArray(dsetTest, errorString) ) == NULL ) {
 
-  /*----- LOAD MODEL ARRAY -----*/
-  dsetModel = THD_open_one_dataset( options->modelFile );
-  DSET_load ( dsetModel );
-  nvox_mod = DSET_NVOX( dsetModel );
-  if (afniModel->mask_used != MASK_UNKNOWN) {
-     /* new way: mask is stored in last 2 bricks */
-     nt_mod = DSET_NUM_TIMES( dsetModel )-2;
-   }
-   else {
-     /* old way: mask is NOT stored as a sub-brick in the model dataset */
-     nt_mod = DSET_NUM_TIMES( dsetModel );
-   }
-  
-  if (afniModel->mask_used == MASK_UNKNOWN) {
-      /* no model mask was used for training */
-      free(dsetMaskArray);
-      dsetMaskArray = NULL;
-   }
-
-  /*---- ALLOCATE MODEL AND MASK ARRAY ------------------*/
-  dsetMaskArray = (MaskType *)malloc(nvox_mod*sizeof(MaskType));
-  if (afniModel->mask_used) dsetModelArray = Allocate2DT( nt_mod, nvox_mod);
-
-  /*----- PRODUCE MODEL AND MASK ARRAY -------*/
-  getModelArrays(dsetModel, dsetModelArray, dsetMaskArray,
-       &afniModel->mask_used, options->outModelNoMask);
+    /* free and return */
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) 
+      freeRegressionLabelsAndTarget(&testLabels, target);
+    RETURN(1);
+  }
 
   /*----- ALLOCATE AND FILL DOC STRUCTURE -----*/
-  docsTest = (DOC*)malloc(sizeof(DOC)*nt);
-  AllocateDOCwords(docsTest, nt, afniModel->total_masked_features[0]);
-  afni_dset_to_svm_doc( docsTest, dsetTestArray, dsetMaskArray, options, 
-      nt, nvox, afniModel->total_masked_features[0]); 
+  if( (docsTest = allocateDOCs(nt, nvox_masked)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "test_regression: "
+        "Memory allocation for docsTest failed!");
+
+    /* free and return */
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) 
+      freeRegressionLabelsAndTarget(&testLabels, target);
+    freeDsetArray(dsetTest, dsetTestArray);
+    RETURN(1);
+  }
+
+  afni_dset_to_svm_doc( docsTest, dsetTestArray, dsetMaskArray,
+      nt, nvox, nvox_masked); 
 
   /*----- ALLOCATE AND FILL SVM MODEL -----*/
-  allocateModel( model, afniModel);
+  model=(MODEL *)malloc(sizeof(MODEL));
+  if( allocateModel(model, afniModel, errorString ) ) {
+
+    /* free and return */
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) 
+      freeRegressionLabelsAndTarget(&testLabels, target);
+    freeDsetArray(dsetTest, dsetTestArray);
+    freeDOCs(docsTest, nt);
+    RETURN(1);
+  }
+ 
   get_svm_model(model, dsetModelArray, dsetMaskArray, afniModel, nvox_mod,
       options->outModelNoMask);
-  updateModel(model, afniModel, options, 0);
+  updateModel(model, afniModel,  0);
 
   /*----- ALLOCATE PREDICTION ARRAY --------*/
-  dist = (double *)malloc(sizeof(double)*nt);
+  if( (dist = (double *)malloc(sizeof(double)*nt)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "test_regression: "
+        "Memory allocation for dist failed!");
+
+    /* free and return */
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) 
+      freeRegressionLabelsAndTarget(&testLabels, target);
+    freeDsetArray(dsetTest, dsetTestArray);
+    freeDOCs(docsTest, nt);
+    freeModel(model, afniModel, TEST);
+    RETURN(1);
+  }
 
   /*----- PREDICTION OUTPUT FILE -----*/
   snprintf(predictionsFile, LONG_STRING, "%s.1D", options->predFile);
   if( (fp = fopen(predictionsFile, "w" )) == NULL ) {
-      ERROR_exit("Could not open file for writing predictions: %s", 
-          predictionsFile );
-    }
+    snprintf(errorString, LONG_STRING,
+        "Could not open file for writing predictions: %s", predictionsFile);
+    
+    /* free and return */
+    DSET_unload(dsetTest);
+    if( options->testLabelFile[0] ) 
+      freeRegressionLabelsAndTarget(&testLabels, target);
+    freeDsetArray(dsetTest, dsetTestArray);
+    freeDOCs(docsTest, nt);
+    freeModel(model, afniModel, TEST);
+    free(dist);
+    RETURN(1);
+  }
 
   /*----- PERFORM TESTING -----*/
   /* JL May. 2010: Added testing for non-linear kernels */
@@ -3978,35 +6592,28 @@ void test_regression (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
     INFO_message("--------------------------------------------------------------"
           "----------------\n++");
   }
-  if(verbosity >= 1) INFO_message("Predictions written to %s\n", 
-      predictionsFile);
+  if(verbosity >= 1) INFO_message("Predictions written to %s\n", predictionsFile);
+  fclose(fp);
 
-   fclose( fp );
+  /* --- FREE MEMORY --- */
+  DSET_unload(dsetTest);
+  if( options->testLabelFile[0] ) 
+    freeRegressionLabelsAndTarget(&testLabels, target);
+  freeDsetArray(dsetTest, dsetTestArray);
+  freeDOCs(docsTest, nt);
+  freeModel(model, afniModel, TEST);
+  free(dist);
 
-  /*----- FREE MEMORY -----*/   
-  free( dist );
-  freeModel( model, afniModel);
-  freeAfniModel( afniModel );
-  freeDOCwords( docsTest, nt );
-  free( docsTest );
-  free2DT( dsetTestArray, nt );
-  free2DT( dsetModelArray, nt_mod );
-  if( options->testLabelFile[0] ) {
-    freeLabels( &testLabels );
-    free( target );
-  }
-  if( afniModel->mask_used == MASK_YES ) free(dsetMaskArray);
-  DSET_unload( dsetModel );
-  DSET_unload( dsetTest );
-  
-  EXRETURN;
+  RETURN(0);
 }
+
 
 /* SL & JL Feb. 2009: Included 'long *kernel_cache_size' as an argument to
  * support non-linear kernels. */
-void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_parm, 
-    long *kernel_cache_size, ASLoptions *options, THD_3dim_dataset *dsetTrain, 
-    THD_3dim_dataset *dsetMask, MaskType *dsetMaskArray, int argc, char **argv)
+int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_parm,
+    long *kernel_cache_size, ASLoptions *options, THD_3dim_dataset *dsetTrain,
+    THD_3dim_dataset *dsetMask, MaskType *dsetMaskArrayPtr, int argc, char **argv, 
+    char * errorString )
 {
   LABELS labels;                 /* structure holding labels (class-categories)
                                   * (input from user) */
@@ -4031,7 +6638,7 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
     dsetClassTrainArray = NULL;  /* JL: array to hold training dataset values
                                   * for specific class-combination
                                   * (named dsetTrainArray previously) */
-  DOC*   docsClassTrain = NULL;  /* svm-light data structure used for training
+  DOC*   docsClassTrain = NULL;   /* svm-light data structure used for training
                                   * (JL: named docsTrain previously) */
   KERNEL_CACHE
     kernel_cache;                /* svm-light data structure holding kernel
@@ -4048,102 +6655,232 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
 
 
 
-  long i,j,k, cc, dd     =  0;
-  char alphaFile[LONG_STRING];	  /* naming of alphafile output */
+  long i, cc, dd         =  0;
   char docFileName[LONG_STRING];  /* naming of svm-light textfile output */
    
 
-  ENTRY("train_routine");
-  
+  ENTRY("train_classification");
 
+  /* JL June 2011: Modified error handling: Passing error string as argument
+   * to the calling function, allocated memory is freed, RETURN(1) 
+   * instead of ERROR_exit.
+   */
+  
   if (verbosity >= 1) INFO_message("\n++ CLASSIFICATION (training):\n++");
 
+  
   /*----- LOAD TRAINING DATA --------*/
-  dsetTrain = THD_open_one_dataset( options->trainFile );
-  if ( dsetTrain == NULL ) {
-    ERROR_exit("Failed to open training dataset: %s", options->trainFile );
+  if( dsetTrain == NULL ) {
+    if( (dsetTrain = THD_open_one_dataset(options->trainFile)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "Failed to open training dataset: %s",
+          options->trainFile ); RETURN(1);
+    }
+    DSET_load( dsetTrain );
+  }
+  else {
+    if( !DSET_LOADED(dsetTrain) ) {
+      if( (dsetTrain = THD_open_one_dataset(options->trainFile)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "Failed to open training dataset: %s",
+          options->trainFile ); RETURN(1);
+    }
+    DSET_load( dsetTrain );
+    }
   }
 
-  DSET_load( dsetTrain );
   nt = DSET_NUM_TIMES( dsetTrain );
   nvox = DSET_NVOX( dsetTrain );
   nvox_masked = nvox; /* this will be modified later if mask used */
 
+  /* JL Sep. 2010: Some trivial error checking */
+  if( nt < 2 ) { snprintf(errorString, LONG_STRING, "Need at least two "
+      "briks in training dataset %s!", options->trainFile); 
+  
+    /* free and return */
+    DSET_unload(dsetTrain);
+    RETURN(1);
+  }
+  if( nvox < 2 ) { snprintf(errorString, LONG_STRING, "Need at least two "
+      "voxels in training dataset %s!", options->trainFile); RETURN(1);
+    
+    /* free and return  */
+    DSET_unload(dsetTrain);
+    RETURN(1);
+  }
+
   if(verbosity >= 1)  
     INFO_message( "Number of time samples is %ld, and voxels %ld in training "
-        "dataset.",nt,nvox );
+        "dataset.", nt, nvox );
 
-  /*---- CRATE TRAINIG DATASET ARRAY ----*/
-  dsetTrainArray = getAllocateDsetArray(dsetTrain);
+  
+  /*---- CRATE TRAINING DATASET ARRAY ----*/
+  if( (dsetTrainArray = getAllocateDsetArray(dsetTrain, errorString)) == NULL ) {
+
+    /*  free and return  */
+    DSET_unload(dsetTrain);
+    RETURN(1);
+  }
 
   /*----- GET MASK ARRAY, IF SELECTED AND DETECT nvox_masked --------*/
   if( options->maskFile[0] ) {
     afniModel.mask_used = MASK_YES; /* JL */
     nvox_masked = 0;
-    dsetMask = THD_open_one_dataset( options->maskFile );
-    if ( dsetMask == NULL ) {
-      ERROR_exit("Failed to open mask file: %s", options->maskFile );
+
+    /* -- open dataset -- */
+    if( (dsetMask = THD_open_one_dataset(options->maskFile)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "Failed to open mask file: '%s'",
+          options->maskFile ); 
+      
+      /*  free and return - */
+      freeDsetArray(dsetTrain, dsetTrainArray);
+      DSET_unload(dsetTrain);
+      RETURN(1);
     }
     DSET_load(dsetMask);
+
+    /* -- check if mask is binary -- */
     if( DSET_BRICK_TYPE(dsetMask,0) != MRI_byte ) {
-      ERROR_exit("Mask file: %s is not a byte-format brick.\n",
-          options->maskFile );
+      snprintf(errorString, LONG_STRING, "Mask file: '%s' is not a byte-format "
+          "brick.\n", options->maskFile ); 
+
+      /* free and return */
+      freeDsetArray(dsetTrain, dsetTrainArray);
+      DSET_unload(dsetTrain);
+      DSET_unload(dsetMask);
+      RETURN(1);
     }
+
     /* JL May 2010: Make sure mask and training dataset have the same number of
      * voxels */
-    if( DSET_NVOX( dsetMask) != nvox) {
-      ERROR_exit("Number of voxels in mask file: %s and training dataset: %s "
-          "does not match, options->maskFile, options->trainFile");
+    if( DSET_NVOX( dsetMask ) != nvox) {
+      snprintf(errorString, LONG_STRING, "Number of voxels in mask file: '%s' "
+          "and training dataset: '%s' does not match", options->maskFile, 
+          options->trainFile); 
+
+      /* free and return */
+      freeDsetArray(dsetTrain, dsetTrainArray);
+      DSET_unload(dsetTrain);
+      DSET_unload(dsetMask);
+      RETURN(1);
     }
-    dsetMaskArray = (MaskType*)DSET_ARRAY(dsetMask,0);
+
+    /* -- get pointer to mask array -- */
+    dsetMaskArrayPtr = (MaskType*)DSET_ARRAY(dsetMask,0);
+
+    /* -- count number of voxels in mask -- */
     for( i=0 ; i<nvox ; ++i ) {
-      if( dsetMaskArray[i] )
-        nvox_masked++;
+      if( dsetMaskArrayPtr[i] ) nvox_masked++;
     }
-    if(verbosity >= 1) 
+    if(verbosity >= 1) {
       INFO_message( "The number of non-zero elements in mask is: %ld\n",
           nvox_masked );
+    }
+
+    /* JL Sep. 2010: Some trivial error checking */
+    if( nvox_masked < 2 ) {
+      snprintf(errorString, LONG_STRING, "Need at least two voxels in mask "
+          "dataset '%s'!", options->maskFile);
+      
+      /* free and return */
+      freeDsetArray(dsetTrain, dsetTrainArray);
+      DSET_unload(dsetTrain);
+      DSET_unload(dsetMask); dsetMaskArrayPtr = NULL;
+      RETURN(1); 
+    }
   }
-  /* TODO: we might not need this any more */
-  else if( !(options->outModelNoMask) ){
-    ERROR_exit("No mask file specified (use -mask file). "
-        "If not using a mask file must use option -nomodelmask");
+  else if( !(options->outModelNoMask) ) {
+    snprintf(errorString, LONG_STRING, "No mask file specified (use -mask "
+        "file). If not using a mask file must use option -nomodelmask!"); 
+
+    /* free and return */
+    freeDsetArray(dsetTrain, dsetTrainArray);
+    DSET_unload(dsetTrain);
+    RETURN(1); 
   }
   else afniModel.mask_used = MASK_NO;
+
 
   /*----- RETRIEVE AND CHECK LABELS --------------*/
   labels.n = nt;
 
   /* --- retrieve training labels --- */
-  getLabels(&labels,options->labelFile, options->censorFile);
+  if( getAllocateClassificationLabels(&labels,options->labelFile, 
+        options->censorFile, errorString) ) {
 
-  /* JL Apr. 2010: Added some error checking */
-  if (labels.n_classes < 2) {
-     ERROR_exit("There is only one class in labelfile: '%s'. Need at least two!",
-         options->labelFile);
+    /* free and return */
+    freeDsetArray(dsetTrain, dsetTrainArray);
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask); 
+    RETURN(1);
   }
 
-  if(labels.n != nt) {
-    ERROR_exit("Number of labels do not match the length of the train dataset:\n"
+  /* -- JL Apr. 2010: Added some trivial error checking -- */
+  if (labels.n_classes < 2) {
+     snprintf(errorString, LONG_STRING, "There is only one class in labelfile: "
+         "'%s'. Need at least two!", options->labelFile);
+    
+    /* free and return */
+    freeDsetArray(dsetTrain, dsetTrainArray);
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    freeClassificationLabels(&labels);
+    RETURN(1);
+  }
+
+  if( labels.n != nt ) {
+    snprintf(errorString, LONG_STRING, "Number of labels do not match the "
+          "length of the train dataset:\n"
           "   labelfile: '%s' contains %ld labels, but the \n"
           "   trainvol:  '%s' contains %ld bricks.", options->labelFile,
-          labels.n, options->trainFile, nt);
+          labels.n, options->trainFile, nt); 
+    
+    /* free and return */
+    freeDsetArray(dsetTrain, dsetTrainArray);
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    freeClassificationLabels(&labels);
+    RETURN(1);
   }
-
 
   /*----- ALLOCATE afniModel --------------*/
-  allocateAfniModel(&afniModel,&labels, options);
+  if( allocateAfniModel(&afniModel, &labels, options, errorString) ) {
+
+    /* free and return */
+    freeDsetArray(dsetTrain, dsetTrainArray);
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    freeClassificationLabels(&labels);
+    RETURN(1);
+  }
 
   /*----- ALLOCATE censoredTarget --------------*/
-  censoredTarget = (LabelType*)malloc(sizeof(LabelType)*labels.n);
-  if( censoredTarget == NULL ) {
-    ERROR_exit("Memory allocation error in train_routine! " 
-        "Could not allocate classLabels.");
+  if( (censoredTarget = (LabelType*)malloc(sizeof(LabelType)*labels.n)) == NULL ) {
+    snprintf(errorString, LONG_STRING, "train_classification: "
+        "Memory allocation for censoredTarget failed");
+
+    /* free and return */
+    freeDsetArray(dsetTrain, dsetTrainArray);
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    freeClassificationLabels(&labels);
+    freeAfniModel(&afniModel);
+    RETURN(1);
   }
-  
+
   /*----- ALLOCATE maps -----*/
-  if ( options->modelWeightFile[0] ) {
-    allocateModelMaps(&maps, (long)labels.n_classes, nvox, options->kernelName);
+  if( options->modelWeightFile[0] ) {
+    if( allocateModelMaps(&maps, (long)labels.n_classes, nvox, options->kernelName) ) {
+      snprintf(errorString, LONG_STRING, "train_classification: "
+          "Memory allocation for model maps failed!");
+    
+    /* free and return */
+    freeDsetArray(dsetTrain, dsetTrainArray);
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    freeClassificationLabels(&labels);
+    freeAfniModel(&afniModel);
+    free(censoredTarget);
+    RETURN(1);
+    }
   }
   
   /*----- SVMLEARN FOR ALL COMBINATIONS OF PARWISE TRAINING --------*/
@@ -4152,42 +6889,106 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
 
   for( cc=0 ; cc<labels.n_classes-1; ++cc ) {
     for( dd=cc+1 ; dd<labels.n_classes; ++dd ) {
-      
       if(verbosity >= 1)  { 
          INFO_message("\n++ Preparing classes %d and %d:", 
              labels.class_list[cc], labels.class_list[dd]);
+
          if (verbosity > 1) MCHECK ; fflush(stdout) ; /* ZSS */
       }   
 
-      getCensoredClassTarget(censoredTarget, &sampleCount, &labels,
-          cc, dd, TRAIN);
-      if(verbosity >= 1) INFO_message( "SampleCount = %ld\n", sampleCount );
+      if( getCensoredClassTarget(censoredTarget, &sampleCount, &labels,
+          cc, dd, TRAIN, errorString) ) { 
+      
+        /* free and return */
+        freeDsetArray(dsetTrain, dsetTrainArray);
+        DSET_unload(dsetTrain);
+        if( options->maskFile[0] ) DSET_unload(dsetMask);
+        freeClassificationLabels(&labels);
+        freeAfniModel(&afniModel);
+        free(censoredTarget);
+        if( options->modelWeightFile[0] ) freeModelMaps(&maps);
+        RETURN(1);
+     }
 
-      /*----- ALLOCATE MEMORY for svm-light arrays -----------*/
-      docsClassTrain = (DOC*)malloc(sizeof(DOC)*sampleCount);
-      classTarget = (LabelType*)malloc(sizeof(LabelType)*sampleCount);
-      if( docsClassTrain == NULL || classTarget == NULL ) {
-        ERROR_exit("Memory allocation error in train_routine! " 
-            "Could not allocate docsClassTrain and/or classTarget.\n");
+     if(verbosity >= 1) INFO_message( "SampleCount = %ld\n", sampleCount );
+
+      /*----- ALLOCATE MEMORY FOR SVM-LIGHT ARRAYS -----------*/
+      if( (docsClassTrain = allocateDOCs(sampleCount, nvox_masked)) == NULL ) {
+        snprintf(errorString, LONG_STRING, "train_classification: "
+          "Memory allocation for docsClassTrain failed!");
+ 
+        /* free and return */
+        freeDsetArray(dsetTrain, dsetTrainArray); 
+        DSET_unload(dsetTrain); 
+        if( options->maskFile[0] ) DSET_unload(dsetMask); 
+        freeClassificationLabels(&labels); 
+        freeAfniModel(&afniModel); 
+        free(censoredTarget);
+        if( options->modelWeightFile[0] ) freeModelMaps(&maps);
+        RETURN(1);
+      }
+
+      if( (classTarget = (LabelType*)malloc(sizeof(LabelType)*sampleCount)) == NULL ) {
+        snprintf(errorString, LONG_STRING, "train_classification: "
+          "Memory allocation for classTarget failed!");
+
+        /* free and return */
+        freeDsetArray(dsetTrain, dsetTrainArray); 
+        DSET_unload(dsetTrain); 
+        if( options->maskFile[0] ) DSET_unload(dsetMask); 
+        freeClassificationLabels(&labels); 
+        freeAfniModel(&afniModel); 
+        free(censoredTarget);
+        if( options->modelWeightFile[0] ) freeModelMaps(&maps);
+        freeDOCs(docsClassTrain, sampleCount);
+        RETURN(1);
+      }
+      
+      if( (model=(MODEL *)malloc(sizeof(MODEL))) == NULL ) {
+        snprintf(errorString, LONG_STRING, "train_classification: "
+          "Memory allocation for model structure failed!");
+
+        /* free and return */
+        freeDsetArray(dsetTrain, dsetTrainArray); 
+        DSET_unload(dsetTrain); 
+        if( options->maskFile[0] ) DSET_unload(dsetMask); 
+        freeClassificationLabels(&labels); 
+        freeAfniModel(&afniModel); 
+        free(censoredTarget);
+        if( options->modelWeightFile[0] ) freeModelMaps(&maps);
+        freeDOCs(docsClassTrain, sampleCount);
+        free(classTarget);
+        RETURN(1);
       }
 
       /*----- GET TRAINING ARRAY AND CLASSTARGET FOR CURRENT CLASS COMBINATION -----*/
-      dsetClassTrainArray = Allocate2DT( sampleCount, nvox);
-      getClassTrainArrayAndTarget(dsetTrainArray, censoredTarget,
-          dsetClassTrainArray, classTarget, nt, nvox);
+      if( (dsetClassTrainArray = Allocate2DT( sampleCount, nvox)) == NULL ) {
+        snprintf(errorString, LONG_STRING, "train_classification: "
+          "Memory allocation for dsetClassTrainArray failed!");
 
-     /*----- ALPHA FILE OUTPUT -----*/
-
-     /* JL Aug. 2010: Changed how the alphas are written to file.
-      * Please read the comments in addToAfniModel for more info  */
-
-      /* ----- ALLOCATE DOCS -----*/
-      AllocateDOCwords(docsClassTrain, sampleCount, nvox_masked);
+        /* free and return */
+        freeDsetArray(dsetTrain, dsetTrainArray); 
+        DSET_unload(dsetTrain); 
+        if( options->maskFile[0] ) DSET_unload(dsetMask); 
+        freeClassificationLabels(&labels); 
+        freeAfniModel(&afniModel); 
+        free(censoredTarget);
+        if( options->modelWeightFile[0] ) freeModelMaps(&maps);
+        freeDOCs(docsClassTrain, sampleCount);
+        free(classTarget);
+        RETURN(1);
+      }
+ 
+      getClassTrainArrayAndTarget( dsetTrainArray, censoredTarget,
+          dsetClassTrainArray, classTarget, nt, nvox );
+        
+      /*----- ALPHA FILE OUTPUT -----*/
+      /* JL Aug. 2010: Changed how the alphas are written to file.
+       * Please read the comments in addToAfniModel for more info  */
 
       /* ---- MASK DATA AND CONVERT TO SVM-LIGHT DOC STRUCTURE */
-      afni_dset_to_svm_doc( docsClassTrain, dsetClassTrainArray, dsetMaskArray,
-          options, sampleCount, nvox, nvox_masked );
-
+      afni_dset_to_svm_doc( docsClassTrain, dsetClassTrainArray, dsetMaskArrayPtr,
+          sampleCount, nvox, nvox_masked);
 
       /* JL Apr. 2010: No training if we want to write out the svm-light
        * formated textfile only */
@@ -4219,7 +7020,7 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
 
         if( options->modelWeightFile[0] ) {
           addToModelMap_bucket(&maps, &afniModel, dsetClassTrainArray,
-              dsetMaskArray, options->maskFile, classCount);
+              dsetMaskArrayPtr, options->maskFile, classCount);
         }
       }
       
@@ -4239,43 +7040,63 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
 
       ++classCount;
 
-      if ( !options->docFileOnly[0] ) free(model->supvec);
-      if ( !options->docFileOnly[0] ) free(model->alpha);
-      if ( !options->docFileOnly[0] ) free(model->index);
-
-      freeDOCwords(docsClassTrain, sampleCount);
-      free2DT( dsetClassTrainArray, sampleCount );
-      free(docsClassTrain);
+      if( !options->docFileOnly[0] ) freeModel(model, &afniModel, TRAIN);
+      freeDOCs(docsClassTrain, sampleCount);
+      free2DT(dsetClassTrainArray, sampleCount);
       free(classTarget);
     }
   }
 
   /* ----- WRITE MODEL AND BUCKET TO DISC ----- */
-  if ( !options->docFileOnly[0] ) {
+  if( !options->docFileOnly[0] ) {
     /* JL May 2010: Modified writeModelBrick to write the model and the mask into
      * a single dataset */
-    writeModelBrik(&afniModel, dsetTrain, dsetTrainArray, dsetMaskArray, options,
-        options->modelFile, argc, argv);
+    if( writeModelBrik(&afniModel, dsetTrain, dsetTrainArray, dsetMaskArrayPtr, options,
+        options->modelFile, argc, argv, errorString) ) {
+
+      /* free and return */
+      freeDsetArray(dsetTrain, dsetTrainArray); 
+      DSET_unload(dsetTrain); 
+      if( options->maskFile[0] ) DSET_unload(dsetMask); 
+      freeClassificationLabels(&labels); 
+      freeAfniModel(&afniModel); 
+      free(censoredTarget);
+      if( options->modelWeightFile[0] ) freeModelMaps(&maps);
+      RETURN(1);
+    }
   }
 
   if( (options->modelWeightFile[0]) && (!options->docFileOnly[0]) ) {
-    writeModelMap_bucket(&maps, dsetMaskArray, dsetTrain, options->maskFile,
+    if( writeModelMap_bucket(&maps, dsetMaskArrayPtr, dsetTrain, options->maskFile,
         options->modelWeightFile, afniModel.b, afniModel.combinations,
-        options, argc, argv);
+        options, argc, argv, errorString) ) { 
+      
+      /* free and return */
+      freeDsetArray(dsetTrain, dsetTrainArray); 
+      DSET_unload(dsetTrain); 
+      if( options->maskFile[0] ) DSET_unload(dsetMask); 
+      freeClassificationLabels(&labels);
+      freeAfniModel(&afniModel); 
+      free(censoredTarget);
+      freeModelMaps(&maps);
+      RETURN(1);
+    }
   }
-
-  if ( options->modelWeightFile[0] ) freeModelMaps(&maps);
-  freeLabels(&labels);
-  freeAfniModel(&afniModel);
-  free(censoredTarget);
-  free2DT(dsetTrainArray, nt);
-  DSET_unload(dsetTrain);
   
-  EXRETURN;
+  /* free memory */
+  freeDsetArray(dsetTrain, dsetTrainArray); 
+  DSET_unload(dsetTrain); 
+  if( options->maskFile[0] ) DSET_unload(dsetMask); 
+  freeClassificationLabels(&labels); 
+  freeAfniModel(&afniModel); 
+  free(censoredTarget);
+  if( options->modelWeightFile[0] ) freeModelMaps(&maps);
+
+  RETURN(0);
 }
 
 /* JL May 2009: Added this function for sv-regression.
- * It is very similar to train_routine() (a lot of code has been recycled). 
+ * It is very similar to train_classification() (a lot of code has been recycled). 
  * However, major differences are:
  *
  *    - No need for multi-class
@@ -4285,10 +7106,10 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
  *    - Using svm-light's function call: svm_learn_regression() instead of
  *      svm_learn_classification()
  */ 
-void train_regression(MODEL *model, LEARN_PARM *learn_parm, 
+int train_regression(MODEL *model, LEARN_PARM *learn_parm, 
     KERNEL_PARM *kernel_parm, long *kernel_cache_size, ASLoptions *options,
     THD_3dim_dataset *dsetTrain, THD_3dim_dataset *dsetMask,
-    MaskType *dsetMaskArray, int argc, char **argv)
+    MaskType *dsetMaskArrayPtr, int argc, char **argv, char *errorString)
 {
   
   LABELS labels;
@@ -4297,7 +7118,7 @@ void train_regression(MODEL *model, LEARN_PARM *learn_parm,
   MODEL_MAPS maps;               /* holds the maps (e.g., weight-vector maps)
                                     for the bucket */
 
-  LabelType* target       = NULL; /* array to hold labels for svm-light */
+  LabelType *target       = NULL; /* array to hold labels for svm-light */
 
   DatasetType**
     dsetTrainArray        = NULL; /* array to hold training dataset values */
@@ -4306,8 +7127,8 @@ void train_regression(MODEL *model, LEARN_PARM *learn_parm,
    dsetTrainArrayCensored = NULL; /* array to hold training dataset values */
 
   DOC    *docsTrain       = NULL; /* svm-light data structure used for training */
-  KERNEL_CACHE kernel_cache;     /* svm-light data structure holding kernel
-                                  * paramters */
+  KERNEL_CACHE kernel_cache;      /* svm-light data structure holding kernel
+                                   * paramters */
 
 
   long nt                 = 0;   /* number of time points in TRAIN dataset */
@@ -4317,92 +7138,190 @@ void train_regression(MODEL *model, LEARN_PARM *learn_parm,
 
   long sampleCount        = 0;    /* number of samples used in training */
 
-  long i,j,k              = 0;
-  char alphaFile[LONG_STRING];	  /* naming of alphafile output */
+  long i                  = 0;
   char docFileName[LONG_STRING];  /* nameing of svm-light textfile  output */
 
 
   ENTRY("train_regression");
 
+  /* JL June 2011: Modified error handling: Passing error string as argument
+   * to the calling function, allocated memory is freed, RETURN(1) 
+   * instead of ERROR_exit.
+   */
+
   if (verbosity >= 1) INFO_message("\n++ REGRESSION (training):\n++");
 
-  
+
   /*----- LOAD TRAINING DATA ---*/
-  dsetTrain = THD_open_one_dataset( options->trainFile );
-  if ( dsetTrain == NULL ) {
-    ERROR_exit("Failed to open training dataset: %s", options->trainFile );
+  if( dsetTrain == NULL ) {
+    if( (dsetTrain = THD_open_one_dataset(options->trainFile)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "Failed to open training dataset: %s",
+          options->trainFile ); RETURN(1);
+    }
+    DSET_load( dsetTrain );
   }
-  DSET_load( dsetTrain ); 
+  else {
+    if( !DSET_LOADED(dsetTrain) ) {
+      if( (dsetTrain = THD_open_one_dataset(options->trainFile)) == NULL ) {
+      snprintf(errorString, LONG_STRING, "Failed to open training dataset: %s",
+          options->trainFile ); RETURN(1);
+    }
+    DSET_load( dsetTrain );
+    }
+  }
 
   nt = DSET_NUM_TIMES( dsetTrain );
   nvox = DSET_NVOX( dsetTrain );
   nvox_masked = nvox; /* this will be modified later if mask used */
 
-  if(verbosity >= 1)  
+  if(verbosity >= 1) {
     INFO_message( "Number of time samples is %ld, and voxels %ld in training "
-        "dataset.",nt,nvox );
-
+        "dataset.", nt, nvox );
+  }
 
   /*------ GET MASK ARRAY, IF SELECTED AND DETECT nvox_masked ---*/
   if( options->maskFile[0] ) {
     afniModel.mask_used = MASK_YES; /* JL */
     nvox_masked = 0;
-    dsetMask = THD_open_one_dataset( options->maskFile );
-    if ( dsetMask == NULL ) {
-      ERROR_exit("Failed to open mask file: %s", options->maskFile );
+    
+    if( (dsetMask = THD_open_one_dataset(options->maskFile)) == NULL ) {
+      snprintf(errorString, LONG_STRING,
+          "Failed to open mask file: %s", options->maskFile );
+
+      /* free and return */
+      DSET_unload(dsetTrain);
+      RETURN(1);
     }
     DSET_load(dsetMask);
+
     if( DSET_BRICK_TYPE(dsetMask,0) != MRI_byte ) {
-      ERROR_exit("Mask file: %s is not a byte-format brick.\n",
-          options->maskFile );
+      snprintf(errorString, LONG_STRING,
+          "Mask file: %s is not a byte-format brick.\n", options->maskFile);
+
+      /* free and return */
+      DSET_unload(dsetTrain);
+      DSET_unload(dsetMask);
+      RETURN(1);
     }
-    dsetMaskArray = (MaskType*)DSET_ARRAY(dsetMask,0);
+
+    dsetMaskArrayPtr = (MaskType*)DSET_ARRAY(dsetMask,0);
     for( i=0 ; i<nvox ; ++i ) {
-      if( dsetMaskArray[i] )
+      if( dsetMaskArrayPtr[i] )
         nvox_masked++;
     }
     if(verbosity >= 1) 
       INFO_message( "The number of non-zero elements in mask is: %ld\n",
           nvox_masked );
   }
-  /* TODO: we might not need this any more */
-  else if( !(options->outModelNoMask) ){
-    ERROR_exit("No mask file specified (use -mask file). "
+  else if( !(options->outModelNoMask) ) {
+    snprintf(errorString, LONG_STRING, 
+        "No mask file specified (use -mask file). "
         "If not using a mask file must use option -nomodelmask");
+    
+    /* free and return */
+    DSET_unload(dsetTrain);
+    RETURN(1);
   }
   else afniModel.mask_used = MASK_NO;
 
-  /*----- RETRIEVE LABELS ----*/
-  target = getAllocateRegressionLabels(&labels,options->labelFile,
-      options->censorFile);
+  /*----- RETRIEVE LABELS AND GET SVM-LIGHT TARGET ----*/
+  if( (getAllocateRegressionLabelsAndTarget(&labels, &target, 
+      options->labelFile, options->censorFile, errorString)) ) {
 
-    if (labels.n != nt) 
-    ERROR_exit("Number of labels %ld in labelfile '%s' does not match\n"
-        "   number of timepoints %ld in train dataset '%s'!", labels.n,
-        options->labelFile, nt, options->trainFile);
+    /* free and return */
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    RETURN(1);
+  }
+    
+  if( labels.n != nt ) {
+    snprintf(errorString, LONG_STRING, 
+        "Number of labels %ld in labelfile: %s does not match\n"
+        "   number of timepoints %ld in train dataset: %s!", 
+        labels.n, options->labelFile, nt, options->trainFile);
+    
+    /* free and return */
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    freeRegressionLabelsAndTarget(&labels, target);
+    RETURN(1);
+  }
   
   sampleCount=labels.n-labels.n_cnsrs; /* number of uncensored timepoints */
 
   /*----  GET TRAINING ARRAAY -----*/
-  dsetTrainArray = getAllocateDsetArray(dsetTrain);
+  if( (dsetTrainArray = getAllocateDsetArray(dsetTrain, errorString)) == NULL ) {
+    
+    /* free and return */
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    freeRegressionLabelsAndTarget(&labels, target);
+    RETURN(1);
+  }
 
   /*----- GET TRAINING ARRAY WITHOUT CENSORED TIMEPOINTS -----*/
-  dsetTrainArrayCensored = getAllocateCensoredRegressionArray(dsetTrainArray,
-      &labels, nvox);
-  
+  if( (dsetTrainArrayCensored = getAllocateCensoredRegressionArray(dsetTrainArray,
+      &labels, nvox)) == NULL ) {
+
+    snprintf(errorString, LONG_STRING, "train_regression"
+        "Memory allocation for dsetTrainArrayCensored failed!");
+    
+    /* free and return */
+    freeDsetArray(dsetTrain, dsetTrainArray);
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    freeRegressionLabelsAndTarget(&labels, target);
+    RETURN(1);
+  }
+
   /*----- ALLOCATE afniModel -----*/
-  allocateAfniModel(&afniModel, &labels, options);
+  if( allocateAfniModel(&afniModel, &labels, options, errorString) ) {
+    
+    /* free and return */
+    freeDsetArray(dsetTrain, dsetTrainArray);
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
+    freeRegressionLabelsAndTarget(&labels, target);
+    RETURN(1);
+  }
 
   /*----- ALLOCATE maps ------*/
-  allocateModelMaps(&maps, (long)labels.n_classes, nvox, options->kernelName);
+  if( options->modelWeightFile[0] ) {
+    if( allocateModelMaps(&maps, (long)labels.n_classes, nvox, options->kernelName) ) {
+      snprintf(errorString, LONG_STRING, "train_regression: "
+        "Memory allocation for model maps failed!");
 
-  /*----- ALLOCATE DOCs & WORDs------*/
-  docsTrain = (DOC*)malloc(sizeof(DOC)*sampleCount);
-  AllocateDOCwords(docsTrain, sampleCount, nvox_masked);
+      /* free and return */
+      freeDsetArray(dsetTrain, dsetTrainArray);
+      DSET_unload(dsetTrain);
+      if( options->maskFile[0] ) DSET_unload(dsetMask);
+      freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
+      freeRegressionLabelsAndTarget(&labels, target);
+      freeAfniModel(&afniModel);
+      RETURN(1);
+    }
+  }
 
-  /*----- CONVERT TRAINING ARRAY TO SVM-LIGHT DATASTRUCTURE ------*/
-  afni_dset_to_svm_doc( docsTrain, dsetTrainArrayCensored, dsetMaskArray,
-          options, sampleCount, nvox, nvox_masked );
+  /*----- ALLOCATE SVM-LIGHT DOCs ------*/
+  if( (docsTrain = allocateDOCs(sampleCount, nvox_masked))  == NULL ) {
+    snprintf(errorString, LONG_STRING, "train_classification: "
+          "Memory allocation for docsTrain failed!");
+ 
+    /* free and return */
+    freeDsetArray(dsetTrain, dsetTrainArray);
+    DSET_unload(dsetTrain);
+    if( options->maskFile[0] ) DSET_unload(dsetMask);
+    freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
+    freeRegressionLabelsAndTarget(&labels, target);
+    freeAfniModel(&afniModel);
+    if( options->modelWeightFile[0] ) freeModelMaps(&maps);
+    RETURN(1);
+  }
+
+  /*----- CONVERT TRAINING ARRAY TO SVM-LIGHT DOC STRUCTURE ------*/
+  afni_dset_to_svm_doc( docsTrain, dsetTrainArrayCensored, dsetMaskArrayPtr,
+      sampleCount, nvox, nvox_masked );
 
   /* JL Apr. 2010: No training if we want to write out the svm-light
    * formated textfile only */
@@ -4415,7 +7334,7 @@ void train_regression(MODEL *model, LEARN_PARM *learn_parm,
           learn_parm, kernel_parm, NULL, model);
 
     }
-    else { /* non-linar kernel */
+    else { /* non-linear kernel */
       kernel_cache_init(&kernel_cache, sampleCount, *kernel_cache_size);
 
       svm_learn_regression ( docsTrain, target, sampleCount, nvox_masked,
@@ -4431,26 +7350,52 @@ void train_regression(MODEL *model, LEARN_PARM *learn_parm,
 
   /*---- UPDATE MODEL-MAPS -----*/
   if( (options->modelWeightFile[0]) && (!options->docFileOnly[0]) ) {
-    addToModelMap_bucket(&maps, &afniModel, dsetTrainArrayCensored, dsetMaskArray,
+    addToModelMap_bucket(&maps, &afniModel, dsetTrainArrayCensored, dsetMaskArrayPtr,
         options->maskFile, 0);
   }
 
   /*---- WRITE OUTPUT FILES TO DISC ----*/
-  /* might not be neccessary if testing and training are performed all at once */
+  /* might not be necessary if testing and training are performed all at once */
 
-  /* --- model --- */
+  /* --- write afni model --- */
   if ( !options->docFileOnly[0] ) {
     /* JL May 2010: Modified writeModelBrick to write the model and the mask into
      * a single dataset */
-    writeModelBrik(&afniModel, dsetTrain, dsetTrainArray, dsetMaskArray, options,
-            options->modelFile, argc, argv);
+    if( writeModelBrik(&afniModel, dsetTrain, dsetTrainArray, dsetMaskArrayPtr, options,
+            options->modelFile, argc, argv, errorString) ) {
+    
+      /* free and return */
+      freeDsetArray(dsetTrain, dsetTrainArray);
+      DSET_unload(dsetTrain);
+      if( options->maskFile[0] ) DSET_unload(dsetMask);
+      freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
+      freeRegressionLabelsAndTarget(&labels, target);
+      freeModel(model, &afniModel, TRAIN);
+      freeAfniModel(&afniModel);
+      if( options->modelWeightFile[0] ) freeModelMaps(&maps);
+      freeDOCs(docsTrain, sampleCount);
+      RETURN(1);
+    }
   }
 
-  /* --- maps --- */
+  /* --- write model maps --- */
   if( (options->modelWeightFile[0]) && (!options->docFileOnly[0]) ) {
-    writeModelMap_bucket(&maps, dsetMaskArray, dsetTrain, options->maskFile, 
+    if( writeModelMap_bucket(&maps, dsetMaskArrayPtr, dsetTrain, options->maskFile, 
         options->modelWeightFile, afniModel.b, (long)afniModel.combinations,
-        options, argc, argv);
+        options, argc, argv, errorString) ) {
+    
+      /* free and return */
+      freeDsetArray(dsetTrain, dsetTrainArray);
+      DSET_unload(dsetTrain);
+      if( options->maskFile[0] ) DSET_unload(dsetMask);
+      freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
+      freeRegressionLabelsAndTarget(&labels, target);
+      freeModel(model, &afniModel, TRAIN);
+      freeAfniModel(&afniModel);
+      freeModelMaps(&maps);
+      freeDOCs(docsTrain, sampleCount);
+      RETURN(1);
+    }
   }
 
   /* --- svm-light textfile ---*/
@@ -4461,20 +7406,18 @@ void train_regression(MODEL *model, LEARN_PARM *learn_parm,
   }
   
   /*----- FREE MEMORY -----*/
-  freeDOCwords(docsTrain, sampleCount);
-  free(docsTrain);
-  freeLabels(&labels);
-  free(target);
-  freeAfniModel(&afniModel);
-  free2DT( dsetTrainArray, nt);
-  free2DT( dsetTrainArrayCensored, sampleCount);
-  freeModelMaps(&maps);
-  if ( !options->docFileOnly[0] ) free(model->supvec);
-  if ( !options->docFileOnly[0] ) free(model->alpha);
-  if ( !options->docFileOnly[0] ) free(model->index);
+  freeDsetArray(dsetTrain, dsetTrainArray);
   DSET_unload(dsetTrain);
+  if( options->maskFile[0] ) DSET_unload(dsetMask);
+  freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
+  freeRegressionLabelsAndTarget(&labels, target);
+  if (!options->docFileOnly[0]) freeModel(model, &afniModel, TRAIN);
+  freeAfniModel(&afniModel);
+  if( options->modelWeightFile[0] ) freeModelMaps(&maps);
+  freeDOCs(docsTrain, sampleCount);
 
-  EXRETURN;
+
+  RETURN(0);
 }
 
 /* JL Sep. 2009: Error checking for options with argument. 
@@ -4482,16 +7425,22 @@ void train_regression(MODEL *model, LEARN_PARM *learn_parm,
  * ppi = ++i */
 int ppi (int argc, int i, char *optionString)
 {
+  
+  ENTRY("ppi");
+
   if ( optionString[strlen(optionString)+1] == '-' ) {
     ERROR_exit("Argument for %s must not start with '-'!\n", optionString);
   }
-  else if ( i<argc-1 ) return(++i);
+  else if ( i<argc-1 ) RETURN(++i);
   else ERROR_exit("No argument after %s!", optionString);
-  return 0 ;  /* unreachable */
+
+  RETURN(++i);
 }
 
-int input_parse(int argc,char *argv[],long *main_verbosity,
-    long *kernel_cache_size,LEARN_PARM *learn_parm, KERNEL_PARM *kernel_parm,
+
+
+int input_parse(int argc, char *argv[], long *main_verbosity,
+    long *kernel_cache_size, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_parm,
     ASLoptions* optionsData, enum modes *mode, int *svm_type, char *errorString)
 {
   long i;
@@ -4504,8 +7453,10 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
   int typeFlag = 0;    /* JL: flag for 3dsvm options -type */
   *mode = NOTHING;
 
+
   ENTRY("input_parse");
   
+
   /* TODO: The definitions bellow should be a header entry ...*/
   /* svm-light defaults */
   strncpy (learn_parm->predfile, "trans_predictions", 200);
@@ -4531,6 +7482,8 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
   learn_parm->compute_loo=0;
   learn_parm->rho=1.0;
   learn_parm->xa_depth=0;
+  /* JL July 2011: Added maximum number of iterations */
+  learn_parm->max_iterations=1000000;
   kernel_parm->kernel_type=LINEAR;
   kernel_parm->poly_degree=3; 
   kernel_parm->rbf_gamma=1.0; 
@@ -4553,13 +7506,18 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
   strncpy(optionsData->modelWeightFile, "", LONG_STRING);
   strncpy(optionsData->testFile, "",        LONG_STRING);
   strncpy(optionsData->testLabelFile, "",   LONG_STRING);
-  strncpy(optionsData->predFile, "",        LONG_STRING);
-  strncpy(optionsData->svmType,"",          LONG_STRING);
+  strncpy(optionsData->predFile, "pred",    LONG_STRING);
+  strncpy(optionsData->svmType, "",         LONG_STRING);
+  strncpy(optionsData->rtIP, "",            LONG_STRING);
   optionsData->outModelNoMask = 0;
   optionsData->noPredDetrend  = 0;
   optionsData->classout       = 0;
   optionsData->noPredCensor   = 0;
   optionsData->noPredScale    = 0;
+  optionsData->linearWmap     = 0;
+  optionsData->rtTrain        = 0;
+  optionsData->rtTest         = 0;
+  optionsData->rtPort         = 0;
 
   for( i=1; i<argc; ++i ) { 
     parseFlag = 0;
@@ -4616,6 +7574,10 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
                                   strncpy(kernel_parm->custom,argv[i], CSV_STRING); }
     if( !strcmp(argv[i],"-l") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
                                   strncpy(learn_parm->predfile,argv[i], 200); }
+    
+    /* JL July 2011: Added maximum number of iterations. Thanks CC */
+    if( !strcmp(argv[i],"-max_iterations") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+                                  learn_parm->max_iterations=atol(argv[i]); }
     /* if( !strcmp(argv[i],"-a") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
      *                               strcpy(learn_parm->alphafile,argv[i]); }
      *
@@ -4668,13 +7630,20 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
     if( !strcmp(argv[i],"-docout") )        { parseFlag=1; i=ppi(argc,i,argv[i]); 
                                               strncpy(optionsData->docFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-doconly") )        { parseFlag=1; i=ppi(argc,i,argv[i]);
+    if( !strcmp(argv[i],"-doconly") )       { parseFlag=1; i=ppi(argc,i,argv[i]);
                                                strncpy(optionsData->docFileOnly,
                                                argv[i], LONG_STRING); }
     /* for kernel below, using svm-light options for kernel parameters */
     if( !strcmp(argv[i],"-kernel") )        { parseFlag=1; i=ppi(argc,i,argv[i]); 
                                               strncpy(optionsData->kernelName,
                                               argv[i], LONG_STRING); }
+
+    if( !strcmp(argv[i],"-stim_ip") )        { parseFlag=1; i=ppi(argc,i,argv[i]);
+                                              strncpy(optionsData->rtIP,
+                                              argv[i], LONG_STRING); }
+
+    if( !strcmp(argv[i],"-stim_port") )      { parseFlag=1; i=ppi(argc,i,argv[i]);
+                                             optionsData->rtPort=atoi(argv[i]);}
 
     /* AFNI, 3dsvm options without arguments: */
     if( !strcmp(argv[i],"-trace")) { parseFlag = 1; 
@@ -4688,19 +7657,22 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
     if( !strcmp(argv[i],"-classout") )      { parseFlag=1; optionsData->classout = 1; } 
     if( !strcmp(argv[i],"-nopredcensored") ){ parseFlag=1; optionsData->noPredCensor = 1; }
     if( !strcmp(argv[i],"-nopredscale") )   { parseFlag=1; optionsData->noPredScale = 1; }
+    if( !strcmp(argv[i],"-wout") )          { parseFlag=1; optionsData->linearWmap = 1; }
 
     if( !strcmp(argv[i],"-change_summary")) { print_version(); RETURN(0); }
     if( !strcmp(argv[i],"-version"))        { print_version(); RETURN(0); }
-    if( !strcmp(argv[i],"-HELP") )          { printf( advanced_helpstring ); RETURN(0); }
+    if( !strcmp(argv[i],"-HELP") )          { printf("%s", advanced_helpstring); RETURN(0); }
+    if( !strcmp(argv[i],"-rt_train") )      { parseFlag = 1; optionsData->rtTrain = 1; }
+    if( !strcmp(argv[i],"-rt_test") )       { parseFlag = 1; optionsData->rtTest = 1;  }
     if( !strcmp(argv[i],"-help") )
     {  
-      printf( cl_helpstring ); 
+      printf("%s", cl_helpstring); 
       printf("\n\n-------------------- SVM-light learn help -----------------------------\n");
       print_help_learn();
       printf("\n\n-------------------- SVM-light classify help -----------------------------\n");
       print_help_classify();
       printf("\n\n--------------------------------------------------------------------------\n");
-      printf( contribution_string ); 
+      printf("%s", contribution_string); 
 
       RETURN(0); 
     }
@@ -4711,18 +7683,18 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
     }
   }
 
-  if ( argc == 1 ) {
-    printf( cl_helpstring );
+  if( argc == 1 ) {
+    printf("%s", cl_helpstring);
     printf("\n\n-------------------- SVM-light learn help -----------------------------\n");
     print_help_learn();
     printf("\n\n-------------------- SVM-light classify help -----------------------------\n");
     print_help_classify();
     printf("\n\n--------------------------------------------------------------------------\n");
-    printf( contribution_string );
+    printf("%s", contribution_string);
     RETURN(0);
   }
 
-  /* JL May 2009: Some error checking and initialization for svm learning type */
+  /* JL May 2009: Some error checking and initialization for svm learn type */
   if ( (zFlag) && (optionsData->svmType[0]) ) {
    WARNING_message("Both svm-light option: -z and 3dsvm option: -type "
        "were used.\n   Using -type %s\n", optionsData->svmType);
@@ -4745,8 +7717,8 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
     }
   }
   else 
-    strncpy(optionsData->svmType,"classification", LONG_STRING); /* (matches default
-                                                  for learn_parm->type) */ 
+    strncpy(optionsData->svmType,"classification", LONG_STRING);
+  /* (matches default for learn_parm->type) */
     
   /* the following corresponds to -t option in SVM-Light's original logic */
   if(strcmp(type,"c")==0) {
@@ -4769,58 +7741,6 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
       snprintf(errorString, LONG_STRING, "Unknown type '%s': Valid types are 'c' "
           "(classification), 'r' (regession), and 'p' (preference ranking).",
           type); RETURN(1);
-  }
-
-  /* JL Apr. 2010: Added the ability to write out svm-light textfile without
-   * having to go through training or to testing.
-   *
-   * Still going through train function for classification or regression
-   * ("-type ..." mandatory!) but ONLY the doc textfile is written.
-   *
-   */
-  if (optionsData->docFileOnly[0]) {
-
-    /* some error checking for docout only */
-    if ( (!typeFlag) && (!zFlag) ) {
-      snprintf(errorString, LONG_STRING, "Must specify -type for -doconly!");
-      RETURN(1);
-    }
-
-    if ( (optionsData->trainFile[0]) && (optionsData->testFile[0]) ){
-      snprintf(errorString, LONG_STRING, "Please specify either -trainvol or "
-          "-testvol for -doconly!"); RETURN(1);
-    }
-
-    if ( (optionsData->labelFile[0]) && (optionsData->testLabelFile[0]) ){
-      snprintf(errorString, LONG_STRING, "Please specify either -tainlabels or"
-          " -testlabels for -doconly!"); RETURN(1);
-     }
-
-    /* make sure this works for -testvol as well */
-    if ( optionsData->testFile[0] ) {
-      snprintf(optionsData->trainFile, LONG_STRING, optionsData->testFile);
-    }
-
-    if ( optionsData->testLabelFile[0] ) {
-          snprintf(optionsData->labelFile, LONG_STRING, optionsData->testLabelFile);
-    }
-
-    /* set mode */
-    *mode=TRAIN;
-
-    /* check for mask */
-    if ( !optionsData->maskFile[0] ) {
-      optionsData->outModelNoMask = 1;
-    }
-
-    snprintf(optionsData->docFile, LONG_STRING, optionsData->docFileOnly);
-
-    RETURN(0);
-  }
-
-  if( (optionsData->docFile[0]) && (optionsData->testFile[0]) ) {
-    snprintf(errorString, LONG_STRING, "Sorry, option  -testvol toghether with "
-        "-docout is not supported. Please use option -doconly instead!"); RETURN(1);
   }
 
   /* JL Feb. 2009: Some error checking and initialization for kernel options */
@@ -4852,8 +7772,112 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
     }
   }
   else
-    strncpy(optionsData->kernelName, "linear", LONG_STRING); /* (matches default
-                                                  for kernel_type) */
+    strncpy(optionsData->kernelName, "linear", LONG_STRING);
+    /* (matches default for kernel_type) */
+
+
+  /* JL Sep. 2010: Error checking an initialization of real-time options */
+  if( (optionsData->rtTrain) && (optionsData->rtTest) ) {
+    snprintf(errorString, LONG_STRING,
+        "Combined training and testing is not supported in real time!");
+    RETURN(1);
+  }
+  /* real-time regression is not implemented yet */
+  /*if( (optionsData->rtTrain) || (optionsData->rtTest) ) {
+    if( strncmp(optionsData->svmType, "classification", LONG_STRING) ) {
+      snprintf(errorString, LONG_STRING,
+          "Sorry, Only classification is supported in real time!");
+      RETURN(1);
+    }
+  } */
+
+  if( optionsData->rtTrain ) {
+    *mode = RT_TRAIN;
+    strncpy(optionsData->trainFile, "rt_data", LONG_STRING);
+
+    if( !optionsData->labelFile[0] ) {
+      snprintf(errorString, LONG_STRING,
+          "Must specify a timeseries labelfile for training in real time!");
+      RETURN(1);
+    }
+    if( (!optionsData->maskFile[0])  && (!optionsData->outModelNoMask) ) {
+      snprintf(errorString, LONG_STRING,
+          "Must specify a mask file for training in real time!\n"
+          "For training without a mask :\n" 
+          "  set environment variable: AFNI_3DSVM_NOMASK=YES\n");
+      RETURN(1);
+    }
+    if( !(optionsData->modelFile[0]) ) {
+      snprintf(errorString, LONG_STRING, "Must specify a model output file for "
+          "training in real time!"); 
+      RETURN (1);
+    }
+
+       RETURN(0);
+  }
+  else if( optionsData->rtTest ) {
+    *mode = RT_TEST;
+    if( !optionsData->modelFile[0] ) {
+      snprintf(errorString, LONG_STRING,
+          "Must specify a  model file for testing in real-time!");
+      RETURN(1);
+    }
+
+    RETURN(0);
+  }
+
+  /* JL Apr. 2010: Added the ability to write out svm-light textfile without
+   * having to go through training or to testing.
+   *
+   * Still going through train function for classification or regression
+   * ("-type ..." mandatory!) but ONLY the doc textfile is written.
+   *
+   */
+
+  if (optionsData->docFileOnly[0]) {
+    /* some error checking for docout only */
+    if ( (!typeFlag) && (!zFlag) ) {
+      snprintf(errorString, LONG_STRING, "Must specify -type for -doconly!");
+      RETURN(1);
+    }
+
+    if ( (optionsData->trainFile[0]) && (optionsData->testFile[0]) ) {
+      snprintf(errorString, LONG_STRING, "Please specify either -trainvol or "
+          "-testvol for -doconly!"); RETURN(1);
+    }
+
+    if ( (optionsData->labelFile[0]) && (optionsData->testLabelFile[0]) ){
+      snprintf(errorString, LONG_STRING, "Please specify either -tainlabels or"
+          " -testlabels for -doconly!"); RETURN(1);
+     }
+
+    /* make sure this works for -testvol as well */
+    if ( optionsData->testFile[0] ) {
+      strncpy(optionsData->trainFile, optionsData->testFile, LONG_STRING);
+    }
+
+    if ( optionsData->testLabelFile[0] ) {
+          strncpy(optionsData->labelFile, optionsData->testLabelFile, LONG_STRING);
+    }
+
+    /* set mode */
+    *mode=TRAIN;
+
+    /* check for mask */
+    if ( !optionsData->maskFile[0] ) {
+      optionsData->outModelNoMask = 1;
+    }
+
+    strncpy(optionsData->docFile, optionsData->docFileOnly, LONG_STRING);
+
+    RETURN(0);
+  }
+
+  if( (optionsData->docFile[0]) && (optionsData->testFile[0]) ) {
+    snprintf(errorString, LONG_STRING, "Sorry, option  -testvol together with "
+        "-docout is not supported. Please use option -doconly instead!");
+    RETURN(1);
+  }
 
   /* Set mode and do some error checking */
   /* JL Aug. 2009: Changed error checking for testlabels. */
@@ -4871,11 +7895,20 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
     RETURN(1);
   }
 
-  if( !(*mode == TRAIN_AND_TEST) && !(optionsData->modelFile[0]) ) { 
-      snprintf(errorString, LONG_STRING, "Must specify a model file!"); RETURN (1);  
+  if( !(optionsData->modelFile[0]) ) {
+    if( (*mode == TRAIN) || (*mode == TRAIN_AND_TEST) ) {
+      snprintf(errorString, LONG_STRING, "Must specify a model output file for "
+          "training!"); RETURN (1);
+    /* In the future it would be great to keep them model in memory for
+     * TRAIN_AND_TEST and not write it to disc and read it back in */
     }
-    /* at some point may want to check for TRAIN/TEST specific mode options */
-    /* e.g. nodetrend only applies in test mode                             */
+    else if ( *mode == TEST) {
+      snprintf(errorString, LONG_STRING, "Must specify a model input file for "
+          "testing!"); RETURN (1);
+    }
+  }
+  /* at some point may want to check for TRAIN/TEST specific mode options */
+  /* e.g. nodetrend only applies in test mode                             */
 
   /* check for other errors */
   if( aFlag  && alphaFlag ) {
@@ -4897,9 +7930,14 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
         }
       }
   }
-  if ( !(optionsData->trainFile[0]) && (optionsData->modelWeightFile[0])) { /* JL */ 
+  if( !(optionsData->trainFile[0]) && (optionsData->modelWeightFile[0])) { /* JL */ 
       WARNING_message("Maps (-bucket option) only can be generated "
           "during training.");
+  }
+
+  /* JL May 2011: */
+  if( (optionsData->linearWmap) && !(optionsData->modelWeightFile[0])) {
+    WARNING_message("Ignoring -wout. Please specify a bucket prefix (-bucket bprefix)");
   }
   
   /* Check mask usage */
@@ -4972,21 +8010,7 @@ int input_parse(int argc,char *argv[],long *main_verbosity,
         "   SVM Efficiently, ICML, 2000.)!"); RETURN(1);
   }
 
-  if( (*main_verbosity) >=2) {
-    if(optionsData->labelFile[0]) printf("The label file is %s\n",optionsData->labelFile);
-    if(optionsData->censorFile[0]) printf("The censor file is %s\n",optionsData->censorFile);
-    if(optionsData->trainFile[0]) printf("The training dataset is %s\n",optionsData->trainFile);
-    if(optionsData->maskFile[0]) printf("The mask dataset is %s\n",optionsData->maskFile);
-    if(optionsData->modelFile[0]) printf("The model file is %s\n",optionsData->modelFile);
-    if(optionsData->outModelNoMask) printf("The output model file without mask flag is set\n");
-    if(optionsData->modelAlphaFile[0]) printf("The alpha file is %s\n",optionsData->modelAlphaFile);
-    if(optionsData->modelWeightFile[0]) printf("The weight file is %s\n",optionsData->modelWeightFile);
-    if(optionsData->testFile[0]) printf("The testing dataset is %s\n",optionsData->testFile);
-    if(optionsData->testLabelFile[0]) printf("The test label file is %s\n",optionsData->testLabelFile);
-    if(optionsData->predFile[0]) printf("The predictions file is %s\n",optionsData->predFile);
-    printf("mode = %d\n",*mode);
-  }
+  if( (*main_verbosity) >=2 ) printASLoptions(optionsData);
 
   RETURN(0);
 }
-
