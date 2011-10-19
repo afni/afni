@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, OCT, 2011, RCR, "GIFTI", MINOR, TYPE_ENHANCE,
+   "can read/write ascii COMPLEX64, COMPLEX128, RGB24",
+   "Requested by H Breman, J Mulders and N Schmansky."
+ } ,
+
  { 18, OCT, 2011, RCR, "uber_subject.py", MINOR, TYPE_NEW_OPT,
    "added blur size control; removed requirement of stim timing files",
    NULL
