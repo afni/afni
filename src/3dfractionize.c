@@ -193,6 +193,7 @@ int main( int argc , char * argv[] )
             exit(1) ;
          }
          iarg++ ; continue ;
+         THD_make_cardinal(tset);    /* deoblique    21 Oct, 2011 [rickr] */
       }
 
       if( strcmp(argv[iarg],"-input") == 0 || strcmp(argv[iarg],"-iset") == 0 ){
@@ -205,6 +206,7 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"** Can't open input %s\n",argv[iarg]) ;
             exit(1) ;
          }
+         THD_make_cardinal(iset);    /* deoblique    21 Oct, 2011 [rickr] */
          iarg++ ; continue ;
       }
 
@@ -218,6 +220,7 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"** Can't open warp %s\n",argv[iarg]) ;
             exit(1) ;
          }
+         THD_make_cardinal(wset);    /* deoblique    21 Oct, 2011 [rickr] */
          iarg++ ; continue ;
       }
 

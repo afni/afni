@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, OCT, 2011, RCR, "afni_general", MINOR, TYPE_MODIFY,
+   "changed most resampling programs to deoblique inputs upon read",
+   "THD_open*_dataset() was followed by THD_make_cardinal().\n"
+   "modified: 3dresample, 3dfractionize, 3drotate, adwarp, 3dLRflip\n"
+   "          3dZeropad, 3dZcat, 3dAutobox\n"
+   "not (yet) modified: 3dWarp(Drive), 3dAllineate"
+ } ,
+
  { 19, OCT, 2011, RCR, "@2dwarper.Allin", MICRO, TYPE_NEW_OPT,
    "added a -mask option",
    "Added for A Messinger."
