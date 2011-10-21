@@ -138,6 +138,7 @@ void ZCAT_read_opts( int argc , char * argv[] )
          ERROR_exit("Can't open dataset %s\n",argv[nopt-1]) ;
       }
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
+      THD_make_cardinal(dset);    /* deoblique    21 Oct, 2011 [rickr] */
 
       if( ZCAT_type < 0 ) ZCAT_type = dset->type ;
 

@@ -303,6 +303,7 @@ int main( int argc , char * argv[] )
          rotpar_dset = THD_open_one_dataset( argv[++iopt] ) ;
          if( rotpar_dset == NULL )
             ERREX("*** Can't open -rotparent dataset!\n") ;
+         THD_make_cardinal(rotpar_dset); /* deoblique   21 Oct, 2011 [rickr] */
 
          atr = THD_find_float_atr( rotpar_dset->dblk , "VOLREG_MATVEC_000000" ) ;
          if( atr == NULL || atr->nfl < 12 )
@@ -319,6 +320,7 @@ int main( int argc , char * argv[] )
          gridpar_dset = THD_open_one_dataset( argv[++iopt] ) ;
          if( gridpar_dset == NULL )
             ERREX("*** Can't open -gridparent dataset!\n") ;
+         THD_make_cardinal(gridpar_dset); /* deoblique   21 Oct, 2011 [rickr] */
 
          iopt++ ; continue ;
       }
@@ -344,6 +346,7 @@ int main( int argc , char * argv[] )
 
             mvset = THD_open_dataset( argv[++iopt] ) ;
             if( mvset == NULL ) ERREX("*** Can't read -matvec_dset dataset!") ;
+            THD_make_cardinal(mvset); /* deoblique   21 Oct, 2011 [rickr] */
             atr = THD_find_float_atr( mvset->dblk , "TAGALIGN_MATVEC" ) ;
             if( atr == NULL || atr->nfl < 12 )
               ERREX("*** -matvec_dset doesn't have matrix+vector in .HEAD!") ;
@@ -547,6 +550,7 @@ int main( int argc , char * argv[] )
       if( dset == NULL ){
          fprintf(stderr,"*** Cannot open dataset %s!\n",argv[iopt]); exit(1);
       }
+      THD_make_cardinal(dset); /* deoblique   21 Oct, 2011 [rickr] */
    } else {
       dset = EDIT_empty_copy(NULL) ;  /* 21 Nov 2000: need a fake dataset */
       if( !doorigin )

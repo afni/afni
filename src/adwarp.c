@@ -262,6 +262,8 @@ void get_options
 	  option_data->aset = THD_open_one_dataset (argv[nopt]);
 	  if (! ISVALID_3DIM_DATASET(option_data->aset))
 	    AW_error ("Cannot read anat parent dataset.\n") ;
+          THD_make_cardinal(option_data->aset);   /* 21 Oct, 2011 [rickr] */
+
 	  nopt++;
 	  continue;
 	}
@@ -274,6 +276,7 @@ void get_options
 	  option_data->dset = THD_open_dataset (argv[nopt]);
 	  if (! ISVALID_3DIM_DATASET(option_data->dset))
 	    AW_error ("Cannot read data parent dataset.\n") ;
+          THD_make_cardinal(option_data->dset);   /* 21 Oct, 2011 [rickr] */
 	  nopt++;
 	  continue;
 	}

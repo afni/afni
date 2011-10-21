@@ -87,6 +87,7 @@ int main( int argc , char * argv[] )
    /*-- read data --*/
 
    dset = THD_open_dataset(iname); CHECK_OPEN_ERROR(dset,iname);
+   THD_make_cardinal(dset);    /* deoblique    21 Oct, 2011 [rickr] */
    if( DSET_BRICK_TYPE(dset,0) != MRI_short &&
        DSET_BRICK_TYPE(dset,0) != MRI_byte  &&
        DSET_BRICK_TYPE(dset,0) != MRI_float   ){

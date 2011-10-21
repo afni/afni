@@ -195,6 +195,7 @@ int main( int argc , char * argv[] )
         if( !ISVALID_DSET(mset) ){
           fprintf(stderr,"** 3dZeropad: Can't open -master %s\n",argv[iarg]); exit(1);
         }
+        THD_make_cardinal(mset);    /* deoblique    21 Oct, 2011 [rickr] */
          iarg++ ; continue ;
       }
 
@@ -242,6 +243,7 @@ int main( int argc , char * argv[] )
    if( inset == NULL ){
       fprintf(stderr,"** 3dZeropad: Can't open dataset %s\n",argv[iarg]); exit(1);
    }
+   THD_make_cardinal(inset);    /* deoblique    21 Oct, 2011 [rickr] */
 
 #if 0
    if( DSET_IS_MASTERED(inset) ){
