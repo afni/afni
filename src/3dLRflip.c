@@ -98,6 +98,8 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"++ processing %s ...\n", argv[iarg]);
       dset = THD_open_dataset(argv[iarg]) ;
       CHECK_OPEN_ERROR(dset,argv[iarg]) ;
+      THD_make_cardinal(dset);    /* deoblique    21 Oct, 2011 [rickr] */
+
       DSET_mallocize(dset) ; DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
       nx=DSET_NX(dset); ny=DSET_NY(dset); nz=DSET_NZ(dset);
