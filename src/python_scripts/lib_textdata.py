@@ -173,7 +173,7 @@ def married_mat_is_consistent(mmat, fname):
       ind += 1
     if ttok: # have something to test, else empty mmat
       modlen = len(ttok[1])
-      moddur = ttok[2] != None  # have duration
+      moddur = ttok[2] > 0      # have duration
       for lind, line in enumerate(mmat):
          line = mmat[lind]
          for entry in line:
@@ -181,7 +181,7 @@ def married_mat_is_consistent(mmat, fname):
                print "** married file %s, line %d: inconsistent num modulators"\
                      ": %d vs %d" % (fname, lind, modlen, len(entry[1]))
                return 0
-            if (moddur and entry[2]==None) or (not moddur and entry[2]!=None):
+            if (moddur and entry[2]<=0) or (not moddur and entry[2]>0):
                print "** married file %s, line %d:" \
                      " inconsistent use of duration" % (fname, lind)
                return 0
@@ -238,9 +238,10 @@ def process_one_data_line(line, verb=1):
          inc_warn = 0
 
       # see what is here: just time, with duration, or only with modulators
-      if len(seps) == 0:    res_list.append([fvals[0], [], None])
+      # duration is 0 unless otherwise specified
+      if len(seps) == 0:    res_list.append([fvals[0], [], 0])
       elif seps[-1] == ':': res_list.append([fvals[0], fvals[1:-1], fvals[-1]])
-      else:                 res_list.append([fvals[0], fvals[1:], None])
+      else:                 res_list.append([fvals[0], fvals[1:], 0])
 
    return 0, res_list
 
@@ -276,8 +277,8 @@ def married_type(mdata):
        return a bit mask:
 
           return 0 : simple times
-          return 1 : has modulators
-          return 2 : has durations
+          return 1 : has amplitude modulators
+          return 2 : has duration modulators
           return 3 : has both
     """
 
@@ -285,8 +286,8 @@ def married_type(mdata):
     for ind, line in enumerate(mdata):
       if len(line) > 0:
          ttok = line[0]
-         if len(ttok[1]) > 0: rv |= 1   # has modulators
-         if ttok[2] != None:  rv |= 2   # has durations
+         if len(ttok[1]) > 0: rv |= 1   # has amp mods
+         if ttok[2] > 0:      rv |= 2   # has dur mods
          break
     return rv
 

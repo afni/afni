@@ -2,7 +2,7 @@
 
 # Timing library, accessed via timing_tool.py.
 #
-# Offers classes AfniTiming and AfniMarriedTiming.
+# - offers class AfniTiming
 #
 # R Reynolds    December, 2008
 
@@ -18,71 +18,96 @@ import afni_util as UTIL
 import lib_afni1D as LD
 
 # ----------------------------------------------------------------------
-# two timing classes: AfniTiming and AfniMarriedTiming
-# ----------------------------------------------------------------------
+# AfniTiming class - for stim times that are married with
+#                    either time intervals or magnitudes
 
-class AfniTiming:
-   def __init__(self, filename="", dur=0, from_a1d=0, a1d=None, verb=1):
-      """AFNI stimulus timing class"""
+class AfniTiming(LD.AfniData):
+   def __init__(self, filename="", dur=-1, verb=1):
+      """AFNI married stimulus timing class"""
 
-      # main variables
-      self.data    = []           # actual data (python list of floats)
-      self.dur     = dur          # optional stimulus duration
-      self.fname   = ''           # name of timing file
-      self.empty   = 0            # maybe there are no times
-      self.ready   = 0            # have a matrix
+      super(AfniTiming, self).__init__(filename, verb=verb)
 
-      self.nrows   = 0
-      self.rect    = 0            # same number of values per row?
+      # additional variables (on top of those in AfniData)
+      self.dur_len = -1           # if MTYPE_DUR, length of equal intervals
+                                  # (rcr: if constant)
 
-      self.verb    = verb
+      # if from_at and not filename: self.init_from_at(at)
 
-      # initialize...
-      if filename:   self.init_from_1D(filename)
-      elif from_a1d: self.init_from_a1d(a1d)
+      # initialize duration data
+      if self.ready: self.init_durations(dur)
 
-   def add_rows(self, brows):
-      """add brows.nrows of data (additional runs), return 0 on success"""
-      if not self.ready or not brows.ready:
-         print '** Timing elements not ready for adding rows (%d,%d)' % \
-               (self.ready, brows.ready)
+      if self.verb > 3: self.show()
+
+   # old accessor functions from AfniTiming
+   def add_rows(self, newdata):
+      """add newdata.nrows of data (additional runs), return 0 on success"""
+      if not self.ready or not newdata.ready:
+         print '** AMTiming elements not ready for adding rows (%d,%d)' % \
+               (self.ready, newdata.ready)
          return 1
 
-      if self.verb > 1: print '++ Timing: adding %d rows' % brows.nrows
+      if self.verb > 1: print '++ Timing: adding %d rows' % newdata.nrows
 
-      self.data.extend(brows.data)
-      self.nrows += brows.nrows
+      if self.mtype != newdata.mtype:
+         print '** add rows: mis-match mtypes (%d vs. %d)' \
+               % (self.mtype, newdata.mtype)
+
+      # get data and mdata
+      edata = copy.deepcopy(newdata.data)
+      self.data.extend(edata)
+
+      edata = copy.deepcopy(newdata.mdata)
+      self.mdata.extend(edata)
+
+      self.nrows += newdata.nrows
+
+      if self.row_lens and newdata.row_lens:
+         self.row_lens.extend(newdata.row_lens)
 
       return 0
 
-   def write_times(self, fname='', nplaces=-1):
-      """write the current timing out, with nplaces right of the decimal"""
-      if not self.ready:
-         print '** Timing: not ready to write'
-         return 1
+   def init_durations(self, dur=-1):
+      """initialize ddata as format [start_time, end_time]"""
 
-      if fname == '': fname = self.fname
+      # start with general format
+      if not self.ready: return
 
-      return UTIL.write_to_timing_file(self.data, fname, nplaces, self.verb)
+      # if dur is passed, first apply it
+      if dur >= 0:
+         for row in self.mdata:
+            for entry in row: entry[2] = dur
 
-   def extend_rows(self, brows):
+      self.ddata = []
+      for row in self.mdata:
+         self.ddata.append([[val[0],val[0]+val[2]] for val in row])
+
+      if   dur  > 0: self.mtype |= LD.MTYPE_DUR # set bit
+      elif dur == 0: self.mtype &= LD.MTYPE_AMP # only allow AMP to go through
+      # else leave as is
+
+      self.dur_len = dur
+
+   def set_dur_len(self):
+      self.dur_len = self.get_duration()
+
+   def extend_rows(self, newdata):
       """extend each row by the corresponding row of brows"""
-      if not self.ready or not brows.ready:
-         print '** Timing elements not ready for extending rows (%d,%d)' % \
-               (self.ready, brows.ready)
-         return 1
 
-      if self.nrows != brows.nrows:
-         print '** Timing nrows differ for extending (%d, %d)' % \
-               (self.nrows,brows.nrows)
-         return 1
+      self.extend_data_rows(newdata)
 
-      if self.verb > 1: print '++ Timing: extending %d rows' % self.nrows
-
-      for ind in range(self.nrows):
-         self.data[ind].extend(brows.data[ind])
+      # if interval lengths are not equal, must clear it
+      if self.dur_len != newdata.dur_len: self.dur_len = -1
 
       return 0
+
+   def get_start_end_timing(self, sort=0):
+      """return a 2D array of [start, finish] times (so 3D object)"""
+      sftimes = []
+      for row in self.mdata:
+         times = [[e[0],e[0]+e[2]] for e in row]
+         if sort: times.sort()
+         sftimes.append(times)
+      return sftimes
 
    def partition(self, part_file, prefix):
       """partition timing based on part_file labels, write each part to
@@ -124,56 +149,22 @@ class AfniTiming:
       # ------------------------------------------------------------
       # do the work, starting with copy:
       # for each label, extract those times and write out as timing file
-      dupe = AfniTiming(from_a1d=1, a1d=self)  # keep results in class instance
+      dupe = self.copy()        # keep results in new class instance
       for lab in ulabs:
          # extract timing for this label 'lab'
-         data = []
+         mdata = []
          for r in range(nlabr):
             drow = []           # make one row of times for this label
             for c in range(len(labels[r])):
-               if labels[r][c] == lab: drow.append(self.data[r][c])
-            data.append(drow)   # and append the new row
-         del(dupe.data)         # out with the old,
-         dupe.data = data       # and in with the new
+               if labels[r][c] == lab: drow.append(self.mdata[r][c])
+            mdata.append(drow)  # and append the new row
+         del(dupe.mdata)        # out with the old,
+         dupe.mdata = mdata     # and in with the new
          dupe.write_times('%s_%s.1D' % (prefix,lab))    # and write, yay
 
       del(dupe)                 # nuke the temporary instance
 
       return 0
-
-   def sort(self, rev=0):
-      """sort each row (optionally reverse order)"""
-      if not self.ready: return 1
-
-      if self.verb > 1: print '-- sorting ATiming ...'
-
-      for row in self.data:
-         if rev: row.sort(reverse=True)
-         else:   row.sort()
-
-   def is_rect(self):
-      if not self.ready: return 0
-      if self.empty:     return 1           # empty is rectangular
-
-      nrows = len(self.data)
-
-      rlen = len(self.data[0])
-      for row in self.data:
-         if len(row) != rlen: return 0
-
-      return 1
-
-   def is_empty(self):
-      """empty is either nrows == 0 or each row is empty"""
-      if not self.ready: return 1       # seems safer
-
-      if self.nrows < 1: return 1
-
-      # now check each row
-      for row in self.data:
-         if len(row) > 0: return 0      # found something
-
-      return 1                          # did not find anything
 
    def global_to_local(self, run_len):
       """convert global times to local, based in run_len array
@@ -191,7 +182,7 @@ class AfniTiming:
          print '** global timing is not rectangular'
          return 1
 
-      rlen = len(self.data[0])          # note row length
+      rlen = len(self.mdata[0])         # note row length
 
       if rlen > 1:
          print '** global timing is not a single column'
@@ -209,35 +200,45 @@ class AfniTiming:
          print '-- run lengths : %s' % run_len
 
       if self.verb > 4:
-         print '-- global time matrix %s' % self.data
+         print '-- global start time matrix %s' % self.data
 
       # now walk through runs and insert times as we go
       newdata = []
+      newmdata = []
       endtime = 0.0
       sind = 0
-      stimes = self.data[0]
+      stimes = self.mdata[0]
       ntimes = len(stimes)
       for etime in run_len:
          starttime = endtime
          endtime += etime
          if sind >= ntimes:  # only empty runs left
             newdata.append([])
+            newmdata.append([])
             continue
          # times are left, decide which go for this run
          last = sind
-         while last < ntimes and stimes[last] < endtime: last += 1
-         newdata.append([t-starttime for t in stimes[sind:last]])
+         while last < ntimes and stimes[last][0] < endtime: last += 1
+         mtimes = stimes[sind:last]
+         for tentry in mtimes: tentry[0] -= starttime
+         newdata.append([t[0] for t in mtimes])
+         newmdata.append(mtimes)
          sind = last
 
       # insert any remaining times at end of last run(and warn user)
       if sind < ntimes:
          if self.verb > 0:
             print '** global to local: %d times after last run' % (ntimes-sind)
-         newdata[-1].extend([t-starttime for t in stimes[sind:]])
+         mtimes = stimes[sind:]
+         for tentry in mtimes: tentry[0] -= starttime
+         newdata[-1].extend([t[0] for t in mtimes])
+         newmdata[-1].extend(mtimes)
 
       del(self.data)
+      del(self.mdata)
       self.data = newdata
-      self.nrows = len(self.data)
+      self.mdata = newmdata
+      self.nrows = len(self.mdata)
 
       if self.verb > 4:
          print '-- local time matrix %s' % newdata
@@ -269,14 +270,21 @@ class AfniTiming:
 
       # now walk through runs and insert times as we go
       newdata = []
+      newmdata = []
       runstart = 0.0
       for rind, rtime in enumerate(run_len):
          # each new time is a new row
-         for stime in self.data[rind]: newdata.append([runstart+stime])
+         mrow = copy.deepcopy(self.mdata[rind])
+         for ind, mtime in enumerate(mrow):
+            mtime[0] += runstart
+            newdata.append([mtime[0]])
+            newmdata.append([mtime])
          runstart += rtime      # last one is useless
 
       del(self.data)
       self.data = newdata
+      del(self.mdata)
+      self.mdata = newmdata
       self.nrows = len(self.data)
 
       if self.verb > 4:
@@ -284,32 +292,11 @@ class AfniTiming:
 
       return 0
 
-   def transpose(self):
-      """the tranpose operation requires rectangular data"""
-      if not self.ready: return 1
-      if not self.is_rect():
-         print '** cannot take transpose, data is not rectangular'
-         return 1
-
-      if self.verb > 1: print '-- Timing: taking transpose...'
-
-      newdata = []
-
-      if not self.empty:
-         for col in range(len(self.data[0])):
-            newdata.append([self.data[row][col] for row in range(self.nrows)])
-
-      del(self.data)
-      self.data = newdata
-      self.nrows = len(self.data)
-
-      return 0
-
    def add_val(self, val):
       """add the given value to each element"""
       if not self.ready: return 1
 
-      if type(val) == type('hi'):
+      if type(val) == str:
          try: val = float(val)
          except:
             print "** invalid value to add to timing: '%s'" % val
@@ -321,6 +308,10 @@ class AfniTiming:
          for ind in range(len(row)):
             row[ind] += val
 
+      for row in self.mdata:
+         for ind in range(len(row)):
+            row[ind][0] += val
+
       return 0
 
    def shift_to_offset(self, offset=0):
@@ -329,7 +320,7 @@ class AfniTiming:
 
       if not self.ready: return 1
 
-      if type(offset) == type('hi'):
+      if type(offset) == str:
          try: offset = float(offset)
          except:
             print "** invalid offset to add to timing: '%s'" % offset
@@ -337,14 +328,23 @@ class AfniTiming:
 
       if self.verb > 1: print '-- timing: setting offset to %f ...' % offset
 
-      for rind, row in enumerate(self.data):
-         if len(row) < 1: continue
-         diff = row[0] - offset
+      # make sure it is sorted for this
+      self.sort()
+
+      del(self.data)
+      self.data = []
+
+      for rind, row in enumerate(self.mdata):
+         if len(row) < 1:
+            self.data.append([])
+            continue
+         diff = row[0][0] - offset
          if diff < 0:
             print '** offset shift to %f too big for run %d' % (offset, rind)
             return 1
          for ind in range(len(row)):
-            row[ind] -= diff
+            row[ind][0] -= diff
+         self.data.append([e[0] for e in row])
 
       return 0
 
@@ -363,6 +363,10 @@ class AfniTiming:
       for row in self.data:
          for ind in range(len(row)):
             row[ind] *= val
+
+      for row in self.mdata:
+         for ind in range(len(row)):
+            row[ind][0] *= val
 
       return 0
 
@@ -401,391 +405,30 @@ class AfniTiming:
       if tr == math.floor(tr): tiny = 0.0
       else:                    tiny = 0.0000000001
 
-      for row in self.data:
+      # scale mdata and re-create data
+      del(self.data)
+      self.data = []
+      for row in self.mdata:
          for ind in range(len(row)):
             # start with TR index
-            tind = row[ind]/tr
+            tind = row[ind][0]/tr
             # note that rf = 0 now means floor and 1 means ceil
 
             # add/subract a tiny fraction even for truncation
             if rf == 1.0   :
-               if tind == 0: row[ind] = 0.0  # to avoid
-               else:         row[ind] = math.ceil(tind-tiny) * tr
-            elif rf == 0.0 : row[ind] = math.floor(tind+tiny) * tr
-            else           : row[ind] = math.floor(tind+rf) * tr
+               if tind == 0: val = 0.0  # to avoid tiny negatives
+               else:         val = math.ceil(tind-tiny) * tr
+            elif rf == 0.0 : val = math.floor(tind+tiny) * tr
+            else           : val = math.floor(tind+rf) * tr
+            row[ind][0] = val
+         self.data.append([e[0] for e in row])
 
       return 0
-
-   def copy(self):
-      """return a complete (deep)copy of the current AfniTiming"""
-      return copy.deepcopy(self)
-
-   def show(self, mesg=''):
-      print self.make_show_str(mesg)
-
-   def make_show_str(self, mesg=''):
-      if not self.ready: return "++ data     : <unset>"
-
-      rect = self.is_rect()
-      rstr = ''
-      if rect:
-         if self.empty: rstr = ' (row length 0)'
-         else:          rstr = ' (row length %d)' % len(self.data[0])
-
-      if len(mesg) > 0: umesg = '%s : ' % mesg
-      else:             umesg = ''
-
-      mstr = "----------- %stiming element ------------\n"   \
-             "   fname    : %s\n" \
-             "   empty    : %d\n" \
-             "   ready    : %d\n" \
-             "   nrows    : %d\n" \
-             "   dur      : %f\n" \
-             "   rect     : %d%s\n" \
-             "   verb     : %d\n" % \
-             (umesg, self.fname, self.empty, self.ready, self.nrows,
-              self.dur, rect, rstr, self.verb)
-
-      return mstr
-
-   def init_from_1D(self, fname):
-      """initialize AfniTiming from a 1D file"""
-      self.fname  = fname
-
-      adata = LD.AfniData(filename=fname, verb=self.verb)
-      if adata == None: return
-
-      self.data = adata.data
-      self.nrows = adata.nrows
-      self.ready = adata.ready
-      self.empty = self.is_empty()
-
-      del(adata)
-
-      if self.verb > 1:
-         print '++ initialized timing from file %s' % fname
-         if self.verb > 3: self.show()
-
-   def init_from_1D_OLD(self, fname):
-      """initialize AfniTiming from a 1D file"""
-      self.fname  = fname
-      data, clines = read_timing_file(fname)
-      if data == None: return
-      self.data  = data
-      self.nrows = len(data)
-      self.empty = self.is_empty()
-
-      self.ready = 1
-
-      if self.verb > 1:
-         print '++ initialized timing from file %s' % fname
-         if self.verb > 3: self.show()
-
-   def init_from_a1d(self, dupe):
-      """initialize AfniTiming from another"""
-      self.fname  = 'none'
-      self.data  = copy.deepcopy(dupe.data)
-      self.nrows = len(self.data)
-      self.verb  = dupe.verb
-      self.ready = 1
-
-      if self.verb > 1:
-         print '++ initialized timing from A1D %s' % dupe.fname
-         if self.verb > 3: self.show()
-
-def read_timing_file(fname):
-   """read 1D file, returning the data in a matrix, and comments in clines"""
-   try: fp = open(fname, 'r')
-   except:
-      print "** failed to open 1D file '%s'" % fname
-      return None, None
-
-   data = []         # data lines
-   clines = []       # comment lines
-
-   lind = 0
-   for line in fp.readlines():
-      lind += 1
-      lary = line.split()
-      if len(lary) == 0: continue
-      if lary[0] == '#':
-         clines.append(line)
-         continue
-
-      # so this should be data
-      # rcr - consider looking for a:b or a*b formats
-
-      # check for '*'
-      #if lary[0] == '*':
-      #   data.append([])
-      #   continue
-
-      try: data.append([float(x) for x in lary if x != '*'])
-      except:
-         print "** failed to convert line to floats: %s" % line
-         return None, None
-
-   fp.close()
-
-   return data, clines
-
-def read_value_file(fname):
-   """read value file, returning generic values in a matrix (no comments)"""
-   try: fp = open(fname, 'r')
-   except:
-      print "** failed to open value file '%s'" % fname
-      return None
-
-   data = []         # data lines
-
-   lind = 0
-   for line in fp.readlines():
-      lind += 1
-      lary = line.split()
-      if len(lary) == 0: continue
-      if lary[0] == '#': continue
-
-      data.append([x for x in lary if x != '*'])
-
-   fp.close()
-
-   return data
-
-
-# AfniMarriedTiming class - for stim times that are married with
-#                           either time intervals or magnitudes
-MTYPE_INT = 1   # interval
-MTYPE_MAG = 2   # magnitude
-
-class AfniMarriedTiming:
-   def __init__(self, filename="", from_at=0, at=None, verb=1):
-      """AFNI married stimulus timing class"""
-
-      # main variables
-      self.data    = None         # actual data (nruns x nstim x 2)
-      self.fname   = ''           # name of timing file
-      self.ready   = 0            # have a matrix
-
-      self.nrows   = 0
-      self.mtype   = 0            # MTYPE_INT or MTYPE_MAG
-      self.int_len = -1           # if MTYPE_INT, length of equal intervals
-                                  # (rcr: if constant)
-
-      self.verb    = verb
-
-      # initialize...
-      if from_at: self.init_from_at(at)
-      elif filename: self.init_from_file(filename)
-
-   def init_from_file(self, fname):
-      """initialize AfniMarriedTiming from a text file"""
-      self.fname  = fname
-
-      # start with general format
-      adata = LD.AfniData(filename=fname, verb=self.verb)
-      if adata == None: return
-      if not adata.ready: return
-
-      # put into new format [start_time, end_time]   (should alter this)
-      self.data = []
-      for row in adata.data:
-         self.data.append([[val[0],val[0]+val[2]] for val in row])
-
-      self.nrows = adata.nrows
-      self.mtype = MTYPE_INT
-      self.ready = adata.ready
-
-      del(adata)
-
-      if self.verb > 1:
-         print '++ initialized timing from file %s' % fname
-         if self.verb > 3: self.show()
-
-   def init_from_at(self, timing):
-      """initialize from AfniTiming element (implies MTYPE_INT)"""
-      if not timing.ready:
-         print '** initializing from unready AfniTiming'
-         return 1
-
-      self.fname = timing.fname
-      self.nrows = timing.nrows
-      self.verb  = timing.verb
-
-      self.mtype = MTYPE_INT
-
-      self.data = []
-      for row in timing.data:
-         self.data.append([[val,val+timing.dur] for val in row])
-
-      self.int_len = timing.dur
-
-      self.ready = 1
-
-      if self.verb > 1:
-         print "++ init MarriedTiming from '%s' Timing" % timing.fname
-      if self.verb > 3:
-         self.show()
-
-   def extend_rows(self, brows):
-      """extend each row by the corresponding row of brows"""
-      if not self.ready or not brows.ready:
-         print '** MTiming elements not ready for extending rows (%d,%d)' % \
-               (self.ready, brows.ready)
-         return 1
-
-      if self.nrows != brows.nrows:
-         print '** MTiming nrows differ for extending (%d, %d)' % \
-               (self.nrows,brows.nrows)
-         return 1
-
-      if self.mtype != brows.mtype:
-         print '** MTiming elements differ in mtype (%d, %d)' % \
-               (self.mtype,brows.mtype)
-         return 1
-
-      if self.verb > 1: print '++ MTiming: extending %d rows' % self.nrows
-
-      for ind in range(self.nrows):
-         self.data[ind].extend(brows.data[ind])
-
-      # if interval lengths are equal, keep it, else clear it
-      if self.int_len != brows.int_len: self.int_len = -1
-
-      return 0
-
-   def copy(self):
-      """return a complete (deep)copy of the current AfniMarriedTiming"""
-      return copy.deepcopy(self)
-
-   def sort(self, rev=0):
-      """sort each row (optionally reverse order)"""
-      if not self.ready: return 1
-
-      if self.verb > 1: print '-- sorting AMTiming ...'
-
-      for row in self.data:
-         if rev: row.sort(reverse=True)
-         else:   row.sort()
-
-   def is_rect(self):
-      if not self.ready: return 0
-
-      nrows = len(self.data)
-      if nrows == 0: return 1                   # empty is rectagular
-
-      rlen = len(self.data[0])
-      for row in self.data:
-         if len(row) != rlen: return 0
-
-      return 1
-
-   def show(self, mesg=''):
-      print self.make_show_str(mesg)
-
-   def make_show_str(self, mesg=''):
-      if not self.ready: return "++ data     : <unset>"
-
-      rect = self.is_rect()
-      rstr = ''
-      if rect: rstr = ' (row length %d)' % len(self.data[0])
-
-      if len(mesg) > 0: umesg = '%s : ' % mesg
-      else:             umesg = ''
-
-      mstr = "----------- %smarried timing element ------------\n"   \
-             "   fname    : %s\n" \
-             "   ready    : %d\n" \
-             "   nrows    : %d\n" \
-             "   rect     : %d%s\n" \
-             "   mtype    : %d\n" \
-             "   int_len  : %s\n" \
-             "   verb     : %d\n" % \
-             (umesg, self.fname, self.ready, self.nrows, rect, rstr,
-              self.mtype, self.int_len, self.verb)
-
-      return mstr
-
-   def make_single_row_string(self, row=-1, nplaces=3, flag_empty=0, 
-                              check_simple=1):
-      """return a string of row data, to the given number of decimal places
-         if row is non-negative, return a string for the given row"""
-      if not self.ready: return ''
-      if row < 0 or row >= self.nrows:
-         if self.verb > 0: print '** row %d out of range for printing' % row
-         return ''
-
-      if check_simple and self.int_len == 0.0: simple = 1
-      else:                                    simple = 0
-
-      data = self.data[row]
-      rstr = ''
-      if self.verb > 2 and not flag_empty: rstr += 'run %02d : ' % (row+1)
-
-      # if flagging an empty run, use '*' characters
-      if len(data) == 0 and flag_empty:
-         if row == 0: rstr += '* *'
-         else:        rstr += '*'
-
-      if self.mtype == MTYPE_MAG: mch = '*'
-      if self.mtype == MTYPE_INT: mch = ':'
-
-      for val in data:
-         if simple:
-            if nplaces >= 0: rstr += '%.*f ' % (nplaces, val[0])
-            else:            rstr += '%g ' % (val[0])
-         else:
-            if nplaces >= 0:
-               rstr += '%.*f%s%.*f ' % (nplaces, val[0], mch, nplaces, val[1])
-            else:
-               rstr += '%g%s%g ' % (val[0], mch, val[1])
-
-      return rstr + '\n'
-
-   def make_data_string(self, row=-1, nplaces=3, flag_empty=0, check_simple=1,
-                        mesg=''):
-      """return a string of row data, to the given number of decimal places
-         if row is non-negative, return a string for the given row, else
-         return a string of all rows
-            row          : make a string for just the single row
-            nplaces      : number of decimal places to show
-            flag_empty   : if empty row, use the '*' format
-            check_simple : if set and int_len=0, use timing format
-            mesg         : display the message before data
-      """
-
-      # init return string based on message
-      if len(mesg) > 0: rstr = "%s :\n" % mesg
-      else:             rstr = ''
-
-      if row >=0:
-         return rstr+self.make_single_row_string(row, nplaces, flag_empty,
-                                                 check_simple)
-
-      # make it for all rows
-      for ind in range(self.nrows):
-         rstr += self.make_single_row_string(ind, nplaces, flag_empty,
-                                             check_simple)
-
-      return rstr
 
    def write_times(self, fname='', nplaces=-1):
       """write the current M timing out, with nplaces right of the decimal"""
-      if not self.ready:
-         print '** M Timing: not ready to write'
-         return 1
 
-      if fname == '': fname = self.fname
-
-      fp = open(fname, 'w')
-      if not fp:
-         print "** failed to open '%s' for writing Mtiming" % fname
-         return 1
-
-      if self.verb > 0:
-         print "++ writing %d MTiming rows to %s" % (self.nrows, fname)
-
-      fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1))
-      fp.close()
+      self.write_as_timing(fname, nplaces)
 
       return 0
 
@@ -862,16 +505,15 @@ class AfniMarriedTiming:
          import afni_util as UTIL, lib_timing as LT
          reload LT
          t = LT.AfniTiming('ch_fltr.txt')
-         mt = LT.AfniMarriedTiming(from_at=1, at=t)
-         mt.timing_to_tr_frac(run_len, 2.5)
-         mt.timing_to_1D(run_len, 2.5, 0.3)
+         t.timing_to_tr_frac(run_len, 2.5)
+         t.timing_to_1D(run_len, 2.5, 0.3)
       """
 
       if not self.ready:
          return '** M Timing: nothing to compute ISI stats from', []
 
-      if self.mtype != MTYPE_INT:
-         return '** M Timing: cannot compute stats without interval mtype', []
+      if not self.mtype & LD.MTYPE_DUR:
+         return '** M Timing: cannot compute stats without duration mtype', []
 
       if self.nrows != len(self.data):
          return '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
@@ -884,24 +526,21 @@ class AfniMarriedTiming:
       if tr <= 0.0:
          return '** timing_to_tr, illegal TR <= 0: %g' % tr, []
 
-      # make a sorted copy
-      scopy = self.copy()
-      scopy.sort()
-
-      # recall that data is run x time x [start,end], i.e. is 3-D
+      # make a sorted copy of format run x stim x [start,end], i.e. is 3-D
+      tdata = self.get_start_end_timing(sort=1)
 
       if self.verb > 1:
          print 'timing_to_tr_fr, tr = %g, nruns = %d' % (tr,len(run_len))
 
       # need to check each run for being empty
-      for ind, data in enumerate(scopy.data):
+      for ind, data in enumerate(tdata):
           if len(data) < 1: continue
           if data[-1][1] > run_len[ind] or run_len[ind] < 0:
               return '** run %d, stim ends after end of run' % (ind+1), []
           
       result = []
       # process one run at a time, first converting to TR indicies
-      for rind, data in enumerate(scopy.data):
+      for rind, data in enumerate(tdata):
          if self.verb > 4:
             print '\n++ stimulus on/off times, run %d :' % (rind+1)
             print data
@@ -951,7 +590,7 @@ class AfniMarriedTiming:
          if per_run: result.append(rdata)
          else:       result.extend(rdata)
 
-      del(scopy)
+      del(tdata)
       del(rdata)
 
       return '', result
@@ -984,7 +623,7 @@ class AfniMarriedTiming:
          print '** M Timing: nothing to compute ISI stats from'
          return 1
 
-      if self.mtype != MTYPE_INT:
+      if self.mtype != LD.MTYPE_DUR:
          print '** M Timing: cannot compute stats without interval mtype'
          return 1
 
@@ -996,6 +635,9 @@ class AfniMarriedTiming:
       # make a sorted copy
       scopy = self.copy()
       scopy.sort()
+
+      # make a copy of format run x stim x [start,end], i.e. is 3-D
+      tdata = scopy.get_start_end_timing()
 
       # make an updated run lengths list
       if len(run_len) == 0:
@@ -1022,8 +664,10 @@ class AfniMarriedTiming:
       pre_time  = []    # pre-stim, per run
       post_time = []    # pose-stim, per run
       run_time  = []    # total run time, per run
+      errs      = 0     # allow a few errors before failing
+      max_errs  = 10
       for rind in range(self.nrows):
-         run  = scopy.data[rind]
+         run  = tdata[rind]
          rlen = rlens[rind]
 
          if len(run) == 0:      # empty run
@@ -1039,7 +683,10 @@ class AfniMarriedTiming:
          elif rlen < run[-1][1]:
             print '** run %d: given length = %s, last stim ends at %s' % \
                   (rind+1, rlen, run[-1][1])
-            return 1
+            errs += 1
+            if errs > max_errs:
+               print '** bailing...'
+               return 1
 
          # pre- and post-stim times are set
          pre = run[0][0]
@@ -1048,7 +695,10 @@ class AfniMarriedTiming:
          if pre < 0:
             print '** ISI error: first stimulus of run %d at negative time %s'%\
                   (rind+1, run[sind][0])
-            return 1
+            errs += 1
+            if errs > max_errs:
+               print '** bailing...'
+               return 1
 
          # init accumulation vars
          stimes = [run[0][1] - run[0][0]]
@@ -1060,7 +710,10 @@ class AfniMarriedTiming:
             if run[sind][0] < run[sind-1][1]:
                print '** ISI error: stimuli overlap at run %d, time %s' % \
                      (rind+1, run[sind][0])
-               return 1
+               errs += 1
+               if errs > max_errs:
+                  print '** bailing...'
+                  return 1
             stimes.append(run[sind][1]-run[sind][0])
             itimes.append(run[sind][0]-run[sind-1][1])
 
@@ -1070,6 +723,8 @@ class AfniMarriedTiming:
          pre_time.append(pre)
          post_time.append(post)
          run_time.append(rlen)
+
+      if errs > 0: return 1
 
       # tally the results
       rtot_stim = [] ; rtot_isi = [] ; rtot_rest = []
@@ -1146,6 +801,7 @@ class AfniMarriedTiming:
       del(isi_list); del(nstim_list)
 
       del(scopy)
+      del(tdata)
 
    def get_TR_offset_stats(self, tr):
       """create a list of TR offsets (per-run and overall)
@@ -1170,9 +826,12 @@ class AfniMarriedTiming:
          print '** show_TR_offset_stats: invalid TR %s' % tr
          return []
 
+      # make a copy of format run x stim x [start,end], i.e. is 3-D
+      tdata = scopy.get_start_end_timing()
+
       offsets   = []    # stim offsets within given TRs
       for rind in range(self.nrows):
-         run  = self.data[rind]
+         run  = tdata[rind]
          if len(run) == 0: continue
 
          roffsets = UTIL.interval_offsets([val[0] for val in run], tr)
@@ -1225,7 +884,7 @@ class AfniMarriedTiming:
          if len(run) == 0: continue
 
          # start with list of time remainders (offsets) within each TR
-         roffsets = UTIL.interval_offsets([val[0] for val in run], tr)
+         roffsets = UTIL.interval_offsets([val for val in run], tr)
 
          m0, m1, m2, s = UTIL.min_mean_max_stdev(roffsets)
          off_means.append(m1)
@@ -1264,4 +923,26 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
    for val in vals: str += '%*.*f%*s' % (nchar, ndec, val, nspaces, '')
 
    return str
+
+def read_value_file(fname):
+   """read value file, returning generic values in a matrix (no comments)"""
+   try: fp = open(fname, 'r')
+   except:
+      print "** failed to open value file '%s'" % fname
+      return None
+
+   data = []         # data lines
+
+   lind = 0
+   for line in fp.readlines():
+      lind += 1
+      lary = line.split()
+      if len(lary) == 0: continue
+      if lary[0] == '#': continue
+
+      data.append([x for x in lary if x != '*'])
+
+   fp.close()
+
+   return data
 

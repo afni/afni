@@ -695,9 +695,13 @@ g_history = """
         - use lib_textdata.py for reading timing files
         - allow empty files as valid (for C Deveney)
    1.14 May 25, 2011 - added -global_to_local and -local_to_global (for G Chen)
+   2.00 Oct 25, 2011 - process married files with current operations
+        1. AfniMarriedTiming inherits from AfniData (instead of local copies)
+        2. add all AfniTiming methods to AfniMarriedTiming (as married timing)
+        3. rename AfniMarriedTiming back to AfniTiming (but now married)
 """
 
-g_version = "timing_tool.py version 1.14, May 25, 2011"
+g_version = "timing_tool.py version 2.00, Oct 25, 2011"
 
 
 class ATInterface:
@@ -722,7 +726,7 @@ class ATInterface:
       self.timing          = None       # main timing element
       self.fname           = 'no file selected'
       self.all_rest_file   = ''         # for -write_all_rest_times
-      self.stim_dur        = 0 
+      self.stim_dur        = -1         # apply on read
 
       # user options - multi var
       self.m_timing        = []
@@ -770,12 +774,12 @@ class ATInterface:
 
       sdl = len(self.m_stim_dur)
       if sdl == 0:
-         sdurs = [0 for ind in range(len(flist))]
+         sdurs = [-1 for ind in range(len(flist))]
       elif sdl > 1 and sdl != len(flist):
          print '** length of stim times does not match # files (%d, %d)' % \
                (sdl, len(flist))
          # set all durations to 0
-         sdurs = [0 for ind in range(len(flist))]
+         sdurs = [-1 for ind in range(len(flist))]
       elif sdl == 1:
          # duplicate duration for all stimuli
          sdurs = [self.m_stim_dur[0] for ind in range(len(flist))]
@@ -812,12 +816,14 @@ class ATInterface:
    def set_stim_dur(self, dur):
       """apply the stim duration to the timing element"""
 
-      if type(dur) != type(3.14):
+      if type(dur) != float:
          print "** set_stim_dur: float required, have '%s'" % type(dur)
          return 1
 
+      if dur < 0: return 0
+
       self.stim_dur = dur
-      if self.timing: self.timing.dur = dur
+      if self.timing: self.timing.init_durations(dur)
 
       if self.verb > 2: print '++ applying stim dur: %f' % dur
 
@@ -854,7 +860,7 @@ class ATInterface:
       if self.verb > 2: print '++ applying multi stim durs: %s' % sdurs
 
       for ind in range(stl):
-         self.m_timing[ind].dur = sdurs[ind]
+         self.m_timing[ind].init_durations(sdurs[ind])
 
    def show_multi(self):
       print '==================== multi-timing list ====================\n' 
@@ -1154,7 +1160,7 @@ class ATInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
 
-            newrd = LT.AfniTiming(val,verb=self.verb)
+            newrd = LT.AfniTiming(val,dur=self.stim_dur,verb=self.verb)
             if not newrd.ready: return 1
 
             self.timing.add_rows(newrd)
@@ -1166,7 +1172,7 @@ class ATInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
 
-            newrd = LT.AfniTiming(val,verb=self.verb)
+            newrd = LT.AfniTiming(val,dur=self.stim_dur,verb=self.verb)
             if not newrd.ready: return 1
 
             self.timing.extend_rows(newrd)
@@ -1235,7 +1241,7 @@ class ATInterface:
                print "** '%s' requires -timing" % opt.name
                return 1
             if self.verb > 0:
-               print '++ timing (%d runs)\n' % len(self.timing.data)
+               print '# ++ timing (%d runs)\n' % len(self.timing.data)
             print UTIL.make_timing_data_string(self.timing.data,
                           nplaces=self.nplaces, verb=self.verb)
 
@@ -1333,11 +1339,6 @@ class ATInterface:
          print '** multi_timing_to_events: missing filename'
          errs += 1
 
-      for dur in self.m_stim_dur:
-         if dur <= 0:
-            print '** error: -stim_dur must be positive'
-            errs += 1
-
       if self.tr <= 0.0:
          print '** error: -tr must be positive'
          errs += 1
@@ -1354,10 +1355,8 @@ class ATInterface:
 
       amtlist = []
       for index, timing in enumerate(self.m_timing):
-         amt = LT.AfniMarriedTiming(from_at=1, at=timing)
-         if not amt: return 1
-         errstr, result = amt.timing_to_1D(self.run_len, self.tr, self.min_frac,
-                                           self.per_run)
+         errstr, result = timing.timing_to_1D(self.run_len, self.tr,
+                                              self.min_frac, self.per_run)
          if errstr:
             print errstr
             return 1
@@ -1489,10 +1488,6 @@ class ATInterface:
          print '** write_timing_as_1D: missing filename'
          return 1
 
-      if self.stim_dur <= 0:
-         print '** error: -stim_dur must be positive'
-         return 1
-
       if self.tr <= 0.0:
          print '** error: -tr must be positive'
          return 1
@@ -1505,11 +1500,8 @@ class ATInterface:
          print '** error: -min_frac must be in (0.0, 1.0]'
          return 1
 
-      amt = LT.AfniMarriedTiming(from_at=1, at=self.timing)
-      if not amt: return 1
-
-      errstr, result = amt.timing_to_1D(self.run_len, self.tr, self.min_frac,
-                                        self.per_run)
+      errstr, result = self.timing.timing_to_1D(self.run_len, self.tr,
+                                                self.min_frac, self.per_run)
       if errstr:
          print errstr
          return 1
@@ -1549,12 +1541,11 @@ class ATInterface:
          print '** no timing, cannot show stats'
          return 1
 
-      amt = LT.AfniMarriedTiming(from_at=1, at=self.timing)
-
-      rv = amt.show_isi_stats(mesg='single element', run_len=self.run_len,
-                              tr=self.tr, rest_file=self.all_rest_file)
+      rv = self.timing.show_isi_stats(mesg='single element',
+              run_len=self.run_len, tr=self.tr, rest_file=self.all_rest_file)
       if rv and self.verb > 2:
-         amt.make_data_string(nplaces=self.nplaces,mesg='SHOW ISI FAILURE')
+         self.timing.make_data_string(nplaces=self.nplaces,
+                                      mesg='SHOW ISI FAILURE')
 
       return 0
 
@@ -1563,12 +1554,11 @@ class ATInterface:
          print '** no multi-timing, cannot show stats'
          return 1
 
-      amt = LT.AfniMarriedTiming(from_at=1, at=self.m_timing[0])
+      amt = self.m_timing[0].copy()
 
       nele = len(self.m_timing)
       for ind in range(1, nele):
-         newamt = LT.AfniMarriedTiming(from_at=1, at=self.m_timing[ind])
-         amt.extend_rows(newamt)
+         amt.extend_rows(self.m_timing[ind])
 
       if self.verb > 2: amt.show('final AMT')
 

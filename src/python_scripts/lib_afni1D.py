@@ -16,6 +16,10 @@ import afni_util as UTIL
 import afni_base as BASE
 import lib_textdata as TD
 
+MTYPE_NONE = 0   # no modulation        (these work as a bit mask)
+MTYPE_AMP  = 1   # amplitude modulation
+MTYPE_DUR  = 2   # duration modulation
+
 class Afni1D:
    def __init__(self, filename="", from_mat=0, matrix=None, verb=1):
       """1D matrix class (2-D array)
@@ -1639,7 +1643,7 @@ ERR_ST_NUM_RUNS   =  8       # number of runs mismatch
 ERR_ST_TOO_BIG    = 16       # val >= run length
 
 
-class AfniData:
+class AfniData(object):
    def __init__(self, filename="", verb=1):
       """akin to a 2D float class, but do not require a square matrix
 
@@ -1660,11 +1664,10 @@ class AfniData:
       self.ncols     = 0        # non-zero if rectangular
       self.row_lens  = []       # row lengths, if not rectangular
 
-      self.rect      = 0        # rectangular?
-      self.square    = 0        # square?
       self.binary    = 0        # 0/1 file?
       self.empty     = 0        # no data at all
       self.married   = 0        # data has modulators or durations
+      self.mtype     = 0        # married type (bits, amp, dur)
 
       self.ready     = 0        # data is ready
 
@@ -1681,37 +1684,225 @@ class AfniData:
       self.cormat_ready = 0     # correlation mat is set
 
       # initialize...
-      if self.init_from_filename(self.fname): return None
-
-
-   def show(self):
-      print self.make_show_str()
-
-   def make_show_str(self):
-      if self.ready: rstr = 'ready'
-      else:          rstr = 'not ready'
-
-      mstr = "++ name     : %s (%s)\n" \
-             "   fname    : %s\n" \
-             "++ nrows    : %d\n" \
-             "   ncols    : %d\n" \
-             "   row_lens : %s\n" \
-             "++ rect     : %d\n" \
-             "   square   : %d\n" \
-             "   binary   : %d\n" \
-             "++ tr       : %g\n" \
-             "   nruns    : %d\n" \
-             % (self.name, rstr, self.fname,
-                self.nrows, self.ncols, self.row_lens,
-                self.rect, self.square, self.binary, self.tr, self.nruns)
-
-      return mstr
+      if self.fname: 
+         if self.init_from_filename(self.fname): return None
 
    # some accessor functions to match Afni1D
    def set_nruns(nruns): self.nruns = nruns
 
    def set_run_lengths(run_lengths):
       self.row_lens = run_lengths
+
+   def is_rect(self):
+      return TD.data_is_rect(self.mdata)
+
+   def is_square(self):
+      if not self.is_rect(): return 0
+
+      rlen = len(self.mat)
+
+      if rlen == 0: return 1
+      if rlen == len(self.mat[0]): return 1
+      
+      return 0
+
+   def get_duration(self):
+      """return 0       : if empty
+                dur     : if constant
+                -1      : otherwise (existing, but not constant)
+      """
+
+      if self.mtype == 0 or len(self.mdata) == 0: return 0
+
+      # have actual married data
+
+      dur = -2
+      for row in self.mdata:
+         for entry in row:
+            if dur == -2: dur = entry[2]
+            elif dur != entry[2]:
+               dur = -1
+               break
+         if dur == -1: break
+      if dur == -2: return 0    # uninitialized means 0
+      return dur                # -1 or good value
+
+   def extend_data_rows(self, newdata):
+      """extend each row by the corresponding row of newdata"""
+      if not self.ready or not newdata.ready:
+         print '** MTiming elements not ready for extending rows (%d,%d)' % \
+               (self.ready, newdata.ready)
+         return 1
+
+      if self.nrows != newdata.nrows:
+         print '** MTiming nrows differ for extending (%d, %d)' % \
+               (self.nrows,newdata.nrows)
+         return 1
+
+      if self.mtype != newdata.mtype:
+         print '** MTiming elements differ in mtype (%d, %d)' % \
+               (self.mtype,newdata.mtype)
+         return 1
+
+      if self.verb > 1: print '++ MTiming: extending %d rows' % self.nrows
+
+      for ind in range(self.nrows):
+         self.data[ind].extend(newdata.data[ind])
+
+      for ind in range(self.nrows):
+         self.mdata[ind].extend(newdata.mdata[ind])
+
+      return 0
+
+   def sort(self, rev=0):
+      """sort each row (optionally reverse order)"""
+      if not self.ready: return 1
+
+      if self.verb > 1: print '-- sorting AfniData ...'
+
+      for row in self.data:
+         if rev: row.sort(reverse=True)
+         else:   row.sort()
+
+      for row in self.mdata:
+         if rev: row.sort(reverse=True)
+         else:   row.sort()
+
+      return 0
+
+   def transpose(self):
+      """the tranpose operation requires rectangular data"""
+      if not self.ready: return 1
+      if not self.is_rect():
+         print '** cannot take transpose, data is not rectangular'
+         return 1
+
+      if self.verb > 1: print '-- AData: taking transpose...'
+
+      # det mdata and data
+      newdata = []
+      if not self.empty:
+         for col in range(len(self.data[0])):
+            newdata.append([self.data[row][col] for row in range(self.nrows)])
+      del(self.data)
+      self.data = newdata
+
+      newdata = []
+      if not self.empty:
+         for col in range(len(self.mdata[0])):
+            newdata.append([self.mdata[row][col] for row in range(self.nrows)])
+      del(self.mdata)
+      self.mdata = newdata
+
+      self.nrows = len(self.mdata)
+
+      return 0
+
+   def copy(self):
+      """return a complete (deep)copy of the current AfniTiming"""
+      return copy.deepcopy(self)
+
+   def is_empty(self):
+      """empty is either nrows == 0 or each row is empty"""
+      if not self.ready: return 1       # seems safer
+
+      if self.nrows < 1: return 1
+
+      # now check each row
+      for row in self.mdata:
+         if len(row) > 0: return 0      # found something
+
+      return 1
+
+   def make_single_row_string(self, row=-1, nplaces=3, flag_empty=0,
+                              check_simple=1):
+      """return a string of row data, to the given number of decimal places
+         if row is non-negative, return a string for the given row"""
+      if not self.ready: return ''
+      if row < 0 or row >= self.nrows:
+         if self.verb > 0: print '** row %d out of range for printing' % row
+         return ''
+
+      if check_simple and self.dur_len == 0.0: simple = 1
+      elif self.mtype == 0:                    simple = 1
+      else:                                    simple = 0
+
+      data = self.mdata[row]
+      rstr = ''
+      if self.verb > 2 and not flag_empty: rstr += 'run %02d : ' % (row+1)
+
+      # rcr - fix
+      # if flagging an empty run, use '*' characters
+      if len(data) == 0 and flag_empty:
+         if row == 0: rstr += '* *'
+         else:        rstr += '*'
+
+      for val in data:
+         if simple:
+            if nplaces >= 0: rstr += '%.*f ' % (nplaces, val[0])
+            else:            rstr += '%g ' % (val[0])
+         else:
+            if self.mtype & MTYPE_AMP and len(val[1]) > 0:
+               alist = ['*%s'%a for a in val[1]]
+               astr = ''.join(alist)
+            else: astr = ''
+
+            if self.mtype & MTYPE_DUR:
+               dstr = ':%s' % val[2]
+            else: dstr = ''
+
+            if nplaces >= 0: rstr += '%.*f%s%s ' % (nplaces, val[0], astr, dstr)
+            else: rstr += '%s%s%s ' % (val[0], astr, dstr)
+
+      return rstr + '\n'
+
+   def make_data_string(self, row=-1, nplaces=3, flag_empty=0, check_simple=1,
+                        mesg=''):
+      """return a string of row data, to the given number of decimal places
+         if row is non-negative, return a string for the given row, else
+         return a string of all rows
+            row          : make a string for just the single row
+            nplaces      : number of decimal places to show
+            flag_empty   : if empty row, use the '*' format
+            check_simple : if set and dur_len=0, use timing format
+            mesg         : display the message before data
+      """
+
+      # init return string based on message
+      if len(mesg) > 0: rstr = "%s :\n" % mesg
+      else:             rstr = ''
+
+      if row >=0:
+         return rstr+self.make_single_row_string(row, nplaces, flag_empty,
+                                                 check_simple)
+
+      # make it for all rows
+      for ind in range(self.nrows):
+         rstr += self.make_single_row_string(ind, nplaces, flag_empty,
+                                             check_simple)
+
+      return rstr
+
+   def write_as_timing(self, fname='', nplaces=-1):
+      """write the current M timing out, with nplaces right of the decimal"""
+      if not self.ready:
+         print '** M Timing: not ready to write'
+         return 1
+
+      if fname == '': fname = self.fname
+
+      fp = open(fname, 'w')
+      if not fp:
+         print "** failed to open '%s' for writing Mtiming" % fname
+         return 1
+
+      if self.verb > 0:
+         print "++ writing %d MTiming rows to %s" % (self.nrows, fname)
+
+      fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1))
+      fp.close()
+
+      return 0
 
    def looks_like_1D(self, run_lens=[], nstim=0, verb=1):
       """check if the file looks like 1D
@@ -1755,7 +1946,7 @@ class AfniData:
       # error occur only as singles, to test against verb > 1
 
       errors = 0
-      if not self.rect:
+      if not self.is_rect():
          errors |= ERR_ANY_MISC
          if verb > 1: print "** file %s is not rectangular" % self.fname
 
@@ -2003,7 +2194,7 @@ class AfniData:
          if verb > 1: print "** file %s is not a single column" % self.fname
 
       # must be rectangular
-      if not self.rect:
+      if not self.is_rect():
          errors |= ERR_ANY_MISC
          if verb > 1: print "** file %s is not a rectangular" % self.fname
 
@@ -2079,8 +2270,8 @@ class AfniData:
          return 1
 
       # note whether the data is married (modulation or duration)
-      if TD.married_type(mdata):
-         self.married = 1
+      self.mtype = TD.married_type(mdata)
+      if self.mtype: self.married = 1
 
       # data will ignore any married information
       self.data     = [[val[0] for val in row] for row in mdata]
@@ -2106,9 +2297,6 @@ class AfniData:
          self.ncols = self.row_lens[0]
          del(self.row_lens)
          self.row_lens = []
-         self.rect  = 1
-
-      if self.rect and (self.nrows == self.ncols): self.square = 1
 
       # check to see if it is a 0/1 file
       self.binary = 1
@@ -2120,6 +2308,38 @@ class AfniData:
       self.ready = 1
       
       return 0
+
+   def show(self, mesg=''):
+      print self.make_show_str(mesg=mesg)
+
+   def make_show_str(self, mesg=''):
+      if self.ready: rstr = 'ready'
+      else:          rstr = 'not ready'
+
+      rect = self.is_rect()
+
+      if mesg: mstr = '%s : ' % mesg
+      else:    mstr = ''
+
+      mstr = "--- %sAfniData element ---\n" \
+             "   name     : %s (%s)\n"      \
+             "   fname    : %s\n" \
+             "   nrows    : %d\n" \
+             "   ncols    : %d\n" \
+             "   rect     : %d\n" \
+             "   row_lens : %s\n" \
+             "   binary   : %d\n" \
+             "   tr       : %g\n" \
+             "   nruns    : %d\n" \
+             "   married  : %d\n" \
+             "   mtype    : %d\n" \
+             "   verb     : %d\n" \
+             % ( mstr, self.name, rstr, self.fname,
+                self.nrows, self.ncols, rect, self.row_lens,
+                self.binary, self.tr, self.nruns, self.married, self.mtype,
+                self.verb)
+
+      return mstr
 
 if __name__ == '__main__':
    print '** this is not a main module'
