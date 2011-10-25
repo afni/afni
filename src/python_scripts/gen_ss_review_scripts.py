@@ -240,15 +240,13 @@ echo "num TRs above out limit   : $mcount"
 echo ""
 
 # ------------------------------------------------------------
-# check for first tcat file
-set ffile = pb00.$subj.r01.tcat+orig.HEAD
-if ( ! -f $ffile ) then
-    echo "** missing first file $ffile, will not proceed"
+# get tcat files and count TRs
+set tcat_files = ( `find . -maxdepth 1 -name "pb00*$subj*.HEAD" -print` )
+if ( $#tcat_files == 0 ) then
+    echo "** missing tcat files, will not proceed"
     exit 1
 endif
 
-# get tcat files and count TRs
-set tcat_files = ( pb00.$subj.*.HEAD )
 set trs = ( )
 foreach file ( $tcat_files )
     set trs = ( $trs `3dnvals $file` )
@@ -381,6 +379,7 @@ g_eg_uvar = SUBJ.VarsObject('sample user vars')
 g_eg_uvar.subj            = 'FT'
 g_eg_uvar.rm_trs          = 2
 g_eg_uvar.num_stim        = 2
+g_eg_uvar.tcat_dset       = 'pb00.FT.r01.tcat+orig.HEAD'
 g_eg_uvar.enorm_dset      = 'motion_FT_enorm.1D'
 g_eg_uvar.motion_dset     = 'dfile.rall.1D'
 g_eg_uvar.outlier_dset    = 'outcount.rall.1D'
@@ -400,6 +399,7 @@ g_uvar_dict = {
  'subj'             :'set subject ID',
  'rm_trs'           :'set number of TRs removed per run',
  'num_stim'         :'set number of main stimulus classes',
+ 'tcat_dset'        :'set first tcat dataset',
  'enorm_dset'       :'set motion_enorm file',
  'motion_dset'      :'set motion parameter file',
  'outlier_dset'     :'set outcount.rall file',
@@ -454,9 +454,12 @@ g_history = """
         - added 'max censored displacement', 'final anat dset',
                 'final voxel resolution' to basic script
         - removed 'num stim files found'
+   0.10 Oct 25, 2011:
+        - look for files with '_' separators
+        - added for J Weisberg
 """
 
-g_version = "gen_ss_review_scripts.py version 0.9, October 4, 2011"
+g_version = "gen_ss_review_scripts.py version 0.10, October 25, 2011"
 
 g_todo_str = """
    - figure out template_space
@@ -876,12 +879,12 @@ class MyInterface:
          print '** guess tcat: non-unique tcat list: %s' % glist
          return 1
 
-      tcat = BASE.afni_name(pref + glist[0] + suf)
+      self.uvars.tcat_dset = pref + glist[0] + suf
+      tcat = BASE.afni_name(self.uvars.tcat_dset)
+      self.dsets.tcat_dset = tcat
 
       if self.cvars.verb > 1:
          print '-- tcat dset (exists=%d) = %s' % (tcat.exist(), tcat.pv())
-
-      self.dsets.tcat_dset = tcat
 
       return 0
 
@@ -1007,9 +1010,9 @@ class MyInterface:
 
       view = self.dsets.stats_dset.view
       if len(view) != 5: # maybe surface, go after volreg explicitly for now
-         glist = glob.glob('pb0?.%s.r01.volreg+orig.HEAD'%(self.uvars.subj))
+         glist = glob.glob('pb0??%s?r01?volreg+orig.HEAD'%(self.uvars.subj))
          if len(glist) > 0: view = '+orig'
-         glist = glob.glob('pb0?.%s.r01.volreg+tlrc.HEAD'%(self.uvars.subj))
+         glist = glob.glob('pb0??%s?r01?volreg+tlrc.HEAD'%(self.uvars.subj))
          if len(glist) > 0: view = '+tlrc'
 
       if len(view) != 5:
@@ -1026,9 +1029,15 @@ class MyInterface:
                % self.uvars.final_view
 
       # do a basic test of the subject ID and view
-      gform = 'pb0?.%s.r01.volreg+%s.HEAD' \
+      gform = 'pb0??%s?r01?volreg+%s.HEAD' \
               % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gform)
+      if len(glist) == 0:
+         # try a more general form
+         gform = 'pb*r01*volreg+%s.HEAD' \
+                 % (self.uvars.subj, self.uvars.final_view)
+         glist = glob.glob(gform)
+
       if len(glist) == 0:
          if self.cvars.verb > 0:
             print '** warning: failed to test sid/view with dset check on %s' \
@@ -1065,7 +1074,7 @@ class MyInterface:
          return 0
 
       # else, anything close
-      gstr = 'anat_final.*+%s.HEAD' % self.uvars.final_view
+      gstr = 'anat_final*+%s.HEAD' % self.uvars.final_view
       glist = glob.glob(gstr)
       glen = len(glist)
       if glen >= 1:     # shouldn't be more than 1, but to be safe
@@ -1236,14 +1245,14 @@ class MyInterface:
          if self.cvars.verb > 3:
             print '-- already set: mask_dset = %s' % self.uvars.mask_dset
 
-      gstr = 'full_mask.%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
-      gset = BASE.afni_name(gstr)
-      if os.path.isfile(gstr):
-         self.uvars.mask_dset = gstr
-         self.dsets.mask_dset = gset
-         return 0
+      gstr = 'full_mask?%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
+      glist = glob.glob(gstr)
+      if len(glist) == 0:
+         print '** failed to find mask dset, continuing...'
+         return 0 # failure is not terminal
 
-      print '** failed to find mask dset, continuing...'
+      self.uvars.mask_dset = glist[0]
+      self.dsets.mask_dset = BASE.afni_name(self.uvars.mask_dset)
 
       return 0 # not failure
 
@@ -1255,16 +1264,20 @@ class MyInterface:
          if self.cvars.verb > 3:
             print '-- already set: tsnr_dset = %s' % self.uvars.tsnr_dset
 
-      gstr = 'TSNR.%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
-      gset = BASE.afni_name(gstr)
-      if os.path.isfile(gstr):
-         self.uvars.tsnr_dset = gstr
-         self.dsets.tsnr_dset = gset
-         return 0
+      gstr = 'TSNR?%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
+      glist = glob.glob(gstr)
+      if len(glist) == 0:
+         gstr = '*[tT][sS][nN][rR]*+%s.HEAD' \
+                % (self.uvars.subj, self.uvars.final_view)
+         glist = glob.glob(gstr)
+      if len(glist) == 0:
+         print '** failed to find tsnr dset, continuing...'
+         return 0 # failure is not terminal
 
-      print '** failed to find tsnr dset, continuing...'
+      self.uvars.tsnr_dset = glist[0]
+      self.dsets.tsnr_dset = BASE.afni_name(self.uvars.tsnr_dset)
 
-      return 0 # not failure
+      return 0
 
    def guess_volreg_dset(self):
       """set uvars.volreg_dset"""
@@ -1275,6 +1288,14 @@ class MyInterface:
             print '-- already set: volreg_dset = %s' % self.uvars.volreg_dset
 
       gstr = 'pb??.*.r01.volreg+%s.HEAD' % self.uvars.final_view
+      glist = glob.glob(gstr)
+      if len(glist) == 1:
+         self.uvars.volreg_dset = glist[0]
+         self.dsets.volreg_dset = BASE.afni_name(glist[0])
+         return 0
+
+      # try again...
+      gstr = 'pb*r01*volreg+%s.HEAD' % self.uvars.final_view
       glist = glob.glob(gstr)
       if len(glist) == 1:
          self.uvars.volreg_dset = glist[0]
@@ -1351,7 +1372,7 @@ class MyInterface:
          else:        gform = '%s*HEAD' % copts[1]
       else:
          if self.cvars.verb > 2: print '-- no %s option in command ...' % opt
-         gform = 'stats.*.HEAD'
+         gform = 'stats*HEAD'
 
       # now find all datasets, but remove expected REMLvar+VIEW ones
       dlist = glob.glob(gform)
@@ -1524,6 +1545,13 @@ class MyInterface:
          txt += format % ('was_censored', '0')
 
       txt += '\n'
+
+      var = 'tcat_dset'
+      if self.uvars.is_not_empty(var):
+         txt += format % (var, self.uvars.val(var))
+      else:
+         print '** basic script: missing variable %s' % var
+         errs += 1
 
       var = 'enorm_dset'
       if uvars.is_not_empty(var):
