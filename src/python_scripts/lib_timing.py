@@ -512,8 +512,8 @@ class AfniTiming(LD.AfniData):
       if not self.ready:
          return '** M Timing: nothing to compute ISI stats from', []
 
-      if not self.mtype & LD.MTYPE_DUR:
-         return '** M Timing: cannot compute stats without duration mtype', []
+      #if not self.mtype & LD.MTYPE_DUR:
+      #   return '** M Timing: cannot compute stats without stim duration', []
 
       if self.nrows != len(self.data):
          return '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
@@ -624,8 +624,7 @@ class AfniTiming(LD.AfniData):
          return 1
 
       if self.mtype != LD.MTYPE_DUR:
-         print '** M Timing: cannot compute stats without interval mtype'
-         return 1
+         print '** warning: computing stats without duration'
 
       if self.nrows != len(self.data):
          print '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
@@ -827,7 +826,7 @@ class AfniTiming(LD.AfniData):
          return []
 
       # make a copy of format run x stim x [start,end], i.e. is 3-D
-      tdata = scopy.get_start_end_timing()
+      tdata = self.get_start_end_timing()
 
       offsets   = []    # stim offsets within given TRs
       for rind in range(self.nrows):

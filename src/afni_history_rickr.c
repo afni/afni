@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, OCT, 2011, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
+   "allow use of -show_isi_stats w/o stim duration",
+   NULL
+ } ,
+
  { 25, OCT, 2011, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
    "process married files with current operations",
    "1. AfniMarriedTiming inherits from AfniData (instead of local copies)\n"
