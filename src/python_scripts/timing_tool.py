@@ -699,6 +699,7 @@ g_history = """
         1. AfniMarriedTiming inherits from AfniData (instead of local copies)
         2. add all AfniTiming methods to AfniMarriedTiming (as married timing)
         3. rename AfniMarriedTiming back to AfniTiming (but now married)
+   2.01 Oct 28, 2011 - allow use of -show_isi_stats w/o stim duration
 """
 
 g_version = "timing_tool.py version 2.00, Oct 25, 2011"
