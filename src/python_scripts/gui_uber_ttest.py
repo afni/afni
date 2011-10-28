@@ -623,7 +623,7 @@ class MainWindow(QtGui.QMainWindow):
       pdir = self.ttobj.cvars.val('proc_dir')
       if os.path.isdir(pdir):
          sstr = self.make_uber_command()
-         UTIL.write_text_to_file('%s/.orig.cmd.uat' % pdir, sstr)
+         UTIL.write_text_to_file('%s/.orig.cmd.utt' % pdir, sstr)
 
    def cb_command_window(self, cmd):
       if show_func_seq: print '=== S ==='  # rcr - not called

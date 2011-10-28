@@ -1804,7 +1804,7 @@ class MyInterface:
              'echo ""\n'                                                \
              '\n'                                                       \
              '# show any pairwise correlation warnings from X-matrix\n' \
-             'echo ------------ corrlation warnings -----------\n'      \
+             'echo ----------- correlation warnings -----------\n'      \
              '1d_tool.py -show_cormat_warnings -infile %s\n'            \
              'echo --------------------------------------------\n'      \
              '\n' % xset
