@@ -849,7 +849,7 @@ cat("\teither 0 (not connected), NA (to be estimated), or a known\n")
 cat("\tvalue (prior knowledge of path stength).\n\n")
 
 
-instMat <- readMultiFiles(1, 2, "specification matrix for instantaneous effectss") # both row and column names assumed
+instMat <- readMultiFiles(1, 2, "specification matrix for instantaneous effects") # both row and column names assumed
 instMat <- diag(nROIs)-t(as.matrix(instMat[[1]])) # A0
 
 #readMultiFiles(1, 1, "instantaneous effects matrix")
