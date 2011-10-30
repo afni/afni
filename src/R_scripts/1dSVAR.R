@@ -846,7 +846,7 @@ cat("\tROI names should be provided for both column and row.\n")
 cat("\tThe diagonals should be 0, and each of the off-diagonals\n")
 cat("\tindicates a connection from row to column, specified with\n")
 cat("\teither 0 (not connected), NA (to be estimated), or a known\n")
-cat("\tvalue (prior knowledge of path stength).\n\n")
+cat("\tvalue (prior knowledge of path strength).\n\n")
 
 
 instMat <- readMultiFiles(1, 2, "specification matrix for instantaneous effects") # both row and column names assumed
