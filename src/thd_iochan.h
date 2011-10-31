@@ -109,6 +109,8 @@ extern int  tcp_writecheck( int , int ) ;
 extern int  tcp_connect( char * , int ) ;
 extern int  tcp_accept( int , char ** , char ** ) ;
 extern int  tcp_listen( int ) ;
+extern void set_tcp_listen_mute(int v);
+extern int  get_tcp_listen_mute(void);
 extern int  tcp_alivecheck( int ) ;
 extern void tcp_set_cutoff( int ) ;
 

@@ -1156,15 +1156,20 @@ int thd_Acluster1 (   THD_3dim_dataset *in_set,
    int ncol=0, ii, nl, nc, ret=0;
    float *dvec=NULL;
    
-   ncol = DSET_NVALS(in_set);
+   ENTRY("thd_Acluster1");
    
+   ncol = DSET_NVALS(in_set);
+   if (!nmask) {
+      ERROR_message("No voxels in mask");
+      RETURN(0);
+   }
    /* allocate for D */
    D = (float **)calloc(sizeof(float*), nmask);
    for (ii=0;ii<(nmask);++ii) {
       if (!(D[ii] = (float *)calloc(sizeof(float), ncol))) {
          fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n", 
                         nmask, ncol);
-         RETURN(1);
+         RETURN(0);
       }
    }
 
