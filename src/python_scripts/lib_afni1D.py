@@ -1730,18 +1730,19 @@ class AfniData(object):
    def extend_data_rows(self, newdata):
       """extend each row by the corresponding row of newdata"""
       if not self.ready or not newdata.ready:
-         print '** MTiming elements not ready for extending rows (%d,%d)' % \
+         print '** timing elements not ready for extending rows (%d,%d)' % \
                (self.ready, newdata.ready)
          return 1
 
       if self.nrows != newdata.nrows:
-         print '** MTiming nrows differ for extending (%d, %d)' % \
+         print '** timing nrows differ for extending (%d, %d)' % \
                (self.nrows,newdata.nrows)
          return 1
 
       if self.mtype != newdata.mtype:
-         print '** MTiming elements differ in mtype (%d, %d)' % \
-               (self.mtype,newdata.mtype)
+         print '** timing elements differ in married type (%s, %s)' % \
+               (self.married_type_string(self.mtype),
+                self.married_type_string(newdata.mtype))
          return 1
 
       if self.verb > 1: print '++ MTiming: extending %d rows' % self.nrows
@@ -1753,6 +1754,13 @@ class AfniData(object):
          self.mdata[ind].extend(newdata.mdata[ind])
 
       return 0
+
+   def married_type_string(self, mtype):
+      if   mtype == 0: return 'None'
+      elif mtype == 1: return 'Amp Mod'
+      elif mtype == 2: return 'Dur Mod'
+      elif mtype == 3: return 'Amp/Dur Mod'
+      else:            return 'Unknown'
 
    def sort(self, rev=0):
       """sort each row (optionally reverse order)"""

@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 28, OCT, 2011, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
-   "allow use of -show_isi_stats w/o stim duration",
+ { 31, OCT, 2011, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -show_tr_stats and -warn_tr_stats options",
    NULL
  } ,
 
