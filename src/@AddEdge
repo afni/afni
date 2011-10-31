@@ -32,6 +32,7 @@ PARSE:
    set opa=9
    set epionly = 0
    set argrem = ()
+   set auto = 0
    set epi_edge_perc_thresh = 10
    set anat_edge_perc_thresh = 10
     while ($cnt <= $Narg && $#argrem == 0)
@@ -39,6 +40,11 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
          goto HELP
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0   
       endif
       
       if ($donext && "$argv[$cnt]" == "-ax_mont") then
@@ -153,6 +159,10 @@ PARSE:
          set donext = 0
       endif
 
+      if ($donext && "$argv[$cnt]" == "-auto") then
+         set auto = 1
+         set donext = 0
+      endif
 
       if ($donext) then
          #no more options, this is assumed to be the list of datasets 
@@ -353,9 +363,8 @@ if($rm_ae_temp == 1) then
 endif
 
 echo "Recommended commands:"
-echo "   (make sure you kill all pre-existing AFNI sessions first)"
-echo "afni -niml -yesplugouts &"
-echo "@AddEdge"
+echo "   @AddEdge -auto "
+echo ""
 if (-f ${listlog}) then
    echo ""
    echo "File ${listlog} already  exists, writing log to"
@@ -372,6 +381,15 @@ goto END
 
 # drive AFNI's display using the _ae.ExamineList.log entries
 DANCE:
+if ($auto == 1) then
+   #Kill other versions:
+   @Quiet_Talkers -pif ADD_EDGE_PROCESSES >& /dev/null
+   set NPB = "-npb `afni -available_npb_quiet`"
+   afni $NPB -niml -yesplugouts -pif ADD_EDGE_PROCESSES &
+else
+   set NPB = ''
+endif
+
 # read the listlog file that contains only the names of the input datasets
 # in a single row
 if ("$olist" == "") set olist = (`cat ${listlog}`)
@@ -453,7 +471,8 @@ else
 endif
 
 #It is time to dance
-plugout_drive $hostopt $PLUGOUT_OPTIONS -com "RESCAN_THIS A" -quit
+plugout_drive $NPB -pif ADD_EDGE_PROCESSES $hostopt \
+              $PLUGOUT_OPTIONS -com "RESCAN_THIS A" -quit
 
 #Get name of epionlyvol, the one with _e3 in the name
 set epionlyvol = `echo $olist[1] | sed 's;_ec+;_e3+;'`
@@ -473,7 +492,7 @@ while ($cnt < $#olist)
    else
       set FUNC_RANGE = "SET_FUNC_RANGE A.0"
    endif
-   plugout_drive $hostopt  \
+   plugout_drive $NPB -pif ADD_EDGE_PROCESSES $hostopt  \
       -com "SWITCH_UNDERLAY $ana"   \
       -com "SWITCH_OVERLAY  $ep"    \
       -com "SEE_OVERLAY +"          \
@@ -486,7 +505,7 @@ while ($cnt < $#olist)
       #connection to be closed. Else you will get errors
       sleep 1
       if ($lay == "") then
-      plugout_drive $hostopt  \
+      plugout_drive $NPB -pif ADD_EDGE_PROCESSES $hostopt  \
          -com "OPEN_WINDOW A.axialimage mont=$ax_mont opacity=$opa"\
          -com "OPEN_WINDOW A.axialimage ifrac=0.9"\
          -com "OPEN_WINDOW A.axialimage geom=$ax_geom "\
@@ -501,7 +520,7 @@ while ($cnt < $#olist)
          #set echo
          while ($#nn > 0)
             echo $lcnt  $nn
-            plugout_drive $hostopt  \
+            plugout_drive $NPB -pif ADD_EDGE_PROCESSES $hostopt  \
                -com "OPEN_WINDOW $nn" -quit
             sleep 0.3
             @ lcnt ++
@@ -571,7 +590,7 @@ while ($cnt < $#olist)
          else
             set ojpg = ${prs}
          endif
-         plugout_drive $hostopt \
+         plugout_drive $NPB -pif ADD_EDGE_PROCESSES $hostopt \
             -com "SEE_OVERLAY +"   \
             -com "SAVE_JPEG A.axialimage ${ojpg}axi_$ana.jpg"  \
             -com "SAVE_JPEG A.sagittalimage ${ojpg}sag_$ana.jpg"  \
@@ -592,7 +611,7 @@ while ($cnt < $#olist)
          set ojpg = ${prs}
       endif
       echo "Autorecording number ${ilbl} to ${ojpg}..."
-      plugout_drive $hostopt \
+      plugout_drive $NPB -pif ADD_EDGE_PROCESSES $hostopt \
                -com "SAVE_JPEG A.axialimage ${ojpg}axi_$ana.jpg"  \
                -com "SAVE_JPEG A.sagittalimage ${ojpg}sag_$ana.jpg"\
                -quit
@@ -765,11 +784,9 @@ HELP:
    echo " Note this particular kind of usage is included in the"
    echo "   align_epi_anat.py script as the -AddEdge option"
    echo ""
-   echo "To examine results, open afni in listen mode and"
-   echo "rerun @AddEdge with no options."
+   echo "To examine results, rerun @AddEdge with -auto"
    echo ""
-   echo "   afni -niml -yesplugouts &"
-   echo "   @AddEdge"
+   echo "   @AddEdge -auto"
    echo ""
    echo "Using the typical case example above, the edges from the EPI"
    echo " are shown in cyan (light blue); the edges from the anat dataset"
@@ -817,6 +834,8 @@ HELP:
    echo " -keep_temp    : do not remove temporary files"
    echo " -no_deoblique : do not deoblique any data to show overlap"
    echo " -auto_record  : save jpeg files of current slices  without prompting"
+   echo " -auto: Closes old AFNI sessions and relaunch a new one that"
+   echo "        ready to listen to @AddEdge in review mode"
    echo ""
 
    goto END
