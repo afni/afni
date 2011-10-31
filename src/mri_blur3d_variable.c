@@ -99,7 +99,7 @@ void mri_blur3D_inmask( MRI_IMAGE *im, byte *mask,
 {
    int nx,ny,nz,nxy,nxyz ;
    float *iar , *qar ;
-   int ijk , ii,jj,kk , nn ;
+   int ijk , ii,jj,kk , nn, nfloat_err =0 ;
    register float vcc , vsub , vout , vx,vy,vz ;
 
 ENTRY("mri_blur3D_inmask") ;
@@ -175,14 +175,14 @@ void mri_blur3D_inmask_speedy( MRI_IMAGE *im, byte *mask,
 {
    int nx,ny,nz,nxy,nxyz ;
    float *iar , *qar ;
-   int ijk , ii,jj,kk , nn, ijkm ;
+   int ijk , ii,jj,kk , nn, ijkm, nfloat_err=0 ;
    byte *skin = NULL;
    register float vcc , vsub , vout , vx,vy,vz ;
 
 ENTRY("mri_blur3D_inmask_speedy") ;
 
    if( im == NULL || nrep <= 0 ) EXRETURN ;
-
+   
    nx = im->nx; ny = im->ny; nz = im->nz; nxy = nx*ny; nxyz = nxy*nz;
 
    iar = MRI_FLOAT_PTR(im) ;
@@ -275,7 +275,7 @@ ENTRY("mri_blur3D_inmask_speedy") ;
               }
             }
          }
-         qar[ijk] += vout ;  /* whatever wasn't diffused away from this voxel */
+         qar[ijk] += vout ;  /* whatever wasn't diffused away from this voxel */ 
      }}}
 
 #pragma omp critical (MEMCPY)

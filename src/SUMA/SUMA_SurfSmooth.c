@@ -367,6 +367,9 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps)
 "                  -output NodeList_sm100.1D -Niter 100 -kpb 0.1   \n"
 "         This command smoothes the surface's geometry. The smoothed\n"
 "         node coordinates are written out to NodeList_sm100.1D. \n"
+"      A similar operation on a surface with a new surface for output:\n"
+"      SurfSmooth -i rough_surf.gii -surf_out smooth_surf.gii \\\n"
+"                 -met LM -Niter 100 -kpb 0.1\n"
 "\n"
 "   Sample command for considerable surface smoothing and inflation\n"
 "   back to original volume:\n"
@@ -1198,14 +1201,15 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          break;
       case SUMA_HEAT_07:
          if (!Opt->in_name) {
-            fprintf (SUMA_STDERR,"Error %s:\ninput data not specified.\n", FuncName);
+            SUMA_S_Err("input data not specified.\n");
             exit(1);
          }
-         if (Opt->fwhm ==  -1.0 && Opt->tfwhm == -1.0 && !(Opt->sigma > 0 && Opt->N_iter > 0)) {
-            fprintf (SUMA_STDERR,"Error %s:\n-fwhm or -target_fwhm option must be used with -met HEAT.\n", FuncName); 
+         if (Opt->fwhm ==  -1.0 && Opt->tfwhm == -1.0 && 
+             !(Opt->sigma > 0 && Opt->N_iter > 0)) {
+            SUMA_S_Err("-fwhm or -target_fwhm option is needed with -met HEAT.");
             exit(1);
          }else if (Opt->fwhm !=  -1.0 && Opt->tfwhm != -1.0) {
-            fprintf (SUMA_STDERR,"Error %s:\n-fwhm and -target_fwhm options are mutually exclusive.\n", FuncName); 
+            SUMA_S_Err("-fwhm and -target_fwhm options are mutually exclusive.");
             exit(1);
          }
          if (Opt->fwhm > 0.0) {  
@@ -1217,12 +1221,13 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          
          if (Opt->tfwhm > 0.0) {
             if (Opt->N_iter > 0 && Opt->sigma != -1.0) {
-               SUMA_S_Err("With -target_fwhm, you cannot specify both of -niter and -sigma\n");
+               SUMA_S_Err( "With -target_fwhm, you cannot specify "
+                           "both of -niter and -sigma");
                exit(1);
             }
          }
          if (Opt->kpb >= 0) {
-            fprintf (SUMA_STDERR,"Error %s:\n-kpb option is not valid with -met HEAT.\n", FuncName); 
+            SUMA_S_Err("-kpb option is not valid with -met HEAT."); 
             exit(1);
          }         
          
@@ -1233,11 +1238,11 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
       case SUMA_LM:
          
          if ( (Opt->l != -1.0 || Opt->m != -1.0) && Opt->kpb != -1.0) {
-            fprintf (SUMA_STDERR,"Error %s:\nYou cannot mix options -kpb and -lm \n", FuncName);
+            SUMA_S_Err("You cannot mix options -kpb and -lm");
             exit(1);
          }
          if (Opt->kpb != -1.0 && (Opt->kpb < 0.000001 || Opt->kpb > 10)) {
-            fprintf (SUMA_STDERR,"Error %s:\nWith -kpb k option, you should satisfy 0 < k < 10\n", FuncName);
+            SUMA_S_Err("With -kpb k option, you should satisfy 0 < k < 10");
             exit(1);
          }
          if (Opt->l == -1.0 && Opt->m == -1.0 && Opt->kpb == -1.0) {
@@ -1252,46 +1257,40 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          } 
 
          if (Opt->in_name) {
-            fprintf (SUMA_STDERR,"Error %s:\nOption -input not valid with -met LM.\n", FuncName);
+            SUMA_S_Err("Option -input not valid with -met LM.");
             exit(1);
          }
          
          if (Opt->fwhm !=  -1.0) {
-            fprintf (SUMA_STDERR,"Error %s:\nOption -fwhm not valid with -met LM.\n", FuncName);
+            SUMA_S_Err("Option -fwhm not valid with -met LM.");
             exit(1);
          }
          
          break;
       case SUMA_NN_GEOM:
          if (Opt->in_name) {
-            fprintf (SUMA_STDERR,"Error %s:\nOption -input not valid with -met NN_geom.\n", FuncName);
+            SUMA_S_Err("Option -input not valid with -met NN_geom.");
             exit(1);
          }
          
          if (0 && Opt->lim > 1000) {
-            fprintf (SUMA_STDERR,"Error %s:\n-lim option not specified.\n", FuncName);
+            SUMA_S_Err("-lim option not specified.");
             exit(1);
          }
          
          if (Opt->fwhm !=  -1.0) {
-            fprintf (SUMA_STDERR,"Error %s:\nOption -fwhm not valid with -met NN_geom.\n", FuncName);
+            SUMA_S_Err("Option -fwhm not valid with -met NN_geom.");
             exit(1);
          }
          break;
       
          
       default:
-         fprintf (SUMA_STDERR,"Error %s:\nNot ready for this option here.\n", FuncName);
+         SUMA_S_Err("Not ready for this option here.");
          exit(1);
          break;
    }
    
-   if (0 && ((Opt->ps->bmaskname && Opt->ps->nmaskname) || (Opt->ps->bmaskname && Opt->ps->cmask) || (Opt->ps->nmaskname && Opt->ps->cmask) ) ) {
-      fprintf (SUMA_STDERR,"Error %s:\n-n_mask, -b_mask, and -c_mask options are mutually exclusive.\n", FuncName);
-      exit(1);
-   }else {
-      /* SUMA_S_Warn("For testing! Turn me back on!!!\n"); */ /* Now it is allowed */
-   }
    SUMA_RETURN (Opt);
 }
 
@@ -2452,13 +2451,13 @@ int main (int argc,char *argv[])
                SUMA_SL_Note("Fujiwara!!!");
                wgt = SUMA_Taubin_Fujiwara_Smooth_Weights(SO, NULL, NULL);
                if (!wgt) {
-                  SUMA_SL_Err("Failed to compute weights.\n");
+                  SUMA_SL_Err("Failed to compute weights.");
                   exit(1);
                }
             } else if (SUMA_Get_Taubin_Weights() == SUMA_DESBRUN) {
                wgt = SUMA_Taubin_Desbrun_Smooth_Weights(SO, NULL, NULL);
                if (!wgt) {
-                  SUMA_SL_Err("Failed to compute weights.\n");
+                  SUMA_SL_Err("Failed to compute weights.");
                   exit(1);
                }
             } else if (SUMA_Get_Taubin_Weights() != SUMA_EQUAL) {
@@ -2516,67 +2515,83 @@ int main (int argc,char *argv[])
                /* send the unshrunk bunk */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
-                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, 
+                                        SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn(  "Failed in SUMA_SendToSuma\n"
+                                    "Communication halted.");
                   }
                }
 
-               /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
-               dsmooth = SOnew->NodeList; /* CHECK IF THAT's the case here... coordinates have a new pointer after Equating surface size */
-               SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+               /* to make matters parallel with the other methods, 
+                  keep dsmooth and free SOnew */
+               dsmooth = SOnew->NodeList; /* CHECK IF THAT's the case here... 
+                  coordinates have a new pointer after Equating surface size */
+               SOnew->NodeList = NULL; /* new coordinates will stay in dsmooth */
                SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
-
                break;
             case 2:
                if (!SUMA_EquateSurfaceVolumes(SOnew, SO, Opt->lim, cs)) {
-                  SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+                  SUMA_SL_Warn("Failed to fix surface size.\n"
+                               "Trying to finish ...");
                }
 
-               /* send the unshrunk bunk */
+               /* send the unshrunk surface */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
-                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, 
+                                        SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                                  "Communication halted.");
                   }
                }
-               /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
-               dsmooth = SOnew->NodeList; /* coordinates have a new pointer after Equating surface volumes */
-               SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+               /* to make matters parallel with the other methods, 
+                  keep dsmooth and free SOnew */
+               dsmooth = SOnew->NodeList; /* coordinates have a new pointer after
+                                             Equating surface volumes */
+               SOnew->NodeList = NULL; /* new coordinates will stay in dsmooth */
                SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
                break;
             case 3:
                if (!SUMA_EquateSurfaceAreas(SOnew, SO, Opt->lim, cs)) {
-                  SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+                  SUMA_SL_Warn("Failed to fix surface size.\n"
+                               "Trying to finish ...");
                }
 
-               /* send the unshrunk bunk */
+               /* send the unshrunk surface */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
-                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, 
+                                        SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                                  "Communication halted.");
                   }
                }
-               /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
-               dsmooth = SOnew->NodeList; /* coordinates have a new pointer after Equating surface volumes */
-               SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+               /* to make matters parallel with the other methods, 
+                  keep dsmooth and free SOnew */
+               dsmooth = SOnew->NodeList; 
+               SOnew->NodeList = NULL; 
                SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
                break;
             case 4:
                if (!SUMA_ProjectSurfaceToSphere(SOnew, SO, Opt->lim, cs)) {
-                  SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+                  SUMA_SL_Warn("Failed to fix surface size.\n"
+                               "Trying to finish ...");
                }
 
                /* send the unshrunk bunk */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
-                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, 
+                                        SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                                  "Communication halted.");
                   }
                }
 
-               /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
-               dsmooth = SOnew->NodeList; /* CHECK IF THAT's the case here... coordinates have a new pointer after Equating surface size */
-               SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+               /* to make matters parallel with the other methods, 
+                  keep dsmooth and free SOnew */
+               dsmooth = SOnew->NodeList; 
+               SOnew->NodeList = NULL; 
                SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
                break;
             case 0:

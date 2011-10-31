@@ -277,6 +277,17 @@ int tcp_connect( char * host , int port )
    return sd ;
 }
 
+static int tcp_listen_mute = 0;
+
+void set_tcp_listen_mute(int v) {
+   tcp_listen_mute = v;
+}
+
+int get_tcp_listen_mute(void) {
+   return(tcp_listen_mute);
+}  
+
+
 /*--------------------------------------------------------------------------
    Set up to listen for a connection on a given port.  This does not
    actually form the connection.  That must be done separately.
@@ -322,7 +333,8 @@ int tcp_listen( int port )
    sin.sin_addr.s_addr = INADDR_ANY ;  /* reader reads from anybody */
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-      if (!(nobindmsg % 10000)) { /* slow message printing down! ZSS */
+      if (!tcp_listen_mute &&
+          !(nobindmsg % 10000)) { /* slow message printing down! ZSS */
          sprintf(serr,"\nCan't bind? tcp_listen[bind] (Name %s, Port %d, sd %d)",
                         get_port_numbered(port), port,sd);
          PERROR(serr);
@@ -333,8 +345,10 @@ int tcp_listen( int port )
    }
 
    if( listen(sd,1) == -1 ){
-      sprintf(serr,"Can't listen? tcp_listen[listen] (Name %s, Port %d)",
+      if (!tcp_listen_mute) {
+         sprintf(serr,"Can't listen? tcp_listen[listen] (Name %s, Port %d)",
                get_port_numbered(port), port);
+      }
       PERROR(serr); CLOSEDOWN(sd); return -1;
    }
 
