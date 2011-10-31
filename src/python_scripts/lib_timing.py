@@ -93,7 +93,7 @@ class AfniTiming(LD.AfniData):
    def extend_rows(self, newdata):
       """extend each row by the corresponding row of brows"""
 
-      self.extend_data_rows(newdata)
+      if self.extend_data_rows(newdata): return 1
 
       # if interval lengths are not equal, must clear it
       if self.dur_len != newdata.dur_len: self.dur_len = -1
@@ -807,8 +807,8 @@ class AfniTiming(LD.AfniData):
 
             tr : must be positive
 
-         return: 6 values in a list:
-                    mean, maxabs, stdev of absolute and fractional offsets
+         return: 8 values in a list:
+                    min, mean, maxabs, stdev of absolute and fractional offsets
                  empty list on error
       """
 
@@ -839,9 +839,10 @@ class AfniTiming(LD.AfniData):
       if len(offsets) < 1: return []
 
       # get overall stats (absolute and fractional)
+
       # absolute
       m0, m1, m2, s = UTIL.min_mean_max_stdev(offsets)
-      offm = m1; offs = s
+      offmn = m0; offm = m1; offs = s
       mn = abs(min(offsets))
       offmax = abs(max(offsets))
       if mn > offmax: offmax = mn       
@@ -853,9 +854,9 @@ class AfniTiming(LD.AfniData):
 
       del(offsets)
 
-      return [offm, offmax, offs, m1, offmax/tr, s]
+      return [offmn, offm, offmax, offs, m0, m1, offmax/tr, s]
       
-   def show_TR_offset_stats(self, tr, mesg=''):
+   def show_TR_offset_stats(self, tr, mesg='', wlimit=0.4):
       """display statistics regarding within-TR offsets of stimuli
 
             tr          : show mean/stdev for stimuli within TRs
@@ -863,18 +864,33 @@ class AfniTiming(LD.AfniData):
             mesg        : display the user message in the output
       """
 
+      rv, rstr = self.get_TR_offset_stats_str(tr, mesg=mesg, wlimit=wlimit)
+      print rstr
+
+   def get_TR_offset_stats_str(self, tr, mesg='', wlimit=0.4):
+      """return a string to display statistics regarding within-TR
+                offsets of stimuli
+
+            tr          : show mean/stdev for stimuli within TRs
+                          (so 0 <= mean < tr)
+            mesg        : display the user message in the output
+
+         return status, stats string
+
+                status > 0 : success, warnings were issued
+                       = 0 : success, no warnings
+                       < 0 : errors
+      """
+
       if not self.ready:
-         print '** M Timing: nothing to compute ISI stats from'
-         return 1
+         return 1, '** M Timing: nothing to compute ISI stats from'
 
       if self.nrows != len(self.data):
-         print '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
-               (self.nrows, len(self.data))
-         return 1
+         return 1, '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
+                   (self.nrows, len(self.data))
 
       if tr < 0.0:
-         print '** show_TR_offset_stats: invalid TR %s' % tr
-         return 1
+         return 1, '** show_TR_offset_stats: invalid TR %s' % tr
 
       off_means = []    # ... means per run
       off_stdev = []    # ... stdevs per run
@@ -896,26 +912,40 @@ class AfniTiming(LD.AfniData):
       if mesg: mstr = '(%s) ' % mesg
       else:    mstr = ''
 
-      print '\nwithin-TR stimulus offset statistics %s:\n' % mstr
+      rstr = '\nwithin-TR stimulus offset statistics %s:\n' % mstr
 
+      hdr1 = '    overall:     '
+      hdr2 = '    fractional:  '
+      shdr = '                 '
+      rv   = 0
       if self.nrows > 1:
-         print '                       per run'
-         print '                       ------------------------------'
-         print '    offset means       %s'%float_list_string(off_means, ndec=3)
-         print '    offset stdevs      %s'%float_list_string(off_stdev, ndec=3)
-         print ''
-         print '    overall:     mean = %.3f  maxoff = %.3f  stdev = %.4f' \
-               % (offs[0], offs[1], offs[2])
-         print '    fractional:  mean = %.3f  maxoff = %.3f  stdev = %.4f\n' \
-               % (offs[3], offs[4], offs[5])
-      else:
-         print '    one run:     mean = %.3f  maxoff = %.3f  stdev = %.4f' \
-               % (offs[0], offs[1], offs[2])
-         print '    fractional:  mean = %.3f  maxoff = %.3f  stdev = %.4f\n' \
-               % (offs[3], offs[4], offs[5])
+         rstr += '                       per run\n'                        \
+                 '                       ------------------------------\n' \
+                 '    offset means       %s\n'                             \
+                 '    offset stdevs      %s\n'                             \
+                 '\n'                                                      \
+                 % (float_list_string(off_means,ndec=3),
+                    float_list_string(off_stdev,ndec=3))
+      else: hdr1 = '    one run:     '
+
+      rstr += '%smean = %.3f  maxoff = %.3f  stdev = %.4f\n'   \
+              % (hdr1, offs[1], offs[2], offs[3])
+      rstr += '%smean = %.3f  maxoff = %.3f  stdev = %.4f\n' \
+              % (hdr2, offs[5], offs[6], offs[7])
+
+      # a warning may be issued if the min is positive and the max is small
+      if offs[6] == 0: rstr += '\n%s(stimuli are TR-locked)\n' % shdr
+      elif wlimit > 0.0 and offs[4] > 0 and offs[6] < wlimit:
+         rstr += '\n'                                                         \
+            '%s** WARNING: small maxoff suggests (almost) TR-locked stimuli\n'\
+            '%s   consider: timing_tool.py -round_times (if basis = TENT)\n'  \
+            %(shdr,shdr)
+         rv = 1
 
       # clean up, just to be kind
       del(off_means); del(off_stdev)
+
+      return rv, rstr
       
 def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
    str = ''
