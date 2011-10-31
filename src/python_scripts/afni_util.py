@@ -2056,7 +2056,7 @@ def interval_offsets(times, dur):
 
     fdur = float(dur)   # to make sure (e.g. avoid int division)
 
-    try: offlist = [math.modf(val/fdur)[0] for val in times]
+    try: offlist = [val % fdur for val in times]
     except:
         print "** interval offsets 2: bad dur (%s) or times: %s" % (dur, times)
         return []
