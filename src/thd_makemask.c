@@ -925,27 +925,35 @@ ENTRY("thd_mask_from_brick");
     {
         case MRI_byte:
         {
-            byte * dp  = DSET_ARRAY(dset, volume);
-            byte   thr = BYTEIZE(thresh + 0.99999);  /* ceiling */
-            for ( c = 0; c < nvox; c++ )
-                if ( dp[c] != 0 && ( dp[c] >= thr ) )
-                {
-                    size++;
-                    tmask[c] = 1;
-                }
+            if (thresh <= (float)MRI_maxbyte) { /* ZSS: Oct 2011 
+                  Without this test, a high threshold value might end up
+                  equal to MRI_maxbyte when BYTEIZED below, resulting in
+                  the highest voxel making it to the mask no matter how
+                  much higher the threshold is set.                  */
+               byte * dp  = DSET_ARRAY(dset, volume);
+               byte   thr = BYTEIZE(thresh + 0.99999);  /* ceiling */
+               for ( c = 0; c < nvox; c++ )
+                   if ( dp[c] != 0 && ( dp[c] >= thr ) )
+                   {
+                       size++;
+                       tmask[c] = 1;
+                   }
+            }
         }
             break;
 
         case MRI_short:
         {
-            short * dp  = DSET_ARRAY(dset, volume);
-            short   thr = SHORTIZE(thresh + 0.99999);  /* ceiling */
-            for ( c = 0; c < nvox; c++, dp++ )
-                if ( *dp != 0 && ( *dp >= thr || (absolute && *dp <= -thr) ) )
-                {
-                    size++;
-                    tmask[c] = 1;
-                }
+            if (thresh <= (float)MRI_maxshort) { /* ZSS: Oct 2011 */
+               short * dp  = DSET_ARRAY(dset, volume);
+               short   thr = SHORTIZE(thresh + 0.99999);  /* ceiling */
+               for ( c = 0; c < nvox; c++, dp++ )
+                   if ( *dp != 0 && ( *dp >= thr || (absolute && *dp <= -thr) ) )
+                   {
+                       size++;
+                       tmask[c] = 1;
+                   }
+            }
         }
             break;
 
@@ -1000,7 +1008,7 @@ int thd_multi_mask_from_brick(THD_3dim_dataset * dset, int volume, byte ** mask)
     byte  * tmask;
     int     nvox, type, c;
 
-ENTRY("thd_mask_from_brick");
+ENTRY("thd_multi_mask_from_brick");
 
     if ( mask ) *mask = NULL;   /* to be sure */
 

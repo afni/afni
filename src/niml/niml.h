@@ -633,6 +633,7 @@ extern int init_ports_list();
 extern int set_ports_list_reinit(void);
 extern int get_port_named(char *name);
 extern void show_ports_list(void);
+extern int get_available_npb(void);
 extern int set_user_np(int v);
 extern int get_user_np(void);
 extern char *get_port_numbered(int port);

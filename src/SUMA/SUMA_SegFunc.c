@@ -1719,7 +1719,7 @@ int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
    static char FuncName[]={"SUMA_VolumeBlurInMask"};
    float fac = 0.0, *fa=NULL;
    MRI_IMAGE *imin=NULL;
-   int k=0;
+   int k=0, nfloat_err=0;
    THD_3dim_dataset *blurred = *blurredp;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1730,9 +1730,21 @@ int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
    fac = -1.0;
    for (k=0; k<DSET_NVALS(aset); ++k) {
       imin = THD_extract_float_brick(k,aset) ;
+      
+      if (LocalHead && 
+          (nfloat_err = thd_floatscan( imin->nvox , MRI_FLOAT_PTR(imin) ))) {
+      WARNING_message("You have %d bad numbers in dset to be blurred\n"
+                      "Blurring output might be corrupted.", nfloat_err);
+      }
+   
 
-      mri_blur3D_addfwhm_speedy(imin, cmask, FWHM);
-
+      if (1) {
+         mri_blur3D_addfwhm_speedy(imin, cmask, FWHM);
+      } else {
+         SUMA_S_Note("Going the slow route");
+         mri_blur3D_addfwhm(imin, cmask, FWHM);
+      }
+      
       /* put results in dset */   
       fa = MRI_FLOAT_PTR(imin);
 
@@ -1748,7 +1760,8 @@ int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
          else fac = DSET_BRICK_FACTOR(blurred, k - 1);
       } else fac = -1.0;
       
-      SUMA_LHv("k %d, fac %f\n", k, fac);
+      SUMA_LHv("aset %s, k %d, fac %f\n", 
+            DSET_PREFIX(aset), k, fac);
       EDIT_substscale_brick(blurred, k, MRI_float, fa, 
                               DSET_BRICK_TYPE(blurred,k), fac);
       
@@ -2288,7 +2301,7 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
                                        THD_3dim_dataset **Bsetp) 
 {
    static char FuncName[]={"SUMA_estimate_bias_field_Wells"};
-   int ijk, k, N_kok, kok, *UseK ;
+   int ijk, k, N_kok, kok, *UseK , ii, jj, kk;
    THD_3dim_dataset *Rset=NULL, *Psset=NULL, *Bset = *Bsetp;
    float *fpstCgALL, fAset, fBset, *R, *Ps;
    char *str_lab=NULL;
@@ -2329,23 +2342,38 @@ int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opt,
    Sg = SUMA_get_Stats(cs, "stdvL");
    fpstCgALL = (float*)SUMA_calloc(cs->N_label, sizeof(float));
    GET_BFs(pstCgALL, fpstCgALL);
-   fAset = DSET_BRICK_FACTOR(Aset,0);
+   fAset = DSET_BRICK_FACTOR(Aset,0); if (fAset == 0.0) fAset = 1.0;
    R = (float *)DSET_ARRAY(Rset,0);
    Ps = (float *)DSET_ARRAY(Psset,0);
    for (ijk=0; ijk<DSET_NVOX(Aset); ++ijk) {
       if (IN_MASK(cmask, ijk)) {
          sdf = 0.0; Ri = 0.0;
          for (kok=0; kok<N_kok; ++kok) {
-            
             k = UseK[kok];
             GSCVAL(pstCgALL, k, ijk, fpstCgALL[k], Gik);
             GSCVAL(Aset, 0, ijk, fAset, Ai);
+            if (Ai == 0) { 
+               SUMA_S_Warn("Have 0s in dset, this condition is not handled\n"
+                           "robustly yet.\n");
+               Ai = 11; 
+            }
             df = Gik/(Sg[k]*Sg[k]);
             Ri += (log(Ai)-Mg[k])*df;
             sdf += df;
-            if (ijk == Opt->VoxDbg) {
-               SUMA_S_Notev("Cls %s, Ri %f, Psinv %f\n",
-                           cs->label[k], Ri, sdf);
+            if (ijk == Opt->VoxDbg || isnan(Ri)) {
+               short *jc=DSET_ARRAY(Aset,0);
+               SUMA_1D_2_3D_index(ijk, ii, jj, kk, 
+                                  DSET_NX(Aset), DSET_NX(Aset)*DSET_NY(Aset));
+               SUMA_S_Notev("Debug or NAN for voxel %d [%d %d %d]\n"
+                           "Cls %s, Ai %f (fAset=%f * %d), Ri %f, Psinv %f\n",
+                           ijk, ii, jj, kk, cs->label[k], Ai, fAset, jc[ijk], 
+                           Ri, sdf);
+               
+               if (isnan(Ri)) {
+                  SUMA_Seg_Write_Dset(Opt->proot, "AsetNAN", 
+                                       Aset, iter, Opt->hist);    
+                  SUMA_RETURN(0);
+               }
             }
          }
          R[ijk] = Ri;
@@ -2385,7 +2413,7 @@ AFNI_OMP_START ;
    }   
 } /* end OpenMP */
 AFNI_OMP_END ;
-
+   
    if (Opt->debug) { SUMA_S_Notev("%f smoothing duration %f seconds\n", 
                                    fwhm, SUMA_etime (&tti, 1)); }
                                     
@@ -3813,7 +3841,7 @@ int SUMA_SegInitCset(THD_3dim_dataset *aseti,
    oc.k = SUMA_Class_k_Selector(cs,
                                 "not_classes_string", "OTHER",NULL);
    oc.remap = MAG;
-   oc.verb = 0;
+   oc.verb = Opt->debug-1;
    oc.distmetric = 'e';
    for (i=0; i<oc.k; ++i) oc.clabels[i] = cs->label[i];
    oc.jobname=SUMA_copy_string(FuncName);
@@ -3826,7 +3854,10 @@ int SUMA_SegInitCset(THD_3dim_dataset *aseti,
       /* initialize by cset */
       cset_init = cset;
    }
-   
+   if (Opt->debug > 1) {
+      SUMA_S_Notev("Calling clustering function %d voxels in mask\n", 
+                   cmask_count);
+   }
    if (!(thd_Acluster1 (aseti,
                cmask, cmask_count,
                &cset,
@@ -3840,6 +3871,9 @@ int SUMA_SegInitCset(THD_3dim_dataset *aseti,
       *csetp = cset;
    }
    
+   if (Opt->debug > 1) {
+      SUMA_S_Note("Stats on clusters");
+   }
    /* compute class stats */
    if (!SUMA_Class_stats( aseti, cset, cmask, cmask_count, 
                            NULL, NULL, Opt->gold, cs)) {

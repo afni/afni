@@ -65,6 +65,23 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 26, OCT , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_OPT,
+   "Made SUMA hide overlay from SUMA whenever 'See Overlay' is off in AFNI",
+   NULL   
+  } ,
+
+ { 26, OCT , 2011 , ZSS , "afni" , MICRO , TYPE_BUG_FIX,
+   "Fixed bug where AFNI sent the max voxel to suma despite threshold",
+   "In BYTE and SHORT datasets the maximum voxel always got sent to\n"
+   "suma, even if the threshold was higher than the maximum value in\n"
+   "the dataset.\n"   
+  } ,
+
+ { 18, OCT , 2011 , ZSS , "afni" , MICRO , TYPE_NEW_OPT,
+   "Added -available_npb* options to suggest available port blocks",
+   NULL  
+  } ,
+
  { 14, OCT , 2011 , ZSS , "afni-general" , MINOR , TYPE_GENERAL,
    "Improvements of atlas handling in whereami and afni",
    "1- In addition to loading atlas specs from environment variable\n"

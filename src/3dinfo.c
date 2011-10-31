@@ -41,6 +41,8 @@ void Syntax(void)
     "   -n[i|j|k]: Return the number of voxels in i, j, k dimensions\n"
     "   -nijk: Return ni*nj*nk"
     "   -nt: Return number of points in time, or number of sub-bricks\n"
+    "  ==== Options producing one value per sub-brick ========\n"
+    "   -fac: Return the float factor\n"
     "  ==== Options producing multiple values (strings of multiple lines)====\n"
     "   -labeltable: Show label table, if any\n"
     "   -labeltable_as_atlas_points: Show label table in atlas point format.\n"
@@ -58,6 +60,7 @@ typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI,
    IS_OBLIQUE, PREFIX , PREFIX_NOEXT, NI, NJ, NK, NT, NIJK,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST,
+   FAC,
    N_FIELDS } INFO_FIELDS; /* Leave N_FIELDS at the end */
 
 int main( int argc , char *argv[] )
@@ -67,7 +70,7 @@ int main( int argc , char *argv[] )
    char *outbuf ;
    char *labelName = NULL;
    INFO_FIELDS sing[512]; 
-   int iis=0, N_sing = 0;
+   int iis=0, N_sing = 0, isb=0;
    
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
@@ -114,6 +117,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = LTABLE; iarg++; continue;
       } else if( strcmp(argv[iarg],"-labeltable_as_atlas_points") == 0) {
          sing[N_sing++] = LTABLE_AS_ATLAS_POINT_LIST; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-fac") == 0) {
+         sing[N_sing++] = FAC; iarg++; continue;
       } else {
          ERROR_exit("Option %s unknown", argv[iarg]);
       }
@@ -263,6 +268,15 @@ int main( int argc , char *argv[] )
                }
             }
             break;   
+         case FAC:
+            {
+               for (isb=0; isb<DSET_NVALS(dset); ++isb) {
+                  fprintf(stdout,"%f%s",
+                        DSET_BRICK_FACTOR(dset,isb),
+                        (isb == (DSET_NVALS(dset)-1)) ? "" : "|");
+               }
+               break;
+            }
          default:
             ERROR_message("Info field not set properly (%d)\n", sing[iis]);
             exit(1);

@@ -238,6 +238,11 @@ void AFNI_syntax(void)
      "   -port_number PORT_NAME: Give port number for PORT_NAME and quit\n"
      "   -port_number_quiet PORT_NAME: Same as -port_number but writes out \n"
      "                                    number only\n"
+     "   -available_npb: Find the first available block of port numbers, \n"
+     "                   print it to stdout and quit\n"
+     "                   The value can be used to set the -npb option for\n"
+     "                   a new set of chatty AFNI/SUMA/etc group.\n"
+     "   -available_npb_quiet: Just print the block number to stdout and quit.\n"
      "\n"
      "   -com ccc     This option lets you specify 'command strings' to\n"
      "                  drive AFNI after the program startup is completed.\n"
@@ -1160,6 +1165,17 @@ ENTRY("AFNI_parse_args") ;
       /* -list_ports list and quit */
       if( strncmp(argv[narg],"-list_ports", 8) == 0) {
          show_ports_list(); exit(0);
+      }
+      
+      /* -available_npb and quit */
+      if( strcmp(argv[narg],"-available_npb") == 0) {
+         fprintf(stdout,
+                 "\nFirst available npb: %d\n",get_available_npb());
+         exit(0);
+      }
+      if( strncmp(argv[narg],"-available_npb_quiet", 17) == 0) {
+         fprintf(stdout,"%d\n",get_available_npb());
+         exit(0);
       }
 
       /* -port_number and quit */

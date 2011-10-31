@@ -682,13 +682,12 @@ static void AFNI_niml_redisplay_CB( int why, int q, void *qq, void *qqq )
 
 ENTRY("AFNI_niml_redisplay_CB") ;
 
-   /* check inputs for reasonability */
-
+   /* check inputs for reasonability 
+      Do Not return here if function not visible    ZSS: Oct 2011 */
    if( dont_tell_suma            ||
        dont_overlay_suma         ||
-       !IM3D_OPEN(im3d)          ||
-       !im3d->vinfo->func_visible  ) EXRETURN ;
-
+       !IM3D_OPEN(im3d)           ) EXRETURN ;
+   
    sess  = im3d->ss_now   ; if( sess->su_num  == 0    ) EXRETURN ;
    adset = im3d->anat_now ;
    fdset = im3d->fim_now  ; if( fdset         == NULL ) EXRETURN ;
@@ -724,39 +723,46 @@ ENTRY("AFNI_niml_redisplay_CB") ;
      sA = ldp_list.list[kldp].sA;   /* for the sake of laziness */
      sB = ldp_list.list[kldp].sB;
 
-     rdata = NULL;   /* if we want these values, send them to A_vol2surf */
-     rthresh = 0.0;
+     if (!im3d->vinfo->func_visible) {   /* ZSS Oct 2011 */
+        nmap = 0;
+     } else {
+        rdata = NULL;   /* if we want these values, send them to A_vol2surf */
+        rthresh = 0.0;
 
-     if( ldp_list.list[kldp].use_v2s ){            /* vol2surf was requested */
-       nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA,sB, 0, NULL, &rthresh);
-     } else if ( ldp_list.list[kldp].nsurf > 1 ){  /* use v2s with defaults */
-       nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA,sB, 1, NULL, &rthresh);
-     } else {  /* one surface, no request: use vnlist */
-       /* okay, no more vnlist...  :(                   25 Oct 2004 [rickr] */
-       /* nmap = AFNI_vnlist_func_overlay( im3d, sA, &map,&nvused ) ;       */
+        if( ldp_list.list[kldp].use_v2s ){        /* vol2surf was requested */
+          nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA,sB, 
+                                            0, NULL, &rthresh);
+        } else if ( ldp_list.list[kldp].nsurf > 1 ){  /* use v2s with defaults */
+          nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA,sB, 
+                                            1, NULL, &rthresh);
+        } else {  /* one surface, no request: use vnlist */
+          /* okay, no more vnlist...  :(                   25 Oct 2004 [rickr] */
+          /* nmap = AFNI_vnlist_func_overlay( im3d, sA, &map,&nvused ) ;       */
+          nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA, -1, 
+                                            1, NULL, &rthresh);
+        }
 
-       nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA, -1, 1, NULL, &rthresh);
-     }
+   #if 0
+        if( serrit ) fprintf(stderr,"AFNI_niml_redisplay_CB: nmap=%d\n",nmap) ;
 
-#if 0
-     if( serrit ) fprintf(stderr,"AFNI_niml_redisplay_CB: nmap=%d\n",nmap) ;
+        /* we always use v2s now */
+        if( ! v2s && ( nmap < 0 || sess->su_surf[sA]->vn == NULL ) )
+        {
+          if( gv2s_plug_opts.sopt.debug > 0 )
+            fprintf(stderr,"** afni: bad surface %d, ret: %d,%p\n", 
+                           sA, nmap, map);
+          continue ; /* this is bad */
+        }
+   #endif
 
-     /* we always use v2s now */
-     if( ! v2s && ( nmap < 0 || sess->su_surf[sA]->vn == NULL ) )
-     {
-       if( gv2s_plug_opts.sopt.debug > 0 )
-         fprintf(stderr,"** afni: bad surface %d, ret: %d,%p\n", sA, nmap, map);
-       continue ; /* this is bad */
-     }
-#endif
-
-     /* base the error checking on which mapping method was used */
-     if( nmap < 0 || (nmap > 0 && !map) ) /* 29 Sep 2004 [rickr] */
-     {
-       if( gv2s_plug_opts.sopt.debug > 0 )
-         fprintf(stderr,"** bad v2s map %d, ret: %d,%p\n", sA, nmap, map);
-       continue ; /* this is bad */
-     }
+      /* base the error checking on which mapping method was used */
+      if( nmap < 0 || (nmap > 0 && !map) ) /* 29 Sep 2004 [rickr] */
+      {
+        if( gv2s_plug_opts.sopt.debug > 0 )
+          fprintf(stderr,"** bad v2s map %d, ret: %d,%p\n", sA, nmap, map);
+        continue ; /* this is bad */
+      }
+   }
 
      if( nmap > 0 ){  /*--- make a data element with data ---*/
 
