@@ -9,9 +9,41 @@ RET_PARSE:
 
 
 foreach prog ($proglist)
-   echo "searching for talking $prog..."
-   if ($no_npb == 1) then
+   if ("$pif" == '') then
+      echo "searching for talking $prog..."
+      if ($no_npb == 1) then
+         set pidl = `ps -a |  \grep $prog | \
+                              \sed 's/^[ \t]*//g' | \
+                              \cut -d ' ' -f 1`   
+         if ($#pidl > 0) then
+            foreach pid ($pidl)
+               echo killing $prog with pid $pid 
+               kill -9 $pid
+               if ($status) echo "Murder of $prog pid $pid failed"
+            end 
+         endif                       
+      else
+         set cc = 1
+         #don't use foreach npb ($npb_vals), it won't work if npb_vals = ('')
+         while ($cc <= $#npb_vals) 
+            set npb = $npb_vals[$cc]
+            set pidl = `ps -a |  \grep $prog | \
+                                 \grep "\-npb[[:space:]][[:space:]]*$npb" | \
+                                 \sed 's/^[ \t]*//g' | \
+                                 \cut -d ' ' -f 1`
+            if ($#pidl > 0) then
+               foreach pid ($pidl)
+                  echo killing $prog with pid $pid 
+                  kill -9 $pid
+                  if ($status) echo "Murder of $prog pid $pid failed"
+               end 
+            endif
+            @ cc ++                       
+         end
+      endif
+   else
       set pidl = `ps -a |  \grep $prog | \
+                           \grep "$pif"   |\
                            \sed 's/^[ \t]*//g' | \
                            \cut -d ' ' -f 1`   
       if ($#pidl > 0) then
@@ -20,25 +52,7 @@ foreach prog ($proglist)
             kill -9 $pid
             if ($status) echo "Murder of $prog pid $pid failed"
          end 
-      endif                       
-   else
-      set cc = 1
-      #don't use foreach npb ($npb_vals), it won't work if npb_vals = ('')
-      while ($cc <= $#npb_vals) 
-         set npb = $npb_vals[$cc]
-         set pidl = `ps -a |  \grep $prog | \
-                              \grep "\-npb[[:space:]][[:space:]]*$npb" | \
-                              \sed 's/^[ \t]*//g' | \
-                              \cut -d ' ' -f 1`
-         if ($#pidl > 0) then
-            foreach pid ($pidl)
-               echo killing $prog with pid $pid 
-               kill -9 $pid
-               if ($status) echo "Murder of $prog pid $pid failed"
-            end 
-         endif
-         @ cc ++                       
-      end
+      endif     
    endif
 end
 
@@ -46,9 +60,12 @@ goto END
 
 PARSE:
    set Narg = $#
-   set proglist = (afni 3dGroupInCorr plugout_drive suma DriveSuma)
+   set proglist = (afni 3dGroupInCorr plugout_drive suma DriveSuma \
+                   3dSkullStrip SurfSmooth)
    set npb_vals = ('')
    set no_npb = 0
+   set iprog = 0
+   set pif = ''
    set cnt = 1
    while ($cnt <= $Narg)
 		set donext = 1;
@@ -64,6 +81,31 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-no_npb") then
          set no_npb = 1
+         set donext = 0; goto NEXT		
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-prog") then
+         if ($cnt == $Narg) then
+            echo "Option -prog needs a program name"
+            goto BEND
+         endif
+         @ cnt ++
+         if ($iprog == 0) then
+            set proglist = ($argv[$cnt])
+         else
+            set proglist = ($proglist $argv[$cnt])
+         endif
+         @ iprog ++
+         set donext = 0; goto NEXT		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-pif") then
+         if ($cnt == $Narg) then
+            echo "Option -pif needs a string"
+            goto BEND
+         endif
+         @ cnt ++
+         set pif = $argv[$cnt]
          set donext = 0; goto NEXT		
       endif
       
@@ -107,17 +149,33 @@ PARSE:
 goto RET_PARSE
 
 HELP:
+   echo ""
    echo "A program to kill AFNI/SUMA talking programs"
    echo "ps is used to lookfor processes running the programs:"
    echo "$proglist"
    echo "that also have the -npb option used in their command line."
    echo ""
    echo "Examples:"
+   echo "   To kill all programs in list with the -npb option"
    echo "   `basename $0`"
    echo ""
+   echo "   To kill all those with either -npb 3 or 6"
    echo "   `basename $0` -npb_val 3 -npb_val 6"
    echo ""
+   echo "   To kill all those with -npb values in the range 5..9"
    echo "   `basename $0` -npb_range 5 9"
+   echo ""
+   echo "   To restrict the search to certain programs only:"
+   echo "   `basename $0` -prog suma -prog afni -npb_range 5 9"
+   echo ""
+   echo "General purpose destruction:"
+   echo "You can also kill process that have a certain string in the"
+   echo "command line. Usually such commands are flagged with the "
+   echo "hidden AFNI option -pif."
+   echo "Example:"
+   echo "   suma -pif SOME_KEY_STRING &"
+   echo "   `basename $0` -prog suma -pif SOME_KEY_STRING"
+   echo "Note that with -pif, the npb options are disabled:"
    echo ""
    goto END
 
