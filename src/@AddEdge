@@ -384,8 +384,6 @@ DANCE:
 if ($auto == 1) then
    #Kill other versions:
    @Quiet_Talkers -pif ADD_EDGE_PROCESSES >& /dev/null
-   #Give time for ports to revive
-   sleep 3
    set NPB = "-npb `afni -available_npb_quiet`"
    afni $NPB -niml -yesplugouts -pif ADD_EDGE_PROCESSES &
 else
