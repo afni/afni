@@ -100,8 +100,8 @@ if ("$package" == "") then
          echo "Using -motif as default for `hostname`"
          set lesstifing = -1
       endif
-      set jpega = 1
-      set lpng = 1
+      set dynxlibs = 1
+      set ljpeg = 1
    else 
       echo "Don't know what package to use for `hostname`"
       goto END
@@ -246,6 +246,16 @@ endif
 if ( $lpng ) then
   sed 's/-lXft/-lXft -lpng/g'  Makefile > ___mm
   mv ___mm Makefile
+endif
+
+if ( $ljpeg ) then
+  sed 's/-lXft/-lXft -ljpeg/g'  Makefile > ___mm
+  mv ___mm Makefile
+endif
+
+if ( $dynxlibs ) then
+   sed 's/# XLIBS = -lXm -lXt/ XLIBS = -lXm -lXt/g' Makefile > ___mm
+   mv ___mm Makefile
 endif
 
 #change bin directory to full path mode and put it in tdir/abin or where user specifies
@@ -421,7 +431,9 @@ PARSE_COMMAND:
    set expat_sh = 0
    set fontconf = 0
    set jpega = 0
+   set ljpeg = 0
    set lpng = 0
+   set dynxlibs = 0
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-echo") then
