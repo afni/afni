@@ -3151,11 +3151,18 @@ if __name__ == '__main__':
    if(ps.AddEdge):
       print "To view edges produced by @AddEdge, type:"
       print "cd AddEdge"
-      print "afni -niml -yesplugouts &"
-      if (ps.epi2anat and ps.anat2epi):
-         print "@AddEdge -examinelist %s" % listlog_a2e
-         print "@AddEdge -examinelist %s" % listlog_e2a
+      if (0):  #ZSS simplified suggestion for @AddEdge
+         print "afni -niml -yesplugouts &"
+         if (ps.epi2anat and ps.anat2epi):
+            print "@AddEdge -examinelist %s" % listlog_a2e
+            print "@AddEdge -examinelist %s" % listlog_e2a
+         else:
+            print "@AddEdge"
       else:
-         print "@AddEdge"
-
+         if (ps.epi2anat and ps.anat2epi):
+            print "@AddEdge -auto -examinelist %s" % listlog_a2e
+            print "@AddEdge -auto -examinelist %s" % listlog_e2a
+         else:
+            print "@AddEdge -auto"
+            
    ps.ciao(0)
