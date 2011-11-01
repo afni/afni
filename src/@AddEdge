@@ -32,7 +32,7 @@ PARSE:
    set opa=9
    set epionly = 0
    set argrem = ()
-   set auto = 0
+   set auto = 1
    set epi_edge_perc_thresh = 10
    set anat_edge_perc_thresh = 10
     while ($cnt <= $Narg && $#argrem == 0)
@@ -161,6 +161,11 @@ PARSE:
 
       if ($donext && "$argv[$cnt]" == "-auto") then
          set auto = 1
+         set donext = 0
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-no_auto") then
+         set auto = 0
          set donext = 0
       endif
 
@@ -363,7 +368,7 @@ if($rm_ae_temp == 1) then
 endif
 
 echo "Recommended commands:"
-echo "   @AddEdge -auto "
+echo "   @AddEdge  "
 echo ""
 if (-f ${listlog}) then
    echo ""
@@ -835,7 +840,9 @@ HELP:
    echo " -no_deoblique : do not deoblique any data to show overlap"
    echo " -auto_record  : save jpeg files of current slices  without prompting"
    echo " -auto: Closes old AFNI sessions and relaunch a new one that"
-   echo "        ready to listen to @AddEdge in review mode"
+   echo "        ready to listen to @AddEdge in review mode. This is "
+   echo "        the current default in review mode"
+   echo " -no_auto: Opposite of -auto"
    echo ""
 
    goto END
