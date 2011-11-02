@@ -2664,7 +2664,9 @@ def db_cmd_regress(proc, block):
                               (index+1, opt.parlist[0], labels[index]))
 
     # write out stim lines (add -stim_base to any RONI)
+    # (also, accumulates files with TENT functions)
     sfiles = block.opts.find_opt('-regress_no_stim_times')
+    tent_times = []
     for ind in range(len(proc.stims)):
         # rcr - allow -stim_times_AM/IM here?  make user choose one?
         #       (so mabye -stim_times can be set from proc.stim_times_opt)
@@ -2673,6 +2675,8 @@ def db_cmd_regress(proc, block):
         else:
             O3dd.append("    -stim_times %d %s '%s'"  % \
                         (ind+1, proc.stims[ind], basis[ind]))
+            # accumulate timing files with TENTs for later error checks
+            if basis[ind].find('TENT') >= 0: tent_times.append(proc.stims[ind])
         # and add the label
         if ind+1 in roni_list: rstr = ' -stim_base %d' % (ind+1)
         else:                  rstr = ''
@@ -2828,6 +2832,17 @@ def db_cmd_regress(proc, block):
         rcmd = "# display any large pariwise correlations from the X-matrix\n"\
                "1d_tool.py -show_cormat_warnings -infile %s"                  \
                " |& tee out.cormat_warn.txt\n\n" % proc.xmat
+        cmd = cmd + rcmd
+
+    # if we have any TENT functions, check the stim files for odd timing
+    if len(tent_times) > 0:
+        rlens = [proc.tr*rep for rep in proc.reps_all]
+        tent_str = " \\\n                             ".join(tent_times)
+        outfile  = 'out.TENT_warn.txt'
+        rcmd = "# look for odd timing in files for TENT functions\n"    \
+               "timing_tool.py -multi_timing %s \\\n"                   \
+               "               -tr %s -warn_tr_stats |& tee %s\n\n"     \
+               % (tent_str, proc.tr, outfile)
         cmd = cmd + rcmd
 
     # if we have a censor file, then set it as the xmat

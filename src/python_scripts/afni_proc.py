@@ -298,12 +298,13 @@ g_history = """
            -surf_A, -surf_B, -surf_blur_fwhm
         - compute errts and TSNR by default (had required option or blur est)
     3.01 Oct 17, 2011: added help for surface analysis and -surf options
+    3.02 Nov  2, 2011: warn of odd timing if using TENT as basis function
 """
 
-g_version = "version 3.01, October 17, 2011"
+g_version = "version 3.02, November 2, 2011"
 
 # version of AFNI required for script execution
-g_requires_afni = "3 Aug 2011"
+g_requires_afni = "31 Oct 2011"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
