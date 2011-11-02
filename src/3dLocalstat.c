@@ -570,20 +570,10 @@ int main( int argc , char *argv[] )
 
    THD_localstat_verb(verb) ;
    THD_localstat_datum(datum);
-   outset = THD_localstat(inset , mask , nbhd , ncode , code, codeparams, redx);
+   outset = THD_localstat(inset , mask , nbhd , ncode , code, codeparams, 
+                          redx, restore_grid == 1 ? resam_mode : -1);
    if( outset == NULL ) ERROR_exit("Function THD_localstat() fails?!") ;
 
-   if ( restore_grid == 1) {
-      THD_3dim_dataset *tout=NULL;
-      INFO_message("Restoring grid with %d resampling mode", resam_mode);
-      /* resample back to original grid */
-      if (!(tout = r_new_resam_dset( outset, inset, 0.0, 0.0, 0.0,
-                               NULL, resam_mode, NULL, 1, 1))) {
-         ERROR_exit("Failed to reduce output grid");
-      }
-      DSET_delete(outset) ; outset = tout; tout = NULL;  
-   }
-   
    DSET_unload(inset) ;
    /*---- save resulting dataset ----*/
 
