@@ -246,7 +246,6 @@ SEG_OPTS *SegOpt_Struct()
    Opt->DO_f = FALSE;
    Opt->DO_c = FALSE;
    Opt->DO_x = FALSE;
-   
    Opt->group_classes = NULL;
    Opt->group_keys = NULL;
    
@@ -284,6 +283,8 @@ SEG_OPTS *SegOpt_Struct()
    Opt->pstCgALLname = NULL;
    Opt->Bsetname = NULL;
    Opt->Split = NULL;
+   
+   Opt->blur_meth = SEG_BIM;
    RETURN(Opt);
 }
 
@@ -722,6 +723,21 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-blur_meth") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -blur_meth \n");
+				exit (1);
+			}
+			if (!strcmp(argv[kar],"BIM")) Opt->blur_meth = SEG_BIM;
+         else if (!strncmp(argv[kar],"LS",2)) Opt->blur_meth = SEG_LSB;
+         else {
+            SUMA_S_Errv("-blur_meth %s not valid\n", argv[kar]);
+            exit(1);
+         }
+         brk = 1;
+		}
+            
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {

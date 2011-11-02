@@ -4,6 +4,10 @@
 #define SEG_LSQFIT 2
 #define SEG_L1FIT 1
 
+typedef enum {
+   SEG_BIM, SEG_LSB
+} BLUR_METH;
+
 typedef struct {
    int N_label;
    char **label;
@@ -115,6 +119,8 @@ typedef struct {
    
    char *hist;
    int *Split;
+   
+   BLUR_METH blur_meth;
 } SEG_OPTS;
 
 void GenPriors_usage(void) ;

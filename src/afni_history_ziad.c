@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 2, NOV , 2011 , ZSS , "3dfim+" , MICRO , TYPE_BUG_FIX,
+   "Turned off scaling for Best Index in output dset",
+   NULL   
+  } ,
+
  { 26, OCT , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_OPT,
    "Made SUMA hide overlay from SUMA whenever 'See Overlay' is off in AFNI",
    NULL   
