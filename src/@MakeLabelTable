@@ -597,6 +597,28 @@ PARSE:
 			endif
          goto CONTINUE
       endif
+      if (  "$argv[$cnt]" == "-lab_file") then
+         set nneed = `ccalc -i $cnt + 3`
+         if ($nneed > $Narg) then
+				if (! $quiet_death) echo "Need 2 values after -lab_file"
+            goto BEND
+			else
+            @ cnt ++
+            set flab = $argv[$cnt]
+            if (! -f $flab) then
+               echo "File $flab not found"
+               goto BEND
+            endif
+            @ cnt ++
+            set iL = `ccalc -i $argv[$cnt]+1`
+            @ cnt ++
+            set iV = `ccalc -i $argv[$cnt]+1`
+            set llist = (`awk '{print $'$iL'}' $flab`)
+            set llistmin = (`awk '{print $'$iV'}' $flab`)
+            set llistmax = ($llistmin)
+         endif
+         goto CONTINUE
+      endif
       if ("$argv[$cnt]" == "-dset") then
          if ($cnt > $Narg) then
             if (! $quiet_death) \
@@ -640,6 +662,7 @@ HELP:
    echo "                     [-atlas_pointlist ATLAS_POINTLIST>"
    echo "                     [<-lab_r LAB MIN MAX> <-lab_r LAB MIN MAX> <...>]"
    echo "                     [<-lab_v LAB KEY> <-lab_v LAB VAL> <...>]"
+   echo "                     [<-lab_file FILE cLAB cVAL>]"
    echo "                     [<-dset DSET>]"
    echo "   -labeltable LABELTABLE: Name of output label table"
    echo "   -atlas_pointlist ATLAS_POINTLIST: Instead of a label table"
@@ -653,6 +676,10 @@ HELP:
    echo "   -lab_v LAB KEY: Define a label LAB and its value KEY"
    echo "              For example: -lab_v  WM 8 generates in the labeltable:"
    echo '                           "8" "WM"'
+   echo "   -lab_file FILE cLAB cVAL: Labels and keys are in text file FILE."
+   echo "                          cLAB is the index of column containing labels"
+   echo "                          vVAL is the index of column containing keys"
+   echo "                          (1st column is indexed at 0)"
    echo "   -dset DSET: Attach the label table (or atlas point list) to "
    echo "               dataset DSET"
    echo ""
@@ -692,6 +719,10 @@ HELP:
    echo ""
    echo "   Example:"
    echo "      @MakeLabelTable -LT_to_atlas_PL aparc.a2009s+aseg_rank.niml.lt"
+   echo ""
+   echo "Usage mode 4: Turn a labeled dataset into an ATLAS"
+   echo "   Example:"
+   echo "      @MakeLabelTable -atlasize_labeled_dset SOME_LABELED_ROI_DSET"
    echo ""
    goto END
 
