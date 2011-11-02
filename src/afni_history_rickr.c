@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, NOV, 2011, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "if using TENT, run 'timing_tool.py -warn_tr_stats'",
+   "Warnings are also saved in out.TENT_warn.txt."
+ } ,
+
+ {  2, NOV, 2011, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "added out.TENT_warn.txt to warning file review",
+   NULL
+ } ,
+
  { 31, OCT, 2011, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "added -show_tr_stats and -warn_tr_stats options",
    NULL
