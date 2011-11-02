@@ -457,9 +457,10 @@ g_history = """
    0.10 Oct 25, 2011:
         - look for files with '_' separators
         - added for J Weisberg
+   0.11 Nov 02, 2011: added out.TENT_warn.txt to warning file review
 """
 
-g_version = "gen_ss_review_scripts.py version 0.10, October 25, 2011"
+g_version = "gen_ss_review_scripts.py version 0.10, November 2, 2011"
 
 g_todo_str = """
    - figure out template_space
@@ -1803,6 +1804,17 @@ class MyInterface:
              '\n'                                                       \
              'echo ""\n'                                                \
              '\n'                                                       \
+             '# show any timing_tool.py warnings about TENTs        \n' \
+             'if ( -f out.TENT_warn.txt ) then\n'                       \
+             '   echo ------------ out.TENT_warn.txt -------------\n'   \
+             '   cat out.TENT_warn.txt\n'                               \
+             '   echo --------------------------------------------\n'   \
+             'else\n'                                                   \
+             '   echo --- no out.TENT_warn.txt warnings file ---  \n'   \
+             'endif\n'                                                  \
+             '\n'                                                       \
+             'echo ""\n'                                                \
+             '\n'                                                       \
              '# show any pairwise correlation warnings from X-matrix\n' \
              'echo ----------- correlation warnings -----------\n'      \
              '1d_tool.py -show_cormat_warnings -infile %s\n'            \
@@ -1813,6 +1825,7 @@ class MyInterface:
              'prompt_user -pause "                                 \\\n' \
              '   review: check for regression warnings             \\\n' \
              '      - review any warnings from 3dDeconvolve        \\\n' \
+             '      - review any TENT warnings from timing_tool.py \\\n' \
              '      - review any X-matrix warnings from 1d_tool.py \\\n' \
              '                                                     \\\n' \
              '   --- click OK when finished ---                    \\\n' \
