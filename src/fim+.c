@@ -533,7 +533,7 @@ void regression_analysis
   float rtemp, rbest;       /* best correlation coefficient */  
   float stemp, sbest;       /* best Spearman correlation coefficient */
   float qtemp, qbest;       /* best quadrant correlation coefficient */
-  float mse;                /* mean square error (sample variance) */
+  float mse=0.0;            /* mean square error (sample variance) */
 
   float * sarray = NULL;    /* ranked array of measurement data */
 

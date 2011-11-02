@@ -1240,7 +1240,7 @@ void calculate_results
                   "exceeds the hard coded limit of %d\n"
                   "Contact authors if you need the limit extended.\n",
                   MAX_FILES);
-   exit(0);     
+   exit(1);     
   }
 
   /*----- Allocate memory -----*/
@@ -1367,7 +1367,8 @@ void attach_sub_brick
   int nsam, 
   int nfit, 
   int nort,                 /* degrees of freedom */
-  short ** bar              /* bar[ib] points to data for sub-brick #ib */  
+  short ** bar,             /* bar[ib] points to data for sub-brick #ib */
+  int do_scale  
 )
 
 {
@@ -1378,15 +1379,20 @@ void attach_sub_brick
   /*----- allocate memory for output sub-brick -----*/
   bar[ibrick]  = (short *) malloc (sizeof(short) * nxyz);
   MTEST (bar[ibrick]);
-  factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
-				      MRI_short, bar[ibrick]);
-  
-  if (factor < EPSILON)  factor = 0.0;
-  else factor = 1.0 / factor;
+  if (do_scale) { 
+     factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+				         MRI_short, bar[ibrick]);
 
-  EDIT_misfit_report( DSET_FILECODE(new_dset) , ibrick ,
-                      nxyz , factor , bar[ibrick] , volume ) ;
+     if (factor < EPSILON)  factor = 0.0;
+     else factor = 1.0 / factor;
 
+     EDIT_misfit_report( DSET_FILECODE(new_dset) , ibrick ,
+                         nxyz , factor , bar[ibrick] , volume ) ;
+   } else { /* ZSS Nov 2011 */
+      EDIT_coerce_type(nxyz, MRI_float, volume,
+				         MRI_short, bar[ibrick]);
+      factor = 0.0;
+   }
   /*----- edit the sub-brick -----*/
   EDIT_BRICK_LABEL (new_dset, ibrick, brick_label);
   EDIT_BRICK_FACTOR (new_dset, ibrick, factor);
@@ -1557,7 +1563,8 @@ void write_bucket_data
 
       volume = fim_params_vol[ip];		  
       attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			brick_type, brick_label, nsam, nfit, nort, bar);  
+			brick_type, brick_label, nsam, nfit, nort, bar,
+         ip == FIM_BestIndex ? 0 : 1);  
 
       ibrick++;
     }
