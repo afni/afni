@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, NOV, 2011, RCR, "Dimon", MINOR, TYPE_ENHANCE,
+   "allow -save_file_list to apply even with -infile_list",
+   NULL
+ } ,
+
  {  2, NOV, 2011, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "if using TENT, run 'timing_tool.py -warn_tr_stats'",
    "Warnings are also saved in out.TENT_warn.txt."
