@@ -406,7 +406,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
          exit(1);
        }
        used[ii] = 1 ; ii++;
-       set_user_pif(atoi(argv[ii]));
+       set_user_pif(argv[ii]);
        used[ii] = 1;
        continue ;
      }
