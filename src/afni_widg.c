@@ -6961,7 +6961,7 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
                      str_lab2 ? str_lab2:"NULL", (int)val);  */
    }
 
-   if (str_lab1 && str_lab2) {
+   if (str_lab1 && str_lab2 && strcmp(str_lab1,str_lab2)) {
       snprintf(str,64, "%s|%s",str_lab1,str_lab2);
    } else if (str_lab1) {
       snprintf(str,64, "%s",str_lab1);
