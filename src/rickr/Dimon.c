@@ -71,10 +71,12 @@ static char * g_history[] =
     "        values leading to 'volume toasted' (problem noted by B Benson)\n",
     " 3.5  Sep  6, 2011 [rickr]\n"
     "      - added -fast: short for -sleep_init 50 -sleep_vol 50\n"
+    " 3.6  Sep  6, 2011 [rickr]\n"
+    "      - allow -save_file_list to apply even with -infile_list\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.5 (Sep 6, 2011)"
+#define DIMON_VERSION "version 3.6 (Nov 2, 2011)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -191,7 +193,7 @@ static int empty_string_list   ( string_list * list, int free_mem );
 static int find_first_volume   ( vol_t * v, param_t * p, ART_comm * ac );
 static int find_fl_file_index  ( param_t * p );
 static int find_more_volumes   ( vol_t * v, param_t * p, ART_comm * ac );
-static int find_next_zoff      ( param_t * p, int start, float zoff );
+static int find_next_zoff      ( param_t * p, int start, float zoff, int nim );
 static int init_extras         ( param_t * p, ART_comm * ac );
 static int init_options        ( param_t * p, ART_comm * a, int argc,
                                  char * argv[] );
@@ -1012,7 +1014,8 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
             else        /* unknown error - find start of next volume */
             {
                 /* search for a next starting point */
-                next_start = find_next_zoff( p, start+count, vin->z_first );
+                next_start = find_next_zoff( p, start+count, vin->z_first, 
+                                                             vin->nim );
 
                 if ( next_start < 0 )   /* come back and try again later */
                     return 0;
@@ -1074,7 +1077,8 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
         else    /* unknown error - find start of next volume */
         {
             /* search for a next starting point */
-            next_start = find_next_zoff( p, start+count+1, vin->z_first );
+            next_start = find_next_zoff( p, start+count+1, vin->z_first, 
+                                                           vin->nim );
 
             if ( next_start < 0 )       /* come back and try again later */
                 return 0;
@@ -1232,6 +1236,7 @@ static int read_ge_files(
             {
                 if ( read_file_list(p) ) return -1;
                 if( p->opts.dicom_org && dicom_order_files( p ) ) return -1;
+                if ( p->opts.flist_file ) create_flist_file( p );
                 org_todo = 0;  /* now don't do it, again */
             }
         }
@@ -4728,12 +4733,14 @@ static int nap_time_in_ms( float t1, float t2 )
  * Given p->flist, search from index start for an image with
  * geh.zoff equal to zoff.
  *
+ * if enough images but we are not finding it, warn user
+ *
  * return   index : upon succes         (start <= index <= p->nused)
  *             -1 : not found
  *             -2 : error
  * ----------------------------------------------------------------------
 */
-static int find_next_zoff( param_t * p, int start, float zoff )
+static int find_next_zoff( param_t * p, int start, float zoff, int nim )
 {
     int count;
 
@@ -4746,6 +4753,13 @@ static int find_next_zoff( param_t * p, int start, float zoff )
     for ( count = start; count <= p->nused; count++ )
         if ( fabs( zoff - p->flist[count].geh.zoff ) < gD_epsilon )
             return count;                       /* found! */
+
+    /* did not find it, but have extra images waiting, so warn user */
+    if ( p->nused-start >= 2*nim )
+        fprintf(stderr,"** warning: have enough images (%d) for new vol (%d)\n"
+                "            but cannot find zoff %.4f, have %.4f (in %s)\n",
+                       p->nused-start, nim, zoff, p->flist[start].geh.zoff,
+                       p->fnames[start]);
 
     return -1;
 }
