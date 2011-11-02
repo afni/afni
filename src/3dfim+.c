@@ -131,7 +131,8 @@ void display_help_menu()
     "                     baseline model  (pnum = 0, 1, etc.)               \n"
     "                     (default: pnum = 1). Use -1 for no baseline model.\n"
     "[-fim_thr p]       p = fim internal mask threshold value (0 <= p <= 1) \n"
-    "                     (default: p = 0.0999)                             \n"
+    "                     to get rid of low intensity voxels.               \n"
+    "                     (default: p = 0.0999), set p = 0.0 for no masking.\n"
     "[-cdisp cval]      Write (to screen) results for those voxels          \n"
     "                     whose correlation stat. > cval  (0 <= cval <= 1)  \n"
     "                     (default: disabled)                               \n"
@@ -154,7 +155,7 @@ void display_help_menu()
     "                   the string 'param' may be any one of the following: \n"
     "                                                                       \n"
     "%12s       L.S. fit coefficient for Best Ideal                \n"
-    "%12s       Index number for Best Ideal                        \n"
+    "%12s       Index number for Best Ideal (count starts at 1)    \n"
     "%12s       P-P amplitude of signal response / Baseline        \n"
     "%12s       Average of baseline model response                 \n"
     "%12s       Best Ideal product-moment correlation coefficient  \n"
@@ -1152,7 +1153,7 @@ void calculate_results
 {
   float * ts_array = NULL;    /* array of measured data for one voxel */
   float mask_val[1];          /* value of mask at current voxel */
-  float fthr;                 /* internal mask threshold level */
+  float fthr=0.0;             /* internal mask threshold level */
 
   int q;                      /* number of parameters in the baseline model */
   int p;                      /* number of parameters in the baseline model 
