@@ -1006,8 +1006,8 @@ plot.1D.eng <- function (P) {
        
       if (!is.null(P$mat2plt.minus) && !is.null(P$mat2plt.plus)) {
          for (i in 1:length(P$dmat.colsel)) {
-            arrows(x0=xat, y0=P$mat2plt[, i]-P$mat2plt.minus[,i], 
-                   x1=xat, y1=P$mat2plt[, i]+P$mat2plt.plus[,i],
+            arrows(x0=P$dmat.xval, y0=P$mat2plt[, i]-P$mat2plt.minus[,i], 
+                   x1=P$dmat.xval, y1=P$mat2plt[, i]+P$mat2plt.plus[,i],
                    length=.05, angle=90, code = 3,
                    col = P$col.color[P$dmat.colsel[i]] ) 
          } 

@@ -1078,11 +1078,14 @@ trim.string <- function (s, nchar=32, left=TRUE, strim='...')
       ss <- strsplit(s,'')[[1]]
       nc <- length(ss)
       if (nc>nchar) {
+         #browser()
          nstrim = length(strsplit(strim,'')[[1]])
          if (left) {
             ns <- nc - nchar - nstrim
-            ss <- ss[ns:nc] 
-            s<-paste(strim,paste(ss,collapse=''), sep='')
+            if (ns > nstrim) {
+               ss <- ss[ns:nc] 
+               s<-paste(strim,paste(ss,collapse=''), sep='')
+            }
             return(s)
          }else {
             ns <- nchar - nstrim
