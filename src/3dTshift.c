@@ -8,10 +8,12 @@
 
 /*--------------------------------------------------------------------------*/
 
+static void TS_copy_input_to_output(void) ;  /* prototype */
+
 void TS_syntax(char * str)
 {
    if( str != NULL ){
-      fprintf(stderr,"*** Fatal Error: %s\n",str) ; exit(1) ;
+     ERROR_exit("%s",str) ; exit(1) ;
    }
 
    printf("Usage: 3dTshift [options] dataset\n"
@@ -44,6 +46,10 @@ void TS_syntax(char * str)
           "\n"
           "* It seems to be best to use 3dTshift before using 3dvolreg.\n"
           "  (But this statement is controversial.)\n"
+          "\n"
+          "* If the input dataset does not have any slice timing information, and\n"
+          "  '-tpattern' is not given, then this program just copies the input to\n"
+          "  the output.  [02 Nov 2011 -- formerly, it failed]\n"
           "\n"
           "Options:\n"
           "  -verbose      = print lots of messages while program runs\n"
@@ -325,13 +331,12 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
-      fprintf(stderr,"*** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
+      ERROR_exit("Unknown option: %s",argv[nopt]) ;
 
    }  /* end of scan command line */
 
    if( TS_detrend == 0 && SHIFT_get_method() == MRI_FOURIER )
-      fprintf(stderr,
-         "*** WARNING: -no_detrend with Fourier interpolation is dangerous\n");
+     WARNING_message("-no_detrend with Fourier interpolation is dangerous");
 
    /*- open dataset; extract values, check for errors -*/
 
@@ -345,21 +350,26 @@ int main( int argc , char *argv[] )
    nzz = DSET_NZ(TS_dset) ;
    ntt = DSET_NVALS(TS_dset) ;
 
-   if( DSET_NVALS(TS_dset) < 2 ) TS_syntax("Dataset has only 1 value per voxel!") ;
+   if( DSET_NVALS(TS_dset) < 2 ){
+     WARNING_message("Input dataset has only 1 value per voxel!") ;
+     TS_copy_input_to_output() ;
+   }
+
    if( TS_slice >= nzz ) TS_syntax("-slice value is too large") ;
 
    if( TS_ignore > ntt-5 ) TS_syntax("-ignore value is too large") ;
 
-   if( TS_TR == 0.0 ){                                    /* set TR from dataset */
+   if( TS_TR <= 0.0 ){                                    /* set TR from dataset */
       if( TS_dset->taxis != NULL ){
         TS_TR     = DSET_TIMESTEP(TS_dset) ;
         TS_tunits = TS_dset->taxis->units_type ;
-      } else {
+      }
+      if( TS_TR <= 0.0 ){
         TS_TR     = 1.0f ;
         TS_tunits = UNITS_SEC_TYPE ;
       }
       if( TS_verbose )
-         printf("++ using dataset TR = %g %s\n",TS_TR,UNITS_TYPE_LABEL(TS_tunits)) ;
+        printf("++ using dataset TR = %g %s\n",TS_TR,UNITS_TYPE_LABEL(TS_tunits)) ;
    }
 
    if( TS_fset != NULL ){
@@ -372,17 +382,22 @@ int main( int argc , char *argv[] )
    } else {
 
      if( TS_dset->taxis == NULL ){
-       if( TS_TR == 0.0 || TS_tpattern == NULL )
-         TS_syntax("dataset has no time axis => you must supply -TR and -tpattern!") ;
+       if( TS_TR == 0.0 || TS_tpattern == NULL ){
+         WARNING_message("dataset has no time axis!") ;
+         TS_copy_input_to_output() ;
+       }
      } else if( TS_tpattern == NULL && TS_dset->taxis->toff_sl == NULL ){
-       TS_syntax("dataset is already aligned in time!") ;
+       WARNING_message("dataset is already aligned in time!") ;
+       TS_copy_input_to_output() ;
      }
 
      if( TS_tpattern != NULL ){                                    /* set pattern */
        TS_tpat = TS_parse_tpattern( nzz , TS_TR , TS_tpattern ) ;
      } else {
-       if( TS_dset->taxis->nsl != nzz )
-         TS_syntax("dataset temporal pattern is malformed!") ; /* should not happen */
+       if( TS_dset->taxis->nsl != nzz ){
+         WARNING_message("dataset temporal pattern is malformed!") ; /* should not happen */
+         TS_copy_input_to_output() ;
+       }
 
        TS_tpat = (float *) malloc( sizeof(float) * nzz ) ;
        memcpy( TS_tpat , TS_dset->taxis->toff_sl , sizeof(float)*nzz ) ;
@@ -398,10 +413,13 @@ int main( int argc , char *argv[] )
         if( TS_tpat[ii] > tomax ) tomax = TS_tpat[ii] ;
         if( TS_tpat[ii] < tomin ) tomin = TS_tpat[ii] ;
      }
-     if( tomin < 0.0 || tomax > TS_TR )
-        TS_syntax("some value in tpattern is outside 0..TR") ;
-     else if( tomin >= tomax )
-        TS_syntax("temporal pattern is already aligned in time!") ;
+     if( tomin < 0.0 || tomax > TS_TR ){
+       WARNING_message("some value in tpattern is outside range 0..TR=%g",TS_TR) ;
+       TS_copy_input_to_output() ;
+     } else if( tomin >= tomax ){
+       WARNING_message("temporal pattern is already aligned in time!") ;
+       TS_copy_input_to_output() ;
+     }
 
 
      if( TS_slice >= 0 && TS_slice < nzz ){                   /* set common time point */
@@ -575,6 +593,19 @@ int main( int argc , char *argv[] )
 
    if( TS_fset != NULL ) DSET_delete( TS_fset ) ;
 
+   DSET_write( TS_oset ) ;
+   if( TS_verbose ) fprintf(stderr,"++ Wrote output: %s\n",DSET_BRIKNAME(TS_oset)) ;
+   exit(0) ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+static void TS_copy_input_to_output(void)
+{
+   WARNING_message("==>> output dataset is just a copy of input dataset") ;
+   TS_oset = EDIT_full_copy( TS_dset , TS_prefix ) ;
+   if( TS_oset == NULL ) TS_syntax("Can't copy input dataset!") ;
+   DSET_unload( TS_dset ) ;
    DSET_write( TS_oset ) ;
    if( TS_verbose ) fprintf(stderr,"++ Wrote output: %s\n",DSET_BRIKNAME(TS_oset)) ;
    exit(0) ;
