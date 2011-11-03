@@ -1558,7 +1558,7 @@ int main (int argc,char *argv[])
                ncode = 1;
                nbhd = MCW_rectmask ( 1.0f, 1.0f, 1.0f , 1.0f, 1.0f, 1.0f  ) ;
                fatoutset = THD_localstat( outset , NULL , nbhd , 1 , code, 
-                                          NULL, NULL) ;
+                                          NULL, NULL, -1) ;
                Opt->fatemask = 
                   (float *) SUMA_malloc( sizeof(float)*DSET_NVOX(fatoutset));
                if (!Opt->fatemask) {
