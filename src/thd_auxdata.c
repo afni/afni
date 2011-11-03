@@ -130,7 +130,8 @@ void THD_store_datablock_label( THD_datablock *dblk , int iv , char *str )
    myXtFree( dblk->brick_lab[iv] ) ;
    if( str != NULL && str[0] != '\0' ){
       sss = strdup(str) ;
-      if( strlen(sss) > 32 ) sss[32] = '\0' ;
+      /* mod 10/27/2011 - drg */
+      if( strlen(sss) >= THD_MAX_SBLABEL ) sss[THD_MAX_SBLABEL-1] = '\0' ;
       dblk->brick_lab[iv] = XtNewString( sss ) ;
       free((void *)sss) ;
    } else {

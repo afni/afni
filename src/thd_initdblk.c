@@ -348,10 +348,11 @@ ENTRY("THD_datablock_from_atr") ;
        ngood = ipos - ipold - 1 ;                   /* number of good chars */
        if( ngood > 0 ){
          XtFree(dblk->brick_lab[ibr]) ;
-         if( ngood > 32 ) ngood = 32 ;      /* 02 Sep 2004 */
+         /* 27 Oct 2011 - increase to 64 */
+         if( ngood > THD_MAX_SBLABEL ) ngood = THD_MAX_SBLABEL;  
          dblk->brick_lab[ibr] = (char *) XtMalloc(sizeof(char)*(ngood+2)) ;
          memcpy( dblk->brick_lab[ibr] , atr_labs->ch+(ipold+1) , ngood ) ;
-         dblk->brick_lab[ibr][ngood] = '\0' ;
+         dblk->brick_lab[ibr][ngood-1] = '\0' ;
        }
 
         if( ipos >= atr_labs->nch ) break ;  /* nothing more to do */
@@ -758,10 +759,10 @@ ENTRY("THD_datablock_apply_atr") ;
        ngood = ipos - ipold - 1 ;                 /* number of good chars */
        if( ngood > 0 ){
          XtFree(blk->brick_lab[ibr]) ;
-         if( ngood > 32 ) ngood = 32 ;
+         if( ngood > THD_MAX_SBLABEL ) ngood = THD_MAX_SBLABEL ;
          blk->brick_lab[ibr] = (char *) XtMalloc(sizeof(char)*(ngood+2)) ;
          memcpy( blk->brick_lab[ibr] , atr_str->ch+(ipold+1) , ngood ) ;
-         blk->brick_lab[ibr][ngood] = '\0' ;
+         blk->brick_lab[ibr][ngood-1] = '\0' ;
        }
 
         if( ipos >= atr_str->nch ) break ;  /* nothing more to do */

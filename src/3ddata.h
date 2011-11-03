@@ -95,6 +95,10 @@ extern "C" {
 
 #define THD_MAX_LABEL     38
 
+/*! Max length of a dataset sub-brick label. */ 
+
+#define THD_MAX_SBLABEL     64     /* added 11/03/2011 drg */
+
 /*! Max length of a dataset prefix. */
 
 #define THD_MAX_PREFIX     (255+1)  /* must be more than THD_MAX_LABEL
@@ -1519,6 +1523,17 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 
 #undef  INVALIDATE_MAT44
 #define INVALIDATE_MAT44(AA) ((AA).m[3][3] = 0.0f)
+
+#undef  ISZERO_MAT44
+#define ISZERO_MAT44(AA) \
+ ((AA.m[0][0] == 0.0) && \
+  (AA.m[0][2] == 0.0) && \
+  (AA.m[1][0] == 0.0) && \
+  (AA.m[1][2] == 0.0) && \
+  (AA.m[2][0] == 0.0) && \
+  (AA.m[2][2] == 0.0) && \
+  (AA.m[3][0] == 0.0) && \
+  (AA.m[3][2] == 0.0) )
 
 /* check if 2 mat44 matrices are equal-ish */
 
@@ -4635,6 +4650,10 @@ extern void THD_reset_oblique_report_index(void);
 
 extern void THD_check_oblique_field(THD_3dim_dataset *dset);
 extern void THD_make_cardinal(THD_3dim_dataset *dset);
+extern void THD_updating_obliquity(int update);
+extern int THD_update_obliquity_status(void);
+extern void THD_set_dset_atr_status(int st);
+extern int THD_update_dset_atr_status(void);
 
   /* cf. thd_tmask.c */
 
