@@ -5572,7 +5572,7 @@ char * AFNI_bucket_label_CB( MCW_arrowval *av , XtPointer cd )
    static int               nsiz_last = 4 ;
 
    THD_3dim_dataset *dset = (THD_3dim_dataset *) cd ;
-   static char *fmt[3]={NULL,NULL,NULL} , sfmt[16] , blab[48] ;
+   static char *fmt[3]={NULL,NULL,NULL}, sfmt[THD_MAX_SBLABEL],blab[26+THD_MAX_SBLABEL] ;
    int nlab ;
    static int nlab_old = 0 ;
 
@@ -5588,7 +5588,7 @@ ENTRY("AFNI_bucket_label_CB") ;
        lab = DSET_BRICK_LAB(dset,kk) ;
        if( lab != NULL ){ blw=strlen(lab) ; if(blw>mblw)mblw=blw ; }
      }
-     if( mblw > 32 ) mblw = 32 ;
+     if( mblw > THD_MAX_SBLABEL ) mblw = THD_MAX_SBLABEL ;
      nsiz_last = mblw ;
    }
 
@@ -5608,7 +5608,8 @@ ENTRY("AFNI_bucket_label_CB") ;
      nlab_old = nlab ;
      sprintf(sfmt,"%%-%d.%ds",nlab,nlab) ;
      if( fmt[0] == NULL ){
-       fmt[0] = malloc(32); fmt[1] = malloc(32); fmt[2] = malloc(32);
+       fmt[0] = malloc(THD_MAX_SBLABEL); fmt[1] = malloc(THD_MAX_SBLABEL);
+       fmt[2] = malloc(THD_MAX_SBLABEL);
      }
 
      /* and now the formats including the sub-brick index and the label */
@@ -5645,7 +5646,7 @@ ENTRY("AFNI_bucket_label_CB") ;
 #endif
    }
    else
-     sprintf(blab," #%d ",av->ival) ; /* shouldn't hapeen, but you never know */
+     sprintf(blab," #%d ",av->ival) ; /* shouldn't happen, but you never know */
 
    RETURN(blab) ;
 }

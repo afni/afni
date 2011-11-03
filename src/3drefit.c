@@ -238,11 +238,12 @@ void Syntax(char *str)
     "                  Create or modify floating point or integer attributes.\n"
     "                  The input values may be specified as a single string\n"
     "                  in quotes or as a 1D filename or string. For example,\n"
-    "     3drefit -atrfloat IJK_TO_DICOM_REAL '1 0 0 0 0 1 0 0 0 0 0 1'"
+    "     3drefit -atrfloat IJK_TO_DICOM_REAL '1 0.2 0 0 -0.2 1 0 0 0 0 1 0'"
           " dset+orig\n"
     "     3drefit -atrfloat IJK_TO_DICOM_REAL flipZ.1D dset+orig\n"
-    "     3drefit -atrfloat IJK_TO_DICOM_REAL '1D:1,3@0,0,1,2@0,2@0,1,0'"
-          " dset+orig\n"
+    "     3drefit -atrfloat IJK_TO_DICOM_REAL \\ \n"
+    "       '1D:1,0.2,2@0,-0.2,1,2@0,2@0,1,0' \\ \n"
+    "       dset+orig\n"
     "                  Almost all afni attributes can be modified in this way\n"
     "  -saveatr        (default) Copy the attributes that are known to AFNI into \n"
     "                  the dset->dblk structure thereby forcing changes to known\n"
@@ -433,7 +434,7 @@ int main( int argc , char * argv[] )
    char str[256] ;
    int  iarg , ii ;
 
-   typedef struct { int iv ; char lab[32] ; }              SUBlabel   ;
+   typedef struct { int iv ; char lab[THD_MAX_SBLABEL] ; }     SUBlabel   ;
    typedef struct { int iv ; float par[MAX_STAT_AUX+2] ; } SUBstatpar ;
    typedef struct { int iv , code ; char * keyword ; }     SUBkeyword ;
    int nsublab     = 0 ; SUBlabel *   sublab     = NULL ;
@@ -770,7 +771,8 @@ int main( int argc , char * argv[] )
                                           sizeof(SUBlabel) * (nsublab+1) ) ;
 
          sublab[nsublab].iv = iv ;
-         MCW_strncpy( sublab[nsublab].lab , argv[++iarg] , 32 ) ;
+         /* max sublabel = 64, 10/28/2011 drg */
+         MCW_strncpy( sublab[nsublab].lab , argv[++iarg] , THD_MAX_SBLABEL ) ; 
          nsublab++ ; new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1955,6 +1957,10 @@ int main( int argc , char * argv[] )
       /* Do we want to force new attributes into output ? ZSS Jun 06*/
       /* (only if -atrcopy or -atrstring)       28 Jul 2006 [rickr] */
       if ( saveatr && atrmod ){
+         THD_set_dset_atr_status(0);
+/*         THD_updating_obliquity(1);*/ /* allow the possibility to update the obliquity - 
+                                            otherwise gets overwritten with cardinal matrix in
+                                            THD_set_dataset_attributes() */
          /* apply attributes to header - dataxes and dblk*/
          INFO_message("applying attributes");
          THD_datablock_from_atr(dset->dblk , DSET_DIRNAME(dset) ,
