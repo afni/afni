@@ -3,6 +3,17 @@
 if ("$1" =~ "" || "$1" =~ -h*)  goto HELP
 goto START
 
+# recent history:
+#
+# ver   : change
+#  5    : added -mask option                   19 Oct 2011 [rickr]
+#  6    :                                       2 Nov 2011 [N Mei, A Messinger]
+#     - added -prefix option
+#     - replace orig slices with 3dAllineate fails
+#     - copy time axis info into output
+
+set ver = 6
+          
 HELP:
 set prog = `basename $0`
 echo " script to do 2D registration on each slice of a 3D+time"
@@ -27,16 +38,20 @@ echo "    example: $prog epi_run1"
 echo "    example: $prog -mask my_mask epi_run1"
 echo ""
 echo " options:"
-echo "    -mask MSET    : provide the prefix of an existing mask dataset"
+echo "    -mask   MSET    : provide the prefix of an existing mask dataset"
+echo "    -prefix PREFIX  : provide the prefix for output datasets"
 echo ""
 goto END
 
 START:
+set pfx = ""   #prefix
 set mset = ""   # mask dataset
 set inp  = ""   # input
 
 set ac = 1
 while ( $ac <= $#argv )
+
+  # mask option
   if ( "$argv[$ac]" == "-mask" ) then
     @ ac ++
     if ( $ac > $#argv ) then
@@ -44,7 +59,16 @@ while ( $ac <= $#argv )
       exit 1
     endif
     set mset = $argv[$ac]
-  else
+
+  # prefix option
+  else if ( "$argv[$ac]" == "-prefix" ) then
+    @ ac ++
+    if ( $ac > $#argv ) then
+        echo "** missing paramater for option '-prefix'"
+        exit 1
+    endif
+    set pfx = $argv[$ac]
+  else 
     # input datset
     if ( $inp != "" ) then
       echo "** too many params, should have options followed by single dset"
@@ -62,6 +86,9 @@ if ( $inp == "" ) then
   exit 1
 endif
 
+# if no prefix, base it on the input
+if ( $pfx == "" ) set pfx = $inp
+
 #NEED TO ADD: base option
 
 ### extract number of slices into nz
@@ -75,7 +102,7 @@ endif
 if ( $mset != "" ) then
   set mq  = ( `3dAttribute DATASET_DIMENSIONS $mset+orig` )
   if ( "$mq" != "$qq" ) then
-    echo "** dimensions do not match between $inp+org and $mset+orig"
+    echo "** dimensions do not match between $inp+orig and $mset+orig"
     exit 1
   endif
   echo "================== Have mask dataset: $mset+orig =================="
@@ -100,7 +127,7 @@ echo "======= Slicewise $meth warping: $nz slices, $nt time points ======="
 
 echo "========== Computing mean dataset as registration target =========="
 
-3dTstat -mean -prefix ${inp}_mean ${inp}+orig
+3dTstat -mean -prefix ${pfx}_mean ${inp}+orig
 
 ### extract each slice in turn, and register it in 2D only
 
@@ -112,8 +139,8 @@ foreach zz ( `count 0 $nz1` )
 
   echo "____________________ processing slice #$zz ____________________"
 
-  3dZcutup -keep $zz $zz -prefix ${inp}_${zz}      ${inp}+orig
-  3dZcutup -keep $zz $zz -prefix ${inp}_mean_${zz} ${inp}_mean+orig
+  3dZcutup -keep $zz $zz -prefix ${pfx}_${zz}      ${inp}+orig
+  3dZcutup -keep $zz $zz -prefix ${pfx}_mean_${zz} ${pfx}_mean+orig
   if ( $mset != "" ) then
     3dZcutup -keep $zz $zz -prefix ${mset}_${zz}   ${mset}+orig
     set source_mask = "-source_mask ${mset}_${zz}+orig"
@@ -124,43 +151,76 @@ foreach zz ( `count 0 $nz1` )
   foreach tt ( `count 0 $nt1` )
 
     3dAllineate -warp affine_general -final quintic    \
-                -prefix ${inp}_reg_${zz}_${tt}         \
-                -base ${inp}_mean_${zz}+orig           \
-                -input ${inp}_${zz}+orig"[$tt]"        \
+                -prefix ${pfx}_reg_${zz}_${tt}         \
+                -base ${pfx}_mean_${zz}+orig           \
+                -input ${pfx}_${zz}+orig"[$tt]"        \
                 $source_mask                           \
                 -autoweight -ls -onepass -nmatch 100%  \
                 -maxrot 10 -maxshf 10                  \
                 -maxscl 1.05 -maxshr 0.09              \
                 -overwrite -nwarp $meth -quiet         \
-                -1Dparam_save ${inp}_PP_${zz}_${tt}.1D
+                -1Dparam_save ${pfx}_PP_${zz}_${tt}.1D
+
+### if 3dAllineate fails, we want to still get back however many slices we put into @2dwarper
+
+    if ( $status ) then
+        3dbucket -prefix ${pfx}_reg_${zz}_${tt} ${pfx}_${zz}+orig"[$tt]"
+        echo "Replacing Faulty Slice $zz at time index $tt"
+    endif
+
   end
 
 ### cat all the time points from this slice back together
 
-  3dTcat -prefix ${inp}_reg_${zz} ${inp}_reg_${zz}_????+orig.HEAD
-  \rm -f ${inp}_reg_${zz}_????+orig.*
+  3dTcat -prefix ${pfx}_reg_${zz} ${pfx}_reg_${zz}_????+orig.HEAD
+  \rm -f ${pfx}_reg_${zz}_????+orig.*
 
 ### cat the parameters together
 
-  cat ${inp}_PP_${zz}_*.1D > ${inp}_PP_${zz}-junk.1D
-  1dcat -nonfixed ${inp}_PP_${zz}-junk.1D > ${inp}_param_${zz}.1D
-  \rm -f ${inp}_PP_${zz}_*.1D ${inp}_PP_${zz}-junk.1D
+  cat ${pfx}_PP_${zz}_*.1D > ${pfx}_PP_${zz}-junk.1D
+  1dcat -nonfixed ${pfx}_PP_${zz}-junk.1D > ${pfx}_param_${zz}.1D
+  \rm -f ${pfx}_PP_${zz}_*.1D ${pfx}_PP_????-junk.1D
 
 end
 
 ### now glue the slices back together
 
-echo "======= Assembling registered 3D dataset ${inp}_reg+orig ======="
+echo "======= Assembling registered 3D dataset ${pfx}_reg+orig ======="
 
-3dZcat -prefix ${inp}_reg ${inp}_reg_????+orig.HEAD
-3drefit -TR ${inp}+orig ${inp}_reg+orig
-3dNotes -h "@2dwarper.Allin $inp (meth=$meth)" ${inp}_reg+orig
+3dZcat -prefix ${pfx}_reg ${pfx}_reg_????+orig.HEAD
+
+### Get 4D time info from original input dataset
+
+#get t-axis nums from input dataset
+set taxis_nums = `3dAttribute TAXIS_NUMS ${inp}+orig`
+
+#get t-axis floats from input dataset
+set taxis_floats = `3dAttribute TAXIS_FLOATS ${inp}+orig`
+
+#get t-axis slice offsets from input dataset
+set taxis_offset = `3dAttribute TAXIS_OFFSETS ${inp}+orig`
+
+### Assemble registered 3D dataset
+
+#change TR back to input dataset TR
+3drefit -TR ${inp}+orig ${pfx}_reg+orig
+
+#copy over and save t-axis nums into new image registered dataset
+3drefit -saveatr -atrint TAXIS_NUMS "$taxis_nums" ${pfx}_reg+orig
+
+#copy over and save t-axis floats into new image 
+3drefit -saveatr -atrfloat TAXIS_FLOATS "$taxis_floats" ${pfx}_reg+orig
+
+#copy over and save t-axis offsets into new image registered dataset
+3drefit -saveatr -atrfloat TAXIS_OFFSETS "$taxis_offset" ${pfx}_reg+orig
+
+3dNotes -h "@2dwarper.Allin (ver $ver) $inp (meth=$meth)" ${pfx}_reg+orig
 
 unsetenv AFNI_QUIET_STARTUP
 
 ### remove the single-slice datasets
 
-\rm -f ${inp}_*????+orig.*
+\rm -f ${pfx}_*????+orig.*
 
 END:
 ### Free at last!!!
