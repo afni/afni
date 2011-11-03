@@ -11,6 +11,7 @@
 static int use_3D_format    = 0 ;  /* 21 Mar 2003 */
 static int use_NIFTI_format = 0 ;  /* 06 Apr 2005 */
 static int quiet_overwrite  = 0 ;  /* 31 Jan 2011 */
+static int update_dset_atr_status = 1; /* 31 Oct 2011 */
 
 void THD_use_3D_format   ( int uu ){ use_3D_format    = uu; }
 void THD_use_NIFTI_format( int uu ){ use_NIFTI_format = uu; }
@@ -123,9 +124,9 @@ ENTRY("THD_write_3dim_dataset") ;
    if( !AFNI_yesenv("AFNI_ALLOW_MILLISECONDS") ){ DSET_UNMSEC(dset); }
 
    /*----- 09 Mar 2005: set attribute structs in the datablock -----*/
-
-   THD_set_dataset_attributes( dset ) ;
-
+   if(THD_update_dset_atr_status()) {
+      THD_set_dataset_attributes( dset ) ;
+   }
    /*----- 06 Jun 2007: deconflict dataset name? -----*/
 
    /* default is ERROR_exit */
@@ -241,4 +242,22 @@ ENTRY("THD_write_3dim_dataset") ;
    /*----- write datablock to disk in AFNI .HEAD/.BRIK format -----*/
 
    RETURN( THD_write_datablock(blk,write_brick) ) ;
+}
+
+/* accessor functions to control whether attributes will be reinitialized 
+   from dset structure */
+/* 3drefit turns this off, but all other calls continue to reinitialize
+   attributes. Turning off this reset of the attribute is needed for writing
+   a dataset where items that could get reset like IJK_TO_DICOM_REAL are
+   rewritten using the cardinal transformation */
+int
+THD_update_dset_atr_status()
+{
+   return(update_dset_atr_status);
+}
+
+void
+THD_set_dset_atr_status(int st)
+{
+   update_dset_atr_status = st;
 }

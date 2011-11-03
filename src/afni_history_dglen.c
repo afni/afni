@@ -49,6 +49,20 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 03 , NOV, 2011 , DRG , "longer sub-brick labels" , 
+    MINOR , TYPE_MODIFY, 
+    "Allow sub-brick labels to be up to 63 characters"
+} ,
+
+{ 03 , NOV, 2011 , DRG , "3drefit" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Allow refitting of some attributes",
+    "Some attributes like IJK_TO_DICOM_REAL and DELTA were not\n"
+    "being updated correctly with the original values remaining\n"
+    "in the dataset"
+} ,
+
+
 { 13 , SEP, 2011 , DRG , "3dMean" , 
     MINOR , TYPE_NEW_OPT, 
     "Added non_zero and count options"
