@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, NOV, 2011, RCR, "@2dwarper.Allin", MINOR, TYPE_NEW_OPT,
+   "added -prefix option; allow for 3dAllin failures; copy time info",
+   "Updates by N Mei and A Messinger."
+ } ,
+
  {  2, NOV, 2011, RCR, "Dimon", MINOR, TYPE_ENHANCE,
    "allow -save_file_list to apply even with -infile_list",
    NULL
