@@ -29,15 +29,17 @@ DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface* PLUGIN_init( int ncall )
 {
-  /* --- register dirver for plugin (See README.driver) --- */
-  AFNI_driver_register( "3DSVM", drive_3dsvm_plugin ) ;
-
   /* --- declarations ---*/
   char *kernel_strlist[NKERNEL] = {"linear", "polynomial", "rbf", "sigmoid"};
   char *svmType_strlist[NSVMTYPE] = {"classification", "regression"};
   char *help_contribution_string;
   int str_length = strlen(plugin_helpstring) + strlen(contribution_string) + 2;
 
+  /* --- register dirver for plugin (See README.driver) --- */
+  if (!ncall) {/* ZSS Nov 2011: Call just once at first or get yelled at */
+    AFNI_driver_register( "3DSVM", drive_3dsvm_plugin ) ;
+  }
+  
   /* --- help and contribution string --- */
   if( (help_contribution_string = (char *) malloc(str_length*sizeof(char))) == NULL ) {
     fprintf(stderr, "**: ERROR: plug_3dsvm_rt: Can not allocate "
@@ -148,7 +150,6 @@ PLUGIN_interface* PLUGIN_init( int ncall )
   PLUTO_add_option( plint,"Predictions","Predictions",FALSE );
   /* name for prediction output:*/
   PLUTO_add_string( plint, "Prefix (.1D)", 0, NULL, 19 );
-
 
   if( !ALLOW_realtime ) {
     /*--- True Labels ---*/
