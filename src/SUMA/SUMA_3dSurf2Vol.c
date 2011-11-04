@@ -123,9 +123,14 @@ static char g_history[] =
  "\n"
  "3.6a March 22, 2005  [rickr]\n"
  "  - removed tabs\n"
+ "\n"
+ "3.7  November 4, 2011  [rickr]\n"
+ "  - 6.5 years since the last change?  really??\n"
+ "  - added 'mode' mapping function\n"
+ "  - for R Mruczek and Z Puckett\n"
  "----------------------------------------------------------------------\n";
  
-#define VERSION "version  3.6a (March 22, 2005)"
+#define VERSION "version  3.7 (November 4, 2011)"
 
 
 /*----------------------------------------------------------------------
@@ -148,7 +153,7 @@ SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
 
 /* this must match s2v_map_num enum */
 char * gs2v_map_names[] = { "none", "mask", "mask2", "ave", "count",
-                            "min", "max", "max_abs" };
+                            "min", "max", "max_abs", "mode" };
 
 /* AFNI prototype */
 extern void machdep( void );
@@ -266,9 +271,10 @@ THD_3dim_dataset * s2v_nodes2volume( node_list_t * N, param_t * p,
     double           * ddata;
     void             * vdata = NULL;
     int              * cdata;
+    aggr_list_t        aggr = {NULL};
     float              fac;
     int                nvox, dsize, valid;
-    int                sub;
+    int                sub, vind;
 
 ENTRY("s2v_nodes2volume");
 
@@ -322,6 +328,23 @@ ENTRY("s2v_nodes2volume");
         DSET_delete( dout );  free( ddata );  free( cdata );
         RETURN(NULL);
     }
+
+    /* if we need to aggregate values, create arrays */
+    aggr.vlist = NULL;
+    if( is_aggregate_type(sopt->map) ) {
+        aggr.vlist = (float_list *)malloc(nvox*sizeof(float_list));
+        if( ! aggr.vlist ) {
+            fprintf(stderr,"** failed to alloc %d elem float_list\n", nvox);
+            DSET_delete( dout );  free( ddata );  free( cdata );
+            RETURN(NULL);
+        }
+        for( vind = 0; vind < nvox; vind++ )
+            if( init_float_list(aggr.vlist+vind, 4) != 4 ) {
+                fprintf(stderr,"** failed to init float_list %d\n", vind);
+                DSET_delete( dout );  free( ddata );  free( cdata );
+                RETURN(NULL);
+            }
+    }
     
     dsize = mri_datum_size(sopt->datum);
     /* create the sub-brick data for output */
@@ -353,7 +376,11 @@ ENTRY("s2v_nodes2volume");
             RETURN(NULL);
         }
 
-        if ( compute_results( p, N, sopt, ddata, cdata, pary ) == 0 )
+        /* if we have aggregate list, clear (ignore) the contents */
+        if( is_aggregate_type(sopt->map) && aggr.vlist )
+            for( vind = 0; vind < nvox; vind++ ) aggr.vlist[vind].num = 0;
+
+        if ( compute_results( p, N, sopt, ddata, cdata, pary, &aggr ) == 0 )
             valid = 1;
 
         if ( ! valid )  /* then clean up memory */
@@ -397,13 +424,18 @@ ENTRY("s2v_nodes2volume");
     if (sopt->debug > 0)
         fprintf(stderr,"++ %d sub-brick(s) computed\n", p->nsubs);
 
+    /* if we have an aggregate list, free it */
+    if( is_aggregate_type(sopt->map) && aggr.vlist ) {
+        for( vind = 0; vind < nvox; vind++ ) free_float_list(aggr.vlist+vind);
+        free(aggr.vlist);
+    }
+
     free(ddata);
     free(cdata);
     free(pary);
 
     RETURN(dout);
 }
-
 
 /*----------------------------------------------------------------------
  * compute_results   - fill ddata with results, cdata with count
@@ -413,7 +445,8 @@ ENTRY("s2v_nodes2volume");
  *----------------------------------------------------------------------
 */
 int compute_results( param_t * p, node_list_t * N, s2v_opts_t * sopt,
-                         double * ddata, int * cdata, THD_fvec3 * pary )
+                         double * ddata, int * cdata, THD_fvec3 * pary,
+                         aggr_list_t * aggr )
 {
     THD_fvec3          p1, pn;
     float              dist, min_dist, max_dist;
@@ -483,7 +516,7 @@ ENTRY("compute_results");
         make_point_list( pary, &p1, &pn, sopt );
 
         /* do all the work to insert data */
-        if ( insert_list(N, p, sopt, pary, nindex, ddata, cdata) )
+        if ( insert_list(N, p, sopt, pary, nindex, ddata, cdata, aggr) )
             RETURN(-1);
     }
 
@@ -492,10 +525,21 @@ ENTRY("compute_results");
                         "   %d of %d nodes were out of bounds\n",
                 min_dist, max_dist, oobc, N->ilen);
 
-    if ( final_computations(ddata, cdata, sopt, DSET_NVOX(p->gpar)) )
+    if ( final_computations(ddata, cdata, sopt, DSET_NVOX(p->gpar), aggr) )
         RETURN(-1);
 
     RETURN(0);
+}
+
+/* just compare 2 floats */
+int fcomp(const void *f0, const void *f1)
+{
+    float * fp0 = (float *)f0;
+    float * fp1 = (float *)f1;
+
+    if( *fp0  < *fp1 ) return -1;
+    if( *fp0 == *fp1 ) return 0;
+    return 1;
 }
 
 
@@ -503,8 +547,10 @@ ENTRY("compute_results");
  * final_computations   - perform any last computation over the dataset
  *----------------------------------------------------------------------
 */
-int final_computations(double *ddata, int *cdata, s2v_opts_t *sopt, int nvox)
+int final_computations(double *ddata, int *cdata, s2v_opts_t *sopt, int nvox,
+                       aggr_list_t * aggr)
 {
+    float_list * flp = NULL;
     int index;
 
 ENTRY("final_computations");
@@ -525,6 +571,53 @@ ENTRY("final_computations");
                 if ( cdata[index] > 0 )
                     ddata[index] /= cdata[index];
             break;
+
+        case E_SMAP_MODE: {
+            int mcount, ncount, find;
+            float mval, nval;
+            /* for each voxel, sort list and aggrigate */
+            for ( index = 0, flp = aggr->vlist; index < nvox; index++, flp++ ) {
+                /* if nothing here, set to 0 and continue */
+                if( flp->num == 0 ) {
+                    ddata[index] = 0.0;
+                    if( sopt->debug > 1 && sopt->dvox == index )
+                        fprintf(stderr, "\n-- voxel %d, nothing to aggregate\n",
+                                index);
+                    continue;
+                }
+                qsort(flp->list, flp->num, sizeof(float), fcomp);
+
+                /* get initial max count */
+                find = 0; /* current index */
+                mval = flp->list[find];
+                while(find < flp->num && mval == flp->list[find]) find++;
+                mcount = find; /* initial max is current index */
+
+                /* now continue looking for more */
+                while(find < flp->num) {
+                    ncount = 1; nval = flp->list[find];
+                    find++;
+                    while(find < flp->num && nval == flp->list[find]) {
+                        find++;
+                        ncount++;
+                    }
+                    if( ncount > mcount ) {      /* we have a new max! */
+                        mcount = ncount;  mval = nval;
+                    }
+                }
+                ddata[index] = mval;    /* and finally, assign */
+
+                if( sopt->debug > 1 && sopt->dvox == index ) {
+                    fprintf(stderr, "\n-- aggregating voxel %d, %d vals "
+                                    "from %g to %g\n",
+                                    index, flp->num, flp->list[0],
+                                    flp->list[flp->num-1]);
+                    fprintf(stderr, "++ final mode %g (%d vals)\n",mval,mcount);
+                }
+
+            }
+            break;
+        }
 
         case E_SMAP_COUNT:
         case E_SMAP_MAX_ABS:
@@ -557,7 +650,8 @@ ENTRY("final_computations");
  *----------------------------------------------------------------------
 */
 int insert_list( node_list_t * N, param_t * p, s2v_opts_t * sopt,
-                 THD_fvec3 * pary, int nindex, double * ddata, int * cdata )
+                 THD_fvec3 * pary, int nindex, double * ddata, int * cdata,
+                 aggr_list_t * aggr )
 {
     THD_ivec3 i3;
     int       vindex, prev_vind;
@@ -615,7 +709,8 @@ ENTRY("insert_list");
         if ( debug )
             fprintf( stderr, " : (old) %d %f", cdata[vindex],ddata[vindex]);
 
-        if (insert_value(sopt, ddata, cdata, vindex, node, N->fdata[nindex]))
+        if (insert_value(sopt, ddata, cdata, vindex, node, N->fdata[nindex],
+                         aggr))
             RETURN(-1);
 
         if ( debug )
@@ -623,6 +718,17 @@ ENTRY("insert_list");
     }
 
     RETURN(0);
+}
+
+/* aggregate types are ones for which:                  3 Nov 2011 [rickr]
+ *    for each voxel
+ *        - accumuate all node values
+ *        - aggregate into final voxel value (e.g. mode, median, rand)
+ */
+int is_aggregate_type(int map_func)
+{
+    if( map_func == E_SMAP_MODE ) return 1;
+    return 0;
 }
 
 
@@ -634,7 +740,7 @@ ENTRY("insert_list");
  *----------------------------------------------------------------------
 */
 int insert_value(s2v_opts_t * sopt, double *dv, int *cv, int vox, int node,
-                 float value)
+                 float value, aggr_list_t * aggr)
 {
 ENTRY("insert_value");
 
@@ -653,6 +759,12 @@ ENTRY("insert_value");
         default:
             fprintf(stderr,"** IV: mapping %d not ready\n", sopt->map );
             RETURN(-1);
+
+        case E_SMAP_MODE:
+            /* allocate memory in 4 value blocks */
+            add_to_float_list(aggr->vlist+vox, value, 4);
+            dv[vox] = value;      /* useless, but lets us track via debug */
+            break;
 
         case E_SMAP_AVE:
             if ( cv[vox] == 0 )
@@ -808,6 +920,7 @@ ENTRY("adjust_endpts");
         case E_SMAP_MIN:
         case E_SMAP_MASK:
         case E_SMAP_MASK2:
+        case E_SMAP_MODE:
             break;
     }
 
@@ -2588,6 +2701,28 @@ ENTRY("usage");
             "       -dvoxel       6789                                    \\\n"
             "       -prefix       fred_surf_max\n"
             "\n"
+            "    6. Draw some surface ROIs, and map them to the volume.  Some\n"
+            "       voxels may contain nodes from multiple ROIs, so take the\n"
+            "       most common one (the mode), as suggested by R Mruczek.\n"
+            "\n"
+            "       ROIs are left in 1D format for the -sdata_1D option.\n"
+            "\n"
+            "\n"
+            "    setenv AFNI_NIML_TEXT_DATA YES\n"
+            "    ROI2dataset -prefix rois.1D.dset -input rois.niml.roi\n"
+            "\n"
+            "    %s                           \\\n"
+            "       -spec         fred.spec           \\\n"
+            "       -surf_A       smoothwm            \\\n"
+            "       -surf_B       pial                \\\n"
+            "       -sv           fred_anat+orig      \\\n"
+            "       -grid_parent 'fred_func+orig[0]'  \\\n"
+            "       -sdata_1D     rois.1D.dset        \\\n"
+            "       -map_func     mode                \\\n"
+            "       -f_steps      10                  \\\n"
+            "       -prefix       rois.from.surf\n"
+            "\n"
+            "\n"
             "------------------------------------------------------------\n"
             "\n"
             "  REQUIRED COMMAND ARGUMENTS:\n"
@@ -2709,6 +2844,9 @@ ENTRY("usage");
             "\n"
             "          max_abs: find the number with maximum absolute value\n"
             "                   (the resulting value will retain its sign)\n"
+            "\n"
+            "          mode   : apply the most common value per voxel\n"
+            "                   (appropriate where surf ROIs overlap)\n"
             "\n"
             "    -prefix OUTPUT_PREFIX  : prefix for the output dataset\n"
             "\n"
@@ -2938,7 +3076,7 @@ ENTRY("usage");
             "                (many thanks to Z. Saad and R.W. Cox)\n"
             "\n",
             prog, prog,
-            prog, prog, prog, prog, prog,
+            prog, prog, prog, prog, prog, prog,
             VERSION );
     }
     else if ( level == S2V_USE_HIST )
