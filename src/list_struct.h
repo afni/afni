@@ -33,13 +33,16 @@ int init_intp_list   ( intp_list   * d_list, int nel, int len );
 int init_shortp_list ( shortp_list * d_list, int nel, int len );
 int init_voidp_list  ( voidp_list  * d_list, int nel, int len );
 
-/* free simple lists and clelist structures */
+/* add to lists, possibly increment length */
+int add_to_float_list( float_list * d_list, float fval, int inc_size );
+
+/* free simple lists and clear structures */
 int free_float_list  ( float_list * d_list );
 int free_int_list    ( int_list   * d_list );
 int free_short_list  ( short_list * d_list );
 int free_void_list   ( void_list  * d_list );
 
-/* free list lists, and clelist structures */
+/* free list lists, and clear structures */
 int free_floatp_list ( floatp_list * d_list );
 int free_intp_list   ( intp_list   * d_list );
 int free_shortp_list ( shortp_list * d_list );
