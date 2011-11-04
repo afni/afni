@@ -16,6 +16,7 @@ PARSE:
    set DI = 0
    set opref = ''
    set shftin = 0
+   set outspace = ""
    if ("$1" == '') goto HELP
    while ($cnt <= $Narg)
       set donext = 1;
@@ -55,6 +56,7 @@ PARSE:
          set DR = $mnia_to_mni[1] 
          set DA = $mnia_to_mni[2]  
          set DI = $mnia_to_mni[3] 
+         set outspace = "MNI"
          set donext = 0   
       endif
       
@@ -67,6 +69,7 @@ PARSE:
          set DR = $mni_to_mnia[1]  
          set DA = $mni_to_mnia[2]
          set DI = $mni_to_mnia[3] 
+         set outspace = "MNI_ANAT"
          set donext = 0   
       endif
       
@@ -139,12 +142,18 @@ DOIT:
       endif
       3dcopy $v1  ${opref}
       3drefit -dxorigin $D_orv1[1] -dyorigin $D_orv1[2] -dzorigin $D_orv1[3] ${opref}$v1_vw
+      if (outspace != "")  then
+         3drefit -space $outspace ${opref}$v1_vw
+      endif
+
       3dNotes -h "`basename $0` $argv[*]" ${opref}$v1_vw
    else
       3drefit -dxorigin $D_orv1[1] -dyorigin $D_orv1[2] -dzorigin $D_orv1[3] $v1
+      if ($outspace != "")  then
+         3drefit -space $outspace $v1
+      endif
       3dNotes -h "`basename $0` $argv[*]" $v1
    endif
-   
 
 goto END  
 
