@@ -354,6 +354,34 @@ int init_voidp_list( voidp_list * d_list, int nel, int len )
 }
 
 /*----------------------------------------------------------------------
+ * add_to_XXXX_list:                                 4 Nov, 2011 [rickr]
+ *  
+ *   input: structure pointer, value, list increment size
+ *  
+ *   return:
+ *       success: nel (>= 1)
+ *----------------------------------------------------------------------*/
+int add_to_float_list( float_list * d_list, float fval, int inc_size )
+{
+    int llen;
+
+    if ( !d_list ) return -1;
+
+    /* maybe we need more space */
+    if ( d_list->num >= d_list->nall ) {
+        if (inc_size <= 0) llen = d_list->nall + 1;
+        else               llen = d_list->nall + inc_size;
+        d_list->nall = llen;
+        d_list->list = (float *)realloc(d_list->list, llen*sizeof(float));
+    }
+
+    d_list->list[d_list->num++] = fval;
+
+    return d_list->num;
+}
+
+
+/*----------------------------------------------------------------------
  * free_XXXX_list:
  *
  * free all lists
