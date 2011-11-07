@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 17 , OCT , 2011 , RWC , "3dhistog" , MICRO , TYPE_MODIFY ,
+  { 7 , NOV , 2011 , RWC , "3dDeconvolve" , MINOR , TYPE_MODIFY ,
+   "No -iresp or -sresp for dmBLOCK" ,
+   "Also, change defintion of 'near-duplicate' times from 0.05*TR to 0.50*TR" } ,
+
+ { 17 , OCT , 2011 , RWC , "3dhistog" , MICRO , TYPE_MODIFY ,
    "removed DOS ctrl-M's in file, they screwed things up for compiling" ,
    NULL } ,
 
