@@ -1531,7 +1531,6 @@ def db_mod_blur(block, proc, user_opts):
 
     if len(block.opts.olist) == 0: # init blur option
         block.opts.add_opt('-blur_filter', 1, ['-1blur_fwhm'], setpar=1)
-        block.opts.add_opt('-blur_size', 1, [4.0], setpar=1)
         block.opts.add_opt('-blur_opts_merge', -1, [])
 
     # check for option updates
@@ -1544,25 +1543,32 @@ def db_mod_blur(block, proc, user_opts):
     uopt = user_opts.find_opt('-blur_in_mask')
     bopt = block.opts.find_opt('-blur_in_mask')
     if uopt:
-        if bopt: bopt.parlist[0] = uopt.parlist[0]
+        if bopt: bopt.parlist = uopt.parlist
         else: block.opts.add_opt('-blur_in_mask', 1, uopt.parlist, setpar=1)
 
     uopt = user_opts.find_opt('-blur_in_automask')
     bopt = block.opts.find_opt('-blur_in_automask')
     if uopt and not bopt: block.opts.add_opt('-blur_in_automask', 0, [])
 
+    uopt = user_opts.find_opt('-blur_to_fwhm')
+    if uopt: block.opts.add_opt('-blur_to_fwhm', 0, [])
+
     uopt = user_opts.find_opt('-blur_size')
-    bopt = block.opts.find_opt('-blur_size')
-    if uopt and bopt:
-        try: bopt.parlist[0] = float(uopt.parlist[0])
-        except:
-            print "** -blur_size must be a real number, have '%s'" %(parlist[0])
-            block.valid = 0
-            return 1
+    if uopt:
+        bopt = block.opts.find_opt('-blur_size')
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-blur_size', 1, uopt.parlist, setpar=1)
 
     uopt = user_opts.find_opt('-blur_opts_merge')
     bopt = block.opts.find_opt('-blur_opts_merge')
     if uopt and bopt: bopt.parlist = uopt.parlist
+
+    # check for option updates
+    uopt = user_opts.find_opt('-blur_opts_B2FW')
+    if uopt:
+        bopt = block.opts.find_opt('-blur_opts_B2FW')
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-blur_opts_B2FW', 1, uopt.parlist, setpar=1)
 
     block.valid = 1
 
@@ -1574,21 +1580,63 @@ def db_cmd_blur(proc, block):
     opt    = block.opts.find_opt('-blur_filter')
     filter = opt.parlist[0]
     opt    = block.opts.find_opt('-blur_size')
-    size   = opt.parlist[0]
+    if opt:
+        size = opt.parlist[0]
+        havesize = 1
+    else:
+        size = 4.0
+        havesize = 0
+        
     prefix = proc.prefix_form_run(block)
     prev   = proc.prev_prefix_form_run(view=1)
+
+    try: fsize = float(size)
+    except:
+        print "** -blur_size must be a real number, have '%s'" %(parlist[0])
+        return
 
     other_opts = ''
 
     # if -blur_in_mask, use 3dBlurInMask (requires 1blur_fwhm)
-    if OL.opt_is_yes(block.opts.find_opt('-blur_in_mask')) or \
+    bopt = block.opts.find_opt('-blur_to_fwhm')
+    if bopt:
+       if not havesize:
+           print '** warning: using default 4.0 mm FWHM as _resulting_ blur\n'\
+                 '            (use -blur_size to adjust)'
+
+       # set any mask option
+       if block.opts.find_opt('-blur_in_automask'):
+           mopt = ' -automask'
+       else:
+          mopt = ''
+          mask = proc.mask
+          if not mask_created(mask): mask = proc.mask_extents
+          if mask_created(mask): mopt = ' -mask %s%s'%(mask.prefix, proc.view)
+          else:
+             print '** error: no mask for -blur_to_fwhm, failing...'
+             return
+
+       # any last request?
+       opt = block.opts.find_opt('-blur_opts_B2FW')
+       if not opt or not opt.parlist: other_opts = ''
+       else: other_opts = '                 %s \\\n' % ' '.join(opt.parlist)
+
+       # make command string
+       cstr = "    3dBlurToFWHM -FWHM %s%s \\\n"        \
+              "%s"                                      \
+              "                 -input %s \\\n"         \
+              "                 -prefix %s \n"          \
+              % (size, mopt, other_opts, prev, prefix)
+
+    # if -blur_in_mask, use 3dBlurInMask (requires 1blur_fwhm)
+    elif OL.opt_is_yes(block.opts.find_opt('-blur_in_mask')) or \
         block.opts.find_opt('-blur_in_automask'):
 
        # verify FWHM filter
        if filter != '-1blur_fwhm' and filter != '-FWHM':
           print "** error: 3dBlurInMask requires FWHM filter, have '%s'\n" \
                 "   (consider scale of 1.36 for RMS->FWHM)" % (filter)
-          return 1
+          return
 
        # set any mask option
        if block.opts.find_opt('-blur_in_automask'):
@@ -1607,10 +1655,11 @@ def db_cmd_blur(proc, block):
        else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
 
        # make command string
-       cstr = "    3dBlurInMask -preserve -FWHM %s%s \\\n"    \
-              "                 -prefix %s" % (str(size), mopt, prefix)
-       sstr = '                 '
-
+       cstr = "    3dBlurInMask -preserve -FWHM %s%s \\\n"      \
+              "                 -prefix %s \\\n"                \
+              "%s"                                              \
+              "                 %s\n"                           \
+              % (str(size),mopt,prefix, other_opts, prev)
 
     else: # default: use 3dmerge for blur
        # maybe there are extra options to append to the command
@@ -1618,17 +1667,17 @@ def db_cmd_blur(proc, block):
        if not opt or not opt.parlist: other_opts = ''
        else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
 
-       cstr = "    3dmerge %s %s -doall -prefix %s" % (filter,str(size),prefix)
-       sstr = '            '
+       cstr = "    3dmerge %s %s -doall -prefix %s \\\n"        \
+              "%s"                                              \
+              "            %s\n"                                \
+              % (filter, str(size), prefix, other_opts, prev)
 
     cmd = "# %s\n" % block_header('blur')
 
     cmd = cmd + "# blur each volume of each run\n"      \
                 "foreach run ( $runs )\n"               \
-                "%s \\\n"                               \
                 "%s"                                    \
-                "%s%s\n"                                \
-                "end\n\n" % (cstr, sstr, other_opts, prev)
+                "end\n\n" % (cstr)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -5857,6 +5906,33 @@ g_help_string = """
 
             Please see '3dmerge -help' for more information.
             See also -blur_filter.
+
+        -blur_to_fwhm           : blur TO the blur size (not add a blur size)
+
+            This option changes the program used to blur the data.  Instead of
+            using 3dmerge, this applies 3dBlurToFWHM.  So instead of adding a
+            blur of size -blur_size (with 3dmerge), the data is blurred TO the
+            FWHM of the -blur_size.
+
+            Note that 3dBlurToFWHM should be run with a mask.  So either:
+                o  put the 'mask' block before the 'blur' block, or
+                o  use -blur_in_automask
+            It is not appropriate to include non-brain in the blur estimate.
+
+            Note that extra options can be added via -blur_opts_B2FW.
+
+            Please see '3dBlurToFWHM -help' for more information.
+            See also -blur_size, -blur_in_automask, -blur_opts_B2FW.
+
+        -blur_opts_B2FW OPTS ... : specify extra options for 3dBlurToFWHM
+
+                e.g. -blur_opts_B2FW -rate 0.2 -temper
+
+            This allows the user to add extra options to the 3dBlurToFWHM
+            command.  Note that only one -blur_opts_B2FW should be applied,
+            which may be used for multiple 3dBlurToFWHM options.
+
+            Please see '3dBlurToFWHM -help' for more information.
 
         -mask_apply TYPE        : specify which mask to apply in regression
 

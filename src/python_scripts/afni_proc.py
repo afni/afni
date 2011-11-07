@@ -299,9 +299,11 @@ g_history = """
         - compute errts and TSNR by default (had required option or blur est)
     3.01 Oct 17, 2011: added help for surface analysis and -surf options
     3.02 Nov  2, 2011: warn of odd timing if using TENT as basis function
+    3.03 Nov  7, 2011: added -blur_to_fwhm and -blur_opts_B2FW
+        - for E Nelson and J Jarcho
 """
 
-g_version = "version 3.02, November 2, 2011"
+g_version = "version 3.03, November 7, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "31 Oct 2011"
@@ -662,6 +664,10 @@ class SubjProcSream:
                         helpstr='applies -automask to 3dBlurInMask')
         self.valid_opts.add_opt('-blur_size', 1, [],
                         helpstr='size of blur kernel (def: 4)')
+        self.valid_opts.add_opt('-blur_to_fwhm', 0, [],
+                        helpstr='use 3dBlurToFWHM for blur operation')
+        self.valid_opts.add_opt('-blur_opts_B2FW', -1, [],
+                        helpstr='additional options directly for 3dBlurToFWHM')
         self.valid_opts.add_opt('-blur_opts_BIM', -1, [],
                         helpstr='additional options directly for 3dBlurInMask')
         self.valid_opts.add_opt('-blur_opts_merge', -1, [],
