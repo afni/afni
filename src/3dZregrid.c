@@ -282,6 +282,10 @@ int main( int argc , char * argv[] )
    tross_Copy_History( dset , nset ) ;
    tross_Make_History( "3dZregrid" , argc,argv , nset ) ;
 
+   /* lose obliquity */
+   /* recompute Tc (Cardinal transformation matrix for new grid output */
+   THD_make_cardinal(nset);
+
    /*-- adjust z-axis stuff --*/
 
    if( new_nz != old_nz ){

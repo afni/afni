@@ -161,6 +161,10 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
+   /* lose obliquity */
+   /* recompute Tc (Cardinal transformation matrix for new grid output */
+   THD_make_cardinal(outset);
+
 STATUS("checking output filename") ;
 
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(outset)) ){
