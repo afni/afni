@@ -126,6 +126,10 @@ int main( int argc , char * argv[] )
        if(  DSET_IS_MASTERED(xset) ){
          fprintf(stderr,"+++ Can't modify CM of dataset %s\n",argv[narg]) ;
        } else {
+         /* lose obliquity */
+         /* recompute Tc (Cardinal transformation matrix for new grid output */
+         THD_make_cardinal(xset);
+
          LOAD_FVEC3(ov,DSET_XORG(xset),DSET_YORG(xset),DSET_ZORG(xset)) ;
          ov = THD_3dmm_to_dicomm( xset , ov ) ;
          dv = SUB_FVEC3(setv,cmv) ;

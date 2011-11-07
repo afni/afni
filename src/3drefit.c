@@ -1223,7 +1223,6 @@ int main( int argc , char * argv[] )
       /* -shift_tags, apply -d?origin to tags */
       if( strncmp(argv[iarg],"-shift_tags",11) == 0 ){
          shift_tags = 1 ;
-         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1231,7 +1230,6 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -dxtag!");
          dxtag = strtod(argv[iarg],NULL) ;
          new_tags = 1 ; new_stuff++ ;
-         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1239,7 +1237,6 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -dytag!");
          dytag = strtod(argv[iarg],NULL) ;
          new_tags = 1 ; new_stuff++ ;
-         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1247,7 +1244,6 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -dztag!");
          dztag = strtod(argv[iarg],NULL) ;
          new_tags = 1 ; new_stuff++ ;
-         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
