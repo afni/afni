@@ -188,6 +188,10 @@ int main( int argc , char * argv[] )
 
    new_dset = EDIT_empty_copy( old_dset ) ;
 
+   /* lose obliquity */
+   /* recompute Tc (Cardinal transformation matrix for new grid output */
+   THD_make_cardinal(new_dset);
+
    tross_Copy_History( old_dset , new_dset ) ;
    tross_Make_History( "3daxialize" , argc,argv , new_dset ) ;
 
