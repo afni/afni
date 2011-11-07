@@ -1355,6 +1355,7 @@ void display_help_menu()
     " the simulated BOLD response accumulates.  Understand what you         \n"
     " are doing in this case, and look at the regression matrix!            \n"
     " *N.B.: The maximum allowed dmBLOCK duration is 999 s.                 \n"
+    " *N.B.: You cannot use '-iresp' or '-sresp' with dmBLOCK!              \n"
     " *N.B.: If you are NOT doing amplitude modulation at the same time     \n"
     "        (and so you only have 1 'married' parameter per time), use     \n"
     "        '-stim_times_AM1' with dmBLOCK.  If you also want to do        \n"
