@@ -49,6 +49,18 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 07 , NOV, 2011 , DRG , "deobliquing" , 
+    MINOR , TYPE_MODIFY, 
+    "More programs lose original data obliquity",
+    "3drefit, 3dWarp, 3daxialize, 3dZcutup, 3dCM, 3dZregrid\n"
+    "added to the list of programs"
+} ,
+
+{ 07 , NOV, 2011 , DRG , "lost last character in sub-brick labels" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Fixed miscount of characters"
+} ,
+
 { 03 , NOV, 2011 , DRG , "longer sub-brick labels" , 
     MINOR , TYPE_MODIFY, 
     "Allow sub-brick labels to be up to 63 characters"
