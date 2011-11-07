@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, NOV, 2011, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -blur_to_fwhm and -blur_opts_B2FW",
+   "Added for E Nelson and J Jarcho."
+ } ,
+
  {  4, NOV, 2011, RCR, "3dSurf2Vol", MINOR, TYPE_ENHANCE,
    "added 'mode' mapping function",
    "Requested by R Mruczek.  Also done for Z Puckett."
