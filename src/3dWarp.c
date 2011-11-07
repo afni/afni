@@ -683,15 +683,9 @@ DUMP_MAT44("Twcombined", Tw);
    }
 #endif
 
-   if(oblique_flag) {
-      /* recompute Tc (Cardinal transformation matrix for new grid output */
-      THD_dicom_card_xform(outset, &tmat, &tvec); 
-      LOAD_MAT44(Tc, 
-          tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
-          tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
-          tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
-      outset->daxes->ijk_to_dicom_real = Tc;
-   }
+   /* lose obliquity if using 3dWarp for any transformation */
+   /* recompute Tc (Cardinal transformation matrix for new grid output */
+   THD_make_cardinal(outset);
 
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dWarp" , argc,argv , outset ) ;
