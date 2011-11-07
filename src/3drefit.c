@@ -428,6 +428,7 @@ int main( int argc , char * argv[] )
    int   did_something ;             /* 30 Mar 2010 */
    int cmap = -1;                    /* colormap handling */
    NI_str_array *sar_relab=NULL ;    /* 18 Apr 2011 */
+   int geom_change = 0;              /* 04 Nov 2011 [drg] */
 
 #define VINFO(x) if(verb)ININFO_message(x)
 
@@ -907,6 +908,7 @@ int main( int argc , char * argv[] )
          if( strncmp(argv[iarg],"cen",3) == 0 ) cxorg = 1 ;
          else                                   xorg  = strtod(argv[iarg],NULL) ;
          dxorg = 0 ; new_xorg = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -915,6 +917,7 @@ int main( int argc , char * argv[] )
          if( strncmp(argv[iarg],"cen",3) == 0 ) cyorg = 1 ;
          else                                   yorg  = strtod(argv[iarg],NULL) ;
          dyorg = 0 ; new_yorg = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -923,6 +926,7 @@ int main( int argc , char * argv[] )
          if( strncmp(argv[iarg],"cen",3) == 0 ) czorg = 1 ;
          else                                   zorg  = strtod(argv[iarg],NULL) ;
          dzorg = 0 ; new_zorg = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -938,6 +942,7 @@ int main( int argc , char * argv[] )
          cxorg = cyorg = czorg = dxorg = dyorg = dzorg = 0 ;
          new_xorg = new_yorg = new_zorg = duporg = 1 ; new_stuff++ ;
          DSET_delete(cset) ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -947,6 +952,7 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -dxorigin!");
          xorg = strtod(argv[iarg],NULL) ; dxorg = 1 ; cxorg = 0 ;
          new_xorg = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -954,6 +960,7 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -dyorigin!");
          yorg = strtod(argv[iarg],NULL) ; dyorg = 1 ; cyorg = 0 ;
          new_yorg = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -961,6 +968,7 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -dzorigin!");
          zorg = strtod(argv[iarg],NULL) ; dzorg = 1 ; czorg = 0 ;
          new_zorg = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -970,6 +978,7 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -xorigin_raw!");
          xorg     = strtod(argv[iarg],NULL) ; cxorg = dxorg = 0 ;
          new_xorg = 2 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -977,6 +986,7 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -yorigin_raw!");
          yorg     = strtod(argv[iarg],NULL) ; cyorg = dyorg = 0 ;
          new_yorg = 2 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -984,6 +994,7 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -zorigin_raw!");
          zorg     = strtod(argv[iarg],NULL) ; czorg = dzorg = 0 ;
          new_zorg = 2 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1037,6 +1048,7 @@ int main( int argc , char * argv[] )
          xdel = strtod( argv[++iarg]  , NULL ) ;
          if( xdel <= 0.0 ) Syntax("argument after -xdel must be positive!") ;
          new_xdel = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1045,6 +1057,7 @@ int main( int argc , char * argv[] )
          ydel = strtod( argv[++iarg]  , NULL ) ;
          if( ydel <= 0.0 ) Syntax("argument after -ydel must be positive!") ;
          new_ydel = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1053,16 +1066,18 @@ int main( int argc , char * argv[] )
          zdel = strtod( argv[++iarg]  , NULL ) ;
          if( zdel <= 0.0 ) Syntax("argument after -zdel must be positive!") ;
          new_zdel = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
       if( strncmp(argv[iarg],"-keepcen",7) == 0 ){  /* 17 Jul 2006 */
-        keepcen = 1 ;
-        iarg++ ; continue ;  /* go to next arg */
+         keepcen = 1 ;
+         geom_change = 1;
+         iarg++ ; continue ;  /* go to next arg */
       }
 
       if( strcmp(argv[iarg],"-verb") == 0 ){
-        verb++ ; iarg++ ; continue ;
+         verb++ ; iarg++ ; continue ;
       }
 
       if( strncmp(argv[iarg],"-xyzscale",8) == 0 ){ /* 17 Jul 2006 */
@@ -1072,6 +1087,7 @@ int main( int argc , char * argv[] )
          if( xyzscale == 1.0f )
            WARNING_message(
             "-xyzscale 1.0 really makes no sense, but if that's what you want" ) ;
+         geom_change = 1;
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1207,6 +1223,7 @@ int main( int argc , char * argv[] )
       /* -shift_tags, apply -d?origin to tags */
       if( strncmp(argv[iarg],"-shift_tags",11) == 0 ){
          shift_tags = 1 ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1214,6 +1231,7 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -dxtag!");
          dxtag = strtod(argv[iarg],NULL) ;
          new_tags = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1221,6 +1239,7 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -dytag!");
          dytag = strtod(argv[iarg],NULL) ;
          new_tags = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1228,6 +1247,7 @@ int main( int argc , char * argv[] )
          if( ++iarg >= argc ) Syntax("need an argument after -dztag!");
          dztag = strtod(argv[iarg],NULL) ;
          new_tags = 1 ; new_stuff++ ;
+         geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1614,16 +1634,15 @@ int main( int argc , char * argv[] )
       {  daxes->zzdel = (ORIENT_sign[daxes->zzorient] == '+') ? (zdel) : (-zdel) ; did_something++ ; }
 
       /*-- deoblique - assume the data is cardinal  6/20/2007 */
-      /* this should be after any other axis, orientation, origin, voxel size changes */
-      if(deoblique) {
+      /* this should be after any other axis,
+         orientation, origin, voxel size changes */
+      if(deoblique || geom_change) {   /* geom_change  04 Nov 2011 mod drg */
          /* replace transformation matrix with cardinal form */
-        THD_dicom_card_xform(dset, &tmat, &tvec);
-        LOAD_MAT44(dset->daxes->ijk_to_dicom_real,
-             tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
-             tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
-             tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
-        VINFO("deoblique") ;
-        did_something++ ; /* 30 Mar 2010 */
+         /* lose obliquity if using 3dWarp for any transformation */
+         /* recompute Tc (Cardinal transformation matrix for new grid output */
+         THD_make_cardinal(dset);
+         VINFO("deoblique") ;
+         did_something++ ; /* 30 Mar 2010 */
       }
 
 
