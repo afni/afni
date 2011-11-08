@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , NOV , 2011 , RWC , "3dDeconvolve" , MINOR , TYPE_MODIFY ,
+  { 8 , NOV , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_IMAGE_COLORANGLE" ,
+   "Set this to 360 to get the 'Colr' image to be a full circle colormap." } ,
+
+ { 7 , NOV , 2011 , RWC , "3dDeconvolve" , MINOR , TYPE_MODIFY ,
    "No -iresp or -sresp for dmBLOCK" ,
    "Also, change defintion of 'near-duplicate' times from 0.05*TR to 0.50*TR" } ,
 

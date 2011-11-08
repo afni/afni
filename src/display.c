@@ -546,8 +546,9 @@ void DC_init_im_col( MCW_DC *dc )
    double da, an, c, s, sb, cb, ak, ab , a1,a2 , gamm ;
    int i, r=0, g=0, b=0, nc ;
 
-   a1 = 0.0   ;  /* range of spectrum -- hardwired for now */
-   a2 = 240.0 ;
+   a1 = 0.0   ;
+   a2 = AFNI_numenv("AFNI_IMAGE_COLORANGLE") ;  /* 08 Nov 2011 */
+   if( a2 < 90.0 || a2 > 360.0 ) a2 = 240.0 ;   /* set range   */
 
    nc   = dc->ncol_im ;
    gamm = dc->gamma ;
@@ -570,7 +571,7 @@ void DC_init_im_col( MCW_DC *dc )
           g = 255.*mypow((ak + MIN(s ,(240. - an)*c))/255., gamm) +.5;
           b = 255.*mypow((ab + MIN(sb,(an - 120.)*cb))/255., gamm) +.5;
      } else if(an >= 240.) {
-          r =  255.*mypow((ak + MIN(s,(an - 240.)*c))/255., gamm) +.5;
+          r = 255.*mypow((ak + MIN(s,(an - 240.)*c))/255., gamm) +.5;
           g = 0;
           b = 255.*mypow((ak + MIN(s,(360. - an)*c))/255., gamm) +.5;
      }
@@ -1706,7 +1707,7 @@ int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp)
      bigmap_name[4] = strdup(BIGMAP_NAMES[4]) ;
      bigmap_name[5] = strdup(BIGMAP_NAMES[5]) ;
      bigmap_name[6] = strdup(BIGMAP_NAMES[6]) ;
-     bigmap         = (rgbyte **) malloc(sizeof(rgbyte *)*bigmap_num) ;
+     bigmap         = (rgbyte **)malloc(sizeof(rgbyte *)*bigmap_num) ;
      bigmap[0]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
      bigmap[1]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
      bigmap[2]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
