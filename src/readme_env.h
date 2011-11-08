@@ -2983,6 +2983,18 @@ static char * readme_env[] = {
    "the image appears to move to the right.  (Mutatis mutandum for the\n" ,
    "other directions, of course.)\n" ,
    "\n" ,
+   "-------------------------------\n" ,
+   "Variable: AFNI_IMAGE_COLORANGLE\n" ,
+   "-------------------------------\n" ,
+   "This value, a number between 90 and 360 (inclusive) describes the\n" ,
+   "amount of the AJJ color circle used by the 'Colr' button in an\n" ,
+   "AFNI image viewer.  If no value is given, the default is 240.\n" ,
+   "Changing this number to 360 means the color circle is continuous\n" ,
+   "from top to bottom -- an effect that is obvious if you use the 'r'\n" ,
+   "arrow buttons (on the right of the image viewer) to rotate the\n" ,
+   "color circle.  The default value of 240 is purely for historical\n" ,
+   "reasons, dating back to the old FD program from Medieval Times.\n" ,
+   "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_DUMMY_DATASET\n" ,
    "----------------------------\n" ,
@@ -3407,4 +3419,4 @@ static char * readme_env[] = {
    "If this variable is set to 'SMALL' or a negative number, then a smaller font\n" ,
    "size is used.\n" ,
    NULL } ;
-#define NUM_readme_env 3407
+#define NUM_readme_env 3419
