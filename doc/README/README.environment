@@ -2983,7 +2983,7 @@ the image appears to move to the right.  (Mutatis mutandum for the
 other directions, of course.)
 
 -------------------------------
-Variable: AFNI_IMAGE_COLORANGLE
+Variable: AFNI_IMAGE_COLORANGLE (editable)
 -------------------------------
 This value, a number between 90 and 360 (inclusive) describes the
 amount of the AJJ color circle used by the 'Colr' button in an

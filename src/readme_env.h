@@ -2984,7 +2984,7 @@ static char * readme_env[] = {
    "other directions, of course.)\n" ,
    "\n" ,
    "-------------------------------\n" ,
-   "Variable: AFNI_IMAGE_COLORANGLE\n" ,
+   "Variable: AFNI_IMAGE_COLORANGLE (editable)\n" ,
    "-------------------------------\n" ,
    "This value, a number between 90 and 360 (inclusive) describes the\n" ,
    "amount of the AJJ color circle used by the 'Colr' button in an\n" ,
