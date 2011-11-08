@@ -95,6 +95,11 @@ static char *env_fixed[] = {
 
 #define NUM_env_fixed (sizeof(env_fixed)/sizeof(char *))
 
+/*-------------------------------------------------------------------------*/
+
+char *angle_strings[] = { "120" , "180" , "240" , "300" , "360" } ;
+#define NUM_angle_strings (sizeof(angle_strings)/sizeof(char *)) /* 08 Nov 2011 */
+
 /*--------------------- strings for Cooordinate format --------------------*/
 
 #define NUM_cord_strings 50
@@ -110,6 +115,7 @@ static char *cord_strings[NUM_cord_strings] = {
 } ;
 
 static void ENV_coorder( char * ) ;
+static void ENV_angle_string( char * ) ;
 static void ENV_globalrange( char * ) ;
 static void ENV_compressor( char * ) ;
 static void ENV_leftisleft( char * ) ;
@@ -549,6 +555,11 @@ PLUGIN_interface * ENV_init(void)
           "Atlas to use in Atlas colors, Draw Dataset,  Go to atlas location" ,
                  0, NULL, ENV_atlas_reset ) ;
 
+   /* 08 Nov 2011 [RWC] */
+   ENV_add_string( "AFNI_IMAGE_COLORANGLE" ,
+                   "Image view color scale angle" ,
+                   NUM_angle_strings,angle_strings , ENV_angle_string ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
@@ -872,6 +883,24 @@ static void ENV_coorder( char *vname )
    MCW_strncpy(GLOBAL_argopt.orient_code,str,4) ;
    THD_coorder_fill( GLOBAL_argopt.orient_code , &GLOBAL_library.cord ) ;
    PLUTO_force_redisplay() ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+static void ENV_angle_string( char *vname )  /* 08 Nov 2011 */
+{
+   int ii ; Three_D_View *im3d ; MCW_DC *dc = NULL ;
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      im3d = GLOBAL_library.controllers[ii] ;
+      if( IM3D_OPEN(im3d) && im3d->dc != dc ){
+        if( dc == NULL ) dc = im3d->dc ;
+        DC_init_im_col(dc) ;
+        if( dc->use_xcol_im ) DC_set_image_colors(dc) ;
+      }
+   }
+
+   PLUTO_force_rebar() ; PLUTO_force_redisplay() ;
 }
 
 /*-----------------------------------------------------------------------*/
