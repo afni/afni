@@ -2988,6 +2988,11 @@ Variable: AFNI_IMAGE_COLORANGLE
 This value, a number between 90 and 360 (inclusive) describes the
 amount of the AJJ color circle used by the 'Colr' button in an
 AFNI image viewer.  If no value is given, the default is 240.
+Changing this number to 360 means the color circle is continuous
+from top to bottom -- an effect that is obvious if you use the 'r'
+arrow buttons (on the right of the image viewer) to rotate the
+color circle.  The default value of 240 is purely for historical
+reasons, dating back to the old FD program from Medieval Times.
 
 ----------------------------
 Variable: AFNI_DUMMY_DATASET
