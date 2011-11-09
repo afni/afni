@@ -1347,11 +1347,16 @@ def db_mod_surf(block, proc, user_opts):
     opt = user_opts.find_opt('-surf_B')
     if opt: proc.surf_B = opt.parlist[0]
 
-    val, err = user_opts.get_type_opt(float, '-surf_blur_fwhm')
+    val, err = user_opts.get_type_opt(float, '-blur_size')
     if err:
-        print '** error: -surf_blur_fwhm requires float argument'
+        print '** error: -blur_size requires float argument'
         return 1
-    elif val != None and val > 0.0: proc.surf_blur_fwhm = val
+    elif val != None and val > 0.0:
+        proc.surf_blur_fwhm = val
+    else:
+        proc.surf_blur_fwhm = 4.0
+        print '** applying default -blur_size of %s mm FWHM' \
+              % proc.surf_blur_fwhm
 
     if proc.verb > 2:
         print '-- surf info\n'          \
@@ -1361,7 +1366,7 @@ def db_mod_surf(block, proc, user_opts):
               '   anat_has_skull: %s\n' \
               '   surf_A        : %s\n' \
               '   surf_B        : %s\n' \
-              '   blur_fwhm     : %s\n' \
+              '   blur_size     : %s\n' \
               '   spec_dir      : %s\n' \
               '   surf_spd_var  : %s\n' \
               '   spec_var      : %s\n' \
@@ -4176,8 +4181,8 @@ g_help_string = """
            the current anatomy in the processing script.  Two spec files
            (lh and rh) are provided, one for each hemisphere.
 
-           Also, specify a (resulting) 6 mm FWHM blur via -surf_blur_fwhm.
-           This does not add a blur, but specifies a resulting blur level.  So
+           Also, specify a (resulting) 6 mm FWHM blur via -blur_size.  This
+           does not add a blur, but specifies a resulting blur level.  So
            6 mm can be given directly for correction for multiple comparisons
            on the surface.
 
@@ -4197,7 +4202,6 @@ g_help_string = """
                                   (default blocks for surf, so not needed)
                 -surf_anat      : volumed aligned with surface
                 -surf_spec      : spec file(s) for surface
-                -surf_blur_fwhm : specify resulting blur level
 
            This example is intended to be run from the AFNI_data4 directory.
 
@@ -4209,7 +4213,7 @@ g_help_string = """
                         -volreg_align_to last                              \\
                         -surf_anat SUMA/sb23_surf_SurfVol+orig             \\
                         -surf_spec SUMA/sb23_?h_141_std.spec               \\
-                        -surf_blur_fwhm 6                                  \\
+                        -blur_size 6                                       \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
                                              eneu fneg fpos fneu           \\
@@ -5807,21 +5811,9 @@ g_help_string = """
             surface for use when mapping from the volume (not for blurring).
             If the option is not given, the pial surface will be assumed.
 
-        -surf_blur_fwhm FWHM    : specify the FWHM blur level
+        -surf_blur_fwhm FWHM    :  NO LONGER VALID
 
-                e.g. -surf_blur_fwhm 6.0
-                default: -surf_blur_fwhm 4.0
-
-            This option allows the user to specify the level of blur in the
-            data (noise).  The units are specified as the Full Width at Half
-            Max, describing the width of a gaussian curve.
-
-            Note that this specifies the resulting blur level, not the 
-            additional blur level, as is common to do in the volume domain.
-            It is akin to 3dBlurToFWHM in the volume.
-
-            Please see 'SurfSmooth -help' for more information.
-            Please see '3dBlurToFWHM -help' for more information.
+            Please use -blur_size, instead.
 
         -blur_filter FILTER     : specify 3dmerge filter option
 
@@ -5890,21 +5882,32 @@ g_help_string = """
 
             Please see '3dmerge -help' for more information.
 
-        -blur_size SIZE_MM      : specify the size, in millimeters
+        -blur_size SIZE_MM      : specify the size, in millimeters 
 
                 e.g. -blur_size 6.0
                 default: 4
 
             This option allows the user to specify the size of the blur used
-            by 3dmerge.  It is applied as the 'bmm' parameter in the filter
-            option (such as -1blur_fwhm).
+            by 3dmerge (or another applied smoothing program).  It is applied
+            as the 'bmm' parameter in the filter option (such as -1blur_fwhm)
+            in 3dmerge.
 
             Note the relationship between blur sizes, as used in 3dmerge:
 
                 sigma = 0.57735027 * rms = 0.42466090 * fwhm
-                (implying rms = 1.359556 * fwhm)
+                (implying fwhm = 1.359556 * rms)
 
-            Please see '3dmerge -help' for more information.
+            Programs 3dmerge and 3dBlurInMask apply -blur_size as an additional
+            gaussian blur.  Therefore smoothing estimates should be computed
+            per subject for the correction for multiple comparisons.
+
+            Programs 3dBlurToFWHM and SurfSmooth apply -blur_size as the
+            resulting blur, and so do not requre blur estimation.
+
+            Please see '3dmerge -help'      for more information.
+            Please see '3dBlurInMask -help' for more information.
+            Please see '3dBlurToFWHM -help' for more information.
+            Please see 'SurfSmooth -help'   for more information.
             See also -blur_filter.
 
         -blur_to_fwhm           : blur TO the blur size (not add a blur size)
