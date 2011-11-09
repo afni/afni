@@ -295,15 +295,16 @@ g_history = """
     3.00 Oct 14, 2011: now processes surface data
         - added 'surf' processing block, and corresponding '-surf_*' options:
            -surf_anat, -surf_spec, -surf_anat_aligned, -surf_anat_has_skull,
-           -surf_A, -surf_B, -surf_blur_fwhm
+           -surf_A, -surf_B, -surf_blur_fwhm (now sticking with -blur_size)
         - compute errts and TSNR by default (had required option or blur est)
     3.01 Oct 17, 2011: added help for surface analysis and -surf options
     3.02 Nov  2, 2011: warn of odd timing if using TENT as basis function
     3.03 Nov  7, 2011: added -blur_to_fwhm and -blur_opts_B2FW
         - for E Nelson and J Jarcho
+    3.04 Nov  9, 2011: -surf_blur_fwhm is no longer valid, use -blur_size
 """
 
-g_version = "version 3.03, November 7, 2011"
+g_version = "version 3.04, November 9, 2011"
 
 # version of AFNI required for script execution
 g_requires_afni = "31 Oct 2011"
@@ -441,7 +442,7 @@ class SubjProcSream:
 
         self.surf_A     = 'smoothwm'
         self.surf_B     = 'pial'
-        self.surf_blur_fwhm = 8.0       # target FWHM
+        self.surf_blur_fwhm = 8.0       # target FWHM (from -blur_size)
 
         # computed surf variables
         self.surf_sv       = None       # either surf_anat or aligned version
@@ -812,7 +813,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-surf_B', 1, [],
                         helpstr="list surf_B surface (e.g. pial)")
         self.valid_opts.add_opt('-surf_blur_fwhm', 1, [],
-                        helpstr="specify target FWHM for surface noise blur")
+                        helpstr="NO LONGER VALID, please use -blur_size")
 
         # 3dClustSim options
         self.valid_opts.add_opt('-regress_CS_NN', 1, [],
@@ -877,6 +878,15 @@ class SubjProcSream:
             print g_version
             return 0  # gentle termination
         
+        # options which are NO LONGER VALID
+
+        if opt_list.find_opt('-surf_blur_fwhm'):
+            print '** option -surf_blur_fwhm is no longer valid\n' \
+                  '   (please stick with -blur_size)\n'
+            return 1
+
+        # end terminal options
+
         opt = opt_list.find_opt('-check_setup_errors')
         if opt and opt.parlist[0] == 'yes': self.check_setup_errors = 1
         else:                               self.check_setup_errors = 0
