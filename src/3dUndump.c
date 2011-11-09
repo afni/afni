@@ -77,7 +77,8 @@ void Syntax(void)
     "                   use 3drefit to define the spatial structure).\n"
     "          ** N.B.: Also see the -ROImask option (infra) for another\n"
     "                   way to specify what voxels in the output dataset\n"
-    "                   get what values.\n"
+    "                   get what values:\n"
+    "                   -- with -ROImask, neither -xyz nor -ijk is used.\n"
     "\n"
     "  -srad rrr    = Specifies that a sphere of radius 'rrr' will be\n"
     "                   filled about each input (x,y,z) or (i,j,k) voxel.\n"
@@ -113,26 +114,26 @@ void Syntax(void)
     " -ROImask rrr  =  This option that lets you specify which voxels get what\n"
     "                  numbers by using a dataset 'rrr', instead of coordinates.\n"
     "           ==>>** With this method, the input file should have just\n"
-    "                  one value per line (trailing values will be ignored).\n"
-    "               ** Because of the way that 3dUndump reads input files, you\n"
+    "                  one number per line (trailing numbers will be ignored).\n"
+    "               ** Due to the special way that 3dUndump reads input files, you\n"
     "                  CANNOT specify an input file using the 1D '[subscript]'\n"
     "                  notation to pick out a single column of a multicolumn\n"
     "                  file.  Instead, you can do something like\n"
     "                    1dcat file.1D'[3]' | 3dUndump -ROImask rmask+orig -prefix ppp -\n"
     "                  where the last '-' says to read from standard input.\n"
-    "               ** If the values in the input file are fractional (e.g., '1.372'),\n"
+    "               ** If the numbers in the input file are fractional (e.g., '1.372'),\n"
     "                  be sure to use the '-datum float' option -- otherwise, the\n"
     "                  default output is '-datum short', which will truncate values!\n"
     "                * The 'rrr' dataset must be of integer type -- that is,\n"
     "                  the values inside must be bytes or shorts.  If you don't\n"
     "                  know, use program 3dinfo to check.\n"
-    "                * All voxels with value 1 in 'rrr' get the number in the\n"
-    "                  first row of the input file.\n"
-    "                * All voxels with value 2 in 'rrr' get the number in the\n"
-    "                  second row of the input file.\n"
-    "                * Et cetera -- all voxels with value 'n' in 'rrr' get\n"
+    "                * All voxels with value 1 in dataset 'rrr' get the number in\n"
+    "                  the first row of the input file.\n"
+    "                * All voxels with value 2 in dataset 'rrr' get the number in\n"
+    "                  the second row of the input file.\n"
+    "                * Et cetera -- all voxels with value 'n' in dataset 'rrr' get\n"
     "                  the number in the n-th row of the input file.\n"
-    "                * Zero or negative values in 'rrr' are ignored.\n"
+    "                * Zero or negative values in 'rrr' are ignored completely.\n"
     "                * The output dataset has the same spatial grid as 'rrr'\n"
     "                  (i.e., as if '-master rrr' were used).\n"
     "                * The following options cannot be used with -ROImask:\n"
@@ -221,7 +222,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *mset=NULL ;
    char *prefix="undump" , *orcode=NULL ;
    THD_coorder cord ;
-   float dval_float=1.0 , fval_float=0.0 , *fbr=NULL ;
+   float dval_float=1.0f, fval_float=0.0f, *fbr=NULL ;
    short dval_short=1   , fval_short=0   , *sbr=NULL ;
    byte  dval_byte =1   , fval_byte =0   , *bbr=NULL , *mmask=NULL ;
 
@@ -235,12 +236,13 @@ int main( int argc , char * argv[] )
 
    float xxdown,xxup , yydown,yyup , zzdown,zzup ;
 
-   float srad=0.0 , vrad,rii,rjj,rkk,qii,qjj,qkk , dx,dy,dz ;  /* 19 Feb 2004 */
+   float srad=0.0f, vrad,rii,rjj,rkk,qii,qjj,qkk , dx,dy,dz ;  /* 19 Feb 2004 */
 
    THD_3dim_dataset *ROImask=NULL ;  /* 09 Nov 2011 */
    int have_dimen=0, have_master=0, have_mask=0, have_dval=0, have_ijk=0,
        have_xyz=0, have_srad=0, have_orient=0, have_head_only=0 ;
    short ROInum , *ROIsss=NULL ;
+   int nfill=0 ;
 
    /*-- help? --*/
 
@@ -411,8 +413,8 @@ int main( int argc , char * argv[] )
          fval_float = strtod( argv[++iarg] , NULL ) ;
          if( thd_floatscan(1,&fval_float) )
            ERROR_exit("Illegal value entered for -fval!") ;
-         fval_short = (short) rint(fval_float) ;
-         fval_byte  = (byte)  fval_short ;
+         fval_short = SHORTIZE(fval_float) ;
+         fval_byte  = BYTEIZE(fval_short) ;
          iarg++ ; continue ;
       }
 
@@ -474,7 +476,7 @@ int main( int argc , char * argv[] )
                 "              -dimen  -master  -mask    -dval       -ijk\n"
                 "              -xyz    -srad    -orient  -head_only\n" ) ;
 
-   if( do_ijk == 0 && mset == NULL )
+   if( do_ijk == 0 && (mset == NULL || ROImask == NULL) )
       ERROR_exit("Can't use -xyz without -master also!") ;
 
    if( mset == NULL && ROImask == NULL && dimen_ii < 2 )
@@ -489,7 +491,7 @@ int main( int argc , char * argv[] )
 
    /*-- set orcode to value from -master, if this is needed --*/
 
-   if( mset != NULL && do_ijk == 0 && orcode == NULL ){
+   if( mset != NULL && ROImask == NULL && do_ijk == 0 && orcode == NULL ){
       orcode = malloc(4) ;
       orcode[0] = ORIENT_typestr[mset->daxes->xxorient][0] ;
       orcode[1] = ORIENT_typestr[mset->daxes->yyorient][0] ;
@@ -632,6 +634,10 @@ int main( int argc , char * argv[] )
    if( iarg == argc )
      WARNING_message("No input files ==> creating empty dataset") ;
 
+   if( ROImask != NULL ) INFO_message("Starting to fill via -ROImask dataset") ;
+   else if( do_ijk )     INFO_message("Starting to fill via -ijk indexes") ;
+   else                  INFO_message("Starting to fill via -xyz coordinates") ;
+
    for( ROInum=0 ; iarg < argc ; iarg++ ){  /*--- loop over files ---*/
 
       /* get input file ready to read */
@@ -693,17 +699,21 @@ int main( int argc , char * argv[] )
          }
 
          if( ROImask != NULL ){  /* 09 Nov 2011 -- new way of storing value */
-           int qq ;
+           int qq , nq ;
            ROInum++ ;
-           for( qq=0 ; qq < nxyz ; qq++ ){  /* loop over voxels */
+           for( nq=qq=0 ; qq < nxyz ; qq++ ){  /* loop over voxels */
              if( ROIsss[qq] == ROInum ){
+               nq++ ;
                switch( datum ){
-                 case MRI_float:                     fbr[qq] = xx ; break ;
-                 case MRI_short: sv = SHORTIZE(xx) ; sbr[qq] = sv ; break ;
-                 case MRI_byte:  bv = BYTEIZE(xx)  ; bbr[qq] = bv ; break ;
+                 case MRI_float:                     fbr[qq] = xx ; vv = xx ; break ;
+                 case MRI_short: sv = SHORTIZE(xx) ; sbr[qq] = sv ; vv = sv ; break ;
+                 case MRI_byte:  bv = BYTEIZE(xx)  ; bbr[qq] = bv ; vv = bv ; break ;
                }
              }
            }
+           ININFO_message(" filled %d voxel%s from ROI=%d with value=%g",
+                          nq , (nq==1) ? "\0" : "s" , ROInum , vv ) ;
+           nfill += nq ;
            continue ;  /* skip to next input line */
          }
 
@@ -765,6 +775,7 @@ int main( int argc , char * argv[] )
          if( mmask == NULL || mmask[ijk] ){
           switch( datum ){
             case MRI_float:{
+              if( fbr[ijk] == fval_float) nfill++ ;
               if( fbr[ijk] != fval_float && fbr[ijk] != vv )
                 WARNING_message("Overwrite voxel %d %d %d",ii,jj,kk) ;
               fbr[ijk] = vv ;
@@ -777,6 +788,7 @@ int main( int argc , char * argv[] )
                 WARNING_message("Truncating non-short data values to 16-bit integers!") ;
                 first = 0 ;
               }
+              if( sbr[ijk] == fval_short ) nfill++ ;
               if( sbr[ijk] != fval_short && sbr[ijk] != sv )
                 WARNING_message("Overwrite voxel %d %d %d",ii,jj,kk) ;
               sbr[ijk] = sv ;
@@ -789,6 +801,7 @@ int main( int argc , char * argv[] )
                 WARNING_message("Truncating non-byte data values to 8-bit integers!") ;
                 first = 0 ;
               }
+              if( bbr[ijk] == fval_byte ) nfill++ ;
               if( bbr[ijk] != fval_byte && bbr[ijk] != bv )
                 WARNING_message("Overwrite voxel %d %d %d",ii,jj,kk) ;
               bbr[ijk] = bv ;
@@ -823,9 +836,12 @@ int main( int argc , char * argv[] )
                    ijk = aa + bb*nx + cc*nx*ny ;    /* (aa,bb,cc) in dataset */
                    if( mmask == NULL || mmask[ijk] ){
                      switch( datum ){
-                       case MRI_float: fbr[ijk] = vv ; break ;
-                       case MRI_short: sbr[ijk] = sv ; break ;
-                       case MRI_byte:  bbr[ijk] = bv ; break ;
+                       case MRI_float: if( fbr[ijk] == fval_float ) nfill++ ;
+                                       fbr[ijk] = vv ; break ;
+                       case MRI_short: if( sbr[ijk] == fval_short ) nfill++ ;
+                                       sbr[ijk] = sv ; break ;
+                       case MRI_byte:  if( bbr[ijk] == fval_byte  ) nfill++ ;
+                                       bbr[ijk] = bv ; break ;
                      }
                    }
                  }
@@ -844,7 +860,8 @@ int main( int argc , char * argv[] )
 
    dset_floatscan(dset) ;
    tross_Make_History( "3dUndump" , argc,argv , dset ) ;
+   INFO_message("Total number of voxels filled = %d",nfill) ;
    DSET_write(dset) ;
-   WROTE_DSET(dset) ;
+   INFO_message("Wrote out dataset %s",DSET_BRIKNAME(dset)) ;
    exit(0) ;
 }
