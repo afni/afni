@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, NOV, 2011, RCR, "adwarp", MICRO, TYPE_ENHANCE,
+   "added a help example for writing anat+tlrc.BRIK",
+   NULL
+ } ,
+
  {  7, NOV, 2011, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -blur_to_fwhm and -blur_opts_B2FW",
    "Added for E Nelson and J Jarcho."
