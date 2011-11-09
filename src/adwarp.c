@@ -149,9 +149,18 @@ void display_help_menu()
       "program provides a batch implementation of the interactive\n"
       "AFNI 'Write' buttons, one dataset at a time.\n"
       "\n"
-      "  Example: adwarp -apar anat+tlrc -dpar func+orig\n"
+      "  Example: create dataset func+tlrc (.HEAD and .BRIK) by applying\n"
+      "           the orig->tlrc transformation from the anat.\n"
       "\n"
-      "  This will create dataset func+tlrc (.HEAD and .BRIK).\n"
+      "           adwarp -apar anat+tlrc -dpar func+orig\n"
+      "\n"
+      "  Example: in the case of a manual tlrc transformation, maybe the\n"
+      "           anat+tlrc.BRIK does not exist (just the .HEAD file does).\n"
+      "           In such a case on might apply the anat+tlrc transformation\n"
+      "           to the anat+orig dataset.  But since the anat+tlrc.HEAD\n"
+      "           file already exists, the -overwrite option is needed.\n"
+      "\n"
+      "           adwarp -apar anat+tlrc -dpar anat+orig -overwrite\n"
       "\n"
       "Options (so to speak):\n"
       "----------------------\n"
@@ -656,7 +665,7 @@ Boolean adwarp_refashion_dataset
   void *imar ;
   FILE *far ;
   float brfac_save ;
-  int resam_mode;
+  int resam_mode = 0;
 
   int native_order , save_order ;  /* 23 Nov 1999 */
 
