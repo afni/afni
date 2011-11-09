@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 8 , NOV , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+  { 9 , NOV , 2011 , RWC , "3dUndump" , MINOR , TYPE_NEW_OPT ,
+   "Add -ROImask option" ,
+   "To put values into locations defined by a mask dataset." } ,
+
+ { 8 , NOV , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "AFNI_IMAGE_COLORANGLE" ,
    "Set this to 360 to get the 'Colr' image to be a full circle colormap." } ,
 
