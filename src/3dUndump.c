@@ -37,6 +37,7 @@ void Syntax(void)
     "                   create a dataset of a specific size for test\n"
     "                   purposes, when no suitable master exists.\n"
     "          ** N.B.: Exactly one of -master or -dimen must be given.\n"
+    "              ==>> Unless -ROImask is used!\n"
     "\n"
     "  -mask kkk    = This option specifies a mask dataset 'kkk', which\n"
     "                   will control which voxels are allowed to get\n"
@@ -74,6 +75,9 @@ void Syntax(void)
     "                   is used to specify the size of the output dataset,\n"
     "                   (x,y,z) coordinates are not defined (until you\n"
     "                   use 3drefit to define the spatial structure).\n"
+    "          ** N.B.: Also see the -ROImask option (infra) for another\n"
+    "                   way to specify what voxels in the output dataset\n"
+    "                   get what values.\n"
     "\n"
     "  -srad rrr    = Specifies that a sphere of radius 'rrr' will be\n"
     "                   filled about each input (x,y,z) or (i,j,k) voxel.\n"
@@ -105,6 +109,35 @@ void Syntax(void)
     "  -head_only   =  A 'secret' option for creating only the .HEAD file which\n"
     "                  gets exploited by the AFNI matlab library function\n"
     "                  New_HEAD.m\n"
+    "\n"
+    " -ROImask rrr  =  This option that lets you specify which voxels get what\n"
+    "                  numbers by using a dataset 'rrr', instead of coordinates.\n"
+    "           ==>>** With this method, the input file should have just\n"
+    "                  one value per line (trailing values will be ignored).\n"
+    "               ** Because of the way that 3dUndump reads input files, you\n"
+    "                  CANNOT specify an input file using the 1D '[subscript]'\n"
+    "                  notation to pick out a single column of a multicolumn\n"
+    "                  file.  Instead, you can do something like\n"
+    "                    1dcat file.1D'[3]' | 3dUndump -ROImask rmask+orig -prefix ppp -\n"
+    "                  where the last '-' says to read from standard input.\n"
+    "               ** If the values in the input file are fractional (e.g., '1.372'),\n"
+    "                  be sure to use the '-datum float' option -- otherwise, the\n"
+    "                  default output is '-datum short', which will truncate values!\n"
+    "                * The 'rrr' dataset must be of integer type -- that is,\n"
+    "                  the values inside must be bytes or shorts.  If you don't\n"
+    "                  know, use program 3dinfo to check.\n"
+    "                * All voxels with value 1 in 'rrr' get the number in the\n"
+    "                  first row of the input file.\n"
+    "                * All voxels with value 2 in 'rrr' get the number in the\n"
+    "                  second row of the input file.\n"
+    "                * Et cetera -- all voxels with value 'n' in 'rrr' get\n"
+    "                  the number in the n-th row of the input file.\n"
+    "                * Zero or negative values in 'rrr' are ignored.\n"
+    "                * The output dataset has the same spatial grid as 'rrr'\n"
+    "                  (i.e., as if '-master rrr' were used).\n"
+    "                * The following options cannot be used with -ROImask:\n"
+    "                    -dimen  -master  -mask    -dval       -ijk\n"
+    "                    -xyz    -srad    -orient  -head_only\n"
     "\n"
     "Input File Format:\n"
     "------------------\n"
@@ -169,7 +202,7 @@ void Syntax(void)
     "        (presumably it is some kind of comment).\n"
     "\n"
     "* [31 Dec 2008] Inputs of 'NaN' are explicitly converted to zero, and\n"
-    "  a warning message is printed.  AFNI programs do not deal with NaN\n"
+    "  a warning message is printed.  AFNI programs do not like with NaN\n"
     "  floating point values!\n"
     "\n"
     "-- RWCox -- October 2000\n"
@@ -195,7 +228,7 @@ int main( int argc , char * argv[] )
    FILE *fp ;
    THD_3dim_dataset *dset , *maskset=NULL ;
    int iarg , ii,jj,kk,ll,ijk , nx,ny,nz , nxyz , nn , do_head_only=0;
-   float      xx,yy,zz,vv=0.0 ;
+   float      xx,yy,zz,vv=0.0f;
    short               sv=0   ;
    byte                bv=0   ;
    char linbuf[NBUF] , *cp ;
@@ -203,6 +236,11 @@ int main( int argc , char * argv[] )
    float xxdown,xxup , yydown,yyup , zzdown,zzup ;
 
    float srad=0.0 , vrad,rii,rjj,rkk,qii,qjj,qkk , dx,dy,dz ;  /* 19 Feb 2004 */
+
+   THD_3dim_dataset *ROImask=NULL ;  /* 09 Nov 2011 */
+   int have_dimen=0, have_master=0, have_mask=0, have_dval=0, have_ijk=0,
+       have_xyz=0, have_srad=0, have_orient=0, have_head_only=0 ;
+   short ROInum , *ROIsss=NULL ;
 
    /*-- help? --*/
 
@@ -232,6 +270,33 @@ int main( int argc , char * argv[] )
 
       /*-----*/
 
+      if( strcasecmp(argv[iarg],"-ROImask") == 0 ){  /* 09 Nov 2011 */
+        if( ROImask != NULL )
+          ERROR_exit("Can't have 2 -ROImask options!") ;
+        if( iarg+1 >= argc )
+          ERROR_exit("-ROImask: no argument follows!?") ;
+
+        ROImask = THD_open_dataset( argv[++iarg] ) ;
+        if( ROImask == NULL )
+          ERROR_exit("-ROImask: can't open dataset '%s'",argv[iarg] ) ;
+
+        ii = (int)DSET_BRICK_TYPE(ROImask,0) ;
+        if( ii != MRI_byte && ii != MRI_short )
+          ERROR_exit("-ROImask: dataset values are '%s', not 'byte' or 'short'",
+                     MRI_TYPE_name[ii] ) ;
+
+        DSET_load(ROImask) ; CHECK_LOAD_ERROR(ROImask) ;
+
+        ROIsss = (short *)malloc( sizeof(short)*DSET_NVOX(ROImask) ) ;
+        EDIT_coerce_type( DSET_NVOX(ROImask) ,
+                          ii        , DSET_BRICK_ARRAY(ROImask,0) ,
+                          MRI_short , ROIsss                       ) ;
+        DSET_unload(ROImask) ;
+        iarg++ ; continue ;
+      }
+
+      /*-----*/
+
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          if( iarg+1 >= argc )
             ERROR_exit("-prefix: no argument follows!?") ;
@@ -247,7 +312,7 @@ int main( int argc , char * argv[] )
          if( iarg+1 >= argc )
             ERROR_exit("-master: no argument follows!?") ;
          else if( mset != NULL )
-            ERROR_exit("-master: can't have two -master options!") ;
+            ERROR_exit("-master: can't have 2 -master options!") ;
          else if( dimen_ii > 0 )
             ERROR_exit("-master: conflicts with previous -dimen!") ;
 
@@ -255,7 +320,7 @@ int main( int argc , char * argv[] )
          if( mset == NULL )
             ERROR_exit("-master: can't open dataset" ) ;
 
-         iarg++ ; continue ;
+         have_master++ ; iarg++ ; continue ;
       }
 
       /*-----*/
@@ -270,7 +335,7 @@ int main( int argc , char * argv[] )
         if( maskset == NULL )
           ERROR_exit("-mask: can't open dataset" ) ;
 
-        iarg++ ; continue ;
+        have_mask++ ; iarg++ ; continue ;
       }
 
       /*-----*/
@@ -288,7 +353,7 @@ int main( int argc , char * argv[] )
          if( dimen_ii < 1 || dimen_jj < 1 || dimen_kk < 1 )
             ERROR_exit("-dimen: values following are not all >= 1!") ;
 
-         iarg++ ; continue ;
+         have_dimen++ ; iarg++ ; continue ;
       }
 
       /*-----*/
@@ -320,7 +385,7 @@ int main( int argc , char * argv[] )
           WARNING_message("-srad value of %g is ignored!",srad);
           srad = 0.0 ;
         }
-        iarg++ ; continue ;
+        have_srad++ ; iarg++ ; continue ;
       }
 
       /*-----*/
@@ -334,7 +399,7 @@ int main( int argc , char * argv[] )
            ERROR_exit("Illegal value entered for -dval!") ;
          dval_short = (short) rint(dval_float) ;
          dval_byte  = (byte)  dval_short ;
-         iarg++ ; continue ;
+         have_dval++ ; iarg++ ; continue ;
       }
 
       /*-----*/
@@ -353,21 +418,21 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-ijk") == 0 ){
          do_ijk = 1 ;
-         iarg++ ; continue ;
+         have_ijk++ ; iarg++ ; continue ;
       }
 
       /*-----*/
 
       if( strcmp(argv[iarg],"-xyz") == 0 ){
          do_ijk = 0 ;
-         iarg++ ; continue ;
+         have_xyz++ ; iarg++ ; continue ;
       }
 
       /*-----*/
 
       if( strcmp(argv[iarg],"-head_only") == 0 ){
          do_head_only = 1 ;
-         iarg++ ; continue ;
+         have_head_only++ ; iarg++ ; continue ;
       }
 
       /*-----*/
@@ -384,7 +449,7 @@ int main( int argc , char * argv[] )
          if( xx < 0 || yy < 0 || zz < 0 || !OR3OK(xx,yy,zz) )
             ERROR_exit("-orient: illegal argument follows") ;
 
-         iarg++ ; continue ;
+         have_orient++ ; iarg++ ; continue ;
       }
 
       /*-----*/
@@ -400,10 +465,19 @@ int main( int argc , char * argv[] )
       ERROR_exit("No input files on command line!?") ;
 #endif
 
+   if( ROImask != NULL &&
+       ( have_dimen || have_master || have_mask || have_dval   ||
+         have_ijk   || have_xyz    || have_srad || have_orient ||
+         have_head_only )
+     )
+     ERROR_exit("-ROImask conflicts with one (or more) of these options:\n"
+                "              -dimen  -master  -mask    -dval       -ijk\n"
+                "              -xyz    -srad    -orient  -head_only\n" ) ;
+
    if( do_ijk == 0 && mset == NULL )
       ERROR_exit("Can't use -xyz without -master also!") ;
 
-   if( mset == NULL && dimen_ii < 2 )
+   if( mset == NULL && ROImask == NULL && dimen_ii < 2 )
       ERROR_exit("Must use exactly one of -master or -dimen options on command line");
 
    if( (datum == MRI_short && dval_short == fval_short) ||
@@ -427,17 +501,17 @@ int main( int argc , char * argv[] )
 
    /*-- make empty dataset --*/
 
-   if( mset != NULL ){                 /* from -master */
+   if( mset != NULL || ROImask != NULL ){ /* from -master or -ROImask */
+      THD_3dim_dataset *qset = (mset != NULL) ? mset : ROImask ;
 
-      dset = EDIT_empty_copy( mset ) ;
+      dset = EDIT_empty_copy( qset ) ;
       EDIT_dset_items( dset ,
                           ADN_prefix    , prefix ,
                           ADN_datum_all , datum ,
                           ADN_nvals     , 1 ,
                           ADN_ntt       , 0 ,
-                          ADN_func_type , ISANAT(mset) ? mset->func_type
+                          ADN_func_type , ISANAT(qset) ? qset->func_type
                                                        : FUNC_FIM_TYPE ,
-
                           ADN_directory_name , "./" ,
                        ADN_none ) ;
 
@@ -552,16 +626,17 @@ int main( int argc , char * argv[] )
    zzup   = dset->daxes->zzmax ;
 #endif
 
-   /*-- loop over input files and read them line by line --*/
+   /*-- loop over input files and read them line by line. --*/
+   /*(( iarg is already correct at the start of this loop ))*/
 
    if( iarg == argc )
      WARNING_message("No input files ==> creating empty dataset") ;
 
-   for( ; iarg < argc ; iarg++ ){  /* iarg is already set at start of this loop */
+   for( ROInum=0 ; iarg < argc ; iarg++ ){  /*--- loop over files ---*/
 
       /* get input file ready to read */
 
-      if( strcmp(argv[iarg],"-") == 0 ){  /* stdin */
+      if( strcmp(argv[iarg],"-") == 0 || strncmp(argv[iarg],"stdin",5) == 0 ){ /* stdin */
          fp = stdin ;
       } else {                            /* OK, open the damn file */
          fp = fopen( argv[iarg] , "r" ) ;
@@ -575,7 +650,7 @@ int main( int argc , char * argv[] )
       /* read lines, process and store */
 
       ll = 0 ;
-      while(1){
+      while(1){  /*--- loop over lines ---*/
          ll++ ;                               /* line count */
          cp = fgets( linbuf , NBUF , fp ) ;
          if( cp == NULL ) break ;             /* end of file => end of loop */
@@ -602,17 +677,34 @@ int main( int argc , char * argv[] )
          vv   = dval_float ;   /* if not scanned in below, use the default value */
          vrad = srad ;         /* 19 Feb 2004: default sphere radius */
          nn   = sscanf(linbuf+ii , "%f%f%f%f%f" , &xx,&yy,&zz,&vv,&vrad ) ;
-         if( nn < 3 ){
+         if( nn < 3 && ROImask == NULL ){
            WARNING_message("File %s line %d: incomplete [%d]-- skipping",argv[iarg],ll,nn) ;
            continue ;
          }
-         if( thd_floatscan(1,&vv) ){
-           WARNING_message("File %s line %d: replaced illegal value with 0",
-                           argv[iarg],ll ) ;
+         if( nn > 3 ){
+           if( thd_floatscan(1,&vv) ){
+             WARNING_message("File %s line %d: replaced illegal value with 0",
+                             argv[iarg],ll ) ;
+           }
+           if( thd_floatscan(1,&vrad) ){
+             WARNING_message("File %s line %d: replaced illegal radius with 0",
+                             argv[iarg],ll ) ;
+           }
          }
-         if( thd_floatscan(1,&vrad) ){
-           WARNING_message("File %s line %d: replaced illegal radius with 0",
-                           argv[iarg],ll ) ;
+
+         if( ROImask != NULL ){  /* 09 Nov 2011 -- new way of storing value */
+           int qq ;
+           ROInum++ ;
+           for( qq=0 ; qq < nxyz ; qq++ ){  /* loop over voxels */
+             if( ROIsss[qq] == ROInum ){
+               switch( datum ){
+                 case MRI_float:                     fbr[qq] = xx ; break ;
+                 case MRI_short: sv = SHORTIZE(xx) ; sbr[qq] = sv ; break ;
+                 case MRI_byte:  bv = BYTEIZE(xx)  ; bbr[qq] = bv ; break ;
+               }
+             }
+           }
+           continue ;  /* skip to next input line */
          }
 
          /* get voxel index into (ii,jj,kk) */
@@ -742,13 +834,13 @@ int main( int argc , char * argv[] )
            }
          }  /* 19 Feb 2004: end of inserting a sphere */
 
-      } /* end of loop over input lines */
+      } /*--- end of loop over input lines ---*/
 
       /* close input file */
 
       if( fp != stdin ) fclose( fp ) ;
 
-   } /* end of loop over input files */
+   } /*--- end of loop over input files ---*/
 
    dset_floatscan(dset) ;
    tross_Make_History( "3dUndump" , argc,argv , dset ) ;
