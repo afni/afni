@@ -453,8 +453,6 @@ int init_structs( optiondata *opt, motparm * mp, port_list * plist )
 /* close any open ports (to possibly catch an interrupt) */
 void clean_n_exit(int sig_num)
 {
-    int ssec, count;
-
     if ( g_ports.debug > 0 )
     {
         fputs("-- final check: closing ports\n", stderr);
@@ -989,7 +987,7 @@ int format_output(optiondata * opt, motparm * mp, char ** outstr, int * oslen)
 {
     char dhdr1[] = "++ recv floats:";
     char dhdr2[] = "++ recv %d extra floats:";
-    int  ind, ind2, len, posn, bytes, nlines;
+    int  ind, ind2, len, posn, bytes;
 
     if( !opt || !mp || !outstr || !oslen ) return 1;
     if( opt->debug > 3 ) fprintf(stderr,"-- formatting output...\n");
