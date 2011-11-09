@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, NOV, 2011, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "-surf_blur_fwhm is no longer valid, please use -blur_size",
+   NULL
+ } ,
+
  {  8, NOV, 2011, RCR, "adwarp", MICRO, TYPE_ENHANCE,
    "added a help example for writing anat+tlrc.BRIK",
    NULL
