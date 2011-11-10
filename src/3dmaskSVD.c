@@ -16,7 +16,7 @@ static int mpv_sign_meth = 0 ;
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL ;
-   byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 , masknum ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 , masknum=0 ;
    int iarg=1 , verb=1 , ntype=0 , nev,kk,ii,nxyz,nt ;
    float na,nb,nc , dx,dy,dz ;
    MRI_IMARR *imar=NULL ; int *ivox ; MRI_IMAGE *pim ;

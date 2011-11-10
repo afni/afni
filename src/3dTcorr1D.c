@@ -230,7 +230,8 @@ int main( int argc , char *argv[] )
 
  AFNI_OMP_START ;
 #pragma omp parallel if( ny > 1 )
- { float *ysar, *xsar, *fcar, *ydar, val ; int ii, kk, jj ; short *scar ;
+ { float *ysar, *xsar, *fcar = NULL, *ydar, val ; 
+   int ii, kk, jj ; short *scar = NULL;
 
 #ifdef USE_OMP
    if( omp_get_thread_num() == 0 )

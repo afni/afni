@@ -32,13 +32,13 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL , *outset=NULL , *evset=NULL ;
    MCW_cluster *nbhd=NULL ;
-   byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
    char *prefix="./LocalSVD" ;
    char *evprefix=NULL ; int nev ;
    int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , vstep=0 ;
    float na,nb,nc , dx,dy,dz ;
    int do_vnorm=0 , do_vproj=0 , polort=-1 ;
-   float **polyref ; int rebase=0 , nmask=0 , domean=0 , use_nonmask=0 ;
+   float **polyref=NULL ; int rebase=0 , nmask=0 , domean=0 , use_nonmask=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(

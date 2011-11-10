@@ -1332,7 +1332,7 @@ static void NUD_brick_av_CB( MCW_arrowval * av , XtPointer cd )
 static void NUD_rotate( MRI_IMAGE *im )
 {
    int clipit=clip_av->ival , mode=REG_resam_ints[interp_av->ival] ;
-   float cbot,ctop ;
+   float cbot=0.0,ctop=0.0 ;
    float *fvol ;
    double th1,th2,th3 , dx,dy,dz ;
 
@@ -1478,7 +1478,7 @@ static void NUD_doall_CB( Widget w, XtPointer client_data, XtPointer call_data )
    MRI_IMAGE * im ;
    char str[256] ;
    double th1,th2,th3 ;
-   Widget meter ;
+   Widget meter=NULL ;
 
    if( dset == NULL || imbase == NULL || undo_nuse == 1 ){  /* bad bad bad */
       XBell(dc->display,100); return;

@@ -213,7 +213,7 @@ int main( int argc , char * argv[] )
 {
    double atoz[26] ;
    int ii , ids ;
-   MRI_IMAGE * new_im ;
+   MRI_IMAGE * new_im=NULL ;
    float * fnew ;
 
    /*** read input options ***/

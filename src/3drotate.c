@@ -31,13 +31,13 @@ int main( int argc , char * argv[] )
    char * new_prefix = "rota" , * cpt ;
    float dx=0 , dy=0 , dz=0 ;
    int   ax1=0,ax2=1,ax3=2 , adx,ady,adz ;
-   char  cdx,cdy,cdz ;
+   char  cdx='\0',cdy='\0',cdz='\0' ;
    float th1=0.0,th2=0.0,th3=0.0 ;
    int iopt , nvox , rotarg=-1 , dcode=-1 , ival,nval , ihand ;
    float * fvol ;
-   double cputim ;
+   double cputim=0.0 ;
    int clipit=1 ;  /* 11 Apr 2000 and 16 Apr 2002 */
-   float cbot,ctop ;
+   float cbot=0.0,ctop=0.0 ;
 
    int matvec=0 ;    /* 19 July 2000 */
    THD_dmat33 rmat , pp,ppt ;
@@ -60,7 +60,7 @@ int main( int argc , char * argv[] )
    /*-------------------------------*/
 
    LOAD_DIAG_DMAT(rmat,1.0,1.0,1.0) ;
-
+   memset(&tvec, 0, sizeof(THD_dfvec3));
    /*-- read command line arguments --*/
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ){
@@ -742,7 +742,7 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
          int npad2 = (nz_gp - nz_ds) - npad1 ;
          int add_I=0, add_S=0, add_A=0, add_P=0, add_L=0, add_R=0 ;
          THD_3dim_dataset * pset ;
-         char *sp1,*sp2 ;
+         char *sp1=NULL,*sp2=NULL ;
 
          /* where to add slices? and how many? */
 

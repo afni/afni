@@ -15,6 +15,12 @@ LOCALSTATS:
          $statvector[2] == "MAD" && \
          $statvector[3] == "P2skew" ) then
       set sopt = ('-stat mMP2s')
+   else if ($#statvector == 4 && \
+         $statvector[1] == "mean" && \
+         $statvector[1] == "median" && \
+         $statvector[2] == "MAD" && \
+         $statvector[3] == "P2skew" ) then
+      set sopt = ('-stat mMP2s')
    else
       foreach lstat ($statvector)
          set sopt = ($sopt '-stat' $lstat)
@@ -101,6 +107,10 @@ SCALE:
          #do nothing, deal with speciality below
       else if ($Scale == 6) then
          #do nothing, deal with speciality below
+      else if ($Scale == 7) then
+         #do nothing, deal with speciality below
+      else if ($Scale == 8) then
+         #do nothing, deal with speciality below
       else if ($Scale == 0) then
          echo "Copying unscaled signatures"
          3dcopy $sss+orig $ttt
@@ -129,6 +139,7 @@ SCALE:
       #Only scale mean signature per the equations derived
       #But only use last MAD sub-brick.
       #Also, scale MAD by last sub-brick 
+      set ttal = ()
       foreach lstat ($statvector)
          set sss = "${inpref}.us.${lstat}"
          set ttt = "${inpref}.sc${Scale}.${lstat}" 
@@ -160,7 +171,76 @@ SCALE:
          else 
             echo "Reusing $ttt"
          endif
+         set ttal = ($ttal $ttt+orig)
       end
+      if ( ! -f ${inpref}.sc${Scale}.${sigset}+orig.HEAD) then
+         3dTcat -prefix ${inpref}.sc${Scale}.${sigset} $ttal
+      else
+         echo "Reusing ${inpref}.sc${Scale}.${sigset}"
+      endif
+   else if ($Scale == 7) then
+      set ttal = ()
+      foreach lstat ($statvector)
+         set sss = "${inpref}.us.${lstat}"
+         set ttt = "${inpref}.sc${Scale}.${lstat}" 
+         if ( ! -f ${inpref}.sc${Scale}.${lstat}+orig.HEAD) then
+            echo "Creating $ttt"
+            if ($lstat =~ med*) then
+               set mm = `3dinfo -nvi ${sss}+orig`
+               @ mm --
+               3dcalc -overwrite -a ${sss}+orig"[0-$mm]" \
+                        -b ${inpref}.us.mean+orig'[$]' \
+                        -expr '(step(b)*a/b)' -prefix $ttt
+            else if ($lstat =~ MAD*) then
+               3dcalc -overwrite -a ${inpref}.us.MAD+orig \
+                                 -b ${inpref}.us.mean+orig'[$]' \
+                        -expr '(step(b)*a/b)' -prefix $ttt
+            else
+               #Just copy for ease on other scripts, nothing to do
+               3dcopy $sss+orig $ttt
+            endif
+         else 
+            echo "Reusing $ttt"
+         endif
+         set ttal = ($ttal $ttt+orig)
+      end
+      if ( ! -f ${inpref}.sc${Scale}.${sigset}+orig.HEAD) then
+         3dTcat -prefix ${inpref}.sc${Scale}.${sigset} $ttal
+      else
+         echo "Reusing ${inpref}.sc${Scale}.${sigset}"
+      endif
+   else if ($Scale == 8) then
+      set ttal = ()
+      foreach lstat ($statvector)
+         set sss = "${inpref}.us.${lstat}"
+         set ttt = "${inpref}.sc${Scale}.${lstat}" 
+         if ( ! -f ${inpref}.sc${Scale}.${lstat}+orig.HEAD) then
+            echo "Creating $ttt"
+            if ($lstat =~ med*) then
+               3dcalc -overwrite -a ${sss}+orig -b ${inpref}.us.MAD+orig'[$]' \
+                        -expr '(step(b)*a/b)' -prefix $ttt
+            else if ($lstat =~ MAD*) then
+               set mm = `3dnvals ${inpref}.us.MAD+orig`
+               @ mm --
+               @ mm --
+               3dcalc -overwrite -a ${inpref}.us.MAD+orig \
+                                 -b ${inpref}.us.MAD+orig'[$]' \
+                        -expr '(step(b)*a/b)' -prefix $ttt
+            else
+               #Just copy for ease on other scripts, nothing to do
+               3dcopy $sss+orig $ttt
+            endif
+            3dNotes -h "`basename $0` $*" $ttt+orig
+         else 
+            echo "Reusing $ttt"
+         endif
+         set ttal = ($ttal $ttt+orig)
+      end
+      if ( ! -f ${inpref}.sc${Scale}.${sigset}+orig.HEAD) then
+         3dTcat -prefix ${inpref}.sc${Scale}.${sigset} $ttal
+      else
+         echo "Reusing ${inpref}.sc${Scale}.${sigset}"
+      endif
    endif
    cd $stdir      
 goto END
@@ -177,6 +257,7 @@ set cleanafter = 1
 set inmask = ""
 set odir = './'
 set olabel = 'loc_st'
+set sigset = 'sigset'
 set statopen = 0
 set localopen = 0
 set Scale = 0
@@ -191,7 +272,7 @@ while ($cnt <= $Narg)
       goto HELP
    endif
    
-   if ($donext && "$argv[$cnt]" == "-d") then
+   if ($donext && ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo")) then
       set echo
       set donext = 0   
    endif
@@ -226,6 +307,17 @@ while ($cnt <= $Narg)
       set donext = 0   
    endif
 
+   if ($donext && "$argv[$cnt]" == "-mscl") then
+      set Scale = 7
+      set donext = 0   
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-Mscl") then
+      set Scale = 8
+      set donext = 0   
+   endif
+
+
    if ($donext && "$argv[$cnt]" == "-scale_by_dset_median") then
       if ($cnt == $Narg) then
          echo "Need label after -scale_by_dset_median"
@@ -248,6 +340,17 @@ while ($cnt <= $Narg)
       else 
          @ cnt ++
          set olabel = $argv[$cnt]
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-siglabel") then
+      if ($cnt == $Narg) then
+         echo "Need label after -siglabel"
+         goto END
+      else 
+         @ cnt ++
+         set sigset = $argv[$cnt]
          set donext = 0   
       endif
    endif
@@ -358,6 +461,8 @@ set statlabelvector = ()
 foreach lstat ($statvector)
    if ($lstat =~ med*) then
       set statlabelvector = ($statlabelvector MEDIAN)
+   else if ($lstat =~ mea*)  then
+      set statlabelvector = ($statlabelvector mean)
    else if ($lstat =~ MAD)  then
       set statlabelvector = ($statlabelvector MAD)
    else if ($lstat =~ *skew*) then

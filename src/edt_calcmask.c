@@ -91,7 +91,7 @@ byte * EDT_calcmask( char * cmd , int * nxyz, int forced_mask_length )
 {
    int Argc=0 ;
    char ** Argv=NULL ;
-   byte * bmask ;
+   byte * bmask=NULL ;
 
 #define VSIZE 1024
 

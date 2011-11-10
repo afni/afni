@@ -17,8 +17,8 @@
 
     /* Local variables */
     doublereal norm;
-    integer i__, j, k, l, m;
-    doublereal p, q, r__, s, t, w, x, y;
+    integer i__, j, k, l=0, m=0;
+    doublereal p, q=0.0, r__=0.0, s, t, w, x, y;
     integer na, en, ll, mm;
     doublereal zz;
     logical notlas;

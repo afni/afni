@@ -997,7 +997,7 @@ static void Compute_Gmatrix(MRI_IMARR * Flux_Im, int flag2D3D, byte *maskptr)
    int i, nxyz;
    float *dJx, *dJy, *dJz, *Gptr;
    MRI_IMAGE *data_im;
-   MRI_IMARR *tempimarr0, *tempimarr1, *tempimarr2;
+   MRI_IMARR *tempimarr0, *tempimarr1, *tempimarr2=NULL;
    byte *tempmaskptr;
 
    ENTRY("Compute_Gmatrix");
@@ -1172,17 +1172,17 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
    float *Gvalptr, *ar, *ar2;
    MRI_IMAGE *data_im;
    double uval, Fval;
-   float *tempptr, *vptr0, *vptr1, *vptr, *vptr2, *vptr3, *vptr4, *vptr5, *vptr6, *vptr7, *vptr8;
-   float v0, v1, v2, v3, v4, v5, v6, v7, v8;
-   float v9, v10, v11, v12, v13, v14, v15, v16, v17, v18;
-   float v19, v20, v21, v22, v23, v24, v25, v26;
+   float *tempptr, *vptr0=NULL, *vptr1=NULL, *vptr=NULL, *vptr2=NULL, *vptr3=NULL, *vptr4, *vptr5=NULL, *vptr6=NULL, *vptr7=NULL, *vptr8=NULL;
+   float v0=0.0, v1=0.0, v2=0.0, v3, v4=0.0, v5=0.0, v6=0.0, v7=0.0, v8=0.0;
+   float v9, v10, v11, v12, v13=0.0, v14=0.0, v15, v16, v17, v18=0.0;
+   float v19=0.0, v20=0.0, v21, v22, v23, v24=0.0, v25=0.0, v26=0.0;
 
-   float sv0, sv1, sv2;
+   float sv0, sv1=0.0, sv2=0.0;
    int vx,vy,vz, nxm1, nym1, nzm1,nxy;  
-   int maskflag, baseoffset;
-   float sv00061824, sv01071925, sv02082026, sv0915, sv1016, sv1117, sv0321, sv0422, sv0523;
+   int maskflag=0, baseoffset;
+   float sv00061824, sv01071925=0.0, sv02082026=0.0, sv0915, sv1016=0.0, sv1117=0.0, sv0321, sv0422=0.0, sv0523=0.0;
    float Gfrac, Ffrac;
-   float as_fmin, as_fmax;
+   float as_fmin=0.0, as_fmax=0.0;
       
    ENTRY("Compute_Smooth");
    /* compute isotropic diffusion component of smooth, F and then overall smooth*/

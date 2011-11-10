@@ -3450,7 +3450,7 @@ void calculate_fa (anova_options * option_data)
   int ixyz, nxyz;                      /* voxel counters */
   int nvoxel;                          /* output voxel # */
   int numdf;                           /* numerator degrees of freedom */
-  int dendf;                           /* denominator degrees of freedom */
+  int dendf=0;                           /* denominator degrees of freedom */
   float fval;                          /* denominator of F-statistic */
 
 
@@ -3551,7 +3551,7 @@ void calculate_fb (anova_options * option_data)
   int ixyz, nxyz;                      /* voxel counters */
   int nvoxel;                          /* output voxel # */
   int numdf;                           /* numerator degrees of freedom */
-  int dendf;                           /* denominator degrees of freedom */
+  int dendf=0;                           /* denominator degrees of freedom */
   float fval;                          /* denominator of F-statistic */
 
 
@@ -3652,8 +3652,8 @@ void calculate_fc (anova_options * option_data)
   int n;                               /* number of observations per cell */
   int ixyz, nxyz;                      /* voxel counters */
   int nvoxel;                          /* output voxel # */
-  int numdf;                           /* numerator degrees of freedom */
-  int dendf;                           /* denominator degrees of freedom */
+  int numdf=0;                           /* numerator degrees of freedom */
+  int dendf=0;                           /* denominator degrees of freedom */
   float fval;                          /* denominator of F-statistic */
 
 
@@ -3775,7 +3775,7 @@ void calculate_fab (anova_options * option_data)
   int ixyz, nxyz;                      /* voxel counters */
   int nvoxel;                          /* output voxel # */
   int numdf;                           /* numerator degrees of freedom */
-  int dendf;                           /* denominator degrees of freedom */
+  int dendf=0;                           /* denominator degrees of freedom */
   float fval;                          /* denominator of F-statistic */
 
 
@@ -3879,8 +3879,8 @@ void calculate_fbc (anova_options * option_data)
   int n;                               /* number of observations per cell */
   int ixyz, nxyz;                      /* voxel counters */
   int nvoxel;                          /* output voxel # */
-  int numdf;                           /* numerator degrees of freedom */
-  int dendf;                           /* denominator degrees of freedom */
+  int numdf=0;                           /* numerator degrees of freedom */
+  int dendf=0;                           /* denominator degrees of freedom */
   float fval;                          /* denominator of F-statistic */
 
 
@@ -3999,7 +3999,7 @@ void calculate_fac (anova_options * option_data)
   int ixyz, nxyz;                      /* voxel counters */
   int nvoxel;                          /* output voxel # */
   int numdf;                           /* numerator degrees of freedom */
-  int dendf;                           /* denominator degrees of freedom */
+  int dendf=0;                           /* denominator degrees of freedom */
   float fval;                          /* denominator of F-statistic */
 
 
@@ -4094,7 +4094,7 @@ void calculate_fabc (anova_options * option_data)
   int ixyz, nxyz;                      /* voxel counters */
   int nvoxel;                          /* output voxel # */
   int numdf;                           /* numerator degrees of freedom */
-  int dendf;                           /* denominator degrees of freedom */
+  int dendf=0;                           /* denominator degrees of freedom */
   float fval;                          /* denominator of F-statistic */
 
 
@@ -4192,7 +4192,7 @@ void old_calculate_ameans (anova_options * option_data)
   int num_means;                     /* number of user requested means */
   int imean;                         /* output mean option index */
   int level;                         /* factor A level index */
-  int df;                            /* degrees of freedom for t-test */
+  int df=0;                            /* degrees of freedom for t-test */
   float fval;                        /* for calculating std. dev. */
   float stddev;                      /* est. std. dev. of factor mean */
 
@@ -4289,7 +4289,7 @@ void old_calculate_bmeans (anova_options * option_data)
   int num_means;                     /* number of user requested means */
   int imean;                         /* output mean option index */
   int level;                         /* factor B level index */
-  int df;                            /* degrees of freedom for t-test */
+  int df=0;                            /* degrees of freedom for t-test */
   float fval;                        /* for calculating std. dev. */
   float stddev;                      /* est. std. dev. of factor mean */
 
@@ -4386,7 +4386,7 @@ void old_calculate_adifferences (anova_options * option_data)
   int num_diffs;                      /* number of user requested diffs. */
   int idiff;                          /* index for requested differences */
   int i, j;                           /* factor level indices */
-  int df;                             /* degrees of freedom for t-test */
+  int df=0;                             /* degrees of freedom for t-test */
   float fval;                         /* for calculating std. dev. */
   float stddev;                       /* est. std. dev. of difference */
 
@@ -4491,7 +4491,7 @@ void old_calculate_bdifferences (anova_options * option_data)
   int num_diffs;                      /* number of user requested diffs. */
   int idiff;                          /* index for requested differences */
   int i, j;                           /* factor level indices */
-  int df;                             /* degrees of freedom for t-test */
+  int df=0;                             /* degrees of freedom for t-test */
   float fval;                         /* for calculating std. dev. */
   float stddev;                       /* est. std. dev. of difference */
 
@@ -4596,7 +4596,7 @@ void old_calculate_acontrasts (anova_options * option_data)
   int num_contr;                      /* number of user requested contrasts */
   int icontr;                         /* index of user requested contrast */
   int level;                          /* factor level index */
-  int df;                             /* degrees of freedom for t-test */
+  int df=0;                             /* degrees of freedom for t-test */
   float fval;                         /* for calculating std. dev. */
   float coef;                         /* contrast coefficient */
   float stddev;                       /* est. std. dev. of contrast */
@@ -4704,7 +4704,7 @@ void old_calculate_bcontrasts (anova_options * option_data)
   int num_contr;                      /* number of user requested contrasts */
   int icontr;                         /* index of user requested contrast */
   int level;                          /* factor level index */
-  int df;                             /* degrees of freedom for t-test */
+  int df=0;                             /* degrees of freedom for t-test */
   float fval;                         /* for calculating std. dev. */
   float coef;                         /* contrast coefficient */
   float stddev;                       /* est. std. dev. of contrast */
@@ -4819,7 +4819,7 @@ void calculate_ameans (anova_options * option_data)
   int num_means;                     /* number of user requested means */
   int imean;                         /* output mean option index */
   int level;                         /* factor A level index */
-  int df;                            /* degrees of freedom for t-test */
+  int df=0;                            /* degrees of freedom for t-test */
   float fval;                        /* for calculating std. dev. */
   float stddev;                      /* est. std. dev. of factor mean */
 

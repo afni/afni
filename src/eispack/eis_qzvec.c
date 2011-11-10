@@ -20,11 +20,11 @@
     /* Local variables */
     doublereal alfm, almi, betm, epsb, almr, d__;
     integer i__, j, k, m;
-    doublereal q, r__, s, t, w, x, y, t1, t2, w1, x1, z1, di;
+    doublereal q, r__=0.0, s=0.0, t, w, x=0.0, y, t1, t2, w1, x1=0.0, z1=0.0, di;
     integer na, ii, en, jj;
     doublereal ra, dr, sa;
     integer nn;
-    doublereal ti, rr, tr, zz;
+    doublereal ti, rr, tr, zz=0.0;
     integer isw, enm2;
 
 

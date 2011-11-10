@@ -43,7 +43,7 @@ int main( int argc , char * argv[] )
    int div = -1 , div_bot,div_top , drange=0; /* 16 Sep 1998 */
    float data_bot=666.0 , data_top=-666.0 ;
    int indump = 0 ;                           /* 19 Aug 1999 */
-   int pslice=-1 , qslice=-1 , nxy,nz ;       /* 15 Sep 1999 */
+   int pslice=-1 , qslice=-1 , nxy=0,nz=0 ;       /* 15 Sep 1999 */
    int quiet=0 ;                              /* 23 Nov 1999 */
 
    int medianit = 0 ;                         /* 06 Jul 2003 */

@@ -20,6 +20,10 @@ PARSE:
          goto HELP
       endif
 
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0     
+      endif
       if ($donext && "$argv[$cnt]" == "-scale_by_mean") then
          set pLoc = $cnt 
          set scale = 'mean'
@@ -33,6 +37,11 @@ PARSE:
       if ($donext && "$argv[$cnt]" == "-norm") then
          set pLoc = $cnt 
          set scale = 'norm'
+         set donext = 0     
+      endif
+      if ($donext && "$argv[$cnt]" == "-feat_norm") then
+         set pLoc = $cnt 
+         set scale = 'feat_norm'
          set donext = 0     
       endif
       
@@ -126,6 +135,8 @@ else if ($scale == 'median' || $scale == 'mean') then
    goto DOIT_DIV
 else if ($scale == 'norm') then
    goto DOIT_NORM
+else if ($scale == 'feat_norm') then
+   goto DOIT_FEAT_NORM
 else
    echo "Don't know how to scale by $scale"
    goto END
@@ -167,6 +178,23 @@ DOIT:
 
    goto END
 
+DOIT_FEAT_NORM:
+   set nvals = `3dinfo -nv $invol`
+   set v0 = 1
+   set v1 = 99
+   set nid = __tt.`3dnewid -fun`
+   set sbm = `ccalc -i $nvals - 1`
+   foreach sb (`count -digits 1 0 $sbm `)
+      set op = `printf %03d $sb`
+      set rng = `3dBrickStat -non-zero -min -max $invol"[$sb]"`
+      3dcalc   -a $invol"[$sb]" \
+               -expr "step(a)*((a-$rng[1])/($rng[2]-$rng[1])*($v1-$v0)+$v0)"  \
+               -prefix ${nid}.${op}
+   end
+   3dTcat -prefix $opref ${nid}.???+????.HEAD
+   \rm -f ${nid}.???+????.*
+   goto END
+   
 DOIT_NORM:
    set nvals = `3dnvals -all $invol`
    set vvv = `@parse_afni_name $invol`

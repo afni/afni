@@ -1331,7 +1331,7 @@ void write_bucket_data
   int brick_coef;           /* regression coefficient index for sub-brick */
   char * brick_label;       /* character string label for sub-brick */
   int ierror;               /* number of errors in editing data */
-  float * volume;           /* volume of floating point data */
+  float * volume=NULL;           /* volume of floating point data */
   int dimension;            /* dimension of full model = p + q */
   char label[80];           /* label for output file history */ 
 

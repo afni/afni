@@ -176,7 +176,7 @@ char *classList=NULL;
 char cBuf[256] = {0};
 int i;
 int j;
-int k;
+int k=0;
 int line;
 int excluded;
 int rawLength;

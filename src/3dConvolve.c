@@ -722,8 +722,8 @@ void read_input_data
 {
   char message[THD_MAX_NAME];   /* error message */
   int it;                  /* time point index */
-  int nt;                  /* number of input data time points */
-  int nxyz;                /* number of voxels */
+  int nt=0;                  /* number of input data time points */
+  int nxyz=0;                /* number of voxels */
   int num_stimts;          /* number of stimulus time series arrays */
   int * min_lag;           /* minimum time delay for impulse response */
   int * max_lag;           /* maximum time delay for impulse response */

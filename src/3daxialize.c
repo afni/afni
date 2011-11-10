@@ -28,7 +28,7 @@ int main( int argc , char * argv[] )
    float xyz_org[4] , xyz_del[4] , brfac_save ;
    MRI_IMAGE * im ;
    void * imar ;
-   FILE * data_file ;
+   FILE * data_file=NULL ;
    THD_datablock * old_dblk , * new_dblk ;
    char new_prefix[THD_MAX_PREFIX] = "axialize" ;
    int verbose = 0 , nim , pim=2 ;
@@ -37,12 +37,13 @@ int main( int argc , char * argv[] )
    int axord=0 ;          /* 06 Mar 2000 */
    char orients[4]="\0" ; /* 07 Dec 2001 */
 
-   MRI_IMARR *im_array;             /* 12 Mar 2009 */
-   MRI_IMAGE *svol_im;
-   void  * svol ;
+   MRI_IMARR *im_array=NULL;             /* 12 Mar 2009 */
+   MRI_IMAGE *svol_im=NULL;
+   void  * svol=NULL ;
 
    /*- sanity check -*/
-
+   memset(&iv_xyzorient, 0, sizeof(THD_ivec3));
+   
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3daxialize [options] dataset\n"
              "Purpose: Read in a dataset and write it out as a new dataset\n"

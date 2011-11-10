@@ -182,7 +182,7 @@ static char * PRIC_main( PLUGIN_interface * plint )
    double * ca , * cb, * ra, * rb;
    MRI_IMAGE * card = NULL, * resp = NULL;
    MRI_IMAGE * cardphase = NULL, * respphase = NULL;
-   float threshold, ignore_input, M_input;
+   float threshold=0.0, ignore_input, M_input;
    /*-- removed winsize ui
    , winsize_input;
    removed winsize ui --*/

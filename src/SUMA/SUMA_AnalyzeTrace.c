@@ -626,7 +626,7 @@ char *SUMA_NextFunc(char *ss, char *sslim, int *io, char *func, char *file,
       if (ss_func) {
          ss = ss_func+strlen(key[found-1]);
       } else {
-         SUMA_S_Err("WTF?");
+         SUMA_S_Err("Ca alors!");
          exit(1);
       }
    }

@@ -94,7 +94,7 @@ int main( int argc , char *argv[] )
    line_opt   opt ;        /* holds data constructed from command line */
    references *ref ;       /* holds reference covariance computations */
    voxel_corr *voxcor ;    /* holds voxel-specific covariances */
-   float      *pcorr ;     /* holds partial correlation coefficients */
+   float      *pcorr=NULL ;     /* holds partial correlation coefficients */
    float      *alpha ;     /* holds activation levels */
    float      *refvec ,    /* values of reference vectors at given time */
               *voxvec ;    /* values of voxel data at given time */
@@ -107,21 +107,21 @@ int main( int argc , char *argv[] )
 
    /* duplicates for rims */
 
-   references *ref_reg ;
-   voxel_corr *voxcor_reg ;
+   references *ref_reg=NULL ;
+   voxel_corr *voxcor_reg=NULL ;
    float      *pcorr_reg , *alpha_reg ;
    MRI_IMAGE  *imcor_reg , *imalp_reg  ;
-   int nref_reg ;
+   int nref_reg=0 ;
 
    int   itime , numvox , good , vox , ii , ii_idts ;
    int   do_cnr , do_sig , do_fit , do_subort ;
 
    time_series * wtnew ;
 
-   MRI_IMARR * cor_ims , * alp_ims , * cnr_ims , * sig_ims ;
-   MRI_IMARR ** fit_ims ;  /* a whole bunch of arrays of images! */
-   MRI_IMAGE * best_im ;
-   int       * best ;
+   MRI_IMARR * cor_ims , * alp_ims , * cnr_ims=NULL , * sig_ims=NULL ;
+   MRI_IMARR ** fit_ims=NULL ;  /* a whole bunch of arrays of images! */
+   MRI_IMAGE * best_im=NULL ;
+   int       * best=NULL ;
    float     * cornew ;
    float       cnew , cold ;
 
@@ -519,8 +519,8 @@ int main( int argc , char *argv[] )
    if( do_fit || do_subort ){
       char root[128] , fname[128] ;
       int ir , ib ;
-      MRI_IMAGE * tim ;
-      float * tar , * qar ;
+      MRI_IMAGE * tim=NULL ;
+      float * tar=NULL , * qar ;
       float ortval ;
 
       if( do_fit ){
@@ -1388,7 +1388,7 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
    /*** Setup for differential filtering (registration) ***/
 
    if( opt->dfilt_code != DFILT_NONE ){
-      int alcode ;
+      int alcode=0 ;
       MRI_IMARR * tims ;
       time_series * dxts , * dyts , * phits ;
 

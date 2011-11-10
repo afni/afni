@@ -4,8 +4,8 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL , *outset ;
    MRI_IMAGE *imat=NULL ;
-   float     *iar , *dval , *oval , sum ;
-   int       nrow,ncol,nvals , iarg , nvox,ivox , ii,jj ;
+   float     *iar=NULL , *dval , *oval , sum ;
+   int       nrow=0,ncol=0,nvals=0 , iarg , nvox=0,ivox , ii,jj ;
    char *prefix="matcalc" ;
    byte *mask=NULL ; int nmask=0 ;
 

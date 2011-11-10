@@ -119,7 +119,11 @@ ENTRY("EDIT_dset_items") ;
 
    va_start( vararg_ptr , dset ) ;              /** Initialize arg reading **/
    iarg = 1 ;
-
+   memset(&ijk_to_dicom, 0, sizeof(mat44)); 
+   memset(&xyzorient, 0, sizeof(THD_ivec3)); 
+   memset(&xyzorg, 0, sizeof(THD_fvec3)); 
+   memset(&xyzdel, 0, sizeof(THD_fvec3)); 
+   memset(&nxyz, 0, sizeof(THD_ivec3));
    do{
       flag_arg = va_arg( vararg_ptr , int ) ;   /** Get next arg  **/
       if( flag_arg == ADN_none ) break ;        /** No more args! **/

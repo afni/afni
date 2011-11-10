@@ -44,7 +44,7 @@ int main( int argc , char * argv[] )
    int lin , kim , kbot,ktop , nx,ny , npix , ii ,
        lbase , lup,ldown ;
    MRI_IMAGE ** stat_ret ;
-   MRI_IMAGE * imb ;
+   MRI_IMAGE * imb=NULL ;
    float     * bar , * bav ;
 
    printf(

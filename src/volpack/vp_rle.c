@@ -249,7 +249,7 @@ MMOctreeLevel level_stack[VP_MAX_OCTREE_LEVELS]; /* stack for octree */
     int raw_bytes_per_voxel;	/* bytes in unclassified voxel */
     int run_length;		/* length of last run */
     char *rawvoxel;		/* current unclassified voxel */
-    unsigned char *octree_run_ptr;	/* pointer to current run */
+    unsigned char *octree_run_ptr=NULL;	/* pointer to current run */
     int voxel_count;		/* voxels remaining in current run */
     int retcode;
 
@@ -582,12 +582,12 @@ vpContext *vpc;
     int skip_rle_x;		/* if true, compute rle_x */
     int skip_rle_y;		/* if true, compute rle_y */
     int skip_rle_z;		/* if true, compute rle_z */
-    char *x_data;		/* voxel data for x viewpoint */
-    char *y_data;		/* voxel data for y viewpoint */
-    char *z_data;		/* voxel data for z viewpoint */
-    unsigned char *x_lengths;	/* run length for x viewpoint */
-    unsigned char *y_lengths;	/* run length for y viewpoint */
-    unsigned char *z_lengths;	/* run length for z viewpoint */
+    char *x_data=NULL;		/* voxel data for x viewpoint */
+    char *y_data=NULL;		/* voxel data for y viewpoint */
+    char *z_data=NULL;		/* voxel data for z viewpoint */
+    unsigned char *x_lengths=NULL;	/* run length for x viewpoint */
+    unsigned char *y_lengths=NULL;	/* run length for y viewpoint */
+    unsigned char *z_lengths=NULL;	/* run length for z viewpoint */
     int z_data_offset;		/* offset to current data value in z volume */
     int z_length_offset;        /* offset to current length value in z volume*/
     GBuffer *data_buf;		/* next GBuffer containing voxel data */

@@ -138,7 +138,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 char * Fourier_Main( PLUGIN_interface * plint )
 {
-   THD_3dim_dataset *input ;
+   THD_3dim_dataset *input=NULL ;
    char *tag;
 
 

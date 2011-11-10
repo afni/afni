@@ -734,7 +734,7 @@ int main( int argc , char *argv[] )
    char blab[64] , *stnam ;
    float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
    int BminusA=-1 , ntwosam=0 ;  /* 05 Nov 2010 */
-   char *snam_PPP , *snam_MMM ;
+   char *snam_PPP=NULL, *snam_MMM=NULL ;
 
    /*--- help the piteous luser? ---*/
 

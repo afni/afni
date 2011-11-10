@@ -20,7 +20,7 @@
     extern /* Subroutine */ int cdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
     doublereal norm;
-    integer i__, j, k, l, m, ii, en, jj, ll, nn;
+    integer i__, j, k, l=0, m, ii, en, jj, ll, nn;
     doublereal si, ti, xi, yi, sr, tr, xr, yr;
     extern doublereal pythag_(doublereal *, doublereal *);
     extern /* Subroutine */ int csroot_(doublereal *, doublereal *, 

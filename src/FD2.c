@@ -2739,7 +2739,7 @@ STATUS("ENTER CreateMainWindow") ;
 /* ----------------- */
 {
    double da, an, c, n, s, sb, cb, ak, ab;
-   register int k, i, m, r, g, b;
+   register int k, i, m, r=0, g=0, b=0;
 
    if (No_Color_init) {
       FIRST = 1;        SQUE_NR = ncolors;
@@ -3321,7 +3321,7 @@ STATUS("ENTER Load_index_Arr") ;
 {
    register short int *a;
    register int       *s, i1, ix, lx, i, j, k, l, kk, mm, dkk, ii, ij, is;
-   register int       II, J, IJ, IJk, ijl, k0, IM2, lx2, ly, IJK;
+   register int       II, J=0, IJ, IJk, ijl, k0, IM2, lx2, ly, IJK;
    int ndim ;
    short * all ;
 
@@ -6401,8 +6401,8 @@ void RWC_setup_fims( imflag )
    static short *     thrar = NULL ;
    static short       imthr ;
 
-   MRI_IMAGE * flim ;
-   float     * flar ;
+   MRI_IMAGE * flim=NULL ;
+   float     * flar=NULL ;
    double      scl , dkim , pval ;
    int         make_thrim , good ;
 
@@ -7507,7 +7507,7 @@ void add_extra_color(r, g, b, ind)
 {
    XColor any_col;
    int    ic ;
-   char *cH;
+   char *cH=NULL;
    byte  *a8;
    short *a16;
 
@@ -7760,7 +7760,7 @@ int check_color( cname )
 /* ---------------------------------- */
 {
    int i;
-   char *cH;
+   char *cH=NULL;
    byte  *a8;
    short *a16;
  

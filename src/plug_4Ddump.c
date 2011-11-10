@@ -345,7 +345,7 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
    MCW_idcode * idc ;                          /* input dataset idcode */
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    char *tmpstr , * str ;                 
-   int   ntime, nvec , Err , itmp, nprfx;
+   int   ntime, nvec , Err=0 , itmp, nprfx;
 	float * vec , fs , T ;
 	char * tag;                     /* plugin option tag */	
 	
@@ -1071,7 +1071,7 @@ static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int
    float * dtr  = NULL ;  /* will be array of detrending coeff */
 
    float val , d0fac , d1fac , x0,x1;
-   double tzero , tdelta , ts_mean , ts_slope ;
+   double tzero=0.0 , tdelta , ts_mean , ts_slope ;
    int   ii , old_datum , nuse , use_fac , iz,izold, nxy,nvox ;
    static int retval;
 	register int kk ;

@@ -5294,8 +5294,8 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 	    float bfac = DSET_BRICK_FACTOR(dset,0) ;
 	    int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) ,
 		nxy = nx*ny , nxyz = nxy*nz , ii,jj , ixyz ;
-	    int base , di,dj , itop,jtop,nij , xx=xd[0],yy=yd[0],zz=zd[0] ,
-		ix,jy ;
+	    int base=0 , di=0,dj=0 , itop=0,jtop=0,nij , xx=xd[0],yy=yd[0],zz=zd[0] ,
+		ix=0,jy=0 ;
 	    byte * pl ;
 	    int nfill , * xyzf , nf ;
 

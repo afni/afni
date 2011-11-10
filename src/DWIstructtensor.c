@@ -512,8 +512,8 @@ smooth_factor)
 
    float *ar,*gptr[6];
    static double a, b, c, d; 
-   double dudx, dudy, dudz, dv0, dv1, dv2;
-   float v0, v1, v2, v3, v4, v5, v6, v7, v8, temp;
+   double dudx, dudy, dudz, dv0, dv1=0.0, dv2=0.0;
+   float v0=0.0, v1=0.0, v2=0.0, v3, v4=0.0, v5=0.0, v6=0.0, v7=0.0, v8=0.0, temp;
    int nx, ny, nz, nxy, nxyz, i, ii, nbriks, nout;
    int vx, vy,vz, vi, baseoffset, yp1xp1, yp1xm1, nxp1, nxm1, nym1, nzm1;
    float *blur_data = NULL;
@@ -521,10 +521,10 @@ smooth_factor)
    float dz;
    int maskflag;
 
-   float v9, v10, v11, v12, v13, v14, v15, v16, v17, v18;
-   float v19, v20, v21, v22, v23, v24, v25, v26;
-   float dv0600, dv0701, dv0802, dv1509, dv1610, dv1711, dv2418, dv2519, dv2620;
-   float sv1824, sv1925, sv2026, sv0006, sv0107, sv0208, dv2103, dv2204, dv2305;
+   float v9, v10=0.0, v11=0.0, v12, v13=0.0, v14=0.0, v15, v16=0.0, v17=0.0, v18=0.0;
+   float v19=0.0, v20=0.0, v21, v22=0.0, v23=0.0, v24=0.0, v25=0.0, v26=0.0;
+   float dv0600, dv0701=0.0, dv0802=0.0, dv1509, dv1610=0.0, dv1711=0.0, dv2418, dv2519=0.0, dv2620=0.0;
+   float sv1824, sv1925=0.0, sv2026=0.0, sv0006, sv0107=0.0, sv0208=0.0, dv2103, dv2204=0.0, dv2305;
    /*float dx = 1.0;*/   /* delta x - assume cubical voxels for now */
 
    ENTRY("Compute_Gradient_Matrix");
@@ -1048,18 +1048,18 @@ Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int
    double dudx, dudy, dudz; 
 
    float *vptr, *vptr0, *vptr1, *vptr2, *vptr3, *vptr5, *vptr6, *vptr7, *vptr8;
-   float v0, v1, v2, v3, v4, v5,v6,v7,v8;
-   float v9, v10, v11, v12, v13, v14, v15, v16, v17, v18;
-   float v19, v20, v21, v22, v23, v24, v25, v26;
-   float dv0600, dv0701, dv0802, dv1509, dv1610, dv1711, dv2418, dv2519, dv2620;
-   float sv1824, sv1925, sv2026, sv0006, sv0107, sv0208, dv2103, dv2204, dv2305;
+   float v0=0.0, v1=0.0, v2=0.0, v3=0.0, v4=0.0, v5=0.0,v6=0.0,v7=0.0,v8=0.0;
+   float v9, v10=0.0, v11=0.0, v12, v13=0.0, v14=0.0, v15, v16=0.0, v17=0.0, v18=0.0;
+   float v19=0.0, v20=0.0, v21, v22=0.0, v23=0.0, v24=0.0, v25=0.0, v26=0.0;
+   float dv0600=0.0, dv0701=0.0, dv0802=0.0, dv1509=0.0, dv1610=0.0, dv1711=0.0, dv2418=0.0, dv2519=0.0, dv2620=0.0;
+   float sv1824=0.0, sv1925=0.0, sv2026=0.0, sv0006=0.0, sv0107=0.0, sv0208=0.0, dv2103=0.0, dv2204=0.0, dv2305=0.0;
    
-   float dv0,dv1,dv2, temp;
+   float dv0,dv1=0.0,dv2=0.0, temp;
    int nx, ny, nz, i, ii, nout, noutm1, nxm1, nym1, nzm1; 
    char maskflag;
    int yp1xp1, yp1xm1, nxy, nxyz, baseoffset;
    int vx,vy,vz;
-   int ybrik;
+   int ybrik=0;
       
    /* float dx = 1.0; */  /* delta x - assume cubical voxels for now */
 

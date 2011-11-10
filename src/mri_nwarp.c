@@ -2201,7 +2201,7 @@ ENTRY("NwarpCalcRPN") ;
 
    sar = NI_decode_string_list( expr , "`" ) ;
    if( sar == NULL ) RETURN(NULL) ;
-
+   memset(&imat,0,sizeof(mat44)); memset(&cmat,0,sizeof(mat44));
    if( acode < 0 ) acode = icode ;
 
    /**----- loop thru and process commands -----**/

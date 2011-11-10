@@ -519,7 +519,7 @@ static void AHIST_save_CB( Widget w, XtPointer client_data, XtPointer call_data 
    char *program_text , *oneline_text , *verbose_text ;
    char err[2048] = " \n ----- Can't save because of errors: -----\n\n" ;
    int nerr=0 , hlen,vlen , iv ;
-   char *hdata , *imark , *ndata ;
+   char *hdata=NULL , *imark=NULL , *ndata ;
    int ilev=level_av->ival , ityp=type_av->ival ;
    struct tm *tod ; time_t ttt ; int slen ; char *sstr , *qstr,*zstr ;
    FILE *fp ;

@@ -739,9 +739,13 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 #define NSTAT_FRANK       22      /* ZSS Jan 10 */
 #define NSTAT_P2SKEW      23      /* ZSS March 04 10*/
 #define NSTAT_KURT        24      /* ZSS Jan   04 11*/
-#define NSTAT_mMP2s       25  
+#define NSTAT_mMP2s0      25  
 #define NSTAT_mMP2s1      26
 #define NSTAT_mMP2s2      27
+#define NSTAT_mmMP2s0     28  
+#define NSTAT_mmMP2s1     29
+#define NSTAT_mmMP2s2     30
+#define NSTAT_mmMP2s3     31
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64
@@ -1986,6 +1990,7 @@ extern void mri_blur3D_inmask_speedy( MRI_IMAGE *, byte *,
                                       float,float,float,int );
 extern void mri_blur3D_addfwhm( MRI_IMAGE *, byte *, float ) ;
 extern void mri_blur3D_addfwhm_speedy( MRI_IMAGE *, byte *, float ) ;
+extern void mri_blur3D_inmask_NN( MRI_IMAGE *im, byte *mask, int  ) ;
 extern void mri_blur3D_getfac ( float, float, float, float,
                                 int *, float *, float *, float * ) ;
 

@@ -247,7 +247,7 @@ GrayIntPixel *shadow_buffer;
     float iopc;			/* intermediate pixel opacity (0-1) */
     float iopc_inv;		/* 1-iopc */
     float acc_opc;		/* accumulator for resampled voxel opacity */
-    float top_opc, bot_opc;	/* voxel opacity (top and bottom scanlines) */
+    float top_opc=0.0, bot_opc=0.0;	/* voxel opacity (top and bottom scanlines) */
 #ifdef NO_REUSE_VOXEL
 #define voxels_loaded	0
 #define CLEAR_VOXELS_LOADED
@@ -262,15 +262,15 @@ GrayIntPixel *shadow_buffer;
 	  wgtTR, wgtBR;		/*   fractional contribution of the */
     				/*   neighboring voxels to the current */
     			        /*   intermediate image pixel */
-    unsigned char *topRLElen;	/* length of current run in top scanline */
-    unsigned char *botRLElen;	/* length of current run in bottom scanline */
+    unsigned char *topRLElen=NULL;	/* length of current run in top scanline */
+    unsigned char *botRLElen=NULL;	/* length of current run in bottom scanline */
     char *topRLEdata;		/* data for current run in top scanline */
     char *botRLEdata;		/* data for current run in bottom scanline */
     int toprun_count;		/* number of voxels left in top run */
     int botrun_count;		/* number of voxels left in bottom run */
     int last_run_state;		/* run state code for last resample */
     int run_state;		/* run state code for this resample */
-    int final_run_state;	/* run state code for end of scanline */
+    int final_run_state=0;	/* run state code for end of scanline */
     float min_opacity;		/* low opacity threshold */
     float max_opacity;		/* high opacity threshold */
     float slice_depth_cueing;	/* depth cueing factor for slice */
@@ -298,15 +298,15 @@ GrayIntPixel *shadow_buffer;
 #endif /* GRAYSCALE */
 
 #ifdef RGB
-    float acc_rclr;		/* accumulator for resampled color */
-    float acc_gclr;
-    float acc_bclr;
-    float top_rclr;		/* voxel color (top and bottom scanlines) */
-    float bot_rclr;
-    float top_gclr;
-    float bot_gclr;
-    float top_bclr;
-    float bot_bclr;
+    float acc_rclr=0.0;		/* accumulator for resampled color */
+    float acc_gclr=0.0;
+    float acc_bclr=0.0;
+    float top_rclr=0.0;		/* voxel color (top and bottom scanlines) */
+    float bot_rclr=0.0;
+    float top_gclr=0.0;
+    float bot_gclr=0.0;
+    float top_bclr=0.0;
+    float bot_bclr=0.0;
 #endif
 
 #ifdef RLEVOLUME
@@ -318,7 +318,7 @@ GrayIntPixel *shadow_buffer;
     MMOctreeLevel level_stack[VP_MAX_OCTREE_LEVELS];
 				/* stack for traversal of min-max octree */
     int scans_left;		/* scanlines until next octree traversal */
-    int best_view_axis;		/* viewing axis */
+    int best_view_axis=0;		/* viewing axis */
     unsigned char runlen_buf1[VP_MAX_VOLUME_DIM]; /* buffers for run lengths */
     unsigned char runlen_buf2[VP_MAX_VOLUME_DIM];
     unsigned char *top_len_base;/* first run length for top scanline */
@@ -368,12 +368,12 @@ GrayIntPixel *shadow_buffer;
     float top_sclr, bot_sclr;	/* shadow color (top and bottom scanlines) */
 #endif /* GRAYSCALE */
 #ifdef RGB
-    float top_rsclr;		/* shadow color (top and bottom scanlines) */
-    float bot_rsclr;
-    float top_gsclr;
-    float bot_gsclr;
-    float top_bsclr;
-    float bot_bsclr;
+    float top_rsclr=0.0;		/* shadow color (top and bottom scanlines) */
+    float bot_rsclr=0.0;
+    float top_gsclr=0.0;
+    float bot_gsclr=0.0;
+    float top_bsclr=0.0;
+    float bot_bsclr=0.0;
 #endif
 #endif /* SHADOW_BUFFER */
 

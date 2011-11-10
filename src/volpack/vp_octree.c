@@ -439,7 +439,7 @@ void *parent_node;	/* parent octree node (or NULL) */
 int *octree_offset;	/* bytes from root of octree to next free location */
 {
     char *pyr_ptr;
-    char *child_node;
+    char *child_node=NULL;
     int p;
     MinMaxOctree *mm_octree;
     int pyr_bytes_per_node;
@@ -1225,7 +1225,7 @@ int max_level;		/* deepest level of the tree to visit */
     int child_bytes_per_node;
     int child_offset;
     int status_offset;
-    int status, value;
+    int status, value=0;
     int x, y, z, x0, y0, z0, x1, y1, z1;
     int array_ystride, array_zstride;
 

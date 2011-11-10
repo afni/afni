@@ -163,7 +163,7 @@ THD_3dim_dataset * THD_open_ctfmri( char *fname )
    THD_ivec3 nxyz , orixyz ;
    THD_fvec3 dxyz , orgxyz ;
    int iview ;
-   int ngood , length , datum_type , datum_len , oxx,oyy,ozz ;
+   int ngood , length , datum_type=0 , datum_len , oxx,oyy,ozz ;
    int   nx,ny,nz ;
    float dx,dy,dz , xorg,yorg,zorg ;
 
@@ -421,7 +421,8 @@ ENTRY("THD_open_ctfmri") ;
 
    if( hh.headModel.LeftEar_Sag != hh.headModel.RightEar_Sag ){
      THD_usertaglist *tagset = myXtNew(THD_usertaglist) ;
-     int nas_ii,nas_jj,nas_kk , lft_ii,lft_jj,lft_kk , rgt_ii,rgt_jj,rgt_kk ;
+     int nas_ii,nas_jj,nas_kk=0 , lft_ii,lft_jj,lft_kk=0 , 
+         rgt_ii,rgt_jj,rgt_kk=0 ;
      THD_fvec3 fv ; THD_ivec3 iv ;
 
      tagset->num = 3 ;
@@ -514,7 +515,7 @@ ENTRY("THD_open_ctfmri") ;
 void THD_load_ctfmri( THD_datablock *dblk )
 {
    THD_diskptr *dkptr ;
-   int nx,ny,nz,nv , nxy,nxyz,nxyzv , ibr,nbad ;
+   int nx,ny,nz,nv , nxy,nxyz,nxyzv , ibr=0,nbad ;
    FILE *fp ;
    void *ptr ;
 

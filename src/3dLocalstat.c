@@ -158,6 +158,8 @@ int main( int argc , char *argv[] )
       "               * mMP2s  = Exactly the same output as:\n"
       "                          -stat median -stat MAD -stat P2skew\n"
       "                          but it a little faster\n"
+      "               * mmMP2s  = Exactly the same output as:\n"
+      "                       -stat mean -stat median -stat MAD -stat P2skew\n"
       "\n"
       "               More than one '-stat' option can be used.\n"
       "\n"
@@ -331,9 +333,13 @@ int main( int argc , char *argv[] )
                                                code[ncode++] = NSTAT_FWHMy ;
                                                code[ncode++] = NSTAT_FWHMz ;
                                                do_fwhm++                   ;}
-       else if( strcasecmp(cpt,"mMP2s") == 0 ){code[ncode++] = NSTAT_mMP2s ;
+       else if( strcasecmp(cpt,"mMP2s") == 0 ){code[ncode++] = NSTAT_mMP2s0;
                                                code[ncode++] = NSTAT_mMP2s1;
                                                code[ncode++] = NSTAT_mMP2s2;}
+       else if( strcasecmp(cpt,"mmMP2s") == 0 ){code[ncode++] = NSTAT_mmMP2s0;
+                                                code[ncode++] = NSTAT_mmMP2s1;
+                                                code[ncode++] = NSTAT_mmMP2s2;
+                                                code[ncode++] = NSTAT_mmMP2s3;}
        else if( strncasecmp(cpt,"perc",4) == 0) {
          /* How many you say? */
          if (LS_decode_parameters(cpt, codeparams[ncode]) <= 0) {
@@ -584,18 +590,20 @@ int main( int argc , char *argv[] )
 
    { char *lcode[MAX_NCODE] , lll[MAX_NCODE] , *slcode, pcode[MAX_NCODE];
      int ipv = 0;
-     lcode[NSTAT_MEAN]   = "MEAN" ; lcode[NSTAT_SIGMA]  = "SIGMA"  ;
-     lcode[NSTAT_CVAR]   = "CVAR" ; lcode[NSTAT_MEDIAN] = "MEDIAN" ;
-     lcode[NSTAT_MAD]    = "MAD"  ; lcode[NSTAT_MAX]    = "MAX"    ;
-     lcode[NSTAT_MIN]    = "MIN"  ; lcode[NSTAT_ABSMAX] = "ABSMAX" ;
-     lcode[NSTAT_VAR]    = "VAR"  ; lcode[NSTAT_NUM]    = "NUM"    ;
-     lcode[NSTAT_FWHMx]  = "FWHMx"; lcode[NSTAT_PERCENTILE] = "PERC";
-     lcode[NSTAT_FWHMy]  = "FWHMy"; lcode[NSTAT_SUM]    = "SUM"    ;
-     lcode[NSTAT_FWHMz]  = "FWHMz"; lcode[NSTAT_FWHMbar]  = "FWHMavg"; 
-     lcode[NSTAT_RANK]   = "RANK" ; lcode[NSTAT_FRANK]  = "FRANK";
-     lcode[NSTAT_P2SKEW] = "P2skew";lcode[NSTAT_KURT]   = "KURT"; 
-     lcode[NSTAT_mMP2s]  = "MEDIAN";lcode[NSTAT_mMP2s1] = "MAD";
-     lcode[NSTAT_mMP2s2] = "P2skew";
+     lcode[NSTAT_MEAN]    = "MEAN" ; lcode[NSTAT_SIGMA]      = "SIGMA"  ;
+     lcode[NSTAT_CVAR]    = "CVAR" ; lcode[NSTAT_MEDIAN]     = "MEDIAN" ;
+     lcode[NSTAT_MAD]     = "MAD"  ; lcode[NSTAT_MAX]        = "MAX"    ;
+     lcode[NSTAT_MIN]     = "MIN"  ; lcode[NSTAT_ABSMAX]     = "ABSMAX" ;
+     lcode[NSTAT_VAR]     = "VAR"  ; lcode[NSTAT_NUM]        = "NUM"    ;
+     lcode[NSTAT_FWHMx]   = "FWHMx"; lcode[NSTAT_PERCENTILE] = "PERC";
+     lcode[NSTAT_FWHMy]   = "FWHMy"; lcode[NSTAT_SUM]        = "SUM"    ;
+     lcode[NSTAT_FWHMz]   = "FWHMz"; lcode[NSTAT_FWHMbar]    = "FWHMavg"; 
+     lcode[NSTAT_RANK]    = "RANK" ; lcode[NSTAT_FRANK]      = "FRANK";
+     lcode[NSTAT_P2SKEW]  = "P2skew";lcode[NSTAT_KURT]       = "KURT"; 
+     lcode[NSTAT_mMP2s0]  = "MEDIAN";lcode[NSTAT_mMP2s1]     = "MAD";
+     lcode[NSTAT_mMP2s2]  = "P2skew";lcode[NSTAT_mmMP2s0]    = "MEAN";
+     lcode[NSTAT_mmMP2s1] = "MEDIAN";lcode[NSTAT_mmMP2s2]    = "MAD";
+     lcode[NSTAT_mmMP2s3] = "P2skew"; 
      
      if( DSET_NVALS(inset) == 1 ){
        ii=0;
