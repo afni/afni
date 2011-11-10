@@ -70,7 +70,7 @@ static char i_helpstring[] =
   "\n"
   "CONTROLS\n"
   "========\n"
-  "* Time Series:\n"
+  "* TimeSeries:\n"
   "    Dataset  = time series dataset to auto-correlate\n"
   "                [this dataset does NOT have to be the Underlay]\n"
   "    Ignore   = number of initial time points to ignore\n"
@@ -133,6 +133,13 @@ static char i_helpstring[] =
   "               datasets, Spearman and Quadrant correlation will be perceptibly\n"
   "               slower than Pearson.\n"
   "\n"
+  "  ExtraSet   = If this is chosen, then the seed voxel will be extracted\n"
+  "               from Dataset, but its correlations will be done with the\n"
+  "               voxels from Extraset.\n"
+  "              * The number of time points and the grid spacing of\n"
+  "                Extraset must match Dataset.\n"
+  "              * The 2 time series dataset will be pre-processed identically.\n"
+  "\n"
   "OPERATION\n"
   "=========\n"
   "* Once you have set the controls the way you want, press one of the ''Setup'\n"
@@ -188,7 +195,7 @@ PLUGIN_interface * ICOR_init( char *lab )
 
    /*--------- make interface lines -----------*/
 
-   PLUTO_add_option ( plint , "Time Series" , "TimeSeries" , TRUE ) ;
+   PLUTO_add_option ( plint , "TimeSeries" , "TimeSeries" , TRUE ) ;
    PLUTO_add_dataset( plint , "Dataset" ,
                       ANAT_ALL_MASK , FUNC_ALL_MASK , DIMEN_4D_MASK | BRICK_ALLREAL_MASK ) ;
    PLUTO_add_number ( plint , "Ignore" , 0,50,0,0,FALSE ) ;
@@ -223,6 +230,10 @@ PLUGIN_interface * ICOR_init( char *lab )
                        meth_string , 0 ) ;
    }
 
+   PLUTO_add_option ( plint , "ExtraSet" , "ExtraSet" , FALSE ) ;
+   PLUTO_add_dataset( plint , "Extraset" ,
+                      ANAT_ALL_MASK , FUNC_ALL_MASK , DIMEN_4D_MASK | BRICK_ALLREAL_MASK ) ;
+
    return plint ;
 }
 
@@ -239,7 +250,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    char *tag ;
    float fbot=-1.0f , ftop=ICOR_BIG ;
    MRI_IMAGE *gortim=NULL ;
-   THD_3dim_dataset *dset=NULL , *mset=NULL ;
+   THD_3dim_dataset *dset=NULL , *mset=NULL , *eset=NULL ;
    int ignore=0 , mindex=0 , automask=0 , qq ; float blur=0.0f , sblur=0.0f ;
    ICOR_setup *iset ; char *cpt ;
    Three_D_View *im3d = plint->im3d ;
@@ -266,9 +277,17 @@ static char * ICOR_main( PLUGIN_interface *plint )
        MCW_idcode *idc ;
        idc  = PLUTO_get_idcode(plint) ;
        dset = PLUTO_find_dset(idc) ;
-       if( dset == NULL ) ERROR_message("Can't find Time Series dataset") ;
+       if( dset == NULL ) ERROR_message("Can't find TimeSeries dataset") ;
        ignore = PLUTO_get_number(plint) ;
        blur   = PLUTO_get_number(plint) ;
+       continue ;
+     }
+
+     if( strcmp(tag,"ExtraSet") == 0 ){
+       MCW_idcode *idc ;
+       idc  = PLUTO_get_idcode(plint) ;
+       eset = PLUTO_find_dset(idc) ;
+       if( eset == NULL ) ERROR_message("Can't find ExtraSet dataset") ;
        continue ;
      }
 
@@ -333,15 +352,18 @@ static char * ICOR_main( PLUGIN_interface *plint )
    /*** check inputs for stoopiditeeze ***/
 
    if( dset == NULL )
-     return "** No Time Series dataset? **" ;
+     return "** No TimeSeries dataset? **" ;
    if( DSET_NVALS(dset)-ignore < 9 )
-     return "** Time Series dataset is too short for InstaCorr **" ;
+     return "** TimeSeries dataset is too short for InstaCorr **" ;
+   if( eset != NULL &&
+       ( DSET_NVALS(dset) != DSET_NVALS(eset) || DSET_NVOX(dset) != DSET_NVOX(eset) ) )
+     return "** TimeSeries Dataset and Extraset don't match **" ;
    if( !automask && mset != NULL && DSET_NVOX(mset) != DSET_NVOX(dset) )
-     return "** Mask dataset doesn't match up with Time Series dataset **" ;
+     return "** Mask dataset doesn't match up with TimeSeries dataset **" ;
    if( !automask && mset != NULL && mindex >= DSET_NVALS(mset) )
      return "** Mask dataset index is out of range **" ;
    if( gortim != NULL && gortim->nx < DSET_NVALS(dset)-ignore )
-     return "** Global Orts file is too short for Time Series dataset **" ;
+     return "** Global Orts file is too short for TimeSeries dataset **" ;
 
    if( fbot >= ftop ){ fbot = 0.0f ; ftop = ICOR_BIG ; }
    if( fbot <  0.0f )  fbot = 0.0f ;
@@ -354,6 +376,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    if( im3d->iset           != NULL     &&
        im3d->iset->mv       != NULL     &&
        im3d->iset->dset     == dset     &&
+       im3d->iset->eset     == eset     &&
        im3d->iset->mset     == mset     &&
        im3d->iset->gortim   == gortim   &&
        im3d->iset->ignore   == ignore   &&
@@ -375,6 +398,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    INIT_ICOR_setup(iset) ;
 
    iset->dset     = dset ;
+   iset->eset     = eset ;
    iset->mset     = (automask) ? NULL : mset ;
    iset->gortim   = gortim ;
    iset->ignore   = ignore ;
@@ -576,6 +600,8 @@ ENTRY("AFNI_icor_setref_xyz") ;
      THD_set_string_atr( icoset->dblk , "INSTACORR_PARENT" , DSET_HEADNAME(im3d->iset->dset) ) ;
      sprintf(buf,"%d,%d,%d",im3d->vinfo->i1_icor,im3d->vinfo->j2_icor,im3d->vinfo->k3_icor) ;
      THD_set_string_atr( icoset->dblk , "INSTACORR_SEEDIJK" , buf ) ;
+     if( im3d->iset->eset != NULL )
+       THD_set_string_atr( icoset->dblk, "INSTACORR_EXTRASET", DSET_HEADNAME(im3d->iset->eset) );
    }
 
    EDIT_BRICK_LABEL  (icoset,0,"Correlation") ;
