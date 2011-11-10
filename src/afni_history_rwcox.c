@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , NOV , 2011 , RWC , "3dUndump" , MINOR , TYPE_NEW_OPT ,
+  { 10 , NOV , 2011 , RWC , "afni InstaCorr" , MINOR , TYPE_NEW_OPT ,
+   "Add ExtraSet option" ,
+   "That is, to correlate seeds from the TimeSeries dataset with voxel data\n"
+   "from the ExtraSet dataset.  Ziad asked for something like this, so here\n"
+   "it is." } ,
+
+ { 9 , NOV , 2011 , RWC , "3dUndump" , MINOR , TYPE_NEW_OPT ,
    "Add -ROImask option" ,
    "To put values into locations defined by a mask dataset." } ,
 

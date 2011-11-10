@@ -4,12 +4,98 @@
 #define EM(s) ERROR_message("InstaCorr setup bad: %s",(s))
 
 /*---------------------------------------------------------------------------*/
+/* Read and pre-process time series for InstaCorr [moved here 10 Nov 2011].  */
+
+static MRI_vectim * THD_instacorr_tsprep( ICOR_setup *iset , THD_3dim_dataset *dset )
+{
+   MRI_vectim *mv ;
+   int iv , nmmm , ntime ;
+   float **dvec , **gvec=NULL ; int ngvec=0 ;
+
+ENTRY("THD_instacorr_tsprep") ;
+
+   if( iset == NULL || dset == NULL ) RETURN(NULL) ;
+
+   /*--- Extract time series for analysis ---*/
+
+   ININFO_message("Extracting dataset time series: %s",DSET_BRIKNAME(dset)) ;
+
+   mv = THD_dset_to_vectim( dset , iset->mmm , iset->ignore ) ;
+   if( mv == NULL ){
+     EM("Can't extract dataset time series!") ; RETURN(NULL) ;
+   }
+   nmmm  = mv->nvec ;
+   ntime = mv->nvals ;  /* #dataset time points - ignore */
+
+   if( iset->despike ){
+     int_pair ip ;
+     ININFO_message("- Testing time series for spikes") ;
+     ip = THD_vectim_despike9( mv ) ;
+     if( ip.i > 0 )
+       ININFO_message(" -- Removed %d spikes from %d time series",ip.j,ip.i) ;
+     else
+       ININFO_message(" -- No spikes were found") ;
+   }
+
+   /*--- Filter time series ---*/
+
+   ININFO_message("- Filtering %d dataset time series",nmmm) ;
+
+   if( iset->fbot <  0.0f       ) iset->fbot = 0.0f ;
+   if( iset->ftop <= iset->fbot ) iset->ftop = 999999.9f ;  /* infinity */
+
+   dvec = (float **)malloc(sizeof(float *)*nmmm) ;
+   for( iv=0 ; iv < nmmm ; iv++ ) dvec[iv] = VECTIM_PTR(mv,iv) ;
+
+   if( iset->gortim != NULL ){
+     if( iset->gortim->nx < ntime+iset->ignore ){
+       ERROR_message("Global ort time series length=%d is shorter than dataset=%d",
+                     iset->gortim->nx , ntime+iset->ignore ) ;
+     } else {
+       ngvec = iset->gortim->ny ;
+       gvec  = (float **)malloc(sizeof(float *)*ngvec) ;
+       for( iv=0 ; iv < ngvec ; iv++ )
+         gvec[iv] = MRI_FLOAT_PTR(iset->gortim) + iv*iset->gortim->nx + iset->ignore ;
+     }
+   }
+
+   (void)THD_bandpass_OK( ntime , mv->dt , iset->fbot,iset->ftop , 1 ) ;
+
+   iset->ndet = THD_bandpass_vectors( ntime, nmmm, dvec, mv->dt,
+                                      iset->fbot, iset->ftop, iset->polort,
+                                      ngvec, gvec ) ;
+
+/** ININFO_message("Filtering removed %d DOF",iset->ndet) ; **/
+
+   free(dvec) ; if( gvec != NULL ) free(gvec) ;
+
+   /*--- Blur time series ---*/
+
+   if( iset->blur > 0.0f ){
+     int nrep ; float fx,fy,fz ;
+     ININFO_message("- Starting %.1f mm blur %s" ,
+                    iset->blur , (iset->mmm==NULL) ? "\0" : "(in mask)" ) ;
+     mri_blur3D_getfac( iset->blur ,
+                        mv->dx , mv->dy , mv->dz ,
+                        &nrep , &fx , &fy , &fz ) ;
+     ININFO_message("- Spatially blurring %d dataset volumes: %d iterations",mv->nvals,nrep) ;
+     mri_blur3D_vectim( mv , iset->blur ) ;
+   }
+
+   /*-- normalize --*/
+
+   ININFO_message("- Normalizing dataset time series") ;
+   THD_vectim_normalize( mv ) ;
+
+   RETURN(mv) ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Return value is 0 if an error occurs, or number of voxels prepared. */
 
 int THD_instacorr_prepare( ICOR_setup *iset )
 {
-   int iv , nmmm=0 , ntime ; byte *mmm=NULL ;
-   float **dvec , **gvec=NULL ; int ngvec=0 ; float dt ;
+   int nmmm=0 ; byte *mmm=NULL ;
 
 ENTRY("THD_instacorr_prepare") ;
 
@@ -17,6 +103,9 @@ ENTRY("THD_instacorr_prepare") ;
 
    if( iset == NULL || !ISVALID_DSET(iset->dset) ){ EM("no dataset"); RETURN(0); }
    if( DSET_NVALS(iset->dset) < 4 )               { EM("nvals < 4") ; RETURN(0); }
+   if( ISVALID_DSET(iset->eset) &&
+       ( DSET_NVOX (iset->eset) != DSET_NVOX (iset->dset) ||
+         DSET_NVALS(iset->eset) != DSET_NVALS(iset->dset)   ) ){ EM("eset <> dset"); RETURN(0); }
 
    /*-- create mask --*/
 
@@ -43,7 +132,7 @@ ENTRY("THD_instacorr_prepare") ;
      iset->mmm = mmm ;
    }
 
-   /*-- mask dataset? ---*/
+   /*-- or read a mask dataset? ---*/
 
    if( iset->mmm == NULL && iset->mset != NULL ){
      if( DSET_NVOX(iset->mset) != DSET_NVOX(iset->dset) ){
@@ -71,76 +160,9 @@ ENTRY("THD_instacorr_prepare") ;
 
    if( iset->mmm == NULL ) ININFO_message("No mask for InstaCorr") ;
 
-   /*--- Extract time series for analysis ---*/
-
-   ININFO_message("Extracting dataset time series") ;
-
-   iset->mv = THD_dset_to_vectim( iset->dset , iset->mmm , iset->ignore ) ;
-   if( iset->mv == NULL ){
-     ERROR_message("Can't extract dataset time series!") ; RETURN(0) ;
-   }
-   nmmm  = iset->mv->nvec ;
-   ntime = iset->mv->nvals ;  /* #dataset time points - ignore */
-
-   if( iset->despike ){
-     int_pair ip ;
-     ININFO_message("Testing time series for spikes") ;
-     ip = THD_vectim_despike9( iset->mv ) ;
-     if( ip.i > 0 )
-       ININFO_message(" -- Removed %d spikes from %d time series",ip.j,ip.i) ;
-     else
-       ININFO_message(" -- No spikes were found") ;
-   }
-
-   /*--- Filter time series ---*/
-
-   ININFO_message("Filtering %d dataset time series",nmmm) ;
-
-   if( iset->fbot <  0.0f       ) iset->fbot = 0.0f ;
-   if( iset->ftop <= iset->fbot ) iset->ftop = 999999.9f ;  /* infinity */
-
-   dvec = (float **)malloc(sizeof(float *)*nmmm) ;
-   for( iv=0 ; iv < nmmm ; iv++ ) dvec[iv] = VECTIM_PTR(iset->mv,iv) ;
-
-   if( iset->gortim != NULL ){
-     if( iset->gortim->nx < ntime+iset->ignore ){
-       ERROR_message("Global ort time series length=%d is shorter than dataset=%d",
-                     iset->gortim->nx , ntime+iset->ignore ) ;
-     } else {
-       ngvec = iset->gortim->ny ;
-       gvec  = (float **)malloc(sizeof(float *)*ngvec) ;
-       for( iv=0 ; iv < ngvec ; iv++ )
-         gvec[iv] = MRI_FLOAT_PTR(iset->gortim) + iv*iset->gortim->nx + iset->ignore ;
-     }
-   }
-
-   (void)THD_bandpass_OK( ntime , iset->mv->dt , iset->fbot,iset->ftop , 1 ) ;
-
-   iset->ndet = THD_bandpass_vectors( ntime, nmmm, dvec, iset->mv->dt,
-                                      iset->fbot, iset->ftop, iset->polort,
-                                      ngvec, gvec ) ;
-
-/** ININFO_message("Filtering removed %d DOF",iset->ndet) ; **/
-
-   free(dvec) ; if( gvec != NULL ) free(gvec) ;
-
-   /*--- Blur time series ---*/
-
-   if( iset->blur > 0.0f ){
-     int nrep ; float fx,fy,fz ;
-     ININFO_message("Starting %.1f mm blur %s" ,
-                    iset->blur , (mmm==NULL) ? "\0" : "(in mask)" ) ;
-     mri_blur3D_getfac( iset->blur ,
-                        iset->mv->dx , iset->mv->dy , iset->mv->dz ,
-                        &nrep , &fx , &fy , &fz ) ;
-     ININFO_message("Spatially blurring %d dataset volumes: %d iterations",iset->mv->nvals,nrep) ;
-     mri_blur3D_vectim( iset->mv , iset->blur ) ;
-   }
-
-   /*-- normalize --*/
-
-   ININFO_message("Normalizing dataset time series") ;
-   THD_vectim_normalize( iset->mv ) ;
+   iset->mv = THD_instacorr_tsprep( iset , iset->dset ) ;
+   if( iset->mv == NULL ) RETURN(0) ;
+   iset->ev = THD_instacorr_tsprep( iset , iset->eset ) ;
 
    RETURN(nmmm) ;
 }
@@ -154,6 +176,7 @@ MRI_IMAGE * THD_instacorr( ICOR_setup *iset , int ijk , int ata )
 {
    int kk ; MRI_IMAGE *qim ; float *qar , *dar , *tsar ; int *ivar ;
    float sblur ;
+   MRI_vectim *mv ;
 
 ENTRY("THD_instacorr") ;
 
@@ -228,36 +251,38 @@ ENTRY("THD_instacorr") ;
 
    dar = (float *)malloc(sizeof(float)*iset->mv->nvec) ;
 
+   mv = (iset->ev == NULL) ? iset->mv : iset->ev ;
+
    switch( iset->cmeth ){
      default:
      case NBISTAT_PEARSON_CORR:
-       THD_vectim_dotprod ( iset->mv , tsar , dar , ata ) ; break ;
+       THD_vectim_dotprod ( mv , tsar , dar , ata ) ; break ;
 
      case NBISTAT_SPEARMAN_CORR:
-       THD_vectim_spearman( iset->mv , tsar , dar ) ; break ;
+       THD_vectim_spearman( mv , tsar , dar ) ; break ;
 
      case NBISTAT_QUADRANT_CORR:
-       THD_vectim_quadrant( iset->mv , tsar , dar ) ; break ;
+       THD_vectim_quadrant( mv , tsar , dar ) ; break ;
 
      case NBISTAT_TICTACTOE_CORR:
-       THD_vectim_tictactoe( iset->mv , tsar , dar ) ; break ;
+       THD_vectim_tictactoe( mv , tsar , dar ) ; break ;
 
      case NBISTAT_KENDALL_TAUB:
-       THD_vectim_ktaub( iset->mv , tsar , dar ) ; break ;  /* 29 Apr 2010 */
+       THD_vectim_ktaub( mv , tsar , dar ) ; break ;  /* 29 Apr 2010 */
 
      case NBISTAT_BC_PEARSON_M:
-       THD_vectim_pearsonBC( iset->mv,sblur,ijk,0,dar ); break; /* 07 Mar 2011 */
+       THD_vectim_pearsonBC( mv,sblur,ijk,0,dar ); break; /* 07 Mar 2011 */
 
      case NBISTAT_BC_PEARSON_V:
-       THD_vectim_pearsonBC( iset->mv,sblur,ijk,1,dar ); break; /* 07 Mar 2011 */
+       THD_vectim_pearsonBC( mv,sblur,ijk,1,dar ); break; /* 07 Mar 2011 */
    }
 
    /** put them into the output image **/
 
-   qim  = mri_new_vol( iset->mv->nx , iset->mv->ny , iset->mv->nz , MRI_float ) ;
+   qim  = mri_new_vol( mv->nx , mv->ny , mv->nz , MRI_float ) ;
    qar  = MRI_FLOAT_PTR(qim) ;
-   ivar = iset->mv->ivec ;
-   for( kk=0 ; kk < iset->mv->nvec ; kk++ ) qar[ivar[kk]] = dar[kk] ;
+   ivar = mv->ivec ;
+   for( kk=0 ; kk < mv->nvec ; kk++ ) qar[ivar[kk]] = dar[kk] ;
 
    /** e finito **/
 

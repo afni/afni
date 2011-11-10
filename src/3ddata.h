@@ -4332,6 +4332,8 @@ typedef struct {
   MRI_vectim *mv ;
   char *prefix ; int ndet ;
   float *tseed ;
+
+  THD_3dim_dataset *eset ; MRI_vectim *ev ;
 } ICOR_setup ;
 
 #undef  INIT_ICOR_setup
@@ -4346,6 +4348,7 @@ typedef struct {
        if( (is)->mmm    != NULL ) free((is)->mmm) ;          \
        if( (is)->gortim != NULL ) mri_free((is)->gortim) ;   \
        if( (is)->mv     != NULL ) VECTIM_destroy((is)->mv) ; \
+       if( (is)->ev     != NULL ) VECTIM_destroy((is)->ev) ; \
        if( (is)->prefix != NULL ) free((is)->prefix) ;       \
        if( (is)->tseed  != NULL ) free((is)->tseed) ;        \
        free((is)) ; (is) = NULL ;                            \
