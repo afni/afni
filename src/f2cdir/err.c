@@ -149,7 +149,7 @@ f__fatal(int n, char *s)
 	else
 		fprintf(stderr,"%s: %s\n",s,F_err[n-100]);
 	if (f__curunit) {
-		fprintf(stderr,"apparent state: unit %d ",f__curunit-f__units);
+		fprintf(stderr,"apparent state: unit %ld ",(long)(f__curunit-f__units));
 		fprintf(stderr, f__curunit->ufnm ? "named %s\n" : "(unnamed)\n",
 			f__curunit->ufnm);
 		}
