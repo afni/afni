@@ -3040,7 +3040,15 @@ static int AFNI_drive_instacorr( char *cmd )
          ppt = strchr(dpt,'+') ; if( ppt != NULL ) *ppt = '\0' ;
          ff = PLUTO_dset_finder(dpt) ; iset->dset = ff.dset ; mm++ ;
          if( iset->dset == NULL )
-           ERROR_message("INSTACORR INIT: failed to find dataset %s",dpt) ;
+           ERROR_message("INSTACORR INIT: failed to find Dataset %s",dpt) ;
+
+       } else if( strcasecmp(cpt,"eset")     == 0 ||
+                  strcasecmp(cpt,"extraset") == 0   ){
+         THD_slist_find ff ; char *ppt ;
+         ppt = strchr(dpt,'+') ; if( ppt != NULL ) *ppt = '\0' ;
+         ff = PLUTO_dset_finder(dpt) ; iset->eset = ff.dset ; mm++ ;
+         if( iset->eset == NULL )
+           ERROR_message("INSTACORR INIT: failed to find Extraset %s",dpt) ;
 
        } else if( strcasecmp(cpt,"ignore") == 0 ){                  /* ignore */
          iset->ignore = strtod(dpt,NULL) ; mm++ ;
