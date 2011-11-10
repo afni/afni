@@ -1794,7 +1794,7 @@ ENTRY("AFNI_clus_action_CB") ;
          if( !dosave && AFNI_yesenv("AFNI_CLUSTER_EBAR") )
            sim = mri_MMBvector( imar,ibot,itop,2 ) ;
        } else if( doscat ){  /* scatterplot */
-         float *xar, *yar ; int nix, niy, nixy, jj,kk ;
+         float *xar=NULL, *yar=NULL ; int nix=0, niy=0, nixy=0, jj,kk ;
          float a=0,b=0,pcor=0,p025=0,p975=0 ;
          char xlab[64] , ylab[64] , tlab[THD_MAX_NAME+2] ;
          if( dosmea ){

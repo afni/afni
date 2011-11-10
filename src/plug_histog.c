@@ -661,7 +661,7 @@ static char *  CORREL_main( PLUGIN_interface * plint )
    MCW_idcode * idc ;
    THD_3dim_dataset * input_dset , * mask_dset = NULL ;
    MRI_IMAGE * tsim , * flim ;
-   int ignore , nvox , ntim , polort , miv , it , ip , nupdt , nbin ;
+   int ignore , nvox , ntim , polort , miv=0 , it , ip , nupdt , nbin ;
    int mcount , ii , jj ;
    float * tsar ;
    float mask_bot=666.0 , mask_top=-666.0 , hbot,htop ;

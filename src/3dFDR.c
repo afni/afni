@@ -634,8 +634,8 @@ void initialize_program (int argc, char * argv[])
   float * ffim = NULL;     /* sub-brick data in floating point format */
   int ixyz;                /* voxel index */
   int nx, ny, nz, nxyz;    /* numbers of voxels in input dataset */
-  int mx, my, mz, mxyz;    /* numbers of voxels in mask dataset */
-  int nthr;                /* number of voxels above mask threshold */
+  int mx=0, my=0, mz=0, mxyz;    /* numbers of voxels in mask dataset */
+  int nthr=0;                /* number of voxels above mask threshold */
   char message[80];        /* error message */
   int ibin;                /* p-value bin index */
 

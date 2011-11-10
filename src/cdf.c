@@ -69,7 +69,7 @@ static char * Value_str[3] = { "statistic" , "p-value" , "statistic" } ;
 int main( int argc , char *argv[] )
 {
    int usage = -1 , statcode = -1 , ii,fc,iarg , npar , verb=0 ;
-   float stat , prob , val ;
+   float stat , prob=0.0 , val ;
    float par[MAX_STAT_AUX] ;
    char *cpt , *statname ;
 

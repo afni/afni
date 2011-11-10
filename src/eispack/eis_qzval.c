@@ -17,12 +17,12 @@
     double sqrt(doublereal), d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    doublereal epsb, c__, d__, e;
+    doublereal epsb, c__, d__, e=0.0;
     integer i__, j;
     doublereal r__, s, t, a1, a2, u1, u2, v1, v2, a11, a12, a21, a22, 
 	    b11, b12, b22, di, ei;
     integer na;
-    doublereal an, bn;
+    doublereal an=0.0, bn;
     integer en;
     doublereal cq, dr;
     integer nn;

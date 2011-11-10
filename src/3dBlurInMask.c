@@ -290,7 +290,7 @@ int main( int argc , char *argv[] )
 #pragma omp parallel if( nvals > 1 )
  {
    MRI_IMAGE *dsim ; int ids ; byte *qmask=NULL ; register int vv ;
-   MRI_IMAGE *qim=NULL, *qsim=NULL; float *qar, *dsar, *qsar;
+   MRI_IMAGE *qim=NULL, *qsim=NULL; float *qar=NULL, *dsar, *qsar=NULL;
 #pragma omp critical (MALLOC)
    { if( use_qsar ){
        qsim  = mri_new_conforming(DSET_BRICK(inset,0),MRI_float); qsar = MRI_FLOAT_PTR(qsim);

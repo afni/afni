@@ -269,9 +269,9 @@ int norm_field;		/* voxel field for normal, or VP_SKIP_FIELD */
     int edge;			/* true if this scanline is on the edge
 				   of the volume */
     int voxel_size;		/* size of a voxel in bytes */
-    int scalar_offset;		/* byte offset for scalar in voxel */
-    int grad_offset;		/* byte offset for gradient in voxel */
-    int norm_offset;		/* byte offset for normal in voxel */
+    int scalar_offset=0;		/* byte offset for scalar in voxel */
+    int grad_offset=0;		/* byte offset for gradient in voxel */
+    int norm_offset=0;		/* byte offset for normal in voxel */
     char *voxel;		/* pointer to current voxel */
     int retcode;
 

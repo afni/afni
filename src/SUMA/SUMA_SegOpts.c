@@ -731,6 +731,8 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			if (!strcmp(argv[kar],"BIM")) Opt->blur_meth = SEG_BIM;
          else if (!strncmp(argv[kar],"LS",2)) Opt->blur_meth = SEG_LSB;
+         else if (!strcmp(argv[kar],"BNN")) Opt->blur_meth = SEG_BNN;
+         else if (!strcmp(argv[kar],"BFT")) Opt->blur_meth = SEG_BFT;
          else {
             SUMA_S_Errv("-blur_meth %s not valid\n", argv[kar]);
             exit(1);
@@ -1036,10 +1038,14 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
                 THD_3dim_dataset **msetp, byte **cmaskp, int dimcmask, 
                 float mask_bot, float mask_top, int *mcount) 
 { 
+   static char FuncName[]={"MaskSetup"};
    byte *mmm=NULL;
-   int ii=0, kk=0;
+   int ii=0, kk=0, Fixit=0;
    byte *cmask = NULL;
    THD_3dim_dataset *mset = NULL;
+   float *fa=NULL;
+   MRI_IMAGE *imin=NULL;
+
    
    /* ------------- Mask business -----------------*/
    
@@ -1090,6 +1096,29 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
       }
    }
    
+   /* Make sure that aset has no exact 0s that are in the mask */
+   imin = THD_extract_float_brick(0,aset) ;
+   fa = MRI_FLOAT_PTR(imin);
+   Fixit = 0;
+   for( ii=0 ; ii < DSET_NVOX(aset) && !Fixit; ii++ ) {
+      if (IN_MASK(mmm, ii) && fa[ii] == 0.0) {
+         Fixit = 1; 
+      }
+   }
+   if (Fixit) {
+      SUMA_S_Note("Have to merge mask with anat");
+      if (!mmm) {
+         mmm = (byte *)malloc(DSET_NVOX(aset)*sizeof(byte));
+         memset(mmm, 1, sizeof(byte)*DSET_NVOX(aset));
+         *mcount = DSET_NVOX(aset);
+      }
+      for( ii=0 ; ii < DSET_NVOX(aset); ii++ ) {
+         if (IN_MASK(mmm, ii) && fa[ii] == 0.0) {
+            mmm[ii] = 0; *mcount = *mcount - 1;
+         }
+      }
+   }
+   mri_free(imin); imin = NULL; fa = NULL;
    return(mmm);         
 }
 

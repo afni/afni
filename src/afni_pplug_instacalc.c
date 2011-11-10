@@ -1116,7 +1116,7 @@ static MRI_IMAGE * ICALC_compute( ICALC_setup *ics )
    float xxx[VSIZE], yyy[VSIZE], zzz[VSIZE] ;  /* xyz coordinates */
    int   iii,jjj,kkk , nx,ny,nz,nxy,nxyz ;
    THD_3dim_dataset *qset ;
-   byte *bar; short *sar; float *far; complex *car; void *var;
+   byte *bar=NULL; short *sar=NULL; float *far=NULL; complex *car=NULL; void *var;
    int dtyp , kts ; float ffac ;
 
 ENTRY("ICALC_compute") ;

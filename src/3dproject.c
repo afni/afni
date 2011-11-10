@@ -135,7 +135,7 @@ int main( int argc , char * argv[] )
    char  root[THD_MAX_NAME] = "proj." ;
    char  fname[THD_MAX_NAME] ;
 
-   int ixbot,ixtop , jybot,jytop , kzbot,kztop ;
+   int ixbot=0,ixtop=0 , jybot=0,jytop=0 , kzbot=0,kztop=0 ;
    THD_fvec3 fv ;
    THD_ivec3 iv ;
 

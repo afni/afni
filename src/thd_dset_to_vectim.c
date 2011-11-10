@@ -561,7 +561,7 @@ ENTRY("THD_vectim_pearsonBC") ;
 
 int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float *ar )
 {
-   int nvals , jj,kk,nkk ; register int ii ; float *fv ;
+   int nvals , jj,kk,nkk=0 ; register int ii ; float *fv ;
 
    if( mrv == NULL || nind <= 0 || ind == NULL || ar == NULL ) return 0 ;
 

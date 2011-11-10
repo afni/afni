@@ -4039,7 +4039,7 @@ void T3D_read_images(void)
    int   nonshort_num=0 , nonfloat_num=0 , noncomplex_num=0 , nonbyte_num=0 ;
    int     gnim ;
    char ** gname ;
-   int time_dep , ltt,kzz , ntt,nzz , nvoxt ;
+   int time_dep , ltt,kzz , ntt=0,nzz=0 , nvoxt ;
    int kzmod ;  /* 06 Nov 2002 */
    int nsmax=0 ;
 
@@ -6026,7 +6026,7 @@ ENTRY("T3D_check_outliers") ;
        negative_shorts < 0.01*nvox_total      ){
 
      int *out_count, out_ctop , cc=0 ;
-     Widget wmsg ;
+     Widget wmsg=NULL ;
 
      if( wset.topshell != NULL && wset.good ){
         wmsg = MCW_popup_message( wset.save_file_pb ,

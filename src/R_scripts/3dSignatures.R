@@ -41,7 +41,7 @@ source(first.in.path('Signatures.R'))
 source(first.in.path('AFNIplot.R'))
 
 
-ExecName <- '3dSignaturesb'
+ExecName <- '3dSignatures'
 
 greeting.SigsClassify <- function ()
    return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

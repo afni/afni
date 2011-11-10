@@ -1236,7 +1236,7 @@ void initialize_program (int argc, char * argv[], int * nopt)
   void * vfim = NULL;      /* sub-brick data pointer */
   float * ffim = NULL;     /* sub-brick data in floating point format */
   int ixyz, nthr;          /* voxel indices */
-  int nx, ny, nz, nxy, nxyz = 0;     /* numbers of voxels */
+  int nx=0, ny=0, nz=0, nxy=0, nxyz = 0;     /* numbers of voxels */
   char message[80];        /* error message */
 
 

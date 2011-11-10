@@ -1092,8 +1092,8 @@ void get_inputs
   int nopt = 1;                    /* input option argument counter */
   int ival, index;                 /* integer input */
   float fval;                      /* float input */
-  int rows, cols;                  /* number rows and columns for x matrix */
-  int irows, jcols;                /* data point counters */ 
+  int rows=0, cols=0;                  /* number rows and columns for x matrix */
+  int irows=0, jcols;                /* data point counters */ 
   THD_3dim_dataset * dset=NULL;    /* test whether data set exists */
   char message[MAX_NAME_LENGTH];   /* error message */
   char label[MAX_NAME_LENGTH];     /* sub-brick label */
@@ -2538,8 +2538,8 @@ void write_afni_data
   int output_datum;                   /* data type for output data */
   short * tsp = NULL;                 /* 2nd sub-brick data pointer */
   void  * vdif = NULL;                /* 1st sub-brick data pointer */
-  float top, bot, func_scale_short;   /* parameters for scaling data */
-  int top_ss, bot_ss;                 /* 2nd sub-brick value limits */
+  float top, bot, func_scale_short=0.0;   /* parameters for scaling data */
+  int top_ss, bot_ss=0;                 /* 2nd sub-brick value limits */
   char label[80];                     /* label for output file history */ 
   
   

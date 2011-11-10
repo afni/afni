@@ -154,7 +154,7 @@ vpMatrix4 vm;
 {
     vpMatrix4 p;		/* permutation matrix */
     vpMatrix4 pvm;		/* permutation of the viewing matrix */
-    int icount, jcount, kcount;	/* dimensions of volume in rotated space */
+    int icount=0, jcount=0, kcount=0;	/* dimensions of volume in rotated space */
     vpVector4 xobj, yobj, zobj;
     vpVector4 xim, yim, zim;
     double x, y, z, denom;
@@ -954,7 +954,7 @@ vpMatrix4 vm;
 {
     vpMatrix4 p;		/* permutation matrix */
     vpMatrix4 pvm;		/* permutation of the viewing matrix */
-    int icount, jcount, kcount;	/* dimensions of volume in rotated space */
+    int icount=0, jcount=0, kcount=0;	/* dimensions of volume in rotated space */
     double denom;
 
     Debug((vpc, VPDEBUG_SHADOW, "FactorLightView\n"));

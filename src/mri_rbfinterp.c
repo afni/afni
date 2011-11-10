@@ -91,7 +91,7 @@ ENTRY("RBF_evaluate") ;
    int ii , jj , uselin=rbk->uselin ;
    float  rr , xm,ym,zm , xd,yd,zd , rad,rqq , xt,yt,zt , *xx,*yy,*zz ;
    float  xk , yk , zk , sum , *ev ;
-   float b0,bx,by,bz , rai ;
+   float b0=0.0,bx=0.0,by=0.0,bz=0.0 , rai ;
    RBFKINT *kfirst , *klast ; int kbot,ktop ;
 
    /* load some local variables */

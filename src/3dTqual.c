@@ -12,8 +12,8 @@ int main( int argc , char *argv[] )
    int nvox , nvals , ii,iv,jj ;
    float *medar, *var , rv , *corr , cmed,cmad,cbot,ctop , clip_val=0.0 ;
    MRI_IMAGE *tsim , *medim ;
-   int nkeep , *keep ;
-   float *mkeep , *tkeep ;
+   int nkeep , *keep=NULL ;
+   float *mkeep , *tkeep=NULL ;
 
    /*----*/
 

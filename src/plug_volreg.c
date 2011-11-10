@@ -217,8 +217,8 @@ char * VOLREG_main( PLUGIN_interface * plint )
    MRI_IMAGE * qim , * tim , * fim ;
    float *dx, *dy, *dz, *roll, *yaw, *pitch, *rmsnew, *rmsold, *imb, *tar ;
    float ddx,ddy,ddz , sum ;
-   float dxtop,dytop,dztop , rolltop,yawtop,pitchtop ;
-   float dxbot,dybot,dzbot , rollbot,yawbot,pitchbot ;
+   float dxtop=0.0,dytop=0.0,dztop=0.0 , rolltop=0.0,yawtop=0.0,pitchtop=0.0 ;
+   float dxbot=0.0,dybot=0.0,dzbot=0.0 , rollbot=0.0,yawbot=0.0,pitchbot=0.0 ;
    float dxbar,dybar,dzbar , rollbar,yawbar,pitchbar ;
    int kim,ii , imcount , iha , ax1,ax2,ax3 , hax1,hax2,hax3 ;
 

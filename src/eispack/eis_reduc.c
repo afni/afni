@@ -16,7 +16,7 @@
 
     /* Local variables */
     integer i__, j, k;
-    doublereal x, y;
+    doublereal x, y=0.0;
     integer i1, j1, nn;
 
 

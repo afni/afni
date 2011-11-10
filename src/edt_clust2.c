@@ -17,12 +17,12 @@ MCW_cluster_array * NIH_find_clusters(
 {
    MCW_cluster_array *clust_arr ;
    MCW_cluster       *clust , *mask=NULL ;
-   int ii,jj,kk ,  nxy,nxyz , ijk , ijk_last , mnum ;
+   int ii,jj,kk ,  nxy,nxyz , ijk=0 , ijk_last , mnum=0 ;
    int icl , jma , ijkcl , ijkma , did_one ;
-   float fimv ;
-   short *sfar ;
-   float *ffar ;
-   byte  *bfar ;
+   float fimv=0.0 ;
+   short *sfar=NULL ;
+   float *ffar=NULL ;
+   byte  *bfar=NULL ;
    short ic, jc, kc;
    short im, jm, km;
 

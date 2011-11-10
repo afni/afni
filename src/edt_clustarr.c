@@ -35,8 +35,8 @@ void EDIT_cluster_array (MCW_cluster_array * clar, int edit_clust,
       max,         /* maximum of voxel intensities */
       amax,        /* maximum of absolute voxel intensities */
       smax,        /* signed maximum of absolute voxel intensities */
-      mean,        /* mean of voxel intensities */
-      size;        /* size of cluster (multiples of vmul) */
+      mean=0.0,        /* mean of voxel intensities */
+      size=0.0;        /* size of cluster (multiples of vmul) */
 
 ENTRY("EDIT_cluster_array") ;
 

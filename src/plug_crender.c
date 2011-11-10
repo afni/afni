@@ -7208,9 +7208,9 @@ void RCREND_overlay_ttatlas(void)
    int nvox;
    int hemi, hbot=0; /* ZSS: initialized hbot 01/07/09*/
 
-   byte *b0, *brik, *ovc,  *ovar ;
-   short *s0, *val ;
-   float *f0;
+   byte *b0=NULL, *brik, *ovc,  *ovar ;
+   short *s0=NULL, *val ;
+   float *f0=NULL;
    MRI_IMAGE *b0im;
    int gwin , fwin , nreg , ii,jj , nov ;
    int at_sbi, fim_type, at_nsb; 

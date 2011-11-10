@@ -118,7 +118,7 @@ MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg )
    int kk,ii , do_rcmat ;
    double aa=ap, lam=lm , sig=sg ; int do_norm = (sg<=0.0f) ;
    double *rvec ;
-   rcmat *rcm ;
+   rcmat *rcm=NULL ;
    MRI_IMAGE *outim ;
    float     *outar , *vv ;
 #if 0

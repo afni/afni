@@ -532,7 +532,7 @@ cluster * agglomerate_clusters (cluster * head_clust, int print_flag)
   /*----- Identify clusters which are to be merged -----*/
   if (print_flag)
     {
-      int iclust, iaclust, ibclust;
+      int iclust, iaclust=0, ibclust=0;
 
       clust_ptr = head_clust;
       iclust = 0;

@@ -67,7 +67,7 @@ void EDIT_blur_volume_3d( int   nx, int   ny, int   nz,
    float    *ffim = NULL ;
    complex  *cfim = NULL ;
 
-   float fbot,ftop ;     /* 10 Jan 2003: for clipping results */
+   float fbot=0.0,ftop=0.0 ;     /* 10 Jan 2003: for clipping results */
    int nxyz ;            /* number of voxels */
 
    int   fir_m , fir_num=0 ;  /* 03 Oct 2005: for fir_blur? filtering */
@@ -639,7 +639,7 @@ static INLINE float partu( float x )
 void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
-   float *r , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
+   float *r , wt0=0.0,wt1=0.0,wt2=0.0,wt3=0.0,wt4=0.0,wt5=0.0,wt6=0.0,wt7=0.0 , sum , *ff ;
 
 ENTRY("fir_blurx") ;
 if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
@@ -832,7 +832,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
-   float *r, wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
+   float *r, wt0=0.0,wt1=0.0,wt2=0.0,wt3=0.0,wt4=0.0,wt5=0.0,wt6=0.0,wt7=0.0 , sum , *ff ;
    float *rr, *ss;
    int ny2m = ny+2*m;
 
@@ -1164,7 +1164,7 @@ SMALLIMAGE:
 void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
-   float *rr,*ss , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
+   float *rr,*ss , wt0=0.0,wt1=0.0,wt2=0.0,wt3=0.0,wt4=0.0,wt5=0.0,wt6=0.0,wt7=0.0 , sum , *ff ;
    int nz2m = nz+2*m ;
 
 ENTRY("fir_blurz") ;

@@ -230,7 +230,7 @@ static void PGRAM_tsfunc( double tzero, double tdelta ,
    static int     first=1 ;
 
    int nbin=nbrik , nfft=gfft ;
-   float pfact ;
+   float pfact=0.0 ;
 
    register int kk ;
 

@@ -65,9 +65,9 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
    float max_percent        /* 19 May 1997 */ ) 
 {
    THD_3dim_dataset * new_dset ;
-   int ifim , it,iv , nvox , ngood_ref , ntime , it1 , dtyp , nxyz;
+   int ifim , it,iv , nvox=0 , ngood_ref , ntime , it1 , dtyp , nxyz;
    float * vval , * tsar , * aval , * rbest , * abest ;
-   int   * indx ;
+   int   * indx=NULL ;
    short * bar ;
    void  * ptr ;
    float stataux[MAX_STAT_AUX];
@@ -77,7 +77,7 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
    PCOR_voxel_corr ** pc_vc ;
    int save_resam ;
 
-   int fim_nref , nx_ort , ny_ort , internal_ort ;    /* 10 Dec 1996 */
+   int fim_nref , nx_ort , ny_ort=0 , internal_ort ;    /* 10 Dec 1996 */
    static float * ref_vec = NULL ;
    static int    nref_vec = -666 ;
 

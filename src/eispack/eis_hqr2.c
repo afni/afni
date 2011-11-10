@@ -24,8 +24,8 @@ static doublereal c_b49 = 0.;
     extern /* Subroutine */ int cdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
     doublereal norm;
-    integer i__, j, k, l, m;
-    doublereal p, q, r__, s, t, w, x, y;
+    integer i__, j, k, l=0, m=0;
+    doublereal p, q, r__=0.0, s=0.0, t, w, x, y;
     integer na, ii, en, jj;
     doublereal ra, sa;
     integer ll, mm, nn;

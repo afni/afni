@@ -107,9 +107,9 @@ static void
 AffineBruteForceRender(vpc)
 vpContext *vpc;
 {
-    int icount;			/* voxels per voxel scanline */
-    int jcount;			/* voxel scanlines per voxel slice */
-    int kcount;			/* voxel slices in the volume */
+    int icount=0;			/* voxels per voxel scanline */
+    int jcount=0;			/* voxel scanlines per voxel slice */
+    int kcount=0;			/* voxel slices in the volume */
     int k;			/* voxel slice index */
     int kstart, kstop;		/* values of k for first and last slices */
     int kincr;			/* value to add to k to get to the next slice
@@ -609,8 +609,8 @@ double min_opacity;	/* low opacity threshold */
     int i, j;
     float old_opc, old_r, old_g, old_b;
     float new_opc, new_r, new_g, new_b;
-    GrayIntPixel *gray_intim;
-    RGBIntPixel *rgb_intim;
+    GrayIntPixel *gray_intim=NULL;
+    RGBIntPixel *rgb_intim=NULL;
 
     if (color_channels == 1)
 	gray_intim = int_image_ptr;
@@ -699,7 +699,7 @@ vpContext *vpc;
     double denom;
     double ma, mb, mc, md, me, mf;
     float r, g, b, alpha;
-    int r_int, g_int, b_int, alpha_int;
+    int r_int, g_int=0, b_int=0, alpha_int;
     int color_channels;		/* number of color channels in int. image */
     int pixel_type;		/* type of output image pixel */
 

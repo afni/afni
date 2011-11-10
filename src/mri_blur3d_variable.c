@@ -293,6 +293,97 @@ ENTRY("mri_blur3D_inmask_speedy") ;
    EXRETURN ;
 }
 
+/*
+   Nearest neighbor averaging, for faster but poorly titrated smoothing.
+                                 ZSS Nov 2011
+*/
+void mri_blur3D_inmask_NN( MRI_IMAGE *im, byte *mask, int nrep )
+{
+   int nx,ny,nz,nxy,nxyz ;
+   float *iar , *qar ;
+   int ijk , ii,jj,kk , nn, ijkm, nfloat_err=0 ;
+   byte *skin = NULL;
+   register float vout ;
+
+ENTRY("mri_blur3D_inmask_NN") ;
+
+   if( im == NULL || nrep <= 0 ) EXRETURN ;
+   
+   nx = im->nx; ny = im->ny; nz = im->nz; nxy = nx*ny; nxyz = nxy*nz;
+
+   iar = MRI_FLOAT_PTR(im) ;
+
+#pragma omp critical (MALLOC)
+   skin = (byte *)calloc(sizeof(byte), nxyz);
+   ijkm = nxyz-nxy-1;
+   for( ijk=kk=0 ; kk < nz ; kk++ ){
+     for( jj=0 ; jj < ny ; jj++ ){
+       for( ii=0 ; ii < nx ; ii++,ijk++ ){
+         if( !INMASK(ijk) ) continue ;
+         if (  ii == 0    || jj == 0    || kk == 0 || 
+               ii == nx-1 || jj == ny-1 || jj == nz-1 ||
+               ijk < nxy || ijk > ijkm) {
+            skin[ijk] = 1; /* in mask, on edge of volume, 
+                              or close to boundary slices */
+         } else if (        !INMASK(ijk-1)  || !INMASK(ijk+1) ||
+                     !INMASK(ijk-nx) || !INMASK(ijk+nx)||
+                     !INMASK(ijk-nxy)|| !INMASK(ijk+nxy) ){
+            skin[ijk] = 1; /* on edge of mask */
+         }
+       }
+     }
+   }
+
+#pragma omp critical (MALLOC)
+   qar = (float *)calloc(sizeof(float),nxyz) ;
+
+   for( nn=0 ; nn < nrep ; nn++ ){
+     for( ijk=kk=0 ; kk < nz ; kk++ ){
+      for( jj=0 ; jj < ny ; jj++ ){
+       for( ii=0 ; ii < nx ; ii++,ijk++ ){
+         if( !INMASK(ijk) ) continue ;
+         vout = iar[ijk] ;
+         if (!skin[ijk]) { /* Not skin, go fast */
+            qar[ijk] = (iar[ijk]     + 
+                        iar[ijk-1]   + iar[ijk+1]  +
+                        iar[ijk-nx]  + iar[ijk+nx] +
+                        iar[ijk-nxy] + iar[ijk+nxy] ) / 7.0;
+         } else { /* skin voxel, go slow */
+            vout = 1.0;
+            qar[ijk] = iar[ijk];
+            if( ii-1 >= 0 && INMASK(ijk-1) ){
+             qar[ijk] += qar[ijk-1]; ++vout;
+            }
+            if( ii+1 < nx && INMASK(ijk+1) ){
+             qar[ijk] += qar[ijk+1]; ++vout;
+            }
+            if( jj-1 >= 0 && INMASK(ijk-nx) ){
+             qar[ijk] += qar[ijk-nx]; ++vout;
+            }
+            if( jj+1 < ny && INMASK(ijk+nx) ){
+             qar[ijk] += qar[ijk+nx]; ++vout;
+            }
+            if( kk-1 >= 0 && INMASK(ijk-nxy) ){
+             qar[ijk] += qar[ijk-nxy]; ++vout;
+            }
+            if( kk+1 < nz && INMASK(ijk+nxy) ){
+             qar[ijk] += qar[ijk+nxy]; ++vout;
+            }
+            qar[ijk] /= vout;  
+         }
+     }}}
+
+#pragma omp critical (MEMCPY)
+     memcpy(iar,qar,sizeof(float)*nxyz) ;
+   }
+
+#pragma omp critical (MALLOC)
+   free((void *)qar) ;
+#pragma omp critical (MALLOC)
+   free((void *)skin) ;
+   EXRETURN ;
+}
+
 /*----------------------------------------------------------------------------*/
 
 #undef  DMAX

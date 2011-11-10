@@ -22,7 +22,7 @@ THD_dmat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;    /* at end of file */
 int main( int argc , char * argv[] )
 {
    THD_dfvec3 *xx , *yy , dv ;
-   int nvec , ii,jj, iarg ;
+   int nvec=0 , ii,jj, iarg ;
    THD_dvecmat rt , rtinv ;
    THD_dmat33  pp,ppt , rr ;
    THD_dfvec3  tt ;

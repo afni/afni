@@ -35,7 +35,7 @@ int main( int argc , char * argv[] )
 
    int do_vote=0 ;          /* 18 Oct 1999 */
    int *vote_val = NULL ;
-   int  nvote_val , ivote , voter , vote_print=0 ;
+   int  nvote_val=0 , ivote , voter=0 , vote_print=0 ;
    byte  *vote_bout = NULL ;
    short *vote_sout = NULL ;
    float *vote_best = NULL ;

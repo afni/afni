@@ -265,8 +265,8 @@ void GRAF_drawing_EV( Widget w , XtPointer client_data ,
          int vertonly, x,y , orighx, orighy, grab,h , newx,newy ;
          unsigned int mask ;
 
-         int use_popup=0 , opx,opy ; /* 30 Nov 2002 */
-         double ct1,ct2 ;
+         int use_popup=0 , opx=0,opy=0 ; /* 30 Nov 2002 */
+         double ct1=0.0,ct2 ;
 
 #undef USE_MyCursor
 #ifdef USE_MyCursor

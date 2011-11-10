@@ -153,7 +153,7 @@ static char * BFIT_main( PLUGIN_interface * plint )
    BFIT_data * bfd ;
    BFIT_result * bfr ;
 
-   int nvals,ival , nran,nvox , nbin , miv , sqr,sqt ;
+   int nvals,ival , nran,nvox , nbin , miv=0 , sqr,sqt ;
    float abot,atop,bbot,btop,pcut , eps,eps1 , hlast ;
    float *bval , *cval ;
    double aa,bb,xc ;

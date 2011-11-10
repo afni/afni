@@ -602,14 +602,22 @@ ENTRY("THD_localstat") ;
 
           cc += (N_mp-1) ; /* number of sub-bricks added, minus 1 */
 
-         } else if( code[cc] == NSTAT_mMP2s ){ /* 3 values, median, MAD, P2Skew*/
+         } else if( code[cc] == NSTAT_mMP2s0 ){ /*3 values, median, MAD, P2Skew*/
            mri_nstat_mMP2S( nbar_num , nbar, brick[ijk], fv5 ) ;
            aar[cc  ][ijk] = fv5[1]; /* median */
            aar[cc+1][ijk] = fv5[3]; /* MAD */
            aar[cc+2][ijk] = fv5[4]; /* Skew */ 
            cc += 2 ;  /* skip redundant codes that follow */
+         } else if( code[cc] == NSTAT_mmMP2s0 ){ 
+               /*4 values, mean, median, MAD, P2Skew*/
+           mri_nstat_mMP2S( nbar_num , nbar, brick[ijk], fv5 ) ;
+           aar[cc  ][ijk] = fv5[0]; /* mean */
+           aar[cc+1][ijk] = fv5[1]; /* median */
+           aar[cc+2][ijk] = fv5[3]; /* MAD */
+           aar[cc+3][ijk] = fv5[4]; /* Skew */ 
+           cc += 3 ;  /* skip redundant codes that follow */
          } else {   /* the "usual" (catchall) case */
-
+      
            aar[cc][ijk] = mri_nstat( code[cc] , nbar_num , nbar, brick[ijk] ) ;
            
          }

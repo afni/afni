@@ -20,7 +20,7 @@ static doublereal c_b11 = 1.;
     double d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    doublereal b, c__, f, g, h__;
+    doublereal b=0.0, c__=0.0, f, g, h__;
     integer i__, j, l, m;
     doublereal p, r__, s, t;
     integer l1, ii;

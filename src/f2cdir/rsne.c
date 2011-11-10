@@ -99,7 +99,7 @@ mk_hashtab(Namelist *nl)
 	Vardesc *v, **vd, **vde;
 	hashentry *he;
 
-	hashtab **x, **x0, *y;
+	hashtab **x, **x0=NULL, *y;
 	for(x = &nl_cache; y = *x; x0 = x, x = &y->next)
 		if (nl == y->nl)
 			return y;
@@ -303,7 +303,7 @@ x_rsne(cilist *a)
 	char buf[64];
 	hashtab *ht;
 	Vardesc *v;
-	dimen *dn, *dn0, *dn1;
+	dimen *dn=NULL, *dn0=NULL, *dn1;
 	ftnlen *dims, *dims1;
 	ftnlen b, b0, b1, ex, no, no1, nomax, size, span;
 	ftnint type;

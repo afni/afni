@@ -1388,7 +1388,7 @@ static int PERMTEST_compute(
   MRI_IMAGE *AR_excl_ts)	/*autoregression exclusion flags*/
   {
   register int t, iter, xyz;	/*indices and counters*/
-  int x, y, z,
+  int x=0, y=0, z,
       xdim, ydim, zdim,		/*spatial dimensions*/
       tdim,			/*temporal dimension of dataset*/
       tsize,			/*# of included (< BLAST) points, tsize<=tdim*/
@@ -1397,7 +1397,7 @@ static int PERMTEST_compute(
       *tindex,			/*temporal sequence of all included images*/
       *sequence;		/*permuted temporal sequence*/
   float *vox_xyz,		/*time series for one voxel*/
-	*AR_ts,			/*time series after whitening or colouring*/
+	*AR_ts=NULL,			/*time series after whitening or colouring*/
 	*vox,			/*3D+time data indexed by z,y,x,t*/
 	*ts,		      /*storage for linear series (ts[t]=t, 0<=t<tsize),
 				 and later for randomised time series*/
@@ -1415,10 +1415,10 @@ static int PERMTEST_compute(
       not_done;
 
 /*variables for the autoregression computation*/
-  double *AR,			/*autoregression coefficients*/
+  double *AR=NULL,			/*autoregression coefficients*/
 	  AR_var;		/*variance*/
-  int AR_n_incl;		/*# of points included in covariance calc.*/
-  char *AR_excl;		/*flags at each time point, 1=excluded*/
+  int AR_n_incl=0;		/*# of points included in covariance calc.*/
+  char *AR_excl=NULL;		/*flags at each time point, 1=excluded*/
 
 /*set dimensions*/
   xdim = dset->daxes->nxx;

@@ -269,7 +269,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 	nprfxstr	 = (char *) calloc (PLUGIN_MAX_STRING_RANGE+20,sizeof(char));
 	/* Do not allocate more space for mssg, because AFNI would choke on it*/
 	mssg = (char *) calloc (PLUGIN_MAX_STRING_RANGE,sizeof(char));
-	
+	memset(&uda, 0, sizeof(extract_data));
 	if (str == NULL || nprfxstr == NULL || mssg == NULL ) 
 									  return "********************\n"
 												"Could not Allocate\n"

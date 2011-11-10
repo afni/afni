@@ -398,11 +398,11 @@ static int cl1_fort(integer *k, integer *l, integer *m, integer *n,
     /* Local variables ['static' removed by RWCox] */
     integer iimn, nklm;
     real xmin, xmax;
-    integer iout, i__, j;
+    integer iout=0, i__, j;
     real z__;
     integer iineg, maxit, n1, n2;
     real pivot;
-    integer ia, ii, kk, in, nk, js;
+    integer ia, ii, kk, in=0, nk, js;
     real sn;
     integer iphase, kforce;
     real zu, zv;

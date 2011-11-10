@@ -184,7 +184,7 @@ double **b;	/* RHS vectors on input, solution vectors on output;
 int m;		/* number of vectors in b */
 {
     vpVector4 row_scale_factor;	/* normalization for each row */
-    int ipivot;			/* row containing pivot */
+    int ipivot=0;			/* row containing pivot */
     int pivot[4];		/* after the reduction loop, row i has
 				   been pivoted to row pivot[i] */
     int i, j, k, l;		/* loop indices */

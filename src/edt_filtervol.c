@@ -63,8 +63,8 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
    float *wt=NULL ;
    PARSER_code *pcode ;
 
-   int nw , nnw , iw ;     /* 11 Sep 2000: Winsor stuff */
-   float *sw=NULL , vw ;
+   int nw=0 , nnw=0 , iw ;     /* 11 Sep 2000: Winsor stuff */
+   float *sw=NULL , vw=0.0 ;
 
    nxy = nx*ny;  nxyz = nxy*nz;
 

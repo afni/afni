@@ -51,12 +51,12 @@ int main( int argc , char * argv[] )
    static int hist[32768] , gist[32768] ;
    int qq,ncut,ib,nold , sbot,stop , npos,nhalf , cbot,ctop,nwid ;
    double dsum ;
-   float *wt , ws ;
+   float *wt=NULL , ws ;
    int ibot,itop ;
    FILE *hf ;
-   float **Gmat, *Hvec, *lam, *rez, sum,wtm, wbot,wtop, ebest=-1.0;
+   float **Gmat=NULL, *Hvec, *lam, *rez, sum,wtm, wbot,wtop, ebest=-1.0;
    float *ap,*pk,*ww ; int nregtry , nbetter ;
-   float *pkbest,*wwbest,*apbest,*lambest , pplm,aplm,wplm ;
+   float *pkbest=NULL,*wwbest=NULL,*apbest=NULL,*lambest=NULL , pplm,aplm,wplm ;
    float *pklast,*wwlast,*aplast ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){

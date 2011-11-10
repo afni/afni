@@ -19,7 +19,7 @@
     integer i__, j, k;
     doublereal p, q, r__, s, delta;
     integer k1, ii, jj;
-    doublereal ep, qp;
+    doublereal ep, qp=0.0;
     extern doublereal epslon_(doublereal *);
     doublereal err, tot;
 
