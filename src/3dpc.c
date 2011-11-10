@@ -384,7 +384,7 @@ int main( int argc , char *argv[] )
    char vname[THD_MAX_NAME] ;
    FILE *fpp ;
 
-   double *aa , *eval , *vout ;
+   double *aa , *eval , *vout=NULL ;
    double atrace ;
    int adim ;
    float *vxmean=NULL ;

@@ -56,7 +56,7 @@ void REG_command_line(void) ;
 
 int main( int argc , char *argv[] )
 {
-   MRI_IMAGE * qim , * tim ;
+   MRI_IMAGE * qim , * tim=NULL ;
    MRI_IMARR * regar = NULL ;
    float * dx , * dy , * phi ;
    int kim , imcount ;
@@ -334,7 +334,7 @@ void REG_syntax(void)
 
 void REG_command_line(void)
 {
-   int ii , nxbase , nybase , nerr , basecode ;
+   int ii , nxbase=0 , nybase=0 , nerr , basecode ;
    MRI_IMAGE * tim ;
    MRI_IMARR * tarr ;
 

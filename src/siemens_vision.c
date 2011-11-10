@@ -34,8 +34,8 @@ int main( int argc , char * argv[] )
    struct Siemens_vision_header head ;
    FILE * fp ;
    char orients[7] ;
-   int i,j,xx,yy , matrix , swap , slices ;
-   double dd , qq ;
+   int i,j,xx,yy , matrix , swap , slices=0 ;
+   double dd=0.0 , qq=0.0 ;
    struct stat file_stat ;
    int imagesize=64 ;
    short *imar=NULL ;

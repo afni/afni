@@ -294,7 +294,7 @@ static void F2D_chainfunc( int nx , int ny , double dx, double dy, float * ar )
 {
    int kk,ii,pp , ndo,nexp , nxy=nx*ny ;
    float * abc[NUM_CHAIN] , *aprev=ar , *rst,*uvw,*xyz ;
-   double * atoz[26] , *tmp ;
+   double * atoz[26] , *tmp=NULL ;
 
    /* allocate image workspace */
 

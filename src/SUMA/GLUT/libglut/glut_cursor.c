@@ -91,7 +91,7 @@ makeBlankCursor(void)
 void
 glutSetCursor(int cursor)
 {
-  Cursor xcursor;
+  Cursor xcursor=None;
 
   if (cursor >= 0 &&
     cursor < sizeof(cursorTable) / sizeof(cursorTable[0])) {

@@ -731,7 +731,7 @@ void eval_registration
   byte  * bold = NULL, * bnew = NULL, * bbase = NULL;
   short * sold = NULL, * snew = NULL, * sbase = NULL;
   float * fold = NULL, * fnew = NULL, * fbase = NULL;
-  float float_base, float_old, float_new;
+  float float_base=0.0, float_old=0.0, float_new=0.0;
 
 
   /*----- Initialize local variables -----*/

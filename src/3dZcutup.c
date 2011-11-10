@@ -6,7 +6,7 @@ int main( int argc , char * argv[] )
 {
    int iarg ;
    THD_3dim_dataset *inset , *outset ;
-   int keep_bot=-1 , keep_top , nz ;
+   int keep_bot=-1 , keep_top=0 , nz ;
    int add_I=0 , add_S=0 , add_A=0 , add_P=0 , add_L=0 , add_R=0 ;
    char * prefix="zcutup" ;
 

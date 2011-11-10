@@ -39,14 +39,35 @@ void Syntax(void)
     "   -prefix: Return the prefix\n"
     "   -prefix_noext: Return the prefix without extensions\n"
     "   -n[i|j|k]: Return the number of voxels in i, j, k dimensions\n"
-    "   -nijk: Return ni*nj*nk"
-    "   -nt: Return number of points in time, or number of sub-bricks\n"
+    "   -nijk: Return ni*nj*nk\n"
+    "   -nv: Return number of points in time\n"
+    "        use -nv for the more generic number of sub-bricks\n"
+    "   -nvi: The maximum sub-brick index (= nv -1 )\n"
+    "   -nt: Return number of points in time\n"
+    "        use -nv for the more generic number of sub-bricks\n"
+    "   -nti: The maximum time index (= nt -1 )\n"
     "  ==== Options producing one value per sub-brick ========\n"
-    "   -fac: Return the float factor\n"
+    "   -fac: Return the float scaling factor\n"
+    "   -datum: The data storage type\n"
+    "   -min: The minimum value, scaled by fac\n"
+    "   -max: The maximum value, scaled by fac\n"
+    "   -minus: The minimum value, unscaled.\n"
+    "   -maxus: The maximum value, unscaled.\n"
     "  ==== Options producing multiple values (strings of multiple lines)====\n"
+    "       You can specify the delimiter between sub-brick parameters with\n"
+    "       -sb_delim DELIM. Default DELIM is \"|\"\n"
     "   -labeltable: Show label table, if any\n"
     "   -labeltable_as_atlas_points: Show label table in atlas point format.\n"
     "\n"
+    "  === Options affection output format ===\n"
+    "   -header_line: Output as the first line the names of attributes\n"
+    "                 in each field (column)\n"
+    "   -sb_delim SB_DELIM: Delimiter string between sub-brick values\n"
+    "                       Default SB_DELIM is \"|\"\n"
+    "   -NA_flag NAFLAG: String to use when a field is not found or not\n"
+    "                    applicable. Default is \"NA\"\n"
+    "   -atr_delim ATR_DELIM: Delimiter string between attributes\n"
+    "                         Default ATR_DELIM is the tab character.\n"
     " Example:\n"
     "    Produce a table of results using 1-value-options\n"
     "    3dinfo  -prefix_noext -prefix -space -ni -nj -nk -nt  \\\n"
@@ -58,19 +79,36 @@ void Syntax(void)
 
 typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI,
-   IS_OBLIQUE, PREFIX , PREFIX_NOEXT, NI, NJ, NK, NT, NIJK,
+   IS_OBLIQUE, PREFIX , PREFIX_NOEXT, 
+   NI, NJ, NK, NT, NTI, 
+   NV, NVI, NIJK,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST,
-   FAC,
-   N_FIELDS } INFO_FIELDS; /* Leave N_FIELDS at the end */
+   FAC, DATUM, LABEL,
+   MIN, MAX, MINUS, MAXUS,
+   N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
+                              Leave N_FIELDS at the end */
 
+char Field_Names[][32]={
+   {"-classic-"}, {"space"}, {"AV_space"}, {"is_nifti"},
+   {"is_oblique"}, {"prefix"}, {"prefix_noext"}, 
+   {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, 
+   {"Nv"}, {"Nvi"}, {"Nijk"}, 
+   {"label_table"}, {"LT_as_atlas_point_list"}, 
+   {"factor"}, {"datum"}, {"label"}, 
+   {"min"}, {"max"}, {"minus"}, {"maxus"},
+   {"\0"} }; /* Keep synchronized with INFO_FIELDS */
+     
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset ;
    int iarg , verbose = -1 ;
    char *outbuf ;
    char *labelName = NULL;
+   char *sbdelim = {"|"};
+   char *NAflag = {"NA"};
+   char *atrdelim = {"\t"};
    INFO_FIELDS sing[512]; 
-   int iis=0, N_sing = 0, isb=0;
+   int iis=0, N_sing = 0, isb=0, withhead = 0;
    
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
@@ -81,7 +119,7 @@ int main( int argc , char *argv[] )
            if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  0; iarg++; continue; }
       else if( strncmp(argv[iarg],"-VERB" ,5) == 0 ){ verbose =  1; iarg++; continue; }
       else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; continue; }
-
+      else if( strcmp(argv[iarg],"-header_line") == 0 ){ withhead = 1; iarg++; continue; }
       else if ( strncmp(argv[iarg],"-label2",7) == 0 )
       {
         iarg++;
@@ -91,6 +129,27 @@ int main( int argc , char *argv[] )
         strcpy(labelName, argv[iarg]);
         iarg++; continue;
       }
+      else if( strcmp(argv[iarg],"-sb_delim") == 0) { 
+         iarg++; 
+         if (iarg >= argc)
+           ERROR_exit( "3dinfo needs a string after -sb_delim\n");
+         sbdelim = argv[iarg];
+         iarg++; continue;
+      } 
+      else if( strcmp(argv[iarg],"-NA_flag") == 0) { 
+         iarg++; 
+         if (iarg >= argc)
+           ERROR_exit( "3dinfo needs a string after -NA_flag\n");
+         NAflag = argv[iarg];
+         iarg++; continue;
+      } 
+      else if( strcmp(argv[iarg],"-atr_delim") == 0) { 
+         iarg++; 
+         if (iarg >= argc)
+           ERROR_exit( "3dinfo needs a string after -atr_delim\n");
+         atrdelim = argv[iarg];
+         iarg++; continue;
+      } 
       else if( strncmp(argv[iarg],"-space",6) == 0) { 
          sing[N_sing++] = DSET_SPACE; iarg++; continue;
       } else if( strncmp(argv[iarg],"-av_space",6) == 0) { 
@@ -109,8 +168,14 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = NJ; iarg++; continue;
       } else if( strncmp(argv[iarg],"-nk",3) == 0) {
          sing[N_sing++] = NK; iarg++; continue;
-      } else if( strncmp(argv[iarg],"-nt",3) == 0) {
+      } else if( strcmp(argv[iarg],"-nt") == 0) {
          sing[N_sing++] = NT; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-nti") == 0) {
+         sing[N_sing++] = NTI; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-nv") == 0) {
+         sing[N_sing++] = NV; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-nvi") == 0) {
+         sing[N_sing++] = NVI; iarg++; continue;
       } else if( strncmp(argv[iarg],"-nijk",3) == 0) {
          sing[N_sing++] = NIJK; iarg++; continue;
       } else if( strcmp(argv[iarg],"-labeltable") == 0) {
@@ -119,6 +184,18 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = LTABLE_AS_ATLAS_POINT_LIST; iarg++; continue;
       } else if( strcmp(argv[iarg],"-fac") == 0) {
          sing[N_sing++] = FAC; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-datum") == 0) {
+         sing[N_sing++] = DATUM; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-label") == 0) {
+         sing[N_sing++] = LABEL; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-min") == 0) {
+         sing[N_sing++] = MIN; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-max") == 0) {
+         sing[N_sing++] = MAX; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-minus") == 0) {
+         sing[N_sing++] = MINUS; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-maxus") == 0) {
+         sing[N_sing++] = MAXUS; iarg++; continue;
       } else {
          ERROR_exit("Option %s unknown", argv[iarg]);
       }
@@ -131,6 +208,20 @@ int main( int argc , char *argv[] )
    if (sing[iis] == CLASSIC) PRINT_VERSION("3dinfo") ;
    
    THD_allow_empty_dataset(1) ;  /* 21 Mar 2007 */
+
+   if (withhead) {
+      int havenew=0;
+      for (iis = 0; iis < N_sing; ++iis) {
+         if (sing[iis] != CLASSIC) {
+            ++havenew;
+            fprintf(stdout, "%s", Field_Names[sing[iis]]);
+         }
+         if (havenew) {
+            if (N_sing > 1 && iis < N_sing-1) fprintf(stdout,"%s",atrdelim);
+            else fprintf(stdout,"\n");
+         }
+      }
+   }
 
    for( ; iarg < argc ; iarg++ ){
 
@@ -244,6 +335,15 @@ int main( int argc , char *argv[] )
          case NT:
             fprintf(stdout,"%d", DSET_NUM_TIMES(dset));
             break;
+         case NTI:
+            fprintf(stdout,"%d", DSET_NUM_TIMES(dset)-1);
+            break;
+         case NV:
+            fprintf(stdout,"%d", DSET_NVALS(dset));
+            break;
+         case NVI:
+            fprintf(stdout,"%d", DSET_NVALS(dset)-1);
+            break;
          case LTABLE:
             {
                char *str;
@@ -273,7 +373,53 @@ int main( int argc , char *argv[] )
                for (isb=0; isb<DSET_NVALS(dset); ++isb) {
                   fprintf(stdout,"%f%s",
                         DSET_BRICK_FACTOR(dset,isb),
-                        (isb == (DSET_NVALS(dset)-1)) ? "" : "|");
+                        (isb == (DSET_NVALS(dset)-1)) ? "" : sbdelim);
+               }
+               break;
+            }
+         case DATUM:
+            {
+               for (isb=0; isb<DSET_NVALS(dset); ++isb) {
+                  fprintf(stdout,"%s%s",
+                        MRI_TYPE_name[DSET_BRICK_TYPE(dset,isb)],
+                        (isb == (DSET_NVALS(dset)-1)) ? "" : sbdelim);
+               }
+               break;
+            }
+         case LABEL:
+            {
+               for (isb=0; isb<DSET_NVALS(dset); ++isb) {
+                  fprintf(stdout,"%s%s",
+               DSET_BRICK_LABEL(dset,isb) ? DSET_BRICK_LABEL(dset,isb):NAflag,
+                        (isb == (DSET_NVALS(dset)-1)) ? "" : sbdelim);
+               }
+               break;
+            }
+         case MIN:
+         case MINUS:
+         case MAX:
+         case MAXUS:
+            {
+               float vv=0.0, tf=0.0;
+               for (isb=0; isb<DSET_NVALS(dset); ++isb) {
+                  tf = DSET_BRICK_FACTOR(dset,isb) ; if (tf == 0.0) tf = 1.0;
+                  if( ISVALID_STATISTIC(dset->stats) ){
+                          if (sing[iis] == MINUS) 
+                        vv = dset->stats->bstat[isb].min/tf;
+                     else if (sing[iis] == MAXUS) 
+                        vv = dset->stats->bstat[isb].max/tf; 
+                     else if (sing[iis] == MIN) 
+                        vv = dset->stats->bstat[isb].min;
+                     else if (sing[iis] == MAX) 
+                        vv = dset->stats->bstat[isb].max;
+                     fprintf(stdout,"%g%s",
+                        vv,
+                        (isb == (DSET_NVALS(dset)-1)) ? "" : sbdelim);
+                  } else {
+                     fprintf(stdout,"%s%s",
+                        NAflag,
+                        (isb == (DSET_NVALS(dset)-1)) ? "" : sbdelim);
+                  }
                }
                break;
             }
@@ -282,7 +428,7 @@ int main( int argc , char *argv[] )
             exit(1);
         }
         if (sing[iis] != CLASSIC) {
-         if (N_sing > 1 && iis < N_sing-1) fprintf(stdout,"\t");
+         if (N_sing > 1 && iis < N_sing-1) fprintf(stdout,"%s",atrdelim);
          else fprintf(stdout,"\n");
         }
       }

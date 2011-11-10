@@ -121,7 +121,7 @@ static char * MHIST_main( PLUGIN_interface *plint )
    THD_3dim_dataset *input_dset[MAXMAX] , *mask_dset=NULL ;
    int                   ovcolr[MAXMAX] , indbot[MAXMAX] , indtop[MAXMAX] ;
    int num_dset=0 ;
-   int iv , mcount , nvox , ii,jj , nbin=-1 ,
+   int iv , mcount , nvox=0 , ii,jj , nbin=-1 ,
        do_mval=0,mval , id,ivbot,ivtop , nvals , mval_max , tval ;
    float hbot,htop ;
    float val_bot=666.0  , val_top=-666.0 ;

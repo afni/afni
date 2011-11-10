@@ -113,7 +113,7 @@ int main( int argc , char * argv[] )
    MRI_IMAGE * flim ;
    float *far ;
    XtAppContext app ;
-   Widget shell ;
+   Widget shell=NULL ;
    int out_ps=0 ; /* 28 Feb 2003 */
 
    /*-- help? --*/

@@ -105,9 +105,9 @@ char * MASKAVE_main( PLUGIN_interface * plint )
 {
    MCW_idcode * idc ;
    THD_3dim_dataset * input_dset , * mask_dset ;
-   int iv , mcount , nvox , ii , sigmait , nvals , doall , ivbot,ivtop ;
+   int iv , mcount , nvox , ii , sigmait , nvals=0 , doall , ivbot,ivtop ;
    float mask_bot=666.0 , mask_top=-666.0 ;
-   double sum , sigma ;
+   double sum=0.0 , sigma=0.0 ;
    float * sumar=NULL , * sigmar=NULL ;
    char * tag , * str , buf[64] , abuf[32],sbuf[32] ;
    byte * mmm ;

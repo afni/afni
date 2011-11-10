@@ -250,7 +250,7 @@ int main( int argc , char * argv[] )
 {
    int iarg=1 , ii,tt,kk , nbytes , nbslice , ntran , nzfake=0 ;
    char *bar , *qar=NULL , *sar ;
-   double start_time , left_time , xtime ;
+   double start_time=0.0 , left_time , xtime ;
    char *drive_afni[128] ;
    int   ndrive=0 ;
    int   num_chan , cur_chan , cc ;

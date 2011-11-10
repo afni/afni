@@ -284,7 +284,7 @@ int main( int argc , char * argv[] )
       case MRI_byte:
       case MRI_short:{
          void ** dfim ;
-         float gtop , fimfac , gtemp ;
+         float gtop=0.0 , fimfac , gtemp ;
 
          if( verb )
             fprintf(stderr,"  ++ Scaling output to type %s brick(s)\n",

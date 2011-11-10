@@ -118,10 +118,10 @@ int main( int argc , char * argv[] )
    char * prefix = "regrid" ;
    float old_zcen , new_zcen , zshift ;
    int bkind , nx,ny,nxy , iv,ii,kk , verb=0 ;
-   byte    *bar , *nbar ;
-   short   *sar , *nsar ;
-   float   *far , *nfar , *ofz , *nfz ;
-   complex *car , *ncar ;
+   byte    *bar=NULL , *nbar=NULL ;
+   short   *sar=NULL , *nsar=NULL ;
+   float   *far=NULL , *nfar=NULL , *ofz , *nfz ;
+   complex *car=NULL , *ncar=NULL ;
    void * nvar ;
    float * zin , * zout ;
    intermap * imap ;

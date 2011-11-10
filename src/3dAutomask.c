@@ -6,14 +6,14 @@ THD_3dim_dataset *thd_apply_mask(THD_3dim_dataset * dset, byte *mask, char *pref
 
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset *dset , *mset, *masked_dset ;
+   THD_3dim_dataset *dset , *mset=NULL, *masked_dset ;
    char *amprefix = "automask" ;
    char *prefix = NULL;
    byte *mask ;
    int iarg=1 , fillin=0 , nmask,nfill , dilate=0 , dd  , erode = 0;
    int dilate_flag = 0, erode_flag = 0;
    float SIhh=0.0 ;        /* 06 Mar 2003 */
-   int   SIax=0 , SIbot,SItop ;
+   int   SIax=0 , SIbot=0,SItop=0 ;
    int   verb=1 ;
    float clfrac=0.5 ;      /* 20 Mar 2006 */
    int peels=1, nbhrs=17 ; /* 24 Oct 2006 */

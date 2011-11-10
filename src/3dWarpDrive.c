@@ -158,7 +158,7 @@ void parset_affine(void)
 { int ii;fprintf(stderr,"\nparset:");
   for(ii=0;ii<12;ii++)fprintf(stderr," %g",parvec[ii]); fprintf(stderr,"\n");}
 #endif
-
+   memset(&bb,0,sizeof(THD_mat33)); memset(&aa,0,sizeof(THD_mat33));
    /* rotation */
 
    uu = rot_matrix( 2, D2R*parvec[3] , 0, D2R*parvec[4] , 1, D2R*parvec[5] ) ;
@@ -1627,7 +1627,8 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
 
    *roll = *pitch = *yaw = 0.0f ;   /* in case of sudden death */
    *dxp  = *dyp   = *dzp = 0    ;
-
+   memset(&xyz_to_ijk_save,0,sizeof(THD_vecmat)); 
+   memset(&ijk_to_xyz_save,0,sizeof(THD_vecmat));
    if( bas->nparam < 6 ) return 0.0f ;   /* no rotations allowed? */
 
    for( ii=0 ; ii < 12 ; ii++ ) param[ii] = 0.0f ;

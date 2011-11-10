@@ -22,10 +22,10 @@ static doublereal c_b5 = 1.;
 
     /* Local variables */
     doublereal epsa, epsb;
-    integer i__, j, k, l;
+    integer i__, j, k, l=0;
     doublereal r__, s, t, anorm, bnorm;
     integer enorn;
-    doublereal a1, a2, a3;
+    doublereal a1, a2, a3=0.0;
     integer k1, k2, l1;
     doublereal u1, u2, u3, v1, v2, v3, a11, a12, a21, a22, a33, a34, 
 	    a43, a44, b11, b12, b22, b33;
@@ -34,10 +34,10 @@ static doublereal c_b5 = 1.;
     integer en;
     doublereal ep;
     integer ll;
-    doublereal sh;
+    doublereal sh=0.0;
     extern doublereal epslon_(doublereal *);
     logical notlas;
-    integer km1, lm1;
+    integer km1, lm1=0;
     doublereal ani, bni;
     integer ish, itn, its, enm2, lor1;
 

@@ -342,8 +342,8 @@ void get_options (int argc, char ** argv,
   int nopt = 1;                  /* input option argument counter */
   int ival;                      /* integer input */
   float fval;                    /* float input */
-  int mask_nx, mask_ny, mask_nz, mask_nvox;   /* mask dimensions */
-  float  mask_dx, mask_dy, mask_dz;
+  int mask_nx=0, mask_ny=0, mask_nz=0, mask_nvox;   /* mask dimensions */
+  float  mask_dx=0.0, mask_dy=0.0, mask_dz=0.0;
 
 
   /*----- does user request help menu? -----*/
@@ -1563,7 +1563,7 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   FILE * fout=NULL;
 
   float afit=0.0f , bfit=0.0f , cfit=0.0f , cpow=-1.0f , ipow=1.0f , val ;  /* 10 Jun 2009 */
-  int ibot , ihigh , ilow , itop , ndim ;
+  int ibot , ihigh=0 , ilow , itop , ndim ;
 
   /*----- allocate memory space for probability table -----*/
   prob_table = (float *) malloc( g_max_cluster_size * sizeof(float) );

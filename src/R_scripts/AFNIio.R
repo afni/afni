@@ -1712,8 +1712,9 @@ read.AFNI.matrix <- function (fname,
          subjCol <- paste('row',sprintf('%02d',c(1:(dim(brk)[1]-1))), sep='')
          istrt<- 2
       }else {  #completely naked
-         covNames <- paste('col',sprintf('%02d',c(1:dim(brk)[2])),sep='');
-         subjCol <- paste('row',sprintf('%02d',c(1:dim(brk)[1])), sep='')
+         ccc <- trim.string(fname$prefix, nchar=10, left=FALSE, strim='..');
+         covNames <- paste(ccc,sprintf(' c%02d',c(1:dim(brk)[2])),sep='');
+         subjCol <- paste(ccc,sprintf(' r%02d',c(1:dim(brk)[1])), sep='')
          istrt<- 1
       }
       if (dim(brk)[2] == 1) {

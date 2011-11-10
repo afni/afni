@@ -246,7 +246,7 @@ GrayIntPixel *shadow_buffer;
     float iopc;			/* intermediate pixel opacity (0-1) */
     float iopc_inv;		/* 1-iopc */
     float acc_opc;		/* accumulator for resampled voxel opacity */
-    float top_opc, bot_opc;	/* voxel opacity (top and bottom scanlines) */
+    float top_opc=0.0, bot_opc=0.0;	/* voxel opacity (top and bottom scanlines) */
 #ifdef NO_REUSE_VOXEL
 #define voxels_loaded	0
 #define CLEAR_VOXELS_LOADED
@@ -269,7 +269,7 @@ GrayIntPixel *shadow_buffer;
     int botrun_count;		/* number of voxels left in bottom run */
     int last_run_state;		/* run state code for last resample */
     int run_state;		/* run state code for this resample */
-    int final_run_state;	/* run state code for end of scanline */
+    int final_run_state=0;	/* run state code for end of scanline */
     float min_opacity;		/* low opacity threshold */
     float max_opacity;		/* high opacity threshold */
     float slice_depth_cueing;	/* depth cueing factor for slice */
@@ -293,7 +293,7 @@ GrayIntPixel *shadow_buffer;
 
 #ifdef GRAYSCALE
     float acc_clr;		/* accumulator for resampled color */
-    float top_clr, bot_clr;	/* voxel color (top and bottom scanlines) */
+    float top_clr=0.0, bot_clr=0.0;	/* voxel color (top and bottom scanlines) */
 #endif /* GRAYSCALE */
 
 #ifdef RGB
@@ -364,7 +364,7 @@ GrayIntPixel *shadow_buffer;
     int shadow_width;		/* width of shadow buffer */
     GrayIntPixel *shadow_pixel; /* current shadow buffer pixel */
 #ifdef GRAYSCALE
-    float top_sclr, bot_sclr;	/* shadow color (top and bottom scanlines) */
+    float top_sclr=0.0, bot_sclr=0.0;	/* shadow color (top and bottom scanlines) */
 #endif /* GRAYSCALE */
 #ifdef RGB
     float top_rsclr;		/* shadow color (top and bottom scanlines) */

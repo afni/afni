@@ -24,12 +24,12 @@ static doublereal c_b26 = 1.;
 
     /* Local variables */
     doublereal norm;
-    integer i__, j, k, p, q, r__, s;
+    integer i__, j, k=0, p, q, r__=0, s;
     doublereal u, v;
-    integer group, m1, m2;
-    doublereal t1, t2, x0, x1;
+    integer group, m1=0, m2=0;
+    doublereal t1, t2, x0=0.0, x1;
     integer ii, jj, ip;
-    doublereal uk, xu;
+    doublereal uk, xu=0.0;
     extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
 	    *);
     integer isturm, its;

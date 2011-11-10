@@ -198,9 +198,9 @@ int main( int argc , char *argv[] )
 {
    int nopt=1 ;
    int nzz, ii,jj,kk , ntt,nxx,nyy,nxy , nup ;
-   float tomax,tomin , fmin,fmax , gmin,gmax , f0,f1 , g0,g1 ;
-   float ffmin,ffmax , ggmin,ggmax , fshift,gshift ;
-   MRI_IMAGE *flim , *glim ;
+   float tomax,tomin , fmin,fmax , gmin=0.0,gmax=0.0 , f0,f1 , g0,g1 ;
+   float ffmin=0.0,ffmax=0.0 , ggmin=0.0,ggmax=0.0 , fshift=0.0,gshift=0.0 ;
+   MRI_IMAGE *flim , *glim=NULL ;
    float *far , *gar ;
    int ignore=0 , BAD=0 ;
 

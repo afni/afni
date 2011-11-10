@@ -98,8 +98,8 @@ int main( int argc , char *argv[] )
 
    MRI_IMARR *anar ;      /* stuff from ANALYZE headers */
    MRI_IMAGE *anim ;
-   int nxan,nyan,nzan , an_datum , an_swapped ;
-   float dxan=-1.0,dyan,dzan ;
+   int nxan=0,nyan=0,nzan=0 , an_datum=0 , an_swapped=0 ;
+   float dxan=-1.0,dyan=0.0,dzan=0.0 ;
    char anor[8] = "\0" ;
 
    THD_ivec3 nxyz , orixyz ;
@@ -110,7 +110,7 @@ int main( int argc , char *argv[] )
    int view_type=VIEW_ORIGINAL_TYPE ;
    char *prefix="a2a" ;
    int xorient=-1, yorient=-1, zorient=-1 ;
-   int use_zoff=0,use_xoff=0,use_yoff=0 ; float zoff,xoff,yoff ;
+   int use_zoff=0,use_xoff=0,use_yoff=0 ; float zoff=0.0,xoff=0.0,yoff=0.0 ;
    THD_3dim_dataset *gset=NULL ;  /* geometry parent */
    float *fac ;
 

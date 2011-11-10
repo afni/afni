@@ -41,14 +41,14 @@ void TFIM_getopts( int , char * argv[] ) ;
 
 int main( int argc , char * argv[] )
 {
-   int kk , ii,nx,ny,npix , num1,num2 , zerout ;
+   int kk , ii,nx,ny,npix , num1=0,num2 , zerout ;
    MRI_IMAGE ** stat_ret ;
    MRI_IMAGE * avim1 , * sdim1 , * avim2 , * sdim2 ;
-   float     * avar1 , * sdar1 , * avar2 , * sdar2 ;
+   float     * avar1=NULL , * sdar1=NULL , * avar2 , * sdar2 ;
    MRI_IMAGE * difim , * tspim , * corim , * dofim ;
    float     * difar , * tspar , * corar , * dofar ;
    char name[256] ;
-   float sdmax , dofbar ;
+   float sdmax , dofbar=0.0 ;
 
    /*----- read inputs -----*/
 

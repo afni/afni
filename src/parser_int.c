@@ -439,7 +439,7 @@ doublereal legendre_( doublereal *mm , doublereal *xx )
 
 	/** if here, m > 20 ==> use recurrence relation **/
 
-   { double k , pk, pkm1, pkm2 ;
+   { double k , pk=0.0, pkm1, pkm2 ;
 
      k = 19.0; pkm2 = legendre_( &k , xx ) ;
      k = 20.0; pkm1 = legendre_( &k , xx ) ;

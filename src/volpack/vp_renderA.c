@@ -97,17 +97,17 @@ vpContext *vpc;
 int algorithm;	/* USE_RLEVOLUME or USE_RAWVOLUME */
 void (*composite_func)(); /* function to do the compositing */
 {
-    int icount;			/* voxels per voxel scanline */
-    int jcount;			/* voxel scanlines per voxel slice */
-    int kcount;			/* voxel slices in the volume */
-    int istride;		/* strides for each dimension of raw volume */
-    int jstride;
-    int kstride;
+    int icount=0;			/* voxels per voxel scanline */
+    int jcount=0;			/* voxel scanlines per voxel slice */
+    int kcount=0;			/* voxel slices in the volume */
+    int istride=0;		/* strides for each dimension of raw volume */
+    int jstride=0;
+    int kstride=0;
     int k;			/* voxel slice index */
     int kstart, kstop;		/* values of k for first and last slices */
     int kincr;			/* value to add to k to get to the next slice
 				   (either 1 or -1) */
-    RLEVoxels *rle_voxels;	/* run-length encoded volume */
+    RLEVoxels *rle_voxels=NULL;	/* run-length encoded volume */
     float slice_u, slice_v;	/* sheared object space coordinates of the
 				   top-left corner of the current constant-k
 				   slice of the volume data */
@@ -133,7 +133,7 @@ void (*composite_func)(); /* function to do the compositing */
     int shadow_slice_u_int;	/* integer part of shadow_slice_u/v */
     int shadow_slice_v_int;
     int shadow_slice_start_index;/* index of top-left shadow buffer pixel */
-    GrayIntPixel *shadow_image;	/* first shadow buffer pixel for slice */
+    GrayIntPixel *shadow_image=NULL;	/* first shadow buffer pixel for slice */
     int shadow_k;		/* voxel slice number plus shadow bias */
 #ifdef DUMP_SHADOW_VOLUME
     unsigned char *shadow_dump;

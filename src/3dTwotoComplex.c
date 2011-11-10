@@ -2,9 +2,9 @@
 
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset *dset1,*dset2=NULL , *mset=NULL , *oset ;
-   MRI_IMAGE *dbr1,*dbr2;
-   float      fac1, fac2;
+   THD_3dim_dataset *dset1=NULL,*dset2=NULL , *mset=NULL , *oset ;
+   MRI_IMAGE *dbr1=NULL,*dbr2=NULL;
+   float      fac1=0.0, fac2=0.0;
    char *prefix = "cmplx" ;
    byte *mask=NULL ; float *rr,*gg ; complex *cmx ;
    int iarg=1 , dofim=0 , ii,nvox , mode=0 ;

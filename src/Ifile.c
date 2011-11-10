@@ -57,7 +57,7 @@ int main( int argc , char *argv[] )
    char **nam_I  ;
    char **gnam_I , *PatOpt=NULL, *OutDir = NULL;
    int   *time_I , *uv17, lmax=0 , ll , thresh , ibot,itop ;
-   float *zoff_I , tr , zth1,zth2 , zd ;
+   float *zoff_I , tr=0.0 , zth1,zth2 , zd ;
    ge_header_info geh ;
    int Ni, CurVolInd, *New_Vol_Loc, *VolSize, N_Vols, *TroubVolume, iTroub, 
       MultiSliceVol, *DupSlice, iDup, BadRun, AllGood = 1, GoodRun, kar = -1,
@@ -450,8 +450,10 @@ void Ifile_help ()
       fprintf(stdout,"\tIt is important to preserve the file modification time info as you copy or untar\n");
       fprintf(stdout,"\tthe data. If you neglect to do so and fail to write down where each scan ends\n");
       fprintf(stdout,"\tand/or begins, you might have a hell of a time reconstructing your data.\n");
-      fprintf(stdout,"\tWhen copying image directories, use \33[1m cp -rp ???/* \33[0m and when untaring \n");
-      fprintf(stdout,"\tthe archive, use \33[1m tar --atime-preserve -xf Archive.tar \33[0m on linux.\n");
+      fprintf(stdout,"\tWhen copying image directories, use:\n"
+                     "\t   cp -rp \?\?\?/* TARGET/ \n"
+                     "\tand when untaring the archive on linux use:\n"
+                     "\t   tar --atime-preserve -xf Archive.tar \n");
       fprintf(stdout,"\tOn Sun and SGI, tar -xf Archive.tar preserves the time info.\n"); 
       fprintf(stdout,"\nFuture Improvements:\n");
       fprintf(stdout,"\tOut of justifiable laziness, and for other less convincing reasons, I have left \n");
@@ -1330,7 +1332,7 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
    char ** gout ;
    char *  fn ;
    char prefix[4] , fpre[128] , fname[256] ;
-   int  b1,b2,b3,b4,b5 , ib,ig , lpre ;
+   int  b1,b2,b3,b4,b5 , ib,ig , lpre=0 ;
 
    if( nin <= 0 ){ *nout = 0 ; return ; }
 

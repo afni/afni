@@ -96,7 +96,7 @@ void Syntax(void)
 int main( int argc , char *argv[] )
 {
    MRI_IMAGE *concim=NULL, *corim ;
-   float     *concar     , *corar ;
+   float     *concar=NULL     , *corar ;
    THD_3dim_dataset *inset=NULL , *mset=NULL ;
    int iarg , ii,jj,nvox,ntime , nbk,*bk,mlag , mmlag=0,pport=0 ;
    byte *mmm ; float *tar ;

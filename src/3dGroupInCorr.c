@@ -873,7 +873,7 @@ int main( int argc , char *argv[] )
    NI_element   *covnel=NULL ;       /* covariates */
    NI_str_array *covlab=NULL ;
    MRI_IMAGE *axxim , *axxim_psinv , *axxim_xtxinv ;
-   MRI_IMAGE *bxxim , *bxxim_psinv , *bxxim_xtxinv ;
+   MRI_IMAGE *bxxim=NULL, *bxxim_psinv , *bxxim_xtxinv ;
    float **dtar=NULL ;
    int no_ttest = 0 ;  /* 02 Nov 2010 */
 
@@ -1787,7 +1787,7 @@ int main( int argc , char *argv[] )
 #define BXX(i,j) bxx[(i)+(j)*(nB)]    /* i=0..nB-1 , j=0..mcov */
 
    if( mcov > 0 ){
-     int nbad=0 , nA , nB ;
+     int nbad=0 , nA , nB=0;
      float *ctrA=NULL , *ctrB=NULL ;
      MRI_IMARR *impr ;
 

@@ -19,12 +19,12 @@ static doublereal c_b26 = 1.;
     doublereal d__1, d__2, d__3;
 
     /* Local variables */
-    integer i__, j, k, l, p, q, r__, s;
+    integer i__, j, k=0, l, p, q, r__=0, s;
     doublereal u, v;
-    integer m1, m2;
-    doublereal t1, t2, x0, x1;
+    integer m1=0, m2=0;
+    doublereal t1, t2, x0=0.0, x1;
     integer ii;
-    doublereal xu;
+    doublereal xu=0.0;
     doublereal epslon_(doublereal *);
     integer isturm, tag;
     doublereal tst1, tst2;

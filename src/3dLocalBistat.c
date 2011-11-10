@@ -7,7 +7,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *inset=NULL , *jnset=NULL , *outset , *wset=NULL;
    int ncode=0 , code[MAX_NCODE] , iarg=1 , ii ;
    MCW_cluster *nbhd=NULL ;
-   byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
    char *prefix="./localstat" ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
    double hist_pow=0.3333333 ; int hist_nbin=0 ;

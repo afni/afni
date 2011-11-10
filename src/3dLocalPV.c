@@ -34,7 +34,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL , *outset=NULL , *evset=NULL ;
    MCW_cluster *nbhd=NULL ;
-   byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
    char *prefix="./LocalPV" ;
    char *evprefix=NULL ; int nev ;
    int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , vstep=0 ;
@@ -370,7 +370,7 @@ int main( int argc , char *argv[] )
  { int kk , xx,yy,zz , vv,ii , mm ;
    float *zar=NULL , *nbar ; int *ivar ;
    float *tsar , *uvec , *vvec=NULL , *ws=NULL ;
-   unsigned short xran[3] ; int ithr=0 ; float sval,tval ;
+   unsigned short xran[3] ; int ithr=0 ; float sval,tval=0.0 ;
 
 #ifdef USE_OMP
   ithr = omp_get_thread_num() ;

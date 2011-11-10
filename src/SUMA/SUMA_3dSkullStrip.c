@@ -2637,8 +2637,11 @@ int main (int argc,char *argv[])
       edopt->edit_clust = ECFLAG_SAME;
       edopt->clust_rmm = SUMA_MAX_PAIR(SUMA_ABS((DSET_DX(OptDs->mset))),
                                        SUMA_ABS((DSET_DY(OptDs->mset))));
-      edopt->clust_rmm = SUMA_MAX_PAIR(SUMA_ABS((DSET_DZ(OptDs->mset))), edopt->clust_rmm)*1.01;
-	   edopt->clust_vmul = 1000*SUMA_ABS((DSET_DX(OptDs->mset)))*SUMA_ABS((DSET_DY(OptDs->mset)))*SUMA_ABS((DSET_DZ(OptDs->mset)));
+      edopt->clust_rmm = SUMA_MAX_PAIR(SUMA_ABS((DSET_DZ(OptDs->mset))), 
+                                                 edopt->clust_rmm)*1.01;
+	   edopt->clust_vmul = 1000*SUMA_ABS((DSET_DX(OptDs->mset)))*
+                               SUMA_ABS((DSET_DY(OptDs->mset)))*
+                               SUMA_ABS((DSET_DZ(OptDs->mset)));
       edopt->erode_pv  = 75.0 / 100.0;
       edopt->dilate = 1;
       EDIT_one_dataset( dset , edopt);

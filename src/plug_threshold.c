@@ -403,7 +403,7 @@ short	threshold;	/*threshold below which pixels are included*/
 static int THRESH_mask_brain(short *img, int xdim, int ydim, int zdim, short threshold)
   {
   register int x, y, z, region;
-  int region_size, max_region_size, max_region;
+  int region_size=0, max_region_size=0, max_region=0;
   short *mask_img;
   int *stack;
   mask_img = calloc(xdim*ydim*zdim, sizeof(*mask_img));

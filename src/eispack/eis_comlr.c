@@ -16,7 +16,7 @@
     /* Local variables */
     extern /* Subroutine */ int cdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
-    integer i__, j, l, m, en, ll, mm;
+    integer i__, j, l=0, m=0, en, ll, mm;
     doublereal si, ti, xi, yi, sr, tr, xr, yr;
     integer im1;
     extern /* Subroutine */ int csroot_(doublereal *, doublereal *, 

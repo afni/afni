@@ -2386,7 +2386,7 @@ ENTRY("DRAW_receiver") ;
             float bfac = DSET_BRICK_FACTOR(dset,0) ;
             int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) ,
                 nxy = nx*ny , nxyz = nxy*nz , ii,jj , ixyz ;
-            int base , di,dj , itop,jtop,nij , xx=xd[0],yy=yd[0],zz=zd[0] , ix,jy ;
+            int base=0 , di=0,dj=0 , itop=0,jtop=0,nij , xx=xd[0],yy=yd[0],zz=zd[0] , ix=0,jy=0 ;
             byte * pl ;
             int nfill , *xyzf , nf ;
 
@@ -2545,7 +2545,7 @@ ENTRY("DRAW_receiver") ;
 
             else {  /*-- 25 Sep 2001: fill the interior of the drawn curve --*/
 
-              int *iip , *jjp ;
+              int *iip=NULL , *jjp=NULL ;
 
               switch(plane){                           /* select which   */
                 case 1: iip = yd ; jjp = zd ; break ;  /* arrays to draw */
@@ -3051,9 +3051,9 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
 void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    THD_3dim_dataset *dseTT ;
-   byte *voxout , *bb;
-   short *ss, sval ;
-   float *ff;
+   byte *voxout , *bb=NULL;
+   short *ss=NULL, sval ;
+   float *ff=NULL;
    MRI_IMAGE *b0im;
    int nvoxTT, nvoxout , xx , brik , iv,jv,kv , ijk ;
    int hbot,htop , nzTT,nyTT,nxTT,nxyTT ,
@@ -3760,7 +3760,7 @@ static void DRAW_collapsar( int *npt , int *xyzn )
 static MCW_arrowval *
 Atlas_chooser(Widget rc)
 {
-   int k, nr , qq, atlasind ;
+   int k, nr , qq, atlasind=0 ;
    XmString xstr ;
    char title_str[256];
    ATLAS_LIST *atl=NULL;

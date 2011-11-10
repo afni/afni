@@ -355,7 +355,7 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
    MCW_idcode * idc ;                          /* input dataset idcode */
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    char *tmpstr , * str , *nprfxstr;                 
-   int   ntime, nvec ,nprfx, Err , itmp;
+   int   ntime, nvec ,nprfx, Err=0 , itmp;
 	float * vec , fs , T ;
 	char * tag;                     /* plugin option tag */	
 	

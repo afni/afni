@@ -107,15 +107,15 @@ int main( int argc , char *argv[] )
    MRI_3dalign_basis *albase ;
    THD_3dim_dataset *new_dset ;
    MRI_IMAGE *qim , *tim , *fim ;
-   double cputim ;
+   double cputim=0.0 ;
    float *dx, *dy, *dz, *roll, *yaw, *pitch, *rmsnew, *rmsold, *imb, *tar ;
    float ddx,ddy,ddz , sum , fac ;
-   float dxtop,dytop,dztop , rolltop,yawtop,pitchtop ;
-   float dxbot,dybot,dzbot , rollbot,yawbot,pitchbot ;
+   float dxtop=0.0,dytop=0.0,dztop=0.0 , rolltop=0.0,yawtop=0.0,pitchtop=0.0 ;
+   float dxbot=0.0,dybot=0.0,dzbot=0.0 , rollbot=0.0,yawbot=0.0,pitchbot=0.0 ;
    float dxbar,dybar,dzbar , rollbar,yawbar,pitchbar ;
    int kim,ii , imcount , iha , ax1,ax2,ax3 , hax1,hax2,hax3 ;
 
-   float *dx_1,*dy_1,*dz_1, *roll_1,*yaw_1,*pitch_1 ;  /* 11 Sep 2000 */
+   float *dx_1=NULL,*dy_1=NULL,*dz_1=NULL, *roll_1=NULL,*yaw_1=NULL,*pitch_1=NULL ;  /* 11 Sep 2000 */
    int   nx,ny,nz ;
    int   null_output=0 ;
 
@@ -137,7 +137,7 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dvolreg main") ; machdep() ; AFNI_logger("3dvolreg",argc,argv) ;
    PRINT_VERSION("3dvolreg") ; AUTHOR("RW Cox") ; THD_check_AFNI_version("3dvolreg") ;
-
+   memset(&tvec, 0, sizeof(THD_dfvec3)); memset(&rmat, 0, sizeof(THD_dmat33));
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    { int new_argc ; char ** new_argv ;
@@ -209,7 +209,7 @@ int main( int argc , char *argv[] )
         int npad2 = (nz_gp - nz_ds) - npad1 ; /* positive z padding */
         int add_I=0, add_S=0, add_A=0, add_P=0, add_L=0, add_R=0 ;
         THD_3dim_dataset * pset ;
-        char *sp1,*sp2 ;
+        char *sp1=NULL,*sp2=NULL ;
 
         /* where to add slices? and how many? */
 

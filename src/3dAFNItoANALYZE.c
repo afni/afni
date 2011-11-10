@@ -24,8 +24,8 @@ int main( int argc , char *argv[] )
    int do_4D=0 , iarg=1 ;    /* 30 Sep 2002 */
    FILE *ifp=NULL ;
 
-   int xxor=-1,yyor,zzor , xdir=0,ydir,zdir;  /* 19 Mar 2003 */
-   float                   xdel  ,ydel,zdel;
+   int xxor=-1,yyor=0,zzor=0 , xdir=0,ydir=0,zdir=0;  /* 19 Mar 2003 */
+   float                   xdel=0.0  ,ydel=0.0,zdel=0.0;
    char orient_code[4] ;
 
    /*-- help me if you can --*/

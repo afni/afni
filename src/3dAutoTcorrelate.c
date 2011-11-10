@@ -505,7 +505,7 @@ AFNI_OMP_START ;
 #pragma omp parallel if( nmask > 999 )
 {
    int ii,jj,kout , ithr,nthr , vstep,vii ;
-   float *xsar , *ysar ; short *car ;
+   float *xsar , *ysar ; short *car=NULL ;
 
 #ifdef USE_OMP
    ithr = omp_get_thread_num() ;

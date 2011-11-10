@@ -36,6 +36,9 @@ static char rcsId[]="$Header$";
 /*****
 * ChangeLog 
 * $Log$
+* Revision 1.2  2011/11/10 14:37:55  ziad
+* Cput
+*
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
 *
@@ -1332,7 +1335,7 @@ ComputeTextLayout(XmHTMLWidget html, PositionBox *box, XmHTMLWord **words,
 	XmHTMLfont *basefont, *font;
 	XmHTMLWord *base_obj;
 	Cardinal x_pos, y_pos, x_start, y_start;
-	int i, k, sw, e_space = 0, word_start, word_width;
+	int i, k, sw, e_space = 0, word_start, word_width=0;
 	int lineheight = 0, p_height = 0;
 	Boolean have_object = False, first_line = True, done = False;
 	Boolean in_line = True, only_img = True;

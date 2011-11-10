@@ -4168,7 +4168,7 @@ EDIT_options *SUMA_BlankAfniEditOptions(void)
    edopt->clip_top = 0; 
    edopt->thresh = 0.0; 
    edopt->edit_clust = ECFLAG_SAME - 1;
-   edopt->clust_rmm = 0.0;
+   edopt->clust_rmm = -1.0;
 	edopt->clust_vmul = 0.0;
    edopt->erode_pv  = 0.0;
    edopt->dilate = 0;

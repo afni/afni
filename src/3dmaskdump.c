@@ -14,7 +14,7 @@ extern int *z_rand_order(int bot, int top, long int seed);
 
 int main( int argc , char * argv[] )
 {
-   int narg , nvox , ii,jj,kk,vv , mcount , iv , mc , ndset,ndval , i,j,k ;
+   int narg , nvox=0 , ii,jj,kk,vv , mcount , iv , mc , ndset,ndval , i,j,k ;
    THD_3dim_dataset *mask_dset=NULL , **input_dset=NULL ;
    float mask_bot=666.0 , mask_top=-666.0 ;
    byte *mmm   = NULL ;
@@ -33,7 +33,7 @@ int main( int argc , char * argv[] )
 
    int box_num=0 ; float *box_dat=NULL ;   /* 09 May 2003 - RWCox */
    int ball_num=0; float *ball_dat=NULL;   /* 09 Sep 2009 - RWCox */
-   int nx,ny,nz,nxy,nxyz ;
+   int nx=0,ny=0,nz=0,nxy=0,nxyz ;
    unsigned int nrandseed = 1234u;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -225,7 +225,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[narg]+2,"box") == 0 ){             /* 09 May 2003 - RWC */
-        float xbot,xtop , ybot,ytop , zbot,ztop , btyp ;
+        float xbot,xtop , ybot,ytop , zbot,ztop , btyp=0.0 ;
         int nn ;
         char code = *(argv[narg]+1) ;   /* should be 'x', 'd' , 'n', or 'i' */
         switch( code ){
@@ -264,7 +264,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[narg]+2,"ball") == 0 ){            /* 09 Sep 2009 - RWC */
-        float xcen,ycen,zcen,rad , btyp ;
+        float xcen,ycen,zcen,rad , btyp=0.0 ;
         char code = *(argv[narg]+1) ;   /* should be 'x', 'd' , or 'n' */
         switch( code ){
           case 'x': btyp = BALL_XYZ ; break ;

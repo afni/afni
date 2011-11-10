@@ -37,6 +37,9 @@ static char rcsId[]="$Header$";
 /*****
 * ChangeLog 
 * $Log$
+* Revision 1.2  2011/11/10 14:37:55  ziad
+* Cput
+*
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
 *
@@ -219,7 +222,7 @@ _XmHTMLRefresh(XmHTMLWidget html, int x, int y, int width, int height)
 		TableRow *row = NULL;
 		TableCell *cell = NULL;
 		int i, j;
-		XmHTMLObjectTable *ts;
+		XmHTMLObjectTable *ts=NULL;
 
 		table = start->table;
 		if(table->childs)

@@ -21,14 +21,14 @@
     doublereal norm;
     integer i__, j, p, q, r__, s;
     doublereal u, v, order;
-    integer group;
-    doublereal x0, x1;
-    integer ii, jj, ip;
-    doublereal uk, xu;
+    integer group=0;
+    doublereal x0=0.0, x1;
+    integer ii, jj, ip=0;
+    doublereal uk=0.0, xu=0.0;
     extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
 	    *);
     integer tag, its;
-    doublereal eps2, eps3, eps4;
+    doublereal eps2=0.0, eps3=0.0, eps4=0.0;
 
 
 

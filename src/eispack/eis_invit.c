@@ -22,20 +22,20 @@
     extern /* Subroutine */ int cdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
     doublereal norm;
-    integer i__, j, k, l, s;
+    integer i__, j=0, k, l, s;
     doublereal t, w, x, y;
     integer n1;
     doublereal normv;
     integer ii;
     doublereal ilambd;
-    integer ip, mp, ns, uk;
+    integer ip, mp, ns=0, uk;
     doublereal rlambd;
     extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
 	    *);
     integer km1, ip1;
-    doublereal growto, ukroot;
+    doublereal growto=0.0, ukroot=0.0;
     integer its;
-    doublereal eps3;
+    doublereal eps3=0.0;
 
 
 

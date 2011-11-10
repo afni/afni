@@ -5,7 +5,7 @@
 #define SEG_L1FIT 1
 
 typedef enum {
-   SEG_BIM, SEG_LSB
+   SEG_BIM, SEG_LSB, SEG_BNN, SEG_BFT
 } BLUR_METH;
 
 typedef struct {

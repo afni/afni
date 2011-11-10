@@ -28,12 +28,12 @@ MCW_cluster_array * MCW_find_clusters(
 {
    MCW_cluster_array * clust_arr ;
    MCW_cluster       * clust , * mask ;
-   int ii,jj,kk ,  nxy,nxyz , ijk , ijk_last , mnum ;
+   int ii,jj,kk ,  nxy,nxyz , ijk=0 , ijk_last , mnum ;
    int icl , jma , ijkcl , ijkma , did_one ;
-   float fimv ;
-   short * sfar ;
-   float * ffar ;
-   byte  * bfar ;
+   float fimv=0.0 ;
+   short * sfar=NULL ;
+   float * ffar=NULL ;
+   byte  * bfar=NULL ;
    short ic, jc, kc;
    short im, jm, km;
 
@@ -343,9 +343,9 @@ void MCW_erode_clusters
   int ijk, iv, jv, kv;              /* voxel indices */
   int ijkm, im, jm, km;             /* voxel indices */
   int imask, nmask;                 /* mask indices */
-  short * sfar;                     /* pointer to short data */
-  byte  * bfar;                     /* pointer to byte data */
-  float * ffar;                     /* pointer to float data */
+  short * sfar=NULL;                /* pointer to short data */
+  byte  * bfar=NULL;                /* pointer to byte data */
+  float * ffar=NULL;                /* pointer to float data */
   float * efim = NULL;              /* copy of eroded voxels */
 
 ENTRY("MCW_erode_clusters") ;
