@@ -721,7 +721,8 @@ ENTRY("AFNI_find_jpegs") ;
 
      fflist = (char **)realloc(fflist,sizeof(char *)*(num_file+nfile));
      for( ii=0 ; ii < nfile ; ii++ ){
-       if( strstr(ffile[ii],"face_wildman.jpg") != NULL )  /* 20 May 2005 */
+       if( strstr(ffile[ii],"face_wildman.jpg")   != NULL ||  /* 20 May 2005 */
+           strstr(ffile[ii],"face_akanevsky.jpg") != NULL   ) /* 09 Nov 2011 */
          remove(ffile[ii]) ;
        else
          fflist[num_file++] = strdup(ffile[ii]) ;
