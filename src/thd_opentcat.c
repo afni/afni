@@ -9,7 +9,8 @@ THD_3dim_dataset * THD_open_tcat( char *dlist )
    THD_3dim_dataset *dset_out , **dset_in ;
    int ndset_in , dd , nerr , new_nvals ;
    NI_str_array *sar ;
-
+   double angle=0.0;
+   
 ENTRY("THD_open_tcat") ;
 
    if( dlist == NULL || *dlist == '\0' ) RETURN(NULL) ;
@@ -57,10 +58,19 @@ ENTRY("THD_open_tcat") ;
                sar->str[dd],DSET_NX(dset_in[dd]),
                             DSET_NY(dset_in[dd]),DSET_NZ(dset_in[dd]) ) ;
        nerr++ ;
-     } else if( !EQUIV_DATAXES(dset_in[dd]->daxes,dset_in[0]->daxes) ){
-       WARNING_message(
-               "THD_open_tcat: %s grid mismatch with %s\n",
-               sar->str[0] , sar->str[dd] ) ;  /* don't increment nerr! */
+     } else {
+       if( !EQUIV_DATAXES(dset_in[dd]->daxes,dset_in[0]->daxes) ){
+         WARNING_message(
+                  "THD_open_tcat: %s grid mismatch with %s\n",
+                  sar->str[0] , sar->str[dd] ) ;  /* don't increment nerr! */
+       }
+       angle = dset_obliquity_angle_diff(dset_in[dd], dset_in[0], -1.0);
+       if (angle > 0.0) {
+         WARNING_message(
+            "dataset %s has an obliquity difference of %f degress with %s\n",
+            dset_in[dd] ,
+            angle, dset_in[0] );
+       }
      }
    }
    if( nerr > 0 ){

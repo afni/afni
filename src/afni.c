@@ -6960,8 +6960,9 @@ STATUS("voxel indexes") ;
                   ixyz , im3d->vinfo->i1 , im3d->vinfo->j2 , im3d->vinfo->k3  ) ;
       }
    } else {
-      char bxyz[3][32] , *cname ;
-
+      char bxyz[3][32] , *cname, obl[8] ;
+      float angle=0.0;
+      
 STATUS("voxel coordinates") ;
 
       xval = im3d->vinfo->xi ;
@@ -6989,9 +6990,13 @@ STATUS("voxel coordinates") ;
         cname = "=SPM  " ;
       else
         cname = "      " ;
+      
+      
+      if (dset_obliquity(im3d->anat_now, &angle)==1) sprintf(obl," *");
+      else obl[0]='\0';
 
-      sprintf( buf , "[order: %s%s]\nx %17s\ny %17s\nz %17s"   ,
-               GLOBAL_library.cord.orcode       , cname ,
+      sprintf( buf , "[order: %s%s%s]\nx %17s\ny %17s\nz %17s"   ,
+               GLOBAL_library.cord.orcode       , cname , obl,
                bxyz[GLOBAL_library.cord.first]  ,
                bxyz[GLOBAL_library.cord.second] ,
                bxyz[GLOBAL_library.cord.third]   ) ;

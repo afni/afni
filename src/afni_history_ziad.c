@@ -65,6 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 10, NOV , 2011 , ZSS , "afni" , MINOR , TYPE_BUG_FIX,
+   "Turned off obliquity popup warning when Ulay and Olay angles are similar",
+   "AFNI issues warning when obliquity differs for a pair of viewed sets.\n"
+   "It does not repeat warnings for a certain pair. It only output one set\n"
+   "of warnings per dataset when 'switch ulay' is set, although I'd love to\n"
+   "get rid of that habit as soon as possible.\n"   
+  } ,
+
+ { 10, NOV , 2011 , ZSS , "3dinfo" , MICRO , TYPE_BUG_FIX,
+   "Many new options for selective information.",
+   NULL   
+  } ,
+
  { 2, NOV , 2011 , ZSS , "3dfim+" , MICRO , TYPE_BUG_FIX,
    "Turned off scaling for Best Index in output dset",
    NULL   

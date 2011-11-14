@@ -1625,7 +1625,8 @@ extern int  AFNI_jumpto_ijk          ( Three_D_View * , int, int, int  ) ;
 extern void AFNI_jumpto_ijk_CB       ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_sumato_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_mnito_CB            ( Widget , XtPointer , MCW_choose_cbs * ) ;
-extern void AFNI_check_obliquity     ( Widget , THD_3dim_dataset * ) ;
+extern void AFNI_check_obliquity     ( Widget , THD_3dim_dataset * , 
+                                                THD_3dim_dataset * ) ;
 
 extern void AFNI_crosshair_pop_CB    ( Widget , XtPointer , XtPointer ) ; /* 12 Mar 2004 */
 extern void AFNI_crosshair_EV        ( Widget , XtPointer , XEvent * , Boolean * ) ;

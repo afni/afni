@@ -262,13 +262,18 @@ Show_RP_UD(RP_UD *u, char *str) {
                   u->Dsamp, u->rvec, u->rvec_len, u->rvec_num, u->iref);
 }
 
-SetFreqBin(float fresp, float fstep, int stk[], float stw[]) {
+int SetFreqBin(float fresp, float fstep, int stk[], float stw[], int nfft) {
    float stf = fresp/fstep;   /* stimulus freq. index */
    
    stk[0] = (int)floor(stf);    /* floor of freq. index */
       stw[0] = (1.0 - stf          + stk[0]);  /*floor weight*/
    stk[1] = (int)ceil (stf);    /* ceil of freq. index */
       stw[1] = (1.0 - stk[1] + stf  );        /*ceil weight*/
+   if (stk[0] > nfft/2 || stk[1] > nfft/2) {
+      ERROR_message("Frequency indices %d and/or %d outside max of %d\n");
+      return(0);
+   }
+   return(1);
 }
 
 
@@ -441,14 +446,23 @@ static void RP_tsfunc( double tzero, double tdelta ,
          stimharm   = (int *)     calloc( sizeof(int)     , rpud->nfft);
 
          /* signal bin */
-         SetFreqBin(rpud->Fresp[st], 
-                     rpud->fstep, rpud->stk, rpud->stw);
+         if (!SetFreqBin(rpud->Fresp[st], 
+                    rpud->fstep, rpud->stk, rpud->stw,
+                    rpud->nfft)) {
+            ERROR_message("Failed to set bins.\n"
+                          "Is your dataset's TR of %f sec valid?", rpud->dt);
+            return;          
+         }
          {
             int nharm = 1, stk[2];
             float fharm=0.0, stw[2];
             while ((fharm = nharm*rpud->Fresp[st]) < 
                      rpud->nfft/2.0*rpud->fstep ) {
-               SetFreqBin(fharm, rpud->fstep, stk, stw);
+               if (!SetFreqBin(fharm, rpud->fstep, stk, stw, rpud->nfft)) {
+                  ERROR_message("Failed to set bins.\n"
+                          "Is your dataset's TR of %f sec valid?", rpud->dt);
+                  return;   
+               }
                stimharm[stk[0]] = nharm;
                stimharm[stk[1]] = nharm; 
                if (rpud->verb > 2) 
@@ -787,7 +801,8 @@ byte *MaskSetup(THD_3dim_dataset *old_dset, THD_3dim_dataset *mask_dset,
          ERROR_message("No voxels in the mask!\n") ;
          return(NULL);
       }
-      if( rpud->verb ) INFO_message("%d voxels in the mask\n",mcount) ;
+      if( rpud->verb ) INFO_message("%d voxels in the mask dset %s\n",
+                                 *mcount, DSET_PREFIX(mask_dset)) ;
       DSET_delete(mask_dset) ;
    }
 
@@ -1035,7 +1050,7 @@ Bring them back after testing. */
 #endif
 
    /*-- options --*/
-
+   set_obliquity_report(0); /* silence obliquity */
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
@@ -1379,9 +1394,30 @@ Bring them back after testing. */
 
          if (!nset) {
             rpud.nvals = DSET_NUM_TIMES(old_dset);
-            rpud.dt = old_dset->taxis->ttdel;
+            if (rpud.nvals < 10) {
+               ERROR_exit( "Dataset has too few (%d) time points.\n", 
+                           rpud.nvals);
+            }
+            rpud.dt = DSET_TR_SEC(old_dset);
+            if (rpud.dt > 100) {
+               ERROR_exit("TR of %f sec of %s is very suspicously high.\n"
+                       "Program assumes this is a mistake in the header.\n"
+                       "You can use 3drefit's -TR option to fix the problem.\n",
+                       rpud.dt, in_name[stype]);
+            }
             mmm = MaskSetup(old_dset, mask_dset, &rpud, cmask, 
                            &ncmask, mask_bot, mask_top, &mcount);
+         } else {
+            if (DSET_NUM_TIMES(old_dset) != rpud.nvals) {
+               ERROR_exit( "Dataset %s has %d time points while %s has %d\n",
+                           in_name[stype], DSET_NUM_TIMES(old_dset),
+                           DSET_PREFIX(rpud.iset), rpud.nvals); 
+            }
+            if (DSET_TR_SEC(old_dset) !=  rpud.dt) {
+               ERROR_exit( "Dataset %s has a TR of %f sec while %s has %f sec\n",
+                           in_name[stype], DSET_TR_SEC(old_dset),
+                           DSET_PREFIX(rpud.iset), rpud.dt); 
+            }
          }
          rpud.iset = old_dset;
          rpud.dir = Phase_Type_to_Dir(stype);

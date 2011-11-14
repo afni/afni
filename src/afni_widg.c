@@ -185,6 +185,10 @@ static char *AFNI_funcmode_bbox_label[2] =
    "the crosshair point in the\n"      \
    "DICOM coordinates (3D input)\n"    \
    "or voxel indices (image input)\n"  \
+   "The * indicates that you are  \n"  \
+   "viewing an oblique dataset and\n"  \
+   "voxel coordinates are those of\n"  \
+   "closest cardinal orientation.\n"   \
    "\n"                                \
    "A Button-3 popup menu lets you\n"  \
    "change coordinate display order."
@@ -1013,7 +1017,8 @@ STATUS("making imag->rowcol") ;
          NULL ) ;
    LABELIZE(imag->crosshair_label) ;
    MCW_register_help( imag->crosshair_label , AFNI_crosshair_label_help ) ;
-   MCW_register_hint( imag->crosshair_label , "Coordinates of crosshair point" ) ;
+   MCW_register_hint( imag->crosshair_label , 
+               "Coordinates of crosshair point. * indicates oblique dataset." ) ;
 
    /*--- 12 Mar 2004: coordinate order popup menu ---*/
 
