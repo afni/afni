@@ -242,6 +242,9 @@ AFNI_ATLAS *Build_Atlas (char *aname, ATLAS_LIST *atlas_list) ;
 void Show_Atlas (AFNI_ATLAS *aa);
 AFNI_ATLAS *Free_Atlas(AFNI_ATLAS *aa) ;
 AFNI_ATLAS_REGION *ROI_String_Decode(char *str, ATLAS_LIST *atlas_list);
+int best_approx_str_match(char **words, int N_words, char *str, byte ci);
+char **approx_str_sort(char **words, int N_words, char *str, byte ci, 
+                       int **sorted_score);
 ATLAS_SEARCH *Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , 
                                  ATLAS_SEARCH *usethissearch);
 ATLAS_SEARCH *Free_Atlas_Search(ATLAS_SEARCH *as);

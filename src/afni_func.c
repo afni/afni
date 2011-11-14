@@ -2349,11 +2349,12 @@ ENTRY("AFNI_choose_dataset_CB") ;
       if( num_str < 1 ) EXRETURN ;
 
       if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) browse_select = 1 ;
-
+      THD_set_oblique_report(num_str-1, -1);
       ltop = 4 ;
       for( ii=0 ; ii < num_str ; ii++ ){
+           #if 0 /* No more of this stuff    ZSS Nov 2011 */
                THD_report_obliquity(GET_SESSION_DSET(im3d->ss_now,ii,0)) ;
-/*         THD_report_obliquity(im3d->ss_now->dsset_xform_table[ii][0]) ; */ /* 20 Dec 2007 */
+           #endif
 
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
             {
@@ -2361,11 +2362,9 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
                if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
             }
-/*            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset_xform_table[ii][vv]) ) break ;*/
 
          if( vv <= LAST_VIEW_TYPE ){
             llen = strlen( temp_dset->dblk->diskptr->prefix ) ;
-/*            llen = strlen( im3d->ss_now->dsset_xform_table[ii][vv]->dblk->diskptr->prefix ) ;*/
             ltop = MAX( ltop , llen ) ;
          }
       }
@@ -2375,47 +2374,36 @@ ENTRY("AFNI_choose_dataset_CB") ;
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ) {
             temp_dset = GET_SESSION_DSET(im3d->ss_now, ii, vv);
             if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
-/*            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset_xform_table[ii][vv]) ) break ;*/
          }
 
          if( vv <= LAST_VIEW_TYPE ){
               sprintf( strlist[ii] , "%-*s" ,
                   ltop,temp_dset->dblk->diskptr->prefix ) ;
-/*            sprintf( strlist[ii] , "%-*s" ,
-                  ltop,im3d->ss_now->dsset_xform_table[ii][vv]->dblk->diskptr->prefix ) ;*/
 
             strcat( strlist[ii] , " [" ) ;
             strcat( strlist[ii] , DSET_PREFIXSTR(temp_dset) ) ;
-/*            strcat( strlist[ii] , DSET_PREFIXSTR(im3d->ss_now->dsset_xform_table[ii][vv]) ) ;*/
 
             if( DSET_NUM_TIMES(temp_dset) > 1 ){
-/*            if( DSET_NUM_TIMES(im3d->ss_now->dsset_xform_table[ii][vv]) > 1 ){*/
                int ll = strlen(strlist[ii]) ;
                sprintf( strlist[ii]+ll , ":3D+t:%d]" ,
                         DSET_NUM_TIMES(temp_dset) ) ;
-/*                        DSET_NUM_TIMES(im3d->ss_now->dsset_xform_table[ii][vv]) ) ;*/
             } else if( ISBUCKET(temp_dset) ){
-/*            } else if( ISBUCKET(im3d->ss_now->dsset_xform_table[ii][vv]) ){*/
                int ll = strlen(strlist[ii]) ;
                sprintf( strlist[ii]+ll , ":%d]" ,
                         DSET_NVALS(temp_dset) ) ;
-/*                        DSET_NVALS(im3d->ss_now->dsset_xform_table[ii][vv]) ) ;*/
             } else {
                strcat( strlist[ii] , "]" ) ;
             }
 
             if( DSET_GRAPHABLE(temp_dset) )
-/*            if( DSET_GRAPHABLE(im3d->ss_now->dsset_xform_table[ii][vv]) )*/
                strcat( strlist[ii] , "*" ) ;
 
             if( DSET_COMPRESSED(temp_dset) )
-/*            if( DSET_COMPRESSED(im3d->ss_now->dsset_xform_table[ii][vv]) )*/
                strcat( strlist[ii] , "z" ) ;
 
             /* 20 Dec 2001: mark if this is a global dataset */
 
             if( DSET_in_global_session(temp_dset) )
-/*            if( DSET_in_global_session(im3d->ss_now->dsset_xform_table[ii][vv]) )*/
               strcat( strlist[ii] , "G" ) ;
 
          } else {
@@ -2887,13 +2875,15 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    /* check obliquity of overlay and underlay */
    /* pop up warning if necessary */
 
-   if(wcall == im3d->vwid->view->choose_func_pb)
-     AFNI_check_obliquity(wcall, GET_SESSION_DSET(ss_new, new_func, 0));
-/*     AFNI_check_obliquity(wcall, ss_new->dsset_xform_table[new_func][0]); */
-   else
-     AFNI_check_obliquity(wcall, GET_SESSION_DSET(ss_new, new_anat, 0));
-/*     AFNI_check_obliquity(wcall, ss_new->dsset_xform_table[new_anat][0]);*/
-
+   if(wcall == im3d->vwid->view->choose_func_pb) {
+     AFNI_check_obliquity(wcall, 
+            GET_SESSION_DSET(ss_new, new_func, 0),
+            GET_SESSION_DSET(ss_new, new_anat, 0) );
+   } else {
+     AFNI_check_obliquity(wcall, 
+            GET_SESSION_DSET(ss_new, new_anat, 0),
+            GET_SESSION_DSET(ss_new, new_func, 0) );
+   }
    CLU_setup_alpha_tables(im3d) ;
 
    EXRETURN ;
@@ -2903,10 +2893,12 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 /*-----------------------------------------------------------*/
 /* check dataset for obliquity and pop-up warning if oblique */
 
-void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
+void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset, 
+                          THD_3dim_dataset *rset)
 {
    double angle;
-   char str[1024];
+   char str[1024], sidcombo[256], *sid1=NULL, *sid2=NULL;
+   static char *warncombos=NULL;
    static int num_warn = 0;
 
    ENTRY("AFNI_check_obliquity");
@@ -2916,30 +2908,65 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
 
    if(AFNI_yesenv("AFNI_ONE_OBLIQUE_WARNING") && num_warn) EXRETURN;
 
-   THD_check_oblique_field(dset);
-
-   angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
+   angle = dset_obliquity_angle_diff(dset, rset, 0.01);
    if(angle == 0.0) EXRETURN ;
-
-   if (AFNI_yesenv("AFNI_ONE_OBLIQUE_WARNING")) {
-      sprintf( str,
-         " You have selected an oblique dataset (%s).\n"
-         "  If you are performing spatial transformations on an oblique dset, \n"
-         "  or viewing/combining it with volumes of differing obliquity,\n"
-         "  you should consider running: \n"
-         "     3dWarp -deoblique \n"
-         "  on this and other oblique datasets in the same session.\n"
-         " Similar warnings will be muted for the rest of this session.\n",
-         DSET_BRIKNAME(dset) );
+   
+   /* A simple way to keep AFNI form complaining about obliquity all the time */
+   sid1= DSET_IDCODE_STR(dset); 
+   if (rset) sid2 = DSET_IDCODE_STR(rset);
+   else sid2 = "NA";
+   if (!sid1) sid1="NO_ID1"; 
+   if (!sid2) sid2="NO_ID2"; 
+   
+   if (strcmp(sid1,sid2)<0) {
+      sprintf(sidcombo,"-%s_WITH_%s-", sid1, sid2);
    } else {
-      sprintf( str,
-         " You have selected an oblique dataset (%s).\n"
-         "  If you are performing spatial transformations on an oblique dset, \n"
-         "  or viewing/combining it with volumes of differing obliquity,\n"
-         "  you should consider running: \n"
-         "     3dWarp -deoblique \n"
-         "  on this and other oblique datasets in the same session.\n",
-         DSET_BRIKNAME(dset));
+      sprintf(sidcombo,"-%s_WITH_%s-", sid2, sid1);
+   }
+   
+   if (!warncombos) {
+      warncombos = (char *)malloc(sizeof(char)*(strlen(sidcombo)+1));
+      strcpy(warncombos,sidcombo);
+   } else {
+      if (strstr(warncombos,sidcombo)) EXRETURN;
+      else {
+         warncombos = (char *)realloc(warncombos,
+                           sizeof(char)*(strlen(sidcombo)+strlen(warncombos)+1));
+         warncombos = strcat(warncombos, sidcombo);
+      }
+   }
+    
+   if (AFNI_yesenv("AFNI_ONE_OBLIQUE_WARNING")) {
+      snprintf( str, 1022*sizeof(char),
+   " The underlay/overlay pair of datasets (%s/%s) have oblique angle \n"
+   " difference of %f degrees. This may cause them to appear out of alignment \n"
+   " in the viewer.\n"
+   "\n"
+   "  If you are performing spatial transformations on an oblique dset, \n"
+   "  or viewing/combining it with volumes of differing obliquity,\n"
+   "  you should consider running: \n"
+   "     3dWarp -deoblique \n"
+   "  on this and other oblique datasets in the same session.\n"
+   "\n"
+   " ** Other oblique warnings will be muted because AFNI_ONE_OBLIQUE_WARNING\n"     "    is set to YES. Consider setting it back to NO, obliquity warnings\n"
+   "    are much less overwhelming now.\n",
+         DSET_PREFIX(dset), rset ? DSET_PREFIX(rset):"NA",
+         angle );
+   } else {
+      snprintf( str, 1022*sizeof(char),
+   " The underlay/overlay pair of datasets (%s/%s) have oblique angle \n"
+   " difference of %f degrees. This may cause them to appear out of alignment \n"
+   " in the viewer.\n"
+   "\n"
+   "  If you are performing spatial transformations on an oblique dset, \n"
+   "  or viewing/combining it with volumes of differing obliquity,\n"
+   "  you should consider running: \n"
+   "     3dWarp -deoblique \n"
+   "  on this and other oblique datasets in the same session.\n"
+   "\n"
+   " ** Warnings for the same data pair will be muted.\n",
+         DSET_PREFIX(dset), rset ? DSET_PREFIX(rset):"NA",
+         angle);
    }
    (void) MCW_popup_message( w , str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
 

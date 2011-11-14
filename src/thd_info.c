@@ -97,6 +97,30 @@ int dset_obliquity(THD_3dim_dataset *dset , float *anglep)
    return(obliquity);
 }
 
+double dset_obliquity_angle_diff(THD_3dim_dataset *dset1, 
+                                 THD_3dim_dataset *dset2, 
+                                 double tol) 
+{
+   if (!dset1 || !dset1->daxes ||
+       !dset2 || !dset2->daxes ) return(0.0);
+   THD_check_oblique_field(dset1);
+   THD_check_oblique_field(dset2);
+   return(daxes_obliquity_angle_diff(dset1->daxes, dset2->daxes,tol));
+}
+
+double daxes_obliquity_angle_diff(THD_dataxes *ax1, THD_dataxes *ax2, 
+                                  double tol) 
+{
+   double angle, rangle;
+   if (!ax1 || !ax2) return(0.0);
+   angle = THD_compute_oblique_angle(ax1->ijk_to_dicom_real, 0);
+   rangle = THD_compute_oblique_angle(ax2->ijk_to_dicom_real, 0);
+   rangle = angle-rangle; 
+   if (rangle < 0.0) rangle = -rangle;
+   if (rangle < tol) rangle = 0.0;
+   return(rangle);
+}
+
 char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;

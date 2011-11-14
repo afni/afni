@@ -36,16 +36,17 @@ void Syntax(void)
     "   -space: dataset's space\n"
     "   -av_space: AFNI format's view extension for the space\n"
     "   -is_oblique: 1 if dset is oblique\n"
+    "   -obliquity: Angle from plumb direction.\n"
+    "               Angles of 0 (or close) are for cardinal orientations\n"
     "   -prefix: Return the prefix\n"
     "   -prefix_noext: Return the prefix without extensions\n"
     "   -n[i|j|k]: Return the number of voxels in i, j, k dimensions\n"
     "   -nijk: Return ni*nj*nk\n"
-    "   -nv: Return number of points in time\n"
-    "        use -nv for the more generic number of sub-bricks\n"
-    "   -nvi: The maximum sub-brick index (= nv -1 )\n"
-    "   -nt: Return number of points in time\n"
-    "        use -nv for the more generic number of sub-bricks\n"
-    "   -nti: The maximum time index (= nt -1 )\n"
+    "   -nv/-nt: Return number of points in time or the number of sub-bricks\n"
+    "   -nvi/-nti: The maximum sub-brick index (= nv -1 )\n"
+    "   -ntimes: Return number of sub-bricks points in time\n"
+    "        This is an option for debugging use, stay away from it.\n"
+    "   -tr: The TR value in seconds.\n"
     "  ==== Options producing one value per sub-brick ========\n"
     "   -fac: Return the float scaling factor\n"
     "   -datum: The data storage type\n"
@@ -79,23 +80,25 @@ void Syntax(void)
 
 typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI,
-   IS_OBLIQUE, PREFIX , PREFIX_NOEXT, 
-   NI, NJ, NK, NT, NTI, 
+   IS_OBLIQUE, OBLIQUITY, PREFIX , PREFIX_NOEXT, 
+   NI, NJ, NK, NT, NTI, NTIMES,
    NV, NVI, NIJK,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST,
    FAC, DATUM, LABEL,
    MIN, MAX, MINUS, MAXUS,
+   TR,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
 char Field_Names[][32]={
    {"-classic-"}, {"space"}, {"AV_space"}, {"is_nifti"},
-   {"is_oblique"}, {"prefix"}, {"prefix_noext"}, 
-   {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, 
+   {"is_oblique"}, {"obliquity"}, {"prefix"}, {"prefix_noext"}, 
+   {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, 
    {"Nv"}, {"Nvi"}, {"Nijk"}, 
    {"label_table"}, {"LT_as_atlas_point_list"}, 
    {"factor"}, {"datum"}, {"label"}, 
    {"min"}, {"max"}, {"minus"}, {"maxus"},
+   {"TR"},
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
      
 int main( int argc , char *argv[] )
@@ -150,23 +153,25 @@ int main( int argc , char *argv[] )
          atrdelim = argv[iarg];
          iarg++; continue;
       } 
-      else if( strncmp(argv[iarg],"-space",6) == 0) { 
+      else if( strcmp(argv[iarg],"-space") == 0) { 
          sing[N_sing++] = DSET_SPACE; iarg++; continue;
-      } else if( strncmp(argv[iarg],"-av_space",6) == 0) { 
+      } else if( strcmp(argv[iarg],"-av_space") == 0) { 
          sing[N_sing++] = AV_DSET_SPACE; iarg++; continue;
-      } else if( strncmp(argv[iarg],"-is_nifti",6) == 0) { 
+      } else if( strcmp(argv[iarg],"-is_nifti") == 0) { 
          sing[N_sing++] = IS_NIFTI; iarg++; continue;
-      } else if( strncmp(argv[iarg],"-is_oblique",6) == 0) { 
+      } else if( strcmp(argv[iarg],"-is_oblique") == 0) { 
          sing[N_sing++] = IS_OBLIQUE; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-obliquity") == 0) { 
+         sing[N_sing++] = OBLIQUITY; iarg++; continue;
       } else if( strcmp(argv[iarg],"-prefix") == 0) {
          sing[N_sing++] = PREFIX; iarg++; continue;
       } else if( strcmp(argv[iarg],"-prefix_noext") == 0) {
          sing[N_sing++] = PREFIX_NOEXT; iarg++; continue;
-      } else if( strncmp(argv[iarg],"-ni",3) == 0) {
+      } else if( strcmp(argv[iarg],"-ni") == 0) {
          sing[N_sing++] = NI; iarg++; continue;
-      } else if( strncmp(argv[iarg],"-nj",3) == 0) {
+      } else if( strcmp(argv[iarg],"-nj") == 0) {
          sing[N_sing++] = NJ; iarg++; continue;
-      } else if( strncmp(argv[iarg],"-nk",3) == 0) {
+      } else if( strcmp(argv[iarg],"-nk") == 0) {
          sing[N_sing++] = NK; iarg++; continue;
       } else if( strcmp(argv[iarg],"-nt") == 0) {
          sing[N_sing++] = NT; iarg++; continue;
@@ -176,7 +181,9 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = NV; iarg++; continue;
       } else if( strcmp(argv[iarg],"-nvi") == 0) {
          sing[N_sing++] = NVI; iarg++; continue;
-      } else if( strncmp(argv[iarg],"-nijk",3) == 0) {
+      } else if( strcmp(argv[iarg],"-ntimes") == 0) {
+         sing[N_sing++] = NTIMES; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-nijk") == 0) {
          sing[N_sing++] = NIJK; iarg++; continue;
       } else if( strcmp(argv[iarg],"-labeltable") == 0) {
          sing[N_sing++] = LTABLE; iarg++; continue;
@@ -196,6 +203,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = MINUS; iarg++; continue;
       } else if( strcmp(argv[iarg],"-maxus") == 0) {
          sing[N_sing++] = MAXUS; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-TR") == 0) {
+         sing[N_sing++] = TR; iarg++; continue;
       } else {
          ERROR_exit("Option %s unknown", argv[iarg]);
       }
@@ -226,7 +235,8 @@ int main( int argc , char *argv[] )
    for( ; iarg < argc ; iarg++ ){
 
      if( argv[iarg][0] == '\0' ) continue ;  /* bad filename */
-
+     
+     set_obliquity_report(0); /* silence obliquity */
      dset = THD_open_dataset( argv[iarg] ) ;
 
      if( dset == NULL ){  /* open failed */
@@ -310,6 +320,10 @@ int main( int argc , char *argv[] )
                fprintf(stdout,"0");
             }
             break;
+         case OBLIQUITY:
+            fprintf(stdout,"%f",
+                  THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0));
+            break;
          case PREFIX:
             fprintf(stdout,"%s", DSET_PREFIX(dset));
             break;
@@ -332,15 +346,14 @@ int main( int argc , char *argv[] )
          case NIJK:
             fprintf(stdout,"%d", DSET_NVOX(dset));
             break;
-         case NT:
+         case NTIMES:
             fprintf(stdout,"%d", DSET_NUM_TIMES(dset));
             break;
-         case NTI:
-            fprintf(stdout,"%d", DSET_NUM_TIMES(dset)-1);
-            break;
+         case NT:
          case NV:
             fprintf(stdout,"%d", DSET_NVALS(dset));
             break;
+         case NTI:
          case NVI:
             fprintf(stdout,"%d", DSET_NVALS(dset)-1);
             break;
@@ -423,6 +436,9 @@ int main( int argc , char *argv[] )
                }
                break;
             }
+         case TR:
+            fprintf(stdout,"%f", DSET_TR_SEC(dset));
+            break;
          default:
             ERROR_message("Info field not set properly (%d)\n", sing[iis]);
             exit(1);

@@ -12,6 +12,8 @@ static int oblique_report_repeat = 20;
 static int oblique_report_repeat2 = 100;
 static int first_oblique = 1;
 static int oblique_update = 0;
+static int OBL_report=1;
+void set_obliquity_report(int v) { OBL_report=v; } 
 
 
 /*====================================================================
@@ -615,7 +617,7 @@ void THD_report_obliquity(THD_3dim_dataset *dset)
    double angle;
 
    ENTRY("THD_report_obliquity");
-   if(AFNI_yesenv("AFNI_NO_OBLIQUE_WARNING")) EXRETURN;
+   if(AFNI_yesenv("AFNI_NO_OBLIQUE_WARNING") || !OBL_report) EXRETURN;
 
    if( !ISVALID_DSET(dset) || oblique_report_repeat==0 ) EXRETURN;
 

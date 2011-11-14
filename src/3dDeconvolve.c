@@ -5490,6 +5490,7 @@ void initialize_program
 
 ENTRY("initialize_program") ;
 
+   set_obliquity_report(0); /* silence obliquity */
 
   /*----- Allocate memory -----*/
   *option_data = (DC_options *) malloc (sizeof(DC_options));

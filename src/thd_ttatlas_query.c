@@ -3390,6 +3390,164 @@ ATLAS_SEARCH *Free_Atlas_Search(ATLAS_SEARCH *as)
    RETURN(NULL);
 }
 
+/*! 
+   An approximate string matching technique based on the Levenshtein distance.
+   Based on Pseudocode from: http://en.wikipedia.org/wiki/Levenshtein_distance
+   
+   ci =1 for case insensitive searches.
+   
+   Not terribly efficient, but easy to read
+*/
+int LevenshteinStringDistance(char *s1, char *s2, byte ci) 
+{
+   int ns1=0, ns2=0, D=0, i, j, m, loff=0;
+   byte eqs=0;
+   int **d=NULL;
+   
+   ENTRY("LevenshteinStringDistance");
+   
+   if (!s1 && !s2) RETURN(0);
+   if (!s1 || !s2) RETURN(-1);
+   
+   ns1 = strlen(s1);
+   ns2 = strlen(s2);
+   d = (int **)calloc(ns1+1, sizeof(int*));
+   for (i=0; i<=ns1; ++i) {
+      d[i] = (int *)calloc(ns2+1, sizeof(int));
+   }
+   for (i=0; i<=ns1; ++i) d[i][0]=i;
+   for (j=0; j<=ns2; ++j) d[0][j]=j;
+   
+   for (j=1; j<=ns2; ++j) {
+      for (i=1; i<=ns1; ++i) {
+         if (ci) eqs = (TO_LOWER(s1[i-1]) == TO_LOWER(s2[j-1]));
+         else eqs = (s1[i-1] == s2[j-1]);
+         if (eqs) {
+            d[i][j] = d[i-1][j-1];
+         } else {
+            d[i][j] = d[i-1][j]+1;
+            m = d[i][j-1]+1; if (m < d[i][j]) d[i][j] = m;
+            m = d[i-1][j-1]+1; if (m < d[i][j]) d[i][j] = m;
+         }
+      }
+   }
+   
+   D = d[ns1][ns2];
+   for (i=0; i<=ns2; ++i) {
+      free(d[i]);
+   }
+   free(d);
+   
+   /* modulate D by string length difference */
+   loff = ns2-ns1; if (loff < 0) loff = -loff; if (loff > 9) loff = 9;
+   D = 10*D + loff;
+   
+   RETURN(D);
+}
+
+/* 
+   Sort array of strings by the approximate similarity to str 
+   Best match first.
+*/
+char **approx_str_sort(char **words, int N_words, char *str, byte ci, 
+                       int **sorted_score)
+{
+   char **ws=NULL;
+   int *is=NULL, *isi=NULL, i;
+   int direct = -1; /* -1 best match first, 1 best match last */
+   
+   ENTRY("approx_str_sort");
+   
+   if (!words || !N_words || !str) RETURN(ws);
+   if (sorted_score && *sorted_score) {
+      ERROR_message("If sorted_score then *sorted_score should be NULL\n");
+      RETURN(ws);
+   }
+   
+   ws = (char **)calloc(N_words, sizeof(char *));
+   is = (int *)calloc(N_words, sizeof(int));
+   
+   for (i=0; i<N_words; ++i) {
+      is[i] = direct * LevenshteinStringDistance(words[i], str, ci);
+   }
+   
+   /* sort scores */
+   isi = z_idqsort(is, N_words);
+   
+   /* create sorted output, best match last */
+   for (i=0; i<N_words; ++i) {
+      ws[i] = strdup(words[isi[i]]);
+      is[i] = direct * is[i];
+   }
+   
+   /* clean up and return */
+   free(isi); 
+   if (!sorted_score) {
+      free(is);
+   } else {
+      *sorted_score = is;
+   }
+   
+   RETURN(ws);
+}
+
+int best_approx_str_match(char **words, int N_words, char *str, byte ci)
+{
+   int d=-1, i, dm=-1;
+   
+   ENTRY("best_approx_str_match");
+   
+   if (!words || !N_words || !str) RETURN(dm);
+   
+   for (i=0; i<N_words; ++i) {
+      d = LevenshteinStringDistance(words[i], str, ci);
+      if (dm < 0 || d < dm) dm = d;
+   }
+   RETURN(dm);
+}
+
+/*!
+   A demo function to illustrate the use of approximate string matching
+*/
+void test_approx_str_match(void)
+{
+   char *lot[] = { "Bafni", "avni", "afjni", "aifn", "AfNi", NULL };
+   char *key={"afni"};
+   char **slot=NULL;
+   int i=0, n_lot=0, *slot_score=NULL;
+
+   while (lot[n_lot]) ++n_lot;
+   
+   i=0;
+   while (lot[i]) {
+      fprintf(stdout,"Score %02d: %s v.s. %s\n",
+            LevenshteinStringDistance(lot[i],key,0), lot[i],key);
+      ++i;
+   }
+   
+   i=0;
+   while (lot[i]) {
+      fprintf(stdout,"CI Score %02d: %s v.s. %s\n",
+            LevenshteinStringDistance(lot[i],key,1), lot[i],key);
+      ++i;
+   }
+   
+   fprintf(stdout,"Score   Strings (sorted)\n");
+   slot = approx_str_sort(lot, n_lot, key, 0, &slot_score);
+   for (i=0; i<n_lot; ++i) {
+      fprintf(stdout,"%02d- %s\n", slot_score[i], slot[i]);
+      free(slot[i]);
+   } free(slot);  free(slot_score); slot_score=NULL;
+   
+   fprintf(stdout,"Score   Strings (CI sorted)\n");
+   slot = approx_str_sort(lot, n_lot, key, 1, &slot_score);
+   for (i=0; i<n_lot; ++i) {
+      fprintf(stdout,"%02d- %s\n", slot_score[i], slot[i]);
+      free(slot[i]);
+   } free(slot);  free(slot_score); slot_score=NULL;
+   
+   
+}
 /*!
    Return a byte mask for a particular atlas region
 */

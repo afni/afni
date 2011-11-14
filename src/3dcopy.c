@@ -78,7 +78,8 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dcopy") ; machdep() ; AFNI_logger("3dcopy",argc,argv) ;
    PRINT_VERSION("3dcopy") ;
-
+   set_obliquity_report(0); /* silence obliquity */
+   
    /* input arguments */
 
    while( nopt < argc && argv[nopt][0] == '-' ){
