@@ -555,6 +555,8 @@ int main( int argc , char *argv[] )
    int nallz = 0 ; int *allz = NULL ;  /* 15 Mar 2010 */
 
    /**------------ Get by with a little help from your friends? ------------**/
+   
+   set_obliquity_report(0); /* silence obliquity */
 
    Argc = argc ; Argv = argv ;
 

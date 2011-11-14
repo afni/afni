@@ -592,7 +592,8 @@ int main( int argc , char *argv[] )
    float *rlt0=NULL , *rlt1=NULL ;
    float *rltsum=NULL ;             /* 16 Sep 1999 */
    int   nrltsum ;
-   float dTR , nTR ;
+   float dTR , nTR;
+   double angle=0.0 ;
 
    /*** read input options ***/
 
@@ -601,7 +602,8 @@ int main( int argc , char *argv[] )
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    mainENTRY("3dTcat main"); machdep() ; PRINT_VERSION("3dTcat") ;
-
+   set_obliquity_report(0); /* silence obliquity */
+   
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
@@ -639,9 +641,19 @@ int main( int argc , char *argv[] )
    /* 23 May 2005: check for axis consistency */
 
    for( iv=0 ; iv < ninp ; iv++ ){
-     if( iv != ids && !EQUIV_DATAXES(new_dset->daxes,DSUB(iv)->daxes) )
-       WARNING_message("%s grid mismatch with %s",
+     if( iv != ids ) {
+       if (!EQUIV_DATAXES(new_dset->daxes,DSUB(iv)->daxes) ) {
+         WARNING_message("%s grid mismatch with %s",
                DSET_BRIKNAME(dset) , DSET_BRIKNAME(DSUB(iv)) ) ;
+       }
+       angle = dset_obliquity_angle_diff(new_dset, DSUB(iv), -1.0);
+       if (angle > 0.0) {
+         WARNING_message(
+            "dataset %s has an obliquity difference of %f degress with %s\n",
+            new_dset ,
+            angle, DSUB(iv) );
+       }
+     }
    }
 
    tross_Make_History( "3dTcat" , argc,argv , new_dset ) ;

@@ -34,7 +34,7 @@ int main( int argc , char * argv[] )
    PRINT_VERSION("3dAutobox") ;
 
    /*-- read command line options --*/
-
+   set_obliquity_report(0); /* silence obliquity */
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
  

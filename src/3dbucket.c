@@ -552,6 +552,7 @@ int main( int argc , char * argv[] )
    int ninp , ids , nv , iv,jv,kv , ivout , new_nvals , have_fdr = 0, nfdr = 0 ;
    THD_3dim_dataset * new_dset=NULL , * dset ;
    char buf[256] ;
+   double angle;
 
    /*----- identify program -----*/
 #if 0
@@ -564,7 +565,8 @@ int main( int argc , char * argv[] )
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) BUCK_Syntax() ;
 
    mainENTRY("3dbucket main"); machdep(); PRINT_VERSION("3dbucket") ;
-
+   set_obliquity_report(0); /* silence obliquity */
+   
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    { int new_argc ; char ** new_argv ;
@@ -598,6 +600,13 @@ int main( int argc , char * argv[] )
        fprintf(stderr,"++ WARNING: %s grid mismatch with %s\n",
                DSET_BRIKNAME(DSUB(0)) , DSET_BRIKNAME(DSUB(iv)) ) ;
      if( DSUB(iv)->dblk->brick_fdrcurve ) have_fdr = 1 ;
+     angle = dset_obliquity_angle_diff(new_dset, DSUB(iv), -1.0);
+     if (angle > 0.0) {
+       WARNING_message(
+          "dataset %s has an obliquity difference of %f degress with %s\n",
+          new_dset ,
+          angle, DSUB(iv) );
+     }
    }
 
    /*  if( ninp == 1 ) */   tross_Copy_History( DSUB(0) , new_dset ) ;

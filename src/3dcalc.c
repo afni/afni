@@ -1556,7 +1556,8 @@ int main( int argc , char *argv[] )
    mainENTRY("3dcalc main"); machdep() ;
    PRINT_VERSION("3dcalc") ; AUTHOR("A cast of thousands") ;
    THD_check_AFNI_version("3dcalc") ;
-
+   set_obliquity_report(0); /* silence obliquity */
+   
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
@@ -1585,12 +1586,22 @@ int main( int argc , char *argv[] )
    /* 23 May 2005: check input datasets for axis consistency */
 
    for( iii=0 ; iii < 26 ; iii++ ){
+     double angle;
      if( iii            != ids                                &&
-         CALC_dset[iii] != NULL                               &&
-         !EQUIV_DATAXES(new_dset->daxes,CALC_dset[iii]->daxes)  )
-       WARNING_message("dataset '%c'=%s grid mismatch with %s\n",
+         CALC_dset[iii] != NULL) {
+       if (!EQUIV_DATAXES(new_dset->daxes,CALC_dset[iii]->daxes)  )
+         WARNING_message("dataset '%c'=%s grid mismatch with %s\n",
                       'a'+iii , DSET_BRIKNAME(CALC_dset[iii]) ,
                                 DSET_BRIKNAME(CALC_dset[ids]) ) ;
+      
+       }
+       angle = dset_obliquity_angle_diff(new_dset, CALC_dset[iii], -1.0);
+       if (angle > 0.0) {
+         WARNING_message(
+           "dataset '%c'=%s has an obliquity difference of %f degrees with %s\n",
+            'a'+iii , DSET_BRIKNAME(CALC_dset[iii]) ,
+            angle, DSET_BRIKNAME(CALC_dset[ids]) );
+       }
    }
 
    /** make history for new dataset */
