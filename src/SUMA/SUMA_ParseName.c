@@ -12,7 +12,7 @@ printf (
    "The program makes no attempt to check that the file exists.\n"
    "OPTIONS:\n"
    "   -cwd: Specify the working directory, from which relative\n"
-   "         path is constructed. Default is the program's CWD"
+   "         path is constructed. Default is the program's CWD\n"
    "   -out OUT: Output only one component of the parsed file name\n"
    "             By default the whole parsed filename structure is\n"
    "             displayed.\n"
