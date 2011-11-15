@@ -2793,7 +2793,9 @@ void SUMA_read1D (char* fileNm, int* i_colm, int* i_locInfo, SUMA_1dData* data) 
          i_last = 0;
          frag = strtok(line, " \t\n\r");
          if (frag==NULL) {
-            fprintf(SUMA_STDERR, "\nError %s: Indicated column for file not found. Exiting.\n", FuncName);
+            fprintf(SUMA_STDERR, 
+                 "\nError %s: Indicated column for file not found. Exiting.\n", 
+                 FuncName);
             exit(1);
          }
 
@@ -2801,13 +2803,17 @@ void SUMA_read1D (char* fileNm, int* i_colm, int* i_locInfo, SUMA_1dData* data) 
             for ( i=0; i<i_colmSrtd[k]-i_last; ++i) {
                frag = strtok(NULL, " \t\n\r"); 
                if (frag==NULL) {
-                  fprintf(SUMA_STDERR, "\nError %s: Indicated column for file not found. Exiting.\n", FuncName);
+                  fprintf(SUMA_STDERR, 
+            "\nError %s: Indicated column for file not found. Exiting.\n", 
+                  FuncName);
                   exit(1);
                }
             }
             
             if (frag==NULL) {
-               fprintf(SUMA_STDERR, "\nError %s: Indicated column for file not found. Exiting.\n", FuncName);
+               fprintf(SUMA_STDERR, 
+               "\nError %s: Indicated column for file not found. Exiting.\n", 
+                  FuncName);
                exit(1);
             }
 

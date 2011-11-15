@@ -121,6 +121,45 @@ double daxes_obliquity_angle_diff(THD_dataxes *ax1, THD_dataxes *ax2,
    return(rangle);
 }
 
+/* 
+   A debugging function to show the state of the various file naming fields
+*/
+void THD_show_dataset_names( THD_3dim_dataset *dset, char *head, FILE *out) 
+{
+   if (!dset) {
+      fprintf(stderr,"NULL dset"); 
+      return;
+   }
+   if (!out) out = stderr;
+   
+   if (head && !strcmp(head,"FOR_3DINFO")) {
+      fprintf(out, "    filecode: %s"
+                      "    header_name: %s"
+                      "    brick_name: %s"
+                      "    prefix: %s"
+                      "    storage_mode: %d",
+            dset->dblk->diskptr->filecode,
+            dset->dblk->diskptr->header_name,
+            dset->dblk->diskptr->brick_name,
+            DSET_PREFIX(dset),
+            dset->dblk->diskptr->storage_mode);
+   } else {
+      fprintf(out, "*** FileLove: %s\n"
+                      "    filecode: %s\n"
+                      "    header_name: %s\n"
+                      "    brick_name: %s\n"
+                      "    prefix: %s\n"
+                      "    storage_mode: %d\n",
+            head ? head:"",
+            dset->dblk->diskptr->filecode,
+            dset->dblk->diskptr->header_name,
+            dset->dblk->diskptr->brick_name,
+            DSET_PREFIX(dset),
+            dset->dblk->diskptr->storage_mode);
+   }
+   return;
+}
+
 char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;

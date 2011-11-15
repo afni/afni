@@ -49,6 +49,7 @@ void Syntax(void)
     "   -tr: The TR value in seconds.\n"
     "   -header_name: Value of dset structure (sub)field 'header_name'\n"
     "   -brick_name: Value of dset structure (sub)field 'brick_name'\n"
+    "   -all_names: Value of various dset structures handling filenames.\n"
     "  ==== Options producing one value per sub-brick ========\n"
     "   -fac: Return the float scaling factor\n"
     "   -datum: The data storage type\n"
@@ -89,8 +90,8 @@ typedef enum {
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST,
    FAC, DATUM, LABEL,
    MIN, MAX, MINUS, MAXUS,
-   TR, HEADER_NAME, BRICK_NAME,
-   HISTORY,
+   TR, HEADER_NAME, BRICK_NAME, ALL_NAMES,
+   HISTORY, 
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
@@ -102,7 +103,7 @@ char Field_Names[][32]={
    {"label_table"}, {"LT_as_atlas_point_list"}, 
    {"factor"}, {"datum"}, {"label"}, 
    {"min"}, {"max"}, {"minus"}, {"maxus"},
-   {"TR"}, {"header_name"}, {"brick_name"}, 
+   {"TR"}, {"header_name"}, {"brick_name"}, {"all_names"},
    {"history"}, 
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
      
@@ -216,6 +217,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = BRICK_NAME; iarg++; continue;
       } else if( strcmp(argv[iarg],"-history") == 0) {
          sing[N_sing++] = HISTORY; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-all_names") == 0) {
+         sing[N_sing++] = ALL_NAMES; iarg++; continue;
       } else {
          ERROR_exit("Option %s unknown", argv[iarg]);
       }
@@ -340,9 +343,9 @@ int main( int argc , char *argv[] )
             break;
          case PREFIX_NOEXT:
             { 
-               char *ppp=DSET_prefix_noext(dset);
-               fprintf(stdout,"%s", ppp);
-               free(ppp);
+               stmp=DSET_prefix_noext(dset);
+               fprintf(stdout,"%s", stmp);
+               free(stmp); stmp=NULL;
             }
             break;
          case HEADER_NAME:
@@ -350,6 +353,9 @@ int main( int argc , char *argv[] )
             break;
          case BRICK_NAME:
             fprintf(stdout,"%s", dset->dblk->diskptr->brick_name);
+            break;
+         case ALL_NAMES:
+            THD_show_dataset_names(dset, "FOR_3DINFO", stdout);
             break;
          case HISTORY:
             stmp = tross_Get_History(dset);

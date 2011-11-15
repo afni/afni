@@ -487,7 +487,9 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
       if( DSET_IS_1D(dset) || DSET_IS_3D(dset) ){         /* 21 Mar 2003 */
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        fname[ll-10] = '\0' ;
+        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
+           fname[ll-10] = '\0' ;
+        }
         if( DSET_IS_1D(dset) || (DSET_NY(dset)==1 && DSET_NZ(dset)==1) )
           strcat(fname,".1D");
         else
@@ -497,21 +499,27 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
       if( DSET_IS_NIML(dset) ){         /* 07 Jun 2006 [rickr] */
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        fname[ll-10] = '\0' ;
+        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
+            fname[ll-10] = '\0' ;
+        }
         if( !STRING_HAS_SUFFIX(fname,".niml") ) strcat(fname,".niml");
       }
 
       if( DSET_IS_NI_SURF_DSET(dset) ){ /* 28 Jun 2006 [rickr] */
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        fname[ll-10] = '\0' ;
+        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
+            fname[ll-10] = '\0' ;
+        }
         if( !STRING_HAS_SUFFIX(fname,".niml.dset") ) strcat(fname,".niml.dset");
       }
 
       if( DSET_IS_GIFTI(dset) ){ /* 13 Feb 2008 [rickr] */
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        fname[ll-10] = '\0' ;
+        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
+            fname[ll-10] = '\0' ;
+        }
         if( ! STRING_HAS_SUFFIX(fname,".gii") &&
             ! STRING_HAS_SUFFIX(fname,".gii.dset") )
            strcat(fname,".gii");
@@ -519,14 +527,14 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
       /** output of NIfTI-1.1 dataset: 06 May 2005 **/
       /* if the prefix ends in .nii or .nii.gz, change filename in brick_name */
-
       if( nprefix != NULL && ( STRING_HAS_SUFFIX(nprefix,".nii") ||
                                STRING_HAS_SUFFIX(nprefix,".nii.gz") ) ){
 
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        fname[ll-10] = '\0' ;  /* taking off "+view.BRIK" */
-
+        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
+            fname[ll-10] = '\0' ;  /* taking off "+view.BRIK" */
+        }
         if( STRING_HAS_SUFFIX(nprefix,".nii") ) {  /* 22 Jun 2006 mod drg */
 
           cmode = THD_get_write_compression() ; /* check env. variable for compression*/
@@ -555,8 +563,9 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        fname[ll-10] = '\0' ;  /* taking off "+view.BRIK" */
-        
+        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
+            fname[ll-10] = '\0' ;  /* taking off "+view.BRIK" */
+        }
         if( !strcmp(fname+ll-14,".hdr") ) fname[ll-14] = '\0';
         if( !STRING_HAS_SUFFIX(fname,".img") ) strcat(fname,".img") ;
         /* and override the BRICK mode */
