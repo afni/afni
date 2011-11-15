@@ -14,6 +14,7 @@ int THD_dataset_mismatch( THD_3dim_dataset *ds1 , THD_3dim_dataset *ds2 )
    THD_fvec3 fv1 , fv2 , dv ;
    int code ;
    float cd,c1,c2 ;
+   double angle;
 
 ENTRY("THD_dataset_mismatch") ;
 
@@ -52,5 +53,9 @@ ENTRY("THD_dataset_mismatch") ;
 
    if( cd > 0.1*(c1+c2) ) code |= MISMATCH_CENTER ;
 
+   /* check if the obliquity is the same */
+   angle = dset_obliquity_angle_diff(ds1, ds2, -1.0);
+   if (angle > 0.0) code |= MISMATCH_OBLIQ ;
+   
    RETURN(code) ;
 }

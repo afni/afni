@@ -4188,6 +4188,7 @@ extern int THD_dataset_tshift( THD_3dim_dataset * , int ) ; /* 15 Feb 2001 */
 #define MISMATCH_DELTA   (1<<1)  /* within 0.001 voxel */
 #define MISMATCH_ORIENT  (1<<2)
 #define MISMATCH_DIMEN   (1<<3)
+#define MISMATCH_OBLIQ   (1<<4)
 
 /*----------------------------------------------------------------*/
 /*--------  FD_brick type: for rapid extraction of slices --------*/
