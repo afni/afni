@@ -126,8 +126,8 @@ int main( int argc , char *argv[] )
             if( mmm > 0.0 ) printf("x-CM=%11.4g     y-CM=%11.4g\n",xcm,ycm) ;
          } else {
             printf( "%d %d %d " , flim->nx , flim->ny , imk ) ;
-            printf( "%11.4g %11.4g %11.4g %11.4g %11.4g %11.4g %d\n" ,
-                    im_min,im_min2 , im_max,im_max2 , im_ave,im_std,nzero ) ;
+            printf( "%11.4g %11.4g %11.4g %11.4g %11.4g %11.4g %d %s\n" ,
+                    im_min,im_min2 , im_max,im_max2 , im_ave,im_std,nzero,flim->name ) ;
          }
       }
 

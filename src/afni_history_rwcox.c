@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 10 , NOV , 2011 , RWC , "afni InstaCorr" , MINOR , TYPE_NEW_OPT ,
+  { 15 , NOV , 2011 , RWC , "dicom_hinfo" , MINOR , TYPE_NEW_PROG ,
+   "For printing out info from lots of DICOM files" ,
+   "For each file input, prints 1 line with the values of only the desired\n"
+   "tags.  The goal is to be helpful in figuring out which files go\n"
+   "together.  See Example #2 in the help output for such a case." } ,
+
+ { 10 , NOV , 2011 , RWC , "afni InstaCorr" , MINOR , TYPE_NEW_OPT ,
    "Add ExtraSet option" ,
    "That is, to correlate seeds from the TimeSeries dataset with voxel data\n"
    "from the ExtraSet dataset.  Ziad asked for something like this, so here\n"
