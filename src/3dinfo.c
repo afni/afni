@@ -47,6 +47,8 @@ void Syntax(void)
     "   -ntimes: Return number of sub-bricks points in time\n"
     "        This is an option for debugging use, stay away from it.\n"
     "   -tr: The TR value in seconds.\n"
+    "   -header_name: Value of dset structure (sub)field 'header_name'\n"
+    "   -brick_name: Value of dset structure (sub)field 'brick_name'\n"
     "  ==== Options producing one value per sub-brick ========\n"
     "   -fac: Return the float scaling factor\n"
     "   -datum: The data storage type\n"
@@ -59,6 +61,7 @@ void Syntax(void)
     "       -sb_delim DELIM. Default DELIM is \"|\"\n"
     "   -labeltable: Show label table, if any\n"
     "   -labeltable_as_atlas_points: Show label table in atlas point format.\n"
+    "   -history: History note. \n"
     "\n"
     "  === Options affection output format ===\n"
     "   -header_line: Output as the first line the names of attributes\n"
@@ -86,7 +89,8 @@ typedef enum {
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST,
    FAC, DATUM, LABEL,
    MIN, MAX, MINUS, MAXUS,
-   TR,
+   TR, HEADER_NAME, BRICK_NAME,
+   HISTORY,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
@@ -98,14 +102,15 @@ char Field_Names[][32]={
    {"label_table"}, {"LT_as_atlas_point_list"}, 
    {"factor"}, {"datum"}, {"label"}, 
    {"min"}, {"max"}, {"minus"}, {"maxus"},
-   {"TR"},
+   {"TR"}, {"header_name"}, {"brick_name"}, 
+   {"history"}, 
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
      
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset ;
    int iarg , verbose = -1 ;
-   char *outbuf ;
+   char *outbuf, *stmp=NULL;
    char *labelName = NULL;
    char *sbdelim = {"|"};
    char *NAflag = {"NA"};
@@ -205,6 +210,12 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = MAXUS; iarg++; continue;
       } else if( strcmp(argv[iarg],"-TR") == 0) {
          sing[N_sing++] = TR; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-header_name") == 0) {
+         sing[N_sing++] = HEADER_NAME; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-brick_name") == 0) {
+         sing[N_sing++] = BRICK_NAME; iarg++; continue;
+      } else if( strcmp(argv[iarg],"-history") == 0) {
+         sing[N_sing++] = HISTORY; iarg++; continue;
       } else {
          ERROR_exit("Option %s unknown", argv[iarg]);
       }
@@ -333,6 +344,17 @@ int main( int argc , char *argv[] )
                fprintf(stdout,"%s", ppp);
                free(ppp);
             }
+            break;
+         case HEADER_NAME:
+            fprintf(stdout,"%s", dset->dblk->diskptr->header_name);
+            break;
+         case BRICK_NAME:
+            fprintf(stdout,"%s", dset->dblk->diskptr->brick_name);
+            break;
+         case HISTORY:
+            stmp = tross_Get_History(dset);
+            fprintf(stdout,"%s", stmp ? stmp:NAflag);
+            if (stmp) free(stmp); stmp=NULL;
             break;
          case NI:
             fprintf(stdout,"%d", DSET_NX(dset));
