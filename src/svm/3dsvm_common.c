@@ -3792,8 +3792,10 @@ int writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
   }
 
   /* JL July 2011: */
+  {
   int max_iterations = (int)afniModel->max_iterations; /* would be ideally long */
   THD_set_int_atr( dsetModel->dblk, "3DSVM_MAX_ITERATIONS", 1, &max_iterations);
+  }
   
   /* JL May 2010: Write if mask was used into the header */
   if (options->modelFile[0]) maskUsed = 1; else maskUsed=0;
