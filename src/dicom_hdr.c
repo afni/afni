@@ -54,6 +54,8 @@ int main(int argc, char **argv)
             "   with 12 bits (stored in 16 bits) per pixel.\n"
             "* For vastly more detail on DICOM standard, you can start with the\n"
             "   documents at ftp://afni.nimh.nih.gov/dicom/ (1000+ pages of PDF).\n"
+            "* Also see program dicom_hinfo which will print out just a few user-chosen\n"
+            "   values for each input file.\n"
            );
      exit(0);
    }
