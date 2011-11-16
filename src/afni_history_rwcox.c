@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 15 , NOV , 2011 , RWC , "dicom_hinfo" , MINOR , TYPE_NEW_PROG ,
+  { 16 , NOV , 2011 , RWC , "dicom_hinfo" , MICRO , TYPE_GENERAL ,
+   "Minor edits, mostly to the help." ,
+   NULL } ,
+
+ { 15 , NOV , 2011 , RWC , "dicom_hinfo" , MINOR , TYPE_NEW_PROG ,
    "For printing out info from lots of DICOM files" ,
    "For each file input, prints 1 line with the values of only the desired\n"
    "tags.  The goal is to be helpful in figuring out which files go\n"
