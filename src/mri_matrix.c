@@ -732,7 +732,7 @@ STATUS("inv[XtX] from SVD") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Return the eigenvalues of NxN matrix [C'C], scaled to diagonal 1.
+/*! Return the sqrt(eigenvalues) of NxN matrix [C'C], scaled to diagonal 1.
     The output points to a 1D image as vector of floats, of length N=C->ny.
     This image should be mri_free()-ed when you are done with it.
 -----------------------------------------------------------------------------*/
@@ -773,7 +773,8 @@ ENTRY("mri_matrix_singvals") ;
 
    symeigval_double( N , a , e ) ; free(a) ;
    ime = mri_new( N , 1 , MRI_float ) ; rmat = MRI_FLOAT_PTR(ime) ;
-   for( j=0 ; j < N ; j++ ) rmat[j] = e[j] ;
+   for( j=0 ; j < N ; j++ )
+     rmat[j] = (float) ( (e[j] <= 0.0) ? 0.0 : sqrt(e[j]) ) ;
    free(e) ; RETURN(ime) ;
 }
 
