@@ -963,6 +963,7 @@ void display_help_menu()
     "                      ** This value is NOT the same as Matlab!         \n"
     "[-singvals]          Print out the matrix singular values              \n"
     "                      (useful for some testing/debugging purposes)     \n"
+    "                      Also see program 1dsvd.                          \n"
     "[-GOFORIT [g]]       Use this to proceed even if the matrix has        \n"
     "                     bad problems (e.g., duplicate columns, large      \n"
     "                     condition number, etc.).                          \n"
@@ -1915,7 +1916,7 @@ void get_options
         allzero_OK++ ; use_psinv = 1 ; nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-singvals") == 0 ){  /* 13 Aug 2004 */
+      if( strncmp(argv[nopt],"-sing",5) == 0 ){  /* 13 Aug 2004 */
         show_singvals = 1 ; option_data->nocond = 0 ;
         nopt++ ; continue ;
       }
