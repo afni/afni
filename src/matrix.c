@@ -1603,7 +1603,7 @@ int * matrix_check_columns( matrix a , double eps )  /* 14 Jul 2004 */
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Return the eigenvalues of matrix X-transpose X, scaled to diagonal 1.
+/*! Return the sqrt(eigenvalues) of matrix X-transpose X, scaled to diagonal 1.
     The output points to a vector of doubles, of length X.cols.  This
     should be free()-ed when you are done with it.
 -----------------------------------------------------------------------------*/
@@ -1635,8 +1635,11 @@ double * matrix_singvals( matrix X )   /* 14 Jul 2004 */
 
    symeigval_double( N , a , e ) ;
    free( (void *)a ) ;
+   for( i=0 ; i < N ; i++ ){
+     e[i] = (e[i] <= 0.0) ? 0.0 : sqrt(e[i]) ;
+   }
 #ifdef ENABLE_FLOPS
-   flops += (M+N+2.0)*N*N ;
+   flops += (M+N+2.0)*N*N+10.0*N ;
 #endif
    return e ;
 }
