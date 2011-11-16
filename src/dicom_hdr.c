@@ -9,6 +9,7 @@ int main(int argc, char **argv)
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: dicom_hdr [options] fname [...]\n"
             "Prints information from the DICOM file 'fname' to stdout.\n"
+            "Multiple files can be given on the command line.\n"
             "\n"
             "OPTIONS:\n"
             " -hex     = Include hexadecimal printout for integer values.\n"
@@ -23,8 +24,8 @@ int main(int argc, char **argv)
             " -printf  = Use 'printf' directly, instead of an intermediate string.\n"
 #endif
             "\n"
-            " -slice_times = Show slice times from Siemens mosaic images.\n"
-            " -slice_times_verb = Same, but be verbose about it.\n"
+            " -slice_times      = Show slice times from Siemens mosaic images.\n"
+            " -slice_times_verb = Same, but be more verbose about it.\n"
             "\n"
             "Based on program dcm_dump_file from the RSNA, developed at\n"
             "the Mallinckrodt Institute of Radiology.  See the source\n"
@@ -48,14 +49,15 @@ int main(int argc, char **argv)
             "* If -noname is NOT given, then the string in the '// ... //' region is\n"
             "   the standard DICOM dictionary name for this data element.  If this string\n"
             "   is blank, then this element isn't in the dictionary (e.g., is a private\n"
-            "   tag, or an addition to DICOM that I don't know about, ...).\n"
+            "   tag, or an addition to DICOM that the program doesn't know about, etc.).\n"
             "* The value after the last '//' is the value of the data in the element.\n"
             "* In the example above, we have a 512x512 image with 0.488281 mm pixels,\n"
             "   with 12 bits (stored in 16 bits) per pixel.\n"
             "* For vastly more detail on DICOM standard, you can start with the\n"
-            "   documents at ftp://afni.nimh.nih.gov/dicom/ (1000+ pages of PDF).\n"
-            "* Also see program dicom_hinfo which will print out just a few user-chosen\n"
-            "   values for each input file.\n"
+            "   documents at ftp://afni.nimh.nih.gov/dicom/ (1000+ pages of PDF)!\n"
+            "* Also see program dicom_hinfo -- which will print out just a few user-chosen\n"
+            "   values for each input file.  It can be used in a script to sort through\n"
+            "   a lot of files at once.\n"
            );
      exit(0);
    }
