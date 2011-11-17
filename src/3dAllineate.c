@@ -274,8 +274,13 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
 
 #define COUNT_FREE_PARAMS(nf)                                  \
  do{ int jj ;                                                  \
-     for( (nf)=jj=0 ; jj < stup.wfunc_numpar ; jj++ )          \
-       if( !stup.wfunc_param[jj].fixed ) (nf)++ ;              \
+     if( verb > 4 ) fprintf(stderr,"++ Free params:") ;        \
+     for( (nf)=jj=0 ; jj < stup.wfunc_numpar ; jj++ ){         \
+       if( !stup.wfunc_param[jj].fixed ){                      \
+         (nf)++ ; if( verb > 4 ) fprintf(stderr," %d",jj) ;    \
+       }                                                       \
+     }                                                         \
+     if( verb > 4 ) fprintf(stderr,"\n") ;                     \
  } while(0)
 
 /*---------------------------------------------------------------------------*/
@@ -419,7 +424,7 @@ int main( int argc , char *argv[] )
    float nwarp_parmax          = 0.10f ;         /* 05 Jan 2011 */
    int   nwarp_flags           = 0 ;             /* 29 Oct 2010 */
    int   nwarp_itemax          = 0 ;
-   int   nwarp_fixaff          = 1 ;             /* 26 Nov 2010 */
+   int   nwarp_fixaff          = 0 ;             /* 26 Nov 2010 */
    int   nwarp_fixmotX         = 0 ;             /* 07 Dec 2010 */
    int   nwarp_fixdepX         = 0 ;
    int   nwarp_fixmotY         = 0 ;
@@ -1165,7 +1170,7 @@ int main( int argc , char *argv[] )
         "                 of parameters being optimized.  The default values\n"
         "                 are m=2 and a=3.  Larger values will probably slow\n"
         "                 the program down for no good reason.  The smallest\n"
-        "                 values are 1.\n"
+        "                 allowed values are 1.\n"
         " -target ttt   = Same as '-source ttt'.  In the earliest versions,\n"
         "                 what I now call the 'source' dataset was called the\n"
         "                 'target' dataset:\n"
@@ -1617,7 +1622,7 @@ int main( int argc , char *argv[] )
        } else {
          ERROR_exit("unknown -nwarp type '%s' :-(",argv[iarg]) ;
        }
-       nwarp_fixaff = ( strstr(argv[iarg],"FA") == NULL ) ;
+       nwarp_fixaff = ( strstr(argv[iarg],"FA") != NULL ) ;
        warp_code = WARP_AFFINE ; iarg++ ;
 
        if( iarg < argc && isdigit(argv[iarg][0]) ){      /** really secret **/
@@ -4690,22 +4695,58 @@ STATUS("zeropad weight dataset") ;
 
          /* do the optimization */
 
-         for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
-         FREEZE_POLYNO_PARAMS ; /* 07 Dec 2010 */
+         powell_set_mfac( 1.2f , 5.0f ) ;
 
-         COUNT_FREE_PARAMS(nbf) ;
-         if( verb > 0 )
-           INFO_message("Start Nonic/Poly9 warping: %d free parameters",nbf) ;
+         if( AFNI_noenv("AFNI_NONIC_GRADUAL") ){  /* old way: all params at once */
+           for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
+           FREEZE_POLYNO_PARAMS ; /* 07 Dec 2010 */
+           COUNT_FREE_PARAMS(nbf) ;
+           if( verb > 0 )
+             INFO_message("Start Nonic/Poly9 warping: %d free parameters",nbf) ;
 
-         if( verb ) ctim = COX_cpu_time() ;
-         rad  = 0.01f ; crad = 0.003f ;
-         nite = MAX(5555,nwarp_itemax) ;
-         nbf  = mri_genalign_scalar_optim( &stup , rad, crad, nite );
-         if( verb ){
-           dtim = COX_cpu_time() ;
-           ININFO_message("- Nonic/Poly9 cost = %f ; %d funcs ; net CPU = %.1f s",
-                          stup.vbest,nbf,dtim-ctim) ;
-           ctim = dtim ;
+           if( verb ) ctim = COX_cpu_time() ;
+           rad  = 0.03f ; crad = 0.003f ;
+           nite = MAX(7777,nwarp_itemax) ;
+           nbf  = mri_genalign_scalar_optim( &stup , rad, crad, nite );
+           if( verb ){
+             dtim = COX_cpu_time() ;
+             ININFO_message("- Nonic/Poly9 cost = %f ; %d funcs ; net CPU = %.1f s",
+                            stup.vbest,nbf,dtim-ctim) ;
+             ctim = dtim ;
+           }
+         } else { /* the new way: cubic, then quintic, then heptic, then nonic */
+#undef  NPOL
+#define NPOL(k) (((k)+1)*((k)+2)*((k)+3)/6-4)
+           static int fst[8] = { 12+3*NPOL(3) , 12+3*NPOL(4) , 12+3*NPOL(5) ,
+                                 12+3*NPOL(6) , 12+3*NPOL(7) , 12+3*NPOL(8) ,
+                                 12+3*NPOL(9)  } ;
+           int pq ;
+           for( pq=0 ; pq < 7 ; pq++ ){
+             for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
+             FREEZE_POLYNO_PARAMS ;
+             for( jj=fst[pq] ; jj < NPNONI ; jj++ )
+               if( stup.wfunc_param[jj].fixed == 0 ) stup.wfunc_param[jj].fixed = 1 ;
+             COUNT_FREE_PARAMS(nbf) ;
+             if( verb > 0 )
+               INFO_message("Level %d of Nonic/Poly9 warping: %d free parameters",pq+3,nbf) ;
+             if( nbf == 0 ) continue ;
+             if( pq > 0 ){
+               for( jj=0 ; jj < fst[pq] ; jj++ ){
+                 if( stup.wfunc_param[jj].fixed == 0 )
+                   stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
+               }
+             }
+             if( verb ) ctim = COX_cpu_time() ;
+             rad  = 0.03f ; crad = 0.003f ;
+             nite = MAX(6*nbf,nwarp_itemax) ;
+             nbf  = mri_genalign_scalar_optim( &stup , rad, crad, nite );
+             if( verb ){
+               dtim = COX_cpu_time() ;
+               ININFO_message("- Nonic/Poly9 cost = %f ; %d funcs ; net CPU = %.1f s",
+                              stup.vbest,nbf,dtim-ctim) ;
+               ctim = dtim ;
+             }
+           }
          }
 
          /** if( verb > 1 ) PAROUT("- Nonic/Poly9 final") ; **/
