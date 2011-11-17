@@ -487,14 +487,12 @@ PARSE:
 	end
 
 @ NxtInd ++
-set others_list = ( $argv[$NxtInd-$#argv] )
 
-if ($verb) echo "$others_list"
-
-if ($#others_list != 0) then
-   echo "Parameter(s) $others_list not understood"
+if ( $NxtInd <= $#argv ) then
+   echo "Parameter(s) $argv[$NxtInd-$#argv] not understood"
    goto END
 endif
+
 goto RETURN_PARSE
 
 goto END
