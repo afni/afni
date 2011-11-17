@@ -1293,6 +1293,7 @@ int main( int argc , char * argv[] )
       for( ii=FIRST_ANAT_TYPE ; ii <= LAST_ANAT_TYPE ; ii++ )
          if( strncmp( &(argv[iarg][1]) ,
                       ANAT_prefixstr[ii] , THD_MAX_PREFIX ) == 0 ) break ;
+fprintf(stderr,"== have type %d\n", ii);
 
       if( ii <= LAST_ANAT_TYPE ){
          ftype = ii ;
@@ -1759,9 +1760,9 @@ int main( int argc , char * argv[] )
             if( ISBUCKET(dset) && dset->taxis != NULL ){   /* 29 April 1998 */
               WARNING_message("changing 3D+time dataset to bucket\n") ;
               EDIT_dset_items( dset , ADN_ntt , 0 , ADN_none ) ;
-              did_something++ ; /* 30 Mar 2010 */
             }
 
+            did_something++ ; /* set either way   17 Nov 2011 [rickr, dglen] */
          }
       }
 
