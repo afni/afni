@@ -6137,6 +6137,25 @@ ENTRY("AFNI_lock_button") ;
    MCW_reghint_children( dmode->ijk_lock_bbox->wrowcol ,
                          "Lock using voxel indices?" ) ;
 
+   /*** button box to control the threshold lock ***/
+
+   { static char *thr_lock_label[3] = { "Free Thr.",
+                                        "Lock V." ,
+                                        "Lock P."  } ;
+     GLOBAL_library.thr_lock = AFNI_thresh_lock_env_val();
+     dmode->thr_lock_bbox = 
+            new_MCW_bbox( menu ,
+                          3 ,
+                          thr_lock_label ,
+                          MCW_BB_radio_zero ,
+                          MCW_BB_frame ,
+                          AFNI_func_thrlock_change_CB,
+                          (XtPointer)im3d );
+     MCW_set_bbox( dmode->thr_lock_bbox, 1<<GLOBAL_library.thr_lock);
+     MCW_reghint_children( dmode->thr_lock_bbox->wrowcol ,
+                            "Lock thresholds?" ) ;
+    }
+
    /*** pushbuttons ***/
 
    (void) XtVaCreateManagedWidget(

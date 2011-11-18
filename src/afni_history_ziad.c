@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 17, NOV , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
+   "Added threshold locking capability under the 'Lock' menu",
+   NULL
+ },
+ 
  { 15, NOV , 2011 , ZSS , "afni_general" , MINOR , TYPE_BUG_FIX,
    "Fixed bug introduced by cleaning up header_name and brick_name",
    NULL

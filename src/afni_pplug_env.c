@@ -117,6 +117,7 @@ static char *cord_strings[NUM_cord_strings] = {
 static void ENV_coorder( char * ) ;
 static void ENV_angle_string( char * ) ;
 static void ENV_globalrange( char * ) ;
+static void ENV_thresh_lock( char * ) ;
 static void ENV_compressor( char * ) ;
 static void ENV_leftisleft( char * ) ;
 static void ENV_marksquality( char * ) ;
@@ -406,7 +407,7 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_string( "AFNI_THRESH_LOCK" ,                           /* 06 Feb 2004 */
                    "Lock Threshold slider values together?" ,
-                   NUM_threshlock_list , threshlock_list , NULL  ) ;
+                   NUM_threshlock_list , threshlock_list , ENV_thresh_lock  ) ;
 
    ENV_add_string( "AFNI_GRAPH_CX2R" ,                            /* 18 Apr 2011 */
                    "Graph display of complex time series" ,
@@ -874,6 +875,14 @@ static void ENV_globalrange( char *vname )
    return ;
 }
 
+/*-----------------------------------------------------------------------*/
+
+static void ENV_thresh_lock( char *vname )
+{
+   /* initialize viewers with new env value */
+   AFNI_set_all_thrlock_bboxes(NULL, -1);
+   return;  
+}
 /*-----------------------------------------------------------------------*/
 
 static void ENV_coorder( char *vname )
