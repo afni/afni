@@ -918,6 +918,7 @@ ENTRY("GICOR_setup_func") ;
                            }} while(0)
 
    PUTENV("AFNI_THRESH_LOCK","VALUE") ;
+   AFNI_set_all_thrlock_bboxes(NULL, -1);
    PUTENV("AFNI_RANGE_LOCK" ,"YES"  ) ;
 
    /* some messages to the screen */

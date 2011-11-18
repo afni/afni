@@ -303,7 +303,74 @@ ENTRY("AFNI_ijk_lock_change_CB") ;
    EXRETURN ;
 }
 
+int AFNI_bbox_thrlock_mask2val(int bval) 
+{
+   int ii;
+   for (ii=0; ii<3; ++ii) {
+      if (bval & 1<<ii) {
+         return(ii);
+      }
+   }
+   return(0);
+}
+
+void AFNI_set_all_thrlock_bboxes(Three_D_View *im3d, int bval) 
+{
+   int ii;
+   Three_D_View *qq3d ;
+    
+   if (bval < 0) bval = 1<<AFNI_thresh_lock_env_val();
+   
+   /* set all other controller lock boxes to the same value */
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+     qq3d = GLOBAL_library.controllers[ii] ;
+     if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
+     MCW_set_bbox( qq3d->vwid->dmode->thr_lock_bbox , bval ) ; 
+   }
+   
+   GLOBAL_library.thr_lock = AFNI_bbox_thrlock_mask2val(bval);
+   
+   return;
+}
+
+void AFNI_func_thrlock_change_CB ( Widget w , XtPointer cd , XtPointer calld  )
+{
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   int           bval , bold ;
+
+ENTRY("AFNI_func_thrlock_change_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   bold = 1<<GLOBAL_library.thr_lock ;
+   bval = MCW_val_bbox( im3d->vwid->dmode->thr_lock_bbox ) ;
+
+   if( bval == bold ) EXRETURN ;                     /* same --> nothing to do */
+
+   
+   /* new value --> save in global setting */
+
+   GLOBAL_library.thr_lock = AFNI_bbox_thrlock_mask2val(bval) ;
+   
+   /* And apply it to other controllers */
+   AFNI_set_all_thrlock_bboxes(im3d, bval);
+   
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+
+}
 /*------------------------------------------------------------------------*/
+int AFNI_thresh_lock_env_val(void)
+{
+   int i=0;
+   char *eee=NULL;
+   
+   eee = getenv( "AFNI_THRESH_LOCK" ) ;          /* determine how to lock */
+   if( eee == NULL ) return(0) ;
+   if(*eee == 'V' || *eee == 'v') return(1);
+   if(*eee == 'P' || *eee == 'p') return(2);
+   return(0);
+}
 
 void AFNI_thresh_lock_carryout( Three_D_View *im3d )
 {
@@ -323,11 +390,9 @@ ENTRY("AFNI_thresh_lock_carryout") ;
    if( glock == 0 )                   EXRETURN;  /* nothing to do */
    if( !IM3D_OPEN(im3d) )             EXRETURN;  /* bad input */
    if( GLOBAL_library.ignore_lock )   EXRETURN;  /* ordered not to do anything */
-
-   eee = getenv( "AFNI_THRESH_LOCK" ) ;          /* determine how to lock */
-   if( eee == NULL ) EXRETURN ;
-   dothresh = (*eee == 'V' || *eee == 'v') ;
-   dopval   = (*eee == 'P' || *eee == 'p') && im3d->fim_now != NULL ;
+   if (!GLOBAL_library.thr_lock)      EXRETURN;
+   dothresh = (GLOBAL_library.thr_lock == 1) ;
+   dopval   = (GLOBAL_library.thr_lock == 2) && im3d->fim_now != NULL ;
    if( !dothresh && !dopval ) EXRETURN ;         /* no command? */
 
    ii = AFNI_controller_index(im3d) ;           /* which one am I? */
@@ -487,10 +552,9 @@ ENTRY("AFNI_thrdrag_lock_carryout") ;
    if( !IM3D_OPEN(im3d) )             EXRETURN;  /* bad input */
    if( GLOBAL_library.ignore_lock )   EXRETURN;  /* ordered not to do anything */
 
-   eee = getenv( "AFNI_THRESH_LOCK" ) ;          /* determine how to lock */
-   if( eee == NULL ) EXRETURN ;
-   dothresh = (*eee == 'V' || *eee == 'v') ;
-   dopval   = (*eee == 'P' || *eee == 'p') && im3d->fim_now != NULL ;
+   if (!GLOBAL_library.thr_lock) EXRETURN;
+   dothresh = (GLOBAL_library.thr_lock == 1) ;
+   dopval   = (GLOBAL_library.thr_lock == 2) && im3d->fim_now != NULL ;
    if( !dothresh && !dopval ) EXRETURN ;         /* no command? */
 
    ii = AFNI_controller_index(im3d) ;           /* which one am I? */

@@ -89,7 +89,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
-           1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo                    \
+           1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch           \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -122,6 +122,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase     \
                   3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat 3dPolyfit        \
                   3dNwarpApply 1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo    \
+                  apsearch   \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -748,6 +749,10 @@ d3dmerge:3dmerge.c
 whereami:whereami.c
 	$(RM) $@
 	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+apsearch:apsearch.c
+	$(RM) $@
+	$(CC) -o apsearch apsearch.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 3dSegment:3dSegment.c
 	$(RM) $@

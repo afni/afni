@@ -513,7 +513,6 @@ int main(int argc, char **argv)
    byte b1;
    int LocalHead = wami_lh();
    
-   
    b1 = 0;
    mni = -1;
    dobin = 0;
@@ -582,7 +581,7 @@ int main(int argc, char **argv)
          if (strcmp(argv[iarg],"-help") == 0 ) { 
             atlas_alist = get_G_atlas_list();
             whereami_usage(atlas_alist);
-            return(1); 
+            return(0); 
             continue; 
          }
          if (strcmp(argv[iarg],"-old") == 0 ) { 

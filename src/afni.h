@@ -792,6 +792,7 @@ typedef struct {
       Widget         misc_1dchain_pb ;  /* 07 Aug 2001 */
 #endif
 
+      MCW_bbox     * thr_lock_bbox;     /* 16 Nov 2011 */
       MCW_bbox     * ijk_lock_bbox ;    /* 11 Sep 2000 */
 
       Widget         misc_savelayout_pb ; /* 23 Sep 2000 */
@@ -1423,7 +1424,8 @@ typedef struct {
    MCW_function_list registered_fim ;            /* 30 Jan 2000 */
 
    int ijk_lock ;                                /* 11 Sep 2000 */
-
+   int thr_lock ;
+   
    THD_session *session ;                        /* 20 Dec 2001 */
 
    MCW_function_list registered_slice_proj ;     /* 31 Jan 2002 */
@@ -1536,6 +1538,9 @@ extern void AFNI_thrdrag_lock_carryout( Three_D_View * ) ;
 extern void AFNI_range_lock_carryout( Three_D_View * ) ;  /* 23 Feb 2004 */
 
 extern void AFNI_ijk_lock_change_CB( Widget , XtPointer , XtPointer ) ;
+extern int AFNI_thresh_lock_env_val( void );
+extern void AFNI_func_thrlock_change_CB( Widget , XtPointer , XtPointer );
+extern void AFNI_set_all_thrlock_bboxes(Three_D_View *im3d, int bval) ;
 
 extern XtPointer AFNI_brick_to_mri( int n , int type , FD_brick * br );
 
