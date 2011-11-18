@@ -650,6 +650,7 @@ static mday holiday[] = {
    {NOV,18,"Ignacy Paderewski's birthday"                            } ,
    {NOV,19,"Anniversary of Gettysburg Address"                       } ,
    {NOV,19,"Monaco National Fete"                                    } ,
+   {NOV,19,"World Toilet Day"                                        } ,
    {NOV,20,"Edwin Hubble's birthday"                                 } ,
    {NOV,21,"Francois-Marie Arouet's birthday"                        } ,
    {NOV,22,"Anniversary of Kennedy's assasination"                   } ,
