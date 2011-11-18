@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 16 , NOV , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
+  { 18 , NOV , 2011 , RWC , "3dUndump" , MICRO , TYPE_BUG_FIX ,
+   "Fix bug introduced with -ROImask" ,
+   NULL } ,
+
+ { 16 , NOV , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
    "Condition numbers were checked with SQUARES of singular values!" ,
    "Fixed by changing function matrix_singvals().  Also make clear in 1dsvd\n"
    "help that -vnorm option is needed to compare singular values with\n"
