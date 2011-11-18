@@ -486,7 +486,7 @@ int main( int argc , char * argv[] )
                 "              -dimen  -master  -mask    -dval       -ijk\n"
                 "              -xyz    -srad    -orient  -head_only\n" ) ;
 
-   if( do_ijk == 0 && (mset == NULL || ROImask == NULL) )
+   if( do_ijk == 0 && mset == NULL && ROImask == NULL )
       ERROR_exit("Can't use -xyz without -master also!") ;
 
    if( mset == NULL && ROImask == NULL && dimen_ii < 2 )
