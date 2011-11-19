@@ -78,7 +78,6 @@ afni_history_struct ziad_history[] = {
    "\n"
    "   { /* bad news in tennis shoes */\n"
 "      fprintf(stderr,\"** Error %s: bad option %s\\n\", argv[0], argv[iarg]);\n"
-   "\n"
    "      suggest_best_prog_option(argv[0], argv[iarg]);\n"
    "      return 1;\n"
    "   }\n"
