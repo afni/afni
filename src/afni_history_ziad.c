@@ -77,7 +77,7 @@ afni_history_struct ziad_history[] = {
    "message is displayed. For example, in apsearch I have the following:\n"
    "\n"
    "   { /* bad news in tennis shoes */\n"
-"      fprintf(stderr,\"** Error %s: bad option %s\n\", argv[0], argv[iarg]);\n"
+"      fprintf(stderr,\"** Error %s: bad option %s\\n\", argv[0], argv[iarg]);\n"
    "\n"
    "      suggest_best_prog_option(argv[0], argv[iarg]);\n"
    "      return 1;\n"
