@@ -74,8 +74,10 @@ void apsearch_usage()
    " 4- Search help of AFNI programs:\n"
    "        apsearch -phelp afni -word port\n"
    "        apsearch -phelp 3dSkullStrip -word hull\n"
+   "        apsearch -phelp afni  -word xt\n"
    " 5- Suggest a valid option from a program:\n"
    "        apsearch -popt afni -word xt\n"
+   "        apsearch -popt @ROI_Corr_Mat -word sel\n"
    "\n"
    ); 
    
