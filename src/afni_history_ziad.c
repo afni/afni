@@ -65,8 +65,38 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 17, NOV , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
+
+ { 17, NOV , 2011 , ZSS , "apsearch" , MINOR , TYPE_NEW_PROG,
+   "This is a program to test approximate string matching functions",
+   "The program is best described by its help output.\n"
+   "It is meant to quickly test the behavior of the approx* functions\n"
+   "in thd_ttatlas_query.c where approximate string matching will\n"
+   "be useful is easily specifying an atlas areas by name.\n"
+   "Another useful offshoot is the function: suggest_best_prog_option\n"
+   "which can easily be called right after a command-line parsing error\n"
+   "message is displayed. For example, in apsearch I have the following:\n"
+   "\n"
+   "   { /* bad news in tennis shoes */\n"
+"      fprintf(stderr,\"** Error %s: bad option %s\n\", argv[0], argv[iarg]);\n"
+   "\n"
+   "      suggest_best_prog_option(argv[0], argv[iarg]);\n"
+   "      return 1;\n"
+   "   }\n"
+   "So all is needed to retrofit an old program is the suggest function.\n"
+   "That function will do nothing if environment variable AFNI_NO_OPTION_HINT\n"
+   "is set.\n"
+   "To use suggest_best_prog_option from a script, use:\n"
+   "     apsearch -popt `basnemane $0` -word ARG\n"
+   "\n"
+ },
+
+ { 17, NOV , 2011 , ZSS , "afni" , MICRO , TYPE_NEW_ENV,
    "Added threshold locking capability under the 'Lock' menu",
+   NULL
+ },
+ 
+ { 17, NOV , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
+   "If AFNI_NO_OPTION_HINT, don't bother with helpful suggestions",
    NULL
  },
  

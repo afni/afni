@@ -3417,3 +3417,9 @@ If this variable is set to 'BIG' or a positive number, then a larger font
 size is used.
 If this variable is set to 'SMALL' or a negative number, then a smaller font
 size is used.
+
+-------------------------------
+Variable:  AFNI_NO_OPTION_HINT
+-------------------------------
+If this variable is set, do NOT make suggestions if a program parsing error is encountered.
+
