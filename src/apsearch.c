@@ -75,7 +75,7 @@ void apsearch_usage()
    "        apsearch -phelp afni -word port\n"
    "        apsearch -phelp 3dSkullStrip -word hull\n"
    " 5- Suggest a valid option from a program:\n"
-   "        apserach -popt afni -word xt\n"
+   "        apsearch -popt afni -word xt\n"
    "\n"
    ); 
    

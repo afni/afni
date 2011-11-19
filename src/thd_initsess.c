@@ -650,7 +650,7 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
 void THD_order_session( THD_session *sess )
 {
    THD_3dim_dataset *qset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;
-   THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset=NULL ;
    int iview , ids , nds ;
 
 ENTRY("THD_order_session") ;
