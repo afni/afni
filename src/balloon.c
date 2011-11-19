@@ -285,7 +285,7 @@ char **argv;
   double t,
 	TR,			/*scan repetition time*/
 	*model,			/*output BOLD time series*/
-	(*envelope)[3];		/*rise, sustain, and fall times for events*/
+	(*envelope)[3]=NULL;/*rise, sustain, and fall times for events*/
   event *evt;			/*event times read from evtfile*/
   int num_acq,			/*total number of scans*/
 	num_evt;		/*number of haemodynamic events*/

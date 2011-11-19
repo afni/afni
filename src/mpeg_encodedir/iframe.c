@@ -42,6 +42,9 @@
 /*
  *  $Header$
  *  $Log$
+ *  Revision 1.5  2011/11/19 01:06:58  ziad
+ *  Cput
+ *
  *  Revision 1.4  2004/04/02 15:12:40  rwcox
  *  Cput
  *
@@ -851,8 +854,8 @@ BlockComputeSNR(current, snr, psnr)
 {
   register int32	tempInt;
   register int y, x;
-  int32	varDiff[3];
-  double	ratio[3];
+  int32	varDiff[3]={0, 0, 0};
+  double	ratio[3]={1.0, 1.0, 1.0};
   double	total[3];
   register uint8 **origY=current->orig_y, **origCr=current->orig_cr, 
   **origCb=current->orig_cb;
