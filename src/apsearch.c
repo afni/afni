@@ -37,6 +37,7 @@ void apsearch_usage()
    "  -file FILE: Search for WORD in text file FILE\n"
    "  -text TEXT: Search for WORD in string TEXT\n"
    "  -phelp PROG: Search for WORD in output of command PROG -help\n"
+   "  -popt PROG: Search for possible options of PROG that match WORD\n" 
    "  -ci: Case insensitive search (default)\n"
    "  -cs: Case sensitive search\n"
    "  -help: You're looking at it.\n"
