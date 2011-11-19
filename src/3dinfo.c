@@ -128,7 +128,7 @@ int main( int argc , char *argv[] )
            if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  0; iarg++; continue; }
       else if( strncmp(argv[iarg],"-VERB" ,5) == 0 ){ verbose =  1; iarg++; continue; }
       else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; continue; }
-      else if( strcmp(argv[iarg],"-header_line") == 0 ){ withhead = 1; iarg++; continue; }
+      else if( strcasecmp(argv[iarg],"-header_line") == 0 ){ withhead = 1; iarg++; continue; }
       else if ( strncmp(argv[iarg],"-label2",7) == 0 )
       {
         iarg++;
@@ -138,86 +138,86 @@ int main( int argc , char *argv[] )
         strcpy(labelName, argv[iarg]);
         iarg++; continue;
       }
-      else if( strcmp(argv[iarg],"-sb_delim") == 0) { 
+      else if( strcasecmp(argv[iarg],"-sb_delim") == 0) { 
          iarg++; 
          if (iarg >= argc)
            ERROR_exit( "3dinfo needs a string after -sb_delim\n");
          sbdelim = argv[iarg];
          iarg++; continue;
       } 
-      else if( strcmp(argv[iarg],"-NA_flag") == 0) { 
+      else if( strcasecmp(argv[iarg],"-NA_flag") == 0) { 
          iarg++; 
          if (iarg >= argc)
            ERROR_exit( "3dinfo needs a string after -NA_flag\n");
          NAflag = argv[iarg];
          iarg++; continue;
       } 
-      else if( strcmp(argv[iarg],"-atr_delim") == 0) { 
+      else if( strcasecmp(argv[iarg],"-atr_delim") == 0) { 
          iarg++; 
          if (iarg >= argc)
            ERROR_exit( "3dinfo needs a string after -atr_delim\n");
          atrdelim = argv[iarg];
          iarg++; continue;
       } 
-      else if( strcmp(argv[iarg],"-space") == 0) { 
+      else if( strcasecmp(argv[iarg],"-space") == 0) { 
          sing[N_sing++] = DSET_SPACE; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-av_space") == 0) { 
+      } else if( strcasecmp(argv[iarg],"-av_space") == 0) { 
          sing[N_sing++] = AV_DSET_SPACE; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-is_nifti") == 0) { 
+      } else if( strcasecmp(argv[iarg],"-is_nifti") == 0) { 
          sing[N_sing++] = IS_NIFTI; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-is_oblique") == 0) { 
+      } else if( strcasecmp(argv[iarg],"-is_oblique") == 0) { 
          sing[N_sing++] = IS_OBLIQUE; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-obliquity") == 0) { 
+      } else if( strcasecmp(argv[iarg],"-obliquity") == 0) { 
          sing[N_sing++] = OBLIQUITY; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-prefix") == 0) {
+      } else if( strcasecmp(argv[iarg],"-prefix") == 0) {
          sing[N_sing++] = PREFIX; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-prefix_noext") == 0) {
+      } else if( strcasecmp(argv[iarg],"-prefix_noext") == 0) {
          sing[N_sing++] = PREFIX_NOEXT; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-ni") == 0) {
+      } else if( strcasecmp(argv[iarg],"-ni") == 0) {
          sing[N_sing++] = NI; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-nj") == 0) {
+      } else if( strcasecmp(argv[iarg],"-nj") == 0) {
          sing[N_sing++] = NJ; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-nk") == 0) {
+      } else if( strcasecmp(argv[iarg],"-nk") == 0) {
          sing[N_sing++] = NK; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-nt") == 0) {
+      } else if( strcasecmp(argv[iarg],"-nt") == 0) {
          sing[N_sing++] = NT; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-nti") == 0) {
+      } else if( strcasecmp(argv[iarg],"-nti") == 0) {
          sing[N_sing++] = NTI; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-nv") == 0) {
+      } else if( strcasecmp(argv[iarg],"-nv") == 0) {
          sing[N_sing++] = NV; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-nvi") == 0) {
+      } else if( strcasecmp(argv[iarg],"-nvi") == 0) {
          sing[N_sing++] = NVI; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-ntimes") == 0) {
+      } else if( strcasecmp(argv[iarg],"-ntimes") == 0) {
          sing[N_sing++] = NTIMES; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-nijk") == 0) {
+      } else if( strcasecmp(argv[iarg],"-nijk") == 0) {
          sing[N_sing++] = NIJK; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-labeltable") == 0) {
+      } else if( strcasecmp(argv[iarg],"-labeltable") == 0) {
          sing[N_sing++] = LTABLE; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-labeltable_as_atlas_points") == 0) {
+      } else if( strcasecmp(argv[iarg],"-labeltable_as_atlas_points") == 0) {
          sing[N_sing++] = LTABLE_AS_ATLAS_POINT_LIST; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-fac") == 0) {
+      } else if( strcasecmp(argv[iarg],"-fac") == 0) {
          sing[N_sing++] = FAC; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-datum") == 0) {
+      } else if( strcasecmp(argv[iarg],"-datum") == 0) {
          sing[N_sing++] = DATUM; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-label") == 0) {
+      } else if( strcasecmp(argv[iarg],"-label") == 0) {
          sing[N_sing++] = LABEL; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-min") == 0) {
+      } else if( strcasecmp(argv[iarg],"-min") == 0) {
          sing[N_sing++] = MIN; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-max") == 0) {
+      } else if( strcasecmp(argv[iarg],"-max") == 0) {
          sing[N_sing++] = MAX; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-minus") == 0) {
+      } else if( strcasecmp(argv[iarg],"-minus") == 0) {
          sing[N_sing++] = MINUS; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-maxus") == 0) {
+      } else if( strcasecmp(argv[iarg],"-maxus") == 0) {
          sing[N_sing++] = MAXUS; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-TR") == 0) {
+      } else if( strcasecmp(argv[iarg],"-TR") == 0) {
          sing[N_sing++] = TR; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-header_name") == 0) {
+      } else if( strcasecmp(argv[iarg],"-header_name") == 0) {
          sing[N_sing++] = HEADER_NAME; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-brick_name") == 0) {
+      } else if( strcasecmp(argv[iarg],"-brick_name") == 0) {
          sing[N_sing++] = BRICK_NAME; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-history") == 0) {
+      } else if( strcasecmp(argv[iarg],"-history") == 0) {
          sing[N_sing++] = HISTORY; iarg++; continue;
-      } else if( strcmp(argv[iarg],"-all_names") == 0) {
+      } else if( strcasecmp(argv[iarg],"-all_names") == 0) {
          sing[N_sing++] = ALL_NAMES; iarg++; continue;
       } else {
          ERROR_exit("Option %s unknown", argv[iarg]);
