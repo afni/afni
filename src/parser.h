@@ -203,13 +203,13 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   " and arguments to these functions.  The two functions below use the\n"      \
   " NIfTI-1 statistical codes to map between statistical values and\n"         \
   " cumulative distribution values:\n"                                         \
-  "   cdf2stat(val,code,p1,p2,p3)\n"                                           \
-  "   stat2cdf(val,code,p1,p2,p3)\n"                                           \
+  "   cdf2stat(val,code,p1,p2,p3) -- val is between 0 and 1\n"                 \
+  "   stat2cdf(val,code,p1,p2,p3) -- val is legal for the given distribution\n"\
   " where code is\n"                                                           \
   "   2 = correlation statistic     p1 = DOF\n"                                \
   "   3 = t statistic (central)     p1 = DOF\n"                                \
   "   4 = F statistic (central)     p1 = num DOF, p2 = den DOF\n"              \
-  "   5 = N(0,1) statistic          no parameters\n"                           \
+  "   5 = N(0,1) statistic          no parameters (p1=p2=p3=0)\n"              \
   "   6 = Chi-squared (central)     p1 = DOF\n"                                \
   "   7 = Beta variable (central)   p1 = a , p2 = b\n"                         \
   "   8 = Binomial variable         p1 = #trials, p2 = prob per trial\n"       \
@@ -229,12 +229,15 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "  22 = 'p-value'                 no parameters\n"                           \
   "  23 = -ln(p)                    no parameters\n"                           \
   "  24 = -log10(p)                 no parameters\n"                           \
+  "When fewer than 3 parameters are needed, the values for later parameters\n" \
+  "are still required, but will be ignored.  An extreme case is code=5,\n"     \
+  "where the correct call is (e.g.) cdf2stat(p,5,0,0,0)\n"                     \
   "\n"                                                                         \
   "Finally, note that the expression evaluator is designed not to crash, or\n" \
   "to return NaN or Infinity.  Illegal operations, such as division by 0,\n"   \
   "logarithm of negative value, etc., are intercepted and something else\n"    \
-  "will be returned.  To find out what that 'something else' is in any\n"      \
-  "specific problematic case, you should play with the ccalc program.\n"
+  "(usually 0) will be returned.  To find out what that 'something else'\n"    \
+  "is in any specific case, you should play with the ccalc program.\n"
 
 #ifdef  __cplusplus
 }
