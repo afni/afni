@@ -1404,8 +1404,12 @@ helpstr_usubj_gui = """
 ==  write afni_proc.py commands, and to learn about processing and shell
 ==  scripting.
 ==
-==  At this level there is no control over importing options from other
-==  subjects or verifying that options are consistent across subjects.
+==  From the GUI, there is no control over importing options from other
+==  subjects or verifying that options are consistent across subjects
+==  (though importing options can be done from the command line by running
+==  a previous .orig.cmd.usubj.SUBJECT script, which should get created for
+==  each SUBJECT).
+==
 ==  Integration under uber_proc.py will include those abilities, and will
 ==  provide control for analysis of multiple subjects and groups at once.
 ==
