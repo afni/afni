@@ -261,6 +261,7 @@ void Show_Atlas (AFNI_ATLAS *aa);
 AFNI_ATLAS *Free_Atlas(AFNI_ATLAS *aa) ;
 AFNI_ATLAS_REGION *ROI_String_Decode(char *str, ATLAS_LIST *atlas_list);
 char * deblank_name(char *name);
+APPROX_STR_DIFF_WEIGHTS *init_str_diff_weights(APPROX_STR_DIFF_WEIGHTS *Dwi);
 float best_approx_str_match(char **words, int N_words, char *str, byte ci,
                            APPROX_STR_DIFF_WEIGHTS *Dwi);
 char **approx_str_sort(char **words, int N_words, char *str, byte ci, 
@@ -279,7 +280,12 @@ char **approx_str_sort_phelp(char *prog, int *N_ws, char *str,
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout);
+char **approx_str_sort_all_popts(char *prog, int *N_ws, char *str, 
+                            byte ci, float **sorted_score,
+                            APPROX_STR_DIFF_WEIGHTS *Dwi,
+                            APPROX_STR_DIFF **Dout);
 void suggest_best_prog_option(char *prog, char *str);
+void print_prog_options(char *prog);
 char *approx_string_diff_info(APPROX_STR_DIFF *D,APPROX_STR_DIFF_WEIGHTS *Dwi); 
 ATLAS_SEARCH *Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , 
                                  ATLAS_SEARCH *usethissearch);

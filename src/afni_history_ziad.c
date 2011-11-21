@@ -65,6 +65,17 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 21, NOV , 2011 , ZSS , "afni" , MICRO , TYPE_NEW_OPT,
+   "Added -print_options as a global option",
+   "The option is the equivalent of running apsearch -all_opts \n"
+   "for a certain program."
+ },
+ 
+ { 21, NOV , 2011 , ZSS , "apsearch" , MICRO , TYPE_NEW_OPT,
+   "Added -all_opts to show all options for a program",
+   NULL
+ },
+ 
 
  { 17, NOV , 2011 , ZSS , "apsearch" , MINOR , TYPE_NEW_PROG,
    "This is a program to test approximate string matching functions",

@@ -3396,7 +3396,8 @@ ATLAS_SEARCH *Free_Atlas_Search(ATLAS_SEARCH *as)
    Still need to add scoring method used in Find_Atlas_Regions() 
 ***/
 
-APPROX_STR_DIFF_WEIGHTS *init_str_diff_weights(APPROX_STR_DIFF_WEIGHTS *Dwi) {
+APPROX_STR_DIFF_WEIGHTS *init_str_diff_weights(APPROX_STR_DIFF_WEIGHTS *Dwi) 
+{
    APPROX_STR_DIMS i=0;
    if (!Dwi) 
       Dwi = (APPROX_STR_DIFF_WEIGHTS*)malloc(sizeof(APPROX_STR_DIFF_WEIGHTS));
@@ -3552,6 +3553,18 @@ APPROX_STR_DIFF *copy_str_diff(APPROX_STR_DIFF *Din, APPROX_STR_DIFF *Dout)
       Dout->d[i] = Din->d[i];
    }
    return(Dout);
+}
+
+int approx_str_diff_swap(APPROX_STR_DIFF *Din, APPROX_STR_DIFF *Dout)
+{
+   int i=0, dd;
+   if (!Din || !Dout) return(0);
+   for (i=0; i<N_APPROX_STR_DIMS; ++i) {
+      dd = Dout->d[i];
+      Dout->d[i] = Din->d[i];
+      Din->d[i] = dd;
+   }
+   return(1);
 }
 
 char *approx_string_diff_info(APPROX_STR_DIFF *D, APPROX_STR_DIFF_WEIGHTS *Dwi) 
@@ -3834,6 +3847,64 @@ char **approx_str_sort_tfile(char *fname, int *N_ws, char *str,
    RETURN(ws);
 }
 
+char **approx_str_sort_all_popts(char *prog, int *N_ws, char *str, 
+                            byte ci, float **sorted_score,
+                            APPROX_STR_DIFF_WEIGHTS *Dwi,
+                            APPROX_STR_DIFF **Dout)
+{
+   int i, inn, c;
+   char **ws=NULL;
+   float *sc=NULL, ff= 0.0;
+   APPROX_STR_DIFF *D=NULL;
+   APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
+
+   ENTRY("approx_str_sort_all_popts");
+   
+   Dwi = init_str_diff_weights(NULL);
+   Dwi->w[MWI]=10000; /* give a lot of weight to the order in the sentence */
+   if (!(ws = approx_str_sort_phelp(prog, N_ws, str, 
+                      ci, sorted_score,
+                      Dwi, Dout))) {
+      ERROR_message("Failed to get phelp for '%s', word '%s'", prog,str);
+      RETURN(NULL);                  
+   }
+   free(Dwi); Dwi=NULL;
+   if (sorted_score) sc = *sorted_score;
+   if (Dout) D = *Dout;
+
+   /* a little cleanup */
+   for (i=0; i<*N_ws; ++i) {
+      if (ws[i][0] != '-' || strlen(ws[i]) < 2 || isspace(ws[i][1])) {
+         free(ws[i]); ws[i]=NULL;
+      } else { 
+         /* remove '----------' */
+         c=1;
+         while(ws[i][c] !='\0' && ws[i][c]=='-') ++c;
+         if (ws[i][c] == '\0') {
+            free(ws[i]); ws[i]=NULL;
+         } 
+      }
+   }
+   /* Now get rid of nullness */
+   for (i=0, inn=0; i<*N_ws; ++i) {
+      if (ws[i]) {
+         ws[inn] = ws[i];
+         if (i!=inn) { ws[i]=NULL; }
+         if (sc) {
+            ff = sc[inn];
+            sc[inn] = sc[i];
+            sc[i] = ff;
+         }
+         if (D) {
+            approx_str_diff_swap(D+inn,D+i);
+         } 
+         ++inn;
+      }
+   }
+   
+   RETURN(ws);
+}
+
 char **approx_str_sort_phelp(char *prog, int *N_ws, char *str, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
@@ -3903,6 +3974,30 @@ void suggest_best_prog_option(char *prog, char *str)
    } free(ws); ws = NULL;
    return;
 }
+
+void print_prog_options(char *prog)
+{
+   char **ws=NULL;
+   int N_ws=0, i;
+   float *ws_score=NULL;
+   APPROX_STR_DIFF *D=NULL;
+
+
+   if (!(ws = approx_str_sort_all_popts(prog, &N_ws, "-", 
+                   1, &ws_score,
+                   NULL, NULL))) {
+      return;
+   }
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i]) {
+         fprintf(stdout, "   %s\n", ws[i]);
+         free(ws[i]); ws[i]=NULL;
+      }
+   } free(ws); ws = NULL;
+   return;
+}
+
+
 
 float best_approx_str_match(char **words, int N_words, char *str, 
                           byte ci, APPROX_STR_DIFF_WEIGHTS *Dwi)

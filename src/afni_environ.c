@@ -318,6 +318,11 @@ int AFNI_prefilter_args( int *argc , char **argv )
        if( ttt ) fprintf(stderr,"++ argv[%d] is -overwrite\n",ii) ;
        AFNI_setenv("AFNI_DECONFLICT=OVERWRITE") ; used[ii] = 1 ; continue ;
      }
+     
+     if( strcmp(argv[ii],"-print_options") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -print_options\n",ii) ;
+       print_prog_options(argv[0]); used[ii] = 1 ; continue ;
+     }
 
      /*** -ok_1D_text to set AFNI_1D_ZERO_TEXT ZSS Dec 09 ***/
 
