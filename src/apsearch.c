@@ -37,7 +37,13 @@ void apsearch_usage()
    "  -file FILE: Search for WORD in text file FILE\n"
    "  -text TEXT: Search for WORD in string TEXT\n"
    "  -phelp PROG: Search for WORD in output of command PROG -help\n"
-   "  -popt PROG: Search for possible options of PROG that match WORD\n" 
+   "  -popt PROG: Search for possible options of PROG that match WORD\n"
+   "  -all_opts PROG: TRY to guess at all the options for PROG\n"
+   "                  The list of options is not guaranteed to be full\n"
+   "                  or accurate. It is created by parsing the program's\n"
+   "                  -help output for likely candidates. \n"
+   "                  It is meant to act as an aid in locating\n"
+   "                  certain options.\n"  
    "  -ci: Case insensitive search (default)\n"
    "  -cs: Case sensitive search\n"
    "  -help: You're looking at it.\n"
@@ -79,6 +85,9 @@ void apsearch_usage()
    " 5- Suggest a valid option from a program:\n"
    "        apsearch -popt afni -word xt\n"
    "        apsearch -popt @ROI_Corr_Mat -word sel\n"
+   " 6- Show all(*) options for a program:\n"
+   "        apsearch -all_popts 3dSkullStrip\n"
+   "    (*) see -all_opts in help section\n"
    "\n"
    ); 
    
@@ -95,10 +104,12 @@ int main(int argc, char **argv)
        i_unique_score=0, min_different_hits=0, unq_only=0,
        show_score=0;
    float *ws_score=NULL, last_score=-1.0;
-   char *fname=NULL, *text=NULL, *prog=NULL, *str=NULL, **ws=NULL, *popt=NULL;
+   char *fname=NULL, *text=NULL, *prog=NULL, *str=NULL, **ws=NULL, 
+         *all_popts=NULL, *popt=NULL;
    APPROX_STR_DIFF *D=NULL;
-   
    byte ci = 1;
+   
+   mainENTRY("apsearch main"); machdep() ; 
    
    max_hits = 3;
    test_only=0;
@@ -185,6 +196,20 @@ int main(int argc, char **argv)
          continue; 
       }
       
+      if (strcmp(argv[iarg],"-all_popts") == 0 ) { 
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+               "** Error: Need program name after -all_popts\n"); return(1);
+         }
+
+         all_popts = argv[iarg];
+         max_hits = -1;
+         str = "-";
+         ++iarg; 
+         continue; 
+      }
+      
       if (strcmp(argv[iarg],"-word") == 0) { 
          ++iarg;
          if (iarg >= argc) {
@@ -248,7 +273,7 @@ int main(int argc, char **argv)
       return 0;
    }
 
-   if (str && (fname || text || prog || popt)) {
+   if (str && (fname || text || prog || popt || all_popts)) {
       if (fname) {
          ws = approx_str_sort_tfile(fname, &N_ws, str, 
                             ci, &ws_score,
@@ -264,27 +289,35 @@ int main(int argc, char **argv)
       } else if (popt) {
          suggest_best_prog_option(popt, str);
          return 0;
+      } else if (all_popts) {
+         /* one can also use print_prog_options(all_popts); return(0); */
+         ws = approx_str_sort_all_popts(all_popts, &N_ws, str, 
+                            ci, &ws_score,
+                            NULL, &D);
       }
       
       i_unique_score = 0; last_score = -1.0; new_score=1;
       for (i=0; i<N_ws; ++i) {
-         new_score=0;
-         if (ws_score[i] != last_score) {
-            last_score = ws_score[i];
-            new_score=1;
-            ++i_unique_score;
-         }
-         if (i<max_hits || i_unique_score<=min_different_hits) {
-            if (!unq_only || new_score) {
-               if (show_score) fprintf(stdout,"%03f ", ws_score[i]);
-               if (show_score > 1) 
-                  fprintf(stdout,"%s ", approx_string_diff_info(D+i, NULL));
-               if (!show_score) fprintf(stdout,">   ");
-               fprintf(stdout,"%s\n", ws[i]);
+         if (ws[i]) {
+            new_score=0;
+            if (ws_score[i] != last_score) {
+               last_score = ws_score[i];
+               new_score=1;
+               ++i_unique_score;
             }
+            if (i<max_hits || i_unique_score<=min_different_hits) {
+               if (!unq_only || new_score) {
+                  if (show_score) fprintf(stdout,"%03f ", ws_score[i]);
+                  if (show_score > 1) 
+                     fprintf(stdout,"%s ", approx_string_diff_info(D+i, NULL));
+                  if (!show_score) fprintf(stdout,"   ");
+                  fprintf(stdout,"%s\n", ws[i]);
+               }
+            }
+            free(ws[i]); ws[i]=NULL;
          }
-         free(ws[i]);
-      } free(ws);  free(ws_score); ws_score=NULL;
+      } free(ws);  if (ws_score) free(ws_score); ws_score=NULL;
+      if (D) free(D); D=NULL;
    } 
    
    return 0;  
