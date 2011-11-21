@@ -599,7 +599,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # --------------------------------------------------
       # volreg_base
       label = QtGui.QLabel("volume registration base")
-      label.setStatusTip("EPI volume to use as registration base")
+      label.setStatusTip("EPI registration volume (after TR removal)")
       self.gvars.Line_volreg_base = QtGui.QLineEdit()
       # choose button
       blist = ['vr base: %s' % base for base in USUBJ.g_vreg_base_list]
