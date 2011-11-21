@@ -458,6 +458,7 @@ g_history = """
         - look for files with '_' separators
         - added for J Weisberg
    0.11 Nov 02, 2011: added out.TENT_warn.txt to warning file review
+   0.12 Nov 21, 2011: fixed -ynames in plot of motion/outliers
 """
 
 g_version = "gen_ss_review_scripts.py version 0.10, November 2, 2011"
@@ -1972,7 +1973,7 @@ class MyInterface:
       txt = 'echo ' + UTIL.section_divider('outliers and motion',
                                            maxlen=60, hchar='-') + '\n\n'
 
-      txt += '1dplot -wintitle "motion, outliers" -ynames OFrac Mot \\\n' \
+      txt += '1dplot -wintitle "motion, outliers" -ynames Mot OFrac \\\n' \
              '       -sepscl %s %s &\n' % (efile, ofile)
 
       # get total TRs from any uncensored X-matrix
