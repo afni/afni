@@ -60,12 +60,39 @@ Examples:
 
    Non-GUI examples (all have -no_gui):
 
-      uber_subject.py -no_gui -save_ap_command cmd.AP             \\
-          -svar sid FT -svar gid idiots                           \\
-          -svar anat FT_anat+orig.HEAD -svar epi FT_epi_r*.HEAD   \\
-          -svar stim AV*.txt -svar stim_basis 'BLOCK(15,1)'       \\
-          -cvar subj_dir my/subject/dir
+      1. Akin to the GUI example, but use subject variables directly, not
+         via -svar.
 
+         uber_subject.py -no_gui -save_ap_command cmd.AP.1 \\
+             -sid FT -gid horses                           \\
+             -anat FT_anat+orig.HEAD -epi FT_epi_r*.HEAD   \\
+             -stim AV*.txt -stim_basis 'BLOCK(15,1)'
+
+      2. Process the EPI data as in a very simple resting state analysis.
+         Pass a subject ID, EPI datasets and the number of TRs to remove.
+
+         uber_subject.py -no_gui -save_ap_command cmd.rest_state  \\
+             -sid FT.rest -tcat_nfirst 2 -epi FT/FT_epi_r*.HEAD
+
+----------------------------------------------------------------------
+Note, for passing subject variables, use of -svar is safer then using
+variable names directly (e.g. "-svar stim AV*.txt" vs. "-stim AV*.txt"),
+because if there is a mistake in the variable name, it would be grouped
+with the previous variable.
+
+For example, compare these 2 versions of the same mistake:
+
+        -svar stim stim_*.txt -svar eppppi EPI_r*.HEAD
+   vs.
+        -stim stim_*.txt      -eppppi EPI_r*.HEAD
+
+In the former case, there would be an error about epppi not being a
+valid variable.  But in the latter case, the program would not know
+that you mean -eppppi as a new variable, so -eppppi and the EPI*.HEAD
+files would be taken as more -stim inputs.
+
+In any case, passing variables this way is mostly available for my own
+evil purposes.  This is supposed to be a GUI after all...
 ----------------------------------------------------------------------
 
 - R Reynolds  Feb, 2011
@@ -83,6 +110,7 @@ def get_valid_opts():
    vopts.add_opt('-hist', 0, [], helpstr='show revision history')
    vopts.add_opt('-show_default_vars',0,[],helpstr='show variable defaults')
    vopts.add_opt('-show_valid_opts',0,[],helpstr='show all valid options')
+   vopts.add_opt('-show_svar_dict',0,[],helpstr='show subject var dictionary')
    vopts.add_opt('-ver', 0, [], helpstr='show module version')
 
    vopts.add_opt('-verb', 1, [], helpstr='set verbose level')
@@ -95,6 +123,12 @@ def get_valid_opts():
    vopts.add_opt('-exec_proc_script',0,[],helpstr='run proc script')
    vopts.add_opt('-cvar', -2, [], helpstr='set control variable to value')
    vopts.add_opt('-svar', -2, [], helpstr='set subject variable to value')
+
+   # and add all subject vars directly
+   keys = USUBJ.g_svar_dict.keys()
+   keys.sort()
+   for name in keys:
+      vopts.add_opt('-'+name, -1, [], helpstr=USUBJ.g_svar_dict[name])
 
    vopts.trailers = 0   # do not allow unknown options
 
@@ -144,6 +178,13 @@ def process_options(valid_opts, argv):
       valid_opts.show('', 1)
       return 1, None, None, None
 
+   if '-show_svar_dict' in sys.argv:
+      keys = USUBJ.g_svar_dict.keys()
+      keys.sort()
+      for key in keys:
+         print '   %-20s : %s' % (key, g_uvar_dict[key])
+      return 1, None, None, None
+
    if '-todo' in sys.argv:
       print USUBJ.helpstr_todo
       return 1, None, None, None
@@ -170,6 +211,7 @@ def process_options(valid_opts, argv):
    USUBJ.set_vstr_from_def('cvars', 'verb', ['%d'%verb], cvars)
 
    use_gui = 1 # assume GUI unless we hear otherwise
+   svar_keys = USUBJ.g_svar_dict.keys()
 
    # first process all setup options
    errs = 0
@@ -189,6 +231,8 @@ def process_options(valid_opts, argv):
       elif opt.name == '-save_ap_command':continue
       elif opt.name == '-exec_ap_command': continue
       elif opt.name == '-exec_proc_script':continue
+
+      vname = opt.name[1:]
 
       # now go after "normal" options
 
@@ -218,6 +262,15 @@ def process_options(valid_opts, argv):
          if val == None or err: return -1, None, None, None
          # and set it from the form name = [value_list]
          if USUBJ.set_vstr_from_def('svars', val[0], val[1:],
+                                   svars, verb=verb, spec=1) < 0:
+            errs += 1
+            continue
+
+      # go after a direct svar key
+      elif vname in svar_keys:
+         val, err = uopts.get_string_list('', opt=opt)
+         if val == None or err: return -1, None, None, None
+         if USUBJ.set_vstr_from_def('svars', vname, val,
                                    svars, verb=verb, spec=1) < 0:
             errs += 1
             continue

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, NOV, 2011, RCR, "uber_subject.py", MINOR, TYPE_NEW_OPT,
+   "allow for passing variables directly, not via -svar",
+   NULL
+ } ,
+
  { 21, NOV, 2011, RCR, "quick.alpha.vals.py", MINOR, TYPE_NEW_PROG,
    "a very simple program to tabulate the output from slow_surf_clustsim.py",
    "This ought to be improved, but at least it is now distributed..."
