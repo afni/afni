@@ -128,9 +128,11 @@ g_history = """
     0.28 Oct 18, 2011 :
          - added blur size control
          - removed requirement of stim timing files
+    0.29 Nov 22, 2011 : allow for passing variables directly, not via -svar
+         - added accompanying -show_svar_dict option
 """
 
-g_version = '0.28 (October 18, 2011)'
+g_version = '0.29 (November 22, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -207,6 +209,44 @@ g_subj_defs.regress_opts_3dD = ''       # extra options for 3dDeconvolve
 g_subj_defs.align_opts_aea   = ''       # extra aea opts, e.g. -AddEdge
 g_subj_defs.tlrc_opts_at     = ''       # extra at opts
 
+g_svar_dict = {
+   'blocks'             : 'set list of processing blocks to apply',
+   'sid'                : 'set subject ID',
+   'gid'                : 'set group ID',
+   'anat'               : 'set anatomical dataset name',
+   'get_tlrc'           : 'yes/no: get any +tlrc anat dset',
+   'epi'                : 'set list of EPI datasets',
+   'epi_wildcard'       : 'yes/no: use wildcard for EPI dsets',
+   'stim'               : 'set list of stim timing files',
+   'stim_wildcard'      : 'yes/no: use wildcard for stim files',
+   'stim_label'         : 'set stim file labels',
+   'stim_basis'         : 'set basis functions for stim classes',
+
+   'tcat_nfirst'        : 'set number of TRs to remove, per run',
+   'volreg_base'        : 'set volreg base string (first/third/last)',
+   'motion_limit'       : 'set per-TR motion limit, in mm',
+   'blur_size'          : 'set blur size, in mm',
+
+   'gltsym'             : 'specify list of symbolic GLTs',
+   'gltsym_label'       : 'set corresponding GLT labels',
+
+   'outlier_limit'      : 'specify outlier limit for censoring',
+   'regress_jobs'       : 'number of jobs to use in 3dDeconvolve',
+   'regress_GOFORIT'    : 'set GOFORIT level in 3dDeconvolve',
+   'reml_exec'          : 'yes/no: whether to run 3dREMLfit',
+   'run_clustsim'       : 'yes/no: whether to run 3dClustSim',
+   'compute_fitts'      : 'yes/no: whether to just compute the fitts',
+
+   'align_cost'         : 'specify cost function for anat/EPI alignment',
+   'tlrc_base'          : 'specify anat for standard space alignment',
+   'align_giant_move'   : 'yes/no: use -giant_move in AEA.py',
+   'tlrc_ss'            : 'yes/no: whether anat has skull',
+   'tlrc_ok_maxite'     : 'yes/no: pass -OK_maxite to @auto_tlrc',
+
+   'regress_opts_3dD'   : 'specify extra options for 3dDeconvolve',
+   'align_opts_aea'     : 'specify extra options for align_epi_anat.py',
+   'tlrc_opts_at'       : 'specify extra options for @auto_tlrc',
+}
 
 # string versions of subject variables, to be used by GUI
 g_cdef_strs = g_ctrl_defs.copy(as_strings=1)
