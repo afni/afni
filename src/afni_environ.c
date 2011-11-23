@@ -276,6 +276,30 @@ int AFNI_setenv( char *cmd )
 }
 
 /*-------------------------------------------------------------------------*/
+char *get_gopt_help() {
+   static char GOPT_HELP[] = {
+"   -overwrite: Overwrite existing output dataset.\n"
+"               Equivalent to setting env. AFNI_DECONFLICT=OVERWRITE\n"
+"   -ok_1D_text: Zero out uncommented text in 1D file.\n"
+"                Equivalent to setting env. AFNI_1D_ZERO_TEXT=YES\n"
+"   -Dname=val: Set environment variable 'name' to value 'val'\n"
+"             For example: -DAFNI_1D_ZERO_TEXT=YES\n"
+"   -all_opts: Try to identify all options for the program from the\n"
+"              output of its -help option. Some options might be missed\n"
+"              and others misidentified. Use this output for hints only.\n"
+"   -h_find WORD: Look for lines in this programs's -help output that match\n"
+"                 (approximately) WORD.\n"
+"   -skip_afnirc: Do not read the afni resource (like ~/.afnirc) file.\n"
+"   -pad_to_node NODE: Output a full dset from node 0 to MAX_NODE-1\n"
+"                      This option is surface-based datasets only.\n"
+"   -pif SOMETHING: Does absolutely nothing but provide for a convenient\n"
+"                   way to tag a process and find it in the output of ps -a\n"
+"   -echo_edu: Echos the entire command line to stdout (without -echo_edu)\n"
+"              for edification purposes\n"
+"\n" 
+   };
+   return(GOPT_HELP);
+}
 
 int MRILIB_DomainMaxNodeIndex = -1;
 
@@ -318,12 +342,44 @@ int AFNI_prefilter_args( int *argc , char **argv )
        if( ttt ) fprintf(stderr,"++ argv[%d] is -overwrite\n",ii) ;
        AFNI_setenv("AFNI_DECONFLICT=OVERWRITE") ; used[ii] = 1 ; continue ;
      }
+
+     /*** echo command ***/
      
-     if( strcmp(argv[ii],"-print_options") == 0 ){
-       if( ttt ) fprintf(stderr,"++ argv[%d] is -print_options\n",ii) ;
-       print_prog_options(argv[0]); used[ii] = 1 ; continue ;
+     if( strcmp(argv[ii],"-echo_edu") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -echo_edu\n",ii) ;
+       {
+         int jjj=0; 
+         fprintf(stdout,"\n+++ Command Echo:\n   "); 
+         for (jjj=0; jjj<narg; ++jjj)  { 
+            if (jjj != ii) {   
+               fprintf(stdout,"%s ", argv[jjj]);  
+            }     
+         }
+         fprintf(stdout,"\n\n");
+         used[ii] = 1 ; continue ;
+       }
+     }
+     
+     if( strcmp(argv[ii],"-all_opts") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -all_opts\n",ii) ;
+       print_prog_options(argv[0]); used[ii] = 1 ; 
+       exit(0); 
+         /* better exit, otherwise output get burried by program's own -help */ 
      }
 
+     if( strcmp(argv[ii],"-h_find") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -h_find\n",ii) ;
+       if (ii+1 >= narg) {
+         fprintf(stderr,"** -h_find needs a string.\n");
+         exit(1);
+       }
+       used[ii] = 1 ; ii++;
+       suggest_best_prog_option(argv[0], argv[ii]);
+       used[ii] = 1 ; 
+       exit(0); 
+         /* better exit, otherwise output get burried by program's own -help */ 
+     }
+     
      /*** -ok_1D_text to set AFNI_1D_ZERO_TEXT ZSS Dec 09 ***/
 
      if( strcmp(argv[ii],"-ok_1D_text") == 0 ){

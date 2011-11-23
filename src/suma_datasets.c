@@ -11766,24 +11766,28 @@ char *SUMA_help_basics()
    SUMA_ENTRY;
    
    SS = SUMA_StringAppend(NULL, NULL);
-   SS = SUMA_StringAppend(SS,
-                  "   [-novolreg|-noxform]: Ignore any Rotate, Volreg, Tagalign, \n"
-                  "                or WarpDrive transformations present in \n"
-                  "                the Surface Volume.\n"
-                  "  Common Debugging Options:\n"
-                  "   [-trace]: Turns on In/Out debug and Memory tracing.\n"
-                  "             For speeding up the tracing log, I recommend \n"
-                  "             you redirect stdout to a file when using this option.\n"
-                  "             For example, if you were running suma you would use:\n"
-                  "             suma -spec lh.spec -sv ... > TraceFile\n"
-                  "             This option replaces the old -iodbg and -memdbg.\n"
-                  "   [-TRACE]: Turns on extreme tracing.\n"
-                  "   [-nomall]: Turn off memory tracing.\n"
-                  "   [-yesmall]: Turn on memory tracing (default).\n"
-                  "  NOTE: For programs that output results to stdout\n"
-                  "    (that is to your shell/screen), the debugging info\n"
-                  "    might get mixed up with your results.\n" 
-                  " \n");
+   SS = SUMA_StringAppend_va(SS,
+      "   [-novolreg|-noxform]: Ignore any Rotate, Volreg, Tagalign, \n"
+      "                or WarpDrive transformations present in \n"
+      "                the Surface Volume.\n"
+      "  Common Debugging Options:\n"
+      "   [-trace]: Turns on In/Out debug and Memory tracing.\n"
+      "             For speeding up the tracing log, I recommend \n"
+      "             you redirect stdout to a file when using this option.\n"
+      "             For example, if you were running suma you would use:\n"
+      "             suma -spec lh.spec -sv ... > TraceFile\n"
+      "             This option replaces the old -iodbg and -memdbg.\n"
+      "   [-TRACE]: Turns on extreme tracing.\n"
+      "   [-nomall]: Turn off memory tracing.\n"
+      "   [-yesmall]: Turn on memory tracing (default).\n"
+      "  NOTE: For programs that output results to stdout\n"
+      "    (that is to your shell/screen), the debugging info\n"
+      "    might get mixed up with your results.\n" 
+      " \n"
+      "\n"
+      "Global Options (available to all AFNI/SUMA programs)\n"
+      "%s",
+                  get_gopt_help() );
    SUMA_SS2S(SS,s);               
    SUMA_RETURN(s);
 }
