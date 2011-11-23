@@ -4,6 +4,14 @@
 static int               einit = 0 ;
 static THD_string_array *elist = NULL ;
 
+THD_string_array *get_elist(void) { 
+   if( !einit ){ 
+      einit = 1 ; 
+      elist = THD_getpathprogs(NULL, 1) ; 
+   }
+   return(elist); 
+}
+
 /*----------------------------------------------------------------------------*/
 /*! Find an executable in the PATH by its name, if it exists.
     If not, NULL is returned.  If it exists, a pointer to static storage

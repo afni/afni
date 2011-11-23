@@ -16,6 +16,139 @@
 #define zischar(ch) ( ( ((ch) >= 'A' && (ch) <= 'Z' ) || ((ch) >= 'a' && (ch) <= 'z' ) ) ? 1 : 0 )
 #define isnakedarg(s) ( ( (s)[0] == '-' && strlen(s) > 1 && zischar((s)[1]) ) ? 0 : 1 )
 
+
+/*--- Move to thd_getpathprogs.c when ready ------------*/
+/*! Get all executables in directory where afni resides */
+extern THD_string_array * THD_get_all_afni_executables(void );
+
+THD_string_array * THD_get_all_afni_executables(void )
+{
+   THD_string_array *outar=NULL, *elist=NULL;
+   char *af=NULL, *etr=NULL;
+   int N_af, N_afni=strlen("afni"), iaf=0, ii=0;
+   char scomm[256]={""};
+   
+   ENTRY("THD_get_all_afni_executables");
+   
+   if (!(elist = get_elist()) ||
+       !(af = THD_find_executable("afni"))) {
+      ERROR_message("Could not find afni, we're doomed daddy!");
+      RETURN(outar);
+   }
+   
+   /* remove afni from the end to get the path */
+   N_af = strlen(af);
+   if (strcmp(af+N_af-N_afni,"afni")) {
+      ERROR_message("This should not be (%s)!", af+N_af-N_afni);
+      RETURN(outar);
+   }
+   af[strlen(af)-N_afni]='\0'; N_af = strlen(af);
+   if (af[N_af-1] != '/') {
+      af[N_af] = '/'; af[N_af+1] = '\0';
+      ++N_af;
+   }
+   /* Now get all executables under af */
+   INIT_SARR( outar );
+   for (ii=0, iaf=0; ii<elist->num ; ii++ ){
+      if (!THD_is_directory(elist->ar[ii]) &&
+          !strncmp(af, elist->ar[ii], N_af) ) {
+         ADDTO_SARR( outar , elist->ar[ii] ) ; ++iaf;
+         /* etr = THD_trailname( elist->ar[ii] , 0 ) ;  */
+         /* fprintf(stderr," %d- %s\n", iaf, etr); */
+      } else {
+         /* fprintf(stderr," skip %s (%s)\n", elist->ar[ii], af); */
+      }
+   } 
+   
+   if( SARR_NUM(outar) == 0 ) DESTROY_SARR(outar) ;
+
+   RETURN( outar );
+
+}
+
+int list_afni_programs(void)
+{
+   int nprogs=0, ii=0;
+   char *etr=NULL;
+   THD_string_array *progs=NULL;
+   
+   if (!(progs = THD_get_all_afni_executables())) {
+      ERROR_message("Cannot get list of programs");
+      RETURN(0);
+   }
+   for (ii=0; ii<progs->num ; ii++ ){
+      etr = THD_trailname( progs->ar[ii] , 0 ) ;
+      fprintf(stdout,"  %3d.   %s\n", ii, etr);
+   }
+   nprogs = progs->num;
+   
+   DESTROY_SARR(progs);
+   
+   return(nprogs);
+}
+
+int update_help_for_afni_programs(int force_recreate, 
+                                  byte verb, THD_string_array **hlist )
+{
+   int ii, iaf;
+   char hout[128], scomm[256], *etr=NULL, *hdir=NULL, *etm=NULL;
+   THD_string_array *progs=NULL;
+   
+   
+   ENTRY("produce_help_for_afni_programs");
+   
+   if (hlist && *hlist) {
+      ERROR_message("if hlist then must have *hlist = NULL\n");
+      RETURN(0);   
+   }
+   
+   hdir = THD_helpdir();
+   if (hdir[0] == '\0') {
+      ERROR_message("Have no help directory\n");
+      RETURN(0);
+   }
+   if (!THD_mkdir(hdir)) {
+      ERROR_message("Cannot create %s directory\n", hdir);
+      RETURN(0);
+   }
+   
+   if (!(progs = THD_get_all_afni_executables())) {
+      ERROR_message("Cannot get list of programs");
+      RETURN(0);
+   }
+   
+   if (hlist) INIT_SARR((*hlist));
+   for (ii=0, iaf=0; ii<progs->num ; ii++ ){
+      etr = THD_trailname( progs->ar[ii] , 0 ) ; 
+      if (!etr || strlen(etr) < 2) {
+         WARNING_message("Fishy executable named %s\n",progs->ar[ii]);
+         continue;
+      }
+      etm = THD_filetime(progs->ar[ii]);
+      if (etm[0] == '\0') {
+         etm = "NoTimeStamp";
+      }
+      snprintf(hout, 120*sizeof(char),
+               "%s/%s.%s.help", hdir, etr, etm);
+      if (!force_recreate && THD_is_file(hout)) {
+         if (verb) fprintf(stderr,"Reusing %s \n", hout); 
+      } else {
+         if (verb) fprintf(stderr,"Creating %s \n", hout); 
+         snprintf(scomm, 250*sizeof(char),
+               "echo '' | %s -help >& %s &", etr, hout);
+         system(scomm);
+      }
+      
+      if (hlist) ADDTO_SARR((*hlist), hout);
+      
+   }
+   
+   DESTROY_SARR(progs) ;
+   
+   RETURN(1);
+}
+
+
          
 void apsearch_usage() 
 {
@@ -38,7 +171,7 @@ void apsearch_usage()
    "  -text TEXT: Search for WORD in string TEXT\n"
    "  -phelp PROG: Search for WORD in output of command PROG -help\n"
    "  -popt PROG: Search for possible options of PROG that match WORD\n"
-   "  -all_opts PROG: TRY to guess at all the options for PROG\n"
+   "  -all_popts PROG: TRY to guess at all the options for PROG\n"
    "                  The list of options is not guaranteed to be full\n"
    "                  or accurate. It is created by parsing the program's\n"
    "                  -help output for likely candidates. \n"
@@ -55,6 +188,9 @@ void apsearch_usage()
    "  -unique_hits_only: Restrict output to novel hits only.\n"
    "  -show_score: Show matching word's distance.\n"
    "  -show_score_detail: That's right.\n"
+   "  -all_afni_progs: List all executables in AFNI's bin directory\n"
+   "  -all_afni_help: Build/update -help output under directory:\n"
+   "                     %s\n"
    "\n"
    "  NOTE: The maximum number of results depends on the combination of\n"
    "        -max_hits, -min_different_hits, and -unique_hits_only. \n"
@@ -87,9 +223,9 @@ void apsearch_usage()
    "        apsearch -popt @ROI_Corr_Mat -word sel\n"
    " 6- Show all(*) options for a program:\n"
    "        apsearch -all_popts 3dSkullStrip\n"
-   "    (*) see -all_opts in help section\n"
-   "\n"
-   ); 
+   "    (*) see -all_popts in help section\n"
+   "\n", 
+   THD_helpdir()); 
    
    PRINT_COMPILE_DATE ;
    EXRETURN;
@@ -110,7 +246,7 @@ int main(int argc, char **argv)
    byte ci = 1;
    
    mainENTRY("apsearch main"); machdep() ; 
-   
+      
    max_hits = 3;
    test_only=0;
    min_different_hits = -1;
@@ -252,6 +388,19 @@ int main(int argc, char **argv)
          ++iarg;
          continue; 
       }
+      
+      if (strcmp(argv[iarg],"-all_afni_help") == 0) { 
+         update_help_for_afni_programs(0, 1, NULL); return(0);
+         ++iarg;
+         continue; 
+      }
+
+      if (strcmp(argv[iarg],"-all_afni_progs") == 0) { 
+         list_afni_programs(); return(0);
+         ++iarg;
+         continue; 
+      }
+      
       { /* bad news in tennis shoes */
          fprintf(stderr,"** Error %s: bad option %s\n", argv[0], argv[iarg]);
          suggest_best_prog_option(argv[0], argv[iarg]);

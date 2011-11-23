@@ -65,8 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 22, NOV , 2011 , ZSS , "afni" , MICRO , TYPE_NEW_OPT,
+   "Added -h_find as a global option",
+   "afni -help now outputs information about 'Global options'"
+ },
+ 
  { 21, NOV , 2011 , ZSS , "afni" , MICRO , TYPE_NEW_OPT,
-   "Added -print_options as a global option",
+   "Added -all_opts as a global option",
    "The option is the equivalent of running apsearch -all_opts \n"
    "for a certain program."
  },

@@ -271,8 +271,12 @@ void AFNI_syntax(void)
      " * The maximum number of datasets per session is %d.\n"
      " * To change these maximums, you must edit file '3ddata.h' and then\n"
      "    recompile this program.\n"
-
-     , get_np_help() , THD_MAX_NUM_SESSION , THD_MAX_SESSION_SIZE
+     "\n"
+     "Global Options (available to all AFNI/SUMA programs)\n"
+     "%s"
+     , get_np_help() ,
+     THD_MAX_NUM_SESSION , THD_MAX_SESSION_SIZE , 
+     get_gopt_help()
    ) ;
 
    printf(

@@ -3815,6 +3815,10 @@ extern int THD_mkdir       ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_cwd         ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_equiv_files ( char * , char * ) ;
 extern long long THD_filesize( char * pathname ) ;
+extern char *THD_filetime( char *pathname );
+extern char *THD_homedir(void);
+extern char *THD_helpdir(void);
+
 extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
 extern THD_string_array * THD_normalize_flist( THD_string_array * ) ;
 extern THD_string_array * THD_get_wildcard_filenames( char * ) ;
@@ -3828,7 +3832,8 @@ extern THD_string_array * THD_getpathprogs( THD_string_array *, char );
 extern int THD_is_executable( char * pathname ) ;
 extern char * THD_find_executable( char * ) ;
 extern char * THD_find_regular_file( char * ) ;
-
+extern THD_string_array *get_elist(void);
+ 
 extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */
 extern char * THD_dataset_headname( char * , char * , int ) ;
 

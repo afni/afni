@@ -259,6 +259,8 @@ int main( int argc, char * argv[] )
     vol_t      baseV;                   /* base volume - first scanned */
     int        ret_val;
 
+    mainENTRY("Dimon");
+    
     /* validate inputs and init options structure */
     if ( (ret_val = init_options( p, ac, argc, argv )) != 0 )
         return ret_val;

@@ -259,6 +259,12 @@ main(int argc, char **argv)
   int flags, x, y, width, height, lastX = 0, i;
   
   for (i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "-help")) {
+      fprintf(stdout,"A simple openGL test program using GLX.\n"
+                     "If it does not run, then SUMA certainly won't.\n"
+                     "Copyright (c) Mark J. Kilgard, 1996.\n" );
+      return(0); 
+    }
     if (!strcmp(argv[i], "-geometry")) {
       if (++i >= argc)
         fatalError("follow -geometry option with geometry parameter");
