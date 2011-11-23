@@ -187,7 +187,7 @@ char *THD_helpdir(void)
    home = THD_homedir();
    if (home[0]=='\0') return(sout[icall]); 
    
-   snprintf(sout[icall],599*sizeof(char),"%s/.afni.help",home);
+   snprintf(sout[icall],599*sizeof(char),"%s/.afni/help",home);
     
    return (sout[icall]) ;
 }

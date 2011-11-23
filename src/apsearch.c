@@ -90,7 +90,7 @@ int list_afni_programs(void)
 int update_help_for_afni_programs(int force_recreate, 
                                   byte verb, THD_string_array **hlist )
 {
-   int ii, iaf;
+   int ii, iaf, icomm;
    char hout[128], scomm[256], *etr=NULL, *hdir=NULL, *etm=NULL;
    THD_string_array *progs=NULL;
    
@@ -118,6 +118,7 @@ int update_help_for_afni_programs(int force_recreate,
    }
    
    if (hlist) INIT_SARR((*hlist));
+   icomm=0;
    for (ii=0, iaf=0; ii<progs->num ; ii++ ){
       etr = THD_trailname( progs->ar[ii] , 0 ) ; 
       if (!etr || strlen(etr) < 2) {
@@ -134,9 +135,13 @@ int update_help_for_afni_programs(int force_recreate,
          if (verb) fprintf(stderr,"Reusing %s \n", hout); 
       } else {
          if (verb) fprintf(stderr,"Creating %s \n", hout); 
+         if (icomm > 25) { /* sleep a little to allow 
+                              forked processes to end */
+            NI_sleep(250); icomm = 0;
+         }
          snprintf(scomm, 250*sizeof(char),
                "echo '' | %s -help >& %s &", etr, hout);
-         system(scomm);
+         system(scomm); ++icomm;
       }
       
       if (hlist) ADDTO_SARR((*hlist), hout);
