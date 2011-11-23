@@ -292,7 +292,7 @@ ENTRY("THD_lasso_L2fit") ;
    jj = check_inputs( npt , far , nref , ref ) ;
    if( jj ){
      static int ncall=0 ;
-     if( ncall == 0 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
+     if( ncall < 2 ){ ERROR_message("LASSO: bad data and/or model"); ncall++; }
      RETURN(NULL) ;
    }
 
@@ -430,7 +430,7 @@ ENTRY("THD_lasso_L2fit") ;
 
 #if 1
    { static int ncall=0 ;
-     if( ncall < 1 ){
+     if( ncall < 2 ){
        for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
        INFO_message("LASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
        ncall++ ;
@@ -493,7 +493,7 @@ floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
                                 int nref   , float *ref[] ,
                                 float *lam , float *ccon   )
 {
-   int ii,jj, nfree,nite,nimax,ndel , do_slam=0 ;
+   int ii,jj, nfree,nite,nimax,ndel ;
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum,dsumx ;
    float rqsum,aa,bb,cc,ll,all , npinv , *ain,*qal ;
    floatvec *qfit ; byte *fr ;
@@ -505,7 +505,7 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    jj = check_inputs( npt , far , nref , ref ) ;
    if( jj ){
      static int ncall=0 ;
-     if( ncall == 0 ){ ERROR_message("SQRT LASSO: bad data and/or model"); ncall++; }
+     if( ncall < 2 ){ ERROR_message("SQRT LASSO: bad data and/or model"); ncall++; }
      RETURN(NULL) ;
    }
 
@@ -527,13 +527,13 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    /*--- Save sum of squares of each ref column ---*/
 
    npinv = 1.0f / (float)npt ;
-   nfree = 0 ;                    /* number of unconstrained parameters */
+   nfree = 0 ;                          /* number of unconstrained parameters */
    for( jj=0 ; jj < nref ; jj++ ){
      rj = ref[jj] ;
      for( pj=ii=0 ; ii < npt ; ii++ ) pj += rj[ii]*rj[ii] ; /* sum of squares */
      rsq[jj] = pj * npinv ;                            /* average per data pt */
      if( pj > 0.0f ){
-       if( mylam[jj] == 0.0f ){ fr[jj] = 1 ; nfree++ ; }  /* unconstrained */
+       if( mylam[jj] == 0.0f ){ fr[jj] = 1 ; nfree++ ; }     /* unconstrained */
        ain[jj] = -0.5f / rsq[jj] ;
      }
    }
@@ -568,22 +568,13 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    for( ii=0 ; ii < npt ; ii++ ) resd[ii] = far[ii] ;          /* data */
 
    for( jj=0 ; jj < nref ; jj++ ){  /* subtract off fit of each column */
-     pj = ppar[jj] ; rj = ref[jj] ; /* with a nonzero parameter value */
+     pj = ppar[jj] ; rj = ref[jj] ;  /* with a nonzero parameter value */
      if( pj != 0.0f ){
        for( ii=0 ; ii < npt ; ii++ ) resd[ii] -= rj[ii]*pj ;
      }
    }
    for( rqsum=ii=0 ; ii < npt ; ii++ ) rqsum += resd[ii]*resd[ii] ;
    rqsum *= npinv ;
-
-   /*-- start with a larger lambda to speed convergence --*/
-
-#if 0
-   do_slam = 2 * (nref > npt/4) ;                        /* first 2 */
-   if( do_slam ){                                        /*       | */
-     for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 4.0f ;  /* 4 = 2^2 */
-   }
-#endif
 
    /*---- outer iteration loop (until we are happy or worn out) ----*/
 
@@ -593,7 +584,7 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 
      /*-- cyclic inner loop over parameters --*/
 
-     dsumx = dsum ;
+     dsumx = dsum ;                             /* save last value of dsum */
 
      for( dsum=ndel=jj=0 ; jj < nref ; jj++ ){  /* dsum = sum of param deltas */
 
@@ -663,16 +654,11 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 
      if( ndel > 0 ) dsum *= (2.0f/ndel) ;
 
-     if( do_slam ){     /* shrink lam[] back, if it was augmented */
-       do_slam-- ; dsum = 1.0f ;
-       for( jj=0 ; jj < nref ; jj++ ) mylam[jj] *= 0.5f ;
-     }
-
    } /*---- end of outer iteration loop ----*/
 
 #if 1
    { static int ncall=0 ;
-     if( ncall < 1 ){
+     if( ncall < 2 ){
        for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
        INFO_message("SQRTLASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
        ncall++ ;
