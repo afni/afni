@@ -4,6 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#include <pwd.h>
 #include "mrilib.h"
 #include "thd.h"
 
@@ -122,6 +123,73 @@ long long THD_filesize( char *pathname )
    if( pathname == NULL || *pathname == '\0' ) return 0 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
    return (long long)buf.st_size ;
+}
+
+/*-------------------------------------------------------*/
+/*! Return the file's last modified date in a string     */
+
+char *THD_filetime( char *pathname )
+{
+   static struct stat buf ; int ii ;
+   static char sout[10][64]; 
+   static int icall=0;
+   static struct tm *lt=NULL ;
+   
+   ++icall; if (icall > 9) icall=0;
+   sout[icall][0]='\0';
+   
+   if( pathname == NULL || *pathname == '\0' ) return (sout[icall]);
+   ii = stat( pathname , &buf ) ; if( ii != 0 ) return (sout[icall]) ;
+   
+   lt = localtime(&buf.st_mtime);
+   sprintf(sout[icall], "%04d_%02d_%02d-%02d_%02d_%02d",
+            lt->tm_year+1900, lt->tm_mon+1, lt->tm_mday,
+            lt->tm_hour, lt->tm_min, lt->tm_sec);
+   
+   return (sout[icall]) ;
+}
+
+char *THD_homedir(void)
+{
+   static char sout[3][512]; 
+   static int icall=0;
+   char *home=NULL;
+   struct passwd *pw = NULL;
+   
+   ++icall; if (icall>2) icall=0;
+   sout[icall][0]='\0';
+   
+   home = getenv("HOME"); 
+   if (!home) {
+      pw = getpwuid(getuid());
+      if (pw) home = (char *)pw->pw_dir;
+   }
+   if (home) {
+      if (strlen(home) > 510) {
+         ERROR_message("Not enough space to store home dir of '%s'.\n");
+      } else {
+         sprintf(sout[icall], "%s", home);
+      }
+   } 
+   return (sout[icall]) ;
+}
+
+char *THD_helpdir(void)
+{
+   static char sout[3][600]; 
+   static int icall=0;
+   char *home=NULL;
+   
+   ++icall; if (icall>2) icall=0;
+   
+   sout[icall][0]='\0';
+   
+   home = THD_homedir();
+   if (home[0]=='\0') return(sout[icall]); 
+   
+   snprintf(sout[icall],599*sizeof(char),"%s/.afni.help",home);
+    
+   return (sout[icall]) ;
 }
 
 /*--------------------------------------------------------*/

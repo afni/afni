@@ -340,6 +340,17 @@ map_state_changed(Widget w, XtPointer data, XEvent * event, Boolean * cont)
 int
 main(int argc, char *argv[])
 {
+  int i = 0;
+  for (i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "-help")) {
+      fprintf(stdout,"A simple openGL test program using motif widgets.\n"
+                     "If it does not run, then SUMA certainly won't.\n"
+                     "Copyright (c) Mark J. Kilgard, 1996.\n");
+      return(0); 
+    } else {
+      return(1); /* program takes no options */
+    }
+  }
   toplevel = XtAppInitialize(&app, "Paperplane", NULL, 0, &argc, argv,
     fallbackResources, NULL, 0);
   dpy = XtDisplay(toplevel);
