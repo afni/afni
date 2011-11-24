@@ -4487,7 +4487,8 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
             /* and possibly move output datasets there */
             if( opts->gert_outdir )
-                fprintf(fp, "mv %s+orig.* $OutDir\n\n", pname);
+                fprintf(fp, "mv %s%s $OutDir\n\n", pname,
+                        opts->gert_format==1 ? ".nii" : "+orig.*");
         }
 
     fclose( fp );
