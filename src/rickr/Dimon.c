@@ -1997,6 +1997,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             p->opts.gert_format = 1;    /* NIFTI format */
         }
+        else if ( ! strcmp( argv[ac], "-gert_quit_on_err") )
+        {
+            p->opts.gert_quiterr = 1;    /* Don't comeup in interactive mode */
+        }
         else if ( ! strncmp( argv[ac], "-help", 5 ) )
         {
             usage( IFM_PROG_NAME, IFM_USE_LONG );
@@ -3139,6 +3143,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   gert_nz            = %d\n"
             "   gert_format        = %d\n"
             "   gert_exec          = %d\n"
+            "   gert_quiterr       = %d\n"
             "   dicom_org          = %d\n"
             "   sort_num_suff      = %d\n"
             "   sort_acq_time      = %d\n"
@@ -3164,7 +3169,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix),
-            opt->gert_nz, opt->gert_format, opt->gert_exec,
+            opt->gert_nz, opt->gert_format, opt->gert_exec, opt->gert_quiterr,
             opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
             opt->rev_org_dir, opt->rev_sort_dir,
             CHECK_NULL_STR(opt->flist_file),
@@ -4170,6 +4175,10 @@ static int usage ( char * prog, int level )
           "\n"
           "        See also -gert_create_dataset.\n"
           "\n"
+          "    -gert_quit_on_err : Add -quit_on_err option to to3d command\n"
+          "                        which has the effect of causing to3d to \n"
+          "                        fail rather than come up in interactive\n"
+          "                        mode if the input has an error.\n"
           "  ---------------------------------------------------------------\n"
           "\n"
           "  Author: R. Reynolds - %s\n"
@@ -4458,8 +4467,10 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             else                         nspaces = 0;
 
             /* if gert_format = 1, write as NIfTI */
-            fprintf(fp, "to3d -prefix %s%s  \\\n", pname,
-                    opts->gert_format==1 ? ".nii" : "" );
+            fprintf(fp, "to3d %s -prefix %s%s  \\\n", 
+                     opts->gert_quiterr==1 ? "-quit_on_err" : "",
+                     pname,
+                     opts->gert_format==1 ? ".nii" : "" );
 
             if( s->runs[c].volumes > 1 )
             {

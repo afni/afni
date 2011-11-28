@@ -73,6 +73,8 @@ static struct {
    int nofloatscan ;           /* 14 Sep 1999 */
 
    int swap_eight ;            /* 06 Feb 2003 */
+   
+   int quit_if_bad;            /* 25 Nov 2011 */
 
 } argopt  ;
 
@@ -178,7 +180,6 @@ int main( int argc , char * argv[] )
    XtAppContext   app ;
    XtErrorHandler old_handler ;
    Boolean        all_good ;
-
    mainENTRY("to3d:main") ;
    machdep() ; /* 20 Apr 2001 */
    PRINT_VERSION("to3d") ; AUTHOR("RW Cox") ;
@@ -212,7 +213,7 @@ int main( int argc , char * argv[] )
    argopt.swap_eight = 0 ;                   /* 06 Feb 2003 */
 
    argopt.nofloatscan = 0 ;                  /* 14 Sep 1999 */
-
+   argopt.quit_if_bad = 0 ;
    /* read the inputs */
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to --*/
@@ -416,6 +417,12 @@ DUMP_MAT44("MRILIB_dicom_matrix",MRILIB_dicom_matrix) ;
      exit(0) ;
    }
 
+   if ( !all_good && argopt.quit_if_bad) {
+      ERROR_message (
+         "Something is wrong with the command line or the input images.\n"
+         "to3d kept from going into interactive mode by option -quit_on_err.\n");
+      exit(1);
+   }
    /* Otherwise, initialize X11 and Xt */
 
    printf("++ Making widgets") ; fflush(stdout) ;
@@ -2964,6 +2971,13 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -quit_on_err -----*/
+
+      if( strncmp(Argv[nopt],"-quit_on_err",6) == 0 ){
+         argopt.quit_if_bad = 1 ;
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
       /*----- -assume_dicom_mosaic -----*/  /* 13 Mar 2006 [rickr] */
 
       if( strncmp(Argv[nopt],"-assume_dicom_mosaic",16) == 0 ){
@@ -3551,7 +3565,8 @@ void Syntax()
     "                  also be adjusted interactively)\n"
     "   -ncolors nn  use 'nn' gray levels for the image\n"
     "                  displays (default is %d)\n"
-    "   -xtwarns     turn on display of Xt warning messages\n" ,
+    "   -xtwarns     turn on display of Xt warning messages\n"
+    "   -quit_on_err Do not launch interactive to3d mode if input has errors.\n",
     INIT_ngray
    ) ;
 
