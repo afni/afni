@@ -133,6 +133,7 @@ typedef struct  /* user options */
     int              gert_format;   /* dataset format: 0=AFNI, 1=NIFTI  */
                                     /* (see -gert_write_as_*)           */
     int              gert_exec;     /* execute the reco script          */
+    int              gert_quiterr;  /* pass -quit_on_err option to to3d */
 
     /* DICOM organization options */
     int              dicom_org;     /* flag to organize dicom files     */
