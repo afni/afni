@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, NOV, 2011, RCR, "1dnorm", MICRO, TYPE_BUG_FIX,
+   "re-enabled use of '-' for stdin/stdout",
+   "Requested by R Birn."
+ } ,
+
  { 22, NOV, 2011, RCR, "uber_subject.py", MINOR, TYPE_NEW_OPT,
    "allow for passing variables directly, not via -svar",
    NULL
