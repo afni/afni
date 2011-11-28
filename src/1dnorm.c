@@ -59,6 +59,9 @@ int main( int argc , char * argv[] )
        dem = 1 ; nopt++ ; continue ;
      }
 
+     /* allow stdin/stdout                             28 Nov 2011 */
+     if( strcmp(argv[nopt],"-") == 0 ) break;
+
      ERROR_exit("Don't understand option '%s'",argv[nopt]) ;
    }
 
