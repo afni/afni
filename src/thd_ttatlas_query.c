@@ -3962,7 +3962,13 @@ void suggest_best_prog_option(char *prog, char *str)
                    NULL, NULL);
    isug = 0;
    for (i=0; i<N_ws; ++i) {
-      if (isug<3 && ws[i][0]=='-') {
+      if (isug<3 && 
+       (
+            str[0] != '-' || 
+            ws[i][0]=='-' ||
+         (strlen(ws[i])> 1 && (ws[i][0]=='[' || ws[i][0]=='<') && ws[i][1]=='-') 
+       )
+                     ) {
          if (!isug) 
             fprintf(stderr,
       "   Here's hoping these excerpts from '%s -help' enlighten:\n",
