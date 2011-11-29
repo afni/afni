@@ -4,7 +4,6 @@ set stat = 0
 set sdir = $PWD
 set hdir = `apsearch -afni_help_dir`
 set fout = "/tmp/CHD_`3dnewid -fun`"
-set fout = crap
 
 if ( ! -d $hdir) then
    #Try one more shot
@@ -18,10 +17,11 @@ goto PARSE
 RET_PARSE:
 
 cd $hdir
+
 \ls -1  | \
    sed 's/\.20[0-9][0-9]_[0-9][0-9]_[0-3][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9]\.help//g'       | \
    uniq > $fout
-cd -
+
 
 set nprogs = `wc -l $fout`
 set nprogs = $nprogs[1]
@@ -56,8 +56,10 @@ while ($n <= $nprogs)
    @ n ++ 
 end
    
-   echo "$N_change redundant help files deleted"
+   set nleft = `ls -1 $hdir/ | wc -l`
+   echo "$N_change redundant help files deleted, $nleft help files left."
 
+cd $sdir
 goto END
 
 PARSE:
@@ -108,7 +110,8 @@ goto RET_PARSE
 
 HELP:
    echo ""
-   echo "A script to cleanup your $hdir directory"
+   echo "$pname is a script to cleanup your $hdir directory."
+   echo "It deletes older help files that differ little from the latest version."
    echo ""
    echo "Ziad S. Saad   saadz@mail.nih.gov"
    echo ""
@@ -120,6 +123,8 @@ BEND:
    goto END
    
 END:
+   if ( -f $fout) \rm -f /tmp/CHD_*
+   cd $sdir
    exit $stat
 
 
