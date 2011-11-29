@@ -604,3 +604,4 @@ ENTRY("has_known_non_afni_extension");
 
     RETURN(1); /* otherwise, we recognize it as non-AFNI */
 }
+
