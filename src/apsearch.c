@@ -25,7 +25,7 @@ THD_string_array * THD_get_all_afni_executables(void )
 {
    THD_string_array *outar=NULL, *elist=NULL;
    char *af=NULL, *etr=NULL;
-   int N_af, N_afni=strlen("afni"), iaf=0, ii=0;
+   int N_af, N_afni=strlen("afni"), iaf=0, ii=0, smode;
    char scomm[256]={""};
    
    ENTRY("THD_get_all_afni_executables");
@@ -50,10 +50,21 @@ THD_string_array * THD_get_all_afni_executables(void )
    /* Now get all executables under af */
    INIT_SARR( outar );
    for (ii=0, iaf=0; ii<elist->num ; ii++ ){
-      if (!THD_is_directory(elist->ar[ii]) &&
-          !strncmp(af, elist->ar[ii], N_af) ) {
+      smode = storage_mode_from_filename(elist->ar[ii]);
+      etr = THD_trailname( elist->ar[ii] , 0 ) ; 
+      if (
+          !THD_is_directory(elist->ar[ii]) &&
+          !strncmp(af, elist->ar[ii], N_af) &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".jpg") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".a") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".so") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".txt") &&
+    !(STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".py") && !strncmp(etr,"lib_",4)) &&
+          (smode <= STORAGE_UNDEFINED || smode >= LAST_STORAGE_MODE)  &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".sumarc") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".afnirc")
+              )  {
          ADDTO_SARR( outar , elist->ar[ii] ) ; ++iaf;
-         /* etr = THD_trailname( elist->ar[ii] , 0 ) ;  */
          /* fprintf(stderr," %d- %s\n", iaf, etr); */
       } else {
          /* fprintf(stderr," skip %s (%s)\n", elist->ar[ii], af); */
@@ -90,7 +101,7 @@ int list_afni_programs(void)
 int update_help_for_afni_programs(int force_recreate, 
                                   byte verb, THD_string_array **hlist )
 {
-   int ii, iaf, icomm;
+   int ii, iaf, icomm, estat;
    char hout[128], scomm[256], *etr=NULL, *hdir=NULL, *etm=NULL;
    THD_string_array *progs=NULL;
    
@@ -139,6 +150,11 @@ int update_help_for_afni_programs(int force_recreate,
                               forked processes to end */
             NI_sleep(250); icomm = 0;
          }
+         /* The echo below is there to make programs that
+            don't like -help and expect stdin to shut up and quit
+            As a result, it is hard to get the status of -help
+            command and use it wisely here without risking 
+            trouble */
          snprintf(scomm, 250*sizeof(char),
                "echo '' | %s -help >& %s &", etr, hout);
          system(scomm); ++icomm;
@@ -146,6 +162,11 @@ int update_help_for_afni_programs(int force_recreate,
       
       if (hlist) ADDTO_SARR((*hlist), hout);
       
+   }
+   /* cleanup hdir */
+   if (verb) fprintf(stderr,"Cleaning help directory %s\n",hdir);
+   if (system("@clean_help_dir")) {
+      WARNING_message("Failed cleaning help directory");
    }
    
    DESTROY_SARR(progs) ;
@@ -196,6 +217,10 @@ void apsearch_usage()
    "  -all_afni_progs: List all executables in AFNI's bin directory\n"
    "  -all_afni_help: Build/update -help output under directory:\n"
    "                     %s\n"
+   "                  If older help files differ by little they are deleted\n"
+   "                  Little differences would be the compile date or the\n"
+   "                  version number. See @clean_help_dir code for details.\n"
+   "  -afni_help_dir: Print afni help directory location and quit.\n"
    "\n"
    "  NOTE: The maximum number of results depends on the combination of\n"
    "        -max_hits, -min_different_hits, and -unique_hits_only. \n"
@@ -272,6 +297,11 @@ int main(int argc, char **argv)
          ci = 0; 
          ++iarg;
          continue; 
+      }
+
+      if (strcmp(argv[iarg],"-afni_help_dir") == 0) { 
+         fprintf(stdout,"%s\n", THD_helpdir());
+         return(0);
       }
 
       if (strcmp(argv[iarg],"-show_score") == 0) { 
