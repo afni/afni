@@ -3466,16 +3466,24 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
    ns2 = strlen(s2);
    
    spart=NULL;
-   if (ns2 < ns1) {
+   {
+      char *ss, *sl;
+      int ns, nl;
+      if (ns2 < ns1) {
+         ss = s2; sl = s1;
+         ns = ns2; nl = ns1;
+      } else {
+         ss = s1; sl = s2;
+         ns = ns1; nl = ns2;
+      }
       /* strcasestr won't work on Solaris, too bad */
-      if (ci) spart = strcasestr(s1, s2);
-      else spart = strstr(s1, s2);
+      if (ci) spart = strcasestr(sl, ss);
+      else spart = strstr(sl, ss);
       
       if (spart) {
-         D.d[PMD] = (int)(spart-ns2); if (D.d[PMD] > 9) D.d[PMD]=9;
+         D.d[PMD] = (int)(long)(spart-ns); if (D.d[PMD] > 9) D.d[PMD]=9;
       } 
    }
-   
    
    /* counting number of similar characters with direction*/
    ks1=0;
@@ -3489,7 +3497,7 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
             if ((s1[ks1t] == s2[ks2]) ||
                 (ci && TO_LOWER(s1[ks1t]) == TO_LOWER(s2[ks2]))) {
                ++imatch; ks1t++; ks1 = ks1t; 
-               /* fprintf(stderr,"Got %c in %s at %d\n", s2[ks2], s1, ks1t);*/
+               /* fprintf(stderr,"Got %c in %s at %d\n", s2[ks2], s1, ks1t); */
                break;
             }else{
                ks1t++;
@@ -3623,7 +3631,7 @@ APPROX_STR_DIFF str_in_line_distance(char *line, char *str, byte ci,
    init_str_diff(&Dtmp);
    for ( sword=strtok_r(line,lsep, &brk); 
          sword; sword = strtok_r(NULL, lsep, &brk)) {
-      deblank_name(sword);
+      deblank_name(sword); depunct_name(sword);
       if (sword[0] != '\0') {
          Dtmp = LevenshteinStringDistance(sword, str, ci);
          Dtmp.d[MWI]=iword;
@@ -3861,7 +3869,7 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws, char *str,
    ENTRY("approx_str_sort_all_popts");
    
    Dwi = init_str_diff_weights(NULL);
-   Dwi->w[MWI]=10000; /* give a lot of weight to the order in the sentence */
+   Dwi->w[MWI]=1000; /* give a lot of weight to the order in the sentence */
    if (!(ws = approx_str_sort_phelp(prog, N_ws, str, 
                       ci, sorted_score,
                       Dwi, Dout))) {
@@ -7388,6 +7396,33 @@ char * deblank_name (char *name) {
 
    return(name);
 }
+#define IS_PUNCT(m) (   m=='[' || m==']' || \
+                        m=='<' || m=='>' || \
+                        m==':' || m==';' || \
+                        m=='(' || m==')') 
+char * depunct_name (char *name) {
+   int nch = 0, bb=0, ibb=0, BB=0;
+   
+   if (!name) return(name);
+   
+   nch = strlen(name);
+   /* deblank it, leave spaces in middle */
+   bb=0; 
+   while (name[bb] != '\0' && IS_PUNCT(name[bb])) {
+      ++bb;
+   }
+   BB = nch-1;
+   while (BB > 0 && name[BB] != '\0' && IS_PUNCT(name[BB])) {
+      --BB;
+   }
+   for (ibb=bb; ibb<=BB; ++ibb) {
+      name[ibb-bb] = name[ibb]; 
+   }
+   name[ibb-bb] = '\0';
+
+   return(name);
+}
+
 
 /* return the list of atlases set by the environment variable,
    AFNI_ATLAS_LIST */

@@ -42,8 +42,10 @@ void Syntax(void)
     "   -prefix_noext: Return the prefix without extensions\n"
     "   -n[i|j|k]: Return the number of voxels in i, j, k dimensions\n"
     "   -nijk: Return ni*nj*nk\n"
-    "   -nv/-nt: Return number of points in time or the number of sub-bricks\n"
-    "   -nvi/-nti: The maximum sub-brick index (= nv -1 )\n"
+    "   -nv: Return number of points in time or the number of sub-bricks\n"
+    "   -nt: same as -nv\n"
+    "   -nvi: The maximum sub-brick index (= nv -1 )\n"
+    "   -nti: same as -nvi\n"
     "   -ntimes: Return number of sub-bricks points in time\n"
     "        This is an option for debugging use, stay away from it.\n"
     "   -tr: The TR value in seconds.\n"
@@ -220,7 +222,9 @@ int main( int argc , char *argv[] )
       } else if( strcasecmp(argv[iarg],"-all_names") == 0) {
          sing[N_sing++] = ALL_NAMES; iarg++; continue;
       } else {
-         ERROR_exit("Option %s unknown", argv[iarg]);
+         ERROR_message("Option %s unknown", argv[iarg]);
+         suggest_best_prog_option(argv[0], argv[iarg]);
+         exit(1);
       }
    }
    
