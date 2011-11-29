@@ -1,0 +1,186 @@
+#!/bin/tcsh -f
+
+set stat = 0
+set id = `3dnewid -fun`
+set lout = /tmp/DFN_$id.txt
+set ddir = DEMO_DeblankFileNames
+set repchar = '_'
+
+goto PARSE
+RET_PARSE:
+
+set nf = `wc -l $lout`
+set nf = $nf[1]
+if ( $nf < 1) then
+   echo "No files to fix"
+   goto END
+endif
+
+set n = 1
+while ($n <= $nf)
+   set fin = "`sed -n ${n}p $lout`"
+   set space = (`\echo "$fin" | \grep '. .'`)
+   if ($#space > 1) then
+      #echo "Space >$fin<"
+      set badname = 1
+      set all_tested = ()
+      set spc = ${repchar}
+      set ibad = 0
+      while ($badname && $ibad < 3)
+         set fout = `\echo "$fin" | \sed "s/ /${spc}/g"`
+         if ($status) then
+            echo "Failed to substitute"
+            goto BEND
+         endif
+         set all_tested = ($all_tested $fout)
+         if ( -f "./$fout" || -d "./$fout" ) then
+            @ ibad ++
+            set spc = "${spc}${repchar}"
+         else
+            set spc = $repchar
+            set badname = 0
+            set ibad = 0
+         endif
+      end
+      if ( $badname ) then
+         echo "Replacement name(s) for "$fin" exist, nothing will be done."
+         echo "   Names tested are $all_tested"
+      else
+         if ($dry == 0) then
+            echo "Renaming    >./$fin<"
+            echo "         to >./$fout<"
+            \mv "./$fin" "./$fout"
+         else
+            echo "Would rename   >./$fin<"
+            echo "            to >./$fout<"
+         endif
+      endif
+   else
+      #echo "No space >$fin<"
+   endif
+   @ n ++
+end
+
+goto END
+PARSE:
+   set Narg = $#
+   set dry = 1
+   set cnt = 1
+   if ( -f $lout) then
+      echo "$lout should not exist, remove it and rerun"
+      goto BEND
+   endif
+   
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0; goto NEXT		
+      endif
+      
+      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
+         goto HELP
+         set donext = 0;	 goto NEXT	
+      endif
+      
+      if ($donext && "$argv[$cnt]" =~ "-dry"*) then
+         set dry = 1
+         set donext = 0; goto NEXT		
+      endif
+
+      if ($donext && "$argv[$cnt]" =~ "-move"*) then
+         set dry = 0
+         set donext = 0; goto NEXT		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-demo_set") then
+         goto DEMO_SET
+         set donext = 0; goto NEXT		
+      endif
+      
+      if ($donext == 1) then
+         \ls -1d "$argv[$cnt-$Narg]" > $lout
+         set donext = 0; goto NEXT		
+      endif
+      
+      NEXT:
+		@ cnt ++
+	end
+   
+   if ( ! -f $lout ) then
+      \ls -1d ./*\ * > $lout
+   endif
+   
+goto RET_PARSE
+
+HELP:
+   echo ""
+   echo "A script to remove blanks from filenames in the current directory"
+   echo "Spaces are replaced with $repchar. "
+   echo "If resultant name exists, more ${repchar} are used until new name"
+   echo "is found."
+   echo ""
+   echo "   `basename $0` [-move] [FILES]"
+   echo ""
+   echo "OPTIONS"
+   echo "   -dry_run: Just show what would be done. Don't rename files."
+   echo "             This is the default option"
+   echo "   -move: Actually rename the files (opposite of -dry_run)"
+   echo "   -demo_set: Create a toy directory with bad names for testing."
+   echo "   -echo: Turn on script echo"
+   echo "   -help: This message"
+   echo "   FILES: Specify files to fix as opposed to letting it fix all"
+   echo "          the names in the current directory."
+   echo ""
+   echo "Examples:"
+   echo "   1- `basename $0` "
+   echo ""
+   echo "   2- `basename $0` -move "
+   echo ""
+   echo "   3- Run the command below and follow its suggestions"
+   echo "      `basename $0` -demo_set"
+   echo ""
+   goto END
+
+DEMO_SET:
+   if ( -d $ddir ) then
+      echo "Remove $ddir first"
+      goto BEND
+   endif
+   mkdir $ddir
+   cd $ddir
+   touch dbf\ .jpg
+   touch dbf2\ toy.tiff
+   touch dbf2_toy.tiff
+   touch ' dbf4_toy.tiff'
+   touch '1 dbf3_toy.tiff'
+   touch ' dbf5_toy.tiff '
+   mkdir 'dbf dir'
+   touch 'dbf dir/why do you use space characters in your filenames'
+   cd -
+   echo ""
+   echo "See the file content of $ddir then try"
+   echo "   cd $ddir"
+   echo "   `basename $0`"
+   echo " or for the whole enchilada"
+   echo "   `basename $0` -move"
+   echo "Then check the new file names again and remove that directory when done"
+   echo ""
+   echo "Note that the file under old directory name 'dbf dir' is not touched."
+   echo "To fix it you'll need something like:"
+   echo "   cd dbf_dir"
+   echo "   `basename $0` -move"
+   echo " or the more cumbersome"
+   echo "   `basename $0` -move why*"
+   echo ""
+   goto END
+
+BEND:
+   echo "Failed"
+   set stat = 1
+   goto END
+   
+END:
+   if ( -f /tmp/DFN_$id.txt) \rm -f /tmp/DFN_$id.txt
+   exit $stat
+
