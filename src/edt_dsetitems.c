@@ -943,11 +943,27 @@ int THD_volDXYZscale( THD_dataxes  * daxes, float xyzscale, int reuse_shift)
 
 char * THD_deplus_prefix( char *prefix )
 {
+   static char * plussers[] = {
+      "+orig", "+orig.", "+orig.HEAD", "+orig.BRIK", "+orig.BRIK.gz",
+      "+acpc", "+acpc.", "+acpc.HEAD", "+acpc.BRIK", "+acpc.BRIK.gz",
+      "+tlrc", "+tlrc.", "+tlrc.HEAD", "+tlrc.BRIK", "+tlrc.BRIK.gz"
+      };
    char *newprefix ;
-   int nn ;
+   int nn, N_nn;
 
    if( prefix == NULL ) return NULL ;
 
+   newprefix = strdup(prefix);
+   
+   N_nn = sizeof(plussers)/sizeof(char *);
+   for (nn=0; nn<N_nn; ++nn) {
+      if( STRING_HAS_SUFFIX(newprefix, plussers[nn]) ) {
+         newprefix[strlen(newprefix)-strlen(plussers[nn])] = '\0';
+         return newprefix ;
+      }
+   }
+   
+   #if 0       /* Pre Nov. 2011 , kill this section in a month or so */
    nn = strlen(prefix); newprefix = strdup(prefix);
 
    /* only remove the basic 3: +orig, +acpc +tlrc   17 May 2004 [rickr] */
@@ -963,6 +979,7 @@ char * THD_deplus_prefix( char *prefix )
        isalpha(newprefix[nn-2]) &&
        isalpha(newprefix[nn-1])   ) newprefix[nn-5] = '\0' ;
 */
-
+   #endif
+   
    return newprefix ;
 }

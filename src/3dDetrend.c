@@ -368,6 +368,8 @@ void DT_Syntax(void)
     "                    -vector 'xyzzy.1D[3,5]'\n"
     "                   will remove the 4th and 6th columns of file xyzzy.1D\n"
     "                   from the dataset (sub-vector indexes start at 0).\n"
+    "                 You can use multiple -vector instances to specify\n"
+    "                   components from different files.\n"
     "\n"
     " -expr eee     = Remove components proportional to the function\n"
     "                   specified in the expression string 'eee'.\n"

@@ -195,9 +195,12 @@ PARSE_COMMAND:
                set StripSkull = 3;
             else if ("$argv[$cnt]" == "surf_anat") then
                set StripSkull = 2;
+            else if ("$argv[$cnt]" == "neither" || \
+                     "$argv[$cnt]" == "none") then
+               set StripSkull = 0;
             else
                echo "Acceptable options for -strip_skull are:"
-               echo "'exp_anat' or 'surf_anat' or 'both'"
+               echo "'neither', 'exp_anat', 'surf_anat', or 'both'"
                goto END
             endif
         endif		
@@ -913,12 +916,12 @@ echo "   [-ok_change_view]: Be quiet when view of registered volume is changed"
 echo "                      to match that of the Experiment_Anatomy, even when"
 echo "                      rigid body registration is used."
 echo "   [-strip_skull WHICH]: Use 3dSkullStrip to remove non-brain tissue and "
-echo "                         potentially improve the alignment. WHICH can be"
-echo "                         one of 'exp_anat', 'surf_anat', or 'both'. In the first case,"
-echo "                         the skull is removed from Experiment_Anatomy dataset,"
-echo "                         in the second it is removed from the surf_anat dataset."
-echo "                          With 'both' the skull is removed from"
-echo "                         Experiment_Anatomy and Surface_Anatomy."
+echo "          potentially improve the alignment. WHICH can be"
+echo "          one of 'exp_anat', 'surf_anat', 'both', or 'neither' (default). "
+echo "          In the first case, the skull is removed from Experiment_Anatomy "
+echo "          dataset, in the second it is removed from the surf_anat dataset."
+echo "          With 'both' the skull is removed from Experiment_Anatomy  "
+echo "          and Surface_Anatomy."
 echo "   [-skull_strip_opt 'Options For 3dSkullStrip']: Pass the options between"
 echo "                         quotes to 3dSkullStrip."
 echo "   [-align_centers]: Adds an additional transformation to align the volume"
