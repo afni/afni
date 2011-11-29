@@ -722,6 +722,20 @@ void display_help_menu(void)
   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
+/* Can this option be a label or subject name?  [ZSS Nov 29 2011] */
+
+int is_possible_filename( char * fname )
+{
+    int mode;
+
+    mode = storage_mode_from_filename(fname);
+
+    if (THD_is_ondisk(fname) && 
+         (mode > STORAGE_UNDEFINED || mode <LAST_STORAGE_MODE )) return(1);
+    
+    return(0);
+}
+
 /*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -735,7 +749,9 @@ int main( int argc , char *argv[] )
    float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
    int BminusA=-1 , ntwosam=0 ;  /* 05 Nov 2010 */
    char *snam_PPP=NULL, *snam_MMM=NULL ;
-
+   static int iwarn=0;
+   
+   
    /*--- help the piteous luser? ---*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ) display_help_menu() ;
@@ -942,8 +958,13 @@ int main( int argc , char *argv[] )
 
          snam = strdup(argv[nopt]) ; LTRUNC(snam) ;
          for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt+=2 ){
-           if( nopt+1 >= argc || argv[nopt+1][0] == '-' )
-             ERROR_exit("Option %s: ends prematurely",onam) ;
+           if( nopt+1 >= argc || argv[nopt+1][0] == '-' ) {
+             ERROR_message("Option %s: ends prematurely after option %s.\n"
+       "   Make sure you are properly formatting your -set[A/B] parameters.\n"
+       "   Search for 'SHORT FORM' and 'LONG FORM' in the output of %s -help\n"
+               ,onam, argv[nopt], argv[0]) ;
+             exit(1);
+           }
            qset = THD_open_dataset( argv[nopt+1] ) ;
            if( !ISVALID_DSET(qset) )
              ERROR_exit("Option %s: can't open dataset '%s'",onam,argv[nopt+1]) ;
@@ -956,6 +977,18 @@ int main( int argc , char *argv[] )
            dset = (THD_3dim_dataset **)realloc(dset,sizeof(THD_3dim_dataset *)*nds) ;
            nams[nds-1] = strdup(argv[nopt+1]) ; dset[nds-1] = qset ;
            labs[nds-1] = strdup(argv[nopt]  ) ; LTRUNC(labs[nds-1]) ;
+           /* check syntax */
+           if (!iwarn && 
+               (is_possible_filename( nams[nds-1] ) ||
+                is_possible_filename( labs[nds-1] ) )) {
+              WARNING_message(
+               "Label %s or name %s appear to be a file on disk\n"
+            "  Perhaps your command line syntax for %s is incorrect.\n"
+            "  Lookfor 'SHORT FORM' and 'LONG FORM' in the output of %s -help\n"
+            "  Similar warnings will be muted.\n"
+               ,labs[nds-1], nams[nds-1], onam, argv[0]) ; 
+              ++iwarn;   
+           }
          }
 
          if( nv < 2 )
