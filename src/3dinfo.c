@@ -54,6 +54,7 @@ void Syntax(void)
     "   -all_names: Value of various dset structures handling filenames.\n"
     "  ==== Options producing one value per sub-brick ========\n"
     "   -fac: Return the float scaling factor\n"
+    "   -label: The label of each sub-brick\n"
     "   -datum: The data storage type\n"
     "   -min: The minimum value, scaled by fac\n"
     "   -max: The maximum value, scaled by fac\n"
@@ -250,6 +251,10 @@ int main( int argc , char *argv[] )
       }
    }
 
+   if (iarg == argc) {
+      ERROR_message("No dsets on command line? I have nothing to do.\n");
+      exit(1);
+   }
    for( ; iarg < argc ; iarg++ ){
 
      if( argv[iarg][0] == '\0' ) continue ;  /* bad filename */

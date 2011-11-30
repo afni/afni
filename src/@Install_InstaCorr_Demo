@@ -96,7 +96,7 @@ HELP:
    goto SHOW_COM
    HELP_COM:
    echo ""
-   echo "It taks a while to download, unpack, and run the setup scripts"
+   echo "It takes a while to download, unpack, and run the setup scripts"
    echo ""
    goto END
 

@@ -32,6 +32,9 @@ int main( int argc , char *argv[] )
        "\n"
        "Usage 2: 3drename old_prefix+view new_prefix\n"
        "  Will rename only the dataset with the given view (orig, acpc, tlrc).\n"
+       "\n"
+       "You cannot have paths in the old or the new prefix\n"
+       "\n"
       ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -44,10 +47,12 @@ int main( int argc , char *argv[] )
    new_name = argv[nopt++] ; new_len = strlen(new_name) ;
 
    if( old_len < 1 || old_len > THD_MAX_PREFIX || !THD_filename_pure(old_name) ){
-      fprintf(stderr,"** Illegal old dataset name!\n") ; exit(1) ;
+      fprintf(stderr,"** Illegal old dataset name!(no paths allowed)\n") ; 
+      exit(1) ;
    }
    if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_pure(new_name) ){
-      fprintf(stderr,"** Illegal new dataset name!\n") ; exit(1) ;
+      fprintf(stderr,"** Illegal new dataset name!(no paths allowed)\n") ; 
+      exit(1) ;
    }
 
    /* disallow operation on MINC or ANALYZE files */
