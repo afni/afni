@@ -73,6 +73,8 @@ void usage_ConverDset()
 "                            assigned a value of 0\n"
 "                            Notice that padding get done at the\n"
 "                            very end.\n"
+"                      If MAX_INDEX is set to 0 it means you want\n"
+"                      to pad the maximum node in the input dataset.\n"      
 "\n"
 "     -i_TYPE: TYPE of input datasets\n"
 "              where TYPE is one of:\n"
@@ -373,6 +375,16 @@ int main (int argc,char *argv[])
             SUMA_S_Err("Failed to add node index column");
             exit(1);
          }
+      }
+      
+      if (pad_to_node == 0) {
+         double r[2]; int loc[2];
+         if (!SUMA_GetDsetNodeIndexColRange( dset, r, loc, 1)) {
+            SUMA_S_Err( "Failed to get max node index in input dset.\n"
+                        "Cannot set pad_to_node automatically\n");
+            exit(1);
+         }
+         pad_to_node = (int)r[1];
       }
        
       SUMA_LHv("On to auto_nmask ...%p %p %p\n", 
