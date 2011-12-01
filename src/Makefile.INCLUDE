@@ -57,7 +57,7 @@ EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv $(EXPROGS)
 PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   \
            sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals          \
            fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3daxialize \
-           p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta   \
+               cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta   \
            waver 3dnewid 3dcalc ccalc imcalc 1dmatcalc 3drefit 3dbucket         \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk       \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna         \
@@ -95,7 +95,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
                   fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim imupsam \
-                  p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit    \
+                      cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit    \
                   waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp fdrval \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna      \
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot    \
@@ -131,7 +131,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
 PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge   \
                sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals count  \
                fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3dGetrow \
-               p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta \
+                   cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta \
                waver 3dnewid 3dcalc ccalc imcalc 1dmatcalc 3drefit 3dbucket       \
                3dAFNItoNIML    AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk     \
                3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna       \

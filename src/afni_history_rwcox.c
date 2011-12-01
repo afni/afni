@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , NOV , 2011 , RWC , "3dUndump" , MICRO , TYPE_BUG_FIX ,
+  { 1 , DEC , 2011 , RWC , "p2t" , MICRO , TYPE_GENERAL ,
+   "Remove this program from AFNI binary distributions" ,
+   NULL } ,
+
+ { 18 , NOV , 2011 , RWC , "3dUndump" , MICRO , TYPE_BUG_FIX ,
    "Fix bug introduced with -ROImask" ,
    NULL } ,
 
