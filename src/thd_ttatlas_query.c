@@ -3408,7 +3408,7 @@ APPROX_STR_DIFF_WEIGHTS *init_str_diff_weights(APPROX_STR_DIFF_WEIGHTS *Dwi)
             Dwi->w[i] = 10.0;
             break;
          case PMD:
-            Dwi->w[i] = 10.0;
+            Dwi->w[i] = 5.0;
             break;
          case FCD:
             Dwi->w[i] = 5.0;
@@ -3449,7 +3449,7 @@ APPROX_STR_DIFF *init_str_diff(APPROX_STR_DIFF *Dw) {
 */
 APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci) 
 {
-   int ns1=0, ns2=0, i, j, m, loff=0, ks1, ks2, imatch, ks1t;
+   int ns1=0, ns2=0, i, j, m, loff=0, ks1, ks2, imatch, ks1t, verb=0;
    byte eqs=0;
    int **d=NULL;
    char *spart=NULL;
@@ -3461,7 +3461,7 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
    
    if (!s1 && !s2) RETURN(D);
    if (!s1 || !s2) RETURN(D);
-   
+      
    ns1 = strlen(s1);
    ns2 = strlen(s2);
    
@@ -3476,12 +3476,28 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
          ss = s1; sl = s2;
          ns = ns1; nl = ns2;
       }
-      /* strcasestr won't work on Solaris, too bad */
-      if (ci) spart = strcasestr(sl, ss);
-      else spart = strstr(sl, ss);
-      
-      if (spart) {
-         D.d[PMD] = (int)(long)(spart-ns); if (D.d[PMD] > 9) D.d[PMD]=9;
+      /* Don't accpet this search if the smallest word is too small.
+      For example Saad and S will get a super high match (0), but
+      Saad and Sad will get a 9, given the weight I usually give
+      to partial matches, this would hurt a lot with this constraint */
+      D.d[PMD] = 9;
+      if (ns > 3) {
+         /* strcasestr won't work on Solaris, too bad */
+         if (ci) spart = strcasestr(sl, ss);
+         else spart = strstr(sl, ss);
+
+         if (spart) {
+            D.d[PMD] = (int)(long)(spart-sl); if (D.d[PMD] > 9) D.d[PMD]=9;
+            if (D.d[PMD] < 0) fprintf(stderr,"Holy Toledo Batman: %s\n"
+                                             "                    %s\n",
+                                             s1, s2);
+         }
+      } 
+      if (verb) {
+         fprintf(stderr,"Holy Toledo Batman: %s\n"
+                        "                    %s\n"
+                        "D.d[PMD] = %d\n",
+                                          s1, s2, D.d[PMD]);
       } 
    }
    
@@ -3497,7 +3513,10 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
             if ((s1[ks1t] == s2[ks2]) ||
                 (ci && TO_LOWER(s1[ks1t]) == TO_LOWER(s2[ks2]))) {
                ++imatch; ks1t++; ks1 = ks1t; 
-               /* fprintf(stderr,"Got %c in %s at %d\n", s2[ks2], s1, ks1t); */
+               if (verb) {
+                  fprintf(stderr,"Got %c in %s at %d (%d)\n", 
+                           s2[ks2], s1, ks1t, imatch); 
+               }
                break;
             }else{
                ks1t++;
@@ -3507,8 +3526,10 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
       ++ks2;
    }
    D.d[FCD] = (int)((ns2-imatch)/(float)ns2*10.0); if (D.d[FCD] > 9) D.d[FCD]=9;
-
-   
+   if (verb) {
+      fprintf(stderr,"D.d[FCD]= %d\n", D.d[FCD]);
+   }
+               
    d = (int **)calloc(ns1+1, sizeof(int*));
    for (i=0; i<=ns1; ++i) {
       d[i] = (int *)calloc(ns2+1, sizeof(int));
@@ -3574,7 +3595,29 @@ int approx_str_diff_swap(APPROX_STR_DIFF *Din, APPROX_STR_DIFF *Dout)
    }
    return(1);
 }
-
+char *name_approx_string_diff_dim(APPROX_STR_DIMS i) {
+   switch (i) {
+      case  LEV:
+         return("LEV");
+      case FLD:
+         return("FLD");
+      case FCD:
+         return("FCD");
+      case PMD:
+         return("PMD");
+      case MWI:
+         return("MWI");
+      case MWL:
+         return("MWL");
+      case IWD:
+         return("IWD");
+      case N_APPROX_STR_DIMS:
+         return("N_DIMS");
+      default:
+         return("FOOL, initialize me!");
+   }
+   return("Very bad situation");     
+}
 char *approx_string_diff_info(APPROX_STR_DIFF *D, APPROX_STR_DIFF_WEIGHTS *Dwi) 
 {
    static char res[10][256];
@@ -3588,7 +3631,8 @@ char *approx_string_diff_info(APPROX_STR_DIFF *D, APPROX_STR_DIFF_WEIGHTS *Dwi)
    
    sprintf(res[icall],"(");
    for (i=0; i<N_APPROX_STR_DIMS; ++i) {
-      sprintf(sbuf,"%dx%f ",D->d[i], Dwi->w[i]); 
+      sprintf(sbuf,"%s %dx%f ", 
+               name_approx_string_diff_dim(i), D->d[i], Dwi->w[i]); 
       strcat(res[icall], sbuf);
    }
    strcat(res[icall],")");
@@ -3950,7 +3994,7 @@ char **approx_str_sort_phelp(char *prog, int *N_ws, char *str,
 void suggest_best_prog_option(char *prog, char *str)
 {
    char **ws=NULL;
-   int N_ws=0, i, isug;
+   int N_ws=0, i, isug, skip=0;
    float *ws_score=NULL;
    APPROX_STR_DIFF *D=NULL;
 
@@ -3970,13 +4014,13 @@ void suggest_best_prog_option(char *prog, char *str)
                    NULL, NULL);
    isug = 0;
    for (i=0; i<N_ws; ++i) {
-      if (isug<3 && 
-       (
-            str[0] != '-' || 
-            ws[i][0]=='-' ||
-         (strlen(ws[i])> 1 && (ws[i][0]=='[' || ws[i][0]=='<') && ws[i][1]=='-') 
-       )
-                     ) {
+      skip=0;
+      if (str[0]=='-') { /* skip results that do not begin with - */
+         depunct_name(ws[i]);
+         if (ws[i][0]!='-') skip = 1;
+         else if (!strncmp(ws[i],"- ",2) || !strncmp(ws[i],"---",3)) skip=1; 
+      }
+      if (isug<3 && !skip)  {
          if (!isug) 
             fprintf(stderr,
       "   Here's hoping these excerpts from '%s -help' enlighten:\n",
