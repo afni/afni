@@ -93,7 +93,7 @@ int main( int argc , char *argv[] )
       "   ++ L2 LASSO             = least sum of squares of errors, with an added\n"
       "       [-l2lasso option]     L1 penalty on the size of the solution parameters\n"
       "   ++ L2 Square Root LASSO = least square root of the sum of squared errors\n"
-      "       [-l2sqrtlasso option] with an L1 penalty on the solution parameters\n"
+      "       [-l2sqrtlasso option] with an added L1 penalty on the solution parameters\n"
       "\n"
       "***** Which fitting method is better?\n"
       "      The answer to that question depends strongly on what you are\n"
@@ -357,7 +357,7 @@ int main( int argc , char *argv[] )
       "                 that value -- in which case, you can try lam = -2 (or so)\n"
       "                 and see if that works well for you.\n"
       "              ++ Or you can use the Square Root LASSO option (next), which\n"
-      "                 does not need any knowledge of sigma when setting lam.\n"
+      "                 (in theory) does not need to know sigma when setting lam.\n"
       "             * Optionally, you can supply a list of parameter indexes\n"
       "               (after 'lam') that should NOT be penalized in the\n"
       "               the fitting process (e.g., traditionally, the mean value\n"
@@ -936,7 +936,8 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcasecmp(argv[iarg],"-l2sqrtlasso") == 0 ||
-         strcasecmp(argv[iarg],"-SQRTLASSO"  ) == 0   ){  /* hidden */
+         strcasecmp(argv[iarg],"-SQRTLASSO"  ) == 0 ||
+         strcasecmp(argv[iarg],"-LASSOSQRT"  ) == 0   ){
        meth = -1 ; ii = 0 ; iarg++ ;
        if( iarg >= argc || ISAL(argv[iarg]) ){
          lasso_flam = DFAL ; ii = 1 ;
