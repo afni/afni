@@ -373,8 +373,11 @@ ENTRY("THD_lasso_L2fit") ;
      /*-- cyclic inner loop over parameters --*/
 
      dsumx = dsum ;
-
+#if 1
      for( dsum=ndel=jj=0 ; jj < nref ; jj++ ){  /* dsum = sum of param deltas */
+#else
+     for( dsum=ndel=0,jj=nref-1 ; jj >= 0 ; jj-- ){  /* dsum = sum of param deltas */
+#endif
 
        if( rsq[jj] == 0.0f ) continue ; /* all zero column!? */
        rj = ref[jj] ;                   /* j-th reference column */
