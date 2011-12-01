@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 30, NOV , 2011 , ZSS , "ConvertDset" , MICRO , TYPE_NEW_OPT,
+   "-pad_to_node 0 now padds output dset to max node in input dset",
+   NULL,
+ },
+ 
  { 29, NOV , 2011 , ZSS , "@clean_help_dir" , MICRO , TYPE_NEW_PROG,
    "Removes redundant help files from the afni help directory.",
    NULL,
