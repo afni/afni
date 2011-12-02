@@ -1627,7 +1627,7 @@ char * SUMA_help_message_Info(void)
    
    SS = SUMA_StringAppend (SS, 
       "    More help at \n"
-      "    http://afni.nimh.nih.gov/pub/dist/doc/SUMA/SUMA_doc.htm\n");
+      "    http://afni.nimh.nih.gov/pub/dist/edu/latest/suma/suma.pdf\n");
    SS = SUMA_StringAppend (SS, 
       "\n");
    
