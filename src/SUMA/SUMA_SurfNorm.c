@@ -72,7 +72,8 @@ See Lab-book NIH-2, page 142 for an illustration or this miserable ascii renditi
 ***/
 static int surf_norm_quiet = 0;
 void set_surf_norm_quiet(int v) { surf_norm_quiet=v; }
-SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList, int N_FaceSetList )
+SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, 
+                              int *FaceSetList, int N_FaceSetList )
 {/*SUMA_SurfNorm*/
    static char stmp[200], FuncName[]={"SUMA_SurfNorm"}; 
    float d1[3], d2[3], d, nrm;
@@ -88,8 +89,10 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
    RetStrct.N_Face = N_FaceSetList;
 
    /* allocate space */
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: %d %d\n", FuncName, N_NodeList, N_FaceSetList);
-   RetStrct.FaceNormList = (float *)SUMA_calloc (N_FaceSetList * NP, sizeof(float));
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,"%s: %d %d\n", FuncName, N_NodeList, N_FaceSetList);
+   RetStrct.FaceNormList = 
+               (float *)SUMA_calloc (N_FaceSetList * NP, sizeof(float));
    RetStrct.NodeNormList = (float *)SUMA_calloc (N_NodeList * ND, sizeof(float));
    Index = (int *)SUMA_calloc (N_NodeList, sizeof(int));
    N_Memb = (int *)SUMA_calloc (N_NodeList, sizeof(int));
@@ -104,15 +107,20 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
    for (i=0; i < N_FaceSetList; i++) {
       ip = NP * i;
       for (j=0; j < 3; j++) {
-         d1[j] = NodeList[(ND*FaceSetList[ip])+j] - NodeList[(ND*FaceSetList[ip+1])+j];
-         d2[j] = NodeList[(ND*FaceSetList[ip+1])+j] - NodeList[(ND*FaceSetList[ip+2])+j];
+         d1[j] =  NodeList[(ND*FaceSetList[ip])+j] - 
+                  NodeList[(ND*FaceSetList[ip+1])+j];
+         d2[j] =  NodeList[(ND*FaceSetList[ip+1])+j] - 
+                  NodeList[(ND*FaceSetList[ip+2])+j];
       }
       RetStrct.FaceNormList[ip  ] = d1[1]*d2[2] - d1[2]*d2[1];
       RetStrct.FaceNormList[ip+1] = d1[2]*d2[0] - d1[0]*d2[2];
       RetStrct.FaceNormList[ip+2] = d1[0]*d2[1] - d1[1]*d2[0];
-      d = sqrt(RetStrct.FaceNormList[ip]*RetStrct.FaceNormList[ip]+RetStrct.FaceNormList[ip+1]*RetStrct.FaceNormList[ip+1]+RetStrct.FaceNormList[ip+2]*RetStrct.FaceNormList[ip+2]);
+      d = sqrt(RetStrct.FaceNormList[ip]*RetStrct.FaceNormList[ip]+
+               RetStrct.FaceNormList[ip+1]*RetStrct.FaceNormList[ip+1]+
+               RetStrct.FaceNormList[ip+2]*RetStrct.FaceNormList[ip+2]);
       if (d == 0.0) {
-         /* I used to return here with a nasty message, but it seems that FreeSurfer surfaces contain such conditions 
+         /* I used to return here with a nasty message, 
+         but it seems that FreeSurfer surfaces contain such conditions 
          So, now I just set the normal to 1.0 in that case */
          /*SUMA_error_message (FuncName,"Zero length vector, returning",1);
          if (RetStrct.FaceNormList) SUMA_free(RetStrct.FaceNormList);

@@ -2,16 +2,19 @@
 
 #define SURFQUAL_MAX_SURF 10  /*!< Maximum number of input surfaces */
 
-void usage_SUMA_SurfQual ()
+void usage_SUMA_SurfQual (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    {
       static char FuncName[]={"usage_SUMA_SurfQual"};
-      char * s = NULL;
+      char * s = NULL, *sio=NULL;
       s = SUMA_help_basics();
+      sio  = SUMA_help_IO_Args(ps);
       printf ( 
 "\nUsage: A program to check the quality of surfaces.\n"
 "  SurfQual <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
 "             <-sphere> [-self_intersect] [-prefix OUTPREF]  \n"
-"\n"
+"\n%s", detail ? "":"use -h or -help for more help detail.\n");
+   if (detail) {
+      printf ( 
 "  Mandatory parameters:\n"
 "     -spec SpecFile: Spec file containing input surfaces.\n"
 "     -surf_X: Name of input surface X where X is a character\n"
@@ -78,20 +81,22 @@ void usage_SUMA_SurfQual ()
 "     software you are using.\n"
 "     - Some warnings may be redundant. That should not hurt you.\n"
 "%s"
-"\n", s);
-       SUMA_free(s); s = NULL;        
-       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
+"\n"
+"%s"
+"\n", (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." , 
+      (detail > 1) ? s : "");
+       if (sio) SUMA_free(sio); s = NULL;        
+       if (s) SUMA_free(s); s = NULL;        
+       if (detail) {
+         s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+         printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
+       }
        exit (0);
    }
+}
 
 typedef struct {
-   SUMA_SO_File_Type iType;
    char *out_prefix;
-   char *sv_name;
-   char *surf_names[SURFQUAL_MAX_SURF];
-   int N_surf;
-   char *spec_file;
    char *surftype;
    int self_intersect;
    int DoSum;
@@ -107,7 +112,8 @@ typedef struct {
                SUMA_free(Opt->out_prefix); 
                SUMA_free(Opt);
 */
-SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
+SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc, 
+                                                 SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_SurfQual_ParseInput"}; 
    SUMA_SURFQUAL_OPTIONS *Opt=NULL;
@@ -121,22 +127,17 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
    Opt = (SUMA_SURFQUAL_OPTIONS *)SUMA_malloc(sizeof(SUMA_SURFQUAL_OPTIONS));
 
    kar = 1;
-   Opt->iType = SUMA_FT_NOT_SPECIFIED;
    Opt->out_prefix = NULL;
-   Opt->sv_name = NULL;
-   Opt->spec_file = NULL;
-   Opt->N_surf = -1;
    Opt->surftype = NULL;
    Opt->self_intersect = 0;
    Opt->DoSum = 0;
    
-   for (i=0; i<SURFQUAL_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
 	brk = NOPE;
    
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_SurfQual();
+			 usage_SUMA_SurfQual(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
 		}
 		
@@ -145,7 +146,8 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
       
       if (!brk && (strcmp(argv[kar], "-sphere") == 0)) {
 			if (Opt->surftype) {
-            SUMA_S_Err("Surface type already specified.\nOnly one type allowed.");
+            SUMA_S_Err( "Surface type already specified.\n"
+                        "Only one type allowed.");
             exit(1);
          }
          Opt->surftype = argv[kar];
@@ -162,16 +164,6 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
 			brk = YUP;
 		}
       
-      if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
-				exit (1);
-			}
-			Opt->spec_file = argv[kar];
-			brk = YUP;
-		}
-            
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -182,26 +174,12 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
 			brk = YUP;
 		}
             
-      if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
-			if (kar + 1>= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
-				exit (1);
-			}
-			ind = argv[kar][6] - 'A';
-         if (ind < 0 || ind >= SURFQUAL_MAX_SURF) {
-            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range.\n");
-				exit (1);
-         }
-         kar ++;
-         Opt->surf_names[ind] = argv[kar];
-         Opt->N_surf = ind+1;
-         brk = YUP;
-		}
-      
-      
-      if (!brk) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
-			exit (1);
+      if (!brk && !ps->arg_checked[kar]) {
+			fprintf (SUMA_STDERR,
+                  "Error %s:\nOption %s not understood. Try -help for usage\n", 
+                  FuncName, argv[kar]);
+			suggest_best_prog_option(argv[0], argv[kar]);
+         exit (1);
 		} else {	
 			brk = NOPE;
 			kar ++;
@@ -209,11 +187,12 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
       
    }
    
-   if (Opt->N_surf < 1) {
+#if 0
+   if (Spec->N_Surfs < 1) {
       SUMA_SL_Err("No surface specified.");
       exit(1);
    }
-      
+#endif      
    SUMA_RETURN (Opt);
      
 }
@@ -224,50 +203,51 @@ int main (int argc,char *argv[])
    char *OutName = NULL, ext[5], *prefix = NULL, *shist=NULL;
    SUMA_SURFQUAL_OPTIONS *Opt; 
    int SO_read = -1;
-   int i, cnt, trouble, consistent = -1, eu = -1, nsi = -1;
+   int i, cnt, trouble, consistent = -1, eu = -1, nsi = -1, N_Spec=0;
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_SurfSpecFile Spec;
+   SUMA_SurfSpecFile *Spec=NULL; 
    void *SO_name = NULL;
    SUMA_Boolean DoConv = NOPE, DoSphQ = NOPE, DoSelfInt = NOPE;   
    SUMA_SPHERE_QUALITY SSQ;
-
+   SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
 	
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
+   
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
    
    memset(&SSQ, 0, sizeof(SUMA_SPHERE_QUALITY));
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    
-   if (argc < 4)
-       {
-          usage_SUMA_SurfQual();
-          exit (1);
-       }
-   
-   Opt = SUMA_SurfQual_ParseInput (argv, argc);
-   
+   Opt = SUMA_SurfQual_ParseInput (argv, argc, ps);
+   if (argc < 2)
+    {
+       SUMA_S_Err("Too few options");
+       usage_SUMA_SurfQual(ps, 0);
+       exit (1);
+    }
+
    /* read all surfaces */
-   if (!SUMA_AllocSpecFields(&Spec)) { SUMA_S_Err("Failed to initialize spec fields."); exit(1); }   
-   if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
-		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
-		exit(1);
-	}
-   SO_read = SUMA_spec_select_surfs(&Spec, Opt->surf_names, SURFQUAL_MAX_SURF, 0);
-   if ( SO_read != Opt->N_surf )
-   {
-	   if (SO_read >=0 )
-         fprintf(SUMA_STDERR,"Error %s:\nFound %d surfaces, expected %d.\n", FuncName,  SO_read, Opt->N_surf);
+   Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
+   if (N_Spec == 0) {
+      SUMA_S_Err("No surfaces found.");
       exit(1);
    }
-   /* now read into SUMAg_DOv */
-   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 0, SUMAg_CF->DsetList) ) {
-	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
+
+   if (N_Spec > 1 ) {
+      SUMA_S_Err( "Mike, you cannot mix -spec with -i or -t options "
+                  "for specifying surfaces.");
       exit(1);
    }
-  
+   
+   if (Spec->N_Surfs < 1) {
+      SUMA_S_Err("No surfaces");
+      exit(1);
+   }
+     
    if (Opt->self_intersect) DoSelfInt = YUP;
 
    DoConv = NOPE;
@@ -280,30 +260,23 @@ int main (int argc,char *argv[])
       }
    }
    
-   for (i=0; i < Opt->N_surf; ++i) {/* loop to read in surfaces */
+   for (i=0; i < Spec->N_Surfs; ++i) {/* loop to read in surfaces */
       /* now identify surface needed */
-      SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[i], SUMAg_DOv, SUMAg_N_DOv);
-      if (!SO) {
-         fprintf (SUMA_STDERR,"Error %s:\n"
-                              "Failed to find surface %s\n"
-                              "in spec file. Use full name.\n",
-                              FuncName, Opt->surf_names[i]);
+      if (!(SO = SUMA_Load_Spec_Surf_with_Metrics(Spec, i, ps->sv[0], 0))) {
+         SUMA_S_Err("Failed to load surface .\n");
          exit(1);
       }
-      
-      if (!SO->EL) SUMA_SurfaceMetrics(SO, "EdgeList", NULL);
-      if (!SO->MF) SUMA_SurfaceMetrics(SO, "MemberFace", NULL);
-      if (!SO->Label) SUMA_SurfaceFileName(SO, NOPE);
-      
-      
+      fprintf(SUMA_STDERR,"\nReport for Surface %s\n", SO->Label);     
       /* do the quality thing based on the Opt->surftype */
       if (!Opt->out_prefix) prefix = SUMA_copy_string(SO->Label);
       else prefix = SUMA_copy_string (Opt->out_prefix);
       
       /* check the winding */
-      if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL, 0, &trouble)) {
-         SUMA_S_Warn("Failed to make sure surface's mesh is consistently wound.\n"
-                     "You should fix the mesh.\n");
+      if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, 
+                                SO->EL, 0, &trouble)) {
+         SUMA_S_Warn(
+            "Failed to make sure surface's mesh is consistently wound.\n"
+            "You should fix the mesh.\n");
          consistent = 0;
       } 
       
@@ -328,7 +301,7 @@ int main (int argc,char *argv[])
             ++iii;
          }
          if (isbad) {
-            if (Opt->N_surf > 1) {
+            if (Spec->N_Surfs > 1) {
             sprintf(ext,"_%c", 65+i);
             OutName = SUMA_append_replace_string (
                            prefix, 
@@ -345,9 +318,10 @@ int main (int argc,char *argv[])
       
       if (DoConv) {
          float *Cx = NULL;
-         if (Opt->N_surf > 1) {
+         if (Spec->N_Surfs > 1) {
             sprintf(ext,"_%c", 65+i);
-            OutName = SUMA_append_replace_string (prefix, "_Conv_detail.1D.dset", ext, 0);
+            OutName = SUMA_append_replace_string 
+                           (prefix, "_Conv_detail.1D.dset", ext, 0);
          } else { 
             OutName = SUMA_append_string (prefix, "_Conv_detail.1D.dset");
          }
@@ -358,7 +332,7 @@ int main (int argc,char *argv[])
       } 
       
       if (DoSphQ) {
-         if (Opt->N_surf > 1) {
+         if (Spec->N_Surfs > 1) {
             sprintf(ext,"_%c", 65+i);
             OutName = SUMA_append_string (prefix, ext);
          } else { 
@@ -370,141 +344,145 @@ int main (int argc,char *argv[])
          if (OutName) SUMA_free(OutName); OutName = NULL;
       }
       
+      if (trouble) { /* put winding problem here to make it visible */
+         fprintf (SUMA_STDERR,"\n");
+         SUMA_S_Warn(
+            "Mesh is not consistent, use ConvertSurface's -make_consistent \n"
+            "option to fix the problem before proceeding further.\n"
+            "Other results reported by this and other programs\n"
+            "may be incorrect if mesh is not consistently wound.\n" ); 
+         consistent = 0;
+      } else {
+         consistent = 1;
+         fprintf (SUMA_STDERR,"\n");
+         fprintf (SUMA_STDERR,"Surface is consistently wound\n");
+      }
+      { 
+         SUMA_EULER_SO(SO, eu);
+         fprintf (SUMA_STDERR,"\n");
+         fprintf(SUMA_STDERR,"Surface Euler Characteristic is: %d\n", eu);
+      }
+      if ((SO->EL->min_N_Hosts == 1 || SO->EL->max_N_Hosts == 1)) {
+            fprintf (SUMA_STDERR,"\n");
+            fprintf(SUMA_STDERR,
+                    "Warning %s:\n"
+                    " Min/Max number of edge hosting triangles: [%d/%d] \n", 
+                    FuncName, SO->EL->min_N_Hosts, SO->EL->max_N_Hosts);
+            fprintf( SUMA_STDERR,
+                     " You have edges that form a border in the surface.\n");
+      }
+      if (SO->EL->min_N_Hosts == 2 && SO->EL->max_N_Hosts == 2) {
+         fprintf (SUMA_STDERR,"\n");
+         fprintf(SUMA_STDERR,"Surface is closed and is a 2-manifold.");
+      }
+      if (SO->EL->min_N_Hosts > 2 || SO->EL->max_N_Hosts > 2) {
+         fprintf (SUMA_STDERR,"\n");
+         fprintf( SUMA_STDERR, 
+                  "Warning %s:\n"
+                  "Min/Max number of edge hosting triangles: [%d/%d] \n", 
+                  FuncName, SO->EL->min_N_Hosts, SO->EL->max_N_Hosts);
+         fprintf(SUMA_STDERR, 
+            "Warning %s:\n"
+            " You have edges that belong to more than two triangles.\n"
+            " Bad for analysis assuming surface is a 2-manifold.\n", 
+            FuncName);
+         if (1) {
+            int iii=0;
+            fprintf( SUMA_STDERR, 
+                     " These edges are formed by the following nodes:\n");
+            for (iii = 0; iii < SO->EL->N_EL; ++iii) { 
+               if (SO->EL->ELps[iii][2] > 2) 
+                  fprintf (SUMA_STDERR,
+                           " %d: Edge [%d %d] shared by %d triangles.\n", 
+                           iii+1, SO->EL->EL[iii][0], SO->EL->EL[iii][1] , 
+                           SO->EL->ELps[iii][2] );
+            }
+         }
+      }
+
+      if (DoSelfInt) {
+         int iii;
+         FILE *fout=NULL;
+         byte *report = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
+         if (!report) {
+            SUMA_SL_Crit("Failed to allocate for report");
+            report = NULL;
+         }  
+         fprintf( SUMA_STDERR, "\n\nChecking for intersections...:\n");
+         nsi = SUMA_isSelfIntersect(SO, 500, report);
+         if (nsi) {
+            fprintf( SUMA_STDERR, 
+                     " Surface is self intersecting.\n"
+                     "%d segments were found to intersect the surface.\n", nsi);
+            if (nsi >= 500) {
+               fprintf( SUMA_STDERR, 
+                        " It is possible that you have additional segments"
+                        " intersecting the surface.\n");
+            }
+            if (report) {
+               if (Spec->N_Surfs > 1) {
+                  sprintf(ext,"_%c", 65+i);
+                  OutName = SUMA_append_replace_string ( prefix, 
+                                                         "_IntersNodes.1D.dset", 
+                                                         ext, 0);
+               } else { 
+                  OutName = SUMA_append_string (prefix, "_IntersNodes.1D.dset");
+               }
+               fout = fopen(OutName, "w");
+               if (fout) {
+                  fprintf(fout,  
+                     "#List of nodes that are part of segments which intersect "
+                     "the surface\n"
+                     "#%s\n"
+                     "#A total of %d segments (search limit is 500) were found to "
+                     "intersect the surface.\n"
+                     "#Col.1 : Node index\n"
+                     "#Col.2 : Dummy flag, always 1\n", 
+                           SUMA_CHECK_NULL_STR(SO->Label), nsi );
+                  for (iii=0; iii<SO->N_Node; ++iii) 
+                     if (report[iii]) fprintf(fout, "%d\t1\n", iii);
+                  fclose(fout); fout = NULL;
+               } else {
+                  SUMA_SL_Err("Failed to open file for output.");
+               }
+               if (OutName) SUMA_free(OutName);
+            }         
+         }else {
+            fprintf(SUMA_STDERR, " Surface is not self intersecting.\n");
+         }   
+         if (report) SUMA_free(report); report = NULL;
+      }
+
+      fprintf (SUMA_STDERR,"\n");
+
+      if (Opt->DoSum) {   /* do not change syntax, scripts depend on this */
+                  fprintf(stdout,"Summary for %s:\n", SO->Label);
+                  fprintf(stdout,"Euler_Charac. %d\n", eu);
+                  fprintf(stdout,"Consistent_Winding %d\n", consistent);
+         if (DoSphQ) {
+                  fprintf(stdout,"Folding_Triangles %d\n", SSQ.N_bad_facesets);
+                  fprintf(stdout,"Sketchy_nodes %d\n", SSQ.N_bad_nodes);
+                     }
+         if (DoSelfInt) 
+                  fprintf(stdout,"Self_Intersections %d\n", nsi);
+                  fprintf(stdout,"\n");
+      }
+      
    }
    
   
-   if (trouble) { /* put winding problem here to make it visible */
-      fprintf (SUMA_STDERR,"\n");
-      SUMA_S_Warn(
-         "Mesh is not consistent, use ConvertSurface's -make_consistent \n"
-         "option to fix the problem before proceeding further.\n"
-         "Other results reported by this and other programs\n"
-         "may be incorrect if mesh is not consistently wound.\n" ); 
-      consistent = 0;
-   } else {
-      consistent = 1;
-      fprintf (SUMA_STDERR,"\n");
-      fprintf (SUMA_STDERR,"Surface is consistently wound\n");
-   }
-   { 
-      SUMA_EULER_SO(SO, eu);
-      fprintf (SUMA_STDERR,"\n");
-      fprintf(SUMA_STDERR,"Surface Euler number is: %d\n", eu);
-   }
-   if ((SO->EL->min_N_Hosts == 1 || SO->EL->max_N_Hosts == 1)) {
-         fprintf (SUMA_STDERR,"\n");
-         fprintf(SUMA_STDERR,
-                 "Warning %s:\n"
-                 " Min/Max number of edge hosting triangles: [%d/%d] \n", 
-                 FuncName, SO->EL->min_N_Hosts, SO->EL->max_N_Hosts);
-         fprintf( SUMA_STDERR,
-                  " You have edges that form a border in the surface.\n");
-   }
-   if (SO->EL->min_N_Hosts == 2 && SO->EL->max_N_Hosts == 2) {
-      fprintf (SUMA_STDERR,"\n");
-      fprintf(SUMA_STDERR,"Surface is closed and is a 2-manifold.");
-   }
-   if (SO->EL->min_N_Hosts > 2 || SO->EL->max_N_Hosts > 2) {
-      fprintf (SUMA_STDERR,"\n");
-      fprintf( SUMA_STDERR, 
-               "Warning %s:\n"
-               "Min/Max number of edge hosting triangles: [%d/%d] \n", 
-               FuncName, SO->EL->min_N_Hosts, SO->EL->max_N_Hosts);
-      fprintf(SUMA_STDERR, 
-         "Warning %s:\n"
-         " You have edges that belong to more than two triangles.\n"
-         " Bad for analysis assuming surface is a 2-manifold.\n", 
-         FuncName);
-      if (1) {
-         int iii=0;
-         fprintf( SUMA_STDERR, 
-                  " These edges are formed by the following nodes:\n");
-         for (iii = 0; iii < SO->EL->N_EL; ++iii) { 
-            if (SO->EL->ELps[iii][2] > 2) 
-               fprintf (SUMA_STDERR,
-                        " %d: Edge [%d %d] shared by %d triangles.\n", 
-                        iii+1, SO->EL->EL[iii][0], SO->EL->EL[iii][1] , 
-                        SO->EL->ELps[iii][2] );
-         }
-      }
-   }
-   
-   if (DoSelfInt) {
-      int iii;
-      FILE *fout=NULL;
-      byte *report = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
-      if (!report) {
-         SUMA_SL_Crit("Failed to allocate for report");
-         report = NULL;
-      }  
-      fprintf( SUMA_STDERR, "\n\nChecking for intersections...:\n");
-      nsi = SUMA_isSelfIntersect(SO, 500, report);
-      if (nsi) {
-         fprintf( SUMA_STDERR, 
-                  " Surface is self intersecting.\n"
-                  "%d segments were found to intersect the surface.\n", nsi);
-         if (nsi >= 500) {
-            fprintf( SUMA_STDERR, 
-                     " It is possible that you have additional segments"
-                     " intersecting the surface.\n");
-         }
-         if (report) {
-            if (Opt->N_surf > 1) {
-               sprintf(ext,"_%c", 65+i);
-               OutName = SUMA_append_replace_string ( prefix, 
-                                                      "_IntersNodes.1D.dset", 
-                                                      ext, 0);
-            } else { 
-               OutName = SUMA_append_string (prefix, "_IntersNodes.1D.dset");
-            }
-            fout = fopen(OutName, "w");
-            if (fout) {
-               fprintf(fout,  
-                  "#List of nodes that are part of segments which intersect "
-                  "the surface\n"
-                  "#%s\n"
-                  "#A total of %d segments (search limit is 500) were found to "
-                  "intersect the surface.\n"
-                  "#Col.1 : Node index\n"
-                  "#Col.2 : Dummy flag, always 1\n", 
-                        SUMA_CHECK_NULL_STR(SO->Label), nsi );
-               for (iii=0; iii<SO->N_Node; ++iii) 
-                  if (report[iii]) fprintf(fout, "%d\t1\n", iii);
-               fclose(fout); fout = NULL;
-            } else {
-               SUMA_SL_Err("Failed to open file for output.");
-            }
-            if (OutName) SUMA_free(OutName);
-         }         
-      }else {
-         fprintf(SUMA_STDERR, " Surface is not self intersecting.\n");
-      }   
-      if (report) SUMA_free(report); report = NULL;
-   }
-   
-   fprintf (SUMA_STDERR,"\n");
-   
-   if (Opt->DoSum) {   /* do not change syntax, scripts depend on this */
-                     fprintf(stdout,"Summary:\n");
-                     fprintf(stdout,"Euler_No %d\n", eu);
-                     fprintf(stdout,"Consistent_Winding %d\n", consistent);
-      if (DoSphQ) {
-                     fprintf(stdout,"Folding_Triangles %d\n", SSQ.N_bad_facesets);
-                     fprintf(stdout,"Sketchy_nodes %d\n", SSQ.N_bad_nodes);
-                  }
-      if (DoSelfInt) fprintf(stdout,"Self_Intersections %d\n", nsi);
-                     fprintf(stdout,"\n");
-   }
    
    SUMA_LH("clean up");
-   if (!SUMA_FreeSpecFields(&Spec)) { SUMA_S_Err("Failed to free spec fields"); }
+   if (!SUMA_FreeSpecFields(Spec)) { SUMA_S_Err("Failed to free spec fields"); }
+   SUMA_free(Spec); Spec = NULL;
    if (prefix) SUMA_free(prefix); prefix = NULL;
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
    if (Opt) SUMA_free(Opt);   
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Err("DO Cleanup Failed!");
    }
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+      SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    
    SUMA_RETURN(0);
 } 

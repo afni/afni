@@ -6,8 +6,8 @@
    #define DO_SCALE 319.7   /*!< scale node coordinates by specified factor. Useful for tesscon coordinate system in iv files*/
 #endif
 
-void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps)
-   {
+void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
+{
       static char FuncName[]={"usage_SUMA_SurfaceMetrics"};
       char * s = NULL, *sio=NULL;
       s = SUMA_help_basics();
@@ -17,7 +17,9 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps)
 "Usage: SurfaceMetrics <-Metric1> [[-Metric2] ...] \n"
 "                  <-SURF_1> \n"
 "                  [-tlrc] [<-prefix prefix>]\n"
-"\n"
+"\n%s", detail ? "":"use -h or -help for more help detail.\n");
+   if (detail) {
+      printf ( 
 "Outputs information about a surface's mesh\n"
 "\n"
 "   -Metric1: Replace -Metric1 with the following:\n"
@@ -177,18 +179,23 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps)
 "                   For more information, see cat_matvec's -P option.\n"
 "                   This option can only be used in conjunction with\n"
 "                   -xmat_1D\n"
+"    -h: Show most of the options\n"
+"    -help: Show all of the options\n"
 "\n"
 "%s"
 "\n"
 "%s"
-"\n", sio, s);
-      SUMA_free(s); s = NULL;
-      SUMA_free(sio); sio = NULL;
-      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-      printf ( "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n"
-               "       Mon May 19 15:41:12 EDT 2003\n"
-               "\n");   
+"\n", 
+   (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." , 
+   (detail > 1) ? s : "" );
+      if (s) SUMA_free(s); s = NULL;
+      if (sio) SUMA_free(sio); sio = NULL;
+      if (detail) {
+         s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+         printf ( "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");   
+      }
    }
+}
 #define SURFACEMETRICS_MAX_SURF 10
 
 int main (int argc,char *argv[])
@@ -214,7 +221,7 @@ int main (int argc,char *argv[])
    char *surf_names[SURFACEMETRICS_MAX_SURF];
    char *spec_file, *histnote;
    char *closest_to_xyz = NULL;
-   int insurf_method = 0, N_surf = 0, ind = 0, quiet=0, randseed;
+   int insurf_method = 0, ind = 0, quiet=0, randseed;
    SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
                   Do_area, Do_edges, Do_vol, Do_sph, NewCent, 
                   Do_cord, Do_TriNorm, Do_TriSine, Do_TriCosine,
@@ -232,12 +239,6 @@ int main (int argc,char *argv[])
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 
-   if (argc > 1 && argc < 4)
-       {
-          SUMA_S_Err("Too few parameters");
-          usage_SUMA_SurfaceMetrics (ps);
-          exit (1);
-       }
    
    MetricList = SUMA_StringAppend (NULL, NULL);
    kar = 1;
@@ -278,7 +279,7 @@ int main (int argc,char *argv[])
 	while (kar < argc) { /* loop accross command ine options */
 		/* fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName); */
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_SurfaceMetrics(ps);
+			 usage_SUMA_SurfaceMetrics(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (1);
 		}
 		
@@ -501,13 +502,20 @@ int main (int argc,char *argv[])
 			fprintf (SUMA_STDERR,
                   "Error %s: Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			exit (1);
+			suggest_best_prog_option(argv[0], argv[kar]);
+         exit (1);
 		} else {	
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+   if (argc < 4)
+    {
+       SUMA_S_Err("Too few parameters");
+       usage_SUMA_SurfaceMetrics (ps, 0);
+       exit (1);
+    }
+
    /* clean MetricList */
    MetricList = SUMA_StringAppend (MetricList, NULL); 
    

@@ -3212,6 +3212,35 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
 
 } /* end SUMA_Load_Spec_Surf */
 
+SUMA_SurfaceObject * SUMA_Load_Spec_Surf_with_Metrics(
+                           SUMA_SurfSpecFile *Spec, 
+                           int i, 
+                           char *tmpVolParName, 
+                           int debug)
+{  
+   static char FuncName[]={"SUMA_Load_Spec_Surf_with_Metrics"};
+   SUMA_SurfaceObject *SO=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!Spec) SUMA_RETURN(SO);
+   
+   if (!(SO = SUMA_Load_Spec_Surf(Spec, i, tmpVolParName, debug))) {
+      SUMA_S_Errv("Failed to find surface %s %s.\n",
+           Spec->CoordFile[i] ? Spec->CoordFile[i]:"NULL??",
+           Spec->TopoFile[i] ? Spec->TopoFile[i]:"");
+      SUMA_RETURN(SO);
+   }
+   
+   if (!SO->EL) SUMA_SurfaceMetrics_eng(SO, "EdgeList", NULL, debug, 
+                                          SUMAg_CF->DsetList);
+   if (!SO->MF) SUMA_SurfaceMetrics_eng(SO, "MemberFace", NULL, debug,  
+                                          SUMAg_CF->DsetList);
+   if (!SO->Label) SUMA_SurfaceFileName(SO, NOPE);
+   
+   SUMA_RETURN(SO);
+}
+
 /*!
    Take a mappable SO , loaded as it would be out of, say, SUMA_Load_Spec_Surf, 
    find its metrics, initialize suma structures and add it to DOv
@@ -5460,7 +5489,7 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
             /* purify the spec */
             n_read = SUMA_spec_select_surfs( &(spec[0+ispec0]), 
                                              ps->s_surfnames, 
-                                             ps->s_N_surfnames, 0);
+                                             ps->s_N_surfnames, LocalHead);
             if (n_read < 1) {
                SUMA_S_Err("Failed to find surfaces in spec file");
                SUMA_free(spec); spec = NULL; *nspec = 0; 
@@ -5468,7 +5497,7 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
             }
             if (LocalHead) {
                fprintf( SUMA_STDERR,
-                        "%s (%s:%d): Read in %d surfaces\n", 
+                        "%s (%s:%d): Selected in %d surfaces\n", 
                         FuncName, __FILE__, __LINE__, n_read);
             }
          }
