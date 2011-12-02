@@ -405,12 +405,17 @@ int main (int argc,char *argv[])
    if (ps->i_N_surfnames || ps->t_N_surfnames) {
       SUMA_LH("-i and/or -t surfaces on command line!");
       Specp[ispec] = SUMA_IO_args_2_spec (ps, &nspec); 
-      if (Specp[ispec]) ++ispec;
-      if (nspec != 1) {
-         SUMA_S_Errv("-spec is being parsed separately here, "
-                     "expecting one spec only from SUMA_IO_args_2_spec, \n"
-                     "got %d\n", nspec);
-         exit (1);
+      if (Specp[ispec]) {
+         ++ispec;
+         if (nspec != 1) {
+            SUMA_S_Errv("-spec is being parsed separately here, "
+                        "expecting one spec only from SUMA_IO_args_2_spec, \n"
+                        "got %d\n", nspec);
+            exit (1);
+         }
+      } else {
+         SUMA_S_Err("Failed to load -i/-t surfaces");
+         exit(1);
       }
       
    }
