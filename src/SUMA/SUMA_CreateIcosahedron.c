@@ -219,6 +219,7 @@ int main (int argc, char *argv[])
          fprintf (SUMA_STDERR,
                   "Error %s: Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
       } else {   
          brk = NOPE;

@@ -7205,11 +7205,11 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_DRAWN_ROI *DrawnROI = NULL;
    static GLuint texName; 
    GLfloat rotationMatrix[4][4];
+   GLenum Face=GL_FRONT;
    SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
    
-      
    SUMA_LH("Poly Mode");
    
    if (  SurfObj->PolyMode == SRM_Hide || 
@@ -7272,7 +7272,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                      glEnable(GL_LIGHT0);
                      glEnable(GL_AUTO_NORMAL);
                      glEnable(GL_NORMALIZE);
-                     glMaterialf(GL_FRONT, GL_SHININESS, 64.0); 
+                     glMaterialf(Face, GL_SHININESS, 64.0); 
                      #endif     
    }
          
@@ -7313,7 +7313,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       case ARRAY:
          /* This allows each node to follow the color 
             specified when it was drawn */ 
-         glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
+         glColorMaterial(Face, GL_AMBIENT_AND_DIFFUSE); 
          glEnable(GL_COLOR_MATERIAL);
          
          /*Now setup various pointers*/
@@ -7416,9 +7416,9 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          if (SurfObj->ShowSelectedNode && SurfObj->SelectedNode >= 0) {
             if (LocalHead) fprintf(SUMA_STDOUT,"Drawing Node Selection \n");
             id = ND * SurfObj->SelectedNode;
-            glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); 
+            glMaterialfv(Face, GL_EMISSION, SurfObj->NodeMarker->sphcol); 
                   /*turn on emissidity for sphere */
-            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+            glMaterialfv(Face, GL_AMBIENT_AND_DIFFUSE, NoColor);
             glTranslatef ( SurfObj->NodeList[id], 
                            SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
             gluSphere(  SurfObj->NodeMarker->sphobj,
@@ -7430,7 +7430,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glTranslatef ( -SurfObj->NodeList[id], 
                            -SurfObj->NodeList[id+1],
                            -SurfObj->NodeList[id+2]);
-            glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
+            glMaterialfv(Face, GL_EMISSION, NoColor); 
                      /*turn off emissidity for axis*/
          }
          
@@ -7927,7 +7927,7 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       SS = SUMA_StringAppend (SS,stmp);
       
       SUMA_EULER_SO(SO, eu);
-      SS = SUMA_StringAppend_va (SS, "Euler No. = %d\n\n", eu);
+      SS = SUMA_StringAppend_va (SS, "Euler Characteristic = %d\n\n", eu);
       
       sprintf (stmp,"Center of Mass: [%.3f\t%.3f\t%.3f]\n", 
                      SO->Center[0], SO->Center[1],SO->Center[2]);

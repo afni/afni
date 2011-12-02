@@ -7456,7 +7456,7 @@ SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes,
    if (verb > 1) LocalHead = YUP;
    if (!NodesSelected || !Full_FaceSetList || !Memb) {
       SUMA_S_Errv("NULL input %p, %p, %p\n",
-                  NodesSelected,Full_FaceSetList, Memb);
+                  NodesSelected, Full_FaceSetList, Memb);
       SUMA_RETURN(NULL);
    }
    
@@ -7781,8 +7781,12 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (
             SUMA_SL_Err("Bad contour mode"); SUMA_RETURN(NULL);
             break;
       }
-   }
-   if (LocalHead) SUMA_ShowPatch (Patch,NULL);
+      if (!Patch) {
+         SUMA_S_Err("Failed to form patch");
+         SUMA_RETURN(NULL);
+      }
+  }
+  if (LocalHead) SUMA_ShowPatch (Patch,NULL);
    
    if (Patch->N_FaceSet) {
       SEL = SUMA_Make_Edge_List_eng (  Patch->FaceSetList, 
@@ -8341,6 +8345,26 @@ double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
    SUMA_RETURN(Vol);
 }
 
+SUMA_Boolean SUMA_FillScaleXform(double xform[][4], double sc[3]) 
+{
+   static char FuncName[]={"SUMA_FillScaleXform"};
+   float a[3], phi, q[4];
+   GLfloat m[4][4];
+   int nrow, ncol, i;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   for(nrow=0;nrow<4;++nrow) 
+      for (ncol=0; ncol<4;++ncol) 
+         xform[nrow][ncol] = 0.0;
+   xform[0][0] = sc[0];
+   xform[1][1] = sc[1];
+   xform[2][2] = sc[2];
+   xform[3][3] = 1.0;
+   
+   SUMA_RETURN(YUP);
+} 
+
 SUMA_Boolean SUMA_FillRandXform(double xform[][4], int seed, int type) 
 {
    static char FuncName[]={"SUMA_FillRandXform"};
@@ -8391,7 +8415,6 @@ SUMA_Boolean SUMA_FillRandXform(double xform[][4], int seed, int type)
          xform[3][0] = 0.0;  
          xform[3][1] = 0.0;  
          xform[3][2] = 0.0;  
-         xform[3][3] = 1.0;
          break;
       default: 
          SUMA_S_Errv("Bad random matrix type %d\n", type);
@@ -8402,6 +8425,8 @@ SUMA_Boolean SUMA_FillRandXform(double xform[][4], int seed, int type)
          break;
 
    }
+   
+   xform[3][3] = 1.0;
 
    
    SUMA_LHv("Random xform type %d, seed %d:\n"

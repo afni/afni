@@ -4,7 +4,10 @@
 
 SUMA_Boolean SUMA_AllocSpecFields (SUMA_SurfSpecFile *Spec);
 SUMA_Boolean SUMA_FreeSpecFields (SUMA_SurfSpecFile *Spec);
-SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *tmpVolParName, int debug);
+SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
+            SUMA_SurfSpecFile *Spec, int i, char *tmpVolParName, int debug);
+SUMA_SurfaceObject * SUMA_Load_Spec_Surf_with_Metrics(
+            SUMA_SurfSpecFile *Spec, int i, char *tmpVolParName, int debug);
 SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov, int *N_dov, int debug, DList *DsetList);
 SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO);
 SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName);

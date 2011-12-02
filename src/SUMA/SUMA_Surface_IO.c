@@ -4240,33 +4240,38 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
 
    switch (SO->FileFormat) {
       case SUMA_BINARY_BE:
-         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_BINARY_BE, &version);
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names,                                                 PLY_BINARY_BE, &version);
          break;
       
       case SUMA_BINARY_LE:
-         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_BINARY_LE, &version);
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, 
+                                    PLY_BINARY_LE, &version);
          break;
       
       case SUMA_ASCII:
-         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_ASCII, &version);
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, 
+                                     PLY_ASCII, &version);
          break;
       
       case SUMA_BINARY:
-         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_BINARY_BE, &version);
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, 
+                                    PLY_BINARY_BE, &version);
          break;
       
       case SUMA_FF_NOT_SPECIFIED:
-         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_ASCII, &version);
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, 
+                                    PLY_ASCII, &version);
          break;      
       
       default:
-         fprintf (SUMA_STDERR, "Error %s: %d Unrecognized file format.\n", FuncName, SO->FileFormat);
-         SUMA_RETURN (NOPE);
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, 
+                                    PLY_ASCII, &version);
          break;  
    }
 
    if (!ply) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to create %s.ply\n", FuncName, f_name);
+      fprintf (SUMA_STDERR,"Error %s: Failed to create %s.ply\n", 
+                           FuncName, f_name);
       if (verts) SUMA_free(verts);
       if (faces) SUMA_free(faces);
       SUMA_RETURN (NOPE);

@@ -326,15 +326,18 @@ int main (int argc,char *argv[])
       fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
       exit(1);
    }
-   SO_read = SUMA_spec_select_surfs(&Spec, Opt.surf_names, SURFPATCH_MAX_SURF, 0);
+   SO_read = SUMA_spec_select_surfs(&Spec, Opt.surf_names, 
+                                     SURFPATCH_MAX_SURF, 0);
    if ( SO_read != Opt.N_surf )
    {
        if (SO_read >=0 )
-          fprintf(SUMA_STDERR,"Error %s:\nFound %d surfaces, expected %d.\n", FuncName,  SO_read, Opt.N_surf);
+          fprintf(SUMA_STDERR,"Error %s:\nFound %d surfaces, expected %d.\n", 
+                              FuncName,  SO_read, Opt.N_surf);
        exit(1);
    }
    /* now read into SUMAg_DOv */
-   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt.sv_name, 0, SUMAg_CF->DsetList) )
+   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt.sv_name, 0, 
+                           SUMAg_CF->DsetList) )
    {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
       exit(1);

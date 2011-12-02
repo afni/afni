@@ -385,14 +385,7 @@ int main (int argc,char *argv[])
 	SUMAg_CF->isGraphical = YUP;
    
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;");
-   #if 0
-   if (argc < 2)
-       {
-          SUMA_usage (ps);
-          exit (1);
-       }
-   #endif
-		
+
    /* initialize Volume Parent and AfniHostName to nothing */
    for (ispec=0; ispec < SUMA_MAX_N_GROUPS; ++ispec) {
       specfilename[ispec] = NULL;

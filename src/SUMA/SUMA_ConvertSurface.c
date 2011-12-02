@@ -3,7 +3,9 @@
 #include "Decompose.c"           /* For testing, put it in library if you'll be using it */
 #endif
 
-void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
+/* store the special names used for xmats */
+static char special_xmats[] = {"RandShift, RandRigid, RandAffine, Scale"}; 
+void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    
   {/*Usage*/
           static char FuncName[]={"usage_SUMA_ConvertSurface"};
@@ -20,6 +22,9 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "    reads in a surface and writes it out in another format.\n"
 "    Note: This is a not a general utility conversion program. \n"
 "    Only fields pertinent to SUMA are preserved.\n"
+"\n%s", detail ? "":"use -h or -help for more help detail.\n");
+   if (detail) {
+      printf ( 
 "%s"
 "\n"
 "  Alternate GIFTI output qualifiers:\n"
@@ -30,40 +35,6 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "     If AFNI_NIML_TEXT_DATA environment variable is set to YES, the\n"
 "     the default is -xml_ascii, otherwise it is -xml_b64\n" 
 "\n"
-/*                  "    -i_TYPE inSurf specifies the input surface, TYPE is one of the following:\n"
-"       fs: FreeSurfer surface. \n"
-"           If surface name has .asc it is assumed to be\n"
-"           in ASCII format. Otherwise it is assumed to be\n"
-"           in BINARY_BE (Big Endian) format.\n"
-"           Patches in Binary format cannot be read at the moment.\n"
-"       sf: SureFit surface. \n"
-"           You must specify the .coord followed by the .topo file.\n"
-"       vec (or 1d): Simple ascii matrix format. \n"
-"            You must specify the NodeList file followed by the FaceSetList file.\n"
-"            NodeList contains 3 floats per line, representing X Y Z vertex coordinates.\n"
-"            FaceSetList contains 3 ints per line, representing v1 v2 v3 triangle vertices.\n"
-"       ply: PLY format, ascii or binary.\n"
-"            Only vertex and triangulation info is preserved.\n"
-"       bv: BrainVoyager format. \n"
-"           Only vertex and triangulation info is preserved.\n"
-"    -ipar_TYPE ParentSurf specifies the parent surface. Only used\n"
-"            when -o_fsp is used, see below.\n"
-"    -o_TYPE outSurf specifies the output surface, TYPE is one of the following:\n"
-"       fs: FreeSurfer ascii surface. \n"
-"       fsp: FeeSurfer ascii patch surface. \n" 
-"            In addition to outSurf, you need to specify\n"
-"            the name of the parent surface for the patch.\n"
-"            using the -ipar_TYPE option\n"
-"       sf: SureFit surface. \n"
-"           You must specify the .coord followed by the .topo file.\n"
-"       vec (or 1D): Simple ascii matrix format. \n"
-"            see help for vec under -i_TYPE options for format specifications.\n"
-"       ply: PLY format, ascii or binary.\n"
-"    -sv SurfaceVolume [VolParam for sf surfaces]\n"
-"       This option must not come before the -i_TYPE option.\n"
-"       If you supply a surface volume, the coordinates of the input surface.\n"
-"        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
-"        You must also specify a VolParam file for SureFit surfaces.\n" */
 "    -orient_out STR: Output coordinates in STR coordinate system. \n"
 "                      STR is a three character string following AFNI's \n"
 "                      naming convention. The program assumes that the   \n"
@@ -126,6 +97,10 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "              a transform on the fly. \n"
 "    -seed SEED: Use SEED to seed the random number generator for random\n"
 "                matrix generation\n"
+"    -XYZscale sX sY sZ: Scale the coordinates by sX sY sZ.\n"
+"                        This option essentially turns sX sY sZ.\n"
+"                        into a -xmat_1D option. So you cannot mix\n"
+"                        and match.\n"
 "    -xcenter x y z: Use vector cen = [x y z]' for rotation center.\n"
 "                    Default is cen = [0 0 0]'\n"
 "    -polar_decomp: Apply polar decomposition to mat and preserve\n"
@@ -134,19 +109,24 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "                   This option can only be used in conjunction with\n"
 "                   -xmat_1D\n"
 "\n"
-"%s\n"
-                  , sio, s); SUMA_free(sio); sio = NULL; SUMA_free(s); s = NULL; 
+"%s"
+"\n", (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." , 
+      (detail > 1) ? s : "");
+       if (sio) SUMA_free(sio); s = NULL;        
+       if (s) SUMA_free(s); s = NULL;        
+       if (detail) {
           s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL; 
-          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \t Wed Jan  8 13:44:29 EST 2003 \n");
+          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");
           exit (0);
+      }
   }/*Usage*/
-   
+}   
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertSurface"}; 
 	int kar, volexists, i, Doinv, randseed;
    float DoR2S;
-   double xcen[3];
+   double xcen[3], sc[3];
    double xform[4][4];
    char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
          *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
@@ -179,12 +159,6 @@ int main (int argc,char *argv[])
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv;-ipar;");
    
-   if (argc < 4)
-       {
-          usage_SUMA_ConvertSurface (ps);
-          exit (1);
-       }
-   
    
    kar = 1;
    xmat_name = NULL;
@@ -209,7 +183,7 @@ int main (int argc,char *argv[])
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_ConvertSurface(ps);
+			 usage_SUMA_ConvertSurface(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
 		}
 		
@@ -226,6 +200,21 @@ int main (int argc,char *argv[])
 			randseed = atoi(argv[kar]); 
 			brk = YUP;
 		}
+
+      if (!brk && (strcmp(argv[kar], "-xyzscale") == 0)) {
+         kar ++;
+			if (kar+2 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 3 values after -XYZscale\n");
+				exit (1);
+			}
+			sc[0] = strtod(argv[kar], NULL); kar ++; 
+			sc[1] = strtod(argv[kar], NULL); kar ++; 
+         sc[2] = strtod(argv[kar], NULL);
+			xmat_name = "Scale";
+         Doxmat = YUP;
+         Doinv = 0;
+         brk = YUP;
+		}
       
       if (!brk && ( (strcmp(argv[kar], "-xmat_1d") == 0) || 
                     (strcmp(argv[kar], "-xmat_1D") == 0) ) ) {
@@ -239,6 +228,7 @@ int main (int argc,char *argv[])
          Doinv = 0;
 			brk = YUP;
 		}
+      
       if (!brk && ( (strcmp(argv[kar], "-ixmat_1d") == 0) || 
                     (strcmp(argv[kar], "-ixmat_1D") == 0) ) ) {
          kar ++;
@@ -346,12 +336,19 @@ int main (int argc,char *argv[])
 			fprintf (SUMA_STDERR,
                   "Error %s: Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			exit (1);
+			suggest_best_prog_option(argv[0], argv[kar]);
+         exit (1);
 		} else {	
 			brk = NOPE;
 			kar ++;
 		}
    }
+   if (argc < 3) {
+        SUMA_S_Err("Too few options");
+        usage_SUMA_ConvertSurface (ps, 0);
+        exit (1);
+   }
+   
    /* transfer info from ps structure (backward compat) */
 
    if (ps->o_N_surfnames) {
@@ -385,83 +382,79 @@ int main (int argc,char *argv[])
    }
    
    if (Do_mni_LPI && Do_mni_RAI) {
-      fprintf (SUMA_STDERR,"Error %s:\nCombining -MNI_lpi and -MNI_rai options.\nNot good.", FuncName);
+      SUMA_S_Err("\nCombining -MNI_lpi and -MNI_rai options.\nNot good.");
       exit(1);
    }
    
    if (!if_name) {
-      fprintf (SUMA_STDERR,"Error %s: input surface not specified.\n", FuncName);
+      SUMA_S_Err("input surface not specified.\n");
       exit(1);
    }
    if (!of_name) {
-      fprintf (SUMA_STDERR,"Error %s: output surface not specified.\n", FuncName);
+      SUMA_S_Err("output surface not specified.\n");
       exit(1);
    }
    if (iType == SUMA_FT_NOT_SPECIFIED) {
-      fprintf (SUMA_STDERR,"Error %s: input type not recognized.\n", FuncName);
+      SUMA_S_Err("input type not recognized.\n");
       exit(1);
    }
    if (oType == SUMA_FT_NOT_SPECIFIED) {
-      fprintf (SUMA_STDERR,"Error %s: output type not recognized.\n", FuncName);
+      SUMA_S_Err("output type not recognized.\n");
       exit(1);
    }
    if (  oType != SUMA_GIFTI && 
          oFormat >= SUMA_XML_SURF && 
          oFormat <= SUMA_XML_B64GZ_SURF){
-      fprintf (SUMA_STDERR,
-               "Error %s: XML output options only valid with -o_gii\n", 
-               FuncName);
+      SUMA_S_Err("XML output options only valid with -o_gii\n");
       exit(1);
    }
    if (iType == SUMA_SUREFIT) {
       if (!if_name2) {
-         fprintf (SUMA_STDERR,
-                  "Error %s: input SureFit surface incorrectly specified.\n", 
-                  FuncName);
+         SUMA_S_Err("input SureFit surface incorrectly specified.\n");
          exit(1);
       }
       if (sv_name && !vp_name) {
-         fprintf (SUMA_STDERR,
-                  "Error %s: VolParent must specified with -sv potion for SureFit surfaces. \n", 
-                  FuncName);
+         SUMA_S_Err("VolParent needs the -sv option for SureFit surfaces.");
          exit(1);
       }
    }
    if (iType == SUMA_VEC) {
       if (!if_name2) {
-         fprintf (SUMA_STDERR,"Error %s: input vec surface incorrectly specified.\n", FuncName);
+         SUMA_S_Err("Input vec surface incorrectly specified.\n");
          exit(1);
       }
    }
 
    if (( Do_mni_RAI || Do_mni_LPI) && !Do_tlrc) {
-      SUMA_SL_Warn ("I hope you know what you're doing.\nThe MNI transform should only be applied to a\nSurface in the AFNI tlrc coordinate space.\n");
+      SUMA_SL_Warn ( "I hope you know what you're doing.\n"
+                     "The MNI transform should only be applied to a\n"
+                     "Surface in the AFNI tlrc coordinate space.\n");
    }
    
    if (Do_acpc && Do_tlrc) {
-      fprintf (SUMA_STDERR,"Error %s: You can't do -tlrc and -acpc simultaneously.\n", FuncName);
+      SUMA_S_Err("You can't do -tlrc and -acpc simultaneously.");
       exit(1);
    }
    
    if ((Doxmat || Docen) && (Do_acpc || Do_tlrc)) {
-      fprintf (SUMA_STDERR,"Error %s: You can't do -tlrc or -acpc with -xmat_1D and -xcenter.\n", FuncName);
+      SUMA_S_Err("You can't do -tlrc or -acpc with -xmat_1D and -xcenter.\n");
       exit(1);
    }
    
    if ((!Doxmat && Docen)) {
-      fprintf (SUMA_STDERR,"Error %s: You can't use -xcenter without -xmat_1D.\n", FuncName);
+      SUMA_S_Err("You can't use -xcenter without -xmat_1D.\n");
       exit(1);
    }
    if (oType == SUMA_SUREFIT) {
       if (!of_name2) {
-       fprintf (SUMA_STDERR,"Error %s: output SureFit surface incorrectly specified. \n", FuncName);
+       SUMA_S_Err("output SureFit surface incorrectly specified. \n");
        exit(1);
       }
    }
    
    if (oType == SUMA_VEC) {
       if (!of_name2) {
-       fprintf (SUMA_STDERR,"Error %s: output vec surface incorrectly specified. \n", FuncName);
+       SUMA_S_Err("output vec surface incorrectly specified. \n");
        exit(1);
       }
    }
@@ -469,34 +462,34 @@ int main (int argc,char *argv[])
    
    /* test for existence of input files */
    if (!SUMA_filexists(if_name)) {
-      fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name);
+      SUMA_S_Errv("if_name %s not found.\n", if_name);
       exit(1);
    }
    
    if (if_name2) {
       if (!SUMA_filexists(if_name2)) {
-         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name2);
+         SUMA_S_Errv("if_name2 %s not found.\n", if_name2);
          exit(1);
       }
    }
 
    if (ifpar_name2) {
       if (!SUMA_filexists(ifpar_name2)) {
-         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, ifpar_name2);
+         SUMA_S_Errv("ifpar_name2 %s not found.\n", ifpar_name2);
          exit(1);
       }
    }
    
    if (ifpar_name) {
       if (!SUMA_filexists(ifpar_name)) {
-         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, ifpar_name);
+         SUMA_S_Errv("ifpar_name %s not found.\n", ifpar_name);
          exit(1);
       }
    }
    
    if (xmat_name) {
-      if (!SUMA_filexists(xmat_name)) {
-         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, xmat_name);
+      if (!strstr(special_xmats,xmat_name) && !SUMA_filexists(xmat_name)) {
+         SUMA_S_Errv("xmat file %s not found.\n", xmat_name);
          exit(1);
       }
    } else {
@@ -568,6 +561,8 @@ int main (int argc,char *argv[])
          SUMA_FillRandXform(xform, randseed, 3);
       } else if (!strcmp(xmat_name,"RandShift")) {
          SUMA_FillRandXform(xform, randseed, 1);
+      } else if (!strcmp(xmat_name,"Scale")) {
+         SUMA_FillScaleXform(xform, sc);
       } else {
          im = mri_read_double_1D (xmat_name);
 
@@ -736,7 +731,7 @@ int main (int argc,char *argv[])
    /* prepare the name of the surface object to read*/
    SO = SUMA_Load_Surface_Object_Wrapper ( if_name, if_name2, vp_name, iType, iForm, sv_name, 1);
    if (!SO) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
+      SUMA_S_Err("Failed to read input surface.\n");
       exit (1);
    }
 
@@ -748,13 +743,15 @@ int main (int argc,char *argv[])
    }
 
    if (ifpar_name) {
-      SOpar = SUMA_Load_Surface_Object_Wrapper ( ifpar_name, ifpar_name2, vp_name, iparType, iparForm, sv_name, 1);
+      SOpar = SUMA_Load_Surface_Object_Wrapper ( ifpar_name, ifpar_name2,
+                                 vp_name, iparType, iparForm, sv_name, 1);
       if (!SOpar) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to read input parent surface.\n", FuncName);
+         SUMA_S_Err("Failed to read input parent surface.\n");
          exit (1);
       }
       /* need edge list */
-      if (!SUMA_SurfaceMetrics_eng (SOpar,"EdgeList", NULL, 0, SUMAg_CF->DsetList)) {
+      if (!SUMA_SurfaceMetrics_eng (SOpar,"EdgeList", NULL, 0, 
+                                    SUMAg_CF->DsetList)) {
          SUMA_SL_Err("Failed to create edgelist for parent");
          exit(1);
       }
@@ -763,11 +760,13 @@ int main (int argc,char *argv[])
    
    /* if Do_wind */
    if (Do_wind) {
-      fprintf (SUMA_STDOUT,"Checking and repairing mesh's winding consistency...\n");
+      fprintf (SUMA_STDOUT,
+         "Checking and repairing mesh's winding consistency...\n");
       /* check the winding, but that won't fix the normals, 
       you'll have to recalculate those things, if need be ... */
-      if (!SUMA_SurfaceMetrics_eng (SO, "CheckWind", NULL, 0, SUMAg_CF->DsetList)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+      if (!SUMA_SurfaceMetrics_eng (SO, "CheckWind", NULL, 0, 
+                                    SUMAg_CF->DsetList)) {
+         SUMA_S_Err("Failed in SUMA_SurfaceMetrics.\n");
          exit(1);
       }   
    }
@@ -776,8 +775,11 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDOUT,"Performing talairach transform...\n");
 
       /* form the tlrc version of the surface volume */
-      tlrc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+strlen(SO->VolPar->prefix)+60, sizeof(char));
-      sprintf (tlrc_name, "%s%s+tlrc.HEAD", SO->VolPar->dirname, SO->VolPar->prefix);
+      tlrc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+
+                                        strlen(SO->VolPar->prefix)+60, 
+                                        sizeof(char));
+      sprintf (tlrc_name, "%s%s+tlrc.HEAD", 
+                           SO->VolPar->dirname, SO->VolPar->prefix);
       if (!SUMA_filexists(tlrc_name)) {
          fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, tlrc_name);
          exit(1);
