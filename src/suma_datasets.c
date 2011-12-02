@@ -12370,7 +12370,11 @@ static ENV_SPEC envlist[] = {
       "rgybr20" },
    {  "Name of color map for VFR datasets produced by SurfRetinoMap\n",
       "SUMA_VFR_DsetColorMap",
-      "afni_n2" }, 
+      "afni_n2" },
+   {  "Coordinate units of surface nodes. Choose from 'mm' or 'cm'\n"
+      "A bad choice can make the surfaces render with many artifacts.\n",
+      "SUMA_NodeCoordsUnits",
+      "mm" }, 
    {  NULL, NULL, NULL  }
 };
       
