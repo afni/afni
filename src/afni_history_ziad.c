@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 2, DEC , 2011 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
+   "Wrote SOLARIS_strcasestr to replace missing strcasestr on SOLARIS",
+   NULL,
+ },
+ 
  { 2, DEC , 2011 , ZSS , "ConvertSurface" , MINOR , TYPE_NEW_OPT,
    "-XYZscale is added to scale the coordinates of a surface",
    "Surface that are not in mm coordinates can look pretty bad in SUMA.\n"

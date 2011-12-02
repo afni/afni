@@ -43,6 +43,8 @@ float SUMA_DimSclFac(char *units, char *specie)
    /* You'll need to set the factor be
       scm = scm * AVERAGE_HUMAN_BRAIN_SIZE/AVERAGE_SPECIE_SIZE */
    
+   /* might also want an automatic fix that guess at what to do */
+   
    SUMA_RETURN(scm);
 }
 
