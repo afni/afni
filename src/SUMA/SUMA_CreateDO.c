@@ -6950,8 +6950,8 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
    Ch->Stipple = SUMA_SOLID_LINE;
    Ch->c[0] = Ch->c[1] = Ch->c[2] = 0.0;
    
-   Ch->g = SUMA_CROSS_HAIR_GAP; 
-   Ch->r = SUMA_CROSS_HAIR_RADIUS; 
+   Ch->g = SUMA_CROSS_HAIR_GAP/SUMA_DimSclFac(NULL, NULL); 
+   Ch->r = SUMA_CROSS_HAIR_RADIUS/SUMA_DimSclFac(NULL, NULL); 
    
    /* create the ball object*/
    Ch->ShowSphere   = YUP;
@@ -6968,7 +6968,7 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
    
    Ch->sphcol[0] = 1.0; Ch->sphcol[1] = 1.0; 
    Ch->sphcol[2] = 0.0; Ch->sphcol[3] = 0.0;
-   Ch->sphrad = SUMA_CROSS_HAIR_SPHERE_RADIUS;
+   Ch->sphrad = SUMA_CROSS_HAIR_SPHERE_RADIUS/SUMA_DimSclFac(NULL, NULL);
    Ch->slices = 10;
    Ch->stacks = 10;
    
