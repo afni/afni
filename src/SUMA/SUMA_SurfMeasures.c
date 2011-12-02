@@ -1662,7 +1662,8 @@ ENTRY("init_options");
 	else
 	{
 	    fprintf(stderr,"invalid option <%s>\n",argv[ac]);
-	    RETURN( usage(PROG_NAME, ST_USE_SHORT) );
+	    suggest_best_prog_option(argv[0], argv[ac]);
+       RETURN( usage(PROG_NAME, ST_USE_SHORT) );
 	}
     }
 

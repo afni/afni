@@ -271,6 +271,7 @@ DList *SUMA_SliceAlongPlane(SUMA_SurfaceObject *SO, float *Eq, float step);
 SUMA_DSET *SUMA_RandomDset(int N_Node, int nc, unsigned int seed, float scale, byte norm); 
 
 SUMA_Boolean SUMA_FillRandXform(double xform[][4], int seed, int type); 
+SUMA_Boolean SUMA_FillScaleXform(double xform[][4], double sc[3]);
 
 float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref, 
                                 int compnum, int rotate);

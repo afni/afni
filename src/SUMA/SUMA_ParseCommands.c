@@ -3185,30 +3185,51 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_FreeGenericArgParse(SUMA_GENERIC_ARGV_PARSE *ps)
    
    if (ps) {
       for (i=0; i<SUMA_MAX_SURF_ON_COMMAND; ++i) {
-         if (ps->t_surfnames[i]) SUMA_free(ps->t_surfnames[i]); ps->t_surfnames[i]= NULL;
-         if (ps->t_surftopo[i]) SUMA_free(ps->t_surftopo[i]); ps->t_surftopo[i]= NULL;
-         if (ps->t_surfpath[i]) SUMA_free(ps->t_surfpath[i]); ps->t_surfpath[i]= NULL;
-         if (ps->t_surfprefix[i]) SUMA_free(ps->t_surfprefix[i]);ps->t_surfprefix[i] = NULL;
+         if (ps->t_surfnames[i]) 
+            SUMA_free(ps->t_surfnames[i]); ps->t_surfnames[i]= NULL;
+         if (ps->t_surftopo[i]) 
+            SUMA_free(ps->t_surftopo[i]); ps->t_surftopo[i]= NULL;
+         if (ps->t_surfpath[i]) 
+            SUMA_free(ps->t_surfpath[i]); ps->t_surfpath[i]= NULL;
+         if (ps->t_surfprefix[i]) 
+            SUMA_free(ps->t_surfprefix[i]);ps->t_surfprefix[i] = NULL;
          if (ps->t_state[i]) SUMA_free(ps->t_state[i]);ps->t_state[i] = NULL;
-         if (ps->i_surfnames[i]) SUMA_free(ps->i_surfnames[i]); ps->i_surfnames[i]= NULL;
-         if (ps->i_surftopo[i]) SUMA_free(ps->i_surftopo[i]); ps->i_surftopo[i]= NULL;
-         if (ps->i_surfpath[i]) SUMA_free(ps->i_surfpath[i]); ps->i_surfpath[i]= NULL;
-         if (ps->i_surfprefix[i]) SUMA_free(ps->i_surfprefix[i]);ps->i_surfprefix[i] = NULL;
+         if (ps->i_surfnames[i]) 
+            SUMA_free(ps->i_surfnames[i]); ps->i_surfnames[i]= NULL;
+         if (ps->i_surftopo[i]) 
+            SUMA_free(ps->i_surftopo[i]); ps->i_surftopo[i]= NULL;
+         if (ps->i_surfpath[i]) 
+            SUMA_free(ps->i_surfpath[i]); ps->i_surfpath[i]= NULL;
+         if (ps->i_surfprefix[i]) 
+            SUMA_free(ps->i_surfprefix[i]);ps->i_surfprefix[i] = NULL;
          if (ps->i_state[i]) SUMA_free(ps->i_state[i]);ps->i_state[i] = NULL;
-         if (ps->ipar_surfnames[i]) SUMA_free(ps->ipar_surfnames[i]); ps->ipar_surfnames[i]= NULL;
-         if (ps->ipar_surftopo[i]) SUMA_free(ps->ipar_surftopo[i]); ps->ipar_surftopo[i]= NULL;
-         if (ps->ipar_surfpath[i]) SUMA_free(ps->ipar_surfpath[i]); ps->ipar_surfpath[i]= NULL;
-         if (ps->ipar_surfprefix[i]) SUMA_free(ps->ipar_surfprefix[i]);ps->ipar_surfprefix[i] = NULL;
-         if (ps->ipar_state[i]) SUMA_free(ps->ipar_state[i]);ps->ipar_state[i] = NULL;
-         if (ps->o_surfnames[i]) SUMA_free(ps->o_surfnames[i]); ps->o_surfnames[i]= NULL;
-         if (ps->o_surftopo[i]) SUMA_free(ps->o_surftopo[i]); ps->o_surftopo[i]= NULL;
-         if (ps->o_surfpath[i]) SUMA_free(ps->o_surfpath[i]); ps->o_surfpath[i]= NULL;
-         if (ps->o_surfprefix[i]) SUMA_free(ps->o_surfprefix[i]);ps->o_surfprefix[i] = NULL;
+         if (ps->ipar_surfnames[i]) 
+            SUMA_free(ps->ipar_surfnames[i]); ps->ipar_surfnames[i]= NULL;
+         if (ps->ipar_surftopo[i]) 
+            SUMA_free(ps->ipar_surftopo[i]); ps->ipar_surftopo[i]= NULL;
+         if (ps->ipar_surfpath[i]) 
+            SUMA_free(ps->ipar_surfpath[i]); ps->ipar_surfpath[i]= NULL;
+         if (ps->ipar_surfprefix[i]) 
+            SUMA_free(ps->ipar_surfprefix[i]);ps->ipar_surfprefix[i] = NULL;
+         if (ps->ipar_state[i]) 
+            SUMA_free(ps->ipar_state[i]);ps->ipar_state[i] = NULL;
+         if (ps->o_surfnames[i]) 
+            SUMA_free(ps->o_surfnames[i]); ps->o_surfnames[i]= NULL;
+         if (ps->o_surftopo[i]) 
+            SUMA_free(ps->o_surftopo[i]); ps->o_surftopo[i]= NULL;
+         if (ps->o_surfpath[i]) 
+            SUMA_free(ps->o_surfpath[i]); ps->o_surfpath[i]= NULL;
+         if (ps->o_surfprefix[i]) 
+            SUMA_free(ps->o_surfprefix[i]);   ps->o_surfprefix[i] = NULL;
          if (ps->o_state[i]) SUMA_free(ps->o_state[i]);ps->o_state[i] = NULL;
-         if (ps->s_surfnames[i]) SUMA_free(ps->s_surfnames[i]); ps->s_surfnames[i]= NULL;
-         if (ps->s_surfprefix[i]) SUMA_free(ps->s_surfprefix[i]);ps->s_surfprefix[i] = NULL;
-         if (ps->s_surfpath[i]) SUMA_free(ps->s_surfpath[i]); ps->s_surfpath[i]= NULL;
-         if (ps->spec_names[i]) SUMA_free(ps->spec_names[i]); ps->spec_names[i] = NULL;
+         if (ps->s_surfnames[i]) 
+            SUMA_free(ps->s_surfnames[i]); ps->s_surfnames[i]= NULL;
+         if (ps->s_surfprefix[i]) 
+            SUMA_free(ps->s_surfprefix[i]);ps->s_surfprefix[i] = NULL;
+         if (ps->s_surfpath[i]) 
+            SUMA_free(ps->s_surfpath[i]); ps->s_surfpath[i]= NULL;
+         if (ps->spec_names[i]) 
+            SUMA_free(ps->spec_names[i]); ps->spec_names[i] = NULL;
          if (ps->sv[i]) SUMA_free(ps->sv[i]); ps->sv[i] = NULL;
          if (ps->vp[i]) SUMA_free(ps->vp[i]); ps->vp[i] = NULL;
       }
@@ -4046,13 +4067,18 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
 			      exit (1);
 		      }
 		      ind = argv[kar][6] - 'A';
-            if (ind < 0 || ind >= 'Z') {
+            if (ind < 0 || ind >= ('Z'-'A')) {
                fprintf (SUMA_STDERR,   
                         "Error %s:\n -surf_X SURF_NAME option is out of range.\n"
                         "Only %d surfaces are allowed. \n"
                         "Must start with surf_A for first surface.\n", 
-                        FuncName, 'Z');
+                        FuncName, ('Z'-'A'));
 			      exit (1);
+            }
+            if (ps->s_surfnames[ind]) {
+               SUMA_S_Errv("It looks like %s has been used already.\n",
+                           argv[kar]);
+               exit(1);
             }
             kar ++;
             ps->arg_checked[kar]=1;
@@ -4060,7 +4086,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->s_surfnames[ps->s_N_surfnames+ind] = SUMA_copy_string(argv[kar]);
+            ps->s_surfnames[ind] = SUMA_copy_string(argv[kar]);
+            
             ++ps->s_N_surfnames;
             brk = YUP;
 	      } 

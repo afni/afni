@@ -2713,7 +2713,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_SetLight0Pos:
             /* expects light XYZ position in fv[3] */
             if (EngineData->fv3_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                  "Error %s: Data not destined correctly for %s (%d).\n",
+                     FuncName, NextCom, NextComCode);
                break;
             }
             sv->light0_position[0] = EngineData->fv3[0];
