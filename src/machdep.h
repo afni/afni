@@ -271,6 +271,8 @@ extern long   strtol() ;
 # define DONT_USE_MATRIX_MAT  /* 04 Mar 2005 */
 # undef  DONT_USE_HTMLWIN     /* 08 Jul 2011 */
 # define UNFONTIZE_HTMLWIN    /* 08 Jul 2011 */
+# define strcasestr SOLARIS_strcasestr 
+
 
 #ifdef SOLARIS_OLD            /* 03 Feb 2009 [rickr] */
 # define fabsf  fabs          /* 09 Jul 2007 */
@@ -423,5 +425,6 @@ extern void init_rand_seed( long int seed ) ; /* 15 Apr 2009 (cf machdep.c) */
 
 extern int machdep_be_quiet(void) ;  /* 08 Dec 2010 */
 extern char * GetAfniWebBrowser(void);
+extern char *SOLARIS_strcasestr(const char *s1, const char *s2);
 
 #endif /* _MCW_MACHDEP_ */

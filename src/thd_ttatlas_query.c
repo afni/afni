@@ -3481,7 +3481,9 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
       Saad and Sad will get a 9, given the weight I usually give
       to partial matches, this would hurt a lot with this constraint */
       D.d[PMD] = 9;
-      if (ns > 3) {
+      if (ns > 3 ||
+          /* allow it if it looks like we're looking for options */
+          (ns > 1 && s1[0] == '-' && s2[0] == '-')) {
          /* strcasestr won't work on Solaris, too bad */
          if (ci) spart = strcasestr(sl, ss);
          else spart = strstr(sl, ss);
@@ -3997,7 +3999,8 @@ void suggest_best_prog_option(char *prog, char *str)
    int N_ws=0, i, isug, skip=0;
    float *ws_score=NULL;
    APPROX_STR_DIFF *D=NULL;
-
+   char *cwsi=NULL;
+   
    if (getenv("AFNI_NO_OPTION_HINT")) return;
 
    if (str[0] != '-') {
@@ -4016,9 +4019,13 @@ void suggest_best_prog_option(char *prog, char *str)
    for (i=0; i<N_ws; ++i) {
       skip=0;
       if (str[0]=='-') { /* skip results that do not begin with - */
-         depunct_name(ws[i]);
-         if (ws[i][0]!='-') skip = 1;
-         else if (!strncmp(ws[i],"- ",2) || !strncmp(ws[i],"---",3)) skip=1; 
+         cwsi = strdup(ws[i]);
+         depunct_name(cwsi);
+         if (cwsi[0]!='-') skip = 1;
+         else if (!strncmp(cwsi,"- ",2) || !strncmp(cwsi,"---",3) ||
+                 (strlen(str)>1 && str[1] != '-' && !strncmp(cwsi,"--",2)))
+                     skip=1;
+         free(cwsi); cwsi=NULL; 
       }
       if (isug<3 && !skip)  {
          if (!isug) 

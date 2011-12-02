@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 2, DEC , 2011 , ZSS , "ConvertSurface" , MINOR , TYPE_NEW_OPT,
+   "-XYZscale is added to scale the coordinates of a surface",
+   "Surface that are not in mm coordinates can look pretty bad in SUMA.\n"
+   "This scaling option can be used to easily change coordinates from cm to mm\n"
+   "for example.",
+ },
+ 
  { 30, NOV , 2011 , ZSS , "ConvertDset" , MICRO , TYPE_NEW_OPT,
    "-pad_to_node 0 now padds output dset to max node in input dset",
    NULL,

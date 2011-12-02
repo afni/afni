@@ -11783,7 +11783,7 @@ char *SUMA_help_basics()
       "  NOTE: For programs that output results to stdout\n"
       "    (that is to your shell/screen), the debugging info\n"
       "    might get mixed up with your results.\n" 
-      " \n"
+      "\n"
       "\n"
       "Global Options (available to all AFNI/SUMA programs)\n"
       "%s",
