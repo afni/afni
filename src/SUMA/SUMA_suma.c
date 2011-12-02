@@ -382,6 +382,7 @@ int main (int argc,char *argv[])
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
+   
 	SUMAg_CF->isGraphical = YUP;
    
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;");

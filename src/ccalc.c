@@ -14,10 +14,6 @@
 #include "readline.h"
 #endif
 
-#ifdef SOLARIS
-# define strcasestr strstr  /* stupid Solaris */
-#endif
-
 int main( int argc , char * argv[] )
 {
    PARSER_code * pcode ;

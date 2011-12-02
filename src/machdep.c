@@ -177,3 +177,38 @@ char * Random_Insult(void)
    int ii = (lrand48()>>5) % NINSULT ;
    return ins[ii] ;
 }
+
+/*---------------------------------------------------------------------------*/
+#define SOL_TO_LOWER(c) ( ((c) >= 'A' && (c) <= 'Z') ? (c + 'a' - 'A') : (c) )
+char *SOLARIS_strcasestr(const char *s1, const char *s2)
+{
+   char *s1u=NULL;
+   char *s2u=NULL;
+   char *so=NULL;
+   int off=0;
+   int i = 0;
+   
+   if (!s1 || !s2 || s2[0] == '\0') 
+      return(strstr(s1,s2)); /* let it fail as in strstr 
+                                You will get death if s2 is NULL */
+   
+   if (!(s1u = strdup(s1))) {
+      fprintf(stderr,"SOLARIS_strcasestr: Failed to dup string 1\n");
+      return(NULL);
+   }
+   if (!(s2u = strdup(s2))) {
+      fprintf(stderr,"SOLARIS_strcasestr: Failed to dup string 2\n");
+      free(s1u);
+      return(NULL);
+   }
+   i=0; while (s1u[i]!='\0') { s1u[i] = SOL_TO_LOWER(s1u[i]); ++i; }
+   i=0; while (s2u[i]!='\0') { s2u[i] = SOL_TO_LOWER(s2u[i]); ++i; }
+   
+   so = strstr(s1u,s2u);
+   off=0;
+   if (so)  off = so-s1u;
+   free(s1u); free(s2u);
+    
+   if (so) return((char*)s1+off);
+   return(NULL);
+}

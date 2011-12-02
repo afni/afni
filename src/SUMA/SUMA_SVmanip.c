@@ -1,4 +1,3 @@
-
 #include "SUMA_suma.h"
 
 extern SUMA_CommonFields *SUMAg_CF;
@@ -6,6 +5,46 @@ extern int SUMAg_N_DOv;
 extern SUMA_DO *SUMAg_DOv;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
+
+/*!
+   SUMA's viewing paramters are tuned to show human brains in mm units.
+   When a human surface is entered in cm units, some scaling needs to be
+   done so that the surface appears nice. 
+   For example, in the cm vs mm case, I got nasty shading errors because
+   the viewing distance was too far.
+   A similar problem might arise if the surface is very small, like a rat's
+   for example. So there should be some scaling needed for other species.
+*/
+float SUMA_DimSclFac(char *units, char *specie) 
+{
+   static char FuncName[]={"SUMA_DimSclFac"};
+   float scm=1.0;
+   
+   SUMA_ENTRY;
+   
+   scm = 1.0;
+   
+   if (!units) units = SUMA_EnvVal("SUMA_NodeCoordsUnits");
+   /* scaling for units */
+   if (units) {
+      if (!strcasecmp(units,"mm")) {
+         scm = 1.0;
+      } else if (!strcasecmp(units,"cm")) {
+         scm = 10.0;
+      } else {
+         SUMA_S_Warnv(
+            "Bad value of '%s' for units variable or\n"
+            " ENV 'SUMA_NodeCoordsUnits'. Using 'mm'\n",
+            units);
+      }
+   }
+   
+   /* scaling for species - not sure what to do yet. Wait until it is needed */
+   /* You'll need to set the factor be
+      scm = scm * AVERAGE_HUMAN_BRAIN_SIZE/AVERAGE_SPECIE_SIZE */
+   
+   SUMA_RETURN(scm);
+}
 
 /*!
    \brief a function that returns the first viewer that is in momentum mode 
@@ -26,7 +65,8 @@ extern int SUMAg_N_SVv;
       else sprintf(slabel,"[DOH] SUMA");
 */
 
-int SUMA_WhichViewerInMomentum(SUMA_SurfaceViewer *SVv, int N_SV, SUMA_SurfaceViewer *sv) 
+int SUMA_WhichViewerInMomentum(SUMA_SurfaceViewer *SVv, int N_SV, 
+                               SUMA_SurfaceViewer *sv) 
 {
    static char FuncName[]={"SUMA_WhichViewerInMomentum"};
    int ii = -1;
@@ -96,7 +136,8 @@ float SUMA_sv_fov_original(SUMA_SurfaceViewer *sv)
       SUMA_S_Errv("max dim too strange (%f)\nUsing default (%f).", mxdim, fov);
    }
    
-
+   fov = fov * SUMA_DimSclFac(NULL, NULL);
+   
    SUMA_RETURN(fov);
 }
 
@@ -1084,8 +1125,9 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
       SV->GVS[SV->StdView].ViewFrom[0] = SV->GVS[SV->StdView].ViewCenter[0];
       SV->GVS[SV->StdView].ViewFrom[1] = SV->GVS[SV->StdView].ViewCenter[1];
       SV->GVS[SV->StdView].ViewFrom[2] = SV->GVS[SV->StdView].ViewCenter[2]+
-                                             SUMA_DEFAULT_VIEW_FROM;   
-      SV->GVS[SV->StdView].ViewDistance = SUMA_DEFAULT_VIEW_FROM;   
+                            SUMA_DEFAULT_VIEW_FROM/SUMA_DimSclFac(NULL, NULL);   
+      SV->GVS[SV->StdView].ViewDistance = 
+                            SUMA_DEFAULT_VIEW_FROM/SUMA_DimSclFac(NULL, NULL);   
       
    } else
    {/* default back to o.o, o.o, o.o */
@@ -1094,8 +1136,10 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
       SV->GVS[SV->StdView].ViewCenter[2] = 0.0;
       SV->GVS[SV->StdView].ViewFrom[0] = 
       SV->GVS[SV->StdView].ViewFrom[1] = 0.0; 
-      SV->GVS[SV->StdView].ViewFrom[2] = SUMA_DEFAULT_VIEW_FROM;
-      SV->GVS[SV->StdView].ViewDistance = SUMA_DEFAULT_VIEW_FROM;   
+      SV->GVS[SV->StdView].ViewFrom[2] = 
+                            SUMA_DEFAULT_VIEW_FROM/SUMA_DimSclFac(NULL, NULL);
+      SV->GVS[SV->StdView].ViewDistance = 
+                            SUMA_DEFAULT_VIEW_FROM/SUMA_DimSclFac(NULL, NULL);   
    }
    
       /* Store that info in case subjects change things */
@@ -1230,6 +1274,8 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   Aspect = %f\n", SV->Aspect);
    SS = SUMA_StringAppend_va( SS,"   Freeze Zoom across states = %d\n",
                                SV->FreezeZoomXstates);
+   SS = SUMA_StringAppend_va(SS, "   ViewDistance = %f\n",
+                                 SV->GVS[SV->StdView].ViewDistance);
    SS = SUMA_StringAppend_va(SS, "   ViewFrom = [%f %f %f]\n",
                                  SV->GVS[SV->StdView].ViewFrom[0],
                                  SV->GVS[SV->StdView].ViewFrom[1],
