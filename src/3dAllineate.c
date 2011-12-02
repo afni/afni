@@ -23,10 +23,6 @@
 #endif
 #endif
 
-#ifdef SOLARIS
-# define strcasestr strstr  /* stupid Solaris */
-#endif
-
 #define MAXPAR   999
 #define PARC_FIX 1
 #define PARC_INI 2

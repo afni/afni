@@ -56,7 +56,9 @@ void *SUMA_FreeDrawROIStruct (SUMA_X_DrawROI *DrawROI);
 void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv); 
 void SUMA_UpdateAllViewerCursor(void); 
 void SUMA_UpdateViewerCursor(SUMA_SurfaceViewer *sv); 
-int SUMA_WhichViewerInMomentum(SUMA_SurfaceViewer *SVv, int N_SV, SUMA_SurfaceViewer *sv);
+float SUMA_DimSclFac(char *units, char *specie);
+int SUMA_WhichViewerInMomentum(SUMA_SurfaceViewer *SVv, 
+                               int N_SV, SUMA_SurfaceViewer *sv);
 int SUMA_WhichGroup (SUMA_CommonFields *cf, char *nm);
 SUMA_Boolean SUMA_RegisterGroup (SUMA_CommonFields *cf, SUMA_SurfSpecFile *spec);
 SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleGroupList (SUMA_SurfaceViewer *sv); 
