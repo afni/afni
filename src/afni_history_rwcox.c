@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , DEC , 2011 , RWC , "p2t" , MICRO , TYPE_GENERAL ,
+  { 2 , DEC , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
+   "Add -ortvec option (to appease the Inati)" ,
+   "Lets the pitiful user add multiple baseline (i.e., ort) vectors from a\n"
+   "single file." } ,
+
+ { 1 , DEC , 2011 , RWC , "p2t" , MICRO , TYPE_GENERAL ,
    "Remove this program from AFNI binary distributions" ,
    NULL } ,
 

@@ -498,6 +498,10 @@ typedef struct {
   char *name , *symfun , *option ;
 } basis_expansion ;
 
+/** Extra baseline orts **/
+
+static MRI_IMARR *ortar = NULL ;  /* 02 Dec 2011 */
+
 /** Prototypes for some basis expansion functions appearing (much) later. **/
 
 basis_expansion * basis_parser( char *sym ) ;
@@ -989,10 +993,15 @@ void display_help_menu()
     "-num_stimts num      num = number of input stimulus time series        \n"
     "                       (0 <= num)   [default: num = 0]                 \n"
     "               *N.B.: '-num_stimts' must come before any of the        \n"
-    "                      following 'stim' options!                        \n"
-    "               *N.B.: Most 'stim' options have as their first argument \n"
+    "                      following '-stim' options!                       \n"
+    "               *N.B.: Most '-stim' options have as their first argument\n"
     "                      an integer 'k', ranging from 1..num, indicating  \n"
     "                      which stimulus class the argument is defining.   \n"
+    "               *N.B.: The purpose of requiring this option is to make  \n"
+    "                      sure your model is complete -- that is, you say  \n"
+    "                      you are giving 5 '-stim' options, and then the   \n"
+    "                      program makes sure that all of them are given    \n"
+    "                      -- that is, that you don't forget something.     \n"
     "                                                                       \n"
     "-stim_file k sname   sname = filename of kth time series input stimulus\n"
     "               *N.B.: This option directly inserts a column into the   \n"
@@ -1010,13 +1019,33 @@ void display_help_menu()
     "               *N.B.: 'Baseline model' == Null Hypothesis model        \n"
     "               *N.B.: The most common baseline components to add are   \n"
     "                      the 6 estimated motion parameters from 3dvolreg. \n"
-    "                                                                       \n"
+    "\n"
+    "-ortvec fff lll      This option lets you input a rectangular array    \n"
+    "                     of 1 or more baseline vectors from file 'fff',    \n"
+    "                     which will get the label 'lll'.  Functionally,    \n"
+    "                     it is the same as using '-stim_file' on each      \n"
+    "                     column of 'fff' separately (plus '-stim_base').   \n"
+    "                     This method is just a faster and simpler way to   \n"
+    "                     include a lot of baseline regressors in one step. \n"
+    "          -->>**N.B.: This file is NOT included in the '-num_stimts'   \n"
+    "                      count that you provide.                          \n"
+    "               *N.B.: These regression matrix columns appear LAST      \n"
+    "                      in the matrix, after everything else.            \n"
+    "               *N.B.: You can use column '[..]' and/or row '{..}'      \n"
+    "                      selectors on the filename 'fff' to pick out      \n"
+    "                      a subset of the numbers in that file.            \n"
+    "               *N.B.: The q-th column of 'fff' will get a label        \n"
+    "                      like 'lll[q]' in the 3dDeconvolve results.       \n"
+    "               *N.B.: This option is known as the 'Inati Option'.      \n"
+    "               *N.B.: Unlike the original 'Inati', it is allowed to    \n"
+    "                      have more than one '-ortvec' option.             \n"
+    "\n"
     "**N.B.: The following 3 options are for the 'old' style of explicit    \n"
     "        deconvolution.  For most purposes, their usage is no longer    \n"
     "        recommended.  Instead, you should use the '-stim_times' options\n"
     "        to directly input the stimulus times, rather than code the     \n"
     "        stimuli as a sequence of 0s and 1s in this 'old' method!       \n"
-    "                                                                       \n"
+    "\n"
     "[-stim_minlag k m]   m = minimum time lag for kth input stimulus       \n"
     "                       [default: m = 0]                                \n"
     "[-stim_maxlag k n]   n = maximum time lag for kth input stimulus       \n"
@@ -1741,8 +1770,7 @@ void initialize_stim_options
 ENTRY("initialize_stim_options") ;
 
   /*----- Set number of input stimulus time series -----*/
-  if (num_stimts <= 0)  EXRETURN ;
-  else  option_data->num_stimts = num_stimts;
+  option_data->num_stimts = num_stimts;
 
 
   /*----- Allocate memory for stimulus options -----*/
@@ -1796,6 +1824,58 @@ ENTRY("initialize_stim_options") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+void extend_stim_options( DC_options *option_data , int nadd )
+{
+  int is , num_old , num_new ;
+
+ENTRY("extend_stim_options") ;
+
+  if( option_data == NULL || nadd <= 0 ) EXRETURN ;
+
+
+  num_old = option_data->num_stimts ;
+  num_new = num_old + nadd ;
+
+  option_data->stim_filename  = (char **)realloc(option_data->stim_filename ,sizeof(char *)*num_new);
+  option_data->stim_label     = (char **)realloc(option_data->stim_label    ,sizeof(char *)*num_new);
+  option_data->stim_base      = (int *)  realloc(option_data->stim_base     ,sizeof(int)   *num_new);
+  option_data->stim_minlag    = (int *)  realloc(option_data->stim_minlag   ,sizeof(int)   *num_new);
+  option_data->stim_maxlag    = (int *)  realloc(option_data->stim_maxlag   ,sizeof(int)   *num_new);
+  option_data->stim_nptr      = (int *)  realloc(option_data->stim_nptr     ,sizeof(int)   *num_new);
+  option_data->iresp_filename = (char **)realloc(option_data->iresp_filename,sizeof(char *)*num_new);
+  option_data->sresp_filename = (char **)realloc(option_data->sresp_filename,sizeof(char *)*num_new);
+  option_data->slice_base     = (int *)  realloc(option_data->slice_base    ,sizeof(int)   *num_new);
+
+  basis_stim  = (basis_expansion **)realloc(basis_stim ,sizeof(basis_expansion *)*num_new);
+  basis_times = (MRI_IMAGE **)      realloc(basis_times,sizeof(MRI_IMAGE *)      *num_new);
+  basis_vect  = (MRI_IMAGE **)      realloc(basis_vect ,sizeof(MRI_IMAGE *)      *num_new);
+
+  for (is = num_old;  is < num_new;  is++)
+    {
+      option_data->stim_filename[is] = NULL;
+      option_data->stim_label[is] = malloc (sizeof(char)*THD_MAX_NAME);
+      sprintf (option_data->stim_label[is], "Stim#%d", is+1);
+
+      option_data->stim_base[is]    = 0;
+      option_data->stim_minlag[is]  = 0;
+      option_data->stim_maxlag[is]  = 0;
+      option_data->stim_nptr[is]    = 1;
+      option_data->slice_base[is]   = 0;
+
+      option_data->iresp_filename[is] = NULL;
+      option_data->sresp_filename[is] = NULL;
+
+      basis_stim [is] = NULL ;
+      basis_times[is] = NULL ;
+      basis_vect [is] = NULL ;
+    }
+
+   option_data->num_stimts = num_new ;
+
+   EXRETURN ;
+}
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -2634,6 +2714,7 @@ void get_options
         nopt++ ; continue ;
       }
 
+#if 0
       /*-----   -slice_base k sname  [12 Aug 2005] ------*/
 
       if( strcmp(argv[nopt],"-slice_base") == 0 ){
@@ -2659,6 +2740,7 @@ void get_options
         nopt++;
         continue;
       }
+#endif
 
       /*-----   -stim_file k sname   -----*/
       if (strcmp(argv[nopt], "-stim_file") == 0)
@@ -2704,6 +2786,22 @@ void get_options
         nopt++; continue;
       }
 
+      /*-----   -ortvec filename label   -----*/
+      if( strcasecmp(argv[nopt],"-ortvec") == 0 ){
+        MRI_IMAGE *oim ;
+        if( ++nopt >= argc-1 ) DC_error ("need 2 arguments after -ortvec") ;
+        oim = mri_read_1D( argv[nopt] ) ;
+        if( oim == NULL ) ERROR_exit("3dDeconvolve: -ortvec can't read file '%s'",argv[nopt]) ;
+        if( oim->nx < 2 ) ERROR_exit("3dDeconvolve: -ortvec %s has nx < 2"       ,argv[nopt]) ;
+        nopt++ ;
+        if( argv[nopt][0] != '-' && THD_filename_ok(argv[nopt]) )
+          mri_add_name( argv[nopt] , oim ) ;
+        else
+          mri_add_name( "ortvec" , oim ) ;
+        if( ortar == NULL ) INIT_IMARR(ortar) ;
+        ADDTO_IMARR(ortar,oim) ;
+        nopt++ ; continue ;
+      }
 
       /*-----   -stim_base k   -----*/
       if (strcmp(argv[nopt], "-stim_base") == 0)
@@ -3186,6 +3284,29 @@ void get_options
 
   if( option_data->polort == -1 ) demean_base = 0 ;  /* 12 Aug 2004 */
 
+  /**** Add -ortvec (ortar) stuff to stimulus file list [02 Dec 2011] ****/
+
+  if( option_data->num_stimts == 0 && ortar == NULL )
+    DC_error("'-num_stimts' is 0 AND no '-ortvec' ==> don't you want to DO anything?") ;
+
+  if( ortar != NULL ){
+    int nort=0 , nsold=option_data->num_stimts , nsnew , rr,nn ;
+    MRI_IMAGE *oim ;
+    for( rr=0 ; rr < IMARR_COUNT(ortar) ; rr++ ) nort += IMARR_SUBIM(ortar,rr)->ny ;
+    extend_stim_options( option_data , nort ) ;
+    nsnew = option_data->num_stimts ;
+    INFO_message("3dDeconvolve extending num_stimts from %d to %d due to -ortvec",nsold,nsnew) ;
+    for( nn=nsold,rr=0 ; rr < IMARR_COUNT(ortar) ; rr++ ){
+      oim = IMARR_SUBIM(ortar,rr) ;
+      for( s=0 ; s < oim->ny ; s++,nn++ ){
+        option_data->stim_filename[nn] = (char *)malloc(sizeof(char)*32) ;
+        sprintf(option_data->stim_filename[nn],"ortvec:%d,%d",rr,s) ;
+        sprintf(option_data->stim_label[nn],"%s[%d]",oim->name,s) ;
+        option_data->stim_base[nn] = 1;
+      }
+    }
+  }
+
   /**** loop and check each stimulus for decent and humane values ****/
 
   nerr = 0 ; basis_nstim = option_data->num_stimts ; basis_nused = 0 ;
@@ -3295,7 +3416,6 @@ float * read_time_series
   char *ts_filename,          /* time series file name (plus column index) */
   int *ts_length              /* output value for time series length */
 )
-
 {
   char message[THD_MAX_NAME];    /* error message */
   char *cpt;                     /* pointer to column suffix */
@@ -3306,7 +3426,6 @@ float * read_time_series
   float *far;             /* pointer to MRI_IMAGE floating point data */
   int nx;                 /* number of time points in time series */
   int ny;                 /* number of columns in time series file */
-  int iy;                 /* time series file column index */
   int ipt;                /* time point index */
   float *ts_data = NULL;  /* input time series data */
 
@@ -3317,16 +3436,33 @@ ENTRY("read_time_series") ;
   if (ts_filename == NULL)
     DC_error ("Missing input time series file name");
 
-  /*----- Read the time series file -----*/
-  flim = mri_read_1D( ts_filename ) ;
-  if (flim == NULL)
-    {
+  /*** Special case: -ortvec stuff [02 Dec 2011] ***/
+
+  if( ortar != NULL && strncmp(ts_filename,"ortvec:",7) == 0 ){
+    int rr=-1 , ss=-1 ;  MRI_IMAGE *oim ; float *oar ;
+    sscanf(ts_filename+7,"%d,%d",&rr,&ss) ;
+    if( rr < 0 || rr >= IMARR_COUNT(ortar) ) ERROR_exit("3dDeconvolve: %s failure!!!",ts_filename) ;
+    oim = IMARR_SUBIM(ortar,rr) ; nx = oim->nx ; ny = oim->ny ;
+    if( ss < 0 || ss >= ny ) ERROR_exit("3dDeconvolve: %s failure :-(",ts_filename) ;
+    flim = mri_new( nx , 1 , MRI_float ) ;
+    far  = MRI_FLOAT_PTR(flim) ;
+    oar  = MRI_FLOAT_PTR(oim) + nx*ss ;
+    memcpy( far , oar , sizeof(float)*nx ) ;
+
+  } else { /*----- Read the time series file -----*/
+
+    flim = mri_read_1D( ts_filename ) ;
+    if (flim == NULL){
       sprintf (message,  "Unable to read time series file: %s",  ts_filename);
       DC_error (message);
     }
+  }
+
+  /*-- at this point, data is in the flim struct, however we got it --*/
+
   far = MRI_FLOAT_PTR(flim);
-  nx = flim->nx;
-  ny = flim->ny; iy = 0 ;
+  nx  = flim->nx;
+  ny  = flim->ny;
   if( ny > 1 ){
     if( nx == 1 ){
       MRI_IMAGE *tim = mri_transpose(flim) ;
@@ -3334,19 +3470,15 @@ ENTRY("read_time_series") ;
       far = MRI_FLOAT_PTR(flim); nx = flim->nx; ny = flim->ny;
       INFO_message("1D time series file %s has %d rows and %d columns: tranposing it",ts_filename,nx,ny);
     } else {
-      WARNING_message("1D time series file %s has %d rows and %d columns",ts_filename,nx,ny);
+      WARNING_message("1D file %s has %d rows and %d columns: ignoring later columns",ts_filename,nx,ny);
     }
   }
 
   /*----- Save the time series data -----*/
   *ts_length = nx;
   ts_data = (float *) malloc (sizeof(float) * nx);
-  MTEST(ts_data);
-  for (ipt = 0;  ipt < nx;  ipt++)
-    ts_data[ipt] = far[ipt + iy*nx];   /* N.B.: iy=0 */
-
-  mri_free (flim);  flim = NULL;
-
+  memcpy( ts_data , far , sizeof(float)*nx ) ;
+  mri_free(flim) ;
   RETURN (ts_data);
 }
 
@@ -3532,7 +3664,7 @@ ENTRY("read_input_data") ;
 
       /*----- Read the input fMRI 1D time series -----*/
       *fmri_data = read_time_series (option_data->input1D_filename,
-                             fmri_length);
+                                     fmri_length);
       if (*fmri_data == NULL)
       {
         sprintf (message,  "Unable to read time series file: %s",
@@ -4233,11 +4365,12 @@ for( ii=0 ; ii < nt ; ii++ ){
       p += basis_stim[is]->nparm ;          /* number of parameters in model */
     } else {
       if (max_lag[is] < min_lag[is])
-      DC_error ("Require min lag <= max lag for all stimuli");
+        DC_error ("Require min lag <= max lag for all stimuli");
       p += max_lag[is] - min_lag[is] + 1;
       if (baseline[is])  q += max_lag[is] - min_lag[is] + 1;
     }
   }
+
   option_data->p  = p;   /* total number of parameters */
   option_data->q  = q;   /* number of baseline parameters (polort+stim_base) */
   option_data->qp = qp;  /* number of polort baseline parameters */
