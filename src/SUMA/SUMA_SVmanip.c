@@ -1276,6 +1276,8 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   Aspect = %f\n", SV->Aspect);
    SS = SUMA_StringAppend_va( SS,"   Freeze Zoom across states = %d\n",
                                SV->FreezeZoomXstates);
+   SS = SUMA_StringAppend_va(SS, "   Dim. Scale Factor = %f\n",
+                                 SUMA_DimSclFac(NULL, NULL));
    SS = SUMA_StringAppend_va(SS, "   ViewDistance = %f\n",
                                  SV->GVS[SV->StdView].ViewDistance);
    SS = SUMA_StringAppend_va(SS, "   ViewFrom = [%f %f %f]\n",

@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 2, DEC , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
+   "SUMA_NodeCoordsUnits allows the specification of node coord. units",
+   NULL,
+ },
+ 
  { 2, DEC , 2011 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
    "Wrote SOLARIS_strcasestr to replace missing strcasestr on SOLARIS",
    NULL,
