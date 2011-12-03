@@ -112,14 +112,14 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "%s"
 "\n", (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." , 
       (detail > 1) ? s : "");
+  }/*Usage*/
        if (sio) SUMA_free(sio); s = NULL;        
        if (s) SUMA_free(s); s = NULL;        
        if (detail) {
           s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL; 
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");
-          exit (0);
       }
-  }/*Usage*/
+   return;
 }   
 int main (int argc,char *argv[])
 {/* Main */
