@@ -9360,7 +9360,8 @@ void SUMA_cb_moreSumaInfo (Widget w, XtPointer client_data, XtPointer callData)
    
    /* check to see if window is already open, if it is, just raise it */
    if (SUMAg_CF->X->SumaCont->SumaInfo_TextShell) {
-      XRaiseWindow (SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->SumaCont->SumaInfo_TextShell->toplevel));
+      XRaiseWindow (SUMAg_CF->X->DPY_controller1, 
+                  XtWindow(SUMAg_CF->X->SumaCont->SumaInfo_TextShell->toplevel));
       SUMA_RETURNe;
    }
    
@@ -9371,13 +9372,15 @@ void SUMA_cb_moreSumaInfo (Widget w, XtPointer client_data, XtPointer callData)
       TextShell =  SUMA_CreateTextShellStruct (SUMA_SumaInfo_open, NULL, 
                                                SUMA_SumaInfo_destroyed, NULL);
       if (!TextShell) {
-         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
          SUMA_RETURNe;
       }
-      SUMAg_CF->X->SumaCont->SumaInfo_TextShell = SUMA_CreateTextShell(s, "SUMA", TextShell);
+      SUMAg_CF->X->SumaCont->SumaInfo_TextShell = 
+                        SUMA_CreateTextShell(s, "SUMA", TextShell);
       SUMA_free(s);
    }else {
-      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CommonFieldsInfo.\n", FuncName);
+      SUMA_S_Err("Failed in SUMA_CommonFieldsInfo.");
    }   
 
     
@@ -9500,6 +9503,80 @@ void SUMA_SurfInfo_destroyed (void *p)
    SUMA_RETURNe;
 }
 
+char * SUMA_WriteStringToFile(char *fname, char *s) 
+{
+   static char FuncName[]={"SUMA_WriteStringToFile"};
+   FILE *fout=NULL;
+   char *fused=NULL;
+   int i=0;
+   char sbuf[128];
+   
+   SUMA_ENTRY;
+   
+   if (!fname) fname = FuncName;
+   if (!s) SUMA_RETURN(NULL);
+   
+   fused = SUMA_copy_string(fname);
+   i = 0;
+   while (i < 10000 && SUMA_filexists(fused)) {
+      SUMA_free(fused);fused = NULL;
+      sprintf(sbuf,".%03d", i);
+      fused = SUMA_append_replace_string(fname,sbuf,"", 0);
+      ++i;
+   }
+   if (i >= 10000) {
+      SUMA_S_Errv("Cannot find available name for %s\n"
+                  "I am giving up.\n", fname);
+      SUMA_free(fused); fused = NULL;
+      SUMA_RETURN(NULL);
+   }  
+   
+   if ((fout = fopen(fused,"w"))) {
+      fprintf(fout,"%s", s);
+      fclose(fout);
+      SUMA_RETURN(fused);
+   } else {
+      SUMA_S_Errv("Failed to write to %s.\n", fused);
+      SUMA_free(fused);
+      SUMA_RETURN(NULL);
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+/*!
+   Save text content of shell to a file 
+*/
+void SUMA_SaveTextShell(Widget w, XtPointer ud, XtPointer cd) 
+{
+   static char FuncName[] = {"SUMA_SaveTextShell"};
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell=NULL;
+   char *string=NULL, *fused=NULL;
+   char sbuf[128];
+   
+   SUMA_ENTRY;
+   
+   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)ud;
+   
+   if (!(string = XmTextGetString (TextShell->text_w)) || !*string) {
+      SUMA_SLP_Warn("Nothing to save");
+      SUMA_RETURNe;
+   }
+   
+   if (!(fused = SUMA_WriteStringToFile(TextShell->title, string))) {
+      SUMA_SLP_Err("Failed to write text.");
+   } else {
+      snprintf(sbuf,127*sizeof(char),
+                   "Wrote window content to %s", fused);
+      SUMA_free(fused); fused=NULL;
+      SUMA_SLP_Note(sbuf);
+   }
+   
+   XtFree(string); string=NULL;
+
+   SUMA_RETURNe;
+}
+
 /*!
    \brief calls XtDestroyWidget on to top level shell of w and frees the TextShell pointer in clientdata. 
 */
@@ -9563,6 +9640,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (
    TextShell->DestroyCallBack = closecallback;
    TextShell->DestroyData = closedata;
    TextShell->CursorAtBottom = NOPE;
+   TextShell->title = NULL;
    
    SUMA_RETURN (TextShell);
 }  
@@ -9587,7 +9665,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
                                  SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell)
 {
    static char FuncName[] = {"SUMA_CreateTextShell"};
-   Widget rowcol_v, rowcol_h, close_w, form, frame, toggle_case_w;
+   Widget rowcol_v, rowcol_h, close_w, save_w, form, frame, toggle_case_w;
    int n;
    Pixel fg_pix = 0;
    Arg args[30];
@@ -9598,6 +9676,10 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+
+   if (!title) title = "NO_Title";
+   if (TextShell->title) SUMA_free(TextShell->title);
+   TextShell->title = SUMA_copy_string(title);
 
    if (TextShell->OpenCallBack) { /* do the opening callback */
       SUMA_LH("Calling OpenCallBack.\n");
@@ -9645,7 +9727,14 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
                      XmNvalueChangedCallback,
                      SUMA_cb_ToggleCaseSearch, 
                      TextShell);
-
+      save_w = XtVaCreateManagedWidget (
+                     "Save",
+                     xmPushButtonWidgetClass, 
+                     rowcol_h, NULL);
+      XtAddCallback (save_w, 
+                     XmNactivateCallback, 
+                     SUMA_SaveTextShell, 
+                     TextShell);    
       close_w = XtVaCreateManagedWidget (
                      "Close", 
                      xmPushButtonWidgetClass, 
@@ -9717,7 +9806,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
       XtPopup(TextShell->toplevel, XtGrabNone);   
 
       XtRealizeWidget (TextShell->toplevel);
-   } else { /* already created, just replace text and perhaps title 
+   } else { /* already created, just replace text and perhaps title in title bar 
                (in the future)*/
       SUMA_LH("Setting string in previously created text shell window.\n");
       if (!s) XmTextSetString (TextShell->text_w, 

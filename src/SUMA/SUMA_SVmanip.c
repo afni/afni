@@ -137,8 +137,8 @@ float SUMA_sv_fov_original(SUMA_SurfaceViewer *sv)
       fov = FOV_INITIAL;
       SUMA_S_Errv("max dim too strange (%f)\nUsing default (%f).", mxdim, fov);
    }
-   
-   fov = fov * SUMA_DimSclFac(NULL, NULL);
+
+   fov = fov * sv->GVS[sv->StdView].DimSclFac; 
    
    SUMA_RETURN(fov);
 }
@@ -242,6 +242,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->FOV = NULL;
       for (j=0; j < SV->N_GVS; ++j) {
          memset(&(SV->GVS[j]), 0, sizeof(SUMA_GEOMVIEW_STRUCT));
+         SV->GVS[j].DimSclFac = SUMA_DimSclFac(NULL, NULL);
          switch (j) {
             case SUMA_2D_Z0:
             case SUMA_2D_Z0L:
@@ -1127,21 +1128,19 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
       SV->GVS[SV->StdView].ViewFrom[0] = SV->GVS[SV->StdView].ViewCenter[0];
       SV->GVS[SV->StdView].ViewFrom[1] = SV->GVS[SV->StdView].ViewCenter[1];
       SV->GVS[SV->StdView].ViewFrom[2] = SV->GVS[SV->StdView].ViewCenter[2]+
-                            SUMA_DEFAULT_VIEW_FROM/SUMA_DimSclFac(NULL, NULL);   
+                         SUMA_DEFAULT_VIEW_FROM/SV->GVS[SV->StdView].DimSclFac;   
       SV->GVS[SV->StdView].ViewDistance = 
-                            SUMA_DEFAULT_VIEW_FROM/SUMA_DimSclFac(NULL, NULL);   
-      
-   } else
-   {/* default back to o.o, o.o, o.o */
+                         SUMA_DEFAULT_VIEW_FROM/SV->GVS[SV->StdView].DimSclFac;   
+   } else {/* default back to o.o, o.o, o.o */
       SV->GVS[SV->StdView].ViewCenter[0] = 
       SV->GVS[SV->StdView].ViewCenter[1] = 
       SV->GVS[SV->StdView].ViewCenter[2] = 0.0;
       SV->GVS[SV->StdView].ViewFrom[0] = 
       SV->GVS[SV->StdView].ViewFrom[1] = 0.0; 
       SV->GVS[SV->StdView].ViewFrom[2] = 
-                            SUMA_DEFAULT_VIEW_FROM/SUMA_DimSclFac(NULL, NULL);
+                         SUMA_DEFAULT_VIEW_FROM/SV->GVS[SV->StdView].DimSclFac;
       SV->GVS[SV->StdView].ViewDistance = 
-                            SUMA_DEFAULT_VIEW_FROM/SUMA_DimSclFac(NULL, NULL);   
+                         SUMA_DEFAULT_VIEW_FROM/SV->GVS[SV->StdView].DimSclFac;  
    }
    
       /* Store that info in case subjects change things */
@@ -1277,7 +1276,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va( SS,"   Freeze Zoom across states = %d\n",
                                SV->FreezeZoomXstates);
    SS = SUMA_StringAppend_va(SS, "   Dim. Scale Factor = %f\n",
-                                 SUMA_DimSclFac(NULL, NULL));
+                                 SV->GVS[SV->StdView].DimSclFac);
    SS = SUMA_StringAppend_va(SS, "   ViewDistance = %f\n",
                                  SV->GVS[SV->StdView].ViewDistance);
    SS = SUMA_StringAppend_va(SS, "   ViewFrom = [%f %f %f]\n",
@@ -2832,7 +2831,13 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    } else {
       SS = SUMA_StringAppend_va(SS, "NULL DsetList\n");
    }
-   
+  
+   SS = SUMA_StringAppend_va( SS,
+                              "SUMA's list of environment variables:\n");
+   s = SUMA_env_list_help();
+   SS = SUMA_StringAppend( SS, s); SUMA_free(s); s = NULL;
+   SS = SUMA_StringAppend( SS, "\n");
+
    /* add the colormap info */
    if (cf->scm) {
       SS = SUMA_StringAppend(SS, "   Colormaps:\n");
