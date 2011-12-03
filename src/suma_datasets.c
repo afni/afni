@@ -14089,9 +14089,9 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
          SUMA_SL_Warn("String trunctated by vsnprintf");
          SUMA_StringAppend(SS,sbuf);
          SUMA_RETURN(SUMA_StringAppend(SS,
-                                       "WARNING: "
+                                       "\nWARNING: "
                                        "***Previous string trunctated because "
-                                       "of its length. ***"));
+                                       "of its length. ***\n"));
       }
       SUMA_LH("Calling StringAppend");
       SUMA_RETURN (SUMA_StringAppend(SS,sbuf));
