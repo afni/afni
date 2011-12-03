@@ -988,12 +988,17 @@ typedef struct {
    Widget text_output;  /*!< widget of search result field */
    SUMA_Boolean case_sensitive;  /*!< Case sensitive widget search */
    SUMA_Boolean allow_edit; /*!< allow editing of text displayed*/
-   void (*OpenCallBack)(void *data); /*!< call back performed when SUMA_CreateTextShell is entered */
+   void (*OpenCallBack)(void *data); /*!< call back performed when 
+                              SUMA_CreateTextShell is entered */
    void * OpenData;  /*!< data sent along with OpenCallBack */
-   void (*DestroyCallBack)(void *data);   /*!< call back performed when SUMA_DestroyTextShell is entered */
+   void (*DestroyCallBack)(void *data);   /*!< call back performed when 
+                                 SUMA_DestroyTextShell is entered */
    void * DestroyData; /*!< data sent along with DestroyCallBack */
-   SUMA_Boolean CursorAtBottom; /*!< If YUP then cursor is positioned at end of text field */
-} SUMA_CREATE_TEXT_SHELL_STRUCT; /*!< structure containing options and widgets for the text shell window */
+   SUMA_Boolean CursorAtBottom; /*!< If YUP then cursor is positioned at 
+                                       end of text field */
+   char *title; /* the title string */
+} SUMA_CREATE_TEXT_SHELL_STRUCT; /*!< structure containing options and widgets 
+                                       for the text shell window */
 
 typedef enum {SUMA_OK_BUTTON, SUMA_APPLY_BUTTON, 
                SUMA_CLEAR_BUTTON, SUMA_CANCEL_BUTTON, 
@@ -1606,6 +1611,7 @@ typedef struct {
 
 /*! structure containing the geometric settings for viewing the surface */
 typedef struct {
+   float DimSclFac;
    float ViewFrom[3]; /*!< Location of observer's eyes */
    float ViewFromOrig[3]; /*!< Original Location of observer's eyes */
    float ViewCenter[3];   /*!< Center of observer's gaze */
@@ -1730,18 +1736,21 @@ typedef struct {
 
 
 typedef struct {
-   int N_DO;      /*!< Total number of surface objects registered with the viewer */
-   int *RegisteredDO;    /*!< RegisteredDO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
+   int N_DO;   /*!< Total number of surface objects registered with the viewer */
+   int *RegisteredDO;    /*!< RegisteredDO[i] (i=0..N_DO) contains Object indices
+                              into DOv for DOs visible in the surface viewer*/
    
    SUMA_Boolean Record; /*!< Set record mode */
    SUMA_Boolean ShowLeft; /*!< Show left side surfaces */
    SUMA_Boolean ShowRight; /*!< Show right side surfaces */
    
-   SUMA_COLORLIST_STRUCT *ColList; /*!< pointer to structures containing NodeColorLists for surfaces listed in RegisteredDO */
+   SUMA_COLORLIST_STRUCT *ColList; /*!< pointer to structures containing 
+                        NodeColorLists for surfaces listed in RegisteredDO */
    int N_ColList; /*!< Number of structures in ColList */
    
    SUMA_STANDARD_VIEWS StdView; /*!< viewing mode, for 2D or 3D */
-   SUMA_GEOMVIEW_STRUCT *GVS; /*! pointer to structures containing geometric viewing settings */
+   SUMA_GEOMVIEW_STRUCT *GVS; /*! pointer to structures containing 
+                                  geometric viewing settings */
    int N_GVS; /*!< Number of different geometric viewing structures */
    
    short verbose;   /*!< Verbosity of viewer */
@@ -1753,7 +1762,8 @@ typedef struct {
    int WindWidth;   /*!< Width of window */
    int WindHeight;   /*!< Height of window */
    float ZoomCompensate; /*!< Compensate mouse movements by zoom factor */
-   float *FOV; /*!< Field of View (affects zoom level, there is a separate FOV for each ViewState)*/
+   float *FOV; /*!< Field of View (affects zoom level, there is a 
+                    separate FOV for each ViewState)*/
    float FOV_original; /*!< Original field of view of viewer */
    float ArrowRotationAngle; /*!< Angle to rotate surface by when arrows are used.
                                  Units are in radians */
