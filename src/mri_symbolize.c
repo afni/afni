@@ -76,7 +76,12 @@ ENTRY("SYM_expand_ranges") ;
      if( qpt != NULL ){                       /* if it is present, that is */
        char *ept ;
        fac = (float)strtod(qstr,&ept) ;
-       if( fac == 0.0 && *qstr != '0' ) fac = 1.0 ;
+       if( fac == 0.0f && ept == qstr ){     /* bad factor interpretation? */
+         fac = 1.0f ;            /* ==> replace with 1, and bitch about it */
+         WARNING_message(
+           "-gltsym: Can't interpret '*' scale factor in '%s' -- replaced by 1",
+           qstr) ;
+       }
        if( ept != qpt )  /* 27 May 2008 */
          WARNING_message(
            "-gltsym: '*' scale factor in '%s' not at start of string?",qstr ) ;
