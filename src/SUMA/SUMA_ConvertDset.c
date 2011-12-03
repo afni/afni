@@ -12,7 +12,7 @@
 
 #include "SUMA_suma.h"
 
-void usage_ConverDset()
+void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 {
    static char FuncName[]={"usage_ConverDset"};
    char *s = NULL, *sd=NULL, *sm=NULL;
@@ -23,6 +23,9 @@ void usage_ConverDset()
 "Usage: \n"
 "  ConvertDset -o_TYPE -input DSET [-i_TYPE] [-prefix OUT_PREF]\n"
 "  Converts a surface dataset from one format to another.\n"
+"\n%s", detail ? "":"use -h or -help for more help detail.\n");
+   if (detail) {
+      printf ( 
 "  Mandatory parameters:\n"
 "     -o_TYPE: TYPE of output datasets\n"
 "              where TYPE is one of:\n"
@@ -104,13 +107,19 @@ void usage_ConverDset()
 "1-   Plot a node's time series from a niml dataset:\n"
 "     ConvertDset -input DemoSubj_EccCntavir.niml.dset'#5779#' \\\n"
 "                 -o_1D_stdout | 1dplot -nopush -stdin \n"
-"\n", sd, sm, s);
+"\n",(detail > 1) ? sd : "Use -help for more detail.",
+     (detail > 1) ? sm : "",
+     (detail > 1) ? s : "");
+      }
    SUMA_free(s); s = NULL; SUMA_free(sd); sd = NULL; SUMA_free(sm); sm = NULL;  
-   #ifdef SUMA_COMPILED
-   s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-   #endif
-   fprintf (SUMA_STDOUT, "    Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov    Thu Apr  8 16:15:02 EDT 2004\n\n");
-   exit(0); 
+   if (detail) {
+      #ifdef SUMA_COMPILED
+      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+      #endif
+      fprintf (SUMA_STDOUT, 
+         "    Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov\n\n");
+   }
+   return; 
 }
 int main (int argc,char *argv[])
 {/* Main */
@@ -134,11 +143,6 @@ int main (int argc,char *argv[])
    
    ps = SUMA_Parse_IO_Args(argc, argv, "-mask;");
 
-   if (argc < 3) {
-      usage_ConverDset  ();
-      exit (1);
-   }
-
    pad_to_node = -1;
    add_node_index = 0;
    prepend_node_index=0;
@@ -155,8 +159,8 @@ int main (int argc,char *argv[])
    brk = NOPE;
    while (kar < argc) { /* loop accross command ine options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-         usage_ConverDset  ();
-         exit (1);
+         usage_ConverDset  (ps, strlen(argv[kar]) > 3 ? 2:1);
+         exit (0);
       }
       
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
@@ -275,6 +279,7 @@ int main (int argc,char *argv[])
          fprintf (SUMA_STDERR,
             "Error %s: Option %s not understood. Try -help for usage\n",
                FuncName, argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
       } else {   
          brk = NOPE;
@@ -282,7 +287,12 @@ int main (int argc,char *argv[])
       }
       
    }/* loop accross command ine options */
-   
+   if (argc < 3) {
+      usage_ConverDset  (ps, 0);
+      exit (1);
+   }
+
+
    if (!prfx) {
       prfx = "you_look_marvellous.niml.dset";
       overwrite = 1;

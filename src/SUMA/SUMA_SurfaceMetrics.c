@@ -188,13 +188,14 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "\n", 
    (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." , 
    (detail > 1) ? s : "" );
+   }
       if (s) SUMA_free(s); s = NULL;
       if (sio) SUMA_free(sio); sio = NULL;
       if (detail) {
          s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
          printf ( "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");   
       }
-   }
+   return;
 }
 #define SURFACEMETRICS_MAX_SURF 10
 
@@ -280,7 +281,7 @@ int main (int argc,char *argv[])
 		/* fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName); */
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SUMA_SurfaceMetrics(ps, strlen(argv[kar]) > 3 ? 2:1);
-          exit (1);
+          exit (0);
 		}
 		
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
