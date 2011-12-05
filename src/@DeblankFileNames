@@ -19,20 +19,31 @@ endif
 set n = 1
 while ($n <= $nf)
    set fin = "`sed -n ${n}p $lout`"
-   set space = (`\echo "$fin" | \grep '. .'`)
-   if ($#space > 1) then
+   if ($spo) then
+      set space = (`\echo "$fin" | \grep '. .'`)
+   else
+      set noglob
+      set space = (`\echo "$fin" | \grep -E '.\(|]| |\)|\[.'`)
+      unset noglob
+   endif
+   if ($#space > 0) then
       #echo "Space >$fin<"
       set badname = 1
       set all_tested = ()
       set spc = ${repchar}
       set ibad = 0
       while ($badname && $ibad < 3)
-         set fout = `\echo "$fin" | \sed "s/ /${spc}/g"`
+         if ($spo) then
+            set fout = `\echo "$fin" | \sed "s/ /${spc}/g"`
+         else
+            set fout = `\echo "$fin"   | \sed "s/[() \[]/${spc}/g" \
+                                       | \sed "s/\]/${spc}/g"`
+         endif
          if ($status) then
             echo "Failed to substitute"
             goto BEND
          endif
-         set all_tested = ($all_tested $fout)
+         set all_tested = ($all_tested "$fout")
          if ( -f "./$fout" || -d "./$fout" ) then
             @ ibad ++
             set spc = "${spc}${repchar}"
@@ -65,6 +76,7 @@ goto END
 PARSE:
    set Narg = $#
    set dry = 1
+   set spo = 0
    set cnt = 1
    if ( -f $lout) then
       echo "$lout should not exist, remove it and rerun"
@@ -93,6 +105,11 @@ PARSE:
          set donext = 0; goto NEXT		
       endif
       
+      if ($donext && "$argv[$cnt]" =~ "-nobrac"*) then
+         set spo = 1
+         set donext = 0; goto NEXT		
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-demo_set") then
          goto DEMO_SET
          set donext = 0; goto NEXT		
@@ -108,14 +125,20 @@ PARSE:
 	end
    
    if ( ! -f $lout ) then
-      \ls -1d ./*\ * > $lout
+      if ($spo) then
+         \ls -1d ./*\ * > $lout
+      else
+         \ls -1d ./*\ * ./*\(* ./*[* ./*\]* ./*\[* | uniq > $lout
+      endif
    endif
    
 goto RET_PARSE
 
 HELP:
    echo ""
-   echo "A script to remove blanks from filenames in the current directory"
+   echo "A script to remove blanks and other annoying characters from filenames."
+   echo " in the current directory."
+   echo "The default set of characters to replace is ' []()'"
    echo "Spaces are replaced with $repchar. "
    echo "If resultant name exists, more ${repchar} are used until new name"
    echo "is found."
@@ -126,6 +149,7 @@ HELP:
    echo "   -dry_run: Just show what would be done. Don't rename files."
    echo "             This is the default option"
    echo "   -move: Actually rename the files (opposite of -dry_run)"
+   echo "   -nobrac: Do not replace () and [] in filenames, just spaces"
    echo "   -demo_set: Create a toy directory with bad names for testing."
    echo "   -echo: Turn on script echo"
    echo "   -help: This message"
@@ -156,7 +180,7 @@ DEMO_SET:
    touch '1 dbf3_toy.tiff'
    touch ' dbf5_toy.tiff '
    mkdir 'dbf dir'
-   touch 'dbf dir/why do you use space characters in your filenames'
+   touch 'dbf dir/why do you ( use ) bad cha[rac]ters in your filenames'
    cd -
    echo ""
    echo "See the file content of $ddir then try"
@@ -181,6 +205,7 @@ BEND:
    goto END
    
 END:
+   #cat /tmp/DFN_$id.txt
    if ( -f /tmp/DFN_$id.txt) \rm -f /tmp/DFN_$id.txt
    exit $stat
 
