@@ -54,7 +54,7 @@ char * GetAfniWebBrowser(void)
    char *awb=NULL;
    awb = getenv("AFNI_WEB_BROWSER") ;
 #ifdef DARWIN
-   if( awb == NULL ) awb = strdup("open") ;  /* for Mac OS X */
+   if( awb == NULL ) awb = "open" ;  /* for Mac OS X */
 #endif
    if( awb == NULL ) awb = THD_find_executable( "chrome" )   ;
    if( awb == NULL ) awb = THD_find_executable( "firefox" )  ;
@@ -63,6 +63,23 @@ char * GetAfniWebBrowser(void)
    if( awb == NULL ) awb = THD_find_executable( "opera" )    ;
    return(awb);
 }
+
+/*-------------------------------------------------------------------*/
+
+char * GetAfniTextEditor(void)
+{
+   char *ate=NULL;
+   ate = getenv("AFNI_GUI_EDITOR");
+   
+   if( ate == NULL ) ate = THD_find_executable( "nedit" )   ;
+   if( ate == NULL ) ate = THD_find_executable( "kedit" )   ;
+   if( ate == NULL ) ate = THD_find_executable( "gedit" )   ;
+#ifdef DARWIN
+   if( ate == NULL ) ate = "open -t" ;  /* for Mac OS X */
+#endif
+   return(ate);
+}
+
 
 /*-------------------------------------------------------------------*/
 
