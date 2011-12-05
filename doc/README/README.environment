@@ -3423,3 +3423,9 @@ Variable:  AFNI_NO_OPTION_HINT
 -------------------------------
 If this variable is set, do NOT make suggestions if a program parsing error is encountered.
 
+--------------------------
+Variable:  AFNI_GUI_EDITOR
+--------------------------
+Set this variable to your favorite GUI text editor.
+
+

@@ -131,6 +131,11 @@ int update_help_for_afni_programs(int force_recreate,
    if (hlist) INIT_SARR((*hlist));
    icomm=0;
    for (ii=0, iaf=0; ii<progs->num ; ii++ ){
+      /* ------------------------------------------------------------*/
+      /* THIS BLOCK is essentially get_updated_help_file()
+         But I keep it separate because of the need for 
+         nap time. Knowing when to sleep in get_updated_help_file()
+         is not that simple.                                   */
       etr = THD_trailname( progs->ar[ii] , 0 ) ; 
       if (!etr || strlen(etr) < 2) {
          WARNING_message("Fishy executable named %s\n",progs->ar[ii]);
@@ -155,10 +160,20 @@ int update_help_for_afni_programs(int force_recreate,
             As a result, it is hard to get the status of -help
             command and use it wisely here without risking 
             trouble */
+         if (THD_is_file( hout)) {
+            snprintf(scomm, 250*sizeof(char),
+               "chmod u+w %s", hout);
+            system(scomm); 
+         }
          snprintf(scomm, 250*sizeof(char),
                "echo '' | %s -help >& %s &", etr, hout);
-         system(scomm); ++icomm;
+         system(scomm); 
+         snprintf(scomm, 250*sizeof(char),
+               "chmod a-w %s", hout);
+         system(scomm); 
+         ++icomm;
       }
+      /* ------------------------------------------------------------*/
       
       if (hlist) ADDTO_SARR((*hlist), hout);
       
@@ -223,6 +238,11 @@ void apsearch_usage()
    "                  Little differences would be the compile date or the\n"
    "                  version number. See @clean_help_dir code for details.\n"
    "  -afni_help_dir: Print afni help directory location and quit.\n"
+   "  -afni_text_editor: Print the name of the GUI editor. Priority goes to \n"
+   "                     env. variable AFNI_GUI_EDITOR, otherwise afni\n"
+   "                     will try to find something suitable.\n"
+   "  -view_prog_help PROG: Open the help file for PROG in a GUI editor.\n"
+   "                        This is like the option -h_view is C programs.\n"
    "\n"
    "  NOTE: The maximum number of results depends on the combination of\n"
    "        -max_hits, -min_different_hits, and -unique_hits_only. \n"
@@ -307,6 +327,11 @@ int main(int argc, char **argv)
          return(0);
       }
 
+      if (strcmp(argv[iarg],"-afni_gui_editor") == 0) { 
+         fprintf(stdout,"%s\n", GetAfniTextEditor());
+         return(0);
+      }
+
       if (strcmp(argv[iarg],"-show_score") == 0) { 
          show_score=1; 
          ++iarg;
@@ -327,7 +352,7 @@ int main(int argc, char **argv)
 
       if (strcmp(argv[iarg],"-help") == 0 ) { 
          apsearch_usage();
-         return(1); 
+         return(0); 
          continue; 
       }
 
@@ -340,6 +365,18 @@ int main(int argc, char **argv)
 
          fname = argv[iarg];
          ++iarg;
+         continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-view_prog_help") == 0) { 
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+                     "** Error: Need program name after -view_prog_help\n"); 
+                     return(1);
+         }
+         view_prog_help(argv[iarg]);
+         return(0);
          continue; 
       }
       

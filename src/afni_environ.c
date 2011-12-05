@@ -289,6 +289,9 @@ char *get_gopt_help() {
 "              and others misidentified. Use this output for hints only.\n"
 "   -h_find WORD: Look for lines in this programs's -help output that match\n"
 "                 (approximately) WORD.\n"
+"   -h_view: Open help in text editor. AFNI will try to find a GUI editor\n"
+"            on your machine. You can control which it should use by\n"
+"            setting environment variable AFNI_GUI_EDITOR.\n"
 "   -skip_afnirc: Do not read the afni resource (like ~/.afnirc) file.\n"
 "   -pad_to_node NODE: Output a full dset from node 0 to MAX_NODE-1\n"
 "                      This option is surface-based datasets only.\n"
@@ -375,6 +378,14 @@ int AFNI_prefilter_args( int *argc , char **argv )
        }
        used[ii] = 1 ; ii++;
        suggest_best_prog_option(argv[0], argv[ii]);
+       used[ii] = 1 ; 
+       exit(0); 
+         /* better exit, otherwise output get burried by program's own -help */ 
+     }
+     
+     if( strcmp(argv[ii],"-h_view") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -h_view\n",ii) ;
+       view_prog_help(argv[0]);
        used[ii] = 1 ; 
        exit(0); 
          /* better exit, otherwise output get burried by program's own -help */ 
