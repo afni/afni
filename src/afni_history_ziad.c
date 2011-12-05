@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 5, DEC , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
+   "Added -h_view to all C command-line programs.",
+   "See also apsearch -view_prog_help option",
+ },
+ 
+ { 5, DEC , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_ENV,
+   "AFNI_GUI_EDITOR controls user's preferred text editor.",
+   "See apsearch -afni_text_editor.",
+ },
+ 
  { 2, DEC , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_OPT,
    "Added 'Save' button to suma text info windows",
    NULL,

@@ -4040,6 +4040,82 @@ void suggest_best_prog_option(char *prog, char *str)
    return;
 }
 
+char *get_updated_help_file(int force_recreate, byte verb, char *progname) 
+{
+      static char hout[128]={""};
+      char scomm[256], *etr=NULL, *hdir=NULL, *etm=NULL;
+      
+      hdir = THD_helpdir();
+      if (hdir[0] == '\0') {
+         ERROR_message("Have no help directory\n");
+         RETURN(hout);
+      }
+      etr = THD_trailname( progname , 0 ) ; 
+      if (!etr || strlen(etr) < 2) {
+         WARNING_message("Fishy executable named %s\n",progname);
+         return(hout);
+      }
+      etm = THD_filetime(progname);
+      if (etm[0] == '\0') {
+         etm = "NoTimeStamp";
+      }
+      
+      snprintf(hout, 120*sizeof(char),
+               "%s/%s.%s.help", hdir, etr, etm);
+      if (!force_recreate && THD_is_file(hout)) {
+         if (verb) fprintf(stderr,"Reusing %s \n", hout); 
+      } else {
+         if (verb) fprintf(stderr,"Creating %s \n", hout); 
+         /* The echo below is there to make programs that
+            don't like -help and expect stdin to shut up and quit
+            As a result, it is hard to get the status of -help
+            command and use it wisely here without risking 
+            trouble */
+         if (THD_is_file( hout)) {
+            snprintf(scomm, 250*sizeof(char),
+               "chmod u+w %s", hout);
+            system(scomm); 
+         }
+         snprintf(scomm, 250*sizeof(char),
+               "echo '' | %s -help >& %s &", etr, hout);
+         system(scomm); 
+         snprintf(scomm, 250*sizeof(char),
+               "chmod a-w %s", hout);
+         system(scomm); 
+      }
+      return(hout);
+}
+
+
+void view_prog_help(char *prog)
+{
+   char *viewer=NULL, *hname=NULL;
+   char *progname=NULL;
+   char cmd[256]={""};
+   
+   if (!prog) return;
+   if (!(progname = THD_find_executable(prog))) {
+      ERROR_message("Could not find executable %s.\n",
+                     prog);
+      return;
+   }
+   if (!(viewer = GetAfniTextEditor())) {
+      ERROR_message("No GUI editor defined, and guessing game failed.\n"
+              "Set AFNI_GUI_EDITOR in your .afnirc for this option to work.\n"); 
+      return;
+   }
+   
+   hname = get_updated_help_file(0, 0, progname);
+   if (hname[0]=='\0') { /* failed, no help file ... */
+      ERROR_message("No help file for %s\n", progname);
+      return;
+   }
+   /* open help file in editor*/
+   snprintf(cmd,250*sizeof(char),"%s %s &", viewer, hname);
+   system(cmd);
+   return;
+}
+
 void print_prog_options(char *prog)
 {
    char **ws=NULL;

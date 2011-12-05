@@ -425,6 +425,7 @@ extern void init_rand_seed( long int seed ) ; /* 15 Apr 2009 (cf machdep.c) */
 
 extern int machdep_be_quiet(void) ;  /* 08 Dec 2010 */
 extern char * GetAfniWebBrowser(void);
+extern char * GetAfniTextEditor(void);
 extern char *SOLARIS_strcasestr(const char *s1, const char *s2);
 
 #endif /* _MCW_MACHDEP_ */
