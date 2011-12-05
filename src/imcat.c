@@ -17,7 +17,7 @@ int main( int argc , char * argv[] )
    MRI_IMAGE * im ;
    char prefix[240] = "cat" , fnam[256] ;
    char suffix[50] = "\0";
-   char *scale_image = NULL;
+   char *scale_image = NULL, *scale_pixels = NULL;
    int iarg , ii,jj , nx,ny , nxim,nyim ;
    int nmode = XYNUM, nxin, nyin, nbad = 0;
    int cutL=0, cutR=0, cutT=0, cutB=0;
@@ -27,7 +27,7 @@ int main( int argc , char * argv[] )
    int kkk, nscl=-1, resix=-1, resiy=-1, force_rgb_at_input=0, 
        N_byte = 0, N_rgb = 0;
    float *scl=NULL;
-   byte *scl3=NULL, *rgb=NULL;
+   byte *scl3=NULL, *rgb=NULL, *b1, *b2, *b3;
    char name[100];
    void *ggg=NULL;
    
@@ -49,6 +49,11 @@ int main( int argc , char * argv[] )
  "  -scale_image SCALE_IMG: Multiply each image IM(i,j) in output\n"
  "                          image matrix IM by the color or intensity\n"
  "                          of the pixel (i,j) in SCALE_IMG.\n"
+ "  -scale_pixels SCALE_PIX: Multiply each pixel (i,j) in output image\n"
+ "                          by the color or intensity\n"
+ "                          of the pixel (i,j) in SCALE_IMG.\n"
+ "                          SCALE_IMG is automatically resized to the\n"
+ "                          resolution of the output image.\n"
  "  -scale_intensity: Instead of multiplying by the color of \n"
  "                          pixel (i,j), use its intensity \n"
  "                          (average color)\n"
@@ -212,6 +217,19 @@ int main( int argc , char * argv[] )
           iarg++ ; continue ;
        }
        
+       if( strcmp(argv[iarg],"-scale_pixels") == 0 ){
+          if (iarg+1 > argc) {
+            fprintf(stderr,"*** ERROR: Need an image after -scale_pixels\n");
+            exit(1);
+         }
+          scale_pixels = argv[++iarg];
+          if (!THD_is_ondisk(scale_pixels)) {
+            fprintf(stderr,"*** ERROR: Image %s not found\n", scale_pixels);
+            exit(1);
+          }
+          iarg++ ; continue ;
+       }
+       
        if( strcmp(argv[iarg],"-scale_intensity") == 0) {
          ScaleInt = 1;
          iarg++ ; continue ;
@@ -278,10 +296,12 @@ int main( int argc , char * argv[] )
    
    if (matrix_size_from_scale) {
       if (imscl) {
-         fprintf(stderr,"+++ Matrix size of %dx%d, based on scale image\n", imscl->nx, imscl->ny);
+         fprintf(stderr,"+++ Matrix size of %dx%d, based on scale image\n", 
+                         imscl->nx, imscl->ny);
          nx = imscl->nx; ny = imscl->ny;
       } else {
-         fprintf(stderr,"*** Want matrix size from scale image but no scale image found.\n");
+         fprintf(stderr,
+            "*** Want matrix size from scale image but no scale image found.\n");
          exit(1);
       }
    }
@@ -343,16 +363,18 @@ int main( int argc , char * argv[] )
     exit(1) ;
    }
    if (nx*ny > inimar->num) {
-      fprintf(stderr,"+++ Have %d images. Will wrap to fill %dx%d matrix\n", inimar->num, nx, ny);
+      fprintf(stderr,"+++ Have %d images. Will wrap to fill %dx%d matrix\n", 
+               inimar->num, nx, ny);
    } else if (nx*ny < inimar->num) {
       fprintf(stderr,"+++ Have more images than needed to fill matrix.\n"
-                     "    Will ignore the last %d images.\n", inimar->num- nx*ny);
+                     "    Will ignore the last %d images.\n", 
+                     inimar->num- nx*ny);
    }
    
    nxin = IMAGE_IN_IMARR(inimar,0)->nx;
    nyin = IMAGE_IN_IMARR(inimar,0)->ny;
    
-   fprintf(stdout, "+++ Arranging %d images (each %dx%d) into a %dx%d matrix.\n", inimar->num, nxin, nyin, nx, ny);
+   fprintf(stdout, "+++ Arranging %d images (each %dx%d) into a %dx%d matrix.\n",                    inimar->num, nxin, nyin, nx, ny);
 
    force_rgb_at_input = 0;
    N_byte = 0; N_rgb = 0;
@@ -360,7 +382,8 @@ int main( int argc , char * argv[] )
    else {
       /* if have multiple types, must also go rgb */
       for (kkk=0; kkk<inimar->num; ++kkk) {
-         if (IMAGE_IN_IMARR(inimar,kkk)->kind != MRI_byte && IMAGE_IN_IMARR(inimar,kkk)->kind != MRI_rgb) {
+         if (IMAGE_IN_IMARR(inimar,kkk)->kind != MRI_byte && 
+             IMAGE_IN_IMARR(inimar,kkk)->kind != MRI_rgb) {
             fprintf(stderr,"*** Unexpected image kind on input.\n"
                            "    Only byte and rgb (3byte) images allowed.\n");
             exit(1);
@@ -410,7 +433,8 @@ int main( int argc , char * argv[] )
       im = newim;
    }
    
-   /* image scaling needed, not very efficient in implementation but mostly for fun */
+   /* image scaling needed, not very efficient in implementation but 
+      mostly for fun */
    if (scale_image && ( im->kind == MRI_rgb || im->kind == MRI_byte) ) {
       MRI_IMARR *imtriple ; 
       MRI_IMAGE *rim, *gim, *bim, *tim, *imin, *newim;
@@ -466,18 +490,25 @@ int main( int argc , char * argv[] )
            bim = IMAGE_IN_IMARR(imtriple,2) ; FREE_IMARR(imtriple) ;
            /* scale image */
            if (ScaleInt) {
-              /* fprintf(stderr,"Scaling image %d by %f\n", kkk, scl[kkk%nscl]); */
-              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], rim ); mri_free(rim); rim = tim;
-              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], gim ); mri_free(gim); gim = tim;
-              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], bim ); mri_free(bim); bim = tim;
+              /* fprintf(stderr,"Scaling image %d by %f\n", 
+                                 kkk, scl[kkk%nscl]); */
+              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], rim ); 
+                                                   mri_free(rim); rim = tim;
+              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], gim ); 
+                                                   mri_free(gim); gim = tim;
+              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], bim ); 
+                                                   mri_free(bim); bim = tim;
            } else {
               /* fprintf(stderr,"Scaling image %d by [%.2f %.2f %.2f]\n", 
                               kkk,  (float)scl3[3*(kkk%nscl)  ],
                                     (float)scl3[3*(kkk%nscl)+1],
                                     (float)scl3[3*(kkk%nscl)+2]); */
-              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)  ], rim ); mri_free(rim); rim = tim;
-              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+1], gim ); mri_free(gim); gim = tim;
-              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+2], bim ); mri_free(bim); bim = tim;
+              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)  ], rim ); 
+                                                    mri_free(rim); rim = tim;
+              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+1], gim ); 
+                                                    mri_free(gim); gim = tim;
+              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+2], bim ); 
+                                                    mri_free(bim); bim = tim;
            }
            newim = mri_3to_rgb( rim, gim, bim ) ;
            mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
@@ -485,14 +516,17 @@ int main( int argc , char * argv[] )
            IMAGE_IN_IMARR(inimar,kkk) = newim;
          } else if(imin->kind == MRI_byte) {
            /* scale image */
-           /* fprintf(stderr,"Scaling byte image %d by %f\n", kkk, scl[kkk%nscl]); */ 
+           /* fprintf(stderr,"Scaling byte image %d by %f\n", 
+                              kkk, scl[kkk%nscl]); */ 
            newim = mri_to_byte_scl(0.0, (float)scl[kkk%nscl], imin ); 
            MRI_COPY_AUX(newim,imin) ; mri_free(imin);
            /* sprintf(name,"postscaled.%d.ppm", kkk);
            mri_write(name,newim); */
            IMAGE_IN_IMARR(inimar,kkk) = newim;
          } else {
-            fprintf(stderr,"*** image %d is not rgb or byte. No scaling for you!\n", kkk%inimar->num);
+            fprintf(stderr,
+               "*** image %d is not rgb or byte. No scaling for you!\n", 
+               kkk%inimar->num);
          }
       }
       if (scl) free(scl); scl = NULL;
@@ -507,6 +541,96 @@ int main( int argc , char * argv[] )
 
    }
 
+   if (scale_pixels) {
+      MRI_IMARR *imtriple ; 
+      MRI_IMAGE *rim, *gim, *bim, *tim, *newim;
+      if (im->kind != MRI_rgb && im->kind != MRI_byte) {
+         fprintf(stderr,"*** Output not MRI_rgb or MRI_byte. Cannot scale.\n"); 
+         exit(1);
+      }
+      fprintf(stderr,"*** Pixel scaling ...\n");
+      if (!(imar = mri_read_resamp_many_files( 1 , &scale_pixels, 
+                                                 im->nx, im->ny )) ||
+           imar->num != 1) {
+         fprintf(stderr,"*** Failed to read 1 image from %s\n", scale_pixels);
+         exit(1) ;
+      }
+      
+      if (imscl) mri_free(imscl); imscl=NULL;
+      if (scl) free(scl); scl=NULL;
+      if (scl3) free(scl3); scl3 = NULL;
+      
+      imscl = IMAGE_IN_IMARR(imar,0);      
+      rgb= MRI_BYTE_PTR(imscl);
+      nscl = imscl->nx*imscl->ny;
+      scl = (float *)malloc(sizeof(float)*nscl);
+      scl3 = (byte *)malloc(sizeof(byte)*nscl*3);
+      if (imscl->kind == MRI_rgb) {
+         for (kkk=0; kkk<nscl; ++kkk) {
+            scl[kkk] = (   (float)rgb[3*kkk  ] +
+                           (float)rgb[3*kkk+1] +
+                           (float)rgb[3*kkk+2] ) / 3.0;
+            scl3[3*kkk  ] = rgb[3*kkk  ];
+            scl3[3*kkk+1] = rgb[3*kkk+1];
+            scl3[3*kkk+2] = rgb[3*kkk+2];
+         }
+      } else if (imscl->kind == MRI_byte) {
+         for (kkk=0; kkk<nscl; ++kkk) {
+            scl[kkk] = ((float)rgb[kkk  ]);
+            scl3[3*kkk  ] = rgb[kkk];  /* inefficient, but makes life easy */
+            scl3[3*kkk+1] = rgb[kkk];
+            scl3[3*kkk+2] = rgb[kkk];
+         } 
+      } else {
+         fprintf(stderr,"*** Scale image must be RGB or byte type.\n");
+         exit(1);
+      }
+      /* Now scale */
+      if(im->kind == MRI_rgb) {
+         imtriple = mri_rgb_to_3byte( im ) ;
+         if( imtriple == NULL ){
+            fprintf(stderr,"*** mri_rgb_to_3byte fails!\n"); exit(1);
+         }
+         rim = IMAGE_IN_IMARR(imtriple,0) ; b1 = MRI_BYTE_PTR(rim) ;
+         gim = IMAGE_IN_IMARR(imtriple,1) ; b2 = MRI_BYTE_PTR(gim) ;
+         bim = IMAGE_IN_IMARR(imtriple,2) ; b3 = MRI_BYTE_PTR(bim) ;
+         FREE_IMARR(imtriple) ;
+         /* scale image */
+         if (ScaleInt) {
+            for (kkk=0; kkk<im->nvox; ++kkk) {
+               b1[kkk] = BYTEIZE((b1[kkk]*(float)scl[kkk])/255.0);
+               b2[kkk] = BYTEIZE((b2[kkk]*(float)scl[kkk])/255.0);
+               b3[kkk] = BYTEIZE((b3[kkk]*(float)scl[kkk])/255.0);
+            }      
+         } else {
+            /* fprintf(stderr,"Scaling image %d by [%.2f %.2f %.2f]\n", 
+                           kkk,  (float)scl3[3*(kkk%nscl)  ],
+                                 (float)scl3[3*(kkk%nscl)+1],
+                                 (float)scl3[3*(kkk%nscl)+2]); */
+            for (kkk=0; kkk<im->nvox; ++kkk) {
+               b1[kkk] = BYTEIZE((b1[kkk]*(float)scl3[3*kkk  ])/255.0);
+               b2[kkk] = BYTEIZE((b2[kkk]*(float)scl3[3*kkk+1])/255.0);
+               b3[kkk] = BYTEIZE((b3[kkk]*(float)scl3[3*kkk+2])/255.0);
+            }   
+         }
+         newim = mri_3to_rgb( rim, gim, bim ) ;
+         mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
+         MRI_COPY_AUX(newim,im) ; mri_free(im);
+         im = newim; newim = NULL;
+      } else if(im->kind == MRI_byte) {
+         /* scale image */
+         b1 = MRI_BYTE_PTR(im) ;
+         for (kkk=0; kkk<im->nvox; ++kkk) {
+            b1[kkk] = BYTEIZE((b1[kkk]*(float)scl[kkk])/255.0);
+         }
+      } else {
+            fprintf(stderr,
+               "*** image is not rgb or byte. No scaling for you!\n");
+      }
+      if (scl) free(scl); scl = NULL;
+      if (scl3) free(scl3); scl3 = NULL;
+   }
+   
    if (!(STRING_HAS_SUFFIX_CASE(prefix,".1D"))) {
       if (!(STRING_HAS_SUFFIX_CASE(prefix,".jpg")) &&
           !(STRING_HAS_SUFFIX_CASE(prefix,".ppm")) ) {
