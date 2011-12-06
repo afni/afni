@@ -9503,45 +9503,101 @@ void SUMA_SurfInfo_destroyed (void *p)
    SUMA_RETURNe;
 }
 
-char * SUMA_WriteStringToFile(char *fname, char *s) 
+#define NO_SPACE(str) {\
+   int m_i; \
+   for (m_i=0; str[m_i]!='\0';++m_i) { \
+      if (isspace(str[m_i])) { str[m_i]='_'; } \
+   }  \
+}
+ 
+char * SUMA_WriteStringToFile(char *fname, char *s, int over, int view) 
 {
    static char FuncName[]={"SUMA_WriteStringToFile"};
    FILE *fout=NULL;
-   char *fused=NULL;
+   char *fused=NULL, *viewer=NULL;
    int i=0;
-   char sbuf[128];
+   char sbuf[128], cmd[256];
    
    SUMA_ENTRY;
    
    if (!fname) fname = FuncName;
    if (!s) SUMA_RETURN(NULL);
    
-   fused = SUMA_copy_string(fname);
-   i = 0;
-   while (i < 10000 && SUMA_filexists(fused)) {
-      SUMA_free(fused);fused = NULL;
-      sprintf(sbuf,".%03d", i);
-      fused = SUMA_append_replace_string(fname,sbuf,"", 0);
-      ++i;
-   }
-   if (i >= 10000) {
-      SUMA_S_Errv("Cannot find available name for %s\n"
-                  "I am giving up.\n", fname);
-      SUMA_free(fused); fused = NULL;
-      SUMA_RETURN(NULL);
+   fused = SUMA_copy_string(fname);NO_SPACE(fused);
+   if (!over) {
+      i = 0;
+      while (i < 10000 && SUMA_filexists(fused)) {
+         SUMA_free(fused);fused = NULL;
+         sprintf(sbuf,".%03d", i);
+         fused = SUMA_append_replace_string(fname,sbuf,"", 0); NO_SPACE(fused);
+         
+         ++i;
+      }
+      if (i >= 10000) {
+         SUMA_S_Errv("Cannot find available name for %s\n"
+                     "I am giving up.\n", fname);
+         SUMA_free(fused); fused = NULL;
+         SUMA_RETURN(NULL);
+      }
    }  
    
    if ((fout = fopen(fused,"w"))) {
       fprintf(fout,"%s", s);
       fclose(fout);
-      SUMA_RETURN(fused);
    } else {
       SUMA_S_Errv("Failed to write to %s.\n", fused);
       SUMA_free(fused);
       SUMA_RETURN(NULL);
    }
    
-   SUMA_RETURN(NULL);
+   if (view) {
+      if (!(viewer = GetAfniTextEditor())) {
+         SUMA_S_Err("No GUI editor defined, and guessing game failed.\n"
+              "Set AFNI_GUI_EDITOR in your .afnirc for this option to work.\n"); 
+         SUMA_free(fused);
+         SUMA_RETURN(NULL);
+      }
+      snprintf(cmd,250*sizeof(char),"%s %s &", viewer, fused);
+      system(cmd);
+   }
+   
+   SUMA_RETURN(fused);
+}
+
+/*!
+   View text content of shell in editor  
+*/
+void SUMA_ViewTextShellInEditor(Widget w, XtPointer ud, XtPointer cd) 
+{
+   static char FuncName[] = {"SUMA_ViewTextShellInEditor"};
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell=NULL;
+   char *string=NULL, *fused=NULL;
+   char sbuf[128];
+   
+   SUMA_ENTRY;
+   
+   if (!GetAfniTextEditor()) {
+      SUMA_SLP_Err("No GUI editor defined, and guessing game failed.\n"
+              "Set AFNI_GUI_EDITOR in your .afnirc for this option to work.");
+      SUMA_RETURNe;
+   }
+   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)ud;
+   
+   if (!(string = XmTextGetString (TextShell->text_w)) || !*string) {
+      SUMA_SLP_Warn("Nothing to save");
+      SUMA_RETURNe;
+   }
+   
+   snprintf(sbuf, 120*sizeof(char),"/tmp/VTSIE.%s.txt",TextShell->title);
+   if (!(fused = SUMA_WriteStringToFile(sbuf, string, 0, 1))) {
+      SUMA_SLP_Err("Failed to write text.");
+   } else {
+      SUMA_free(fused); fused=NULL;
+   }
+   
+   XtFree(string); string=NULL;
+
+   SUMA_RETURNe;
 }
 
 /*!
@@ -9563,7 +9619,7 @@ void SUMA_SaveTextShell(Widget w, XtPointer ud, XtPointer cd)
       SUMA_RETURNe;
    }
    
-   if (!(fused = SUMA_WriteStringToFile(TextShell->title, string))) {
+   if (!(fused = SUMA_WriteStringToFile(TextShell->title, string, 0, 0))) {
       SUMA_SLP_Err("Failed to write text.");
    } else {
       snprintf(sbuf,127*sizeof(char),
@@ -9576,6 +9632,9 @@ void SUMA_SaveTextShell(Widget w, XtPointer ud, XtPointer cd)
 
    SUMA_RETURNe;
 }
+
+
+
 
 /*!
    \brief calls XtDestroyWidget on to top level shell of w and frees the TextShell pointer in clientdata. 
@@ -9665,7 +9724,8 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
                                  SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell)
 {
    static char FuncName[] = {"SUMA_CreateTextShell"};
-   Widget rowcol_v, rowcol_h, close_w, save_w, form, frame, toggle_case_w;
+   Widget rowcol_v, rowcol_h, close_w, save_w, view_w, 
+          form, frame, toggle_case_w;
    int n;
    Pixel fg_pix = 0;
    Arg args[30];
@@ -9735,6 +9795,14 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
                      XmNactivateCallback, 
                      SUMA_SaveTextShell, 
                      TextShell);    
+      view_w = XtVaCreateManagedWidget (
+                     "View",
+                     xmPushButtonWidgetClass, 
+                     rowcol_h, NULL);
+      XtAddCallback (view_w, 
+                     XmNactivateCallback, 
+                     SUMA_ViewTextShellInEditor, 
+                     TextShell); 
       close_w = XtVaCreateManagedWidget (
                      "Close", 
                      xmPushButtonWidgetClass, 

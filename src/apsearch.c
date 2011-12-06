@@ -210,6 +210,7 @@ void apsearch_usage()
    "  -word WORD: WORD being sought\n"
    "  -file FILE: Search for WORD in text file FILE\n"
    "  -text TEXT: Search for WORD in string TEXT\n"
+   "  -stdin: Search for WORD in text from stdin\n"
    "  -phelp PROG: Search for WORD in output of command PROG -help\n"
    "  -popt PROG: Search for possible options of PROG that match WORD\n"
    "              Make sure you add the '-' to WORD if you are looking\n"
@@ -286,7 +287,43 @@ void apsearch_usage()
 
 
 /*----------------------------------------------------------------------------*/
+char *text_from_stdin(int *nread) 
+{
+   int N_lbuf = 30000;
+   char lbuf[N_lbuf+1];
+   char *txt=NULL, *cpt=NULL;
+   int ex = 0, i, N_alloc=0, nchar=0, nnew;
+   
+   
+   if (nread) *nread = -1;
+   
+   i = 0; N_alloc=0; nchar=0, nnew=0;
+   do{  
+      cpt = fgets(lbuf,N_lbuf,stdin) ;
+      lbuf[N_lbuf] = '\0';
+      ex = feof(stdin);
+      if( cpt==NULL && !ex){ 
+         free(txt);
+         ERROR_message("Failure reading from stdin");
+         return(NULL); 
+      }
+      if (!ex) {
+         nnew = strlen(lbuf);
+         if (nchar+nnew >= N_alloc) {
+            N_alloc += (nnew+10000);
+            txt = (char *)realloc(txt, sizeof(char)*N_alloc);
+         }
+         /* fprintf(stderr,"%d- %s",nchar, lbuf);*/
+         strcat(txt, lbuf); nchar += nnew;
+      }
+   } while (!ex);
 
+   txt = (char *)realloc(txt, sizeof(char)*nchar);
+   if (nread) *nread = nchar;
+   
+   return(txt); 
+}
+            
 int main(int argc, char **argv)
 {
    int iarg, N_ws, i, max_hits, test_only, new_score=0,
@@ -294,7 +331,7 @@ int main(int argc, char **argv)
        show_score=0;
    float *ws_score=NULL, last_score=-1.0;
    char *fname=NULL, *text=NULL, *prog=NULL, *str=NULL, **ws=NULL, 
-         *all_popts=NULL, *popt=NULL;
+         *all_popts=NULL, *popt=NULL, stdinflag[] = " [+.-STDIN-.+] ";
    APPROX_STR_DIFF *D=NULL;
    byte ci = 1;
    
@@ -364,6 +401,12 @@ int main(int argc, char **argv)
          }
 
          fname = argv[iarg];
+         ++iarg;
+         continue; 
+      }
+
+      if (strcmp(argv[iarg],"-stdin") == 0) { 
+         fname = stdinflag;
          ++iarg;
          continue; 
       }
@@ -499,9 +542,22 @@ int main(int argc, char **argv)
 
    if (str && (fname || text || prog || popt || all_popts)) {
       if (fname) {
-         ws = approx_str_sort_tfile(fname, &N_ws, str, 
+         if (strcmp(fname,stdinflag)) {
+            ws = approx_str_sort_tfile(fname, &N_ws, str, 
                             ci, &ws_score,
                             NULL, &D);
+         } else {
+            char *stdtext=NULL;
+            if (!(stdtext = text_from_stdin(&N_ws))) {
+               ERROR_message("Failed to read from stdin");
+               return 0;
+            }
+            fprintf(stderr,"%s\n", stdtext);
+            ws = approx_str_sort_text(stdtext, &N_ws, str, 
+                            ci, &ws_score,
+                            NULL, &D); 
+            free(stdtext); stdtext=NULL;
+         }
       } else if (text) {
          ws = approx_str_sort_text(text, &N_ws, str, 
                             ci, &ws_score,
