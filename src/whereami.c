@@ -166,11 +166,10 @@ int print_atlas_reference(char *atname)
 }
 
 
-void whereami_usage(ATLAS_LIST *atlas_alist) 
+void whereami_usage(ATLAS_LIST *atlas_alist, int detail) 
 {
    int i = 0;
-   
-   ENTRY("whereami_usage");
+
    /* print help message in three sections */
    printf(  
 "Usage: whereami [x y z [output_format]] [-lpi/-spm] [-atlas ATLAS] \n"
@@ -179,7 +178,9 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "   ++ Show the contents of available atlases\n"
 "   ++ Extract ROIs for certain atlas regions using symbolic notation\n"
 "   ++ Report on the overlap of ROIs with Atlas-defined regions.\n"
-"\n"
+"\n%s", detail ? "":"use -h or -help for more help detail.\n");
+   if (detail) {
+      printf ( 
 "Options (all options are optional):\n"
 "-----------------------------------\n"
 "    x y z [output_format] : Specifies the x y z coordinates of the \n"
@@ -226,9 +227,12 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 " -atlas ATLAS: Use atlas ATLAS for the query.\n"
 "               You can use this option repeatedly to specify\n"
 "               more than one atlas. Default is all available atlases.\n");
-  
-  printf("               ATLAS is one of:\n");
-  print_atlas_table(atlas_alist);
+   if (detail > 1) {
+      printf("              ATLAS is one of:\n");
+      print_atlas_table(atlas_alist);
+   } else {
+      printf("              Use whereami -help to see all available atlases.\n");
+   }
 
   /* third section for usage help*/
   printf(
@@ -362,7 +366,9 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "   Note: You can safely ignore the:\n"
 "              ** Can't find anat parent ....  \n"
 "         messages for the Atlas datasets.\n"
-"\n"
+"\n", Init_Whereami_Max_Find(), Init_Whereami_Max_Rad());
+   if (detail > 1) {
+      printf(
 "Convenient Color maps For Atlas Datasets:\n"
 "----------------------------------------\n"
 "   Color maps (color scales) for atlas dataset should automatically be used\n"
@@ -391,7 +397,16 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "     have Talairach view datasets actually written out to disk\n"
 "   The whereami and \"Talairach to\" functions are also available by right-\n"
 "     clicking in an image window.\n\n"
-"Examples:\n"
+      );
+   } else {
+      printf("    Use whereami -help to see more information on:\n"
+             "      Convenient Color maps For Atlas Datasets:\n"
+             "         and \n"
+             "      How To See Atlas regions overlaid in the AFNI GUI:\n"
+      );
+   }
+   printf(
+"Example 1:\n"
 "_________\n"
 "   To find a cluster center close to the top of the brain at -12,-26, 76 (LPI),\n"
 "   whereami, assuming the coordinates are in Talairach space, would report:\n"
@@ -415,16 +430,31 @@ void whereami_usage(ATLAS_LIST *atlas_alist)
 "       Within 6 mm: Left Precentral Gyrus\n"
 "          -AND- Left Postcentral Gyrus\n"
 "\n"
-"   To create a mask dataset of both the left and right amygdala, you can do the\n"
-"   following :\n"
+"Example 2:\n"
+"_________\n"
+"   To create a mask dataset of both  left and right amygdala, you can do:\n"
 "   > whereami -prefix amymask -mask_atlas_region 'TT_Daemon::amygdala'\n\n"
 "\n"
 "   Note masks based on atlas regions can be specified \"on the fly\" in \n"
 "   the same way with other afni commands as a dataset name (like 3dcalc,\n"
 "   for instance), so a mask, very often, is not needed as a separate,\n"
 "   explicit dataset on the disk.\n\n"
-"\n" 
-"\n",Init_Whereami_Max_Find(), Init_Whereami_Max_Rad());
+"\n"
+"Example 3:\n"
+"_________\n"
+"   To create a mask from a FreeSurfer 'aparc' volume parcellation:\n"
+"   (This assumes you have already run @SUMA_Make_Spec_FS, and your\n"
+"    afni distribution is recent. Otherwise update afni then run:\n"
+"    @MakeLabelTable -atlasize_labeled_dset aparc.a2009s+aseg_rank.nii\n"
+"    from the SUMA/ directory for that subject.)\n"
+"   To find the region's name, try something like:\n"
+"   > whereami -atlas aparc.a2009s+aseg_rank -show_atlas_code | grep -i insula\n"
+"   Pick one area then run:\n"
+"   > whereami -atlas aparc.a2009s+aseg_rank \\\n"
+"               -mask_atlas_region   \\\n"
+"                     aparc.a2009s+aseg_rank::ctx_rh_S_circular_insula_sup\n"
+"\n"
+"\n");
 
 printf(
 " \n---------------\n"
@@ -469,10 +499,18 @@ printf(
 "---------------\n"
 );
 
+if (detail > 1) {
+   printf(     
+     "Global Options (available to all AFNI/SUMA programs)\n"
+     "%s",
+     get_gopt_help());
+}
+      
 printf("Thanks to Kristina Simonyan for feedback and testing.\n");
 
+}
    PRINT_COMPILE_DATE ;
-   EXRETURN;
+   return;
 }
 
 
@@ -512,6 +550,8 @@ int main(int argc, char **argv)
    ATLAS_LIST *atlas_alist=NULL, *atlas_list=NULL, *atlas_rlist=NULL;
    byte b1;
    int LocalHead = wami_lh();
+   
+   mainENTRY("whereami main"); machdep(); AFNI_logger("whereami",argc,argv);
    
    b1 = 0;
    mni = -1;
@@ -578,9 +618,9 @@ int main(int argc, char **argv)
             continue; 
          }
          
-         if (strcmp(argv[iarg],"-help") == 0 ) { 
+         if (strcmp(argv[iarg],"-h") == 0 || strcmp(argv[iarg],"-help") == 0 ) { 
             atlas_alist = get_G_atlas_list();
-            whereami_usage(atlas_alist);
+            whereami_usage(atlas_alist, strlen(argv[iarg]) > 3 ? 2:1);
             return(0); 
             continue; 
          }
@@ -952,6 +992,7 @@ int main(int argc, char **argv)
 
          { /* bad news in tennis shoes */
             fprintf(stderr,"** Error: bad option %s\n", argv[iarg]);
+            suggest_best_prog_option(argv[0], argv[iarg]);
             return 1;
          }
       
@@ -1110,7 +1151,11 @@ int main(int argc, char **argv)
       /* check for missing atlases and stop in case of error */
       for (k=0; k < N_atlas_names; ++k) {
          if (!get_Atlas_Named(atlas_names[k], atlas_alist)) {
-            ERROR_message("Atlas %s not found in list", atlas_names[k]);
+            ERROR_message("Atlas %s not found in list.\n", atlas_names[k]);
+            string = suggest_Atlas_Named(atlas_names[k], atlas_alist);
+            if (string[0] != '\0') {
+               fprintf(stderr,"  Perhaps:      %s  is what you want?\n", string);
+            }
             exit(1);
          }  
       }
@@ -1127,7 +1172,8 @@ int main(int argc, char **argv)
    }
    
    if (nakedarg < 3 && !Show_Atlas_Code && !shar && !bmsk && !coord_file) {
-      whereami_usage(atlas_alist);
+      ERROR_message("Bad option combinations");
+      whereami_usage(atlas_alist, 0);
       return 1;
    }
    
