@@ -845,6 +845,7 @@ L_CREATE_BRICK:
                            -labeltable ${other:t:r}_rank \
                               > ${other:t:r}_rank.niml.lt.log
             3drefit -labeltable ${other:t:r}_rank.niml.lt "${other:t:r}_rank.nii"
+            @MakeLabelTable -atlasize_labeled_dset "${other:t:r}_rank.nii"
          endif
          cd - 
        end

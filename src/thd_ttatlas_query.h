@@ -352,6 +352,7 @@ char *Atlas_Code_to_Atlas_Description(AFNI_ATLAS_CODES icod);
 char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod);
 int init_global_atlas_list (void);
 ATLAS *get_Atlas_Named(char *atname, ATLAS_LIST *atlas_list);
+char *suggest_Atlas_Named(char *atname, ATLAS_LIST *atlas_list);
 ATLAS *get_Atlas_ByDsetID(char *dsetid, ATLAS_LIST *atlas_list);
 ATLAS_LIST *Atlas_Names_to_List(char **atnames, int natlases);
 char **free_names_list(char **nl, int N_nl);
