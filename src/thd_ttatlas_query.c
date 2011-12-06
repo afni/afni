@@ -3405,7 +3405,7 @@ APPROX_STR_DIFF_WEIGHTS *init_str_diff_weights(APPROX_STR_DIFF_WEIGHTS *Dwi)
    for (i=0; i<N_APPROX_STR_DIMS; ++i) {
       switch (i) {
          case LEV:
-            Dwi->w[i] = 10.0;
+            Dwi->w[i] = 2.0;
             break;
          case PMD:
             Dwi->w[i] = 5.0;
@@ -3552,7 +3552,8 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
          }
       }
    }
-   D.d[LEV] = d[ns1][ns2];
+   D.d[LEV] = d[ns1][ns2]; 
+   if (D.d[LEV] > 9) D.d[LEV] = 9;
    for (i=0; i<=ns1; ++i) {
       free(d[i]);
    }
@@ -3633,7 +3634,7 @@ char *approx_string_diff_info(APPROX_STR_DIFF *D, APPROX_STR_DIFF_WEIGHTS *Dwi)
    
    sprintf(res[icall],"(");
    for (i=0; i<N_APPROX_STR_DIMS; ++i) {
-      sprintf(sbuf,"%s %dx%f ", 
+      sprintf(sbuf,"%s %dx%.2f ", 
                name_approx_string_diff_dim(i), D->d[i], Dwi->w[i]); 
       strcat(res[icall], sbuf);
    }
