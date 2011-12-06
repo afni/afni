@@ -191,7 +191,7 @@ int update_help_for_afni_programs(int force_recreate,
 
 
          
-void apsearch_usage() 
+void apsearch_usage(int detail) 
 {
    int i = 0;
    
@@ -204,7 +204,9 @@ void apsearch_usage()
    "\n"
    "  apsearch <-word WORD> <[-file FILE] | [-text TEXT] | [-phelp PROG]> \n"
    "           [OPTIONS]\n"
-   "\n"
+   "\n%s", detail ? "":"use -h or -help for more help detail.\n");
+   if (detail) {
+      printf ( 
    "Parameters:\n"
    "===========\n"
    "  -word WORD: WORD being sought\n"
@@ -278,11 +280,13 @@ void apsearch_usage()
    " 6- Show all(*) options for a program:\n"
    "        apsearch -all_popts 3dSkullStrip\n"
    "    (*) see -all_popts in help section\n"
-   "\n", 
-   THD_helpdir()); 
-   
+   "\n"
+   "%s", 
+   THD_helpdir(),
+   detail > 1 ? get_gopt_help():""); 
    PRINT_COMPILE_DATE ;
-   EXRETURN;
+   }
+   return;
 }
 
 
@@ -341,7 +345,7 @@ int main(int argc, char **argv)
    test_only=0;
    min_different_hits = -1;
    if (argc <= 1) {
-      apsearch_usage();
+      apsearch_usage(0);
       return(1); 
    }
    
@@ -387,8 +391,9 @@ int main(int argc, char **argv)
          continue; 
       }
 
-      if (strcmp(argv[iarg],"-help") == 0 ) { 
-         apsearch_usage();
+      if (strcmp(argv[iarg],"-help") == 0 ||
+          strcmp(argv[iarg],"-h") == 0) { 
+         apsearch_usage(strlen(argv[iarg]) > 3 ? 2:1);
          return(0); 
          continue; 
       }
@@ -552,7 +557,6 @@ int main(int argc, char **argv)
                ERROR_message("Failed to read from stdin");
                return 0;
             }
-            fprintf(stderr,"%s\n", stdtext);
             ws = approx_str_sort_text(stdtext, &N_ws, str, 
                             ci, &ws_score,
                             NULL, &D); 
