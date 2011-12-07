@@ -836,16 +836,26 @@ L_CREATE_BRICK:
          cd $start_dir/$suma_dir/
          @Align_Centers -base $afni_dataset -dset ${other:t:r}".nii" -no_cp
          if ( "${other:t:r}" == "aparc.a2005s+aseg" ||   \
-              "${other:t:r}" == "aparc.a2009s+aseg" ) then
+              "${other:t:r}" == "aparc.a2009s+aseg" ||   \
+              "${other:t:r}" == "aseg" ||   \
+              "${other:t:r}" == "aparc+aseg" ) then
             3dmerge -1rank -prefix "${other:t:r}_rank.nii" ${other:t:r}".nii"
-            set kk = `echo ${other:t:r} | cut -f 1 -d '+'`
-            mv ${kk}.rankmap.1D ${other:t:r}.rankmap.1D 
+            if (0) then
+               # kill this block soon.
+               set kk = `echo ${other:t:r} | cut -f 1 -d '+'`
+               mv ${kk}.rankmap.1D ${other:t:r}.rankmap.1D 
+            endif
             @FS_roi_label  -name ALL \
-                           -rankmap ${other:t:r}.rankmap.1D \
+                           -rankmap ${other:t:r}_rank.rankmap.1D \
                            -labeltable ${other:t:r}_rank \
                               > ${other:t:r}_rank.niml.lt.log
-            3drefit -labeltable ${other:t:r}_rank.niml.lt "${other:t:r}_rank.nii"
-            @MakeLabelTable -atlasize_labeled_dset "${other:t:r}_rank.nii"
+            if ($status) then
+               echo "Failed to make roi labels for $other"
+            else
+               3drefit -labeltable ${other:t:r}_rank.niml.lt \
+                                  "${other:t:r}_rank.nii"
+               @MakeLabelTable -atlasize_labeled_dset "${other:t:r}_rank.nii"
+            endif
          endif
          cd - 
        end
