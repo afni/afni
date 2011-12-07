@@ -3309,6 +3309,7 @@ STATUS("drawing crosshairs") ;
                strcat(str, " \\noesc O:");
                strncat(str, labstrf, 126*sizeof(char));
             }
+         }
          
       }
       
