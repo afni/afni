@@ -3256,7 +3256,8 @@ STATUS("drawing crosshairs") ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
       float dxyz , cc ;
-      int ii ;
+      int ii;
+      double dval;
 
       if( im3d->type != AFNI_3DDATA_VIEW ) RETURN(NULL) ;
 
@@ -3292,19 +3293,23 @@ STATUS("drawing crosshairs") ;
       if( str[ii] == '.' ) str[ii] = '\0' ;
       strcat(str, dd) ;
       
-      if (1) {
-         AFNI_get_dset_val_label(im3d->anat_now,         /* Dec 7 2011 ZSS */
-                                 strtod(im3d->vinfo->anat_val, NULL), labstra);
-         if (labstra[0] != '\0') {
-            strcat(str, " \\noesc U:");
-            strncat(str, labstra, 126*sizeof(char));
+      if (AFNI_yesenv("AFNI_SECRET_LABELS")) {
+         if ((dval = strtod(im3d->vinfo->anat_val, NULL))>0.0f) {
+            AFNI_get_dset_val_label(im3d->anat_now,         /* Dec 7 2011 ZSS */
+                                    dval, labstra);
+            if (labstra[0] != '\0') {
+               strcat(str, " \\noesc U:");
+               strncat(str, labstra, 126*sizeof(char));
+            }
          }
-         AFNI_get_dset_val_label(im3d->fim_now,         /* Dec 7 2011 ZSS */
-                              strtod(im3d->vinfo->func_val, NULL), labstrf);
-         if (labstrf[0] != '\0') {
-            strcat(str, " \\noesc O:");
-            strncat(str, labstrf, 126*sizeof(char));
-         }
+         if ((dval = strtod(im3d->vinfo->func_val, NULL))>0.0f) {
+            AFNI_get_dset_val_label(im3d->fim_now,         /* Dec 7 2011 ZSS */
+                                    dval, labstrf);
+            if (labstrf[0] != '\0') {
+               strcat(str, " \\noesc O:");
+               strncat(str, labstrf, 126*sizeof(char));
+            }
+         
       }
       
       lab = strdup(str) ;
