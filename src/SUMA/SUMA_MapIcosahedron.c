@@ -534,7 +534,7 @@ int main (int argc, char *argv[])
    sprintf (outSpecFileNm, "%s%s", 
             fout, SUMA_FnameGet(brainSpecFile,"f", SUMAg_CF->cwd));
    
-   if (!UseCOM && UserCenter == -1) {
+   if (LocalHead && !UseCOM && UserCenter == -1) {/* Enough already. Dec 2011 */
       SUMA_S_Note("\n"
                   "---------------------------------------------------\n"
                   "The program now uses the estimated geometric center\n"

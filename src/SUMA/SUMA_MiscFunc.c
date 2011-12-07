@@ -7109,7 +7109,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
             }
          }
       }
-      if (debug && !winedonce) 
+      if (debug && !winedonce && SEL->min_N_Hosts!=2 && SEL->max_N_Hosts != 2) 
          fprintf( SUMA_STDERR,
                   "%s: Min/Max number of edge hosting triangles: [%d/%d] \n", 
                   FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);

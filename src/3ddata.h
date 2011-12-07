@@ -1042,11 +1042,17 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
     - If there is no '+', puts an empty string into pr
     - Otherwise, scans backward from end to find last '+'; everything before that is the prefix
     - Space for pr must be allocated beforehand
+    
+    Made strstr check for +orig, +acpc, and +tlrc instead of just 
+      "+". Names like aseg+aparc.nii were getting butchered            
+      ZSS: Dec 2011
 */
 
 #define FILECODE_TO_PREFIX(fc,pr)                                     \
   do{ char *qq , *ff , *pp ;                                          \
-      if( strstr((fc),"+") == NULL ){                                 \
+      if( strstr((fc),"+orig") == NULL &&\
+          strstr((fc),"+acpc") == NULL &&\
+          strstr((fc),"+tlrc") == NULL ){                             \
          (pr)[0] = '\0' ;                                             \
       } else {                                                        \
          for( qq=fc+strlen((fc)) ; *qq != '+' ; qq-- ) ;              \
