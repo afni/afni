@@ -65,6 +65,24 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 7, DEC , 2011 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
+   "Added atlas creation of aseg, aparc+aseg, in addition to aparc.a200*",
+   "See whereami's example 3 for how to extract ROIs from FreeSurfer atlases.",
+ },
+ 
+ { 7, DEC , 2011 , ZSS , "@FS_roi_label" , MICRO , TYPE_BUG_FIX,
+   "Fixed bug caused by not cleaning tmp files under /tmp/ with -rankmap",
+   "This bug should not have affected anyone. It showed up as I\n"
+   "was making @SUMA_Make_Spec_FS process more than one type of\n"
+   "parcellation volume.\n",
+ },
+ 
+ { 6, DEC , 2011 , ZSS , "apsearch" , MICRO , TYPE_NEW_OPT,
+   "-stdin for input",
+   "More tweaking of search distances and a battery of tests\n"
+   "to help decide if tweak is in the right direction.\n",
+ },
+ 
  { 5, DEC , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
    "Added -h_view to all C command-line programs.",
    "See also apsearch -view_prog_help option",

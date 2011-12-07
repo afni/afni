@@ -1,17 +1,26 @@
 #!/bin/tcsh -f
 
 set fsdb = FreeSurferColorLUT.txt
+set uid = `3dnewid -fun`
+set tmpP = "___.${uid}."
 set stat = 1
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
 endif
+
+if ("$uid" == "" || $tmpP == '') then
+   echo "Bad news no unique id, or temp file flag"
+   set stat = 1
+   goto END
+endif 
+\rm -f /tmp/${tmpP}.${uid}.* >& /dev/null
 
 goto PARSE
 RETURN_PARSE:
 
 if ( $Do_Surf ) then
    #surface parcellation
-   set pplabels = /tmp/___tmpsurflabels.txt
+   set pplabels = /tmp/${tmpP}tmpsurflabels.txt
    if ("$SurfLabelFile" != "") then
       if (! -f ${SurfLabelFile}) then
          echo "Could not find ${SurfLabelFile}"
@@ -40,22 +49,22 @@ if ( $Do_Surf ) then
    
    #Now proces lbl file
    set nlbls = `3dnvals ${SurfLabelFile}\'`
-   1dcat ${SurfLabelFile}'[0]' | sed 's/^ */#/g' > /tmp/___indices   
+   1dcat ${SurfLabelFile}'[0]' | sed 's/^ */#/g' > /tmp/${tmpP}indices   
    cat ${SurfLabelFile} | \
       \grep -E '#[:alpha:]*' | tail -n $nlbls | sed 's/#//g' \
-               > /tmp/___labels
-   set l1 = `wc -l /tmp/___indices`
-   set l2 = `wc -l /tmp/___labels`
+               > /tmp/${tmpP}labels
+   set l1 = `wc -l /tmp/${tmpP}indices`
+   set l2 = `wc -l /tmp/${tmpP}labels`
    if ( $l1[1] != $nlbls ) then
-      echo "mismatch in /tmp/___indices and /tmp/___labels"
+      echo "mismatch in /tmp/${tmpP}indices and /tmp/${tmpP}labels"
       goto END
    endif
    #Now put two together
-   paste -d ' '  /tmp/___indices /tmp/___labels > $pplabels
-   rm /tmp/___indices /tmp/___labels >& /dev/null
+   paste -d ' '  /tmp/${tmpP}indices /tmp/${tmpP}labels > $pplabels
+   rm /tmp/${tmpP}indices /tmp/${tmpP}labels >& /dev/null
 else
    #volume parcellation
-   set pplabels = /tmp/___tmpvollabels.txt
+   set pplabels = /tmp/${tmpP}tmpvollabels.txt
    if (! -f ${pplabels}) then
       set bin = `which mris_convert`
       if ($status) then
@@ -91,35 +100,35 @@ endif
 
 if ($name != "") then
    if ($name == "ALL") then
-      \grep -i '#[0123456789]'   ${pplabels} > /tmp/___nm.txt
+      \grep -i '#[0123456789]'   ${pplabels} > /tmp/${tmpP}nm.txt
    else
-      \grep -i $name   ${pplabels} > /tmp/___nm.txt
+      \grep -i $name   ${pplabels} > /tmp/${tmpP}nm.txt
    endif
    #echo \grep -i "$name"   ${pplabels}
-   cut -d' ' -f1 /tmp/___nm.txt > /tmp/___nmi.txt
-   cut -d' ' -f2 /tmp/___nm.txt > /tmp/___nmn.txt
+   cut -d' ' -f1 /tmp/${tmpP}nm.txt > /tmp/${tmpP}nmi.txt
+   cut -d' ' -f2 /tmp/${tmpP}nm.txt > /tmp/${tmpP}nmn.txt
    if ($rankmap != "") then
       set rankmax = 0
       set cnt_lt = 0
       #purify 1D file
-      1dcat $rankmap'[1]' > /tmp/___rmi.1D
-      1dcat $rankmap > /tmp/___rmcl.1D
+      1dcat $rankmap'[1]' > /tmp/${tmpP}rmi.1D
+      1dcat $rankmap > /tmp/${tmpP}rmcl.1D
       #for each entry found
-      set nl = `wc -l  /tmp/___nm.txt`
+      set nl = `wc -l  /tmp/${tmpP}nm.txt`
       set n = 1
       printf "%-6s   %-6s  %-8s \n" "Rank" "Label" "Name"
       while ($n < $nl[1])
-         set lab = `sed -n "${n}p" /tmp/___nmi.txt | sed 's/#//'`
-         set nm = `sed -n "${n}p" /tmp/___nmn.txt`
+         set lab = `sed -n "${n}p" /tmp/${tmpP}nmi.txt | sed 's/#//'`
+         set nm = `sed -n "${n}p" /tmp/${tmpP}nmn.txt`
          #Now find lab in  rankmap's second column
-         set ilab = `\grep -n -w $lab /tmp/___rmi.1D | sed 's/:/ /g'`
+         set ilab = `\grep -n -w $lab /tmp/${tmpP}rmi.1D | sed 's/:/ /g'`
          if ("$ilab" != '') then
             #Now get that line from the cleaned up rankmap
-            set li = `sed -n "${ilab[1]}p" /tmp/___rmcl.1D`
+            set li = `sed -n "${ilab[1]}p" /tmp/${tmpP}rmcl.1D`
             #and the rank is the first value
             set rank = $li[1]
             printf "%-6s   %-6s  %-8s \n" $rank $lab $nm
-            printf '"%d" "%s"\n' $rank $nm >> /tmp/___lt.txt
+            printf '"%d" "%s"\n' $rank $nm >> /tmp/${tmpP}lt.txt
             @ cnt_lt ++
             if ($rank > $rankmax) then
                set rankmax = $rank
@@ -130,8 +139,9 @@ if ($name != "") then
          @ n ++
       end
    else
-      paste  /tmp/___nmi.txt /tmp/___nmn.txt
+      paste  /tmp/${tmpP}nmi.txt /tmp/${tmpP}nmn.txt
    endif
+   
    if ($labeltable != "") then
       #echo $rankmax
       if ($rankmax < 32) then
@@ -147,7 +157,8 @@ if ($name != "") then
       printf 'ni_type="2*String"\n' >> $labeltable
       printf 'ni_dimen="%d"\n' $cnt_lt >> $labeltable
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
-      uniq /tmp/___lt.txt >> $labeltable
+      uniq /tmp/${tmpP}lt.txt >> $labeltable
+      if ($status) goto BEND
       printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
    endif
    set stat = 0
@@ -232,6 +243,10 @@ PARSE:
 				set rankmap = "$argv[$cnt]"
             if ("${rankmap:r}.1D" != "$rankmap") then
                echo "rankmap must have a .1D extension"
+            endif
+            if ( ! -f ${rankmap} ) then
+               echo "rankmap file ${rankmap} not found"
+               goto BEND
             endif
             set NxtInd = $cnt
 			endif
@@ -432,7 +447,7 @@ HELP:
    echo ""
    echo "Usage: `basename $0` <-name ALL> \"
    echo "                     <-labeltable LABELTABLE> <-rankmap M.1D>"
-   echo "   Build a label table that can be atted to the ranked volume"
+   echo "   Build a label table that can be added to the ranked volume"
    echo "   so that AFNI can display labels of parcellated volumes."
    echo "   Use 3drefit -labeltable LABELTABLE DSET to add the table"
    echo "   to the rank dataset DSET"
@@ -467,7 +482,15 @@ HELP:
    set stat = 0
    goto END
    
+   
+goto END
+
+BEND:
+   set stat = 1
+   goto END
+   
 END:
+\rm -f /tmp/${tmpP}.${uid}.* >& /dev/null
 exit $stat   
 
    

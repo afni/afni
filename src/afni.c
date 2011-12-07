@@ -3251,7 +3251,8 @@ STATUS("drawing crosshairs") ;
 
    if( type == isqCR_getlabel ){
       Three_D_View *im3d = (Three_D_View *) br->parent ;
-      char *lab , str[32] , *dd ;
+      char *lab , str[512] , *dd ;
+      char labstrf[256]={""}, labstra[256]={""};
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
       float dxyz , cc ;
@@ -3289,7 +3290,26 @@ STATUS("drawing crosshairs") ;
       sprintf(str,"%6.2f",fabs(cc)) ;
       for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
       if( str[ii] == '.' ) str[ii] = '\0' ;
-      strcat(str,dd) ; lab = strdup(str) ; RETURN(lab) ;
+      strcat(str, dd) ;
+      
+      if (1) {
+         AFNI_get_dset_val_label(im3d->anat_now,         /* Dec 7 2011 ZSS */
+                                 strtod(im3d->vinfo->anat_val, NULL), labstra);
+         if (labstra[0] != '\0') {
+            strcat(str, " \\noesc U:");
+            strncat(str, labstra, 126*sizeof(char));
+         }
+         AFNI_get_dset_val_label(im3d->fim_now,         /* Dec 7 2011 ZSS */
+                              strtod(im3d->vinfo->func_val, NULL), labstrf);
+         if (labstrf[0] != '\0') {
+            strcat(str, " \\noesc O:");
+            strncat(str, labstrf, 126*sizeof(char));
+         }
+      }
+      
+      lab = strdup(str) ;
+      
+      RETURN(lab) ;
    }
 
    /*--- underlay image # n ---*/

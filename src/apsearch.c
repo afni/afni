@@ -280,6 +280,14 @@ void apsearch_usage(int detail)
    " 6- Show all(*) options for a program:\n"
    "        apsearch -all_popts 3dSkullStrip\n"
    "    (*) see -all_popts in help section\n"
+   " 7- Look for some area named something or other in some atlas:\n"
+   "        whereami -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
+   "                                apsearch -stdin -word insola\n"
+   "    If you really screw up the spelling, you should help the search\n"
+   "    program a little as in:\n"
+   "        whereami -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
+   "                                sed 's/[-_]/ /g' |\\\n"
+   "                                apsearch -stdin -word insolent\n"
    "\n"
    "%s", 
    THD_helpdir(),
