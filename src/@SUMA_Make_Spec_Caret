@@ -808,6 +808,8 @@ L_CREATE_SPEC:
                echo "or"
                echo "caret_command  -file-convert -format-convert ASCII $surf $list_topo_cur[$cnt]"
                echo "before running SUMA."
+                  # Do quit it is too confusing when SUMA fails later on
+               goto L_BAD_END          
             endif
           endif
           set pair = ($pair $surf $list_topo_cur[$cnt])
@@ -936,6 +938,16 @@ L_HELP_END:
     echo "    5. The test data I had contained .R. and .LR. surfaces! I am not sure what .LR."
     echo "       means since the surfaces are for one hemisphere but the script will use"
     echo "       these surfaces too."
+    echo "    6. If you have reconstructed each hemisphere separately, follow"
+    echo "       these suggestions to keep your life simple."
+    echo "       Assume Caret results are in Left_Hem/ and Right_Hem/ directories"
+    echo ""
+    echo "       mkdir LR_Hem"
+    echo "       cp -p Left_Hem/* Right_Hem/* LR_Hem"
+    echo "       cd LR_Hem"
+    echo "       `basename $0` -sid Joe"
+    echo "           and merge the two specs with:"
+    echo "        inspec -LRmege Joe_lh.spec Joe_rh.spec -prefix Joe_both.spec"
     echo ""
     echo "     R. Reynolds (rickr@codon.nih.gov), Z. Saad (saadz@mail.nih.gov)"
     echo ""

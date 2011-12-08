@@ -145,8 +145,8 @@ WORK_1D:
    if ($verb) echo "Get r- and z-maps from 1D Time-Series"
    1ddot -terse -okzero -dem TS_ALL.1D > TS_ALL.corr.1D
    
-   if ( -f fn_msk.niml.lt ) then
-   #Create labels?
+   if ( 0 && -f fn_msk.niml.lt ) then
+   #Create labels?   ZSS Unfinished, Dec 2011
       set key = ()
       set lbl = ()
       foreach k (`1dcat ${init_path}/${rowfile}`)
