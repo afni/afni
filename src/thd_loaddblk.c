@@ -42,6 +42,7 @@ float THD_get_voxel( THD_3dim_dataset *dset , int ijk , int ival )
    void *ar ;
    float val , fac ;
 
+   if( !ISVALID_DSET(dset) )                  return 0.0f ;
    if( ival < 0 || ival >= DSET_NVALS(dset) ) return 0.0f ;
    if( ijk < 0  || ijk  >= DSET_NVOX(dset)  ) return 0.0f ;
 
@@ -66,7 +67,7 @@ float THD_get_voxel( THD_3dim_dataset *dset , int ijk , int ival )
 
      case MRI_complex:{
        complex c = (((complex *)ar)[ijk]) ;
-       val = sqrt(c.r*c.r+c.i*c.i) ;
+       val = sqrtf(c.r*c.r+c.i*c.i) ;
        break ;
      }
 
@@ -87,6 +88,23 @@ float THD_get_voxel( THD_3dim_dataset *dset , int ijk , int ival )
    fac = DSET_BRICK_FACTOR(dset,ival) ;
    if( fac > 0.0f ) val *= fac ;
    return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+float THD_get_voxel_dicom( THD_3dim_dataset *dset, float x,float y,float z, int ival )
+{
+   THD_fvec3 vv , uu ; THD_ivec3 ii ; int ijk ;
+
+   if( !ISVALID_DSET(dset) )                  return 0.0f ;
+   if( ival < 0 || ival >= DSET_NVALS(dset) ) return 0.0f ;
+
+   LOAD_FVEC3( vv , x,y,z ) ;
+   uu = THD_dicomm_to_3dmm( dset , vv ) ;
+   ii = THD_3dmm_to_3dind_no_wod( dset , uu ) ;
+   ijk = DSET_ixyz_to_index(dset,ii.ijk[0],ii.ijk[1],ii.ijk[2]) ;
+
+   return THD_get_voxel( dset , ijk , ival ) ;
 }
 
 /*---------------------------------------------------------------
