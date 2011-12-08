@@ -2572,6 +2572,127 @@ ENTRY("AFNI_startup_timeout_CB") ;
 }
 
 /*----------------------------------------------------------------------
+   Return the underlay or overlay brick and the sub-brick index that 
+   the user had selected in the 'Underlay' and 'Overlay' menus.
+   
+   So whether or not the user has bkgd:ULay or bkgd:OLay is irrelevant 
+   to what gets returned.
+   
+   The returned structure is brr
+   brr->dset will contain the dset selected as underlay if
+      type  ==  isqCR_getulayim 
+              and         the dset selected as overlay if
+      type  ==  isqCR_getolayim 
+   
+   brr = br if type is set to anything other than isqCR_get[uo]ayim
+   
+   See also Get_UO_Dset
+----------------------------------------------------------------------*/
+FD_brick *Get_FD_Brick_As_Selected(FD_brick *br, int type, int *rival) 
+{
+   Three_D_View *im3d = (Three_D_View *)br->parent ;
+   FD_brick *brr=NULL ;
+   int ival , banat ;
+
+   banat = EQUIV_DSETS(br->dset,im3d->anat_now) ;
+   switch( type ){
+     case isqCR_getulayim: brr = (banat) ? br : br->brother ; break ;
+     case isqCR_getolayim: brr = (banat) ? br->brother : br ; break ;
+   }
+   if( brr == NULL ) brr = br ;
+   /*** decide which 3D brick to extract data from (ival) ***/
+
+   if( EQUIV_DSETS(brr->dset,im3d->anat_now) )      /* underlay dataset */
+     ival = im3d->vinfo->anat_index ;
+   else if( EQUIV_DSETS(brr->dset,im3d->fim_now) )  /* overlay dataset */
+     ival = im3d->vinfo->fim_index ;
+   else
+     ival = 0 ;                                     /* shouldn't happen */
+     
+   if( br->deltival != 0 && DSET_NVALS(brr->dset) > 1 ){  /* 23 Feb 2011 */
+            /*    This is for allowing montage to cycle trough sub-bricks */
+      ival += br->deltival ;
+      ININFO_message("afni: deltival changes ival to %d",ival) ;
+      if( ival < 0 || ival >= DSET_NVALS(brr->dset) ) RETURN( NULL ) ;
+   }
+
+        if( type == isqCR_getqimage       ) ival = -1; /* get empty image */
+   else if( ival >= DSET_NVALS(brr->dset) ) ival = brr->dset->dblk->nvals-1;
+
+   *rival = ival;
+   /*
+   fprintf(stderr,"Get_FD_Brick_As_Selected:\n"
+                  "     br->dset %s, brr->dset %s\n"
+                  "     anat_now %s, fim_now   %s\n"
+                  "     banat = %d, ival = %d\n"
+                  "     type %d (%s)\n",
+                  DSET_PREFIX(br->dset), DSET_PREFIX(brr->dset),
+                  DSET_PREFIX(im3d->anat_now), DSET_PREFIX(im3d->fim_now), 
+                  banat, ival,
+                  type,
+                  type == isqCR_getulayim ? "getULAY" : 
+                           type == isqCR_getolayim ? "getOLAY" : "Other");
+   */
+   return(brr);
+}
+
+/* 
+   Return the overlay or underaly dset currently selected and set
+   the sub-brick number.
+   
+   Peculiar input:
+   UOlay:  'O' --> Return the overlay
+           'U'     Return the underlay
+   AsSet: 1 --> Return the dataset that is set by the 'Underlay'
+                      or 'Overlay' selectors.
+                0 --> Return the 'displayed' overlay or underlay dset. 
+                      This means, take into account the bkgd:ULay or bkgd:OLay 
+                      setting.
+*/
+THD_3dim_dataset *Get_UO_Dset(FD_brick *br, char UOlay, 
+                              byte AsSet, int *rival)
+{
+   Three_D_View *im3d = (Three_D_View *)br->parent ;
+   FD_brick *brt=NULL;
+   THD_3dim_dataset *dset=NULL;
+   
+   /* set up with basics */
+   if (UOlay=='O') {
+      dset = im3d->fim_now;
+      *rival = im3d->vinfo->fim_index;
+   } else {
+      dset = im3d->anat_now;
+      *rival = im3d->vinfo->anat_index;
+   }
+   
+   /* now allow for things like deltival, and other stuff */
+   if (AsSet) { /* as selected in 'Underlay' and 'Overlay' */
+      if (!(brt = Get_FD_Brick_As_Selected(br, 
+                  UOlay=='O' ? isqCR_getolayim : isqCR_getulayim, rival))) {
+         ERROR_message("Case 1: Failed to select brick, returning defaults");
+         return(dset);            
+      }
+   } else { /* as displayed, works OK, not well tested for rival below */
+      if (EQUIV_DSETS(br->dset,im3d->anat_now)) {
+         /* vanilla */
+         if (!(brt = Get_FD_Brick_As_Selected(br, 
+                  UOlay=='O' ? isqCR_getolayim : isqCR_getulayim, rival))) {
+            ERROR_message("Case 2: Failed to select brick, returning defaults");
+            return(dset);  
+         }
+      } else {
+         /* Olay as Ulay: always return the overlay */
+         if (!(brt = Get_FD_Brick_As_Selected(br, isqCR_getolayim, rival))) {
+            ERROR_message("Case 3: Failed to select brick, returning defaults");
+            return(dset);  
+         }
+      }
+   }    
+   if (brt) dset = brt->dset;
+   return(dset);           
+}
+
+/*----------------------------------------------------------------------
    routine to extract a plane of data from a 3D brick
    (used as a "get_image" routine for an MCW_imseq)
 ------------------------------------------------------------------------*/
@@ -3256,8 +3377,10 @@ STATUS("drawing crosshairs") ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
       float dxyz , cc ;
-      int ii;
+      int ii, ival;
       double dval;
+      THD_3dim_dataset *dset=NULL ;   
+      
 
       if( im3d->type != AFNI_3DDATA_VIEW ) RETURN(NULL) ;
 
@@ -3293,24 +3416,42 @@ STATUS("drawing crosshairs") ;
       if( str[ii] == '.' ) str[ii] = '\0' ;
       strcat(str, dd) ;
       
-      if (AFNI_yesenv("AFNI_SECRET_LABELS")) {
-         if ((dval = strtod(im3d->vinfo->anat_val, NULL))>0.0f) {
-            AFNI_get_dset_val_label(im3d->anat_now,         /* Dec 7 2011 ZSS */
+      if (1){ /* Show labels if any. 
+                In montage situations, the labels below do not change
+                That should be fixed....  ZSS Dec. 2011*/
+         dset = Get_UO_Dset(br, 'U', 1, &ival);
+         if ((dval = (double)THD_get_voxel_dicom(dset, 
+                              im3d->vinfo->xi,
+                              im3d->vinfo->yj,
+                              im3d->vinfo->zk, ival))>0.0f) {
+            AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
                                     dval, labstra);
-            if (labstra[0] != '\0') {
-               strcat(str, " \\noesc U:");
-               strncat(str, labstra, 126*sizeof(char));
-            }
          }
-         if ((dval = strtod(im3d->vinfo->func_val, NULL))>0.0f) {
-            AFNI_get_dset_val_label(im3d->fim_now,         /* Dec 7 2011 ZSS */
+         dset = Get_UO_Dset(br, 'O', 1, &ival);
+         if ((dval = (double)THD_get_voxel_dicom(dset, 
+                              im3d->vinfo->xi,
+                              im3d->vinfo->yj,
+                              im3d->vinfo->zk, ival))>0.0f) {
+            AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
                                     dval, labstrf);
-            if (labstrf[0] != '\0') {
-               strcat(str, " \\noesc O:");
-               strncat(str, labstrf, 126*sizeof(char));
-            }
          }
          
+         if (labstrf[0] != '\0' || labstra[0] != '\0') {
+            strcat(str, " \\noesc ");
+            if (!strcmp(labstrf, labstra)) {
+               strcat(str, "U+O:");
+               strncat(str, labstra, 126*sizeof(char));
+            } else {
+               if (labstra[0] != '\0') {
+                  strcat(str, "U:");
+                  strncat(str, labstra, 126*sizeof(char));
+               }
+               if (labstrf[0] != '\0') {
+                  strcat(str, labstra[0] != '\0' ? " O:" : "O:");
+                  strncat(str, labstrf, 126*sizeof(char));
+               }
+            }
+         }
       }
       
       lab = strdup(str) ;
@@ -3319,38 +3460,14 @@ STATUS("drawing crosshairs") ;
    }
 
    /*--- underlay image # n ---*/
-
    if( type == isqCR_getimage  || type == isqCR_getqimage ||
        type == isqCR_getulayim || type == isqCR_getolayim   ){
-
+      
       Three_D_View *im3d = (Three_D_View *)br->parent ;
       FD_brick *brr=NULL ;
-      int ival , banat ;
-
-      banat = EQUIV_DSETS(br->dset,im3d->anat_now) ;
-      switch( type ){
-        case isqCR_getulayim: brr = (banat) ? br : br->brother ; break ;
-        case isqCR_getolayim: brr = (banat) ? br->brother : br ; break ;
-      }
-      if( brr == NULL ) brr = br ;
-
-      /*** decide which 3D brick to extract data from (ival) ***/
-
-      if( EQUIV_DSETS(brr->dset,im3d->anat_now) )      /* underlay dataset */
-        ival = im3d->vinfo->anat_index ;
-      else if( EQUIV_DSETS(brr->dset,im3d->fim_now) )  /* overlay dataset */
-        ival = im3d->vinfo->fim_index ;
-      else
-        ival = 0 ;                                     /* shouldn't happen */
-
-      if( br->deltival != 0 && DSET_NVALS(brr->dset) > 1 ){  /* 23 Feb 2011 */
-        ival += br->deltival ;
-ININFO_message("afni: deltival changes ival to %d",ival) ;
-        if( ival < 0 || ival >= DSET_NVALS(brr->dset) ) RETURN( NULL ) ;
-      }
-
-           if( type == isqCR_getqimage       ) ival = -1; /* get empty image */
-      else if( ival >= DSET_NVALS(brr->dset) ) ival = brr->dset->dblk->nvals-1;
+      int ival;
+      
+      if (!(brr = Get_FD_Brick_As_Selected(br, type, &ival))) RETURN(NULL);
 
 if(PRINT_TRACING)
 { char str[256] ;
