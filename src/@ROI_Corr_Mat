@@ -20,7 +20,7 @@ if ("$fn_epi" == "") then
    goto END
 endif
 if ("$fn_msk" == "") then
-   echo "No mask dset"
+   echo "No mask (ROI) dset"
    goto END
 endif
 
@@ -38,6 +38,7 @@ endif
 
 RESAMPLE_msk2epi:
 if ($verb) echo "Resampling mask to epi with NN ..."
+set fn_msk_orig = $fn_msk
 3dresample  -input $fn_msk -master $fn_epi    \
             -prefix msk_resam    -overwrite  \
             -rmode NN    >& /dev/null
@@ -83,7 +84,7 @@ set nroi = `3dnvals $rowfile`
 
 EXTRACT:
 if ($verb) echo "Extract ROI 1D Signals"
-mkdir 1D
+if ( ! -d 1D) mkdir 1D
    set DoSlow = 0
    if ($DoSlow) then
       rm -f 1D/TS_ALL.slow.1D >& /dev/NULL 
@@ -135,11 +136,41 @@ mkdir 1D
    endif
    
 WORK_1D:
+   @MakeLabelTable -labeltable_of_dset ${fn_msk_orig} > 1D/fn_msk.niml.lt
+   if ($status) then
+      \rm 1D/fn_msk.niml.lt
+   endif
    cd 1D
 
    if ($verb) echo "Get r- and z-maps from 1D Time-Series"
    1ddot -terse -okzero -dem TS_ALL.1D > TS_ALL.corr.1D
-
+   
+   if ( -f fn_msk.niml.lt ) then
+   #Create labels?
+      set key = ()
+      set lbl = ()
+      foreach k (`1dcat ${init_path}/${rowfile}`)
+         set key = ($key $k)
+         set lbl = ($lbl `@MakeLabelTable -labeltable fn_msk.niml.lt -klabel $k`)
+      end
+      rm ../killme
+      set N = $#key
+      set i = 1
+      while ($i <= $N)
+         echo "Row $i (k=$key[$i])"
+         set j = 1
+         while ($j <= $N)
+            set n = `ccalc ($i-1)\*$N+$j`
+            set l = "$lbl[$i]+$lbl[$j]"
+            echo "$n $l" >> ../killme
+            #echo "$n $l"
+            @ j ++
+         end
+         @ i ++
+      end
+      3dcalc -a ${init_path}/$master+orig  -expr "i*$N+j+1" \
+             -prefix ../anat_corrmat
+   endif 
    #transform to Z and clip at max of 15
    set cc=0
    foreach k (`1dcat ${init_path}/${rowfile}`)
@@ -490,6 +521,7 @@ PARSE:
 
 if ( $NxtInd <= $#argv ) then
    echo "Parameter(s) $argv[$NxtInd-$#argv] not understood"
+   apsearch -popt `basename $0` -word $argv[$NxtInd] 
    goto END
 endif
 
