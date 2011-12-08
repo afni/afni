@@ -238,7 +238,7 @@ typedef struct {                             /* 29 Mar 1999 */
 
 typedef struct {
       int   i1 , j2 , k3 ;  /* integer coordinates of current point */
-      float xi , yj , zk ;  /* float (mm) coordinates (take priority) */
+      float xi , yj , zk ;  /* float (DICOM mm) coordinates (take priority) */
 
       int   i1_old , j2_old , k3_old ;  /* for jumpback */
 
