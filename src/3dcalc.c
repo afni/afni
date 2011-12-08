@@ -788,8 +788,9 @@ DSET_DONE: continue;  /*** target for various goto statements above ***/
 
       } /* end of dataset input */
 
-      ERROR_exit("Unknown option: %s\n",argv[nopt]) ;
-
+      ERROR_message("Unknown option: %s\n",argv[nopt]) ;
+      suggest_best_prog_option(argv[0], argv[nopt]);
+      exit(1);
    }  /* end of loop over options */
 
    /*---------------------------------------*/
