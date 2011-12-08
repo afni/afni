@@ -6287,9 +6287,13 @@ if(PRINT_TRACING)
    daxes = CURRENT_DAXES(im3d->anat_now) ;
    dim1  = daxes->nxx ; dim2 = daxes->nyy ; dim3 = daxes->nzz ;
 
+   /** save old ijk coordinates **/
+
    old_i1 = im3d->vinfo->i1 ;
    old_j2 = im3d->vinfo->j2 ;
    old_k3 = im3d->vinfo->k3 ;
+
+   /** get and store new ijk coordinates **/
 
    i1 = im3d->vinfo->i1 = (xx < 0 || xx >= dim1) ? (old_i1) : xx ;
    j2 = im3d->vinfo->j2 = (yy < 0 || yy >= dim2) ? (old_j2) : yy ;
@@ -6318,6 +6322,8 @@ STATUS(" ") ;
 DUMP_IVEC3("  old_id",old_id) ;
 DUMP_IVEC3("  new_id",new_id) ;
 #endif
+
+   /** store new xyz coordinates into im3d struct **/
 
    if( im3d->type == AFNI_3DDATA_VIEW ){
      fv = THD_3dind_to_3dmm ( im3d->anat_now , new_id ) ;
