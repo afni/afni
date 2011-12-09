@@ -525,9 +525,9 @@ void TT_syntax(char * msg)
     "      (the single quotes are necessary).  If you want to use ALL the\n"
     "      sub-bricks from a multi-volume dataset, you can't just give the\n"
     "      dataset filename -- you have to use\n"
-    "        datasetname+orig'[0-$]'\n"
+    "        datasetname+orig'[0-$]' or datasetname'[0..$]'\n"
     "      Otherwise, the program will reject the dataset as being too\n"
-    "      complicated for it to understand.  [New in July 2007]\n"
+    "      complicated for its pitiful understanding.  [New in July 2007]\n"
    ) ;
    printf("\n" MASTER_SHORTHELP_STRING ) ;
    PRINT_COMPILE_DATE ; exit(0) ;

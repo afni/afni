@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 6 , DEC , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+  { 9 , DEC , 2011 , RWC , "3dttest" , MICRO , TYPE_BUG_FIX ,
+   "Fix sub-brick selection bug" ,
+   "in THD_multiplex_dataset(), the '$' was not treated right -- just set to\n"
+   "999998.  Fix is to use MCW_get_thd_intlist() for proper expansion, which\n"
+   "also will add sub-brick label selection capability." } ,
+
+ { 6 , DEC , 2011 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "Allow runs with -polort ONLY (no other regression model)" ,
    NULL } ,
 
