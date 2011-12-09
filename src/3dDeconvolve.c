@@ -739,7 +739,7 @@ void identify_software ()
   Routine to display 3dDeconvolve help menu.
 */
 
-void display_help_menu()
+void display_help_menu(int detail)
 {
   identify_software();
 
@@ -1646,6 +1646,7 @@ void display_help_menu()
     "                     * To let you know that something is happening!    \n"
     "[-fdisp fval]        Write statistical results to the screen, for those\n"
     "                       voxels whose full model F-statistic is > fval   \n"
+    "[-help]              Oh go ahead, try it!                              \n"
     );
 
 #ifdef PROC_MAX
@@ -1971,9 +1972,6 @@ void get_options
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
   }
 
-  /*----- does user request help menu? -----*/
-  if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();
-
 
   /*----- add to program log -----*/
   AFNI_logger (PROGRAM_NAME,argc,argv);
@@ -1990,6 +1988,11 @@ void get_options
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
+      /*----- does user request help menu? -----*/
+      if (strcmp(argv[nopt], "-h") == 0 || strcmp(argv[nopt], "-help") == 0) {
+          display_help_menu(strlen(argv[nopt])>3 ? 2:1);
+      }
+
       if( strcmp(argv[nopt],"-OK") == 0 ){ nopt++; continue; } /* 14 Jul 2004 */
 
       /*-----   -nocond           ------*/
@@ -3222,15 +3225,27 @@ void get_options
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
-      if( isspace(argv[nopt][0]) )
+      if( isspace(argv[nopt][0]) ) {
         sprintf(message,"Unknown command line option '%s'\n"
-                        "**  Is there a blank after a '\\' character?",argv[nopt]) ;
-      else
+                     "**  Is there a blank after a '\\' character?",argv[nopt]) ;
+         DC_error (message);
+      } else {
         sprintf(message,"Unrecognized command line option: '%s'\n", argv[nopt]);
-      DC_error (message);
+        ERROR_message( PROGRAM_NAME " dies: %s",message) ;
+        suggest_best_prog_option(argv[0], argv[nopt]);
+        exit(1);
+      }
+      
 
     } /***** end of loop over input arguments ****/
+  
+   /*----- does user request help menu? -----*/
+   if (nopt < 2) {
+      sprintf(message,"Too few options");
+      DC_error (message);
+   }
 
+ 
   /*----- 23 Mar 2007: full first stuff? -----*/
 
   if( option_data->fout ) option_data->do_fullf = 1 ;
