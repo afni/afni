@@ -80,9 +80,9 @@ ENTRY("THD_open_dataset") ;
      if( dset != NULL ){ THD_patch_brickim(dset); RETURN(dset); }
    }
 
-   /*-- 04 Aug 2004: allow input of a list of dataset, separated by spaces --*/
+   /*-- 04 Aug 2004: allow input of a list of datasets, separated by spaces --*/
    /*  unless a count command is used inside the brackets 9 May 2007 drg*/
-   if((strchr(pathname,' ') != NULL ) && 
+   if((strchr(pathname,' ') != NULL ) &&
       (strstr(pathname,"[count ")==NULL)){
      dset = THD_open_tcat( pathname ) ;
      if( ISVALID_DSET(dset) &&
@@ -668,6 +668,7 @@ ENTRY("THD_copy_dset_subs");
    like "name[1]", "name[2]", "name[3]".  The reason for this is for older
    programs like 3dttest that operate on a list of single brick datasets.
    [19 Jul 2007 - RWCox]
+   Modified to allow use of labelized lists (per ZSS) -- 09 Dec 2011.
 --------------------------------------------------------------------------*/
 
 THD_string_array * THD_multiplex_dataset( char *pathname )
@@ -675,13 +676,24 @@ THD_string_array * THD_multiplex_dataset( char *pathname )
    char *cpt , *pname , *bname ;
    int  *ivlist=NULL , ii ;
    THD_string_array *sar ;
+   THD_3dim_dataset *qset ;
 
 ENTRY("THD_multiplex_dataset") ;
    if( pathname == NULL ) RETURN(NULL) ;
    cpt = strstr(pathname,"[") ; if( cpt == NULL ) RETURN(NULL) ;
 
    bname = strdup(pathname) ; cpt = strstr(bname,"[") ; *cpt = '\0' ;
-   ivlist = MCW_get_intlist( 999999 , cpt+1 ) ;
+   if( STRING_HAS_SUFFIX(bname,".mnc")    ||
+       STRING_HAS_SUFFIX(bname,".mri")    ||
+       STRING_HAS_SUFFIX(bname,".svl")      ){
+     ERROR_message("Can't use sub-brick selectors '[...]' on dataset %s",bname) ;
+     free(bname) ; RETURN(NULL) ;
+   }
+   qset = THD_open_one_dataset(bname) ;  /* 09 Dec 2011 */
+   if( !ISVALID_DSET(qset) ){
+     ERROR_message("Can't open dataset %s",bname) ; free(bname) ; RETURN(NULL) ;
+   }
+   ivlist = MCW_get_thd_intlist(qset,cpt+1) ; DSET_delete(qset) ;
    if( ivlist == NULL || ivlist[0] == 0 ){ free(bname); RETURN(NULL); }
 
    INIT_SARR(sar) ;
