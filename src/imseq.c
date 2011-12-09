@@ -2951,8 +2951,9 @@ ENTRY("ISQ_make_image") ;
 MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
 {
    MEM_plotdata *mp ; int ww ; float asp , dd ;
-   static int sz[5] = { 20 , 28 , 40 , 56 , 80 } ;  /* sz[j] = 20 * pow(2,0.5*j) */
-   char *eee ; float rr=1.0,gg=1.0,bb=0.8 , sb=0.003 ;
+   static int   sz[5] = { 20    , 28    , 40    , 56    , 80     } ;
+   static float th[5] = { 0.001f, 0.002f, 0.003f, 0.004f, 0.005f } ;
+   char *eee ; float rr=1.0,gg=1.0,bb=0.7 , sb=0.003 ;
 
 ENTRY("ISQ_plot_label") ;
 
@@ -2968,13 +2969,13 @@ ENTRY("ISQ_plot_label") ;
    dd = 0.0007*ww ;  /* offset from edge */
 
    create_memplot_surely( "Ilabelplot" , asp ) ;
-   set_thick_memplot(0.0) ;
+
+   set_thick_memplot(th[seq->wbar_labsz_av->ival]) ; /* 09 Dec 2011 */
 
    /* get the color to plot with */
 
    eee = getenv("AFNI_IMAGE_LABEL_COLOR") ;
-   if( eee != NULL )
-      DC_parse_color( seq->dc , eee , &rr,&gg,&bb ) ;
+   if( eee != NULL ) DC_parse_color( seq->dc , eee , &rr,&gg,&bb ) ;
    set_color_memplot(rr,gg,bb) ;
 
    /* get the setback */
@@ -9941,7 +9942,7 @@ ENTRY("ISQ_rowgraph_draw") ;
 #endif
 
 #undef  THIK
-#define THIK 0.003
+#define THIK 0.004
 
       set_color_memplot( 0.8 , 0.0 , 0.2 ) ;
       set_thick_memplot( THIK ) ;
@@ -10333,7 +10334,7 @@ ENTRY("plot_image_surface") ;
                       (integer *)(&ii) ) ;
 
 #undef  THIK
-#define THIK 0.003
+#define THIK 0.004
 
       dx = 0.016 * x[nx-1] ; dy = 0.016 * y[ny-1] ; dx = MAX(dx,dy) ;
       xi = x[ix]+dx ; yi = y[ny-1-jy]+dx ; zi = z[ix+(ny-1-jy)*nx] ;
