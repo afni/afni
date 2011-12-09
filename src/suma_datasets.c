@@ -12379,7 +12379,7 @@ static ENV_SPEC envlist[] = {
       "This is mostly for deciding whether one of 'white' or 'smoothwm'\n"
       "FreeSurfer states should not be sent to AFNI.\n"
       "The default is to let them all go.\n"
-      "You can specify multiple states with a comma delimited list. \n"
+      "You can specify multiple states with a , delimited list (no spaces!). \n"
       "By default nothing is excluded.\n",
       "SUMA_DoNotSendStates",
       "" }, 
