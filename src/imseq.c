@@ -1572,7 +1572,17 @@ if( PRINT_TRACING ){
    SAVEUNDERIZE(XtParent(newseq->wbar_menu)) ;  /* 27 Feb 2001 */
 
    VISIBILIZE_WHEN_MAPPED(newseq->wbar_menu) ;
+#if 0
    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(newseq->wbar_menu) ;
+#else
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+               LABEL_ARG("--- Cancel ---") ,
+               XmNrecomputeSize , False ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+#endif
 
    newseq->wbar_rng_but =
       XtVaCreateManagedWidget(
@@ -5381,6 +5391,7 @@ ENTRY("ISQ_drawing_EV") ;
          /* Button1 release: turn off zoom-pan mode, if it was on */
 
          if( event->button == Button1 && w == seq->wimage ){
+           int xrel=event->x , yrel=event->y ;
 
            if( seq->zoom_button1 && !AFNI_yesenv("AFNI_KEEP_PANNING") ){
              seq->zoom_button1 = 0 ;
@@ -5399,17 +5410,19 @@ ENTRY("ISQ_drawing_EV") ;
              } else if( seq->status->send_CB != NULL ){  /* 04 Nov 2003 */
                 int imx,imy,nim;
                 seq->wimage_width = -1 ;
-                ISQ_mapxy( seq , seq->last_bx,seq->last_by , &imx,&imy,&nim ) ;
-                cbs.reason = isqCR_buttonpress ;
-                cbs.event  = ev ;
-                cbs.xim    = imx ;       /* delayed send of Button1 */
-                cbs.yim    = imy ;       /* event to AFNI now       */
-                cbs.nim    = nim ;
+                if( abs(seq->last_bx-xrel)+abs(seq->last_by-yrel) < 8 ){
+                  ISQ_mapxy( seq , seq->last_bx,seq->last_by , &imx,&imy,&nim ) ;
+                  cbs.reason = isqCR_buttonpress ;
+                  cbs.event  = ev ;
+                  cbs.xim    = imx ;       /* delayed send of Button1 */
+                  cbs.yim    = imy ;       /* event to AFNI now       */
+                  cbs.nim    = nim ;
 #if 0
-                seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+                  seq->status->send_CB( seq , seq->getaux , &cbs ) ;
 #else
-                SEND(seq,cbs) ;
+                  SEND(seq,cbs) ;
 #endif
+               }
              }
            }
          }
@@ -5471,7 +5484,7 @@ ENTRY("ISQ_drawing_EV") ;
                 else if( ydif > 0 ) seq->rgb_offset -= 0.014;
                 ISQ_redisplay( seq , -1 , isqDR_reimage ) ;
                 seq->cmap_changed = 1 ;
-                seq->last_bx=event->x ; seq->last_by=event->y;
+                seq->last_bx = event->x ; seq->last_by = event->y;
 
               } else {                          /* the old way: change the gray map */
 

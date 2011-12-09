@@ -478,7 +478,9 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    cwid->top_menu = XmCreatePopupMenu( cwid->top_lab , "menu" , NULL , 0 ) ;
    SAVEUNDERIZE(cwid->top_menu) ; VISIBILIZE_WHEN_MAPPED(cwid->top_menu) ;
+#if 0
    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(cwid->top_menu) ;
+#endif
 
    wtemp = XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , cwid->top_menu ,

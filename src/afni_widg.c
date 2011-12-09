@@ -1028,7 +1028,9 @@ STATUS("making imag->rowcol") ;
 
     SAVEUNDERIZE(XtParent(imag->crosshair_menu)) ;
     VISIBILIZE_WHEN_MAPPED(imag->crosshair_menu) ;
+#if 0
     if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(imag->crosshair_menu) ;
+#endif
 
     XtInsertEventHandler( imag->crosshair_label , /* handle events in label */
                              ButtonPressMask ,    /* button presses */
