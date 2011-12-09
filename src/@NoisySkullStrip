@@ -218,6 +218,7 @@ PARSE_COMMAND:
       
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         apsearch -popt `basename $0` -word $argv[$cnt]
          goto END
       endif
       
