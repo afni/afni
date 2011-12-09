@@ -242,7 +242,9 @@ ENTRY("new_MCW_grapher") ;
    SAVEUNDERIZE(XtParent(grapher->but3_menu)) ; /* 27 Feb 2001 */
 
    VISIBILIZE_WHEN_MAPPED(grapher->but3_menu) ;
+#if 0
    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(grapher->but3_menu) ;
+#endif
 
    grapher->but3_label =
       XtVaCreateManagedWidget(
@@ -357,7 +359,9 @@ ENTRY("new_MCW_grapher") ;
    grapher->opt_menu = XmCreatePulldownMenu( mb_tmp , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(grapher->opt_menu) ;  /* 27 Sep 2000 */
+#if 0
    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(grapher->opt_menu) ;
+#endif
 
    grapher->opt_cbut =
          XtVaCreateManagedWidget(
@@ -5417,8 +5421,9 @@ ENTRY("AFNI_new_fim_menu") ;
    fmenu->fim_menu = XmCreatePulldownMenu( parent , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(fmenu->fim_menu) ;  /* 27 Sep 2000 */
-
+#if 0
    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(fmenu->fim_menu) ;
+#endif
 
    fmenu->fim_cbut =
          XtVaCreateManagedWidget(

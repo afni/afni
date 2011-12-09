@@ -3502,7 +3502,9 @@ ENTRY("AFNI_plugin_button") ;
    menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(menu) ;
+#if 0
    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(menu) ;
+#endif
 
    xstr = XmStringCreateLtoR( "Plugins" , XmFONTLIST_DEFAULT_TAG ) ;
    cbut = XtVaCreateManagedWidget(
