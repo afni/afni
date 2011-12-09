@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , DEC , 2011 , RWC , "3dttest" , MICRO , TYPE_BUG_FIX ,
+  { 9 , DEC , 2011 , RWC , "afni (imseq.c)" , MICRO , TYPE_BUG_FIX ,
+   "Patch weird bug" ,
+   "When the intensity bar popup menu is up, then the user clicks on an\n"
+   "optmenu, then the next time the user button1 clicks in the image viewer\n"
+   "(say to move the crosshairs), the values of last_bx and last_by are lost\n"
+   "(reset to 0) so the move wrong.  Solution -- check if button release is\n"
+   "in the same location (or close) as the button press, and only then allow\n"
+   "a move." } ,
+
+ { 9 , DEC , 2011 , RWC , "3dttest" , MICRO , TYPE_BUG_FIX ,
    "Fix sub-brick selection bug" ,
    "in THD_multiplex_dataset(), the '$' was not treated right -- just set to\n"
    "999998.  Fix is to use MCW_get_thd_intlist() for proper expansion, which\n"
