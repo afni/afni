@@ -2692,6 +2692,31 @@ THD_3dim_dataset *Get_UO_Dset(FD_brick *br, char UOlay,
    return(dset);           
 }
 
+/*!
+   Return 0 if FD_brick is not in montage mode.
+          1 if Axial montage
+          2 if Sagittal montage
+          4 if Coronal montage
+*/ 
+int FD_brick_montized(FD_brick *br ) 
+{
+   Three_D_View *im3d = (Three_D_View *)br->parent ;
+   
+   if ( (br == im3d->b123_anat || br == im3d->b123_fim) &&
+        (im3d->s123->mont_nx > 1|| im3d->s123->mont_ny > 1) ) {
+      return(1); /* Axial brick and in montage */
+   } 
+   if ( (br == im3d->b231_anat || br == im3d->b231_fim) &&
+        (im3d->s231->mont_nx > 1|| im3d->s231->mont_ny > 1) ) {
+      return(2);  /* Sagittal brick and in montage */
+   } 
+   if ( (br == im3d->b312_anat || br == im3d->b312_fim) &&
+        (im3d->s312->mont_nx > 1|| im3d->s312->mont_ny > 1) ) {
+      return(4);  /* Coronal brick and in montage */
+   }
+   return(0);    
+}
+
 /*----------------------------------------------------------------------
    routine to extract a plane of data from a 3D brick
    (used as a "get_image" routine for an MCW_imseq)
@@ -3416,9 +3441,7 @@ STATUS("drawing crosshairs") ;
       if( str[ii] == '.' ) str[ii] = '\0' ;
       strcat(str, dd) ;
       
-      if (1){ /* Show labels if any. 
-                In montage situations, the labels below do not change
-                That should be fixed....  ZSS Dec. 2011*/
+      if (!FD_brick_montized(br)){ /* Show labels if any.  ZSS Dec. 2011*/
          dset = Get_UO_Dset(br, 'U', 1, &ival);
          if ((dval = (double)THD_get_voxel_dicom(dset, 
                               im3d->vinfo->xi,
@@ -7083,7 +7106,7 @@ ENTRY("AFNI_crosshair_label") ;
 
    } else if( im3d->type == AFNI_IMAGES_VIEW || im3d->vinfo->show_voxind ){
       int ixyz = DSET_ixyz_to_index( im3d->anat_now ,
-                                     im3d->vinfo->i1, im3d->vinfo->j2, im3d->vinfo->k3 ) ;
+                    im3d->vinfo->i1, im3d->vinfo->j2, im3d->vinfo->k3 ) ;
 
 STATUS("voxel indexes") ;
 
