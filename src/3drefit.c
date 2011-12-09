@@ -10,22 +10,21 @@
 static ATR_float *Update_float_atr(char *aname, char *fvstring);
 static ATR_int *Update_int_atr(char *aname, char *ivstring);
 
-void Syntax(char *str)
+void Syntax(int detail)
 {
    int ii ;
 
-   if( str != NULL ) ERROR_exit(str) ;  /* does not return */
-
-   printf( "Changes some of the information inside a 3D dataset's header.\n"
-           "Note that this program does NOT change the .BRIK file at all;\n"
-           "the main purpose of 3drefit is to fix up errors made when\n"
-           "using to3d.\n"
-           "To see the current values stored in a .HEAD file, use the command\n"
-           "'3dinfo dataset'.  Using 3dinfo both before and after 3drefit is\n"
-           "a good idea to make sure the changes have been made correctly!\n"
-           "\n"
-           "20 Jun 2006: 3drefit will now work on NIfTI datasets (but it will write\n"
-           "             out the entire dataset, into the current working directory)\n\n"
+   printf( 
+"Changes some of the information inside a 3D dataset's header.\n"
+        "Note that this program does NOT change the .BRIK file at all;\n"
+        "the main purpose of 3drefit is to fix up errors made when\n"
+        "using to3d.\n"
+        "To see the current values stored in a .HEAD file, use the command\n"
+        "'3dinfo dataset'.  Using 3dinfo both before and after 3drefit is\n"
+        "a good idea to make sure the changes have been made correctly!\n"
+        "\n"
+        "20 Jun 2006: 3drefit will now work on NIfTI datasets (but it will write\n"
+        "             out the entire dataset, into the current working directory)\n\n"
          ) ;
 
    printf(
@@ -374,6 +373,14 @@ void Syntax(char *str)
    PRINT_COMPILE_DATE ; exit(0) ;
 }
 
+void SynErr(char *str)
+{
+   if (str) ERROR_exit(str) ;  /* does not return */
+   else Syntax(0);
+   return;
+}
+
+
 #define ASET_NULL 1
 #define ASET_SELF 2
 
@@ -465,9 +472,7 @@ int main( int argc , char * argv[] )
 
    /*-------------------------- help me if you can? --------------------------*/
    
-   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax(NULL) ;
 
-   iarg = 1 ;
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
@@ -480,7 +485,11 @@ int main( int argc , char * argv[] )
 
    AFNI_logger("3drefit",argc,argv) ;
 
+   iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+      if(strcmp(argv[iarg],"-h") == 0 || 
+         strncmp(argv[iarg],"-help",4) == 0 ) 
+         Syntax(strlen(argv[iarg]) > 3 ? 2:1) ;
 
       /*----- -addFDR [23 Jan 2008] -----*/
 
@@ -499,8 +508,8 @@ int main( int argc , char * argv[] )
 
         bytevec *bvec ;  /* 15 Jul 2010 */
 
-        if( iarg+1 >= argc ) Syntax("need 1 argument after -FDRmask!") ;
-        if( nFDRmask > 0 )   Syntax("can't have two -FDRmask options!") ;
+        if( iarg+1 >= argc ) SynErr("need 1 argument after -FDRmask!") ;
+        if( nFDRmask > 0 )   SynErr("can't have two -FDRmask options!") ;
         bvec = THD_create_mask_from_string(argv[++iarg]) ;
         if( bvec == NULL ) ERROR_exit("Can't decipher %s",argv[iarg-1]) ;
         FDRmask = bvec->ar ; nFDRmask = bvec->nar ;
@@ -520,7 +529,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-atrcopy") == 0 ){
         THD_3dim_dataset *qset ; ATR_any *atr ;
 
-        if( iarg+2 >= argc ) Syntax("need 2 arguments after -atrcopy!") ;
+        if( iarg+2 >= argc ) SynErr("need 2 arguments after -atrcopy!") ;
 
         qset = THD_open_dataset( argv[++iarg] ) ;
         if( qset == NULL ){
@@ -550,7 +559,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-atrstring") == 0 ){
         ATR_string *atr ; char *aname , *xx , *yy=NULL ;
 
-        if( iarg+2 >= argc ) Syntax("need 2 arguments after -atrstring!") ;
+        if( iarg+2 >= argc ) SynErr("need 2 arguments after -atrstring!") ;
 
         aname = argv[++iarg] ;
         if( !THD_filename_pure(aname) ){
@@ -593,7 +602,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-atrfloat") == 0 ){
         ATR_float *atr ;
 
-        if( iarg+2 >= argc ) Syntax("need 2 arguments after -atrfloat!") ;
+        if( iarg+2 >= argc ) SynErr("need 2 arguments after -atrfloat!") ;
         atr = Update_float_atr(argv[iarg+1], argv[iarg+2]);
         if(atr) {
            /* add this float attribute to list of attributes being modified */
@@ -611,7 +620,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-atrint") == 0 ){
         ATR_int *atr ;
 
-        if( iarg+2 >= argc ) Syntax("need 2 arguments after -atrint!") ;
+        if( iarg+2 >= argc ) SynErr("need 2 arguments after -atrint!") ;
         atr = Update_int_atr(argv[iarg+1], argv[iarg+2]);
         if(atr) {
            /* add this int attribute to list of attributes being modified */
@@ -644,16 +653,16 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-copyaux") == 0 ){
 
-         if( iarg+1 >= argc ) Syntax("need 1 argument after -copyaux!") ;
+         if( iarg+1 >= argc ) SynErr("need 1 argument after -copyaux!") ;
 
-         if( auxset != NULL ) Syntax("Can't have more than one -copyaux option!") ;
+         if( auxset != NULL ) SynErr("Can't have more than one -copyaux option!") ;
 
          iarg++ ; copyaux = 1 ;
          if( strcmp(argv[iarg],"NULL") == 0 ){  /* special case */
             auxset = NULL ;
          } else {
             auxset = THD_open_one_dataset( argv[iarg] ) ;
-            if( auxset == NULL ) Syntax("Can't open -copyaux dataset!") ;
+            if( auxset == NULL ) SynErr("Can't open -copyaux dataset!") ;
          }
 
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
@@ -666,10 +675,10 @@ int main( int argc , char * argv[] )
           strcmp(argv[iarg],"-aset")       == 0    ){
 
          if( iarg+1 >= argc )
-            Syntax("need 1 argument after -apar!") ;
+            SynErr("need 1 argument after -apar!") ;
 
          if( aset != NULL || aset_code != 0 )                 /* 13-14 Dec 1999 */
-            Syntax("Can't have more than one -apar option!");
+            SynErr("Can't have more than one -apar option!");
 
          iarg++ ;
          if( strcmp(argv[iarg],"NULL") == 0 ){    /* 14 Dec 1999: special cases */
@@ -679,7 +688,7 @@ int main( int argc , char * argv[] )
          } else {
             aset = THD_open_one_dataset( argv[iarg] ) ;
             if( aset == NULL )
-               Syntax("Can't open -apar dataset!") ;
+               SynErr("Can't open -apar dataset!") ;
          }
 
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
@@ -692,10 +701,10 @@ int main( int argc , char * argv[] )
           strcmp(argv[iarg],"-wset")       == 0    ){
 
          if( iarg+1 >= argc )
-            Syntax("need 1 argument after -wpar!") ;
+            SynErr("need 1 argument after -wpar!") ;
 
          if( waset != NULL || waset_code != 0 )
-            Syntax("Can't have more than one -wpar option!");
+            SynErr("Can't have more than one -wpar option!");
 
          iarg++ ;
          if( strcmp(argv[iarg],"NULL") == 0 ){
@@ -705,7 +714,7 @@ int main( int argc , char * argv[] )
          } else {
             waset = THD_open_one_dataset( argv[iarg] ) ;
             if( waset == NULL )
-               Syntax("Can't open -wpar dataset!") ;
+               SynErr("Can't open -wpar dataset!") ;
          }
 
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
@@ -727,7 +736,7 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[iarg],"-byteorder",7) == 0 ){
          if( iarg+1 >= argc )
-            Syntax("need 1 argument after -byteorder!") ;
+            SynErr("need 1 argument after -byteorder!") ;
 
          iarg++ ;
          if( strcmp(argv[iarg],LSB_FIRST_STRING) == 0 )
@@ -737,7 +746,7 @@ int main( int argc , char * argv[] )
          else if( strcmp(argv[iarg],NATIVE_STRING) == 0 )
             new_byte_order = mri_short_order() ;
          else
-            Syntax("illegal argument after -byteorder!") ;
+            SynErr("illegal argument after -byteorder!") ;
 
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
@@ -746,13 +755,13 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-relabel_all") == 0 ){   /* 18 Apr 2011 */
         char *str ;
-        if( ++iarg >= argc ) Syntax("Need argument after -relabel_all") ;
+        if( ++iarg >= argc ) SynErr("Need argument after -relabel_all") ;
         str = AFNI_suck_file(argv[iarg]) ;
         if( str == NULL || *str == '\0' )
-          Syntax("Can't read file after -relabel_all") ;
+          SynErr("Can't read file after -relabel_all") ;
         sar_relab = NI_decode_string_list( str , "`" ) ; free(str) ;
         if( sar_relab == NULL || sar_relab->num < 1 )
-          Syntax("Can't decode file after -relabel_all") ;
+          SynErr("Can't decode file after -relabel_all") ;
         INFO_message("-relabel_all %s contains %d label%s" ,
                      argv[iarg] , sar_relab->num , (sar_relab->num==1) ? "\0" : "s" ) ;
         new_stuff++ ; iarg++ ; continue ;
@@ -762,11 +771,11 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[iarg],"-sublabel",7) == 0 ){
          if( iarg+2 >= argc )
-            Syntax("need 2 arguments after -sublabel!") ;
+            SynErr("need 2 arguments after -sublabel!") ;
 
          iv = strtol( argv[++iarg] , &cpt , 10 ) ;
          if( iv < 0 || iv == 0 && cpt == argv[iarg] )
-            Syntax("illegal sub-brick index after -sublabel!") ;
+            SynErr("illegal sub-brick index after -sublabel!") ;
 
          sublab = (SUBlabel *) XtRealloc( (char *)sublab ,
                                           sizeof(SUBlabel) * (nsublab+1) ) ;
@@ -790,11 +799,11 @@ int main( int argc , char * argv[] )
 
          npl = (code == 3) ? 1 : 2 ;
          if( iarg+npl >= argc )
-            Syntax("need arguments after -sub...key!") ;
+            SynErr("need arguments after -sub...key!") ;
 
          iv = strtol( argv[++iarg] , &cpt , 10 ) ;
          if( iv < 0 || iv == 0 && cpt == argv[iarg] )
-            Syntax("illegal sub-brick index after -sub...key!") ;
+            SynErr("illegal sub-brick index after -sub...key!") ;
 
          subkeyword = (SUBkeyword *) XtRealloc( (char *)subkeyword ,
                                                 sizeof(SUBkeyword)*(nsubkeyword+1) ) ;
@@ -819,7 +828,7 @@ int main( int argc , char * argv[] )
 
          npl = (code == 3) ? 0 : 1 ;
          if( iarg+code >= argc )
-            Syntax("need arguments after -...key!") ;
+            SynErr("need arguments after -...key!") ;
 
          new_key = code ;
          if( code != 3 ) key = argv[++iarg] ;
@@ -832,15 +841,15 @@ int main( int argc , char * argv[] )
          int fc ; float val ;
 
          if( iarg+2 >= argc )
-            Syntax("need at least 2 arguments after -substatpar!") ;
+            SynErr("need at least 2 arguments after -substatpar!") ;
 
          iv = strtol( argv[++iarg] , &cpt , 10 ) ;
          if( iv < 0 || iv == 0 && cpt == argv[iarg] )
-            Syntax("illegal sub-brick index after -substatpar!") ;
+            SynErr("illegal sub-brick index after -substatpar!") ;
 
          iarg++ ;
          if( strlen(argv[iarg]) < 3 )
-            Syntax("illegal type code after -substatpar!") ;
+            SynErr("illegal type code after -substatpar!") ;
          fc = (argv[iarg][0] == '-') ? 1 : 0 ;
 
          for( ii=FIRST_FUNC_TYPE ; ii <= LAST_FUNC_TYPE ; ii++ ){
@@ -850,7 +859,7 @@ int main( int argc , char * argv[] )
          }
 
          if( ii > LAST_FUNC_TYPE )
-            Syntax("unknown type code after -substatpar!") ;
+            SynErr("unknown type code after -substatpar!") ;
 
          substatpar = (SUBstatpar *) XtRealloc( (char *)substatpar ,
                                                 sizeof(SUBstatpar) * (nsubstatpar+1) ) ;
@@ -885,17 +894,17 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[iarg],"-orient",4) == 0 ){
          char acod ;
 
-         if( iarg+1 >= argc ) Syntax("need an argument after -orient!");
+         if( iarg+1 >= argc ) SynErr("need an argument after -orient!");
 
          MCW_strncpy(orient_code,argv[++iarg],4) ;
-         if( strlen(orient_code) != 3 ) Syntax("Illegal -orient code") ;
+         if( strlen(orient_code) != 3 ) SynErr("Illegal -orient code") ;
 
          acod = toupper(orient_code[0]) ; xxor = ORCODE(acod) ;
          acod = toupper(orient_code[1]) ; yyor = ORCODE(acod) ;
          acod = toupper(orient_code[2]) ; zzor = ORCODE(acod) ;
 
         if( xxor<0 || yyor<0 || zzor<0 || ! OR3OK(xxor,yyor,zzor) )
-           Syntax("Unusable -orient code!") ;
+           SynErr("Unusable -orient code!") ;
 
          new_orient = 1 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
@@ -904,7 +913,7 @@ int main( int argc , char * argv[] )
       /** -?origin dist **/
 
       if( strcmp(argv[iarg],"-xorigin") == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -xorigin!");
+         if( ++iarg >= argc ) SynErr("need an argument after -xorigin!");
          if( strncmp(argv[iarg],"cen",3) == 0 ) cxorg = 1 ;
          else                                   xorg  = strtod(argv[iarg],NULL) ;
          dxorg = 0 ; new_xorg = 1 ; new_stuff++ ;
@@ -913,7 +922,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[iarg],"-yorigin") == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -yorigin!");
+         if( ++iarg >= argc ) SynErr("need an argument after -yorigin!");
          if( strncmp(argv[iarg],"cen",3) == 0 ) cyorg = 1 ;
          else                                   yorg  = strtod(argv[iarg],NULL) ;
          dyorg = 0 ; new_yorg = 1 ; new_stuff++ ;
@@ -922,7 +931,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[iarg],"-zorigin") == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -zorigin!");
+         if( ++iarg >= argc ) SynErr("need an argument after -zorigin!");
          if( strncmp(argv[iarg],"cen",3) == 0 ) czorg = 1 ;
          else                                   zorg  = strtod(argv[iarg],NULL) ;
          dzorg = 0 ; new_zorg = 1 ; new_stuff++ ;
@@ -934,9 +943,9 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-duporigin") == 0 ){
          THD_3dim_dataset * cset ;
-         if( ++iarg >= argc ) Syntax("need an argument after -duporigin!");
+         if( ++iarg >= argc ) SynErr("need an argument after -duporigin!");
          cset = THD_open_dataset( argv[iarg] ) ;
-         if( cset == NULL ) Syntax("couldn't open -duporigin dataset!");
+         if( cset == NULL ) SynErr("couldn't open -duporigin dataset!");
          daxes = cset->daxes ;
          xorg = daxes->xxorg ; yorg = daxes->yyorg ; zorg = daxes->zzorg ;
          cxorg = cyorg = czorg = dxorg = dyorg = dzorg = 0 ;
@@ -949,7 +958,7 @@ int main( int argc , char * argv[] )
       /* 02 Mar 2000: -d?origin stuff, to go with plug_nudge.c */
 
       if( strncmp(argv[iarg],"-dxorigin",4) == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -dxorigin!");
+         if( ++iarg >= argc ) SynErr("need an argument after -dxorigin!");
          xorg = strtod(argv[iarg],NULL) ; dxorg = 1 ; cxorg = 0 ;
          new_xorg = 1 ; new_stuff++ ;
          geom_change = 1;
@@ -957,7 +966,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strncmp(argv[iarg],"-dyorigin",4) == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -dyorigin!");
+         if( ++iarg >= argc ) SynErr("need an argument after -dyorigin!");
          yorg = strtod(argv[iarg],NULL) ; dyorg = 1 ; cyorg = 0 ;
          new_yorg = 1 ; new_stuff++ ;
          geom_change = 1;
@@ -965,7 +974,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strncmp(argv[iarg],"-dzorigin",4) == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -dzorigin!");
+         if( ++iarg >= argc ) SynErr("need an argument after -dzorigin!");
          zorg = strtod(argv[iarg],NULL) ; dzorg = 1 ; czorg = 0 ;
          new_zorg = 1 ; new_stuff++ ;
          geom_change = 1;
@@ -975,7 +984,7 @@ int main( int argc , char * argv[] )
       /** 04 Oct 2002: _raw origins **/
 
       if( strcmp(argv[iarg],"-xorigin_raw") == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -xorigin_raw!");
+         if( ++iarg >= argc ) SynErr("need an argument after -xorigin_raw!");
          xorg     = strtod(argv[iarg],NULL) ; cxorg = dxorg = 0 ;
          new_xorg = 2 ; new_stuff++ ;
          geom_change = 1;
@@ -983,7 +992,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[iarg],"-yorigin_raw") == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -yorigin_raw!");
+         if( ++iarg >= argc ) SynErr("need an argument after -yorigin_raw!");
          yorg     = strtod(argv[iarg],NULL) ; cyorg = dyorg = 0 ;
          new_yorg = 2 ; new_stuff++ ;
          geom_change = 1;
@@ -991,7 +1000,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[iarg],"-zorigin_raw") == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -zorigin_raw!");
+         if( ++iarg >= argc ) SynErr("need an argument after -zorigin_raw!");
          zorg     = strtod(argv[iarg],NULL) ; czorg = dzorg = 0 ;
          new_zorg = 2 ; new_stuff++ ;
          geom_change = 1;
@@ -1000,11 +1009,11 @@ int main( int argc , char * argv[] )
 
       /** 04 Oct 2002: zadd VOLREG fields **/
       if( strcmp(argv[iarg],"-vr_mat") == 0 ){
-         if( iarg+12 >= argc ) Syntax("need 12 arguments after -vr_mat!");
+         if( iarg+12 >= argc ) SynErr("need 12 arguments after -vr_mat!");
          icnt = 0;
          while (icnt < 12) {
             ++iarg;
-            volreg_mat[icnt] = strtod(argv[iarg], &lcpt) ; if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!");
+            volreg_mat[icnt] = strtod(argv[iarg], &lcpt) ; if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
             ++icnt;
          }
          Do_volreg_mat = 1; new_stuff++ ;
@@ -1013,29 +1022,29 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[iarg],"-vr_mat_ind") == 0) {
-         if (++iarg >= argc) Syntax("need 1 argument after -vr_mat_ind!");
-         volreg_matind = (int)strtol(argv[iarg], &lcpt, 10); if (*lcpt != '\0') Syntax("Bad syntax in number argument!");
+         if (++iarg >= argc) SynErr("need 1 argument after -vr_mat_ind!");
+         volreg_matind = (int)strtol(argv[iarg], &lcpt, 10); if (*lcpt != '\0') SynErr("Bad syntax in number argument!");
          ++iarg;
          continue ;  /* go to next arg */
       }
 
       if( strcmp(argv[iarg],"-vr_cen_old") == 0) {
-         if (iarg+3 >= argc) Syntax("need 3 arguments after -vr_cen_old");
+         if (iarg+3 >= argc) SynErr("need 3 arguments after -vr_cen_old");
          ++iarg;
-         center_old[0] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!");
-         center_old[1] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!");
-         center_old[2] = strtod(argv[iarg],&lcpt) ;  if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!");
+         center_old[0] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
+         center_old[1] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
+         center_old[2] = strtod(argv[iarg],&lcpt) ;  if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
          Do_center_old = 1; new_stuff++ ;
          ++iarg;
          continue ;  /* go to next arg */
       }
 
       if( strcmp(argv[iarg],"-vr_cen_base") == 0) {
-         if (iarg+3 >= argc) Syntax("need 3 arguments after -vr_cen_base");
+         if (iarg+3 >= argc) SynErr("need 3 arguments after -vr_cen_base");
          ++iarg;
-         center_base[0] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!");
-         center_base[1] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!");
-         center_base[2] = strtod(argv[iarg],&lcpt) ;  if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!");
+         center_base[0] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
+         center_base[1] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
+         center_base[2] = strtod(argv[iarg],&lcpt) ;  if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
          Do_center_base = 1; new_stuff++ ;
          ++iarg;
          continue ;  /* go to next arg */
@@ -1044,27 +1053,27 @@ int main( int argc , char * argv[] )
       /** -?del dim **/
 
       if( strncmp(argv[iarg],"-xdel",4) == 0 ){
-         if( iarg+1 >= argc ) Syntax("need an argument after -xdel!");
+         if( iarg+1 >= argc ) SynErr("need an argument after -xdel!");
          xdel = strtod( argv[++iarg]  , NULL ) ;
-         if( xdel <= 0.0 ) Syntax("argument after -xdel must be positive!") ;
+         if( xdel <= 0.0 ) SynErr("argument after -xdel must be positive!") ;
          new_xdel = 1 ; new_stuff++ ;
          geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
       if( strncmp(argv[iarg],"-ydel",4) == 0 ){
-         if( iarg+1 >= argc ) Syntax("need an argument after -ydel!");
+         if( iarg+1 >= argc ) SynErr("need an argument after -ydel!");
          ydel = strtod( argv[++iarg]  , NULL ) ;
-         if( ydel <= 0.0 ) Syntax("argument after -ydel must be positive!") ;
+         if( ydel <= 0.0 ) SynErr("argument after -ydel must be positive!") ;
          new_ydel = 1 ; new_stuff++ ;
          geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
       }
 
       if( strncmp(argv[iarg],"-zdel",4) == 0 ){
-         if( iarg+1 >= argc ) Syntax("need an argument after -zdel!");
+         if( iarg+1 >= argc ) SynErr("need an argument after -zdel!");
          zdel = strtod( argv[++iarg]  , NULL ) ;
-         if( zdel <= 0.0 ) Syntax("argument after -zdel must be positive!") ;
+         if( zdel <= 0.0 ) SynErr("argument after -zdel must be positive!") ;
          new_zdel = 1 ; new_stuff++ ;
          geom_change = 1;
          iarg++ ; continue ;  /* go to next arg */
@@ -1081,9 +1090,9 @@ int main( int argc , char * argv[] )
       }
 
       if( strncmp(argv[iarg],"-xyzscale",8) == 0 ){ /* 17 Jul 2006 */
-         if( iarg+1 >= argc ) Syntax("need an argument after -xyzscale!");
+         if( iarg+1 >= argc ) SynErr("need an argument after -xyzscale!");
          xyzscale = strtod( argv[++iarg] , NULL ) ;
-         if( xyzscale <= 0.0f ) Syntax("argument after -xyzscale must be positive!");
+         if( xyzscale <= 0.0f ) SynErr("argument after -xyzscale must be positive!");
          if( xyzscale == 1.0f )
            WARNING_message(
             "-xyzscale 1.0 really makes no sense, but if that's what you want" ) ;
@@ -1095,7 +1104,7 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[iarg],"-TR",3) == 0 ){
          char *eptr = "\0" ;
-         if( ++iarg >= argc ) Syntax("need an argument after -TR!");
+         if( ++iarg >= argc ) SynErr("need an argument after -TR!");
 
          if( isalpha(argv[iarg][0])             ||
              strstr(argv[iarg],"+orig") != NULL ||
@@ -1113,7 +1122,7 @@ int main( int argc , char * argv[] )
          } else {
            TR = strtod( argv[iarg]  , &eptr ) ;
          }
-         if( TR <= 0.0 ) Syntax("argument after -TR must give a positive result!") ;
+         if( TR <= 0.0 ) SynErr("argument after -TR must give a positive result!") ;
 
          if( strcmp(eptr,"ms")==0 || strcmp(eptr,"msec")==0 ){
             new_tunits = 1 ; tunits = UNITS_MSEC_TYPE ;
@@ -1139,7 +1148,7 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[iarg],"-Torg",5) == 0 ){
         char *eptr ;
-        if( iarg+1 >= argc ) Syntax("need an argument after -Torg!");
+        if( iarg+1 >= argc ) SynErr("need an argument after -Torg!");
         Torg = strtod( argv[++iarg]  , &eptr ) ;
         if( *eptr != '\0' )
           WARNING_message("-Torg %s ends in unexpected character\n",argv[iarg]) ;
@@ -1166,7 +1175,7 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[iarg],"-statpar",4) == 0 ){
          float val ; char * ptr ;
 
-         if( ++iarg >= argc ) Syntax("need an argument after -statpar!") ;
+         if( ++iarg >= argc ) SynErr("need an argument after -statpar!") ;
 
          for( ii=0 ; ii < MAX_STAT_AUX ; ii++ ) stataux[ii] = 0.0 ;
 
@@ -1178,7 +1187,7 @@ int main( int argc , char * argv[] )
             iarg++ ;
          } while( iarg < argc ) ;
 
-         if( ii == 0 ) Syntax("No numbers given after -statpar?") ;
+         if( ii == 0 ) SynErr("No numbers given after -statpar?") ;
 
          new_stataux = 1 ; new_stuff++ ;
          continue ;
@@ -1209,11 +1218,11 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[iarg],"-view",4) == 0 ){
          char * code ;
-         if( iarg+1 >= argc ) Syntax("need an argument after -view!") ;
+         if( iarg+1 >= argc ) SynErr("need an argument after -view!") ;
          code = argv[++iarg] ; if( code[0] == '+' ) code++ ;
          for( vtype=0 ; vtype <= LAST_VIEW_TYPE ; vtype++ )
             if( strcmp(code,VIEW_codestr[vtype]) == 0 ) break ;
-         if( vtype > LAST_VIEW_TYPE ) Syntax("argument after -view is illegal!") ;
+         if( vtype > LAST_VIEW_TYPE ) SynErr("argument after -view is illegal!") ;
          new_view = 1 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
       }
@@ -1227,21 +1236,21 @@ int main( int argc , char * argv[] )
       }
 
       if( strncmp(argv[iarg],"-dxtag",6) == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -dxtag!");
+         if( ++iarg >= argc ) SynErr("need an argument after -dxtag!");
          dxtag = strtod(argv[iarg],NULL) ;
          new_tags = 1 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
       }
 
       if( strncmp(argv[iarg],"-dytag",6) == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -dytag!");
+         if( ++iarg >= argc ) SynErr("need an argument after -dytag!");
          dytag = strtod(argv[iarg],NULL) ;
          new_tags = 1 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
       }
 
       if( strncmp(argv[iarg],"-dztag",6) == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -dztag!");
+         if( ++iarg >= argc ) SynErr("need an argument after -dztag!");
          dztag = strtod(argv[iarg],NULL) ;
          new_tags = 1 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
@@ -1273,7 +1282,7 @@ int main( int argc , char * argv[] )
 
       /*----- -cmap option [31 Mar 2009] -----*/
       if( strcmp(argv[iarg],"-cmap") == 0 ){
-         if( ++iarg >= argc ) Syntax("need an argument after -cmap!");
+         if( ++iarg >= argc ) SynErr("need an argument after -cmap!");
          if(strcmp(argv[iarg],"CONT_CMAP")==0)
             cmap = CONT_CMAP;
 
@@ -1281,7 +1290,7 @@ int main( int argc , char * argv[] )
             if(strcmp(argv[iarg],"INT_CMAP")==0) cmap = INT_CMAP;
             else {
                if(strcmp(argv[iarg],"SPARSE_CMAP")==0) cmap = SPARSE_CMAP;
-               else Syntax("cmap value not valid");
+               else SynErr("cmap value not valid");
             }
          }
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
@@ -1293,7 +1302,8 @@ int main( int argc , char * argv[] )
       for( ii=FIRST_ANAT_TYPE ; ii <= LAST_ANAT_TYPE ; ii++ )
          if( strncmp( &(argv[iarg][1]) ,
                       ANAT_prefixstr[ii] , THD_MAX_PREFIX ) == 0 ) break ;
-fprintf(stderr,"== have type %d\n", ii);
+
+      /* fprintf(stderr,"== have type %d\n", ii); */
 
       if( ii <= LAST_ANAT_TYPE ){
          ftype = ii ;
@@ -1320,39 +1330,42 @@ fprintf(stderr,"== have type %d\n", ii);
       /** error **/
 
       { char str[256] ;
-        sprintf(str,"Unknown option %s",argv[iarg]) ;
-        Syntax(str) ;
+        sprintf(str,"Unknown option %s. Check 3drefit -help.",argv[iarg]) ;
+        ERROR_message(str);
+        suggest_best_prog_option(argv[0], argv[iarg]);
+        exit(1);
       }
 
    }  /* end of loop over switches */
-
+   if (iarg < 2) SynErr("Too few options. See 3drefit -help.");
+   
    /*-- some checks for erroneous inputs --*/
 
-   if( new_stuff == 0 && atrmod == 0 ) Syntax("No options given!?") ;
+   if( new_stuff == 0 && atrmod == 0 ) SynErr("No options given!?") ;
    if( new_stuff == 1 && atrmod == 1 ){       /* 28 Jul 2006 [rickr] */
       fprintf(stderr,"** Cannot use -atrcopy or -atrstring with other "
                      "modification options.\n");
-      Syntax("Illegal attribute syntax.");
+      SynErr("Illegal attribute syntax.");
    }
-   if( iarg >= argc   ) Syntax("No datasets given!?") ;
+   if( iarg >= argc   ) SynErr("No datasets given!?") ;
 
    if( xyzscale != 0.0f &&
        (new_orient || new_xorg || new_yorg || new_zorg ||
         keepcen    || new_xdel || new_ydel || new_zdel   ) ){  /* 18 Jul 2006 */
-    Syntax(
+    SynErr(
     "-xyzscale is incompatible with other options for changing voxel grid");
    }
 
    if( new_orient && (dxorg || dyorg || dzorg) )     /* 02 Mar 2000 */
-      Syntax("Can't use -orient with -d?origin!?") ;
+      SynErr("Can't use -orient with -d?origin!?") ;
 
    if( new_tags || shift_tags ){                     /* 08 May 2006 [rickr] */
       if( new_tags && shift_tags )
-         Syntax("Cant' use -shift_tags with -d{xyz}tag") ;
+         SynErr("Cant' use -shift_tags with -d{xyz}tag") ;
       if( new_orient )
-         Syntax("Can't use -orient with -shift_tags or -d{xyz}tags") ;
+         SynErr("Can't use -orient with -shift_tags or -d{xyz}tags") ;
       if( shift_tags && !dxorg && !dyorg && !dzorg )
-         Syntax("-shift_tags option requires a -d{xyz}origin option") ;
+         SynErr("-shift_tags option requires a -d{xyz}origin option") ;
 
       if( shift_tags ){    /* then copy shifts to tag vars */
          if( dxorg ) dxtag = xorg ;

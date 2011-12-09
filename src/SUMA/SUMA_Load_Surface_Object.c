@@ -4327,14 +4327,18 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
          else sprintf(Name,"%s", SO->Name.FileName);
          break;
       case SUMA_SUREFIT:
-         if (MitPath) sprintf(Name,"%s%s__%s%s", SO->Name_coord.Path, SO->Name_coord.FileName, \
+         if (MitPath) sprintf(Name,"%s%s__%s%s",
+                              SO->Name_coord.Path, SO->Name_coord.FileName, 
                               SO->Name_topo.Path, SO->Name_topo.FileName);
-         else sprintf(Name,"%s__%s", SO->Name_coord.FileName, SO->Name_topo.FileName);
+         else sprintf(Name,"%s__%s", 
+                        SO->Name_coord.FileName, SO->Name_topo.FileName);
          break;
       case SUMA_VEC:
-         if (MitPath) sprintf(Name,"%s%s__%s%s", SO->Name_coord.Path, SO->Name_coord.FileName, \
+         if (MitPath) sprintf(Name,"%s%s__%s%s", 
+                              SO->Name_coord.Path, SO->Name_coord.FileName, 
                               SO->Name_topo.Path, SO->Name_topo.FileName);
-         else sprintf(Name,"%s__%s", SO->Name_coord.FileName, SO->Name_topo.FileName);
+         else sprintf(Name,"%s__%s", 
+            SO->Name_coord.FileName, SO->Name_topo.FileName);
          break;
       case SUMA_FT_NOT_SPECIFIED:
       case SUMA_N_SO_FILE_TYPE:
