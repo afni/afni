@@ -281,7 +281,7 @@ char **approx_str_sort_phelp(char *prog, int *N_ws, char *str,
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout);
-char **approx_str_sort_all_popts(char *prog, int *N_ws, char *str, 
+char **approx_str_sort_all_popts(char *prog, int *N_ws, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout);

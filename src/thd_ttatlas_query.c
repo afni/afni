@@ -2582,10 +2582,51 @@ int *z_rand_order(int bot, int top, long int seed) {
    RETURN(s);
 }
 
+/* inverse sort strings */
+int *z_istrqsort (char **x , int nx )
+{
+   int *I, k;
+   Z_QSORT_STRING *Z_Q_sStrct;
+   
+   ENTRY("z_istrqsort");
+   
+   /* allocate for the structure */
+   Z_Q_sStrct = (Z_QSORT_STRING *) calloc(nx, sizeof (Z_QSORT_STRING));
+   I = (int *) calloc (nx, sizeof(int));
+
+   if (!Z_Q_sStrct || !I)
+      {
+         ERROR_message("Allocation problem");
+         RETURN (NULL);
+      }
+
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         Z_Q_sStrct[k].x = x[k];
+         Z_Q_sStrct[k].Index = k;
+      }
+
+   /* sort the structure by it's field value */
+   qsort(Z_Q_sStrct, nx, sizeof(Z_QSORT_STRING), 
+         (int(*) (const void *, const void *)) compare_Z_IQSORT_STRING);
+
+   /* recover the index table */
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         x[k] = Z_Q_sStrct[k].x;
+         I[k] = Z_Q_sStrct[k].Index;
+      }
+
+   /* free the structure */
+   free(Z_Q_sStrct);
+
+   /* return */
+   RETURN (I);
+}
+
 /* inverse sort floats */
 int *z_iqsort (float *x , int nx )
 {/*z_iqsort*/
-/*   static char FuncName[]={"z_iqsort"};*/
    int *I, k;
    Z_QSORT_FLOAT *Z_Q_fStrct;
 
@@ -3934,13 +3975,14 @@ char **approx_str_sort_tfile(char *fname, int *N_ws, char *str,
    RETURN(ws);
 }
 
-char **approx_str_sort_all_popts(char *prog, int *N_ws, char *str, 
+char **approx_str_sort_all_popts(char *prog, int *N_ws,  
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout)
 {
-   int i, inn, c;
+   int i, inn, c, *isrt=NULL;
    char **ws=NULL;
+   char *str="-";
    float *sc=NULL, ff= 0.0;
    APPROX_STR_DIFF *D=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
@@ -3988,7 +4030,9 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws, char *str,
          ++inn;
       }
    }
-   
+   /* alphabetically sort that thing */
+   isrt = z_istrqsort (ws, inn );
+   if (isrt) free(isrt); isrt=NULL;
    RETURN(ws);
 }
 
@@ -4157,7 +4201,7 @@ void print_prog_options(char *prog)
    APPROX_STR_DIFF *D=NULL;
 
 
-   if (!(ws = approx_str_sort_all_popts(prog, &N_ws, "-", 
+   if (!(ws = approx_str_sort_all_popts(prog, &N_ws,  
                    1, &ws_score,
                    NULL, NULL))) {
       return;

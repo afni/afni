@@ -5212,7 +5212,8 @@ int *SUMA_z_qsort (float *x , int nx )
    SUMA_ENTRY;
 
    /* allocate for the structure */
-   Z_Q_fStrct = (SUMA_Z_QSORT_FLOAT *) SUMA_calloc(nx, sizeof (SUMA_Z_QSORT_FLOAT));
+   Z_Q_fStrct = (SUMA_Z_QSORT_FLOAT *) 
+               SUMA_calloc(nx, sizeof (SUMA_Z_QSORT_FLOAT));
    I = (int *) SUMA_calloc (nx, sizeof(int));
 
    if (!Z_Q_fStrct || !I)
@@ -5228,7 +5229,8 @@ int *SUMA_z_qsort (float *x , int nx )
       }
 
    /* sort the structure by it's field value */
-   qsort(Z_Q_fStrct, nx, sizeof(SUMA_Z_QSORT_FLOAT), (int(*) (const void *, const void *)) compare_SUMA_Z_QSORT_FLOAT);
+   qsort(Z_Q_fStrct, nx, sizeof(SUMA_Z_QSORT_FLOAT), 
+         (int(*) (const void *, const void *)) compare_SUMA_Z_QSORT_FLOAT);
 
    /* recover the index table */
    for (k=0; k < nx; ++k) /* copy the data into a structure */
