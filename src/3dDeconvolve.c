@@ -1990,7 +1990,8 @@ void get_options
     {
       /*----- does user request help menu? -----*/
       if (strcmp(argv[nopt], "-h") == 0 || strcmp(argv[nopt], "-help") == 0) {
-          display_help_menu(strlen(argv[nopt])>3 ? 2:1);
+         display_help_menu(strlen(argv[nopt])>3 ? 2:1);
+         exit(0);
       }
 
       if( strcmp(argv[nopt],"-OK") == 0 ){ nopt++; continue; } /* 14 Jul 2004 */

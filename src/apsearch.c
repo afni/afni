@@ -583,7 +583,7 @@ int main(int argc, char **argv)
          return 0;
       } else if (all_popts) {
          /* one can also use print_prog_options(all_popts); return(0); */
-         ws = approx_str_sort_all_popts(all_popts, &N_ws, str, 
+         ws = approx_str_sort_all_popts(all_popts, &N_ws, 
                             ci, &ws_score,
                             NULL, &D);
       }
