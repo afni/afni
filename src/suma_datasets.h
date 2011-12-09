@@ -1620,6 +1620,7 @@ char *SUMA_isEnv(char *env, char *sval);
 float SUMA_floatEnv(char *env, float defval);
 ENV_SPEC SUMA_envlistelement(int i);
 char * SUMA_EnvVal(char *env);
+int SUMA_EnvEquals(char *env, char *sval, byte ci, char *sep);
  
 /*********************** END Miscellaneous support functions **************************** */
 
