@@ -12375,6 +12375,15 @@ static ENV_SPEC envlist[] = {
       "A bad choice can make the surfaces render with many artifacts.\n",
       "SUMA_NodeCoordsUnits",
       "mm" }, 
+   {  "Which anatomically correct surf. states should not NOT be sent to AFNI?\n"
+      "This is mostly for deciding whether one of 'white' or 'smoothwm'\n"
+      "FreeSurfer states should not be sent to AFNI.\n"
+      "The default is to let them all go.\n"
+      "You can specify multiple states with a comma delimited list. \n"
+      "By default nothing is excluded.\n",
+      "SUMA_DoNotSendStates",
+      "" }, 
+   
    {  NULL, NULL, NULL  }
 };
       
@@ -12405,6 +12414,75 @@ char * SUMA_EnvVal(char *env)
    }
    SUMA_RETURN(NULL);
 }
+
+/* Returns non 0 if the env variable matches sval
+   
+   The Function can handle an env that returns 
+   some character separated list if sep is not NULL
+   For example, say env = {"The, olde, fox"}
+   SUMA_EnvEquals(env,"olde", 0,NULL) returns 0
+   but 
+   SUMA_EnvEquals(env,"olde", 0,",") returns 2
+   because olde in the second word in env
+*/
+int SUMA_EnvEquals(char *env, char *sval, byte ci, char *sep)
+{
+   static char FuncName[]={"SUMA_EnvEquals"};
+   char *eee=NULL;
+   NI_str_array *sar=NULL;
+   int i=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!env) SUMA_RETURN(0);
+   
+   if (!(eee = getenv(env))) { 
+      /* search defaults*/
+      i = 0;
+      while (envlist[i].envhelp && !eee) {
+         if ( envlist[i].envname &&
+             !strcmp(envlist[i].envname, env) ) {
+            eee = envlist[i].envval;
+         }
+         ++i;
+      }
+   }
+   
+   if (eee==NULL) {
+      if (sval==NULL) SUMA_RETURN(1);
+      else SUMA_RETURN(0);
+   } 
+   
+   /* have env value of some sort */
+   if (sval == NULL) SUMA_RETURN(0);
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,
+              "%s: eee %s, sval %s, sep %s\n", FuncName, eee, sval, sep);
+   if (!sep) {
+      if (ci) SUMA_RETURN(!(strcasecmp(eee,sval)));
+      else SUMA_RETURN(!(strcmp(eee,sval)));
+   }
+   
+   /* need to breakup into subsets */
+   if (!(sar = SUMA_NI_decode_string_list( eee , sep ))) SUMA_RETURN(0);
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,
+              "%s: Have %d vals in %s\n", FuncName, sar->num, eee);
+   for (i=0; i<sar->num; ++i) {
+         if (LocalHead) 
+      fprintf(SUMA_STDERR,
+              "%s: Comapring %s to %s\n", FuncName, sval, sar->str[i]);
+      if ( (ci && !(strcasecmp(sval,sar->str[i]))) ||
+           !strcmp(sval, sar->str[i]) ) {
+         sar = SUMA_free_NI_str_array(sar);
+         SUMA_RETURN(i+1);  
+      }
+   }
+   sar = SUMA_free_NI_str_array(sar);
+   SUMA_RETURN(0);
+}
+
 
 char * SUMA_env_list_help(){
    static char FuncName[]={"SUMA_env_list_help"};

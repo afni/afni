@@ -2856,6 +2856,22 @@ int SUMA_isTypicalSOforVolSurf (SUMA_SurfaceObject *SO)
    SUMA_RETURN(0);
 }
 
+/*!
+   \brief Allow users to exclude certain states from being sent
+   to AFNI 
+   SUMA_ExcludeFromToAfni
+*/
+int SUMA_ExcludeFromSendToAfni (SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_ExcludeFromSendToAfni"};
+   
+   SUMA_ENTRY;
+   
+   if (SUMA_EnvEquals("SUMA_DoNotSendStates", SO->State, 1, " ,;")) 
+      RETURN(1);
+   
+   RETURN(0);  
+}
 
 SUMA_XFORM *SUMA_Find_XformByID(char *idcode_str)
 {

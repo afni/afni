@@ -5274,7 +5274,8 @@ int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send)
          if (SUMA_isSO(dov[ii])) {
             SO = (SUMA_SurfaceObject *)(dov[ii].OP);      
             if (SO->SentToAfni) { no_need = 1; }
-            if (SO->AnatCorrect && !SO->SentToAfni && SO->VolPar) {
+            if (  SO->AnatCorrect && !SO->SentToAfni 
+                  && SO->VolPar && !SUMA_ExcludeFromSendToAfni(SO)) {
                switch (s) {
                   case 0:
                      if (  !is_listed[ii] && 

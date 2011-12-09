@@ -43,6 +43,7 @@ char * SUMA_New_Additions (int ver, SUMA_Boolean StampOnly)
 
    SS = SUMA_StringAppend (NULL, NULL);
    
+   #if 0 /* Stopped maintaining this list for a long time now. */
    if (ver == 0) { /* just the latest */
       s = SUMA_New_Additions_perver( verv[0], StampOnly);
       if (s) {
@@ -68,10 +69,10 @@ char * SUMA_New_Additions (int ver, SUMA_Boolean StampOnly)
          SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
       }
    }
-   
    /* add the CVS tag            ZSS: Looks like nobody likes tags. 
                                       Compile Date is enough*/
    SS = SUMA_StringAppend_va (SS, "\nCVS tag:\n   %s\n", SUMA_VERSION_LABEL);
+   #endif
    
    /* add the compile date */
    SS = SUMA_StringAppend_va (SS, "\nCompile Date:\n   %s\n",__DATE__);
@@ -1036,9 +1037,10 @@ char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap)
    SUMA_ENTRY;
    
    SS = SUMA_StringAppend (NULL, NULL);
-
+   #if 0
    s = SUMA_New_Additions (0, 1);
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+   #endif
    
    SS = SUMA_StringAppend (SS, 
       "\nColormap Keyboard Controls:\n"
@@ -1144,9 +1146,10 @@ char * SUMA_help_message_Info(void)
    
    SS = SUMA_StringAppend (NULL, NULL);
 
+   #if 0 /* not maintained any more */
    s = SUMA_New_Additions (0, 1);
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
-   
+   #endif
    SS = SUMA_StringAppend (SS, 
       "\nKeyboard Controls\n"
       "   Note: On MACs, Alt is the Apple/Command key.\n"
@@ -1822,9 +1825,11 @@ void SUMA_Version (FILE *Out)
    static char FuncName[]={"SUMA_Version"};
    char *s = NULL;
    
+
    if (Out == NULL) {
 		Out = stdout;
 	}
+   
    s = SUMA_New_Additions (0, 0);
 	if (s) {
       fprintf (Out, "\n   %s\n", s);
