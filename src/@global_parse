@@ -1,0 +1,69 @@
+#!/bin/tcsh -f
+
+if ($#argv == 1) then
+   if ("$1" == "-h" || "$1" == "-help") then
+      echo ""
+      echo "A script to parse for global help options"
+      echo "The first parameter is the ALWAYS the program name whose help"
+      echo "output you seek. All other options follow."
+      echo "It is meant to be called by other scripts."
+      echo "It returns 0 when it has nothing to do."
+      echo "           1 when it does something and wants calling"
+      echo "program to quit"
+      echo ""
+      echo "To use this in any script follow these steps"
+      echo "1- Add this line before any parsing, right after the 1st line"
+      echo '   @global_parse `basename $0` $*'
+      echo "2- Add this line right where you fail to recognize an option"
+      echo '   apsearch -popt `basename $0` -word $argv[$cnt]'
+      echo "3- Add this line somewhere in the help section"
+      echo "   @global_parse -gopts_help"
+      echo ""
+      exit 0
+   else if ("$1" == "-gopts_help") then
+      echo "Global Help Options:"
+      echo "--------------------"
+      echo "   -h_view: Open -help output in a GUI editor"
+      echo "   -all_opts: List all of the options for this script"
+      echo "   -h_find WORD: Search for lines containing WORD in -help"
+      echo "                 output. Seach is approximate."
+      echo "" 
+      exit 0
+   else if ("$1" == `basename $0`)then
+      echo "What?"
+      exit 1
+   else
+      #Nothing to do here
+      exit 0
+   endif
+endif
+
+
+   echo "$*" | \grep -w -E '\-h_find|\-h_view|\-all_opts' >& /dev/null
+   if ($status) then
+      #Nothing here, go back
+      exit 0
+   endif
+   echo "$*" | \grep -w '\-h_view' >& /dev/null
+   if ($status == 0) then
+      apsearch -view_prog_help $1
+      exit 1
+   endif
+   echo "$*" | \grep -w '\-all_opts' >& /dev/null
+   if ($status == 0) then
+      apsearch -all_popts $1
+      exit 1
+   endif
+   echo "$*" | \grep -w '\-h_find' >& /dev/null
+   if ($status == 0) then
+      set echo
+      set wrd = (`echo "$*" | sed 's/^.*-h_find//' | cut -f 1 -d ' '`)
+      if ($#wrd < 1) then
+         echo "-h_find needs a WORD with it"
+         exit 1
+      endif
+      apsearch -phelp $1 -word "$wrd[1]"
+      exit 1
+   endif
+
+exit 0
