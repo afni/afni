@@ -168,7 +168,7 @@ WORK_1D:
          end
          @ i ++
       end
-      3dcalc -a ${init_path}/$master+orig  -expr "i*$N+j+1" \
+      3dcalc -float -a ${init_path}/$master+orig  -expr "i*$N+j+1" \
              -prefix ../anat_corrmat
    endif 
    #transform to Z and clip at max of 15

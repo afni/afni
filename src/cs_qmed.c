@@ -342,12 +342,14 @@ int compare_Z_IQSORT_STRING (Z_QSORT_STRING *a, Z_QSORT_STRING *b )
    return (strcmp(a->x, b->x));
 }
 
-int compare_string (char *a, char *b )
+int compare_string (const void *a, const void *b )
 {/* compare_string*/
-   if (!a && !b) return(0);
-   if (!a) return(-1);
-   if (!b) return(1);
-   return (strcmp(a, b));
+   const char **ia = (const char **)a;
+   const char **ib = (const char **)b;
+   if (!*ia && !*ib) return(0);
+   if (!*ia) return(-1);
+   if (!*ib) return(1);
+   return (strcmp(*ia, *ib));
 }
    
 int compare_double (double *a, double *b )

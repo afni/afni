@@ -152,7 +152,7 @@ extern int compare_Z_IQSORT_STRING (Z_QSORT_STRING *a, Z_QSORT_STRING *b );
 extern int compare_Z_IQSORT_DOUBLE (Z_QSORT_DOUBLE *a, Z_QSORT_DOUBLE *b );
 extern int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b );
 extern int compare_Z_IQSORT_INT (Z_QSORT_INT *a, Z_QSORT_INT *b );
-extern int compare_string (char *a, char *b );
+extern int compare_string (const void *a, const void *b );
 extern int compare_double (double *a, double *b );
 extern int compare_float (float *a, float *b );
 extern int compare_int (int *a, int *b );
