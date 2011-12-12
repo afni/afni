@@ -65,6 +65,23 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 12, DEC , 2011 , ZSS , "apsearch" , MINOR , TYPE_NEW_OPT,
+   "Small improvements and addition of logging option of search results",
+   "See -apsearch_log_file option for details. Logging is only enabled\n"
+   "if AFNI_LOG_BEST_PROG_OPTION is set to YES.",
+ },
+ 
+ { 12, DEC , 2011 , ZSS , "@global_parse" , MINOR , TYPE_NEW_PROG,
+   "Script to simplify support of global options such as h_find from scripts",
+   NULL ,
+ },
+ 
+ { 12, DEC , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
+   "Slice displays can now show atlas labels in addition to slice location ",
+   "The displays are turned on by right-clicking on the slice viewer's color\n"
+   "bar and then setting the 'Label' to something other than 'OFF'\n" ,
+ },
+ 
  { 7, DEC , 2011 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "Added atlas creation of aseg, aparc+aseg, in addition to aparc.a200*",
    "See whereami's example 3 for how to extract ROIs from FreeSurfer atlases.",

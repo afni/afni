@@ -192,6 +192,20 @@ char *THD_helpdir(void)
    return (sout[icall]) ;
 }
 
+char *THD_helpsearchlog(int createpath)
+{
+   static int bad = 0;
+   static char shelpname[256]={""};
+   
+   if (!bad && createpath && !THD_mkdir(THD_helpdir())) {
+      ERROR_message("Cannot create %s help directory\n", THD_helpdir());
+      bad = 1;
+   }
+   snprintf(shelpname,255*sizeof(char),
+                      "%s/bpo.log.txt",THD_helpdir());
+   return(shelpname);
+}
+
 /*--------------------------------------------------------*/
 /*! Determine if this is really a directory or not. */
 

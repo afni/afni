@@ -4073,13 +4073,16 @@ char **approx_str_sort_phelp(char *prog, int *N_ws, char *str,
 void suggest_best_prog_option(char *prog, char *str)
 {
    char **ws=NULL;
-   int N_ws=0, i, isug, skip=0;
+   int N_ws=0, i, isug, skip=0, isuglog=0, logit=0;
    float *ws_score=NULL;
    APPROX_STR_DIFF *D=NULL;
    char *cwsi=NULL;
+   FILE *logfout=NULL;
+   char shelpname[256]={""};
    
    if (getenv("AFNI_NO_OPTION_HINT")) return;
-
+   if (AFNI_yesenv("AFNI_LOG_BEST_PROG_OPTION")) logit = 1;
+   
    if (str[0] != '-') {
       if (0) { /* leave it alone ... */
          fprintf(stderr,"'%s' might have be a parameter that is missing\n"
@@ -4091,9 +4094,9 @@ void suggest_best_prog_option(char *prog, char *str)
    }
    ws = approx_str_sort_phelp(prog, &N_ws, str, 
                    1, &ws_score,
-                   NULL, NULL);
-   isug = 0;
-   for (i=0; i<N_ws; ++i) {
+                   NULL, &D);
+   isug = 0; isuglog = 6;
+   for (i=0; i<N_ws && (isug < 3 || isuglog < 6); ++i) {
       skip=0;
       if (str[0]=='-') { /* skip results that do not begin with - */
          cwsi = strdup(ws[i]);
@@ -4104,6 +4107,34 @@ void suggest_best_prog_option(char *prog, char *str)
                      skip=1;
          free(cwsi); cwsi=NULL; 
       }
+      
+      /* log before you decide on match quality skipping */
+      if (logit) {
+         if ((!logfout || isuglog < 6) && !skip) {
+            if (!logfout) {
+               if (!(logfout = fopen(THD_helpsearchlog(1),"a"))) logit = 0;
+               isuglog = 0;
+            }
+            if (logfout) {
+               if (!isuglog) {
+                  char *tdate = tross_datetime();
+                  fprintf(logfout,"popt(%s,%s); %s\n",prog,str, tdate);
+                  free(tdate); tdate=NULL;
+               }
+               fprintf(logfout,"   %s: %s\n", 
+                  approx_string_diff_info(D+i, NULL),
+                  ws[i]);
+            }
+            ++isuglog;
+         }
+      }
+      
+      /* Now do some crude match quality based skipping */  
+      if (!skip) {
+         /* See if you have lousy scores */
+         if ( (D[i].d[LEV] > 5 && D[i].d[PMD] > 5 && D[i].d[FCD] > 5) ) skip = 1;
+      }
+      
       if (isug<3 && !skip)  {
          if (!isug) 
             fprintf(stderr,
@@ -4114,6 +4145,16 @@ void suggest_best_prog_option(char *prog, char *str)
       }
       free(ws[i]); ws[i]=NULL;
    } free(ws); ws = NULL;
+   if (!isug) {
+      fprintf(stderr,
+   "   Could not suggest an option from '%s -help' and sleep well at night.\n"
+   "   Try finding your option with '%s -all_opts',\n"
+   "                                '%s -h_view',\n"
+   "                or the good old '%s -help'\n",
+               prog, prog, prog, prog);
+   }
+   
+   if (logfout) fclose(logfout);
    return;
 }
 

@@ -3824,6 +3824,7 @@ extern long long THD_filesize( char * pathname ) ;
 extern char *THD_filetime( char *pathname );
 extern char *THD_homedir(void);
 extern char *THD_helpdir(void);
+char *THD_helpsearchlog(int createpath);
 
 extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
 extern THD_string_array * THD_normalize_flist( THD_string_array * ) ;
@@ -3835,6 +3836,8 @@ extern time_t THD_file_mtime( char * ) ; /* 05 Dec 2001 */
 
 extern THD_string_array * THD_get_all_files( char *, char ) ; /* 08 Jun 2011 */
 extern THD_string_array * THD_getpathprogs( THD_string_array *, char );
+extern THD_string_array * THD_get_all_afni_executables(void );
+extern int list_afni_programs(int withnum);
 extern int THD_is_executable( char * pathname ) ;
 extern char * THD_find_executable( char * ) ;
 extern char * THD_find_regular_file( char * ) ;
