@@ -9187,14 +9187,17 @@ ENTRY("AFNI_imag_pop_CB") ;
          int iii;
          char title_str[256];
 
-         at_labels = atlas_chooser_formatted_labels(Current_Atlas_Default_Name());
+         at_labels = atlas_chooser_formatted_labels(
+                           Current_Atlas_Default_Name());
          if( ISQ_REALZ(seq) && at_labels ){
            if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) MCW_set_browse_select(1) ;
 
-           sprintf(title_str, "Brain Structure (from %s)", Current_Atlas_Default_Name());
+           sprintf(title_str, "Brain Structure (from %s)", 
+                        Current_Atlas_Default_Name());
            MCW_choose_strlist( seq->wbar ,
                        title_str ,
-                       atlas_n_points(Current_Atlas_Default_Name()) , atlas_current_structure ,
+                       atlas_n_points(Current_Atlas_Default_Name()) , 
+                       atlas_current_structure ,
                        at_labels ,
                        AFNI_talto_CB , (XtPointer) im3d ) ;
             for (iii=0; iii<atlas_n_points(Current_Atlas_Default_Name()); ++iii) {
