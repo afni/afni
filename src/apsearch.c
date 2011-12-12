@@ -17,87 +17,6 @@
 #define isnakedarg(s) ( ( (s)[0] == '-' && strlen(s) > 1 && zischar((s)[1]) ) ? 0 : 1 )
 
 
-/*--- Move to thd_getpathprogs.c when ready ------------*/
-/*! Get all executables in directory where afni resides */
-extern THD_string_array * THD_get_all_afni_executables(void );
-
-THD_string_array * THD_get_all_afni_executables(void )
-{
-   THD_string_array *outar=NULL, *elist=NULL;
-   char *af=NULL, *etr=NULL;
-   int N_af, N_afni=strlen("afni"), iaf=0, ii=0, smode;
-   char scomm[256]={""};
-   
-   ENTRY("THD_get_all_afni_executables");
-   
-   if (!(elist = get_elist()) ||
-       !(af = THD_find_executable("afni"))) {
-      ERROR_message("Could not find afni, we're doomed daddy!");
-      RETURN(outar);
-   }
-   
-   /* remove afni from the end to get the path */
-   N_af = strlen(af);
-   if (strcmp(af+N_af-N_afni,"afni")) {
-      ERROR_message("This should not be (%s)!", af+N_af-N_afni);
-      RETURN(outar);
-   }
-   af[strlen(af)-N_afni]='\0'; N_af = strlen(af);
-   if (af[N_af-1] != '/') {
-      af[N_af] = '/'; af[N_af+1] = '\0';
-      ++N_af;
-   }
-   /* Now get all executables under af */
-   INIT_SARR( outar );
-   for (ii=0, iaf=0; ii<elist->num ; ii++ ){
-      smode = storage_mode_from_filename(elist->ar[ii]);
-      etr = THD_trailname( elist->ar[ii] , 0 ) ; 
-      if (
-          !THD_is_directory(elist->ar[ii]) &&
-          !strncmp(af, elist->ar[ii], N_af) &&
-          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".jpg") &&
-          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".a") &&
-          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".so") &&
-          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".txt") &&
-    !(STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".py") && !strncmp(etr,"lib_",4)) &&
-          (smode <= STORAGE_UNDEFINED || smode >= LAST_STORAGE_MODE)  &&
-          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".sumarc") &&
-          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".afnirc")
-              )  {
-         ADDTO_SARR( outar , elist->ar[ii] ) ; ++iaf;
-         /* fprintf(stderr," %d- %s\n", iaf, etr); */
-      } else {
-         /* fprintf(stderr," skip %s (%s)\n", elist->ar[ii], af); */
-      }
-   } 
-   
-   if( SARR_NUM(outar) == 0 ) DESTROY_SARR(outar) ;
-
-   RETURN( outar );
-
-}
-
-int list_afni_programs(void)
-{
-   int nprogs=0, ii=0;
-   char *etr=NULL;
-   THD_string_array *progs=NULL;
-   
-   if (!(progs = THD_get_all_afni_executables())) {
-      ERROR_message("Cannot get list of programs");
-      RETURN(0);
-   }
-   for (ii=0; ii<progs->num ; ii++ ){
-      etr = THD_trailname( progs->ar[ii] , 0 ) ;
-      fprintf(stdout,"  %3d.   %s\n", ii, etr);
-   }
-   nprogs = progs->num;
-   
-   DESTROY_SARR(progs);
-   
-   return(nprogs);
-}
-
 int update_help_for_afni_programs(int force_recreate, 
                                   byte verb, THD_string_array **hlist )
 {
@@ -213,6 +132,7 @@ void apsearch_usage(int detail)
    "  -file FILE: Search for WORD in text file FILE\n"
    "  -text TEXT: Search for WORD in string TEXT\n"
    "  -stdin: Search for WORD in text from stdin\n"
+   "  -: Same as -stdin\n"
    "  -phelp PROG: Search for WORD in output of command PROG -help\n"
    "  -popt PROG: Search for possible options of PROG that match WORD\n"
    "              Make sure you add the '-' to WORD if you are looking\n"
@@ -244,6 +164,11 @@ void apsearch_usage(int detail)
    "  -afni_text_editor: Print the name of the GUI editor. Priority goes to \n"
    "                     env. variable AFNI_GUI_EDITOR, otherwise afni\n"
    "                     will try to find something suitable.\n"
+   "  -apsearch_log_file: Print the name of the logfile that is used to save\n"
+   "                      some results of apsearch's functions. This option\n"
+   "                      is for debugging purposes and is only activated if\n"
+   "                      the environment variable AFNI_LOG_BEST_PROG_OPTION\n"
+   "                      is set to YES.\n"
    "  -view_prog_help PROG: Open the help file for PROG in a GUI editor.\n"
    "                        This is like the option -h_view is C programs.\n"
    "\n"
@@ -288,7 +213,12 @@ void apsearch_usage(int detail)
    "        whereami -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
    "                                sed 's/[-_]/ /g' |\\\n"
    "                                apsearch -stdin -word insolent\n"
+   " 8- Find 10 afni programs with something like 'Surface' in their names:\n"
+   "        apsearch -all_afni_progs | \\\n"
+   "             apsearch -stdin -word surface -max_hits 10\n"
    "\n"
+   "Global Options:\n"
+   "===============\n"
    "%s", 
    THD_helpdir(),
    detail > 1 ? get_gopt_help():""); 
@@ -373,6 +303,11 @@ int main(int argc, char **argv)
 
       if (strcmp(argv[iarg],"-afni_help_dir") == 0) { 
          fprintf(stdout,"%s\n", THD_helpdir());
+         return(0);
+      }
+      
+      if (strcmp(argv[iarg],"-apsearch_log_file") == 0) { 
+         fprintf(stdout,"%s\n", THD_helpsearchlog(0));
          return(0);
       }
 
@@ -527,7 +462,7 @@ int main(int argc, char **argv)
       }
 
       if (strcmp(argv[iarg],"-all_afni_progs") == 0) { 
-         list_afni_programs(); return(0);
+         list_afni_programs(0); return(0);
          ++iarg;
          continue; 
       }
