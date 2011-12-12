@@ -3428,4 +3428,11 @@ Variable:  AFNI_GUI_EDITOR
 --------------------------
 Set this variable to your favorite GUI text editor.
 
+------------------------------------
+Variable:  AFNI_LOG_BEST_PROG_OPTION
+------------------------------------
+If set to YES, allow approximate searching functions to log their behavior in 
+a file named ~/.afni/help/aps.log.txt
+
+
 
