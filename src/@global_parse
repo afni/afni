@@ -13,11 +13,13 @@ if ($#argv == 1) then
       echo ""
       echo "To use this in any script follow these steps"
       echo "1- Add this line before any parsing, right after the 1st line"
-      echo '   @global_parse `basename $0` $*'
+      echo '   @global_parse `basename $0` $* ; if ($status) exit 0'
       echo "2- Add this line right where you fail to recognize an option"
       echo '   apsearch -popt `basename $0` -word $argv[$cnt]'
       echo "3- Add this line somewhere in the help section"
       echo "   @global_parse -gopts_help"
+      echo "4- Eliminate going to help immediately when too few options"
+      echo "   are set. One option, such as -all_opts is always good"
       echo ""
       exit 0
    else if ("$1" == "-gopts_help") then
@@ -56,12 +58,12 @@ endif
    endif
    echo "$*" | \grep -w '\-h_find' >& /dev/null
    if ($status == 0) then
-      set echo
-      set wrd = (`echo "$*" | sed 's/^.*-h_find//' | cut -f 1 -d ' '`)
+      set wrd = (`echo "$*" | sed 's/^.*-h_find *//' | cut -f 1 -d ' '`)
       if ($#wrd < 1) then
          echo "-h_find needs a WORD with it"
          exit 1
       endif
+      set echo
       apsearch -phelp $1 -word "$wrd[1]"
       exit 1
    endif
