@@ -82,6 +82,11 @@ afni_history_struct ziad_history[] = {
    "bar and then setting the 'Label' to something other than 'OFF'\n" ,
  },
  
+ { 9, DEC , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
+   "SUMA_DoNotSendStates restricts certain surfaces from getting sent to suma.",
+   NULL,
+ },
+ 
  { 7, DEC , 2011 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "Added atlas creation of aseg, aparc+aseg, in addition to aparc.a200*",
    "See whereami's example 3 for how to extract ROIs from FreeSurfer atlases.",

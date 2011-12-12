@@ -202,7 +202,7 @@ char *THD_helpsearchlog(int createpath)
       bad = 1;
    }
    snprintf(shelpname,255*sizeof(char),
-                      "%s/bpo.log.txt",THD_helpdir());
+                      "%s/aps.log.txt",THD_helpdir());
    return(shelpname);
 }
 
