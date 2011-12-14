@@ -577,7 +577,10 @@ static int AFNI_drive_switch_anatomy( char *cmd )
 
 ENTRY("AFNI_switch_anatomy") ;
 
-   if( cmd == NULL || strlen(cmd) < 3 ) RETURN(-1) ;
+   if( cmd == NULL ) RETURN(-1) ; /* No need to die if strlen(cmd) < 3!
+                                     I get in trouble for short names and
+                                     I get in trouble for long names! 
+                                     Sheesh.    ZSS Dec 2011 */
 
    ic = AFNI_controller_code_to_index( cmd ) ;
    if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
