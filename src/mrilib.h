@@ -1554,6 +1554,7 @@ extern MRI_IMAGE * mri_matrix_evalrpn  ( char * ) ;
 extern char      * mri_matrix_evalrpn_help(void) ;
 extern void        mri_matrix_evalrpn_verb(int) ;
 extern float mri_matrix_size( MRI_IMAGE * ) ;
+extern MRI_IMARR * mri_matrix_psinv_ortproj( MRI_IMAGE *, int ) ; /* 13 Dec 2011 */
 
 extern MRI_IMARR * mri_matrix_psinv_pair( MRI_IMAGE *, float ) ;
 extern MRI_IMAGE * mri_matrix_singvals  ( MRI_IMAGE * ) ;

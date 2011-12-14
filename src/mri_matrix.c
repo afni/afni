@@ -554,7 +554,7 @@ ENTRY("mri_matrix_ortproj") ;
 
    if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
 
-   imp = mri_matrix_psinv( imc , NULL , 0.0 ) ;  /* inv[C'C] C' */
+   imp = mri_matrix_psinv( imc , NULL , 0.0f ) ; /* inv[C'C] C' */
    if( imp == NULL ) RETURN(NULL) ;
    imt = mri_matrix_mult( imc , imp ) ;          /* C inv[C'C] C' */
    mri_free(imp) ;
@@ -567,6 +567,32 @@ ENTRY("mri_matrix_ortproj") ;
    }
 
    RETURN(imt) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Return both the pseudo-inverse and the orthogonal projection.
+    If [C] is N x M, then the psinv is M x N and the ortproj is N x N. */
+
+MRI_IMARR * mri_matrix_psinv_ortproj( MRI_IMAGE *imc , int pout )
+{
+   MRI_IMARR *imar ; MRI_IMAGE *imp , *imt ;
+
+ENTRY("mri_matrix_psinv_ortproj") ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
+
+   imp = mri_matrix_psinv( imc , NULL , 0.0f ) ; /* inv[C'C] C' */
+   if( imp == NULL ) RETURN(NULL) ;
+   imt = mri_matrix_mult( imc , imp ) ;          /* C inv[C'C] C' */
+
+   if( pout ){                                   /* I - C inv[C'C] C' */
+     int nn , nq , ii ; float *tar ;
+     nn = imt->nx ; nq = nn*nn ; tar = MRI_FLOAT_PTR(imt) ;
+     for( ii=0 ; ii < nq ; ii+=(nn+1) ) tar[ii] -= 1.0f ;      /* diagonal */
+     for( ii=0 ; ii < nq ; ii++       ) tar[ii]  = -tar[ii] ;
+   }
+
+   INIT_IMARR(imar) ; ADDTO_IMARR(imar,imp) ; ADDTO_IMARR(imar,imt) ; RETURN(imar) ;
 }
 
 /*----------------------------------------------------------------------------*/
