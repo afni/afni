@@ -307,18 +307,93 @@ THD_string_array * THD_get_all_afni_executables(void )
 
    RETURN( outar );
 }
+/*! Get all readme files in directory where afni resides */
+THD_string_array * THD_get_all_afni_readmes(void )
+{
+   THD_string_array *outar=NULL, *elist=NULL;
+   char *af=NULL, *etr=NULL, *key="README.";
+   int N_af, N_afni=strlen("afni"), iaf=0, ii=0, *isrt=NULL, N_key=0;
+   char scomm[256]={""};
+   
+   ENTRY("THD_get_all_afni_readmes");
+   
+   if (!(elist = get_elist()) ||
+       !(af = THD_find_executable("afni"))) {
+      ERROR_message("Could not find afni, we're doomed daddy!");
+      RETURN(outar);
+   }
+   
+   /* remove afni from the end to get the path */
+   N_af = strlen(af);
+   if (strcmp(af+N_af-N_afni,"afni")) {
+      ERROR_message("This should not be (%s)!", af+N_af-N_afni);
+      RETURN(outar);
+   }
+   af[strlen(af)-N_afni]='\0'; N_af = strlen(af);
+   if (af[N_af-1] != '/') {
+      af[N_af] = '/'; af[N_af+1] = '\0';
+      ++N_af;
+   }
+   
+   elist = THD_get_all_files(af,'\0');
+   
+   /* Now get all readmes under af */
+   N_key = strlen(key);
+   INIT_SARR( outar );
+   for (ii=0, iaf=0; ii<elist->num ; ii++ ){
+      etr = THD_trailname( elist->ar[ii] , 0 ) ; 
+      if (!THD_is_directory(elist->ar[ii]) &&
+          !strncmp(af, elist->ar[ii], N_af)  &&
+          !strncmp(key, etr, N_key)
+              )  {
+         ADDTO_SARR( outar , elist->ar[ii] ) ; ++iaf;
+         /* fprintf(stderr," %d- %s\n", iaf, etr); */
+      } else {
+         /* fprintf(stderr," skip %s (%s)\n", elist->ar[ii], af); */ 
+      }
+   } 
+   
+   qsort(outar->ar, outar->num, sizeof(char*), 
+      (int(*) (const void *, const void *))compare_string);
+   
+   if( SARR_NUM(outar) == 0 ) DESTROY_SARR(outar) ;
 
-int list_afni_programs(int withnum)
+   RETURN( outar );
+}
+
+int list_afni_programs(int withnum) {
+   return(list_afni_files(0, withnum));
+}
+
+int list_afni_readmes(int withnum) {
+   return(list_afni_files(1, withnum));
+}
+
+int list_afni_files(int type, int withnum)
 {
    int nprogs=0, ii=0;
    char *etr=NULL, s[12];
    THD_string_array *progs=NULL;
    
-   if (!(progs = THD_get_all_afni_executables())) {
-      ERROR_message("Cannot get list of programs");
-      RETURN(0);
+   switch (type) {
+      case 0:
+         if (!(progs = THD_get_all_afni_executables())) {
+            ERROR_message("Cannot get list of programs");
+            RETURN(0);
+         }
+         break;
+      case 1:
+         if (!(progs = THD_get_all_afni_readmes())) {
+            ERROR_message("Cannot get list of readmes");
+            RETURN(0);
+         }
+         break;
+      default:
+         ERROR_message("Whatchyoutalkinboutwillis?");
+         RETURN(0);
+         break;
    }
-
+   
    for (ii=0; ii<progs->num ; ii++ ){
       etr = THD_trailname( progs->ar[ii] , 0 ) ;
       if (withnum) {
