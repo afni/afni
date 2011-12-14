@@ -44,6 +44,9 @@ end
 if (~isfield(Opt,'as_fftwin') | isempty(Opt.as_fftwin)),
    Opt.as_fftwin = 0;
 end
+if (~isfield(Opt,'SepDups') | isempty(Opt.SepDups)),
+   Opt.SepDups = 0;
+end
 
 
 if (Opt.Demo),
@@ -321,7 +324,8 @@ function [tp,vp, tn, vn] =  remove_PNduplicates(tp,vp, tn,vn, Opt)
    ok(1) = 1; j = 1;
    for (i=2:1:min(length(tp), length(tn))),
       if (  tp(i) ~= tp(i-1)  & ...
-            tp(i) - tp(i-1) > 0.3), %minimum time
+            tn(i) ~= tn(i-1)  & ...
+            tp(i) - tp(i-1) > 0.3 ), %minimum time
                                   %before next beat
          j = j + 1;
          ok(j) = i; 

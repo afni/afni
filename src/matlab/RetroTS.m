@@ -74,7 +74,7 @@ function [Opt, R, E] = RetroTS(SN)
 % All of the above can be easily implemented in C. However, I find it
 % very useful to be able to plot the various steps in the process as we
 % will undoubtedly face problems in the future. So I would vote for 
-% Python, assuming library vintage is not an issue. It looks like the 
+% Python, assuming library vintage is not an issue.  
 %
 
 if (nargin < 1), 
