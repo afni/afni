@@ -1,10 +1,10 @@
 #!/bin/tcsh -f
 
-set CurDir = $PWD
+@global_parse `basename $0` $* ; if ($status) exit 0
 
-if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
-	goto USAGE
-endif
+set stat = 0
+set CurDir = $PWD
+set tmps = `3dnewid -fun`
 
 goto PARSE_COMMAND
 Ret_PARSE_COMMAND:
@@ -17,6 +17,9 @@ Ret_SET_VARIABLES:
 
 goto CHECK_EXISTENCE
 Ret_CHECK_EXISTENCE:
+
+goto PRE_XFORM
+Ret_PRE_XFORM:
 
 goto DOWNSAMPLE
 Ret_DOWNSAMPLE:
@@ -57,9 +60,14 @@ PARSE_COMMAND:
    set StripSkull = 0
    set okchangeview = 0
    set no_center = 1;	
+   set prexform = ""
    set OutResOpt = ""
    while ($cnt <= $Narg)
 		set donext = 1;
+      if ($donext && "$argv[$cnt]" == '-h' || "$argv[$cnt]" == '-help') then
+	      goto USAGE
+      endif
+
       if ($donext && "$argv[$cnt]" == "-dxyz") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -72,10 +80,21 @@ PARSE_COMMAND:
                  ! `ccalc -i "ispositive(4 - $DownSample)"` ) then
                echo "Error: Bad value for dxyz ($argv[$cnt])"
                echo ""
-               goto END
+               goto BEND
             endif
             set donext = 0	
          endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-init_xform") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need xform file after -init_xform"
+            goto END
+         else
+            @ cnt ++
+            set prexform = "$argv[$cnt]"
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-out_dxyz") then
          set pLoc = $cnt		
@@ -89,7 +108,7 @@ PARSE_COMMAND:
                  ! `ccalc -i "ispositive(4 - $OutResOpt)"` ) then
                echo "Error: Bad value for out_dxyz ($argv[$cnt])"
                echo ""
-               goto END
+               goto BEND
             endif
             set OutResOpt = "-mast_dxyz $OutResOpt "
             set donext = 0	
@@ -221,13 +240,13 @@ PARSE_COMMAND:
                   echo "Error follower dset $fol cannot be found"
                   echo "Note that option -surf_anat_followers must be "
                   echo "the last one on the command line"
-                  goto END
+                  goto BEND
                endif
                if ( $exx < 2) then
                   echo "Error follower dset $fol appears not to be a dset"
                   echo "Note that option -surf_anat_followers must be "
                   echo "the last one on the command line"
-                  goto END
+                  goto BEND
                endif
             end
             set cnt = `expr $cnt + $#followers - 1`
@@ -291,26 +310,31 @@ PARSE_COMMAND:
          if ("$DownSample" =~ *[^0-9]*) then
             echo "Error: Option '$argv[$cnt]' not understood"
             echo ""
-            goto END
+            goto BEND
          endif
          if ($DownSample < 0.3 || $DownSample > 4) then
             echo "Error: Option '$argv[$cnt]' not understood"
             echo ""
-            goto END
+            goto BEND
          endif
          set donext = 0
       endif
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
-         goto END
+         apsearch -popt `basename $0` -word $argv[$cnt]
+         goto BEND
       endif
       
 		@ cnt ++
 	end
+   if ($cnt < 2) then
+      echo "Error: Too few parameters. See `basename $0` -help"
+      goto BEND
+   endif
    
    if ("$SA_in" == "" || "$EA_in" == "") then 
       echo "Error: Failed to find surface and/or experiment anatomies on command line."
-      goto END
+      goto BEND
    else
          set ExpAnatPrefix = `@GetAfniPrefix $EA_in`
 	      set ExpAnatView = `@GetAfniView $EA_in`
@@ -332,6 +356,24 @@ SET_VARIABLES:
 	set SkullStripped = 0
    goto Ret_SET_VARIABLES
 
+PRE_XFORM:
+   set Skip = 0
+   set nopre_anat_in = $SurfAnat
+   if ($prexform != '') then
+      echo "applying initial xform"
+      cd $SurfAnatPath
+      3dWarp   -overwrite -matvec_out2in $prexform \
+               -prefix pre.${tmps}.${SurfAnatPrefix} $SurfAnat
+      #This operation is the same as
+      #  cat_matvec $prexform -ONELINE > d1.$prexform
+      #  3dAllineate -1Dmatrix_apply d1.$prexform \
+      #            -prefix Horse2 struct+orig.
+      # The 3dAllineate is the way users should verify
+      # if their init_xform is good.
+      set SurfAnatPrefix = pre.${tmps}.${SurfAnatPrefix}
+      set SurfAnat = $SurfAnatPrefix$SurfAnatView
+   endif
+   goto Ret_PRE_XFORM
 
 DOWNSAMPLE:
 	set Skip = 0
@@ -702,13 +744,27 @@ REGISTER:
    endif
 	
 	#If have center shift, combine and reapply
-   if ($no_center == 0) then
-      echo "Combining xform with shift..."
+   if ($no_center == 0 || $prexform != '') then
+      echo "Combining xform with init xform and/or shift..."
       mv ${VolRegPrefix}.A2E.1D ${VolRegPrefix}".A2E_shft".1D
-      cat_matvec -ONELINE $center_mat -I ${VolRegPrefix}".A2E_shft".1D \
-         > ${VolRegPrefix}.A2E.1D 
-      #cat_matvec -ONELINE ${VolRegPrefix}".A2E_shft".1D $center_mat \
-      #  > ${VolRegPrefix}.A2E.1D 
+      if ($no_center == 0 && $prexform != '') then
+         cat_matvec -ONELINE $center_mat -I \
+                             ${VolRegPrefix}".A2E_shft".1D $prexform \
+               > ${VolRegPrefix}.A2E.1D 
+         set SurfAnatPrefix = `@GetAfniPrefix $nopre_anat_in`
+         set SurfAnat = $SurfAnatPrefix$SurfAnatView
+      else if ($prexform != '') then
+         cat_matvec -ONELINE ${VolRegPrefix}".A2E_shft".1D $prexform \
+               > ${VolRegPrefix}.A2E.1D 
+         set SurfAnatPrefix = `@GetAfniPrefix $nopre_anat_in`
+         set SurfAnat = $SurfAnatPrefix$SurfAnatView
+      else if ($no_center == 0) then
+         cat_matvec -ONELINE $center_mat -I ${VolRegPrefix}".A2E_shft".1D \
+               > ${VolRegPrefix}.A2E.1D 
+      else
+         echo "Real bad logic error"
+         goto BEND
+      endif
       #set echo
       3dAllineate -master $ExpAnatOrig \
             -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
@@ -832,41 +888,43 @@ NO_SURFANAT:
 	echo ""
 	echo "Error: No Surface Anatomy $SurfAnat (.HEAD or .BRIK) volume in $SurfAnatPath"
 	echo ""
-	goto END
+	goto BEND
 
 NO_EXPANAT:
 	echo ""
 	echo "Error: No Experiment Anatomy $ExpAnat (.HEAD or .BRIK) in current directory"
 	echo ""
-	goto END
+	goto BEND
 
 NO_DOWNGOOD_BADBAD:
 	echo ""
 	echo "Error: adwarp failed."
 	echo ""
-	goto END
+	goto BEND
 
 NO_SS:
    echo ""
    echo "Error: SkullStripping failed."
    echo ""
-   goto END
+   goto BEND
    
 NO_VOLREG:
 	echo ""
 	echo "Error: 3dvolreg failed."
 	echo ""
-	goto END
+	goto BEND
+   
 NO_WARPDRIVE:
 	echo ""
 	echo "Error: 3dwarpdrive failed."
 	echo ""
-	goto END
+	goto BEND
+   
 NO_RESAMP:
 	echo ""
 	echo "Error: 3dresample failed."
 	echo ""
-	goto END
+	goto BEND
 	
 USAGE:
 echo ""
@@ -927,6 +985,33 @@ echo "                         quotes to 3dSkullStrip."
 echo "   [-align_centers]: Adds an additional transformation to align the volume"
 echo "                     centers. This is a good option to use when volumes"
 echo "                     are severely out of alignment."
+echo "      -init_xform XFORM0.1D: Apply affine transform in XFORM0.1D to"
+echo "                       -surf_vol before beginning registration."
+echo "                       After convergence, combine XFORM.1D and the "
+echo "                       the registration matrix to create the output volume"
+echo "                       To verify that XFORM0.1D does what you think"
+echo "                       it should be doing, try:"
+echo "                 3dWarp    -matvec_out2in XFORM0.1D \"
+echo "                           -prefix pre.SurfVol SurfVol+orig"
+echo "                       and verify that 'pre.SurfVol+orig' is"
+echo "                       transformed by XFORM0.1D as you expected it to be."
+echo ""
+echo "                    XFORM0.1D can be obtained in a variety of ways. "
+echo "                    One of which involves extracting it from a transformed"
+echo "                    volume."
+echo "                    For example, say you want to perform an initial"
+echo "                    rotation that is equivalent to: "
+echo "                 3drotate -matvec_order RotMat.1D \"
+echo "                          -prefix struct.r struct+orig "
+echo "                    The equivalent XFORM0.1D is obtained with:\n"
+echo "                 cat_matvec 'struct.r+orig::ROTATE_MATVEC_000000' -I \"
+echo "                           > XFORM0.1D  "
+echo ""
+echo "                    See cat_matvec -help for more details on extracting"
+echo "                    appropriate affine transforms from dataset headers."
+echo ""
+echo "                    See also Example 4 below."
+echo ""
 echo "   [-EA_clip_below CLP]: Set slices below CLPmm in 'Experiment Anatomy' to zero."
 echo "        Use this if the coverage of 'Experiment Anatomy' dataset"
 echo "        extends far below the data in 'Surface Anatomy' dataset."
@@ -975,6 +1060,36 @@ echo "                           -exp_anat MoExpanat+orig. \"
 echo "                           -strip_skull both -skull_strip_opt -monkey \"
 echo "                           -align_centers \"
 echo "                           -out_dxyz 0.3"
+echo ""
+echo "Example 4: When -exp_anat and -surf_anat have very different orientations"
+echo "       Here is an egregious case where -exp_anat (EA) was rotated severely"
+echo "       out of whack relative to -surf_anat (SV), AND volume centers were"
+echo "       way off. "
+echo "       With the 'Nudge Dataset' plugin, it was determined that a 60deg."
+echo "       rotation got SV oriented more like ExpAnat."
+echo "       The plugin can be made to spit out an the 3dRotate command"
+echo "       to apply the roation:"
+echo "         3drotate -quintic -clipit -rotate 0.00I 60.00R 0.00A \"
+echo "                                   -ashift 0.00S 0.00L 0.00P \"
+echo "                     -prefix ./SV_rotated+orig SV+orig"
+echo "       We will get XFROM.1D from that rotated volume:"
+echo "         cat_matvec 'SV_rotated+orig::ROTATE_MATVEC_000000' -I \"
+echo "                                > XFORM0.1D"
+echo "       and tell @SUMA_AlignToExperiment to apply both center alignment"
+echo "       and XFORM0.1D"
+echo "         @SUMA_AlignToExperiment \"
+echo "                    -init_xform XFORM0.1D -align_centers \"
+echo "           			  -surf_anat SV+orig  -exp_anat EA+orig \"
+echo "                    -strip_skull none  -prefix SV_A2E_autAUTPre   "
+echo ""
+echo "       Note 1: 'Nudge Dataset' can also be used to get the centers"
+echo "       aligned, but that would be more buttons to press."
+echo "       Note 2: -init_xform does not need to be accurate, it is just "
+echo "       meant to get -surf_anat to have a comparable orientation."
+echo ""
+echo "Global Options:"
+@global_parse -gopts_help
+echo ""
 echo "More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
 echo ""
 echo "Ziad Saad (saadz@mail.nih.gov)"
@@ -982,5 +1097,14 @@ echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
 echo ""
 	goto END
 
+BEND:
+   echo "Failed."
+   set stat = 1
+   goto END
+   
 END:
 	cd $CurDir
+   if ($cleanup) then
+      \rm -f pre.${tmps}.* >& /dev/null
+   endif
+   exit $stat
