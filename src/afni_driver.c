@@ -644,7 +644,8 @@ static int AFNI_drive_switch_function( char *cmd )
 
 ENTRY("AFNI_switch_function") ;
 
-   if( cmd == NULL || strlen(cmd) < 3 ) RETURN(-1) ;
+   if( cmd == NULL ) RETURN(-1) ;/* No need to die if strlen(cmd) < 3!
+                                                         ZSS Dec 2011 */
 
    ic = AFNI_controller_code_to_index( cmd ) ;
    if( ic < 0 ){ ic = 0 ; dadd = 0 ; }

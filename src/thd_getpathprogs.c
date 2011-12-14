@@ -287,6 +287,7 @@ THD_string_array * THD_get_all_afni_executables(void )
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".so") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".la") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".txt") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".R") &&
     !(STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".py") && !strncmp(etr,"lib_",4)) &&
           (smode <= STORAGE_UNDEFINED || smode >= LAST_STORAGE_MODE)  &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".sumarc") &&

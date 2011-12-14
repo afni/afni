@@ -129,6 +129,7 @@ void apsearch_usage(int detail)
    "Parameters:\n"
    "===========\n"
    "  -word WORD: WORD being sought\n"
+   "  -w WORD: Abbreviated version of -word WORD\n"
    "  -file FILE: Search for WORD in text file FILE\n"
    "  -text TEXT: Search for WORD in string TEXT\n"
    "  -stdin: Search for WORD in text from stdin\n"
@@ -148,6 +149,7 @@ void apsearch_usage(int detail)
    "  -help: You're looking at it.\n"
    "  -max_hits MH: Return best MH hits only. Default MH = 3.\n"
    "                Use -1 to get all results back.\n"
+   "  -m MH: Abbreviated version of -max_hits MH.\n"
    "  -min_different_hits mDH: Keep outputing hits until you have dDH\n"
    "                           dissimilar matches. \n"
    "                           Default is -1 (no minimum).\n"
@@ -353,7 +355,7 @@ int main(int argc, char **argv)
          continue; 
       }
 
-      if (strcmp(argv[iarg],"-stdin") == 0) { 
+      if (strcmp(argv[iarg],"-stdin") == 0 || strcmp(argv[iarg],"-") == 0) { 
          fname = stdinflag;
          ++iarg;
          continue; 
@@ -412,7 +414,7 @@ int main(int argc, char **argv)
          continue; 
       }
       
-      if (strcmp(argv[iarg],"-word") == 0) { 
+      if (strcmp(argv[iarg],"-word") == 0 || strcmp(argv[iarg],"-w") == 0) { 
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -424,7 +426,7 @@ int main(int argc, char **argv)
          continue; 
       }
       
-      if (strcmp(argv[iarg],"-max_hits") == 0) { 
+      if (strcmp(argv[iarg],"-max_hits") == 0 || strcmp(argv[iarg],"-m") == 0) { 
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
