@@ -1482,6 +1482,14 @@ iochan_relay:iochan_relay.o
 	$(RM) $@
 	$(CCFAST) -o 3dFFT 3dFFT.o $(LFLAGS) $(LLIBS)
 
+3dLSS.o:3dLSS.c
+	$(RM) $@
+	$(CCFAST) -c 3dLSS.c $(INFLAGS)
+
+3dLSS:3dLSS.o
+	$(RM) $@
+	$(CCFAST) -o 3dLSS 3dLSS.o $(LFLAGS) $(LLIBS)
+
 ### These programs are from Tom Ross
 
 3dFourier:3dFourier.o
@@ -2588,6 +2596,12 @@ qqq.o:qqq.c
 
 qqq:qqq.o
 	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS)
+
+warping.o:warping.c
+	$(CCFAST) -c warping.c $(INFLAGS)
+
+warping:warping.o
+	$(CC) -o warping warping.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS)
 
 mri_gwarp.o:mri_gwarp.c
 	$(CCFAST) -c mri_gwarp.c $(INFLAGS)
