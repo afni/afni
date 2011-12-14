@@ -2838,6 +2838,7 @@ SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name)
    if (!Name) { SUMA_RETURN(form); }
    if (  SUMA_isExtension(Name, ".1D.coord") ||
          SUMA_isExtension(Name, ".1D.topo")) SUMA_RETURN(SUMA_VEC);
+   if (  SUMA_isExtension(Name, ".1D") ) SUMA_RETURN(SUMA_VEC);
    if (  SUMA_isExtension(Name, ".asc")) SUMA_RETURN(SUMA_FREE_SURFER);
    if (  SUMA_isExtension(Name, ".topo") ||
          SUMA_isExtension(Name, ".coord") ) SUMA_RETURN(SUMA_SUREFIT);
