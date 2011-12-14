@@ -670,9 +670,15 @@ int main (int argc,char *argv[])
 			if (  !strcmp(argv[kar], "-i") ||
                !strncmp(argv[kar], "-i_",3) ) {
             fprintf (SUMA_STDERR,
-                  "Error %s: Option %s not understood. \n"
-                  "Make sure parameter after -i or -i_ is the \n"
-                  "full name of a surface.\n", FuncName, argv[kar]);
+      "Error %s: Option %s not understood. \n"
+      "  Make sure parameter after -i or -i_ is the full name of a surface.\n"
+      "%s",
+      FuncName, argv[kar], 
+      strlen(argv[kar])==2 ? 
+         "For -i to work, SUMA needs to guess at the surface type from\n"
+         "  the filename extensions. If SUMA fails try the full -i_* option"
+         " instead.\n" : ""
+      );
          } else {
             fprintf (SUMA_STDERR,
                   "Error %s: Option %s not understood. Try -help for usage\n", 
