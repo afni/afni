@@ -41,7 +41,7 @@ goto END
 
 
 PARSE_COMMAND:
-	
+   
    #continue parsing for new options
    set followers = ()
    set alli_opt = ""
@@ -59,21 +59,21 @@ PARSE_COMMAND:
    set DownSample = 0
    set StripSkull = 0
    set okchangeview = 0
-   set no_center = 1;	
+   set no_center = 1;   
    set prexform = ""
    set OutResOpt = ""
    while ($cnt <= $Narg)
-		set donext = 1;
+      set donext = 1;
       if ($donext && "$argv[$cnt]" == '-h' || "$argv[$cnt]" == '-help') then
-	      goto USAGE
+         goto USAGE
       endif
 
       if ($donext && "$argv[$cnt]" == "-dxyz") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need value after -dxyz"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need value after -dxyz"
             goto END
-			else
+         else
             @ cnt ++
             set DownSample = "$argv[$cnt]"
             if ( ! `ccalc -i "ispositive($DownSample - 0.3)"` || \
@@ -82,8 +82,8 @@ PARSE_COMMAND:
                echo ""
                goto BEND
             endif
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-init_xform") then
          set pLoc = $cnt      
@@ -97,11 +97,11 @@ PARSE_COMMAND:
          endif   
       endif
       if ($donext && "$argv[$cnt]" == "-out_dxyz") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need value after -out_dxyz"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need value after -out_dxyz"
             goto END
-			else
+         else
             @ cnt ++
             set OutResOpt = "$argv[$cnt]"
             if ( ! `ccalc -i "ispositive($OutResOpt - 0.1)"` || \
@@ -111,102 +111,102 @@ PARSE_COMMAND:
                goto BEND
             endif
             set OutResOpt = "-mast_dxyz $OutResOpt "
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-EA_clip_below") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need Zmm after -EA_clip_below"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need Zmm after -EA_clip_below"
             goto END
-			else
+         else
             @ cnt ++
             set clpbelow = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-prefix") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need a string after -prefix"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a string after -prefix"
             goto END
-			else
+         else
             @ cnt ++
             set prefix = `@GetAfniPrefix "$argv[$cnt]"`
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-surf_anat") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need a volume after -surf_anat"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a volume after -surf_anat"
             goto END
-			else
+         else
             @ cnt ++
             set SA_in = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-exp_anat") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need a volume after -exp_anat"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a volume after -exp_anat"
             goto END
-			else
+         else
             @ cnt ++
             set EA_in = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
      
       if ($donext && "$argv[$cnt]" == "-wd") then
-         set UseWarp = 1;		
-         set donext = 0		
+         set UseWarp = 1;      
+         set donext = 0      
       endif
       
       if ($donext && "$argv[$cnt]" == "-al") then
-         set UseWarp = 2;		
-         set donext = 0		
+         set UseWarp = 2;      
+         set donext = 0      
       endif
       
       if ($donext && "$argv[$cnt]" == "-al_opt") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need parameter(s) after -al_opt"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need parameter(s) after -al_opt"
             goto END
-			else
+         else
             @ cnt ++
-            set alli_opt = "$argv[$cnt]"		
-            set donext = 0	
-         endif	
+            set alli_opt = "$argv[$cnt]"      
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-skull_strip_opt") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need parameter(s) after -skull_strip_opt"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need parameter(s) after -skull_strip_opt"
             goto END
-			else
+         else
             @ cnt ++
-            set skstr_opt = "$argv[$cnt]"		
-            set donext = 0	
-         endif	
+            set skstr_opt = "$argv[$cnt]"      
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-align_centers") then
-         set no_center = 0;		
-         set donext = 0		
+         set no_center = 0;      
+         set donext = 0      
       endif
       
       if ($donext && "$argv[$cnt]" == "-ok_change_view") then
-         set okchangeview = 1;		
-         set donext = 0		
+         set okchangeview = 1;      
+         set donext = 0      
       endif
       
       if ($donext && "$argv[$cnt]" == "-strip_skull") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need a parameter after -strip_skull"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a parameter after -strip_skull"
             goto END
-			else
+         else
             @ cnt ++
             if ("$argv[$cnt]" == "exp_anat") then
                set StripSkull = 1;
@@ -222,16 +222,16 @@ PARSE_COMMAND:
                echo "'neither', 'exp_anat', 'surf_anat', or 'both'"
                goto END
             endif
-        endif		
-        set donext = 0		
+        endif      
+        set donext = 0      
       endif
       
       if ($donext && "$argv[$cnt]" == "-surf_anat_followers") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need at least a volume after -surf_anat_followers"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need at least a volume after -surf_anat_followers"
             goto END
-			else
+         else
             @ cnt ++
             set followers = ($argv[$cnt-])
             foreach fol ($followers)
@@ -250,16 +250,16 @@ PARSE_COMMAND:
                endif
             end
             set cnt = `expr $cnt + $#followers - 1`
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       
       if ($donext && "$argv[$cnt]" == "-followers_interp") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need an interpolation kernel after -followers_interp"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need an interpolation kernel after -followers_interp"
             goto END
-			else
+         else
             @ cnt ++
             set folinterp = $argv[$cnt]
             if (  $folinterp != NN  && \
@@ -272,26 +272,26 @@ PARSE_COMMAND:
                goto END
             endif
          endif
-         set donext = 0		
+         set donext = 0      
       endif
           
       if ($donext && "$argv[$cnt]" == "-ncr") then
-         set cropt = '';		
-         set donext = 0		
+         set cropt = '';      
+         set donext = 0      
       endif
       
       if ($donext && "$argv[$cnt]" == "-keep_tmp") then
-         set cleanup = 0;		
-         set donext = 0		
+         set cleanup = 0;      
+         set donext = 0      
       endif
       
       #ADD NO NEW OPTIONS BELOW THIS LINE
       
       if ($donext == 1 && $cnt == 1) then
-	      set EA_in = "$argv[$cnt]"
+         set EA_in = "$argv[$cnt]"
          echo "Note: Guessing that '$EA_in' is the experiment anatomy."
          echo "Better use -exp_anat flag in your command."
-	      echo ""
+         echo ""
          set donext = 0
       endif      
       
@@ -300,7 +300,7 @@ PARSE_COMMAND:
          echo ""
          echo "Note: Guessing that '$SA_in' is the surface anatomy."
          echo "Better use -surf_anat flag in your command."
-	      echo ""
+         echo ""
          set donext = 0
       endif         
 
@@ -325,8 +325,8 @@ PARSE_COMMAND:
          goto BEND
       endif
       
-		@ cnt ++
-	end
+      @ cnt ++
+   end
    if ($cnt < 2) then
       echo "Error: Too few parameters. See `basename $0` -help"
       goto BEND
@@ -337,23 +337,23 @@ PARSE_COMMAND:
       goto BEND
    else
          set ExpAnatPrefix = `@GetAfniPrefix $EA_in`
-	      set ExpAnatView = `@GetAfniView $EA_in`
-	      set SurfAnatPrefix = `@GetAfniPrefix $SA_in` 
+         set ExpAnatView = `@GetAfniView $EA_in`
+         set SurfAnatPrefix = `@GetAfniPrefix $SA_in` 
          set SurfAnatView = `@GetAfniView $SA_in` 
-	      set SurfAnatPath = $SA_in:h
-	      if ($SurfAnatPath == $SA_in:t) then 
-		      #no path given
-		      set SurfAnatPath = .
-	      endif
+         set SurfAnatPath = $SA_in:h
+         if ($SurfAnatPath == $SA_in:t) then 
+            #no path given
+            set SurfAnatPath = .
+         endif
    endif
    
-	goto Ret_PARSE_COMMAND
+   goto Ret_PARSE_COMMAND
 
 SET_VARIABLES:
-	set ExpAnat = $ExpAnatPrefix$ExpAnatView
-	set SurfAnat = $SurfAnatPrefix$SurfAnatView
-	set Resampled = 0 #flag set when resampling is done
-	set SkullStripped = 0
+   set ExpAnat = $ExpAnatPrefix$ExpAnatView
+   set SurfAnat = $SurfAnatPrefix$SurfAnatView
+   set Resampled = 0 #flag set when resampling is done
+   set SkullStripped = 0
    goto Ret_SET_VARIABLES
 
 PRE_XFORM:
@@ -376,42 +376,42 @@ PRE_XFORM:
    goto Ret_PRE_XFORM
 
 DOWNSAMPLE:
-	set Skip = 0
-	if ($DownSample != 0) then
-		echo "Downsampling ..."
-		cd $SurfAnatPath
-		set tmpPrefix = $SurfAnatPrefix"_"$DownSample"mm"
-		if (-f $tmpPrefix$SurfAnatView.BRIK) then
-			echo ""
-			echo "Warning: $tmpPrefix$SurfAnatView exists in $SurfAnatPath"
-			echo "Enter O/S/Q to Overwrite/Skip/Quit:"
-			set sel = $<
-			if ("$sel" == 'O' || "$sel" == 'o') then
-				rm -f $tmpPrefix$SurfAnatView.BRIK $tmpPrefix$SurfAnatView.HEAD
-			endif
-			if ("$sel" == 'S' || "$sel" == 's') then
-				echo "Skipping downsampling, existing data set $DownSample will be used"
-				set Skip = 1
-			endif
-			if ("$sel" == 'Q' || "$sel" == 'q') then
-				echo "Quitting ..."
-				goto END
-			endif
-			echo ""
-		endif
-		if ($Skip == 0) then
-			echo "running: adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu"
-			adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu
-			if(!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z || -f $tmpPrefix$SurfAnatView.BRIK.bz2 )) then
-				goto NO_DOWNGOOD_BADBAD
-			endif
-			
-		endif
-		set SurfAnatPrefix = $tmpPrefix
-		set SurfAnat = $SurfAnatPrefix$SurfAnatView
-		cd $CurDir
-	endif
-	goto Ret_DOWNSAMPLE
+   set Skip = 0
+   if ($DownSample != 0) then
+      echo "Downsampling ..."
+      cd $SurfAnatPath
+      set tmpPrefix = $SurfAnatPrefix"_"$DownSample"mm"
+      if (-f $tmpPrefix$SurfAnatView.BRIK) then
+         echo ""
+         echo "Warning: $tmpPrefix$SurfAnatView exists in $SurfAnatPath"
+         echo "Enter O/S/Q to Overwrite/Skip/Quit:"
+         set sel = $<
+         if ("$sel" == 'O' || "$sel" == 'o') then
+            rm -f $tmpPrefix$SurfAnatView.BRIK $tmpPrefix$SurfAnatView.HEAD
+         endif
+         if ("$sel" == 'S' || "$sel" == 's') then
+            echo "Skipping downsampling, existing data set $DownSample will be used"
+            set Skip = 1
+         endif
+         if ("$sel" == 'Q' || "$sel" == 'q') then
+            echo "Quitting ..."
+            goto END
+         endif
+         echo ""
+      endif
+      if ($Skip == 0) then
+         echo "running: adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu"
+         adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu
+         if(!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z || -f $tmpPrefix$SurfAnatView.BRIK.bz2 )) then
+            goto NO_DOWNGOOD_BADBAD
+         endif
+         
+      endif
+      set SurfAnatPrefix = $tmpPrefix
+      set SurfAnat = $SurfAnatPrefix$SurfAnatView
+      cd $CurDir
+   endif
+   goto Ret_DOWNSAMPLE
 
 STRIP_EXP_VOL:
    #strip skull off of EXP_VOL
@@ -423,23 +423,23 @@ STRIP_EXP_VOL:
       echo "Stripping exp vol ..."
       if (`@CheckForAfniDset $ExpAnat_NoSkull` > 0) then
          echo ""
-		   echo "Warning: $ExpAnat_NoSkull exists in $CurDir"
-		   echo "Enter O/S/Q to Overwrite/Skip/Quit:"
-		   set sel = $<
-		   if ("$sel" == 'O' || "$sel" == 'o') then
-			   rm -f $ExpAnat_NoSkull.BRIK* $ExpAnat_NoSkull.HEAD
-		   endif
-		   if ("$sel" == 'S' || "$sel" == 's') then
-			   echo "Skipping stripping, existing data set "
+         echo "Warning: $ExpAnat_NoSkull exists in $CurDir"
+         echo "Enter O/S/Q to Overwrite/Skip/Quit:"
+         set sel = $<
+         if ("$sel" == 'O' || "$sel" == 'o') then
+            rm -f $ExpAnat_NoSkull.BRIK* $ExpAnat_NoSkull.HEAD
+         endif
+         if ("$sel" == 'S' || "$sel" == 's') then
+            echo "Skipping stripping, existing data set "
             echo " $ExpAnat_NoSkull will be used"
-			   set Skip = 1
-		   endif
-		   if ("$sel" == 'Q' || "$sel" == 'q') then
-			   echo "Quitting ..."
-			   goto END
-		   endif
-		   echo ""
-	   endif
+            set Skip = 1
+         endif
+         if ("$sel" == 'Q' || "$sel" == 'q') then
+            echo "Quitting ..."
+            goto END
+         endif
+         echo ""
+      endif
       if ($Skip == 0) then
          3dSkullStrip -input $ExpAnat -prefix $ExpAnat_NoSkull $skstr_opt
          if (`@CheckForAfniDset $ExpAnat_NoSkull` < 2) then
@@ -447,32 +447,32 @@ STRIP_EXP_VOL:
          endif
       endif
       set ExpAnatPrefix = $ExpAnat_NoSkullPrefix
-	   set ExpAnat = $ExpAnat_NoSkull
-	   set SkullStripped = 1
+      set ExpAnat = $ExpAnat_NoSkull
+      set SkullStripped = 1
    endif
-	if ($StripSkull == 2 || $StripSkull == 3 ) then
+   if ($StripSkull == 2 || $StripSkull == 3 ) then
       set Skip = 0
       set SurfAnat_NoSkullPrefix = $SurfAnatPrefix"_ns"
       set SurfAnat_NoSkull = $SurfAnatPrefix"_ns"$SurfAnatView
       echo "Stripping surf vol ..."
       if (`@CheckForAfniDset $SurfAnatPath/$SurfAnat_NoSkull` > 0) then
          echo ""
-		   echo "Warning: $SurfAnatPath/$SurfAnat_NoSkull exists in $CurDir"
-		   echo "Enter O/S/Q to Overwrite/Skip/Quit:"
-		   set sel = $<
-		   if ("$sel" == 'O' || "$sel" == 'o') then
-			   rm -f $SurfAnatPath/$SurfAnat_NoSkull.BRIK* $SurfAnatPath/$SurfAnat_NoSkull.HEAD
-		   endif
-		   if ("$sel" == 'S' || "$sel" == 's') then
-			   echo "Skipping stripping, existing data set $SurfAnatPath/$SurfAnat_NoSkull will be used"
-			   set Skip = 1
-		   endif
-		   if ("$sel" == 'Q' || "$sel" == 'q') then
-			   echo "Quitting ..."
-			   goto END
-		   endif
-		   echo ""
-	   endif
+         echo "Warning: $SurfAnatPath/$SurfAnat_NoSkull exists in $CurDir"
+         echo "Enter O/S/Q to Overwrite/Skip/Quit:"
+         set sel = $<
+         if ("$sel" == 'O' || "$sel" == 'o') then
+            rm -f $SurfAnatPath/$SurfAnat_NoSkull.BRIK* $SurfAnatPath/$SurfAnat_NoSkull.HEAD
+         endif
+         if ("$sel" == 'S' || "$sel" == 's') then
+            echo "Skipping stripping, existing data set $SurfAnatPath/$SurfAnat_NoSkull will be used"
+            set Skip = 1
+         endif
+         if ("$sel" == 'Q' || "$sel" == 'q') then
+            echo "Quitting ..."
+            goto END
+         endif
+         echo ""
+      endif
       if ($Skip == 0) then
          3dSkullStrip -input $SurfAnatPath/$SurfAnat -prefix $SurfAnatPath/$SurfAnat_NoSkull $skstr_opt
          if (`@CheckForAfniDset $SurfAnatPath/$SurfAnat_NoSkull` < 2) then
@@ -481,8 +481,8 @@ STRIP_EXP_VOL:
       endif
       set SurfAnatOri = $SurfAnat
       set SurfAnatPrefix = $SurfAnat_NoSkullPrefix
-	   set SurfAnat = $SurfAnat_NoSkull
-	   set SkullStripped = 2
+      set SurfAnat = $SurfAnat_NoSkull
+      set SkullStripped = 2
    endif
    goto Ret_STRIP_EXP_VOL
 
@@ -510,86 +510,86 @@ ALIGN_CENTERS:
    goto Ret_ALIGN_CENTERS
    
 RESAMPLE:
-	#resample Experiment volume to look like SurfAnat
-	set Skip = 0
-	cd $CurDir
-	set ExpAnat_ResampPrefix = $ExpAnatPrefix"_resamp_"$clpbelow
-	set ExpAnat_Resamp = $ExpAnat_ResampPrefix$SurfAnatView
-	echo ""
-	echo "resampling $ExpAnat to match $SurfAnatPath/$SurfAnat"
-	if (`@CheckForAfniDset  $ExpAnat_Resamp.BRIK` > 0) then
-		echo ""
-		echo "Warning: $ExpAnat_Resamp exists in $CurDir"
-		echo "Enter O/S/Q to Overwrite/Skip/Quit:"
-		set sel = $<
-		if ("$sel" == 'O' || "$sel" == 'o') then
-			rm -f $ExpAnat_Resamp.BRIK* $ExpAnat_Resamp.HEAD
-		endif
-		if ("$sel" == 'S' || "$sel" == 's') then
-			echo "Skipping resampling, existing data set $ExpAnat_Resamp will be used"
-			set Skip = 1
-		endif
-		if ("$sel" == 'Q' || "$sel" == 'q') then
-			echo "Quitting ..."
-			goto END
-		endif
-		echo ""
-	endif
-	if ($Skip == 0) then
+   #resample Experiment volume to look like SurfAnat
+   set Skip = 0
+   cd $CurDir
+   set ExpAnat_ResampPrefix = $ExpAnatPrefix"_resamp_"$clpbelow
+   set ExpAnat_Resamp = $ExpAnat_ResampPrefix$SurfAnatView
+   echo ""
+   echo "resampling $ExpAnat to match $SurfAnatPath/$SurfAnat"
+   if (`@CheckForAfniDset  $ExpAnat_Resamp.BRIK` > 0) then
+      echo ""
+      echo "Warning: $ExpAnat_Resamp exists in $CurDir"
+      echo "Enter O/S/Q to Overwrite/Skip/Quit:"
+      set sel = $<
+      if ("$sel" == 'O' || "$sel" == 'o') then
+         rm -f $ExpAnat_Resamp.BRIK* $ExpAnat_Resamp.HEAD
+      endif
+      if ("$sel" == 'S' || "$sel" == 's') then
+         echo "Skipping resampling, existing data set $ExpAnat_Resamp will be used"
+         set Skip = 1
+      endif
+      if ("$sel" == 'Q' || "$sel" == 'q') then
+         echo "Quitting ..."
+         goto END
+      endif
+      echo ""
+   endif
+   if ($Skip == 0) then
       set tmpref = '___tmp__rs'"$ExpAnat_ResampPrefix"
-		if ($clpbelow != '') then
+      if ($clpbelow != '') then
          rm -rf ${tmpref}*.???? >& /dev/null
          @clip_volume -below $clpbelow -input $ExpAnat -prefix $tmpref
          set nxt = "$tmpref""$ExpAnatView"
          if (!(-f $nxt.BRIK || -f $nxt.BRIK.gz || -f $nxt.BRIK.Z || -f $nxt.BRIK.bz2)) then 
-			   goto NO_RESAMP
-		   endif
+            goto NO_RESAMP
+         endif
       else   
          set nxt = "$ExpAnat"
       endif
       echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $nxt"
-		echo ""
-		3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $nxt
-		if (!(-f $ExpAnat_Resamp.BRIK || -f $ExpAnat_Resamp.BRIK.gz || -f $ExpAnat_Resamp.BRIK.Z || -f $ExpAnat_Resamp.BRIK.bz2)) then 
-			goto NO_RESAMP
-		endif
+      echo ""
+      3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $nxt
+      if (!(-f $ExpAnat_Resamp.BRIK || -f $ExpAnat_Resamp.BRIK.gz || -f $ExpAnat_Resamp.BRIK.Z || -f $ExpAnat_Resamp.BRIK.bz2)) then 
+         goto NO_RESAMP
+      endif
       rm -rf ${tmpref}*.???? >& /dev/null
-	endif
-	set ExpAnatPrefix = $ExpAnat_ResampPrefix
-	set ExpAnat = $ExpAnat_Resamp
-	set Resampled = 1
-	goto Ret_RESAMPLE
-	
+   endif
+   set ExpAnatPrefix = $ExpAnat_ResampPrefix
+   set ExpAnat = $ExpAnat_Resamp
+   set Resampled = 1
+   goto Ret_RESAMPLE
+   
 REGISTER:
-	cd $CurDir
-	if ($prefix == '') then
+   cd $CurDir
+   if ($prefix == '') then
       set VolRegPrefix = $SurfAnatPrefix"_Alnd_Exp"
-	else
+   else
       set VolRegPrefix = $prefix
    endif
    echo ""
-	if (-f $VolRegPrefix$SurfAnatView.BRIK) then
-		echo ""
-		echo "Warning: $VolRegPrefix$SurfAnatView exists in $CurDir"
-		echo "Enter O/Q to Overwrite/Quit:"
-		set sel = $<
-		if ("$sel" == 'O' || "$sel" == 'o') then
-			rm -f $VolRegPrefix$SurfAnatView.BRIK $VolRegPrefix$SurfAnatView.HEAD
-		endif
-		if ("$sel" == 'Q' || "$sel" == 'q') then
-			echo "Quitting ..."
-			goto END
-		endif
-		echo ""
-	endif
-	
+   if (-f $VolRegPrefix$SurfAnatView.BRIK) then
+      echo ""
+      echo "Warning: $VolRegPrefix$SurfAnatView exists in $CurDir"
+      echo "Enter O/Q to Overwrite/Quit:"
+      set sel = $<
+      if ("$sel" == 'O' || "$sel" == 'o') then
+         rm -f $VolRegPrefix$SurfAnatView.BRIK $VolRegPrefix$SurfAnatView.HEAD
+      endif
+      if ("$sel" == 'Q' || "$sel" == 'q') then
+         echo "Quitting ..."
+         goto END
+      endif
+      echo ""
+   endif
+   
    echo "Registering $SurfAnatPath/$SurfAnat to $ExpAnat"
-	if ($UseWarp == 0) then
-	   echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 \"
+   if ($UseWarp == 0) then
+      echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 \"
       echo "         -rotcom -verbose -base $ExpAnat \"
       echo "         -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
-	   echo ""
-	   if ( -f ${VolRegPrefix}.A2E.1D) rm -f ${VolRegPrefix}.A2E.1D 
+      echo ""
+      if ( -f ${VolRegPrefix}.A2E.1D) rm -f ${VolRegPrefix}.A2E.1D 
       3dvolreg -wtrim -clipit -twopass \
                -twodup -zpad 8 -rotcom \
                -verbose -base $ExpAnat \
@@ -597,15 +597,15 @@ REGISTER:
                -prefix $VolRegPrefix \
                -cubic   \
                $SurfAnatPath/$SurfAnat
-	   if ( ! ( -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || \
+      if ( ! ( -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || \
                -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || \
                -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z || \
                -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.bz2)) then
-		   echo "Failed to find $SurfAnatPath/$VolRegPrefix$SurfAnatView"
+         echo "Failed to find $SurfAnatPath/$VolRegPrefix$SurfAnatView"
          goto NO_VOLREG
-	   endif
+      endif
       #differing views?
-	   mv $SurfAnatPath/$VolRegPrefix* ./
+      mv $SurfAnatPath/$VolRegPrefix* ./
       if ("$SurfAnatView" != "$ExpAnatView") then
          echo "Changing view from $SurfAnatView to $ExpAnatView."
          if ($okchangeview == 0) then
@@ -636,7 +636,7 @@ REGISTER:
                   -1Dmatrix_save ${VolRegPrefix}.A2E.1D \
                   -base ./${tmpref}_refpad$SurfAnatView \
                   -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
-	   if ($StripSkull >= 2) then
+      if ($StripSkull >= 2) then
          #Have to apply same transform to original SurfAnat
          3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
                      -mm \
@@ -652,7 +652,7 @@ REGISTER:
       3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd \
                   -mm \
                   -prefix ./$VolRegPrefix ${wdnext}$SurfAnatView
-	   #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
+      #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
       3drefit  -atrcopy ${wdnext}$SurfAnatView \
                WARPDRIVE_INPUT_IDCODE $VolRegPrefix$SurfAnatView
       3drefit  -atrcopy ${wdnext}$SurfAnatView \
@@ -675,8 +675,8 @@ REGISTER:
                -f ./$VolRegPrefix$fview.BRIK.gz || \
                -f ./$VolRegPrefix$fview.BRIK.Z || \
                -f ./$VolRegPrefix$fview.BRIK.bz2)) then
-		   goto NO_WARPDRIVE
-	   endif
+         goto NO_WARPDRIVE
+      endif
       if ($cleanup == 1) then
          rm -rf ${tmpref}*.???? ${tmpref}*.????.* >& /dev/null
       endif
@@ -701,7 +701,7 @@ REGISTER:
                   -cost lpa   \
                   -prefix ./${tmpref}_pad_al ./${tmpref}_pad$SurfAnatView  \
                   $alli_opt   
-	   if ($StripSkull >= 2) then
+      if ($StripSkull >= 2) then
          #Have to apply same transform to original SurfAnat
          3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
                      -mm \
@@ -719,7 +719,7 @@ REGISTER:
       3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd \
                   -mm \
                   -prefix ./$VolRegPrefix ${wdnext}$SurfAnatView
-	   #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
+      #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
       3drefit  -atrcopy ${wdnext}$SurfAnatView \
                ALLINEATE_MATVEC_B2S_000000 $VolRegPrefix$SurfAnatView
       3drefit  -atrcopy ${wdnext}$SurfAnatView \
@@ -736,14 +736,14 @@ REGISTER:
                -f ./$VolRegPrefix$fview.BRIK.gz || \
                -f ./$VolRegPrefix$fview.BRIK.Z || \
                -f ./$VolRegPrefix$fview.BRIK.bz2)) then
-		   goto NO_WARPDRIVE
-	   endif
+         goto NO_WARPDRIVE
+      endif
       if ($cleanup == 1) then
          rm -rf ${tmpref}*.???? ${tmpref}*.????.* >& /dev/null
       endif   
    endif
-	
-	#If have center shift, combine and reapply
+   
+   #If have center shift, combine and reapply
    if ($no_center == 0 || $prexform != '') then
       echo "Combining xform with init xform and/or shift..."
       mv ${VolRegPrefix}.A2E.1D ${VolRegPrefix}".A2E_shft".1D
@@ -803,36 +803,36 @@ FOLLOWERS:
       end
    endif
    
-	#remove _resamp_
-	if ($Resampled == 1 && $cleanup == 1) then
-		echo "removing temporary bricks ..."
-		rm -f $ExpAnat_Resamp".HEAD"
-		rm -f $ExpAnat_Resamp".BRIK"
+   #remove _resamp_
+   if ($Resampled == 1 && $cleanup == 1) then
+      echo "removing temporary bricks ..."
+      rm -f $ExpAnat_Resamp".HEAD"
+      rm -f $ExpAnat_Resamp".BRIK"
       if ($no_center == 0) then
          rm -f $ExpAnatPrefixOrig"_shft"$ExpAnatView"."* >& /dev/null
          rm -f ${VolRegPrefix}".A2E_shft".1D >& /dev/null
       endif
-	endif
+   endif
    
    #add a history note
    3dNotes -h "`basename $0` $argv[*]" $VolRegPrefix$fview
    
-	goto Ret_REGISTER
+   goto Ret_REGISTER
 
 CHECK_EXISTENCE:
-	if (`@CheckForAfniDset $ExpAnat` < 2) goto NO_EXPANAT
+   if (`@CheckForAfniDset $ExpAnat` < 2) goto NO_EXPANAT
    
    #if (!(-f $ExpAnat.HEAD || -f $ExpAnat)) goto NO_EXPANAT
-	#if (!(-f $ExpAnat.BRIK || -f $ExpAnat.BRIK.gz || -f $ExpAnat.BRIK.Z || -f $ExpAnat.BRIK.bz2)) then
-	#	goto NO_EXPANAT
-	#endif
+   #if (!(-f $ExpAnat.BRIK || -f $ExpAnat.BRIK.gz || -f $ExpAnat.BRIK.Z || -f $ExpAnat.BRIK.bz2)) then
+   #   goto NO_EXPANAT
+   #endif
 
-	if (`@CheckForAfniDset $SurfAnatPath/$SurfAnat` < 2) goto NO_SURFANAT
-	
+   if (`@CheckForAfniDset $SurfAnatPath/$SurfAnat` < 2) goto NO_SURFANAT
+   
    #test -f $SurfAnatPath/$SurfAnat.HEAD || goto NO_SURFANAT
-	#if (!(-f $SurfAnatPath/$SurfAnat.BRIK || -f $SurfAnatPath/$SurfAnat.BRIK.gz || -f $SurfAnatPath/$SurfAnat.BRIK.Z || -f $SurfAnatPath/$SurfAnat.BRIK.bz2)) then
-	#	goto NO_SURFANAT
-	#endif
+   #if (!(-f $SurfAnatPath/$SurfAnat.BRIK || -f $SurfAnatPath/$SurfAnat.BRIK.gz || -f $SurfAnatPath/$SurfAnat.BRIK.Z || -f $SurfAnatPath/$SurfAnat.BRIK.bz2)) then
+   #   goto NO_SURFANAT
+   #endif
    
    if ($no_center) then
       #check for large center difference
@@ -864,43 +864,43 @@ CHECK_EXISTENCE:
       #Center shifting is best done after skull stripping, if any is needed  
    endif
      
-	goto Ret_CHECK_EXISTENCE
+   goto Ret_CHECK_EXISTENCE
 
 CHECK_PROGRAMS:
-	 set failed_pgms = 0
+    set failed_pgms = 0
     foreach test_command ( 3dvolreg adwarp @GetAfniView @GetAfniPrefix )
-		(which $test_command) >& /dev/null
+      (which $test_command) >& /dev/null
 
-		if ( $status ) then
-	   	 echo "program not found in path: $test_command"
-	   	 @ failed_pgms ++
-		endif
+      if ( $status ) then
+          echo "program not found in path: $test_command"
+          @ failed_pgms ++
+      endif
     end
 
     if ( $failed_pgms ) then
-		echo "$failed_pgms program(s) not found"
-		goto END
+      echo "$failed_pgms program(s) not found"
+      goto END
     endif
 
-	goto Ret_CHECK_PROGRAMS
-	
+   goto Ret_CHECK_PROGRAMS
+   
 NO_SURFANAT:
-	echo ""
-	echo "Error: No Surface Anatomy $SurfAnat (.HEAD or .BRIK) volume in $SurfAnatPath"
-	echo ""
-	goto BEND
+   echo ""
+   echo "Error: No Surface Anatomy $SurfAnat (.HEAD or .BRIK) volume in $SurfAnatPath"
+   echo ""
+   goto BEND
 
 NO_EXPANAT:
-	echo ""
-	echo "Error: No Experiment Anatomy $ExpAnat (.HEAD or .BRIK) in current directory"
-	echo ""
-	goto BEND
+   echo ""
+   echo "Error: No Experiment Anatomy $ExpAnat (.HEAD or .BRIK) in current directory"
+   echo ""
+   goto BEND
 
 NO_DOWNGOOD_BADBAD:
-	echo ""
-	echo "Error: adwarp failed."
-	echo ""
-	goto BEND
+   echo ""
+   echo "Error: adwarp failed."
+   echo ""
+   goto BEND
 
 NO_SS:
    echo ""
@@ -909,23 +909,23 @@ NO_SS:
    goto BEND
    
 NO_VOLREG:
-	echo ""
-	echo "Error: 3dvolreg failed."
-	echo ""
-	goto BEND
+   echo ""
+   echo "Error: 3dvolreg failed."
+   echo ""
+   goto BEND
    
 NO_WARPDRIVE:
-	echo ""
-	echo "Error: 3dwarpdrive failed."
-	echo ""
-	goto BEND
+   echo ""
+   echo "Error: 3dwarpdrive failed."
+   echo ""
+   goto BEND
    
 NO_RESAMP:
-	echo ""
-	echo "Error: 3dresample failed."
-	echo ""
-	goto BEND
-	
+   echo ""
+   echo "Error: 3dresample failed."
+   echo ""
+   goto BEND
+   
 USAGE:
 echo ""
 echo "Usage: "
@@ -1079,7 +1079,7 @@ echo "       and tell @SUMA_AlignToExperiment to apply both center alignment"
 echo "       and XFORM0.1D"
 echo "         @SUMA_AlignToExperiment \"
 echo "                    -init_xform XFORM0.1D -align_centers \"
-echo "           			  -surf_anat SV+orig  -exp_anat EA+orig \"
+echo "                    -surf_anat SV+orig  -exp_anat EA+orig \"
 echo "                    -strip_skull none  -prefix SV_A2E_autAUTPre   "
 echo ""
 echo "       Note 1: 'Nudge Dataset' can also be used to get the centers"
@@ -1095,7 +1095,7 @@ echo ""
 echo "Ziad Saad (saadz@mail.nih.gov)"
 echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
 echo ""
-	goto END
+   goto END
 
 BEND:
    echo "Failed."
@@ -1103,7 +1103,7 @@ BEND:
    goto END
    
 END:
-	cd $CurDir
+   cd $CurDir
    if ($cleanup) then
       \rm -f pre.${tmps}.* >& /dev/null
    endif

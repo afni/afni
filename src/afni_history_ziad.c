@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13, DEC , 2011 , ZSS , "@SUMA_AlignToExperiment" , MINOR , TYPE_NEW_OPT,
+   "-init_xform to allow for an initial transformation of -surf_anat",
+   NULL,
+ },
+ 
+ { 13, DEC , 2011 , ZSS , "plugout_drive" , MICRO , TYPE_BUG_FIX,
+   "AFNI_drive_switch_* functions discriminated against short prefixes.",
+   NULL,
+ },
+ 
  { 12, DEC , 2011 , ZSS , "apsearch" , MINOR , TYPE_NEW_OPT,
    "Small improvements and addition of logging option of search results",
    "See -apsearch_log_file option for details. Logging is only enabled\n"

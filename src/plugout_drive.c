@@ -32,7 +32,7 @@
 *******************************************************************/
 
 /***** Header file for communication routines *****/
-
+#include "afni_environ.h"
 #include "afni_plugout.h"
 #include "thd_iochan.h"
 #include "niml.h"
@@ -334,6 +334,99 @@ int afni_io(void)
    return 0 ;
 }
 
+void usage_plugout_drive(int detail)
+{
+      printf("Usage: plugout_drive [-host name] [-v]\n"
+"This program connects to AFNI and sends commands\n"
+" that the user specifies interactively or on command line\n"
+" over to AFNI to be executed.\n"
+"\n"
+"Options:\n"
+"  -host name    Means to connect to AFNI running on the computer\n"
+"                'name' using TCP/IP.  The default is to connect\n"
+"                on the current host 'localhost' using TCP/IP.\n"
+"\n"
+"  -shm          Means to connect to the current host using shared\n"
+"                memory.  There is no reason to do this unless\n"
+"                you are transferring huge quantities of data.\n"
+"                N.B.:  '-host .' is equivalent to '-shm'.\n"
+"\n"
+"  -v            Verbose mode.\n"
+"\n"
+"  -port pp      Use TCP/IP port number 'pp'.  The default is\n"
+"                %d, but if two plugouts are running on the\n"
+"                same computer, they must use different ports.\n"
+"                For a list of currently used ports use afni -list_ports\n"
+"\n"
+"  -maxwait t    Wait a maximum of 't' seconds for AFNI to connect;\n"
+"                if the connection doesn't happen in that time, exit.\n"
+"                [default wait time is 9 seconds]\n"
+"\n"
+"  -name sss     Use the string 'sss' for the name that AFNI assigns\n"
+"                to this plugout.  The default is something stupid.\n"
+"\n"
+"  -com 'ACTION DATA'  Execute the following command. For example:\n"
+"                       -com 'SET_FUNCTION SomeFunction'\n"
+"                       will switch AFNI's function (overlay) to\n"
+"                       dataset with prefix SomeFunction. \n"
+"                      Make sure ACTION and DATA are together enclosed\n"
+"                       in one pair of single quotes.\n"
+"                      There are numerous actions listed in AFNI's\n"
+"                       README.driver file.\n"
+"                      You can use the option -com repeatedly. \n"
+"\n"
+"  -quit         Quit after you are done with all the -com commands.\n"
+"                The default is for the program to wait for more\n"
+"                commands to be typed at the terminal's prompt.\n"
+"\n"
+"NOTES:\n"
+"You will need to turn plugouts on in AFNI using one of the\n"
+"following methods: \n"
+" 1. Including '-yesplugouts' as an option on AFNI's command line\n"
+" 2. From AFNI GUI: Define Datamode->Misc->Start Plugouts\n"
+" 3. From AFNI GUI: Press the 'NIML+PO' button (near 'Overlay')\n"
+" 4. Set environment variable AFNI_YESPLUGOUTS to YES in .afnirc\n"
+"Otherwise, AFNI won't be listening for a plugout connection.\n"
+"  [AFNI does't listen for socket connections, unless]\n"
+"  [it is told to,  in order to avoid the overhead of]\n"
+"  [checking for incoming data every few milliseconds]\n"
+"\n"
+"This program's exit status will be 1 if it couldn't connect\n"
+"to AFNI at all.  Otherwise, the exit status will be 0.\n"
+"You could use this feature in a script to check if a copy of\n"
+"AFNI is ready to rumble, and if not then start one, as in the\n"
+"following csh fragment:\n"
+"    plugout_drive -maxwait 1 -com 'OPEN_WINDOW axialimage'\n"
+"    if( $status == 1 )then\n"
+"      afni -yesplugouts &\n"
+"      sleep 2 ; plugout_drive -com 'OPEN_WINDOW axialimage'\n"
+"    endif\n"
+"\n"
+"To have different plugout_* programs talking to different\n"
+"AFNI, use the -np* options below\n"
+"%s\n"
+"Global Options (available to all AFNI/SUMA programs)\n"
+"%s\n"
+"Example 1:\n"
+"    afni -yesplugouts\n"
+"    plugout_drive  -com 'SWITCH_SESSION A.afni'                       \\\n"
+"                   -com 'OPEN_WINDOW A.axialimage geom=600x600+416+44 \\\n"
+"                         ifrac=0.8 opacity=9'                         \\\n"
+"                   -com 'OPEN_WINDOW A.sagittalimage geom=+45+430     \\\n"
+"                         ifrac=0.8 opacity=9'                         \\\n"
+"                   -com 'SWITCH_UNDERLAY anat'    \\\n"
+"                   -com 'SWITCH_OVERLAY strip'    \\\n"
+"                   -com 'SEE_OVERLAY +'           \\\n"
+"                   -com 'OPEN_WINDOW A.axialimage keypress=v'         \\\n"
+"                   -quit             \n"
+"\n"
+"More help in: README.driver\n"
+"More Demos is: @DriveAfni\n"
+"\n"
+   , afni_port, get_np_help(), get_gopt_help() );
+   return;
+}
+
 /*===================================================================
    Main program:
      Read command line for options
@@ -350,78 +443,11 @@ int main( int argc , char *argv[] )
    
    /***** See if the pitiful user wants help *****/
 
-   if( argc == 2 && strncmp(argv[1],"-help",5) == 0 ){
-      printf("Usage: plugout_drive [-host name] [-v]\n"
-             "This program connects to AFNI and sends commands\n"
-             " that the user specifies interactively or on command line\n"
-             " over to AFNI to be executed.\n"
-             "\n"
-             "Options:\n"
-             "  -host name    Means to connect to AFNI running on the computer\n"
-             "                'name' using TCP/IP.  The default is to connect\n"
-             "                on the current host 'localhost' using TCP/IP.\n"
-             "\n"
-             "  -shm          Means to connect to the current host using shared\n"
-             "                memory.  There is no reason to do this unless\n"
-             "                you are transferring huge quantities of data.\n"
-             "                N.B.:  '-host .' is equivalent to '-shm'.\n"
-             "\n"
-             "  -v            Verbose mode.\n"
-             "\n"
-             "  -port pp      Use TCP/IP port number 'pp'.  The default is\n"
-             "                %d, but if two plugouts are running on the\n"
-             "                same computer, they must use different ports.\n"
-             "                For a list of currently used ports use afni -list_ports\n"
-             "\n"
-             "  -maxwait t    Wait a maximum of 't' seconds for AFNI to connect;\n"
-             "                if the connection doesn't happen in that time, exit.\n"
-             "                [default wait time is 9 seconds]\n"
-             "\n"
-             "  -name sss     Use the string 'sss' for the name that AFNI assigns\n"
-             "                to this plugout.  The default is something stupid.\n"
-             "\n"
-             "  -com 'ACTION DATA'  Execute the following command. For example:\n"
-             "                       -com 'SET_FUNCTION SomeFunction'\n"
-             "                       will switch AFNI's function (overlay) to\n"
-             "                       dataset with prefix SomeFunction. \n"
-             "                      Make sure ACTION and DATA are together enclosed\n"
-             "                       in one pair of single quotes.\n"
-             "                      There are numerous actions listed in AFNI's\n"
-             "                       README.driver file.\n"
-             "                      You can use the option -com repeatedly. \n"
-             "\n"
-             "  -quit         Quit after you are done with all the -com commands.\n"
-             "                The default is for the program to wait for more\n"
-             "                commands to be typed at the terminal's prompt.\n"
-             "\n"
-             "NOTES:\n"
-             "You will need to turn plugouts on in AFNI using one of the\n"
-             "following methods: \n"
-             " 1. Including '-yesplugouts' as an option on AFNI's command line\n"
-             " 2. From AFNI GUI: Define Datamode->Misc->Start Plugouts\n"
-             " 3. From AFNI GUI: Press the 'NIML+PO' button (near 'Overlay')\n"
-             " 4. Set environment variable AFNI_YESPLUGOUTS to YES in .afnirc\n"
-             "Otherwise, AFNI won't be listening for a plugout connection.\n"
-             "  [AFNI does't listen for socket connections, unless]\n"
-             "  [it is told to,  in order to avoid the overhead of]\n"
-             "  [checking for incoming data every few milliseconds]\n"
-             "\n"
-             "This program's exit status will be 1 if it couldn't connect\n"
-             "to AFNI at all.  Otherwise, the exit status will be 0.\n"
-             "You could use this feature in a script to check if a copy of\n"
-             "AFNI is ready to rumble, and if not then start one, as in the\n"
-             "following csh fragment:\n"
-             "    plugout_drive -maxwait 1 -com 'OPEN_WINDOW axialimage'\n"
-             "    if( $status == 1 )then\n"
-             "      afni -yesplugouts &\n"
-             "      sleep 2 ; plugout_drive -com 'OPEN_WINDOW axialimage'\n"
-             "    endif\n"
-             "\n"
-             "To have different plugout_* programs talking to different\n"
-             "AFNI, use the -np* options below\n"
-             "%s\n"
-            , afni_port, get_np_help()) ;
-      exit(0) ;
+   if( argc == 2 && (
+      strcmp(argv[1],"-help") == 0 ||
+      strcmp(argv[1],"-h") == 0) ){
+      usage_plugout_drive(strlen(argv[1]) > 3 ? 2:1);
+      exit (0);
    }
 
    /***** Process command line options *****/
@@ -430,7 +456,7 @@ int main( int argc , char *argv[] )
    DontWait = 0;
    narg = 1 ;
    while( narg < argc ){
-
+      
       /** -maxwait [27 Dec 2010] **/
 
       if( strcmp(argv[narg],"-maxwait") == 0 ){
@@ -530,6 +556,7 @@ int main( int argc , char *argv[] )
       /** Je ne sais pas **/
 
       fprintf(stderr,"** Unrecognized option: %s\a\n",argv[narg]) ;
+      suggest_best_prog_option(argv[0], argv[narg]);
       exit(1) ;
    }
 
