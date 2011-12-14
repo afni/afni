@@ -157,6 +157,7 @@ void apsearch_usage(int detail)
    "  -show_score: Show matching word's distance.\n"
    "  -show_score_detail: That's right.\n"
    "  -all_afni_progs: List all executables in AFNI's bin directory\n"
+   "  -all_afni_readmes: List all README files in AFNI's bin directory\n"
    "  -all_afni_help: Build/update -help output under directory:\n"
    "                     %s\n"
    "                  If older help files differ by little they are deleted\n"
@@ -465,6 +466,12 @@ int main(int argc, char **argv)
 
       if (strcmp(argv[iarg],"-all_afni_progs") == 0) { 
          list_afni_programs(0); return(0);
+         ++iarg;
+         continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-all_afni_readmes") == 0) { 
+         list_afni_readmes(0); return(0);
          ++iarg;
          continue; 
       }
