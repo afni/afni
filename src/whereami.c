@@ -493,7 +493,7 @@ printf(
 " -xform_xyz  used with calc_chain, takes the x,y,z coordinates and \n"
 "             applies the combined chain of transformations to compute\n"
 "             a new x,y,z coordinate\n"
-
+" -xform_xyz_quiet Same as -xform_xyz but only ouputs the final result\n"
 "Note setting the environment variable AFNI_WAMI_DEBUG will show detailed\n"
 " progress throughout the various functions called within whereami.\n"
 " For spaces defined using a NIML table, a Dijkstra search is used to find\n"
@@ -503,6 +503,8 @@ printf(
 " \n---------------\n"
 " More information about Atlases in AFNI can be found here:\n"
 "      http://afni.nimh.nih.gov/sscc/dglen/AFNIAtlases\n"
+" Class document illustrating whereami usage:\n"
+"      http://afni.nimh.nih.gov/pub/dist/edu/latest/afni11_roi/afni11_roi.pdf\n"
 "---------------\n"
 );
 
@@ -552,7 +554,7 @@ int main(int argc, char **argv)
    char *srcspace=NULL, *destspace=NULL;
    ATLAS_XFORM_LIST *xfl = NULL, *cxfl = NULL;
    float xout, yout, zout;
-   int xform_xyz = 0;
+   int xform_xyz = 0, xform_xyz_quiet = 0;
    int atlas_writehard = 0, atlas_readhard = 0, alv=1, wv=1;
    ATLAS_LIST *atlas_alist=NULL, *atlas_list=NULL, *atlas_rlist=NULL;
    byte b1;
@@ -575,6 +577,7 @@ int main(int argc, char **argv)
    OldMethod = 0; /* Leave at 0 */
    coord_file = NULL;
    alv=2; wv=2;
+   xform_xyz_quiet = 0;
    iarg = 1 ; nakedarg = 0; Show_Atlas_Code = 0; shar = NULL;
 
    set_TT_whereami_version(alv,wv);
@@ -930,7 +933,9 @@ int main(int argc, char **argv)
             continue; 
          }
 
-        if( strcmp(argv[iarg],"-xform_xyz") == 0){
+        if( strcmp(argv[iarg],"-xform_xyz") == 0 ||
+            strcmp(argv[iarg],"-xform_xyz_quiet") == 0){
+            if (strlen(argv[iarg]) > 12) xform_xyz_quiet = 1;
             iarg++;
             read_niml_atlas = 1;
             xform_xyz = 1;
@@ -1032,19 +1037,25 @@ int main(int argc, char **argv)
       if(show_avail_space)
          report_available_spaces(srcspace);
       if(show_xform_chain)
-         xfl = report_xform_chain(srcspace, destspace, 1);
+         xfl = report_xform_chain(srcspace, destspace, !xform_xyz_quiet);
       if(calc_xform_chain) {
          cxfl = calc_xform_list(xfl);
-         print_xform_list(cxfl);  /* print the xforms briefly with names only */
-         print_all_xforms(cxfl);  /* print combined list transforms with data */
+         if (!xform_xyz_quiet) {
+            print_xform_list(cxfl);/* print the xforms briefly with names only */
+            print_all_xforms(cxfl);/* print combined list transforms with data */
+         }
       }
       if(xform_xyz) {
          if(!cxfl)
             cxfl = calc_xform_list(xfl);
          apply_xform_chain(cxfl, xi, yi, zi, &xout, &yout, &zout);
                
-         printf("Coords in: %f, %f, %f -> Coords out: %f, %f, %f\n", 
+         if (xform_xyz_quiet) {
+            printf("%f %f %f\n", xout,yout,zout);
+         } else {   
+            printf("Coords in: %f, %f, %f -> Coords out: %f, %f, %f\n", 
                   xi,yi,zi,xout,yout,zout);
+         }
       }
       if(xfl)
         free_xform_list(xfl);
