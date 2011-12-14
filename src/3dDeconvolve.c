@@ -8853,6 +8853,7 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
 #endif
 #if 1
     if( basis_nused > 0 ){
+      char qbuf[128] ;
       sprintf(lll,"%d",basis_nstim) ;
       NI_set_attribute( nel, "BasisNstim", lll ) ;
       for( kk=0 ; kk < basis_nstim ; kk++ ){
@@ -8863,6 +8864,9 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
         NI_set_attribute( nel, lll, basis_stim[kk]->name ) ;
         sprintf(lll,"BasisFormula_%06d",kk+1) ;
         NI_set_attribute( nel, lll, basis_stim[kk]->symfun ) ;
+        sprintf(lll,"BasisColumns_%06d",kk+1) ;
+        sprintf(qbuf,"%d:%d",basis_stim[kk]->pbot,basis_stim[kk]->pbot+basis_stim[kk]->nparm-1) ;
+        NI_set_attribute( nel , lll, qbuf ) ;
       }
     }
 #endif
