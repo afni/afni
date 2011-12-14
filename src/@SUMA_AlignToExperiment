@@ -1087,7 +1087,6 @@ echo "       aligned, but that would be more buttons to press."
 echo "       Note 2: -init_xform does not need to be accurate, it is just "
 echo "       meant to get -surf_anat to have a comparable orientation."
 echo ""
-echo "Global Options:"
 @global_parse -gopts_help
 echo ""
 echo "More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
