@@ -27,7 +27,7 @@ static int verb = 0 ;
 
 MRI_IMAGE * LSS_setup( MRI_IMAGE *ima , MRI_IMAGE *imc )
 {
-   int nn, mm, nc, ii, jj, ic ;
+   int nn, mm, nc, ii, jj, ic , nwarn=0 ;
    float *cc, *pp, *qq, *qj, *vv, *ss, *pv , cj, cvdot, pc ;
    MRI_IMAGE *ims , *imp , *imq ;
    MRI_IMARR *imar ;
@@ -114,9 +114,15 @@ ENTRY("LSS_setup") ;
 
        pc = (1.0f - pc) / cvdot ;
        for( ii=0 ; ii < nn ; ii++ ) ss[ii] += pc * vv[ii] ;
+     } else {
+       nwarn++ ;
      }
 
    } /* end of loop over columns of [C] */
+
+   if( verb && nwarn > 0 )
+     INFO_message("%d (out of %d) LSS individual estimators were collinear",
+                  nwarn , nc ) ;
 
    /* toss the trash and return the output set of columns */
 
@@ -203,16 +209,39 @@ void LSS_help(void)
      " -prefix ppp = Prefix name for the output dataset;\n"
      "                this dataset will contain ONLY the LSS estimates of the\n"
      "                beta weights for the '-stim_times_IM' stimuli.\n"
+     "               * If you don't use '-prefix', then the prefix is 'LSSout'.\n"
+     "               * If you use '-prefix NULL', then the dataset isn't written.\n"
+     "                 This is mostly useful if you just want the '-save1D' output,\n"
+     "                 presumably for debugging or didactic purposes.\n"
+     "\n"
+     " -save1D qqq = Save the estimator vectors (cf. infra) to a 1D formatted\n"
+     "                file named 'qqq'.  Each column of this file will be\n"
+     "                one estimator vector, the same length as the input\n"
+     "                dataset timeseries (after censoring, if any).\n"
+     "               * If you don't use '-save1D', then this file is not saved.\n"
      "------\n"
      "Method\n"
      "------\n"
      " 3dLSS is fast since it uses a rank-1 bordering technique to pre-compute\n"
      " the estimator for each separate stimulus regressor from the fixed part of\n"
      " the matrix, then applies these estimators to each time series in the input\n"
-     " dataset by a simple dot product.\n"
-     "          ** Compute fast, exit early, leave a pretty dataset **\n"
+     " dataset by a simple dot product.  For the equations, contact the author.\n"
      "\n"
-     "-- RWCox - Dec 2011\n"
+     "-------\n"
+     "Caveats\n"
+     "-------\n"
+     " The LSS method produces estimates that tend to have smaller variance than the\n"
+     " LSA method that 3dDeconvolve would produce, but the LSS estimates have greater\n"
+     " bias.  For the purpose of using the beta estimates for MVPA (e.g., via 3dSVM),\n"
+     " the bias may not matter much and the variance reduction may help improve the\n"
+     " classification.  For other purposes, the trade-off might well go the other\n"
+     " way -- for ANY application of LSS vs. LSA, you need to assess the situation\n"
+     " before deciding -- probably by the judicious use of simulation (as in the\n"
+     " Mumford et al. paper cited supra).\n"
+     "\n"
+     "--------------------------------------------------------------------------\n"
+     "-- RWCox - Dec 2011 - Compute fast, abend early, leave a pretty dataset --\n"
+     "--------------------------------------------------------------------------\n"
    ) ;
    PRINT_COMPILE_DATE ; exit(0) ;
 }
@@ -222,7 +251,7 @@ void LSS_help(void)
 int main( int argc , char *argv[] )
 {
    int iarg , nerr=0 , nvals,nvox , nx,ny,nz , ii,jj,kk ;
-   char *prefix = "LSSout" , nbuf[256] ;
+   char *prefix="LSSout" , *save1D=NULL , nbuf[256] ;
    THD_3dim_dataset *inset=NULL , *outset ;
    MRI_vectim   *inset_mrv=NULL ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0, automask=0, nmask=0 ;
@@ -303,6 +332,17 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        prefix = strdup(argv[iarg]) ;
        if( !THD_filename_ok(prefix) ) ERROR_exit("Illegal string after %s",argv[iarg-1]) ;
+       if( verb && strcmp(prefix,"NULL") == 0 )
+         INFO_message("-prefix NULL ==> no dataset will be written") ;
+       iarg++ ; continue ;
+     }
+
+     /**==========   -save1D  =========**/
+
+     if( strcasecmp(argv[iarg],"-save1D") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       save1D = strdup(argv[iarg]) ;
+       if( !THD_filename_ok(save1D) ) ERROR_exit("Illegal string after %s",argv[iarg-1]) ;
        iarg++ ; continue ;
      }
 
@@ -446,6 +486,16 @@ int main( int argc , char *argv[] )
    if( imS == NULL )
      ERROR_exit("Can't complete LSS setup :-((") ;
    nS = imS->ny ; Sar = MRI_FLOAT_PTR(imS) ;
+
+   if( save1D != NULL ){
+     mri_write_1D( save1D , imS ) ;
+     if( verb ) ININFO_message("saved LSS vectors into file %s",save1D) ;
+   }
+
+   if( strcmp(prefix,"NULL") == 0 ){
+     INFO_message("3dLSS ends since prefix is 'NULL'") ;
+     exit(0) ;
+   }
 
    /*----- create output dataset -----*/
 

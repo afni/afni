@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , DEC , 2011 , RWC , "afni (imseq.c)" , MICRO , TYPE_BUG_FIX ,
+  { 15 , DEC , 2011 , RWC , "3dLSS" , MICRO , TYPE_NEW_PROG ,
+   "3dLSS implement LS-S regression" ,
+   "As described in Mumford, Turner, Asby, and Poldrack, NeuroImage 2011. \n"
+   "See 3dLSS -help for more info." } ,
+
+ { 9 , DEC , 2011 , RWC , "afni (imseq.c)" , MICRO , TYPE_BUG_FIX ,
    "Patch weird bug" ,
    "When the intensity bar popup menu is up, then the user clicks on an\n"
    "optmenu, then the next time the user button1 clicks in the image viewer\n"
