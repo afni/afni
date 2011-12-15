@@ -1,4 +1,68 @@
 #include "mrilib.h"
+void usage_3dZeropad(int detail)
+{
+         printf("Usage: 3dZeropad [options] dataset\n"
+ "Adds planes of zeros to a dataset (i.e., pads it out).\n"
+ "\n"
+ "Options:\n"
+ "  -I n = adds 'n' planes of zero at the Inferior edge\n"
+ "  -S n = adds 'n' planes of zero at the Superior edge\n"
+ "  -A n = adds 'n' planes of zero at the Anterior edge\n"
+ "  -P n = adds 'n' planes of zero at the Posterior edge\n"
+ "  -L n = adds 'n' planes of zero at the Left edge\n"
+ "  -R n = adds 'n' planes of zero at the Right edge\n"
+ "  -z n = adds 'n' planes of zeros on EACH of the\n"
+ "          dataset z-axis (slice-direction) faces\n"
+ "\n"
+ " -RL a = These options specify that planes should be added/cut\n"
+ " -AP b = symmetrically to make the resulting volume have\n"
+ " -IS c = 'a', 'b', and 'c' slices in the respective directions.\n"
+ "\n"
+ " -mm   = pad counts 'n' are in mm instead of slices:\n"
+ "         * each 'n' is an integer\n"
+ "         * at least 'n' mm of slices will be added/removed:\n"
+ "            n =  3 and slice thickness = 2.5 mm ==> 2 slices added\n"
+ "            n = -6 and slice thickness = 2.5 mm ==> 3 slices removed\n"
+ "\n"
+ " -master mset = match the volume described in dataset 'mset':\n"
+ "                * mset must have the same orientation and grid\n"
+ "                   spacing as dataset to be padded\n"
+ "                * the goal of -master is to make the output dataset\n"
+ "                   from 3dZeropad match the spatial 'extents' of\n"
+ "                   mset (cf. 3dinfo output) as much as possible,\n"
+ "                   by adding/subtracting slices as needed.\n"
+ "                * you can't use -I,-S,..., or -mm with -master\n"
+ "\n"
+ " -prefix ppp = write result into dataset with prefix 'ppp'\n"
+ "                 [default = 'zeropad']\n"
+ "\n"
+ "Nota Bene:\n"
+ " * You can use negative values of n to cut planes off the edges\n"
+ "     of a dataset.  At least one plane must be added/removed\n"
+ "     or the program won't do anything.\n"
+ " * Anat parent and Talairach markers are NOT preserved in the\n"
+ "     new dataset.\n"
+#if 0
+ " * If the old dataset has z-slice-dependent time offsets, and\n"
+ "     if new z-planes are added, all the slice-dependent time\n"
+ "     offsets will be removed.\n"
+#else
+ " * If the old dataset has z-slice-dependent time offsets, and\n"
+ "     if new (zero filled) z-planes are added, the time offsets\n"
+ "     of the new slices will be set to zero.\n"
+#endif
+ " * You can use program '3dinfo' to find out how many planes\n"
+ "     a dataset has in each direction.\n"
+ " * Program works for byte-, short-, float-, and complex-valued\n"
+ "     datasets.\n"
+ " * You can use a sub-brick selector on the input dataset.\n"
+ " * 3dZeropad won't overwrite an existing dataset (I hope).\n"
+ "\n"
+ " Author: RWCox - July 2000\n"
+           ) ;
+      PRINT_COMPILE_DATE ; return ;
+
+}
 
 int main( int argc , char * argv[] )
 {
@@ -15,70 +79,6 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *mset=NULL ; /* 14 May 2002 */
 
    /*-- help? --*/
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dZeropad [options] dataset\n"
-             "Adds planes of zeros to a dataset (i.e., pads it out).\n"
-             "\n"
-             "Options:\n"
-             "  -I n = adds 'n' planes of zero at the Inferior edge\n"
-             "  -S n = adds 'n' planes of zero at the Superior edge\n"
-             "  -A n = adds 'n' planes of zero at the Anterior edge\n"
-             "  -P n = adds 'n' planes of zero at the Posterior edge\n"
-             "  -L n = adds 'n' planes of zero at the Left edge\n"
-             "  -R n = adds 'n' planes of zero at the Right edge\n"
-             "  -z n = adds 'n' planes of zeros on EACH of the\n"
-             "          dataset z-axis (slice-direction) faces\n"
-             "\n"
-             " -RL a = These options specify that planes should be added/cut\n"
-             " -AP b = symmetrically to make the resulting volume have\n"
-             " -IS c = 'a', 'b', and 'c' slices in the respective directions.\n"
-             "\n"
-             " -mm   = pad counts 'n' are in mm instead of slices:\n"
-             "         * each 'n' is an integer\n"
-             "         * at least 'n' mm of slices will be added/removed:\n"
-             "            n =  3 and slice thickness = 2.5 mm ==> 2 slices added\n"
-             "            n = -6 and slice thickness = 2.5 mm ==> 3 slices removed\n"
-             "\n"
-             " -master mset = match the volume described in dataset 'mset':\n"
-             "                * mset must have the same orientation and grid\n"
-             "                   spacing as dataset to be padded\n"
-             "                * the goal of -master is to make the output dataset\n"
-             "                   from 3dZeropad match the spatial 'extents' of\n"
-             "                   mset (cf. 3dinfo output) as much as possible,\n"
-             "                   by adding/subtracting slices as needed.\n"
-             "                * you can't use -I,-S,..., or -mm with -master\n"
-             "\n"
-             " -prefix ppp = write result into dataset with prefix 'ppp'\n"
-             "                 [default = 'zeropad']\n"
-             "\n"
-             "Nota Bene:\n"
-             " * You can use negative values of n to cut planes off the edges\n"
-             "     of a dataset.  At least one plane must be added/removed\n"
-             "     or the program won't do anything.\n"
-             " * Anat parent and Talairach markers are NOT preserved in the\n"
-             "     new dataset.\n"
-#if 0
-             " * If the old dataset has z-slice-dependent time offsets, and\n"
-             "     if new z-planes are added, all the slice-dependent time\n"
-             "     offsets will be removed.\n"
-#else
-             " * If the old dataset has z-slice-dependent time offsets, and\n"
-             "     if new (zero filled) z-planes are added, the time offsets\n"
-             "     of the new slices will be set to zero.\n"
-#endif
-             " * You can use program '3dinfo' to find out how many planes\n"
-             "     a dataset has in each direction.\n"
-             " * Program works for byte-, short-, float-, and complex-valued\n"
-             "     datasets.\n"
-             " * You can use a sub-brick selector on the input dataset.\n"
-             " * 3dZeropad won't overwrite an existing dataset (I hope).\n"
-             "\n"
-             " Author: RWCox - July 2000\n"
-           ) ;
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
-
    mainENTRY("3dZeropad main"); machdep(); AFNI_logger("3dZeropad",argc,argv);
    PRINT_VERSION("3dZeropad") ;
 
@@ -86,6 +86,11 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-help") == 0 || strcmp(argv[iarg],"-h") == 0){
+         usage_3dZeropad(strlen(argv[iarg])>3 ? 2:1);
+         exit(0);
+      }
 
       /*- -I, -S, etc. -*/
 
@@ -201,9 +206,16 @@ int main( int argc , char * argv[] )
 
       /*- what the hell? -*/
 
-      fprintf(stderr,"** 3dZeropad: Illegal option: %s\n",argv[iarg]) ; exit(1) ;
+      fprintf(stderr,"** 3dZeropad: Illegal option: %s\n",argv[iarg]) ; 
+      suggest_best_prog_option(argv[0], argv[iarg]);
+      exit(1) ;
    }
 
+   if (iarg < 2) {
+      ERROR_message("Too few options, try %s -help for details\n",argv[0]);
+      exit(1);
+   }
+   
    /*- check to see if the user asked for something, anything -*/
 
    if( mset == NULL ){
@@ -267,7 +279,9 @@ int main( int argc , char * argv[] )
          max->yyorient != iax->yyorient ||
          max->zzorient != iax->zzorient   ){
 
-       fprintf(stderr,"** 3dZeropad: Master and Input datasets not oriented the same!\n");
+       fprintf(stderr,
+   "** 3dZeropad: Master (%s) and Input (%s) dataset not oriented the same!\n",
+               DSET_PREFIX(mset), DSET_PREFIX(inset));
        nerr++ ;
      }
 

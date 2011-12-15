@@ -390,11 +390,11 @@ typedef struct {
      for( qq=0; qq < (name)->num; qq++ ) printf(" '%s'",(name)->ar[qq]); \
      printf("\n") ; } while(0)
 
-extern int SARR_find_string( THD_string_array * sar , char * str ) ;
-extern int SARR_find_substring( THD_string_array * sar , char * sub ) ;
+extern int SARR_find_string( THD_string_array * sar , char * str , byte ci) ;
+extern int SARR_find_substring( THD_string_array * sar , char * sub , byte ci) ;
 
-extern int SARR_lookfor_string   ( THD_string_array * sar , char * str , int nstart ) ;
-extern int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nstart ) ;
+extern int SARR_lookfor_string   ( THD_string_array * sar , char * str , int nstart , byte ci) ;
+extern int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nstart , byte ci) ;
 
 /*! Concatenate strings p1 and p2 into string pout, making them a filesystem path.
 
@@ -3822,8 +3822,9 @@ extern int THD_cwd         ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_equiv_files ( char * , char * ) ;
 extern long long THD_filesize( char * pathname ) ;
 extern char *THD_filetime( char *pathname );
-extern char *THD_homedir(void);
-extern char *THD_helpdir(void);
+extern char *THD_homedir(byte withslash);
+extern char *THD_helpdir(byte withslash);
+extern char *THD_abindir(byte withslash);
 char *THD_helpsearchlog(int createpath);
 
 extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
@@ -3838,8 +3839,9 @@ extern THD_string_array * THD_get_all_files( char *, char ) ; /* 08 Jun 2011 */
 extern THD_string_array * THD_getpathprogs( THD_string_array *, char );
 extern THD_string_array * THD_get_all_afni_executables(void );
 extern THD_string_array * THD_get_all_afni_readmes(void);
-extern int list_afni_programs(int withnum);
-extern int list_afni_readmes(int withnum);
+extern int list_afni_programs(int withpath, int withnum);
+extern int list_afni_readmes(int withpath, int withnum);
+extern int list_afni_dsets(int withpath, int withnum);
 extern int THD_is_executable( char * pathname ) ;
 extern char * THD_find_executable( char * ) ;
 extern char * THD_find_regular_file( char * ) ;
