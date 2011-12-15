@@ -41,7 +41,7 @@ THD_datablock_array * THD_init_prefix_datablocks(
       /* look for the correct type of filename */
 
       nnext = SARR_lookfor_substring( regfile_list ,
-                                      DATASET_HEADER_SUFFIX , nlast ) ;
+                                      DATASET_HEADER_SUFFIX , nlast , 0) ;
 
       if( nnext < 0 ) break ;  /* no more header files */
       nlast = nnext + 1 ;      /* start next search here */

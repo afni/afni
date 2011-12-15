@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13, DEC , 2011 , ZSS , "3dinfo" , MINOR , TYPE_NEW_OPT,
+   "-same_* options return information about dset pairs",
+   NULL,
+ },
+ 
  { 13, DEC , 2011 , ZSS , "@SUMA_AlignToExperiment" , MINOR , TYPE_NEW_OPT,
    "-init_xform to allow for an initial transformation of -surf_anat",
    NULL,

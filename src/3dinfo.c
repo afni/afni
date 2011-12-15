@@ -11,90 +11,173 @@
 void Syntax(void)
 {
    printf("\n"
-    "Prints out sort-of-useful information from a 3D dataset's header\n"
-    "Usage: 3dinfo [-verb OR -short] dataset [dataset ...]\n"
-    "  -verb means to print out lots of stuff\n"
-    "  -VERB means even more stuff\n"
-    "  -short means to print out less stuff [now the default]\n"
-    "\n"
-    "Alternative Usage (without either of the above options):\n"
-    "  3dinfo -label2index label dataset\n"
-    "  * Prints to stdout the index corresponding to the sub-brick with\n"
-    "    the name label, or a blank line if label not found.\n"
-    "  * If this option is used, then the ONLY output is this sub-brick index.\n"
-    "    This is intended to be used in a script, as in this tcsh fragment:\n"
-    "      set face = `3dinfo -label2index Face#0 AA_Decon+orig`\n"
-    "      set hous = `3dinfo -label2index House#0 AA_Decon+orig`\n"
-    "      3dcalc -a AA_Decon+orig\"[$face]\" -b AA_Decon+orig\"[$hous]\" ...\n"
-    "  * Added per the request and efforts of Colm Connolly.\n"
-    "\n"
-    "Alternate Alternative Usage:\n"
-    "  3dinfo <OPTION> [OPTION ..] dataset [dataset ...]\n"
-    "  Outputs a specific piece of information depending on OPTION.\n"
-    "  ========= Options producing one value (string) ============\n"
-    "   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
-    "   -space: dataset's space\n"
-    "   -av_space: AFNI format's view extension for the space\n"
-    "   -is_oblique: 1 if dset is oblique\n"
-    "   -obliquity: Angle from plumb direction.\n"
-    "               Angles of 0 (or close) are for cardinal orientations\n"
-    "   -prefix: Return the prefix\n"
-    "   -prefix_noext: Return the prefix without extensions\n"
-    "   -n[i|j|k]: Return the number of voxels in i, j, k dimensions\n"
-    "   -nijk: Return ni*nj*nk\n"
-    "   -nv: Return number of points in time or the number of sub-bricks\n"
-    "   -nt: same as -nv\n"
-    "   -nvi: The maximum sub-brick index (= nv -1 )\n"
-    "   -nti: same as -nvi\n"
-    "   -ntimes: Return number of sub-bricks points in time\n"
-    "        This is an option for debugging use, stay away from it.\n"
-    "   -tr: The TR value in seconds.\n"
-    "   -header_name: Value of dset structure (sub)field 'header_name'\n"
-    "   -brick_name: Value of dset structure (sub)field 'brick_name'\n"
-    "   -all_names: Value of various dset structures handling filenames.\n"
-    "  ==== Options producing one value per sub-brick ========\n"
-    "   -fac: Return the float scaling factor\n"
-    "   -label: The label of each sub-brick\n"
-    "   -datum: The data storage type\n"
-    "   -min: The minimum value, scaled by fac\n"
-    "   -max: The maximum value, scaled by fac\n"
-    "   -minus: The minimum value, unscaled.\n"
-    "   -maxus: The maximum value, unscaled.\n"
-    "  ==== Options producing multiple values (strings of multiple lines)====\n"
-    "       You can specify the delimiter between sub-brick parameters with\n"
-    "       -sb_delim DELIM. Default DELIM is \"|\"\n"
-    "   -labeltable: Show label table, if any\n"
-    "   -labeltable_as_atlas_points: Show label table in atlas point format.\n"
-    "   -history: History note. \n"
-    "\n"
-    "  === Options affection output format ===\n"
-    "   -header_line: Output as the first line the names of attributes\n"
-    "                 in each field (column)\n"
-    "   -sb_delim SB_DELIM: Delimiter string between sub-brick values\n"
-    "                       Default SB_DELIM is \"|\"\n"
-    "   -NA_flag NAFLAG: String to use when a field is not found or not\n"
-    "                    applicable. Default is \"NA\"\n"
-    "   -atr_delim ATR_DELIM: Delimiter string between attributes\n"
-    "                         Default ATR_DELIM is the tab character.\n"
-    " Example:\n"
-    "    Produce a table of results using 1-value-options\n"
-    "    3dinfo  -prefix_noext -prefix -space -ni -nj -nk -nt  \\\n"
-    "            DSET1+orig DSET2.nii\n"
-    "\n"
+"Prints out sort-of-useful information from a 3D dataset's header\n"
+"Usage: 3dinfo [-verb OR -short] dataset [dataset ...]\n"
+"  -verb means to print out lots of stuff\n"
+"  -VERB means even more stuff\n"
+"  -short means to print out less stuff [now the default]\n"
+"\n"
+"Alternative Usage (without either of the above options):\n"
+"  3dinfo -label2index label dataset\n"
+"  * Prints to stdout the index corresponding to the sub-brick with\n"
+"    the name label, or a blank line if label not found.\n"
+"  * If this option is used, then the ONLY output is this sub-brick index.\n"
+"    This is intended to be used in a script, as in this tcsh fragment:\n"
+"      set face = `3dinfo -label2index Face#0 AA_Decon+orig`\n"
+"      set hous = `3dinfo -label2index House#0 AA_Decon+orig`\n"
+"      3dcalc -a AA_Decon+orig\"[$face]\" -b AA_Decon+orig\"[$hous]\" ...\n"
+"  * Added per the request and efforts of Colm Connolly.\n"
+"\n"
+"Alternate Alternative Usage:\n"
+"  3dinfo <OPTION> [OPTION ..] dataset [dataset ...]\n"
+"  Outputs a specific piece of information depending on OPTION.\n"
+"  ========= Options producing one value (string) ============\n"
+"   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
+"   -space: dataset's space\n"
+"   -av_space: AFNI format's view extension for the space\n"
+"   -is_oblique: 1 if dset is oblique\n"
+"   -obliquity: Angle from plumb direction.\n"
+"               Angles of 0 (or close) are for cardinal orientations\n"
+"   -prefix: Return the prefix\n"
+"   -prefix_noext: Return the prefix without extensions\n"
+"   -n[i|j|k]: Return the number of voxels in i, j, k dimensions\n"
+"   -nijk: Return ni*nj*nk\n"
+"   -nv: Return number of points in time or the number of sub-bricks\n"
+"   -nt: same as -nv\n"
+"   -n4: same as -ni -nj -nk -nv\n"
+"   -nvi: The maximum sub-brick index (= nv -1 )\n"
+"   -nti: same as -nvi\n"
+"   -ntimes: Return number of sub-bricks points in time\n"
+"        This is an option for debugging use, stay away from it.\n"
+"   -di: Signed displacement per voxel along i direction, aka dx\n"
+"   -dj: Signed displacement per voxel along j direction, aka dy\n"
+"   -dk: Signed displacement per voxel along k direction, aka dz\n"
+"   -d3: same as -di -dj -dk\n"
+"   -adi: Voxel size along i direction (abs(di))\n"
+"   -adj: Voxel size along j direction (abs(dj))\n"
+"   -adk: Voxel size along k direction (abs(dk))\n"
+"   -ad3: same as -adi -adj -adk\n"
+"   -tr: The TR value in seconds.\n"
+"   -header_name: Value of dset structure (sub)field 'header_name'\n"
+"   -brick_name: Value of dset structure (sub)field 'brick_name'\n"
+"   -orient: Value of orientation string.\n"
+"            For example, LPI means:\n"
+"               i direction grows from Left(negative) to Right(positive).\n"
+"               j direction grows from Posterior (neg.) to Anterior (pos.)\n"     "               k direction grows from Inferior (neg.) to Superior (pos.)\n"
+"   -all_names: Value of various dset structures handling filenames.\n"
+"  ==== Options producing one value per sub-brick ========\n"
+"   -fac: Return the float scaling factor\n"
+"   -label: The label of each sub-brick\n"
+"   -datum: The data storage type\n"
+"   -min: The minimum value, scaled by fac\n"
+"   -max: The maximum value, scaled by fac\n"
+"   -minus: The minimum value, unscaled.\n"
+"   -maxus: The maximum value, unscaled.\n"
+"  ==== Options producing multiple values (strings of multiple lines)====\n"
+"       You can specify the delimiter between sub-brick parameters with\n"
+"       -sb_delim DELIM. Default DELIM is \"|\"\n"
+"   -labeltable: Show label table, if any\n"
+"   -labeltable_as_atlas_points: Show label table in atlas point format.\n"
+"   -history: History note. \n"
+"\n"
+"  === Options affection output format ===\n"
+"   -header_line: Output as the first line the names of attributes\n"
+"                 in each field (column)\n"
+"   -sb_delim SB_DELIM: Delimiter string between sub-brick values\n"
+"                       Default SB_DELIM is \"|\"\n"
+"   -NA_flag NAFLAG: String to use when a field is not found or not\n"
+"                    applicable. Default is \"NA\"\n"
+"   -atr_delim ATR_DELIM: Delimiter string between attributes\n"
+"                         Default ATR_DELIM is the tab character.\n"
+"\n"
+"  === Options requiring dataset pairing at input ===\n"
+"    3dinfo allows you to make some comparisons between dataset pairs.\n"
+"    The comparison is always done in both directions whether or not\n"
+"    the answer can be different. For example:\n"
+"          3dinfo -same_grid dset1 dset2 \n"
+"    will output two values, one comparing dset1 to dset2 and the second\n"
+"    comparing dset2 to dset1. With -same_grid, the answers will always\n"
+"    be identical, but this might be different for other queries.\n"
+"    This behaviour allows you to mix options requiring dataset pairs\n"
+"    with those that do not. For example:\n"
+"          3dinfo -header_line -prefix -n4 -same_grid \\\n"
+"                              DSET1+orig DSET2.nii DSET3.nii DSET4.nii\n"
+"\n"
+"   -same_grid: Output 1 if the grid is identical between two dsets\n"
+"                      0 otherwise. \n"
+"               For -same_grid to be 1, all of -same_dim, -same_delta,\n"
+"               -same_orient, -same_center, and -same_obl must return 1\n"
+"   -same_dim: 1 if dimensions are the same between dset pairs\n"
+"   -same_delta: 1 if voxels sizes are the same between dset pairs\n"
+"   -same_orient: 1 if orientation is the same between dset pairs\n"
+"   -same_center: 1 if geometric center is the same between dset pairs\n"
+"   -same_obl: 1 if obliquity is the same between dset pairs\n"
+"   -same_all_grid: Equivalent to listing all of -same_dim -same_delta\n"
+"                   -same_orient, -same_center, and -same_obl on the \n"
+"                   command line.\n"
+"\n"
+" Examples with csh syntax using datasets in your afni binaries directory\n"
+"\n"
+"  0- First get some datasets with which we'll play\n"
+"     set dsets = ( `apsearch -all_afni_P_dsets` )\n"
+"\n"
+"  1- The classic\n"
+"     3dinfo $dsets[1]\n"
+"\n"
+"  2- Produce a table of results using 1-value-options for two datasets\n"
+"     3dinfo  -echo_edu -prefix_noext -prefix -space -ni -nj -nk -nt  \\\n"
+"               $dsets[1-2]\n"
+"\n"
+"  3- Use some of the options that operate on pairs, mix with other options\n"
+"     3dinfo -echo_edu -header_line -prefix -n4 -same_grid $dsets[1-4]\n"
+"\n"
+"\n"
    ) ;
    PRINT_COMPILE_DATE ; exit(0) ;
 }
+
+THD_3dim_dataset *load_3dinfo_dataset(char *name) 
+{
+   THD_3dim_dataset *dset = NULL;
+   
+   if( !name || name[0] == '\0' ) return(NULL);
+   dset = THD_open_dataset( name ) ;
+   
+   if( dset == NULL ){  /* open failed */
+
+       /* 23 Jan 2008: try again with +orig, +acpc, +tlrc appended */
+
+       if( strchr(name,'+')==NULL && strstr(name,".nii")==NULL ){
+         char str[THD_MAX_NAME] ; int vv , ll=strlen(name) ;
+         for( vv=0 ; vv <= LAST_VIEW_TYPE && dset == NULL ; vv++ ){
+           strcpy(str,name); if( str[ll-1] == '.' ) str[ll-1] = '\0';
+           strcat(str,"+") ; strcat(str,VIEW_codestr[vv]) ;
+           dset = THD_open_dataset(str) ;
+         }
+       }
+
+       if( dset == NULL ){  /* still not open? */
+         ERROR_message("Can't open dataset %s\n", name) ;
+       }
+   }
+   return(dset);
+}   
 
 typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI,
    IS_OBLIQUE, OBLIQUITY, PREFIX , PREFIX_NOEXT, 
    NI, NJ, NK, NT, NTI, NTIMES,
-   NV, NVI, NIJK,
+   NV, NVI, NIJK, 
+   N4,
+   DI, DJ, DK, D3,
+   ADI, ADJ, ADK, AD3,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST,
    FAC, DATUM, LABEL,
    MIN, MAX, MINUS, MAXUS,
    TR, HEADER_NAME, BRICK_NAME, ALL_NAMES,
-   HISTORY, 
+   HISTORY, ORIENT,
+   SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER, 
+   SAME_OBL, SAME_ALL_GRID,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
@@ -103,16 +186,21 @@ char Field_Names[][32]={
    {"is_oblique"}, {"obliquity"}, {"prefix"}, {"prefix_noext"}, 
    {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, 
    {"Nv"}, {"Nvi"}, {"Nijk"}, 
+   {"Ni_Nj_Nk_Nv"},
+   {"Di"}, {"Dj"}, {"Dk"}, {"Di_Dj_Dk"},
+   {"ADi"}, {"ADj"}, {"ADk"}, {"ADi_ADj_ADk"},
    {"label_table"}, {"LT_as_atlas_point_list"}, 
    {"factor"}, {"datum"}, {"label"}, 
    {"min"}, {"max"}, {"minus"}, {"maxus"},
    {"TR"}, {"header_name"}, {"brick_name"}, {"all_names"},
-   {"history"}, 
+   {"history"}, {"orient"},
+   {"same_grid"}, {"same_dim"}, {"same_delta"}, {"same_orient"}, {"same_center"},
+   {"same_obl"}, {"same_dim_delta_orient_center_obl"},
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
      
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset=NULL;
    int iarg , verbose = -1 ;
    char *outbuf, *stmp=NULL;
    char *labelName = NULL;
@@ -121,6 +209,8 @@ int main( int argc , char *argv[] )
    char *atrdelim = {"\t"};
    INFO_FIELDS sing[512]; 
    int iis=0, N_sing = 0, isb=0, withhead = 0;
+   int ip=0, needpair = 0;
+   THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
    
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
@@ -182,6 +272,34 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = NJ; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-nk") == 0) {
          sing[N_sing++] = NK; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-n4") == 0) {
+         sing[N_sing++] = NI; 
+         sing[N_sing++] = NJ; 
+         sing[N_sing++] = NK; 
+         sing[N_sing++] = NV; iarg++; 
+         continue;
+      } else if( strcasecmp(argv[iarg],"-di") == 0) {
+         sing[N_sing++] = DI; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-dj") == 0) {
+         sing[N_sing++] = DJ; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-dk") == 0) {
+         sing[N_sing++] = DK; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-d3") == 0) {
+         sing[N_sing++] = DI; 
+         sing[N_sing++] = DJ; 
+         sing[N_sing++] = DK; iarg++; 
+         continue;
+      } else if( strcasecmp(argv[iarg],"-adi") == 0) {
+         sing[N_sing++] = ADI; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-adj") == 0) {
+         sing[N_sing++] = ADJ; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-adk") == 0) {
+         sing[N_sing++] = ADK; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-ad3") == 0) {
+         sing[N_sing++] = ADI; 
+         sing[N_sing++] = ADJ; 
+         sing[N_sing++] = ADK; iarg++; 
+         continue;
       } else if( strcasecmp(argv[iarg],"-nt") == 0) {
          sing[N_sing++] = NT; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-nti") == 0) {
@@ -222,6 +340,26 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = HISTORY; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-all_names") == 0) {
          sing[N_sing++] = ALL_NAMES; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-orient") == 0) {
+         sing[N_sing++] = ORIENT; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-same_grid") == 0) {
+         sing[N_sing++] = SAME_GRID; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-same_dim") == 0) {
+         sing[N_sing++] = SAME_DIM; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-same_delta") == 0) {
+         sing[N_sing++] = SAME_DELTA; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-same_orient") == 0) {
+         sing[N_sing++] = SAME_ORIENT; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-same_center") == 0) {
+         sing[N_sing++] = SAME_CENTER; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-same_obl") == 0) {
+         sing[N_sing++] = SAME_OBL; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-same_all_grid") == 0) {
+         sing[N_sing++] = SAME_DIM;
+         sing[N_sing++] = SAME_DELTA;
+         sing[N_sing++] = SAME_ORIENT;
+         sing[N_sing++] = SAME_CENTER; 
+         sing[N_sing++] = SAME_OBL; needpair = 1; iarg++; continue;
       } else {
          ERROR_message("Option %s unknown", argv[iarg]);
          suggest_best_prog_option(argv[0], argv[iarg]);
@@ -255,29 +393,39 @@ int main( int argc , char *argv[] )
       ERROR_message("No dsets on command line? I have nothing to do.\n");
       exit(1);
    }
+
+   if (needpair && (argc-iarg) % 2) {
+      ERROR_message("Using options requiring dset pairs but have odd number\n"
+                    "of dsets (%d) on command line.\n", (argc-iarg));
+      exit (1);
+   }
+   ip = 0;
    for( ; iarg < argc ; iarg++ ){
 
      if( argv[iarg][0] == '\0' ) continue ;  /* bad filename */
      
      set_obliquity_report(0); /* silence obliquity */
-     dset = THD_open_dataset( argv[iarg] ) ;
-
-     if( dset == NULL ){  /* open failed */
-
-       /* 23 Jan 2008: try again with +orig, +acpc, +tlrc appended */
-
-       if( strchr(argv[iarg],'+')==NULL && strstr(argv[iarg],".nii")==NULL ){
-         char str[THD_MAX_NAME] ; int vv , ll=strlen(argv[iarg]) ;
-         for( vv=0 ; vv <= LAST_VIEW_TYPE && dset == NULL ; vv++ ){
-           strcpy(str,argv[iarg]); if( str[ll-1] == '.' ) str[ll-1] = '\0';
-           strcat(str,"+") ; strcat(str,VIEW_codestr[vv]) ;
-           dset = THD_open_dataset(str) ;
+     
+     if (!needpair) {
+      if (!(dset = load_3dinfo_dataset(argv[iarg] ))) exit(1);
+     } else { /* must have a pair at all times */
+      if (ip % 2 == 0) {
+         if (!(dset = load_3dinfo_dataset(argv[iarg] ))) exit(1);
+         if (iarg+1==argc || argv[iarg+1][0] == '\0') {
+            ERROR_message("Bad dset pair for %s\n", argv[iarg]);
+            exit(1);
          }
-       }
-
-       if( dset == NULL ){  /* still not open? */
-         ERROR_exit("Can't open dataset %s\n", argv[iarg]) ;
-       }
+         if (!(dsetp = load_3dinfo_dataset(argv[iarg+1] ))) exit(1);
+      } else { /* swap the pair - this allows non pair requiring functions 
+                  to work as before.*/
+         tttdset = dsetp;
+         dsetp = dset;
+         dset = tttdset; tttdset=NULL;
+      }
+      ++ip;
+     }
+     if (!dset) {
+         ERROR_exit("Should not get here");
      }
 
      for (iis = 0; iis < N_sing; ++iis) {
@@ -394,6 +542,24 @@ int main( int argc , char *argv[] )
          case NVI:
             fprintf(stdout,"%d", DSET_NVALS(dset)-1);
             break;
+         case DI:
+            fprintf(stdout,"%f", DSET_DX(dset));
+            break;
+         case DJ:
+            fprintf(stdout,"%f", DSET_DY(dset));
+            break;
+         case DK:
+            fprintf(stdout,"%f", DSET_DZ(dset));
+            break;
+         case ADI:
+            fprintf(stdout,"%f", fabs(DSET_DX(dset)));
+            break;
+         case ADJ:
+            fprintf(stdout,"%f", fabs(DSET_DY(dset)));
+            break;
+         case ADK:
+            fprintf(stdout,"%f", fabs(DSET_DZ(dset)));
+            break;
          case LTABLE:
             {
                char *str;
@@ -475,6 +641,36 @@ int main( int argc , char *argv[] )
             }
          case TR:
             fprintf(stdout,"%f", DSET_TR_SEC(dset));
+            break;
+         case ORIENT:
+            fprintf(stdout,"%c%c%c", 
+                  ORIENT_typestr[dset->daxes->xxorient][0],
+                  ORIENT_typestr[dset->daxes->yyorient][0],
+                  ORIENT_typestr[dset->daxes->zzorient][0]);
+            break;
+         case SAME_GRID:
+            fprintf(stdout,"%d",
+               !THD_dataset_mismatch( dset , dsetp ));
+            break;
+         case SAME_DIM:
+            fprintf(stdout,"%d",
+               !(THD_dataset_mismatch( dset , dsetp ) & MISMATCH_DIMEN));
+            break;
+         case SAME_DELTA:
+            fprintf(stdout,"%d",
+               !(THD_dataset_mismatch( dset , dsetp ) & MISMATCH_DELTA));
+            break;
+         case SAME_ORIENT:
+            fprintf(stdout,"%d",
+               !(THD_dataset_mismatch( dset , dsetp ) & MISMATCH_ORIENT));
+            break;
+         case SAME_CENTER:
+            fprintf(stdout,"%d",
+               !(THD_dataset_mismatch( dset , dsetp ) & MISMATCH_CENTER));
+            break;
+         case SAME_OBL:
+            fprintf(stdout,"%d",
+               !(THD_dataset_mismatch( dset , dsetp ) & MISMATCH_OBLIQ));
             break;
          default:
             ERROR_message("Info field not set properly (%d)\n", sing[iis]);

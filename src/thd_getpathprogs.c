@@ -39,6 +39,44 @@ ENTRY("THD_find_executable") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Find afni's bin directory if it exists.
+    If not, NULL is returned.  If it exists, a pointer to the path is returned.
+    Do free it with free()
+------------------------------------------------------------------------------*/
+char * THD_abindir (byte withslash) 
+{
+   char *afr = NULL, *af=NULL;
+   int  nn = 0, N_afni=strlen("afni");
+   THD_string_array *elist=NULL;
+   
+   if (!(elist = get_elist()) ||
+       !(af = THD_find_executable("afni"))) {
+      ERROR_message("Could not find afni, we're doomed daddy!");
+      RETURN(NULL);
+   }
+   
+   /* remove afni from the end to get the path */
+   nn = strlen(af);
+   if (strcmp(af+nn-N_afni,"afni")) {
+      ERROR_message("This should not be (%s)!", af+nn-N_afni);
+      RETURN(NULL);
+   }
+   
+   afr = strdup(af);
+   afr[strlen(af)-N_afni]='\0'; 
+   
+   /* remove slash */
+   while ( (nn=strlen(afr)-1) && afr[nn] == '/') 
+      afr[nn] = '\0';
+
+   if (withslash) {
+      nn=strlen(afr);
+      afr[nn] = '/'; afr[nn+1]='\0';
+   }
+   return(afr);
+}
+
+/*----------------------------------------------------------------------------*/
 /*! Find a regular file in the PATH by its name, if it exists.
     Does not include directories.
     If not, NULL is returned.
@@ -247,28 +285,19 @@ THD_string_array * THD_get_all_afni_executables(void )
 {
    THD_string_array *outar=NULL, *elist=NULL;
    char *af=NULL, *etr=NULL;
-   int N_af, N_afni=strlen("afni"), iaf=0, ii=0, smode, *isrt=NULL;
+   int N_af, iaf=0, ii=0, smode, *isrt=NULL;
    char scomm[256]={""};
    
    ENTRY("THD_get_all_afni_executables");
    
    if (!(elist = get_elist()) ||
-       !(af = THD_find_executable("afni"))) {
+       !(af = THD_abindir(1)) ) {
       ERROR_message("Could not find afni, we're doomed daddy!");
       RETURN(outar);
    }
    
-   /* remove afni from the end to get the path */
    N_af = strlen(af);
-   if (strcmp(af+N_af-N_afni,"afni")) {
-      ERROR_message("This should not be (%s)!", af+N_af-N_afni);
-      RETURN(outar);
-   }
-   af[strlen(af)-N_afni]='\0'; N_af = strlen(af);
-   if (af[N_af-1] != '/') {
-      af[N_af] = '/'; af[N_af+1] = '\0';
-      ++N_af;
-   }
+   
    /* Now get all executables under af */
    INIT_SARR( outar );
    for (ii=0, iaf=0; ii<elist->num ; ii++ ){
@@ -304,9 +333,12 @@ THD_string_array * THD_get_all_afni_executables(void )
       (int(*) (const void *, const void *))compare_string);
    
    if( SARR_NUM(outar) == 0 ) DESTROY_SARR(outar) ;
-
+   
+   if (af) free(af); af = NULL;
+   
    RETURN( outar );
 }
+
 /*! Get all readme files in directory where afni resides */
 THD_string_array * THD_get_all_afni_readmes(void )
 {
@@ -318,22 +350,13 @@ THD_string_array * THD_get_all_afni_readmes(void )
    ENTRY("THD_get_all_afni_readmes");
    
    if (!(elist = get_elist()) ||
-       !(af = THD_find_executable("afni"))) {
+       !(af = THD_abindir(1))) {
       ERROR_message("Could not find afni, we're doomed daddy!");
       RETURN(outar);
    }
    
    /* remove afni from the end to get the path */
    N_af = strlen(af);
-   if (strcmp(af+N_af-N_afni,"afni")) {
-      ERROR_message("This should not be (%s)!", af+N_af-N_afni);
-      RETURN(outar);
-   }
-   af[strlen(af)-N_afni]='\0'; N_af = strlen(af);
-   if (af[N_af-1] != '/') {
-      af[N_af] = '/'; af[N_af+1] = '\0';
-      ++N_af;
-   }
    
    elist = THD_get_all_files(af,'\0');
    
@@ -347,7 +370,7 @@ THD_string_array * THD_get_all_afni_readmes(void )
           !strncmp(key, etr, N_key)
               )  {
          ADDTO_SARR( outar , elist->ar[ii] ) ; ++iaf;
-         /* fprintf(stderr," %d- %s\n", iaf, etr); */
+         /* fprintf(stderr," %d- %s (%s)\n", iaf, elist->ar[ii], etr); */ 
       } else {
          /* fprintf(stderr," skip %s (%s)\n", elist->ar[ii], af); */ 
       }
@@ -357,19 +380,63 @@ THD_string_array * THD_get_all_afni_readmes(void )
       (int(*) (const void *, const void *))compare_string);
    
    if( SARR_NUM(outar) == 0 ) DESTROY_SARR(outar) ;
-
+   if (af) free(af); af = NULL;
    RETURN( outar );
 }
 
-int list_afni_programs(int withnum) {
-   return(list_afni_files(0, withnum));
+/*! get all 3D datasets in directory where afni resides */
+THD_string_array * THD_get_all_afni_dsets(void )
+{
+   THD_string_array *outar=NULL, *elist=NULL;
+   char *af=NULL, *etr=NULL;
+   int N_af, N_afni=strlen("afni"), iaf=0, ii=0, smode, *isrt=NULL;
+   char scomm[256]={""};
+   
+   ENTRY("THD_get_all_afni_dsets");
+   
+   if (!(elist = get_elist()) ||
+       !(af = THD_abindir(1))) {
+      ERROR_message("Could not find afni, we're doomed daddy!");
+      RETURN(outar);
+   }
+   
+   N_af = strlen(af);
+
+   elist = THD_get_all_files(af,'\0');
+   
+   /* Now get all dsets under af */
+   INIT_SARR( outar );
+   for (ii=0, iaf=0; ii<elist->num ; ii++ ){
+      smode = storage_mode_from_filename(elist->ar[ii]);
+      etr = THD_trailname( elist->ar[ii] , 0 ) ; 
+      if (
+          !THD_is_directory(elist->ar[ii]) &&
+          !strncmp(af, elist->ar[ii], N_af) &&
+          (smode > STORAGE_UNDEFINED && smode < LAST_STORAGE_MODE) &&
+          (smode != STORAGE_BY_BRICK ||  /* don't want the .BRICK, just .HEAD */
+               STRING_HAS_SUFFIX(elist->ar[ii], ".HEAD")) &&
+          (smode != STORAGE_BY_NIFTI ||        /* don't want the .img */
+               !STRING_HAS_SUFFIX(elist->ar[ii], ".img")) &&
+          strcmp(etr,"AFNI_atlas_spaces.niml")
+              )  {
+         ADDTO_SARR( outar , elist->ar[ii] ) ; ++iaf;
+         /*fprintf(stderr," %d- %s smode %d[%d]%d\n", iaf, etr,
+                        STORAGE_UNDEFINED, smode, LAST_STORAGE_MODE); */
+      } else {
+         /*fprintf(stderr," skip %s (%s) smode %d[%d]%d\n", 
+            elist->ar[ii], af, STORAGE_UNDEFINED, smode, LAST_STORAGE_MODE); */ 
+      }
+   } 
+   
+   qsort(outar->ar, outar->num, sizeof(char*), 
+      (int(*) (const void *, const void *))compare_string);
+   
+   if( SARR_NUM(outar) == 0 ) DESTROY_SARR(outar) ;
+   if (af) free(af); af = NULL;
+   RETURN( outar );
 }
 
-int list_afni_readmes(int withnum) {
-   return(list_afni_files(1, withnum));
-}
-
-int list_afni_files(int type, int withnum)
+int list_afni_files(int type, int withpath, int withnum)
 {
    int nprogs=0, ii=0;
    char *etr=NULL, s[12];
@@ -388,6 +455,12 @@ int list_afni_files(int type, int withnum)
             RETURN(0);
          }
          break;
+      case 2:
+         if (!(progs = THD_get_all_afni_dsets())) {
+            ERROR_message("Cannot get list of dsets");
+            RETURN(0);
+         }
+         break;
       default:
          ERROR_message("Whatchyoutalkinboutwillis?");
          RETURN(0);
@@ -395,7 +468,8 @@ int list_afni_files(int type, int withnum)
    }
    
    for (ii=0; ii<progs->num ; ii++ ){
-      etr = THD_trailname( progs->ar[ii] , 0 ) ;
+      if (withpath) etr = progs->ar[ii];
+      else etr = THD_trailname( progs->ar[ii] , 0 ) ;
       if (withnum) {
          sprintf(s,"%d", ii);
          fprintf(stdout,"  %3s.   %s\n", s, etr);
@@ -409,3 +483,16 @@ int list_afni_files(int type, int withnum)
    
    return(nprogs);
 }
+
+int list_afni_programs(int withpath, int withnum) {
+   return(list_afni_files(0, withpath, withnum));
+}
+
+int list_afni_readmes(int withpath, int withnum) {
+   return(list_afni_files(1, withpath, withnum));
+}
+
+int list_afni_dsets(int withpath, int withnum) {
+   return(list_afni_files(2, withpath, withnum));
+}
+
