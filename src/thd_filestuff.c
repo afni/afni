@@ -149,11 +149,12 @@ char *THD_filetime( char *pathname )
    return (sout[icall]) ;
 }
 
-char *THD_homedir(void)
+char *THD_homedir(byte withslash)
 {
-   static char sout[3][512]; 
+   static char sout[3][520]; 
    static int icall=0;
    char *home=NULL;
+   int nn=0;
    struct passwd *pw = NULL;
    
    ++icall; if (icall>2) icall=0;
@@ -170,13 +171,23 @@ char *THD_homedir(void)
       } else {
          sprintf(sout[icall], "%s", home);
       }
-   } 
+   }
+   
+   /* remove slash */
+   while ( (nn=strlen(sout[icall])-1) && sout[icall][nn] == '/') 
+      sout[icall][nn] = '\0';
+   
+   if (withslash) {
+      nn=strlen(sout[icall]);
+      sout[icall][nn] = '/'; sout[icall][nn+1] = '\0';
+   }  
+   
    return (sout[icall]) ;
 }
 
-char *THD_helpdir(void)
+char *THD_helpdir(byte withslash)
 {
-   static char sout[3][600]; 
+   static char sout[3][610]; 
    static int icall=0;
    char *home=NULL;
    
@@ -184,10 +195,11 @@ char *THD_helpdir(void)
    
    sout[icall][0]='\0';
    
-   home = THD_homedir();
+   home = THD_homedir(0);
    if (home[0]=='\0') return(sout[icall]); 
    
-   snprintf(sout[icall],599*sizeof(char),"%s/.afni/help",home);
+   if (withslash) snprintf(sout[icall],600*sizeof(char),"%s/.afni/help/",home);
+   else snprintf(sout[icall],599*sizeof(char),"%s/.afni/help",home);
     
    return (sout[icall]) ;
 }
@@ -197,12 +209,12 @@ char *THD_helpsearchlog(int createpath)
    static int bad = 0;
    static char shelpname[256]={""};
    
-   if (!bad && createpath && !THD_mkdir(THD_helpdir())) {
-      ERROR_message("Cannot create %s help directory\n", THD_helpdir());
+   if (!bad && createpath && !THD_mkdir(THD_helpdir(0))) {
+      ERROR_message("Cannot create %s help directory\n", THD_helpdir(0));
       bad = 1;
    }
    snprintf(shelpname,255*sizeof(char),
-                      "%s/aps.log.txt",THD_helpdir());
+                      "%s/aps.log.txt",THD_helpdir(0));
    return(shelpname);
 }
 

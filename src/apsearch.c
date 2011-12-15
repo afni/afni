@@ -32,7 +32,7 @@ int update_help_for_afni_programs(int force_recreate,
       RETURN(0);   
    }
    
-   hdir = THD_helpdir();
+   hdir = THD_helpdir(0);
    if (hdir[0] == '\0') {
       ERROR_message("Have no help directory\n");
       RETURN(0);
@@ -157,13 +157,19 @@ void apsearch_usage(int detail)
    "  -show_score: Show matching word's distance.\n"
    "  -show_score_detail: That's right.\n"
    "  -all_afni_progs: List all executables in AFNI's bin directory\n"
+   "  -all_afni_P_progs: Same as -all_afni_progs but with path\n"
    "  -all_afni_readmes: List all README files in AFNI's bin directory\n"
+   "  -all_afni_P_readmes: Same as -all_afni_readmes but with path\n"
+   "  -all_afni_dsets: List all datasets in AFNI's bin directory\n"
+   "  -all_afni_P_dsets: Same as -all_afni_dsets but with path\n"
    "  -all_afni_help: Build/update -help output under directory:\n"
    "                     %s\n"
    "                  If older help files differ by little they are deleted\n"
    "                  Little differences would be the compile date or the\n"
    "                  version number. See @clean_help_dir code for details.\n"
    "  -afni_help_dir: Print afni help directory location and quit.\n"
+   "  -afni_bin_dir: Print afni's binaries directory location and quit.\n"
+   "  -afni_home_dir: Print afni's home directory and quit.\n"
    "  -afni_text_editor: Print the name of the GUI editor. Priority goes to \n"
    "                     env. variable AFNI_GUI_EDITOR, otherwise afni\n"
    "                     will try to find something suitable.\n"
@@ -223,7 +229,7 @@ void apsearch_usage(int detail)
    "Global Options:\n"
    "===============\n"
    "%s", 
-   THD_helpdir(),
+   THD_helpdir(0),
    detail > 1 ? get_gopt_help():""); 
    PRINT_COMPILE_DATE ;
    }
@@ -305,7 +311,17 @@ int main(int argc, char **argv)
       }
 
       if (strcmp(argv[iarg],"-afni_help_dir") == 0) { 
-         fprintf(stdout,"%s\n", THD_helpdir());
+         fprintf(stdout,"%s\n", THD_helpdir(0));
+         return(0);
+      }
+
+      if (strcmp(argv[iarg],"-afni_home_dir") == 0) { 
+         fprintf(stdout,"%s\n", THD_homedir(0));
+         return(0);
+      }
+
+      if (strcmp(argv[iarg],"-afni_bin_dir") == 0) { 
+         fprintf(stdout,"%s\n", THD_abindir(0));
          return(0);
       }
       
@@ -465,13 +481,37 @@ int main(int argc, char **argv)
       }
 
       if (strcmp(argv[iarg],"-all_afni_progs") == 0) { 
-         list_afni_programs(0); return(0);
+         list_afni_programs(0, 0); return(0);
+         ++iarg;
+         continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-all_afni_P_progs") == 0) { 
+         list_afni_programs(1, 0); return(0);
          ++iarg;
          continue; 
       }
       
       if (strcmp(argv[iarg],"-all_afni_readmes") == 0) { 
-         list_afni_readmes(0); return(0);
+         list_afni_readmes(0, 0); return(0);
+         ++iarg;
+         continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-all_afni_P_readmes") == 0) { 
+         list_afni_readmes(1, 0); return(0);
+         ++iarg;
+         continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-all_afni_dsets") == 0) { 
+         list_afni_dsets(0, 0); return(0);
+         ++iarg;
+         continue; 
+      }
+
+      if (strcmp(argv[iarg],"-all_afni_P_dsets") == 0) { 
+         list_afni_dsets(1, 0); return(0);
          ++iarg;
          continue; 
       }

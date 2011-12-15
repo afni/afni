@@ -4163,7 +4163,7 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname)
       static char hout[128]={""};
       char scomm[256], *etr=NULL, *hdir=NULL, *etm=NULL;
       
-      hdir = THD_helpdir();
+      hdir = THD_helpdir(0);
       if (hdir[0] == '\0') {
          ERROR_message("Have no help directory\n");
          RETURN(hout);

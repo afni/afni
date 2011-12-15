@@ -12,41 +12,45 @@
 
      SARR_find_string: return index of string in the array
      SARR_find_substring: return index of string that has substring in it
-
+     ci : if 1 then search is case instensitive
    If these return value < 0, string or substring not found!
 ----------------------------------------------------------------*/
 
-int SARR_find_string( THD_string_array * sar , char * str )
+int SARR_find_string( THD_string_array * sar , char * str, byte ci )
 {
-   return SARR_lookfor_string( sar , str , 0 ) ;
+   return SARR_lookfor_string( sar , str , 0 , ci) ;
 }
 
-int SARR_find_substring( THD_string_array * sar , char * str )
+int SARR_find_substring( THD_string_array * sar , char * str, byte ci )
 {
-   return SARR_lookfor_substring( sar , str , 0 ) ;
+   return SARR_lookfor_substring( sar , str , 0 , ci) ;
 }
 
-int SARR_lookfor_string( THD_string_array * sar , char * str , int nstart )
+int SARR_lookfor_string( THD_string_array * sar , char * str , 
+                         int nstart , byte ci )
 {
    int ii ;
 
    if( sar == NULL || str == NULL ) return -1 ;
 
    for( ii=nstart ; ii < sar->num ; ii++ ){
-      if( sar->ar[ii] != NULL && strcmp(sar->ar[ii],str) == 0 )
+      if( sar->ar[ii] != NULL && 
+          ( (ci && !strcasecmp(sar->ar[ii],str)) || !strcmp(sar->ar[ii],str) ) )
          return ii ;
    }
    return -1 ;
 }
 
-int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nstart )
+int SARR_lookfor_substring( THD_string_array * sar , char * sub , 
+                            int nstart , byte ci )
 {
    int ii ;
 
    if( sar == NULL || sub == NULL ) return -1 ;
 
    for( ii=nstart ; ii < sar->num ; ii++ ){
-      if( sar->ar[ii] != NULL && strstr(sar->ar[ii],sub) != NULL )
+      if( sar->ar[ii] != NULL && 
+          ( (ci && strcasestr(sar->ar[ii],sub)) || strstr(sar->ar[ii],sub) ) )
          return ii ;
    }
    return -1 ;
@@ -293,7 +297,7 @@ ENTRY("THD_normalize_flist") ;
       if( rp != NULL ){
          nleft++ ; jj = ii ;
          while( jj >= 0 ){
-            jj = SARR_lookfor_string( star_out , rp , jj+1 ) ;
+            jj = SARR_lookfor_string( star_out , rp , jj+1 , 0) ;
             if( jj >= 0 ) REMOVEFROM_SARR(star_out,jj) ;
          }
 
