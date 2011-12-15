@@ -77,7 +77,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd        \
            3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
            3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive        \
-           nifti_tool 3dAllineate nifti1_test whereami plugout_drive            \
+           nifti_tool 3dAllineate nifti1_test whereami plugout_drive 3dLSS      \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
