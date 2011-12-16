@@ -840,6 +840,8 @@ void display_help_menu(int detail)
    "  parameters b, and can (as mentioned above) do deconvolution.          \n"
    "* 3dBandpass can do a sequence of 'time series cleanup' operations,     \n"
    "  including regressing out (via OLSQ) a set of nuisance vectors.        \n"
+   "* 3dLSS can be used to solve -stim_times_IM systems using an alternative\n"
+   "  linear technique that gives biased results, but with smaller variance.\n"
    "------------------------------------------------------------------------\n"
   ) ;
   printf("\n"
