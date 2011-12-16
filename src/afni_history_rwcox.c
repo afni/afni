@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 15 , DEC , 2011 , RWC , "3dLSS" , MICRO , TYPE_NEW_PROG ,
+  { 16 , DEC , 2011 , RWC , "3dLSS" , MICRO , TYPE_GENERAL ,
+   "Added -nodata option, and fleshed out the help with an example." ,
+   NULL } ,
+
+ { 15 , DEC , 2011 , RWC , "3dLSS" , MICRO , TYPE_NEW_PROG ,
    "3dLSS implement LS-S regression" ,
    "As described in Mumford, Turner, Asby, and Poldrack, NeuroImage 2011. \n"
    "See 3dLSS -help for more info." } ,
