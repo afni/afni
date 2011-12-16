@@ -192,19 +192,26 @@ void LSS_help(void)
      "  **   designs for multivoxel pattern classification analyses.              **\n"
      "  **   NeuroImage (2011) http://dx.doi.org/10.1016/j.neuroimage.2011.08.076 **\n"
      "\n"
-     "-------------------------------------\n"
-     "Options (the first two are mandatory)\n"
-     "-------------------------------------\n"
-     " -input ddd  = Read time series dataset 'ddd'\n"
-     "\n"
+     "----------------------------------------\n"
+     "Options (the first 'option' is mandatory)\n"
+     "----------------------------------------\n"
      " -matrix mmm = Read the matrix 'mmm', which should have been\n"
      "                output from 3dDeconvolve via the '-x1D' option, and\n"
      "                should have included exactly one '-stim_times_IM' option.\n"
+     "\n"
+     " -input ddd  = Read time series dataset 'ddd'\n"
+     "   ** OR **\n"
+     " -nodata     = Just compute the estimator matrix -- to be saved with '-save1D'.\n"
+     "               * The number of time points are taken from the matrix header.\n"
+     "               * If neither '-input' nor '-nodata' is given, '-nodata' is used.\n"
+     "               * If '-input' is used, the number of time points in the dataset\n"
+     "                 must match the number of time points in the matrix.\n"
      "\n"
      " -mask kkk   = Read dataset 'kkk' as a mask for the input; voxels outside\n"
      "                the mask will not be fit by the regression model.\n"
      " -automask   = If you don't know what this does by now, please don't use\n"
      "                this program.\n"
+     "               * Neither of these options has any meaning for '-nodata'.\n"
      "\n"
      " -prefix ppp = Prefix name for the output dataset;\n"
      "                this dataset will contain ONLY the LSS estimates of the\n"
@@ -219,25 +226,70 @@ void LSS_help(void)
      "                one estimator vector, the same length as the input\n"
      "                dataset timeseries (after censoring, if any).\n"
      "               * If you don't use '-save1D', then this file is not saved.\n"
-     "------\n"
-     "Method\n"
-     "------\n"
+     "\n"
+     " -verb       = Write out progress reports.\n"
+     "\n"
+     "------------------\n"
+     "Method == BRAGGING\n"
+     "------------------\n"
      " 3dLSS is fast since it uses a rank-1 bordering technique to pre-compute\n"
      " the estimator for each separate stimulus regressor from the fixed part of\n"
      " the matrix, then applies these estimators to each time series in the input\n"
      " dataset by a simple dot product.  For the equations, contact the author.\n"
      "\n"
-     "-------\n"
-     "Caveats\n"
-     "-------\n"
+     "--------------------\n"
+     "Caveats == READ THIS\n"
+     "--------------------\n"
      " The LSS method produces estimates that tend to have smaller variance than the\n"
      " LSA method that 3dDeconvolve would produce, but the LSS estimates have greater\n"
-     " bias.  For the purpose of using the beta estimates for MVPA (e.g., via 3dSVM),\n"
+     " bias -- in principle, the LSA method is unbiased if the noise is symmetrically\n"
+     " distributed.  For the purpose of using the beta estimates for MVPA (e.g., 3dSVM),\n"
      " the bias may not matter much and the variance reduction may help improve the\n"
      " classification.  For other purposes, the trade-off might well go the other\n"
      " way -- for ANY application of LSS vs. LSA, you need to assess the situation\n"
      " before deciding -- probably by the judicious use of simulation (as in the\n"
      " Mumford et al. paper cited supra).\n"
+     "\n"
+     " The bias in the estimate of any given beta is essentially due to the fact\n"
+     " that for any given beta, LSS doesn't use an estimator vector that is orthogonal\n"
+     " to the regressors for other coefficients -- that is what LSA does, using the\n"
+     " pseudo-inverse.  Typically, any given LSS-estimated beta will include a mixture\n"
+     " of the betas from neighboring stimuli -- for example,\n"
+     "    beta8{LSS} = beta8{LSA} + 0.3*beta7{LSA} + 0.1*beta9{LSA} + smaller stuff\n"
+     " where the weights of the neighbors are larger if the corresponding stimuli\n"
+     " are closer (so the regressors overlap more).\n"
+     "\n"
+     " The LSS betas are not biased by including any betas NOT from the -stim_times_IM\n"
+     " regressors -- the LSS estimator vectors (what '-save1D' writes out) are\n"
+     " orthogonal to those 'nuisance' regression matrix columns.\n"
+     "\n"
+     " To investigate these weighting and orthogonality issues yourself, you can\n"
+     " multiply the LSS estimator vectors into the 3dDeconvolve regression matrix\n"
+     " and examine the result -- in the ideal world, the matrix would be all 0\n"
+     " except for 1s on diagonal corresponding to the -stim_times_IM betas.  This\n"
+     " calculation can be done in AFNI with commands something like the 'toy' example\n"
+     " below:\n"
+     "\n"
+     "  3dDeconvolve -nodata 50 1.0 -polort 1 -x1D R.xmat.1D -x1D_stop -num_stimts 1 \\\n"
+     "               -stim_times_IM 1 '1D: 12.7 16.6 20.1 26.9 30.5 36.5' 'BLOCK(0.5,1)'\n"
+     "  3dLSS -verb -nodata -matrix R.xmat.1D -save1D R.LSS.1D\n"
+     "  1dmatcalc '&read(R.xmat.1D) &transp &read(R.LSS.1D) &mult &write(R.mult.1D)'\n"
+     "  1dplot R.mult,1D &\n"
+     "  1dgrayplot R.mult.1D &\n"
+     "\n"
+     " * 1dmatcalc is used to multiply the '-save1D' matrix into the regression matrix.\n"
+     " * 1dplot and 1dgrayplot are used to display the results.\n"
+     " * The j-th column in the R.mult.1D file is the set of weights of the true betas\n"
+     "   that influence the estimated j-th LSS beta.\n"
+     " * Note that the 4th and 5th stimuli are close in time (3.6 s), and that the\n"
+     "   result is that the LSS estimator for the 4th and 5th beta weights mix up\n"
+     "   the 'true' 4th and 5th betas.  For example, looking at the 4th column\n"
+     "   of R.mult.1D, we see that\n"
+     "      beta4{LSS} = beta4{LSA} + 0.33*beta5{LSA} - 0.27*beta6{LSA} + small stuff\n"
+     " * The sum of each column of R.mult.1D is 1 (e.g., run '1dsum R.mult.1D'),\n"
+     "   and the diagonal elements are also 1, showing that the j-th LSS beta is\n"
+     "   equal to the j-th LSA beta plus a weighted sum of the other LSA betas, where\n"
+     "   those other weights add up to zero.\n"
      "\n"
      "--------------------------------------------------------------------------\n"
      "-- RWCox - Dec 2011 - Compute fast, abend early, leave a pretty dataset --\n"
@@ -262,6 +314,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *imX, *imA, *imC, *imS ; float *Xar, *Sar ; MRI_IMARR *imar ;
    int nS ; float *ss , *oo , *fv , sum ; int nvec , iv ;
    int nbstim , nst=0 , jst_bot,jst_top ; char *stlab="LSS" ;
+   int nodata=1 ;
 
    /*--- help me if you can ---*/
 
@@ -316,6 +369,12 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /**==========   -nodata  ===========**/
+
+     if( strcasecmp(argv[iarg],"-nodata") == 0 ){
+       nodata = 1 ; iarg++ ; continue ;
+     }
+
      /**==========   -input  ==========**/
 
      if( strcasecmp(argv[iarg],"-input") == 0 ){
@@ -323,7 +382,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        inset = THD_open_dataset( argv[iarg] ) ;
        CHECK_OPEN_ERROR(inset,argv[iarg]) ;
-       iarg++ ; continue ;
+       nodata = 0 ; iarg++ ; continue ;
      }
 
      /**==========   -prefix  =========**/
@@ -356,12 +415,17 @@ int main( int argc , char *argv[] )
 
    /*----- check for errors -----*/
 
-   if( inset  == NULL ){ ERROR_message("No -input dataset?!") ; nerr++ ; }
    if( nelmat == NULL ){ ERROR_message("No -matrix option!?") ; nerr++ ; }
    if( nerr > 0 ) ERROR_exit("Can't continue without these inputs!") ;
 
-   nvals = DSET_NVALS(inset) ; nvox = DSET_NVOX(inset) ;
-   nx = DSET_NX(inset) ; ny = DSET_NY(inset) ; nz = DSET_NZ(inset) ;
+   if( inset != NULL ){
+     nvals = DSET_NVALS(inset) ; nvox = DSET_NVOX(inset) ;
+     nx = DSET_NX(inset) ; ny = DSET_NY(inset) ; nz = DSET_NZ(inset) ;
+   } else {
+     automask = nvals = 0 ;
+     nvox = nx = ny = nz = nodata = 1 ;  /* nodata */
+     mask = NULL ;
+   }
 
    /*----- masque -----*/
 
@@ -379,7 +443,7 @@ int main( int argc , char *argv[] )
                     nmask, nvox, (100.0f*nmask)/nvox ) ;
      if( nmask < 1 ) ERROR_exit("Automask is too small to process") ;
 
-   } else {                /* create a 'mask' for all voxels */
+   } else if( !nodata ) {       /* create a 'mask' for all voxels */
      if( verb )
        INFO_message("No mask ==> computing for all %d voxels",nvox) ;
      mask = (byte *)malloc(sizeof(byte)*nvox) ; nmask = nvox ;
@@ -401,9 +465,12 @@ int main( int argc , char *argv[] )
    cgl = NI_get_attribute( nelmat , "NRowFull" ) ;
    if( cgl == NULL ) ERROR_exit("Matrix is missing 'NRowFull' attribute!") ;
    nfull = (int)strtod(cgl,NULL) ;
-   if( nvals != nfull )
+   if( nodata ){
+     nvals = nfull ;
+   } else if( nvals != nfull ){
      ERROR_exit("-input dataset has %d time points, but matrix indicates %d",
                 nvals , nfull ) ;
+   }
 
    /*--- the goodlist = mapping from matrix row index to time index
                         (which allows for possible time point censoring) ---*/
@@ -416,6 +483,8 @@ int main( int argc , char *argv[] )
    Ngoodlist = giar->num ; goodlist = giar->ar ;
    if( Ngoodlist != ntime )
      ERROR_exit("Matrix 'GoodList' incorrect length?!") ;
+   else if( verb > 1 && Ngoodlist < nfull )
+     ININFO_message("censoring reduces time series length from %d to %d",nfull,Ngoodlist) ;
 
    /*--- extract the matrix from the NIML element ---*/
 
@@ -490,10 +559,12 @@ int main( int argc , char *argv[] )
    if( save1D != NULL ){
      mri_write_1D( save1D , imS ) ;
      if( verb ) ININFO_message("saved LSS vectors into file %s",save1D) ;
+   } else if( nodata ){
+     WARNING_message("-nodata used but -save1D not used ==> you get no output!") ;
    }
 
-   if( strcmp(prefix,"NULL") == 0 ){
-     INFO_message("3dLSS ends since prefix is 'NULL'") ;
+   if( nodata || strcmp(prefix,"NULL") == 0 ){
+     INFO_message("3dLSS ends since prefix is 'NULL' or -nodata was used") ;
      exit(0) ;
    }
 
