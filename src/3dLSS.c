@@ -279,7 +279,7 @@ void LSS_help(void)
      "               -stim_times_IM 1 '1D: 12.7 16.6 20.1 26.9 30.5 36.5' 'BLOCK(0.5,1)'\n"
      "  3dLSS -verb -nodata -matrix R.xmat.1D -save1D R.LSS.1D\n"
      "  1dmatcalc '&read(R.xmat.1D) &transp &read(R.LSS.1D) &mult &write(R.mult.1D)'\n"
-     "  1dplot R.mult,1D &\n"
+     "  1dplot R.mult.1D &\n"
      "  1dgrayplot R.mult.1D &\n"
      "\n"
      " * 1dmatcalc is used to multiply the '-save1D' matrix into the regression matrix.\n"
