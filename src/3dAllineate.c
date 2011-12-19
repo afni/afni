@@ -3098,7 +3098,7 @@ int main( int argc , char *argv[] )
      if( twodim_code < 1 || twodim_code > 3 )
        ERROR_exit("2D image: orientation is %s",tnam) ;
      else if( verb )
-       ININFO_message("2D image: orientation is %s",tnam) ;
+       ININFO_message("2D image registration: orientation is %s",tnam) ;
 
      if( nwarp_pass ){ nwarp_fixaff = nwarp_fixmotK = nwarp_fixdepK = 1 ; }
    }
