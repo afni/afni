@@ -782,7 +782,7 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
    /* 30 July 1999: check float sub-brick for errors? */
    /* 14 Sep  1999: also check complex sub-bricks!    */
 
-   if( floatscan  && 
+   if( floatscan  &&
       (( DBLK_BRICK_TYPE(blk,0) == MRI_float )  ||
        ( DBLK_BRICK_TYPE(blk,0) == MRI_complex ))){
       int nerr=0 ;
@@ -1084,7 +1084,11 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
 void THD_patch_brickim( THD_3dim_dataset *dset )
 {
    float dx,dy,dz , dm ;
-   int iv , nvals ;
+   int iv , nvals , nfix=0 ;
+   static char *cfix[8] = { NULL ,
+                            "x-axis" , "y-axis"      , "x- & y-axes" ,
+                            "z-axis" , "x- & z-axes" , "y- & z-axes" ,
+                            "x- & y- & z-axes" } ;
 
 ENTRY("THD_patch_brickim") ;
 
@@ -1095,10 +1099,14 @@ ENTRY("THD_patch_brickim") ;
    dz = fabsf(DSET_DZ(dset)) ;
    dm = dx + dy + dz ;
    dm = (dm == 0.0f) ? 1.0f : dm*0.3333333f ;
-   
-   if( dx == 0.0f ) dx = dset->daxes->xxdel = dm ;
-   if( dy == 0.0f ) dy = dset->daxes->yydel = dm ;
-   if( dz == 0.0f ) dz = dset->daxes->zzdel = dm ;
+
+   if( dx == 0.0f ){ dx = dset->daxes->xxdel = dm ; nfix += 1 ; }
+   if( dy == 0.0f ){ dy = dset->daxes->yydel = dm ; nfix += 2 ; }
+   if( dz == 0.0f ){ dz = dset->daxes->zzdel = dm ; nfix += 4 ; }
+
+   if( nfix > 0 )
+     WARNING_message("Dataset %s : patched zero grid spacing along %s to %g",
+                     DSET_HEADNAME(dset) , cfix[nfix] , dm ) ;
 
    nvals = DSET_NVALS(dset) ;
    for( iv=0 ; iv < nvals ; iv++ ){
