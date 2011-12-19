@@ -252,7 +252,7 @@ void LSS_help(void)
      " The LSS method produces estimates that tend to have smaller variance than the\n"
      " LSA method that 3dDeconvolve would produce, but the LSS estimates have greater\n"
      " bias -- in principle, the LSA method is unbiased if the noise is symmetrically\n"
-     " distributed.  For the purpose of using the beta estimates for MVPA (e.g., 3dSVM),\n"
+     " distributed.  For the purpose of using the beta estimates for MVPA (e.g., 3dsvm),\n"
      " the bias may not matter much and the variance reduction may help improve the\n"
      " classification, as illustrated in the Mumford paper.  For other purposes, the\n"
      " trade-off might well go the other way -- for ANY application of LSS vs. LSA,\n"
