@@ -1078,20 +1078,27 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
 
 /*----------------------------------------------------------------------*/
 /*! Set dx,dy,dz fields for MRI_IMAGEs in a dataset.
+    [19 Dec 2011] Also patch the dataset grid spacing if it is 0.
 ------------------------------------------------------------------------*/
 
 void THD_patch_brickim( THD_3dim_dataset *dset )
 {
-   float dx,dy,dz ;
+   float dx,dy,dz , dm ;
    int iv , nvals ;
 
-ENTRY("THD_patch_dxyz") ;
+ENTRY("THD_patch_brickim") ;
 
    if( !ISVALID_DSET(dset) ) EXRETURN ;
 
-   dx = fabs(DSET_DX(dset)) ; if( dx == 0.0f ) dx = 1.0f ;
-   dy = fabs(DSET_DY(dset)) ; if( dy == 0.0f ) dy = 1.0f ;
-   dz = fabs(DSET_DZ(dset)) ; if( dz == 0.0f ) dz = 1.0f ;
+   dx = fabsf(DSET_DX(dset)) ;
+   dy = fabsf(DSET_DY(dset)) ;
+   dz = fabsf(DSET_DZ(dset)) ;
+   dm = dx + dy + dz ;
+   dm = (dm == 0.0f) ? 1.0f : dm*0.3333333f ;
+   
+   if( dx == 0.0f ) dx = dset->daxes->xxdel = dm ;
+   if( dy == 0.0f ) dy = dset->daxes->yydel = dm ;
+   if( dz == 0.0f ) dz = dset->daxes->zzdel = dm ;
 
    nvals = DSET_NVALS(dset) ;
    for( iv=0 ; iv < nvals ; iv++ ){
