@@ -23,20 +23,20 @@ void THD_allow_empty_dataset( int n ){ allow_nodata = n ; }
 extern int Matvec_2_WarpData(ATR_float  *atr_flo, THD_affine_warp *ww, float *wdv);
 extern int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt);
 
-void *DSET_Label_Dtable(THD_3dim_dataset *dset) 
+void *DSET_Label_Dtable(THD_3dim_dataset *dset)
 {
    ATR_string *atr_str = NULL;
-   
+
    if (!dset) return(NULL);
    if (dset->Label_Dtable) return(dset->Label_Dtable);
-   
+
    atr_str = THD_find_string_atr( dset->dblk , "VALUE_LABEL_DTABLE" ) ;
    if (atr_str) {
       dset->Label_Dtable = (void *)Dtable_from_nimlstring(atr_str->ch);
    } else {
       dset->Label_Dtable = NULL;
    }
-   
+
    return(dset->Label_Dtable);
 }
 /*-------------------------------------------------------------------*/
@@ -482,10 +482,10 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
          } /* end of switch on warp type */
       } /* end of if on legal warp data */
-   } /* end of if on warp existing */   else { /* But perhaps there is a 
+   } /* end of if on warp existing */   else { /* But perhaps there is a
                         little something from auto talairaching ZSS, June 06 */
       if (dset->view_type == VIEW_TALAIRACH_TYPE) { /* something to do */
-         atr_flo = THD_find_float_atr( blk , ATRNAME_WARP_DATA_3DWD_AF ) ; 
+         atr_flo = THD_find_float_atr( blk , ATRNAME_WARP_DATA_3DWD_AF ) ;
          if ( atr_flo == NULL ){
             /* A tlrc set with no transform. No problem */
          } else {
@@ -734,9 +734,9 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
      THD_write_3dim_dataset( NULL , NULL , dset , False ) ;
    }
 #endif
-   
+
    /* Create label table struct if attribute is present in header*/
    dset->Label_Dtable = DSET_Label_Dtable(dset);
-   
-   RETURN( dset );
+
+   THD_patch_brickim(dset) ; RETURN(dset);
 }
