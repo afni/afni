@@ -35,7 +35,7 @@ int THD_datum_constant( THD_datablock *blk )
 
 /*---------------------------------------------------------------*/
 /*! Return a float representation of a given voxel. [15 Sep 2004]
------------------------------------------------------------------*/
+*//*-------------------------------------------------------------*/
 
 float THD_get_voxel( THD_3dim_dataset *dset , int ijk , int ival )
 {
@@ -820,7 +820,7 @@ fprintf(stderr,"master_bot=%g master_top=%g\n",blk->master_bot,blk->master_top) 
 /*----------------------------------------------------------------------------*/
 /*! Allocate memory for the volumes in a datablock -- 02 May 2003.
     Return value is 1 if OK, 0 if not.
-------------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------------*/
 
 int THD_alloc_datablock( THD_datablock *blk )
 {
@@ -964,7 +964,7 @@ ENTRY("THD_alloc_datablock") ;
 
 /*----------------------------------------------------------------------------*/
 /*! Fill up a dataset with zero-ed out sub-bricks, if needed.
-------------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------------*/
 
 void THD_zerofill_dataset( THD_3dim_dataset *dset )
 {
@@ -989,7 +989,7 @@ ENTRY("THD_zerofill_dataset") ;
     (from THD_load_datablock())
 
     return 0 on success
-------------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------------*/
 int THD_apply_master_subrange( THD_datablock * blk )
 {
    THD_diskptr * dkptr ;
@@ -1079,7 +1079,7 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
 /*----------------------------------------------------------------------*/
 /*! Set dx,dy,dz fields for MRI_IMAGEs in a dataset.
     [19 Dec 2011] Also patch the dataset grid spacing if it is 0.
-------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------*/
 
 void THD_patch_brickim( THD_3dim_dataset *dset )
 {
@@ -1089,24 +1089,39 @@ void THD_patch_brickim( THD_3dim_dataset *dset )
                             "x-axis" , "y-axis"      , "x- & y-axes" ,
                             "z-axis" , "x- & z-axes" , "y- & z-axes" ,
                             "x- & y- & z-axes" } ;
+   static char **idstr=NULL ; static int nidstr=0 ;  /* no repeating */
 
 ENTRY("THD_patch_brickim") ;
 
    if( !ISVALID_DSET(dset) ) EXRETURN ;
 
-   dx = fabsf(DSET_DX(dset)) ;
+   dx = fabsf(DSET_DX(dset)) ;  /* unsigned grid spacings */
    dy = fabsf(DSET_DY(dset)) ;
    dz = fabsf(DSET_DZ(dset)) ;
+
+   /* check to see if any axis spacing was 0; if so, spackle over it */
+
    dm = dx + dy + dz ;
-   dm = (dm == 0.0f) ? 1.0f : dm*0.3333333f ;
+   dm = (dm == 0.0f) ? 1.0f : dm*0.5f ;
 
    if( dx == 0.0f ){ dx = dset->daxes->xxdel = dm ; nfix += 1 ; }
    if( dy == 0.0f ){ dy = dset->daxes->yydel = dm ; nfix += 2 ; }
    if( dz == 0.0f ){ dz = dset->daxes->zzdel = dm ; nfix += 4 ; }
 
-   if( nfix > 0 )
-     WARNING_message("Dataset %s : patched zero grid spacing along %s to %g",
-                     DSET_HEADNAME(dset) , cfix[nfix] , dm ) ;
+   if( nfix > 0 ){                         /* have to patch at least one axis */
+     int ii ;
+     for( ii=0 ; ii < nidstr ; ii++ )    /* see if we did this dataset before */
+       if( strcmp(DSET_IDCODE_STR(dset),idstr[ii]) == 0 ) break ;
+     if( ii == nidstr ){                     /* this is a new dataset (to us) */
+       if( nidstr == 0 ) fprintf(stderr,"\n") ;
+       WARNING_message("Dataset %s : patched zero grid spacing along %s to %g",
+                       THD_trailname(DSET_HEADNAME(dset),0) , cfix[nfix] , dm ) ;
+       idstr = (char **)realloc(idstr,sizeof(char *)*(nidstr+1)) ;
+       idstr[nidstr++] = strdup(DSET_IDCODE_STR(dset)) ; /* remember the past */
+     }
+   }
+
+   /* fix the sub-brick (MRI_IMAGE) headers */
 
    nvals = DSET_NVALS(dset) ;
    for( iv=0 ; iv < nvals ; iv++ ){
