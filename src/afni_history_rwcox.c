@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 16 , DEC , 2011 , RWC , "3dLSS" , MICRO , TYPE_GENERAL ,
+  { 19 , DEC , 2011 , RWC , "THD_patch_brickim" , MICRO , TYPE_MODIFY ,
+   "Modify to set zero dataset grids spacings to a nonzero value" ,
+   "In the dataset struct itself, that is, not just the brick image structs." } ,
+
+ { 16 , DEC , 2011 , RWC , "3dLSS" , MICRO , TYPE_GENERAL ,
    "Added -nodata option, and fleshed out the help with an example." ,
    NULL } ,
 
