@@ -7,6 +7,7 @@
 #include "pbar.h"
 #include "xim.h"    /* for display of the colorscale in "big" mode */
 #include <ctype.h>
+#include "cs.h"
 
 static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd ) ;
 static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs );
@@ -510,7 +511,7 @@ ENTRY("PBAR_read_bigmap") ;
   /* get name */
 
   do{
-    cpt = fgets( line , 2*NSBUF , fp ) ;
+    cpt = afni_fgets( line , 2*NSBUF , fp ) ;
     if( cpt == NULL ){ STATUS("can't read title line"); fclose(fp); EXRETURN; }
     name[0] = '\0' ;
     sscanf(line,"%127s",name) ;
@@ -519,7 +520,7 @@ ENTRY("PBAR_read_bigmap") ;
   /* get lines of form "value = colordef" */
 
   while( neq < NPANE_BIG ){
-    cpt = fgets( line , 2*NSBUF , fp ) ;
+    cpt = afni_fgets( line , 2*NSBUF , fp ) ;
     if( cpt == NULL ){ STATUS("!!end of file"); break; } /* exit while loop */
     lhs[0] = mid[0] = rhs[0] = '\0' ;
     sscanf(line,"%127s %127s %127s",lhs,mid,rhs) ;

@@ -1341,7 +1341,7 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 
    while(1){   /* loop and read lines, creating a logical line */
 
-     ptr = fgets( qbuf , LBUF , fts ) ; /* read next whole line */
+     ptr = afni_fgets( qbuf , LBUF , fts ) ; /* read next whole line */
 
      if( ptr == NULL ) break ;          /* must be end-of-file */
 

@@ -128,7 +128,7 @@ int main( int argc , char *argv[] )
    /* - - - - - - - - - - */
 
  GetLine:
-   cpt = fgets( linbuf , 65536 , ifp ) ;
+   cpt = afni_fgets( linbuf , 65536 , ifp ) ;
    if( cpt == NULL ) goto CleanUp ;
  GotLine:
    if( sar != NULL ) NI_delete_str_array(sar) ;
@@ -164,7 +164,7 @@ int main( int argc , char *argv[] )
      if( strncasecmp(cpt,"cop",3)==0 || strncasecmp(cpt,"lit",3)==0 ){
        HEADERIZE ; CLOSETABLE ;
        while(1){
-         cpt = fgets( linbuf , 65536 , ifp ) ;
+         cpt = afni_fgets( linbuf , 65536 , ifp ) ;
          if( cpt == NULL ) goto CleanUp ;
          for( ; isspace(*cpt) ; cpt++ ) ; /* nada */
          if( *cpt == '#' ) goto GotLine ;

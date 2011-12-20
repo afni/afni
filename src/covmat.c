@@ -256,7 +256,7 @@ void main( int argc , char *argv[] )
 
    if( cthresh > 0.0 ){
       for( kk=0 ; kk < nimage ; kk++ ){
-         cchh = fgets( buf , 100 , reffile ) ;
+         cchh = afni_fgets( buf , 100 , reffile ) ;
          if( cchh == NULL ){
             fprintf( stderr , "premature EOF in ref file at line # %d\n" , kk+1 ) ;
             exit(1) ;

@@ -675,7 +675,7 @@ static void TTRR_load_file( char * fname )  /* 08 Aug 2002 */
     int ns , ic , ii ;
 
     while(1){
-      ept = fgets( lbuf , NLBUF , fp ) ;              /* get line */
+      ept = afni_fgets( lbuf , NLBUF , fp ) ;         /* get line */
       if( ept == NULL ) break ;                    /* end of file */
       stok = NULL ;
       ns = breakup_string( lbuf , &stok ) ;        /* break it up */

@@ -1007,17 +1007,17 @@ static void TAG_read_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    ntog = 0 ;
    while( ntog < MAX_TAG_NUM ){
-      cpt = fgets( buf , 256 , fp ) ;   /* read line from disk */
-      if( cpt == NULL ) break ;         /* nothing => exit */
-      if( buf[0] == '#'  ) continue ;   /* comment => skip this line */
+      cpt = afni_fgets( buf , 256 , fp ); /* read line from disk */
+      if( cpt == NULL ) break ;           /* nothing => exit */
+      if( buf[0] == '#'  ) continue ;     /* comment => skip this line */
       if( buf[0] == '\n' ) continue ;
       if( buf[0] == '\0' ) continue ;
 
-      lbuf = strlen(buf) ;              /* skip whitespace at start */
+      lbuf = strlen(buf) ;                /* skip whitespace at start */
       jj = 0 ;
       while( jj < lbuf && isspace(buf[jj]) ) jj++ ;
-      if( jj == lbuf ) continue ;       /* was a blank line => skip */
-      if( buf[jj] == '#'  ) continue ;  /* comment */
+      if( jj == lbuf ) continue ;         /* was a blank line => skip */
+      if( buf[jj] == '#'  ) continue ;    /* comment */
 
       /* scan for new label */
 

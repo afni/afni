@@ -43,7 +43,17 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 20 , DEC , 2011 , RWC , "fdrval" , MICRO , TYPE_MODIFY ,
+  { 20 , DEC , 2011 , RWC , "fgets" , MICRO , TYPE_GENERAL ,
+   "Replace (mostly) fgets with afni_fgets" ,
+   "Recognizes CR and CR+LF and LF+CR as line enders, not just LF like the\n"
+   "standard Unix library function -- these Microsofties are killing me." } ,
+
+ { 20 , DEC , 2011 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Add debug output to thd_table.c" ,
+   "To help me (and users) figure out what might be wrong with a covariates\n"
+   "table.  Also applies to 3dGroupInCorr" } ,
+
+ { 20 , DEC , 2011 , RWC , "fdrval" , MICRO , TYPE_MODIFY ,
    "Add -inverse (AKA -qinput) option" ,
    "Allows user to compute the threshold, given the q-value." } ,
 

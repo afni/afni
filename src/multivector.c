@@ -84,7 +84,7 @@ multivector * multivector_read( char * fname )
    /*-- read and process any header comments --*/
 
    while(1){
-      ptr = fgets( buf , LBUF , fp ) ;
+      ptr = afni_fgets( buf , LBUF , fp ) ;
       if( ptr == NULL ){
          fclose(fp); multivector_free(mv); MERR("no data"); return NULL;
       }
@@ -192,7 +192,7 @@ multivector * multivector_read( char * fname )
    /*-- read and store data lines --*/
 
    while(1){
-      if( !first ) ptr = fgets( buf , LBUF , fp ) ;
+      if( !first ) ptr = afni_fgets( buf , LBUF , fp ) ;
       if( ptr == NULL ) break ;        /* end of input */
       first = 0 ;
 
