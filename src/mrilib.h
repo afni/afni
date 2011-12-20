@@ -1361,6 +1361,8 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
 extern float  interp_floatvec ( floatvec  *fv , float  x ) ;
 extern double interp_doublevec( doublevec *dv , double x ) ;
 
+extern float interp_inverse_floatvec( floatvec *fv , float y ) ;
+
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
 
 /*----------*/
