@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 19 , DEC , 2011 , RWC , "THD_patch_brickim" , MICRO , TYPE_MODIFY ,
+  { 20 , DEC , 2011 , RWC , "fdrval" , MICRO , TYPE_MODIFY ,
+   "Add -inverse (AKA -qinput) option" ,
+   "Allows user to compute the threshold, given the q-value." } ,
+
+ { 19 , DEC , 2011 , RWC , "THD_patch_brickim" , MICRO , TYPE_MODIFY ,
    "Modify to set zero dataset grids spacings to a nonzero value" ,
    "In the dataset struct itself, that is, not just the brick image structs." } ,
 

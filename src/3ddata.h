@@ -3215,6 +3215,7 @@ extern int   THD_create_all_fdrcurves( THD_3dim_dataset * ) ;
 extern float THD_fdrcurve_zval( THD_3dim_dataset *, int, float ) ;
 extern float THD_mdfcurve_mval( THD_3dim_dataset *, int, float ) ;
 extern int THD_count_fdrwork( THD_3dim_dataset *dset ) ; /* 12 Nov 2008 */
+extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) ;
 
 /*! Macro to load the self_name and labels of a dataset
     with values computed from the filenames;
