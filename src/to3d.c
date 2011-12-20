@@ -5110,7 +5110,9 @@ void T3D_save_file_CB( Widget w ,
 
    dset->idcode = MCW_new_idcode() ;
 
-   npad = (int) zpad ;
+   THD_patch_brickim(dset) ; /* 19 Dec 2011 -- don't allow grid spacing = 0 */
+
+   npad = (int)zpad ;
    if( npad == 0 ){   /* the old code */
 
       good = THD_write_3dim_dataset( user_inputs.session_filename ,
