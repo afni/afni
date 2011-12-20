@@ -1169,7 +1169,13 @@ int main( int argc , char *argv[] )
       "           list.  These setA sub-brick labels will start with 'A_' and these\n"
       "           setB labels with 'B_'.\n"
       "\n"
-      "    ***+++ A maximum of 31 covariates are allowed.  If you need more, then please\n"
+      "        ++ If you are having trouble getting the program to read your covariates\n"
+      "           table file, then set the environment variable AFNI_DEBUG_TABLE to YES\n"
+      "           and run the program -- the messages may help figure out the problem.\n"
+      "           For example:\n"
+      "             3dGroupInCorr -DAFNI_DEBUG_TABLE=YES -covariates cfile.txt |& more\n"
+      "\n"
+      "  -->>**++ A maximum of 31 covariates are allowed.  If you need more, then please\n"
       "           consider the possibility that you are completely deranged or demented.\n"
       "\n"
       " *** CENTERING ***\n"
@@ -1571,8 +1577,11 @@ int main( int argc , char *argv[] )
        if( ++nopt >= argc ) ERROR_exit("GIC: need 1 argument after option '%s'",argv[nopt-1]);
        if( covnel != NULL ) ERROR_exit("GIC: can't use -covariates twice!") ;
        covnel = THD_simple_table_read( argv[nopt] ) ;
-       if( covnel == NULL )
-         ERROR_exit("GIC: Can't read table from -covariates file '%s'",argv[nopt]) ;
+       if( covnel == NULL ){
+         ERROR_message("GIC: Can't read table from -covariates file '%s'",argv[nopt]) ;
+         ERROR_message("GIC: Try re-running this program with the extra option -DAFNI_DEBUG_TABLE=YES") ;
+         ERROR_exit(   "GIC: Can't continue after the above error!") ;
+       }
        mcov = covnel->vec_num - 1 ;
        INFO_message("GIC: Covariates file: %d columns (%d covariates), each with %d rows",
                     covnel->vec_num , mcov , covnel->vec_len ) ;
@@ -2351,7 +2360,7 @@ int main( int argc , char *argv[] )
        if( bfp == NULL ){   /* extract command from FILENAME itself */
          strcpy( cline , bfile ) ;
        } else {             /* read next line in file */
-         cpt = fgets( cline , 6666 , bfp ) ;
+         cpt = afni_fgets( cline , 6666 , bfp ) ;
          if( cpt == NULL ){
            fclose(bfp) ; goto GetOutOfDodge ;  /* end of file (or error) */
          }

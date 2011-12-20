@@ -6,6 +6,13 @@
 #undef  LVEC
 #define LVEC 666
 
+#undef  ERREX
+#define ERREX(str) do{ ERROR_message(str); RETURN(NULL); } while(0)
+
+#undef  TRBUF
+#define TRBUF(bb) \
+  do{ int lb=strlen(bb) ; if( bb[lb-1] == '\n' ) bb[lb-1] = '\0' ; } while(0)
+
 /*** Modified 20-21 Jul 2011 to all column selectors []
      for the table.  Column #0 must be the first one!
      Row selectors {} don't really make sense, given that
@@ -23,17 +30,18 @@ NI_element * THD_simple_table_read( char *fname )
    NI_element *nel ;
    FILE *fts ;
    float val ;
+   int verb = AFNI_yesenv("AFNI_DEBUG_TABLE") ;
 
 ENTRY("THD_simple_table_read") ;
 
    /*--  check for bad-ositiness --*/
 
-   if( fname == NULL || *fname == '\0' )                 RETURN(NULL) ;
+   if( fname == NULL || *fname == '\0' )                 ERREX("Table: bad filename") ;
    ii = strlen(fname) ;
    if( (ii <= 2 && fname[0] == '-')                  ||
        (ii <= 6 && strncmp(fname,"stdin"   ,5) == 0) ||
-       (ii <= 9 && strncmp(fname,"/dev/fd0",8) == 0)   ) RETURN(NULL) ;
-   if( strncmp(fname,"1D:",3) == 0 )                     RETURN(NULL) ;
+       (ii <= 9 && strncmp(fname,"/dev/fd0",8) == 0)   ) ERREX("Table: stdin not allowed") ;
+   if( strncmp(fname,"1D:",3) == 0 )                     ERREX("Table: 1D: not allowed") ;
 
    /* copy filename to local variable for editing purposes */
 
@@ -45,7 +53,7 @@ ENTRY("THD_simple_table_read") ;
    dpt = strstr(fname,"{") ;  /* we don't use this row list */
 
    if( cpt == fname || dpt == fname ){  /* can't be at start of filename! */
-     free(dname) ; RETURN(NULL) ;
+     free(dname) ; ERREX("Table: '[ or {' selectors at start of filename") ;
    } else {                             /* got a subvector list */
      if( cpt != NULL ){ ii = cpt-fname; dname[ii] = '\0'; }
      if( dpt != NULL ){ ii = dpt-fname; dname[ii] = '\0'; }
@@ -53,14 +61,16 @@ ENTRY("THD_simple_table_read") ;
 
    /* open input file */
 
-   fts = fopen(dname,"r") ; if( fts == NULL ){ free(dname); RETURN(NULL); }
+   if( verb ) INFO_message("Simple Table: processing file %s",dname) ;
+
+   fts = fopen(dname,"r") ; if( fts == NULL ){ free(dname); ERREX("Table: can't open file"); }
 
    /* read lines until we get a useful line */
 
    while(1){
      lbuf[0] = '\0' ;
-     dpt = fgets( lbuf , NLL , fts ) ;                 /* read a line of data */
-     if( dpt == NULL ){ fclose(fts); free(dname); RETURN(NULL); }    /* error */
+     dpt = afni_fgets( lbuf , NLL , fts ) ;            /* read a line of data */
+     if( dpt == NULL ){ fclose(fts); free(dname); ERREX("Table: can't read first line"); }
      ii = strlen(lbuf) ; if( ii == 0 ) continue ;         /* nada => loopback */
      if( ii == 1 && isspace(lbuf[0]) ) continue ; /* 1 blank only => loopback */
      ibot = (lbuf[0] == '#') ? 1 : 0 ;                   /* start of scanning */
@@ -69,12 +79,16 @@ ENTRY("THD_simple_table_read") ;
      ibot = ii ; break ;                             /* can process this line */
    }
 
+   TRBUF(lbuf) ;
+   if( verb ) ININFO_message("  first line = '%s'",lbuf+ibot) ;
+
    /* break line into sub-strings */
 
    sar = NI_decode_string_list( lbuf+ibot , ";" ) ;
-   if( sar == NULL ){ fclose(fts); free(dname); RETURN(NULL); }    /* nuthin? */
+   if( sar == NULL ){ fclose(fts); free(dname); ERREX("Table: can't decode first line"); }    /* nuthin? */
 
    nlab = sar->num ;
+   if( verb ) ININFO_message("  found %d labels in first line",nlab) ;
    if( nlab <= 1 ){
      if( nlab == 1 )                      /* need to have at least 2 columns! */
        ERROR_message("Short table line (missing label or data?) -- %s",dname) ;
@@ -86,6 +100,7 @@ ENTRY("THD_simple_table_read") ;
    /* 20 Jul 2011 -- get column list, if present */
 
    if( cpt != NULL ){
+     if( verb ) ININFO_message("  processing column selector '%s'",cpt) ;
      ivlist = MCW_get_intlist( nlab , cpt ) ;
      if( ivlist != NULL ){
        if( ivlist[0] <= 1 || ivlist[1] != 0 ){  /* must have col #0 first */
@@ -129,7 +144,7 @@ ENTRY("THD_simple_table_read") ;
 
      while(1){
        lbuf[0] = '\0' ; ibot = -1 ;
-       dpt = fgets( lbuf , NLL , fts ) ;               /* read a line of data */
+       dpt = afni_fgets( lbuf , NLL , fts ) ;          /* read a line of data */
        if( dpt == NULL ) break ;                                     /* error */
        ii = strlen(lbuf) ; if( ii <= 2*nlab ) continue ;  /* nada => loopback */
        if( lbuf[0] == '#' ) continue ;                 /* comment => loopback */
@@ -140,6 +155,9 @@ ENTRY("THD_simple_table_read") ;
      } /* loop to get next line */
 
      if( ibot < 0 ) break ;           /* end of input ==> done with this file */
+
+     TRBUF(lbuf) ;
+     if( verb ) ININFO_message("  processing row #%d = '%s'",row,lbuf+ibot) ;
 
      sar = NI_decode_string_list( lbuf+ibot , ";" ) ;
      if( sar == NULL ) continue ;                      /* nuthin ==> loopback */
@@ -189,12 +207,14 @@ ENTRY("THD_simple_table_read") ;
    /* cleanup and exit */
 
    fclose(fts) ;
-   if( row == 0 ){ NI_free_element(nel); free(dname); RETURN(NULL); }
+   if( row == 0 ){ NI_free_element(nel); free(dname); ERREX("Table: no data lines found"); }
    if( ivlist != NULL ) free(ivlist) ;
 
    NI_alter_veclen(nel,row) ;
 
    /* check for duplicate first column labels */
+
+   if( verb ) ININFO_message("checking for duplicate labels") ;
 
    for( ii=0 ; ii < nel->vec_len ; ii++ ){
      cpt = ((char **)(nel->vec[0]))[ii] ;
@@ -206,8 +226,10 @@ ENTRY("THD_simple_table_read") ;
      }
    }
 
-   if( AFNI_yesenv("AFNI_DEBUG_TABLE") )
+   if( verb ){
+     ININFO_message("Table element follows::") ;
      NI_write_element_tofile( "stdout:" , nel , NI_TEXT_MODE ) ;
+   }
 
    free(dname) ; RETURN(nel) ;
 }
@@ -225,17 +247,18 @@ NI_element * THD_mixed_table_read( char *fname )
    NI_element *nel ;
    FILE *fts ;
    float val ;
+   int verb = AFNI_yesenv("AFNI_DEBUG_TABLE") ;
 
 ENTRY("THD_mixed_table_read") ;
 
    /*--  check for bad-ositiness --*/
 
-   if( fname == NULL || *fname == '\0' )                 RETURN(NULL) ;
+   if( fname == NULL || *fname == '\0' )                 ERREX("Table: bad filename") ;
    ii = strlen(fname) ;
    if( (ii <= 2 && fname[0] == '-')                  ||
        (ii <= 6 && strncmp(fname,"stdin"   ,5) == 0) ||
-       (ii <= 9 && strncmp(fname,"/dev/fd0",8) == 0)   ) RETURN(NULL) ;
-   if( strncmp(fname,"1D:",3) == 0 )                     RETURN(NULL) ;
+       (ii <= 9 && strncmp(fname,"/dev/fd0",8) == 0)   ) ERREX("Table: stdin not allowed") ;
+   if( strncmp(fname,"1D:",3) == 0 )                     ERREX("Table: 1D: not allowed") ;
 
    /* copy filename to local variable for editing purposes */
 
@@ -247,7 +270,7 @@ ENTRY("THD_mixed_table_read") ;
    dpt = strstr(fname,"{") ;  /* we don't use this row list */
 
    if( cpt == fname || dpt == fname ){  /* can't be at start of filename! */
-     free(dname) ; RETURN(NULL) ;
+     free(dname) ; ERREX("Table: '[{' selector at start of filename") ;
    } else {                             /* got a subvector list */
      if( cpt != NULL ){ ii = cpt-fname; dname[ii] = '\0'; }
      if( dpt != NULL ){ ii = dpt-fname; dname[ii] = '\0'; }
@@ -255,14 +278,16 @@ ENTRY("THD_mixed_table_read") ;
 
    /* open input file */
 
-   fts = fopen(dname,"r") ; if( fts == NULL ){ free(dname); RETURN(NULL); }
+   if( verb ) INFO_message("Mixed Table: processing file %s",dname) ;
+
+   fts = fopen(dname,"r") ; if( fts == NULL ){ free(dname); ERREX("Table: can't open file"); }
 
    /* read lines until we get a useful line */
 
    while(1){
      lbuf[0] = '\0' ;
-     dpt = fgets( lbuf , NLL , fts ) ;                 /* read a line of data */
-     if( dpt == NULL ){ fclose(fts); free(dname); RETURN(NULL); }    /* error */
+     dpt = afni_fgets( lbuf , NLL , fts ) ;            /* read a line of data */
+     if( dpt == NULL ){ fclose(fts); free(dname); ERREX("Table: Can't read first line"); }
      ii = strlen(lbuf) ; if( ii == 0 ) continue ;         /* nada => loopback */
      if( ii == 1 && isspace(lbuf[0]) ) continue ; /* 1 blank only => loopback */
      ibot = (lbuf[0] == '#') ? 1 : 0 ;                   /* start of scanning */
@@ -271,12 +296,16 @@ ENTRY("THD_mixed_table_read") ;
      ibot = ii ; break ;                             /* can process this line */
    }
 
+   TRBUF(lbuf) ;
+   if( verb ) ININFO_message("  first line = '%s'",lbuf+ibot) ;
+
    /* break line into sub-strings */
 
    sar = NI_decode_string_list( lbuf+ibot , ";" ) ;
-   if( sar == NULL ){ fclose(fts); free(dname); RETURN(NULL); }    /* nuthin? */
+   if( sar == NULL ){ fclose(fts); free(dname); ERREX("Table: Can't decode first line"); }    /* nuthin? */
 
    nlab = sar->num ;         /* number of labels = number of separate strings */
+   if( verb ) ININFO_message("  found %d labels in first line",nlab) ;
    if( nlab <= 1 ){
      if( nlab == 1 )                      /* need to have at least 2 columns! */
        ERROR_message("short table line (missing label or data?) -- %s",dname) ;
@@ -288,6 +317,7 @@ ENTRY("THD_mixed_table_read") ;
    /* 21 Jul 2011 -- get column list, if present */
 
    if( cpt != NULL ){
+     if( verb ) ININFO_message("  processing column selector '%s'",cpt) ;
      ivlist = MCW_get_intlist( nlab , cpt ) ;
      if( ivlist != NULL ){
        if( ivlist[0] <= 1 || ivlist[1] != 0 ){
@@ -327,7 +357,7 @@ ENTRY("THD_mixed_table_read") ;
 
      while(1){
        lbuf[0] = '\0' ; ibot = -1 ;
-       dpt = fgets( lbuf , NLL , fts ) ;               /* read a line of data */
+       dpt = afni_fgets( lbuf , NLL , fts ) ;          /* read a line of data */
        if( dpt == NULL ) break ;                                     /* error */
        ii = strlen(lbuf) ; if( ii <= 2*nlab ) continue ;  /* nada => loopback */
        if( lbuf[0] == '#' ) continue ;                 /* comment => loopback */
@@ -339,6 +369,9 @@ ENTRY("THD_mixed_table_read") ;
 
      if( ibot < 0 ) break ;           /* end of input ==> done with this file */
 
+     TRBUF(lbuf) ;
+     if( verb ) ININFO_message("  processing row #%d = '%s'",row,lbuf+ibot) ;
+
      sar = NI_decode_string_list( lbuf+ibot , ";" ) ;
      if( sar == NULL ) continue ;                      /* nuthin ==> loopback */
 
@@ -349,20 +382,32 @@ ENTRY("THD_mixed_table_read") ;
          free(dname) ; RETURN(NULL) ;
        }
        if( niv <= 1 ){
+         if( verb ) ININFO_message("  deciding format of %d columns",nlab-1) ;
          for( ii=1 ; ii < nlab ; ii++ ){
            val = (float)strtod( sar->str[ii] , &qpt ) ;
-           if( *qpt == '\0' ) NI_add_column( nel , NI_FLOAT  , NULL ) ;
-           else               NI_add_column( nel , NI_STRING , NULL ) ;
+           if( *qpt == '\0' ){
+             NI_add_column( nel , NI_FLOAT  , NULL ) ;
+             if( verb ) ININFO_message("  -- col#%d is numeric",ii) ;
+           } else {
+             NI_add_column( nel , NI_STRING , NULL ) ;
+             if( verb ) ININFO_message("  -- col#%d is string",ii) ;
+           }
          }
        } else {
+         if( verb ) ININFO_message("  deciding format of %d chosen columns",niv-1) ;
          for( jj=2 ; jj <= niv ; jj++ ){
            ii = ivlist[jj] ;
            val = (float)strtod( sar->str[ii] , &qpt ) ;
-           if( *qpt == '\0' ) NI_add_column( nel , NI_FLOAT  , NULL ) ;
-           else               NI_add_column( nel , NI_STRING , NULL ) ;
+           if( *qpt == '\0' ){
+             NI_add_column( nel , NI_FLOAT  , NULL ) ;
+             if( verb ) ININFO_message("  -- col#%d is numeric",ii) ;
+           } else {
+             NI_add_column( nel , NI_STRING , NULL ) ;
+             if( verb ) ININFO_message("  -- col#%d is string",ii) ;
+           }
          }
        }
-     }
+     } /* end of decoding format */
 
      if( row >= nel->vec_len )
        NI_alter_veclen( nel , nel->vec_len + LVEC ) ; /* need more data space */
@@ -422,11 +467,13 @@ ENTRY("THD_mixed_table_read") ;
 
    fclose(fts) ;
    if( ivlist != NULL ) free(ivlist) ;
-   if( row == 0 ){ NI_free_element(nel); free(dname); RETURN(NULL); }
+   if( row == 0 ){ NI_free_element(nel); free(dname); ERREX("Table: no data in file"); }
 
    NI_alter_veclen(nel,row) ;
 
    /* check for duplicate first column labels */
+
+   if( verb ) ININFO_message("checking for duplicate labels") ;
 
    for( ii=0 ; ii < nel->vec_len ; ii++ ){
      cpt = ((char **)(nel->vec[0]))[ii] ;
@@ -438,8 +485,10 @@ ENTRY("THD_mixed_table_read") ;
      }
    }
 
-   if( AFNI_yesenv("AFNI_DEBUG_TABLE") )
+   if( verb ){
+     ININFO_message("Table element follows::") ;
      NI_write_element_tofile( "stdout:" , nel , NI_TEXT_MODE ) ;
+   }
 
    free(dname) ; RETURN(nel) ;
 }

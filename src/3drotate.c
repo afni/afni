@@ -1104,11 +1104,11 @@ static void rotate_stdin_points( THD_dfvec3 xyzorg, THD_dmat33 rmat,
 
    ll = ld = 0 ;
    while(1){
-      ll++ ;                               /* line count */
-      cp = fgets( linbuf , NBUF , fpin ) ; /* read the line */
-      if( cp == NULL ) break ;             /* end of file => end of loop */
+      ll++ ;                                    /* line count */
+      cp = afni_fgets( linbuf , NBUF , fpin ) ; /* read the line */
+      if( cp == NULL ) break ;                  /* end of file => end of loop */
       kk = strlen(linbuf) ;
-      if( kk == 0 ) continue ;             /* empty line => get next line */
+      if( kk == 0 ) continue ;                  /* empty line => get next line */
 
       /* find 1st nonblank */
 

@@ -2049,7 +2049,7 @@ int RT_acquire_info( char * command )
 
    /** read pipe until nothing more **/
 
-   while( fgets(info+ninfo,INFO_SIZE-ninfo,fp) != NULL ){
+   while( afni_fgets(info+ninfo,INFO_SIZE-ninfo,fp) != NULL ){
       ninfo = strlen(info) ;
    }
    pclose(fp) ;

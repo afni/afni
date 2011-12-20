@@ -250,7 +250,7 @@ char *text_from_stdin(int *nread)
    
    i = 0; N_alloc=0; nchar=0, nnew=0;
    do{  
-      cpt = fgets(lbuf,N_lbuf,stdin) ;
+      cpt = afni_fgets(lbuf,N_lbuf,stdin) ;
       lbuf[N_lbuf] = '\0';
       ex = feof(stdin);
       if( cpt==NULL && !ex){ 

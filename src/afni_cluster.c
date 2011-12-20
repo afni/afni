@@ -1559,7 +1559,7 @@ ENTRY("AFNI_clus_action_CB") ;
                                  MCW_USER_KILL) ;
        } else {
          wout[0] = '\0' ;
-         while( fgets(wout+strlen(wout),WSIZ-2,fp) != NULL ){
+         while( afni_fgets(wout+strlen(wout),WSIZ-2,fp) != NULL ){
            wout = (char *)realloc(wout,sizeof(char)*(strlen(wout)+WSIZ)) ;
            /*** MCW_invert_widget(cwid->whermask_pb) ; inv = !inv ; ***/
          }

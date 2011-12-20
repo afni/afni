@@ -5868,7 +5868,7 @@ STATUS("got func info") ;
          strcpy(info," \n     Output of Program afni_vcheck  \n"
                         "   ---------------------------------\n \n"   ) ;
          ninfo = strlen(info) ;
-         while( fgets(info+ninfo,ISIZE-ninfo,fp) != NULL ){
+         while( afni_fgets(info+ninfo,ISIZE-ninfo,fp) != NULL ){
            ninfo = strlen(info) ;
            if( ninfo >= ISIZE-2 ) break ;
          }

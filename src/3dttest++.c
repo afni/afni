@@ -343,6 +343,12 @@ void display_help_menu(void)
       "* See the section 'STRUCTURE OF THE OUTPUT DATASET' for details of\n"
       "   what is calculated and stored by 3dttest++.\n"
       "\n"
+      "* If you are having trouble getting the program to read your covariates\n"
+      "  table file, then set the environment variable AFNI_DEBUG_TABLE to YES\n"
+      "  and run the program.  A lot of progress reports will be printed out,\n"
+      "  which may help pinpoint the problem; for example:\n"
+      "     3dttest++ -DAFNI_DEBUG_TABLE=YES -covariates cfile.txt |& more\n"
+      "\n"
       "* A maximum of 31 covariates are allowed.  If you have more, then\n"
       "   seriously consider the likelihood that you are completely deranged.\n"
       "\n"
@@ -1038,8 +1044,11 @@ int main( int argc , char *argv[] )
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]);
        if( covnel != NULL ) ERROR_exit("can't use -covariates twice!") ;
        covnel = THD_mixed_table_read( argv[nopt] ) ;
-       if( covnel == NULL )
-         ERROR_exit("Can't read table from -covariates file '%s'",argv[nopt]) ;
+       if( covnel == NULL ){
+         ERROR_message("Can't read table from -covariates file '%s'",argv[nopt]) ;
+         ERROR_message("Try re-running this program with the extra option -DAFNI_DEBUG_TABLE=YES") ;
+         ERROR_exit(   "Can't continue after the above error!") ;
+       }
        INFO_message("Covariates file: %d columns, each with %d rows",
                     covnel->vec_num , covnel->vec_len ) ;
        mcov = covnel->vec_num - 1 ;
