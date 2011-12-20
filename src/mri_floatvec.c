@@ -60,3 +60,41 @@ float interp_floatvec( floatvec *fv , float x )
 
    return(val) ;
 }
+
+/*----------------------------------------------------------*/
+/* Inverse interpolation in a floatvec (assumed monotonic). */
+
+float interp_inverse_floatvec( floatvec *fv , float y )
+{
+   int ip,itop ; float ym,yp,dx ;
+
+   /* check for stupid inputs */
+
+   if( fv == NULL ) return 0.0f ;
+   itop = fv->nar - 1 ;
+   if( fv->ar == NULL || itop <= 1 || fv->dx == 0.0 ) return(fv->x0) ;
+
+   /* off the left edge? */
+
+   if( fv->ar[0] < fv->ar[itop] && y <= fv->ar[0] ||
+       fv->ar[0] > fv->ar[itop] && y >= fv->ar[0]   ) return(fv->x0) ;
+
+   /* off the right edge? */
+
+   if( fv->ar[0] < fv->ar[itop] && y >= fv->ar[itop] ||
+       fv->ar[0] > fv->ar[itop] && y <= fv->ar[itop]   ) return(fv->x0+fv->dx*itop) ;
+
+   /* find the intermediate point that brackets the desired result */
+
+   for( ip=1 ; ip < itop ; ip++ ){
+     ym = fv->ar[ip-1] ; yp = fv->ar[ip] ;
+     if( (y-ym) * (y-yp) <= 0.0f ){
+       dx = (y-ym) / (yp-ym) ;
+       return( fv->x0 + fv->dx *(ip-1.0+dx) ) ;
+     }
+   }
+
+   /* should not happen */
+
+   return( fv->x0 + fv->dx * 0.5*itop ) ;
+}

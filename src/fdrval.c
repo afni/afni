@@ -2,7 +2,7 @@
 
 int main( int argc , char *argv[] )
 {
-   int iarg , ival , do_pval=0 ;
+   int iarg , ival , do_pval=0 , do_qinput=0 ;
    THD_3dim_dataset *dset ;
    floatvec *fv ;
    float val , zval , qval=0.0f , pval=0.0f ;
@@ -21,6 +21,25 @@ int main( int argc , char *argv[] )
        " -ponly  = don't output q-values, just p-values\n"
        " -qonly  = don't output p-values, just q-values [the default]\n"
        "\n"
+       " -qinput = The 'val' inputs are taken to be q-values and then the\n"
+       "  *OR*     outputs are the corresponding statistical thresholds.\n"
+       " -inverse  This is the inverse of the usual operation.\n"
+       "           * With this option, all 'val' inputs must be between 0 and 1\n"
+       "             (exclusive), or bad things will happen and the program will\n"
+       "             send e-mail to your mother explaining how stupid you are.\n"
+       "           * You cannot use '-ponly' or '-pval' with this option.\n"
+       "           * For example, if you do\n"
+       "               fdrval dset+orig 1 1.2\n"
+       "             and get a q-value of 0.234, then\n"
+       "               fdrval -qinput dset+orig 1 0.234\n"
+       "             should return the value 1.2 -- the original threshold.\n"
+       "             (There may be a small discrepancy, due to the differences)\n"
+       "             (between forward interpolation and inverse interpolation.)\n"
+       "           * To set a (csh) variable to use in a script for thresholding\n"
+       "             via 3dcalc, you could do something like\n"
+       "               set tval = `fdrval -qinput dset+orig 1 0.05`\n"
+       "               3dcalc -expr \"step(a-$tval)\" -a dset+orig'[1]' -prefix dmask\n"
+       "\n"
        "NOTES\n"
        "-----\n"
        "* Output for each 'val' is written to stdout.\n"
@@ -34,6 +53,7 @@ int main( int argc , char *argv[] )
        "* Also see the output of '3dFDR -help'\n"
        "\n"
        "-- A quick hack by RWCox -- 15 Oct 2008 -- PG Wodehouse's birthday!\n"
+       "-- Quick re-hack to add '-qinput' option -- 20 Dec 2011 -- RWCox\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -45,6 +65,11 @@ int main( int argc , char *argv[] )
    /* check for options */
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcasecmp(argv[iarg],"-qinput")  == 0 ||
+         strcasecmp(argv[iarg],"-inverse") == 0   ){  /* 20 Dec 2011 */
+       do_qinput = 1 ; iarg++ ; continue ;
+     }
 
      if( strcasecmp(argv[iarg],"-pval") == 0 ){
        do_pval = 1 ; iarg++ ; continue ;
@@ -58,6 +83,8 @@ int main( int argc , char *argv[] )
 
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
+
+   if( do_qinput ) do_pval = 0 ;
 
    /* read the required 'dset' and 'sub' arguments */
 
@@ -90,15 +117,22 @@ int main( int argc , char *argv[] )
    }
    iarg++ ;
 
-   /* read val, convert to z-score, convert to q-value, print, loop back */
+   /* read val, convert to z(q)-score, convert to q-value, print, loop back */
 
    if( iarg >= argc ) ERROR_exit("No 'val' argument?!") ;
    while( iarg < argc ){
      val = (float)strtod( argv[iarg] , NULL ) ;
      if( do_pval != 2 ){
-       zval = THD_fdrcurve_zval( dset , ival , val ) ;
-       if( zval > 0.0f ) qval = 2.0*qg(zval) ;
-       else              qval = 1.0f ;
+       if( !do_qinput ){
+         zval = THD_fdrcurve_zval( dset , ival , val ) ;
+         if( zval > 0.0f ) qval = 2.0*qg(zval) ;
+         else              qval = 1.0f ;
+       } else {
+              if( val <= 0.0f ) val = 1.e-9f   ;  /* q must be between */
+         else if( val >= 1.0f ) val = 0.99999f ;  /* 0 and 1, stoopid! */
+         zval = qginv(0.5*val) ;
+         qval = THD_fdrcurve_zqtot( dset , ival , zval ) ;
+       }
      }
      if( do_pval != 0 ){
        pval = THD_stat_to_pval( val , DSET_BRICK_STATCODE(dset,ival) ,

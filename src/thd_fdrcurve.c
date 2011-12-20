@@ -101,10 +101,11 @@ ENTRY("THD_create_all_fdrcurves") ;
 }
 
 /*-------------------------------------------------------------------------*/
+/* convert thresh to z(q) by interpolation */
 
 float THD_fdrcurve_zval( THD_3dim_dataset *dset , int iv , float thresh )
 {
-   floatvec *fv ; float val ;
+   floatvec *fv ;
 
    if( !ISVALID_DSET(dset) || iv < 0 || iv >= DSET_NVALS(dset) ) return 0.0f ;
 
@@ -116,6 +117,25 @@ float THD_fdrcurve_zval( THD_3dim_dataset *dset , int iv , float thresh )
    }
 
    return ( interp_floatvec(fv,thresh) ) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/* convert z(q) to thresh by inverse interpolation */
+
+float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval )
+{
+   floatvec *fv ;
+
+   if( !ISVALID_DSET(dset) || iv < 0 || iv >= DSET_NVALS(dset) ) return 0.0f ;
+
+   fv = DSET_BRICK_FDRCURVE(dset,iv) ;
+   if( fv == NULL ){
+     if( dset->warp_parent != NULL )
+       fv = DSET_BRICK_FDRCURVE(dset->warp_parent,iv) ;
+     if( fv == NULL ) return 0.0f ;
+   }
+
+   return ( interp_inverse_floatvec(fv,zval) ) ;
 }
 
 /*-------------------------------------------------------------------------*/
