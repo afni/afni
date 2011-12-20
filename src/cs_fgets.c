@@ -28,6 +28,8 @@ char * afni_fgets( char *buf , int nbuf , FILE *fp )
      }
    } while( nin < nbuf-1 ) ;
 
+   if( nin == 0 ) return NULL ;  /* nothing was read */
+
    buf[nin] = '\0' ;  /* terminator */
    return buf ;
 }
