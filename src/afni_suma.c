@@ -609,7 +609,7 @@ ENTRY("SUMA_read_surface") ;
 
    nn = 0 ;
    while(1){
-      cpt = fgets(lbuf,1024,fp) ;  /* read a line */
+      cpt = afni_fgets(lbuf,1024,fp) ;  /* read a line */
       if( cpt == NULL ) break ;    /* end of file */
 
       /*-- read a transformation matrix-vector? --*/
@@ -1096,15 +1096,15 @@ ENTRY("SUMA_import_surefit") ;
    nn = 0 ;
 
    while(1){
-      cpt = fgets(sname,1024,sfp) ;  /* read a line */
+      cpt = afni_fgets(sname,1024,sfp) ;  /* read a line */
       if( cpt == NULL ) break ;      /* end of file */
 
       if( strstr(sname,"BeginHeader") != NULL ){  /* skip SureFit header */
          do{
-            cpt = fgets(sname,1024,sfp) ;                /* get next line */
+            cpt = afni_fgets(sname,1024,sfp) ;                /* get next line */
             if( cpt == NULL ){ fclose(sfp); EXRETURN; }  /* bad */
          } while( strstr(sname,"EndHeader") == NULL ) ;
-         cpt = fgets(sname,1024,sfp) ;                   /* 1 more line */
+         cpt = afni_fgets(sname,1024,sfp) ;                   /* 1 more line */
          if( cpt == NULL ){ fclose(sfp); EXRETURN; }     /* bad */
          continue ;                                      /* start over */
       }

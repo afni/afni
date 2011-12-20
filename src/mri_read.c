@@ -2116,7 +2116,7 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 
    while(1){   /* loop and read lines, creating a logical line */
 
-     ptr = fgets( qbuf , LBUF , fts ) ; /* read next whole line */
+     ptr = afni_fgets( qbuf , LBUF , fts ) ; /* read next whole line */
 
      if( ptr == NULL ) break ;          /* must be end-of-file */
 
@@ -3061,7 +3061,7 @@ ENTRY("mri_read_1D_headerlines") ;
 
    while(1){
      lbuf[0] = '\0' ;
-     dpt = fgets( lbuf , NLL , fp ) ;                  /* read a line of data */
+     dpt = afni_fgets( lbuf , NLL , fp ) ;             /* read a line of data */
      if( dpt == NULL ) break ;                        /* nothing more to read */
      ii = strlen(lbuf) ; if( ii == 0 ) break ;            /* nada => finished */
      if( lbuf[0] != '#' ) break ;                      /* not '#' => finished */
@@ -3467,7 +3467,7 @@ INFO_message("reading 1D_stdin") ;
    val  = (float *)malloc(sizeof(float)*SIN_NVMAX) ;
 
    do{               /* read lines until 1st char is non-blank and non-# */
-     cpt = fgets(lbuf,SIN_NLBUF,stdin) ;
+     cpt = afni_fgets(lbuf,SIN_NLBUF,stdin) ;
      if( cpt==NULL ){ free(val);free(lbuf); RETURN(NULL); }
      for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
    } while( cpt[ii] == '\0' || cpt[ii] == '#' ) ;
@@ -3485,7 +3485,7 @@ INFO_message("reading 1D_stdin") ;
    memcpy(far,val,sizeof(float)*nx) ;
 
    while(1){  /* read from stdin */
-     cpt = fgets(lbuf,SIN_NLBUF,stdin) ;
+     cpt = afni_fgets(lbuf,SIN_NLBUF,stdin) ;
      if( cpt == NULL ) break ;            /* done */
      for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
      if( cpt[ii] == '\0' || cpt[ii] == '#' ) continue ;         /* skip */
@@ -3819,7 +3819,7 @@ static void read_ascii_floats( char * fname, int * nff , float ** ff )
    nrow = 0 ;
    buf = (char *)malloc(LBUF) ;
    while( 1 ){
-      ptr = fgets( buf , LBUF , fts ) ;  /* read */
+      ptr = afni_fgets( buf , LBUF , fts ) ;  /* read */
       if( ptr == NULL ) break ;          /* failure --> end of data */
       blen = strlen(buf) ;
       if( blen <= 0 ) break ;            /* nothing --> end of data */
@@ -5049,7 +5049,7 @@ ENTRY("mri_read_1D_headerline") ;
 
    while(1){
      lbuf[0] = '\0' ;
-     dpt = fgets( lbuf , NLL , fts ) ;                 /* read a line of data */
+     dpt = afni_fgets( lbuf , NLL , fts ) ;            /* read a line of data */
      if( dpt == NULL ){ fclose(fts); RETURN(NULL); }                 /* error */
      ii = strlen(lbuf) ; if( ii == 0 ) continue ;         /* nada => loopback */
      if( ii == 1 && isspace(lbuf[0]) ) continue ; /* 1 blank only => loopback */

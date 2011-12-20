@@ -668,7 +668,7 @@ int main( int argc , char * argv[] )
       ll = 0 ;
       while(1){  /*--- loop over lines ---*/
          ll++ ;                               /* line count */
-         cp = fgets( linbuf , NBUF , fp ) ;
+         cp = afni_fgets( linbuf , NBUF , fp ) ;
          if( cp == NULL ) break ;             /* end of file => end of loop */
          kk = strlen(linbuf) ;
          if( kk == 0 ) continue ;             /* empty line => get next line */

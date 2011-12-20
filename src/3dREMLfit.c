@@ -436,8 +436,8 @@ STATUS(buf) ;
      FILE *fp = fopen( sym , "r" ) ;
      if( fp == NULL ) ERROR_exit("Can't open GLT matrix file '%.33s'",sym) ;
      while(1){
-       cpt = fgets( buf , 8192 , fp ) ;   /* read next line */
-       if( cpt == NULL ) break ;          /* end of input? */
+       cpt = afni_fgets( buf , 8192 , fp ) ;   /* read next line */
+       if( cpt == NULL ) break ;               /* end of input? */
        str_echo = THD_zzprintf(str_echo," : %s",cpt) ;
        fvv = SYM_expand_ranges( ncol-1 , nSymStim,SymStim , buf ) ;
        if( fvv == NULL || fvv->nvec < 1 ) continue ;

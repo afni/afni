@@ -16,7 +16,7 @@ char * get_surf_param(char *sname, char *parname)
       return(out);
    }
 
-   out = fgets(buf, sizeof(buf), output);
+   out = afni_fgets(buf, sizeof(buf), output);
    pclose(output);
 
    if (0) {

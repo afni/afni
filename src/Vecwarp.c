@@ -356,7 +356,7 @@ int main( int argc , char *argv[] )
 
    /*-- Read 1st line of input file to determine what to do with it --*/
 
-   cpt = fgets( lbuf , NBUF , fin ) ;
+   cpt = afni_fgets( lbuf , NBUF , fin ) ;
    if( cpt == NULL )
       errex("Couldn't read 1st line from input file") ;
 
@@ -379,7 +379,7 @@ int main( int argc , char *argv[] )
       fprintf(fout,"%s",lbuf) ;    /* echo 1st line */
       while(1){                    /* read lines until EndHeader is found */
 
-         cpt = fgets( lbuf , NBUF , fin ) ;
+         cpt = afni_fgets( lbuf , NBUF , fin ) ;
          if( cpt == NULL )
             errex("Input ended before EndHeader was found") ;
 
@@ -387,7 +387,7 @@ int main( int argc , char *argv[] )
          numh++ ;
 
          if( strstr(lbuf,"EndHeader") != NULL ){  /* do next line, too */
-            cpt = fgets( lbuf , NBUF , fin ) ;
+            cpt = afni_fgets( lbuf , NBUF , fin ) ;
             if( cpt == NULL )
                errex("Input ended just after EndHeader") ;
             fprintf(fout,"%s",lbuf) ;
@@ -396,7 +396,7 @@ int main( int argc , char *argv[] )
          }
       }
 
-      cpt = fgets( lbuf , NBUF , fin ) ;  /* get next line, with 1st vector */
+      cpt = afni_fgets( lbuf , NBUF , fin ) ;  /* get next line, with 1st vector */
       if( cpt == NULL )
          errex("Input ended just after Node count") ;
 
@@ -460,7 +460,7 @@ DUMP_FVEC3("dicomm_to_surefit",vout) ;
          numv++ ;
       }
 
-      cpt = fgets( lbuf , NBUF , fin ) ;  /* get next line */
+      cpt = afni_fgets( lbuf , NBUF , fin ) ;  /* get next line */
 
    } while( cpt != NULL ) ;  /* loop until no data can be read */
 

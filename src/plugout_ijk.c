@@ -343,7 +343,7 @@ int afni_io(void)
 
       /* get user input */
 
-      printf("Enter i j k: ") ; fflush(stdout) ; fgets(afni_buf,256,stdin) ;
+      printf("Enter i j k: ") ; fflush(stdout) ; afni_fgets(afni_buf,256,stdin) ;
       ii = sscanf(afni_buf,"%d %d %d",&ix,&jy,&kz) ;
       if( ii < 3 ){
          printf("** Warning -- planetary meltdown will occur in 10 seconds!\a\n") ;
