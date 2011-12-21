@@ -37,7 +37,44 @@ NI_element * NI_read_file_nohead( char *fname )
    }
 
 }
+/*----------------------------------------------------------------------------*/
+/*! Like system fgets(), but allows LF, CR, CR+LF, and LF+CR as end of line
+    markers.  Converts all of them to a single LF character, so that the
+    results are as if the input was an honest-to-Allah Unix file, instead
+    of some bastard child of Microsoft.  (Not that I have any prejudices.)
+*//*--------------------------------------------------------------------------*/
 
+static char * ni_fgets( char *buf , int nbuf , FILE *fp )
+{
+   int nin=0 , cin , qin ;
+
+   if( buf == NULL || nbuf <= 1 || fp == NULL ) return NULL ;
+
+   /* read characters one at a time and process them */
+
+   do{
+     cin = getc(fp) ;           /* read next char */
+     if( cin == EOF ) break ;   /* nuthin ==> quit */
+
+     /* copy input to output, but convert CR to LF */
+
+     if( cin != CR ) buf[nin++] = (char)cin ;
+     else            buf[nin++] = (char)LF  ;  /* Microsoft coverup */
+
+     if( cin == CR || cin == LF ){  /* end of line */
+       qin = getc(fp) ;             /* check next character */
+                                    /* if have a CR+LF or LF+CR combo, */
+                                    /* skip next char, otherwise push it back */
+       if( (cin==CR && qin!=LF) || (cin ==LF && qin!= CR) ) ungetc(qin,fp) ;
+       break ;                      /* in either case, am done with loop */
+     }
+   } while( nin < nbuf-1 ) ;    /* don't run off the end of the world */
+
+   if( nin == 0 ) return NULL ; /* nothing was read */
+
+   buf[nin] = '\0' ;            /* Schwarznegger the string */
+   return buf ;
+}
 
 /*---------------------------------------------------------------*/
 /*! Length of line buffer */
@@ -69,9 +106,9 @@ static char * my_fgets( char *buf, int size, FILE *fts, int flags )
 
    while(1){   /* loop and read lines, creating a logical line */
 
-     ptr = fgets( qbuf , LBUF , fts ) ; /* read next whole line */
+     ptr = ni_fgets( qbuf , LBUF , fts ) ; /* read next whole line */
 
-     if( ptr == NULL ) break ;          /* must be end-of-file */
+     if( ptr == NULL ) break ;             /* must be end-of-file */
 
      /* skip leading whitespace */
 
