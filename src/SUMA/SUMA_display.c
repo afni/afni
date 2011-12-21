@@ -1669,7 +1669,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
     glFinish();
    
   /* if recording, take a snap */
-  if (csv->Record) {
+  if (csv->Record == 1) {
       if (csv->rdc < SUMA_RDC_X_START || csv->rdc > SUMA_RDC_X_END) {
          /*
          Combination below helps partial coverage 
@@ -1706,12 +1706,54 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
          ISQ_snapshot ( csv->X->GLXAREA );
       #endif
       }
+  } else if (csv->Record == 2) {
+      if (csv->rdc < SUMA_RDC_X_START || csv->rdc > SUMA_RDC_X_END) {
+         MRI_IMAGE *tim=NULL;
+         GLvoid *pixels=NULL;
+         static char fname[512];
+         int holdrdc = csv->rdc;
+         glFinish();
+         glXWaitX();
+         #ifdef DARWIN
+            csv->rdc = SUMA_RDC_X_EXPOSE; /* any thing that avoids a record
+                                            operation ... */
+            SUMA_handleRedisplay((XtPointer)csv->X->GLXAREA);
+            csv->rdc=holdrdc;
+         #endif
+         pixels = SUMA_grabPixels(1, csv->X->WIDTH, csv->X->HEIGHT);
+         if (pixels) {
+            if (!(tim = ISQ_snap_to_mri_image (csv->X->WIDTH, -csv->X->HEIGHT, 
+                               (unsigned char *)pixels ))) {
+               SUMA_S_Err("Failed to get image");                  
+            } else {
+               if (!strcasecmp(SUMAg_CF->autorecord->Ext,".jpg") ||
+                   !strcasecmp(SUMAg_CF->autorecord->Ext,".ppm") ||
+                   !strcasecmp(SUMAg_CF->autorecord->Ext,".1D") ){
+                     snprintf(fname,510*sizeof(char),
+                              "%s/%s.%c.%s%s", 
+                              SUMAg_CF->autorecord->Path, 
+                              SUMAg_CF->autorecord->FileName_NoExt,
+                              SUMA_SV_CHAR(csv),
+                              SUMA_time_stamp(),
+                              SUMAg_CF->autorecord->Ext); 
+               } else {
+                     snprintf(fname,510*sizeof(char),
+                              "%s/%s.%c.%s%s", 
+                              SUMAg_CF->autorecord->Path, 
+                              SUMAg_CF->autorecord->FileName,
+                              SUMA_SV_CHAR(csv),
+                              SUMA_time_stamp(),
+                              ".jpg"); 
+               }
+               mri_write(fname,tim); mri_free(tim); tim=NULL; 
+            } 
+            SUMA_free(pixels);
+         }
+      }
   }
-  
   /* reset rdc, if it is the last thing you'll ever do */
   csv->rdc = SUMA_RDC_NOT_SET;
-  
-   SUMA_RETURNe;
+  SUMA_RETURNe;
 }
 
 void
@@ -7778,7 +7820,7 @@ void SUMA_cb_ColPlaneShow_toggled ( Widget w, XtPointer data,
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
    SUMA_RemixRedisplay(SO);
-   SUMA_UpdateNodeLblField(SO);
+   SUMA_UpdateNodeLblField(NULL,SO);
    
    SUMA_RETURNe;
    #endif
@@ -7824,7 +7866,8 @@ int SUMA_ColPlaneShowOneFore_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state)
    if (!SO->SurfCont->TopLevelShell) SUMA_RETURN(0);
    
    SO->SurfCont->ShowCurForeOnly = state;
-   XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOneFore_tb, SO->SurfCont->ShowCurForeOnly, NOPE);   
+   XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOneFore_tb, 
+                           SO->SurfCont->ShowCurForeOnly, NOPE);   
    
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 

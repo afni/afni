@@ -1758,6 +1758,7 @@ typedef struct {
    SUMA_X *X; /*!< structure containing X widget midgets */
 
    int ortho; /*!< Orthographic (1) or perspective (0, default) projection */
+   int ShowLabelAtXhair; /*!< Show label at location of cross hair */
    float Aspect;   /*!< Aspect ratio of the viewer*/
    int WindWidth;   /*!< Width of window */
    int WindHeight;   /*!< Height of window */
@@ -1765,23 +1766,28 @@ typedef struct {
    float *FOV; /*!< Field of View (affects zoom level, there is a 
                     separate FOV for each ViewState)*/
    float FOV_original; /*!< Original field of view of viewer */
-   float ArrowRotationAngle; /*!< Angle to rotate surface by when arrows are used.
+   float ArrowRotationAngle; /*!< Angle to rotate surface by when arrows 
+                                 are used.
                                  Units are in radians */
-   float KeyZoomGain; /*!< gain for zooming in and out with the 'z' and 'Z' keys. Typical range from 0 to 0.5. Must be < 1*/
+   float KeyZoomGain; /*!< gain for zooming in and out with the 'z' and 'Z' keys.
+                           Typical range from 0 to 0.5. Must be < 1*/
    float KeyNodeJump; /*!< Number of node jumps to do in response to 'alt+arrow'
                            clicks. Default is 1 */
    byte BF_Cull; /*!< flag for backface culling */
-   SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, SRM_Line, SRM_Points
-                                    There is a similar field for each surface object to 
-                                    allow independent control for each surface. If the rendering mode
-                                    is specified for a certain surface, it takes precedence over the
-                                    one specified here*/
+   SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, 
+            SRM_Line, SRM_Points
+            There is a similar field for each surface object to 
+            allow independent control for each surface. If the rendering mode
+            is specified for a certain surface, it takes precedence over the
+            one specified here*/
 
-   float Back_Modfact; /*!< Factor to apply when modulating foreground color with background intensity
-                           background does not modulate foreground, 
-                           Color = Fore * avg_Bright * AttenFactor; (w/ 0 <= avg_Bright <=1)
-                           a good setting is such that SUMA_BACKGROUND_ATTENUATION_FACTOR * SUMA_DIM_AFNI_COLOR_FACTOR = 1
-                            Watch for saturation effects!  */
+   float Back_Modfact; /*!< Factor to apply when modulating foreground 
+               color with background intensity
+               background does not modulate foreground, 
+               Color = Fore * avg_Bright * AttenFactor; (w/ 0 <= avg_Bright <=1)
+               a good setting is such that 
+      SUMA_BACKGROUND_ATTENUATION_FACTOR * SUMA_DIM_AFNI_COLOR_FACTOR = 1
+               Watch for saturation effects!  */
 
    int lit_for;   /*! 1 = lit for surfaces of normdir = 1, -1 for normdir = -1, 0 for not set. */
    GLfloat light0_position[4]; /*!< Light 0 position: 1st 3 vals --> direction of light . Last value is 0 -->  directional light*/
@@ -1857,6 +1863,7 @@ typedef struct {
    
    int Do_3Drender;
    SUMA_EnablingRecord SER;
+   
 } SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
@@ -2822,6 +2829,7 @@ typedef struct {
    
    GICOR_setup *giset; /*!< parameters for group icorr setup */
    
+   SUMA_PARSED_NAME *autorecord; /*!< Autorecord prefix */
 } SUMA_CommonFields;
 
 

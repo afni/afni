@@ -447,7 +447,11 @@ extern THD_datablock *    EDIT_empty_datablock(void) ;          /* 11 Mar 2005 *
 extern void EDIT_add_bricklist( THD_3dim_dataset *,int,int *,float *,void *sbr[] ) ;
 
 extern void EDIT_add_brick( THD_3dim_dataset * , int , float , void * ) ;
-
+extern int EDIT_add_bricks_from_far(THD_3dim_dataset *dset, 
+                                      float **far, int nval,
+                                      int otype, char scaleopt, 
+                                      int verb);
+                    
 extern void EDIT_substitute_brick( THD_3dim_dataset *,  int,int, void * ) ;
 extern void EDIT_substscale_brick( THD_3dim_dataset *,  int,int, void *, int,float ) ;
 

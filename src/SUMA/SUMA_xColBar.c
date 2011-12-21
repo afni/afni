@@ -1257,7 +1257,8 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
 }
  
 
-void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_data)
+void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, 
+                                   XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_SymIrange_tb_toggled"};
    SUMA_SurfaceObject *SO = NULL;
@@ -1281,10 +1282,14 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_da
          automatically update the I range under certain conditions*/
       TF = SO->SurfCont->SetRangeTable;
       SO->SurfCont->curColPlane->OptScl->IntRange[1] = 
-         SUMA_LARG_ABS(SO->SurfCont->curColPlane->OptScl->IntRange[0], SO->SurfCont->curColPlane->OptScl->IntRange[1]);
-      SO->SurfCont->curColPlane->OptScl->IntRange[0] = -SO->SurfCont->curColPlane->OptScl->IntRange[1];
-      SUMA_INSERT_CELL_VALUE(TF, 1, 1, SO->SurfCont->curColPlane->OptScl->IntRange[0]);
-      SUMA_INSERT_CELL_VALUE(TF, 1, 2, SO->SurfCont->curColPlane->OptScl->IntRange[1]);
+         SUMA_LARG_ABS(SO->SurfCont->curColPlane->OptScl->IntRange[0], 
+         SO->SurfCont->curColPlane->OptScl->IntRange[1]);
+      SO->SurfCont->curColPlane->OptScl->IntRange[0] = 
+         -SO->SurfCont->curColPlane->OptScl->IntRange[1];
+      SUMA_INSERT_CELL_VALUE(TF, 1, 1, 
+                  SO->SurfCont->curColPlane->OptScl->IntRange[0]);
+      SUMA_INSERT_CELL_VALUE(TF, 1, 2, 
+                  SO->SurfCont->curColPlane->OptScl->IntRange[1]);
    }
    
    if (!SO->SurfCont->curColPlane->ShowMode < 0) { SUMA_RETURNe; } 
@@ -1305,7 +1310,8 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_da
    SUMA_RETURNe;
 }
 
-void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_data)
+void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, 
+                                   XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_AbsThresh_tb_toggled"};
    SUMA_SurfaceObject *SO = NULL;
@@ -1326,21 +1332,25 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_da
       /* used to use this:
       sprintf(slabel, "|%5s|", .... 
       but that does not work in the editable field ... */
-      sprintf(slabel, "%5s", MV_format_fval(fabs(SO->SurfCont->curColPlane->OptScl->ThreshRange[0])));
+      sprintf(slabel, "%5s", MV_format_fval(
+               fabs(SO->SurfCont->curColPlane->OptScl->ThreshRange[0])));
    } else {
       SO->SurfCont->curColPlane->OptScl->ThrMode = SUMA_LESS_THAN;
-      sprintf(slabel, "%5s", MV_format_fval(SO->SurfCont->curColPlane->OptScl->ThreshRange[0]));
+      sprintf(slabel, "%5s", MV_format_fval(
+               SO->SurfCont->curColPlane->OptScl->ThreshRange[0]));
    }
    /* SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel); */
    SUMA_INSERT_CELL_STRING(SO->SurfCont->SetThrScaleTable, 0,0,slabel); 
-   if (SUMA_GetDsetColRange(SO->SurfCont->curColPlane->dset_link, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
+   if (SUMA_GetDsetColRange(SO->SurfCont->curColPlane->dset_link, 
+                     SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
       SUMA_SetScaleRange(SO, range );
    }else {
       SUMA_SLP_Err("Failed to get range");
       SUMA_RETURNe;
    }
       
-   if (!SO->SurfCont->curColPlane->OptScl->UseThr) { SUMA_RETURNe; } /* nothing else to do */
+   if (!SO->SurfCont->curColPlane->OptScl->UseThr) { SUMA_RETURNe; } 
+                                                /* nothing else to do */
 
    if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -1421,7 +1431,8 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
       SUMA_RETURNe;
    }
       
-   SO->SurfCont->curColPlane->OptScl->UseThr = XmToggleButtonGetState (SO->SurfCont->Thr_tb);
+   SO->SurfCont->curColPlane->OptScl->UseThr = 
+         XmToggleButtonGetState (SO->SurfCont->Thr_tb);
       
    SUMA_ColorizePlane(SO->SurfCont->curColPlane);
    SUMA_RemixRedisplay(SO);
@@ -1456,7 +1467,8 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
       SUMA_RETURNe;
    }
    
-   SO->SurfCont->curColPlane->OptScl->UseBrt = XmToggleButtonGetState (SO->SurfCont->Brt_tb);
+   SO->SurfCont->curColPlane->OptScl->UseBrt = 
+                     XmToggleButtonGetState (SO->SurfCont->Brt_tb);
    
    SUMA_ColorizePlane(SO->SurfCont->curColPlane);
    SUMA_RemixRedisplay(SO);
@@ -1904,7 +1916,8 @@ void SUMA_SetRangeTableTit_EV ( Widget w , XtPointer cd ,
       switch (i) {
          case 1:
             if (bev->button == Button1) { /* toggle lock */
-               SO->SurfCont->curColPlane->OptScl->AutoIntRange = !SO->SurfCont->curColPlane->OptScl->AutoIntRange;
+               SO->SurfCont->curColPlane->OptScl->AutoIntRange = 
+                           !SO->SurfCont->curColPlane->OptScl->AutoIntRange;
                SO->SurfCont->IntRangeLocked = !SO->SurfCont->IntRangeLocked;
                MCW_invert_widget(w);
             }else if (bev->button == Button3) { /* reset to autorange values */
@@ -1918,7 +1931,8 @@ void SUMA_SetRangeTableTit_EV ( Widget w , XtPointer cd ,
             break;
          case 2:
             if (bev->button == Button1) { /* toggle lock */
-               SO->SurfCont->curColPlane->OptScl->AutoBrtRange = !SO->SurfCont->curColPlane->OptScl->AutoBrtRange;
+               SO->SurfCont->curColPlane->OptScl->AutoBrtRange = 
+                           !SO->SurfCont->curColPlane->OptScl->AutoBrtRange;
                SO->SurfCont->BrtRangeLocked = !SO->SurfCont->BrtRangeLocked;
                MCW_invert_widget(w);   
             }else if (bev->button == Button3) { /* reset to autorange values */
@@ -2991,7 +3005,8 @@ void SUMA_SetRangeValue (void *data)
    j = n / TF->Ni;
    XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
    if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s\n", FuncName, i, j, (char *)cv);
+      fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s\n", 
+                           FuncName, i, j, (char *)cv);
    }
    NewDisp = NOPE;
    if (1) {
@@ -3011,7 +3026,10 @@ void SUMA_SetRangeValue (void *data)
                   SUMA_SLP_Err("Lower bound > Upper bound!");
                   SUMA_TableF_SetString(TF);
                } else {
-                  if (LocalHead) fprintf (SUMA_STDERR,"%s: IntRange[0] was %f, will be %f\n", FuncName, ColPlane->OptScl->IntRange[0], TF->num_value[n]);
+                  if (LocalHead) 
+                     fprintf (SUMA_STDERR,"%s: IntRange[0] was %f, will be %f\n",
+                              FuncName, ColPlane->OptScl->IntRange[0], 
+                              TF->num_value[n]);
                   ColPlane->OptScl->IntRange[0] = TF->num_value[n];
                }
             }
@@ -3098,7 +3116,9 @@ void SUMA_SetRangeValue (void *data)
                ColPlane->OptScl->CoordBiasRange[1] = TF->num_value[n];
             }
          } else { SUMA_SL_Err("What's going on Hon ?"); }
-         NewDisp = YUP; /* You might want to disable this feature if the ColPlane is not shown */
+         NewDisp = YUP; 
+               /* You might want to disable this feature if the ColPlane 
+                  is not shown */
          break;
       default:
          SUMA_SL_Err("You make me sick");
@@ -4549,7 +4569,8 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str)
    \brief function that handles switching colormap from the list widget 
    \sa SUMA_cb_SwitchCmap
 */
-void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, XtPointer call_data)
+void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, 
+                               XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_SelectSwitchCmap"};
    SUMA_SurfaceObject *SO = NULL;
@@ -4570,7 +4591,8 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, XtPointer call_d
    
    ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
 
-   /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
+   /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure 
+      and initialize the drawing window */
    if (LW->ALS) {
       if (LocalHead) 
          fprintf (SUMA_STDERR,"%s: N_clist = %d\n", 
@@ -5790,10 +5812,10 @@ char *SUMA_GetLabelsAtNode(SUMA_SurfaceObject *SO, int node)
       if (SUMA_isDsetRelated(dd, SO)) {
          SUMA_LHv("Have Dset %s related to SO\n", SDSET_LABEL(dd));
          /* is dd a LabelDset ? */
-         if (  SUMA_is_Label_dset(dd, NULL) && SO->SelectedNode >= 0 ) {
+         if (  SUMA_is_Label_dset(dd, NULL) && node >= 0 ) {
             SUMA_LHv("dset %s will work with SO", SDSET_LABEL(dd));
             key = SUMA_GetDsetNodeValInCol2( dd, 0, 
-                                             SO->SelectedNode, -1);
+                                             node, -1);
             /* get the overlay for that dset */
             if (key >= 0 &&
                 (colplane = SUMA_Fetch_OverlayPointerByDset (
@@ -5861,6 +5883,7 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_SurfaceObject *SO,
    void * default_font=GLUT_BITMAP_9_BY_15;
    float txcol[4] = {0.2, 0.5, 1, 1.0};
    float default_color[4] = {0.2, 0.5, 1, 1.0}, *v;
+   float topscr[3]={ 0.5, 1.0, 0.0 };
    SUMA_DO_CoordType coord_type = SUMA_WORLD;
    SUMA_DO_CoordUnits default_coord_units = SUMA_WORLD_UNIT;
    SUMA_NIDO *nido=NULL;
@@ -5868,11 +5891,22 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_SurfaceObject *SO,
    
    SUMA_ENTRY;
    
-   nido = SUMA_BlankNIDO(NULL, "AHorseWithNoName",
+   if (0) { /* on crosshair, does not look so nice. Keep it for the record*/
+      nido = SUMA_BlankNIDO(NULL, "AHorseWithNoName",
                          SO->LocalDomainParentID, NULL, NULL);
-   nini = NI_new_data_element("T", 0);
+      nini = NI_new_data_element("T", 0);
    
-   v = &(SO->NodeList[3*SO->SelectedNode]);
+      v = &(SO->NodeList[3*SO->SelectedNode]);
+      coord_type = SUMA_WORLD;
+   } else {/* fixed on screen */
+      nido = SUMA_BlankNIDO(NULL, "AHorseWithNoName",
+                         NULL, "fixed", NULL);
+      nini = NI_new_data_element("T", 0);
+      coord_type = SUMA_SCREEN;
+      NI_set_attribute(nini,"v_align", "top");
+      NI_set_attribute(nini,"h_align", "center");
+      v = topscr;
+   }
    NI_SET_FLOATv( nini, "coord", v, 3);
    NI_set_attribute(nini,"text", lbls);
    NI_set_attribute(nini,"col", "1 1 1");
@@ -5902,18 +5936,22 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_SurfaceObject *SO,
    SUMA_RETURN(nido);
 }
 
+
+/*! 
+   Updates places where a node's value is shown 
+*/
 SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_UpdateNodeLblField"};
    int Found = -1;
-   char *lbls=NULL;
+   char *lbls=NULL, *ltmp=NULL;
    char str_col[100];
    SUMA_OVERLAYS *Sover=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
       
-   if (!SO || (!SO->SurfCont && !SUMAg_CF->X->Whereami_TextShell)) { 
+   if (!SO || (!SO->SurfCont && !SUMAg_CF->X->Whereami_TextShell)) {
       /* absolutely nothing to do */
       SUMA_RETURN(NOPE);
    } 
@@ -5922,103 +5960,105 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO)
    lbls = SUMA_GetLabelsAtNode(SO, SO->SelectedNode);
    SUMA_LHv("Label Dsets: %s\n", lbls);
    
-   if (!SO->SurfCont) {
-      /* controller not open, nothing left to do */
-      if (lbls) SUMA_free(lbls); lbls = NULL;
-      SUMA_RETURN(YUP);
-   }
-   
-   Sover = SO->SurfCont->curColPlane;
-   if (!Sover) {
-      SUMA_RETURN(NOPE);
-   }
-   
-   if (!Sover->ShowMode > 0) {
-      SUMA_LH("Col plane hidden");
-      sprintf(str_col,"hidden color overlay");
-      if (lbls) lbls = SUMA_append_replace_string(lbls, str_col, ",", 1);
-      else lbls = SUMA_copy_string(str_col);
-      SUMA_INSERT_CELL_STRING(SO->SurfCont->LabelTable, 0, 1, lbls);
-      if (lbls) SUMA_free(lbls); lbls = NULL;
-      SUMA_RETURN(YUP);
-   }
-    
-   Found = SUMA_GetNodeOverInd(Sover, SO->SelectedNode);
+   if (SO->SurfCont) {
+      Sover = SO->SurfCont->curColPlane;
+      if (!Sover) {
+         SUMA_RETURN(NOPE);
+      }
 
-   if (Found < 0) {
-      SUMA_Boolean Reasoned = NOPE;
-      SUMA_LH("Node not found.\nLikely masked by threshold");
-      sprintf(str_col,"masked");
-      /* try to find out why it is masked */
-      if (!Reasoned && SO->SurfCont->DataTable) {
-         SUMA_LH("Checking if there is no data for this node");
-         {
-            void *n=NULL;
-            XtVaGetValues(
+      if (!Sover->ShowMode > 0) {
+         SUMA_LH("Col plane hidden");
+         sprintf(str_col,"hidden color overlay");
+         if (lbls) lbls = SUMA_append_replace_string(lbls, str_col, ",", 1);
+         else lbls = SUMA_copy_string(str_col);
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->LabelTable, 0, 1, lbls);
+         if (lbls) SUMA_free(lbls); lbls = NULL;
+         SUMA_RETURN(YUP);
+      }
+
+      Found = SUMA_GetNodeOverInd(Sover, SO->SelectedNode);
+
+      if (Found < 0) {
+         SUMA_Boolean Reasoned = NOPE;
+         SUMA_LH("Node not found.\nLikely masked by threshold");
+         sprintf(str_col,"masked");
+         /* try to find out why it is masked */
+         if (!Reasoned && SO->SurfCont->DataTable) {
+            SUMA_LH("Checking if there is no data for this node");
+            {
+               void *n=NULL;
+               XtVaGetValues(
                SO->SurfCont->DataTable->cells[1*SO->SurfCont->DataTable->Ni+1], 
-               XmNvalue, &n, NULL);
-            if (strcmp((char *)n, "NoData") == 0) {
-               /* no data at all */
-               sprintf(str_col,"no data for this node");
-               Reasoned = YUP;
+                  XmNvalue, &n, NULL);
+               if (strcmp((char *)n, "NoData") == 0) {
+                  /* no data at all */
+                  sprintf(str_col,"no data for this node");
+                  Reasoned = YUP;
+               }
             }
          }
-      }
-      if (!Reasoned && SO->SurfCont->DataTable) { /* is the value 0 ? */
-         SUMA_LH("Checking if node value is zero & zero is not being shown");
-         if (Sover->OptScl->MaskZero && 
+         if (!Reasoned && SO->SurfCont->DataTable) { /* is the value 0 ? */
+            SUMA_LH("Checking if node value is zero & zero is not being shown");
+            if (Sover->OptScl->MaskZero && 
            SO->SurfCont->DataTable->num_value[1*SO->SurfCont->DataTable->Ni+1]) {
-            sprintf(str_col,"masked by zero value");  
-         }   
-      }
-   } else {
-      {
+               sprintf(str_col,"masked by zero value");  
+            }   
+         }
+      } else {
+         {
 
-         /* Now we know what the index of this node 
-            is in the overlay plane (and the data) */
-         sprintf(str_col,"%s",              
-                         MV_format_fval2(Sover->ColVec[3*Found],5));
-         strcat( str_col,", ");
-         strcat( str_col, MV_format_fval2(Sover->ColVec[3*Found+1],5)); 
-         strcat( str_col,", ");
-         strcat( str_col, MV_format_fval2(Sover->ColVec[3*Found+2],5));
-         SUMA_LH(str_col);
+            /* Now we know what the index of this node 
+               is in the overlay plane (and the data) */
+            sprintf(str_col,"%s",              
+                            MV_format_fval2(Sover->ColVec[3*Found],5));
+            strcat( str_col,", ");
+            strcat( str_col, MV_format_fval2(Sover->ColVec[3*Found+1],5)); 
+            strcat( str_col,", ");
+            strcat( str_col, MV_format_fval2(Sover->ColVec[3*Found+2],5));
+            SUMA_LH(str_col);
+         }
       }
-   }
+      if (lbls) ltmp = SUMA_append_replace_string(lbls, str_col, ",", 0);
+      else ltmp = SUMA_copy_string(str_col);
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->LabelTable, 0, 1, ltmp);
+      SUMA_free(ltmp); ltmp=NULL;
+   } 
    
-   if (lbls) lbls = SUMA_append_replace_string(lbls, str_col, ",", 1);
-   else lbls = SUMA_copy_string(str_col);
-   SUMA_INSERT_CELL_STRING(SO->SurfCont->LabelTable, 0, 1, lbls);
-   
-   if (LocalHead) {
-      /* and stick a label on the node?  */
-      
-      /* This is quite experimental: 
-      1- Who, if anyone should maintain the label?
-         If you generate it on the fly always, you'll need 
-         do it twice: at drawing time, and at the time you 
-         are updating the "Label" field in SurfCont.
-         But as it stands here, this function does not get
-         called until after the surface controller is open 
-         for the fist time.
-      2- Does one make the label a part of the cross hair?
-         Then when does one clear the label, when the cross
-         hair moves, even if it move to a non-node?
-         In other terms, does one reset label at SetCrossHair, 
-         or at BindCrossHair?
-      3- In any case, that display mode is ugly, as the text
-         gets buried inside the folds at time.
-      */
-      
-      /* Returned value ignored of next call is ignored.
-       There is no leakage because SV is passed. and SUMA_AddDO
-       does the replacing */
-      SUMA_NodeLabelToTextNIDO (lbls, SO, &(SUMAg_SVv[0]));
-   }
    if (lbls) SUMA_free(lbls); lbls = NULL;
    
    SUMA_RETURN(YUP);
 }
+
+ 
+SUMA_Boolean SUMA_UpdateCrossHairNodeLabelField(SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_UpdateCrossHairNodeLabelField"};
+   char *lbls=NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_Boolean LocalHead = YUP;
+
+   SUMA_ENTRY;
+      
+   if (!sv || !sv->Ch || sv->Ch->SurfaceID < 0) {
+      /* nothing to do */
+      SUMA_RETURN(NOPE);
+   } 
+   
+   if (!(SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Ch->SurfaceID].OP))) {
+      SUMA_RETURN(NOPE);
+   }
+   
+   if ( sv->ShowLabelAtXhair &&
+       (lbls = SUMA_GetLabelsAtNode(SO, sv->Ch->NodeID))) {
+      SUMA_NodeLabelToTextNIDO (lbls, SO, sv);
+      SUMA_free(lbls); lbls = NULL;
+   } else {
+      SUMA_NodeLabelToTextNIDO ("", SO, sv);
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
 
 SUMA_Boolean SUMA_UpdateTriField(SUMA_SurfaceObject *SO)
 {

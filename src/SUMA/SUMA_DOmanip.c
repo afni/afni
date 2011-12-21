@@ -391,7 +391,7 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
          SUMA_S_Warn("Replacing volume object, might get complicated...");
       }
       if (!(nm % 300)) {
-         SUMA_SLP_Note( "Object exists and will be replaced.\n"
+         SUMA_SL_Note( "Object exists and will be replaced.\n"
                         "Message shown intermittently");
       }
       ++nm;

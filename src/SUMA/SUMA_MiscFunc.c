@@ -3837,7 +3837,26 @@ float SUMA_etime (struct  timeval  *t, int Report  )
    
 }/*SUMA_etime*/
 
-  
+/* 
+   Return time stamp in a string.
+   yymmdd_hhmmss.MMM
+   with MMM being a 3 digit msec stamp that
+   is useless except for minimizing the chance of similar stamps
+   in repeated calls. You can't rely on the msec part to be accurate.
+   
+   Do not free returned string.
+*/
+char *SUMA_time_stamp(void )
+{
+   struct  timeval  tn;
+   time_t tnow = time(NULL) ;
+   static char res[64], ttt[31];
+   
+   gettimeofday(&tn, NULL);
+   strftime(ttt,31*sizeof(char),"%y%m%d_%H%M%S", localtime(&tnow));
+   snprintf(res,63*sizeof(char),"%s.%03d", ttt, (int)(tn.tv_usec/1000));
+   return(res);
+}  
 /*!
    
 File : SUMA_MiscFunc.c, from ~Zlib/code/isinsphere.c
