@@ -7,7 +7,11 @@
 #define CR '\r'    /* Microsoft line ender = ctrl-M = ASCII 0x0D */
 
 /*----------------------------------------------------------------------------*/
-/* Allow user to skip the afni_fgets() function, probably for speedup. */
+/* Allow user to skip the afni_fgets() function, probably for speedup.
+   afni_fgets() is about 4-5 times slower than fgets(), at least on my Mac.
+   Doesn't usually matter, since interpreting the text takes longer than
+   reading it in most case.  (Also, cf machdep.h)
+*//*--------------------------------------------------------------------------*/
 
 static int use_fgets = 0 ;
 void afni_fgets_setskip( int s ){ use_fgets = s ; }

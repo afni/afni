@@ -3073,12 +3073,16 @@ static char * readme_env[] = {
    "platforms use a different end-of-line character (ASCII 0xD).  The result\n" ,
    "is that Microsoft-ized text files don't work well with fgets().  AFNI\n" ,
    "uses its own function, cleverly called afni_fgets(), to read text lines,\n" ,
-   "to avoid this problem.  However, this function is somewhat slower than\n" ,
-   "the system fgets() function, so if speed if important -- as when reading\n" ,
+   "to avoid this problem.  However, this function is 4-5 times slower than\n" ,
+   "the system fgets() function, so if speed if crucial -- as when reading\n" ,
    "a giant 1D file -- then set AFNI_USE_FGETS to YES to make AFNI programs\n" ,
    "use the system fgets() function.  The best way to do this would be on\n" ,
-   "the command line, as in the trivial example below:\n" ,
+   "the command line, as in the simple example below:\n" ,
    "  1dcat -DAFNI_USE_FGETS=YES bigfileA.1D bigfileB.1D > bigfileAB.1D\n" ,
+   "In such an example, you won't see a 4-5 times speedup, since actually\n" ,
+   "most of the time is spent decoding the text in the file into numbers\n" ,
+   "and then writing them back out -- you'll probably see a speedup of\n" ,
+   "about 1.2-1.4 instead -- not trivial, but not exhilarating.\n" ,
    "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
@@ -3454,4 +3458,4 @@ static char * readme_env[] = {
    "\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3454
+#define NUM_readme_env 3458
