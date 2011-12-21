@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 20 , DEC , 2011 , RWC , "fgets" , MICRO , TYPE_GENERAL ,
+  { 21 , DEC , 2011 , RWC , "afni_fgets" , MICRO , TYPE_MODIFY ,
+   "Modify to use system fgets for stdin" ,
+   NULL } ,
+
+ { 20 , DEC , 2011 , RWC , "fgets" , MICRO , TYPE_GENERAL ,
    "Replace (mostly) fgets with afni_fgets" ,
    "Recognizes CR and CR+LF and LF+CR as line enders, not just LF like the\n"
    "standard Unix library function -- these Microsofties are killing me." } ,
