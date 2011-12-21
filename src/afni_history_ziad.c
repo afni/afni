@@ -65,6 +65,29 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 20, DEC , 2011 , ZSS , "3dclust" , MINOR , TYPE_BUG_FIX,
+   "-prefix failed when input dset was mastered.",
+   "Better use macro PREP_LOADED_DSET_4_REWRITE whenever modifying\n"
+   "a dataset loaded from disk for the purporse of rewriting it.",
+ },
+    
+ { 20, DEC , 2011 , ZSS , "3dUpsample" , MINOR , TYPE_NEW_OPT,
+   "Allow for upsampling to go to 11 (actually 320) and control output datum",
+   NULL,
+ },
+ 
+ { 20, DEC , 2011 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "SUMA now allows for direct recording to disk.",
+   "See SUMA's ctrl+h for key ctrl+R for details.\n"
+   "Related environment variable is SUMA_AutoRecordPrefix.",
+ },
+ 
+ { 20, DEC , 2011 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "SUMA now displays area labels in the viewer, F9 key toggles it",
+   "See SUMA's ctrl+h output in the section for F9\n"
+   "Related environment variable is SUMA_ShowLabelsAtCrossHair.",
+ },
+ 
  { 13, DEC , 2011 , ZSS , "3dinfo" , MINOR , TYPE_NEW_OPT,
    "-same_* options return information about dset pairs",
    NULL,
