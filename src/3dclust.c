@@ -633,7 +633,6 @@ int main( int argc , char * argv[] )
       }
 
       /*-- 29 Nov 2001: write out an edited dataset? --*/
-
       if( CL_prefix != NULL || CL_savemask != NULL ){
 
         if (iarg == nopt) {
@@ -652,13 +651,7 @@ int main( int argc , char * argv[] )
 
            if( CL_prefix != NULL ){
              DSET_load( dset ) ;             /* reload data from disk */
-
-             /* needs a new ID, but after loading     30 May 2006 [rickr] */
-             dset->idcode = MCW_new_idcode() ;
-
-             EDIT_dset_items( dset ,         /* rename dataset internally */
-                                ADN_prefix , CL_prefix ,
-                              ADN_none ) ;
+             PREP_LOADED_DSET_4_REWRITE(dset, CL_prefix); /* ZSS Dec 2011 */
 
              tross_Make_History( "3dclust" , argc , argv , dset ) ;
 

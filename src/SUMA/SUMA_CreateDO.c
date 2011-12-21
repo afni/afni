@@ -3907,7 +3907,11 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
    if (!nel || strcmp(nel->name,"T")) SUMA_RETURN(NOPE); 
 
    SUMA_LHv(  "default_coord_units %d\n", default_coord_units);
-    
+   string = NI_get_attribute(nel,"text");  
+   if (!string || string[0]=='\0') {
+      /* nothing to write */
+      SUMA_RETURN(YUP);
+   }
    if ((atr = NI_get_attribute(nel, "font"))) {
       if (!(font = SUMA_glutBitmapFont(atr))) {
          SUMA_S_Errv("Bad font %s, using default for group\n", 
@@ -3955,7 +3959,6 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
 
    /* do some text action */
    glColor3fv(txcol);
-   string = NI_get_attribute(nel,"text"); 
    SUMA_LHv(  "text:\n"
               ">>>%s<<<\n", string);
    for (is=0; string && string[is] != '\0'; is++) {
