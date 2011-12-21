@@ -17,7 +17,7 @@ int main( int argc , char * argv[] )
    float ** sum=NULL , fsum=0.0;
    float ** sd=NULL;
    int ** count=NULL;
-
+   char *first_dset=NULL;
    int fscale=0 , gscale=0 , nscale=0 ;
 
    nx = ny = nz = nxyz = nval = 0;  /* just for compiler warnings */
@@ -167,6 +167,7 @@ int main( int argc , char * argv[] )
       }
 
       fprintf(stderr,"** ERROR: unknown option %s\n",argv[nopt]) ;
+      suggest_best_prog_option(argv[0], argv[nopt]);
       exit(1) ;
    }
 
@@ -218,7 +219,7 @@ int main( int argc , char * argv[] )
       /*-- 1st time thru: make workspace and empty output dataset --*/
 
       if( nsum == 0 ){
-
+         first_dset = argv[nopt];
          nx   = DSET_NX(inset) ;
          ny   = DSET_NY(inset) ;
          nz   = DSET_NZ(inset) ; nxyz= nx*ny*nz;
@@ -272,9 +273,9 @@ int main( int argc , char * argv[] )
              DSET_NZ(inset)    != nz ||
              DSET_NVALS(inset) != nval  ){
 
-             fprintf(stderr,"** ERROR: dataset %s doesn't match 1st one in sizes\n",
-                     argv[nopt]) ;
-             fprintf(stderr,"** I'm telling your mother about this!\n") ;
+             ERROR_message("dataset %s doesn't match %s sizes\n"
+                           "** I'm telling your mother about this!\n",
+                     argv[nopt], first_dset) ;
              exit(1) ;
          }
       }
@@ -517,6 +518,8 @@ int main( int argc , char * argv[] )
 
    } /* end sd loop */
 
+   #if 0 /* Now using EDIT_add_bricks_from_far.
+            Delete this section next time you see it. ZSS Dec 2011 */   
    switch( datum ){
 
       default:
@@ -611,7 +614,20 @@ int main( int argc , char * argv[] )
       }
       break ;
    }
-
+   #else
+   {
+      char scaleopt;
+      if (nscale) scaleopt='N';
+      else if (fscale && !gscale) scaleopt='F';
+      else if (gscale) scaleopt = 'G';
+      else scaleopt = 'A';
+      if (!EDIT_add_bricks_from_far(outset,  sum, nval, datum, scaleopt, verb)) {
+         ERROR_message("Failed to create output sub-bricks");
+         exit(1);
+      }
+   }   
+   #endif
+   
    if( verb ) fprintf(stderr,"  ++ Computing output statistics\n") ;
    THD_load_statistics( outset ) ;
 

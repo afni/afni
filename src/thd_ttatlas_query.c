@@ -4160,14 +4160,16 @@ void suggest_best_prog_option(char *prog, char *str)
 
 char *get_updated_help_file(int force_recreate, byte verb, char *progname) 
 {
-      static char hout[128]={""};
-      char scomm[256], *etr=NULL, *hdir=NULL, *etm=NULL;
+      static char hout[512]={""};
+      char scomm[1024], *etr=NULL, *hdir=NULL, *etm=NULL;
+      long long ml, mn;
+      int cnt = 0;
       
-      hdir = THD_helpdir(0);
-      if (hdir[0] == '\0') {
+      if (!(hdir = THD_get_helpdir(0))) {
          ERROR_message("Have no help directory\n");
          RETURN(hout);
       }
+      
       etr = THD_trailname( progname , 0 ) ; 
       if (!etr || strlen(etr) < 2) {
          WARNING_message("Fishy executable named %s\n",progname);
@@ -4178,7 +4180,7 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname)
          etm = "NoTimeStamp";
       }
       
-      snprintf(hout, 120*sizeof(char),
+      snprintf(hout, 500*sizeof(char),
                "%s/%s.%s.help", hdir, etr, etm);
       if (!force_recreate && THD_is_file(hout)) {
          if (verb) fprintf(stderr,"Reusing %s \n", hout); 
@@ -4190,14 +4192,24 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname)
             command and use it wisely here without risking 
             trouble */
          if (THD_is_file( hout)) {
-            snprintf(scomm, 250*sizeof(char),
+            snprintf(scomm, 1000*sizeof(char),
                "chmod u+w %s", hout);
             system(scomm); 
          }
-         snprintf(scomm, 250*sizeof(char),
+         snprintf(scomm, 1000*sizeof(char),
                "echo '' | %s -help >& %s &", etr, hout);
          system(scomm); 
-         snprintf(scomm, 250*sizeof(char),
+         
+         /* wait a little to finish writing*/
+         mn = THD_filesize(hout); cnt = 0;
+         do {
+            ml = mn;
+            NI_sleep(50); 
+            mn = THD_filesize(hout); 
+            ++cnt;
+         } while (ml != mn && cnt < 20);
+         
+         snprintf(scomm, 1000*sizeof(char),
                "chmod a-w %s", hout);
          system(scomm); 
       }

@@ -203,6 +203,7 @@ SUMA_CELL_VARIETY SUMA_cellvariety (SUMA_TABLE_FIELD *TF, int n);
 SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what);
 void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_UpdateCrossHairNodeLabelField(SUMA_SurfaceViewer *sv);
 void SUMA_XhairInput (void* data);
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO);
 void SUMA_NodeInput (void* data);

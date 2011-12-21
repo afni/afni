@@ -115,6 +115,9 @@ void Syntax(void)
 "   -same_all_grid: Equivalent to listing all of -same_dim -same_delta\n"
 "                   -same_orient, -same_center, and -same_obl on the \n"
 "                   command line.\n"
+"   -monog_pair: Instead of pairing each dset with the first, pair each\n"
+"                couple separately. This requires you to have an even\n"
+"                number of dsets on the command line\n"
 "\n"
 " Examples with csh syntax using datasets in your afni binaries directory\n"
 "\n"
@@ -182,8 +185,8 @@ typedef enum {
                               Leave N_FIELDS at the end */
 
 char Field_Names[][32]={
-   {"-classic-"}, {"space"}, {"AV_space"}, {"is_nifti"},
-   {"is_oblique"}, {"obliquity"}, {"prefix"}, {"prefix_noext"}, 
+   {"-classic-"}, {"space"}, {"AV_spc"}, {"nifti?"},
+   {"oblq?"}, {"oblq"}, {"prefix"}, {"pref_nx"}, 
    {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, 
    {"Nv"}, {"Nvi"}, {"Nijk"}, 
    {"Ni_Nj_Nk_Nv"},
@@ -192,11 +195,33 @@ char Field_Names[][32]={
    {"label_table"}, {"LT_as_atlas_point_list"}, 
    {"factor"}, {"datum"}, {"label"}, 
    {"min"}, {"max"}, {"minus"}, {"maxus"},
-   {"TR"}, {"header_name"}, {"brick_name"}, {"all_names"},
-   {"history"}, {"orient"},
-   {"same_grid"}, {"same_dim"}, {"same_delta"}, {"same_orient"}, {"same_center"},
-   {"same_obl"}, {"same_dim_delta_orient_center_obl"},
+   {"TR"}, {"hdr_nm"}, {"brk_nm"}, {"all_nms"},
+   {"hist"}, {"orient"},
+   {"=grid?"}, {"=dim?"}, {"=delt?"}, {"=ornt?"}, {"=cent?"},
+   {"=obl?"}, {"=dim_delta_orient_center_obl"},
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
+
+char *PrintForm(INFO_FIELDS sing , int namelen, byte ForHead)
+{
+   static char form[5][15];
+   static int iret=-1;
+   ++iret; if (iret > 4) iret = 0;
+   if (ForHead) {
+      switch (sing) {
+         case PREFIX:
+         case PREFIX_NOEXT:
+            sprintf(form[iret],"%%%ds", namelen);
+            break;
+         default:
+            sprintf(form[iret],"%%s");
+      }
+   } else {
+      ERROR_message("Not ready for non-header format of %d\n", sing);
+      sprintf(form[iret],"F.ERROR:%%s");
+   }
+   
+   return(form[iret]);
+}
      
 int main( int argc , char *argv[] )
 {
@@ -206,10 +231,10 @@ int main( int argc , char *argv[] )
    char *labelName = NULL;
    char *sbdelim = {"|"};
    char *NAflag = {"NA"};
-   char *atrdelim = {"\t"};
+   char *atrdelim = {"\t"}, *form=NULL;
    INFO_FIELDS sing[512]; 
    int iis=0, N_sing = 0, isb=0, withhead = 0;
-   int ip=0, needpair = 0;
+   int ip=0, needpair = 0, namelen=0, monog_pairs = 0;
    THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
    
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
@@ -222,6 +247,7 @@ int main( int argc , char *argv[] )
       else if( strncmp(argv[iarg],"-VERB" ,5) == 0 ){ verbose =  1; iarg++; continue; }
       else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; continue; }
       else if( strcasecmp(argv[iarg],"-header_line") == 0 ){ withhead = 1; iarg++; continue; }
+      else if( strcasecmp(argv[iarg],"-monog_pairs") == 0 ){ monog_pairs = 1; iarg++; continue; }
       else if ( strncmp(argv[iarg],"-label2",7) == 0 )
       {
         iarg++;
@@ -375,55 +401,90 @@ int main( int argc , char *argv[] )
    
    THD_allow_empty_dataset(1) ;  /* 21 Mar 2007 */
 
-   if (withhead) {
-      int havenew=0;
-      for (iis = 0; iis < N_sing; ++iis) {
-         if (sing[iis] != CLASSIC) {
-            ++havenew;
-            fprintf(stdout, "%s", Field_Names[sing[iis]]);
-         }
-         if (havenew) {
-            if (N_sing > 1 && iis < N_sing-1) fprintf(stdout,"%s",atrdelim);
-            else fprintf(stdout,"\n");
-         }
-      }
-   }
-
    if (iarg == argc) {
       ERROR_message("No dsets on command line? I have nothing to do.\n");
       exit(1);
    }
-
-   if (needpair && (argc-iarg) % 2) {
+   
+   if (needpair && monog_pairs) needpair = 2; /* pair each couple separately */
+   
+   if (needpair==2 && (argc-iarg) % 2) { 
       ERROR_message("Using options requiring dset pairs but have odd number\n"
                     "of dsets (%d) on command line.\n", (argc-iarg));
       exit (1);
+   } else if (needpair==1 && (argc-iarg) < 2) {
+      ERROR_message("Using options requiring dset pairs but have less than\n"
+                    "two dsets (%d) on command line.\n", (argc-iarg));
+      exit (1);
    }
+   
    ip = 0;
    for( ; iarg < argc ; iarg++ ){
+      if (ip == 0) {
+         int kkk, nml; char *etr;
+         namelen = 0; 
+         for (kkk=iarg; kkk<argc; ++kkk) {
+            if ((etr = THD_trailname(argv[kkk],0))) {
+               nml=strlen(etr);
+               if (nml < 48 && nml > namelen) namelen = nml;  
+            }
+         }
+         if (namelen < 6) namelen = 6;
+         if (withhead) {
+            int havenew=0;
+            for (iis = 0; iis < N_sing; ++iis) {
+               if (sing[iis] != CLASSIC) {
+                  ++havenew;
+                  form = PrintForm(sing[iis], namelen, 1);
+                  /*fprintf(stderr,"ZSS: %d %s >%s<\n", 
+                           sing[iis], Field_Names[sing[iis]], form);*/
 
+                  fprintf(stdout, form, Field_Names[sing[iis]]);
+               }
+               if (havenew) {
+                  if (N_sing > 1 && iis < N_sing-1) 
+                           fprintf(stdout,"%s",atrdelim);
+                  else fprintf(stdout,"\n");
+               }
+            }
+         }
+      }
      if( argv[iarg][0] == '\0' ) continue ;  /* bad filename */
      
      set_obliquity_report(0); /* silence obliquity */
      
      if (!needpair) {
       if (!(dset = load_3dinfo_dataset(argv[iarg] ))) exit(1);
-     } else { /* must have a pair at all times */
-      if (ip % 2 == 0) {
-         if (!(dset = load_3dinfo_dataset(argv[iarg] ))) exit(1);
-         if (iarg+1==argc || argv[iarg+1][0] == '\0') {
-            ERROR_message("Bad dset pair for %s\n", argv[iarg]);
-            exit(1);
+     } else { 
+      if (needpair == 2) { /* Crazy idea of comparing each pair separately */
+         if (ip % 2 == 0) {
+            if (!(dset = load_3dinfo_dataset(argv[iarg] ))) exit(1);
+            if (iarg+1==argc || argv[iarg+1][0] == '\0') {
+               ERROR_message("Bad dset pair for %s\n", argv[iarg]);
+               exit(1);
+            }
+            if (!(dsetp = load_3dinfo_dataset(argv[iarg+1] ))) exit(1);
+         } else { /* swap the pair - this allows non pair requiring functions 
+                     to work as before.*/
+            tttdset = dsetp;
+            dsetp = dset;
+            dset = tttdset; tttdset=NULL;
          }
-         if (!(dsetp = load_3dinfo_dataset(argv[iarg+1] ))) exit(1);
-      } else { /* swap the pair - this allows non pair requiring functions 
-                  to work as before.*/
-         tttdset = dsetp;
-         dsetp = dset;
-         dset = tttdset; tttdset=NULL;
+      } else { /* always compare to very first dset */
+         if (ip==0) {
+            if (!(dset = load_3dinfo_dataset(argv[iarg] ))) exit(1);
+            if (!(dsetp = load_3dinfo_dataset(argv[iarg+1] ))) exit(1);
+         } else if (ip==1) { /* switch order of first two */
+            tttdset = dsetp;
+            dsetp = dset; /* now dsetp is the very first dset */
+            dset = tttdset; tttdset=NULL;
+         } else { /* pair with very first, which is dsetp */
+            if (!(dset = load_3dinfo_dataset(argv[iarg] ))) exit(1);
+         }
       }
-      ++ip;
      }
+     ++ip;
+
      if (!dset) {
          ERROR_exit("Should not get here");
      }
@@ -492,16 +553,18 @@ int main( int argc , char *argv[] )
             }
             break;
          case OBLIQUITY:
-            fprintf(stdout,"%f",
+            fprintf(stdout,"%.3f",
                   THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0));
             break;
          case PREFIX:
-            fprintf(stdout,"%s", DSET_PREFIX(dset));
+            form = PrintForm(sing[iis], namelen, 1);
+            fprintf(stdout,form, DSET_PREFIX(dset));
             break;
          case PREFIX_NOEXT:
-            { 
+            {                    
+               form = PrintForm(sing[iis], namelen, 1);
                stmp=DSET_prefix_noext(dset);
-               fprintf(stdout,"%s", stmp);
+               fprintf(stdout,form, stmp);
                free(stmp); stmp=NULL;
             }
             break;

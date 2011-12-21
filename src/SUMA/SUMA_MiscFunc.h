@@ -59,6 +59,7 @@ int SUMA_iswordsame_ci (const char *sbig,const char *ssub);
 int SUMA_iswordsame (const char *sbig,const char *ssub);
 float SUMA_etime (struct  timeval  *t, int Report);
 int SUMA_etime2(char *name, char *str, char *strloc);
+char *SUMA_time_stamp(void);
 byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet, int FaceSetDim, int *dims, int *N_in, byte *usethis, byte *mask);
 SUMA_ISINBOX SUMA_isinbox (float * NodeList, int nr, float *S_cent , float *S_dim , int BoundIn);
 SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB);

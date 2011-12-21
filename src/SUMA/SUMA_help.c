@@ -1304,10 +1304,28 @@ char * SUMA_help_message_Info(void)
       "             This limitation is due to the graphics card\n"
       "             on your system. SUMA will take care not to exceed\n"
       "             this limit.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     R: Toggle continuous recording \n"
-      "        to an a la AFNI image viewer.\n"
-      "        Identical images are rejected.\n\n");
+   SS = SUMA_StringAppend_va (SS, 
+   "     Ctrl+R: Toggle continuous jpeg saving to disk.\n"
+   "             Images are saved with a date stamp of the\n"
+   "             format PREFIX.X.yymmdd_hhmmss.MMM.jpg where:\n"
+   "          PREFIX controlled with SUMA_AutoRecordPrefix.\n"
+   "             See environment variable SUMA_AutoRecordPrefix for\n"
+   "             controlling prefix and output image type (suma -update_env).\n"
+   "          X  The character indicating which viewer is recording (you can\n"
+   "             record from multiple viewers at once.\n"
+   "          yy, mm, dd, hh, mm, ss for year, month, day, hours, minutes,\n"
+   "             and seconds, respectively. MMM is a millisecond marker to\n"
+   "             avoid overwriting files. Unlike the other recording mode \n"
+   "            (with the 'R' key), there is no rejection of identical images\n"
+   "\n"
+   "             This option is useful for saving a large number of images\n"
+   "             without running out of memory in the recorder GUI. \n"
+   "\n"
+   "             Your current PREFIX is: %s%s\n"
+   "     R: Toggle continuous recording \n"
+   "        to an a la AFNI image viewer.\n"
+   "        Identical images are rejected.\n\n", 
+                     SUMAg_CF->autorecord->Path, SUMAg_CF->autorecord->FileName);
    SS = SUMA_StringAppend (SS, 
       "     s: NO LONGER IN USE. \n"
       "        View the surface's structure contents.\n"
@@ -1530,6 +1548,9 @@ char * SUMA_help_message_Info(void)
       "         MOD1: Col = ( 1 - opacity ) * OldCol +           NewCol \n");
    SS = SUMA_StringAppend (SS, 
       "     F8: Viewing mode (Perspective or Orthographic Projection), toggle.\n"
+      );
+   SS = SUMA_StringAppend (SS, 
+      "     F9: Labels at cross hair, toggle.\n"
       );
    SS = SUMA_StringAppend (SS, 
       "     F12: Time 20 scene renderings.\n\n");

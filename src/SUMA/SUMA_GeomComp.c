@@ -8997,7 +8997,8 @@ SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom
                                  "SurfPlane Intersection - Edges", 
                                  SPI->N_IntersEdges,  SPI->IntersEdges);
       if (!ROIe) {
-         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
+         fprintf(SUMA_STDERR,
+                 "Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
       } else {
          if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIe, ROIO_type, SUMA_WORLD)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);

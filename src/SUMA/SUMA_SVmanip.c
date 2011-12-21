@@ -213,7 +213,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       {
          char *eee = getenv("SUMA_AdjustMouseMotionWithZoom");
          if (eee) {
-            if (strcmp (eee, "YES") == 0) SV->ZoomCompensate = 1.0;
+            if (strcasecmp (eee, "YES") == 0) SV->ZoomCompensate = 1.0;
             else SV->ZoomCompensate = 0.0;
          } else {
             SV->ZoomCompensate = 1.0; 
@@ -222,7 +222,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       {
          char *eee = getenv("SUMA_FreezeFOVAcrossStates");
          if (eee) {
-            if (strcmp (eee, "YES") == 0) SV->FreezeZoomXstates = 1;
+            if (strcasecmp (eee, "YES") == 0) SV->FreezeZoomXstates = 1;
             else SV->FreezeZoomXstates = 0;
          } else {
             SV->FreezeZoomXstates = 1; 
@@ -231,13 +231,18 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       {
          char *eee = getenv("SUMA_ViewOrthographicProjection");
          if (eee) {
-            if (strcmp (eee, "YES") == 0) SV->ortho = 1;
+            if (strcasecmp (eee, "YES") == 0) SV->ortho = 1;
             else SV->ortho = 0;
          } else {
             SV->ortho = 0; 
          }
       }
-
+      
+      SV->ShowLabelAtXhair = 1;
+      if (!SUMA_isEnv("SUMA_ShowLabelsAtCrossHair","YES")) {
+         SV->ShowLabelAtXhair = 0;
+      }
+      
       SV->Aspect = 1.0;
       SV->FOV = NULL;
       for (j=0; j < SV->N_GVS; ++j) {
@@ -574,7 +579,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       {
          char *eee = getenv("SUMA_CenterOnPatch");
          if (eee) {
-            if (strcmp (eee, "YES") == 0) SV->UsePatchDims = YUP;
+            if (strcasecmp (eee, "YES") == 0) SV->UsePatchDims = YUP;
             else SV->UsePatchDims = NOPE;
          } else {
             SV->UsePatchDims = NOPE;
@@ -1272,6 +1277,8 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    
    if (SV->ortho) SS = SUMA_StringAppend_va(SS,"   Projection: Orthographic\n");
    else SS = SUMA_StringAppend_va(SS,"   Projection: Perspective\n");
+   SS = SUMA_StringAppend_va(SS,"   Display Labels At Crosshair: %s\n",
+            SV->ShowLabelAtXhair ? "ON": "OFF");
    SS = SUMA_StringAppend_va(SS,"   Aspect = %f\n", SV->Aspect);
    SS = SUMA_StringAppend_va( SS,"   Freeze Zoom across states = %d\n",
                                SV->FreezeZoomXstates);
@@ -1796,7 +1803,8 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
    if (!viewopt) viewopt = UPDATE_ALL_VIEWING_PARAMS_MASK;
    
    if (LocalHead && SUMA_WhichSV(csv, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) != 0) {
-      fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", FuncName, 65+SUMA_WhichSV(csv, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) );
+      fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", 
+                           FuncName, SUMA_SV_CHAR(csv)    );
       /* turn off the LocalHead, too much output*/
       LocalHead = NOPE;
    }
@@ -2003,7 +2011,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    eee = getenv("SUMA_SwapButtons_1_3");
    if (eee) {
-      if (strcmp (eee, "YES") == 0) cf->SwapButtons_1_3 = YUP;
+      if (strcasecmp (eee, "YES") == 0) cf->SwapButtons_1_3 = YUP;
       else cf->SwapButtons_1_3 = NOPE;
    } else {
       cf->SwapButtons_1_3 = NOPE;
@@ -2259,8 +2267,28 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    cf->giset = NULL;
    
+   cf->autorecord = SUMA_SetAutoRecord(getenv("SUMA_AutoRecordPrefix"));
+
    return (cf);
 
+}
+
+SUMA_PARSED_NAME *SUMA_SetAutoRecord(char *pref)
+{
+   static char FuncName[]={"SUMA_SetAutoRecord"};
+   SUMA_PARSED_NAME *pn=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!pref) SUMA_RETURN(SUMA_ParseFname("./autorecord", NULL));
+   
+   if (!(pn = SUMA_ParseFname(pref, NULL))) {
+      SUMA_S_Errv("Failed to parse %s\n", pref);
+      SUMA_RETURN(SUMA_ParseFname("./autorecord", NULL));
+   }
+   
+   
+   SUMA_RETURN(pn);
 }
 
 /*!
@@ -2676,6 +2704,10 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
       }
       DESTROY_GICOR_setup(cf->giset); cf->giset=NULL;
    }
+   
+   if (cf->autorecord) { 
+      cf->autorecord = SUMA_Free_Parsed_Name(cf->autorecord);
+   }
    /* if (cf) free(cf); */ /* don't free this stupid pointer since it is used
                         when main returns with SUMA_ RETURN 
                         (typo on purpose to avoid upsetting AnalyzeTrace. 
@@ -2861,6 +2893,9 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    
    SS = SUMA_StringAppend_va(SS, "%s\n",s); SUMA_free(s); s = NULL;
    
+   SS = SUMA_StringAppend_va(SS, "autorecord: %s\n", 
+                  cf->autorecord ? cf->autorecord->FullName:"NULL");
+                  
    /* clean up */
    SS = SUMA_StringAppend_va(SS, NULL);
    s = SS->s; SUMA_free(SS); SS= NULL;
@@ -3326,7 +3361,8 @@ void SUMA_UpdateViewerTitle_old(SUMA_SurfaceViewer *sv)
    
    sprintf(sside, ":%c%c:", cl, cr);
    
-   if (sv->Record) sprintf(srec,":Rec");
+   if (sv->Record==1) sprintf(srec,":Rec");
+   else if (sv->Record==2) sprintf(srec,":REC");
    else srec[0] = '\0';
    
    if (sv->GVS[sv->StdView].ApplyMomentum) sprintf(smoment,":M");
@@ -3412,7 +3448,8 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    } else SS = SUMA_StringAppend_va(SS,"[DOH] SUMA"); 
    
    SUMA_LH("Rec");
-   if (sv->Record) SS = SUMA_StringAppend_va(SS,":Rec");
+   if (sv->Record == 1) SS = SUMA_StringAppend_va(SS,":Rec");
+   else if (sv->Record == 2) SS = SUMA_StringAppend_va(SS,":REC");
    
    SUMA_LH("Momentum");
    if (sv->GVS[sv->StdView].ApplyMomentum) SS = SUMA_StringAppend_va(SS,":M");

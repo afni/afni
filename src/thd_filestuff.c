@@ -185,6 +185,10 @@ char *THD_homedir(byte withslash)
    return (sout[icall]) ;
 }
 
+/* Return the name of the help directory, no guarantee that it exists
+   Consider THD_get_helpdir()
+   Do not free returned pointer. Failure results in an empty string.
+*/
 char *THD_helpdir(byte withslash)
 {
    static char sout[3][610]; 
@@ -204,6 +208,24 @@ char *THD_helpdir(byte withslash)
    return (sout[icall]) ;
 }
 
+
+/* retrieve help directory and make sure it is present 
+   Do not free returned pointer. Failure is a NULL pointer */
+char *THD_get_helpdir(byte withslash) 
+{
+   char *hdir = NULL;
+   hdir = THD_helpdir(withslash);
+   if (hdir[0] == '\0') {
+      ERROR_message("Have no help directory\n");
+      return(NULL);
+   }
+   if (!THD_mkdir(hdir)) {
+      ERROR_message("Cannot create %s directory\n", hdir);
+      return(NULL);
+   }
+   return(hdir);
+}
+
 char *THD_helpsearchlog(int createpath)
 {
    static int bad = 0;
@@ -217,6 +239,7 @@ char *THD_helpsearchlog(int createpath)
                       "%s/aps.log.txt",THD_helpdir(0));
    return(shelpname);
 }
+
 
 /*--------------------------------------------------------*/
 /*! Determine if this is really a directory or not. */

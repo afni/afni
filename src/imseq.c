@@ -11920,6 +11920,37 @@ ENTRY("ISQ_snapsave") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Like ISQ_snapsave, but don't store the image, return it instead.
+     - ww, hh = width and height of image
+     - if(hh < 0) ==> flip image vertically (e.g., from glReadPixels)
+     - pix = pointer to 3*ww*hh bytes of RGB data
+------------------------------------------------------------------------------*/
+MRI_IMAGE * ISQ_snap_to_mri_image( int ww , int hh , byte *pix  )
+{
+   MRI_IMAGE *tim ;
+   byte *qix ;
+   int ii , jj , flip=0 ;
+
+   ENTRY("ISQ_snap_to_mri_image") ;
+
+   if( ww < 2 || pix == NULL ) EXRETURN ;
+   if( hh < 0 ){ hh = -hh ; flip = 1 ; }
+   if( hh < 2 ) EXRETURN ;
+
+   tim = mri_new( ww,hh, MRI_rgb ) ; qix = MRI_RGB_PTR(tim) ;
+
+   if( flip ){                    /* flipper, flipper, faster than lightning */
+     for( jj=0 ; jj < hh ; jj++ )
+       memcpy( qix+3*ww*(hh-jj-1) , pix+3*ww*jj , 3*ww ) ;
+   } else {                                                   /* simple copy */
+     memcpy( qix , pix , 3*ww*hh ) ;
+   }
+
+   RETURN(tim) ;
+}
+
+
+/*----------------------------------------------------------------------------*/
 
 void ISQ_pen_bbox_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
