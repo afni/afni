@@ -758,7 +758,10 @@ int main(int argc, char **argv)
                           Opt->pstCgALL, -1, Opt->hist);
       AFNI_FEED(Opt->ps->cs, "pstCgALL-final", -1, Opt->pstCgALL);
    }
-   
+   if (Opt->aset) {
+      SUMA_Seg_Write_Dset(Opt->proot, "Anat",  
+                          Opt->aset, -1, Opt->hist);
+   }
    SUMA_S_Warn("Unmodulated output");
    if (!(SUMA_pst_C_giv_ALL(Opt->xset, 
                                Opt->cmask, Opt->cmask_count,

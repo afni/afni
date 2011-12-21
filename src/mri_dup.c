@@ -8,7 +8,6 @@
 
 /*** Not 7D safe ***/
 
-#define MAX_NUP 32
 
 static void (*usammer)(int,int,float *,float *) = upsample_7 ;
 
@@ -50,7 +49,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE *imin )
 ENTRY("mri_dup2D") ;
    /*-- sanity checks --*/
 
-   if( nup < 1 || nup > MAX_NUP || imin == NULL ) RETURN( NULL );
+   if( nup < 1 || imin == NULL ) RETURN( NULL );
 
    if( nup == 1 ){ newim = mri_to_mri( imin->kind, imin ); RETURN(newim); }
 
@@ -248,22 +247,35 @@ ENTRY("mri_dup2D") ;
                     + fp1[k] * FINS(i+1) + fp2[k] * FINS(i+2) \
                     + fp3[k] * FINS(i+3) + fp4[k] * FINS(i+4)  )
 
+#define RENUP_VEC(vv,kk)  { (vv) = (float *)realloc((vv),(kk)*sizeof(float)); }
+
 /*----------------------------------------------------------------------------
   Up sample an array far[0..nar-1] nup times to produce fout[0..nar*nup-1].
   Uses 7th order polynomial interpolation.
 ------------------------------------------------------------------------------*/
-
 void upsample_7( int nup , int nar , float * far , float * fout )
 {
    int kk,ii , ibot,itop ;
    static int nupold = -1 ;
-   static float fm3[MAX_NUP], fm2[MAX_NUP], fm1[MAX_NUP], f00[MAX_NUP],
-                fp1[MAX_NUP], fp2[MAX_NUP], fp3[MAX_NUP], fp4[MAX_NUP] ;
+   static int nupmax = 0;
+   static float *fm3=NULL, *fm2=NULL, *fm1=NULL, *f00=NULL,
+                *fp1=NULL, *fp2=NULL, *fp3=NULL, *fp4=NULL;
 
    /*-- sanity checks --*/
 
-   if( nup < 1 || nup > MAX_NUP || nar < 2 || far == NULL || fout == NULL ) return ;
+   if( nup < 1 || nar < 2 || far == NULL || fout == NULL ) return ;
 
+   if (nupmax < nup) {
+      nupmax = nup;
+      RENUP_VEC(fm3,nup);
+      RENUP_VEC(fm2,nup);
+      RENUP_VEC(fm1,nup);
+      RENUP_VEC(f00,nup);
+      RENUP_VEC(fp1,nup);
+      RENUP_VEC(fp2,nup);
+      RENUP_VEC(fp3,nup);
+      RENUP_VEC(fp4,nup);
+   }
    if( nup == 1 ){ memcpy( fout, far, sizeof(float)*nar ); return; }
 
    /*-- initialize interpolation coefficient, if nup has changed --*/
@@ -336,11 +348,18 @@ void upsample_1( int nup , int nar , float * far , float * fout )
 {
    int kk,ii , ibot,itop ;
    static int nupold=-1 ;
-   static float f00[MAX_NUP], fp1[MAX_NUP] ;
+   static int nupmax=0;
+   static float *f00=NULL, *fp1=NULL ;
 
    /*-- sanity checks --*/
 
-   if( nup < 1 || nup > MAX_NUP || nar < 2 || far == NULL || fout == NULL ) return ;
+   if( nup < 1 || nar < 2 || far == NULL || fout == NULL ) return ;
+
+   if (nupmax < nup) {
+      nupmax = nup;
+      RENUP_VEC(f00,nup);
+      RENUP_VEC(fp1,nup);
+   }
 
    if( nup == 1 ){ memcpy( fout, far, sizeof(float)*nar ); return; }
 

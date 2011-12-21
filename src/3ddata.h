@@ -3825,6 +3825,7 @@ extern long long THD_filesize( char * pathname ) ;
 extern char *THD_filetime( char *pathname );
 extern char *THD_homedir(byte withslash);
 extern char *THD_helpdir(byte withslash);
+char *THD_get_helpdir(byte withslash);
 extern char *THD_abindir(byte withslash);
 char *THD_helpsearchlog(int createpath);
 

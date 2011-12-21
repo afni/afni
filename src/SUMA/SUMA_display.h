@@ -196,6 +196,10 @@ sets the select color of the widget to its foreground color */
 
 #define SUMA_MARGIN  1
 
+/* return the character for a viewer struct */
+#define SUMA_SV_CHAR(csv) \
+   (char)( 65+SUMA_WhichSV((csv), SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) )
+
 String *SUMA_get_fallbackResources ();         
 void SUMA_CullOption(SUMA_SurfaceViewer *, const char *action);
 Boolean SUMA_handleRedisplay (XtPointer w);

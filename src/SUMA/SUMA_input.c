@@ -126,7 +126,8 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
       if (SUMA_iswordsame_ci(keyname,"f6") == 1) SUMA_RETURN(XK_F6);
       if (SUMA_iswordsame_ci(keyname,"f7") == 1) SUMA_RETURN(XK_F7);
       if (SUMA_iswordsame_ci(keyname,"f8") == 1) SUMA_RETURN(XK_F8);
-      
+      if (SUMA_iswordsame_ci(keyname,"f9") == 1) SUMA_RETURN(XK_F9);
+
       SUMA_S_Errv("Key '%s' not yet supported, complain to author.\n", keyname);
       SUMA_RETURN(XK_VoidSymbol);
    }
@@ -184,13 +185,14 @@ int SUMA_CHAR_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 }
 #endif
 
+static int Nwarn_bracket = 0;
+
 int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode) 
 {
    static char FuncName[]={"SUMA_bracketleft_Key"};
    char tk[]={"["}, keyname[100];
    int k, nc;
    char stmp[200];   
-   static int nwarn=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -208,15 +210,16 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          if (sv->ShowLeft) {
             sprintf(stmp,"Showing Left side%s",
-               nwarn > 1 ? 
-            "":"\nFurther Show notices for '[' key will be echoed in the shell"); 
+               Nwarn_bracket  ? 
+      "":"\nFurther notices for '[' or ']' keys will be echoed in the shell"); 
          } else {
             sprintf(stmp,"Hiding Left side%s",
-               nwarn > 1 ? 
-            "":"\nFurther Hide notices for '[' key will be echoed in the shell");
+               Nwarn_bracket > 1 ? 
+      "":"\nFurther notices for '[' or ']' keys will be echoed in the shell");
          }
-         if (nwarn < 2 && callmode && strcmp(callmode, "interactive") == 0) { 
-            SUMA_SLP_Note(stmp); ++nwarn;
+         if (!Nwarn_bracket && callmode && 
+               strcmp(callmode, "interactive") == 0) { 
+            SUMA_SLP_Note(stmp); ++Nwarn_bracket;
          } else { SUMA_S_Note(stmp); } 
          break;
       default:
@@ -234,7 +237,6 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    char tk[]={"]"}, keyname[100];
    int k, nc;
    char stmp[200];   
-   static int nwarn=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -252,15 +254,16 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          if (sv->ShowRight) {
             sprintf(stmp,"Showing Right side%s",
-               nwarn > 1 ? 
-                  "":"\nFurther Show notices for ']' key will be in the shell"); 
+               Nwarn_bracket ? 
+            "":"\nFurther notices for '[' or ']' key will be in the shell"); 
          } else {
             sprintf(stmp,"Hiding right side%s",
-               nwarn > 1 ? 
-                  "":"\nFurther Hide notices for ']' key will be in the shell");
+               Nwarn_bracket  ? 
+            "":"\nFurther notices for '[' or ']' key will be in the shell");
          }
-         if (nwarn < 2 && callmode && strcmp(callmode, "interactive") == 0) { 
-            SUMA_SLP_Note(stmp); ++nwarn;
+         if (!Nwarn_bracket && callmode && 
+               strcmp(callmode, "interactive") == 0) { 
+            SUMA_SLP_Note(stmp); ++Nwarn_bracket;
          } else { SUMA_S_Note(stmp); } 
          break;
       default:
@@ -848,7 +851,8 @@ int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                sprintf(stmp,"Using perspective viewing");
                sv->FOV[sv->iState] = sv->FOV[sv->iState] * 2.0;
             }
-            if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note(stmp); }
+            if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_SLP_Note(stmp); }
             else { SUMA_S_Note(stmp); }
          }
 
@@ -857,6 +861,48 @@ int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          break; 
       default:
          SUMA_S_Err("Il ne faut pas etre over yonder");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_F9_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_F9_Key"};
+   char tk[]={"F9"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   static int inote = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_F9:
+         sv->ShowLabelAtXhair = !sv->ShowLabelAtXhair;
+         SUMA_UpdateCrossHairNodeLabelField(sv);
+         {
+            char stmp[200];
+            if (sv->ShowLabelAtXhair) {
+               sprintf(stmp,"Showing Label At Xhair");
+            } else {
+               sprintf(stmp,"Hiding Label At Xhair");
+            }
+            if (callmode && strcmp(callmode, "interactive") == 0 && inote < 2) { 
+               SUMA_SLP_Note(stmp); ++inote;}
+            else { SUMA_S_Note(stmp); }
+         }
+         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         break; 
+      default:
+         SUMA_S_Err("Il ne faut pas etre hawn");
          SUMA_RETURN(0);
          break;
    }
@@ -1888,7 +1934,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                } else { SUMA_S_Note (msg); }
             }
          } else {
-            GLvoid *pixels;
+            GLvoid *pixels=NULL;
             double rat;
             int oh=-1,ow=-1;
             /* Control for GL_MAX_VIEWPORT_DIMS */
@@ -2030,15 +2076,49 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          break;
       case XK_R:
-         sv->Record = !sv->Record;
-         if (sv->Record) { 
-            if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note ("Recording ON"); }
-            else { SUMA_S_Note ("Recording ON"); }
-         } else { 
-            if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note ("Recording OFF"); }
-            else { SUMA_S_Note ("Recording OFF");} 
+         if (SUMA_CTRL_KEY(key)) {
+            char sbuf[256];
+            sv->Record = !sv->Record;
+            if (sv->Record) sv->Record = 2;
+            if (sv->Record) {
+               if (!THD_mkdir(SUMAg_CF->autorecord->Path)) {
+                  SUMA_PARSED_NAME *pn2=NULL;
+                  SUMA_S_Errv(
+            "Failed to create directory %s, resorting to local directory.\n", 
+                        SUMAg_CF->autorecord->Path);
+                  pn2 = SUMA_ParseFname(SUMAg_CF->autorecord->FileName, NULL);                      SUMA_Free_Parsed_Name(SUMAg_CF->autorecord);
+                  SUMAg_CF->autorecord = pn2; pn2=NULL;
+               }
+               snprintf(sbuf,256*sizeof(char), 
+                        "Disk Recording ON to: %s%s*",
+                           SUMAg_CF->autorecord->Path,
+                           SUMAg_CF->autorecord->FileName_NoExt);
+               if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_SLP_Note (sbuf); }
+               else { SUMA_S_Note (sbuf); }
+            } else { 
+               snprintf(sbuf,256*sizeof(char), 
+                        "Disk Recording OFF. Results in: %s%s*",
+                           SUMAg_CF->autorecord->Path,
+                           SUMAg_CF->autorecord->FileName_NoExt);
+               if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_SLP_Note (sbuf); }
+               else { SUMA_S_Note (sbuf);} 
+            }
+            SUMA_UpdateViewerTitle(sv);
+         } else {
+            sv->Record = !sv->Record;
+            if (sv->Record) { 
+               if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_SLP_Note ("Recording ON"); }
+               else { SUMA_S_Note ("Recording ON"); }
+            } else { 
+               if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_SLP_Note ("Recording OFF"); }
+               else { SUMA_S_Note ("Recording OFF");} 
+            }
+            SUMA_UpdateViewerTitle(sv);
          }
-         SUMA_UpdateViewerTitle(sv);
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre ici");
@@ -3259,8 +3339,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_R:
-            if (!SUMA_R_Key(sv, "R", "interactive")) {
-                  SUMA_S_Err("Failed in key func.");
+            if (Kev.state & ControlMask){
+               if (!SUMA_R_Key(sv, "ctrl+R", "interactive")) {
+                     SUMA_S_Err("Failed in key func.");
+               }
+            } else {
+               if (!SUMA_R_Key(sv, "R", "interactive")) {
+                     SUMA_S_Err("Failed in key func.");
+               }
             }
             break;
             
@@ -3669,6 +3755,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
          
+         case XK_F9: /*F9 */
+            if (!SUMA_F9_Key(sv, "F9", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
+            }
+            break;
+            
          case XK_F12: /* F12 */
             /* time display speed */
             {

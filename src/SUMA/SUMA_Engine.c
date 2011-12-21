@@ -1955,6 +1955,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                break;
             }
             
+            /* NB: I find it strange that there is this block here
+               followed by a similar one in SUMA_UpdateNodeField
+               Check for possible duplications ... */
             if (SUMAg_CF->callbacks && !SUMAg_CF->HoldClickCallbacks) {
                if (!SUMA_Selected_Node_Activate_Callbacks (
                         SO, SO->SurfCont->curColPlane,
@@ -1962,7 +1965,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Err("Failed to activate callbacks");
                }
             }
-
+            
             SUMA_UpdateNodeField(SO);
             break;
             
@@ -2066,7 +2069,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             sv->Ch->SurfaceID = EngineData->iv3[0];
             sv->Ch->NodeID = EngineData->iv3[1];
-            
+            SUMA_UpdateCrossHairNodeLabelField(sv);
             break;
          
          case SE_SetSOinFocus:
@@ -3479,6 +3482,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               break;
                            case XK_F8:
                               if (!SUMA_F8_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_F9:
+                              if (!SUMA_F9_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;

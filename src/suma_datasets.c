@@ -12354,7 +12354,11 @@ static ENV_SPEC envlist[] = {
       "  'C&C': Shows both colors and contours\n"
       "  'XXX'or 'No': Does not show it.\n",
       "SUMA_ShowLabelDsetAtStartup",
-      "Con" },
+      "XXX" },
+   {  "Show label at cross hair in viewer\n"
+      "You can toggle the display at such labels with F9\n",
+      "SUMA_ShowLabelsAtCrossHair",
+      "YES" },
    {  "Initial Label Datasest opacity.",
       "SUMA_LabelDsetOpacity",
       "0.2" },
@@ -12382,7 +12386,15 @@ static ENV_SPEC envlist[] = {
       "You can specify multiple states with a , delimited list (no spaces!). \n"
       "By default nothing is excluded.\n",
       "SUMA_DoNotSendStates",
-      "" }, 
+      "N/A" },
+   {  "Prefix for autorecord (suma's Ctrl+R) files. \n"
+      "This is mostly for deciding whether one of 'white' or 'smoothwm'\n"
+      "FreeSurfer states should not be sent to AFNI.\n"
+      "Add a path if you want the files to endup in a particular directory.\n"
+      "You can also add an extension to prefix to specify the output type.\n"
+      "Choose from .jpg, .ppm, or .1D . The fallback type is .jpg\n",
+      "SUMA_AutoRecordPrefix",
+      "./SUMA_Recordings/autorecord.jpg" }, 
    
    {  NULL, NULL, NULL  }
 };

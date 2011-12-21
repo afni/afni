@@ -371,7 +371,9 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
-      ERROR_exit("Unknown option: %s\n",argv[narg]) ;
+      ERROR_message("Unknown option: %s\n",argv[narg]) ;
+      suggest_best_prog_option(argv[0], argv[narg]);
+      exit(1);
    }
 
    if( yes_niml ){

@@ -138,3 +138,155 @@ void EDIT_add_brick( THD_3dim_dataset *dset, int typ , float fac , void *br )
    EDIT_add_bricklist( dset , 1 , &ttt , &fff , &bbb ) ;
    return ;
 }
+
+/*---------------------------------------------------------------------------*/
+/*!
+   Turn float arrays into sub-bricks of a preset type
+         (based on code in 3dMean)
+   
+   dset (THD_3dim_dataset *) new dset to which arrays will be added
+   far (float **) each far[i] is to become one sub-brick in dset
+   nval (int) the number of arrays in far
+   otype (int) the sub-brick type. Supported options are:
+               MRI_float (so far
+   scaleopt (char) scaling options:
+            'A' scale if needed
+            'F' do scale each sub-brick
+            'G' scale all sub-bricks with the same factor
+            'N' Do not scale
+   verb (int) loquaciousness
+   returns 1 if all is well
+           0 all hell broke loose
+   
+*/
+int EDIT_add_bricks_from_far(THD_3dim_dataset *dset, 
+                    float **far, int nval,
+                    int otype, char scaleopt, 
+                    int verb) 
+{
+   int ii=0, kk=0, nxyz;
+   
+   ENTRY("EDIT_add_bricks_from_far");
+   
+   if (scaleopt != 'A' && scaleopt != 'F' && scaleopt != 'G' && scaleopt != 'N'){
+      ERROR_message("Bad scaleopt value of %c", scaleopt);
+      RETURN(0);
+   }
+   
+   if (!dset) {
+      ERROR_message("NULL input");
+      RETURN(0);
+   }
+   
+   nxyz = DSET_NVOX(dset);
+   
+   switch( otype ){
+
+      default:
+         ERROR_message("Somehow ended up with otype = %d\n",otype) ;
+         RETURN(0) ;
+
+      case MRI_float:{
+         for( kk=0 ; kk < nval ; kk++ ){
+             EDIT_substitute_brick(dset, kk, MRI_float, far[kk]);
+             DSET_BRICK_FACTOR(dset, kk) = 0.0;
+             far[kk] = NULL;
+         }
+      }
+      break ;
+
+      case MRI_byte:
+      case MRI_short:{
+         void ** dfim ;
+         float gtop=0.0 , fimfac , gtemp ;
+
+         if( verb )
+            fprintf(stderr,"  ++ Scaling output to type %s brick(s)\n",
+                    MRI_TYPE_name[otype] ) ;
+
+         dfim = (void **) malloc(sizeof(void *)*nval) ;
+
+         if( scaleopt == 'G' ){   /* allow global scaling */
+            gtop = 0.0 ;
+            for( kk=0 ; kk < nval ; kk++ ){
+               gtemp = MCW_vol_amax( nxyz , 1 , 1 , MRI_float, far[kk] ) ;
+               gtop  = MAX( gtop , gtemp ) ;
+               if( gtemp == 0.0 )
+                  WARNING_message("output sub-brick %d is all zeros!\n",kk) ;
+            }
+         }
+
+         for (kk = 0 ; kk < nval ; kk ++ ) {
+
+            if( scaleopt != 'G' && scaleopt != 'N'){  
+                           /* compute max value in this sub-brick */
+               gtop = MCW_vol_amax( nxyz , 1 , 1 , MRI_float, far[kk] ) ;
+               if( gtop == 0.0 )
+                  WARNING_message("output sub-brick %d is all zeros!\n",kk) ;
+
+            }
+
+            if( scaleopt == 'F' || scaleopt == 'G'){ /* scaling needed */
+
+               fimfac = (gtop > 0.0) ? MRI_TYPE_maxval[otype] / gtop : 0.0 ;
+
+            } else if( scaleopt == 'A' ){  /* only if needed */
+
+               fimfac = (  gtop > MRI_TYPE_maxval[otype] || 
+                           (gtop > 0.0 && gtop < 1.0)       )
+                        ? MRI_TYPE_maxval[otype]/ gtop : 0.0 ;
+
+               if( fimfac == 0.0 && gtop > 0.0 ){  /* 14 May 2010 */
+                 float fv,iv ;                     /* force scaling if */
+                 for( ii=0 ; ii < nxyz ; ii++ ){   /* non-integers are inside */
+                   fv = far[kk][ii] ; iv = rint(fv) ;
+                   if( fabsf(fv-iv) >= 0.01 ){
+                     fimfac = MRI_TYPE_maxval[otype] / gtop ; break ;
+                   }
+                 }
+               }
+
+            } else if( scaleopt == 'N') {          /* no scaling allowed */
+               fimfac = 0.0 ;
+            } else {
+               ERROR_message("Should not see this one");
+               RETURN(0);
+            }
+            
+
+            if( verb ){
+               if( fimfac != 0.0 )
+                  INFO_message("Sub-brick %d scale factor = %f\n",kk,fimfac) ;
+               else
+                  INFO_message("Sub-brick %d: no scale factor\n" ,kk) ;
+            }
+
+            dfim[kk] = (void *) malloc( mri_datum_size(otype) * nxyz ) ;
+            if( dfim[kk] == NULL ){ 
+               ERROR_message("malloc fails at output\n");
+               exit(1); 
+            }
+
+            EDIT_coerce_scale_type( nxyz , fimfac ,
+                                    MRI_float, far[kk] , otype,dfim[kk] ) ;
+            if( otype == MRI_short )
+              EDIT_misfit_report( DSET_FILECODE(dset) , kk ,
+                                  nxyz , (fimfac != 0.0f) ? 1.0f/fimfac : 0.0f ,
+                                  dfim[kk] , far[kk] ) ;
+            free( far[kk] ) ; far[kk] = NULL;
+            EDIT_substitute_brick(dset, kk, otype, dfim[kk] );
+
+            DSET_BRICK_FACTOR(dset,kk) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
+            
+            dfim[kk]=NULL;
+          }
+          free(dfim); dfim = NULL;
+      }
+      break ;
+   }
+
+   
+   RETURN(1);
+}
+
+                                      

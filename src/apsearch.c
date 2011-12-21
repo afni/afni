@@ -32,13 +32,8 @@ int update_help_for_afni_programs(int force_recreate,
       RETURN(0);   
    }
    
-   hdir = THD_helpdir(0);
-   if (hdir[0] == '\0') {
+   if (!(hdir = THD_get_helpdir(0))) {
       ERROR_message("Have no help directory\n");
-      RETURN(0);
-   }
-   if (!THD_mkdir(hdir)) {
-      ERROR_message("Cannot create %s directory\n", hdir);
       RETURN(0);
    }
    
@@ -281,7 +276,7 @@ int main(int argc, char **argv)
        i_unique_score=0, min_different_hits=0, unq_only=0,
        show_score=0;
    float *ws_score=NULL, last_score=-1.0;
-   char *fname=NULL, *text=NULL, *prog=NULL, *str=NULL, **ws=NULL, 
+   char *fname=NULL, *text=NULL, *prog=NULL, *word="Ma fich haga", **ws=NULL, 
          *all_popts=NULL, *popt=NULL, stdinflag[] = " [+.-STDIN-.+] ";
    APPROX_STR_DIFF *D=NULL;
    byte ci = 1;
@@ -426,7 +421,7 @@ int main(int argc, char **argv)
 
          all_popts = argv[iarg];
          max_hits = -1;
-         str = "-";
+         word = "-";
          ++iarg; 
          continue; 
       }
@@ -438,7 +433,7 @@ int main(int argc, char **argv)
                      "** Error: Need text file after -file\n"); return(1);
          }
 
-         str = argv[iarg];
+         word = argv[iarg];
          ++iarg;
          continue; 
       }
@@ -537,10 +532,15 @@ int main(int argc, char **argv)
       return 0;
    }
 
-   if (str && (fname || text || prog || popt || all_popts)) {
+   if ((fname || text || prog || popt || all_popts)) {
+      if (!strcmp(word,"Ma fich haga")) {
+         ERROR_message(
+            "I'd search the world over for you, if only you gave me -word");
+         return 1;
+      }
       if (fname) {
          if (strcmp(fname,stdinflag)) {
-            ws = approx_str_sort_tfile(fname, &N_ws, str, 
+            ws = approx_str_sort_tfile(fname, &N_ws, word, 
                             ci, &ws_score,
                             NULL, &D);
          } else {
@@ -549,21 +549,21 @@ int main(int argc, char **argv)
                ERROR_message("Failed to read from stdin");
                return 0;
             }
-            ws = approx_str_sort_text(stdtext, &N_ws, str, 
+            ws = approx_str_sort_text(stdtext, &N_ws, word, 
                             ci, &ws_score,
                             NULL, &D); 
             free(stdtext); stdtext=NULL;
          }
       } else if (text) {
-         ws = approx_str_sort_text(text, &N_ws, str, 
+         ws = approx_str_sort_text(text, &N_ws, word, 
                             ci, &ws_score,
                             NULL, &D);
       } else if (prog) {
-         ws = approx_str_sort_phelp(prog, &N_ws, str, 
+         ws = approx_str_sort_phelp(prog, &N_ws, word, 
                             ci, &ws_score,
                             NULL, &D);
       } else if (popt) {
-         suggest_best_prog_option(popt, str);
+         suggest_best_prog_option(popt, word);
          return 0;
       } else if (all_popts) {
          /* one can also use print_prog_options(all_popts); return(0); */
