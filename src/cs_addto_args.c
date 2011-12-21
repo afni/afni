@@ -207,7 +207,7 @@ void addto_args( int argc , char * argv[] , int * new_argc , char *** new_argv )
    sin[0] = '\0';  /* 'terminate' this empty string    18 Apr 2006 [rickr] */
 
    do{
-      cpt = afni_fgets( lbuf , BLEN , stdin ) ; /* read line */
+      cpt = fgets( lbuf , BLEN , stdin ) ; /* read line */
       if( cpt == NULL ) break ;            /* end of file */
       ii = strlen(lbuf) ;
       if( ii+nsin >= nall-4 ){             /* make more sin space */

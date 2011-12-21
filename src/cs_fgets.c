@@ -29,7 +29,7 @@ char * afni_fgets( char *buf , int nbuf , FILE *fp )
 
    if( buf == NULL || nbuf <= 1 || fp == NULL ) return NULL ;
 
-   if( use_fgets ) return fgets(buf,nbuf,fp) ;  /* short circuit */
+   if( use_fgets || fp == stdin ) return fgets(buf,nbuf,fp) ;  /* short circuit */
 
    /* read characters one at a time and process them */
 
