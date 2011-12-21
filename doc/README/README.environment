@@ -3072,7 +3072,7 @@ standard end-of-line character (ASCII 0xA).  Files created on Microsoft
 platforms use a different end-of-line character (ASCII 0xD).  The result
 is that Microsoft-ized text files don't work well with fgets().  AFNI
 uses its own function, cleverly called afni_fgets(), to read text lines,
-to avoid this problem.  However, this function is somewhat slower than
+to avoid this problem.  However, this function is 20-30% slower than
 the system fgets() function, so if speed if important -- as when reading
 a giant 1D file -- then set AFNI_USE_FGETS to YES to make AFNI programs
 use the system fgets() function.  The best way to do this would be on
