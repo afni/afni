@@ -3415,6 +3415,25 @@ extern void THD_force_ok_overwrite( int ) ; /* 07 Jan 2008 */
     Mastered datasets are specified on the command line with the [a..b] syntax, etc.
 */
 #define DSET_IS_MASTERED(ds) DBLK_IS_MASTERED((ds)->dblk)
+ /*! Swap dset for a fully copy of itself if it is mastered
+    This is useful when you want to modify a loaded dset that
+    has been mastered */
+#define DSET_NEW_IF_MASTERED(dset) {\
+   if ((dset) && DSET_IS_MASTERED((dset))) {\
+      THD_3dim_dataset *dsetc=EDIT_full_copy((dset), "THE_MASTER"); \
+      if (dsetc) { DSET_delete((dset)); (dset)=dsetc; }   \
+      else { ERROR_message("Failed to copy mastered dset. Nothing done."); }  \
+   }  \
+}
+/*! Prepare a dset that has been loaded from disk to be modified
+   and rewritten */
+#define PREP_LOADED_DSET_4_REWRITE(dset, prefix) {\
+   DSET_NEW_IF_MASTERED((dset)); \
+   ZERO_IDCODE((dset)->idcode); \
+   (dset)->idcode = MCW_new_idcode() ; \
+   EDIT_dset_items( (dset) , ADN_prefix , \
+                    (prefix) ? (prefix) : "HUMBUG", ADN_none ) ;  \
+}
 
 /*-------------------------------------------------------------------*/
 #undef  TWOGIG
