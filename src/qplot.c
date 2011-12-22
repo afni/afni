@@ -207,7 +207,7 @@ int main( int argc , char * argv[] )
      int nval ;
      float val[9] ;
 
-     cpt = fgets(lbuf,2560,stdin) ;
+     cpt = afni_fgets(lbuf,2560,stdin) ;
      if( cpt == NULL ){
         fprintf(stderr,"*** Can't read from stdin!\n"); exit(1);
      }
@@ -221,7 +221,7 @@ int main( int argc , char * argv[] )
      far = (float *) malloc(sizeof(float)*nval) ;
      memcpy(far,val,sizeof(float)*nx) ;
      while(1){  /* read from stdin */
-        cpt = fgets(lbuf,2560,stdin) ;
+        cpt = afni_fgets(lbuf,2560,stdin) ;
         if( cpt == NULL ) break ;
         nval = sscanf(lbuf,"%f%f%f%f%f%f%f%f%f",
                       val+0,val+1,val+2,val+3,val+4,val+5,val+6,val+7,val+8) ;
