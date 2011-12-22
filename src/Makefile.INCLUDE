@@ -47,7 +47,7 @@ MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
 ## AFNI package, but included because they are useful.  Some of
 ## them are Open Source programs, not from the AFNI group at all.
 
-EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv $(EXPROGS)
+EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv mycat $(EXPROGS)
 
 # mpegtoppm in above list
 
@@ -2590,6 +2590,9 @@ exx.o:exx.c
 
 exx:exx.o
 	$(CC) -o exx exx.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+mycat:mycat.o
+	$(CC) -o mycat mycat.o $(LFLAGS)
 
 qqq.o:qqq.c
 	$(CCFAST) -c qqq.c $(INFLAGS)
