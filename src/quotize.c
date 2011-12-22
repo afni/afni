@@ -25,7 +25,7 @@ int main( int argc , char * argv[] )
    }
 
    printf("static char *%s[] = {\n",argv[1]) ;
-   while( fgets(buf,NBUF,stdin) != NULL ){
+   while( afni_fgets(buf,NBUF,stdin) != NULL ){
       ll = strlen(buf) ; if( ll == 0 ) break ;
       if( buf[ll-1] == '\n' ) buf[ll-1] = '\0' ;
       for( ii=0,jj=0 ; buf[ii] != '\0' ; ){

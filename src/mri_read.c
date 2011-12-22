@@ -3467,7 +3467,7 @@ INFO_message("reading 1D_stdin") ;
    val  = (float *)malloc(sizeof(float)*SIN_NVMAX) ;
 
    do{               /* read lines until 1st char is non-blank and non-# */
-     cpt = fgets(lbuf,SIN_NLBUF,stdin) ;
+     cpt = afni_fgets(lbuf,SIN_NLBUF,stdin) ;
      if( cpt==NULL ){ free(val);free(lbuf); RETURN(NULL); }
      for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
    } while( cpt[ii] == '\0' || cpt[ii] == '#' ) ;
@@ -3485,7 +3485,7 @@ INFO_message("reading 1D_stdin") ;
    memcpy(far,val,sizeof(float)*nx) ;
 
    while(1){  /* read from stdin */
-     cpt = fgets(lbuf,SIN_NLBUF,stdin) ;
+     cpt = afni_fgets(lbuf,SIN_NLBUF,stdin) ;
      if( cpt == NULL ) break ;            /* done */
      for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
      if( cpt[ii] == '\0' || cpt[ii] == '#' ) continue ;         /* skip */

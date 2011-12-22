@@ -8,7 +8,7 @@ int main( int argc , char * argv )
    int ii , lb , jj ;
 
    do{
-      b = fgets( buf , 1024 , stdin ) ;
+      b = afni_fgets( buf , 1024 , stdin ) ;
       if( b == NULL ) exit(0) ;
       lb = strlen(b) ;
       if( lb <= 1 ){

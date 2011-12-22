@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 
 #undef  LF
 #undef  CR
@@ -29,7 +30,9 @@ char * afni_fgets( char *buf , int nbuf , FILE *fp )
 
    if( buf == NULL || nbuf <= 1 || fp == NULL ) return NULL ;
 
-   if( use_fgets || fp == stdin ) return fgets(buf,nbuf,fp) ;  /* short circuit */
+   /* use system fgets() if ordered to, or if reading from a terminal */
+
+   if( use_fgets || isatty(fileno(fp)) ) return fgets(buf,nbuf,fp) ;
 
    /* read characters one at a time and process them */
 

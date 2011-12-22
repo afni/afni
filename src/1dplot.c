@@ -590,7 +590,7 @@ int main( int argc , char *argv[] )
                       rather than the fixed size array of length 9 of old **/
 
      do{               /* read lines until 1st char is non-blank and non-# */
-       cpt = fgets(lbuf,NLBUF,stdin) ;
+       cpt = afni_fgets(lbuf,NLBUF,stdin) ;
        if( cpt==NULL ) ERROR_exit("Can't read from stdin!\n");
        for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
      } while( cpt[ii] == '\0' || cpt[ii] == '#' ) ;
@@ -609,7 +609,7 @@ int main( int argc , char *argv[] )
      far = (float *) malloc(sizeof(float)*nx) ;
      memcpy(far,val,sizeof(float)*nx) ;
      while(1){  /* read from stdin */
-        cpt = fgets(lbuf,NLBUF,stdin) ;
+        cpt = afni_fgets(lbuf,NLBUF,stdin) ;
         if( cpt == NULL ) break ;            /* done */
         for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
         if( cpt[ii] == '\0' || cpt[ii] == '#' ) continue ;         /* skip */
