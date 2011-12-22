@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , DEC , 2011 , RWC , "afni_fgets" , MICRO , TYPE_MODIFY ,
+  { 22 , DEC , 2011 , RWC , "mycat" , MICRO , TYPE_NEW_PROG ,
+   "Minor program to be sort of like 'cat' but un-Microsofts files." ,
+   NULL } ,
+
+ { 22 , DEC , 2011 , RWC , "afni_fgets" , MICRO , TYPE_MODIFY ,
    "Modified to use system fgets if file pointer is a ttty" ,
    NULL } ,
 

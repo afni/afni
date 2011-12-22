@@ -66,9 +66,10 @@ int main( int argc , char *argv[] )
      printf("\n"
             "mycat fileA ...\n"
             "\n"
-            "Copies files to stdout, like the system 'cat', but with changes:\n"
+            "Copies text files to stdout, like the system 'cat', but with changes:\n"
             "* To copy stdin, you must use '-' for a filename\n"
             "* Microsoft end-of-line characters are changed to Unix format\n"
+            "* Because of the above, mycat should only be used with text files!\n"
             "\n"
      ) ;
      exit(0) ;
