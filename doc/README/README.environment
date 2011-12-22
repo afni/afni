@@ -955,6 +955,16 @@ AFNI_REALTIME_Graph        = "No", "Yes", or "Realtime"
 AFNI_REALTIME_NR           = an integer from 5 to 9999
 AFNI_REALTIME_YR           = a floating point number from 0.1 to 10.0
 
+AFNI_REALTIME_External_Dataset = name of dataset to use as external basis for
+                                 registration
+                               * if this variable is set, then the plugin
+                                 assumes that AFNI_REALTIME_Reg_Base_Mode
+                                 is "External_Dataset"
+                               * but AFNI_REALTIME_Base_Image is ignored
+                               * instead, you can use a sub-brick selector here,
+                                 if desired; for example:
+                                 setenv AFNI_REALTIME_External_Dataset 'X+orig[3]'
+
 The following internal controls can only be set using these environment
 variables (there is no GUI to set these values):
 

@@ -844,7 +844,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                               RT_chmrg_rmode_strings , RT_chmrg_reg_mode ) ;
 
    /* channel list, using sub-brick syntax    13 Jul 2010 [rickr] */
-   ept = getenv("AFNI_REALTIME_MRG_CHANLIST") ; 
+   ept = getenv("AFNI_REALTIME_MRG_CHANLIST") ;
    if( ept ) {
       if( RT_chmrg_list ) free(RT_chmrg_list);
       RT_chmrg_list = nifti_strdup(ept);
@@ -1741,7 +1741,7 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
      rtin->ioc_data     = ioc_data ;
      rtin->name_info[0] = '\0' ;                                /* no child */
 
-   } /*** end of THE NEW WAY of starting up ***/
+   } /*** end of THE NEW (and easier) WAY of starting up ***/
 
    rtin->ioc_info   = NULL ;
    rtin->child_info = 0 ;
@@ -1888,6 +1888,37 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->mrg_dset    = NULL ;     /* 02 Jun 2009 */
    rtin->mrg_status  = 0 ;
    rtin->mrg_nvol    = 0 ;
+
+   /*----- environment sets registration base dataset? [22 Dec 2011] -----*/
+
+   if( g_reg_base_dset == NULL ){
+#undef  RBENV
+#define RBENV "AFNI_REALTIME_External_Dataset"
+     char *dname = getenv(RBENV) ;
+     THD_slist_find slf ; THD_3dim_dataset *bset=NULL ;
+     if( dname != NULL ){
+       if( THD_filename_pure(dname) ){
+         slf = THD_dset_in_session( FIND_PREFIX, dname, im3d->ss_now ) ; bset = slf.dset ;
+         if( bset == NULL ){
+           MCW_idcode idcode ;
+           MCW_strncpy( idcode.str, dname, MCW_IDSIZE ) ;
+           slf = THD_dset_in_session( FIND_IDCODE, &idcode, im3d->ss_now ) ; bset = slf.dset ;
+         }
+       }
+       if( bset == NULL ){
+         bset = THD_open_dataset(dname) ;
+        
+       }
+       if( bset != NULL ){
+         INFO_message("env.var. sets registration base: %s=%s",RBENV,dname) ;
+         g_reg_base_dset = bset ;
+         g_reg_base_mode = RT_RBASE_MODE_EXTERN ;
+         regtime         = 0 ;
+       } else {
+         WARNING_message("env.var. fails to find dataset: %s=%s",RBENV,dname) ;
+       }
+     }
+   } /* end of setting base dataset from environment */
 
    rtin->reg_base_index = regtime ;  /* save these now, in case the evil */
    rtin->reg_mode       = regmode ;  /* user changes them on the fly!    */
@@ -4308,7 +4339,7 @@ void RT_process_image( RT_input * rtin )
          /* 10 Jul 2009: write merged dataset brick -- RWCox */
 
          else if( RTdatamode == RT_WRITE_MERGED && rtin->mrg_dset != NULL ){
- 
+
             for ( ; RT_written_mrg < rtin->mrg_dset->dblk->nvals ; )
                {
                   RT_sub_brick_id[1] = RT_written_mrg ;
@@ -4488,7 +4519,7 @@ void RT_tell_afni( RT_input *rtin , int mode )
                 DSET_FILECODE(rtin->reg_dset) , DSET_NVALS(rtin->reg_dset) ) ;
        strcat( qbuf , zbuf ) ; qq++ ;
      }
-     if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN && 
+     if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN &&
          ISVALID_DSET(rtin->reg_chan_dset[0])) {
        int nvals = DSET_NVALS(rtin->reg_chan_dset[0]);
        for( cc=1 ; cc < rtin->num_chan ; cc++ ){
@@ -4785,7 +4816,7 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
            fprintf(stderr,"RT: max number of datasets exceeded!\a\n") ;
            EXIT(1) ;
          }
-         SET_SESSION_DSET(rtin->reg_chan_dset[cc], sess, id, VIEW_ORIGINAL_TYPE);         
+         SET_SESSION_DSET(rtin->reg_chan_dset[cc], sess, id, VIEW_ORIGINAL_TYPE);
          sess->num_dsset = id+1 ;
          POPDOWN_strlist_chooser ;
 
@@ -4835,7 +4866,7 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
                               rtin->mrg_nvol > 0     &&
                               EQUIV_DSETS(rtin->mrg_dset,qq3d->anat_now) ) ;
 
-         review = review || ( rtin->reg_chan_dset[cc] != NULL && 
+         review = review || ( rtin->reg_chan_dset[cc] != NULL &&
                               rtin->reg_nvol > 0              &&
                               EQUIV_DSETS(rtin->reg_chan_dset[cc],
                                           qq3d->anat_now) ) ;
@@ -6578,7 +6609,7 @@ void RT_test_callback(void *junk)
 
 /*-------------------------------------------------------------------------*/
 /* Function to merge a collection of datasets, at sub-brick #iv. */
-/* 
+/*
  *   dlist : list of dataset indices to apply in merge, if set
  *           - created via MCW_get_intlist, so dlist[0] is the length
  */
