@@ -27,7 +27,7 @@ int main( int argc , char * argv[] )
       fp = popen("rsh 3T60 -l scan ./wrap" , "r") ;
       if( fp == NULL ){fprintf(stderr,"Cannot popen!\n");exit(1);}
 
-      while( fgets(buf+nbuf,NBUF-nbuf,fp) != NULL ){
+      while( afni_fgets(buf+nbuf,NBUF-nbuf,fp) != NULL ){
          nbuf = strlen(buf) ;
       }
       pclose(fp) ; fprintf(stderr,"Child has data\n") ;
