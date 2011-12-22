@@ -325,7 +325,7 @@ int main(int argc, char **argv)
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-afni_gui_editor") == 0) { 
+      if (strcmp(argv[iarg],"-afni_text_editor") == 0) { 
          fprintf(stdout,"%s\n", GetAfniTextEditor());
          return(0);
       }

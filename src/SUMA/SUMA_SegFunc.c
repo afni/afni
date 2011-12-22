@@ -4025,7 +4025,7 @@ int SUMA_SegInitCset(THD_3dim_dataset *aseti,
    oc.k = SUMA_Class_k_Selector(cs,
                                 "not_classes_string", "OTHER",NULL);
    oc.remap = MAG;
-   oc.verb = Opt->debug-1;
+   oc.verb = Opt->debug-1; if (oc.verb < 0) oc.verb = 0;
    oc.distmetric = 'e';
    for (i=0; i<oc.k; ++i) oc.clabels[i] = cs->label[i];
    oc.jobname=SUMA_copy_string(FuncName);
