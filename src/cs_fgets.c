@@ -56,3 +56,28 @@ char * afni_fgets( char *buf , int nbuf , FILE *fp )
    buf[nin] = '\0' ;            /* Schwarznegger the string */
    return buf ;
 }
+
+/*========================= main program to test speed of afni_fgets() =======*/
+#if 0
+#include "mrilib.h"
+
+/* test speed of afni_fgets() */
+
+int main( int argc , char *argv[] )
+{
+   char buf[99999] , *bb ; FILE *fp ; int iarg=1 ;
+
+   machdep() ;  /* will set fgets usage from environment */
+
+   while( iarg < argc ){  /* read all files */
+
+     fp = fopen(argv[iarg++],"r") ; if( fp == NULL ) continue ;
+
+     do{ bb = afni_fgets( buf , 99999 , fp ) ; } while( bb != NULL ) ;
+
+     fclose(fp) ;
+   }
+
+   exit(0) ;
+}
+#endif
