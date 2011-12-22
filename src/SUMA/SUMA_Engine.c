@@ -3386,6 +3386,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
+                           case XK_o:
+                           case XK_O:
+                              if (!SUMA_O_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
                            case XK_p:
                            case XK_P:
                               if (!SUMA_P_Key(sv, stmp, "drivesuma")) {

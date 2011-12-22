@@ -92,6 +92,7 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "     -prefix OUT_PREF: Output prefix for data set.\n"
 "                       Default is something based\n"
 "                       on the input prefix.\n"
+"     -split N: Split the output dataset into N separate datasets.\n"
 "     -no_history: Do not include a history element in the output\n"
 "  Notes:\n"
 "     -This program will not overwrite pre-existing files.\n"  
@@ -135,7 +136,7 @@ int main (int argc,char *argv[])
    char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
    int overwrite = 0, exists = 0, N_inmask=-1, pad_to_node = -1;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
-   int orderednodelist = 1;
+   int orderednodelist = 1, split=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -154,6 +155,7 @@ int main (int argc,char *argv[])
    node_index_1d = NULL;
    node_mask = NULL;
    exists = 0;
+   split = 0;
    no_hist = 0;
    kar = 1;
    brk = NOPE;
@@ -272,6 +274,17 @@ int main (int argc,char *argv[])
          }
          ++kar;
          prfx = argv[kar];
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-split") == 0))
+      {
+         if (kar+1 >= argc) {
+            SUMA_SL_Err("Need positive integer after -split");
+            exit(1);
+         }
+         ++kar;
+         split = atoi(argv[kar]);
          brk = YUP;
       }
       
@@ -511,12 +524,43 @@ int main (int argc,char *argv[])
       
          
       SUMA_LHv("About to write dset to %s\n", prefix);
-      NameOut = SUMA_WriteDset_s (prefix, dset, oform, overwrite, 0);
+      if (!split) {
+         NameOut = SUMA_WriteDset_s (prefix, dset, oform, overwrite, 0);
+         if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) { 
+            SUMA_SL_Err("Failed to write dataset."); exit(1); 
+         } else {
+            if (NameOut) SUMA_free(NameOut); NameOut = NULL;      
+         }
+      } else {
+         int ksp, ikp, ikps, nsplits=(int)ceil((float)SDSET_VECNUM(dset)/split);
+         SUMA_DSET *ds=NULL;
+         char cbuf[12]={""}, *prefs = NULL;
+         byte *colmask=NULL;
+         colmask=(byte*)SUMA_malloc(sizeof(byte)*SDSET_VECNUM(dset));
+         for (ksp=0; ksp<split; ++ksp) {
+            sprintf(cbuf,"%04d",ksp);
+            memset(colmask, 0, sizeof(byte)*SDSET_VECNUM(dset));
+            ikp = ksp*nsplits; 
+            ikps = SUMA_MIN_PAIR(SDSET_VECNUM(dset), (ksp+1)*nsplits);
+            while (ikp < ikps) colmask[ikp++]=1;
+            prefs = SUMA_RemoveDsetExtension_eng(prefix,SUMA_NO_DSET_FORMAT);
+            prefs = SUMA_append_replace_string(prefs,cbuf,".", 1);
+            if (!(ds = SUMA_MaskedCopyofDset(dset, NULL, colmask, 1, 1))) {
+               SUMA_S_Err("Failed to get masked copy");
+               exit(1); 
+            } 
+            NameOut = SUMA_WriteDset_s (prefs, ds, oform, overwrite, 0);
+            if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) { 
+               SUMA_SL_Err("Failed to write dataset."); exit(1); 
+            } else {
+               if (NameOut) SUMA_free(NameOut); NameOut = NULL;
+            }
+            if (prefs) SUMA_free(prefs);
+            SUMA_FreeDset(ds); ds=NULL; 
+         }
+         SUMA_free(colmask); colmask=NULL;
+      }
       
-      
-      if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) { 
-         SUMA_SL_Err("Failed to write dataset."); exit(1); 
-      } 
       if (prefix) SUMA_free(prefix); prefix = NULL;    
       if (dset) SUMA_FreeDset((void *)dset); dset = NULL;
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;

@@ -200,11 +200,25 @@ sets the select color of the widget to its foreground color */
 #define SUMA_SV_CHAR(csv) \
    (char)( 65+SUMA_WhichSV((csv), SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) )
 
+/* Make sure recording path is legit */
+#define SUMA_VALIDATE_RECORD_PATH(autorecord) {\
+   if (!THD_mkdir((autorecord)->Path)) {  \
+      SUMA_PARSED_NAME *pn2=NULL;   \
+      SUMA_S_Errv(   \
+   "Failed to create directory %s, resorting to local directory.\n", \
+         (autorecord)->Path); \
+      pn2 = SUMA_ParseFname((autorecord)->FileName, NULL);  \
+      SUMA_Free_Parsed_Name((autorecord)); \
+      (autorecord) = pn2; pn2=NULL; \
+   }  \
+}
+
 String *SUMA_get_fallbackResources ();         
 void SUMA_CullOption(SUMA_SurfaceViewer *, const char *action);
 Boolean SUMA_handleRedisplay (XtPointer w);
 void SUMA_postRedisplay(Widget w, XtPointer clientData, XtPointer call);
 GLenum SUMA_index_to_clip_plane(int iplane) ;
+int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb);
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
 Colormap SUMA_getShareableColormap_Eng(XVisualInfo * vi, Display *dpy);
 Colormap SUMA_getShareableColormap(SUMA_SurfaceViewer * csv);
