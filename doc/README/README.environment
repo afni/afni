@@ -405,8 +405,8 @@ on the Define Datamode panel.
 --------------------------
 Variable: AFNI_TIME_LOCK
 --------------------------
-Setting this YES/NO variable to YES tells AFNI to start up with 
-Time Lock turned on. The Time Lock feature is can be set manually 
+Setting this YES/NO variable to YES tells AFNI to start up with
+Time Lock turned on. The Time Lock feature is can be set manually
 from the Lock menu on the Define Datamode panel.
 
 ------------------------
@@ -964,6 +964,12 @@ AFNI_REALTIME_External_Dataset = name of dataset to use as external basis for
                                * instead, you can use a sub-brick selector here,
                                  if desired; for example:
                                  setenv AFNI_REALTIME_External_Dataset 'X+orig[3]'
+                               * to be brutally clear, you can give the name
+                                 of a dataset that is NOT in the current directory
+                                 -- unlike when using the plugin GUI
+                               * the plugin GUI will NOT show the choice of
+                                 external dataset given via this environment
+                                 variable!
 
 The following internal controls can only be set using these environment
 variables (there is no GUI to set these values):
@@ -3461,7 +3467,7 @@ Set this variable to your favorite GUI text editor.
 ------------------------------------
 Variable:  AFNI_LOG_BEST_PROG_OPTION
 ------------------------------------
-If set to YES, allow approximate searching functions to log their behavior in 
+If set to YES, allow approximate searching functions to log their behavior in
 a file named ~/.afni/help/aps.log.txt
 
 
