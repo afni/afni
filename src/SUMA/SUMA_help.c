@@ -1267,6 +1267,10 @@ char * SUMA_help_message_Info(void)
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "     n: bring a node to direct view (does not work AT ALL)\n");
    SS = SUMA_StringAppend (SS, 
+      "     Ctrl+o: Set new center of rotation.\n"
+      "            Enter nothing to go back to default.\n"
+      "\n");
+   SS = SUMA_StringAppend (SS, 
       "     Ctrl+n: Open a new surface viewer window.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     p: Viewer rendering mode  \n"
@@ -1282,30 +1286,8 @@ char * SUMA_help_message_Info(void)
       "        window has no visible controls for saving\n"
       "        the image. Either take another picture, or\n"
       "        use 'Shift+right click' to get a menu.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     Alt+r: Set new center of rotation.\n"
-      "            Enter nothing to go back to default.\n"
-      "\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+r: Increase the image oversampling factor.\n"
-      "             By increasing this factor, you can create\n"
-      "             images at a resolution higher than that \n"
-      "             of the SUMA window. This is done by subdividing \n"
-      "             the scene into NxN sections and rendering each\n"
-      "             section separately. The NxN renderings are\n"
-      "             saved in the image recorder. After you \n"
-      "             save the images to disk, you can stitch them\n"
-      "             using imcat (a la AFNI montage). \n"
-      "        Note that each section is still rendered at\n"
-      "             the resolution of the SUMA window. So the bigger\n"
-      "             the window the more resolution per section.\n"
-      "             However, you cannot exceed a certain limit\n"
-      "             on the number of pixels in the final image.\n"
-      "             This limitation is due to the graphics card\n"
-      "             on your system. SUMA will take care not to exceed\n"
-      "             this limit.\n");
    SS = SUMA_StringAppend_va (SS, 
-   "     Ctrl+R: Toggle continuous jpeg saving to disk.\n"
+      "     Ctrl+r: Record current image directly to disk.\n"
    "             Images are saved with a date stamp of the\n"
    "             format PREFIX.X.yymmdd_hhmmss.MMM.jpg where:\n"
    "          PREFIX controlled with SUMA_AutoRecordPrefix.\n"
@@ -1322,10 +1304,32 @@ char * SUMA_help_message_Info(void)
    "             without running out of memory in the recorder GUI. \n"
    "\n"
    "             Your current PREFIX is: %s%s\n"
+   "\n", SUMAg_CF->autorecord->Path, SUMAg_CF->autorecord->FileName);
+   SS = SUMA_StringAppend (SS, 
+      "     Alt+r: Increase the image oversampling factor.\n"
+      "             By increasing this factor, you can create\n"
+      "             images at a resolution higher than that \n"
+      "             of the SUMA window. This is done by subdividing \n"
+      "             the scene into NxN sections and rendering each\n"
+      "             section separately. The NxN renderings are\n"
+      "             saved in the image recorder. After you \n"
+      "             save the images to disk, you can stitch them\n"
+      "             using imcat (a la AFNI montage). \n"
+      "        Note that each section is still rendered at\n"
+      "             the resolution of the SUMA window. So the bigger\n"
+      "             the window the more resolution per section.\n"
+      "             However, you cannot exceed a certain limit\n"
+      "             on the number of pixels in the final image.\n"
+      "             This limitation is due to the graphics card\n"
+      "             on your system. SUMA will take care not to exceed\n"
+      "             this limit.\n");
+   SS = SUMA_StringAppend(SS, 
+   "     Ctrl+R: Toggle continuous jpeg saving to disk.\n"
+   "             Naming of output images is automatic, same as in Ctrl+r.\n"
+   "             See help for Ctrl+r above for more info.\n"
    "     R: Toggle continuous recording \n"
    "        to an a la AFNI image viewer.\n"
-   "        Identical images are rejected.\n\n", 
-                     SUMAg_CF->autorecord->Path, SUMAg_CF->autorecord->FileName);
+   "        Identical images are rejected.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     s: NO LONGER IN USE. \n"
       "        View the surface's structure contents.\n"

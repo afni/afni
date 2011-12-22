@@ -77,6 +77,10 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
             SUMA_RETURN(XK_n);
          case 'N':
             SUMA_RETURN(XK_N);
+         case 'o':
+            SUMA_RETURN(XK_o);
+         case 'O':
+            SUMA_RETURN(XK_O);
          case 'p':
             SUMA_RETURN(XK_p);
          case 'P':
@@ -1841,6 +1845,53 @@ int SUMA_N_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_RETURN(1);
 }
 
+/*!
+   Execute commands when O or o is pressed
+*/
+int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_O_Key"};
+   char tk[]={"O"}, keyname[100];
+   int k, nc;
+   int N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
+   SUMA_SurfaceObject *SO = NULL;
+   
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+SUMA_LH("HEERE");
+   /* do the work */
+   switch (k) {
+      case XK_O:
+         break;
+      case XK_o:
+         if (SUMA_CTRL_KEY(key)) {
+ SUMA_LH("BEERE");
+           sv->X->SetRot_prmpt = SUMA_CreatePromptDialogStruct (
+                  SUMA_OK_APPLY_CLEAR_CANCEL, "Center of Rotation X,Y,Z:", 
+                  "0,0,0",
+                  sv->X->TOPLEVEL, YUP,
+                  SUMA_APPLY_BUTTON,
+                  SUMA_SetRotCenter, (void *)sv,
+                  NULL, NULL,
+                  NULL, NULL,
+                  NULL, NULL,  
+                  sv->X->SetRot_prmpt);
+
+            sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, 
+                                                          sv->X->SetRot_prmpt);
+         }
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
 
 /*!
    Execute commands when P or p is pressed
@@ -1907,6 +1958,19 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    switch (k) {
       case XK_r:
          if ((SUMA_APPLE_KEY(key) || SUMA_ALT_KEY(key))) {
+            SUMAg_CF->SUMA_SnapshotOverSampling = 
+                  (SUMAg_CF->SUMA_SnapshotOverSampling +1)%5;
+            if (SUMAg_CF->SUMA_SnapshotOverSampling == 0) 
+                     SUMAg_CF->SUMA_SnapshotOverSampling = 1;
+            { 
+               sprintf(msg,"Oversampling now set to %d", 
+                           SUMAg_CF->SUMA_SnapshotOverSampling);
+               if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_SLP_Note (msg); 
+               } else { SUMA_S_Note (msg); }
+            }
+         } else if (SUMA_CTRL_KEY(key)) {
+            #if 0
             sv->X->SetRot_prmpt = SUMA_CreatePromptDialogStruct (
                   SUMA_OK_APPLY_CLEAR_CANCEL, "Center of Rotation X,Y,Z:", 
                   "0,0,0",
@@ -1920,19 +1984,10 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
             sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, 
                                                           sv->X->SetRot_prmpt);
-
-         } else if (SUMA_CTRL_KEY(key)) {
-            SUMAg_CF->SUMA_SnapshotOverSampling = 
-                  (SUMAg_CF->SUMA_SnapshotOverSampling +1)%5;
-            if (SUMAg_CF->SUMA_SnapshotOverSampling == 0) 
-                     SUMAg_CF->SUMA_SnapshotOverSampling = 1;
-            { 
-               sprintf(msg,"Oversampling now set to %d", 
-                           SUMAg_CF->SUMA_SnapshotOverSampling);
-               if (callmode && strcmp(callmode, "interactive") == 0) { 
-                  SUMA_SLP_Note (msg); 
-               } else { SUMA_S_Note (msg); }
-            }
+            #else
+            /* save image to disk */
+            SUMA_SnapToDisk(sv,1);
+            #endif
          } else {
             GLvoid *pixels=NULL;
             double rat;
@@ -2081,14 +2136,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             sv->Record = !sv->Record;
             if (sv->Record) sv->Record = 2;
             if (sv->Record) {
-               if (!THD_mkdir(SUMAg_CF->autorecord->Path)) {
-                  SUMA_PARSED_NAME *pn2=NULL;
-                  SUMA_S_Errv(
-            "Failed to create directory %s, resorting to local directory.\n", 
-                        SUMAg_CF->autorecord->Path);
-                  pn2 = SUMA_ParseFname(SUMAg_CF->autorecord->FileName, NULL);                      SUMA_Free_Parsed_Name(SUMAg_CF->autorecord);
-                  SUMAg_CF->autorecord = pn2; pn2=NULL;
-               }
+               SUMA_VALIDATE_RECORD_PATH(SUMAg_CF->autorecord);
                snprintf(sbuf,256*sizeof(char), 
                         "Disk Recording ON to: %s%s*",
                            SUMAg_CF->autorecord->Path,
@@ -3309,7 +3357,36 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                }
             break;
-
+         case XK_o:
+            if (SUMA_ALTHELL) {
+               if (!SUMA_O_Key(sv, "alt+o", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
+            } else if (Kev.state & ControlMask){
+               if (!SUMA_O_Key(sv, "ctrl+o", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
+            } else {
+               if (!SUMA_O_Key(sv, "o", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
+            }
+            break;
+         case XK_O:
+            if (SUMA_ALTHELL) {
+               if (!SUMA_O_Key(sv, "alt+O", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
+            } else if (Kev.state & ControlMask){
+               if (!SUMA_O_Key(sv, "ctrl+O", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
+            } else {
+               if (!SUMA_O_Key(sv, "O", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
+            }
+            break;
          case XK_p:
             if (!SUMA_P_Key(sv, "p", "interactive")) {
                SUMA_S_Err("Failed in key func.");
@@ -3323,11 +3400,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
          
          case XK_r:
-            if (SUMAg_CF->Dev && (SUMA_ALTHELL)) {
+            if (SUMA_ALTHELL) {
                if (!SUMA_R_Key(sv, "alt+r", "interactive")) {
                   SUMA_S_Err("Failed in key func.");
                }
-            } if (Kev.state & ControlMask){
+            } else if (Kev.state & ControlMask){
                if (!SUMA_R_Key(sv, "ctrl+r", "interactive")) {
                   SUMA_S_Err("Failed in key func.");
                }
