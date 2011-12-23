@@ -505,6 +505,7 @@ typedef struct MCW_imseq {
      MCW_bbox *wbar_plots_bbox ;        /* 20 Sep 2001 */
      MCW_arrowval *wbar_label_av ;      /* 20 Sep 2001 */
      MCW_arrowval *wbar_labsz_av ;      /* 21 Sep 2001 */
+     Widget        wbar_labst_pb ;      /* 23 Dec 2011 */
 
      Widget        zoom_sep              /* 11 Mar 2002 */;
      MCW_arrowval *zoom_val_av ;
@@ -557,6 +558,8 @@ typedef struct MCW_imseq {
      MCW_arrowval *wbar_animdup_av ;                  /* 10 Feb 2009 */
 
      int shft_ctrl_dragged ;                          /* 17 Mar 2010 */
+
+     char *overlay_label ;                            /* 23 Dec 2011 */
 } MCW_imseq ;
 
 #define RENDER_DEFAULT    0
@@ -711,6 +714,7 @@ extern void ISQ_set_rng_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void ISQ_set_zcol_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void ISQ_set_flat_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void ISQ_set_sharp_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void ISQ_overlay_label_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void ISQ_but_disp_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_but_save_CB( Widget , XtPointer , XtPointer ) ;
