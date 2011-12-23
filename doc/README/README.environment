@@ -1562,6 +1562,16 @@ This variable, a floating point value between 0 and 0.1, determines how
 far from the edge an image coordinate label will be drawn.  The units are
 fractions of the image width/height.
 
+---------------------------------
+Variable: AFNI_IMAGE_LABEL_STRING (editable)
+---------------------------------
+This value of this variable is a string that is appended to the automatically
+generated image slice viewer overlay label -- the viewing of this label is
+controlled from the right-click popup menu attached to the intensity bar to
+the right of the image itself.  This variable applies to any slice image
+viewer window into which the user has not specifically set a string for
+this purpose from the GUI.
+
 ------------------------------
 Variable: AFNI_CROSSHAIR_LINES (editable)
 ------------------------------
