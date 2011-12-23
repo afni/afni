@@ -1,5 +1,7 @@
 #!/bin/tcsh -f
 
+@global_parse `basename $0` $* ; if ($status) exit 0
+
 set stat = 0
 set sdir = $PWD
 set pname = `basename $0`
@@ -180,6 +182,7 @@ PARSE:
       endif
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         apsearch -popt `basename $0` -word $argv[$cnt]
          goto END
       endif
       
@@ -217,6 +220,8 @@ HELP:
    echo "          or -pif"
    echo " -list: Just list process numbers, don't run kill command"
    echo " -quiet: Do it quietly"
+   echo ""
+   @global_parse -gopts_help
    echo ""
    echo "Examples:"
    echo "   To kill all programs in list that used the -npb option"

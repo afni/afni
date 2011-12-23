@@ -10,32 +10,9 @@
 #define YXNUM    1
 #define XDOTYNUM 2
 #define YDOTXNUM 3
-
-int main( int argc , char * argv[] )
+void imcat_usage(int detail) 
 {
-   MRI_IMARR * imar, *inimar;
-   MRI_IMAGE * im ;
-   char prefix[240] = "cat" , fnam[256] ;
-   char suffix[50] = "\0";
-   char *scale_image = NULL, *scale_pixels = NULL;
-   int iarg , ii,jj , nx,ny , nxim,nyim ;
-   int nmode = XYNUM, nxin, nyin, nbad = 0;
-   int cutL=0, cutR=0, cutT=0, cutB=0;
-   int gap = 0, ScaleInt=0, force_rgb_out = 0, matrix_size_from_scale = 0;
-   byte  gap_col[3] = {255, 20, 128} ;
-   MRI_IMAGE *imscl=NULL;
-   int kkk, nscl=-1, resix=-1, resiy=-1, force_rgb_at_input=0, 
-       N_byte = 0, N_rgb = 0;
-   float *scl=NULL;
-   byte *scl3=NULL, *rgb=NULL, *b1, *b2, *b3;
-   char name[100];
-   void *ggg=NULL;
-   
-   
-   mainENTRY("imcat main"); machdep() ;
-    
-   if( argc < 4 ){
-      printf(
+         printf(
  "Usage: imcat [options] fname1 fname2 etc.\n"
  "Puts a set images into an image matrix (IM) \n"
  " montage of NX by NY images.\n"
@@ -123,8 +100,32 @@ int main( int argc , char * argv[] )
  "  afni -im ppp.ppm  [then open the Sagittal image window]\n"
  "\n"
             ) ;
-      exit(0) ;
-    }
+   return;
+}
+
+int main( int argc , char * argv[] )
+{
+   MRI_IMARR * imar, *inimar;
+   MRI_IMAGE * im ;
+   char prefix[240] = "cat" , fnam[256] ;
+   char suffix[50] = "\0";
+   char *scale_image = NULL, *scale_pixels = NULL;
+   int iarg , ii,jj , nx,ny , nxim,nyim ;
+   int nmode = XYNUM, nxin, nyin, nbad = 0;
+   int cutL=0, cutR=0, cutT=0, cutB=0;
+   int gap = 0, ScaleInt=0, force_rgb_out = 0, matrix_size_from_scale = 0;
+   byte  gap_col[3] = {255, 20, 128} ;
+   MRI_IMAGE *imscl=NULL;
+   int kkk, nscl=-1, resix=-1, resiy=-1, force_rgb_at_input=0, 
+       N_byte = 0, N_rgb = 0;
+   float *scl=NULL;
+   byte *scl3=NULL, *rgb=NULL, *b1, *b2, *b3;
+   char name[100];
+   void *ggg=NULL;
+   
+   
+   mainENTRY("imcat main"); machdep() ;
+    
 
     ScaleInt = 0;
     resix=-1;
@@ -135,11 +136,17 @@ int main( int argc , char * argv[] )
     cutR=0;
     force_rgb_out = 0;
     iarg = 1 ;
-      nx = -1; ny = -1;
+    nx = -1; ny = -1;
     while( iarg < argc && argv[iarg][0] == '-' ){
+       if( strcmp(argv[iarg],"-help") == 0 ||
+           strcmp(argv[iarg],"-h") == 0 ) {
+         imcat_usage(strlen(argv[iarg])>2 ? 2:1);
+         iarg++ ; continue ;
+       }
 
+       
        if( strcmp(argv[iarg],"-matrix") == 0 ){
-         if (iarg+2 > argc) {
+         if (iarg+2 >= argc) {
             fprintf(stderr,"*** ERROR: Need two integers after -matrix\n");
             exit(1);
          }
@@ -149,7 +156,7 @@ int main( int argc , char * argv[] )
        }
        
        if( strcmp(argv[iarg],"-crop") == 0 ){
-         if (iarg+4 > argc) {
+         if (iarg+4 >= argc) {
             fprintf(stderr,
                      "*** ERROR: Need four positive integers after -crop\n");
             exit(1);
@@ -162,7 +169,7 @@ int main( int argc , char * argv[] )
        }
        
        if( strcmp(argv[iarg],"-res_in") == 0 ){
-         if (iarg+2 > argc) {
+         if (iarg+2 >= argc) {
             fprintf(stderr,"*** ERROR: Need two integers after -res_in\n");
             exit(1);
          }
@@ -172,7 +179,7 @@ int main( int argc , char * argv[] )
        }
        
        if( strcmp(argv[iarg],"-nx") == 0 ){
-         if (iarg+1 > argc) {
+         if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need an integer after -nx\n");
             exit(1);
          }
@@ -181,7 +188,7 @@ int main( int argc , char * argv[] )
        }
        
        if( strcmp(argv[iarg],"-ny") == 0 ){
-         if (iarg+1 > argc) {
+         if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need an integer after -ny\n");
             exit(1);
          }
@@ -190,7 +197,7 @@ int main( int argc , char * argv[] )
        }
 
        if( strcmp(argv[iarg],"-gap") == 0 ){
-         if (iarg+1 > argc) {
+         if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need an integer after -gap\n");
             exit(1);
          }
@@ -198,8 +205,9 @@ int main( int argc , char * argv[] )
           iarg++ ; continue ;
        }
        if( strcmp(argv[iarg],"-gap_col") == 0 ){
-         if (iarg+2 > argc) {
-            fprintf(stderr,"*** ERROR: Need three integers between 0 and 255 after -gap_col\n");
+         if (iarg+2 >= argc) {
+            fprintf(stderr,
+         "*** ERROR: Need three integers between 0 and 255 after -gap_col\n");
             exit(1);
          }
          gap_col[0] = (byte) strtod( argv[++iarg] , NULL ) ;
@@ -209,7 +217,7 @@ int main( int argc , char * argv[] )
        }
        
        if( strcmp(argv[iarg],"-scale_image") == 0 ){
-          if (iarg+1 > argc) {
+          if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need an image after -scale_image\n");
             exit(1);
          }
@@ -218,7 +226,7 @@ int main( int argc , char * argv[] )
        }
        
        if( strcmp(argv[iarg],"-scale_pixels") == 0 ){
-          if (iarg+1 > argc) {
+          if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need an image after -scale_pixels\n");
             exit(1);
          }
@@ -259,9 +267,16 @@ int main( int argc , char * argv[] )
        }
 
        fprintf(stderr,"*** ERROR: illegal option %s\n",argv[iarg]) ;
+       suggest_best_prog_option(argv[0], argv[iarg]);
        exit(1) ;
     }
-      
+    
+    if( argc < 4 ){
+      ERROR_message("Too few options");
+      imcat_usage(0);
+      exit(1) ;
+    }
+  
     if (scale_image) {
       if (!(imscl = mri_read_just_one(scale_image))) {
          fprintf(stderr,"*** Failed to read scale image.\n");
