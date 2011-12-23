@@ -561,6 +561,11 @@ PLUGIN_interface * ENV_init(void)
                    "Image view color scale angle" ,
                    NUM_angle_strings,angle_strings , ENV_angle_string ) ;
 
+   /* 23 Dec 2011 [RWC] */
+   ENV_add_string( "AFNI_IMAGE_LABEL_STRING" ,
+                   "Extra string for image view overlay labels" ,
+                   0,NULL , NULL ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )

@@ -818,6 +818,7 @@ if( PRINT_TRACING ){
 
    strcpy( newseq->im_label , "hi bob" ) ;
    newseq->scl_label[0] = '\0' ;
+   newseq->overlay_label = NULL ;
 
    /* set display processing options */
 
@@ -1819,6 +1820,16 @@ STATUS("creation: widgets created") ;
                           slabel                /* data for above */
                         ) ;
      MCW_reghint_children(newseq->wbar_labsz_av->wrowcol,"Set coordinate label size") ;
+
+     newseq->wbar_labst_pb =
+        XtVaCreateManagedWidget(
+           "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+              LABEL_ARG("Label Append String") ,
+              XmNtraversalOn , False ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+     XtAddCallback( newseq->wbar_labst_pb, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
+     MCW_register_hint(newseq->wbar_labst_pb,"Set string to append to overlay label") ;
 
    } /* end of plots & labels stuff */
 
@@ -4628,6 +4639,10 @@ ENTRY("ISQ_free_alldata") ;
 
    if( seq->mplot != NULL ){                       /* 19 Sep 2001 */
       delete_memplot( seq->mplot ); seq->mplot = NULL;
+   }
+
+   if( seq->overlay_label != NULL ){               /* 23 Dec 2011 */
+     free(seq->overlay_label) ; seq->overlay_label = NULL ;
    }
 
    EXRETURN ;
@@ -8577,6 +8592,24 @@ ENTRY("ISQ_wbar_label_CB") ;
 }
 
 /*----------------------------------------------------------------------*/
+/* Finalize the overlay label append string [23 Dec 2011] */
+
+void ISQ_overlay_label_CB( Widget w , XtPointer fd , MCW_choose_cbs *cbs )
+{
+   MCW_imseq *seq = (MCW_imseq *)fd ;
+ENTRY("ISQ_overlay_label_CB") ;
+   if( seq->overlay_label != NULL ){
+     free(seq->overlay_label) ; seq->overlay_label = NULL ;
+   }
+   if( cbs != NULL       && cbs->reason == mcwCR_string       &&
+       cbs->cval != NULL && strcasecmp(cbs->cval,"NULL") != 0   ){
+     seq->overlay_label = strdup(cbs->cval) ;
+   }
+   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------*/
 
 void ISQ_wbar_menu_CB( Widget w , XtPointer client_data ,
                                   XtPointer call_data    )
@@ -8612,6 +8645,11 @@ ENTRY("ISQ_wbar_menu_CB") ;
 
    else if( w == seq->wbar_graymap_pb ){   /* 24 Oct 2003 */
      ISQ_graymap_draw( seq ) ;
+   }
+
+   else if( w == seq->wbar_labst_pb ){     /* 23 Dec 2011 */
+     MCW_choose_string( w , "Overlay Label Append String" ,
+                            seq->overlay_label , ISQ_overlay_label_CB , seq ) ;
    }
 
    EXRETURN ;
@@ -11064,7 +11102,7 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
 
 char * ISQ_getlabel( int nn , MCW_imseq *seq )
 {
-   char *lab=NULL ;
+   char *lab=NULL , *labadd=NULL ;
 
 ENTRY("ISQ_getlabel") ;
 
@@ -11074,6 +11112,22 @@ ENTRY("ISQ_getlabel") ;
    AFNI_CALL_VALU_3ARG( seq->getim , char *,lab ,
                         int,nn , int,isqCR_getlabel , XtPointer,seq->getaux ) ;
 #endif
+
+   /* 23 Dec 2011: stuff to append to the label */
+
+   labadd = seq->overlay_label ;
+
+   if( labadd == NULL || *labadd == '\0' )
+     labadd = getenv("AFNI_IMAGE_LABEL_STRING") ;
+
+   if( labadd != NULL && *labadd != '\0' ){
+     if( lab == NULL ) lab = strdup(labadd) ;
+     else {
+       lab = (char *)realloc(lab,sizeof(char)*(strlen(lab)+strlen(labadd)+4)) ;
+       strcat(lab,labadd) ;
+     }
+   }
+
    RETURN(lab) ;
 }
 
