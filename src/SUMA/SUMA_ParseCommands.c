@@ -4061,7 +4061,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
 		   }   
       }
       if (!brk && ps->accept_s) {
-         if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
+         if (!brk 
+               && (strlen(argv[kar])==7 )
+               && (strncmp(argv[kar], "-surf_", 6) == 0)) {
             ps->arg_checked[kar]=1;
 		      if (kar + 1>= argc)  {
 		  	      SUMA_S_Err( "need argument after -surf_X SURF_NAME \n");
@@ -4070,10 +4072,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
 		      ind = argv[kar][6] - 'A';
             if (ind < 0 || ind >= ('Z'-'A')) {
                fprintf (SUMA_STDERR,   
-                        "Error %s:\n -surf_X SURF_NAME option is out of range.\n"
-                        "Only %d surfaces are allowed. \n"
-                        "Must start with surf_A for first surface.\n", 
-                        FuncName, ('Z'-'A'));
+                  "Error %s:\n -surf_X SURF_NAME option (%s)is out of range.\n"
+                  "Only %d surfaces are allowed. \n"
+                  "Must start with surf_A for first surface.\n", 
+                        FuncName, argv[kar], ('Z'-'A'));
 			      exit (1);
             }
             if (ps->s_surfnames[ind]) {
@@ -4092,7 +4094,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ++ps->s_N_surfnames;
             brk = YUP;
 	      } 
-         if (!brk && (strncmp(argv[kar], "-surf", 5) == 0)) {
+         if (!brk && (strcmp(argv[kar], "-surf") == 0)) {
             ps->arg_checked[kar]=1;
 		      if (kar + 1>= argc)  {
 		  	      SUMA_S_Err( "need argument after -surf SURF_NAME \n");

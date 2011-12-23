@@ -3397,7 +3397,7 @@ STATUS("drawing crosshairs") ;
 
    if( type == isqCR_getlabel ){
       Three_D_View *im3d = (Three_D_View *) br->parent ;
-      char *lab , str[512] , *dd ;
+      char *lab , str[512] , *dd , *eee=NULL;
       char labstrf[256]={""}, labstra[256]={""};
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
@@ -3440,6 +3440,10 @@ STATUS("drawing crosshairs") ;
       for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
       if( str[ii] == '.' ) str[ii] = '\0' ;
       strcat(str, dd) ;
+      
+      if (eee = getenv("AFNI_IMAGE_LABEL_STRING")) {
+         strcat(str, eee);
+      }
       
       if (!FD_brick_montized(br)){ /* Show labels if any.  ZSS Dec. 2011*/
          dset = Get_UO_Dset(br, 'U', 1, &ival);

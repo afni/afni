@@ -417,6 +417,7 @@ void usage_plugout_drive(int detail)
 "                   -com 'SWITCH_UNDERLAY anat'    \\\n"
 "                   -com 'SWITCH_OVERLAY strip'    \\\n"
 "                   -com 'SEE_OVERLAY +'           \\\n"
+"                   -com 'SET_DICOM_XYZ 7 12 2     \\\n"
 "                   -com 'OPEN_WINDOW A.axialimage keypress=v'         \\\n"
 "                   -quit             \n"
 "\n"

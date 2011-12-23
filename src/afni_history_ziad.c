@@ -117,7 +117,8 @@ afni_history_struct ziad_history[] = {
  { 12, DEC , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Slice displays can now show atlas labels in addition to slice location ",
    "The displays are turned on by right-clicking on the slice viewer's color\n"
-   "bar and then setting the 'Label' to something other than 'OFF'\n" ,
+   "bar and then setting the 'Label' to something other than 'OFF'\n"
+   "See isqCR_getlabel, ISQ_getlabel, and AFNI_get_dset_val_label in code\n",
  },
  
  { 9, DEC , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,

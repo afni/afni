@@ -212,6 +212,9 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 
    /* get data element */
 
+   if (!THD_is_ondisk(fname)) {
+      GQUIT("not on disk");
+   }
    nel = NI_read_element_fromfile(fname) ;
    if( nel == NULL || nel->type != NI_ELEMENT_TYPE )
      GQUIT("not properly formatted") ;
@@ -1700,7 +1703,9 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
-     ERROR_exit("GIC: Unknown option: '%s'",argv[nopt]) ;
+     ERROR_message("GIC: Unknown option: '%s'",argv[nopt]) ;
+     suggest_best_prog_option(argv[0], argv[nopt]);
+     exit(1);
    }
 
    /*-- check inputs for OK-ness --*/
