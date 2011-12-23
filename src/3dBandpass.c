@@ -125,8 +125,9 @@ int main( int argc , char * argv[] )
        " -quiet          = Turn off the fun and informative messages. (Why?)\n"
        "\n"
        " -notrans        = Don't check for initial positive transients in the data:\n"
-       "                   ++ The test is a little slow, so skipping it is OK,\n"
-       "                      if you know the data time series are transient-free.\n"
+       "  *OR*             ++ The test is a little slow, so skipping it is OK,\n"
+       " -nosat               if you KNOW the data time series are transient-free.\n"
+       "                   ++ Or set AFNI_SKIP_SATCHECK to YES.\n"
        "                   ++ Initial transients won't be handled well by the\n"
        "                      bandpassing algorithm, and in addition may seriously\n"
        "                      contaminate any further processing, such as inter-voxel\n"
@@ -147,6 +148,8 @@ int main( int argc , char * argv[] )
    mainENTRY("3dBandpass"); machdep();
    AFNI_logger("3dBandpass",argc,argv);
    PRINT_VERSION("3dBandpass"); AUTHOR("RW Cox");
+
+   nosat =  AFNI_yesenv("AFNI_SKIP_SATCHECK") ;
 
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
@@ -347,7 +350,7 @@ int main( int argc , char * argv[] )
      float val ;
      INFO_message(
       "Checking dataset for initial transients [use '-notrans' to skip this test]") ;
-     val = THD_saturation_check(inset,mask) ; kk = (int)(val+0.54321f) ;
+     val = THD_saturation_check(inset,mask,0,0) ; kk = (int)(val+0.54321f) ;
      if( kk > 0 )
        ININFO_message(
         "Looks like there %s %d non-steady-state initial time point%s :-(" ,
