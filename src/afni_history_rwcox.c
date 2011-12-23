@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , DEC , 2011 , RWC , "afni realtime plugin" , MICRO , TYPE_NEW_ENV ,
+  { 23 , DEC , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Allow user to append a string to the overlay label" ,
+   "Via environment AFNI_IMAGE_LABEL_STRING or by a new item on the\n"
+   "intensity bar popup menu in the GUI -- the latter takes precendence. \n"
+   "This is Ziad's Xmas present." } ,
+
+ { 22 , DEC , 2011 , RWC , "afni realtime plugin" , MICRO , TYPE_NEW_ENV ,
    "AFNI_REALTIME_External_Dataset environment variable" ,
    "Lets the realtime user (let's call her/him 'CC') specify an external\n"
    "dataset to be used as the registation base.  CC doesn't have to use a\n"
