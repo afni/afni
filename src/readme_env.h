@@ -3342,6 +3342,14 @@ static char * readme_env[] = {
    "q-values is the default in AFNI programs.  If you want the old\n" ,
    "behavior, set this variable to YES.\n" ,
    "\n" ,
+   "----------------------------\n" ,
+   "Variable: AFNI_SKIP_SATCHECK\n" ,
+   "----------------------------\n" ,
+   "If you want 3dDeconvolve to check the input dataset time series for\n" ,
+   "initial saturation transients (a somewhat time consuming process),\n" ,
+   "set this variable to NO.  You can also use program 3dSatCheck for\n" ,
+   "this purpose.  Or just look at your data (please!).\n" ,
+   "\n" ,
    "#####################################################\n" ,
    "##### ATLAS AND WHEREAMI ENVIRONMENT VARIABLES  #####\n" ,
    "#####################################################\n" ,
@@ -3484,4 +3492,4 @@ static char * readme_env[] = {
    "\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3484
+#define NUM_readme_env 3492

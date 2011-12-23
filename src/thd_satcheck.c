@@ -10,16 +10,22 @@
    informational purposes.  [08 Feb 2010]
 *//*------------------------------------------------------------------------*/
 
-float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
+float THD_saturation_check( THD_3dim_dataset *dset, byte *xmask, int ibot, int itop )
 {
    byte *mask=xmask ;
-   int nvals, nuse, nvox, nchek, nmask, qq ; byte *nbig ; float sum ;
+   int nvals, nuse, nvox, nchek, nmask, qq, nvset ; byte *nbig ; float sum ;
 
    if( !ISVALID_DSET(dset) ) return 0.0f ;
-   nvals = DSET_NVALS(dset) ; if( nvals < 9 ) return 0.0f ;
+   nvset = DSET_NVALS(dset) ;
+   if( ibot >= itop || ibot < 0 || itop >= nvset ){
+     nvals = nvset ; if( nvals < 9 ) return 0.0f ;
+     ibot = 0 ; itop = nvals-1 ;
+   } else {
+     nvals = itop-ibot+1 ; if( nvals < 9 ) return 0.0f ;
+   }
    nvox  = DSET_NVOX(dset) ;
    nchek = nvals / 8 ; nchek = MAX(nchek,3) ; nchek = MIN(nchek,16) ;
-   nuse  = MIN(nvals,100) - nchek ; if( nuse < 5 ) return 0.0f ;
+   nuse  = MIN(nvals,88) - nchek ; if( nuse < 5 ) return 0.0f ;
 
    if( mask == NULL ){
      THD_automask_set_cheapo(1) ;
@@ -38,12 +44,12 @@ float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
  { float med,mad,thp,thm,*far ; int kk , vv ;
 
 #pragma omp critical(MALLOC)
-   far = (float *)malloc(sizeof(float)*nvals) ;
+   far = (float *)malloc(sizeof(float)*nvset) ;
 
    for( kk=0 ; kk < nvox ; kk++ ){
      if( !mask[kk] ) continue ;
      (void)THD_extract_array( kk , dset , 0 , far ) ;
-     qmedmad_float( nuse , far+nchek , &med , &mad ) ;
+     qmedmad_float( nuse , far+ibot+nchek , &med , &mad ) ;
      if( mad == 0.0f ) continue ;
      thp = med + 5.678f*mad ;
 #if 0
@@ -63,4 +69,30 @@ float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
    for( sum=0.0f,qq=0 ; qq < nvox ; qq++ ) sum += nbig[qq] ;
    free(nbig) ;
    return (sum/nmask) ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+float THD_saturation_check_multi( THD_3dim_dataset *dset, byte *xmask,
+                                  int nbl , int *blstart )
+{
+   int ibl, ibot, itop ; float sum=0.0f ; byte *mask=xmask ;
+
+   if( nbl == 0 || blstart == NULL || blstart[0] < 0 )
+     return THD_saturation_check(dset,xmask,0,0) ;
+
+   if( mask == NULL ){
+     THD_automask_set_cheapo(1) ;
+     mask = THD_automask(dset) ;
+     if( mask == NULL ) return 0.0f ;
+   }
+
+   for( ibl=0 ; ibl < nbl ; ibl++ ){
+     ibot = blstart[ibl] ;
+     itop = (ibl < nbl-1) ? blstart[ibl+1] : DSET_NVALS(dset) ; itop-- ;
+     sum += THD_saturation_check(dset,mask,ibot,itop) ;
+   }
+
+   if( mask != xmask ) free(mask) ;
+   return sum ;
 }

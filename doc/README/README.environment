@@ -3341,6 +3341,14 @@ will NOT be carried out.  As of 26 Mar 2009, this adjustment of
 q-values is the default in AFNI programs.  If you want the old
 behavior, set this variable to YES.
 
+----------------------------
+Variable: AFNI_SKIP_SATCHECK
+----------------------------
+If you want 3dDeconvolve to check the input dataset time series for
+initial saturation transients (a somewhat time consuming process),
+set this variable to NO.  You can also use program 3dSatCheck for
+this purpose.  Or just look at your data (please!).
+
 #####################################################
 ##### ATLAS AND WHEREAMI ENVIRONMENT VARIABLES  #####
 #####################################################

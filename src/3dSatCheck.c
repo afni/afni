@@ -22,7 +22,7 @@ int main( int argc , char *argv[] )
      dset = THD_open_dataset( argv[aa] ) ; if( !ISVALID_DSET(dset) ) continue ;
      if( DSET_NVALS(dset) < 9 ) continue ;
      DSET_load(dset) ; if( !DSET_LOADED(dset) ) continue ;
-     val = THD_saturation_check( dset , NULL ) ;
+     val = THD_saturation_check( dset , NULL , 0,0 ) ;
      ll = strlen(argv[aa]) ;
      cpt = (ll <= 50) ? argv[aa] : argv[aa]+(ll-50) ;
      INFO_message("%-50.50s = %.3f",cpt,val) ;
