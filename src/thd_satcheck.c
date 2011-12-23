@@ -19,7 +19,7 @@ float THD_saturation_check( THD_3dim_dataset *dset , byte *xmask )
    nvals = DSET_NVALS(dset) ; if( nvals < 9 ) return 0.0f ;
    nvox  = DSET_NVOX(dset) ;
    nchek = nvals / 8 ; nchek = MAX(nchek,3) ; nchek = MIN(nchek,16) ;
-   nuse  = MIN(nvals,100) - nchek ;
+   nuse  = MIN(nvals,100) - nchek ; if( nuse < 5 ) return 0.0f ;
 
    if( mask == NULL ){
      THD_automask_set_cheapo(1) ;

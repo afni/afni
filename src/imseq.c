@@ -2963,7 +2963,7 @@ MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
 {
    MEM_plotdata *mp ; int ww ; float asp , dd ;
    static int   sz[5] = { 20    , 28    , 40    , 56    , 80     } ;
-   static float th[5] = { 0.001f, 0.002f, 0.003f, 0.004f, 0.005f } ;
+   static float th[5] = { 0.002f, 0.003f, 0.004f, 0.005f, 0.006f } ;
    char *eee ; float rr=1.0,gg=1.0,bb=0.7 , sb=0.003 ;
 
 ENTRY("ISQ_plot_label") ;
