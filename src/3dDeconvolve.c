@@ -409,6 +409,8 @@ static int goforit = 0 ;  /* 07 Mar 2007 */
 static int badlev  = 0 ;
 static int floatout= 1 ;  /* 13 Mar 2007 ; 15 Jul 2010: now defaults on */
 
+static int dont_do_satcheck = 1 ; /* 23 Dec 2011 */
+
 /* include other dset types for float output   2 Apr 2009 [rickr] */
 #define CHECK_NEEDS_FLOATS(fn)                                         \
  do{ if( !floatout &&                                                  \
@@ -871,6 +873,13 @@ void display_help_menu(int detail)
     "                   * You should use '-force_TR' to set the TR of       \n"
     "                     the 1D 'dataset' if you use '-input' rather       \n"
     "                     than '-input1D' [the default is 1.0 sec].         \n"
+    "-sat OR -trans     * 3dDeconvolve can check the dataset time series    \n"
+    "                     for initial saturation transients, which should   \n"
+    "                     normally have been excised before data analysis.  \n"
+    "                     If you want to have it do this somewhat time      \n"
+    "                     consuming check, use the option '-sat'.           \n"
+    "                   * Or set environment variable AFNI_SKIP_SATCHECK to NO.\n"
+    "                   * Program 3dSatCheck does this check, also.         \n"
     "[-noblock]           Normally, if you input multiple datasets with     \n"
     "                     '-input', then the separate datasets are taken to \n"
     "                     be separate image runs that get separate baseline \n"
@@ -1773,6 +1782,8 @@ void initialize_options
 
   option_data->automask = 0 ;  /* 15 Apr 2005 */
   option_data->nobucket = 0 ;  /* 03 May 2007 */
+
+  if( AFNI_noenv("AFNI_SKIP_SATCHECK") ) dont_do_satcheck = 0; /* 23 Dec 2011 */
 }
 
 
@@ -1997,6 +2008,13 @@ void get_options
       }
 
       if( strcmp(argv[nopt],"-OK") == 0 ){ nopt++; continue; } /* 14 Jul 2004 */
+
+      if( strcmp(argv[nopt],"-notrans") == 0 || strcmp(argv[nopt],"-nosat") == 0 ){
+        dont_do_satcheck = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-trans") == 0 || strcmp(argv[nopt],"-sat") == 0 ){
+        dont_do_satcheck = 0 ; nopt++ ; continue ;
+      }
 
       /*-----   -nocond           ------*/
 
@@ -3238,17 +3256,15 @@ void get_options
         suggest_best_prog_option(argv[0], argv[nopt]);
         exit(1);
       }
-      
 
     } /***** end of loop over input arguments ****/
-  
+
    /*----- does user request help menu? -----*/
    if (nopt < 2) {
       sprintf(message,"Too few options");
       DC_error (message);
    }
 
- 
   /*----- 23 Mar 2007: full first stuff? -----*/
 
   if( option_data->fout ) option_data->do_fullf = 1 ;
@@ -3909,6 +3925,25 @@ ENTRY("read_input_data") ;
       }
 
       EDIT_set_misfit_mask(gmask) ; mri_fdr_setmask(gmask) ;
+
+      /* 23 Dec 2011 -- check for saturation transients */
+
+      if( !dont_do_satcheck ){
+        float sum ; int isum ; double qtim = COX_clock_time() ;
+        INFO_message("Checking for initial transients") ;
+        sum = THD_saturation_check_multi( *dset_time,gmask, *num_blocks,*block_list ) ;
+        isum = (int)(sum+0.56789f) ;
+        if( isum > 0 ){
+          WARNING_message("Dataset seems to have about %d initial transient time points",isum) ;
+          if( *num_blocks > 1 )
+            WARNING_message(" (This estimate is summed across all imaging runs)" ) ;
+        } else {
+          ININFO_message("No widespread significant initial transients found") ;
+        }
+        ININFO_message("Transient check elapsed time = %.2f s",COX_clock_time()-qtim) ;
+      } else {
+        INFO_message("Skipping check for initial transients") ;
+      }
 
     } else {  /*------------------------- no input data? --------------------*/
 

@@ -95,7 +95,7 @@ extern "C" {
 
 #define THD_MAX_LABEL     38
 
-/*! Max length of a dataset sub-brick label. */ 
+/*! Max length of a dataset sub-brick label. */
 
 #define THD_MAX_SBLABEL     64     /* added 11/03/2011 drg */
 
@@ -1042,9 +1042,9 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
     - If there is no '+', puts an empty string into pr
     - Otherwise, scans backward from end to find last '+'; everything before that is the prefix
     - Space for pr must be allocated beforehand
-    
-    Made strstr check for +orig, +acpc, and +tlrc instead of just 
-      "+". Names like aseg+aparc.nii were getting butchered            
+
+    Made strstr check for +orig, +acpc, and +tlrc instead of just
+      "+". Names like aseg+aparc.nii were getting butchered
       ZSS: Dec 2011
 */
 
@@ -3050,7 +3050,7 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 #define DSET_TR_SEC(ds) ( \
             (DSET_TIMEUNITS(ds) == UNITS_SEC_TYPE) ? DSET_TR(ds) : \
            ((DSET_TIMEUNITS(ds) == UNITS_MSEC_TYPE) ? DSET_TR(ds)*0.001 : 0.0 ) )
-           
+
 /*! Return the time origin for dataset ds.
 
     Is always 0 in current version of AFNI.
@@ -3867,7 +3867,7 @@ extern int THD_is_executable( char * pathname ) ;
 extern char * THD_find_executable( char * ) ;
 extern char * THD_find_regular_file( char * ) ;
 extern THD_string_array *get_elist(void);
- 
+
 extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */
 extern char * THD_dataset_headname( char * , char * , int ) ;
 
@@ -3901,15 +3901,15 @@ extern void THD_insert_atr( THD_datablock *blk , ATR_any *atr ) ;
 extern void THD_store_dataset_keywords ( THD_3dim_dataset * , char * ) ;
 extern void THD_append_dataset_keywords( THD_3dim_dataset * , char * ) ;
 extern char * THD_dataset_info( THD_3dim_dataset * , int ) ;
-extern void THD_show_dataset_names( THD_3dim_dataset *dset, 
+extern void THD_show_dataset_names( THD_3dim_dataset *dset,
                                     char *head, FILE *out);
 extern const char * storage_mode_str(int);
 extern char * THD_zzprintf( char * sss , char * fmt , ... ) ;
 extern int dset_obliquity(THD_3dim_dataset *dset , float *anglep);
-double dset_obliquity_angle_diff(THD_3dim_dataset *dset1, 
-                                 THD_3dim_dataset *dset2, 
+double dset_obliquity_angle_diff(THD_3dim_dataset *dset1,
+                                 THD_3dim_dataset *dset2,
                                  double tol);
-double daxes_obliquity_angle_diff(THD_dataxes *ax1, THD_dataxes *ax2, 
+double daxes_obliquity_angle_diff(THD_dataxes *ax1, THD_dataxes *ax2,
                                   double tol);
 extern void THD_set_float_atr( THD_datablock * , char * , int , float * ) ;
 extern void THD_set_int_atr  ( THD_datablock * , char * , int , int   * ) ;
@@ -4873,7 +4873,9 @@ extern void        mri_warp3D_align_cleanup( MRI_warp3D_align_basis * ) ;
 extern void THD_check_AFNI_version(char *) ;  /* 26 Aug 2005 */
 extern void THD_death_setup( int msec ) ;     /* 14 Sep 2009 */
 
-extern float THD_saturation_check( THD_3dim_dataset *, byte * ) ; /* 08 Feb 2010 */
+extern float THD_saturation_check( THD_3dim_dataset *, byte * , int,int ) ;       /* 08 Feb 2010 */
+extern float THD_saturation_check_multi( THD_3dim_dataset *, byte *, int,int *) ; /* 23 Dec 2011 */
+
 
 extern THD_3dim_dataset * THD_dummy_N27  (void) ;  /* 12 Feb 2010 */
 extern THD_3dim_dataset * THD_dummy_RWCOX(void) ;  /* 12 Feb 2010 */
