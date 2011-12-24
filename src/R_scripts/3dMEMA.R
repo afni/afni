@@ -527,7 +527,9 @@ reference.MEMA <- function ()
 "#######################################################################
 Please consider citing the following if this program is useful for you:
 
-   Gang Chen et al., hopefully something coming soon...
+   Gang Chen et al., Chen et al., FMRI Group Analysis Combining Effect 
+   Estimates and Their Variances. NeuroImage. (In Press). 
+   10.1016/j.neuroimage.2011.12.060
    http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
    
 #######################################################################"
