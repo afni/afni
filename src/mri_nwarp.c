@@ -2626,15 +2626,36 @@ IndexWarp3D * IW3D_warpgen( IndexWarp3DBasis *iwar , float *wt , int nsq )
 
 /*----------------------------------------------------------------------------*/
 
+#define NWARP_2DIM_FLAG    1
+
+#define NWARP_NOXDIS_FLAG  2
+#define NWARP_NOYDIS_FLAG  4
+#define NWARP_NOZDIS_FLAG  8
+
+#define NWARP_NOXDEP_FLAG 16
+#define NWARP_NOYDEP_FLAG 32
+#define NWARP_NOZDEP_FLAG 64
+
 void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim ,
                         IndexWarp3D *AA , int match_code , int basis_code ,
-                        int ibot, int itop, int jbot, int jtop, int kbot, int ktop )
+                        int ibot, int itop, int jbot, int jtop, int kbot, int ktop,
+                        int flags )
 {
    MRI_IMAGE *warpim ;
    IW3D_basisfunc basisfunc ;
+   int twodim = (flags & NWARP_2DIM_FLAG) != 0 ;
+   int nxb,nyb,nzb , nxs,nys,nzs ;
 
-   if( basim == NULL || srcim == NULL || AA == NULL ) return ;
-   if( itop-ibot < 6 || jtop-jbot < 6 || ktop-kbot < 6 ) return ;
+   /*- check for bad inputs -*/
 
-   warpim = wsrcim ;
+   if( basim == NULL || srcim == NULL || wsrcim == NULL || AA == NULL ) return ;
+   if( itop-ibot < 7 || jtop-jbot < 7 ) return ;
+
+   /* check for 2D image */
+
+   if( ktop-kbot < 7 ) twodim = 1 ;
+   if( twodim )        flags |= (NWARP_NOZDIS_FLAG | NWARP_NOZDEP_FLAG) ;
+
+   nxb = basim->nx ; nyb = basim->ny ; nzb = basim->nz ;
+   nxs = srcim->nx ; nys = srcim->ny ; nzs = srcim->nz ;
 }
