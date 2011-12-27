@@ -2249,22 +2249,14 @@ ENTRY("THD_bootstrap_vectcorr") ;
 
 /*============================================================================*/
 
-static double incpear_sx  = 0.0 ;
-static double incpear_sxx = 0.0 ;
-static double incpear_sy  = 0.0 ;
-static double incpear_syy = 0.0 ;
-static double incpear_sxy = 0.0 ;
-static double incpear_sw  = 0.0 ;
-static int    incpear_npt = 0   ;
-
-void THD_addto_incomplete_pearson( int n, float *x, float *y, float *w )
+void THD_addto_incomplete_pearson( int n, float *x, float *y, float *w, INCOR_pearson *inpear )
 {
    int ii ; double sx,sxx , sy,syy,sxy , sw ;
 
-   if( n <= 0 || x == NULL || y == NULL ) return ;
+   if( n <= 0 || x == NULL || y == NULL || inpear == NULL ) return ;
 
-   sx = incpear_sx ; sxx = incpear_sxx ;
-   sy = incpear_sy ; syy = incpear_syy ; sxy = incpear_sxy ; sw = incpear_sw ;
+   sx = inpear->sx ; sxx = inpear->sxx ;
+   sy = inpear->sy ; syy = inpear->syy ; sxy = inpear->sxy ; sw = inpear->sw ;
 
    if( w == NULL ){
      double xx , yy ;
@@ -2282,36 +2274,46 @@ void THD_addto_incomplete_pearson( int n, float *x, float *y, float *w )
      }
    }
 
-   incpear_npt += n ;
-   incpear_sx   = sx ; incpear_sxx = sxx ;
-   incpear_sy   = sy ; incpear_syy = syy ; incpear_sxy = sxy ; incpear_sw = sw ;
+   inpear->npt += n ;
+   inpear->sx   = sx ; inpear->sxx = sxx ;
+   inpear->sy   = sy ; inpear->syy = syy ; inpear->sxy = sxy ; inpear->sw = sw ;
    return ;
 }
 
 /*----------------------------------------------------------------------------*/
 
-void THD_setup_incomplete_pearson( int n, float *x, float *y, float *w )
+void THD_destroy_incomplete_pearson( INCOR_pearson *inpear )
 {
-   incpear_sx  = 0.0 ; incpear_sxx = 0.0 ;
-   incpear_sy  = 0.0 ; incpear_syy = 0.0 ;
-   incpear_sxy = 0.0 ; incpear_sw  = 0.0 ; incpear_npt = 0 ;
-   THD_addto_incomplete_pearson( n , x , y , w ) ;
+   if( inpear != NULL ) free((void *)inpear) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+INCOR_pearson * THD_setup_incomplete_pearson( int n, float *x, float *y, float *w )
+{
+   INCOR_pearson *inpear ;
+
+   inpear = (INCOR_pearson *)malloc(sizeof(INCOR_pearson)) ;
+   inpear->sx  = 0.0 ; inpear->sxx = 0.0 ;
+   inpear->sy  = 0.0 ; inpear->syy = 0.0 ;
+   inpear->sxy = 0.0 ; inpear->sw  = 0.0 ; inpear->npt = 0 ;
+   THD_addto_incomplete_pearson( n , x , y , w , inpear ) ;
    return ;
 }
 
 /*----------------------------------------------------------------------------*/
 
-float THD_compute_incomplete_pearson(void)
+float THD_compute_incomplete_pearson( INCOR_pearson *inpear )
 {
    double xv , yv , xy , swi ;
 
-   if( incpear_sw <= 0.0 ) return 0.0f ;
+   if( inpear->sw <= 0.0 ) return 0.0f ;
 
-   swi = 1.0 / incpear_sw ;
+   swi = 1.0 / inpear->sw ;
 
-   xv = incpear_sxx - incpear_sx * incpear_sx * swi ;
-   yv = incpear_syy - incpear_sy * incpear_sy * swi ;
-   xy = incpear_sxy - incpear_sx * incpear_sy * swi ;
+   xv = inpear->sxx - inpear->sx * inpear->sx * swi ;
+   yv = inpear->syy - inpear->sy * inpear->sy * swi ;
+   xy = inpear->sxy - inpear->sx * inpear->sy * swi ;
 
    if( xv <= 0.0 || yv <= 0.0 ) return 0.0f ;
    return (float)(xy/sqrt(xv*yv)) ;
