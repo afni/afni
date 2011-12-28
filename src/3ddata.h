@@ -3877,7 +3877,7 @@ extern NI_element * THD_mixed_table_read ( char *fname ) ; /* 26 Jul 2010 */
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;
 extern char * THD_trailname( char * fname , int lev ) ;
-
+extern char * THD_filepath( char *fname );
 extern int THD_linecount( char * ) ;
 
 extern void THD_read_all_atr ( char * , THD_datablock * ) ;
