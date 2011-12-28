@@ -286,6 +286,9 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout);
+char **approx_str_sort_readmes(char *str, int *N_r);
+char *find_readme_file(char *str);
+int view_text_file(char *progname);
 char *approx_string_diff_info(APPROX_STR_DIFF *D,APPROX_STR_DIFF_WEIGHTS *Dwi); 
 ATLAS_SEARCH *Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , 
                                  ATLAS_SEARCH *usethissearch);

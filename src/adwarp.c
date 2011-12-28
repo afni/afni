@@ -388,7 +388,10 @@ void get_options
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
-      AW_error (message);
+      fprintf (stderr, "%s Error: %s \n", PROGRAM_NAME, message);
+      suggest_best_prog_option(argv[0], argv[nopt]);
+      exit(1);
+      
 
     }
 

@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 27, DEC , 2011 , ZSS , "3drefit" , MINOR , TYPE_BUG_FIX,
+   "3drefit failed when refitting a NIFTI dset in another directory.",
+   "If you did something like 3drefit -space MNI joe/jim/dset.nii\n"
+   "you ended up with a new dataset ./dset.nii as opposed to modifying\n"
+   "the one under joe/jim/ directory",
+ },
+    
  { 20, DEC , 2011 , ZSS , "3dclust" , MINOR , TYPE_BUG_FIX,
    "-prefix failed when input dset was mastered.",
    "Better use macro PREP_LOADED_DSET_4_REWRITE whenever modifying\n"

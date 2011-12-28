@@ -8,35 +8,9 @@ static void Print_Header_MinMax(int Minflag, int Maxflag, THD_3dim_dataset * dse
 static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
     int Posflag, int Negflag, int Zeroflag, int nan_flag, int Sumflag,
     int Varflag, int Volflag,  THD_3dim_dataset * dset, byte *mmm, int mmvox);
-/*
-static void Max_tsfunc( double tzero , double tdelta ,
-                        int npts , float ts[] , double ts_mean ,
-                        double ts_slope , void *ud , int nbriks, float *val ) ;
-static float minvalue=1E10, maxvalue=-1E10;
-*/
- 
-/*! compute the overall minimum and maximum voxel values for a dataset */
-int main( int argc , char * argv[] )
-{
-   THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
-   int nopt, nbriks;
-   int slow_flag, quick_flag, min_flag, max_flag, mean_flag, 
-       automask,count_flag, sum_flag, var_flag;
-   int positive_flag, negative_flag, zero_flag, nan_flag, perc_flag, vol_flag;
-   byte * mmm=NULL ;
-   int    mmvox=0 ;
-   int nxyz, i;
-   float *dvec = NULL, mmin=0.0, mmax=0.0;
-   int N_mp;
-   double *mpv=NULL, *perc = NULL;
-   double mp =0.0f, mp0 = 0.0f, mps = 0.0f, mp1 = 0.0f, di =0.0f ;
-   byte *mmf = NULL;
-   MRI_IMAGE *anat_im = NULL;
-   char *mask_dset_name=NULL;
 
-   /*----- Read command line -----*/
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf(
+void usage_3dBrickStat(int detail) {
+         printf(
 "Usage: 3dBrickStat [options] dataset\n"
 "Compute maximum and/or minimum voxel values of an input dataset\n"
 "\n"
@@ -84,8 +58,36 @@ int main( int argc , char * argv[] )
 "  -help = print this help screen\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
+      PRINT_COMPILE_DATE ;
+      return;
+}
+/*
+static void Max_tsfunc( double tzero , double tdelta ,
+                        int npts , float ts[] , double ts_mean ,
+                        double ts_slope , void *ud , int nbriks, float *val ) ;
+static float minvalue=1E10, maxvalue=-1E10;
+*/
+ 
+/*! compute the overall minimum and maximum voxel values for a dataset */
+int main( int argc , char * argv[] )
+{
+   THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
+   int nopt, nbriks;
+   int slow_flag, quick_flag, min_flag, max_flag, mean_flag, 
+       automask,count_flag, sum_flag, var_flag;
+   int positive_flag, negative_flag, zero_flag, nan_flag, perc_flag, vol_flag;
+   byte * mmm=NULL ;
+   int    mmvox=0 ;
+   int nxyz, i;
+   float *dvec = NULL, mmin=0.0, mmax=0.0;
+   int N_mp;
+   double *mpv=NULL, *perc = NULL;
+   double mp =0.0f, mp0 = 0.0f, mps = 0.0f, mp1 = 0.0f, di =0.0f ;
+   byte *mmf = NULL;
+   MRI_IMAGE *anat_im = NULL;
+   char *mask_dset_name=NULL;
+
+   /*----- Read command line -----*/
 
    mainENTRY("3dBrickStat main"); machdep(); AFNI_logger("3dBrickStat",argc,argv);
    nopt = 1 ;
@@ -111,6 +113,12 @@ int main( int argc , char * argv[] )
    
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
+      if( strcmp(argv[nopt],"-help") == 0 ||
+          strcmp(argv[nopt],"-h") == 0){
+        usage_3dBrickStat(strlen(argv[nopt])> 3 ? 2:1);
+        exit(0);
+      }
+      
       if( strcmp(argv[nopt],"-ver") == 0 ){
         PRINT_VERSION("3dBrickStat"); AUTHOR("Daniel Glen");
         nopt++; continue;
@@ -311,8 +319,15 @@ int main( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
-      ERROR_exit( " Error - unknown option %s", argv[nopt]);
-      
+      ERROR_message( " Error - unknown option %s", argv[nopt]);
+      suggest_best_prog_option(argv[0], argv[nopt]);
+      exit(1);
+   }
+
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+      ERROR_message("Too few options");
+      usage_3dBrickStat(0);
+      exit(1) ;
    }
 
    if (mask_dset_name) {

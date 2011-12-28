@@ -168,6 +168,7 @@ void apsearch_usage(int detail)
    "  -afni_text_editor: Print the name of the GUI editor. Priority goes to \n"
    "                     env. variable AFNI_GUI_EDITOR, otherwise afni\n"
    "                     will try to find something suitable.\n"
+   "  -view_readme SOMETHING: Find a readme.SOMETHINGISH and open it\n" 
    "  -apsearch_log_file: Print the name of the logfile that is used to save\n"
    "                      some results of apsearch's functions. This option\n"
    "                      is for debugging purposes and is only activated if\n"
@@ -220,6 +221,8 @@ void apsearch_usage(int detail)
    " 8- Find 10 afni programs with something like 'Surface' in their names:\n"
    "        apsearch -all_afni_progs | \\\n"
    "             apsearch -stdin -word surface -max_hits 10\n"
+   " 9- Open the readme for driving AFNI:\n"
+   "        apsearch -view_readme driv\n" 
    "\n"
    "Global Options:\n"
    "===============\n"
@@ -383,6 +386,35 @@ int main(int argc, char **argv)
          view_prog_help(argv[iarg]);
          return(0);
          continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-view_readme") == 0) { 
+         char *rout=NULL, **ws=NULL;
+         int N_ws, i;
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+                     "** Error: Need README name after -view_readme\n"); 
+                     return(1);
+         }
+         if ((rout = find_readme_file(argv[iarg]))) {
+            view_text_file(rout); free(rout);
+         } else {
+            fprintf( stderr,
+                     "** Error: Could not find solid match for readme %s\n"
+                     "Try to pick a good one using apsearch -all_afni_readmes\n",
+                     argv[iarg]);
+            ws = approx_str_sort_readmes(argv[iarg], &N_ws);
+            if (N_ws) {
+                  fprintf( stderr, "   Perhaps you're looking for:\n");
+               for (i=0; i< N_ws; ++i) {
+                  if (i<max_hits) fprintf( stderr, "   %d- %s\n", i, ws[i]);
+                  free(ws[i]); 
+               }
+               free(ws);
+            }
+         }  
+         return(0);
       }
       
       if (strcmp(argv[iarg],"-text") == 0) { 

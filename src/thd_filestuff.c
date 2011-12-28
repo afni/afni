@@ -327,6 +327,51 @@ char * THD_trailname( char *fname , int lev )
 }
 
 /*----------------------------------------------------------------------*/
+/*! Return the path to fname.
+    Do not free returned string.
+*/
+char * THD_filepath( char *fname )
+{
+   static int icall=-1;
+   static char pname[10][THD_MAX_NAME];
+   char *ppp = NULL;
+   long lend=0;
+   
+   ++icall; if (icall > 9) icall = 0;
+   pname[icall][0]='.'; pname[icall][1]='/';
+   
+   if (!fname) return(pname[icall]);
+   
+   lend = strlen(fname);
+   if (fname[lend-1] == '/') {   /* fname is a path*/
+      if (lend >= THD_MAX_NAME-1) {
+         ERROR_message("Path name too long. Returning './'");
+      } else {
+         strncpy(pname[icall], fname, lend);
+         pname[icall][lend]='\0';
+      }
+      return(pname[icall]);
+   }
+   
+   if (!(ppp=THD_trailname(fname,0))) return(pname[icall]);
+   if (!(lend = ppp-fname)) return(pname[icall]); /* no path on name */
+   
+   if (lend >= THD_MAX_NAME-1) {
+      ERROR_message("Path name too long. Returning './'");
+      return(pname[icall]);
+   }
+   
+   strncpy(pname[icall], fname, lend);
+   pname[icall][lend]='\0';
+   if (pname[icall][lend-1] != '/') {
+      pname[icall][lend-1] = '/';
+      pname[icall][lend] = '\0';
+   }
+      
+   return(pname[icall]);
+}  
+
+/*----------------------------------------------------------------------*/
 
 int THD_character_ok( char c )  /* 04 Feb 2010 */
 {

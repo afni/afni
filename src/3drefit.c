@@ -1801,8 +1801,10 @@ int main( int argc , char * argv[] )
          THD_init_diskptr_names( dset->dblk->diskptr ,
                                  NULL , NULL , NULL , vtype , True ) ;
 
-         strcpy(new_head,DSET_DIRNAME(dset)) ; strcat(new_head,DSET_HEADNAME(dset)) ;
-         strcpy(new_brik,DSET_DIRNAME(dset)) ; strcat(new_brik,DSET_BRIKNAME(dset)) ;
+         strcpy(new_head,DSET_DIRNAME(dset)) ;
+         strcat(new_head,DSET_HEADNAME(dset)) ;
+         strcpy(new_brik,DSET_DIRNAME(dset)) ; 
+         strcat(new_brik,DSET_BRIKNAME(dset)) ;
 
          if( THD_is_file(new_head) ){
             dset->view_type = old_vtype ;
@@ -2011,7 +2013,8 @@ int main( int argc , char * argv[] )
         }
         THD_force_ok_overwrite(1);             /* 24 Sep 2007 */
         THD_set_quiet_overwrite(1);
-        THD_write_3dim_dataset( NULL,NULL , dset , write_output ) ;
+        THD_write_3dim_dataset( THD_filepath(argv[iarg]),NULL , 
+                                dset , write_output ) ; 
       }
       THD_delete_3dim_dataset( dset , False ) ;
 
