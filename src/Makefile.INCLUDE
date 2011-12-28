@@ -2604,7 +2604,7 @@ warping.o:warping.c
 	$(CCFAST) -c warping.c $(INFLAGS)
 
 warping:warping.o
-	$(CC) -o warping warping.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS)
+	$(CC) -o warping warping.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 mri_gwarp.o:mri_gwarp.c
 	$(CCFAST) -c mri_gwarp.c $(INFLAGS)
