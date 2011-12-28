@@ -446,7 +446,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
        (void)calfun_(&n,x01[tt],x01val+tt) ; ntot += icode+1 ;
        if( x01val[tt] < vbest ){ vbest = x01val[tt]; tbest = tt; }
        if( verb > 1 )
-         ININFO_message("%2d: cost = %g %c",tt,x01val[tt],(tbest==tt)?'*':' ') ;
+         ININFO_message("%2d: cost = %g %c nfunc=%d",tt,x01val[tt],(tbest==tt)?'*':' ',icode) ;
      }
 
      /* Step 2b: sort results by new x01val costs */
@@ -501,7 +501,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
      (void)calfun_(&n,x01[tt],x01val+tt) ; ntot += icode+1 ;
      if( x01val[tt] < vbest ){ vbest = x01val[tt]; tbest = tt; }
      if( verb > 1 )
-       ININFO_message("%2d: cost = %g %c",tt,x01val[tt],(tbest==tt)?'*':' ') ;
+       ININFO_message("%2d: cost = %g %c  nfunc=%d",tt,x01val[tt],(tbest==tt)?'*':' ',icode) ;
    }
 
    /*-- Rescale bestest output vector back to 'true' range --*/
