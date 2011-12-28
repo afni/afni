@@ -1224,6 +1224,7 @@ ENTRY("AFNI_parse_args") ;
       /*----- if we get here, bad news for America! -----*/
 
       ERROR_message("Unknown option %s ***",argv[narg]) ;
+      suggest_best_prog_option(argv[0], argv[narg]);
       ERROR_exit   ("Try 'afni -help' for a list of command line options.") ;
 
    } /* end of loop over argv's starting with '-' */

@@ -2704,7 +2704,9 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     ERROR_exit("Unknown and Illegal option '%s' :-( :-( :-(",argv[iarg]) ;
+     ERROR_message("Unknown and Illegal option '%s' :-( :-( :-(",argv[iarg]) ;
+     suggest_best_prog_option(argv[0], argv[iarg]);
+     exit(1);
    }
 
    if( iarg < argc )

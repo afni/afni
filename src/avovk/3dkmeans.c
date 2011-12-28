@@ -8,7 +8,7 @@
 
 
 
-static void display_help(void)
+static void display_help(int detail)
 { printf ("3d+t Clustering segmentation, command-line version.\n");
   printf ("    Based on The C clustering library.\n");
   printf ("    Copyright (C) 2002 Michiel Jan Laurens de Hoon.\n");
@@ -214,10 +214,6 @@ int main(int argc, char **argv)
    N_iset = 0;
    filename[N_iset] = NULL;
    
-   if (argc < 2) {
-      display_help();
-      RETURN(0);
-   }
 
    i = 1;
    while (i < argc)
@@ -238,7 +234,7 @@ int main(int argc, char **argv)
     if(     !strcmp(argument,"--help") 
          || !strcmp(argument,"-h") 
          || !strcmp(argument,"-help") )
-    { display_help();
+    { display_help(strlen(argument) > 3 ? 2:1);
       RETURN(0);
     }
     if(     !strcmp(argument,"--verb") 
@@ -536,10 +532,17 @@ int main(int argc, char **argv)
       }
       default: 
          printf ("Unknown option %s\n", argv[i-1]);
+         suggest_best_prog_option(argv[0], argv[i-1]);
          RETURN(1);
     }
     
    }
+   if (argc < 2) {
+      printf ("Too few options!");
+      display_help(0);
+      RETURN(1);
+   }
+
    if (oc.k <= 0 && oc.kh <= 0) oc.k = 3;
    
    if (clust_init_name) {

@@ -1,5 +1,6 @@
 #!/bin/tcsh -fe
 
+@global_parse `basename $0` $* ; if ($status) exit 0
 
 PARSE: 
    set Narg = $#
@@ -10,6 +11,8 @@ PARSE:
    set max = 255
    set invol = ""
    set opref = ""
+   set mask = ""
+   set maskopt = ""
    set scale = range
    if ("$1" == '') goto HELP
 
@@ -42,6 +45,11 @@ PARSE:
       if ($donext && "$argv[$cnt]" == "-feat_norm") then
          set pLoc = $cnt 
          set scale = 'feat_norm'
+         set donext = 0     
+      endif
+      if ($donext && "$argv[$cnt]" == "-feat_znorm") then
+         set pLoc = $cnt 
+         set scale = 'feat_znorm'
          set donext = 0     
       endif
       
@@ -105,13 +113,29 @@ PARSE:
          endif
       endif
       
+      if ($donext && "$argv[$cnt]" == "-mask") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a mask volume after -mask"
+            goto END
+         else
+            @ cnt ++
+            set mask = "$argv[$cnt]"
+            set donext = 0   
+         endif
+      endif
+      
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         apsearch -popt `basename $0` -word $argv[$cnt]
          goto END
       endif
       @ cnt ++
    end
-
+ 
+if ("$mask" != '') then
+   set maskopt = "-mask $mask"
+endif 
       
 set ps = `ccalc -i  -expr "($p1 - $p0)"` 
 set ipref = `@GetAfniPrefix $invol`
@@ -137,6 +161,8 @@ else if ($scale == 'norm') then
    goto DOIT_NORM
 else if ($scale == 'feat_norm') then
    goto DOIT_FEAT_NORM
+else if ($scale == 'feat_znorm') then
+   goto DOIT_FEAT_ZNORM
 else
    echo "Don't know how to scale by $scale"
    goto END
@@ -148,7 +174,7 @@ DOIT:
       echo "Not ready to deal with multiple sub-bricks"
       goto END
    endif
-   set perc = `3dBrickStat -non-zero -percentile $p0 $ps $p1 $invol`
+   set perc = `3dBrickStat ${maskopt} -non-zero -percentile $p0 $ps $p1 $invol`
    echo $perc
    set v0 = $perc[2]
    set v1 = $perc[4]
@@ -186,7 +212,7 @@ DOIT_FEAT_NORM:
    set sbm = `ccalc -i $nvals - 1`
    foreach sb (`count -digits 1 0 $sbm `)
       set op = `printf %03d $sb`
-      set rng = `3dBrickStat -non-zero -min -max $invol"[$sb]"`
+      set rng = `3dBrickStat ${maskopt} -non-zero -min -max $invol"[$sb]"`
       3dcalc   -a $invol"[$sb]" \
                -expr "step(a)*((a-$rng[1])/($rng[2]-$rng[1])*($v1-$v0)+$v0)"  \
                -prefix ${nid}.${op}
@@ -194,12 +220,30 @@ DOIT_FEAT_NORM:
    3dTcat -prefix $opref ${nid}.???+????.HEAD
    \rm -f ${nid}.???+????.*
    goto END
+
+DOIT_FEAT_ZNORM:
+   set nvals = `3dinfo -nv $invol`
+   set v0 = 1
+   set v1 = 99
+   set nid = __tt.`3dnewid -fun`
+   set sbm = `ccalc -i $nvals - 1`
+   foreach sb (`count -digits 1 0 $sbm `)
+      set op = `printf %03d $sb`
+      set rng = `3dBrickStat ${maskopt} -non-zero -mean -var $invol"[$sb]"`
+      3dcalc   -a $invol"[$sb]" \
+               -expr "step(a)*((a-$rng[1])/(sqrt($rng[2])))"  \
+               -prefix ${nid}.${op}
+   end
+   3dTcat -prefix $opref ${nid}.???+????.HEAD
+   \rm -f ${nid}.???+????.*
+   goto END
+   
    
 DOIT_NORM:
    set nvals = `3dnvals -all $invol`
    set vvv = `@parse_afni_name $invol`
    set vvv = $vvv[3]
-   3dTstat -mean -stdev -prefix ___ts $invol
+   3dTstat $maskopt -mean -stdev -prefix ___ts $invol
    3dcalc -a $invol -b ___ts$vvv"[0]" -c ___ts$vvv"[1]" \
             -expr '(a-b)/c' -prefix $opref
    rm -f ___ts$vvv.*
@@ -212,7 +256,7 @@ DOIT_DIV:
    rm -f scl.$opref.1D >& /dev/null &
    if ("$scale" == "mean") then
       while ($cnt < $nvals[4])
-       set scl = `3dBrickStat -non-zero -mean $invol"[$cnt]"`
+       set scl = `3dBrickStat ${maskopt} -non-zero -mean $invol"[$cnt]"`
        echo $scl
        if ($scl[1] =~ 'nan') then
          echo 0 >> scl.$opref.1D
@@ -223,7 +267,7 @@ DOIT_DIV:
       end
    else
       while ($cnt < $nvals[4])
-       set scl = `3dBrickStat -non-zero -median $invol"[$cnt]"`
+       set scl = `3dBrickStat ${maskopt} -non-zero -median $invol"[$cnt]"`
        echo $scl
        if ($scl[2] =~ 'nan') then
          echo 0 >> scl.$opref.1D
@@ -244,7 +288,7 @@ HELP:
    echo "Usage: `basename $0` <-input DSET> <-prefix PREFIX>"
    echo "                     [-perc_clip P0 P1] [-val_clip V0 V1]"
    echo "                     [-scale_by_mean] [-scale_by_median]"
-   echo "                     [-norm] "    
+   echo "                     [-norm] [-mask MSET]"    
    echo "Method 1: (default)"
    echo "Scale a volume so that its values range between V0 and V1"
    echo "-val_clip V0 V1: Min and Max of output dset"
@@ -262,6 +306,13 @@ HELP:
    echo "Method 3:"
    echo "-norm: For each time series T, Tnorm= (T-mean(T))/stdev(T)"
    echo ""
+   echo "Method 4:"
+echo "-feat_norm: For each sub-brick B, Bnorm= (B-min(B))/(max(B)-min(B))*99+1"
+   echo ""
+   echo "Method 5:"
+   echo "-feat_znorm: For each sub-brick B, Bnorm= (B-mean(B))/stdev(B)"
+   echo ""
+   @global_parse -gopts_help
    goto END
          
 END:

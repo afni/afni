@@ -2036,7 +2036,6 @@ int init_global_atlas_from_niml_files()
          WARNING_message("Could not open global AFNI_atlas_spaces.niml\n");
       return(0);
    }
-
    if(wami_verb() > 1) 
       INFO_message("\nInitializing structures\n"); 
    if(!init_space_structs(&global_atlas_xfl, &global_atlas_alist,
@@ -2067,6 +2066,8 @@ int init_global_atlas_from_niml_files()
    
    /* read default session atlas */
    if (THD_is_file("SessionAtlases.niml")) {
+      if(wami_verb() > 1) 
+         INFO_message("opening SessionAtlases.niml"); 
       space_niml = open_atlas_niml("SessionAtlases.niml");
       if(space_niml==NULL){
          WARNING_message(
@@ -3981,7 +3982,7 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
                             APPROX_STR_DIFF **Dout)
 {
    int i, inn, c, *isrt=NULL;
-   char **ws=NULL;
+   char **ws=NULL, *dpun=NULL;
    char *str="-";
    float *sc=NULL, ff= 0.0;
    APPROX_STR_DIFF *D=NULL;
@@ -4003,15 +4004,24 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
 
    /* a little cleanup */
    for (i=0; i<*N_ws; ++i) {
-      if (ws[i][0] != '-' || strlen(ws[i]) < 2 || isspace(ws[i][1])) {
-         free(ws[i]); ws[i]=NULL;
+      /* remove brackets and such */
+      dpun = strdup(ws[i]);
+      depunct_name(dpun);
+      if (dpun[0] != '-' || strlen(dpun) < 2 || isspace(dpun[1]) ||
+          !strncmp(dpun,"-- ",3) || !strncmp(dpun,"--- ",4)) {
+         free(dpun); dpun=NULL;
       } else { 
          /* remove '----------' */
          c=1;
-         while(ws[i][c] !='\0' && ws[i][c]=='-') ++c;
-         if (ws[i][c] == '\0') {
-            free(ws[i]); ws[i]=NULL;
+         while(dpun[c] !='\0' && dpun[c]=='-') ++c;
+         if (dpun[c] == '\0' || dpun[c] == ' ') {
+            free(dpun); dpun=NULL;
          } 
+      }
+      if (!dpun) {
+         free(ws[i]); ws[i]=NULL;
+      } else {
+         free(dpun); dpun=NULL;
       }
    }
    /* Now get rid of nullness */
@@ -4068,6 +4078,42 @@ char **approx_str_sort_phelp(char *prog, int *N_ws, char *str,
    system(cmd);
    
    RETURN(ws);
+}
+
+char **approx_str_sort_readmes(char *str, int *N_r)
+{
+   char **ws=NULL, strn[256]={"README."};
+   THD_string_array *progs=NULL;
+   
+   ENTRY("approx_str_sort_readmes");
+   
+   *N_r=0;
+   
+   if (!str) RETURN(ws);
+   if (strstr(str,strn)) str += strlen(strn);
+   else if (str[0] == '.') str += 1;
+   
+   strncat(strn, str, 200*sizeof(char));
+   progs = THD_get_all_afni_readmes();
+   ws = approx_str_sort(progs->ar, progs->num, strn,
+                        1, NULL, 0, NULL, NULL); 
+   *N_r = progs->num;
+   DESTROY_SARR(progs);
+   RETURN(ws);
+}
+
+char *find_readme_file(char *str)
+{
+   char **ws=NULL, *sout=NULL;
+   int N_ws=0, i;
+   
+   ENTRY("find_readme_file");
+   if (!(ws = approx_str_sort_readmes(str, &N_ws))) RETURN(NULL);
+   
+   if (strcasestr(ws[0],str)) sout = strdup(ws[0]);
+   for (i=0; i<N_ws; ++i) if (ws[i]) free(ws[i]);
+   free(ws);
+   RETURN(sout);
 }
 
 void suggest_best_prog_option(char *prog, char *str)
@@ -4240,10 +4286,34 @@ void view_prog_help(char *prog)
       ERROR_message("No help file for %s\n", progname);
       return;
    }
-   /* open help file in editor*/
-   snprintf(cmd,250*sizeof(char),"%s %s &", viewer, hname);
-   system(cmd);
+   
+   if (!(view_text_file(hname))) {
+      ERROR_message("Failed to view %s\n", hname);
+   }
    return;
+}
+
+int view_text_file(char *progname) 
+{
+   char *viewer=NULL, cmd[256];
+   
+   if (!progname) {
+      ERROR_message("No input!");
+      return(0);
+   }  
+   if (!THD_is_ondisk(progname)) {
+      ERROR_message("file %s not on disk.\n", progname); 
+      return(0);
+   }
+   if (!(viewer = GetAfniTextEditor())) {
+      ERROR_message("No GUI editor defined, and guessing game failed.\n"
+              "Set AFNI_GUI_EDITOR in your .afnirc for this option to work.\n"); 
+      return(0);
+   }
+   /* open help file in editor*/
+   snprintf(cmd,250*sizeof(char),"%s %s &", viewer, progname);
+   system(cmd);
+   return(1);
 }
 
 void print_prog_options(char *prog)

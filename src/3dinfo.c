@@ -57,6 +57,10 @@ void Syntax(void)
 "   -adj: Voxel size along j direction (abs(dj))\n"
 "   -adk: Voxel size along k direction (abs(dk))\n"
 "   -ad3: same as -adi -adj -adk\n"
+"   -oi: Volume origin along the i direction\n"
+"   -oj: Volume origin along the j direction\n"
+"   -ok: Volume origin along the k direction\n"
+"   -o3: same as -oi -oj -ok\n"
 "   -tr: The TR value in seconds.\n"
 "   -header_name: Value of dset structure (sub)field 'header_name'\n"
 "   -brick_name: Value of dset structure (sub)field 'brick_name'\n"
@@ -173,6 +177,7 @@ typedef enum {
    NV, NVI, NIJK, 
    N4,
    DI, DJ, DK, D3,
+   OI, OJ, OK, O3,
    ADI, ADJ, ADK, AD3,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST,
    FAC, DATUM, LABEL,
@@ -191,6 +196,7 @@ char Field_Names[][32]={
    {"Nv"}, {"Nvi"}, {"Nijk"}, 
    {"Ni_Nj_Nk_Nv"},
    {"Di"}, {"Dj"}, {"Dk"}, {"Di_Dj_Dk"},
+   {"Oi"}, {"Oj"}, {"Ok"}, {"Oi_Oj_Ok"},
    {"ADi"}, {"ADj"}, {"ADk"}, {"ADi_ADj_ADk"},
    {"label_table"}, {"LT_as_atlas_point_list"}, 
    {"factor"}, {"datum"}, {"label"}, 
@@ -326,7 +332,18 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = ADJ; 
          sing[N_sing++] = ADK; iarg++; 
          continue;
-      } else if( strcasecmp(argv[iarg],"-nt") == 0) {
+      } else if( strcasecmp(argv[iarg],"-oi") == 0) {
+         sing[N_sing++] = OI; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-oj") == 0) {
+         sing[N_sing++] = OJ; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-ok") == 0) {
+         sing[N_sing++] = OK; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-o3") == 0) {
+         sing[N_sing++] = OI; 
+         sing[N_sing++] = OJ; 
+         sing[N_sing++] = OK; iarg++; 
+         continue;
+      }else if( strcasecmp(argv[iarg],"-nt") == 0) {
          sing[N_sing++] = NT; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-nti") == 0) {
          sing[N_sing++] = NTI; iarg++; continue;
@@ -613,6 +630,15 @@ int main( int argc , char *argv[] )
             break;
          case DK:
             fprintf(stdout,"%f", DSET_DZ(dset));
+            break;
+         case OI:
+            fprintf(stdout,"%f", DSET_XORG(dset));
+            break;
+         case OJ:
+            fprintf(stdout,"%f", DSET_YORG(dset));
+            break;
+         case OK:
+            fprintf(stdout,"%f", DSET_ZORG(dset));
             break;
          case ADI:
             fprintf(stdout,"%f", fabs(DSET_DX(dset)));
