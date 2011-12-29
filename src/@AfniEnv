@@ -1,0 +1,195 @@
+#!/bin/tcsh -f
+
+@global_parse `basename $0` $* ; if ($status) exit 0
+
+set stat = 0
+set RNS = `3dnewid -fun`
+set log = /tmp/${RNS}.MLT.log
+set ds = `date '+%y%m%d'`
+if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
+   goto HELP
+endif
+
+goto PARSE
+RETURN_PARSE:
+
+   #Is enn already in text?
+   set isin = `\grep -En "^[ \t]*$enn" $rc | cut -f 1 -d ':'`
+   
+   if ($#isin > 1) then
+      if ( ! -f $rc.Pre$ds) cp -p $rc $rc.Pre$ds
+      echo "Have $#isin matches for $enn in your $rc"
+      echo "Will do some clean up"
+      set c = 1
+      while ($c < $#isin) 
+         sed -e "${isin[$c]}s:^[ \t]*${enn}:// ${enn}:" $rc >   /tmp/tt$RNS
+                        mv /tmp/tt$RNS $rc
+         @ c ++
+      end
+      set isin = `\grep -En "^[ \t]*$enn" $rc | cut -f 1 -d ':'`
+   endif
+   
+   if ($#isin == 0 && "$env" != "KILLITNOW") then
+      #Make sure we don't have a commented one 
+      set isin = `\grep -En "^[ \t]*//[ \t]*$enn" $rc | cut -f 1 -d ':'`
+      if ($#isin > 0) then
+         #Uncomment last one
+         sed -e "${isin[$#isin]}s:^[ \t]*//[ \t]*${enn}: ${enn}:" $rc > \
+                                                            /tmp/tt$RNS
+                        mv /tmp/tt$RNS $rc
+      
+      endif
+      set isin = `\grep -En "^[ \t]*$enn" $rc | cut -f 1 -d ':'`
+   endif
+   
+   if ($#isin == 0) then
+      if ("$env" == "KILLITNOW") goto END
+      if ( ! -f $rc.Pre$ds) cp -p $rc $rc.Pre$ds
+      echo "Variable $enn is not in .afnirc, adding it"
+      set nenv = `\grep -n '***ENVIRONMENT' $rc | cut -f 1 -d ':'`
+      set nenv = `ccalc -i $nenv + 1`
+      awk -v "n=$nenv" -v "s= ${enn} = ${env}" '(NR==n) { print s } 1' $rc > \
+                                                                     /tmp/tt$RNS
+                        mv /tmp/tt$RNS $rc
+   else if ($#isin == 1) then
+      if ("$env" == "KILLITNOW") then
+         if ( ! -f $rc.Pre$ds) cp -p $rc $rc.Pre$ds
+         echo "Variable $enn is in .afnirc and will be commented out"
+         sed "s:^[ \t]*${enn}:// ${enn}:g" $rc > /tmp/tt$RNS
+                        mv /tmp/tt$RNS $rc
+      else
+         if ( ! -f $rc.Pre$ds) cp -p $rc $rc.Pre$ds
+         echo "Variable $enn is in .afnirc and will be modified"
+         sed "s:^[ \t]*${enn}[ \t]*=[ \t]*.*: ${enn} = ${env}:g" $rc > \
+                                                               /tmp/tt$RNS
+                        mv /tmp/tt$RNS $rc
+      endif
+   else
+      echo "Should not be here"
+      goto BEND
+   endif 
+
+goto END
+
+PARSE:
+	set Narg = $#
+   set env = ''
+   set enn = 0
+   set quiet_death = 0
+	set cnt = 1
+   while ($cnt <= $Narg)
+      if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
+         set verb = 1
+         set echo
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-verb") then
+         set verb = 1
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-quiet_death") then
+         set quiet_death = 1
+         goto CONTINUE
+      endif
+      
+      if (  "$argv[$cnt]" == "-set") then
+         set nneed = `ccalc -i $cnt + 2`
+         if ($nneed > $Narg) then
+				if (! $quiet_death) echo "Need 2 values after -set"
+            goto BEND
+			else
+            @ cnt ++
+            set enn = $argv[$cnt]
+            @ cnt ++
+            set env = "$argv[$cnt]"
+            set isrc = `setenv | \grep -w $enn`
+            if ("$isrc" != '') then
+         echo "It looks like $enn is already set as a shell environment"
+         echo "I will not modify it."
+         echo "Check and modify value in your shell resource file"
+         echo "(e.g. in ~/.cshrc)"
+               goto BEND
+            endif
+         endif
+         goto CONTINUE
+      endif
+
+      if (  "$argv[$cnt]" == "-unset") then
+         set nneed = `ccalc -i $cnt + 1`
+         if ($nneed > $Narg) then
+				if (! $quiet_death) echo "Need 1 values after -set"
+            goto BEND
+			else
+            @ cnt ++
+            set enn = $argv[$cnt]
+            @ cnt ++
+            set env = 'KILLITNOW'
+            set isrc = `setenv | \grep -w $enn`
+            if ("$isrc" != '') then
+         echo "It looks like $enn is already set as a shell environment"
+         echo "I will not modify it."
+         echo "Check and modify value in your shell resource file"
+         echo "(e.g. in ~/.cshrc)"
+               goto BEND
+            endif
+         endif
+         goto CONTINUE
+      endif
+            
+      echo "Error: Option or parameter '$argv[$cnt]' not understood"
+      apsearch -popt `basename $0` -word $argv[$cnt]
+      goto BEND
+      
+      CONTINUE:		
+		@ cnt ++
+	end
+
+   set rc = `apsearch -afni_rc_file`
+   if ( ! -f $rc) then
+      echo "No afni resources file, creating new one"
+      echo "#AFNI DEFAULTS" > $rc
+      echo "***ENVIRONMENT" >> $rc
+   endif   
+   if ( ! -f $rc) then
+      echo "Could not find and/or create a resource file"
+      goto BEND
+   endif 
+   
+   if (0) then
+      echo "Have:"
+   endif
+      
+   goto RETURN_PARSE
+
+HELP:
+   echo ""
+   echo "Script to set an AFNI environment variable in your afni resource file "
+   echo ""
+   echo "Usage: `basename $0` <-set NAME VALUE> [<-unset NAME>]"
+   echo ""
+   echo "   -set  NAME VALUE: Set environment variable NAME  to value VALUE"
+   echo "   -unset NAME : The opposite of -set"
+   echo "   -help: this message"
+   echo ""
+   echo "Note that this script only modifies the contents of your .afnirc"
+   echo "   file which is determined to be: `apsearch -afni_rc_file`"
+   echo ""
+   echo "See also:"
+   echo "   apsearch -afni_rc_file"
+   echo "   apsearch -view_readme env"
+   echo ""
+   @global_parse -gopts_help
+   echo ""
+   goto END
+
+BEND:
+   set stat = 1
+   goto END
+      
+END:
+if ($stat == 0 && -f $log) \rm /tmp/${RNS}.$log:t *_${RNS}_*
+exit $stat   
+
+ 
