@@ -1,0 +1,262 @@
+#!/bin/tcsh -f
+
+@global_parse `basename $0` $* ; if ($status) exit 0
+
+set stat = 0
+set RNS = `3dnewid -fun`
+set log = /tmp/${RNS}.MLT.log
+set ds = `date '+%y%m%d_%H%M'`
+
+if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
+   goto HELP
+endif
+
+goto PARSE
+RETURN_PARSE:
+
+if ($atlas_type == 'G') then
+   set dout = $atlas_dir/$target_dset:t
+   set exi = `3dinfo -exists $dout`
+   if ($exi != 0 ) then
+      if ($autoback == 0) then
+         echo "Error:"
+         echo "Atlas $dout already exists in $atlas_dir"
+         echo "Rename it or remove it to allow new copy in its place"
+         echo "Or add option -auto_backup"
+         goto BEND
+      else
+         set dback = $atlas_dir/Pre_$ds.$target_dset:t
+         set exi = `3dinfo -exists $dback`
+         set isni = `3dinfo -is_nifti $target_dset`
+         if ( $exi == 0) then
+            cd $atlas_dir/
+            if ($isni == 0) then
+               3drename $target_dset:t Pre_$ds.$target_dset:t
+               if ($status) then
+                  echo "Error"
+                  echo "Renaming for backup failed"
+                  goto BEND
+               endif
+            else
+               mv $target_dset:t Pre_$ds.$target_dset:t
+               if ($status) then
+                  echo "Error"
+                  echo "Move for backup failed"
+                  goto BEND
+               endif
+            endif
+            cd -
+         endif
+      endif
+   endif
+endif
+
+if ($space != '') then
+   3drefit -space $space $target_dset 
+endif
+
+@MakeLabelTable -lab_file $flab $iL $iV \
+                -atlas_pointlist keys_${RNS}_ \
+                -dset $target_dset  \
+                -atlas_file $atlas_name
+if ($status) then
+   echo "Failed in @MakeLabelTable"
+   goto BEND
+endif
+
+
+if ($atlas_type == 'G') then
+A copy won't do, point list is lost.....
+   echo "Putting copy of atlas in $atlas_dir"
+   3dcopy -overwrite $target_dset  $dout
+endif 
+
+goto END
+
+PARSE:
+   set labeltable = 'LABEL_TABLE_NOT_SET'
+	set Narg = $#
+   set target_dset = ''
+   set verb = 0
+   set quiet_death = 0
+   set atlas_name = ''
+   set atlas_type = 'S'
+   set space = ''
+   set flab = ''
+   set autoback = 0
+	set cnt = 1
+   while ($cnt <= $Narg)
+      if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
+         set verb = 1
+         set echo
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-verb") then
+         set verb = 1
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-quiet_death") then
+         set quiet_death = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-auto_backup") then
+         set autoback = 1
+         goto CONTINUE
+      endif
+      
+      if (  "$argv[$cnt]" == "-lab_file") then
+         set nneed = `ccalc -i $cnt + 3`
+         if ($nneed > $Narg) then
+				if (! $quiet_death) echo "Need 3 values after -lab_file"
+            goto BEND
+			else
+            @ cnt ++
+            set flab = $argv[$cnt]
+            if (! -f $flab) then
+               echo "File $flab not found"
+               goto BEND
+            endif
+            @ cnt ++
+            set iL = `ccalc -i $argv[$cnt]`
+            @ cnt ++
+            set iV = `ccalc -i $argv[$cnt]`
+         endif
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-dset") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a dset after -dset"
+            goto BEND
+         endif
+         @ cnt ++
+         set target_dset = $argv[$cnt]
+         if (`@CheckForAfniDset $target_dset` < 2) then
+            if (! $quiet_death) \
+               echo "-dset $target_dset not found"
+            goto BEND
+         endif 
+         goto CONTINUE
+      endif 
+
+      if ("$argv[$cnt]" == "-space") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a space after -space"
+            goto BEND
+         endif
+         @ cnt ++
+         set space = $argv[$cnt]
+         goto CONTINUE
+      endif 
+      
+       
+      if ("$argv[$cnt]" == "-atlas_type") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a flag after -atlas_type"
+            goto BEND
+         endif
+         @ cnt ++
+         set atlas_type = $argv[$cnt]
+         if ($atlas_type != 'S' && $atlas_type != 'G') then
+            echo "Bad -atlas_type, only 'S' or 'G' allowed"
+            goto BEND
+         endif         
+         goto CONTINUE
+      endif 
+      
+      echo "Error: Option or parameter '$argv[$cnt]' not understood"
+      apsearch -popt `basename $0` -word $argv[$cnt]
+      goto BEND
+      
+      CONTINUE:		
+		@ cnt ++
+	end
+
+ 
+   if ($flab == '') then
+      echo "Error: No labels file"
+      goto BEND
+   endif
+   
+   if ("$target_dset" == '') then
+      echo "Error: No target dset"
+      goto BEND
+   endif
+   
+   
+   if ("$atlas_name" == '') then
+      if ($atlas_type == 'S') then
+         set atlas_name = 'SessionAtlases.niml'
+      else if ($atlas_type == 'G') then
+         set atlas_dir = `apsearch -afni_custom_atlas_dir`
+         if ( $atlas_dir == '') then
+            echo "ERROR: No name for custom atlas directory"
+            echo "To create group atlases, you need to be sure you have"
+            echo "the afni environment variable AFNI_SUPP_ATLAS_DIR set."
+      echo "You can do so with: @AfniEnv -set AFNI_SUPP_ATLAS_DIR $HOME/CustomAtlases"
+            echo "This way all your custom group-level atlases will endup"
+            echo "in directory $HOME/CustomAtlases"
+            echo ""
+            goto BEND 
+         endif
+         if ( ! -d $atlas_dir ) then
+            mkdir -p $atlas_dir
+            if ( ! -d $atlas_dir ) then
+               echo "Failed to create $atlas_dir"
+               goto BEND
+            endif 
+         endif
+         set atlas_name = "$atlas_dir/CustomAtlases.niml"
+      endif
+   endif
+   
+   if (0) then
+      echo "Have:"
+   endif
+      
+   goto RETURN_PARSE
+
+HELP:
+   echo ""
+   echo "Script to turn a dataset into an AFNI atlas. The script will modify"
+   echo "the header of the dataset and create an atlas file for AFNI to "
+   echo "make the atlas available for whereami queries."
+   echo ""
+   echo "Usage: `basename $0` <-dset DSET> "
+   echo ""
+   echo "   -dset DSET: Make DSET an atlas"
+   echo "   -space SPACE: Mark DSET as being in space SPACE"
+   echo "   -lab_file FILE cLAB cVAL: Labels and keys are in text file FILE."
+   echo "                          cLAB is the index of column containing labels"
+   echo "                          vVAL is the index of column containing keys"
+   echo "                          (1st column is indexed at 0)"
+   echo "   -atlas_type TP: TP is 'S' for a single subject atlas a single "
+   echo "                         subject atlas will remain in the current"    
+   echo "                         directory."
+   echo "                         'G' for a group atlas. A group atlas will get"
+   echo "                         copied to your custom atlas directory. If you"
+   echo "                         do not have one, the script will help you "
+   echo "                         create it."
+   echo "   -auto_backup: When using -atlas_type G, a copy of dset is made in"
+   echo "                 your custom atlas directory. If a same dset with the"
+   echo "                 same name exists already, this option will back it up"
+   echo "                 and allow an overwrite."
+   @global_parse -gopts_help
+   echo ""
+   goto END
+
+BEND:
+   set stat = 1
+   goto END
+      
+END:
+if ($stat == 0 && -f $log) \rm /tmp/${RNS}.$log:t *_${RNS}_*
+exit $stat   
+
+ 
