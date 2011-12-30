@@ -2479,162 +2479,230 @@ ENTRY("NwarpCalcRPN") ;
 
 /*----------------------------------------------------------------------------*/
 
-void IW3D_destroy_basis( IndexWarp3DBasis *iwar )
+#define NGMIN 9
+
+#define NWARP_NOXDIS_FLAG  1
+#define NWARP_NOYDIS_FLAG  2
+#define NWARP_NOZDIS_FLAG  4
+
+#define NWARP_NUTHIN_FLAG (NWARP_NOXDIS_FLAG | NWARP_NOYDIS_FLAG | NWARP_NOZDIS_FLAG)
+
+#define NWARP_NOXDEP_FLAG  8
+#define NWARP_NOYDEP_FLAG 16
+#define NWARP_NOZDEP_FLAG 32
+
+/*----------------------------------------------------------------------------*/
+/* Make the displacement flags coherent.  If impossible, return -1. */
+
+static int IW3D_munge_flags( int nx , int ny , int nz , int flags )
 {
-   if( iwar == NULL ) return ;
-   if( iwar->db != NULL ){
-     int ii ;
-     for( ii=0 ; ii < iwar->nbase ; ii++ ) FREEIFNN(iwar->db[ii]) ;
-     free(iwar->db) ;
-   }
-   free(iwar) ; return ;
+   if( nx < 1 || ny < 1 || nz < 1 ) return -1 ;     /* bad */
+
+   /* don't allow x-displacments if x size is too small,
+      or if displacements aren't allowed to depend on x coordinate */
+
+   if( nx < NGMIN || (flags & NWARP_NOXDEP_FLAG) )
+     flags |= (NWARP_NOXDIS_FLAG | NWARP_NOXDEP_FLAG) ;
+
+   /* same for y and z */
+
+   if( ny < NGMIN || (flags & NWARP_NOYDEP_FLAG) )
+     flags |= (NWARP_NOYDIS_FLAG | NWARP_NOYDEP_FLAG) ;
+
+   if( nz < NGMIN || (flags & NWARP_NOZDEP_FLAG) )
+     flags |= (NWARP_NOZDIS_FLAG | NWARP_NOZDEP_FLAG) ;
+
+   if( (flags & NWARP_NUTHIN_FLAG) == NWARP_NUTHIN_FLAG ) flags = -1 ;
+
+   return flags ;
 }
 
 /*----------------------------------------------------------------------------*/
-/***--- Each function goes to 0 at abs(x)=1 and has peak magnitude of 1. ---***/
+/* C2 Hermite quintics over [-1..1].
+   Scale factors are adjusted so that the functions peak values are all 1.
+*//*--------------------------------------------------------------------------*/
 
-#undef B0
-#undef B1
-#undef B2
-#undef B3
+static INLINE float_triple eval_Hbasis( float x )
+{
+   register float aa , bb , aq ; float_triple ee ;
 
-#define B0(x) ( aa = fabsf(x) ,                           \
-                (aa <= 0.5f) ? (1.0f-2.0f*(aa)*(aa))      \
-                             : 2.0f*(1.0f-aa)*(1.0f-aa) )
-#define B1(x) ((x)*3.67423f)
-#define B2(x) ((1.0f-(x)*(x)*3.0f))
-#define B3(x) (((x)*(x)*5.0f-3.0f)*(x)*1.577714f)
+   aa = fabsf(x) ;
+   if( aa >= 1.0f ){
+     ee.a = ee.b = ee.c = 0.0f ;
+   } else {
+     bb = 1.0f - aa ; bb = bb*bb*bb ; aq = aa*aa ;
+     ee.a = bb * ( (6.0f*aq+3.0f)*aa + 1.0f ) ;     /* f(0)   = 1 */
+     ee.b = bb * x * (3.0f*aa+1.0f) * 5.0625f ;     /* f'(0)  = 1 * 5.0625 */
+     ee.c = aq * bb * 28.935f ;                     /* f''(0) = 1 * 28.935 */
+   }
+   return ee ;
+}
 
 /*----------------------------------------------------------------------------*/
 
-IndexWarp3DBasis * IW3D_polybasis( int lev, float *junk , int nx,int ny,int nz )
+static int nbx=0, nby=0, nbz=0 ;
+static float *b0x=NULL , *b1x=NULL , *b2x=NULL , *ccx=NULL , delx=0.0f , dxi=0.0f ;
+static float *b0y=NULL , *b1y=NULL , *b2y=NULL , *ccy=NULL , dely=0.0f , dyi=0.0f ;
+static float *b0z=NULL , *b1z=NULL , *b2z=NULL , *ccz=NULL , delz=0.0f , dzi=0.0f ;
+
+static IndexWarp3D *Hwarp = NULL ;
+static int         Hflags = 0 ;
+
+static void setup_Hwarp_basis( int nx , int ny , int nz , int flags )
 {
-   IndexWarp3DBasis *iwar ;
-   int nbase=4 , ww , ii,jj,kk,pp , nxyz ;
-   float xx,yy,zz,aa,bb , fx,fy,fz , *xd,*yd,*zd ;
-   float *b0x , *b0y , *b0z ;
-   float *b1x , *b1y , *b1z ;
-   float *b2x , *b2y , *b2z ;
-   float *b3x , *b3y , *b3z ;
+   float_triple ee ; int ii ;
 
-   if( nx < 5 || ny < 5 || nz < 5 ) return NULL ;
-   nxyz = nx*ny*nz ;
-
-   if( lev < 1 ) lev = 1 ; else if( lev > 3 ) lev = 3 ;
-
-   switch( lev ){
-     case 1: nbase =  4 ; break ;
-     case 2: nbase = 10 ; break ;
-     case 3: nbase = 20 ; break ;
+   if( Hwarp != NULL ){
+     IW3D_destroy(Hwarp) ; Hwarp = NULL ;
    }
-
-   iwar = (IndexWarp3DBasis *)malloc(sizeof(IndexWarp3DBasis)) ;
-   iwar->nbase = nbase ; iwar->nx = nx ; iwar->ny = ny ; iwar->nz = nz ;
-   iwar->db = (float **)calloc(sizeof(float),nbase) ;
-
-   b0x = (float *)calloc(sizeof(float),nx) ;
-   b0y = (float *)calloc(sizeof(float),ny) ;
-   b0z = (float *)calloc(sizeof(float),nz) ;
-   b1x = (float *)calloc(sizeof(float),nx) ;
-   b1y = (float *)calloc(sizeof(float),ny) ;
-   b1z = (float *)calloc(sizeof(float),nz) ;
-   b2x = (float *)calloc(sizeof(float),nx) ;
-   b2y = (float *)calloc(sizeof(float),ny) ;
-   b2z = (float *)calloc(sizeof(float),nz) ;
-   b3x = (float *)calloc(sizeof(float),nx) ;
-   b3y = (float *)calloc(sizeof(float),ny) ;
-   b3z = (float *)calloc(sizeof(float),nz) ;
-   fx = 2.0f/(nx-1.0f) ; fy = 2.0f/(ny-1.0f) ; fz = 2.0f/(nz-1.0f) ;
-   for( ii=1 ; ii < nx-1 ; ii++ ){
-     xx = fx * ii - 1.0f ;
-     b0x[ii] = bb = B0(xx) ; b1x[ii] = bb*B1(xx) ; b2x[ii] = bb*B2(xx) ; b3x[ii] = bb*B3(xx) ;
+   if( b0x != NULL ){
+     free(b0x); free(b1x); free(b2x); free(ccx); b0x=b1x=b2x=ccx=NULL; nbx=0;
    }
-   for( jj=1 ; jj < ny-1 ; jj++ ){
-     yy = fy * jj - 1.0f ;
-     b0y[jj] = bb = B0(yy) ; b1y[jj] = bb*B1(yy) ; b2y[jj] = bb*B2(yy) ; b3y[jj] = bb*B3(yy) ;
+   if( b0y != NULL ){
+     free(b0y); free(b1y); free(b2y); free(ccy); b0y=b1y=b2y=ccy=NULL; nby=0;
    }
-   for( kk=1 ; kk < nz-1 ; kk++ ){
-     zz = fz * kk - 1.0f ;
-     b0z[kk] = bb = B0(zz) ; b1z[kk] = bb*B1(zz) ; b2z[kk] = bb*B2(zz) ; b3z[kk] = bb*B3(zz) ;
+   if( b0z != NULL ){
+     free(b0z); free(b1z); free(b2z); free(ccz); b0z=b1z=b2z=ccz=NULL; nbz=0;
    }
+   Hflags = IW3D_munge_flags(nx,ny,nz,flags) ; if( Hflags < 0 ) return ;
 
-#undef  BLOAD
-#define BLOAD(qq,bx,by,bz)                                       \
- do{ float byz , *del ;                                          \
-     del = iwar->db[qq] = (float *)malloc(sizeof(float)*nxyz) ;  \
-     for( pp=kk=0 ; kk < nz ; kk++ ){                            \
-      for( jj=0 ; jj < ny ; jj++ ){                              \
-       byz = by[jj]*bz[kk] ;                                     \
-       for( ii=0 ; ii < nx ; ii++,pp++ ) del[pp] = bx[ii]*byz ;  \
-     }}                                                          \
- } while(0)
+   nbx = nx ;
+   b0x = (float *)malloc(sizeof(float)*nbx) ;
+   b1x = (float *)malloc(sizeof(float)*nbx) ;
+   b2x = (float *)malloc(sizeof(float)*nbx) ;
+   ccx = (float *)malloc(sizeof(float)*nbx) ;
+   nby = ny ;
+   b0y = (float *)malloc(sizeof(float)*nby) ;
+   b1y = (float *)malloc(sizeof(float)*nby) ;
+   b2y = (float *)malloc(sizeof(float)*nby) ;
+   ccy = (float *)malloc(sizeof(float)*nby) ;
+   nbz = nz ;
+   b0z = (float *)malloc(sizeof(float)*nbz) ;
+   b1z = (float *)malloc(sizeof(float)*nbz) ;
+   b2z = (float *)malloc(sizeof(float)*nbz) ;
+   ccz = (float *)malloc(sizeof(float)*nbz) ;
 
-   BLOAD(0,b0x,b0y,b0z) ;
-   BLOAD(1,b1x,b0y,b0z) ; BLOAD(2,b0x,b1y,b0z) ; BLOAD(3,b0x,b0y,b1z) ;
-
-   if( lev > 1 ){
-     BLOAD(4,b2x,b0y,b0z) ; BLOAD(5,b0x,b2y,b0z) ; BLOAD(6,b0x,b0y,b2z) ;
-     BLOAD(7,b1x,b1y,b0z) ; BLOAD(8,b1x,b0y,b1z) ; BLOAD(9,b0x,b1y,b1z) ;
-
-     if( lev > 2 ){
-       BLOAD(10,b3x,b0y,b0z) ; BLOAD(11,b0x,b3y,b0z) ; BLOAD(12,b0x,b0y,b3z) ;
-       BLOAD(13,b2x,b1y,b0z) ; BLOAD(14,b2x,b0y,b1z) ;
-       BLOAD(15,b1x,b2y,b0z) ; BLOAD(16,b1x,b0y,b2z) ;
-       BLOAD(17,b0x,b1y,b2z) ; BLOAD(18,b0x,b2y,b1z) ;
-       BLOAD(19,b1x,b1y,b1z) ;
+   if( nbx < NGMIN || (Hflags & NWARP_NOXDEP_FLAG) ){
+     dxi = delx = 0.0f ;
+     for( ii=0 ; ii < nbx ; ii++ ){
+       ccx[ii] = 0.0f ; b0x[ii] = 1.0f ; b1x[ii] = b2x[ii] = 0.0f ;
+     }
+   } else {
+     dxi = 0.5f*(nbx-1.0f) ; delx = 1.0f/dxi ;
+     for( ii=0 ; ii < nbx ; ii++ ){
+       ccx[ii] = -1.0 + ii*delx ; ee = eval_Hbasis(ccx[ii]) ;
+       b0x[ii] = ee.a ; b1x[ii] = ee.b ; b2x[ii] = ee.c ;
+     }
+   }
+   if( nby < NGMIN || (Hflags & NWARP_NOYDEP_FLAG) ){
+     dyi = dely = 0.0f ;
+     for( ii=0 ; ii < nby ; ii++ ){
+       ccy[ii] = 0.0f ; b0y[ii] = 1.0f ; b1y[ii] = b2y[ii] = 0.0f ;
+     }
+   } else {
+     dyi = 0.5f*(nby-1.0f) ; dely = 1.0f/dyi ;
+     for( ii=0 ; ii < nby ; ii++ ){
+       ccy[ii] = -1.0 + ii*dely ; ee = eval_Hbasis(ccy[ii]) ;
+       b0y[ii] = ee.a ; b1y[ii] = ee.b ; b2y[ii] = ee.c ;
+     }
+   }
+   if( nbz < NGMIN || (Hflags & NWARP_NOZDEP_FLAG) ){
+     dzi = delz = 0.0f ;
+     for( ii=0 ; ii < nbz ; ii++ ){
+       ccz[ii] = 0.0f ; b0z[ii] = 1.0f ; b1z[ii] = b2z[ii] = 0.0f ;
+     }
+   } else {
+     dzi = 0.5f*(nbz-1.0f) ; delz = 1.0f/dzi ;
+     for( ii=0 ; ii < nbz ; ii++ ){
+       ccz[ii] = -1.0 + ii*delz ; ee = eval_Hbasis(ccz[ii]) ;
+       b0z[ii] = ee.a ; b1z[ii] = ee.b ; b2z[ii] = ee.c ;
      }
    }
 
-   free(b0x) ; free(b0y) ; free(b0z) ; free(b1x) ; free(b1y) ; free(b1z) ;
-   free(b2x) ; free(b2y) ; free(b2z) ; free(b3x) ; free(b3y) ; free(b3z) ;
+   Hwarp = IW3D_create(nbx,nby,nbz) ; Hflags = flags ;
 
-   return iwar ;
+   return ;
 }
-
-#undef B0
-#undef B1
-#undef B2
-#undef B3
 
 /*----------------------------------------------------------------------------*/
 
-IndexWarp3D * IW3D_warpgen( IndexWarp3DBasis *iwar , float *wt , int nsq )
+static void load_Hwarp( float *par )  /* 81 elements in par */
 {
-   IndexWarp3D *AA , *BB ;
-   int nx,ny,nz , nxyz , ii , pp ;
-   float *xda, *yda , *zda , *del , wx,wy,wz ;
+   int nxy,nxyz , dox,doy,doz ; float *xx,*yy,*zz ;
 
-   if( iwar == NULL || wt == NULL ) return NULL ;
-   nx = iwar->nx ; ny = iwar->ny ; nz = iwar->nz ; nxyz = nx*ny*nz ;
+   if( Hwarp == NULL || par == NULL ) return ;
 
-   AA = IW3D_create(nx,ny,nz) ;
-   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+   xx = Hwarp->xd ; yy = Hwarp->yd ; zz = Hwarp->zd ;
 
-   for( pp=0 ; pp < iwar->nbase ; pp++ ){
-     wx = wt[3*pp+0] ; wy = wt[3*pp+1] ; wz = wt[3*pp+2] ; del = iwar->db[pp] ;
-     for( ii=0 ; ii < nxyz ; ii++ ){
-       xda[ii] += wx * del[ii] ; yda[ii] += wy * del[ii] ; zda[ii] += wz * del[ii] ;
+   nxy = nbx*nby ; nxyz = nxy*nbz ;
+
+   dox = !(Hflags & NWARP_NOXDIS_FLAG) ;
+   doy = !(Hflags & NWARP_NOYDIS_FLAG) ;
+   doz = !(Hflags & NWARP_NOZDIS_FLAG) ;
+
+   if( !dox ) memset( xx , 0 , sizeof(float)*nxyz ) ;
+   if( !doy ) memset( yy , 0 , sizeof(float)*nxyz ) ;
+   if( !doz ) memset( zz , 0 , sizeof(float)*nxyz ) ;
+
+   AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 3333 )
+   { int ii,jj,kk,qq ; float *xpar=par , *ypar=par+27 , *zpar=par+54 ;
+     float b0zb0yb0x,b1zb0yb0x, b2zb0yb0x,b0zb1yb0x, b1zb1yb0x,b2zb1yb0x,
+           b0zb2yb0x,b1zb2yb0x, b2zb2yb0x,b0zb0yb1x, b1zb0yb1x,b2zb0yb1x,
+           b0zb1yb1x,b1zb1yb1x, b2zb1yb1x,b0zb2yb1x, b1zb2yb1x,b2zb2yb1x,
+           b0zb0yb2x,b1zb0yb2x, b2zb0yb2x,b0zb1yb2x, b1zb1yb2x,b2zb1yb2x,
+           b0zb2yb2x,b1zb2yb2x, b2zb2yb2x ;
+#pragma omp for
+     for( qq=0 ; qq < nxyz ; qq++ ){
+       ii = qq % nbx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nbx ;
+
+       b0zb0yb0x = b0z[kk]*b0y[jj]*b0x[ii] ; b1zb0yb0x = b1z[kk]*b0y[jj]*b0x[ii] ;
+       b2zb0yb0x = b2z[kk]*b0y[jj]*b0x[ii] ; b0zb1yb0x = b0z[kk]*b1y[jj]*b0x[ii] ;
+       b1zb1yb0x = b1z[kk]*b1y[jj]*b0x[ii] ; b2zb1yb0x = b2z[kk]*b1y[jj]*b0x[ii] ;
+       b0zb2yb0x = b0z[kk]*b2y[jj]*b0x[ii] ; b1zb2yb0x = b1z[kk]*b2y[jj]*b0x[ii] ;
+       b2zb2yb0x = b2z[kk]*b2y[jj]*b0x[ii] ; b0zb0yb1x = b0z[kk]*b0y[jj]*b1x[ii] ;
+       b1zb0yb1x = b1z[kk]*b0y[jj]*b1x[ii] ; b2zb0yb1x = b2z[kk]*b0y[jj]*b1x[ii] ;
+       b0zb1yb1x = b0z[kk]*b1y[jj]*b1x[ii] ; b1zb1yb1x = b1z[kk]*b1y[jj]*b1x[ii] ;
+       b2zb1yb1x = b2z[kk]*b1y[jj]*b1x[ii] ; b0zb2yb1x = b0z[kk]*b2y[jj]*b1x[ii] ;
+       b1zb2yb1x = b1z[kk]*b2y[jj]*b1x[ii] ; b2zb2yb1x = b2z[kk]*b2y[jj]*b1x[ii] ;
+       b0zb0yb2x = b0z[kk]*b0y[jj]*b2x[ii] ; b1zb0yb2x = b1z[kk]*b0y[jj]*b2x[ii] ;
+       b2zb0yb2x = b2z[kk]*b0y[jj]*b2x[ii] ; b0zb1yb2x = b0z[kk]*b1y[jj]*b2x[ii] ;
+       b1zb1yb2x = b1z[kk]*b1y[jj]*b2x[ii] ; b2zb1yb2x = b2z[kk]*b1y[jj]*b2x[ii] ;
+       b0zb2yb2x = b0z[kk]*b2y[jj]*b2x[ii] ; b1zb2yb2x = b1z[kk]*b2y[jj]*b2x[ii] ;
+       b2zb2yb2x = b2z[kk]*b2y[jj]*b2x[ii] ;
+
+       if( dox ) xx[qq] = dxi *
+        (  b0zb0yb0x*xpar[ 0] + b1zb0yb0x*xpar[ 1] + b2zb0yb0x*xpar[ 2] + b0zb1yb0x*xpar[ 3]
+         + b1zb1yb0x*xpar[ 4] + b2zb1yb0x*xpar[ 5] + b0zb2yb0x*xpar[ 6] + b1zb2yb0x*xpar[ 7]
+         + b2zb2yb0x*xpar[ 8] + b0zb0yb1x*xpar[ 9] + b1zb0yb1x*xpar[10] + b2zb0yb1x*xpar[11]
+         + b0zb1yb1x*xpar[12] + b1zb1yb1x*xpar[13] + b2zb1yb1x*xpar[14] + b0zb2yb1x*xpar[15]
+         + b1zb2yb1x*xpar[16] + b2zb2yb1x*xpar[17] + b0zb0yb2x*xpar[18] + b1zb0yb2x*xpar[19]
+         + b2zb0yb2x*xpar[20] + b0zb1yb2x*xpar[21] + b1zb1yb2x*xpar[22] + b2zb1yb2x*xpar[23]
+         + b0zb2yb2x*xpar[24] + b1zb2yb2x*xpar[25] + b2zb2yb2x*xpar[26]  ) ;
+       if( doy ) yy[qq] = dyi *
+        (  b0zb0yb0x*ypar[ 0] + b1zb0yb0x*ypar[ 1] + b2zb0yb0x*ypar[ 2] + b0zb1yb0x*ypar[ 3]
+         + b1zb1yb0x*ypar[ 4] + b2zb1yb0x*ypar[ 5] + b0zb2yb0x*ypar[ 6] + b1zb2yb0x*ypar[ 7]
+         + b2zb2yb0x*ypar[ 8] + b0zb0yb1x*ypar[ 9] + b1zb0yb1x*ypar[10] + b2zb0yb1x*ypar[11]
+         + b0zb1yb1x*ypar[12] + b1zb1yb1x*ypar[13] + b2zb1yb1x*ypar[14] + b0zb2yb1x*ypar[15]
+         + b1zb2yb1x*ypar[16] + b2zb2yb1x*ypar[17] + b0zb0yb2x*ypar[18] + b1zb0yb2x*ypar[19]
+         + b2zb0yb2x*ypar[20] + b0zb1yb2x*ypar[21] + b1zb1yb2x*ypar[22] + b2zb1yb2x*ypar[23]
+         + b0zb2yb2x*ypar[24] + b1zb2yb2x*ypar[25] + b2zb2yb2x*ypar[26]  ) ;
+       if( doz ) zz[qq] = dzi *
+        (  b0zb0yb0x*zpar[ 0] + b1zb0yb0x*zpar[ 1] + b2zb0yb0x*zpar[ 2] + b0zb1yb0x*zpar[ 3]
+         + b1zb1yb0x*zpar[ 4] + b2zb1yb0x*zpar[ 5] + b0zb2yb0x*zpar[ 6] + b1zb2yb0x*zpar[ 7]
+         + b2zb2yb0x*zpar[ 8] + b0zb0yb1x*zpar[ 9] + b1zb0yb1x*zpar[10] + b2zb0yb1x*zpar[11]
+         + b0zb1yb1x*zpar[12] + b1zb1yb1x*zpar[13] + b2zb1yb1x*zpar[14] + b0zb2yb1x*zpar[15]
+         + b1zb2yb1x*zpar[16] + b2zb2yb1x*zpar[17] + b0zb0yb2x*zpar[18] + b1zb0yb2x*zpar[19]
+         + b2zb0yb2x*zpar[20] + b0zb1yb2x*zpar[21] + b1zb1yb2x*zpar[22] + b2zb1yb2x*zpar[23]
+         + b0zb2yb2x*zpar[24] + b1zb2yb2x*zpar[25] + b2zb2yb2x*zpar[26]  ) ;
      }
    }
+   AFNI_OMP_END ;
 
-   if( nsq > 0 ){
-     BB = IW3D_2pow(AA,nsq) ; IW3D_destroy(AA) ; AA = BB ;
-   }
-
-   return AA ;
+   return ;
 }
 
 /*----------------------------------------------------------------------------*/
-
-#define NWARP_2DIM_FLAG    1
-
-#define NWARP_NOXDIS_FLAG  2
-#define NWARP_NOYDIS_FLAG  4
-#define NWARP_NOZDIS_FLAG  8
-
-#define NWARP_NOXDEP_FLAG 16
-#define NWARP_NOYDEP_FLAG 32
-#define NWARP_NOZDEP_FLAG 64
 
 void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim ,
                         IndexWarp3D *AA , int match_code , int basis_code ,
@@ -2642,20 +2710,16 @@ void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim 
                         int flags )
 {
    MRI_IMAGE *warpim ;
-   IW3D_basisfunc basisfunc ;
-   int twodim = (flags & NWARP_2DIM_FLAG) != 0 ;
-   int nxb,nyb,nzb , nxs,nys,nzs ;
+   int nxb,nyb,nzb , nxs,nys,nzs , nxh,nyh,nzh ;
 
    /*- check for bad inputs -*/
 
    if( basim == NULL || srcim == NULL || wsrcim == NULL || AA == NULL ) return ;
-   if( itop-ibot < 7 || jtop-jbot < 7 ) return ;
-
-   /* check for 2D image */
-
-   if( ktop-kbot < 7 ) twodim = 1 ;
-   if( twodim )        flags |= (NWARP_NOZDIS_FLAG | NWARP_NOZDEP_FLAG) ;
 
    nxb = basim->nx ; nyb = basim->ny ; nzb = basim->nz ;
    nxs = srcim->nx ; nys = srcim->ny ; nzs = srcim->nz ;
+
+   nxh = itop-ibot+1 ; nyh = jtop-jbot+1 ; nzh = ktop-kbot+1 ;
+   flags = IW3D_munge_flags(nxh,nyh,nzh,flags) ;
+   if( flags < 0 ) return ;  /* nuthin to do */
 }
