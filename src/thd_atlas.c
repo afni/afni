@@ -383,7 +383,7 @@ int   read_space_niml_file( char *fname, ATLAS_XFORM_LIST *atlas_xfl,
 
    if (!fname) return(found);
    
-   if (!(fnameclean = strnstr(fname, "file:", 5))) {
+   if (!(fnameclean = af_strnstr(fname, "file:", 5))) {
       fnamet = (char *)calloc(6+strlen(fname), sizeof(char));
       sprintf(fnamet,"file:%s", fname);
       space_niml = NI_stream_open(fnamet,"r");
