@@ -6894,10 +6894,8 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
    im3d = (Three_D_View *)vp_im3d;
    if( !IM3D_OPEN(im3d) ) RETURN(0) ;
 
-   atr = THD_find_string_atr( im3d->fim_now->dblk ,
-                              "VALUE_LABEL_DTABLE" ) ;
-
-   if (atr) {
+   if ((atr = THD_find_string_atr( im3d->fim_now->dblk ,
+                              "VALUE_LABEL_DTABLE" ))) {
       /* switch to an ROI colormap */
       if (!(nel = NI_read_element_fromstring(atr->ch))) {
          fprintf(stderr,"** WARNING: Poorly formatted VALUE_LABEL_DTABLE\n");
@@ -6911,7 +6909,6 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       } else {
          PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
                               im3d->int_pbar_index ) ;
-/*         PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ; */
       }
       switched = 1;
       /* Problem is that when you switch back to a non  ROI dset,
@@ -6919,6 +6916,44 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       Perhaps one should bite the bullet and create a structure
       that preserves the last colormap setup for a dset.
       Hmmm, got to discuss this with Bob, Daniel, and Rick */
+   } else if ((atr = THD_find_string_atr( im3d->fim_now->dblk ,
+                              "ATLAS_LABEL_TABLE" ))) {
+      /* switch to an ROI colormap */
+      icmap = -1;
+      if (!(nel = NI_read_element_fromstring(atr->ch))) {
+         fprintf(stderr,"** WARNING: Poorly formatted ATLAS_LABEL_TABLE\n");
+      } else {
+         /* usually atlases don't have a pbar_name, but it does
+         not hurt to check, allowing for its potential use someday */
+         if ((pbar_name = NI_get_attribute(nel,"pbar_name"))) {
+            icmap = PBAR_get_bigmap_index(pbar_name);
+         }
+         NI_free_element(nel); nel = NULL;
+      }
+      
+      if (icmap >=0 ) {
+         PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name) ;
+      } else {
+         if (1) { /* one approach */
+           if (THD_dset_max(im3d->fim_now, 1) > 256) {
+               static int warn=0;
+               if (!(warn % 10)) {
+                  /* You might want to override the automatic setting of the 
+                  range with a call to 
+                     AFNI_set_func_range_nval(pbar->parent, 
+                                    THD_dset_max(im3d->fim_now, 1));
+                     after all the bigmap setup is done ... */
+                  WARNING_message("Distinct values might map to the same color"
+                               "in %s\n", DSET_PREFIX(im3d->fim_now));
+               } ++ warn;
+            }
+            PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
+         } else { /* another perhaps */
+            PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
+                              im3d->int_pbar_index ) ;
+         }
+      }
+      switched = 1;
    } else {
       /*
       Here one could guess at the moment (See is_integral_dset).
@@ -6980,11 +7015,12 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
    
    atlas_alist = get_G_atlas_list();
    if (is_Dset_Atlasy(dset, atlas_alist)) {
-      atlas = get_Atlas_ByDsetID(DSET_IDCODE_STR(dset), atlas_alist);
-      /* Now get the name of the value */
-      str_lab2 = atlas_key_label(atlas, (int)val,NULL);
-      /* fprintf(stderr,"ZSS: Have atlas label '%s' for value %d\n",
-                     str_lab2 ? str_lab2:"NULL", (int)val);  */
+      if ((atlas = get_Atlas_ByDsetID(DSET_IDCODE_STR(dset), atlas_alist))) {
+         /* Now get the name of the value */
+         str_lab2 = atlas_key_label(atlas, (int)val,NULL);
+         /* fprintf(stderr,"ZSS: Have atlas label '%s' for value %d\n",
+                        str_lab2 ? str_lab2:"NULL", (int)val);  */
+      }
    }
 
    if (str_lab1 && str_lab2 && strcmp(str_lab1,str_lab2)) {
@@ -7002,6 +7038,8 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
    Put the value associated with label in val
    Unlike AFNI_get_dset_val_label,
    This function has not been tested.
+   
+   NEEDS MODIFICATION TO deal with ATLAS datasets.
 */
 int AFNI_get_dset_label_val(THD_3dim_dataset *dset, double *val, char *str)
 {

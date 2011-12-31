@@ -200,7 +200,9 @@ int main( int argc , char *argv[] )
                           ADN_prefix    , new_prefix ,
                           ADN_view_type , new_view   ,
                         ADN_none ) ;
+       THD_copy_labeltable_atr( cset->dblk,  qset->dblk);
        tross_Make_History( "3dcopy" , argc,argv , cset ) ;
+       
        DSET_mallocize(qset); DSET_load(qset); CHECK_LOAD_ERROR(qset);
        for( ii=0 ; ii < DSET_NVALS(qset) ; ii++ )
          EDIT_substitute_brick( cset , ii ,

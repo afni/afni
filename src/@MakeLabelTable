@@ -274,26 +274,58 @@ PUT_ATLAS_TABLE:
       3drefit -atrstring ATLAS_LABEL_TABLE file:$labeltable $target_dset   \
                                              >& /dev/null
       3drefit -cmap INT_CMAP $target_dset  >& /dev/null
-      if ( -f ${atlas_file} ) then
-         echo "Notice: $atlas_file already exists, appending to it"
-      endif
       if (${atlas_name} == '') then
          set atlas_name = `3dinfo -prefix_noext $target_dset`
+      endif
+      if ( -f ${atlas_file} ) then
+         echo ""
+         echo "Notice: $atlas_file already exists, appending to it."
+         set ll = `niccc -quiet -stdout \
+               -find_nel_with_attr atlas_name ${atlas_name} \
+               -f ${atlas_file}`
+         if ("$ll" != '') then
+            if ($replace == 0) then
+               echo ""
+               echo "Error: Atlas file already contains atlas named: $atlas_name"
+               echo "Either change the name or use -replace at the command line"
+               goto BEND
+            else
+               echo "        New entry will replace that of atlas with same name"
+            endif
+         endif
+         cp -p ${atlas_file} ${atlas_file}.delete
+         if ($status) then
+            echo "Failed to create temp file"
+            goto BEND
+         endif
+         niccc -quiet -stdout \
+               -skip_nel_with_attr atlas_name ${atlas_name} \
+               -f ${atlas_file}.delete > ${atlas_file}
+         if ($status) then
+            echo "niccc failed, aborting"
+            mv  ${atlas_file}.delete ${atlas_file}
+            goto BEND
+         else
+            \rm -f ${atlas_file}.delete
+         endif
       endif
       printf '<ATLAS\n' >> ${atlas_file}
       printf ' atlas_name="%s"\n' ${atlas_name} >> ${atlas_file}
       printf ' dset_name="%s"\n' $target_dset >> ${atlas_file}
       printf ' template_space="%s"\n' `3dinfo -space $target_dset` \
                                              >> ${atlas_file}
-      printf ' description="My Atlas"\n' >> ${atlas_file}
+      printf ' description="%s"\n' "$atlas_desc" >> ${atlas_file}
       printf ' comment="Created from %s with:\n    %s %s"\n' \
                   $PWD `basename $0` "$argv[*]" \
                   >> ${atlas_file}
       printf '></ATLAS>\n' >> ${atlas_file}
       
-      printf 'To make AFNI see atlas %s, you will need to run:\n' $target_dset
-      printf ' setenv  AFNI_SUPP_ATLAS %s\n' $atlas_file
-      printf ' setenv AFNI_ATLAS_LIST %s\n' $atlas_name
+      if ($atlas_file != 'SessionAtlases.niml' &&  \
+          $atlas_file:t != 'CustomAtlases.niml') then
+         printf 'To make AFNI see atlas %s, you will need to run:\n' $target_dset
+         printf ' setenv  AFNI_SUPP_ATLAS %s\n' $atlas_file
+         printf ' setenv AFNI_ATLAS_LIST %s\n' $atlas_name
+      endif
    endif
    
    MAKE_ATLAS_TABLE_END:
@@ -321,6 +353,8 @@ PARSE:
    set ltype = 'roi'
    set atlas_file = 'SessionAtlases.niml'
    set atlas_name = ''
+   set atlas_desc = "My Atlas"
+   set replace = 0
 	set cnt = 1
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -415,7 +449,47 @@ PARSE:
 			endif
          goto CONTINUE
       endif
-      
+      if ("$argv[$cnt]" == "-atlas_file") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) echo "Need name after -atlas_file"
+            goto BEND
+			else
+				@ cnt ++
+				set atlas_file = `@NoExt "$argv[$cnt]" .niml`
+            set atlas_file = $atlas_file.niml
+			endif
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-replace") then
+         set replace = 1
+         set SubLoc = $cnt		
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-atlas_name") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) echo "Need name after -atlas_name"
+            goto BEND
+			else
+				@ cnt ++
+				set atlas_name = "$argv[$cnt]"
+			endif
+         goto CONTINUE
+      endif
+      if ("$argv[$cnt]" == "-atlas_description") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) echo "Need  string after -atlas_description"
+            goto BEND
+			else
+				@ cnt ++
+				set atlas_desc = "$argv[$cnt]"
+			endif
+         goto CONTINUE
+      endif
       if ("$argv[$cnt]" == "-LT_to_atlas_PL") then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
@@ -721,14 +795,44 @@ HELP:
    echo "                                DSET and write it out as an"
    echo "                                Atlas Point List to POINTLIST" 
    echo ""
-   @global_parse -gopts_help
-   echo ""
    echo "   Example:"
    echo "      @MakeLabelTable -LT_to_atlas_PL aparc.a2009s+aseg_rank.niml.lt"
    echo ""
-   echo "Usage mode 4: Turn a labeled dataset into an ATLAS"
+   echo "Usage mode 4: Turn a labeled dataset or an integral valued dset "
+   echo "              into an ATLAS"
+   echo "    `basename $0` [<-atlasize_labeled_dset SOME_LABELED_ROI_DSET>] "
+   echo "                  [<-atlas_file ATLAS_NIML_FILE] "
+   echo "                  [<-atlas_name ATLAS_NAME>] [-replace]"
+   echo ""
+   echo "     -atlasize_labeled_dset SOME_LABELED_ROI_DSET: Change a labeled"
+   echo "                            ROI dataset into an atlas"
+   echo "     -atlas_file ATLAS_NIML_FILE: Specify the name of the NIML file"
+   echo "                            where atlas attributes are stored."
+   echo "                            Default is ./SessionAtlases.niml which"
+   echo "                            is a good choice for single subject atlases"
+   echo "     -atlas_name ATLAS_NAME: Atlas is named based on the prefix, by "
+   echo "                             default. You can override that with this"
+   echo "                             option." 
+   echo "     -atlas_description ATLAS_DESC: Atlas description, which appears"
+   echo "                             in afni's whereami window. Default is"
+   echo "                             'My Atlas'"  
+   echo "     -replace: If ATLAS_NAME is already in ATLAS_NIML_FILE, the script"
+   echo "               will fail to proceed unless you instruct it to do so "
+   echo "               this option"
+   echo ""      
    echo "   Example:"
    echo "      @MakeLabelTable -atlasize_labeled_dset SOME_LABELED_ROI_DSET"
+   echo " or you can specify the keys in a file:"
+   echo "      @MakeLabelTable -lab_file FILE cLAB cVAL \"
+   echo "                      -atlas_pointlist apl \"
+   echo "                      -dset target_dset \"
+   echo "                      -atlas_file SessionAtlases.niml"
+   echo ""
+   echo "            -------------------------"
+   echo "            See also @Atlasize script"
+   echo "            -------------------------"
+   echo ""
+   @global_parse -gopts_help
    echo ""
    goto END
 
