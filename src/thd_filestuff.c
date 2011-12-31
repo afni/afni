@@ -33,6 +33,20 @@ int THD_is_ondisk( char *pathname )  /* 19 Dec 2002 */
 }
 
 /*-----------------------------------------------------------*/
+/*! Determine if a prefix is that of a dset on disk. */
+
+int THD_is_prefix_ondisk( char *pathname )  
+{
+   int ii ;
+
+   if (THD_is_directory(pathname)) return(0);
+   if (THD_is_ondisk(pathname)) return (1);
+   ii = THD_is_dataset(THD_filepath(pathname), THD_trailname(pathname,0), -1);
+   if (ii ==-1) return(0);
+   else return(1);
+}
+
+/*-----------------------------------------------------------*/
 /*! Change working directory. */
 
 int THD_cwd( char *pathname )    /* 19 Dec 2002 */
@@ -181,6 +195,114 @@ char *THD_homedir(byte withslash)
       nn=strlen(sout[icall]);
       sout[icall][nn] = '/'; sout[icall][nn+1] = '\0';
    }  
+   
+   return (sout[icall]) ;
+}
+
+char *THD_afnirc(void) 
+{
+   static char sout[3][520]; 
+   static int icall=0;
+   char *home = THD_homedir(1);
+   
+   ++icall; if (icall>2) icall=0;
+   sout[icall][0]='\0';
+
+   strcpy(sout[icall],THD_homedir(1));  
+   strcat(sout[icall],".afnirc");
+   return(sout[icall]);
+}
+
+char *THD_custom_atlas_dir(byte withslash)
+{
+   static char sout[3][520]; 
+   static int icall=0;
+   char *home=NULL;
+   int nn=0;
+   struct passwd *pw = NULL;
+   
+   ++icall; if (icall>2) icall=0;
+   sout[icall][0]='\0';
+   
+   if (!(home = getenv("AFNI_SUPP_ATLAS_DIR"))) {
+      return(sout[icall]);
+   } 
+   
+   if (strlen(home) > 510) {
+      ERROR_message("Not enough space to store AFNI_SUPP_ATLAS_DIR dir of '%s'.\n");
+   } else {
+      sprintf(sout[icall], "%s", home);
+   }
+   
+   /* remove slash */
+   while ( (nn=strlen(sout[icall])-1)>=0 && sout[icall][nn] == '/') 
+      sout[icall][nn] = '\0';
+   
+   if (withslash) {
+      nn=strlen(sout[icall]);
+      sout[icall][nn] = '/'; sout[icall][nn+1] = '\0';
+   }  
+   
+   return (sout[icall]) ;
+}
+
+/* retrieve custom atlas directory and make sure it is present 
+   Do not free returned pointer. Failure is a NULL pointer */
+char *THD_get_custom_atlas_dir(byte withslash) 
+{
+   char *cadir = NULL;
+   cadir = THD_custom_atlas_dir(withslash);
+   if (cadir[0] == '\0') {
+      ERROR_message("Have no custom atlas directory\n");
+      return(NULL);
+   }
+   if (!THD_mkdir(cadir)) {
+      ERROR_message("Cannot create %s directory\n", cadir);
+      return(NULL);
+   }
+   return(cadir);
+}
+
+char *THD_custom_atlas_file(char *name)
+{
+   static char sout[3][1024]; 
+   static int icall=0;
+   char *home=NULL;
+   int nn=0;
+   struct passwd *pw = NULL;
+   
+   ++icall; if (icall>2) icall=0;
+   sout[icall][0]='\0';
+   
+   if (!name) name = getenv("AFNI_SUPP_ATLAS");
+   if (name) {
+      if (THD_is_file(name)) {
+         snprintf(sout[icall], 1020*sizeof(char),"%s",name);
+         return (sout[icall]) ;
+      } else {
+         snprintf(sout[icall], 1020*sizeof(char),
+                        "%s/%s",THD_custom_atlas_dir(0),name);
+         if (!THD_is_file(sout[icall])) {
+            ERROR_message("Supp atlas file %s not found", name);
+         }
+         return (sout[icall]) ;
+      }
+   }
+   /* no name, try default */
+   name = "CustomAtlases.niml";
+   if (THD_is_file(name)) {
+         snprintf(sout[icall], 1020*sizeof(char),"%s",name);
+         return (sout[icall]) ;
+   } else {
+      snprintf(sout[icall], 1020*sizeof(char),
+                     "%s/%s",THD_custom_atlas_dir(0),name);
+      if (THD_is_file(sout[icall])) {
+         return (sout[icall]) ;
+      } else {
+         sout[icall][0]='\0';
+         return (sout[icall]) ;
+      }
+   }
    
    return (sout[icall]) ;
 }
@@ -370,6 +492,15 @@ char * THD_filepath( char *fname )
       
    return(pname[icall]);
 }  
+
+/*----------------------------------------------------------------------*/
+/* Does filename have a path */
+int THD_filehaspath ( char *fname)
+{
+   if (!fname) return(0);
+   while (*fname!='\0') { if (*fname=='/') return(1); else ++fname; }
+   return(0);
+}
 
 /*----------------------------------------------------------------------*/
 

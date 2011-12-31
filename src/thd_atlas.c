@@ -370,114 +370,156 @@ int   init_space_structs(ATLAS_XFORM_LIST **atlas_xfl,
 
 
 /* read niml file elements into C structures */
-int   read_space_niml(NI_stream space_niml, ATLAS_XFORM_LIST *atlas_xfl,
+int   read_space_niml_file( char *fname, ATLAS_XFORM_LIST *atlas_xfl,
    ATLAS_LIST *atlas_alist,
    ATLAS_SPACE_LIST *atlas_spaces,
-   ATLAS_TEMPLATE_LIST *atlas_templates)
+   ATLAS_TEMPLATE_LIST *atlas_templates,
+   THD_string_array *sar)
 {
    NI_element *nel;
+   NI_stream space_niml;
+   char *fnamet=NULL, *fnameclean=NULL;
    int found = 0; 
 
+   if (!fname) return(found);
+   
+   if (!(fnameclean = strnstr(fname, "file:", 5))) {
+      fnamet = (char *)calloc(6+strlen(fname), sizeof(char));
+      sprintf(fnamet,"file:%s", fname);
+      space_niml = NI_stream_open(fnamet,"r");
+      free(fnamet);
+      fnameclean = fname;
+   } else {
+      space_niml = NI_stream_open(fname,"r");
+   }
+      
+   if (!space_niml) {
+      ERROR_message("Failed to NI_stream open %s\n", fnameclean);
+      return(found);
+   }
+   
    nel = (NI_element *) 1;
    while(nel) {
       if(wami_verb() > 2) 
          INFO_message("reading elements\n");
-      nel = NI_read_element(space_niml, 100);
-      if(nel) {
-         if(wami_verb() > 2) 
-           INFO_message("nel name %s\n", nel->name);
-         if (nel->type == NI_ELEMENT_TYPE) {
-            if(strcmp(nel->name, "TEMPLATE_SPACE") == 0) {
-               atlas_spaces->nspaces++;
-               if(wami_verb() > 1){
-                  INFO_message("Template space\n"
-                               "number of spaces now %d\n",
-                                          atlas_spaces->nspaces);
-               }
-               if(atlas_spaces->nspaces==1) {
-                  if(wami_verb() > 2)
-                     INFO_message("initial memory allocation for spaces");
-                  atlas_spaces->space = 
-                        (ATLAS_SPACE *) calloc(1, sizeof(ATLAS_SPACE));
-               } else  {             
-                  atlas_spaces->space = 
-                     (ATLAS_SPACE *) realloc( atlas_spaces->space, 
-                                 atlas_spaces->nspaces * sizeof(ATLAS_SPACE));
-               }
-               atlas_read_atlas_space(
-                    nel, &atlas_spaces->space[atlas_spaces->nspaces-1]);
-
-               found = 1;
-            }
-            if(strcmp(nel->name, "XFORM") == 0) {
-               atlas_xfl->nxforms++;
-               if(wami_verb() > 2){
-                  INFO_message("space XFORM\n");
-                  INFO_message("number of xforms now %d\n", atlas_xfl->nxforms);
-               }
-               if(atlas_xfl->nxforms==1){
-                  if(wami_verb() > 2)
-                     INFO_message("initial memory allocation for xforms");
-                  atlas_xfl->xform = 
-                        (ATLAS_XFORM *) calloc(1, sizeof(ATLAS_XFORM));
-               }
-               else               
-                  atlas_xfl->xform = (ATLAS_XFORM *) realloc(
-                      atlas_xfl->xform, 
-                      atlas_xfl->nxforms * sizeof(ATLAS_XFORM));
-               atlas_read_xform(nel, &atlas_xfl->xform[atlas_xfl->nxforms-1]);
-               found = 1;
-            } 
-            if(strcmp(nel->name, "ATLAS") == 0) {
-              atlas_alist->natlases++;
-              if(wami_verb() > 2){
-                  INFO_message("Number of atlases now %d\n", 
-                               atlas_alist->natlases);
-               }
-               if(atlas_alist->natlases==1){
-                  if(wami_verb() > 2)
-                     INFO_message("initial memory allocation for atlases");
-                  atlas_alist->atlas = (ATLAS *) calloc(1, sizeof(ATLAS));
-               } else {               
-                  atlas_alist->atlas = (ATLAS *) realloc(
-                      atlas_alist->atlas, atlas_alist->natlases * sizeof(ATLAS));
-                  memset(&(atlas_alist->atlas[atlas_alist->natlases-1]), 0, 
-                           sizeof(ATLAS));
-               }
-               atlas_read_atlas(nel,
-                                 &atlas_alist->atlas[atlas_alist->natlases-1]);
-
-               found = 1;
-            }
-
-            if(strcmp(nel->name, "TEMPLATE") == 0) {
-               atlas_templates->ntemplates++;
-               if(wami_verb() > 2){
-                  INFO_message("Atlas template\n");
-                  INFO_message("number of templates now %d\n", 
-                      atlas_templates->ntemplates);
-               }
-               if(atlas_templates->ntemplates==1){
-                  if(wami_verb() > 2)
-                     INFO_message("initial memory allocation for templates");
-                  atlas_templates->atlas_template = 
-                      (ATLAS_TEMPLATE *) calloc(1,sizeof(ATLAS_TEMPLATE));
-               }
-               else               
-                  atlas_templates->atlas_template = (ATLAS_TEMPLATE *) realloc(
-                      atlas_templates->atlas_template, 
-                      atlas_templates->ntemplates * sizeof(ATLAS_TEMPLATE));
-               atlas_read_template(nel,
-                  &atlas_templates->atlas_template[
-                                 atlas_templates->ntemplates-1]);
-               found = 1;
-            }
-         }      
+      if ((nel = NI_read_element(space_niml, 100))) {
+         found += add_atlas_nel(nel, atlas_xfl, 
+                              atlas_alist,atlas_spaces,atlas_templates, sar,
+                              THD_filepath(fnameclean)); 
          NI_free_element(nel);  /* don't need the NIML element anymore */
       }
    }
 
+   NI_stream_close(space_niml);
+   
+   return(found);
+}
 
+int add_atlas_nel(NI_element *nel, ATLAS_XFORM_LIST *atlas_xfl,
+   ATLAS_LIST *atlas_alist,
+   ATLAS_SPACE_LIST *atlas_spaces,
+   ATLAS_TEMPLATE_LIST *atlas_templates,
+   THD_string_array *sar,
+   char *parentdir) {
+   
+   int found = 0;
+   
+   if (!nel) return(found);
+   
+   if(wami_verb() > 2) 
+     INFO_message("nel name %s\n", nel->name);
+   if (nel->type == NI_ELEMENT_TYPE) {
+      if(strcmp(nel->name, "TEMPLATE_SPACE") == 0) {
+         atlas_spaces->nspaces++;
+         if(wami_verb() > 1){
+            INFO_message("Template space\n"
+                         "number of spaces now %d\n",
+                                    atlas_spaces->nspaces);
+         }
+         if(atlas_spaces->nspaces==1) {
+            if(wami_verb() > 2)
+               INFO_message("initial memory allocation for spaces");
+            atlas_spaces->space = 
+                  (ATLAS_SPACE *) calloc(1, sizeof(ATLAS_SPACE));
+         } else  {             
+            atlas_spaces->space = 
+               (ATLAS_SPACE *) realloc( atlas_spaces->space, 
+                           atlas_spaces->nspaces * sizeof(ATLAS_SPACE));
+         }
+         atlas_read_atlas_space(
+              nel, &atlas_spaces->space[atlas_spaces->nspaces-1]);
+
+         found = 1;
+      }
+      if(strcmp(nel->name, "XFORM") == 0) {
+         atlas_xfl->nxforms++;
+         if(wami_verb() > 2){
+            INFO_message("space XFORM\n");
+            INFO_message("number of xforms now %d\n", atlas_xfl->nxforms);
+         }
+         if(atlas_xfl->nxforms==1){
+            if(wami_verb() > 2)
+               INFO_message("initial memory allocation for xforms");
+            atlas_xfl->xform = 
+                  (ATLAS_XFORM *) calloc(1, sizeof(ATLAS_XFORM));
+         }
+         else               
+            atlas_xfl->xform = (ATLAS_XFORM *) realloc(
+                atlas_xfl->xform, 
+                atlas_xfl->nxforms * sizeof(ATLAS_XFORM));
+         atlas_read_xform(nel, &atlas_xfl->xform[atlas_xfl->nxforms-1]);
+         found = 1;
+      } 
+      if(strcmp(nel->name, "ATLAS") == 0) {
+        atlas_alist->natlases++;
+        if(wami_verb() > 2){
+            INFO_message("Number of atlases now %d\n", 
+                         atlas_alist->natlases);
+         }
+         if(atlas_alist->natlases==1){
+            if(wami_verb() > 2)
+               INFO_message("initial memory allocation for atlases");
+            atlas_alist->atlas = (ATLAS *) calloc(1, sizeof(ATLAS));
+         } else {               
+            atlas_alist->atlas = (ATLAS *) realloc(
+                atlas_alist->atlas, atlas_alist->natlases * sizeof(ATLAS));
+            memset(&(atlas_alist->atlas[atlas_alist->natlases-1]), 0, 
+                     sizeof(ATLAS));
+         }
+         atlas_read_atlas(nel,
+                          &atlas_alist->atlas[atlas_alist->natlases-1],
+                          parentdir);
+         if (sar && 
+             atlas_alist->atlas[atlas_alist->natlases-1].atlas_name){
+               ADDUTO_SARR(sar,
+                  atlas_alist->atlas[atlas_alist->natlases-1].atlas_name);
+         }  /* add the name of that atlas to the string array */
+         found = 1;
+      }
+
+      if(strcmp(nel->name, "TEMPLATE") == 0) {
+         atlas_templates->ntemplates++;
+         if(wami_verb() > 2){
+            INFO_message("Atlas template\n");
+            INFO_message("number of templates now %d\n", 
+                atlas_templates->ntemplates);
+         }
+         if(atlas_templates->ntemplates==1){
+            if(wami_verb() > 2)
+               INFO_message("initial memory allocation for templates");
+            atlas_templates->atlas_template = 
+                (ATLAS_TEMPLATE *) calloc(1,sizeof(ATLAS_TEMPLATE));
+         }
+         else               
+            atlas_templates->atlas_template = (ATLAS_TEMPLATE *) realloc(
+                atlas_templates->atlas_template, 
+                atlas_templates->ntemplates * sizeof(ATLAS_TEMPLATE));
+         atlas_read_template(nel,
+            &atlas_templates->atlas_template[
+                           atlas_templates->ntemplates-1]);
+         found = 1;
+      }
+   }      
    return(found);
 }
 
@@ -2220,7 +2262,7 @@ int atlas_read_template(NI_element *nel, ATLAS_TEMPLATE *atlas_tpl)
 }
 
 /* read atlas info from NIML attributes into atlas structure */
-int atlas_read_atlas(NI_element *nel, ATLAS *atlas)
+int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
 {
    char *s;
    
@@ -2238,10 +2280,20 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas)
    atlas->atlas_dset_name = NULL;
    atlas->atlas_comment = NULL;
    atlas->atlas_description = NULL;
-   atlas->atlas_found = 0; /* flag for dataset available, -1 not found, 1 found, 0 init value */
+   atlas->atlas_found = 0; /* flag for dataset available, -1 not found, 
+                              1 found, 0 init value */
 
-   if ((s=NI_get_attribute(nel, "dset_name")))
-      atlas->atlas_dset_name = nifti_strdup(s); 
+   if ((s=NI_get_attribute(nel, "dset_name"))) {
+      atlas->atlas_dset_name = NULL;
+      if (!THD_is_prefix_ondisk(s)  && parentdir && !THD_filehaspath(s)) {
+         char *ss=(char *)calloc(strlen(parentdir)+strlen(s)+2,sizeof(char*));
+         sprintf(ss,"%s/%s",parentdir,s);
+         if (THD_is_prefix_ondisk(ss)) 
+            atlas->atlas_dset_name = nifti_strdup(ss); 
+         free(ss); ss=NULL;
+      } 
+      if (!atlas->atlas_dset_name) atlas->atlas_dset_name = nifti_strdup(s); 
+   }
    if ((s=NI_get_attribute(nel, "template_space"))) 
       atlas->atlas_space = nifti_strdup(s);
    if ((s=NI_get_attribute(nel,"atlas_name"))) 

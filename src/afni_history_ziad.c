@@ -65,6 +65,47 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 30, DEC , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
+   "Simplified how afni handles custom group or single-subject atlases",
+   NULL,
+ },
+    
+ { 30, DEC , 2011 , ZSS , "@AfniEnv" , MINOR , TYPE_NEW_PROG,
+   "A convenience script to automatically edit .afnirc",
+   NULL,
+ },
+    
+ { 30, DEC , 2011 , ZSS , "@Atlasize" , MINOR , TYPE_NEW_PROG,
+   "A convenience script to turn a dataset to an atlas",
+   "The script makes it easy to create a group atlas or a single-subject\n"
+   "atlas and place them automatically in a location that AFNI\n"
+   "recognizes making them available to the user without bothering with\n"
+   "too many environment variable settings.\n",
+ },
+    
+ { 30, DEC , 2011 , ZSS , "@MakeLabelTable" , MINOR , TYPE_NEW_OPT,
+   "Improved @MakeLabelTable's creation of ATLAS niml files",
+   NULL,
+ },
+    
+ { 30, DEC , 2011 , ZSS , "3dinfo" , MINOR , TYPE_NEW_OPT,
+   "Numerous new options to 3dinfo, including checks for dset presence on disk",
+   NULL,
+ },
+    
+ { 30, DEC , 2011 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
+   "NIFI datasets used to loose their path information upon loading.",
+   "This is problematic for a few reasons. For instance, afni ~/tmp/joe.niml\n"
+   "will display the dataset as ./joe.niml. Some internal functions for\n"
+   "conveniently dealing with atlases fail when the path is messed up in this\n"
+   "way. Also, this problem occurred for NIFTI but NOT AFNI native formats \n"
+   "wich resulted in different behaviour for programs like 3drefit.\n"
+   "For example: 3drefit -space MNI ~/tmp/joe.nii is not comparable to\n"
+   "3drefit -space MNI ~/tmp/joe+tlrc. (Actually, that behaviour was patched\n"
+   "on Dec 27 but explicitly setting the path at output. But the fix needed\n"
+   "to happen for other programs so that is now done at the io level.)\n",
+ },
+    
  { 27, DEC , 2011 , ZSS , "3drefit" , MINOR , TYPE_BUG_FIX,
    "3drefit failed when refitting a NIFTI dset in another directory.",
    "If you did something like 3drefit -space MNI joe/jim/dset.nii\n"

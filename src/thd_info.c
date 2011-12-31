@@ -160,6 +160,86 @@ void THD_show_dataset_names( THD_3dim_dataset *dset, char *head, FILE *out)
    return;
 }
 
+int THD_dset_minmax (THD_3dim_dataset *dset, int scl, 
+                         float *min, float *max)
+{
+   int i=0;
+   float mm, MM;
+   
+   *min = 0.0; *max = 0.0;
+   if (!dset) return(0);
+   
+   for (i=0; i<DSET_NVALS(dset); ++i) {
+      if (!THD_subbrick_minmax (dset, i, scl, &mm, &MM)) {
+         return(0);
+      } else {
+         if (i==0) {
+            *min = mm; *max = MM;
+         } else {
+            if (mm < *min) *min = mm;
+            if (MM > *max) *max = MM;
+         }
+      }
+   }
+   return(1);
+}
+
+float THD_dset_max(THD_3dim_dataset *dset, int scl) {
+   float max,min;
+   if (!THD_dset_minmax(dset, scl,&min, &max)) {
+      ERROR_message("Could not get dset min max");
+   }
+   return(max);
+}
+
+float THD_dset_min(THD_3dim_dataset *dset, int scl) {
+   float max,min;
+   if (THD_dset_minmax(dset, scl,&min, &max)) {
+      ERROR_message("Could not get dset min max");
+   }
+   return(min);
+}
+
+int THD_subbrick_minmax (THD_3dim_dataset *dset, int isb, int scl, 
+                         float *min, float *max)
+{
+   float tf = 1.0;
+   
+   *min = 0.0; *max = 0.0;
+   if (!dset) return(0);
+   RELOAD_STATS(dset);  
+    
+   if( ISVALID_STATISTIC(dset->stats) ) {
+      if (!scl) {
+         tf = DSET_BRICK_FACTOR(dset,isb) ; if (tf == 0.0) tf = 1.0;
+         *min = dset->stats->bstat[isb].min/tf;
+         *max = dset->stats->bstat[isb].max/tf;
+      } else {
+         *min = dset->stats->bstat[isb].min;
+         *max = dset->stats->bstat[isb].max;
+      }
+   } else {
+      return(0); /* lousy */
+   }
+   return(1);
+}
+
+float THD_subbrick_max(THD_3dim_dataset *dset, int isb, int scl) {
+   float max,min;
+   if (!THD_subbrick_minmax(dset, isb, scl,&min, &max)) {
+      ERROR_message("Could not get min max");
+   }
+   return(max);
+}
+
+float THD_subbrick_min(THD_3dim_dataset *dset, int isb, int scl) {
+   float max,min;
+   if (THD_subbrick_minmax(dset, isb, scl,&min, &max)) {
+      ERROR_message("Could not get min max");
+   }
+   return(min);
+}
+
 char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;

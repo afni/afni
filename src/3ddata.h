@@ -369,6 +369,12 @@ typedef struct {
       ((name)->num)++ ;                                               \
      } } while(0)
 
+/*! Add string str to dynamic string array "name" if str is not in there yet. */
+#define ADDUTO_SARR(name,str)                                          \
+ do{ if (SARR_find_string(name, str, 0)<0) ADDTO_SARR(name,str);   \
+   } while(0)
+
+
 /*! Remove the ijk-th string from dynamic string array "name". */
 
 #define REMOVEFROM_SARR(name,ijk)                \
@@ -3837,14 +3843,19 @@ extern int THD_is_file     ( char * ) ;
 extern int THD_is_symlink  ( char * ) ;  /* 03 Mar 1999 */
 extern int THD_is_directory( char * ) ;
 extern int THD_is_ondisk   ( char * ) ;  /* 19 Dec 2002 */
+extern int THD_is_prefix_ondisk( char *pathname ) ; /* Dec 2011 */
 extern int THD_mkdir       ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_cwd         ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_equiv_files ( char * , char * ) ;
 extern long long THD_filesize( char * pathname ) ;
 extern char *THD_filetime( char *pathname );
 extern char *THD_homedir(byte withslash);
+extern char *THD_custom_atlas_dir(byte withslash);
+extern char *THD_get_custom_atlas_dir(byte withslash);
+extern char *THD_afnirc(void);
+extern char *THD_custom_atlas_file(char *name);
 extern char *THD_helpdir(byte withslash);
-char *THD_get_helpdir(byte withslash);
+extern char *THD_get_helpdir(byte withslash);
 extern char *THD_abindir(byte withslash);
 char *THD_helpsearchlog(int createpath);
 
@@ -3878,6 +3889,7 @@ extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;
 extern char * THD_trailname( char * fname , int lev ) ;
 extern char * THD_filepath( char *fname );
+extern int THD_filehaspath ( char *fname);
 extern int THD_linecount( char * ) ;
 
 extern void THD_read_all_atr ( char * , THD_datablock * ) ;
@@ -3897,10 +3909,20 @@ extern void THD_set_atr( THD_datablock * , char * , int,int, void * ) ;
 
 extern ATR_any * THD_copy_atr( ATR_any *atr ) ;  /* 03 Aug 2005 */
 extern void THD_insert_atr( THD_datablock *blk , ATR_any *atr ) ;
+extern int THD_copy_labeltable_atr( THD_datablock *d1,  THD_datablock *d2);
 
 extern void THD_store_dataset_keywords ( THD_3dim_dataset * , char * ) ;
 extern void THD_append_dataset_keywords( THD_3dim_dataset * , char * ) ;
 extern char * THD_dataset_info( THD_3dim_dataset * , int ) ;
+extern int THD_subbrick_minmax( THD_3dim_dataset *dset, int isb, int scl, 
+                                 float *min, float *max);
+extern float THD_subbrick_max(THD_3dim_dataset *dset, int isb, int scl);
+extern float THD_subbrick_min(THD_3dim_dataset *dset, int isb, int scl);
+extern int THD_dset_minmax( THD_3dim_dataset *dset, int scl, 
+                                 float *min, float *max);
+extern float THD_dset_max(THD_3dim_dataset *dset, int scl);
+extern float THD_dset_min(THD_3dim_dataset *dset, int scl);
+
 extern void THD_show_dataset_names( THD_3dim_dataset *dset,
                                     char *head, FILE *out);
 extern const char * storage_mode_str(int);

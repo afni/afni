@@ -165,6 +165,11 @@ void apsearch_usage(int detail)
    "  -afni_help_dir: Print afni help directory location and quit.\n"
    "  -afni_bin_dir: Print afni's binaries directory location and quit.\n"
    "  -afni_home_dir: Print afni's home directory and quit.\n"
+   "  -afni_rc_file: Pathname to .afnirc. You'll get one even if none exists.\n"
+   "  -afni_custom_atlas_dir: Print your afni's custom atlas directory \n"
+   "                          and quit.\n"
+   "  -afni_custom_atlas_file: Print your afni's custom atlas file \n"
+   "                          and quit.\n"
    "  -afni_text_editor: Print the name of the GUI editor. Priority goes to \n"
    "                     env. variable AFNI_GUI_EDITOR, otherwise afni\n"
    "                     will try to find something suitable.\n"
@@ -313,8 +318,23 @@ int main(int argc, char **argv)
          return(0);
       }
 
+      if (strcmp(argv[iarg],"-afni_rc_file") == 0) { 
+         fprintf(stdout,"%s\n", THD_afnirc());
+         return(0);
+      }
+      
       if (strcmp(argv[iarg],"-afni_home_dir") == 0) { 
          fprintf(stdout,"%s\n", THD_homedir(0));
+         return(0);
+      }
+
+      if (strcmp(argv[iarg],"-afni_custom_atlas_dir") == 0) { 
+         fprintf(stdout,"%s\n", THD_custom_atlas_dir(0));
+         return(0);
+      }
+
+      if (strcmp(argv[iarg],"-afni_custom_atlas_file") == 0) { 
+         fprintf(stdout,"%s\n", THD_custom_atlas_file(NULL));
          return(0);
       }
 
