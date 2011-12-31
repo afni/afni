@@ -46,13 +46,19 @@ int   init_space_structs(ATLAS_XFORM_LIST **atlas_xfl,
    ATLAS_LIST **atlas_alist,
    ATLAS_SPACE_LIST **atlas_spaces,
    ATLAS_TEMPLATE_LIST **atlas_templates);
-int read_space_niml(NI_stream space_niml, ATLAS_XFORM_LIST *atlas_xfl,
+int read_space_niml_file(char *fname, ATLAS_XFORM_LIST *atlas_xfl,
    ATLAS_LIST *atlas_alist,
    ATLAS_SPACE_LIST *atlas_spaces,
-   ATLAS_TEMPLATE_LIST *atlas_template);
+   ATLAS_TEMPLATE_LIST *atlas_template, THD_string_array *sar);
+int add_atlas_nel(NI_element *nel, ATLAS_XFORM_LIST *atlas_xfl,
+   ATLAS_LIST *atlas_alist,
+   ATLAS_SPACE_LIST *atlas_spaces,
+   ATLAS_TEMPLATE_LIST *atlas_templates,
+   THD_string_array *sar,
+   char *parentdir);
 int atlas_read_xform(NI_element *nel, ATLAS_XFORM *atlas_xf);
 int atlas_read_template(NI_element *nel, ATLAS_TEMPLATE *atlas_tpl);
-int atlas_read_atlas(NI_element *nel, ATLAS *atlas);
+int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *pd);
 int atlas_read_atlas_space(NI_element *nel, ATLAS_SPACE *at_space);
 int make_space_neighborhood(ATLAS_SPACE_LIST *at_spl, ATLAS_XFORM_LIST *atlas_xfl);
 ATLAS_XFORM *get_xform_neighbor(ATLAS_XFORM_LIST *atlas_xfl, ATLAS_SPACE *at_space, 

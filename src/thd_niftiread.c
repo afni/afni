@@ -472,7 +472,16 @@ ENTRY("THD_open_nifti") ;
 
    ppp  = THD_trailname(pathname,0) ;               /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
-
+   
+   /* You need to set the path too
+      before, if you loaded ~/tmp/joe.nii the path appeared
+      to be ./joe.nii, troubling in multiple instances.
+                                                      ZSS Dec 2011 */
+   THD_init_diskptr_names( dset->dblk->diskptr ,
+                           THD_filepath(pathname) ,
+                           NULL , prefix ,
+                           dset->view_type , True );
+                           
    nxyz.ijk[0] = nim->nx ;                          /* grid dimensions */
    nxyz.ijk[1] = nim->ny ;
    nxyz.ijk[2] = nim->nz ;

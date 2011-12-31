@@ -13,18 +13,7 @@ void NIML_to_terminal( void *nini, int mode, int do_stderr)
    }
 }
 
-/*--- Open a NIML stream, read elements from it, print them ---*/
-
-int main( int argc , char *argv[] )
-{
-   NI_stream ns ;
-   void *nini = NULL, *vel=NULL;
-   NI_element *nel=NULL;
-   char *strm=NULL, *attr=NULL;
-   int nn, mode = NI_TEXT_MODE, shhh=0, exact=1;
-   int dodup = 0, nodata=0, dostderr=1, isfile=0;
-   
-   if( argc < 2 || !strcmp(argv[1], "-help") || !strcmp(argv[1], "-h")){
+void usage_niccc(int detail) {
       fprintf(stderr,
               "\n"
               "   Usage: niccc [-dup] [-nodata] streamspec\n"
@@ -54,11 +43,37 @@ int main( int argc , char *argv[] )
               "   -#: put the # at the beginning of lines with no data\n"
               "   -quiet: quiet stderr messages, and don't echo attribute\n"
               "           name with -attribute option\n"
+              "   -find_nel_with_attr ATTR ATTRVAL: Only output elements \n"
+              "               that have an attribute ATTR of value ATTRVAL.\n"
+              "               a status of 1 is returned if no match is found.\n" 
+              "   -skip_nel_with_attr ATTR ATTRVAL: Do not output elements \n"
+              "               that have an attribute ATTR of value ATTRVAL.\n"
+              "   niccc returns a status of 0 if it the stream opened.\n"
+              "         and there were no interruptions.\n"
               "\n");
-      exit(0);
-   }
+   return;
+}
+
+/*--- Open a NIML stream, read elements from it, print them ---*/
+
+int main( int argc , char *argv[] )
+{
+   NI_stream ns ;
+   void *nini = NULL, *vel=NULL;
+   NI_element *nel=NULL;
+   char *strm=NULL, *attr=NULL;
+   int nn, mode = NI_TEXT_MODE, shhh=0, exact=1;
+   FILE *outf = stdout;
+   char *aa=NULL, *select_attr=NULL, *select_attr_val=NULL;
+   int dodup = 0, nodata=0, dostderr=1, isfile=0;
+   int stat = 0, excl = 0;
+   
    nn = 1;
    while (nn < argc && argv[nn][0] == '-') {
+      if (!strcmp(argv[nn], "-help") || !strcmp(argv[nn], "-h")) {
+         usage_niccc(strlen(argv[nn]) > 3 ? 2:1);
+         exit(0);
+      }
       if (!strcmp(argv[nn],"-dup")) {
          dodup = 1; ++nn; continue;
             }
@@ -89,6 +104,23 @@ int main( int argc , char *argv[] )
          attr=argv[nn]; 
          ++nn; continue;
       }
+      if (!strcmp(argv[nn],"-skip_nel_with_attr") ||
+          !strcmp(argv[nn],"-find_nel_with_attr")) {
+         if (strstr(argv[nn],"-find")) {
+            excl=0;
+         } else {
+            excl=1;
+         }
+         ++nn;
+         if (nn+1 >= argc) {
+            fprintf(stderr,
+               "Need attribute and value after -skip_nel_with_attr\n");
+            exit(1);
+         }  
+         select_attr=argv[nn++];
+         select_attr_val = argv[nn]; 
+         ++nn; continue;
+      }
       if (!strcmp(argv[nn],"-match")) {
          ++nn;
          if (nn >= argc) {
@@ -104,11 +136,15 @@ int main( int argc , char *argv[] )
          } 
          ++nn; continue;
       }
-      fprintf(stderr,
-               "Bad option %s. See niccc -help for details.\n", 
+      ERROR_message("Bad option %s. See niccc -help for details.\n", 
                argv[nn]);
+      suggest_best_prog_option(argv[0], argv[nn]);
       exit(1);
    }
+   if( argc < 2 ){
+      ERROR_exit("Too few options");
+   }
+
    if (nodata) mode = mode&NI_HEADERONLY_FLAG;
    
    if (nn >= argc) {
@@ -124,6 +160,12 @@ int main( int argc , char *argv[] )
    ns = NI_stream_open( strm, "r" ) ;
    if( ns == NULL ){
       fprintf(stderr,"*** niccc: NI_stream_open fails for %s\n", strm) ; 
+      if (THD_is_file(strm)) {
+         fprintf(stderr,
+            "  It looks like %s is a file.\n"
+            "  Make sure you use option -f before it\n",
+            strm) ;       
+      }  
       exit(1) ;
    }
    /*** NI_stream_setbufsize( ns , 6666 ) ; ***/
@@ -131,23 +173,30 @@ int main( int argc , char *argv[] )
      nn = NI_stream_goodcheck( ns , 1 ) ;
      if( nn < 0 ){
        if (strncmp(strm,"file:",5)) {
-         fprintf(stderr,"\n*** niccc: Stream fails\n"); exit(1);
+         fprintf(stderr,"\n*** niccc: Stream %s fails\n", strm); exit(1);
        } else {
-         exit(1);
+         exit(stat);
        }
      }
      if( nn == 0 ){ NI_sleep(5); continue; }  /* waiting for Godot */
 
-     nn = NI_stream_readcheck( ns , 1 ) ;     /* check for data */
-
-     if( nn > 0 ){
-       nini = NI_read_element( ns , 2 ) ;
-       if( nini == NULL ){
-         fprintf(stderr,"*** niccc: read returns NULL\n");
+     if (dostderr) outf = stderr;
+     
+     if ( (nn = NI_stream_readcheck( ns , 1 ) ) > 0) { /* check for data */
+       if (!excl) {
+         stat = 1; /* using -find, exit with status if not found */
        } else {
-         FILE *outf = stdout;
-         char *aa=NULL;
-         if (dostderr) outf = stderr;
+         stat = 0; /* you got something, exit well */
+       }
+       while( (nini = NI_read_element( ns , 2 )) ) {
+         if (select_attr) {
+            if ((aa = NI_get_attribute(nini, select_attr))) {
+               if (!strcmp(aa,select_attr_val)) { /* match */
+                  if (excl) goto NEXT;
+                  else stat = 0; /* found something */
+               } else if (!excl) goto NEXT; /* no match */
+            }
+         }
          if (attr) {
             if (exact) {
                aa = NI_get_attribute(nini, attr);
@@ -198,9 +247,10 @@ int main( int argc , char *argv[] )
            if (!shhh) fprintf(stderr,"*** niccc: reading returned element:\n") ;
             NIML_to_terminal( nini, mode, dostderr ) ;
          }
+         NEXT:
          if (nini) NI_free_element( nini ) ; nini=NULL;
          if (vel) NI_free_element( vel ); vel = NULL;
        }
      }
-   }
+   } /* while stream is good */
 }
