@@ -3866,7 +3866,7 @@ extern THD_string_array * THD_get_wildcard_filenames( char * ) ;
 extern int THD_check_for_duplicates( int, char **, int ) ; /* 31 May 2007 */
 
 extern time_t THD_file_mtime( char * ) ; /* 05 Dec 2001 */
-
+extern char *af_strnstr(char *s1, char *s2, size_t n);
 extern THD_string_array * THD_get_all_files( char *, char ) ; /* 08 Jun 2011 */
 extern THD_string_array * THD_getpathprogs( THD_string_array *, char );
 extern THD_string_array * THD_get_all_afni_executables(void );

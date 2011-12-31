@@ -6389,7 +6389,8 @@ int set_adh_old_way(ATLAS_DSET_HOLDER *adh, char *aname)
       /* DO NOT CALL atlas_point_list or you will cause recursion
          with Atlas_With_Trimming */
    if (!(apl = atlas_point_list_old_way(aname))) {
-      ERROR_message("Malheur de malheur >%s< nous sommes foutus!", aname);
+      ERROR_message(
+         "Malheur de malheur >%s< is an atlas with no atlas points!", aname);
       RETURN(1);      
    }   
    adh->apl2 = NULL;
