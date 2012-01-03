@@ -140,22 +140,24 @@ MAKE_TABLE:
    if ( -f /tmp/${RNS}.___ll.txt) rm -f /tmp/${RNS}.___ll.txt
    if ( -f /tmp/${RNS}.___kk.txt) rm -f /tmp/${RNS}.___kk.txt
    set cnt = 1
-   foreach ll ($llist)
+   set N_llist = `\wc -l TMPLIST` ; set N_llist = $N_llist[1]
+   while ($cnt <= $N_llist)
+      set ll = `sed -n "${cnt}p" TMPLIST`
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       if ($#inds > 1) then
          set ci = 1
          foreach ind ($inds)
-            printf '"%d" "%s%02d"\n' $ind $llist[$cnt] $ci  \
+            printf '"%d" "%s%02d"\n' $ind "$ll" $ci  \
                >> /tmp/${RNS}.___lt.txt
             printf '%d\n' $ind >> /tmp/${RNS}.___kk.txt
-            printf '%s%02d\n' $llist[$cnt] $ci >> /tmp/${RNS}.___ll.txt
+            printf '%s%02d\n' "$ll" $ci >> /tmp/${RNS}.___ll.txt
             @ ci ++
          end
       else
-         printf '"%d" "%s"\n' $llistmin[$cnt] $llist[$cnt] \
+         printf '"%d" "%s"\n' $llistmin[$cnt] "$ll" \
                >> /tmp/${RNS}.___lt.txt
          printf '%d\n' $llistmin[$cnt] >> /tmp/${RNS}.___kk.txt
-         printf '%s\n' $llist[$cnt] >> /tmp/${RNS}.___ll.txt
+         printf '%s\n' "$ll" >> /tmp/${RNS}.___ll.txt
       endif
       @ cnt ++
    end
@@ -213,22 +215,24 @@ MAKE_ATLAS_TABLE:
    if ( -f /tmp/${RNS}.___ll.txt) rm -f /tmp/${RNS}.___ll.txt
    if ( -f /tmp/${RNS}.___kk.txt) rm -f /tmp/${RNS}.___kk.txt
    set cnt = 1
-   foreach ll ($llist)
+   set N_llist = `\wc -l TMPLIST` ; set N_llist = $N_llist[1]
+   while ($cnt <= $N_llist)
+      set ll = `sed -n "${cnt}p" TMPLIST`
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       if ($#inds > 1) then
          set ci = 1
          foreach ind ($inds)
-            printf '"%d" "%s%02d"\n' $ind $llist[$cnt] $ci  \
+            printf '"%d" "%s%02d"\n' $ind "$ll" $ci  \
                >> /tmp/${RNS}.___lt.txt
             printf '%d\n' $ind >> /tmp/${RNS}.___kk.txt
-            printf '%s%02d\n' $llist[$cnt] $ci >> /tmp/${RNS}.___ll.txt
+            printf '%s%02d\n' "$ll" $ci >> /tmp/${RNS}.___ll.txt
             @ ci ++
          end
       else
-         printf '"%d" "%s"\n' $llistmin[$cnt] $llist[$cnt] \
+         printf '"%d" "%s"\n' $llistmin[$cnt] "$ll" \
                >> /tmp/${RNS}.___lt.txt
          printf '%d\n' $llistmin[$cnt] >> /tmp/${RNS}.___kk.txt
-         printf '%s\n' $llist[$cnt] >> /tmp/${RNS}.___ll.txt
+         printf '%s\n' "$ll" >> /tmp/${RNS}.___ll.txt
       endif
       @ cnt ++
    end
@@ -334,7 +338,6 @@ goto END
 
 PARSE:
    set labeltable = 'LABEL_TABLE_NOT_SET'
-   set llist = ''
    set llistmin = ''
    set llistmax = ''
 	set Narg = $#
@@ -355,6 +358,9 @@ PARSE:
    set atlas_name = ''
    set atlas_desc = "My Atlas"
    set replace = 0
+   set delim = ' '
+   set flab = ''
+   if ( -f TMPLIST) \rm -f TMPLIST
 	set cnt = 1
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -585,6 +591,7 @@ PARSE:
 			endif
          goto CONTINUE
       endif
+      
       if ("$argv[$cnt]" == "-lkeys") then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
@@ -621,7 +628,9 @@ PARSE:
                   echo "Label name $argv[$cnt] cannot start with '-'"
                goto BEND
             endif 
-            set llist = ($llist $argv[$cnt])
+            echo $argv[$cnt] >> TMPLIST
+            set N_llist = `\wc -l TMPLIST` ; set N_llist = $N_llist[1]
+            
             @ cnt ++
             if ($argv[$cnt] =~ -*) then
                if (! $quiet_death) \
@@ -641,7 +650,8 @@ PARSE:
                 $llistmin[$#llistmin] > $llistmax[$#llistmax]) then
                if (! $quiet_death) \
                   printf "Bad range values of [%d %d] for label '%s'\n" \
-                   $llistmin[$#llistmin] $llistmax[$#llistmax] $llist[$#llist] 
+                   $llistmin[$#llistmin] $llistmax[$#llistmax] \
+                   `sed -n ${N_llist}p TMPLIST` 
                goto BEND
             endif
 			endif
@@ -662,7 +672,8 @@ PARSE:
                   echo "Label name $argv[$cnt] cannot start with '-'"
                goto BEND
             endif 
-            set llist = ($llist $argv[$cnt])
+            echo $argv[$cnt] >> TMPLIST
+            set N_llist = `\wc -l TMPLIST` ; set N_llist = $N_llist[1]
             @ cnt ++
             if ($argv[$cnt] =~ -*) then
                if (! $quiet_death) \
@@ -674,6 +685,22 @@ PARSE:
 			endif
          goto CONTINUE
       endif
+      
+      if ("$argv[$cnt]" == "-lab_file_delim") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a delimiter after -lab_file_delim"
+            goto BEND
+         endif
+         if ("$flab" != '') then
+            echo "You must specify -lab_file_delim BEFORE -lab_file"
+            goto BEND
+         endif
+         @ cnt ++
+         set delim = "$argv[$cnt]"
+         goto CONTINUE
+      endif 
+      
       if (  "$argv[$cnt]" == "-lab_file") then
          set nneed = `ccalc -i $cnt + 3`
          if ($nneed > $Narg) then
@@ -690,12 +717,45 @@ PARSE:
             set iL = `ccalc -i $argv[$cnt]+1`
             @ cnt ++
             set iV = `ccalc -i $argv[$cnt]+1`
-            set llist = (`awk '{print $'$iL'}' $flab`)
-            set llistmin = (`awk '{print $'$iV'}' $flab`)
+            set llistmin = (`awk -F "$delim" '{print $'$iV'}' $flab`)
+            awk -F "$delim" '{print $'$iL'}' $flab | \
+                     sed 's/^ *//g' | sed 's/ *$//g' | \
+                     sed '/^ *$/d' > TMPLIST
+            set N_llist = `\wc -l TMPLIST` ; set N_llist = $N_llist[1]
             set llistmax = ($llistmin)
+            if ($N_llist < 1 || $#llistmin < 1) then
+               set jj = '$'
+               echo "Error:"
+               echo "Failed to parse label or key columns in $flab"
+               echo "Make sure column index and delimiters are correct"
+               echo ""
+               echo "When -lab_file, and -lab_file_delim are properly set,"
+               echo "this command should give you all the keys:"
+               echo "   awk -F '$delim' '{print $jj$iL}' $flab"
+               echo "and this command should give you all the labels:"
+               echo "   awk -F '$delim' '{print $jj$iV}' $flab"
+               echo ""
+               goto BEND
+            endif
+            if ($#llistmin != $N_llist) then
+               echo "Error:"
+               echo "Have $N_llist labels, but $#llistmin keys"
+               echo ""
+               goto BEND
+            endif
+            #More test for goodness
+            1dcat "1D:$llistmax" >& /dev/null
+            if ( $status ) then
+               echo "Failed to parse $flab columns make sure column"
+               echo "selectors and delimiters are OK."
+   echo "Got '`sed -n $1p TMPLIST`' for 1st label and '$llistmax[1]' for 1st key"
+               echo ""
+               goto BEND
+            endif
          endif
          goto CONTINUE
       endif
+      
       if ("$argv[$cnt]" == "-dset") then
          if ($cnt > $Narg) then
             if (! $quiet_death) \
@@ -725,7 +785,7 @@ PARSE:
    
    if (0) then
       echo "Have:"
-      echo $llist
+      cat TMPLIST
       echo $llistmin
       echo $llistmax
    endif
@@ -758,6 +818,12 @@ HELP:
    echo "                          cLAB is the index of column containing labels"
    echo "                          vVAL is the index of column containing keys"
    echo "                          (1st column is indexed at 0)"
+   echo "   -lab_file_delim COL_DELIM: Set column delimiter for -lab_file option"
+   echo "                              Default is ' ' (space), but you can set"
+   echo "                              your own. ';' for example. Note that the "
+   echo "                              delimiter is passed directly to awk's -F" 
+   echo "                 Note: This option must be set BEFORE -lab_file option"
+   echo "                       on the command line."
    echo "   -dset DSET: Attach the label table (or atlas point list) to "
    echo "               dataset DSET"
    echo ""
