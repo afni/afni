@@ -34,13 +34,27 @@ if ( ! -d $adir/afni/ ) then
    echo "This directory is in archive:"
    echo "    http://afni.nimh.nih.gov/pub/dist/edu/data/$adir.tgz"
    echo ""
+   echo "To install archive and rerun this script run the following commands"
+   echo "    mkdir ./demo && cd demo"
+   echo "    curl -O http://afni.nimh.nih.gov/pub/dist/edu/data/$adir.tgz"
+   echo "    tar xzf $adir.tgz"
+   echo "    `basename $0`"
+   echo ""
    goto END
 endif
 
+set PIF = DriveAfniDemo    #A string identifying programs launched by this script
 
-afni -niml -yesplugouts $adir/afni  &
+                           #Get a free line and tag programs from this script
+set NPB = "-npb `afni -available_npb_quiet` -pif $PIF" 
 
-plugout_drive  -com 'SWITCH_SESSION A.afni'                       \
+@Quiet_Talkers -pif DriveAfniDemo   #Quiet previously launched programs
+
+
+afni $NPB -niml -yesplugouts $adir/afni  &
+
+plugout_drive  $NPB                                               \
+               -com 'SWITCH_SESSION A.afni'                       \
                -com 'OPEN_WINDOW A.axialimage geom=600x600+416+44 \
                      ifrac=0.8 opacity=9'                         \
                -com 'OPEN_WINDOW A.sagittalimage geom=+45+430     \
@@ -51,25 +65,27 @@ plugout_drive  -com 'SWITCH_SESSION A.afni'                       \
                -com 'OPEN_WINDOW A.axialimage keypress=v'         \
                -quit
                                     
-echo "Hit Enter to pause movie and move on"
-set l = $<
+set l = `prompt_user -pause  "Hit OK to pause movie and move on"`
+if ( $l == '0') goto STEND
  
-plugout_drive  -com 'OPEN_WINDOW A.axialimage keypress=space      \
+plugout_drive  $NPB                                               \
+               -com 'OPEN_WINDOW A.axialimage keypress=space      \
                                  geom=+56+44 mont=6x3:8'          \
                -com 'SET_DICOM_XYZ A 0 20 40'                     \
                -com 'SAVE_JPEG axialimage SavedAxiale.jpg'        \
                -quit
                
-echo "Hit Enter to view the saved image"
-set l = $<
+set l = `prompt_user -pause "Hit Enter to view the saved image"`
+if ( $l == '0') goto STEND
 
 aiv SavedAxiale.jpg &
 
-echo "Hit Enter to examine time series."
-set l = $<
+set l = `prompt_user -pause  "Hit Enter to examine time series."`
+if ( $l == '0') goto STEND
 
 #Now let us examine the time series
-plugout_drive  -com 'OPEN_WINDOW B.sagittalimage                  \
+plugout_drive  $NPB                                               \
+               -com 'OPEN_WINDOW B.sagittalimage                  \
                      geom=300x300+416+344 ifrac=0.8 opacity=9'    \
                -com 'SWITCH_UNDERLAY B.epi_r1'                    \
                -com 'OPEN_WINDOW B.sagittalgraph                  \
@@ -79,9 +95,11 @@ plugout_drive  -com 'OPEN_WINDOW B.sagittalimage                  \
 
 #Show how sub-brick selection can be done.
 #and how the threshold bar can be set
-echo "Hit Enter to pause movie and show sub-brick manipulation"
-set l = $<
-plugout_drive  -com 'OPEN_WINDOW B.sagittalgraph keypress=space'  \
+set l = `prompt_user -pause  \
+      "Hit OK to pause movie and show sub-brick manipulation"`
+if ( $l == '0') goto STEND
+plugout_drive  $NPB                                               \
+               -com 'OPEN_WINDOW B.sagittalgraph keypress=space'  \
                -com 'SET_SUBBRICKS B 13 5 6'                      \
                -com 'OPEN_WINDOW B.sagittalimage'                 \
                -com 'SET_THRESHNEW B 0.0001 *p'                   \
@@ -90,8 +108,14 @@ plugout_drive  -com 'OPEN_WINDOW B.sagittalgraph keypress=space'  \
                -com 'SET_DICOM_XYZ B 30 80.7 15'                  \
                -quit   
 
-echo "Hit Enter to quit"
-set l = $<
-plugout_drive  -com 'QUIT' -quit
+set l = `prompt_user -pause "Hit OK to command all programs to quit"`
+if ( $l == '0') goto STEND
+plugout_drive  $NPB                                          \
+               -com 'QUIT' -quit
 
+goto END
+
+STEND:
+   echo "User initiated halt"
+   
 END:
