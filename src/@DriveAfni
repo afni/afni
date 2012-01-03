@@ -46,12 +46,12 @@ endif
 set PIF = DriveAfniDemo    #A string identifying programs launched by this script
 
                            #Get a free line and tag programs from this script
-set NPB = "-npb `afni -available_npb_quiet` -pif $PIF" 
+set NPB = "-npb `afni -available_npb_quiet` -pif $PIF -echo_edu" 
 
 @Quiet_Talkers -pif DriveAfniDemo   #Quiet previously launched programs
 
 
-afni $NPB -niml -yesplugouts $adir/afni  &
+afni $NPB -niml -yesplugouts $adir/afni  >& /dev/null &
 
 plugout_drive  $NPB                                               \
                -com 'SWITCH_SESSION A.afni'                       \
@@ -75,12 +75,12 @@ plugout_drive  $NPB                                               \
                -com 'SAVE_JPEG axialimage SavedAxiale.jpg'        \
                -quit
                
-set l = `prompt_user -pause "Hit Enter to view the saved image"`
+set l = `prompt_user -pause "Hit OK to view the saved image"`
 if ( $l == '0') goto STEND
 
 aiv SavedAxiale.jpg &
 
-set l = `prompt_user -pause  "Hit Enter to examine time series."`
+set l = `prompt_user -pause  "Close image then hit OK to examine time series."`
 if ( $l == '0') goto STEND
 
 #Now let us examine the time series
@@ -90,7 +90,8 @@ plugout_drive  $NPB                                               \
                -com 'SWITCH_UNDERLAY B.epi_r1'                    \
                -com 'OPEN_WINDOW B.sagittalgraph                  \
                      geom=400x300+0+344                           \
-                     keypress=A keypress=v'                       \
+                     keypress=A'                                  \
+               -com 'OPEN_WINDOW B.sagittalgraph keypress=v'      \
                -quit
 
 #Show how sub-brick selection can be done.
