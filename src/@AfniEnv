@@ -47,6 +47,12 @@ RETURN_PARSE:
       if ( ! -f $rc.Pre$ds) cp -p $rc $rc.Pre$ds
       echo "Variable $enn is not in .afnirc, adding it"
       set nenv = `\grep -n '***ENVIRONMENT' $rc | cut -f 1 -d ':'`
+      set nmax = `\wc -l $rc`
+      if ($nenv == $nmax[1]) then
+         #Must have 1 line after ***ENVIRONMENT 
+         #else awk command will fail to reach NR == n
+         echo "" >> $rc
+      endif
       set nenv = `ccalc -i $nenv + 1`
       awk -v "n=$nenv" -v "s= ${enn} = ${env}" '(NR==n) { print s } 1' $rc > \
                                                                      /tmp/tt$RNS
