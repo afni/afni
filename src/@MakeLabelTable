@@ -149,6 +149,12 @@ MAKE_TABLE:
          foreach ind ($inds)
             printf '"%d" "%s%02d"\n' $ind "$ll" $ci  \
                >> /tmp/${RNS}.___lt.txt
+            if ($status) then
+               echo "Error:"
+               echo "printf command failed at: $ind $ll"
+               echo ""
+               goto BEND
+            endif   
             printf '%d\n' $ind >> /tmp/${RNS}.___kk.txt
             printf '%s%02d\n' "$ll" $ci >> /tmp/${RNS}.___ll.txt
             @ ci ++
@@ -156,6 +162,12 @@ MAKE_TABLE:
       else
          printf '"%d" "%s"\n' $llistmin[$cnt] "$ll" \
                >> /tmp/${RNS}.___lt.txt
+            if ($status) then
+               echo "Error:"
+               echo "printf command failed at: $llistmin[$cnt] $ll"
+               echo ""
+               goto BEND
+            endif   
          printf '%d\n' $llistmin[$cnt] >> /tmp/${RNS}.___kk.txt
          printf '%s\n' "$ll" >> /tmp/${RNS}.___ll.txt
       endif
@@ -224,6 +236,12 @@ MAKE_ATLAS_TABLE:
          foreach ind ($inds)
             printf '"%d" "%s%02d"\n' $ind "$ll" $ci  \
                >> /tmp/${RNS}.___lt.txt
+            if ($status) then
+               echo "Error:"
+               echo "printf command failed at: $ind $ll"
+               echo ""
+               goto BEND
+            endif   
             printf '%d\n' $ind >> /tmp/${RNS}.___kk.txt
             printf '%s%02d\n' "$ll" $ci >> /tmp/${RNS}.___ll.txt
             @ ci ++
@@ -231,6 +249,12 @@ MAKE_ATLAS_TABLE:
       else
          printf '"%d" "%s"\n' $llistmin[$cnt] "$ll" \
                >> /tmp/${RNS}.___lt.txt
+         if ($status) then
+            echo "Error:"
+            echo "printf command failed at: $llistmin[$cnt] $ll"
+            echo ""
+            goto BEND
+         endif   
          printf '%d\n' $llistmin[$cnt] >> /tmp/${RNS}.___kk.txt
          printf '%s\n' "$ll" >> /tmp/${RNS}.___ll.txt
       endif
