@@ -140,9 +140,9 @@ MAKE_TABLE:
    if ( -f /tmp/${RNS}.___ll.txt) rm -f /tmp/${RNS}.___ll.txt
    if ( -f /tmp/${RNS}.___kk.txt) rm -f /tmp/${RNS}.___kk.txt
    set cnt = 1
-   set N_llist = `\wc -l TMPLIST` ; set N_llist = $N_llist[1]
+   set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
    while ($cnt <= $N_llist)
-      set ll = `sed -n "${cnt}p" TMPLIST`
+      set ll = `sed -n "${cnt}p" TMPLIST_${RNS}_`
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       if ($#inds > 1) then
          set ci = 1
@@ -227,9 +227,9 @@ MAKE_ATLAS_TABLE:
    if ( -f /tmp/${RNS}.___ll.txt) rm -f /tmp/${RNS}.___ll.txt
    if ( -f /tmp/${RNS}.___kk.txt) rm -f /tmp/${RNS}.___kk.txt
    set cnt = 1
-   set N_llist = `\wc -l TMPLIST` ; set N_llist = $N_llist[1]
+   set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
    while ($cnt <= $N_llist)
-      set ll = `sed -n "${cnt}p" TMPLIST`
+      set ll = `sed -n "${cnt}p" TMPLIST_${RNS}_`
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       if ($#inds > 1) then
          set ci = 1
@@ -384,7 +384,7 @@ PARSE:
    set replace = 0
    set delim = ' '
    set flab = ''
-   if ( -f TMPLIST) \rm -f TMPLIST
+   if ( -f TMPLIST_${RNS}_) \rm -f TMPLIST_${RNS}_
 	set cnt = 1
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -656,8 +656,8 @@ PARSE:
                   echo "Label name $argv[$cnt] cannot start with '-'"
                goto BEND
             endif 
-            echo $argv[$cnt] >> TMPLIST
-            set N_llist = `\wc -l TMPLIST` ; set N_llist = $N_llist[1]
+            echo $argv[$cnt] >> TMPLIST_${RNS}_
+            set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
             
             @ cnt ++
             if ($argv[$cnt] =~ -*) then
@@ -679,7 +679,7 @@ PARSE:
                if (! $quiet_death) \
                   printf "Bad range values of [%d %d] for label '%s'\n" \
                    $llistmin[$#llistmin] $llistmax[$#llistmax] \
-                   `sed -n ${N_llist}p TMPLIST` 
+                   `sed -n ${N_llist}p TMPLIST_${RNS}_` 
                goto BEND
             endif
 			endif
@@ -700,8 +700,8 @@ PARSE:
                   echo "Label name $argv[$cnt] cannot start with '-'"
                goto BEND
             endif 
-            echo $argv[$cnt] >> TMPLIST
-            set N_llist = `\wc -l TMPLIST` ; set N_llist = $N_llist[1]
+            echo $argv[$cnt] >> TMPLIST_${RNS}_
+            set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
             @ cnt ++
             if ($argv[$cnt] =~ -*) then
                if (! $quiet_death) \
@@ -748,8 +748,8 @@ PARSE:
             set llistmin = (`awk -F "$delim" '{print $'$iV'}' $flab`)
             awk -F "$delim" '{print $'$iL'}' $flab | \
                      sed 's/^ *//g' | sed 's/ *$//g' | \
-                     sed '/^ *$/d' > TMPLIST
-            set N_llist = `\wc -l TMPLIST` ; set N_llist = $N_llist[1]
+                     sed '/^ *$/d' > TMPLIST_${RNS}_
+            set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
             set llistmax = ($llistmin)
             if ($N_llist < 1 || $#llistmin < 1) then
                set jj = '$'
@@ -776,7 +776,7 @@ PARSE:
             if ( $status ) then
                echo "Failed to parse $flab columns make sure column"
                echo "selectors and delimiters are OK."
-   echo "Got '`sed -n $1p TMPLIST`' for 1st label and '$llistmax[1]' for 1st key"
+   echo "Got '`sed -n $1p TMPLIST_${RNS}_`' for 1st label and '$llistmax[1]' for 1st key"
                echo ""
                goto BEND
             endif
@@ -813,7 +813,7 @@ PARSE:
    
    if (0) then
       echo "Have:"
-      cat TMPLIST
+      cat TMPLIST_${RNS}_
       echo $llistmin
       echo $llistmax
    endif
@@ -935,7 +935,10 @@ BEND:
    goto END
       
 END:
-if ($stat == 0 && -f $log) \rm /tmp/${RNS}.$log:t
+if ($stat == 0 && -f $log) then
+   \rm /tmp/${RNS}.$log:t
+   \rm -f TMPLIST_${RNS}_
+endif
 exit $stat   
 
  
