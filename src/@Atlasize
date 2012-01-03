@@ -55,7 +55,8 @@ if ($space != '') then
    3drefit -space $space $target_dset  >& /dev/null
 endif
 
-@MakeLabelTable -lab_file $flab $iL $iV \
+@MakeLabelTable -lab_file_delim "$delim"  \
+                -lab_file $flab $iL $iV \
                 -atlas_pointlist keys_${RNS}_ \
                 -dset $target_dset  $replace \
                 -atlas_file $atlas_file $aname \
@@ -89,6 +90,7 @@ PARSE:
    set replace = '-replace'
    set aname = ''
    set adesc = ''
+   set delim = ' '
 	set cnt = 1
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -139,6 +141,17 @@ PARSE:
          set adesc = "$argv[$cnt]"
          goto CONTINUE
       endif
+      
+      if ("$argv[$cnt]" == "-lab_file_delim") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a delimiter after -lab_file_delim"
+            goto BEND
+         endif
+         @ cnt ++
+         set delim = "$argv[$cnt]"
+         goto CONTINUE
+      endif 
       
       if (  "$argv[$cnt]" == "-lab_file") then
          set nneed = `ccalc -i $cnt + 3`
@@ -271,6 +284,10 @@ HELP:
    echo "                          cLAB is the index of column containing labels"
    echo "                          vVAL is the index of column containing keys"
    echo "                          (1st column is indexed at 0)"
+   echo "   -lab_file_delim COL_DELIM: Set column delimiter for -lab_file option"
+   echo "                              Default is ' ' (space), but you can set"
+   echo "                              your own. ';' for example. Note that the "
+   echo "                              delimiter is passed directly to awk's -F" 
    echo "   -atlas_type TP: Set the atlas type where TP is 'S' for subject-based"
    echo "                and 'G' for group-based atlases, respectively."
    echo "                   A subject-based atlas will remain in the current"    

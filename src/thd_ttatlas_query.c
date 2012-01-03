@@ -4014,18 +4014,18 @@ THD_string_array *approx_str_sort_Ntfile(
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
    THD_string_array *sar=NULL;
    APPROX_STR_DIFF *Dout=NULL;
-   int N_ws=-1;
+   int N_ws=-1, inm=0, ii=0;
    
    ENTRY("approx_str_sort_tfile");
 
-   if (!fnames || !str) RETURN(ws);
+   if (!fnames || !str) RETURN(sar);
    if (sorted_score && *sorted_score) {
       ERROR_message("If sorted_score then *sorted_score should be NULL\n");
-      RETURN(ws);
+      RETURN(sar);
    }
-   if (Dout && *Dout) {
-      ERROR_message("If Dout then *Dout should be NULL\n");
-      RETURN(ws);
+   if (Doutp && *Doutp) {
+      ERROR_message("If Doutp then *Doutp should be NULL\n");
+      RETURN(sar);
    }
    
    if (!Dw) Dw = init_str_diff_weights(Dw);
@@ -4035,13 +4035,13 @@ THD_string_array *approx_str_sort_Ntfile(
       /* suck text and send it to approx_str_sort_text */
       if (!(text = AFNI_suck_file(fname))) {
          ERROR_message("File %s could not be read\n", fname);
-         RETURN(ws); /* Leaky return, Dw not freed */
+         RETURN(sar); /* Leaky return, Dw not freed */
       }
    
       ws = approx_str_sort_text(text, &N_ws, str, ci, sorted_score, Dw, &Dout);
       if (!sar) INIT_SARR( sar ) ;
       for (ii=0; ii<N_ws; ++ii) {
-         ADDTO_SARR(sar, ws[i]); free(ws[i]); ws[i]=NULL;
+         ADDTO_SARR(sar, ws[ii]); free(ws[ii]); ws[ii]=NULL;
       }
       *Doutp = (APPROX_STR_DIFF *)realloc((*Doutp), 
                      sar->num* sizeof(APPROX_STR_DIFF *));
@@ -4051,7 +4051,7 @@ THD_string_array *approx_str_sort_Ntfile(
    }
    if (Dw != Dwi) free(Dw); Dw=NULL;
    
-   RETURN(ws);
+   RETURN(sar);
 }
 
 
