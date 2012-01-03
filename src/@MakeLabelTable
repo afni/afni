@@ -935,9 +935,9 @@ BEND:
    goto END
       
 END:
+\rm -f TMPLIST_${RNS}_ >& /dev/null
 if ($stat == 0 && -f $log) then
    \rm /tmp/${RNS}.$log:t
-   \rm -f TMPLIST_${RNS}_
 endif
 exit $stat   
 
