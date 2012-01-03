@@ -67,7 +67,8 @@ afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  { 30, DEC , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Simplified how afni handles custom group or single-subject atlases",
-   NULL,
+   "By default, SessionAtlases and AFNI_SUPP_ATLAS_DIR/CustomAtlases.niml\n"
+   "are added to the atlas list for whereami queries.",
  },
     
  { 30, DEC , 2011 , ZSS , "@AfniEnv" , MINOR , TYPE_NEW_PROG,
@@ -94,7 +95,7 @@ afni_history_struct ziad_history[] = {
  },
     
  { 30, DEC , 2011 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
-   "NIFI datasets used to loose their path information upon loading.",
+   "NIFTI datasets used to loose their path information upon loading.",
    "This is problematic for a few reasons. For instance, afni ~/tmp/joe.niml\n"
    "will display the dataset as ./joe.niml. Some internal functions for\n"
    "conveniently dealing with atlases fail when the path is messed up in this\n"
