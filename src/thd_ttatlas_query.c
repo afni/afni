@@ -3537,6 +3537,7 @@ APPROX_STR_DIFF *init_str_diff(APPROX_STR_DIFF *Dw) {
    for (i=0; i<N_APPROX_STR_DIMS; ++i) {
       Dw->d[i] = 100000;
    }
+   Dw->srcfile[0]='\0';
    return(Dw);
 }
 
@@ -3687,13 +3688,20 @@ APPROX_STR_DIFF *copy_str_diff(APPROX_STR_DIFF *Din, APPROX_STR_DIFF *Dout)
    for (i=0; i<N_APPROX_STR_DIMS; ++i) {
       Dout->d[i] = Din->d[i];
    }
+   strncpy(Dout->srcfile, Din->srcfile, SRCFILE_MAX*sizeof(char));
    return(Dout);
 }
 
 int approx_str_diff_swap(APPROX_STR_DIFF *Din, APPROX_STR_DIFF *Dout)
 {
    int i=0, dd;
+   char srcfile[256];
+   
    if (!Din || !Dout) return(0);
+   
+   strncpy(srcfile, Dout->srcfile, SRCFILE_MAX*sizeof(char));
+   strncpy(Dout->srcfile, Din->srcfile, SRCFILE_MAX*sizeof(char));
+   strncpy(Din->srcfile, srcfile, SRCFILE_MAX*sizeof(char));
    for (i=0; i<N_APPROX_STR_DIMS; ++i) {
       dd = Dout->d[i];
       Dout->d[i] = Din->d[i];
@@ -3724,9 +3732,10 @@ char *name_approx_string_diff_dim(APPROX_STR_DIMS i) {
    }
    return("Very bad situation");     
 }
+
 char *approx_string_diff_info(APPROX_STR_DIFF *D, APPROX_STR_DIFF_WEIGHTS *Dwi) 
 {
-   static char res[10][256];
+   static char res[10][512];
    static int icall=-1;
    char sbuf[32];
    int i;
@@ -3735,7 +3744,7 @@ char *approx_string_diff_info(APPROX_STR_DIFF *D, APPROX_STR_DIFF_WEIGHTS *Dwi)
    
    ++icall; if (icall > 9) icall=0;
    
-   sprintf(res[icall],"(");
+   snprintf(res[icall],SRCFILE_MAX*sizeof(char),"(%s ", D->srcfile);
    for (i=0; i<N_APPROX_STR_DIMS; ++i) {
       sprintf(sbuf,"%s %dx%.2f ", 
                name_approx_string_diff_dim(i), D->d[i], Dwi->w[i]); 
@@ -4051,6 +4060,7 @@ THD_string_array *approx_str_sort_Ntfile(
    }
    if (Dw != Dwi) free(Dw); Dw=NULL;
    
+   /* Now that we have all files read, sort the final result */
    RETURN(sar);
 }
 
@@ -4062,6 +4072,8 @@ char **approx_str_sort_tfile(char *fname, int *N_ws, char *str,
 {
    char **ws=NULL, *text=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
+   APPROX_STR_DIFF *ddout = NULL;
+   int ii=0;
    
    ENTRY("approx_str_sort_tfile");
 
@@ -4082,6 +4094,13 @@ char **approx_str_sort_tfile(char *fname, int *N_ws, char *str,
    
    if (!Dw) Dw = init_str_diff_weights(Dw);
    ws = approx_str_sort_text(text, N_ws, str, ci, sorted_score, Dw, Dout);
+   if (Dout && *Dout) {   
+      ddout = *Dout;
+      for (ii=0; ii<*N_ws; ++ii) {
+         snprintf(ddout[ii].srcfile,SRCFILE_MAX*sizeof(char),
+                            "%s", THD_trailname(fname,0));
+      }
+   }
    free(text); text=NULL;
    if (Dw != Dwi) free(Dw); Dw=NULL;
    
