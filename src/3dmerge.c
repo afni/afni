@@ -541,7 +541,9 @@ DUMP1 ;
 
       /**** unknown switch ****/
 
-      ERROR_exit("unrecognized option %s",argv[nopt]) ;
+      ERROR_message("unrecognized option %s",argv[nopt]) ;
+      suggest_best_prog_option(argv[0], argv[nopt]);
+      exit(1);
 
    }  /* end of loop over options */
 
