@@ -232,8 +232,11 @@ typedef enum { LEV=0, /* Levenshtein distance */
                IWD, /* Intra Words Distance */ 
                N_APPROX_STR_DIMS /* leave the last */ } APPROX_STR_DIMS;
 
+#define SRCFILE_MAX 32
+
 typedef struct {
-   int d[N_APPROX_STR_DIMS]; 
+   int d[N_APPROX_STR_DIMS];
+   char srcfile[SRCFILE_MAX+1]; 
 } APPROX_STR_DIFF;
 
 typedef struct {
