@@ -2101,17 +2101,11 @@ int init_global_atlas_from_niml_files()
       }
    }
    
-   /* Talk to Daniel about this:
-      We need to have the user specify a directory where they would put their 
-      group atlases. See the HMAT example. Then AFNI would automatically 
-      look for AFNI_SUPP_ATLAS_DIR/CustomAtlases.niml and add them,
-      exactly as is done for SessionAtlases.niml .
-      This way they would have very little env setting to do, by default. */
    ept = THD_custom_atlas_file(NULL);
    if (ept[0] != '\0') {
       if (!session_atlas_name_list) INIT_SARR(session_atlas_name_list);
       if(wami_verb() > 1) 
-         INFO_message("opening SessionAtlases.niml for custom group atlases"); 
+         INFO_message("opening CustomAtlases.niml for custom group atlases"); 
       space_niml_file = find_atlas_niml_file(ept, 0);
       if(space_niml_file[0]=='\0'){
          WARNING_message(
@@ -4009,6 +4003,57 @@ char **approx_str_sort_text(char *text, int *N_ws, char *str,
    
    RETURN(ws);
 } 
+
+THD_string_array *approx_str_sort_Ntfile(
+                  char **fnames, int N_names, char *str, 
+                            byte ci, float **sorted_score,
+                            APPROX_STR_DIFF_WEIGHTS *Dwi,
+                            APPROX_STR_DIFF **Doutp)
+{
+   char **ws=NULL, *text=NULL, *fname=NULL;
+   APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
+   THD_string_array *sar=NULL;
+   APPROX_STR_DIFF *Dout=NULL;
+   int N_ws=-1;
+   
+   ENTRY("approx_str_sort_tfile");
+
+   if (!fnames || !str) RETURN(ws);
+   if (sorted_score && *sorted_score) {
+      ERROR_message("If sorted_score then *sorted_score should be NULL\n");
+      RETURN(ws);
+   }
+   if (Dout && *Dout) {
+      ERROR_message("If Dout then *Dout should be NULL\n");
+      RETURN(ws);
+   }
+   
+   if (!Dw) Dw = init_str_diff_weights(Dw);
+   
+   for (inm=0; inm < N_names; ++inm) {
+      fname = fnames[inm];
+      /* suck text and send it to approx_str_sort_text */
+      if (!(text = AFNI_suck_file(fname))) {
+         ERROR_message("File %s could not be read\n", fname);
+         RETURN(ws); /* Leaky return, Dw not freed */
+      }
+   
+      ws = approx_str_sort_text(text, &N_ws, str, ci, sorted_score, Dw, &Dout);
+      if (!sar) INIT_SARR( sar ) ;
+      for (ii=0; ii<N_ws; ++ii) {
+         ADDTO_SARR(sar, ws[i]); free(ws[i]); ws[i]=NULL;
+      }
+      *Doutp = (APPROX_STR_DIFF *)realloc((*Doutp), 
+                     sar->num* sizeof(APPROX_STR_DIFF *));
+      memcpy(((*Doutp)+sar->num-N_ws), Dout, N_ws*sizeof(APPROX_STR_DIFF *));
+      free(Dout); Dout = NULL;
+      free(ws); free(text); text=NULL;
+   }
+   if (Dw != Dwi) free(Dw); Dw=NULL;
+   
+   RETURN(ws);
+}
+
 
 char **approx_str_sort_tfile(char *fname, int *N_ws, char *str, 
                             byte ci, float **sorted_score,
