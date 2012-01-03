@@ -52,10 +52,14 @@ THD_slist_find THD_dset_in_session( int find_type , void *target ,
       /**** search for a prefix ****/
 
       case FIND_PREFIX:{
-         char *target_prefix = (char *) target ;
-         if( strlen(target_prefix) == 0 ){
-            BADFIND(find) ; return find ;
-         }
+         char *target_prefix , *pp ;
+         target_prefix = strdup((char *)target) ;
+                          pp = strstr(target_prefix,"+orig") ;  /* 03 Jan 2012: */
+         if( pp == NULL ) pp = strstr(target_prefix,"+acpc") ;  /* truncate +view */
+         if( pp == NULL ) pp = strstr(target_prefix,"+tlrc") ;  /* if present */
+         if( pp == NULL ) pp = strstr(target_prefix,"[") ;
+         if( pp != NULL ) *pp = '\0' ;
+         if( *target_prefix == '\0' ){ free(target_prefix); BADFIND(find); return find; }
 
          for( id=0 ; id < sess->num_dsset ; id++ ){
             for( iv=FIRST_VIEW_TYPE ; iv <= LAST_VIEW_TYPE ; iv++ ){
@@ -64,10 +68,11 @@ THD_slist_find THD_dset_in_session( int find_type , void *target ,
 
                if( dset != NULL && strcmp(DSET_PREFIX(dset),target_prefix) == 0 ){
                   find.dset = dset ; find.dset_index = id ; find.view_index = iv ;
-                  return find ;
+                  free(target_prefix) ; return find ;
                }
             }
          }
+         free(target_prefix) ;  /* failed */
       }
       break ;
 
