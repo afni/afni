@@ -64,5 +64,9 @@ ENTRY("EDIT_full_copy") ;
      memcpy( new_brick , old_brick , nbytes ) ;
    }
 
+   if (0) { /* For DG to activate */
+      THD_copy_labeltable_atr( new_dset->dblk,  dset->dblk);
+   }
+   
    RETURN( new_dset );
 }

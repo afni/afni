@@ -168,7 +168,7 @@ void apsearch_usage(int detail)
    "  -afni_rc_file: Pathname to .afnirc. You'll get one even if none exists.\n"
    "  -afni_custom_atlas_dir: Print your afni's custom atlas directory \n"
    "                          and quit.\n"
-   "  -afni_custom_atlas_file: Print your afni's custom atlas file \n"
+   "  -afni_custom_atlas_file: Print your afni's custom atlas file (if any)\n"
    "                          and quit.\n"
    "  -afni_text_editor: Print the name of the GUI editor. Priority goes to \n"
    "                     env. variable AFNI_GUI_EDITOR, otherwise afni\n"
