@@ -345,7 +345,7 @@ BEND:
    goto END
       
 END:
-if ($stat == 0 && -f $log) \rm /tmp/${RNS}.$log:t *_${RNS}_*
+if ($stat == 0) \rm  *_${RNS}_* >& /dev/null
 exit $stat   
 
  
