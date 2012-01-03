@@ -6,7 +6,7 @@ set stat = 0
 set RNS = `3dnewid -fun`
 set log = /tmp/${RNS}.MLT.log
 
-if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
+if ("$1" == "") then
    goto HELP
 endif
 
@@ -391,6 +391,10 @@ PARSE:
          set verb = 1
          set echo
          goto CONTINUE
+      endif
+     
+      if ("$argv[$cnt]" == '-h' || "$argv[$cnt]" == '-help') then
+         goto HELP
       endif
       
       if ("$argv[$cnt]" == "-verb") then
