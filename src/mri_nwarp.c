@@ -353,7 +353,7 @@ ENTRY("IW3D_from_dataset") ;
      DSET_unload(dset) ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 88888 )
+#pragma omp parallel if( nxyz > 33333 )
  { int ii ;
 #pragma omp for
      for( ii=0 ; ii < nxyz ; ii++ ){  /* convert mm to index displacements */
@@ -413,7 +413,7 @@ ENTRY("IW3D_to_dataset") ;
    hva = AA->hv ; hfac = MAT44_DET(cmat) ; hfac = fabsf(hfac) ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 88888 )
+#pragma omp parallel if( nxyz > 33333 )
  { int ii ;
 #pragma omp for
    for( ii=0 ; ii < nxyz ; ii++ ){
@@ -557,7 +557,7 @@ void IW3D_interp_linear( int nxx , int nyy , int nzz ,
                          float *uar , float *var , float *war     )
 {
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 9999)
+#pragma omp parallel if( npp > 3333 )
  {
    int nx=nxx, ny=nyy, nz=nzz, nxy=nx*ny, pp, nx1=nx-1,ny1=ny-1,nz1=nz-1 ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -672,7 +672,7 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
                          float *uar , float *var , float *war     )
 {
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 6666)
+#pragma omp parallel if( npp > 3333 )
  {
    int nx=nxx , ny=nyy , nz=nzz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -806,7 +806,7 @@ void IW3D_interp_quintic( int nxx , int nyy , int nzz ,
                           float *uar , float *var , float *war     )
 {
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 9999)
+#pragma omp parallel if( npp > 3333 )
  {
    int nx=nxx , ny=nyy , nz=nzz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -1077,7 +1077,7 @@ ENTRY("IW3D_compose") ;
      qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 88888 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1099,7 +1099,7 @@ ENTRY("IW3D_compose") ;
         index displacment from each original position: A(x) + B(x+A(x)) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 99999 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1157,7 +1157,7 @@ ENTRY("IW3D_2pow") ;
        qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 44444 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
 #pragma omp for
        for( qq=pp ; qq < qtop ; qq++ ){
@@ -1180,7 +1180,7 @@ ENTRY("IW3D_2pow") ;
            index displacment from each original position: B(x) + B(x+B(x)) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 66666 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq ;
 #pragma omp for
         for( qq=pp ; qq < qtop ; qq++ ){
@@ -1251,7 +1251,7 @@ ENTRY("IW3D_invert_newt") ;
      /* Compute [xq,yq,zq] = x+b(x) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 88888 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1272,7 +1272,7 @@ ENTRY("IW3D_invert_newt") ;
      /* Compute [xr,yr,zr] = x - b(x) - a(x+b(x)) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 88888 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1295,7 +1295,7 @@ ENTRY("IW3D_invert_newt") ;
      if( inewtfac <= 0.0f ){
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 88888 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
 #pragma omp for
        for( qq=pp ; qq < qtop ; qq++ ){
@@ -1310,7 +1310,7 @@ ENTRY("IW3D_invert_newt") ;
      } else {
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 88888 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
    register float nf , nf1 ;
    nf = inewtfac ; nf1 = 1.0f - nf ;
@@ -1474,7 +1474,7 @@ ENTRY("IW3D_sqrtinv_step") ;
      /* Compute [xq,yq,zq] = B(x) = x+b(x) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 88888 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1495,7 +1495,7 @@ ENTRY("IW3D_sqrtinv_step") ;
      /* Compute [xr,yr,zr] = B(B(x)) = B(x) + b(B(x)) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 99999 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1516,7 +1516,7 @@ ENTRY("IW3D_sqrtinv_step") ;
                            = 1.5*x - 0.5*( B(B(x)) + a(B(B(x))) ) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 88888 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1540,7 +1540,7 @@ ENTRY("IW3D_sqrtinv_step") ;
      if( sstepfac <= 0.0f ){
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 88888 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
 #pragma omp for
        for( qq=pp ; qq < qtop ; qq++ ){
@@ -1555,7 +1555,7 @@ ENTRY("IW3D_sqrtinv_step") ;
      } else {
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 88888 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
    register float sf , sf1 ;
    sf = sstepfac ; sf1 = 1.0f - sf ;
@@ -1753,7 +1753,7 @@ ENTRY("IW3D_from_poly") ;
      /* input coords are indexes */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 88888 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1770,7 +1770,7 @@ ENTRY("IW3D_from_poly") ;
      /* subtract off base indexes to make the result just be displacments */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 99999 )
+#pragma omp parallel if( qtop-pp > 33333 )
  { int qq ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -2009,7 +2009,7 @@ ENTRY("THD_setup_nwarp") ;
    tmat = MAT44_INV(cmat_src) ;  /* takes (x,y,z) to (i,j,k) in src space */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 33333 )
+#pragma omp parallel if( nxyz > 11111 )
  { int qq,ii,jj,kk ; float xx,yy,zz , fac ;
    fac = (wfac == 0.0f) ? 1.0f : wfac ;
 #pragma omp for
@@ -2522,7 +2522,7 @@ static int IW3D_munge_flags( int nx , int ny , int nz , int flags )
    Scale factors are adjusted so that the functions peak values are all 1.
 *//*--------------------------------------------------------------------------*/
 
-static INLINE float_triple eval_Hbasis( float x )
+static INLINE float_triple Hwarp_eval_basis( float x )
 {
    register float aa , bb , aq ; float_triple ee ;
 
@@ -2545,10 +2545,12 @@ static float *b0x=NULL , *b1x=NULL , *b2x=NULL , *ccx=NULL , delx=0.0f , dxi=0.0
 static float *b0y=NULL , *b1y=NULL , *b2y=NULL , *ccy=NULL , dely=0.0f , dyi=0.0f ;
 static float *b0z=NULL , *b1z=NULL , *b2z=NULL , *ccz=NULL , delz=0.0f , dzi=0.0f ;
 
+static int Hibot,Hitop , Hjbot,Hjtop , Hkbot,Hktop ;
+
 static IndexWarp3D *Hwarp = NULL ;
 static int         Hflags = 0 ;
 
-static void setup_Hwarp_basis( int nx , int ny , int nz , int flags )
+static void Hwarp_setup_basis( int nx , int ny , int nz , int flags )
 {
    float_triple ee ; int ii ;
 
@@ -2590,7 +2592,7 @@ static void setup_Hwarp_basis( int nx , int ny , int nz , int flags )
    } else {
      dxi = 0.5f*(nbx-1.0f) ; delx = 1.0f/dxi ;
      for( ii=0 ; ii < nbx ; ii++ ){
-       ccx[ii] = -1.0 + ii*delx ; ee = eval_Hbasis(ccx[ii]) ;
+       ccx[ii] = -1.0 + ii*delx ; ee = Hwarp_eval_basis(ccx[ii]) ;
        b0x[ii] = ee.a ; b1x[ii] = ee.b ; b2x[ii] = ee.c ;
      }
    }
@@ -2602,7 +2604,7 @@ static void setup_Hwarp_basis( int nx , int ny , int nz , int flags )
    } else {
      dyi = 0.5f*(nby-1.0f) ; dely = 1.0f/dyi ;
      for( ii=0 ; ii < nby ; ii++ ){
-       ccy[ii] = -1.0 + ii*dely ; ee = eval_Hbasis(ccy[ii]) ;
+       ccy[ii] = -1.0 + ii*dely ; ee = Hwarp_eval_basis(ccy[ii]) ;
        b0y[ii] = ee.a ; b1y[ii] = ee.b ; b2y[ii] = ee.c ;
      }
    }
@@ -2614,7 +2616,7 @@ static void setup_Hwarp_basis( int nx , int ny , int nz , int flags )
    } else {
      dzi = 0.5f*(nbz-1.0f) ; delz = 1.0f/dzi ;
      for( ii=0 ; ii < nbz ; ii++ ){
-       ccz[ii] = -1.0 + ii*delz ; ee = eval_Hbasis(ccz[ii]) ;
+       ccz[ii] = -1.0 + ii*delz ; ee = Hwarp_eval_basis(ccz[ii]) ;
        b0z[ii] = ee.a ; b1z[ii] = ee.b ; b2z[ii] = ee.c ;
      }
    }
@@ -2626,7 +2628,7 @@ static void setup_Hwarp_basis( int nx , int ny , int nz , int flags )
 
 /*----------------------------------------------------------------------------*/
 
-static void load_Hwarp( float *par )  /* 81 elements in par */
+static void Hwarp_load( float *par )  /* 81 elements in par */
 {
    int nxy,nxyz , dox,doy,doz ; float *xx,*yy,*zz ;
 
@@ -2645,7 +2647,7 @@ static void load_Hwarp( float *par )  /* 81 elements in par */
    if( !doz ) memset( zz , 0 , sizeof(float)*nxyz ) ;
 
    AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 3333 )
+#pragma omp parallel if( nxyz > 1111 )
    { int ii,jj,kk,qq ; float *xpar=par , *ypar=par+27 , *zpar=par+54 ;
      float b0zb0yb0x,b1zb0yb0x, b2zb0yb0x,b0zb1yb0x, b1zb1yb0x,b2zb1yb0x,
            b0zb2yb0x,b1zb2yb0x, b2zb2yb0x,b0zb0yb1x, b1zb0yb1x,b2zb0yb1x,
@@ -2703,6 +2705,109 @@ static void load_Hwarp( float *par )  /* 81 elements in par */
 }
 
 /*----------------------------------------------------------------------------*/
+/* Evaluate srcim[ Awarp(Hwarp(x)) ] */
+
+static void Hwarp_apply( MRI_IMAGE *srcim , IndexWarp3D *Awarp , float *val )
+{
+   int nbxy,nbxyz , nAx,nAy,nAz , nAx1,nAy1,nAz1 , nAxy ;
+   float nAxh,nAyh,nAzh ;
+   float *hxd,*hyd,*hzd , *Axd,*Ayd,*Azd , *sar ;
+
+   if( srcim == NULL || Awarp == NULL || val == NULL || Hwarp == NULL ) return ;
+
+   hxd = Hwarp->xd ; hyd = Hwarp->yd ; hzd = Hwarp->zd ;
+   Axd = Awarp->xd ; Ayd = Awarp->yd ; Azd = Awarp->zd ;
+
+   nbxy = nbx*nby ; nbxyz = nbxy*nbz ;
+
+   nAx = Awarp->nx   ; nAy = Awarp->ny   ; nAz = Awarp->nz   ; nAxy = nAx*nAy ;
+   nAx1 = nAx-1      ; nAy1 = nAy-1      ; nAz1 = nAz-1      ;
+   nAxh = nAx-0.501f ; nAyh = nAy-0.501f ; nAzh = nAz-0.501f ;
+
+   sar = MRI_FLOAT_PTR(srcim) ;
+
+AFNI_OMP_START ;
+#pragma omp parallel if( nbxyz > 1111 )
+ { int ii,jj,kk , qq ;
+   float xq,yq,zq ;
+   float fx,fy,fz , ix,jy,kz ;
+   int   ix_00,ix_p1 , jy_00,jy_p1 , kz_00,kz_p1 ;
+   float wt_00,wt_p1 ;
+   float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
+   float g_j00_k00, g_jp1_k00, g_j00_kp1, g_jp1_kp1, g_k00, g_kp1 ;
+   float h_j00_k00, h_jp1_k00, h_j00_kp1, h_jp1_kp1, h_k00, h_kp1 ;
+
+#pragma omp for
+   for( qq=0 ; qq < nbxyz ; qq++ ){
+     ii = qq % nbx ; kk = qq / nbxy ; jj = (qq-kk*nbxy) / nbx ;
+
+     /* get Hwarp-ed indexes into Awarp */
+
+     xq = Hibot + ii + hxd[qq] ; if( xq < -0.499f ) xq = -0.499f; else if( xq > nAxh ) xq = nAxh;
+     yq = Hjbot + jj + hyd[qq] ; if( yq < -0.499f ) yq = -0.499f; else if( yq > nAyh ) yq = nAyh;
+     zq = Hkbot + kk + hzd[qq] ; if( zq < -0.499f ) zq = -0.499f; else if( zq > nAzh ) zq = nAzh;
+     ix = floorf(xq) ;  fx = xq - ix ;
+     jy = floorf(yq) ;  fy = yq - jy ;
+     kz = floorf(zq) ;  fz = zq - kz ;
+     ix_00 = ix ; ix_p1 = ix_00+1 ; CLIP(ix_00,nAx1) ; CLIP(ix_p1,nAx1) ;
+     jy_00 = jy ; jy_p1 = jy_00+1 ; CLIP(jy_00,nAy1) ; CLIP(jy_p1,nAy1) ;
+     kz_00 = kz ; kz_p1 = kz_00+1 ; CLIP(kz_00,nAz1) ; CLIP(kz_p1,nAz1) ;
+
+     /* linearly interpolate in Awarp to get Awarp displacements */
+
+#undef  IJK
+#define IJK(i,j,k) ((i)+(j)*nAx+(k)*nAxy)
+
+#undef  XINT
+#define XINT(aaa,j,k) wt_00*aaa[IJK(ix_00,j,k)]+wt_p1*aaa[IJK(ix_p1,j,k)]
+
+     wt_00 = 1.0f-fx ; wt_p1 = fx ;
+     f_j00_k00 = XINT(Axd,jy_00,kz_00) ; f_jp1_k00 = XINT(Axd,jy_p1,kz_00) ;
+     f_j00_kp1 = XINT(Axd,jy_00,kz_p1) ; f_jp1_kp1 = XINT(Axd,jy_p1,kz_p1) ;
+     g_j00_k00 = XINT(Ayd,jy_00,kz_00) ; g_jp1_k00 = XINT(Ayd,jy_p1,kz_00) ;
+     g_j00_kp1 = XINT(Ayd,jy_00,kz_p1) ; g_jp1_kp1 = XINT(Ayd,jy_p1,kz_p1) ;
+     h_j00_k00 = XINT(Azd,jy_00,kz_00) ; h_jp1_k00 = XINT(Azd,jy_p1,kz_00) ;
+     h_j00_kp1 = XINT(Azd,jy_00,kz_p1) ; h_jp1_kp1 = XINT(Azd,jy_p1,kz_p1) ;
+
+     wt_00 = 1.0f-fy ; wt_p1 = fy ;
+     f_k00 = wt_00 * f_j00_k00 + wt_p1 * f_jp1_k00 ;
+     f_kp1 = wt_00 * f_j00_kp1 + wt_p1 * f_jp1_kp1 ;
+     g_k00 = wt_00 * g_j00_k00 + wt_p1 * g_jp1_k00 ;
+     g_kp1 = wt_00 * g_j00_kp1 + wt_p1 * g_jp1_kp1 ;
+     h_k00 = wt_00 * h_j00_k00 + wt_p1 * h_jp1_k00 ;
+     h_kp1 = wt_00 * h_j00_kp1 + wt_p1 * h_jp1_kp1 ;
+
+     xq = (1.0f-fz) * f_k00 + fz * f_kp1  +  Hibot + hxd[qq] ;
+     yq = (1.0f-fz) * g_k00 + fz * g_kp1  +  Hjbot + hyd[qq] ;
+     zq = (1.0f-fz) * h_k00 + fz * h_kp1  +  Hkbot + hzd[qq] ;
+
+     /* linearly interpolate in sar to get val output */
+
+     if( xq < -0.499f ) xq = -0.499f; else if( xq > nAxh ) xq = nAxh;
+     if( yq < -0.499f ) yq = -0.499f; else if( yq > nAyh ) yq = nAyh;
+     if( zq < -0.499f ) zq = -0.499f; else if( zq > nAzh ) zq = nAzh;
+     ix = floorf(xq) ;  fx = xq - ix ;
+     jy = floorf(yq) ;  fy = yq - jy ;
+     kz = floorf(zq) ;  fz = zq - kz ;
+     ix_00 = ix ; ix_p1 = ix_00+1 ; CLIP(ix_00,nAx1) ; CLIP(ix_p1,nAx1) ;
+     jy_00 = jy ; jy_p1 = jy_00+1 ; CLIP(jy_00,nAy1) ; CLIP(jy_p1,nAy1) ;
+     kz_00 = kz ; kz_p1 = kz_00+1 ; CLIP(kz_00,nAz1) ; CLIP(kz_p1,nAz1) ;
+
+     wt_00 = 1.0f-fx ; wt_p1 = fx ;
+     f_j00_k00 = XINT(sar,jy_00,kz_00) ; f_jp1_k00 = XINT(sar,jy_p1,kz_00) ;
+     f_j00_kp1 = XINT(sar,jy_00,kz_p1) ; f_jp1_kp1 = XINT(sar,jy_p1,kz_p1) ;
+     wt_00 = 1.0f-fy ; wt_p1 = fy ;
+     f_k00 = wt_00 * f_j00_k00 + wt_p1 * f_jp1_k00 ;
+     f_kp1 = wt_00 * f_j00_kp1 + wt_p1 * f_jp1_kp1 ;
+     val[qq] = (1.0f-fz) * f_k00 + fz * f_kp1 ;
+   }
+ }
+AFNI_OMP_END ;
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
 
 void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim ,
                         IndexWarp3D *AA , int match_code , int basis_code ,
@@ -2722,4 +2827,8 @@ void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim 
    nxh = itop-ibot+1 ; nyh = jtop-jbot+1 ; nzh = ktop-kbot+1 ;
    flags = IW3D_munge_flags(nxh,nyh,nzh,flags) ;
    if( flags < 0 ) return ;  /* nuthin to do */
+
+   Hibot = ibot ; Hitop = itop ;
+   Hjbot = jbot ; Hjtop = jtop ;
+   Hkbot = kbot ; Hktop = ktop ;
 }
