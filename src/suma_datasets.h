@@ -893,11 +893,32 @@ If you want to have some index before the entries, use SUMA_WRITE_IND_ARRAY_1D*/
    FILE * m_fp=NULL;\
    m_fp = (name) ? fopen((name),"w"): fopen("yougavemenoname","w");  \
    if (m_fp) { \
-      fprintf(m_fp,"# Output from %s, %d values (%d per line).", FuncName, Nel, m);  \
-      for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n"); fprintf(m_fp,"%d   ", (int)v[m_kkk]); }\
+      fprintf(m_fp,"# Output from %s, %d values (%d per line).", \
+                     FuncName, Nel, m);  \
+      for (m_kkk=0; m_kkk<Nel; ++m_kkk) { \
+         if (!(m_kkk % m)) fprintf(m_fp,"\n"); \
+         fprintf(m_fp,"%d   ", (int)v[m_kkk]); }\
       fclose(m_fp); \
    }  \
 }
+#define SUMA_WRITE_INT_ARRAY_AND_FLAG_1D(v,Nel,m,name,flg){  \
+   int m_kkk; \
+   FILE * m_fp=NULL;\
+   m_fp = (name) ? fopen((name),"w"): fopen("yougavemenoname","w");  \
+   if (m_fp) { \
+      fprintf(m_fp,"# Output from %s, %d values (%d per line).", \
+                     FuncName, Nel, m);  \
+      for (m_kkk=0; m_kkk<Nel; ++m_kkk) { \
+         if (!(m_kkk % m)) {  \
+            if (m_kkk) fprintf(m_fp,"%d   ", flg); \
+            fprintf(m_fp,"\n"); \
+         }  \
+         fprintf(m_fp,"%d   ", (int)v[m_kkk]); }\
+         fprintf(m_fp,"%d   ", flg); \
+      fclose(m_fp); \
+   }  \
+}
+
 /* Just like SUMA_WRITE_ARRAY_1D but ind contains indices
 to add at the beginning of each line.
 If ind is NULL, then the index will be the line number.
