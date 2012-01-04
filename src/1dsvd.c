@@ -14,6 +14,7 @@ int main( int argc , char *argv[] )
    int do_1Dll=0 ;  /* 05 Jan 2005 */
    int do_vmean=0 , do_vnorm=0 ; /* 25 Feb 2008 */
    int pall=1 , nev=0 ;
+   double nevper=0.0 , svsum ;
 
    /*---------- help? ----------*/
 
@@ -44,8 +45,16 @@ int main( int argc , char *argv[] )
        "           columns in a design matrix.  The singular values\n"
        "           are printed at the top of each vector column,\n"
        "           as a '#...' comment line.\n"
-       " -nev n  = If -1Dleft is used, '-nev' specifies only to output\n"
+       " -nev n  = If -1Dleft is used, '-nev' specifies to output only\n"
        "           the first 'n' eigenvectors, rather than all of them.\n"
+       "           * If you are a tricky person, such as Souheil, you can\n"
+       "             put a '%%' after the value, and then you are saying\n"
+       "             keep eigenvectors until at least n%% of the sum of\n"
+       "             singular values is accounted for.  In this usage,\n"
+       "             'n' must be a number less than 100; for example, to\n"
+       "             reduce a matrix down to a smaller set of columns that\n"
+       "             capture most of its column space, try something like\n"
+       "               1dsvd -1Dleft -nev 99%% Xorig.1D > X99.1D\n"
        "EXAMPLE:\n"
        " 1dsvd -vmean -vnorm -1Dleft fred.1D'[1..6]' | 1dplot -stdin\n"
        "NOTES:\n"
@@ -80,7 +89,17 @@ int main( int argc , char *argv[] )
    while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcasecmp(argv[iarg],"-nev") == 0 ){   /* 04 Mar 2009 */
-       nev = (int)strtod(argv[++iarg],NULL) ; iarg++ ; continue ;
+       char *ppp ; double val ;
+       val = strtod(argv[++iarg],&ppp) ; iarg++ ;
+       if( *ppp == '%' ){
+         nevper = val ;
+         if( nevper <   1.0 ) nevper =   1.0 ;
+         if( nevper > 100.0 ) nevper = 100.0 ;
+         nev = -1 ;
+       } else {
+         nev = (int)val ; if( nev <= 0 ) nev = 1 ;
+       }
+       continue ;
      }
 
      if( strcasecmp(argv[iarg],"-sort") == 0 ){
@@ -146,7 +165,7 @@ int main( int argc , char *argv[] )
      ADDTO_IMARR(tar,tim) ;
    }
 
-   if( !do_1Dll || nev <= 0 || nev > nvec ) nev = nvec ;
+   if( !do_1Dll || nev == 0 || nev > nvec ) nev = nvec ;
 
    if( pall ){
      printf("\n") ;
@@ -213,6 +232,16 @@ int main( int argc , char *argv[] )
    /**----- the core of the program -----**/
 
    svd_double( nx , nvec , amat , sval , umat , vmat ) ;
+
+   svsum = 0.0 ;
+   for( jj=0 ; jj < nvec ; jj++ )
+     if( sval[jj] > 0.0 ) svsum += sval[jj] ;
+
+   if( nevper > 0.0 && svsum > 0.0 ){
+     double ss=0.0 , sst=nevper*svsum/100.0 ;
+     for( jj=0 ; jj < nvec && ss < sst ; jj++ ) ss += sval[jj] ;
+     nev = jj ;
+   }
 
    /*-- various outputs now go to stdout --*/
 
