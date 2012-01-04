@@ -1377,6 +1377,34 @@ ENTRY("mri_matrix_evalrpn") ;
         ADDTO_IMARR(imstk,imc) ;
       }
 
+      /** matrix Hglue [04 Jan 2012] **/
+
+      else if( command_check(cmd,"Hglue") ){
+        MRI_IMARR *qar ;
+        if( nstk < 2 ) ERREX("no matrices") ;
+        ima = IMARR_SUBIM(imstk,nstk-2) ;
+        imb = IMARR_SUBIM(imstk,nstk-1) ;
+        INIT_IMARR(qar) ; ADDTO_IMARR(qar,ima) ; ADDTO_IMARR(qar,imb) ;
+        imc = mri_cat2D( 2 , 1 , 0 , NULL , qar ) ; FREE_IMARR(qar) ;
+        if( imc == NULL ) ERREX("illegal Hglue") ;
+        TRUNCATE_IMARR(imstk,nstk-2) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      /** matrix Vglue [04 Jan 2012] **/
+
+      else if( command_check(cmd,"Vglue") ){
+        MRI_IMARR *qar ;
+        if( nstk < 2 ) ERREX("no matrices") ;
+        ima = IMARR_SUBIM(imstk,nstk-2) ;
+        imb = IMARR_SUBIM(imstk,nstk-1) ;
+        INIT_IMARR(qar) ; ADDTO_IMARR(qar,ima) ; ADDTO_IMARR(qar,imb) ;
+        imc = mri_cat2D( 1 , 2 , 0 , NULL , qar ) ; FREE_IMARR(qar) ;
+        if( imc == NULL ) ERREX("illegal Vglue") ;
+        TRUNCATE_IMARR(imstk,nstk-2) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
       /** recall named matrix to top of stack **/
 
       else if( isalpha(cmd[0]) ){
@@ -1478,10 +1506,11 @@ char * mri_matrix_evalrpn_help(void)
     " -----------------\n"
     " number     == push scalar value (1x1 matrix) on stack;\n"
     "                 a number starts with a digit or a minus sign\n"
-    " =NAME      == save matrix on top of stack as 'NAME'\n"
-    " NAME       == push NAME-ed matrix onto top of stack;\n"
+    " =NAME      == save a copy matrix on top of stack as 'NAME'\n"
+    " NAME       == push a copy of NAME-ed matrix onto top of stack;\n"
     "                 names start with an alphabetic character\n"
-    " &clear     == erase all named matrices (to save memory)\n"
+    " &clear     == erase all named matrices (to save memory);\n"
+    "                 does not affect the stack at all\n"
     " &read(FF)  == read ASCII (.1D) file onto top of stack from file 'FF'\n"
     " &read4x4Xform(FF)\n"
     "            == Similar to &read(FF), except that it expects data\n"
@@ -1532,6 +1561,18 @@ char * mri_matrix_evalrpn_help(void)
     " &dup       == push duplicate of top matrix onto stack\n"
     " &pop       == discard top matrix\n"
     " &swap      == swap top two matrices (A <-> B)\n"
+    " &Hglue     == glue top two matrices together horizontally:\n"
+    "                   stack = [ ... C A B ] goes to\n"
+    "                   stack = [ ... C A|B ]\n"
+    "                 this is like what program 1dcat does.\n"
+    " &Vglue     == glue top two matrices together vertically:\n"
+    "                   stack = [ ... C A B ] goes to\n"
+    "\n"
+    "                                    A\n"
+    "                   stack = [ ... C  - ]\n"
+    "                                    B\n"
+    "\n"
+    "                 this is like what program cat does.\n"
   ;
 
   return hs ;
