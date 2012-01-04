@@ -647,8 +647,10 @@ THD_3dim_dataset * get_atlas(char *epath, char *aname)
             DSET_load (dset);	                /* load dataset */
          }
       }
-      if( !dset ){                     /* got it!!! */
-         if (wami_verb()) ERROR_message("Failed to read dset from %s\n", epath);
+      if( !dset ){                     /* don't got it!!! */
+         if (wami_verb()) 
+            ERROR_message("Failed to read dset from %s (aname=%s)\n", 
+                          epath, aname?aname:"NULL");
       }
       RETURN(dset);   /* return NULL or dset for specified path input */
    } else { /* no path given */
