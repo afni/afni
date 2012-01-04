@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 4, JAN , 2012 , ZSS , "ROI2dataset" , MICRO , TYPE_NEW_OPT,
+   "Added -nodelist_with_ROIval to facilitate splitting ROIs",
+   NULL,
+ },
+    
+ { 4, JAN , 2012 , ZSS , "@Atlasize" , MICRO , TYPE_NEW_OPT,
+   "Allow for delimiters in keys file and handle names with spaces",
+   "Similar additions are made to @MakeLabelTable",
+ },
+    
+ { 4, JAN , 2012 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
+   "Automatically add an Atlas to whereami list if encountered in the session",
+   NULL,
+ },
+    
  { 30, DEC , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Simplified how afni handles custom group or single-subject atlases",
    "By default, SessionAtlases and AFNI_SUPP_ATLAS_DIR/CustomAtlases.niml\n"
