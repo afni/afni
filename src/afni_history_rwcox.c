@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 3 , JAN , 2012 , RWC , "THD_dset_in_session" , MICRO , TYPE_MODIFY ,
+  { 4 , JAN , 2012 , RWC , "1dsvd" , MICRO , TYPE_MODIFY ,
+   "Add percent ability to -nev option" ,
+   "That is, the ability to output (via -1Dleft) the set of vectors that\n"
+   "make up the first 'n' percent of the column space." } ,
+
+ { 3 , JAN , 2012 , RWC , "THD_dset_in_session" , MICRO , TYPE_MODIFY ,
    "Alter FIND_PREFIX to strip off '+view' if present." ,
    NULL } ,
 
