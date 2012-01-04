@@ -18,7 +18,8 @@
 
 
 int update_help_for_afni_programs(int force_recreate, 
-                                  byte verb, THD_string_array **hlist )
+                                  byte verb, byte clean, 
+                                  THD_string_array **hlist )
 {
    int ii, iaf, icomm, estat;
    char hout[128], scomm[256], *etr=NULL, *hdir=NULL, *etm=NULL;
@@ -94,7 +95,7 @@ int update_help_for_afni_programs(int force_recreate,
    }
    /* cleanup hdir */
    if (verb) fprintf(stderr,"Cleaning help directory %s\n",hdir);
-   if (system("@clean_help_dir")) {
+   if (clean && system("@clean_help_dir")) {
       WARNING_message("Failed cleaning help directory");
    }
    
@@ -126,6 +127,7 @@ void apsearch_usage(int detail)
    "  -word WORD: WORD being sought\n"
    "  -w WORD: Abbreviated version of -word WORD\n"
    "  -file FILE: Search for WORD in text file FILE\n"
+   "  -files FILE1 FILE2 ...: Search for WORD in text files FILE1 FILE2 ...\n"
    "  -text TEXT: Search for WORD in string TEXT\n"
    "  -stdin: Search for WORD in text from stdin\n"
    "  -: Same as -stdin\n"
@@ -133,6 +135,8 @@ void apsearch_usage(int detail)
    "  -popt PROG: Search for possible options of PROG that match WORD\n"
    "              Make sure you add the '-' to WORD if you are looking\n"
    "              for an actual option.\n"
+   "  -all_afni_help: Search for WORD in all afni help files.\n"
+   "                  This option is not all that clever at the moment.\n"
    "  -all_popts PROG: TRY to guess at all the options for PROG\n"
    "                  The list of options is not guaranteed to be full\n"
    "                  or accurate. It is created by parsing the program's\n"
@@ -151,13 +155,13 @@ void apsearch_usage(int detail)
    "  -unique_hits_only: Restrict output to novel hits only.\n"
    "  -show_score: Show matching word's distance.\n"
    "  -show_score_detail: That's right.\n"
-   "  -all_afni_progs: List all executables in AFNI's bin directory\n"
-   "  -all_afni_P_progs: Same as -all_afni_progs but with path\n"
-   "  -all_afni_readmes: List all README files in AFNI's bin directory\n"
-   "  -all_afni_P_readmes: Same as -all_afni_readmes but with path\n"
-   "  -all_afni_dsets: List all datasets in AFNI's bin directory\n"
-   "  -all_afni_P_dsets: Same as -all_afni_dsets but with path\n"
-   "  -all_afni_help: Build/update -help output under directory:\n"
+   "  -list_all_afni_progs: List all executables in AFNI's bin directory\n"
+   "  -list_all_afni_P_progs: Same as -list_all_afni_progs but with path\n"
+   "  -list_all_afni_readmes: List all README files in AFNI's bin directory\n"
+   "  -list_all_afni_P_readmes: Same as -list_all_afni_readmes but with path\n"
+   "  -list_all_afni_dsets: List all datasets in AFNI's bin directory\n"
+   "  -list_all_afni_P_dsets: Same as -list_all_afni_dsets but with path\n"
+   "  -update_all_afni_help: Build/update -help output under directory:\n"
    "                     %s\n"
    "                  If older help files differ by little they are deleted\n"
    "                  Little differences would be the compile date or the\n"
@@ -224,7 +228,7 @@ void apsearch_usage(int detail)
    "                                sed 's/[-_]/ /g' |\\\n"
    "                                apsearch -stdin -word insolent\n"
    " 8- Find 10 afni programs with something like 'Surface' in their names:\n"
-   "        apsearch -all_afni_progs | \\\n"
+   "        apsearch -list_all_afni_progs | \\\n"
    "             apsearch -stdin -word surface -max_hits 10\n"
    " 9- Open the readme for driving AFNI:\n"
    "        apsearch -view_readme driv\n" 
@@ -282,11 +286,13 @@ int main(int argc, char **argv)
 {
    int iarg, N_ws, i, max_hits, test_only, new_score=0,
        i_unique_score=0, min_different_hits=0, unq_only=0,
-       show_score=0;
+       show_score=0, N_fnamev=0, MAX_FNAMES = 0;
    float *ws_score=NULL, last_score=-1.0;
    char *fname=NULL, *text=NULL, *prog=NULL, *word="Ma fich haga", **ws=NULL, 
          *all_popts=NULL, *popt=NULL, stdinflag[] = " [+.-STDIN-.+] ";
+   THD_string_array *fnamev = NULL;
    APPROX_STR_DIFF *D=NULL;
+   THD_string_array *sar = NULL;
    byte ci = 1;
    
    mainENTRY("apsearch main"); machdep() ; 
@@ -390,6 +396,24 @@ int main(int argc, char **argv)
          continue; 
       }
 
+      if (strcmp(argv[iarg],"-files") == 0) { 
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+                     "** Error: Need text files after -files\n"); return(1);
+         }
+         while (iarg <= argc && argv[iarg][0] != '-') {
+            if ( ! fnamev ) INIT_SARR(fnamev);
+            if (!THD_is_file(argv[iarg])) {
+               ERROR_exit("Argument %s for -files is not a file on disk\n", 
+                             argv[iarg]); 
+            }
+            ADDUTO_SARR(fnamev, argv[iarg]); 
+            ++iarg;
+         }
+         continue; 
+      }
+
       if (strcmp(argv[iarg],"-stdin") == 0 || strcmp(argv[iarg],"-") == 0) { 
          fname = stdinflag;
          ++iarg;
@@ -422,7 +446,7 @@ int main(int argc, char **argv)
          } else {
             fprintf( stderr,
                      "** Error: Could not find solid match for readme %s\n"
-                     "Try to pick a good one using apsearch -all_afni_readmes\n",
+               "Try to pick a good one using apsearch -list_all_afni_readmes\n",
                      argv[iarg]);
             ws = approx_str_sort_readmes(argv[iarg], &N_ws);
             if (N_ws) {
@@ -521,43 +545,49 @@ int main(int argc, char **argv)
          continue; 
       }
       
-      if (strcmp(argv[iarg],"-all_afni_help") == 0) { 
-         update_help_for_afni_programs(0, 1, NULL); return(0);
+      if (strcmp(argv[iarg],"-update_all_afni_help") == 0) { 
+         update_help_for_afni_programs(0, 1, 1, NULL); return(0);
          ++iarg;
          continue; 
       }
 
-      if (strcmp(argv[iarg],"-all_afni_progs") == 0) { 
+      if (strcmp(argv[iarg],"-all_afni_help") == 0) { 
+         update_help_for_afni_programs(0, 0, 0, &fnamev); 
+         ++iarg;
+         continue; 
+      }
+
+      if (strcmp(argv[iarg],"-list_all_afni_progs") == 0) { 
          list_afni_programs(0, 0); return(0);
          ++iarg;
          continue; 
       }
       
-      if (strcmp(argv[iarg],"-all_afni_P_progs") == 0) { 
+      if (strcmp(argv[iarg],"-list_all_afni_P_progs") == 0) { 
          list_afni_programs(1, 0); return(0);
          ++iarg;
          continue; 
       }
       
-      if (strcmp(argv[iarg],"-all_afni_readmes") == 0) { 
+      if (strcmp(argv[iarg],"-list_all_afni_readmes") == 0) { 
          list_afni_readmes(0, 0); return(0);
          ++iarg;
          continue; 
       }
       
-      if (strcmp(argv[iarg],"-all_afni_P_readmes") == 0) { 
+      if (strcmp(argv[iarg],"-list_all_afni_P_readmes") == 0) { 
          list_afni_readmes(1, 0); return(0);
          ++iarg;
          continue; 
       }
       
-      if (strcmp(argv[iarg],"-all_afni_dsets") == 0) { 
+      if (strcmp(argv[iarg],"-list_all_afni_dsets") == 0) { 
          list_afni_dsets(0, 0); return(0);
          ++iarg;
          continue; 
       }
 
-      if (strcmp(argv[iarg],"-all_afni_P_dsets") == 0) { 
+      if (strcmp(argv[iarg],"-list_all_afni_P_dsets") == 0) { 
          list_afni_dsets(1, 0); return(0);
          ++iarg;
          continue; 
@@ -584,17 +614,25 @@ int main(int argc, char **argv)
       return 0;
    }
 
-   if ((fname || text || prog || popt || all_popts)) {
+   if ((fnamev || fname || text || prog || popt || all_popts)) {
       if (!strcmp(word,"Ma fich haga")) {
          ERROR_message(
             "I'd search the world over for you, if only you gave me -word");
          return 1;
       }
-      if (fname) {
+      if (fnamev) {
+         fprintf(stderr,"Have %d files\n", fnamev->num);
+
+         sar = approx_str_sort_Ntfile(
+                     fnamev->ar, fnamev->num, word, ci, &ws_score,
+                            NULL,
+                            &D, 0);
+         ws = sar->ar; N_ws = sar->num;
+      } else if (fname) {
          if (strcmp(fname,stdinflag)) {
             ws = approx_str_sort_tfile(fname, &N_ws, word, 
-                            ci, &ws_score,
-                            NULL, &D);
+                         ci, &ws_score,
+                         NULL, &D, 1);
          } else {
             char *stdtext=NULL;
             if (!(stdtext = text_from_stdin(&N_ws))) {
@@ -635,10 +673,30 @@ int main(int argc, char **argv)
             }
             if (i<max_hits || i_unique_score<=min_different_hits) {
                if (!unq_only || new_score) {
-                  if (show_score) fprintf(stdout,"%03f ", ws_score[i]);
-                  if (show_score > 1) 
-                     fprintf(stdout,"%s ", approx_string_diff_info(D+i, NULL));
-                  if (!show_score) fprintf(stdout,"   ");
+                  switch(show_score) {
+                     case 0:
+                        fprintf(stdout,"   ");
+                        if ((D+i)->srcfile && 
+                            strncmp((D+i)->srcfile,APSEARCH_TMP_PREF,
+                                             strlen(APSEARCH_TMP_PREF))) 
+                           fprintf(stdout,"(%s) ",(D+i)->srcfile);
+                        break;
+                     case 1: 
+                        fprintf(stdout,"%03f ", 
+                                    ws_score[i]);
+                        if ((D+i)->srcfile && 
+                            strncmp((D+i)->srcfile,APSEARCH_TMP_PREF,
+                                             strlen(APSEARCH_TMP_PREF))) 
+                           fprintf(stdout,"(%s) ",(D+i)->srcfile);
+                        break;
+                     case 2:
+                        fprintf(stdout,"%s ", 
+                           approx_string_diff_info(D+i, NULL));
+                        break;
+                     default:
+                        ERROR_exit("Bad show_score value");
+                        break;
+                  }
                   fprintf(stdout,"%s\n", ws[i]);
                }
             }
@@ -648,5 +706,6 @@ int main(int argc, char **argv)
       if (D) free(D); D=NULL;
    } 
    
+   if (fnamev) DESTROY_SARR(fnamev); fnamev=NULL;
    return 0;  
 }

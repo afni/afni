@@ -280,7 +280,13 @@ char **approx_str_sort_text(char *text, int *N_ws, char *str,
 char **approx_str_sort_tfile(char *fname, int *N_ws, char *str, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
-                            APPROX_STR_DIFF **Dout);
+                            APPROX_STR_DIFF **Dout, int verb);
+THD_string_array *approx_str_sort_Ntfile(
+                      char **fnames, int N_names, char *str, 
+                      byte ci, float **sorted_score,
+                      APPROX_STR_DIFF_WEIGHTS *Dwi,
+                      APPROX_STR_DIFF **Doutp, int verb);
+#define APSEARCH_TMP_PREF "__apsearch"
 char **approx_str_sort_phelp(char *prog, int *N_ws, char *str, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,

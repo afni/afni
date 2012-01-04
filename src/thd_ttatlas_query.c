@@ -3822,7 +3822,7 @@ int *sort_str_diffs (APPROX_STR_DIFF **Di, int N_words,
    ENTRY("sort_str_diffs");
 
    if (sorted_score && *sorted_score) {
-      ERROR_message("If sorted_score then *sorted_score should be NULL\n");
+      ERROR_message("If sorted_score then *sorted_score should be NULL!\n");
       RETURN(isi);
    }
    
@@ -4017,19 +4017,20 @@ THD_string_array *approx_str_sort_Ntfile(
                   char **fnames, int N_names, char *str, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
-                            APPROX_STR_DIFF **Doutp)
+                            APPROX_STR_DIFF **Doutp, int verb)
 {
    char **ws=NULL, *text=NULL, *fname=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
-   THD_string_array *sar=NULL;
+   THD_string_array *sar=NULL, *sars=NULL;
    APPROX_STR_DIFF *Dout=NULL;
-   int N_ws=-1, inm=0, ii=0;
+   int N_ws=-1, inm=0, ii=0, *isi=NULL;
+   int direct = -1; /* -1 best match first, 1 best match last */
    
-   ENTRY("approx_str_sort_tfile");
+   ENTRY("approx_str_sort_Ntfile");
 
    if (!fnames || !str) RETURN(sar);
    if (sorted_score && *sorted_score) {
-      ERROR_message("If sorted_score then *sorted_score should be NULL\n");
+      ERROR_message("If sorted_score then *sorted_score should be NULL.\n");
       RETURN(sar);
    }
    if (Doutp && *Doutp) {
@@ -4038,29 +4039,43 @@ THD_string_array *approx_str_sort_Ntfile(
    }
    
    if (!Dw) Dw = init_str_diff_weights(Dw);
-   
+
    for (inm=0; inm < N_names; ++inm) {
       fname = fnames[inm];
-      /* suck text and send it to approx_str_sort_text */
-      if (!(text = AFNI_suck_file(fname))) {
-         ERROR_message("File %s could not be read\n", fname);
-         RETURN(sar); /* Leaky return, Dw not freed */
+      if (!(ws = approx_str_sort_tfile(fname, &N_ws, str, ci, 
+                                NULL, Dw, &Dout, verb))) {
+         if (verb) WARNING_message("Failed to process %s\n", fname);
+         continue;
       }
-   
-      ws = approx_str_sort_text(text, &N_ws, str, ci, sorted_score, Dw, &Dout);
       if (!sar) INIT_SARR( sar ) ;
       for (ii=0; ii<N_ws; ++ii) {
          ADDTO_SARR(sar, ws[ii]); free(ws[ii]); ws[ii]=NULL;
       }
-      *Doutp = (APPROX_STR_DIFF *)realloc((*Doutp), 
-                     sar->num* sizeof(APPROX_STR_DIFF *));
-      memcpy(((*Doutp)+sar->num-N_ws), Dout, N_ws*sizeof(APPROX_STR_DIFF *));
-      free(Dout); Dout = NULL;
+      if (Doutp) {
+         *Doutp = (APPROX_STR_DIFF *)realloc((*Doutp), 
+                        sar->num* sizeof(APPROX_STR_DIFF));
+         memcpy(((*Doutp)+sar->num-N_ws), Dout, N_ws*sizeof(APPROX_STR_DIFF));
+      }
+      free(Dout); Dout = NULL; 
       free(ws); free(text); text=NULL;
    }
    if (Dw != Dwi) free(Dw); Dw=NULL;
    
-   /* Now that we have all files read, sort the final result */
+   /* Now that we have all files read, sort the final result 
+      This is weak here, sort_str_diffs should also take into
+      account the frequency with which good matches are found
+      in a particular file.
+      Someday perhaps...*/
+   isi = sort_str_diffs (Doutp, sar->num, Dwi, sorted_score, direct, 1); 
+
+   /* create sorted output, best match last */
+   INIT_SARR(sars);
+   for (ii=0; ii<sar->num; ++ii) {
+      ADDTO_SARR(sars,sar->ar[isi[ii]]);
+   }
+   DESTROY_SARR(sar); sar = sars; sars=NULL;
+   free(isi); isi=NULL;
+   
    RETURN(sar);
 }
 
@@ -4068,7 +4083,7 @@ THD_string_array *approx_str_sort_Ntfile(
 char **approx_str_sort_tfile(char *fname, int *N_ws, char *str, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
-                            APPROX_STR_DIFF **Dout)
+                            APPROX_STR_DIFF **Dout, int verb)
 {
    char **ws=NULL, *text=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
@@ -4088,7 +4103,7 @@ char **approx_str_sort_tfile(char *fname, int *N_ws, char *str,
    }
    /* suck text and send it to approx_str_sort_text */
    if (!(text = AFNI_suck_file(fname))) {
-      ERROR_message("File %s could not be read\n", fname);
+      if (verb) ERROR_message("File %s could not be read\n", fname);
       RETURN(ws);
    }
    
@@ -4195,7 +4210,7 @@ char **approx_str_sort_phelp(char *prog, int *N_ws, char *str,
    }      
    
    UNIQ_idcode_fill(uid);
-   sprintf(tout,"/tmp/__apsearch.%s.txt", uid);
+   sprintf(tout,"/tmp/%s.%s.txt", APSEARCH_TMP_PREF, uid); 
    snprintf(cmd,500*sizeof(char),"%s -help >& %s", prog, tout);
    if (system(cmd)) {
       if (0) {/* many programs finish help and set status afterwards. Naughty. */
@@ -4203,7 +4218,7 @@ char **approx_str_sort_phelp(char *prog, int *N_ws, char *str,
          return 0;
       }
    }
-   ws = approx_str_sort_tfile(tout, N_ws, str, ci, sorted_score, Dw, Dout);
+   ws = approx_str_sort_tfile(tout, N_ws, str, ci, sorted_score, Dw, Dout, 1);
                                  
    snprintf(cmd,500*sizeof(char),"\\rm -f %s", tout);
    system(cmd);
@@ -6109,11 +6124,15 @@ int is_Dset_Atlasy(THD_3dim_dataset *dset, ATLAS_LIST *atlas_alist)
    NI_set_attribute(nel, "description","Je vous aime");
    NI_set_attribute(nel, "comment","Added on the fly");
    
+   if (!session_atlas_name_list) INIT_SARR(session_atlas_name_list);
    if (!add_atlas_nel(nel, NULL, 
-                        atlas_alist, NULL, NULL, NULL, NULL)) {
+                      atlas_alist, NULL, NULL, session_atlas_name_list, NULL)) {
       ERROR_message("Failed to add to atlaslist");
       goto CLEAN;
    }
+   /* and reset the working list */
+   recreate_working_atlas_name_list();
+   
    /* Now get the atlas loaded (duplication here) */
    if (!Atlas_With_Trimming(NI_get_attribute(nel,"atlas_name"),1,atlas_alist)) {
       ERROR_message("Unexpected failure to setup atlas");
