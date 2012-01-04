@@ -325,7 +325,9 @@ THD_string_array * THD_get_all_afni_executables(void )
          ADDTO_SARR( outar , elist->ar[ii] ) ; ++iaf;
          /* fprintf(stderr," %d- %s\n", iaf, etr); */
       } else {
-         /* fprintf(stderr," skip %s (%s)\n", elist->ar[ii], af); */
+         /* fprintf(stderr," skip %s (%s) %d--%d--%d isd %d\n", 
+               elist->ar[ii], af, STORAGE_UNDEFINED, smode, LAST_STORAGE_MODE,
+               THD_is_directory(elist->ar[ii])); */
       }
    } 
    

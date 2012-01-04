@@ -54,7 +54,6 @@ endif
 if ($space != '') then
    3drefit -space $space $target_dset  >& /dev/null
 endif
-
 @MakeLabelTable -lab_file_delim "$delim"  \
                 -lab_file $flab $iL $iV \
                 -atlas_pointlist keys_${RNS}_ \
@@ -167,8 +166,20 @@ PARSE:
             endif
             @ cnt ++
             set iL = `ccalc -i $argv[$cnt]`
-            @ cnt ++
+            if ($status) then
+               echo "Error"
+               echo "Failed to get value label index from argument '$argv[$cnt]'"
+               echo ""
+               goto BEND
+            endif
+           @ cnt ++
             set iV = `ccalc -i $argv[$cnt]`
+            if ($status) then
+               echo "Error"
+         echo "Failed to get value column index from argument '$argv[$cnt]'"
+               echo ""
+               goto BEND
+            endif
          endif
          goto CONTINUE
       endif
