@@ -2285,7 +2285,8 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
 
    if ((s=NI_get_attribute(nel, "dset_name"))) {
       atlas->atlas_dset_name = NULL;
-      if (!THD_is_prefix_ondisk(s)  && parentdir && !THD_filehaspath(s)) {
+      if (!THD_is_prefix_ondisk(s) && 
+          parentdir && !THD_filehaspath(s)) {
          char *ss=(char *)calloc(strlen(parentdir)+strlen(s)+2,sizeof(char*));
          sprintf(ss,"%s/%s",parentdir,s);
          if (THD_is_prefix_ondisk(ss)) 
