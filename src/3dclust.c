@@ -127,7 +127,9 @@ int main( int argc , char * argv[] )
    int do_mni ;                         /* 30 Apr 2002 */
    char c1d[2] = {""}, c1dn[2] = {""};
    byte *mask=NULL ; int nmask=0 ;      /* 02 Aug 2011 */
-
+   
+   mainENTRY("3dclust"); machdep();
+   
    if( argc < 4 || strncmp(argv[1],"-help",4) == 0 ){
       printf ("\n\n");
       printf ("Program: %s \n", PROGRAM_NAME);
@@ -1054,6 +1056,7 @@ void CL_read_opts( int argc , char * argv[] )
       /**** unknown switch ****/
 
       fprintf(stderr,"** Unrecognized option %s\a\n",argv[nopt]) ;
+      suggest_best_prog_option(argv[0], argv[nopt]);
       exit(1) ;
 
    }  /* end of loop over options */

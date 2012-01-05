@@ -41,7 +41,8 @@ function [err, ErrMessage, Info] = WriteBrik (M, Info, Opt)
 %
 %               Regardless of .NoCheck, the following is done:
 %                  + The fields Info.BRICK_STATS and Info.BRICK_FLOAT_FACS
-%                    are cleared (and set if .Scale is used).
+%                    are recomputed. 
+%                    BRICK_FLOAT_FACS are set to zero if .Scale=0
 %                  + The field Info.IDCODE_STRING is cleared in WriteBrikHEAD
 %                  + The field Info.IDCODE_DATE is set in WriteBrikHEAD
 %      
@@ -223,7 +224,19 @@ end
             fprintf(2,'\nNote %s:\n Adopting view (%s) from supplied prefix \n', FuncName, Opt.View);
          end
       end
-      if (isempty(Opt.View)), Opt.View = '+orig'; end
+      if (isempty(Opt.View)), 
+         Opt.View = '+orig'; 
+         if (isfield(Info,'SCENE_DATA') & ~isempty(Info.SCENE_DATA)),
+            switch Info.SCENE_DATA(1),
+               case 0
+                  Opt.View = '+orig';
+               case 1
+                  Opt.View = '+acpc';
+               case 2
+                  Opt.View = '+tlrc';
+            end      
+         end
+      end
    if (~isempty(findstr('orig', lower(Opt.View)))),
       Opt.View = '+orig';
    elseif (~isempty(findstr('acpc', lower(Opt.View)))),
@@ -234,7 +247,6 @@ end
       err = 1; ErrMessage = sprintf('Error %s: Bad value (%s) for Opt.View', FuncName, Opt.View); errordlg(ErrMessage); return;
    end
    if (~isfield(Opt, 'AppendHistory') | isempty (Opt.AppendHistory)), Opt.AppendHistory = 1; end
-
 
 
 %form the flename based on the stuff in Opt.Prefix, just use the option
@@ -353,11 +365,15 @@ itype = unique(B_type);
 if (length(itype) > 1),
    err =  1; ErrMessage = sprintf('Error %s: Not set up to write sub-bricks of multiple sub-types', FuncName); errordlg(ErrMessage); return;
 end
+
+scaleval = 1;
 switch itype,
    case 0
       typestr = 'ubit8';
+      scaleval = 255;
    case 1
       typestr = 'short';
+      scaleval = 32767;
    case 2
       typestr = 'int';
    case 3
@@ -381,25 +397,34 @@ isallframes=all(ismember(allframes,Opt.Frames));
 
 Info.BRICK_FLOAT_FACS = zeros(1,Info.DATASET_RANK(2));
 
-if (Opt.Scale & isallslices & isallframes),
-      if (Opt.verbose), fprintf(1,'Scaling ...'); end
-      NperBrik = Info.DATASET_DIMENSIONS(1) .* Info.DATASET_DIMENSIONS(2) .* Info.DATASET_DIMENSIONS(3);
-      for (j=1:1:Info.DATASET_RANK(2)),
-         istrt = 1+ (j-1).*NperBrik;
-         istp = istrt + NperBrik - 1;
-         [max1, imax1] = max(abs(M(istrt:istp)));
-         Info.BRICK_STATS(2.*(j-1)+1)= min(M(istrt:istp));
-         [max2, imax2] = max(M(istrt:istp));
-         Info.BRICK_STATS(2.*j)= max2;
-         Info.BRICK_FLOAT_FACS(j) = max1 ./ 32700; % a bit lower than 32000
-         if (Info.BRICK_FLOAT_FACS(j) == 0)
-            Info.BRICK_FLOAT_FACS(j) = 1;
-         else
+%get min max and scale
+if (isallslices & isallframes),
+   if (Opt.verbose), fprintf(1,'Range computation ...'); end
+   NperBrik = Info.DATASET_DIMENSIONS(1) .* Info.DATASET_DIMENSIONS(2) .* Info.DATASET_DIMENSIONS(3);
+   for (j=1:1:Info.DATASET_RANK(2)),
+      istrt = 1+ (j-1).*NperBrik;
+      istp = istrt + NperBrik - 1;
+      [max1, imax1] = max(abs(M(istrt:istp)));
+      Info.BRICK_STATS(2.*(j-1)+1)= min(M(istrt:istp));
+      [max2, imax2] = max(M(istrt:istp));
+      Info.BRICK_STATS(2.*j)= max2;
+      Info.BRICK_FLOAT_FACS(j) = max1 ./ scaleval; 
+      if (Info.BRICK_FLOAT_FACS(j) == 0)
+         Info.BRICK_FLOAT_FACS(j) = 1;
+      else
+         if (Opt.Scale), % apply scale 
             M(istrt:istp) = M(istrt:istp) ./ Info.BRICK_FLOAT_FACS(j);
          end
       end
+   end
+end
+if (Opt.Scale & isallslices & isallframes),
+   %Nothing left to do, parameters computed above
 elseif (Opt.Scale),
    err = 1; ErrMessage = sprintf('Error %s: Cannot scale data when not writing all frames and all slices.\n', FuncName); errordlg(ErrMessage); return;
+else
+   %kill the float factor
+   Info.BRICK_FLOAT_FACS = zeros(1,Info.DATASET_RANK(2));
 end
 
 numpix=Info.DATASET_DIMENSIONS(1)*Info.DATASET_DIMENSIONS(2);
@@ -428,7 +453,9 @@ else
 end
 
 %write the file
-if (Opt.verbose), fprintf(1,'Writing %s to disk ...', FnameBRIK); end
+if (Opt.verbose), 
+   fprintf(1,'Writing %s to disk ...', FnameBRIK); 
+end
 if isallslices & isallframes
    cnt = fwrite(fid, M, typestr);
 else

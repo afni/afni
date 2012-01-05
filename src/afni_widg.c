@@ -6873,6 +6873,37 @@ int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
    RETURN(0) ;
 }
 
+/* suggest a colormap for ROI dsets */ 
+char *AFNI_smallest_intpbar(THD_3dim_dataset *dset) 
+{
+   float mxset;
+   static int warn=0;
+   
+   mxset = THD_dset_max(dset, 1);
+   
+   if (mxset <= 32) {
+      return("ROI_i32" ) ;
+   } else if (mxset <= 64) {
+      return("ROI_i64" ) ;
+   } else if (mxset <= 128) {
+      return("ROI_i128" ) ;
+   } else if (mxset <= 256) {
+      return("ROI_i256" ) ;
+   } else if (mxset > 256) {
+      if (!(warn % 10)) {
+         /* You might want to override the automatic setting of the 
+         range with a call to 
+            AFNI_set_func_range_nval(pbar->parent, 
+                           THD_dset_max(dset, 1));
+            after all the bigmap setup is done ... */
+         WARNING_message("Distinct values might map to the same color"
+                      "in %s\n", DSET_PREFIX(dset));
+      } ++ warn;
+      return("ROI_i256" ) ;
+   } 
+   
+   return("ROI_i256" ) ;  
+}
 
 /*----------------------------------------------------------------------*/
 
@@ -6907,8 +6938,13 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       if (icmap >=0 ) {
          PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name) ;
       } else {
-         PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
+         if (1) { /* one approach */
+            PBAR_set_bigmap( im3d->vwid->func->inten_pbar , 
+                             AFNI_smallest_intpbar(im3d->fim_now) ) ;
+         } else { /* another perhaps */
+            PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
                               im3d->int_pbar_index ) ;
+         }
       }
       switched = 1;
       /* Problem is that when you switch back to a non  ROI dset,
@@ -6935,19 +6971,8 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
          PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name) ;
       } else {
          if (1) { /* one approach */
-           if (THD_dset_max(im3d->fim_now, 1) > 256) {
-               static int warn=0;
-               if (!(warn % 10)) {
-                  /* You might want to override the automatic setting of the 
-                  range with a call to 
-                     AFNI_set_func_range_nval(pbar->parent, 
-                                    THD_dset_max(im3d->fim_now, 1));
-                     after all the bigmap setup is done ... */
-                  WARNING_message("Distinct values might map to the same color"
-                               "in %s\n", DSET_PREFIX(im3d->fim_now));
-               } ++ warn;
-            }
-            PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
+            PBAR_set_bigmap( im3d->vwid->func->inten_pbar , 
+                             AFNI_smallest_intpbar(im3d->fim_now) ) ;
          } else { /* another perhaps */
             PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
                               im3d->int_pbar_index ) ;
@@ -6964,7 +6989,12 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       */
       /* use ROI_i256 for now for datasets marked as integer cmaps (even sparse ones) */
       if(im3d->fim_now->int_cmap) {
-         PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
+         if (1) { /* one approach */
+            PBAR_set_bigmap( im3d->vwid->func->inten_pbar , 
+                             AFNI_smallest_intpbar(im3d->fim_now) );
+         } else { /* or perhaps */
+            PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
+         }
       }
       else {
 #if 0
