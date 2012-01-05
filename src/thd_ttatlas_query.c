@@ -4155,6 +4155,7 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
       /* remove brackets and such */
       dpun = strdup(ws[i]);
       depunct_name(dpun);
+      deblank_name(dpun); /* to catch things like * -option in 3dclust */
       if (dpun[0] != '-' || strlen(dpun) < 2 || isspace(dpun[1]) ||
           !strncmp(dpun,"-- ",3) || !strncmp(dpun,"--- ",4)) {
          free(dpun); dpun=NULL;
@@ -7892,7 +7893,8 @@ char * deblank_name (char *name) {
 #define IS_PUNCT(m) (   m=='[' || m==']' || \
                         m=='<' || m=='>' || \
                         m==':' || m==';' || \
-                        m=='(' || m==')') 
+                        m=='(' || m==')' || \
+                        m=='*' ) 
 char * depunct_name (char *name) {
    int nch = 0, bb=0, ibb=0, BB=0;
    
