@@ -4850,8 +4850,8 @@ int SUMA_dset_to_Label_dset(SUMA_DSET *dset)
    
    if (!dset || !dset->dnel || !dset->inel) SUMA_RETURN(0);
    
-   if (SDSET_VECNUM(dset) != 1) { 
-      SUMA_LH("Too many columns");
+   if (!SUMA_is_AllConsistentCastType_dset(dset, SUMA_int)) { 
+      SUMA_LH("Not all columns are type castable to SUMA_int");
       SUMA_RETURN(0); 
    }
    
@@ -10459,6 +10459,63 @@ int SUMA_is_AllConsistentNumeric_dset(SUMA_DSET *dset, SUMA_VARTYPE *vtpp)
    SUMA_RETURN(1);
 }
 
+/*! 
+   Are all columns of the same column type ctpi
+   If you just care for a consistency test, set ctpi to SUMA_ERROR_COL_TYPE
+*/
+int SUMA_is_AllConsistentColType_dset(SUMA_DSET *dset, SUMA_COL_TYPE ctpi) 
+{
+   static char FuncName[]={"SUMA_is_AllConsistentColType_dset"};
+   int ctp0 = SUMA_ERROR_COL_TYPE, ctp, i;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(0);
+   
+   for (i=0; i<SDSET_VECNUM(dset); ++i) {
+      ctp = SUMA_TypeOfDsetColNumb(dset, i); 
+      if (ctpi>SUMA_ERROR_COL_TYPE && ctp != ctpi) SUMA_RETURN(0);
+      if (i==0) { ctp0 = ctp; }
+      else if (ctp0 != ctp) SUMA_RETURN(0);
+   }
+   SUMA_RETURN(1);
+}
+
+int SUMA_GetConsistentColType_dset(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_GetConsistentColType_dset"};
+   int ctp0 = SUMA_ERROR_COL_TYPE, ctp, i;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(SUMA_ERROR_COL_TYPE);
+   
+   for (i=0; i<SDSET_VECNUM(dset); ++i) {
+      ctp = SUMA_TypeOfDsetColNumb(dset, i); 
+      if (i==0) { ctp0 = ctp; }
+      else if (ctp0 != ctp) SUMA_RETURN(SUMA_ERROR_COL_TYPE);
+   }
+   SUMA_RETURN(ctp0);
+}
+
+int SUMA_is_AllConsistentCastType_dset(SUMA_DSET *dset, int typecast) 
+{
+   static char FuncName[]={"SUMA_is_AllConsistentCastType_dset"};
+   int ctp, vtp, i;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(0);
+   
+   for (i=0; i<SDSET_VECNUM(dset); ++i) {
+      ctp = SUMA_TypeOfDsetColNumb(dset, i); 
+      vtp = SUMA_ColType2TypeCast(ctp) ;
+      if (vtp != typecast) SUMA_RETURN(0);
+   }
+   
+   SUMA_RETURN(1);
+}
+
 int SUMA_is_AllNumeric_dset(SUMA_DSET *dset) 
 {
    static char FuncName[]={"SUMA_is_AllNumeric_dset"};
@@ -10493,7 +10550,8 @@ int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap)
    
    if (!dset) SUMA_RETURN(0);
    
-   if (SDSET_VECNUM(dset) != 1) { SUMA_RETURN(0); }
+   if (!SUMA_is_AllConsistentColType_dset(dset, SUMA_NODE_ILABEL)) 
+      SUMA_RETURN(0);
    
    /* Check on the dset_type attribute.  
       This check is needed to tell the difference between
@@ -10503,16 +10561,6 @@ int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap)
       SUMA_NODE_ILABEL*/
    
    if (SDSET_TYPE (dset) != SUMA_NODE_LABEL) { SUMA_RETURN(0); }  
-
-   /* Must have one column that is an ILABEL */
-   for (i=0; i<SDSET_VECNUM(dset); ++i) {
-      ctp = SUMA_TypeOfDsetColNumb(dset, i); 
-      if (LocalHead) {
-         fprintf(SUMA_STDERR,"%s: ctp(%d) = %d (%d)\n",
-               FuncName, i, ctp, SUMA_NODE_ILABEL);
-      }
-      if (ctp != SUMA_NODE_ILABEL) SUMA_RETURN(0);
-   }
    
    /* Does the dset have a colormap ?*/
    if ((ngr = SUMA_NI_Cmap_of_Dset(dset))) {
