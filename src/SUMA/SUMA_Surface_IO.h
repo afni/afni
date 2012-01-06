@@ -74,6 +74,9 @@ void SUMA_OpenDrawnROI (char *filename, void *data);
 SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, 
                                  char *Parent_idcode_str, int Pad_to, 
                                  int Pad_val, SUMA_COLOR_MAP **cm) ;
+SUMA_DSET *SUMA_ROIv2MultiDset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, 
+                                 char *Parent_idcode_str, int Pad_to, 
+                                 int Pad_val, SUMA_COLOR_MAP **cm) ;
 NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_idcode_str, int pad_to, int pad_val);
 DList *SUMA_ROIv2NodeLists (SUMA_DRAWN_ROI** ROIv, int N_ROIv, int purgedups) ; 
 void SUMA_SaveSOascii (char *filename, void *data);
@@ -114,6 +117,7 @@ SUMA_Boolean SUMA_GetSOCoordXform(SUMA_SurfaceObject *SO, double xform[4][4]);
 
 typedef struct {
    int label;
+   char *name;
    int N_vals;
    int N_alloc;
    int *vals;
