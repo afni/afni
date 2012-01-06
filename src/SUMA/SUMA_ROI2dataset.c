@@ -24,6 +24,7 @@ void usage_ROI2dataset_Main (int detail)
 "                          Program will not overwrite existing\n"
 "                          datasets.\n"
 "                          See also -label_dset alternate below.\n"
+"    -keep_separate: Output one column (sub-brick) for each ROI value\n"
 "\n"      
 " and/or\n"
 "    -nodelist        NL: Prefix for a set of .1D files\n"
@@ -54,6 +55,9 @@ void usage_ROI2dataset_Main (int detail)
 "\n"
 "    -label_dset dsetname: Write a label dataset, instead of a simple dataset.\n"
 "                          Labeled datasets are treated differently in SUMA.\n"   "                          This option also sets the output format to NIML.\n"
+"                    Note: Using -keep_separate with this option is legal, but\n"
+"                          makes little sense. You can't view more than one \n"
+"                          sub-brick in SUMA for Labeled datasets.\n"
 "    -h | -help: This help message\n"
 "    -of FORMAT: Output format of dataset. FORMAT is one of:\n"
 "                ni_bi: NIML binary\n"
@@ -101,7 +105,7 @@ int main (int argc,char *argv[])
    SUMA_ROI_EXTRACT *dd=NULL;
    DList *ddl=NULL;
    DListElmt *el=NULL;
-   int nodups=0, olabel = 0, withflag = 0;
+   int nodups=0, olabel = 0, withflag = 0, keepsep=0;
    SUMA_COLOR_MAP *cmap=NULL;
    SUMA_Boolean LocalHead = NOPE;
 	
@@ -121,6 +125,7 @@ int main (int argc,char *argv[])
    nodelist=NULL;
    withflag = 0;
    olabel = 0;
+   keepsep = 0;
    nodups = 0;
    while (kar < argc) { /* loop accross command ine options */
 		/* SUMA_LH("Parsing command line..."); */
@@ -161,6 +166,13 @@ int main (int argc,char *argv[])
          olabel = 1;
          brk = YUP;
 		}
+      
+      if (  !brk && 
+            (strcmp(argv[kar], "-keep_separate") == 0) ) {
+         keepsep = 1;
+         brk = YUP;     
+      }
+      
       
       if (  !brk && 
             (strcmp(argv[kar], "-nodelist") == 0 || 
@@ -434,14 +446,23 @@ int main (int argc,char *argv[])
    }
    
    if (out_name) { /* output dset required */
-      if (!(dset = SUMA_ROIv2Grpdataset ( ROIv, N_ROIv, 
-                                          Parent_idcode_str, 
-                                          pad_to, pad_val, 
-                                          &cmap))) {
-         SUMA_SL_Err("Failed in SUMA_ROIv2Grpdataset");
-         exit(1);
+      if (!keepsep) {
+         if (!(dset = SUMA_ROIv2Grpdataset ( ROIv, N_ROIv, 
+                                             Parent_idcode_str, 
+                                             pad_to, pad_val, 
+                                             &cmap))) {
+            SUMA_SL_Err("Failed in SUMA_ROIv2Grpdataset");
+            exit(1);
+         }
+      } else {
+         if (!(dset = SUMA_ROIv2MultiDset ( ROIv, N_ROIv, 
+                                             Parent_idcode_str, 
+                                             pad_to, pad_val, 
+                                             &cmap))) {
+            SUMA_SL_Err("Failed in SUMA_ROIv2MultiDset");
+            exit(1);
+         }
       }
-
       if (LocalHead) {
          fprintf (SUMA_STDERR,"%s: Adding history\n",
                            FuncName);

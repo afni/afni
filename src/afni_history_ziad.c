@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 6, JAN , 2012 , ZSS , "ROI2dataset" , MICRO , TYPE_NEW_OPT,
+   "Added -keep_separate to allow for another way to split ROIs",
+   NULL,
+ },
+    
  { 4, JAN , 2012 , ZSS , "ROI2dataset" , MICRO , TYPE_NEW_OPT,
    "Added -nodelist_with_ROIval to facilitate splitting ROIs",
    NULL,
