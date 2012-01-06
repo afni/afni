@@ -163,7 +163,7 @@ ENTRY("INCOR_addto_2Dhist") ;
    }
 
    /*-- count number of good values left in range (in both x and y) --*/
-
+#pragma omp critical (MEMCPY)
    memset(good,0,n) ;
    for( ngood=ii=0 ; ii < n ; ii++ ){
      if( RANGVAL(x[ii],xxbot,xxtop) && RANGVAL(y[ii],yybot,yytop) && (WW(ii) > 0.0f) ){
@@ -321,7 +321,7 @@ float INCOR_norm_mutinf( INCOR_2Dhist *tdh )
 /*! Compute the correlation ratio from a 2D histogram.
 ----------------------------------------------------------------------------*/
 
-float INCOR_corr_ratio( INCOR_2Dhist *tdh , int cr_mode )
+float INCOR_corr_ratio( INCOR_2Dhist *tdh , int crmode )
 {
    register int ii,jj ;
    register float vv,mm ;
@@ -356,7 +356,7 @@ float INCOR_corr_ratio( INCOR_2Dhist *tdh , int cr_mode )
    yrat  = (uyvar > 0.0f) ? cyvar/uyvar  /* Var(y|x) / Var(y) */
                           : 1.0f ;
 
-   if( cr_mode == 0 ) return (1.0f-yrat) ;   /** unsymmetric **/
+   if( crmode == 0 ) return (1.0f-yrat) ;   /** unsymmetric **/
 
    /** compute CR(x|y) also, for symmetrization **/
 
@@ -378,9 +378,9 @@ float INCOR_corr_ratio( INCOR_2Dhist *tdh , int cr_mode )
    xrat  = (uyvar > 0.0f) ? cyvar/uyvar /* Var(x|y) / Var(x) */
                           : 1.0f ;
 
-   if( cr_mode == 2 ) return (1.0f - 0.5f*(xrat+yrat)) ; /** additive **/
+   if( crmode == 2 ) return (1.0f - 0.5f*(xrat+yrat)) ; /** additive **/
 
-   return (1.0f - xrat*yrat) ;                           /** multiplicative **/
+   return (1.0f - xrat*yrat) ;                          /** multiplicative **/
 }
 
 /*--------------------------------------------------------------------------*/
@@ -599,9 +599,11 @@ ENTRY("INCOR_copyover_2Dhist") ;
    tout->yc  = (float *)malloc(sizeof(float)*nbp) ;
    tout->xyc = (float *)malloc(sizeof(float)*nbp*nbp) ;
 
-   memcpy( tout->xc , tin->xc , sizeof(float)*nbp ) ;
-   memcpy( tout->yc , tin->yc , sizeof(float)*nbp ) ;
-   memcpy( tout->xyc, tin->xyc, sizeof(float)*nbp*nbp ) ;
+#pragma omp critical (MEMCPY)
+   { memcpy( tout->xc , tin->xc , sizeof(float)*nbp ) ;
+     memcpy( tout->yc , tin->yc , sizeof(float)*nbp ) ;
+     memcpy( tout->xyc, tin->xyc, sizeof(float)*nbp*nbp ) ;
+   }
 
    EXRETURN ;
 }
@@ -765,6 +767,7 @@ ENTRY("INCOR_copyover") ;
    switch( INCOR_methcode(vin) ){
 
      case GA_MATCH_PEARSON_SCALAR:
+#pragma omp critical (MEMCPY)
        memcpy( vout , vin , sizeof(INCOR_pearson) ) ;
      break ;
 
