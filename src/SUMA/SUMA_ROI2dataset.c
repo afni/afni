@@ -80,7 +80,9 @@ void usage_ROI2dataset_Main (int detail)
 "                            specify your own padding label.\n"
 "    -pad_label padding_label: Use padding_label (an integer) to\n"
 "                            label nodes that do not belong\n"
-"                            to any ROI. Default is 0.\n" 
+"                            to any ROI. Default is 0.\n"
+"                         This padding value is also used in the multi-column\n"
+"                            format of option -keep_separate.\n" 
 "\n");
          s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
          fprintf(SUMA_STDOUT, 

@@ -75,64 +75,8 @@ static int mybsearch_int( int tt , int nar , int *ar )
    return -1 ;
 }
 
-/*----------------------------------------------------------------------------*/
-
-int main( int argc , char *argv[] )
-{
-   THD_3dim_dataset *xset=NULL ; int nx,ny,nz,nxy,nxyz ;
-   THD_3dim_dataset *sset=NULL ;
-   int nopt=1 , do_automask=0 ;
-   int nvox , nvals , ii,jj,kk , polort=1 , ntime ;
-   float *xsar ; float acc,cc,csum,Mcsum,Zcsum,Qcsum , Tcount ;
-   byte *mask=NULL ; int nxmask=0,nymask=0,nzmask=0 , nmask=0 , vstep=0 ;
-   int nref=0 , iv=0, N_iv=0, Tbone=0;
-   float **ref=NULL, t0=0.0, t1=0.0, ti=0.0;
-   MRI_IMAGE *ortim=NULL ; float *ortar=NULL ;
-   int *indx=NULL ; MRI_IMARR *timar=NULL ; MRI_IMARR *simar=NULL ;
-   char *Mprefix=NULL ; THD_3dim_dataset *Mset=NULL ; float *Mar=NULL ;
-   char *Zprefix=NULL ; THD_3dim_dataset *Zset=NULL ; float *Zar=NULL ;
-   char *Qprefix=NULL ; THD_3dim_dataset *Qset=NULL ; float *Qar=NULL ;
-   char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ;
-   char *Pprefix=NULL ; THD_3dim_dataset *Pset=NULL ; float *Par=NULL ;
-   char *COprefix=NULL; THD_3dim_dataset *COset=NULL ; short *COar=NULL ;
-   int COmask=0 ;
-   float Thresh=0.0f ;
-   char *Tvprefix=NULL ; THD_3dim_dataset *Tvset=NULL ;
-   float **Tvar=NULL ; float *Threshv=NULL, *Tvcount=NULL ;
-   char stmp[256];
-   int nout=0 ;
-   int isodd ;  /* 29 Apr 2009: for unrolling innermost dot product */
-   struct  timeval  tt;
-   float dtt=0.0;
-   float *ccar=NULL ; /* 29 Apr 2009: for OpenMP usage */
-
-   float Pcsum ; int nPcsum ;  /* 23 Jun 2009 */
-
-   char        *expr_string=NULL , expr_type='\0' ;  /* 23 Jun 2009 */
-   PARSER_code *expr_code=NULL ;
-   char *Eprefix=NULL ; THD_3dim_dataset *Eset=NULL ; float *Ear=NULL ;
-   double *atoz[26] ;
-   double *eear=NULL ; float Esum ; int nEsum ;
-   int expr_has_z=0 , expr_has_r=0 ;
-
-   char *HHprefix=NULL ; THD_3dim_dataset *HHset=NULL ;
-   int   HHnum=0 ; short *HHist=NULL ; float HHdel=0.0f , HHdin=0.0f ;
-
-   float bpass_L=0.0f , bpass_H=0.0f , dtime ; int do_bpass=0 ;
-   double ctime ;
-   float gblur=0.0f ;
-   float Mseedr=0.0f , dx,dy,dz ; MCW_cluster *Mseed_nbhd=NULL ;
-   float *Mseedar=NULL ;
-
-   int PCortn=0 , PCnmask=0 ; byte *PCmask=NULL ; int PCnx=0, PCny=0, PCnz=0 ;
-   MRI_IMARR *PCimar=NULL ;
-
-   int need_acc = 0 ;
-
-   /*----*/
-
-   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
-      printf(
+void usage_3dTcorrMap(int detail) {
+         printf(
        "Usage: 3dTcorrMap [options]\n"
        "For each voxel time series, computes the correlation between it\n"
        "and all other voxels, and combines this set of values into the\n"
@@ -355,8 +299,65 @@ int main( int argc , char *argv[] )
              "    you will wait a LONG LONG time for the results.\n"
             ) ;
 #endif
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
+      PRINT_COMPILE_DATE ;
+   return;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int main( int argc , char *argv[] )
+{
+   THD_3dim_dataset *xset=NULL ; int nx,ny,nz,nxy,nxyz ;
+   THD_3dim_dataset *sset=NULL ;
+   int nopt=1 , do_automask=0 ;
+   int nvox , nvals , ii,jj,kk , polort=1 , ntime ;
+   float *xsar ; float acc,cc,csum,Mcsum,Zcsum,Qcsum , Tcount ;
+   byte *mask=NULL ; int nxmask=0,nymask=0,nzmask=0 , nmask=0 , vstep=0 ;
+   int nref=0 , iv=0, N_iv=0, Tbone=0;
+   float **ref=NULL, t0=0.0, t1=0.0, ti=0.0;
+   MRI_IMAGE *ortim=NULL ; float *ortar=NULL ;
+   int *indx=NULL ; MRI_IMARR *timar=NULL ; MRI_IMARR *simar=NULL ;
+   char *Mprefix=NULL ; THD_3dim_dataset *Mset=NULL ; float *Mar=NULL ;
+   char *Zprefix=NULL ; THD_3dim_dataset *Zset=NULL ; float *Zar=NULL ;
+   char *Qprefix=NULL ; THD_3dim_dataset *Qset=NULL ; float *Qar=NULL ;
+   char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ;
+   char *Pprefix=NULL ; THD_3dim_dataset *Pset=NULL ; float *Par=NULL ;
+   char *COprefix=NULL; THD_3dim_dataset *COset=NULL ; short *COar=NULL ;
+   int COmask=0 ;
+   float Thresh=0.0f ;
+   char *Tvprefix=NULL ; THD_3dim_dataset *Tvset=NULL ;
+   float **Tvar=NULL ; float *Threshv=NULL, *Tvcount=NULL ;
+   char stmp[256];
+   int nout=0 ;
+   int isodd ;  /* 29 Apr 2009: for unrolling innermost dot product */
+   struct  timeval  tt;
+   float dtt=0.0;
+   float *ccar=NULL ; /* 29 Apr 2009: for OpenMP usage */
+
+   float Pcsum ; int nPcsum ;  /* 23 Jun 2009 */
+
+   char        *expr_string=NULL , expr_type='\0' ;  /* 23 Jun 2009 */
+   PARSER_code *expr_code=NULL ;
+   char *Eprefix=NULL ; THD_3dim_dataset *Eset=NULL ; float *Ear=NULL ;
+   double *atoz[26] ;
+   double *eear=NULL ; float Esum ; int nEsum ;
+   int expr_has_z=0 , expr_has_r=0 ;
+
+   char *HHprefix=NULL ; THD_3dim_dataset *HHset=NULL ;
+   int   HHnum=0 ; short *HHist=NULL ; float HHdel=0.0f , HHdin=0.0f ;
+
+   float bpass_L=0.0f , bpass_H=0.0f , dtime ; int do_bpass=0 ;
+   double ctime ;
+   float gblur=0.0f ;
+   float Mseedr=0.0f , dx,dy,dz ; MCW_cluster *Mseed_nbhd=NULL ;
+   float *Mseedar=NULL ;
+
+   int PCortn=0 , PCnmask=0 ; byte *PCmask=NULL ; int PCnx=0, PCny=0, PCnz=0 ;
+   MRI_IMARR *PCimar=NULL ;
+
+   int need_acc = 0 ;
+
+   /*----*/
 
 #if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
@@ -368,7 +369,11 @@ int main( int argc , char *argv[] )
    /*-- option processing --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
-
+      if( strcasecmp(argv[nopt],"-h") == 0 || 
+          strcasecmp(argv[nopt],"-help") == 0 ) {
+         usage_3dTcorrMap(strlen(argv[1]) > 3 ? 2:1);
+         exit(0);
+      }
       if( strcasecmp(argv[nopt],"-Mseed") == 0 ){
         if( sset != NULL ) ERROR_exit("Can't use -Mseed with -seed!") ;
         Mseedr = (float)strtod( argv[++nopt] , NULL ) ;
@@ -591,8 +596,16 @@ int main( int argc , char *argv[] )
         nopt++ ; continue ;
       }
 
-      ERROR_exit("Unknown option: %s",argv[nopt]) ;
+      ERROR_message("Unknown option: %s",argv[nopt]) ;
+      suggest_best_prog_option(argv[0], argv[nopt]);
+      exit(1);
    }
+   if( argc < 2 ){
+      ERROR_message("Too few options");
+      usage_3dTcorrMap(0);
+      exit(1) ;
+   }
+
 
    /*-- open dataset, check for legality --*/
 
