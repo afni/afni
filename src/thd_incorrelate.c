@@ -318,17 +318,10 @@ float INCOR_norm_mutinf( INCOR_2Dhist *tdh )
 }
 
 /*--------------------------------------------------------------------------*/
-/* Decide if INCOR_corr_ratio() computes symmetric or unsymmetric.        */
-
-static int cr_mode = 1 ;  /* 0=unsym  1=sym mult  2=sym add */
-
-void INCOR_corr_ratio_mode( int mm ){ cr_mode = mm ; }
-
-/*--------------------------------------------------------------------------*/
 /*! Compute the correlation ratio from a 2D histogram.
 ----------------------------------------------------------------------------*/
 
-float INCOR_corr_ratio_( INCOR_2Dhist *tdh )
+float INCOR_corr_ratio( INCOR_2Dhist *tdh , int cr_mode )
 {
    register int ii,jj ;
    register float vv,mm ;
@@ -394,7 +387,7 @@ float INCOR_corr_ratio_( INCOR_2Dhist *tdh )
 /*! Compute the Hellinger metric from a 2D histogram.
 ----------------------------------------------------------------------------*/
 
-float INCOR_hellinger_scl( INCOR_2Dhist *tdh )
+float INCOR_hellinger( INCOR_2Dhist *tdh )
 {
    register int ii,jj ;
    register float val , pq ;
@@ -547,7 +540,7 @@ static INCOR_2Dhist * INCOR_create_2Dhist( int nbin ,
 
 ENTRY("INCOR_create_2Dhist") ;
 
-   if( nbin < 3 ) RETURN(NULL) ;
+   if( nbin < 3 ) nbin = 3 ;
 
    tdh = (INCOR_2Dhist *)malloc(sizeof(INCOR_2Dhist)) ;
 
@@ -671,7 +664,7 @@ static INCOR_pearson * INCOR_create_incomplete_pearson(void)
 
 /*----------------------------------------------------------------------------*/
 
-static float INCOR_compute_incomplete_pearson( INCOR_pearson *inpear )
+static float INCOR_incomplete_pearson( INCOR_pearson *inpear )
 {
    double xv , yv , xy , swi ;
 
@@ -702,7 +695,7 @@ ENTRY("INCOR_create") ;
        vinc = (void *)INCOR_create_incomplete_pearson() ;
      break ;
 
-     case GA_MATCH_MUTINFO_SCALAR:     /* methods that use 2D histograms */ 
+     case GA_MATCH_MUTINFO_SCALAR:     /* methods that use 2D histograms */
      case GA_MATCH_CORRATIO_SCALAR:
      case GA_MATCH_NORMUTIN_SCALAR:
      case GA_MATCH_HELLINGER_SCALAR:
@@ -711,13 +704,16 @@ ENTRY("INCOR_create") ;
        INCOR_2Dhist *tdh ;
        int nbin ;
        float xbot,xtop, ybot,ytop, xcbot,xctop, ycbot,yctop;
-       if( mpar == NULL ) break ;
-       nbin  = (int)mpar->ar[0] ;
+       nbin = (mpar == NULL) ? 0 : (int)mpar->ar[0] ;
        if( nbin < 0 ) nbin = INCOR_2Dhist_compute_nbin(-nbin) ;
-       xbot  = mpar->ar[1] ; xtop  = mpar->ar[2] ;
-       ybot  = mpar->ar[3] ; ytop  = mpar->ar[4] ;
-       xcbot = mpar->ar[5] ; xctop = mpar->ar[6] ;
-       ycbot = mpar->ar[7] ; yctop = mpar->ar[8] ;
+       if( nbin > 0 ){
+         xbot  = mpar->ar[1] ; xtop  = mpar->ar[2] ;
+         ybot  = mpar->ar[3] ; ytop  = mpar->ar[4] ;
+         xcbot = mpar->ar[5] ; xctop = mpar->ar[6] ;
+         ycbot = mpar->ar[7] ; yctop = mpar->ar[8] ;
+       } else {
+         xbot = xtop = ybot = ytop = xcbot = xctop = ycbot = yctop = 0.0f ;
+       }
        tdh = INCOR_create_2Dhist( nbin , xbot ,xtop , ybot ,ytop ,
                                          xcbot,xctop, ycbot,yctop ) ;
        if( tdh != NULL ){
@@ -812,4 +808,33 @@ ENTRY("INCOR_addto") ;
    }
 
    EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+float INCOR_evaluate( void *vin , void *vvv ,
+                      int n , float *x , float *y , float *w )
+{
+   void *vtmp=vvv ; float val=0.0f ;
+
+ENTRY("INCOR_evaluate") ;
+
+   if( vin == NULL ) RETURN(val) ;
+
+   if( vtmp == NULL ) vtmp = INCOR_create( INCOR_methcode(vin) , NULL ) ;
+   INCOR_copyover( vin , vtmp ) ;
+   INCOR_addto( vtmp , n , x , y , w ) ;
+
+   switch( INCOR_methcode(vtmp) ){
+     case GA_MATCH_PEARSON_SCALAR:   val = INCOR_incomplete_pearson(vtmp); break;
+     case GA_MATCH_MUTINFO_SCALAR:   val = INCOR_mutual_info(vtmp) ;       break;
+     case GA_MATCH_NORMUTIN_SCALAR:  val = INCOR_norm_mutinf(vtmp) ;       break;
+     case GA_MATCH_HELLINGER_SCALAR: val = INCOR_hellinger(vtmp) ;         break;
+     case GA_MATCH_CORRATIO_SCALAR:  val = INCOR_corr_ratio(vtmp,0) ;      break;
+     case GA_MATCH_CRAT_SADD_SCALAR: val = INCOR_corr_ratio(vtmp,2) ;      break;
+     case GA_MATCH_CRAT_USYM_SCALAR: val = INCOR_corr_ratio(vtmp,1) ;      break;
+   }
+
+   if( vtmp != vvv ) INCOR_destroy(vtmp) ;
+   RETURN(val) ;
 }
