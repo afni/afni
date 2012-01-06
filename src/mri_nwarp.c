@@ -144,7 +144,7 @@ float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB )
 }
 
 /*---------------------------------------------------------------------------*/
-/* Same setup, but contents are zero. */
+/* Same setup as IW3D_copy(), but contents are zero. */
 
 IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA )
 {
@@ -309,7 +309,7 @@ IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac
 }
 
 /*----------------------------------------------------------------------------*/
-/* Convert a 3D dataset of displacments to an index warp. */
+/* Convert a 3D dataset of displacments in mm to an index warp. */
 
 IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty )
 {
@@ -369,7 +369,7 @@ ENTRY("IW3D_from_dataset") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Convert an index warp to a 3D dataset of spatial displacmements */
+/* Convert an index warp to a 3D dataset of spatial displacmements in mm */
 
 THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix )
 {
@@ -665,6 +665,7 @@ void IW3D_interp_linear( int nxx , int nyy , int nzz ,
 #define CW(i) carjk[iqq[i]]*wtt[i]
 
 /*---------------------------------------------------------------------------*/
+/*! Interpolate using wsinc5 method (slow and accurate) */
 
 void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
                          float *aar , float *bar , float *car ,
@@ -799,6 +800,7 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
 #define Q_P3(x)  (x*(x*x-1.0f)*(x*x-4.0f)*0.008333333f)
 
 /*---------------------------------------------------------------------------*/
+/*! Interpolate using quintic method */
 
 void IW3D_interp_quintic( int nxx , int nyy , int nzz ,
                           float *aar , float *bar , float *car ,
@@ -2031,6 +2033,9 @@ ENTRY("THD_setup_nwarp") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Warp a dataset dset_src using the dset_nwarp dataset to control the
+   displacements, patterning the output after dset_mast.
+*//*--------------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_nwarp_dataset( THD_3dim_dataset *dset_nwarp ,
                                       THD_3dim_dataset *dset_src   ,
@@ -2181,7 +2186,7 @@ ENTRY("THD_nwarp_dataset") ;
 
 
 /*---------------------------------------------------------------------------*/
-/* nwarp RPN calculator function */
+/* nwarp RPN calculator function (cf. 3dNwarpCalc program) */
 
 THD_3dim_dataset * NwarpCalcRPN( char *expr, char *prefix, int icode, int acode )
 {
@@ -2477,6 +2482,8 @@ ENTRY("NwarpCalcRPN") ;
    RETURN(oset) ;
 }
 
+/******************************************************************************/
+/********** Functions for optimizing an nwarp for image registration **********/
 /*----------------------------------------------------------------------------*/
 
 #define NGMIN 9
@@ -2539,16 +2546,24 @@ static INLINE float_triple Hwarp_eval_basis( float x )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Hermite quintic basis arrays for each direction: x,y,z. */
 
 static int nbx=0, nby=0, nbz=0 ;
 static float *b0x=NULL , *b1x=NULL , *b2x=NULL , *ccx=NULL , delx=0.0f , dxi=0.0f ;
 static float *b0y=NULL , *b1y=NULL , *b2y=NULL , *ccy=NULL , dely=0.0f , dyi=0.0f ;
 static float *b0z=NULL , *b1z=NULL , *b2z=NULL , *ccz=NULL , delz=0.0f , dzi=0.0f ;
 
+/* global indexes of cut-out section that we are optimizing */
+
 static int Hibot,Hitop , Hjbot,Hjtop , Hkbot,Hktop ;
+
+/* local (small) warp region we are optimizing */
 
 static IndexWarp3D *Hwarp = NULL ;
 static int         Hflags = 0 ;
+
+/*----------------------------------------------------------------------------*/
+/*! Setup basis arrays */
 
 static void Hwarp_setup_basis( int nx , int ny , int nz , int flags )
 {
@@ -2627,6 +2642,7 @@ static void Hwarp_setup_basis( int nx , int ny , int nz , int flags )
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Load the Hwarp[] array, given a set of 81 = 3x3x3x3 parameters */
 
 static void Hwarp_load( float *par )  /* 81 elements in par */
 {
@@ -2809,6 +2825,7 @@ AFNI_OMP_END ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Given a global warp AA, improve it locally over a rectangular patch. */
 
 void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim ,
                         IndexWarp3D *AA , int match_code , int basis_code ,
