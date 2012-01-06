@@ -2742,6 +2742,7 @@ AFNI_OMP_START ;
      ii = qq % nbx ; kk = qq / nbxy ; jj = (qq-kk*nbxy) / nbx ;
 
      /* get Hwarp-ed indexes into Awarp */
+     /* [could get speedup here by computing hxd etc. locally rather than separately] */
 
      xq = Hibot + ii + hxd[qq] ; if( xq < -0.499f ) xq = -0.499f; else if( xq > nAxh ) xq = nAxh;
      yq = Hjbot + jj + hyd[qq] ; if( yq < -0.499f ) yq = -0.499f; else if( yq > nAyh ) yq = nAyh;
@@ -2777,11 +2778,11 @@ AFNI_OMP_START ;
      h_k00 = wt_00 * h_j00_k00 + wt_p1 * h_jp1_k00 ;
      h_kp1 = wt_00 * h_j00_kp1 + wt_p1 * h_jp1_kp1 ;
 
-     xq = (1.0f-fz) * f_k00 + fz * f_kp1  +  Hibot + hxd[qq] ;
-     yq = (1.0f-fz) * g_k00 + fz * g_kp1  +  Hjbot + hyd[qq] ;
-     zq = (1.0f-fz) * h_k00 + fz * h_kp1  +  Hkbot + hzd[qq] ;
+     xq = (1.0f-fz) * f_k00 + fz * f_kp1 + Hibot+hxd[qq] ; /* add in Hwarp */
+     yq = (1.0f-fz) * g_k00 + fz * g_kp1 + Hjbot+hyd[qq] ; /* displacments */
+     zq = (1.0f-fz) * h_k00 + fz * h_kp1 + Hkbot+hzd[qq] ;
 
-     /* linearly interpolate in sar to get val output */
+     /* linearly interpolate at (xq,yq,zq) indexes in sar to get val output */
 
      if( xq < -0.499f ) xq = -0.499f; else if( xq > nAxh ) xq = nAxh;
      if( yq < -0.499f ) yq = -0.499f; else if( yq > nAyh ) yq = nAyh;

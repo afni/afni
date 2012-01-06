@@ -1787,6 +1787,10 @@ thd_correlate.o:thd_correlate.c
 	$(RM) $@
 	$(CCFAST) -c thd_correlate.c $(INFLAGS)
 
+thd_incorrelate.o:thd_incorrelate.c
+	$(RM) $@
+	$(CCFAST) -c thd_incorrelate.c $(INFLAGS)
+
 cl1.o:cl1.c
 	$(RM) $@
 	$(CCFAST) -c cl1.c $(INFLAGS)

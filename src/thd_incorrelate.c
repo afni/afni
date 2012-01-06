@@ -67,7 +67,7 @@ ENTRY("INCOR_clipate") ;
 
 /*--------------------------------------------------------------------------*/
 
-static float_quad INCOR_2Dhist_xyclip( int nval , float *xval , float *yval )
+float_quad INCOR_2Dhist_xyclip( int nval , float *xval , float *yval )
 {
    float_pair xcc , ycc ; float_quad xxyycc={0.0f,0.0f,0.0f,0.0f} ;
 
@@ -75,8 +75,8 @@ ENTRY("INCOR_2Dhist_xyclip") ;
 
    if( nval < 666 || xval == NULL || yval == NULL ) RETURN(xxyycc) ;
 
-   xcc = clipate( nval , xval ) ;
-   ycc = clipate( nval , yval ) ;
+   xcc = INCOR_clipate( nval , xval ) ;
+   ycc = INCOR_clipate( nval , yval ) ;
 
    if( xcc.a >= xcc.b || ycc.a >= ycc.b ) RETURN(xxyycc) ;
 
@@ -105,13 +105,12 @@ ENTRY("INCOR_2Dhist_xyclip") ;
       - x[] values outside the range xbot..xtop (inclusive) or outside
         the unequal bins set in set_2Dhist_xybin() (if applicable) will
         not be used in the histogram; mutatis mutandum for y[]
-----------------------------------------------------------------------------*/
+*//*------------------------------------------------------------------------*/
 
 static void INCOR_addto_2Dhist( INCOR_2Dhist *tdh , int n ,
                                 float *x , float *y , float *w )
 {
-   register int ii,jj,kk ;
-   float xb,xi , yb,yi , xx,yy , x1,y1 , ww ;
+   register int ii ;
    byte *good ; int ngood , xyclip ;
    float xxbot,xxtop , yybot,yytop ;
    float xcbot,xctop , ycbot,yctop ;
@@ -158,13 +157,16 @@ ENTRY("INCOR_addto_2Dhist") ;
 
      tdh->xxbot = xxbot ; tdh->xxtop = xxtop ;
      tdh->yybot = yybot ; tdh->yytop = yytop ;
+
+     xcbot = ycbot = tdh->xcbot = tdh->ycbot =  WAY_BIG ;
+     xctop = yctop = tdh->xctop = tdh->yctop = -WAY_BIG ;
    }
 
    /*-- count number of good values left in range (in both x and y) --*/
 
    memset(good,0,n) ;
    for( ngood=ii=0 ; ii < n ; ii++ ){
-     if( RANGVAL(x[ii],xbot,xtop) && RANGVAL(y[ii],ybot,ytop) && (WW(ii) > 0.0f) ){
+     if( RANGVAL(x[ii],xxbot,xxtop) && RANGVAL(y[ii],yybot,yytop) && (WW(ii) > 0.0f) ){
        good[ii] = 1 ; ngood++ ;
      }
    }
@@ -172,10 +174,12 @@ ENTRY("INCOR_addto_2Dhist") ;
 
    /*--------------- make the 2D and 1D histograms ---------------*/
 
-   xyclip = (xxbot < xcbot) && (xcbot < xctop) && (xctop < xtop) &&
-            (yybot < ycbot) && (ycbot < yctop) && (yctop < ytop) ;
+   xyclip = (xxbot < xcbot) && (xcbot < xctop) && (xctop < xxtop) &&
+            (yybot < ycbot) && (ycbot < yctop) && (yctop < yytop) ;
 
    if( !xyclip ){  /*------------ equal size bins ------------*/
+     float xb,xi , yb,yi , xx,yy , x1,y1 , ww ;
+     register int jj,kk ;
 
      xb = xxbot ; xi = nbm/(xxtop-xxbot) ;
      yb = yybot ; yi = nbm/(yytop-yybot) ;
@@ -198,7 +202,9 @@ ENTRY("INCOR_addto_2Dhist") ;
 
    } else if( xyclip ){  /*------------ mostly equal bins ----------------*/
 
+     register int jj,kk ;
      float xbc=xcbot , xtc=xctop , ybc=ycbot , ytc=yctop ;
+     float xi,yi , xx,yy , x1,y1 , ww ;
 
      xi = (nbin-2.000001f)/(xtc-xbc) ;
      yi = (nbin-2.000001f)/(ytc-ybc) ;
@@ -215,7 +221,7 @@ ENTRY("INCOR_addto_2Dhist") ;
 
        x1 = 1.0f-xx ; y1 = 1.0f-yy ; ww = WW(ii) ; nww += ww ;
 
-       xc[jj] +=  x1*ww ; xc[jj+1] +=  xx*ww ;
+       xc[jj] += (x1*ww); xc[jj+1] += (xx*ww);
        yc[kk] += (y1*ww); yc[kk+1] += (yy*ww);
 
        XYC(jj  ,kk  ) += x1*(y1*ww) ;
@@ -238,7 +244,7 @@ void INCOR_normalize_2Dhist( INCOR_2Dhist *tdh )
    float nww , *xc, *yc, *xyc ; int nbp ;
    if( tdh == NULL ) return ;
    nww = tdh->nww; xc = tdh->xc; yc = tdh->yc; xyc = tdh->xyc; nbp = tdh->nbin+1;
-   if( nww > 0.0f && xyc != NULL && xc != NULL && yc != NULL ){
+   if( nww > 0.0f && nww != 1.0f && xyc != NULL && xc != NULL && yc != NULL ){
      register float ni ; register int nbq , ii ;
      ni = 1.0f / nww ;
      for( ii=0 ; ii < nbp ; ii++ ){ xc[ii]  *= ni; yc[ii] *= ni; }
@@ -249,20 +255,22 @@ void INCOR_normalize_2Dhist( INCOR_2Dhist *tdh )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Compute the mutual info between two vectors, sort of.  [16 Aug 2006]
+/*! Compute the mutual info from a histogram (which also normalizes it).
 ----------------------------------------------------------------------------*/
 
-float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
-                                   float ybot,float ytop,float *y , float *w )
+float INCOR_mutual_info( INCOR_2Dhist *tdh )
 {
    register int ii,jj ;
    register float val ;
+   float nww , *xc, *yc, *xyc ; int nbp ;
 
-   /*-- build 2D histogram --*/
+   if( tdh == NULL ) return 0.0f ;
 
-   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
-   if( nbin <= 0 || nww <= 0 ) return 0.0f ;  /* something bad happened! */
-   normalize_2Dhist() ;
+   nww = tdh->nww; xc = tdh->xc; yc = tdh->yc; xyc = tdh->xyc; nbp = tdh->nbin+1;
+
+   if( nww <= 0.0f ) return 0.0f ;
+
+   INCOR_normalize_2Dhist(tdh) ;
 
    /*-- compute MI from histogram --*/
 
@@ -276,22 +284,24 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Compute the normalized mutual info between two vectors, sort of.
+/*! Compute the normalized mutual info from a 2D histogram.
     Actually, returns H(x,y) / [ H(x)+H(y) ], which should be small if
     x and y are redundant and should be large if they are independent.
 ----------------------------------------------------------------------------*/
 
-float THD_norm_mutinf_scl( int n , float xbot,float xtop,float *x ,
-                                   float ybot,float ytop,float *y , float *w )
+float INCOR_norm_mutinf( INCOR_2Dhist *tdh )
 {
    register int ii,jj ;
    register float numer , denom ;
+   float nww , *xc, *yc, *xyc ; int nbp ;
 
-   /*-- build 2D histogram --*/
+   if( tdh == NULL ) return 0.0f ;
 
-   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
-   if( nbin <= 0 || nww <= 0 ) return 0.0f ;  /* something bad happened! */
-   normalize_2Dhist() ;
+   nww = tdh->nww; xc = tdh->xc; yc = tdh->yc; xyc = tdh->xyc; nbp = tdh->nbin+1;
+
+   if( nww <= 0.0f ) return 0.0f ;
+
+   INCOR_normalize_2Dhist(tdh) ;
 
    /*-- compute NMI from histogram --*/
 
@@ -308,28 +318,30 @@ float THD_norm_mutinf_scl( int n , float xbot,float xtop,float *x ,
 }
 
 /*--------------------------------------------------------------------------*/
-/* Decide if THD_corr_ratio_scl() computes symmetric or unsymmetric.        */
+/* Decide if INCOR_corr_ratio() computes symmetric or unsymmetric.        */
 
 static int cr_mode = 1 ;  /* 0=unsym  1=sym mult  2=sym add */
 
-void THD_corr_ratio_mode( int mm ){ cr_mode = mm ; }
+void INCOR_corr_ratio_mode( int mm ){ cr_mode = mm ; }
 
 /*--------------------------------------------------------------------------*/
-/*! Compute the correlation ratio between two vectors, sort of.  [23 Aug 2006]
+/*! Compute the correlation ratio from a 2D histogram.
 ----------------------------------------------------------------------------*/
 
-float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
-                                  float ybot,float ytop,float *y , float *w )
+float INCOR_corr_ratio_( INCOR_2Dhist *tdh )
 {
    register int ii,jj ;
    register float vv,mm ;
    float    val , cyvar , uyvar , yrat,xrat ;
+   float nww , *xc, *yc, *xyc ; int nbp ;
 
-   /*-- build 2D histogram --*/
+   if( tdh == NULL ) return 0.0f ;
 
-   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
-   if( nbin <= 0 ) return 0.0f ;  /* something bad happened! */
-   normalize_2Dhist() ;
+   nww = tdh->nww; xc = tdh->xc; yc = tdh->yc; xyc = tdh->xyc; nbp = tdh->nbin+1;
+
+   if( nww <= 0.0f ) return 0.0f ;
+
+   INCOR_normalize_2Dhist(tdh) ;
 
    /*-- compute CR(y|x) from histogram --*/
 
@@ -379,22 +391,24 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Compute the Hellinger metric between two vectors, sort of.
+/*! Compute the Hellinger metric from a 2D histogram.
 ----------------------------------------------------------------------------*/
 
-float THD_hellinger_scl( int n , float xbot,float xtop,float *x ,
-                                 float ybot,float ytop,float *y , float *w )
+float INCOR_hellinger_scl( INCOR_2Dhist *tdh )
 {
    register int ii,jj ;
    register float val , pq ;
+   float nww , *xc, *yc, *xyc ; int nbp ;
 
-   /*-- build 2D histogram --*/
+   if( tdh == NULL ) return 0.0f ;
 
-   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
-   if( nbin <= 0 || nww <= 0 ) return 0.0f ;  /* something bad happened! */
-   normalize_2Dhist() ;
+   nww = tdh->nww; xc = tdh->xc; yc = tdh->yc; xyc = tdh->xyc; nbp = tdh->nbin+1;
 
-   /*-- compute metric from histogram --*/
+   if( nww <= 0.0f ) return 0.0f ;
+
+   INCOR_normalize_2Dhist(tdh) ;
+
+   /*-- compute Hell metric from histogram --*/
 
    val = 0.0f ;
    for( ii=0 ; ii < nbp ; ii++ ){
@@ -407,8 +421,8 @@ float THD_hellinger_scl( int n , float xbot,float xtop,float *x ,
 
 /*--------------------------------------------------------------------------*/
 /*! Compute the Hellinger metric, mutual info, normalized MI, and
-    symmetrized correlation ratio, and return all 4 (in that order)
-    using the 1D and 2D histograms from build_2Dhist().
+    (additively) symmetrized correlation ratio, and return all 4
+    (in that order), from a 2D histogram.
 
     The first 3 values all measure the closeness of the joint histogram to
     the product of the marginals:
@@ -423,19 +437,21 @@ float THD_hellinger_scl( int n , float xbot,float xtop,float *x ,
     and to smaller NMI.
 *//*------------------------------------------------------------------------*/
 
-float_quad THD_helmicra_scl( int n , float xbot,float xtop,float *x ,
-                             float ybot,float ytop,float *y , float *w )
+float_quad INCOR_helmicra( INCOR_2Dhist *tdh )
 {
    register int ii,jj ;
    register float hel , pq , vv,uu ;
    float    val , cyvar , uyvar , yrat,xrat ;
    float_quad hmc = {0.0f,0.0f,0.0f,0.f} ;
+   float nww , *xc, *yc, *xyc ; int nbp ;
 
-   /*-- build 2D histogram --*/
+   if( tdh == NULL ) return hmc ;
 
-   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
-   if( nbin <= 0 || nww <= 0 ) return hmc ;  /* something bad happened! */
-   normalize_2Dhist() ;
+   nww = tdh->nww; xc = tdh->xc; yc = tdh->yc; xyc = tdh->xyc; nbp = tdh->nbin+1;
+
+   if( nww <= 0.0f ) return hmc ;
+
+   INCOR_normalize_2Dhist(tdh) ;
 
    /*-- compute Hel, MI, NMI from histogram --*/
 
@@ -599,7 +615,8 @@ ENTRY("INCOR_copyover_2Dhist") ;
 
 /*----------------------------------------------------------------------------*/
 
-static void INCOR_addto_incomplete_pearson( int n, float *x, float *y, float *w, INCOR_pearson *inpear )
+static void INCOR_addto_incomplete_pearson( int n, float *x, float *y,
+                                            float *w, INCOR_pearson *inpear )
 {
    int ii ; double sx,sxx , sy,syy,sxy , sw ;
 
@@ -675,6 +692,7 @@ static float INCOR_compute_incomplete_pearson( INCOR_pearson *inpear )
 
 void * INCOR_create( int meth , floatvec *mpar )
 {
+   void *vinc ;
 
 ENTRY("INCOR_create") ;
 
@@ -761,6 +779,34 @@ ENTRY("INCOR_copyover") ;
      case GA_MATCH_CRAT_SADD_SCALAR:
      case GA_MATCH_CRAT_USYM_SCALAR:
        INCOR_copyover_2Dhist( vin , vout ) ;
+     break ;
+
+   }
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void INCOR_addto( void *vin , int n , float *x , float *y , float *w )
+{
+ENTRY("INCOR_addto") ;
+
+   if( vin == NULL || n <= 0 || x == NULL || y == NULL ) EXRETURN ;
+
+   switch( INCOR_methcode(vin) ){
+
+     case GA_MATCH_PEARSON_SCALAR:
+       INCOR_addto_incomplete_pearson( n , x , y , w , vin ) ;
+     break ;
+
+     case GA_MATCH_MUTINFO_SCALAR:
+     case GA_MATCH_CORRATIO_SCALAR:
+     case GA_MATCH_NORMUTIN_SCALAR:
+     case GA_MATCH_HELLINGER_SCALAR:
+     case GA_MATCH_CRAT_SADD_SCALAR:
+     case GA_MATCH_CRAT_USYM_SCALAR:
+       INCOR_addto_2Dhist( vin , n , x , y, w ) ;
      break ;
 
    }
