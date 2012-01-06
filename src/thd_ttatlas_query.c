@@ -4243,7 +4243,9 @@ char **approx_str_sort_readmes(char *str, int *N_r)
    else if (str[0] == '.') str += 1;
    
    strncat(strn, str, 200*sizeof(char));
-   progs = THD_get_all_afni_readmes();
+   if (!(progs = THD_get_all_afni_readmes())) {
+      RETURN(ws);
+   }              
    ws = approx_str_sort(progs->ar, progs->num, strn,
                         1, NULL, 0, NULL, NULL); 
    *N_r = progs->num;
@@ -4257,7 +4259,12 @@ char *find_readme_file(char *str)
    int N_ws=0, i;
    
    ENTRY("find_readme_file");
-   if (!(ws = approx_str_sort_readmes(str, &N_ws))) RETURN(NULL);
+   if (!(ws = approx_str_sort_readmes(str, &N_ws))) {
+      ERROR_message("Could not find README files.\n"
+                     "They should have been in directory %s on your machine\n",
+                     THD_abindir(0));
+      RETURN(NULL);
+   } 
    
    if (strcasestr(ws[0],str)) sout = strdup(ws[0]);
    for (i=0; i<N_ws; ++i) if (ws[i]) free(ws[i]);

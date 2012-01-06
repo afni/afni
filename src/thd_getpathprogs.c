@@ -447,19 +447,25 @@ int list_afni_files(int type, int withpath, int withnum)
    switch (type) {
       case 0:
          if (!(progs = THD_get_all_afni_executables())) {
-            ERROR_message("Cannot get list of programs");
+            ERROR_message(
+               "Cannot get list of programs from your afni bin directory %s", 
+               THD_abindir(1));
             RETURN(0);
          }
          break;
       case 1:
          if (!(progs = THD_get_all_afni_readmes())) {
-            ERROR_message("Cannot get list of readmes");
+            ERROR_message(
+               "Cannot get list of readmes from your afni bin directory %s", 
+               THD_abindir(1));
             RETURN(0);
          }
          break;
       case 2:
          if (!(progs = THD_get_all_afni_dsets())) {
-            ERROR_message("Cannot get list of dsets");
+            ERROR_message(
+               "Cannot get list of dsets from your afni bin directory %s", 
+               THD_abindir(1));
             RETURN(0);
          }
          break;
