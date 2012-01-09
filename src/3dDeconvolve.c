@@ -10753,7 +10753,7 @@ ENTRY("basis_parser") ;
      bb = 0 ;
      if( !zzz ){
        be->bfunc[bb].f = basis_tent ;
-       be->bfunc[bb].a = bot-0.001*dx ;
+       be->bfunc[bb].a = bot-0.00111f*dx ;
        be->bfunc[bb].b = bot ;
        be->bfunc[bb].c = bot+dx ;
        bb++ ;
@@ -10768,7 +10768,7 @@ ENTRY("basis_parser") ;
        be->bfunc[bb].f = basis_tent ;
        be->bfunc[bb].a = bot + (nord-2)*dx ;
        be->bfunc[bb].b = top ;
-       be->bfunc[bb].c = top + 0.001*dx ;
+       be->bfunc[bb].c = top + 0.00111f*dx ;
     }
 
    /*--- CSPLIN(bot,top,order) ---*/  /*-- add CSPLINzero 23 Jul 2010 --*/
