@@ -3705,6 +3705,47 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
    }
    
 }
+
+int SUMA_setenv_option(char *s) 
+{
+   static char FuncName[]={"SUMA_setenv_option"};
+   char *aval=NULL, lhs[64]={""}, rhs[256]={""};
+   int closed=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (!s) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(0);
+   }
+   if (s[0] != '\'' && s[0] != '\"') {
+      SUMA_S_Errv("You must enclose env expression with ' or \" quotes\n"
+                  "Have open %s\n", s);
+      SUMA_RETURN(0);
+   } 
+
+   aval = SUMA_copy_quoted(s,NULL,'\0','\0', 1, 0, &closed);
+   if (!aval) {
+      SUMA_S_Err("Failed to get env value");
+      SUMA_RETURN(0);
+   }
+   if (!closed) {
+      SUMA_S_Errv("You must enclose env expression with ' or \" quotes\n"
+                  "Have unterminated %s\n", aval);
+      SUMA_free(aval); aval=NULL;
+      SUMA_RETURN(0);
+   } 
+   SUMA_LHv("Got >%s<\n", aval);
+   if (SUMA_ParseLHS_RHS (aval, lhs, rhs)) {
+      strcpy(aval,lhs) ; strcat(aval,"=") ; strcat(aval,rhs) ;
+      SUMA_LHv("PUTENV: %s\n", aval);
+      putenv(aval); /* DO NOT FREE aval! */
+   } else {
+      SUMA_S_Errv("Failed to parse >%s<\n", s);
+   }
+
+   SUMA_RETURN(1);
+}
+
 /*!
    A function to parse command line arguments and return a convenient
    structure that can be used by various programs for surface specifications
@@ -3737,6 +3778,22 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
    kar = 1;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
+      /* envs */
+      if (!brk) {
+         if (!strcmp(argv[kar],"-setenv")) {
+            ps->arg_checked[kar]=1; kar ++;
+            if (kar >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need quoted env string after %s \n",
+                                     argv[kar-1]);
+				   exit (1);
+			   }
+            if (!SUMA_setenv_option(argv[kar])) {
+               exit(1);
+            }  
+            ps->arg_checked[kar]=1; 
+            brk = YUP;
+         }
+      }
       /* allow for users to set cmap */
       if (!brk && ps->accept_cmap) {   
          if (!brk && (  (strcmp(argv[kar], "-cmap") == 0) ||
@@ -3750,7 +3807,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1; kar ++;
             if (kar >= argc)  {
 		  		   fprintf (SUMA_STDERR, "need 1 argument after %s \n",
-                                     argv[kar]);
+                                     argv[kar-1]);
 				   exit (1);
 			   }
             /* put the flags up */

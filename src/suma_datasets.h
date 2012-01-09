@@ -1576,6 +1576,9 @@ int SUMA_StringToNum (char *s, void *vv, int N, int p);
 int SUMA_isNumString (char *s, void *p);
 int SUMA_CleanNumString (char *s, void *p);
 char *SUMA_copy_string(char *buf);
+char *SUMA_copy_quoted( char *s, char *eop, 
+                        char q1, char q2, int deblank,
+                        int withquotes, int *is_closed );
 char * SUMA_append_string(char *s1, char *s2);
 char * SUMA_append_replace_string(  char *s1, char *s2, 
                                     char *Spc, int whichTofree);

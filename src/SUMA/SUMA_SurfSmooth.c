@@ -1,6 +1,6 @@
 #include "SUMA_suma.h"
 
-void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps)
+void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    {
       static char FuncName[]={"usage_SUMA_SurfSmooth"};
       char * s = NULL, *st = NULL, *sm = NULL, *sio=NULL;
@@ -550,7 +550,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_SurfSmooth(ps);
+			 usage_SUMA_SurfSmooth(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
 		}
 		
@@ -562,7 +562,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
             Opt->detrend_master = (int)strtod(argv[++kar],NULL) ;
             if( Opt->detrend_master == 0 ){ /* Use poly of order 0 (mean) */
               Opt->detpoly_master = 0 ; 
-              fprintf(SUMA_STDOUT,"-detrend_master 0 replaced by -detpoly_master 0\n") ;
+              fprintf(SUMA_STDOUT,
+                      "-detrend_master 0 replaced by -detpoly_master 0\n") ;
               Opt->detrend_master = -2;
             }
          }
@@ -931,7 +932,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 			fprintf (SUMA_STDERR,
                   "Error %s:\nOption %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			exit (1);
+			suggest_best_prog_option(argv[0], argv[kar]);
+         exit (1);
 		} else {	
 			brk = NOPE;
 			kar ++;
@@ -1329,13 +1331,14 @@ int main (int argc,char *argv[])
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-t;-spec;-s;-sv;-talk;-mask;");
    
-   if (argc < 6)
-       {
-          usage_SUMA_SurfSmooth(ps);
-          exit (1);
-       }
-   
    Opt = SUMA_SurfSmooth_ParseInput (argv, argc, ps);
+   if (argc < 6) {
+      SUMA_S_Err("Too few arguments");
+      usage_SUMA_SurfSmooth(ps, 0);
+      exit (1);
+   }
+   
+
    cs = ps->cs;
    if (!cs) exit(1);
    
@@ -1691,7 +1694,7 @@ int main (int argc,char *argv[])
             /* load dset */
             iform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
             if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, Opt->debug))) {
-               SUMA_S_Err("Failed to read  dset");
+               SUMA_S_Errv("Failed to read  dset %s\n", Opt->in_name);
                exit(1);
             }
             if (LocalHead) {

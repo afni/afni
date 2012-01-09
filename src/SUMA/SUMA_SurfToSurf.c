@@ -1,6 +1,6 @@
 #include "SUMA_suma.h"
 
-void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps)
+void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 {
       static char FuncName[]={"usage_SurfToSurf"};
       char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL;
@@ -151,7 +151,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
       }
 		
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SurfToSurf(ps);
+			 usage_SurfToSurf(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
 		}
 		
@@ -339,7 +339,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
                   "Error %s:\n"
                   "Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			exit (1);
+			suggest_best_prog_option(argv[0], argv[kar]);
+         exit (1);
 		} else {	
 			brk = NOPE;
 			kar ++;
@@ -384,12 +385,13 @@ int main (int argc,char *argv[])
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;-o;");
    
+   Opt = SUMA_SurfToSurf_ParseInput (argv, argc, ps);
    if (argc < 2) {
-      usage_SurfToSurf(ps);
+      SUMA_S_Err("Too few options");
+      usage_SurfToSurf(ps, 0);
       exit (1);
    }
    
-   Opt = SUMA_SurfToSurf_ParseInput (argv, argc, ps);
 
    /* if output surface requested, check on pre-existing file */
    if (ps->o_N_surfnames) {

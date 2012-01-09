@@ -35,10 +35,10 @@
    if (*m_op == cc) { ans = 1; } \
 }
 
-#define SUMA_DEBLANK_FILENAME(name,repl) {  \
+#define SUMA_DEBLANK(name,repl) {  \
    if (name)   {  \
       int m_i, m_r=0; \
-      if (repl) { \
+      if (repl != '\0') { \
          for (m_i=0; m_i<strlen(name); ++m_i) { if (SUMA_IS_BLANK(name[m_i])) { name[m_i] = repl; }  } \
       }  else {   \
          for (m_i=0; m_i<strlen(name); ++m_i) { if (!SUMA_IS_BLANK(name[m_i])) { name[m_r] = name[m_i]; ++m_r;} } \
@@ -258,15 +258,44 @@
 */
 #define SUMA_COPY_TO_STRING(op,op2,sval){   \
    int m_imax, m_i; \
+   if (!op) { SUMA_SL_Err("NULL input"); }\
    if (sval) { SUMA_SL_Err("sval must be null when macro is called"); } \
-   else if (op2 > op) { /* copy the deed */  \
-      m_imax = op2 - op;   \
-      if (m_imax > 5000) {   SUMA_SL_Warn("Unexpectedly large field!"); } \
-      sval = (char *)SUMA_calloc(m_imax + 2, sizeof(char));   \
-      if (!sval) { SUMA_SL_Crit("Failed To Allocate"); } \
-      else { for (m_i=0; m_i < m_imax; ++m_i) { sval[m_i] = op[m_i]; } sval[m_imax] = '\0'; }\
+   else {\
+      if (op2 == NULL) op2 = op+strlen(op);  \
+      if (op2 > op) { /* copy the deed */  \
+         m_imax = op2 - op;   \
+         if (m_imax > 5000) {   SUMA_SL_Warn("Unexpectedly large field!"); } \
+         sval = (char *)SUMA_calloc(m_imax + 2, sizeof(char));   \
+         if (!sval) { SUMA_S_Crit("Failed To Allocate"); } \
+         else { \
+            for (m_i=0; m_i < m_imax; ++m_i) { sval[m_i] = op[m_i]; }   \
+            sval[m_imax] = '\0'; \
+         }\
+      }  \
    }  \
 }
+
+/*!
+   \brief Fills characters between [op,op2[ into a preallocated string str
+*/
+#define SUMA_FILL_STRING(op,op2,strinp){   \
+   char *sval = strinp;\
+   if (!op2) { /* copy till end */  \
+      while (*op != '\0') { *sval = *op; ++sval; ++op; } \
+   } else { \
+      while (*op != '\0' && op < (char*)op2) {  \
+         *sval = *op; ++sval; ++op; \
+      } \
+   }  \
+   *sval = '\0'; \
+}
+
+#define SUMA_DEBLANK_RHS(s) {\
+   int ns;  \
+   if (s && (ns=strlen(s))) { --ns; \
+      while (ns >= 0 && SUMA_IS_BLANK(s[ns])) { s[ns]='\0'; --ns; }  \
+   }\
+}\
 
 /* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> End string parsing macros <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< */
 

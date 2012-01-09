@@ -768,7 +768,8 @@ int SUMA_F6_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          sv->clear_color[0] = 1 - sv->clear_color[0];
          sv->clear_color[1] = 1 - sv->clear_color[1];
          sv->clear_color[2] = 1 - sv->clear_color[2];
-
+         
+         SUMA_UpdateCrossHairNodeLabelField(sv);
          if (!list) list = SUMA_CreateList();
          SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
          if (!SUMA_Engine (&list)) {
