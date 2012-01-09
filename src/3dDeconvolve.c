@@ -396,6 +396,10 @@ static float *Xcol_mean ;
 static int    voxel_num ;
 static float *voxel_base = NULL ;
 
+static float bp_fbot=0.0f , bp_ftop=0.0f ;
+static int bp_ncol=0 ;
+static int dofsub=0 ;
+
 float baseline_mean( vector coef ) ;    /* compute mean of baseline stuff */
 
 static int xrestore = 0 ;                           /* globals for -xrestore */
@@ -982,6 +986,11 @@ void display_help_menu(int detail)
     "[-nodmbase]          don't de-mean baseline time series                \n"
     "                       (i.e., polort>0 and -stim_base inputs)          \n"
     "[-dmbase]            de-mean baseline time series [default if polort>=0]\n"
+    "[-bport ftop fbot]   'Bandpass' with sines and cosines in the baseline \n"
+    "                     model between frequencies ftop and fbot, in Hz.   \n"
+    "                    ** The dataset TR must be correct for these        \n"
+    "                       frequencies to be interpreted correctly!        \n"
+    "                    ** You must have 0 <= ftop < ftop for this to work!\n"
     "[-svd]               Use SVD instead of Gaussian elimination [default] \n"
     "[-nosvd]             Use Gaussian elimination instead of SVD           \n"
     "                       (only use for testing + backwards compatibility)\n"
@@ -2332,6 +2341,26 @@ void get_options
         continue;
       }
 
+      /*-----   -bport fbot ftop   -----*/
+      if( strcmp(argv[nopt],"-bport") == 0 ){
+        nopt++;
+        if( nopt+1 >= argc ) DC_error("need 2 arguments after -bport ");
+        bp_fbot = (float)strtod(argv[nopt++],NULL) ;
+        bp_ftop = (float)strtod(argv[nopt++],NULL) ;
+        if( bp_fbot < 0.0f || bp_ftop <= bp_fbot )
+          DC_error("illegal values after -bport") ;
+        continue ;
+      }
+
+      /*-----   -dofsub ddd   -----*/
+
+      if( strcmp(argv[nopt],"-dofsub") == 0 ){
+        nopt++ ;
+        if (nopt >= argc)  DC_error ("need argument after -dofsub ");
+        dofsub = (int)strtod(argv[nopt++],NULL) ;
+        if( dofsub < 0 ) WARNING_message("-dofsub value is negative!") ;
+        continue ;
+      }
 
       /*-----   -polort num  -----*/
       if (strcmp(argv[nopt], "-polort") == 0)
