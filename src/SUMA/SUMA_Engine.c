@@ -3716,7 +3716,8 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    SUMA_EngineData *ED = NULL; 
    DListElmt *el=NULL;
    void *Ret = NULL;
-   char *SOid=NULL, *svid=NULL, *name=NULL, *SOlabel=NULL;
+   char *SOid=NULL, *svid=NULL, *name=NULL, *SOlabel=NULL, 
+        ename[32], lhs[64], rhs[256], *enveqn=NULL, *attr=NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SurfaceViewer *sv = NULL;
    SUMA_PARSED_NAME *fn = NULL;
@@ -3742,6 +3743,22 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    }
    
    /* do we have the classics? */
+   itmp = 0;
+   sprintf(ename,"ENV.%d", itmp);
+   while ((attr=NI_get_attribute(ngr, ename))) {
+      SUMA_LHv("Have %s:>%s<\n", ename, attr);
+      lhs[0] = '\0'; rhs[0]='\0';
+      if (SUMA_ParseLHS_RHS (attr, lhs, rhs)) {
+         enveqn = (char *) malloc(strlen(lhs)+strlen(rhs)+4) ;
+         sprintf(enveqn,"%s=%s", lhs, rhs);
+         putenv(enveqn);
+         SUMA_LHv("Got %s\n", enveqn);
+      } else {
+         SUMA_S_Errv("Failed to parse %s: %s\n",
+               ename, attr);
+      }
+      sprintf(ename,"ENV.%d", ++itmp);
+   }
    
    sv = NULL;
    svid = NI_get_attribute(ngr,"SV_id");
@@ -3911,6 +3928,12 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
          }
          break; 
       case SE_niSetViewerCont:
+         if ((name = NI_get_attribute(ngr,"N_foreg_smooth"))) {
+            SUMA_SetNumForeSmoothing(name, (void *)sv);
+         }
+         if ((name = NI_get_attribute(ngr,"N_final_smooth"))) {
+            SUMA_SetNumFinalSmoothing(name, (void *)sv);
+         }
          if ((name = NI_get_attribute(ngr,"VVS_FileName"))) {
             /* Have a vvs to load, do it straight up, 
                no need to call some SE_SetViewerCont, a la SE_SetSurfCont yet */

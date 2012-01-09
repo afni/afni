@@ -5881,6 +5881,7 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_SurfaceObject *SO,
 {
    static char FuncName[]={"SUMA_StringToTextNIDO"};
    void * default_font=GLUT_BITMAP_9_BY_15;
+   int i=0;
    float txcol[4] = {0.2, 0.5, 1, 1.0};
    float default_color[4] = {0.2, 0.5, 1, 1.0}, *v;
    float topscr[3]={ 0.5, 1.0, 0.0 };
@@ -5909,7 +5910,8 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_SurfaceObject *SO,
    }
    NI_SET_FLOATv( nini, "coord", v, 3);
    NI_set_attribute(nini,"text", lbls);
-   NI_set_attribute(nini,"col", "1 1 1");
+   for (i=0;i<3;++i) default_color[i] = 1.0 - sv->clear_color[i];
+   NI_SET_FLOATv( nini, "col", default_color,3);
    
    NI_add_to_group(nido->ngr, nini);
    

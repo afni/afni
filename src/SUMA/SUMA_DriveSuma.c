@@ -218,6 +218,12 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                                    and -viewer_height\n"
 "        -viewer_position X Y: Set position on the screen\n"
 "        -inout_notify y/n: Turn on or off function call tracing\n"
+"        -N_foreg_smooth n: Number of foreground smoothing iterations\n"
+"                           Same as suma's interactive '8' key or what\n"
+"                           you'd set with env: SUMA_NumForeSmoothing\n"
+"        -N_final_smooth n: Number of final color smoothing iterations\n"
+"                           Same as suma's interactive '*' key or what\n"
+"                           you'd set with env: SUMA_NumForeSmoothing\n" 
 "     + Example viewer_cont (assumes all previous examples have\n"
 "       been executed and suma is still running).\n"
 "        - a series of commands that should be obvious.\n"
@@ -305,6 +311,11 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                         by BS1 factor for BR1 or higher, and linearly \n"
 "                         interpolate scaling for BR0 < values < BR1\n" 
 "       -Dim DIM: Set the dimming factor.\n"
+"       -setSUMAenv \"'ENVname=ENVvalue'\": Set an ENV in SUMA. Note that\n"
+"                      most SUMA env need to be set at SUMA's launch time. \n"
+"                      Setting the env from DriveSuma may not achieve what \n" 
+"                      you want, so consider using suma's -setenv instead.\n"
+"\n"
 "     + Example surf_cont (assumes all previous examples have\n"
 "       been executed and suma is still running).\n"
 "       - Obvious chicaneries to follow:\n"
@@ -456,6 +467,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
                      kar, SUMA_CHECK_NULL_STR(argt[kar]));
          SUMA_RETURN(NOPE);
       }
+      
       if (!brk && (  (strcmp(argt[kar], "-label") == 0) || 
                      (strcmp(argt[kar], "-surf_label") == 0) || 
                      (strcmp(argt[kar], "-so_label") == 0)))
@@ -472,6 +484,48 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_S_Err("Two options setting different  surface labels"); 
             SUMA_RETURN(0); 
          }
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (  (strcmp(argt[kar], "-setSUMAenv") == 0) ))
+      {
+         int ienv = 0, closed = 0;
+         char attr[32]={""}, *aval=NULL;
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, 
+"need a string with 'NAME = VALUE' after -setSUMAenv (obey quotes and spaces) %d %d\n", kar, argtc);
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ienv = -1;
+         do {
+            ++ienv;
+            sprintf(attr,"ENV.%d", ienv);
+         } while (NI_get_attribute(ngr,attr));
+         /* Now search for a quote before the name */
+         ++kar;
+         if (argt[kar][0] != '\'' && argt[kar][0] != '\"') {
+            SUMA_S_Errv("You must enclose env expression with ' or \" quotes\n"
+                        "Have open %s\n", argt[kar]);
+            SUMA_RETURN(0);
+         } 
+         
+         aval = SUMA_copy_quoted(argt[kar],NULL,'\0','\0', 1, 0, &closed);
+         
+         if (!aval) {
+            SUMA_S_Err("Failed to get env value");
+            SUMA_RETURN(0);
+         }
+         SUMA_LHv("Adding >>%s<< %d \n", aval, closed); 
+         if (!closed) {
+            SUMA_S_Errv("You must enclose env expression with ' or \" quotes\n"
+                        "Have unterminated %s\n", aval);
+            SUMA_RETURN(0);
+         } 
+         NI_set_attribute(ngr, attr, aval);
+         SUMA_free(aval); aval=NULL;
          argt[kar][0] = '\0';
          brk = YUP;
       }
@@ -992,6 +1046,46 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "VVS_FileName", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && ( (strcmp(argt[kar], "-N_foreg_smooth") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need an integer after -N_foreg_smooth \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         ++kar; nums = (int)strtol(argt[kar], NULL,10);
+         if (nums < 0 || nums > 500) {
+            SUMA_S_Errv("Bad integer for option -N_foreg_smooth %s\n",
+                     argt[kar]);
+            SUMA_RETURN(0);
+         }
+         NI_set_attribute(ngr, "N_foreg_smooth", argt[kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && ( (strcmp(argt[kar], "-N_final_smooth") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need an integer after -N_final_smooth \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         ++kar; nums = (int)strtol(argt[kar], NULL,10);
+         if (nums < 0 || nums > 500) {
+            SUMA_S_Errv("Bad integer for option -N_final_smooth %s\n",
+                     argt[kar]);
+            SUMA_RETURN(0);
+         }
+         NI_set_attribute(ngr, "N_final_smooth", argt[kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }

@@ -4618,7 +4618,8 @@ void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData)
 
 
 /*!<
- the function expects the index of widget into sv->X->ViewMenu in data */
+ the function expects the index of widget into sv->X->ViewMenu in data 
+*/
 void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_toggle_crosshair"};
@@ -4633,7 +4634,8 @@ void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData)
    sv = &SUMAg_SVv[isv];
       
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleCrossHair, SES_SumaWidget, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleCrossHair, 
+                                       SES_SumaWidget, sv);
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaWidget, sv);
 
    if (!SUMA_Engine (&list)) {
@@ -4657,7 +4659,8 @@ void SUMA_cb_toggle_node_in_focus(Widget w, XtPointer data, XtPointer callData)
    sv = &SUMAg_SVv[isv];
       
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedNode, SES_SumaWidget, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedNode, 
+                                       SES_SumaWidget, sv);
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaWidget, sv);
 
    if (!SUMA_Engine (&list)) {
@@ -4667,7 +4670,8 @@ void SUMA_cb_toggle_node_in_focus(Widget w, XtPointer data, XtPointer callData)
    SUMA_RETURNe;
 }
 
-void SUMA_cb_toggle_selected_faceset(Widget w, XtPointer data, XtPointer callData)
+void SUMA_cb_toggle_selected_faceset(Widget w, XtPointer data, 
+                                     XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_toggle_selected_faceset"};
    int isv, widtype;
@@ -4681,14 +4685,14 @@ void SUMA_cb_toggle_selected_faceset(Widget w, XtPointer data, XtPointer callDat
    sv = &SUMAg_SVv[isv];
       
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedFaceSet, SES_SumaWidget, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedFaceSet, 
+                                      SES_SumaWidget, sv);
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaWidget, sv);
 
    if (!SUMA_Engine (&list)) {
       fprintf(stderr,"Error %s: Failed SUMA_Engine\n", FuncName);
    }
 
-   
    SUMA_RETURNe;
 }         
 
