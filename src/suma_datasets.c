@@ -11818,6 +11818,8 @@ char *SUMA_help_basics()
       "   [-novolreg|-noxform]: Ignore any Rotate, Volreg, Tagalign, \n"
       "                or WarpDrive transformations present in \n"
       "                the Surface Volume.\n"
+      "   [-setenv \"'ENVname=ENVvalue'\"]: Set environment variable ENVname\n"
+      "                to be ENVvalue. Quotes are necessary.\n"
       "  Common Debugging Options:\n"
       "   [-trace]: Turns on In/Out debug and Memory tracing.\n"
       "             For speeding up the tracing log, I recommend \n"
@@ -13896,6 +13898,66 @@ char *SUMA_copy_string(char *buf)
    atr[i] = '\0';
    
    SUMA_RETURN(atr);  
+}
+
+/*!
+   brief Return a copy of string between quotes q1 and q2
+   s (char*) input string
+   eop (char *) if != NULL, stop when s reaches eop, else keep going
+                till end of s if necessary
+   q1 (char) opening quote. If '\0', take opening quote as s[0]
+                           after you deblank s
+   q2 (char) closing quote. If '\0', q2 = q1
+   is_closed (int *) on return, set to 1 if found opening and closing quotes
+                            0 otherwise
+   deblank (int) remove blanks after q1 and before q2
+   withqotes (int)  if 1 then put quotes back on output                          
+   
+   returns qs (char *) the quoted string. Free with SUMA_free(qs);
+*/   
+char *SUMA_copy_quoted( char *s, char *eop, 
+                        char q1, char q2,
+                        int deblank, int withquotes,
+                        int *is_closed ) {
+   static char FuncName[]={"SUMA_copy_quoted"};
+   char *strn=NULL;
+   char *op=s, *op2=NULL;  
+   
+   SUMA_ENTRY;
+   
+   if (!s) SUMA_RETURN(strn);
+   SUMA_SKIP_BLANK(s,eop); 
+   
+   op=s;
+   if (q1 == '\0') { q1=*op;}   
+   if (q2 == '\0') { q2=q1; } 
+     
+   SUMA_SKIP_TO_NEXT_CHAR(op, eop, q1);   
+   
+   op2=op+1;  
+   SUMA_SKIP_TO_NEXT_CHAR(op2, eop, q2);   
+   
+   /* decide on closure, op and op2 are at the quotes*/
+   if (*op == q1 && *op2 == q2) *is_closed = 1;
+   else *is_closed = 0;  
+
+   /* deblanking */
+   if (deblank) {
+      /* move up from q1 and skip blanks */
+      ++op;
+      while (SUMA_IS_BLANK(*op) && op < op2) { ++op; }
+      --op; *op=q1;/* go back one and put q1 back */
+      
+      /* move down from q2 and skip blanls */
+      --op2;
+      while (SUMA_IS_BLANK(*op2) && op2 > op) { --op2; }
+      ++op2; *op2=q2;/* go forward one and put q2 back */
+   }
+   
+   if (withquotes) { ++op2; SUMA_COPY_TO_STRING(op,op2,strn); }
+   else { ++op; SUMA_COPY_TO_STRING(op,op2,strn);}
+   
+   SUMA_RETURN(strn);
 }
 
 /*!

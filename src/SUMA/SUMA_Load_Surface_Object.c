@@ -1355,11 +1355,12 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
    SUMA_Boolean SUMA_ParseLHS_RHS (char *s, char *lhs, char *rhs)
    
    Parses S of the form "lhs = rhs" 
-   blanks are necessary around the = sign
    s, lhs and rhs must be allocated for
    
    \param s (char *) "joe = fred"
-   \param lhs (char *) "joe"
+   \param lhs (char *) "joe" 
+                     if you send in lhs[0] = '\0'; it gets 
+                     filled with joe for you.
    \param rhs (char *) returned "fred"
    \ret YUP/NOPE for goodness, badness
    
@@ -1367,49 +1368,41 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
 SUMA_Boolean SUMA_ParseLHS_RHS (char *s, char *lhs, char *rhs)
 {
    static char FuncName[]={"SUMA_ParseLHS_RHS"};
-   char *st;
-
+   char *op=NULL, *op2=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
-
+      
    if (s == NULL) {
       fprintf(SUMA_STDERR,"Error %s: NULL s\n", FuncName);
       SUMA_RETURN (NOPE);
    }
-   st = strtok(s, " \0=");
-   if (SUMA_iswordin (st,"=") == 1) { /* no blanks it seems */
-      /*fprintf(SUMA_STDERR,"NO BLANK, st:%s\n", st);*/
-      fprintf( SUMA_STDERR,
-               "Error %s: Bad file format. \n"
-               "Perhaps no blanks before = sign after LHS argument %s.\n", 
-               FuncName, lhs);
-      SUMA_RETURN (NOPE);
-   } else { /* skip the next blank to = */
-      st = strtok(NULL, " \0=");
-      if (SUMA_iswordin (st,"=")!=1) {
-         fprintf( SUMA_STDERR,
-                  "Error %s: Bad file format. \n"
-                  "Perhaps no blanks around = after LHS argument %s.\n", 
-                  FuncName, lhs);
-         SUMA_RETURN (NOPE);
-      }
+   rhs[0] = '\0';
+   
+   /* skip first blank */
+   SUMA_SKIP_BLANK(s, NULL);
+   
+   /* seek first = */
+   SUMA_LHv("Have >%s<\n", s);
+   op=s;
+   SUMA_SKIP_TO_NEXT_CHAR(s,NULL,'=');
+   if (lhs[0] == '\0') { /* load left hand side */
+      SUMA_FILL_STRING(op, s, lhs);
+      SUMA_DEBLANK_RHS(lhs);
+      SUMA_LHv("LHS now: >%s<\n", lhs);
    }
-   /* get the rhs */
-   st = strtok(NULL, " \0=");
-   if (st == NULL) {
-      fprintf( SUMA_STDERR,
-               "Error %s: Bad file format. \n"
-               "Perhaps no blanks after = after LHS argument %s.\n", 
-               FuncName, lhs);
-      SUMA_RETURN (NOPE);
-   } else {
-      if (0) {
-         fprintf( SUMA_STDERR,
-                  "Pointer to rhs %s: %p, to hold %s \n", FuncName, rhs, st);
-         fprintf(SUMA_STDERR,"String at rhs in %s: %s \n", FuncName, rhs);
-      }
-      sprintf(rhs,"%s", st);
-      if (0) fprintf(SUMA_STDERR,"RHS: %s\n", rhs);
-   }
+   if (*s != '=') {
+      SUMA_LH("No equal, no right hand side\n");
+      SUMA_RETURN (NOPE);    
+   }   
+   /* get all the rhs */
+   ++s; 
+   SUMA_SKIP_BLANK(s, NULL);
+   SUMA_FILL_STRING(s, NULL, rhs);
+   /* deblank end of rhs */
+   SUMA_DEBLANK_RHS(rhs);
+   
+   SUMA_LHv("Have %s, lhs>%s<, rhs >%s<\n", s, lhs, rhs);
    SUMA_RETURN (YUP); 
 }
 
