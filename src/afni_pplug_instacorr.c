@@ -139,6 +139,7 @@ static char i_helpstring[] =
   "              * The number of time points and the grid spacing of\n"
   "                Extraset must match Dataset.\n"
   "              * The 2 time series dataset will be pre-processed identically.\n"
+  "              * This option is a present for Ziad.\n"
   "\n"
   "OPERATION\n"
   "=========\n"
