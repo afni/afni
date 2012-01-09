@@ -369,7 +369,7 @@ int main( int argc , char *argv[] )
    /*-- option processing --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
-      if( strcasecmp(argv[nopt],"-h") == 0 || 
+      if( strcasecmp(argv[nopt],"-h") == 0 ||
           strcasecmp(argv[nopt],"-help") == 0 ) {
          usage_3dTcorrMap(strlen(argv[1]) > 3 ? 2:1);
          exit(0);
