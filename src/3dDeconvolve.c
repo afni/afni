@@ -396,8 +396,6 @@ static float *Xcol_mean ;
 static int    voxel_num ;
 static float *voxel_base = NULL ;
 
-static float bp_fbot=0.0f , bp_ftop=0.0f ;
-static int bp_ncol=0 ;
 static int dofsub=0 ;
 
 float baseline_mean( vector coef ) ;    /* compute mean of baseline stuff */
@@ -986,11 +984,6 @@ void display_help_menu(int detail)
     "[-nodmbase]          don't de-mean baseline time series                \n"
     "                       (i.e., polort>0 and -stim_base inputs)          \n"
     "[-dmbase]            de-mean baseline time series [default if polort>=0]\n"
-    "[-bport ftop fbot]   'Bandpass' with sines and cosines in the baseline \n"
-    "                     model between frequencies ftop and fbot, in Hz.   \n"
-    "                    ** The dataset TR must be correct for these        \n"
-    "                       frequencies to be interpreted correctly!        \n"
-    "                    ** You must have 0 <= ftop < ftop for this to work!\n"
     "[-svd]               Use SVD instead of Gaussian elimination [default] \n"
     "[-nosvd]             Use Gaussian elimination instead of SVD           \n"
     "                       (only use for testing + backwards compatibility)\n"
@@ -1072,6 +1065,8 @@ void display_help_menu(int detail)
     "               *N.B.: This option is known as the 'Inati Option'.      \n"
     "               *N.B.: Unlike the original 'Inati' (who is unique), it  \n"
     "                      is allowed to have more than one '-ortvec' option.\n"
+    "               *N.B.: Program 1dBport is one place to generate a file  \n"
+    "                      for use with '-ortvec'.                          \n"
     "\n"
     "**N.B.: You must have -num_stimts > 0  AND/OR                          \n"
     "        You must use  -ortvec          AND/OR                          \n"
@@ -2339,17 +2334,6 @@ void get_options
         option_data->NLast = ival;
         nopt++;
         continue;
-      }
-
-      /*-----   -bport fbot ftop   -----*/
-      if( strcmp(argv[nopt],"-bport") == 0 ){
-        nopt++;
-        if( nopt+1 >= argc ) DC_error("need 2 arguments after -bport ");
-        bp_fbot = (float)strtod(argv[nopt++],NULL) ;
-        bp_ftop = (float)strtod(argv[nopt++],NULL) ;
-        if( bp_fbot < 0.0f || bp_ftop <= bp_fbot )
-          DC_error("illegal values after -bport") ;
-        continue ;
       }
 
       /*-----   -dofsub ddd   -----*/
