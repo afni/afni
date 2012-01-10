@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 9, JAN , 2012 , ZSS , "DriveSuma" , MICRO , TYPE_NEW_OPT,
+   "Added -setSUMAenv,-N_fore_smooth, and -N_final_smooth",
+   NULL,
+ },
+    
+ { 9, JAN , 2012 , ZSS , "suma-general" , MICRO , TYPE_NEW_OPT,
+   "Added -setenv to all SUMA programs",
+   NULL,
+ },
+    
  { 6, JAN , 2012 , ZSS , "ROI2dataset" , MICRO , TYPE_NEW_OPT,
    "Added -keep_separate to allow for another way to split ROIs",
    NULL,

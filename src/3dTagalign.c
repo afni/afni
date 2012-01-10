@@ -17,6 +17,90 @@ THD_dmat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;    /* at end of file */
 #define AFFINE    2
 #define ROTSCL    3
 
+void usage_3dTagalign(int detail) {
+   printf("Usage: 3dTagalign [options] dset\n"
+       "Rotates/translates dataset 'dset' to be aligned with the master,\n"
+       "using the tagsets embedded in their .HEAD files.\n"
+       "\n"
+       "Options:\n"
+       " -master mset  = Use dataset 'mset' as the master dataset\n"
+       "                   [this is a nonoptional option]\n"
+#if 0
+       "\n"
+       " -wtval        = Use the numerical value attached to each tag\n"
+       "                   in the master as weighting factor for that tag\n"
+       " -wt1D ff      = Read the *.1D file to use as a vector of weights\n"
+       "                   for each tag\n"
+       "           N.B.: The default is to weight each tag the same.\n"
+       "                   If you use weights, a larger weight means to\n"
+       "                   count aligning that tag as more important.\n"
+#endif
+       "\n"
+       " -nokeeptags   = Don't put transformed locations of dset's tags\n"
+       "                   into the output dataset [default = keep tags]\n"
+       "\n"
+       " -matvec mfile = Write the matrix+vector of the transformation to\n"
+       "                   file 'mfile'.  This can be used as input to the\n"
+       "                   '-matvec_in2out' option of 3dWarp, if you want\n"
+       "                   to align other datasets in the same way (e.g.,\n"
+       "                   functional datasets).\n"
+#if 0
+       "           N.B.: The matrix+vector of the transformation is also\n"
+       "                   saved in the .HEAD file of the output dataset\n"
+       "                   (unless -dummy is used).  You can use the\n"
+       "                   output dataset from 3dTagalign as the dataset\n"
+       "                   for 3drotates's '-matvec_dset' option; this\n"
+       "                   lets you avoid using an intermediate mfile.\n"
+       "\n"
+       " -3dWarp       = Use the '3dWarp' function to transform the dataset,\n"
+       "                   rather than the '3drotate' function.  The output\n"
+       "                   dataset will be computed on the same grid as the\n"
+       "                   master dataset.\n"
+       "           N.B.: This option is implied by '-affine' and '-rotscl'.\n"
+#endif
+       "\n"
+       " -rotate       = Compute the best transformation as a rotation + shift.\n"
+       "                   This is the default.\n"
+       "\n"
+       " -affine       = Compute the best transformation as a general affine\n"
+       "                   map rather than just a rotation + shift.  In all\n"
+       "                   cases, the transformation from input to output\n"
+       "                   coordinates is of the form\n"
+       "                      [out] = [R] [in] + [V]\n"
+       "                   where [R] is a 3x3 matrix and [V] is a 3-vector.\n"
+       "                   By default, [R] is computed as a proper (det=1)\n"
+       "                   rotation matrix (3 parameters).  The '-affine'\n"
+       "                   option says to fit [R] as a general matrix\n"
+       "                   (9 parameters).\n"
+       "           N.B.: An affine transformation can rotate, rescale, and\n"
+       "                   shear the volume.  Be sure to look at the dataset\n"
+       "                   before and after to make sure things are OK.\n"
+       "\n"
+       " -rotscl       = Compute transformation as a rotation times an isotropic\n"
+       "                   scaling; that is, [R] is an orthogonal matrix times\n"
+       "                   a scalar.\n"
+       "           N.B.: '-affine' and '-rotscl' do unweighted least squares.\n"
+       "\n"
+       " -prefix pp    = Use 'pp' as the prefix for the output dataset.\n"
+       "                   [default = 'tagalign']\n"
+       " -verb         = Print progress reports\n"
+       " -dummy        = Don't actually rotate the dataset, just compute\n"
+       "                   the transformation matrix and vector.  If\n"
+       "                   '-matvec' is used, the mfile will be written.\n"
+       "  -linear     }\n"
+       "  -cubic      } = Chooses spatial interpolation method.\n"
+       "  -NN         } =   [default = cubic]\n"
+       "  -quintic    }\n"
+       "\n"
+       "Nota Bene:\n"
+       "* The transformation is carried out\n"
+       "  using the same methods as program 3dWarp.\n"
+       "\n"
+       "Author: RWCox - 16 Jul 2000, etc.\n"
+            ) ;
+      PRINT_COMPILE_DATE ; 
+      return;
+}
 /*-------------------------------------------------------------------------*/
 
 int main( int argc , char * argv[] )
@@ -34,7 +118,7 @@ int main( int argc , char * argv[] )
    char * prefix = "tagalign" , *mfile=NULL ;
 
    float *fvol , cbot,ctop , dsum ;
-   int nval , nvox , clipit , ival ;
+   int nval , nvox , clipit , ival, RMETH=MRI_CUBIC;
 
    float matar[12] ;
 
@@ -44,89 +128,32 @@ int main( int argc , char * argv[] )
    
    /*--- help? ---*/
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dTagalign [options] dset\n"
-             "Rotates/translates dataset 'dset' to be aligned with the master,\n"
-             "using the tagsets embedded in their .HEAD files.\n"
-             "\n"
-             "Options:\n"
-             " -master mset  = Use dataset 'mset' as the master dataset\n"
-             "                   [this is a nonoptional option]\n"
-#if 0
-             "\n"
-             " -wtval        = Use the numerical value attached to each tag\n"
-             "                   in the master as weighting factor for that tag\n"
-             " -wt1D ff      = Read the *.1D file to use as a vector of weights\n"
-             "                   for each tag\n"
-             "           N.B.: The default is to weight each tag the same.\n"
-             "                   If you use weights, a larger weight means to\n"
-             "                   count aligning that tag as more important.\n"
-#endif
-             "\n"
-             " -nokeeptags   = Don't put transformed locations of dset's tags\n"
-             "                   into the output dataset [default = keep tags]\n"
-             "\n"
-             " -matvec mfile = Write the matrix+vector of the transformation to\n"
-             "                   file 'mfile'.  This can be used as input to the\n"
-             "                   '-matvec_in2out' option of 3dWarp, if you want\n"
-             "                   to align other datasets in the same way (e.g.,\n"
-             "                   functional datasets).\n"
-#if 0
-             "           N.B.: The matrix+vector of the transformation is also\n"
-             "                   saved in the .HEAD file of the output dataset\n"
-             "                   (unless -dummy is used).  You can use the\n"
-             "                   output dataset from 3dTagalign as the dataset\n"
-             "                   for 3drotates's '-matvec_dset' option; this\n"
-             "                   lets you avoid using an intermediate mfile.\n"
-             "\n"
-             " -3dWarp       = Use the '3dWarp' function to transform the dataset,\n"
-             "                   rather than the '3drotate' function.  The output\n"
-             "                   dataset will be computed on the same grid as the\n"
-             "                   master dataset.\n"
-             "           N.B.: This option is implied by '-affine' and '-rotscl'.\n"
-#endif
-             "\n"
-             " -rotate       = Compute the best transformation as a rotation + shift.\n"
-             "                   This is the default.\n"
-             "\n"
-             " -affine       = Compute the best transformation as a general affine\n"
-             "                   map rather than just a rotation + shift.  In all\n"
-             "                   cases, the transformation from input to output\n"
-             "                   coordinates is of the form\n"
-             "                      [out] = [R] [in] + [V]\n"
-             "                   where [R] is a 3x3 matrix and [V] is a 3-vector.\n"
-             "                   By default, [R] is computed as a proper (det=1)\n"
-             "                   rotation matrix (3 parameters).  The '-affine'\n"
-             "                   option says to fit [R] as a general matrix\n"
-             "                   (9 parameters).\n"
-             "           N.B.: An affine transformation can rotate, rescale, and\n"
-             "                   shear the volume.  Be sure to look at the dataset\n"
-             "                   before and after to make sure things are OK.\n"
-             "\n"
-             " -rotscl       = Compute transformation as a rotation times an isotropic\n"
-             "                   scaling; that is, [R] is an orthogonal matrix times\n"
-             "                   a scalar.\n"
-             "           N.B.: '-affine' and '-rotscl' do unweighted least squares.\n"
-             "\n"
-             " -prefix pp    = Use 'pp' as the prefix for the output dataset.\n"
-             "                   [default = 'tagalign']\n"
-             " -verb         = Print progress reports\n"
-             " -dummy        = Don't actually rotate the dataset, just compute\n"
-             "                   the transformation matrix and vector.  If\n"
-             "                   '-matvec' is used, the mfile will be written.\n"
-             "\n"
-             "Nota Bene:\n"
-             "* Cubic interpolation is used.  The transformation is carried out\n"
-             "  using the same methods as program 3dWarp.\n"
-             "\n"
-             "Author: RWCox - 16 Jul 2000, etc.\n"
-            ) ;
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
-
    /*- scan args -*/
-   iarg = 1 ;
+   iarg = 1 ; RMETH=MRI_CUBIC;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      /*-----*/
+
+      if( strcmp(argv[iarg],"-h") == 0 ||
+          strcmp(argv[iarg],"-help") == 0){   /* 22 Apr 2003 */
+        usage_3dTagalign(strlen(argv[iarg]) > 3 ? 2:1);
+        exit(0);
+      }
+      
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-NN")     == 0 ){
+       RMETH = MRI_NN ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-linear") == 0 ){
+       RMETH = MRI_LINEAR ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-cubic")  == 0 ){
+       RMETH = MRI_CUBIC ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-quintic") == 0 ){
+       RMETH = MRI_QUINTIC ; iarg++ ; continue ;  
+     }
 
       /*-----*/
 
@@ -260,9 +287,18 @@ int main( int argc , char * argv[] )
 
       /*-----*/
 
-      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
+      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; 
+      suggest_best_prog_option(argv[0], argv[iarg]);
+      exit(1) ;
 
    } /* end of scanning command line for options */
+
+   if( argc < 2 ){
+      ERROR_message("Too few options");
+      usage_3dTagalign(0);
+      exit(1) ;
+   }
+
 
    if( mset == NULL )                    ERREX("No -master option found on command line") ;
 
@@ -581,7 +617,7 @@ int main( int argc , char * argv[] )
      DMAT_TO_MAT    ( rtinv.mm , tran.mm ) ;
 #endif
 
-     mri_warp3D_method( MRI_CUBIC ) ;
+     mri_warp3D_method( RMETH ) ;
      oset = THD_warp3D_affine( dset, tran, mset, prefix, 0, WARP3D_NEWDSET ) ;
      if( oset == NULL ){
        fprintf(stderr,"** ERROR: THD_warp3D() fails!\n"); exit(1);
