@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , JAN , 2012 , RWC , "1dsvd" , MICRO , TYPE_MODIFY ,
+  { 10 , JAN , 2012 , RWC , "1dBport" , MINOR , TYPE_NEW_PROG ,
+   "Generates sin/cos waveforms for bandpass-via-regression" ,
+   NULL } ,
+
+ { 4 , JAN , 2012 , RWC , "1dsvd" , MICRO , TYPE_MODIFY ,
    "Add percent ability to -nev option" ,
    "That is, the ability to output (via -1Dleft) the set of vectors that\n"
    "make up the first 'n' percent of the column space." } ,
