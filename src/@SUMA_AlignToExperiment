@@ -92,7 +92,11 @@ PARSE_COMMAND:
             goto END
          else
             @ cnt ++
-            set prexform = "$argv[$cnt]"
+            set prexform = `ParseName -out FullName "$argv[$cnt]"`
+            if ( ! -f $prexform) then
+               echo "$prexform not found"
+               goto BEND
+            endif
             set donext = 0   
          endif   
       endif

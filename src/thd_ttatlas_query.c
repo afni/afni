@@ -8120,3 +8120,94 @@ char **Atlas_Names_List(ATLAS_LIST *atl)
    }
    return(atlas_names);
 }
+
+/*
+   Put the label associated with value val in string str
+      (64 chars are copied into str)
+*/
+int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
+{
+   ATR_string *atr=NULL;
+   char *str_lab1=NULL, *str_lab2=NULL, sval[128]={""};
+   ATLAS_LIST *atlas_alist=NULL;
+   ATLAS *atlas=NULL;
+   
+   ENTRY("AFNI_get_dset_val_label") ;
+
+   if (!str) RETURN(1);
+
+   str[0]='\0';
+
+   if (!dset) RETURN(1);
+
+   
+  if ((dset->Label_Dtable = DSET_Label_Dtable(dset))) {
+      /* Have hash, will travel */
+      sprintf(sval,"%d", (int)val);
+      str_lab1 = findin_Dtable_a(sval,
+                                dset->Label_Dtable);
+      /* fprintf(stderr,"ZSS: Have label '%s' for value '%s'\n",
+                     str_lab1 ? str_lab1:"NULL", sval); */
+   }
+   
+   atlas_alist = get_G_atlas_list();
+   if (is_Dset_Atlasy(dset, atlas_alist)) {
+      if ((atlas = get_Atlas_ByDsetID(DSET_IDCODE_STR(dset), atlas_alist))) {
+         /* Now get the name of the value */
+         str_lab2 = atlas_key_label(atlas, (int)val,NULL);
+         /* fprintf(stderr,"ZSS: Have atlas label '%s' for value %d\n",
+                        str_lab2 ? str_lab2:"NULL", (int)val);  */
+      }
+   }
+
+   if (str_lab1 && str_lab2 && strcmp(str_lab1,str_lab2)) {
+      snprintf(str,64, "%s|%s",str_lab1,str_lab2);
+   } else if (str_lab1) {
+      snprintf(str,64, "%s",str_lab1);
+   } else if (str_lab2) {
+      snprintf(str,64, "%s",str_lab2);
+   } 
+   
+   RETURN(0);
+}
+
+/*
+   Put the value associated with label in val
+   Unlike AFNI_get_dset_val_label,
+   This function has not been tested.
+   
+   NEEDS MODIFICATION TO deal with ATLAS datasets.
+*/
+int AFNI_get_dset_label_val(THD_3dim_dataset *dset, double *val, char *str)
+{
+/*   MCW_pbar *pbar = NULL;*/
+   ATR_string *atr=NULL;
+/*   char *pbar_name=NULL;*/
+   char *str_lab=NULL;
+
+   ENTRY("AFNI_get_dset_label_val") ;
+
+   if (!str) RETURN(1);
+
+   *val = 0;
+
+   if (!dset) RETURN(1);
+
+   if (!dset->Label_Dtable &&
+       (atr = THD_find_string_atr( dset->dblk ,
+                              "VALUE_LABEL_DTABLE" ))) {
+      dset->Label_Dtable = Dtable_from_nimlstring(atr->ch);
+   }
+
+   if (dset->Label_Dtable) {
+      /* Have hash, will travel */
+      str_lab = findin_Dtable_b(str,
+                                dset->Label_Dtable);
+      /* fprintf(stderr,"ZSS: Have value '%s' for label '%s'\n",
+                     str_lab ? str_lab:"NULL", str); */
+      if (str_lab) *val = strtol(str_lab,NULL, 10);
+   }
+
+   RETURN(0);
+}
+

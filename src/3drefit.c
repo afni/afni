@@ -163,6 +163,7 @@ void Syntax(int detail)
 "  -labeltable TTT Inset the label table TTT in the .HEAD file.\n"
 "                  The label table format is described in README.environment\n"
 "                  under the heading: 'Variable: AFNI_VALUE_LABEL_DTABLE'\n"
+"              See also -copytables\n"
 "\n"
 "  -denote         Means to remove all possibly-identifying notes from\n"
 "                  the header.  This includes the History Note, other text\n"
@@ -219,6 +220,7 @@ void Syntax(int detail)
     "\n"
     "                  Do NOT use -atrcopy or -atrstring with other modification\n"
     "                  options.\n"
+    "          See also -copyaux\n"
     "\n"
     "  -atrstring n 'x' Copy the string 'x' into the dataset(s) being\n"
     "                   modified, giving it the attribute name 'n'.\n"
@@ -280,11 +282,22 @@ void Syntax(int detail)
     "  -copyaux auxset Copies the 'auxiliary' data from dataset 'auxset'\n"
     "                  over the auxiliary data for the dataset being\n"
     "                  modified.  Auxiliary data comprises sub-brick labels,\n"
-    "                  keywords, and statistics codes.\n"
+    "                  keywords, statistics codes, nodelists, and labeltables\n"
+    "                  AND/OR atlas point lists.\n"
     "                  '-copyaux' occurs BEFORE the '-sub' operations below,\n"
     "                  so you can use those to alter the auxiliary data\n"
     "                  that is copied from auxset.\n"
     "\n" ) ;
+   
+   printf(           /* 11 Jan 2012 */
+    "\n"
+    "  -copytables tabset Copies labeltables AND/OR atlas point lists, if any,\n"
+    "                  from tabset to the input dataset.\n"
+    "                  '-copyaux' occurs BEFORE the '-sub' operations below,\n"
+    "                  so you can use those to alter the auxiliary data\n"
+    "                  that is copied from tabset. \n"
+    "\n" ) ;
+
 
    printf(
     "  -relabel_all xx  Reads the file 'xx', breaks it into strings,\n"
@@ -415,7 +428,9 @@ int main( int argc , char * argv[] )
    int clear_bstat    = 0 ;          /* 28 May 2002 */
    int redo_bstat     = 0 ;          /* 01 Feb 2005 */
    int copyaux        = 0 ;          /* 08 Jun 2004 */
+   int copytabs       = 0 ;          /* 11 Jan 2012 */
    THD_3dim_dataset *auxset=NULL ;   /* 08 Jun 2004 */
+   THD_3dim_dataset *tabset=NULL ;   /* 11 Jan 2012 */
    char *new_label2   = NULL ;       /* 21 Dec 2004 */
    char *labeltable   = NULL;        /* 25 Feb 2010 ZSS */
    int denote         = 0 ;          /* 08 Jul 2005 */
@@ -664,6 +679,22 @@ int main( int argc , char * argv[] )
             auxset = THD_open_one_dataset( argv[iarg] ) ;
             if( auxset == NULL ) SynErr("Can't open -copyaux dataset!") ;
          }
+
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+      
+      /*----- -copytables tabset [12 Jan 2012] -----*/
+
+      if( strcmp(argv[iarg],"-copytables") == 0 ){
+
+         if( iarg+1 >= argc ) SynErr("need 1 argument after -copytables!") ;
+
+         if( tabset != NULL ) SynErr("Can't have more than one -copytables option!") ;
+
+         iarg++ ; copytabs = 1 ;
+         
+         tabset = THD_open_one_dataset( argv[iarg] ) ;
+         if( tabset == NULL ) SynErr("Can't open -copytables dataset!") ;
 
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
@@ -1867,6 +1898,19 @@ int main( int argc , char * argv[] )
           did_something++ ; /* 30 Mar 2010 */
         }
       }
+      
+      /*-- 11 Jan 2012: copytables? --*/
+
+      if( copytabs ){
+        if( tabset != NULL ){
+          if (!THD_copy_labeltable_atr( dset->dblk , tabset->dblk )) {
+            WARNING_message("Failed to copy labletable attributes");
+          }
+          did_something++ ; 
+          VINFO("copy tabledata") ;
+        } 
+      }
+      
 
       /*-- relabel_all? [18 Apr 2011] --*/
 
