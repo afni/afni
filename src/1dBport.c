@@ -30,6 +30,13 @@ int main( int argc , char *argv[] )
        "                     get a 'complete' set of trig functions, meaning that\n"
        "                     using these in regression is effectively a 'no-pass'\n"
        "                     filter -- probably not what you want!\n"
+       "                  ** It is legal to set fbot = ftop.\n"
+       "                  ** The 0 frequency (fbot = 0) component is all 1, of course.\n"
+       "                     But nothing generated here will deal well with linear-ish\n"
+       "                     or quadratic-ish trends, which fall below the lowest nonzero\n"
+       "                     frequency representable in a full cycle on the grid:\n"
+       "                        f_low = 1 / ( NT * TR )\n"
+       "                     where NT = number of time points.\n"
        "\n"
        " -input dataset   } One of these options is used to specify the number of\n"
        "   *OR*           } time points to be created, as in 3dDeconvolve.\n"
@@ -192,6 +199,10 @@ int main( int argc , char *argv[] )
 
    if( nbad > 0 )
      ERROR_exit("Cannot continue after above error%s :-(", (nbad==1) ? "\0" : "s" ) ;
+
+   fprintf(stderr,"++ Block lengths:") ;
+   for( tt=0 ; tt < nblock ; tt++ ) fprintf(stderr," %d",blocklen[tt]) ;
+   fprintf(stderr,"\n") ;
 
    /*----- work -----*/
 
