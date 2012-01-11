@@ -406,6 +406,10 @@ ATLAS_LIST *env_atlas_list(void);
 char **env_space_list(int *);
 char *Current_Atlas_Default_Name(void);
 char **Atlas_Names_List(ATLAS_LIST *atl);
+int AFNI_get_dset_val_label(THD_3dim_dataset *dset,  /* 26 Feb 2010 ZSS */
+                                    double val, char *str);
+int AFNI_get_dset_label_val(THD_3dim_dataset *dset, 
+                                    double *val, char *str);/* 02 Nov 2010 ZSS */
 
 /* Transforms for going from one space to another */
 #if 0
