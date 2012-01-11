@@ -115,9 +115,11 @@ int main( int argc , char *argv[] )
    while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcmp(argv[iarg],"-polort") == 0 ){
+       char *qpt ;
        if( ++iarg >= argc )
          ERROR_exit("Need argument after option %s",argv[iarg-1]) ;
-       pport = (int)strtod(argv[iarg],NULL) ;
+       pport = (int)strtod(argv[iarg],&qpt) ;
+       if( *qpt != '\0' ) WARNING_message("Illegal non-numeric value after -polort") ;
        iarg++ ; continue ;
      }
 

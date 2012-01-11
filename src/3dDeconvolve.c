@@ -973,6 +973,9 @@ void display_help_menu(int detail)
     "                       automatically choose a value based on the       \n"
     "                       time duration D of the longest run:             \n"
     "                         pnum = 1 + int(D/150)                         \n"
+    "                ==>>** 3dDeconvolve is the ONLY AFNI program with the  \n"
+    "                       -polort option that allows the use of 'A' to    \n"
+    "                       mean set the polynomial order automatically!!!  \n"
     "                    ** Use '-1' for pnum to specifically NOT include   \n"
     "                       any polynomials in the baseline model.  Only    \n"
     "                       do this if you know what this means!            \n"
@@ -2354,7 +2357,9 @@ void get_options
         if( toupper(argv[nopt][0]) == 'A' ){  /* 16 Mar 2006: Automatic */
           ival = -666 ;
         } else {
-          ival = -2 ; sscanf (argv[nopt], "%d", &ival);
+          char *qpt ;
+          ival = (int)strtod(argv[nopt],&qpt) ;
+          if( *qpt != '\0' ) WARNING_message("Illegal non-numeric value after -polort") ;
           if (ival < -1)
             DC_error ("illegal argument after -polort ");
         }

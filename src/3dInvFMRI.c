@@ -261,7 +261,9 @@ int main( int argc , char *argv[] )
      }
 
      if( strcmp(argv[iarg],"-polort") == 0 ){
-       polort = (int)strtol(argv[++iarg],NULL,10) ;
+       char *cpt ;
+       polort = (int)strtod(argv[++iarg],&cpt) ;
+       if( *cpt != '\0' ) WARNING_message("Illegal non-numeric value after -polort") ;
        iarg++ ; continue ;
      }
 
