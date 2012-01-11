@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, JAN, 2012, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "dx and dy were reversed in mri_read_dicom.c",
+   "Thanks to P Kaskan and F Ye for bringing this up."
+ } ,
+
  { 28, NOV, 2011, RCR, "1dnorm", MICRO, TYPE_BUG_FIX,
    "re-enabled use of '-' for stdin/stdout",
    "Requested by R Birn."
