@@ -59,7 +59,7 @@ int main( int argc , char *argv[] )
        " components from 0.25 Hz up to the Nyquist freqency:\n"
        "   1dBport -nodata 100 1 -band 0.25 666 > lowpass.1D\n"
        " The third example shows how to examine the results visually, for fun:\n"
-       "   1dBport -nodata 100 1 -band 0.10 0.11 | 1dplot -stdin -thick\n"
+       "   1dBport -nodata 100 1 -band 0.41 0.43 | 1dplot -stdin -thick\n"
        "\n"
        "AUTHOR -- RWCox -- Jan 2012\n"
      ) ;
@@ -106,7 +106,7 @@ int main( int argc , char *argv[] )
        nblock = bim->nx ; bar = MRI_FLOAT_PTR(bim) ;
        blocklist = (int *)malloc(sizeof(int)*nblock) ;
        for( tt=0 ; tt < nblock ; tt++ ) blocklist[tt] = (int)floorf(bar[tt]+0.5f) ;
-       nopt++ ;
+       nopt++ ; continue ;
      }
 
      /*-----*/
@@ -200,7 +200,7 @@ int main( int argc , char *argv[] )
    if( nbad > 0 )
      ERROR_exit("Cannot continue after above error%s :-(", (nbad==1) ? "\0" : "s" ) ;
 
-   fprintf(stderr,"++ Block lengths:") ;
+   fprintf(stderr,"++ Block length%s:",(nblock==1)?"\0":"s") ;
    for( tt=0 ; tt < nblock ; tt++ ) fprintf(stderr," %d",blocklen[tt]) ;
    fprintf(stderr,"\n") ;
 
