@@ -324,7 +324,7 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-polort") == 0 ){
-         int val = strtod(argv[++nopt],&cpt) ;
+         int val = (int)strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val < -1 || val > 3 ){
             ERROR_exit("Illegal value after -polort!") ;
          }

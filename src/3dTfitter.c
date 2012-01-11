@@ -719,11 +719,14 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcasecmp(argv[iarg],"-polort") == 0 ){  /* 20 Mar 2008 */
+       char *qpt ;
        if( polort >= 0 )
          WARNING_message("you have more than 1 -polort option!") ;
        if( iarg+1 >= argc )
          ERROR_exit("Need an argument after '%s'",argv[iarg]);
-       polort = (int)strtod(argv[++iarg],NULL) ;
+       polort = (int)strtod(argv[++iarg],&qpt) ;
+       if( *qpt != '\0' )
+         WARNING_message("Illegal non-numeric value after -polort") ;
        if( polort < 0 )
          WARNING_message("-polort value is negative ==> ignoring") ;
        iarg++ ; continue ;

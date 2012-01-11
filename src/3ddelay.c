@@ -478,9 +478,11 @@ void get_options
       if (strcmp(argv[nopt], "-polort") == 0 ||
           strcmp(argv[nopt], "-Nort") == 0)
       {
+        char *qpt ;
         nopt++;
         if (nopt >= argc)  FIM_error ("need argument after -polort ");
-        option_data->polort = atoi(argv[nopt]);
+        option_data->polort = (int)strtod(argv[nopt],&qpt);
+        if( *qpt != '\0' ) WARNING_message("Illegal non-numeric value after -polort") ;
         nopt++;
         continue;
       }

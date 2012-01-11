@@ -357,9 +357,11 @@ void get_options
       /*-----   -polort num  -----*/
       if (strcmp(argv[nopt], "-polort") == 0)
 	{
+     char *qpt ;
 	  nopt++;
 	  if (nopt >= argc)  FIM_error ("need argument after -polort ");
-	  sscanf (argv[nopt], "%d", &ival);
+     ival = (int)strtod(argv[nopt],&qpt) ;
+     if( *qpt != '\0' ) WARNING_message("Illegal non-numeric value after -polort") ;
 
 #undef PMAX
 #ifdef USE_LEGENDRE

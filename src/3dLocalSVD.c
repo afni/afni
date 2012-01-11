@@ -124,6 +124,8 @@ int main( int argc , char *argv[] )
          rebase = 1 ;
        } else if( iarg+1 < argc && strcmp(argv[iarg+1],"+") == 0 ){
          rebase = 1; iarg++;
+       } else if( *cpt != '\0' ){
+         WARNING_message("Illegal non-numeric value after -polort") ;
        }
        iarg++ ; continue ;
      }

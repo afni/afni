@@ -1509,8 +1509,10 @@ int main( int argc , char *argv[] )
       /**==========   -polort P [undocumented] ===========**/
 
      if( strcasecmp(argv[iarg],"-polort") == 0 ){
+       char *qpt ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       polort = (int)strtod(argv[iarg],NULL) ;
+       polort = (int)strtod(argv[iarg],&qpt) ;
+       if( *qpt != '\0' ) WARNING_message("Illegal non-numeric value after -polort") ;
        iarg++ ; continue ;
      }
 

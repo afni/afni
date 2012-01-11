@@ -134,6 +134,7 @@ int main( int argc , char *argv[] )
        char *cpt ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-polort'") ;
        polort = (int)strtod(argv[iarg],&cpt) ;
+       if( *cpt != '\0' ) WARNING_message("Illegal non-numeric value after -polort") ;
        iarg++ ; continue ;
      }
 

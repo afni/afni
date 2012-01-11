@@ -551,7 +551,7 @@ int main( int argc , char *argv[] )
          char *cpt ;
          int val = (int)strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val < -1 || val > 19 )
-            ERROR_exit("Illegal value after -polort!\n") ;
+            ERROR_exit("Illegal value '%s' after -polort!",argv[nopt]) ;
          polort = val ; nopt++ ; continue ;
       }
 
