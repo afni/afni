@@ -531,31 +531,35 @@ int main(int argc, char *argv[])
 	for (i = 1; i <= force_num_ROI; i++) {
 	    non_zero[i + 32768] = (i - 1);
 	    if (!quiet && !summary) {
-		if (mean) fprintf(stdout, "\tMean_%d  ", i );
+          AFNI_get_dset_val_label(mask_dset, (double)(i), sklab);
+          if (sklab[0]=='\0') {
+            sprintf(sklab,"%d",i);
+          }
+		if (mean) fprintf(stdout, "\tMean_%s  ", sklab );
 		if (nzmean)
-		    fprintf(stdout, "\tNZMean_%d", i );
+		    fprintf(stdout, "\tNZMean_%s", sklab );
 		if (nzcount)
-		    fprintf(stdout, "\tNZcount_%d", i );
+		    fprintf(stdout, "\tNZcount_%s", sklab );
 		if (sigma)
-		    fprintf(stdout, "\tSigma_%d", i );
+		    fprintf(stdout, "\tSigma_%s", sklab );
 		if (nzsigma)
-		    fprintf(stdout, "\tNZSigma_%d", i );
+		    fprintf(stdout, "\tNZSigma_%s", sklab );
 		if (minmax) {
-		    fprintf(stdout, "\tMin_%d   ", i );
-		    fprintf(stdout, "\tMax_%d   ", i );
+		    fprintf(stdout, "\tMin_%s   ", sklab );
+		    fprintf(stdout, "\tMax_%s   ", sklab );
 		}
 		if (nzminmax) {
-		    fprintf(stdout, "\tNZMin_%d ", i );
-		    fprintf(stdout, "\tNZMax_%d ", i );
+		    fprintf(stdout, "\tNZMin_%s ", sklab );
+		    fprintf(stdout, "\tNZMax_%s ", sklab );
 		}
       if (perc) {
-         fprintf(stdout, "\tMed_%d ", i );
+         fprintf(stdout, "\tMed_%s ", sklab );
       }
       if (nzperc) {
-         fprintf(stdout, "\tNZMed_%d ", i );
+         fprintf(stdout, "\tNZMed_%s ", sklab );
       }
       if (donzsum) {
-         fprintf(stdout, "\tNZSum_%d ", i );
+         fprintf(stdout, "\tNZSum_%s ", sklab );
       }
 	    }
 	}
