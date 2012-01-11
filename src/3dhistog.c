@@ -99,13 +99,13 @@ int main( int argc , char * argv[] )
    /* removed ibot, itop              10 Jun 2011 [rcr,drg] */
    int   use_ceil;
    void *vfim = NULL;
-   int *fbin=NULL ;
+   int64_t *fbin=NULL ;
    float df , dfi ;
    float fval ;
 
    float fimfac;
    int iv_fim, fim_type;
-   long cumfbin;
+   int64_t cumfbin;
    int iv_bot , iv_top ;
    FILE *fout = NULL;
    int n_unq=0;
@@ -188,8 +188,6 @@ int main( int argc , char * argv[] )
 
    /* check if user has requested number of bins */
    nbin = (HI_nbin < 0) ? NBIN_DEFAULT : HI_nbin ;
-   fbin = (int *) calloc( sizeof(int) , nbin ) ;
-   if( fbin == NULL ) HI_syntax("can't allocate histogram array!") ;
 
    iarg = nopt ;
    dset = THD_open_dataset( argv[iarg] ) ;
@@ -281,6 +279,7 @@ int main( int argc , char * argv[] )
 
    if((HI_nbin<0) && (HI_datatype == HI_INTOUT))
       nbin = ftop-fbot+1;
+
    switch( fim_type ){
       default:
         fprintf(stderr,"** ERROR: can't process data of this type!\n") ;
@@ -306,6 +305,9 @@ int main( int argc , char * argv[] )
    df  = (ftop-fbot) / nbin ;
    if(df==0.0) dfi = 1;
    else dfi = 1.0 / df ;
+
+   fbin = (int64_t *) calloc( sizeof(int64_t) , nbin ) ;
+   if( fbin == NULL ) HI_syntax("can't allocate histogram array!") ;
 
    if (HI_roi) {
       if (DSET_NVOX(HI_roi) != nxyz) {
@@ -343,7 +345,7 @@ int main( int argc , char * argv[] )
             }
          }
          /* flush fbin */
-         memset(fbin, 0, sizeof(int)*HI_nbin);
+         memset(fbin, 0, sizeof(int64_t)*nbin);
          /* fprintf(stderr,"Processing ROI %d\n", HI_roi_unq[i_roi_unq]); */
       }
       /* loop over all bricks and accumulate histogram */
@@ -477,28 +479,30 @@ int main( int argc , char * argv[] )
            for( kk=0 ; kk < nbin ; kk++ ){
              cumfbin += fbin[kk];
              if((use_ceil) && (nbin <= (ftop-fbot+1)))
-                printf ("%12d %13d %13ld\n",
-                     (int) ceil(fbot+kk*df), fbin[kk], cumfbin);
+                printf ("%12d %13lld %13lld\n",
+                     (int) ceil(fbot+kk*df), (long long)fbin[kk], (long long)cumfbin);
              else
-                printf ("%12.6f %13d %13ld\n",
-                     (fbot+kk*df), fbin[kk], cumfbin);
+                printf ("%12.6f %13lld %13lld\n",
+                     (fbot+kk*df), (long long)fbin[kk], (long long)cumfbin);
            }
          }
       } else { /*                ZSS Dec. 2010 */
          NI_stream ns=NULL;
          NI_element *hni=NULL;
          char sstr[strlen(HI_ni)+64];
-         float *bb=(float*)calloc(nbin, sizeof(float));
-         double *cf=(double*)calloc(nbin, sizeof(double));
-         cumfbin = 0.0;
+         float *bb =(float* )calloc(nbin,sizeof(float) );
+         double *cf=(double*)calloc(nbin,sizeof(double));
+         double *bd=(double*)calloc(nbin,sizeof(double));
+         cumfbin = 0 ;
          for( kk=0 ; kk < nbin ; kk++ ){
           cumfbin += fbin[kk];
-          cf[kk] = cumfbin;
+          cf[kk] = (double)cumfbin;
+          bd[kk] = (double)fbin[kk];
           bb[kk] = CEIL_CHECK(fbot+kk*df);
          }
          hni = NI_new_data_element("3dhistog", nbin);
-         NI_add_column(hni, NI_FLOAT, bb);
-         NI_add_column(hni, NI_INT, fbin);
+         NI_add_column(hni, NI_FLOAT , bb);
+         NI_add_column(hni, NI_DOUBLE, bd);
          NI_add_column(hni, NI_DOUBLE, cf);
          if (HI_log)
             NI_set_attribute(hni, "ColumnLabels",
@@ -521,7 +525,7 @@ int main( int argc , char * argv[] )
          NI_write_element(ns,hni,NI_TEXT_MODE | NI_HEADERSHARP_FLAG );
          NI_stream_close(ns);
          NI_free_element(hni);
-         free(bb); free(cf);
+         free(bb); free(cf); free(bd);
       }
       ++i_roi_unq;
    } while (i_roi_unq < HI_N_roi_unq);
