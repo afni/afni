@@ -142,9 +142,12 @@ fprintf(stderr,"argv[%d] = %s\n",iarg,argv[iarg]) ;
      }
 
      if( strcmp(argv[iarg],"-polort") == 0 ){
+       char *cpt ;
        if( ++iarg >= argc )
          ERROR_exit("Need argument after option %s",argv[iarg-1]) ;
-       pport = (int)strtod(argv[iarg],NULL) ;
+       pport = (int)strtod(argv[iarg],&cpt) ;
+       if( *cpt != '\0' )
+         WARNING_message("Illegal non-numeric value after -polort") ;
        if( pport > 3 ){
          pport = 3 ; WARNING_message("-polort set to 3 == max implemented") ;
        } else if( pport < 0 ){

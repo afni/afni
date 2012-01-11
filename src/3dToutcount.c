@@ -146,7 +146,9 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[iarg],"-polort") == 0 ){
-        polort = strtol( argv[++iarg] , NULL , 10 ) ;
+        char *qpt ;
+        polort = (int)strtod(argv[++iarg],&qpt) ;
+        if( *qpt != '\0' ) WARNING_message("Illegal non-numeric value after -polort") ;
         iarg++ ; continue ;
       }
 

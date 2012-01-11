@@ -404,10 +404,11 @@ void get_options
       /*-----   -polort num  -----*/
       if (strcmp(argv[nopt], "-polort") == 0)
 	{
+     char *cpt ;
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -polort ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < -1)
+     ival = (int)strtod(argv[nopt],&cpt) ;
+     if( *cpt != '\0' || ival < -1 )
 	    DC_error ("illegal argument after -polort ");
 	  option_data->polort = ival;
 	  nopt++;
