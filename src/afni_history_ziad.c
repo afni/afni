@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 11, JAN , 2012 , ZSS , "3drefit" , MICRO , TYPE_NEW_OPT,
+   "Added -copytables to copy label tables and atlas point lists",
+   NULL,
+ },
+    
+ { 11, JAN , 2012 , ZSS , "afni-general" , MICRO , TYPE_MODIFY,
+   "Added copying of label table and atlas point lists to aux copying function",
+   "See functions THD_copy_labeltable_atr and THD_copy_datablock_auxdata\n"
+   "for details." 
+ },
+    
+ { 10, JAN , 2012 , ZSS , "3dTagalign" , MICRO , TYPE_NEW_OPT,
+   "Added interpolation options.",
+   NULL,
+ },
+    
  { 9, JAN , 2012 , ZSS , "DriveSuma" , MICRO , TYPE_NEW_OPT,
    "Added -setSUMAenv,-N_fore_smooth, and -N_final_smooth",
    NULL,

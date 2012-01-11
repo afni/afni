@@ -36,36 +36,8 @@ void Error_Exit(char *message)
     exit(1);
 }
 
+void usage_3dROIstats(int detail) {
 
-int main(int argc, char *argv[])
-{
-    THD_3dim_dataset *mask_dset = NULL, *input_dset = NULL ;
-    int mask_subbrik = 0;
-    int sigma = 0, nzsigma = 0, mean = 1, nzmean = 0, nzcount = 0;
-    int debug = 0, quiet = 0, summary = 0;
-    int minmax = 0, nzminmax = 0, donzsum = 0;		/* 07 July, 2004 [rickr] */
-    short *mask_data;
-    int nvox, i, brik;
-    int num_ROI, ROI, mask_f2s = 0;
-    int force_num_ROI = 0;	/* Added 5/00 */
-    int narg = 1;
-    double *sum=NULL, *sumsq=NULL, *nzsum=NULL, sig, *sumallbriks=NULL;
-    double  *min=NULL, *max=NULL, *nzsumsq=NULL,
-            *nzmin=NULL, *nzmax=NULL;		/* 07 July, 2004 [rickr] */
-    long *voxels=NULL, *nzvoxels=NULL;
-    float *input_data;
-    byte *temp_datab;
-    short *temp_datas;
-    double *percentile=NULL;
-    float *fv = NULL;
-    int nfv = 0, perc = 0, nzperc = 0;
-    int nobriklab=0 ;  /* 14 Mar 2008 */
-    int disp1d=1;   /* ZSS May 2008 */
-    byte *roisel=NULL;
-    char sbuf[257]={""};
-    char zerofill[32]={" "};
-
-    if (argc < 3 || strcmp(argv[1], "-help") == 0) {
 	printf("Usage: 3dROIstats -mask[n] mset [options] datasets\n"
 "\n"
 "   Display statistics over masked regions.  The default statistic\n"
@@ -165,8 +137,38 @@ int main(int argc, char *argv[])
 
 	printf("\n" MASTER_SHORTHELP_STRING);
 
-	PRINT_COMPILE_DATE ; exit(0);
-    }
+	PRINT_COMPILE_DATE ;    
+   return;
+}
+
+int main(int argc, char *argv[])
+{
+    THD_3dim_dataset *mask_dset = NULL, *input_dset = NULL ;
+    int mask_subbrik = 0;
+    int sigma = 0, nzsigma = 0, mean = 1, nzmean = 0, nzcount = 0;
+    int debug = 0, quiet = 0, summary = 0;
+    int minmax = 0, nzminmax = 0, donzsum = 0;		/* 07 July, 2004 [rickr] */
+    short *mask_data;
+    int nvox, i, brik;
+    int num_ROI, ROI, mask_f2s = 0;
+    int force_num_ROI = 0;	/* Added 5/00 */
+    int narg = 1;
+    double *sum=NULL, *sumsq=NULL, *nzsum=NULL, sig, *sumallbriks=NULL;
+    double  *min=NULL, *max=NULL, *nzsumsq=NULL,
+            *nzmin=NULL, *nzmax=NULL;		/* 07 July, 2004 [rickr] */
+    long *voxels=NULL, *nzvoxels=NULL;
+    float *input_data;
+    byte *temp_datab;
+    short *temp_datas;
+    double *percentile=NULL;
+    float *fv = NULL;
+    int nfv = 0, perc = 0, nzperc = 0;
+    int nobriklab=0 ;  /* 14 Mar 2008 */
+    int disp1d=1;   /* ZSS May 2008 */
+    byte *roisel=NULL;
+    char sbuf[257]={""};
+    char sklab[128]={""};
+    char zerofill[32]={" "};
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
@@ -181,6 +183,12 @@ int main(int argc, char *argv[])
    disp1d = 0;
    mean = 1;   /* LEAVE this as the default ZSS March 09 2010 */
     while (narg < argc && argv[narg][0] == '-') {
+
+    if (strcmp(argv[narg], "-h") == 0 || strcmp(argv[narg], "-help") == 0) {
+      usage_3dROIstats(strlen(argv[narg]) > 3 ? 2:1);
+      exit(0);
+    }
+
 
 	if (strncmp(argv[narg], "-mask_f2short", 9) == 0) {
             mask_f2s = 1;   /* convert float mask to short */
@@ -344,9 +352,18 @@ int main(int argc, char *argv[])
 	    narg++;
 	    continue;
 	}
-        fprintf(stderr,"\n** have option %s\n", argv[narg]);
-	Error_Exit("Unknown option");
+
+	   ERROR_message("Unknown option %s\n", argv[narg]);
+      suggest_best_prog_option(argv[0], argv[narg]);
+      exit(1);
     }
+
+    if (argc < 3) {
+      ERROR_message("Too few options");
+      usage_3dROIstats(0);
+      exit(0);
+    }
+
 
    if (!mean && summary) {
       Error_Exit("Cannot use -nomeanout with -summary");
@@ -477,31 +494,35 @@ int main(int argc, char *argv[])
 	    non_zero[i] = num_ROI;
 	    num_ROI++;
 	    if (!quiet && !summary && !force_num_ROI) {
-		if (mean) fprintf(stdout, "\tMean_%d  ", i - 32768);
+          AFNI_get_dset_val_label(mask_dset, (double)(i - 32768), sklab);
+          if (sklab[0]=='\0') {
+            sprintf(sklab,"%d",i - 32768);
+          }
+		if (mean) fprintf(stdout, "\tMean_%s  ", sklab);
 		if (nzmean)
-		    fprintf(stdout, "\tNZMean_%d", i - 32768);
+		    fprintf(stdout, "\tNZMean_%s", sklab);
 		if (nzcount)
-		    fprintf(stdout, "\tNZcount_%d", i - 32768);
+		    fprintf(stdout, "\tNZcount_%s", sklab);
 		if (sigma)
-		    fprintf(stdout, "\tSigma_%d", i - 32768);
+		    fprintf(stdout, "\tSigma_%s", sklab);
 		if (nzsigma)
-		    fprintf(stdout, "\tNZSigma_%d", i - 32768);
+		    fprintf(stdout, "\tNZSigma_%s", sklab);
 		if (minmax) {
-		    fprintf(stdout, "\tMin_%d   ", i - 32768);
-		    fprintf(stdout, "\tMax_%d   ", i - 32768);
+		    fprintf(stdout, "\tMin_%s   ", sklab);
+		    fprintf(stdout, "\tMax_%s   ", sklab);
 		}
 		if (nzminmax) {
-		    fprintf(stdout, "\tNZMin_%d ", i - 32768);
-		    fprintf(stdout, "\tNZMax_%d ", i - 32768);
+		    fprintf(stdout, "\tNZMin_%s ", sklab);
+		    fprintf(stdout, "\tNZMax_%s ", sklab);
 		}
       if (perc) {
-         fprintf(stdout, "\tMed_%d ", i - 32768);
+         fprintf(stdout, "\tMed_%s ", sklab);
       }
       if (nzperc) {
-         fprintf(stdout, "\tNZMed_%d ", i - 32768);
+         fprintf(stdout, "\tNZMed_%s ", sklab);
       }
       if (donzsum) {
-         fprintf(stdout, "\tNZSum_%d ", i - 32768);
+         fprintf(stdout, "\tNZSum_%s ", sklab);
       }
 	    }
 	}

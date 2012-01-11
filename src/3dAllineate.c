@@ -3663,7 +3663,7 @@ STATUS("zeropad weight dataset") ;
                         ADN_nvals     , DSET_NVALS(dset_targ) ,
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
-     if( DSET_NUM_TIMES(dset_targ) > 1 )
+       if( DSET_NUM_TIMES(dset_targ) > 1 )
        EDIT_dset_items( dset_out ,
                           ADN_ntt   , DSET_NVALS(dset_targ) ,
                           ADN_ttdel , DSET_TR(dset_targ) ,
@@ -3679,6 +3679,9 @@ STATUS("zeropad weight dataset") ;
      /* copy brick info into output */
 
      THD_copy_datablock_auxdata( dset_targ->dblk , dset_out->dblk ) ;
+     if (!THD_copy_labeltable_atr( dset_out->dblk,  dset_targ->dblk)) {
+      WARNING_message("Failed trying to preserve labeltables");
+     }
      for( kk=0 ; kk < DSET_NVALS(dset_out) ; kk++ )
        EDIT_BRICK_FACTOR(dset_out,kk,0.0);
 
