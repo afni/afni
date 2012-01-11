@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 10 , JAN , 2012 , RWC , "1dBport" , MINOR , TYPE_NEW_PROG ,
+  { 11 , JAN , 2012 , RWC , "many programs" , MICRO , TYPE_GENERAL ,
+   "Print WARNING message if '-polort A' is used where not allowed" ,
+   "This is the Inati's fault." } ,
+
+ { 10 , JAN , 2012 , RWC , "1dBport" , MINOR , TYPE_NEW_PROG ,
    "Generates sin/cos waveforms for bandpass-via-regression" ,
    NULL } ,
 
