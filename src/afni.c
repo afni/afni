@@ -2532,9 +2532,13 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /* finish up getting AFNI ready to be presented to the world */
 
+   if( im3d->vwid->tips_pb != NULL ) MCW_flash_widget(1,im3d->vwid->tips_pb) ;
+
    SHOW_AFNI_READY ;
    RESET_AFNI_QUIT(im3d) ;
    PICTURE_OFF(im3d) ;
+
+   if( im3d->vwid->tips_pb != NULL ) MCW_flash_widget(1,im3d->vwid->tips_pb) ;
 
    /* 29 Jul 2005: run any driver commands from the command line */
 
