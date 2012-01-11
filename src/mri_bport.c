@@ -28,7 +28,7 @@ ENTRY("mri_bport_contig") ;
    nftop = (int)rintf(ftop/df-0.1666666f) ;
    if( nftop < nfbot   ) nftop = nfbot   ;
    if( nftop > ntime/2 ) nftop = ntime/2 ;
-INFO_message("nfbot=%d nftop=%d",nfbot,nftop) ;
+   ININFO_message("Frequency indexes: nfbot=%d nftop=%d",nfbot,nftop) ;
 
    ncol = 2*(nftop-nfbot-1) ; if( ncol < 0 ) ncol = 0 ;
    ncol += (nfbot == 0 || (nftop == ntime/2 && nev==1) ) ? 1 : 2 ;
