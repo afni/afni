@@ -564,9 +564,17 @@ ENTRY("mri_read_dicom") ;
 
    /* dx,dy first */
 
+   /* Pixel Spacing is defined as the distance between rows and columns,
+    * meaning (akin to reading ny, nx) it is read as dy, dx.  It seems that
+    * not too many people use non-square voxels, though some in D Leopold's
+    * lab do.
+    * see medical.nema.org/DICOM/CP/CPack-36_DOC/cp626_lb.doc
+    *     nipy.sourceforge.net/nibabel/dicom/dicom_orientation.html
+    *     www.cmake.org/Wiki/Proposals:Orientation
+    *                                                   11 Jan 2012 [rickr] */
    if( epos[E_PIXEL_SPACING] != NULL ){
      ddd = strstr(epos[E_PIXEL_SPACING],"//") ;
-     if( ddd != NULL ) sscanf( ddd+2 , "%f\\%f" , &dx , &dy ) ;
+     if( ddd != NULL ) sscanf( ddd+2 , "%f\\%f" , &dy , &dx ) ; /* switched */
      if( dy == 0.0 && dx > 0.0 ) dy = dx ;
      if(g_info.verb>2) fprintf(stderr,"-- DICOM PSP dx, dy = %f, %f\n", dx, dy);
    }
