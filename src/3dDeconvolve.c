@@ -1070,7 +1070,7 @@ void display_help_menu(int detail)
     "               *N.B.: Unlike the original 'Inati' (who is unique), it  \n"
     "                      is allowed to have more than one '-ortvec' option.\n"
     "               *N.B.: Program 1dBport is one place to generate a file  \n"
-    "                      for use with '-ortvec'.                          \n"
+    "                      for use with '-ortvec'; 1deval might be another. \n"
     "\n"
     "**N.B.: You must have -num_stimts > 0  AND/OR                          \n"
     "        You must use  -ortvec          AND/OR                          \n"
