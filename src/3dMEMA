@@ -2,7 +2,7 @@
 set pp = $0:h
 #Run R in script more. Better than R CMD BATCH
 
-@global_parse `basename $0` $* ; if ($status) exit 0
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 if ($#argv == 0) then
    set arglist = (-help)

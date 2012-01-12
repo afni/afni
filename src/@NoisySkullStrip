@@ -2,7 +2,7 @@
 
 set CurDir = $PWD
 
-@global_parse `basename $0` $* ; if ($status) exit 0
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 goto PARSE_COMMAND
 Ret_PARSE_COMMAND:
