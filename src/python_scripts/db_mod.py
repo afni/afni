@@ -656,18 +656,17 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
     cmd = cmd +                                                 \
         "# final result: add REML errts to polynomial baseline\n" \
         "# (and separate back into individual runs)\n"          \
-        "set volsperrun = %d\n"                                 \
         "set startind = 0\n"                                    \
-        "@ endind = $volsperrun - 1\n"                          \
-        "foreach run ( $runs )\n"                               \
+        "foreach runlen ( %s )\n"                               \
+        "    @ endind = $startind + $runlen - 1\n"              \
         '    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'   \
         '           -b %s.polort%s"[$startind..$endind]" \\\n'  \
         '%s'                                                    \
         '           -expr a+b -prefix %s\n'                     \
-        '    @ startind += $volsperrun    # add nreps\n'        \
-        '    @ endind += $volsperrun\n'                         \
+        "    @ startind = $endind + 1\n"                        \
         'end\n\n'                                               \
-        % (proc.reps, prefix, proc.view, prefix, proc.view, dstr, cur_prefix)
+        % (UTIL.int_list_string(proc.reps_all),
+           prefix, proc.view, prefix, proc.view, dstr, cur_prefix)
 
     return cmd
 
@@ -4687,7 +4686,7 @@ g_help_string = """
 
         -volreg_align_to        OK, as of version 1.49.
 
-     *  -ricor_regress_method   If across-runs, $volsperrun is not appropriate.
+        -ricor_regress_method   OK, as of version 3.05.
 
         -regress_polort         Probably no big deal.
                                 If this option is not used, then the degree of

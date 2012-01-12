@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fixed ricor block 3dcalc loop for varying run lengths",
+   NULL
+ } ,
+
  { 11, JAN, 2012, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "dx and dy were reversed in mri_read_dicom.c",
    "Thanks to P Kaskan and F Ye for bringing this up."
