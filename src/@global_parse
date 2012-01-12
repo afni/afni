@@ -13,7 +13,7 @@ if ($#argv == 1) then
       echo ""
       echo "To use this in any script follow these steps"
       echo "1- Add this line before any parsing, right after the 1st line"
-      echo '   @global_parse `basename $0` $* ; if ($status) exit 0'
+      echo '   @global_parse `basename $0` "$*" ; if ($status) exit 0'
       echo "2- Add this line right where you fail to recognize an option"
       echo '   apsearch -popt `basename $0` -word $argv[$cnt]'
       echo "3- Add this line somewhere in the help section"
