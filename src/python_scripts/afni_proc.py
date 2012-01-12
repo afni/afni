@@ -302,9 +302,10 @@ g_history = """
     3.03 Nov  7, 2011: added -blur_to_fwhm and -blur_opts_B2FW
         - for E Nelson and J Jarcho
     3.04 Nov  9, 2011: -surf_blur_fwhm is no longer valid, use -blur_size
+    3.05 Jan 12, 2012: fixed ricor block 3dcalc loop for varying run lengths
 """
 
-g_version = "version 3.04, November 9, 2011"
+g_version = "version 3.05, January 12, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "31 Oct 2011"
