@@ -28,14 +28,16 @@ ENTRY("mri_bport_contig") ;
    nftop = (int)rintf(ftop/df-0.1666666f) ;
    if( nftop < nfbot   ) nftop = nfbot   ;
    if( nftop > ntime/2 ) nftop = ntime/2 ;
-   ININFO_message("Frequency indexes: nfbot=%d nftop=%d",nfbot,nftop) ;
+   ININFO_message("Frequency indexes: blocklen=%d nfbot=%d nftop=%d",ntime,nfbot,nftop) ;
 
    ncol = 2*(nftop-nfbot-1) ; if( ncol < 0 ) ncol = 0 ;
-   ncol += (nfbot == 0 || (nftop == ntime/2 && nev==1) ) ? 1 : 2 ;
+   ncol += (nfbot == 0 || (nfbot == ntime/2 && nev==1) ) ? 1 : 2 ;
    if( nftop > nfbot )
      ncol += (nftop == ntime/2 && nev) ? 1 : 2 ;
 
-   if( ncol <= 0 ) RETURN(NULL) ;
+   if( ncol <= 0 ){
+     ININFO_message("Failure :-(") ; RETURN(NULL) ;  /* should never happen */
+   }
 
    nrow = ntime + nbefore + nafter ;
    fim  = mri_new( nrow , ncol , MRI_float ) ;
@@ -90,11 +92,10 @@ ENTRY("mri_bport") ;
        DESTROY_IMARR(bimar) ; RETURN(NULL) ;
      }
      ADDTO_IMARR(bimar,tim) ;
-     nbef += ntim[tt] ;
-     naft -= ntim[tt] ;
+     if( tt < nblock-1 ){ nbef += ntim[tt]; naft -= ntim[tt+1]; }
    }
 
-   tim = mri_cat2D( 1 , nblock , 0 , NULL , bimar ) ;
+   tim = mri_catvol_1D( bimar , 2 ) ;
    DESTROY_IMARR(bimar) ;
    RETURN(tim) ;
 }
