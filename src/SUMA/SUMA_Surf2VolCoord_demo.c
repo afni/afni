@@ -34,7 +34,7 @@ static char help_msg[]= {
 "sub-brick\n"
 };
 
-void usage_Surf2VolCoord_demo (SUMA_GENERIC_ARGV_PARSE *ps)
+void usage_Surf2VolCoord_demo (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 {
       static char FuncName[]={"usage_Surf2VolCoord_demo"};
       char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL;
@@ -42,35 +42,34 @@ void usage_Surf2VolCoord_demo (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: Surf2VolCoord_demo <-i_TYPE SURFACE> \n"
-               "                      <-grid_parent GRID_VOL> \n"
-               "                      [-grid_subbrick GSB]\n"
-               "                      [-sv SURF_VOL] \n"
-               "                      [-one_node NODE]\n"
-               " \n"
-               "  Illustrates how surface coordinates relate to voxel grid."
-               "  The program outputs surface and equivalent volume coordinates\n"
-               "  for all nodes in the surface after it is aligned via its sv.\n"
-               "  The code is intended as a source code demo.\n"
-               "\n"
-               "  Mandatory Parameters:\n"
-               "     -i_TYPE SURFACE: Specify input surface.\n"
-               "             You can also use -t* and -spec and -surf\n"
-               "             methods to input surfaces. See below\n"
-               "             for more details.\n"
-               "     -prefix PREFIX: Prefix of output dataset.\n"
-               "     -grid_parent GRID_VOL: Specifies the grid for the\n"
-               "                  output volume.\n"
-               "  Optional Parameters:\n"
-               "     -grid_subbrick GSB: Sub-brick from which data are taken.\n"
-               "     -one_node NODE: Output results for node NODE only.\n"
-               "\n"
-               "The output is lots of text so you're better off\n"
-               "redirecting to a file.\n"
-               "%s"                 
-               "\n"                    
-               "%s"
-               "%s"
+"Usage: Surf2VolCoord <-i_TYPE SURFACE> \n"
+"                      <-grid_parent GRID_VOL> \n"
+"                      [-grid_subbrick GSB]\n"
+"                      [-sv SURF_VOL] \n"
+"                      [-one_node NODE]\n"
+" \n"
+"  Illustrates how surface coordinates relate to voxel grid.\n"
+"  The program outputs surface and equivalent volume coordinates\n"
+"  for all nodes in the surface after it is aligned via its sv.\n"
+"  The code is intended as a source code demo.\n"
+"\n"
+"  Mandatory Parameters:\n"
+"     -i_TYPE SURFACE: Specify input surface.\n"
+"             You can also use -t* and -spec and -surf\n"
+"             methods to input surfaces. See below\n"
+"             for more details.\n"
+"     -prefix PREFIX: Prefix of output dataset.\n"
+"     -grid_parent GRID_VOL: Specifies the grid for the\n"
+"                  output volume.\n"
+"  Optional Parameters:\n"
+"     -grid_subbrick GSB: Sub-brick from which data are taken.\n"
+"     -one_node NODE: Output results for node NODE only.\n"
+"\n"
+"The output is lots of text so you're better off redirecting to a file.\n"
+"%s"                 
+"\n"                    
+"%s"
+"%s"
                "\n", help_msg, sio,  s);
       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
@@ -246,144 +245,170 @@ int main (int argc,char *argv[])
       exit(1);
    }
 
-   SO = SUMA_Load_Spec_Surf(Spec, 0, ps->sv[0], 0);
-   if (!SO) {
-         fprintf (SUMA_STDERR,"Error %s:\n"
-                              "Failed to find surface\n"
-                              "in spec file. \n",
-                              FuncName );
-         exit(1);
-      
-   }   
-   if (Opt->NodeDbg >= 0 && Opt->NodeDbg >= SO->N_Node) {
-      fprintf (SUMA_STDERR,"Error %s:\n"
-                              "Node index %d is >= SO->N_Node (%d)\n"
-                              "\n",
-                              FuncName, Opt->NodeDbg, SO->N_Node );
-         exit(1);
-   }
-   
-   /* By now SO is the surface object whose coordinates have transformed
-   so that it is in register with the surface volume specifed on command line.
-   */
-   
-   /* Now let us read the volume from which you would be accessing values.
-   That volume should be in alignment with -sv but not at the same resolution.
-   I assume that this volume contains one sub-brick for simplicity. If no such 
-   volume is specified then we'll use the -sv volume for that */
-   
-   if (Opt->out_grid_prefix) {
-      vpname = SUMA_append_string(Opt->out_grid_prefix, Opt->out_grid_view);
-      vp = SUMA_VolPar_Attr(vpname);
-      dset = THD_open_dataset( vpname );
-   } else { 
-      vp = SO->VolPar;
-      if (!vp) {
-         fprintf (SUMA_STDERR,"Error %s:\n"
-                                 "Need a grid parent.\n",
+   for (isrf=0; isrf < Spec->N_surf; ++isrf) {
+      SO = SUMA_Load_Spec_Surf(Spec, isrf, ps->sv[0], 0);
+      if (!SO) {
+            fprintf (SUMA_STDERR,"Error %s:\n"
+                                 "Failed to find surface\n"
+                                 "in spec file. \n",
                                  FuncName );
             exit(1);
-      }
-      vpname = SUMA_copy_string(ps->sv[0]);
-      if (!SUMA_AfniView(ps->sv[0], Opt->out_grid_view)) {
+
+      }   
+      if (Opt->NodeDbg >= 0 && Opt->NodeDbg >= SO->N_Node) {
          fprintf (SUMA_STDERR,"Error %s:\n"
-                                 "Failed to get view!!!\n",
-                                 FuncName );
+                                 "Node index %d is >= SO->N_Node (%d)\n"
+                                 "\n",
+                                 FuncName, Opt->NodeDbg, SO->N_Node );
             exit(1);
-         
       }
-      dset = THD_open_dataset( vpname );
-   }
-   /* load .BRIK into memory */   
-   DSET_load(dset);
-   if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s: Using %s for grid\n", FuncName, vpname);
-   }
-   if (Opt->obj_type >= DSET_NVALS(dset)) {
-      fprintf (SUMA_STDERR,"Error %s:\n"
-                                 "Grid dset has a total of %d sub-bricks\n"
-                                 " user specified sb#%d!!!\n",
-                                 FuncName, DSET_NVALS(dset), Opt->obj_type );
-            exit(1);
-   }
-   /* transform the surface's coordinates from RAImm to 3dfind 
-      RAI coordinates are the mm coordinates you see displayed in AFNI's top left corner 
-      3dfind are the equivalent coordinates expressed in index coordinates on the grid volume 
-      Say you have a node at 13.4, 23, -54 mm (RAI)
-      Its 3dfind coordinate might be: 3.2 , 56.1,   124.8 which would be closest to 
-      voxel with ijk indices 3, 56, 125 in the volume defined by grid parent (dset or vp).
-      To get that voxel's value, you just access element 3,56, 125. 
-      Note that in this example, I am getting voxel values for all the coords in vector tmpXYZ 
-      and those happen to be all the nodes of the surface. But you could put whatever coordinates
-      or subset of coordinates you want in there. Just be sure to change SO->N_Node to reflect
-      the number of triplets in tmpXYZ   
-   */
+
       
-   /* copy surface coordinates to preserve them, we're going to ijk land */
-   tmpXYZ = (float *)SUMA_malloc(SO->N_Node * 3 * sizeof(float));
-   if (!tmpXYZ) {
-      SUMA_SL_Crit("Faile to allocate");
-      exit(1);
-   }
-   memcpy ((void*)tmpXYZ, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
-   if (!SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, vp)) {
-      SUMA_SL_Err("Failed to effectuate coordinate transform.");
+      if (N_xyz_to_node) {
+         if (!mindist) mindist = 
+               (float *)SUMA_calloc(N_xyz_to_node,sizeof(float));
+         if (!bestindex) bestindex =
+               (int *)SUMA_calloc(N_xyz_to_node,sizeof(int));
+         if (!bestflag) bestflag = 
+               (char *)SUMA_calloc(N_xyz_to_node,sizeof(char));
+         min = 100000.0;
+         imin = -1;
+         for (i=0; i<N_xyz_to_node; ++i) {
+            
+         }  
+      }
+      
+      /***********          The demo mode *****************/
+      /* By now SO is the surface object whose coordinates have transformed
+      so that it is in register with the surface volume specifed on command line.
+      */
+
+      /* Now let us read the volume from which you would be accessing values.
+      That volume should be in alignment with -sv but not at the same resolution.
+      I assume that this volume contains one sub-brick for simplicity. If no such 
+      volume is specified then we'll use the -sv volume for that */
+
+      if (Opt->out_grid_prefix) {
+         vpname = SUMA_append_string(Opt->out_grid_prefix, Opt->out_grid_view);
+         vp = SUMA_VolPar_Attr(vpname);
+         dset = THD_open_dataset( vpname );
+      } else { 
+         vp = SO->VolPar;
+         if (!vp) {
+            fprintf (SUMA_STDERR,"Error %s:\n"
+                                    "Need a grid parent.\n",
+                                    FuncName );
+               exit(1);
+         }
+         vpname = SUMA_copy_string(ps->sv[0]);
+         if (!SUMA_AfniView(ps->sv[0], Opt->out_grid_view)) {
+            fprintf (SUMA_STDERR,"Error %s:\n"
+                                    "Failed to get view!!!\n",
+                                    FuncName );
+               exit(1);
+
+         }
+         dset = THD_open_dataset( vpname );
+      }
+      /* load .BRIK into memory */   
+      DSET_load(dset);
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"%s: Using %s for grid\n", FuncName, vpname);
+      }
+      if (Opt->obj_type >= DSET_NVALS(dset)) {
+         fprintf (SUMA_STDERR,"Error %s:\n"
+                                    "Grid dset has a total of %d sub-bricks\n"
+                                    " user specified sb#%d!!!\n",
+                                    FuncName, DSET_NVALS(dset), Opt->obj_type );
+               exit(1);
+      }
+      /* transform the surface's coordinates from RAImm to 3dfind 
+         RAI coordinates are the mm coordinates you see displayed in AFNI's 
+            top left corner 
+         3dfind are the equivalent coordinates expressed in index coordinates 
+            on the grid volume 
+         Say you have a node at 13.4, 23, -54 mm (RAI), its 3dfind coordinate 
+            might be: 3.2 , 56.1,   124.8 which would be closest to voxel with 
+            ijk indices 3, 56, 125 in the volume defined by grid parent 
+            (dset or vp).
+         To get that voxel's value, you just access element 3,56, 125. 
+         Note that in this example, I am getting voxel values for all the coords 
+         in vector tmpXYZ and those happen to be all the nodes of the surface. 
+         But you could put whatever coordinates or subset of coordinates you 
+         want in there. Just be sure to change SO->N_Node to reflect
+         the number of triplets in tmpXYZ   
+      */
+
+      /* copy surface coordinates to preserve them, we're going to ijk land */
+      tmpXYZ = (float *)SUMA_malloc(SO->N_Node * 3 * sizeof(float));
+      if (!tmpXYZ) {
+         SUMA_SL_Crit("Faile to allocate");
+         exit(1);
+      }
+      memcpy ((void*)tmpXYZ, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
+      if (!SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, vp)) {
+         SUMA_SL_Err("Failed to effectuate coordinate transform.");
+         SUMA_free(tmpXYZ); tmpXYZ = NULL;
+         exit(1);
+      }
+
+      /* Now, let us loop through all the coordinates of interest and see what
+      voxels they fall in and what values are at those voxels. */
+
+      /* first let us load the data from one sub-brick into a double vector
+         (recall that data can be stored in variety of precisions on disk). */
+      dvec = (double *)SUMA_malloc(sizeof(double) * DSET_NVOX(dset));
+      if (!dvec) {
+         SUMA_S_Errv("Failed to allocate for %d dvec.\nOh misery.\n",
+                     DSET_NVOX(dset));
+         exit(1);
+      }
+      EDIT_coerce_scale_type( DSET_NVOX(dset) , 
+                              DSET_BRICK_FACTOR(dset,Opt->obj_type) ,
+                              DSET_BRICK_TYPE(dset,Opt->obj_type), 
+                              DSET_ARRAY(dset, Opt->obj_type) ,      /* input  */
+                              MRI_double               , dvec  ) ;   /* output */
+
+      nx = DSET_NX(dset); ny = DSET_NY(dset); nxy = nx * ny; 
+      if (Opt->NodeDbg >= 0) { i0 = Opt->NodeDbg; i1 = Opt->NodeDbg+1; }
+      else { i0 = 0; i1 = SO->N_Node;};
+      for (i=i0; i<i1; ++i) {
+         fi = tmpXYZ[3*i  ]; di = SUMA_ROUND(fi);
+         fj = tmpXYZ[3*i+1]; dj = SUMA_ROUND(fj);
+         fk = tmpXYZ[3*i+2]; dk = SUMA_ROUND(fk);
+         dijk = SUMA_3D_2_1D_index(di, dj, dk, nx, nxy);
+         fprintf(SUMA_STDOUT, 
+                  "Node Index %d: RAImm %.3f %.3f %.3f : "
+                  "3dfind %.1f %.1f %.1f : 3dind %d %d %d : Val %f\n",
+                   i,
+                   SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2], 
+                   fi, fj, fk, di, dj, dk,
+                   dvec[dijk]);
+
+      }
+      SUMA_free(dvec); dvec = NULL; 
       SUMA_free(tmpXYZ); tmpXYZ = NULL;
-      exit(1);
-   }
+      /* no need for data in input volume anymore */
+      PURGE_DSET(dset);
 
-   /* Now, let us loop through all the coordinates of interest and see what
-   voxels they fall in and what values are at those voxels. */
-   
-   /* first let us load the data from one sub-brick into a double vector
-      (recall that data can be stored in variety of precisions on disk). */
-   dvec = (double *)SUMA_malloc(sizeof(double) * DSET_NVOX(dset));
-   if (!dvec) {
-      SUMA_S_Errv("Failed to allocate for %d dvec.\nOh misery.\n", DSET_NVOX(dset));
-      exit(1);
-   }
-   EDIT_coerce_scale_type( DSET_NVOX(dset) , 
-                           DSET_BRICK_FACTOR(dset,Opt->obj_type) ,
-                           DSET_BRICK_TYPE(dset,Opt->obj_type), 
-                           DSET_ARRAY(dset, Opt->obj_type) ,      /* input  */
-                           MRI_double               , dvec  ) ;   /* output */
-   
-   nx = DSET_NX(dset); ny = DSET_NY(dset); nxy = nx * ny; 
-   if (Opt->NodeDbg >= 0) { i0 = Opt->NodeDbg; i1 = Opt->NodeDbg+1; }
-   else { i0 = 0; i1 = SO->N_Node;};
-   for (i=i0; i<i1; ++i) {
-      fi = tmpXYZ[3*i  ]; di = SUMA_ROUND(fi);
-      fj = tmpXYZ[3*i+1]; dj = SUMA_ROUND(fj);
-      fk = tmpXYZ[3*i+2]; dk = SUMA_ROUND(fk);
-      dijk = SUMA_3D_2_1D_index(di, dj, dk, nx, nxy);
-      fprintf(SUMA_STDOUT, 
-               "Node Index %d: RAImm %.3f %.3f %.3f : 3dfind %.1f %.1f %.1f : 3dind %d %d %d : Val %f\n",
-                i,
-                SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2], 
-                fi, fj, fk, di, dj, dk,
-                dvec[dijk]);
-      
-   }
-   SUMA_free(dvec); dvec = NULL; 
-   SUMA_free(tmpXYZ); tmpXYZ = NULL;
-   /* no need for data in input volume anymore */
-   PURGE_DSET(dset);
-   
 
-   if (vpname) SUMA_free(vpname); vpname = NULL;
-   if (dset) { DSET_delete(dset); dset = NULL; }
-   if (vp != SO->VolPar) SUMA_Free_VolPar(vp); vp = NULL;
-   if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
+      if (vpname) SUMA_free(vpname); vpname = NULL;
+      if (dset) { DSET_delete(dset); dset = NULL; }
+      if (vp != SO->VolPar) SUMA_Free_VolPar(vp); vp = NULL;
+      if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
+   }
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (N_Spec) {
       int k=0; 
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { 
+            SUMA_S_Err("Failed to free spec fields"); } 
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+      SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);
    
 } 
