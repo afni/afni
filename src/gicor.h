@@ -17,7 +17,8 @@ typedef struct {
                          This is only needed when masking is done */
   char *brick_labels;  /* SUMA's dsets need this outside of init 
                           function                       Jan 2012 */
-
+  int nvals;           /* Number of values in output dset Jan 2012 */
+  
   char *label_AAA , *label_BBB , *toplabel ;  /* 14 May 2010 */
   int    num_stat_available ;
   char **lab_stat_available ;
