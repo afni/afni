@@ -7154,7 +7154,7 @@ byte *SUMA_load_1D_n_mask(char *name, int N_Node, byte *omask, const char *oper,
             else out[kk] = 0;
          }
       } else {
-         SUMA_S_Errv("Bad operator %s\n");
+         SUMA_S_Err("Bad operator\n");
          if (out && out != omask) SUMA_free(out); out = NULL;
          goto CLEANUP;   
 
@@ -7252,7 +7252,7 @@ byte *SUMA_load_1D_b_mask(char *name, int N_Node, byte *omask, const char *oper,
             else out[kk] = 0;
          }
       } else {
-         SUMA_S_Errv("Bad operator %s\n");
+         SUMA_S_Err("Bad operator\n");
          if (out && out != omask) SUMA_free(out); out = NULL;
          goto CLEANUP;   
 
@@ -7332,7 +7332,7 @@ byte *SUMA_get_c_mask(char *mask, int N_Node, byte *omask, const char *oper, int
             else out[kk] = 0;
          }
       } else {
-         SUMA_S_Errv("Bad operator %s\n");
+         SUMA_S_Err("Bad operator\n");
          if (out && out != omask) { SUMA_free(out); out = NULL; }
          else { if (out) SUMA_free(out); out = NULL; }
          goto CLEANUP;   
@@ -9182,7 +9182,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
    }
      
    if (form == SUMA_NO_DSET_FORMAT) {
-      form = SUMA_GuessFormatFromExtension (Name, NULL);
+      form = SUMA_GuessFormatFromExtension (Name, "lazybum.niml.dset");
    }
    
    if (( exists = 
@@ -11476,6 +11476,22 @@ complex *SUMA_LoadComplex1D_eng (char *oName, int *ncol, int *nrow, int RowMajor
 
    SUMA_RETURN(far);
 }
+
+/*!
+   \brief Return a dataset's data size 
+*/
+long SUMA_sdset_dnel_size(SUMA_DSET *dset)
+{
+   int ii=0;
+   long jj=0;
+   
+   if (!dset || !dset->dnel) SUMA_RETURN(-1); 
+   for( jj=ii=0 ; ii < dset->dnel->vec_num ; ii++ )
+      jj += NI_size_column( NI_rowtype_find_code(dset->dnel->vec_typ[ii]) ,
+                            dset->dnel->vec_len , dset->dnel->vec[ii] ) ;
+   return(jj);
+}
+
 /*!
    \brief Replaces a dataset's idcode with a new one
 */
@@ -11547,7 +11563,6 @@ char* SUMA_sdset_id(SUMA_DSET *dset)
    #endif
    SUMA_RETURN(id);
 }
-
 
 /*!
    \brief return a niml dset's mesh parent ID , substitute for macro 
@@ -12445,6 +12460,11 @@ static ENV_SPEC envlist[] = {
       "Choose from .jpg, .ppm, or .1D . The fallback type is .jpg\n",
       "SUMA_AutoRecordPrefix",
       "./SUMA_Recordings/autorecord.jpg" }, 
+   {  "Font for cross hair label in SUMA viewer\n"
+      "Choose one of: f8 f9 tr10 tr24 he10 he12 he18\n"
+      "Default is f9.\n",
+      "SUMA_CrossHairLabelFont",
+      "f9" }, 
    
    {  NULL, NULL, NULL  }
 };
@@ -12646,6 +12666,65 @@ float SUMA_floatEnv(char *env, float defval)
 
 /* ***************** Environment value access end **********************/
 
+SUMA_DSET_FORMAT SUMA_FormatFromFormString(char *arg) {
+   static char FuncName[]={"SUMA_FormatFromFormString"};
+   
+   SUMA_DSET_FORMAT oform = SUMA_ERROR_DSET_FORMAT;
+   
+   if (!arg) {
+      SUMA_RETURN(oform);
+   } else if ((strcmp(arg, "1d") == 0)) {
+     oform = SUMA_1D;
+   } else if ((strcmp(arg, "1dp") == 0)) {
+      oform = SUMA_1D_PURE;
+   } else if ((strcmp(arg, "1dpt") == 0)) {
+      oform = SUMA_1D_PURE_TRANSPOSE;
+   } else if ((strcmp(arg, "1d_stderr") == 0)) {
+      oform = SUMA_1D_STDERR;
+   } else if ((strcmp(arg, "1dp_stderr") == 0)) {
+      oform = SUMA_1D_PURE_STDERR;
+   } else if ((strcmp(arg, "1dpt_stderr") == 0)) {
+      oform = SUMA_1D_PURE_STDERR_TRANSPOSE;
+   } else if ((strcmp(arg, "1d_stdout") == 0)) {
+      oform = SUMA_1D_STDOUT;
+   } else if ((strcmp(arg, "1dp_stdout") == 0)) {
+      oform = SUMA_1D_PURE_STDOUT;
+   } else if ((strcmp(arg, "1dpt_stdout") == 0)) {
+      oform = SUMA_1D_PURE_STDOUT_TRANSPOSE;
+   } else if ((strcmp(arg, "niml_stderr") == 0)) {
+      oform = SUMA_NIML_STDERR;
+   } else if ((strcmp(arg, "niml_stdout") == 0)) {
+      oform = SUMA_NIML_STDOUT;
+   } else if (  (
+         (strcmp(arg, "niml") == 0) ||
+         (strcmp(arg, "nii") == 0) ) )  {
+      oform = SUMA_NIML;
+   } else if (  (
+         (strncmp(arg, "niml_asc", 8) == 0)||
+         (strncmp(arg, "nii_asc", 7) == 0) ||
+         (strncmp(arg, "ni_as",5) == 0) ) ) {
+      oform = SUMA_ASCII_NIML;
+   } else if (  (
+         (strncmp(arg, "niml_bi", 7) == 0)||
+         (strncmp(arg, "nii_bi", 6) == 0) ||
+         (strncmp(arg, "ni_bi", 5) == 0) ) ) {
+      oform = SUMA_BINARY_NIML;
+   } else if (  (
+         (strncmp(arg, "gii", 3) == 0) ||
+         (strncmp(arg, "gifti", 5) == 0) ) ) {
+      if (strcasestr(arg,"asc"))
+         oform = SUMA_XML_ASCII_DSET;
+      else if (strcasestr(arg,"b64gz"))
+         oform = SUMA_XML_B64GZ_DSET;
+      else if (strcasestr(arg,"b64"))
+         oform = SUMA_XML_B64_DSET;
+      else oform = SUMA_XML_DSET;
+   }
+   
+   SUMA_RETURN(oform);
+}
+
+
 SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
 {
    static char FuncName[]={"SUMA_ShowParsedFname"};
@@ -12666,7 +12745,12 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
       SS = SUMA_StringAppend_va(SS, "RelPath       :%s\n", pn->RelPath);
       SS = SUMA_StringAppend_va(SS, "Path          :%s\n", pn->Path);
       SS = SUMA_StringAppend_va(SS, "FileName      :%s\n", pn->FileName);
+      SS = SUMA_StringAppend_va(SS, "Prefix        :%s\n", pn->Prefix);
+      SS = SUMA_StringAppend_va(SS, "View          :%s\n", pn->View);
       SS = SUMA_StringAppend_va(SS, "Ext           :%s\n", pn->Ext);
+      SS = SUMA_StringAppend_va(SS, "TypeExt       :%s\n", pn->TypeExt);
+      SS = SUMA_StringAppend_va(SS, "StorageMode   :%d\n", pn->StorageMode);
+      SS = SUMA_StringAppend_va(SS, "StorageModeNm.:%s\n", pn->StorageModeName);
       SS = SUMA_StringAppend_va(SS, "FileName_NoExt:%s\n", pn->FileName_NoExt);
       SS = SUMA_StringAppend_va(SS, "Col. Selector :%s\n", pn->ColSelect);
       SS = SUMA_StringAppend_va(SS, "Node Selector :%s\n", pn->NodeSelect);
@@ -12674,8 +12758,12 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
       SS = SUMA_StringAppend_va(SS, "Range Selector:%s\n", pn->RangeSelect);
       SS = SUMA_StringAppend_va(SS, "Only index col:%d\n", pn->only_index);
       SS = SUMA_StringAppend_va(SS, "FullName      :%s\n", pn->FullName);
+      SS = SUMA_StringAppend_va(SS, "FullName_NoSel:%s\n", pn->FullName_NoSel);
       SS = SUMA_StringAppend_va(SS, "RelName       :%s%s\n", 
                                                     pn->RelPath,pn->FileName);
+      SS = SUMA_StringAppend_va(SS, "HeadName      :%s\n", pn->HeadName);
+      SS = SUMA_StringAppend_va(SS, "BrikName      :%s\n", pn->BrikName);
+      SS = SUMA_StringAppend_va(SS, "OnDisk        :%d\n", pn->OnDisk);
    }
 
    SUMA_SS2S(SS,s);
@@ -12985,6 +13073,18 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
       }
       
       NewName->only_index = only_index;
+      
+      NewName->FullName_NoSel=NULL;
+      NewName->FullName_NoSel=
+         SUMA_append_replace_string(NewName->FullName_NoSel, 
+                                    NewName->AbsPath, "", 1);
+      NewName->FullName_NoSel=
+         SUMA_append_replace_string(NewName->FullName_NoSel, 
+                                    NewName->FileName, "", 1);
+      
+      NewName->StorageMode = storage_mode_from_prefix(NewName->FullName_NoSel);
+      NewName->StorageModeName = storage_mode_name(NewName->StorageMode);
+      
       NewName->FullName=NULL;
       NewName->FullName=
          SUMA_append_replace_string(NewName->FullName, 
@@ -13002,7 +13102,62 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
          SUMA_append_replace_string(NewName->FullName, 
                                     NewName->ColSelect, "", 1);
       
-	}
+      if (!(NewName->TypeExt = SUMA_copy_string(
+                     find_filename_extension(NewName->FileName)))) {
+         NewName->TypeExt = SUMA_copy_string("");              
+      }
+      
+      if (NewName->StorageMode == STORAGE_BY_BRICK) {
+         int dotted = 0;
+         NewName->Prefix = SUMA_copy_string(NewName->FileName);
+         NewName->Prefix[strlen(NewName->FileName)-
+                         strlen(NewName->TypeExt)]='\0';
+         if (NewName->Prefix[strlen(NewName->Prefix)-1] == '.') {
+            dotted = 1;
+         }
+         if (dotted) {
+            if (STRING_HAS_SUFFIX(NewName->Prefix, "+orig.") ){
+               NewName->View = SUMA_copy_string("+orig");
+            } else if (STRING_HAS_SUFFIX(NewName->Prefix, "+acpc.") ) {
+               NewName->View = SUMA_copy_string("+acpc");
+            } else if (STRING_HAS_SUFFIX(NewName->Prefix, "+tlrc.") ){
+               NewName->View = SUMA_copy_string("+tlrc");
+            }
+            NewName->Prefix[strlen(NewName->Prefix)-6]='\0'; 
+         } else {
+            if (STRING_HAS_SUFFIX(NewName->Prefix, "+orig") ) {
+               NewName->View = SUMA_copy_string("+orig");
+            } else if (STRING_HAS_SUFFIX(NewName->Prefix, "+acpc") ) {
+               NewName->View = SUMA_copy_string("+acpc");
+            } else if (STRING_HAS_SUFFIX(NewName->Prefix, "+tlrc") ) {
+               NewName->View = SUMA_copy_string("+tlrc");
+            }
+            NewName->Prefix[strlen(NewName->Prefix)-5]='\0'; 
+         }   
+	   } else {
+         NewName->Prefix = SUMA_copy_string(NewName->FileName);
+         NewName->View = SUMA_copy_string("");
+      }
+   }
+   
+   
+   
+   if (NewName->StorageMode == STORAGE_BY_BRICK) {
+      if (NewName->View[0] != '\0') {
+         NewName->HeadName = SUMA_append_string(NewName->Path,NewName->Prefix);
+         NewName->HeadName = SUMA_append_replace_string(NewName->HeadName,
+                                                NewName->View, "",1);
+         NewName->BrikName = SUMA_append_string(NewName->HeadName, ".BRIK");
+         NewName->HeadName = SUMA_append_string(NewName->HeadName, ".HEAD");
+      } else {
+         NewName->BrikName = SUMA_copy_string("");
+         NewName->HeadName = SUMA_copy_string("");
+      }
+   } else {
+      NewName->HeadName = SUMA_append_string(NewName->Path,NewName->FileName);
+      NewName->BrikName = SUMA_append_string(NewName->Path,NewName->FileName);
+   }
+   NewName->OnDisk = THD_is_file(NewName->HeadName);
    
    if (LocalHead) {
       SUMA_ShowParsedFname(NewName, NULL);
@@ -13011,6 +13166,7 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
    
 	SUMA_RETURN (NewName);
 }/*SUMA_ParseFname*/
+
 
 /*!
    \brief Lazy function calls to get at various parts of a file name without the
@@ -13111,6 +13267,133 @@ char *SUMA_FnameGet(char *Fname, char *sel, char *cccwd)
    SUMA_RETURN(str[istr]);
 }
 
+SUMA_PARSED_NAME * SUMA_ParseModifyName(char *Fname, char *what, char *val, 
+                                        char *cwd)
+{
+   SUMA_PARSED_NAME *pn=NULL, *pno=NULL;
+   if (!Fname || !what) return(NULL);
+   pn = SUMA_ParseFname(Fname, cwd);
+   if (!pn) return(NULL);
+   pno = SUMA_ModifyParsedName (pn, what, val);
+   SUMA_Free_Parsed_Name(pn); 
+   return(pno);
+}
+
+char * SUMA_ModifyName(char *Fname, char *what, char *val, char *cwd)
+{
+   char *oname=NULL;
+   SUMA_PARSED_NAME *pn=NULL, *pno=NULL;
+   if (!Fname || !what) return(NULL);
+   pn = SUMA_ParseFname(Fname, cwd);
+   if (!pn) return(NULL);
+   pno = SUMA_ModifyParsedName (pn, what, val);
+   SUMA_Free_Parsed_Name(pn); 
+   if (pno) {
+      oname = SUMA_append_replace_string(pno->Path,pno->FileName,"",0);
+      oname = SUMA_append_replace_string(oname, pno->NodeSelect,"",1);
+      oname = SUMA_append_replace_string(oname, pno->RowSelect,"",1);
+      oname = SUMA_append_replace_string(oname, pno->ColSelect,"",1);
+      SUMA_Free_Parsed_Name(pno);
+   } 
+   return(oname);
+}
+
+SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn, 
+                                          char *what, char *val)
+{
+   static char FuncName[]={"SUMA_ModifyParsedName"};
+   char *fullname=NULL;
+   SUMA_PARSED_NAME *pno=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!what || !pn) SUMA_RETURN(NULL);
+   
+   if (!strcmp(what,"prepend")) {
+      if (!val) SUMA_RETURN(NULL);
+      if (pn->StorageMode ==  STORAGE_BY_BRICK) {
+         fullname=NULL;
+         fullname = SUMA_append_replace_string(fullname, 
+                                                pn->Path, "", 1);
+         fullname = SUMA_append_replace_string(fullname,
+                                                val, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->Prefix, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->View, "",1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->TypeExt, "",1);
+         fullname = SUMA_append_replace_string(fullname,  
+                                    pn->NodeSelect, "", 1);
+         fullname = SUMA_append_replace_string(fullname,  
+                                    pn->RowSelect, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                    pn->ColSelect, "", 1);
+         pno=SUMA_ParseFname(fullname, pn->RelDir);
+         SUMA_free(fullname); fullname=NULL;
+      } else {
+         fullname=NULL;
+         fullname = SUMA_append_replace_string(fullname, 
+                                                pn->Path, "", 1);
+         fullname = SUMA_append_replace_string(fullname,
+                                                val, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->Prefix, "", 1);
+         fullname = SUMA_append_replace_string(fullname,  
+                                    pn->NodeSelect, "", 1);
+         fullname = SUMA_append_replace_string(fullname,  
+                                    pn->RowSelect, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                    pn->ColSelect, "", 1);
+         pno=SUMA_ParseFname(fullname, pn->RelDir);
+         SUMA_free(fullname); fullname=NULL;
+      }
+   } else if (!strcmp(what,"append")) {
+      if (!val) SUMA_RETURN(NULL);
+      if (pn->StorageMode ==  STORAGE_BY_BRICK) {
+         fullname=NULL;
+         fullname = SUMA_append_replace_string(fullname, 
+                                                pn->Path, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->Prefix, "", 1);
+         fullname = SUMA_append_replace_string(fullname,
+                                                val, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->View, "",1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->TypeExt, "",1);
+         fullname = SUMA_append_replace_string(fullname,  
+                                    pn->NodeSelect, "", 1);
+         fullname = SUMA_append_replace_string(fullname,  
+                                    pn->RowSelect, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                    pn->ColSelect, "", 1);
+         pno=SUMA_ParseFname(fullname, pn->RelDir);
+         SUMA_free(fullname); fullname=NULL;
+      } else {
+         fullname=NULL;
+         fullname = SUMA_append_replace_string(fullname, 
+                                                pn->Path, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->Prefix, "", 1);
+         fullname[strlen(fullname)-strlen(pn->TypeExt)]='\0';
+         fullname = SUMA_append_replace_string(fullname,
+                                                val, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->TypeExt, "",1);
+         fullname = SUMA_append_replace_string(fullname,  
+                                    pn->NodeSelect, "", 1);
+         fullname = SUMA_append_replace_string(fullname,  
+                                    pn->RowSelect, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                    pn->ColSelect, "", 1);
+         pno=SUMA_ParseFname(fullname, pn->RelDir);
+         SUMA_free(fullname); fullname=NULL;
+      }
+   } 
+   
+   SUMA_RETURN(pno);
+}
 /*!
    \brief ans = SUMA_isExtension(filename, ext);
       YUP if filename has the extension ext
@@ -15368,4 +15651,216 @@ char *SUMA_AfniSurfaceObject_Info(NI_group *aSO,
    
    SUMA_RETURN(s);
 }
+
+
 /******** END functions for surface structure  ******************** */
+
+/************************ BEGIN GICOR functions  ******************** */
+
+/* A function to initialize the setup structure for GroupInCorr */
+int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset)
+{
+   static char FuncName[]={"SUMA_init_GISET_setup"};
+   char *atr=NULL , *pre=NULL, *s=NULL, sbuf[256];
+   THD_3dim_dataset *tdset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   giset->ns    = nsg ;  /* save socket for I/O back to 3dGroupInCorr */
+   giset->ready = 0 ;    /* not ready yet */
+
+   /* set various parameters from the NIML header */
+
+   atr = NI_get_attribute( nel , "ndset_A" ) ; 
+      if( atr == NULL )        SUMA_RETURN(NOPE);
+   giset->ndset_A = (int)strtod(atr,NULL) ;    
+      if( giset->ndset_A < 2 ) SUMA_RETURN(NOPE);
+
+   atr = NI_get_attribute( nel , "ndset_B" ) ; 
+      if( atr == NULL )        SUMA_RETURN(NOPE);
+   giset->ndset_B = (int)strtod(atr,NULL) ;
+
+   atr = NI_get_attribute( nel , "nvec" ) ;  
+      if( atr == NULL )        SUMA_RETURN(NOPE);
+   giset->nvec = (int)strtod(atr,NULL) ;       
+      if( giset->nvec < 2 )    SUMA_RETURN(NOPE);
+   
+   atr = NI_get_attribute( nel , "geometry_string" ); 
+      if( atr == NULL ) {
+         SUMA_S_Err("No geometry string");
+         SUMA_RETURN(NOPE);
+      }
+      pre = SUMA_copy_string(atr) ;
+      tdset = EDIT_geometry_constructor( pre , "GrpInCorr" ) ;
+      if( tdset == NULL ) {
+         snprintf(sbuf, 256, 
+            "ERROR %s: Could not construct dset from %s\n",FuncName, pre);
+         SUMA_S_Err(sbuf);
+         SUMA_RETURN(NOPE) ;
+      }
+      giset->nvox = DSET_NVOX(tdset) ;
+      DSET_delete(tdset); tdset=NULL; SUMA_free(pre); pre=NULL;
+      
+   if( giset->nvox < 2 )    SUMA_RETURN(NOPE);
+
+   atr = NI_get_attribute( nel , "seedrad" ) ;
+   if( atr != NULL ) giset->seedrad = (float)strtod(atr,NULL) ;
+
+   atr = NI_get_attribute( nel , "ttest_opcode" ) ;
+   if( atr != NULL ) giset->ttest_opcode = (int)strtod(atr,NULL) ;
+
+   /* How many dsets? */
+   if (LocalHead) {
+      snprintf(sbuf, 256,
+            "LH %s: attr=%s\nval0=%s,val1=%s\n", 
+            FuncName, NI_get_attribute(nel,"LRpair_nnode"),
+            SUMA_NI_get_ith_string(NI_get_attribute(nel,"LRpair_nnode"),",",0),
+            SUMA_NI_get_ith_string(NI_get_attribute(nel,"LRpair_nnode"),",",1));
+      SUMA_LH(sbuf);
+   }
+   if ((s=SUMA_NI_get_ith_string(
+               NI_get_attribute(nel,"LRpair_nnode"),",",0))) {
+      giset->nnode_domain[0] = (int)strtol(s, NULL, 10);
+      SUMA_free(s); s = NULL;
+      if ((s=SUMA_NI_get_ith_string(
+               NI_get_attribute(nel,"LRpair_nnode"),",",1))) {
+         giset->nnode_domain[1] = (int)strtol(s, NULL, 10);
+         SUMA_free(s); s = NULL;
+      }
+   } else {
+      giset->nnode_domain[0] = giset->nvox; 
+      giset->nnode_domain[1] = 0; 
+   }
+               
+   if ((s=SUMA_NI_get_ith_string(
+               NI_get_attribute(nel,"LRpair_ninmask"),",",0))) {
+      giset->nnode_mask[0] = (int)strtol(s, NULL, 10);
+      SUMA_free(s); s = NULL;
+      if ((s=SUMA_NI_get_ith_string(
+               NI_get_attribute(nel,"LRpair_ninmask"),",",1))) {
+         giset->nnode_mask[1] = (int)strtol(s, NULL, 10);
+         SUMA_free(s); s = NULL;
+      }
+   } else {
+      giset->nnode_mask[0] = giset->nnode_domain[0]; 
+      giset->nnode_mask[1] = giset->nnode_domain[1];
+   }
+   
+   /* list of voxels to expect from each 3dGroupInCorr data */
+   if( nel->vec_len == 0 || nel->vec_num == 0 || nel->vec == NULL ){  /* all */
+     giset->ivec = NULL ; giset->nivec = 0 ;
+      INFO_message("DEBUG: GICOR_setup_func has ivec=NULL") ; 
+   } else {                                     /* make index list of voxels */
+     int ii , nn , *iv=(int *)nel->vec[0] ;
+     giset->ivec = (int *)calloc(sizeof(int),giset->nvec) ;
+     nn = MIN(giset->nvec,nel->vec_len) ; giset->nivec = nn ;
+     for( ii=0 ; ii < nn ; ii++ ) giset->ivec[ii] = iv[ii] ;
+     INFO_message("DEBUG: GICOR_setup_func has ivec=int[%d]",nn) ; 
+   }
+
+   if (NI_get_attribute(nel, "target_labels")) {
+      giset->brick_labels = strdup(NI_get_attribute(nel, "target_labels"));
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+int SUMA_PopulateDsetsFromGICORnel(NI_element *nel, GICOR_setup *giset, 
+                                   SUMA_DSET **sdsetv)
+{
+   static char FuncName[]={"SUMA_PopulateDsetsFromGICORnel"}; 
+   char *sbuf=NULL;
+   float *neldar , *nelzar , *dsdar , *dszar ;
+   int nn , id=0, ipair=0, nvec=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!nel || !giset || !sdsetv) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NOPE);
+   } 
+   
+   for (id=0; id < 2; ++id) {
+      for (ipair=0; ipair < nel->vec_num/2; ++ipair) {
+         neldar = (float *)nel->vec[2*ipair+0] ;  /* delta array */
+         nelzar = (float *)nel->vec[2*ipair+1] ;  /* zscore array */
+         nvec   = nel->vec_len ;
+
+         if (giset->nnode_domain[id]) {
+            dsdar = (float *)SDSET_VEC(sdsetv[id],(2*ipair+0)) ;
+            dszar = (float *)SDSET_VEC(sdsetv[id],(2*ipair+1)) ;
+            if (LocalHead) {
+               sbuf=SUMA_ShowMeSome(dsdar,
+                           SUMA_float, SDSET_VECLEN(sdsetv[id]),10,"dsdar:\n");
+               SUMA_LHv("pre copy surf%d %s\n",id, sbuf); 
+               SUMA_free(sbuf); sbuf=NULL;
+            }
+
+            if( giset->ivec == NULL ){  /* all nodes */
+               if (giset->nvox != nvec) {
+                  SUMA_S_Errv( "nvox=%d, nvec=%d, ivec=NULL\n"
+                              "Did not expect that.\n",
+                              giset->nvox, nvec);
+                  SUMA_RETURN(NOPE) ;
+               }
+               if (id == 0) {
+                  nn = MAX(0, nvec-giset->nnode_domain[1]);
+                  SUMA_LHv("Copying %d values from neldar, surf%d\n", 
+                           nn, id);
+                  if (LocalHead) {   
+                     sbuf=SUMA_ShowMeSome(neldar,SUMA_float, nn,10,"neldar:\n");
+                     SUMA_LHv("from the tube surf%d: %s\n", id, sbuf); 
+                     SUMA_free(sbuf); sbuf=NULL;
+                  }
+                  memcpy(dsdar,neldar,sizeof(float)*nn) ;
+                  memcpy(dszar,nelzar,sizeof(float)*nn) ;
+               } else {
+                  nn = MAX(0, nvec-giset->nnode_domain[0]);
+                  SUMA_LHv("Copying %d values from neldar+%d, surf%d\n", 
+                           nn, giset->nnode_domain[0], id);
+                  if (LocalHead) {
+                     sbuf=SUMA_ShowMeSome((neldar+giset->nnode_domain[0]),
+                                          SUMA_float, nn, 10,"neldar:\n");
+                     SUMA_LHv("from the tube surf%d: %s\n", id, sbuf); 
+                     SUMA_free(sbuf); sbuf=NULL;
+                  }
+                  memcpy(dsdar,(neldar+giset->nnode_domain[0]),
+                           sizeof(float)*nn) ;
+                  memcpy(dszar,(nelzar+giset->nnode_domain[0]),
+                           sizeof(float)*nn) ;
+               }
+               if (LocalHead) {
+                  sbuf=SUMA_ShowMeSome(dsdar,SUMA_float, nn, 10,"dsdar:\n");
+                  SUMA_LHv("post copy surf%d %s\n", id, sbuf); 
+                  SUMA_free(sbuf); sbuf=NULL;
+               }
+            } else { /* Have index vector */
+               int *ivec=giset->ivec , kk ;
+               nn = MIN( giset->nnode_mask[id] , nvec ) ;
+               if (id == 0) {
+                  for( kk=0 ; kk < nn ; kk++ ){
+                     dsdar[ivec[kk]] = neldar[kk] ; 
+                     dszar[ivec[kk]] = nelzar[kk] ;
+                  }
+               } else {
+                  for( kk=0 ; kk < nn ; kk++ ){
+                     dsdar[ivec[kk]-giset->nnode_domain[0]] = neldar[kk] ; 
+                     dszar[ivec[kk]-giset->nnode_domain[0]] = nelzar[kk] ;
+                  }
+               }
+            }
+            SUMA_LH("Updating range\n");
+            if (!SUMA_UpdateDsetColRange(sdsetv[id],-1)) {
+               SUMA_S_Err("Failed to update range");
+               SUMA_RETURN(NOPE);
+            }
+         } /* if (giset->nnode_domain[id]) */
+      } /* for (ipair ...) */
+   }
+
+   SUMA_RETURN(YUP);
+}
+
+/************************ END GICOR functions  ******************** */

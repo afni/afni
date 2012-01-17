@@ -54,15 +54,25 @@ endif
 if ($space != '') then
    3drefit -space $space $target_dset  >& /dev/null
 endif
-@MakeLabelTable -lab_file_delim "$delim"  \
-                -lab_file $flab $iL $iV \
-                -atlas_pointlist keys_${RNS}_ \
-                -dset $target_dset  $replace \
-                -atlas_file $atlas_file $aname \
-                -atlas_description "$adesc"
-if ($status) then
-   echo "Failed in @MakeLabelTable"
-   goto BEND
+if ("$flab" != "IS_ATLAS") then
+   @MakeLabelTable -lab_file_delim "$delim"  \
+                   -lab_file $flab $iL $iV \
+                   -atlas_pointlist keys_${RNS}_ \
+                   -dset $target_dset  $replace \
+                   -atlas_file $atlas_file $aname \
+                   -atlas_description "$adesc"
+   if ($status) then
+      echo "Failed in @MakeLabelTable"
+      goto BEND
+   endif
+else 
+   @MakeLabelTable -add_atlas_dset $target_dset  $replace \
+                   -atlas_file $atlas_file $aname \
+                   -atlas_description "$adesc"
+   if ($status) then
+      echo "Failed in @MakeLabelTable"
+      goto BEND
+   endif
 endif
 
 
@@ -88,7 +98,7 @@ PARSE:
    set autoback = 0
    set replace = '-replace'
    set aname = ''
-   set adesc = ''
+   set adesc = 'My Atlas'
    set delim = ' '
 	set cnt = 1
    while ($cnt <= $Narg)
@@ -235,15 +245,21 @@ PARSE:
 		@ cnt ++
 	end
 
- 
-   if ($flab == '') then
-      echo "Error: No labels file"
-      goto BEND
-   endif
-   
    if ("$target_dset" == '') then
       echo "Error: No target dset"
       goto BEND
+   endif
+   
+ 
+   if ($flab == '') then
+      #Try to see if there is a labelfile in the atlas 
+      set kk = `3dinfo -is_atlas "$target_dset"`
+      if ($kk == 1) then
+         set flab = "IS_ATLAS"
+      else
+         echo "Error: No labels file and $target_dset is not an atlas"
+         goto BEND
+      endif
    endif
    
    
@@ -351,6 +367,10 @@ HELP:
    echo "    in slice windows if you turn labels on (right click on gray scale, "
    echo "    and set Labels menu) Whereami queries will also return results from"
    echo "    the new atlas."
+   echo ""
+   echo "      Case 1.1, dset is already an atlas but it is not in an atlas file"
+   echo "                and therefore is not visible from whereami."
+   echo "             @Atlasize -dset altas_for_joe.nii"
    echo ""
    echo "    Note: For NIFTI volumes, all changes are made in the header  "
    echo "    extension, so non-AFNI programs should not be bothered by this." 

@@ -68,6 +68,11 @@ PARSE_COMMAND:
          goto USAGE
       endif
 
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo      
+         set donext = 0      
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-dxyz") then
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
@@ -798,12 +803,24 @@ FOLLOWERS:
          set folPrefix = `@GetAfniPrefix $fol`
          echo "Applying same transform to $folPrefix..."
          #set echo
+         isatl = `3dinfo -is_atlas $fol`
+         if ("$isatl" == 1) then
+            echo "Follower $fol is an atlas, giving it the special treatment."
+            3dAllineate -master $ExpAnatOrig \
+               -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
+               -input $fol \
+               -prefix ./${folPrefix:r}"_Alnd_Exp"$fview  \
+               -overwrite  \
+               -final NN
+            @Atlasize -dset ./${folPrefix:r}"_Alnd_Exp"$fview 
+         else 
          3dAllineate -master $ExpAnatOrig \
                -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
                -input $fol \
                -prefix ./${folPrefix:r}"_Alnd_Exp"$fview  \
                -overwrite  \
                -final $folinterp
+         endif
       end
    endif
    
@@ -840,7 +857,11 @@ CHECK_EXISTENCE:
    
    if ($no_center) then
       #check for large center difference
-      set dist_cent = `@Center_Distance -dset $ExpAnat.HEAD $SurfAnatPath/$SurfAnat.HEAD`
+      set dist_cent = `@Center_Distance -dset $ExpAnat $SurfAnatPath/$SurfAnat`
+      if ($status) then
+         echo "Failed to get center distance"
+         goto BEND
+      endif
       set ishuge = `ccalc -form int -eval "step($dist_cent - 80)"`
       set isbig = `ccalc -form int -eval "step($dist_cent - 30)"`
       if ($isbig) then
@@ -1039,6 +1060,8 @@ echo "                               follower datasets. Default is NN, which "
 echo "                               is appropriate for ROI datasets."
 echo "                               Allowed KERNEL values are:"
 echo "                               NN, linear, cubic, or quintic"
+echo "                    Note: For atlas datasets, the KERNEL is forced to NN"
+echo "                          regardless of what you set here."
 echo "        of the 'Surface Anatomy' suffixed by _Alnd_Exp."
 echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
 echo "                delete temporary files before rerunning the script."

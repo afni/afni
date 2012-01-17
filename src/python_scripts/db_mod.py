@@ -6,7 +6,7 @@ if __name__ == '__main__':
    print '** %s: not a main program' % sys.argv[0].split('/')[-1]
    sys.exit(1)
 
-import math, os
+import math, os, string
 import afni_base as BASE, afni_util as UTIL
 import option_list as OL
 import lib_afni1D as LD

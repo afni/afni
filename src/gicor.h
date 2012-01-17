@@ -15,9 +15,10 @@ typedef struct {
   int  nnode_domain[2]; /* Number of node in domain for L, and R, surfs */
   int  nnode_mask[2]; /* number of values on each of L and R surfs.
                          This is only needed when masking is done */
+  char *brick_labels;  /* SUMA's dsets need this outside of init 
+                          function                       Jan 2012 */
 
   char *label_AAA , *label_BBB , *toplabel ;  /* 14 May 2010 */
-
   int    num_stat_available ;
   char **lab_stat_available ;
 } GICOR_setup ;

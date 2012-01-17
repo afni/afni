@@ -88,6 +88,8 @@ static char shelp_GenPriors[] = {
 static char shelp_Seg[] = {
 "3dSeg segments brain volumes into tissue classes.\n"
 "\n"
+"There is no help yet, sorry.\n"
+#if 0
 "Examples: (All examples can do without the -gold* options)\n"
 "  Case A: Segmenting a T1 volume with a brain mask available\n"
 "  A.1:  Brain mask and MRF only.\n"
@@ -110,6 +112,7 @@ static char shelp_Seg[] = {
 "           -prefix case.A.2  -overwrite    \\\n"
 "           -mixfrac WHOLE_BRAIN \\\n"
 "           -Bmrf 1.0 -main_N 4           \\\n"
+#endif
 "\n"
 "\n"
 };
@@ -1017,7 +1020,8 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
       if (!brk) {
 			fprintf (stderr,"Option %s not understood. \n"
                          "Try -help for usage\n", argv[kar]);
-			exit (1);
+			suggest_best_prog_option(argv[0], argv[kar]);
+         exit (1);
 		} else {	
 			brk = 0;
 			kar ++;

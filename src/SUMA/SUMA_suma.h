@@ -182,7 +182,12 @@
    #define SUMA_LH(msg) {\
       if (LocalHead) fprintf (SUMA_STDERR, "##      %s:\n %s\n", FuncName, msg);  \
    }
-   #define SUMA_LHv SUMA_LH
+   #define SUMA_LHv(msg, ...) {\
+      if (LocalHead) {  \
+         fprintf (SUMA_STDERR, "##      %s:\n", FuncName);  \
+         fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+      }  \
+   }
     
    #define SUMA_S_Warn(msg) {\
       fprintf (SUMA_STDERR, "oo     Warning %s:\n %s\n", FuncName, msg);  \
@@ -197,7 +202,12 @@
    #define SUMA_S_Err(msg) {\
       fprintf (SUMA_STDERR, "--     Error %s:\n %s\n", FuncName, msg);  \
    }
-   #define SUMA_S_Errv SUMA_S_Err
+   
+   #define SUMA_S_Errv(msg,...) {\
+      fprintf (SUMA_STDERR, "--     Error %s:\n", FuncName);  \
+      fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+   }
+   
    
    #define SUMA_S_Crit(msg) {\
       fprintf (SUMA_STDERR, "**     Critical error %s:\n %s\n", FuncName, msg);  \

@@ -1223,6 +1223,7 @@ SUMA_Boolean SUMA_GICOR_Surfaces(GICOR_setup *giset, SUMA_SurfaceObject *SOv[])
    SUMA_RETURN(YUP); 
 }
 
+
 /*!
    Function called from SUMA_niml, when GICorr sends a setup element 
    This function parallels AFNI's GICOR_setup_func
@@ -1231,13 +1232,10 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
 {
    static char FuncName[]={"SUMA_GICOR_setup_func"};
    GICOR_setup *giset = NULL;
-   char *atr=NULL , *pre=NULL, *s=NULL;
    SUMA_DSET *sdsetv[2]={NULL, NULL};
    SUMA_OVERLAYS *ov[2]={NULL, NULL};
-   int nnode_dom[2]={0,0};
-   int nnode_mask[2]={0,0};
    SUMA_SurfaceObject *SOv[2]={NULL, NULL};
-   THD_3dim_dataset *tdset=NULL;
+   char *pre=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1254,84 +1252,7 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
      memset(giset,0, sizeof(GICOR_setup)) ;
    }
    
-   giset->ns    = nsg ;  /* save socket for I/O back to 3dGroupInCorr */
-   giset->ready = 0 ;    /* not ready yet */
-
-   /* set various parameters from the NIML header */
-
-   atr = NI_get_attribute( nel , "ndset_A" ) ; 
-      if( atr == NULL )        SUMA_GIQUIT;
-   giset->ndset_A = (int)strtod(atr,NULL) ;    
-      if( giset->ndset_A < 2 ) SUMA_GIQUIT;
-
-   atr = NI_get_attribute( nel , "ndset_B" ) ; 
-      if( atr == NULL )        SUMA_GIQUIT;
-   giset->ndset_B = (int)strtod(atr,NULL) ;
-
-   atr = NI_get_attribute( nel , "nvec" ) ;  
-      if( atr == NULL )        SUMA_GIQUIT;
-   giset->nvec = (int)strtod(atr,NULL) ;       
-      if( giset->nvec < 2 )    SUMA_GIQUIT;
-   
-   atr = NI_get_attribute( nel , "geometry_string" ); 
-      if( atr == NULL ) {
-         SUMA_S_Err("No geometry string");
-         SUMA_RETURN(NOPE);
-      }
-      pre = SUMA_copy_string(atr) ;
-      tdset = EDIT_geometry_constructor( pre , "GrpInCorr" ) ;
-      if( tdset == NULL ) {
-         SUMA_S_Errv("Could not construct dset from %s\n", pre);
-         SUMA_GIQUIT ;
-      }
-      giset->nvox = DSET_NVOX(tdset) ;
-      DSET_delete(tdset); tdset=NULL; SUMA_free(pre); pre=NULL;
-      
-   if( giset->nvox < 2 )    SUMA_GIQUIT;
-
-   atr = NI_get_attribute( nel , "seedrad" ) ;
-   if( atr != NULL ) giset->seedrad = (float)strtod(atr,NULL) ;
-
-   atr = NI_get_attribute( nel , "ttest_opcode" ) ;
-   if( atr != NULL ) giset->ttest_opcode = (int)strtod(atr,NULL) ;
-
-   /* create output dataset(s), to be filled in from 3dGroupInCorr data later */
-               
-   pre = NI_get_attribute( nel , "target_name" ) ;
-   if( pre == NULL || *pre == '\0' ) pre = "GICorrelletto" ;
-   
-   /* How many dsets? */
-   SUMA_LHv("attr=%s\nval0=%s,val1=%s\n", 
-            NI_get_attribute(nel,"LRpair_nnode"),
-            SUMA_NI_get_ith_string(NI_get_attribute(nel,"LRpair_nnode"),",",0),
-            SUMA_NI_get_ith_string(NI_get_attribute(nel,"LRpair_nnode"),",",1));
-   if ((s=SUMA_NI_get_ith_string(
-               NI_get_attribute(nel,"LRpair_nnode"),",",0))) {
-      giset->nnode_domain[0] = (int)strtol(s, NULL, 10);
-      SUMA_free(s); s = NULL;
-      if ((s=SUMA_NI_get_ith_string(
-               NI_get_attribute(nel,"LRpair_nnode"),",",1))) {
-         giset->nnode_domain[1] = (int)strtol(s, NULL, 10);
-         SUMA_free(s); s = NULL;
-      }
-   } else {
-      giset->nnode_domain[0] = giset->nvox; 
-      giset->nnode_domain[1] = 0; 
-   }
-               
-   if ((s=SUMA_NI_get_ith_string(
-               NI_get_attribute(nel,"LRpair_ninmask"),",",0))) {
-      giset->nnode_mask[0] = (int)strtol(s, NULL, 10);
-      SUMA_free(s); s = NULL;
-      if ((s=SUMA_NI_get_ith_string(
-               NI_get_attribute(nel,"LRpair_ninmask"),",",1))) {
-         giset->nnode_mask[1] = (int)strtol(s, NULL, 10);
-         SUMA_free(s); s = NULL;
-      }
-   } else {
-      giset->nnode_mask[0] = giset->nnode_domain[0]; 
-      giset->nnode_mask[1] = giset->nnode_domain[1];
-   }
+   if (!SUMA_init_GISET_setup(nsg, nel, giset)) SUMA_GIQUIT;
    
    /* Now find surfaces that can be the domain */
    if (!SUMA_GICOR_Surfaces(giset, SOv)) {
@@ -1340,24 +1261,14 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
    }
    
    /* Now create appropriate dsets */
+   pre = NI_get_attribute( nel , "target_name" ) ;
+   if( pre == NULL || *pre == '\0' ) pre = "GICorrelletto" ;
    if (!SUMA_GICOR_Dsets(SOv, giset, pre, SUMAg_CF->DsetList, 
                          sdsetv, ov, nel)) {
       SUMA_S_Err("Failed to find/create dsets for giset");
       SUMA_RETURN(NOPE);
    }
 
-
-   /* list of voxels to expect from each 3dGroupInCorr data */
-   if( nel->vec_len == 0 || nel->vec_num == 0 || nel->vec == NULL ){  /* all */
-     giset->ivec = NULL ; giset->nivec = 0 ;
-      INFO_message("DEBUG: GICOR_setup_func has ivec=NULL") ; 
-   } else {                                     /* make index list of voxels */
-     int ii , nn , *iv=(int *)nel->vec[0] ;
-     giset->ivec = (int *)calloc(sizeof(int),giset->nvec) ;
-     nn = MIN(giset->nvec,nel->vec_len) ; giset->nivec = nn ;
-     for( ii=0 ; ii < nn ; ii++ ) giset->ivec[ii] = iv[ii] ;
-     INFO_message("DEBUG: GICOR_setup_func has ivec=int[%d]",nn) ; 
-   }
 
    giset->ready = 1 ;
    
@@ -1373,10 +1284,8 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
 {
    static char FuncName[]={"SUMA_GICOR_process_dataset"};
    GICOR_setup *giset = SUMAg_CF->giset ;
-   char *sbuf=NULL;
-   float *neldar , *nelzar , *dsdar , *dszar ;
-   int nvec,nn , vmul ; float thr ;
-   int id=0, ic=0, ipair=0;
+   int vmul ; float thr ;
+   int id=0, ic=0;
    SUMA_SurfaceObject *SOv[2]={NULL,NULL};
    SUMA_DSET *sdsetv[2]={NULL, NULL};
    SUMA_OVERLAYS *ov[2]={NULL, NULL};
@@ -1420,78 +1329,11 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
 
    SUMA_LH("Populating the dset in question, redisplay, etc.");
    
-   for (id=0; id < 2; ++id) {
-      for (ipair=0; ipair < nel->vec_num/2; ++ipair) {
-         neldar = (float *)nel->vec[2*ipair+0] ;  /* delta array */
-         nelzar = (float *)nel->vec[2*ipair+1] ;  /* zscore array */
-         nvec   = nel->vec_len ;
+   if (!SUMA_PopulateDsetsFromGICORnel(nel, giset, sdsetv)) {
+      SUMA_S_Err("Failed to populate. Not fun.");
+      SUMA_RETURN(NOPE);
+   }  
 
-         if (giset->nnode_domain[id]) {
-            dsdar = (float *)SDSET_VEC(sdsetv[id],(2*ipair+0)) ;
-            dszar = (float *)SDSET_VEC(sdsetv[id],(2*ipair+1)) ;
-            if (LocalHead) {
-               sbuf=SUMA_ShowMeSome(dsdar,
-                           SUMA_float, SDSET_VECLEN(sdsetv[id]),10,"dsdar:\n");
-               SUMA_LHv("pre copy surf%d %s\n",id, sbuf); 
-               SUMA_free(sbuf); sbuf=NULL;
-            }
-
-            if( giset->ivec == NULL ){  /* all nodes */
-               if (giset->nvox != nvec) {
-                  SUMA_S_Errv( "nvox=%d, nvec=%d, ivec=NULL\n"
-                              "Did not expect that.\n",
-                              giset->nvox, nvec);
-                  SUMA_RETURN(NOPE) ;
-               }
-               if (id == 0) {
-                  nn = MAX(0, nvec-giset->nnode_domain[1]);
-                  SUMA_LHv("Copying %d values from neldar, surf%d\n", 
-                           nn, id);
-                  if (LocalHead) {   
-                     sbuf=SUMA_ShowMeSome(neldar,SUMA_float, nn,10,"neldar:\n");
-                     SUMA_LHv("from the tube surf%d: %s\n", id, sbuf); 
-                     SUMA_free(sbuf); sbuf=NULL;
-                  }
-                  memcpy(dsdar,neldar,sizeof(float)*nn) ;
-                  memcpy(dszar,nelzar,sizeof(float)*nn) ;
-               } else {
-                  nn = MAX(0, nvec-giset->nnode_domain[0]);
-                  SUMA_LHv("Copying %d values from neldar+%d, surf%d\n", 
-                           nn, giset->nnode_domain[0], id);
-                  if (LocalHead) {
-                     sbuf=SUMA_ShowMeSome((neldar+giset->nnode_domain[0]),
-                                          SUMA_float, nn, 10,"neldar:\n");
-                     SUMA_LHv("from the tube surf%d: %s\n", id, sbuf); 
-                     SUMA_free(sbuf); sbuf=NULL;
-                  }
-                  memcpy(dsdar,(neldar+giset->nnode_domain[0]),
-                           sizeof(float)*nn) ;
-                  memcpy(dszar,(nelzar+giset->nnode_domain[0]),
-                           sizeof(float)*nn) ;
-               }
-               if (LocalHead) {
-                  sbuf=SUMA_ShowMeSome(dsdar,SUMA_float, nn, 10,"dsdar:\n");
-                  SUMA_LHv("post copy surf%d %s\n", id, sbuf); 
-                  SUMA_free(sbuf); sbuf=NULL;
-               }
-            } else { /* Have index vector */
-               int *ivec=giset->ivec , kk ;
-               nn = MIN( giset->nnode_mask[id] , nvec ) ;
-               if (id == 0) {
-                  for( kk=0 ; kk < nn ; kk++ ){
-                     dsdar[ivec[kk]] = neldar[kk] ; 
-                     dszar[ivec[kk]] = nelzar[kk] ;
-                  }
-               } else {
-                  for( kk=0 ; kk < nn ; kk++ ){
-                     dsdar[ivec[kk]-giset->nnode_domain[0]] = neldar[kk] ; 
-                     dszar[ivec[kk]-giset->nnode_domain[0]] = nelzar[kk] ;
-                  }
-               }
-            }
-         } /* if (giset->nnode_domain[id]) */
-      } /* for (ipair ...) */
-   }
 
    /* colorize and redisplay */
    for (id=0; id<2; ++id) {
@@ -1499,11 +1341,6 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
          SOv[id]->SurfCont->curColPlane = ov[id];
          if (!SUMA_OpenCloseSurfaceCont(NULL, SOv[id], NULL)) {
             SUMA_SLP_Err("Cannot open Surface Controller!");
-            SUMA_RETURN(NOPE);
-         }
-         SUMA_LH("Updating range\n");
-         if (!SUMA_UpdateDsetColRange(sdsetv[id],-1)) {
-            SUMA_S_Err("Failed to update range");
             SUMA_RETURN(NOPE);
          }
          if ( SOv[id]->SurfCont->SwitchDsetlst && 
@@ -1598,7 +1435,11 @@ int SUMA_AFNI_gicor_setref( SUMA_SurfaceObject *SO, int node )
    
    SUMA_ENTRY;
    
-   
+   if (!SO) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(-1) ;
+   }
+     
    if (node < 0) { /* OK, return */
       SUMA_LHv("node %d\n", node);
       SUMA_RETURN(0) ;
