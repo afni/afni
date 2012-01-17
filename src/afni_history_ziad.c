@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 17, JAN , 2012 , ZSS , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT,
+   "Allowed BATCH mode to work on surfaces.",
+   NULL,
+ },
+    
+ { 13, JAN , 2012 , ZSS , "ParseName" , MINOR , TYPE_NEW_OPT,
+   "Options -pre and -app help in creating filenames regarding of type",
+   NULL,
+ },
+    
+ { 11, JAN , 2012 , ZSS , "3dROIstats" , MICRO , TYPE_MODIFY,
+   "Use ROI labels in output if label tables or atlas point lists are present",
+   NULL,
+ },
+    
  { 11, JAN , 2012 , ZSS , "3drefit" , MICRO , TYPE_NEW_OPT,
    "Added -copytables to copy label tables and atlas point lists",
    NULL,

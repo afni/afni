@@ -9,10 +9,12 @@ printf (
    "\n"
    "Usage:  ParseName [OPTIONS] <FName> \n"
    "Parses filename FName into components useful for AFNI\n"
-   "The program makes no attempt to check that the file exists.\n"
    "OPTIONS:\n"
    "   -cwd: Specify the working directory, from which relative\n"
    "         path is constructed. Default is the program's CWD\n"
+   "   -pre PRE: Change the name so that you prepend PRE to the prefix\n"
+   "   -app APP: Change the name so that you append APP to the prefix\n"
+   "\n"
    "   -out OUT: Output only one component of the parsed file name\n"
    "             By default the whole parsed filename structure is\n"
    "             displayed.\n"
@@ -21,10 +23,20 @@ printf (
    "        RelName : RELATIVE_PATH/FName\n"
    "        AbsPath : ABSOLUTE_PATH/\n"
    "        RelPath : RELATIVE_PATH/\n"
+   "        HeadName: RELATIVE_PATH/HEADNAME\n"
+   "        Prefix  : PREFIX\n"
+   "        uPrefix : USER_PATH/PREFIX\n"
+   "        pPrefix : RELATIVE_PATH/PREFIX\n"
+   "        PPrefix : ABSOLUTE_PATH/PREFIX\n"
    "\n"
    "Tests:\n"
    "    ParseName -cwd /hello/Joe /hello/Joe/afni.c\n"
    "    ParseName -cwd /hello/Joe/ /hello/Jane/afni.c\n"
+   "    ParseName -out Prefix something.nii\n"
+   "    ParseName -pre Need_ -out Prefix something.nii\n"
+   "    ParseName -pre Need_  something.nii'[65-88]'\n"
+   "    ParseName -pre Need_  something+orig.HEAD'{2-10}[4-6]'\n"
+   "    ParseName -pre Need_ -out HeadName  something+orig.HEAD'{2-10}[4-6]'\n"
    "\n"
    "     Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n"
    "\n");
@@ -34,7 +46,7 @@ printf (
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ParseName"}; 
-	char *out=NULL,*FName=NULL, *cwd=NULL;
+	char *out=NULL,*FName=NULL, *cwd=NULL, *what=NULL, *val=NULL;
    int kar, brk;
    SUMA_PARSED_NAME *Test;
    
@@ -53,6 +65,8 @@ int main (int argc,char *argv[])
    kar = 1;
    cwd = NULL;
    out = NULL;
+   what = NULL;
+   val = NULL;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -92,6 +106,30 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
 
+      if (!brk && (strcmp(argv[kar], "-pre") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a string after -pre \n");
+            exit (1);
+         }
+         what = "prepend";
+         val = argv[++kar];
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-app") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a string after -app \n");
+            exit (1);
+         }
+         what = "append";
+         val = argv[++kar];
+         brk = YUP;
+      }
+
       
       if (!brk) {
 			if (kar+1 == argc) {
@@ -102,7 +140,8 @@ int main (int argc,char *argv[])
                         "FName must be the last option on command line .\n"
                         "Try -help for usage\n", 
                         argv[kar]);
-			   exit (1);
+			   suggest_best_prog_option(argv[0], argv[kar]);
+            exit (1);
 		   }
       } else {	
 			brk = NOPE;
@@ -116,9 +155,18 @@ int main (int argc,char *argv[])
    }
    if (!cwd) cwd = SUMAg_CF->cwd;
 	
-   if (!(Test = SUMA_ParseFname (FName, cwd))) {
-      SUMA_S_Errv("Failed to parse %s, cwd %s\n", FName, cwd);
-      exit(1);
+   
+   if (what) {
+      if (!(Test = SUMA_ParseModifyName(FName, what, val, cwd))) {
+          SUMA_S_Errv("Failed to parse %s, cwd %s, what %s, val %s\n", 
+               FName, cwd, what, val);
+         exit(1);
+      }
+   } else {
+      if (!(Test = SUMA_ParseFname (FName, cwd))) {
+         SUMA_S_Errv("Failed to parse %s, cwd %s\n", FName, cwd);
+         exit(1);
+      }
    }
    
    if (out) {
@@ -134,7 +182,25 @@ int main (int argc,char *argv[])
       } else if (strcmp(out,"RelPath") == 0) {
          fprintf(SUMA_STDOUT, "%s\n", 
                      Test->RelPath);
-      } else {
+      } else if (strcmp(out,"Prefix") == 0) {
+         fprintf(SUMA_STDOUT, "%s\n", 
+                     Test->Prefix);
+      } else if (strcmp(out,"uPrefix") == 0) {
+         fprintf(SUMA_STDOUT, "%s%s\n", 
+                     Test->Path,Test->Prefix);
+      } else if (strcmp(out,"PPrefix") == 0) {
+         fprintf(SUMA_STDOUT, "%s%s\n", 
+                     Test->AbsPath,Test->Prefix);
+      } else if (strcmp(out,"pPrefix") == 0) {
+         fprintf(SUMA_STDOUT, "%s%s\n", 
+                     Test->RelPath,Test->Prefix);
+      } else if (strcmp(out,"HeadName") == 0) {
+         fprintf(SUMA_STDOUT, "%s\n", 
+                     Test->HeadName);
+      } else if (strcmp(out,"OnDisk") == 0) {
+         fprintf(SUMA_STDOUT, "%d\n", 
+                     Test->OnDisk);
+      }else {
          SUMA_S_Errv("Bad -out option of %s\n", out);
          exit(1);
       }

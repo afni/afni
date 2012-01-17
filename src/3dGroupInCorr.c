@@ -16,6 +16,7 @@
 ***/
 
 #include "mrilib.h"
+#include "suma_suma.h"
 
 #ifdef USE_OMP     /* this is important! */
 #include <omp.h>
@@ -167,13 +168,15 @@ typedef struct {
 
 /*------ for creating output dataset internally (rather than in AFNI) ------*/
 
+#if 0    /* will use GICOR_setup instead           ZSS: Jan 2012*/
 typedef struct {               /* Feb 2011 */
   THD_3dim_dataset *dset ;
   int nvox , nivec , *ivec ;
 } GRINCOR_setup ;
+#endif
 
-GRINCOR_setup * GRINCOR_setup_dataset( NI_element * ) ;
-void GRINCOR_output_dataset( GRINCOR_setup *, NI_element *, char * ) ;
+GICOR_setup * GRINCOR_setup_dataset( NI_element * ) ;
+int GRINCOR_output_dataset( GICOR_setup *, NI_element *, char * ) ;
 
 /*--------------------------------------------------------------------------*/
 
@@ -836,6 +839,8 @@ static int nout = 0 ;
 static float *axx , *axx_psinv , *axx_xtxinv ;
 static float *bxx , *bxx_psinv , *bxx_xtxinv ;
 
+static int   oform = SUMA_NO_DSET_FORMAT; /* output format for surface-based */
+
 #define MAX_LABEL_SIZE 12
 #define NSEND_LIMIT     9
 
@@ -848,6 +853,7 @@ static float *bxx , *bxx_psinv , *bxx_xtxinv ;
 #define MASKAVE_MODE 5
 #define MASKPV_MODE  6
 #define VECTORS_MODE 7
+#define NODE_MODE    8
 
 int main( int argc , char *argv[] )
 {
@@ -884,11 +890,11 @@ int main( int argc , char *argv[] )
    char *bricklabels=NULL ;
    float **saar=NULL ;
 
-   int   bmode=0 , do_lpi=0 ;    /* 05 Feb 2011 -- stuff for batch mode */
+   int   bmode=0 , do_lpi=0;    /* 05 Feb 2011 -- stuff for batch mode */
    char *bname=NULL ;
    char *bfile=NULL , *bprefix=NULL ;
    FILE *bfp=NULL ;
-   GRINCOR_setup *giset=NULL ;
+   GICOR_setup *giset=NULL ;
 
 #ifdef COVTEST
    float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;
@@ -1288,6 +1294,12 @@ int main( int argc , char *argv[] )
       "          each stage of the process.\n"
 #endif
       "\n"
+      " -suma = Talk to suma instead of afni, using surface-based i/o data.\n"
+      " -sdset_TYPE = Set the output format in surface-based batch mode to\n"
+      "               TYPE. For allowed values of TYPE, search for option\n"
+      "               called -o_TYPE in ConvertDset -help.\n"
+      "               Typical values would be: \n"
+      "                  -sdset_niml, -sdset_1D, or -sdset_gii\n"
       " -quiet = Turn off the 'fun fun fun in the sun sun sun' informational messages.\n"
       " -verb  = Print out extra informational messages for more fun!\n"
       " -VERB  = Print out even more informational messages for even more fun fun!!\n"
@@ -1345,88 +1357,103 @@ int main( int argc , char *argv[] )
      printf(
      "\n"
      "--------------------------*** BATCH MODE [Feb 2011] ***-----------------------\n"
-     "\n"
-     "* In batch mode, instead of connecting AFNI or SUMA to get commands on\n"
-     "  what to compute, 3dGroupInCorr computes correlations (etc.) based on\n"
-     "  commands from an input file.\n"
-     "  ++ At this time, batch mode only works to produce 3D (AFNI or NIfTI)\n"
-     "     datasets.  It cannot be used to produce SUMA datasets -- sorry.\n"
-     "\n"
-     "* Each line in the command file specifies the prefix for the output dataset\n"
-     "  to create, and then the set of seed vectors to use.\n"
-     "  ++ Each command line produces a distinct dataset.\n"
-     "  ++ If you want to put results from multiple commands into one big dataset,\n"
-     "     you will have to do that with something like 3dbucket or 3dTcat after\n"
-     "     running this program.\n"
-     "  ++ If an error occurs with one command line (e.g., a bad seed location is\n"
-     "     given), the program will not produce an output dataset, but will try\n"
-     "     to continue with the next line in the command file.\n"
-     "  ++ Note that I say 'seed vectors', since a distinct one is needed for\n"
-     "     each dataset comprising the inputs -setA (and -setB, if used).\n"
-     "\n"
-     "* Batch mode is invoked with the following option:\n"
-     "\n"
-     "   -batch METHOD COMMANDFILENAME\n"
-     "\n"
-     "  where METHOD specifies how the seed vectors are to be computed, and\n"
-     "  where COMMANDFILENAME specifies the file with the commands.\n"
-     "  ++ As a special case, if COMMANDFILENAME contains a space character,\n"
-     "     then instead of being interpreted as a filename, it will be used\n"
-     "     as the contents of a single line command file; for example:\n"
-     "       -batch IJK 'something.nii 33 44 55'\n"
-     "     could be used to produce a single output dataset named 'something.nii'.\n"
-     "  ++ Only one METHOD can be used per batch mode run of 3dGroupInCorr!\n"
-     "     You can't mix up 'IJK' and 'XYZ' modes, for example.\n"
-     "  ++ Note that this program WILL overwrite existing datasets, unlike most\n"
-     "     AFNI programs, so be careful.\n"
-     "\n"
-     "* METHOD must be one of the following strings (not case sensitive):\n"
-     "\n"
-     "  ++ IJK     ==> the 3D voxel grid index triple (i,j,k) is given in FILENAME,\n"
-     " or  IJKAVE      which tells the program to extract the time series from\n"
-     "                 each input dataset at that voxel and use that as the seed\n"
-     "                 vector for that dataset (if '-seedrad' is given, then the\n"
-     "                 seed vector will be averaged as done in interactive mode).\n"
-     "              ** This is the same mode of operation as the interactive seed\n"
-     "                 picking via AFNI's 'InstaCorr Set' menu item.\n"
-     "             -- FILE line format:  prefix i j k\n"
-     "\n"
-     "  ++ XYZ     ==> very similar to 'IJK', but instead of voxel indexes being\n"
-     " or  XYZAVE      given to specify the seed vectors, the RAI (DICOM) (x,y,z)\n"
-     "                 coordinates are given ('-seedrad' also applies).\n"
-     "              ** If you insist on using LPI (neurological) coordinates, as\n"
-     "                 Some other PrograMs (which are Fine Software tooLs) do,\n"
-     "                 set environmentment variable AFNI_INSTACORR_XYZ_LPI to YES,\n"
-     "                 before running this program.\n"
-     "             -- FILE line format:  prefix x y z\n"
-     "\n"
-     "  ++ MASKAVE ==> each line on the command file specifies a mask dataset;\n"
-     "                 the nonzero voxels in that dataset are used to define\n"
-     "                 the list of seed voxels that will be averaged to give\n"
-     "                 the set of seed vectors.\n"
-     "              ** You can use the usual '[..]' and '<..>' sub-brick and value\n"
-     "                 range selectors to modify the dataset on input.  Do not\n"
-     "                 put these selectors inside quotes in the command file!\n"
-     "             -- FILE line format:  prefix maskdatasetname\n"
-     "\n"
-     "  ++ IJKPV   ==> very similar to IJKAVE, XYZAVE, and MASKAVE (in that order),\n"
-     "  ++ XYZPV       but instead of extracting the average over the region\n"
-     "  ++ MASKPV      indicated, extracts the Principal Vector (in the SVD sense;\n"
-     "                 cf. program 3dLocalPV).\n"
-     "              ** Note that IJKPV and XYZPV modes only work if seedrad > 0.\n"
-     "              ** In my limited tests, the differences between the AVE and PV\n"
-     "                 methods are very small.  YMMV.\n"
-     "\n"
-     "  ++ VECTORS ==> each line on the command file specifies an ASCII .1D\n"
-     "                 file which contains the set of seed vectors to use.\n"
-     "                 There must be as many columns in the .1D file as there\n"
-     "                 are input datasets in -setA and -setB combined.  Each\n"
-     "                 column must be as long as the maximum number of time\n"
-     "                 points in the longest dataset in -setA and -setB.\n"
-     "              ** This mode is for those who want to construct their own\n"
-     "                 set of reference vectors in some clever way.\n"
-     "              ** N.B.: This method has not yet been tested!\n"
-     "             -- FILE line format:  prefix 1Dfilename\n"
+"\n"
+"* In batch mode, instead of connecting AFNI or SUMA to get commands on\n"
+"  what to compute, 3dGroupInCorr computes correlations (etc.) based on\n"
+"  commands from an input file.\n"
+"  ++ Batch mode works to produce 3D (AFNI, or NIfTI) or 2D surface-based \n"
+"     (SUMA or GIFTI format) datasets. \n"
+"\n"
+"* Each line in the command file specifies the prefix for the output dataset\n"
+"  to create, and then the set of seed vectors to use.\n"
+"  ++ Each command line produces a distinct dataset.\n"
+"  ++ If you want to put results from multiple commands into one big dataset,\n"
+"     you will have to do that with something like 3dbucket or 3dTcat after\n"
+"     running this program.\n"
+"  ++ If an error occurs with one command line (e.g., a bad seed location is\n"
+"     given), the program will not produce an output dataset, but will try\n"
+"     to continue with the next line in the command file.\n"
+"  ++ Note that I say 'seed vectors', since a distinct one is needed for\n"
+"     each dataset comprising the inputs -setA (and -setB, if used).\n"
+"\n"
+"* Batch mode is invoked with the following option:\n"
+"\n"
+"   -batch METHOD COMMANDFILENAME\n"
+"\n"
+"  where METHOD specifies how the seed vectors are to be computed, and\n"
+"  where COMMANDFILENAME specifies the file with the commands.\n"
+"  ++ As a special case, if COMMANDFILENAME contains a space character,\n"
+"     then instead of being interpreted as a filename, it will be used\n"
+"     as the contents of a single line command file; for example:\n"
+"       -batch IJK 'something.nii 33 44 55'\n"
+"     could be used to produce a single output dataset named 'something.nii'.\n"
+"  ++ Only one METHOD can be used per batch mode run of 3dGroupInCorr!\n"
+"     You can't mix up 'IJK' and 'XYZ' modes, for example.\n"
+"  ++ Note that this program WILL overwrite existing datasets, unlike most\n"
+"     AFNI programs, so be careful.\n"
+"\n"
+"* METHOD must be one of the following strings (not case sensitive):\n"
+"\n"
+"  ++ IJK     ==> the 3D voxel grid index triple (i,j,k) is given in FILENAME,\n"
+" or  IJKAVE      which tells the program to extract the time series from\n"
+"                 each input dataset at that voxel and use that as the seed\n"
+"                 vector for that dataset (if '-seedrad' is given, then the\n"
+"                 seed vector will be averaged as done in interactive mode).\n"
+"              ** This is the same mode of operation as the interactive seed\n"
+"                 picking via AFNI's 'InstaCorr Set' menu item.\n"
+"             -- FILE line format:  prefix i j k\n"
+"\n"
+"  ++ XYZ     ==> very similar to 'IJK', but instead of voxel indexes being\n"
+" or  XYZAVE      given to specify the seed vectors, the RAI (DICOM) (x,y,z)\n"
+"                 coordinates are given ('-seedrad' also applies).\n"
+"              ** If you insist on using LPI (neurological) coordinates, as\n"
+"                 Some other PrograMs (which are Fine Software tooLs) do,\n"
+"                 set environmentment variable AFNI_INSTACORR_XYZ_LPI to YES,\n"
+"                 before running this program.\n"
+"             -- FILE line format:  prefix x y z\n"
+"\n"
+"  ++ NODE    ==> the index of the surface node where the seed is located.\n"
+"                 A simple line would contain a prefix and a node number.\n"
+"                 The prefix sets the output name and the file format, \n"
+"                 if you include the extension. See also -sdset_TYPE option.\n"
+"                 for controlling output format.\n"
+"                 The node number specifies the seed node. Because you might\n"
+"                 have two surfaces (-LRpairs option in 3dSetupGroupInCorr)\n"  
+"                 you can add 'L', or 'R' to the node index to specify its\n"
+"                 hemisphere.\n"
+"                 For example:\n"
+"                     OccipSeed1 L720\n"
+"                     OccipSeed2 R2033\n"
+"                 If you don't specify the side in instances where you are\n"
+"                 working with two hemispheres, the default is 'L'.\n"
+"\n"
+"  ++ MASKAVE ==> each line on the command file specifies a mask dataset;\n"
+"                 the nonzero voxels in that dataset are used to define\n"
+"                 the list of seed voxels that will be averaged to give\n"
+"                 the set of seed vectors.\n"
+"              ** You can use the usual '[..]' and '<..>' sub-brick and value\n"
+"                 range selectors to modify the dataset on input.  Do not\n"
+"                 put these selectors inside quotes in the command file!\n"
+"             -- FILE line format:  prefix maskdatasetname\n"
+"\n"
+"  ++ IJKPV   ==> very similar to IJKAVE, XYZAVE, and MASKAVE (in that order),\n"
+"  ++ XYZPV       but instead of extracting the average over the region\n"
+"  ++ MASKPV      indicated, extracts the Principal Vector (in the SVD sense;\n"
+"                 cf. program 3dLocalPV).\n"
+"              ** Note that IJKPV and XYZPV modes only work if seedrad > 0.\n"
+"              ** In my limited tests, the differences between the AVE and PV\n"
+"                 methods are very small.  YMMV.\n"
+"\n"
+"  ++ VECTORS ==> each line on the command file specifies an ASCII .1D\n"
+"                 file which contains the set of seed vectors to use.\n"
+"                 There must be as many columns in the .1D file as there\n"
+"                 are input datasets in -setA and -setB combined.  Each\n"
+"                 column must be as long as the maximum number of time\n"
+"                 points in the longest dataset in -setA and -setB.\n"
+"              ** This mode is for those who want to construct their own\n"
+"                 set of reference vectors in some clever way.\n"
+"              ** N.B.: This method has not yet been tested!\n"
+"             -- FILE line format:  prefix 1Dfilename\n"
      ) ;
 
      PRINT_AFNI_OMP_USAGE("3dGroupInCorr",NULL) ;
@@ -1470,6 +1497,19 @@ int main( int argc , char *argv[] )
        TalkToAfni = 0 ; nopt++ ; continue ;
      }
 
+     if( strncasecmp(argv[nopt],"-sdset_",7) == 0 ){
+       oform = SUMA_FormatFromFormString(argv[nopt]+7); 
+       if (oform != SUMA_ERROR_DSET_FORMAT) {
+         nopt++ ; continue ;
+       } else {
+         ERROR_message("Surface dataset type %s in %s unknown.\n"
+                       "See option -o_TYPE in ConvertDset -help \n"
+                       "for allowed values of TYPE.\n",
+                       argv[nopt]+7, argv[nopt]);
+         exit(1);
+       }
+     }
+
      if( strcasecmp(argv[nopt],"-nosix") == 0 ){
        nosix = 1 ; nopt++ ; continue ;
      }
@@ -1486,6 +1526,7 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(argv[nopt],"MASKAVE") == 0 ) bmode = MASKAVE_MODE ;
        else if( strcasecmp(argv[nopt],"MASKPV")  == 0 ) bmode = MASKPV_MODE ;
        else if( strcasecmp(argv[nopt],"VECTORS") == 0 ) bmode = VECTORS_MODE ;
+       else if( strcasecmp(argv[nopt],"NODE")    == 0 ) bmode = NODE_MODE ;
        else ERROR_exit("GIC: don't understand '-batch' method '%s'",argv[nopt]) ;
        bname = strdup(argv[nopt]) ;
        bfile = strdup(argv[++nopt]) ;
@@ -1712,7 +1753,7 @@ int main( int argc , char *argv[] )
 
    do_lpi = AFNI_yesenv("AFNI_INSTACORR_XYZ_LPI") ;  /* 07 Feb 2011 */
 
-   if( bmode && !TalkToAfni )
+   if( 0 && bmode && !TalkToAfni ) /* Now wait a doggone minute! */
      ERROR_exit("GIC: Alas, -batch and -suma are not compatible :-(") ;
 
    if( seedrad == 0.0f && (bmode == IJKPV_MODE || bmode == XYZPV_MODE) ){
@@ -1721,6 +1762,12 @@ int main( int argc , char *argv[] )
      else                     { bname = "XYZAVE" ; bmode = XYZ_MODE ; }
      WARNING_message("GIC: seedrad=0 means -batch %s is changed to %s",bold,bname) ;
    }
+   
+   if (bmode == NODE_MODE && seedrad != 0.0f) {
+      WARNING_message("GIC: seedrad must be 0 with NODE mode.\n"
+                      "     Resetting seedrad of %f to 0.0\n", seedrad);
+      seedrad = 0.0;
+   }  
 
    if( shd_AAA == NULL ) ERROR_exit("GIC:  !! You must use the '-setA' option !!") ;
 
@@ -2250,11 +2297,16 @@ int main( int argc , char *argv[] )
      }
 
    } else {       /* batch mode ==> setup internally */
-
-     giset = GRINCOR_setup_dataset( nelcmd ) ;
-     if( giset == NULL )
-       ERROR_exit("Can't setup batch mode dataset for some reason :-(") ;
-
+     if (bmode != NODE_MODE) { 
+      giset = GRINCOR_setup_dataset( nelcmd ) ;
+      if( giset == NULL )
+         ERROR_exit("Can't setup batch mode dataset for some reason :-(") ;
+     } else {
+      giset = (GICOR_setup*)calloc(1,sizeof(GICOR_setup)) ;
+      if (!SUMA_init_GISET_setup(NULL , nelcmd, giset)) {
+         ERROR_exit("Failed to setup batch mode dataset for some reason >:-(") ; 
+      }
+     }  
    }
 
    NI_free_element(nelcmd) ;  /* setup is done (here or there) */
@@ -2389,7 +2441,47 @@ int main( int argc , char *argv[] )
        switch( bmode ){  /* each mode must create the correct nelcmd NI_element */
          default:
            ERROR_message("GIC: you should never see this message!"); goto GetOutOfDodge;
-
+         
+         case NODE_MODE:
+            if( bsar->num != 2) {
+               ERROR_message("GIC: bad batch command line: "
+                             "%s list must have exactly two strings",bname) ;
+               goto LoopBack ;
+            }
+            nelcmd = NI_new_data_element( "SETREF_ijk" , 0 ) ;
+            nn = strlen(bsar->str[1]);
+                   if (bsar->str[1][0]=='r' || bsar->str[1][0]=='R') {
+               qijk = (int)strtod(bsar->str[1]+1,NULL)+giset->nnode_domain[0];
+            } else if (bsar->str[1][nn-1]=='r' || bsar->str[1][nn-1]=='R') {
+               bsar->str[1][nn-1]='\0';
+               qijk = (int)strtod(bsar->str[1],NULL)+giset->nnode_domain[0] ;
+            } else if (bsar->str[1][0]=='l' || bsar->str[1][0]=='L') {
+               qijk = (int)strtod(bsar->str[1]+1,NULL);
+            } else if (bsar->str[1][nn-1]=='r' || bsar->str[1][nn-1]=='R') {
+               bsar->str[1][nn-1]='\0';
+               qijk = (int)strtod(bsar->str[1],NULL);
+            } else {
+               static int nwarn=0;
+               if (!nwarn && giset->nnode_domain[1] > 0) {
+                  WARNING_message("You are using two surfaces but your\n"
+                               "node index of %s does not specify to which\n"
+                               "hemishphere it belongs. While the default\n"
+                               "is always for the left hemisphere, you are\n"
+                               "better off adding an 'L' to the index for\n"
+                               "clarity so your line would read:\n"
+                               "   %s %sL\n"
+                               "or"
+                               "   %s L%s\n"
+                               "This message is only shown once.\n",
+                               bsar->str[1], bsar->str[0], bsar->str[1]);
+                  
+               }
+               qijk = (int)strtod(bsar->str[1],NULL);
+            }
+            sprintf( buf , "%d" , qijk ) ;
+            NI_set_attribute( nelcmd , "index" , buf ) ;
+            break ;
+            
          case XYZPV_MODE:   /* x y z */
          case XYZ_MODE:     /* x y z */
          case IJKPV_MODE:   /* i j k */
@@ -2870,8 +2962,7 @@ int main( int argc , char *argv[] )
          ERROR_message("3dGroupInCorr: failure when writing to %s",pname) ;
        }
      } else {
-       GRINCOR_output_dataset( giset, nelset , bprefix ) ;
-       kk = (int)DSET_TOTALBYTES(giset->dset) ;
+       kk = GRINCOR_output_dataset( giset, nelset , bprefix ) ;
      }
 
      ctim = NI_clock_time() ;
@@ -3470,10 +3561,10 @@ void GRINCOR_many_regress( int nvec , int numx , float **xxar ,
 /*---------------------------------------------------------------------------*/
 /* Setup for creating AFNI datasets here, instead of in AFNI.     [Feb 2011] */
 
-GRINCOR_setup * GRINCOR_setup_dataset( NI_element *nel )
+GICOR_setup * GRINCOR_setup_dataset( NI_element *nel )
 {
    char *atr , *pre ;
-   THD_3dim_dataset *dset ; GRINCOR_setup *giset ;
+   THD_3dim_dataset *dset ; GICOR_setup *giset ;
    int nvals=2 , vv ;
    static char *blab[6] = { "GIC_Delta" , "GIC_Zscore" ,
                             "AAA_Delta" , "AAA_Zscore" ,
@@ -3485,7 +3576,7 @@ GRINCOR_setup * GRINCOR_setup_dataset( NI_element *nel )
    if( pre == NULL || *pre == '\0' ) pre = "X_GRP_ICORR" ;
    dset = EDIT_geometry_constructor( atr , pre ) ;    if( dset == NULL ) return NULL;
 
-   giset = (GRINCOR_setup *)malloc(sizeof(GRINCOR_setup)) ;
+   giset = (GICOR_setup *)calloc(1, sizeof(GICOR_setup)) ;
    giset->dset = dset ;
    giset->nvox = DSET_NVOX(dset) ;
 
@@ -3530,14 +3621,126 @@ GRINCOR_setup * GRINCOR_setup_dataset( NI_element *nel )
 }
 
 /*---------------------------------------------------------------------------*/
+int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel, 
+                                char *target_name )
+{
 
-void GRINCOR_output_dataset( GRINCOR_setup *giset, NI_element *nel, char *pref )
+   static char FuncName[]={"GRINCOR_output_srf_dataset"};
+   int i, ii, *Ti=NULL, ovind = 0, nvals=0, vv=0;
+   char *atr=NULL;
+   char *targetv[2]={NULL, NULL}, *oname=NULL;
+   static SUMA_DSET *sdsetv[2]={NULL,NULL};
+   static char *blab[6] = { "GIC_Delta" , "GIC_Zscore" ,
+                            "AAA_Delta" , "AAA_Zscore" ,
+                            "BBB_Delta" , "BBB_Zscore"  } ;
+   NI_str_array *labar=NULL ;
+   long sszz=0;
+   int LocalHead = YUP;
+   
+   if( nel == NULL || nel->vec_num < 2 ) return(-1) ;
+
+   if (giset->nnode_domain[0] <= 0 && giset->nnode_domain[1] <= 0) {
+      ERROR_message("Bad values");
+      return;
+   }
+   
+   if (giset->nnode_domain[1] > 0) {
+      targetv[0] = SUMA_ModifyName(target_name, "append", ".lh", NULL);
+      targetv[1] = SUMA_ModifyName(target_name, "append", ".rh", NULL);
+   } else {
+      targetv[0] = SUMA_copy_string(target_name);
+   }
+   
+   if (sdsetv[0] == NULL) { /* create output sets */
+      for (i=0; i<2; ++i) {
+         if (targetv[i]) {
+            SUMA_LHv("Working %s\n", targetv[i]);
+            /* dset names */
+            sdsetv[i] = SUMA_CreateDsetPointer (targetv[i], 
+                                        SUMA_NODE_BUCKET,
+                                        NULL,
+                                        NULL,
+                                        giset->nnode_domain[i]);
+            sprintf(giset->sdset_ID[i],"%s", SDSET_ID(sdsetv[i]));
+            
+            SUMA_LHv("Adding columns %d\n", i);
+            /* add the columns */
+            Ti = (int *) SUMA_calloc(SDSET_VECLEN(sdsetv[i]), sizeof(int));
+            for (ii=0; ii <SDSET_VECLEN(sdsetv[i]); ++ii) Ti[ii]=ii;
+            SUMA_AddDsetNelCol (sdsetv[i], "node index", 
+                                SUMA_NODE_INDEX, Ti, NULL, 1);
+            SUMA_free(Ti); Ti=NULL;
+
+            if (!(atr = NI_get_attribute( nel , "target_nvals" ))) {
+               SUMA_S_Err("No target_nvals");
+               nvals = 6;
+            } else {
+               nvals = (int)strtod(atr,NULL) ;  nvals = MAX(1,nvals);     
+            }
+                        SUMA_LHv("fffdf %d %d\n", i, nvals);
+         
+            if (!(atr = NI_get_attribute( nel , "target_labels" ))) {
+               atr = giset->brick_labels;
+            }
+            if( atr != NULL )
+               labar = NI_decode_string_list( atr , ";" ) ;
+            
+            for( vv=0 ; vv < nvals ; vv++ ){
+               if (labar != NULL && vv < labar->num) atr = labar->str[vv];
+               else if (vv < 6) {
+                  atr = blab[vv];
+               } else {
+                  atr = "What the hell is this?";
+               }
+               SUMA_LHv("Adding data column %d/%d (%s)\n", vv,nvals, atr);
+               if (vv%2 == 0) { /* beta */
+                  SUMA_AddDsetNelCol (sdsetv[i], atr,
+                                SUMA_NODE_FLOAT, NULL, NULL, 1);
+               } else { /* zscore */
+                  SUMA_AddDsetNelCol (sdsetv[i], atr,
+                                SUMA_NODE_ZSCORE, NULL, NULL, 1);  
+               }
+            }
+            if (labar) SUMA_free_NI_str_array(labar); labar=NULL;
+         }
+      }
+   }
+   
+   /* have dsets, populate them */
+   if (!SUMA_PopulateDsetsFromGICORnel(nel, giset, sdsetv)) {
+      SUMA_S_Err("Failed to populate. Not fun.");
+      return;
+   }
+   
+   /* write them and quit */
+   for (i=0; i<2; ++i) {
+      if (targetv[i]) {
+         SUMA_NewDsetID2(sdsetv[i],targetv[i]);
+         if (!(oname = SUMA_WriteDset_ns (targetv[i], sdsetv[i], 
+                                       oform, 1, 1))) {
+            ERROR_message("Failed to write %s\n", targetv[i]);
+         } else {
+            SUMA_free(oname); oname = NULL;
+         }
+         SUMA_free(targetv[i]); targetv[i]=NULL;
+         sszz += SUMA_sdset_dnel_size(sdsetv[i]);
+      }
+   }
+   return;
+}
+
+int GRINCOR_output_dataset( GICOR_setup *giset, NI_element *nel, char *pref )
 {
    float *nelar , *dsdar ;
    int nvec,nn,vv , vmul ; float thr ;
 
-   if( nel == NULL || nel->vec_num < 2 ) return ;
+   if( nel == NULL || nel->vec_num < 2 ) return(-1) ;
 
+   if (giset->nnode_domain[0] != 0 || giset->nnode_domain[1] != 0) {
+      /* go to surfac output */
+      return(GRINCOR_output_srf_dataset(giset, nel, pref));
+   }
+   
    /* copy NIML data into dataset */
 
    nvec = nel->vec_len ;
@@ -3562,5 +3765,6 @@ void GRINCOR_output_dataset( GRINCOR_setup *giset, NI_element *nel, char *pref )
    giset->dset->dblk->diskptr->allow_directwrite = 1 ;
    DSET_write(giset->dset) ;
    if( verb ) WROTE_DSET(giset->dset) ;
-   return ;
+   return ((int)DSET_TOTALBYTES(giset->dset));
 }
+

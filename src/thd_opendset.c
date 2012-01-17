@@ -27,7 +27,7 @@ static char * file_extension_list[] = {
     ".mnc",
     ".mri",
     ".svl",
-    ".1D",
+    ".1D", ".1D.dset",
     ".3D",
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",
@@ -534,7 +534,8 @@ ENTRY("storage_mode_from_filename");
 
     if( STRING_HAS_SUFFIX(fname, ".svl") )      RETURN(STORAGE_BY_CTFSAM);
 
-    if( STRING_HAS_SUFFIX(fname, ".1D") )       RETURN(STORAGE_BY_1D);
+    if( STRING_HAS_SUFFIX(fname, ".1D") ||
+        STRING_HAS_SUFFIX(fname, ".1D.dset"))       RETURN(STORAGE_BY_1D);
 
     if( STRING_HAS_SUFFIX(fname, ".3D") )       RETURN(STORAGE_BY_3D);
 
@@ -558,6 +559,59 @@ ENTRY("storage_mode_from_filename");
     RETURN(STORAGE_UNDEFINED);
 }
 
+int storage_mode_from_prefix( char * fname )
+{
+   int sm=STORAGE_UNDEFINED;
+   
+ENTRY("storage_mode_from_prefix");
+   
+   if( !fname || !*fname )                     RETURN(STORAGE_UNDEFINED);
+   if ((sm = storage_mode_from_filename(fname)) != STORAGE_UNDEFINED) RETURN(sm);
+   
+   if (fname[strlen(fname)-1] == '.') { 
+      if( STRING_HAS_SUFFIX(fname, "+orig.") ||
+          STRING_HAS_SUFFIX(fname, "+acpc.") ||
+          STRING_HAS_SUFFIX(fname, "+tlrc.") ) sm = STORAGE_BY_BRICK;
+   } else {
+      if( STRING_HAS_SUFFIX(fname, "+orig") ||
+          STRING_HAS_SUFFIX(fname, "+acpc") ||
+          STRING_HAS_SUFFIX(fname, "+tlrc") ) sm = STORAGE_BY_BRICK;
+   }
+
+   RETURN(sm);
+}
+
+char *storage_mode_name(int mode) {
+   switch (mode) {
+      case STORAGE_UNDEFINED:
+         return("UNDEFINED");
+      case STORAGE_BY_BRICK:
+         return("BRIK");
+      case STORAGE_BY_VOLUMES:
+         return("VOLUMES");
+      case STORAGE_BY_ANALYZE:
+         return("ANALYZE");
+      case STORAGE_BY_CTFMRI:
+         return("CTFMRI");
+      case STORAGE_BY_CTFSAM:
+         return("CTFSAM");
+      case STORAGE_BY_1D:
+         return("1D");
+      case STORAGE_BY_3D:
+         return("3D");
+      case STORAGE_BY_NIFTI:
+         return("NIFTI");
+      case STORAGE_BY_MPEG:
+         return("MPEG");
+      case STORAGE_BY_NIML:
+         return("NIML");
+      case STORAGE_BY_NI_SURF_DSET:
+         return("NI_SURF_DSET");
+      case STORAGE_BY_GIFTI:
+         return("GIFTI");
+   }
+   return("UNDEFINED");
+}
 
 /* ---------------------------------------------------- */
 /* given a filename, return a pointer to the extension
