@@ -93,7 +93,17 @@ class afni_name:
       return "%s%s" % (self.p(), self.prefix)
    def pv(self):
       """return prefix, view formatted name"""
-      return "%s%s" % (self.prefix, self.view)
+      if self.type == 'BRIK':
+         return "%s%s" % (self.prefix, self.view)
+      else:
+         #Discuss with Rick, have problems entering .nii files to afni_proc.py
+         #coupled with -surf_ stuff (perhaps)
+         #an = afni_base.afni_name('junk.nii')
+         #an2 = an.new()
+         #an2.view = '+orig'
+         #an2.pv()
+         tt = self.pve()
+         return string.replace(tt,'+orig.nii','+orig')
    def pve(self):
       """return prefix, view, extension formatted name"""
       return "%s%s%s" % (self.prefix, self.view, self.extension)

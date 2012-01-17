@@ -5880,7 +5880,7 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_SurfaceObject *SO,
                                      SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_StringToTextNIDO"};
-   void * default_font=GLUT_BITMAP_9_BY_15;
+   static void * default_font=GLUT_BITMAP_9_BY_15;
    int i=0;
    float txcol[4] = {0.2, 0.5, 1, 1.0};
    float default_color[4] = {0.2, 0.5, 1, 1.0}, *v;
@@ -5891,6 +5891,7 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_SurfaceObject *SO,
    NI_element *nini = NULL;
    
    SUMA_ENTRY;
+   
    
    if (0) { /* on crosshair, does not look so nice. Keep it for the record*/
       nido = SUMA_BlankNIDO(NULL, "AHorseWithNoName",
@@ -5910,6 +5911,7 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_SurfaceObject *SO,
    }
    NI_SET_FLOATv( nini, "coord", v, 3);
    NI_set_attribute(nini,"text", lbls);
+   NI_set_attribute(nini, "font", SUMA_EnvVal("SUMA_CrossHairLabelFont"));
    for (i=0;i<3;++i) default_color[i] = 1.0 - sv->clear_color[i];
    NI_SET_FLOATv( nini, "col", default_color,3);
    

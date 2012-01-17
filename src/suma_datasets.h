@@ -200,12 +200,21 @@ typedef struct {
    char *FileName;
    char *FileName_NoExt;
    char *FullName;
+   char *FullName_NoSel;
    char *Ext;
+   char *Prefix;
+   char *View;
+   char *TypeExt;
+   char *StorageModeName;
+   int   StorageMode;
    char *NodeSelect;
    char *ColSelect;
    char *RowSelect;
    char *RangeSelect;
    int only_index;
+   int OnDisk;
+   char *HeadName;
+   char *BrikName;
 }SUMA_PARSED_NAME;
 
 
@@ -1358,6 +1367,7 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode,
                           char * geometry_parent_idcode, int N_el, 
                           char *name, char *thisidcode);
 SUMA_DSET_FORMAT SUMA_Dset_Format (char *Name);
+long SUMA_sdset_dnel_size(SUMA_DSET *dset);
 char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr);
 char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold);
 char * SUMA_GetNgrHist(NI_group *ngr);
@@ -1563,7 +1573,13 @@ void SUMA_ParseInput_basics_ns (char *argv[], int argc);
 int SUMA_ParseInput_basics_eng (char *argv[], int argc); 
 void WorkErrLog_ns(void);
 SUMA_FileName SUMA_StripPath (char *FileName);
+SUMA_DSET_FORMAT SUMA_FormatFromFormString(char *arg);
 SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *cwd);
+SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn, 
+                                          char *what, char *val);
+char * SUMA_ModifyName(char *name, char *what, char *val, char *cwd);
+SUMA_PARSED_NAME * SUMA_ParseModifyName(char *name, 
+                                        char *what, char *val, char *cwd);
 char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove);
 SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension(char *Name, char *fallbackname);
 const char *SUMA_ExtensionOfDsetFormat (SUMA_DSET_FORMAT form);
@@ -1662,6 +1678,7 @@ int afni_write_gifti_surf( NI_group *aSO, char * fname,
 
 
 /******** END functions for surface structure  ******************** */
-
-
+int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset);
+int SUMA_PopulateDsetsFromGICORnel(NI_element *nel, GICOR_setup *giset, 
+                                   SUMA_DSET **sdsetv);
 #endif

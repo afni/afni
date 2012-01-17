@@ -13,6 +13,15 @@ endif
 goto PARSE
 RETURN_PARSE:
 
+#Cut out early ? 
+if ("$mode" == 1) then
+   goto PUT_ATLAS_TABLE
+else if ("$mode" == 2) then
+   goto ADD_ATLAS_ENTRY
+endif
+
+      
+
 if ($ltdset != '') then
     3dAttribute -ssep ' '  -name  VALUE_LABEL_DTABLE $ltdset \
       | sed 's/^VALUE_LABEL_DTABLE = //' 
@@ -303,12 +312,16 @@ PUT_ATLAS_TABLE:
       3drefit -atrstring ATLAS_LABEL_TABLE file:$labeltable $target_dset   \
                                              >& /dev/null
       3drefit -cmap INT_CMAP $target_dset  >& /dev/null
+   endif
+
+ADD_ATLAS_ENTRY:   
+   if ($target_dset != '') then
       if (${atlas_name} == '') then
          set atlas_name = `3dinfo -prefix_noext $target_dset`
       endif
       if ( -f ${atlas_file} ) then
          echo ""
-         echo "Notice: $atlas_file already exists, appending to it."
+      echo "Notice: $atlas_file already exists, appending to it ${atlas_name}."
          set ll = `niccc -quiet -stdout \
                -find_nel_with_attr atlas_name ${atlas_name} \
                -f ${atlas_file}`
@@ -385,6 +398,7 @@ PARSE:
    set replace = 0
    set delim = ' '
    set flab = ''
+   set mode = 0
    if ( -f TMPLIST_${RNS}_) \rm -f TMPLIST_${RNS}_
 	set cnt = 1
    while ($cnt <= $Narg)
@@ -600,7 +614,29 @@ PARSE:
             3dinfo -labeltable_as_atlas_points $dset > $labeltable
             set target_dset = $dset
             set ltype = atlas
-            goto PUT_ATLAS_TABLE
+            set mode = 1
+         endif
+         goto CONTINUE
+      endif
+      
+      if ("$argv[$cnt]" == "-add_atlas_dset") then
+         set SubLoc = $cnt	
+		   if ($SubLoc == $Narg) then
+				if (! $quiet_death) \
+               echo "Need dset after -add_atlas_dset"
+            goto BEND
+			else
+				@ cnt ++
+				set dset = $argv[$cnt]
+            set isgood = `3dinfo -is_atlas $dset`
+            if ( $isgood != 1 ) then
+               echo "Dset $argv[$cnt] not found or not an atlas"
+               goto BEND
+            endif
+            
+            set target_dset = $dset
+            set ltype = atlas
+            set mode = 2
 			endif
          goto CONTINUE
       endif
@@ -818,7 +854,7 @@ PARSE:
       echo $llistmin
       echo $llistmax
    endif
-      
+   
    goto RETURN_PARSE
 
 HELP:
@@ -914,6 +950,8 @@ HELP:
    echo "     -replace: If ATLAS_NAME is already in ATLAS_NIML_FILE, the script"
    echo "               will fail to proceed unless you instruct it to do so "
    echo "               this option"
+   echo "     -add_atlas_dset ATLAS_DSET: Use if you have an atlas that you want"
+   echo "                                 added to an atlas_file." 
    echo ""      
    echo "   Example:"
    echo "      @MakeLabelTable -atlasize_labeled_dset SOME_LABELED_ROI_DSET"

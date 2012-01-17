@@ -3981,6 +3981,8 @@ extern int        NI_write_gifti( NI_group *, char * , int);
 extern NI_group * NI_read_gifti( char * , int ) ;
 
 extern int storage_mode_from_filename( char * fname );      /* 20 Apr 2006 */
+int storage_mode_from_prefix( char * fname );
+extern char *storage_mode_name(int mode);
 extern int has_known_non_afni_extension( char * fname ) ;   /*     [rickr] */
 extern char * find_filename_extension( char * fname );
 
