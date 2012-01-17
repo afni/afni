@@ -3635,7 +3635,7 @@ int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
                             "BBB_Delta" , "BBB_Zscore"  } ;
    NI_str_array *labar=NULL ;
    long sszz=0;
-   int LocalHead = YUP;
+   int LocalHead = NOPE;
    
    if( nel == NULL || nel->vec_num < 2 ) return(-1) ;
 
@@ -3672,13 +3672,16 @@ int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
             SUMA_free(Ti); Ti=NULL;
 
             if (!(atr = NI_get_attribute( nel , "target_nvals" ))) {
-               SUMA_S_Err("No target_nvals");
-               nvals = 6;
+               nvals = giset->nvals;
             } else {
                nvals = (int)strtod(atr,NULL) ;  nvals = MAX(1,nvals);     
             }
-                        SUMA_LHv("fffdf %d %d\n", i, nvals);
          
+            if (nvals < 1) {
+               WARNING_message("Bad nvals %d. Going with 6\n",nvals);
+               nvals = 6;
+            }
+            
             if (!(atr = NI_get_attribute( nel , "target_labels" ))) {
                atr = giset->brick_labels;
             }

@@ -15763,6 +15763,12 @@ int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset)
       giset->brick_labels = strdup(NI_get_attribute(nel, "target_labels"));
    }
    
+   atr = NI_get_attribute( nel , "target_nvals" ) ;
+   if( atr != NULL ){ 
+      giset->nvals = (int)strtod(atr,NULL); 
+      giset->nvals = SUMA_MAX_PAIR(1,giset->nvals); 
+   }
+   
    SUMA_RETURN(YUP);
 }
 
