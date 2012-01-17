@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, JAN, 2012, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "-gert_create_dataset now implies -GERT_Reco and -quit",
+   "For Ziad and Daniel."
+ } ,
+
  { 12, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fixed ricor block 3dcalc loop for varying run lengths",
    NULL

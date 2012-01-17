@@ -73,10 +73,12 @@ static char * g_history[] =
     "      - added -fast: short for -sleep_init 50 -sleep_vol 50\n"
     " 3.6  Sep  6, 2011 [rickr]\n"
     "      - allow -save_file_list to apply even with -infile_list\n"
+    " 3.7  Jan 17, 2012 [rickr]\n"
+    "      - using -gert_create_dataset implies -GERT_Reco and -quit\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.6 (Nov 2, 2011)"
+#define DIMON_VERSION "version 3.7 (Jan 17, 2012)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -1951,7 +1953,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         }
         else if ( ! strncmp( argv[ac], "-gert_create_dataset", 20) )
         {
-            p->opts.gert_exec = 1;      /* execute GERT_Reco script     */
+            p->opts.gert_exec = 1;      /* execute GERT_Reco script         */
+
+            p->opts.gert_reco = 1;      /* -GERT_Reco and -quit are implied */
+            p->opts.quit = 1;
         }
         else if ( ! strncmp( argv[ac], "-gert_filename", 10 ) )
         {
@@ -3472,17 +3477,16 @@ static int usage ( char * prog, int level )
       "\n"
       "      o  create GERT_Reco script to put data into AFNI format\n"
       "      o  create GERT_Reco script AND execute it (running to3d)\n"
+      "         (-gert_create_dataset implies -GERT_Reco and -quit)\n"
       "      o  create and execute script, but make a NIfTI dataset\n"
       "      o  also, store the datasets under a 'MRI_dsets' directory\n"
       "\n"
       "    %s -infile_pattern 'mr_0015/*.dcm' -GERT_Reco -quit \n"
-      "    %s -infile_pattern 'mr_0003/*.dcm' -GERT_Reco -quit \\\n"
-      "          -gert_create_dataset\n"
-      "    %s -infile_pattern 'mr_0003/*.dcm' -GERT_Reco -quit \\\n"
-      "          -gert_write_as_nifti -gert_create_dataset\n"
-      "    %s -infile_pattern 'mr_0003/*.dcm' -GERT_Reco -quit \\\n"
-      "          -gert_outdir MRI_dsets                           \\\n"
-      "          -gert_write_as_nifti -gert_create_dataset\n"
+      "    %s -infile_prefix 'mr_0003/image' -gert_create_dataset\n"
+      "    %s -infile_pattern 'mr_0003/*.dcm' -gert_create_dataset\n"
+      "          -gert_write_as_nifti \n"
+      "    %s -infile_pattern 'mr_0003/*.dcm' -gert_create_dataset\n"
+      "          -gert_outdir MRI_dsets -gert_write_as_nifti\n"
       "\n"
       "  C. with real-time options:\n"
       "\n"
@@ -4106,7 +4110,7 @@ static int usage ( char * prog, int level )
           "        Execute any GERT_Reco script, creating the AFNI or NIfTI\n"
           "        datasets.\n"
           "\n"
-          "        By default, the script is created but not executed.\n"
+          "        This option implies -GERT_Reco and -quit.\n"
           "\n"
           "        See also -gert_write_as_nifti.\n"
           "\n"
