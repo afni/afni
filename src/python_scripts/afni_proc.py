@@ -303,9 +303,10 @@ g_history = """
         - for E Nelson and J Jarcho
     3.04 Nov  9, 2011: -surf_blur_fwhm is no longer valid, use -blur_size
     3.05 Jan 12, 2012: fixed ricor block 3dcalc loop for varying run lengths
+    3.06 Jan 12, 2012: force anat and children to be AFNI format after 3dcopy
 """
 
-g_version = "version 3.05, January 12, 2012"
+g_version = "version 3.06, January 18, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "31 Oct 2011"
@@ -904,7 +905,6 @@ class SubjProcSream:
         opt = opt_list.find_opt('-copy_anat')
         if opt != None:
             self.anat = afni_name(opt.parlist[0])
-            self.anat_final = self.anat
             # rcr - set only if no view in anat?  (though still would not know)
             self.tlrcanat = self.anat.new(new_view='+tlrc')
 
@@ -1192,11 +1192,6 @@ class SubjProcSream:
 
         rv = self.init_script()         # create the script file and header
         if rv != None: return rv
-
-        # small cleanup: after this point, anat needs a view
-        if self.anat and self.anat.view == '':
-            if self.verb > 3: print '++ applying %s view to anat'%self.view
-            self.anat.view = self.view
 
         errs = 0
         for block in self.blocks:
@@ -1553,6 +1548,11 @@ class SubjProcSream:
                       (self.anat.rel_input(), self.od_var, self.anat.prefix)
             self.fp.write(add_line_wrappers(str))
             self.fp.write("%s\n" % stat_inc)
+
+            # further use should assume AFNI format
+            self.anat.to_afni(new_view=dset_view(self.anat.ppve()))
+            self.tlrcanat.to_afni()
+            self.anat_final = self.anat
 
         # possibly copy over any volreg base
         if self.vr_ext_base != None:

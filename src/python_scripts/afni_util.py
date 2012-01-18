@@ -388,6 +388,13 @@ def get_3dinfo(dname, lines=0, verb=0):
 
    return output
 
+def dset_view(dname):
+   """return the AFNI view for the given dset"""
+   command = '3dinfo -av_space %s' % dname
+   status, output = exec_tcsh_command(command)
+   if status: return ''
+   return output.strip('\n')
+
 def get_3d_statpar(dname, vindex, statcode='', verb=0):
    """return a single stat param at the given sub-brick index
       if statcode, verify
