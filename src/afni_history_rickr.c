@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "force anat variable (and children) to be in AFNI format after 3dcopy",
+   "Appropriate, and for compatibility with an afni_name.pv change."
+ } ,
+
  { 17, JAN, 2012, RCR, "Dimon", MINOR, TYPE_MODIFY,
    "-gert_create_dataset now implies -GERT_Reco and -quit",
    "For Ziad and Daniel."
