@@ -1,6 +1,8 @@
 #!/usr/bin/python
 import os, sys, glob, operator, string, afni_base
 
+valid_afni_views = ['+orig', '+acpc', '+tlrc']
+
 class afni_name:
    def __init__(self, name=""):
       self.initname = name
@@ -96,14 +98,7 @@ class afni_name:
       if self.type == 'BRIK':
          return "%s%s" % (self.prefix, self.view)
       else:
-         #Discuss with Rick, have problems entering .nii files to afni_proc.py
-         #coupled with -surf_ stuff (perhaps)
-         #an = afni_base.afni_name('junk.nii')
-         #an2 = an.new()
-         #an2.view = '+orig'
-         #an2.pv()
-         tt = self.pve()
-         return string.replace(tt,'+orig.nii','+orig')
+         return self.pve()
    def pve(self):
       """return prefix, view, extension formatted name"""
       return "%s%s%s" % (self.prefix, self.view, self.extension)
@@ -251,6 +246,26 @@ class afni_name:
       an.extension = self.extension
       an.type = self.type
       return an
+
+   def initial_view(self):
+      """return any initial view (e.g. +tlrc) from self.initial"""
+      pdict = parse_afni_name(self.initname)
+      view = pdict['view']
+      if view in ['+orig', '+acpc', '+tlrc']: return view
+      return ''
+               
+   def to_afni(self, new_view=''):  
+      """modify to be BRIK type, with possible new_view (default is +orig)"""
+
+      # be sure there is some view
+      if new_view in valid_afni_views:        self.view = new_view
+      elif self.view not in valid_afni_views: self.view = '+orig'
+
+      if self.type == 'BRIK': return
+
+      self.type = 'BRIK'
+      self.extension = ''  # clear 
+      return
                
 class comopt:
    def __init__(self, name, npar, defpar, acplist=[], helpstr=""):
