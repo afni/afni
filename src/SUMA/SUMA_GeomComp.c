@@ -7411,7 +7411,7 @@ byte *SUMA_MaskOfNodesInPatch(
    Given a set of node indices, return a patch of the original surface 
    that contains them.
    
-   Patch = SUMA_getPatch (NodesSelected, N_Nodes, 
+   Patch = SUMA_getPatch (NodesSelected, N_Nodes, MaxNodeIndex,
                           Full_FaceSetList, N_Full_FaceSetList, Memb, MinHits)
 
    \param NodesSelected (int *) N_Nodes x 1 Vector 
@@ -7440,7 +7440,7 @@ byte *SUMA_MaskOfNodesInPatch(
    \sa SUMA_MemberFaceSets, SUMA_isinbox, SUMA_PATCH
 */
 
-SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes, 
+SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes, int MaxNodeIndex,
                               int *Full_FaceSetList, int N_Full_FaceSetList, 
                               SUMA_MEMBER_FACE_SETS *Memb, int MinHits,
                               int FixBowTie, int verb)
@@ -7479,19 +7479,30 @@ SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes,
    Patch->N_FaceSet = 0; /* total number of facesets containing these nodes */
    for (i=0; i < N_Nodes; ++i) {
       node = NodesSelected[i];
-      for (j=0; j < Memb->N_Memb[node]; ++j) {
-         if (Memb->NodeMemberOfFaceSet[node][j] < N_Full_FaceSetList) {
-            if (!BeenSelected[Memb->NodeMemberOfFaceSet[node][j]]) {
-               /* this faceset has not been selected, select it */
-               ++ Patch->N_FaceSet;
+      if (node > MaxNodeIndex) {
+         SUMA_S_Errv("Have a node (%d) in the patch that does "
+                    "not belong on this surface of %d nodes.\n"
+                    "Make sure ROI is being loaded onto correct surface.\n", 
+                    node, MaxNodeIndex+1);
+         if (BeenSelected) SUMA_free(BeenSelected); BeenSelected = NULL;
+         if (MakeGolden) SUMA_free(MakeGolden); MakeGolden = NULL;
+         if (Patch) SUMA_freePatch(Patch); Patch=NULL;
+         SUMA_RETURN(NULL);
+      } else {
+         for (j=0; j < Memb->N_Memb[node]; ++j) {
+            if (Memb->NodeMemberOfFaceSet[node][j] < N_Full_FaceSetList) {
+               if (!BeenSelected[Memb->NodeMemberOfFaceSet[node][j]]) {
+                  /* this faceset has not been selected, select it */
+                  ++ Patch->N_FaceSet;
+               }
+               ++ BeenSelected[Memb->NodeMemberOfFaceSet[node][j]];
+            } else {
+               SUMA_S_Warnv("Node %d >= %d\n", 
+                           Memb->NodeMemberOfFaceSet[node][j], 
+                            N_Full_FaceSetList);
             }
-            ++ BeenSelected[Memb->NodeMemberOfFaceSet[node][j]];
-         } else {
-            SUMA_S_Warnv("Node %d >= %d\n", 
-                        Memb->NodeMemberOfFaceSet[node][j], 
-                         N_Full_FaceSetList);
-         }
-      }   
+         } 
+      }  
    }
    
    
@@ -7566,7 +7577,7 @@ SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes,
                /* SUMA_LHv("Triangle %d [%d %d %d]...\n", 
                         t, Full_FaceSetList[3*t], 
                         Full_FaceSetList[3*t+1], 
-                        Full_FaceSetList[3*t+2]); */
+                        Full_FaceSetList[3*t+2]);*/
                if (BeenSelected[t] > 0) { /* triangle is part of patch */
                   tp = SUMA_whichTri(SOp->EL, 
                                      Full_FaceSetList[3*t], 
@@ -7769,11 +7780,11 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (
       SUMA_LH("Creating patch");
       switch (ContourMode) {
          case 0:
-            Patch = SUMA_getPatch (Nodes, N_Node, SO->FaceSetList, 
+            Patch = SUMA_getPatch (Nodes, N_Node, SO->N_Node, SO->FaceSetList, 
                                     SO->N_FaceSet, SO->MF, 2, 0, verb);
             break;
          case 1:
-            Patch = SUMA_getPatch (Nodes, N_Node, 
+            Patch = SUMA_getPatch (Nodes, N_Node, SO->N_Node,
                                     SO->FaceSetList, SO->N_FaceSet, 
                                     SO->MF, 1, 0, verb);
             break;
@@ -8020,8 +8031,9 @@ double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
    
    /* form the patch */
    SUMA_LH("Forming patch...");
-   P1 = SUMA_getPatch (Nodes, N_Node, SO1->FaceSetList, SO1->N_FaceSet, 
-                        SO1->MF, minPatchHits, FixBowTie, verb);
+   P1 = SUMA_getPatch (Nodes, N_Node, SO1->N_Node, 
+                       SO1->FaceSetList, SO1->N_FaceSet, 
+                       SO1->MF, minPatchHits, FixBowTie, verb);
    if (!P1) {
       SUMA_SL_Err("Failed to create patches.\n");
       SUMA_RETURN(Vol);
