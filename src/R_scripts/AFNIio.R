@@ -2456,6 +2456,14 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
             conhead,eos=NULL)  
   writeChar(AFNIheaderpart("string-attribute","BYTEORDER_STRING","MSB_FIRST"),
             conhead,eos=NULL)  
+  
+  #The tross logger
+  trlog <- Sys.getenv("AFNI_HISTDB_SCRIPT")
+  if ( trlog != '') {
+    writeChar(AFNIheaderpart("string-attribute","HISTDB_SCRIPT", trlog ),
+               conhead,eos=NULL)  ;
+  }
+  
   close(conhead)
 
   # Write BRIK

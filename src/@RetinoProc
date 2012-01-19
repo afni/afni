@@ -1,5 +1,11 @@
 #!/bin/tcsh -fe
 
+
+if ($#argv) then
+   set na = $#argv; if ($na>10) set na=10; 
+   @global_parse `basename $0` "$argv[1-$na]" ; if ($status) exit 0 ; 
+endif
+
 set stat = 0
 set idir = $PWD
 
@@ -1383,7 +1389,7 @@ PARSE:
       
       if (1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
-         goto END
+         apsearch -popt `basename $0` -word $argv[$cnt]
       endif
       
       NEXT:
