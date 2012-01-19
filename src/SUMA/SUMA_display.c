@@ -1025,9 +1025,14 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    }
    
    /* Save the relevant parameters */
-   SUMA_FV2S_ATTR(nel, "currentQuat", csv->GVS[csv->StdView].currentQuat, 4, feyl); if (feyl) { SUMA_RETURNe; }
-   SUMA_FV2S_ATTR(nel, "translateVec", csv->GVS[csv->StdView].translateVec, 2, feyl); if (feyl) { SUMA_RETURNe; }
-   SUMA_FV2S_ATTR(nel, "clear_color", csv->clear_color, 4, feyl); if (feyl) { SUMA_RETURNe; }
+   SUMA_FV2S_ATTR(nel, "currentQuat", 
+                  csv->GVS[csv->StdView].currentQuat, 4, feyl); 
+      if (feyl) { SUMA_RETURNe; }
+   SUMA_FV2S_ATTR(nel, "translateVec", 
+                  csv->GVS[csv->StdView].translateVec, 2, feyl); 
+      if (feyl) { SUMA_RETURNe; }
+   SUMA_FV2S_ATTR(nel, "clear_color", csv->clear_color, 4, feyl); 
+      if (feyl) { SUMA_RETURNe; }
    sprintf(stmp, "%f", csv->FOV[csv->iState]);
    NI_set_attribute (nel, "FOV", stmp);
    sprintf(stmp, "%f", csv->Aspect);
@@ -2549,9 +2554,9 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    static int CallNum = 0;
    int ic = 0, icr=0;
    char *vargv[1]={ "[A] SUMA" };
-   int cargc = 1;
+   int cargc = 1, repos[5]={0,0,0,0,0};
    SUMA_Boolean NewCreation = NOPE, Found=NOPE, Inherit = NOPE;
-   char slabel[20]="\0"; 
+   char slabel[20]="\0", *eee=NULL; 
    SUMA_Boolean LocalHead = NOPE;
        
    SUMA_ENTRY;
@@ -2571,6 +2576,28 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                            topLevelShellWidgetClass, NULL, 0); 
       SUMAg_SVv[ic].X->DPY = XtDisplay(SUMAg_SVv[ic].X->TOPLEVEL);
       
+      if (!ic && (eee=SUMA_EnvVal("SUMA_Position_Original")) 
+              && strcmp(eee, "TopLeft")) {
+         int nv=0;
+         double dv[6];
+         if (SUMA_EnvEquals("SUMA_Position_Original", "RightOffset",1,NULL)){
+            repos[0]=2; repos[1]=437; repos[2]=44;
+         } else if ((nv = SUMA_StringToNum(eee,
+                                     (void *)dv, 4, 2))==2 || nv == 4) {
+            if (nv == 2) {
+               repos[0]=2; repos[1]=(int)dv[0]; repos[2]=(int)dv[1];
+            } else if (nv == 4) {
+               repos[0]=4; repos[1]=(int)dv[0]; repos[2]=(int)dv[1];
+                           repos[3]=(int)dv[2]; repos[4]=(int)dv[3];
+            } 
+         } else {
+            SUMA_S_Warnv(
+               "Ignored ill formatted env 'SUMA_Position_Original=%s'\n",
+                  eee);
+         }
+         if (repos[1] < 0) repos[1] = 0;
+         if (repos[2] < 0) repos[2] = 0;
+      }
       /* catch some warnings that are not important */
       XtAppSetWarningHandler(SUMAg_CF->X->App,SUMA_XtWarn_handler) ;
       
@@ -2777,6 +2804,28 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       }
       /* keep track of count */
       SUMAg_N_SVv += 1;
+      
+      /* initial repositioning, just for 1st creation */
+      switch (repos[0]) {
+         case 4:
+            XtVaSetValues (SUMAg_SVv[ic].X->TOPLEVEL, 
+               XmNx, (Position)(repos[1]),
+               XmNy, (Position)(repos[2]),
+               XmNwidth, (repos[3]),
+               XmNheight, (repos[4]),
+               NULL);
+            break;
+         case 2:
+            XtVaSetValues (SUMAg_SVv[ic].X->TOPLEVEL, 
+               XmNx, (Position)(repos[1]),
+               XmNy, (Position)(repos[2]),
+               NULL);
+            break;
+         default:
+            break;
+      }
+
+      
       /* position window next to the previous one open */
       {
          Found = NOPE;
