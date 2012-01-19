@@ -89,6 +89,12 @@ if (fidout < 0),
 	err = 1; ErrMessage = sprintf('Error %s: Could not open %s for writing \n', FuncName, FileName); errordlg(ErrMessage); return;
 end
 
+% The tross logger
+trlog = getenv('AFNI_HISTDB_SCRIPT');
+if (~ isempty(trlog)),
+   Info.HISTDB_SCRIPT = trlog;   
+end
+
 Fld_Allnames  = fieldnames(Info);
 Fld_num = size(Fld_Allnames,1); 
 
