@@ -192,6 +192,8 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "\n"
 "        -Fixed_do NIML_DO_STRING: Same as -fixed_do, but spits out some \n"
 "                     debugging info.\n"
+"        -mobile_do NIML_DO_STRING: Mobile version of -fixed_do\n"
+"        -Mobile_do NIML_DO_STRING: Mobile version of -Fixed_do\n"
 "        -key KEY_STRING: Act as if the key press KEY_STRING\n"
 "                         was applied in the viewer.\n"
 "                         ~ Not all key presses from interactive\n"
@@ -1157,22 +1159,32 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
 
 
       if (!brk && ( (strncmp(argt[kar], "-fixed_do",9) == 0) ||
-                    (strncmp(argt[kar], "-Fixed_do",9) == 0)  ) )
+                    (strncmp(argt[kar], "-Fixed_do",9) == 0) ||
+                    (strncmp(argt[kar], "-mobile_do",10) == 0) ||
+                    (strncmp(argt[kar], "-Mobile_do",10) == 0) ) )
       {
          char *sbuf=NULL, *qar=NULL;
          NI_element *nel=NULL;
          int showit=0;
-         if (argt[kar][1] == 'F') showit=1;
+         if (argt[kar][1] == 'F' || argt[kar][1] == 'M') showit=1;
          if (kar+1 >= argtc)
          {
-            fprintf (SUMA_STDERR, "need a string after -fixed_do \n");
+            fprintf (SUMA_STDERR, 
+                     "need a string after -fixed_do (or -mobile_do)\n");
             SUMA_RETURN(0);
          }
          qar = UNIQ_hashcode(argt[kar]);
-         sbuf = SUMA_copy_string("<nido_head coord_type = 'fixed'\n"
+         if (strstr(argt[kar],"ixed_do")) {
+            sbuf = SUMA_copy_string("<nido_head coord_type = 'fixed'\n"
                                  "default_color = '1.0 1.0 1.0'\n"
                                  "default_font = 'he18'\n"
                                  "idcode_str = ");
+         } else {
+            sbuf = SUMA_copy_string("<nido_head coord_type = 'mobile'\n"
+                                 "default_SO_label = 'CURRENT'\n"
+                                 "bond = 'surface'\n"
+                                 "idcode_str = ");
+         }
          sbuf = SUMA_append_replace_string(sbuf,qar,"",1);
          argt[kar][0] = '\0';
          free(qar); qar=NULL;
