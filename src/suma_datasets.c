@@ -14252,6 +14252,68 @@ char *SUMA_copy_quoted( char *s, char *eop,
    SUMA_RETURN(strn);
 }
 
+/*! 
+   Put all arguments between opening and closing quotes into one string
+   The function starts by looking for argv[*kar] that begins with opq
+   If opq is found, it continues looking until it finds argv[K] with ends
+   with cloq. If a closing quote is found, a catenation of all the argvs
+   is returned. Also *kar is updated to indicate the last used argument.
+*/
+char *args_in_quotes(char **argv, int *kar, int N_argv, 
+                     char *opq, char *cloq, int clearused)
+{
+   static char FuncName[]={"args_in_quotes"};
+   char *aq=NULL;
+   int n, closed, n2;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!argv || !N_argv || !kar || *kar >= N_argv || !opq) RETURN(aq);
+   
+   n = *kar;
+   if (begins_with(argv[n], opq,1)) {
+      aq = SUMA_copy_string(argv[n]);
+   } else {
+      SUMA_RETURN(NULL);
+   }  
+   SUMA_LHv("Begin aq %s, n=%d, argv[n]=%s, N=%d\n", aq, n, argv[n], N_argv);
+   closed = 0;
+   while (!(closed=ends_with(argv[n],cloq,1)) && n<N_argv-1) {
+      aq = SUMA_append_replace_string(aq,argv[++n]," ",1);
+      SUMA_LHv("added aq %s, n=%d, argv[n]=%s, N=%d\n", aq, n, argv[n], N_argv);
+   }
+   if (!closed) {
+      SUMA_LHv("Could not find closing %s\n",cloq);
+      SUMA_free(aq); 
+      aq = NULL;
+   } else {
+      if (clearused) {
+         n2 = *kar;
+         while (n2 < n) {
+            argv[n2][0] = '\0'; ++n2;
+         }
+      }
+      *kar = n; /* the last argument to be used */
+   }
+   
+   SUMA_RETURN(aq);
+}      
+
+char *args_in_niml_quotes(char **argv, int *kar, int N_argv, int clearused) 
+{
+   char *aq=NULL;
+   
+   if ((aq=args_in_quotes(argv, kar, N_argv,"<","/>", clearused))) {
+      return(aq);
+   } else if ((aq=args_in_quotes(argv, kar, N_argv,"'<","/>'", clearused))) {
+      return(aq);
+   } else if ((aq=args_in_quotes(argv, kar, N_argv,"\"<","/>\"", clearused))) {
+      return(aq);
+   } 
+   return(NULL);
+}
+
 /*!
    \brief appends two null terminated strings.
    
@@ -14401,7 +14463,8 @@ char * SUMA_append_replace_string(char *s1, char *s2, char *Spc, int whichTofree
    SUMA_RETURN(atr);  
 }   
  
-char * SUMA_append_replace_num(char *s1, char *form, double num, SUMA_VARTYPE tp, int whichTofree)
+char * SUMA_append_replace_num(char *s1, char *form, double num, 
+                               SUMA_VARTYPE tp, int whichTofree)
 {
    static char FuncName[]={"SUMA_append_replace_num"};
    char *atr = NULL, sbuf[500];
