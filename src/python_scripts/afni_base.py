@@ -348,9 +348,9 @@ class shell_com:
    def trim(self):
       #try to remove absolute path
       if self.dir[-1] != '/':
-         tcom = string.replace(self.com, "%s/" % (self.dir), '')
+         tcom = string.replace(self.com, "%s/" % (self.dir), './')
       else:
-         tcom = string.replace(self.com, self.dir, '')
+         tcom = string.replace(self.com, self.dir, './')
       return tcom
    def echo(self): 
       if (len(self.trimcom) < len(self.com)):

@@ -127,6 +127,12 @@ ENTRY("THD_write_3dim_dataset") ;
    if(THD_update_dset_atr_status()) {
       THD_set_dataset_attributes( dset ) ;
    }
+   
+   /* The TROSS logger */
+   if ((ppp = my_getenv("AFNI_HISTDB_SCRIPT")) && ppp[0] != '\0') {
+      THD_set_string_atr( dset->dblk , "HISTDB_SCRIPT" , ppp ) ;
+   }
+   
    /*----- 06 Jun 2007: deconflict dataset name? -----*/
 
    /* default is ERROR_exit */
