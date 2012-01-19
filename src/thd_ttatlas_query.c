@@ -7950,7 +7950,7 @@ int begins_with(char *name, char *quote, int debl)
 {
    if (!name || !quote) return(0);
    if (debl) deblank_name(name);
-   if (strnstr(name,quote,strlen(quote))) return(1);
+   if (af_strnstr(name,quote,strlen(quote))) return(1);
    return(0);
 }
 
@@ -7962,7 +7962,7 @@ int ends_with(char *name, char *quote, int debl)
    nch = strlen(name);
    nqo = strlen(quote);
    if (nch < nqo) return(0);
-   if (strnstr(name+nch-nqo,quote,nqo)) return(1);
+   if (af_strnstr(name+nch-nqo,quote,nqo)) return(1);
    return(0);
 }
 
