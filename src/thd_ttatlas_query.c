@@ -7925,6 +7925,46 @@ char * depunct_name (char *name) {
    return(name);
 }
 
+char * dequote_name (char *name, char qo) {
+   int nch = 0, bb=0;
+   
+   if (!name) return(name);
+   
+   nch = strlen(name);
+   
+   if (qo == '\0') {
+      qo = name[0]; if (qo != '\'' && qo != '"') return(name);
+   }
+   
+   /* dequote */
+   if (name[nch-1] == qo) {
+      for(bb=0; bb<nch-1; ++bb) name[bb]=name[bb+1];
+   }
+
+   return(name);
+}
+
+/* search arguments array for arguments starting with the opening
+quote and ending in the closing quote */
+int begins_with(char *name, char *quote, int debl)
+{
+   if (!name || !quote) return(0);
+   if (debl) deblank_name(name);
+   if (strnstr(name,quote,strlen(quote))) return(1);
+   return(0);
+}
+
+int ends_with(char *name, char *quote, int debl)
+{
+   int nch=0, nqo=0;
+   if (!name || !quote) return(0);
+   if (debl) deblank_name(name);
+   nch = strlen(name);
+   nqo = strlen(quote);
+   if (nch < nqo) return(0);
+   if (strnstr(name+nch-nqo,quote,nqo)) return(1);
+   return(0);
+}
 
 /* return the list of atlases set by the environment variable,
    AFNI_ATLAS_LIST */
