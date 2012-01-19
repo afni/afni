@@ -148,6 +148,8 @@ typedef struct {
    float v1;
    int nvox;
    float *fvec;
+   int n_fvec;
+   int fvec_dim;
    double *dvec;
    int obj_type;
    int obj_type_res;

@@ -39,6 +39,8 @@ void usage_niccc(int detail) {
               "                 match any of COEF COEF.1 COEF.2, etc.\n"
               "            Default is -match exact\n"
               "   -f: streamspec is a filename.\n"
+              "   -s: streamspec is an element string like: \n"
+              "            '<T font=9 coords=\"2.3 23 2\"/>'\n"
               "   -stdout: write elements to stdout, instead of stderr\n"
               "   -#: put the # at the beginning of lines with no data\n"
               "   -quiet: quiet stderr messages, and don't echo attribute\n"
@@ -95,6 +97,10 @@ int main( int argc , char *argv[] )
          isfile=1; 
          ++nn; continue;
       }
+      if (!strcmp(argv[nn],"-s")) {
+         isfile=2; 
+         ++nn; continue;
+      }
       if (!strcmp(argv[nn],"-attribute")) {
          ++nn;
          if (nn >= argc) {
@@ -102,6 +108,16 @@ int main( int argc , char *argv[] )
             exit(1);
          }  
          attr=argv[nn]; 
+         ++nn; continue;
+      }
+      if (!strcmp(argv[nn],"-nel_from_string")) {
+         ++nn;
+         if (nn >= argc) {
+            fprintf(stderr,"Need string after -nel_from_string\n");
+            exit(1);
+         }  
+         nini = (NI_element *)NI_read_element_fromstring(argv[nn]);
+         
          ++nn; continue;
       }
       if (!strcmp(argv[nn],"-skip_nel_with_attr") ||
@@ -152,27 +168,33 @@ int main( int argc , char *argv[] )
    }
    
    strm = (char *) realloc(strm, (strlen(argv[nn])+32)*sizeof(char));
-   if (isfile) {
-      sprintf(strm,"file:%s",argv[nn]);
+   if (isfile == 2) {
+      sprintf(strm,"str:");
+      ns = NI_stream_open( strm , "r" ) ;
+      NI_stream_setbuf( ns , argv[nn] ) ;
    } else {
-      strcpy(strm, argv[nn]);
-   }
-   ns = NI_stream_open( strm, "r" ) ;
-   if( ns == NULL ){
-      fprintf(stderr,"*** niccc: NI_stream_open fails for %s\n", strm) ; 
-      if (THD_is_file(strm)) {
-         fprintf(stderr,
-            "  It looks like %s is a file.\n"
-            "  Make sure you use option -f before it\n",
-            strm) ;       
-      }  
-      exit(1) ;
+      if (isfile == 1) {
+         sprintf(strm,"file:%s",argv[nn]);
+      } else {
+         strcpy(strm, argv[nn]);
+      }
+      ns = NI_stream_open( strm, "r" ) ;
+      if( ns == NULL ){
+         fprintf(stderr,"*** niccc: NI_stream_open fails for %s\n", strm) ; 
+         if (THD_is_file(strm)) {
+            fprintf(stderr,
+               "  It looks like %s is a file.\n"
+               "  Make sure you use option -f before it\n",
+               strm) ;       
+         }  
+         exit(1) ;
+      }
    }
    /*** NI_stream_setbufsize( ns , 6666 ) ; ***/
    while(1){
      nn = NI_stream_goodcheck( ns , 1 ) ;
      if( nn < 0 ){
-       if (strncmp(strm,"file:",5)) {
+       if (strncmp(strm,"file:",5) && strncmp(strm,"str:",4)) {
          fprintf(stderr,"\n*** niccc: Stream %s fails\n", strm); exit(1);
        } else {
          exit(stat);

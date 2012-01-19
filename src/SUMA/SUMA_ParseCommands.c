@@ -2927,7 +2927,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->v0 = 0.0;
    Opt->v1 = 0.0;
    Opt->dvec = NULL;
-   Opt->fvec = NULL;
+   Opt->fvec = NULL; Opt->n_fvec=-1; Opt->fvec_dim=-1;
    Opt->SurfFileType = SUMA_PLY;
    Opt->SurfFileFormat = SUMA_ASCII;
    Opt->xform = SUMA_ISO_XFORM_UNDEFINED;

@@ -1126,6 +1126,47 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
+      
+      if (!brk && ( (strcmp(argt[kar], "-fixed_do") == 0) ) )
+      {
+         char *sbuf=NULL;
+         NI_element *nel=NULL;
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a string after -fixed_do \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         sbuf = SUMA_copy_string("<nido_head coord_type = 'fixed'\n"
+                                 "default_color = '1.0 1.0 1.0'\n"
+                                 "default_font = 'he18'\n"
+                                 "/>\n");
+         /* opening quote */
+         /* here you need a function to go through all arguments from
+          '< or "< or < to >' or >" or > 
+          That quote business it ugly. 
+          At the moment: -fixed_do "'<T text=crap  font=f9/>'" 
+          works, but you can't specify attributes with spaces, etc.
+          Also, you need to be able to use multiple -fixed_do and
+          have their ID depend on their index so that they can
+          be replaced. */
+         sbuf = SUMA_append_replace_string(
+                  sbuf,SUMA_copy_quoted( argt[++kar], NULL, 
+                           '\0', '\0', 1, 0, NULL ),"",1);
+         if (!(nel=NI_read_element_fromstring(sbuf))) {
+            SUMA_S_Errv("Could not parse -fixed_do %s\n"
+                  "Try experimenting with niccc -s to get the syntax right.\n",
+                     argt[kar]);
+            exit(1);
+         }
+         fprintf(stderr,"ZSS: subf %s\n", sbuf);
+         NI_free_element(nel);
+         NI_set_attribute(ngr, "DO_FileName", sbuf);
+         SUMA_free(sbuf); sbuf=NULL;
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
       if (!brk && ( (strcmp(argt[kar], "-anim_dup") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1357,7 +1398,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
                   "Error %s:\n"
                   "Option %s not understood. Try -help for usage\n",
                FuncName, argt[kar]);
-			SUMA_RETURN(0);
+         SUMA_RETURN(0);
 		} else {	
 			brk = NOPE;
 			kar ++;
@@ -1433,11 +1474,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
             exit (1);
          }
          
-         Opt->com = (char **)SUMA_realloc(Opt->com, sizeof(char *)*(Opt->N_com+1));
+         Opt->com = (char **)SUMA_realloc(Opt->com, 
+                                 sizeof(char *)*(Opt->N_com+1));
          Opt->com[Opt->N_com] = NULL;
          ++kar;
          do { 
-            Opt->com[Opt->N_com] = SUMA_append_replace_string (Opt->com[Opt->N_com], argv[kar], " ", 1);
+            Opt->com[Opt->N_com] = 
+               SUMA_append_replace_string (Opt->com[Opt->N_com], 
+                                           argv[kar], " ", 1);
             ++kar;
             brk = NOPE;
             if ( kar >= argc ) brk = YUP;
@@ -1451,7 +1495,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
       
       
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			SUMA_S_Errv("Option %s not valid, or requires preceding -com option\n"
+                     "Try -help for usage\n", argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;

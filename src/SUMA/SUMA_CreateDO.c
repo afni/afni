@@ -694,6 +694,8 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       SUMA_RETURN(dotp);
    }
    
+   if (strstr(s,"<nido_head")) SUMA_RETURN(NIDO_type);
+   
    fid = fopen(s,"r");
    
    if (!fid) {
@@ -1008,9 +1010,20 @@ SUMA_NIDO *SUMA_ReadNIDO (char *fname, char *parent_so_id)
    SUMA_ENTRY;
    
    if (!fname) SUMA_RETURN(NULL);
-   if (SUMA_GuessFormatFromExtension(fname, NULL)==SUMA_NIML) {
+   
+   if ((atr = strstr(fname,"<nido_head"))) {
+      /* The fname is the nido */
+      niname = SUMA_copy_string("str:");
+      ns = NI_stream_open(niname, "r");
+      NI_stream_setbuf( ns , atr ) ;
+   } else if (SUMA_GuessFormatFromExtension(fname, NULL)==SUMA_NIML) {
       niname = SUMA_append_string("file:", fname);
       ns = NI_stream_open(niname, "r");
+   } else {
+      SUMA_S_Err("Only .niml.do format accepted");
+      SUMA_RETURN(NULL);
+   }
+   {
       while ((nini = NI_read_element(ns, 1))) {
          if (SUMA_iswordin(nini->name,"nido_head")) {/* fill special fields */
             if (nido) {
@@ -1088,10 +1101,7 @@ SUMA_NIDO *SUMA_ReadNIDO (char *fname, char *parent_so_id)
       NI_stream_close( ns ) ; ns = NULL;
       SUMA_free(niname); niname=NULL;
       if (LocalHead) SUMA_ShowNel(nido->ngr); 
-   } else  {
-      SUMA_S_Err("Only .niml.do format accepted");
-      SUMA_RETURN(NULL);
-   }
+   } 
    SUMA_RETURN(nido);
 }
 

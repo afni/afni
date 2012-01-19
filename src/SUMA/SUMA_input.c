@@ -7442,6 +7442,14 @@ void SUMA_JumpFocusNode (char *s, void *data)
 
    sv = (SUMA_SurfaceViewer *)data;
 
+   /* HERE you should check if you have an L or R at the beginning
+   or end of s.
+   If you do, then first see if the side of SO (the focus surface)
+   is the same as the letter. If it is, proceed. If it is not,
+   try to get the contralateral surface with SUMA_Contralateral_SO
+   then set the contralateral as the focus surface, then proceed
+   with setting the focus node. Needs more work 
+   */
    /* parse s */
    if (SUMA_StringToNum (s, (void*)fv3, 1,1) != 1) {/*problem, beep and ignore */
       XBell (XtDisplay (sv->X->TOPLEVEL), 50);
