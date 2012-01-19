@@ -266,6 +266,9 @@ AFNI_ATLAS *Free_Atlas(AFNI_ATLAS *aa) ;
 AFNI_ATLAS_REGION *ROI_String_Decode(char *str, ATLAS_LIST *atlas_list);
 char * deblank_name(char *name);
 char * depunct_name(char *name);
+char * dequote_name(char *name, char qo);
+int begins_with(char *name, char *quote, int debl);
+int ends_with(char *name, char *quote, int debl);
 APPROX_STR_DIFF_WEIGHTS *init_str_diff_weights(APPROX_STR_DIFF_WEIGHTS *Dwi);
 float best_approx_str_match(char **words, int N_words, char *str, byte ci,
                            APPROX_STR_DIFF_WEIGHTS *Dwi);

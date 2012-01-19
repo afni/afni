@@ -1595,6 +1595,9 @@ char *SUMA_copy_string(char *buf);
 char *SUMA_copy_quoted( char *s, char *eop, 
                         char q1, char q2, int deblank,
                         int withquotes, int *is_closed );
+char *args_in_quotes(char **argv, int *kar, int N_argv, char *opq, 
+                     char *cloq, int clearused);
+char *args_in_niml_quotes(char **argv, int *kar, int N_argv, int clearused);
 char * SUMA_append_string(char *s1, char *s2);
 char * SUMA_append_replace_string(  char *s1, char *s2, 
                                     char *Spc, int whichTofree);
