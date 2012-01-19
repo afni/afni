@@ -3821,7 +3821,7 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
       }
       SUMA_LH("Patchin");
       if (!(patch = SUMA_getPatch (  ibuf, cnt_inmesh, 
-                           SO->FaceSetList, SO->N_FaceSet, 
+                           SO->N_Node, SO->FaceSetList, SO->N_FaceSet, 
                            Memb, SO->NodeDim, 0, 1))) {
 
          SUMA_SL_Err("Failed to create patch, "

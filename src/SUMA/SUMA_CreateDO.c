@@ -6353,7 +6353,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
             for (ii=0; ii < N_Nodes; ++ii) {
                inode = Nodes[ii];
                if (inode >= SO->N_Node) {
-                  SUMA_S_Errv("Have node %d, SO->N_Node = %d\n",
+                  SUMA_S_Errv("Have node %d, SO->N_Node = %d\n"
+                     "Make sure ROI loaded belongs to this surface.\n",
                               inode , SO->N_Node) ;
                               SUMA_RETURN(NOPE);
                }
