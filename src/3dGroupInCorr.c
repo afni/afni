@@ -2409,7 +2409,8 @@ int main( int argc , char *argv[] )
      } else {   /* create command internally in batch mode [Feb 2011] */
        char cline[6666], buf[666] , *cpt ; static int nbatch=0 ;
        static NI_str_array *bsar=NULL ;
-
+       static int nwarn=0;
+       
        if( bfp == NULL && nbatch > 0 ) goto GetOutOfDodge ;  /* done */
 
        atim = btim = NI_clock_time() ;  /* start timer, for user info */
@@ -2457,23 +2458,24 @@ int main( int argc , char *argv[] )
                qijk = (int)strtod(bsar->str[1],NULL)+giset->nnode_domain[0] ;
             } else if (bsar->str[1][0]=='l' || bsar->str[1][0]=='L') {
                qijk = (int)strtod(bsar->str[1]+1,NULL);
-            } else if (bsar->str[1][nn-1]=='r' || bsar->str[1][nn-1]=='R') {
+            } else if (bsar->str[1][nn-1]=='l' || bsar->str[1][nn-1]=='L') {
                bsar->str[1][nn-1]='\0';
                qijk = (int)strtod(bsar->str[1],NULL);
             } else {
-               static int nwarn=0;
                if (!nwarn && giset->nnode_domain[1] > 0) {
                   WARNING_message("You are using two surfaces but your\n"
-                               "node index of %s does not specify to which\n"
-                               "hemishphere it belongs. While the default\n"
-                               "is always for the left hemisphere, you are\n"
-                               "better off adding an 'L' to the index for\n"
-                               "clarity so your line would read:\n"
-                               "   %s %sL\n"
-                               "or"
-                               "   %s L%s\n"
-                               "This message is only shown once.\n",
-                               bsar->str[1], bsar->str[0], bsar->str[1]);
+                              "node index of %s does not specify to which\n"
+                              "hemishphere it belongs. While the default\n"
+                              "is always for the left hemisphere, you are\n"
+                              "better off adding an 'L' to the index for\n"
+                              "clarity so your line would read:\n"
+                              "   %s %sL\n"
+                              "or"
+                              "   %s L%s\n"
+                              "This message is only shown once.\n",
+                               bsar->str[1], 
+                               bsar->str[0], bsar->str[1],
+                               bsar->str[0], bsar->str[1]);
                   
                }
                qijk = (int)strtod(bsar->str[1],NULL);

@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18, JAN , 2012 , ZSS , "suma-general" , MICRO , TYPE_NEW_ENV,
+   "SUMA_Position_Original for controlling initial window position.",
+   "Use suma -update_env ; to update env file, then look for\n"
+   " env SUMA_Position_Original for help and default value.",
+ },
+    
+ { 18, JAN , 2012 , ZSS , "niccc" , MINOR , TYPE_NEW_OPT,
+   "-s option to test string NI elements",
+   NULL,
+ },
+    
+ { 18, JAN , 2012 , ZSS , "Surf2VolCoord" , MINOR , TYPE_NEW_OPT,
+   "-closest_* options to create find nodes that fall closest to XYZ locations",
+   NULL,
+ },
+    
  { 17, JAN , 2012 , ZSS , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT,
    "Allowed BATCH mode to work on surfaces.",
    NULL,

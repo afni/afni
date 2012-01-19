@@ -41,7 +41,9 @@ const char *SUMA_WarpTypeName(SUMA_WARP_TYPES wt)
                     > 1 talk
    
 */
-int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *closest_node, float *closest_dist, byte *vox_mask, int verb) 
+int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, 
+                             int *closest_node, float *closest_dist, 
+                             byte *vox_mask, int verb) 
 {
    static char FuncName[]={"SUMA_ClosestNodeToVoxels"};
    float *p=NULL;
@@ -57,8 +59,10 @@ int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *close
    }
    
    if (verb) {
-      fprintf(SUMA_STDERR,"%s: Have %d nodes in surface\n%dx%dx%d (%d) voxels in volume.\n", 
-                  FuncName, SO->N_Node, vp->nx, vp->ny, vp->nz, vp->nx * vp->ny * vp->nz);
+      fprintf(SUMA_STDERR, "%s: Have %d nodes in surface\n"
+                           "%dx%dx%d (%d) voxels in volume.\n", 
+                  FuncName, SO->N_Node, vp->nx, vp->ny, vp->nz, 
+                  vp->nx * vp->ny * vp->nz);
    }
    /* Now for each voxel, find the closest node (SLOW implementation) */
    cnt = 0;
@@ -73,7 +77,8 @@ int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *close
             if (!vox_mask || (vox_mask && vox_mask[ijk])) {
                iv.xyz[0] = (float)i; iv.xyz[1] = (float)j; iv.xyz[2] = (float)k;    
                fv = SUMA_THD_3dfind_to_3dmm_vp(vp, iv);
-               iv = SUMA_THD_3dmm_to_dicomm(vp->xxorient, vp->yyorient, vp->zzorient,  fv);
+               iv = SUMA_THD_3dmm_to_dicomm(vp->xxorient, vp->yyorient, 
+                                            vp->zzorient,  fv);
                #if 0 /* macro not tested here so keeping older code below */
                SUMA_CLOSEST_NODE(SO, iv.xyz, closest_node[ijk], d);
                if (closest_dist) closest_dist[ijk] = (float)d;
@@ -88,12 +93,16 @@ int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *close
                   }
                }
                #endif
-               if (closest_dist) { if (closest_dist[ijk] >= 0.0f) closest_dist[ijk] = (float)sqrt(closest_dist[ijk]); }
+               if (closest_dist) { 
+                  if (closest_dist[ijk] >= 0.0f) 
+                     closest_dist[ijk] = (float)sqrt(closest_dist[ijk]); }
                if (verb) {
                   ++cnt;
                   if (!(cnt % 1000)) {
                      fprintf(SUMA_STDERR,". @ %4d %4d %4d   (%3.2f%%)\n", 
-                              i, j, k, (float)cnt/(float)(vp->nx * vp->ny * vp->nz)*100.0); fflush(SUMA_STDERR);
+                             i, j, k, 
+                             (float)cnt/(float)(vp->nx * vp->ny * vp->nz)*100.0);
+                     fflush(SUMA_STDERR);
                   }
                }
             }
@@ -482,7 +491,7 @@ SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
    static char FuncName[]={"SUMA_Free_VolPar"};
    
    SUMA_ENTRY;
-
+   if (!VP) SUMA_RETURN (YUP);
    if (VP->prefix != NULL) SUMA_free(VP->prefix);
    if (VP->idcode_str != NULL) SUMA_free(VP->idcode_str);
    if (VP->filecode != NULL) SUMA_free(VP->filecode);

@@ -12323,6 +12323,14 @@ static ENV_SPEC envlist[] = {
       " Default is 30.0, -1 == auto",
       "SUMA_FOV_Original",
       "-1" },
+   {  "Original windows size and width in pixels \n"
+      " Allowed values are: 'TopLeft'\n"
+      "                     'RightOffset' \n"
+      "                     'X Y' Sets only the position to top left corner\n"
+      "                     'X Y Xwidth Ywidth' Set also width of window\n"
+      " Default is top left of the screen",
+      "SUMA_Position_Original",
+      "TopLeft" },
    {  "light0 color",
       "SUMA_Light0Color",
       "1.0,1.0,1.0" },
@@ -14221,9 +14229,10 @@ char *SUMA_copy_quoted( char *s, char *eop,
    SUMA_SKIP_TO_NEXT_CHAR(op2, eop, q2);   
    
    /* decide on closure, op and op2 are at the quotes*/
-   if (*op == q1 && *op2 == q2) *is_closed = 1;
-   else *is_closed = 0;  
-
+   if (is_closed) {
+      if (*op == q1 && *op2 == q2) *is_closed = 1;
+      else *is_closed = 0;  
+   }
    /* deblanking */
    if (deblank) {
       /* move up from q1 and skip blanks */
