@@ -63,7 +63,7 @@ int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES 
 byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, int nk, int *N_in, byte *usethisisin); 
 SUMA_Boolean SUMA_VoxelsInBox(int *voxelsijk, int *N_in, float *c1, float *c2);
 SUMA_SurfaceObject *SUMA_Patch2Surf(float *NodeList, int N_NodeList, int *PatchFaces, int N_PatchFaces, int PatchDim);
-SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes, 
+SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes, int MaxNodeMax,
                               int *Full_FaceSetList, int N_Full_FaceSetList, 
                               SUMA_MEMBER_FACE_SETS *Memb, int MinHits,
                               int FixBowTie, int verb);

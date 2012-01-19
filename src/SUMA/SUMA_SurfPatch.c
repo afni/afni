@@ -675,7 +675,7 @@ int main (int argc,char *argv[])
             SO->aSO = SUMA_FreeAfniSurfaceObject(SO->aSO); 
          }
          /* extract the patch */
-         ptch = SUMA_getPatch (NodePatch, N_NodePatch, 
+         ptch = SUMA_getPatch (NodePatch, N_NodePatch, SO->N_Node,
                                SO->FaceSetList,  SO->N_FaceSet, 
                                SO->MF, Opt->minhits, 
                                Opt->FixBowTie, (!i && !Opt->DoVol)); 

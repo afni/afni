@@ -1043,6 +1043,7 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_SegmentDO *sdo = NULL;
    SUMA_Axis *sax = NULL;
    SUMA_SphereDO *spdo=NULL;
+   SUMA_NIDO *nido=NULL;
    SUMA_ENTRY;
 
    if (idcode == NULL) {
@@ -1094,6 +1095,12 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
                SUMA_RETURN (YUP);
             }
             break;
+         case (NIDO_type):
+            nido = (SUMA_NIDO *)dov[i].OP;
+            if (strcmp(idcode, nido->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
          default:
             SUMA_S_Warnv("Object type %d not checked.\n", dov[i].ObjectType);
             break;
@@ -1119,6 +1126,7 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_SegmentDO *sdo = NULL;
    SUMA_Axis *sax = NULL;
    SUMA_SphereDO *spdo=NULL;
+   SUMA_NIDO *nido=NULL;
    
    SUMA_ENTRY;
 
@@ -1168,6 +1176,12 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
          case (LS_type):
             sdo = (SUMA_SegmentDO *)dov[i].OP;
             if (strcmp(idcode, sdo->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
+         case (NIDO_type):
+            nido = (SUMA_NIDO *)dov[i].OP;
+            if (strcmp(idcode, nido->idcode_str)== 0) {
                SUMA_RETURN (i);
             }
             break;
