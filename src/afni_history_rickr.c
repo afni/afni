@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, JAN, 2012, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "made -quit more agressive (never wait for new files)",
+   NULL
+ } ,
+
  { 18, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "force anat variable (and children) to be in AFNI format after 3dcopy",
    "Appropriate, and for compatibility with an afni_name.pv change."
