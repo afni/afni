@@ -258,7 +258,7 @@ void mri_dicom_setvm( int vv )
 
 /****************************************************************/
 
-static int rwc_err=1 ;                     /* 28 Oct 2002 */
+static int rwc_err=3 ;                     /* 28 Oct 2002 */
 
 void mri_dicom_seterr( int vv )
 {
@@ -6513,11 +6513,29 @@ ENTRY("readVRLength") ;
 	explicitVR = FALSE;	/* Special rule for delimitors */
     }
 
-    if (explicitVR && !buf[0]) {  /* if there is no vrCode, skip explicitVR */
-        explicitVR = FALSE;       /*                    22 Mar 2011 [rickr] */
+    /* if there is no or no valid vrCode, skip explicitVR */
+    if (explicitVR) {
+      if ( !buf[0] ) {           /* 22 Mar 2011 [rickr] */
+        explicitVR = FALSE;
         fprintf(stderr,
                 "** DICOM WARNING, missing VR code in element (%04x,%04x)\n", 
                 DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) );
+      }
+
+      /* do not fail on invalid vfCode, but try to ignore */
+      vrCode[0] = buf[0];
+      vrCode[1] = buf[1];
+      vrCode[2] = '\0';
+      vrPtr = lookupVRCode(vrCode);
+      if (vrPtr == NULL){
+        explicitVR = FALSE;      /* 20 Jan 2012 [rickr] */
+        if( rwc_err ){
+          fprintf(stderr,
+          "** DICOM ERROR: unknown VR code 0x%02x%02x in element (%04x,%04x)\n",
+          buf[0], buf[1], DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
+          rwc_err-- ;
+        }
+      }
     }
 
     if (explicitVR) {
