@@ -515,7 +515,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.13, July 6 , 2011
+Version 0.1.14, Jan 20, 2012
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -551,10 +551,10 @@ Usage:
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
  desirable. Version 0.1.13 (July 6, 2011). If you want to cite the analysis
  approach, use the following at this moment:
- 
- Chen, G., Saad, Z. S., and Cox, R. W., Modeling multilevel variance components
- and outliers in group analysis, 16th Annual Meeting of the Organization for 
- Human Brian Mapping. Barcelona, Spain, 2010.
+
+ Chen et al., FMRI Group Analysis Combining Effect
+ Estimates and Their Variances. NeuroImage. (In Press).
+ 10.1016/j.neuroimage.2011.12.060
 
  The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
  or linear combination (GLT) of multiple conditions. It can be used to analyze
