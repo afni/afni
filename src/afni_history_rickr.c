@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 19, JAN, 2012, RCR, "Dimon", MINOR, TYPE_MODIFY,
-   "made -quit more agressive (never wait for new files)",
-   NULL
+ { 20, JAN, 2012, RCR, "to3d", MINOR, TYPE_MODIFY,
+   "mri_read_dicom: if there is no VALID vrCode, skip explicitVR",
+   "Done for Chad N."
  } ,
 
  { 18, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
