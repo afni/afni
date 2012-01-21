@@ -4449,6 +4449,49 @@ void view_prog_help(char *prog)
    return;
 }
 
+void web_prog_help(char *prog)
+{
+   char *viewer=NULL, *hname=NULL;
+   char *progname=NULL;
+   char weblink[1024]={""};
+   
+   if (!prog) return;
+   
+   if (!(progname = THD_find_executable(prog))) {
+      ERROR_message("Could not find executable %s.\n",
+                     prog);
+      return;
+   }
+   
+   snprintf(weblink,1020*sizeof(char),
+            "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+            THD_trailname(progname,0));
+   
+   if (!(view_web_link(weblink,NULL))) {
+      ERROR_message("Failed to web view %s\n", weblink);
+      return;
+   } 
+     
+   return;
+}
+
+int view_web_link(char *link, char *browser)
+{
+   char cmd[1024];
+   if (!link) return(0);
+   if (!browser) browser = GetAfniWebBrowser();
+   
+   if (!browser) {
+      ERROR_message("No Web browese defined.\n"
+              "Set AFNI_WEB_BROWSER in your .afnirc for this option to work.\n");
+      return(0);
+   }
+   
+   snprintf(cmd,1020*sizeof(char),"%s %s &", browser, link);
+   system(cmd);
+   return(1);
+}
+
 int view_text_file(char *progname) 
 {
    char *viewer=NULL, cmd[256];
@@ -4470,6 +4513,88 @@ int view_text_file(char *progname)
    snprintf(cmd,250*sizeof(char),"%s %s &", viewer, progname);
    system(cmd);
    return(1);
+}
+
+/* Trim string lbl to a maximum of mxlen characters.
+   If mxlen <= 0 mxlen = 20
+   Do not free what you get back, it might be lbl if
+   nothing needs to be done.*/   
+#define MaxTrim 128
+char *TrimString(char *lbl, int mxlen) 
+{
+   char *shrtit = NULL, *shrtitp = NULL, *eee=NULL;
+   int meth = 0, strt=0;
+   static int icall=0;
+   static char res[5][MaxTrim+1];
+
+   ENTRY("TrimString");
+   
+   ++icall;
+   if (icall > 4) icall = 0;
+   res[icall][0]='\0';
+   res[icall][MaxTrim]='\0'; /* be safe */
+
+   if (mxlen <= 0) mxlen = 20;
+   if (mxlen > MaxTrim) {
+      WARNING_message(
+               "Max trim length is 128. Ignoring your wishes of %d\n"
+               "What kind of a trim is this? What is wrong with you?\n", 
+                      mxlen);
+      mxlen = MaxTrim;
+   }
+   if (!lbl) RETURN(res[icall]);
+   if (strlen(lbl) > mxlen) {
+      shrtit = strdup(lbl);
+      shrtitp = shrtit;
+      meth = 0;
+      do {
+         /* fprintf(stderr,"ZSS: meth %d, shrtit=>%s<%d (mx%d)\n", 
+                        meth, shrtit, (int)strlen(shrtit), mxlen); */
+         switch (meth) {
+            case 0: /* remove the path */
+               shrtit = THD_trailname(shrtit,0);
+               break;
+            case 1: /* trim up to blank, starting from end */
+               if ((eee = strchr(shrtit,' '))) {
+                  strt = strlen(shrtit)-1;
+                  while (strt > mxlen || (strt > 0 && strlen(shrtit) > mxlen)) {
+                     if (shrtit[strt]==' ') {
+                        shrtit[strt] = '\0';
+                        strt = strlen(shrtit)-1;
+                     } else {
+                        --strt;
+                     }
+                  }
+               } 
+               break;
+            case 2: /* get rid of extension */
+               if ((eee =  find_filename_extension(shrtit))) {
+                  shrtit[strlen(shrtit)-strlen(eee)]='\0';
+               }
+               break;
+            case 3: /* get rid of view */
+               shrtit = THD_deplus_prefix(shrtit);
+               free(shrtitp); shrtitp=shrtit;
+               break;
+            case 4: /* get rid of characters from the left */
+               shrtit = shrtit+(strlen(shrtit)-mxlen);
+               shrtit[0]='~';
+               break;     
+            default:
+               meth=-12345;
+               break;
+         }                                     
+         ++meth;
+      } while (strlen(shrtit) > mxlen && meth >= 0);
+
+      /* fill up the result and free what is not yours to keep*/
+      strncpy(res[icall], shrtit, mxlen);  
+      res[icall][mxlen]='\0';/* lazy strncpy might not bother to terminate*/
+      if (shrtitp) free(shrtitp); shrtitp=NULL;
+   } else {
+      RETURN(lbl);
+   }
+   RETURN(res[icall]);
 }
 
 void print_prog_options(char *prog)

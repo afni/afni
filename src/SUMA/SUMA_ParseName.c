@@ -1,7 +1,7 @@
    
 /* Header FILES */
 #include "SUMA_suma.h"
-   
+
 #if 1
 void usageParseName_Main ()
   {/*Usage*/
@@ -28,6 +28,9 @@ printf (
    "        uPrefix : USER_PATH/PREFIX\n"
    "        pPrefix : RELATIVE_PATH/PREFIX\n"
    "        PPrefix : ABSOLUTE_PATH/PREFIX\n"
+   "        trim    : Trim the name to 20 characters.\n"
+   "                  First the path goes, then extension, then view,\n"
+   "                  then characters from the left. '~' indicates clipping.\n"
    "\n"
    "Tests:\n"
    "    ParseName -cwd /hello/Joe /hello/Joe/afni.c\n"
@@ -200,7 +203,13 @@ int main (int argc,char *argv[])
       } else if (strcmp(out,"OnDisk") == 0) {
          fprintf(SUMA_STDOUT, "%d\n", 
                      Test->OnDisk);
-      }else {
+      } else if (strncmp(out,"trim",4) == 0) {
+         int mxlen=20;
+         if (strlen(out) == 4) mxlen = 20;
+         else mxlen = (int)strtod(out+4,NULL);
+         fprintf(SUMA_STDOUT, "%s\n", 
+                     TrimString(Test->HeadName,mxlen));
+      } else {
          SUMA_S_Errv("Bad -out option of %s\n", out);
          exit(1);
       }
