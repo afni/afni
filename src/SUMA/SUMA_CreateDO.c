@@ -3630,6 +3630,12 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
    } else {
       /* If you don't turn offset off, FRAME bound texture (afniman.jpg)
          won't show ...  ZSS April 2011 */
+      /* afniman.jpg (in @DO.examples) now does not show up unless
+      view is in orthographic mode. I'll need to debug this someday.
+      Start with what happens in if (!sv->ortho) in SUMA_PrepForNIDOnelPlacement,
+      revisit the logic of SUMA_SET_GL_PROJECTION in that bloc from which 
+      I might need to recover something.
+                                          ZSS Jan 2012 */ 
       glDisable (GL_POLYGON_OFFSET_FILL);
    }
    
