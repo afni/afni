@@ -284,12 +284,20 @@ char *get_gopt_help() {
 "                Equivalent to setting env. AFNI_1D_ZERO_TEXT=YES\n"
 "   -Dname=val: Set environment variable 'name' to value 'val'\n"
 "             For example: -DAFNI_1D_ZERO_TEXT=YES\n"
+"   -Vname=: Print value of environment variable 'name' to stdout and quit.\n"
+"            This is more reliable that the shell's env query because it would\n"
+"            include envs set in .afnirc files and .sumarc files for SUMA\n"
+"            programs.\n"
+"             For example: -VAFNI_1D_ZERO_TEXT=\n"
 "   -all_opts: Try to identify all options for the program from the\n"
 "              output of its -help option. Some options might be missed\n"
 "              and others misidentified. Use this output for hints only.\n"
 "   -h_find WORD: Look for lines in this programs's -help output that match\n"
 "                 (approximately) WORD.\n"
 "   -h_view: Open help in text editor. AFNI will try to find a GUI editor\n"
+"            on your machine. You can control which it should use by\n"
+"            setting environment variable AFNI_GUI_EDITOR.\n"
+"   -h_web: Open help in web browser. AFNI will try to find a browser\n"
 "            on your machine. You can control which it should use by\n"
 "            setting environment variable AFNI_GUI_EDITOR.\n"
 "   -skip_afnirc: Do not read the afni resource (like ~/.afnirc) file.\n"
@@ -339,6 +347,15 @@ int AFNI_prefilter_args( int *argc , char **argv )
        (void)AFNI_setenv(argv[ii]+2) ; used[ii] = 1 ; continue ;
      }
 
+     /*** -Vname=val to get environment variable ***/
+
+     if( strncmp(argv[ii],"-V",2) == 0 && strchr(argv[ii],'=') != NULL ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] does getenv %s\n",ii,argv[ii]) ;
+       fprintf(stdout,"%s\n",
+               (eee = my_getenv(argv[ii]+2)) ? eee:"") ; 
+        used[ii] = 1 ; exit(0) ;
+     }
+
      /*** -overwrite to set AFNI_DECONFLICT ***/
 
      if( strcmp(argv[ii],"-overwrite") == 0 ){
@@ -386,6 +403,14 @@ int AFNI_prefilter_args( int *argc , char **argv )
      if( strcmp(argv[ii],"-h_view") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -h_view\n",ii) ;
        view_prog_help(argv[0]);
+       used[ii] = 1 ; 
+       exit(0); 
+         /* better exit, otherwise output get burried by program's own -help */ 
+     }
+     
+     if( strcmp(argv[ii],"-h_web") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -h_web\n",ii) ;
+       web_prog_help(argv[0]);
        used[ii] = 1 ; 
        exit(0); 
          /* better exit, otherwise output get burried by program's own -help */ 

@@ -184,7 +184,9 @@ void apsearch_usage(int detail)
    "                      the environment variable AFNI_LOG_BEST_PROG_OPTION\n"
    "                      is set to YES.\n"
    "  -view_prog_help PROG: Open the help file for PROG in a GUI editor.\n"
-   "                        This is like the option -h_view is C programs.\n"
+   "                        This is like the option -h_view in C programs.\n"
+   "  -web_prog_help PROG: Open the help file for PROG in a web brower.\n"
+   "                        This is like the option -h_web in C programs.\n"
    "\n"
    "  NOTE: The maximum number of results depends on the combination of\n"
    "        -max_hits, -min_different_hits, and -unique_hits_only. \n"
@@ -428,6 +430,18 @@ int main(int argc, char **argv)
                      return(1);
          }
          view_prog_help(argv[iarg]);
+         return(0);
+         continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-web_prog_help") == 0) { 
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+                     "** Error: Need program name after -web_prog_help\n"); 
+                     return(1);
+         }
+         web_prog_help(argv[iarg]);
          return(0);
          continue; 
       }
