@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 20, JAN , 2011 , ZSS , "afni" , MICRO , TYPE_MODIFY,
+   "Trim dset names to keep them readable in plugin dataset selector buttons",
+   "See function TrimString() and how it is used in PLUG_finalize_dataset_CB()",
+ },
+ 
+ { 20, JAN , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
+   "Added -h_web, and -Vname= to all C command-line programs.",
+   "See also apsearch -web_prog_help option",
+ },
+ 
+ { 19, JAN , 2012 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
+   "Allow definition of DO on the fly with -fixed_do, -mobile_do.",
+   "See DriveAfni -help and suma -help_nido",
+ },
+    
  { 18, JAN , 2012 , ZSS , "suma-general" , MICRO , TYPE_NEW_ENV,
    "SUMA_Position_Original for controlling initial window position.",
    "Use suma -update_env ; to update env file, then look for\n"
