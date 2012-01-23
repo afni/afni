@@ -135,7 +135,7 @@ void Syntax(void)
 " Examples with csh syntax using datasets in your afni binaries directory\n"
 "\n"
 "  0- First get some datasets with which we'll play\n"
-"     set dsets = ( `apsearch -all_afni_P_dsets` )\n"
+"     set dsets = ( `apsearch -list_all_afni_P_dsets` )\n"
 "\n"
 "  1- The classic\n"
 "     3dinfo $dsets[1]\n"
