@@ -148,7 +148,6 @@
 typedef enum { SUMA_VOX_NEIGHB_FACE, SUMA_VOX_NEIGHB_EDGE, SUMA_VOX_NEIGHB_CORNER } SUMA_VOX_NEIGHB_TYPES;
 typedef enum { SUMA_DONT_KNOW = 0, SUMA_IN_TRIBOX_OUTSIDE = 1, SUMA_INTERSECTS_TRIANGLE_OUTSIDE, SUMA_ON_NODE, SUMA_INTERSECTS_TRIANGLE_INSIDE, SUMA_IN_TRIBOX_INSIDE, SUMA_INSIDE_SURFACE } SUMA_SURF_GRID_INTERSECT_OPTIONS;
                                     
-typedef enum { SUMA_SIDE_ERROR=-1, SUMA_NO_SIDE, SUMA_LR, SUMA_LEFT, SUMA_RIGHT } SUMA_SO_SIDE; 
 typedef enum { SUMA_GEOM_NOT_SET=-1, SUMA_GEOM_IRREGULAR = 0,    
                SUMA_GEOM_SPHERE = 1, SUMA_GEOM_ICOSAHEDRON, 
                SUMA_N_GEOM } SUMA_GEOM_TYPE;
@@ -607,6 +606,9 @@ typedef struct {
                               that would be closed path, etc, etc, */
 
    char *Parent_idcode_str; /*!< idcode of parent surface */
+   SUMA_SO_SIDE Parent_side; /*!< Hemisphere of parent. 
+                  Comes in handy when trying to find parent if 
+                  Parent_idcode_str does not work */
    char *ColPlaneName;  /*!< Name of color plane that the ROI is painted in.
                      If this field is set to NULL then the ROI will be painted
                      in the generic ROI_Plane plane. 
@@ -639,6 +641,7 @@ typedef struct {
                            see SUMA_ROI_DRAWING_TYPE*/
    char *idcode_str;
    char *Parent_idcode_str;
+   SUMA_SO_SIDE Parent_side;
    char *Label;
    int *iNode; /*!< A node's index */
    int *iLabel; /*!< A node's value */

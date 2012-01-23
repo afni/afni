@@ -1454,6 +1454,37 @@ int SUMA_BiggestLocalDomainParent(SUMA_DO *dov, int N_dov)
    SUMA_RETURN(imax);
 }
 
+int SUMA_isSurfaceOfSide(SUMA_SurfaceObject *SO, SUMA_SO_SIDE ss)
+{
+   if (!SO) return(0);
+   if (SO->Side == ss) return(1);
+   if (ss == SUMA_NO_SIDE || ss == SUMA_SIDE_ERROR) return(1);
+   return(0);
+}
+
+int SUMA_BiggestLocalDomainParent_Side(SUMA_DO *dov, int N_dov, SUMA_SO_SIDE ss)
+{
+   static char FuncName[]={"SUMA_BiggestLocalDomainParent_Side"};
+   SUMA_SurfaceObject *SO;
+   int i, imax = -1, MaxNode=-1;
+   
+   SUMA_ENTRY;
+   MaxNode = -1;
+   imax = -1;
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == SO_type) {
+         SO = (SUMA_SurfaceObject *)dov[i].OP;
+         if (SUMA_isLocalDomainParent(SO) && SUMA_isSurfaceOfSide(SO,ss)) {
+            if (SO->N_Node > MaxNode) {
+               imax = i;
+               MaxNode= SO->N_Node;
+            }
+         }
+      }
+   }
+   SUMA_RETURN(imax);
+}
+
 
 
 SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov)
@@ -2252,13 +2283,15 @@ SUMA_Boolean SUMA_isVO (SUMA_DO DO)
    \sa SUMA_CreateAssembleListStruct
    
 */
-SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, SUMA_Boolean SortByLabel) 
+SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, 
+                                                      SUMA_Boolean SortByLabel) 
 {
    static char FuncName[]={"SUMA_AssembleAllROIList"};
    int i=-1, N_clist=-1; 
    DList *list=NULL, *listop = NULL;
    DListElmt *Elm = NULL, *Elmop = NULL;
-   char Label[SUMA_MAX_NAME_LENGTH], Parent_Label[SUMA_MAX_NAME_LENGTH], *store=NULL;
+   char Label[SUMA_MAX_NAME_LENGTH], 
+        Parent_Label[SUMA_MAX_NAME_LENGTH], *store=NULL;
    SUMA_SurfaceObject *SO = NULL;
    char **clist=NULL;
    void **oplist=NULL;
@@ -2280,7 +2313,8 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, S
    for (i=0; i < N_dov; ++i) {
       if (dov[i].ObjectType == ROIdO_type) {
          ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Found an ROI %s\n", FuncName, ROI->Label);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, "%s: Found an ROI %s\n", FuncName, ROI->Label);
          if (!ROI->Label) sprintf (Label,"NULL");
          else sprintf (Label,"%s", ROI->Label);
          if (!ROI->Parent_idcode_str) sprintf (Parent_Label,"NULL");
@@ -2291,7 +2325,8 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, S
             else sprintf (Parent_Label,"%s", SO->Label);
          }
          /* Now allocate space for that label */
-         store = (char *)SUMA_calloc(strlen(Label)+strlen(Parent_Label)+5, sizeof(char));
+         store = (char *)SUMA_calloc(strlen(Label)+strlen(Parent_Label)+5, 
+                                       sizeof(char));
          if (SortByLabel) {
             sprintf(store,"%s:%s", Label, Parent_Label);
          } else  {
@@ -2431,7 +2466,8 @@ SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT
  \return ROI (SUMA_DRAWN_ROI *) pointer to ROI object, NULL if no such object is found.
  
 */
-SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov, int N_dov) 
+SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, 
+                                           SUMA_DO * dov, int N_dov) 
 {
    int i;
    SUMA_DRAWN_ROI *ROI = NULL;
@@ -2664,7 +2700,8 @@ SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO)
       the duplicates, you need to count non-zero values in Mask. 
 \return Mask (int *) pointer to modified mask vector. 
 */
-int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_do, SUMA_SurfaceObject *SO, int *Mask, int *N_added)
+int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_do, SUMA_SurfaceObject *SO, 
+                              int *Mask, int *N_added)
 {
    static char FuncName[]={"SUMA_Build_Mask_AllROI"};
    int Npart = 0,i;

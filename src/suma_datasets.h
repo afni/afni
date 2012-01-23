@@ -115,6 +115,8 @@ typedef struct {
 #define NOPE 0
 #define YUP 1
 
+typedef enum { SUMA_SIDE_ERROR=-1, SUMA_NO_SIDE, SUMA_LR, SUMA_LEFT, SUMA_RIGHT } SUMA_SO_SIDE; 
+
 typedef enum { SUMA_NO_NUM_UNITS = 0, 
                SUMA_MM_UNITS,
                SUMA_P_VALUE_UNITS,
@@ -347,6 +349,7 @@ typedef struct {
                            see SUMA_ROI_DRAWING_TYPE*/
    char *idcode_str;
    char *Parent_idcode_str;
+   int Parent_side;
    char *Label;
    char *ColPlaneName;
    float FillColor[4];  /*!< RGB fill color */
@@ -1589,8 +1592,10 @@ void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test);
 char *SUMA_FnameGet(char *Fname, char *sel, char *cwd);
 int SUMA_NumStringUnits (char *s, int marktip); 
 int SUMA_StringToNum (char *s, void *vv, int N, int p);
+int SUMA_StringToNumSide (char *s, void *vv, int N, int p, int *sd);
 int SUMA_isNumString (char *s, void *p);
 int SUMA_CleanNumString (char *s, void *p);
+int SUMA_CleanNumStringSide (char *s, void *p);
 char *SUMA_copy_string(char *buf);
 char *SUMA_copy_quoted( char *s, char *eop, 
                         char q1, char q2, int deblank,
@@ -1598,6 +1603,7 @@ char *SUMA_copy_quoted( char *s, char *eop,
 char *args_in_quotes(char **argv, int *kar, int N_argv, char *opq, 
                      char *cloq, int clearused);
 char *args_in_niml_quotes(char **argv, int *kar, int N_argv, int clearused);
+char *args_in_simple_quotes(char **argv, int *kar, int N_argv, int clearused);
 char * SUMA_append_string(char *s1, char *s2);
 char * SUMA_append_replace_string(  char *s1, char *s2, 
                                     char *Spc, int whichTofree);

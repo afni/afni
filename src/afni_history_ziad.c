@@ -65,12 +65,30 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 20, JAN , 2011 , ZSS , "afni" , MICRO , TYPE_MODIFY,
+ { 23, JAN , 2012 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT,
+   "Allowed addition of 'R' or 'L' when jumping to a node.",
+   "This make DriveSuma work well with node indices that are specified\n"
+   "for two hemispheres as is done in the batch mode of 3dGroupInCorr.\n"
+   "This applies to both suma and DriveSuma",
+ },
+ 
+ { 23, JAN , 2012 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Improved logic for assigning ROIs when parent is not present",
+   "ROI parent assignment now takes into account last visited surface"
+   "in any of the open viewer, and hemisphere side when appropriate.",
+ },
+ 
+ { 23, JAN , 2012 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Fixed bug in display of FRAME bound textures.",
+   "Looks like it had to do with depth testing.",
+ },
+ 
+ { 20, JAN , 2012 , ZSS , "afni" , MICRO , TYPE_MODIFY,
    "Trim dset names to keep them readable in plugin dataset selector buttons",
    "See function TrimString() and how it is used in PLUG_finalize_dataset_CB()",
  },
  
- { 20, JAN , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
+ { 20, JAN , 2012 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
    "Added -h_web, and -Vname= to all C command-line programs.",
    "See also apsearch -web_prog_help option",
  },
