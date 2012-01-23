@@ -11288,15 +11288,16 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
                   
    \sa warnings in SUMA_CreateFileSelectionDialogStruct
 */
-SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (SUMA_PROMPT_MODE Mode, char *TextFieldLabel, 
-                                                         char *init_selection, 
-                                                         Widget daddy, SUMA_Boolean preserve,
-                                                         SUMA_PROMPT_BUTTONS Return_button,
-                                                         void(*SelectCallback)(char *selection, void *data), void *SelectData,
-                                                         void(*CancelCallback)(void *data), void *CancelData,
-                                                         void(*HelpCallback)(void *data), void *HelpData,
-                                                         int(*VerifyFunction)(char *selection, void *data), void *VerifyData,
-                                                         SUMA_PROMPT_DIALOG_STRUCT *oprmpt)
+SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (
+      SUMA_PROMPT_MODE Mode, char *TextFieldLabel, 
+      char *init_selection, 
+      Widget daddy, SUMA_Boolean preserve,
+      SUMA_PROMPT_BUTTONS Return_button,
+      void(*SelectCallback)(char *selection, void *data), void *SelectData,
+      void(*CancelCallback)(void *data), void *CancelData,
+      void(*HelpCallback)(void *data), void *HelpData,
+      int(*VerifyFunction)(char *selection, void *data), void *VerifyData,
+      SUMA_PROMPT_DIALOG_STRUCT *oprmpt)
 {
    static char FuncName[]={"SUMA_CreatePromptDialogStruct"};
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;

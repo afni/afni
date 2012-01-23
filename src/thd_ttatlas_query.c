@@ -8054,16 +8054,18 @@ char * dequote_name (char *name, char qo) {
    int nch = 0, bb=0;
    
    if (!name) return(name);
-   
+
    nch = strlen(name);
    
+   if (nch < 2) return(name);
    if (qo == '\0') {
       qo = name[0]; if (qo != '\'' && qo != '"') return(name);
    }
    
    /* dequote */
    if (name[nch-1] == qo) {
-      for(bb=0; bb<nch-1; ++bb) name[bb]=name[bb+1];
+      for(bb=0; bb<nch-2; ++bb) name[bb]=name[bb+1];
+      name[bb] = '\0';
    }
 
    return(name);

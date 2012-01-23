@@ -7374,7 +7374,8 @@ SUMA_DRAWN_ROI * SUMA_is_NamedColPlane_ForROI(char *PlaneName)
    If no ROI related to SO has PlaneName for a color plane
    then that colorplane is flushed (ie no node colors are left in it, not deleted)
 */
-SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov)
+SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, 
+                                       SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_FlushPlaneNotInUse"};
    SUMA_DRAWN_ROI *D_ROI = NULL;

@@ -251,18 +251,18 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            FuncName, NextCom, NextComCode);
                   break;
                }
+               /* open the ROI file */
+               if (!sv) sv = SUMA_LAST_VIEWER;
                /* wildcard selection 
                  for a surface, just use the one in focus
                  But it is only to select the wildcard
                  SO assignment to an ROI is done in the ROI
                  reading function*/
                SO = (SUMA_SurfaceObject *)
-                           SUMAg_DOv[SUMAg_SVv[0].Focus_SO_ID].OP;
+                           SUMAg_DOv[sv->Focus_SO_ID].OP;
                if (!SUMA_WildcardChoice(2, SO, sbuf)) {
                   sprintf(sbuf, "*.roi");
                }
-               /* open the ROI file */
-               if (!sv) sv = &(SUMAg_SVv[0]);
                if (!EngineData->vp) EngineData->vp = sv;
                if (!EngineData->ip) {
                   SUMAg_CF->X->FileSelectDlg = 

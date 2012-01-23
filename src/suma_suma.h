@@ -155,13 +155,19 @@
      }
    #endif
 
-   #define SUMA_S_Warnv SUMA_S_Warn 
+   #define SUMA_S_Warnv(msg,...) {\
+      fprintf (SUMA_STDERR, "Warning %s:\n", FuncName);  \
+      fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+   } 
    
    #define SUMA_S_Note(msg) {\
       fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \
    }
-   #define SUMA_S_Notev SUMA_S_Note
-   
+   #define SUMA_S_Notev(msg,...) {\
+      fprintf (SUMA_STDERR, "Notice %s:\n", FuncName);  \
+      fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+   }
+      
    #define SUMA_S_Err(msg) {\
       fprintf (SUMA_STDERR, "Error %s:\n %s\n", FuncName, msg);  \
    }
