@@ -3583,7 +3583,7 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
    GLboolean valid;
    GLint viewport[4];
    int orthoreset = 0;
-   int id=0, ii = 0, sz[3]={0, 0, 0};
+   int id=0, ii = 0, sz[3]={0, 0, 0}, dt = 0;
    int N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
    SUMA_SurfaceObject *SOt=NULL;
    static GLuint texName;
@@ -3631,19 +3631,27 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
       /* If you don't turn offset off, FRAME bound texture (afniman.jpg)
          won't show ...  ZSS April 2011 */
       /* afniman.jpg (in @DO.examples) now does not show up unless
-      view is in orthographic mode. I'll need to debug this someday.
-      Start with what happens in if (!sv->ortho) in SUMA_PrepForNIDOnelPlacement,
-      revisit the logic of SUMA_SET_GL_PROJECTION in that bloc from which 
-      I might need to recover something.
+      view is in orthographic mode. Behavior might change whether or
+      not one is in ortho mode. See comment below about turning off
+      depth test.
                                           ZSS Jan 2012 */ 
       glDisable (GL_POLYGON_OFFSET_FILL);
    }
+   
    
    /* does this have its own coordinates ? */
    target = NI_get_attribute(nel,"target");
    if (target && strcmp(target, "FRAME")==0) {
       SUMA_LH(  "Creating texture, see init pp 359 in \n"
                 "OpenGL programming guide, 3rd ed.");
+                          /* Frame texture (afniman.jpg in @DO.examples         
+                             had been obscuring meshes no matter where
+                             it was placed in the Z direction. Not sure
+                             why but since it is only to be used as
+                             a background display, undoing GL_DEPTH_TEST
+                             seemed to do the trick. Jan 2012 */
+      if ((dt = glIsEnabled(GL_DEPTH_TEST))) glDisable(GL_DEPTH_TEST);
+   
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
       NI_GET_INT(nel,"texName",texName);
       if (!NI_GOT) {
@@ -3718,6 +3726,8 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
       glEnable (GL_POLYGON_OFFSET_FILL); /* April 2011  */
    }
    
+   if (dt) glEnable(GL_DEPTH_TEST); /* Jan 2012 */
+
    SUMA_RETURN(YUP);   
 }
 
