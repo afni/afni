@@ -501,6 +501,13 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    }         
 
 /*!
+   \brief Get the pointer for the last visited viewer 
+*/
+#define SUMA_LAST_VIEWER (SUMAg_CF->PointerLastInViewer >=0 && SUMAg_N_SVv >1 ? \
+                             &(SUMAg_SVv[SUMAg_CF->PointerLastInViewer]) : \
+                             &(SUMAg_SVv[0]))
+
+/*!
    \brief SO->Show is not quite not the end of the story
 */ 
 #define SO_SHOWING(SO,sv) ( SO->Show && SO->PolyMode != SRM_Hide && (SO->PolyMode != SRM_ViewerDefault || sv->PolyMode != SRM_Hide) )

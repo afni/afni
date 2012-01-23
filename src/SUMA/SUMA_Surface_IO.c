@@ -5550,7 +5550,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
    NI_element *nel = NULL;
    NI_element **nelv=NULL;
    NI_stream ns ;
-   int n_read=0, idat, answer, inel, iDO, N_nel, iwarn=0, ir=0;
+   int n_read=0, idat, answer, inel, iDO, N_nel, iwarn=0, ir=0, sd=0;
    SUMA_NIML_ROI_DATUM *niml_ROI_datum_buff=NULL;
    SUMA_NIML_DRAWN_ROI * nimlROI=NULL;
    SUMA_DRAWN_ROI **ROIv=NULL;
@@ -5561,11 +5561,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
    
    SUMA_ENTRY;
 
-   if (!sv) {
-      if (SUMAg_CF->PointerLastInViewer >= 0 && SUMAg_N_SVv > 1) {
-         sv = &(SUMAg_SVv[SUMAg_CF->PointerLastInViewer]);
-      }
-   } 
+   if (!sv) { sv = SUMA_LAST_VIEWER;} 
    
    if (!sv) sv = &(SUMAg_SVv[0]);
    
@@ -5746,14 +5742,40 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
                         , filename );
                      ++iwarn;
                   }
+                  
+                  sd=SUMA_SideType(NI_get_attribute(nel,"Parent_side"));
                   /* assume user has selected the proper surface first */
-                  if (sv->Focus_SO_ID >= 0) {
+                  if (iDO < 0 && sv->Focus_SO_ID >= 0) { 
+                                          /* Use selection and side match ?*/
+                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+                     if (SUMA_isSurfaceOfSide(SO,sd)) {
+                        iDO = SUMA_findSO_inDOv(SO->LocalDomainParentID, 
+                                             SUMAg_DOv, SUMAg_N_DOv); 
+                        SUMA_LHv("User SO selection (%d) ?\n", iDO);
+                     }
+                  }
+                  if (iDO < 0) {
+                              /* How about a big LDP with side match ? */
+                     if (sd == SUMA_LEFT || sd == SUMA_RIGHT || sd == SUMA_LR) {
+                        iDO = SUMA_BiggestLocalDomainParent_Side(SUMAg_DOv, 
+                                                                 SUMAg_N_DOv,
+                                                                 sd);   
+                        SUMA_LHv("Got big one (%d) of same side?\n", iDO);
+                     }
+                  }
+                  /* forget the side now */
+                  if (iDO < 0 && sv->Focus_SO_ID >= 0 ) {
+                           /* user selection, who cares about sid */
                      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
                      iDO = SUMA_findSO_inDOv(SO->LocalDomainParentID, 
-                                             SUMAg_DOv, SUMAg_N_DOv); 
+                                          SUMAg_DOv, SUMAg_N_DOv); 
+                     SUMA_LHv("User SO selection (%d) no side check ?\n",
+                               iDO);
                   }
-                  if (iDO < 0) { /* try one more time */
-                     iDO = SUMA_BiggestLocalDomainParent(SUMAg_DOv, SUMAg_N_DOv);                   }
+                  if (iDO < 0) { /* try one last time */
+                           /* Damnit, Janet, get anything */
+                     iDO = SUMA_BiggestLocalDomainParent(SUMAg_DOv, SUMAg_N_DOv);                      SUMA_LHv("Got big one (%d) of any side?\n", iDO);
+                  }
                   if (iDO < 0) {
                      SUMA_S_Err("Can't find adoptive surface\n"
                                  "Try selecting adoptive surface before\n"
@@ -7072,13 +7094,15 @@ void SUMA_SaveDrawnROI (char *filename, void *data)
    /* switch the type of saving */
    switch (SUMAg_CF->X->DrawROI->SaveMode) {
       case SW_DrawROI_SaveMode1D:
-         if (!SUMA_SaveDrawnROI_1D (filename, SO, DrawnROI, SUMAg_CF->X->DrawROI->SaveWhat)) {
+         if (!SUMA_SaveDrawnROI_1D (filename, SO, DrawnROI, 
+                                    SUMAg_CF->X->DrawROI->SaveWhat)) {
             SUMA_SLP_Err("Failed to save ROI to disk");
             SUMA_RETURNe;
          }   
          break;
       case SW_DrawROI_SaveModeNIML:
-         if (!SUMA_SaveDrawnROINIML (filename, SO, DrawnROI, SUMAg_CF->X->DrawROI->SaveWhat, SUMA_ASCII)) {
+         if (!SUMA_SaveDrawnROINIML (filename, SO, DrawnROI, 
+                                  SUMAg_CF->X->DrawROI->SaveWhat, SUMA_ASCII)) {
             SUMA_SLP_Err("Failed to save ROI to disk");
             SUMA_RETURNe;
          }
@@ -7094,7 +7118,8 @@ void SUMA_SaveDrawnROI (char *filename, void *data)
    SUMA_RETURNe;
 } 
 
-SUMA_Boolean SUMA_SaveDrawnROI_1D (char *filename, SUMA_SurfaceObject *SO, SUMA_DRAWN_ROI *DrawnROI, int SaveWhat) 
+SUMA_Boolean SUMA_SaveDrawnROI_1D (char *filename, SUMA_SurfaceObject *SO, 
+                                   SUMA_DRAWN_ROI *DrawnROI, int SaveWhat) 
 {
    static char FuncName[]={"SUMA_SaveDrawnROI_1D"};
    char stmp[SUMA_MAX_NAME_LENGTH+20];
@@ -7113,7 +7138,8 @@ SUMA_Boolean SUMA_SaveDrawnROI_1D (char *filename, SUMA_SurfaceObject *SO, SUMA_
       }
    }else if (SaveWhat == SW_DrawROI_SaveWhatRelated){
       /* get the pointers to the ROIs that are related to SO*/
-      if (!(ROIv = SUMA_Find_ROIrelatedtoSO (SO, SUMAg_DOv, SUMAg_N_DOv, &N_ROI))) {
+      if (!(ROIv = SUMA_Find_ROIrelatedtoSO (SO, SUMAg_DOv, SUMAg_N_DOv, 
+                                             &N_ROI))) {
          SUMA_SLP_Err("Failed to write ROIs related to SO.");
          SUMA_RETURN(NOPE);
       }
@@ -7134,7 +7160,9 @@ SUMA_Boolean SUMA_SaveDrawnROI_1D (char *filename, SUMA_SurfaceObject *SO, SUMA_
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean SUMA_SaveDrawnROINIML (char *filename, SUMA_SurfaceObject *SO, SUMA_DRAWN_ROI *DrawnROI, int SaveWhat, int Format) 
+SUMA_Boolean SUMA_SaveDrawnROINIML (char *filename, SUMA_SurfaceObject *SO, 
+                                    SUMA_DRAWN_ROI *DrawnROI, int SaveWhat, 
+                                    int Format) 
 {
    static char FuncName[]={"SaveDrawnROINIML"};
    char stmp[SUMA_MAX_NAME_LENGTH+20];
@@ -7153,7 +7181,8 @@ SUMA_Boolean SUMA_SaveDrawnROINIML (char *filename, SUMA_SurfaceObject *SO, SUMA
       }
    }else if (SaveWhat == SW_DrawROI_SaveWhatRelated){
       /* get the pointers to the ROIs that are related to SO*/
-      if (!(ROIv = SUMA_Find_ROIrelatedtoSO (SO, SUMAg_DOv, SUMAg_N_DOv, &N_ROI))) {
+      if (!(ROIv = SUMA_Find_ROIrelatedtoSO (SO, SUMAg_DOv, SUMAg_N_DOv, 
+                                             &N_ROI))) {
          SUMA_SLP_Err("Failed to write ROIs related to SO.");
          SUMA_RETURN(NOPE);
       }
@@ -7176,7 +7205,8 @@ SUMA_Boolean SUMA_SaveDrawnROINIML (char *filename, SUMA_SurfaceObject *SO, SUMA
    \brief writes a vector of SUMA_DRAWN_ROI * to disk in NIML format
 */
 
-SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *filename, int Format) 
+SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, 
+                                       char *filename, int Format) 
 {
    static char FuncName[]={"SUMA_Write_DrawnROI_NIML"};
    char stmp[SUMA_MAX_NAME_LENGTH+20];
@@ -7201,7 +7231,8 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
       SUMA_SL_Err("Bad niml type code");
       SUMA_RETURN(NOPE);
    }
-   if (LocalHead) fprintf(SUMA_STDERR, "%s: roi_type code = %d\n", FuncName, SUMAg_CF->nimlROI_Datum_type) ;
+   if (LocalHead) fprintf(SUMA_STDERR, "%s: roi_type code = %d\n", 
+                                       FuncName, SUMAg_CF->nimlROI_Datum_type) ;
 
    /* add a .niml.roi extension */
    if (strlen(filename) >= SUMA_MAX_NAME_LENGTH-20) {
@@ -7244,6 +7275,8 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
       NI_set_attribute (nel, "self_idcode", niml_ROI->idcode_str);
       NI_set_attribute (nel, "domain_parent_idcode", 
                               niml_ROI->Parent_idcode_str);
+      NI_set_attribute (nel, "Parent_side", 
+                           SUMA_SideName(niml_ROI->Parent_side));
       NI_set_attribute (nel, "Label", niml_ROI->Label);
       sprintf(stmp,"%d", niml_ROI->iLabel);
       NI_set_attribute (nel, "iLabel", stmp);
@@ -7335,6 +7368,7 @@ SUMA_1D_DRAWN_ROI * SUMA_DrawnROI_to_1DDrawROI (SUMA_DRAWN_ROI *ROI)
    ROI_1D->Type = (int)ROI->Type;
    ROI_1D->idcode_str = ROI->idcode_str;
    ROI_1D->Parent_idcode_str = ROI->Parent_idcode_str;
+   ROI_1D->Parent_side = ROI->Parent_side;
    ROI_1D->Label = ROI->Label;
    ROI_1D->iNode = NULL;
    ROI_1D->iLabel = NULL;
@@ -7478,7 +7512,8 @@ SUMA_1D_DRAWN_ROI * SUMA_Free_1DDrawROI (SUMA_1D_DRAWN_ROI *ROI_1D)
    \brief writes a vector of SUMA_DRAWN_ROI * to disk in afni's 1D ascii format
 */
 
-SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *filename) 
+SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, 
+                                     char *filename) 
 {
    static char FuncName[]={"SUMA_Write_DrawnROI_1D"};
    char *newname=NULL;
@@ -7527,7 +7562,10 @@ SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *fil
       fprintf (fout,"#  ni_dimen = \"%d\"\n",  ROI_1D->N);
       fprintf (fout,"#  ni_datasize = \"???\"\n");
       fprintf (fout,"#  idcode_str = \"%s\"\n", ROI_1D->idcode_str);
-      fprintf (fout,"#  Parent_idcode_str = \"%s\"\n", ROI_1D->Parent_idcode_str);
+      fprintf (fout,"#  Parent_idcode_str = \"%s\"\n", 
+                     ROI_1D->Parent_idcode_str);
+      fprintf (fout,"#  Parent_side = \"%s\"\n", 
+                     SUMA_SideName(ROI_1D->Parent_side));
       fprintf (fout,"#  Label = \"%s\"\n", ROI_1D->Label);
       fprintf (fout,"# >\n");
       for (j=0; j < ROI_1D->N; ++j) 

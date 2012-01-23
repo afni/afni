@@ -41,10 +41,12 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
                                         SUMA_SurfaceObject *SO);
 NI_group *SUMA_ExtractAfniSO_FromSumaSO( SUMA_SurfaceObject *SO, 
                                                    int CopyData);
-
+char *SUMA_SideName(SUMA_SO_SIDE ss);
+SUMA_SO_SIDE SUMA_SideType(char *s);
 SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
 SUMA_VolumeObject *SUMA_FreeVolumeObject(SUMA_VolumeObject *VO);
 void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
+
 char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList);
 SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N);
 int SUMA_NumVE(SUMA_VolumeObject *VO);

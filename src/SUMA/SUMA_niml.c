@@ -2407,6 +2407,7 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI)
    nimlROI->Type = (int)ROI->Type;
    nimlROI->idcode_str = ROI->idcode_str;
    nimlROI->Parent_idcode_str = ROI->Parent_idcode_str;
+   nimlROI->Parent_side =  ROI->Parent_side;
    nimlROI->Label = ROI->Label;
    nimlROI->iLabel = ROI->iLabel;
    nimlROI->N_ROI_datum = dlist_size(ROI->ROIstrokelist);
@@ -2481,7 +2482,7 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SU
    
    /* allocate and initialize the whimpy fields 
       Based on SUMA_AllocateDrawnROI*/
-   ROI = (SUMA_DRAWN_ROI *) SUMA_malloc(sizeof(SUMA_DRAWN_ROI));
+   ROI = (SUMA_DRAWN_ROI *) SUMA_calloc(1, sizeof(SUMA_DRAWN_ROI));
    if (  nimlROI->Type == SUMA_ROI_OpenPath || 
          nimlROI->Type == SUMA_ROI_ClosedPath ||
          nimlROI->Type == SUMA_ROI_FilledArea ) { 
@@ -2496,6 +2497,7 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SU
    
    ROI->idcode_str = SUMA_copy_string(nimlROI->idcode_str);
    ROI->Parent_idcode_str = SUMA_copy_string(nimlROI->Parent_idcode_str);
+   ROI->Parent_side = nimlROI->Parent_side;
    ROI->Label = SUMA_copy_string(nimlROI->Label);
    ROI->iLabel = nimlROI->iLabel;
    if (LocalHead) 

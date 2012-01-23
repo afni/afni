@@ -5244,7 +5244,8 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
      
    \sa SUMA_Find_ROIrelatedtoSO 
 */
-SUMA_DRAWN_ROI **SUMA_Find_ROIonSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, int *N_ROI)
+SUMA_DRAWN_ROI **SUMA_Find_ROIonSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, 
+                                    int N_do, int *N_ROI)
 {
    static char FuncName[]={"SUMA_Find_ROIonSO"};
    SUMA_DRAWN_ROI **ROIv=NULL;
@@ -5267,7 +5268,8 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIonSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_
    for (i=0; i < N_do; ++i) {
       if (dov[i].ObjectType == ROIdO_type) {
          D_ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
-         if (!strncmp(D_ROI->Parent_idcode_str, SO->idcode_str, strlen(SO->idcode_str))) {
+         if (!strncmp(D_ROI->Parent_idcode_str, SO->idcode_str, 
+                      strlen(SO->idcode_str))) {
             SUMA_LH("Found an ROI");
             ROIv[roi_cnt] = D_ROI;
             ++roi_cnt;
@@ -5279,7 +5281,8 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIonSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_
    }
    
    /* realloc */
-   ROIv = (SUMA_DRAWN_ROI **)SUMA_realloc(ROIv, sizeof(SUMA_DRAWN_ROI *)*roi_cnt);
+   ROIv = (SUMA_DRAWN_ROI **)
+               SUMA_realloc(ROIv, sizeof(SUMA_DRAWN_ROI *)*roi_cnt);
    if (!ROIv) {
       SUMA_SL_Crit("Failed to reallocate for ROIv");
       SUMA_RETURN(NULL);
@@ -7756,6 +7759,33 @@ static char *SUMA_GeomTypeName(SUMA_GEOM_TYPE tp) {
    return("What the hell?");
 }
 
+char *SUMA_SideName(SUMA_SO_SIDE ss) {
+   switch (ss) {
+      case SUMA_SIDE_ERROR:
+         return("side_error");
+      case SUMA_NO_SIDE:
+         return("no_side");
+      case SUMA_LR:
+         return("LR");
+      case SUMA_LEFT:
+         return("L");
+      case SUMA_RIGHT:
+         return("R");
+      default:
+         return("BadNewsCandidate");
+   }
+}
+
+SUMA_SO_SIDE SUMA_SideType(char *ss) {
+   if (!ss) return(SUMA_NO_SIDE);
+   if (!strcmp(ss,"no_side")) return(SUMA_NO_SIDE);
+   if (!strcmp(ss,"side_error")) return(SUMA_SIDE_ERROR);
+   if (!strcmp(ss,"LR")) return(SUMA_LR);
+   if (!strcmp(ss,"R")) return(SUMA_RIGHT);
+   if (!strcmp(ss,"L")) return(SUMA_LEFT);
+   return(SUMA_SIDE_ERROR);
+}
+
 /*!
    \brief Creates a string containing information about the surface
    
@@ -9160,6 +9190,7 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (
    D_ROI->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
    D_ROI->Parent_idcode_str = 
       (char *)SUMA_calloc (strlen(Parent_idcode_str)+1, sizeof (char));
+   D_ROI->Parent_side = SUMA_NO_SIDE;
    /* get some decent name for colplane */
    SO = SUMA_findSOp_inDOv(Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    if (SO && SO->Label) {
@@ -9176,6 +9207,7 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (
       } 
       snprintf(stmp,12*sizeof(char),".%c.%s",sd,SO->State);
       D_ROI->ColPlaneName = SUMA_append_string("ROI",stmp);
+      D_ROI->Parent_side = SO->Side;
    } else {
       D_ROI->ColPlaneName = SUMA_copy_string("DefROIpl");
    }
@@ -9666,7 +9698,8 @@ void SUMA_ReportDrawnROIDatumLength(SUMA_SurfaceObject *SO, SUMA_ROI_DATUM *ROId
    \param ShortVersion (SUMA_Boolean) if YUP, short version
 
 */
-void SUMA_ShowDrawnROI (SUMA_DRAWN_ROI *D_ROI, FILE *out, SUMA_Boolean ShortVersion)
+void SUMA_ShowDrawnROI (SUMA_DRAWN_ROI *D_ROI, FILE *out, 
+                        SUMA_Boolean ShortVersion)
 {
    static char FuncName[]={"SUMA_ShowDrawnROI"};
    int i;
@@ -9682,11 +9715,15 @@ void SUMA_ShowDrawnROI (SUMA_DRAWN_ROI *D_ROI, FILE *out, SUMA_Boolean ShortVers
       SUMA_RETURNe;
    }
    
-   fprintf(out, "%s: ROI Label %s, Type %d, DrawStatus %d\n Idcode %s, Parent Idcode %s\n", 
-         FuncName, D_ROI->Label, D_ROI->Type, D_ROI->DrawStatus, D_ROI->idcode_str, D_ROI->Parent_idcode_str );
+   fprintf(out, "%s: ROI Label %s, Type %d, DrawStatus %d\n"
+                " Idcode %s, Parent Idcode %s, Side %s\n", 
+         FuncName, D_ROI->Label, D_ROI->Type, D_ROI->DrawStatus, 
+         D_ROI->idcode_str, D_ROI->Parent_idcode_str, 
+         SUMA_SideName(D_ROI->Parent_side) );
    
    if (D_ROI->ActionStack) {
-      fprintf (out, "%s: There are %d actions in the ActionStack.\n", FuncName, dlist_size(D_ROI->ActionStack));
+      fprintf (out, "%s: There are %d actions in the ActionStack.\n", 
+                     FuncName, dlist_size(D_ROI->ActionStack));
    }else {
       fprintf (out, "%s: ActionStack is NULL.\n", FuncName);
    }
@@ -9702,7 +9739,8 @@ void SUMA_ShowDrawnROI (SUMA_DRAWN_ROI *D_ROI, FILE *out, SUMA_Boolean ShortVers
    } else {
       DListElmt *NextElm=NULL;
       int cnt = 0;
-      fprintf(out, "%s: ROIstrokelist has %d elements.\n", FuncName, dlist_size(D_ROI->ROIstrokelist));
+      fprintf(out, "%s: ROIstrokelist has %d elements.\n", 
+                     FuncName, dlist_size(D_ROI->ROIstrokelist));
       do {
          
          if (!NextElm) NextElm = dlist_head(D_ROI->ROIstrokelist);

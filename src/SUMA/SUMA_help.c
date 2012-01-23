@@ -1237,10 +1237,9 @@ char * SUMA_help_message_Info(void)
       "        in Focus. Does not update in other viewers\n"
       "        or in AFNI.\n");
    SS = SUMA_StringAppend (SS, 
-      "     j: Set the cross hair to a certain node on \n"
-      "        SO in Focus.\n"
-      "        Does update in other viewers\n"
-      "        if linked by index"
+      "     j: Set the cross hair to a certain node on SO in Focus.\n"
+      "        Append/prepend L or R to switch hemispheres.\n"
+      "        Does update in other viewers if linked by index\n"
       "        and AFNI if connected\n");
    SS = SUMA_StringAppend (SS, 
       "     Ctrl+j: Set the cross hair's XYZ location. \n"

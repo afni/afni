@@ -1565,15 +1565,16 @@ int SUMA_J_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
              } else if (SUMA_AALT_KEY(key)){     
                   sv->X->JumpFocusNode_prmpt = SUMA_CreatePromptDialogStruct( 
                                  SUMA_OK_APPLY_CLEAR_CANCEL, 
-                                 "Enter index of focus node\n"
-                                 "Cross hair's XYZ will not be affected:", 
+                     "Enter index of focus node\n"
+                     "Prepend/append L/R for hemiisphere selection\n"
+                     "Cross hair's XYZ will not be affected:", 
                                  "",
                                  sv->X->TOPLEVEL, YUP,
                                  SUMA_APPLY_BUTTON,
                                  SUMA_JumpFocusNode, (void *)sv,
                                  NULL, NULL,
                                  NULL, NULL,
-                                 SUMA_CleanNumString, (void*)1,                                                    sv->X->JumpFocusNode_prmpt);
+                                 SUMA_CleanNumStringSide, (void*)1,                                                    sv->X->JumpFocusNode_prmpt);
 
                   sv->X->JumpFocusNode_prmpt = SUMA_CreatePromptDialog(
                                     sv->X->Title, sv->X->JumpFocusNode_prmpt);
@@ -1581,15 +1582,15 @@ int SUMA_J_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
              } else {
                   sv->X->JumpIndex_prmpt = SUMA_CreatePromptDialogStruct(
                                  SUMA_OK_APPLY_CLEAR_CANCEL, 
-                                 "Enter index of node \n"
-                                 "to send the cross hair to:", 
+                            "Enter index of node to send the cross hair to:\n"
+                            "(prepend/append L/R for specifying hemisphere):", 
                                  "",
                                  sv->X->TOPLEVEL, YUP,
                                  SUMA_APPLY_BUTTON,
                                  SUMA_JumpIndex, (void *)sv,
                                  NULL, NULL,
                                  NULL, NULL,
-                                 SUMA_CleanNumString, (void*)1,  
+                                 SUMA_CleanNumStringSide, (void*)1,  
                                  sv->X->JumpIndex_prmpt);
 
                   sv->X->JumpIndex_prmpt = SUMA_CreatePromptDialog(
@@ -7217,7 +7218,8 @@ void SUMA_JumpIndex (char *s, void *data)
    DListElmt *el=NULL;
    SUMA_EngineData *ED = NULL;
    SUMA_SurfaceViewer *sv = NULL;
-   SUMA_SurfaceObject *SO= NULL;
+   SUMA_SurfaceObject *SO= NULL, *SOc=NULL;
+   SUMA_SO_SIDE sd=SUMA_NO_SIDE;
    float fv3[3];
    int it, iv3[3];
    SUMA_Boolean LocalHead = NOPE; 
@@ -7228,12 +7230,46 @@ void SUMA_JumpIndex (char *s, void *data)
 
    sv = (SUMA_SurfaceViewer *)data;
 
+  /* HERE you should check if you have an L or R at the beginning
+   or end of s.
+   If you do, then first see if the side of SO (the focus surface)
+   is the same as the letter. If it is, proceed. If it is not,
+   try to get the contralateral surface with SUMA_Contralateral_SO
+   then set the contralateral as the focus surface, then proceed
+   with setting the focus node. Needs more work 
+   */
    /* parse s */
-   if (SUMA_StringToNum (s, (void*)fv3, 1,1) != 1) {/*problem, beep and ignore */
+   SUMA_LHv("Parsing %s\n", s);
+   if (SUMA_StringToNumSide(s, (void*)fv3, 1,1, &sd) != 1) {
+                                    /*problem, beep and ignore */
       XBell (XtDisplay (sv->X->TOPLEVEL), 50);
       SUMA_RETURNe;
    }
    
+   /* do we have side match with Focus node? */
+   SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+   if (SO) {
+      SUMA_LHv("Side of jump is %d, SO %s side %d\n", sd, SO->Label, SO->Side);
+   }
+   if (sd == SUMA_RIGHT || sd == SUMA_LEFT) {
+      if ((SO->Side == SUMA_RIGHT || SO->Side == SUMA_LEFT) &&
+            SO->Side != sd) {
+         /* Need to swith sides */
+         if ((SOc = SUMA_Contralateral_SO(SO, SUMAg_DOv, SUMAg_N_DOv))) {
+            sv->Focus_SO_ID = SUMA_findSO_inDOv(SOc->idcode_str, 
+                                             SUMAg_DOv, SUMAg_N_DOv);
+            SUMA_LHv("Jumping to %s (contralateral of %s)\n", 
+                  SOc->Label, SO->Label);
+            SO = SOc;
+         } else {
+            SUMA_S_Errv("Failed to find contralateral surface to %s\n"
+                        "Ignoring jump to node's side marker\n",
+                        SO->Label);
+         }
+      }
+   } 
+
+
    /* Set the Nodeselection  */
    it = (int) fv3[0];
    if (!list) list = SUMA_CreateList ();
@@ -7253,7 +7289,6 @@ void SUMA_JumpIndex (char *s, void *data)
 
 
    /* Now set the cross hair position at the selected node*/
-   SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
    ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
    if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_fv3, (void*)&(SO->NodeList[3*it]),
@@ -7434,7 +7469,9 @@ void SUMA_JumpFocusNode (char *s, void *data)
    SUMA_SurfaceViewer *sv = NULL;
    float fv3[3];
    int it;
-   SUMA_Boolean LocalHead = NOPE; 
+   SUMA_SurfaceObject *SO=NULL, *SOc=NULL;
+   SUMA_SO_SIDE sd=SUMA_NO_SIDE;
+   SUMA_Boolean LocalHead = YUP; 
 
    SUMA_ENTRY;
 
@@ -7451,12 +7488,33 @@ void SUMA_JumpFocusNode (char *s, void *data)
    with setting the focus node. Needs more work 
    */
    /* parse s */
-   if (SUMA_StringToNum (s, (void*)fv3, 1,1) != 1) {/*problem, beep and ignore */
+   SUMA_LHv("Parsing %s\n", s);
+   if (SUMA_StringToNumSide(s, (void*)fv3, 1,1, &sd) != 1) {
+                                    /*problem, beep and ignore */
       XBell (XtDisplay (sv->X->TOPLEVEL), 50);
       SUMA_RETURNe;
    }
    
-
+   SUMA_LHv("Side of focus jump is %d\n", sd);
+   /* do we have side match with Focus node? */
+   if (sd == SUMA_RIGHT || sd == SUMA_LEFT) {
+      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+      if ((SO->Side == SUMA_RIGHT || SO->Side == SUMA_LEFT) &&
+            SO->Side != sd) {
+         /* Need to swith sides */
+         if ((SOc = SUMA_Contralateral_SO(SO, SUMAg_DOv, SUMAg_N_DOv))) {
+            sv->Focus_SO_ID = SUMA_findSO_inDOv(SOc->idcode_str, 
+                                             SUMAg_DOv, SUMAg_N_DOv);
+            SUMA_LHv("Jumping focus only to %s (contralateral of %s)\n", 
+                  SOc->Label, SO->Label);
+            SO = SOc;
+         } else {
+            SUMA_S_Errv("Failed to find contralateral surface to %s\n"
+                        "Ignoring jump to node's side marker\n",
+                        SO->Label);
+         }
+      }
+   } 
    /* Set the Nodeselection  */
    it = (int) fv3[0];
    if (!list) list = SUMA_CreateList ();

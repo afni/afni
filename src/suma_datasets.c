@@ -11835,6 +11835,9 @@ char *SUMA_help_basics()
       "                the Surface Volume.\n"
       "   [-setenv \"'ENVname=ENVvalue'\"]: Set environment variable ENVname\n"
       "                to be ENVvalue. Quotes are necessary.\n"
+      "             Example: suma -setenv \"'SUMA_BackgroundColor = 1 0 1'\"\n"
+      "                See also options -update_env, -environment, etc\n"
+      "                in the output of 'suma -help'\n" 
       "  Common Debugging Options:\n"
       "   [-trace]: Turns on In/Out debug and Memory tracing.\n"
       "             For speeding up the tracing log, I recommend \n"
@@ -13799,7 +13802,48 @@ int SUMA_CleanNumString (char *s, void *p)
       SUMA_RETURN(1);
    }
    
-}   
+}
+
+int SUMA_CleanNumStringSide (char *s, void *p)
+{   
+   static char FuncName[]={"SUMA_CleanNumStringSide"};
+   char *s2=NULL, c ='\0';
+   int nn=0;
+   
+   SUMA_ENTRY;
+   
+   if (!s) SUMA_RETURN(SUMA_CleanNumString(s,p));
+   deblank_name(s);
+   
+   nn = strlen(s);
+   if (s[0]=='r' || s[0]=='R') {
+      c = 'R';
+      s2 = SUMA_copy_string(s+1); 
+   } else if (s[nn-1]=='r' || s[nn-1]=='R') {
+      c = 'R';
+      s[nn-1]='\0'; s2 = SUMA_copy_string(s); 
+   } else if (s[0]=='l' || s[0]=='L') {
+      c = 'L';
+      s2 = SUMA_copy_string(s+1);          
+   } else if (s[nn-1]=='l' || s[nn-1]=='L') {
+      c = 'L';
+      s[nn-1]='\0'; s2 = SUMA_copy_string(s); 
+   } else {
+      /* nothing to do */
+      SUMA_RETURN(SUMA_CleanNumString(s,p));
+   }
+   
+   /* Now clean s2 */
+   s2 = SUMA_copy_string(s); 
+   nn = SUMA_CleanNumString(s2,p);
+   
+   /* Put side back in string */
+   sprintf(s,"%c%s",c,s2);
+   SUMA_free(s2); s2=NULL;
+   
+   SUMA_RETURN(nn);
+}
+
 /*
    Much like SUMA_CleanNumString, but leaves s untouched
 */
@@ -14035,6 +14079,44 @@ int SUMA_StringToNum (char *s, void *vv, int N, int prec)
    SUMA_RETURN(nd);
    
 }   
+
+/* Like SUMA_StringToNum but looks for side flags in beginning or end
+Those would be L or R at the very beginning or very end.
+Function also deblanks s 
+*/
+int SUMA_StringToNumSide(char *s, void *vv, int N, int prec, int *Side)
+{
+   static char FuncName[]={"SUMA_StringToNumSide"};
+   int nn = 0;
+   
+   SUMA_ENTRY;
+   
+   *Side = SUMA_NO_SIDE;
+   if (!s) SUMA_RETURN(SUMA_StringToNum(s,vv,N,prec));
+   
+   deblank_name(s);
+   /* Could get something like 'v"55R"' from DriveSuma. clean a little */
+   if (s[0] == 'v') {
+      ++s;
+      dequote_name(s, '\0');
+   }
+   nn = strlen(s);
+   if (s[0]=='r' || s[0]=='R') {
+      *Side = SUMA_RIGHT;
+      ++s;
+   } else if (s[nn-1]=='r' || s[nn-1]=='R') {
+      *Side = SUMA_RIGHT;
+      s[nn-1]='\0';
+   } else if (s[0]=='l' || s[0]=='L') {
+      *Side = SUMA_LEFT;
+      ++s;         
+   } else if (s[nn-1]=='l' || s[nn-1]=='L') {
+      *Side = SUMA_LEFT;
+      s[nn-1]='\0';
+   }
+
+   SUMA_RETURN(SUMA_StringToNum(s,vv,N,prec));         
+}
 
 /*!
    \brief forces a string to be of a certain length.
@@ -14311,6 +14393,18 @@ char *args_in_niml_quotes(char **argv, int *kar, int N_argv, int clearused)
    } else if ((aq=args_in_quotes(argv, kar, N_argv,"\"<","/>\"", clearused))) {
       return(aq);
    } 
+   return(NULL);
+}
+
+char *args_in_simple_quotes(char **argv, int *kar, int N_argv, int clearused) 
+{
+   char *aq=NULL;
+   
+   if ((aq=args_in_quotes(argv, kar, N_argv,"'","'", clearused))) {
+      return(aq);
+   } else if ((aq=args_in_quotes(argv, kar, N_argv,"\"","\"", clearused))) {
+      return(aq);
+   }  
    return(NULL);
 }
 
