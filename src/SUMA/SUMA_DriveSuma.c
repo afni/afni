@@ -81,13 +81,15 @@ static char uDS_surf_cont[]={
 static char uDS_kill_suma[]={
                "       DriveSuma -com kill_suma\n"
 };
-void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
+void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 {
       static char FuncName[]={"usage_DriveSuma"};
-      char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL;
+      char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL, *snido=NULL;
       int i;
       s = SUMA_help_basics();
+      snido = SUMA_NIDO_Info();
       sio  = SUMA_help_IO_Args(ps);
+
       printf ( "\n"
 "Usage: A program to drive suma from command line.\n"
 "       DriveSuma [options] -com COM1 -com COM2 ...\n"
@@ -186,14 +188,28 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                          -fixed_do2 \"<T text='ognaT' coord='0.2 0.2 0'/>\"\n"
 "                  DriveSuma -com viewer_cont \\\n"
 "                          -fixed_do1 \"<T text='-X-' coord='0.5 0.2 0'/>\"\n"
+"                  DriveSuma -com viewer_cont \\\n"
+"                          -fixed_do3 \"<Tex target='FRAME' \\\n"
+"                                  filename='funstuff/face_afniman.jpg'/>\"\n"
 "\n"
-"               For more information about DOs, see suma -help_nido and \n"
-"               demo script @DO.examples.\n"
+"               For more information about DOs, see NIDO section below \n"
+"               (visible with -help option) and demo script @DO.examples.\n"
 "\n"
 "        -Fixed_do NIML_DO_STRING: Same as -fixed_do, but spits out some \n"
 "                     debugging info.\n"
 "        -mobile_do NIML_DO_STRING: Mobile version of -fixed_do\n"
 "        -Mobile_do NIML_DO_STRING: Mobile version of -Fixed_do\n"
+   , uDS_show_surf, uDS_node_xyz );
+if (detail > 1) { 
+   printf(
+"\n"
+" ---------------------------------------------\n"
+" Details for %s"
+" ---------------------------------------------\n"
+"\n"
+      , snido);
+}
+   printf(
 "        -key KEY_STRING: Act as if the key press KEY_STRING\n"
 "                         was applied in the viewer.\n"
 "                         ~ Not all key presses from interactive\n"
@@ -370,6 +386,10 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "   -echo_edu: Echos the entire command line (without -echo_edu)\n"
 "              for edification purposes\n"
 "   -examples: Show all the sample commands and exit\n"
+"   -help: All the help, in detail\n"
+"   -h: -help, with slightly less detail\n"
+"   -help_nido: Show the help for NIML Displayable Objects and exit.\n"
+"               Same as suma -help_nido\n"
 "   -C_demo: execute a preset number of commands\n"
 "            which are meant to illustrate how one\n"
 "            can communicate with SUMA from one's \n"
@@ -382,9 +402,13 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "%s"
 "%s"
 "\n"
-               , uDS_show_surf, uDS_node_xyz, uDS_viewer_cont, uDS_recorder_cont, uDS_surf_cont, sio,  s);
+               , uDS_viewer_cont, uDS_recorder_cont, uDS_surf_cont, 
+      (detail> 1) ? sio:"use -help for I/O detail\n",  
+      (detail> 1) ? s:"use -help for misc. help basics\n");
       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
-      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+      if (snido) SUMA_free(snido); snido=NULL;
+      /* s = SUMA_New_Additions(0, 1); 
+         printf("%s\n", s);SUMA_free(s); s = NULL; */
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
 }
@@ -1478,12 +1502,19 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_DriveSuma(ps);
+			 usage_DriveSuma(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
 		}
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
+      if (strcmp(argv[kar], "-help_nido") == 0) {
+         char *s = SUMA_NIDO_Info();
+         fprintf (SUMA_STDOUT,"%s\n", s); 
+         SUMA_free(s); s = NULL;
+         exit (0);
+      }
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
@@ -2099,12 +2130,12 @@ int main (int argc,char *argv[])
    if (ps->cs->rps > 0) { ps->cs->nelps = (float)ps->cs->talk_suma * ps->cs->rps; }
    else { ps->cs->nelps = (float) ps->cs->talk_suma * -1.0; }
 
-   if (argc < 0) {
-      usage_DriveSuma(ps);
-      exit (1);
-   }
    
    Opt = SUMA_DriveSuma_ParseInput (argv, argc, ps);
+   if (argc < 1) {
+      SUMA_S_Err("No options, use -h or -help for usage");
+      exit (1);
+   }
 
    if (Opt->debug > 2) LocalHead = YUP;
    
