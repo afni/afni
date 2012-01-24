@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 23, JAN , 2012 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
+   "Added -ld and -no_ld options",
+   "@SUMA_Make_Spec_FS by default now runs MapIcosahedron at two ld values.\n"
+ },
+ 
+ { 23, JAN , 2012 , ZSS , "@SUMA_AlignToExperiment" , MINOR , TYPE_NEW_OPT,
+   "Added -atlas_followers",
+   "Automatically bring along atlas datasets under -surf_anat's directory.\n"
+ },
+ 
  { 23, JAN , 2012 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT,
    "Allowed addition of 'R' or 'L' when jumping to a node.",
    "This make DriveSuma work well with node indices that are specified\n"

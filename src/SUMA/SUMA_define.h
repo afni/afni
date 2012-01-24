@@ -855,17 +855,22 @@ typedef struct {
 typedef struct {
    int LinkedPtrType; /*!< Indicates the type of linked pointer */
    int N_links;   /*!< Number of links to this pointer */
-   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
+   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that 
+                                       pointer. Might never get used.... */
 
 
-   char *idcode_str; /*!< identifier of element containing node's first order neighbors */
-   int N_Node; /*!< Number of nodes whose neighbors are listed in this structure */
+   char *idcode_str; /*!< identifier of element containing node's first 
+                           order neighbors */
+   int N_Node; /*!< Number of nodes whose neighbors are listed in this 
+                    structure */
    int *NodeId; /*!< Id of each node whose neighbors are listed in this structure 
-                     *** WARNING: *** A lot of functions do not use this field and assume
-                     N_Node = number of nodes in the surface! */
-   int **FirstNeighb; /*!< N_Node x N_Neighb_max matrix with each row specifying the indices of neighboring nodes.
-                        After Tue Jan  7 18:13:44 EST 2003: The nodes are now ordered to form a path on the surface.
-                        Note: There is no guarantee that the path is closed. */
+            *** WARNING: *** A lot of functions do not use this field and assume
+            N_Node = number of nodes in the surface! */
+   int **FirstNeighb; /*!< N_Node x N_Neighb_max matrix with each row specifying 
+                        the indices of neighboring nodes.
+                       After Tue Jan  7 18:13:44 EST 2003: The nodes are now 
+                       ordered to form a path on the surface.
+                   Note: There is no guarantee that the path is closed. */
    int *N_Neighb; /*!< maximum number of neighbors for a particular node */
    int N_Neighb_max; /*!< maximum number of neighbors of all nodes */
 } SUMA_NODE_FIRST_NEIGHB;

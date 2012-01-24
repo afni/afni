@@ -1,19 +1,6 @@
 #include "mrilib.h"
 
-int main( int argc , char *argv[] )
-{
-   int iarg , ii,jj,kk,mm , nvec , do_one=0 , nx=0,ny , ff, doterse = 0 ;
-   MRI_IMAGE *tim ;
-   MRI_IMARR *tar ;
-   double sum , *eval , *amat , **tvec , *bmat , *svec ;
-   float *far ;
-   int demean=0 , docov=0 ;
-   char *matname ;
-   int okzero = 0;
-   
-   /* help? */
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+void usage_1ddot(int detail) {
      printf("Usage: 1ddot [options] 1Dfile 1Dfile ...\n"
             "* Prints out correlation matrix of the 1D files and\n"
             "  their inverse correlation matrix.\n"
@@ -32,14 +19,29 @@ int main( int argc , char *argv[] )
             "          Expect rubbish in the inverse matrices if all zero \n"
             "          vectors exist.\n"
            ) ;
-     PRINT_COMPILE_DATE ; exit(0) ;
-   }
-
+   PRINT_COMPILE_DATE ;
+   return;
+}
+int main( int argc , char *argv[] )
+{
+   int iarg , ii,jj,kk,mm , nvec , do_one=0 , nx=0,ny , ff, doterse = 0 ;
+   MRI_IMAGE *tim ;
+   MRI_IMARR *tar ;
+   double sum , *eval , *amat , **tvec , *bmat , *svec ;
+   float *far ;
+   int demean=0 , docov=0 ;
+   char *matname ;
+   int okzero = 0;
+   
+   mainENTRY("1ddot main"); machdep();
    /* options */
 
    iarg = 1 ; nvec = 0 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
-
+     if (strcmp(argv[iarg],"-help") == 0 || strcmp(argv[iarg],"-h") == 0){
+       usage_1ddot(strlen(argv[iarg])>3 ? 2:1);
+       exit(0);
+     }
      if( strcmp(argv[iarg],"-one") == 0 ){
        demean = 0 ; do_one = 1 ; iarg++ ; continue ;
      }
@@ -64,7 +66,14 @@ int main( int argc , char *argv[] )
        doterse = 1 ; iarg++ ; continue ;
      }
 
-     fprintf(stderr,"** Unknown option: %s\n",argv[iarg]); exit(1);
+     fprintf(stderr,"** Unknown option: %s\n",argv[iarg]); 
+     suggest_best_prog_option(argv[0], argv[iarg]);
+     exit(1);
+   }
+   
+   if( argc < 2 ){
+     ERROR_message("Too few options. Try 1ddot -help for details");
+     exit(1) ;
    }
 
    if( iarg == argc ){

@@ -7882,7 +7882,8 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
 
    \param EL (SUMA_EDGE_LIST *) pointer to the EdgeList structure 
                                  (usually SO->EL)
-   \param N_Node (int) total number of nodes (usually SO->N_Node)
+   \param N_Node (int) total number of nodes 
+                              (ALWAYS pass SO->N_Node to avoid headaches)
    \ret FN (SUMA_NODE_FIRST_NEIGHB *) pointer to the neighbor list structure
 
 */

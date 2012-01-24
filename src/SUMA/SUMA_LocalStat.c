@@ -1,6 +1,5 @@
 #include "SUMA_suma.h"
 
-
 extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
@@ -293,6 +292,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
    Clust->ValueList[Clust->N_Node] = ToBeAssigned[dothisnode]; \
    ++Clust->N_Node;  \
 }
+
 /*!
    \brief builds a cluster starting from some node 
    
@@ -352,6 +352,384 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
          SUMA_free(Clust); Clust = NULL;
          SUMA_RETURN(NULL);  
       }
+   candlist = (DList*)SUMA_malloc(sizeof(DList));
+   visited = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
+   if (!visited || !candlist) {
+      SUMA_SL_Crit("Failed to allocate for visited or candlist");  
+      SUMA_free(Clust); Clust = NULL;
+      SUMA_RETURN(NULL);  
+   }
+   dlist_init(candlist, NULL);
+   /* Add node to cluster */
+   SUMA_ADD_NODE_TO_CLUST(dothisnode, Clust, NodeArea, ToBeAssigned);
+   /* mark it as assigned, an reduce the number of nodes left to assign*/
+   ToBeAssigned[dothisnode] = 0; --(*N_TobeAssigned);
+   visited[dothisnode] = YUP;
+   dlist_ins_next(candlist, dlist_tail(candlist), (VOID_CAST)dothisnode);
+      while (*N_TobeAssigned && dlist_size(candlist)) {
+         /* look in its vicinity */
+         dothiselm = dlist_head(candlist); 
+         dothisnode = (INT_CAST) dothiselm->data;
+         SUMA_getoffsets2 (dothisnode, SO, Opt->DistLim, OffS, NULL, 0);
+         /* remove node from candidate list */
+         dlist_remove(candlist, dothiselm, (void*)&dtmp);
+         /* search to see if any are to be assigned */
+         if (Opt->DistLim >= 0.0) {
+            for (il=1; il<OffS->N_layers; ++il) { 
+               /*  starting at layer 1, layer 0 is the node itself */
+               for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) {
+                  neighb = OffS->layers[il].NodesInLayer[jl];
+                  if (  ToBeAssigned[neighb] && 
+                        OffS->OffVect[neighb] <= Opt->DistLim) {
+                     /* take that node into the cluster */
+                     SUMA_ADD_NODE_TO_CLUST( neighb, Clust, 
+                                             NodeArea, ToBeAssigned);
+                     /* mark it as assigned, an reduce the number 
+                        of nodes left to assign*/
+                     ToBeAssigned[neighb] = 0; --(*N_TobeAssigned);
+                     if (Opt->update) {
+                        if (N_Orig - *N_TobeAssigned >= Opt->update) {
+                           if (LocalHead) 
+                              fprintf( SUMA_STDERR,
+                                       "%s: tick (%d nodes processed)\n", 
+                                       FuncName, N_Orig - *N_TobeAssigned); 
+                           else fprintf(SUMA_STDERR,".");
+
+                           N_Orig = *N_TobeAssigned;
+                        }
+                     }
+                     /* mark it as a candidate if it has not been visited as 
+                        a candidate before */
+                     if (!visited[neighb]) {
+                        dlist_ins_next(candlist, dlist_tail(candlist), 
+                                       (VOID_CAST)neighb);
+                        visited[neighb] = YUP;   
+                     }
+                  }
+               }
+            }
+         } else {/* accept nodes connected by up to -((int)Opt->DistLim) edges */
+            for (il=1; il <= -((int)Opt->DistLim); ++il) {
+               for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) {
+                  neighb = OffS->layers[il].NodesInLayer[jl];
+                  if (  ToBeAssigned[neighb] ) {
+                        /* take that node into the cluster */
+                     SUMA_ADD_NODE_TO_CLUST( neighb, Clust, 
+                                             NodeArea, ToBeAssigned);
+                     /* mark it as assigned, an reduce the number 
+                        of nodes left to assign*/
+                     ToBeAssigned[neighb] = 0; --(*N_TobeAssigned);
+                     if (Opt->update) {
+                        if (N_Orig - *N_TobeAssigned >= Opt->update) {
+                           if (LocalHead) 
+                              fprintf( SUMA_STDERR,
+                                       "%s: tick (%d nodes processed)\n", 
+                                       FuncName, N_Orig - *N_TobeAssigned); 
+                           else fprintf(SUMA_STDERR,".");
+
+                           N_Orig = *N_TobeAssigned;
+                        }
+                     }
+                     /* mark it as a candidate if it has not been visited as 
+                        a candidate before */
+                     if (!visited[neighb]) {
+                        dlist_ins_next(candlist, dlist_tail(candlist), 
+                                       (VOID_CAST)neighb);
+                        visited[neighb] = YUP;   
+                     }
+                  }
+               }
+            }
+         }
+         /* recycle */
+         SUMA_Recycle_getoffsets (OffS);
+      }
+   /* free this OffS structure  */
+   if (OffS) SUMA_Free_getoffsets(OffS); OffS = NULL;
+   if (Opt->update) fprintf(SUMA_STDERR,"\n");
+   /* destroy the list */
+   if (candlist) { 
+      dlist_destroy(candlist); SUMA_free(candlist); candlist  = NULL; 
+   }
+   SUMA_RETURN(Clust);
+}
+
+float *SUMA_AvgGradient(SUMA_SurfaceObject *SO, float **FirstNeighbDist,
+                             float *nv, byte *mask,
+                             byte mask_zeros)
+{
+   static char FuncName[]={"SUMA_AvgGradient"};   
+   int i=0, k=0, ki=0, ng=0;
+   float *gr=NULL;
+   SUMA_Boolean LocalHead=YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !SO->FN || !nv || !FirstNeighbDist) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(gr);
+   }
+   
+   if (mask_zeros) {
+      if (!mask) {
+         mask = (byte *)SUMA_malloc(SO->N_Node*sizeof(byte));
+         memset(mask,1,SO->N_Node*sizeof(byte));
+      }
+      for (i=0; i<SO->N_Node; ++i) if (!nv[i]) mask[i]=0;
+   }
+   
+   if (!(gr = (float *)SUMA_calloc(SO->N_Node, sizeof(float)))) {
+      SUMA_S_Crit("Failed to allocate");
+      SUMA_RETURN(NULL);
+   }
+   for (i=0; i<SO->N_Node; ++i) {
+      if (SO->FN->NodeId[i] != i) {
+         SUMA_S_Errv("Unexpected node index mismatch (%d,%d)."
+                    "Please report case to author.",
+                    SO->FN->NodeId[i], i);
+         SUMA_free(gr); gr=NULL; SUMA_RETURN(NULL);
+      }
+      gr[i]=0.0;
+      if (IN_MASK(mask, i)) {
+         ng = 0;
+         for (k=0; k<SO->FN->N_Neighb[i]; ++k) {
+            ki = SO->FN->FirstNeighb[i][k];
+            if (IN_MASK(mask,ki)) {
+               gr[i] += (nv[i]-nv[ki])/FirstNeighbDist[i][k]; ++ng;
+            }
+         }
+         if (ng) gr[i] /= (float)ng;
+      }
+   }
+   
+   SUMA_RETURN(gr);
+}
+
+SUMA_DSET *SUMA_DsetAvgGradient(
+   SUMA_SurfaceObject *SO, float **FirstNeighbDist, SUMA_DSET *din, 
+   byte *mask, byte mask_by_zeros)
+{
+   static char FuncName[]={"SUMA_DsetAvgGradient"};
+   SUMA_DSET *dout = NULL;
+   int *icols = NULL, N_icols = -1, *ind = NULL, n_incopy=-1, masked_only=0;
+   int ic = -1, k = -1, n = -1, nj=-1, jj=-1, N_mask=-1, nval=-1, j=-1;
+   void *ncoli=NULL;
+   char *lblcp=NULL;
+   float *fin_orig=NULL, *fout = NULL, fp = -1.0, **NeighbDist=NULL;
+   byte *bfull=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+      
+   if (!SO || !din) {
+      SUMA_S_Err("Bad input");
+      SUMA_RETURN(NULL);
+   }
+   if (!SO->FN) {
+      if (!SUMA_SurfaceMetrics(SO, "EdgeList|PolyArea|MemberFace",NULL)) {
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+      }
+   }
+  
+   if (!FirstNeighbDist) {
+      NeighbDist = SUMA_CalcNeighbDist (SO);
+   } else {
+      NeighbDist = FirstNeighbDist;
+   }
+   if (!NeighbDist) {
+      SUMA_S_Err("NULL dists");
+      SUMA_RETURN(NULL);
+   }
+   
+   /* what columns can we process ?*/
+   icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
+         
+   if (N_icols <= 0) {
+      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_RETURN(NOPE);   
+   }
+   SUMA_LHv("Have %d numeric columns of input.\n", N_icols);
+   if (!(ind = SDSET_NODE_INDEX_COL(din))) {
+      SUMA_S_Note("Trying to populate the node index element");
+      if (!SUMA_PopulateDsetNodeIndexNel(din, 0)) {
+         SUMA_S_Err("Failed to populate NodeIndex Nel");
+         SUMA_RETURN(NULL);
+      }
+   }
+   /* Create a dset, at least as big as din*/
+   if ((ind = SDSET_NODE_INDEX_COL(din))) {
+      if (!masked_only) {
+         /* preserve all rows */
+         ncoli = 
+            SUMA_Copy_Part_Column(ind, 
+               NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)), 
+               SDSET_VECLEN(din), NULL, masked_only, &n_incopy);
+      } else {
+         ncoli = 
+            SUMA_Copy_Part_Column(ind, 
+               NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)), 
+               SDSET_VECLEN(din), mask, masked_only, &n_incopy);  
+      }
+      if (!ncoli) {
+         SUMA_SL_Err("No index data got copied.");
+         SUMA_RETURN(NULL);
+      }
+      dout = SUMA_CreateDsetPointer("AvgGradient", SUMA_NODE_BUCKET, NULL,  
+                                    SDSET_IDMDOM(din), n_incopy);
+      if (!SUMA_AddDsetNelCol (dout, NI_get_attribute(din->inel,"COLMS_LABS"),                                    SUMA_NODE_INDEX, ncoli, NULL ,1)) {
+         SUMA_SL_Crit("Failed in SUMA_AddDsetNelCol");
+         SUMA_FreeDset((void*)dout); dout = NULL;
+         SUMA_RETURN(NULL);
+      }
+      if (ncoli) SUMA_free(ncoli); ncoli = NULL; 
+   } else {
+      SUMA_S_Err( "Do not have node indices in input dset!\n"
+                  " and could not create one.");
+      SUMA_RETURN(NULL);
+   }
+   
+   /* Now, for each code, do the dance */
+   for (k=0; k < N_icols; ++k) {
+      /* get a float copy of the data column */
+      fin_orig = SUMA_DsetCol2Float (din, icols[k], 1);
+      if (!fin_orig) {
+         SUMA_SL_Crit("Failed to get copy of column. Woe to thee!");
+         SUMA_RETURN(NULL);
+      }
+      
+      /* make sure column is not sparse, one value per node */
+      if (k==0) {
+         SUMA_LH( "Special case k = 0, going to"
+                  " SUMA_MakeSparseColumnFullSorted");
+         bfull = NULL;
+         if (!SUMA_MakeSparseColumnFullSorted(
+                  &fin_orig, SDSET_VECFILLED(din), 0.0, 
+                  &bfull, din, SO->N_Node)) {
+            SUMA_S_Err("Failed to get full column vector");
+            SUMA_RETURN(NULL);
+         }
+         if (bfull) {
+            SUMA_LH( 
+               "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
+            if (mask) {   /* combine bfull with mask */
+               SUMA_LH( "Merging masks\n" );
+               for (jj=0; jj < SO->N_Node; ++jj) { 
+                  if (mask[jj] && !bfull[jj]) mask[jj] = 0; 
+               }   
+            } else { mask = bfull; }
+         } 
+         if (mask) {
+            N_mask = 0;
+            for (n=0; n<SO->N_Node; ++n) { if (mask[n]) ++ N_mask; }
+            SUMA_LHv("FWHMing with node mask (%d nodes in mask)\n", N_mask);
+            if (!N_mask) {
+               SUMA_S_Warn("Empty mask, nothing to do");
+            }
+         }
+      } else {
+         SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(din),                                                   0.0, NULL, din, SO->N_Node)) {
+            SUMA_S_Err("Failed to get full column vector");
+            SUMA_RETURN(NULL);
+         }
+         /* no need for reworking mask and bfull for each column...*/
+      }
+      
+      /* Now I have the data column, nice and solid , do the stats */
+      fout = SUMA_AvgGradient(SO, NeighbDist, fin_orig, mask, mask_by_zeros);
+      if (!fout) {
+         SUMA_SL_Crit("Failed to compute gradient fout!");
+         SUMA_RETURN(NULL);
+      }
+      
+      lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); 
+      lblcp = SUMA_append_replace_string("D[", lblcp, "", 2);
+      lblcp = SUMA_append_replace_string(lblcp, "]", "", 1);
+      if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, 
+                               NULL, NULL ,1)) {
+         SUMA_S_Crit("Failed to add dset column");
+         SUMA_RETURN(NULL);
+      }
+      SUMA_free(lblcp); lblcp=NULL;
+      /* add this column to the output dset */
+      if (!SUMA_Float2DsetCol (dout, icols[k], fout, 1, mask)) {
+         SUMA_S_Err("Failed to update dset's values");
+         SUMA_RETURN(NULL);      
+      }
+         
+         if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL;
+         if (fout) SUMA_free(fout); fout = NULL;
+   } /* for k */
+   
+   if (bfull) SUMA_free(bfull); bfull = NULL;
+   if (NeighbDist != FirstNeighbDist) {
+      SUMA_free2D((char **)NeighbDist, SO->FN->N_Node);       
+   }
+   SUMA_RETURN(dout);
+} 
+
+/*!
+   \brief Finds locally extreme nodes on the surface 
+   
+   \param dothisnode (int) start building from this node
+   \param ToBeAssigned (float *) 
+         if ToBeAssigned[i] then node i (index into SO's nodelist)
+         is considered in the clustering and the value at that
+         node is ToBeAssigned[i]. Vector is SO->N_Node elements
+         long. Gets modified in function.
+   \param N_ToBeAssigned (int *) pointer to number of value values 
+         in ToBeAssigned. Gets modified in function. 
+   \param NodeArea(float *) Vector containing area of each node of surface
+   \param SO (SUMA_SurfaceObject *) the usual deal
+   \param Opt (SUMA_SURFCLUST_OPTIONS *) options for cluster building.     
+      
+*/
+SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_Extrema (  
+   int dothisnode, 
+   float *ToBeAssigned, int *N_TobeAssigned, float *NodeArea,
+   SUMA_SurfaceObject *SO, SUMA_SURFCLUST_OPTIONS *Opt   )
+{
+   static char FuncName[]={"SUMA_Build_Cluster_From_Node_Extrema"};
+   SUMA_CLUST_DATUM *Clust = NULL;
+   static int ncall;
+   static int N_Orig = -1;
+   int il, jl, neighb;
+   void *dtmp=NULL;
+   SUMA_GET_OFFSET_STRUCT *OffS = NULL;
+   DList *offlist = NULL, *candlist=NULL;
+   DListElmt *elm = NULL, *dothiselm=NULL;
+   SUMA_OFFSET_LL_DATUM *dat=NULL;
+   int NewClust = 0;
+   byte *visited=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   ++ncall;
+   /* a trick to know when to initialize */
+   if (Opt->update < 0) { N_Orig = *N_TobeAssigned; Opt->update = -Opt->update; }
+   
+   if (dothisnode < 0) {
+      SUMA_SL_Err("Unexpected negative index.");
+      SUMA_RETURN(NULL);
+   }
+
+   OffS = SUMA_Initialize_getoffsets (SO->N_Node);
+   Clust = (SUMA_CLUST_DATUM *)SUMA_malloc(sizeof(SUMA_CLUST_DATUM));   
+   Clust->N_Node = 0; Clust->totalarea = 0.0; /* Clust->rank = -1; */  
+   Clust->totalvalue = 0.0; Clust->totalabsvalue = 0.0;  
+   Clust->minvalue = ToBeAssigned[dothisnode]; Clust->minnode = dothisnode;
+   Clust->maxvalue = ToBeAssigned[dothisnode]; Clust->maxnode = dothisnode; 
+   Clust->varvalue = 0.0;  Clust->centralnode = 0; 
+   Clust->weightedcentralnode = 0;
+   Clust->NodeList = (int *)SUMA_malloc((*N_TobeAssigned) * sizeof(int)); 
+   Clust->ValueList = (float *)SUMA_malloc((*N_TobeAssigned) * sizeof(float));  
+   if (!Clust->NodeList || !Clust->ValueList || !OffS) { 
+      SUMA_SL_Crit("Failed to allocate for NodeList or ValueList");  
+      SUMA_free(Clust); Clust = NULL;
+      SUMA_RETURN(NULL);  
+   }
    candlist = (DList*)SUMA_malloc(sizeof(DList));
    visited = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
    if (!visited || !candlist) {
@@ -518,6 +896,7 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni,
             dothisnode = i; continue;  
          }  
       }
+      
       if (dothisnode < 0) {
          SUMA_S_Err("Not expected here. dothisnode < 0"); 
          SUMA_RETURN(list);
@@ -529,7 +908,7 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni,
                                                       &N_n, NodeArea, 
                                                       SO, Opt);
       } else if ( BuildMethod == SUMA_OFFSETS2 || 
-                  BuildMethod == SUMA_OFFSETS_LL) {
+                  BuildMethod == SUMA_OFFSETS_LL ) {
          Clust = SUMA_Build_Cluster_From_Node(  dothisnode, NULL, 
                                                 ToBeAssigned, 
                                                 &N_n, NodeArea, 
@@ -1198,12 +1577,13 @@ void SUMA_SetFWHM_MinArea(double MinArea)
 }
 
 #define FAST_APPROX 1
-SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din, 
-                                    byte *nmask, byte strict_mask,
-                                    float rhood, SUMA_OFFSET_STRUCT *UseThisOffset,
-                                    int ncode, int *code, 
-                                    SUMA_DSET *UseThisDout, int ndbg,
-                                    SUMA_SurfaceObject *SOf)
+SUMA_DSET *SUMA_CalculateLocalStats(
+   SUMA_SurfaceObject *SO, SUMA_DSET *din, 
+   byte *nmask, byte strict_mask,
+   float rhood, SUMA_OFFSET_STRUCT *UseThisOffset,
+   int ncode, int *code, 
+   SUMA_DSET *UseThisDout, int ndbg,
+   SUMA_SurfaceObject *SOf)
 {
    static char FuncName[]={"SUMA_CalculateLocalStats"};
    SUMA_DSET *dout = NULL;
@@ -1238,7 +1618,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
          
    if (N_icols <= 0) {
       SUMA_SL_Err("No approriate data columns in dset");
-      SUMA_RETURN(NOPE);   
+      SUMA_RETURN(NULL);   
    }
    
    
@@ -1316,12 +1696,12 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
          fin_orig = SUMA_DsetCol2Float (din, icols[k], 1);
          if (!fin_orig) {
             SUMA_SL_Crit("Failed to get copy of column. Woe to thee!");
-            SUMA_RETURN(NOPE);
+            SUMA_RETURN(NULL);
          }
          fout = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
          if (!fout) {
             SUMA_SL_Crit("Failed to allocate fout!");
-            SUMA_RETURN(NOPE);
+            SUMA_RETURN(NULL);
          }
          /* make sure column is not sparse, one value per node */
          if (k==0) {
@@ -1332,14 +1712,16 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                      &fin_orig, SDSET_VECFILLED(din), 0.0, 
                      &bfull, din, SO->N_Node)) {
                SUMA_S_Err("Failed to get full column vector");
-               SUMA_RETURN(NOPE);
+               SUMA_RETURN(NULL);
             }
             if (bfull) {
-               SUMA_LH( "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
-               /* something was filled in good old SUMA_MakeSparseColumnFullSorted */
+               SUMA_LH( 
+                  "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
                if (nmask) {   /* combine bfull with nmask */
                   SUMA_LH( "Merging masks\n" );
-                  for (jj=0; jj < SO->N_Node; ++jj) { if (nmask[jj] && !bfull[jj]) nmask[jj] = 0; }   
+                  for (jj=0; jj < SO->N_Node; ++jj) { 
+                     if (nmask[jj] && !bfull[jj]) nmask[jj] = 0; 
+                  }   
                } else { nmask = bfull; }
             } 
             if (nmask) {
@@ -1351,7 +1733,8 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                }
             }
             /* now calculate the neighbor offset structure */
-            if (!UseThisOffset && code[ic] != NSTAT_FWHMx) {   /* no need for Offset with FWHMx, zones must be big, too big for this method */
+            if (!UseThisOffset && code[ic] != NSTAT_FWHMx) { /* no need for 
+               Offset with FWHMx, zones must be big, too big for this method */
                SUMA_LH("Calculating OffS_out ...");
                OffS_out = SUMA_FormNeighbOffset (SO, rhood, NULL, nmask, -1.0);
             } else {
@@ -1359,9 +1742,9 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
             }
          } else {
             SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
-            if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(din), 0.0, NULL, din, SO->N_Node)) {
+            if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(din),                                                   0.0, NULL, din, SO->N_Node)) {
                SUMA_S_Err("Failed to get full column vector");
-               SUMA_RETURN(NOPE);
+               SUMA_RETURN(NULL);
             }
             /* no need for reworking nmask and bfull for each column...*/
          }
@@ -1624,7 +2007,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
          /* add this column to the output dset */
          if (!SUMA_Float2DsetCol (dout, icols[k], fout, 1, nmask)) {
             SUMA_S_Err("Failed to update dset's values");
-            SUMA_RETURN(NOPE);      
+            SUMA_RETURN(NULL);      
          }
          
          if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL;

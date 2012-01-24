@@ -8005,7 +8005,7 @@ int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind,
    if (!dset) { SUMA_RETURN(0); }
    
    if (ind < 0 || ind > SDSET_VECNUM(dset) - 1) {
-      SUMA_SL_Err("Bad col index");
+      SUMA_S_Errv("Bad col index (%d/%d)\n", ind, SDSET_VECNUM(dset) - 1);
       SUMA_RETURN(0);
    }
    
