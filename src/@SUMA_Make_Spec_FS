@@ -1,5 +1,7 @@
 #!/bin/tcsh -f
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 # make surface spec files from the surface files
 #
 # usage @SUMA_Make_Spec_FS [options]
@@ -41,6 +43,9 @@ goto L_CREATE_SPEC
 goto L_CREATE_BRICK
      L_CREATE_BRICK_DONE:
 
+goto L_ICO
+     L_ICO_DONE:
+
 goto L_TEST_SURF_VOL
      L_TEST_SURF_VOL_DONE:
 
@@ -55,6 +60,7 @@ L_INIT_VARS:
     set prog_name = $0:t
     set endstr = "$prog_name ... finished"
     set debug     = 0
+    set ldlist = (141 60)
 
     set surf_attribs = (smoothwm      \
          pial         \
@@ -102,7 +108,7 @@ L_PARSE_COMMAND:
     set fs_dir      = "."
     set subj_id      = ""
     set neuro_ori   = 0
-
+    set ldu = ()
     set args     = $#argv
     set count    = 1
 
@@ -176,11 +182,35 @@ L_PARSE_COMMAND:
 
        breaksw
 
+      # ----------------------------------------------------------
+       # usage : -ld VAL
+       case "-ld":
+
+      if ( $count >= $args ) then
+          set endstr = "arg usage: -ld LD"
+          goto L_BAD_END
+      endif
+
+      @ count ++
+      set ldu = ($ldu $argv[$count])
+
+       breaksw
+
+        # ----------------------------------------------------------
+       # usage : -no_ld
+       case "-no_ld":
+
+      set ldlist = ()
+
+       breaksw
+
+      
        # ----------------------------------------------------------
        # bad argument
        default:
 
       set endstr = "invalid option: '$argv[$count]'"
+      apsearch -popt `basename $0` -word $argv[$count]
       goto L_BAD_END
 
        breaksw
@@ -196,7 +226,8 @@ L_PARSE_COMMAND:
 
     if ( $debug ) echo "-- usage okay"
     if ( $debug > 1 ) set echo
-
+    if ( $#ldu ) set ldlist = ($ldu)
+    
     set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
     set afni_prefix  = ${subj_id}_SurfVol
     set afni_dataset = $afni_prefix+orig
@@ -863,6 +894,33 @@ L_CREATE_BRICK:
       
 goto L_CREATE_BRICK_DONE
 
+####################################################################
+# echo run MapIcosahedron 
+
+L_ICO:
+
+   if ($#ldlist < 1) goto L_ICO_DONE
+   
+   echo ""
+   echo "------------------------------------------------------------------"
+   echo "Running MapIcosahedron for both hemispheres at ld values of $ldlist"
+   cd $start_dir/$suma_dir/
+   foreach ld ($ldlist)
+      set both = ()
+      foreach hem (lh rh)
+         set sp = {$subj_id}_${hem}.spec
+         if ( -f $sp) then
+            MapIcosahedron -spec $sp -ld $ld -prefix std.$ld. 
+            set both = ($both std.$ld.{$subj_id}_${hem}.spec)
+         endif
+      end
+      if ($#both == 2) then
+         inspec -LRmerge $both -prefix std.$ld.{$subj_id}_both.spec
+      endif
+   end
+   cd -
+   
+goto L_ICO_DONE
 
 ####################################################################
 # echo details for the user to launch suma and afni, in order to
@@ -942,6 +1000,13 @@ L_HELP_END:
     echo "          neurological orientation, left is really left."
     echo ""
     echo "    -sid SUBJECT_ID : required subject ID for file naming"
+    echo ""
+    echo "    -ld LD : Create standard mesh surfaces with mesh density"
+    echo "             linear depth (see MapIcosahedron -help, option -ld)"
+    echo "             set to LD. You can use multiple -ld options."
+    echo "             By default the script will run ld values of 141 and"
+    echo "             60."
+    echo "    -no_ld: Do not run MapIcosahedron."
     echo ""
     echo ""
     echo "  notes:"

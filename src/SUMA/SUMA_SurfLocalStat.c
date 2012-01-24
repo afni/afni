@@ -8,7 +8,7 @@ void usage_SurfLocalStat (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: A template code for writing SUMA programs.\n"
+               "Usage: A testing program for computing local statistics.\n"
       " -hood R     = Neighborhood of node n consists of nodes within R \n"
       " -nbhd_rad R = distance from n as measured by the shortest \n"
       "               distance along the mesh.\n"
@@ -44,8 +44,8 @@ void usage_SurfLocalStat (SUMA_GENERIC_ARGV_PARSE *ps)
                "%s"
                "%s"
                "\n", sio,  s);
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
-      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; 
+      SUMA_free(sio); sio = NULL;       
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
 }
@@ -143,15 +143,17 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
             code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
             code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
             code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_NUM   ;
-            code[ncode++] = NSTAT_FWHMx ;
+            code[ncode++] = NSTAT_FWHMx ; 
          }
          else {
-            fprintf (SUMA_STDERR, "-stat '%s' is an unknown statistic type",argv[kar]) ;
+            fprintf (SUMA_STDERR, 
+               "-stat '%s' is an unknown statistic type",argv[kar]) ;
          }
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-hood") == 0 || strcmp(argv[kar], "-nbhd_rad") == 0))
+      if (!brk && (strcmp(argv[kar], "-hood") == 0 || 
+                   strcmp(argv[kar], "-nbhd_rad") == 0))
       {
          if (kar+1 >= argc)
          {
@@ -161,14 +163,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
          
          Opt->r = atof(argv[++kar]);
          if (Opt->r <= 0.0) {
-            fprintf (SUMA_STDERR,"Error %s:\nneighborhood radius is not valid (have %f from %s).\n", FuncName, Opt->r, argv[kar]);
+            SUMA_S_Errv("neighborhood radius is not valid (have %f from %s).\n", 
+                        Opt->r, argv[kar]);
 		      exit (1);
          }
          brk = YUP;
       }
       
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			SUMA_S_Errv("Option %s not understood. Try -help for usage\n", 
+                     argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -180,7 +184,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
       Opt->out_prefix = SUMA_copy_string("SurfLocalstat");
    }
    if (Opt->r <= 0.0) {
-      fprintf (SUMA_STDERR,"Error %s:\nneighborhood radius is not set (have %f).\n", FuncName, Opt->r);
+      SUMA_S_Errv("neighborhood radius is not set (have %f).\n", Opt->r);
 		exit (1);
    }
    if (!ncode) {
@@ -220,7 +224,8 @@ int main (int argc,char *argv[])
 
    if (Opt->debug > 2) LocalHead = YUP;
    if (Opt->ps->N_dsetname != 1) {
-      SUMA_S_Errv("Need one and only one dset please. Have %d on command line.\n", Opt->ps->N_dsetname);
+      SUMA_S_Errv("Need one and only one dset please."
+                  "Have %d on command line.\n", Opt->ps->N_dsetname);
       exit(1);
    }
    if (!(din = SUMA_LoadDset_s (Opt->ps->dsetname[0], &iform, 0))) {
@@ -259,7 +264,9 @@ int main (int argc,char *argv[])
       }   
    } else { SOf = NULL; }
    
-   if (!(Opt->nmask = SUMA_load_all_command_masks(Opt->ps->bmaskname, Opt->ps->nmaskname, Opt->ps->cmask, SO->N_Node, &N_inmask)) && N_inmask < 0) {
+   if (!(Opt->nmask = SUMA_load_all_command_masks(Opt->ps->bmaskname, 
+                              Opt->ps->nmaskname, Opt->ps->cmask, SO->N_Node, 
+                              &N_inmask)) && N_inmask < 0) {
          SUMA_S_Err("Failed loading mask");
          exit(1);
    }

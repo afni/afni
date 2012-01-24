@@ -32,6 +32,106 @@ static int   doblk = 0 ;       /* changed by the -block option */
 
 /*----------------------------------------------------------------------------*/
 
+void usage_1dCorrelate(int detail) {
+     printf(
+"Usage: 1dCorrelate [options] 1Dfile 1Dfile ...\n"
+"------\n"
+" * Each input 1D column is a collection of data points.\n"
+" * The correlation coefficient between each column pair is computed, along\n"
+"   with its confidence interval (via a bias-corrected bootstrap procedure).\n"
+" * The minimum sensible column length is 7.\n"
+" * At least 2 columns are needed [in 1 or more .1D files].\n"
+" * If there are N input columns, there will be N*(N-1)/2 output rows.\n"
+" * Output appears on stdout; redirect ('>' or '>>') as needed.\n"
+" * Only one correlation method can be used in one run of this program.\n"
+" * This program is basically the basterd offspring of program 1ddot.\n"
+" * Also see http://en.wikipedia.org/wiki/Confidence_interval\n"
+"\n"
+"-------\n"
+"Methods   [actually, only the first letter is needed to choose a method]\n"
+"-------   [and the case doesn't matter: '-P' and '-p' both = '-Pearson']\n"
+"\n"
+" -Pearson  = Pearson correlation                    [the default method]\n"
+" -Spearman = Spearman (rank) correlation      [more robust vs. outliers]\n"
+" -Quadrant = Quadrant (binarized) correlation  [most robust, but weaker]\n"
+" -Ktaub    = Kendall's tau_b 'correlation'    [popular somewhere, maybe]\n"
+"\n"
+"-------------\n"
+"Other Options  [these options cannot be abbreviated!]\n"
+"-------------\n"
+"\n"
+" -nboot B  = Set the number of bootstrap replicates to 'B'.\n"
+"             * The default value of B is %d.\n"
+"             * A larger number will give somewhat more accurate\n"
+"               confidence intervals, at the cost of more CPU time.\n"
+"\n"
+" -alpha A  = Set the 2-sided confidence interval width to '100-A' percent.\n"
+"             * The default value of A is 5, giving the 2.5..97.5%% interval.\n"
+"             * The smallest allowed A is 1 (0.5%%..99.5%%) and the largest\n"
+"               allowed value of A is 20 (10%%..90%%).\n"
+"             * If you are interested assessing if the 'p-value' of a\n"
+"               correlation is smaller than 5%% (say), then you should use\n"
+"               '-alpha 10' and see if the confidence interval includes 0.\n"
+"\n"
+" -block    = Attempt to allow for serial correlation in the data by doing\n"
+"   *OR*      variable-length block resampling, rather than completely\n"
+" -blk        random resampling as in the usual bootstrap.\n"
+"             * You should NOT do this unless you believe that serial\n"
+"               correlation (along each column) is present and significant.\n"
+"             * Block resampling requires at least 20 data points in each\n"
+"               input column.  Fewer than 20 will turn off this option.\n"
+"-----\n"
+"Notes\n"
+"-----\n"
+"* For each pair of columns, the output include the correlation value\n"
+"  as directly calculated, plus the bias-corrected bootstrap value, and\n"
+"  the desired (100-A)%% confidence interval [also via bootstrap].\n"
+"\n"
+"* The primary purpose of this program is to provide an easy way to get\n"
+"  the bootstrap confidence intervals, since people almost always seem to use\n"
+"  the asymptotic normal theory to decide if a correlation is 'significant',\n"
+"  and this often seems misleading to me [especially for short columns].\n"
+"\n"
+"* Bootstrapping confidence intervals for the inverse correlations matrix\n"
+"  (i.e., partial correlations) would be interesting -- anyone out there\n"
+"  need this ability?\n"
+"\n"
+"-------------\n"
+"Sample output  [command was '1dCorrelate -alpha 10 A2.1D B2.1D']\n"
+"-------------\n"
+"# Pearson correlation [n=12 #col=2]\n"
+"# Name      Name       Value   BiasCorr   5.00%%   95.00%%  N: 5.00%% N:95.00%%\n"
+"# --------  --------  -------- -------- -------- -------- -------- --------\n"
+"  A2.1D[0]  B2.1D[0]  +0.57254 +0.57225 -0.03826 +0.86306 +0.10265 +0.83353\n"
+"\n"
+"* Bias correction of the correlation had little effect; this is very common.\n"
+"\n"
+"* The correlation is not significant at this level, since the CI (confidence\n"
+"  interval) includes 0 in its range.\n"
+"\n"
+"* For the Pearson method ONLY, the last two columns ('N:', as above) also\n"
+"  show the widely used asymptotic normal theory confidence interval.  As in\n"
+"  the example, the bootstrap interval is often (but not always) wider than\n"
+"  the theoretical interval.\n"
+"\n"
+"* In the example, the normal theory might indicate that the correlation is\n"
+"  significant (less than a 5%% chance that the CI includes 0), but the\n"
+"  bootstrap CI shows that is not a reasonable statistical conclusion.\n"
+"\n"
+"* Using the same data with the '-S' option gives the table below, again\n"
+"  indicating that there is no significant correlation between the columns\n"
+"  (note also the lack of the 'N:' results for Spearman correlation):\n"
+"\n"
+"# Spearman correlation [n=12 #col=2]\n"
+"# Name      Name       Value   BiasCorr   5.00%%   95.00%%\n"
+"# --------  --------  -------- -------- -------- --------\n"
+"  A2.1D[0]  B2.1D[0]  +0.46154 +0.42756 -0.23063 +0.86078\n"
+"\n"
+"*** Written by RWCox (AKA Zhark the Correlator) -- 19 May 2011 ***\n"
+
+           , NBOOT ) ;
+     PRINT_COMPILE_DATE ;    
+}  
 int main( int argc , char *argv[] )
 {
    int iarg , ii,jj,kk,mm , nvec , nx=0,ny , ff , vlen=4 ;
@@ -44,108 +144,6 @@ int main( int argc , char *argv[] )
    int cormeth=0 ;    /* 0=Pearson, 1=Spearman, 2=Quadrant, 3=Kendall tau_b */
    float (*corfun)(int,float *,float *) ;
 
-   /* I get by with a little help from my friends? */
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 1dCorrelate [options] 1Dfile 1Dfile ...\n"
-            "------\n"
-            " * Each input 1D column is a collection of data points.\n"
-            " * The correlation coefficient between each column pair is computed, along\n"
-            "   with its confidence interval (via a bias-corrected bootstrap procedure).\n"
-            " * The minimum sensible column length is 7.\n"
-            " * At least 2 columns are needed [in 1 or more .1D files].\n"
-            " * If there are N input columns, there will be N*(N-1)/2 output rows.\n"
-            " * Output appears on stdout; redirect ('>' or '>>') as needed.\n"
-            " * Only one correlation method can be used in one run of this program.\n"
-            " * This program is basically the basterd offspring of program 1ddot.\n"
-            " * Also see http://en.wikipedia.org/wiki/Confidence_interval\n"
-            "\n"
-            "-------\n"
-            "Methods   [actually, only the first letter is needed to choose a method]\n"
-            "-------   [and the case doesn't matter: '-P' and '-p' both = '-Pearson']\n"
-            "\n"
-            " -Pearson  = Pearson correlation                    [the default method]\n"
-            " -Spearman = Spearman (rank) correlation      [more robust vs. outliers]\n"
-            " -Quadrant = Quadrant (binarized) correlation  [most robust, but weaker]\n"
-            " -Ktaub    = Kendall's tau_b 'correlation'    [popular somewhere, maybe]\n"
-            "\n"
-            "-------------\n"
-            "Other Options  [these options cannot be abbreviated!]\n"
-            "-------------\n"
-            "\n"
-            " -nboot B  = Set the number of bootstrap replicates to 'B'.\n"
-            "             * The default value of B is %d.\n"
-            "             * A larger number will give somewhat more accurate\n"
-            "               confidence intervals, at the cost of more CPU time.\n"
-            "\n"
-            " -alpha A  = Set the 2-sided confidence interval width to '100-A' percent.\n"
-            "             * The default value of A is 5, giving the 2.5..97.5%% interval.\n"
-            "             * The smallest allowed A is 1 (0.5%%..99.5%%) and the largest\n"
-            "               allowed value of A is 20 (10%%..90%%).\n"
-            "             * If you are interested assessing if the 'p-value' of a\n"
-            "               correlation is smaller than 5%% (say), then you should use\n"
-            "               '-alpha 10' and see if the confidence interval includes 0.\n"
-            "\n"
-            " -block    = Attempt to allow for serial correlation in the data by doing\n"
-            "   *OR*      variable-length block resampling, rather than completely\n"
-            " -blk        random resampling as in the usual bootstrap.\n"
-            "             * You should NOT do this unless you believe that serial\n"
-            "               correlation (along each column) is present and significant.\n"
-            "             * Block resampling requires at least 20 data points in each\n"
-            "               input column.  Fewer than 20 will turn off this option.\n"
-            "-----\n"
-            "Notes\n"
-            "-----\n"
-            "* For each pair of columns, the output include the correlation value\n"
-            "  as directly calculated, plus the bias-corrected bootstrap value, and\n"
-            "  the desired (100-A)%% confidence interval [also via bootstrap].\n"
-            "\n"
-            "* The primary purpose of this program is to provide an easy way to get\n"
-            "  the bootstrap confidence intervals, since people almost always seem to use\n"
-            "  the asymptotic normal theory to decide if a correlation is 'significant',\n"
-            "  and this often seems misleading to me [especially for short columns].\n"
-            "\n"
-            "* Bootstrapping confidence intervals for the inverse correlations matrix\n"
-            "  (i.e., partial correlations) would be interesting -- anyone out there\n"
-            "  need this ability?\n"
-            "\n"
-            "-------------\n"
-            "Sample output  [command was '1dCorrelate -alpha 10 A2.1D B2.1D']\n"
-            "-------------\n"
-            "# Pearson correlation [n=12 #col=2]\n"
-            "# Name      Name       Value   BiasCorr   5.00%%   95.00%%  N: 5.00%% N:95.00%%\n"
-            "# --------  --------  -------- -------- -------- -------- -------- --------\n"
-            "  A2.1D[0]  B2.1D[0]  +0.57254 +0.57225 -0.03826 +0.86306 +0.10265 +0.83353\n"
-            "\n"
-            "* Bias correction of the correlation had little effect; this is very common.\n"
-            "\n"
-            "* The correlation is not significant at this level, since the CI (confidence\n"
-            "  interval) includes 0 in its range.\n"
-            "\n"
-            "* For the Pearson method ONLY, the last two columns ('N:', as above) also\n"
-            "  show the widely used asymptotic normal theory confidence interval.  As in\n"
-            "  the example, the bootstrap interval is often (but not always) wider than\n"
-            "  the theoretical interval.\n"
-            "\n"
-            "* In the example, the normal theory might indicate that the correlation is\n"
-            "  significant (less than a 5%% chance that the CI includes 0), but the\n"
-            "  bootstrap CI shows that is not a reasonable statistical conclusion.\n"
-            "\n"
-            "* Using the same data with the '-S' option gives the table below, again\n"
-            "  indicating that there is no significant correlation between the columns\n"
-            "  (note also the lack of the 'N:' results for Spearman correlation):\n"
-            "\n"
-            "# Spearman correlation [n=12 #col=2]\n"
-            "# Name      Name       Value   BiasCorr   5.00%%   95.00%%\n"
-            "# --------  --------  -------- -------- -------- --------\n"
-            "  A2.1D[0]  B2.1D[0]  +0.46154 +0.42756 -0.23063 +0.86078\n"
-            "\n"
-            "*** Written by RWCox (AKA Zhark the Correlator) -- 19 May 2011 ***\n"
-
-           , NBOOT ) ;
-     PRINT_COMPILE_DATE ; exit(0) ;
-   }
-
    /* start the AFNI machinery */
 
    mainENTRY("1dCorrelate main") ; machdep() ;
@@ -154,7 +152,13 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ; nvec = 0 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+      /* I get by with a little help from my friends? */
 
+      if( strcmp(argv[iarg],"-help") == 0 || strcmp(argv[iarg],"-h") == 0){
+         usage_1dCorrelate(strlen(argv[iarg])>3 ? 2:1);
+         exit(0) ;
+      }
+     
      /*--- methods ---*/
 
      if( toupper(argv[iarg][1]) == 'P' ){ cormeth = 0 ; iarg++ ; continue ; }
@@ -200,10 +204,17 @@ int main( int argc , char *argv[] )
 
      /*--- user should be flogged ---*/
 
-     ERROR_exit("Monstrously illegal option '%s'",argv[iarg]) ;
+     ERROR_message("Monstrously illegal option '%s'",argv[iarg]) ;
+     suggest_best_prog_option(argv[0], argv[iarg]);
+     exit(1);
    }
 
    /*--- user should be flogged twice ---*/
+
+   if( argc < 2 ){
+      ERROR_message("Too few arguments. Try 1dCorrelate -help for details.");
+      exit(1) ;
+   }
 
    if( iarg == argc )
      ERROR_exit("No 1D files on command line!?\n") ;

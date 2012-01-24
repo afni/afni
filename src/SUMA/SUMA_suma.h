@@ -158,6 +158,8 @@
    #include "SUMA_SurfaceToSurface.h"
    #include "SUMA_LocalStat.h"
    #include "SUMA_dot.h"
+   #include "SUMA_SegOpts.h"
+   #include "SUMA_SegFunc.h"
 #else
    /* define the necessary macros */   
    #define SUMA_STDERR stderr
