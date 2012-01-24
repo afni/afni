@@ -1187,9 +1187,10 @@ SUMA_Boolean SUMA_Recycle_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS)
    
    \param SO (SUMA_SurfaceObject *) with FN field required
    \return DistFirstNeighb (float **) DistFirstNeighb[i][j] contains the 
-                                      length of the segment formed by nodes
-                                      SO->FN->NodeId[i] and SO->FN->FirstNeighb[i][j]
-                                      
+                                  length of the segment formed by nodes
+                                  SO->FN->NodeId[i] and SO->FN->FirstNeighb[i][j]
+   
+   free it with: SUMA_free2D((char **)DistFirstNeighb, SO->FN->N_Node);                             
    This function was created to try and speed up SUMA_getoffsets2 but it proved
    useless.
    Sample code showing two ways of getting segment length:
@@ -1225,7 +1226,8 @@ float ** SUMA_CalcNeighbDist (SUMA_SurfaceObject *SO)
    if (!SO) { SUMA_RETURN(NULL); }
    if (!SO->FN) { SUMA_RETURN(NULL); }
    
-   DistFirstNeighb = (float **)SUMA_allocate2D(SO->FN->N_Node, SO->FN->N_Neighb_max, sizeof(float));
+   DistFirstNeighb = (float **)SUMA_allocate2D(SO->FN->N_Node, 
+                              SO->FN->N_Neighb_max, sizeof(float));
    if (!DistFirstNeighb) {
       SUMA_SL_Crit("Failed to allocate for DistFirstNeighb");
       SUMA_RETURN(NULL);
@@ -1235,11 +1237,17 @@ float ** SUMA_CalcNeighbDist (SUMA_SurfaceObject *SO)
       for (j=0; j < SO->FN->N_Neighb[i]; ++j) {
          b = &(SO->NodeList[3*SO->FN->FirstNeighb[i][j]]);
          SUMA_SEG_LENGTH(a, b, DistFirstNeighb[i][j]);
-         if (SO->FN->NodeId[i] == 5 && SO->FN->FirstNeighb[i][j] == 133092) {
-            fprintf (SUMA_STDERR, "%f %f %f\n%f %f %f\n%f\n", 
-               SO->NodeList[3*SO->FN->NodeId[i]], SO->NodeList[3*SO->FN->NodeId[i]+1], SO->NodeList[3*SO->FN->NodeId[i]+2],
-               SO->NodeList[3*SO->FN->FirstNeighb[i][j]], SO->NodeList[3*SO->FN->FirstNeighb[i][j]+1], 
-               SO->NodeList[3*SO->FN->FirstNeighb[i][j]+2], DistFirstNeighb[i][j]);
+         if (LocalHead) {
+            if (SO->FN->NodeId[i] == 5 && SO->FN->FirstNeighb[i][j] == 133092) {
+               fprintf (SUMA_STDERR, "%f %f %f\n%f %f %f\n%f\n", 
+                  SO->NodeList[3*SO->FN->NodeId[i]], 
+                  SO->NodeList[3*SO->FN->NodeId[i]+1], 
+                  SO->NodeList[3*SO->FN->NodeId[i]+2],
+                  SO->NodeList[3*SO->FN->FirstNeighb[i][j]], 
+                  SO->NodeList[3*SO->FN->FirstNeighb[i][j]+1], 
+                  SO->NodeList[3*SO->FN->FirstNeighb[i][j]+2], 
+                  DistFirstNeighb[i][j]);
+            }
          }
       }
    }

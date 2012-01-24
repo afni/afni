@@ -3,7 +3,7 @@
 static int BuildMethod;
 
 #if 1
-void usage_SUMA_SurfClust ()
+void usage_SUMA_SurfClust (int detail)
    {
       static char FuncName[]={"usage_SUMA_SurfClust"};
       char * s = NULL;
@@ -102,25 +102,6 @@ void usage_SUMA_SurfClust ()
 "               Finding the central node is a \n"
 "               relatively slow operation. Use\n"
 "               this option to skip it.\n"
-/*"     -sv SurfaceVolume \n"
-"        If you supply a surface volume, the coordinates of the input surface.\n"
-"        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
-"     -acpc: Apply acpc transform (which must be in acpc version of \n"
-"        SurfaceVolume) to the surface vertex coordinates. \n"
-"        This option must be used with the -sv option.\n"
-"     -tlrc: Apply Talairach transform (which must be a talairach version of \n"
-"        SurfaceVolume) to the surface vertex coordinates. \n"
-"        This option must be used with the -sv option.\n"
-"     -MNI_rai/-MNI_lpi: Apply Andreas Meyer Lindenberg's transform to turn \n"
-"        AFNI tlrc coordinates (RAI) into MNI coord space \n"
-"        in RAI (with -MNI_rai) or LPI (with -MNI_lpi)).\n"
-"        NOTE: -MNI_lpi option has not been tested yet (I have no data\n"
-"        to test it on. Verify alignment with AFNI and please report\n"
-"        any bugs.\n" 
-"        This option can be used without the -tlrc option.\n"
-"        But that assumes that surface nodes are already in\n"
-"        AFNI RAI tlrc coordinates .\n"    
-"\n" */
 "\n"
 "  The cluster table output:\n"
 "  A table where ach row shows results from one cluster.\n"
@@ -218,7 +199,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_SurfClust();
+			 usage_SUMA_SurfClust(strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
 		}
 		
@@ -420,11 +401,10 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
       }
       
       if (!brk) {
-			fprintf (SUMA_STDERR,
-                  "Error %s:\n"
-                  "Option %s not understood.\n"
-                  "Try -help for usage\n", FuncName, argv[kar]);
-			exit (1);
+			SUMA_S_Errv("Option %s not understood.\n"
+                  "Try -help for usage\n", argv[kar]);
+			suggest_best_prog_option(argv[0], argv[kar]);
+         exit (1);
 		} else {	
 			brk = NOPE;
 			kar ++;
@@ -489,13 +469,14 @@ int main (int argc,char *argv[])
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    
+   Opt = SUMA_SurfClust_ParseInput (argv, argc);
    if (argc < 6)
        {
-          usage_SUMA_SurfClust();
+         SUMA_S_Err("Too few options");
+          usage_SUMA_SurfClust(0);
           exit (1);
        }
    
-   Opt = SUMA_SurfClust_ParseInput (argv, argc);
    
    if (Opt->DistLim >= 0.0) {
       sprintf(sapd, "_r%.1f", Opt->DistLim);

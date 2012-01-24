@@ -1,7 +1,7 @@
 #ifndef SUMA_WORLDSTAT_INCLUDED
 #define SUMA_WORLDSTAT_INCLUDED
 
-typedef enum { SUMA_NO_BUILD_METHOD, SUMA_OFFSETS2, SUMA_OFFSETS_LL, SUMA_OFFSETS2_NO_REC } SUMA_CLUST_BUILD_METHODS;
+typedef enum {    SUMA_NO_BUILD_METHOD, SUMA_OFFSETS2, SUMA_OFFSETS_LL, SUMA_OFFSETS2_NO_REC, SUMA_MAXIMA } SUMA_CLUST_BUILD_METHODS;
 
 void SUMA_FreeClustDatum (void * data);
 float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO, byte *mask);
@@ -20,12 +20,19 @@ SUMA_DSET *SUMA_MaskDsetByClustList(SUMA_DSET *idset, SUMA_SurfaceObject *SO, DL
 SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(SUMA_SurfaceObject *SO, DList *list, SUMA_Boolean FullList, char *leName) ;
 int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int UseSurfDist);
 SUMA_Boolean SUMA_Sort_ClustersList (DList *list, SUMA_SURF_CLUST_SORT_MODES SortMode);
-SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din, 
-                                    byte *nmask, byte strict_mask,
-                                    float rhood, SUMA_OFFSET_STRUCT *UseThisOffset,
-                                    int ncode, int *code, 
-                                    SUMA_DSET *UseThisDout, int NodeDebug,
-                                    SUMA_SurfaceObject *SOf);
+SUMA_DSET *SUMA_CalculateLocalStats(
+   SUMA_SurfaceObject *SO, SUMA_DSET *din, 
+   byte *nmask, byte strict_mask,
+   float rhood, SUMA_OFFSET_STRUCT *UseThisOffset,
+   int ncode, int *code, 
+   SUMA_DSET *UseThisDout, int NodeDebug,
+   SUMA_SurfaceObject *SOf);
+SUMA_DSET *SUMA_DsetAvgGradient(
+   SUMA_SurfaceObject *SO, float **dists, SUMA_DSET *din, 
+   byte *nmask, byte mask_by_zeros);
+float *SUMA_AvgGradient(
+   SUMA_SurfaceObject *SO, float **dists, float *nv, 
+   byte *nmask, byte mask_by_zeros);                                    
 double SUMA_GetFWHM_MinArea(void);
 void SUMA_SetFWHM_MinArea(double);
 int SUMA_SurfClust_Get_Method(void) ;

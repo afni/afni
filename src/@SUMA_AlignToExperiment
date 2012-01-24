@@ -263,6 +263,46 @@ PARSE_COMMAND:
          endif   
       endif
       
+      if ($donext && "$argv[$cnt]" == "-atlas_followers") then
+         set pLoc = $cnt      
+         
+         if ("$SA_in" == '') then
+            echo "-atlas_followers must follow -surf_anat"
+            goto BEND
+         endif
+         
+         set folpath = `ParseName -out AbsPath $SA_in`
+         echo $folpath
+         set followers = ()
+         if ( -d $folpath ) then
+            cd $folpath
+            set follcand = (*nii)
+            set followers = ()
+            if ($#follcand > 0) then
+               foreach foll ($follcand)
+                  set isatl = `3dinfo -is_atlas $foll`
+                  if ("$isatl" == 1) then
+                     set followers = ($followers $folpath/$foll)
+                  endif
+               end
+            endif
+            cd -
+         endif
+         foreach fol ($followers)
+            set exx = `@CheckForAfniDset $fol`
+            if ( $status) then
+               echo "Error follower dset $fol cannot be verified"
+               goto BEND
+            endif
+            if ( $exx < 2) then
+               echo "Error follower dset $fol appears not to be a dset"
+               goto BEND
+            endif
+         end
+         echo "Adding $followers as followers"
+         set donext = 0   
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-followers_interp") then
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
@@ -800,10 +840,10 @@ FOLLOWERS:
    #If you have follower dsets, do them here
    if ($#followers) then
       foreach fol ($followers)
+         #set echo
          set folPrefix = `@GetAfniPrefix $fol`
          echo "Applying same transform to $folPrefix..."
-         #set echo
-         isatl = `3dinfo -is_atlas $fol`
+         set isatl = `3dinfo -is_atlas $fol`
          if ("$isatl" == 1) then
             echo "Follower $fol is an atlas, giving it the special treatment."
             3dAllineate -master $ExpAnatOrig \
@@ -1063,6 +1103,9 @@ echo "                               NN, linear, cubic, or quintic"
 echo "                    Note: For atlas datasets, the KERNEL is forced to NN"
 echo "                          regardless of what you set here."
 echo "        of the 'Surface Anatomy' suffixed by _Alnd_Exp."
+echo "   [-atlas_followers]: Automatically set the followers to be atlases in"
+echo "                       the directory of -surf_anat. This way all the "
+echo "                       parcellations will get aligned to the experiment."
 echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
 echo "                delete temporary files before rerunning the script."
 echo ""         
