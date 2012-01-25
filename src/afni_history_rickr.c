@@ -49,9 +49,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, JAN, 2012, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "back out overzealous -quit changes for now",
+   NULL
+ } ,
+
  { 20, JAN, 2012, RCR, "to3d", MINOR, TYPE_MODIFY,
    "mri_read_dicom: if there is no VALID vrCode, skip explicitVR",
    "Done for Chad N."
+ } ,
+
+ { 19, JAN, 2012, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "made -quit more agressive",
+   NULL
  } ,
 
  { 18, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,

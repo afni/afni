@@ -77,10 +77,11 @@ static char * g_history[] =
     "      - using -gert_create_dataset implies -GERT_Reco and -quit\n"
     " 3.8  Jan 19, 2012 [rickr]\n"
     "      - made -quit more agressive (never wait for new files)\n"
+    " 3.7  Jan 25, 2012 [rickr] : back out changes for 3.8 and ponder\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.8 (Jan 19, 2012)"
+#define DIMON_VERSION "version 3.7 (Jan 25, 2012)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -308,8 +309,6 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 
     mri_read_dicom_reset_obliquity();   /* to be sure */
 
-    if ( p->opts.quit ) vs_state = 2;    /* never expect more data */
-
     ret_val = 0;
     while ( ret_val == 0 )
     {
@@ -327,12 +326,6 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
              * a volume, despite the previous max_im_alloc limitation.  */
             if ( (ret_val == 0) && (p->nused > (max_im_alloc / 2)) )
                 max_im_alloc *= 2;
-        }
-                    
-        /* not done yet is a terminal error if there is no data to wait for */
-        if ( p->opts.quit && ret_val == 0 ) {
-            fprintf(stderr,"** no volume and not waiting for more data\n");
-            ret_val = -1;
         }
 
         if ( ret_val == 0 )                     /* we are not done yet */
@@ -548,18 +541,19 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
         while ( (ret_val >= 0 ) &&      /* no fatal error, and        */
                 (ret_val < v0->nim) )   /* didn't see full volume yet */
         {
-            if ( ret_val != prev_nim ) naps = 0;   /* then start over */
-
-            if ( p->opts.quit )     /* then we are outta here */
+            if ( ret_val != prev_nim )
+                naps = 0;               /* then start over */
+            else if ( naps >= tr_naps )
             {
-                if ( ac->state == ART_STATE_IN_USE )
-                    ART_send_end_of_run( ac, run, seq_num, gD.level );
+                if ( p->opts.quit )     /* then we are outta here */
+                {
+                    if ( ac->state == ART_STATE_IN_USE )
+                        ART_send_end_of_run( ac, run, seq_num, gD.level );
 
-                show_run_stats( &gS );
-                return 0;
-            }
+                    show_run_stats( &gS );
+                    return 0;
+                }
 
-            if ( naps >= tr_naps ) {
                 /* continue, regardless */
                 if( check_stalled_run(run,seq_num,naps,tr_naps,nap_time ) > 0 )
                     if ( ac->state == ART_STATE_IN_USE )
@@ -645,7 +639,7 @@ static int volume_search(
         bound_cnt++;
         if( bound_cnt >= MAX_SEARCH_FAILURES ) *state = 2; /* try to finish */
     }
-    else if ( *state < 1 ) *state = 1;  /* continue mode */
+    else *state = 1;  /* continue mode */
     prev_bound = bound;
 
     rv = check_one_volume(p,start,fl_start,bound,*state, &first,&last,&delta);
@@ -727,11 +721,11 @@ static int volume_search(
                 return -1;
             }
 
-        /* we didn't find the original zoff, wait for more (if no quit) */
-        if ( ! p->opts.quit ) return 0;
+        /* we didn't find the original zoff, wait for more files */
+        return 0;
     }
 
-    return -1;
+    return -1;  /* should not reach here */
 }
 
 /*----------------------------------------------------------------------
@@ -752,7 +746,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     float     delta, z_orig, prev_z, dz;
     int       run0, run1, first, next, last;
     double    zsum;
-    int       zcount, rv;
+    int       zcount;
 
     if( bound <= start )
     {
@@ -885,36 +879,32 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     /* If we have found the same slice location, we are done. */
     if ( fabs(fp->geh.zoff - p->flist[first].geh.zoff) < gD_epsilon )
     {
+        /* maybe verify that we have the correct number of slices */
+        if ( ! num_slices_ok(p->opts.num_slices,last-first+1,"same location") )
+            return 0;
+
         if ( gD.level > 1 )
             fprintf(stderr,"+d found first slice of second volume\n");
-
-        /* maybe verify that we have the correct number of slices */
-        if (! num_slices_ok(p->opts.num_slices,last-first+1,"same location")) {
-            if ( state == 2 ) return 1; /* we don't expect anything else */
-            else return 0;
-        }
-
         return 1;  /* success */
     }
 
     /* Also, if we are still waiting for the same location, but are in
        state 2, then we seem to have only a single volume to read. */
-    if ( (fabs(dz - delta) < gD_epsilon) && (run1 == run0) ) {
-        if ( state != 2 ) return 0;     /* not done yet */
-
-        /* otherwise we should be done, unless user specified slices and
-         * quit was not applied */
-
+    if ( ( state == 2 && fabs(dz-delta)<gD_epsilon) && run1 == run0 )
+    {
         /* maybe verify that we have the correct number of slices */
-        rv = num_slices_ok(p->opts.num_slices,last-first+1,"data stall");
-        if ( ! rv && ! p->opts.quit ) return 0;
+        if ( ! num_slices_ok(p->opts.num_slices,last-first+1,"data stall") )
+            return 0;
 
         if ( gD.level > 1 )
-            fprintf(stderr,"+d no new data after finding %s slices\n"
-                           "   --> assuming completed single volume\n",
-                           rv ? "sufficient" : "insufficient" );
+            fprintf(stderr,"+d no new data after finding sufficient slices\n"
+                           "   --> assuming completed single volume\n");
         return 1;
     }
+
+    /* otherwise, if we have not changed the delta or run, continue */
+    if ( (fabs(dz - delta) < gD_epsilon) && (run1 == run0) ) /* not state 2 */
+        return 0;  /* not done yet */
 
     if ( dz * delta < 0.0 ) return -1;   /* wrong direction */
 
@@ -948,7 +938,7 @@ static int num_slices_ok( int num_slices, int nfound, char * mesg )
                     mesg ? mesg : "no mesg", nfound);
         else
             fprintf(stderr,"+d (%s) num_slices found (%d) does not match"
-                           " option (%d) ...\n",
+                           " option (%d), still waiting...\n",
                     mesg ? mesg : "no mesg", nfound, num_slices);
     }
 
@@ -1968,10 +1958,8 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             p->opts.gert_exec = 1;      /* execute GERT_Reco script         */
 
-            p->opts.gert_reco = 1;      /* implied: create script           */
-            p->opts.quit = 1;           /* implied: terminate after data    */
-            p->opts.gert_quiterr = 1;   /* implied: no to3d interface       */
-
+            p->opts.gert_reco = 1;      /* -GERT_Reco and -quit are implied */
+            p->opts.quit = 1;
         }
         else if ( ! strncmp( argv[ac], "-gert_filename", 10 ) )
         {
@@ -3154,8 +3142,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sleep_init         = %d\n"
             "   sleep_vol          = %d\n"
             "   debug              = %d\n"
-            "   quit               = %d\n"
-            "   use_dicom          = %d\n"
+            "   quit, use_dicom    = %d, %d\n"
             "   use_last_elem      = %d\n"
             "   show_sorted_list   = %d\n"
             "   gert_reco          = %d\n"
@@ -3190,8 +3177,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix),
-            opt->gert_nz, opt->gert_format, opt->gert_exec,
-            opt->gert_quiterr,
+            opt->gert_nz, opt->gert_format, opt->gert_exec, opt->gert_quiterr,
             opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
             opt->rev_org_dir, opt->rev_sort_dir,
             CHECK_NULL_STR(opt->flist_file),
@@ -3456,8 +3442,6 @@ static int usage ( char * prog, int level )
       "\n"
       "  A. no real-time options:\n"
       "\n"
-      "    %s -infile_prefix   run5/im -gert_create_dataset\n"
-      "    %s -infile_prefix   run5/im -dicom_org -gert_create_dataset\n"
       "    %s -infile_prefix   s8912345/i\n"
       "    %s -infile_pattern 's8912345/i*'\n"
       "    %s -infile_list     my_files.txt\n"
@@ -3466,11 +3450,10 @@ static int usage ( char * prog, int level )
       "    %s -infile_prefix   s8912345/i  -nt 120 -quit\n"
       "    %s -infile_prefix   s8912345/i  -debug 2\n"
       "    %s -infile_prefix   s8912345/i  -dicom_org -GERT_Reco -quit\n"
-      "    %s -infile_prefix   s8912345/i  -dicom_org -gert_create_dataset\n"
       "\n"
       "  A2. investigate a list of files: \n"
       "\n"
-      "    %s -infile_pattern '*.dcm' -dicom_org -show_sorted_list\n"
+      "    %s -infile_pattern '*' -dicom_org -show_sorted_list\n"
       "\n"
       "  A3. save a sorted list of files and check it later: \n"
       "\n"
@@ -3479,10 +3462,10 @@ static int usage ( char * prog, int level )
       "\n"
       "  B. for GERT_Reco:\n"
       "\n"
-      "    %s -infile_prefix run_003/image -gert_create_dataset\n"
+      "    %s -infile_prefix run_003/image -GERT_Reco -quit\n"
       "    %s -infile_prefix run_003/image -dicom_org -GERT_Reco -quit\n"
       "    %s -infile_prefix 'run_00[3-5]/image' -GERT_Reco -quit\n"
-      "    %s -infile_prefix anat/image -gert_create_dataset\n"
+      "    %s -infile_prefix anat/image -GERT_Reco -quit\n"
       "    %s -infile_prefix epi_003/image -dicom_org -quit   \\\n"
       "          -GERT_Reco -gert_to3d_prefix run3 -gert_nz 42\n"
       "\n"
@@ -3652,7 +3635,7 @@ static int usage ( char * prog, int level )
       "\n"
       "  ---------------------------------------------------------------\n",
       prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
-      prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
+      prog, prog, prog, prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog, prog );
           
@@ -4006,8 +3989,6 @@ static int usage ( char * prog, int level )
           "        in new data occurs.  This is most appropriate to use when\n"
           "        the image files have already been collected.\n"
           "\n"
-          "        This option is implied by -gert_create_dataset.\n"
-          "\n"
           "    -rev_org_dir       : reverse the sort in dicom_org\n"
           "\n"
           "        e.g.  -rev_org_dir\n"
@@ -4127,17 +4108,12 @@ static int usage ( char * prog, int level )
           "        one that Ifile creates.  This script may be run to create\n"
           "        the AFNI datasets corresponding to the I-files.\n"
           "\n"
-          "        This option is implied by -gert_create_dataset.\n"
-          "\n"
           "    -gert_create_dataset     : actually create the output dataset\n"
           "\n"
           "        Execute any GERT_Reco script, creating the AFNI or NIfTI\n"
           "        datasets.\n"
           "\n"
-          "        This option implies the following other optins:\n"
-          "             -quit              : terminate program at end\n"
-          "             -GERT_Reco         : create GERT_Reco script\n"
-          "             -gert_quit_on_err  : no to3d GUI on error\n"
+          "        This option implies -GERT_Reco and -quit.\n"
           "\n"
           "        See also -gert_write_as_nifti.\n"
           "\n"
@@ -4174,13 +4150,6 @@ static int usage ( char * prog, int level )
           "        in the GERT_Reco script, creating new datasets in the\n"
           "        OUTPUT_DIR directory, instead of the 'afni' directory.\n"
           "\n"
-          "    -gert_quit_on_err : Add -quit_on_err option to to3d command\n"
-          "                        which has the effect of causing to3d to \n"
-          "                        fail rather than come up in interactive\n"
-          "                        mode if the input has an error.\n"
-          "\n"
-          "        This option is implied by -gert_create_dataset.\n"
-          "\n"
           "    -sp SLICE_PATTERN  : set output slice pattern in GERT_Reco\n"
           "\n"
           "        e.g. -sp alt-z\n"
@@ -4212,6 +4181,11 @@ static int usage ( char * prog, int level )
           "        the to3d command.\n"
           "\n"
           "        See also -gert_create_dataset.\n"
+          "\n"
+          "    -gert_quit_on_err : Add -quit_on_err option to to3d command\n"
+          "                        which has the effect of causing to3d to \n"
+          "                        fail rather than come up in interactive\n"
+          "                        mode if the input has an error.\n"
           "  ---------------------------------------------------------------\n"
           "\n"
           "  Author: R. Reynolds - %s\n"
