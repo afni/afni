@@ -819,6 +819,9 @@ static char* ASL_main( PLUGIN_interface* plint )
             "****************************************************************",
             errorString);
 
+        /* reset global afni callback function */
+        GLOBAL_library.realtime_callback = NULL; 
+
         freeArgv( myargv, myargc );
         free(errorString);
         return (err);
@@ -1125,6 +1128,9 @@ void svm_rt_callback(void *junk)
 
   /* ----- FINISHED ----- */
   else if( rts->status == RT_FINISHED ) {
+
+    /* reset global afni callback function */
+    GLOBAL_library.realtime_callback = NULL; 
 
     /* --- training after data acquisition is finished --- */
     if( GLOBAL_svm_vars.mode == RT_TRAIN ) {
@@ -1558,12 +1564,15 @@ static int drive_3dsvm_plugin ( char *cmdl )
   if( init_3dsvm_rt(myargv, myargc, &options, mode, errorString) ) {
     fprintf(stderr, "**  3dsvm: ERROR: %s\n", errorString); 
     
+    /* reset global afni callback function */
+    GLOBAL_library.realtime_callback = NULL; 
+
     snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", errorString);
     PLUTO_popup_transient( plint , err);
-    
     free( errorString );
     free( err );
     freeArgv( myargv, myargc );
+
     return 1;
   }
 
