@@ -16,8 +16,8 @@
  * readAllocateAfniModel is using the version number to read in model
  * parameters correctly */
 
-#define VERSION_3DSVM "V1.20"
-#define VERSION_DATE_3DSVM "10/18/11"
+#define VERSION_3DSVM "V1.21"
+#define VERSION_DATE_3DSVM "01/04/12"
 #define CLASS_MAX 300
 #define SCALE 4000000
 #define MAX_FILE_NAME_LENGTH 500
@@ -867,6 +867,9 @@ static char contribution_string [] =
 
 /*----- String that briefly describes changes -------------------*/
 static char change_string[] = "\n"
+"\n"
+"V1.21 (01/04/12)\n"
+"  1) Bugfix: 3dsvm real-time plugin caused AFNI crash for subsequent runs.\n"
 "\n"
 "V1.20 (10/18/11)\n"
 "  1) Integrated the 3dsvm plugin into AFNI's real-time framework, which\n" 
