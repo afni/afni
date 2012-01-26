@@ -1067,7 +1067,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          exit(1);  
       }
    }
-    
+   
    if (outname) {
       if (SUMA_filexists(outname) && !Opt->overwrite) {
          fprintf (SUMA_STDERR,

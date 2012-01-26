@@ -7741,20 +7741,20 @@ SUMA_Boolean SUMA_MakeSparseColumnFullSorted (
 {
    static char FuncName[]={"SUMA_MakeSparseColumnFullSorted"};
    double range[2];
-   float *v=NULL, *vn=NULL;
+   float *vc=NULL, *vr=NULL;
    byte *bm = NULL;
    int  loc[2], *nip=NULL, i;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!vp || !*vp) {
-      SUMA_S_Err("NULL vp!");
+   if ((!vp || !*vp) && !bmp) { /* OK to come in with no data, just to get bmp */
+      SUMA_S_Err("Too NULL an input, need at least bmp or vp!");
       SUMA_RETURN(NOPE);
    }
    
    /* the column vector */
-   v = *vp; 
+   if (vp) vc = *vp; 
    
    /* get the node index column */
    if (!(nip = SUMA_GetNodeDef(dset))) {
@@ -7800,8 +7800,8 @@ SUMA_Boolean SUMA_MakeSparseColumnFullSorted (
       }
       /* if you get here then you do not have a 
          full list or the list is not sorted*/
-      SUMA_LH("Creating vn");
-      vn = (float *)SUMA_calloc(N_Node, sizeof(float));
+      SUMA_LH("Creating vr");
+      if (vc) vr = (float *)SUMA_calloc(N_Node, sizeof(float));
       if (bmp) {
          if (*bmp) {
             SUMA_S_Err("*bmp must be NULL");
@@ -7810,25 +7810,27 @@ SUMA_Boolean SUMA_MakeSparseColumnFullSorted (
          bm = (byte *)SUMA_calloc(N_Node, sizeof(byte));
       } else bm = NULL;
       
-      if (!vn || (bmp && !bm)) {
+      if ((vc && !vr) || (bmp && !bm)) {
          SUMA_S_Crit("Failed to allocate");
          SUMA_RETURN(NOPE);
       }
-      for (i=0; i<N_Node; ++i) {
-         vn[i] = mask_val; /* if (bm) bm[i] = 0; */
+      if (vr) {
+         for (i=0; i<N_Node; ++i) {
+            vr[i] = mask_val; /* if (bm) bm[i] = 0; */
+         }
       }
       for (i=0; i<SDSET_VECFILLED(dset); ++i) {
-         vn[nip[i]] = v[i]; 
+         if (vc) vr[nip[i]] = vc[i]; 
          if (bm) bm[nip[i]] = 1;
       }
       
       
       /* Now free old v */
-      SUMA_free(v); v = NULL;
+      if (vc) SUMA_free(vc); vc = NULL;
       
       /* stow away for return */
       if (bmp) { *bmp = bm; bm = NULL; }  
-      *vp = vn; vn = NULL;
+      if (vp) *vp = vr; vr = NULL;
       
       SUMA_RETURN(YUP);
    }
@@ -7844,7 +7846,7 @@ SUMA_Boolean SUMA_MakeSparseDoubleColumnFullSorted (
       SUMA_DSET *dset, int N_Node)
 {
    static char FuncName[]={"SUMA_MakeSparseDoubleColumnFullSorted"};
-   double *v=NULL, *vn=NULL;
+   double *vc=NULL, *vr=NULL;
    byte *bm = NULL; 
    double range[2];
    int  loc[2], *nip=NULL, i;
@@ -7852,13 +7854,13 @@ SUMA_Boolean SUMA_MakeSparseDoubleColumnFullSorted (
    
    SUMA_ENTRY;
    
-   if (!vp || !*vp) {
-      SUMA_S_Err("NULL vp!");
+   if ((!vp || !*vp) && !bmp) { /* OK if user just wants update of bmp */
+      SUMA_S_Err("Too NULL an input, need at least bmp or vp!");
       SUMA_RETURN(NOPE);
    }
    
    /* the column vector */
-   v = *vp; 
+   if (vp) vc = *vp; 
    
    /* get the node index column */
    if (!(nip = SUMA_GetNodeDef(dset))) {
@@ -7904,8 +7906,8 @@ SUMA_Boolean SUMA_MakeSparseDoubleColumnFullSorted (
       }
       /* if you get here then you do not have a 
          full list or the list is not sorted*/
-      SUMA_LH("Creating vn");
-      vn = (double *)SUMA_calloc(N_Node, sizeof(double));
+      SUMA_LH("Creating vr");
+      if (vc) vr = (double *)SUMA_calloc(N_Node, sizeof(double));
       if (bmp) {
          if (*bmp) {
             SUMA_S_Err("*bmp must be NULL");
@@ -7914,25 +7916,27 @@ SUMA_Boolean SUMA_MakeSparseDoubleColumnFullSorted (
          bm = (byte *)SUMA_calloc(N_Node, sizeof(byte));
       } else bm = NULL;
       
-      if (!vn || (bmp && !bm)) {
+      if ((vc && !vr) || (bmp && !bm)) {
          SUMA_S_Crit("Failed to allocate");
          SUMA_RETURN(NOPE);
       }
-      for (i=0; i<N_Node; ++i) {
-         vn[i] = mask_val; /* if (bm) bm[i] = 0; */
+      if (vr) {
+         for (i=0; i<N_Node; ++i) {
+            vr[i] = mask_val; /* if (bm) bm[i] = 0; */
+         }
       }
       for (i=0; i<SDSET_VECFILLED(dset); ++i) {
-         vn[nip[i]] = v[i]; 
+         if (vc) vr[nip[i]] = vc[i]; 
          if (bm) bm[nip[i]] = 1;
       }
       
       
       /* Now free old v */
-      SUMA_free(v); v = NULL;
+      if (vc) SUMA_free(vc); vc = NULL;
       
       /* stow away for return */
       if (bmp) { *bmp = bm; bm = NULL; }  
-      *vp = vn; vn = NULL;
+      if (vp) *vp = vr; vr = NULL;
       
       SUMA_RETURN(YUP);
    }
@@ -13178,6 +13182,59 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
 	SUMA_RETURN (NewName);
 }/*SUMA_ParseFname*/
 
+
+/*! 
+   Form the final output name from prefix.
+   free returned full name
+*/
+char *SUMA_OutputDsetFileStatus(char *prefix, char *inname, 
+                            SUMA_DSET_FORMAT *oformp, 
+                            char *pre, char *app, int *exists)
+{
+   static char FuncName[]={"SUMA_OutputDsetFileStatus"};
+   SUMA_PARSED_NAME *Test=NULL;
+   char *opref=NULL;
+   SUMA_DSET_FORMAT oform = SUMA_NO_DSET_FORMAT;
+   
+   SUMA_ENTRY;
+   
+   if (oformp) oform = *oformp;
+   
+   /* settle on best oform */
+   if (oform == SUMA_NO_DSET_FORMAT) {
+      oform = SUMA_GuessFormatFromExtension(prefix, NULL);
+      if (oform == SUMA_NO_DSET_FORMAT && inname) {
+         Test = SUMA_ParseFname(inname, NULL);
+         oform = SUMA_GuessFormatFromExtension(Test->HeadName, NULL);
+         Test = SUMA_Free_Parsed_Name(Test);
+      }
+   }
+   if (oform == SUMA_NO_DSET_FORMAT) oform = SUMA_NIML;
+   
+   /* remove possible extensions from prefix */
+   opref = SUMA_RemoveDsetExtension_ns(prefix, oform);
+   
+   if (app) {
+      Test = SUMA_ParseModifyName(opref, "append", app, NULL);
+      SUMA_free(opref); opref = SUMA_copy_string(Test->HeadName);
+      Test = SUMA_Free_Parsed_Name(Test);
+   }
+   if (pre) {
+      Test = SUMA_ParseModifyName(opref, "prepend", pre, NULL);
+      SUMA_free(opref); opref = SUMA_copy_string(Test->HeadName);
+      Test = SUMA_Free_Parsed_Name(Test);
+   }
+   opref = SUMA_append_replace_string(opref,
+                  (char *)SUMA_ExtensionOfDsetFormat(oform),"",1);
+   if (exists) {
+      if (THD_is_file(opref)) *exists = 1;
+      else *exists = 0;
+   }
+   
+   if (oformp) *oformp = oform;
+   
+   SUMA_RETURN(opref);
+}
 
 /*!
    \brief Lazy function calls to get at various parts of a file name without the

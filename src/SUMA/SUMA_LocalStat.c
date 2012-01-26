@@ -456,11 +456,12 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
 
 float *SUMA_AvgGradient(SUMA_SurfaceObject *SO, float **FirstNeighbDist,
                              float *nv, byte *mask,
-                             byte mask_zeros)
+                             byte mask_zeros, SUMA_GRAD_SCALE_OPTS normopt)
 {
    static char FuncName[]={"SUMA_AvgGradient"};   
-   int i=0, k=0, ki=0, ng=0;
-   float *gr=NULL;
+   int i=0, k=0, ki=0, ng=0, nmsk=0;
+   float *gr=NULL, avg=0.0;
+   double gavg=0.0; 
    SUMA_Boolean LocalHead=YUP;
    
    SUMA_ENTRY;
@@ -482,6 +483,7 @@ float *SUMA_AvgGradient(SUMA_SurfaceObject *SO, float **FirstNeighbDist,
       SUMA_S_Crit("Failed to allocate");
       SUMA_RETURN(NULL);
    }
+   gavg = 0.0; nmsk = 0;
    for (i=0; i<SO->N_Node; ++i) {
       if (SO->FN->NodeId[i] != i) {
          SUMA_S_Errv("Unexpected node index mismatch (%d,%d)."
@@ -489,49 +491,77 @@ float *SUMA_AvgGradient(SUMA_SurfaceObject *SO, float **FirstNeighbDist,
                     SO->FN->NodeId[i], i);
          SUMA_free(gr); gr=NULL; SUMA_RETURN(NULL);
       }
-      gr[i]=0.0;
+      gr[i]=0.0; 
       if (IN_MASK(mask, i)) {
-         ng = 0;
+         ng = 0; ++nmsk;
+         avg = nv[i]; gavg += nv[i];
          for (k=0; k<SO->FN->N_Neighb[i]; ++k) {
             ki = SO->FN->FirstNeighb[i][k];
             if (IN_MASK(mask,ki)) {
                gr[i] += (nv[i]-nv[ki])/FirstNeighbDist[i][k]; ++ng;
+               avg += nv[ki];
             }
          }
-         if (ng) gr[i] /= (float)ng;
+         if (ng) {
+            gr[i] /= (float)ng; /* average gradient */
+            avg = avg / (ng+1.0); /* local intensity average */
+            switch(normopt) {
+               case SUMA_GMEAN_GRAD_SCALE:
+               case SUMA_NO_GRAD_SCALE:
+                  break;
+               case SUMA_MEAN_GRAD_SCALE:
+                  gr[i] = 100.0*gr[i]/avg;
+                  break;
+               default:
+                  ERROR_message("Bad normalization option");
+                  break;
+            }
+         }
       }
+   }
+   if (normopt == SUMA_GMEAN_GRAD_SCALE && nmsk > 0 && gavg != 0.0) {
+      gavg = gavg/(float)nmsk/100.0;
+      for (i=0; i<SO->N_Node; ++i) {
+         if (IN_MASK(mask,ki)) {
+            gr[i] = gr[i] / gavg;
+         }
+      } 
    }
    
    SUMA_RETURN(gr);
 }
 
-SUMA_DSET *SUMA_DsetAvgGradient(
+SUMA_DSET * SUMA_DsetAvgGradient(
    SUMA_SurfaceObject *SO, float **FirstNeighbDist, SUMA_DSET *din, 
-   byte *mask, byte mask_by_zeros)
+   byte *maskp, byte mask_by_zeros, SUMA_GRAD_SCALE_OPTS normopt)
 {
    static char FuncName[]={"SUMA_DsetAvgGradient"};
    SUMA_DSET *dout = NULL;
    int *icols = NULL, N_icols = -1, *ind = NULL, n_incopy=-1, masked_only=0;
-   int ic = -1, k = -1, n = -1, nj=-1, jj=-1, N_mask=-1, nval=-1, j=-1;
+   int k = -1, N_mask=-1;
    void *ncoli=NULL;
-   char *lblcp=NULL;
+   char *lblcp=NULL, *s=NULL;
    float *fin_orig=NULL, *fout = NULL, fp = -1.0, **NeighbDist=NULL;
-   byte *bfull=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   byte *mask=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+
       
    if (!SO || !din) {
       SUMA_S_Err("Bad input");
       SUMA_RETURN(NULL);
    }
    if (!SO->FN) {
-      if (!SUMA_SurfaceMetrics(SO, "EdgeList|PolyArea|MemberFace",NULL)) {
+      if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList|PolyArea|MemberFace",NULL, 
+                                   0, SUMAg_CF->DsetList)) {
          fprintf (SUMA_STDERR,
                   "Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
       }
    }
-  
+   
+   if (maskp) mask=maskp;
+   
    if (!FirstNeighbDist) {
       NeighbDist = SUMA_CalcNeighbDist (SO);
    } else {
@@ -544,7 +574,6 @@ SUMA_DSET *SUMA_DsetAvgGradient(
    
    /* what columns can we process ?*/
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
-         
    if (N_icols <= 0) {
       SUMA_SL_Err("No approriate data columns in dset");
       SUMA_RETURN(NOPE);   
@@ -592,52 +621,24 @@ SUMA_DSET *SUMA_DsetAvgGradient(
    /* Now, for each code, do the dance */
    for (k=0; k < N_icols; ++k) {
       /* get a float copy of the data column */
-      fin_orig = SUMA_DsetCol2Float (din, icols[k], 1);
-      if (!fin_orig) {
-         SUMA_SL_Crit("Failed to get copy of column. Woe to thee!");
-         SUMA_RETURN(NULL);
+      if (!(fin_orig = SUMA_DsetCol2FloatFullSortedColumn(din, icols[k], &mask, 
+                                                0.0, SO->N_Node,
+                                                &N_mask, k==0?YUP:NOPE))){
+         SUMA_S_Err("Failed to extract");
+         SUMA_FreeDset(dout); dout=NULL;
+         if (!maskp) SUMA_free(mask); mask=NULL;
+         SUMA_RETURN(dout);
       }
       
-      /* make sure column is not sparse, one value per node */
-      if (k==0) {
-         SUMA_LH( "Special case k = 0, going to"
-                  " SUMA_MakeSparseColumnFullSorted");
-         bfull = NULL;
-         if (!SUMA_MakeSparseColumnFullSorted(
-                  &fin_orig, SDSET_VECFILLED(din), 0.0, 
-                  &bfull, din, SO->N_Node)) {
-            SUMA_S_Err("Failed to get full column vector");
-            SUMA_RETURN(NULL);
-         }
-         if (bfull) {
-            SUMA_LH( 
-               "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
-            if (mask) {   /* combine bfull with mask */
-               SUMA_LH( "Merging masks\n" );
-               for (jj=0; jj < SO->N_Node; ++jj) { 
-                  if (mask[jj] && !bfull[jj]) mask[jj] = 0; 
-               }   
-            } else { mask = bfull; }
-         } 
-         if (mask) {
-            N_mask = 0;
-            for (n=0; n<SO->N_Node; ++n) { if (mask[n]) ++ N_mask; }
-            SUMA_LHv("FWHMing with node mask (%d nodes in mask)\n", N_mask);
-            if (!N_mask) {
-               SUMA_S_Warn("Empty mask, nothing to do");
-            }
-         }
-      } else {
-         SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
-         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(din),                                                   0.0, NULL, din, SO->N_Node)) {
-            SUMA_S_Err("Failed to get full column vector");
-            SUMA_RETURN(NULL);
-         }
-         /* no need for reworking mask and bfull for each column...*/
+      if (LocalHead) {
+         s = SUMA_ShowMeSome(fin_orig, SUMA_float, SO->N_Node, 10, NULL);
+         SUMA_LHv("fin_orig:\n%s\n", s); SUMA_free(s);
       }
+      
       
       /* Now I have the data column, nice and solid , do the stats */
-      fout = SUMA_AvgGradient(SO, NeighbDist, fin_orig, mask, mask_by_zeros);
+      fout = SUMA_AvgGradient(SO, NeighbDist, fin_orig, mask, 
+                              mask_by_zeros, normopt);
       if (!fout) {
          SUMA_SL_Crit("Failed to compute gradient fout!");
          SUMA_RETURN(NULL);
@@ -652,22 +653,320 @@ SUMA_DSET *SUMA_DsetAvgGradient(
          SUMA_RETURN(NULL);
       }
       SUMA_free(lblcp); lblcp=NULL;
-      /* add this column to the output dset */
-      if (!SUMA_Float2DsetCol (dout, icols[k], fout, 1, mask)) {
-         SUMA_S_Err("Failed to update dset's values");
-         SUMA_RETURN(NULL);      
-      }
+      SUMA_LHv("Sticking column %d in dset (fout[0]=%f)\n", k, fout[0]);
+      if (!SUMA_Vec2DsetCol (dout, k, (void *)fout, SUMA_float, 
+                             masked_only, mask)) {
+         SUMA_S_Err("Failed to store output");
+         SUMA_free(fin_orig); fin_orig = NULL; SUMA_free(fout); fout = NULL; 
+         if (maskp) SUMA_free(mask); mask=NULL;
+         SUMA_FreeDset(dout); dout=NULL;
+         SUMA_RETURN(dout);
+     }
          
          if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL;
          if (fout) SUMA_free(fout); fout = NULL;
    } /* for k */
    
-   if (bfull) SUMA_free(bfull); bfull = NULL;
+   if (!maskp) SUMA_free(mask); mask = NULL;
    if (NeighbDist != FirstNeighbDist) {
       SUMA_free2D((char **)NeighbDist, SO->FN->N_Node);       
    }
    SUMA_RETURN(dout);
 } 
+
+
+/* Find the extreme points of a dataset */
+SUMA_DSET *SUMA_DsetExtrema(
+   SUMA_SurfaceObject *SO, float **FirstNeighbDist, 
+   SUMA_DSET *din, SUMA_DSET *dgrad, float r, float fthresh, float gthresh, 
+   byte *maskp, byte mask_by_zeros, SUMA_EXTREMA_DIRECTIONS dir,
+   char *tout)
+{
+   static char FuncName[]={"SUMA_DsetExtrema"};
+      SUMA_DSET *dout = NULL;
+   int *icols = NULL, N_icols = -1, *ind = NULL, n_incopy=-1, masked_only=0;
+   int k = -1, N_mask=-1, *isrt=NULL;
+   int *mout=NULL, n_peak=0, ni=0, cand=-1, il=0, jl=0, neighb=0; 
+   void *ncoli=NULL;
+   char *lblcp=NULL, *s=NULL, Cside=' ', *Sdir=NULL;
+   float *fin=NULL,  *gin=NULL, **NeighbDist=NULL, *finsrt=NULL;
+   byte *mask=NULL, *ex_mask=NULL;
+   SUMA_GET_OFFSET_STRUCT *OffS = NULL;
+   FILE *ftable=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO || !din) {
+      SUMA_S_Err("Bad input");
+      SUMA_RETURN(NULL);
+   }
+   if (!SO->FN) {
+      if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList|PolyArea|MemberFace",NULL,
+                                   0, SUMAg_CF->DsetList)) {
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+      }
+   }
+   
+   if (SO->Side == SUMA_LEFT) Cside = 'L';
+   else if (SO->Side == SUMA_RIGHT) Cside = 'R';
+   
+   switch (dir) {
+      case SUMA_MAXIMUS:
+         Sdir = "max";
+         break;
+      case SUMA_MINIMUS:
+         Sdir = "min";
+         break;
+      case SUMA_EXTREMUS:
+         Sdir = "ext";
+         break;
+      default:
+         SUMA_S_Errv("Bad news for dir %d\n", dir);
+         SUMA_RETURN(NULL);
+   }
+
+   if (tout) {
+      if (!(ftable = fopen(tout,"w"))) {
+         SUMA_S_Errv("Could not open %s for writing\n", tout);
+         SUMA_RETURN(NULL);
+      }
+      fprintf(ftable,
+                     "#Output of SurfExtrema. Columns are comma separated.\n"
+                     "#Col.1: Node index \n"
+                     "#Col.2: Hemisphere side if applicable\n"
+                     "#Col.3: Rank of %s\n"
+                     "#Col.4: Value at node\n"
+                     "#Col.5: Gradient at node\n"
+                     "#Col.6: X Y Z coordinates of node. \n"
+                  "#        Use proper -sv option to relate to volume coords.\n"
+                     "#Col.7: Sub-brick index of input\n"
+                     "#Col.8: Sub-brick label of input\n"
+                     "#To select a set of columns, you can use cut. "
+                     "# For example, say you want cols 1,2, and 4:\n"
+                     "#    \\cut -f '1,2,4' -d ',' %s\n"
+                     "# If you just want nodeindex with hemisphere\n"
+                     "# label stuck to it (from 3dGroupInCorr's batch mode):\n"
+                     "#    \\cut -f '1,2' -d ',' %s | \\sed 's/ *, *//g'\n",
+                      Sdir, tout, tout);
+   }
+   if (maskp) mask=maskp;
+   
+   if (!FirstNeighbDist) {
+      NeighbDist = SUMA_CalcNeighbDist (SO);
+   } else {
+      NeighbDist = FirstNeighbDist;
+   }
+   if (!NeighbDist) {
+      SUMA_S_Err("NULL dists");
+      SUMA_RETURN(NULL);
+   }
+   
+   /* what columns can we process ?*/
+   icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
+   if (N_icols <= 0) {
+      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_RETURN(NOPE);   
+   }
+   SUMA_LHv("Have %d numeric columns of input.\n", N_icols);
+   if (!(ind = SDSET_NODE_INDEX_COL(din))) {
+      SUMA_S_Note("Trying to populate the node index element");
+      if (!SUMA_PopulateDsetNodeIndexNel(din, 0)) {
+         SUMA_S_Err("Failed to populate NodeIndex Nel");
+         SUMA_RETURN(NULL);
+      }
+   }
+   /* Create a dset, at least as big as din*/
+   if ((ind = SDSET_NODE_INDEX_COL(din))) {
+      if (!masked_only) {
+         /* preserve all rows */
+         ncoli = 
+            SUMA_Copy_Part_Column(ind, 
+               NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)), 
+               SDSET_VECLEN(din), NULL, masked_only, &n_incopy);
+      } else {
+         ncoli = 
+            SUMA_Copy_Part_Column(ind, 
+               NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)), 
+               SDSET_VECLEN(din), mask, masked_only, &n_incopy);  
+      }
+      if (!ncoli) {
+         SUMA_SL_Err("No index data got copied.");
+         SUMA_RETURN(NULL);
+      }
+      dout = SUMA_CreateDsetPointer("Extrema", SUMA_NODE_BUCKET, NULL,  
+                                    SDSET_IDMDOM(din), n_incopy);
+      if (!SUMA_AddDsetNelCol (dout, NI_get_attribute(din->inel,"COLMS_LABS"),                                    SUMA_NODE_INDEX, ncoli, NULL ,1)) {
+         SUMA_SL_Crit("Failed in SUMA_AddDsetNelCol");
+         SUMA_FreeDset((void*)dout); dout = NULL;
+         SUMA_RETURN(NULL);
+      }
+      if (ncoli) SUMA_free(ncoli); ncoli = NULL; 
+   } else {
+      SUMA_S_Err( "Do not have node indices in input dset!\n"
+                  " and could not create one.");
+      SUMA_RETURN(NULL);
+   }
+   
+   OffS = SUMA_Initialize_getoffsets (SO->N_Node);
+   
+   /* Now, for each column, do the dance */
+   for (k=0; k < N_icols; ++k) {
+      lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); 
+
+      /* get a float copy of the data column */
+      if (!(fin = SUMA_DsetCol2FloatFullSortedColumn(din, icols[k], &mask, 
+                                                0.0, SO->N_Node,
+                                                &N_mask, k==0?YUP:NOPE))){
+         SUMA_S_Err("Failed to extract");
+         SUMA_FreeDset(dout); dout=NULL;
+         if (!maskp) SUMA_free(mask); mask=NULL;
+         SUMA_RETURN(dout);
+      }
+      
+      if (LocalHead) {
+         s = SUMA_ShowMeSome(fin, SUMA_float, SO->N_Node, 10, NULL);
+         SUMA_LHv("fin:\n%s\n", s); SUMA_free(s);
+      }
+      if (dgrad) {
+         if (!(gin = SUMA_DsetCol2FloatFullSortedColumn(dgrad, icols[k], &mask, 
+                                                0.0, SO->N_Node,
+                                                &N_mask, k==0?YUP:NOPE))){
+            SUMA_S_Err("Failed to extract");
+            SUMA_FreeDset(dout); dout=NULL;
+            if (!maskp) SUMA_free(mask); mask=NULL;
+            SUMA_RETURN(dout);
+         }
+      } else {
+         gin = SUMA_AvgGradient(SO, NeighbDist, fin, mask, 
+                                 mask_by_zeros, SUMA_MEAN_GRAD_SCALE);
+         if (!gin) {
+            SUMA_SL_Crit("Failed to compute gradient gin!");
+            SUMA_RETURN(NULL);
+         }         
+      }
+      
+      /* Now do some work */
+      /* sort the values in fin (lowest first)*/
+      finsrt = (float *)SUMA_malloc(SO->N_Node*sizeof(float));
+      memcpy(finsrt, fin, SO->N_Node*sizeof(float));
+      
+      if (dir == SUMA_EXTREMUS) { /* Take absolute value */
+         for (ni=0; ni<SO->N_Node; ++ni) finsrt[ni] = SUMA_ABS(finsrt[ni]);
+      }
+      
+      isrt = SUMA_z_qsort(finsrt, SO->N_Node);
+      if (LocalHead) {
+         s = SUMA_ShowMeSome(isrt, SUMA_int, SO->N_Node, 10, NULL);
+         SUMA_LHv("isrt:\n%s\n", s); SUMA_free(s);
+      }
+      /* find top candidate */
+      ex_mask = (byte *)SUMA_malloc(SO->N_Node*sizeof(byte));
+      if (!mask) {
+         memset(ex_mask,1,sizeof(byte)*SO->N_Node);
+      } else {
+         memcpy(ex_mask, mask, sizeof(byte)*SO->N_Node);
+      }
+      mout = (int*)SUMA_calloc(SO->N_Node, sizeof(int));
+      n_peak = 0;
+      ni = SO->N_Node;
+      cand = -1;
+      while(ni > 0) { 
+         --ni; 
+         if (  ex_mask[isrt[ni]] && (
+               (  dir == SUMA_MAXIMUS && /* Maxima */
+                     gin[isrt[ni]] >= gthresh &&
+                     finsrt[ni] >= fthresh  )  || 
+               (  dir == SUMA_MINIMUS && /* minima */
+                     gin[isrt[ni]] <= gthresh &&
+                     finsrt[ni] <= fthresh  )  ||
+               (  dir == SUMA_EXTREMUS && /* absolute */
+                     SUMA_ABS(gin[isrt[ni]]) >= gthresh &&
+                     SUMA_ABS(fin[isrt[ni]]) >= fthresh  ) 
+                                    )
+            ) { /* have good one */
+            ++n_peak;
+            cand = isrt[ni]; 
+            mout[cand] = n_peak; /* store peak number */  
+            ex_mask[cand] = 0; /* mark it as no longer eligible */
+            SUMA_LHv("Node %d %c is peak number %d: Val %f, Grad %f,"
+                     " Coords:  %f %f %f "
+                     " input %d:%s\n",
+                     cand, Cside, n_peak, fin[isrt[ni]], 
+                     gin[isrt[ni]],
+                     SO->NodeList[SO->NodeDim*cand],
+                     SO->NodeList[SO->NodeDim*cand+1],
+                     SO->NodeList[SO->NodeDim*cand+2],
+                     icols[k], lblcp);
+            if (ftable) {
+               fprintf(ftable,"%d , %c , %d , %f , %f , %f %f %f , %d , %s\n",
+                        cand, Cside, n_peak, fin[isrt[ni]], gin[isrt[ni]],
+                        SO->NodeList[SO->NodeDim*cand],
+                        SO->NodeList[SO->NodeDim*cand+1],
+                        SO->NodeList[SO->NodeDim*cand+2],
+                        icols[k], lblcp);
+            }
+            /* mark all nodes within r as out of contest */
+            SUMA_getoffsets2 (cand, SO, r, OffS, NULL, 0);
+            if (r > 0.0) {
+               for (il=1; il<OffS->N_layers; ++il) { 
+                  /*  starting at layer 1, layer 0 is the node itself */
+                  for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) {
+                     neighb = OffS->layers[il].NodesInLayer[jl];
+                     if (OffS->OffVect[neighb] <= r) {
+                        ex_mask[neighb] = 0; /* take it out */
+                     }
+                  }
+               }
+            } else {
+               SUMA_S_Err("Not ready to deal with negative r");
+               SUMA_RETURN(NULL);
+            }
+         }
+         SUMA_Recycle_getoffsets (OffS); 
+      }  
+      
+      lblcp = SUMA_append_replace_string(Sdir, lblcp, "[", 2);
+      lblcp = SUMA_append_replace_string(lblcp, "]", "", 1);
+      if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_INT, 
+                               NULL, NULL ,1)) {
+         SUMA_S_Crit("Failed to add dset column");
+         SUMA_RETURN(NULL);
+      }
+      SUMA_free(lblcp); lblcp=NULL;
+      SUMA_LHv("Sticking column %d in dset (mout[0]=%d)\n", k, mout[0]);
+      if (!SUMA_Vec2DsetCol (dout, k, (void *)mout, SUMA_int, 
+                             masked_only, mask)) {
+         SUMA_S_Err("Failed to store output");
+         SUMA_free(fin); fin = NULL;
+         SUMA_free(finsrt); finsrt = NULL; 
+         SUMA_free(mout); mout = NULL; 
+         if (maskp) SUMA_free(mask); mask=NULL;
+         SUMA_FreeDset(dout); dout=NULL;
+         SUMA_RETURN(dout);
+      }
+         
+      if (mout) SUMA_free(mout); mout=NULL;
+      if (ex_mask) SUMA_free(ex_mask); ex_mask=NULL;
+      if (fin) SUMA_free(fin); fin = NULL;
+      if (finsrt) SUMA_free(finsrt); finsrt = NULL; 
+      if (isrt) SUMA_free(isrt); isrt = NULL;
+   } /* for k */
+   
+   if (ftable) fclose(ftable); ftable = NULL;
+   if (!maskp) SUMA_free(mask); mask = NULL;
+   if (NeighbDist != FirstNeighbDist) {
+      SUMA_free2D((char **)NeighbDist, SO->FN->N_Node);       
+   }
+   if (OffS) SUMA_Free_getoffsets(OffS); OffS = NULL;
+
+   SUMA_RETURN(dout);
+   
+   
+   
+}
+
 
 /*!
    \brief Finds locally extreme nodes on the surface 

@@ -1270,6 +1270,22 @@ If ind is NULL, then the index will be the line number.
    }  \
 }
 
+/*!
+   A typical check on the output status of a selected prefix for
+   surface datasets
+*/
+#define SUMA_CHECK_OUTPUT_SDSET_STATUS(Opref, InName, oform, pre, app, exists) {\
+   char *ooo = SUMA_OutputDsetFileStatus(Opref, InName, \
+                                          &(oform), pre, app, &(exists)); \
+   if (exists && !THD_ok_overwrite()) {   \
+      SUMA_S_Errv("Output file %s already exists.\n"  \
+                  "Pick another prefix or add -overwrite\n", ooo);   \
+      exit(1); \
+   }  \
+   if (ooo) SUMA_free(ooo); ooo=NULL;\
+}
+   
+
 #define SUMA_MAX_OPEN_DX_FIELD_COMPONENTS 500
 #define SUMA_MAX_OPEN_DX_FIELD_ATTRIBUTES 500
 #define SUMA_MAX_OPEN_DX_OBJECTS  500
@@ -1589,6 +1605,9 @@ const char *SUMA_ExtensionOfDsetFormat (SUMA_DSET_FORMAT form);
 SUMA_Boolean SUMA_isExtension(char *filename, char *ext);
 char * SUMA_CropExtension(char *filename, char *ext);
 void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test);
+char *SUMA_OutputDsetFileStatus(char *prefix, char *inname, 
+                            SUMA_DSET_FORMAT *oform, 
+                            char *pre, char *app, int *exists);
 char *SUMA_FnameGet(char *Fname, char *sel, char *cwd);
 int SUMA_NumStringUnits (char *s, int marktip); 
 int SUMA_StringToNum (char *s, void *vv, int N, int p);
