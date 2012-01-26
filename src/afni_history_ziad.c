@@ -65,9 +65,15 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 23, JAN , 2012 , ZSS , "SurfExtrema" , MINOR , TYPE_NEW_PROG,
+ { 26, JAN , 2012 , ZSS , "3dinfill" , MINOR , TYPE_NEW_PROG,
+   "Fills holes in a volume based on neighboring values",
+   "This program is a wrapper to function SUMA_VolumeInFill.\n"
+   "Written in response to a query by Mike Beauchamp.\n"
+ },
+ 
+ { 24, JAN , 2012 , ZSS , "SurfExtrema" , MINOR , TYPE_NEW_PROG,
    "Finds nodes that are local extrema on the surface.",
-   "Program requested by Daniel Margulies\n"
+   "Program in response to request by Daniel Margulies\n"
  },
  
  { 23, JAN , 2012 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
