@@ -545,7 +545,7 @@ help.MEMA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 Usage:
 ------ 
  3dMEMA is a program for performing Mixed Effects Meta Analysis at group level 
- that models both within- and across- subjects variablity, thereby requiring
+ that models both within- and across- subjects variability, thereby requiring
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
@@ -559,7 +559,7 @@ Usage:
  The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
  or linear combination (GLT) of multiple conditions. It can be used to analyze
  data from one, two, or multiple groups. However, if there are more than two
- groups invovled in the analysis, dummy coding the groups as covariates is
+ groups involved in the analysis, dummy coding the groups as covariates is
  required, and extremely caution should be exercised in doing so because different
  coding strategy may lead to different interpretation. In addition, covariates
  can be incorporated in the model, but centering and potential interactions with
