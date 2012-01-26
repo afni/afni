@@ -1482,6 +1482,55 @@ int SUMA_find_hole_voxels( int Ni, int Nj, int Nk,
    SUMA_RETURN(nh);
 }
 
+/*!
+   Record or return number of hits.
+   a (int) action flag.
+      0- Free temps.
+      1- Add hit key
+      2- Return hits of key
+      3- Return key of max hits
+      4- Reset hit record
+      
+*/      
+int hits_rec(int a, int key)
+{
+   static int *keys=NULL;
+   static int *hits=NULL;
+   static int n_alloc=0, n=0;
+   int mk = 0, mh = 0, i=0;
+   
+   if (a==1) { /* add hit */
+      if (n>=n_alloc) {
+         n_alloc += 100;
+         keys = (int *)realloc(keys, n_alloc*sizeof(int));
+         hits = (int *)realloc(hits, n_alloc*sizeof(int));
+      }
+      while (i<n && keys[i]!=key) ++i;
+      if (i==n) { keys[i]=key; hits[i]=1; ++n;}
+      else { ++hits[i]; }
+   } else if (a==2) { /* return hits of key */
+      for (i=0; i<n; ++i) {
+         if (keys[i] == key) { return(hits[i]); }
+      }
+      return(-1);
+   } else if (a==3 && n) { /* return key of max hits */
+      mk = keys[0]; mh = hits[0];
+      for (i=0; i<n; ++i) {
+         if (hits[i] > mh) { mh = hits[i]; mk = keys[i]; }
+      }
+      return(mk);
+   } else if (a==4) { /* reset */
+      n = 0;
+   } else if (a==0) { /* free */
+      if (keys) free(keys); keys=NULL;
+      if (hits) free(hits); hits=NULL;
+      n = 0;
+      n_alloc = 0;
+   } 
+   
+   return(1);
+    
+}
 /*!   A faster version of SUMA_mri_volume_infill
       linfill == 1 rescans volume for holes with each new iteration
                    Cautious approach, but wastes a lot of time.
@@ -1491,7 +1540,8 @@ int SUMA_find_hole_voxels( int Ni, int Nj, int Nk,
          Relatively few voxels are affected by linfill
 */
                     
-int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill) 
+int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill, 
+                                int integ, int umaxiter) 
 {
    static char FuncName[]={"SUMA_mri_volume_infill_zoom"};
    int Ni, Nj, Nk, Nij, Nijk, v, iter;
@@ -1499,11 +1549,20 @@ int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill)
    byte *ba=NULL, *nhits=NULL;
    float *fa=NULL, ta[2];
    float *sum=NULL;
-   int *holeat = NULL;
-   int maxiter=500;
+   int *holeat = NULL, *intar=NULL;
+   int maxiter= 500; 
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (umaxiter > 0) maxiter = umaxiter;
+   
+   if (integ != 0 && integ != 1) {
+      SUMA_S_Warnv("Function only accepts integ of 0 or 1. \n"
+                   "Received %d but will proceed with 0.\n",
+                   integ);
+      integ = 0;
+   }
    
    Ni = imin->nx; Nj = imin->ny; Nk = imin->nz; 
    Nij = Ni*Nj; Nijk = Nij*Nk;
@@ -1518,7 +1577,9 @@ int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill)
    holeat = (int *)SUMA_calloc(Nijk, sizeof(int));
    sum = (float *)SUMA_calloc(Nijk, sizeof(float));
    nhits = (byte *)SUMA_calloc(Nijk, sizeof(byte));
+   if (integ) intar  = (int *)SUMA_calloc(Nijk, sizeof(int));
    
+   if (integ) hits_rec(0, 0); /* clean start */
    
    iter = 0; nh = 0;
    do {
@@ -1548,10 +1609,12 @@ int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill)
             hitsum += hitcode;
             if (da[0] == 1) { /* only process holes at edge */
                sum[holeat[h]] += ta[0]; /* add value at edge voxel */
+               if (integ) hits_rec(1, (int)ta[0]);
                ++nhits[holeat[h]];
             }
             if (da[1] == 1) { /* only process holes at edge */
                sum[holeat[h]] += ta[1]; /* add value at edge voxel */
+               if (integ) hits_rec(1, (int)ta[1]);
                ++nhits[holeat[h]];
             }
          }
@@ -1568,10 +1631,12 @@ int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill)
             hitsum += hitcode;
             if (da[0] == 1) { /* only process holes at edge */
                sum[holeat[h]] += ta[0]; /* add value at edge voxel */
+               if (integ) hits_rec(1, (int)ta[0]);
                ++nhits[holeat[h]];
             }
             if (da[1] == 1) { /* only process holes at edge */
                sum[holeat[h]] += ta[1]; /* add value at edge voxel */
+               if (integ) hits_rec(1, (int)ta[1]);
                ++nhits[holeat[h]];
             }
          }
@@ -1580,20 +1645,31 @@ int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill)
             hitsum += hitcode;
             if (da[0] == 1) { /* only process holes at edge */
                sum[holeat[h]] += ta[0]; /* add value at edge voxel */
+               if (integ) hits_rec(1, (int)ta[0]);
                ++nhits[holeat[h]];
             }
             if (da[1] == 1) { /* only process holes at edge */
                sum[holeat[h]] += ta[1]; /* add value at edge voxel */
+               if (integ) hits_rec(1, (int)ta[1]);
                ++nhits[holeat[h]];
             }
          }
+         if (integ) {
+            if (nhits[holeat[h]]) intar[holeat[h]] = hits_rec(3,0);
+            hits_rec(4,0); /* reset */
+         }
+         
       }
       /* now update holeat array */
       h = 0;
       while (nh > 0 && h<nh) {
          if (nhits[holeat[h]]) {
-            fa[holeat[h]] = 
-               sum[holeat[h]]/(float)nhits[holeat[h]]; /* assign new value */
+            if (integ) {
+               fa[holeat[h]] = (float)intar[holeat[h]]; /* get most freq. key */
+            } else {
+               fa[holeat[h]] = 
+                  sum[holeat[h]]/(float)nhits[holeat[h]]; /* assign new value */
+            }
             ba[holeat[h]] = 1;   /* mark as filled */
             
             nhits[holeat[h]] = 0;   /* reset */
@@ -1622,26 +1698,33 @@ int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill)
    
    if (nh > 0) {
       SUMA_S_Warnv("Function stopped because of maximum iter limit of %d. "
-                  "%d holes still exist.", nh, maxiter);
+                   "%d holes still exist." , maxiter ,nh);
    }
    
    SUMA_ifree(holeat); SUMA_ifree(ba);      
+   hits_rec(0,0); /* cleanup */
    
    SUMA_RETURN(1);
 }
 
 
 int SUMA_VolumeInFill(THD_3dim_dataset *aset,
-                                     THD_3dim_dataset **filledp,
-                                     int method) 
+                      THD_3dim_dataset **filledp,
+                      int method, int integ,
+                      int MxIter) 
 {
    static char FuncName[]={"SUMA_VolumeInFill"};
    float *fa=NULL;
    THD_3dim_dataset *filled = *filledp;   
    MRI_IMAGE *imin=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (integ < 0) { /* figure it out */
+      if (is_integral_dset(aset,1)) integ = 1;
+      else integ = 0;
+   }
       
    /* get data into float image */
    imin = THD_extract_float_brick(0,aset) ;
@@ -1651,7 +1734,7 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
          SUMA_RETURN(0);
       }
    } else { /* faster */
-      if (!SUMA_mri_volume_infill_zoom(imin, 0)) {
+      if (!SUMA_mri_volume_infill_zoom(imin, 0, integ, MxIter)) {
          SUMA_S_Err("Failed to fill volume");
          SUMA_RETURN(0);
       }
@@ -1669,7 +1752,10 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
                            DSET_BRICK_TYPE(filled,0), -1.0);
    EDIT_BRICK_LABEL(filled,0,"HolesFilled"); 
    
-   
+   if (integ) { /* copy attributes, if any */
+      THD_copy_labeltable_atr( filled->dblk,  aset->dblk);          
+   }
+
    SUMA_RETURN(1);
 }
 
@@ -2254,7 +2340,7 @@ THD_3dim_dataset *SUMA_estimate_bias_field (SEG_OPTS *Opt,
    if (1) {/* fill the thing, then blur*/
       byte *fm = (byte *)SUMA_calloc(DSET_NVOX(aset), sizeof(byte));
       if (Opt->debug > 1) SUMA_S_Note("Filling then blurring");
-      SUMA_mri_volume_infill_zoom(imin, 0);
+      SUMA_mri_volume_infill_zoom(imin, 0, 0, -1);
       for (i=0; i<DSET_NVOX(aset);++i) {
          if (SUMA_ABS(dmv[i]-0.0f)>0.00001) fm[i]=1;
       }

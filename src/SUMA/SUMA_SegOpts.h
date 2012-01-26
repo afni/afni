@@ -19,7 +19,7 @@ typedef struct {
   
 
 typedef struct {
-   void (*helpfunc)(void);
+   void (*helpfunc)(int);
    char *aset_name;
    char *mset_name;
    char *sig_name;
@@ -123,8 +123,8 @@ typedef struct {
    BLUR_METH blur_meth;
 } SEG_OPTS;
 
-void GenPriors_usage(void) ;
-void Seg_usage(void) ;
+void GenPriors_usage(int) ;
+void Seg_usage(int) ;
 SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc);
 byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset, 
                 THD_3dim_dataset **msetp, byte **cmaskp, int dimcmask, 

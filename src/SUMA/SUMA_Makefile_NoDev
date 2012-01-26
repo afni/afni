@@ -35,7 +35,7 @@ SUMA_EXECS = CreateIcosahedron  MapIcosahedron       \
 	SurfToSurf ROIgrow\
    NikoMap SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma SurfLocalstat SurfFWHM \
    SpharmDeco SpharmReco SurfDist SumaProgramTemplate SurfRetinoMap \
-	ParseName 3dGenPriors 3dSeg SurfExtrema
+	ParseName 3dGenPriors 3dSeg SurfExtrema 3dinfill
    
  
 
@@ -307,6 +307,15 @@ ConvexHull: SUMA_ConvexHull.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} $(OMPFLAG) ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_3dSeg.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
+		-I../3DEdge/src -l3DEdge -I../avovk \
+		${SUMALIBLIST} -lsegtools ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB} \
+		-lgsl -lgslcblas 
+
+3dinfill: SUMA_3dinfill.c libSUMA.a
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} $(OMPFLAG) ${WARNOPT} -o $@ $(AFWARPOBJS) \
+		${AFNI_OBJS} SUMA_3dinfill.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
 		-I../3DEdge/src -l3DEdge -I../avovk \
 		${SUMALIBLIST} -lsegtools ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB} \
