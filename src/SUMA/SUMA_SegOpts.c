@@ -162,7 +162,7 @@ static HELP_OPT SegOptList[] = {
    {  NULL, NULL, NULL  }
 };
 
-void GenPriors_usage(void) 
+void GenPriors_usage(int detail) 
 {
    int i = 0;
    
@@ -173,7 +173,7 @@ void GenPriors_usage(void)
    EXRETURN;
 }
 
-void Seg_usage(void) 
+void Seg_usage(int detail) 
 {
    int i = 0;
    
@@ -346,7 +346,7 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 Opt->helpfunc();
+			 Opt->helpfunc(0);
           exit (0);
 		}
       
@@ -1188,6 +1188,8 @@ int SUMA_ShortizeDset(THD_3dim_dataset **dsetp, float thisfac) {
                             DSET_ARRAY(dset,i), MRI_short, thisfac);
       }
    }
+   /* preserve tables, if any */
+   THD_copy_labeltable_atr( cpset->dblk,  dset->dblk); 
    DSET_delete(dset); dset = NULL; 
    *dsetp=cpset;
 
