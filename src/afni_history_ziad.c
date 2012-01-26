@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 23, JAN , 2012 , ZSS , "SurfExtrema" , MINOR , TYPE_NEW_PROG,
+   "Finds nodes that are local extrema on the surface.",
+   "Program requested by Daniel Margulies\n"
+ },
+ 
  { 23, JAN , 2012 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "Added -ld and -no_ld options",
    "@SUMA_Make_Spec_FS by default now runs MapIcosahedron at two ld values.\n"
