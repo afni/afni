@@ -4475,6 +4475,29 @@ void web_prog_help(char *prog)
    return;
 }
 
+void web_class_docs(char *prog)
+{
+   char *viewer=NULL, *hname=NULL;
+   char *progname=NULL;
+   char weblink[1024]={""};
+   
+   if (prog) {
+      ERROR_message("Not ready for prog input %s.\n",
+                     prog);
+      return;
+   } else {
+      snprintf(weblink,1020*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/edu/latest");
+   }
+   
+   if (!(view_web_link(weblink,NULL))) {
+      ERROR_message("Failed to web view %s\n", weblink);
+      return;
+   } 
+     
+   return;
+}
+
 int view_web_link(char *link, char *browser)
 {
    char cmd[1024];

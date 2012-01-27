@@ -302,6 +302,7 @@ char **approx_str_sort_readmes(char *str, int *N_r);
 char *find_readme_file(char *str);
 int view_text_file(char *progname);
 void web_prog_help(char *prog);
+void web_class_docs(char *prog);
 int view_web_link(char *link, char *browser);
 char *approx_string_diff_info(APPROX_STR_DIFF *D,APPROX_STR_DIFF_WEIGHTS *Dwi); 
 ATLAS_SEARCH *Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , 
