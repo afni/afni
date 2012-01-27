@@ -106,13 +106,15 @@ int process_siemens_mosaic(
 
    /* KRH 25 Jul 2003 try to shrink Sstr between BEGIN and END,
     * particularly if there are 2 BEGINs (require both BEGIN and END) */
-   s_start = strstr(*Sstr,    "### ASCCONV BEGIN ###");
-   if( s_start ) s_end = strstr(s_start, "### ASCCONV END ###");
+   /* Now there might be something between BEGIN and ### ...
+    *                                   27 Jan 2012 [dglen, rickr]    */
+   s_start = strstr(*Sstr,    "### ASCCONV BEGIN");
+   if( s_start ) s_end = strstr(s_start, "### ASCCONV END");
    if( s_end ) {
       char *s_tmp;
       int s_size;
 
-      s_start2 = strstr(s_start+21, "### ASCCONV BEGIN ###");
+      s_start2 = strstr(s_start+21, "### ASCCONV BEGIN");
  
       /* update start to start2, if it seems appropriate */
       if( s_start2 && (s_start2 < s_end) ) s_start = s_start2;
@@ -526,7 +528,8 @@ int get_siemens_extra_info(char *str, Siemens_extra_info *mi)
 
    /* require at least 3 of the 4 parameters in slice information */
    while ((nn < 3) && (strlen(ept) > 20)) {  /* mod drg, fredtam */
-     cpt = strstr( str , "sSliceArray.asSlice[" ) ; /* 20 characters minimum */
+     /* use the updated ept for new searches      27 Jan 2012 [rickr, dglen] */
+     cpt = strstr( ept , "sSliceArray.asSlice[" ) ; /* 20 characters minimum */
      if( cpt == NULL ) {
         if( verb > 1 ) fprintf(stderr,"-- GSEI: no sSliceArray.asSlice\n");
         RETURN(0);
@@ -543,6 +546,7 @@ int get_siemens_extra_info(char *str, Siemens_extra_info *mi)
 
      ept = cpt + 20; /* skip to end of "false match", advance to next KRH */
    }
+
 
    /*-- scan for coordinates, until can't find a good string to scan --*/
    while(1){
