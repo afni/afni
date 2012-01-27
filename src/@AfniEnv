@@ -121,7 +121,20 @@ PARSE:
          endif
          goto CONTINUE
       endif
-
+      
+      if (  "$argv[$cnt]" == "-get") then
+         set nneed = `ccalc -i $cnt + 1`
+         if ($nneed > $Narg) then
+				if (! $quiet_death) echo "Need 1 values after -set"
+            goto BEND
+			else
+            @ cnt ++
+            set enn = $argv[$cnt]
+            apsearch "-V${enn}="
+            goto END
+         endif
+      endif
+      
       if (  "$argv[$cnt]" == "-unset") then
          set nneed = `ccalc -i $cnt + 1`
          if ($nneed > $Narg) then
@@ -176,6 +189,7 @@ HELP:
    echo "Usage: `basename $0` <-set NAME VALUE> [<-unset NAME>]"
    echo ""
    echo "   -set  NAME VALUE: Set environment variable NAME  to value VALUE"
+   echo "   -get  NAME: Get the value (same as apsearch -Vname option)
    echo "   -unset NAME : The opposite of -set"
    echo "   -help: this message"
    echo ""
