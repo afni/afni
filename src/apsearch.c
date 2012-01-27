@@ -187,6 +187,7 @@ void apsearch_usage(int detail)
    "                        This is like the option -h_view in C programs.\n"
    "  -web_prog_help PROG: Open the help file for PROG in a web brower.\n"
    "                        This is like the option -h_web in C programs.\n"
+   "  -web_class_docs: Open the webpage with latest class pdfs.\n"
    "\n"
    "  NOTE: The maximum number of results depends on the combination of\n"
    "        -max_hits, -min_different_hits, and -unique_hits_only. \n"
@@ -442,6 +443,12 @@ int main(int argc, char **argv)
                      return(1);
          }
          web_prog_help(argv[iarg]);
+         return(0);
+         continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-web_class_docs") == 0) { 
+         web_class_docs(NULL);
          return(0);
          continue; 
       }
