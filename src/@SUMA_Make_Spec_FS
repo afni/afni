@@ -109,6 +109,7 @@ L_PARSE_COMMAND:
     set subj_id      = ""
     set neuro_ori   = 0
     set ldu = ()
+    set ldpref = ()
     set args     = $#argv
     set count    = 1
 
@@ -182,7 +183,7 @@ L_PARSE_COMMAND:
 
        breaksw
 
-      # ----------------------------------------------------------
+       # ----------------------------------------------------------
        # usage : -ld VAL
        case "-ld":
 
@@ -196,7 +197,21 @@ L_PARSE_COMMAND:
 
        breaksw
 
-        # ----------------------------------------------------------
+       # ----------------------------------------------------------
+       # usage : -ldpref LDpref
+       case "-ldpref":
+
+      if ( $count >= $args ) then
+          set endstr = "arg usage: -ldpref LDpref"
+          goto L_BAD_END
+      endif
+
+      @ count ++
+      set ldpref = ($ldpref $argv[$count])
+
+       breaksw
+
+       # ----------------------------------------------------------
        # usage : -no_ld
        case "-no_ld":
 
@@ -227,7 +242,17 @@ L_PARSE_COMMAND:
     if ( $debug ) echo "-- usage okay"
     if ( $debug > 1 ) set echo
     if ( $#ldu ) set ldlist = ($ldu)
-    
+    if ($#ldpref == 0 && $#ldlist != 0) then
+      set ldpref = ()
+      foreach lldd ($ldlist)
+         set ldpref = ($ldpref std.$lldd.)
+      end
+    endif
+    if ($#ldpref != 0 && $#ldpref != $#ldlist) then
+      set endstr = "Not enough -ldpref options for $#ldlist values"  
+      goto L_BAD_END
+    endif
+
     set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
     set afni_prefix  = ${subj_id}_SurfVol
     set afni_dataset = $afni_prefix+orig
@@ -905,17 +930,19 @@ L_ICO:
    echo "------------------------------------------------------------------"
    echo "Running MapIcosahedron for both hemispheres at ld values of $ldlist"
    cd $start_dir/$suma_dir/
+   set ild = 0
    foreach ld ($ldlist)
+      @ ild ++
       set both = ()
       foreach hem (lh rh)
          set sp = {$subj_id}_${hem}.spec
          if ( -f $sp) then
-            MapIcosahedron -spec $sp -ld $ld -prefix std.$ld. 
-            set both = ($both std.$ld.{$subj_id}_${hem}.spec)
+            MapIcosahedron -spec $sp -ld $ld -prefix $ldpref[$ild] 
+            set both = ($both ${ldpref[$ild]}{$subj_id}_${hem}.spec)
          endif
       end
       if ($#both == 2) then
-         inspec -LRmerge $both -prefix std.$ld.{$subj_id}_both.spec
+         inspec -LRmerge $both -prefix ${ldpref[$ild]}{$subj_id}_both.spec
       endif
    end
    cd -
@@ -1006,6 +1033,9 @@ L_HELP_END:
     echo "             set to LD. You can use multiple -ld options."
     echo "             By default the script will run ld values of 141 and"
     echo "             60."
+    echo "    -ldpref LDpref: Supply what ends up being the -prefix option"
+    echo "                    for MapIcosahedron. By default it is std.LD."
+    echo "                    You need as many -ldpref as you have -ld"
     echo "    -no_ld: Do not run MapIcosahedron."
     echo ""
     echo ""
