@@ -459,9 +459,10 @@ g_history = """
         - added for J Weisberg
    0.11 Nov 02, 2011: added out.TENT_warn.txt to warning file review
    0.12 Nov 21, 2011: fixed -ynames in plot of motion/outliers
+   0.13 Jan 28, 2012: look for TSNR* in case of surf analysis
 """
 
-g_version = "gen_ss_review_scripts.py version 0.10, November 2, 2011"
+g_version = "gen_ss_review_scripts.py version 0.13, January 28, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -1269,8 +1270,7 @@ class MyInterface:
       gstr = 'TSNR?%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gstr)
       if len(glist) == 0:
-         gstr = '*[tT][sS][nN][rR]*+%s.HEAD' \
-                % (self.uvars.subj, self.uvars.final_view)
+         gstr = '*[tT][sS][nN][rR]*'
          glist = glob.glob(gstr)
       if len(glist) == 0:
          print '** failed to find tsnr dset, continuing...'
