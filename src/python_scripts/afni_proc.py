@@ -303,13 +303,17 @@ g_history = """
         - for E Nelson and J Jarcho
     3.04 Nov  9, 2011: -surf_blur_fwhm is no longer valid, use -blur_size
     3.05 Jan 12, 2012: fixed ricor block 3dcalc loop for varying run lengths
-    3.06 Jan 12, 2012: force anat and children to be AFNI format after 3dcopy
+    3.06 Jan 18, 2012: force anat and children to be AFNI format after 3dcopy
+    3.07 Jan 28, 2012: surface analysis updates for subject FT in AFNI_data6
+        - added -atlas_followers to @SUMA_AlignToExperiment command
+        - if surf analysis: no mask in scaling block (e.g. default extents)
+        - updated help example #8 for surf analysis of AFNI_data6 subject FT
 """
 
-g_version = "version 3.06, January 18, 2012"
+g_version = "version 3.07, January 28, 2012"
 
 # version of AFNI required for script execution
-g_requires_afni = "31 Oct 2011"
+g_requires_afni = "27 Jan 2012"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
