@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, JAN, 2012, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "look for TSNR* in case of surf analysis",
+   NULL
+ } ,
+
  { 28, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "updates for surf analysis of subject FT under AFNI_data6",
    "  - added -atlas_followers to @SUMA_AlignToExperiment\n"
