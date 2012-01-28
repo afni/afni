@@ -1453,7 +1453,10 @@ def db_cmd_surf(proc, block):
     cmd += '\n'
 
     # maybe align sv to current anat
-    if proc.surf_anat_aligned != 'yes': cmd += cmd_surf_align(proc)
+    if proc.surf_anat_aligned != 'yes':
+        scmd = cmd_surf_align(proc)
+        if scmd == None: return None
+        cmd += scmd
 
     cmd += cmd_vol2surf(proc, block)
 
@@ -1520,6 +1523,7 @@ def cmd_surf_align(proc):
           '@SUMA_AlignToExperiment -exp_anat %s \\\n'                         \
           '                        -surf_anat $%s/%s \\\n'                    \
           '                        -wd%s \\\n'                                \
+          '                        -atlas_followers \\\n'                     \
           '                        -prefix ${subj}_SurfVol_Alnd_Exp \n\n'     \
         % (proc.anat_final.pv(), proc.surf_svd_var, proc.surf_sv.pv(), sstr)
 
@@ -2062,9 +2066,10 @@ def db_cmd_scale(proc, block):
 
     # choose a mask: either passed, extents, or none
     mset = None
-    if proc.mask and proc.regmask:  mset = proc.mask
-    elif proc.mask_extents != None: mset = proc.mask_extents
-  
+    if   proc.surf_anat:              mset = None       # no mask on surface
+    elif proc.mask and proc.regmask:  mset = proc.mask
+    elif proc.mask_extents != None:   mset = proc.mask_extents
+
     # if have a mask, apply it, else use any extents mask
     if mset != None:
         mask_str = '%s           -c %s%s \\\n' % (istr, mset.prefix, vsuff)
@@ -4173,12 +4178,12 @@ g_help_string = """
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
-        8. Based on 3, but analyze data on the surface.
+        8. Based on subject FT under AFNI_data6.
 
            Add -surf_spec and -surf_anat to provide the required spec and
            surface volume datasets.  The surface volume will be aligned to
            the current anatomy in the processing script.  Two spec files
-           (lh and rh) are provided, one for each hemisphere.
+           (lh and rh) are provided, one for each hemisphere (via wildcard).
 
            Also, specify a (resulting) 6 mm FWHM blur via -blur_size.  This
            does not add a blur, but specifies a resulting blur level.  So
@@ -4188,7 +4193,8 @@ g_help_string = """
            Censor per-TR motion above 0.3 mm.
 
            Note that no -regress_est_blur_errts option is given, since that
-           applies to the volume only.
+           applies to the volume only (and since the 6 mm blur is a resulting
+           blur level, so the estimates are not needed).
 
            The -blocks option is provided, but it is the same as the default
            for surface-based analysis, so is not really needed here.  Note that
@@ -4202,25 +4208,27 @@ g_help_string = """
                 -surf_anat      : volumed aligned with surface
                 -surf_spec      : spec file(s) for surface
 
-           This example is intended to be run from the AFNI_data4 directory.
+           This example is intended to be run from AFNI_data6/FT_analysis.
+           It is provided with the class data in file s03.ap.surface.
 
-                afni_proc.py -subj_id sb23.surf                            \\
-                        -blocks tshift align volreg surf blur scale regress\\
-                        -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -copy_anat sb23/sb23_mpra+orig                     \\
-                        -tcat_remove_first_trs 3                           \\
-                        -volreg_align_to last                              \\
-                        -surf_anat SUMA/sb23_surf_SurfVol+orig             \\
-                        -surf_spec SUMA/sb23_?h_141_std.spec               \\
-                        -blur_size 6                                       \\
-                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
-                        -regress_stim_labels tneg tpos tneu eneg epos      \\
-                                             eneu fneg fpos fneu           \\
-                        -regress_basis 'BLOCK(30,1)'                       \\
-                        -regress_censor_motion 0.3                         \\
-                        -regress_opts_3dD                                  \\
-                            -gltsym 'SYM: +eneg -fneg'                     \\
-                            -glt_label 1 eneg_vs_fneg
+                afni_proc.py -subj_id FT.surf                            \\
+                    -blocks tshift align volreg surf blur scale regress  \\
+                    -copy_anat FT/FT_anat+orig                           \\
+                    -dsets FT/FT_epi_r?+orig.HEAD                        \\
+                    -surf_anat FT/SUMA/FTmb_SurfVol+orig                 \\
+                    -surf_spec FT/SUMA/FTmb_?h.spec                      \\
+                    -tcat_remove_first_trs 2                             \\
+                    -volreg_align_to third                               \\
+                    -volreg_align_e2a                                    \\
+                    -blur_size 6                                         \\
+                    -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt    \\
+                    -regress_stim_labels vis aud                         \\
+                    -regress_basis 'BLOCK(20,1)'                         \\
+                    -regress_censor_motion 0.3                           \\
+                    -regress_opts_3dD                                    \\
+                        -jobs 2                                          \\
+                        -gltsym 'SYM: vis -aud' -glt_label 1 V-A
+
 
     --------------------------------------------------
     -ask_me EXAMPLES:

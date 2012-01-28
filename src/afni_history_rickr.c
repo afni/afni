@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "updates for surf analysis of subject FT under AFNI_data6",
+   "  - added -atlas_followers to @SUMA_AlignToExperiment\n"
+   "  - if surf analysis: no scaling mask (e.g. extents)\n"
+   "  - updated help example #8 for surf analysis of AFNI_data6 subject FT"
+ } ,
+
  { 27, JAN, 2012, RCR, "to3d", MINOR, TYPE_BUG_FIX,
    "fix inf loop if some sSliceArray entries not set",
    "Also, now there might be junk between ASCCONV BEGIN and ###, grrrrr...\n"
