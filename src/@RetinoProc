@@ -743,15 +743,24 @@ PARSE:
    set pmeth = 'FFT'
    set Nts_ecc = 0
    set Nts_pol = 0
+   set install_demo = 0
    set cnt = 1
    
-   if ($Narg < 2) goto HELP
    
    while ($cnt <= $Narg)
 
       if ( "$argv[$cnt]" == "-echo") then
          set echo		
          goto NEXT		
+      endif
+      
+      if ("$argv[$cnt]" == "-fetch_demo") then
+         goto DEMO
+      endif
+      
+      if ("$argv[$cnt]" == "-install_demo") then
+         set install_demo = 1
+         goto DEMO
       endif
       
       if ( "$argv[$cnt]" == "-gm") then
@@ -1395,7 +1404,11 @@ PARSE:
       NEXT:
 		@ cnt ++
 	end
-   
+   if ($Narg < 2) then
+      echo "Too few arguments. Use `basename $0` -help for details."
+      goto BEND
+   endif
+
    #Make on_ecc and on_pol be fully formed  [#block  on_min on_max on_step]
    if ($on_ecc[3] == 0) set on_ecc[3] = $on_ecc[2]
    if ($on_ecc[4] == 0) set on_ecc[4] = $TR
@@ -1441,7 +1454,41 @@ SANITY:
    
    goto RET_SANITY
   
-
+DEMO:
+   if ( ! -f AfniRetinoDemo.tgz) then
+      echo "Fetching afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz ..."
+      curl -O http://afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz
+      if ($status) then
+         echo "Bad flag from download."
+         goto BEND
+      endif
+      echo "Download of AfniRetinoDemo.tgz done."
+   else
+      echo "Reusing existing AfniRetinoDemo.tgz"
+   endif
+   if ($install_demo) then
+      if ( -d AfniRetinoDemo) then
+         echo "Reusing existing AfniRetinoDemo"
+      else
+         echo "Unpacking AfniRetinoDemo.tgz"
+         tar xzf AfniRetinoDemo.tgz
+         if ($status) then
+            echo "Failed to untar AfniRetinoDemo.tgz"
+            goto BEND
+         endif
+      endif
+      cd AfniRetinoDemo
+      apsearch -view_text_file README.txt
+      tcsh @Proc.ALL |& tee Proc.ALL.log
+   else
+      echo "To check out the demo run:"
+      echo "   tar xzf AfniRetinoDemo.tgz"
+      echo "   cd AfniRetinoDemo"
+      echo "   apsearch -view_text_file README.txt"
+      echo "   tcsh @Proc.ALL |& tee Proc.ALL.log"
+   endif
+   goto END
+   
 HELP:
 echo ""
 echo "   `basename $0` is a script to process retinotpic FMRI data."
@@ -1593,6 +1640,10 @@ echo "                       -A2E_opts '-strip_skull surf_anat' since SVol"
 echo "                       usually has a skull, but AVol@Epi does not."
 echo "                       This could help with the alignment in certain"
 echo "                       difficult cases"
+echo " -fetch_demo: Get the demo archive, do not install it. "
+echo "              (see Sample Data below)"
+echo " -install_demo: Get it, install it, and start processing the 1st example"
+echo ""
 echo "The process:"
 echo "============"
 echo "   The full process consists of the following steps:"
@@ -1617,6 +1668,8 @@ echo " and Sergey V. Fogelson from:"
 echo "       afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz"
 echo "A README file in the archive will point you to sample scripts that "
 echo "illustrate the usage of @RetinoProc."
+echo ""
+echo "You can also use -fetch_demo to have this script get it for you."
 echo ""
 echo "References:"
 echo "==========="
