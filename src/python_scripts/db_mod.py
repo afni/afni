@@ -2554,6 +2554,11 @@ def db_cmd_regress(proc, block):
     if opt: normall = '    -basis_normall %s' % opt.parlist[0]
     else:   normall = ''
 
+    # if ricor, check whether the user wants to apply those regressors here
+    if proc.ricor_nreg > 0:
+       opt = block.opts.find_opt('-regress_apply_ricor')
+       if OL.opt_is_yes(opt): proc.ricor_apply = 'yes'
+
     # options for surface analysis
     if proc.surf_anat:
         # string for foreach hemi loop
@@ -2654,8 +2659,10 @@ def db_cmd_regress(proc, block):
     if not valid_file_types(proc, proc.extra_stims_orig, 1): return
 
     nmotion = len(proc.mot_labs) * len(proc.mot_regs)
+    if proc.ricor_apply == 'yes': nricor = proc.ricor_nreg
+    else:                         nricor = 0
     total_nstim =  len(proc.stims) + len(proc.extra_stims) + \
-                   nmotion + proc.ricor_nreg
+                   nmotion + nricor
     
     # maybe we will censor
     if proc.censor_file: censor_str = '    -censor %s' % proc.censor_file
@@ -2773,7 +2780,8 @@ def db_cmd_regress(proc, block):
         regindex += nmotion
 
     # write out ricor param lines (put labels afterwards)
-    if proc.ricor_reg and proc.ricor_nreg > 0:
+    # (only apply if user requests it        30 Jan 2012)
+    if proc.ricor_apply == 'yes' and proc.ricor_reg and proc.ricor_nreg > 0:
         for ind in range(proc.ricor_nreg):
             O3dd.append("    -stim_file %02d %s'[%02d]' "  \
                         "-stim_base %02d"                  \

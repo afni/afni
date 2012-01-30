@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "ricor block: no longer apply in later 3dDeconvolve",
+   "The regressors for slice #0 from the ricor block were being applied in\n"
+   "the final regression (to remove motion) for consistency in degrees of\n"
+   "freedom.  But we might rather not do that, particularly since DOF are\n"
+   "not important when proceeding with just correlation coefficients."
+ } ,
+
+ { 30, JAN, 2012, RCR, "uber_ttest.py", MICRO, TYPE_MODIFY,
+   "all python files use '/usr/bin/env python' instead of '/usr/bin/python'",
+   "modified afni_base.py, gui_uber_align_test.py, gui_uber_subj.py,\n"
+   "         uber_skel.py, @DoPerRoi.py, gui_uber_skel.py, gui_uber_ttest.py,\n"
+   "         uber_ttest.py"
+ } ,
+
  { 28, JAN, 2012, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
    "look for TSNR* in case of surf analysis",
    NULL
