@@ -308,9 +308,11 @@ g_history = """
         - added -atlas_followers to @SUMA_AlignToExperiment command
         - if surf analysis: no mask in scaling block (e.g. default extents)
         - updated help example #8 for surf analysis of AFNI_data6 subject FT
+    3.08 Jan 30, 2012: ricor block: no longer apply in later 3dDeconvolve
+        - added -regress_apply_ricor, with default of 'no'
 """
 
-g_version = "version 3.07, January 28, 2012"
+g_version = "version 3.08, January 30, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "27 Jan 2012"
@@ -408,6 +410,7 @@ class SubjProcSream:
         self.test_stims   = 1           # test stim_files for appropriateness
         self.test_dsets   = 1           # test datasets for existence
 
+        self.ricor_apply  = 'no'        # apply ricor regs in 3dDeconvolve
         self.ricor_reg    = None        # ricor reg to apply in regress block
         self.ricor_nreg   = 0           # number of regs in ricor_reg
         self.ricor_regs   = []          # RETROICOR regressor files
@@ -701,6 +704,9 @@ class SubjProcSream:
                         helpstr="stop 3dDeconvolve after matrix generation")
         self.valid_opts.add_opt('-regress_apply_mask', 0, [],
                         helpstr="apply the mask in regression")
+        self.valid_opts.add_opt('-regress_apply_ricor', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="apply ricor regs in regression (def no)")
         self.valid_opts.add_opt('-regress_basis', 1, [],
                         helpstr="basis function to use in regression")
         self.valid_opts.add_opt('-regress_basis_multi', -1, [],
