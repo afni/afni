@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # basically, a GUI to write an afni_proc.py command
 

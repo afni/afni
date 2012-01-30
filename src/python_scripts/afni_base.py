@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import os, sys, glob, operator, string, afni_base
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
