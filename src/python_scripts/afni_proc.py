@@ -308,11 +308,12 @@ g_history = """
         - added -atlas_followers to @SUMA_AlignToExperiment command
         - if surf analysis: no mask in scaling block (e.g. default extents)
         - updated help example #8 for surf analysis of AFNI_data6 subject FT
-    3.08 Jan 30, 2012: ricor block: no longer apply in later 3dDeconvolve
+    3.08 Jan 31, 2012: ricor block: no longer apply in later 3dDeconvolve
         - added -regress_apply_ricor, with default of 'no'
+        - added help updates for this
 """
 
-g_version = "version 3.08, January 30, 2012"
+g_version = "version 3.08, January 31, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "27 Jan 2012"
@@ -1239,6 +1240,11 @@ class SubjProcSream:
                 os.remove(self.script)
             return 1    # so we print all errors before leaving
 
+        self.report_final_messages()
+
+    def report_final_messages(self):
+        """check over various conditions"""
+
         if self.verb > 0:
             # last warning, if user is masking EPI data...
             if self.mask != None:
@@ -1250,10 +1256,16 @@ class SubjProcSream:
                     print "-- using default: will not apply EPI Automask"
                     print "   (see 'MASKING NOTE' from the -help for details)"
 
+            if self.ricor_nreg > 0 and self.ricor_apply == 'no':
+                if not self.user_opts.find_opt('-regress_apply_ricor'):
+                    print '** note: ricor regressors are no longer applied' \
+                              ' in final regresion'
+
             if self.runs == 1:
                 print "\n-------------------------------------\n" \
                         "** warning have only 1 run to analyze\n" \
                         "-------------------------------------"
+
             print "\n--> script is file: %s" % self.script
             print   '    consider the script execution command: \n\n' \
                     '      %s\n' % self.exec_cmd

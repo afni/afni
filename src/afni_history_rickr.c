@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_apply_ricor",
+   NULL
+ } ,
+
  { 30, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "ricor block: no longer apply in later 3dDeconvolve",
    "The regressors for slice #0 from the ricor block were being applied in\n"
