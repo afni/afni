@@ -343,16 +343,17 @@ def get_typed_dset_attr_list(dset, attr, atype, verb=1):
        This ends up running 3dAttribute for the given dataset name.
     """
 
-    alist = BASE.read_attribute(dset, attr)
-    if alist == None:
+    alist = BASE.read_attribute(dset, attr, verb=verb)
+    if alist == None and verb > 0:
         print "** GTDAL: failed to read dset attr %s, dset = %s" % (attr,dset)
         return 1, []
 
     err = 0
     try: result = [atype(val) for val in alist]
     except:
-        print "** GTDAL: failed to convert attr %s to type %s for dset %s" % \
-              (attr, atype, dset)
+        if verb > 0:
+           print "** GTDAL: failed to convert attr %s to type %s for dset %s"%\
+                 (attr, atype, dset)
         err = 1
         result = []
 

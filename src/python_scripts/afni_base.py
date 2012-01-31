@@ -438,16 +438,17 @@ class shell_com:
 
 
 # return the attribute list for the given dataset and attribute
-def read_attribute(dset, atr):
+def read_attribute(dset, atr, verb=1):
     [so, se] = shell_exec('3dAttribute %s %s' % (atr, dset))
     if len(so) == 0:
-        print '** 3dAttribute exec failure for "%s %s"' % (atr, dset)
-        if len(se) > 0: print se
+        if verb > 0:
+           print '** 3dAttribute exec failure for "%s %s"' % (atr, dset)
+           if len(se) > 0: print se
         return None
     list = so[0].split()
     if len(list) > 0: return list
     else:
-        print '** 3dAttribute failure for "%s %s":' % (atr, dset)
+        if verb > 0: print '** 3dAttribute failure for "%s %s":' % (atr, dset)
         return None
 
 # return dimensions of dset, 4th dimension included
