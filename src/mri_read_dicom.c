@@ -451,11 +451,13 @@ ENTRY("mri_read_dicom") ;
          ( epos[E_ID_IMAGE_TYPE] && strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC") ) )
        && str_sexinfo                               != NULL   ){
 
-     sexi_start = strstr(str_sexinfo, "### ASCCONV BEGIN ###");
+     /* newer DICOM images have extra garbage between BEGIN and ###, so
+      * do not look farther than BEGIN (or END)    31 Jan, 2012 [rickr] */
+     sexi_start = strstr(str_sexinfo, "### ASCCONV BEGIN");
      if(sexi_start != NULL) {
         /* search for end after start - drg,fredtam 23 Mar 2007 */
-        sexi_start2 = strstr(sexi_start+21, "### ASCCONV BEGIN ###");
-        sexi_end = strstr(sexi_start, "### ASCCONV END ###");
+        sexi_start2 = strstr(sexi_start+21, "### ASCCONV BEGIN");
+        sexi_end = strstr(sexi_start, "### ASCCONV END");
         if (sexi_end != NULL) {
            char *sexi_tmp;
            int sexi_size;
@@ -1490,10 +1492,10 @@ ENTRY("mri_imcount_dicom") ;
      /* KRH 25 Jul 2003 if start and end markers are present for
       * Siemens extra info, cut string down to those boundaries */
 
-     sexi_start = strstr(str_sexinfo, "### ASCCONV BEGIN ###");
+     sexi_start = strstr(str_sexinfo, "### ASCCONV BEGIN");
      if(sexi_start != NULL) {  /* search for end after start - drg,fredtam 23 Mar 2007 */
-        sexi_start2 = strstr(sexi_start+21, "### ASCCONV BEGIN ###");
-        sexi_end = strstr(sexi_start, "### ASCCONV END ###");
+        sexi_start2 = strstr(sexi_start+21, "### ASCCONV BEGIN");
+        sexi_end = strstr(sexi_start, "### ASCCONV END");
         if(g_info.verb > 3)
            fprintf(stderr, "sexi_start %d sexi_start2 %d sexi_end %d\n",
                   PTOI(sexi_start), PTOI(sexi_start2),PTOI(sexi_end) );
