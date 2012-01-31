@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, JAN, 2012, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "look for aligned anat _al_junk/keep",
+   NULL
+ } ,
+
  { 31, JAN, 2012, RCR, "to3d", MINOR, TYPE_BUG_FIX,
    "also update check for '### ASCCONV BEGIN' in to3d...",
    "Problem noted by J Lewis."
