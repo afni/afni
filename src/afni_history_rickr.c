@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, JAN, 2012, RCR, "to3d", MINOR, TYPE_BUG_FIX,
+   "also update check for '### ASCCONV BEGIN' in to3d...",
+   "Problem noted by J Lewis."
+ } ,
+
  { 31, JAN, 2012, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_apply_ricor",
    NULL
