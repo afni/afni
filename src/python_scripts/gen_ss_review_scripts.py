@@ -389,6 +389,7 @@ g_eg_uvar.xmat_regress    = 'X.xmat.1D'
 g_eg_uvar.xmat_uncensored = 'X.nocensor.xmat.1D'
 g_eg_uvar.stats_dset      = 'stats.FT+tlrc.HEAD'
 g_eg_uvar.sum_ideal       = 'sum_ideal.1D'
+g_eg_uvar.align_anat      = 'FT_anat_al_junk+orig.HEAD'
 g_eg_uvar.final_anat      = 'anat_final.FT+tlrc.HEAD'
 g_eg_uvar.final_view      = 'tlrc'
 g_eg_uvar.mask_dset       = 'full_mask.FT+tlrc.HEAD'
@@ -409,8 +410,9 @@ g_uvar_dict = {
  'xmat_uncensored'  :'if censoring, set un-censored X-matrix',
  'stats_dset'       :'set main output from 3dDeconvolve',
  'sum_ideal'        :'set 1D file for ideal sum',
- 'final_view'       :'set final view of data (orig/tlrc)',
+ 'align_anat'       :'anat aligned with original EPI',
  'final_anat'       :'anat aligned with stats dataset',
+ 'final_view'       :'set final view of data (orig/tlrc)',
  'mask_dset'        :'set EPI mask',
  'tsnr_dset'        :'set temporal signal to noise dataset',
  # todo
@@ -460,9 +462,10 @@ g_history = """
    0.11 Nov 02, 2011: added out.TENT_warn.txt to warning file review
    0.12 Nov 21, 2011: fixed -ynames in plot of motion/outliers
    0.13 Jan 28, 2012: look for TSNR* in case of surf analysis
+   0.14 Jan 31, 2012: look for aligned anat: _al_junk/keep (but not yet used)
 """
 
-g_version = "gen_ss_review_scripts.py version 0.13, January 28, 2012"
+g_version = "gen_ss_review_scripts.py version 0.14, January 31, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -689,7 +692,7 @@ class MyInterface:
          fill some of the basic vars:
            - subj, rm_trs, enorm_dset, motion_dset, outlier_dset,
              num_stim, xmat_regress, xmat_uncensored,
-             stats_dset, final_view, final_anat
+             stats_dset, final_view, final_anat, align_anat
 
          find any censor file (require some limit):
            - mot_limit, out_limit
@@ -710,6 +713,7 @@ class MyInterface:
       if self.guess_motion_dset(): return 1
       if self.guess_outlier_dset():return 1
       if self.guess_final_anat():  return 1
+      if self.guess_align_anat():  return 1
       if self.guess_mask_dset():   return 1
       if self.guess_tsnr_dset():   return 1
 
@@ -1152,6 +1156,43 @@ class MyInterface:
 
       return 0
 
+   def guess_align_anat(self):
+      """set uvars.align_anat
+         return 0 on sucess
+
+         This variable is non-vital, so return 0 on anything but fatal error.
+
+         - look for *_al_keep+VIEW.HEAD
+         - look for *_al_junk+VIEW.HEAD
+         - look for *_al+VIEW.HEAD
+      """
+
+      # check if already set
+      if self.uvars.is_not_empty('align_anat'):
+         if self.cvars.verb > 3:
+            print '-- already set: align_anat = %s' % self.uvars.align_anat
+         return 0
+
+      # go after known files (view should be +orig for anat<-->EPI alignment)
+      for suff in ['junk', 'keep']:
+            gstr = '%s_al_%s+orig.HEAD' % (self.uvars.subj, suff)
+            if os.path.isfile(gstr):
+               self.uvars.align_anat = gstr
+               return 0
+
+      # else try using wildcards
+      glist = glob.glob('*_al_*+orig.HEAD')
+      if self.cvars.verb > 2:
+         print '-- have %d align files via wildcard: %s' % (len(glist), glist)
+      for file in glist:
+         if os.path.isfile(file):
+            self.uvars.align_anat = gstr
+            return 0
+
+      print '** failed to guess align_anat (continuing)'
+
+      return 0
+
    def guess_anat_from_volreg(self):
       """look for 3dAllineate -base DSET, returning DSET"""
 
@@ -1467,16 +1508,19 @@ class MyInterface:
          if self.make_basic_script(): return 1
          # write to executable text file
          UTIL.write_text_to_file(scr_basic, self.text_basic, exe=1)
+         print '++ writing ss review basic:          %s' % scr_basic
 
       scr_drive = self.cvars.val('scr_drive')
       if scr_drive:
          if self.make_drive_script(): return 1
          # write to executable text file
          UTIL.write_text_to_file(scr_drive, self.text_drive, exe=1)
+         print '++ writing ss review driver:         %s' % scr_drive
 
       cmds_drive = self.cvars.val('cmds_drive')
       if cmds_drive:
          UTIL.write_text_to_file(cmds_drive, self.commands_drive, exe=1)
+         print '++ writing ss review drive commands: %s' % cmds_drive
 
       return 0
 
