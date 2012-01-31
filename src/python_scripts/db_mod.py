@@ -2524,12 +2524,20 @@ def db_mod_regress(block, proc, user_opts):
     if uopt: bopt.parlist = uopt.parlist
 
     # possibly update cbucket option
-    uopt = user_opts.find_opt('-regress_make_cbucket')
-    bopt = block.opts.find_opt('-regress_make_cbucket')
+    oname = '-regress_make_cbucket'
+    uopt = user_opts.find_opt(oname)
+    bopt = block.opts.find_opt(oname)
     if uopt:
-        if not bopt: block.opts.add_opt('-regress_make_cbucket', 1,
-                                        ['no'],setpar=1)
-        else: bopt.parlist = uopt.parlist
+        if bopt: bopt.parlist = uopt.parlist
+        else:    block.opts.add_opt(oname, 1, uopt.parlist, setpar=1)
+
+    # possibly update cbucket option
+    oname = '-regress_apply_ricor'
+    uopt = user_opts.find_opt(oname)
+    bopt = block.opts.find_opt(oname)
+    if uopt:
+        if bopt: bopt.parlist = uopt.parlist
+        else:    block.opts.add_opt(oname, 1, uopt.parlist, setpar=1)
 
     # prepare to return
     if errs > 0:
@@ -4654,6 +4662,10 @@ g_help_string = """
     'ricor' block, after which processing would continue normally. In the final
     'regress' block, regressors for slice 0 would be applied (to correctly
     account for the degrees of freedom and also to remove residual effects).
+        --> This is now only true when using '-regress_apply_ricor yes'.
+            The default as of 30 Jan 2012 is to not include them in the final 
+            regression (since degrees of freedom are really not important for a
+            subsequent correlation analysis).
 
     Users have the option of removing the signal "per-run" or "across-runs".
 
@@ -6099,6 +6111,17 @@ g_help_string = """
 
             See also -regress_motion_file, -regress_no_motion_demean,
             -regress_no_motion_deriv, -regress_no_motion.
+
+        -regress_apply_ricor yes/no : apply ricor regs in final regression
+
+                e.g.     -regress_apply_ricor yes
+                default: no
+
+            This is from a change in the default behavior 30 Jan 2012.  Prior
+            to then, the 13 (?) ricor regressors from slice 0 would be applied
+            in the final regression (mostly accounting for degrees of freedom).
+            But since resting state analysis relies on a subsequent correlation
+            analysis, it seems cleaner not to regress them (a second time).
 
         -regress_basis BASIS    : specify the regression basis function
 
