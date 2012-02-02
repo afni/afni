@@ -127,8 +127,8 @@ class MainWindow(QtGui.QMainWindow):
          QScrollArea
             QGroupBox(input data and options) with VBox layout
                elsewhere:
-                  QGroupBox(costs)
-                  QGroupBox(align_centers)
+                  QGroupBox(datasets list A)
+                  QGroupBox(datasets list B)
                   QGroupBox(other_options)
                   ...
       """
@@ -309,7 +309,7 @@ class MainWindow(QtGui.QMainWindow):
       te = QtGui.QTextEdit()
 
       mainlayout.addWidget(label, 0, 0)
-      mainlayout.addWidget(te, 1, 1, 3, 3)
+      mainlayout.addWidget(te, 0, 1, 3, 3)
 
       self.gvars.TE_ttest = te
 
@@ -330,7 +330,7 @@ class MainWindow(QtGui.QMainWindow):
       te = QtGui.QTextEdit()
 
       mainlayout.addWidget(label, 0, 0)
-      mainlayout.addWidget(te, 1, 1, 3, 3)
+      mainlayout.addWidget(te, 0, 1, 3, 3)
 
       self.gvars.TE_MEMA = te
 
@@ -386,75 +386,6 @@ class MainWindow(QtGui.QMainWindow):
       gbox.Line_tind = widget.gvars.line_list[2]
 
       mainlayout.addWidget(widget)
-
-      return gbox
-
-   def group_box_dset_table_old(self, title='datasets'):
-      """create a group box with layout
-            QPushB(get subject dsets)   QPushB(clear dsets)   QPushB(help)
-            QLIB.DatasetTableWidget(sid, dset): common dir, wildard, #dsets
-
-         save in gbox.PB_get, PB_clear, PB_help
-                      STable_dsets
-                      Label_num_entries
-                      Label_top_dir
-                      Label_group_name
-         have gbox.frame
-         for controlling uvars: dsetsA, labelA, betasA
-      """
-      gbox = QLIB.get_styled_group_box(title)
-      if show_func_seq: print '=== G ==='
-
-      # put frame inside gbox, which we can hide via toggled button
-      glayout = QtGui.QVBoxLayout(gbox)
-      frame = QtGui.QFrame(gbox)
-      frame.setFrameShape(QtGui.QFrame.NoFrame)
-      glayout.addWidget(frame)
-      gbox.frame = frame
-      self.init_gbox_viewable(gbox, True)       # default to viewable
-      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
-
-      mainlayout = QtGui.QVBoxLayout(frame)     # now a child of frame
-
-      # --------------------------------------------------
-      # create buttons
-      labels = ['get subj dsets', 'clear', 'help']
-      tips   = ['populate table with subject dataset list',
-                'delete all table entries', 'display help for this section']
-      bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
-                                               tips=tips)
-      bwidget.blist[2].setIcon(self.style().standardIcon(
-                            QtGui.QStyle.SP_MessageBoxQuestion))
-
-      # assign buttons to main variables
-      gbox.PB_get   = bwidget.blist[0]
-      gbox.PB_clear = bwidget.blist[1]
-      gbox.PB_help  = bwidget.blist[2]
-
-      # create a DatasetTableWidget with those buttons
-      dtw = QLIB.DatasetTableWidget(gbox, button_widgets=[bwidget],
-                                          verb=self.verb)
-      gbox.dset_table = dtw
-      mainlayout.addWidget(dtw)
-
-      # add a grid layout for group name, data index, t-stat index
-      labels = ['set name (group or class)',
-                'data index/label',
-                't-stat index/label (MEMA)']
-      tips = ['specify a group or category name (e.g. adults or houses)',
-              'specify a sub-brick index or label for data volume',
-              'specify index or label for t-stat volume (only for 3dMEMA)']
-      widget = QLIB.create_label_line_grid(labels, tips, cb=self.CB_line_text)
-      gbox.Line_name = widget.gvars.line_list[0]
-      gbox.Line_dind = widget.gvars.line_list[1]
-      gbox.Line_tind = widget.gvars.line_list[2]
-
-      mainlayout.addWidget(widget)
-
-      mainlayout.setMargin(0)
-      mainlayout.setSpacing(QLIB.g_layout_spacing)
-
-      glayout.setMargin(0)
 
       return gbox
 
@@ -572,7 +503,7 @@ class MainWindow(QtGui.QMainWindow):
                                  '   (should be file %s)' % fname)
          return
 
-      self.update_result_window(title="Success!  align script:", fname=fname)
+      self.update_result_window(title="Success!  ttest script:", fname=fname)
       if nwarn > 0: self.update_warn_window(wstr)
 
       # if we have a proc dir that exists, save the UA.py command there
@@ -773,12 +704,12 @@ class MainWindow(QtGui.QMainWindow):
 
       # ----------------------------------------------------------------------
       # main process actions
-      act1 = QLIB.createAction(self, "gen: align script",
+      act1 = QLIB.createAction(self, "gen: ttest script",
         slot=self.cb_show_script,
         tip="generate processing script",
         icon=self.style().standardIcon(QtGui.QStyle.SP_FileDialogDetailedView))
 
-      act2 = QLIB.createAction(self, "exec: align script",
+      act2 = QLIB.createAction(self, "exec: ttest script",
         slot=self.cb_exec_script,
         tip="execute processing script",
         icon=self.style().standardIcon(QtGui.QStyle.SP_DialogYesButton))
@@ -813,13 +744,13 @@ class MainWindow(QtGui.QMainWindow):
       # View menu - all for static view windows
       self.gvars.MBar_view = self.menuBar().addMenu("&View")
 
-      act1 = QLIB.createAction(self, "resulting align script",
+      act1 = QLIB.createAction(self, "resulting ttest script",
         slot=self.cb_view,
         tip="display script created via GUI")
 
-      act2 = QLIB.createAction(self, "output from align script",
+      act2 = QLIB.createAction(self, "output from ttest script",
         slot=self.cb_view,
-        tip="display text output from execution of align script")
+        tip="display text output from execution of ttest script")
 
       act3 = QLIB.createAction(self,"view: uber_ttest.py command",
           slot=self.cb_view,
@@ -1076,7 +1007,7 @@ class MainWindow(QtGui.QMainWindow):
       obj = self.sender()
 
       if obj == self.gvars.act_view_script:
-         self.show_static_file('file_proc', 'align script:')
+         self.show_static_file('file_proc', 'ttest script:')
 
       elif obj == self.gvars.act_view_output:
          self.show_static_file('output_proc', 'script output:')
@@ -1087,7 +1018,7 @@ class MainWindow(QtGui.QMainWindow):
                                 text=sstr, parent=self)
 
       elif obj == self.gvars.act_view_uvars:
-         sstr = self.uvars.make_show_str('current align test', name=0)
+         sstr = self.uvars.make_show_str('current ttest test', name=0)
          QLIB.static_TextWindow(title='user vars', text=sstr, parent=self)
 
       elif obj == self.gvars.act_view_cvars:

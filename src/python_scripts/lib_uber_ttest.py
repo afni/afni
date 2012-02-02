@@ -18,9 +18,10 @@ g_history = """
 
     0.0  22 Sep, 2011: initial revision
          - has basic 3dttest++ capabilities
+    0.1  02 Feb, 2012: added basic 3dMEMA capabilities
 """
 
-g_version = '0.0 (September 22, 2011)'
+g_version = '0.1 (February 2, 2012)'
 
 # ----------------------------------------------------------------------
 # global definitions
@@ -43,8 +44,15 @@ g_ctrl_defs = SUBJ.VarsObject("uber_ttest control defaults")
 g_ctrl_defs.proc_dir     = '.'    # process dir: holds scripts and result dir
 g_ctrl_defs.verb         = 1      # verbose level
 g_ctrl_defs.copy_scripts = 'yes'  # make .orig copies of scripts?
-g_ctrl_defs.results_dir  = 'ttest.results'  # output directory for results
+g_ctrl_defs.results_dir  = 'test.results'  # output directory for results
 
+# control varaible dictionary, for command line options
+g_cvar_dict = {
+   'proc_dir'      : 'set processing dir to hold scripts',
+   'verb'          : 'set verbose level',
+   'copy_scripts'  : 'specify whether to copy original scripts',
+   'results_dir'   : 'specify result dir for computed dataset'
+}
 
 # ---- user variables ----
 
@@ -66,6 +74,7 @@ g_user_defs.sids_B         = []
 g_user_defs.set_name_B     = ''
 g_user_defs.beta_B         = ''
 g_user_defs.tstat_B        = ''
+g_user_defs.paired         = 'no'
 
 g_user_defs.mask           = ''
 
@@ -73,14 +82,43 @@ g_user_defs.mask           = ''
 g_user_defs.tt_options     = []
 g_user_defs.MM_options     = []
 
+# to use ...
 g_user_defs.tt_cov_file    = ''
 g_user_defs.tt_center_meth = 'DIFF'     # NONE, DIFF, SAME
-g_user_defs.tt_paired      = 'no'
 g_user_defs.tt_pooled      = 'no'
 g_user_defs.tt_toz         = 'no'
 g_user_defs.tt_zskip       = 'no'
 
-# 3dMEMA specific
+# 3dMEMA specific, todo ...
+
+# control varaible dictionary, for command line options
+g_uvar_dict = {
+   'program'            : 'specify stats program: 3dttest++/3dMEMA',
+   'script'             : 'set output script name',
+   'prefix'             : 'set prefix for output datasets',
+   'dsets_A'            : 'list datasets for set A',
+   'sids_A'             : 'list subject IDs for set A',
+   'set_name_A'         : 'specify group/condition name for set A',
+   'beta_A'             : 'specify sub-brick index/label for beta A',
+   'tstat_A'            : 'specify sub-brick index/label for t-stat A',
+   'dsets_B'            : 'list datasets for set B',
+   'sids_B'             : 'list subject IDs for set B',
+   'set_name_B'         : 'pecify group/condition name for set B',
+   'beta_B'             : 'specify sub-brick index/label for beta B',
+   'tstat_B'            : 'specify sub-brick index/label for t-stat B',
+   'paired'             : 'specify whether this is a paired test (yes/no)',
+   'mask'               : 'specify mask dataset for computation',
+
+   'tt_options'         : 'specify extra optins for 3dttest++ command',
+   'MM_options'         : 'specify extra optins for 3dMEMA command'
+
+   #'tt_cov_file'        : '',
+   #'tt_center_meth'     : '',
+   #'tt_pooled'          : '',
+   #'tt_toz'             : '',
+   #'tt_zskip'           : '',
+}
+
 
 # string versions of variables - used by GUI and main
 # (when creating TTest object, string versions of vars are passed)
@@ -102,7 +140,7 @@ class TTest(object):
            LV            - local variables
            cvars         - control variables
            uvars         - user variables
-           cmd_text      - generated alignment script
+           cmd_text      - generated processing script
            errors            --> array of resulting error messages
            warnings          --> array of resulting warning messages
    """
@@ -181,11 +219,10 @@ class TTest(object):
          if self.cvars.verb > 2: print '   (top_dir not worth using...)'
 
    def create_script(self):
-      """attempt to generate an alignment script
-            - write align_script
+      """attempt to generate a processing script
+            - write script
             - keep a list of any warnings or errors
-            - 
-            - if there are errors, align_script might not be filled
+               - if there are errors, script might not be filled
       """
 
       # script prep, headers and variable assignments
@@ -217,18 +254,13 @@ class TTest(object):
 
       return UTIL.add_line_wrappers(cmd)
 
-   def script_MEMA(self):
-      """write command for 3dMEMA program
-      """
-      self.errors.append('** not ready to create 3dMEMA script')
-      return ''
-
    def script_ttest(self):
       """write command for 3dttest++ program
       """
       if not self.uvars.prefix:
-         self.errors.append('** unspecified output prefix')
-         return ''
+         self.uvars.prefix = 'stats.%s' % self.uvars.val('program')
+
+      indent = len(self.uvars.program)+1
 
       if self.cvars.results_dir: rdir = '$results_dir'
       else:                      rdir = '.'
@@ -237,16 +269,56 @@ class TTest(object):
       if self.uvars.dsets_B: diff = ' -AminusB'
       else:                  diff = ''
       
-      cmd  = '%s -prefix %s%s \\\n' % (self.uvars.program, prefix, diff)
+      # if 2 sets of data, consider the -paired option
+      pstr = ''
+      if self.uvars.is_not_empty('dsets_B'):
+         if self.uvars.paired == 'yes': pstr = ' -paired'
+
+      cmd = '%s -prefix %s%s%s \\\n' % (self.uvars.program, prefix, diff, pstr)
+      if self.uvars.mask:
+         cmd += ' '*indent + '-mask $mask_dset \\\n'
 
       if len(self.uvars.tt_options) > 0:
-         cmd += ' '*10 + ' '.join(self.uvars.tt_options) + '\\\n'
-      cmd += self.make_tt_setlist('A')
-      cmd += self.make_tt_setlist('B')
+         cmd += ' '*indent + ' '.join(self.uvars.tt_options) + '\\\n'
+      cmd += self.make_tt_setlist('A', indent=indent)
+      cmd += self.make_tt_setlist('B', indent=indent)
 
       return cmd
 
-   def make_tt_setlist(self, choice='A', indent=9):
+   def script_MEMA(self):
+      """write command for 3dMEMA program
+      """
+
+      if not self.uvars.prefix:
+         self.uvars.prefix = 'stats.%s' % self.uvars.val('program')
+
+      indent = len(self.uvars.program)+1
+
+      if self.cvars.results_dir: rdir = '$results_dir'
+      else:                      rdir = '.'
+      prefix = '%s/%s' % (rdir, self.uvars.prefix)
+
+      # no diff check here, as with 3dttest, test is always set2-set1
+
+      cmd  = '%s -prefix %s \\\n' % (self.uvars.program, prefix)
+      if self.uvars.mask:
+         cmd += ' '*indent + '-mask $mask_dset \\\n'
+
+      # if 2 sets of data, decide between -groups and -conditions
+      if self.uvars.is_not_empty('dsets_B'):
+         if self.uvars.paired == 'yes': pstr = '-conditions'
+         else:                          pstr = '-groups'
+         pstr += ' %s %s' % (self.uvars.set_name_A, self.uvars.set_name_B)
+         cmd += ' '*indent + '%s \\\n' % pstr
+
+      if len(self.uvars.MM_options) > 0:
+         cmd += ' '*indent + ' '.join(self.uvars.MM_options) + '\\\n'
+      cmd += self.make_mema_setlist('A', indent=indent)
+      cmd += self.make_mema_setlist('B', indent=indent)
+
+      return cmd
+
+   def make_tt_setlist(self, choice='A', indent=10):
       if choice == 'A':   short_name_ind = 0
       elif choice == 'B': short_name_ind = 1
       else:
@@ -261,7 +333,7 @@ class TTest(object):
       if not sname: sname = 'setlist%s' % choice
 
       istr = ' ' * indent
-      cmd = '%s -set%s %s \\\n' % (istr, choice, sname)
+      cmd = '%s-set%s %s \\\n' % (istr, choice, sname)
 
       beta = self.uvars.val('beta_%s'%choice)
       if not beta: beta = '0'
@@ -269,18 +341,56 @@ class TTest(object):
       dir = self.LV.val('dir%s'%choice)
 
       if dir: dsets = self.LV.short_names[short_name_ind]
-      istr += '    '
+      istr += '   '
 
       sids = self.uvars.val('sids_%s'%choice)
 
-      cmd += self.make_dset_list(dsets, sids=sids, dirstr=dir, selector=beta,
+      cmd += self.make_dset_list(dsets, sids=sids, dirstr=dir, sel1=beta,
                                  indent=istr)
 
       return cmd
 
-   def make_dset_list(self, dsets, sids=[], dirstr='', selector='', indent=''):
+   def make_mema_setlist(self, choice='A', indent=7):
+      if choice == 'A':   short_name_ind = 0
+      elif choice == 'B': short_name_ind = 1
+      else:
+         print '** MMS: bad choice %s' % choice
+         return ''
+
+      # init dsets based on the choice, and to see if there is anything to do
+      dsets = self.uvars.val('dsets_%s'%choice)
+      if not dsets: return ''
+
+      sname = self.uvars.val('set_name_%s'%choice)
+      if not sname:
+         self.errors.append("** 'set name' required for datasets %s"%choice)
+
+      istr = ' ' * indent
+      cmd = '%s-set %s \\\n' % (istr, sname)
+
+      beta = self.uvars.val('beta_%s'%choice)
+      if not beta: beta = '0'
+      tstat = self.uvars.val('tstat_%s'%choice)
+      if not tstat: tstat = '1'
+
+      dir = self.LV.val('dir%s'%choice)
+
+      if dir: dsets = self.LV.short_names[short_name_ind]
+      istr += '   '
+
+      sids = self.uvars.val('sids_%s'%choice)
+
+      cmd += self.make_dset_list(dsets, sids=sids, dirstr=dir, sel1=beta,
+                                 indent=istr, mema=1, sel2=tstat)
+
+      return cmd
+
+   def make_dset_list(self, dsets, sids=[], dirstr='', sel1='', indent='',
+                      mema=0, sel2=''):
       """make a list of lines of the form:
-            INDENT.SID."DIRSTR/DSET[SELECTO]" \\
+            INDENT SID "DIRSTR/DSET[SELECTON]" \\
+         if mema, the list should be of the form:
+            INDENT SID "DIRSTR/DSET[SELECTON] DIRSTR/DSET[S2]" \\
       """
 
       ndsets = len(dsets)
@@ -298,7 +408,15 @@ class TTest(object):
       dstr = dirstr
       if dstr:
          if dstr[-1] != '/': dstr = dstr + '/'
-      if nsids > 0:
+      if nsids == 0:
+         sids = UTIL.get_ids_from_dsets(dsets)
+         if not sids:
+            if not UTIL.uniq_list_as_dset_names(dsets, whine=0):
+               mesg = '** datasets are NOT unique (both HEAD and BRIK?)'
+            else: mesg = '** failed to create subject IDs'
+            self.errors.append(mesg)
+            return ''
+      else:
          if nsids != ndsets:
             print '** MDL, have %d dsets but %d sids' % (ndsets, nsids)
             return ''
@@ -308,9 +426,17 @@ class TTest(object):
       for ind, dset in enumerate(dsets):
          dname = self.strip_suffix(dset, '.HEAD')
 
+         # maybe make MEMA t-stat selection string
+         if mema:
+            if not sel1 or not sel2:
+               self.errors.append('** MEMA requires beta/t-stat indices')
+               return ''
+            mstr = ' "%s%s[%s]"' % (dstr, dname, sel2)
+         else: mstr = ''
+
          if sids: sid = '%s ' % sids[ind]
-         if selector:
-            cstr += '%s%s"%s%s[%s]" \\\n' % (istr, sid, dstr, dname, selector)
+         if sel1:
+            cstr += '%s%s"%s%s[%s]"%s \\\n'%(istr, sid, dstr, dname, sel1, mstr)
          else:
             cstr += '%s%s%s%s \\\n' % (istr, sid, dstr, dname)
 
@@ -321,49 +447,6 @@ class TTest(object):
       hloc = fname.rfind(suffix)
       if hloc > 0: return fname[0:hloc]
       return fname
-
-   def script_align_datasets(self):
-      """actually run align_epi_anat.py
-
-         only current option is -mult_cost, everything else is via variables
-      """
-      return '== rcr =='
-
-      if len(self.uvars.cost_list) > 1: mstr = ' -multi_cost $cost_list'
-      else:                             mstr = ''
-
-      cmd = SUBJ.comment_section_string('align data') + '\n'
-
-      cmd += \
-       '# test alignment, using variables set above\n'          \
-       'align_epi_anat.py -anat anat+orig -epi epi+orig '       \
-                         '-epi_base $in_ebase \\\n'             \
-       '                  -cost $cost_main%s $align_opts\n'     \
-       '\n' % mstr
-
-      return cmd
-
-   def script_align_centers(self):
-      """if align_centers should be run, deoblique both and align with
-         center_base (probably TT_N27+tlrc)
-
-         note: these commands should be fixed, since the dataset names are
-      """
-      return '== rcr =='
-
-      if self.uvars.align_centers != 'yes': return ''
-
-      cmd = SUBJ.comment_section_string('align centers') + '\n'
-
-      cmd += '# since altering grid, remove any oblique transformation\n'    \
-             '3drefit -deoblique anat+orig epi+orig\n'                       \
-             '\n'                                                            \
-             '# align volume centers (we do not trust spatial locations)\n'  \
-             '@Align_Centers -no_cp -base TT_N27+tlrc -dset anat+orig\n'     \
-             '@Align_Centers -no_cp -base TT_N27+tlrc -dset epi+orig\n'      \
-             '\n'
-
-      return cmd
 
    def script_copy_data(self):
       """these commands only vary based on results_dir"""
@@ -424,55 +507,6 @@ class TTest(object):
 
       if cmd: return hdr + cmd
       else:   return ''
-
-   def make_align_opts_str(self):
-      """any align options, one per line"""
-
-      # keep comment separate to get indent length
-      cmnt = '# all other align_epi_anat.py options\n' \
-
-      cstr = 'set align_opts = ( '
-      clen = len(cstr)
-      istr = ' '*clen
-
-      # put one option on first line
-      cstr += '%s \\\n' % '-tshift off'
-
-      # ---------- here is the main option application ---------
-
-      # then add each option offset by initial indentation
-      cstr += '%s%s \\\n' % (istr, '-volreg off')
-
-      if self.uvars.giant_move == 'yes':
-         cstr += '%s%s \\\n' % (istr, '-giant_move')
-
-      if self.uvars.add_edge == 'yes':
-         if len(self.uvars.cost_list) > 1:
-            self.errors.append(
-               '** -AddEdge does not currently work with -multi_cost')
-         else:
-            cstr += '%s%s \\\n' % (istr, '-AddEdge')
-
-      if len(self.uvars.aea_opts) > 0:
-            cstr += '%s%s \\\n' % (istr, ' '.join(self.uvars.aea_opts))
-
-      # does the anatomy have a skull?
-      if self.uvars.anat_has_skull != 'yes':
-         cstr += '%s%s \\\n' % (istr, '-anat_has_skull no')
-
-      # -epi_strip method
-      if self.uvars.epi_strip_meth != '3dSkullStrip':
-         cstr += '%s%s \\\n' % (istr,'-epi_strip %s'%self.uvars.epi_strip_meth)
-
-      # want -save_all, -prep_off?
-
-      # last indent is left by 2 to align ()
-      cstr += '%*s)\n\n' % (clen-2, '')
-
-      # finally, align the line wrappers
-      cstr = UTIL.add_line_wrappers(cstr)
-
-      return cmnt + cstr
 
    def get_script(self):
       """return status, message
@@ -541,12 +575,10 @@ class TTest(object):
       """
 
       if not self.script:
-         print '** no alignment script to write out'
+         print '** no script to write out'
          return 1
       if fname: name = fname
-      else:
-         # if self.svars.sid: name = 'script.align.%s' % self.svars.sid
-         name = 'script.ttest'
+      else: name = 'script.ttest'
 
       # store (intended) names for calling tool to execute with
       self.rvars.file_proc = name # store which file we have written to
@@ -574,7 +606,9 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
-- test center distance in GUI to suggest align centers
+- generate 3dMEMA scripts
+- add paired options (for both programs)
+- dataset table B: should be able to copy table A
 ---------------------------------------------------------------------------
 """
 

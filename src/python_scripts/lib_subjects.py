@@ -261,7 +261,7 @@ class VarsObject(object):
       return False
 
    def is_not_empty(self, atr):
-      """true if not set or is '' or []"""
+      """true if set and neither '' nor []"""
       return not self.is_empty(atr)
 
    def is_non_trivial_dir(self, atr):
@@ -594,6 +594,7 @@ def get_def_tool_path(prog_name, top_dir='tool_results', prefix='tool',
 
    # generate form for name (e.g. tr/t.%03d.t); insert index later
    form = '%s/%s.%%0%dd.%s' % (tdir, prefix, digits, tname)
+   sform = '%s/%s.%%0%dd' % (tdir, prefix, digits) # short form
 
    # if tdir does not yet exist, we can start with the default
    if not os.path.isdir(tdir):
@@ -615,17 +616,17 @@ def get_def_tool_path(prog_name, top_dir='tool_results', prefix='tool',
    ilist.sort()
    nvals = len(ilist)
 
-   # if keep_if_missing and the form dir exists for the last index and the
-   # keep_if_missing file does NOT exist underneath, return for that index
+   # if the keep_if_missing file does NOT exist underneath the last dir,
+   # return the directory for that index
    if keep_if_missing:
-      fdir = form % ilist[-1]
-      cdir = '%s/%s' % (fdir, keep_if_missing)
-      print '== checking cdir = %s' % cdir
-      if not os.path.exists(cdir): return fdir
+      fdir = sform % ilist[-1]
+      if not UTIL.glob_form_has_match('%s.*/%s' % (fdir, keep_if_missing)):
+         return form % ilist[-1]        # longer form includes tool name
 
-   # quick check, if ilist[n-1] = n, just go with n+1
+   # quick check, if ilist[n-1] <= n, just increment
    # (or should we forget this, since non-unique values break logic?)
-   if ilist[-1] <= nvals: return form % (nvals+1)
+   # (no, tool name may change without 'keep' file/dir, so values may repeat)
+   if ilist[-1] <= nvals: return form % (ilist[-1]+1)
 
    # finally!  now find first value > index+1 (else, just use next)
  

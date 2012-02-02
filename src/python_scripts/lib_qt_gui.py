@@ -1118,6 +1118,8 @@ class DatasetTableWidget(QtGui.QWidget):
       # and try to set subject IDs
       if make_sids and scol >= 0:
          sids = UTIL.get_ids_from_dsets(snames)
+         # rcr : if failure, clear table and whine???
+         if not sids: sids = ['' for name in snames]
          self.update_table_column(sids, scol)
          # if there is something to sort by, exptect to
          if not UTIL.vals_are_constant(sids, ''): self.set_sort_col(scol)
