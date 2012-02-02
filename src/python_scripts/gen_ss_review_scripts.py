@@ -335,7 +335,7 @@ if ( -f $stats_dset ) then
     echo "maximum F-stat            : $fmax"
 endif
 
-# ------------------------------------------------------------
+# ------------------------------------------------------------'
 # note blur estimates
 set blur_file = blur_est.$subj.1D
 if ( -f $blur_file ) then
@@ -349,6 +349,14 @@ if ( -f $blur_file ) then
 endif
 
 echo ""
+
+# ------------------------------------------------------------'
+# if there happen to be pre-steady state warnings, show them
+set pre_ss_warn = 'out.pre_ss_warn.txt'
+if ( -f $pre_ss_warn ) then
+    cat $pre_ss_warn
+    echo ""
+endif
 
 """
 
@@ -463,9 +471,10 @@ g_history = """
    0.12 Nov 21, 2011: fixed -ynames in plot of motion/outliers
    0.13 Jan 28, 2012: look for TSNR* in case of surf analysis
    0.14 Jan 31, 2012: look for aligned anat: _al_junk/keep (but not yet used)
+   0.15 Feb 01, 2012: check for pre-steady state outliers
 """
 
-g_version = "gen_ss_review_scripts.py version 0.14, January 31, 2012"
+g_version = "gen_ss_review_scripts.py version 0.15, February 1, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -1865,6 +1874,15 @@ class MyInterface:
              '1d_tool.py -show_cormat_warnings -infile %s\n'            \
              'echo --------------------------------------------\n'      \
              '\n' % xset
+
+      wfile = 'out.pre_ss_warn.txt'
+      txt += '# if there are any pre-steady state warnings, show them\n'\
+             'if ( -f %s && ! -z %s ) then\n'                           \
+             '   echo --------- pre-steady state warnings --------\n'   \
+             '   cat %s\n'                                              \
+             '   echo --------------------------------------------\n'   \
+             'endif\n'                                                  \
+             '\n' % (wfile, wfile, wfile)
 
       txt += '\n'                                                        \
              'prompt_user -pause "                                 \\\n' \
