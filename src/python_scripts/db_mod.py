@@ -17,6 +17,20 @@ WARP_EPI_TLRC_WARP      = 2
 WARP_EPI_ALIGN_A2E      = 4
 WARP_EPI_ALIGN_E2A      = 8
 
+def apply_uopt_to_block(opt_name, user_opts, block):
+    """just pass any parameters for opt_name along to the block
+       return 0/1, based on whether the option was found
+    """
+    uopt = user_opts.find_opt(opt_name)
+    if uopt:
+        bopt = block.opts.find_opt(opt_name)
+        if bopt: bopt.parlist = uopt.parlist
+        else:    block.opts.add_opt(opt_name, 1, uopt.parlist, setpar=1)
+
+        return 1
+
+    return 0
+
 # --------------- tcat ---------------
 
 # modify the tcat block options according to the user options
@@ -40,12 +54,8 @@ def db_mod_tcat(block, proc, user_opts):
             '   --> the stimulus timing files must reflect the '             \
                     'removal of these TRs' % bopt.parlist[0]
 
-    uopt = user_opts.find_opt('-tcat_remove_last_trs')
-    if uopt:
-        bopt = block.opts.find_opt('-tcat_remove_last_trs')
-        if bopt: bopt.parlist = uopt.parlist
-        else:    block.opts.add_opt('-tcat_remove_last_trs',
-                                    1, uopt.parlist, setpar=1)
+    apply_uopt_to_block('-tcat_remove_last_trs', user_opts, block)
+    apply_uopt_to_block('-tcat_outlier_warn_limit', user_opts, block)
 
     if errs == 0: block.valid = 1
     else        : block.valid = 0
@@ -56,6 +66,15 @@ def db_cmd_tcat(proc, block):
     cmd = ''
     opt = block.opts.find_opt('-tcat_remove_first_trs')
     first = opt.parlist[0]
+
+    # maybe the user updated our warning limit
+    val, err = block.opts.get_type_opt(float, '-tcat_outlier_warn_limit')
+    if err: return 1, ''
+    if val != None:
+       if val < 0.0 or val > 1.0:
+          print '** -tcat_outlier_warn_limit: limit %s outside [0,1.0]' % val
+          return 1, ''
+       proc.out_ss_lim = val
 
     # remove the last TRs?  set rmlast
     val, err = proc.user_opts.get_type_opt(int, '-tcat_remove_last_trs')
@@ -165,19 +184,34 @@ def make_outlier_commands(proc):
     else:                             lstr = ''
 
     prev_prefix = proc.prev_prefix_form_run(view=1)
-    cmd = '# %s\n'                                                       \
-          '# data check: compute outlier fraction for each volume\n'     \
-          'foreach run ( $runs )\n'                                      \
-          '    3dToutcount -automask -fraction -polort %d%s \\\n'        \
-          '                %s > outcount_r$run.1D\n'                     \
-          '%s'                                                           \
-          'end\n\n'                                                      \
-          '# catenate outlier counts into a single time series\n'        \
-          'cat outcount_r??.1D > outcount.rall.1D\n'                     \
-          '%s\n'                                                         \
-          % (block_header('auto block: outcount'), polort, lstr,
-             prev_prefix, cs0, cs1)
+    ofile = 'outcount_r$run.1D'
+    warn  = '** TR #0 outliers: possible pre-steady state TRs in run $run'
+    proc.out_wfile = 'out.pre_ss_warn.txt'
 
+    cmd  = '# %s\n'                                                       \
+           '# data check: compute outlier fraction for each volume\n'     \
+           % block_header('auto block: outcount')
+
+    if proc.out_ss_lim > 0.0: cmd += 'touch %s\n' % proc.out_wfile
+
+    cmd += 'foreach run ( $runs )\n'                                      \
+           '    3dToutcount -automask -fraction -polort %d%s \\\n'        \
+           '                %s > %s\n'                                    \
+           '%s'                                                           \
+           % (polort, lstr, prev_prefix, ofile, cs0)
+
+    if proc.out_ss_lim > 0.0:
+       cmd +='\n'                                                        \
+          '    # outliers at TR 0 might suggest pre-steady state TRs\n'  \
+          '    if ( `1deval -a %s"{0}" -expr "step(a-%g)"` ) then\n'     \
+          '        echo "%s" >> %s\n'                                    \
+          '    endif\n' % (ofile, proc.out_ss_lim, warn, proc.out_wfile)
+
+    cmd += 'end\n\n'                                                      \
+           '# catenate outlier counts into a single time series\n'        \
+           'cat outcount_r??.1D > outcount.rall.1D\n'                     \
+           '%s\n' % cs1
+ 
     return 0, cmd
 
 def combine_censor_files(proc, cfile, newfile=''):
@@ -187,6 +221,7 @@ def combine_censor_files(proc, cfile, newfile=''):
        store newfile as censor_file
 
        return err, cmd_str   (where err=0 implies success)"""
+
     if not newfile:
         newfile = 'censor_${subj}_combined_%d.1D' % (proc.censor_count+1)
     if not proc.censor_file or not cfile:
@@ -783,7 +818,7 @@ def db_mod_tshift(block, proc, user_opts):
 
     block.valid = 1
 
-# run 3dToutcount and 3dTshift for each run
+# run 3dTshift for each run
 def db_cmd_tshift(proc, block):
     cmd = ''
     # get the base options
@@ -5217,6 +5252,19 @@ g_help_string = """
 
         These options pertain to individual processing blocks.  Each option
         starts with the block name.
+
+        -tcat_outlier_warn_limit LIMIT : TR #0 outlier limit to warn of pre-SS
+
+                e.g. -tcat_outlier_warn_limit 0.7
+                default: 0.4
+
+            Outlier fractions are computed across TRs in the tcat processing
+            block.  If TR #0 has a large fraction, it might suggest that pre-
+            steady state TRs have been included in the analysis.  If the
+            detected fraction exceeds this limit, a warning will be stored
+            (and output by the @ss_review_basic script).
+
+            The special case of limit = 0.0 implies no check will be done.
 
         -tcat_remove_first_trs NUM : specify how many TRs to remove from runs
 

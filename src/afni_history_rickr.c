@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, FEB, 2012, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "check for pre-steady state outlier warnings",
+   NULL
+ } ,
+
+ {  1, FEB, 2012, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "check for pre-steady state outlier counts",
+   "Added option -tcat_outlier_warn_limit."
+ } ,
+
  { 31, JAN, 2012, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "look for aligned anat _al_junk/keep",
    NULL
