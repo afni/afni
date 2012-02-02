@@ -49,19 +49,31 @@ Examples:
 
    Non-GUI examples (all have -no_gui):
 
-      uber_ttest.py -no_gui -print_script                 \\
-         -uvar anat FT/FT_anat+orig                       \\
-         -uvar epi  FT/FT_epi_r1+orig
+      uber_ttest.py -no_gui -print_script               \\
+         -dsets_A $ddir/OLSQ.*.HEAD
 
-      uber_ttest.py -no_gui -save_script align.test       \\
-         -uvar anat FT/FT_anat+orig                       \\
-         -uvar epi  FT/FT_epi_r1+orig                     \\
-         -uvar epi_base 2                                 \\
-         -uvar epi_strip_meth 3dAutomask                  \\
-         -uvar align_centers yes                          \\
-         -uvar giant_move yes                             \\
-         -uvar cost ls                                    \\
-         -uvar multi_list lpc lpc+ lpc+ZZ lpa
+      uber_ttest.py -no_gui -save_script cmd.ttest      \\
+        -mask mask+tlrc                                 \\
+        -set_name_A vrel                                \\
+        -set_name_B arel                                \\
+        -dsets_A REML.*.HEAD                            \\
+        -dsets_B REML.*.HEAD                            \\
+        -beta_A 0                                       \\
+        -beta_B 2                                       \\
+        -results_dir ''
+
+      Note that the 3dMEMA command should have t-stat indices as well.
+
+      uber_ttest.py -no_gui -save_script cmd.MEMA       \\
+        -program 3dMEMA                                 \\
+        -mask mask+tlrc                                 \\
+        -set_name_A vrel                                \\
+        -set_name_B arel                                \\
+        -dsets_A REML.*.HEAD                            \\
+        -dsets_B REML.*.HEAD                            \\
+        -beta_A 0 -tstat_A 1                            \\
+        -beta_B 2 -tstat_B 3                            \\
+        -results_dir ''
 
 ----------------------------------------------------------------------
 
@@ -88,6 +100,8 @@ class MainInterface(object):
       vopts.add_opt('-hist', 0, [], helpstr='show revision history')
       vopts.add_opt('-show_default_vars',0,[],helpstr='show variable defaults')
       vopts.add_opt('-show_valid_opts',0,[],helpstr='show all valid options')
+      vopts.add_opt('-show_cvar_dict',0,[],helpstr='show control var dict')
+      vopts.add_opt('-show_uvar_dict',0,[],helpstr='show user var dictionary')
       vopts.add_opt('-ver', 0, [], helpstr='show module version')
 
       vopts.add_opt('-verb', 1, [], helpstr='set verbose level')
@@ -101,6 +115,14 @@ class MainInterface(object):
       vopts.add_opt('-uvar', -2, [], helpstr='set user variable to value')
 
       vopts.trailers = 0   # do not allow unknown options
+
+      # add user and control vars directly
+      for dict in [LTT.g_cvar_dict, LTT.g_uvar_dict]:
+         keys = dict.keys()
+         keys.sort()
+         for name in keys:
+            if name == 'verb': continue # already included
+            vopts.add_opt('-'+name, -1, [], helpstr=dict[name])
 
       return vopts
 
@@ -148,6 +170,22 @@ class MainInterface(object):
          self.valid_opts.show('', 1)
          return 1
 
+      if '-show_cvar_dict' in sys.argv:
+         dict = LTT.g_cvar_dict
+         keys = dict.keys()
+         keys.sort()
+         for key in keys:
+            print '   %-20s : %s' % (key, dict[key])
+         return 1
+
+      if '-show_uvar_dict' in sys.argv:
+         dict = LTT.g_uvar_dict
+         keys = dict.keys()
+         keys.sort()
+         for key in keys:
+            print '   %-20s : %s' % (key, dict[key])
+         return 1
+
       if '-ver' in argv:
          print 'uber_ttest.py: version %s' % LTT.g_version
          return 1
@@ -172,16 +210,28 @@ class MainInterface(object):
                                  defs=LTT.g_ctrl_defs)
 
       use_gui = 1 # assume GUI unless we hear otherwise
+      cvar_keys = LTT.g_cvar_dict.keys()
+      uvar_keys = LTT.g_uvar_dict.keys()
+
+      # we already processed terminal options
+      term_opts = ['-help', '-help_gui', '-help_howto_program', '-help_todo',
+                   '-hist', 'show_default_vars', '-ver',
+                   '-show_cvar_dict', '-show_uvar_dict']
+
+      # skip post-setup options, to be checked later
+      post_opts = ['-print_script', '-save_script']
 
       # first process all setup options
       errs = 0
       for opt in uopts.olist:
+
          # skip -verb (any terminal option should block getting here)
-         if opt.name == '-verb':                continue
+         if opt.name in term_opts: continue
 
          # and skip and post-setup options (print command, save, etc.)
-         elif opt.name == '-print_script':      continue
-         elif opt.name == '-save_script':       continue
+         if opt.name in post_opts: continue
+
+         vname = opt.name[1:]
 
          # now go after "normal" options
 
@@ -192,16 +242,17 @@ class MainInterface(object):
          # get any PyQt4 options
          elif opt.name == '-qt_opts':
             val, err = uopts.get_string_list('', opt=opt)
-            if val != None and err: return -1
+            if val != None and err:
+               errs += 1
+               continue
             self.guiopts.extend(val)
 
          # cvar requires at least 2 parameters, name and value
          elif opt.name == '-cvar':
             val, err = uopts.get_string_list('', opt=opt)
-            if val != None and err: return -1
-            # and set it from the form name = [value_list]
-            # if SUBJ.set_var_str_from_def('cvars', val[0], val[1:], self.cvars,
-            #             LTT.g_ctrl_defs, verb=self.verb) < 0:
+            if val != None and err:
+               errs += 1
+               continue
             if self.cvars.set_var_with_defs(val[0], val[1:], LTT.g_ctrl_defs,
                         oname='cvars', verb=self.verb) < 0:
                errs += 1
@@ -210,14 +261,40 @@ class MainInterface(object):
          # uvar requires at least 2 parameters, name and value
          elif opt.name == '-uvar':
             val, err = uopts.get_string_list('', opt=opt)
-            if val != None and err: return -1
-            # and set it from the form name = [value_list]
-            # if SUBJ.set_var_str_from_def('uvars', val[0], val[1:], self.uvars,
-            #             LTT.g_user_defs, verb=self.verb) < 0:
+            if val != None and err:
+               errs += 1
+               continue
             if self.uvars.set_var_with_defs(val[0], val[1:], LTT.g_user_defs,
                                 oname='uvars', verb=self.verb) < 0:
                errs += 1
                continue
+
+         # maybe this is a control variable key
+         elif vname in cvar_keys:
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err:
+               errs += 1
+               continue
+            if self.cvars.set_var_with_defs(vname, val, LTT.g_ctrl_defs,
+                        oname='cvars', verb=self.verb) < 0:
+               errs += 1
+               continue
+
+         # maybe this is a user variable key
+         elif vname in uvar_keys:
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err:
+               errs += 1
+               continue
+            if self.uvars.set_var_with_defs(vname, val, LTT.g_user_defs,
+                        oname='uvars', verb=self.verb) < 0:
+               errs += 1
+               continue
+
+         else:
+            print '** invalid option: %s' % opt.name
+            errs += 1
+            continue
 
       if not errs:         # then we can handle any processing options
          if uopts.find_opt('-print_script'): self.print_script()
@@ -246,10 +323,10 @@ class MainInterface(object):
          print '** failed to write afni_proc.py command to disk'
 
    def get_script(self):
-      """return the AlignTest object and script
+      """return the TTest object and script
          (print warnings and errors to screen)"""
 
-      atest = LTT.AlignTest(self.cvars, self.uvars)
+      atest = LTT.TTest(self.cvars, self.uvars)
 
       nwarn, wstr = atest.get_warnings()
       status, mesg = atest.get_script()

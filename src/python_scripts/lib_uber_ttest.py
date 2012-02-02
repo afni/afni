@@ -257,8 +257,7 @@ class TTest(object):
    def script_ttest(self):
       """write command for 3dttest++ program
       """
-      if not self.uvars.prefix:
-         self.uvars.prefix = 'stats.%s' % self.uvars.val('program')
+      if not self.uvars.prefix: self.uvars.prefix = 'stats.ttest'
 
       indent = len(self.uvars.program)+1
 
@@ -289,8 +288,7 @@ class TTest(object):
       """write command for 3dMEMA program
       """
 
-      if not self.uvars.prefix:
-         self.uvars.prefix = 'stats.%s' % self.uvars.val('program')
+      if not self.uvars.prefix: self.uvars.prefix = 'stats.mema'
 
       indent = len(self.uvars.program)+1
 
