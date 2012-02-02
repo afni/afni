@@ -241,8 +241,13 @@ def uniq_list_as_dsets(dsets, whine=0):
 
     return uniq
 
+def uniq_list_as_dset_names(dsets, whine=0):
+    """like as_dsets, but the input is a simlpe array of names"""
+    asets = list_to_datasets(dsets, whine=whine)
+    if not asets: return 0
+    return uniq_list_as_dsets(asets, whine=whine)
 
-def list_to_datasets(words):
+def list_to_datasets(words, whine=0):
     """given a list, return the list of afni_name elements
          - the list can include wildcarding
          - they must be valid names of existing datasets
@@ -264,11 +269,11 @@ def list_to_datasets(words):
         if dset.exist():
             dsets.append(dset)
         else:
-            print "** no dataset match for '%s'" % word
+            if whine: print "** no dataset match for '%s'" % word
             errs = 1
 
     if errs:
-        print # for separation
+        if whine: print # for separation
         return None
     return dsets
 
@@ -1794,6 +1799,14 @@ def _parse_leading_int(name, seplist=['.','_','-']):
    # aaaaaand, we're done
    return val, sep, name[posn:]
 
+def glob_form_has_match(form):
+   """see if anything at all exists according to this glob form"""
+   glist = glob.glob(form)
+   glen = len(glist)
+   del(glist)
+   if glen > 0: return 1
+   return 0
+
 def common_dir(flist):
    """return the directory name that is common to all files (unless trivial)"""
    dir, junk = first_last_match_strs(flist)
@@ -1900,12 +1913,14 @@ def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
 
       prefix, suffix: attach these to the resulting IDs
       hpad, tpad:     padding to pass to list_minus_glob_form
+
+      return None on failure
    """
    if hpad < 0 or tpad < 0:
       print '** get_ids_from_dsets: will not apply negative padding'
       hpad, tpad = 0, 0
 
-   if len(dsets) == 0: return []
+   if len(dsets) == 0: return None
 
    dlist = [dset.split('/')[-1] for dset in dsets]
 
@@ -1918,15 +1933,15 @@ def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
    for val in slist:
       if '/' in val:            # no directories
          if verb > 0: print '** GIFD: IDs would have directories'
-         return ['' for dset in dsets]
+         return None
 
    if len(slist) != len(dsets): # appropriate number of entries
       if verb > 0: print '** GIFD: length mis-match getting IDs'
-      return ['' for dset in dsets]
+      return None
 
    if not vals_are_unique(slist):
       if verb > 0: print '** GIFD: final IDs are not unique'
-      return ['' for dset in dsets]
+      return None
 
    return slist
 
