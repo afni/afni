@@ -311,9 +311,11 @@ g_history = """
     3.08 Jan 31, 2012: ricor block: no longer apply in later 3dDeconvolve
         - added -regress_apply_ricor, with default of 'no'
         - added help updates for this
+    3.09 Feb 01, 2012: check for pre-steady state outliers
+        - added option -tcat_outlier_warn_limit
 """
 
-g_version = "version 3.08, January 31, 2012"
+g_version = "version 3.09, February 1, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "27 Jan 2012"
@@ -383,7 +385,9 @@ class SubjProcSream:
 
         self.mot_cen_lim= 0             # motion censor limit, if applied
         self.out_cen_lim= 0             # outlier censor limit, if applied
-
+        self.out_ss_lim = 0.4           # outlier pre-steady state warn limit
+        self.out_wfile  = ''            # warnings file, for pre-SS
+                                        # (set upon "creation")
         self.opt_src    = 'cmd'         # option source
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
         self.subj_label = '$subj'       # replace this for execution
@@ -582,6 +586,8 @@ class SubjProcSream:
                         helpstr="set the verbose level")
 
         # block options
+        self.valid_opts.add_opt('-tcat_outlier_warn_limit', 1, [],
+                        helpstr='set limit where TR #0 outliers suggest pre-SS')
         self.valid_opts.add_opt('-tcat_remove_first_trs', 1, [],
                         helpstr='num TRs to remove from start of each run')
         self.valid_opts.add_opt('-tcat_remove_last_trs', 1, [],
@@ -1653,6 +1659,11 @@ class SubjProcSream:
                 % (self.ssr_basic, self.ssr_basic)
            self.fp.write(ss)
 
+        cmd_str = self.script_final_error_checks()
+        if cmd_str: 
+           if self.out_wfile:
+              self.fp.write(cmd_str)
+
         self.fp.write('# return to parent directory\n'
                       'cd ..\n\n')
 
@@ -1675,6 +1686,16 @@ class SubjProcSream:
                 str += ' '.join(quotize_list(opt.parlist,''))
             str += '\n'
             self.fp.write(add_line_wrappers(str))
+
+    def script_final_error_checks(self):
+        """script for checking any errors that should be reported
+           at the end of processing
+        """
+        cmd = ''
+
+        # pre-steady state errors are checked in @ss_review_basic
+
+        return cmd
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
