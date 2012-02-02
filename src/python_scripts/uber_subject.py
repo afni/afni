@@ -179,10 +179,11 @@ def process_options(valid_opts, argv):
       return 1, None, None, None
 
    if '-show_svar_dict' in sys.argv:
-      keys = USUBJ.g_svar_dict.keys()
+      dict = USUBJ.g_svar_dict
+      keys = dict.keys()
       keys.sort()
       for key in keys:
-         print '   %-20s : %s' % (key, g_uvar_dict[key])
+         print '   %-20s : %s' % (key, dict[key])
       return 1, None, None, None
 
    if '-todo' in sys.argv:
@@ -274,6 +275,11 @@ def process_options(valid_opts, argv):
                                    svars, verb=verb, spec=1) < 0:
             errs += 1
             continue
+
+      else:
+         print '** invalid option: %s' % opt.name
+         errs += 1
+         continue
 
    if not errs:         # then we can handle any processing options
       if uopts.find_opt('-print_ap_command'):
