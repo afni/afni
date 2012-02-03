@@ -554,7 +554,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.34" # software version (update for changes)
+      self.align_version = "1.35" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2652,9 +2652,10 @@ class RegWrap:
         "3dcopy -overwrite %s AddEdge/%s" % (d3.input(), d3AE.out_prefix()), ps.oexec)
       com.run()
 
+      # changed .input to .shortinput           3 Feb 2012 [rickr,dglen]
       com = shell_com( 
             "cd AddEdge; @AddEdge -no_deoblique %s %s %s %s; cd .. " \
-            % (aelistlog, d1AE.input(), d2AE.input(), d3AE.input()), ps.oexec)
+            % (aelistlog, d1AE.shortinput(), d2AE.shortinput(), d3AE.shortinput()), ps.oexec)
       com.run()
 
    # do the preprocessing of the EPI data    

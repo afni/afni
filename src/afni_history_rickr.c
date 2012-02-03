@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, FEB, 2012, RCR, "align_epi_anat.py", MICRO, TYPE_BUG_FIX,
+   "updated @AddEdge command to match change to afni_base:shell_com",
+   "Done with D Glen."
+ } ,
+
+ {  2, FEB, 2012, RCR, "uber_ttest.py", MINOR, TYPE_ENHANCE,
+   "added basic 3dMEMA capabilities",
+   "This affected afni_util.py, ask_me.py, gui_uber_ttest.py, lib_qt_gui.py\n"
+   "     lib_subjects.py, lib_uber_ttest.py, uber_subject.py, uber_ttest.py."
+ } ,
+
  {  1, FEB, 2012, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
    "check for pre-steady state outlier warnings",
    NULL
