@@ -12,6 +12,19 @@
 #define EDERR(str) \
  do{ ERROR_message("EDIT_dset_items[%d]: %s\n",ncall,str); errnum++; } while(0)
 
+/* Remove +view.BRIK ness ZSS Feb 2012 */
+#define STRING_DEVIEW_DEEXT_BRICK(fname) {   \
+   if (STRING_HAS_SUFFIX((fname),"+orig.BRIK") || \
+      STRING_HAS_SUFFIX((fname),"+acpc.BRIK") ||  \
+      STRING_HAS_SUFFIX((fname),"+tlrc.BRIK") ) { /* ZSS Nov 2011 */   \
+      (fname)[ll-10] = '\0' ;   \
+   } else if (STRING_HAS_SUFFIX((fname),"+orig.BRIK.gz") ||   \
+             STRING_HAS_SUFFIX((fname),"+acpc.BRIK.gz") || \
+             STRING_HAS_SUFFIX((fname),"+tlrc.BRIK.gz") ) {/* ZSS Feb 2012 */   \
+     (fname)[ll-13] = '\0' ; \
+   }  \
+}
+
 /*-----------------------------------------------------------------------*/
 /*! Edit some internals of a dataset.  Notice that it is possible to
   create a dataset which is inconsistent.  Note also that some operations
@@ -487,39 +500,33 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
       if( DSET_IS_1D(dset) || DSET_IS_3D(dset) ){         /* 21 Mar 2003 */
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
-           fname[ll-10] = '\0' ;
-        }
-        if( DSET_IS_1D(dset) || (DSET_NY(dset)==1 && DSET_NZ(dset)==1) )
-          strcat(fname,".1D");
-        else
+        STRING_DEVIEW_DEEXT_BRICK(fname);
+        if( DSET_IS_1D(dset) || (DSET_NY(dset)==1 && DSET_NZ(dset)==1) ) {
+          if( !STRING_HAS_SUFFIX(fname,".1D") &&
+              !STRING_HAS_SUFFIX(fname,".1D.dset")) strcat(fname,".1D");
+        } else {
           strcat(fname,".3D");
+        }
       }
 
       if( DSET_IS_NIML(dset) ){         /* 07 Jun 2006 [rickr] */
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
-            fname[ll-10] = '\0' ;
-        }
+        STRING_DEVIEW_DEEXT_BRICK(fname);
         if( !STRING_HAS_SUFFIX(fname,".niml") ) strcat(fname,".niml");
       }
 
       if( DSET_IS_NI_SURF_DSET(dset) ){ /* 28 Jun 2006 [rickr] */
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
-            fname[ll-10] = '\0' ;
-        }
+        STRING_DEVIEW_DEEXT_BRICK(fname);
         if( !STRING_HAS_SUFFIX(fname,".niml.dset") ) strcat(fname,".niml.dset");
       }
 
       if( DSET_IS_GIFTI(dset) ){ /* 13 Feb 2008 [rickr] */
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
-            fname[ll-10] = '\0' ;
-        }
+        STRING_DEVIEW_DEEXT_BRICK(fname);
         if( ! STRING_HAS_SUFFIX(fname,".gii") &&
             ! STRING_HAS_SUFFIX(fname,".gii.dset") )
            strcat(fname,".gii");
@@ -532,28 +539,36 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
-            fname[ll-10] = '\0' ;  /* taking off "+view.BRIK" */
-        }
+        STRING_DEVIEW_DEEXT_BRICK(fname);
         if( STRING_HAS_SUFFIX(nprefix,".nii") ) {  /* 22 Jun 2006 mod drg */
 
-          cmode = THD_get_write_compression() ; /* check env. variable for compression*/
-          if(cmode==0) { /* have to compress this NIFTI data, add .gz to prefix */
-             sprintf(DSET_PREFIX(dset),"%s.gz",nprefix); /* add .gz on to prefix initialized in */
-                                                         /* THD_init_diskptr_names just above */
-             if(STRING_HAS_SUFFIX(fname,".nii")) {  /* if filename ends with .nii */
+          cmode = THD_get_write_compression() ; 
+                           /* check env. variable for compression*/
+          if(cmode==0) { /* have to compress this NIFTI data, 
+                            add .gz to prefix */
+             sprintf(DSET_PREFIX(dset),"%s.gz",nprefix); 
+                           /* add .gz on to prefix initialized in */
+                           /* THD_init_diskptr_names just above */
+             if(STRING_HAS_SUFFIX(fname,".nii")) {
+                                       /* if filename ends with .nii */
                strcat(fname,".gz") ;   /* add the .gz extension */
              } else {
-               if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) /* compressed NIFTI extension*/
+               if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) { 
+                                       /* compressed NIFTI extension*/
                  strcat(fname,".nii.gz") ;
+               }
              }
           } else {
-             if(!(STRING_HAS_SUFFIX(fname,".nii")))  /* if filename doesn't end with .nii */
+             if(!(STRING_HAS_SUFFIX(fname,".nii"))) { 
+                                        /* if filename doesn't end with .nii */
                strcat(fname,".nii") ;   /* add the .nii extension */
+             }
           }
         } else {
-           if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) /* compressed NIFTI extension*/
+           if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) {
+                                       /* compressed NIFTI extension*/
              strcat(fname,".nii.gz") ;
+           }
         }
       }
 
@@ -563,9 +578,7 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
-        if (STRING_HAS_SUFFIX(fname,"+view.BRIK")) { /* ZSS Nov 2011 */
-            fname[ll-10] = '\0' ;  /* taking off "+view.BRIK" */
-        }
+        STRING_DEVIEW_DEEXT_BRICK(fname);
         if( !strcmp(fname+ll-14,".hdr") ) fname[ll-14] = '\0';
         if( !STRING_HAS_SUFFIX(fname,".img") ) strcat(fname,".img") ;
         /* and override the BRICK mode */

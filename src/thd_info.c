@@ -20,6 +20,7 @@
 #define ZMAX  32222        /* increased for Ziad (who else is so crazy?) */
 #define SZMAX "%.32222s"   /* same as ZMAX */
 
+/* There is also: storage_mode_name() */
 const char * storage_mode_str(int mode) {
    switch(mode) {
       default:

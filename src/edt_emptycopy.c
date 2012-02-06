@@ -107,16 +107,21 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    new_dkptr->type         = DISKPTR_TYPE ;
    new_dkptr->rank         = 3 ;
    new_dkptr->nvals        = new_nvals ;
-   new_dkptr->storage_mode = STORAGE_BY_BRICK ;
    new_dkptr->byte_order   = THD_get_write_order() ;  /* 25 April 1998 */
    if( old_good ){
       new_dkptr->dimsizes[0]  = old_dset->daxes->nxx ;
       new_dkptr->dimsizes[1]  = old_dset->daxes->nyy ;
       new_dkptr->dimsizes[2]  = old_dset->daxes->nzz ;
+      if (old_dset->dblk && old_dset->dblk->diskptr) { /* ZSS Feb 5 2012 */
+         new_dkptr->storage_mode = old_dset->dblk->diskptr->storage_mode;
+      } else {
+         new_dkptr->storage_mode = STORAGE_BY_BRICK ;
+      }
    } else {
       new_dkptr->dimsizes[0]  = 2 ;
       new_dkptr->dimsizes[1]  = 2 ;
       new_dkptr->dimsizes[2]  = 2 ;
+      new_dkptr->storage_mode = STORAGE_BY_BRICK ;
    }
    new_dkptr->allow_directwrite = 0 ;  /* 08 May 2009 */
 
