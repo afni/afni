@@ -210,7 +210,8 @@ ENTRY("THD_open_one_dataset") ;
 
    /*-- 04 Mar 2003: allow input of .1D files --*/
 
-   if( STRING_HAS_SUFFIX(pathname,".1D") ){
+   if( STRING_HAS_SUFFIX(pathname,".1D") ||
+       STRING_HAS_SUFFIX(pathname,".1D.dset") ){
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
      dset = THD_open_1D(pathname) ;
      THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
@@ -581,6 +582,7 @@ ENTRY("storage_mode_from_prefix");
    RETURN(sm);
 }
 
+/* There is also: storage_mode_str() */
 char *storage_mode_name(int mode) {
    switch (mode) {
       case STORAGE_UNDEFINED:
