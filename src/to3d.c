@@ -3143,8 +3143,8 @@ void Syntax()
     "       seq+z = seqplus    = sequential in the plus direction\n"
     "       seq-z = seqminus   = sequential in the minus direction\n"
     "       zero  = simult     = simultaneous acquisition\n"
-    "               FROM_IMAGE = (try to) read offsets from input images\n"\
-    "               @filename  = read temporal offsets from 'filename'\n"\
+    "       FROM_IMAGE         = (try to) read offsets from input images\n"\
+    "       @filename          = read temporal offsets from 'filename'\n"\
     "\n"
     "    For example if nz = 5 and TR = 1000, then the inter-slice\n"
     "    time is taken to be dt = TR/nz = 200.  In this case, the\n"

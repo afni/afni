@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, FEB, 2012, RCR, "to3d", MICRO, TYPE_MODIFY,
+   "tiny help update, as enforced by D Glen",
+   NULL
+ } ,
+
  {  6, FEB, 2012, RCR, "3dsvm", MICRO, TYPE_MODIFY,
    "applied Makefile.INCLUDE updates for J Lisinski and S LaConte",
    NULL
