@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 06, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
+   "Fixed comaptibility with .niml.dset data",
+   "This required more improvements (I hope) to THD_init_diskptr_names() and\n"
+   "EDIT_empty_copy() for surface-based datasets.\n"
+ },
+ 
  { 26, JAN , 2012 , ZSS , "3dinfill" , MINOR , TYPE_NEW_PROG,
    "Fills holes in a volume based on neighboring values",
    "This program is a wrapper to function SUMA_VolumeInFill.\n"

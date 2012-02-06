@@ -727,7 +727,6 @@ void write_afni_data (anova_options * option_data,  char * filename,
 
   /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-
 }
 
 /*---------------------------------------------------------------------------*/
@@ -744,10 +743,22 @@ void add_file_name (THD_3dim_dataset * new_dset, char * filename,
 		    char * command_str)
 
 {
+      
       EDIT_dset_items (new_dset,
 		       ADN_prefix, filename,
 		       ADN_none);
-
+      
+      #if 0         /* Debugging for different file formats ZSS Feb 2012 */
+      INFO_message("In here with: >%s< and >%s<\n"
+                   "Dset type: %s\n"
+                   "Brikname: %s\n"
+                   "Use1D: %d\n", 
+                   filename, command_str,
+                   storage_mode_name(new_dset->dblk->diskptr->storage_mode),
+                   DSET_BRIKNAME(new_dset),
+                   use_1D_filenames);
+      #endif
+      
       if (! ISVALID_3DIM_DATASET(new_dset))
 	{
 	  ERROR_exit("Unable to open dataset file %s\n",
@@ -757,17 +768,21 @@ void add_file_name (THD_3dim_dataset * new_dset, char * filename,
       strcat (command_str, " ");
       strcat (command_str, DSET_BRIKNAME(new_dset));
 
-      switch( use_1D_filenames ){  /* 14 Mar 2003 - RWCox */
-        default: break ;
+      if( !STRING_HAS_SUFFIX(DSET_BRIKNAME(new_dset),".1D") &&
+          !STRING_HAS_SUFFIX(DSET_BRIKNAME(new_dset),".1D.dset") ) {
+             /* May not need to get in here anymore,for .1D. ZSS Feb 06 2012 */
+         switch( use_1D_filenames ){  /* 14 Mar 2003 - RWCox */
+           default: break ;
 
-        case 1:
-        case 3:{ int ll = strlen(command_str) ;
-                 command_str[ll-10] = '\0' ;  strcat(command_str,".") ;
-                 if( use_1D_filenames == 1 )  strcat(command_str,"1") ;
-                 else                         strcat(command_str,"3") ;
-                                              strcat(command_str,"D") ;
-        }
-        break ;
+           case 1:
+           case 3:{ int ll = strlen(command_str) ;
+                    command_str[ll-10] = '\0' ;  strcat(command_str,".") ;
+                    if( use_1D_filenames == 1 )  strcat(command_str,"1") ;
+                    else                         strcat(command_str,"3") ;
+                                                 strcat(command_str,"D") ;
+           }
+           break ;
+         }
       }
 }
 

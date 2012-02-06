@@ -34,6 +34,7 @@ void Syntax(void)
 "  ========= Options producing one value (string) ============\n"
 "   -exists: 1 if dset is loadable, 0 otherwise\n"
 "            This works on prefix also.\n"
+"   -id: Idcodestring of dset\n"
 "   -is_atlas: 1 if dset is an atlas.\n"
 "   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
 "   -space: dataset's space\n"
@@ -69,6 +70,7 @@ void Syntax(void)
 "   -dmax: The dataset's maximum value, scaled by fac\n"
 "   -dminus: The dataset's minimum value, unscaled.\n"
 "   -dmaxus: The dataset's maximum value, unscaled.\n"
+"   -smode: Dset storage mode string.\n"
 "   -header_name: Value of dset structure (sub)field 'header_name'\n"
 "   -brick_name: Value of dset structure (sub)field 'brick_name'\n"
 "   -orient: Value of orientation string.\n"
@@ -192,7 +194,7 @@ typedef enum {
    TR, HEADER_NAME, BRICK_NAME, ALL_NAMES,
    HISTORY, ORIENT,
    SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER, 
-   SAME_OBL, SAME_ALL_GRID,
+   SAME_OBL, SAME_ALL_GRID, ID, SMODE,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
@@ -212,7 +214,8 @@ char Field_Names[][32]={
    {"TR"}, {"hdr_nm"}, {"brk_nm"}, {"all_nms"},
    {"hist"}, {"orient"},
    {"=grid?"}, {"=dim?"}, {"=delt?"}, {"=ornt?"}, {"=cent?"},
-   {"=obl?"}, {"=dim_delta_orient_center_obl"},
+   {"=obl?"}, {"=dim_delta_orient_center_obl"}, 
+   {"id"}, {"smode"}, 
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
 
 char *PrintForm(INFO_FIELDS sing , int namelen, byte ForHead)
@@ -436,6 +439,10 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = SAME_ORIENT;
          sing[N_sing++] = SAME_CENTER; 
          sing[N_sing++] = SAME_OBL; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-id") == 0) {
+         sing[N_sing++] = ID; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-smode") == 0) {
+         sing[N_sing++] = SMODE; iarg++; continue;
       } else {
          ERROR_message("Option %s unknown", argv[iarg]);
          suggest_best_prog_option(argv[0], argv[iarg]);
@@ -865,6 +872,12 @@ int main( int argc , char *argv[] )
          case SAME_OBL:
             fprintf(stdout,"%d",
                !(THD_dataset_mismatch( dset , dsetp ) & MISMATCH_OBLIQ));
+            break;
+         case ID:
+            fprintf(stdout,"%s", DSET_IDCODE_STR(dset));
+            break;
+         case SMODE:
+            fprintf(stdout,"%s", DSET_STORAGE_MODE_STR(dset));
             break;
          default:
             ERROR_message("Info field not set properly (%d)\n", sing[iis]);

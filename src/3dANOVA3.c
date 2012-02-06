@@ -1229,6 +1229,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 
       /*----- unknown command -----*/
       sprintf (message,"Unrecognized command line option: %s\n", argv[nopt]);
+      suggest_best_prog_option(argv[0], argv[nopt]);
       ANOVA_error (message);
     }
 
@@ -6887,7 +6888,6 @@ void create_bucket (anova_options * option_data)
   add_file_name (new_dset, option_data->bucket_filename, refit_str);
   fprintf(stderr,"RUNNING COMMAND: %s\n",refit_str) ;
   system (refit_str);
-
 
   /*----- release memory -----*/
   THD_delete_3dim_dataset (new_dset , False);   new_dset = NULL;
