@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, FEB, 2012, RCR, "3dsvm", MICRO, TYPE_MODIFY,
+   "applied Makefile.INCLUDE updates for J Lisinski and S LaConte",
+   NULL
+ } ,
+
  {  3, FEB, 2012, RCR, "align_epi_anat.py", MICRO, TYPE_BUG_FIX,
    "updated @AddEdge command to match change to afni_base:shell_com",
    "Done with D Glen."

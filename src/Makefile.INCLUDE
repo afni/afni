@@ -743,12 +743,11 @@ d3dmerge:3dmerge.c
 
 ### From Stephen LaConte
 3dsvm:
-	( cd svm/   ;  \
-	  mkdir svml ; cd svml ; cp ../patch/orig/* . ; \
-          patch -p1 < ../patch/orig.patch ; mv * ../. ; cd .. ; rmdir svml ; \
-          $(CC) -o 3dsvm 3dsvm_common.c svm_common.c svm_learn.c svm_hideo.c 3dsvm.c \
-                -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS) ;  \
-	  $(MV) 3dsvm ../. ; \
+	( cd svm/   ;  							\
+          $(CC) -o 3dsvm 3dsvm_common.c svm_common.c svm_learn.c	\
+		svm_hideo.c 3dsvm.c 					\
+                -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS) -lf2c -lmri ;   \
+	  $(MV) 3dsvm ../. ; 						\
           cd .. ;)
 
 whereami:whereami.c
@@ -2131,15 +2130,14 @@ plug_render.$(SO):plug_null.o
 
 ### From Stephen LaConte
 plug_3dsvm.$(SO):
-	( cd svm;   \
-          $(RM) ../$@ ; \
-	  mkdir svml ; cd svml ; cp ../patch/orig/* . ; \
-          patch -p1 < ../patch/orig.patch ; mv * ../. ; cd .. ; rmdir svml ; \
-          $(PLUGIN_CC) -c plug_3dsvm.c 3dsvm_common.c svm_common.c  svm_learn.c \
-            svm_hideo.c $(ISFLAGS)  -I.. ; \
-	  $(LD) $(PLUGIN_LFLAGS) -o plug_3dsvm.$(SO) plug_3dsvm.o 3dsvm_common.o \
-            svm_common.o svm_learn.o svm_hideo.o -L. -L.. ; \
-	  $(MV) plug_3dsvm.so ../. ; \
+	( cd svm;   							\
+          $(RM) ../$@ ; 						\
+          $(PLUGIN_CC) -c plug_3dsvm.c 3dsvm_common.c svm_common.c 	\
+            svm_learn.c svm_hideo.c $(ISFLAGS)  -I.. ; 			\
+	  $(LD) $(PLUGIN_LFLAGS) -o plug_3dsvm.$(SO) 			\
+            plug_3dsvm.o 3dsvm_common.o svm_common.o svm_learn.o	\
+	    svm_hideo.o -L. -L.. ; 					\
+	  $(MV) plug_3dsvm.so ../. ; 					\
 	  cd .. ;  )
 
 # Stuff for plugins on CYGWIN:
