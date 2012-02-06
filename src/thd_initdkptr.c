@@ -80,7 +80,8 @@ ENTRY("THD_init_diskptr_names") ;
    if( redo_filecode ){
       switch (dkptr->storage_mode) { /* ZSS: Oct 2011 */
          default: /* This makes no sense, but to keep matters
-                     as they were */ 
+                     as they were. Migrate slowly towards
+                     STORAGE_BY_NIFTI treatment below */ 
             PREFIX_VIEW_TO_FILECODE( dkptr->prefix, dkptr->viewcode, 
                                   dkptr->filecode ) ;
             break;
@@ -88,6 +89,9 @@ ENTRY("THD_init_diskptr_names") ;
             PREFIX_VIEW_TO_FILECODE( dkptr->prefix, dkptr->viewcode, 
                                   dkptr->filecode ) ;
             break;
+         case STORAGE_BY_1D:
+         case STORAGE_BY_NI_SURF_DSET:
+         case STORAGE_BY_GIFTI:
          case STORAGE_BY_NIFTI:
             strcpy(dkptr->filecode, dkptr->prefix);
             break;
@@ -108,6 +112,9 @@ ENTRY("THD_init_diskptr_names") ;
             sprintf( dkptr->header_name , "%s%s.%s" ,
                dkptr->directory_name,dkptr->filecode,DATASET_HEADER_SUFFIX ) ;
             break;
+         case STORAGE_BY_1D:
+         case STORAGE_BY_NI_SURF_DSET:
+         case STORAGE_BY_GIFTI:
          case STORAGE_BY_NIFTI:
             sprintf( dkptr->header_name , "%s%s" ,
                dkptr->directory_name,dkptr->filecode ) ;
@@ -127,6 +134,9 @@ ENTRY("THD_init_diskptr_names") ;
             sprintf( dkptr->brick_name , "%s%s.%s",
                      dkptr->directory_name,dkptr->filecode,DATASET_BRICK_SUFFIX);
             break;
+         case STORAGE_BY_1D:
+         case STORAGE_BY_NI_SURF_DSET:
+         case STORAGE_BY_GIFTI:
          case STORAGE_BY_NIFTI:
             sprintf( dkptr->brick_name , "%s%s",
                      dkptr->directory_name,dkptr->filecode);

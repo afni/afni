@@ -71,6 +71,12 @@ afni_history_struct ziad_history[] = {
    "EDIT_empty_copy() for surface-based datasets.\n"
  },
  
+ { 06, FEB , 2012 , ZSS , "3drefit" , MINOR , TYPE_BUG_FIX,
+   "3drefit was failing on the view change when target dset is under a path.",
+   "Prolem was with default catenation of path to DSET_BRIKNAME and \n"
+   "DSET_HEADNAME. Those now contain the path automatically.\n"
+ },
+ 
  { 26, JAN , 2012 , ZSS , "3dinfill" , MINOR , TYPE_NEW_PROG,
    "Fills holes in a volume based on neighboring values",
    "This program is a wrapper to function SUMA_VolumeInFill.\n"
