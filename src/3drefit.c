@@ -148,10 +148,14 @@ void Syntax(int detail)
 "                  You will have to rename the dataset files before trying\n"
 "                  to use '-view'.  If you COPY the files and then use\n"
 "                  '-view', don't forget to use '-newid' as well!\n"
+"               ** WARNING2: Changing the view without specifying the new \n"
+"                  might lead to conflicting information. Consider specifying\n"
+"                  the space along with -view\n"
 "  -space spcname  Associates the dataset with a specific template type, e.g.\n"
 "                  TLRC, MNI, ORIG. The default assumed for +tlrc datasets is\n"
 "                  'TLRC'. One use for this attribute is to use MNI space\n"
 "                  coordinates and atlases instead of the default TLRC space.\n"
+"                  See WARNING2 for -view option.\n"
 "  -cmap cmaptype  Associate colormap type with dataset. Available choices are\n"
 "                  CONT_CMAP (the default), INT_CMAP (integer colormap display)\n"
 "                  and SPARSE_CMAP (for sparse integer colormaps). INT_CMAP is\n"
@@ -1827,14 +1831,15 @@ int main( int argc , char * argv[] )
          VINFO("changing dataset view code") ;
          strcpy(old_head,DSET_HEADNAME(dset)) ;
          strcpy(old_brik,DSET_BRIKNAME(dset)) ;
-
          dset->view_type = vtype ;
          THD_init_diskptr_names( dset->dblk->diskptr ,
                                  NULL , NULL , NULL , vtype , True ) ;
 
+         #if 0 /* HEADNAME now has path, no need for this catenation */
          strcpy(new_head,DSET_DIRNAME(dset)) ;
-         strcat(new_head,DSET_HEADNAME(dset)) ;
          strcpy(new_brik,DSET_DIRNAME(dset)) ; 
+         #endif
+         strcat(new_head,DSET_HEADNAME(dset)) ;
          strcat(new_brik,DSET_BRIKNAME(dset)) ;
 
          if( THD_is_file(new_head) ){

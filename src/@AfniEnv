@@ -46,7 +46,7 @@ RETURN_PARSE:
       if ("$env" == "KILLITNOW") goto END
       if ( ! -f $rc.Pre$ds) cp -p $rc $rc.Pre$ds
       echo "Variable $enn is not in .afnirc, adding it"
-      set nenv = `\grep -n '***ENVIRONMENT' $rc | cut -f 1 -d ':'`
+      set nenv = `\grep -n '\*\*\*ENVIRONMENT' $rc | cut -f 1 -d ':'`
       set nmax = `\wc -l $rc`
       if ($nenv == $nmax[1]) then
          #Must have 1 line after ***ENVIRONMENT 
@@ -189,7 +189,7 @@ HELP:
    echo "Usage: `basename $0` <-set NAME VALUE> [<-unset NAME>]"
    echo ""
    echo "   -set  NAME VALUE: Set environment variable NAME  to value VALUE"
-   echo "   -get  NAME: Get the value (same as apsearch -Vname option)
+   echo "   -get  NAME: Get the value (same as apsearch -Vname option)"
    echo "   -unset NAME : The opposite of -set"
    echo "   -help: this message"
    echo ""
