@@ -543,6 +543,9 @@ glob2( Char *pathbuf,Char *pathend, Char *pattern, glob_t *pglob, int no_match)
 }
 
 
+/* no great place to put this, but it should be here or above */
+static int mcw_glob_whine = 1;          /* 7 Feb 2012 [rickr] */
+
 static int
 glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pglob, int no_match)
 {
@@ -626,7 +629,8 @@ glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pg
 	    break;
     }
     /* todo: check error from readdir? */
-    if( errno != 0 ){
+    /* only whine on mcw_glob_whine            7 Feb 2012 [rickr] */
+    if( errno != 0 && mcw_glob_whine ){
       static int cnt=2 ;
       if( cnt ){
         perror("** glob error"); errno = 0; cnt-- ;
@@ -808,6 +812,7 @@ globfree(glob_t *pglob)
 
 static int warn = 0 ;
 void MCW_warn_expand( int www ){ warn = www; return; }  /* 13 Jul 2001 */
+void MCW_set_glob_whine( int www ){ mcw_glob_whine = www; return; }
 
 /*------------------------------------------------------------------------*/
 /*! Routines that allows filename wildcarding to be handled inside

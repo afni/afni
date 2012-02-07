@@ -79,6 +79,7 @@ static char * g_history[] =
     "      - made -quit more agressive (never wait for new files)\n"
     " 3.7  Jan 25, 2012 [rickr] : back out changes for 3.8 and ponder\n"
     " 3.8  Feb  7, 2012 [rickr] : added -no_wait (more forceful than -quit)\n"
+    "      - also, suppress new glob warning\n"
     "----------------------------------------------------------------------\n"
 };
 
@@ -314,6 +315,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     if ( p->opts.no_wait ) sleep_ms = 0;  /* no sleeping in this case */
 
     mri_read_dicom_reset_obliquity();   /* to be sure */
+    MCW_set_glob_whine(0);              /* quiet any glob warnings */
 
     ret_val = 0;
     while ( ret_val == 0 )
