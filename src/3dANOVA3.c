@@ -1229,8 +1229,9 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 
       /*----- unknown command -----*/
       sprintf (message,"Unrecognized command line option: %s\n", argv[nopt]);
+      ERROR_message (message);
       suggest_best_prog_option(argv[0], argv[nopt]);
-      ANOVA_error (message);
+      exit(1);
     }
 
 

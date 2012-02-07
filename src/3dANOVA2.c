@@ -99,7 +99,7 @@
 /*
    Routine to display 3dANOVA2 help menu.
 */
-void display_help_menu()
+void display_help_menu(int detail)
 {
   printf
     (
@@ -267,7 +267,7 @@ void display_help_menu()
 
   printf(ANOVA_FLOAT_HELP) ;
 
-  PRINT_COMPILE_DATE; exit(0);
+  PRINT_COMPILE_DATE; return;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -287,8 +287,6 @@ void get_options (int argc, char ** argv, anova_options * option_data)
   int n[MAX_LEVELS][MAX_LEVELS];            /* data file counters */
 
 
-  /*----- does user request help menu? -----*/
-  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
 
   /*----- add to program log -----*/
   AFNI_logger (PROGRAM_NAME,argc,argv);
@@ -305,7 +303,12 @@ void get_options (int argc, char ** argv, anova_options * option_data)
   /*----- main loop over input options -----*/
   while (nopt < argc)
     {
-
+     /*----- does user request help menu? -----*/
+     if (strcmp(argv[nopt], "-help") == 0 ||
+         strcmp(argv[nopt], "-h") == 0)  {
+          display_help_menu(strlen(argv[nopt])>3?2:1);
+          exit(0);
+      }
       /*----- allocate memory for storing data file names -----*/
       if ((option_data->xname == NULL) && (option_data->a > 0) &&
 	  (option_data->b > 0))
@@ -857,10 +860,16 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 
       /*----- unknown command -----*/
       sprintf (message,"Unrecognized command line option: %s\n", argv[nopt]);
-      ANOVA_error (message);
+      ERROR_message (message);
+      suggest_best_prog_option(argv[0], argv[nopt]);
+      exit(1);
     }
 
-
+  if (argc < 2)  {
+   ERROR_message("Too few options");
+   display_help_menu(0);
+   exit(1);
+  }
   /*----- check that all treatment sample sizes are equal -----*/
   option_data->n = n[0][0];
   for (i = 0;  i < option_data->a;  i++)
@@ -3530,12 +3539,12 @@ void create_bucket (anova_options * option_data)
 
       ibrick++;
       sprintf (str, " -sublabel %d %s:Inten ",
-	       ibrick, option_data->ftrname);
+	       ibrick, label_from_filename(option_data->ftrname));
       strcat (refit_str, str);
 
       ibrick++;
       sprintf (str, " -sublabel %d %s:F-stat ",
-	       ibrick, option_data->ftrname);
+	       ibrick, label_from_filename(option_data->ftrname));
       strcat (refit_str, str);
     }
 
@@ -3547,12 +3556,12 @@ void create_bucket (anova_options * option_data)
 
       ibrick++;
       sprintf (str, " -sublabel %d %s:Inten ",
-	       ibrick, option_data->faname);
+	       ibrick, label_from_filename(option_data->faname));
       strcat (refit_str, str);
 
       ibrick++;
       sprintf (str, " -sublabel %d %s:F-stat ",
-	       ibrick, option_data->faname);
+	       ibrick, label_from_filename(option_data->faname));
       strcat (refit_str, str);
     }
 
@@ -3564,12 +3573,12 @@ void create_bucket (anova_options * option_data)
 
       ibrick++;
       sprintf (str, " -sublabel %d %s:Inten ",
-	       ibrick, option_data->fbname);
+	       ibrick, label_from_filename(option_data->fbname));
       strcat (refit_str, str);
 
       ibrick++;
       sprintf (str, " -sublabel %d %s:F-stat ",
-	       ibrick, option_data->fbname);
+	       ibrick, label_from_filename(option_data->fbname));
       strcat (refit_str, str);
     }
 
@@ -3581,12 +3590,12 @@ void create_bucket (anova_options * option_data)
 
       ibrick++;
       sprintf (str, " -sublabel %d %s:Inten ",
-	       ibrick, option_data->fabname);
+	       ibrick, label_from_filename(option_data->fabname));
       strcat (refit_str, str);
 
       ibrick++;
       sprintf (str, " -sublabel %d %s:F-stat ",
-	       ibrick, option_data->fabname);
+	       ibrick, label_from_filename(option_data->fabname));
       strcat (refit_str, str);
     }
 
@@ -3599,12 +3608,12 @@ void create_bucket (anova_options * option_data)
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:Mean ",
-		 ibrick, option_data->amname[i]);
+		 ibrick, label_from_filename(option_data->amname[i]));
 	strcat (refit_str, str);
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:t-stat ",
-		 ibrick, option_data->amname[i]);
+		 ibrick, label_from_filename(option_data->amname[i]));
 	strcat (refit_str, str);
       }
 
@@ -3617,12 +3626,12 @@ void create_bucket (anova_options * option_data)
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:Mean ",
-		 ibrick, option_data->bmname[i]);
+		 ibrick, label_from_filename(option_data->bmname[i]));
 	strcat (refit_str, str);
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:t-stat ",
-		 ibrick, option_data->bmname[i]);
+		 ibrick, label_from_filename(option_data->bmname[i]));
 	strcat (refit_str, str);
       }
 
@@ -3635,12 +3644,12 @@ void create_bucket (anova_options * option_data)
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:Mean ",
-		 ibrick, option_data->xmname[i]);
+		 ibrick, label_from_filename(option_data->xmname[i]));
 	strcat (refit_str, str);
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:t-stat ",
-		 ibrick, option_data->xmname[i]);
+		 ibrick, label_from_filename(option_data->xmname[i]));
 	strcat (refit_str, str);
       }
 
@@ -3653,12 +3662,12 @@ void create_bucket (anova_options * option_data)
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:Diff ",
-		 ibrick, option_data->adname[i]);
+		 ibrick, label_from_filename(option_data->adname[i]));
 	strcat (refit_str, str);
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:t-stat ",
-		 ibrick, option_data->adname[i]);
+		 ibrick, label_from_filename(option_data->adname[i]));
 	strcat (refit_str, str);
       }
 
@@ -3671,12 +3680,12 @@ void create_bucket (anova_options * option_data)
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:Diff ",
-		 ibrick, option_data->bdname[i]);
+		 ibrick, label_from_filename(option_data->bdname[i]));
 	strcat (refit_str, str);
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:t-stat ",
-		 ibrick, option_data->bdname[i]);
+		 ibrick, label_from_filename(option_data->bdname[i]));
 	strcat (refit_str, str);
       }
 
@@ -3689,12 +3698,12 @@ void create_bucket (anova_options * option_data)
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:Diff ",
-		 ibrick, option_data->xdname[i]);
+		 ibrick, label_from_filename(option_data->xdname[i]));
 	strcat (refit_str, str);
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:t-stat ",
-		 ibrick, option_data->xdname[i]);
+		 ibrick, label_from_filename(option_data->xdname[i]));
 	strcat (refit_str, str);
       }
 
@@ -3707,12 +3716,12 @@ void create_bucket (anova_options * option_data)
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:Contr ",
-		 ibrick, option_data->acname[i]);
+		 ibrick, label_from_filename(option_data->acname[i]));
 	strcat (refit_str, str);
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:t-stat ",
-		 ibrick, option_data->acname[i]);
+		 ibrick, label_from_filename(option_data->acname[i]));
 	strcat (refit_str, str);
       }
 
@@ -3725,12 +3734,12 @@ void create_bucket (anova_options * option_data)
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:Contr ",
-		 ibrick, option_data->bcname[i]);
+		 ibrick, label_from_filename(option_data->bcname[i]));
 	strcat (refit_str, str);
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:t-stat ",
-		 ibrick, option_data->bcname[i]);
+		 ibrick, label_from_filename(option_data->bcname[i]));
 	strcat (refit_str, str);
       }
 
@@ -3743,12 +3752,12 @@ void create_bucket (anova_options * option_data)
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:Contr ",
-		 ibrick, option_data->xcname[i]);
+		 ibrick, label_from_filename(option_data->xcname[i]));
 	strcat (refit_str, str);
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:t-stat ",
-		 ibrick, option_data->xcname[i]);
+		 ibrick, label_from_filename(option_data->xcname[i]));
 	strcat (refit_str, str);
       }
 
