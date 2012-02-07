@@ -3528,7 +3528,7 @@ void create_bucket (anova_options * option_data)
 
 
   /*----- begin command line for program 3drefit -----*/
-  strcpy (refit_str, "3drefit ");
+  strcpy (refit_str, "3drefit -addFDR ");
   ibrick = -1;
 
 
