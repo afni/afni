@@ -3990,6 +3990,7 @@ int storage_mode_from_prefix( char * fname );
 extern char *storage_mode_name(int mode);
 extern int has_known_non_afni_extension( char * fname ) ;   /*     [rickr] */
 extern char * find_filename_extension( char * fname );
+extern char * without_afni_filename_extension( char *fname); 
 
 extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
 
