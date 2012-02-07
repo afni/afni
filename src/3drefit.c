@@ -1835,12 +1835,15 @@ int main( int argc , char * argv[] )
          THD_init_diskptr_names( dset->dblk->diskptr ,
                                  NULL , NULL , NULL , vtype , True ) ;
 
-         #if 0 /* HEADNAME now has path, no need for this catenation */
+         #if 0 /* HEADNAME now has path, no need for catenation ZSS Fev 2012 */
          strcpy(new_head,DSET_DIRNAME(dset)) ;
-         strcpy(new_brik,DSET_DIRNAME(dset)) ; 
-         #endif
          strcat(new_head,DSET_HEADNAME(dset)) ;
+         strcpy(new_brik,DSET_DIRNAME(dset)) ; 
          strcat(new_brik,DSET_BRIKNAME(dset)) ;
+         #else
+         strcpy(new_head,DSET_HEADNAME(dset)) ;
+         strcpy(new_brik,DSET_BRIKNAME(dset)) ;
+         #endif
 
          if( THD_is_file(new_head) ){
             dset->view_type = old_vtype ;
