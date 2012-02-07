@@ -17,7 +17,7 @@
 
 /*------------------------------------------------------------------------*/
 
-void Syntax(void)
+void Syntax(int detail)
 {
    printf(
     "Usage: 3dUndump [options] infile ...\n"
@@ -219,7 +219,7 @@ void Syntax(void)
     "-- RWCox -- October 2000\n"
    ) ;
 
-   PRINT_COMPILE_DATE ; exit(0) ;
+   PRINT_COMPILE_DATE ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -256,7 +256,6 @@ int main( int argc , char * argv[] )
 
    /*-- help? --*/
 
-   if( argc < 3 || strcmp(argv[1],"-help") == 0 ) Syntax() ;
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
@@ -275,6 +274,11 @@ int main( int argc , char * argv[] )
    do_head_only = 0 ;
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+      if( strcmp(argv[iarg],"-help") == 0 ||
+          strcmp(argv[iarg],"-h") == 0 ) {
+            Syntax(strlen(argv[iarg])>3 ? 2:1) ;
+         exit(0);
+      }
 
       if( strcmp(argv[iarg],"-") == 0 ){    /* a single - is an input filename */
          break ;
@@ -466,9 +470,16 @@ int main( int argc , char * argv[] )
 
       /*-----*/
 
-      ERROR_exit("Unknown option: %s",argv[iarg]) ;
+      ERROR_message("Unknown option: %s",argv[iarg]) ;
+      suggest_best_prog_option(argv[0], argv[iarg]);
+      exit(1);
 
    } /* end of loop over command line options */
+   if( argc < 3) {
+      ERROR_message("Too few options");
+      Syntax(0) ;
+      exit(1);
+   }
 
    /*-- check for inconsistencies --*/
 
