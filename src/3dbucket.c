@@ -61,7 +61,7 @@ static char BUCK_session[THD_MAX_NAME]         = "./"   ;
 /*--------------------------- prototypes ---------------------------*/
 
 void BUCK_read_opts( int , char ** ) ;
-void BUCK_Syntax(void) ;
+void BUCK_Syntax(int) ;
 int * BUCK_get_subv( int , char * ) ;
 
 /*--------------------------------------------------------------------
@@ -83,7 +83,11 @@ void BUCK_read_opts( int argc , char * argv[] )
    INIT_XTARR(BUCK_subv) ;
 
    while( nopt < argc ){
-
+      if( strcmp(argv[nopt],"-help") == 0 ||
+          strcmp(argv[nopt],"-h") == 0) {
+            BUCK_Syntax(strlen(argv[nopt])>3?2:1) ;
+         exit(0);
+      }
       /**** -prefix prefix ****/
 
       if( strncmp(argv[nopt],"-prefix",6) == 0 ||
@@ -287,7 +291,9 @@ void BUCK_read_opts( int argc , char * argv[] )
       }
       
       if( argv[nopt][0] == '-' ){
-         fprintf(stderr,"Unknown option: %s\n",argv[nopt]) ; exit(1) ;
+         fprintf(stderr,"Unknown option: %s\n",argv[nopt]) ; 
+         suggest_best_prog_option(argv[0], argv[nopt]);
+         exit(1) ;
       }
 
       /**** read dataset ****/
@@ -314,7 +320,8 @@ void BUCK_read_opts( int argc , char * argv[] )
 
       if( BUCK_type < 0 ) BUCK_type = dset->type ;
 
-      BUCK_ccode = COMPRESS_filecode(dset->dblk->diskptr->brick_name) ; /* 16 Mar 2010 */
+      BUCK_ccode = COMPRESS_filecode(dset->dblk->diskptr->brick_name) ; 
+         /* 16 Mar 2010 */
 
       ii = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ;
       if( BUCK_nvox < 0 ){
@@ -337,7 +344,12 @@ void BUCK_read_opts( int argc , char * argv[] )
       ADDTO_XTARR(BUCK_subv,svar) ;
 
    }  /* end of loop over command line arguments */
-
+   
+   if( argc < 2) {
+      ERROR_message("Too few options");
+      BUCK_Syntax(0) ;
+      exit(1);
+   }
    return ;
 }
 
@@ -457,7 +469,7 @@ int * BUCK_get_subv( int nvals , char * str )
 
 /*------------------------------------------------------------------*/
 
-void BUCK_Syntax(void)
+void BUCK_Syntax(int detail)
 {
    printf(
     "Concatenate sub-bricks from input datasets into one big\n"
@@ -542,7 +554,7 @@ void BUCK_Syntax(void)
  "         with such datasets!\n"
    ) ;
 
-   PRINT_COMPILE_DATE ; exit(0) ;
+   PRINT_COMPILE_DATE ; return ;
 }
 
 /*------------------------------------------------------------------*/
@@ -562,7 +574,6 @@ int main( int argc , char * argv[] )
 
    /*** read input options ***/
 
-   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) BUCK_Syntax() ;
 
    mainENTRY("3dbucket main"); machdep(); PRINT_VERSION("3dbucket") ;
    set_obliquity_report(0); /* silence obliquity */

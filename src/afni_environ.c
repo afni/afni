@@ -360,7 +360,9 @@ int AFNI_prefilter_args( int *argc , char **argv )
 
      if( strcmp(argv[ii],"-overwrite") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -overwrite\n",ii) ;
-       AFNI_setenv("AFNI_DECONFLICT=OVERWRITE") ; used[ii] = 1 ; continue ;
+       AFNI_setenv("AFNI_DECONFLICT=OVERWRITE") ; 
+       THD_set_quiet_overwrite(1); /* no need to kvetch */
+       used[ii] = 1 ; continue ;
      }
 
      /*** echo command ***/

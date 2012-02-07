@@ -155,7 +155,7 @@ void Syntax(int detail)
 "                  TLRC, MNI, ORIG. The default assumed for +tlrc datasets is\n"
 "                  'TLRC'. One use for this attribute is to use MNI space\n"
 "                  coordinates and atlases instead of the default TLRC space.\n"
-"                  See WARNING2 for -view option.\n"
+"               ** See WARNING2 for -view option.\n"
 "  -cmap cmaptype  Associate colormap type with dataset. Available choices are\n"
 "                  CONT_CMAP (the default), INT_CMAP (integer colormap display)\n"
 "                  and SPARSE_CMAP (for sparse integer colormaps). INT_CMAP is\n"
