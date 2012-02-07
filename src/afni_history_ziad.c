@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  { 06, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
+   "Improved (I hope) sub-brick labels. Added FDR to.",
+   "Same improvements to all 3dANOVA programs.\n"
+ },
+ 
+ { 06, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
    "Fixed comaptibility with .niml.dset data",
    "This required more improvements (I hope) to THD_init_diskptr_names() and\n"
    "EDIT_empty_copy() for surface-based datasets.\n"

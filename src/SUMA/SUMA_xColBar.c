@@ -910,7 +910,8 @@ int SUMA_SwitchColPlaneIntensity (
       SUMA_RETURN(0);
    }
    if (ind >= SDSET_VECNUM(colp->dset_link)) {
-      SUMA_S_Errv("Col. Index of %d exceeds maximum of %d for this dset.\n", ind, SDSET_VECNUM(colp->dset_link)-1);
+      SUMA_S_Errv("Col. Index of %d exceeds maximum of %d for this dset.\n", 
+                   ind, SDSET_VECNUM(colp->dset_link)-1);
       SUMA_RETURN(0);
    }
    colp->OptScl->find = ind;
@@ -919,6 +920,47 @@ int SUMA_SwitchColPlaneIntensity (
       XtVaSetValues( SO->SurfCont->SwitchIntMenu[0], XmNmenuHistory , 
          SO->SurfCont->SwitchIntMenu[colp->OptScl->find+1] , NULL ) ; 
    }
+   
+   
+   if (SO->SurfCont->curColPlane->LinkMode == SW_LinkMode_Stat) {
+                                       /* Find a corresponding threshold sb*/
+      SUMA_DSET *dset=colp->dset_link;
+      char *lab=SUMA_DsetColLabelCopy(dset, ind, 0), *lab2=NULL, *ext=NULL;
+      int ind2=-1, ipair=0;
+      static char *exta[50]={ "_Coef",    "_Tstat",   /* 3dDeconvolve */
+                              "_mean",    "_Tstat",   /* 3dttest++ */
+                              ":Mean",    ":t-stat",  /* 3dANOVA */
+                              ":Contr",   ":t-stat",  /* 3dANOVA */
+                              ":Inten",   ":F-stat",  /* 3dANOVA */
+                              ":Diff",    ":t-stat",  /* 3dANOVA */
+                              NULL, NULL }; /* leave this alone, at the bottom*/
+      SUMA_LHv("Looking for decent match for %s\n", lab);
+      if (lab) {
+         ipair=0;
+         while(ind2 < 0 && (ext = exta[ipair*2])) {
+            if (STRING_HAS_SUFFIX(lab,ext)) {
+               lab[strlen(lab)-strlen(ext)]='\0';
+               lab2 = SUMA_append_string(lab,exta[ipair*2+1]);
+               if ((ind2 = SUMA_FindDsetColLabeled(dset, lab2)) >= 0) {
+                  SUMA_LHv("Sub-brick %s%s has %s go with it.\n",
+                              lab, ext, lab2);
+                  colp->OptScl->tind = ind2;
+                  if (colp == SO->SurfCont->curColPlane ) {/* you must set this
+                                          regardless of setmen */
+                     SUMA_LH("Setting threshold values");
+                     XtVaSetValues( SO->SurfCont->SwitchThrMenu[0], 
+                        XmNmenuHistory ,
+                        SO->SurfCont->SwitchThrMenu[colp->OptScl->tind+1] , 
+                        NULL ) ;
+                  }
+               } SUMA_free(lab2); lab2=NULL;
+            }
+            ++ipair;
+         }
+      }
+   }
+   
+   
    SUMA_LH("Setting Range");
    SUMA_InitRangeTable(SO, 0) ;
 
@@ -1520,6 +1562,19 @@ SUMA_MenuItem CmapMode_Menu[] = {
    {NULL},
 };
 
+SUMA_MenuItem LinkMode_Menu[] = {
+   {  "None", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_None, NULL},
+    
+   {  "Stat", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Stat, NULL},
+   
+   {NULL},
+};
+
+
 /*!
    \brief sets the colormap interpolation mode
    - expects a SUMA_MenuCallBackData * in  client_data
@@ -1579,11 +1634,65 @@ void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data,
 }
 
 /*!
+   \brief sets the linking between I & T mode
+   - expects a SUMA_MenuCallBackData * in  client_data
+   with SO as client_data->ContID and Menubutton in client_data->callback_data
+*/
+void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data, 
+                         XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SetLinkMode"};
+   SUMA_MenuCallBackData *datap=NULL;
+   int imenu;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean NewDisp = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* get the surface object that the setting belongs to */
+   datap = (SUMA_MenuCallBackData *)client_data;
+   SO = (SUMA_SurfaceObject *)datap->ContID;
+   imenu = (INT_CAST)datap->callback_data; 
+   NewDisp = NOPE;
+   switch (imenu) {
+      case SW_LinkMode_None:
+         if (SO->SurfCont->curColPlane->LinkMode != imenu) {
+            SO->SurfCont->curColPlane->LinkMode = imenu;
+            NewDisp = YUP;
+         }
+         break;
+      case SW_LinkMode_Stat:
+         if (SO->SurfCont->curColPlane->LinkMode != imenu) {
+            SO->SurfCont->curColPlane->LinkMode = imenu;
+            NewDisp = YUP;
+         }
+         break;
+      default: 
+         fprintf (SUMA_STDERR, "Error %s: Unexpected widget index %d.\n", 
+                                 FuncName, imenu);
+         break;
+   }
+   SUMA_LHv("LinkMode now %d\n", SO->SurfCont->curColPlane->LinkMode);
+   /* redisplay all viewers showing SO*/
+   if (NewDisp) {
+      SUMA_ColorizePlane(SO->SurfCont->curColPlane);
+      SUMA_RemixRedisplay(SO);
+   }
+   
+   SUMA_UpdateNodeNodeField(SO);
+   SUMA_UpdateNodeLblField(SO);
+   
+   SUMA_RETURNe;
+}
+
+/*!
    \brief sets the coordinate bias mode
    - expects a SUMA_MenuCallBackData * in  client_data
    with SO as client_data->ContID and Menubutton in client_data->callback_data
 */
-void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, XtPointer call_data)
+void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, 
+                           XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_SetCoordBias"};
    SUMA_MenuCallBackData *datap=NULL;
@@ -3222,7 +3331,8 @@ void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer cal
    Do call this function if you load a new color map
    
 */
-void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Boolean NewMap)
+void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset,
+                           SUMA_Boolean NewMap)
 {
    static char FuncName[]={"SUMA_set_cmap_options"};
    SUMA_MenuItem *SwitchInt_Menu = NULL, *SwitchThr_Menu = NULL, *SwitchBrt_Menu = NULL;
@@ -3255,13 +3365,38 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
    }  
    
    if (NewDset) { /* The intensity / threshold / Brightness block*/
+      /* link mode */
+      if (!SO->SurfCont->LinkModeMenu[SW_LinkMode]) {
+               Widget rc = NULL; /* one pass through this block ONLY */
+               rc = XtVaCreateWidget ("rowcolumn",
+                  xmRowColumnWidgetClass, SO->SurfCont->rcvo,
+                  XmNpacking, XmPACK_TIGHT, 
+                  XmNorientation , XmHORIZONTAL ,
+                  XmNmarginHeight, 0 ,
+                  XmNmarginWidth , 0 ,
+                  NULL);
+               
+               SUMA_LH("Forming map mode menu");
+               SUMA_BuildMenuReset(0);
+               SUMA_BuildMenu ( rc, XmMENU_OPTION, 
+                               "IxT", '\0', YUP, LinkMode_Menu, 
+                               (void *)SO,  
+                               "Set I, T selection linking modes.", 
+                               SUMA_SurfContHelp_Link,
+                               SO->SurfCont->LinkModeMenu);
+               XtManageChild (SO->SurfCont->LinkModeMenu[SW_LinkMode]);
+               
+               XtManageChild(rc);
+         }
+
       if (!SO->SurfCont->rcsw) {
          SO->SurfCont->rcsw = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SO->SurfCont->rcvo,
             XmNpacking, XmPACK_TIGHT, 
             XmNorientation , XmHORIZONTAL ,
-            XmNheight, 105,               /* don't let that change dynamically,  */
-            XmNresizeHeight, False,       /* it messes up the frame size, when you switch dsets*/
+            XmNheight, 105,         /* don't let that change dynamically,  */
+            XmNresizeHeight, False, /* it messes up the frame size, when you 
+                                       switch dsets*/
             XmNmarginHeight, 0 ,
             XmNmarginWidth , 0 ,
             NULL);
@@ -3289,6 +3424,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
             XmNmarginWidth , 0 ,
             NULL);
       }
+      
+      /* Switching triplets */
       SwitchInt_Menu = SUMA_FormSwitchColMenuVector(SO, 0, &N_items);      
       if (LocalHead) fprintf (SUMA_STDERR,"%s: %d items.\n", FuncName, N_items);
       if (SwitchInt_Menu || !N_items) {
@@ -3332,7 +3469,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
       if (SwitchThr_Menu || !N_items) {
          if (SO->SurfCont->SwitchThrMenu) {
             SUMA_LH("Freeing old menu");
-            XtDestroyWidget(SO->SurfCont->SwitchThrMenu[0]); /*kill the menu widget */
+            XtDestroyWidget(SO->SurfCont->SwitchThrMenu[0]);/*kill menu widget */
             SUMA_free(SO->SurfCont->SwitchThrMenu);   /* free the vector */
          }
          /* create a new one allocate for one more spot for the parent widget. 
@@ -3368,8 +3505,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
       if (SwitchBrt_Menu || !N_items) {
          if (SO->SurfCont->SwitchBrtMenu) {
             SUMA_LH("Freeing old menu");
-            XtDestroyWidget(SO->SurfCont->SwitchBrtMenu[0]); /*kill the menu widget */
-            SUMA_free(SO->SurfCont->SwitchBrtMenu);   /* free the vector */
+            XtDestroyWidget(SO->SurfCont->SwitchBrtMenu[0]);/*kill menu widget */
+            SUMA_free(SO->SurfCont->SwitchBrtMenu);   /* free  vector */
          }
          /* create a new one allocate for one more spot for the parent widget. 
             (more additions for sub-menus, see how SUMA_BuildMenu works )*/         
@@ -3382,7 +3519,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "Select Brightness (B) column (BHelp for more)", 
                            SUMA_SurfContHelp_SelBrt,
                            SO->SurfCont->SwitchBrtMenu );
-         XtInsertEventHandler( SO->SurfCont->SwitchBrtMenu[0] ,      /* handle events in optmenu */
+         XtInsertEventHandler( SO->SurfCont->SwitchBrtMenu[0] ,      
+                                                /* handle events in optmenu */
                         ButtonPressMask ,  /* button presses */
                         FALSE ,            /* nonmaskable events? */
                         SUMA_optmenu_EV ,  /* handler */
@@ -3393,9 +3531,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          /* Now destroy the SwitchBrt_Menu */
          SwitchBrt_Menu = SUMA_FreeMenuVector(SwitchBrt_Menu, N_items);
          /* setup the history to the proper widget */
-         XtVaSetValues( SO->SurfCont->SwitchBrtMenu[0], XmNmenuHistory , 
-                        SO->SurfCont->SwitchBrtMenu[SO->SurfCont->curColPlane->OptScl->bind+1] , NULL ) ; 
- 
+         XtVaSetValues( SO->SurfCont->SwitchBrtMenu[0], XmNmenuHistory , SO->SurfCont->SwitchBrtMenu[SO->SurfCont->curColPlane->OptScl->bind+1] , NULL ) ;
       } else {
          SUMA_SL_Err("NULL SwitchBrt_Menu");
       }
@@ -3423,11 +3559,14 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
             XtAddCallback (SO->SurfCont->Thr_tb, 
                   XmNvalueChangedCallback, SUMA_cb_SwitchThr_toggled, SO);
             SUMA_SET_SELECT_COLOR(SO->SurfCont->Thr_tb);
-            MCW_register_hint(SO->SurfCont->Thr_tb,   "Apply (ON)/Ignore thresholding");
-            MCW_register_help(SO->SurfCont->Thr_tb,   SUMA_SurfContHelp_SelThrTgl);
+            MCW_register_hint(SO->SurfCont->Thr_tb,   
+                              "Apply (ON)/Ignore thresholding");
+            MCW_register_help(SO->SurfCont->Thr_tb,   
+                              SUMA_SurfContHelp_SelThrTgl);
          }
          if (SO->SurfCont->curColPlane->OptScl->tind >=0) {
-            XmToggleButtonSetState (SO->SurfCont->Thr_tb, SO->SurfCont->curColPlane->OptScl->UseThr, NOPE);
+            XmToggleButtonSetState (SO->SurfCont->Thr_tb, 
+                              SO->SurfCont->curColPlane->OptScl->UseThr, NOPE);
          }else {
             XmToggleButtonSetState (SO->SurfCont->Thr_tb, NOPE, NOPE);
          }
@@ -3438,17 +3577,22 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
             XtAddCallback (SO->SurfCont->Brt_tb, 
                      XmNvalueChangedCallback, SUMA_cb_SwitchBrt_toggled, SO);
             SUMA_SET_SELECT_COLOR(SO->SurfCont->Brt_tb);
-            MCW_register_hint(SO->SurfCont->Brt_tb,   "View (ON)/Ignore brightness modulation");
-            MCW_register_help(SO->SurfCont->Brt_tb,   SUMA_SurfContHelp_SelBrtTgl);
+            MCW_register_hint(SO->SurfCont->Brt_tb,   
+                     "View (ON)/Ignore brightness modulation");
+            MCW_register_help(SO->SurfCont->Brt_tb,   
+                              SUMA_SurfContHelp_SelBrtTgl);
          }
          if (SO->SurfCont->curColPlane->OptScl->bind >=0) {
-            XmToggleButtonSetState (SO->SurfCont->Brt_tb, SO->SurfCont->curColPlane->OptScl->UseBrt, NOPE);
+            XmToggleButtonSetState (SO->SurfCont->Brt_tb, 
+                     SO->SurfCont->curColPlane->OptScl->UseBrt, NOPE);
          } else {
             XmToggleButtonSetState (SO->SurfCont->Brt_tb, NOPE, NOPE);
          }
       }
-      if (!XtIsManaged(SO->SurfCont->rcsw_v1)) XtManageChild (SO->SurfCont->rcsw_v1);
-      if (!XtIsManaged(SO->SurfCont->rcsw_v2)) XtManageChild (SO->SurfCont->rcsw_v2);
+      if (!XtIsManaged(SO->SurfCont->rcsw_v1)) 
+         XtManageChild (SO->SurfCont->rcsw_v1);
+      if (!XtIsManaged(SO->SurfCont->rcsw_v2)) 
+         XtManageChild (SO->SurfCont->rcsw_v2);
       if (!XtIsManaged(SO->SurfCont->rcsw)) XtManageChild (SO->SurfCont->rcsw);
    } /* The intensity / threshold / Brightness block */
    
@@ -3461,11 +3605,12 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            SUMA_SurfContHelp_SetRngTbl_c1, 
                            SUMA_SurfContHelp_SetRngTbl_c2 , NULL};
       char *row_tit[]=  {  " ", "I", "B", " " , "C", NULL};
-      char *row_hint[]= {  "Clipping ranges ", 
-                           "Intensity clipping range (much more with BHelp)", 
-                           "Brightness modulation clipping range (much more with BHelp)", 
-                           "Brightness modulation factor range (much more with BHelp)" , 
-                           "Coordinate bias range (much more with BHelp)", NULL};
+      char *row_hint[]= {  
+         "Clipping ranges ", 
+         "Intensity clipping range (much more with BHelp)", 
+         "Brightness modulation clipping range (much more with BHelp)", 
+         "Brightness modulation factor range (much more with BHelp)" , 
+         "Coordinate bias range (much more with BHelp)", NULL};
       char *row_help[]= {  SUMA_SurfContHelp_SetRngTbl_r0, 
                            SUMA_SurfContHelp_SetRngTbl_r1,
                            SUMA_SurfContHelp_SetRngTbl_r2, 
@@ -3557,25 +3702,38 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
             if (!SO->SurfCont->CmapLoad_pb) { 
                SUMA_LH("Forming CmapLoad button");
                SO->SurfCont->CmapLoad_pb = XtVaCreateManagedWidget ("New", 
-                                 xmPushButtonWidgetClass, SO->SurfCont->rccm_swcmap, 
+                                 xmPushButtonWidgetClass, 
+                                 SO->SurfCont->rccm_swcmap, 
                                  NULL);
-               XtAddCallback (SO->SurfCont->CmapLoad_pb, XmNactivateCallback, SUMA_cb_Cmap_Load, (XtPointer) SO);
-               MCW_register_hint(SO->SurfCont->CmapLoad_pb , "Load new colormap");
-               MCW_register_help(SO->SurfCont->CmapLoad_pb ,  SUMA_SurfContHelp_CmpNew);
+               XtAddCallback (SO->SurfCont->CmapLoad_pb, XmNactivateCallback, 
+                              SUMA_cb_Cmap_Load, (XtPointer) SO);
+               MCW_register_hint(SO->SurfCont->CmapLoad_pb , 
+                                 "Load new colormap");
+               MCW_register_help(SO->SurfCont->CmapLoad_pb ,  
+                                 SUMA_SurfContHelp_CmpNew);
             }
          } /* new colormaps */
-         if (!XtIsManaged(SO->SurfCont->rccm_swcmap)) XtManageChild (SO->SurfCont->rccm_swcmap); 
+         if (!XtIsManaged(SO->SurfCont->rccm_swcmap)) 
+                     XtManageChild (SO->SurfCont->rccm_swcmap); 
       }
+      
+      /* Set the CoordBias's menu history to reflect current setting */
+      SUMA_LH("Updating Link Mode History");
+      XtVaSetValues(  SO->SurfCont->LinkModeMenu[0], XmNmenuHistory , 
+                SO->SurfCont->LinkModeMenu[SO->SurfCont->curColPlane->LinkMode] ,
+                      NULL ) ; 
       
       SUMA_LH("Working the lock stuff ...");
       /* You'll need to fix the table's locking widget colors */
-      if ( SO->SurfCont->IntRangeLocked == SO->SurfCont->curColPlane->OptScl->AutoIntRange) {
+      if ( SO->SurfCont->IntRangeLocked == 
+               SO->SurfCont->curColPlane->OptScl->AutoIntRange) {
          SUMA_LH("   Do the Int");
          /* need to put things in sync */
          SO->SurfCont->IntRangeLocked = !SO->SurfCont->IntRangeLocked;
          MCW_invert_widget(SO->SurfCont->SetRangeTable->cells[1]);
       }
-      if ( SO->SurfCont->BrtRangeLocked == SO->SurfCont->curColPlane->OptScl->AutoBrtRange) {
+      if ( SO->SurfCont->BrtRangeLocked == 
+               SO->SurfCont->curColPlane->OptScl->AutoBrtRange) {
          SUMA_LH("   Do the Brt");
          /* need to put things in sync */
          SO->SurfCont->BrtRangeLocked = !SO->SurfCont->BrtRangeLocked;
@@ -3585,12 +3743,14 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
       /* Set the CoordBias's menu history to reflect current setting */
       SUMA_LH("Updating CoorBias chooser History");
       XtVaSetValues(  SO->SurfCont->CoordBiasMenu[0], XmNmenuHistory , 
-                      SO->SurfCont->CoordBiasMenu[SO->SurfCont->curColPlane->OptScl->DoBias] , NULL ) ; 
+           SO->SurfCont->CoordBiasMenu[SO->SurfCont->curColPlane->OptScl->DoBias]
+           , NULL ) ; 
  
       /* Set the Col's menu history to reflect current setting */
       SUMA_LH("Updating Col chooser History");
       XtVaSetValues(  SO->SurfCont->CmapModeMenu[0], XmNmenuHistory , 
-                      SO->SurfCont->CmapModeMenu[SO->SurfCont->curColPlane->OptScl->interpmode] , NULL ) ; 
+       SO->SurfCont->CmapModeMenu[SO->SurfCont->curColPlane->OptScl->interpmode],
+                     NULL ) ; 
  
       /* add the selectors for symmetric range and absolute threshold */
       if (!SO->SurfCont->AbsThresh_tb) {
@@ -3754,16 +3914,19 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO)
    }
 
    SUMA_LH("Forming CmapMenu");
-   SwitchCmap_Menu = SUMA_FormSwitchCmapMenuVector(SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps);
+   SwitchCmap_Menu = SUMA_FormSwitchCmapMenuVector(SUMAg_CF->scm->CMv, 
+                                                   SUMAg_CF->scm->N_maps);
    if (SwitchCmap_Menu) {
       /*SO->SurfCont->cmapswtch_pb = XtVaCreateManagedWidget ("Switch", 
                         xmPushButtonWidgetClass, rcc, 
                         NULL);
-      XtAddCallback (SO->SurfCont->cmapswtch_pb, XmNactivateCallback, SUMA_cb_ColMap_Switch, (XtPointer) SO);
+      XtAddCallback (SO->SurfCont->cmapswtch_pb, XmNactivateCallback, 
+                     SUMA_cb_ColMap_Switch, (XtPointer) SO);
       */
       if (SO->SurfCont->SwitchCmapMenu) {
          SUMA_LH("Freeing old menu");
-         XtDestroyWidget(SO->SurfCont->SwitchCmapMenu[0]); /*kill the menu widget */
+         XtDestroyWidget(SO->SurfCont->SwitchCmapMenu[0]); 
+                                                   /*kill the menu widget */
          SUMA_free(SO->SurfCont->SwitchCmapMenu);   /* free the vector */
       }
       /* create a new one allocate for one more spot for the parent widget. 
@@ -3789,7 +3952,8 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO)
                             XtListTail ) ;
       XtManageChild (SO->SurfCont->SwitchCmapMenu[0]);
       /* Now destroy the SwitchCmap_Menu */
-      SwitchCmap_Menu = SUMA_FreeMenuVector(SwitchCmap_Menu, SUMAg_CF->scm->N_maps);
+      SwitchCmap_Menu = SUMA_FreeMenuVector(SwitchCmap_Menu, 
+                                          SUMAg_CF->scm->N_maps);
    }
 
    XtManageChild(SO->SurfCont->rc_CmapCont);

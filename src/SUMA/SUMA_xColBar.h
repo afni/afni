@@ -218,6 +218,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_da
 void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, XtPointer call_data);
+void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data, XtPointer call_data);
 void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_LoadCmapFile (char *filename, void *data);
 SUMA_Boolean  SUMA_Insert_Cmap_of_Dset(SUMA_DSET *dset);
@@ -647,6 +648,14 @@ char *SUMA_GetLabelsAtNode(SUMA_SurfaceObject *SO, int node);
    "     into the colormap.\n"   \
    "     In Dir mode, the intensity \n"   \
    "     clipping range is of no use."
+
+#define SUMA_SurfContHelp_Link \
+   "Switch between I, T selectors linking modes.\n"   \
+   "None: Do nothing.\n"   \
+   "Stat: Swith T selector to match an I selection with \n"\
+   "      an obvious statistic. Matching is based on labels.\n"\
+   "You can set your preference using environment variable\n"\
+   "   SUMA_IxT_LinkMode\n"
 
 #define SUMA_SurfContHelp_Bias \
    "Coordinate bias direction.\n"   \

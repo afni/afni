@@ -5237,7 +5237,13 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(
       
    Sover->N_Contours = 0;
    Sover->Contours = NULL;
-      
+   
+   Sover->LinkMode = SW_LinkMode_Stat;
+   if (SUMA_EnvEquals("SUMA_IxT_LinkMode", "None",1,NULL)) {
+      Sover->LinkMode = SW_LinkMode_None;
+   } if (SUMA_EnvEquals("SUMA_IxT_LinkMode", "Stat",1,NULL)) {
+      Sover->LinkMode = SW_LinkMode_Stat;
+   }   
    SUMA_RETURN(Sover);   
 }
 
@@ -6280,14 +6286,14 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays,
             "order %d, indexed %d\n"
             "DimFact %f, global opacity %f, isBackGrnd (isBackground) %d.\n"
             "ForceIntRange %f, %f.\n"
-            "SymIrange = %d\n", 
+            "SymIrange = %d, LinkMode %d \n", 
             Overlays[i]->Name, 
             Overlays[i], Overlays[i]->dset_link, 
             Overlays[i]->PlaneOrder, i, 
             Overlays[i]->DimFact, Overlays[i]->GlobalOpacity, 
                   Overlays[i]->isBackGrnd, 
             Overlays[i]->ForceIntRange[0], Overlays[i]->ForceIntRange[1], 
-            Overlays[i]->SymIrange);
+            Overlays[i]->SymIrange, Overlays[i]->LinkMode);
          SS = SUMA_StringAppend (SS,stmp);
          SS = SUMA_StringAppend_va (SS, "N_links = %d\n", Overlays[i]->N_links);
          SS = SUMA_StringAppend_va (SS, "LinkedPtrType = %d\n", 

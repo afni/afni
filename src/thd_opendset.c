@@ -693,7 +693,7 @@ ENTRY("without_afni_filename_extension");
         if( STRING_HAS_SUFFIX(fname, *eptr) ) {
             flen = flen - strlen(*eptr);
             strncpy(onames[icall], fname, flen);
-            onames[icall][flen+1]='\0';
+            onames[icall][flen]='\0';
             RETURN(onames[icall]);
         }
     }

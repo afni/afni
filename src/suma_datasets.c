@@ -710,7 +710,7 @@ char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum)
       }
    }
    SUMA_NEL_GET_STRING(nelb, 0, 0, lbl); 
-      /* sc is a pointer copy here, do not free */
+                     /* lbl is a pointer copy here, do not free */
    lbl = SUMA_Get_Sub_String(lbl, SUMA_NI_CSS, i);
    sprintf(Name, "%d: ", i);
    if (lbl) { 
@@ -740,6 +740,35 @@ char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum)
    /* give me a bone */
    if (addcolnum) SUMA_RETURN(SUMA_append_string(Name, "bone"));
    else  SUMA_RETURN(SUMA_copy_string("bone"));
+}
+
+int SUMA_FindDsetColLabeled(SUMA_DSET *dset, char *label) 
+{
+   static char FuncName[]={"SUMA_FindDsetColLabeled"};
+   int ind=-1;
+   NI_element *nelb=NULL;
+   char *lbl=NULL, *str=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!label || !dset || 
+       !(nelb = SUMA_FindDsetAttributeElement(dset, "COLMS_LABS"))) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(-1);    
+   }
+   SUMA_NEL_GET_STRING(nelb, 0, 0, lbl); 
+   
+   if (strstr(lbl,label)) {/* have something */
+      for (ind=0; ind<SDSET_VECNUM(dset); ++ind) {
+         if ((str = SUMA_DsetColLabelCopy(dset, ind, 0))) {
+            if (!strcmp(str,label)) {
+               SUMA_free(str); SUMA_RETURN(ind);
+            } else SUMA_free(str);
+         }
+      }
+   }
+   
+   SUMA_RETURN(-1);
 }
 
 /*!
@@ -12480,7 +12509,10 @@ static ENV_SPEC envlist[] = {
       "Default is f9.\n",
       "SUMA_CrossHairLabelFont",
       "f9" }, 
-   
+   {  "Linking mode of I and T sub-brick selectors\n"
+      "Choose one of: None, Stat\n",
+      "SUMA_IxT_LinkMode",
+      "Stat" }, 
    {  NULL, NULL, NULL  }
 };
       
