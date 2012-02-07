@@ -48,6 +48,7 @@ extern "C" {
 extern void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout ) ;
 extern void MCW_free_expand( int gnum , char ** gout ) ;
 extern void MCW_warn_expand( int www ) ;                             /* 13 Jul 2001 */
+extern void MCW_set_glob_whine( int www ) ;                          /* 07 Feb 2012 [rickr] */
 extern void MCW_wildcards( char *fnam , int *nout , char ***fout ) ; /* 01 Dec 2003 */
 #define MCW_free_wildcards(a,b) MCW_free_expand(a,b)                 /* 02 Dec 2003 */
 
