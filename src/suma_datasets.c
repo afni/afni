@@ -12767,6 +12767,10 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
       SS = SUMA_StringAppend_va(SS, "StorageMode   :%d\n", pn->StorageMode);
       SS = SUMA_StringAppend_va(SS, "StorageModeNm.:%s\n", pn->StorageModeName);
       SS = SUMA_StringAppend_va(SS, "FileName_NoExt:%s\n", pn->FileName_NoExt);
+      SS = SUMA_StringAppend_va(SS, "FNameNoAfniExt:%s\n", \
+                                 without_afni_filename_extension(pn->FileName));
+      SS = SUMA_StringAppend_va(SS, "FNameLabel    :%s\n", \
+                                 without_afni_filename_extension(pn->Prefix));
       SS = SUMA_StringAppend_va(SS, "Col. Selector :%s\n", pn->ColSelect);
       SS = SUMA_StringAppend_va(SS, "Node Selector :%s\n", pn->NodeSelect);
       SS = SUMA_StringAppend_va(SS, "Row Selector  :%s\n", pn->RowSelect);
@@ -13318,7 +13322,9 @@ char *SUMA_FnameGet(char *Fname, char *sel, char *cccwd)
       strcpy (str[istr], ParsedFname->Ext); 
    else if  (sel[0] == 'f' && sel[1] == 'n' && sel[2] == 'e' )
       strcpy (str[istr], ParsedFname->FileName_NoExt); 
-   else {
+   else if  (sel[0] == 'l') {
+      strcpy (str[istr], without_afni_filename_extension(ParsedFname->Prefix));
+   } else {
       SUMA_S_Err("Selection not understood");
    }
 
