@@ -447,6 +447,12 @@ void add_file_name (THD_3dim_dataset * new_dset, char * filename,
 
 /*---------------------------------------------------------------------------*/
 /*
+   Routine to get a nice string to use as sub-brick label.
+*/
+char *label_from_filename(char *fname);
+
+/*---------------------------------------------------------------------------*/
+/*
    Routine to remove AFNI .HEAD and .BRIK dataset files.
 */
 

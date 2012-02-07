@@ -6429,10 +6429,6 @@ void analyze_results (anova_options * option_data)
    Routine to create an AFNI "bucket" output dataset.
 */
 
-char *label_from_filename(char *fname) {
-   return(without_afni_filename_extension(fname));
-}
-
 void create_bucket (anova_options * option_data)
 
 {
