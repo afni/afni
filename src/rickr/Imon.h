@@ -121,6 +121,7 @@ typedef struct  /* user options */
     int              sleep_vol;     /* between-vol sleep time (ms)      */
     int              debug;         /* debug level                      */
     int              quit;          /* quit when no new images found    */
+    int              no_wait;       /* never wait for more data         */
     int              use_dicom;     /* flag for dicom (not GE) images   */
     int              use_last_elem; /* use last element in DICOM images */
     int              show_sorted_list; /* display sorted list and quit  */
