@@ -660,3 +660,42 @@ ENTRY("has_known_non_afni_extension");
 
     RETURN(1); /* otherwise, we recognize it as non-AFNI */
 }
+
+/* ---------------------------------------------------- */
+/* given a filename, return a string excluding known 
+   afni extensions (from file_extension_list)
+   DO NOT FREE output.
+                                   06 Feb 2012 [ZSS] */
+
+char * without_afni_filename_extension( char * fname )
+{
+    char ** eptr;
+    static char onames[5][THD_MAX_NAME+1];
+    static int icall=0;
+    int c, flen, num_ext;
+
+ENTRY("without_afni_filename_extension");
+    
+    if( !fname || !*fname ) RETURN(NULL);
+    ++icall;
+    if (icall > 4) icall = 0;
+    onames[icall][0]='\0';
+    
+    if (strlen(fname) >= THD_MAX_NAME) {
+      WARNING_message("Filename too long for without_afni_filename_extension()"
+                      "Returing fname");
+      RETURN(fname);
+    }
+    num_ext = sizeof(file_extension_list)/sizeof(char *);
+    flen = strlen(fname);
+
+    for( c = 0, eptr = file_extension_list; c < num_ext; c++, eptr++ ) {
+        if( STRING_HAS_SUFFIX(fname, *eptr) ) {
+            flen = flen - strlen(*eptr);
+            strncpy(onames[icall], fname, flen);
+            onames[icall][flen+1]='\0';
+            RETURN(onames[icall]);
+        }
+    }
+    RETURN(fname);   /* not found */
+}
