@@ -354,6 +354,11 @@ typedef enum { SW_CoordBias,
                SW_CoordBias_N, 
                SW_N_CoordBias } SUMA_WIDGET_INDEX_COORDBIAS;
 
+typedef enum { SW_LinkMode,
+               SW_LinkMode_None,
+               SW_LinkMode_Stat,  
+               SW_N_LinkMode } SUMA_WIDGET_LINK_MODE;
+
 typedef enum { SW_CmapMode,
                   SW_Direct, SW_NN, SW_Interp,  
                   SW_N_CmapMode } 
@@ -784,6 +789,7 @@ typedef struct {
    int N_Contours;            /* Number of contours ROIs*/
    SUMA_DRAWN_ROI **Contours; /* Using the ROI structure to store contours
                                  which can be displayed along with color blobs */
+   SUMA_WIDGET_LINK_MODE LinkMode;          /* How to link I & T selectors */
 } SUMA_OVERLAYS;
 
 
@@ -1257,7 +1263,10 @@ typedef struct {
    Widget *SwitchCmapMenu; /* vector of widgets controlling the switch cmap widgets */
    Widget rc_CmapCont; /* rc container to contain Cmap menu */
    int N_CmapMenu; /* Number of widgets in SwitchCmapMenu */
-   Widget CoordBiasMenu[SW_N_CoordBias]; /* vector of widgets controlling the switch coord bias widgets */
+   Widget CoordBiasMenu[SW_N_CoordBias]; /* vector of widgets controlling the  
+                                            coord bias widgets */
+   Widget LinkModeMenu[SW_N_LinkMode]; /* vector of widgets controlling the 
+                                          linking of I, T widgets */
    Widget CmapModeMenu[SW_N_CmapMode];
    Widget opts_rc; /*!< rowcolumn containing color map, color bar and the switch buttons */
    Widget opts_form; /*!< rowcolumn containing all options for colormapping */

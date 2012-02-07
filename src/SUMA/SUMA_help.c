@@ -2019,6 +2019,7 @@ char * SUMA_Help_AllSurfCont ()
          "\n"
          "++ Mapping Data: \n"
          "\n"
+         "+++ I,T Link:\n%s\n"
          "+++ I\n%s\n"
          "++++ v:\n%s\n"
          "+++ T\n%s\n"
@@ -2026,6 +2027,7 @@ char * SUMA_Help_AllSurfCont ()
          "+++ B\n%s\n"
          "++++ v\n%s\n"
          "\n", 
+         SUMA_SurfContHelp_Link, 
          SUMA_SurfContHelp_SelInt, SUMA_SurfContHelp_SelIntTgl,
          SUMA_SurfContHelp_SelThr, SUMA_SurfContHelp_SelThrTgl, 
          SUMA_SurfContHelp_SelBrt, SUMA_SurfContHelp_SelBrtTgl );

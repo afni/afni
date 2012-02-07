@@ -2565,6 +2565,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->rc_CmapCont = NULL;
    SurfCont->N_CmapMenu = -1;
    SurfCont->CoordBiasMenu[SW_CoordBias] = NULL;
+   SurfCont->LinkModeMenu[SW_LinkMode] = NULL;
    SurfCont->opts_rc = NULL;
    SurfCont->opts_form = NULL;
    SurfCont->rcvo = NULL;

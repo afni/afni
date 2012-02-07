@@ -3570,6 +3570,8 @@ int SUMA_setenv_option(char *s)
    int closed=0;
    SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_ENTRY;
+   
    if (!s) {
       SUMA_S_Err("NULL input");
       SUMA_RETURN(0);
