@@ -51,6 +51,7 @@ afni_history_struct rickr_history[] = {
 
  {  6, FEB, 2012, RCR, "Dimon", MINOR, TYPE_ENHANCE,
    "added -no_wait option: never wait for new data",
+   "Also, suppress new glob warnings.\n"
    "Done for F Ye and others."
  } ,
 
