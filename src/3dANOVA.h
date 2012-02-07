@@ -67,6 +67,7 @@
 /*---------------------------------------------------------------------------*/
 
 #include "mrilib.h"
+#include "3ddata.h"
 
 static char * commandline = NULL ;         /* command line for history notes */
 
