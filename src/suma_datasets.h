@@ -1492,6 +1492,7 @@ SUMA_Boolean SUMA_NewDsetID2 (SUMA_DSET *dset, char *str);
 char *SUMA_DsetColStringAttrCopy(SUMA_DSET *dset, int i, 
                                  int addcolnum, char *attrname);
 char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum);
+int SUMA_FindDsetColLabeled(SUMA_DSET *dset, char *label);
 char **SUMA_AllDsetColLabels(SUMA_DSET *dset);
 char **SUMA_FreeAllDsetColLabels(char **);
 char *SUMA_ColLabelCopy(NI_element *nel, int i, int addcolnum);
