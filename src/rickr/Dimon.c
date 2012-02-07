@@ -78,10 +78,11 @@ static char * g_history[] =
     " 3.8  Jan 19, 2012 [rickr]\n"
     "      - made -quit more agressive (never wait for new files)\n"
     " 3.7  Jan 25, 2012 [rickr] : back out changes for 3.8 and ponder\n"
+    " 3.8  Feb  7, 2012 [rickr] : added -no_wait (more forceful than -quit)\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.7 (Jan 25, 2012)"
+#define DIMON_VERSION "version 3.8 (Feb 7, 2012)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -110,6 +111,7 @@ static char * g_history[] =
  *   examples:    Dimon -infile_pattern 's12345/i*'
  *                Dimon -help
  *                Dimon -version
+ *                Dimon -infile_prefix s12345/i -gert_create_dataset
  *                Dimon -infile_list my_files.txt -quit
  *                Dimon -infile_prefix 's12345/i' -rt -host pickle -quit
  *----------------------------------------------------------------------
@@ -300,6 +302,8 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     int sleep_ms = -1; /* has not been set from data yet */
     int vs_state = 0;    /* state for volume search, can reset */
     int fl_start = 0;    /* starting offset into the current flist */
+    int nslices = p->opts.num_slices;
+    int nfiles = 0;      /* from read_ge_files */
 
     if ( gD.level > 0 )                 /* status */
         fprintf( stderr, "-- scanning for first volume\n" );
@@ -307,12 +311,27 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     /* clear initial volume */
     memset(v, 0, sizeof(vol_t));
 
+    if ( p->opts.no_wait ) sleep_ms = 0;  /* no sleeping in this case */
+
     mri_read_dicom_reset_obliquity();   /* to be sure */
 
     ret_val = 0;
     while ( ret_val == 0 )
     {
-        ret_val = read_ge_files( p, fl_start, max_im_alloc );
+        nfiles = read_ge_files( p, fl_start, max_im_alloc );
+        ret_val = nfiles;
+
+        /* no_wait: if ret_val ever repeats (including start at 0), fail
+                    (might go 40, 80, 120...)           7 Feb 2012 [rickr] */
+        if ( p->opts.no_wait ) {
+            static int prev_rv = 0;
+            if ( ret_val == prev_rv ) {
+                fprintf(stderr,"** no_wait: no volume found in %d files\n",
+                        ret_val);
+                return -1;
+            }
+            prev_rv = ret_val;
+        }
 
         if ( ret_val > 0 )
         {
@@ -324,13 +343,26 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
             /* If we don't have a volume yet, but have used "too much" of our
              * available memory, request more, making sure there is enough for
              * a volume, despite the previous max_im_alloc limitation.  */
-            if ( (ret_val == 0) && (p->nused > (max_im_alloc / 2)) )
+            if ( (ret_val == 0) && (p->nused > (max_im_alloc / 2)) ) {
+                /* if the user has specified num_slices and after more than 5
+                   volumes worth we still have not found our first, call this
+                   a fatal error */
+                if ( nslices > 0 && max_im_alloc > 5*nslices ) {
+                    fprintf(stderr,"\n** failing to find first volume within"
+                            " first %d images\n"
+                            "   ==> terminal failure for num_slices = %d\n",
+                            nfiles, nslices);
+                    return -1;
+                }
+
                 max_im_alloc *= 2;
+            }
         }
 
-        if ( ret_val == 0 )                     /* we are not done yet */
+        /* if no volume, sleep and continue loop */
+        if ( ret_val == 0 )   /* we are not done yet */
         {
-            if ( gD.level > 0 ) fprintf( stderr, "." );   /* status    */
+            if ( gD.level > 0 ) fprintf( stderr, "." ); /* pacifier */
 
             /* try to update nap time (either given or computed from TR) */
             if( sleep_ms < 0 ) {
@@ -341,7 +373,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                                    p->flist ? p->flist->geh.tr : 0.0);
             }
 
-            iochan_sleep(sleep_ms);
+            if( sleep_ms > 0 ) iochan_sleep(sleep_ms);
         }
         else if ( ret_val > 0 )         /* success - we have a volume! */
         {
@@ -356,9 +388,9 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                     disp_ftype("-d ftype: ", p->ftype);
                 }
             }
-
+    
             /* make sure there is enough memory for bad volumes */
-            if ( p->nalloc < (4 * v->nim) )
+            if ( p->nalloc < (4 * v->nim) ) 
             {
                 p->nalloc = 4 * v->nim;
                 p->flist = (finfo_t *)realloc( p->flist,
@@ -369,29 +401,29 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                                      "structs!\n", p->nalloc );
                     return -1;
                 }
-
+    
                 if ( gD.level > 1 )
                     idisp_param_t( "++ final realloc of flist : ", p );
             }
-
+    
             /* use this volume to complete the geh.orients string */
             if ( complete_orients_str( v, p ) < 0 )
                 return -1;
-
+    
             /* use this volume to note the byte order of image data */
             if ( check_im_byte_order( &ac->byte_order, v, p ) < 0 )
                 return -1;
-
+    
             /* if wanted, verify afni link, send image info and first volume */
             if ( ac->state == ART_STATE_TO_OPEN )
                 ART_open_afni_link( ac, 5, 0, gD.level );
-
+    
             if ( ac->state == ART_STATE_TO_SEND_CTRL )
                 ART_send_control_info( ac, v, gD.level );
-
+    
             if ( ac->state == ART_STATE_IN_USE )
                 ART_send_volume( ac, v, gD.level );
-
+    
             if ( gD.level > 1 )
             {
                 ART_idisp_ART_comm( "-- first vol ", ac );
@@ -399,13 +431,11 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
             }
         }
         else
-            return ret_val;             /* fatal error condition */
+            return ret_val; /* terminal failure */
     }
 
-    if ( ret_val > 0 )
-        return 0;
-    else
-        return ret_val;
+    if ( ret_val > 0 ) return 0;
+    else               return ret_val;
 }
 
 
@@ -450,7 +480,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     /* compute the number of naps per TR, for stalled run checks */
     tr_naps = nap_time_in_ms(p->opts.tr, v0->geh.tr) / nap_time;
 
-    if ( gD.level > 0 )                 /* status */
+    if ( gD.level > 0 )         /* status */
     {
         fprintf( stderr, "-- scanning for additional volumes...\n" );
         fprintf( stderr, "-- run %d: %d ", run, seq_num );
@@ -467,8 +497,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     signal( SIGTERM, hf_signal );
     signal( SIGSEGV,  hf_signal );
 
-    if ( set_volume_stats( p, &gS, v0 ) )
-        return -1;
+    if ( set_volume_stats( p, &gS, v0 ) ) return -1;
 
     while ( ! done )
     {
@@ -478,13 +507,11 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
         {
             ret_val = volume_match( v0, &vn, p, fl_index );
 
-            if ( ret_val < -1 )                 /* bail out on fatal error */
-                return ret_val;
+            if ( ret_val < -1 ) return ret_val; /* bail out on fatal error */
 
             if ( (ret_val == 1) || (ret_val == -1) )
             {
-                if ( gD.level > 3 )
-                    idisp_vol_t( "-- new volume: ", &vn );
+                if ( gD.level > 3 ) idisp_vol_t( "-- new volume: ", &vn );
 
                 fl_index += vn.nim;             /* note the new position   */
                 next_im   = vn.fn_n + 1;        /* for read_ge_files()     */
@@ -505,18 +532,14 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                 else
                 {
                     seq_num++;
-
-                    if ( gD.level > 0 )
-                        fprintf( stderr, "%d ", seq_num );
+                    if ( gD.level > 0 ) fprintf( stderr, "%d ", seq_num );
                 }
 
                 vn.seq_num = seq_num;
 
-                if ( set_volume_stats( p, &gS, &vn ) )
-                    return -1;
+                if ( set_volume_stats( p, &gS, &vn ) ) return -1;
 
-                if ( complete_orients_str( &vn, p ) < 0 )
-                    return -1;
+                if ( complete_orients_str( &vn, p ) < 0 ) return -1;
 
                 if ( ac->state == ART_STATE_TO_SEND_CTRL )
                     ART_send_control_info( ac, &vn, gD.level );
@@ -542,10 +565,10 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                 (ret_val < v0->nim) )   /* didn't see full volume yet */
         {
             if ( ret_val != prev_nim )
-                naps = 0;               /* then start over */
-            else if ( naps >= tr_naps )
+                naps = 0;   /* then start over */
+            else if ( p->opts.no_wait || naps >= tr_naps )
             {
-                if ( p->opts.quit )     /* then we are outta here */
+                if ( p->opts.quit )         /* then we are outta here */
                 {
                     if ( ac->state == ART_STATE_IN_USE )
                         ART_send_end_of_run( ac, run, seq_num, gD.level );
@@ -565,13 +588,14 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
             if ( gD.level > 0 && !(naps % tr_naps) )
                 fprintf( stderr, ". " ); /* pacifier */
 
-            iochan_sleep( nap_time );   /* wake after a couple of TRs */
+            if ( ! p->opts.no_wait )
+                iochan_sleep( nap_time );   /* wake after a couple of TRs */
             naps ++;
 
             ret_val = read_ge_files( p, next_im, p->nalloc );
         }
 
-        if ( ret_val < 0 )              /* aaaaagh!  panic!  wet pants! */
+        if ( ret_val < 0 )               /* aaaaagh!  panic!  wet pants! */
         {
             fprintf( stderr, "\n** failure: IFM:RGF fatal error\n" );
             return -1;
@@ -987,7 +1011,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
         {
             /* slice is either missing or out of order */
 
-            fp_test = fp + 1;                          /* check next image */
+            fp_test = fp + 1;  /* check next image, does it look okay? */
             if ( fabs( z + vin->z_delta - fp_test->geh.zoff ) < gD_epsilon )
             {
                 /* report the error?                v2.12 */
@@ -1180,7 +1204,7 @@ static int check_error( int * retry, float tr, char * note )
         nap_time = (gP.opts.sleep_vol > 0) ? gP.opts.sleep_vol :
                                              nap_time_in_ms(gP.opts.tr, tr);
 
-        iochan_sleep( nap_time );
+        if ( ! gP.opts.no_wait ) iochan_sleep( nap_time );
         return 0;
     }
 
@@ -1956,9 +1980,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         }
         else if ( ! strncmp( argv[ac], "-gert_create_dataset", 20) )
         {
-            p->opts.gert_exec = 1;      /* execute GERT_Reco script         */
+            p->opts.gert_exec = 1;      /* execute GERT_Reco script  */
 
-            p->opts.gert_reco = 1;      /* -GERT_Reco and -quit are implied */
+            p->opts.gert_reco = 1;      /* these options are implied */
+            p->opts.no_wait = 1;
             p->opts.quit = 1;
         }
         else if ( ! strncmp( argv[ac], "-gert_filename", 10 ) )
@@ -2068,6 +2093,11 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                          IFM_MIN_NICE_INC, IFM_MAX_NICE_INC );
                 errors++;
             }
+        }
+        else if ( ! strncmp( argv[ac], "-no_wait", 8 ) )
+        {
+            p->opts.no_wait = 1;
+            p->opts.quit = 1;
         }
         else if ( ! strncmp( argv[ac], "-nt", 3 ) )
         {
@@ -3142,7 +3172,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sleep_init         = %d\n"
             "   sleep_vol          = %d\n"
             "   debug              = %d\n"
-            "   quit, use_dicom    = %d, %d\n"
+            "   quit, no_wait      = %d, %d\n"
+            "   use_dicom          = %d\n"
             "   use_last_elem      = %d\n"
             "   show_sorted_list   = %d\n"
             "   gert_reco          = %d\n"
@@ -3173,8 +3204,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->argv, opt->argc,
             opt->tr, opt->ep, opt->nt, opt->num_slices, opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
-            opt->debug, opt->quit, opt->use_dicom, opt->use_last_elem,
-            opt->show_sorted_list, opt->gert_reco,
+            opt->debug, opt->quit, opt->no_wait, opt->use_dicom,
+            opt->use_last_elem, opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix),
             opt->gert_nz, opt->gert_format, opt->gert_exec, opt->gert_quiterr,
@@ -3397,9 +3428,9 @@ static int usage ( char * prog, int level )
       "\n"
       "    See the '-dicom_org' option, under 'other options', below.\n"
       "\n"
-      "    If no -quit option is provided, the user should terminate the\n"
-      "    program when it is done collecting images according to the\n"
-      "    input file pattern.\n"
+      "    If no -quit option is provided (and no -no_wait), the user should\n"
+      "    terminate the program when it is done collecting images according\n"
+      "    to the input file pattern.\n"
       "\n"
       "    Dimon can be terminated using <ctrl-c>.\n"
       "\n"
@@ -3453,7 +3484,7 @@ static int usage ( char * prog, int level )
       "\n"
       "  A2. investigate a list of files: \n"
       "\n"
-      "    %s -infile_pattern '*' -dicom_org -show_sorted_list\n"
+      "    %s -infile_pattern '*' -dicom_org -show_sorted_list -quit\n"
       "\n"
       "  A3. save a sorted list of files and check it later: \n"
       "\n"
@@ -3462,11 +3493,11 @@ static int usage ( char * prog, int level )
       "\n"
       "  B. for GERT_Reco:\n"
       "\n"
-      "    %s -infile_prefix run_003/image -GERT_Reco -quit\n"
-      "    %s -infile_prefix run_003/image -dicom_org -GERT_Reco -quit\n"
+      "    %s -infile_prefix run_003/image -gert_create_dataset\n"
+      "    %s -infile_prefix run_003/image -dicom_org -GERT_Reco -no_wait\n"
       "    %s -infile_prefix 'run_00[3-5]/image' -GERT_Reco -quit\n"
-      "    %s -infile_prefix anat/image -GERT_Reco -quit\n"
-      "    %s -infile_prefix epi_003/image -dicom_org -quit   \\\n"
+      "    %s -infile_prefix anat/image -GERT_Reco -no_wait\n"
+      "    %s -infile_prefix epi_003/image -dicom_org -no_wait \\\n"
       "          -GERT_Reco -gert_to3d_prefix run3 -gert_nz 42\n"
       "\n"
       "  B2. Deal with Philips data (names are not sorted, and image numbers\n"
@@ -3957,6 +3988,15 @@ static int usage ( char * prog, int level )
           "        lower its priority, allowing other processes more CPU\n"
           "        time.\n"
           "\n"
+          "    -no_wait           : never wait for new data\n"
+          "\n"
+          "        More forceful than -quit, when using this option, the\n"
+          "        program should never wait for new data.  This option\n"
+          "        implies -quit and is implied by -gert_create_dataset.\n"
+          "\n"
+          "        This is appropriate to use when the image files have\n"
+          "        already been collected.\n"
+          "\n"
           "    -nt VOLUMES_PER_RUN : set the number of time points per run\n"
           "\n"
           "        e.g.  -nt 120\n"
@@ -3986,8 +4026,9 @@ static int usage ( char * prog, int level )
           "    -quit              : quit when there is no new data\n"
           "\n"
           "        With this option, the program will terminate once a delay\n"
-          "        in new data occurs.  This is most appropriate to use when\n"
-          "        the image files have already been collected.\n"
+          "        in new data occurs (an apparent end-of-run pause).\n"
+          "\n"
+          "        This option is implied by -no_wait.\n"
           "\n"
           "    -rev_org_dir       : reverse the sort in dicom_org\n"
           "\n"
