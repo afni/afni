@@ -3090,7 +3090,6 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( func->pbar_equalize_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
 
@@ -3104,11 +3103,21 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( func->pbar_settop_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
-
    MCW_register_hint( func->pbar_settop_pb , "Is scaled by 'range' controls" ) ;
+
+   func->pbar_flip_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Flip Colors") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->pbar_flip_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+   MCW_register_hint( func->pbar_flip_pb , "Top-to-Bottom color inversion" ) ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
@@ -3995,9 +4004,7 @@ STATUS("making func->rowcol") ;
                              MCW_AV_notext , 0 ,
                              AFNI_range_rotate_av_CB , (XtPointer) func->inten_pbar ,
                              NULL,NULL ) ;
-
    func->range_rotate_av->parent = (XtPointer) im3d ;
-
    MCW_reghelp_children( func->range_rotate_av->wrowcol ,
                          "Rotate the colors on\n"
                          "the 'pbar' up or down.\n"
@@ -4005,8 +4012,22 @@ STATUS("making func->rowcol") ;
                          "[rotate in steps of 4]"  ) ;
    MCW_reghint_children( func->range_rotate_av->wrowcol ,
                          "Rotate pbar colors" ) ;
-
    ADDTO_KILL(im3d->kl,func->range_rotate_av) ;
+
+   func->pbar_flip_pb2 =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , hrc ,
+            LABEL_ARG("F") ,
+            XmNmarginWidth  , 1 ,
+            XmNmarginHeight , 0 ,
+            XmNspacing      , 1 ,
+            XmNborderWidth  , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->pbar_flip_pb2 , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+   MCW_register_hint( func->pbar_flip_pb2 , "Top-to-Bottom color inversion" ) ;
 
    XtManageChild( hrc ) ;
 

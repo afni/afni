@@ -620,6 +620,14 @@ ENTRY("AFNI_pbar_CB") ;
                           AFNI_set_pbar_top_CB , cd   ) ;
    }
 
+   /*--- Flip [08 Feb 2012] ---*/
+
+   else if( w == im3d->vwid->func->pbar_flip_pb ||
+            w == im3d->vwid->func->pbar_flip_pb2  ){
+     PBAR_flip(pbar) ;
+     AFNI_pbar_lock_carryout(im3d) ;
+   }
+
    /*--- Read in a palette file ---*/
 
    else if( w == im3d->vwid->func->pbar_readin_pb ){
