@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 11 , JAN , 2012 , RWC , "3dhistog" , MICRO , TYPE_BUG_FIX ,
+  { 8 , FEB , 2012 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Add ability to flip colors in a discrete paned pbar" ,
+   "And a 'Flip Colors' button to do so." } ,
+
+ { 11 , JAN , 2012 , RWC , "3dhistog" , MICRO , TYPE_BUG_FIX ,
    "Fix bugs" ,
    "(a) fbin storing the counts was not always allocated the right length\n"
    "(b) changed it from int to int64_t to allow for really large datasets\n"

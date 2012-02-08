@@ -667,6 +667,8 @@ typedef struct {
       generic_func *pbar_transform2D_func ;
       int           pbar_transform2D_index ;
 
+      Widget pbar_flip_pb ;                     /* 08 Feb 2012 */
+
       Widget options_rowcol , options_top_rowcol , options_label ;
       MCW_arrowval *options_vedit_av ;
       Widget ulaclu_rowcol , vedit_frame ;
@@ -694,6 +696,7 @@ typedef struct {
       Widget bkgd_lab ;
 
       MCW_arrowval *range_rotate_av ;  /* 30 Mar 2001 */
+      Widget pbar_flip_pb2 ;           /* 08 Feb 2012 */
 
       MCW_bbox *see_ttatlas_bbox ;     /* 25 Jul 2001 */
 
