@@ -90,6 +90,7 @@ typedef struct
     char   * spec_file;			/* surface specification file  */
     char   * sv_file;			/* AFNI surface volume dataset */
     char   * out_1D_file;		/* surface output filename     */
+    char   * out_file;        /* surface dset output filename */
     char   * cmask_cmd;                 /* 3dcalc style cmask command  */
     char   * nodes_1D_file;             /* node list to apply cmask to */
     char   * surf_names[ST_MAX_SURFS];  /* list of surfaces to be used */
@@ -108,6 +109,8 @@ typedef struct
     byte   * cmask;
     int      ncmask;			/* length of cmask             */
     int      ccount;			/* number of set entries       */
+    SUMA_DSET *out_dset;   /* output dset */
+    int    * colmap;       /* index of column for each measure */
 } param_t;
 
 
