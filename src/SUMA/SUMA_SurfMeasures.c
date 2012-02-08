@@ -187,6 +187,18 @@ int main ( int argc, char * argv[] )
     if ( (rv = write_output(&opts, &p)) != 0 )
 	return rv;
 
+    if (p.out_dset) { /* add history and write out dset */
+      char *oname = NULL;
+      SUMA_AddNgrHist (p.out_dset->ngr, "SurfMeasures", argc, argv);
+      if (!(oname = SUMA_WriteDset_s(opts.out_file, p.out_dset, 
+                                     SUMA_NO_DSET_FORMAT, 
+                                     THD_ok_overwrite(), 0))) {
+         fprintf(stderr,"** failed to write %s\n", opts.out_file);
+         return 1;                             
+      }
+      SUMA_free(oname);
+    }
+    
     if ( opts.debug > 1 )
 	fprintf(stderr,"-- timing: write outfile     : time = %.3f\n",
 		COX_clock_time());
@@ -200,6 +212,241 @@ int main ( int argc, char * argv[] )
     return 0;
 }
 
+/*----------------------------------------------------------------------
+ * prep output dset
+ *
+ *----------------------------------------------------------------------
+*/
+int prep_output_dset( opts_t * opts, param_t * p )
+{
+   static char FuncName[]={"prep_output_dset"};
+   int fnum=0;
+   
+ENTRY("prep_output_dset");
+   
+   if (!opts->out_file) RETURN(0);
+   
+   if (!(p->out_dset = SUMA_CreateDsetPointer(opts->out_file, SUMA_NODE_BUCKET,
+                                     NULL, NULL, p->nnodes))) {
+      SUMA_S_Err("Failed to create new dset");
+      RETURN(1);     
+   }
+   if (!SUMA_AddDsetNelCol ( p->out_dset, "Node Index", 
+                             SUMA_NODE_INDEX, (void *)p->nodes, NULL, 1)) {
+      SUMA_S_Err("Failed to add node index column");
+      SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+      RETURN(1);                                 
+   }
+   p->colmap = (int *)calloc(p->F->nused, sizeof(int));
+
+         for (fnum = 0; fnum < p->F->nused; fnum++)
+	{
+       p->colmap[fnum] = SDSET_VECNUM(p->out_dset); 
+
+       switch(p->F->codes[fnum])
+	    {
+		default:
+		    fprintf(stderr,"** bad output Info code %d\n",p->F->codes[fnum]);
+		    p->colmap[fnum]=-1; 
+          break;
+
+		case E_SM_ANG_NORMS:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "NormsAngle", 
+                             SUMA_NODE_PHASE, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+		    break;
+
+		case E_SM_ANG_NS_A:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "Norm2ASegAngle", 
+                             SUMA_NODE_PHASE, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+		    break;
+
+		case E_SM_ANG_NS_B:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "Norm2BSegAngle", 
+                             SUMA_NODE_PHASE, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+		    break;
+
+		case E_SM_COORD_A:
+          if (!SUMA_AddDsetNelCol ( p->out_dset, "XcoordA", 
+                             SUMA_NODE_X, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          if (!SUMA_AddDsetNelCol ( p->out_dset, "YcoordA", 
+                             SUMA_NODE_Y, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          if (!SUMA_AddDsetNelCol ( p->out_dset, "ZcoordA", 
+                             SUMA_NODE_Z, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+		    break;
+
+		case E_SM_COORD_B:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "XcoordB", 
+                             SUMA_NODE_X, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          if (!SUMA_AddDsetNelCol ( p->out_dset, "YcoordB", 
+                             SUMA_NODE_Y, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          if (!SUMA_AddDsetNelCol ( p->out_dset, "ZcoordB", 
+                             SUMA_NODE_Z, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+		    break;
+
+		case E_SM_N_AREA_A:
+          if (!SUMA_AddDsetNelCol ( p->out_dset, "AreaA", 
+                             SUMA_NODE_AREA, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          break;
+
+		case E_SM_N_AREA_B:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "AreaB", 
+                             SUMA_NODE_AREA, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          break;
+
+      case E_SM_N_AVEAREA_A:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "AvgAreaA", 
+                             SUMA_NODE_AREA, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          break;
+
+      case E_SM_N_AVEAREA_B:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "AvgAreaB", 
+                             SUMA_NODE_AREA, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          break;
+
+      case E_SM_NTRI:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "NTri", 
+                             SUMA_NODE_INT, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          break;
+
+      case E_SM_NODES:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "Index", 
+                             SUMA_NODE_INT, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+		    break;
+
+		case E_SM_NODE_VOL:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "Volume(Biased)", 
+                             SUMA_NODE_VOLUME, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          } 
+          break;
+
+		case E_SM_NODE_VOLG:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "Volume", 
+                             SUMA_NODE_VOLUME, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          } 
+          break;
+
+		case E_SM_NORM_A:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "XNormA", 
+                             SUMA_NODE_X, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          if (!SUMA_AddDsetNelCol ( p->out_dset, "YNormA", 
+                             SUMA_NODE_Y, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          if (!SUMA_AddDsetNelCol ( p->out_dset, "ZNormA", 
+                             SUMA_NODE_Z, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          } 
+          break;
+
+		case E_SM_NORM_B:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "XNormB", 
+                             SUMA_NODE_X, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          if (!SUMA_AddDsetNelCol ( p->out_dset, "YNormB", 
+                             SUMA_NODE_Y, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          if (!SUMA_AddDsetNelCol ( p->out_dset, "ZNormB", 
+                             SUMA_NODE_Z, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          } 
+          break;
+
+		case E_SM_THICK:
+		    if (!SUMA_AddDsetNelCol ( p->out_dset, "Tickness", 
+                            SUMA_NODE_THICKNESS, (void *)p->nodes, NULL, 1)) {
+             SUMA_S_Err("Failed to add column");
+             SUMA_FreeDset(p->out_dset); p->out_dset=NULL;
+             RETURN(1);                                 
+          }
+          break;
+	    }
+	}
+
+   RETURN(0);
+
+}
 
 /*----------------------------------------------------------------------
  * write_output
@@ -215,13 +462,13 @@ int write_output( opts_t * opts, param_t * p )
     double      dist, min_dist, max_dist, tdist;
     double      atn = 0.0, atna = 0.0, atnb = 0.0;  /* angle totals */
     float       fvn, fva, fvb;
-    float     * fp0, * fp1;
+    float     * fp0, * fp1, *fv = NULL;
     float     * norms0, * norms1;
     float       ave_dist, fval;
     int         c, fnum, node, nindex;
-    int       * fcodes;
+    int       * fcodes, * iv=NULL;
     int         skipped = 0, tot_nodes;
-
+    
 ENTRY("write_output");
 
     so0 = p->S.slist[0];
@@ -245,6 +492,12 @@ ENTRY("write_output");
     {
 	fp1    = fp0;
 	norms1 = norms0;
+    }
+
+   
+    if (prep_output_dset(opts, p)) { /* create output dset, if necessary */
+       fprintf(stderr,"** Failed to initialize dset\n");
+       RETURN(1);
     }
 
     fcodes = p->F->codes;	/* for convenience */
@@ -288,7 +541,8 @@ ENTRY("write_output");
    if ( p->S.nvolg )
 	    tvolumeg += p->S.nvolg[node];
 
-	fputc(' ', p->outfp);
+	if (p->outfp) fputc(' ', p->outfp);
+
 
 	for (fnum = 0; fnum < p->F->nused; fnum++)
 	{
@@ -300,91 +554,167 @@ ENTRY("write_output");
 
 		case E_SM_ANG_NORMS:
 		    fvn = vector_angle(norms0 + 3*node, norms1 + 3*node);
-		    fprintf(p->outfp,"  %10s", MV_format_fval(fvn));
+		    if (p->outfp) fprintf(p->outfp,"  %10s", MV_format_fval(fvn));
 		    atn += fvn;
-		    break;
+          if (p->out_dset) { 
+            fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      fv[nindex]=fvn;
+          }
+          break;
 
 		case E_SM_ANG_NS_A:
 		    fva = norm2seg_angle(&p0, &p1, norms0 + 3*node);
-		    fprintf(p->outfp,"  %10s", MV_format_fval(fva));
+		    if (p->outfp) fprintf(p->outfp,"  %10s", MV_format_fval(fva));
 		    atna += fva;
+          if (p->out_dset) { 
+            fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      fv[nindex]=fva;
+          }
 		    break;
 
 		case E_SM_ANG_NS_B:
 		    fvb = norm2seg_angle(&p0, &p1, norms1 + 3*node);
-		    fprintf(p->outfp,"  %10s", MV_format_fval(fvb));
+		    if (p->outfp) fprintf(p->outfp,"  %10s", MV_format_fval(fvb));
 		    atnb += fvb;
-		    break;
+		    if (p->out_dset) { 
+            fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      fv[nindex]=fvb;
+          }
+          break;
 
 		case E_SM_COORD_A:
-		    for (c = 0; c < 3; c++)
-			fprintf(p->outfp,"  %10s",
+		    for (c = 0; c < 3; c++) 
+			if (p->outfp) fprintf(p->outfp,"  %10s",
 				MV_format_fval(fp0[3*node+c]));
-		    break;
+		    if (p->out_dset) { 
+            for (c = 0; c < 3; c++) {
+               fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]+c];  
+		         fv[nindex]=fp0[3*node+c];
+            }
+          }
+          break;
 
 		case E_SM_COORD_B:
 		    for (c = 0; c < 3; c++)
-			fprintf(p->outfp,"  %10s",
+			if (p->outfp) fprintf(p->outfp,"  %10s",
 				MV_format_fval(fp1[3*node+c]));
-		    break;
+		    if (p->out_dset) { 
+            for (c = 0; c < 3; c++) {
+               fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]+c];  
+		         fv[nindex]=fp1[3*node+c];
+            }
+          }
+          break;
 
 		case E_SM_N_AREA_A:
-		    fprintf(p->outfp,"  %10s",
+		    if (p->outfp) fprintf(p->outfp,"  %10s",
 			    MV_format_fval(p->S.narea[0][node]));
-		    break;
+		    if (p->out_dset) { 
+            fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      fv[nindex]=p->S.narea[0][node];
+          }
+          break;
 
 		case E_SM_N_AREA_B:
-		    fprintf(p->outfp,"  %10s",
+		    if (p->outfp) fprintf(p->outfp,"  %10s",
 			    MV_format_fval(p->S.narea[1][node]));
-		    break;
+		    if (p->out_dset) { 
+            fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      fv[nindex]=p->S.narea[1][node];
+          }
+          break;
 
 		case E_SM_N_AVEAREA_A:
 		    fval = 3 * p->S.narea[0][node] / so0->MF->N_Memb[node];
-		    fprintf(p->outfp,"  %10s", MV_format_fval(fval));
-		    break;
+		    if (p->outfp) fprintf(p->outfp,"  %10s", MV_format_fval(fval));
+		    if (p->out_dset) { 
+            fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      fv[nindex]=fval;
+          }
+          break;
 
 		case E_SM_N_AVEAREA_B:
 		    fval = 3 * p->S.narea[1][node] / so1->MF->N_Memb[node];
-		    fprintf(p->outfp,"  %10s", MV_format_fval(fval));
-		    break;
+		    if (p->outfp) fprintf(p->outfp,"  %10s", MV_format_fval(fval));
+		    if (p->out_dset) { 
+            fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      fv[nindex]=fval;
+          }
+          break;
 
 		case E_SM_NTRI:
-		    fprintf(p->outfp,"  %10d", so0->MF->N_Memb[node]);
-		    break;
+		    if (p->outfp) fprintf(p->outfp,"  %10d", so0->MF->N_Memb[node]);
+		    if (p->out_dset) { 
+            iv = (int *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      iv[nindex]=so0->MF->N_Memb[node];
+          }
+          break;
 
 		case E_SM_NODES:
-		    fprintf(p->outfp,"  %10d", node);
-		    break;
+		    if (p->outfp) fprintf(p->outfp,"  %10d", node);
+		    if (p->out_dset) { 
+            iv = (int *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      iv[nindex]=node;
+          }
+          break;
 
 		case E_SM_NODE_VOL:
-		    fprintf(p->outfp,"  %10s", MV_format_fval(p->S.nvol[node]));
-		    break;
+		    if (p->outfp) 
+            fprintf(p->outfp,"  %10s", MV_format_fval(p->S.nvol[node]));
+		    if (p->out_dset) { 
+            fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      fv[nindex]=p->S.nvol[node];
+          }
+          break;
 
 		case E_SM_NODE_VOLG:
-		    fprintf(p->outfp,"  %10s", MV_format_fval(p->S.nvolg[node]));
-		    break;
+		    if (p->outfp) 
+            fprintf(p->outfp,"  %10s", MV_format_fval(p->S.nvolg[node]));
+		    if (p->out_dset) { 
+            fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      fv[nindex]=p->S.nvolg[node];
+          }
+          break;
 
 		case E_SM_NORM_A:
-		    if ( norms0 )
-			for (c = 0; c < 3; c++)
+		    if ( norms0 ) {
+			for (c = 0; c < 3 && p->outfp; c++)
 			    fprintf(p->outfp,"  %10s",
 				    MV_format_fval(norms0[3*node+c]));
-		    break;
+		      if (p->out_dset) { 
+               for (c = 0; c < 3; c++) {
+                  fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]+c];  
+		            fv[nindex]=norms0[3*node+c];
+               }
+            } 
+          }
+          break;
 
 		case E_SM_NORM_B:
-		    if ( norms1 )
-			for (c = 0; c < 3; c++)
+		    if ( norms1 ) {
+			for (c = 0; c < 3 && p->outfp; c++)
 			    fprintf(p->outfp,"  %10s",
 				    MV_format_fval(norms1[3*node+c]));
-		    break;
+		      if (p->out_dset) { 
+               for (c = 0; c < 3; c++) {
+                  fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]+c];  
+		            fv[nindex]=norms1[3*node+c];
+               }
+            } 
+          }
+          break;
 
 		case E_SM_THICK:
-		    fprintf(p->outfp,"  %10s", MV_format_fval(dist));
-		    break;
+		    if (p->outfp) fprintf(p->outfp,"  %10s", MV_format_fval(dist));
+		    if (p->out_dset) { 
+            fv = (float *)p->out_dset->dnel->vec[p->colmap[fnum]];  
+		      fv[nindex]=dist;
+          }
+          break;
 	    }
 	}
 
-	fputc('\n', p->outfp);
+	if (p->outfp) fputc('\n', p->outfp);
 
 	if ( node == opts->dnode && opts->debug > 0 )
 	{
@@ -400,6 +730,9 @@ ENTRY("write_output");
 	}
     }
 
+    /* update dset column range */
+    if (p->out_dset) SUMA_UpdateDsetColRange(p->out_dset, -1);
+    
     /* Ick, averages should not include skipped nodes!  10 Mar 2008 [rickr] */
     tot_nodes = p->nnodes - skipped;
     if( tot_nodes <= 0 ) {
@@ -535,7 +868,9 @@ int print_column_headers( opts_t * opts, param_t * p )
     int c, c2, num2print;
 
 ENTRY("print_column_headers");
-
+    
+    if (!p->outfp) RETURN(0);
+    
     fputc('#', p->outfp);
     for (c = 0; c < p->F->nused; c++ )
     {
@@ -1493,6 +1828,26 @@ ENTRY("add_to_flist");
     RETURN(0);
 }
 
+int add_all_to_flist( func_t * F) 
+{
+   int c;
+   
+ENTRY("add_all_to_flist");
+
+   if ( F->nused > 1 || F->codes[0] != E_SM_NODES) {
+      fprintf(stderr,"** You should not use -func ALL with any other -func\n");
+      RETURN(-1);   
+   }
+   F->nused = 0;
+	for ( c = E_SM_INVALID + 1; c < E_SM_FINAL; c++ ) {
+	    if (add_to_flist ( F, g_sm_names[c] ) < 0) {
+         fprintf(stderr,"** Failed to add function %s\n", g_sm_names[c]);
+         RETURN(-1);   
+       }
+   }
+   
+   RETURN(0);   
+}
 
 /*----------------------------------------------------------------------
  * init_opts_t			- initialize the struct
@@ -1531,6 +1886,7 @@ ENTRY("init_opts_t");
 
     opts->dnode         = -1;		/* init to something invalid */
 
+    opts->out_file = NULL;
     RETURN(0);
 }
 
@@ -1591,9 +1947,12 @@ ENTRY("init_options");
 	{
 	    CHECK_ARG_COUNT(ac,"option usage: -func FUNCTION\n");
 	    ++ac;
-	    if ( add_to_flist(&opts->F, argv[ac]) != 0 )
-		RETURN(-1);
-	}
+	    if (!strcmp(argv[ac],"ALL")) {
+         if (add_all_to_flist(&opts->F) != 0) RETURN(-1);
+       } else {
+         if ( add_to_flist(&opts->F, argv[ac]) != 0 ) RETURN(-1);
+	    }
+   }
 	else if ( ! strncmp(argv[ac], "-help", 5) )
 	    RETURN(usage(PROG_NAME, ST_USE_LONG));
 	else if ( ! strncmp(argv[ac], "-hist", 5) )
@@ -1631,6 +1990,11 @@ ENTRY("init_options");
 	{
 	    CHECK_ARG_COUNT(ac,"option usage: -out_1D OUTPUT_FILE\n");
 	    opts->out_1D_file = argv[++ac];
+	}
+   else if ( ! strcmp(argv[ac], "-out") )
+	{
+	    CHECK_ARG_COUNT(ac,"option usage: -out OUTPUT_DSET\n");
+	    opts->out_file = argv[++ac];
 	}
 	else if ( ! strncmp(argv[ac], "-spec", 5) )
 	{
@@ -1708,17 +2072,24 @@ ENTRY("validate_options");
     /* we don't necessarily need an sv_file ... do not check */
 
     /* verify output file, and open for writing */
-    if ( ! opts->out_1D_file )
+    if ( ! opts->out_1D_file && ! opts->out_file)
     {
-	fprintf(stderr,"** missing argument: -out_1D\n");
+	fprintf(stderr,"** missing argument: -out_1D or -out\n");
 	errs++;
     }
-    else if ( THD_is_file(opts->out_1D_file) )
+    else if ( opts->out_1D_file && 
+              THD_is_file(opts->out_1D_file) && !THD_ok_overwrite())
     {
 	fprintf(stderr,"** output file already exists: %s\n",opts->out_1D_file);
 	errs++;
-    }
+    } else if ( opts->out_file && 
+                THD_is_file(opts->out_file) && !THD_ok_overwrite())
+    {
+	fprintf(stderr,"** output file already exists: %s\n",opts->out_file);
+	errs++;
+    } 
 
+    
     if ( errs > 0 )
 	RETURN(-1);
 
@@ -1741,7 +2112,8 @@ ENTRY("validate_options");
 
     p->F          = &opts->F;			/* point to struct */
 
-    if ( (p->outfp = fopen(opts->out_1D_file, "w")) == NULL )
+    if ( opts->out_1D_file && 
+         (p->outfp = fopen(opts->out_1D_file, "w")) == NULL )
     {
 	fprintf(stderr,"** cannot open output file '%s'\n",opts->out_1D_file);
 	RETURN(-1);
@@ -1752,7 +2124,9 @@ ENTRY("validate_options");
     p->nnodes = 0;
     p->cmask  = NULL;
     p->ncmask = 0;
-
+    p->out_dset = NULL;
+    p->colmap = NULL;
+    
     if ( opts->nodes_1D_file )
     {
 	if ( read_nodes_file(opts, p) != 0 )
@@ -2184,6 +2558,18 @@ ENTRY("usage");
 	    "        There will be 1 or 3 columns per '-func' option, with\n"
 	    "        a default of 1 for \"nodes\".\n"
 	    "\n"
+       "\n"
+	    "    -out OUT_DSET   : Output into surface dataset OUT_DSET\n"
+	    "\n"
+	    "        e.g. -out pickle_norm_info.niml.dset\n"
+	    "\n"
+       "        The dset format is determined from the extension of\n"
+       "        OUT_DSET. Default is NIML format.\n"
+       "        You are better off using -out and non-1D format datasets\n"
+       "        because non-1D datasets are better handled by 3dcalc\n"
+       "\n"
+       "        You can use both -out and -out_1D but why would you do this?\n"
+       "\n"
 	    "------------------------------------------------------------\n"
 	    "\n"
 	    "  ALPHABETICAL LISTING OF OPTIONS:\n"
@@ -2256,6 +2642,9 @@ ENTRY("usage");
 	    "\n"
 	    "          ** for more accuracy, try 'SurfPatch -vol' **\n"*/
 	    "\n"
+       "          You can also use -func ALL to get everything output.\n"
+       "          You should not use other -func options with -func ALL\n" 
+       "\n"
 	    "    -help                 : show this help menu\n"
 	    "\n"
 	    "    -hist                 : display program revision history\n"
@@ -2401,8 +2790,8 @@ int final_cleanup( opts_t * opts, param_t * p )
 ENTRY("final_cleanup");
 
     /* first, close the output file, the rest are in order */
-    if ( p->outfp != stdout )
-	fclose(p->outfp);
+    if ( p->outfp && p->outfp != stdout )
+	   fclose(p->outfp);
     SUMA_FreeSpecFields(&(p->S.spec)); /* ZSS Jan 9 06 */
     if ( p->S.narea[0] )  free(p->S.narea[0]);
     if ( p->S.narea[1] )  free(p->S.narea[1]);

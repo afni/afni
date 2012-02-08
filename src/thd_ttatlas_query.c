@@ -1987,13 +1987,14 @@ char *find_atlas_niml_file(char * nimlname, int niname)
 {
    static char filestr[5][1024];
    static int icall = -1;
+   char namebuf[1024];
    char *fstr, *epath;
 
    ENTRY("find_atlas_niml_file");
    
    ++icall; if (icall > 4) icall = 0;
    filestr[icall][0]='\0';
-
+   namebuf[0] = '\0';
    
    if(wami_verb() > 1) 
       INFO_message("trying to open %s \n",nimlname);   
@@ -2008,7 +2009,7 @@ char *find_atlas_niml_file(char * nimlname, int niname)
    }
      
    /* okay that didn't work, try the AFNI plugin directory */
-   filestr[icall][0]='\0';
+   namebuf[0]='\0';
                        epath = getenv("AFNI_PLUGINPATH") ;
    if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
    if( epath != NULL ) {
@@ -2016,29 +2017,31 @@ char *find_atlas_niml_file(char * nimlname, int niname)
          INFO_message("trying to open %s in AFNI_PLUGINPATH directory %s\n",
               nimlname, epath);   
       if(epath[strlen(epath)-1]!='/')
-         snprintf(filestr[icall], 1000*sizeof(char),
+         snprintf(namebuf, 1000*sizeof(char),
                   "%s/%s", epath, nimlname);
       else
-         snprintf(filestr[icall], 1000*sizeof(char),
+         snprintf(namebuf, 1000*sizeof(char),
                   "%s%s", epath, nimlname);
-      if (THD_is_file(nimlname)) goto GOTIT;
+      if (THD_is_file(namebuf)) goto GOTIT;
    }
 
    /* still can't find it. Maybe it's in one of the path directories */ 
-   filestr[icall][0]='\0';
+   namebuf[0]='\0';
    epath = getenv("PATH") ;
    if( epath == NULL ) RETURN(filestr[icall]) ;  /* bad-who has no path?*/
    if(wami_verb() > 1) 
-      INFO_message("trying to open %s in path as a regular file\n  %s\n",nimlname, epath);   
+      INFO_message("trying to open %s in path as regular file\n  %s\n",
+                     nimlname, epath);   
 
    fstr = THD_find_regular_file(nimlname);
    if(fstr) {
       if(wami_verb() > 1)
          INFO_message("found %s in %s", nimlname, fstr);
-      snprintf(filestr[icall], 1000*sizeof(char), "%s", fstr);
-      if (THD_is_file(nimlname)) goto GOTIT;
+      snprintf(namebuf, 1000*sizeof(char), "%s", fstr);
+      if (THD_is_file(namebuf)) goto GOTIT;
       if(wami_verb() > 1) 
-         INFO_message("failed to open %s from path as %s\n",nimlname, filestr);  
+         INFO_message("failed to open %s as %s\n",
+                      nimlname, namebuf);  
    }
    
    RETURN(filestr[icall]);
@@ -2046,10 +2049,10 @@ char *find_atlas_niml_file(char * nimlname, int niname)
    GOTIT:
    if (niname) {
       snprintf(filestr[icall], 1000*sizeof(char),
-               "file:%s", nimlname);
+               "file:%s", namebuf);
    } else {
       snprintf(filestr[icall], 1000*sizeof(char),
-               "%s", nimlname);
+               "%s", namebuf);
    }
 
    RETURN(filestr[icall]);
@@ -2082,6 +2085,8 @@ int init_global_atlas_from_niml_files()
    }
    
    /* read atlas info from global atlas file */
+   if(wami_verb() > 1) 
+      INFO_message("\nReading space niml file\n");
    valid_space_niml = read_space_niml_file(space_niml_file, global_atlas_xfl,
           global_atlas_alist, global_atlas_spaces, global_atlas_templates, NULL);
    
@@ -2162,6 +2167,8 @@ int init_global_atlas_from_niml_files()
   
    /* set up the neighborhood for spaces */
    /*  how are the spaces related to each other */ 
+   if(wami_verb() > 1) 
+      INFO_message("\nmaking space neighborhoods\n");
    if(make_space_neighborhood(global_atlas_spaces, global_atlas_xfl)!=0) {
       return(0);
    }
