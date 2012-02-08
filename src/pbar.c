@@ -29,8 +29,8 @@ static MCW_DC *myfirst_dc = NULL ;  /* 04 Feb 2003 */
 
 #include "pbardefs.h"
 
-/*----------------------------------------------------------------------
-   Make a new paned-window color+threshold selection bar:
+/*---------------------------------------------------------------------------*/
+/* Make a new paned-window color+threshold selection bar:
 
      parent  = parent Widget
      dc      = pointer to MCW_DC for display info
@@ -40,7 +40,7 @@ static MCW_DC *myfirst_dc = NULL ;  /* 04 Feb 2003 */
      pmax    = max value (top of highest pane)
      cbfunc  = function to call when a change is made
 
-                 void cbfunc( MCW_pbar * pbar , XtPointer cbdata , int reason )
+                 void cbfunc( MCW_pbar *pbar, XtPointer cbdata, int reason )
 
      cbdata  = data for this call
      reason  = pbCR_COLOR --> color changed
@@ -49,14 +49,14 @@ static MCW_DC *myfirst_dc = NULL ;  /* 04 Feb 2003 */
   WARNING: this code is a mess!  Especially the parts dealing
            with resizing, where the geometry management of the
            Motif widgets must be allowed for.
-------------------------------------------------------------------------*/
+*//*-------------------------------------------------------------------------*/
 
-MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
+MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC *dc ,
                          int npane , int pheight , float pmin , float pmax ,
-                         gen_func * cbfunc , XtPointer cbdata )
+                         gen_func *cbfunc , XtPointer cbdata )
 
 {
-   MCW_pbar * pbar ;
+   MCW_pbar *pbar ;
    int i , np , jm , lcol , ic , ph ;
    Widget frm ;
 
@@ -193,6 +193,7 @@ ENTRY("new_MCW_pbar") ;
          MCW_set_widget_label( pbar->labels[i] , buf ) ;
       }
    }
+
    /*-- add _save & mode stuff --*/
 
    for( np=NPANE_MIN ; np <= NPANE_MAX ; np++ ){
@@ -218,7 +219,7 @@ ENTRY("new_MCW_pbar") ;
 
    PBAR_add_bigmap(NULL,NULL) ;
 
-   /*-- 30 Jan 2003: setup the "big" mode for 128 colors --*/
+   /*-- 30 Jan 2003: setup the "big" mode for 256 (NPANE_BIG) colors --*/
 
    pbar->bigmode      = 0 ;
    pbar->bigflip      = 0 ;
@@ -279,6 +280,7 @@ ENTRY("new_MCW_pbar") ;
    XtManageChild( pbar->top ) ;
 
    /* ZSS: Jan 13 Now add some funky ones */
+
    PBAR_define_bigmap( CB_CS_35 );
    PBAR_define_bigmap( CB_CS );
    PBAR_define_bigmap( CYTOARCH_ROI_256_CMD );
@@ -299,7 +301,6 @@ ENTRY("new_MCW_pbar") ;
    PBAR_define_bigmap( ROI_256_CMD );
    PBAR_define_bigmap( AMBER_REDTOP_BLUEBOT_CS );
    PBAR_define_bigmap( ADD_EDGE );
-
 
    RETURN( pbar );
 }
@@ -351,11 +352,11 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
 ENTRY("PBAR_add_bigmap") ;
 
    /* if needed, setup initial colorscale tables */
+
    if( bigmap_num == 0 ){
      bigmap_num     = NBIGMAP_INIT ;
-     if (NJ_bigmaps_init( bigmap_num, &bigmap_name, &bigmap)) {
-      ERROR_exit("Calamitous");
-     }
+     if( NJ_bigmaps_init( bigmap_num, &bigmap_name, &bigmap) )
+       ERROR_exit("Calamitous");
      PBAR_enviro_bigmaps( myfirst_dc ) ;
    }
    if( name == NULL || *name == '\0' || cmap == NULL ) EXRETURN ;
@@ -889,16 +890,43 @@ void PBAR_flip( MCW_pbar *pbar )  /* 07 Feb 2004 */
 
 ENTRY("PBAR_flip") ;
 
-   if( pbar == NULL || !pbar->bigmode ) EXRETURN ;
+   if( pbar == NULL ) EXRETURN ;
 
-   for( ip=0 ; ip < NPANE_BIG/2 ; ip++ ){
-     tc = pbar->bigcolor[ip] ;
-     pbar->bigcolor[ip] = pbar->bigcolor[NPANE_BIG-1-ip] ;
-     pbar->bigcolor[NPANE_BIG-1-ip] = tc ;
+   if( pbar->bigmode ){  /* flip a 'continuous' colorscale */
+
+     for( ip=0 ; ip < NPANE_BIG/2 ; ip++ ){
+       tc = pbar->bigcolor[ip] ;
+       pbar->bigcolor[ip] = pbar->bigcolor[NPANE_BIG-1-ip] ;
+       pbar->bigcolor[NPANE_BIG-1-ip] = tc ;
+     }
+     MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
+     PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
+     pbar->bigflip = ! pbar->bigflip ;
+
+   } else {  /* flip a discrete set of panes [08 Feb 2012] */
+
+     int iov[NPANE_MAX], np, kov, jm ; Widget w ; MCW_DC *dc ;
+
+     dc = pbar->dc ;
+     np = pbar->num_panes ;
+     jm = pbar->mode ;
+     for( ip=0 ; ip < np ; ip++ ) iov[ip] = pbar->ov_index[ip] ;
+
+     for( ip=0 ; ip < np ; ip++ ){
+       kov = iov[ np-1-ip ] ;  /* new overlay index for ip-th pane */
+       w   = pbar->panes[ip] ;
+       if( kov > 0 && kov < dc->ovc->ncol_ov ){
+         XtVaSetValues( w , XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP , NULL ) ;
+         MCW_set_widget_bg( w , NULL , dc->ovc->pix_ov[kov] ) ;
+       } else {
+         XtVaSetValues( w , XmNbackgroundPixmap , check_pixmap , NULL ) ;
+       }
+       pbar->ovin_save[pbar->num_panes][ip][jm] =
+                             pbar->ov_index[ip] = kov ;
+     }
+
    }
-   MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
-   PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
-   pbar->bigflip = ! pbar->bigflip ;
+
    EXRETURN ;
 }
 
@@ -987,11 +1015,11 @@ ENTRY("PBAR_set_CB") ;
    Rotate the colors in a pbar by n locations (+ or -) -- 30 Mar 2001
 ----------------------------------------------------------------------------*/
 
-void rotate_MCW_pbar( MCW_pbar * pbar , int n )
+void rotate_MCW_pbar( MCW_pbar *pbar , int n )
 {
    int ip , iov[NPANE_MAX] , np , kov , jm ;
    Widget w ;
-   MCW_DC * dc ;
+   MCW_DC *dc ;
 
 ENTRY("rotate_MCW_pbar") ;
 
