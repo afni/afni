@@ -2231,7 +2231,23 @@ int atlas_read_xform(NI_element *nel, ATLAS_XFORM *atlas_xf)
       return(1);
    }
 
-  for(i=0;i<nel->vec_num;i++){
+   /* ZSS To Daniel: There are cases where nel->vec is NULL but vec_num == 1
+                     I don't think this should happen. That is what was 
+                     causing the crash. Now I check for it. 
+                     Under certain situations, I can generate plenty of
+                     those instances.*/
+  if (nel->vec_num && !nel->vec) {
+   WARNING_message("Strange xform nel: Have vec_num=%d but NULL nel->vec",
+                   nel->vec_num);
+  }
+  for(i=0;i<nel->vec_num && nel->vec;i++){
+     /* ZSS to Daniel: This memcpy is suspect.
+            You are copying only the first value
+            from each vector vec[i]. Assuming you
+            allocate for vec_len*vec_num you can do:
+            memcpy((char *)(atlas_xf->xform)+(i*sizeof(float)*vec_len),
+                   nel->vec[i], sizeof(float)*vec_len); 
+            */
      memcpy((char *)(atlas_xf->xform)+i*sizeof(float), 
             nel->vec[i], sizeof(float));
   }

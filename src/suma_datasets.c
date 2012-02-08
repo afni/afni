@@ -1916,6 +1916,18 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
          NI_set_attribute ( nel, Attr, NULL);
          break;  
       
+      case SUMA_NODE_AREA:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;  
+      
+      case SUMA_NODE_VOLUME:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;  
+
+      case SUMA_NODE_THICKNESS:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;  
+
       default:
          NI_set_attribute ( nel, Attr, NULL);
          break;          
@@ -3793,6 +3805,9 @@ SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp)
       case SUMA_NODE_3C:
       case SUMA_NODE_VFR:
       case SUMA_NODE_PHASE:
+      case SUMA_NODE_AREA:
+      case SUMA_NODE_VOLUME:
+      case SUMA_NODE_THICKNESS:
          SUMA_RETURN(SUMA_float);      
          break;
       case SUMA_NODE_BYTE:
@@ -4089,6 +4104,15 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_NODE_PHASE:
          SUMA_RETURN("Phase");
          break;
+      case SUMA_NODE_AREA:
+         SUMA_RETURN("Area");
+         break;
+      case SUMA_NODE_VOLUME:
+         SUMA_RETURN("Volume");
+         break;
+      case SUMA_NODE_THICKNESS:
+         SUMA_RETURN("Thickness");
+         break;
       default:
          SUMA_RETURN("Cowabonga-Jo");
          break;
@@ -4134,6 +4158,9 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"Z_score")) SUMA_RETURN (SUMA_NODE_ZSCORE);
    if (!strcmp(Name,"VFR")) SUMA_RETURN (SUMA_NODE_VFR);
    if (!strcmp(Name,"Phase")) SUMA_RETURN (SUMA_NODE_PHASE);
+   if (!strcmp(Name,"Area")) SUMA_RETURN (SUMA_NODE_AREA); 
+   if (!strcmp(Name,"Volume")) SUMA_RETURN (SUMA_NODE_VOLUME); 
+   if (!strcmp(Name,"Thickness")) SUMA_RETURN (SUMA_NODE_THICKNESS); 
    /* if (!strcmp(Name,"")) SUMA_RETURN (); */
    SUMA_RETURN (SUMA_ERROR_COL_TYPE);
 

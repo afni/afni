@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 07, FEB , 2012 , ZSS , "SurfMeasures" , MINOR , TYPE_NEW_OPT,
+   "Added -out option to handle output in various formats.",
+   "Also added -func ALL option.\n"
+ },
+ 
+ { 06, FEB , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Added automatic sub-brick selection matching IxT in interface",
+   "Also see corresponding env var: SUMA_IxT_LinkMode\n"
+ },
+ 
  { 06, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
    "Improved (I hope) sub-brick labels. Added FDR to.",
    "Same improvements to all 3dANOVA programs.\n"

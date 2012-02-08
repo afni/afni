@@ -314,7 +314,10 @@ typedef enum {
    SUMA_NODE_XCORR,      /*!< Cross Correlation Coefficient */
    SUMA_NODE_ZSCORE,      /*!< Zscore */
    SUMA_NODE_VFR,       /* Visual Field Ration */
-   SUMA_NODE_PHASE     /* Phase of some sort */ 
+   SUMA_NODE_PHASE,     /* Phase of some sort */
+   SUMA_NODE_AREA,      /* Area associated with node*/
+   SUMA_NODE_VOLUME,    /* Volume associated with node */
+   SUMA_NODE_THICKNESS  /* Thickness (distance between isotopic nodes) */
 }  SUMA_COL_TYPE; /*!<  Column types.
                         When you add a new element, you need to modify
                         SUMA_AddColAttr
