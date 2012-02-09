@@ -1826,7 +1826,8 @@ int main (int argc,char *argv[])
                iform = SUMA_GuessFormatFromExtension(Opt->master_name, NULL);
                if (!(master_dset = 
                   SUMA_LoadDset_s (Opt->master_name, &iform, 0))) {
-                  SUMA_S_Err("Failed to read master dset");
+                  SUMA_S_Errv("Failed to read master dset: %s\n", 
+                              Opt->master_name);
                   exit(1);
                }
                if (!SDSET_VECLEN(master_dset) || !SDSET_VECNUM(master_dset)) {
