@@ -13,7 +13,7 @@ foreach prog ($proglist)
    if ("$pif" == '') then
       echo "searching for talking $prog..."
       if ($no_npb == 1) then
-         set pidl = `ps -a |  \grep $prog | \grep -v $pname |\
+         set pidl = `ps ${psopt} |  \grep $prog | \grep -v $pname |\
                               \sed 's/^[ \t]*//g' | \
                               \cut -d ' ' -f 1`   
          if ($list == 1) then
@@ -36,7 +36,7 @@ foreach prog ($proglist)
          #don't use foreach npb ($npb_vals), it won't work if npb_vals = ('')
          while ($cc <= $#npb_vals) 
             set npb = $npb_vals[$cc]
-            set pidl = `ps -a |  \grep $prog | \grep -v $pname |\
+            set pidl = `ps ${psopt} |  \grep $prog | \grep -v $pname |\
                                  \grep "\-npb[[:space:]][[:space:]]*$npb" | \
                                  \sed 's/^[ \t]*//g' | \
                                  \cut -d ' ' -f 1`
@@ -59,7 +59,7 @@ foreach prog ($proglist)
          end
       endif
    else
-      set pidl = `ps -a |  \grep $prog | \grep -v $pname |\
+      set pidl = `ps ${psopt} |  \grep $prog | \grep -v $pname |\
                            \grep "$pif"   |\
                            \sed 's/^[ \t]*//g' | \
                            \cut -d ' ' -f 1`   
@@ -94,6 +94,7 @@ PARSE:
    set dosudo = 0
    set list = 0
    set quiet = 0
+   set psopt = '-o pid -o user -o command'
    set cnt = 1
    while ($cnt <= $Narg)
 		set donext = 1;
@@ -124,6 +125,7 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-sudo") then
          set dosudo = 1
+         set psopt = "-A $psopt"
          set donext = 0; goto NEXT		
       endif
 
