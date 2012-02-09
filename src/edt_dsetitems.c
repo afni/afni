@@ -111,6 +111,8 @@ int EDIT_dset_items( THD_3dim_dataset *dset , ... )
 
    /* 14 July 2006 */
    int cmode = COMPRESS_NOFILE;   /* check compression mode for NIFTI separately */
+    
+   int new_smode=STORAGE_UNDEFINED; /* ZSS Feb 2012 */
 
 
    /****---------------------- Sanity Check ----------------------****/
@@ -205,8 +207,14 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
          case ADN_prefix:  /* processed later */
             prefix = va_arg( vararg_ptr , char * ) ;
-            if( prefix != NULL ) new_prefix = 1 ;
-            else EDERR("illegal new prefix") ;
+            if( prefix != NULL ) {
+               new_prefix = 1 ;
+               new_smode = storage_mode_from_prefix(prefix);
+               if (new_smode != STORAGE_UNDEFINED &&
+                   dset->dblk && dset->dblk->diskptr) { 
+                  dset->dblk->diskptr->storage_mode = new_smode;
+               }
+            } else EDERR("illegal new prefix") ;
          break ;
 
          case ADN_directory_name:  /* processed later */
@@ -363,9 +371,12 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
          case ADN_view_type:  /* processed later */
             view_type = va_arg( vararg_ptr , int ) ;
-            if( view_type >= FIRST_VIEW_TYPE && view_type <= LAST_VIEW_TYPE )
+            if( view_type >= FIRST_VIEW_TYPE && view_type <= LAST_VIEW_TYPE ) {
                new_view_type = 1 ;
-            else EDERR("illegal new view_type") ;
+               if (dset->dblk && dset->dblk->diskptr) { /* ZSS Feb 2012 */
+                  dset->dblk->diskptr->storage_mode = STORAGE_BY_BRICK;
+               }
+            } else EDERR("illegal new view_type") ;
          break ;
 
          case ADN_func_type:  /* processed later */
