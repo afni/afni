@@ -1998,7 +1998,9 @@ char *find_atlas_niml_file(char * nimlname, int niname)
    
    if(wami_verb() > 1) 
       INFO_message("trying to open %s \n",nimlname);   
-   if (THD_is_file(nimlname)) goto GOTIT;
+   snprintf(namebuf, 1000*sizeof(char),
+             "%s", nimlname);  
+   if (THD_is_file(namebuf)) goto GOTIT;
    
    if(wami_verb() > 1) 
       INFO_message("%s not found, trying different paths, if no path is set.\n"
