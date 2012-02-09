@@ -8736,7 +8736,7 @@ SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset, int verb)
    }
    
    if (dset->inel && dset->inel->vec_num) {
-      if (verb) SUMA_S_Note("Dset has node indices. Will not alter list.\n");
+      if (verb > 1) SUMA_S_Note("Dset has node indices. Will not alter list.\n");
    } else {
       if (verb) SUMA_S_Note( "Assuming node indexing\n"
                      "is explicit. \n"
