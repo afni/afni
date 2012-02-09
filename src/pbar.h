@@ -50,7 +50,7 @@ static Pixmap check_pixmap = XmUNSPECIFIED_PIXMAP ;
 
 #define PANE_MAXMODE     2
 
-#define NPANE_NOSASH    21  /* doesn't work well */
+#define NPANE_NOSASH    21  /* doesn't work well, so this disables the no-sash feature */
 #define SASH_HYES        5
 #define SASH_HNO         1
 

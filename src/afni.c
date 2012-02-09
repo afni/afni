@@ -8791,6 +8791,8 @@ STATUS("unmanaging children") ;
          XtUnmanageChild( im3d->vwid->func->rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->thr_rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->inten_rowcol ) ;
+         if( im3d->vwid->func->iab_rowcol != NULL )
+           XtUnmanageChild( im3d->vwid->func->iab_rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->options_rowcol ) ;
 #endif
 
@@ -8801,11 +8803,14 @@ STATUS("opening panel") ;
 STATUS("remanaging children") ;
          XtManageChild( im3d->vwid->func->thr_rowcol ) ;
          XtManageChild( im3d->vwid->func->inten_rowcol ) ;
+         if( im3d->vwid->func->iab_rowcol != NULL )
+           XtManageChild( im3d->vwid->func->iab_rowcol ) ;
          XtManageChild( im3d->vwid->func->options_rowcol ) ;
          XtManageChild( im3d->vwid->func->rowcol ) ;
 #endif
          HIDE_SCALE(im3d) ;
          update_MCW_pbar( im3d->vwid->func->inten_pbar ) ;
+         update_MCW_pbar( im3d->vwid->func->iab_pbar ) ;
          FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
 
 #ifdef FIX_SCALE_SIZE_LATER

@@ -137,8 +137,8 @@ ENTRY("new_MCW_pbar") ;
 
       if( i < npane ) XtManageChild( pbar->panes[i] ) ;
 
-      XtAddCallback( pbar->panes[i] , XmNactivateCallback , PBAR_click_CB , dc ) ;
-      XtAddCallback( pbar->panes[i] , XmNresizeCallback , PBAR_resize_CB , pbar ) ;
+      XtAddCallback( pbar->panes[i], XmNactivateCallback, PBAR_click_CB , dc   ) ;
+      XtAddCallback( pbar->panes[i], XmNresizeCallback  , PBAR_resize_CB, pbar ) ;
 
       pbar->ov_index[i] = ic = MIN( lcol , i+1 ) ;
       MCW_set_widget_bg( pbar->panes[i] , NULL , dc->ovc->pix_ov[ic] ) ;
@@ -866,7 +866,7 @@ ENTRY("PBAR_show_bigmode") ;
    make a label for the edge out of the floating value
 ----------------------------------------------------------------------*/
 
-void PBAR_labelize( float val , char * buf )
+void PBAR_labelize( float val , char *buf )
 {
    float aval = fabs(val) ;
    char prefix[4] ;
@@ -1074,7 +1074,7 @@ ENTRY("rotate_MCW_pbar") ;
 
 void PBAR_resize_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   MCW_pbar * pbar = (MCW_pbar *) cd ;
+   MCW_pbar *pbar = (MCW_pbar *)cd ;
    int i , sum , hh[NPANE_MAX] , yy , ip=-1 , jm ;
    char buf[16] ;
    float pmin , pmax , val ;
@@ -1162,7 +1162,7 @@ printf("resize: read pane # %d height=%d\n",i,hh[i]) ; fflush(stdout) ;
     number of panes, and/or new array of values
 ---------------------------------------------------------------------------*/
 
-void update_MCW_pbar( MCW_pbar * pbar )
+void update_MCW_pbar( MCW_pbar *pbar )
 {
 ENTRY("update_MCW_pbar") ;
    if( pbar == NULL ) EXRETURN ;
@@ -1174,7 +1174,9 @@ ENTRY("update_MCW_pbar") ;
    EXRETURN ;
 }
 
-void alter_MCW_pbar( MCW_pbar * pbar , int new_npane , float * new_pval )
+/*-------------------------------------------------------------------------*/
+
+void alter_MCW_pbar( MCW_pbar *pbar , int new_npane , float *new_pval )
 {
    int i , npane , npane_old , sum , hh , ovc , jm ;
    float pmin , pmax , pval[NPANE_MAX+1] , fhh , rhh ;
@@ -1331,9 +1333,9 @@ printf("set pane %d to height %d\n",npane-1,sum) ; fflush(stdout) ;
    -- RWCox - 15 Jun 2000
 ---------------------------------------------------------------------------*/
 
-MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar * pbar , int nx , int ny )
+MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar *pbar , int nx , int ny )
 {
-   MRI_IMAGE * im ;
+   MRI_IMAGE *im ;
    int   ii,npix,kk,ll,jj , sum,hh=0 ;
    float pmin,pmax , rhh,fhh , hfrac ;
    byte rr,gg,bb , *bar ;
