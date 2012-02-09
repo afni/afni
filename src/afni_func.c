@@ -466,7 +466,7 @@ ENTRY("AFNI_hintize_pbar") ;
 
 void AFNI_inten_pbar_CB( MCW_pbar *pbar , XtPointer cd , int reason )
 {
-   Three_D_View *im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
    float fac ;
 
 ENTRY("AFNI_inten_pbar_CB") ;
@@ -483,6 +483,15 @@ ENTRY("AFNI_inten_pbar_CB") ;
 
    AFNI_pbar_lock_carryout(im3d) ; /* 07 Feb 2004 */
    EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void AFNI_iab_pbar_CB( MCW_pbar *pbar , XtPointer cd , int reason )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   FIX_SCALE_SIZE(im3d) ;
+   return ;
 }
 
 /*-----------------------------------------------------------------------------

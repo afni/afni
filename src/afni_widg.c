@@ -1151,7 +1151,7 @@ STATUS("making imag->crosshair_av") ;
                         ) ;
 
    if( AVOPT_STYLE == MCW_AV_optmenu )
-      AVOPT_columnize( imag->crosshair_av , 3 ) ;
+     AVOPT_columnize( imag->crosshair_av , 3 ) ;
 
    imag->crosshair_av->parent     = (XtPointer) im3d ;
    imag->crosshair_av->allow_wrap = True ;
@@ -3003,6 +3003,94 @@ STATUS("making func->rowcol") ;
    MCW_reghint_children( func->thr_top_av->wrowcol ,
                          "Power-of-10 range of slider" ) ;
 
+   sel_height -= (8+view_height/view_count) * 0.5 ;
+
+   /*--- widgets for setting the range of the continuous intensity pbar [09 Feb 2012] ---*/
+#if 1
+   if( im3d->dc->visual_class == TrueColor && AFNI_yesenv("AFNI_RANGE_PBAR") ){
+
+     char *bot_top_str[3] = { "0" , "t" , "b" } ;
+     MCW_pbar *pbar ;
+
+     (void) XtVaCreateManagedWidget(
+              "dialog" , xmSeparatorWidgetClass , func->rowcol ,
+               XmNseparatorType , XmSHADOW_ETCHED_IN , XmNorientation , XmVERTICAL , NULL ) ;
+
+     func->iab_rowcol =
+        XtVaCreateWidget(
+           "dialog" , xmRowColumnWidgetClass , func->rowcol ,
+              XmNorientation , XmVERTICAL ,
+              XmNmarginHeight, 0 ,
+              XmNmarginWidth , 0 ,
+              XmNpacking , XmPACK_TIGHT ,
+              XmNtraversalOn , True  ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+
+     func->iab_label =
+        XtVaCreateManagedWidget(
+           "dialog" , xmLabelWidgetClass , func->iab_rowcol ,
+              LABEL_ARG("Top|Bot") ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+     LABELIZE(func->iab_label) ;
+
+     func->iab_pbar = pbar = new_MCW_pbar(
+                               func->iab_rowcol ,     /* parent */
+                               im3d->dc ,             /* display */
+                               3 ,                    /* number panes (fixed) */
+                               1 + sel_height / 3 ,   /* init pane height */
+                               -1.0f , 1.0f ,         /* value range */
+                               AFNI_iab_pbar_CB ,     /* callback */
+                               (XtPointer)im3d    ) ; /* callback data */
+
+     pbar->parent       = (XtPointer)im3d ;
+     pbar->mode         = 0 ;
+     pbar->npan_save[0] = 3 ;
+     pbar->hide_changes = INIT_panes_hide ;
+
+     pbar->pval_save[3][0][0] = pbar->pval[0] = 1.0f ;
+     pbar->pval_save[3][1][0] = pbar->pval[1] = 0.7f ;
+     pbar->pval_save[3][2][0] = pbar->pval[2] =-0.7f ;
+     pbar->pval_save[3][3][0] = pbar->pval[3] =-1.0f ;
+     pbar->ov_index[0]        = 1 ;
+     pbar->ov_index[1]        = 1 ;
+     pbar->ov_index[2]        = 1 ;
+     pbar->update_me          = 1 ;
+
+     (void) XtVaCreateManagedWidget(
+              "dialog" , xmSeparatorWidgetClass , func->iab_rowcol ,
+                  XmNseparatorType , XmSINGLE_LINE ,
+              NULL ) ;
+
+     func->iab_pow_av = new_MCW_arrowval( func->iab_rowcol ,
+                                          "**" ,
+                                          AVOPT_STYLE ,
+                                          0,THR_top_expon,0 ,
+                                          MCW_AV_notext , 0 ,
+                                          NULL , (XtPointer)im3d ,
+                                          AFNI_thresh_tlabel_CB , NULL ) ;
+
+     func->iab_bot_av = new_MCW_arrowval( func->iab_rowcol ,
+                                          "b=" ,
+                                          AVOPT_STYLE ,
+                                          0 , 2 , 2 ,
+                                          MCW_AV_notext , 0 ,
+                                          NULL , (XtPointer)im3d ,
+                                          MCW_av_substring_CB , bot_top_str ) ;
+
+     (void) XtVaCreateManagedWidget(
+              "dialog" , xmSeparatorWidgetClass , func->rowcol ,
+               XmNseparatorType , XmSHADOW_ETCHED_IN , XmNorientation , XmVERTICAL , NULL ) ;
+   } else {
+     func->iab_rowcol = NULL ;
+     func->iab_label  = NULL ;
+     func->iab_pbar   = NULL ;
+     func->iab_pow_av = NULL ;
+     func->iab_bot_av = NULL ;
+   }
+#endif
+
    /*-- intensity threshold stuff --*/
 
    func->inten_rowcol =
@@ -3283,12 +3371,6 @@ STATUS("making func->rowcol") ;
      pmin  = (im3d->vinfo->use_posfunc) ? (0.0) : (-1.0) ;
      npane = (im3d->vinfo->use_posfunc) ? INIT_panes_pos
                                         : INIT_panes_sgn ;
-
-#if 0
-     sel_height -= (8+view_height/view_count) * 1 ; /* 1 = widgets below pbar */
-#else
-     sel_height -= (8+view_height/view_count) * 0.5 ;
-#endif
 
      func->inten_pbar = new_MCW_pbar(
                           func->inten_rowcol ,        /* parent */
@@ -4144,6 +4226,8 @@ STATUS("making func->rowcol") ;
    /*-- manage the managers --*/
 
    XtManageChild( func->thr_rowcol ) ;
+   if( func->iab_rowcol != NULL )
+     XtManageChild( func->iab_rowcol ) ;
    XtManageChild( func->inten_rowcol ) ;
    XtManageChild( func->range_rowcol ) ;
    XtManageChild( func->clu_rowcol ) ;
