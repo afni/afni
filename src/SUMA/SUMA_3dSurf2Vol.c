@@ -170,7 +170,7 @@ int main( int argc , char * argv[] )
     s2v_opts_t         sopt;
     opts_t             opts;
     int                ret_val;
-
+    
     mainENTRY("3dSurf2Vol main");
     machdep();
     AFNI_logger("3dSurf2Vol",argc,argv);
@@ -950,8 +950,8 @@ ENTRY("set_node_list_data");
     if ( sopt->debug > 1 )
         fprintf(stderr, "-- setting fdata for column %d\n", col);
 
-    /* if sdata_im does not exist, fill as mask and return */
-    if ( !p->sdata_im )
+    /* if neither sdata_im or dset exists, fill as mask and return */
+    if ( !p->sdata_im && !p->dset)
     {
         fval = 1.0;     /* init to mask value */
 
@@ -967,38 +967,39 @@ ENTRY("set_node_list_data");
             N->fdata[c] = fval;
 
         RETURN(0);
-    }
+    } else if ( p->sdata_im ) {
     
-    /* else sdata exists: check column, and copy data from sdata_im */
-    if ( col > (p->sdata_im->nx - 2) && !p->parser.pcode )
-    {
-        fprintf(stderr,"** snld error: col > nx-2 (%d > %d)\n",
-                col, p->sdata_im->nx-2);
-        RETURN(-1);
-    }
-    else if ( p->sdata_im->ny < N->ilen )
-    {
-        fprintf(stderr,"** snld error: ny < ilen (%d < %d)\n",
-                p->sdata_im->ny, N->ilen);
-        RETURN(-1);
-    }
-    else if ( !N->fdata )
-    {
-        fprintf(stderr,"** snld error: missing idata\n");
-        RETURN(-1);
-    }
-    else if ( p->parser.pcode && col != 0 )             /* let's be safe */
-    {
-        fprintf(stderr,"** snld error: cannot use parser with col = %d\n", col);
-        RETURN(-1);
-    }
+       /* else sdata exists: check column, and copy data from sdata_im */
+       if ( col > (p->sdata_im->nx - 2) && !p->parser.pcode )
+       {
+           fprintf(stderr,"** snld error: col > nx-2 (%d > %d)\n",
+                   col, p->sdata_im->nx-2);
+           RETURN(-1);
+       }
+       else if ( p->sdata_im->ny < N->ilen )
+       {
+           fprintf(stderr,"** snld error: ny < ilen (%d < %d)\n",
+                   p->sdata_im->ny, N->ilen);
+           RETURN(-1);
+       }
+       else if ( !N->fdata )
+       {
+           fprintf(stderr,"** snld error: missing idata\n");
+           RETURN(-1);
+       }
+       else if ( p->parser.pcode && col != 0 )             /* let's be safe */
+       {
+           fprintf(stderr,"** snld error: cannot use parser with col = %d\n", 
+                          col);
+           RETURN(-1);
+       }
 
-    /* hmmmm, we're still missing something...  oh yes, data! */
+       /* hmmmm, we're still missing something...  oh yes, data! */
 
-    fp = MRI_FLOAT_PTR( p->sdata_im ) + col+1;  /* offset by column number */
-
-    for ( c = 0; c < N->ilen; c++ )
-    {
+       fp = MRI_FLOAT_PTR( p->sdata_im ) + col+1;  /* offset by column number */
+   
+       for ( c = 0; c < N->ilen; c++ )
+         {
         if ( p->parser.pcode )
         {
             /* fill atoz with surface node data */
@@ -1011,8 +1012,35 @@ ENTRY("set_node_list_data");
             N->fdata[c] = *fp;
 
         fp += p->sdata_im->nx;
-    }
-
+         }
+   } else if ( p->dset ){
+      if (!(fp = SUMA_DsetCol2Float (p->dset,  col, 1))) {
+         fprintf(stderr,"** snld error: Failed to get col %d from dset\n",
+                        col);
+         RETURN(-1);
+      } 
+       for ( c = 0; c < N->ilen; c++ )
+       {
+           if ( p->parser.pcode )
+           {
+               /* fill atoz with surface node data */
+               for ( lposn = 0; lposn < p->parser.max_sym; lposn++ )
+                   p->parser.atoz[lposn] = (float)
+                        SUMA_GetDsetValInCol2(p->dset,
+                                              lposn, c);
+               N->fdata[c] = PARSER_evaluate_one(p->parser.pcode, 
+                                 p->parser.atoz);
+           }
+           else
+               N->fdata[c] = fp[c];
+       }
+       SUMA_free(fp); fp=NULL;
+   } else {
+      fprintf(stderr,"** snld error: This NULLity should not be.\n");
+      RETURN(-1);
+   }
+    
+    
     RETURN(0);
 }
 
@@ -1532,6 +1560,13 @@ ENTRY("fill_node_list");
         if ( ! p->parser.pcode )
             p->nsubs = p->sdata_im->nx - 1;
     }
+    else if ( opts->sdata_file_niml )
+    {
+        if ( (rv = sdata_from_niml( opts, p, N )) != 0 )
+            RETURN(rv);
+        if ( ! p->parser.pcode )
+            p->nsubs = SDSET_VECNUM(p->dset);
+    }
     else
     {
         if ( (rv = sdata_from_default( N )) != 0 )
@@ -1563,11 +1598,12 @@ ENTRY("verify_parser_expr");
         fprintf(stderr,"** vpe: invalid params (%p,%p)\n", opts, p);
         RETURN(-1);
     }
-
+    
     /* if no parser code, there is nothing to do */
     if ( ! p->parser.pcode )
         RETURN(0);
 
+    
     for ( max_used = 25; max_used >= 0; max_used-- )
         if ( p->parser.has_sym[max_used] )
             break;
@@ -1575,29 +1611,49 @@ ENTRY("verify_parser_expr");
     p->parser.max_sym = max_used;
 
     /* if the expression is not constant, we need some data */
-    if ( max_used > 0 )
+    if ( !p->sdata_im && !p->dset) 
     {
-        if ( !p->sdata_im )
-        {
-            fprintf(stderr, "** parser expression requires surface data\n"
-                            "   (see '-sdata_1D')\n");
-            RETURN(-1);
-        }
-        else if ( max_used > p->sdata_im->nx - 1 )
-        {
-            fprintf(stderr,
-                    "** error: not enough surface values for expression\n"
-                    "          svals = %d, exp_vals = %d, expr = '%s'\n",
-                    p->sdata_im->nx - 1, max_used, opts->data_expr);
-            RETURN(-1);
-        }
+         fprintf(stderr, "** parser expression requires surface data\n"
+                         "   (see '-sdata_1D' or '-sdata')\n");
+         RETURN(-1);
     }
+    if (p->sdata_im) 
+    { 
+       if ( max_used > 0 )
+       {
+           if ( max_used > p->sdata_im->nx - 1 )
+           {
+               fprintf(stderr,
+                       "** error: not enough surface values for expression\n"
+                       "          svals = %d, exp_vals = %d, expr = '%s'\n",
+                       p->sdata_im->nx - 1, max_used, opts->data_expr);
+               RETURN(-1);
+           }
+       }
 
-    if ( opts->debug > 1 )
-        fprintf(stderr,"-- surf_vals = %d, expr_vals = %d\n",
-                p->sdata_im ? (p->sdata_im->nx - 1) : 0, max_used);
+       if ( opts->debug > 1 )
+           fprintf(stderr,"-- surf_vals = %d, expr_vals = %d\n",
+                   p->sdata_im ? (p->sdata_im->nx - 1) : 0, max_used);
+   } else if (p->dset) 
+   { 
+      if ( max_used > 0 )
+       {
+           if ( max_used > SDSET_VECNUM(p->dset) )
+           {
+               fprintf(stderr,
+                       "** error: not enough surface values for expression\n"
+                       "          svals = %d, exp_vals = %d, expr = '%s'\n",
+                       SDSET_VECNUM(p->dset), max_used, opts->data_expr);
+               RETURN(-1);
+           }
+       }
 
-    RETURN(0);
+       if ( opts->debug > 1 )
+           fprintf(stderr,"-- surf_vals = %d, expr_vals = %d\n",
+                   p->dset ? SDSET_VECNUM(p->dset) : 0, max_used);
+   }
+   
+   RETURN(0);
 }
 
 
@@ -1734,6 +1790,54 @@ ENTRY("sdata_from_1D");
     fim = MRI_FLOAT_PTR( p->sdata_im );
     for ( c = 0; c < N->ilen; c++, fim += p->sdata_im->nx )
         N->ilist[c] = (int)*fim;                          /* set node index */
+
+    RETURN(0);
+}
+
+/*----------------------------------------------------------------------
+ * fill node_list_t struct from niml surface file
+ *----------------------------------------------------------------------
+*/
+int sdata_from_niml ( opts_t * opts, param_t * p, node_list_t * N )
+{
+    int         c, *nind = NULL;
+    SUMA_DSET_FORMAT form = SUMA_NO_DSET_FORMAT;
+ENTRY("sdata_from_niml");
+
+    if ( !opts || !N || !p )
+        RETURN(-1);
+
+    if ( !(p->dset = SUMA_LoadDset_s(opts->sdata_file_niml, 
+                                     &form, 0)) )     {
+        fprintf(stderr,"** failed to read file '%s'\n", opts->sdata_file_niml);
+        RETURN(-2);
+    }
+    if (!(SUMA_PopulateDsetNodeIndexNel(p->dset,1))) {
+        fprintf(stderr,"** failed to populate node indices in '%s'\n", 
+                opts->sdata_file_niml);
+        RETURN(-2);
+    }
+    if (!(nind = SDSET_NODE_INDEX_COL(p->dset))) {
+         fprintf(stderr,"** No node index column in '%s'\n", 
+                  opts->sdata_file_niml);
+        RETURN(-2);
+    }
+    N->ilen = SDSET_VECLEN(p->dset);
+
+    if ( opts->debug > 0 )
+        fprintf(stderr,"++ read surface dset file '%s' (nx = %d, ny = %d)\n",
+                opts->sdata_file_niml, SDSET_VECNUM(p->dset), N->ilen );
+    
+    /* only allocate space ilist */
+    if ( (N->ilist = (int *)malloc(N->ilen*sizeof(int))) == NULL )
+    {
+        fprintf(stderr,"** sf a: failed to allocate %d ints\n", N->ilen);
+        RETURN(-1);
+    }
+
+    /* first set the node index values */
+    for ( c = 0; c < N->ilen; c++ )
+        N->ilist[c] = nind[c];                          /* set node index */
 
     RETURN(0);
 }
@@ -2065,11 +2169,11 @@ ENTRY("init_options");
 
             opts->sdata_file_1D = argv[++ac];
         }
-        else if ( ! strncmp(argv[ac], "-sdata_niml", 9) )
+        else if ( ! strcmp(argv[ac], "-sdata") )
         {
             if ( (ac+1) >= argc )
             {
-                fputs( "option usage: -sdata_niml SURF_DATA.niml\n\n", stderr );
+                fputs( "option usage: -sdata SURF_DATA.niml\n\n", stderr );
                 usage( PROG_NAME, S2V_USE_SHORT );
                 RETURN(-1);
             }
@@ -2141,6 +2245,7 @@ ENTRY("init_options");
         {
             fprintf( stderr, "invalid option <%s>\n", argv[ac] );
             usage( PROG_NAME, S2V_USE_SHORT );
+            suggest_best_prog_option(argv[0], argv[ac]);
             RETURN(-1);
         }
     }
@@ -2167,6 +2272,7 @@ ENTRY("validate_options");
     p->gpar         = NULL;    p->oset     = NULL;
     p->sxyz_im      = NULL;    p->sdata_im = NULL;
     p->parser.pcode = NULL;    p->cmask    = NULL;
+    p->dset         = NULL;
 
     if ( check_map_func( opts->map_str ) == E_SMAP_INVALID )
         RETURN(-1);
@@ -2362,13 +2468,6 @@ ENTRY("validate_surface");
         errs++;
     }
 
-    /* rcr - hopefully this will disappear someday */
-    if ( opts->sdata_file_niml )
-    {
-        fprintf(stderr,"** sorry, the niml feature is coming soon...\n");
-        errs++;
-    }
-
     if ( errs > 0 )
         RETURN(-1);
 
@@ -2545,10 +2644,13 @@ ENTRY("usage");
             "  Surface Data:\n"
             "\n"
             "      Surface domain data can be input via the '-sdata_1D'\n"
-            "      option.  In such a case, the data is with respect to the\n"
-            "      input surface.  The first column of the sdata_1D file\n"
-            "      should be a node index, and following columns are that\n"
-            "      node's data.  See the '-sdata_1D' option for more info.\n"
+            "      or '-sdata' option.  In such a case, the data is with \n"
+            "      respect to the input surface.  \n"
+            "      Note: With -sdata_1D,  the first column of the file \n"
+            "      should contain a node's index, and following columns are\n"
+            "      that node's data. See the '-sdata_1D' option for more info.\n"
+            "      Option -sdata takes NIML or GIFTI input which contain\n"
+            "      node index information in their headers.\n"
             "\n"
             "      If the surfaces have V values per node (pair), then the\n"
             "      resulting AFNI dataset will have V sub-bricks (unless the\n"
@@ -2870,6 +2972,8 @@ ENTRY("usage");
             "        list of data values on each row.  To be a valid 1D file,\n"
             "        each row must have the same number of columns.\n"
             "\n"
+            "    -sdata SURF_DATA_DSET: NIML, or GIFTI formatted dataset.\n"
+            "\n"
             "  ------------------------------\n"
             "  OPTIONS SPECIFIC TO SEGMENT SELECTION:\n"
             "\n"
@@ -3165,6 +3269,7 @@ ENTRY("disp_param_t");
             "    gpar  : vcheck    = %p : %s\n"
             "    oset  : vcheck    = %p : %s\n"
             "    sxyz_im, sdata_im = %p, %p\n"
+            "             dset     = %p\n"
             "    f3mm_min (xyz)    = (%f, %f, %f)\n"
             "    f3mm_max (xyz)    = (%f, %f, %f)\n"
             "    nvox, nsubs       = %d, %d\n"
@@ -3173,7 +3278,8 @@ ENTRY("disp_param_t");
             , p,
             p->gpar, ISVALID_DSET(p->gpar) ? "valid" : "invalid",
             p->oset, ISVALID_DSET(p->oset) ? "valid" : "invalid",
-            p->sxyz_im, p->sdata_im,
+            p->sxyz_im, p->sdata_im, 
+            p->dset,
             p->f3mm_min.xyz[0], p->f3mm_min.xyz[1], p->f3mm_min.xyz[2],
             p->f3mm_max.xyz[0], p->f3mm_max.xyz[1], p->f3mm_max.xyz[2],
             p->nvox, p->nsubs, p->cmask, p->ncmask, p->ccount
