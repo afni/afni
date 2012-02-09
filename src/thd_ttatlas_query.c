@@ -6642,7 +6642,8 @@ int set_adh_old_way(ATLAS_DSET_HOLDER *adh, char *aname)
       RETURN(1);      
    }   
    adh->apl2 = NULL;
-    
+   adh->probkey = -2;
+   
           if (!strcmp(aname,"CA_N27_MPM")) {
      adh->mxlablen = ATLAS_CMAX;
      adh->probkey = -2;
