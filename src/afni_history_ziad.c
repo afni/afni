@@ -65,6 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 07, FEB , 2012 , ZSS , "3dcopy" , MINOR , TYPE_BUG_FIX,
+   "Fixed problem with 3dcopy HHH.nii TTT+orig not producing output",
+   "Problem was caused by new change to EDIT_empty_copy() which\n"
+   "assigned storage mode to that of input dset instead of STORAGE_BY_BRICK\n"
+   "Fix involved setting storage mode per the prefix or view in \n"
+   "EDIT_dset_items()\n"
+ },
+ 
+ { 07, FEB , 2012 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
+   "Added -bkg_col and -autorecord options",
+   NULL
+ },
+ 
  { 07, FEB , 2012 , ZSS , "SurfMeasures" , MINOR , TYPE_NEW_OPT,
    "Added -out option to handle output in various formats.",
    "Also added -func ALL option.\n"

@@ -243,7 +243,6 @@ int main( int argc , char *argv[] )
        }
 
        if( denote ) THD_anonymize_write(1) ;  /* 08 Jul 2005 */
-
        if ( DSET_write(cset) != True )  exit(1) ;
        else exit (0);
      } else if ( non_afni_out ) { /* fail */
