@@ -12524,7 +12524,6 @@ static ENV_SPEC envlist[] = {
       "SUMA_DoNotSendStates",
       "N/A" },
    {  "Prefix for autorecord (suma's Ctrl+R) files. \n"
-      "This is mostly for deciding whether one of 'white' or 'smoothwm'\n"
       "FreeSurfer states should not be sent to AFNI.\n"
       "Add a path if you want the files to endup in a particular directory.\n"
       "You can also add an extension to prefix to specify the output type.\n"

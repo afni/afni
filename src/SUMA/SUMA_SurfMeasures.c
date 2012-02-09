@@ -2383,7 +2383,7 @@ ENTRY("usage");
     if ( use_type == ST_USE_SHORT )
     {
 	fprintf(stderr,"usage: %s [options] -spec SPEC_FILE -func FUNC_NAME\\\n"
-	               "                    -out_1D OUTFILE\n", prog);
+	               "                    -out OUTFILE\n", prog);
     }
     else if ( use_type == ST_USE_LONG )
     {
@@ -2391,7 +2391,7 @@ ENTRY("usage");
 	    "\n"
 	    "%s - compute measures from the surface dataset(s)\n"
 	    "\n"
-	    "  usage: %s [options] -spec SPEC_FILE -out_1D OUTFILE.1D\n"
+	    "  usage: %s [options] -spec SPEC_FILE -out OUTFILE\n"
 	    "\n"
 	    "    This program is meant to read in a surface or surface pair,\n"
 	    "    and to output and user-requested measures over the surfaces.\n"

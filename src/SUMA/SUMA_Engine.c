@@ -3306,7 +3306,46 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_setIO_notify(0);
                } 
 
-            }            
+            }
+
+            if (NI_get_attribute(EngineData->ngr, "bkg_col")) {
+               char *stmp = NULL;
+               NI_GET_STR_CP(EngineData->ngr, "bkg_col", stmp);
+               if (!stmp) { 
+                  SUMA_S_Err("Bad bkg_col"); 
+               } else {
+                  nn = SUMA_StringToNum(stmp, (void*)dv15, 4,4);
+                  if (nn != 4) {
+                     SUMA_S_Err("Bad bkg_col string.");
+                  } else {
+                     /* have bkg_col, set it please */
+                     SUMA_LHv("Have bkg_col of %f, %f, %f, %f\n", 
+                              dv15[0], dv15[1], dv15[2], dv15[3]);  
+                     sv->clear_color[0] = dv15[0];
+                     sv->clear_color[1] = dv15[1];
+                     sv->clear_color[2] = dv15[2];
+                     sv->clear_color[3] = dv15[3];
+                     {
+                        DList *llist = SUMA_CreateList();
+                        SUMA_REGISTER_HEAD_COMMAND_NO_DATA(llist, SE_Redisplay, 
+                                                            SES_SumaFromAny, sv);
+                        if (!SUMA_Engine (&llist)) {
+                           fprintf( stderr, 
+                                    "Error %s: SUMA_Engine call failed.\n",
+                                    FuncName);
+                        }
+                     }
+                  }
+                  SUMA_free(stmp); stmp = NULL;
+               }
+            }
+            /* autorecord prefix? */
+            if (NI_get_attribute(EngineData->ngr, "autorecord")) {
+               if (SUMAg_CF->autorecord) SUMA_free(SUMAg_CF->autorecord);
+               SUMAg_CF->autorecord = SUMA_SetAutoRecord(
+                  NI_get_attribute(EngineData->ngr, "autorecord"));
+            }
+            
             /* search for the keys */
             if (NI_get_attribute(EngineData->ngr,"N_Key")) {
                char *stmp=NULL, nc, *vbuf=NULL, *strgval=NULL;
