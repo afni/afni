@@ -97,6 +97,7 @@ typedef struct
     THD_3dim_dataset * oset;            /* output dataset              */
     MRI_IMAGE        * sxyz_im;         /* surface coordinate image    */
     MRI_IMAGE        * sdata_im;        /* sub-surface data image      */
+    SUMA_DSET        * dset;            /* Dset instead of sdata_im    */
     THD_fvec3          f3mm_min;        /* numerical min xyz points    */
     THD_fvec3          f3mm_max;        /* numerical max xyz points    */
     parser_t           parser;          /* code for expression eval    */
@@ -165,6 +166,7 @@ int read_surf_files   ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
                         s2v_opts_t * sopt, node_list_t * N );
 int read_sxyz_1D      ( opts_t * opts, param_t * p );
 int sdata_from_1D     ( opts_t * opts, param_t * p, node_list_t * N );
+int sdata_from_niml     ( opts_t * opts, param_t * p, node_list_t * N );
 int sdata_from_default( node_list_t * N );
 int set_3dmm_bounds   ( THD_3dim_dataset *dset, THD_fvec3 *min, THD_fvec3 *max);
 int set_node_list_data( node_list_t *N, param_t *p, s2v_opts_t *sopt, int col);

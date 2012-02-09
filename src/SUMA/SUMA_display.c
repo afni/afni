@@ -1226,7 +1226,6 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
    This call will also generate a SUMA_resize call */
    SUMA_WidgetResize (csv->X->TOPLEVEL , csv->WindWidth, csv->WindHeight); 
 
-   
    SUMA_RETURN(1);   
    
 }
@@ -1683,7 +1682,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    it does not care about depth tests which could be a problem when doing
    texture volumes*/
    if (csv->ShowCrossHair) {
-      /*fprintf(SUMA_STDOUT,"Showing Cross Hair \n");*/
+      SUMA_LH("Showing Cross Hair");
       if (!SUMA_DrawCrossHair (csv)) {
          fprintf(stderr,"display error: Failed to Create Cross Hair\n");
       }
