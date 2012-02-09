@@ -2057,11 +2057,11 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                  sv->X->HEIGHT);
                      SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
                      if (1) {
-                        /* seems to fix an problem with returning to quickly
-                        and snapping the older image... at least on mac
+                        /* seems to fix an problem with snapping the older 
+                        image... at least on mac
                         None of glFlush(); glFinish();glXWaitGL();glXWaitX(); 
                         or NI_sleep did the trick               
-                        Perhaps the wrong buffer is being grabbed?
+                        Perhaps the wrong buffer is being grabbed? 
                         Check SUMA_grabPixels ...
                               ZSS Feb 2012. */
                         SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
