@@ -159,6 +159,19 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 " o viewer_cont: Apply settings to viewer or viewer controller\n"
 "     + Optional parameters for action viewer_cont:\n"
 "       (Parameter names reflect GUI labels or key strokes.)\n"
+"        -autorecord RECORD_PREFIX: Set the autorecord prefix\n"
+"                        See 'Ctrl+r' in suma's interactive help for\n"
+"                        details.\n"
+"                    You can can use this option to make different snapshots\n"
+"                    go to different directories or filenames. For example:\n"
+"           ... \n"
+"               -com viewer_cont -autorecord left/Javier.ppm \\\n"
+"                                -key 'ctrl+left' -key 'ctrl+r' \\\n"
+"               -com viewer_cont -autorecord right/Javier.ppm \\\n"
+"                                -key 'ctrl+right' -key 'ctrl+r' \\\n"
+"           ...\n"
+"        -bkg_col R G B: Set the color of the background to R G B triplet.\n"
+"                        R G B values must be between 0 and 1\n"
 "        -load_view VIEW_FILE: Load a previously\n"
 "                              saved view file (.vvs).\n"
 "                              Same as 'File-->Load View'\n"
@@ -389,7 +402,10 @@ if (detail > 1) {
 "   -echo_edu: Echos the entire command line (without -echo_edu)\n"
 "              for edification purposes\n"
 "   -examples: Show all the sample commands and exit\n"
-"   -help: All the help, in detail\n"
+"   -help: All the help, in detail.\n"
+"       ** NOTE: You should also take a look at scripts @DO.examples and \n"
+"          @DriveSuma for examples. Suma's interactive help (ctrl+h) for\n"
+"          the kinds of controls you can have with -key option.\n"
 "   -h: -help, with slightly less detail\n"
 "   -help_nido: Show the help for NIML Displayable Objects and exit.\n"
 "               Same as suma -help_nido\n"
@@ -499,7 +515,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
 {
    static char FuncName[]={"SUMA_DriveSuma_ParseCommon"};
    int kar, N, nv, nums;
-   double dv3[3], tmpd;
+   double dv3[3], tmpd, dv12[12];
    char *stmp=NULL;
    SUMA_PARSED_NAME *fn;
    SUMA_Boolean brk = NOPE;
@@ -748,6 +764,60 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
       
+      if (!brk && ( (strcmp(argt[kar], "-bkg_col") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need at least 3 values after -bkg_col \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         ++kar; N = 1; stmp = NULL; nums = 0;
+         while (  kar < argtc && 
+                  argt[kar] && 
+                  SUMA_isNumString(argt[kar],(void *)((long int)N))) {
+            stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
+            argt[kar][0] = '\0'; ++kar;
+         } --kar;
+         if (!stmp || nums < 3 || nums > 4) {
+            SUMA_S_Err( "Bad format for -bkg_col option values;\n"
+                        " 3 or 4 values allowed.");
+            SUMA_RETURN(0);
+         }
+         if (nums == 3) {
+            stmp = SUMA_append_replace_string(stmp, "1.0", " ", 1); ++nums;
+         }
+         nv = SUMA_StringToNum(stmp, (void *)dv12, 12,nums);
+         if (nv < 3 || nv > 4) {
+            SUMA_S_Err("Bad range string.");
+            SUMA_RETURN(0);
+         }else {
+            /* have range, set it please */
+            SUMA_free(stmp); stmp = NULL; 
+            stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
+            sprintf(stmp,"%f , %f, %f, %f", dv12[0], dv12[1], dv12[2], dv12[3]);
+            NI_set_attribute(ngr, "bkg_col", stmp);
+            SUMA_LHv("bkg_col of %s\n", stmp);
+            SUMA_free(stmp); stmp = NULL;
+         }
+         brk = YUP;
+      }
+      
+      if (!brk && ( (strcmp(argt[kar], "-autorecord") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a prefix after -autorecord\n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         NI_set_attribute(ngr, "autorecord", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+
       if (!brk && ( (strcmp(argt[kar], "-Dsp") == 0) ) )
       {
          if (kar+1 >= argtc)

@@ -76,6 +76,7 @@ char * GetAfniTextEditor(void)
    if( ate == NULL ) ate = THD_find_executable( "nedit" )   ;
    if( ate == NULL ) ate = THD_find_executable( "kedit" )   ;
    if( ate == NULL ) ate = THD_find_executable( "gedit" )   ;
+   if( ate == NULL ) ate = THD_find_executable( "kwrite" )   ;
 #ifdef DARWIN
    if( ate == NULL ) ate = "open -t" ;  /* for Mac OS X */
 #endif
