@@ -1783,22 +1783,13 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
          #endif
          } else { /* better approach after fixing buffer swaping bug Feb 2012*/
             GLvoid *pixels=NULL;
-            glFinish();
-            glXWaitX();
-            #ifdef DARWIN  /* not sure if necessary, should be able 
-                              to use new SUMA_grabRenderedPixels
-                              on all platforms. But why rock
-                              the boat.... */
-               pixels = SUMA_grabRenderedPixels(csv, 1, 
-                                             csv->X->WIDTH, csv->X->HEIGHT);
-               if (pixels) {
-                 ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
-                              (unsigned char *)pixels, csv->X->GLXAREA );
-                 SUMA_free(pixels);
-               }
-            #else
-               ISQ_snapshot ( csv->X->GLXAREA );
-            #endif
+            pixels = SUMA_grabRenderedPixels(csv, 1, 
+                                          csv->X->WIDTH, csv->X->HEIGHT);
+            if (pixels) {
+              ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
+                           (unsigned char *)pixels, csv->X->GLXAREA );
+              SUMA_free(pixels);
+            }
          }
       }
   } else if (csv->Record == 2) {
