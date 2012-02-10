@@ -949,7 +949,7 @@ class AP_Subject(object):
 
       cmd  = '# set subject and group identifiers\n'
       if self.svars.sid: cmd += 'set subj      = %s\n' % self.svars.sid
-      if self.svars.gid: cmd += 'set group     = %s\n' % self.svars.gid
+      if self.svars.gid: cmd += 'set group_id  = %s\n' % self.svars.gid
       if cmd != '': return cmd + '\n'
       else:         return cmd
 
