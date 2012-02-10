@@ -55,7 +55,7 @@ def db_mod_tcat(block, proc, user_opts):
                     'removal of these TRs' % bopt.parlist[0]
 
     apply_uopt_to_block('-tcat_remove_last_trs', user_opts, block)
-    apply_uopt_to_block('-tcat_outlier_warn_limit', user_opts, block)
+    apply_uopt_to_block('-tcat_preSS_warn_limit', user_opts, block)
 
     if errs == 0: block.valid = 1
     else        : block.valid = 0
@@ -68,11 +68,11 @@ def db_cmd_tcat(proc, block):
     first = opt.parlist[0]
 
     # maybe the user updated our warning limit
-    val, err = block.opts.get_type_opt(float, '-tcat_outlier_warn_limit')
+    val, err = block.opts.get_type_opt(float, '-tcat_preSS_warn_limit')
     if err: return 1, ''
     if val != None:
        if val < 0.0 or val > 1.0:
-          print '** -tcat_outlier_warn_limit: limit %s outside [0,1.0]' % val
+          print '** -tcat_preSS_warn_limit: limit %s outside [0,1.0]' % val
           return 1, ''
        proc.out_ss_lim = val
 
@@ -5253,9 +5253,9 @@ g_help_string = """
         These options pertain to individual processing blocks.  Each option
         starts with the block name.
 
-        -tcat_outlier_warn_limit LIMIT : TR #0 outlier limit to warn of pre-SS
+        -tcat_preSS_warn_limit LIMIT : TR #0 outlier limit to warn of pre-SS
 
-                e.g. -tcat_outlier_warn_limit 0.7
+                e.g. -tcat_preSS_warn_limit 0.7
                 default: 0.4
 
             Outlier fractions are computed across TRs in the tcat processing

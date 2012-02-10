@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, FEB, 2012, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "changed -tcat_outlier_warn_limit to -tcat_preSS_warn_limit",
+   NULL
+ } ,
+
+ { 10, FEB, 2012, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "make tcat files optional; apply prefix to 'basic' commands in driver",
+   NULL
+ } ,
+
+ { 10, FEB, 2012, RCR, "slow_surf_clustsim.py", MICRO, TYPE_MODIFY,
+   "tiny help update, as enforced by H Jo",
+   NULL
+ } ,
+
  {  6, FEB, 2012, RCR, "Dimon", MINOR, TYPE_ENHANCE,
    "added -no_wait option: never wait for new data",
    "Also, suppress new glob warnings.\n"

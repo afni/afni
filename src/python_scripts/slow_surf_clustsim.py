@@ -47,7 +47,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
    3. basic, but on the surface (so no vol_mask is provided)
 
         slow_surf_clustsim.py -save_script surf.sim.2           \\
-            -on_surface                                         \\
+            -on_surface yes                                     \\
             -uvar spec_file sb23_lh_141_std.spec                \\
             -uvar surf_vol sb23_SurfVol_aligned+orig
 
@@ -106,7 +106,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
       -ver                      : show current version
 
    other options
-      -on_surface               : start from noise on the surface
+      -on_surface yes/no        : if yes, start from noise on the surface
                                   (so no volume data is involved)
       -print_script             : print script to terminal
       -save_script FILE         : save script to given file
@@ -152,6 +152,7 @@ class MyInterface:
 
       # general options
       vopts.add_opt('-on_surface', 1, [],
+                    acplist=['yes', 'no'],
                     helpstr='work directly on the surface (yes/no)')
       vopts.add_opt('-print_script', 0, [],
                     helpstr='print script to terminal window')
