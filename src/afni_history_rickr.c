@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 10, FEB, 2012, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
-   "changed -tcat_outlier_warn_limit to -tcat_preSS_warn_limit",
-   NULL
+ { 10, FEB, 2012, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "added -check_results_dir for Z Saad",
+   "Also, changed -tcat_outlier_warn_limit to -tcat_preSS_warn_limit."
  } ,
 
  { 10, FEB, 2012, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
