@@ -313,9 +313,10 @@ g_history = """
         - added help updates for this
     3.09 Feb 01, 2012: check for pre-steady state outliers
         - added option -tcat_outlier_warn_limit
+    3.10 Feb 10, 2012: -tcat_outlier_warn_limit is now -tcat_preSS_warn_limit
 """
 
-g_version = "version 3.09, February 1, 2012"
+g_version = "version 3.10, February 10, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "27 Jan 2012"
@@ -586,7 +587,7 @@ class SubjProcSream:
                         helpstr="set the verbose level")
 
         # block options
-        self.valid_opts.add_opt('-tcat_outlier_warn_limit', 1, [],
+        self.valid_opts.add_opt('-tcat_preSS_warn_limit', 1, [],
                         helpstr='set limit where TR #0 outliers suggest pre-SS')
         self.valid_opts.add_opt('-tcat_remove_first_trs', 1, [],
                         helpstr='num TRs to remove from start of each run')

@@ -194,7 +194,14 @@ g_overview_str = """
 # some overview details
 echo ""
 echo "subject ID                : $subj"
-echo "TRs removed (per run)     : $rm_trs"
+
+if ( $?rm_trs ) then
+   set value = $rm_trs
+else
+   set value = UNKNOWN
+endif
+echo "TRs removed (per run)     : $value"
+
 echo "num stim classes provided : $num_stim"
 """
 
@@ -243,16 +250,16 @@ echo ""
 # get tcat files and count TRs
 set tcat_files = ( `find . -maxdepth 1 -name "pb00*$subj*.HEAD" -print` )
 if ( $#tcat_files == 0 ) then
-    echo "** missing tcat files, will not proceed"
-    exit 1
+    echo "** missing tcat files, skipping num runs and TRs per run..."
+    echo ""
+else
+    set trs = ( )
+    foreach file ( $tcat_files )
+        set trs = ( $trs `3dnvals $file` )
+    end
+    echo "num runs found            : $#tcat_files"
+    echo "num TRs per run           : $trs"
 endif
-
-set trs = ( )
-foreach file ( $tcat_files )
-    set trs = ( $trs `3dnvals $file` )
-end
-echo "num runs found            : $#tcat_files"
-echo "num TRs per run           : $trs"
 
 # count total (uncensored) TRs from X-matrix (as a check against sum of TRs)
 if ( $?xmat_uncensored ) then
@@ -472,9 +479,12 @@ g_history = """
    0.13 Jan 28, 2012: look for TSNR* in case of surf analysis
    0.14 Jan 31, 2012: look for aligned anat: _al_junk/keep (but not yet used)
    0.15 Feb 01, 2012: check for pre-steady state outliers
+   0.16 Feb 10, 2012:
+        - make tcat files optional (for J Britton)
+        - apply prefix to driver commands
 """
 
-g_version = "gen_ss_review_scripts.py version 0.15, February 1, 2012"
+g_version = "gen_ss_review_scripts.py version 0.16, February 10, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -890,10 +900,9 @@ class MyInterface:
 
       if len(glist) < 1:
          print '** guess tcat: failed to determine subject ID from pb00 files'
-         return 1
+         return 0  # non-fatal error
       if len(glist) > 1:
-         print '** guess tcat: non-unique tcat list: %s' % glist
-         return 1
+         print '** warning: guess tcat, non-unique tcat list: %s' % glist
 
       self.uvars.tcat_dset = pref + glist[0] + suf
       tcat = BASE.afni_name(self.uvars.tcat_dset)
@@ -990,8 +999,8 @@ class MyInterface:
          return 0
 
       if self.dsets.is_empty('tcat_dset'):
-         print '** guess rm_trs: no pb00 dset'
-         return 1
+         print '** guess rm_trs: no pb00 dset to detect removed TRs'
+         return 0  # non-fatal?
 
       cmd = UTIL.get_last_history_command(self.dsets.tcat_dset.pv(), '3dTcat')
       intstr = UTIL.extract_subbrick_selection(cmd)
@@ -999,7 +1008,7 @@ class MyInterface:
 
       if len(intlist) == 0:
          print '** guess rm_trs: failed to find sub-brick selector in 3dTcat'
-         return 1
+         return 0  # non-fatal?
 
       self.uvars.rm_trs = intlist[0]
 
@@ -1590,6 +1599,8 @@ class MyInterface:
                   'final_view']:
          if uvars.valid(var):
             txt += format % (var,self.uvars.val(var))
+         elif var in ['rm_trs']: # non-fatal
+            print '** warning: basic script, missing variable %s' % var
          else:
             print '** basic script: missing variable %s' % var
             errs += 1
@@ -1604,9 +1615,8 @@ class MyInterface:
       var = 'tcat_dset'
       if self.uvars.is_not_empty(var):
          txt += format % (var, self.uvars.val(var))
-      else:
-         print '** basic script: missing variable %s' % var
-         errs += 1
+      else: # non-fatal
+         print '** warning: basic script: missing variable %s' % var
 
       var = 'enorm_dset'
       if uvars.is_not_empty(var):
@@ -1659,12 +1669,14 @@ class MyInterface:
       var = 'mask_dset'
       if self.uvars.is_not_empty(var):
          txt += format % (var, self.uvars.val(var))
-      # not requred
+      # not required
 
       var = 'tsnr_dset'
       if self.uvars.is_not_empty(var):
          txt += format % (var, self.uvars.val(var))
-      # not requred
+      # not required
+
+      if errs > 0: return 1
 
       self.text_basic += txt + '\n'
 
@@ -1673,7 +1685,7 @@ class MyInterface:
    def make_drive_script(self):
       # init script and commands-only text
       self.text_drive = ''
-      self.commands_drive = 'tcsh -ef @ss_review_basic\n'
+      self.commands_drive = 'tcsh -ef %s\n' % self.cvars.val('scr_basic')
 
       if self.drive_init(): return 1
       if self.drive_motion(): return 1
@@ -1688,7 +1700,7 @@ class MyInterface:
    def drive_init(self):
       txt = g_drive_init_str
 
-      scr = g_cvars_defs.scr_basic
+      scr = self.cvars.val('scr_basic')
 
       txt += \
        '# ------------------------------------------------------------\n'   \
