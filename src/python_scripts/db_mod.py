@@ -4944,6 +4944,15 @@ g_help_string = """
             Please see 'afni_history -help' or 'afni -ver' for more information.
             See also '-requires_afni_version'.
 
+        -check_results_dir yes/no : check whether dir exists before proceeding
+
+                e.g. -check_results_dir no
+                default: yes
+
+            By default, if the results directory already exists, the script
+            will terminate before doing any processing.  Set this option to
+            'no' to remove that check.
+
         -check_setup_errors yes/no : terminate on setup errors
 
                 e.g. -check_setup_errors yes
