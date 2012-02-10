@@ -26,9 +26,10 @@ g_history = """
     0.6  29 Jul, 2011:
          - name z.max files by the p-values
          - suggest quick.alpha.vals.py command
+    0.7  10 Feb, 2012: help update for HJ: -on_surface takes yes/no parameter
 """
 
-g_version = '0.6 (July 29, 2011)'
+g_version = '0.7 (February 10, 2012)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -705,6 +706,8 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
+- include example in class data
+- set up regression testing
 ---------------------------------------------------------------------------
 """
 
