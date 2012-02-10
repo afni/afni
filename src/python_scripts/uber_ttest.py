@@ -96,7 +96,6 @@ class MainInterface(object):
       vopts.add_opt('-help', 0, [], helpstr='show this help')
       vopts.add_opt('-help_gui', 0, [], helpstr='show help for GUI')
       vopts.add_opt('-help_todo', 0, [], helpstr='show todo list')
-      vopts.add_opt('-help_howto_program',0,[],helpstr='programming overview')
       vopts.add_opt('-hist', 0, [], helpstr='show revision history')
       vopts.add_opt('-show_default_vars',0,[],helpstr='show variable defaults')
       vopts.add_opt('-show_valid_opts',0,[],helpstr='show all valid options')
@@ -148,10 +147,6 @@ class MainInterface(object):
 
       if '-help_gui' in argv:
          print LTT.helpstr_gui
-         return 1
-
-      if '-help_howto_program' in argv:
-         print LTT.helpstr_create_program
          return 1
 
       if '-help_todo' in argv:
@@ -214,7 +209,7 @@ class MainInterface(object):
       uvar_keys = LTT.g_uvar_dict.keys()
 
       # we already processed terminal options
-      term_opts = ['-help', '-help_gui', '-help_howto_program', '-help_todo',
+      term_opts = ['-help', '-help_gui', '-help_todo',
                    '-hist', 'show_default_vars', '-ver',
                    '-show_cvar_dict', '-show_uvar_dict']
 

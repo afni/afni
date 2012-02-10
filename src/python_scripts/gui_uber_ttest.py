@@ -232,6 +232,15 @@ class MainWindow(QtGui.QMainWindow):
       lposn += 1
 
       # --------------------------------------------------
+      # paired test toggle button
+      cbox = QtGui.QCheckBox("paired test")
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
+      cbox.setStatusTip("perform a paired test")
+      self.gvars.CB_paired = cbox
+      layout.addWidget(cbox,  lposn, 0, 1, 2)
+      lposn += 1
+
+      # --------------------------------------------------
       layout.setSpacing(QLIB.g_layout_spacing)
       gbox.setLayout(layout)
       self.gvars.gbox_program = gbox
@@ -415,13 +424,12 @@ class MainWindow(QtGui.QMainWindow):
 
    def CB_checkbox(self):
       """call-back for any check boxes"""
-      if show_func_seq: print '=== M ==='  # rcr - not called
+      if show_func_seq: print '=== M ==='
 
       obj = self.sender()
-      # if   obj == self.gvars.gbox_anat.checkBox:
-         # if obj.isChecked(): self.set_uvar('get_tlrc', 'yes')
-         # else:               self.set_uvar('get_tlrc', 'no')
-      if   obj == None: pass
+      if obj == self.gvars.CB_paired:
+         if obj.isChecked(): self.set_uvar('paired', 'yes')
+         else:               self.set_uvar('paired', 'no')
       else: print "** CB_checkbox: unknown sender"
 
    def check_line_against_list(self, line, lname, tlist, tdef=0):
@@ -1179,6 +1187,7 @@ class MainWindow(QtGui.QMainWindow):
       elif uvar == 'script' : self.gvars.Line_script.setText(val)
       elif uvar == 'prefix' : self.gvars.Line_prefix.setText(val)
       elif uvar == 'mask'   : self.gvars.Line_mask.setText(val)
+      elif uvar == 'paired' : self.gvars.CB_paired.setChecked(val=='yes')
 
       # datasets A
       elif uvar == 'dsets_A':
