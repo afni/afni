@@ -529,7 +529,13 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
             {
                GLvoid *pixels;
                SUMA_LH("Recording");
+               if (SUMAg_SVv[0].X->DOUBLEBUFFER)
+                  glXSwapBuffers(XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), 
+                                 XtWindow(SO->SurfCont->cmp_ren->cmap_wid));
                pixels = SUMA_grabPixels(1, SUMA_CMAP_WIDTH, SUMA_CMAP_HEIGHT);
+               if (SUMAg_SVv[0].X->DOUBLEBUFFER)
+                  glXSwapBuffers(XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), 
+                                 XtWindow(SO->SurfCont->cmp_ren->cmap_wid));
                if (pixels) {
                  ISQ_snapsave (SUMA_CMAP_WIDTH, -SUMA_CMAP_HEIGHT, 
                               (unsigned char *)pixels,

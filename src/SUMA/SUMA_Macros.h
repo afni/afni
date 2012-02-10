@@ -500,6 +500,14 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
             }  \
    }         
 
+#define SUMA_GLX_BUF_SWAP(sv) {\
+   if ((sv)->X->DOUBLEBUFFER) {  \
+       glXSwapBuffers((sv)->X->DPY, XtWindow((sv)->X->GLXAREA));\
+   } else { \
+      glFlush();\
+   }  \
+}
+
 /*!
    \brief Get the pointer for the last visited viewer 
 */

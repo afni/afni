@@ -26,13 +26,6 @@
 #define SUMA_CLOSE_MODE       SUMA_WITHDRAW
 #define SUMA_GL_CLOSE_MODE    SUMA_UNREALIZE
 
-#define DO_FLUSH        0  /* 0 = Avoid flushing/Buffer swapping, at close time 
-                                  Part of the effort to keep suma from crashing
-                                  on OS X 10.5 , when closing a widget with an 
-                                  OpenGL drawable.
-                                  Keep it at 0, at least for OS X 10.5 and 
-                                  early 10.6 . 
-                                  Perhaps it should be kept off forever */
 #define SUMA_HOLD_IT  if (0) { SUMA_S_Note("Waiting...");glXWaitGL();glXWaitX(); SUMA_S_Note("Done.");}  
                                   
 typedef struct suma_menu_item {
@@ -228,8 +221,11 @@ void SUMA_resize(Widget w, XtPointer clientData, XtPointer call);
 SUMA_Boolean SUMA_X_SurfaceViewer_Create (void);
 void SUMA_ButtOpen_pushed (Widget w, XtPointer cd1, XtPointer cd2);
 void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2);
-int SUMA_generateEPS(char *filename, int inColor, unsigned int width, unsigned int height);
+int SUMA_generateEPS(char *filename, int inColor, 
+                     unsigned int width, unsigned int height);
 GLvoid *SUMA_grabPixels(int inColor, unsigned int width, unsigned int height);
+GLvoid *SUMA_grabRenderedPixels(SUMA_SurfaceViewer *sv,
+                     int inColor, unsigned int width, unsigned int height);
 SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO* dov);
 void SUMA_context_Init(SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_NormScreenToWorld(SUMA_SurfaceViewer *sv, 
