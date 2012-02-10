@@ -97,17 +97,13 @@ ENTRY("new_MCW_pbar") ;
                                       XmNx , 0 , XmNy , 0 ,
                                       XmNtraversalOn, True  ,
                                       XmNinitialResourcesPersistent , False ,
-                              NULL ) ;
+                                   NULL ) ;
 
    if( check_pixmap == XmUNSPECIFIED_PIXMAP )
       check_pixmap = XCreatePixmapFromBitmapData(
                         XtDisplay(parent) , RootWindowOfScreen(XtScreen(parent)) ,
                         check_bits , check_width , check_height ,
-#if 0
-                        1,0,
-#else
                         dc->ovc->pixov_brightest , dc->ovc->pixov_darkest ,
-#endif
                         DefaultDepthOfScreen(XtScreen(parent)) ) ;
 
    /** make the panes **/
@@ -130,7 +126,7 @@ ENTRY("new_MCW_pbar") ;
                               XmNhighlightThickness , 0 ,
                               XmNpushButtonEnabled , True ,
                               XmNshadowThickness , 1 ,
-                              XmNuserData , (XtPointer) pbar ,
+                              XmNuserData , (XtPointer)pbar ,
                               XmNtraversalOn , True ,
                               XmNinitialResourcesPersistent , False ,
                             NULL ) ;
@@ -167,11 +163,8 @@ ENTRY("new_MCW_pbar") ;
          yy = i * (pheight+PANE_SPACING) ;
          if( i > 0 ) yy -= PANE_LOFF ;
       } else {
-#if 1
          yy = pbar->panew_height - PANE_LOFF + PANE_SPACING ;
-#else
          yy = pbar->panew_height - 2 * PANE_LOFF + PANE_SPACING ;
-#endif
       }
 
       pbar->labels[i] =  XtVaCreateWidget(
@@ -196,22 +189,24 @@ ENTRY("new_MCW_pbar") ;
 
    /*-- add _save & mode stuff --*/
 
+STATUS("init pval_save") ;
    for( np=NPANE_MIN ; np <= NPANE_MAX ; np++ ){
-      for( i=0 ; i <= np ; i++ )
-         for( jm=0 ; jm < PANE_MAXMODE ; jm++ )
-            pbar->pval_save[np][i][jm] = pmax - i * (pmax-pmin)/np ;
+     for( i=0 ; i <= np ; i++ )
+       for( jm=0 ; jm < PANE_MAXMODE ; jm++ )
+         pbar->pval_save[np][i][jm] = pmax - i * (pmax-pmin)/np ;
 
-      for( i=0 ; i < np ; i++ )
-         for( jm=0 ; jm < PANE_MAXMODE ; jm++ )
-            pbar->ovin_save[np][i][jm] = MIN(lcol,i+1) ;
+     for( i=0 ; i < np ; i++ )
+       for( jm=0 ; jm < PANE_MAXMODE ; jm++ )
+         pbar->ovin_save[np][i][jm] = MIN(lcol,i+1) ;
    }
    pbar->update_me    = 0 ;
    pbar->mode         = 0 ;
    pbar->hide_changes = 0 ;
    pbar->keep_pval    = 0 ;  /* Dec 1997 */
+   pbar->three_level  = 0 ;  /* Feb 2012 */
 
    for( jm=0 ; jm < PANE_MAXMODE ; jm++ )
-      pbar->npan_save[jm] = pbar->num_panes ;
+     pbar->npan_save[jm] = pbar->num_panes ;
 
    /*-- 31 Jan 2003: create palettes to choose between for "big" mode --*/
 
@@ -954,7 +949,21 @@ ENTRY("PBAR_click_CB") ;
    for( ip=0 ; ip < pbar->num_panes ; ip++ ) if( pbar->panes[ip] == w ) break ;
    if( ip == pbar->num_panes ) EXRETURN ;
 
-   MCW_choose_ovcolor( w , dc , pbar->ov_index[ip] , PBAR_set_CB , dc ) ;
+   if( pbar->three_level ){  /* 10 Feb 2012 */
+     if( ip != 1 )
+       MCW_choose_binary( w ,
+                          ((ip==0) ? "Colorize Above?" : "Colorize Below?") ,
+                          (pbar->ov_index[ip] != 0) ,
+                          "Off" , "On" , PBAR_setonoff_CB , pbar ) ;
+     else
+       XBell(dc->display,100) ;
+
+   } else {  /* the standard way */
+
+     MCW_choose_ovcolor( w , dc , pbar->ov_index[ip] , PBAR_setcolor_CB , dc ) ;
+
+   }
+
    EXRETURN ;
 }
 
@@ -977,17 +986,32 @@ ENTRY("PBAR_set_panecolor") ;
    EXRETURN ;
 }
 
+/*--------------------------------------------------------------------*/
+
+void PBAR_setonoff_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
+{
+   MCW_pbar *pbar = (MCW_pbar *)cd ;
+
+ENTRY("PBAR_setonoff_CB") ;
+
+   if( pbar->three_level == 0 || pbar->bigmode ) EXRETURN ;  /* error */
+
+   if( cbs->ival != 0 ) cbs->ival = pbar->three_level ;
+   PBAR_setcolor_CB( w , pbar->dc , cbs ) ;
+   EXRETURN ;
+}
+
 /*--------------------------------------------------------------------
   actual place where color of pane is changed, and user is callbacked
 ----------------------------------------------------------------------*/
 
-void PBAR_set_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void PBAR_setcolor_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   MCW_DC * dc = (MCW_DC *) cd ;
-   MCW_pbar * pbar = NULL ;
+   MCW_DC *dc = (MCW_DC *)cd ;
+   MCW_pbar *pbar = NULL ;
    int ip , jm ;
 
-ENTRY("PBAR_set_CB") ;
+ENTRY("PBAR_setcolor_CB") ;
 
    if( cbs->ival > 0 && cbs->ival < dc->ovc->ncol_ov ){
       XtVaSetValues( w , XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP , NULL ) ;
@@ -1120,6 +1144,7 @@ printf("resize: read pane # %d height=%d\n",i,hh[i]) ; fflush(stdout) ;
 #endif
 
          if( ! pbar->keep_pval ){  /* Dec 1997 */
+STATUS("reset pval_save") ;
             val = pmax - sum * (pmax-pmin) / pbar->panes_sum ;
             pbar->pval_save[pbar->num_panes][i][jm] =         /* reset this */
                                       pbar->pval[i] = val ;   /* threshold  */
@@ -1169,8 +1194,8 @@ ENTRY("update_MCW_pbar") ;
    if( pbar->update_me ){
      if( pbar->bigmode ) PBAR_show_bigmode( pbar ) ;         /* 30 Jan 2003 */
      else                alter_MCW_pbar( pbar , 0 , NULL ) ;
+     pbar->update_me = 0 ;
    }
-   pbar->update_me = 0 ;
    EXRETURN ;
 }
 
@@ -1200,13 +1225,17 @@ ENTRY("alter_MCW_pbar") ;
    npane_old       = pbar->num_panes ;
    pbar->num_panes = pbar->npan_save[jm] = npane ;
 
+STATUS("setup done") ;
+
    if( was_bigset ) npane_old = 1 ;
 
    /*-- get new value array --*/
 
    if( new_pval == NULL ){
+STATUS("re-use pval_save") ;
      for( i=0 ; i <= npane ; i++ ) pval[i] = pbar->pval_save[npane][i][jm] ;
    } else {
+STATUS("use new_pval") ;
      for( i=0 ; i <= npane ; i++ ) pval[i] = new_pval[i] ;
    }
    pmax = pval[0] ;
@@ -1217,6 +1246,8 @@ ENTRY("alter_MCW_pbar") ;
    if( pbar->hide_changes ) XtUnmapWidget( pbar->top ) ;
 
    /* set new pane colors */
+
+STATUS("set new colors") ;
 
    for( i=0 ; i < npane ; i++ ){
       ovc = pbar->ov_index[i] = pbar->ovin_save[npane][i][jm] ;
@@ -1239,11 +1270,11 @@ printf("\n"); fflush(stdout) ;
 
    pbar->renew_all = -1 ;  /* skip updates for the moment */
    for( i=0 ; i < NPANE_MAX ; i++ )
-      XtVaSetValues( pbar->panes[i] , XmNheight , PANE_MIN_HEIGHT , NULL ) ;
+     XtVaSetValues( pbar->panes[i] , XmNheight , PANE_MIN_HEIGHT , NULL ) ;
 
    for( i=0 ; i <= NPANE_MAX ; i++ )
-      if( KEEP_LABEL(i,npane) ) XtManageChild  ( pbar->labels[i] ) ;
-      else                      XtUnmanageChild( pbar->labels[i] ) ;
+     if( KEEP_LABEL(i,npane) ) XtManageChild  ( pbar->labels[i] ) ;
+     else                      XtUnmanageChild( pbar->labels[i] ) ;
 
    if( npane > npane_old ){
       for( i=npane_old ; i < npane ; i++ ){
@@ -1264,6 +1295,8 @@ printf("unmanage pane %d\n",i) ; fflush(stdout) ;
    }
 
    /* set new pane heights */
+
+STATUS("set pane heights") ;
 
    pbar->panes_sum = pbar->panew_height - (npane-1)*PANE_SPACING ;
    for( i=0 ; i <= npane ; i++ ) pbar->pval[i] = pval[i] ;
@@ -1301,9 +1334,10 @@ printf("set pane %d to height %d\n",npane-1,sum) ; fflush(stdout) ;
    PBAR_resize_CB( pbar->panes[pbar->num_panes-1] , (XtPointer) pbar , NULL ) ;
 
    if( pbar->keep_pval ){                  /* Dec 1997 */
-      for( i=0 ; i <= npane ; i++ )
-         pbar->pval_save[pbar->num_panes][i][jm] =
-                                   pbar->pval[i] = pval[i] ;
+STATUS("save pval_save") ;
+     for( i=0 ; i <= npane ; i++ )
+       pbar->pval_save[pbar->num_panes][i][jm] =
+                                 pbar->pval[i] = pval[i] ;
    }
    pbar->keep_pval = 0 ;
 

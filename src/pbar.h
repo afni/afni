@@ -29,10 +29,11 @@
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
-void PBAR_click_CB( Widget , XtPointer , XtPointer ) ;
-void PBAR_set_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
-void PBAR_resize_CB( Widget , XtPointer , XtPointer ) ;
-void PBAR_labelize( float , char * ) ;
+void PBAR_click_CB   ( Widget , XtPointer , XtPointer ) ;
+void PBAR_setcolor_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+void PBAR_setonoff_CB( Widget , XtPointer , MCW_choose_cbs * ) ;  /* 10 Feb 2012 */
+void PBAR_resize_CB  ( Widget , XtPointer , XtPointer ) ;
+void PBAR_labelize   ( float , char * ) ;
 
 #define check_width 8
 #define check_height 8
@@ -72,7 +73,7 @@ typedef struct {
 
   int   pane_hsum[NPANE_MAX+1] ;  /* Dec 1997 */
 
-  int   update_me , mode , hide_changes , keep_pval ;
+  int   update_me , mode , hide_changes , keep_pval , three_level ;
 
   gen_func *pb_CB ;
   XtPointer pb_data ;
