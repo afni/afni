@@ -2056,50 +2056,63 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                 SUMAg_CF->SUMA_SnapshotOverSampling * 
                                  sv->X->HEIGHT);
                      SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
-                     if (1) {
-                        /* seems to fix an problem with snapping the older 
-                        image... at least on mac
-                        None of glFlush(); glFinish();glXWaitGL();glXWaitX(); 
-                        or NI_sleep did the trick               
-                        Perhaps the wrong buffer is being grabbed? 
-                        Check SUMA_grabPixels ...
-                              ZSS Feb 2012. */
-                        SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
-                     }
+                     #if 0 /* problem should be fixed by SUMA_grabRenderedPixels
+                              Throw section out if no new problems arise.
+                              Search for KILL_DOUBLE_RENDERING to locate
+                              other chunks for removal 
+                                       ZSS Feb 2012 */
+                        if (1) {
+                           /* seems to fix an problem with snapping the older 
+                           image... at least on mac
+                           None of glFlush(); glFinish();glXWaitGL();glXWaitX(); 
+                           or NI_sleep did the trick               
+                           Perhaps the wrong buffer is being grabbed? 
+                           Check SUMA_grabPixels ...
+                                 ZSS Feb 2012. 
+                           Yes it was,  SUMA_grabRenderedPixels does the trick.
+                                 ZSS Feb the next morning 2012 */
+                           SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+                        }
+                     #endif
                   } else {
-                     /* ZSS   Nov 20 2009 
-                        If you do not redisplay here, you could strange cases of
-                        snapping the previous frame as reported by Colm Connolly.
-                        
-                     1. suma -spec N27_both_tlrc.spec -sv TT_N27+tlrc. &
-                     2. press F2 five times to cycle through the various axes 
-                        from none to all and back to none.
-                     3. press r to record
+                     #if 0 /* Search for KILL_DOUBLE_RENDERING to locate
+                              other chunks for removal 
+                                       ZSS Feb 2012 */
+                  /* ZSS   Nov 20 2009 
+                     If you do not redisplay here, you could strange cases of
+                     snapping the previous frame as reported by Colm Connolly.
 
-                     The first image recorded has axes present even though none 
-                     are present in the viewer. Pressing r again produces an 
-                     image with no axes as expected.
-                     
-                     Actually, it seems this happens in many other cases, F1, F6,
-                     change state, etc. 
-                     
-                     This seems to be the same problem reported by Chunmao W. 
-                     a while back. 
-                     Same happens with R option. 
-                     
-                     Problem only happens under DARWIN it seems.
-                     
-                     I do not know why the call to SUMA_handleRedisplay does the 
-                     trick. Perhaps it is a buffer reading problem in double 
-                     buffer rendering. The fix is ugly, especially in continuous
-                     record mode (see SUMA_display function in 'if(csv->record)'
-                     block), but it works.
-                     */
-                     #ifdef DARWIN
-                     SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+                  1. suma -spec N27_both_tlrc.spec -sv TT_N27+tlrc. &
+                  2. press F2 five times to cycle through the various axes 
+                     from none to all and back to none.
+                  3. press r to record
+
+                  The first image recorded has axes present even though none 
+                  are present in the viewer. Pressing r again produces an 
+                  image with no axes as expected.
+
+                  Actually, it seems this happens in many other cases, F1, F6,
+                  change state, etc. 
+
+                  This seems to be the same problem reported by Chunmao W. 
+                  a while back. 
+                  Same happens with R option. 
+
+                  Problem only happens under DARWIN it seems.
+
+                  I do not know why the call to SUMA_handleRedisplay does the 
+                  trick. Perhaps it is a buffer reading problem in double 
+                  buffer rendering. The fix is ugly, especially in continuous
+                  record mode (see SUMA_display function in 'if(csv->record)'
+                  block), but it works.
+                  */
+                        #ifdef DARWIN
+                        SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+                        #endif
                      #endif
                   }
-                  pixels = SUMA_grabPixels(1, sv->X->WIDTH, sv->X->HEIGHT);
+                  pixels = SUMA_grabRenderedPixels(sv, 1, 
+                                       sv->X->WIDTH, sv->X->HEIGHT);
                   if (pixels) {
                     ISQ_snapsave (sv->X->WIDTH, -sv->X->HEIGHT, 
                                   (unsigned char *)pixels, sv->X->GLXAREA ); 
