@@ -1017,7 +1017,7 @@ STATUS("making imag->rowcol") ;
          NULL ) ;
    LABELIZE(imag->crosshair_label) ;
    MCW_register_help( imag->crosshair_label , AFNI_crosshair_label_help ) ;
-   MCW_register_hint( imag->crosshair_label , 
+   MCW_register_hint( imag->crosshair_label ,
                "Coordinates of crosshair point. * indicates oblique dataset." ) ;
 
    /*--- 12 Mar 2004: coordinate order popup menu ---*/
@@ -2982,6 +2982,7 @@ STATUS("making func->rowcol") ;
 
    /** Jul 1997: optmenu to choose top value for scale **/
 
+   BBOX_set_wtype("font7") ;
    func->thr_top_av = new_MCW_arrowval( func->thr_rowcol ,
                                         "**" ,
                                         AVOPT_STYLE ,
@@ -2989,6 +2990,7 @@ STATUS("making func->rowcol") ;
                                         MCW_AV_notext , 0 ,
                                         AFNI_thresh_top_CB , (XtPointer)im3d ,
                                         AFNI_thresh_tlabel_CB , NULL ) ;
+   BBOX_set_wtype(NULL) ;
 
    im3d->vinfo->func_thresh_top = 1.0 ;
 
@@ -3009,7 +3011,7 @@ STATUS("making func->rowcol") ;
 #if 1
    if( im3d->dc->visual_class == TrueColor && AFNI_yesenv("AFNI_RANGE_PBAR") ){
 
-     char *bot_top_str[3] = { "0" , "t" , "b" } ;
+     char *bot_top_str[3] = { "=0" , "-T" , "=B" } ;
      MCW_pbar *pbar ;
 
      (void) XtVaCreateManagedWidget(
@@ -3030,7 +3032,7 @@ STATUS("making func->rowcol") ;
      func->iab_label =
         XtVaCreateManagedWidget(
            "dialog" , xmLabelWidgetClass , func->iab_rowcol ,
-              LABEL_ARG("Top|Bot") ,
+              LABEL_ARG("T&B->") ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
      LABELIZE(func->iab_label) ;
@@ -3039,8 +3041,8 @@ STATUS("making func->rowcol") ;
                                func->iab_rowcol ,     /* parent */
                                im3d->dc ,             /* display */
                                3 ,                    /* number panes (fixed) */
-                               1 + sel_height / 3 ,   /* init pane height */
-                               -1.0f , 1.0f ,         /* value range */
+                               2 + sel_height / 3 ,   /* init pane height */
+                               -1.2f , 1.2f ,         /* value range */
                                AFNI_iab_pbar_CB ,     /* callback */
                                (XtPointer)im3d    ) ; /* callback data */
 
@@ -3049,35 +3051,47 @@ STATUS("making func->rowcol") ;
      pbar->npan_save[0] = 3 ;
      pbar->hide_changes = INIT_panes_hide ;
 
-     pbar->pval_save[3][0][0] = pbar->pval[0] = 1.0f ;
-     pbar->pval_save[3][1][0] = pbar->pval[1] = 0.7f ;
-     pbar->pval_save[3][2][0] = pbar->pval[2] =-0.7f ;
-     pbar->pval_save[3][3][0] = pbar->pval[3] =-1.0f ;
-     pbar->ov_index[0]        = 1 ;
-     pbar->ov_index[1]        = 1 ;
-     pbar->ov_index[2]        = 1 ;
-     pbar->update_me          = 1 ;
+     AFNI_setup_inten_pbar( pbar ) ;
+
+#undef  TLC
+#define TLC 15  /* three_level color */
+
+     pbar->pval[0]     = pbar->pval_save[3][0][0] =  1.2f ;
+     pbar->pval[1]     = pbar->pval_save[3][1][0] =  1.0f ;
+     pbar->pval[2]     = pbar->pval_save[3][2][0] = -1.0f ;
+     pbar->pval[3]     = pbar->pval_save[3][3][0] = -1.2f ;
+     pbar->ov_index[0] = pbar->ovin_save[3][0][0] = TLC ;
+     pbar->ov_index[1] = pbar->ovin_save[3][1][0] = TLC-1 ;
+     pbar->ov_index[2] = pbar->ovin_save[3][2][0] = TLC ;
+     pbar->update_me   =  1 ;
+     pbar->keep_pval   =  1 ;
+     pbar->three_level = TLC ;
+
+#undef TLC
 
      (void) XtVaCreateManagedWidget(
               "dialog" , xmSeparatorWidgetClass , func->iab_rowcol ,
                   XmNseparatorType , XmSINGLE_LINE ,
               NULL ) ;
 
+     BBOX_set_wtype("font7") ;
+
      func->iab_pow_av = new_MCW_arrowval( func->iab_rowcol ,
-                                          "**" ,
+                                          " " ,
                                           AVOPT_STYLE ,
-                                          0,THR_top_expon,0 ,
+                                          -3,4,0 ,
                                           MCW_AV_notext , 0 ,
                                           NULL , (XtPointer)im3d ,
                                           AFNI_thresh_tlabel_CB , NULL ) ;
 
      func->iab_bot_av = new_MCW_arrowval( func->iab_rowcol ,
-                                          "b=" ,
+                                          "B" ,
                                           AVOPT_STYLE ,
                                           0 , 2 , 2 ,
                                           MCW_AV_notext , 0 ,
                                           NULL , (XtPointer)im3d ,
                                           MCW_av_substring_CB , bot_top_str ) ;
+     BBOX_set_wtype(NULL) ;
 
      (void) XtVaCreateManagedWidget(
               "dialog" , xmSeparatorWidgetClass , func->rowcol ,
@@ -3401,7 +3415,7 @@ STATUS("making func->rowcol") ;
    func->inten_pbar->npan_save[1] = INIT_panes_pos ;
    func->inten_pbar->hide_changes = INIT_panes_hide ;
 
-   AFNI_setup_inten_pbar( im3d ) ;  /* other setup stuff (afni_func.c) */
+   AFNI_setup_inten_pbar( func->inten_pbar ) ;  /* other setup stuff (afni_func.c) */
 
    MCW_reghelp_children( func->inten_pbar->panew ,
       "Drag the separator bars to alter the thresholds.\n"
@@ -3442,6 +3456,7 @@ STATUS("making func->rowcol") ;
                 XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
+   BBOX_set_wtype("font7") ;
    func->inten_av = new_MCW_arrowval(
                        func->inten_rowcol ,
                         "#" ,
@@ -3475,6 +3490,8 @@ STATUS("making func->rowcol") ;
                     MCW_BB_check ,
                     MCW_BB_noframe ,
                     AFNI_inten_bbox_CB , (XtPointer)im3d ) ;
+
+   BBOX_set_wtype(NULL) ;
 
    func->inten_bbox->parent = (XtPointer)im3d ;
 
@@ -6250,7 +6267,7 @@ ENTRY("AFNI_lock_button") ;
                                         "Lock V." ,
                                         "Lock P."  } ;
      GLOBAL_library.thr_lock = AFNI_thresh_lock_env_val();
-     dmode->thr_lock_bbox = 
+     dmode->thr_lock_bbox =
             new_MCW_bbox( menu ,
                           3 ,
                           thr_lock_label ,
@@ -6978,14 +6995,14 @@ int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
    RETURN(0) ;
 }
 
-/* suggest a colormap for ROI dsets */ 
-char *AFNI_smallest_intpbar(THD_3dim_dataset *dset) 
+/* suggest a colormap for ROI dsets */
+char *AFNI_smallest_intpbar(THD_3dim_dataset *dset)
 {
    float mxset;
    static int warn=0;
-   
+
    mxset = THD_dset_max(dset, 1);
-   
+
    if (mxset <= 32) {
       return("ROI_i32" ) ;
    } else if (mxset <= 64) {
@@ -6996,18 +7013,18 @@ char *AFNI_smallest_intpbar(THD_3dim_dataset *dset)
       return("ROI_i256" ) ;
    } else if (mxset > 256) {
       if (!(warn % 10)) {
-         /* You might want to override the automatic setting of the 
-         range with a call to 
-            AFNI_set_func_range_nval(pbar->parent, 
+         /* You might want to override the automatic setting of the
+         range with a call to
+            AFNI_set_func_range_nval(pbar->parent,
                            THD_dset_max(dset, 1));
             after all the bigmap setup is done ... */
          WARNING_message("Distinct values might map to the same color"
                       "in %s\n", DSET_PREFIX(dset));
       } ++ warn;
       return("ROI_i256" ) ;
-   } 
-   
-   return("ROI_i256" ) ;  
+   }
+
+   return("ROI_i256" ) ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -7044,7 +7061,7 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
          PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name) ;
       } else {
          if (1) { /* one approach */
-            PBAR_set_bigmap( im3d->vwid->func->inten_pbar , 
+            PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,
                              AFNI_smallest_intpbar(im3d->fim_now) ) ;
          } else { /* another perhaps */
             PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
@@ -7071,12 +7088,12 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
          }
          NI_free_element(nel); nel = NULL;
       }
-      
+
       if (icmap >=0 ) {
          PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name) ;
       } else {
          if (1) { /* one approach */
-            PBAR_set_bigmap( im3d->vwid->func->inten_pbar , 
+            PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,
                              AFNI_smallest_intpbar(im3d->fim_now) ) ;
          } else { /* another perhaps */
             PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
@@ -7095,7 +7112,7 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       /* use ROI_i256 for now for datasets marked as integer cmaps (even sparse ones) */
       if(im3d->fim_now->int_cmap) {
          if (1) { /* one approach */
-            PBAR_set_bigmap( im3d->vwid->func->inten_pbar , 
+            PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,
                              AFNI_smallest_intpbar(im3d->fim_now) );
          } else { /* or perhaps */
             PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;

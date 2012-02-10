@@ -2176,7 +2176,7 @@ extern char * INIT_labovr[] ;
 /**********************************************/
 /***** Setup constants for the color pbar *****/
 
-extern void AFNI_setup_inten_pbar( Three_D_View * ) ;
+extern void AFNI_setup_inten_pbar( MCW_pbar * ) ;
 
 #define DEFAULT_PANES_POS  8
 #define DEFAULT_PANES_SGN  9

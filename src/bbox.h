@@ -71,6 +71,8 @@ extern void MCW_set_bbox( MCW_bbox * , int ) ;
 extern int  MCW_val_bbox( MCW_bbox * ) ;
 extern void MCW_bbox_hints( MCW_bbox * , int , char ** ) ;
 
+extern void BBOX_set_wtype( char *wt ) ;  /* Feb 2012 */
+
 /*---------------------------------------------------------------------------------*/
 /***--- for arrowval ---***/
 
@@ -262,25 +264,28 @@ extern void   MCW_choose_vector ( Widget, char *,
 extern MCW_arrowval ** MCW_choose_vector_avarray( int *nav ) ; /* Aug 2010 */
 
 extern void   MCW_choose_string ( Widget, char *,
-                                  char *, gen_func *, XtPointer );
+                                  char *, gen_func *, XtPointer ) ;
 
 extern void   MCW_choose_strlist( Widget, char *, int, int,
-                                  char * strlist[], gen_func *, XtPointer );
+                                  char * strlist[], gen_func *, XtPointer ) ;
+
+extern void   MCW_choose_binary ( Widget, char *, int, char *, char *,
+                                  gen_func *, XtPointer ) ; /* 10 Feb 2012 */
 
 extern void   MCW_choose_multi_strlist( Widget, char *, int,
                                         int, int *, char * strlist[],
-                                        gen_func *, XtPointer  );
+                                        gen_func *, XtPointer  ) ;
 
 extern void   MCW_choose_timeseries( Widget, char *, MRI_IMARR *,
-                                     int, gen_func *, XtPointer );
+                                     int, gen_func *, XtPointer ) ;
 
 extern void MCW_choose_editable_strlist( Widget, char *,
                                          THD_string_array *,
-                                         int, gen_func *, XtPointer );
+                                         int, gen_func *, XtPointer ) ;
 
 extern void MCW_choose_multi_editable_strlist( Widget, char *, int,
                                                THD_string_array *,
-                                               int *, gen_func *, XtPointer );
+                                               int *, gen_func *, XtPointer ) ;
 
 extern void MCW_stradd_CB( Widget , XtPointer , XtPointer ) ;
 
