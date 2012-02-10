@@ -19,9 +19,10 @@ g_history = """
     0.0  22 Sep, 2011: initial revision
          - has basic 3dttest++ capabilities
     0.1  02 Feb, 2012: added basic 3dMEMA capabilities
+    0.2  10 Feb, 2012: added 'paired test' toggle box
 """
 
-g_version = '0.1 (February 2, 2012)'
+g_version = '0.2 (February 10, 2012)'
 
 # ----------------------------------------------------------------------
 # global definitions
