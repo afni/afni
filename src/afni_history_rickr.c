@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, FEB, 2012, RCR, "uber_ttest.py", MINOR, TYPE_ENHANCE,
+   "added 'paired' toggle box to GUI",
+   NULL
+ } ,
+
  { 10, FEB, 2012, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "added -check_results_dir for Z Saad",
    "Also, changed -tcat_outlier_warn_limit to -tcat_preSS_warn_limit."
