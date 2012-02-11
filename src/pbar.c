@@ -863,7 +863,7 @@ ENTRY("PBAR_show_bigmode") ;
 
 void PBAR_labelize( float val , char *buf )
 {
-   float aval = fabs(val) ;
+   float aval = fabsf(val) ;
    char prefix[4] ;
 
    if( val == 0.0  ){ strcpy(buf," 0") ; return ; }
@@ -871,9 +871,12 @@ void PBAR_labelize( float val , char *buf )
    if( val > 0.0 ) strcpy(prefix," ") ;
    else            strcpy(prefix,"-") ;
 
-        if( aval <= 9.994 ) sprintf(buf,"%s%4.2f",prefix,aval) ;
-   else if( aval <= 99.94 ) sprintf(buf,"%s%4.1f",prefix,aval) ;
-   else                     sprintf(buf,"%s%4f"  ,prefix,aval) ;
+   if( aval <=  0.9994f ){
+     sprintf(buf,"%6.4f",aval) ; buf[0] = prefix[0] ;
+   }
+   else if( aval <=  9.994f ) sprintf(buf,"%s%5.3f",prefix,aval) ;
+   else if( aval <= 99.94f  ) sprintf(buf,"%s%5.2f",prefix,aval) ;
+   else                       sprintf(buf,"%s%5f"  ,prefix,aval) ;
    return ;
 }
 

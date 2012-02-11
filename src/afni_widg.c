@@ -3011,7 +3011,7 @@ STATUS("making func->rowcol") ;
 #if 1
    if( im3d->dc->visual_class == TrueColor && AFNI_yesenv("AFNI_RANGE_PBAR") ){
 
-     char *bot_top_str[3] = { "=0" , "-T" , "=B" } ;
+     static char *bot_top_str[3] = { "0" , "-T" , "B" } ;
      MCW_pbar *pbar ;
 
      (void) XtVaCreateManagedWidget(
@@ -3077,19 +3077,19 @@ STATUS("making func->rowcol") ;
      BBOX_set_wtype("font7") ;
 
      func->iab_pow_av = new_MCW_arrowval( func->iab_rowcol ,
-                                          " " ,
+                                          "**" ,
                                           AVOPT_STYLE ,
                                           -3,4,0 ,
                                           MCW_AV_notext , 0 ,
-                                          NULL , (XtPointer)im3d ,
+                                          AFNI_iab_av_CB , (XtPointer)im3d ,
                                           AFNI_thresh_tlabel_CB , NULL ) ;
 
      func->iab_bot_av = new_MCW_arrowval( func->iab_rowcol ,
-                                          "B" ,
+                                          "B=" ,
                                           AVOPT_STYLE ,
                                           0 , 2 , 2 ,
                                           MCW_AV_notext , 0 ,
-                                          NULL , (XtPointer)im3d ,
+                                          AFNI_iab_av_CB , (XtPointer)im3d ,
                                           MCW_av_substring_CB , bot_top_str ) ;
      BBOX_set_wtype(NULL) ;
 

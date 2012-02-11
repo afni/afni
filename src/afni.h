@@ -1816,6 +1816,7 @@ extern void AFNI_inten_av_CB( MCW_arrowval * , XtPointer ) ;
 extern char * AFNI_inten_av_texter ( MCW_arrowval *, XtPointer ) ; /* 30 Jan 2003 */
 
 extern void AFNI_iab_pbar_CB( MCW_pbar * , XtPointer , int ) ;
+extern void AFNI_iab_av_CB( MCW_arrowval *av , XtPointer cd ) ;
 
 extern void   AFNI_set_thresh_top( Three_D_View * , float ) ;
 extern char * AFNI_thresh_tlabel_CB( MCW_arrowval * , XtPointer ) ;
