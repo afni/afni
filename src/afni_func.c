@@ -490,8 +490,70 @@ ENTRY("AFNI_inten_pbar_CB") ;
 void AFNI_iab_pbar_CB( MCW_pbar *pbar , XtPointer cd , int reason )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
-   FIX_SCALE_SIZE(im3d) ;
-   return ;
+
+ENTRY("AFNI_iab_pbar_CB") ;
+
+   if( pbar == NULL || !pbar->three_level || !IM3D_OPEN(im3d) ) EXRETURN ; /* error */
+
+   switch( reason ){
+
+     case pbCR_VALUE:{
+       float top,bot , ntop,nbot ;
+       ntop = top = pbar->pval[1] ; nbot = bot = pbar->pval[2] ;
+       switch( im3d->vwid->func->iab_bot_av->ival ){
+         case 1:          /* Bot = -Top */
+           if( top > 0.0f ) nbot = -top ; else ntop = -bot ;
+         break ;
+         case 0:          /* Bot = 0 */
+           if( top <= 0.0f ) ntop = -bot ;
+           nbot = 0.0f ;
+         break ;
+       }
+
+       if( ntop != top || nbot != bot ){
+         float pval[4] ;
+         pval[0] = pbar->pval[0] ; pval[3] = pbar->pval[3] ;
+         pval[1] = ntop          ; pval[2] = nbot          ;
+         alter_MCW_pbar( pbar , 0 , pval ) ;
+       }
+     }
+     break ;
+
+     case pbCR_COLOR: /* TBD */
+     break ;
+
+   }
+
+   FIX_SCALE_SIZE(im3d) ; EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void AFNI_iab_av_CB( MCW_arrowval *av , XtPointer cd )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   MCW_pbar *pbar = im3d->vwid->func->iab_pbar ;
+
+ENTRY("AFNI_iab_av_CB") ;
+
+   if( pbar == NULL ) EXRETURN ; /* error */
+
+   if( av == im3d->vwid->func->iab_pow_av ){
+     float pval[4] , fac ;
+     fac = powf(10.0f,(float)av->ival) ;
+     pval[0] =  1.2f*fac ; pval[1] =  1.0f*fac ;
+     pval[2] = -1.0f*fac ; pval[3] = -1.2f*fac ;
+     HIDE_SCALE(im3d) ;
+     alter_MCW_pbar( pbar , 0 , pval ) ;
+     FIX_SCALE_SIZE(im3d) ;
+
+   } else if( av == im3d->vwid->func->iab_bot_av ){
+
+     if( av->ival != 2 ) AFNI_iab_pbar_CB(pbar,im3d,pbCR_VALUE) ;
+
+   }
+
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------------
@@ -2883,11 +2945,11 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    /* pop up warning if necessary */
 
    if(wcall == im3d->vwid->view->choose_func_pb) {
-     AFNI_check_obliquity(wcall, 
+     AFNI_check_obliquity(wcall,
             GET_SESSION_DSET(ss_new, new_func, 0),
             GET_SESSION_DSET(ss_new, new_anat, 0) );
    } else {
-     AFNI_check_obliquity(wcall, 
+     AFNI_check_obliquity(wcall,
             GET_SESSION_DSET(ss_new, new_anat, 0),
             GET_SESSION_DSET(ss_new, new_func, 0) );
    }
@@ -2900,7 +2962,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 /*-----------------------------------------------------------*/
 /* check dataset for obliquity and pop-up warning if oblique */
 
-void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset, 
+void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset,
                           THD_3dim_dataset *rset)
 {
    double angle;
@@ -2917,20 +2979,20 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset,
 
    angle = dset_obliquity_angle_diff(dset, rset, 0.01);
    if(angle == 0.0) EXRETURN ;
-   
+
    /* A simple way to keep AFNI form complaining about obliquity all the time */
-   sid1= DSET_IDCODE_STR(dset); 
+   sid1= DSET_IDCODE_STR(dset);
    if (rset) sid2 = DSET_IDCODE_STR(rset);
    else sid2 = "NA";
-   if (!sid1) sid1="NO_ID1"; 
-   if (!sid2) sid2="NO_ID2"; 
-   
+   if (!sid1) sid1="NO_ID1";
+   if (!sid2) sid2="NO_ID2";
+
    if (strcmp(sid1,sid2)<0) {
       sprintf(sidcombo,"-%s_WITH_%s-", sid1, sid2);
    } else {
       sprintf(sidcombo,"-%s_WITH_%s-", sid2, sid1);
    }
-   
+
    if (!warncombos) {
       warncombos = (char *)malloc(sizeof(char)*(strlen(sidcombo)+1));
       strcpy(warncombos,sidcombo);
@@ -2942,7 +3004,7 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset,
          warncombos = strcat(warncombos, sidcombo);
       }
    }
-    
+
    if (AFNI_yesenv("AFNI_ONE_OBLIQUE_WARNING")) {
       snprintf( str, 1022*sizeof(char),
    " The underlay/overlay pair of datasets (%s/%s) have oblique angle \n"
