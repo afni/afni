@@ -2490,26 +2490,26 @@ SUMA_MenuItem DsetViewMode_Menu[] = {
 };
 
 SUMA_MenuItem DrawROI_SaveMode_Menu[]= {
-   {  "1D", &xmPushButtonWidgetClass, 
-      '\0', NULL, NULL, 
-      SUMA_cb_SetDrawROI_SaveMode, (XtPointer) SW_DrawROI_SaveMode1D, NULL},
-   
    {  "NIML", &xmPushButtonWidgetClass, 
       '\0', NULL, NULL, 
       SUMA_cb_SetDrawROI_SaveMode, (XtPointer) SW_DrawROI_SaveModeNIML, NULL},
+   
+   {  "1D", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetDrawROI_SaveMode, (XtPointer) SW_DrawROI_SaveMode1D, NULL},
    
    {NULL},
 };
 
 SUMA_MenuItem DrawROI_SaveWhat_Menu[]= {
-   {  "This", &xmPushButtonWidgetClass, 
-      '\0', NULL, NULL, 
-      SUMA_cb_SetDrawROI_SaveWhat, (XtPointer) SW_DrawROI_SaveWhatThis, NULL},
-   
    {  "All", &xmPushButtonWidgetClass, 
       '\0', NULL, NULL, 
       SUMA_cb_SetDrawROI_SaveWhat, (XtPointer) SW_DrawROI_SaveWhatRelated, NULL},
          
+   {  "This", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetDrawROI_SaveWhat, (XtPointer) SW_DrawROI_SaveWhatThis, NULL},
+   
    {NULL},
 };
 

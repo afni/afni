@@ -82,15 +82,22 @@ char * THD_abindir (byte withslash)
     If not, NULL is returned.
     If it exists, a pointer to malloc-ed storage is returned
     (e.g., free it when you are done).
+    
+    thispath is a user supplied ':' delimited path string of the form
+      somewhere/here:/over/there . If null then path is taken from 
+      the env PATH
 ------------------------------------------------------------------------------*/
 
-char * THD_find_regular_file( char *ename )
+char * THD_find_regular_file( char *ename, char *thispath )
 {
    char *fullname , *str ;
    int id , ii ;
    char *epath;
 ENTRY("THD_find_regular_file") ;
-   epath = my_getenv( "PATH" ) ;
+   
+   if (!thispath) epath = my_getenv( "PATH" ) ;
+   else epath = thispath;
+   
    if( epath != NULL ){
       int epos =0 , ll = strlen(epath) ;
       char *elocal ;
@@ -114,8 +121,8 @@ ENTRY("THD_find_regular_file") ;
          if( ii < 1 ) break ;  /* no read ==> end of work */
          epos += id ;          /* epos = char after last one scanned */
 
-         ii = strlen(dirname) ;                         /* make sure name has */
-         if( dirname[ii-1] != '/' ){                    /* a trailing '/' on it */
+         ii = strlen(dirname) ;                      /* make sure name has */
+         if( dirname[ii-1] != '/' ){                 /* a trailing '/' on it */
             dirname[ii]  = '/' ; dirname[ii+1] = '\0' ;
          }
          if( !THD_is_directory(dirname) ) continue ;    /* 25 Feb 2002 */

@@ -2928,6 +2928,17 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 
 #define DSET_NVOX(ds) ( (ds)->daxes->nxx * (ds)->daxes->nyy * (ds)->daxes->nzz )
 
+/*! Find the largest node index in dset (for surface-based dsets) */
+#define DSET_MAX_NODE(ds, MM) {\
+   int i; \
+   MM = -1; \
+   if ((ds) && (ds)->dblk && (ds)->dblk->node_list) {\
+      for (i=0; i<(ds)->dblk->nnodes; ++i) {\
+         if ((ds)->dblk->node_list[i]>MM) MM = (ds)->dblk->node_list[i];\
+      }  \
+   }  \
+}
+
 /*! Return total size of dataset in bytes. */
 
 #define DSET_TOTALBYTES(ds) ((ds)->dblk->total_bytes)
@@ -3881,7 +3892,7 @@ extern int list_afni_readmes(int withpath, int withnum);
 extern int list_afni_dsets(int withpath, int withnum);
 extern int THD_is_executable( char * pathname ) ;
 extern char * THD_find_executable( char * ) ;
-extern char * THD_find_regular_file( char * ) ;
+extern char * THD_find_regular_file( char * , char *) ;
 extern THD_string_array *get_elist(void);
 
 extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */

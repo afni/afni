@@ -2235,8 +2235,12 @@ int atlas_read_xform(NI_element *nel, ATLAS_XFORM *atlas_xf)
                      I don't think this should happen. That is what was 
                      causing the crash. Now I check for it. 
                      Under certain situations, I can generate plenty of
-                     those instances.*/
-  if (nel->vec_num && !nel->vec) {
+                     those instances. For example:
+      cd /Users/ziad/SUMA_Class_New/data/suma_demo/afni
+      3dROIstats -nzmean -nomeanout \
+                 -mask lh.OccROIs.FULL.niml.dset v2s.lh.TS.FULL.niml.dset
+   */
+  if (wami_verb() && nel->vec_num && !nel->vec) {
    WARNING_message("Strange xform nel: Have vec_num=%d but NULL nel->vec",
                    nel->vec_num);
   }

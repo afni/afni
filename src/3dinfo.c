@@ -53,6 +53,7 @@ void Syntax(void)
 "   -nti: same as -nvi\n"
 "   -ntimes: Return number of sub-bricks points in time\n"
 "        This is an option for debugging use, stay away from it.\n"
+"   -max_node: For a surface-based dset, return the maximum node index\n"
 "   -di: Signed displacement per voxel along i direction, aka dx\n"
 "   -dj: Signed displacement per voxel along j direction, aka dy\n"
 "   -dk: Signed displacement per voxel along k direction, aka dz\n"
@@ -181,7 +182,7 @@ THD_3dim_dataset *load_3dinfo_dataset(char *name)
 typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI, DSET_EXISTS,
    IS_ATLAS, IS_OBLIQUE, OBLIQUITY, PREFIX , PREFIX_NOEXT, 
-   NI, NJ, NK, NT, NTI, NTIMES,
+   NI, NJ, NK, NT, NTI, NTIMES, MAX_NODE, 
    NV, NVI, NIJK, 
    N4,
    DI, DJ, DK, D3,
@@ -201,7 +202,7 @@ typedef enum {
 char Field_Names[][32]={
    {"-classic-"}, {"space"}, {"AV_spc"}, {"nifti?"}, {"exist?"},
    {"atlas?"}, {"oblq?"}, {"oblq"}, {"prefix"}, {"pref_nx"}, 
-   {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, 
+   {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, {"MxNode"},
    {"Nv"}, {"Nvi"}, {"Nijk"}, 
    {"Ni_Nj_Nk_Nv"},
    {"Di"}, {"Dj"}, {"Dk"}, {"Di_Dj_Dk"},
@@ -255,7 +256,7 @@ int main( int argc , char *argv[] )
    char *NAflag = {"NA"};
    char *atrdelim = {"\t"}, *form=NULL;
    INFO_FIELDS sing[512]; 
-   int iis=0, N_sing = 0, isb=0, withhead = 0;
+   int iis=0, N_sing = 0, isb=0, withhead = 0, itmp=0;
    int ip=0, needpair = 0, namelen=0, monog_pairs = 0;
    THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
    
@@ -379,6 +380,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = NVI; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-ntimes") == 0) {
          sing[N_sing++] = NTIMES; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-max_node") == 0) {
+         sing[N_sing++] = MAX_NODE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-nijk") == 0) {
          sing[N_sing++] = NIJK; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-labeltable") == 0) {
@@ -686,6 +689,10 @@ int main( int argc , char *argv[] )
             break;
          case NTIMES:
             fprintf(stdout,"%d", DSET_NUM_TIMES(dset));
+            break;
+         case MAX_NODE:
+            DSET_MAX_NODE(dset,itmp);
+            fprintf(stdout,"%d", itmp);
             break;
          case NT:
          case NV:
