@@ -2018,13 +2018,16 @@ char *find_atlas_niml_file(char * nimlname, int niname)
       if(wami_verb() > 1) 
          INFO_message("trying to open %s in AFNI_PLUGINPATH directory %s\n",
               nimlname, epath);   
-      if(epath[strlen(epath)-1]!='/')
-         snprintf(namebuf, 1000*sizeof(char),
-                  "%s/%s", epath, nimlname);
-      else
-         snprintf(namebuf, 1000*sizeof(char),
-                  "%s%s", epath, nimlname);
-      if (THD_is_file(namebuf)) goto GOTIT;
+      fstr = THD_find_regular_file(nimlname, epath);
+      if(fstr) {
+         if(wami_verb() > 1)
+            INFO_message("found %s in %s", nimlname, fstr);
+         snprintf(namebuf, 1000*sizeof(char), "%s", fstr);
+         if (THD_is_file(namebuf)) goto GOTIT;
+         if(wami_verb() > 1) 
+            INFO_message("failed to open %s as %s\n",
+                         nimlname, namebuf);  
+      }
    }
 
    /* still can't find it. Maybe it's in one of the path directories */ 
@@ -2035,7 +2038,7 @@ char *find_atlas_niml_file(char * nimlname, int niname)
       INFO_message("trying to open %s in path as regular file\n  %s\n",
                      nimlname, epath);   
 
-   fstr = THD_find_regular_file(nimlname);
+   fstr = THD_find_regular_file(nimlname, epath);
    if(fstr) {
       if(wami_verb() > 1)
          INFO_message("found %s in %s", nimlname, fstr);
@@ -6040,7 +6043,7 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
    if( epath == NULL ) RETURN(NULL) ;  /* this is bad-who doesn't have a path?*/
 
    /* use function that looks for regular files in path */
-   fstr = THD_find_regular_file(dsetname);
+   fstr = THD_find_regular_file(dsetname, epath);
    if(fstr) {       
       dset = get_atlas( NULL, fstr);
       if(dset) RETURN(dset);

@@ -688,6 +688,16 @@ typedef struct {
    #define SDSET_NODEINDFILLED(dset) dset->inel->vec_filled
    #define SDSET_NODE_INDEX_COL(dset) ( (!dset || !dset->inel || !dset->inel->vec) ? NULL:(int*)(dset->inel->vec[0]) )
 #endif
+
+#define DSET_MAX_NODE_INDEX(dset, MM) {\
+   double r[2]; int loc[2];   \
+   if (!SUMA_GetDsetNodeIndexColRange( dset, r, loc, 1)) {  \
+      MM = -1; \
+   } else { \
+      MM = (int)r[1];   \
+   }  \
+}
+
 /*!
    \brief Macros to access commonly used colorplane parameters
    DO NOT USE COLP_NODEDEF macro inside a loop where the returned
@@ -1338,6 +1348,7 @@ NI_element *SUMA_FindDsetAttributeElement(SUMA_DSET *dset, char *attname);
 NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname);
 NI_element *SUMA_FindNgrDataElement(NI_group *ngr, char *nelname, char *typename);
 float SUMA_LatestVersionNumber(void);
+int SUMA_IcoNums(int depth, byte bin, char what);
 char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp);
 SUMA_DSET_TYPE SUMA_Dset_Type (char *Name);
 char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp);

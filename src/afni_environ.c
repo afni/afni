@@ -302,7 +302,16 @@ char *get_gopt_help() {
 "            setting environment variable AFNI_GUI_EDITOR.\n"
 "   -skip_afnirc: Do not read the afni resource (like ~/.afnirc) file.\n"
 "   -pad_to_node NODE: Output a full dset from node 0 to MAX_NODE-1\n"
-"                      This option is surface-based datasets only.\n"
+"                   ** Instead of directly setting NODE to an integer you \n"
+"                      can set NODE to something like:\n"
+"                   ld120 (or rd17) which sets NODE to be the maximum \n"
+"                      node index on an Icosahedron with -ld 120. See \n"
+"                      CreateIcosahedron for details.\n"
+"                   d:DSET.niml.dset which sets NODE to the maximum node found\n"
+"                      in dataset DSET.niml.dset.\n" 
+"                   ** This option is for surface-based datasets only.\n"
+"                      Some programs may not heed it, so check the output if\n"
+"                      you are not sure.\n"
 "   -pif SOMETHING: Does absolutely nothing but provide for a convenient\n"
 "                   way to tag a process and find it in the output of ps -a\n"
 "   -echo_edu: Echos the entire command line to stdout (without -echo_edu)\n"
@@ -437,11 +446,50 @@ int AFNI_prefilter_args( int *argc , char **argv )
      if( strcmp(argv[ii],"-pad_to_node") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -pad_to_node\n",ii) ;
        if (ii+1 >= narg) {
-         fprintf(stderr,"** -pad_to_node needs a positive integer.\n");
+         fprintf(stderr,"** -pad_to_node needs a positive integer,\n"
+                        "   or standard mesh description such as ld120\n");
          exit(1);
        }
        used[ii] = 1 ; ii++;
-       MRILIB_DomainMaxNodeIndex = atoi(argv[ii]);
+       
+       if (!strncasecmp(argv[ii],"ld",2)) {
+         if (strlen(argv[ii]) < 3) {
+            fprintf(stderr,"** need a number right after ld (like ld120)\n");
+            exit(1);
+         }
+         MRILIB_DomainMaxNodeIndex = SUMA_IcoNums(atoi(argv[ii]+2), 0, 'n')-1;
+         if( ttt ) fprintf(stderr, "ld pad_to_node %d\n", 
+                                    MRILIB_DomainMaxNodeIndex);
+       } else if (!strncasecmp(argv[ii],"rd",2)) {
+         if (strlen(argv[ii]) < 3) {
+            fprintf(stderr,"** need a number right after rd (like rd6)\n");
+            exit(1);
+         }
+         MRILIB_DomainMaxNodeIndex = SUMA_IcoNums(atoi(argv[ii]+2), 1, 'n')-1;
+         if( ttt ) fprintf(stderr, "rd pad_to_node %d\n", 
+                                    MRILIB_DomainMaxNodeIndex);
+       } else if (!strncasecmp(argv[ii],"d:",2)) {
+         THD_3dim_dataset *dset=NULL;
+         if (strlen(argv[ii]) < 3) {
+            fprintf(stderr,
+               "** need a dataset right after d: (like d:hello.niml.dset)\n");
+            exit(1);
+         }
+         dset = THD_open_dataset(argv[ii]+2);
+         if (dset) { 
+            DSET_MAX_NODE(dset, MRILIB_DomainMaxNodeIndex); 
+            DSET_delete(dset); dset = NULL;
+            if( ttt ) fprintf(stderr, "d: pad_to_node %d\n", 
+                                    MRILIB_DomainMaxNodeIndex);         
+         } else {
+            fprintf(stderr,"** Could not load dset %s to determine padding\n",
+                           argv[ii]+2);
+         } 
+       } else {
+         MRILIB_DomainMaxNodeIndex = atoi(argv[ii]);
+         if( ttt ) fprintf(stderr, "pad_to_node %d\n", 
+                                    MRILIB_DomainMaxNodeIndex);     
+       }
        if (MRILIB_DomainMaxNodeIndex < 0) {
          fprintf(stderr,"** parameter for -pad_to_node (%d) is negative!\n",
                         MRILIB_DomainMaxNodeIndex);

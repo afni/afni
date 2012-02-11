@@ -2357,8 +2357,8 @@ SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void)
    DrawROI->curDrawnROI = NULL;  /* DO NOT FREE THIS POINTER */
    DrawROI->SwitchROIlst = NULL;
    DrawROI->Delete_first = YUP;
-   DrawROI->SaveMode = SW_DrawROI_SaveMode1D;
-   DrawROI->SaveWhat = SW_DrawROI_SaveWhatThis;
+   DrawROI->SaveMode = SW_DrawROI_SaveModeNIML;
+   DrawROI->SaveWhat = SW_DrawROI_SaveWhatRelated;
    DrawROI->WhatDist = SW_DrawROI_WhatDistNothing;
    return (DrawROI);
 }
