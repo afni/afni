@@ -72,12 +72,12 @@ afni_history_struct ziad_history[] = {
    "recording (OS X and Linux), and the oversampling.\n"
  },
  
- { 09, FEB , 2012 , ZSS , "3dSurf2Vol" , MINOR , TYPE_NEW_OPT,
+ { 9, FEB , 2012 , ZSS , "3dSurf2Vol" , MINOR , TYPE_NEW_OPT,
    "Added -sdata, making 3dSurf2Vol compatible with multitude of surface dsets",
    NULL
  },
  
- { 07, FEB , 2012 , ZSS , "3dcopy" , MINOR , TYPE_BUG_FIX,
+ { 7, FEB , 2012 , ZSS , "3dcopy" , MINOR , TYPE_BUG_FIX,
    "Fixed problem with 3dcopy HHH.nii TTT+orig not producing output",
    "Problem was caused by new change to EDIT_empty_copy() which\n"
    "assigned storage mode to that of input dset instead of STORAGE_BY_BRICK\n"
@@ -85,33 +85,33 @@ afni_history_struct ziad_history[] = {
    "EDIT_dset_items()\n"
  },
  
- { 07, FEB , 2012 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
+ { 7, FEB , 2012 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
    "Added -bkg_col and -autorecord options",
    NULL
  },
  
- { 07, FEB , 2012 , ZSS , "SurfMeasures" , MINOR , TYPE_NEW_OPT,
+ { 7, FEB , 2012 , ZSS , "SurfMeasures" , MINOR , TYPE_NEW_OPT,
    "Added -out option to handle output in various formats.",
    "Also added -func ALL option.\n"
  },
- 
- { 06, FEB , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+
+ { 6, FEB , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Added automatic sub-brick selection matching IxT in interface",
    "Also see corresponding env var: SUMA_IxT_LinkMode\n"
  },
  
- { 06, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
+ { 6, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
    "Improved (I hope) sub-brick labels. Added FDR to.",
    "Same improvements to all 3dANOVA programs.\n"
  },
  
- { 06, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
+ { 6, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
    "Fixed comaptibility with .niml.dset data",
    "This required more improvements (I hope) to THD_init_diskptr_names() and\n"
    "EDIT_empty_copy() for surface-based datasets.\n"
  },
  
- { 06, FEB , 2012 , ZSS , "3drefit" , MINOR , TYPE_BUG_FIX,
+ { 6, FEB , 2012 , ZSS , "3drefit" , MINOR , TYPE_BUG_FIX,
    "3drefit was failing on the view change when target dset is under a path.",
    "Prolem was with default catenation of path to DSET_BRIKNAME and \n"
    "DSET_HEADNAME. Those now contain the path automatically.\n"
