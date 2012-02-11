@@ -77,10 +77,16 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                            MAX_INDEX + 1 nodes). Nodes that\n"
 "                            get no value from input DSET are\n"
 "                            assigned a value of 0\n"
-"                            Notice that padding get done at the\n"
-"                            very end.\n"
-"                      If MAX_INDEX is set to 0 it means you want\n"
-"                      to pad the maximum node in the input dataset.\n"      
+"                            If MAX_INDEX is set to 0 it means you want\n"
+"                            to pad the maximum node in the input dataset.\n"
+"             ** Notice that padding gets done at the very end.\n"
+"             ** Instead of directly setting MAX_INDEX to an integer you \n"
+"                can set MAX_INDEX to something like:\n"
+"             ld120 (or rd17) which sets MAX_INDEX to be the maximum \n"
+"                node index on an Icosahedron with -ld 120. See \n"
+"                CreateIcosahedron for details.\n"
+"             d:DSET.niml.dset which sets MAX_INDEX to the maximum node found\n"
+"                      in dataset DSET.niml.dset.\n"       
 "\n"
 "     -i_TYPE: TYPE of input datasets\n"
 "              where TYPE is one of:\n"
@@ -95,7 +101,12 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "     -prefix OUT_PREF: Output prefix for data set.\n"
 "                       Default is something based\n"
 "                       on the input prefix.\n"
-"     -split N: Split the output dataset into N separate datasets.\n"
+"     -split N: Split a multi-column dataset into about N output datasets\n"
+"               with all having the same number of columns, except perhaps\n"
+"               for the last one. Confused? try:\n"
+"               ConvertDset -i v2s.lh.TS.niml.dset -split 3 \\\n"
+"                           -prefix Split3\n"
+"               3dinfo -n4 -label Split3.000* v2s.lh.TS.niml.dset\\\n"
 "     -no_history: Do not include a history element in the output\n"
 "  Notes:\n"
 "     -This program will not overwrite pre-existing files.\n"  
@@ -402,15 +413,17 @@ int main (int argc,char *argv[])
             exit(1);
          }
       }
-      
+             
       if (pad_to_node == 0) {
-         double r[2]; int loc[2];
-         if (!SUMA_GetDsetNodeIndexColRange( dset, r, loc, 1)) {
-            SUMA_S_Err( "Failed to get max node index in input dset.\n"
-                        "Cannot set pad_to_node automatically\n");
+         DSET_MAX_NODE_INDEX(dset, pad_to_node);
+         if (pad_to_node < 0) {
+            SUMA_S_Err( "Failed to get max node index in input dset.\n" 
+                  "Cannot set pad_to_node automatically\n");   
             exit(1);
          }
-         pad_to_node = (int)r[1];
+      }
+      if (pad_to_node > 0) {
+         SUMA_S_Notev("Padding output dset until node %d\n", pad_to_node);
       }
        
       SUMA_LHv("On to auto_nmask ...%p %p %p\n", 
@@ -545,6 +558,7 @@ int main (int argc,char *argv[])
             memset(colmask, 0, sizeof(byte)*SDSET_VECNUM(dset));
             ikp = ksp*nsplits; 
             ikps = SUMA_MIN_PAIR(SDSET_VECNUM(dset), (ksp+1)*nsplits);
+            if (ikp == ikps) continue; /* all one */
             while (ikp < ikps) colmask[ikp++]=1;
             prefs = SUMA_RemoveDsetExtension_eng(prefix,SUMA_NO_DSET_FORMAT);
             prefs = SUMA_append_replace_string(prefs,cbuf,".", 1);

@@ -236,15 +236,9 @@ int main (int argc, char *argv[])
    if (NumOnly) {
       /* output counts and quit */
       int Ntri, Nedge, Nvert;
-      if (strcmp(bin, "y") == 0) {
-         Nvert = (int)(pow(2, (2*depth)))*10 + 2;
-         Ntri = (int)(pow(2, (2*depth)))*20;
-         Nedge = (int)(pow(2, (2*depth)))*30;
-      } else {
-         Nvert = 2 + (10 * depth * depth);
-         Ntri = 20 * depth * depth;
-         Nedge = 30 * depth * depth; 
-      }
+         Nvert = SUMA_IcoNums(depth, !strcmp(bin, "y"), 'v');
+         Ntri = SUMA_IcoNums(depth, !strcmp(bin, "y"), 't');
+         Nedge = SUMA_IcoNums(depth, !strcmp(bin, "y"), 'e');
       
       SUMA_ICOSAHEDRON_DIMENSIONS(r, a, b, lgth);
       A = 1/4.0 * lgth * lgth * sqrt(3.0);   

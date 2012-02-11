@@ -92,7 +92,8 @@ void usage_3dROIstats(int detail) {
 "                 invocations of 3dROIstats.  Confused?  Then don't use\n"
 "                 this option!\n"
 "  -zerofill ZF   For ROI labels not found, use 'ZF' instead of a blank\n"
-"                 in the output file. This option is useless without -numROI\n"
+"                 in the output file. This option is useless without -numROI.\n"
+"                 The option -zerofill defaults to '0'.\n"
 "\n"
 "  -roisel SEL.1D Only considers ROIs denoted by values found in SEL.1D\n"
 "                 Note that the order of the ROIs as specified in SEL.1D\n"
@@ -168,11 +169,11 @@ int main(int argc, char *argv[])
     byte *roisel=NULL;
     char sbuf[257]={""};
     char sklab[128]={""};
-    char zerofill[32]={" "};
+    char zerofill[32]={"0"};
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-   machdep() ; AFNI_logger("3dROIstats",argc,argv) ;
+   mainENTRY("3dROIstats");machdep() ; AFNI_logger("3dROIstats",argc,argv) ;
 
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
@@ -344,7 +345,7 @@ int main(int argc, char *argv[])
 	/* added 5/00 */
 	if (strncmp(argv[narg], "-numROI", 5) == 0) {
 	    force_num_ROI = (int) atol(argv[++narg]);
-	    narg++;
+       narg++;
 	    continue;
 	}
 	if (strncmp(argv[narg], "-zerofill", 5) == 0) {
@@ -615,8 +616,9 @@ int main(int argc, char *argv[])
 	    continue;
 	}
 	if (DSET_NVOX(input_dset) != nvox) {
-	    WARNING_message("Input dataset %s is different size than mask - skipping",
-                       argv[narg]);
+	    WARNING_message(
+         "Dataset %s has %d voxels/nodes while the mask has %d - skipping",
+                       argv[narg], DSET_NVOX(input_dset), nvox);
 	    continue;
 	}
    if( !EQUIV_GRIDS(mask_dset,input_dset) )

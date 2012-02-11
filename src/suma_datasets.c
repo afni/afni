@@ -3114,6 +3114,13 @@ SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex )
       SUMA_RETURN(NULL);
    }
    
+   DSET_MAX_NODE_INDEX(odset, i);
+   if (MaxNodeIndex < i) {
+      SUMA_S_Errv("MaxNodeIndex =%d but dset has nodes up to %d\n",
+                  MaxNodeIndex, i);
+      SUMA_RETURN(NULL);
+   } 
+   
    /* form new indices */
    if (!(indnew = (int *)SUMA_calloc(MaxNodeIndex+1, sizeof(int)))) {
       SUMA_S_Crit("Failed to allocate for indnew!");
@@ -11815,11 +11822,53 @@ float SUMA_fdrcurve_zval( SUMA_DSET *dset , int iv , float thresh )
 
 
 
-/*********************** BEGIN Miscellaneous support functions **************************** */
+/*********************** BEGIN Miscellaneous support functions ************** */
 /* A few functions that are useful without having to link and include all of SUMA's structures */
 static int no_suma_rc_found;
 
 int NoSumaRcFound (void) { return (no_suma_rc_found);}
+
+/*!
+   Return number of Icosahedron
+   depth (int) depth of subdivision (value of -ld or -rd in  CreateIcosahedron)
+   bin (byte) 1 --> equiv to -rd in CreateIcosahedron
+              0 -->          -ld in CreateIcosahedron
+   what (char) 'v' or 'n' :return number of nodes
+               't': return number of triangles
+               'e': return number of edges
+*/
+int SUMA_IcoNums(int depth, byte bin, char what) {
+   int dd=-1;
+   if (depth < 0) return (dd);
+   if (bin) { /* binary subdivisions */
+      switch (what){
+         case 'v':
+         case 'n':
+            dd = (int)(pow(2, (2*depth)))*10 + 2;
+            break;
+         case 't':
+            dd = (int)(pow(2, (2*depth)))*20;
+            break;
+         case 'e':
+            dd = (int)(pow(2, (2*depth)))*30;
+            break;
+      }
+   } else { /* linear subdivisions */
+      switch (what){
+         case 'v':
+         case 'n':
+            dd = 2 + (10 * depth * depth);
+            break;
+         case 't':
+            dd = 20 * depth * depth;
+            break;
+         case 'e':
+            dd = 30 * depth * depth;
+            break;
+      }
+   }
+   return(dd);
+}
 
 /*!
    \brief load the environment varaibles first from 

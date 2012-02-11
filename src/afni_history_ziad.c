@@ -65,6 +65,18 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+
+ { 10, FEB , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Improved snapshot making. Previous bugs were caused by buffer swap problems",
+   "This fixed (I hope for good), problems of recording ('r'), continuous \n"
+   "recording (OS X and Linux), and the oversampling.\n"
+ },
+ 
+ { 09, FEB , 2012 , ZSS , "3dSurf2Vol" , MINOR , TYPE_NEW_OPT,
+   "Added -sdata, making 3dSurf2Vol compatible with multitude of surface dsets",
+   NULL
+ },
+ 
  { 07, FEB , 2012 , ZSS , "3dcopy" , MINOR , TYPE_BUG_FIX,
    "Fixed problem with 3dcopy HHH.nii TTT+orig not producing output",
    "Problem was caused by new change to EDIT_empty_copy() which\n"
