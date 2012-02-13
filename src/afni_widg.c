@@ -2982,7 +2982,7 @@ STATUS("making func->rowcol") ;
 
    /** Jul 1997: optmenu to choose top value for scale **/
 
-   BBOX_set_wtype("font7") ;
+   BBOX_set_wtype("font8") ;
    func->thr_top_av = new_MCW_arrowval( func->thr_rowcol ,
                                         "**" ,
                                         AVOPT_STYLE ,
@@ -3008,7 +3008,7 @@ STATUS("making func->rowcol") ;
    sel_height -= (8+view_height/view_count) * 0.5 ;
 
    /*--- widgets for setting the range of the continuous intensity pbar [09 Feb 2012] ---*/
-#if 1
+#if 0
    if( im3d->dc->visual_class == TrueColor && AFNI_yesenv("AFNI_RANGE_PBAR") ){
 
      static char *bot_top_str[3] = { "0" , "-T" , "B" } ;
@@ -3074,7 +3074,7 @@ STATUS("making func->rowcol") ;
                   XmNseparatorType , XmSINGLE_LINE ,
               NULL ) ;
 
-     BBOX_set_wtype("font7") ;
+     BBOX_set_wtype("font8") ;
 
      func->iab_pow_av = new_MCW_arrowval( func->iab_rowcol ,
                                           "**" ,
@@ -3456,7 +3456,7 @@ STATUS("making func->rowcol") ;
                 XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
-   BBOX_set_wtype("font7") ;
+   BBOX_set_wtype("font8") ;
    func->inten_av = new_MCW_arrowval(
                        func->inten_rowcol ,
                         "#" ,
@@ -4217,7 +4217,7 @@ STATUS("making func->rowcol") ;
 
    func->bkgd_lab =
       XtVaCreateWidget(
-         "dialog" , xmLabelWidgetClass , func->options_rowcol ,
+         "font8" , xmLabelWidgetClass , func->options_rowcol ,
             XmNrecomputeSize , False ,
             XmNlabelString , xstr ,
             XmNmarginHeight, 0 ,
