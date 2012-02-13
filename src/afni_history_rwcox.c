@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 8 , FEB , 2012 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+  { 13 , FEB , 2012 , RWC , "3dPeriodogram" , MICRO , TYPE_BUG_FIX ,
+   "pfact was not static" ,
+   "But apparently worked OK until Ziad initialized it to zero." } ,
+
+ { 8 , FEB , 2012 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Add ability to flip colors in a discrete paned pbar" ,
    "And a 'Flip Colors' button to do so." } ,
 
