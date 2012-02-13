@@ -174,7 +174,7 @@ int main( int argc , char *argv[] )
 
    if( gfft <= 0 ) gfft = csfft_nextup_even(nvals) ;
    nbin = gfft / 2 ;
-   INFO_message("Dataset Lengths: Input=%d FFT=%d  Output=%d" ,
+   INFO_message("Dataset Lengths: Input=%d  FFT=%d  Output=%d" ,
                 nvals, gfft, nbin ) ;
 
    /*------------- ready to compute new dataset -----------*/
@@ -227,12 +227,12 @@ static void PGRAM_tsfunc( double tzero, double tdelta ,
 {
    static float    *tar=NULL ;
    static complex *cxar=NULL ;
-   static int     first=1 ;
+   static int      first=1 , nallz=0 , noutz=0 , nvox=0 ;
+   static float    pfact=0.0f ;
 
    int nbin=nbrik , nfft=gfft ;
-   float pfact=0.0 ;
 
-   register int kk ;
+   register int kk ; int nz ;
 
 ENTRY("PGRAM_tsfunc") ;
 
@@ -245,7 +245,11 @@ ENTRY("PGRAM_tsfunc") ;
 
         if( tar  != NULL ){ free(tar) ; tar  = NULL; }
         if( cxar != NULL ){ free(cxar); cxar = NULL; }
-        first = 1 ;
+        if( nallz > 0 )
+          ININFO_message("%d/%d input voxel%s were all zero",nallz,nvox,((nallz==1)?"\0":"s")) ;
+        if( noutz > 0 )
+          ININFO_message("%d/%d output voxel%s were all zero",noutz,nvox,((noutz==1)?"\0":"s")) ;
+        first = 1 ; nallz = noutz = nvox = 0 ; pfact = 0.0f ;
 
       }
       EXRETURN ;
@@ -275,15 +279,17 @@ ENTRY("PGRAM_tsfunc") ;
      }
      pfact = 1.0f / pfact ;
      first = 0 ;
-     if( ntaper > 0 )
-       ININFO_message("Taper length at each end of data = %d",ntaper) ;
+     ININFO_message("Taper length at each end of data = %d",ntaper) ;
    }
 
    /** do the work **/
 
+   nvox++ ;
+
    for( kk=0 ; kk < npts && ts[kk] == 0.0f ; kk++ ) ; /*nada*/
    if( kk == npts ){
      for( kk=0 ; kk < nbin ; kk++ ) val[kk] = 0.0f ;  /* input was all zero */
+     nallz++ ;
      EXRETURN ;
    }
 
@@ -295,9 +301,11 @@ ENTRY("PGRAM_tsfunc") ;
 
    csfft_cox( -1 , nfft , cxar ) ;
 
-   for( kk=0 ; kk < nbin ; kk++ ){
+   for( nz=kk=0 ; kk < nbin ; kk++ ){
      val[kk] = CSQR(cxar[kk+1]) * pfact ;
+     if( val[kk] == 0.0f ) nz++ ;
    }
+   if( nz == nbin ) noutz++ ;
 
    EXRETURN ;
 }
