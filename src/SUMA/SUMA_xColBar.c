@@ -6209,7 +6209,7 @@ SUMA_Boolean SUMA_UpdateCrossHairNodeLabelField(SUMA_SurfaceViewer *sv)
    static char FuncName[]={"SUMA_UpdateCrossHairNodeLabelField"};
    char *lbls=NULL;
    SUMA_SurfaceObject *SO=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
       

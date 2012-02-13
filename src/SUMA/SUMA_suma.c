@@ -168,6 +168,8 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "   [-dev]: Allow access to options that are not well polished for\n"
 "           mass consuption.\n"   
 "   [-update_env] Performs the set operations detailed under -environment\n"
+"   [-default_env] Output hard coded default environment values, ignoring\n"
+"                  user settings.\n"
 "   [-latest_news] Shows the latest news for the current \n"
 "                  version of the entire SUMA package.\n"
 "   [-all_latest_news] Shows the history of latest news.\n"
@@ -504,20 +506,35 @@ int main (int argc,char *argv[])
 		}
       
       if (strcmp(argv[kar], "-environment") == 0) {
-			 s = SUMA_env_list_help ();
+			 s = SUMA_env_list_help (0);
           fprintf (SUMA_STDOUT,  
-                  "#SUMA DEFAULT ENVIRONMENT \n"
-                  "# If you do not have a ~/.sumarc\n"
+                  "#SUMA ENVIRONMENT \n"
+                  "# If you do not have a ~/.sumarc, \n"
                   "# or you want to update yours with\n"
-                  "# new variables, while keeping your\n"
+                  "# new variables while keeping your\n"
                   "# settings intact, you can use: \n"
-                  "# suma -environment > ~/sumarc && mv ~/sumarc ~/.sumarc \n"
+                  "#    suma -environment > ~/sumarc && mv ~/sumarc ~/.sumarc \n"
+                  "# \n"
+                  "# or more simply:\n"
+                  "#    suma -update_env\n"
+                  "***ENVIRONMENT\n"
+                  "%s\n", s); 
+          SUMA_free(s); s = NULL;
+          exit (0);
+		}
+      
+      if (strcmp(argv[kar], "-default_env") == 0) {
+			 s = SUMA_env_list_help (1);
+          fprintf (SUMA_STDOUT,  
+                  "#SUMA DEFAULT ENVIRONMENT (user settings ignored)\n"
+                  "# see also suma -udate_env or suma -environment\n"
                   "# \n"
                   "***ENVIRONMENT\n"
                   "%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
 		}
+      
       if (strcmp(argv[kar], "-update_env") == 0) {
 			 if (system("suma -environment > ___sumarc")) {
             SUMA_S_Err("Failed to create env file.");

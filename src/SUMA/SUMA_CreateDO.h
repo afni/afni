@@ -11,7 +11,8 @@ typedef struct {
    byte DoCenter; /* calculate center ? */
    float LargestBoxSize;
 } SUMA_NEW_SO_OPT; 
-
+NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
+                                          int N_do, SUMA_SurfaceViewer *sv );
 SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void);
 SUMA_NEW_SO_OPT *SUMA_FreeNewSOOpt(SUMA_NEW_SO_OPT *nsopt);
 SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, int N_FaceSet, SUMA_NEW_SO_OPT *nsooptu);

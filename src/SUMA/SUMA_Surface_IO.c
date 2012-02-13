@@ -7658,14 +7658,14 @@ SUMA_FORM_AFNI_DSET_STRUCT *SUMA_Free_FormAfniDset_Opt(SUMA_FORM_AFNI_DSET_STRUC
       datum: output data type: MRI_short(default), MRI_byte, MRI_float only.
       dval: Default data value (default 1). Used if vals is NULL
       fval: Default fill value (default 0). 
-      mmask: (byte *) mask of (dimen_ii*dimen_jj*dimen_kk x 1) values always. This can
-                      be used to pass a predefined mask. NULL if not
-                      interested in it. Cannot specify it along with mask
-                      option above. If both NodeList and Vals are null, then
-                      mmask is used as data, replaces vals in a way. If mmask points
-                      to non NULL, the memory at that pointer is freed when Opt is freed.
+      mmask: (byte *) mask of (dimen_ii*dimen_jj*dimen_kk x 1) values always. 
+             This can be used to pass a predefined mask. NULL if not
+             interested in it. Cannot specify it along with mask
+             option above. If both NodeList and Vals are null, then
+             mmask is used as data, replaces vals in a way. If mmask points
+             to non NULL, the memory at that pointer is freed when Opt is freed.
       full_list: 1 = full list, coordinates are inferred from 1D index of array.
-                     N_vals == dimen_ii*dimen_jj*dimen_kk. Requires NodeList == NULL
+                  N_vals == dimen_ii*dimen_jj*dimen_kk. Requires NodeList == NULL
                  0 = not a full list NodeList != NULL
       exists: A flag that indicates upon returning from this function whether the 
                dset's name exists already or not.
@@ -7675,8 +7675,8 @@ SUMA_FORM_AFNI_DSET_STRUCT *SUMA_Free_FormAfniDset_Opt(SUMA_FORM_AFNI_DSET_STRUC
    - See  SUMA_Free_FormAfniDset_Opt for freeing Opt and its contents
    
    \return dset (THD_3dim_dataset *) output dset.
-                                     Write it to disk with :   DSET_write(dset) ;
-                                     Delete it with: DSET_delete(dset); dset = NULL;
+                      Write it to disk with :   DSET_write(dset) ;
+                      Delete it with: DSET_delete(dset); dset = NULL;
 
    - FUNCTION NOT FULLY TESTED for all options, USE WITH CARE : Feb 08 05
 */

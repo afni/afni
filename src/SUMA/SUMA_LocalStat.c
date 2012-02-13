@@ -462,7 +462,7 @@ float *SUMA_AvgGradient(SUMA_SurfaceObject *SO, float **FirstNeighbDist,
    int i=0, k=0, ki=0, ng=0, nmsk=0;
    float *gr=NULL, avg=0.0;
    double gavg=0.0; 
-   SUMA_Boolean LocalHead=YUP;
+   SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
    

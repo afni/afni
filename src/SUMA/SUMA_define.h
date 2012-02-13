@@ -2272,9 +2272,6 @@ typedef struct {
    
    SUMA_X_SurfCont *SurfCont;/*!< pointer to structure containing surface  
                                   controller widget structure */
-   NI_element *texnel;  /*!< a copy of a pointer to a texture element.
-                         This should be set only before drawing and turned
-                         back to NULL immediately after that */
    
    SUMA_DO *CommonNodeObject; /*!< a node marker which can be any of the 
                             node-based displayable objects. 
