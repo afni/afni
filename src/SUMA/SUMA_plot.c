@@ -454,7 +454,9 @@ void SUMA_memplot_clone(void *mpv)
    
    if (mp && mp->userdata) {
       mpud = (SUMA_MEMPLOT_USERDATA *)mp->userdata;
-      Sover = mpud->Sover;
+      if (!(Sover = mpud->Sover) || \
+          !Sover->rowgraph_mtd || /* trying to avoid mysterious crash */ \
+          !Sover->rowgraph_mtd->clonebut) SUMA_RETURNe; 
       /* desentize le bouton */
       XtUnmanageChild(Sover->rowgraph_mtd->clonebut); 
       /* clear content of graph structure in Sover */

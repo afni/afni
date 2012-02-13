@@ -1658,7 +1658,7 @@ char * SUMA_help_message_Info(void)
       "\n");
    SS = SUMA_StringAppend_va( SS,
                               "SUMA's list of environment variables:\n");
-   s = SUMA_env_list_help();
+   s = SUMA_env_list_help(0);
    SS = SUMA_StringAppend( SS, s); SUMA_free(s); s = NULL;
    SS = SUMA_StringAppend( SS, "\n");
    

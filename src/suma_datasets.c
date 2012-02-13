@@ -12451,7 +12451,7 @@ static ENV_SPEC envlist[] = {
       "1.0,1.0,1.0" },
    {  "Allow for replacement of pre-loaded dsets",
       "SUMA_AllowDsetReplacement",
-      "NO" },
+      "YES" },
    {  "Allow a dataset to be assigned to a surface, even if\n"
       "domain of dset is specified and different for the surface.\n"
       "Default is yes",
@@ -12479,7 +12479,7 @@ static ENV_SPEC envlist[] = {
       " to be considered the same.\n"
       " This is only useful with SUMA_AllowDsetReplacement",
       "SUMA_AllowFilenameDsetMatch",
-      "NO" },
+      "YES" },
    {  "Freeze zoom across states",
       "SUMA_FreezeFOVAcrossStates",
       "NO" },
@@ -12688,7 +12688,7 @@ int SUMA_EnvEquals(char *env, char *sval, byte ci, char *sep)
 }
 
 
-char * SUMA_env_list_help(){
+char * SUMA_env_list_help(int DEFAULT_values){
    static char FuncName[]={"SUMA_env_list_help"};
    int i=0;
    char *sli=NULL;
@@ -12702,8 +12702,10 @@ char * SUMA_env_list_help(){
    
    se = SUMA_envlistelement(i);
    while (se.envhelp) {
-      /* find the user's setting */
-      char *eee = getenv(se.envname);
+      if (!DEFAULT_values) {
+         /* find the user's setting */
+         eee = getenv(se.envname);
+      }
       if (userval) 
          SUMA_free(userval); 
       userval=NULL;
