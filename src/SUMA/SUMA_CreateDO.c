@@ -7385,8 +7385,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    if (texnel) {
       SUMA_LH(  "Creating texture, see init pp 415 in \n"
                 "OpenGL programming guide, 3rd ed.");
-      SUMA_S_Notev("Elname: %s\n",NI_element_name(texnel));
-
       if (NI_IS_STR_ATTR_EQUAL(texnel,"read_status","fail")) {
          /* can't be read */
          SUMA_RETURNe;
