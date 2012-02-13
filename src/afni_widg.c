@@ -4243,8 +4243,9 @@ STATUS("making func->rowcol") ;
    /*-- manage the managers --*/
 
    XtManageChild( func->thr_rowcol ) ;
-   if( func->iab_rowcol != NULL )
-     XtManageChild( func->iab_rowcol ) ;
+#if 0
+   if( func->iab_rowcol != NULL ) XtManageChild( func->iab_rowcol ) ;
+#endif
    XtManageChild( func->inten_rowcol ) ;
    XtManageChild( func->range_rowcol ) ;
    XtManageChild( func->clu_rowcol ) ;
