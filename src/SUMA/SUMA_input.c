@@ -1858,19 +1858,18 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    int N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
    SUMA_SurfaceObject *SO = NULL;
    
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
    SUMA_KEY_COMMON;
-SUMA_LH("HEERE");
+
    /* do the work */
    switch (k) {
       case XK_O:
          break;
       case XK_o:
          if (SUMA_CTRL_KEY(key)) {
- SUMA_LH("BEERE");
            sv->X->SetRot_prmpt = SUMA_CreatePromptDialogStruct (
                   SUMA_OK_APPLY_CLEAR_CANCEL, "Center of Rotation X,Y,Z:", 
                   "0,0,0",
@@ -7494,7 +7493,7 @@ void SUMA_JumpFocusNode (char *s, void *data)
    int it;
    SUMA_SurfaceObject *SO=NULL, *SOc=NULL;
    SUMA_SO_SIDE sd=SUMA_NO_SIDE;
-   SUMA_Boolean LocalHead = YUP; 
+   SUMA_Boolean LocalHead = NOPE; 
 
    SUMA_ENTRY;
 

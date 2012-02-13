@@ -124,6 +124,8 @@ void usage_3dTcorrMap(int detail) {
        "            ** If you don't use one of these masking options, then\n"
        "               all voxels will be processed, and the program will\n"
        "               probably run for a VERY long time.\n"
+       "            ** Voxels with constant time series will be automatically\n"
+       "               excluded.\n"
        "\n"
        "----------------------------------\n"
        "Time Series Preprocessing Options: (applied only to -input, not to -seed)\n"
@@ -589,7 +591,8 @@ int main( int argc , char *argv[] )
         DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
         nxmask = DSET_NX(mset); nymask = DSET_NY(mset); nzmask = DSET_NZ(mset);
         mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
-        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[nopt]) ;
+        if( mask == NULL ) 
+            ERROR_exit("Can't make mask from dataset '%s'",argv[nopt]) ;
         nmask = THD_countmask( nxmask*nymask*nzmask , mask ) ;
         INFO_message("Number of voxels in mask = %d",nmask) ;
         if( nmask < 9 ) ERROR_exit("Mask is too small to process") ;

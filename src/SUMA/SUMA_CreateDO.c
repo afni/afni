@@ -3694,25 +3694,9 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
       glFlush();
       glDisable(GL_TEXTURE_2D);
    } else {
-      /* THIS block must be executed Immediately before a surface is drawn,
-         otherwise, the texture will apply to other objects that are drawn
-         next. To do this, set a texnel flag for those surfaces involved and 
-         have DrawMesh set the textures there.  */
-      N_SOlist = SUMA_VisibleSOs(sv, SUMAg_DOv, SOlist);
-      if (!target || strncmp(target, "ALL_SURF",8)==0) {
-         for (ii=0; ii < N_SOlist; ++ii) {
-            SOt = (SUMA_SurfaceObject *)SUMAg_DOv[SOlist[ii]].OP;
-            SOt->texnel = nel; /* better not keep texnel long after it is drawn!
-                                 nel could be blown away after drawing! */
-         }
-      } else {
-         for (ii=0; ii < N_SOlist; ++ii) {
-            SOt = (SUMA_SurfaceObject *)SUMAg_DOv[SOlist[ii]].OP;
-            if (SUMA_iswordin(SOt->Label,target)) 
-               SOt->texnel = nel; /* SOt->texnel copy of nel should not be kept 
-                                    after drawing! */
-         }
-      }   
+      SUMA_LH("Nodebased textures must be set up before the mesh is\n"
+               "drawn. This is done early in SUMA_DrawMesh() in function\n"
+               "SUMA_SO_NIDO_Node_Texture()\n");
    }
    
    if (orthoreset) {/* return value */
@@ -4185,31 +4169,19 @@ SUMA_Boolean SUMA_DrawSphereNIDOnel(  NI_element *nel,
    SUMA_RETURN(YUP);
 }
 
-
-
-SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
+SUMA_SurfaceObject *SUMA_Default_SO_4_NIDO(SUMA_NIDO *SDO, 
+                                           SUMA_SurfaceViewer *sv)
 {
-   static char FuncName[]={"SUMA_DrawNIDO"};
-   int ip=0;
-   int is, default_node=-1;
-   byte *msk=NULL;
-   SUMA_SurfaceObject *default_SO = NULL;
-   NI_element *nel=NULL;
-   NI_group *ngr = NULL;
-   void * default_font=GLUT_BITMAP_9_BY_15;
-   float txcol[4] = {0.2, 0.5, 1, 1.0};
-   float default_color[4] = {0.2, 0.5, 1, 1.0};
-   SUMA_DO_CoordType coord_type = SUMA_WORLD;
-   SUMA_DO_CoordUnits default_coord_units = SUMA_WORLD_UNIT;
-   char *atr=NULL;
-   static int iwarn=0;
+   static char FuncName[]={"SUMA_Default_SO_4_NIDO"};
+   char *atr=NULL, *SOid=NULL;
+   SUMA_SurfaceObject *default_SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    if (!SDO) {
       fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
-      SUMA_RETURN (NOPE);
+      SUMA_RETURN (NULL);
    }
    
    
@@ -4251,7 +4223,40 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
          /* OK if you fail here ... */
       } 
    }
+   
    SUMA_LHv("Default_SO %p\n", default_SO);
+   
+   SUMA_RETURN(default_SO);
+}
+
+SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_DrawNIDO"};
+   int ip=0;
+   int is, default_node=-1;
+   byte *msk=NULL;
+   SUMA_SurfaceObject *default_SO = NULL;
+   NI_element *nel=NULL;
+   NI_group *ngr = NULL;
+   void * default_font=GLUT_BITMAP_9_BY_15;
+   float txcol[4] = {0.2, 0.5, 1, 1.0};
+   float default_color[4] = {0.2, 0.5, 1, 1.0};
+   SUMA_DO_CoordType coord_type = SUMA_WORLD;
+   SUMA_DO_CoordUnits default_coord_units = SUMA_WORLD_UNIT;
+   char *atr=NULL;
+   static int iwarn=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SDO) {
+      fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   
+   default_SO = SUMA_Default_SO_4_NIDO(SDO, sv);
+   
    if (SUMA_isNIDO_SurfBased(SDO) && !default_SO) {
          SUMA_SL_Err("Object's parent surface not found.");
          SUMA_RETURN (NOPE);
@@ -5450,6 +5455,69 @@ SUMA_Boolean SUMA_Draw_SO_NIDO (  SUMA_SurfaceObject *SO, SUMA_DO* dov,
    }
 
    SUMA_RETURN(YUP);
+}
+
+/*!
+   Get node-based texture for a certain surface 
+*/
+NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
+                                          int N_do, SUMA_SurfaceViewer *sv )
+{
+   static char FuncName[]={"SUMA_SO_NIDO_Texture"};
+   int i, ip, sz[2]={0, 0};
+   float txloc[4]={0,0,0,0};
+   char *target=NULL;
+   NI_element *nel=NULL;
+   SUMA_NIDO *SDO = NULL;
+   SUMA_SurfaceObject *default_SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   for (i=0; i < N_do; ++i) {
+      switch (dov[i].ObjectType) { /* case Object Type */
+         case NIDO_type:
+            SDO = (SUMA_NIDO *)dov[i].OP;
+            SUMA_LHv("Testing NIDO\n"
+                      "isSurfBased: %d\n"
+                      "isNIDOrelated: %d\n", 
+                      SUMA_isNIDO_SurfBased(SDO),
+                      SUMA_isNIDOrelated (SDO, SO));
+            if (  SUMA_isNIDO_SurfBased(SDO) && 
+                  SUMA_isNIDOrelated (SDO, SO)) { 
+               /* loop through the elements only grabbing
+                  node-based texture */
+               for( ip=0 ; ip < SDO->ngr->part_num ; ip++ ){ 
+                  nel = NULL;
+                  switch( SDO->ngr->part_typ[ip] ){
+                     /*-- a sub-group ==> recursion! --*/
+                     case NI_GROUP_TYPE:
+                        break ;
+                     case NI_ELEMENT_TYPE:
+                        nel = (NI_element *)SDO->ngr->part[ip] ;
+                        target = NI_get_attribute(nel,"target");
+                        if ( ! strcmp(nel->name,"Tex") ) {
+                           if (!target || strncmp(target, "ALL_SURF",8)==0 
+                               || SUMA_iswordin(SO->Label,target)) {
+                              goto SET_TEX; 
+                           }
+                        }
+                        break;
+                     default:
+                        break;
+                  }
+               }
+            }
+         default:
+            break;
+      }
+   }
+
+   SET_TEX:
+   
+
+   SUMA_RETURN(nel);
+   
 }
 
 SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO, 
@@ -7293,6 +7361,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    static GLuint texName; 
    GLfloat rotationMatrix[4][4];
    GLenum Face=GL_FRONT;
+   NI_element *texnel=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
@@ -7311,20 +7380,43 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
      SUMA_SET_GL_RENDER_MODE(SurfObj->PolyMode); 
    }
 
-   if (SurfObj->texnel) {
+   /* any texture for this surface? */
+   texnel = SUMA_SO_NIDO_Node_Texture ( SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv );
+   if (texnel) {
       SUMA_LH(  "Creating texture, see init pp 415 in \n"
                 "OpenGL programming guide, 3rd ed.");
-      NI_GET_INTv(SurfObj->texnel,"box_size", sz, 2, LocalHead);
+      SUMA_S_Notev("Elname: %s\n",NI_element_name(texnel));
+
+      if (NI_IS_STR_ATTR_EQUAL(texnel,"read_status","fail")) {
+         /* can't be read */
+         SUMA_RETURNe;
+      }
+
+      if (!NI_IS_STR_ATTR_EQUAL(texnel,"read_status","read")) { /* read it */
+         if (!SUMA_LoadImageNIDOnel(texnel)) {
+            SUMA_RETURNe;
+         }
+         /* has the box size been determined (only 2 dimensions needed)?*/
+         NI_GET_INTv(texnel,"box_size", sz, 2, LocalHead);
+         if (!NI_GOT) {
+            NI_GET_INT(texnel,"width", sz[0]);
+            NI_GET_INT(texnel,"height", sz[1]);
+            NI_SET_INTv(texnel,"box_size", sz, 2);
+         }
+         
+      } 
+
+      NI_GET_INTv(texnel,"box_size", sz, 2, LocalHead);
 
       /* For cool textures, see 
          http://www.filterforge.com/filters/category42-page1.html */
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-      NI_GET_INT(SurfObj->texnel,"texName",texName);
+      NI_GET_INT(texnel,"texName",texName);
       if (!NI_GOT) {
          /* Need to generate texture */
          glGenTextures(1, &texName);
          /* Now store it */
-         NI_SET_INT(SurfObj->texnel,"texName",texName);
+         NI_SET_INT(texnel,"texName",texName);
       }
       glBindTexture(GL_TEXTURE_2D, texName);
       glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT); 
@@ -7338,17 +7430,17 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          GL_LINEAR, GL_NEAREST, ... */
       glTexImage2D(  GL_TEXTURE_2D, 0, GL_RGBA, 
                      sz[0], sz[1], 0, GL_RGBA, 
-                     GL_UNSIGNED_BYTE, SurfObj->texnel->vec[0]);
+                     GL_UNSIGNED_BYTE, texnel->vec[0]);
       glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
-                  SUMA_NIDO_TexEnvMode(SurfObj->texnel, GL_MODULATE));
+                  SUMA_NIDO_TexEnvMode(texnel, GL_MODULATE));
 
       /* texture goes on surface which will be drawn later, 
          Set automatic texture coordinate generation */
       glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, 
-                  SUMA_NIDO_TexCoordGen(SurfObj->texnel)); 
+                  SUMA_NIDO_TexCoordGen(texnel)); 
             /* GL_SPHERE_MAP, GL_EYE_LINEAR, GL_OBJECT_LINEAR */
       glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, 
-                  SUMA_NIDO_TexCoordGen(SurfObj->texnel));
+                  SUMA_NIDO_TexCoordGen(texnel));
       glEnable(GL_TEXTURE_GEN_S);
       glEnable(GL_TEXTURE_GEN_T);
       glEnable(GL_TEXTURE_2D);
@@ -7439,9 +7531,9 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          } /* switch RENDER_METHOD */
          
         
-         if (SurfObj->texnel) {
+         if (texnel) {
             /* kill baby kill */
-            SurfObj->texnel = NULL; /* don't leave this function 
+            texnel = NULL; /* don't leave this function 
                                        with pointer copy */
             glDisable(GL_TEXTURE_2D);
             glDisable(GL_TEXTURE_GEN_T);
@@ -7720,7 +7812,6 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    
    if (SO->aSO) SO->aSO = SUMA_FreeAfniSurfaceObject(SO->aSO);
    
-   if (SO->texnel) SO->texnel = NULL;
    
    if (SO->CommonNodeObject) 
       SUMA_Free_Displayable_Object_Vect(SO->CommonNodeObject,1);
@@ -8280,15 +8371,6 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       }
       sprintf (stmp,"\n");
       SS = SUMA_StringAppend (SS,stmp);
-      
-      if (SO->PolyArea == NULL) {
-         sprintf (stmp,"SO->texnel = NULL\n\n") ;
-         SS = SUMA_StringAppend (SS,stmp);
-      } else {
-         sprintf (stmp,"SO->texnel = an element named %s\n\n", 
-                  SO->texnel->name) ;
-         SS = SUMA_StringAppend (SS,stmp);
-      }
       
       if (DsetList) {
          float *Cx = NULL;
@@ -9004,8 +9086,6 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].parent_vol_idcode_str = NULL;
       
       SO[i].aSO = NULL;
-      
-      SO[i].texnel = NULL;
       
       SO[i].CommonNodeObject = NULL;
       SO[i].NodeObjects = NULL;

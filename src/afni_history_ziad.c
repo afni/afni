@@ -66,6 +66,12 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13, FEB , 2012 , ZSS , "3dSkullStrip" , MINOR , TYPE_BUG_FIX,
+   "-orig_vol now forces datum type to be same as that of input.",
+   "This fixed a problem with anatomicals ranging in the million(!) to\n"
+   "come up the equivalent of a binary mask with -orig_vol.\n"
+ },
+ 
  { 10, FEB , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Improved snapshot making. Previous bugs were caused by buffer swap problems",
    "This fixed (I hope for good), problems of recording ('r'), continuous \n"

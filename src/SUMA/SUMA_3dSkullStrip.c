@@ -2636,6 +2636,9 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDERR,"%s: Writing masked volume  ...\n", FuncName);
    OptDs->full_list = 1;
    OptDs->dval = 1;
+   if (Opt->MaskMode == 2) { /* Feb 2012, some anats ranged in the millions!*/
+      OptDs->datum = DSET_BRICK_TYPE(Opt->iset,0);
+   }
    dset = SUMA_FormAfnidset (NULL, isin_float,
                              SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz,
                              OptDs);
@@ -2682,18 +2685,19 @@ int main (int argc,char *argv[])
                   "input dataset lie in the brain.\n");
          }
          fprintf(SUMA_STDERR,
-               "To obtain a masked version of the input with identical values inside\n"
-               "the brain, you can either use 3dSkullStrip's -orig_vol option\n"
-               "or run the following command:\n"
-               "  3dcalc -a %s -b %s+orig -expr 'a*step(b)' \\\n"
-               "         -prefix %s_orig_vol\n"
-               "to generate a new masked version of the input.\n",
+      "To obtain a masked version of the input with identical values inside\n"
+      "the brain, you can either use 3dSkullStrip's -orig_vol option\n"
+      "or run the following command:\n"
+      "  3dcalc -a %s -b %s+orig -expr 'a*step(b)' \\\n"
+      "         -prefix %s_orig_vol\n"
+      "to generate a new masked version of the input.\n",
                Opt->in_name, Opt->out_vol_prefix, Opt->out_vol_prefix);
                
       }
    }
    
-   /* you don't want to exit rapidly because the SUMA might not be done processing the last elements*/
+   /* you don't want to exit rapidly because the SUMA might not be done 
+      processing the last elements*/
    if (ps->cs->Send && !ps->cs->GoneBad) {
       /* cleanup and close connections */
       if (!SUMA_SendToSuma (SO, ps->cs, NULL, SUMA_NODE_XYZ, 2)) {
