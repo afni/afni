@@ -487,6 +487,7 @@ ENTRY("AFNI_inten_pbar_CB") ;
 
 /*----------------------------------------------------------------------------*/
 
+#if 0
 void AFNI_iab_pbar_CB( MCW_pbar *pbar , XtPointer cd , int reason )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
@@ -555,6 +556,7 @@ ENTRY("AFNI_iab_av_CB") ;
 
    EXRETURN ;
 }
+#endif
 
 /*-----------------------------------------------------------------------------
   30 Mar 2001: rotate the colors on the pbar
