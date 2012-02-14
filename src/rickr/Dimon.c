@@ -80,10 +80,12 @@ static char * g_history[] =
     " 3.7  Jan 25, 2012 [rickr] : back out changes for 3.8 and ponder\n"
     " 3.8  Feb  7, 2012 [rickr] : added -no_wait (more forceful than -quit)\n"
     "      - also, suppress new glob warning\n"
+    " 3.9  Feb 14, 2012 [rickr]\n"
+    "      - if -no_wait, terminate on volume_match failure\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.8 (Feb 7, 2012)"
+#define DIMON_VERSION "version 3.9 (Feb 14, 2012)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -312,7 +314,10 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     /* clear initial volume */
     memset(v, 0, sizeof(vol_t));
 
-    if ( p->opts.no_wait ) sleep_ms = 0;  /* no sleeping in this case */
+    if ( p->opts.no_wait ) {
+        sleep_ms = 0;  /* no sleeping in this case */
+        vs_state = 2;  /* no retries, either */
+    }
 
     mri_read_dicom_reset_obliquity();   /* to be sure */
     MCW_set_glob_whine(0);              /* quiet any glob warnings */
@@ -553,6 +558,15 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                 naps = 0;                       /* reset on existing volume */
 
                 if( p->opts.pause > 0 ) iochan_sleep(p->opts.pause);
+
+                /* if failure, try to show something for previous volumes */
+                if ( ret_val < 0 && p->opts.no_wait ) {
+                    if ( ac->state == ART_STATE_IN_USE )
+                        ART_send_end_of_run( ac, run, seq_num, gD.level );
+
+                    show_run_stats( &gS );
+                    return 1;
+                }
             }
         }
 
@@ -665,7 +679,7 @@ static int volume_search(
         bound_cnt++;
         if( bound_cnt >= MAX_SEARCH_FAILURES ) *state = 2; /* try to finish */
     }
-    else *state = 1;  /* continue mode */
+    else if ( *state < 1 ) *state = 1;  /* continue mode, but do not lose 2 */
     prev_bound = bound;
 
     rv = check_one_volume(p,start,fl_start,bound,*state, &first,&last,&delta);
@@ -1011,6 +1025,13 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 
         if ( fabs( z - fp->geh.zoff ) > gD_epsilon )
         {
+            if ( p->opts.no_wait ) {
+                fprintf(stderr,"\n** volume match failure (bad zoff %f != %f)\n"
+                        "   (for more details, replace -no_wait with -quit)\n",
+                        fp->geh.zoff, z);
+                return -1;
+            }
+
             /* slice is either missing or out of order */
 
             fp_test = fp + 1;  /* check next image, does it look okay? */
@@ -1049,7 +1070,6 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
                 /* search for a next starting point */
                 next_start = find_next_zoff( p, start+count, vin->z_first, 
                                                              vin->nim );
-
                 if ( next_start < 0 )   /* come back and try again later */
                     return 0;
                 else
@@ -1076,6 +1096,13 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
         next_start = start + vin->nim - missing;
     else if ( (next_start < 0) && (fabs( z - fp->geh.zoff ) > gD_epsilon) )
     {
+        if ( p->opts.no_wait ) {
+            fprintf(stderr,"\n** volume match failure (bad zoffset %f != %f)\n"
+                    "   (for more details, replace -no_wait with -quit)\n",
+                    fp->geh.zoff, z);
+            return -1;
+        }
+
         /* check last slice - count and fp should be okay*/
         if ( (p->nused - start) <= vin->nim )   /* no more images to check */
             return 0;                           /* wait for more data      */

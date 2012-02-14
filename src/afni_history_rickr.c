@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, FEB, 2012, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "if -no_wait, terminate on volume_match failure",
+   "For F Ye."
+ } ,
+
  { 14, FEB, 2012, RCR, "uber_ttest.py", MINOR, TYPE_ENHANCE,
    "release version 1.0: help, copy tables, scripts imply -no_gui",
    NULL
