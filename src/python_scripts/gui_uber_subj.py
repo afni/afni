@@ -2565,7 +2565,7 @@ Specifying the EPI datasets:
 
       It is a good habit to have the EPI dataset names be the same except for
       the run index.  It is also preferable (though not necessary) to zero-pad
-      those indicies so they have the same number of digits.  That makes the
+      those indices so they have the same number of digits.  That makes the
       numeric scan order equal to the alphabetical order.
 
       For example, ordering these files by run (scan) index gives:

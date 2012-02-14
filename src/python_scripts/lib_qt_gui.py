@@ -1139,7 +1139,8 @@ class DsetChooser(QtGui.QDialog):
         - DatasetTable
    """
 
-   def __init__(self, name='Dset Chooser', parent=None, verb=1):
+   def __init__(self, name='Dset Chooser', parent=None, verb=1,
+                helpstr=None):
 
       super(DsetChooser, self).__init__(parent)
 
@@ -1147,6 +1148,13 @@ class DsetChooser(QtGui.QDialog):
       self.lvars = SUBJ.VarsObject(name='DsetChooser local vars')
       self.lvars.verb = verb
       self.lvars.pop_cb = None
+
+      # make help window
+      global helpstr_dset_chooser
+      if helpstr == None: helpstr = helpstr_dset_chooser
+      self.gvars.help_win = TextWindow(parent=self)
+      self.gvars.help_win.setWindowTitle('Dataset Chooser Help')
+      self.gvars.help_win.editor.setText(helpstr)
 
       vlayout = QtGui.QVBoxLayout(self)
 
@@ -1256,7 +1264,7 @@ class DsetChooser(QtGui.QDialog):
       elif text == 'clear table':
          self.gvars.table_widget.populate([])
       elif text == 'help':
-         print '** rcr todo: please get help somewhere'
+         self.gvars.help_win.show()
       elif text == 'OK':   self.cb_okay()
       elif text == 'Quit': self.cb_quit()
 
@@ -1885,6 +1893,41 @@ def set_font_family(obj, family, bold=False):
    #obj.setCurrentCharFormat(qtf)
 
    return
+
+# ===========================================================================
+# help strings for various classes
+# ===========================================================================
+helpstr_dset_chooser = """
+                choosing a list of datasets
+
+1. select a representative file
+
+      Choose a single dataset file to be included in the list.
+      For example, OLSQ.FT.betas+tlrc.HEAD from the AFNI_data6 class data:
+
+         .../AFNI_data6/group_results/OLSQ.FT.betas+tlrc.HEAD
+                                          ^^^^
+
+2. alter name into desired wildcard pattern
+
+      Replace part of the name with '*', or other wildcard characters, so
+      that it matches the desired list of datasets.  If it matches too many,
+      selected datasets can be deleted later.
+
+      For example, alter subject FT's dataset, replacing 'FT' with '*':
+
+         .../AFNI_data6/group_results/OLSQ.*.betas+tlrc.HEAD
+                                          ^^^
+      
+3. hit <enter> 
+
+   or click on 'apply pattern'
+
+      This will fill the table with a list of datasets matching the wildcard
+      pattern.
+
+"""
+
 
 
 if __name__ == '__main__':

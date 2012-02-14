@@ -20,9 +20,11 @@ g_history = """
          - has basic 3dttest++ capabilities
     0.1  02 Feb, 2012: added basic 3dMEMA capabilities
     0.2  10 Feb, 2012: added 'paired test' toggle box
+    1.0  14 Feb, 2012: release version
+         - added ability to copy other table; added help
 """
 
-g_version = '0.2 (February 10, 2012)'
+g_version = '1.0 (February 14, 2012)'
 
 # ----------------------------------------------------------------------
 # global definitions
@@ -335,6 +337,8 @@ class TTest(object):
       cmd = '%s-set%s %s \\\n' % (istr, choice, sname)
 
       beta = self.uvars.val('beta_%s'%choice)
+      if choice == 'B' and not beta:
+         self.errors.append("** must specify data indices or labels")
       if not beta: beta = '0'
 
       dir = self.LV.val('dir%s'%choice)
@@ -368,8 +372,10 @@ class TTest(object):
       cmd = '%s-set %s \\\n' % (istr, sname)
 
       beta = self.uvars.val('beta_%s'%choice)
-      if not beta: beta = '0'
       tstat = self.uvars.val('tstat_%s'%choice)
+      if choice == 'B' and (not beta or not tstat):
+         self.errors.append("** must specify data/t-stat indices or labels")
+      if not beta: beta = '0'
       if not tstat: tstat = '1'
 
       dir = self.LV.val('dir%s'%choice)
@@ -605,9 +611,8 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
-- generate 3dMEMA scripts
-- add paired options (for both programs)
-- dataset table B: should be able to copy table A
+- maybe add options for covariates
+- add test-specific options (there are many in 3dMEMA)
 ---------------------------------------------------------------------------
 """
 
@@ -617,13 +622,61 @@ uber_ttest.py (GUI)      - a graphical interface for group t-tests
 
    Generate and run 3dttest++/3dMEMA tcsh scripts for group ttests.
 
-   purposes:
+   purpose:
+        o to run simple group tests (t-test or related MEMA)
+           - can quickly run a list of tests with varying sub-bricks
+
    required inputs:
+        o program name (either 3dMEMA or 3dttest++)
+        o set name (for any dataset table)
+
    optional inputs:
+        o name of script
+        o name of output dataset
+        o mask dataset
+        o second list of datasets/subject IDs
+        o choice to run a paired test
+        o any extra options for programs
+
    typical outputs:
+        o output from the test
+           - one directory per test
+        o scripts to get there
+           - 3dMEMA/3dttest++ command script
+           - output from script execution
 
 ---------------------------------------------------------------------------
 Overview:
+
+   One generally goes through the following steps:
+
+      o choose any inputs at the top (only 'program' is required):
+
+         program     : either 3dttest++ or 3dMEMA
+         script name : name of processing script
+         dset prefix : prefix for dataset output by script
+         mask dset   : a mask dataset to apply, if any
+         paired test : whether the test should be paired
+
+      o datasets A
+
+         - choose a list of datasets
+            - this is currently done by choosing a single dataset and changing
+              it into a wildcard pattern
+         - choose a set name (e.g. horses, medicated, houses, faces, Vrel)
+         - choose a data index (default = 0)
+            - an index (e.g. 0) or a label (e.g. Vrel#0_Coef)
+         - choose a t-stat index (only for 3dMEMA, default = 1)
+            - an index (e.g. 1) or a label (e.g. Vrel#0_Tstat)
+
+      o possibly make similar choices for "datasets B"
+
+         - optional: for a 2-sample or paired test
+
+      o add any final options that are specific to the program
+
+         - such text would be directly copied into the script
+
 
 - R Reynolds  September, 2011
 ===========================================================================

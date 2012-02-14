@@ -356,25 +356,26 @@ class MainWindow(QtGui.QMainWindow):
                       Label_top_dir
                       Label_group_name
          have gbox.frame
-         for controlling uvars: dsetsA, labelA, betasA
+         for controlling uvars: dsetsA/B, labelA/B, betasA/B
       """
       gbox = QLIB.get_checked_group_box(title, cb_check=self.gbox_clicked)
       mainlayout = gbox.mainlayout
 
       # --------------------------------------------------
       # create buttons
-      labels = ['get subj dsets', 'clear', 'help']
+      labels = ['get subj dsets', 'copy other table', 'clear', 'help']
       tips   = ['populate table with subject dataset list',
+                'copy datasets/sids from other table',
                 'delete all table entries', 'display help for this section']
       bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
                                                tips=tips)
       bwidget.blist[2].setIcon(self.style().standardIcon(
                             QtGui.QStyle.SP_MessageBoxQuestion))
-
       # assign buttons to main variables
       gbox.PB_get   = bwidget.blist[0]
-      gbox.PB_clear = bwidget.blist[1]
-      gbox.PB_help  = bwidget.blist[2]
+      gbox.PB_copy  = bwidget.blist[1]
+      gbox.PB_clear = bwidget.blist[2]
+      gbox.PB_help  = bwidget.blist[3]
 
       # create a DatasetTableWidget with those buttons
       dtw = QLIB.DatasetTableWidget(gbox, button_widgets=[bwidget],
@@ -629,6 +630,13 @@ class MainWindow(QtGui.QMainWindow):
             chooser.set_populate_cb(self.populate_table_B)
          else: print "** unknown source for PB '%s'" % text
 
+      elif text == 'copy other table':
+         if sender == self.gvars.gbox_dsets_A.PB_copy:
+            self.populate_table_A(None, None, copy=1)
+         elif sender == self.gvars.gbox_dsets_B.PB_copy:
+            self.populate_table_B(None, None, copy=1)
+         else: print "** unknown source for PB '%s'" % text
+
       elif text == 'clear':
          if sender == self.gvars.gbox_dsets_A.PB_clear:
             self.populate_table_A([])
@@ -637,15 +645,32 @@ class MainWindow(QtGui.QMainWindow):
          else: print "** unknown source for PB '%s'" % text
 
       elif text == 'help':
-         if sender == self.gvars.gbox_dsets_A.PB_help:
-            print '== help for A'
-         elif sender == self.gvars.gbox_dsets_B.PB_help:
-            print '== help for B'
+         if sender == self.gvars.gbox_dsets_A.PB_help or \
+            sender == self.gvars.gbox_dsets_B.PB_help:
+            self.update_help_window(g_help_dataset_tables,
+                                    title='help for: datasets A/B')
          else: print "** unknown source for PB '%s'" % text
 
       else: print "** unexpected button text: %s" % text
 
-   def populate_dset_table(self, table, dsets, sids=[]):
+   def populate_dset_table(self, table, dsets, sids=[], copytable=None):
+      cstr = ''
+      if copytable != None:
+         cstr = ' (via copy)'
+         data = copytable.get_data()
+         if len(data) == 0:
+            dsets = []
+            sids = []
+         else:
+            if len(data[0]) != 2:
+               print '** copy: table data not of len 2, data %s' % data
+               return 1
+            dsets = [row[1] for row in data]
+            sids  = [row[0] for row in data]
+
+      if self.verb > 1:
+         print '++ populating table with %d datasets%s' % (len(dsets), cstr)
+
       make_sids = 1
       if len(sids) == len(dsets):
          dlist = [[sids[ind],dsets[ind]] for ind in range(len(dsets))]
@@ -656,15 +681,23 @@ class MainWindow(QtGui.QMainWindow):
                      make_sids=make_sids)
       table.set_stretch_col(1)
 
-   def populate_table_A(self, dsets, sids=[]):
+   def populate_table_A(self, dsets, sids=[], copy=0):
       """populate self.gvars.gbox_dsets_A.dset_table from 'dsets'"""
-      print '++ populating table A with %d datasets' % len(dsets)
-      self.populate_dset_table(self.gvars.gbox_dsets_A.dset_table, dsets, sids)
+      if self.verb > 1: print '++ populating table A ...'
+      if copy: copytable = self.gvars.gbox_dsets_B.dset_table
+      else:    copytable = None
+      self.populate_dset_table(self.gvars.gbox_dsets_A.dset_table, dsets, sids,
+                               copytable=copytable)
 
-   def populate_table_B(self, dsets, sids=[]):
-      """populate self.gvars.gbox_dsets_B.dset_table from 'dsets'"""
-      print '++ populating table B with %d datasets' % len(dsets)
-      self.populate_dset_table(self.gvars.gbox_dsets_B.dset_table, dsets, sids)
+   def populate_table_B(self, dsets, sids=[], copy=0):
+      """populate self.gvars.gbox_dsets_B.dset_table from 'dsets'
+         copy : duplicate other table
+      """
+      if self.verb > 1: print '++ populating table B ...'
+      if copy: copytable = self.gvars.gbox_dsets_A.dset_table
+      else:    copytable = None
+      self.populate_dset_table(self.gvars.gbox_dsets_B.dset_table, dsets, sids,
+                               copytable=copytable)
 
    def resize_table(self, table, countLabel=None):
       if show_func_seq: print '=== W ==='  # rcr - not called
@@ -803,16 +836,19 @@ class MainWindow(QtGui.QMainWindow):
       self.gvars.Menu_browse = self.gvars.MBar_help.addMenu("&Browse")
       act1 = QLIB.createAction(self,"web: all AFNI programs",
           slot=self.cb_help_browse, tip="browse AFNI program help")
-      act2 = QLIB.createAction(self,"web: afni_proc.py help",
-          slot=self.cb_help_browse, tip="browse afni_proc.py help")
-      act3 = QLIB.createAction(self,"web: AFNI Message Board",
+      act2 = QLIB.createAction(self,"web: 3dttest++.py help",
+          slot=self.cb_help_browse, tip="browse 3dttest++ help")
+      act3 = QLIB.createAction(self,"web: 3dMEMA help",
+          slot=self.cb_help_browse, tip="browse 3dMEMA help")
+      act4 = QLIB.createAction(self,"web: AFNI Message Board",
           slot=self.cb_help_browse, tip="browse Message Board")
 
-      QLIB.addActions(self, self.gvars.Menu_browse, [act1, act2, act3])
+      QLIB.addActions(self, self.gvars.Menu_browse, [act1, act2, act3, act4])
 
-      self.gvars.act_browse_all_progs = act1
-      self.gvars.act_browse_AP_help   = act2
-      self.gvars.act_browse_MB        = act3
+      self.gvars.act_browse_all_progs  = act1
+      self.gvars.act_browse_ttest_help = act2
+      self.gvars.act_browse_mema_help  = act3
+      self.gvars.act_browse_MB         = act4
 
       actHelpAbout = QLIB.createAction(self,"about uber_ttest.py",
           slot=self.cb_help_about, tip="about uber_ttest.py")
@@ -919,9 +955,12 @@ class MainWindow(QtGui.QMainWindow):
       if   obj == self.gvars.act_browse_all_progs:
          self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/program_help/index.html')
-      elif obj == self.gvars.act_browse_AP_help:
+      elif obj == self.gvars.act_browse_ttest_help:
          self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/program_help/afni_proc.py.html')
+                            '/program_help/3dttest++.html')
+      elif obj == self.gvars.act_browse_mema_help:
+         self.open_web_site('http://afni.nimh.nih.gov/pub/dist/doc'     \
+                            '/program_help/3dMEMA.html')
       elif obj == self.gvars.act_browse_MB:
          self.open_web_site('http://afni.nimh.nih.gov/afni/community/board')
       else: print '** cb_help_browse: invalid sender'
@@ -1230,6 +1269,56 @@ g_help_eg = """
 
    description:
 
+"""
+
+g_help_dataset_tables = """
+Populate the table with a list of dataset (which will hopefully include
+associated subject IDs, automatically).  Then specify the set name (group
+or condition), the associated data index or label for the beta, and one
+for the t-stat (if using 3dMEMA).
+
+
+1. Populate the datasets table
+
+   a. click on 'get subj dsets'
+
+      This will open an interface that should allow one to get
+      the desired list.  Please see the included help for details.
+
+   b. click on 'copy other table'
+
+      This will populate the table with the same data in the other
+      table (between A and B).  This is a common choice in a paired
+      test, where the 2 types of betas come from different sub-bricks
+      of the same datasets.
+
+      At this point, the information fields 'common directory,
+      'wildcard form' and 'dataset count' should be automatically
+      filled.
+
+2. Assign a name for this list of datasets
+
+   The set name could be the group name for this list of subjects,
+   or perhaps the condition or class (likely in the case of a paired
+   test).  For example, groups might be 'horses' or 'zombies', while
+   classes/conditions might be 'houses' or 'faces'.
+
+   With the AFNI_data6/group_results data, one might use Vrel, for
+   the 'visual reliable' condition.
+
+3. Assign a data index or label
+
+   Specify a sub-brick index or label for the particular volume that
+   should be used for this set.  Using AFNI_data6/group_results as an
+   example, one might use index '0' or label 'Vrel#0_Coef' (without
+   the quotes) to specify the Vrel beta weight.
+
+4. If using 3dMEMA, assign a t-stat index or label
+
+   Specify the sub-brick of the t-statistic that corresonds to the
+   data index, above (presumably the beta weight).  For example, use
+   index '1' or label 'Vrel#0_Tstat' for the REML datasets under the
+   AFNI_data6/group_results directory.
 """
 
 # end: help strings
