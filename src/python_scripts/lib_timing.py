@@ -539,7 +539,7 @@ class AfniTiming(LD.AfniData):
               return '** run %d, stim ends after end of run' % (ind+1), []
           
       result = []
-      # process one run at a time, first converting to TR indicies
+      # process one run at a time, first converting to TR indices
       for rind, data in enumerate(tdata):
          if self.verb > 4:
             print '\n++ stimulus on/off times, run %d :' % (rind+1)
