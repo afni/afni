@@ -21,7 +21,9 @@ g_history = """
     0.1  02 Feb, 2012: added basic 3dMEMA capabilities
     0.2  10 Feb, 2012: added 'paired test' toggle box
     1.0  14 Feb, 2012: release version
-         - added ability to copy other table; added help
+         - added ability to copy other table
+         - both -print_script or -save_script imply -no_gui
+         - added help
 """
 
 g_version = '1.0 (February 14, 2012)'

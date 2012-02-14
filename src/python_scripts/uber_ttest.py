@@ -292,13 +292,17 @@ class MainInterface(object):
             continue
 
       if not errs:         # then we can handle any processing options
-         if uopts.find_opt('-print_script'): self.print_script()
+         if uopts.find_opt('-print_script'):
+            self.print_script()
+            use_gui = 0
 
-      if not errs:         # then we can handle any processing options
-         opt = uopts.find_opt('-save_script')
-         if opt != None:
-            val, err = uopts.get_string_opt('', opt=opt)
-            if val != None and not err: self.save_script(val)
+         #opt = uopts.find_opt('-save_script')
+         #if opt != None:
+         #   val, err = uopts.get_string_opt('', opt=opt)
+         val, err = uopts.get_string_opt('-save_script')
+         if val != None and not err:
+            self.save_script(val)
+            use_gui = 0
 
       if errs:    return -1
       if use_gui: return  0     # continue and open GUI
