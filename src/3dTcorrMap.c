@@ -511,8 +511,6 @@ int main( int argc , char *argv[] )
                "%s prefix '%s' starts with '-' :: is this a mistake?",
                argv[nopt-1] , COprefix ) ;
 
-         INFO_message("CorrMap, this might take a long while...\n") ;
-
          nopt++ ; continue ;
       }
 
@@ -758,6 +756,10 @@ int main( int argc , char *argv[] )
                         ADN_type      , HEAD_FUNC_TYPE,
                         ADN_func_type , FUNC_FIM_TYPE ,
                       ADN_none ) ;
+
+     INFO_message  ("CorrMap: this might take a long while and a lot of memory,\n") ;
+     ININFO_message("         and will create big [%s bytes] output dataset ...",
+                       approximate_number_string((double)DSET_TOTALBYTES(COset)) ) ;
      free(lesfac); lesfac = NULL;
      dig = (int)ceil(log((double)nv)/log(10.0));
      for (ii=0; ii<nv; ++ii) {
@@ -765,31 +767,18 @@ int main( int argc , char *argv[] )
       EDIT_BRICK_TO_NOSTAT(COset,ii) ;
       if (!DSET_IS_VOL(xset)) {
          switch (dig) {
-            case 6:
-               sprintf(stmp,"n%06d", ii);
-               break;
-            case 5:
-               sprintf(stmp,"n%05d", ii);
-               break;
-            case 4:
-               sprintf(stmp,"n%04d", ii);
-               break;
+            case 6: sprintf(stmp,"n%06d", ii); break;
+            case 5: sprintf(stmp,"n%05d", ii); break;
+            case 4: sprintf(stmp,"n%04d", ii); break;
             case 3:
             case 2:
-            case 1:
-               sprintf(stmp,"n%03d", ii);
-               break;
-            default:
-               sprintf(stmp,"n%07d", ii);
-               break;
+            case 1: sprintf(stmp,"n%03d", ii); break;
+           default: sprintf(stmp,"n%07d", ii); break;
          }
       } else {
          ijk = (COmask) ? indx[ii] : ii ;
-         kkk = ijk / nxy ;
-         jjj = ijk % nxy ;
-         iii = jjj % nx  ;
-         jjj = jjj / nx  ;
-         sprintf(stmp,"v%03d.%03d.%03d",iii, jjj, kkk) ;
+         kkk = ijk / nxy ; jjj = ijk % nxy ; iii = jjj % nx  ; jjj = jjj / nx  ;
+         sprintf(stmp,"v%03d.%03d.%03d",iii,jjj,kkk) ;
       }
       EDIT_BRICK_LABEL(COset,ii,stmp) ;
      }
