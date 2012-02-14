@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, FEB, 2012, RCR, "uber_ttest.py", MINOR, TYPE_ENHANCE,
+   "release version 1.0",
+   NULL
+ } ,
+
  { 10, FEB, 2012, RCR, "uber_ttest.py", MINOR, TYPE_ENHANCE,
    "added 'paired' toggle box to GUI",
    NULL
