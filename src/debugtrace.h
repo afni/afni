@@ -176,31 +176,35 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #define DBG_LEADER_IN  "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 #define DBG_LEADER_OUT "-----------------------------------------------------------"
 
-#define ENTRY(rout) do{ if( !DBG_stoff ){                                         \
-                         static char *rrr = (rout) ;  DBG_rout[DBG_num++] = rrr ; \
-                         if( DBG_trace ){                                         \
-                           if( DBG_fp == NULL ) DBG_fp = stdout ;                 \
-                           fprintf(DBG_fp,                                        \
-                                   "%*.*s%s [%d]: {ENTRY (file=%s line=%d)\n",    \
-                                   DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num,     \
-                                   __FILE__ , __LINE__ ) ;                        \
-                           MCHECK ; fflush(DBG_fp) ; }                            \
-                         last_status[0] = '\0' ;                                  \
-                     } } while(0)
+#define ENTRY(rout)                                                   \
+  do{ if( !DBG_stoff ){                                               \
+        static char *rrr=(rout) ; char *ooo=DBG_rout[DBG_num-1] ;     \
+        DBG_rout[DBG_num++] = rrr ;                                   \
+        if( DBG_trace ){                                              \
+          if( DBG_fp == NULL ) DBG_fp = stdout ;                      \
+          fprintf(DBG_fp,                                             \
+                  "%*.*s%s [%d]: {ENTRY (file=%s line=%d) from %s\n", \
+                  DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num,          \
+                  __FILE__ , __LINE__ , ooo ) ;                       \
+          MCHECK ; fflush(DBG_fp) ; }                                 \
+        last_status[0] = '\0' ;                                       \
+  } } while(0)
 
 #define DBROUT      DBG_rout[DBG_num-1]
+#define DBROLD      ( (DBG_num > 1) ? DBG_rout[DBG_num-2] : "none" )
 
-#define DBEXIT      do{ if( !DBG_stoff ){                                     \
-                          if( DBG_trace ){                                     \
-                            if( DBG_fp == NULL ) DBG_fp = stdout ;              \
-                            fprintf(DBG_fp,                                      \
-                                    "%*.*s%s [%d]: EXIT} (file=%s line=%d)\n",    \
-                                    DBG_num,DBG_num,DBG_LEADER_OUT,DBROUT,DBG_num, \
-                                    __FILE__ , __LINE__ );                         \
-                            MCHECK ; fflush(DBG_fp) ; }                            \
-                          DBG_num = (DBG_num>1) ? DBG_num-1 : 1 ;                  \
-                          last_status[0] = '\0' ;                                  \
-                    } } while(0)
+#define DBEXIT                                                     \
+  do{ if( !DBG_stoff ){                                            \
+       if( DBG_trace ){                                            \
+         if( DBG_fp == NULL ) DBG_fp = stdout ;                    \
+         fprintf(DBG_fp,                                           \
+                 "%*.*s%s [%d]: EXIT} (file=%s line=%d) to %s\n",  \
+                 DBG_num,DBG_num,DBG_LEADER_OUT,DBROUT,DBG_num,    \
+                 __FILE__ , __LINE__ , DBROLD ) ;                  \
+         MCHECK ; fflush(DBG_fp) ; }                               \
+       DBG_num = (DBG_num>1) ? DBG_num-1 : 1 ;                     \
+       last_status[0] = '\0' ;                                     \
+ } } while(0)
 
 /*! This macro is only to be used inside main(). */
 
