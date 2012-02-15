@@ -917,6 +917,8 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
                                 str_func *text_proc  , XtPointer text_data
                               )
 {
+ENTRY("new_MCW_optmenu") ;
+
    #ifdef USING_LESSTIF_NOT_DOING_THIS_CRAP
       if (CPU_IS_64_BIT() ){
          RETURN(new_MCW_optmenu_64fix( 

@@ -3007,104 +3007,6 @@ STATUS("making func->rowcol") ;
 
    sel_height -= (8+view_height/view_count) * 0.5 ;
 
-   /*--- widgets for setting the range of the continuous intensity pbar [09 Feb 2012] ---*/
-#if 0
-   if( im3d->dc->visual_class == TrueColor && AFNI_yesenv("AFNI_RANGE_PBAR") ){
-
-     static char *bot_top_str[3] = { "0" , "-T" , "B" } ;
-     MCW_pbar *pbar ;
-
-     (void) XtVaCreateManagedWidget(
-              "dialog" , xmSeparatorWidgetClass , func->rowcol ,
-               XmNseparatorType , XmSHADOW_ETCHED_IN , XmNorientation , XmVERTICAL , NULL ) ;
-
-     func->iab_rowcol =
-        XtVaCreateWidget(
-           "dialog" , xmRowColumnWidgetClass , func->rowcol ,
-              XmNorientation , XmVERTICAL ,
-              XmNmarginHeight, 0 ,
-              XmNmarginWidth , 0 ,
-              XmNpacking , XmPACK_TIGHT ,
-              XmNtraversalOn , True  ,
-              XmNinitialResourcesPersistent , False ,
-           NULL ) ;
-
-     func->iab_label =
-        XtVaCreateManagedWidget(
-           "dialog" , xmLabelWidgetClass , func->iab_rowcol ,
-              LABEL_ARG("T&B->") ,
-              XmNinitialResourcesPersistent , False ,
-           NULL ) ;
-     LABELIZE(func->iab_label) ;
-
-     func->iab_pbar = pbar = new_MCW_pbar(
-                               func->iab_rowcol ,     /* parent */
-                               im3d->dc ,             /* display */
-                               3 ,                    /* number panes (fixed) */
-                               2 + sel_height / 3 ,   /* init pane height */
-                               -1.2f , 1.2f ,         /* value range */
-                               AFNI_iab_pbar_CB ,     /* callback */
-                               (XtPointer)im3d    ) ; /* callback data */
-
-     pbar->parent       = (XtPointer)im3d ;
-     pbar->mode         = 0 ;
-     pbar->npan_save[0] = 3 ;
-     pbar->hide_changes = INIT_panes_hide ;
-
-     AFNI_setup_inten_pbar( pbar ) ;
-
-#undef  TLC
-#define TLC 15  /* three_level color */
-
-     pbar->pval[0]     = pbar->pval_save[3][0][0] =  1.2f ;
-     pbar->pval[1]     = pbar->pval_save[3][1][0] =  1.0f ;
-     pbar->pval[2]     = pbar->pval_save[3][2][0] = -1.0f ;
-     pbar->pval[3]     = pbar->pval_save[3][3][0] = -1.2f ;
-     pbar->ov_index[0] = pbar->ovin_save[3][0][0] = TLC ;
-     pbar->ov_index[1] = pbar->ovin_save[3][1][0] = TLC-1 ;
-     pbar->ov_index[2] = pbar->ovin_save[3][2][0] = TLC ;
-     pbar->update_me   =  1 ;
-     pbar->keep_pval   =  1 ;
-     pbar->three_level = TLC ;
-
-#undef TLC
-
-     (void) XtVaCreateManagedWidget(
-              "dialog" , xmSeparatorWidgetClass , func->iab_rowcol ,
-                  XmNseparatorType , XmSINGLE_LINE ,
-              NULL ) ;
-
-     BBOX_set_wtype("font8") ;
-
-     func->iab_pow_av = new_MCW_arrowval( func->iab_rowcol ,
-                                          "**" ,
-                                          AVOPT_STYLE ,
-                                          -3,4,0 ,
-                                          MCW_AV_notext , 0 ,
-                                          AFNI_iab_av_CB , (XtPointer)im3d ,
-                                          AFNI_thresh_tlabel_CB , NULL ) ;
-
-     func->iab_bot_av = new_MCW_arrowval( func->iab_rowcol ,
-                                          "B=" ,
-                                          AVOPT_STYLE ,
-                                          0 , 2 , 2 ,
-                                          MCW_AV_notext , 0 ,
-                                          AFNI_iab_av_CB , (XtPointer)im3d ,
-                                          MCW_av_substring_CB , bot_top_str ) ;
-     BBOX_set_wtype(NULL) ;
-
-     (void) XtVaCreateManagedWidget(
-              "dialog" , xmSeparatorWidgetClass , func->rowcol ,
-               XmNseparatorType , XmSHADOW_ETCHED_IN , XmNorientation , XmVERTICAL , NULL ) ;
-   } else {
-     func->iab_rowcol = NULL ;
-     func->iab_label  = NULL ;
-     func->iab_pbar   = NULL ;
-     func->iab_pow_av = NULL ;
-     func->iab_bot_av = NULL ;
-   }
-#endif
-
    /*-- intensity threshold stuff --*/
 
    func->inten_rowcol =
@@ -4243,9 +4145,6 @@ STATUS("making func->rowcol") ;
    /*-- manage the managers --*/
 
    XtManageChild( func->thr_rowcol ) ;
-#if 0
-   if( func->iab_rowcol != NULL ) XtManageChild( func->iab_rowcol ) ;
-#endif
    XtManageChild( func->inten_rowcol ) ;
    XtManageChild( func->range_rowcol ) ;
    XtManageChild( func->clu_rowcol ) ;

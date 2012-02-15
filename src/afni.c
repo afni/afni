@@ -8805,6 +8805,7 @@ STATUS("remanaging children") ;
          XtManageChild( im3d->vwid->func->rowcol ) ;
 #endif
          HIDE_SCALE(im3d) ;
+         im3d->vwid->func->inten_pbar->update_me = 1 ;
          update_MCW_pbar( im3d->vwid->func->inten_pbar ) ;
          FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
 
