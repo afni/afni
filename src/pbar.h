@@ -73,7 +73,7 @@ typedef struct {
 
   int   pane_hsum[NPANE_MAX+1] ;  /* Dec 1997 */
 
-  int   update_me , mode , hide_changes , keep_pval , three_level ;
+  int   update_me , mode , hide_changes , keep_pval ;
 
   gen_func *pb_CB ;
   XtPointer pb_data ;
@@ -81,7 +81,7 @@ typedef struct {
   XtPointer parent ;
 
   int    bigmode , bigset ;     /* 30 Jan 2003 */
-  float  bigtop , bigbot ;
+  float  bigtop , bigbot , bigmax ;
   rgbyte bigcolor[NPANE_BIG] ;
   char  *bigname ;              /* 22 Oct 2003 */
   XImage *bigxim ;
@@ -89,6 +89,7 @@ typedef struct {
   float  bigfac ;               /* 11 Feb 2003 */
   int    bigflip ;              /* 07 Feb 2004 */
   int    bigrota ;              /* 07 Feb 2004 */
+  int    big30, big32 ;         /* 14 Feb 2012 */
 
   Widget big_menu , big_label , big_choose_pb ;
 } MCW_pbar ;
