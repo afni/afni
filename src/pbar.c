@@ -901,6 +901,7 @@ void PBAR_set_bigmode( MCW_pbar *pbar, int bmode, float bot,float top )
 ENTRY("PBAR_set_bigmode") ;
    if( bmode && bot < top ){
      pbar->bigbot = bot; pbar->bigtop = top;
+if(bigthree) 
 INFO_message("set_bigmode: bot=%g top=%g",bot,top) ;
    }
    pbar->bigmode   = bmode ;
