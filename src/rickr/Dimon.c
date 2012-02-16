@@ -75,17 +75,22 @@ static char * g_history[] =
     "      - allow -save_file_list to apply even with -infile_list\n"
     " 3.7  Jan 17, 2012 [rickr]\n"
     "      - using -gert_create_dataset implies -GERT_Reco and -quit\n"
-    " 3.8  Jan 19, 2012 [rickr]\n"
+    " 3.8  Jan 19, 2012 [rickr]\n",
     "      - made -quit more agressive (never wait for new files)\n"
     " 3.7  Jan 25, 2012 [rickr] : back out changes for 3.8 and ponder\n"
     " 3.8  Feb  7, 2012 [rickr] : added -no_wait (more forceful than -quit)\n"
     "      - also, suppress new glob warning\n"
     " 3.9  Feb 14, 2012 [rickr]\n"
     "      - if -no_wait, terminate on volume_match failure\n"
+    " 3.10 Feb 16, 2012 [rickr]\n",
+    "      - added -max_images\n"
+    "      - do not init vol search state to 2, would limit volumes to 40\n"
+    "      - include fl_start in no_wait test\n"
+    "      - look for new vol worth of images, but no volume match\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.9 (Feb 14, 2012)"
+#define DIMON_VERSION "version 3.10 (Feb 16, 2012)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -306,7 +311,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     int vs_state = 0;    /* state for volume search, can reset */
     int fl_start = 0;    /* starting offset into the current flist */
     int nslices = p->opts.num_slices;
-    int nfiles = 0;      /* from read_ge_files */
+    int nfiles=0, total_files=0; /* from read_ge_files */
 
     if ( gD.level > 0 )                 /* status */
         fprintf( stderr, "-- scanning for first volume\n" );
@@ -314,10 +319,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     /* clear initial volume */
     memset(v, 0, sizeof(vol_t));
 
-    if ( p->opts.no_wait ) {
-        sleep_ms = 0;  /* no sleeping in this case */
-        vs_state = 2;  /* no retries, either */
-    }
+    if ( p->opts.no_wait ) sleep_ms = 0;  /* no sleeping in this case */
 
     mri_read_dicom_reset_obliquity();   /* to be sure */
     MCW_set_glob_whine(0);              /* quiet any glob warnings */
@@ -326,23 +328,17 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     while ( ret_val == 0 )
     {
         nfiles = read_ge_files( p, fl_start, max_im_alloc );
+        total_files = nfiles+fl_start;
         ret_val = nfiles;
 
-        /* no_wait: if ret_val ever repeats (including start at 0), fail
-                    (might go 40, 80, 120...)           7 Feb 2012 [rickr] */
-        if ( p->opts.no_wait ) {
-            static int prev_rv = 0;
-            if ( ret_val == prev_rv ) {
-                fprintf(stderr,"** no_wait: no volume found in %d files\n",
-                        ret_val);
-                return -1;
-            }
-            prev_rv = ret_val;
-        }
+        if(gD.level>1) fprintf(stderr,"-- RGEFa: read %d files (total %d)\n",
+                               nfiles, total_files);
 
         if ( ret_val > 0 )
         {
             ret_val = volume_search( v, p, 0, 0, &fl_start, &vs_state );
+            if(gD.level>1)
+                fprintf(stderr,"-- volume search returns %d\n", ret_val);
 
             /* try to recover from a data error */
             if ( ret_val == -1 ) ret_val = 0;
@@ -369,6 +365,25 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
         /* if no volume, sleep and continue loop */
         if ( ret_val == 0 )   /* we are not done yet */
         {
+            /* no_wait: if ret_val ever repeats (including start at 0), fail
+                      (might go 40, 80, 120...)          16 Feb 2012 [rickr] */
+            if ( p->opts.no_wait ) {
+                static int prev_nf = -1;
+                if ( total_files == prev_nf ) {
+                    fprintf(stderr,"** no_wait: no volume found in %d files\n",
+                            total_files);
+                    return -1;
+                }
+                prev_nf = total_files;
+            }
+
+            if ( total_files > p->opts.max_images ) {
+                fprintf(stderr,"** cannot find a volume in %d image files\n"
+                               "   (max allowable = %d, see -max_images)\n",
+                               total_files, p->opts.max_images);
+                return -1;
+            }
+
             if ( gD.level > 0 ) fprintf( stderr, "." ); /* pacifier */
 
             /* try to update nap time (either given or computed from TR) */
@@ -391,8 +406,10 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                 if ( gD.level > 1 )
                 {
                     idisp_vol_t( "+d first volume : ", v );
-                    idisp_param_t( "-d first vol - new params : ", p );
-                    disp_ftype("-d ftype: ", p->ftype);
+                    if ( gD.level > 2 ) {
+                        idisp_param_t( "-d first vol - new params : ", p );
+                        disp_ftype("-d ftype: ", p->ftype);
+                    }
                 }
             }
     
@@ -409,7 +426,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                     return -1;
                 }
     
-                if ( gD.level > 1 )
+                if ( gD.level > 2 )
                     idisp_param_t( "++ final realloc of flist : ", p );
             }
     
@@ -431,7 +448,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
             if ( ac->state == ART_STATE_IN_USE )
                 ART_send_volume( ac, v, gD.level );
     
-            if ( gD.level > 1 )
+            if ( gD.level > 2 )
             {
                 ART_idisp_ART_comm( "-- first vol ", ac );
                 idisp_im_store_t( "-- first vol ", &p->im_store );
@@ -463,7 +480,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     int   fl_index;                     /* current index into p->flist    */
     int   naps;                         /* keep track of consecutive naps */
     int   nap_time;                     /* sleep time, in milliseconds    */
-    int   prev_nim;                     /* previous number of images read */
+    int   prev_nim, prev_images=-1;     /* previous number of images read */
     int   tr_naps;                      /* naps per TR                    */
 
     if ( v0 == NULL || p == NULL )
@@ -492,7 +509,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
         fprintf( stderr, "-- scanning for additional volumes...\n" );
         fprintf( stderr, "-- run %d: %d ", run, seq_num );
     }
-    if ( gD.level > 1 ) fprintf(stderr,"++ nap time = %d, tr_naps = %d\n",
+    if ( gD.level > 2 ) fprintf(stderr,"++ nap time = %d, tr_naps = %d\n",
                                 nap_time, tr_naps);
 
     /* give stats when user quits */
@@ -513,6 +530,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
         while ( (ret_val == 1) || (ret_val == -1) )
         {
             ret_val = volume_match( v0, &vn, p, fl_index );
+            if(gD.level>2) fprintf(stderr,"-- vol match returns %d\n", ret_val);
 
             if ( ret_val < -1 ) return ret_val; /* bail out on fatal error */
 
@@ -577,8 +595,12 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
         fl_index = 0;                   /* reset flist index                 */
         naps = 0;                       /* do not accumulate for stall check */
 
-        while ( (ret_val >= 0 ) &&      /* no fatal error, and        */
-                (ret_val < v0->nim) )   /* didn't see full volume yet */
+        if(gD.level>1) fprintf(stderr,"-- RGEFb: read %d files\n",ret_val);
+
+        /* wait while no fatal error and no full volume,
+         * also, wait if we have not processed new images (full volume error?)*/
+        while ( (ret_val >= 0 && ret_val < v0->nim ) ||
+                prev_images == next_im ) /* implies ret_val >= nim */
         {
             if ( ret_val != prev_nim )
                 naps = 0;   /* then start over */
@@ -590,6 +612,11 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                         ART_send_end_of_run( ac, run, seq_num, gD.level );
 
                     show_run_stats( &gS );
+
+                    if ( ret_val > 0 )
+                        fprintf(stderr,"\n** have %d unprocessed image(s)\n\n",
+                                ret_val);
+
                     return 0;
                 }
 
@@ -597,6 +624,9 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                 if( check_stalled_run(run,seq_num,naps,tr_naps,nap_time ) > 0 )
                     if ( ac->state == ART_STATE_IN_USE )
                         ART_send_end_of_run( ac, run, seq_num, gD.level );
+
+                /* if we seem stalled but have enough images, try to process */
+                if ( ret_val >= v0->nim ) break;
             }
 
             prev_nim = ret_val;
@@ -609,6 +639,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
             naps ++;
 
             ret_val = read_ge_files( p, next_im, p->nalloc );
+            if(gD.level>1) fprintf(stderr,"-- RGEFc: read %d files\n",ret_val);
         }
 
         if ( ret_val < 0 )               /* aaaaagh!  panic!  wet pants! */
@@ -616,6 +647,8 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
             fprintf( stderr, "\n** failure: IFM:RGF fatal error\n" );
             return -1;
         }
+
+        prev_images = next_im;  /* this should be changing */
     }
 
     return 0;   /* success */
@@ -721,8 +754,9 @@ static int volume_search(
 
         return 1;
     }
-    else if ( rv == 0 )
+    else if ( rv == 0 ) {
         return 0;                           /* we did not finish a volume */
+    }
     else if ( rv == -1 )
     {
         /* We have gone in the wrong direction.  This means that the
@@ -896,7 +930,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
 
     /* now modify delta to be the mean dz, not just the first  30 Aug 2011 */
     if( zcount > 0 ) {
-        if( p->opts.debug > 2 )
+        if( gD.level > 2 )
             fprintf(stderr,"++ updating delta (%f) to mean dz (%f)\n",
                     delta, zsum/zcount);
         delta = zsum/zcount;
@@ -1376,7 +1410,7 @@ static int read_ge_files(
 
         p->nalloc = nalloc;
 
-        if ( gD.level > 1 )
+        if ( gD.level > 2 )
         {
             idisp_param_t( "++ realloc of flist : ", p );
             fprintf( stderr,  "-- n2scan = %d, max = %d\n", n2scan, max );
@@ -1423,7 +1457,7 @@ static int read_file_list ( param_t  * p )
         return 1;
     }
 
-    if( p->opts.debug > 1 )
+    if( gD.level > 1 )
         fprintf(stderr,"++ reading file list from %s, size %d\n",infname,flen);
 
     text = (char *)malloc((flen+1)*sizeof(char));
@@ -1465,7 +1499,7 @@ static int read_file_list ( param_t  * p )
         fname = strtok(NULL, " \n\r\t\f");
     }
 
-    if( p->opts.debug > 1 )
+    if( gD.level > 1 )
         fprintf(stderr,"++ read %d filenames from '%s'\n", p->nfiles, infname);
 
     free(text);
@@ -1953,6 +1987,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     ART_init_AC_struct( A );            /* init for no real-time comm */
     A->param = p;                       /* store the param_t pointer  */
     p->opts.ep = IFM_EPSILON;           /* allow user to override     */
+    p->opts.max_images = IFM_MAX_VOL_SLICES;   /* allow user override */
     p->opts.sleep_frac = 1.5;           /* fraction of TR to sleep    */
     p->opts.use_dicom = 1;              /* will delete this later...  */
 
@@ -2105,6 +2140,16 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             p->opts.dicom_glob = calloc(strlen(argv[ac])+2, sizeof(char));
             strcpy(p->opts.dicom_glob, argv[ac]);
             strcat(p->opts.dicom_glob, "*");
+        }
+        else if ( ! strncmp( argv[ac], "-max_images", 7 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -max_images NUM_IMAGES\n", stderr );
+                return 1;
+            }
+
+            p->opts.max_images = atoi(argv[ac]);
         }
         else if ( ! strncmp( argv[ac], "-nice", 4 ) )
         {
@@ -2475,7 +2520,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     p->opts.argv = argv;
     p->opts.argc = argc;
 
-    if ( gD.level > 1 )
+    if ( gD.level > 2 )
     {
         idisp_opts_t ( "end init_options : ", &p->opts );
         idisp_param_t( "end init_options : ", p );
@@ -3196,6 +3241,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   (argv, argc)       = (%p, %d)\n"
             "   tr, ep             = %g, %g\n"
             "   nt, num_slices     = %d, %d\n"
+            "   max_images         = %d\n"
             "   nice, pause        = %d, %d\n"
             "   sleep_frac         = %g\n"
             "   sleep_init         = %d\n"
@@ -3231,7 +3277,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->sp),
             CHECK_NULL_STR(opt->gert_outdir),
             opt->argv, opt->argc,
-            opt->tr, opt->ep, opt->nt, opt->num_slices, opt->nice, opt->pause,
+            opt->tr, opt->ep, opt->nt, opt->num_slices, opt->max_images,
+            opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
             opt->debug, opt->quit, opt->no_wait, opt->use_dicom,
             opt->use_last_elem, opt->show_sorted_list, opt->gert_reco,
@@ -4006,6 +4053,15 @@ static int usage ( char * prog, int level )
           "    -help              : show this help information\n"
           "\n"
           "    -hist              : display a history of program changes\n"
+          "\n"
+          "    -max_images NUM    : limit on images (slices per volume)\n"
+          "\n"
+          "        e.g.  -max_images 256\n"
+          "        default = 3000\n"
+          "\n"
+          "        This variable is in case something is very messed up with\n"
+          "        the data, and prevents the program from continuing after\n"
+          "        failing to find a volume in this number of images.\n"
           "\n"
           "    -nice INCREMENT    : adjust the nice value for the process\n"
           "\n"
