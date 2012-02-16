@@ -231,8 +231,10 @@ STATUS("init pval_save") ;
    pbar->bigname = bigmap_name[0] ;
    pbar->bigxim  = NULL ;
    pbar->bigbot  = -1.0f ; pbar->bigtop = 1.0f ;
+
    pbar->bigmax  = PBAR_get_bigmax(pbar) ;       /* Feb 2012 */
    pbar->big30   = pbar->big32 = bigthree ;      /* Feb 2012 */
+   pbar->ignore_resize = 0 ;
 
    XtAddCallback( pbar->panes[bigthree], XmNexposeCallback, PBAR_bigexpose_CB, pbar ) ;
 
@@ -692,7 +694,7 @@ ENTRY("PBAR_bigmap_finalize") ;
 
    MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
    PBAR_bigexpose_CB(NULL,pbar,NULL) ;
-   if( XtIsRealized(pbar->panes[bigthree]) )
+   if( XtIsManaged(pbar->panes[bigthree]) )
      PBAR_callback(pbar,pbCR_COLOR) ;
 
    EXRETURN ;
@@ -791,13 +793,6 @@ static void PBAR_show_bigthree_panes( MCW_pbar *pbar )
 }
 
 /*--------------------------------------------------------------------*/
-/* if in bigmode, set the pane labels */
-
-static void PBAR_show_bigmode_labels( MCW_pbar *pbar )
-{
-}
-
-/*--------------------------------------------------------------------*/
 /*! Actually redisplay pane #bigthree in "big" mode.
 ----------------------------------------------------------------------*/
 
@@ -848,7 +843,7 @@ ENTRY("PBAR_bigexpose_CB") ;
 
    /* actually show the image to the window pane */
 
-   if( XtIsRealized(pbar->panes[bigthree]) )
+   if( XtIsManaged(pbar->panes[bigthree]) )
      XPutImage( pbar->dc->display , XtWindow(pbar->panes[bigthree]) ,
                 pbar->dc->origGC , pbar->bigxim , 0,0,0,0 ,
                 pbar->bigxim->width , pbar->bigxim->height ) ;
@@ -860,13 +855,28 @@ ENTRY("PBAR_bigexpose_CB") ;
 
 /*--------------------------------------------------------------------*/
 
+static float fround3( float aa )
+{
+   double am=fabs(aa) , bb ; float rr ;
+
+   if( am == 0.0 ) return 0.0f ;
+
+   bb = pow( 10.0 , (double)( ((int)log10(am))-2 ) ) ;
+   am = bb * rint(am/bb) ;
+
+   rr = (float)am ; if( aa < 0.0f ) rr = -rr ;
+   return rr ;
+}
+
+/*--------------------------------------------------------------------*/
+
 static float PBAR_get_bigmax( MCW_pbar *pbar )
 {
    double abot,atop ;
 
    if( pbar == NULL ) return 1.0f ;  /* should not happen */
 
-   abot = fabs(pbar->bigbot); atop = fabs(pbar->bigtop) ;
+   abot = fabs(pbar->bigbot) ; atop = fabs(pbar->bigtop) ;
    if( atop <  abot ) atop = abot ;
    if( atop == 0.0f ) atop = 1.0  ;  /* should not transpire */
 
@@ -889,7 +899,10 @@ static float PBAR_get_bigmax( MCW_pbar *pbar )
 void PBAR_set_bigmode( MCW_pbar *pbar, int bmode, float bot,float top )
 {
 ENTRY("PBAR_set_bigmode") ;
-   if( bmode && bot < top ){ pbar->bigbot = bot; pbar->bigtop = top; }
+   if( bmode && bot < top ){
+     pbar->bigbot = bot; pbar->bigtop = top;
+INFO_message("set_bigmode: bot=%g top=%g",bot,top) ;
+   }
    pbar->bigmode   = bmode ;
    pbar->update_me = 1 ;
    update_MCW_pbar( pbar ) ;
@@ -910,6 +923,7 @@ ENTRY("PBAR_show_bigmode") ;
    if( 1 || !pbar->bigset ){   /* set up big mode */
 
      if( pbar->hide_changes ) XtUnmapWidget( pbar->top ) ;
+     pbar->ignore_resize = 1 ;
 
      if( !bigthree ){ /* turn off all but 1 pane and all but 2 labels */
 
@@ -961,6 +975,8 @@ ENTRY("PBAR_show_bigmode") ;
 
        /* set the height of the 3 panes left upright */
 
+INFO_message("bigbot=%g  bigtop=%g  bigmax=%g",pbar->bigbot,pbar->bigtop,pbar->bigmax) ;
+
        ab = fabsf(pbar->bigbot) ; at = fabsf(pbar->bigtop) ; am = MAX(ab,at) ;
        if( 1.05f*am > pbar->bigmax ||
            5.01f*am < pbar->bigmax   ) pbar->bigmax = PBAR_get_bigmax(pbar) ;
@@ -968,9 +984,17 @@ ENTRY("PBAR_show_bigmode") ;
 
        hfac = (pbar->panew_height - 2*PANE_SPACING) / (2.0f*bm) ;
 
-       h0 = (int)( (bm-at)*hfac + 0.45f ) ;
-       h1 = (int)( (at-ab)*hfac + 0.45f ) ;
+       h0 = (int)( (bm-at)*hfac + 0.45f ) ; if( h0 < PANE_MIN_HEIGHT ) h0 = PANE_MIN_HEIGHT ;
+       h1 = (int)( (at-ab)*hfac + 0.45f ) ; if( h1 < PANE_MIN_HEIGHT ) h1 = PANE_MIN_HEIGHT ;
        h2 = pbar->panew_height - 2*PANE_SPACING - h0 - h1 ;
+       if( h2 < PANE_MIN_HEIGHT ){
+         int deficit=PANE_MIN_HEIGHT-h2 , dh=deficit/2 ;  /* I cut the deficit in half! */
+         h2  = PANE_MIN_HEIGHT ;
+         h0 -= (deficit - dh) ;
+         h1 -= dh ;
+       }
+INFO_message("Set h0=%d h1=%d h2=%d",h0,h1,h2) ;
+ININFO_message("  bm=%g  ab=%g  at=%g",bm,ab,at) ;
 
        XtVaSetValues( pbar->panes[0] , XmNheight,h0 , NULL ) ;
        XtVaSetValues( pbar->panes[1] , XmNheight,h1 , NULL ) ;
@@ -986,7 +1010,6 @@ ENTRY("PBAR_show_bigmode") ;
        XtVaSetValues( pbar->labels[0] , XmNy , yy , NULL ) ;
        PBAR_labelize( bm , buf ) ;
        MCW_set_widget_label( pbar->labels[0] , buf ) ;
-/* ININFO_message("label[0] = '%s' at yy = %d",buf,yy) ; */
 
        /* second label */
 
@@ -995,7 +1018,6 @@ ENTRY("PBAR_show_bigmode") ;
        XtVaSetValues( pbar->labels[1] , XmNy , yy , NULL ) ;
        PBAR_labelize( at , buf ) ;
        MCW_set_widget_label( pbar->labels[1] , buf ) ;
-/* ININFO_message("label[1] = '%s' at yy = %d",buf,yy) ; */
 
        /* third label */
 
@@ -1004,7 +1026,6 @@ ENTRY("PBAR_show_bigmode") ;
        XtVaSetValues( pbar->labels[2] , XmNy , yy , NULL ) ;
        PBAR_labelize( ab , buf ) ;
        MCW_set_widget_label( pbar->labels[2] , buf ) ;
-/* ININFO_message("label[2] = '%s' at yy = %d",buf,yy) ; */
 
        /* fourth label */
 
@@ -1012,11 +1033,10 @@ ENTRY("PBAR_show_bigmode") ;
        XtVaSetValues( pbar->labels[3] , XmNy , yy , NULL ) ;
        PBAR_labelize( -bm , buf ) ;
        MCW_set_widget_label( pbar->labels[3] , buf ) ;
-/* ININFO_message("label[3] = '%s' at yy = %d",buf,yy) ; */
 
      }
 
-     pbar->bigset = 1 ;
+     pbar->bigset = 1 ; pbar->ignore_resize = 0 ;
    }
 
    /* show the thing */
@@ -1283,25 +1303,55 @@ void PBAR_resize_CB( Widget w , XtPointer cd , XtPointer cb )
    char buf[16] ;
    float pmin , pmax , val ;
    int alter_all = pbar->renew_all ;
+   static int recur=0 ;  /* Feb 2012 */
 
 ENTRY("PBAR_resize_CB") ;
 
-   if( pbar == NULL || pbar->renew_all < 0 ) EXRETURN ;  /* skip it */
+   if( pbar == NULL || pbar->renew_all < 0 ) EXRETURN ; /* skip it */
+
+   if( recur || pbar->ignore_resize ) EXRETURN ;
+   recur++ ;
 
    /*-- continuous colors --*/
 
    if( pbar->bigmode ){
-     if( !bigthree ) EXRETURN ;  /* should never happen */
-     for( sum=i=0 ; i < 3 ; i++ ){
-       MCW_widget_geom( pbar->panes[i] , NULL , &(hh[i]) , NULL,NULL ) ;
-       sum += hh[i] ; if( w == pbar->panes[i] ) ip = i ;
-     }
-     if( ip < 0 ) EXRETURN ; /* should not happen */
-INFO_message("resize ip=%d hh=%d %d %d sum=%d panes_sum=%d",ip,hh[0],hh[1],hh[2],sum,pbar->panes_sum) ;
-     if( ip == 1 ){
-       MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
-       PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
-     }
+     int h0,h1,yy ; float ab,at,bm,hfac ; char buf[16] ;
+
+     if( !bigthree || w != pbar->panes[1] || !MCW_widget_visible(w) ){ recur--; EXRETURN; }
+
+     MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;  /* resize the */
+     PBAR_bigexpose_CB( NULL , pbar , NULL ) ;              /* colorscale */
+
+     /* find position and size of the middle pane */
+
+     MCW_widget_geom( pbar->panes[1] , NULL,&h1 , NULL,&yy ) ;
+     h0 = yy-2 ;
+
+     /* use these to compute the adjust bigtop and bigbot */
+
+     bm   = pbar->bigmax ;
+     hfac = (pbar->panew_height - 2*PANE_SPACING) / (2.0f*bm) ;
+     at   = bm - h0/hfac ; ab = at - h1/hfac ;
+     at   = fround3(at)  ; ab = fround3(ab)  ;
+
+INFO_message("Resize: h1=%d yy=%d bigbot=%g->%g bigtop=%g->%g",
+h1,yy,pbar->bigbot,ab,pbar->bigtop,at) ;
+
+     pbar->bigtop = at ; pbar->bigbot = ab ;
+
+     /* change the labels */
+
+     XtVaSetValues( pbar->labels[1] , XmNy , yy-PANE_LOFF , NULL ) ;
+     PBAR_labelize( at , buf ) ;
+     MCW_set_widget_label( pbar->labels[1] , buf ) ;
+
+     XtVaSetValues( pbar->labels[2] , XmNy , yy+h1 , NULL ) ;
+     PBAR_labelize( ab , buf ) ;
+     MCW_set_widget_label( pbar->labels[2] , buf ) ;
+
+     PBAR_callback(pbar,pbCR_VALUE) ;
+
+     recur-- ; EXRETURN ;
    }
 
    /*-- discrete panes --*/
@@ -1310,13 +1360,16 @@ INFO_message("resize ip=%d hh=%d %d %d sum=%d panes_sum=%d",ip,hh[0],hh[1],hh[2]
      MCW_widget_geom( pbar->panes[i] , NULL , &(hh[i]) , NULL,NULL ) ;
      sum += hh[i] ; if( w == pbar->panes[i] ) ip = i ;
    }
-   if( ip < 0 ) EXRETURN ; /* should not happen */
+   if( ip < 0 ){ recur--; EXRETURN; } /* should not happen */
    jm = pbar->mode ;
 
    if( sum != pbar->panes_sum ){
-      if( ip != pbar->num_panes - 1 ) EXRETURN ;
+      if( ip != pbar->num_panes - 1 ){ recur--; EXRETURN; }
+/* INFO_message("reset panes_sum from %d to %d; old panew_height=%d",
+                pbar->panes_sum,sum,pbar->panew_height) ; */
       pbar->panes_sum = sum ;
       MCW_widget_geom( pbar->panew , NULL,&(pbar->panew_height),NULL,NULL) ;
+/* ININFO_message("new panew_height = %d",pbar->panew_height) ; */
       alter_all = 1 ;
    }
 
@@ -1360,7 +1413,7 @@ STATUS("reset pval_save") ;
    PBAR_callback(pbar,pbCR_VALUE) ;
 
    pbar->renew_all = 0 ;
-   EXRETURN ;
+   recur-- ; EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -1371,7 +1424,7 @@ STATUS("reset pval_save") ;
 void update_MCW_pbar( MCW_pbar *pbar )
 {
 ENTRY("update_MCW_pbar") ;
-   if( pbar == NULL ) EXRETURN ;
+   if( pbar == NULL || !XtIsManaged(pbar->panew) ) EXRETURN ;
    if( pbar->update_me ){
      if( pbar->bigmode ) PBAR_show_bigmode( pbar ) ;         /* 30 Jan 2003 */
      else                alter_MCW_pbar( pbar , 0 , NULL ) ;
