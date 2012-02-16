@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, FEB, 2012, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "more quick termination updates",
+   "- added -max_images\n"
+   "- do not init vol search state to 2, would limit volumes to 40\n"
+   "- include fl_start in no_wait test\n"
+   "- look for new vol worth of images, but no volume match"
+ } ,
+
  { 14, FEB, 2012, RCR, "Dimon", MINOR, TYPE_MODIFY,
    "if -no_wait, terminate on volume_match failure",
    "For F Ye."

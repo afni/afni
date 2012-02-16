@@ -9,6 +9,7 @@
 #define IFM_EPSILON       0.01       /* slice epsilon                    */
 #define IFM_STAT_ALLOC      20       /* allocation blocksize - run stats */
 #define IFM_MAX_IM_ALLOC    40       /* initial limit for read_ge_files  */
+#define IFM_MAX_VOL_SLICES 3000      /* max slices per volume            */
 #define IFM_MAX_RUN_NAPS     2       /* maximum number of mid-run naps   */
 #define IFM_MAX_GE_FAILURES  3       /* file read failures before exit   */
 #define IFM_MAX_NT       32767       /* maximum valid num time points    */
@@ -114,6 +115,7 @@ typedef struct  /* user options */
     float            ep;            /* epsilon - defaut to IFM_EPSILON  */
     int              nt;            /* user input time points per run   */
     int              num_slices;    /* first volume must match          */
+    int              max_images;    /* max allowed images per volume    */
     int              nice;          /* nice offset (must be >= 0)       */
     int              pause;         /* pause time between volumes (ms)  */
     float            sleep_frac;    /* TR fraction to sleep (default 2) */
