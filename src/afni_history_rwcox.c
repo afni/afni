@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 13 , FEB , 2012 , RWC , "3dPeriodogram" , MICRO , TYPE_BUG_FIX ,
+  { 17 , FEB , 2012 , RWC , "debugtrace.h" , MICRO , TYPE_MODIFY ,
+   "Add printout of 'from' and 'to' information on ENTRY/RETURN macros" ,
+   "Also patched up a missing ENTRY macro in new_MCW_optmenu() in bbox.c,\n"
+   "that SOMEONE (who shall go un-named) criminally forgot when patching the\n"
+   "code for LessTif compatibility." } ,
+
+ { 13 , FEB , 2012 , RWC , "3dPeriodogram" , MICRO , TYPE_BUG_FIX ,
    "pfact was not static" ,
    "But apparently worked OK until Ziad initialized it to zero." } ,
 
