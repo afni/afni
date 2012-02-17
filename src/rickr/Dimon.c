@@ -370,7 +370,8 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
             if ( p->opts.no_wait ) {
                 static int prev_nf = -1;
                 if ( total_files == prev_nf ) {
-                    fprintf(stderr,"** no_wait: no volume found in %d files\n",
+                    fprintf(stderr,
+                            "\n** no_wait: no volume found in %d files\n\n",
                             total_files);
                     return -1;
                 }
@@ -4600,8 +4601,8 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             else                         nspaces = 0;
 
             /* if gert_format = 1, write as NIfTI */
-            fprintf(fp, "to3d %s -prefix %s%s  \\\n", 
-                     opts->gert_quiterr==1 ? "-quit_on_err" : "",
+            fprintf(fp, "to3d%s -prefix %s%s  \\\n", 
+                     opts->gert_quiterr==1 ? " -quit_on_err" : "",
                      pname,
                      opts->gert_format==1 ? ".nii" : "" );
 
