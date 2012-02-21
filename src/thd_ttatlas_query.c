@@ -35,6 +35,11 @@ static THD_string_array *session_atlas_name_list=NULL; /* a set of atlases found
 
 char *old_space_list[] = {"TLRC","MNI","MNI_ANAT"};
 
+/* determine if any whereami requests found anything in an atlas */
+static int wami_web_found = 0;
+static int wami_web_reqtype = 0;
+static char wami_url[MAX_URL];
+
 THD_string_array *recreate_working_atlas_name_list(void) {
    if (working_atlas_name_list) DESTROY_SARR(working_atlas_name_list);
    return(get_working_atlas_name_list());
@@ -1929,6 +1934,8 @@ int init_global_atlas_list () {
          atlas_alist->atlas[i].atlas_name = NULL;
          atlas_alist->atlas[i].atlas_comment = NULL;
          atlas_alist->atlas[i].atlas_description = NULL;
+         atlas_alist->atlas[i].atlas_orient = NULL;
+         atlas_alist->atlas[i].atlas_type = NULL;
          atlas_alist->atlas[i].adh = NULL;
          atlas_alist->atlas[i].atlas_found = 0;
       }
@@ -2233,6 +2240,9 @@ char * TT_whereami(  float xx , float yy , float zz,
       RETURN(rbuf);
    }
 
+   /* nothing found from web atlas yet */
+   set_wami_web_found(0);   
+
    if(LocalHead) {
       INFO_message("current list of atlases:");
       print_atlas_list(atlas_alist);
@@ -2256,7 +2266,8 @@ char * TT_whereami(  float xx , float yy , float zz,
    }
 
    if (!wami) {
-      ERROR_message("No atlas regions found.");
+      if(!get_wami_web_found())
+         ERROR_message("No atlas regions found.");
       RETURN(rbuf) ;
    }
 
@@ -2759,7 +2770,7 @@ int *z_idoubleqsort (double *x , int nx )
 
    if (!Z_Q_doubleStrct || !I)
       {
-         ERROR_message("Allocation problem");
+         ERROR_message("Error %s: Allocation problem", FuncName);
          RETURN (NULL);
       }
 
@@ -3567,7 +3578,7 @@ APPROX_STR_DIFF *init_str_diff(APPROX_STR_DIFF *Dw) {
 */
 APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci) 
 {
-   int ns1=0, ns2=0, i, j, m, loff=0, ks1, ks2, imatch, ks1t, verb=0;
+   int ns1=0, ns2=0, i, j, m, ks1, ks2, imatch, ks1t, verb=0;
    byte eqs=0;
    int **d=NULL;
    char *spart=NULL;
@@ -3772,7 +3783,7 @@ float set_smallest_str_diff(APPROX_STR_DIFF *D0,
                               APPROX_STR_DIFF D1, APPROX_STR_DIFF D2, 
                               APPROX_STR_DIFF_WEIGHTS Dw, int *iminp)
 {
-   int i, imin=0;
+   int imin=0;
    float d1, d2, d;
    
    if (!D0) return(-1.0);
@@ -3881,14 +3892,13 @@ char **approx_str_sort(char **words, int N_words, char *str, byte ci,
                        APPROX_STR_DIFF_WEIGHTS *Dwi,
                        APPROX_STR_DIFF **Dout)
 {
-   char **ws=NULL, *sword=NULL, *brk=NULL;
-   char lsep[] = " \t", *line=NULL;
-   APPROX_STR_DIFF *is=NULL, ii;
+   char **ws=NULL;
+   char *line=NULL;
+   APPROX_STR_DIFF *is=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
    int direct = -1; /* -1 best match first, 1 best match last */
-   int i, iword=0, imin=0;
+   int i;
    int *isi=NULL;
-   float dtmp; 
    
    ENTRY("approx_str_sort");
    
@@ -3979,8 +3989,7 @@ char **approx_str_sort_text(char *text, int *N_ws, char *str,
                             APPROX_STR_DIFF **Dout)
 {
    char **ws=NULL;
-   int *is=NULL, *isi=NULL, i;
-   int direct = -1, N_lines=0, N_alloc=0; 
+   int N_lines=0, N_alloc=0; 
    char *brk=NULL, lsep[] = "\n\r", *line=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
    
@@ -4146,7 +4155,6 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
    char *str="-";
    float *sc=NULL, ff= 0.0;
    APPROX_STR_DIFF *D=NULL;
-   APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
 
    ENTRY("approx_str_sort_all_popts");
    
@@ -4292,7 +4300,6 @@ void suggest_best_prog_option(char *prog, char *str)
    APPROX_STR_DIFF *D=NULL;
    char *cwsi=NULL;
    FILE *logfout=NULL;
-   char shelpname[256]={""};
    
    if (getenv("AFNI_NO_OPTION_HINT")) return;
    if (AFNI_yesenv("AFNI_LOG_BEST_PROG_OPTION")) logit = 1;
@@ -4435,7 +4442,6 @@ void view_prog_help(char *prog)
 {
    char *viewer=NULL, *hname=NULL;
    char *progname=NULL;
-   char cmd[256]={""};
    
    if (!prog) return;
    if (!(progname = THD_find_executable(prog))) {
@@ -4463,7 +4469,6 @@ void view_prog_help(char *prog)
 
 void web_prog_help(char *prog)
 {
-   char *viewer=NULL, *hname=NULL;
    char *progname=NULL;
    char weblink[1024]={""};
    
@@ -4489,8 +4494,6 @@ void web_prog_help(char *prog)
 
 void web_class_docs(char *prog)
 {
-   char *viewer=NULL, *hname=NULL;
-   char *progname=NULL;
    char weblink[1024]={""};
    
    if (prog) {
@@ -4637,8 +4640,6 @@ void print_prog_options(char *prog)
    char **ws=NULL;
    int N_ws=0, i;
    float *ws_score=NULL;
-   APPROX_STR_DIFF *D=NULL;
-
 
    if (!(ws = approx_str_sort_all_popts(prog, &N_ws,  
                    1, &ws_score,
@@ -4696,7 +4697,6 @@ void test_approx_str_match(void)
                 "\n"
                 " I tell you   \n"
                 "\n "};
-   char str[]={"Fox"}; 
    APPROX_STR_DIFF_WEIGHTS *Dw = NULL;
    APPROX_STR_DIFF D, *Dv=NULL;
    
@@ -6266,7 +6266,7 @@ int is_Dset_Atlasy(THD_3dim_dataset *dset, ATLAS_LIST *atlas_alist)
 {
    NI_element *nel=NULL;
    NI_stream ns=NULL;
-   char *str=NULL, sbuf[256]={""};
+   char *str=NULL;
    int OK = 0;
    
    ENTRY("is_Dset_Atlasy");
@@ -6384,7 +6384,7 @@ int Init_Atlas_Dset_Holder(ATLAS *atlas)
    ENTRY("New_Atlas_Dset_Holder");
    
    if (!atlas) RETURN(0);
-   
+
    if (atlas->adh) {
       ERROR_message("Non NULL ADH this is not allowed here");
       RETURN(0);
@@ -6434,6 +6434,28 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
       ERROR_message("Cannot find atlas %s", atname);
       RETURN(NULL);
    }
+
+   if(ATL_WEB_TYPE(atlas)) {
+      if(ATL_FOUND(atlas)){
+         if(wami_verb()) {
+            INFO_message("reusing web atlas in atlas with trimming");
+         }
+         RETURN(atlas);
+      }
+      if(wami_verb()) {
+         INFO_message("using web atlas in atlas with trimming");
+         INFO_message("adh is %d", atlas->adh);
+      }
+      atlas->atlas_found = 1;
+      if (!Init_Atlas_Dset_Holder(atlas)) {
+         ERROR_message("Failed to initialize ADH for atlas %s",
+                        Atlas_Name(atlas));
+         RETURN(NULL);
+      }
+
+      RETURN(atlas);
+   }
+
    
    /* Now get dset if it is missing */
    if (!ATL_DSET(atlas)) {
@@ -6442,7 +6464,7 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
       if (ATL_FOUND(atlas)==-1)   /* already tried to load and failed */
          RETURN(NULL);            /* don't try again */
 
-      if (!(genx_load_atlas_dset(atlas))) {
+      if (!(genx_load_atlas_dset(atlas))) {   /* initialize atlas structures (adh) */
          atlas->atlas_found = -1; /* could not find atlas, don't try again*/
          if (wami_verb()) {
              if (!n_warn || wami_verb()>1) {
@@ -6904,7 +6926,10 @@ int whereami_in_atlas(  char *aname,
    static char find_warn = 0, nolabel_warn = 1;
 
    ENTRY("whereami_in_atlas");
-   
+      if (wami_verb()){
+        INFO_message("whereami_in_atlas %s", aname);
+      }
+    
    if (!aname) {
       ERROR_message("No name");
       RETURN(0);
@@ -6916,20 +6941,21 @@ int whereami_in_atlas(  char *aname,
    if (!(atlas = Atlas_With_Trimming(aname, 1, NULL))) {
       if (LocalHead) ERROR_message("Could not load atlas %s", aname);
       RETURN(0);
-   }    
-   
-   if (LocalHead) {
-      INFO_message("Wami on atlas %s (%d %d)\n", 
-                atlas->atlas_name, 
-                is_integral_atlas(atlas), is_probabilistic_atlas(atlas));
    }
-   
+
+   if (LocalHead) {
+      INFO_message("Wami on atlas %s", aname);
+      INFO_message(" integral? %d", is_integral_atlas(atlas));
+      INFO_message(" probabilistic? %d", is_probabilistic_atlas(atlas));
+      INFO_message(" atlas type ? %s", ATL_TYPE_S(atlas));
+   }
+
    if (strcmp(atlas->atlas_space, ac.space_name)) {
       ERROR_message("Atlas space names mismatch: %s != %s",
                      atlas->atlas_space, ac.space_name);
       RETURN(0);
    }
-   
+
    if (strncmp(ac.orcode, "RAI", 3)) {
       ERROR_message("AC orientation (%s) not RAI",
                      ac.orcode);
@@ -6971,7 +6997,8 @@ int whereami_in_atlas(  char *aname,
                      is_integral_atlas(atlas), is_probabilistic_atlas(atlas));
 
    if (  is_integral_atlas(atlas) && 
-         !is_probabilistic_atlas(atlas)) { /* the multi-radius searches */
+         !is_probabilistic_atlas(atlas) &&
+         !ATL_WEB_TYPE(atlas) ) {                    /* the multi-radius searches */
       nfind = 0 ;
       for (sb=0; sb < DSET_NVALS(ATL_DSET(atlas)); ++sb) {
          if (LocalHead)
@@ -7140,7 +7167,9 @@ int whereami_in_atlas(  char *aname,
          rff = rr_find[ff] ;  /* save for next time around */
       }
 
-   } else if (is_probabilistic_atlas(atlas)) { /* the PMAPS */
+   }
+
+   if (is_probabilistic_atlas(atlas) && !ATL_WEB_TYPE(atlas)) { /* the PMAPS */
       if (LocalHead)  
          fprintf(stderr,"Processing with probabilistic atlas %s\n", 
                         atlas->atlas_dset_name);
@@ -7199,11 +7228,22 @@ int whereami_in_atlas(  char *aname,
             *wamip = Add_To_Atlas_Query(*wamip, zn);
          }
       }
-   } else {
+   }
+
+   if (ATL_WEB_TYPE(atlas)) {
+      wami_query_web(atlas, ac, *wamip);
+   }
+
+   /* not sure what should be done with this atlas if no known type */
+   if (!is_integral_atlas(atlas) &&
+       !is_probabilistic_atlas(atlas) &&
+       !ATL_WEB_TYPE(atlas))
+   {
       ERROR_message("dunno what to do for atlas %s\n", 
                      atlas->atlas_dset_name);
       RETURN(0);
    }
+
    /* Show_Atlas_Query(wami); */
    
    free(b_find); b_find = NULL; free(rr_find); rr_find = NULL;
@@ -7265,8 +7305,9 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
       ERROR_message("No reachable atlases from %s\n", aci.space_name);
       RETURN(0);
    }
-   
-   for (ia=0; ia<N_iatl; ++ia) { /* for each reachable, get query */ 
+
+   /* for each reachable atlas, get query */ 
+   for (ia=0; ia<N_iatl; ++ia) { 
       atlas = &(aali->atlas[iatl[ia]]);
       /* get xform, and apply it to coords at input */
       if (!(xfl = report_xform_chain(aci.space_name, atlas->atlas_space, 0))) {
@@ -7280,12 +7321,22 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
              aci.x,aci.y,aci.z, aci.space_name, xout,yout,zout, 
              Atlas_Name(atlas),
              atlas->atlas_space);
-      
-      XYZ_to_AtlasCoord(xout, yout, zout, "RAI", atlas->atlas_space, &ac);
+     
 
-      if (!whereami_in_atlas(Atlas_Name(atlas), ac , &wami)) {
-         if (LocalHead) 
-            INFO_message("Failed at whereami for %s", Atlas_Name(atlas));
+      /* for web atlases, open up separate query */
+      /* do specific web request here for non-struct type 
+         and skip regular whereami call */ 
+      if(ATL_WEB_TYPE(atlas) && (get_wami_web_reqtype() != WAMI_WEB_STRUCT)){
+         if (wami_verb() > 1)
+            INFO_message("trying to access web-based atlas");
+         elsevier_query_request(xout, yout, zout, atlas, get_wami_web_reqtype());
+      }
+      else{  /* regular (non-web) atlas request for local dataset */
+         XYZ_to_AtlasCoord(xout, yout, zout, "RAI", atlas->atlas_space, &ac);
+         if (!whereami_in_atlas(Atlas_Name(atlas), ac , &wami)) {
+               if (LocalHead) 
+                  INFO_message("Failed at whereami for %s", Atlas_Name(atlas));
+            }
       }
    }
    
@@ -7396,9 +7447,10 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
       if (wami_verb())
          INFO_message(  "Now Processing atlas %s (%d)",
                         atlas_alist->atlas[iatlas].atlas_dset_name);
-
-      if (!(atlas = Atlas_With_Trimming(  atlas_alist->atlas[iatlas].atlas_name,
-                                          1, atlas_alist))) {
+      if(!ATL_WEB_TYPE(atlas))
+         atlas = Atlas_With_Trimming(  atlas_alist->atlas[iatlas].atlas_name,
+                                          1, atlas_alist);
+      if (!atlas) {
          if (wami_verb()) {
             if (!iwarn || wami_verb() > 1) {
                INFO_message("No atlas dataset %s found for whereami location"
@@ -8139,7 +8191,7 @@ ATLAS_LIST * env_atlas_list()
    int N_atlas_names = 0;
    ATLAS_LIST *atlas_rlist = NULL;
    char atlas_name_str[256], ch;
-   int ai, strind, nch, bb=0, ibb=0;
+   int ai, strind, nch;
    THD_string_array *sar=NULL;
 
    envlist= my_getenv("AFNI_ATLAS_LIST");
@@ -8292,6 +8344,7 @@ int env_dec_places()
    if((tp<0)||(tp>10))
       return(decplaces);
    decplaces = tp;
+   return(decplaces);
 }
 
 
@@ -8330,7 +8383,6 @@ char **Atlas_Names_List(ATLAS_LIST *atl)
 */
 int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
 {
-   ATR_string *atr=NULL;
    char *str_lab1=NULL, *str_lab2=NULL, sval[128]={""};
    ATLAS_LIST *atlas_alist=NULL;
    ATLAS *atlas=NULL;
@@ -8414,3 +8466,311 @@ int AFNI_get_dset_label_val(THD_3dim_dataset *dset, double *val, char *str)
    RETURN(0);
 }
 
+
+/* open Elsevier's BrainNavigator in webpage */
+/* xyz input should be in RAI in the same space as atlas,
+   but BrainNavigator takes "RSA" as xyz order, so coords need
+   to be reordered. atlas specification now includes coordinate
+   order and XML base http page in the dataset name.
+   Returns XML string
+*/
+char *
+elsevier_query(float xx, float yy, float zz, ATLAS *atlas)
+{
+    size_t nread;
+    char wamiqurl[512], *page=NULL;
+/*     char upath[]={"http://mrqlan.dyndns.org/bnapi/models/whereami.xml?"};*/
+    THD_coorder CL_cord ;
+    if(wami_verb()>2)
+       fprintf(stdout,"Trying to get to Elsevier for coords %f %f %f\n", xx, yy,zz);
+
+    THD_coorder_fill(atlas->atlas_orient , &CL_cord ) ; /* fill structure from atlas string */
+    THD_dicom_to_coorder(&CL_cord , &xx , &yy , &zz);  /* put the coords in Elseviers order */
+
+    /* Get Elsevier XML whereami short response */
+    /* Elsevier's short response includes structure information in the following format
+       that includes a link for the BrainNavigator webpage in the bn_uri field of the XML
+       code */
+/*
+      <?xml version="1.0" encoding="UTF-8"?>
+     <structure>
+         <space_name>paxinos_rat_2007</space_name>
+         <structure_name>caudomedial entorhinal cortex</structure_name>
+         <structure_abbr>CEnt</structure_abbr>
+
+         <structure_parent>entorhinal cortex</structure_parent>
+         <structure_grandparent>medial pallium (the hippocampal formation)</structure_grandparent>
+         <structure_greatgrandparent>pallium</structure_greatgrandparent>
+         <structure_greatgreatgrandparent>telencephalon</structure_greatgreatgrandparent>
+         <bn_uri>http://www.brainnav.com/browse?highlight=9681a3&amp;specId=2</bn_uri>
+         <x_loc>3.900000</x_loc>
+         <y_loc>4.500000</y_loc>
+         <z_loc>-8.500000</z_loc>
+         <species>rat</species>
+         <atlas_plates>None found</atlas_plates>
+
+     </structure>
+*/
+       
+     sprintf(wamiqurl,"%sspace=%s&x=%f&y=%f&z=%f&scope=full",
+           atlas->atlas_dset_name,atlas->atlas_space, xx, yy, zz);
+
+     if(wami_verb())
+        fprintf(stdout,"Trying to open:\n%s\n", wamiqurl);
+
+     #ifdef USE_CURL
+        /* fprintf(stderr,"Using curl to read:\n%s\n", wamiqurl); */
+        nread = CURL_read_URL_http( wamiqurl , &page );
+     #else
+        /* fprintf(stderr,"Using read_URL to read:\n%s\n", wamiqurl); */
+        set_HTTP_11(1);
+        nread = read_URL_http( wamiqurl , 4448 , &page );
+     #endif
+     return(page);
+
+}
+
+/* act on requests to Elsevier - show XML, open browser or just show one structure name */
+char *
+elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_type)
+{
+   char *page = NULL;
+   char *sss = NULL, *temppage;
+
+   ENTRY("elsevier_query_request");
+
+   if(wami_verb())
+      fprintf(stdout, "Elsevier request type %d\n", el_req_type);
+
+   page = elsevier_query(xx,yy,zz,atlas);
+   if (!page) {
+      set_wami_web_found(0);
+      RETURN(NULL);
+   }
+
+   set_wami_web_found(1);
+   switch(el_req_type) {
+
+      /* Show page - just print XML as one string */
+      case(WAMI_WEB_PRINT_XML):
+         fprintf(stdout,"Elsevier XML Whereami:\n%s\n\n",
+                  page);
+         break;
+
+      /* open browser*/
+      case(WAMI_WEB_BROWSER):
+         if ((sss = whereami_XML_get(page, "bn_uri"))) {
+            if(wami_verb())
+               fprintf(stdout, "open %s\n", sss);
+            whereami_browser(sss);
+            free(sss);
+         }
+         break;
+
+      /* print structure only at xyz */
+      default:
+      case(WAMI_WEB_STRUCT):
+         if ((sss = whereami_XML_get(page, "structure_name"))) {
+            if(wami_verb())
+               fprintf(stdout, "BrainNavigator Structure: %s\n", sss);
+            /* flag string for no ROI there */
+            /* otherwise, don't free string, this is returned */
+            if((sss == NULL) || (strlen(sss)==0) ||
+                strcmp(sss, "b0ffff")==0 ) {
+               if(wami_verb())
+                  fprintf(stdout, "No strucute at location\n");
+               set_wami_web_found(0);
+               free(sss);
+               sss = NULL;
+            }
+
+            /* update url with string in XML code - even if bad location */
+            temppage = whereami_XML_get(page,"bn_uri");
+            set_wami_webpage(temppage);
+            free(temppage);
+         }
+    }
+   free(page); page = NULL;
+
+   RETURN(sss);
+}
+
+
+/* query Elsevier for whereami at select locations */
+void
+wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami)
+{
+   int nfind;
+   char *blab = NULL;
+   ATLAS_ZONE *zn = NULL;
+   int LocalHead = wami_lh();
+
+   ENTRY("wami_query_web");
+   nfind = 0 ;
+   if (WAMIRAD < 0.0) {
+      WAMIRAD = Init_Whereami_Max_Rad();
+   }
+
+   blab = elsevier_query_request(ac.x, ac.y, ac.z, atlas, WAMI_WEB_STRUCT);
+   if(blab == NULL)
+       EXRETURN;
+
+   if(strlen(blab)== 0)
+       EXRETURN;
+
+   zn = Get_Atlas_Zone (wami, 0 ); /* new 0-level zone */
+   zn = Atlas_Zone(  zn, zn->level, /* put label in zone finding */
+                     blab, 1, -1, 0, 
+                     Atlas_Name(atlas));
+   if (LocalHead) 
+      INFO_message("Adding zone on %s to wami\n", 
+                      Atlas_Name(atlas)); 
+   wami = Add_To_Atlas_Query(wami, zn); /* add the zone finding to wami query */
+
+
+   EXRETURN;
+}
+
+#ifdef USE_CURL
+   /* Some demo code to show how curl can be used to read a URL
+      At the moment, we're not using it because we'd become 
+      dependent on libcurl . 
+      To toy with curl, replace the call to read_URL_http with
+      CURL_read_URL_http and just add -libcurl to whereami's compile
+      command */
+   #include <curl/curl.h>
+
+   typedef struct {
+      char *page;
+      size_t size; /* page is null terminated, and page[size]='\0'; */
+   } CURL_BUFFER_DATA;   
+
+   size_t CURL_buffer2data( void *buffer, size_t size, size_t nmemb, 
+                              void *ud) 
+   {
+      CURL_BUFFER_DATA *cbd=(CURL_BUFFER_DATA *)ud;
+      fprintf(stderr,"Curling %zu, %zu\n", size*nmemb, cbd->size);
+      if (!(cbd->page = 
+            (char *)realloc(cbd->page, cbd->size+(size*nmemb)+sizeof(char)))) {
+         ERROR_message("Failed to realloc for cbd->page (%d)\n",
+                  cbd->size+(size*nmemb));
+         return(-1);
+      }
+      memcpy(cbd->page+cbd->size, buffer, size*nmemb); 
+      cbd->size = cbd->size+(size*nmemb);
+      cbd->page[cbd->size] = '\0';
+      fprintf(stderr,"Returning\n");   
+      return(size*nmemb);
+   }
+
+   size_t CURL_read_URL_http ( char *url, char **data) 
+   {
+      CURL *curl;
+      CURLcode res;
+      CURL_BUFFER_DATA cbd;
+
+      curl = curl_easy_init();
+      cbd.page = (char *)calloc(1, sizeof(char)); cbd.size = 0;
+      curl_easy_setopt(curl, CURLOPT_URL, url);
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CURL_buffer2data);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&cbd); 
+      res = curl_easy_perform(curl);
+      curl_easy_cleanup(curl);
+
+      *data = cbd.page;
+      return(cbd.size);
+   }
+#endif /* CURL illustration */
+
+char * whereami_XML_get(char *data, char *name) {
+   char n0[512], n1[512], *s0, *s1, *sout=NULL;
+   if (strlen(name) > 500) return(NULL);
+   snprintf(n0,510,"<%s>", name);
+   snprintf(n1,510,"</%s>", name);
+   if (!(s0 = strstr(data, n0))) return(NULL);
+   if (!(s1 = strstr(s0, n1))) return(NULL);
+   s0 = s0+strlen(n0);
+   if (s1 > s0) {
+      sout = (char *)calloc(s1-s0+1, sizeof(char));
+      memcpy(sout,s0,sizeof(char)*(s1-s0));
+      sout[s1-s0]='\0';
+   }
+   return(sout);
+}
+
+int whereami_browser(char *url)
+{
+   char cmd[2345] ;
+   static int icall=0;
+   
+   if (!GLOBAL_browser && !icall) {
+      if (!(GLOBAL_browser = GetAfniWebBrowser())) {
+         ERROR_message("Have no browser set. "
+           "Specify one by adding the environment variable AFNI_WEB_BROWSER to\n"
+           "your ~/.afnirc. For example:  AFNI_WEB_BROWSER firefox\n"
+           "On a MAC you can also do: AFNI_WEB_BROWSER open\n"); 
+      }
+      icall = 1;
+   }
+   if (!GLOBAL_browser) return(0);
+   
+   sprintf(cmd ,
+          "%s '%s' &" ,
+          GLOBAL_browser, url ) ;
+   
+   return(system(cmd));
+}
+
+/* set static variable to show something was found/not found on a web atlas */
+void set_wami_web_found(int found)
+{
+   wami_web_found = found;
+}
+
+/* find out if something was found */
+int get_wami_web_found()
+{
+   return(wami_web_found);
+}
+
+/* set static variable for output type for web atlas */
+void set_wami_web_reqtype(int web_reqtype)
+{
+   wami_web_reqtype = web_reqtype;
+}
+
+/* output type */
+int get_wami_web_reqtype()
+{
+   return(wami_web_reqtype);
+}
+
+/* set current webpage for whereami web request if needed */
+void set_wami_webpage(char *url)
+{
+   if(url==NULL){
+      wami_url[0] = '\0';
+   }
+   else {
+      strcpy(wami_url, url);
+   }
+}
+
+/* get the current webpage as a string */
+char * get_wami_webpage()
+{
+   return(wami_url);
+}
+
+/* open the current webpage */
+void open_wami_webpage()
+{
+   char *temppage;
+
+   temppage = get_wami_webpage();
+   if(temppage == NULL)
+      return;
+   if(strlen(temppage)==0)
+      return;
+   whereami_browser(temppage);
+}

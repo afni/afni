@@ -9468,6 +9468,7 @@ char * AFNI_ttatlas_query( Three_D_View *im3d )
    if( !IM3D_OPEN(im3d) || !CAN_TALTO(im3d) ) return NULL ;
 
    set_TT_whereami_version(0,0);
+   set_wami_web_reqtype(WAMI_WEB_STRUCT); /* set web atlas output to simple structure */
 
 #if 0
    /*-- make sure we have the TT atlas --*/

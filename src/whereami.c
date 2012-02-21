@@ -12,96 +12,6 @@
 #include "suma_suma.h"
 
 
-#ifdef USE_CURL
-   /* Some demo code to show how curl can be used to read a URL
-      At the moment, we're not using it because we'd become 
-      dependent on libcurl . 
-      To toy with curl, replace the call to read_URL_http with
-      CURL_read_URL_http and just add -libcurl to whereami's compile
-      command */
-   #include <curl/curl.h>
-
-   typedef struct {
-      char *page;
-      size_t size; /* page is null terminated, and page[size]='\0'; */
-   } CURL_BUFFER_DATA;   
-
-   size_t CURL_buffer2data( void *buffer, size_t size, size_t nmemb, 
-                              void *ud) 
-   {
-      CURL_BUFFER_DATA *cbd=(CURL_BUFFER_DATA *)ud;
-      fprintf(stderr,"Curling %zu, %zu\n", size*nmemb, cbd->size);
-      if (!(cbd->page = 
-            (char *)realloc(cbd->page, cbd->size+(size*nmemb)+sizeof(char)))) {
-         ERROR_message("Failed to realloc for cbd->page (%d)\n",
-                  cbd->size+(size*nmemb));
-         return(-1);
-      }
-      memcpy(cbd->page+cbd->size, buffer, size*nmemb); 
-      cbd->size = cbd->size+(size*nmemb);
-      cbd->page[cbd->size] = '\0';
-      fprintf(stderr,"Returning\n");   
-      return(size*nmemb);
-   }
-
-   size_t CURL_read_URL_http ( char *url, char **data) 
-   {
-      CURL *curl;
-      CURLcode res;
-      CURL_BUFFER_DATA cbd;
-
-      curl = curl_easy_init();
-      cbd.page = (char *)calloc(1, sizeof(char)); cbd.size = 0;
-      curl_easy_setopt(curl, CURLOPT_URL, url);
-      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CURL_buffer2data);
-      curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&cbd); 
-      res = curl_easy_perform(curl);
-      curl_easy_cleanup(curl);
-
-      *data = cbd.page;
-      return(cbd.size);
-   }
-#endif /* CURL illustration */
-
-char * whereami_XML_get(char *data, char *name) {
-   char n0[512], n1[512], *s0, *s1, *sout=NULL;
-   if (strlen(name) > 500) return(NULL);
-   snprintf(n0,510,"<%s>", name);
-   snprintf(n1,510,"</%s>", name);
-   if (!(s0 = strstr(data, n0))) return(NULL);
-   if (!(s1 = strstr(s0, n1))) return(NULL);
-   s0 = s0+strlen(n0);
-   if (s1 > s0) {
-      sout = (char *)calloc(s1-s0+1, sizeof(char));
-      memcpy(sout,s0,sizeof(char)*(s1-s0));
-      sout[s1-s0]='\0';
-   }
-   return(sout);
-}
-
-int whereami_browser(char *url)
-{
-   char cmd[2345] ;
-   static int icall=0;
-   
-   if (!GLOBAL_browser && !icall) {
-      if (!(GLOBAL_browser = GetAfniWebBrowser())) {
-         ERROR_message("Have no browser set. "
-           "Specify one by adding the environment variable AFNI_WEB_BROWSER to\n"
-           "your ~/.afnirc. For example:  AFNI_WEB_BROWSER firefox\n"
-           "On a MAC you can also do: AFNI_WEB_BROWSER open\n"); 
-      }
-      icall = 1;
-   }
-   if (!GLOBAL_browser) return(0);
-   
-   sprintf(cmd ,
-          "%s '%s' &" ,
-          GLOBAL_browser, url ) ;
-   
-   return(system(cmd));
-}
-
 /**Original code by Mike Angstadt *******************************************
   Main function added by Mike Angstadt on 1/12/05
   usage: whereami x y z [output format]
@@ -117,6 +27,10 @@ int whereami_browser(char *url)
 
 #define zischar(ch) ( ( ((ch) >= 'A' && (ch) <= 'Z' ) || ((ch) >= 'a' && (ch) <= 'z' ) ) ? 1 : 0 )
 #define isnakedarg(s) ( ( (s)[0] == '-' && strlen(s) > 1 && zischar((s)[1]) ) ? 0 : 1 )
+
+int compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
+  int N_atlas_names, char **atlas_names, ATLAS_LIST *atlas_alist);
+
 
 char *PrettyRef(char *ref) {
    int i=0;
@@ -168,8 +82,6 @@ int print_atlas_reference(char *atname)
 
 void whereami_usage(ATLAS_LIST *atlas_alist, int detail) 
 {
-   int i = 0;
-
    /* print help message in three sections */
    printf(  
 "Usage: whereami [x y z [output_format]] [-lpi/-spm] [-atlas ATLAS] \n"
@@ -499,7 +411,11 @@ printf(
 " For spaces defined using a NIML table, a Dijkstra search is used to find\n"
 " the shortest path between spaces. Each transformation carries with it a\n"
 " distance attribute that is used for this computation. By modifying this\n"
-" field, the user can control which transformations are preferred.\n"
+" field, the user can control which transformations are preferred.\n\n"
+" -web_atlas_type XML/browser/struct : report results from web-based atlases\n"
+"            using XML output to screen, open a browser for output or just\n"
+"            return the name of the structure at the coordinate\n"
+
 " \n---------------\n"
 " More information about Atlases in AFNI can be found here:\n"
 "      http://afni.nimh.nih.gov/sscc/dglen/AFNIAtlases\n"
@@ -528,7 +444,7 @@ printf("Thanks to Kristina Simonyan for feedback and testing.\n");
 int main(int argc, char **argv)
 {
    float x, y, z, xi, yi, zi;
-   char *string, *fstring, *sfp=NULL, *shar = NULL;
+   char *string, *shar = NULL;
    int output = 0;
    int nakedland = 0, k = 0, Show_Atlas_Code=0;
    int iarg, dicom = 1, i, nakedarg, arglen, ixyz=0, nxyz=0;
@@ -544,7 +460,6 @@ int main(int argc, char **argv)
    int dobin = 0, N_areas, mni;
    char *coord_file=NULL;
    float *coord_list = NULL, rad;
-   THD_fvec3 tv, m;
    THD_3dim_dataset *space_dset = NULL, *atlas_dset = NULL;
    int read_niml_atlas = 0, show_atlas = 0, show_atlas_spaces = 0;
    int show_atlas_templates = 0, show_atlas_xforms = 0;
@@ -584,6 +499,8 @@ int main(int argc, char **argv)
    if(alv<2)
       init_custom_atlas();   /* allow for custom atlas in old framework */
    xi = 0.0; yi=0.0, zi=0.0;
+   set_wami_web_reqtype(WAMI_WEB_STRUCT); /* set web atlas output to simple structure */
+
    while( iarg < argc ){
       arglen = strlen(argv[iarg]);
       if(!isnakedarg(argv[iarg])) {
@@ -660,6 +577,33 @@ int main(int argc, char **argv)
                srcspace = "paxinos_rat_2007@Elsevier";
             set_out_space(srcspace);   /* make output space for mask dset */
 
+            ++iarg;
+            continue; 
+         }
+
+         if (strcmp(argv[iarg],"-web_atlas_type") == 0) { 
+            ++iarg;
+            if (iarg >= argc) {
+               fprintf( stderr,
+                        "** Error: Need parameter after -web_atlas_type\n"); return(1);
+            }
+            if(strcmp(argv[iarg],"XML")==0) {
+               set_wami_web_reqtype(WAMI_WEB_PRINT_XML);
+            }
+            else{
+               if(strcmp(argv[iarg],"browser")==0) {
+                  set_wami_web_reqtype(WAMI_WEB_BROWSER);
+               }
+               else {
+                  if(strcmp(argv[iarg],"struct")==0) {
+                     set_wami_web_reqtype(WAMI_WEB_STRUCT);
+                  }
+                  else {
+                     fprintf( stderr, "** Error: option not value for web_atlas_type\n");
+                     return(1);
+                  }
+               }
+            }
             ++iarg;
             continue; 
          }
@@ -1125,6 +1069,8 @@ int main(int argc, char **argv)
       else { fprintf(stderr,"** Error: Should not happen!\n"); return(1); } 
    }
 
+#if 0
+/* now moved functionality to thd_ttatlas_query */
    if (srcspace && !strcmp(srcspace,"paxinos_rat_2007@Elsevier")) { 
       /* for testing purposes. */
       size_t nread;
@@ -1157,6 +1103,7 @@ int main(int argc, char **argv)
       }
       exit(0);
    } 
+#endif
 
    atlas_alist = get_G_atlas_list(); /* get the whole atlas list */
    if (N_atlas_names == 0) {
@@ -1358,32 +1305,6 @@ int main(int argc, char **argv)
          y = -y; 
       }
 
-      /* coords here are now in RAI - this was old 2010 way */
-#ifdef KILLTHIS      
-      if (mni == 1) { /* go from mni to tlrc */
-         LOAD_FVEC3( tv , -x, -y, z ) ;  /* next call expects input in MNI, LPI*/
-         m = THD_mni_to_tta( tv );  /* m units are in RAI */
-         if (ixyz == 0) {
-            fprintf(stdout,
-   "++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
-   "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
-                     x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
-         }
-         x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
-      }
-      else if (mni == 2) { /* go from mni_anat to tlrc */
-         LOAD_FVEC3( tv , -x, -y, z ) ;  /* next call expects input in MNI, LPI*/
-         m = THD_mni_to_tta( tv );  /* m units are in RAI */
-         if (ixyz == 0) {
-            fprintf(stdout,
-   "++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
-   "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
-                                         x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
-         }
-         x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
-      }
-#endif      
-
       if (!OldMethod) {
          /* the new whereami */
          if (atlas_sort) {
@@ -1395,6 +1316,7 @@ int main(int argc, char **argv)
          }
 
          set_TT_whereami_version(alv,wv);
+
          if(!atlas_rlist){
             atlas_list = env_atlas_list();
             if(!atlas_list) {
@@ -1421,7 +1343,10 @@ int main(int argc, char **argv)
            string = TT_whereami(x,y,z, srcspace, atlas_list);
          }
          if (string) fprintf(stdout,"%s\n", string);
-         else fprintf(stdout,"whereami NULL string out.\n");
+         else{
+            if(!get_wami_web_found())
+               fprintf(stdout,"whereami NULL string out.\n");
+         }
          if (string) free(string); string = NULL;            
       }
    } /* ixyz */   
@@ -1682,5 +1607,6 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
 
       /* done with mset_orig */
       DSET_delete(mset_orig); mset_orig = NULL;
-           
+
+      return(0);
 }

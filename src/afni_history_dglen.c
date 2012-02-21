@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 21 , FEB, 2012 , DRG , "whereami" , 
+    SUPER , TYPE_NEW_OPT, 
+    "Web-based access atlases available",
+    "Able to query web atlases from whereami and open webpages\n"
+    "Support starting with rat brain atlas from Elsevier's\n"
+    "BrainNavigator"
+} ,
+
 { 07 , NOV, 2011 , DRG , "deobliquing" , 
     MINOR , TYPE_MODIFY, 
     "More programs lose original data obliquity",
