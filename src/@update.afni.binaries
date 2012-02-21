@@ -162,6 +162,10 @@ echo "++ downloading package $package..."
 $prog http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
 if ( $status ) then
     echo "** failed to download package $package.tgz"
+    if ( ! -w . ) then
+        echo "** you do not have write permissions in the install directory"
+        echo "   (install dir = `pwd`)"
+    endif
     exit 1
 endif
 
