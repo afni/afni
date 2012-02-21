@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, FEB, 2012, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "if destination directory is not writable, let the user know",
+   NULL
+ } ,
+
  { 16, FEB, 2012, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "more quick termination updates",
    "- added -max_images\n"
