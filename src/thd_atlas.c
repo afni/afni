@@ -21,7 +21,6 @@ static void adjust_atlas_point_list(ATLAS_POINT_LIST *atp, char *match_str,
             float addval);
 static ATLAS_POINT_LIST *AFNI_atlas_list_to_atlas_point_list(
         ATLAS_POINT *afni_at_pts, int npts);
-static char *preferred_atlas_name = NULL;
 static int **FirstNeighb=NULL;
 static float **FirstNeighbDist=NULL; 
 static int *N_Neighb = NULL;
@@ -1271,6 +1270,20 @@ void print_atlas_comment(ATLAS *xa)
        INFO_message("%s", ATL_COMMENT(xa));
 }
 
+/* print the atlas_type for an atlas */
+void print_atlas_type(ATLAS *xa)
+{
+    if((xa) && ATL_TYPE(xa))
+       INFO_message("%s", ATL_TYPE(xa));
+}
+
+/* print the coordinate orientation for an atlas */
+void print_atlas_orient(ATLAS *xa)
+{
+    if((xa) && ATL_ORIENT(xa))
+       INFO_message("%s", ATL_ORIENT(xa));
+}
+
 /* print table of atlases - name, dset, description, comments */
 void print_point_lists(ATLAS_LIST *xal)
 {
@@ -1314,7 +1327,7 @@ atlas_max_label_length(ATLAS_POINT *ap, int n_points)
    int i,len,maxlen=0;
    
    if(ap==NULL)
-      return;
+      return(0);
 
    for(i=0;i<n_points;i++) {
       len = strlen(ap[i].name);
@@ -1331,7 +1344,7 @@ atlas_level(ATLAS_POINT *ap, int n_points)
    int i;
    
    if(ap==NULL)
-      return;
+      return(0);
 
    for(i=0;i<n_points;i++) {
       if(ap[i].tdlev) return(1);
@@ -2066,14 +2079,11 @@ int
 apply_xform_12piece(ATLAS_XFORM *xf, float x, float y, float z, \
                                     float *xout, float *yout, float *zout)
 {
-/*    float *xfptr;
- */
    THD_talairach_12_warp *ww;
    int iw, ioff;
-   THD_fvec3 tv, mv, *fvptr;
+   THD_fvec3 tv, mv;
    float tx, ty, tz;
    char *wptr;
-   float *fptr;
 
    if(xf->xform==NULL) return(1);
    LOAD_FVEC3( mv , x,y,z ) ;   
@@ -2089,7 +2099,7 @@ apply_xform_12piece(ATLAS_XFORM *xf, float x, float y, float z, \
          3 vector-forward, 3 vector-backward,
          bottom xyz corner, top xyz corner */
 #if 0
-
+THD_fvec3 *fvptr;
       fptr = (float *) xf->xform+iw*MAPPING_LINEAR_FSIZE;
       memcpy(&ww->warp[iw].mfor, fptr, 9*sizeof(float)); fptr += 9;
       memcpy(&ww->warp[iw].mbac, fptr, 9*sizeof(float)); fptr += 9;
@@ -2300,6 +2310,8 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
    atlas->atlas_dset_name = NULL;
    atlas->atlas_comment = NULL;
    atlas->atlas_description = NULL;
+   atlas->atlas_orient = NULL; /* coordinate order for web queries (Elsevier) */
+   atlas->atlas_type =  NULL;  /* atlas can be "web"/ NULL */
    atlas->atlas_found = 0; /* flag for dataset available, -1 not found, 
                               1 found, 0 init value */
 
@@ -2321,6 +2333,11 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
       atlas->atlas_name = nifti_strdup(s);
    if ((s=NI_get_attribute(nel,"description"))) 
       atlas->atlas_description = nifti_strdup(s);
+   if ((s=NI_get_attribute(nel,"orient"))) 
+      atlas->atlas_orient = nifti_strdup(s);
+   if ((s=NI_get_attribute(nel,"type"))) 
+      atlas->atlas_type = nifti_strdup(s);
+
    if((atlas->atlas_dset_name == NULL) || (atlas->atlas_space == NULL)) {
       WARNING_message("bad atlas nel");
       return(1);
@@ -2332,6 +2349,7 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
 }
 
 /* duplicate atlas info from one atlas structure to another */
+/* pointers are copied, no new allocation */
 int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas)
 {
    /* initialize the atlas fields */
@@ -2341,6 +2359,9 @@ int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas)
    destatlas->atlas_description = srcatlas->atlas_description;
    destatlas->atlas_comment = srcatlas->atlas_comment;
    destatlas->atlas_found = srcatlas->atlas_found;
+   destatlas->atlas_orient = srcatlas->atlas_orient;
+   destatlas->atlas_type = srcatlas->atlas_type;
+
    destatlas->adh = srcatlas->adh;
    
    return(0);
@@ -2496,11 +2517,6 @@ ATLAS_POINT_LIST * label_table_to_atlas_point_list(Dtable *dtbl)
    int i, nn;
    char **la , **lb;
   
-   int  ii ;
-   char  *stout ;
-   NI_element *nel ;
-   NI_stream ns ;
-
    ENTRY("label_table_to_atlas_point_list");
 
    nn = listize_Dtable( dtbl , &la , &lb ) ;

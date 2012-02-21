@@ -148,6 +148,8 @@ typedef struct {
    char *atlas_name;
    char *atlas_description;
    char *atlas_comment;
+   char *atlas_type;  /* web or NULL for now, for web type, dset is http webpage address */
+   char *atlas_orient;  /* string to specify xyz order requests - Elsevier's web version uses "RSA"*/
    int atlas_found;
    ATLAS_DSET_HOLDER *adh;
 } ATLAS; /*!< All char * should be initialized when .niml file is loaded,
@@ -156,6 +158,8 @@ typedef struct {
               by the function Atlas_With_Trimming. The latter should
               be used almost exclusively to get an atlas */
 
+/* macro accessors for the atlas fields - first version is to pointer location, 
+   second _S version is for default string if NULL string in structure */
 #define ATL_COMMENT(xa) ( ( (xa) && (xa)->atlas_comment) ?   \
                            (xa)->atlas_comment : NULL )
 #define ATL_COMMENT_S(xa) ( (ATL_COMMENT(xa)) ? \
@@ -176,6 +180,18 @@ typedef struct {
 
 #define ATL_ADH_SET(xa) ( ( (xa) && (xa)->adh ) ? \
                            (xa)->adh->params_set : 0 )                            
+
+#define ATL_ORIENT(xa) ( ( (xa) && (xa)->atlas_orient) ?   \
+                           (xa)->atlas_orient : NULL )
+#define ATL_ORIENT_S(xa) ( (ATL_ORIENT(xa)) ? \
+                              (ATL_ORIENT(xa)) : "RAI" )
+
+#define ATL_TYPE(xa) ( ( (xa) && (xa)->atlas_type) ?   \
+                           (xa)->atlas_type : NULL )
+#define ATL_TYPE_S(xa) ( (ATL_TYPE(xa)) ? \
+                              (xa)->atlas_type : "None" )
+/* is the atlas a web type */
+#define ATL_WEB_TYPE(xa) (strcasecmp((ATL_TYPE_S(xa)),"web")== 0)
 
 #define ATL_FOUND(xa) ( (xa)  ? \
                            ((xa)->atlas_found) : 0 )
@@ -243,6 +259,12 @@ typedef struct {
    float w[N_APPROX_STR_DIMS]; 
 } APPROX_STR_DIFF_WEIGHTS;
 
+
+#define WAMI_WEB_PRINT_XML    1
+#define WAMI_WEB_BROWSER      2
+#define WAMI_WEB_STRUCT       3
+
+#define MAX_URL 1024
 
 const char *Atlas_Val_Key_to_Val_Name(ATLAS *atlas, int tdval);
 int Init_Whereami_Max_Find(void);
@@ -410,12 +432,27 @@ ATLAS_TEMPLATE_LIST *get_G_templates_list(void);
 char *find_atlas_niml_file(char * nimlname, int nini);
 ATLAS_LIST *env_atlas_list(void);
 char **env_space_list(int *);
+int env_dec_places(void);
+
 char *Current_Atlas_Default_Name(void);
 char **Atlas_Names_List(ATLAS_LIST *atl);
 int AFNI_get_dset_val_label(THD_3dim_dataset *dset,  /* 26 Feb 2010 ZSS */
                                     double val, char *str);
 int AFNI_get_dset_label_val(THD_3dim_dataset *dset, 
                                     double *val, char *str);/* 02 Nov 2010 ZSS */
+char *elsevier_query(float xx, float yy, float zz, ATLAS *atlas);
+char *elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_type);
+void wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami);
+
+char * whereami_XML_get(char *data, char *name);
+int whereami_browser(char *url);
+void set_wami_web_found(int found);
+int get_wami_web_found(void);
+void set_wami_web_reqtype(int reqtype);
+int get_wami_web_reqtype(void);
+void set_wami_webpage(char *url);
+char * get_wami_webpage(void);
+void open_wami_webpage(void);
 
 /* Transforms for going from one space to another */
 #if 0
