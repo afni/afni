@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 17 , FEB , 2012 , RWC , "debugtrace.h" , MICRO , TYPE_MODIFY ,
+  { 21 , FEB , 2012 , RWC , "3dAutobox" , MICRO , TYPE_NEW_OPT ,
+   "Add -npad option, for Larry Frank" ,
+   NULL } ,
+
+ { 17 , FEB , 2012 , RWC , "debugtrace.h" , MICRO , TYPE_MODIFY ,
    "Add printout of 'from' and 'to' information on ENTRY/RETURN macros" ,
    "Also patched up a missing ENTRY macro in new_MCW_optmenu() in bbox.c,\n"
    "that SOMEONE (who shall go un-named) criminally forgot when patching the\n"
