@@ -65,7 +65,6 @@ static char g_cren_hist[] =
 /***********************************************************************/
 
 #include "afni.h"
-#include "thd_atlas.h"
 #include "cox_render.h"
 #include "mcw_graf.h"
 #include "parser.h"

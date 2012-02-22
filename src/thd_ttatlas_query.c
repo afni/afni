@@ -1,6 +1,5 @@
 #include "mrilib.h"
 #include "afni.h"
-#include "thd_atlas.h"
 #include "cs.h"
 
 #ifdef KILLTHIS /* Remove all old sections framed by #ifdef KILLTHIS
@@ -39,6 +38,9 @@ char *old_space_list[] = {"TLRC","MNI","MNI_ANAT"};
 static int wami_web_found = 0;
 static int wami_web_reqtype = 0;
 static char wami_url[MAX_URL];
+
+/* global web browser is used here, not sure where else to put it...      */
+char *GLOBAL_browser = NULL ;   /* 30 Dec 2005, moved 22 Feb 2012 [rickr] */
 
 THD_string_array *recreate_working_atlas_name_list(void) {
    if (working_atlas_name_list) DESTROY_SARR(working_atlas_name_list);

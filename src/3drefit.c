@@ -5,7 +5,6 @@
 ******************************************************************************/
 
 #include "mrilib.h"
-#include "thd_atlas.h"
 
 static ATR_float *Update_float_atr(char *aname, char *fvstring);
 static ATR_int *Update_int_atr(char *aname, char *ivstring);

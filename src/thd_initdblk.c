@@ -6,7 +6,6 @@ Version 2.  See the file README.Copyright for details.
 
 #include "mrilib.h"
 #include "thd.h"
-#include "thd_atlas.h"
 /*----------------------------------------------------------------
   Given a directory name, and a header filename, create a
   datablock that corresponds (return NULL if impossible).
