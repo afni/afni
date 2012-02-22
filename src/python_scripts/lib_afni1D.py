@@ -33,7 +33,7 @@ class Afni1D:
             name       : some text to associate with the datase
             verb       : verbose level of operations
 
-         mat           : data
+         mat           : data (transposed, as vectors of data over time)
          fname         : filename
          nvec, nt      : dimensions
          labels        : simple text labels
@@ -436,6 +436,15 @@ class Afni1D:
 
       return 0
 
+   def randomize_trs(self, seed=0):
+      """reorder the matrix columns randomly"""
+      if self.verb > 1: print '-- randomizing %d trs (seed=%d)' \
+                              % (self.nt, seed)
+      if seed:
+         import random
+         random.seed(seed)
+      for vec in self.mat: UTIL.shuffle(vec)
+
    def sort(self, reverse=0):
       """sort data over time axis (possibly reverse order)"""
 
@@ -497,14 +506,18 @@ class Afni1D:
       if not fname:
          print "** missing filename for write"
          return 1
-      if os.path.exists(fname) and not overwrite:
-         print "** output file '%s' exists and 'overwrite' not set..." % fname
-         return 1
 
-      fp = open(fname, 'w')
-      if not fp:
-         print "** failed to open '%s' for writing" % fname
-         return 1
+      if fname == '-' or fname == 'stdout': fp = sys.stdout
+      else:
+         # normal file name: check existence and open
+         if os.path.exists(fname) and not overwrite:
+            print "** output file '%s' exists and 'overwrite' not set..."%fname
+            return 1
+
+         fp = open(fname, 'w')
+         if not fp:
+            print "** failed to open '%s' for writing" % fname
+            return 1
 
       for row in range(self.nt):
          fp.write(sep.join(['%g' % self.mat[i][row] for i in range(self.nvec)]))
@@ -1465,7 +1478,9 @@ class Afni1D:
       return 0
 
    def init_from_general_name(self, name):
-      """might contain [] or {} selection"""
+      """might contain [] or {} selection
+         might be '-' or stdin"""
+
       aname = BASE.afni_name(self.fname)
 
       if self.init_from_1D(aname.rpve()): return 1 # failure
@@ -1761,6 +1776,15 @@ class AfniData(object):
       elif mtype == 2: return 'Dur Mod'
       elif mtype == 3: return 'Amp/Dur Mod'
       else:            return 'Unknown'
+
+   def randomize_trs(self, seed=0):
+      """reorder the matrix rows randomly"""
+      if self.verb > 1: print '-- randomizing %d trs (seed=%d)' \
+                              % (len(self.data, seed))
+      if seed:
+         import random
+         random.seed(seed)
+      UTIL.shuffle(self.data)
 
    def sort(self, rev=0):
       """sort each row (optionally reverse order)"""
