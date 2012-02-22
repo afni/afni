@@ -89,7 +89,7 @@ typedef struct {
   float  bigfac ;               /* 11 Feb 2003 */
   int    bigflip ;              /* 07 Feb 2004 */
   int    bigrota ;              /* 07 Feb 2004 */
-  int    big30, big32 ;         /* 14 Feb 2012 */
+  int    big30, big32 , big31 ; /* 14 Feb 2012 */
   int    ignore_resize ;        /* 16 Feb 2012 */
 
   Widget big_menu , big_label , big_choose_pb ;
