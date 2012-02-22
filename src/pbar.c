@@ -232,8 +232,8 @@ STATUS("init pval_save") ;
    pbar->bigxim  = NULL ;
    pbar->bigbot  = -1.0f ; pbar->bigtop = 1.0f ;
 
-   pbar->bigmax  = PBAR_get_bigmax(pbar) ;       /* Feb 2012 */
-   pbar->big30   = pbar->big32 = bigthree ;      /* Feb 2012 */
+   pbar->bigmax  = PBAR_get_bigmax(pbar) ;                 /* Feb 2012 */
+   pbar->big30   = pbar->big32 = pbar->big31 = bigthree ;  /* Feb 2012 */
    pbar->ignore_resize = 0 ;
 
    XtAddCallback( pbar->panes[bigthree], XmNexposeCallback, PBAR_bigexpose_CB, pbar ) ;
@@ -921,124 +921,121 @@ ENTRY("PBAR_show_bigmode") ;
 
    if( pbar == NULL || !pbar->bigmode ) EXRETURN ;
 
-   if( 1 || !pbar->bigset ){   /* set up big mode */
+   if( pbar->hide_changes ) XtUnmapWidget( pbar->top ) ;
+   pbar->ignore_resize = 1 ;
 
-     if( pbar->hide_changes ) XtUnmapWidget( pbar->top ) ;
-     pbar->ignore_resize = 1 ;
+   if( !bigthree ){ /* turn off all but 1 pane and all but 2 labels */
 
-     if( !bigthree ){ /* turn off all but 1 pane and all but 2 labels */
+     /* manage and unmanage panes and labels */
 
-       /* manage and unmanage panes and labels */
+     XtManageChild( pbar->labels[0] ) ;
+     XtManageChild( pbar->labels[1] ) ;
+     for( ii=2 ; ii <= NPANE_MAX ; ii++ ) XtUnmanageChild( pbar->labels[ii] ) ;
+     XtManageChild( pbar->panes[0] ) ;
+     for( ii=1 ; ii <  NPANE_MAX ; ii++ ) XtUnmanageChild( pbar->panes[ii] ) ;
 
-       XtManageChild( pbar->labels[0] ) ;
-       XtManageChild( pbar->labels[1] ) ;
-       for( ii=2 ; ii <= NPANE_MAX ; ii++ ) XtUnmanageChild( pbar->labels[ii] ) ;
-       XtManageChild( pbar->panes[0] ) ;
-       for( ii=1 ; ii <  NPANE_MAX ; ii++ ) XtUnmanageChild( pbar->panes[ii] ) ;
+     /* set the only pane left standing to fill the entire window */
 
-       /* set the only pane left standing to fill the entire window */
+     XtVaSetValues( pbar->panes[0] , XmNheight,pbar->panew_height , NULL ) ;
+     XtVaSetValues( pbar->panew    , XmNheight,pbar->panew_height , NULL ) ;
+     XtVaSetValues( pbar->top      , XmNheight,pbar->panew_height , NULL ) ;
 
-       XtVaSetValues( pbar->panes[0] , XmNheight,pbar->panew_height , NULL ) ;
-       XtVaSetValues( pbar->panew    , XmNheight,pbar->panew_height , NULL ) ;
-       XtVaSetValues( pbar->top      , XmNheight,pbar->panew_height , NULL ) ;
+     if( pbar->hide_changes ) XtMapWidget( pbar->top ) ;
 
-       if( pbar->hide_changes ) XtMapWidget( pbar->top ) ;
+     /* position and set top label */
 
-       /* position and set top label */
+     MCW_widget_geom( pbar->panes[0] , NULL,NULL,NULL , &yy ) ;
+     XtVaSetValues( pbar->labels[0] , XmNy , yy , NULL ) ;
+     PBAR_labelize( pbar->bigtop , buf ) ;
+     MCW_set_widget_label( pbar->labels[0] , buf ) ;
 
-       MCW_widget_geom( pbar->panes[0] , NULL,NULL,NULL , &yy ) ;
-       XtVaSetValues( pbar->labels[0] , XmNy , yy , NULL ) ;
-       PBAR_labelize( pbar->bigtop , buf ) ;
-       MCW_set_widget_label( pbar->labels[0] , buf ) ;
+     /* position and set bottom label */
 
-       /* position and set bottom label */
+     yy = pbar->panew_height - PANE_LOFF + PANE_SPACING ;
+     XtVaSetValues( pbar->labels[1] , XmNy , yy , NULL ) ;
+     PBAR_labelize( pbar->bigbot , buf ) ;
+     MCW_set_widget_label( pbar->labels[1] , buf ) ;
 
-       yy = pbar->panew_height - PANE_LOFF + PANE_SPACING ;
-       XtVaSetValues( pbar->labels[1] , XmNy , yy , NULL ) ;
-       PBAR_labelize( pbar->bigbot , buf ) ;
-       MCW_set_widget_label( pbar->labels[1] , buf ) ;
+   } else {  /* Feb 2012: keep 3 panes and 4 labels */
 
-     } else {  /* Feb 2012: keep 3 panes and 4 labels */
+     float ab,at,am,bm , hfac ; int h0,h1,h2 ;
 
-       float ab,at,am,bm , hfac ; int h0,h1,h2 ;
+     /* manage and unmanage panes and labels */
 
-       /* manage and unmanage panes and labels */
+     XtManageChild( pbar->labels[0] ) ;
+     XtManageChild( pbar->labels[1] ) ;
+     XtManageChild( pbar->labels[2] ) ;
+     XtManageChild( pbar->labels[3] ) ;
+     for( ii=4 ; ii <= NPANE_MAX ; ii++ ) XtUnmanageChild( pbar->labels[ii] ) ;
+     XtManageChild( pbar->panes[0] ) ;
+     XtManageChild( pbar->panes[1] ) ;
+     XtManageChild( pbar->panes[2] ) ;
+     for( ii=3 ; ii <  NPANE_MAX ; ii++ ) XtUnmanageChild( pbar->panes[ii] ) ;
 
-       XtManageChild( pbar->labels[0] ) ;
-       XtManageChild( pbar->labels[1] ) ;
-       XtManageChild( pbar->labels[2] ) ;
-       XtManageChild( pbar->labels[3] ) ;
-       for( ii=4 ; ii <= NPANE_MAX ; ii++ ) XtUnmanageChild( pbar->labels[ii] ) ;
-       XtManageChild( pbar->panes[0] ) ;
-       XtManageChild( pbar->panes[1] ) ;
-       XtManageChild( pbar->panes[2] ) ;
-       for( ii=3 ; ii <  NPANE_MAX ; ii++ ) XtUnmanageChild( pbar->panes[ii] ) ;
+     /* set the height of the 3 panes left upright */
 
-       /* set the height of the 3 panes left upright */
+INFO_message("show_bigmode: bigbot=%g  bigtop=%g  bigmax=%g",pbar->bigbot,pbar->bigtop,pbar->bigmax) ;
 
-INFO_message("bigbot=%g  bigtop=%g  bigmax=%g",pbar->bigbot,pbar->bigtop,pbar->bigmax) ;
+     ab = fabsf(pbar->bigbot) ; at = fabsf(pbar->bigtop) ; am = MAX(ab,at) ;
+     if( 1.05f*am > pbar->bigmax || 5.01f*am < pbar->bigmax )
+       pbar->bigmax = PBAR_get_bigmax(pbar) ;
+     bm = pbar->bigmax ; ab = pbar->bigbot ; at = pbar->bigtop ;
 
-       ab = fabsf(pbar->bigbot) ; at = fabsf(pbar->bigtop) ; am = MAX(ab,at) ;
-       if( 1.05f*am > pbar->bigmax ||
-           5.01f*am < pbar->bigmax   ) pbar->bigmax = PBAR_get_bigmax(pbar) ;
-       bm = pbar->bigmax ; ab = pbar->bigbot ; at = pbar->bigtop ;
+     hfac = (pbar->panew_height - 2*PANE_SPACING) / (2.0f*bm) ;
 
-       hfac = (pbar->panew_height - 2*PANE_SPACING) / (2.0f*bm) ;
-
-       h0 = (int)( (bm-at)*hfac + 0.45f ) ; if( h0 < PANE_MIN_HEIGHT ) h0 = PANE_MIN_HEIGHT ;
-       h1 = (int)( (at-ab)*hfac + 0.45f ) ; if( h1 < PANE_MIN_HEIGHT ) h1 = PANE_MIN_HEIGHT ;
-       h2 = pbar->panew_height - 2*PANE_SPACING - h0 - h1 ;
-       if( h2 < PANE_MIN_HEIGHT ){
-         int deficit=PANE_MIN_HEIGHT-h2 , dh=deficit/2 ;  /* I cut the deficit in half! */
-         h2  = PANE_MIN_HEIGHT ;
-         h0 -= (deficit - dh) ;
-         h1 -= dh ;
-       }
-INFO_message("Set h0=%d h1=%d h2=%d",h0,h1,h2) ;
+     h0 = (int)( (bm-at)*hfac + 0.45f ) ; if( h0 < PANE_MIN_HEIGHT ) h0 = PANE_MIN_HEIGHT ;
+     h1 = (int)( (at-ab)*hfac + 0.45f ) ; if( h1 < PANE_MIN_HEIGHT ) h1 = PANE_MIN_HEIGHT ;
+     h2 = pbar->panew_height - 2*PANE_SPACING - h0 - h1 ;
+     if( h2 < PANE_MIN_HEIGHT ){
+       int deficit=PANE_MIN_HEIGHT-h2 , dh=deficit/2 ;  /* I cut the deficit in half! */
+       h2  = PANE_MIN_HEIGHT ;
+       h0 -= (deficit - dh) ;
+       h1 -= dh ;
+     }
+ININFO_message("set h0=%d h1=%d h2=%d",h0,h1,h2) ;
 ININFO_message("  bm=%g  ab=%g  at=%g",bm,ab,at) ;
 
-       XtVaSetValues( pbar->panes[0] , XmNheight,h0 , NULL ) ;
-       XtVaSetValues( pbar->panes[1] , XmNheight,h1 , NULL ) ;
-       XtVaSetValues( pbar->panes[2] , XmNheight,h2 , NULL ) ;
-       XtVaSetValues( pbar->panew    , XmNheight,pbar->panew_height , NULL ) ;
-       XtVaSetValues( pbar->top      , XmNheight,pbar->panew_height , NULL ) ;
+     XtVaSetValues( pbar->panes[0] , XmNheight,h0 , NULL ) ;
+     XtVaSetValues( pbar->panes[1] , XmNheight,h1 , NULL ) ;
+     XtVaSetValues( pbar->panes[2] , XmNheight,h2 , NULL ) ;
+     XtVaSetValues( pbar->panew    , XmNheight,pbar->panew_height , NULL ) ;
+     XtVaSetValues( pbar->top      , XmNheight,pbar->panew_height , NULL ) ;
 
-       if( pbar->hide_changes ) XtMapWidget( pbar->top ) ;
+     if( pbar->hide_changes ) XtMapWidget( pbar->top ) ;
 
-       /* position and set top label */
+     /* position and set top label */
 
-       MCW_widget_geom( pbar->panes[0] , NULL,NULL,NULL , &yy ) ;
-       XtVaSetValues( pbar->labels[0] , XmNy , yy , NULL ) ;
-       PBAR_labelize( bm , buf ) ;
-       MCW_set_widget_label( pbar->labels[0] , buf ) ;
+     MCW_widget_geom( pbar->panes[0] , NULL,NULL,NULL , &yy ) ;
+     XtVaSetValues( pbar->labels[0] , XmNy , yy , NULL ) ;
+     PBAR_labelize( bm , buf ) ;
+     MCW_set_widget_label( pbar->labels[0] , buf ) ;
 
-       /* second label */
+     /* second label */
 
-       MCW_widget_geom( pbar->panes[1] , NULL,NULL,NULL , &yy ) ;
-       yy -= PANE_LOFF ;
-       XtVaSetValues( pbar->labels[1] , XmNy , yy , NULL ) ;
-       PBAR_labelize( at , buf ) ;
-       MCW_set_widget_label( pbar->labels[1] , buf ) ;
+     MCW_widget_geom( pbar->panes[1] , NULL,NULL,NULL , &yy ) ;
+     yy -= PANE_LOFF ;
+     XtVaSetValues( pbar->labels[1] , XmNy , yy , NULL ) ;
+     PBAR_labelize( at , buf ) ;
+     MCW_set_widget_label( pbar->labels[1] , buf ) ;
 
-       /* third label */
+     /* third label */
 
-       MCW_widget_geom( pbar->panes[2] , NULL,NULL,NULL , &yy ) ;
-       yy -= PANE_LOFF ;
-       XtVaSetValues( pbar->labels[2] , XmNy , yy , NULL ) ;
-       PBAR_labelize( ab , buf ) ;
-       MCW_set_widget_label( pbar->labels[2] , buf ) ;
+     MCW_widget_geom( pbar->panes[2] , NULL,NULL,NULL , &yy ) ;
+     yy -= PANE_LOFF ;
+     XtVaSetValues( pbar->labels[2] , XmNy , yy , NULL ) ;
+     PBAR_labelize( ab , buf ) ;
+     MCW_set_widget_label( pbar->labels[2] , buf ) ;
 
-       /* fourth label */
+     /* fourth label */
 
-       yy = pbar->panew_height - PANE_LOFF + PANE_SPACING ;
-       XtVaSetValues( pbar->labels[3] , XmNy , yy , NULL ) ;
-       PBAR_labelize( -bm , buf ) ;
-       MCW_set_widget_label( pbar->labels[3] , buf ) ;
+     yy = pbar->panew_height - PANE_LOFF + PANE_SPACING ;
+     XtVaSetValues( pbar->labels[3] , XmNy , yy , NULL ) ;
+     PBAR_labelize( -bm , buf ) ;
+     MCW_set_widget_label( pbar->labels[3] , buf ) ;
 
-     }
-
-     pbar->bigset = 1 ; pbar->ignore_resize = 0 ;
    }
+
+   pbar->bigset = 1 ; pbar->ignore_resize = 0 ;
 
    /* show the thing */
 

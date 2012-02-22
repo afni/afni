@@ -2009,7 +2009,7 @@ ENTRY("AFNI_drive_set_pbar_sign") ;
 static int AFNI_drive_set_pbar_all( char *cmd )
 {
    int ic , dadd=2 , npan=0 , pos , nn , ii,jj ;
-   float pval[NPANE_MAX+1] , val ;
+   float pval[NPANE_MAX+1] , val,wal ;
    int   pcol[NPANE_MAX]   , col , flip=0 , rota=0 ;
    char  str[256] , *cpt ;
    MCW_pbar *pbar ;
@@ -2071,9 +2071,16 @@ ENTRY("AFNI_drive_set_pbar_all") ;
 
    } else {     /* 03 Feb 2003: get topval and colorscale_name */
 
-     str[0] = '\0' ; val = 0.0 ;
-     sscanf( cmd+dadd , "%f %s" , &val, str ) ;
-     if( val <= 0.0 ) RETURN(-1) ;
+     str[0] = '\0' ; val = wal = 0.0f ;
+     cpt = strstr(cmd+dadd,"::") ;
+     if( cpt == NULL ){
+       sscanf( cmd+dadd , "%f %s" , &val, str ) ;
+       if( val <= 0.0 ) RETURN(-1) ;
+       wal = (pbar->mode) ? 0.0f : -val ;
+     } else {
+       sscanf( cmd+dadd , "%f::%f %s" , &wal,&val , str ) ;
+       if( wal >= val ) RETURN(-1) ;
+     }
 
      flip = ( strstr(cmd+dadd,"FLIP") != NULL ) ;
 
@@ -2103,7 +2110,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
    } else {    /* set the colorscale */
      float pmax, pmin ;
      pbar->bigset = 0 ;
-     pmax = val ; pmin = (pbar->mode) ? 0.0 : -pmax ;
+     pmax = val ; pmin = wal ;
      PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
      PBAR_set_bigmap( pbar , str ) ;
      rotate_MCW_pbar( pbar , rota ) ;  /* 07 Feb 2004 */

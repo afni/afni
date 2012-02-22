@@ -469,16 +469,24 @@ ENTRY("AFNI_equate_pbars") ;
                AV_uformat_fval(rbar->pval[qq]) ,
                ovc->label_ov[rbar->ov_index[qq]] ) ;
    } else {
-     sprintf(cmd,"SET_PBAR_ALL %c.%c%d %f %s\n" , 'A'+cc ,
-             (rbar->mode) ? '+' : '-' , 99 ,
-             rbar->bigtop , PBAR_get_bigmap(rbar) ) ;
+     if( rbar->big31 == 0 )
+       sprintf(cmd,"SET_PBAR_ALL %c.%c%d %f %s\n" , 'A'+cc ,
+               (rbar->mode) ? '+' : '-' , 99 ,
+               rbar->bigtop , PBAR_get_bigmap(rbar) ) ;
+     else
+       sprintf(cmd,"SET_PBAR_ALL %c.%c%d %f::%f %s\n" , 'A'+cc ,
+               (rbar->mode) ? '+' : '-' , 99 ,
+               rbar->bigbot,rbar->bigtop , PBAR_get_bigmap(rbar) ) ;
      if( rbar->bigflip )
        sprintf(cmd+strlen(cmd)," FLIP") ;
      if( rbar->bigrota )
        sprintf(cmd+strlen(cmd)," ROTA=%d",rbar->bigrota) ;
+     lbar->big30 = rbar->big30 ;
+     lbar->big31 = rbar->big31 ;
+     lbar->big32 = rbar->big32 ;
    }
 
-   AFNI_driver( cmd ) ; EXRETURN ;
+   AFNI_driver(cmd) ; EXRETURN ;
 }
 
 /*---------------------------------------------------------------*/

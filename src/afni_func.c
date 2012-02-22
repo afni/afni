@@ -638,16 +638,17 @@ ENTRY("AFNI_setup_inten_pbar") ;
 
 void AFNI_inten_av_CB( MCW_arrowval *av , XtPointer cd )
 {
-   MCW_pbar *pbar = (MCW_pbar *) cd ;
-   Three_D_View *im3d = (Three_D_View *) pbar->parent ;
+   MCW_pbar *pbar = (MCW_pbar *)cd ;
+   Three_D_View *im3d = (Three_D_View *)pbar->parent ;
 
    if( !IM3D_OPEN(im3d) ) return ;
 
    HIDE_SCALE(im3d) ;
    if( av->ival > NPANE_MAX ){
      int npane=pbar->num_panes , jm=pbar->mode ;
-     float pmax=pbar->pval_save[npane][0][jm] ,
-           pmin=pbar->pval_save[npane][npane][jm] ;
+     float pmax,pmin ;
+     pmax = (pbar->big31) ? pbar->bigtop : pbar->pval_save[npane][0    ][jm] ;
+     pmin = (pbar->big31) ? pbar->bigbot : pbar->pval_save[npane][npane][jm] ;
      PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
      AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
      POPUP_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
@@ -1202,6 +1203,8 @@ static void mri_edgize( MRI_IMAGE *im )
 
 /*-----------------------------------------------------------------------*/
 
+static int reject_zero = 0 ;
+
 #undef  ZREJ
 #define ZREJ(val) (reject_zero && (val)==0)   /* 20 Apr 2005 */
 
@@ -1231,7 +1234,6 @@ MRI_IMAGE * AFNI_func_overlay( int n , FD_brick *br_fim )
    float scale_factor , scale_thr ;
    MCW_pbar *pbar ;
    int simult_thr , need_thr ;
-   int reject_zero = !AFNI_yesenv("AFNI_OVERLAY_ZERO") ; /* 20 Apr 2005 */
    int thrsign ; /* 08 Aug 2007 */
 
 ENTRY("AFNI_func_overlay") ;
@@ -1248,6 +1250,8 @@ ENTRY("AFNI_func_overlay") ;
    if( !ISVALID_DSET(im3d->fim_now) ){
      AFNI_SEE_FUNC_OFF(im3d) ; RETURN(NULL) ;
    }
+
+   reject_zero = !AFNI_yesenv("AFNI_OVERLAY_ZERO") ; /* 20 Apr 2005 */
 
    ival = im3d->vinfo->thr_index ;  /* threshold sub-brick index */
 
@@ -1299,7 +1303,7 @@ ENTRY("AFNI_func_overlay") ;
      }
      scale_factor = im3d->vinfo->fim_range ;
      if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
-     if( scale_factor == 0.0 ) scale_factor = 1.0 ;
+     if( scale_factor == 0.0 ) scale_factor = 1.0f ;
 
      AFNI_set_valabel( br_fim , n , im_fim , im3d->vinfo->func_val ) ;
    }
@@ -1388,10 +1392,16 @@ ENTRY("AFNI_func_overlay") ;
        if the pbar is in "big" mode,
        then create an RGB overlay in a separate function **/
 
+#undef  NFO_ZBELOW_MASK
+#undef  NFO_ZABOVE_MASK
+#define NFO_ZBELOW_MASK  1
+#define NFO_ZABOVE_MASK  2
+
    if( pbar->bigmode ){
      float thresh =  im3d->vinfo->func_threshold
                    * im3d->vinfo->func_thresh_top / scale_thr ;
      float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
+     int zbelow=0 , zabove=0 , flags ;
 
 if( PRINT_TRACING && im_thr != NULL )
 { char str[256] ; float tmax ;
@@ -1404,11 +1414,19 @@ if( PRINT_TRACING && im_thr != NULL )
           im3d->vinfo->func_threshold,im3d->vinfo->func_thresh_top); STATUS(str);
 }
 
+     if( pbar->big30 ) reject_zero = 0 ;
+     if( pbar->big31 ){                              /* Feb 2012 */
+       zbelow = !pbar->big32 ; zabove = !pbar->big30 ;
+     } else {
+       zbelow = (pbar->bigbot == 0.0f) ;
+     }
+     flags = zbelow * NFO_ZBELOW_MASK + zabove * NFO_ZABOVE_MASK ;
+
      im_ov = AFNI_newfunc_overlay( im_thr , thb,tht ,
                                    im_fim ,
                                    scale_factor*pbar->bigbot ,
                                    scale_factor*pbar->bigtop ,
-                                   pbar->bigcolor              ) ;
+                                   pbar->bigcolor , flags      ) ;
      goto CLEANUP ;
    }
 
@@ -1614,14 +1632,19 @@ CLEANUP:
 
 MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *im_thr , float thbot,float thtop,
                                   MRI_IMAGE *im_fim ,
-                                  float fimbot, float fimtop, rgbyte *fimcolor )
+                                  float fimbot, float fimtop, rgbyte *fimcolor,
+                                  int flags )
 {
    MRI_IMAGE *im_ov ;
    byte *ovar ;
-   int ii , npix , zbot , jj ;
+   int ii , npix , jj ;
    float fac , val ;
-   int reject_zero = !AFNI_yesenv("AFNI_OVERLAY_ZERO") ; /* 20 Apr 2005 */
    int dothr = (thbot < thtop) ;                         /* 08 Aug 2007 */
+
+   int zbelow = (flags & NFO_ZBELOW_MASK) != 0 ;  /* Feb 2012 */
+   int zabove = (flags & NFO_ZABOVE_MASK) != 0 ;
+
+   byte *bfim=NULL ; short *sfim=NULL ; float *ffim=NULL ; int kk ;
 
 ENTRY("AFNI_newfunc_overlay") ;
 
@@ -1633,101 +1656,38 @@ STATUS("create output image") ;
    im_ov = mri_new_conforming( im_fim , MRI_rgb ) ;
    ovar  = MRI_RGB_PTR(im_ov) ;
    npix  = im_ov->nvox ;
-   zbot  = (fimbot == 0.0f) ;             /* no color for negative values? */
-   fac   = NPANE_BIG / (fimtop-fimbot) ;
+   fac   = (NPANE_BIG-0.01f) / (fimtop-fimbot) ; /* scale from data value to color index */
 
-   /* load output image with colors */
+   kk = (int)im_fim->kind ;
+   switch( kk ){
+     default: mri_free(im_ov) ; RETURN(NULL) ;   /* should never happen! */
+     case MRI_short: sfim = MRI_SHORT_PTR(im_fim) ; break ;
+     case MRI_byte : bfim = MRI_BYTE_PTR (im_fim) ; break ;
+     case MRI_float: ffim = MRI_FLOAT_PTR(im_fim) ; break ;
+   }
 
-   switch( im_fim->kind ){
-
-      default:                             /* should not happen! */
-STATUS("bad data kind") ;
-        mri_free(im_ov) ;
-      RETURN(NULL) ;
-
-      case MRI_short:{
-        short *ar_fim = MRI_SHORT_PTR(im_fim) ;
-
-STATUS("data kind = short") ;
-
-        for( ii=0 ; ii < npix ; ii++ ){
-          if( ZREJ(ar_fim[ii]) )       continue ;
-          if( zbot && ar_fim[ii] < 0 ) continue ;
-          val = fac*(fimtop-ar_fim[ii]) ;
-               if( val        < 0.0f   ) val = 0.0f ;
-          else if( ar_fim[ii] < fimbot ) val = NPANE_BIG-1.0f;
-          jj = (int)(val+0.49f);
-          if( jj >= NPANE_BIG ) jj = NPANE_BIG-1;
-          ovar[3*ii  ] = fimcolor[jj].r ;
-          ovar[3*ii+1] = fimcolor[jj].g ;
-          ovar[3*ii+2] = fimcolor[jj].b ;
-        }
-      }
-      break ;
-
-      case MRI_byte:{
-        byte *ar_fim = MRI_BYTE_PTR(im_fim) ;
-
-STATUS("data kind = byte") ;
-
-        for( ii=0 ; ii < npix ; ii++ ){
-          if( ZREJ(ar_fim[ii]) ) continue ;
-          val = fac*(fimtop-ar_fim[ii]) ;
-               if( val        < 0.0f   ) val = 0.0f ;
-          else if( ar_fim[ii] < fimbot ) val = NPANE_BIG-1.0f;
-          jj = (int)(val+0.49f);
-          if( jj >= NPANE_BIG ) jj = NPANE_BIG-1;
-          ovar[3*ii  ] = fimcolor[jj].r ;
-          ovar[3*ii+1] = fimcolor[jj].g ;
-          ovar[3*ii+2] = fimcolor[jj].b ;
-        }
-      }
-      break ;
-
-      case MRI_float:{
-        float *ar_fim = MRI_FLOAT_PTR(im_fim) ;
-
-STATUS("data kind = float") ; MPROBE ;
-
-#if 0
-INFO_message("kind = float; npix=%d",npix) ;
-#endif
-        for( ii=0 ; ii < npix ; ii++ ){
-#if 0
-fprintf(stderr,"%d;",ii) ;
-#endif
-          if( ZREJ(ar_fim[ii]) )          continue ;
-          if( zbot && ar_fim[ii] < 0.0f ) continue ;
-          val = fac*(fimtop-ar_fim[ii]) ;
-               if( val        < 0.0f   ) val = 0.0f ;
-          else if( ar_fim[ii] < fimbot ) val = NPANE_BIG-1.0f;
-          jj = (int)(val+0.49f);
-          if( jj >= NPANE_BIG ) jj = NPANE_BIG-1;
-#if 0
-fprintf(stderr,";") ;
-#endif
-          ovar[3*ii  ] = fimcolor[jj].r ;
-          ovar[3*ii+1] = fimcolor[jj].g ;
-          ovar[3*ii+2] = fimcolor[jj].b ;
-        }
-#if 0
-fprintf(stderr,"\n") ;
-#endif
-      }
-      break ;
+STATUS("colorization") ;
+   for( ii=0 ; ii < npix ; ii++ ){
+          if( kk == MRI_byte  ) val = (float)bfim[ii] ;
+     else if( kk == MRI_short ) val = (float)sfim[ii] ;
+     else                       val =        ffim[ii] ;
+     if( ZREJ(val) || (zabove && val > fimtop) || (zbelow && val < fimbot) ) continue ;
+     jj = (int)( fac*(fimtop-val) ) ;
+     if( jj < 0 ) jj = 0 ; else if( jj > NPANE_BIG1 ) jj = NPANE_BIG1 ;
+     ovar[3*ii  ] = fimcolor[jj].r ;
+     ovar[3*ii+1] = fimcolor[jj].g ;
+     ovar[3*ii+2] = fimcolor[jj].b ;
    }
 
    /** now apply threshold, if any **/
 
    if( dothr && im_thr != NULL ){
+STATUS("thresholdization") ;
      switch( im_thr->kind ){
 
        case MRI_short:{
          register float thb=thbot , tht=thtop ;
          register short *ar_thr = MRI_SHORT_PTR(im_thr) ;
-
-STATUS("thresh kind = short") ;
-
          for( ii=0 ; ii < npix ; ii++ ){
            if( ar_thr[ii] > thb && ar_thr[ii] < tht )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
@@ -1738,9 +1698,6 @@ STATUS("thresh kind = short") ;
        case MRI_byte:{
          register float thb=thbot , tht=thtop ;
          register byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
-
-STATUS("thresh kind = byte") ;
-
          for( ii=0 ; ii < npix ; ii++ )  /* assuming thb <= 0 always */
            if( ar_thr[ii] < tht )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
@@ -1750,9 +1707,6 @@ STATUS("thresh kind = byte") ;
        case MRI_float:{
          register float thb=thbot , tht=thtop ;
          register float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
-
-STATUS("thresh kind = float") ;
-
          for( ii=0 ; ii < npix ; ii++ )
            if( ar_thr[ii] > thb && ar_thr[ii] < tht )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
@@ -2655,13 +2609,11 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       /* find an anat in new session to match current anat */
       temp_dset = GET_SESSION_DSET(ss_new, old_anat, old_view);
       if( ISVALID_3DIM_DATASET(temp_dset) ){  /* are OK */
-/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[old_anat][old_view]) ){ */ /* are OK */
         new_anat = old_anat ;
       } else {
         for( ii=0 ; ii < ss_new->num_dsset ; ii++ ) {
           temp_dset = GET_SESSION_DSET(ss_new, ii, old_view);
           if( ISVALID_3DIM_DATASET(temp_dset) )
-/*          if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[ii][old_view]) ){*/
              new_anat = ii ; break ;
           }
       }
@@ -2670,13 +2622,11 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       /* find a view to fit this chosen anat */
       temp_dset = GET_SESSION_DSET(ss_new, new_anat, old_view);
       if( ISVALID_3DIM_DATASET(temp_dset )) { /* are OK */
-/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][old_view]) ){*/ /* are OK */
          new_view = old_view ;
       } else {
          for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- ) { /* look below */
             temp_dset = GET_SESSION_DSET(ss_new, new_anat, vv);
             if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
-/*            if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][vv]) ) break ;*/
          }
          if( vv >= FIRST_VIEW_TYPE ){  /* found it below */
             new_view = vv ;
@@ -2684,7 +2634,6 @@ ENTRY("AFNI_finalize_dataset_CB") ;
             for( vv=old_view+1 ; vv <= LAST_VIEW_TYPE ; vv++ ) {
                temp_dset = GET_SESSION_DSET(ss_new, new_anat, vv);
                if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
-/*               if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][vv]) ) break ;*/
             }
 
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
@@ -2700,8 +2649,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       /* find a func in new session that fits the new view */
 
 #define FINDAFUNC
-#ifdef FINDAFUNC
-/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[old_func][new_view]) ){ */ /* are OK */
+#ifdef  FINDAFUNC
       temp_dset = GET_SESSION_DSET(ss_new, old_func, new_view);
       if( ISVALID_3DIM_DATASET(temp_dset) ){  /* are OK */
          new_func = old_func ;
@@ -2736,12 +2684,10 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       /* find a view to fit this chosen anat */
       temp_dset = GET_SESSION_DSET(ss_new, new_anat, old_view);
 
-/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][old_view]) ){ *//* are OK */
       if( ISVALID_3DIM_DATASET(temp_dset) ){ /* are OK */
          new_view = old_view ;
       } else {
          for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- ) { /* look below */
-/*            if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][vv]) ) break ;*/
             temp_dset = GET_SESSION_DSET(ss_new, new_anat, vv);
             if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
          }
@@ -2753,7 +2699,6 @@ ENTRY("AFNI_finalize_dataset_CB") ;
                temp_dset = GET_SESSION_DSET(ss_new, new_anat, vv);
                if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
             }
-/*          if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_anat][vv]) ) break ;*/
 
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
                new_view = vv ;
@@ -2770,7 +2715,6 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 #ifdef FINDAFUNC
      temp_dset = GET_SESSION_DSET(ss_new, old_func, new_view);
      if( ISVALID_3DIM_DATASET(temp_dset) ) {
-/*     if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[old_func][new_view]) ){ *//* are OK */
          new_func = old_func ;
       } else {
          for( ff=0 ; ff < ss_new->num_dsset ; ff++ ) { /* search */
@@ -2801,16 +2745,15 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       }
 
       /* find a view to fit this chosen func */
+
       temp_dset = GET_SESSION_DSET(ss_new, new_func, old_view);
       if( ISVALID_3DIM_DATASET(temp_dset) ) {
-/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_func][old_view]) ){*/ /* are OK */
          new_view = old_view ;
       } else {
          for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- ) { /* look below */
             temp_dset = GET_SESSION_DSET(ss_new, new_func, vv);
             if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
          }
-/*          if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_func][vv]) ) break ;*/
 
          if( vv >= FIRST_VIEW_TYPE ){  /* found it below */
             new_view = vv ;
@@ -2819,7 +2762,6 @@ ENTRY("AFNI_finalize_dataset_CB") ;
                temp_dset = GET_SESSION_DSET(ss_new, new_func, vv);
                if( ISVALID_3DIM_DATASET(temp_dset) ) break ;
             }
-/*             if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[new_func][vv]) ) break ; */
 
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
                new_view = vv ;
@@ -2832,9 +2774,9 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       }
 
       /* find an anat to go with the new view (this is NOT optional) */
+
       temp_dset = GET_SESSION_DSET(ss_new, old_anat, new_view);
       if( ISVALID_3DIM_DATASET(temp_dset) ) {
-/*      if( ISVALID_3DIM_DATASET(ss_new->dsset_xform_table[old_anat][new_view]) ){ */ /* are OK */
          new_anat = old_anat ;
       } else {
          for( ff=0 ; ff < ss_new->num_dsset ; ff++ ) { /* search */
@@ -2845,7 +2787,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
          if( ff < ss_new->num_dsset ) new_anat = ff ;  /* found one */
       }
-      if( new_anat < 0 ){
+      if( new_anat < 0 ){  /* should not happen */
          BEEPIT ;
          WARNING_message("bad anat index when finalizing choice!") ;
          EXRETURN ;  /* bad! */
@@ -2958,7 +2900,6 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
    EXRETURN ;
 }
-
 
 /*-----------------------------------------------------------*/
 /* check dataset for obliquity and pop-up warning if oblique */
@@ -3711,7 +3652,6 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
        im3d->vinfo->func_num = 1 ;            /* 07 Sep 2006 (oops) */
        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
          temp_dset = GET_SESSION_DSET(ss,1,vv);
-/*         if( ISVALID_DSET(ss->dsset_xform_table[1][vv]) ){ */
          if( ISVALID_DSET(temp_dset) ){
             im3d->vinfo->view_type = vv; break;
          }

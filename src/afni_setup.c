@@ -579,7 +579,7 @@ ENTRY("AFNI_pbar_EV") ;
 
 void AFNI_pbar_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
-   Three_D_View *im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
    MCW_pbar *pbar ;
    int npane , jm , ii ;
    double pmax , pmin ;
@@ -602,7 +602,7 @@ ENTRY("AFNI_pbar_CB") ;
 
    if( w == im3d->vwid->func->pbar_equalize_pb ){
 
-      if( pbar->bigmode ){ BEEPIT; WARNING_message("Can't equalize!"); EXRETURN; } /* 30 Jan 2003 */
+      if( pbar->bigmode ) EXRETURN ;
 
       for( ii=0 ; ii <= npane ; ii++ )
          pval[ii] = pmax - ii * (pmax-pmin)/npane ;
@@ -677,9 +677,9 @@ ENTRY("AFNI_pbar_CB") ;
 
    else if( w == im3d->vwid->func->pbar_saveim_pb ){
       MCW_choose_string( im3d->vwid->func->options_label ,
-                         "PPM file prefix\n"
-                         "  * end in .jpg or .png *\n"
-                         "  * for those formats   *"
+                         "PPM file prefix; OR:\n"
+                         " * end in .jpg or .png *\n"
+                         " * for those formats   *"
                          , NULL ,
                          AFNI_finalize_saveim_CB , cd ) ;
    }
@@ -841,15 +841,15 @@ void AFNI_set_pbar_top_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs 
    Three_D_View * im3d = (Three_D_View *) cd ;
    MCW_pbar * pbar ;
    float pval[NPANE_MAX+1] ;
-   double pmin,pmax , fac ;
+   float pmin,pmax , fac ;
    int ii ;
 
 ENTRY("AFNI_set_pbar_top_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
-   pmax  = cbs->fval ; if( pmax <= 0.0 ){ BEEPIT; WARNING_message("Bad pmax"); EXRETURN; }
-   pbar  = im3d->vwid->func->inten_pbar ;
+   pmax = cbs->fval ; if( pmax <= 0.0f ) EXRETURN ;
+   pbar = im3d->vwid->func->inten_pbar ;
 
    HIDE_SCALE(im3d) ;
    if( pbar->bigmode ){              /* 30 Jan 2003 */
