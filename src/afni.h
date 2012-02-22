@@ -562,11 +562,13 @@ extern void AFNI_sesslab_EV( Widget, XtPointer, XEvent *, Boolean * ) ; /* 30 Ap
    {  XtManageChild( (iq)->vwid->  panel  ->frame ) ;                    \
       if( ! (iq)->vwid->view->  panel ## _pb_inverted ){                  \
          MCW_invert_widget( (iq)->vwid->view->define_ ## panel ## _pb ) ;  \
-         (iq)->vwid->view->  panel ## _pb_inverted = True ; }             \
-      XMapRaised( XtDisplay( (iq)->vwid->  panel  ->frame ) ,            \
+         (iq)->vwid->view->  panel ## _pb_inverted = True ;                \
+         (iq)->vwid->func->inten_pbar->update_me = 2 ;                     \
+         update_MCW_pbar((iq)->vwid->func->inten_pbar) ; }                 \
+      XMapRaised( XtDisplay( (iq)->vwid->  panel  ->frame ) ,              \
                    XtWindow( (iq)->vwid->  panel  ->frame )  ) ; }
 
-#define CLOSE_PANEL(iq,panel)                                            \
+#define CLOSE_PANEL(iq,panel)                                           \
    {  XtUnmanageChild( (iq)->vwid->  panel  ->frame ) ;                  \
       if( (iq)->vwid->view->  panel ## _pb_inverted ){                    \
          MCW_invert_widget( (iq)->vwid->view->define_ ## panel ## _pb ) ;  \
@@ -1855,7 +1857,7 @@ extern MRI_IMAGE * AFNI_func_overlay( int , FD_brick * ) ;
 
 extern MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *, float,float ,  /* 30 Jan 2003 */
                                          MRI_IMAGE *,
-                                         float,float, rgbyte * ) ;
+                                         float,float, rgbyte *, int ) ;
 
 extern void AFNI_syntax(void) ;
 
