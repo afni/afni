@@ -1134,9 +1134,6 @@ class A1DInterface:
          self.adata.sort(reverse=self.reverse)  # steal any reverse option
          self.reverse = 0
 
-      if self.rand_trs:
-         self.adata.randomize_trs(seed=self.rand_seed)
-
       if self.reverse:
          if self.adata.reverse(): return 1
 
@@ -1164,6 +1161,9 @@ class A1DInterface:
       if self.set_extremes:
          if self.adata.extreme_mask(self.extreme_min, self.extreme_max):
             return 1
+
+      if self.rand_trs:
+         self.adata.randomize_trs(seed=self.rand_seed)
 
       if self.censor_fill:
          if self.adata.apply_goodlist(padbad=1): return 1
