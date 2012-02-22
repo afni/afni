@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, FEB, 2012, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "moved GLOBAL_browser def from afni.h to thd_ttatlas_query.c",
+   "- declared in TTQ.h\n"
+   "- deleted #include thd_atlas.h from most .c files\n"
+   "- #include thd_atlas.h in mrilib.h"
+ } ,
+
  { 22, FEB, 2012, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -randomize_trs and -seed",
    "Affected 1d_tool.py, afni_util.py, lib_afni1D.py and lib_textdata.py."

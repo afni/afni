@@ -1480,6 +1480,8 @@ extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 
 #include "misc_math.h"        /* 21 Jun 2010 [rickr] */
 
+#include "thd_atlas.h"        /* 22 Feb 2012 [rickr] */
+
 THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 
 /*------------------------------------------------------------------------*/

@@ -24,6 +24,10 @@ from a downloaded SPM toolbox. See the matlab function
 CA_EZ_Prep.m */
 #include "thd_ttatlas_CA_EZ.h"
 
+/* global web browser, unless we find somewhere better to put it          */
+extern char *GLOBAL_browser ;   /* moved from afni.h  22 Feb 2012 [rickr] */
+
+
 /* generic atlas functions and definitions - 03/13/2009 */
 /* #include "thd_atlas.h" */
 
