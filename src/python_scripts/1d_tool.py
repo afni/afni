@@ -240,6 +240,16 @@ examples (very basic for now):
         1d_tool.py -infile dfile.rall.1D -show_max_displace \\
                    -censor_infile motion_censor.1D
 
+   16. Randomize a list of numbers, say, those from 1..40.
+
+       The numbers can come from 1deval, with the result piped to
+       '1d_tool.py -input stdin -randomize_trs ...'.
+
+        1deval -num 40 -expr t+1 |   \\
+           1d_tool.py -infile stdin -randomize_trs -write stdout
+
+        See also -seed.
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -365,6 +375,8 @@ general options:
 
    -overwrite                   : allow overwriting of any output dataset
    -reverse                     : reverse data over time
+   -randomize_trs               : randomize the data over time
+   -seed SEED                   : set random number seed (integer)
    -select_cols SELECTOR        : apply AFNI column selectors, [] is optional
                                   e.g. '[5,0,7..21(2)]'
    -select_rows SELECTOR        : apply AFNI row selectors, {} is optional
@@ -503,9 +515,10 @@ g_history = """
         - added -show_max_displace (see example 15)
    1.01 Oct  3, 2011 - added -censor_infile (e.g. to restrict motion params)
         - added for N Adleman
+   1.02 Feb 22, 2012 - added -randomize_trs and -seed
 """
 
-g_version = "1d_tool.py version 1.01, October 3, 2011"
+g_version = "1d_tool.py version 1.02, February 22, 2012"
 
 
 class A1DInterface:
@@ -534,6 +547,8 @@ class A1DInterface:
       self.derivative      = 0          # take temporal derivative
       self.overwrite       = 0          # whether to allow overwriting
       self.pad_to_runs     = []         # pad as run #A out of #B runs
+      self.rand_trs        = 0          # randomize order of data over time
+      self.rand_seed       = 0          # randomization seed, set if positive
       self.reverse         = 0          # reverse data over time
       self.select_cols     = ''         # column selection string
       self.select_rows     = ''         # row selection string
@@ -585,9 +600,7 @@ class A1DInterface:
          adata = LAD.Afni1D(fname, verb=self.verb)
          self.dtype = 1
 
-      if not adata.ready:
-         print "** failed to read 1D data from '%s'" % fname
-         return 1
+      if not adata.ready: return 1
 
       if self.verb > 1: print "++ read 1D data from file '%s'" % fname
 
@@ -697,8 +710,14 @@ class A1DInterface:
       self.valid_opts.add_opt('-pad_into_many_runs', 2, [], 
                       helpstr='make data run #k of N runs (pad with 0)')
 
+      self.valid_opts.add_opt('-randomize_trs', 0, [], 
+                      helpstr='randomize the data over time (fixed per TR)')
+
       self.valid_opts.add_opt('-reverse', 0, [], 
                       helpstr='reverse the data per column (over time)')
+
+      self.valid_opts.add_opt('-seed', 1, [], 
+                      helpstr='integegral random number seed')
 
       self.valid_opts.add_opt('-select_cols', 1, [], 
                       helpstr='select the list of columns from the dataset')
@@ -950,8 +969,16 @@ class A1DInterface:
             if err: return 1
             self.pad_to_runs = vals
 
+         elif opt.name == '-randomize_trs':
+            self.rand_trs = 1
+
          elif opt.name == '-reverse':
             self.reverse = 1
+
+         elif opt.name == '-seed':
+            val, err = uopts.get_type_opt(int, '', opt=opt)
+            if err: return 1
+            self.rand_seed = val
 
          elif opt.name == '-select_cols':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -1106,6 +1133,9 @@ class A1DInterface:
       if self.sort:
          self.adata.sort(reverse=self.reverse)  # steal any reverse option
          self.reverse = 0
+
+      if self.rand_trs:
+         self.adata.randomize_trs(seed=self.rand_seed)
 
       if self.reverse:
          if self.adata.reverse(): return 1

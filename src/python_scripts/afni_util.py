@@ -2378,7 +2378,7 @@ def p2q(plist, do_min=1, verb=1):
 # ----------------------------------------------------------------------
 
 def shuffle(vlist):
-    """randomize the order of list elements, where each perumuation is
+    """randomize the order of list elements, where each permutation is
        equally likely
 
        - akin to RSFgen, but do it with equal probabilities
