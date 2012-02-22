@@ -108,10 +108,14 @@ def read_married_file(filename, nlines = -1, verb = 1):
           time*mod1*mod2*...*modN:duration
        Should we allow different separators?
     """
-    try: fp = open(filename, 'r')
-    except:
-        if verb > 0: print "failed to open 1D file %s" % filename
-        return None, None
+
+    if filename == '-' or filename == 'stdin':
+        fp = sys.stdin
+    else:
+       try: fp = open(filename, 'r')
+       except:
+           if verb > 0: print "failed to open 1D file %s" % filename
+           return None, None
 
     if verb > 1: print "+d opened file %s" % filename
 

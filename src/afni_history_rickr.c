@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, FEB, 2012, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -randomize_trs and -seed",
+   "Affected 1d_tool.py, afni_util.py, lib_afni1D.py and lib_textdata.py."
+ } ,
+
  { 21, FEB, 2012, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "if destination directory is not writable, let the user know",
    NULL
