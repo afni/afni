@@ -4,7 +4,6 @@
 /* access current space of dataset */
 
 #include "afni.h"
-#include "thd_atlas.h"
 #define SUMA_noFunc
 #include "suma_suma.h"
 

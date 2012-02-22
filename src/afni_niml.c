@@ -1,6 +1,5 @@
 #include "afni.h"
 #include "vol2surf.h"
-#include "thd_atlas.h"
 
 /*----------------------------------------------------------------------
  * history:

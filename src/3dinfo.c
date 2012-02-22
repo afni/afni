@@ -5,8 +5,6 @@
 ******************************************************************************/
 
 #include "mrilib.h"
-#include "thd_ttatlas_query.h"
-#include "thd_atlas.h"
 
 void Syntax(void)
 {

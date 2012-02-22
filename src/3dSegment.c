@@ -4,7 +4,6 @@
 #include "afni.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "thd_atlas.h"
 
 #define SEG_UNKNOWN  0
 #define SEG_CSF      1

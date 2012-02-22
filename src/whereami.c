@@ -7,7 +7,6 @@
 #include "afni.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "thd_atlas.h"
 #include "matrix.h"
 #include "suma_suma.h"
 
