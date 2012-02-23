@@ -5157,7 +5157,7 @@ void REND_func_widgets(void)
                         sel_height / npane ,        /* init pane height */
                         pmin , pmax ,               /* value range */
                         REND_color_pbar_CB ,        /* callback */
-                        NULL                ) ;     /* callback data */
+                        NULL , 0            ) ;     /* callback data */
 
    wfunc_color_pbar->parent       = NULL ;
    wfunc_color_pbar->mode         = 0 ;

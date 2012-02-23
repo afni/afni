@@ -1477,11 +1477,11 @@ void AFNI_sigfunc_alrm(int sig)
      else {
 #undef  NDEL
 #define NDEL (sizeof(del)/sizeof(char *))
-       char *del[] = { "delectation" , "delight"       ,
-                       "edification" , "ennoblement"   ,
-                       "felicity"    , "gratification"  } ;
+       char *del[] = { "delectation" , "delight"       , "spirit"       ,
+                       "edification" , "ennoblement"   , "refinement"   ,
+                       "felicity"    , "gratification" , "enlightenment" } ;
        nn = (lrand48()>>3) % NUM_SONNETS ;
-       fprintf(stderr,"\n** Exeunt AFNI: for your %s, a sonnet by Shakespeare:\n"
+       fprintf(stderr,"\n** Exeunt AFNI: for thy %s, a sonnet by William Shakespeare:\n"
                       "                  --- %d ---\n"
                       "%s\n" , del[lrand48()%NDEL] , nn+1 , sonnets[nn] ) ;
      }
