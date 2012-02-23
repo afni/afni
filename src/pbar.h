@@ -60,6 +60,8 @@ static Pixmap check_pixmap = XmUNSPECIFIED_PIXMAP ;
 #define pbCR_COLOR       (1<<0)
 #define pbCR_VALUE       (1<<1)
 
+#define PBAR_BIGTHREE_MASK  1
+
 
 typedef struct {
   Widget top , panew , panes[NPANE_MAX]   , labels[NPANE_MAX+1] ;
@@ -89,14 +91,16 @@ typedef struct {
   float  bigfac ;               /* 11 Feb 2003 */
   int    bigflip ;              /* 07 Feb 2004 */
   int    bigrota ;              /* 07 Feb 2004 */
-  int    big30, big32 , big31 ; /* 14 Feb 2012 */
-  int    ignore_resize ;        /* 16 Feb 2012 */
+  int    big30, big32 , big31 ; /* Feb 2012 */
+  int    bigh0, bigh1 , bigh2 ; /* Feb 2012 */
+  int    ignore_resize ;        /* Feb 2012 */
+  int    dont_alter_bigmax ;    /* Feb 2012 */
 
-  Widget big_menu , big_label , big_choose_pb ;
+  Widget big_menu, big_label, big_choose_pb, big_scaleup_pb, big_scaledn_pb ;
 } MCW_pbar ;
 
 MCW_pbar * new_MCW_pbar( Widget , MCW_DC * ,
-                         int,int , float,float , gen_func * , XtPointer ) ;
+                         int,int, float,float, gen_func *, XtPointer, int ) ;
 
 void alter_MCW_pbar( MCW_pbar * , int , float * ) ;
 void update_MCW_pbar( MCW_pbar * ) ;
