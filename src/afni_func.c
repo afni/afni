@@ -5446,8 +5446,11 @@ ENTRY("AFNI_inten_bbox_CB") ;
       HIDE_SCALE(im3d) ;
       if( pbar->bigmode ){               /* 30 Jan 2003 */
         int npane=pbar->num_panes ;
-        float pmax=pbar->pval_save[npane][0][jm] ,
-              pmin=pbar->pval_save[npane][npane][jm] ;
+        float pmin , pmax ;
+        pmax = (pbar->big31) ? pbar->bigtop
+                             : pbar->pval_save[npane][0    ][jm] ;
+        pmin = (pbar->big31) ? ( (jm==1) ? 0.0f : -pmax )
+                             : pbar->pval_save[npane][npane][jm] ;
         pbar->bigset = 0 ;
         PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
         AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;

@@ -18,9 +18,9 @@ static char   **bigmap_name ;
 static rgbyte **bigmap ;
 static int      debugprint=0;     /* debug print */
 
-static int      bigthree=-1 ;                 /* Feb 2012 stuff */
 static float PBAR_get_bigmax( MCW_pbar * ) ;
 static void PBAR_show_bigthree_panes( MCW_pbar * ) ;
+static void PBAR_show_bigmode( MCW_pbar *pbar ) ;
 
 static MCW_DC *myfirst_dc = NULL ;  /* 04 Feb 2003 */
 
@@ -50,6 +50,8 @@ static MCW_DC *myfirst_dc = NULL ;  /* 04 Feb 2003 */
      reason  = pbCR_COLOR --> color changed
                pbCR_VALUE --> value changed
 
+     flags   = stuff
+
   WARNING: this code is a mess!  Especially the parts dealing
            with resizing, where the geometry management of the
            Motif widgets must be allowed for.
@@ -57,11 +59,11 @@ static MCW_DC *myfirst_dc = NULL ;  /* 04 Feb 2003 */
 
 MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC *dc ,
                          int npane , int pheight , float pmin , float pmax ,
-                         gen_func *cbfunc , XtPointer cbdata )
+                         gen_func *cbfunc , XtPointer cbdata , int flags )
 
 {
    MCW_pbar *pbar ;
-   int i , np , jm , lcol , ic , ph ;
+   int i , np , jm , lcol , ic , ph , bigthree ;
    Widget frm ;
 
 ENTRY("new_MCW_pbar") ;
@@ -217,8 +219,9 @@ STATUS("init pval_save") ;
 
    PBAR_add_bigmap(NULL,NULL) ;
 
-   if( bigthree < 0 )                      /* bigthree == bigmode shows 1 or 3 panes */
-     bigthree = AFNI_yesenv("AFNI_PBAR_THREE") ;  /* initialize to 0 or 1 [Feb 2012] */
+   /* bigthree == bigmode shows 1 or 3 panes */
+
+   bigthree = (flags & PBAR_BIGTHREE_MASK) != 0 ;
 
    /*-- 30 Jan 2003: setup the "big" mode for 256 (NPANE_BIG) colors --*/
 
@@ -230,10 +233,11 @@ STATUS("init pval_save") ;
    for( i=0 ; i < NPANE_BIG ; i++ ) pbar->bigcolor[i] = bigmap[0][i] ;
    pbar->bigname = bigmap_name[0] ;
    pbar->bigxim  = NULL ;
-   pbar->bigbot  = -1.0f ; pbar->bigtop = 1.0f ;
+   pbar->bigbot  = -1.0f ; pbar->bigtop = 1.0f ; pbar->dont_alter_bigmax = 0 ;
 
-   pbar->bigmax  = PBAR_get_bigmax(pbar) ;                 /* Feb 2012 */
-   pbar->big30   = pbar->big32 = pbar->big31 = bigthree ;  /* Feb 2012 */
+   pbar->bigmax  = PBAR_get_bigmax(pbar) ;                /* Feb 2012 */
+   pbar->big30   = pbar->big32 = pbar->big31 = bigthree ;
+   pbar->bigh0   = pbar->bigh1 = pbar->bigh2 = -1       ;
    pbar->ignore_resize = 0 ;
 
    XtAddCallback( pbar->panes[bigthree], XmNexposeCallback, PBAR_bigexpose_CB, pbar ) ;
@@ -278,6 +282,29 @@ STATUS("init pval_save") ;
                              XmNinitialResourcesPersistent , False ,
                           NULL ) ;
    XtAddCallback( pbar->big_choose_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;
+   MCW_register_hint( pbar->big_choose_pb , "Change the continuous colorscale" ) ;
+
+   if( bigthree ){
+      pbar->big_scaleup_pb = XtVaCreateManagedWidget(
+                                "menu" , xmPushButtonWidgetClass , pbar->big_menu ,
+                                  LABEL_ARG("Scale X 2") ,
+                                  XmNtraversalOn , True  ,
+                                  XmNinitialResourcesPersistent , False ,
+                               NULL ) ;
+      XtAddCallback( pbar->big_scaleup_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;
+      MCW_register_hint( pbar->big_scaleup_pb , "Double the maximum possible value" ) ;
+
+      pbar->big_scaledn_pb = XtVaCreateManagedWidget(
+                                "menu" , xmPushButtonWidgetClass , pbar->big_menu ,
+                                  LABEL_ARG("Scale / 2") ,
+                                  XmNtraversalOn , True  ,
+                                  XmNinitialResourcesPersistent , False ,
+                               NULL ) ;
+      XtAddCallback( pbar->big_scaledn_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;
+      MCW_register_hint( pbar->big_scaledn_pb , "Halve the maximum possible value" ) ;
+   } else {
+     pbar->big_scaleup_pb = pbar->big_scaledn_pb = NULL ;
+   }
 
    /*-- go home --*/
 
@@ -578,7 +605,7 @@ static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd )
 {
    MCW_pbar *pbar = (MCW_pbar *) cd ;
    XButtonEvent *bev = (XButtonEvent *) ev ;
-   int hh , ii , rr,gg,bb ;
+   int hh , ii , rr,gg,bb , bigthree ;
    float yy ;
 
 ENTRY("PBAR_button_EV") ;
@@ -589,6 +616,8 @@ ENTRY("PBAR_button_EV") ;
 #endif
 
    if( pbar == NULL || !pbar->bigmode || bev->button == Button1 ) EXRETURN ;
+
+   bigthree = pbar->big31 ;
 
    /* get current position, value, and color */
 
@@ -638,18 +667,44 @@ ENTRY("PBAR_button_EV") ;
 
 static void PBAR_big_menu_CB( Widget w , XtPointer cd , XtPointer qd )
 {
-   MCW_pbar *pbar = (MCW_pbar *) cd ;
+   MCW_pbar *pbar = (MCW_pbar *)cd ;
 
 ENTRY("PBAR_big_menu_CB") ;
 
-   if( pbar == NULL || !pbar->bigmode ) EXRETURN ;
+   if( pbar == NULL || !pbar->bigmode || w == NULL ) EXRETURN ;
 
    if( w == pbar->big_choose_pb ){
+
      MCW_choose_strlist( w , "Choose Colorscale" ,
                          bigmap_num ,
                          pbar->bigmap_index ,
                          bigmap_name ,
                          PBAR_bigmap_finalize , cd ) ;
+
+   } else if ( w == pbar->big_scaleup_pb ){  /* Feb 2012 */
+
+     pbar->bigmax *= 2.0f ;
+     pbar->dont_alter_bigmax = 1 ;
+     PBAR_show_bigmode(pbar) ;
+     pbar->dont_alter_bigmax = 0 ;
+     PBAR_callback(pbar,pbCR_COLOR) ;
+
+   } else if ( w == pbar->big_scaledn_pb ){  /* Feb 2012 */
+
+     float at,ab,am , bm ;
+     at = fabsf(pbar->bigtop) ; ab = fabsf(pbar->bigbot) ;
+     am = MAX(at,ab)          ; bm = pbar->bigmax * 0.5f ;
+
+     if( 1.05*am < bm ){
+       pbar->bigmax = bm ;
+       pbar->dont_alter_bigmax = 1 ;
+       PBAR_show_bigmode(pbar) ;
+       pbar->dont_alter_bigmax = 0 ;
+       PBAR_callback(pbar,pbCR_COLOR) ;
+     } else {
+       XBell(pbar->dc->display,100) ;
+     }
+
    }
 
    EXRETURN ;
@@ -660,13 +715,15 @@ ENTRY("PBAR_big_menu_CB") ;
 static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 {
    MCW_pbar *pbar = (MCW_pbar *) cd ;
-   int ii , ind=cbs->ival ;
+   int ii , ind=cbs->ival , bigthree ;
 
 ENTRY("PBAR_bigmap_finalize") ;
 
    if( ind < 0 || ind >= bigmap_num || !pbar->bigmode ){
-     XBell( pbar->dc->display,100); POPDOWN_strlist_chooser; EXRETURN;
+     XBell(pbar->dc->display,100); POPDOWN_strlist_chooser; EXRETURN;
    }
+
+   bigthree = pbar->big31 ;
 
    pbar->bigflip      = 0 ;                 /* 07 Feb 2004 */
    pbar->bigrota      = 0 ;
@@ -765,7 +822,8 @@ char * PBAR_get_bigmap( MCW_pbar *pbar )    /* 03 Feb 2003 */
 static void PBAR_show_bigthree_panes( MCW_pbar *pbar )
 {
    char cname[16] ; int rr,gg,bb ;
-   if( pbar == NULL || !bigthree || !pbar->bigmode ) return ;
+
+   if( pbar == NULL || !pbar->big31 || !pbar->bigmode ) return ;
 
    if( pbar->big30 ){
      rr = (int)pbar->bigcolor[0].r ;
@@ -798,11 +856,13 @@ static void PBAR_show_bigthree_panes( MCW_pbar *pbar )
 
 void PBAR_bigexpose_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   MCW_pbar *pbar = (MCW_pbar *)cd ;
+   MCW_pbar *pbar = (MCW_pbar *)cd ; int bigthree ;
 
 ENTRY("PBAR_bigexpose_CB") ;
 
    if( pbar == NULL || !pbar->bigmode ) EXRETURN ;
+
+   bigthree = pbar->big31 ;
 
    /* make an image of what we want to see */
 
@@ -872,9 +932,11 @@ static float fround3( float aa )
 
 static float PBAR_get_bigmax( MCW_pbar *pbar )
 {
-   double abot,atop ;
+   double abot,atop ; int bigthree ;
 
    if( pbar == NULL ) return 1.0f ;  /* should not happen */
+
+   bigthree = pbar->big31 ;
 
    abot = fabs(pbar->bigbot) ; atop = fabs(pbar->bigtop) ;
    if( atop <  abot ) atop = abot ;
@@ -901,8 +963,9 @@ void PBAR_set_bigmode( MCW_pbar *pbar, int bmode, float bot,float top )
 ENTRY("PBAR_set_bigmode") ;
    if( bmode && bot < top ){
      pbar->bigbot = bot; pbar->bigtop = top;
-if(bigthree) 
-INFO_message("set_bigmode: bot=%g top=%g",bot,top) ;
+#if 0
+if(pbar->big31) INFO_message("set_bigmode: bot=%g top=%g",bot,top) ;
+#endif
    }
    pbar->bigmode   = bmode ;
    pbar->update_me = 1 ;
@@ -914,12 +977,14 @@ INFO_message("set_bigmode: bot=%g top=%g",bot,top) ;
 
 static void PBAR_show_bigmode( MCW_pbar *pbar )  /* 30 Jan 2003 */
 {
-   int ii , yy ;
+   int ii , yy , bigthree ;
    char buf[16] ;
 
 ENTRY("PBAR_show_bigmode") ;
 
    if( pbar == NULL || !pbar->bigmode ) EXRETURN ;
+
+   bigthree = pbar->big31 ;
 
    if( pbar->hide_changes ) XtUnmapWidget( pbar->top ) ;
    pbar->ignore_resize = 1 ;
@@ -973,18 +1038,19 @@ ENTRY("PBAR_show_bigmode") ;
      for( ii=3 ; ii <  NPANE_MAX ; ii++ ) XtUnmanageChild( pbar->panes[ii] ) ;
 
      /* set the height of the 3 panes left upright */
-
+#if 0
 INFO_message("show_bigmode: bigbot=%g  bigtop=%g  bigmax=%g",pbar->bigbot,pbar->bigtop,pbar->bigmax) ;
+#endif
 
      ab = fabsf(pbar->bigbot) ; at = fabsf(pbar->bigtop) ; am = MAX(ab,at) ;
-     if( 1.05f*am > pbar->bigmax || 5.01f*am < pbar->bigmax )
+     if( !pbar->dont_alter_bigmax && (1.05f*am > pbar->bigmax || 5.01f*am < pbar->bigmax) )
        pbar->bigmax = PBAR_get_bigmax(pbar) ;
      bm = pbar->bigmax ; ab = pbar->bigbot ; at = pbar->bigtop ;
 
      hfac = (pbar->panew_height - 2*PANE_SPACING) / (2.0f*bm) ;
 
-     h0 = (int)( (bm-at)*hfac + 0.45f ) ; if( h0 < PANE_MIN_HEIGHT ) h0 = PANE_MIN_HEIGHT ;
-     h1 = (int)( (at-ab)*hfac + 0.45f ) ; if( h1 < PANE_MIN_HEIGHT ) h1 = PANE_MIN_HEIGHT ;
+     h0 = (int)( (bm-at)*hfac + 0.49f ) ; if( h0 < PANE_MIN_HEIGHT ) h0 = PANE_MIN_HEIGHT ;
+     h1 = (int)( (at-ab)*hfac + 0.49f ) ; if( h1 < PANE_MIN_HEIGHT ) h1 = PANE_MIN_HEIGHT ;
      h2 = pbar->panew_height - 2*PANE_SPACING - h0 - h1 ;
      if( h2 < PANE_MIN_HEIGHT ){
        int deficit=PANE_MIN_HEIGHT-h2 , dh=deficit/2 ;  /* I cut the deficit in half! */
@@ -992,14 +1058,18 @@ INFO_message("show_bigmode: bigbot=%g  bigtop=%g  bigmax=%g",pbar->bigbot,pbar->
        h0 -= (deficit - dh) ;
        h1 -= dh ;
      }
+#if 0
 ININFO_message("set h0=%d h1=%d h2=%d",h0,h1,h2) ;
 ININFO_message("  bm=%g  ab=%g  at=%g",bm,ab,at) ;
+#endif
 
      XtVaSetValues( pbar->panes[0] , XmNheight,h0 , NULL ) ;
      XtVaSetValues( pbar->panes[1] , XmNheight,h1 , NULL ) ;
      XtVaSetValues( pbar->panes[2] , XmNheight,h2 , NULL ) ;
      XtVaSetValues( pbar->panew    , XmNheight,pbar->panew_height , NULL ) ;
      XtVaSetValues( pbar->top      , XmNheight,pbar->panew_height , NULL ) ;
+
+     pbar->bigh0 = h0 ; pbar->bigh1 = h1 ; pbar->bigh2 = h2 ;
 
      if( pbar->hide_changes ) XtMapWidget( pbar->top ) ;
 
@@ -1123,12 +1193,14 @@ void PBAR_click_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MCW_DC * dc = (MCW_DC *) cd ;
    MCW_pbar * pbar = NULL ;
-   int ip ;
+   int ip , bigthree ;
 
 ENTRY("PBAR_click_CB") ;
 
    XtVaGetValues( w , XmNuserData , &pbar , NULL ) ;
    if( pbar == NULL ) EXRETURN ;
+
+   bigthree = pbar->big31 ;
 
    /*-- continuous colors --*/
 
@@ -1186,7 +1258,7 @@ void PBAR_setonoff_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 
 ENTRY("PBAR_setonoff_CB") ;
 
-   if( !bigthree || !pbar->bigmode ) EXRETURN ;  /* error */
+   if( pbar == NULL || !pbar->big31 || !pbar->bigmode ) EXRETURN ;  /* error */
 
         if( w == pbar->panes[0] ) bp = &(pbar->big30) ;
    else if( w == pbar->panes[2] ) bp = &(pbar->big32) ;
@@ -1313,9 +1385,9 @@ ENTRY("PBAR_resize_CB") ;
    /*-- continuous colors --*/
 
    if( pbar->bigmode ){
-     int h0,h1,yy ; float ab,at,bm,hfac ; char buf[16] ;
+     int h0,h1,h2,yy ; float ab,at,bm,hfac ; char buf[16] ;
 
-     if( !bigthree || w != pbar->panes[1] || !MCW_widget_visible(w) ){ recur--; EXRETURN; }
+     if( !pbar->big31 || w != pbar->panes[1] || !MCW_widget_visible(w) ){ recur--; EXRETURN; }
 
      MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;  /* resize the */
      PBAR_bigexpose_CB( NULL , pbar , NULL ) ;              /* colorscale */
@@ -1323,20 +1395,32 @@ ENTRY("PBAR_resize_CB") ;
      /* find position and size of the middle pane */
 
      MCW_widget_geom( pbar->panes[1] , NULL,&h1 , NULL,&yy ) ;
-     h0 = yy-2 ;
+     h0 = yy - PANE_SPACING ;  /* height of pane#0 */
+     h2 = pbar->panew_height - 2*PANE_SPACING - h0 - h1 ;
 
      /* use these to compute the adjust bigtop and bigbot */
 
      bm   = pbar->bigmax ;
      hfac = (pbar->panew_height - 2*PANE_SPACING) / (2.0f*bm) ;
+#if 0
      at   = bm - h0/hfac ; ab = at - h1/hfac ;
      at   = fround3(at)  ; ab = fround3(ab)  ;
+#else
+     at   = fround3(bm - h0/hfac) ;
+     ab   = fround3(at - h1/hfac) ;
+#endif
+     if( h2 == pbar->bigh2 ) ab = pbar->bigbot ;
 
+#if 0
 INFO_message("Resize: h1=%d yy=%d bigbot=%g->%g bigtop=%g->%g",
 h1,yy,pbar->bigbot,ab,pbar->bigtop,at) ;
+#endif
 
      pbar->bigtop = at ; pbar->bigbot = ab ;
 
+#if 1
+     PBAR_show_bigmode(pbar) ;
+#else
      /* change the labels */
 
      XtVaSetValues( pbar->labels[1] , XmNy , yy-PANE_LOFF , NULL ) ;
@@ -1346,6 +1430,7 @@ h1,yy,pbar->bigbot,ab,pbar->bigtop,at) ;
      XtVaSetValues( pbar->labels[2] , XmNy , yy+h1 , NULL ) ;
      PBAR_labelize( ab , buf ) ;
      MCW_set_widget_label( pbar->labels[2] , buf ) ;
+#endif
 
      PBAR_callback(pbar,pbCR_VALUE) ;
 

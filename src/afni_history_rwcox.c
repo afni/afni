@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 21 , FEB , 2012 , RWC , "3dAutobox" , MICRO , TYPE_NEW_OPT ,
+  { 23 , FEB , 2012 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Enable 'bigthree' mode for color pbar" ,
+   "If AFNI_PBAR_THREE is YES, the color pbar in the AFNI GUI (but not the\n"
+   "renderer) will start in 'bigthree' mode, with 3 panes -- the colorscale\n"
+   "in the middle one, and the upper and lower panes adjustable to allow for\n"
+   "scaling that is not symmetrical." } ,
+
+ { 21 , FEB , 2012 , RWC , "3dAutobox" , MICRO , TYPE_NEW_OPT ,
    "Add -npad option, for Larry Frank" ,
    NULL } ,
 

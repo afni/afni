@@ -3295,7 +3295,8 @@ STATUS("making func->rowcol") ;
                           sel_height / npane ,        /* init pane height */
                           pmin , pmax ,               /* value range */
                           AFNI_inten_pbar_CB ,        /* callback */
-                          (XtPointer)im3d     ) ;     /* callback data */
+                          (XtPointer)im3d ,           /* callback data */
+                          AFNI_yesenv("AFNI_PBAR_THREE") ) ; /* bigthree mode? */
 
      /* 04 Feb 2002: colorscale-ize? */
 
