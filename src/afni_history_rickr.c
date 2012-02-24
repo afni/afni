@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, FEB, 2012, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
+   "added -moderate_mask, fixed -extreme_mask help",
+   "Description problem noted by R Kuplicki."
+ } ,
+
  { 22, FEB, 2012, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "moved GLOBAL_browser def from afni.h to thd_ttatlas_query.c",
    "- declared in TTQ.h\n"

@@ -118,7 +118,7 @@ examples (very basic for now):
 
           1d_tool.py -infile motion.1D -set_nruns 9                 \\
                      -derivative -collapse_cols euclidean_norm      \\
-                     -extreme_mask -1.2 1.2                         \\
+                     -moderate_mask -1.2 1.2                        \\
                      -show_censor_count                             \\
                      -write_censor subjA_censor.1D                  \\
                      -write_CENSORTR subjA_CENSORTR.txt
@@ -126,7 +126,7 @@ examples (very basic for now):
        b. using -censor_motion
 
           The -censor_motion option is available, which implies '-derivative',
-          '-collapse_cols euclidean_norm', 'extreme_mask -LIMIT LIMIT', and the
+          '-collapse_cols euclidean_norm', 'moderate_mask -LIMIT LIMIT', and the
           prefix for '-write_censor' and '-write_CENSORTR' output files.  This
           option will also result in subjA_enorm.1D being written, which is the
           euclidean norm of the derivative, before the extreme mask is applied.
@@ -274,7 +274,7 @@ general options:
    -censor_motion LIMIT PREFIX  : create censor files
 
         This option implies '-derivative', '-collapse_cols euclidean_norm',
-        'extreme_mask -LIMIT LIMIT' and applies PREFIX for '-write_censor'
+        'moderate_mask -LIMIT LIMIT' and applies PREFIX for '-write_censor'
         and '-write_CENSORTR' output files.  It also outputs the derivative
         of the euclidean norm, before the limit it applied.
 
@@ -324,10 +324,24 @@ general options:
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
    -demean                      : demean each run (new mean of each run = 0.0)
    -derivative                  : take the temporal derivative of each vector
-   -extreme_mask MIN MAX        : mask extreme values
+   -extreme_mask MIN MAX        : make mask of extreme values
 
-        Convert to a 0/1 mask, where 1 means the given value is in [MIN,MAX],
-        and 0 means otherwise.  This is useful for censoring motion outliers.
+        Convert to a 0/1 mask, where 1 means the given value is extreme
+        (outside the (MIN, MAX) range), and 0 means otherwise.  This is the
+        opposite of -moderate_mask (not exactly, both are inclusive).
+
+        Note: values = MIN or MAX will be in both extreme and moderate masks.
+
+        Note: this was originally described incorrectly in the help.
+
+   -moderate_mask MIN MAX       : make mask of moderate values
+
+        Convert to a 0/1 mask, where 1 means the given value is moderate
+        (within [MIN, MAX]), and 0 means otherwise.  This is useful for
+        censoring motion (in the -censor case, not -CENSORTR), where the
+        -censor file should be a time series of TRs to apply.
+
+        See also -extreme_mask.
 
    "Looks like" options:
 
@@ -516,9 +530,13 @@ g_history = """
    1.01 Oct  3, 2011 - added -censor_infile (e.g. to restrict motion params)
         - added for N Adleman
    1.02 Feb 22, 2012 - added -randomize_trs and -seed
+   1.03 Feb 24, 2012
+        - added -moderate_mask
+        - fixed help (-extreme_mask was described backwards)
+        - as noted by R Kuplicki
 """
 
-g_version = "1d_tool.py version 1.02, February 22, 2012"
+g_version = "1d_tool.py version 1.03, February 24, 2012"
 
 
 class A1DInterface:
@@ -552,7 +570,8 @@ class A1DInterface:
       self.reverse         = 0          # reverse data over time
       self.select_cols     = ''         # column selection string
       self.select_rows     = ''         # row selection string
-      self.set_extremes    = 0          # apply extreme limits
+      self.set_extremes    = 0          # make mask of extreme TRs
+      self.set_moderates   = 0          # make mask of moderate TRs
       self.set_nruns       = 0          # assume input is over N runs
       self.set_run_lengths = []         # assume input has these run lengths
       self.set_tr          = 0          # set the TR of the data
@@ -690,7 +709,10 @@ class A1DInterface:
                       helpstr='take temporal derivative of each column')
 
       self.valid_opts.add_opt('-extreme_mask', 2, [], 
-                      helpstr='create mask for when values are in [MIN,MAX]')
+                      helpstr='create mask for values outside (MIN,MAX)')
+
+      self.valid_opts.add_opt('-moderate_mask', 2, [], 
+                      helpstr='create mask for values within [MIN,MAX]')
 
       self.valid_opts.add_opt('-looks_like_1D', 0, [], 
                       helpstr='show whether file has 1D format')
@@ -893,7 +915,7 @@ class A1DInterface:
             # check for redundant options
             errors = 0
             olist = ['-derivative', '-collapse_cols', '-extreme_mask',
-                     '-write_censor', '-write_CENSORTR']
+                     'moderate_mask', '-write_censor', '-write_CENSORTR']
             for oname in olist:
                if uopts.find_opt(oname):
                   print "** option %s is redundant with -censor_motion" % oname
@@ -905,7 +927,7 @@ class A1DInterface:
             # set implied options
             self.derivative = 1
             self.collapse_method = 'euclidean_norm'
-            self.set_extremes    = 1
+            self.set_moderates   = 1
             self.extreme_min     = -limit
             self.extreme_max     = limit
             self.censor_file     = '%s_censor.1D' % val[1]
@@ -944,6 +966,17 @@ class A1DInterface:
             if err: return 1
             if val[0]<=val[1]:
                self.set_extremes = 1
+               self.extreme_min = val[0]
+               self.extreme_max = val[1]
+            else:
+               print '** -extreme_mask: must have min <= max'
+               return 1
+
+         elif opt.name == '-moderate_mask':
+            val, err = uopts.get_type_list(float, '', opt=opt)
+            if err: return 1
+            if val[0]<=val[1]:
+               self.set_moderates = 1
                self.extreme_min = val[0]
                self.extreme_max = val[1]
             else:
@@ -1162,6 +1195,10 @@ class A1DInterface:
          if self.adata.extreme_mask(self.extreme_min, self.extreme_max):
             return 1
 
+      if self.set_moderates:
+         if self.adata.moderate_mask(self.extreme_min, self.extreme_max):
+            return 1
+
       if self.rand_trs:
          self.adata.randomize_trs(seed=self.rand_seed)
 
@@ -1173,12 +1210,10 @@ class A1DInterface:
          if self.adata.apply_goodlist(padbad=1, parent=parent): return 1
 
       if self.censor_prev_TR:
-         if self.adata.mask_prior_TRs(): return 1
+         if self.adata.clear_prior_TRs(): return 1
 
       if self.censor_first_trs:
-         if self.censor_file == None: cval = 0  # censor by nuking
-         else:                        cval = 1  # will invert later
-         if self.adata.mask_first_TRs(self.censor_first_trs, cval): return 1
+         if self.adata.set_first_TRs(self.censor_first_trs, newval=0): return 1
 
       # ---- 'show' options come after all other processing ----
 
@@ -1204,10 +1239,11 @@ class A1DInterface:
       # ---- possibly write: last option -----
 
       if self.censortr_file:
-         if self.adata.write_censortr(self.censortr_file): return 1
+         bdata = self.adata.copy()
+         bdata.bool_negate()
+         if bdata.write_censortr(self.censortr_file): return 1
 
       if self.censor_file:
-         if self.adata.bool_negate(): return 1
          if self.write_1D(self.censor_file): return 1
 
       if self.split_into_pad_runs:
