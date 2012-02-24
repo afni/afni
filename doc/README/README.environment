@@ -2438,6 +2438,18 @@ If this variable is set to NO, then the automatic color bar switching
 (that was introduced by Ziad Saad) will be turned off.
 
 -------------------------
+Variable: AFNI_PBAR_THREE
+-------------------------
+If this variable is set to YES, then the 'continuous' colorscale
+color bar in the AFNI GUI will have 3 panes rather than 1.  The
+middle pane will have the continuously variable colorscale loaded.
+The upper and lower panes will have the upper and lower colors loaded,
+OR they can be turned off.  The sashes that controls the position and
+size of the middle pane can be moved to separately set the top and bottom
+of the color-ization scale (rather than make bottom = -top or bottom = 0,
+as with the 1 pane color bar).
+
+-------------------------
 Variable: AFNI_RANGE_LOCK (editable)
 -------------------------
 If this variable is set to YES, then the OLay range values of
