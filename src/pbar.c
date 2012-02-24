@@ -251,7 +251,7 @@ STATUS("init pval_save") ;
 
    /* 11 Feb 2003: create a popup menu for doing stuff */
 
-   pbar->bigfac  = 0.0 ;
+   pbar->bigfac  = 0.0f ;
 #ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
    pbar->big_menu = XmCreatePopupMenu( pbar->top      , "menu" , NULL , 0 ) ;
 #else
@@ -457,10 +457,10 @@ ENTRY("PBAR_make_bigmap") ;
        map[ii] = col[jj+1] ;
     } else {
        fr = (vv-val[jj+1])/(val[jj]-val[jj+1]) ;
-       fg = 1.0-fr ;
-       map[ii].r = (byte)(fr*col[jj].r + fg*col[jj+1].r + 0.5) ;
-       map[ii].g = (byte)(fr*col[jj].g + fg*col[jj+1].g + 0.5) ;
-       map[ii].b = (byte)(fr*col[jj].b + fg*col[jj+1].b + 0.5) ;
+       fg = 1.0f-fr ;
+       map[ii].r = (byte)(fr*col[jj].r + fg*col[jj+1].r + 0.5f) ;
+       map[ii].g = (byte)(fr*col[jj].g + fg*col[jj+1].g + 0.5f) ;
+       map[ii].b = (byte)(fr*col[jj].b + fg*col[jj+1].b + 0.5f) ;
      }
    }
 
@@ -504,9 +504,9 @@ ENTRY("PBAR_define_bigmap") ;
       if(debugprint)
          printf("%s %f %f %f\n",rhs,fr,fg,fb);
       if( ii ) RETURN(-1);                                    /* bad */
-      col[neq].r = (byte)(255.0*fr+0.5) ;
-      col[neq].g = (byte)(255.0*fg+0.5) ;
-      col[neq].b = (byte)(255.0*fb+0.5) ; neq++ ;
+      col[neq].r = (byte)(255.0f*fr+0.5f) ;
+      col[neq].g = (byte)(255.0f*fg+0.5f) ;
+      col[neq].b = (byte)(255.0f*fb+0.5f) ; neq++ ;
   }
 
   if( nonum ) {                   /* supply numbers, if missing */
@@ -567,7 +567,7 @@ ENTRY("PBAR_read_bigmap") ;
       if( *cpt != '\0' ) cpt++ ;     /* skip ending character */
     } else if( !nonum ){
       val[neq] = strtod(lhs,&cpt) ;
-      if( val[neq] == 0.0 && *cpt != '\0' ){
+      if( val[neq] == 0.0f && *cpt != '\0' ){
         STATUS("!!bad number") ;
         fprintf(stderr,"** %s: %s is a bad number\n",fname,lhs); continue;
       }
@@ -582,9 +582,9 @@ ENTRY("PBAR_read_bigmap") ;
       STATUS("!!bad color") ;
       fprintf(stderr,"** %s: %s is bad colorname\n",fname,rhs); continue;
     }
-    col[neq].r = (byte)(255.0*fr+0.5) ;
-    col[neq].g = (byte)(255.0*fg+0.5) ;
-    col[neq].b = (byte)(255.0*fb+0.5) ; neq++ ;
+    col[neq].r = (byte)(255.0f*fr+0.5f) ;
+    col[neq].g = (byte)(255.0f*fg+0.5f) ;
+    col[neq].b = (byte)(255.0f*fb+0.5f) ; neq++ ;
   } /* end of loop over color lines */
   fclose(fp) ;
 
@@ -622,14 +622,14 @@ ENTRY("PBAR_button_EV") ;
    /* get current position, value, and color */
 
    MCW_widget_geom( pbar->panes[bigthree] , NULL,&hh , NULL,NULL ) ;
-   ii = (int)( ((NPANE_BIG-1.0)*bev->y)/(hh-1) + 0.5 ) ;      /* color index */
-   rr = (int)pbar->bigcolor[ii].r ;                           /* color */
+   ii = (int)( ((NPANE_BIG-1.0f)*bev->y)/(hh-1) + 0.5f ) ;      /* color index */
+   rr = (int)pbar->bigcolor[ii].r ;                             /* color */
    gg = (int)pbar->bigcolor[ii].g ;
    bb = (int)pbar->bigcolor[ii].b ;
 
-   yy = ii/(NPANE_BIG-1.0) ;
-   yy = (yy * pbar->bigbot + (1.0-yy) * pbar->bigtop) ;
-   if( pbar->bigfac != 0.0 ) yy *= pbar->bigfac ;             /* value */
+   yy = ii/(NPANE_BIG-1.0f) ;
+   yy = (yy * pbar->bigbot + (1.0f-yy) * pbar->bigtop) ;
+   if( pbar->bigfac != 0.0f ) yy *= pbar->bigfac ;             /* value */
 
    switch( bev->button ){
 
@@ -647,7 +647,7 @@ ENTRY("PBAR_button_EV") ;
 
 #if 0
      case Button2:{
-       ii = (int)( ((NPANE_BIG-1.0)*bev->y)/(hh-1) + 0.5 ) ;
+       ii = (int)( ((NPANE_BIG-1.0f)*bev->y)/(hh-1) + 0.5f ) ;
        fprintf(stderr,"Color[%03d]: R=%03d G=%03d B=%03d #%02x%02x%02x\n",
                ii , (int)pbar->bigcolor[ii].r          ,
                     (int)pbar->bigcolor[ii].g          ,
@@ -695,7 +695,7 @@ ENTRY("PBAR_big_menu_CB") ;
      at = fabsf(pbar->bigtop) ; ab = fabsf(pbar->bigbot) ;
      am = MAX(at,ab)          ; bm = pbar->bigmax * 0.5f ;
 
-     if( 1.05*am < bm ){
+     if( 1.05f*am < bm ){
        pbar->bigmax = bm ;
        pbar->dont_alter_bigmax = 1 ;
        PBAR_show_bigmode(pbar) ;
@@ -736,15 +736,15 @@ ENTRY("PBAR_bigmap_finalize") ;
 
    if( pbar->parent != NULL ){
      if (strstr(pbar->bigname,"i32")) {
-        AFNI_set_func_range_nval(pbar->parent, 32.0);
+        AFNI_set_func_range_nval(pbar->parent, 32.0f);
      } else if (strstr(pbar->bigname,"i64")) {
-        AFNI_set_func_range_nval(pbar->parent, 64.0);
+        AFNI_set_func_range_nval(pbar->parent, 64.0f);
      } else if (strstr(pbar->bigname,"i128")) {
-        AFNI_set_func_range_nval(pbar->parent, 128.0);
+        AFNI_set_func_range_nval(pbar->parent, 128.0f);
      } else if (strstr(pbar->bigname,"i255")) {
-        AFNI_set_func_range_nval(pbar->parent, 255.0);
+        AFNI_set_func_range_nval(pbar->parent, 255.0f);
      } else if (strstr(pbar->bigname,"i256")) {
-        AFNI_set_func_range_nval(pbar->parent, 256.0);
+        AFNI_set_func_range_nval(pbar->parent, 256.0f);
      }
    }
    pbar->bigmap_index = ind ;
@@ -940,7 +940,7 @@ static float PBAR_get_bigmax( MCW_pbar *pbar )
 
    abot = fabs(pbar->bigbot) ; atop = fabs(pbar->bigtop) ;
    if( atop <  abot ) atop = abot ;
-   if( atop == 0.0f ) atop = 1.0  ;  /* should not transpire */
+   if( atop == 0.0  ) atop = 1.0  ;  /* should not transpire */
 
    if( bigthree ){         /* move it upwards, and round it to 2 figures */
      int dd ; double bb ;
@@ -1049,8 +1049,8 @@ INFO_message("show_bigmode: bigbot=%g  bigtop=%g  bigmax=%g",pbar->bigbot,pbar->
 
      hfac = (pbar->panew_height - 2*PANE_SPACING) / (2.0f*bm) ;
 
-     h0 = (int)( (bm-at)*hfac + 0.49f ) ; if( h0 < PANE_MIN_HEIGHT ) h0 = PANE_MIN_HEIGHT ;
-     h1 = (int)( (at-ab)*hfac + 0.49f ) ; if( h1 < PANE_MIN_HEIGHT ) h1 = PANE_MIN_HEIGHT ;
+     h0 = (int)( (bm-at)*hfac + 0.499f ) ; if( h0 < PANE_MIN_HEIGHT ) h0 = PANE_MIN_HEIGHT ;
+     h1 = (int)( (at-ab)*hfac + 0.499f ) ; if( h1 < PANE_MIN_HEIGHT ) h1 = PANE_MIN_HEIGHT ;
      h2 = pbar->panew_height - 2*PANE_SPACING - h0 - h1 ;
      if( h2 < PANE_MIN_HEIGHT ){
        int deficit=PANE_MIN_HEIGHT-h2 , dh=deficit/2 ;  /* I cut the deficit in half! */
@@ -1123,10 +1123,10 @@ void PBAR_labelize( float val , char *buf )
    float aval = fabsf(val) ;
    char prefix[4] ;
 
-   if( val == 0.0  ){ strcpy(buf," 0") ; return ; }
+   if( val == 0.0f  ){ strcpy(buf," 0") ; return ; }
 
-   if( val > 0.0 ) strcpy(prefix," ") ;
-   else            strcpy(prefix,"-") ;
+   if( val > 0.0f ) strcpy(prefix," ") ;
+   else             strcpy(prefix,"-") ;
 
    if( aval <=  0.9994f ){
      sprintf(buf,"%6.4f",aval) ; buf[0] = prefix[0] ;
@@ -1619,7 +1619,7 @@ STATUS("set pane heights") ;
    for( i=0 ; i <= npane ; i++ ) pbar->pval[i] = pval[i] ;
 
    sum = pbar->panes_sum ;
-   rhh = 0.0 ;
+   rhh = 0.0f ;
    for( i=0 ; i < npane-1 ; i++ ){
       fhh  = pbar->panes_sum * (pval[i]-pval[i+1]) / (pmax-pmin) ;
       hh   = (int) (rhh+fhh+0.45f) ;
@@ -1722,7 +1722,7 @@ ENTRY("MCW_pbar_to_mri") ;
    pmin = pbar->pval[pbar->num_panes] ;
 
    hfrac = ny / (pmax-pmin) ;
-   rhh  = 0.0 ;
+   rhh  = 0.0f ;
    sum  = ny ;
 
    /* do each pane */
