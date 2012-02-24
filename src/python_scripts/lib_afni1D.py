@@ -293,6 +293,10 @@ class Afni1D:
       self.mat = [mat]
       return 0
 
+   def copy(self):
+      """return a complete (deep)copy of the current object"""
+      return copy.deepcopy(self)
+
    def extreme_mask(self, emin, emax, inclusive=1):
       """convert to a time series mask of 0/1 values where the result is
          1, if value is extreme (>emax or <emin, with = if inclusive)
@@ -307,7 +311,7 @@ class Afni1D:
          else:         print '-- extreme_mask: excluding [%g,%g]'%(emin,emax)
 
       if not self.ready:
-         print '** extremem_mask: Afni1D is not ready'
+         print '** extreme_mask: Afni1D is not ready'
          return 1
 
       if emin > emax:
@@ -323,14 +327,44 @@ class Afni1D:
 
       return 0
 
-   def mask_first_TRs(self, nfirst, cval=0):
-      """set the first nfirst TRs to cval"""
+   def moderate_mask(self, emin, emax, inclusive=1):
+      """convert to a time series mask of 0/1 values where the result is
+         1, if value is moderate (within (emin,emask), with = if inclusive)
+         0, otherwise (extreme)
+
+         For example, these would be the TRs to keep in a censor.1D file.
+        
+         return 0 on success"""
 
       if self.verb > 3:
-         print '-- masking first %d TRs, cval = %d ...' % (nfirst, cval)
+         if inclusive: print '-- moderate_mask: keeping (%g,%g)'%(emin,emax)
+         else:         print '-- moderate_mask: keeping [%g,%g]'%(emin,emax)
 
       if not self.ready:
-         print '** mask_first_TRs: Afni1D is not ready'
+         print '** moderate_mask: Afni1D is not ready'
+         return 1
+
+      if emin > emax:
+         print '** moderate_mask: emin > emax (', emin, emax, ')'
+         return 1
+
+      self.mat = [UTIL.vec_moderates(vec,emin,emax,inclusive)[1] \
+                        for vec in self.mat]
+
+      if self.verb > 1:
+         count = sum([val for val in self.mat[0] if val == 1])
+         print '++ moderate_mask: keeping %d of %d vals' % (count,self.nt)
+
+      return 0
+
+   def set_first_TRs(self, nfirst, newval=1):
+      """set the first nfirst TRs to newval"""
+
+      if self.verb > 3:
+         print '-- setting first %d TRs, newval = %d ...' % (nfirst, newval)
+
+      if not self.ready:
+         print '** set_first_TRs: Afni1D is not ready'
          return 1
 
       # apply derivative to each vector as one run, then clear run breaks
@@ -342,7 +376,7 @@ class Afni1D:
                      % (nfirst, rlen, run+1)
                return 1
             # apply censor val for first nfirst TRs
-            for tr in range(nfirst): self.mat[ind][offset+tr] = cval
+            for tr in range(nfirst): self.mat[ind][offset+tr] = newval
             offset += rlen
 
       return 0
@@ -359,6 +393,21 @@ class Afni1D:
       for v in range(self.nvec):
          for t in range(self.nt-1):
             if self.mat[v][t+1] and not self.mat[v][t]: self.mat[v][t] = 1
+
+      return 0
+
+   def clear_prior_TRs(self):
+      """if one TR is clear, also clear the prior one"""
+
+      if self.verb > 3: print '-- clearing prior TRs...'
+
+      if not self.ready:
+         print '** clear_prior_TRs: Afni1D is not ready'
+         return 1
+
+      for v in range(self.nvec):
+         for t in range(self.nt-1):
+            if not self.mat[v][t+1] and self.mat[v][t]: self.mat[v][t] = 0
 
       return 0
 
@@ -466,7 +515,7 @@ class Afni1D:
       return 0
 
    def show_censor_count(self, invert=0, column=0):
-      """display the total number of TRs censored (set) in the given column
+      """display the total number of TRs censored (clear) in the given column
 
          If multi-column data, can choose one.
 
@@ -482,8 +531,8 @@ class Afni1D:
          print "** Afni1D not ready for write_timing to '%s'" % fname
          return 1
 
-      total = self.mat[0].count(0)              # start with inverted count
-      if not invert: total = self.nt - total
+      total = self.mat[0].count(0)              # start with censor count
+      if invert: total = self.nt - total
 
       print 'total number of censored TRs = %d' % total
 
