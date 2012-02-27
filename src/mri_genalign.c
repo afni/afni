@@ -249,9 +249,11 @@ void GA_do_dots(int x){ GA_reset_fit_callback( (x)?GA_fitter_dotter:NULL ); }
 void GA_fitter_coster(int n, double *mpar){
   printf(" + Cost=%g\r",fit_vbest); fflush(stdout);
 }
+
 void GA_fitter_coster_tab(int n, double *mpar){
   printf(" + Cost=%g\t",fit_vbest); fflush(stdout);
 }
+
 void GA_do_cost(int x, byte use_tab){
    if (use_tab) {
       GA_reset_fit_callback( (x)?GA_fitter_coster_tab:NULL );
@@ -274,6 +276,7 @@ void GA_fitter_params( int n , double *mpar )
   }
   printf("\n") ; fflush(stdout) ;
 }
+
 void GA_do_params( int x ){
    GA_reset_fit_callback( (x)?GA_fitter_params:NULL );
 }
