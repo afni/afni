@@ -49,6 +49,17 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 27 , FEB, 2012 , DRG , "whereami" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Bug in combination of multiple affine transformations",
+    "Computation error in combining affine transformations\n"
+    "in whereami. Note all default transformations in whereami\n"
+    "do not combine affine transformations. Instead, space\n"
+    "transformations between TLRC and MNI_ANAT spaces are\n"
+    "computed using a 12-piece or a Brett transformation combined\n"
+    "with an affine in two stages."
+} ,
+
 { 21 , FEB, 2012 , DRG , "whereami" , 
     SUPER , TYPE_NEW_OPT, 
     "Web-based access atlases available",
