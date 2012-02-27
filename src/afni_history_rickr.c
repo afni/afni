@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, FEB, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "made a little more intelligent, e.g. make one backup by default",
+   "Note: can run this without any existing AFNI binaries, e.g.\n"
+   "      @update.afni.binaries -bindir ~/abin -package linux_openmotif"
+ } ,
+
  { 24, FEB, 2012, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
    "added -moderate_mask, fixed -extreme_mask help",
    "Description problem noted by R Kuplicki."
