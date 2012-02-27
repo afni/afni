@@ -17,6 +17,8 @@
 # initialize options to 'unset'
 set abin = ""
 set package = ""
+set tmp_dir = ".tmp.install"    # should start with '.'
+set make_backup = 1             # backup previous binaires
 
 if ( $#argv == 0 ) then
     set help = 1
@@ -136,17 +138,29 @@ if ( $missing_wget && $missing_curl ) then
 endif
 
 # default to wget, else use curl
-set prog = ( "wget" )
-if ( $use_curl || $missing_wget ) set prog = ( "curl" "-O" )
+set get_prog = ( "wget" )
+if ( $use_curl || $missing_wget ) set get_prog = ( "curl" "-O" )
 
 # make sure package is set to the base name
 if ( $package =~ *.tgz ) set package = $package:r
 
-echo "-- attempting to install package $package under $abin..."
+echo "-- attempting to install package $package under"
+echo "   install dir: $abin..."
+
+# note appropriate backup directory
+set date = `date +%Y_%m_%d`
+set backup_dir = auto_backup.$package
 
 # ----------------------------------------------------------------------
-# go to the binary directory and try to download the current package
+# go to the binary directory and begin work (most work from temp dir)
 cd $abin
+
+# check permissions before doing anything
+if ( ! -w . ) then
+    echo "** you do not have write permissions in the install directory"
+    echo "   (install dir = `pwd`)"
+    exit 1
+endif
 
 # remove any old package
 if ( -f $package.tgz || -d $package ) then
@@ -158,20 +172,55 @@ if ( -f $package.tgz || -d $package ) then
     endif
 endif
 
-echo "++ downloading package $package..."
-$prog http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
-if ( $status ) then
-    echo "** failed to download package $package.tgz"
-    if ( ! -w . ) then
-        echo "** you do not have write permissions in the install directory"
-        echo "   (install dir = `pwd`)"
-    endif
-    exit 1
+# remove any temp install directory
+if ( -d $tmp_dir ) then
+    echo nuking old temporary directory...
+    \rm -fr $tmp_dir
 endif
 
-if ( $testing ) then
-    echo "just testing download via '$prog', done"
+# ----------------------------------------------------------------------
+# create and enter temporary working directory; test whether update is needed
+mkdir $tmp_dir
+if ( $status ) then
+    echo "** failed to create new or remove old temp dir, $tmp_dir"
+    exit 1
+endif
+cd $tmp_dir
+
+# just download single afni binary and compare
+set get_package = http://afni.nimh.nih.gov/pub/dist/bin/$package/afni
+echo "++ downloading test file $package/afni ..."
+$get_prog $get_package
+cmp -s afni ../afni
+if ( ! $status ) then
+    echo "++ no update needed"
+    cd ..
+    \rm -fr $tmp_dir
     exit
+endif
+
+# if just testing, we are done
+if ( $testing ) then
+    echo "++ install needed, but just testing download via '$get_prog', done"
+    echo "(temp download in `pwd`)"
+    exit
+endif
+
+echo ""
+echo "++ update needed, installing..."
+echo ""
+sleep 1
+
+# ----------------------------------------------------------------------
+# an update is needed, download full package
+
+# download the full binary set
+echo "++ downloading full $package.tgz package..."
+set get_package = http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
+$get_prog $get_package
+if ( $status ) then
+    echo "** failed to download package $get_package"
+    exit 1
 endif
 
 echo "++ extracting package $package..."
@@ -182,26 +231,60 @@ if ( $status ) then
 endif
 
 # ----------------------------------------------------------------------
-# if this package is actually new, install it
+# delete any previous auto-backup and install the new binaries
 
-cmp -s afni $package/afni
-if ( ! $status ) then
-    echo "++ no update needed"
-    \rm -fr $package $package.tgz
-    exit
+# if not making a backup dir, use rsync for install
+# (since there might be new and unknown directories)
+set use_rsync = 1
+
+# if the directory is empty, no rsync or backup
+set nfiles = `\ls .. | wc -l`
+
+# make a backup directory (first under 'hidden' temp dir)
+if ( $nfiles == 0 ) then
+    set use_rsync = 0   # now do not need rsync
+    echo "-- nothing to back up or sync"
+else if ( $make_backup ) then
+    # nuke previous auto-backup directory
+    if ( -d ../$backup_dir ) then
+        echo nuking old backup directory, $backup_dir ...
+        \rm -fr ../$backup_dir
+    endif
+
+    # create new auto-backup directory
+    mkdir $backup_dir
+    if ( $status ) then
+        echo "** failed to make backup directory $backup_dir, exiting..."
+        exit 1
+    endif
+    echo "++ backing up current binaries to $backup_dir"
+    \mv ../* $backup_dir
+    \mv $backup_dir ..
+
+    set use_rsync = 0   # now do not need rsync
 endif
 
-echo "++ update needed, installing..."
+# abin may have sub-directories         17 Oct 2011 [rickr]
 
-# we now have sub-directories, and cannot use a simple mv  17 Oct 2011 [rickr]
-# \mv $package/* .
-rsync -a $package/ ./
-if ( $status ) then
-    echo "** failed to overwrite existing package, exiting..."
-    exit
+if ( $use_rsync ) then
+   echo "++ synching new binaries..."
+   rsync -a $package/ ../
+   if ( $status ) then
+       echo "** failed to overwrite existing package, exiting..."
+       exit
+   endif
+else
+   echo "++ installing new binaries..."
+   \mv $package/* ..
+   if ( $status ) then
+       echo "** failed to overwrite existing package, exiting..."
+       exit
+   endif
 endif
 
-\rm -fr $package $package.tgz
+# and nuke any leftovers
+cd ..
+\rm -fr $tmp_dir
 
-echo "done, yay"
+echo "done, yay (binaries are under $abin)"
 
