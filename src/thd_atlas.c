@@ -1749,9 +1749,8 @@ int
 affine_mult(ATLAS_XFORM *xf, ATLAS_XFORM *xf2, ATLAS_XFORM *xf3)
 {
    int cc, i, j;
-   matrix sm1, sm2, sm3;
+   matrix sm1, sm2, sm3, sm4;
    float *xfptr, *xfptr2;
-   
    cc = copy_xform(xf,xf3);  /* allocate xform structure */
    if (cc!=0)
       return(1);
@@ -1768,13 +1767,32 @@ affine_mult(ATLAS_XFORM *xf, ATLAS_XFORM *xf2, ATLAS_XFORM *xf3)
      for(j=0;j<4;j++) {
         sm1.elts[i][j] =  (double) *xfptr++;
         sm2.elts[i][j] =  (double) *xfptr2++;
-     }      
+     }
+
+   /* fill in last line with 0's and 1's to make invertible 4x4 */
    sm1.elts[3][0] =  sm1.elts[3][1] = sm1.elts[3][2] = 0.0;
    sm1.elts[3][3] = 1.0;
    sm2.elts[3][0] =  sm2.elts[3][1] = sm2.elts[3][2] = 0.0;
    sm2.elts[3][3] = 1.0;
 
-   matrix_multiply(sm1, sm2, &sm3);
+   /* if xforms are different coordinate order (RAI/LPI)
+      apply -1,-1,1 diagonal matrix to first matrix */
+   /* may want to expand for all other coord orders */
+   if(strcmp(xf->coord_order, xf2->coord_order)!=0) {
+      matrix_initialize(&sm4);
+      matrix_identity(4,&sm4);
+      sm4.elts[0][0] = -1.0; 
+      sm4.elts[1][1] = -1.0; 
+      matrix_multiply(sm1, sm4, &sm3);
+      matrix_multiply(sm4, sm3, &sm1);
+      matrix_destroy(&sm4);
+      if(xf3->coord_order) free(xf3->coord_order);
+      xf3->coord_order = nifti_strdup(xf2->coord_order);
+   }
+
+   /* multiply destination direction first, then source s3->s2 x s2->s1 */
+   /* mod - drg 02/27/20011  - was backwards, sm1*sm2 - yikes! */
+   matrix_multiply(sm2, sm1, &sm3);
    
    xfptr = (float *) xf3->xform;
    for(i=0;i<3;i++)
@@ -1786,9 +1804,6 @@ affine_mult(ATLAS_XFORM *xf, ATLAS_XFORM *xf2, ATLAS_XFORM *xf3)
    matrix_destroy(&sm2);
    matrix_destroy(&sm3);
    
-   if(xf->xform_type) free(xf->xform_type);
-   xf->xform_type = nifti_strdup("Affine");
-
    return(0);
 }
 
@@ -1965,6 +1980,12 @@ apply_xform_affine(ATLAS_XFORM *xf, float x, float y, float z, \
    
    if(xf->xform==NULL) return(1);
 
+   /* should expand coord_order to other orientations */
+   if(strcmp(xf->coord_order,"lpi") == 0){
+      x = -x; y =-y;      
+   }
+
+
    xfptr = (float *) xf->xform;
    
    xfptr = (float *) xf->xform;
@@ -1974,6 +1995,11 @@ apply_xform_affine(ATLAS_XFORM *xf, float x, float y, float z, \
    *yout = (*xfptr * x) + (*(xfptr+1) * y) + (*(xfptr+2) * z) + *(xfptr+3);
    xfptr += 4;
    *zout = (*xfptr * x) + (*(xfptr+1) * y) + (*(xfptr+2) * z) + *(xfptr+3);
+
+   if(strcmp(xf->coord_order,"lpi") == 0){
+      *xout = -(*xout); *yout= -(*yout);      
+   }
+
    
     return(0);
 }
