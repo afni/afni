@@ -1466,7 +1466,9 @@ typedef struct {
 
 #define ISVALID_DATAXES(dax) ( (dax) != NULL && (dax)->type == DATAXES_TYPE )
 
-/*! Check if two THD_dataxes are essential equivalent. */
+/*! Check if two THD_dataxes are essential equivalent. 
+    ***** SEE ALSO ********
+    THD_dataset_mismatch ()               */
 
 #define EQUIV_DATAXES(cax,dax)                     \
   ( ISVALID_DATAXES((cax))                      && \
@@ -4263,7 +4265,8 @@ extern float * TS_parse_tpattern( int, float, char * ) ;  /* 11 Dec 2007 */
 
 extern THD_fvec3 THD_dataset_center( THD_3dim_dataset * ) ;  /* 01 Feb 2001 */
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
-
+extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2, 
+                                int scl);
 extern int THD_dataset_tshift( THD_3dim_dataset * , int ) ; /* 15 Feb 2001 */
 
 #define MISMATCH_CENTER  (1<<0)  /* within 0.2 voxel */
@@ -4455,6 +4458,11 @@ extern int THD_extract_array      ( int, THD_3dim_dataset *, int, void * ) ;
 extern int THD_extract_float_array( int, THD_3dim_dataset *, float * ) ;
 
 extern MRI_IMAGE * THD_extract_float_brick( int , THD_3dim_dataset * ) ;
+extern MRI_IMAGE * THD_extract_double_brick( int , THD_3dim_dataset * ) ;
+extern MRI_IMAGE * THD_extract_int_brick( int , THD_3dim_dataset * ) ;
+extern float * THD_extract_to_float( int , THD_3dim_dataset * ) ;
+extern double * THD_extract_to_double( int , THD_3dim_dataset * ) ;
+extern int * THD_extract_to_int( int , THD_3dim_dataset * ) ;
 
 extern void THD_insert_series( int, THD_3dim_dataset *, int, int, void *, int );
 

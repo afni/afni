@@ -17,16 +17,6 @@
 #   v/sum(v)
 #}
 
-libLoad <- function(myLib) {
-   sucLoad <- FALSE
-   sucCheck <- FALSE
-   try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-   if (sucLoad) {print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE} else {
-                try(install.packages(myLib))
-      try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-      if (sucLoad) print(sprintf("Package %s successfully loaded...", myLib)) 
-        }
-}
 
 lineNum <- function(key, inFile) grep(key, readLines(inFile), ignore.case = TRUE)
 

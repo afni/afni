@@ -12892,6 +12892,9 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
       SS = SUMA_StringAppend_va(SS, "HeadName      :%s\n", pn->HeadName);
       SS = SUMA_StringAppend_va(SS, "BrikName      :%s\n", pn->BrikName);
       SS = SUMA_StringAppend_va(SS, "OnDisk        :%d\n", pn->OnDisk);
+      SS = SUMA_StringAppend_va(SS, "NameAsParsed  :%s\n", pn->NameAsParsed);
+      SS = SUMA_StringAppend_va(SS, "cwdAsParsed   :%s\n", pn->cwdAsParsed);
+      
    }
 
    SUMA_SS2S(SS,s);
@@ -12960,6 +12963,7 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
       SUMA_S_Err("Null input");
       SUMA_RETURN(NULL);
    }
+   
    /* work cwd */
    if (ucwd) {
       if (ucwd[0] != '/') {
@@ -12996,9 +13000,12 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
    FoundNodeSel = NOPE;
    FoundColSel = NOPE;
    FoundRangeSel = NOPE;
-	if (N_FileName ){
-		NewName = (SUMA_PARSED_NAME *) SUMA_calloc(1,sizeof(SUMA_PARSED_NAME));
-      
+   
+   NewName = (SUMA_PARSED_NAME *) SUMA_calloc(1,sizeof(SUMA_PARSED_NAME));
+	NewName->NameAsParsed = SUMA_copy_string(FileName);
+   NewName->cwdAsParsed = SUMA_copy_string(ucwd);
+   
+   if (N_FileName ){
       i = N_FileName -1;
 		while (i > -1 && !FoundPath) {
 			if (FileName[i] == '.' && !FoundExt && 
@@ -13481,6 +13488,14 @@ char * SUMA_ModifyName(char *Fname, char *what, char *val, char *cwd)
    return(oname);
 }
 
+SUMA_PARSED_NAME * SUMA_DuplicateParsedName(SUMA_PARSED_NAME *pn) {
+   
+   if (pn && pn->NameAsParsed) {
+      return(SUMA_ParseFname(pn->NameAsParsed, pn->cwdAsParsed));
+   }
+   return(NULL);
+}
+
 SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn, 
                                           char *what, char *val)
 {
@@ -13496,7 +13511,8 @@ SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn,
       if (!val) SUMA_RETURN(NULL);
       if (pn->StorageMode ==  STORAGE_BY_BRICK) {
          fullname=NULL;
-         fullname = SUMA_append_replace_string(fullname, 
+         if(strstr(pn->NameAsParsed,"/")) 
+            fullname = SUMA_append_replace_string(fullname, 
                                                 pn->Path, "", 1);
          fullname = SUMA_append_replace_string(fullname,
                                                 val, "", 1);
@@ -13516,7 +13532,8 @@ SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn,
          SUMA_free(fullname); fullname=NULL;
       } else {
          fullname=NULL;
-         fullname = SUMA_append_replace_string(fullname, 
+         if(strstr(pn->NameAsParsed,"/")) 
+            fullname = SUMA_append_replace_string(fullname, 
                                                 pn->Path, "", 1);
          fullname = SUMA_append_replace_string(fullname,
                                                 val, "", 1);
@@ -13535,7 +13552,8 @@ SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn,
       if (!val) SUMA_RETURN(NULL);
       if (pn->StorageMode ==  STORAGE_BY_BRICK) {
          fullname=NULL;
-         fullname = SUMA_append_replace_string(fullname, 
+         if(strstr(pn->NameAsParsed,"/")) 
+            fullname = SUMA_append_replace_string(fullname, 
                                                 pn->Path, "", 1);
          fullname = SUMA_append_replace_string(fullname, 
                                              pn->Prefix, "", 1);
@@ -13555,7 +13573,8 @@ SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn,
          SUMA_free(fullname); fullname=NULL;
       } else {
          fullname=NULL;
-         fullname = SUMA_append_replace_string(fullname, 
+         if(strstr(pn->NameAsParsed,"/")) 
+            fullname = SUMA_append_replace_string(fullname, 
                                                 pn->Path, "", 1);
          fullname = SUMA_append_replace_string(fullname, 
                                              pn->Prefix, "", 1);
@@ -13573,7 +13592,34 @@ SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn,
          pno=SUMA_ParseFname(fullname, pn->RelDir);
          SUMA_free(fullname); fullname=NULL;
       }
-   } 
+   } else if (!strcmp(what,"view")) {
+      char vval[6]={""};
+      if (!val) SUMA_RETURN(NULL);
+      if (val[0] != '+') sprintf(vval,"+%c%c%c%c",val[0],val[1],val[2],val[3]);
+      else sprintf(vval,"%c%c%c%c",val[0],val[1],val[2],val[3]);
+      if (pn->StorageMode ==  STORAGE_BY_BRICK) {
+         fullname=NULL;
+         if(strstr(pn->NameAsParsed,"/")) 
+            fullname = SUMA_append_replace_string(fullname, 
+                                                pn->Path, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->Prefix, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->View, vval,1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                             pn->TypeExt, "",1);
+         fullname = SUMA_append_replace_string(fullname,  
+                                    pn->NodeSelect, "", 1);
+         fullname = SUMA_append_replace_string(fullname,  
+                                    pn->RowSelect, "", 1);
+         fullname = SUMA_append_replace_string(fullname, 
+                                    pn->ColSelect, "", 1);
+         pno=SUMA_ParseFname(fullname, pn->RelDir);
+         SUMA_free(fullname); fullname=NULL;
+      } else {
+         pno = SUMA_DuplicateParsedName(pn);
+      }
+   }
    
    SUMA_RETURN(pno);
 }
@@ -13746,7 +13792,8 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
    
    SUMA_RETURN (ans);
 
-}   
+}
+   
 void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test) 
 {
    static char FuncName[]={"SUMA_Free_Parsed_Name"}; 
@@ -13766,6 +13813,8 @@ void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test)
    if (Test->ColSelect) SUMA_free(Test->ColSelect);
    if (Test->NodeSelect) SUMA_free(Test->NodeSelect);
    if (Test->RangeSelect) SUMA_free(Test->RangeSelect);
+   if (Test->NameAsParsed) SUMA_free(Test->NameAsParsed);
+   if (Test->cwdAsParsed) SUMA_free(Test->cwdAsParsed);
    
    SUMA_free(Test);
    

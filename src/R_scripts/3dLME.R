@@ -11,17 +11,6 @@
 # (Output is a file in which the running progress including 
 # error messages will be stored)
 
-libLoad <- function(myLib) {
-   sucLoad <- FALSE
-   sucCheck <- FALSE
-   try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-   if (sucLoad) {print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE} else {
-	  	try(install.packages(myLib))
-      try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-      if (sucLoad) print(sprintf("Package %s successfully loaded...", myLib)) 
-   	}
-}
-
 system("rm -f .RData")
 source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
 #source(file.path(Sys.getenv("LME"), "AFNIio.R"))

@@ -8,8 +8,6 @@
 #include <string.h>
 #include "mrilib.h"
 
-#define ABS(x)  ( ((x)>=0) ? (x) : (-(x)) )
-
 int main( int argc , char * argv[] )
 {
    int iarg , pos = 0 ;

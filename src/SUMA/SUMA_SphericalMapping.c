@@ -869,12 +869,12 @@ SUMA_Boolean SUMA_ProjectToSphere(SUMA_SurfaceObject *SO, float *ctr, float r)
      
   Written by Brenna Argall  
 */
-SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], char bin[], int ToSphere) 
+SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float *ctru, char bin[], int ToSphere) 
 {
    static char FuncName[]={"SUMA_CreateIcosahedron"};
    SUMA_SurfaceObject *SO = NULL;
    int i, numNodes=0, numTri=0, j, i3;
-   float a,b, lgth;
+   float a,b, lgth, ctr[3]={0.0, 0.0, 0.0};
    int nodePtCt, triPtCt, *icosaTri=NULL;
    float *icosaNode=NULL;
    SUMA_SURF_NORM SN;
@@ -885,6 +885,8 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    
    SUMA_ENTRY;
    
+   if (ctru) { ctr[0] = ctru[0]; ctr[1] = ctru[1]; ctr[2] = ctru[2]; }
+    
    SO = SUMA_Alloc_SurfObject_Struct(1);
    if (SO == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Surface Object.", FuncName);

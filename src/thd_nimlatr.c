@@ -159,7 +159,7 @@ ENTRY("THD_dblkatr_from_niml") ;
             *rhs != '\0'                              ){ /* a nonempty name?  */
 
            STATUS(rhs) ;
-
+           
            switch( nel->vec_typ[0] ){ /* 3 different data types of attributes */
 
              /* float attribute: copy 1st column of numbers into AFNI */

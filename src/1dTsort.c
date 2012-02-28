@@ -3,7 +3,7 @@
 int main( int argc , char *argv[] )
 {
    MRI_IMAGE *im ;
-   int dec=0 , flip=0 , iarg , csort=-1 ;
+   int dec=0 , flip=0 , iarg , csort=-1 , mode = 0;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -20,6 +20,8 @@ int main( int argc , char *argv[] )
       "               1dTsort -flip file.1D\\' > sfile.1D\n"
       " -col j   = sort only on column #j (counting starts at 0),\n"
       "            and carry the rest of the columns with it.\n"
+      " -imode   = typecast all values to integers, return the mode in\n"
+      "            the input then exit. No sorting results are returned.\n" 
       "\n"
       "N.B.: Data will be read from standard input if the filename IS stdin,\n"
       "      and will also be row/column transposed if the filename is stdin\\'\n"
@@ -50,6 +52,10 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-flip") == 0 ){
        flip = 1 ; iarg++ ; continue ;
      }
+     
+     if( strcmp(argv[iarg],"-imode") == 0 ){
+       mode = 1 ; iarg++ ; continue ;
+     }
 
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
@@ -67,5 +73,16 @@ int main( int argc , char *argv[] )
      mri_free(im) ; im = qim ;
    }
 
+   if (mode) { /* here mostly to debug qmode_int */
+      int *iv = NULL, i=0;
+      float *far=NULL;
+      iv = (int *)calloc(im->nx*im->ny, sizeof(int));
+      far = MRI_FLOAT_PTR(im);
+      for (i=0; i<im->nx*im->ny; ++i) iv[i]=(int)far[i];
+      mode = qmode_int(iv, im->nx*im->ny);
+      fprintf(stdout,"mode: %d\n", mode);
+      free(iv); iv=NULL;
+      exit(0);
+   }
    mri_write_1D( "-" , im ) ; mri_free(im) ; exit(0) ;
 }
