@@ -149,11 +149,11 @@
 
 #define SUMA_SIGN_CHAR(p)  ( ( (p) < 0 ) ? '-' : '+' )
 
-#define SUMA_MIN_PAIR(a,b)   ( ((a) <= (b)) ? a : b )
+#define SUMA_MIN_PAIR(a,b)   ( ((a) <= (b)) ? (a) : (b) )
 
-#define SUMA_MAX_PAIR(a,b)   ( ((a) <= (b)) ? b : a )
+#define SUMA_MAX_PAIR(a,b)   ( ((a) <= (b)) ? (b) : (a) )
 
-#define SUMA_ABS(a) ( ((a) < 0 ) ? -(a) : a )
+#define SUMA_ABS(a) ( ((a) < 0 ) ? (-(a)) : (a) )
 
 #define SUMA_COMPLEX_ADD(a,b,m) {   \
    (m).r = (a).r+(b).r; \

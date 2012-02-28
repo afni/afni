@@ -6,6 +6,7 @@
     return = 0 if they are good in all ways
     return = binary OR of MISMATCH_ codes (cf. 3ddata.h) if
              something in their dataxes don't match
+   A generalization of EQUIV_GRIDS
 -----------------------------------------------------------------------*/
 
 int THD_dataset_mismatch( THD_3dim_dataset *ds1 , THD_3dim_dataset *ds2 )
@@ -59,3 +60,46 @@ ENTRY("THD_dataset_mismatch") ;
    
    RETURN(code) ;
 }
+
+/*---------------------------------------------------------------------
+  23 Feb 2012: Return the absolute value of the difference between 
+               two volumes, divided by the number of voxels
+               and the number of sub-bricks. Voxels that are zero
+               in both sets are not counted.
+               Comparisons are done after conversion of data to double
+    return = -1.0 ERROR
+           =  0.0 Exactly the same
+-----------------------------------------------------------------------*/
+double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2, int scl) {
+   double dd=0.0, denom=0.0;
+   int i=0, k=0;
+   double *a1=NULL, *a2=NULL;
+   MRI_IMAGE *b1 = NULL , *b2 = NULL;
+   
+   ENTRY("THD_diff_vol_vals");
+   
+   if (!d1 && !d2) RETURN(dd);
+   if (!d1 || !d2) RETURN(-1.0);
+   
+   if (!EQUIV_GRIDS(d1,d2)) RETURN(-1.0);
+   if (!DSET_NVALS(d1) != !DSET_NVALS(d2)) RETURN(-1.0);
+   
+   DSET_mallocize(d1) ; DSET_load(d1) ;
+   DSET_mallocize(d2) ; DSET_load(d2) ;
+   dd = 0.0; denom = 0;
+   for (i=0; i<DSET_NVALS(d1); ++i) {
+      b1 = THD_extract_double_brick(i, d1);
+      b2 = THD_extract_double_brick(i, d2);
+      a1 = MRI_DOUBLE_PTR(b1);
+      a2 = MRI_DOUBLE_PTR(b2);
+      for (k=0; k<DSET_NVOX(d1); ++k) {
+         dd += ABS(a1[k]-a2[k]);
+         if (a1[k]!=0.0 || a2[k]!=0.0) ++denom;
+      }
+      mri_clear_data_pointer(b1); mri_free(b1) ;
+      mri_clear_data_pointer(b2); mri_free(b2) ;
+   }
+   if (scl && denom>0.0) dd /= denom;
+   
+   RETURN(dd);   
+}  

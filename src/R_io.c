@@ -1,6 +1,7 @@
 #include <R.h>
 #include <Rdefines.h>
 #include "mrilib.h"
+#include "suma_suma.h"
 
 static int odebug;
 void set_odebug(int dd) { odebug = dd; }
@@ -48,18 +49,18 @@ SEXP R_THD_load_dset(SEXP Sfname, SEXP Opts)
    if ((opt = getListElement(Opts,"debug")) != R_NilValue) {
 	   debug = (int)INTEGER_VALUE(opt);
       if (debug>2) set_odebug(debug);
-	   if (debug) INFO_message("Debug is %d\n", debug);
+	   if (debug>1) INFO_message("Debug is %d\n", debug);
    }
    
    /* get the filename */
    PROTECT(Sfname = AS_CHARACTER(Sfname));
-   fname = R_alloc(strlen(CHAR(STRING_ELT(Sfname,0))), sizeof(char));
+   fname = R_alloc(strlen(CHAR(STRING_ELT(Sfname,0)))+1, sizeof(char));
    strcpy(fname, CHAR(STRING_ELT(Sfname,0)));
    
    /* open dset */
    dset = THD_open_dataset(fname);
    if (dset) {
-      if (debug) INFO_message("Dset %s was loaded 2\n", fname);
+      if (debug > 1) INFO_message("Dset %s was loaded 2\n", fname);
     } else {
       ERROR_message("Dset %s could not be loaded\n", fname);
       UNPROTECT(2);
@@ -123,7 +124,7 @@ SEXP R_THD_write_dset(SEXP Sfname, SEXP Sdset, SEXP Opts)
 {
    SEXP Rdset, brik, head, names, opt;
    int i=0, ip=0, sb, cnt=0, scale = 1, overwrite=0, addFDR=0;
-   char *fname = NULL, *head_str, *stmp=NULL;
+   char *fname = NULL, *head_str, *stmp=NULL, *hist=NULL;
    NI_group *ngr=NULL;
    NI_element *nel=NULL;
    char *listels[2] = {"head","brk"}; /* the brk is on purpose 
@@ -145,9 +146,9 @@ SEXP R_THD_write_dset(SEXP Sfname, SEXP Sdset, SEXP Opts)
    
    /* get the filename */
    PROTECT(Sfname = AS_CHARACTER(Sfname));
-   fname = R_alloc(strlen(CHAR(STRING_ELT(Sfname,0))), sizeof(char));
+   fname = R_alloc(strlen(CHAR(STRING_ELT(Sfname,0)))+1, sizeof(char));
    strcpy(fname, CHAR(STRING_ELT(Sfname,0)));
-   if (debug) INFO_message("Output filename %s\n"
+   if (debug >1) INFO_message("Output filename %s\n"
                           , fname);
    
    /* get the dset structure elements */
@@ -194,31 +195,47 @@ SEXP R_THD_write_dset(SEXP Sfname, SEXP Sdset, SEXP Opts)
    }
    if ((opt = getListElement(Opts,"overwrite")) != R_NilValue) {
 	   overwrite = (int)INTEGER_VALUE(opt);
-      if (debug) INFO_message("overwrite is %d\n", overwrite); 	
+      if (debug > 1) INFO_message("overwrite is %d\n", overwrite); 	
       THD_force_ok_overwrite(overwrite) ;
       if (overwrite) THD_set_quiet_overwrite(1);
    }	
    if ((opt = getListElement(Opts,"addFDR")) != R_NilValue) {
 	   addFDR = (int)INTEGER_VALUE(opt);
-      if (debug) INFO_message("addFDR is %d\n", addFDR); 	
+      if (debug > 1) INFO_message("addFDR is %d\n", addFDR); 	
    }
-   	
+   
+   PROTECT(opt = getListElement(Opts,"hist"));
+   if ( opt != R_NilValue) {
+	   opt = AS_CHARACTER(opt);
+      hist = R_alloc(strlen(CHAR(STRING_ELT(opt,0)))+1, sizeof(char));
+      strcpy(hist, CHAR(STRING_ELT(opt,0))); 
+      if (debug > 1) INFO_message("hist is %s\n", hist); 	
+   }
+   UNPROTECT(1);
+   
    for (ip=0,i=0; i<length(head); ++i) {
       head_str = (char *)CHAR(STRING_ELT(head,i));
-      if (debug>1) {
+      if (debug > 1) {
          INFO_message("Adding %s\n", head_str);
       }
       nel = NI_read_element_fromstring(head_str);
+      if (!nel->vec) {
+         ERROR_message("Empty attribute vector for\n%s\n"
+                       "This is not expected.\n",
+                       head_str);
+         UNPROTECT(3);
+         return(R_NilValue);
+      }
       NI_add_to_group(ngr,nel);
    }
    
-   if (debug) INFO_message("Creating dset header\n");
+   if (debug > 1) INFO_message("Creating dset header\n");
    if (!(dset = THD_niml_to_dataset(ngr, 1))) {
       ERROR_message("Failed to create header");
       UNPROTECT(3);
       return(R_NilValue);
    }
-   if (debug > 1) {
+   if (debug > 2) {
          INFO_message("Have header of %d, %d, %d, %d\n", 
                        DSET_NX(dset), DSET_NY(dset), 
                        DSET_NZ(dset), DSET_NVALS(dset));
@@ -249,16 +266,124 @@ SEXP R_THD_write_dset(SEXP Sfname, SEXP Sdset, SEXP Opts)
          mri_fdr_setmask( (nFDRmask == DSET_NVOX(dset)) ? FDRmask : NULL ) ;
          ip = THD_create_all_fdrcurves(dset) ;
          if( ip > 0 ){
-            ININFO_message("created %d FDR curve%s in dataset header",
+            if (debug) ININFO_message("created %d FDR curve%s in dataset header",
                            ip,(ip==1)?"\0":"s") ;
          } else {
-            ININFO_message("failed to create FDR curves in dataset header") ;
+            if (debug) 
+               ININFO_message("failed to create FDR curves in dataset header") ;
          }
       }
+   }
+   
+   if (hist) {
+      tross_Append_History(dset, hist);
    }
    
    DSET_write(dset); 
   
    UNPROTECT(3);
    return(R_NilValue);  
+}
+
+SEXP R_SUMA_ParseModifyName(SEXP Sfname, SEXP Swhat, SEXP Sval, SEXP Scwd) 
+{
+   SEXP Rname = R_NilValue;
+   char *fname = NULL, *what=NULL, *val=NULL, *cwd=NULL, *res=NULL;
+   int debug=0, nprot=0;
+   
+   if (!debug) debug = get_odebug();
+   if (isNull(Sfname) || isNull(Swhat) || isNull(Sval)) {
+      ERROR_message("Null input to R_SUMA_ModifyName");
+      return(Rname);
+   }
+   /* get the filename */
+   PROTECT(Sfname = AS_CHARACTER(Sfname)); ++nprot;
+   fname = R_alloc(strlen(CHAR(STRING_ELT(Sfname,0)))+1, sizeof(char));
+   strcpy(fname, CHAR(STRING_ELT(Sfname,0)));
+   if (debug) INFO_message("filename %s\n", fname);
+  
+   /* get the what */
+   PROTECT(Swhat = AS_CHARACTER(Swhat)); ++nprot;
+   what = R_alloc(strlen(CHAR(STRING_ELT(Swhat,0)))+1, sizeof(char));
+   strcpy(what, CHAR(STRING_ELT(Swhat,0)));
+   if (debug) INFO_message("what %s\n", what);
+
+   /* get the val */
+   PROTECT(Sval = AS_CHARACTER(Sval)); ++nprot;
+   val = R_alloc(strlen(CHAR(STRING_ELT(Sval,0)))+1, sizeof(char));
+   strcpy(val, CHAR(STRING_ELT(Sval,0)));
+   if (debug) INFO_message("val %s\n", val);
+
+   /* get the cwd */
+   if (!isNull(Scwd)) {
+      PROTECT(Scwd = AS_CHARACTER(Scwd)); ++nprot;
+      cwd = R_alloc(strlen(CHAR(STRING_ELT(Scwd,0)))+1, sizeof(char));
+      strcpy(cwd, CHAR(STRING_ELT(Scwd,0)));
+      if (debug) INFO_message("cwd %s\n", cwd);
+   } 
+   
+   if (debug) INFO_message("Modifying %s\n", fname);
+   if ((res = SUMA_ModifyName(fname, what, val, cwd))) {
+      PROTECT(Rname = allocVector(STRSXP, 1)); ++nprot;
+      SET_STRING_ELT(Rname, 0, mkChar(res)); 
+      SUMA_free(res); res=NULL;
+   } else {
+      ERROR_message("Call to SUMA_ModifyName %s %s %s failed", fname, what, val);
+   }
+   UNPROTECT(nprot); 
+   
+   return(Rname);
+}
+
+SEXP R_SUMA_HistString (SEXP SCallingFunc, SEXP Sarg, SEXP Shold) {
+   char *CallingFunc=NULL;
+   SEXP Rname = R_NilValue;
+   char *fname = NULL, *hold=NULL, **arg=NULL, *res=NULL;
+   int debug=0, nprot=0, narg=0, i= 0;
+   
+   if (!debug) debug = get_odebug();
+   if (isNull(SCallingFunc) || isNull(Sarg)) {
+      ERROR_message("Null input to R_SUMA_HistString");
+      return(Rname);
+   }
+   /* get the executable name */
+   PROTECT(SCallingFunc = AS_CHARACTER(SCallingFunc)); ++nprot;
+   fname = R_alloc(strlen(CHAR(STRING_ELT(SCallingFunc,0)))+1, sizeof(char));
+   strcpy(fname, CHAR(STRING_ELT(SCallingFunc,0)));
+   if (debug) INFO_message("filename %s\n", fname);
+  
+   /* get the arg */
+   PROTECT(Sarg = AS_CHARACTER(Sarg)); ++nprot;
+   narg = (LENGTH(Sarg));
+   arg = (char **)calloc(narg+1, sizeof(char *));
+   if (fname) arg[0] = strdup(fname);
+   else arg[0] = strdup("UnChevalSansNom");
+   for (i=1; i<=narg; ++i) {
+      arg[i] = (char *)calloc(strlen(CHAR(STRING_ELT(Sarg,i-1)))+1, 
+                              sizeof(char));
+      strcpy(arg[i], CHAR(STRING_ELT(Sarg,i-1)));
+      if (debug) INFO_message("arg %d/%d %s\t", i, narg, arg[i]);
+   }
+   
+   /* any old history ? */
+   if (!isNull(Shold)) {
+      PROTECT(Shold = AS_CHARACTER(Shold)); ++nprot;
+      hold = R_alloc(strlen(CHAR(STRING_ELT(Shold,0)))+1, sizeof(char));
+      strcpy(hold, CHAR(STRING_ELT(Shold,0)));
+      if (debug) INFO_message("hold %s\n", hold);
+   }
+    
+   if (( res = SUMA_HistString (fname, narg+1, arg, hold))) {
+      PROTECT(Rname = allocVector(STRSXP, 1)); ++nprot;
+      SET_STRING_ELT(Rname, 0, mkChar(res)); 
+      if (debug) INFO_message("hist is %s\n", res);
+      SUMA_free(res); res=NULL;
+   } else {
+      ERROR_message("Call to SUMA_HistString %s failed", fname);
+   }
+   
+   for (i=0; i<=narg; ++i) { if (arg[i]) free(arg[i]); } free(arg); arg=NULL;
+   
+   UNPROTECT(nprot); 
+   return(Rname);
 }

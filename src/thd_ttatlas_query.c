@@ -2713,6 +2713,40 @@ int *z_istrqsort (char **x , int nx )
    RETURN (I);
 }
 
+int qmode_int(int *iv, int ni) {
+   int mod, modcnt=0, cnt = 0, cur, i;
+   if (!iv || !ni) return(0);
+   qsort_int(ni, iv);
+   mod = cur = iv[0]; cnt = modcnt = 1;
+   for (i=1; i<ni; ++i) {
+      if (iv[i] == cur) {
+         ++cnt;
+      } else {
+         if (cnt > modcnt) {
+            /* fprintf(stderr,"Got: %d of %d, a winner; next up:%d\n", 
+                     cnt, cur, iv[i]); */
+            modcnt = cnt;
+            mod = cur;
+         } else {
+            /* fprintf(stderr,"Got: %d of %d, a looser; next up:%d\n", 
+                     cnt, cur, iv[i]); */
+         }
+         cur = iv[i]; cnt = 1;
+      }
+   }
+   if (cnt > modcnt) {
+      /* fprintf(stderr,"Got: %d of %d, a winner; nothing left\n", 
+                     cnt, cur); */
+      modcnt = cnt;
+      mod = cur;
+   } else {
+      /* fprintf(stderr,"Got: %d of %d, a looser; nothing left\n", 
+                     cnt, cur); */
+   }
+      
+   return(mod);
+}
+
 /* inverse sort floats */
 int *z_iqsort (float *x , int nx )
 {/*z_iqsort*/

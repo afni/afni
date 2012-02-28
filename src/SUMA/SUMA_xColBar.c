@@ -939,6 +939,7 @@ int SUMA_SwitchColPlaneIntensity (
                               ":Contr",   ":t-stat",  /* 3dANOVA */
                               ":Inten",   ":F-stat",  /* 3dANOVA */
                               ":Diff",    ":t-stat",  /* 3dANOVA */
+                              ":b",       ":t",       /* 3dMEMA */
                               NULL, NULL }; /* leave this alone, at the bottom*/
       SUMA_LHv("Looking for decent match for %s\n", lab);
       if (lab) {

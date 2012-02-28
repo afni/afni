@@ -66,6 +66,44 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27, FEB , 2012 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
+   "Fixed bug in read_niml_file() that incorrectly set a read_header_only flag",
+   NULL
+ },
+
+ { 27, FEB , 2012 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT,
+   "Allow on the fly definition of standard meshes with -i ld120, for example.",
+   NULL
+ },
+
+ { 24, FEB , 2012 , ZSS , "@RetinoProc" , MINOR , TYPE_BUG_FIX,
+   "Added number of volume registration regressors to -ort_adjust",
+   NULL
+ },
+
+ { 24, FEB , 2012 , ZSS , "general" , MAJOR , TYPE_MODIFY,
+   "I/O library for R now can use AFNI's c library.",
+   "This new functionality allows the use a variety of formats\n"
+   "both surface and volume-based for reading to and writing from R.\n"
+   "3dMEMA can use this new functionality with option -cio\n"
+ },
+
+ { 24, FEB , 2012 , ZSS , "3dMEMA" , MINOR , TYPE_NEW_OPT,
+   "3dMEMA can now handle surface-based data",
+   "It makes use of the new I/O functions that use AFNI's\n"
+   "C-library.\n"
+ },
+
+ { 24, FEB , 2012 , ZSS , "3dinfo" , MINOR , TYPE_NEW_OPT,
+   "Options -val_diff and -sval_diff to compare values in 2 dsets.",
+   NULL
+ },
+
+ { 22, FEB , 2012 , ZSS , "3dROIstats" , MINOR , TYPE_NEW_OPT,
+   "Compute the mode of ROI voxels, see -mode and -nzmode",
+   NULL
+ },
+
  { 13, FEB , 2012 , ZSS , "3dSkullStrip" , MINOR , TYPE_BUG_FIX,
    "-orig_vol now forces datum type to be same as that of input.",
    "This fixed a problem with anatomicals ranging in the million(!) to\n"

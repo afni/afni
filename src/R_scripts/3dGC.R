@@ -10,17 +10,6 @@ print("Website: http://afni.nimh.nih.gov/sscc/gangc/3dGC.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
-libLoad <- function(myLib) {
-   sucLoad <- FALSE
-   sucCheck <- FALSE
-   try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-   if (sucLoad) {print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE} else {
-	  	try(install.packages(myLib))
-      try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-      if (sucLoad) print(sprintf("Package %s successfully loaded...", myLib)) 
-   	}
-}
-
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
    ff<-ff[lapply(ff,file.exists)==TRUE];

@@ -1,26 +1,10 @@
 #!/usr/bin/env AFNI_Batch_R
-
 #########
 ##  type 4 (two groups with heteroskedasticity) should NOT be used when modeling with different slope across groups
 #########
 
 #Clean up
 rm(list = ls())
-
-libLoad <- function(myLib) {
-   sucLoad <- FALSE
-   sucCheck <- FALSE
-   try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-   if (sucLoad) {
-      print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE
-   } else {
-	  	try(install.packages(myLib))
-      try(sucLoad <- library(myLib, character.only = TRUE, 
-                              logical.return = TRUE))
-      if (sucLoad) print(sprintf("Package %s successfully loaded...", myLib)) 
-   	}
-}
-
 
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
@@ -29,6 +13,7 @@ first.in.path <- function(file) {
    return(gsub('//','/',ff[1], fixed=TRUE)) 
 }
 source(first.in.path('AFNIio.R'))
+ExecName <- '3dMEMA'
 
 #################################################################################
 ##################### Begin MEMA Input functions ################################
@@ -38,6 +23,7 @@ source(first.in.path('AFNIio.R'))
 read.MEMA.opts.interactive <- function (verb = 0) {
    lop <- list()  #List to hold all options from user input
    lop$verb <- verb
+   lop$iometh <- 'Rlib'
    
    outFNexist <- TRUE
    while (outFNexist) {
@@ -120,8 +106,10 @@ read.MEMA.opts.interactive <- function (verb = 0) {
                                  lop$grpName[[ii]]))
             print("-----------------")
          }
-         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI); 
-         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI);
+         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI, 
+                                   verb=lop$verb, meth=lop$iometh); 
+         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI, 
+                                   verb=lop$verb, meth=lop$iometh);
          if(ii==1) { 
             lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
             lop$myOrig=lop$bList[[1]][[1]]$origin; 
@@ -173,8 +161,10 @@ read.MEMA.opts.interactive <- function (verb = 0) {
                         jj, lop$subjLab[[1]][[jj]], lop$conLab[[ii]]))
             print("-----------------")
          }
-         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI); 
-         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI);
+         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI, 
+                                   verb=lop$verb, meth=lop$iometh); 
+         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI, 
+                                   verb=lop$verb, meth=lop$iometh);
          if(ii==1) {
             lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
             lop$myOrig=lop$bList[[1]][[1]]$origin; 
@@ -217,7 +207,8 @@ read.MEMA.opts.interactive <- function (verb = 0) {
    if(masked) {
       lop$maskFN <- 
          readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); 
-         lop$maskData <- read.AFNI(lop$maskFN)$brk
+         lop$maskData <- read.AFNI(lop$maskFN, 
+                                   verb=lop$verb, meth=lop$iometh)$brk
    }else {
       lop$maskFN <- NULL;
    }
@@ -887,7 +878,10 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
                         ) ),
       '-help' = apl(n=0, h = '-help: this help message\n'),
       '-show_allowed_options' = apl(n=0, h=
-   "-show_allowed_options: list of allowed options\n" )
+   "-show_allowed_options: list of allowed options\n" ),
+   
+       '-cio' = apl(n=0, h = "-cio: Use AFNI's C io functions\n"),
+       '-Rio' = apl(n=0, h = "-Rio: Use R's io functions\n")
       
          );
                      
@@ -901,7 +895,8 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    
    #Parse dems options
    #initialize with defaults
-      lop <- list ()
+      com_history<-AFNI.command.history(ExecName, args,NULL)
+      lop <- list (com_history = com_history)
       lop$nNodes <- 1
       lop$nNonzero <- -1
       lop$nMaxzero <- -1
@@ -930,6 +925,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       lop$centerType2 <- 0
       lop$contrastName <- NULL
       lop$verb <- 0
+      lop$iometh <- 'Rlib'
    #Get user's input
    for (i in 1:length(ops)) {
       opname <- strsplit(names(ops)[i],'^-')[[1]];
@@ -963,8 +959,9 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
              verb = lop$verb <- ops[[i]],
              help = help.MEMA.opts(params, adieu=TRUE),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
-                                              hstr="3dMEMA's",adieu=TRUE)
-
+                                              hstr="3dMEMA's",adieu=TRUE),
+             cio = lop$iometh<-'clib',
+             Rio = lop$iometh<-'Rlib'
              )
    }
 
@@ -1122,14 +1119,33 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
 process.MEMA.opts <- function (lop, verb = 0) {
    if (file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) || 
          file.exists(paste(lop$outFN,"+tlrc.HEAD", sep=""))) {
-         warning((paste("File ", lop$outFN, "exists! Try a different name.\n")),
-                  immediate.=TRUE);
+         errex.AFNI(c("File ", lop$outFN, "exists! Try a different name.\n"));
          return(NULL);
    }      
-   lop$outFN <- 
-      paste(lop$outFN, "+orig", sep="") # write.AFNI doesn't handle tlrc yet
-
-
+   
+   #Make sure new io must be used with anything but BRIK format
+   an <- parse.AFNI.name(lop$outFN)
+   if (an$type != 'BRIK' && lop$iometh != 'clib') {
+      errex.AFNI(c('Must of use -cio option with any input/output ',
+                   'format other than BRIK'));
+   }
+   
+   if (lop$iometh == 'Rlib') {
+      lop$outFN <- 
+         paste(lop$outFN, "+orig", sep="") # write.AFNI doesn't handle tlrc yet
+   } else {
+      an <- parse.AFNI.name(lop$outFN)
+      if (an$type == "BRIK" && an$ext == "" && is.na(an$view)) {
+         lop$outFN <- paste(lop$outFN, "+orig", sep="")
+      }
+      
+      if (exists.AFNI.name(lop$outFN) || 
+          exists.AFNI.name(modify.AFNI.name(lop$outFN,"view","+tlrc"))) {
+         errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
+      }
+   }
+   
+   
    if (lop$nNodes < 1) lop$nNodes <- 1
     
    if (lop$nGrp < 1) lop$nGrp <- 1
@@ -1164,8 +1180,10 @@ process.MEMA.opts <- function (lop, verb = 0) {
          if (verb) {
             cat ('Beta Filenames:', paste(lop$bFN[[ii]], collapse=''), '\n') 
          }
-         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI); 
-         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI);
+         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI, 
+                                   verb=lop$verb, meth=lop$iometh); 
+         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI, 
+                                   verb=lop$verb, meth=lop$iometh);
          if(ii==1) { 
             lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
             lop$myOrig=lop$bList[[1]][[1]]$origin; 
@@ -1235,8 +1253,10 @@ process.MEMA.opts <- function (lop, verb = 0) {
                cat ('Have lop$tFN[[ii]][[jj]]', lop$bFN[[ii]][[jj]], '\n')
             }
          }
-         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI); 
-         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI);
+         lop$bList[[ii]] <- lapply(lop$bFN[[ii]], read.AFNI, 
+                                   verb=lop$verb, meth=lop$iometh); 
+         lop$tList[[ii]] <- lapply(lop$tFN[[ii]], read.AFNI, 
+                                   verb=lop$verb, meth=lop$iometh);
          if(ii==1) {
             lop$myNote=lop$bList[[1]][[1]]$header$HISTORY_NOTE; 
             lop$myOrig=lop$bList[[1]][[1]]$origin; 
@@ -1268,7 +1288,7 @@ process.MEMA.opts <- function (lop, verb = 0) {
       if (verb) {
          cat ("Will read ", lop$maskFN,'\n');
       }
-      if (is.null(mm <- read.AFNI(lop$maskFN))) {
+      if (is.null(mm <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh))) {
          warning("Failed to read mask", immediate.=TRUE);
          return(NULL);
       }
@@ -1367,11 +1387,16 @@ process.MEMA.opts <- function (lop, verb = 0) {
    if (verb) cat ('Have lop$lapMod', lop$lapMod,'\n');
    if (verb) cat ('Have lop$resZout', lop$resZout, '\n');
    if(lop$resZout==1) {
-      lop$icc_FN  <- paste(strsplit(lop$outFN, "\\+")[[1]][1], 
-                           "_ICC+orig", sep="")
-      lop$resZ_FN <- paste(strsplit(lop$outFN, "\\+")[[1]][1], 
-                           "_resZ+orig", sep="") 
-                  # write.AFNI doesn't handle tlrc yet
+      if (lop$iometh == 'Rlib') {
+         lop$icc_FN  <- paste(strsplit(lop$outFN, "\\+")[[1]][1], 
+                              "_ICC+orig", sep="")
+         lop$resZ_FN <- paste(strsplit(lop$outFN, "\\+")[[1]][1], 
+                              "_resZ+orig", sep="") 
+                     # write.AFNI doesn't handle tlrc yet
+      } else {
+         lop$icc_FN  <- modify.AFNI.name(lop$outFN,"append","_ICC");
+         lop$resZ_FN <- modify.AFNI.name(lop$outFN,"append","_resZ");
+      }
    }   
    return(lop)
 }
@@ -2061,7 +2086,8 @@ tTop <- 100   # upper bound for t-statistic
 
    if (!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
-      save(args, file=".3dMEMA.dbg.AFNI.args", ascii = TRUE) 
+      rfile <- first.in.path(sprintf('%s.R',ExecName))  
+      save(args, rfile, file=".3dMEMA.dbg.AFNI.args", ascii = TRUE) 
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
       args <- .DBG_args
@@ -2137,7 +2163,10 @@ tTop <- 100   # upper bound for t-statistic
                grpDFList[[ii]] <- grpDFList[[ii]] + (abs(lop$bList[[ii]][[jj]]) == 0)
             } } 
          } else if(is.character(lop$missing_dataFN))  # missing data info provided by user
-            for(ii in 1:lop$nGrp) grpDFList[[ii]] <- read.AFNI(lop$missing_dataFN[ii])$brk
+            for(ii in 1:lop$nGrp) {
+               grpDFList[[ii]] <- read.AFNI(lop$missing_dataFN[ii], 
+                                       verb = lop$verb, meth=lop$iometh)$brk
+            }
       }
    }
    
@@ -2166,7 +2195,10 @@ tTop <- 100   # upper bound for t-statistic
             } } 
          } else 
          if(is.character(lop$missing_dataFN))  # missing data info provided by user
-            for(ii in 1:lop$nLevel) grpDFList[[ii]] <- read.AFNI(lop$missing_dataFN[ii])$brk
+            for(ii in 1:lop$nLevel) {
+               grpDFList[[ii]] <- read.AFNI(lop$missing_dataFN[ii], 
+                                    verb=lop$verb, meth=lop$iometh)$brk
+            }
       }
    
       # 2nd minus 1st: keep consistent with 3dttset and the two-sample types 2 and 4
@@ -2182,6 +2214,7 @@ tTop <- 100   # upper bound for t-statistic
    #rm(lop$tList)
    lop$tList <- list();
    
+   dataView <- "orig" #default
    if(!identical(grep("orig", lop$bFN[[1]][1]), integer(0))) 
       dataView <- "orig"  # input files in orig view
    if(!identical(grep("tlrc", lop$bFN[[1]][1]), integer(0))) 
@@ -2246,71 +2279,85 @@ tTop <- 100   # upper bound for t-statistic
 
    # single processor
    
+   if (lop$myDim[2] == 1) { #Not slice order 
+      marg <- c(1)
+      dperm <- c(2,1)
+   } else {
+      marg <- c(1,2)
+      dperm <- c(2,3,1)
+   } 
+
    if(lop$anaType==4) {
       if(lop$nNodes==1) 
          for (ii in 1:lop$myDim[3]) {
-            outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, 
+            tmp_oarr <- apply(comArr[,,ii,], marg, runRMA, 
                nGrp=lop$nGrp, n=c(lop$nSubj[1], sum(lop$nSubj)), 
                p=dim(lop$xMat)[2], xMat=lop$xMat, outData=outData, 
                mema=rmaB2, lapMod=lop$lapMod, KHtest=lop$KHtest, 
                nNonzero=nNonzero, nCov=lop$nCov, nBrick=nBrick, 
-               anaType=lop$anaType, resZout=lop$resZout, tol=tolL), 
-               c(2,3,1))
+               anaType=lop$anaType, resZout=lop$resZout, tol=tolL)
             cat(  "Z slice #", ii, "done: ", 
                   format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+            outArr[,,ii,] <- aperm(tmp_oarr, dperm);
          }
    
       # multi-processing
       if(lop$nNodes>1) {
-         libLoad('snow')
+         if (libLoad('snow') == 0) {
+            errex.AFNI("Failed to load snow package");
+         }
          cl <- makeCluster(lop$nNodes, type = "SOCK")
          for(ii in 1:lop$myDim[3]) {
-            outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), 
+            tmp_oarr <- parApply(cl, comArr[,,ii,], marg, 
                   runRMA, nGrp=lop$nGrp, n=c(lop$nSubj[1], sum(lop$nSubj)), 
                   p=dim(lop$xMat)[2], xMat=lop$xMat, outData=outData, 
                   mema=rmaB2, lapMod=lop$lapMod, KHtest=lop$KHtest, 
                   nNonzero=nNonzero, nCov=lop$nCov, nBrick=nBrick, 
-                  anaType=lop$anaType, resZout=lop$resZout, tol=tolL), 
-                  c(2,3,1))
+                  anaType=lop$anaType, resZout=lop$resZout, tol=tolL)
             cat("Z slice #", ii, "done: ", 
                   format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+            outArr[,,ii,] <- aperm(tmp_oarr, dperm);
          }
          stopCluster(cl)
       }  # if(lop$nNodes>1)
    } else {
       if(lop$nNodes==1) for (ii in 1:lop$myDim[3]) {
-         outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, 
+         tmp_oarr <- apply(comArr[,,ii,], marg, runRMA, 
                nGrp=lop$nGrp, n=sum(lop$nSubj), 
                p=dim(lop$xMat)[2], xMat=lop$xMat, 
                outData=outData, mema=rmaB, lapMod=lop$lapMod, 
                KHtest=lop$KHtest, nNonzero=nNonzero, nCov=lop$nCov, 
                nBrick=nBrick, anaType=lop$anaType, resZout=lop$resZout, 
-               tol=tolL), c(2,3,1))
+               tol=tolL)
          cat("Z slice #", ii, "done: ", 
                format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         outArr[,,ii,] <- aperm(tmp_oarr, dperm);
       }
    
       # multi-processing
       if(lop$nNodes>1) {
-         libLoad('snow')
+         if (libLoad('snow') == 0) {
+            errex.AFNI("Failed to load snow package");
+         }
          cl <- makeCluster(lop$nNodes, type = "SOCK")
          for(ii in 1:lop$myDim[3]) {
-            outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runRMA, 
+            tmp_oarr <- parApply(cl, comArr[,,ii,], marg, runRMA, 
                   nGrp=lop$nGrp, n=sum(lop$nSubj), p=dim(lop$xMat)[2], 
                   xMat=lop$xMat, 
                   outData=outData, mema=rmaB, lapMod=lop$lapMod, 
                   KHtest=lop$KHtest, nNonzero=nNonzero, nCov=lop$nCov, 
                   nBrick=nBrick, anaType=lop$anaType, resZout=lop$resZout, 
-                  tol=tolL), c(2,3,1))
+                  tol=tolL)
             cat("Z slice #", ii, "done: ", 
                   format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+            outArr[,,ii,] <- aperm(tmp_oarr, dperm);
          }
          stopCluster(cl)
       }  # if(lop$nNodes>1)
+            
    } # if(lop$anaType==4)
 
    print(sprintf("Analysis finished: %s", format(Sys.time(), "%D %H:%M:%OS3")))
-   
    print("#++++++++++++++++++++++++++++++++++++++++++++")
 
    for(ii in 1:lop$nGrp) {
@@ -2375,13 +2422,23 @@ tTop <- 100   # upper bound for t-statistic
    nDF <- sum(lop$nFiles)/2-lop$nGrp-lop$nCov
    if(!is.null(lop$missing_dataFN)) {
    # voxel-wise DFs, done only for t, not chi-sq since it's unimportant
-   if(lop$anaType==1) grpDFList[[1]] <- lop$nSubj[1] - grpDFList[[1]] - lop$nGrp - lop$nCov
-   if(lop$anaType==2) for(ii in 1:lop$myDim[1]) for(jj in 1:lop$myDim[2]) for(kk in 1:lop$myDim[3])
+   if(lop$anaType==1) {
+      grpDFList[[1]] <- lop$nSubj[1] - grpDFList[[1]] - lop$nGrp - lop$nCov
+   }
+   if(lop$anaType==2) {
+      for(ii in 1:lop$myDim[1]) 
+         for(jj in 1:lop$myDim[2]) 
+            for(kk in 1:lop$myDim[3])
       grpDFList[[1]][ii,jj,kk,] <- sum(lop$nSubj) - 
          -grpDFList[[1]][ii,jj,kk,]-grpDFList[[2]][ii,jj,kk,] - lop$nGrp - lop$nCov
-   if(lop$anaType==3) for(ii in 1:lop$myDim[1]) for(jj in 1:lop$myDim[2]) for(kk in 1:lop$myDim[3])
+   }
+   if(lop$anaType==3) {
+      for(ii in 1:lop$myDim[1]) 
+         for(jj in 1:lop$myDim[2]) 
+            for(kk in 1:lop$myDim[3])
       grpDFList[[1]][ii,jj,kk,] <- lop$nSubj[1] - 
          max(grpDFList[[1]][ii,jj,kk,], grpDFList[[2]][ii,jj,kk,]) - lop$nGrp - lop$nCov
+   }
    if(lop$anaType==4) for(ii in 1:lop$nGrp) # each group analyzed separately except for group diff
       grpDFList[[ii]] <- lop$nSubj[ii] - grpDFList[[ii]] - 1
    
@@ -2404,25 +2461,50 @@ tTop <- 100   # upper bound for t-statistic
       }
    }
    
+   statsym <- NULL
+   statsymResZ <- NULL
    statpar <- "3drefit"
    if(lop$anaType==4) {
-      for (ii in 1:lop$nGrp) statpar <- paste(statpar, " -substatpar ",
-          2*(ii-1)+1, " fitt ", lop$nSubj[ii]-1)  # each group is modeled separately, thus different DFs
-   } else for (ii in 1:(2*lop$nGrp-1)) statpar <- paste(statpar, " -substatpar ",
-                                                 2*(ii-1)+1, " fitt ", nDF)
+      for (ii in 1:lop$nGrp) {
+         # each group is modeled separately, thus different DFs
+         statpar <- paste(statpar, " -substatpar ",
+                           2*(ii-1)+1, " fitt ", lop$nSubj[ii]-1)
+         statsym <- c(statsym,list( sb=2*(ii-1)+1, 
+                                    typ="fitt", par=lop$nSubj[ii]-1))
+      }
+   } else {
+      for (ii in 1:(2*lop$nGrp-1)) {
+         statpar <- paste( statpar, " -substatpar ",
+                           2*(ii-1)+1, " fitt ", nDF)
+         statsym <- c(statsym,list(list(sb=2*(ii-1)+1,typ="fitt", par=nDF)))
+      }
+   }
    # group diff t   
-   if(lop$nGrp==2) statpar <- paste(statpar, " -substatpar 5 ", " fitt ", nDF)
+   if(lop$nGrp==2) {
+      statpar <- paste(statpar, " -substatpar 5 ", " fitt ", nDF)
+      statsym <- c(statsym,list(list(sb=5, typ="fitt", par=nDF)))
+   }
    # doesn't apply to type 4 (invidual group t analyzed separately)
-   if(anyCov) for(ii in 1:lop$nCov) statpar <- paste( statpar, " -substatpar ",
-       nBrick0-3-2*(lop$nCov-ii), " fitt ", nDF)
-   
+   if(anyCov) {
+      for(ii in 1:lop$nCov) {
+         statpar <- paste( statpar, " -substatpar ", 
+                           nBrick0-3-2*(lop$nCov-ii), " fitt ", nDF)
+         statsym <- c(statsym,list(list(sb=nBrick0-3-2*(lop$nCov-ii), typ="fitt",
+                                   par=nDF)))
+      }
+   }
    if(lop$anaType==4) { # no covariate involved
       statpar <- paste(statpar, " -substatpar ", nBrick0-5, " fict ", 
                        lop$nSubj[1]-1) # Chi-sq for QE: group 1
+      statsym <- c(statsym,list(list(sb=nBrick0-5, typ="fict", 
+                                 par=lop$nSubj[1]-1)))
       statpar <- paste(statpar, " -substatpar ", nBrick0-3, " fict ", 
                        lop$nSubj[2]-1) # Chi-sq for QE: group 2
+      statsym <- c(statsym,list(list(sb=nBrick0-3, typ="fict", 
+                                par=lop$nSubj[2]-1)))
    } else {
       statpar <- paste(statpar, " -substatpar ", nBrick0-1, " fict ", nDF)
+      statsym <- c(statsym,list(list(sb=nBrick0-1, typ="fict", par=nDF)))
    }
    
    # last brick: QE with chi-sq. We don't care about DF subtlety here 
@@ -2430,44 +2512,60 @@ tTop <- 100   # upper bound for t-statistic
    if(lop$resZout==1) {
       statparICC <- "3drefit"; 
       statparResZ <- "3drefit"
-      for(ii in 1:sum(lop$nSubj)) 
+      for(ii in 1:sum(lop$nSubj)) {
          statparResZ <- paste(statparResZ, " -substatpar ", ii-1, " fizt")
+         statsymResZ <- c(statsymResZ,list(list(sb=ii-1, typ="fizt", par=NULL)))
+      }
    }
 
    #rm(comArr)
    outArr[outArr > tTop] <- tTop  # Avoid outflow!!!!
    outArr[outArr < (-tTop)] <- -tTop  # Avoid outflow!!!!
      
-   if (lop$verb) cat ('outLabel', outLabel,'\n');
+   if (lop$verb) 
+      cat ( 'outLabel', outLabel,'\n', 
+            'Writing results to', lop$outFN, '\n');
    #write.AFNI(lop$outFN, outArr[,,,1:nBrick0],
    write.AFNI(lop$outFN, subBRKarray(brk=outArr, sel=1:nBrick0), 
                   outLabel, note=lop$myNote, origin=lop$myOrig, 
-                  delta=lop$myDelta, idcode="whatever")
-   if (dataView=="tlrc") statpar <- paste(statpar, " -view ", dataView)     
-   statpar <- paste( statpar, " -addFDR -newid -orient ", 
-                     dataOrient, " ", lop$outFN)                   
-   if (lop$verb) cat ('statpar', statpar, '\n')
-   system(statpar)
-
+                  delta=lop$myDelta, idcode="whatever", addFDR=1,
+                  verb=lop$verb, meth=lop$iometh, statsym=statsym,
+                  view=dataView, orient=dataOrient, com_hist=lop$com_history)
+   if (lop$iometh == 'Rlib') {
+      if (dataView=="tlrc") statpar <- paste(statpar, " -view ", dataView)     
+      statpar <- paste( statpar, " -addFDR -newid -orient ", 
+                        dataOrient, " ", lop$outFN)                   
+      if (lop$verb) cat ('statpar', statpar, '\n')
+      system(statpar)
+   }
+   
    if(lop$resZout==1) {
       #write.AFNI(lop$icc_FN, outArr[,,,seq((nBrick0+1), nBrick, by=2)], iccLabel,
-      write.AFNI(lop$icc_FN, subBRKarray(outArr, seq((nBrick0+1), nBrick, by=2)), iccLabel,
+      write.AFNI(lop$icc_FN, 
+                 subBRKarray(outArr, seq((nBrick0+1), nBrick, by=2)), iccLabel,
                  note=lop$myNote, origin=lop$myOrig, delta=lop$myDelta, 
-                 idcode="whatever")
+                 idcode="whatever",
+                 verb=lop$verb, meth=lop$iometh, view=dataView,
+                 orient=dataOrient, com_hist=lop$com_history)
       #write.AFNI(lop$resZ_FN, outArr[,,,seq((nBrick0+2), nBrick, by=2)],
-      write.AFNI(lop$resZ_FN, subBRKarray(outArr, seq((nBrick0+2), nBrick, by=2)), 
+      write.AFNI(lop$resZ_FN, 
+                 subBRKarray(outArr, seq((nBrick0+2), nBrick, by=2)), 
                  resZLabel, note=lop$myNote, origin=lop$myOrig, 
-                 delta=lop$myDelta, idcode="whatever")
-      if (dataView=="tlrc") {
-         statparICC  <- paste(statparICC, " -view ", dataView); 
-         statparResZ <- paste(statparResZ, " -view ", dataView) 
-      } 
-      statparICC  <- paste(statparICC, " -newid -orient ", 
-                           dataOrient, " ", lop$icc_FN)
-      statparResZ <- paste(statparResZ, " -addFDR -newid  -orient ", 
-                           dataOrient, " ", lop$resZ_FN)
-      system(statparICC)
-      system(statparResZ)
+                 delta=lop$myDelta, idcode="whatever",
+                 verb=lop$verb, meth=lop$iometh, statsym=statsymResZ,
+                 view=dataView, orient=dataOrient, com_hist=lop$com_history)
+      if (lop$iometh == 'Rlib') {
+         if (dataView=="tlrc") {
+            statparICC  <- paste(statparICC, " -view ", dataView); 
+            statparResZ <- paste(statparResZ, " -view ", dataView) 
+         } 
+         statparICC  <- paste(statparICC, " -newid -orient ", 
+                              dataOrient, " ", lop$icc_FN)
+         statparResZ <- paste(statparResZ, " -addFDR -newid  -orient ", 
+                              dataOrient, " ", lop$resZ_FN)
+         system(statparICC)
+         system(statparResZ)
+      }
    }
 
       

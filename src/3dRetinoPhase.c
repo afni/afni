@@ -64,8 +64,6 @@ typedef struct {
    
 } RP_UD;
 
-#define ABS(a) ( (a) < 0 ? (-a):(a) )
-#define SIGN(a) ( (a) < 0 ? -1:1 )
 #define PHASE_R2D(a) ( (a)*180.0/PI )
 #define PHASE_360(a) ( (a) < 0.0 ? 360.0+(a):(a) )
 int Phase_Type_to_Dir(int p) {

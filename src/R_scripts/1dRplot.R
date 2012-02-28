@@ -4,21 +4,6 @@
 #Clean up
 rm(list = ls())
 
-libLoad <- function(myLib) {
-   sucLoad <- FALSE
-   sucCheck <- FALSE
-   try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-   if (sucLoad) {
-      print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE
-   } else {
-	  	try(install.packages(myLib))
-      try(sucLoad <- library(myLib, character.only = TRUE, 
-                              logical.return = TRUE))
-      if (sucLoad) print(sprintf("Package %s successfully loaded...", myLib)) 
-   	}
-}
-
-
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
    ff<-ff[lapply(ff,file.exists)==TRUE];

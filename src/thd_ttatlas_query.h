@@ -278,6 +278,7 @@ void Set_Whereami_Max_Rad(float n);
 THD_3dim_dataset * get_atlas(char *epath, char *aname) ;
 char * get_atlas_dirname(void) ; /* 31 Jan 2008 -- RWCox */
 char Is_Side_Label(char *str, char *opt);
+int qmode_int(int *iv, int ni);
 int *z_rand_order(int bot, int top, long int seed);
 int *z_iqsort (float *x , int nx );
 int *z_idoubleqsort (double *x , int nx );

@@ -2,10 +2,56 @@
 # Global Variables
 #------------------------------------------------------------------
 BATCH_MODE <<- 0  #Initialize batch mode flag to 0
+R_io <<- -1
+
+#------------------------------------------------------------------
+# Functions for library loading
+#------------------------------------------------------------------
+find.in.path <- function(file) { #Pretty much same as first.in.path
+   ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
+   ff<-ff[lapply(ff,file.exists)==TRUE];
+   return(gsub('//','/',ff[1], fixed=TRUE)) 
+}
+
+if (R_io == -1) {
+   dd<-dyn.load(find.in.path('R_io.so'))
+   if (!exists('dd')) {
+      note.AFNI(paste("Failed to load R_io.so."));
+      R_io <<- 0
+   } else {
+      R_io <<- 1
+   }
+}
+
+libLoad <- function(myLib) {
+   sucLoad <- FALSE
+   sucCheck <- FALSE
+   try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
+   if (sucLoad) {
+      print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE
+   } else {
+      if (BATCH_MODE == 1) {
+         err.AFNI(paste(   "Need to install package ",myLib,
+            "\n   Start an interactive R session then run:\n",
+            "\n      update.packages(checkBuilt=TRUE, ask=FALSE) ",
+            "#Not mandatory, but recommended",
+            "\n      install.packages('",myLib,"')\n",
+            "\n   Then quit R and rerun your command.\n",
+                        sep=''))
+      } else {
+         try(install.packages(myLib))
+         try(sucLoad <- library(myLib, character.only = TRUE, 
+                               logical.return = TRUE))
+         if (sucLoad) print(sprintf("Package %s successfully loaded...", myLib)) 
+   	}
+   }
+   return(sucLoad)
+}
 
 #------------------------------------------------------------------
 # Functions to deal with AFNI file names
 #------------------------------------------------------------------
+
 strip.extension <- function (filename, extvec=NULL, verb=0) {
    n <- list()
    if (is.null(extvec)) {
@@ -282,6 +328,11 @@ parse.AFNI.name <- function(filename, verb = 0) {
        an$pprefix <- gsub('"$','', an$pprefix);       
    } 
 
+   if ( an$type != 'BRIK' ) {
+      #Put the extension back on
+      an$pprefix <- paste(an$pprefix,an$ext, sep='');
+      an$prefix <- paste(an$prefix,an$ext, sep='');
+   }
   return(an)
 }
 
@@ -361,6 +412,27 @@ compressed.AFNI.name <- function(an) {
       return('')
    }
 
+}
+
+modify.AFNI.name <- function (name, what="append", val="_new", cwd=NULL) {
+   if (!is.loaded('R_SUMA_ParseModifyName')) {
+      err.AFNI("Missing R_io.so");
+      return(NULL);
+   }
+   an <- .Call("R_SUMA_ParseModifyName", 
+               name = name, 
+               what = what,
+               val = val,
+               cwd = cwd)
+   return(an)
+}
+
+AFNI.command.history <- function(ExecName=NULL, args=NULL, ohist=NULL) {
+   if (!is.loaded('R_SUMA_HistString')) {
+      return(NULL);
+   }
+   an <- .Call("R_SUMA_HistString", ExecName, args, ohist)
+   return(an)
 }
 
 uncompress.AFNI <- function(an, verb = 1) {
@@ -758,11 +830,7 @@ hgrep <- function (pattern=NULL){
    }
 } 
 hsgrep <- function (pattern='source'){
-   if (is.null(pattern)) {
-      history.AFNI(max.show=200)
-   } else {
-      history.AFNI(max.show=Inf, pattern=pattern)
-   }
+   hgrep(pattern)
 } 
 
 #Report objects using the most memory
@@ -1155,6 +1223,7 @@ as.num.vec <- function(ss, addcount=TRUE, sepstr='.', reset=FALSE) {
    names(nn) <- ww
    return(nn)
 }
+
 as.char.vec <- function(ss) {
    if (is.list(ss) || length(ss) > 1) {
       warning(paste('Function only works on single strings', 
@@ -1208,6 +1277,48 @@ expand_1D_string <- function (t) {
    return(vvf)
 }
 
+is.wholenumber.AFNI <- function(x, tol = .Machine$double.eps^0.5, all=TRUE)  {
+      if (is.null(x)) return(FALSE)
+      if (!all) {
+         return(abs(x - round(x)) < tol)
+      } else {
+         return(prod(abs(x - round(x)) < tol)==1)
+      }
+      return(FALSE)
+}
+
+r.NI_new_element <- function (name, dat=NULL, atlist=NULL, tp=NULL){
+   nel <- list (name=name, atlist=atlist, dat=NULL)
+   if (is.null(tp)) {
+      if (is.character(dat)) {
+         tp <- "String"
+      } else if (is.numeric(dat)) {
+         if (is.wholenumber.AFNI(dat)) tp<-"int"
+         else tp <- "float"
+      }
+   }
+   
+   if (!is.null(dat)) {
+      if (is.vector(dat)) {
+         nel <- r.NI_set_attribute(nel, "ni_dimen", length(dat))
+         nel <- r.NI_set_attribute(nel, "ni_type", tp)
+         nel$dat <- matrix(as.character(dat), length(dat),1)
+      } else if (is.matrix(dat)){
+         nel <- r.NI_set_attribute(nel, "ni_dimen", paste(dim(dat),collapse=','))
+         nel <- r.NI_set_attribute(nel, "ni_type", 
+                                    paste(rep(tp,dim(dat)[2]), collapse=','))
+         nel$dat <- matrix(as.character(dat), dim(dat)[1], dim(dat)[2])
+      } else {
+         err.AFNI("Bad dat");
+      }
+      if (tp == "String") {
+         nel$dat <- apply(nel$dat, c(1,2), paste)
+      }
+   }
+   
+   return(nel) 
+}
+
 r.NI_get_attribute <- function (nel,name, brsel=NULL, 
                                  colwise=FALSE, is1Dstr=FALSE,
                                  sep=' ; ', num=FALSE) {
@@ -1256,10 +1367,25 @@ r.NI_get_attribute <- function (nel,name, brsel=NULL,
 }
 
 r.NI_set_attribute <- function (nel,name, val) {
-
-   nel$atlist <- c (nel$atlist,
+   ig <- -1
+   
+   if (length(nel$atlist)) {
+      for (i in 1:length(nel$atlist)) {
+         if (!is.na(nel$atlist[[i]]$lhs) && 
+               nel$atlist[[i]]$lhs == name) {
+            ig<-i
+            break
+         }
+      }
+   }
+   if (ig > 0) {
+      nel$atlist[[ig]] <- list(lhs=deblank.string(name), 
+                   rhs=r.NI_dequotestring(val, db=TRUE))
+   } else {
+      nel$atlist <- c (nel$atlist,
          list(list(lhs=deblank.string(name), 
                    rhs=r.NI_dequotestring(val, db=TRUE))))
+   }
    return(nel)
 }
 
@@ -1275,10 +1401,7 @@ r.NI_dequotestring <- function(val, db=FALSE) {
 # A very basic parser, works only on simple elements 
 #of ascii headersharp niml files . Needs lots of work!
 r.NI_read_element <- function (fname, HeadOnly = TRUE) {
-   
-   nel <- list(atlist=NULL, dat=NULL)
-   
-   fnp <- parse.AFNI.name(fname)
+      fnp <- parse.AFNI.name(fname)
    
    if (!file.exists(fnp$file)) {
       return(NULL)
@@ -1286,6 +1409,11 @@ r.NI_read_element <- function (fname, HeadOnly = TRUE) {
    
    ff <- scan(fnp$file, what = 'character', sep = '\n', quiet=TRUE)
    
+   return(r.NI_read_str_element(ff, HeadOnly))
+}
+
+r.NI_read_str_element <- function (ff, HeadOnly = TRUE) {
+   nel <- list(atlist=NULL, dat=NULL)
    #Remove #
    ff <- gsub('^[[:space:]]*#[[:space:]]*', '',ff)
    if (!length(grep('^<', ff))) {
@@ -1304,6 +1432,7 @@ r.NI_read_element <- function (fname, HeadOnly = TRUE) {
       err.AFNI("Have nothing");
       return(NULL)
    }
+   
    #Get only the first element, for now
    for (i in 1:1) {
       shead <- ff[strv[i]:stpv[i]]
@@ -1329,18 +1458,50 @@ r.NI_read_element <- function (fname, HeadOnly = TRUE) {
    #Get the data part, the lazy way 
    #All the content here is text. Not sure what to do with 
    #this next. Wait till context arises
-   for (i in (stpv[1]+1):(strv[2]-1)) {
-      #browser()
-      if (is.null(nel$dat)) 
-         nel$dat <- rbind(r.NI_dequotestring(
-                  strsplit(deblank.string(ff[i]),split=' ')[[1]]))
-      else nel$dat <- rbind(nel$dat,
-                           r.NI_dequotestring(strsplit(
-                              deblank.string(ff[i]),split=' ')[[1]]))
+   tp <- r.NI_get_attribute(nel,"ni_type");
+   if (tp == 'String') {
+      for (i in (stpv[1]+1):(strv[2]-1)) {
+         if (is.null(nel$dat)) 
+            nel$dat <- ff[i]
+         else nel$dat <- c(nel$dat, ff[i])
+      }
+   } else {
+      for (i in (stpv[1]+1):(strv[2]-1)) {
+         #browser()
+         if (is.null(nel$dat)) 
+            nel$dat <- rbind(r.NI_dequotestring(
+                     strsplit(deblank.string(ff[i]),split=' ')[[1]]))
+         else nel$dat <- rbind(nel$dat,
+                              r.NI_dequotestring(strsplit(
+                                 deblank.string(ff[i]),split=' ')[[1]]))
+      }
    }
    return(nel)
 }
 
+r.NI_write_str_element<- function(nel, HeadOnly = TRUE) {
+   ff <- paste("<",nel$name,'\n', sep='')
+   for (i in 1:length(nel$atlist)) {
+      ff <- paste(ff, 
+               ' ',nel$atlist[[i]]$lhs,'="', nel$atlist[[i]]$rhs,'"\n', sep='')
+   }
+   ff <- paste(ff,'>');
+   if (!HeadOnly) {
+      if (!is.null(nel$dat)) {
+         ff <- paste(ff,'\n')
+         if (is.matrix(nel$dat)) {
+            for (j in 1:dim(nel$dat)[1]) {
+               ff <- paste(ff,paste(nel$dat[j,], collapse= ' ', sep=''),
+                           '\n', sep='')
+            }
+         } else {
+            ff <- paste(ff,nel$dat,'\n',sep='')
+         }
+      }
+   }
+   ff <- paste(ff,'</',nel$name,'>', sep='')
+   return(ff) 
+} 
 
 is.NI.file <- function (fname, asc=TRUE, hs=TRUE) {
    fnp <- parse.AFNI.name(fname)
@@ -1955,17 +2116,233 @@ dset.ndim <- function (dset) {
    return(ndims)
 }
 
-dset.attr <- function (dset, name=NULL, colwise=FALSE, num=FALSE) {
+get.c.AFNI.attribute<- function (atlist, attribute, asis = FALSE, verb=0) {
+   if (!is.null(atlist$NI_head)) atlist <- atlist$NI_head
+   nel <- atlist[[attribute]]
+   if (!is.null(nel)) {
+      if (verb > 1) note.AFNI(c("Found", attribute, '\n'))
+      if (asis) { return(nel$dat) }
+      else {
+         tp <- r.NI_get_attribute(nel,"ni_type");
+         if (tp == 'String') { 
+            dd <- sub("^ *\"",'', nel$dat)
+            dd <- sub(" *\"$",'', dd)
+            return(strsplit(dd,'~')[[1]]) 
+         } else if (tp == 'float') { 
+            return(as.numeric(nel$dat));
+         } else if (tp == 'int') { 
+            return(as.integer(nel$dat));
+         } else { 
+            cat ("What of ", tp)
+            #browser()
+            nel
+            return(NULL);
+         }
+      }
+   }
+   if (verb) {
+      err.AFNI(paste("Attribute:",attribute,"Not found"))
+      show.dset.attr(atlist)
+   }
+   return(NULL);
+}
+
+set.c.AFNI.attribute<- function (atlist, attribute, val=NULL, verb=0, tp=NULL,
+                                 strsep="~") {
+   if (!is.null(atlist$NI_head)) atlist <- atlist$NI_head
+   nel <- atlist[[attribute]]
+   if (!is.null(nel)) {
+      if (verb) cat ("Found", attribute, '\n')
+      tp <- r.NI_get_attribute(nel,"ni_type");
+      if (tp == 'String') { 
+            nel$dat <- paste("\"",paste(val, collapse=strsep), "\"", sep='')
+            nel <- r.NI_set_attribute(nel, "ni_dimen", 1);
+      } else if (tp == 'float' || tp == 'int') { 
+         ff <- NULL
+         if (is.matrix(val)) {
+            nel <- r.NI_set_attribute(nel,
+                        "ni_dimen",paste(dim(val),collapse=','))
+            nel$dat <- matrix(as.character(val), dim(val)[1], dim(val)[2])
+         } else if (is.vector(val)) {
+            nel <- r.NI_set_attribute(nel,"ni_dimen",paste(length(val)))
+            nel$dat <- matrix(as.character(val), length(val),1)
+         } else {
+            nel$dat <- val
+         }
+      } else { 
+         cat ("What of ", tp)
+         #browser()
+         nel
+      }
+   } else {
+      nel <- r.NI_new_element("AFNI_atr", dat=val, atlist= NULL, tp=tp)
+      nel <- r.NI_set_attribute(nel, "atr_name", attribute)
+      atlist[[attribute]] <- nel
+            #Now that name and type are set, call again because
+            #you want the multi-col strings to be turned into one
+            #part with the '~' delimiters....
+      tp <- r.NI_get_attribute(nel,"ni_type");
+      if (tp == 'String') { 
+         atlist <- set.c.AFNI.attribute(atlist, attribute, val=val, 
+                                        verb=verb,strsep=strsep)
+         return(atlist);
+      }
+   }
+   atlist[[attribute]] <- nel
+   if (verb && is.null(nel)) {
+      err.AFNI(paste("Attribute:",attribute,"Not found."))
+      show.dset.attr(atlist)
+   }
+   return(atlist);
+}
+
+#See README.attributes's SCENE_DATA and niml_stat.c's distname[]
+statsym.distold2new <- function(dist) {
+   if (dist == 'fico') return("Correl")
+   if (dist == 'fitt') return("Ttest")
+   if (dist == 'fift') return("Ftest")
+   if (dist == 'fizt') return("Zscore")
+   if (dist == 'fict') return("Chisq")
+   if (dist == 'fibt') return("Beta")
+   if (dist == 'fibn') return("Binom")
+   if (dist == 'figt') return("Gamma")
+   if (dist == 'fipt') return("Poisson")
+   return(dist) 
+}
+
+statsym.list2code <- function(statsym) {
+   if (is.null(statsym) || length(statsym)==0) return("")
+   imx <- statsym[[1]]$sb
+   for (i in 2:length(statsym)) {
+      if (imx < statsym[[i]]$sb) imx <- statsym[[i]]$sb
+   }
+   code <- NULL
+   for (i in 1:imx+1) {
+      code <- c(code,"none");
+   }
+   for (i in 1:length(statsym)) {
+      code[statsym[[i]]$sb+1] <- 
+         paste(statsym.distold2new(statsym[[i]]$typ),"(",
+               paste(statsym[[i]]$par,collapse=','), ")",
+               sep = '');
+   }
+   return(code)
+}
+
+#This function is to be used in different ways depending on whether you
+#are setting, or retrieving attributes
+#Example:
+#rs <- read.c.AFNI('littleone.niml.dset')
+#to retrieve attributes:
+#   dset.attr(rs,"IJK_TO_DICOM")
+# or 
+#   dset.attr(rs,"BRICK_LABS")
+#To set attributes:
+#   rs <- dset.attr(rs,"BRICK_LABS",val=c('one', 'two', 'three'))
+#To set an attribute to a default if none exists
+#   rs <- dset.attr(rs,"BRICK_LABS",default=c('set if none existed'))
+dset.attr <- function (dset, name=NULL, colwise=FALSE, num=FALSE, 
+                       val=NULL, default=NULL, tp=NULL) {
    attr <- NULL
-   if (!is.null(dset$header)) {
+   if (!is.null(dset$header)) { #olde way
+      if (!is.null(val)) {
+         err.AFNI("Cannot set values with old header format");
+         return(attr)
+      }
       if (is.null(attr <- dset$header[name])) return(attr)
       if (colwise) {
          attr <- sub("^'",'', attr)
          attr <- strsplit(attr,'~')[[1]]
       }
       if (num) attr <- as.numeric(attr)
+   } else {
+      if (!is.null(dset$NI_head)) hatr <- dset$NI_head
+      else hatr <- dset
+      if (is.null(name)) {
+         return(names(hatr))
+      }
+      if (is.null(val) && is.null(default)) { #Retrieval
+         if (name == 'dim') {
+            dd <- get.c.AFNI.attribute(hatr, "DATASET_DIMENSIONS")
+            ee <- get.c.AFNI.attribute(hatr, "DATASET_RANK")
+            return(c(dd[1], dd[2], dd[3], ee[2]))
+         } else if (name == 'orient') {
+            return(orcode.AFNI(get.c.AFNI.attribute(hatr, "ORIENT_SPECIFIC")))
+         } else if (name == 'origin') {
+            return(get.c.AFNI.attribute(hatr, "ORIGIN"))
+         } else if (name == 'delta') {
+            return(get.c.AFNI.attribute(hatr, "DELTA"))
+         } else if (name == 'hist') {
+            return(get.c.AFNI.attribute(hatr, "HISTORY_NOTE"))
+         } else {
+            return(get.c.AFNI.attribute(hatr, name))
+         }
+      } else if (!is.null(val)) { #Set the attribute 
+         if (name == 'note') {
+            i <- get.c.AFNI.attribute(hatr, "NOTES_COUNT")
+            if (is.null(i)) i<-0
+            i<-i+1
+            hatr <- set.c.AFNI.attribute(hatr, "NOTES_COUNT", val = i)
+            name <- sprintf('NOTE_NUMBER_%03d', i)
+            hatr <- set.c.AFNI.attribute(hatr, name, val)
+         } else if (name == 'dim') {
+            if (is.null(val)) {
+               if (is.null(dset$brk)) {
+                  err.AFNI("Cannot set dims from nothing");
+                  return(NULL);
+               }
+               val <- dset.dimBRKarray(dset)
+            }
+               
+            if (length(val) != 4) {
+               err.AFNI("Bad val for dim");
+               return(NULL);
+            } 
+            hatr <- set.c.AFNI.attribute(hatr, "DATASET_DIMENSIONS", 
+                                         val=c(val[1:3], 0, 0))
+            hatr <- set.c.AFNI.attribute(hatr, "DATASET_RANK", 
+                                         val=c(3, val[4], rep(0,6)))            
+         } else if (name == "statsym") {
+            hatr <- set.c.AFNI.attribute(hatr, "BRICK_STATSYM",
+                                 statsym.list2code(statsym=val), strsep=';')
+         } else {
+            hatr <- set.c.AFNI.attribute(hatr, name, val, tp=tp)
+         }
+         if (!is.null(dset$NI_head)) {
+            dset$NI_head <- hatr;
+            return(dset);
+         } else return(hatr);
+      } else if (!is.null(default)) {
+         if (is.null(get.c.AFNI.attribute(hatr,name))) {
+            hatr <- set.c.AFNI.attribute(hatr, name, val=default, tp=tp)
+         }
+         if (!is.null(dset$NI_head)) {
+            dset$NI_head <- hatr;
+            return(dset);
+         } else return(hatr);
+      } 
    }
    return(attr)
+}
+
+
+
+show.dset.attr <- function (atlist, val=FALSE, sel=NULL ) {
+   if (!is.null(atlist$NI_head)) atlist <- atlist$NI_head
+   j = 1;
+   while (j<=length(atlist)) {
+      nm <- r.NI_get_attribute(atlist[[j]],"atr_name")
+      if (is.null(sel) || length(grep(sel,nm, ignore.case=TRUE))) {
+         cat(nm)
+         if (val) {
+            cat('=', atlist[[j]]$dat,'\n')
+         } else {
+            cat('\n');
+         }    
+      }
+      j <- j + 1;
+   }
+   invisible(NULL);
 }
 
 dset.labels <- function (dset) {
@@ -2064,15 +2441,33 @@ dset.1DBRKarrayto3D <- function(dset, dd=NULL) {
    return(dset)
 }
 
-array2dset <- function (brk=NULL, format='BRIK') {
+array2dset <- function (brk=NULL, format='BRIK', meth='Rlib') {
    if (is.vector(brk)) {
       brk <- as.array(brk, dim=c(length(brk),1,1,1))
    }
    dd <- dimBRKarray(brk)
-   z <- list(brk=brk,format=format, dim=dd, 
+   if (meth=='Rlib') {
+      z <- list(brk=brk,format=format, dim=dd, 
                  delta=NULL, origin=NULL, orient=NULL)
-   class(z) <- "AFNI_dataset"
-
+      class(z) <- "AFNI_R_dataset"
+   } else if (meth == 'clib') {
+      z <- list(brk=brk, NI_head<- list())
+      z$NI_head <- dset.attr(z$NI_head, 
+                             "IDCODE_STRING", val="SET_AT_WRITE_RANDOM")
+      z$NI_head <- dset.attr(z$NI_head, "ORIGIN", val=c(0,0,0), tp="float")
+      z$NI_head <- dset.attr(z$NI_head, "DELTA", val=c(1,1,1), tp="float")
+      z$NI_head <- dset.attr(z$NI_head, "ORIENT_SPECIFIC",
+                                    val = orcode.AFNI('RAI'))
+      if (!is.null(names(brk))) 
+         z$NI_head <- dset.attr(z$NI_head, "BRICK_LABS",
+                                    val = names(brk));
+      
+      
+      class(z) <- "AFNI_c_dataset"
+   } else {
+      err.AFNI('bad meth');
+      return(NULL)
+   }
    return(z)   
 }
 
@@ -2113,10 +2508,11 @@ orcode.AFNI <- function(orstr) {
 # Updates by ZSS & GC
 #------------------------------------------------------------------
 
-read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
+read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0,
+                      meth = 'Rlib') {
   an <- parse.AFNI.name(filename);
   
-  if (verb) {
+  if (verb > 1) {
    show.AFNI.name(an);
   }
   
@@ -2126,6 +2522,9 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
     return(z)
   }
   
+  if (meth == 'clib' || an$type == 'NIML') {
+    return(read.c.AFNI(filename, verb = verb, ApplyScale = 1, PercMask=0.0))
+  }
   #If you have any selectors, use 3dbucket to get what you want, then read
   #temp dset. This is an ugly fix for now, but will change it later if
   #I/O is issue
@@ -2261,7 +2660,7 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
               header=values,mask=NULL)    
   }
 
-  class(z) <- "AFNI_dataset"
+  class(z) <- "AFNI_R_dataset"
   attr(z,"file") <- paste(filename,"BRIK",sep="")
   
   if (rmtmp == 1) {
@@ -2279,6 +2678,81 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
 
   invisible(z);
 }
+
+read.c.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
+   if (!is.loaded('R_THD_load_dset')) {
+      err.AFNI("Missing R_io.so");
+      return(NULL);
+   }
+   if (ApplyScale != 1 || PercMask != 0.0) {
+      err.AFNI(paste("This function is not ready to abide by ApplyScale != 1 or",
+                     "PercMask != 0.0"));
+      return(NULL);
+   }
+   uopts = list( debug=verb );
+   rs2 <- .Call("R_THD_load_dset", name = as.character(filename), opts = uopts )
+   if (is.null(rs2)) return(NULL);
+   
+   hatr <- parse.c.AFNI.head(rs2$head);
+   rs2$head <- NULL
+   ddb <- dset.attr(hatr, "dim")
+   dim(rs2$brk) <- ddb
+   
+   rs2[['format']] <- 1
+   rs2[['delta']] <- dset.attr(hatr, "delta")
+   rs2[['origin']] <- dset.attr(hatr, "origin")
+   rs2[['orient']] <- dset.attr(hatr, "orient")
+   rs2[['dim']] <- dset.attr(hatr, "dim")
+   rs2[['NI_head']] <- hatr
+   rs2[['header']] <- NULL
+   rs2[['mask']] <- NULL
+   rs2[['weights']] <- NULL
+    
+   class(rs2) <- "AFNI_c_dataset"
+
+   invisible(rs2)   
+}
+
+parse.c.AFNI.head <- function (head) {
+   j <- 1
+   nel <- NULL;
+   nms <- NULL;
+   while (j <= length(head)) {
+      nelc <- r.NI_read_str_element(strsplit(head[j], "\n")[[1]], FALSE)
+      if (!is.null(nelc)) {
+         nn <- r.NI_get_attribute(nelc, "atr_name"); 
+         if (!is.null(nn)) {
+            nms <- c(nms, nn)
+            nel <- c(nel, list(nelc));
+         } else {
+            warn.AFNI("Have element that has no atr_name");
+         }
+      }
+      j <- j + 1;
+   }
+   if (!is.null(nel)) {
+      names(nel) <- nms
+   }
+   return(nel)
+}
+
+unparse.c.AFNI.head <- function (nel) {
+   j <- 1
+   head <- NULL;
+   nms <- NULL;
+   while (j <= length(nel)) {
+      r.NI_write_str_element(nel[[j]],FALSE)
+      nm <- r.NI_get_attribute(nel[[j]],"atr_name")
+      if (!is.null(nm)) nms <- c(nms,nm)
+      else nms <- c(nms, 'noname');
+      head <- c(head, r.NI_write_str_element(nel[[j]],FALSE));
+      j <- j + 1;
+   }
+   if (length(nms)) names(head)<-nms
+   return(head)
+}
+
+
 
 #A funtion to create an AFNI header string 
 AFNIheaderpart <- function(type, name, value) {
@@ -2324,15 +2798,132 @@ newid.AFNI <- function(ext=0) {
    }
 }
 
+AFNI.view2viewtype <- function(view="+orig"){
+   if (is.null(view)) return(0)
+   if (length(grep("orig", view, ignore.case=TRUE))) return(0)
+   if (length(grep("acpc", view, ignore.case=TRUE))) return(1)
+   if (length(grep("tlrc", view, ignore.case=TRUE))) return(2)
+   return(0)
+}
+
+write.c.AFNI <- function( filename, dset=NULL, label=NULL, 
+                        note=NULL, origin=NULL, delta=NULL,
+                        orient=NULL, 
+                        idcode=NULL, defhead=NULL,
+                        verb = 1,
+                        maskinf=0, scale = TRUE, 
+                        overwrite=FALSE, addFDR=0,
+                        statsym=NULL, view="+tlrc",
+                        com_hist=NULL) {
+  
+   an <- parse.AFNI.name(filename);
+   if (verb > 1) {
+      show.AFNI.name(an);
+   }
+
+   if (class(dset) == "AFNI_c_dataset") {
+      #Assume all is in dset already
+      if (is.null(dset$NI_head)) {
+         err.AFNI("Old dset?");
+         return(NULL);
+      }
+   } else if (class(dset) == "AFNI_R_dataset") {
+      err.AFNI("Should not be with R dataset here");
+      return(NULL);
+   } else {
+      #Assume user sent in an array, not a dset
+      dset <- array2dset(dset,meth='clib')
+   }
+   
+   if (!is.loaded('R_THD_write_dset')) {
+      err.AFNI("Missing R_io.so.");
+      return(NULL);
+   } 
+   
+         #Setup the basics (might be repetitive, oh well)
+   dset$NI_head <- dset.attr(dset$NI_head, "dim", val = dset.dimBRKarray(dset))
+                              #Make sure TYPESTRING and SCENE_DATA are coherent
+   dset$NI_head <- dset.attr( dset$NI_head, "TYPESTRING", 
+                              default = '3DIM_GEN_FUNC')
+   dset$NI_head <- dset.attr( dset$NI_head, "SCENE_DATA", 
+                        default = c(AFNI.view2viewtype(view),11,3, rep(0,5))) 
+
+         #The user options
+   if (!is.null(idcode)) dset$NI_head <- 
+                           dset.attr(dset$NI_head, "IDCODE_STRING", val=idcode)
+   if (!is.null(origin)) dset$NI_head <- 
+                           dset.attr(dset$NI_head, "ORIGIN", val=origin)
+   if (!is.null(delta)) dset$NI_head <- 
+                           dset.attr(dset$NI_head, "DELTA", val=delta)
+   if (!is.null(orient)) dset$NI_head <- 
+                           dset.attr(dset$NI_head, "ORIENT_SPECIFIC",
+                                    val = orcode.AFNI(orient))
+   if (!is.null(label)) dset$NI_head <- 
+                           dset.attr(dset$NI_head, "BRICK_LABS",
+                                    val = label);
+   if (!is.null(note)) dset$NI_head <- 
+                           dset.attr(dset$NI_head, "note",
+                                    val = note);
+   if (!is.null(statsym)) dset$NI_head <- 
+                           dset.attr(dset$NI_head, "statsym",
+                                    val = statsym);
+                                    
+   if (maskinf) {
+     if (verb) note.AFNI("Masking infs");
+     dset$brk[!is.finite(dset$brk)]=0
+   } 
+   
+   uopts = list( scale = scale, overwrite=overwrite, debug=verb,
+                 addFDR=addFDR, hist=com_hist);
+   dset$head <- unparse.c.AFNI.head(dset$NI_head)
+   rso <- .Call("R_THD_write_dset", name = as.character(filename), 
+                dset = as.list(dset), opts = uopts)
+   invisible(dset);
+}
+
 write.AFNI <- function( filename, brk=NULL, label=NULL, 
                         note=NULL, origin=NULL, delta=NULL,
                         orient=NULL, 
                         idcode=NULL, defhead=NULL,
                         verb = 0,
-                        maskinf=0, scale = TRUE) {
+                        maskinf=0, scale = TRUE, 
+                        meth='Rlib', addFDR=FALSE, 
+                        statsym=NULL, view="+tlrc",
+                        com_hist=NULL) {
   
+  an <- parse.AFNI.name(filename);
+  if (verb>1) {
+   show.AFNI.name(an);
+  }
+  
+  if (an$type == "1D" || an$type == "Rs" || an$type == "1Ds") {
+    return(write.AFNI.matrix(drop(brk), an$orig_name))
+  }
+  
+  if (meth == 'clib' || an$type == 'NIML' || class(brk) == "AFNI_c_dataset") {
+    return(write.c.AFNI(filename, dset=brk, label=label, 
+                        note=note, origin=origin, delta=delta,
+                        orient=orient, 
+                        idcode=idcode, defhead=defhead,
+                        verb = verb,
+                        maskinf=maskinf, scale = scale, addFDR=addFDR,
+                        statsym=statsym, view=view, com_hist=com_hist))
+  }
+
+  if (is.na(an$view)) {
+   err.AFNI('Bad filename for old writing method. Need view');
+   show.AFNI.name(an);
+   return(0)
+  }
+  
+  if (addFDR && verb) {
+   warn.AFNI("addFDR is not supported for AFNI_R_dataset structs");
+  }
+  if (!is.null(statsym) && verb) {
+   warn.AFNI("statsym is not supported for AFNI_R_dataset structs");
+  }
   #Call with brk if dset is sent in
-  if (class(brk) == "AFNI_dataset") {
+  if (class(brk) == "AFNI_R_dataset") {
      return(write.AFNI( filename, brk$brk, label, note, origin, delta, 
                         orient, idcode, defhead, verb, maskinf, scale)) 
   }
@@ -2349,11 +2940,13 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
   dim(brk) <- ddb
   
   if (is.null(defhead)) { # No default header
+     if (verb) note.AFNI("Have no default header");
      if (is.null(label)) label <- paste(c(1:ddb[4]),collapse='~');
      if (is.null(origin)) origin <- c(0,0,0)
      if (is.null(delta)) delta <- c(4,4,4)
      if (is.null(orient)) orient <- 'RAI'
   } else {  #When possible, call on default header
+     if (verb) note.AFNI("Have default header");
      if (is.null(label)) {
       if (!is.null(defhead$BRICK_LABS)) {
          label <- gsub("^'", '', defhead$BRICK_LABS);
@@ -2391,11 +2984,6 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
   if (verb) {
    note.AFNI("Writing header")
   }
-  an <- parse.AFNI.name(filename);
-  if (is.na(an$view)) {
-   err.AFNI('Bad filename');
-   return(0)
-  }
   conhead <- file(head.AFNI.name(an), "w")
   writeChar(AFNIheaderpart("string-attribute","HISTORY_NOTE",note),
             conhead,eos=NULL)
@@ -2427,6 +3015,10 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
   }
   
   mm <- minmax(brk)
+  if (verb) {
+   note.AFNI("minmax");
+   str(mm)
+  }
   writeChar(AFNIheaderpart("float-attribute","BRICK_STATS",mm),
             conhead,eos=NULL)
   writeChar(AFNIheaderpart("integer-attribute","DATASET_RANK",
@@ -2449,6 +3041,10 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
    } else {
       scale_fac <- rep(0,ddb[4])
    }
+   if (verb) {
+      note.AFNI("scaling factors:");
+      str(scale_fac);
+     }
   writeChar(AFNIheaderpart("float-attribute","BRICK_FLOAT_FACS",scale_fac),
             conhead,eos=NULL)  
   writeChar(AFNIheaderpart("string-attribute","BRICK_LABS",
@@ -2601,14 +3197,14 @@ read.NIFTI <- function(filename) {
   z <- list(brk=writeBin(as.numeric(brk),raw(),4),format="NIFTI",delta=header$pixdim[2:4],
                 origin=NULL,orient=NULL,dim=header$dimension[2:5],weights=weights,header=header,mask=mask)
 
-  class(z) <- "AFNI_dataset"
+  class(z) <- "AFNI_R_dataset"
 
   invisible(z)
 }
 
 extract.data <- function(z,what="data") {
-  if (!("AFNI_dataset"%in%class(z))) {
-    warning("extract.data: data not of class <AFNI_dataset>. Try to proceed but strange things may happen")
+  if (!("AFNI_R_dataset"%in%class(z)) || !("AFNI_c_dataset"%in%class(z))) {
+    warning("extract.data: data not of class <AFNI_[cR]_dataset>. Try to proceed but strange things may happen")
   }
   if (what=="residuals") {  
       if(!is.null(z$resscale)){

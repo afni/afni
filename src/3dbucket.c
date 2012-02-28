@@ -675,7 +675,6 @@ int main( int argc , char * argv[] )
       if( ! BUCK_dry ){
          DSET_load(dset) ;  CHECK_LOAD_ERROR(dset) ;
       }
-
       /** loop over sub-bricks to output **/
 
       for( iv=0 ; iv < nv ; iv++ ){

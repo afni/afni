@@ -12,23 +12,6 @@ if (1) {
       require(MASS)
    }
 }
-#And load R's libsvm 
-library("e1071")
-
-libLoad <- function(myLib) {
-   sucLoad <- FALSE
-   sucCheck <- FALSE
-   try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-   if (sucLoad) {
-      print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE
-   } else {
-	  	try(install.packages(myLib))
-      try(sucLoad <- library(myLib, character.only = TRUE, 
-                              logical.return = TRUE))
-      if (sucLoad) print(sprintf("Package %s successfully loaded...", myLib)) 
-   	}
-}
-
 
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
@@ -39,6 +22,9 @@ first.in.path <- function(file) {
 source(first.in.path('AFNIio.R'))
 source(first.in.path('Signatures.R'))
 source(first.in.path('AFNIplot.R'))
+
+#And load R's libsvm 
+libLoad("e1071")
 
 
 ExecName <- '3dSignatures'
