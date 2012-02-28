@@ -38,13 +38,13 @@ FuncName = 'GroupAna.m';
 %Debug Flag
 DBG = 1;
 
-% tolerance for numerical 0
-tol = 1.0e-4;
-
 %initailize return variables
 err = 1;
 
 clear all;
+
+% tolerance for numerical 0
+tol = 1.0e-4;
 
 fprintf('\nPlease read the following carefully about group analysis setup:\n');
 fprintf('\n\t1. If the resolution of your EPI data is near n millimeters, during Talairach conversion use\n');
@@ -1042,7 +1042,7 @@ if (NF == 1),
 			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-		if (abs(sum(Contr.ord1.cnt(i).coef)) < tol), 
+		if (abs(sum(Contr.ord1.cnt(i).coef)) > tol), 
 		   flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 		else flg0 = 1; end
       end
@@ -1089,7 +1089,7 @@ if (NF == 2),
 			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-		if (abs(sum(Contr.ord1.cnt(i).coef)) < tol), 
+		if (abs(sum(Contr.ord1.cnt(i).coef)) > tol), 
 		   flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 		else flg0 = 1; end
       end
@@ -1132,7 +1132,7 @@ if (NF == 2),
 			end
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-		if (abs(sum(Contr.ord2.cnt(i).coef)) < tol), 
+		if (abs(sum(Contr.ord2.cnt(i).coef)) > tol), 
 		   flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 		else flg0 = 1; end
       end
@@ -1185,7 +1185,7 @@ if (NF == 3 | NF == 4),
 			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-		if (abs(sum(Contr.ord1.cnt(i).coef)) < tol), 
+		if (abs(sum(Contr.ord1.cnt(i).coef)) > tol), 
 	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
    	else flg0 = 1; end
      end	
@@ -1229,7 +1229,7 @@ if (NF == 3 | NF == 4),
 			end
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-		if (abs(sum(Contr.ord2.cnt(i).coef)) < tol), 
+		if (abs(sum(Contr.ord2.cnt(i).coef)) > tol), 
 	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
    end  %flg0 = 0;
@@ -1275,7 +1275,7 @@ if (NF == 3 | NF == 4),
 			end
 			Contr.ord3.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-		if (abs(sum(Contr.ord3.cnt(i).coef)) < tol), 
+		if (abs(sum(Contr.ord3.cnt(i).coef)) > tol), 
 	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
       end  %flg0 = 0;
@@ -1327,7 +1327,7 @@ if (NF == 5),
 			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end  % for (j = 1:1:Contr.ord1.cnt(i).NT)
-		if (abs(sum(Contr.ord1.cnt(i).coef)) < tol), 
+		if (abs(sum(Contr.ord1.cnt(i).coef)) > tol), 
 	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
       end  %flg0 = 0;
@@ -1371,7 +1371,7 @@ if (NF == 5),
 			end  % while flg == 0
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end  % for (j = 1:1:Contr.ord2.cnt(i).NT)
-		if (abs(sum(Contr.ord2.cnt(i).coef)) < tol), 
+		if (abs(sum(Contr.ord2.cnt(i).coef)) > tol), 
 	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
       end  %flg0 = 0;
@@ -1416,7 +1416,7 @@ if (NF == 5),
 			end
 			Contr.ord3.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-		if (abs(sum(Contr.ord3.cnt(i).coef)) < tol), 
+		if (abs(sum(Contr.ord3.cnt(i).coef)) > tol), 
 	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
       end  %flg0 = 0;
@@ -1460,7 +1460,7 @@ if (NF == 5),
 			end
 			Contr.ord4.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-		if (abs(sum(Contr.ord4.cnt(i).coef)) < tol), 
+		if (abs(sum(Contr.ord4.cnt(i).coef)) > tol), 
 	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
       end  %flg0 = 0;
