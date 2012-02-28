@@ -49,7 +49,7 @@ CCOLD  = /usr/bin/gcc -V 32 -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DL
 
 # CCFAST = /usr/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 $(CEXTRA)
 
-CCMIN  = /usr/bin/gcc -m64 $(CPROF)
+CCMIN  = /usr/bin/gcc -m64 -fPIC $(CPROF)
 CCD    = $(CC) $(CCDEBS)
 
 IFLAGS = -I. $(XROOT_I) -I/usr/include

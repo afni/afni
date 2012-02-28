@@ -27,7 +27,7 @@ CCFAST = /usr/bin/gcc -O2 -ffast-math -fPIC -DREAD_WRITE_64 -DLINUX2 -DNO_GAMMA 
 
 # CCFAST = /usr/bin/gcc -O3 -ffast-math -fPIC -msse -mfpmath=sse -DREAD_WRITE_64 -DLINUX2 -DNO_GAMMA $(CEXTRA)
 
-CCMIN  = /usr/bin/gcc $(CPROF)
+CCMIN  = /usr/bin/gcc -fPIC $(CPROF)
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 
