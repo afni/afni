@@ -1,5 +1,6 @@
 #include "mrilib.h"
 #include "r_new_resam_dset.h"
+#include "thd_incorrelate.c"
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -2981,6 +2982,9 @@ static float       *Hpar        = NULL ; /* params for warp */
 static float       *Hwval       = NULL ; /* warped image values */
 static MRI_IMAGE   *Hsrcim      = NULL ; /* source image to warp */
 static IndexWarp3D *Haawarp     = NULL ; /* initial warp we are modifying */
+static void        *Hincor      = NULL ; /* INCOR 'correlation' struct */
+
+/*----------------------------------------------------------------------------*/
 
 double IW3D_scalar_costfun( int npar , double *dpar )
 {
@@ -3010,10 +3014,21 @@ void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim 
 {
    MRI_IMAGE *warpim ;
    int nxb,nyb,nzb , nxs,nys,nzs , nxh,nyh,nzh ;
+   float *bar , *sar , *war ;
+
+ENTRY("IW3D_improve_warp") ;
 
    /*- check for bad inputs -*/
 
-   if( basim == NULL || srcim == NULL || wsrcim == NULL || AA == NULL ) return ;
+   if( basim == NULL ||  basim->kind != MRI_float ||
+       srcim == NULL ||  srcim->kind != MRI_float ||
+      wsrcim == NULL || wsrcim->kind != MRI_float || AA == NULL ){
+     ERROR_message("IW3D_improve_warp: bad inputs") ;
+     EXRETURN ;
+   }
+   bar = MRI_FLOAT_PTR(basim) ;
+   sar = MRI_FLOAT_PTR(srcim) ;
+   war = MRI_FLOAT_PTR(wsrcim) ;
 
    nxb = basim->nx ; nyb = basim->ny ; nzb = basim->nz ;  /* size of base image */
    nxs = srcim->nx ; nys = srcim->ny ; nzs = srcim->nz ;  /* size of src image */
@@ -3024,7 +3039,7 @@ void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim 
 
    nxh = itop-ibot+1 ; nyh = jtop-jbot+1 ; nzh = ktop-kbot+1 ;
    flags = IW3D_munge_flags(nxh,nyh,nzh,flags) ;
-   if( flags < 0 ) return ;  /* nuthin to do */
+   if( flags < 0 ) EXRETURN ;  /* nuthin to do */
 
    Hibot = ibot ; Hitop = itop ;  /* save range of the patch we're working on */
    Hjbot = jbot ; Hjtop = jtop ;
@@ -3044,7 +3059,7 @@ void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim 
      case MRI_QUINTIC:
        Hnpar   = 81 ;
        Hloader = HQwarp_load ;
-       HQwarp_setup_basis( nxh , nyh , nzh , flags ) ;
+       HQwarp_setup_basis( nxh,nyh,nzh, flags ) ;
      break ;
    }
 
@@ -3058,4 +3073,7 @@ void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim 
    FREEIFNN(Hwval) ; Hwval = (float *)malloc(sizeof(float)*nxh*nyh*nzh) ;
 
    Hsrcim = srcim ; Haawarp = AA ; /* save image we are warping, initial warp */
+
+   INCOR_destroy(Hincor) ;
+   Hincor = INCOR_create( match_code , NULL ) ;
 }
