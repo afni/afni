@@ -120,12 +120,10 @@ ENTRY("INCOR_2Dhist_minmax") ;
       - Histogram can be retrieved by retrieve_2Dhist() and can be
         erased by clear_2Dhist()
       - Default number of equal-spaced bins in each direction is n^(1/3)
-        - the exponent can be changed with set_2Dhist_hpower()
-        - you can set the number of bins with set_2Dhist_hbin()
-        - you can set unequal bins with set_2Dhist_xybin()
-      - x[] values outside the range xbot..xtop (inclusive) or outside
-        the unequal bins set in set_2Dhist_xybin() (if applicable) will
-        not be used in the histogram; mutatis mutandum for y[]
+        - the exponent can be changed with INCOR_set_2Dhist_hpower()
+        - you can set the number of bins with INCOR_set_2Dhist_hbin()
+      - x[] values outside the range xbot..xtop (inclusive) will not be
+        used in the histogram; mutatis mutandum for y[]
 *//*------------------------------------------------------------------------*/
 
 static void INCOR_addto_2Dhist( INCOR_2Dhist *tdh , int n ,
@@ -544,7 +542,7 @@ void INCOR_set_2Dhist_hpower( double hh )
 }
 
 static int nhbin = 0 ;
-void set_2Dhist_hbin( int nn ){ nhbin = nn; }
+void INCOR_set_2Dhist_hbin( int nn ){ nhbin = nn; }
 
 int INCOR_2Dhist_compute_nbin( int ndata )
 {
