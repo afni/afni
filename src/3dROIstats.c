@@ -128,6 +128,8 @@ void usage_3dROIstats(int detail) {
 "  -summary      Only output a summary line with the grand mean \n"
 "                across all briks in the input dataset. \n"
 "                This option cannot be used with -nomeanout.\n"
+"  -mode       Compute the mode of all voxels. (integral valued sets only)\n"
+"  -nzmode     Compute the mode of non_zero voxels.\n"
 "\n"
 "The output is printed to stdout (the terminal), and can be\n"
 "saved to a file using the usual redirection operation '>'.\n"
@@ -163,7 +165,8 @@ int main(int argc, char *argv[])
     short *temp_datas;
     double *percentile=NULL;
     float *fv = NULL;
-    int nfv = 0, perc = 0, nzperc = 0;
+    int *iv=NULL, niv=0, *modes=NULL;
+    int nfv = 0, perc = 0, nzperc = 0, mode = 0, nzmode=0;
     int nobriklab=0 ;  /* 14 Mar 2008 */
     int disp1d=1;   /* ZSS May 2008 */
     byte *roisel=NULL;
@@ -284,11 +287,27 @@ int main(int argc, char *argv[])
 	    narg++;
 	    continue;
 	}
-       if (strncmp(argv[narg], "-nzmedian", 9) == 0) {
+   if (strncmp(argv[narg], "-nzmedian", 9) == 0) {
 	    if (perc) {
              Error_Exit("nzperc cannot be used with perc");
             }
             nzperc = 1;
+	    narg++;
+	    continue;
+	}
+   if (strcmp(argv[narg], "-mode") == 0) {
+	    if (nzmode) {
+             Error_Exit("mode cannot be used with nzmode");
+            }
+            mode = 1;
+	    narg++;
+	    continue;
+	}
+   if (strcmp(argv[narg], "-nzmode") == 0) {
+	    if (mode) {
+             Error_Exit("nzmode cannot be used with mode");
+            }
+            nzmode = 1;
 	    narg++;
 	    continue;
 	}
@@ -525,6 +544,12 @@ int main(int argc, char *argv[])
       if (donzsum) {
          fprintf(stdout, "\tNZSum_%s ", sklab);
       }
+      if (mode) {
+         fprintf(stdout, "\tMod_%s ", sklab);
+      }
+      if (nzmode) {
+         fprintf(stdout, "\tNZMod_%s ", sklab);
+      }
 	    }
 	}
     /* load the non_zero array if the numROI option used - 5/00 */
@@ -561,6 +586,12 @@ int main(int argc, char *argv[])
       }
       if (donzsum) {
          fprintf(stdout, "\tNZSum_%s ", sklab );
+      }
+      if (mode) {
+         fprintf(stdout, "\tMod_%s ", sklab );
+      }
+      if (nzmode) {
+         fprintf(stdout, "\tNZMod_%s ", sklab );
       }
 	    }
 	}
@@ -731,7 +762,9 @@ int main(int argc, char *argv[])
 			sumsq[ROI] += input_data[i] * input_data[i];
 		}
 	    }
-       /* do the damned median, simple, not fastest implementation but good enough*/
+       
+       /* do the damned median, simple, not fastest implementation 
+          but good enough*/
        if (perc || nzperc) {
          percentile = (double *)malloc(sizeof(double)*num_ROI);
          fv = (float *)malloc(sizeof(float)*nvox);
@@ -756,6 +789,41 @@ int main(int argc, char *argv[])
          } /* ROI */
          free(fv); fv = NULL;
 	    }
+       
+       /* do the mode */
+       if (mode || nzmode) {
+         modes = (int *)malloc(sizeof(int)*num_ROI);
+         iv = (int *)malloc(sizeof(int)*nvox);
+         if (!iv || !modes) {
+            Error_Exit("Failed to allocate for iv");
+         }
+         for (ROI=0; ROI < num_ROI; ++ROI){ /* ROI */
+            memset(iv, 0, sizeof(int)*nvox);
+            niv = 0;
+            for (i = 0; i < nvox; i++) { /* i */
+               if (mask_data[i] && ROI == non_zero[mask_data[i] + 32768]) {
+                  if (mode) {
+                     iv[niv] = (int)input_data[i]; ++niv;
+                  } else { /* non zero only */
+                     if (input_data[i] != 0.0) {
+                        iv[niv] = (int)input_data[i]; ++niv;
+                     }
+                  }
+               }
+            }/* i */
+            /* get the mode */
+            if (niv) {
+               modes[ROI] = qmode_int( iv, niv) ;
+            } else {
+               WARNING_message("ROI %d has no values in it, mode set to 0\n",
+                              ROI);
+               modes[ROI] = 0;
+            }
+         } /* ROI */
+         free(iv); iv = NULL;
+	    }
+       
+       
 
        /* print the next line of results */
 	    if (!quiet && !summary){
@@ -816,6 +884,9 @@ int main(int argc, char *argv[])
          if (donzsum) {
              fprintf(stdout, "\t%f", nzsum[i]);
 		   }
+         if (mode || nzmode) {
+			    fprintf(stdout, "\t%d", modes[i] );
+			}
           } else {	/* no voxels, so just leave blanks */
 			if (mean) fprintf(stdout, "\t%s", zerofill);
 			if (nzmean)
@@ -838,7 +909,9 @@ int main(int argc, char *argv[])
 			    fprintf(stdout, "\t%s", zerofill);
          if (donzsum)
              fprintf(stdout, "\t%s", zerofill);
-		    }
+		   if (mode || nzmode)
+			    fprintf(stdout, "\t%s", zerofill); 
+          }
 		}		/* loop over ROI for print */
 
 		fprintf(stdout, "\n");
@@ -891,6 +964,9 @@ int main(int argc, char *argv[])
 	free(nzsumsq);
     if (perc || nzperc) {
 	if (percentile) free(percentile); percentile = NULL;
+	 }
+    if (mode || nzmode) {
+	if (modes) free(modes); modes = NULL;
 	 }
     if (roisel) free(roisel); roisel=NULL;
     exit(0);

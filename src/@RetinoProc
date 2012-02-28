@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/bin/tcsh -f
 
 
 if ($#argv) then
@@ -106,11 +106,11 @@ COPY_EPI_RUNS:
             if ( $tshift >= 0) then
          echo "Tshifting and copying epi run$dset\[$Nignore-\] to $rdir/$pndset"
                3dTshift -tzero $tshift -overwrite \
-                     -prefix $rdir/$pndset \
+                     -prefix $rdir/$pndset+orig \
                      $dset'['$Nignore'-$]'
             else
                echo "Copying epi run $dset\[$Nignore-\] to $rdir/$pndset"
-               3dTcat -prefix $rdir/$pndset $dset'['$Nignore'-$]'
+               3dTcat -prefix $rdir/$pndset+orig $dset'['$Nignore'-$]'
             endif
          else
             echo "Reusing $rdir/$pndset"
@@ -281,6 +281,7 @@ SET_POLORT:
       if ($kk > $nts_max) set nts_max = $kk
    end
    set polort = `ccalc -form fint -eval "1 + $TR*$nts_max/150"`
+   set ort_adjust = $polort
    cd $idir
 
 DETREND:
@@ -296,7 +297,10 @@ DETREND:
                      $s
       else
          echo "Reusing existing detrended version ${p}.b01+orig.HEAD"
-      endif 
+      endif
+      set nvr = 0
+      if ( -f ${p}.vr.1D ) set nvr = `3dinfo -nv ${p}.vr.1D` 
+      set ort_adjust = `ccalc -form int -eval "$polort+$nvr"`
    end
    cd $idir         
    
@@ -485,7 +489,7 @@ foreach sd ($sides)
          POLAR_BLOCK:
          if ("$pmeth" == "DELAY") then
             set RetOpt = \
-               '-phase_estimate DELAY -multi_ref_ts POL.1D -ort_adjust $polort'
+      '-phase_estimate DELAY -multi_ref_ts POL.1D -ort_adjust $ort_adjust'
          else
             set RetOpt = '-phase_estimate FFT'
          endif
@@ -528,7 +532,7 @@ foreach sd ($sides)
          ECC_BLOCK:
          if ("$pmeth" == "DELAY") then
             set RetOpt = \
-               '-phase_estimate DELAY -multi_ref_ts ECC.1D -ort_adjust $polort'
+      '-phase_estimate DELAY -multi_ref_ts ECC.1D -ort_adjust $ort_adjust'
          else
             set RetOpt = '-phase_estimate FFT'
          endif

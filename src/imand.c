@@ -7,8 +7,6 @@
 #include "mrilib.h"
 #include <string.h>
 
-#define ABS(x)  ( ((x)>=0) ? (x) : (-(x)) )
-
 int main( int argc , char * argv[] )
 {
    MRI_IMAGE *imin , *imout ;

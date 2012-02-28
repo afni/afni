@@ -74,7 +74,8 @@ int NI_write_procins( NI_stream_type *ns , char *str )
 /*--------------------------------------------------------------------*/
 
 static int read_header_only = 0 ;
-void NI_read_header_only( int r ){ read_header_only=r ; } /* 23 Mar 2003 */
+void NI_set_read_header_only( int r ){ read_header_only=r ; } /* 23 Mar 2003 */
+int NI_get_read_header_only( void ){ return(read_header_only); }/*ZSS Feb 2012 */
 
 static int skip_procins = 0 ;
 void NI_skip_procins( int r ){ skip_procins = r ; }       /* 03 Jun 2005 */
@@ -327,7 +328,6 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
       destroy_header_stuff( hs ) ;
 
       /*-- check if this is an empty element --*/
-
       if( nel           == NULL ||     /* nel == NULL should never happen. */
           nel->vec_rank == 0    ||     /* These other cases are indication */
           nel->vec_num  == 0    ||     /* that this is an 'empty' element. */
@@ -365,7 +365,6 @@ NI_dpr("NI_read_element: returning empty element\n") ;
       swap = 0 ;            /* and (obviously) don't byte swap */
 
       ii = string_index( "ni_form" , nel->attr_num , nel->attr_lhs ) ;
-
       if( ii >= 0 && nel->attr_rhs[ii] != NULL ){ /* parse ni_form=rhs */
 
          /* binary or base64 mode? */
@@ -397,7 +396,6 @@ NI_dpr("NI_read_element: returning empty element\n") ;
                              nel->vec_len, nel->vec    , form, ii );
 
       nel->vec_filled = (row >= 0) ? row : 0 ;
-
       /* 27 Mar 2003: allow for case where vec_len is
                       inferred from how much data we read */
 
@@ -1474,7 +1472,7 @@ void * NI_read_element_fromstring( char *nstr )
 /*------------------------------------------------------------------------*/
 /*! Write one element to a string.  [Oct 2011 ZSS, based on Bob's]
 --------------------------------------------------------------------------*/
-char * NI_write_element_tostring( NI_element *nel )
+char * NI_write_element_tostring( void *nel )
 {
    NI_stream ns ;
    char *stout ;

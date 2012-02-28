@@ -24,7 +24,7 @@
 #include <string.h>
 #include <math.h>
 
-#define SIGN(a, b) ( (b) < 0 ? -fabs(a) : fabs(a) )
+#define SIGN2(a, b) ( (b) < 0 ? -fabs(a) : fabs(a) )
 
 /**************************************************************************/
 
@@ -438,7 +438,7 @@ for (l = 1; l <= n; l++)
              if (iter++ == 30) erhand("No convergence in TLQI.");
              g = (d[l+1] - d[l]) / (2.0 * e[l]);
              r = sqrt((g * g) + 1.0);
-             g = d[m] - d[l] + e[l] / (g + SIGN(r, g));
+             g = d[m] - d[l] + e[l] / (g + SIGN2(r, g));
              s = c = 1.0;
              p = 0.0;
              for (i = m-1; i >= l; i--)

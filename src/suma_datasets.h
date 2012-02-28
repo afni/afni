@@ -217,6 +217,8 @@ typedef struct {
    int OnDisk;
    char *HeadName;
    char *BrikName;
+   char *NameAsParsed;
+   char *cwdAsParsed;
 }SUMA_PARSED_NAME;
 
 
@@ -1609,6 +1611,7 @@ void WorkErrLog_ns(void);
 SUMA_FileName SUMA_StripPath (char *FileName);
 SUMA_DSET_FORMAT SUMA_FormatFromFormString(char *arg);
 SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *cwd);
+SUMA_PARSED_NAME * SUMA_DuplicateParsedName(SUMA_PARSED_NAME *pn);
 SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn, 
                                           char *what, char *val);
 char * SUMA_ModifyName(char *name, char *what, char *val, char *cwd);

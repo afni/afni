@@ -455,6 +455,14 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO,
             SUMA_RETURN (NOPE);
          }
          break;
+      case SUMA_PREDEFINED:
+         if (!SUMA_GIFTI_Write ((char *)F_name, SO, SUMA_ASCII)) {
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to write predefined GIFTI surface.\n"
+                     , FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         break;
       case SUMA_FT_NOT_SPECIFIED:
       default:
          fprintf (SUMA_STDERR, "Error %s: Bad surface type.\n", FuncName);
@@ -763,6 +771,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
    SUMA_FreeSurfer_struct *FS;
    SUMA_SO_File_Type gSO_FT;
    char *tname=NULL;
+   int i1=0, par=0;
    SUMA_SurfaceObject *SO;
    
    SUMA_Boolean LocalHead = NOPE;
@@ -821,6 +830,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       case SUMA_BYU:
          break;
       case SUMA_GIFTI:
+         break;
+      case SUMA_PREDEFINED:
          break;
       default:
          SUMA_error_message(FuncName, "SO_FileType not supported", 0);
@@ -934,6 +945,47 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          }
 
          SO->normdir = -1;  /* negative */
+         break;
+     case SUMA_PREDEFINED:
+         i1 = SUMA_is_predefined_SO_name((char *)SO_FileName_vp, &par);
+         switch(i1) {
+            case 1:
+               SO = SUMA_CreateIcosahedron(30, par, NULL, "n", 1);
+               break;
+            case 2:
+               SO = SUMA_CreateIcosahedron(30, par, NULL, "y", 1);
+               break;
+            case 0:
+               break;
+            default:
+               SUMA_S_Errv("Not ready for typ %d on %s\n",
+                           i1, (char *)SO_FileName_vp);
+               SUMA_RETURN(NULL);         
+               break;
+         }
+         SO->Name = SUMA_StripPath((char *)SO_FileName_vp);
+         SO->FileType = SUMA_PREDEFINED;
+         /* change coordinates to align them with volparent data set, 
+            if possible */
+         if (VolParName != NULL) {
+            SO->VolPar = SUMA_VolPar_Attr (VolParName);
+            if (SO->VolPar == NULL) {
+               fprintf(SUMA_STDERR,
+                        "Error %s: Failed to load parent volume attributes.\n", 
+                        FuncName);
+            } else {
+
+            if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
+               else {
+                  SO->SUMA_VolPar_Aligned = YUP;
+                  /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
+               }
+         }
+         } else { 
+            SO->SUMA_VolPar_Aligned = NOPE;
+         }
+
+         SO->normdir = 1;  
          break;
          
      case SUMA_BRAIN_VOYAGER:
@@ -3054,7 +3106,7 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
       brk = YUP;
    } /* load MNI_OBJ format surface */
 
-   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "OpenDX") == 1) {/* load SUMA_OPENDX_MESH format surface */
+   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "OpenDX") == 1) {
 
       SO = SUMA_Load_Surface_Object_eng ((void *)Spec->SurfaceFile[i], SUMA_OPENDX_MESH, SUMA_ASCII, tmpVolParName, debug);
 
@@ -3064,7 +3116,19 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
       }
       SurfIn = YUP;
       brk = YUP;
-   } /* load Ply format surface */
+   } /* load OpenDX format surface */
+   
+   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "Predefined") == 1) {
+
+      SO = SUMA_Load_Surface_Object_eng ((void *)Spec->SurfaceFile[i], 
+                     SUMA_PREDEFINED, SUMA_ASCII, tmpVolParName, debug);
+      if (SO == NULL)   {
+         fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
+         SUMA_RETURN(NULL);
+      }
+      SurfIn = YUP;
+      brk = YUP;
+   } 
    
    if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "BrainVoyager") == 1) {
       /* load BrainVoyager format surface */
@@ -4288,6 +4352,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_OPENDX_MESH:
       case SUMA_BYU:
       case SUMA_GIFTI:
+      case SUMA_PREDEFINED:
       case SUMA_MNI_OBJ:
       case SUMA_PLY:
          if (MitPath) 
@@ -4314,6 +4379,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_OPENDX_MESH:
       case SUMA_BYU:
       case SUMA_GIFTI:
+      case SUMA_PREDEFINED:
       case SUMA_MNI_OBJ:
       case SUMA_BRAIN_VOYAGER:
          if (MitPath) sprintf(Name,"%s%s", SO->Name.Path, SO->Name.FileName);
@@ -4360,6 +4426,7 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
       case SUMA_PLY:
       case SUMA_BYU:
       case SUMA_MNI_OBJ:
+      case SUMA_PREDEFINED:
       case SUMA_BRAIN_VOYAGER:
          if (  SUMA_iswordin (SO->Name.FileName, ".white") == 1 || 
                SUMA_iswordin (SO->Name.FileName, ".smoothwm") == 1 ||
@@ -4474,6 +4541,7 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
       case SUMA_OPENDX_MESH:
       case SUMA_BYU:
       case SUMA_MNI_OBJ:
+      case SUMA_PREDEFINED:
       case SUMA_PLY:
          if (SUMA_iswordin (SO->Name.FileName, "lh") == 1 ||
              SUMA_iswordin (SO->Name.FileName, "left") == 1) {
@@ -4572,6 +4640,11 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
          case SUMA_OPENDX_MESH:
          case SUMA_MNI_OBJ:
          case SUMA_PLY:
+            break;
+         case SUMA_PREDEFINED:
+            if (  !strncmp(SO->Name.FileName, "ld",2) ) {
+               isSphere = SUMA_GEOM_SPHERE;
+            } 
             break;
          case SUMA_GIFTI:
             if (SO->aSO) {
@@ -5031,10 +5104,41 @@ char * SUMA_coord_file( SUMA_SurfSpecFile * spec, int index )
     }
 }
 
+/*!
+   return 1 if ld# surface, par takes #
+          2 if rd# surface, par takes #
+          0 not a prededined surface name
+*/
+int SUMA_is_predefined_SO_name(char *name, int *par) 
+{
+   static char FuncName[]={"SUMA_is_predefined_SO_name"};
+   int ldv = 0;
+   
+   SUMA_ENTRY;
+   
+   if (!name) SUMA_RETURN(0);
+   
+   if (  (!strncmp(name,"ld",2) || !strncmp(name,"rd",2)) &&
+         strlen(name) <= 5 ) {
+         ldv = (int)atoi(name+2);
+         if (name[0]=='r' && ldv >= 0 && ldv <=100) {
+            if (par) *par = ldv;
+            SUMA_RETURN(2);  
+         }
+         if (name[0]=='l' && ldv >= 0 && ldv <=1000) {
+            if (par) *par = ldv;
+            SUMA_RETURN(1);  
+         }
+   }
+
+   SUMA_RETURN(0);
+}
 
 #define SUMA_CHECK_INPUT_SURF(name, topo, ok) {  \
    ok = 0;  \
-   if (SUMA_filexists(name)) {   \
+   if (SUMA_is_predefined_SO_name(name, NULL)) {\
+      ok = 1; \
+   } else if (!SUMA_filexists(name)) {   \
       if  (!(topo)) { ok = 1; }   \
       else { if (SUMA_filexists(topo)) {ok = 1;}  } \
    } \

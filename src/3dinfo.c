@@ -129,6 +129,12 @@ void Syntax(void)
 "   -same_all_grid: Equivalent to listing all of -same_dim -same_delta\n"
 "                   -same_orient, -same_center, and -same_obl on the \n"
 "                   command line.\n"
+"   -val_diff: Output the sum of absolute differences of all voxels in the\n"
+"              dataset pair.\n"
+"   -sval_diff: Same as -val_diff, but the sum is divided (scaled) by the \n"
+"               total number of voxels that are not zero in at least one\n"
+"               of the two datasets.\n"
+"\n"
 "   -monog_pair: Instead of pairing each dset with the first, pair each\n"
 "                couple separately. This requires you to have an even\n"
 "                number of dsets on the command line\n"
@@ -193,7 +199,7 @@ typedef enum {
    TR, HEADER_NAME, BRICK_NAME, ALL_NAMES,
    HISTORY, ORIENT,
    SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER, 
-   SAME_OBL, SAME_ALL_GRID, ID, SMODE,
+   SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, ID, SMODE,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
@@ -213,7 +219,7 @@ char Field_Names[][32]={
    {"TR"}, {"hdr_nm"}, {"brk_nm"}, {"all_nms"},
    {"hist"}, {"orient"},
    {"=grid?"}, {"=dim?"}, {"=delt?"}, {"=ornt?"}, {"=cent?"},
-   {"=obl?"}, {"=dim_delta_orient_center_obl"}, 
+   {"=obl?"}, {"sDval"}, {"Dval"}, {"=dim_delta_orient_center_obl"}, 
    {"id"}, {"smode"}, 
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
 
@@ -243,7 +249,8 @@ char *PrintForm(INFO_FIELDS sing , int namelen, byte ForHead)
    if (N_ii > 1 && ii < N_ii-1) fprintf(stdout,"%s",atrdelim);  \
    else fprintf(stdout,"\n"); \
 }
-     
+
+   
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset=NULL;
@@ -434,6 +441,10 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = SAME_CENTER; needpair = 1; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-same_obl") == 0) {
          sing[N_sing++] = SAME_OBL; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-sval_diff") == 0) {
+         sing[N_sing++] = SVAL_DIFF; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-val_diff") == 0) {
+         sing[N_sing++] = VAL_DIFF; needpair = 1; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-same_all_grid") == 0) {
          sing[N_sing++] = SAME_DIM;
          sing[N_sing++] = SAME_DELTA;
@@ -877,6 +888,12 @@ int main( int argc , char *argv[] )
          case SAME_OBL:
             fprintf(stdout,"%d",
                !(THD_dataset_mismatch( dset , dsetp ) & MISMATCH_OBLIQ));
+            break;
+         case SVAL_DIFF:
+            fprintf(stdout,"%f",THD_diff_vol_vals(dset, dsetp, 1));
+            break;
+         case VAL_DIFF:
+            fprintf(stdout,"%f",THD_diff_vol_vals(dset, dsetp, 0));
             break;
          case ID:
             fprintf(stdout,"%s", DSET_IDCODE_STR(dset));

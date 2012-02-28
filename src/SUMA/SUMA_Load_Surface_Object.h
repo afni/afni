@@ -1,7 +1,7 @@
 #ifndef SUMA__INCLUDED
 #define SUMA__INCLUDED
 
-
+int SUMA_is_predefined_SO_name(char *name, int *par);
 SUMA_Boolean SUMA_AllocSpecFields (SUMA_SurfSpecFile *Spec);
 SUMA_Boolean SUMA_FreeSpecFields (SUMA_SurfSpecFile *Spec);
 SUMA_SurfaceObject * SUMA_Load_Spec_Surf(

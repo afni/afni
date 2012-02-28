@@ -832,7 +832,7 @@ typedef struct _state {
 #ifdef ABS
 #undef ABS
 #endif
-#define ABS(x) (((x)<0) ? (-x) : (x))
+#define ABS(x) (((x)<0) ? (-(x)) : (x))
 
 #define USE_STATIC_TRELLIS
 #ifdef USE_STATIC_TRELLIS

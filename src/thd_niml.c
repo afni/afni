@@ -324,7 +324,7 @@ void * read_niml_file( char * fname, int get_data )
     NI_stream    ns;
     NI_element * nel;
     char       * nname;
-
+    int read_head_only_state=0;
 ENTRY("read_niml_file");
 
     if( !fname || !*fname )
@@ -351,9 +351,10 @@ ENTRY("read_niml_file");
       NI_stream_setbufsize(ns,MY_BUFSIZE) ;
 
     /* read the file */
-    NI_skip_procins(1);  NI_read_header_only(!get_data);
+    read_head_only_state = NI_get_read_header_only();
+    NI_skip_procins(1);  NI_set_read_header_only(!get_data);
     nel = NI_read_element(ns, 333);
-    NI_skip_procins(0);  NI_read_header_only(get_data);
+    NI_skip_procins(0);  NI_set_read_header_only(read_head_only_state);
 
     /* close the stream */
     NI_stream_close(ns);

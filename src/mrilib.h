@@ -613,6 +613,9 @@ static int MRI_mm ;
                         (MRI_mm==3||MRI_mm==4) ? (a) :                   \
                         (MRI_mm==7||MRI_mm==0) ? (b) : (c) )
 
+#define ABS(a) ( (a) < 0 ? (-(a)):(a) )
+#define SIGN(a) ( (a) < 0 ? -1:1 )
+
 /*! Order-statistic filter of 3. */
 
 #define OSFSUM(p,q,r) (0.70*(p)+0.15*((q)+(r)))

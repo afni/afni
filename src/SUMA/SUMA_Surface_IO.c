@@ -70,6 +70,13 @@ SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_n
          SO = SUMA_Load_Surface_Object (  SO_name, SUMA_OPENDX_MESH, 
                                           SUMA_ASCII, sv_name);
          break;  
+      case SUMA_PREDEFINED:
+         SO_name = (void *)if_name; 
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,"Creating %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (  SO_name, SUMA_PREDEFINED, 
+                                          SUMA_ASCII, sv_name);
+         break;  
       case SUMA_PLY:
          SO_name = (void *)if_name; 
          if (debug > 0) 
@@ -165,6 +172,9 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
          break;
       case SUMA_GIFTI:
          noex  =  SUMA_Extension(Name,".gii" , YUP); 
+         break;
+      case SUMA_PREDEFINED:
+         noex = SUMA_copy_string(Name);
          break;
       default:
          /* do nothing, 
@@ -344,6 +354,7 @@ void * SUMA_Prefix2SurfaceName ( char *prefix_in, char *path, char *vp_name,
          else *exists = NOPE;
          break;
       case SUMA_GIFTI:
+      case SUMA_PREDEFINED:
          SO_name = (void *)SUMA_append_string(ppref,".gii"); 
          if (SUMA_filexists((char*)SO_name)) *exists = YUP;
          else *exists = NOPE;
