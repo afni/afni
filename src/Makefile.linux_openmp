@@ -51,7 +51,7 @@ CCOLD  = /usr/bin/gcc -V 34 -O2 -m32 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DL
 # CCFAST = /usr/bin/gcc -O3 -m32 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 $(CEXTRA)
 
 OMPFLAG = -fopenmp -DUSE_OMP
-CCMIN  = /usr/bin/gcc -m32 $(CPROF)
+CCMIN  = /usr/bin/gcc -m32 -fPIC $(CPROF)
 CCD    = $(CC) $(CCDEBS)
 
 IFLAGS = -I. $(XROOT_I) -I/usr/include
