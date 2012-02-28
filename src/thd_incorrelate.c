@@ -795,7 +795,7 @@ ENTRY("INCOR_destroy") ;
 
    if( vp == NULL ) EXRETURN ;
 
-   switch( INCOR_methcod(vp) ){
+   switch( INCOR_methcode(vp) ){
 
      case GA_MATCH_PEARSON_SCALAR:
        INCOR_destroy_incomplete_pearson(vp) ;
