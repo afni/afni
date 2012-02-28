@@ -19,7 +19,7 @@ CCFAST = cc $(CC_G5) -DDARWIN $(CEXTRA)
 # CCFAST = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
 CC     = $(CCFAST)
 CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
-CCMIN  = cc
+CCMIN  = cc -fPIC 
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 

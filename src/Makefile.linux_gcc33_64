@@ -27,7 +27,7 @@ CCOLD  = $(CC)
 
 # CCFAST = /usr/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 $(CEXTRA)
 
-CCMIN  = /usr/bin/gcc -m64 $(CPROF)
+CCMIN  = /usr/bin/gcc -m64 -fPIC $(CPROF)
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include $(I_USE_ACML)
 LFLAGS = -L. -L/usr/X11R6/lib64 $(L_USE_ACML)
