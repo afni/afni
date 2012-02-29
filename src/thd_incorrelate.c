@@ -744,7 +744,7 @@ static float INCOR_incomplete_pearson( INCOR_pearson *inpear )
 
 void * INCOR_create( int meth , floatvec *mpar )
 {
-   void *vinc ;
+   void *vinc = NULL;
 
 ENTRY("INCOR_create") ;
 
