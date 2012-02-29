@@ -99,14 +99,21 @@ void WorkErrLog_s(void)
 */
 SUMA_DSET * SUMA_FindDset_s (char *idcode, DList *DsetList)
 {
-   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, NULL);
+   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, NULL, NULL);
    WorkErrLog_s();
    return(dset);
 }
+SUMA_DSET * SUMA_FindDset2_s (char *idcode, DList *DsetList, char *itype)
+{
+   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, NULL, itype);
+   WorkErrLog_s();
+   return(dset);
+}
+
 DListElmt * SUMA_FindDsetEl_s (char *idcode, DList *DsetList)
 {
    DListElmt *el=NULL;
-   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, &el);
+   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, &el, NULL);
    WorkErrLog_s();
    return(el);
 }
@@ -197,11 +204,34 @@ SUMA_DSET *SUMA_LoadDset_s (char *Name, SUMA_DSET_FORMAT *form, int verb)
    - Be careful, this function will not change the idcode of the
    dataset being written. You'll have to do that manually.
 */
-char * SUMA_WriteDset_s (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int overwrite, int verb) 
+char * SUMA_WriteDset_s (char *Name, SUMA_DSET *dset, 
+                         SUMA_DSET_FORMAT form, int overwrite, int verb) 
 {
-   char *c=SUMA_WriteDset_eng (Name, dset, form, overwrite, verb);
+   char *c=SUMA_WriteDset_eng (Name, dset, form, overwrite, verb, 1);
    WorkErrLog_s();
    return(c);
+} 
+
+char *SUMA_WriteDset_PreserveID(char *fn, SUMA_DSET *dset, 
+                               SUMA_DSET_FORMAT oform, int overwrite,
+                               int verb) {
+   static char FuncName[]={"SUMA_WriteDset_PreserveID"};
+   char *ofn=NULL, *oid=NULL, *fno=NULL;
+   
+   SUMA_ENTRY;
+   /* save old id and filename*/
+   ofn = SUMA_copy_string(SDSET_FILENAME(dset));
+   oid = SUMA_copy_string(SDSET_ID(dset));
+   /* change its ID before writing */
+   SUMA_NewDsetID2(dset,fn);
+   fno = SUMA_WriteDset_eng (fn, dset, oform, overwrite, verb, 1);
+   /* put old ID back */
+   NI_set_attribute (dset->ngr, "self_idcode", oid);
+   NI_set_attribute (dset->ngr, "filename", ofn);
+   SUMA_free(oid); oid=NULL;
+   SUMA_free(ofn); ofn=NULL;
+   
+   SUMA_RETURN(fno);
 } 
 
 /*!

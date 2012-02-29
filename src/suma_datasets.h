@@ -1412,8 +1412,10 @@ int SUMA_RemoveDsetHist(SUMA_DSET *dset);
 int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg);
 void SUMA_FreeDset(void *dset);
 SUMA_DSET * SUMA_FindDset_ns (char *idcode_str, DList *DsetList);
+SUMA_DSET * SUMA_FindDset2_ns (char *idcode_str, DList *DsetList, char *itype);
 DListElmt * SUMA_FindDsetEl_ns (char *idcode, DList *DsetList);
-SUMA_DSET * SUMA_FindDset_eng (char *idcode_str, DList *DsetList, DListElmt **elp);
+SUMA_DSET * SUMA_FindDset_eng (char *idcode_str, DList *DsetList, 
+                                 DListElmt **elp, char *itype);
 char *SUMA_DsetInfo (SUMA_DSET *dset, int detail);
 void SUMA_ShowDset (SUMA_DSET *dset, int detail, FILE *out);
 char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow, char *title);
@@ -1477,10 +1479,16 @@ SUMA_DSET *SUMA_LoadDXDset_eng (char *Name, int verb);
 SUMA_DSET *SUMA_LoadDXDset_ns (char *Name, int verb);
 char *SUMA_RemoveDsetExtension_ns (char*Name, SUMA_DSET_FORMAT form);
 char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT form);
-char * SUMA_WriteDset_ns (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int overwrite, int verb); 
-int SUMA_WriteDset_NameCheck_ns (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int verb, char **NameOutp); 
-int SUMA_WriteDset_NameCheck_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int verb, char **NameOutp); 
-char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int overwrite, int verb); 
+char * SUMA_WriteDset_ns (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, 
+                          int overwrite, int verb); 
+int SUMA_WriteDset_NameCheck_ns (char *Name, SUMA_DSET *dset, 
+                                 SUMA_DSET_FORMAT form, int verb, 
+                                 char **NameOutp); 
+int SUMA_WriteDset_NameCheck_eng (char *Name, SUMA_DSET *dset, 
+                                  SUMA_DSET_FORMAT form, int verb, 
+                                  char **NameOutp); 
+char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, 
+                           int overwrite, int verb, int rename_autoid); 
 SUMA_DSET * SUMA_far2dset_eng( char *FullName, char *dset_id, char *dom_id, 
                                  float **farp, int vec_len, int vec_num, 
                                  int ptr_cpy);
@@ -1560,7 +1568,7 @@ int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset, int maxind,
                                        double *range);
 SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini, int warn);
 SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl);
-SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename);
+SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename, int autoid);
 byte *SUMA_load_1D_n_mask(char *name, int N_Node, byte *omask, const char *oper, int *N_inmask);
 byte * SUMA_indexlist_2_bytemask(int *ind_list, int N_ind_list, int N_mask, int *N_inmask);  
 byte * SUMA_Meshbmask_2_IndexListbmask(

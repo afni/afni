@@ -2493,7 +2493,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
 
          /* write it out for testing*/
          if (LocalHead) 
-            SUMA_WriteDset_eng(FuncName, dset, SUMA_ASCII_NIML, 1, 1);
+            SUMA_WriteDset_eng(FuncName, dset, SUMA_ASCII_NIML, 1, 1, 1);
 
          /* freedom */
          SUMA_Free_ColorMap(CM); CM = NULL;

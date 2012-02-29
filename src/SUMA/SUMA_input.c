@@ -93,6 +93,10 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
             SUMA_RETURN(XK_t);
          case 'T':
             SUMA_RETURN(XK_T);
+         case 'w':
+            SUMA_RETURN(XK_w);
+         case 'W':
+            SUMA_RETURN(XK_W);
          case 'z':
             SUMA_RETURN(XK_z);
          case 'Z':
@@ -2260,6 +2264,236 @@ int SUMA_T_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_RETURN(1);
 }
 
+void SUMA_free_Save_List_El(void *selu) {
+   SUMA_SAVE_LIST_EL *sel=(SUMA_SAVE_LIST_EL *)selu;
+   if (sel) {
+      if (sel->identifier) SUMA_free(sel->identifier);
+      if (sel->prefix) SUMA_free(sel->prefix);
+      if (sel->type) SUMA_free(sel->type);
+      SUMA_free(sel);
+   }
+   return;
+}
+
+int SUMA_Add_to_SaveList(DList **SLp, char *type, char *identifier, char *prefix) 
+{
+   static char FuncName[]={"SUMA_Add_to_SaveList"};
+   DList *SL=NULL;
+   DListElmt *el= NULL;
+   SUMA_SAVE_LIST_EL *sel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SLp || !type || !identifier || !prefix) SUMA_RETURN(0);
+   SL = *SLp;
+   if (!SL) {
+      SL = (DList*)SUMA_malloc(sizeof(DList));
+      dlist_init(SL, SUMA_free_Save_List_El);
+   }
+   /* first make sure identifier is not there already */
+   el = dlist_head(SL);
+   while (el && identifier) {
+      if ((sel = (SUMA_SAVE_LIST_EL *)el->data)) {
+         if (sel->identifier &&
+             !strcmp(sel->identifier, identifier)) {
+            /* found, replace */
+            SUMA_free(sel->identifier); 
+            sel->identifier = SUMA_copy_string(identifier);
+                  identifier = NULL;
+            SUMA_free(sel->prefix);
+            sel->prefix = SUMA_copy_string(prefix);
+                  prefix = NULL;  
+            SUMA_free(sel->type);
+            sel->type = SUMA_copy_string(type);
+                  type = NULL;  
+         }
+      }
+      el = dlist_next(el);
+   }
+   if (identifier) { /* a new one, should add it */
+      sel = (SUMA_SAVE_LIST_EL *)SUMA_calloc(1,sizeof(SUMA_SAVE_LIST_EL));
+      sel->identifier = SUMA_copy_string(identifier);
+      sel->prefix = SUMA_copy_string(prefix);
+      sel->type =  SUMA_copy_string(type);
+      dlist_ins_next(SL, dlist_tail(SL), (void *)sel);
+   }
+   
+   if (LocalHead) {
+      SUMA_LH("SaveList now:")
+      el = dlist_head(SL);
+      while (el) {
+         if ((sel = (SUMA_SAVE_LIST_EL *)el->data)) {
+            fprintf(stderr,"     %s, %s (%s)\n", 
+                           sel->identifier, sel->prefix, sel->type);
+         } else {
+            fprintf(stderr,"     NULL sel\n");
+         }
+         el = dlist_next(el);
+      }
+   }
+     
+   *SLp = SL;
+   SUMA_RETURN(1);
+}
+
+int SUMA_SaveSaveListElement(SUMA_SAVE_LIST_EL *sel) 
+{
+   static char FuncName[]={"SUMA_SaveSaveListElement"};
+   SUMA_DSET *dset=NULL;
+   char *oname=NULL, *idtype=NULL;
+   int nid=0;
+   SUMA_ENTRY;
+   
+   if (!sel || !sel->identifier || !sel->prefix || !sel->type) SUMA_RETURN(0);
+   
+   if (!strcmp(sel->type,"sdset")) {
+      idtype="label:"; nid = strlen(idtype);
+      if (!strncmp(idtype, sel->identifier, nid)) {
+         if (!(dset = SUMA_FindDset2_s(sel->identifier+nid, 
+                                 SUMAg_CF->DsetList, "label"))) {
+            SUMA_S_Errv("Failed to find dset labeled %s\n", sel->identifier+nid);
+            SUMA_RETURN(0);
+         }
+         goto SAVEDSET;
+      } 
+      idtype="filename:"; nid = strlen(idtype);
+      if (!strncmp(idtype, sel->identifier, nid)) {
+         if (!(dset = SUMA_FindDset2_s(sel->identifier+nid, 
+                                 SUMAg_CF->DsetList, "filename"))) {
+            SUMA_S_Errv("Failed to find dset with filename %s\n", 
+                        sel->identifier+nid);
+            SUMA_RETURN(0);
+         }
+         goto SAVEDSET;
+      }
+      idtype="self_idcode:"; nid = strlen(idtype);
+      if (!strncmp(idtype, sel->identifier, nid)) {
+         if (!(dset = SUMA_FindDset2_s(sel->identifier+nid, 
+                                 SUMAg_CF->DsetList, "self_idcode"))) {
+            SUMA_S_Errv("Failed to find dset with idcode %s\n", 
+                        sel->identifier+nid);
+            SUMA_RETURN(0);
+         }
+         goto SAVEDSET;
+      }
+      /* last hurrah */
+      if (!(dset = SUMA_FindDset2_s(sel->identifier, 
+                                 SUMAg_CF->DsetList, NULL))) {
+         SUMA_S_Errv("Failed to find dset with identifier %s\n", 
+                     sel->identifier);
+         SUMA_RETURN(0);
+      }
+      goto SAVEDSET;
+      
+      SAVEDSET:
+      if (!dset) SUMA_RETURN(0);
+      oname = SUMA_WriteDset_PreserveID(sel->prefix, dset,
+                                        SUMA_NO_DSET_FORMAT, 1,0);
+      SUMA_S_Notev("Wrote: %s\n", oname);
+      if (oname) SUMA_free(oname);
+   } else {
+      SUMA_S_Errv("Not setup for type %s yet\n", sel->type);
+      SUMA_RETURN(0);
+   }
+   SUMA_RETURN(1);
+}
+
+int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_W_Key"};
+   char tk[]={"W"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   SUMA_SurfaceObject *SO;
+   DList *list = NULL;
+   DListElmt *el= NULL;
+   char *lbls=NULL;
+   SUMA_SAVE_LIST_EL *sel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_W:
+         if ((SUMA_CTRL_KEY(key))){
+            if (!SUMAg_CF->SaveList || !dlist_size(SUMAg_CF->SaveList)) {
+               SUMA_S_Note("Nothing in SaveList");
+               SUMA_RETURN(1);
+            }
+            while((el = dlist_head(SUMAg_CF->SaveList))) {
+               sel = (SUMA_SAVE_LIST_EL *)el->data;
+               if (sel->identifier) {
+                  if (!(SUMA_SaveSaveListElement(sel))) {
+                     SUMA_S_Warnv("Failed to save %s %s\n", 
+                                  sel->identifier, sel->prefix)
+                  }
+               }
+               dlist_remove(SUMAg_CF->SaveList, el, (void *)(&sel));
+            }
+         } else {
+            SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+            if (SO) {
+               if (!list) list = SUMA_CreateList();
+               ED = SUMA_InitializeEngineListData (SE_SaveSOFileSelection);
+               if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
+                                                SEF_vp, (void *)SO,
+                                                SES_Suma, (void *)sv, NOPE,
+                                                SEI_Head, NULL))) {
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", 
+                           FuncName);
+               }
+
+               if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_ip, sv->X->TOPLEVEL,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, el)) {
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", 
+                           FuncName);
+               }  
+
+               if (!SUMA_Engine (&list)) {
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: SUMA_Engine call failed.\n", FuncName);
+               }
+            }
+         }
+         break;
+         
+      case XK_w:
+           if (SUMAg_CF->Dev) {
+               SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+               if (SO) {
+                  if (!SUMAg_CF->X->Whereami_TextShell) {
+                     if (!(SUMAg_CF->X->Whereami_TextShell = 
+                              SUMA_CreateTextShellStruct (  SUMA_Whereami_open, 
+                                                      NULL, 
+                                                      SUMA_Whereami_destroyed,
+                                                      NULL))) {
+                        SUMA_S_Err("Failed to create TextShellStruct.");
+                        break;
+                     }
+                  }
+                  /* call the function to form labels and notify window */
+                  lbls = SUMA_GetLabelsAtNode(SO, SO->SelectedNode);
+                  if (lbls) SUMA_free(lbls); lbls = NULL;
+               }
+            }
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas ci dessous");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
 /*!
    Execute commands when Z or z is pressed
 */
@@ -3537,61 +3771,23 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_W:
-            {
-               SUMA_SurfaceObject *SO;
-               
-               SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-               if (SO) {
-                  if (!list) list = SUMA_CreateList();
-                  ED = SUMA_InitializeEngineListData (SE_SaveSOFileSelection);
-                  if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
-                                                   SEF_vp, (void *)SO,
-                                                   SES_Suma, (void *)sv, NOPE,
-                                                   SEI_Head, NULL))) {
-                     fprintf (SUMA_STDERR, 
-                              "Error %s: Failed to register command.\n", 
-                              FuncName);
-                  }
-            
-                  if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                             SEF_ip, sv->X->TOPLEVEL,
-                                             SES_Suma, (void *)sv, NOPE,
-                                             SEI_In, NextElm)) {
-                     fprintf (SUMA_STDERR, 
-                              "Error %s: Failed to register command.\n", 
-                              FuncName);
-                  }  
-            
-                  if (!SUMA_Engine (&list)) {
-                     fprintf( SUMA_STDERR, 
-                              "Error %s: SUMA_Engine call failed.\n", FuncName);
-                  }
+            if ((Kev.state & ControlMask)){
+               if (!SUMA_W_Key(sv, "ctrl+W", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
                }
-            }
-            break;
-
-         case XK_w:
-            if (SUMAg_CF->Dev) {
-               SUMA_SurfaceObject *SO;
-               char *lbls=NULL;
-               
-               SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-               if (SO) {
-                  if (!SUMAg_CF->X->Whereami_TextShell) {
-                     if (!(SUMAg_CF->X->Whereami_TextShell = 
-                              SUMA_CreateTextShellStruct (  SUMA_Whereami_open, 
-                                                      NULL, 
-                                                      SUMA_Whereami_destroyed,
-                                                      NULL))) {
-                        SUMA_S_Err("Failed to create TextShellStruct.");
-                        break;
-                     }
-                  }
-                  /* call the function to form labels and notify window */
-                  lbls = SUMA_GetLabelsAtNode(SO, SO->SelectedNode);
-                  if (lbls) SUMA_free(lbls); lbls = NULL;
+            } else {
+               if (!SUMA_W_Key(sv, "W", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
                }
             } 
+            break;
+            
+         case XK_w:
+            if (!SUMA_W_Key(sv, "w", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
+            } 
+            break;
+             
             break;
 
          case XK_Z:

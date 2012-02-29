@@ -170,7 +170,7 @@ typedef enum { type_not_set = -1,
                NBSP_type, PL_type, VO_type,
                NBT_type, SBT_type, DBT_type, /*!< Those three will 
                                                    likely not be used */
-               NIDO_type, 
+               NIDO_type, SDSET_type,
                N_DO_TYPES } SUMA_DO_Types;   
 
 /*!< Displayable Object Types 
@@ -989,10 +989,12 @@ typedef struct {
 /*! Displayable Object Type */
 typedef struct {
    void *OP;   /*!< Object Pointer */
-   SUMA_DO_Types ObjectType; /*!< Type of displayable object (redundant with OP->type) */
-   SUMA_DO_CoordType CoordType; /*!< Type of coordinate system that the object is attached to
-                                    This is used to determine whether the object is drawn before or 
-                                    or after the shift and rotation matrices are applied */
+   SUMA_DO_Types ObjectType; 
+         /*!< Type of displayable object (redundant with OP->type) */
+   SUMA_DO_CoordType CoordType; 
+      /*!< Type of coordinate system that the object is attached to
+         This is used to determine whether the object is drawn before or 
+         or after the shift and rotation matrices are applied */
 } SUMA_DO;
 
 
@@ -2845,6 +2847,8 @@ typedef struct {
    GICOR_setup *giset; /*!< parameters for group icorr setup */
    
    SUMA_PARSED_NAME *autorecord; /*!< Autorecord prefix */
+   
+   DList *SaveList; /*!< List of objects set to be saved when user chooses to */
 } SUMA_CommonFields;
 
 

@@ -468,7 +468,8 @@ void SUMA_dot_product_CB( void *params)
    static char FuncName[]={"SUMA_dot_product_CB"};
 
    char *SO_idcode=NULL, *ts_dset_id=NULL, 
-         *dot_dset_id=NULL, stmp[300];
+         *dot_dset_id=NULL, stmp[300], ident[300], prefix[300], 
+         *p1=NULL, *p2=NULL, *Cside;
    SUMA_DSET *in_dset=NULL, *ts_src_dset=NULL; 
    double TR = 0;
    double *ts=NULL; 
@@ -673,6 +674,20 @@ void SUMA_dot_product_CB( void *params)
       if (!SUMA_dot_product(in_dset,ts,&out_dset,dotopts)) {
          SUMA_S_Err("Failed to compute dot product");
          SUMA_RETURNe;
+      }
+      snprintf(ident,298*sizeof(char), "filename:%s", SDSET_FILENAME(out_dset));
+      p1 = SUMA_RemoveDsetExtension_eng(SDSET_FILENAME(in_dset),
+                                        SUMA_NO_DSET_FORMAT);
+      p2 = SUMA_RemoveDsetExtension_eng(SDSET_FILENAME(ts_src_dset),
+                                        SUMA_NO_DSET_FORMAT);
+      if (SO->Side == SUMA_LEFT) Cside = "L";
+      else if (SO->Side == SUMA_RIGHT) Cside = "R";
+      else Cside = "";
+      snprintf(prefix,298*sizeof(char),"seed_%d%s.DOT.%s", 
+                  ts_node, Cside, p1);
+      SUMA_free(p1); SUMA_free(p2);
+      if (!(SUMA_Add_to_SaveList(&SUMAg_CF->SaveList, "sdset", ident, prefix))) {
+         SUMA_S_Warnv("Failed to add to save list %s %s\n", ident, prefix);
       }
    }
    
