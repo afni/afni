@@ -727,7 +727,9 @@ extern void mri_add_name( char * , MRI_IMAGE * ) ;
 extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_extract_from_mask( MRI_IMAGE *, byte *, int ) ;
+extern void binarize_mask( int , byte * ) ;
 
+/*--------------------------------*/
 
 #define NSTAT_MEAN        0
 #define NSTAT_SUM         1

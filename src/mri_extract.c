@@ -4,6 +4,16 @@
 #define GOOD(i) ( bmmm == mask[i] )
 
 /*----------------------------------------------------------------------------*/
+
+void binarize_mask( int nvox , byte *mask )
+{
+   register int ii ;
+   if( nvox <= 0 || mask == NULL ) return ;
+   for( ii=0 ; ii < nvox ; ii++ ) if( mask[ii] ) mask[ii] = 1 ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Extract (into a 1D float image) the values inside the mask.
    If invert is nonzero, means to extract all values where mask=0.
 *//*--------------------------------------------------------------------------*/
