@@ -32,6 +32,13 @@
    }\
 }
 
+typedef struct {
+   char *identifier;
+   char *prefix;
+   char *type;
+} SUMA_SAVE_LIST_EL;
+
+
 int SUMA_KeyPress(char *key, char *keyname); 
 int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
@@ -58,12 +65,15 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 int SUMA_T_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
+int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 int SUMA_Z_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 void SUMA_input(Widget w, XtPointer clientData, XtPointer callData) ;
+int SUMA_Add_to_SaveList(DList **SLp, char *type, char *ident, char *prefix);
+void SUMA_free_Save_List_El(void *selu);
 int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                     int IgnoreSameNode);
 int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 

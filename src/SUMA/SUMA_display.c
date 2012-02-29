@@ -1488,6 +1488,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case SO_type:
                break;
+            case SDSET_type: /* Should not be in DO list */
+               SUMA_S_Warn("Should not have such objects as registrered DOs");
+               break;
             case AO_type:
                if (csv->ShowEyeAxis){
                   if (!SUMA_DrawAxis (
@@ -1636,6 +1639,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case SBT_type:
             case DBT_type:
                /* those types are not used */
+               break;
+            case SDSET_type:
+               SUMA_S_Warn("Should not have type in DO list to be rendered");
                break;
             case OLS_type:
             case LS_type:
@@ -13653,18 +13659,8 @@ SUMA_Boolean SUMA_SaveXformPreProcDsets (SUMA_XFORM *xf, char *prefix)
             SUMA_RETURN(NOPE);
          }
          fn = SUMA_append_replace_string(prefix,SDSET_LABEL(in_dset),
-                                         "", 0);
-         /* save old id and filename*/
-         ofn = SUMA_copy_string(SDSET_FILENAME(pp_dset));
-         oid = SUMA_copy_string(SDSET_ID(pp_dset));
-         /* change its ID before writing */
-         SUMA_NewDsetID2(pp_dset,fn);
-         fno = SUMA_WriteDset_eng (fn, pp_dset, SUMA_BINARY_NIML, 1, 1);
-         /* put old ID back */
-         NI_set_attribute (pp_dset->ngr, "self_idcode", oid);
-         NI_set_attribute (pp_dset->ngr, "filename", ofn);
-         SUMA_free(oid); oid=NULL;
-         SUMA_free(ofn); ofn=NULL;
+                                         "", 0);       
+         fno = SUMA_WriteDset_PreserveID(fn, pp_dset, SUMA_BINARY_NIML,1,1);   
          if (fno) fprintf(stderr,"Saved %s\n", fno);
          else fprintf(stderr,"Failed to save\n");
          
