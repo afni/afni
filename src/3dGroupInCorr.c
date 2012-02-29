@@ -2799,7 +2799,14 @@ int main( int argc , char *argv[] )
        goto LoopBack ;
 
      }
-
+     
+     /** boomerang message **/
+     { 
+       char *boomerang = NI_get_attribute(nelcmd,"boomerang_msg");
+       if (nelset && boomerang) 
+          NI_set_attribute(nelset, "boomerang_msg", boomerang);
+     }
+     
      /**--- throw away the message from AFNI ---**/
 
      NI_free_element( nelcmd ) ;

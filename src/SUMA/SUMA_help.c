@@ -1486,8 +1486,10 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     ctrl+W: Write items stowed in SUMA's save list.\n"
       "             This is used to write temporary dsets that\n"
-      "             are created on the fly in SUMA. See the 'D'\n"
-      "             option above.\n");
+      "             are created on the fly in SUMA. Such sets include\n"
+      "             those created via the 'D' option above,\n"
+      "             or the results sent by 3dGroupInCorr\n"
+      "\n");
    SS = SUMA_StringAppend (SS, 
       "     W: Write ascii files containing the NodeList,\n"
       "        the FaceSetList and the nodecolors of the \n"

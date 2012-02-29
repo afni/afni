@@ -68,7 +68,9 @@ afni_history_struct ziad_history[] = {
 
  { 29, FEB , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Added 'ctrl+W' that allows saving results from interactive correlations.",
-   NULL
+   "This allows for convenient saving of interactively created datasets\n"
+   "such as those from single-subject, or group correlation maps in resting\n"
+   "state.\n"
  },
 
  { 27, FEB , 2012 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
