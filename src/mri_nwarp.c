@@ -20,6 +20,8 @@
 static int verb_nww=0 ;
 void NwarpCalcRPN_verb(int i){ verb_nww = i; }
 
+#define NGMIN 9               /* min num grid points in a given direction */
+
 /*---------------------------------------------------------------------------*/
 /* Creation ex nihilo! */
 
@@ -27,7 +29,7 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
 {
    IndexWarp3D *AA ;
 
-   if( nx < 9 || ny < 9 || nz < 9 ) return NULL ;
+   if( nx < NGMIN && ny < NGMIN && nz < NGMIN ) return NULL ;
 
    AA = (IndexWarp3D *)calloc(1,sizeof(IndexWarp3D)) ;
    AA->nx = nx ; AA->ny = ny ; AA->nz = nz ;
@@ -2489,8 +2491,6 @@ ENTRY("NwarpCalcRPN") ;
 
 /*----------------------------------------------------------------------------*/
 
-#define NGMIN 9               /* min num grid points in a given direction */
-
 #define NWARP_NOXDIS_FLAG  1  /* no displacment in X direction? */
 #define NWARP_NOYDIS_FLAG  2
 #define NWARP_NOZDIS_FLAG  4
@@ -2656,7 +2656,7 @@ static void HCwarp_setup_basis( int nx , int ny , int nz , int flags )
      }
    }
 
-   Hwarp = IW3D_create(nbx,nby,nbz) ; Hflags = flags ;
+   Hwarp = IW3D_create(nbx,nby,nbz) ;
 
    return ;
 }
@@ -2731,7 +2731,7 @@ static void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
      }
    }
 
-   Hwarp = IW3D_create(nbx,nby,nbz) ; Hflags = flags ;
+   Hwarp = IW3D_create(nbx,nby,nbz) ;
 
    return ;
 }
@@ -3005,65 +3005,111 @@ double IW3D_scalar_costfun( int npar , double *dpar )
 }
 
 /*----------------------------------------------------------------------------*/
-/* Given a global warp AA, improve it locally over a rectangular patch. */
 
-void IW3D_improve_warp( MRI_IMAGE *basim , MRI_IMAGE *srcim , MRI_IMAGE *wsrcim ,
-                        IndexWarp3D *AA , int match_code , int basis_code ,
-                        int ibot, int itop, int jbot, int jtop, int kbot, int ktop,
-                        int flags )
+static MRI_IMAGE *basim  ; static int nxb,nyb,nzb,nxyzb; static float *bfar;
+static MRI_IMAGE *wbasim ; static float *wbfar; static byte *wbmask ;
+static MRI_IMAGE *srcim  ; static int nxs,nys,nzs,nxyzs; static float *sfar;
+static MRI_IMAGE *wsrcim ;
+static IndexWarp3D *Awarp;
+static int match_code    ;
+static int basis_code=0  ;
+static int basis_flags   ;
+
+/*----------------------------------------------------------------------------*/
+
+void IW3D_setup_for_warpdrive( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
+                               IndexWarp3D *Iwarp,
+                               int meth_code, int warp_code, int warp_flags )
+{
+ENTRY("IW3D_setup_for_warpdrive") ;
+
+   if( bim == NULL ||  bim->kind != MRI_float )
+     ERROR_exit("IW3D_setup_for_warpdrive: bad bim input") ;
+
+   if( sim == NULL ||  sim->kind != MRI_float )
+     ERROR_exit("IW3D_setup_for_warpdrive: bad sim input") ;
+
+   basim = bim; nxb = basim->nx; nyb = basim->ny; nzb = basim->nz; nxyzb = nxb*nyb*nzb;
+   srcim = sim; nxs = srcim->nx; nys = srcim->ny; nzs = srcim->nz; nxyzs = nxs*nys*nzs;
+
+   bfar = MRI_FLOAT_PTR(basim) ; sfar = MRI_FLOAT_PTR(srcim) ;
+
+   if( wbim != NULL ){
+     if( wbim->kind != MRI_float ||
+         wbim->nx != nxb || wbim->ny != nyb || wbim->nz != nzb )
+       ERROR_exit("IW3D_setup_for_warpdrive: bad wbim input") ;
+
+     wbasim = wbim ; wbfar = MRI_FLOAT_PTR(wbasim) ;
+   }
+
+   match_code = meth_code ;
+   if( INCOR_check_meth_code(meth_code) == 0 )
+     ERROR_exit("IW3D_setup_for_warpdrive: bad meth_code input") ;
+
+   if( warp_code == MRI_QUINTIC ){
+     basis_code = MRI_QUINTIC ;
+   } else {
+     if( warp_code != MRI_CUBIC )
+       WARNING_message("IW3D_setup_for_warpdrive: bad warp_code replaced with MRI_CUBIC");
+     basis_code = MRI_CUBIC ;
+   }
+
+   basis_flags = IW3D_munge_flags(nxs,nys,nzs,warp_flags) ;
+   if( warp_flags < 0 )
+     ERROR_exit("IW3D_setup_for_warpdrive: bad warp_flags input") ;
+
+   if( Iwarp != NULL ){
+     if( Iwarp->nx != nxs || Iwarp->ny != nys || Iwarp->nz != nzs )
+       ERROR_exit("IW3D_setup_for_warpdrive: bad Iwarp input") ;
+
+     Awarp = Iwarp ;
+   } else {
+     Awarp = IW3D_create(nxs,nys,nzs) ;
+   }
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Given a global warp Awarp, improve it locally over a rectangular patch. */
+
+static void IW3D_improve_warp( int ibot, int itop,
+                               int jbot, int jtop, int kbot, int ktop )
 {
    MRI_IMAGE *warpim ;
-   int nxb,nyb,nzb , nxs,nys,nzs , nxh,nyh,nzh ;
-   float *bar , *sar , *war ;
+   int nxh,nyh,nzh ;
 
 ENTRY("IW3D_improve_warp") ;
 
    /*- check for bad inputs -*/
 
-   if( basim == NULL ||  basim->kind != MRI_float ||
-       srcim == NULL ||  srcim->kind != MRI_float ||
-      wsrcim == NULL || wsrcim->kind != MRI_float || AA == NULL ){
-     ERROR_message("IW3D_improve_warp: bad inputs") ;
-     EXRETURN ;
-   }
-   bar = MRI_FLOAT_PTR(basim) ;
-   sar = MRI_FLOAT_PTR(srcim) ;
-   war = MRI_FLOAT_PTR(wsrcim) ;
-
-   nxb = basim->nx ; nyb = basim->ny ; nzb = basim->nz ;  /* size of base image */
-   nxs = srcim->nx ; nys = srcim->ny ; nzs = srcim->nz ;  /* size of src image */
+   if( basis_code <= 0 ) EXRETURN ;
 
    CLIP(ibot,nxs-1) ; CLIP(itop,nxs-1) ;
    CLIP(jbot,nys-1) ; CLIP(jtop,nys-1) ;
    CLIP(kbot,nzs-1) ; CLIP(ktop,nzs-1) ;
 
    nxh = itop-ibot+1 ; nyh = jtop-jbot+1 ; nzh = ktop-kbot+1 ;
-   flags = IW3D_munge_flags(nxh,nyh,nzh,flags) ;
-   if( flags < 0 ) EXRETURN ;  /* nuthin to do */
+
+   if( nxh < NGMIN && nyh < NGMIN && nzh < NGMIN ) EXRETURN ;
 
    Hibot = ibot ; Hitop = itop ;  /* save range of the patch we're working on */
    Hjbot = jbot ; Hjtop = jtop ;
    Hkbot = kbot ; Hktop = ktop ;
 
-   /* either cubic or quintic Hermite basis functions (24 or 81 parameters) */
-
-   if( basis_code != MRI_QUINTIC ) basis_code = MRI_CUBIC ;
-
    switch( basis_code ){
      case MRI_CUBIC:
        Hnpar   = 24 ;                      /* number of params for local warp */
        Hloader = HCwarp_load ;         /* func to make local warp from params */
-       HCwarp_setup_basis( nxh,nyh,nzh, flags ) ;   /* initialize HCwarp_load */
+       HCwarp_setup_basis( nxh,nyh,nzh, basis_flags ) ;  /* setup HCwarp_load */
      break ;
 
      case MRI_QUINTIC:
        Hnpar   = 81 ;
        Hloader = HQwarp_load ;
-       HQwarp_setup_basis( nxh,nyh,nzh, flags ) ;
+       HQwarp_setup_basis( nxh,nyh,nzh, basis_flags ) ;
      break ;
    }
-
-   /* create space for local warp params */
 
    FREEIFNN(Hpar) ;
    Hpar = (float *)malloc(sizeof(float)*Hnpar) ;
@@ -3071,8 +3117,6 @@ ENTRY("IW3D_improve_warp") ;
    /* create space for local warped image values */
 
    FREEIFNN(Hwval) ; Hwval = (float *)malloc(sizeof(float)*nxh*nyh*nzh) ;
-
-   Hsrcim = srcim ; Haawarp = AA ; /* save image we are warping, initial warp */
 
    INCOR_destroy(Hincor) ;
    Hincor = INCOR_create( match_code , NULL ) ;

@@ -712,6 +712,24 @@ static float INCOR_incomplete_pearson( INCOR_pearson *inpear )
 /*============================================================================*/
 
 /*----------------------------------------------------------------------------*/
+/* Check if a method code is implemented. */
+
+int INCOR_check_meth_code( int meth )
+{
+  switch( meth ){
+     case GA_MATCH_PEARSON_SCALAR:
+     case GA_MATCH_MUTINFO_SCALAR:
+     case GA_MATCH_CORRATIO_SCALAR:
+     case GA_MATCH_NORMUTIN_SCALAR:
+     case GA_MATCH_HELLINGER_SCALAR:
+     case GA_MATCH_CRAT_SADD_SCALAR:
+     case GA_MATCH_CRAT_USYM_SCALAR:  return 1 ;
+  }
+
+  return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Create an INCOR object, return a pointer to it.
      meth = method to use
      mpar = floatvec with parameters:
@@ -765,7 +783,7 @@ ENTRY("INCOR_create") ;
        float xbot,xtop, ybot,ytop, xcbot,xctop, ycbot,yctop;
        nbin = (mpar == NULL) ? 0 : (int)mpar->ar[0] ;
        if( nbin < 0 ) nbin = INCOR_2Dhist_compute_nbin(-nbin) ;
-       if( nbin > 0 ){
+       if( nbin > 0 && mpar != NULL && mpar->nar > 9 ){
          xbot  = mpar->ar[1] ; xtop  = mpar->ar[2] ;
          ybot  = mpar->ar[3] ; ytop  = mpar->ar[4] ;
          xcbot = mpar->ar[5] ; xctop = mpar->ar[6] ;
@@ -817,19 +835,32 @@ ENTRY("INCOR_destroy") ;
 /*----------------------------------------------------------------------------*/
 /* Copy the internal data of an INCOR struct 'vin' over that of 'vout'.
    This is used for adding data to vin while keeping vout pristine for re-use.
+   If vin is NULL, then vout is cleared to the empty INCOR struct.
 *//*--------------------------------------------------------------------------*/
 
 void INCOR_copyover( void *vin , void *vout )
 {
+   int meth ;
+
 ENTRY("INCOR_copyover") ;
 
-   if( vin == NULL || vout == NULL || vin == vout ) EXRETURN ;
+   if( vout == NULL || vin == vout ) EXRETURN ;
 
-   switch( INCOR_methcode(vin) ){
+   if( vin != NULL ) meth = INCOR_methcode(vin) ;
+   else              meth = INCOR_methcode(vout) ;
+
+   switch( meth ){
 
      case GA_MATCH_PEARSON_SCALAR:
+       if( vin != NULL ){
 #pragma omp critical (MEMCPY)
-       { memcpy( vout , vin , sizeof(INCOR_pearson) ) ; }
+         { memcpy( vout , vin , sizeof(INCOR_pearson) ) ; }
+       } else {
+         INCOR_pearson *vp = (INCOR_pearson *)vout ;
+         vp->sx  = 0.0 ; vp->sxx = 0.0 ;
+         vp->sy  = 0.0 ; vp->syy = 0.0 ;
+         vp->sxy = 0.0 ; vp->sw  = 0.0 ; vp->npt = 0 ;
+       }
      break ;
 
      case GA_MATCH_MUTINFO_SCALAR:
@@ -838,7 +869,17 @@ ENTRY("INCOR_copyover") ;
      case GA_MATCH_HELLINGER_SCALAR:
      case GA_MATCH_CRAT_SADD_SCALAR:
      case GA_MATCH_CRAT_USYM_SCALAR:
-       INCOR_copyover_2Dhist( vin , vout ) ;
+       if( vin != NULL ){
+         INCOR_copyover_2Dhist( vin , vout ) ;
+       } else {
+         INCOR_2Dhist *tdh=(INCOR_2Dhist *)vout ; int nbp=1+tdh->nbin ;
+#pragma omp critical (MEMSET)
+         { memset(tdh->xc ,0,sizeof(float)*nbp) ;
+           memset(tdh->yc ,0,sizeof(float)*nbp) ;
+           memset(tdh->xyc,0,sizeof(float)*nbp*nbp) ;
+         }
+         tdh->nww = 0.0f ;
+       }
      break ;
 
    }
