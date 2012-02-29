@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29, FEB , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Added 'ctrl+W' that allows saving results from interactive correlations.",
+   NULL
+ },
+
  { 27, FEB , 2012 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
    "Fixed bug in read_niml_file() that incorrectly set a read_header_only flag",
    NULL

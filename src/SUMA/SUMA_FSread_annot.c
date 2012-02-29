@@ -428,9 +428,9 @@ int main (int argc,char *argv[])
    
    if (fdset) {
       if (AFNI_yesenv("AFNI_NIML_TEXT_DATA")) {
-         SUMA_WriteDset_eng(fdset, dset, SUMA_ASCII_NIML, 1, 1);
+         SUMA_WriteDset_eng(fdset, dset, SUMA_ASCII_NIML, 1, 1, 1);
       } else {
-         SUMA_WriteDset_eng(fdset, dset, SUMA_BINARY_NIML, 1, 1);      
+         SUMA_WriteDset_eng(fdset, dset, SUMA_BINARY_NIML, 1, 1, 1);      
       }
    }
    

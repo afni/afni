@@ -295,6 +295,9 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
          /* those types are not used */
          SUMA_S_Warnv("Type %d should not be in  use!\n", dov->ObjectType);
          break;
+      case SDSET_type:
+         SUMA_FreeDset(dov->OP);
+         break;
       default:
          SUMA_S_Errv("Type %d not accounted for!\n", dov->ObjectType);
          break;   
@@ -656,6 +659,9 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd)
          break;
       case SBT_type:
          return("SBT");
+         break;
+      case SDSET_type:
+         return("SDSET");
          break;
       case DBT_type:
          return("DBT");

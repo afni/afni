@@ -2269,6 +2269,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    cf->autorecord = SUMA_SetAutoRecord(getenv("SUMA_AutoRecordPrefix"));
 
+   cf->SaveList = NULL;
    return (cf);
 
 }
@@ -2709,6 +2710,11 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    if (cf->autorecord) { 
       cf->autorecord = SUMA_Free_Parsed_Name(cf->autorecord);
    }
+   
+   if (cf->SaveList) {
+      dlist_destroy(cf->SaveList); SUMA_free(cf->SaveList);
+   }
+   
    /* if (cf) free(cf); */ /* don't free this stupid pointer since it is used
                         when main returns with SUMA_ RETURN 
                         (typo on purpose to avoid upsetting AnalyzeTrace. 
@@ -2896,6 +2902,9 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    
    SS = SUMA_StringAppend_va(SS, "autorecord: %s\n", 
                   cf->autorecord ? cf->autorecord->FullName:"NULL");
+                  
+   SS = SUMA_StringAppend_va(SS, "SaveList: %d elements\n",
+                  cf->SaveList ? dlist_size(cf->SaveList):0);
                   
    /* clean up */
    SS = SUMA_StringAppend_va(SS, NULL);

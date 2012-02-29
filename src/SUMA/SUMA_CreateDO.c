@@ -742,6 +742,8 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       dotp = DBT_type;
    } else if (strstr(sbuf,"#screen_based_text")) {
       dotp = SBT_type;
+   } else if (strstr(sbuf,"#suma_dset")) { /* this case should not happen */
+      dotp = SDSET_type;
    } else if (strstr(sbuf,"nido_head")) {
       dotp = NIDO_type;
    } else if (strstr(sbuf,"<") || strstr(sbuf,">")) {

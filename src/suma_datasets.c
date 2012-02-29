@@ -4521,7 +4521,13 @@ int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg)
 */
 SUMA_DSET * SUMA_FindDset_ns (char *idcode, DList *DsetList)
 {
-   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, NULL);
+   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, NULL, NULL);
+   WorkErrLog_ns();
+   return(dset);
+}
+SUMA_DSET * SUMA_FindDset2_ns (char *idcode, DList *DsetList, char *itype)
+{
+   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, NULL, itype);
    WorkErrLog_ns();
    return(dset);
 }
@@ -4529,12 +4535,13 @@ SUMA_DSET * SUMA_FindDset_ns (char *idcode, DList *DsetList)
 DListElmt * SUMA_FindDsetEl_ns (char *idcode, DList *DsetList)
 {
    DListElmt *el=NULL;
-   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, &el);
+   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, &el, NULL);
    WorkErrLog_ns();
    return(el);
 }
 
-SUMA_DSET * SUMA_FindDset_eng (char *idcode, DList *DsetList, DListElmt **elp)
+SUMA_DSET * SUMA_FindDset_eng (char *idcode, DList *DsetList, 
+                               DListElmt **elp, char *idtype)
 {
    static char FuncName[]={"SUMA_FindDset_eng"};
    SUMA_DSET *dset = NULL, *dsetf = NULL;
@@ -4567,6 +4574,10 @@ SUMA_DSET * SUMA_FindDset_eng (char *idcode, DList *DsetList, DListElmt **elp)
       } else {   
          SUMA_LH("dset found");
          #ifdef OLD_DSET      /* before dsets were NI_groups */
+         if (idtype) {
+            SUMA_S_Err("non-null idtype search not supported with old dsets");
+            SUMA_RETURN(dsetf);
+         }
          if (dset->nel) {
             SUMA_LH("dset is nel type");
             dsetid = NI_get_attribute(dset->nel, "idcode"); /* obsolete */
@@ -4581,14 +4592,26 @@ SUMA_DSET * SUMA_FindDset_eng (char *idcode, DList *DsetList, DListElmt **elp)
          #else 
          if (dset->ngr) {
             SUMA_LH("dset is ngr type");
-            dsetid = NI_get_attribute(dset->ngr, "idcode"); /* obsolete */
-            if (!dsetid) dsetid = NI_get_attribute(dset->ngr, "self_idcode");
-            if (dsetid) {
-               if (!strcmp(dsetid, idcode))  { /* match */
-                  dsetf = dset;
-                  if (elp) *elp=el;
+            if (!idtype || !strcmp(idtype,"self_idcode")) {
+               dsetid = NI_get_attribute(dset->ngr, "idcode"); /* obsolete */
+               if (!dsetid) dsetid = NI_get_attribute(dset->ngr, "self_idcode");
+               if (dsetid) {
+                  if (!strcmp(dsetid, idcode))  { /* match */
+                     dsetf = dset;
+                     if (elp) *elp=el;
+                  }
                }
-            } 
+            } else if (!strcmp(idtype,"filename")) {
+               if (!strcmp(CHECK_NULL_STR(SDSET_FILENAME(dset)), idcode))  { 
+                     dsetf = dset;
+                     if (elp) *elp=el;
+               }
+            } else if (!strcmp(idtype,"label")) {
+               if (!strcmp(CHECK_NULL_STR(SDSET_LABEL(dset)), idcode))  { 
+                     dsetf = dset;
+                     if (elp) *elp=el;
+               }
+            }
          }
          #endif
       }
@@ -4707,7 +4730,25 @@ SUMA_DSET * SUMA_FindDsetLoose (
                   } 
                } 
                #endif
-            } else {
+            }else if (!strcmp(s,"label")) { 
+               #ifdef OLD_DSET      /* before dsets were NI_groups */
+               SUMA_S_Err("Search by label not supported for old dsets");
+               #else 
+               if (dset->ngr) {
+                  SUMA_LH("dset is ngr type");
+                  dsetid = SDSET_LABEL(dset);
+                  if (dsetid) {
+                     if (!strcmp(   dsetid,
+                                    CHECK_NULL_STR(SDSET_LABEL(dsetin))))  {
+                                    /* match */
+                        CHECK_DUPS;
+                        dsetf = dset;
+                        newmatch = 1; ++totmatch;
+                     }
+                  } 
+               } 
+               #endif
+            }  else {
                SUMA_S_Err("Bad Aux.");
             }
             ++icrit;
@@ -5065,7 +5106,7 @@ SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl)
 /*!
    Rename a dataset and take care of idcode and relabeling, if necessary 
 */
-SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename) 
+SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename, int autoid) 
 {
    static char FuncName[]={"SUMA_RenameDset"};
    char *ofname=NULL, *ofnameid = NULL, *olabel = NULL;
@@ -5087,27 +5128,29 @@ SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename)
    /* put the new name in */
    NI_set_attribute(dset->ngr, "filename", filename);
    
-   /* what would the new id be based on the new name? */
-   SUMA_NEW_ID(fnameid, filename);
-   /* what would the old id be based on the olde name? */
-   SUMA_NEW_ID(ofnameid, ofname);
-   if (LocalHead) {
-      fprintf(SUMA_STDERR,"Old: %s, %s\n"
-                          "New: %s, %s\n", 
-                          ofnameid, ofname,
-                          fnameid, filename);
-   }
-   /* was the olde id based on the old fname? */
-   if (SDSET_ID(dset)) {
-      if (strcmp(SDSET_ID(dset), ofnameid) == 0) {
-         SUMA_LH("Id based on old name");
-         /* need to recreate id based on new name*/
-         NI_set_attribute (dset->ngr, "self_idcode", fnameid);
-      } else { /* id was not based on name, do nothing */
-         SUMA_LH("Id not based on old name");
+   if (autoid) {
+      /* what would the new id be based on the new name? */
+      SUMA_NEW_ID(fnameid, filename);
+      /* what would the old id be based on the olde name? */
+      SUMA_NEW_ID(ofnameid, ofname);
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"Old: %s, %s\n"
+                             "New: %s, %s\n", 
+                             ofnameid, ofname,
+                             fnameid, filename);
       }
-   } else {
-      SUMA_S_Warn("dset with no id, what gives?");
+      /* was the olde id based on the old fname? */
+      if (SDSET_ID(dset)) {
+         if (strcmp(SDSET_ID(dset), ofnameid) == 0) {
+            SUMA_LH("Id based on old name");
+            /* need to recreate id based on new name*/
+            NI_set_attribute (dset->ngr, "self_idcode", fnameid);
+         } else { /* id was not based on name, do nothing */
+            SUMA_LH("Id not based on old name");
+         }
+      } else {
+         SUMA_S_Warn("dset with no id, what gives?");
+      }
    }
    
    /* what about the label ? */
@@ -9202,14 +9245,16 @@ char * SUMA_WriteDset_ns ( char *Name, SUMA_DSET *dset,
                            SUMA_DSET_FORMAT form, 
                            int overwrite, int verb) 
 {
-   char *c=SUMA_WriteDset_eng (Name, dset, form, overwrite, verb);
+   char *c=SUMA_WriteDset_eng (Name, dset, form, overwrite, verb, 1);
    WorkErrLog_ns();
    return(c);
 } 
 
 
 char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, 
-                           SUMA_DSET_FORMAT form, int overwrite, int verb) 
+                           SUMA_DSET_FORMAT form, 
+                           int overwrite, int verb,
+                           int rename_autoid) 
 {
    static char FuncName[]={"SUMA_WriteDset_eng"};
    char *NameOut = NULL, *strmname=NULL, stmp[500], *eee=NULL, *oName=NULL;
@@ -9240,7 +9285,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
       }
    } else {
       /* call rename dset */
-      if (!SUMA_RenameDset(dset, Name)) {
+      if (!SUMA_RenameDset(dset, Name, rename_autoid)) {
          SUMA_PushErrLog(  "SL_Err",
                            "Failed to rename dset", 
                            FuncName); 
