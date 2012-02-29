@@ -8,7 +8,7 @@
    If invert is nonzero, means to extract all values where mask=0.
 *//*--------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_extract_mask( MRI_IMAGE *imin , byte *mask , int invert )
+MRI_IMAGE * mri_extract_from_mask( MRI_IMAGE *imin , byte *mask , int invert )
 {
    byte bmmm = (invert == 0) ? 1 : 0 ;
    int ii,jj , ngood , nvox ;
