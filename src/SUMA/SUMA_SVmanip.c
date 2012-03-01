@@ -2197,10 +2197,10 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
             fprintf (SUMA_STDERR,   
                "Warning %s:\n"
                "Bad value for environment variable SUMA_AllowDsetReplacement\n"
-               "Assuming default of NO", FuncName);
-            cf->Allow_Dset_Replace = NOPE;
+               "Assuming default of YES", FuncName);
+            cf->Allow_Dset_Replace = YUP;
          }
-      } else cf->Allow_Dset_Replace = NOPE;
+      } else cf->Allow_Dset_Replace = YUP;
    }
    
    cf->IgnoreVolreg = NOPE;

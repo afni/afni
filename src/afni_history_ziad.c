@@ -67,6 +67,15 @@ afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
  { 1, MAR , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Fixed suma crash after a plot a certain plot freeze sequence",
+   "The sequence was: create plot, freeze it, get another open\n"
+   "then close the frozen one. At this point, suma lost control\n"
+   "of the still unfrozen one, so it is practically frozen.\n"
+   "Pressing Freeze twice on that remaining plot cause suma to crash.\n"
+   "None of that occurs anymore.\n"
+ },
+
+ { 1, MAR , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Fixed cutting plane motion while volume rendering under linux",
    "On Macs, the scroll wheel gives out button 6 and 7, on linux\n"
    "it is Buttons 4 and 5.\n"

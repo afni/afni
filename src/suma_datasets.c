@@ -12597,7 +12597,7 @@ static ENV_SPEC envlist[] = {
       "Yes" }, 
    {  "Name of directory containing user's own SUMA color maps (*.cmap)\n",
       "SUMA_CmapsDir",
-      "" },
+      "None" },
    {  "Name of color map for datasets of retinotopy angles.\n"
       "These would be produced by 3dRetinoPhase\n",
       "SUMA_RetinoAngle_DsetColorMap",
