@@ -5138,7 +5138,7 @@ int SUMA_is_predefined_SO_name(char *name, int *par)
    ok = 0;  \
    if (SUMA_is_predefined_SO_name(name, NULL)) {\
       ok = 1; \
-   } else if (!SUMA_filexists(name)) {   \
+   } else if (SUMA_filexists(name)) {   \
       if  (!(topo)) { ok = 1; }   \
       else { if (SUMA_filexists(topo)) {ok = 1;}  } \
    } \
