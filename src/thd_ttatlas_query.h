@@ -458,6 +458,7 @@ int get_wami_web_reqtype(void);
 void set_wami_webpage(char *url);
 char * get_wami_webpage(void);
 void open_wami_webpage(void);
+int AFNI_wami_output_mode(void);
 
 /* Transforms for going from one space to another */
 #if 0
