@@ -42,6 +42,9 @@ static char rcsId[] = "$Header$";
 /* ChangeLog 
  * 
 $Log$
+Revision 1.2  2012/03/01 17:56:31  ziad
+Cput
+
 Revision 1.1  2011/06/30 16:10:37  rwcox
 Cadd
  
@@ -421,7 +424,7 @@ getCookieFromCache(HTTPCookieCache * cache, char *url)
 	}
 
 	freeURL(PARSE_HOSTNAME | PARSE_FILENAME,
-			 NULL, NULL, NULL, hostname, (int)NULL, filename);
+			 NULL, NULL, NULL, hostname, 0, filename);
 
 	return req;
 }

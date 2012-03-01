@@ -288,7 +288,7 @@ extern _XmConst char _XmHTMLMessages[];
 # define XMHTML_MSG_128 \
  "HTML Violation: %s may not occur inside %s."
 # define XMHTML_MSG_129 \
- "Internal parser error!"
+ "Internal parser error!%s"
 # define XMHTML_MSG_130 \
  "(line %i in input)"
 # define XMHTML_MSG_131 \

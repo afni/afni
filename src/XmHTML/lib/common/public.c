@@ -37,6 +37,9 @@ static char rcsId[]="$Header$";
 /*****
 * ChangeLog 
 * $Log$
+* Revision 1.2  2012/03/01 17:56:31  ziad
+* Cput
+*
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
 *
@@ -1980,6 +1983,41 @@ XmHTMLRedisplay(Widget w)
 
 	/* recompute screen layout */
 	_XmHTMLLayout(html);
+
+	if(HTML_ATTR(gc) != NULL)
+	{
+		_XmHTMLClearArea(html, 0, 0, CORE_ATTR(width), CORE_ATTR(height));
+
+		/* sync so the display is updated */
+		tka->Sync(XtDisplay((Widget)html), False);
+
+		XmUpdateDisplay((Widget)html);
+		if(tka->IsManaged(HTML_ATTR(vsb)))
+			XmUpdateDisplay(HTML_ATTR(vsb));
+		if(tka->IsManaged(HTML_ATTR(hsb)))
+			XmUpdateDisplay(HTML_ATTR(hsb));
+	}
+}
+
+/*
+   A function used to get around refreshing problems without
+   the potential for resizing if _XmHTMLLayout(html);
+   is called as in XmHTMLRedisplay.    ZSS March 2012 
+*/
+void
+XmHTMLRefresh(Widget w)
+{
+	XmHTMLWidget html;
+	ToolkitAbstraction *tka;
+	/* sanity check */
+	if(!w || !XmIsHTML(w))
+	{
+		_XmHTMLBadParent(w, "Refresh");
+		return;
+	}
+
+	html = (XmHTMLWidget)w;
+	tka = HTML_ATTR(tka);
 
 	if(HTML_ATTR(gc) != NULL)
 	{

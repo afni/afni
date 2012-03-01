@@ -36,6 +36,9 @@ static char rcsId[]="$Header$";
 /*****
 * ChangeLog 
 * $Log$
+* Revision 1.3  2012/03/01 17:56:31  ziad
+* Cput
+*
 * Revision 1.2  2011/11/10 14:37:55  ziad
 * Cput
 *
@@ -1728,7 +1731,7 @@ newline:
 				e_space = sw;
 
 			/* additional end-of-line spacing? */
-			if(e_space && words[i]->word[words[i]->len-1] == '.')
+			if(e_space && words[i]->len && words[i]->word[words[i]->len-1] == '.')
 				e_space += font->eol_sp;
 		}
 		/* no leading space if at left border */
