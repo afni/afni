@@ -156,6 +156,15 @@ ENTRY("htmlize") ;
        free(dnam) ;
      }
 
+   } else if( strncmp(msg,"wami:",5) == 0 ){      /* wami love */
+      /* To_Daniel: I don't think we should format the text here. 
+                    Formatting should be done on the query structure
+                    directly. I just thought I'd put a special
+                    case here for you to see how it is handled. */
+      mmm = (char *)malloc(sizeof(char)*(strlen(msg)+64)) ;
+      strcpy(mmm,"<html><body>\n") ;
+      strcat(mmm,msg+strlen("wami:")) ;
+      strcat(mmm,"\n</body></html>") ;
    } else {                                                 /* add HTML stuff */
      mmm = (char *)malloc(sizeof(char)*(strlen(msg)+64)) ;
      strcpy(mmm,"<html><body>\n") ;
@@ -364,7 +373,6 @@ void MCW_htmlwin_alter( MCW_htmlwin *hw , char *mmm )
 ENTRY("MCW_htmlwin_alter") ;
 
    if( hw == NULL || mmm == NULL || *mmm == '\0' ) EXRETURN ;
-
    msg = htmlize(mmm) ;
 
    XmHTMLTextSetString( hw->whtml , msg ) ;

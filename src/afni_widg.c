@@ -931,10 +931,12 @@ STATUS("making imag->rowcol") ;
         }
       }
       imag->pop_whereami_twin = NULL ;
+      imag->pop_whereami_htmlwin = NULL;
    } else {
       imag->pop_talto_pb = NULL ;
       imag->pop_ttren_pb = imag->pop_whereami_pb = NULL ; /* 10 Jul 2001 */
       imag->pop_whereami_twin = NULL ;
+      imag->pop_whereami_htmlwin = NULL;
    }
 
    /*--- imageonly button in menu ---*/

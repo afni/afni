@@ -359,6 +359,11 @@ typedef struct {
 
 #define AFNI_XHAIRS_LASTOPTION 8
 
+#define AFNI_HAVE_WAMI_WIDGET(im3d) \
+   ( ( im3d && im3d->vwid && im3d->vwid->imag && \
+       (im3d->vwid->imag->pop_whereami_twin ||  \
+        im3d->vwid->imag->pop_whereami_htmlwin) ) ? 1 : 0 )
+
 typedef struct {
       Widget frame , rowcol ;
       Widget topper , popmenu , pop_bkgd_lab ,
@@ -392,7 +397,8 @@ typedef struct {
 
       Widget pop_whereami_pb , pop_ttren_pb ;
       MCW_textwin *pop_whereami_twin ;
-
+      MCW_htmlwin *pop_whereami_htmlwin ;
+      
       Widget pop_sumato_pb ;
       Widget pop_mnito_pb ;  /* 01 May 2002 */
 
@@ -1575,6 +1581,7 @@ extern void AFNI_clus_update_widgets( Three_D_View *im3d ) ;
 extern void AFNI_clus_popdown( Three_D_View *im3d ) ;
 
 extern void AFNI_update_dataset_viewing( THD_3dim_dataset * ); /* 21 Jul 2009 */
+extern void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab); 
 
 #define AFNI_SEE_FUNC_ON(iq) ( MCW_set_bbox( (iq)->vwid->view->see_func_bbox, 1 ), \
                                AFNI_see_func_CB( NULL , (XtPointer)(iq) , NULL )  )
