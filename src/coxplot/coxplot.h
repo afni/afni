@@ -257,6 +257,7 @@ typedef struct {
 #endif
 
    void (* clonebut_user_cb)(void *data); /* for SUMA */
+   int cloned; /* for SUMA */
 } MEM_topshell_data ;
 
 #define MTD_PLOTDATA(mpcb)        ((mpcb)->mp)
