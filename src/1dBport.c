@@ -1,13 +1,19 @@
 #include "mrilib.h"
 #include "mri_bport.c"
 
+#undef  BMAX
+#define BMAX 666
+
 int main( int argc , char *argv[] )
 {
    MRI_IMAGE *bpim ;
    int nopt=1 , nbad=0 ;
-   float fbot=-1.0f , ftop=-666.0f , dt=1.0f ;
+   float dt=1.0f ;
    int dtforce=0 , ntime=0 , tt , nblock=0 , *blocklist=NULL , *blocklen=NULL ;
    int bbot, btop ;
+   int nband=0 , nozero=0 ; float fbot[BMAX] , ftop[BMAX] ;
+
+   /*-----*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -26,12 +32,21 @@ int main( int argc , char *argv[] )
        "                    fbot can be 0 if you want to do a highpass filter only;\n"
        "                    on the other hand, if ftop > Nyquist frequency, then\n"
        "                    it's a lowpass filter only.\n"
-       "                  ** This 'option' is actually mandatory!\n"
+       "                  ** This 'option' is actually mandatory! (At least once.)\n"
+       "                   * For the un-enlightened, the Nyquist frequency is the\n"
+       "                     highest frequency supported on the given grid, and\n"
+       "                     is equal to 0.5/TR (units are Hz if TR is in s).\n"
+       "                   * The lowest nonzero frequency supported on the grid\n"
+       "                     is equaly to 1/(N*TR), where N=number of time points.\n"
+       "                  ** Multiple -band options can be used, if needed.\n"
+       "                     If the bands overlap, regressors will NOT be duplicated.\n"
+       "                   * That is, '-band 0.01 0.05 -band 0.03 0.08' is the same\n"
+       "                     as using '-band 0.01 0.08'.\n"
        "                  ** Note that if fbot==0 and ftop>=Nyquist frequency, you\n"
        "                     get a 'complete' set of trig functions, meaning that\n"
        "                     using these in regression is effectively a 'no-pass'\n"
        "                     filter -- probably not what you want!\n"
-       "                  ** It is legal to set fbot = ftop.\n"
+       "                  ** It is legitimate to set fbot = ftop.\n"
        "                  ** The 0 frequency (fbot = 0) component is all 1, of course.\n"
        "                     But nothing generated here will deal well with linear-ish\n"
        "                     or quadratic-ish trends, which fall below the lowest nonzero\n"
@@ -40,6 +55,16 @@ int main( int argc , char *argv[] )
        "                     where NT = number of time points.\n"
        "                  ** See the fourth EXAMPLE to learn how to use 3dDeconvolve\n"
        "                     to generate a file of polynomials for regression fun.\n"
+       "\n"
+       " -invert          = After computing which frequency indexes correspond to the\n"
+       "                    input band(s), invert the selection -- that is, output\n"
+       "                    all those frequencies NOT selected by the -band option(s).\n"
+       "                    See the fifth EXAMPLE.\n"
+       "\n"
+       " -nozero          } Do NOT generate the 0 frequency (constant) component\n"
+       "   *OR            } when fbot = 0; this has the effect of setting fbot to\n"
+       " -noconst         } 1/(N*TR), and is essentially a convenient way to say\n"
+       "                    'eliminate all oscillations below the ftop frequency'.\n"
        "\n"
        " -input dataset   } One of these options is used to specify the number of\n"
        "   *OR*           } time points to be created, as in 3dDeconvolve.\n"
@@ -75,8 +100,14 @@ int main( int argc , char *argv[] )
        "\n"
        " The fourth example shows how to use 3dDeconvolve to generate a file of\n"
        " polynomial 'orts', in case you find yourself needing this ability someday\n"
-       " (e.g., when stranded on a desert isle, with Gilligan et al.):\n"
-       "   3dDeconvolve -nodata 100 1 -polort 3 -x1D_stop -x1D stdout: | 1dcat stdin: > pol3.1D\n"
+       " (e.g., when stranded on a desert isle, with Gilligan, the Skipper, et al.):\n"
+       "   3dDeconvolve -nodata 100 1 -polort 2 -x1D_stop -x1D stdout: | 1dcat stdin: > pol3.1D\n"
+       "\n"
+       " The fifth example shows how to use 1dBport to generate a set of regressors to\n"
+       " eliminate all frequencies EXCEPT those in the selected range:\n"
+       "   1dBport -nodata 100 1 -band 0.03 0.13 -nozero -invert | 1dplot -stdin\n"
+       " In this example, the '-nozero' flag is used because the next step will be to\n"
+       " 3dDeconvolve with '-polort 2' and '-ortvec' to get rid of the undesirable stuff.\n"
        "\n"
        "ETYMOLOGICAL NOTES\n"
        "------------------\n"
@@ -100,12 +131,30 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcasecmp(argv[nopt],"-nozero")  == 0 ||
+         strcasecmp(argv[nopt],"-noconst") == 0 ||
+         strcasecmp(argv[nopt],"-nonzero") == 0   ){
+
+       mri_bport_set_ffbot(1) ; nopt++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcasecmp(argv[nopt],"-invert") == 0 ){
+       mri_bport_set_invert(1) ; nopt++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcasecmp(argv[nopt],"-band") == 0 ){
+       float fb,ft ;
        if( nopt+2 >= argc ) ERROR_exit("Need 2 arguments after %s",argv[nopt]) ;
-       fbot = (float)strtod(argv[++nopt],NULL) ;
-       ftop = (float)strtod(argv[++nopt],NULL) ;
-       if( fbot < 0.0f || ftop < fbot )
-         ERROR_exit("Illegal values after -band: fbot=%g  ftop=%g",fbot,ftop) ;
+       if( nband  >= BMAX ) ERROR_exit("Too many -band options given :-(") ;
+       fb = (float)strtod(argv[++nopt],NULL) ;
+       ft = (float)strtod(argv[++nopt],NULL) ;
+       if( fb < 0.0f || ft < fb )
+         ERROR_exit("Illegal values after -band:  fbot=%g ftop=%g",fbot,ftop) ;
+       fbot[nband] = fb ; ftop[nband] = ft ; nband++ ;
        nopt++ ; continue ;
      }
 
@@ -203,7 +252,7 @@ int main( int argc , char *argv[] )
    if( ntime <= 0 ){
      ERROR_message("No way to determine time series length!") ; nbad++ ;
    }
-   if( fbot < 0.0f || ftop < 0.0f ){
+   if( nband <= 0 ){
      ERROR_message("No -band option given! What bandpass do you want?") ; nbad++ ;
    }
 
@@ -232,7 +281,7 @@ int main( int argc , char *argv[] )
 
    /*----- work -----*/
 
-   bpim = mri_bport( dt,fbot,ftop , nblock,blocklen ) ;
+   bpim = mri_bport_multi( dt,nband,fbot,ftop , nblock,blocklen ) ;
    if( bpim == NULL )
      ERROR_exit("Computation fails! :-(((") ;
    mri_write_1D( "-" , bpim ) ;

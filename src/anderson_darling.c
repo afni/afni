@@ -2,6 +2,10 @@
 
 /*----------------------------------------------------------------------------*/
 
+static double cf_nor( double x ){ return 1.0-0.5*erfc(x/1.414213562373095); }
+
+/*----------------------------------------------------------------------------*/
+
 double anderson_darling_statistic( int npt, double *val, double (*cf)(double) )
 {
    double *yyy , asum , ccc ; int ii ;
@@ -15,15 +19,12 @@ double anderson_darling_statistic( int npt, double *val, double (*cf)(double) )
    asum = 0.0 ;
    for( ii=0 ; ii < npt ; ii++ ){
      ccc   = cf(yyy[ii]) ;
-     asum += (2*ii+1) * log(ccc) + (2*(npt-ii)-1) * log(1.0-ccc) ;
+     if( ccc > 0.0 && ccc < 1.0 )
+       asum += (2*ii+1) * log(ccc) + (2*(npt-ii)-1) * log(1.0-ccc) ;
    }
 
    free(yyy) ; asum = -npt - asum / npt ; return asum ;
 }
-
-/*----------------------------------------------------------------------------*/
-
-static double cf_nor( double x ){ return 1.0-0.5*erfc(x/1.414213562373095); }
 
 /*----------------------------------------------------------------------------*/
 
