@@ -44,7 +44,7 @@ double anderson_darling_normal( int npt , double *xxx )
    for( ii=0 ; ii < npt ; ii++ ) xq += (vvv[ii]-xm)*(vvv[ii]-xm) ;
    if( xq <= 0.0 ){ free(vvv) ; return 0.0 ; }
 
-   xq = sqrt( (npt-1.0) / xq ) ; 
+   xq = sqrt( (npt-1.0) / xq ) ;
    for( ii=0 ; ii < npt ; ii++ ) vvv[ii] = (vvv[ii]-xm) * xq ;
 
    ad = anderson_darling_statistic( npt , vvv , cf_nor ) ;
@@ -56,16 +56,34 @@ double anderson_darling_normal( int npt , double *xxx )
 
 #include "zgaussian.c"
 
+float * anderson_darling_simulate( int npt , int ntrial )
+{
+   float *ad ; double *xxx ; int ii , jj ;
+
+   if( npt < 10 || ntrial <= 0 ) return NULL ;
+
+   ad  = (float * )malloc(sizeof(float)*ntrial) ;
+   xxx = (double *)malloc(sizeof(double)*npt) ;
+   for( jj=0 ; jj < ntrial ; jj++ ){
+     for( ii=0 ; ii < npt ; ii++ ) xxx[ii] = zgaussian()+zgaussian()+zgaussian() ;
+     ad[jj] = - (float)anderson_darling_normal( npt , xxx ) ;
+   }
+   qsort_float( ntrial , ad ) ;
+   for( jj=0 ; jj < ntrial ; jj++ ) ad[jj] = -ad[jj] ;
+   return ad ;
+}
+
+/*----------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
-   int npt , ii ; double *xxx , ad ;
+   int npt , ntrial , ii ; float *ad ;
 
-   if( argc < 2 ) exit(0) ;
-   npt = (int)strtod(argv[1],NULL) ; if( npt < 10 ) exit(0) ;
-   xxx = (double *)malloc(sizeof(double)*npt) ;
-   init_rand_seed(0) ;
-   for( ii=0 ; ii < npt ; ii++ ) xxx[ii] = zgaussian()+zgaussian()+zgaussian() ;
-   ad = anderson_darling_normal( npt , xxx ) ;
-   printf( "%.5g\n" , ad ) ;
+   if( argc < 3 ) exit(0) ;
+   npt    = (int)strtod(argv[1],NULL) ;
+   ntrial = (int)strtod(argv[2],NULL) ;
+   ad = anderson_darling_simulate( npt , ntrial ) ;
+   if( ad == NULL ) exit(1) ;
+   for( ii=0 ; ii < ntrial ; ii++ ) printf("%g\n",ad[ii]) ;
    exit(0) ;
 }

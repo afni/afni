@@ -339,7 +339,7 @@ STATUS("finished") ;
 
 /*! Create a curve that gives the FDR z(q) value vs. the statistical
     threshold.  Stored as a floatvec struct, with the statistical
-    value give as x0+i*dx and the corresponding z(q) value in ar[i].  */
+    value given as x0+i*dx and the corresponding z(q) value in ar[i].  */
 
 floatvec * mri_fdr_curve( MRI_IMAGE *im, int statcode, float *stataux )
 {
