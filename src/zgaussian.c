@@ -1,3 +1,6 @@
+#ifndef _ZGAUSSIAN_SOURCE_CODE_
+#define _ZGAUSSIAN_SOURCE_CODE_
+
 #include <math.h>
 #include <stdlib.h>
 
@@ -212,3 +215,5 @@ static float zgaussian_sss( unsigned short xi[] )
   }
   return (sgn ? x : -x) ;
 }
+
+#endif /* _ZGAUSSIAN_SOURCE_CODE_ */
