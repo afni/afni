@@ -225,7 +225,8 @@ typedef struct {
 } MCW_htmlwin ;
 
 extern MCW_htmlwin * new_MCW_htmlwin( Widget wpar , char *msg ,
-                                      void_func *kill_func , XtPointer kill_data ) ;
+                                      void_func *kill_func , XtPointer kill_data,
+                                      MCW_action_item *umai, int nact ) ;
 extern void MCW_htmlwin_alter( MCW_htmlwin *hw , char *mmm ) ;
 
 extern void RWC_visibilize_widget( Widget ) ;  /* 09 Nov 1999 */

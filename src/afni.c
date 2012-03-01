@@ -9495,7 +9495,7 @@ void AFNI_htmlwami_CB( Widget w , XtPointer cd , XtPointer cbd )
      EXRETURN ;
    } else {     
      htmlwami_hw = new_MCW_htmlwin( im3d->vwid->imag->topper, inf,
-                               AFNI_htmlwami_killfun , im3d      ) ;
+                               AFNI_htmlwami_killfun , im3d  , NULL, 0    ) ;
      im3d->vwid->imag->pop_whereami_htmlwin = htmlwami_hw;
    }
    free(inf) ; inf = NULL ; htmlwami_open = 1 ; 

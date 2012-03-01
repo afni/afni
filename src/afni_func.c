@@ -5721,7 +5721,8 @@ ENTRY("AFNI_tips_CB") ;
        inf = (char *)malloc(sizeof(char)*(strlen(fpt)+16)) ;
        strcpy(inf,"file:") ; strcat(inf,fpt) ; free(fpt) ;
        tips_hw = new_MCW_htmlwin( im3d->vwid->imag->topper, inf,
-                                  AFNI_tips_killfun , NULL      ) ;
+                                  AFNI_tips_killfun , NULL  ,
+                                  NULL, 0   ) ;
        free(inf) ; tips_open = 1 ; EXRETURN ;
      }
    }
