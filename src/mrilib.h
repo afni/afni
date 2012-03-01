@@ -1394,6 +1394,12 @@ typedef struct { int nar ; int *ar ; } intvec ;
         (iv)->ar  = (int *)realloc((iv)->ar,sizeof(int)*(m)); \
   }} while(0)
 
+#define APPEND_intvec(iv,jv)                                   \
+  do{ int ni = (iv)->nar ;                                     \
+      RESIZE_intvec((iv),ni+(jv)->nar) ;                       \
+      memcpy( (iv)->ar+ni, (jv)->ar, sizeof(int)*(jv)->nar ) ; \
+  } while(0)
+
 /*----------*/
 
 typedef struct { int nar ; short *ar ; } shortvec ;

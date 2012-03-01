@@ -43,7 +43,18 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , FEB , 2012 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+  { 1 , MAR , 2012 , RWC , "1dBport" , MINOR , TYPE_NEW_OPT ,
+   "Several things to keep Rick happy" ,
+   "Option '-band fbot ftop' can now be used more than once.\n"
+   "\n"
+   "New option '-nozero' means to NOT include the 0 frequency.\n"
+   "\n"
+   "New option '-invert' means to calculate the frequency indexes to remove\n"
+   "from the various '-band' options, then invert them to KEEP only those\n"
+   "frequencies instead.  That is, only the frequencies NOT specified via\n"
+   "'-band' will be output in the resultant 1D file." } ,
+
+ { 23 , FEB , 2012 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "Enable 'bigthree' mode for color pbar" ,
    "If AFNI_PBAR_THREE is YES, the color pbar in the AFNI GUI (but not the\n"
    "renderer) will start in 'bigthree' mode, with 3 panes -- the colorscale\n"
