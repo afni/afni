@@ -66,6 +66,12 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1, MAR , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Fixed cutting plane motion while volume rendering under linux",
+   "On Macs, the scroll wheel gives out button 6 and 7, on linux\n"
+   "it is Buttons 4 and 5.\n"
+ },
+
  { 1, MAR , 2012 , ZSS , "afni" , MINOR , TYPE_BUG_FIX,
    "Some cleanups and tweaks of XmHTML library.",
    "Refresh was not working well when scrolling so I ended up adding a mini\n"
