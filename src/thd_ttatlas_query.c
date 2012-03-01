@@ -1393,13 +1393,59 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       ADDTO_SARR(sar,WAMI_TAIL) ;  /* cautionary tail */
    }
 
-   /*- convert list of labels into one big multi-line string -*/
+   if (AFNI_wami_output_mode() == 0) {
+      /*- convert list of labels into one big multi-line string -*/
 
-   for( nfind=ii=0 ; ii < sar->num ; ii++ ) nfind += strlen(sar->ar[ii]) ;
-   rbuf = AFMALL(char, nfind + 2*sar->num + 32 ) ; rbuf[0] = '\0' ;
-   for( ii=0 ; ii < sar->num ; ii++ ){
-      strcat(rbuf,sar->ar[ii]) ; strcat(rbuf,"\n") ;
-   }
+      for( nfind=ii=0 ; ii < sar->num ; ii++ ) nfind += strlen(sar->ar[ii]) ;
+      rbuf = AFMALL(char, nfind + 2*sar->num + 32 ) ; rbuf[0] = '\0' ;
+      for( ii=0 ; ii < sar->num ; ii++ ){
+         strcat(rbuf,sar->ar[ii]) ; strcat(rbuf,"\n") ;
+      }
+   } else {
+      /*- HTML -*/
+      /* TO_Daniel: A little crude formatting. */
+      rbuf =  THD_zzprintf(rbuf,"<head>\n"
+               "<title>AFNI Whereami</title>\n"
+               "</head>\n"
+               "<body>\n"
+               "<a name=\"top\"></a>\n"
+               "<center><h1>Vive l'amour -- <img src=\"afnigui_logo.jpg\"\n"
+               " align=middle>\n"
+               " </h1></center>\n"
+               "<hr><p>\n"
+               "<ul>\n");
+      for( ii=0 ; ii < sar->num ; ii++ ){
+         /* TO_Daniel: 
+         Here , we could scan for a URL in sar->ar[ii]
+         and based on the result either do a vanilla line, 
+         or a URL line like so 
+         It behooves us perhaps to do some formatting before 
+         we get to the sar level. Let us talk.
+         For formatting, look at afnigui.html for home grown samples.
+         I also have a pocket book for html tags.
+         */
+         if (!strncmp(sar->ar[ii],"http://",7)) {
+            rbuf =  THD_zzprintf(rbuf,
+                 "<ul>\n"
+  "<a href=\"%s\"><tt>%s</tt></a>"
+               "</ul>\n", sar->ar[ii], sar->ar[ii]);
+         } else if (!strncmp(sar->ar[ii],"++++++",6)) {
+            rbuf =  THD_zzprintf(rbuf,
+                 "<p><center><h2>%s\n"
+                  "</h2></center>\n", sar->ar[ii]);
+         } else {
+            rbuf =  THD_zzprintf(rbuf,"<p> %s \n", sar->ar[ii]);
+         }
+      }
+      rbuf =  THD_zzprintf(rbuf,
+               "<ul>\n"
+  "<a href=\"http://afni.nimh.nih.gov/\"><tt>http://afni.nimh.nih.gov</tt></a>"
+               "</ul>\n");
+               
+      rbuf =  THD_zzprintf(rbuf,"</ul>\n"
+                                  "</body>\n"
+                                  "</html>\n");
+   }  
 
    DESTROY_SARR(sar) ;
 
@@ -8810,3 +8856,25 @@ void open_wami_webpage()
       return;
    whereami_browser(temppage);
 }
+
+int AFNI_wami_output_mode(void) 
+{
+   #ifdef DONT_USE_HTMLWIN
+      return(0);
+   #endif
+   if( AFNI_yesenv("AFNI_DONT_USE_HTMLWIN") ){
+      return(0);
+   }
+   /* To_Daniel: We will remove this crazed env condition here.
+                 and just return 1 when we get here unscathed.
+                 Delete if else lines once wami html formatting
+                 is done. 
+                 To access the new feature, add -DWEBBY_WAMI=YES to
+                 your command line. I trust the env name is to your
+                 liking.*/
+   if ( AFNI_yesenv("WEBBY_WAMI") ) { return (1); }
+   else {   return(0);  }
+   
+   return(1);
+}
+

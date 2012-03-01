@@ -1244,6 +1244,7 @@ MCW_textwin * new_MCW_textwin( Widget wpar, char *msg, int type )
 static int bigtext = 0 ;
 void MCW_textwin_setbig( int b ){ bigtext = b ; }  /* 29 Apr 2009 */
 
+
 /*-----------------------------------------------------------------------
    Modified 10 Jul 2001 to include killing callback
 -------------------------------------------------------------------------*/

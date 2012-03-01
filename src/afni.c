@@ -6633,23 +6633,20 @@ DUMP_IVEC3("             new_ib",new_ib) ;
      else          AFNI_process_redisplay( im3d ) ;
    }
 
-   if( !doflash && im3d->vwid->imag->pop_whereami_twin != NULL ){
+   if( !doflash && AFNI_HAVE_WAMI_WIDGET(im3d) ){
 
       char *tlab = AFNI_ttatlas_query( im3d ) ;
 
-      if( tlab == NULL ){
-         MCW_textwin_alter( im3d->vwid->imag->pop_whereami_twin ,
-                           "\n** Can't compute Talairach coordinates now **\n");
-      } else {
-         MCW_textwin_alter( im3d->vwid->imag->pop_whereami_twin , tlab ) ;
-         free(tlab) ;
-      }
+      AFNI_alter_wami_text(im3d, tlab);
+      
+      if (tlab) free(tlab) ;
    }
 
    EXRR ;
 }
 #undef EXRR
 
+                                       
 /*-------------------------------------------------------------------------
    get the n-th overlay as an MRI_IMAGE *
    (return NULL if none;  note that the result must be mri_freed by the user)
@@ -9223,6 +9220,8 @@ ENTRY("AFNI_imag_pop_CB") ;
             CAN_TALTO(im3d)                          ){
 
       char *tlab ;
+      tlab = AFNI_ttatlas_query( im3d ) ;
+      if (AFNI_wami_output_mode() == 0) { /* old spice */
 
       /*- if one is already open, kill it -*/
 
@@ -9234,7 +9233,6 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       /*- get TT atlas location, if any -*/
 
-      tlab = AFNI_ttatlas_query( im3d ) ;
 
       /*- open a window to show it -*/
 
@@ -9296,9 +9294,11 @@ ENTRY("AFNI_imag_pop_CB") ;
           "    knowledge, skills, and abilities as well.\n"
           "* Do NOT use this feature for surgical or therapeutic planning!!!"
          ) ;
-
-         free(tlab) ;
       }
+      } else { /* web */
+         AFNI_alter_wami_text(im3d, tlab); 
+      } /* web */
+      if (tlab) free(tlab) ;
    }
 
    /*---- 12 Jul 2001 ----*/
@@ -9455,6 +9455,74 @@ void AFNI_pop_whereami_kill( Three_D_View *im3d )
    im3d->vwid->imag->pop_whereami_twin = NULL ;
    return ;
 }
+
+
+/*-------------------------------------------------------------------------
+   A newer output form for whereami 
+---------------------------------------------------------------------------*/
+static int htmlwami_open        = 0 ;
+
+void AFNI_htmlwami_killfun( XtPointer pp ){
+   Three_D_View *im3d = (Three_D_View *)pp;
+   
+   if (!im3d) return;
+
+   im3d->vwid->imag->pop_whereami_htmlwin=NULL;
+   /* not there yet 
+   MCW_unregister_hint( im3d->vwid->imag->pop_whereami_twin->wtext ) ;
+   MCW_unregister_help( im3d->vwid->imag->pop_whereami_twin->wtext ) ;
+   */
+
+   htmlwami_open = 0 ; return ;
+}
+ 
+void AFNI_htmlwami_CB( Widget w , XtPointer cd , XtPointer cbd )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   char *uinf=(char *)cbd , *inf=NULL ; int ii ;
+   MCW_htmlwin *htmlwami_hw = im3d->vwid->imag->pop_whereami_htmlwin;
+   
+   ENTRY("AFNI_htmlwami_CB") ;
+   
+   if( uinf != NULL && *uinf != '\0' ){
+      inf = (char *)malloc(sizeof(char)*(strlen(uinf)+16)) ;
+      strcpy(inf,"wami:") ; strcat(inf,uinf) ; 
+   }
+   
+   if( htmlwami_open && htmlwami_hw != NULL ){
+     XMapRaised( XtDisplay(htmlwami_hw->wshell), XtWindow(htmlwami_hw->wshell)) ;
+     MCW_htmlwin_alter( htmlwami_hw , inf );
+     EXRETURN ;
+   } else {     
+     htmlwami_hw = new_MCW_htmlwin( im3d->vwid->imag->topper, inf,
+                               AFNI_htmlwami_killfun , im3d      ) ;
+     im3d->vwid->imag->pop_whereami_htmlwin = htmlwami_hw;
+   }
+   free(inf) ; inf = NULL ; htmlwami_open = 1 ; 
+
+   EXRETURN ;
+}
+
+void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab) 
+{
+   char *tlab=NULL;
+   
+   ENTRY("AFNI_alter_wami_text");
+   
+   if (!im3d || !im3d->vwid || !im3d->vwid->imag) EXRETURN;
+   
+   if (!utlab) tlab = "\n** Can't compute Talairach coordinates now **\n";
+   else tlab = utlab;
+   
+   if (AFNI_wami_output_mode() == 0) {
+      if (!im3d->vwid->imag->pop_whereami_twin) EXRETURN;
+      MCW_textwin_alter( im3d->vwid->imag->pop_whereami_twin , tlab ) ;
+   } else {
+      AFNI_htmlwami_CB( NULL , (XtPointer)im3d , (XtPointer) tlab );
+   }
+   EXRETURN;
+}  
+
 
 /*-------------------------------------------------------------------------*/
 
