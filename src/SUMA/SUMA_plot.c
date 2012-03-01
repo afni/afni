@@ -194,8 +194,19 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
 static void clonebut_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
-
+   static int ibug=0;
+   static char FuncName[]={"clonebut_CB"};
+   
    if( mpcb == NULL || ! MTD_VALID(mpcb) ) return ;
+   if (!mpcb->clonebut_user_cb) {
+      if (!ibug) {
+         SUMA_S_Warn("Not expecting to be here with a NULL CB\n"
+                  "printing trace, just once for debugging.\n");
+         SUMA_DUMP_TRACE("At NULL CB in function:  clonebut_CB");        
+      }
+      ++ibug;
+      return;
+   }
    /* release yourself from your creator */
    mpcb->clonebut_user_cb((void *)mpcb);
    
@@ -239,7 +250,7 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
    mpcb = (MEM_topshell_data *) malloc( sizeof(MEM_topshell_data) ) ;
    memset((void*)mpcb, 0, sizeof(MEM_topshell_data));
    mpcb->valid = 0 ;
-
+   mpcb->cloned = 0;
 #ifdef HAVE_XDBE
    init_XDBE(dpy) ; mpcb->have_xdbe = 0 ;
 #endif
@@ -457,8 +468,10 @@ void SUMA_memplot_clone(void *mpv)
       if (!(Sover = mpud->Sover) || \
           !Sover->rowgraph_mtd || /* trying to avoid mysterious crash */ \
           !Sover->rowgraph_mtd->clonebut) SUMA_RETURNe; 
-      /* desentize le bouton */
+      /* desentize le bouton, and mark rowgraph struct as cloned */
       XtUnmanageChild(Sover->rowgraph_mtd->clonebut); 
+      Sover->rowgraph_mtd->cloned=1;
+      
       /* clear content of graph structure in Sover */
       Sover->rowgraph_mtd = NULL;
       
@@ -727,7 +740,7 @@ void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp )
    SUMA_OVERLAYS * Sover=NULL ;
    int i=0;
    SUMA_MEMPLOT_USERDATA *mpud=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    SUMA_ENTRY ;
 
    if( mp == NULL ) SUMA_RETURNe; 
@@ -738,10 +751,12 @@ void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp )
    }
    SUMA_LHv("Freeing tsa's %d arrays and other contents\n", mpud->tsa_dims[0]);
    mpud = SUMA_clear_mpud_contents(mpud);
+   if (mp->cloned) SUMA_RETURNe; /* inactive, cloned window, return */
    
    Sover = mpud->Sover ; 
    if( ! Sover ) SUMA_RETURNe ;
    Sover->rowgraph_mtd = NULL ;
+   
    /* here you might do something with some widgets on 
    say surface controller */
       

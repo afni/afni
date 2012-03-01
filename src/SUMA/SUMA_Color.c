@@ -947,7 +947,7 @@ SUMA_AFNI_COLORS *SUMA_Build_Color_maps(void)
    } 
    
    /* load cmaps from user's directory */
-   if ((name = getenv("SUMA_CmapsDir")) && name[0] != '\0') {
+   if ((name = getenv("SUMA_CmapsDir")) && strcmp(name,"None")) {
       if (SUMA_LoadUserCmapsDir( name, SAC) < 0) {
          SUMA_S_Warn("Failed reading user colormaps\n");
       }
