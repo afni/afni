@@ -46,10 +46,12 @@ ENTRY("EDIT_substitute_brick") ;
    mri_free( oldim ) ;                                   /* kill old one  */
 
    if( nullfim ){                                        /* if needed, */
-      fim = calloc( 1,nbytes ) ;                         /* make array */
-      if( fim == NULL ){
-        fprintf(stderr,"\n*** malloc error for dataset sub-brick\n") ; EXIT(1) ;
-      }
+     fim = calloc( 1,nbytes ) ;                          /* make array */
+     if( fim == NULL ){
+      fprintf(stderr,"\n*** malloc error for dataset sub-brick %d (%d bytes)\n",
+              ival, nbytes) ;
+      EXIT(1) ;
+     }
    }
    mri_fix_data_pointer( fim , newim ) ;                 /* attach new data */
    DSET_BRICK(dset,ival) = newim ;                       /* put in dataset  */
