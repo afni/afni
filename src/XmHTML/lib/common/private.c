@@ -37,6 +37,9 @@ static char rcsId[]="$Header$";
 /*****
 * ChangeLog 
 * $Log$
+* Revision 1.3  2012/03/01 17:56:31  ziad
+* Cput
+*
 * Revision 1.2  2011/11/10 14:37:55  ziad
 * Cput
 *
@@ -1892,5 +1895,12 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 	}
 
 	/* update display */
-	_XmHTMLClearArea(html, x, y, width, height);
+	if (0) { /* Not radical enough it seems. 
+              Causes refresh problems when scroll bar is moved
+              ZSS: March 2012 */
+      _XmHTMLClearArea(html, x, y, width, height);
+   } else { /* overkill, but seems to get rid of refresh problem.
+               It does add some unpleasant flicker though ...*/
+      XmHTMLRefresh((Widget)html);
+   }
 }

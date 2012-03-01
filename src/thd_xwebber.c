@@ -185,12 +185,21 @@ ENTRY("htmlize") ;
    RETURN(mmm) ;
 }
 
+/* This is a callback to deal with some refresh problems
+   that should have been handled by the XmHTML library.
+   For now this call is not needed. It looks like the patching
+   of XmHTML did the trick ZSS March 2012 */
+void RefreshHTML_AtEvent( Widget w , XtPointer client_data ,
+                  XEvent * ev , Boolean * continue_to_dispatch )
+{
+   XmHTMLRefresh(client_data);
+}
+
 /*----------------------------------------------------------------------------*/
 /* Open a window with an XmHTML widget containing msg.
    If msg starts with "file:", then it indicates a file to read and display.
    Otherwise, it is the content of the page directly.
 *//*--------------------------------------------------------------------------*/
-
 MCW_htmlwin * new_MCW_htmlwin( Widget wpar , char *msg ,
                                void_func *kill_func , XtPointer kill_data )
 
@@ -325,6 +334,23 @@ STATUS("create HTML widget") ;
                 NULL ) ;
    XtAddCallback( hw->whtml, XmNactivateCallback, (XtCallbackProc)anchorCB, NULL ) ;
    XtAddCallback( hw->whtml, XmNarmCallback     , (XtCallbackProc)armCB   , NULL ) ;
+   
+#if 0 /* This was needed to deal with some refreshing problems when the scrollbar
+         was moved. The patch in XmHTML seems to have do the trick. These are
+         left here should we need to reuse them someday */
+   XtInsertEventHandler( hw->whtml ,        /* notify when */
+                         LeaveWindowMask ,  /* pointer leaves */
+                         FALSE ,            /* this window */
+                         RefreshHTML_AtEvent,
+                         (XtPointer) hw->whtml ,
+                         XtListTail ) ;     /* last in queue */      
+   XtInsertEventHandler( hw->whtml ,        /* notify when */
+                         EnterWindowMask ,  /* pointer leaves */
+                         FALSE ,            /* this window */
+                         RefreshHTML_AtEvent,
+                         (XtPointer) hw->whtml ,
+                         XtListTail ) ;     /* last in queue */      
+#endif
 
 STATUS("manage HTML widgets") ;
 

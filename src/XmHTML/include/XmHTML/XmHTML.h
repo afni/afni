@@ -35,6 +35,9 @@
 /*****
 * ChangeLog 
 * $Log$
+* Revision 1.2  2012/03/01 17:56:31  ziad
+* Cput
+*
 * Revision 1.1  2011/06/30 16:08:41  rwcox
 * Cadd
 *
@@ -497,6 +500,7 @@ XmHTML_LIBEXPORT Widget XmCreateHTML(Widget parent, String name,
 
 /* force a recomputation of screen layout and trigger a redisplay */
 XmHTML_LIBEXPORT void XmHTMLRedisplay(Widget w);
+XmHTML_LIBEXPORT void XmHTMLRefresh(Widget w);
 
 /* return info about the font cache for display of the given widget */
 XmHTML_LIBEXPORT XmHTMLFontCacheInfo *XmHTMLGetFontCacheInfo(Widget w);

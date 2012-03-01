@@ -77,6 +77,9 @@ static char rcsId[]="$Header$";
 /*****
 * ChangeLog 
 * $Log$
+* Revision 1.2  2012/03/01 17:56:31  ziad
+* Cput
+*
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
 *
@@ -1841,10 +1844,11 @@ pstkTextWidth(XmHTMLfont *font, const char* string, int count)
 	char *chPtr;
 	int width = 0;
 	int i = 0;
-
-	for(chPtr = string; i < count; chPtr++, i++)
+   fprintf(stderr,"Warning: This function does nothing, returning 0 width.\n");
+	for(chPtr = (char*)string; i < count; chPtr++, i++)
 	{
 	}
+   return(0); /* Looks like an incomplete function */
 }
 
 #if 0

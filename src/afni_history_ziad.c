@@ -66,6 +66,21 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1, MAR , 2012 , ZSS , "afni" , MINOR , TYPE_BUG_FIX,
+   "Some cleanups and tweaks of XmHTML library.",
+   "Refresh was not working well when scrolling so I ended up adding a mini\n"
+   "refresh routine that seems to do the trick. XmHTMLRefresh(Widget w)\n"
+   "It is called each time there is a repositioning. Perhaps that is overkill,\n"
+   "but no need to sweat this for now.\n"
+ },
+
+ { 29, FEB , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Added option to use html viewer for WAMI results.",
+   "This is to allow users to click on a URL if one is available for a certain\n"
+   "atlas result. For now the display is very crude and only accessible with\n"
+   "-DWEBBY_WAMI=YES.\n"
+ },
+
  { 29, FEB , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Added 'ctrl+W' that allows saving results from interactive correlations.",
    "This allows for convenient saving of interactively created datasets\n"
