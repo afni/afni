@@ -1409,8 +1409,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                "</head>\n"
                "<body>\n"
                "<a name=\"top\"></a>\n"
-               "<center><h1>Vive l'amour -- <img src=\"afnigui_logo.jpg\"\n"
-               " align=middle>\n"
+               "<center><h1>Vive l'amour ! \n"
                " </h1></center>\n"
                "<hr><p>\n"
                "<ul>\n");

@@ -35,6 +35,9 @@ static char rcsId[]="$Header$";
 /*****
 * ChangeLog 
 * $Log$
+* Revision 1.2  2012/03/01 17:56:31  ziad
+* Cput
+*
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
 *
@@ -1938,7 +1941,7 @@ parserWarning(Parser *parser, htmlEnum id, htmlEnum current, parserError error)
 			sprintf(msg, XMHTML_MSG_128, html_tokens[id], html_tokens[current]);
 			break;
 		case HTML_INTERNAL:
-			sprintf(msg, XMHTML_MSG_129);
+			sprintf(msg, XMHTML_MSG_129,"");
 			break;
 		case HTML_NOTIFY:	/* not reached */
 			return;
