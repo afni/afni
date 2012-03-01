@@ -3301,12 +3301,15 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /* allocate space */
             fm = (float **)SUMA_allocate2D (ntot/4, 4, sizeof(float));
             if (fm == NULL) {
-               fprintf(stderr,"Error SUMA_input: Failed to allocate space for fm\n");
+               fprintf(stderr,
+                        "Error SUMA_input: Failed to allocate space for fm\n");
                SUMA_RETURNe;
             }
 
             if (SUMA_Read_2Dfile (s, fm, 4, ntot/4) != ntot/4 ) {
-               fprintf(stderr,"SUMA_input Error: Failed to read full matrix from %s\n", s);
+               fprintf(stderr,
+                        "SUMA_input Error: Failed to read full matrix from %s\n",
+                        s);
                SUMA_RETURNe;
             }
                
@@ -3318,7 +3321,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                    SEF_fm, (void*)fm,
                                                    SES_Suma, (void *)sv, YUP,
                                                    SEI_Head, NULL)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+               fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", 
+                        FuncName);
                break;                                      
             } 
 
@@ -3326,10 +3330,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
 
             if (!SUMA_Engine (&list)) {
-               fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+               fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", 
+                        FuncName);
             }
 
-            /* free fm since it was registered by pointer and is not automatically freed after the call to SUMA_Engine */
+            /* free fm since it was registered by pointer and is not 
+               automatically freed after the call to SUMA_Engine */
             if (fm) SUMA_free2D ((char **)fm, ntot/4);
             break;
             #endif 
@@ -3384,7 +3390,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_f:
             /* Show/hide the foreground */
             if (!list) list = SUMA_CreateList(); 
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleForeground, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleForeground, 
+                                                SES_Suma, sv);
             SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
 
             if (!SUMA_Engine (&list)) {
@@ -3393,17 +3400,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;            
 
          case XK_H:
-               sv->X->HighlightBox_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
-                                                      "Enter XYZ of box's center\n"
-                                                      "followed by it's size (6 values)", 
-                                                      "",
-                                                      sv->X->TOPLEVEL, YUP,
-                                                      SUMA_APPLY_BUTTON,
-                                                      SUMA_HighlightBox, (void *)sv,
-                                                      NULL, NULL,
-                                                      NULL, NULL,
-                                                      SUMA_CleanNumString, (void*)6,  
-                                                      sv->X->HighlightBox_prmpt);
+               sv->X->HighlightBox_prmpt = 
+                  SUMA_CreatePromptDialogStruct(SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                             "Enter XYZ of box's center\n"
+                                             "followed by it's size (6 values)", 
+                                             "",
+                                             sv->X->TOPLEVEL, YUP,
+                                             SUMA_APPLY_BUTTON,
+                                             SUMA_HighlightBox, (void *)sv,
+                                             NULL, NULL,
+                                             NULL, NULL,
+                                             SUMA_CleanNumString, (void*)6,  
+                                             sv->X->HighlightBox_prmpt);
                
                sv->X->HighlightBox_prmpt = SUMA_CreatePromptDialog(sv->X->Title, 
                                                       sv->X->HighlightBox_prmpt);
@@ -3897,16 +3905,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;   
                Cx = (float *)SUMA_GetCx(SO->idcode_str, SUMAg_CF->DsetList, 0);
                if (Cx) {
-                  fprintf(stderr,"Error %s: Cx must be null prior to new assignment\n", FuncName);
+                  fprintf(stderr,
+                           "Error %s: Cx must be null prior to new assignment\n",
+                           FuncName);
                   break;
                }
-               Cx = SUMA_Convexity   (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->FN);   
+               Cx = SUMA_Convexity   ( SO->NodeList, SO->N_Node, 
+                                       SO->NodeNormList, SO->FN);   
                if (Cx == NULL) {
-                     fprintf(stderr,"Error %s: Failed in SUMA_Convexity\n", FuncName);
+                     fprintf(stderr,"Error %s: Failed in SUMA_Convexity\n", 
+                                    FuncName);
                      break;
                }   
                /* smooth estimate twice */
-               attr_sm = SUMA_SmoothAttr_Neighb (Cx, SO->N_Node, NULL, SO->FN, 1, NULL, 1);
+               attr_sm = SUMA_SmoothAttr_Neighb (Cx, SO->N_Node, NULL, 
+                                                 SO->FN, 1, NULL, 1);
                if (attr_sm == NULL) {
                      fprintf(stderr,
                              "Error %s: Failed in SUMA_SmoothAttr_Neighb\n", 
@@ -3971,7 +3984,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   /* Now place SV in the color array */
                   glar_ColorList = SUMA_GetColorList (sv, SO->idcode_str);
                   if (!glar_ColorList) {
-                     fprintf (SUMA_STDERR,"Error %s: NULL glar_ColorList. BAD.\n", FuncName);
+                     fprintf (SUMA_STDERR,
+                              "Error %s: NULL glar_ColorList. BAD.\n", FuncName);
                      break;
                   }  
                   SUMA_RGBvec_2_GLCOLAR4(SV->cV, glar_ColorList, SO->N_Node);
@@ -3985,7 +3999,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      Cx = NULL;
                   }
 
-               fprintf(SUMA_STDOUT, "%s: Convexity mapping done ...\n", FuncName);
+               fprintf(SUMA_STDOUT, "%s: Convexity mapping done ...\n", 
+                                    FuncName);
                SUMA_postRedisplay(w, clientData, callData);   
             }
             break;
@@ -4288,6 +4303,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          if (pButton == Button1) pButton = Button3;
          else if (pButton == Button3) pButton = Button1;
       }
+      if (SUMAg_CF->Echo_KeyPress) {
+         fprintf (SUMA_STDERR,"Button Press: %d (%d,%d,%d,%d,%d)\n"
+                              , pButton, Button1, Button2, Button3, Button4,
+                              Button5);
+      }
      
      /* trap for double click */
       if (Bev.time - B1time < SUMA_DOUBLE_CLICK_MAX_DELAY) {
@@ -4329,21 +4349,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
          case Button4:
-            {
-               if (!SUMA_Z_Key(sv, "z", "interactive")) {
-                  SUMA_S_Err("Failed in key func.");
-               }
-            }
-            break;
-         case Button5:
-            {
-               if (!SUMA_Z_Key(sv, "Z", "interactive")) {
-                  SUMA_S_Err("Failed in key func.");
-               }
-            }
-            break;
-         case 6:  /* This is shift and wheel , Button6 is not in X.h ! */
-            {
+         case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
+            if (pButton==6 || Bev.state & ShiftMask) {
                int ii;
                SUMA_VolumeObject *VO=NULL;
                for (ii=0; ii<SUMAg_N_DOv; ++ii) {
@@ -4362,10 +4369,15 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                }
                SUMA_postRedisplay(w, NULL, NULL);
+            } else {
+               if (!SUMA_Z_Key(sv, "z", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
             }
             break;
-         case 7: /* This is shift and wheel , Button7 is not in X.h ! */
-            {
+         case Button5:
+         case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
+            if (pButton==7 || Bev.state & ShiftMask) {
                int ii;
                SUMA_VolumeObject *VO=NULL;
                for (ii=0; ii<SUMAg_N_DOv; ++ii) {
@@ -4378,11 +4390,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            SUMA_SLP_Err("Bad");
                         }
                      }
-		     /* JB: only allow cutplane from 1st volume object, otherwise remove 'break' */
+		     /* JB: only allow cutplane from 1st volume object, 
+                  otherwise remove 'break' */
 		     break;
                   }
                }
                SUMA_postRedisplay(w, NULL, NULL);
+            } else {
+               if (!SUMA_Z_Key(sv, "Z", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
             }
             break;
          case Button2:
@@ -4546,6 +4563,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       if (LocalHead) 
          fprintf(SUMA_STDERR,
                   "%s: In ButtonRelease Button %d\n", FuncName, rButton); 
+      if (SUMAg_CF->Echo_KeyPress) {
+         fprintf (SUMA_STDERR,"Button Release: %d (%d,%d,%d,%d,%d)\n"
+                              , rButton, Button1, Button2, Button3, Button4,
+                              Button5);
+      }
+
       if (SUMAg_CF->SwapButtons_1_3 || 
           (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
          if (rButton == Button1) rButton = Button3;
@@ -4610,6 +4633,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          else if (Mev.state & Button4MotionMask) fprintf(stdout,"   B4 mot\n");
          else if (Mev.state & Button5MotionMask) fprintf(stdout,"   B5 mot\n");
       }
+      if (SUMAg_CF->Echo_KeyPress) {
+         if (Mev.state & Button1MotionMask) 
+            fprintf(SUMA_STDERR,"   B1 mot\n");
+         else if (Mev.state & Button2MotionMask) 
+            fprintf(SUMA_STDERR,"   B2 mot\n");
+         else if (Mev.state & Button3MotionMask) 
+            fprintf(SUMA_STDERR,"   B3 mot\n");
+         else if (Mev.state & Button4MotionMask) 
+            fprintf(SUMA_STDERR,"   B4 mot\n");
+         else if (Mev.state & Button5MotionMask) 
+            fprintf(SUMA_STDERR,"   B5 mot\n");
+         else if (Mev.state) fprintf(SUMA_STDERR,"   Something mot\n");
+      }
+
       if (  SUMAg_CF->SwapButtons_1_3 || 
             (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
         if (((Mev.state & Button3MotionMask) && (Mev.state & Button2MotionMask)) 
