@@ -691,9 +691,13 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
     cmd = cmd +                                                 \
         "# final result: add REML errts to polynomial baseline\n" \
         "# (and separate back into individual runs)\n"          \
+        "set run_lengths = ( %s )\n"                            \
         "set startind = 0\n"                                    \
-        "foreach runlen ( %s )\n"                               \
+        "foreach rind ( `count -digits 1 1 $#runs` )\n"         \
+        "    set run = $runs[$rind]\n"                          \
+        "    set runlen = $run_lengths[$rind]\n"                \
         "    @ endind = $startind + $runlen - 1\n"              \
+        "\n"                                                    \
         '    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'   \
         '           -b %s.polort%s"[$startind..$endind]" \\\n'  \
         '%s'                                                    \

@@ -316,9 +316,12 @@ g_history = """
     3.10 Feb 10, 2012:
         - added -check_results_dir option for ZSS
         - changed -tcat_outlier_warn_limit to -tcat_preSS_warn_limit
+    3.11 Mar  2, 2012: fixed $runs use with ricor of multiple runs
+        - problem noted by I Mukai
+        - output afni -ver in script
 """
 
-g_version = "version 3.10, February 10, 2012"
+g_version = "version 3.11, March 2, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "27 Jan 2012"
@@ -1525,16 +1528,18 @@ class SubjProcSream:
         if not self.check_setup_errors: stat_inc = ''
         else: stat_inc = '@ nerrors += $status      # accumulate error count\n'
 
-        self.fp.write('# %s\n'
+        self.fp.write('# %s\n'  \
                       '# script setup\n\n' % block_header('auto block: setup'))
 
         if len(stat_inc) > 0:
-            self.fp.write("# prepare to count setup errors\n"
+            self.fp.write("# prepare to count setup errors\n" \
                           "set nerrors = 0\n\n")
 
         # possibly check the AFNI version (via afni_history)
         opt = self.user_opts.find_opt('-check_afni_version')
         if not opt or opt_is_yes(opt):
+          self.fp.write('# take note of the AFNI version\n' \
+                        'afni -ver\n\n')
           self.fp.write(                                                      \
           '# check that the current AFNI version is recent enough\n'          \
           'afni_history -check_date %s\n'                                     \
