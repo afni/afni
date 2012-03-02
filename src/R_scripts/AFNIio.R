@@ -9,17 +9,22 @@ R_io <<- -1
 #------------------------------------------------------------------
 find.in.path <- function(file) { #Pretty much same as first.in.path
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
-   ff<-ff[lapply(ff,file.exists)==TRUE];
-   return(gsub('//','/',ff[1], fixed=TRUE)) 
+   ff <- ff[lapply(ff,file.exists)==TRUE];
+   aa <- gsub('//','/',ff[1], fixed=TRUE)
+   if (is.na(aa)) aa <- NULL
+   return(aa) 
 }
 
 if (R_io == -1) {
-   dd<-dyn.load(find.in.path('R_io.so'))
-   if (!exists('dd')) {
-      note.AFNI(paste("Failed to load R_io.so."));
-      R_io <<- 0
-   } else {
-      R_io <<- 1
+   R_io <<- 0
+   ll <- find.in.path('R_io.so')
+   if (!is.null(ll)) {
+      dd <- dyn.load(ll)
+      if (!exists('dd')) {
+         note.AFNI(paste("Failed to load R_io.so."));
+      } else {
+         R_io <<- 1
+      }
    }
 }
 
