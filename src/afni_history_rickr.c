@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, MAR, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "fixed $runs in multi-run ricor",
+   "Problem noted by I Mukai."
+ } ,
+
  { 27, FEB, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "made a little more intelligent, e.g. make one backup by default",
    "Note: can run this without any existing AFNI binaries, e.g.\n"
