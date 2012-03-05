@@ -43,7 +43,7 @@ int prog_complete_command (char *prog, char *ofile) {
           pvar[i] == '-' || pvar[i] == '+' ||
           IS_PUNCT(pvar[i])) pvar[i]='_';
    }
-   fprintf(fout,"set ARGS_%s=(", pvar);
+   fprintf(fout,"set ARGS=(");
    for (i=0; i<N_ws; ++i) {
       if (ws[i]) {
          fprintf(fout,"'%s' ", ws[i]);
@@ -51,7 +51,7 @@ int prog_complete_command (char *prog, char *ofile) {
       }
    }
    fprintf(fout,") ; "
-                  "complete %s 'p/*/$ARGS_%s/' ; ##%s##\n",prog, pvar, prog);
+                  "complete %s \"p/*/($ARGS)/\" ; ##%s##\n",prog, prog);
 
    if (ofile) fclose(fout); fout=NULL;
    free(ws); ws = NULL; free(pvar);

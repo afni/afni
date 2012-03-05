@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, MAR, 2012, RCR, "apsearch", MICRO, TYPE_MODIFY,
+   "do not set shell variables",
+   NULL
+ } ,
+
  {  5, MAR, 2012, RCR, "uber_proc.py", MICRO, TYPE_MODIFY,
    "trivially apply -help option, for apsearch",
    NULL
