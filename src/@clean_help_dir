@@ -18,9 +18,9 @@ RET_PARSE:
 
 cd $hdir
 
-\ls -1  | \
+\ls -1  | sed -n '/.*help$/p' | \
    sed 's/\.20[0-9][0-9]_[0-9][0-9]_[0-3][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9]\.help//g'       | \
-   uniq > $fout
+   sort | uniq > $fout
 
 
 set nprogs = `wc -l $fout`
@@ -32,7 +32,7 @@ while ($n <= $nprogs)
    set pname = `sed -n ${n}p $fout`
    set lcands = `\ls -t ${pname}.*-*.help`
    if ($#lcands == 0) then
-      #echo "Found nothing for $pname"
+      echo "Found nothing for $pname"
    else if ($#lcands > 1) then
       foreach ii (1 2)
          sed '/Compile *date/d' $lcands[$ii] | \
@@ -59,6 +59,20 @@ end
    set nleft = `ls -1 $hdir/ | wc -l`
    echo "$N_change redundant help files deleted, $nleft help files left."
 
+   echo "Combining all command completions into all_progs.COMP"
+   cat *.complete > all_progs.COMP
+   
+   echo ""
+   echo "If you have not done so already, add the following lines to your .csrhc"
+   echo ''
+   echo ''
+   echo 'set ahdir = `apsearch -afni_help_dir`'
+   echo 'if ( -f $ahdir/all_progs.COMP ) then'
+   echo '   source $ahdir/all_progs.COMP'
+   echo 'endif'
+   echo ''
+   echo ''
+   
 cd $sdir
 goto END
 
