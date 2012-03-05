@@ -661,6 +661,33 @@ ENTRY("has_known_non_afni_extension");
     RETURN(1); /* otherwise, we recognize it as non-AFNI */
 }
 
+/* --------------------------------------------------------------- */
+/* return 1 if smode is for a writable format   5 Mar 2012 [rickr] */
+
+int is_writable_storage_mode( int smode )
+{
+ENTRY("has_writable_extension");
+
+   switch (smode) {
+      case STORAGE_UNDEFINED:           RETURN(0);
+      case STORAGE_BY_ANALYZE:          RETURN(0);  /* returns NIFTI */
+      case STORAGE_BY_CTFMRI:           RETURN(0);
+      case STORAGE_BY_CTFSAM:           RETURN(0);
+      case STORAGE_BY_MPEG:             RETURN(0);
+
+      case STORAGE_BY_BRICK:            RETURN(1);
+      case STORAGE_BY_VOLUMES:          RETURN(1);
+      case STORAGE_BY_1D:               RETURN(1);
+      case STORAGE_BY_3D:               RETURN(1);
+      case STORAGE_BY_NIFTI:            RETURN(1);
+      case STORAGE_BY_NIML:             RETURN(1);
+      case STORAGE_BY_NI_SURF_DSET:     RETURN(1);
+      case STORAGE_BY_GIFTI:            RETURN(1);
+   }
+
+   RETURN(0); /* not writable */
+}
+
 /* ---------------------------------------------------- */
 /* given a filename, return a string excluding known 
    afni extensions (from file_extension_list)
