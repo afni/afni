@@ -317,6 +317,7 @@ THD_string_array * THD_get_all_afni_executables(void )
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".a") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".c") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".h") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".f") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".xbm") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".tex") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".lib") &&
@@ -327,7 +328,10 @@ THD_string_array * THD_get_all_afni_executables(void )
     !(STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".py") && !strncmp(etr,"lib_",4)) &&
           (smode <= STORAGE_UNDEFINED || smode >= LAST_STORAGE_MODE)  &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".sumarc") &&
-          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".afnirc")
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".afnirc")&&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], "lib.py") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".pyc") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".Xdefaults") 
               )  {
          ADDTO_SARR( outar , elist->ar[ii] ) ; ++iaf;
          /* fprintf(stderr," %d- %s\n", iaf, etr); */
