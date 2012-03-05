@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, MAR, 2012, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "EDIT_empty: only propagate writable storage_modes",
+   "Added is_writable_storage_mode and DSET_STORAGE_MODE.\n"
+   "Problem noted by Eli."
+ } ,
+
  {  2, MAR, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "fixed $runs in multi-run ricor",
    "Problem noted by I Mukai."

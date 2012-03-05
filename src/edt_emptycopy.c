@@ -112,7 +112,9 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
       new_dkptr->dimsizes[0]  = old_dset->daxes->nxx ;
       new_dkptr->dimsizes[1]  = old_dset->daxes->nyy ;
       new_dkptr->dimsizes[2]  = old_dset->daxes->nzz ;
-      if (old_dset->dblk && old_dset->dblk->diskptr) { /* ZSS Feb 5 2012 */
+      /* pass on only writable storage modes    5 Mar 2012 [rickr] */
+      if( is_writable_storage_mode(DSET_STORAGE_MODE(old_dset)) ) {
+         /* ZSS Feb 5 2012 */
          new_dkptr->storage_mode = old_dset->dblk->diskptr->storage_mode;
       } else {
          new_dkptr->storage_mode = STORAGE_BY_BRICK ;
