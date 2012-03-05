@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dKS.R ==================          ")
 print("AFNI Kolmogorov-Smirnov testing program!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.1,  Nov. 23, 2009")
+print("Version 0.0.2,  March. 1, 2012")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website - http://afni.nimh.nih.gov/sscc/gangc/")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -98,29 +98,29 @@ read.AFNI <- function(filename) {
   if (as.integer(size) == size) {
     conbrik <- file(filename.brik,"rb")
   # modified below by GC 12/2/2008
-  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) mybrk<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned charater or short
-  if (all(values$BRICK_TYPES==3)) mybrk<- readBin(conbrik, "numeric", n=dx*dy*dz, size=size, signed=TRUE, endian=endian) # float        
+  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned charater or short
+  if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz, size=size, signed=TRUE, endian=endian) # float        
     close(conbrik)
-    dim(mybrk) <- c(dx,dy,dz,dt)
+    dim(myttt) <- c(dx,dy,dz,dt)
 #    for (k in 1:dt) {
 #      if (scale[k] != 0) {
 #        cat("scale",k,"with",scale[k],"\n")
-#        cat(range(mybrk[,,,k]),"\n")
-#        mybrk[,,,k] <- scale[k] * mybrk[,,,k]
-#        cat(range(mybrk[,,,k]),"\n")
+#        cat(range(myttt[,,,k]),"\n")
+#        myttt[,,,k] <- scale[k] * myttt[,,,k]
+#        cat(range(myttt[,,,k]),"\n")
 #      }
 #    }
-    for (k in 1:dt) if (scale[k] != 0) mybrk[,,,k] <- scale[k] * mybrk[,,,k]
+    for (k in 1:dt) if (scale[k] != 0) myttt[,,,k] <- scale[k] * myttt[,,,k]
 
   mask <- array(TRUE,c(dx,dy,dz))
-  mask[mybrk[,,,1] < quantile(mybrk[,,,1],0.75)] <- FALSE
+  mask[myttt[,,,1] < quantile(myttt[,,,1],0.75)] <- FALSE
     z <-
-      list(brk=mybrk,format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
-#      list(brk=writeBin(as.numeric(mybrk),raw(),4),format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
+      list(ttt=myttt,format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
+#      list(ttt=writeBin(as.numeric(myttt),raw(),4),format="HEAD/BRIK",delta=values$DELTA,origin=values$ORIGIN,orient=values$ORIENT_SPECIFIC,dim=c(dx,dy,dz,dt),weights=weights, header=values,mask=mask)
 
   } else {
     warning("Error reading file: Could not detect size per voxel\n")
-    z <- list(brk=NULL,format="HEAD/BRIK",delta=NULL,origin=NULL,orient=NULL,dim=NULL,weights=NULL,header=values,mask=NULL)    
+    z <- list(ttt=NULL,format="HEAD/BRIK",delta=NULL,origin=NULL,orient=NULL,dim=NULL,weights=NULL,header=values,mask=NULL)    
   }
 
   class(z) <- "fmridata"
@@ -128,7 +128,7 @@ read.AFNI <- function(filename) {
   invisible(z)
 }
 
-write.AFNI <- function(filename, brk, label, note="", origin=c(0,0,0), delta=c(4,4,4), idcode="WIAS_noid") {
+write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4,4,4), idcode="WIAS_noid") {
   ## TODO:
   ## 
   ## create object oriented way!!!!
@@ -164,16 +164,15 @@ write.AFNI <- function(filename, brk, label, note="", origin=c(0,0,0), delta=c(4
   writeChar(AFNIheaderpart("float-attribute","ORIGIN",origin),conhead,eos=NULL)  
   writeChar(AFNIheaderpart("float-attribute","DELTA",delta),conhead,eos=NULL)  
   minmax <- function(y) {r <- NULL;for (k in 1:dim(y)[4]) {r <- c(r,min(y[,,,k]),max(y[,,,k]))}; r}
-  mm <- minmax(brk)
+  mm <- minmax(ttt)
   writeChar(AFNIheaderpart("float-attribute","BRICK_STATS",mm),conhead,eos=NULL)
-  writeChar(AFNIheaderpart("integer-attribute","DATASET_RANK",c(3,dim(brk)[4],0,0,0,0,0,0)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","DATASET_DIMENSIONS",c(dim(brk)[1:3],0,0)),conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(brk)[4])),conhead,eos=NULL)  
-
-  scale <- rep(0,dim(brk)[4])
-  for (k in 1:dim(brk)[4]) {
+  writeChar(AFNIheaderpart("integer-attribute","DATASET_RANK",c(3,dim(ttt)[4],0,0,0,0,0,0)),conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("integer-attribute","DATASET_DIMENSIONS",c(dim(ttt)[1:3],0,0)),conhead,eos=NULL)  
+  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,dim(ttt)[4])),conhead,eos=NULL)  
+  scale <- rep(0,dim(ttt)[4])
+  for (k in 1:dim(ttt)[4]) {
     scale[k] <- max(abs(mm[2*k-1]),abs(mm[2*k]))/32767
-    brk[,,,k] <- brk[,,,k] / scale[k]
+    ttt[,,,k] <- ttt[,,,k] / scale[k]
   }
 
   writeChar(AFNIheaderpart("float-attribute","BRICK_FLOAT_FACS",scale),conhead,eos=NULL)  
@@ -182,8 +181,8 @@ write.AFNI <- function(filename, brk, label, note="", origin=c(0,0,0), delta=c(4
   close(conhead)
 
   conbrik <- file(paste(filename, ".BRIK", sep=""), "wb")
-  dim(brk) <- NULL
-  writeBin(as.integer(brk), conbrik,size=2, endian="big")
+  dim(ttt) <- NULL
+  writeBin(as.integer(ttt), conbrik,size=2, endian="big")
   close(conbrik)
 }
 
@@ -204,6 +203,24 @@ readMultiFiles <- function(nFiles, dim, type) {
 	return(inData)
 }
 
+runKS1 <- function(x) {
+   options(warn=-1)
+   if(sum(abs(x)>1e-10) >= 1) {
+   # standardization is necessary for one-sample  KS test!!!
+   z <- ks.test(scale(comArr[20,40,40,], center = TRUE, scale = TRUE)x, 'pnorm')  # two-tailed by default
+   outData <- c(unname(z$statistic), z$p.value)
+   return(outData)
+   } else outData <- c(0,0)
+}
+
+runSW1 <- function(x) {
+   options(warn=-1)
+   if(sum(abs(x)>1e-10) >= 1) {
+   z <- shapiro.test(x)  # two-tailed by default
+   outData <- c(unname(z$statistic), z$p.value)
+   return(outData)
+   } else outData <- c(0,0)
+}
 
 runKS2 <- function(x, n1, n) {
    options(warn=-1)
@@ -214,6 +231,7 @@ runKS2 <- function(x, n1, n) {
 
 #options(show.error.messages = FALSE)  # suppress error message when running with single processor
 
+tol <- 1e-16
 
 print("################################################################")
 #print("Please consider citing the following if this program is useful for you:")
@@ -248,6 +266,8 @@ nFiles <- vector('integer', nGrp) # number of input files for each group
 
 print("-----------------")
 
+if(nGrp==1) oneGrpType <- as.integer(readline("Type of test? (1: Kolmogorov-Smirnov; 2: Shapiro-Wilk)? "))
+
 bFN <- vector('list', nGrp)
 bList <- vector('list', nGrp)
 bArr <- vector('list', nGrp)
@@ -265,7 +285,7 @@ for(ii in 1:nGrp) {
    if(ii==1) {myNote=bList[[1]][[1]]$header$HISTORY_NOTE; myOrig=bList[[1]][[1]]$origin; myDelta=bList[[1]][[1]]$delta; myDim <- bList[[1]][[1]]$dim}
    lapply(lapply(bList[[ii]], function(x) x$dim), function(x) if(!all(x==myDim)) stop("Dimension mismatch among the input files!"))
    
-   bList[[ii]] <- lapply(bList[[ii]], function(x) x$brk)
+   bList[[ii]] <- lapply(bList[[ii]], function(x) x$ttt)
 #   bArr[[ii]] <- array(unlist(c(bList[[ii]])), dim=c(myDim[1:3], nFiles[ii]))   
 
 } # for(ii in 1:nGrp)
@@ -278,7 +298,7 @@ for(ii in 1:nGrp) {
    print("Masking is optional.")
    
    masked <- as.integer(readline("Any mask (0: no; 1: yes)? "))
-   if(masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$brk}
+   if(masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$ttt}
    if(masked) if(!all(dim(maskData[,,,1])==myDim[1:3])) stop("Mask dimensions don't match the input files!")
       
    nBrick <- 2   # no. sub-bricks in the main output
@@ -298,6 +318,47 @@ for(ii in 1:nGrp) {
    print("Starting to analyze data slice by slice...")
    # single processor
    
+   if(nGrp==1) {
+   
+      if(oneGrpType==1) {
+      if(nNodes==1) for (ii in 1:myDim[3]) {
+         outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runKS1), c(2,3,1))
+         cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+   
+      # multi-processing
+      if(nNodes>1) {
+         libLoad('snow')
+         cl <- makeCluster(nNodes, type = "SOCK")
+         for(ii in 1:myDim[3]) {
+            outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runKS1), c(2,3,1))
+            cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
+         stopCluster(cl)
+      }  # if(nNodes>1)
+      }
+      if(oneGrpType==2) {
+      if(nNodes==1) for (ii in 1:myDim[3]) {
+         outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runSW1), c(2,3,1))
+         cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+   
+      # multi-processing
+      if(nNodes>1) {
+         libLoad('snow')
+         cl <- makeCluster(nNodes, type = "SOCK")
+         for(ii in 1:myDim[3]) {
+            outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runSW1), c(2,3,1))
+            cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
+         stopCluster(cl)
+      }  # if(nNodes>1)
+      }
+      
+   }
+   
+   if(nGrp==2) {
+   
       if(nNodes==1) for (ii in 1:myDim[3]) {
          outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runKS2, nFiles[1], nTot), c(2,3,1))
          cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
@@ -313,10 +374,16 @@ for(ii in 1:nGrp) {
          }
          stopCluster(cl)
       }  # if(nNodes>1)
-
+   }
+   
    
    outArr[,,,2] <- qnorm(1-outArr[,,,2]/2)  # convert two-tailed p to Z-score
    print(sprintf("Analysis finished: %s", format(Sys.time(), "%D %H:%M:%OS3")))
+   
+   outArr[is.nan(outArr)] <- 0
+   outArr[outArr > tTop] <- tTop  # Avoid outflow!!!!
+   outArr[outArr < (-tTop)] <- -tTop  # Avoid outflow!!!!  
+
    
    print("#++++++++++++++++++++++++++++++++++++++++++++")
 
