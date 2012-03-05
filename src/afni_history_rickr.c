@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, MAR, 2012, RCR, "uber_proc.py", MICRO, TYPE_MODIFY,
+   "trivially apply -help option, for apsearch",
+   NULL
+ } ,
+
  {  5, MAR, 2012, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "EDIT_empty: only propagate writable storage_modes",
    "Added is_writable_storage_mode and DSET_STORAGE_MODE.\n"
