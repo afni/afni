@@ -22,7 +22,7 @@ __version__ = "0.0.0"
 # 
 
 g_help_string = """
-help for uber_proc.py
+help for uber_proc.py           - still a lot to do
 
 1. Run from the directory where you would like the results to be placed.
    By default, a new 'uber_results' directory will be placed there, under
@@ -321,4 +321,7 @@ def main():
    return 0
 
 if __name__ == '__main__':
+   if '-help' in sys.argv:
+      print g_help_string
+      sys.exit(0)
    sys.exit(main())
