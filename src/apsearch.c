@@ -15,13 +15,55 @@
 #define zischar(ch) ( ( ((ch) >= 'A' && (ch) <= 'Z' ) || ((ch) >= 'a' && (ch) <= 'z' ) ) ? 1 : 0 )
 #define isnakedarg(s) ( ( (s)[0] == '-' && strlen(s) > 1 && zischar((s)[1]) ) ? 0 : 1 )
 
+int prog_complete_command (char *prog, char *ofile) {
+   char **ws=NULL, *pvar=NULL;
+   int N_ws=0, i;
+   float *ws_score=NULL;
+   FILE *fout=NULL;
+   
+   if (!prog || !(ws = approx_str_sort_all_popts(prog, &N_ws,  
+                   1, &ws_score,
+                   NULL, NULL, 1, 0))) {
+      return;
+   }
+
+   if (ofile) {
+       if (!(fout = fopen(ofile,"w"))) {
+         ERROR_message("Failed to open %s for writing\n", ofile);
+         return(0);
+       }
+   
+   } else {
+      fout = fout;
+   }
+   
+   pvar = strdup(prog);
+   for (i=0; i<strlen(pvar); ++i) {
+      if (pvar[i] == '.' || pvar[i] == '@' || 
+          pvar[i] == '-' || pvar[i] == '+' ||
+          IS_PUNCT(pvar[i])) pvar[i]='_';
+   }
+   fprintf(fout,"set ARGS_%s=(", pvar);
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i]) {
+         fprintf(fout,"'%s' ", ws[i]);
+         free(ws[i]); ws[i]=NULL;
+      }
+   }
+   fprintf(fout,") ; "
+                  "complete %s 'p/*/$ARGS_%s/' ; ##%s##\n",prog, pvar, prog);
+
+   if (ofile) fclose(fout); fout=NULL;
+   free(ws); ws = NULL; free(pvar);
+}
+
 
 int update_help_for_afni_programs(int force_recreate, 
                                   byte verb, byte clean, 
                                   THD_string_array **hlist )
 {
    int ii, iaf, icomm, estat;
-   char hout[128], scomm[256], *etr=NULL, *hdir=NULL, *etm=NULL;
+   char hout[128], houtc[128], scomm[256], *etr=NULL, *hdir=NULL, *etm=NULL;
    THD_string_array *progs=NULL;
    
    
@@ -61,10 +103,15 @@ int update_help_for_afni_programs(int force_recreate,
       }
       snprintf(hout, 120*sizeof(char),
                "%s/%s.%s.help", hdir, etr, etm);
+      snprintf(houtc, 120*sizeof(char),
+               "%s/%s.complete", hdir, etr);
       if (!force_recreate && THD_is_file(hout)) {
-         if (verb) fprintf(stderr,"Reusing %s \n", hout); 
+         if (verb) fprintf(stderr,"Reusing %s (%d/%d)\n", hout, ii, progs->num );
+         if (!THD_is_file(houtc)) {
+            prog_complete_command(etr, houtc);
+         }      
       } else {
-         if (verb) fprintf(stderr,"Creating %s \n", hout); 
+         if (verb) fprintf(stderr,"Creating %s (%d/%d)\n", hout, ii, progs->num); 
          if (icomm > 25) { /* sleep a little to allow 
                               forked processes to end */
             NI_sleep(250); icomm = 0;
@@ -73,18 +120,20 @@ int update_help_for_afni_programs(int force_recreate,
             don't like -help and expect stdin to shut up and quit
             As a result, it is hard to get the status of -help
             command and use it wisely here without risking 
-            trouble */
+            trouble. 
+            */
          if (THD_is_file( hout)) {
             snprintf(scomm, 250*sizeof(char),
                "chmod u+w %s", hout);
             system(scomm); 
          }
          snprintf(scomm, 250*sizeof(char),
-               "echo '' | %s -help >& %s &", etr, hout);
+               "\\echo '' 2>&1 | %s -help > %s 2>&1 ", etr, hout);
          system(scomm); 
          snprintf(scomm, 250*sizeof(char),
                "chmod a-w %s", hout);
          system(scomm); 
+         prog_complete_command(etr, houtc);
          ++icomm;
       }
       /* ------------------------------------------------------------*/
@@ -142,6 +191,9 @@ void apsearch_usage(int detail)
    "                  -help output for likely candidates. \n"
    "                  It is meant to act as an aid in locating\n"
    "                  certain options.\n"  
+   "  -list_popts PROG: Like -all_popts, but preserve unique set of options\n"
+   "                    only, no chunks of help output are preserved.\n"
+   "  -popts_complete_command PROG:\n" 
    "  -ci: Case insensitive search (default)\n"
    "  -cs: Case sensitive search\n"
    "  -help: You're looking at it.\n"
@@ -289,7 +341,8 @@ int main(int argc, char **argv)
 {
    int iarg, N_ws, i, max_hits, test_only, new_score=0,
        i_unique_score=0, min_different_hits=0, unq_only=0,
-       show_score=0, N_fnamev=0, MAX_FNAMES = 0;
+       show_score=0, N_fnamev=0, MAX_FNAMES = 0, uopts=0,
+       compcom = 0;
    float *ws_score=NULL, last_score=-1.0;
    char *fname=NULL, *text=NULL, *prog=NULL, *word="Ma fich haga", **ws=NULL, 
          *all_popts=NULL, *popt=NULL, stdinflag[] = " [+.-STDIN-.+] ";
@@ -535,8 +588,47 @@ int main(int argc, char **argv)
          }
 
          all_popts = argv[iarg];
+         uopts = 0;
          max_hits = -1;
          word = "-";
+         ++iarg; 
+         continue; 
+      }
+
+      if (strcmp(argv[iarg],"-list_popts") == 0 ) { 
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+               "** Error: Need program name after -list_popts\n"); return(1);
+         }
+
+         all_popts = argv[iarg];
+         uopts = 1;
+         max_hits = -1;
+         word = "-";
+         ++iarg; 
+         continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-popts_complete_command") == 0 ) { 
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+               "** Error: Need program name after -popts_complete_command\n"); 
+            return(1);
+         }
+
+         all_popts = argv[iarg];
+         if (1) {
+            prog_complete_command(all_popts, NULL);
+            return(0);
+         }         
+
+         uopts = 1;
+         compcom = 1;
+         max_hits = -1;
+         word = "-";
+         
          ++iarg; 
          continue; 
       }
@@ -690,7 +782,7 @@ int main(int argc, char **argv)
       } else if (prog) {
          ws = approx_str_sort_phelp(prog, &N_ws, word, 
                             ci, &ws_score,
-                            NULL, &D);
+                            NULL, &D, 1);
       } else if (popt) {
          suggest_best_prog_option(popt, word);
          return 0;
@@ -698,7 +790,7 @@ int main(int argc, char **argv)
          /* one can also use print_prog_options(all_popts); return(0); */
          ws = approx_str_sort_all_popts(all_popts, &N_ws, 
                             ci, &ws_score,
-                            NULL, &D);
+                            NULL, &D, uopts, 1);
       }
       
       i_unique_score = 0; last_score = -1.0; new_score=1;
