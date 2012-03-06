@@ -4307,10 +4307,6 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
       }
    }
    
-   /* alphabetically sort that thing */
-   isrt = z_istrqsort (ws, inn );
-   if (isrt) free(isrt); isrt=NULL;
-   
    if(uopts && inn) { /* now get rid anything but the option and kill the dups */
       for (i=0; i<inn; ++i) {
          if (ws[i]) {
@@ -4320,6 +4316,10 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
             ws[i] = (depunct_name(ws[i]));
          }
       }
+      /* alphabetically sort that thing */
+      isrt = z_istrqsort (ws, inn );
+      if (isrt) free(isrt); isrt=NULL;
+      
       c = 1;
       for (i=1; i<inn; ++i) {
          if (ws[i]){
