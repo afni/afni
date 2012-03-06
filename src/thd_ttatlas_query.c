@@ -4277,10 +4277,10 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
          /* remove '----------' */
          c=1;
          while(dpun[c] !='\0' && dpun[c]=='-') ++c;
-         if (dpun[c] == '\0'   || (
+         if (dpun[c] == '\0'   || ((
                IS_BLANK(dpun[c]) || 
                IS_PUNCT(dpun[c]) || 
-               IS_QUOTE(dpun[c]) && c > 3) ) {
+               IS_QUOTE(dpun[c])) && c > 3) ) {
             free(dpun); dpun=NULL;
          } 
       }
