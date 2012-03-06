@@ -53,6 +53,7 @@ Examples:
 
       uber_subject.py -help
       uber_subject.py -help_gui
+      uber_subject.py -help_install
       uber_subject.py -hist
       uber_subject.py -show_valid_opts
       uber_subject.py -show_default_vars
@@ -107,6 +108,7 @@ def get_valid_opts():
    vopts.add_opt('-help', 0, [], helpstr='show this help')
    vopts.add_opt('-help_gui', 0, [], helpstr='show help for GUI')
    vopts.add_opt('-help_install', 0, [], helpstr='show install notes')
+   vopts.add_opt('-help_install_nokia', 0, [], helpstr='Nokia install help')
    vopts.add_opt('-hist', 0, [], helpstr='show revision history')
    vopts.add_opt('-show_default_vars',0,[],helpstr='show variable defaults')
    vopts.add_opt('-show_valid_opts',0,[],helpstr='show all valid options')
@@ -163,6 +165,10 @@ def process_options(valid_opts, argv):
 
    if '-help_install' in sys.argv:
       print g_install_str
+      return 1, None, None, None
+
+   if '-help_install_nokia' in sys.argv:
+      print g_install_nokia
       return 1, None, None, None
 
    if '-hist' in sys.argv:
@@ -382,10 +388,13 @@ g_install_str = """
 
       B1. via fink (assuming python 2.7 and the x11 version of qt4):
 
-         1. install pyqt4 for python version 2.7 (might require selfupdate)
-            (might also require making a new link to python under /sw/bin)
+         0. fink should be installed and current, to make current:
 
                sudo fink selfupdate
+
+         1. install pyqt4 for python version 2.7
+            (might also require making a new link to python under /sw/bin)
+
                sudo fink install pyqt4-py27
                sudo ln -s /sw/bin/python2.7 /sw/bin/python     (if needed)
 
@@ -404,9 +413,13 @@ g_install_str = """
 
    ----------
 
-      B2. directly from nokia and riverbank computing:
+      B2. directly from Nokia - see "-help_install_nokia" (NOT recommended)
+"""
 
-         alternative OS X method   (NOT RECOMMENDED):
+g_install_nokia = """
+   ------------------------------------------------------------------
+
+      B2. directly from nokia and riverbank computing (NO LONGER RECOMMENDED):
 
       ** this has not been working well lately, so now fink is recommended
 
