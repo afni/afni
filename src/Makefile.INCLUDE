@@ -90,6 +90,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
            1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch 1dBport   \
+           3dNormalityTest                                                      \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -113,7 +114,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header         \
                   3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat 3dGetrow \
-                  nifti_tool 3dAllineate nifti1_test Dimon 3danisosmooth       \
+                  nifti_tool 3dAllineate nifti1_test Dimon 3danisosmooth            \
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter 1dBport    \
@@ -122,7 +123,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase     \
                   3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat 3dPolyfit        \
                   3dNwarpApply 1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo    \
-                  apsearch   \
+                  apsearch 3dNormalityTest                                          \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -825,6 +826,14 @@ strblast:strblast.o
 3dABoverlap:3dABoverlap.o
 	$(RM) $@
 	$(CC) -o 3dABoverlap 3dABoverlap.o $(LFLAGS) $(LLIBS)
+
+3dNormalityTest.o:3dNormalityTest.c
+	$(RM) $@
+	$(CCFAST) -c 3dNormalityTest.c $(INFLAGS)
+
+3dNormalityTest:3dNormalityTest.o
+	$(RM) $@
+	$(CCFAST) -o 3dNormalityTest 3dNormalityTest.o $(LFLAGS) $(LLIBS)
 
 3dClipLevel:3dClipLevel.o
 	$(RM) $@
