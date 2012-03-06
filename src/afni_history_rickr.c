@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, MAR, 2012, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+   "move nokia help to -help_install_nokia (since it is not recommended)",
+   NULL
+ } ,
+
  {  5, MAR, 2012, RCR, "apsearch", MICRO, TYPE_MODIFY,
    "do not set shell variables",
    NULL
