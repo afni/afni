@@ -66,6 +66,20 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5, MAR , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Recorder saving was crashing for very long filenames. Not anymore.",
+   "The shell however will not like very long names and will complain."
+ },
+
+ { 5, MAR , 2012 , ZSS , "afni-general" , MINOR , TYPE_NEW_OPT,
+   "Added option auto-completion for AFNI's programs for csh users",
+   "The implementation of this feature is via apsearch. In particular,\n"
+   "apsearch -update_all_afni_help now creates the necessary commands\n"
+   "for csh's complete program to know about available options.\n"
+   "See apsearch -help for details.\n"
+   "This was done in conjunction with Brian Pittman.\n"
+ },
+
  { 1, MAR , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Fixed suma crash after a plot a certain plot freeze sequence",
    "The sequence was: create plot, freeze it, get another open\n"

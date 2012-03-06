@@ -15,48 +15,6 @@
 #define zischar(ch) ( ( ((ch) >= 'A' && (ch) <= 'Z' ) || ((ch) >= 'a' && (ch) <= 'z' ) ) ? 1 : 0 )
 #define isnakedarg(s) ( ( (s)[0] == '-' && strlen(s) > 1 && zischar((s)[1]) ) ? 0 : 1 )
 
-int prog_complete_command (char *prog, char *ofile) {
-   char **ws=NULL, *pvar=NULL;
-   int N_ws=0, i;
-   float *ws_score=NULL;
-   FILE *fout=NULL;
-   
-   if (!prog || !(ws = approx_str_sort_all_popts(prog, &N_ws,  
-                   1, &ws_score,
-                   NULL, NULL, 1, 0))) {
-      return;
-   }
-
-   if (ofile) {
-       if (!(fout = fopen(ofile,"w"))) {
-         ERROR_message("Failed to open %s for writing\n", ofile);
-         return(0);
-       }
-   
-   } else {
-      fout = fout;
-   }
-   
-   pvar = strdup(prog);
-   for (i=0; i<strlen(pvar); ++i) {
-      if (pvar[i] == '.' || pvar[i] == '@' || 
-          pvar[i] == '-' || pvar[i] == '+' ||
-          IS_PUNCT(pvar[i])) pvar[i]='_';
-   }
-   fprintf(fout,"set ARGS=(");
-   for (i=0; i<N_ws; ++i) {
-      if (ws[i]) {
-         fprintf(fout,"'%s' ", ws[i]);
-         free(ws[i]); ws[i]=NULL;
-      }
-   }
-   fprintf(fout,") ; "
-                  "complete %s \"p/*/($ARGS)/\" ; ##%s##\n",prog, prog);
-
-   if (ofile) fclose(fout); fout=NULL;
-   free(ws); ws = NULL; free(pvar);
-}
-
 
 int update_help_for_afni_programs(int force_recreate, 
                                   byte verb, byte clean, 
@@ -193,7 +151,10 @@ void apsearch_usage(int detail)
    "                  certain options.\n"  
    "  -list_popts PROG: Like -all_popts, but preserve unique set of options\n"
    "                    only, no chunks of help output are preserved.\n"
-   "  -popts_complete_command PROG:\n" 
+   "  -popts_complete_command PROG: Generate a csh command that can be sourced\n"
+   "                                to allow option autocompletion for program\n"
+   "                                PROG.\n"
+   "                          See also option -update_all_afni_help\n" 
    "  -ci: Case insensitive search (default)\n"
    "  -cs: Case sensitive search\n"
    "  -help: You're looking at it.\n"
@@ -217,6 +178,7 @@ void apsearch_usage(int detail)
    "                  If older help files differ by little they are deleted\n"
    "                  Little differences would be the compile date or the\n"
    "                  version number. See @clean_help_dir code for details.\n"
+   "                  This option also creates autocompletion code.\n"
    "  -afni_help_dir: Print afni help directory location and quit.\n"
    "  -afni_bin_dir: Print afni's binaries directory location and quit.\n"
    "  -afni_home_dir: Print afni's home directory and quit.\n"
