@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , MAR , 2012 , RWC , "1dBport" , MINOR , TYPE_NEW_OPT ,
+  { 6 , MAR , 2012 , RWC , "3dNormalityTest" , MINOR , TYPE_NEW_PROG ,
+   "Test voxel values for normality (Gaussianity)." ,
+   "Uses the Anderson-Darling test." } ,
+
+ { 1 , MAR , 2012 , RWC , "1dBport" , MINOR , TYPE_NEW_OPT ,
    "Several things to keep Rick happy" ,
    "Option '-band fbot ftop' can now be used more than once.\n"
    "\n"
