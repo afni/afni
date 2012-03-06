@@ -4505,10 +4505,53 @@ void suggest_best_prog_option(char *prog, char *str)
    return;
 }
 
+int prog_complete_command (char *prog, char *ofile) {
+   char **ws=NULL, *pvar=NULL;
+   int N_ws=0, i;
+   float *ws_score=NULL;
+   FILE *fout=NULL;
+   
+   if (!prog || !(ws = approx_str_sort_all_popts(prog, &N_ws,  
+                   1, &ws_score,
+                   NULL, NULL, 1, 0))) {
+      return;
+   }
+
+   if (ofile) {
+       if (!(fout = fopen(ofile,"w"))) {
+         ERROR_message("Failed to open %s for writing\n", ofile);
+         return(0);
+       }
+   
+   } else {
+      fout = fout;
+   }
+   
+   pvar = strdup(prog);
+   for (i=0; i<strlen(pvar); ++i) {
+      if (pvar[i] == '.' || pvar[i] == '@' || 
+          pvar[i] == '-' || pvar[i] == '+' ||
+          IS_PUNCT(pvar[i])) pvar[i]='_';
+   }
+   fprintf(fout,"set ARGS=(");
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i]) {
+         fprintf(fout,"'%s' ", ws[i]);
+         free(ws[i]); ws[i]=NULL;
+      }
+   }
+   fprintf(fout,") ; "
+                  "complete %s \"p/*/($ARGS)/\" ; ##%s##\n",prog, prog);
+
+   if (ofile) fclose(fout); fout=NULL;
+   free(ws); ws = NULL; free(pvar);
+}
+
+
 char *get_updated_help_file(int force_recreate, byte verb, char *progname) 
 {
       static char hout[512]={""};
-      char scomm[1024], *etr=NULL, *hdir=NULL, *etm=NULL;
+      char scomm[1024], *etr=NULL, *hdir=NULL, *etm=NULL, houtc[128];
       long long ml, mn;
       int cnt = 0;
       
@@ -4529,8 +4572,13 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname)
       
       snprintf(hout, 500*sizeof(char),
                "%s/%s.%s.help", hdir, etr, etm);
+      snprintf(houtc, 120*sizeof(char),
+               "%s/%s.complete", hdir, etr);
       if (!force_recreate && THD_is_file(hout)) {
          if (verb) fprintf(stderr,"Reusing %s \n", hout); 
+         if (!THD_is_file(houtc)) {
+            prog_complete_command(etr, houtc);
+         }      
       } else {
          if (verb) fprintf(stderr,"Creating %s \n", hout); 
          /* The echo below is there to make programs that
@@ -4559,6 +4607,7 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname)
          snprintf(scomm, 1000*sizeof(char),
                "chmod a-w %s", hout);
          system(scomm); 
+         prog_complete_command(etr, houtc);
       }
       return(hout);
 }
