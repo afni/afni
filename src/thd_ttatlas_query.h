@@ -337,9 +337,12 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout,
                             int uopts, int verb);
+char *get_updated_help_file(int force_recreate, byte verb, char *progname);
+int prog_complete_command (char *prog, char *ofile);
 char **approx_str_sort_readmes(char *str, int *N_r);
 char *find_readme_file(char *str);
 int view_text_file(char *progname);
+void view_prog_help(char *prog);
 void web_prog_help(char *prog);
 void web_class_docs(char *prog);
 int view_web_link(char *link, char *browser);
