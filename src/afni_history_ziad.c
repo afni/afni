@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6, MAR , 2012 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
+   "Option completion killed filename completion. Not anymore.",
+   NULL,
+ },
+
  { 5, MAR , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Recorder saving was crashing for very long filenames. Not anymore.",
    "The shell however will not like very long names and will complain."
