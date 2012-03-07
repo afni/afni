@@ -207,7 +207,7 @@ runKS1 <- function(x) {
    options(warn=-1)
    if(sum(abs(x)>1e-10) >= 1) {
    # standardization is necessary for one-sample  KS test!!!
-   z <- ks.test(scale(comArr[20,40,40,], center = TRUE, scale = TRUE)x, 'pnorm')  # two-tailed by default
+   z <- ks.test(scale(comArr[20,40,40,], center = TRUE, scale = TRUE), 'pnorm')  # two-tailed by default
    outData <- c(unname(z$statistic), z$p.value)
    return(outData)
    } else outData <- c(0,0)
@@ -232,6 +232,7 @@ runKS2 <- function(x, n1, n) {
 #options(show.error.messages = FALSE)  # suppress error message when running with single processor
 
 tol <- 1e-16
+tTop <- 50
 
 print("################################################################")
 #print("Please consider citing the following if this program is useful for you:")
