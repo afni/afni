@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, MAR, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "existing package and install dir no longer required for -defaults",
+   NULL
+ } ,
+
  {  7, MAR, 2012, RCR, "GIFTI", MICRO, TYPE_BUG_FIX,
    "fixed sizeof in memset of gim (noted by B Cox)",
    NULL
