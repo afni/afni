@@ -1656,7 +1656,7 @@ STATUS("create output image") ;
    im_ov = mri_new_conforming( im_fim , MRI_rgb ) ;
    ovar  = MRI_RGB_PTR(im_ov) ;
    npix  = im_ov->nvox ;
-   fac   = (NPANE_BIG-0.01f) / (fimtop-fimbot) ; /* scale from data value to color index */
+   fac   = NPANE_BIG / (fimtop-fimbot) ; /* scale from data value to color index */
 
    kk = (int)im_fim->kind ;
    switch( kk ){
