@@ -10,6 +10,14 @@
 #       -bindir  DIRECTORY
 #
 # terminate on any error, and be clear about which command failed
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# history:
+# ...         : a few updates
+# 07 Mar 2012 : existing package and install dir no longer required for -d
+# ----------------------------------------------------------------------
+
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -89,7 +97,12 @@ if ( $help ) then
     echo ""
     echo "        The package would be decided by 'afni -ver' and the"
     echo "        directory would come from 'which afni'.  If either of"
-    echo "        these is not appropriate, please specify them as below."
+    echo "        these is not appropriate, the package would be determined"
+    echo "        by the OS (Linux or OSX allowed, 32 or 64-bits), and the"
+    echo "        install dir would be ~/abin."
+    echo ""
+    echo "        If -bindir or -package cannot be determined, it must be"
+    echo "        supplied by the user."
     echo ""
     echo "    -package PACKAGE      : install distribution package PACKAGE"
     echo "    -test                  : just attempt the download and quit"
@@ -100,24 +113,74 @@ if ( $help ) then
     exit
 endif
 
+# note any current AFNI location
+set cur_afni = `which afni`
+if ( $status ) then
+   echo "-- no current AFNI package..."
+   set cur_afni = ""
+else
+   set cur_afni = $cur_afni:h
+   echo "-- have AFNI binaries under $cur_afni"
+endif
+
 # possibly apply default binary directory
 if ( $abin == "" ) then
-    set abin = `which afni`
-    if ( $status ) then
-        echo "** failed 'which afni'"
-        exit 1
+    if ( $cur_afni == "" ) then
+       echo "-- install dir: using default ~/abin"
+       set abin = ~/abin
+    else
+       # have program, nuke trailing 'afni' to get directory
+       set abin = $cur_afni
+       echo "-- install dir: using existing $abin"
     endif
-
-    # and nuke the trailing 'afni'
-    set abin = $abin:h
 endif
 
 # possibly apply default package
 if ( $package == "" ) then
-   set package = `afni -ver | grep binary | awk '{print $3}' | sed 's/://g'`
-   if ( $status ) then
-       echo "** failed setting package from 'afni -ver'"
-       exit 1
+   if ( $cur_afni != "" ) then
+      set package = `afni -ver | grep binary | awk '{print $3}' | sed 's/://g'`
+      if ( $status ) then
+          echo "** failed setting package from 'afni -ver'"
+          exit 1
+      endif
+   else
+      # pick package based on OS
+      set sysname = `uname -s`
+      set errs = 0
+      if ( $status ) then
+         @ errs ++
+         set sysname = ""
+      endif
+
+      set cpuname = `uname -p`
+      if ( $status ) then
+         @ errs ++
+         set cpuname = ""
+      endif
+
+      if ( $errs > 0 ) then
+         echo "** failed to note system and cpu, must specify -package"
+         exit
+      endif
+
+      # simple cases for now, can expand later
+      if ( $sysname == Linux ) then
+         if ( $cpuname == x86_64 ) then
+             set package = linux_xorg7_64
+         else
+             set package = linux_xorg7
+         endif
+      else if ( $sysname == Darwin ) then
+         # default to no.glib for now
+         set package = macosx_10.6_Intel_64.no.glib
+      else
+         @ errs ++
+      endif
+
+      if ( $errs > 0 ) then
+         echo "** unknown system $sysname/$cpuname, must specify -package"
+         exit
+      endif
    endif
 endif
 
@@ -146,6 +209,21 @@ if ( $package =~ *.tgz ) set package = $package:r
 
 echo "-- attempting to install package $package under"
 echo "   install dir: $abin..."
+
+# ----------------------------------------------------------------------
+# if the install dir does not exist, create it
+if ( -d $abin ) then
+   echo "-- have install dir"
+else
+   echo "++ creating install dir"
+   mkdir -pv $abin
+   if ( $status ) then
+      echo "** failed to create install dir, $abin"
+      exit
+   endif
+   echo ""
+   sleep 1
+endif
 
 # note appropriate backup directory
 set date = `date +%Y_%m_%d`
