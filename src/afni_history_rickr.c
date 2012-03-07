@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, MAR, 2012, RCR, "GIFTI", MICRO, TYPE_BUG_FIX,
+   "fixed sizeof in memset of gim (noted by B Cox)",
+   NULL
+ } ,
+
  {  6, MAR, 2012, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
    "move nokia help to -help_install_nokia (since it is not recommended)",
    NULL
