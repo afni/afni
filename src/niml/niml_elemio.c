@@ -973,7 +973,7 @@ NI_dpr("ENTER NI_write_element\n") ;
 #endif
 
 #undef  AF
-#define AF     0
+#define AF      
 #define ADDOUT if(nout<0){AF;fprintf(stderr,"NIML: write abort!\n");return -1;} else ntot+=nout
 
    if( !NI_stream_writeable(ns) ) return -1 ;  /* stupid user */
@@ -1338,7 +1338,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       NI_free(att) ; att = NULL ; /**** done with attributes ****/
 
 #undef  AF
-#define AF 0  /* nothing to do if we have to quit early */
+#define AF    /* nothing to do if we have to quit early */
 
       /*- close header -*/
 

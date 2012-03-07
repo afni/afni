@@ -644,7 +644,7 @@ typedef struct { short i,j,k,val; int basin; } shortvox ;
 /*--------------------------------------------------------------------------*/
 /*! Sort array of shortvox into increasing order (decreasing if dec != 0). */
 
-static sort_shortvox( int n , shortvox *ar , int dec , float botperc, float topperc )
+static void sort_shortvox( int n , shortvox *ar , int dec , float botperc, float topperc )
 {
    int ii,jj , sbot,stop,nsv , sval , pbot,ptop ;
    int *hsv , *csv ;

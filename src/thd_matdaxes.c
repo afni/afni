@@ -315,9 +315,9 @@ mat44 THD_resample_mat44( mat44 old_mat ,
 
    /* spacing along input (i,j,k) directions */
 
-   di = MAT33_CLEN(old_mat,0) ; if( di == 0.0f ) di == 1.0f ;
-   dj = MAT33_CLEN(old_mat,1) ; if( dj == 0.0f ) dj == di   ;
-   dk = MAT33_CLEN(old_mat,2) ; if( dk == 0.0f ) dk == di   ;
+   di = MAT33_CLEN(old_mat,0) ; if( di == 0.0f ) di = 1.0f ;
+   dj = MAT33_CLEN(old_mat,1) ; if( dj == 0.0f ) dj = di   ;
+   dk = MAT33_CLEN(old_mat,2) ; if( dk == 0.0f ) dk = di   ;
 
    if( ri <= 0.0f ) ri = 1.0f ;   /* don't allow negative spacing    */
    if( rj <= 0.0f ) rj = ri   ;   /* along output (i,j,k) directions */

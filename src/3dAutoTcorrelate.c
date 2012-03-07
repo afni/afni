@@ -19,6 +19,10 @@
   static int do_mmap = 0 ;
 #endif
 
+#if 0
+size_t ___builtin_object_size(void *ptr,int typ){ return __builtin_object_size(ptr,typ); }
+#endif
+
 /*----------------------------------------------------------------*/
 /**** Include these here for potential optimization for OpenMP ****/
 /*----------------------------------------------------------------*/
@@ -551,7 +555,7 @@ AFNI_OMP_START ;
 
          car[jj] = (short)(10000.49f*corfun(nvals,xsar,ysar)) ;
 
-      } /* end of innter loop over voxels */
+      } /* end of inner loop over voxels */
 
 #ifdef ALLOW_MMAP
       if( do_mmap ){  /* copy results to disk mmap now */

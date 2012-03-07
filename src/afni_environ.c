@@ -6,6 +6,8 @@
 
 #include "mrilib.h"
 
+extern int SUMA_IcoNums(int depth, byte bin, char what);
+
 /*------------------------------------------------------------------------
    Read an entire file into a character string.  When you are
    done with the returned string, free() it.  If the string pointer
@@ -251,7 +253,7 @@ int AFNI_setenv( char *cmd )
    if( cmd == NULL || strlen(cmd) < 3 ) return(-1) ;
 
    sscanf( cmd , "%255s %1023s" , nam , val ) ;
-   if( nam[0] == '\0' || val[0] == '\0' && strchr(cmd,'=') != NULL ){
+   if( (nam[0] == '\0' || val[0] == '\0') && strchr(cmd,'=') != NULL ){
      char *ccc = strdup(cmd) ;
      eee = strchr(ccc,'=') ; *eee = ' ' ;
      sscanf( ccc , "%255s %1023s" , nam , val ) ;

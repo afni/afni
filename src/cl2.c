@@ -1795,6 +1795,7 @@ L560:
 	case 0: goto L90;
 #line 690 "cl2.f"
     }
+    return 0 ;
 /*<       END >*/
 } /* lsei_ */
 
@@ -2888,6 +2889,7 @@ L540:
 	case 0: goto L60;
 #line 1031 "cl2.f"
     }
+   return 0 ;
 /*<       END >*/
 } /* lsi_ */
 
@@ -6087,6 +6089,7 @@ L1290:
 	case 3: goto L520;
 #line 2224 "cl2.f"
     }
+  return 0 ;
 /*<       END >*/
 } /* wnlsm_ */
 
@@ -7397,6 +7400,7 @@ L600:
 	case 2: goto L320;
 #line 2633 "cl2.f"
     }
+  return 0 ;
 /*<       END >*/
 } /* wnlit_ */
 

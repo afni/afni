@@ -4277,10 +4277,10 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
          /* remove '----------' */
          c=1;
          while(dpun[c] !='\0' && dpun[c]=='-') ++c;
-         if (dpun[c] == '\0'   || ((
+         if (dpun[c] == '\0'   || (
                IS_BLANK(dpun[c]) || 
                IS_PUNCT(dpun[c]) || 
-               IS_QUOTE(dpun[c])) && c > 3) ) {
+               IS_QUOTE(dpun[c]) && c > 3) ) {
             free(dpun); dpun=NULL;
          } 
       }
@@ -4514,7 +4514,7 @@ int prog_complete_command (char *prog, char *ofile) {
    if (!prog || !(ws = approx_str_sort_all_popts(prog, &N_ws,  
                    1, &ws_score,
                    NULL, NULL, 1, 0))) {
-      return;
+      return 0;
    }
 
    if (ofile) {
@@ -4544,7 +4544,7 @@ int prog_complete_command (char *prog, char *ofile) {
          "complete %s \"C/-/($ARGS)/\" \"p/*/f:/\" ; ##%s##\n",prog, prog);
 
    if (ofile) fclose(fout); fout=NULL;
-   free(ws); ws = NULL; free(pvar);
+   free(ws); ws = NULL; free(pvar); return 0;
 }
 
 

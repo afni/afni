@@ -193,6 +193,8 @@ ENTRY("mri_maskify") ;
 
    switch( im->kind ){
 
+      default: break ;
+
       case MRI_byte:{
         register byte *ar = MRI_BYTE_PTR(im) ;
         for( ii=0 ; ii < npix ; ii++ ) if( mask[ii] == 0 ) ar[ii] = 0 ;

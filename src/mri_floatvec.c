@@ -76,13 +76,13 @@ float interp_inverse_floatvec( floatvec *fv , float y )
 
    /* off the left edge? */
 
-   if( fv->ar[0] < fv->ar[itop] && y <= fv->ar[0] ||
-       fv->ar[0] > fv->ar[itop] && y >= fv->ar[0]   ) return(fv->x0) ;
+   if( (fv->ar[0] < fv->ar[itop] && y <= fv->ar[0]) ||
+       (fv->ar[0] > fv->ar[itop] && y >= fv->ar[0])   ) return(fv->x0) ;
 
    /* off the right edge? */
 
-   if( fv->ar[0] < fv->ar[itop] && y >= fv->ar[itop] ||
-       fv->ar[0] > fv->ar[itop] && y <= fv->ar[itop]   ) return(fv->x0+fv->dx*itop) ;
+   if( (fv->ar[0] < fv->ar[itop] && y >= fv->ar[itop]) ||
+       (fv->ar[0] > fv->ar[itop] && y <= fv->ar[itop])   ) return(fv->x0+fv->dx*itop) ;
 
    /* find the intermediate point that brackets the desired result */
 

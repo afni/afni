@@ -129,6 +129,7 @@ ENTRY("mri_to_complex_ext") ;
          nar[ii+jbnew].i = 0.0 ;
 
          switch( oldim->kind ){
+            default: break ;
             case MRI_byte:{ byte *qar = MRI_BYTE_PTR(oldim) ;
               nar[ii+jbnew].r = qar[ii+jbold] ;
             } break ;

@@ -54,6 +54,8 @@ if( PRINT_TRACING ){
 
    switch( lim->kind ){
 
+     default: break ;
+
      case MRI_short:{
        register short *shar=mri_data_pointer(lim) , val ;
 

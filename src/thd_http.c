@@ -309,8 +309,8 @@ int page_scan_head(URL_PAGE *up) {
    /* search for sequential new lines*/
    nl = 0;
    while (i<up->N_page && nl<2) {
-      if ( (up->page[i] == '\r') ) ++nl;
-      else if (up->page[i] != '\n') nl = 0; /* not blank */ 
+           if( up->page[i] == '\r' ) ++nl;
+      else if( up->page[i] != '\n' ) nl = 0; /* not blank */ 
       ++i;
    }
    if (nl == 2) {
@@ -416,7 +416,7 @@ int page_set_data(URL_PAGE *up)
       mktemp(qname) ;
       if( qname[0] != '\0' ){
          strcat(qname,".gz") ; cfile = fopen( qname , "wb" ) ;
-         if( cfile == NULL ) up->cflag == 0 ;
+         if( cfile == NULL ) up->cflag = 0 ;
       } else {
          up->cflag = 0 ;
       }
@@ -595,7 +595,7 @@ int read_URL_http( char * url , int msec , char ** data )
       mktemp(qname) ;
       if( qname[0] != '\0' ){
          strcat(qname,".gz") ; cfile = fopen( qname , "wb" ) ;
-         if( cfile == NULL ) cflag == 0 ;
+         if( cfile == NULL ) cflag = 0 ;
       } else {
          cflag = 0 ;
       }

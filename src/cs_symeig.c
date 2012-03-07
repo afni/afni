@@ -8,6 +8,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include "cs.h"
 #include "eispack.h"
 
 #ifdef isfinite
