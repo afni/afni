@@ -686,7 +686,7 @@ static INCOR_pearson * INCOR_create_incomplete_pearson(void)
    inpear->sxy = 0.0 ; inpear->sw  = 0.0 ; inpear->npt = 0 ;
 
    inpear->meth = GA_MATCH_PEARSON_SCALAR ;
-   return ;
+   return inpear ;
 }
 
 /*----------------------------------------------------------------------------*/

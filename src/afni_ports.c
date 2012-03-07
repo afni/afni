@@ -1,6 +1,8 @@
+#include "mrilib.h"
 #include <stdio.h>
 #include <string.h>
 #include <afni_environ.h>
+#include <stdlib.h>
 
 /*************************************************************************/
 /************** Functions to handle port assignments *********************/

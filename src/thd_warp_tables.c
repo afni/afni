@@ -1,7 +1,7 @@
 /* functions to access tables of datasets within a session */
 /* made to deal with transformations across generic spaces */
 #include "afni.h"
-#undef DEBUG_WARPTABLES 1
+#undef DEBUG_WARPTABLES
 /* extern atlas_space_list global_atlas_spaces; */
 
 static int nspaces = 3; /* number of spaces to include in tables */
@@ -102,7 +102,7 @@ set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
    }
 #endif
 
-   if((sess->dsrow == NULL)) {
+   if( sess->dsrow == NULL ) {
       /* need to allocate for first row  - index should always be zero */
       sess->dsrow = (THD_dsarr **) calloc( 1,sizeof(THD_dsarr *));
       dsrow = (THD_dsarr *) calloc(1, sizeof(THD_dsarr));

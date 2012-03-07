@@ -1105,7 +1105,7 @@ ENTRY("THD_datablock_apply_atr") ;
      }
    }
 
-   if(atr_flt = THD_find_float_atr( blk, "IJK_TO_DICOM_REAL" )){
+   if( ( atr_flt = THD_find_float_atr(blk,"IJK_TO_DICOM_REAL") ) ){
       /* load oblique transformation matrix */
       if(atr_flt) {
         LOAD_MAT44(dset->daxes->ijk_to_dicom_real, \

@@ -763,6 +763,7 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
 
       for( ibr=0 ; ibr < nv ; ibr++ ){
          switch( DBLK_BRICK_TYPE(blk,ibr) ){
+            default: break ;
             case MRI_short:
                mri_swap2( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
             break ;

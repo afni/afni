@@ -12,6 +12,8 @@ void mri_xsort_inplace( MRI_IMAGE *im , int rev )
 
    switch( im->kind ){
 
+     default: break ;
+
      case MRI_float:{
        float *far = MRI_FLOAT_PTR(im) , *car ;
        for( jj=0 ; jj < nc ; jj++ ){

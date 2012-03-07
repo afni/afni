@@ -8484,7 +8484,7 @@ DCM_Message(CONDITION condition)
     return NULL;
 }
 
-DCM_DumpVector()
+void DCM_DumpVector()
 {
     int index;
 
@@ -8494,7 +8494,9 @@ DCM_DumpVector()
 		   messageVector[index].cond,
 		   messageVector[index].message);
     }
+    return ;
 }
+
 /*
           Copyright (C) 1993, 1994, RSNA and Washington University
 
@@ -10768,6 +10770,7 @@ DCM_IsString(DCM_VALUEREPRESENTATION representation)
 	flag = FALSE;
 
     switch (representation) {
+    default: break ;
     case DCM_AE:		/* Application Entity */
     case DCM_AS:		/* Age string */
 	flag = TRUE;

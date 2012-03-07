@@ -2237,8 +2237,9 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 
       /* convert some alphabetic characters to space (:,i)
          if they are not followed by other alphabetics */
-         if((incr<=0) &&( buf[temppos] == ',' || ISCOMPLEXi(buf, temppos)) ||
-            buf[temppos] == ':' )
+         if( incr<=0 &&
+            ( buf[temppos] == ',' || ISCOMPLEXi(buf, temppos)
+                                  || buf[temppos] == ':'     ) )
              buf[temppos] = ' ' ;
          /* turn on "slow mo" reading if non-numeric */
          if( !slowmo &&
@@ -2340,8 +2341,9 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
 
       /* convert some alphabetic characters to space (:,i)
          if they are not followed by other alphabetics */
-         if((incr<=0) &&( buf[temppos] == ',' || ISCOMPLEXi(buf, temppos)) ||
-            buf[temppos] == ':' )
+         if( incr<=0 &&
+             ( buf[temppos] == ',' || ISCOMPLEXi(buf, temppos)
+                                   || buf[temppos] == ':'     ) )
              buf[temppos] = ' ' ;
          /* turn on "slow mo" reading if non-numeric */
          if( !slowmo &&

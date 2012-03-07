@@ -69,6 +69,7 @@ extern int rsp_(integer *nm, integer *n, integer *nv, doublereal *a, doublereal 
 extern int rst_(integer *nm, integer *n, doublereal *w, doublereal *e, integer *matz, doublereal *z__, integer *ierr);
 extern int rt_(integer *nm, integer *n, doublereal *a, doublereal *w, integer *matz, doublereal *z__, doublereal *fv1, integer *ierr);
 extern int svd_(integer *m, integer *n, integer *lda, doublereal *a, doublereal *w, logical *matu, integer *ldu, doublereal *u, logical * matv, integer *ldv, doublereal *v, integer *ierr, doublereal *rv1);
+extern int svd_slow_(integer *m, integer *n, integer *lda, doublereal *a, doublereal *w, logical *matu, integer *ldu, doublereal *u, logical * matv, integer *ldv, doublereal *v, integer *ierr, doublereal *rv1);
 extern int tql1_(integer *n, doublereal *d__, doublereal *e, integer *ierr);
 extern int tql2_(integer *nm, integer *n, doublereal *d__, doublereal *e, doublereal *z__, integer *ierr);
 extern int tqlrat_(integer *n, doublereal *d__, doublereal *e2, integer *ierr);
@@ -79,5 +80,10 @@ extern int tred2_(integer *nm, integer *n, doublereal *a, doublereal *d__, doubl
 extern int tred3_(integer *n, integer *nv, doublereal *a, doublereal *d__, doublereal *e, doublereal *e2);
 extern int tridib_(integer *n, doublereal *eps1, doublereal *d__, doublereal *e, doublereal *e2, doublereal *lb, doublereal *ub, integer *m11, integer *m, doublereal *w, integer *ind, integer *ierr, doublereal *rv4, doublereal *rv5);
 extern int tsturm_(integer *nm, integer *n, doublereal *eps1, doublereal *d__, doublereal *e, doublereal *e2, doublereal *lb, doublereal *ub, integer *mm, integer *m, doublereal *w, doublereal *z__, integer *ierr, doublereal *rv1, doublereal *rv2, doublereal *rv3, doublereal *rv4, doublereal *rv5, doublereal *rv6);
+extern int tinvit_(integer *nm, integer *n, doublereal *d__,
+        doublereal *e, doublereal *e2, integer *m, doublereal *w, integer *
+        ind, doublereal *z__, integer *ierr, doublereal *rv1, doublereal *rv2,
+         doublereal *rv3, doublereal *rv4, doublereal *rv6);
+
 
 #endif

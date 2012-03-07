@@ -42,6 +42,8 @@ MRI_IMAGE * mri_nsize( MRI_IMAGE * imin )
 
    switch( imin->kind ){
 
+      default: break ;
+
       case MRI_short:{
          short * ptin , * ptout ;
          imout = mri_new( ntop,ntop , MRI_short ) ;

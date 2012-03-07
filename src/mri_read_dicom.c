@@ -1136,6 +1136,7 @@ ENTRY("mri_read_dicom") ;
      for( ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
        im = IMARR_SUBIM(imar,ii) ;
        switch( im->kind ){
+         default: break ;
          case MRI_byte:{
            byte *ar = mri_data_pointer( im ) ;
            for( jj=0 ; jj < im->nvox ; jj++ )
@@ -1175,6 +1176,7 @@ ENTRY("mri_read_dicom") ;
      }
      if( ymax <= 0 ){
        switch( IMARR_SUBIM(imar,0)->kind ){
+         default:                              break ;
          case MRI_byte:  ymax = MRI_maxbyte  ; break ;
          case MRI_short: ymax = MRI_maxshort ; break ;
          case MRI_int:   ymax = MRI_maxint   ; break ;
@@ -1188,6 +1190,7 @@ ENTRY("mri_read_dicom") ;
        for( ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
          im = IMARR_SUBIM(imar,ii) ;
          switch( im->kind ){
+           default: break ;
            case MRI_byte:{
              byte *ar = mri_data_pointer( im ) ;
              for( jj=0 ; jj < im->nvox ; jj++ )
@@ -1220,6 +1223,7 @@ ENTRY("mri_read_dicom") ;
        for( ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
          im = IMARR_SUBIM(imar,ii) ;
          switch( im->kind ){
+           default: break ;
            case MRI_byte:{
              byte *ar = mri_data_pointer( im ) ;
              for( jj=0 ; jj < im->nvox ; jj++ )
@@ -2027,8 +2031,8 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
           &yc.xyz[0], &yc.xyz[1], &yc.xyz[2]);
        /* check if both vectors OK */
        if( qq == 6 && SIZE_FVEC3(xc) > 0.0 && SIZE_FVEC3(yc) > 0.0 ){
-          NORMALIZE_FVEC3(xc);
-          NORMALIZE_FVEC3(yc);
+          xc = NORMALIZE_FVEC3(xc);
+          yc = NORMALIZE_FVEC3(yc);
           /* if the values are close to 0 or 1 make it so */
           for(ii=0;ii<3;ii++) {
              if(ALMOST(xc.xyz[ii],0.0))

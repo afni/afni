@@ -1,4 +1,5 @@
 #include "niml.h"
+#include "afni_environ.h"
 
 #undef  AFNI_SERVER
 #undef  AFNI_REQUEST

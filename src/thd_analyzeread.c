@@ -515,6 +515,8 @@ ENTRY("THD_load_analyze") ;
    if( dkptr->byte_order != mri_short_order() ){
      for( ibr=0 ; ibr < nv ; ibr++ ){
        switch( DBLK_BRICK_TYPE(dblk,ibr) ){
+         default: break ;
+
          case MRI_short:
            mri_swap2( DBLK_BRICK_NVOX(dblk,ibr) , DBLK_ARRAY(dblk,ibr) ) ;
          break ;

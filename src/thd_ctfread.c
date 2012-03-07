@@ -548,6 +548,7 @@ ENTRY("THD_load_ctfmri") ;
    fseek( fp , sizeof(Version_2_Header) , SEEK_SET ) ;  /* old */
 #else
    switch( DBLK_BRICK_TYPE(dblk,0) ){
+     default:  ERROR_exit("Unrecognized type in CTF file") ; break ;
      case MRI_float: ibr = sizeof(float) ; break ;   /* illegal */
      case MRI_short: ibr = sizeof(short) ; break ;
      case MRI_byte:  ibr = sizeof(byte)  ; break ;
@@ -594,6 +595,7 @@ ENTRY("THD_load_ctfmri") ;
    if( dkptr->byte_order != mri_short_order() ){
      for( ibr=0 ; ibr < nv ; ibr++ ){
        switch( DBLK_BRICK_TYPE(dblk,ibr) ){
+         default: break ;
          case MRI_short:
            mri_swap2( DBLK_BRICK_NVOX(dblk,ibr) , DBLK_ARRAY(dblk,ibr) ) ;
          break ;

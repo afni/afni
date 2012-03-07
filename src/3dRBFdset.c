@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include "mri_rbfinterp.c"
 
 /**** Adapted from 3dUndump.c ****/
 

@@ -27,13 +27,13 @@ typedef struct {
 } Warpfield ;
 
 #if 0
-#define FROZEN_X(ff) ((ff)&1 != 0)
-#define FROZEN_Y(ff) ((ff)&2 != 0)
-#define FROZEN_Z(ff) ((ff)&4 != 0)
+#define FROZEN_X(ff) (((ff)&1) != 0)
+#define FROZEN_Y(ff) (((ff)&2) != 0)
+#define FROZEN_Z(ff) (((ff)&4) != 0)
 
-#define NOVARY_X(ff) ((ff)&16 != 0)
-#define NOVARY_Y(ff) ((ff)&32 != 0)
-#define NOVARY_Z(ff) ((ff)&64 != 0)
+#define NOVARY_X(ff) ((ff()&16) != 0)
+#define NOVARY_Y(ff) ((ff()&32) != 0)
+#define NOVARY_Z(ff) ((ff()&64) != 0)
 
 #define WARPFIELD_FROZEN_X(ww) FROZEN_X((ww)->flags)
 #define WARPFIELD_FROZEN_Y(ww) FROZEN_Y((ww)->flags)
@@ -44,7 +44,7 @@ typedef struct {
 #define WARPFIELD_NOVARY_Z(ww) NOVARY_Z((ww)->flags)
 #endif
 
-#define SKIPAFF(ff)           ((ff)&128 != 0)
+#define SKIPAFF(ff)           (((ff)&128) != 0)
 #define WARPFIELD_SKIPAFF(ww) SKIPAFF((ww)->flags)
 
 /*---------------------------------------------------------------------------*/

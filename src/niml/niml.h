@@ -630,7 +630,7 @@ extern void NI_swap_vector( int, int, void * ) ;
  
 /* port assignment functions from afni_ports.c */
 extern int init_ports_list();
-extern int set_ports_list_reinit(void);
+extern void set_ports_list_reinit(void);
 extern int get_port_named(char *name);
 extern void show_ports_list(void);
 extern int get_available_npb(void);
@@ -640,8 +640,8 @@ extern char *get_port_numbered(int port);
 extern char *get_np_help();
 extern int set_user_pif(char *s);
 extern char * get_user_pif(void);
-extern int set_user_np_block(int v);
-extern int get_max_port_block(void);
+extern int set_user_np_bloc(int v);
+extern int get_max_port_bloc(void);
 extern int get_num_ports(void);
 extern int get_user_np_bloc(void);
 

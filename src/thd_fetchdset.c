@@ -101,6 +101,8 @@ ENTRY("THD_fetch_dset") ;
    if( dset->dblk->diskptr->byte_order != native_order ){
       for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
          switch( DBLK_BRICK_TYPE(dset->dblk,iv) ){
+            default: break ;
+
             case MRI_short:
                mri_swap2( DBLK_BRICK_NVOX(dset->dblk,iv) , DBLK_ARRAY(dset->dblk,iv) ) ;
             break ;

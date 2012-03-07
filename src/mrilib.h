@@ -2118,6 +2118,7 @@ extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ;
  do{ int vv ; MRI_IMARR *qimar=NULL ; MRI_IMAGE *fim ;                        \
      (outp) = NULL ;                                                          \
      switch( (inpp)->kind ){                                                  \
+       default:                                             break ;           \
        case MRI_fvect:   qimar = mri_fvect_to_imarr(inpp) ; break ;           \
        case MRI_rgb:     qimar = mri_rgb_to_3float (inpp) ; break ;           \
        case MRI_complex: qimar = mri_complex_to_pair(inpp); break ;           \
@@ -2129,6 +2130,7 @@ extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ;
        IMARR_SUBIM(qimar,vv) = fim ;                                          \
      }                                                                        \
      switch( (inpp)->kind ){                                                  \
+       default:          break ;                                              \
        case MRI_fvect:   (outp) = mri_imarr_to_fvect(qimar) ;                 \
                          break ;                                              \
        case MRI_rgb:     (outp) = mri_3to_rgb(IMARR_SUBIM(qimar,0),           \
