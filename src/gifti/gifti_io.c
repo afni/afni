@@ -132,9 +132,10 @@ static char * gifti_history[] =
   "1.10 19 October, 2011: \n",
   "     - can read/write ascii COMPLEX64, COMPLEX128, RGB24\n"
   "       (requested by H Breman, J Mulders, N Schmansky)\n"
+  "1.11 07 March, 2012: fixed sizeof in memset of gim (noted by B Cox)\n",
 };
 
-static char gifti_version[] = "gifti library version 1.09, 28 June, 2010";
+static char gifti_version[] = "gifti library version 1.11, 07 March, 2012";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -4093,7 +4094,7 @@ int gifti_clear_gifti_image(gifti_image * gim)
     if( G.verb > 5 ) fprintf(stderr,"-- clearing gifti_image\n");
 
     /* set the version and clear all pointers */
-    memset(gim, 0, sizeof(gim));
+    memset(gim, 0, sizeof(*gim));
 
     gim->version = NULL;
     gifti_clear_nvpairs(&gim->meta);
