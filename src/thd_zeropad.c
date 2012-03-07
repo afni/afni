@@ -270,6 +270,8 @@ STATUS("padding") ;
 
       switch( oldim->kind ){  /* copy rows of old into new */
 
+         default: break ;
+
          case MRI_byte:{
             byte * bnew = (byte *) vnew, * bold = mri_data_pointer(oldim) ;
             for( kk=kkbot ; kk < kktop ; kk++ )

@@ -33,7 +33,7 @@ ENTRY("mri_extract_mask") ;
 
    if( imin->kind != MRI_float ){
      MRI_IMAGE *qim = mri_to_float(imin) ;
-     outim = mri_extract_mask( qim , mask , invert ) ;
+     outim = mri_extract_from_mask( qim , mask , invert ) ;
      mri_free(qim) ;
      RETURN(outim) ;
    }

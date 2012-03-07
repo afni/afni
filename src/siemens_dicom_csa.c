@@ -236,6 +236,8 @@ static int print_csa_item_str(siemens_csa_item * citem, int ilenoff, FILE *fp)
    int nbytes = citem->xx[0];
 
    if( nbytes > 0 ) fprintf(fp, " %.*s", nbytes, citem->value);
+
+   return nbytes ;
 }
 
 /* - subtract ilenoff from length
@@ -452,7 +454,7 @@ static int check_for_mosaic_slice_times(PRV_ELEMENT_ITEM * elementItem)
 
    if( ! mstr ) {
       if( g_MDH_verb > 2 ) fprintf(stderr, "-- CFMST, no Mosaic string\n");
-      return;
+      return 0;
    }
 
    off = mstr - instr;  /* offset of Mosaic string into field */
@@ -470,7 +472,7 @@ static int check_for_mosaic_slice_times(PRV_ELEMENT_ITEM * elementItem)
 
    if( s2 ) rem = rem2;  /* after verbose, update remaining length */
 
-   if( rem <= 0 ) return;
+   if( rem <= 0 ) return 0;
 
    process_csa_data((unsigned char *)instr, el_len, g_MDH_verb,
                                             g_MDH_verb>3, start_txt);

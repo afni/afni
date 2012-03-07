@@ -222,6 +222,8 @@ ENTRY("mri_write_pnm") ;
 
    switch( im->kind ){
 
+     default: break ;
+
      case MRI_byte:
        fprintf( imfile , "P5\n%d %d\n255\n" , im->nx,im->ny ) ;     /* header */
        fwrite( MRI_BYTE_PTR(im), sizeof(byte), im->nvox, imfile ) ; /* bytes */
@@ -280,6 +282,8 @@ ENTRY("mri_write_ascii") ;
    for( jj=0 ; jj < ny ; jj++ ){
 
       switch( im->kind ){
+
+         default: break ;
 
          case MRI_float:{
            float *iar = MRI_FLOAT_PTR(im) + (jj*nx) ;

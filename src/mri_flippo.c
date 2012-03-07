@@ -98,6 +98,8 @@ ENTRY("mri_flippo") ;
 
    switch( im->kind ){
 
+      default: mri_free(flim) ; RETURN(NULL) ;
+
       case MRI_byte:{
          register byte * inar = MRI_BYTE_PTR(im) ;
          register byte * flar = MRI_BYTE_PTR(flim) ;

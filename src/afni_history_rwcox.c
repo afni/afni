@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 6 , MAR , 2012 , RWC , "3dNormalityTest" , MINOR , TYPE_NEW_PROG ,
+  { 7 , MAR , 2012 , RWC , "many" , MICRO , TYPE_GENERAL ,
+   "Many small changes to fix problems caught with the llvm compiler." ,
+   NULL } ,
+
+ { 6 , MAR , 2012 , RWC , "3dNormalityTest" , MINOR , TYPE_NEW_PROG ,
    "Test voxel values for normality (Gaussianity)." ,
    "Uses the Anderson-Darling test." } ,
 

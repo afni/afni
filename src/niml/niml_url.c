@@ -163,7 +163,7 @@ static int read_URL_http( char *url , int msec , char **data )
       NI_mktemp(qname) ;
       if( qname[0] != '\0' ){
          strcat(qname,".gz") ; cfile = fopen( qname , "wb" ) ;
-         if( cfile == NULL ) cflag == 0 ;
+         if( cfile == NULL ) cflag = 0 ;
       } else {
          cflag = 0 ;
       }

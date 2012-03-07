@@ -439,6 +439,7 @@ ENTRY("THD_load_minc") ;
        case NC_SHORT:  im_valid_range[1] = 32767.0      ; break ;
        case NC_INT:    im_valid_range[1] = 2147483647.0 ; break ;
        case NC_FLOAT:
+       default:
        case NC_DOUBLE: im_valid_range[1] = 1.0          ; break ;
      }
    }

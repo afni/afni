@@ -28,6 +28,7 @@ ENTRY("mri_to_byte") ;
    npix  = oldim->nvox ;
 
    switch( oldim->kind ){
+      default: break ;
       case MRI_short:
       case MRI_int:
       case MRI_float:
@@ -37,6 +38,7 @@ ENTRY("mri_to_byte") ;
          imax  = (imax <= imin) ? imin+1 : imax ;
          scale = 255.9 / (imax-imin)  ;
          switch( oldim->kind ){
+            default:                          break ;
             case MRI_short:    shbot = imin ; break ;
             case MRI_int:      inbot = imin ; break ;
             case MRI_float:    flbot = imin ; break ;

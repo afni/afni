@@ -4611,6 +4611,10 @@ extern int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
                         byte *cmask,
                         char *mapname,
                         int **unqp, int *N_unq);
+extern int THD_unique_rank_edit( THD_3dim_dataset *mask_dset ,
+                           int miv,
+                           byte *cmask,
+                           char *mapname, int **unqp, int *N_unq) ;
 int is_integral_dset ( THD_3dim_dataset *dset, int check_data);
 int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb, int check_data);
 extern int THD_mask_remove_isolas( int nx, int ny, int nz , byte *mmm ) ;

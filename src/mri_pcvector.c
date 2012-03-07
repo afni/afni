@@ -19,7 +19,7 @@ MRI_IMAGE * mri_pcvector( MRI_IMARR *imar , int ibot, int itop )
    nvec = IMARR_COUNT(imar) ;       if( nvec < 1 ) return NULL ;
    nx   = IMARR_SUBIM(imar,0)->nx ; if( nx   < 1 ) return NULL ;
    if( ibot < 0 ) ibot = 0 ;
-   if( itop <= itop || itop >= nx ) itop = nx-1 ;
+   if( itop <= ibot || itop >= nx ) itop = nx-1 ;
    nx = itop-ibot+1 ;               if( nx   < 2 ) return NULL ;
 
 #define A(i,j) amat[(i)+(j)*nx]     /* nx X nvec matrix */

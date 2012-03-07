@@ -1009,8 +1009,9 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
 #if 1
    eee = getenv("AFNI_GLOB_DEBUG") ;
    if( eee != NULL && (*eee == 'Y' || *eee == 'y') && gnum > 0 ){
-     INFO_message("filename expansion gives:") ;
-     for( ii=0 ; ii < gnum ; ii++ ) ININFO_message(" %s",gout[ii]) ;
+     fprintf(stderr,"++ filename expansion gives:\n") ;
+     for( ii=0 ; ii < gnum ; ii++ ) fprintf(stderr,"  %s",gout[ii]) ;
+     fprintf(stderr,"\n") ;
    }
 #endif
 

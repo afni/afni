@@ -17,6 +17,8 @@ ENTRY("mri_scale_inplace") ;
 
    switch( im->kind ){
 
+      default: break ;
+
       case MRI_byte:{
          byte *pp = (byte *) vp ;
          for( ii=0 ; ii < nvox ; ii++ ) pp[ii] *= fac ;

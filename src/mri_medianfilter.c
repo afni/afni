@@ -76,6 +76,7 @@ ENTRY("mri_medianfilter") ;
    vin   = mri_data_pointer( imin ) ;
    tmp   = (float *) malloc(sizeof(float)*nd) ;
    switch( imin->kind ){
+     default:                              break ;
      case MRI_float:  fin = (float *)vin ; break ;
      case MRI_short:  sin = (short *)vin ; break ;
      case MRI_byte :  bin = (byte  *)vin ; break ;
@@ -93,6 +94,7 @@ ENTRY("mri_medianfilter") ;
         /* extract neighborhood values */
 
         switch( imin->kind ){
+          default: break ;
           case MRI_float:
             for( nt=dd=0 ; dd < nd ; dd++ ){
               ip = ii+di[dd] ; if( ip < 0 || ip >= nx ) continue ;
@@ -203,6 +205,7 @@ ENTRY("mri_flatfilter") ;
    vin   = mri_data_pointer( imin ) ;
    tmp   = (float *) malloc(sizeof(float)*nd) ;
    switch( imin->kind ){
+     default:                              break ;
      case MRI_float:  fin = (float *)vin ; break ;
      case MRI_short:  sin = (short *)vin ; break ;
      case MRI_byte :  bin = (byte  *)vin ; break ;
@@ -220,6 +223,7 @@ ENTRY("mri_flatfilter") ;
         /* extract neighborhood values */
 
         switch( imin->kind ){
+          default: break ;
           case MRI_float:
             for( nt=dd=0 ; dd < nd ; dd++ ){
               ip = ii+di[dd] ; if( ip < 0 || ip >= nx ) continue ;

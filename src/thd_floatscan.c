@@ -66,6 +66,7 @@ int mri_floatscan( MRI_IMAGE *im )
 {
    if( im == NULL ) return 0 ;
    switch( im->kind ){
+     default: break ;
      case MRI_float:
        return thd_floatscan  ( im->nvox , MRI_FLOAT_PTR(im)   ) ;
      case MRI_complex:

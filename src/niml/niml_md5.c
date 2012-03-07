@@ -416,7 +416,7 @@ char * MD5_static_file(char *filename)
 
   MD5Init( &context ) ;
 
-  while( len = fread(buffer, 1, 1024, file) )
+  while( (len = fread(buffer, 1, 1024, file)) )
       MD5Update( &context, buffer, len ) ;
 
   MD5Final( digest, &context );
@@ -509,7 +509,7 @@ char * MD5_B64_file(char *filename)
 
   MD5Init( &context ) ;
 
-  while( len = fread(buffer, 1, 1024, file) )
+  while( (len = fread(buffer, 1, 1024, file)) )
       MD5Update( &context, buffer, len ) ;
 
   MD5Final( digest, &context );

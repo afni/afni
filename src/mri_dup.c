@@ -178,6 +178,8 @@ ENTRY("mri_dup2D") ;
 
    switch( imin->kind ){
 
+      default: break ;
+
       case MRI_byte:{
          byte * bar ; MRI_IMAGE * bim ; float fmin , fmax ;
 

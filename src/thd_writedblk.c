@@ -311,6 +311,7 @@ fprintf(stderr,"Entropy=%g ==> forcing write gzip on %s\n",entrop,dkptr->brick_n
 
            if( save_order != native_order ){       /* 25 April 1998 */
              switch( DBLK_BRICK_TYPE(blk,ibr) ){
+               default: break ;
                case MRI_short:
                  mri_swap2( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
                break ;

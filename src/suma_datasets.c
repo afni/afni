@@ -18,6 +18,10 @@ See SUMA_Makefile_NoDev
 
 #include "suma_suma.h"
 
+int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label, 
+                               SUMA_COL_TYPE ctp, void *col, 
+                               void *col_attr, int stride) ;
+
 
 #if defined SUMA_COMPILED
    extern SUMA_CommonFields *SUMAg_CF;
@@ -1294,7 +1298,7 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
                         nel->vec_len, nel->vec_filled, nel->vec_num );
             }
             if (SUMA_isDsetNelAttr(nel)) {
-               if (rs = NI_get_attribute(nel, "atr_name")) { 
+               if( (rs = NI_get_attribute(nel, "atr_name")) ) { 
                   #if 0
                   if (!attrlist) { 
                      /* No list, copy everything */
@@ -3775,7 +3779,7 @@ SUMA_COL_TYPE SUMA_VarType2ColType (char *vt)
    
    SUMA_ENTRY;
    
-   if (!vt) SUMA_RETURN(SUMA_notypeset);
+   if (!vt) SUMA_RETURN(((SUMA_COL_TYPE)SUMA_notypeset));
    
    if (strstr(vt,"int")) SUMA_RETURN(SUMA_NODE_INT);
    if (strstr(vt,"float")) SUMA_RETURN(SUMA_NODE_FLOAT);
