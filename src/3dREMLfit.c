@@ -2372,7 +2372,7 @@ STATUS("make stim GLTs") ;
      ADD_GLT( "Full" , gm ) ;
 
      allstim = (int *)malloc(sizeof(int)*kk) ; num_allstim = kk ;
-     zzmemcpy( allstim , set , sizeof(int)*num_allstim ) ;
+     AAmemcpy( allstim , set , sizeof(int)*num_allstim ) ;
      qsort_int( num_allstim , allstim ) ;
 
      /*--- now do each labeled stimulus separately ---*/
@@ -2929,7 +2929,7 @@ STATUS("setting up Rglt") ;
          VECTIM_extract( inset_mrv , rv , iv ) ; rv++ ;
        } else
          (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
-       zzmemcpy( jv , iv , sizeof(float)*nfull ) ;         /* copy of data */
+       AAmemcpy( jv , iv , sizeof(float)*nfull ) ;         /* copy of data */
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = iv[goodlist[ii]] ;
 
        ssold = ss ; ss = vv / nsliper ; /* ss = slice index in Xsli and RCsli */
@@ -3024,7 +3024,7 @@ STATUS("setting up Rglt") ;
            save_series( vv , Rvar_dset , 5 , iv , Rvar_fp ) ;
          }
 
-         zzmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nrega ) ; /* 24 Jun 2009 */
+         AAmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nrega ) ; /* 24 Jun 2009 */
 
          if( glt_num > 0 && Rbuckt_dset != NULL ){
            MTYPE gv ; GLT_index *gin ; int nr ;
@@ -3261,7 +3261,7 @@ STATUS("setting up Rglt") ;
          VECTIM_extract( inset_mrv , rv , iv ) ; rv++ ;
        } else
          (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
-       zzmemcpy( jv , iv , sizeof(float)*nfull ) ;
+       AAmemcpy( jv , iv , sizeof(float)*nfull ) ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
 
        jj = izero ;                       /* OLSQ (a,b)=(0,0) case */
@@ -3314,7 +3314,7 @@ STATUS("setting up Rglt") ;
            save_series( vv , Ovar_dset , 1 , iv , Ovar_fp ) ;
          }
 
-         zzmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nrega ) ; /* 24 Jun 2009 */
+         AAmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nrega ) ; /* 24 Jun 2009 */
 
          if( glt_num > 0 && Obuckt_dset != NULL ){
            MTYPE gv ; GLT_index *gin ; int nr ;

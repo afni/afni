@@ -87,25 +87,25 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 
 /*------------- Macros to be used in OpenMP enabled AFNI code ----------------*/
 
+/* to replace memcpy and memset, which cause trouble inside a parallel region */
+
 #ifdef USE_OMP
-# ifndef USE_ZZMEMCPY
-# define USE_ZZMEMCPY
-static void zzmemcpy( void *ooo , void *iii , size_t nnn )
+static INLINE void AAmemcpy( void *ooo , void *iii , size_t nnn )
 { register size_t jj ; register char *oar, *iar ;
   oar = (char *)ooo ; iar = (char *)iii ;
   for( jj=0 ; jj < nnn ; jj++ ) *oar++ = *iar++ ;
 }
-static void zzmemset( void *ooo , int c , size_t nnn )
+static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 { register size_t jj ; register char cc , *oar ;
   oar = (char *)ooo ; cc = (char)c ;
   for( jj=0 ; jj < nnn ; jj++ ) *oar++ = cc ;
 }
-# endif
 #else
-# define zzmemcpy memcpy
-# define zzmemset memset
+# define AAmemcpy memcpy
+# define AAmemset memset
 #endif
 
+/* to disable ENTRY/RETURN macros (which use static variables) */
 
 #if defined(USE_OMP) && defined(USE_TRACING)
 # define AFNI_OMP_START DBG_stoff++

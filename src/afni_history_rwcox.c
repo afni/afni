@@ -43,7 +43,21 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , MAR , 2012 , RWC , "many" , MICRO , TYPE_GENERAL ,
+  { 8 , MAR , 2012 , RWC , "OpenMP program" , MICRO , TYPE_BUG_FIX ,
+   "Replace memcpy/memset with AAmemcpy/AAmemset" ,
+   "OpenMP has trouble with these, particularly on Mac Lion.  Files affected\n"
+   "include:\n"
+   "\n"
+   "3dAutoTcorrelate.c  3dDespike.c  3dREMLfit.c\n"
+   "3ddata.h            cs_qmed.c    mri_blur3d_variable.c\n"
+   "mri_nwarp.c         mrilib.h     rcmat.c\n"
+   "thd_incorrelate.c\n"
+   "\n"
+   "AAmemcpy and AAmemset are defined in mrilib.h.  In particular, this gets\n"
+   "rid of the vastly annoying ___builtin_object_size undefined symbol error\n"
+   "message when linking an OpenMP program with llvm-gcc-4.2 on Lion." } ,
+
+ { 7 , MAR , 2012 , RWC , "many" , MICRO , TYPE_GENERAL ,
    "Many small changes to fix problems caught with the llvm compiler." ,
    NULL } ,
 
