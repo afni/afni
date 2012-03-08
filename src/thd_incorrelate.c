@@ -187,7 +187,7 @@ ENTRY("INCOR_addto_2Dhist") ;
 
    /*-- count number of good values left in range (in both x and y) --*/
 
-   zzmemset(good,0,n) ;
+   AAmemset(good,0,n) ;
 
    for( ngood=ii=0 ; ii < n ; ii++ ){
      if( RANGVAL(x[ii],xxbot,xxtop) && RANGVAL(y[ii],yybot,yytop) && (WW(ii) > 0.0f) ){
@@ -623,9 +623,9 @@ ENTRY("INCOR_copyover_2Dhist") ;
    tout->yc  = (float *)malloc(sizeof(float)*nbp) ;
    tout->xyc = (float *)malloc(sizeof(float)*nbp*nbp) ;
 
-   zzmemcpy( tout->xc , tin->xc , sizeof(float)*nbp ) ;
-   zzmemcpy( tout->yc , tin->yc , sizeof(float)*nbp ) ;
-   zzmemcpy( tout->xyc, tin->xyc, sizeof(float)*nbp*nbp ) ;
+   AAmemcpy( tout->xc , tin->xc , sizeof(float)*nbp ) ;
+   AAmemcpy( tout->yc , tin->yc , sizeof(float)*nbp ) ;
+   AAmemcpy( tout->xyc, tin->xyc, sizeof(float)*nbp*nbp ) ;
 
    EXRETURN ;
 }
@@ -850,7 +850,7 @@ ENTRY("INCOR_copyover") ;
 
      case GA_MATCH_PEARSON_SCALAR:
        if( vin != NULL ){
-         zzmemcpy( vout , vin , sizeof(INCOR_pearson) ) ;
+         AAmemcpy( vout , vin , sizeof(INCOR_pearson) ) ;
        } else {
          INCOR_pearson *vp = (INCOR_pearson *)vout ;
          vp->sx  = 0.0 ; vp->sxx = 0.0 ;
@@ -869,9 +869,9 @@ ENTRY("INCOR_copyover") ;
          INCOR_copyover_2Dhist( vin , vout ) ;
        } else {
          INCOR_2Dhist *tdh=(INCOR_2Dhist *)vout ; int nbp=1+tdh->nbin ;
-         zzmemset(tdh->xc ,0,sizeof(float)*nbp) ;
-         zzmemset(tdh->yc ,0,sizeof(float)*nbp) ;
-         zzmemset(tdh->xyc,0,sizeof(float)*nbp*nbp) ;
+         AAmemset(tdh->xc ,0,sizeof(float)*nbp) ;
+         AAmemset(tdh->yc ,0,sizeof(float)*nbp) ;
+         AAmemset(tdh->xyc,0,sizeof(float)*nbp*nbp) ;
          tdh->nww = 0.0f ;
        }
      break ;
