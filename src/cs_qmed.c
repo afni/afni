@@ -146,8 +146,7 @@ void qmedmad_float( int n, float *ar, float *med, float *mad )
 
 #pragma omp critical (MALLOC)
    q = (float *)malloc(sizeof(float)*n) ;  /* workspace */
-#pragma omp critical (MEMCPY)
-   memcpy(q,ar,sizeof(float)*n) ;  /* duplicate input array */
+   zzmemcpy(q,ar,sizeof(float)*n) ;  /* duplicate input array */
    me = qmed_float( n , q ) ;      /* compute median (partially sorts q) */
 
    if( mad != NULL && n > 1 ){
@@ -492,8 +491,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             if (!vvec) {
                ERROR_message("Failed to allocate 1."); RETURN(NULL);
             }
-#pragma omp critical (MEMCPY)
-            memcpy(vvec, vec, nxyz*sizeof(byte));
+            zzmemcpy(vvec, vec, nxyz*sizeof(byte));
             break;
          case MRI_short:
 #pragma omp critical (MALLOC)
@@ -501,8 +499,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             if (!vvec) {
                ERROR_message("Failed to allocate 2."); RETURN(NULL);
             }
-#pragma omp critical (MEMCPY)
-            memcpy(vvec, vec, nxyz*sizeof(short));
+            zzmemcpy(vvec, vec, nxyz*sizeof(short));
             break;
          case MRI_int:
 #pragma omp critical (MALLOC)
@@ -510,8 +507,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             if (!vvec) {
                ERROR_message("Failed to allocate 3."); RETURN(NULL);
             }
-#pragma omp critical (MEMCPY)
-            memcpy(vvec, vec, nxyz*sizeof(int));
+            zzmemcpy(vvec, vec, nxyz*sizeof(int));
             break;
          case MRI_float:
 #pragma omp critical (MALLOC)
@@ -519,8 +515,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             if (!vvec) {
                ERROR_message("Failed to allocate 4."); RETURN(NULL);
             }
-#pragma omp critical (MEMCPY)
-            memcpy(vvec, vec, nxyz*sizeof(float));
+            zzmemcpy(vvec, vec, nxyz*sizeof(float));
             break;
          case MRI_double:
 #pragma omp critical (MALLOC)
@@ -528,8 +523,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             if (!vvec) {
                ERROR_message("Failed to allocate 5."); RETURN(NULL);
             }
-#pragma omp critical (MEMCPY)
-            memcpy(vvec, vec, nxyz*sizeof(double));
+            zzmemcpy(vvec, vec, nxyz*sizeof(double));
             break;
          default:
             ERROR_message("Data type not supported."); RETURN(NULL);
