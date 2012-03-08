@@ -16,6 +16,24 @@
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
+/*------------------------------------------------------------------*/
+
+#undef INLINE
+#ifdef __GNUC__
+# define INLINE __inline__
+#else
+# define INLINE /*nada*/
+#endif
+
+#undef RESTRICT
+#ifdef __GNUC__
+# define RESTRICT __restrict__
+#else
+# define RESTRICT /*nada*/
+#endif
+
+/*------------------------------------------------------------------*/
+
 extern int MRILIB_verb ;                /* 01 May 2009 */
 
 extern char MRILIB_orients[] ;          /* 12 Mar 2001 */
@@ -51,6 +69,8 @@ extern int     g_siemens_timing_units;  /* time units, UNITS_MSEC_TYPE?  */
 extern int     populate_g_siemens_times(int tunits);
 extern int     get_and_display_siemens_times(void);
 extern int     valid_g_siemens_times(int nz, float TR, int verb);
+
+/*----------------------------------------------------------------------------*/
 
 #ifdef  __cplusplus
 }
@@ -1640,22 +1660,6 @@ extern double mri_entropy16( MRI_IMAGE * ) ;  /* 09 Jan 2004 */
 extern double mri_entropy8 ( MRI_IMAGE * ) ;  /* 09 Jan 2004 */
 
 extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
-
-/*------------------------------------------------------------------*/
-
-#undef INLINE
-#ifdef __GNUC__
-# define INLINE __inline__
-#else
-# define INLINE /*nada*/
-#endif
-
-#undef RESTRICT
-#ifdef __GNUC__
-# define RESTRICT __restrict__
-#else
-# define RESTRICT /*nada*/
-#endif
 
 #ifdef  __cplusplus
 }
