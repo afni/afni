@@ -87,12 +87,32 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 
 /*------------- Macros to be used in OpenMP enabled AFNI code ----------------*/
 
+#ifdef USE_OMP
+# ifndef USE_ZZMEMCPY
+# define USE_ZZMEMCPY
+static void zzmemcpy( void *ooo , void *iii , size_t nnn )
+{ register size_t jj ; register char *oar, *iar ;
+  oar = (char *)ooo ; iar = (char *)iii ;
+  for( jj=0 ; jj < nnn ; jj++ ) *oar++ = *iar++ ;
+}
+static void zzmemset( void *ooo , int c , size_t nnn )
+{ register size_t jj ; register char cc , *oar ;
+  oar = (char *)ooo ; cc = (char)c ;
+  for( jj=0 ; jj < nnn ; jj++ ) *oar++ = cc ;
+}
+# endif
+#else
+# define zzmemcpy memcpy
+# define zzmemset memset
+#endif
+
+
 #if defined(USE_OMP) && defined(USE_TRACING)
 # define AFNI_OMP_START DBG_stoff++
 # define AFNI_OMP_END   DBG_stoff--
 #else
-# define AFNI_OMP_START /*nada*/
-# define AFNI_OMP_END   /*nada*/
+# define AFNI_OMP_START   /*nada*/
+# define AFNI_OMP_END     /*nada*/
 #endif
 
 #ifdef USE_OMP
@@ -747,10 +767,10 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_FRANK       22      /* ZSS Jan 10 */
 #define NSTAT_P2SKEW      23      /* ZSS March 04 10*/
 #define NSTAT_KURT        24      /* ZSS Jan   04 11*/
-#define NSTAT_mMP2s0      25  
+#define NSTAT_mMP2s0      25
 #define NSTAT_mMP2s1      26
 #define NSTAT_mMP2s2      27
-#define NSTAT_mmMP2s0     28  
+#define NSTAT_mmMP2s0     28
 #define NSTAT_mmMP2s1     29
 #define NSTAT_mmMP2s2     30
 #define NSTAT_mmMP2s3     31
@@ -823,7 +843,7 @@ extern int         mri_imcount_dicom( char * ) ;
 extern char *      mri_dicom_sexinfo( void ) ;   /* 23 Dec 2002 */
 extern char *      mri_dicom_sex1010( void ) ;
 extern int         mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
-extern int         mri_siemens_slice_times( int *, int *, float ** ); 
+extern int         mri_siemens_slice_times( int *, int *, float ** );
 extern int         mri_sst_get_verb( void );
 extern int         mri_sst_set_verb( int );
 extern char *      mri_dicom_hdrinfo( char *fname, int natt, char **att , int dolast ) ;
