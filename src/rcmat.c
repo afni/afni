@@ -70,10 +70,10 @@ rcmat * rcmat_copy( rcmat *rcm )
 
    nn  = rcm->nrc ;
    qcm = rcmat_init(nn) ;
-   zzmemcpy( qcm->len , rcm->len , sizeof(LENTYP)*nn ) ;
+   AAmemcpy( qcm->len , rcm->len , sizeof(LENTYP)*nn ) ;
    for( ii=0 ; ii < nn ; ii++ ){
      qcm->rc[ii] = malloc( sizeof(double)*qcm->len[ii] ) ;
-     zzmemcpy( qcm->rc[ii] , rcm->rc[ii] , sizeof(double)*qcm->len[ii] ) ;
+     AAmemcpy( qcm->rc[ii] , rcm->rc[ii] , sizeof(double)*qcm->len[ii] ) ;
    }
    return qcm ;
 }

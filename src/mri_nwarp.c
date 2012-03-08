@@ -181,9 +181,9 @@ IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac )
    nxyz = AA->nx * AA->ny * AA->nz ;
 
    if( fac == 1.0f ){
-     zzmemcpy( BB->xd , AA->xd , sizeof(float)*nxyz ) ;
-     zzmemcpy( BB->yd , AA->yd , sizeof(float)*nxyz ) ;
-     zzmemcpy( BB->zd , AA->zd , sizeof(float)*nxyz ) ;
+     AAmemcpy( BB->xd , AA->xd , sizeof(float)*nxyz ) ;
+     AAmemcpy( BB->yd , AA->yd , sizeof(float)*nxyz ) ;
+     AAmemcpy( BB->zd , AA->zd , sizeof(float)*nxyz ) ;
    } else if( fac != 0.0f ){
      int qq ;
      for( qq=0 ; qq < nxyz ; qq++ ){
@@ -220,9 +220,9 @@ IndexWarp3D * IW3D_cutoutbox( IndexWarp3D *AA , int ibot , int itop ,
     for( jj=jbot ; jj <= jtop ; jj++ ){
       aoff =  kk      *nxy +  jj      *nx + ibot ;
       boff = (kk-kbot)*qxy + (jj-jbot)*qx ;
-      zzmemcpy( BB->xd + boff , AA->xd + aoff , qrow ) ;
-      zzmemcpy( BB->yd + boff , AA->yd + aoff , qrow ) ;
-      zzmemcpy( BB->zd + boff , AA->zd + aoff , qrow ) ;
+      AAmemcpy( BB->xd + boff , AA->xd + aoff , qrow ) ;
+      AAmemcpy( BB->yd + boff , AA->yd + aoff , qrow ) ;
+      AAmemcpy( BB->zd + boff , AA->zd + aoff , qrow ) ;
    }}
 
    return BB ;
@@ -253,9 +253,9 @@ void IW3D_pasteinbox( IndexWarp3D *AA , IndexWarp3D *BB ,
     for( jj=jbot ; jj <= jtop ; jj++ ){
       aoff =  kk      *nxy +  jj      *nx + ibot ;
       boff = (kk-kbot)*qxy + (jj-jbot)*qx ;
-      zzmemcpy( AA->xd + aoff , BB->xd + boff , qrow ) ;
-      zzmemcpy( AA->yd + aoff , BB->yd + boff , qrow ) ;
-      zzmemcpy( AA->zd + aoff , BB->zd + boff , qrow ) ;
+      AAmemcpy( AA->xd + aoff , BB->xd + boff , qrow ) ;
+      AAmemcpy( AA->yd + aoff , BB->yd + boff , qrow ) ;
+      AAmemcpy( AA->zd + aoff , BB->zd + boff , qrow ) ;
    }}
 
    return ;
@@ -2209,7 +2209,7 @@ ENTRY("NwarpCalcRPN") ;
 
    sar = NI_decode_string_list( expr , "`" ) ;
    if( sar == NULL ) RETURN(NULL) ;
-   zzmemset(&imat,0,sizeof(mat44)); zzmemset(&cmat,0,sizeof(mat44));
+   AAmemset(&imat,0,sizeof(mat44)); AAmemset(&cmat,0,sizeof(mat44));
    if( acode < 0 ) acode = icode ;
 
    /**----- loop thru and process commands -----**/
@@ -2753,9 +2753,9 @@ static void HCwarp_load( float *par )  /* 24 elements in par */
    doy = !(Hflags & NWARP_NOYDIS_FLAG) ;
    doz = !(Hflags & NWARP_NOZDIS_FLAG) ;
 
-   if( !dox ) zzmemset( xx , 0 , sizeof(float)*nxyz ) ;
-   if( !doy ) zzmemset( yy , 0 , sizeof(float)*nxyz ) ;
-   if( !doz ) zzmemset( zz , 0 , sizeof(float)*nxyz ) ;
+   if( !dox ) AAmemset( xx , 0 , sizeof(float)*nxyz ) ;
+   if( !doy ) AAmemset( yy , 0 , sizeof(float)*nxyz ) ;
+   if( !doz ) AAmemset( zz , 0 , sizeof(float)*nxyz ) ;
 
    AFNI_OMP_START ;
 #pragma omp parallel if( nxyz > 1111 )
@@ -2807,9 +2807,9 @@ static void HQwarp_load( float *par )  /* 81 elements in par */
    doy = !(Hflags & NWARP_NOYDIS_FLAG) ;
    doz = !(Hflags & NWARP_NOZDIS_FLAG) ;
 
-   if( !dox ) zzmemset( xx , 0 , sizeof(float)*nxyz ) ;
-   if( !doy ) zzmemset( yy , 0 , sizeof(float)*nxyz ) ;
-   if( !doz ) zzmemset( zz , 0 , sizeof(float)*nxyz ) ;
+   if( !dox ) AAmemset( xx , 0 , sizeof(float)*nxyz ) ;
+   if( !doy ) AAmemset( yy , 0 , sizeof(float)*nxyz ) ;
+   if( !doz ) AAmemset( zz , 0 , sizeof(float)*nxyz ) ;
 
    AFNI_OMP_START ;
 #pragma omp parallel if( nxyz > 1111 )

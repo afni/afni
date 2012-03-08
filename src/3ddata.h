@@ -232,7 +232,7 @@ typedef struct {
          off is most easily computed with XtOffsetOf       */
 
 #define COPY_INTO_STRUCT(str,off,type,ptr,n) \
-   zzmemcpy( (char *)(&(str))+(off), (char *)(ptr), (n)*sizeof(type) )
+   AAmemcpy( (char *)(&(str))+(off), (char *)(ptr), (n)*sizeof(type) )
 
 /*! Copy n units of the given type "type * ptr", from a structure "str",
      starting at byte offset "off";
@@ -240,7 +240,7 @@ typedef struct {
          off is most easily computed with XtOffsetOf       */
 
 #define COPY_FROM_STRUCT(str,off,type,ptr,n) \
-   zzmemcpy( (char *)(ptr), (char *)(&(str))+(off), (n)*sizeof(type) )
+   AAmemcpy( (char *)(ptr), (char *)(&(str))+(off), (n)*sizeof(type) )
 
 /*! Safe version of strncpy, which always leaves a NUL at the end.
 
@@ -4377,11 +4377,11 @@ typedef struct {
 
 #undef  VECTIM_extract
 #define VECTIM_extract(mv,j,aa) \
-  zzmemcpy( (aa) , VECTIM_PTR((mv),(j)) , sizeof(float)*(mv)->nvals )
+  AAmemcpy( (aa) , VECTIM_PTR((mv),(j)) , sizeof(float)*(mv)->nvals )
 
 #undef  VECTIM_insert
 #define VECTIM_insert(mv,j,aa) \
-  zzmemcpy( VECTIM_PTR((mv),(j)) , (aa) , sizeof(float)*(mv)->nvals )
+  AAmemcpy( VECTIM_PTR((mv),(j)) , (aa) , sizeof(float)*(mv)->nvals )
 
 #undef  VECTIM_destroy
 #define VECTIM_destroy(mv)                       \

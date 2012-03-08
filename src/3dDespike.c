@@ -433,7 +433,7 @@ int main( int argc , char *argv[] )
         break ;
       }
 
-      zzmemcpy(dar,far,sizeof(float)*nuse) ;   /* copy time series into dar[] */
+      AAmemcpy(dar,far,sizeof(float)*nuse) ;   /* copy time series into dar[] */
 
       /*** solve for L1 fit ***/
 
