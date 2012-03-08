@@ -83,8 +83,7 @@ ENTRY("mri_blur3D_variable") ;
        qar[ijk] += vout ;  /* whatever wasn't diffused away from this voxel */
    }}}
 
-#pragma omp critical (MEMCPY)
-   memcpy(iar,qar,sizeof(float)*nxyz) ;
+   zzmemcpy(iar,qar,sizeof(float)*nxyz) ;
    free((void *)qar) ;
    EXRETURN ;
 }
@@ -150,11 +149,9 @@ ENTRY("mri_blur3D_inmask") ;
 
          qar[ijk] += vout ;  /* whatever wasn't diffused away from this voxel */
      }}}
-#pragma omp critical (MEMCPY)
-     memcpy(iar,qar,sizeof(float)*nxyz) ;
+     zzmemcpy(iar,qar,sizeof(float)*nxyz) ;
      if( nn != nrep-1 ){
-#pragma omp critical (MEMSET)
-       memset(qar,0,sizeof(float)*nxyz) ;
+       zzmemset(qar,0,sizeof(float)*nxyz) ;
      }
    }
 
@@ -278,11 +275,9 @@ ENTRY("mri_blur3D_inmask_speedy") ;
          qar[ijk] += vout ;  /* whatever wasn't diffused away from this voxel */ 
      }}}
 
-#pragma omp critical (MEMCPY)
-     memcpy(iar,qar,sizeof(float)*nxyz) ;
+     zzmemcpy(iar,qar,sizeof(float)*nxyz) ;
      if( nn != nrep-1 ){
-#pragma omp critical (MEMSET)
-       memset(qar,0,sizeof(float)*nxyz) ;
+       zzmemset(qar,0,sizeof(float)*nxyz) ;
      }
    }
 
@@ -373,8 +368,7 @@ ENTRY("mri_blur3D_inmask_NN") ;
          }
      }}}
 
-#pragma omp critical (MEMCPY)
-     memcpy(iar,qar,sizeof(float)*nxyz) ;
+     zzmemcpy(iar,qar,sizeof(float)*nxyz) ;
    }
 
 #pragma omp critical (MALLOC)
@@ -517,8 +511,7 @@ ENTRY("mri_blur3d_vectim") ;
 
 #pragma omp for
    for( iv=0 ; iv < vim->nvals ; iv++ ){
-#pragma omp critical (MEMSET)
-     memset( qar , 0 , sizeof(float)*nvox ) ;
+     zzmemset( qar , 0 , sizeof(float)*nvox ) ;
      for( jj=0 ; jj < vim->nvec ; jj++ ){
        var = VECTIM_PTR(vim,jj) ; qar[ivar[jj]] = var[iv] ;
      }

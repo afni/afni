@@ -19,10 +19,6 @@
   static int do_mmap = 0 ;
 #endif
 
-#if 0
-size_t ___builtin_object_size(void *ptr,int typ){ return __builtin_object_size(ptr,typ); }
-#endif
-
 /*----------------------------------------------------------------*/
 /**** Include these here for potential optimization for OpenMP ****/
 /*----------------------------------------------------------------*/
@@ -352,7 +348,7 @@ int main( int argc , char *argv[] )
 
    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
    if( DSET_NVALS(xset) < 3 )
-      ERROR_exit("Input dataset %s does not have 3 or more sub-bricks!",argv[nopt]) ;
+     ERROR_exit("Input dataset %s does not have 3 or more sub-bricks!",argv[nopt]) ;
    DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
 
    /*-- compute mask array, if desired --*/
@@ -443,6 +439,10 @@ int main( int argc , char *argv[] )
        "Memory required = %.1f Mbytes for %d output sub-bricks",nb,nmask);
      if( nb > 2000.0 && (sizeof(void *) < 8 || sizeof(size_t) < 8) )
        ERROR_exit("Can't run on a 32-bit system!") ;
+#ifdef ALLOW_MMAP
+     if( nb > 1000.0 && !do_mmap )
+       INFO_message("If you run out of memory, try using the -mmap option.") ;
+#endif
    }
 
    tross_Make_History( "3dAutoTcorrelate" , argc,argv , cset ) ;
@@ -560,8 +560,7 @@ AFNI_OMP_START ;
 #ifdef ALLOW_MMAP
       if( do_mmap ){  /* copy results to disk mmap now */
         short *cout = ((short *)(cbrik)) + (int64_t)(nvox)*(int64_t)(kout) ;
-#pragma omp critical
-        { memcpy( cout , car , sizeof(short)*nvox ) ; }
+        zzmemcpy( cout , car , sizeof(short)*nvox ) ;
       }
 #endif
 
