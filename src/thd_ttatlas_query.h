@@ -115,6 +115,7 @@ typedef struct {
    char  **atname; /*!< Integer code of atlas */
    float *prob; /*!< probability, if applicable, of being of a particular label */
    float *radius;   /*!< distance, search distance for reported label.*/ 
+   char **webpage; /*!< webpages for a web-atlas for whereami location */
 } ATLAS_ZONE;
 
 typedef struct {
@@ -158,13 +159,13 @@ typedef struct {
 } ATLAS_XFORM;
 
 typedef struct {
-   char *atlas_dset_name;
-   char *atlas_space;
-   char *atlas_name;
-   char *atlas_description;
-   char *atlas_comment;
+   char *dset_name;
+   char *space;
+   char *name;
+   char *description;
+   char *comment;
    char *atlas_type;  /* web or NULL for now, for web type, dset is http webpage address */
-   char *atlas_orient;  /* string to specify xyz order requests - Elsevier's web version uses "RSA"*/
+   char *orient;  /* string to specify xyz order requests - Elsevier's web version uses "RSA"*/
    int atlas_found;
    ATLAS_DSET_HOLDER *adh;
 } ATLAS; /*!< All char * should be initialized when .niml file is loaded,
@@ -175,18 +176,18 @@ typedef struct {
 
 /* macro accessors for the atlas fields - first version is to pointer location, 
    second _S version is for default string if NULL string in structure */
-#define ATL_COMMENT(xa) ( ( (xa) && (xa)->atlas_comment) ?   \
-                           (xa)->atlas_comment : NULL )
+#define ATL_COMMENT(xa) ( ( (xa) && (xa)->comment) ?   \
+                           (xa)->comment : NULL )
 #define ATL_COMMENT_S(xa) ( (ATL_COMMENT(xa)) ? \
                               (ATL_COMMENT(xa)) : "None" )
 
-#define ATL_DESCRIPTION(xa) ( ( (xa) && (xa)->atlas_description ) ?   \
-                           (xa)->atlas_description : NULL )
+#define ATL_DESCRIPTION(xa) ( ( (xa) && (xa)->description ) ?   \
+                           (xa)->description : NULL )
 #define ATL_DESCRIPTION_S(xa) ( (ATL_DESCRIPTION(xa)) ? \
                                  (ATL_DESCRIPTION(xa)) : "None" )
 
-#define ATL_NAME(xa) ( ( (xa) && (xa)->atlas_name) ?   \
-                           (xa)->atlas_name : NULL )
+#define ATL_NAME(xa) ( ( (xa) && (xa)->name) ?   \
+                           (xa)->name : NULL )
 #define ATL_NAME_S(xa) ( (ATL_NAME(xa)) ? \
                                  (ATL_NAME(xa)) : "None" )
                                  
@@ -196,8 +197,8 @@ typedef struct {
 #define ATL_ADH_SET(xa) ( ( (xa) && (xa)->adh ) ? \
                            (xa)->adh->params_set : 0 )                            
 
-#define ATL_ORIENT(xa) ( ( (xa) && (xa)->atlas_orient) ?   \
-                           (xa)->atlas_orient : NULL )
+#define ATL_ORIENT(xa) ( ( (xa) && (xa)->orient) ?   \
+                           (xa)->orient : NULL )
 #define ATL_ORIENT_S(xa) ( (ATL_ORIENT(xa)) ? \
                               (ATL_ORIENT(xa)) : "RAI" )
 
@@ -225,8 +226,10 @@ typedef struct {
 } ATLAS_SPACE;
 
 typedef struct {
-   char *atlas_template;
-   char *atlas_space;
+   char *template;
+   char *space;
+   char *description;
+   char *comment;
 } ATLAS_TEMPLATE;
 
 typedef struct {
@@ -355,7 +358,7 @@ char * Clean_Atlas_Label( char *lb);
 char * Clean_Atlas_Label_to_Prefix( char *lb);
 ATLAS_ZONE *Get_Atlas_Zone(ATLAS_QUERY *aq, int level);
 ATLAS_ZONE *Atlas_Zone(ATLAS_ZONE *zn, int level, char *label, int code, 
-                       float prob, float within, char *aname) ;
+                       float prob, float within, char *aname, char *webpage) ;
 ATLAS_ZONE *Free_Atlas_Zone(ATLAS_ZONE *zn);
 void Set_Show_Atlas_Mode(int md);
 void Show_Atlas_Zone(ATLAS_ZONE *zn, ATLAS_LIST *atlas_list);
@@ -432,6 +435,7 @@ int is_small_TT(ATLAS *atlas);
 int is_big_TT(ATLAS *atlas);
 char * TT_whereami_default_spc_name (void);
 int is_Dset_Space_Named(THD_3dim_dataset *dset, char *name);
+int is_Dset_Atlasy(THD_3dim_dataset *dset, ATLAS_LIST *atlas_alist);
 char *gen_space_str(char *space_str);
 int equivalent_space(char *inspace_str);
 char *get_out_space(void);
@@ -474,6 +478,8 @@ void set_wami_webpage(char *url);
 char * get_wami_webpage(void);
 void open_wami_webpage(void);
 int AFNI_wami_output_mode(void);
+void set_AFNI_wami_output_mode(int webflag);
+
 
 /* Transforms for going from one space to another */
 #if 0
