@@ -319,9 +319,10 @@ g_history = """
     3.11 Mar  2, 2012: fixed $runs use with ricor of multiple runs
         - problem noted by I Mukai
         - output afni -ver in script
+    3.12 Mar  9, 2012: added $hemi to rm.mean dset during scaling
 """
 
-g_version = "version 3.11, March 2, 2012"
+g_version = "version 3.12, March 9, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "27 Jan 2012"
