@@ -135,7 +135,7 @@ void Syntax(void)
 "               total number of voxels that are not zero in at least one\n"
 "               of the two datasets.\n"
 "\n"
-"   -monog_pair: Instead of pairing each dset with the first, pair each\n"
+"   -monog_pairs: Instead of pairing each dset with the first, pair each\n"
 "                couple separately. This requires you to have an even\n"
 "                number of dsets on the command line\n"
 "\n"
