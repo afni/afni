@@ -319,13 +319,15 @@ g_history = """
     3.11 Mar  2, 2012: fixed $runs use with ricor of multiple runs
         - problem noted by I Mukai
         - output afni -ver in script
-    3.12 Mar  9, 2012: added $hemi to rm.mean dset during scaling
+    3.12 Mar  9, 2012:
+        - added $hemi to rm.mean dset during scaling
+        - added new '-overwrite_resp S' to @SUMA_AlignToExperiement command
 """
 
 g_version = "version 3.12, March 9, 2012"
 
 # version of AFNI required for script execution
-g_requires_afni = "27 Jan 2012"
+g_requires_afni = "8 Mar 2012"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions

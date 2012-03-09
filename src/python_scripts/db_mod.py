@@ -1562,7 +1562,7 @@ def cmd_surf_align(proc):
           '@SUMA_AlignToExperiment -exp_anat %s \\\n'                         \
           '                        -surf_anat $%s/%s \\\n'                    \
           '                        -wd%s \\\n'                                \
-          '                        -atlas_followers \\\n'                     \
+          '                        -atlas_followers -overwrite_resp S\\\n'    \
           '                        -prefix ${subj}_SurfVol_Alnd_Exp \n\n'     \
         % (proc.anat_final.pv(), proc.surf_svd_var, proc.surf_sv.pv(), sstr)
 
