@@ -488,9 +488,9 @@ int add_atlas_nel(NI_element *nel, ATLAS_XFORM_LIST *atlas_xfl,
                           &atlas_alist->atlas[atlas_alist->natlases-1],
                           parentdir);
          if (sar && 
-             atlas_alist->atlas[atlas_alist->natlases-1].atlas_name){
+             atlas_alist->atlas[atlas_alist->natlases-1].name){
                ADDUTO_SARR(sar,
-                  atlas_alist->atlas[atlas_alist->natlases-1].atlas_name);
+                  atlas_alist->atlas[atlas_alist->natlases-1].name);
          }  /* add the name of that atlas to the string array */
          found = 1;
       }
@@ -690,7 +690,7 @@ ATLAS_XFORM_LIST * get_xform_chain( ATLAS_SPACE *at_space,
    };
 
    /* if src and dest are the same, should return identity right away */
-   if((N_Neighb==NULL) || (FirstNeighbDist==NULL) ||(&N_Neighb==0)) return (NULL);
+   if((N_Neighb==NULL) || (FirstNeighbDist==NULL) ||(*N_Neighb==0)) return (NULL);
 
    if ( !(nPath = SUMA_Dijkstra_generic ( 
                           asl->nspaces, 
@@ -1008,11 +1008,14 @@ void free_template_list(ATLAS_TEMPLATE_LIST *xtl)
 }
 
 /* free an atlas_template structure */
-void free_template(ATLAS_TEMPLATE *xt)
+void free_template(ATLAS_TEMPLATE *xa)
 {   
-   if(xt==NULL)
+   if(xa==NULL)
       return;
-   free(xt->atlas_space); free(xt->atlas_template); 
+   if (xa->space) free(xa->space); 
+   if (xa->template) free(xa->template);
+   if (xa->description) free(xa->description); 
+   if (xa->comment) free(xa->comment);
 } 
 
 /* free list of atlases */
@@ -1039,10 +1042,14 @@ void free_atlas(ATLAS *xa)
 {   
    if(xa==NULL)
       return;
-   if (xa->atlas_space) free(xa->atlas_space); 
-   if (xa->atlas_dset_name) free(xa->atlas_dset_name);
-   if (xa->atlas_description) free(xa->atlas_description); 
-   if (xa->atlas_name) free(xa->atlas_name);
+   if (xa->space) free(xa->space); 
+   if (xa->dset_name) free(xa->dset_name);
+   if (xa->description) free(xa->description); 
+   if (xa->name) free(xa->name);
+   if (xa->comment) free(xa->comment);
+   if (xa->atlas_type) free(xa->atlas_type);
+   if (xa->orient) free(xa->orient);
+
    if (xa->adh) free_adh(xa->adh);
 } 
 
@@ -1217,12 +1224,12 @@ void print_atlas(ATLAS *xa, int level)
 {
    if(level==0)
       INFO_message("Atlas name: %s, file: %s, space: %s\n",
-                xa->atlas_name, xa->atlas_dset_name, xa->atlas_space);
+                xa->name, xa->dset_name, xa->space);
    else
       INFO_message("Atlas name: %s, file: %s, space: %s\n"
                 "dset %p, %d sub-bricks \n"
                 "adh %p\n", 
-                xa->atlas_name, xa->atlas_dset_name, xa->atlas_space, 
+                xa->name, xa->dset_name, xa->space, 
              ATL_DSET(xa), ATL_DSET(xa) ? DSET_NVALS(ATL_DSET(xa)):-1,
                 xa->adh);
    return;
@@ -1246,8 +1253,8 @@ void print_atlas_table(ATLAS_LIST *xal)
    for(i=0;i<xal->natlases;i++) {
       xa = xal->atlas+i;
       INFO_message("%-16.16s %-8.8s %-20.20s %-33s",
-                   xa->atlas_name, xa->atlas_space,
-                   xa->atlas_dset_name,
+                   xa->name, xa->space,
+                   xa->dset_name,
                    ATL_DESCRIPTION_S(xa));
    }
 
@@ -1299,12 +1306,16 @@ void print_point_lists(ATLAS_LIST *xal)
    for(i=0;i<xal->natlases;i++) {
       xa = xal->atlas+i;
       INFO_message("Atlas name : %-16.16s, Dataset: %-20.20s",
-                   xa->atlas_name,xa->atlas_dset_name);
-      apl = atlas_point_list(xa->atlas_name);
+                   xa->name,xa->dset_name);
+      apl = atlas_point_list(xa->name);
       if(apl)
          print_atlas_point_list(apl);
-      else
-         INFO_message("**** No point list. Atlas needs repair!");
+      else{
+         if(ATL_WEB_TYPE(xa))
+            INFO_message("web-based atlas. No local point list");
+         else
+            INFO_message("**** No point list. Atlas needs repair!");
+      }
       INFO_message(
               "__________________________________________________________");
    }
@@ -1378,10 +1389,24 @@ void print_template_list(ATLAS_TEMPLATE_LIST *xtl)
       return;
    for(i=0;i<xtl->ntemplates;i++) {
       xt = xtl->atlas_template+i;
-      INFO_message("%s", xt->atlas_template);
+      if(xt->description)
+         INFO_message("%s, %s\n", ATL_DESCRIPTION(xt));
+      else
+         INFO_message("%s", xt->template);
+      if(xt->comment)
+         INFO_message("Comment:\n%s\n", ATL_COMMENT(xt));
    }
    INFO_message("");
 }
+
+
+/* print the comment for a template  - may span multiple lines with '\n' */
+void print_template_comment(ATLAS_TEMPLATE *xa)
+{
+    if((xa) && ATL_COMMENT(xa))
+       INFO_message("%s", ATL_COMMENT(xa));
+}
+
 
 /* calculate list of xforms */
 ATLAS_XFORM_LIST *calc_xform_list(ATLAS_XFORM_LIST *xfl)
@@ -2298,17 +2323,26 @@ int atlas_read_xform(NI_element *nel, ATLAS_XFORM *atlas_xf)
 /* read template info from NIML attributes into template structure */
 int atlas_read_template(NI_element *nel, ATLAS_TEMPLATE *atlas_tpl)
 {
+   char *s;
+
    if(wami_verb() > 2) {
       INFO_message("template_name %s", NI_get_attribute(nel, "template_name"));
       INFO_message("templ_space %s", NI_get_attribute(nel, "template_space"));
    }
+   atlas_tpl->comment = NULL;
+   atlas_tpl->description = NULL;
 
-   atlas_tpl->atlas_template = 
+   atlas_tpl->template = 
       nifti_strdup(NI_get_attribute(nel, "template_name")); 
-   atlas_tpl->atlas_space = 
+   atlas_tpl->space = 
       nifti_strdup(NI_get_attribute(nel, "template_space"));
 
-   if((atlas_tpl->atlas_template == NULL) || (atlas_tpl->atlas_space == NULL)) {
+   if ((s=NI_get_attribute(nel,"comment"))) 
+      atlas_tpl->comment = nifti_strdup(s);
+   if ((s=NI_get_attribute(nel,"description"))) 
+      atlas_tpl->description = nifti_strdup(s);
+
+   if((atlas_tpl->template == NULL) || (atlas_tpl->space == NULL)) {
       WARNING_message("Could not get template strings");
       return(1);
    }
@@ -2321,7 +2355,7 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
 {
    char *s;
    
-   if (ATL_DSET(atlas) || atlas->adh || atlas->atlas_name) {
+   if (ATL_DSET(atlas) || atlas->adh || ATL_NAME(atlas)) {
       ERROR_message("Unclean atlas structure.");
       return(1);
    }
@@ -2331,39 +2365,39 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
    }
 
    /* initialize the atlas fields */
-   atlas->atlas_name = NULL;
-   atlas->atlas_dset_name = NULL;
-   atlas->atlas_comment = NULL;
-   atlas->atlas_description = NULL;
-   atlas->atlas_orient = NULL; /* coordinate order for web queries (Elsevier) */
+   atlas->name = NULL;
+   atlas->dset_name = NULL;
+   atlas->comment = NULL;
+   atlas->description = NULL;
+   atlas->orient = NULL; /* coordinate order for web queries (Elsevier) */
    atlas->atlas_type =  NULL;  /* atlas can be "web"/ NULL */
    atlas->atlas_found = 0; /* flag for dataset available, -1 not found, 
                               1 found, 0 init value */
 
    if ((s=NI_get_attribute(nel, "dset_name"))) {
-      atlas->atlas_dset_name = NULL;
+      atlas->dset_name = NULL;
       if (!THD_is_prefix_ondisk(s) && 
           parentdir && !THD_filehaspath(s)) {
          char *ss=(char *)calloc(strlen(parentdir)+strlen(s)+2,sizeof(char*));
          sprintf(ss,"%s/%s",parentdir,s);
          if (THD_is_prefix_ondisk(ss)) 
-            atlas->atlas_dset_name = nifti_strdup(ss); 
+            atlas->dset_name = nifti_strdup(ss); 
          free(ss); ss=NULL;
       } 
-      if (!atlas->atlas_dset_name) atlas->atlas_dset_name = nifti_strdup(s); 
+      if (!atlas->dset_name) atlas->dset_name = nifti_strdup(s); 
    }
    if ((s=NI_get_attribute(nel, "template_space"))) 
-      atlas->atlas_space = nifti_strdup(s);
+      atlas->space = nifti_strdup(s);
    if ((s=NI_get_attribute(nel,"atlas_name"))) 
-      atlas->atlas_name = nifti_strdup(s);
+      atlas->name = nifti_strdup(s);
    if ((s=NI_get_attribute(nel,"description"))) 
-      atlas->atlas_description = nifti_strdup(s);
+      atlas->description = nifti_strdup(s);
    if ((s=NI_get_attribute(nel,"orient"))) 
-      atlas->atlas_orient = nifti_strdup(s);
+      atlas->orient = nifti_strdup(s);
    if ((s=NI_get_attribute(nel,"type"))) 
       atlas->atlas_type = nifti_strdup(s);
 
-   if((atlas->atlas_dset_name == NULL) || (atlas->atlas_space == NULL)) {
+   if((atlas->dset_name == NULL) || (atlas->space == NULL)) {
       WARNING_message("bad atlas nel");
       return(1);
    }
@@ -2378,13 +2412,13 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
 int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas)
 {
    /* initialize the atlas fields */
-   destatlas->atlas_dset_name = srcatlas->atlas_dset_name; 
-   destatlas->atlas_space = srcatlas->atlas_space;
-   destatlas->atlas_name = srcatlas->atlas_name;
-   destatlas->atlas_description = srcatlas->atlas_description;
-   destatlas->atlas_comment = srcatlas->atlas_comment;
+   destatlas->dset_name = srcatlas->dset_name; 
+   destatlas->space = srcatlas->space;
+   destatlas->name = srcatlas->name;
+   destatlas->description = srcatlas->description;
+   destatlas->comment = srcatlas->comment;
    destatlas->atlas_found = srcatlas->atlas_found;
-   destatlas->atlas_orient = srcatlas->atlas_orient;
+   destatlas->orient = srcatlas->orient;
    destatlas->atlas_type = srcatlas->atlas_type;
 
    destatlas->adh = srcatlas->adh;
