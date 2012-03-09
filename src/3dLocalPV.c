@@ -103,7 +103,10 @@ int main( int argc , char *argv[] )
    PRINT_VERSION("3dLocalPV"); mainENTRY("3dLocalPV main"); machdep();
    AFNI_logger("3dLocalPV",argc,argv); AUTHOR("Emperor Zhark the Iterator");
 
-   gseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
+   gseed = (unsigned int)AFNI_numenv("AFNI_RANDOM_SEEDVAL") ;
+   if( gseed == 0 )
+     gseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
+   INFO_message("random seed set to %u",gseed) ;
 
    /*---- loop over options ----*/
 

@@ -161,9 +161,11 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
     "* How many threads are useful?  That varies with the program, and how well\n" \
     "   it was coded.  You'll have to experiment on your own systems!\n"           \
     "* The number of CPUs on this particular computer system is ...... %d.\n"      \
+    "* The maximum number of CPUs that will be used is ............... %d.\n"      \
     "%s"                                                                           \
     " =========================================================================\n" \
-    , (pnam) , omp_get_num_procs() , (extra==NULL) ? "\0" : extra                  \
+    , (pnam) , omp_get_num_procs() , omp_get_max_threads() ,                       \
+      (extra==NULL) ? "\0" : extra                                                 \
   )
 #else
 # define PRINT_AFNI_OMP_USAGE(pnam,extra)                                          \
