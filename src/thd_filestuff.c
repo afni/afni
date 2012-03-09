@@ -203,7 +203,6 @@ char *THD_afnirc(void)
 {
    static char sout[3][520]; 
    static int icall=0;
-   char *home = THD_homedir(1);
    
    ++icall; if (icall>2) icall=0;
    sout[icall][0]='\0';
@@ -219,7 +218,7 @@ char *THD_custom_atlas_dir(byte withslash)
    static int icall=0;
    char *home=NULL;
    int nn=0;
-   struct passwd *pw = NULL;
+/*   struct passwd *pw = NULL;*/
    
    ++icall; if (icall>2) icall=0;
    sout[icall][0]='\0';
@@ -267,9 +266,7 @@ char *THD_custom_atlas_file(char *name)
 {
    static char sout[3][1024]; 
    static int icall=0;
-   char *home=NULL;
-   int nn=0;
-   struct passwd *pw = NULL;
+/*   struct passwd *pw = NULL;*/
    
    ++icall; if (icall>2) icall=0;
    sout[icall][0]='\0';

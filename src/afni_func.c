@@ -1733,12 +1733,11 @@ MRI_IMAGE * AFNI_ttatlas_overlay( Three_D_View *im3d ,
 {
    THD_3dim_dataset *dseTT ;
    TTRR_params *ttp ;
-   byte *b0=NULL , *b1 , *brik,  *ovc , g_ov,a_ov,final_ov ;
+   byte *b0=NULL , *brik,  *ovc  ;
    short *s0=NULL, *ovar, *val, *fovar ;
    float *f0=NULL;
    MRI_IMAGE *ovim=NULL , *b0im, *fovim=NULL;
    int gwin , fwin , nreg , ii,jj , nov ;
-   float fimfac;
    int at_sbi, fim_type, at_vox, at_nsb;
 
 ENTRY("AFNI_ttatlas_overlay") ;

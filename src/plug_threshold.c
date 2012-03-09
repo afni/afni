@@ -46,8 +46,8 @@
 #include <values.h>
 #endif
 
-#ifndef MAXINT
-#define MAXINT (1<<30)
+#ifndef THRESH_MAXINT
+#define THRESH_MAXINT (1<<30)
 #endif
 
 #include "afni.h"
@@ -503,7 +503,7 @@ static short *THRESH_compute(THD_3dim_dataset *dset, int verbose)
   while(x > THRESH_MAX_BRAIN-THRESH_FILTER_LEN)
     insert_newest(histogram[--x], &filter);
   histo_max = -1;
-  histo_min = MAXINT;
+  histo_min = THRESH_MAXINT;
   cutoff = brain_peak = THRESH_MAX_BRAIN;
   /*inv: filter contains histogram[x..x+THRESH_FILTER_LEN-1], histo_max is the
     maximum median-filtered value of histogram[x+1+THRESH_FILTER_LEN/2..

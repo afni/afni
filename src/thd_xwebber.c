@@ -158,10 +158,6 @@ ENTRY("htmlize") ;
      }
 
    } else if( strncmp(msg,"wami:",5) == 0 ){      /* wami love */
-      /* To_Daniel: I don't think we should format the text here. 
-                    Formatting should be done on the query structure
-                    directly. I just thought I'd put a special
-                    case here for you to see how it is handled. */
       mmm = (char *)malloc(sizeof(char)*(strlen(msg)+64)) ;
       strcpy(mmm,"<html><body>\n") ;
       strcat(mmm,msg+strlen("wami:")) ;
@@ -193,7 +189,7 @@ ENTRY("htmlize") ;
 void RefreshHTML_AtEvent( Widget w , XtPointer client_data ,
                   XEvent * ev , Boolean * continue_to_dispatch )
 {
-   XmHTMLRefresh(client_data);
+    XmHTMLRefresh(client_data);
 }
 
 /*----------------------------------------------------------------------------*/

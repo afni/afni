@@ -414,6 +414,7 @@ printf(
 " -web_atlas_type XML/browser/struct : report results from web-based atlases\n"
 "            using XML output to screen, open a browser for output or just\n"
 "            return the name of the structure at the coordinate\n"
+" -html   :  put whereami output in html format for display in a browser\n"
 
 " \n---------------\n"
 " More information about Atlases in AFNI can be found here:\n"
@@ -499,6 +500,7 @@ int main(int argc, char **argv)
       init_custom_atlas();   /* allow for custom atlas in old framework */
    xi = 0.0; yi=0.0, zi=0.0;
    set_wami_web_reqtype(WAMI_WEB_STRUCT); /* set web atlas output to simple structure */
+   set_AFNI_wami_output_mode(0);   /* turn off HTML formatted output */   
 
    while( iarg < argc ){
       arglen = strlen(argv[iarg]);
@@ -942,8 +944,11 @@ int main(int argc, char **argv)
             } 
             continue; 
          }
-
-
+         if (strcmp(argv[iarg],"-html") ==0){ 
+            set_AFNI_wami_output_mode(1);
+            iarg++;
+            continue; 
+         }
 
          { /* bad news in tennis shoes */
             fprintf(stderr,"** Error: bad option %s\n", argv[iarg]);
@@ -1048,9 +1053,15 @@ int main(int argc, char **argv)
       /* try to set based on AFNI_ORIENT */
       THD_coorder_fill (my_getenv("AFNI_ORIENT"), &cord);
       if (strcmp(cord.orcode,"RAI") == 0) {
-         fprintf(stdout,"++ Input coordinates orientation set by default rules to %s\n", cord.orcode); 
+         if(!AFNI_wami_output_mode())   
+            fprintf(stdout,
+             "++ Input coordinates orientation set by default rules to %s\n",
+             cord.orcode); 
       }else if (strcmp(cord.orcode,"LPI") == 0) {
-         fprintf(stdout,"++ Input coordinates orientation set by default rules to %s\n", cord.orcode); 
+         if(!AFNI_wami_output_mode())   
+            fprintf(stdout,
+             "++ Input coordinates orientation set by default rules to %s\n",
+             cord.orcode); 
       }else {
          fprintf(stderr,"** Error: Only RAI or LPI orientations allowed\n"
                         "default setting returned %s\n"
@@ -1059,13 +1070,15 @@ int main(int argc, char **argv)
          return 1;
       }
    } else {
-      if (dicom == 1) 
-         fprintf(stdout,"++ Input coordinates orientation set by user to %s\n", 
-                     "RAI"); 
-      else if (dicom == 0) 
-         fprintf(stdout,"++ Input coordinates orientation set by user to %s\n", 
-                     "LPI");
-      else { fprintf(stderr,"** Error: Should not happen!\n"); return(1); } 
+      if(!AFNI_wami_output_mode()){
+       if (dicom == 1) 
+          fprintf(stdout,"++ Input coordinates orientation set by user to %s\n", 
+                      "RAI"); 
+       else if (dicom == 0) 
+          fprintf(stdout,"++ Input coordinates orientation set by user to %s\n", 
+                      "LPI");
+       else { fprintf(stderr,"** Error: Should not happen!\n"); return(1); } 
+      }
    }
 
 #if 0
@@ -1454,15 +1467,15 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
             }
             
             if (!is_identity_xform_chain(THD_get_space(mset_orig), 
-                                                atlas->atlas_space)) {
+                                                atlas->space)) {
                if (wami_verb()) {
                   fprintf(stderr,
             "** Error: Not ready to deal with non-Identity transform chain.\n"
             "Path from input in %s to atlas %s in %s is:\n" , 
                   THD_get_space(mset_orig), 
-                  Atlas_Name(atlas), atlas->atlas_space);
+                  Atlas_Name(atlas), atlas->space);
                   print_xform_chain(THD_get_space(mset_orig), 
-                  atlas->atlas_space);
+                  atlas->space);
                }
                continue;
             } 

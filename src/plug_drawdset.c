@@ -113,7 +113,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 /* Interface widgets */
 
 static Widget shell=NULL , rowcol , info_lab , choose_pb;
-static Widget atlas_panel, choose_atlas ;
+static Widget atlas_panel ;
 static Widget done_pb, undo_pb,redo_pb, help_pb, quit_pb, save_pb, saveas_pb ;
 static MCW_arrowval *value_av , *color_av , *mode_av ;
 static MCW_arrowval *rad_av ;                         /* 16 Oct 2002 */
@@ -484,7 +484,7 @@ static MCW_action_item DRAW_actor[NACT] = {
 ttatlas_compendium * New_ttatlas_compendium(char *atname)
 {
    ttatlas_compendium *ttatlas_llist = NULL;
-   int i = 0, tto_count = 0;
+   int tto_count = 0;
 
    if (!atname) return(ttatlas_llist);
    if ((tto_count = atlas_n_points(atname)) <= 0) return(ttatlas_llist);
@@ -923,7 +923,7 @@ void DRAW_make_widgets(void)
    /*** 22 Aug 2001: stuff for TT Atlas Regions ***/
    if( Atlas_With_Trimming(Current_Atlas_Default_Name(),1, NULL) > 0 ){
       Widget rc ;
-      int ii , jj , nr , qq ;
+      int ii , nr ;
       XmString xstr ;
 
       /*** separator for visual neatness ***/
@@ -2384,7 +2384,7 @@ ENTRY("DRAW_receiver") ;
             int   ityp = DSET_BRICK_TYPE(dset,0) ;
             float bfac = DSET_BRICK_FACTOR(dset,0) ;
             int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) ,
-                nxy = nx*ny , nxyz = nxy*nz , ii,jj , ixyz ;
+                nxy = nx*ny , ii,jj , ixyz ;
             int base=0 , di=0,dj=0 , itop=0,jtop=0,nij , xx=xd[0],yy=yd[0],zz=zd[0] , ix=0,jy=0 ;
             byte * pl ;
             int nfill , *xyzf , nf ;
@@ -2987,7 +2987,7 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
      SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
      if( recv_open ) AFNI_process_drawnotice( im3d ) ;
 
-     { void *bar , *tbar ;     /* 21 Nov 2003: compute the undo stuff */
+     {     /* 21 Nov 2003: compute the undo stuff */
        int ityp=bim->kind, ii,jj, nvox=bim->nvox, ndel=0 ;
        dobuf *sb=NULL ;
        switch( ityp ){
@@ -3054,7 +3054,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
    short *ss=NULL, sval ;
    float *ff=NULL;
    MRI_IMAGE *b0im;
-   int nvoxTT, nvoxout , xx , brik , iv,jv,kv , ijk ;
+   int nvoxTT, nvoxout , iv,jv,kv , ijk ;
    int hbot,htop , nzTT,nyTT,nxTT,nxyTT ,
        nxout,nyout,nzout,nxyout , i,j,k,ip,jp,kp , nftot ;
    float dxTT,dyTT,dzTT , xorgTT,yorgTT,zorgTT ;
@@ -3364,10 +3364,10 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *dset ,
 static void DRAW_2D_expand( int np, int *xd, int *yd, int *zd, int plane ,
                             int *nfill , int **xyzf )
 {
-   int base , di,dj , itop,jtop,nij , xx,yy,zz , ix,jy , *ip,*jp ;
+   int base , di,dj , itop,jtop , xx,yy,zz , ix,jy , *ip,*jp ;
    int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) , nxy = nx*ny ;
    int kadd , ii,jj,kk , ixn,jyn , mm,qq ;
-   int nnew , *xyzn ;
+   int *xyzn ;
 
    static int nadd[5] = { 4 , 8 , 12 , 20 , 24 } ;
    static int nn[24][2] = { {-1, 0} , { 1, 0} , { 0, 1} , { 0,-1} ,
@@ -3431,7 +3431,7 @@ static void DRAW_3D_expand( int np, int *xd, int *yd, int *zd, int plane ,
    int ix,jy,kz ;
    int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) , nxy = nx*ny ;
    int kadd , ii,jj,kk , ixn,jyn,kzn , mm,qq ;
-   int nnew , *xyzn ;
+   int *xyzn ;
 
    static int nadd[7] = { 6 , 18 , 26 , 32 , 56 , 80 , 124 } ;
 
@@ -3547,10 +3547,10 @@ static void DRAW_3D_expand( int np, int *xd, int *yd, int *zd, int plane ,
 static void DRAW_2D_circle( int np, int *xd, int *yd, int *zd, int plane ,
                             int *nfill , int **xyzf )
 {
-   int base , di,dj , itop,jtop,nij , xx,yy,zz , ix,jy , *ip,*jp ;
+   int base , di,dj , itop,jtop , xx,yy,zz , ix,jy , *ip,*jp ;
    int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) , nxy = nx*ny ;
-   int kadd , ii,jj,kk , ixn,jyn , mm,qq ;
-   int nnew , *xyzn ;
+   int kadd , ii,jj,kk , ixn,jyn , mm ;
+   int *xyzn ;
 
    float dx = fabs(DSET_DX(dset)) ;
    float dy = fabs(DSET_DY(dset)) ;
@@ -3637,8 +3637,8 @@ static void DRAW_3D_sphere( int np, int *xd, int *yd, int *zd, int plane ,
 {
    int ix,jy,kz ;
    int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) , nxy = nx*ny ;
-   int kadd , ii,jj,kk , ixn,jyn,kzn , mm,qq ;
-   int nnew , *xyzn ;
+   int kadd , ii,jj,kk , ixn,jyn,kzn , mm ;
+   int *xyzn ;
 
    float dx = fabs(DSET_DX(dset)) ;
    float dy = fabs(DSET_DY(dset)) ;
@@ -3759,9 +3759,7 @@ static void DRAW_collapsar( int *npt , int *xyzn )
 static MCW_arrowval *
 Atlas_chooser(Widget rc)
 {
-   int k, nr , qq, atlasind=0 ;
-   XmString xstr ;
-   char title_str[256];
+   int k, nr , atlasind=0 ;
    ATLAS_LIST *atl=NULL;
    MCW_arrowval *atlas_av;
    
