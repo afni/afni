@@ -2095,6 +2095,7 @@ def db_cmd_scale(proc, block):
         vsuff = suff             # where view might go
         istr = ' '*4             # extra indent, for foreach hemi loop
         bstr = '\\\n%s           ' % istr # extr line wrap since long names
+        mean_pre = "rm.$hemi.mean" # prefix for mean datasets
     else:
         feh_str = ''
         feh_end = ''
@@ -2102,6 +2103,7 @@ def db_cmd_scale(proc, block):
         vsuff = proc.view
         istr = ''
         bstr = ''
+        mean_pre = "rm.mean"    
 
     # choose a mask: either passed, extents, or none
     mset = None
@@ -2131,10 +2133,11 @@ def db_cmd_scale(proc, block):
     cmd += feh_str      # if surf, foreach hemi
 
     cmd += "%sforeach run ( $runs )\n"                                  \
-           "%s    3dTstat -prefix rm.mean_r$run%s %s\n"                 \
-           "%s    3dcalc -a %s %s-b rm.mean_r$run%s \\\n"               \
+           "%s    3dTstat -prefix %s_r$run%s %s\n"                      \
+           "%s    3dcalc -a %s %s-b %s_r$run%s \\\n"                    \
            "%s"                                                         \
-           % (istr, istr, suff, prev, istr, prev, bstr, vsuff, mask_str)
+           % (istr, istr, mean_pre, suff, prev,
+              istr, prev, bstr, mean_pre, vsuff, mask_str)
 
     cmd += "%s           -expr '%s' \\\n"                               \
            "%s           -prefix %s\n"                                  \

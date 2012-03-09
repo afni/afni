@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, MAR, 2012, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "added $hemi to rm.mean dset during scaling",
+   "Surface analysis would fail on 2nd hemi, as rm.mean dset would exist."
+ } ,
+
  {  7, MAR, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "existing package and install dir no longer required for -defaults",
    NULL
