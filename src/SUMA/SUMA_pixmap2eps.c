@@ -197,8 +197,17 @@ main(int argc, char **argv)
   GLXContext cx;
   Pixmap pmap;
   GLXPixmap glxpmap;
-  int imageWidth = 400, imageHeight = 400;
+  int imageWidth = 400, imageHeight = 400, i;
 
+  for (i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "-help")) {
+      fprintf(stdout,"A simple openGL test program for rendering to eps.\n"
+                     ""
+                     "Copyright (c) Mark J. Kilgard, 1996.\n" );
+      return(0); 
+    }
+  }
+  
   dpy = XOpenDisplay(NULL);
   if (dpy == NULL)
     fatalError("could not open display");
