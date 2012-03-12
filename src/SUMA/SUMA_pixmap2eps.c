@@ -201,9 +201,9 @@ main(int argc, char **argv)
 
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-help")) {
-      fprintf(stdout,"A simple openGL test program for rendering to eps.\n"
-                     ""
-                     "Copyright (c) Mark J. Kilgard, 1996.\n" );
+      fprintf(stdout,
+               "A simple openGL test program for testing rendering to eps.\n"
+               "Copyright (c) Mark J. Kilgard, 1996.\n" );
       return(0); 
     }
   }
