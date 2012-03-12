@@ -59,6 +59,7 @@ PARSE_COMMAND:
    set DownSample = 0
    set StripSkull = 0
    set okchangeview = 0
+   set overwrite_resp = ''      # O(verwrite), S(kip) or Q(uit), else ask
    set no_center = 1;   
    set prexform = ""
    set OutResOpt = ""
@@ -276,7 +277,8 @@ PARSE_COMMAND:
          set followers = ()
          if ( -d $folpath ) then
             cd $folpath
-            set follcand = (*nii)
+            # avoid wildcards (maybe we should make an afni_glob program?)
+            set follcand = (`find . -maxdepth 1 -name '*.nii'`)
             set followers = ()
             if ($#follcand > 0) then
                foreach foll ($follcand)
@@ -334,6 +336,24 @@ PARSE_COMMAND:
          set donext = 0      
       endif
       
+      if ($donext && "$argv[$cnt]" == "-overwrite_resp") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need O/S/Q/A parameter after -overwrite_resp"
+            goto END
+         else
+            @ cnt ++
+            set or = "$argv[$cnt]"
+            set donext = 0   
+            if ( $or != 'O' && $or != 'S' && $or != 'Q' && $or != 'A' ) then
+                echo "** -overwrite_resp parameter '$or'"
+                echo "   should be one of O/S/Q/A"
+                goto END
+            endif
+            set overwrite_resp = $or
+         endif   
+      endif
+     
       #ADD NO NEW OPTIONS BELOW THIS LINE
       
       if ($donext == 1 && $cnt == 1) then
@@ -431,10 +451,14 @@ DOWNSAMPLE:
       cd $SurfAnatPath
       set tmpPrefix = $SurfAnatPrefix"_"$DownSample"mm"
       if (-f $tmpPrefix$SurfAnatView.BRIK) then
-         echo ""
-         echo "Warning: $tmpPrefix$SurfAnatView exists in $SurfAnatPath"
-         echo "Enter O/S/Q to Overwrite/Skip/Quit:"
-         set sel = $<
+         if ( $overwrite_resp == "" ) then
+            echo ""
+            echo "Warning: $tmpPrefix$SurfAnatView exists in $SurfAnatPath"
+            echo "Enter O/S/Q to Overwrite/Skip/Quit:"
+            set sel = $<
+         else
+            set sel = $overwrite_resp
+         endif
          if ("$sel" == 'O' || "$sel" == 'o') then
             rm -f $tmpPrefix$SurfAnatView.BRIK $tmpPrefix$SurfAnatView.HEAD
          endif
@@ -471,10 +495,14 @@ STRIP_EXP_VOL:
       set ExpAnat_NoSkull = $ExpAnatPrefix"_ns"$ExpAnatView
       echo "Stripping exp vol ..."
       if (`@CheckForAfniDset $ExpAnat_NoSkull` > 0) then
-         echo ""
-         echo "Warning: $ExpAnat_NoSkull exists in $CurDir"
-         echo "Enter O/S/Q to Overwrite/Skip/Quit:"
-         set sel = $<
+         if ( $overwrite_resp == "" ) then
+            echo ""
+            echo "Warning: $ExpAnat_NoSkull exists in $CurDir"
+            echo "Enter O/S/Q to Overwrite/Skip/Quit:"
+            set sel = $<
+         else
+            set sel = $overwrite_resp
+         endif
          if ("$sel" == 'O' || "$sel" == 'o') then
             rm -f $ExpAnat_NoSkull.BRIK* $ExpAnat_NoSkull.HEAD
          endif
@@ -505,10 +533,14 @@ STRIP_EXP_VOL:
       set SurfAnat_NoSkull = $SurfAnatPrefix"_ns"$SurfAnatView
       echo "Stripping surf vol ..."
       if (`@CheckForAfniDset $SurfAnatPath/$SurfAnat_NoSkull` > 0) then
-         echo ""
-         echo "Warning: $SurfAnatPath/$SurfAnat_NoSkull exists in $CurDir"
-         echo "Enter O/S/Q to Overwrite/Skip/Quit:"
-         set sel = $<
+         if ( $overwrite_resp == "" ) then
+            echo ""
+            echo "Warning: $SurfAnatPath/$SurfAnat_NoSkull exists in $CurDir"
+            echo "Enter O/S/Q to Overwrite/Skip/Quit:"
+            set sel = $<
+         else
+            set sel = $overwrite_resp
+         endif
          if ("$sel" == 'O' || "$sel" == 'o') then
             rm -f $SurfAnatPath/$SurfAnat_NoSkull.BRIK* $SurfAnatPath/$SurfAnat_NoSkull.HEAD
          endif
@@ -1108,6 +1140,12 @@ echo "                       the directory of -surf_anat. This way all the "
 echo "                       parcellations will get aligned to the experiment."
 echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
 echo "                delete temporary files before rerunning the script."
+echo "   [-overwrite_resp RESP]: Answer 'overwrite' questions automatically."
+echo "        RESP (response) should be one of O/S/Q/A:"
+echo "             O : overwrite previous result"
+echo "             S : skip this step (applying previous result)"
+echo "             Q : quit the script"
+echo "             A : pause script and ask at each occurance"
 echo ""         
 echo ""
 echo "NOTE: You must run the script from the directory where Experiment Anatomy resides."

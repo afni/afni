@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, MAR, 2012, RCR, "@SUMA_AlignToExperiment", MICRO, TYPE_NEW_OPT,
+   "added -overwrite_resp, so that processing does not have to stop and wait",
+   "Also, used 'find' grab *.nii, to fix the failure reported by R Ray.\n"
+   "Forgot to put this in with the afni_proc.py change..."
+ } ,
+
  {  9, MAR, 2012, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "added $hemi to rm.mean dset during scaling; added -overwrite_resp to SATE",
    "Surface analysis would fail on 2nd hemi, as rm.mean dset would exist."
