@@ -3011,9 +3011,12 @@ static MRI_IMAGE *wbasim ; static float *wbfar; static byte *wbmask ;
 static MRI_IMAGE *srcim  ; static int nxs,nys,nzs,nxyzs; static float *sfar;
 static MRI_IMAGE *wsrcim ;
 static IndexWarp3D *Awarp;
+
 static int match_code    ;
 static int basis_code=0  ;
 static int basis_flags   ;
+
+static double basis_parmax = 0.0 ;
 
 /*----------------------------------------------------------------------------*/
 
@@ -3048,10 +3051,12 @@ ENTRY("IW3D_setup_for_warpdrive") ;
 
    if( warp_code == MRI_QUINTIC ){
      basis_code = MRI_QUINTIC ;
+     basis_parmax = 0.007 ;
    } else {
      if( warp_code != MRI_CUBIC )
        WARNING_message("IW3D_setup_for_warpdrive: bad warp_code replaced with MRI_CUBIC");
      basis_code = MRI_CUBIC ;
+     basis_parmax = 0.021 ;
    }
 
    basis_flags = IW3D_munge_flags(nxs,nys,nzs,warp_flags) ;
