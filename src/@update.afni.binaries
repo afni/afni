@@ -171,8 +171,8 @@ if ( $package == "" ) then
              set package = linux_xorg7
          endif
       else if ( $sysname == Darwin ) then
-         # default to no.glib for now
-         set package = macosx_10.6_Intel_64.no.glib
+         # default to no.omp.glib for now
+         set package = macosx_10.6_Intel_64.no.omp.glib
       else
          @ errs ++
       endif
