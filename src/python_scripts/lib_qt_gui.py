@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 import sys, os
 from PyQt4 import QtCore, QtGui
@@ -1931,9 +1932,14 @@ helpstr_dset_chooser = """
 
 
 if __name__ == '__main__':
+   if '-help' in sys.argv:
+      print 'this is not helpful'
+      sys.exit(0)
+   sys.exit(0)
    app = QtGui.QApplication(sys.argv)
    win1 = TextWindow()
    win1.show()
    win2 = TextWindow(text = 'hello, this is\nsome text!')
    win2.show()
    app.exec_()
+

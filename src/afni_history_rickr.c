@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, MAR, 2012, RCR, "lib_qt_gui.py", MICRO, TYPE_MODIFY,
+   "has main, so added trivial -help option",
+   NULL
+ } ,
+
  { 12, MAR, 2012, RCR, "@SUMA_AlignToExperiment", MICRO, TYPE_NEW_OPT,
    "added -overwrite_resp, so that processing does not have to stop and wait",
    "Also, used 'find' grab *.nii, to fix the failure reported by R Ray.\n"
