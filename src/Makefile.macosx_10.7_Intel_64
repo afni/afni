@@ -1,5 +1,5 @@
 
-# This Makefile is for Mac OSX 10.6 (Snow Leopard) for 64 bit AFNI
+# This Makefile is for Mac OSX 10.7 (Lion) for 64 bit AFNI
 
 SW_ROOT   = /sw
 
@@ -77,7 +77,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = $(HOME)/abin
+INSTALLDIR = macosx_10.7_Intel_64
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=macosx_10.7_Intel_64
 
