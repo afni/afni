@@ -3744,17 +3744,18 @@ def valid_file_types(proc, stims, file_type):
             if ok: adata.file_type_warnings_global(run_lens=proc.reps_all,
                                                 tr=proc.tr)
         elif file_type == 10: # check both local and global
-            # first test as local
-            ok = adata.looks_like_local_times(run_lens=proc.reps_all,
-                                                tr=proc.tr, verb=0)
-            if ok: adata.file_type_warnings_local(run_lens=proc.reps_all,
-                                                tr=proc.tr)
-            # if not local, then check as global
+            # first test as global (a file that looks like global or local
+            # should be treated as global)
+            ok = adata.looks_like_global_times(run_lens=proc.reps_all,
+                                            tr=proc.tr,verb=0)
+            if ok:adata.file_type_warnings_global(run_lens=proc.reps_all,
+                                            tr=proc.tr)
+            # if not global, then check as local
             if not ok:
-                ok = adata.looks_like_global_times(run_lens=proc.reps_all,
-                                                tr=proc.tr,verb=0)
-                if ok:adata.file_type_warnings_global(run_lens=proc.reps_all,
-                                                tr=proc.tr)
+                ok = adata.looks_like_local_times(run_lens=proc.reps_all,
+                                                    tr=proc.tr, verb=0)
+                if ok: adata.file_type_warnings_local(run_lens=proc.reps_all,
+                                                    tr=proc.tr)
         else: # error
             print '** valid_file_types: bad type %d' % file_type
             return 0
