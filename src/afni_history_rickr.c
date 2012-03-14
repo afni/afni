@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 14, MAR, 2012, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+ { 14, MAR, 2012, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added -num_chan and -max_quiet_trs; default sleep = 1.1*TR, max of 2",
+   "Added for J Evans and V Roopchansingh."
+ } ,
+
+ { 14, MAR, 2012, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "test for global timing before local, as it looks like bad local",
    "Problem noted by P Pallett."
  } ,
