@@ -116,6 +116,7 @@ typedef struct  /* user options */
     int              nt;            /* user input time points per run   */
     int              num_slices;    /* first volume must match          */
     int              max_images;    /* max allowed images per volume    */
+    int              max_quiet_trs; /* max TRs w/out data before quit   */
     int              nice;          /* nice offset (must be >= 0)       */
     int              pause;         /* pause time between volumes (ms)  */
     float            sleep_frac;    /* TR fraction to sleep (default 2) */
@@ -150,6 +151,7 @@ typedef struct  /* user options */
     int              rt;            /* run in real-time afni mode       */
     int              swap;          /* swap bytes when sending data     */
     int              rev_bo;        /* reverse BYTEORDER command        */
+    int              num_chan;      /* number of data channels to use   */
     char           * host;          /* pointer to hostname              */
     string_list      drive_list;    /* list of DRIVE_AFNI commands      */
     string_list      wait_list;     /* list of DRIVE_AFNI commands      */
