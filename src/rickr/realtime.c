@@ -398,6 +398,12 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
     ac->buf[0] = '\0';                      /* init message buffer to empty */
 
+    /* maybe set number of channels */
+    if ( ac->param->opts.num_chan > 0 ) {
+       sprintf( tbuf, "NUM_CHAN %d", ac->param->opts.num_chan );
+       ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+
     /* data organization style */
     strcpy( tbuf, "ACQUISITION_TYPE 2D+zt" );
     ART_ADD_TO_BUF( ac->buf, tbuf );

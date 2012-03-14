@@ -87,10 +87,14 @@ static char * g_history[] =
     "      - do not init vol search state to 2, would limit volumes to 40\n"
     "      - include fl_start in no_wait test\n"
     "      - look for new vol worth of images, but no volume match\n"
+    " 3.11 Mar 14, 2012 [rickr]\n",
+    "      - added -num_chan for J Evans\n"
+    "      - added -max_quiet_trs for V Roopchansingh\n"
+    "      - default is to sleep 1.1*TR\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.10 (Feb 16, 2012)"
+#define DIMON_VERSION "version 3.11 (March 14, 2012)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -195,7 +199,7 @@ static int alloc_x_im          ( im_store_t * is, int bytes );
 static int check_error         ( int * retry, float tr, char * note );
 static int check_im_byte_order ( int * order, vol_t * v, param_t * p );
 static int check_im_store_space( im_store_t * is, int num_images );
-static int check_stalled_run   ( int run, int seq_num, int naps, int tr_naps,
+static int check_stalled_run   ( int run, int seq_num, int naps, int max_naps,
                                  int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
 static int create_flist_file   ( param_t * p );
@@ -476,13 +480,15 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 {
     vol_t vn;
+    float tr;
     int   ret_val, done;
     int   run, seq_num, next_im;
     int   fl_index;                     /* current index into p->flist    */
     int   naps;                         /* keep track of consecutive naps */
     int   nap_time;                     /* sleep time, in milliseconds    */
     int   prev_nim, prev_images=-1;     /* previous number of images read */
-    int   tr_naps;                      /* naps per TR                    */
+    int   tr_naps, max_naps;            /* naps per TR                    */
+    int   ms_nap_time;                  /* nap time in ms */
 
     if ( v0 == NULL || p == NULL )
     {
@@ -499,19 +505,29 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     next_im  = v0->fn_n + 1;            /* for read_ge_files()             */
 
     /* nap time is either given or computed */
+    if      ( p->opts.tr > 0.0 ) tr = p->opts.tr;
+    else if ( v0->geh.tr > 0.0 ) tr = v0->geh.tr;
+    else                         tr = 2.0;
+
+    ms_nap_time = nap_time_in_ms(p->opts.tr, v0->geh.tr);
     if( p->opts.sleep_vol > 0 ) nap_time = p->opts.sleep_vol;
-    else nap_time = nap_time_in_ms(p->opts.tr, v0->geh.tr);
+    else nap_time = ms_nap_time;
 
     /* compute the number of naps per TR, for stalled run checks */
-    tr_naps = nap_time_in_ms(p->opts.tr, v0->geh.tr) / nap_time;
+    tr_naps = (int)(0.9 + tr*1000.0/nap_time); /* TR to ms, then round up */
+
+    if ( p->opts.max_quiet_trs > 0 )
+         max_naps = tr_naps*p->opts.max_quiet_trs;
+    else max_naps = tr_naps*IFM_MAX_RUN_NAPS;
 
     if ( gD.level > 0 )         /* status */
     {
         fprintf( stderr, "-- scanning for additional volumes...\n" );
         fprintf( stderr, "-- run %d: %d ", run, seq_num );
     }
-    if ( gD.level > 2 ) fprintf(stderr,"++ nap time = %d, tr_naps = %d\n",
-                                nap_time, tr_naps);
+    if ( gD.level > 2 )
+      fprintf(stderr,"++ nap time = %d, tr_naps = %d (max quiet time %.3fs)\n",
+                     nap_time, tr_naps, max_naps*nap_time/1000.0);
 
     /* give stats when user quits */
     signal( SIGHUP,  hf_signal );
@@ -605,7 +621,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
         {
             if ( ret_val != prev_nim )
                 naps = 0;   /* then start over */
-            else if ( p->opts.no_wait || naps >= tr_naps )
+            else if ( p->opts.no_wait || naps > max_naps )
             {
                 if ( p->opts.quit )         /* then we are outta here */
                 {
@@ -622,7 +638,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                 }
 
                 /* continue, regardless */
-                if( check_stalled_run(run,seq_num,naps,tr_naps,nap_time ) > 0 )
+                if( check_stalled_run(run,seq_num,naps,max_naps,nap_time )>0 )
                     if ( ac->state == ART_STATE_IN_USE )
                         ART_send_end_of_run( ac, run, seq_num, gD.level );
 
@@ -1989,7 +2005,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     A->param = p;                       /* store the param_t pointer  */
     p->opts.ep = IFM_EPSILON;           /* allow user to override     */
     p->opts.max_images = IFM_MAX_VOL_SLICES;   /* allow user override */
-    p->opts.sleep_frac = 1.5;           /* fraction of TR to sleep    */
+    p->opts.sleep_frac = 1.1;           /* fraction of TR to sleep    */
     p->opts.use_dicom = 1;              /* will delete this later...  */
 
     empty_string_list( &p->opts.drive_list, 0 );
@@ -2152,7 +2168,17 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
             p->opts.max_images = atoi(argv[ac]);
         }
-        else if ( ! strncmp( argv[ac], "-nice", 4 ) )
+        else if ( ! strncmp( argv[ac], "-max_quiet_trs", 7 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -max_quiet_trs NUM_TRs\n", stderr );
+                return 1;
+            }
+
+            p->opts.max_quiet_trs = atoi(argv[ac]);
+        }
+        else if ( ! strncmp( argv[ac], "-nice", 5 ) )
         {
             if ( ++ac >= argc )
             {
@@ -2192,7 +2218,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 errors++;
             }
         }
-        else if ( ! strncmp( argv[ac], "-num_slices", 4 ) )
+        else if ( ! strncmp( argv[ac], "-num_slices", 7 ) )
         {
             if ( ++ac >= argc )
             {
@@ -2389,6 +2415,16 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             p->opts.host = argv[ac];    /* note and store the user option   */
             strncpy( A->host, argv[ac], ART_NAME_LEN-1 );
             A->host[ART_NAME_LEN-1] = '\0';     /* just to be sure */
+        }
+        else if ( ! strncmp( argv[ac], "-num_chan", 7 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -num_chan NUM_CHANNELS\n", stderr );
+                return 1;
+            }
+
+            p->opts.num_chan = atoi(argv[ac]);
         }
         else if ( ! strncmp( argv[ac], "-rev_byte_order", 4 ) )
         {
@@ -3243,6 +3279,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   tr, ep             = %g, %g\n"
             "   nt, num_slices     = %d, %d\n"
             "   max_images         = %d\n"
+            "   max_quiet_trs      = %d\n"
             "   nice, pause        = %d, %d\n"
             "   sleep_frac         = %g\n"
             "   sleep_init         = %d\n"
@@ -3266,6 +3303,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   rev_sort_dir       = %d\n"
             "   flist_file         = %s\n"
             "   (rt, swap, rev_bo) = (%d, %d, %d)\n"
+            "   num_chan           = %d\n"
             "   host               = %s\n"
             "   drive_list(u,a,p)  = %d, %d, %p\n"
             "   wait_list (u,a,p)  = %d, %d, %p\n"
@@ -3279,7 +3317,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->gert_outdir),
             opt->argv, opt->argc,
             opt->tr, opt->ep, opt->nt, opt->num_slices, opt->max_images,
-            opt->nice, opt->pause,
+            opt->max_quiet_trs, opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
             opt->debug, opt->quit, opt->no_wait, opt->use_dicom,
             opt->use_last_elem, opt->show_sorted_list, opt->gert_reco,
@@ -3289,7 +3327,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
             opt->rev_org_dir, opt->rev_sort_dir,
             CHECK_NULL_STR(opt->flist_file),
-            opt->rt, opt->swap, opt->rev_bo,
+            opt->rt, opt->swap, opt->rev_bo, opt->num_chan,
             CHECK_NULL_STR(opt->host),
             opt->drive_list.nused, opt->drive_list.nalloc, opt->drive_list.str,
             opt->wait_list.nused, opt->wait_list.nalloc, opt->wait_list.str,
@@ -3606,6 +3644,7 @@ static int usage ( char * prog, int level )
       "    %s -infile_pattern 's*/i*' -rt \n"
       "    %s -infile_pattern 's*/i*' -rt -nt 120\n"
       "    %s -infile_pattern 's*/i*' -rt -quit\n"
+      "    %s -infile_prefix s8912345/i -rt -num_chan 2 -quit\n"
       "\n"
       "    ** detailed real-time example:\n"
       "\n"
@@ -3615,7 +3654,8 @@ static int usage ( char * prog, int level )
       "       -host some.remote.computer            \\\n"
       "       -rt_cmd \"PREFIX 2005_0513_run3\"     \\\n"
       "       -num_slices 32                        \\\n"
-      "       -sleep_frac 1.1                       \\\n"
+      "       -max_quiet_trs 3                      \\\n"
+      "       -sleep_frac 0.4                       \\\n"
       "       -quit                                 \n"
       "\n"
       "    This example scans data starting from directory 003, expects\n"
@@ -3744,7 +3784,7 @@ static int usage ( char * prog, int level )
       "  ---------------------------------------------------------------\n",
       prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog, prog, prog, prog,
-      prog, prog, prog, prog, prog, prog,
+      prog, prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog, prog );
           
       printf(
@@ -3874,6 +3914,27 @@ static int usage ( char * prog, int level )
           "        set on the machine running afni.  Set this equal to the\n"
           "        name of the machine running Imon (so that afni knows to\n"
           "        accept the data from the sending machine).\n"
+          "\n"
+          "    -num_chan CHANNELS : specify number of channels to send over\n"
+          "\n"
+          "        e.g.  -num_chan 8\n"
+          "\n"
+          "        This option tells the realtime plugin how many channels to\n"
+          "        break incoming data into.  Each channel would then get its\n"
+          "        own dataset.\n"
+          "\n"
+          "        Note that this simply distributes the data as it is read\n"
+          "        across multiple datasets.  If 12 volumes are seen in some\n"
+          "        directory and -num_chan 2 is specified, then volumes 0, 2,\n"
+          "        4, 6, 8 and 10 would go to one dataset (e.g. channel 1),\n"
+          "        while volumes 1,3,5,7,9,11 would go to another.\n"
+          "\n"
+          "        A sample use might be for multi-echo data.  If echo pairs\n"
+          "        appear to Dimon sequentially over the TRs, then -num_chan\n"
+          "        could be used to send each echo type to its own dataset.\n"
+          "        This is why the option was added, for J Evans.\n"
+          "\n"
+          "        Currently, -num_chan only affects the realtime use.\n"
           "\n"
           "    -pause TIME_IN_MS : pause after each new volume\n"
           "\n"
@@ -4063,6 +4124,18 @@ static int usage ( char * prog, int level )
           "        This variable is in case something is very messed up with\n"
           "        the data, and prevents the program from continuing after\n"
           "        failing to find a volume in this number of images.\n"
+          "\n"
+          "    -max_quiet_trs TRS : max number of TRs without data (if -quit)\n"
+          "\n"
+          "        e.g.  -max_quiet_trs 4\n"
+          "        default = 2\n"
+          "\n"
+          "        This variable is to specify the number of TRs for which\n"
+          "        having no new data is okay.  After this number of TRs, it\n"
+          "        is assumed that the run has ended.\n"
+          "\n"
+          "        The TR (duration) comes from either the image files or\n"
+          "        the -tr option.\n"
           "\n"
           "    -nice INCREMENT    : adjust the nice value for the process\n"
           "\n"
@@ -4844,7 +4917,8 @@ static int show_run_stats( stats_t * s )
 
 
 /* ----------------------------------------------------------------------
- * given tr (in seconds), return a sleep time in ms (approx. 1.5*TR)
+ * given tr (in seconds), return a sleep time in ms (approx. 1.1*TR),
+ * to make it likely that data is found
  *
  * pass 2 potential trs, and apply the first positive one, else use 4s
  * ----------------------------------------------------------------------
@@ -4859,7 +4933,7 @@ static int nap_time_in_ms( float t1, float t2 )
     else                tr = 2.0;
 
     /* note the fraction of a TR to sleep */
-    fr = ( gP.opts.sleep_frac > 0.0 ) ? gP.opts.sleep_frac : 1.5;
+    fr = ( gP.opts.sleep_frac > 0.0 ) ? gP.opts.sleep_frac : 1.1;
 
     nap_time = (int)(1000.0*fr*tr + 0.5);       /* convert to time, in ms */
 
@@ -4923,7 +4997,7 @@ static int find_next_zoff( param_t * p, int start, float zoff, int nim )
  * If naps is too big, and the run is incomplete, print an obnoxious
  * warning message to the user.
  *
- * Too big means naps > tr_naps * MAX_RUN_NAPS.
+ * Too big means naps > max_naps.
  *
  * notes:   - print only 1 warning message per seq_num, per run
  *          - prev_run and prev_seq_num are for the previously found volume
@@ -4935,7 +5009,7 @@ static int find_next_zoff( param_t * p, int start, float zoff, int nim )
  *         -1 : function failure
  * ----------------------------------------------------------------------
 */
-static int check_stalled_run ( int run, int seq_num, int naps, int tr_naps,
+static int check_stalled_run ( int run, int seq_num, int naps, int max_naps,
                                int nap_time )
 {
     static int func_failure =  0;
@@ -4945,8 +5019,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int tr_naps,
     if ( func_failure != 0 )
         return 0;
 
-    if ( (run < 1) || (seq_num < 1) || (naps <= tr_naps*IFM_MAX_RUN_NAPS) )
-        return 0;
+    if ( (run < 1) || (seq_num < 1) || (naps <= max_naps) ) return 0;
 
     /* verify that we have already taken note of the previous volume */
     if ( (((gS.nused + 1) < run) || (gS.runs[run].volumes < seq_num)) &&
