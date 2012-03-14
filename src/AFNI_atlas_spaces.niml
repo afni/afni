@@ -366,7 +366,37 @@
    dset_name="TT_caez_ml_18+tlrc"
    template_space="TT_N27"
    description="Macro Labels (N27)"
-   comment="Eickhoff-Zilles macro labels from N27 in Talairach TT_N27 space"
+   comment="Eickhoff-Zilles macro labels from N27 in Talairach TT_N27 space
+   SPM ANATOMY TOOLBOX  v1.8
+   Primary references:
+   Contact: Simon Eickhoff  (s.eickhoff@fz-juelich.de)
+      Eickhoff SB et al.:  A new SPM toolbox... (2005) NeuroImage 25(4): 1325-1335
+      Eickhoff SB et al.:  Testing anatomically specified hypotheses...  (2006) NeuroImage 32(2): 570-82
+      Eickhoff SB et al.:  Assignment of functional activations...  (2007) NeuroImage 36(3): 511-521
+   Publications describing included probabilistic maps:
+       TE 1.0, TE 1.1, TE 1.2------------------------------------------ Morosan et al., NeuroImage 2001
+       BA 44, BA 45---------------------------------------------------- Amunts et al., J Comp Neurol 1999
+       BA 4a, BA 4p BA 6----------------------------------------------- Geyer et al., Nature 1996 S. Geyer,
+                                                                        Springer press 2003
+       BA 3a, BA 3b, BA 1 BA 2----------------------------------------- Geyer et al., NeuroImage, 1999, 2000
+                                                                        Grefkes et al., NeuroImage 2001
+       OP 1, OP 2, OP 3, OP 4------------------------------------------ Eickhoff et al., Cerebral Cortex 2006a,b
+       PFt, PF, PFm, PFcm, PFop, PGa, PGp 5Ci, 5L, 5M, 7A, 7M, 7P, 7PC- Caspers et al., Neuroimage 2007, BSF 2008
+                                                                        Scheperjans et al., Cerebral Cortex 2008a,b
+       hIP1, hIP2 hIP3------------------------------------------------- Choi et al., J Comp Neurol 2006
+                                                                        Scheperjans et al., Cerebral Cortex 2008a,b
+       Ig1, Ig2, Id1--------------------------------------------------- Kurth et al., Cerebral Cortex 2010
+       CM/LB/SF FD/CA/SUB/EC/HATA-------------------------------------- Amunts et al., Anat Embryol 2005
+                                                                        Amunts et al., Anat Embryol 2005
+       BA 17, BA 18 hOC5 hOC3v / hOC4v--------------------------------- Amunts et al., NeuroImage 2000
+                                                                        Malikovic et al., Cerebral Cortex 2006
+                                                                        Rottschy et al., Hum Brain Mapp 2007
+       13 structures--------------------------------------------------- Burgel et al., NeuroImage 1999, 2006
+       18 structures--------------------------------------------------- Diedrichsen et al., NeuroImage 2009
+   Other areas may only be used with authors' permission !
+
+   AFNI adaptation by
+    Ziad S. Saad and Daniel Glen (SSCC/NIMH/NIH)"
 ></ATLAS>
 
 <ATLAS
@@ -447,7 +477,9 @@
    dset_name="TT_desai_dkpmaps+tlrc"
    template_space="TT_N27"
    description="Probability maps of 35 cortical areas (gyri)"
-   comment="Described in Desikan et al., Neuroimage 2006 (31) pp. 968-980."
+   comment="
+     Please cite:
+     Desikan et al., Neuroimage 2006 (31) pp. 968-980."
 ></ATLAS>
 
 <ATLAS
@@ -455,7 +487,10 @@
    dset_name="TT_desai_ddpmaps+tlrc"
    template_space="TT_N27"
    description="Probability maps of 75 cortical areas"
-   comment=" For each hemisphere,including both gyri and sulci. Destrieux et al., Neuroimage 2010 (53) pp. 1-15."
+   comment="
+     For each hemisphere,including both gyri and sulci.
+     Please cite:
+       Destrieux et al., Neuroimage 2010 (53) pp. 1-15."
 ></ATLAS>
 
 <ATLAS
@@ -505,30 +540,34 @@
 <TEMPLATE
    template_name="TT_avg152T1+tlrc"
    template_space="TT_avg"
-   comment="152 subjects T1 scan aligned to Colin brain template.\n"
-           "Brett transformed to TLRC"
+   comment="
+     152 subjects T1 scan aligned to Colin brain template.
+     Brett transformed to TLRC"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="TT_avg152T2+tlrc"
    template_space="TT_avg"
-   comment="152 subjects T2 scan aligned to Colin brain template"
-           "Brett transformed to TLRC"
+   comment="
+     152 subjects T2 scan aligned to Colin brain template
+     Brett transformed to TLRC"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="TT_icbm452+tlrc"
    template_space="TT_avg"
-   comment="452 subjects T1 scan aligned to Colin brain template\n"
-           "This dataset was manually transformed to Talairach space from\n"
-           "an Analyze format dataset from the ICBM/LONI site"
+   comment="
+    452 subjects T1 scan aligned to Colin brain template
+    This dataset was manually transformed to Talairach space from
+    an Analyze format dataset from the ICBM/LONI site"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="TT_EPI+tlrc"
    template_space="TT_avg"
-   comment="EPI average template"
-           "Brett transformed to TLRC"
+   comment="
+    EPI average template
+    Brett transformed to TLRC"
 ></TEMPLATE>
 
 <TEMPLATE

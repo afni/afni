@@ -1264,6 +1264,7 @@ void print_atlas_table(ATLAS_LIST *xal)
       if (ATL_COMMENT(xa)) { 
          INFO_message("%s: %s", ATL_NAME(xa), ATL_COMMENT_S(xa));
       }
+      else printf("no comment\n");
    }
    INFO_message("--------------------------");
 }
@@ -1382,21 +1383,30 @@ int is_known_coord_space(char *space_name) {
 /* print list of templates */
 void print_template_list(ATLAS_TEMPLATE_LIST *xtl)
 {
-   int i;
+   int i, templen;
    ATLAS_TEMPLATE *xt;
+   char *tempstr, tempstr2;
    INFO_message("----- Template list: -------");
    if(xtl==NULL)
       return;
    for(i=0;i<xtl->ntemplates;i++) {
       xt = xtl->atlas_template+i;
-      if(xt->description)
-         INFO_message("%s, %s\n", ATL_DESCRIPTION(xt));
-      else
-         INFO_message("%s", xt->template);
-      if(xt->comment)
-         INFO_message("Comment:\n%s\n", ATL_COMMENT(xt));
+      if(xt->description) {
+         tempstr = ATL_DESCRIPTION_S(xt);
+         templen = strlen(xt->template) +strlen(tempstr2);
+         tempstr = (char *)calloc( templen, sizeof(char)); 
+         sprintf(tempstr, "%s: %s", xt->template, ATL_DESCRIPTION_S(xt));
+         show_wrapping_line(tempstr,"", 0, stdout);
+         free(tempstr);
+      }
+      else {
+         show_wrapping_line(xt->template,"", 0, stdout);
+      }
+      if(xt->comment){
+         show_wrapping_line("Comment:\n","", 0, stdout);
+         show_wrapping_line(ATL_COMMENT(xt),"   ", 0, stdout);
+      }
    }
-   INFO_message("");
 }
 
 
@@ -1405,6 +1415,43 @@ void print_template_comment(ATLAS_TEMPLATE *xa)
 {
     if((xa) && ATL_COMMENT(xa))
        INFO_message("%s", ATL_COMMENT(xa));
+}
+
+
+/* apply line indent per line, if we exceed MAX_LINE_CHARS, wrap */
+/* from afni_history.c - rickr, moved by drg */
+int show_wrapping_line(char * str, char * prefix, int indent, FILE * fp)
+{
+    int c, cline, len;
+
+    if( !str ) return 0;
+
+    if( prefix ) fputs(prefix, fp);
+
+    len = strlen(str);
+    if( len < 2 ) return 1;
+
+    if( str[len-1] == '\n' ) len--;     /* ignore trailing newline */
+
+    cline = 0;
+    for( c = 0; c < len; c++ ) {
+        if( str[c] == '\n' ) {          /* print newline and indent */
+            fputc('\n', fp);
+            fprintf(fp, "%*s", indent, "");
+            cline = 0;
+            continue;
+        } else if ( cline > MAX_WAMI_LINE_CHARS ) {  /* fix, and continue */
+            fputc('\n', fp);
+            fprintf(fp, "%*s", indent, "");
+            cline = 0;
+        }
+        fputc(str[c], fp);
+        cline++;
+    }
+
+    fprintf(fp,"\n\n");
+
+    return 0;
 }
 
 
@@ -2392,6 +2439,8 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
       atlas->name = nifti_strdup(s);
    if ((s=NI_get_attribute(nel,"description"))) 
       atlas->description = nifti_strdup(s);
+   if ((s=NI_get_attribute(nel,"comment"))) 
+      atlas->comment = nifti_strdup(s);
    if ((s=NI_get_attribute(nel,"orient"))) 
       atlas->orient = nifti_strdup(s);
    if ((s=NI_get_attribute(nel,"type"))) 
