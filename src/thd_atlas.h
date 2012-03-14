@@ -18,7 +18,7 @@
 #define SPARSE_CMAP 2
 
 #define MAXINT 65535
-
+#define MAX_WAMI_LINE_CHARS  80 
 
 void free_atlas_point_list(ATLAS_POINT_LIST *apl);
 void print_atlas_point_list(ATLAS_POINT_LIST *apl);
@@ -41,6 +41,7 @@ ATLAS_LIST *create_atlas_list(void);
 ATLAS_XFORM_LIST *report_xform_chain(char *src, char *dest, int report);
 int is_known_coord_space(char *space_name);
 void print_atlas_coord (ATLAS_COORD ac);
+int show_wrapping_line(char * str, char * prefix, int indent, FILE * fp);
 
 int   init_space_structs(ATLAS_XFORM_LIST **atlas_xfl,
    ATLAS_LIST **atlas_alist,

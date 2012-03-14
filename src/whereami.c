@@ -1010,7 +1010,8 @@ int main(int argc, char **argv)
       if(cxfl)
         free_xform_list(cxfl);
       if(show_atlas)
-         print_atlas_list(get_G_atlas_list());
+         print_atlas_table(get_G_atlas_list());
+/*         print_atlas_list(get_G_atlas_list());*/
       if(show_atlas_templates)
          print_template_list(get_G_templates_list());
       if(show_atlas_spaces)
