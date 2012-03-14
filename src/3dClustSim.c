@@ -427,6 +427,13 @@ void get_options( int argc , char **argv )
   athr = (double *)malloc(sizeof(double)*nathr) ;
   memcpy( athr , athr_init , sizeof(double)*nathr ) ;
 
+  if( getenv("AFNI_RANDOM_SEEDVAL") != NULL ){
+    gseed = (unsigned int)AFNI_numenv("AFNI_RANDOM_SEEDVAL") ;
+    if( gseed == 0 )
+      gseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
+    INFO_message("random seed set to %u from AFNI_RANDOM_SEEDVAL",gseed) ;
+  }
+
   while( nopt < argc ){
 
     /*-----  -nxyz n1 n2 n3 -----*/

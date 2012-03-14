@@ -123,5 +123,4 @@ SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 ###############################################################
 
 MAKE = make
-include Makefile.R.INCLUDE
 include Makefile.INCLUDE
