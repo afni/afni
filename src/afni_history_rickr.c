@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, MAR, 2012, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "test for global timing before local, as it looks like bad local",
+   "Problem noted by P Pallett."
+ } ,
+
  { 13, MAR, 2012, RCR, "lib_qt_gui.py", MICRO, TYPE_MODIFY,
    "has main, so added trivial -help option",
    NULL

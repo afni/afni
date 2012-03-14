@@ -322,12 +322,16 @@ g_history = """
     3.12 Mar  9, 2012:
         - added $hemi to rm.mean dset during scaling
         - added new '-overwrite_resp S' to @SUMA_AlignToExperiement command
+    3.13 Mar 14, 2012:
+        - test for global timing before local
+          (global timing would look like bad local timing)
+        - problem noted by P Pallett
 """
 
-g_version = "version 3.12, March 9, 2012"
+g_version = "version 3.13, March 14, 2012"
 
 # version of AFNI required for script execution
-g_requires_afni = "8 Mar 2012"
+g_requires_afni = "9 Mar 2012"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
