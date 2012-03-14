@@ -3126,5 +3126,5 @@ R_io.so:R_io.c libmri.a
 	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;\
 	echo PKG_LIBS =  $(LFLAGS) $(LLIBS) >> Makevars ;\
 	R CMD SHLIB R_io.c ; \
-	else echo WARNING: Cannont build R_io.so because R is not installed;\
+	else echo WARNING: Cannot build R_io.so because R is not installed;\
 	fi ; )
