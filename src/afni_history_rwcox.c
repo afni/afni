@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 8 , MAR , 2012 , RWC , "OpenMP program" , MICRO , TYPE_BUG_FIX ,
+  { 14 , MAR , 2012 , RWC , "AFNI package" , MICRO , TYPE_GENERAL ,
+   "Add Makefile for Mac OS X 10.7 == Lion" ,
+   "No thanks to Apple, by the way -- breaking OpenMP -- what a bunch of\n"
+   "maroons." } ,
+
+ { 8 , MAR , 2012 , RWC , "OpenMP program" , MICRO , TYPE_BUG_FIX ,
    "Replace memcpy/memset with AAmemcpy/AAmemset" ,
    "OpenMP has trouble with these, particularly on Mac Lion.  Files affected\n"
    "include:\n"

@@ -106,7 +106,7 @@ int main( int argc , char *argv[] )
    gseed = (unsigned int)AFNI_numenv("AFNI_RANDOM_SEEDVAL") ;
    if( gseed == 0 )
      gseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
-   INFO_message("random seed set to %u",gseed) ;
+   INFO_message("random seed set to %u from AFNI_RANDOM_SEEDVAL",gseed) ;
 
    /*---- loop over options ----*/
 
