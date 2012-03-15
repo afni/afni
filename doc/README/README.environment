@@ -957,46 +957,80 @@ AFNI_REALTIME_YR           = a floating point number from 0.1 to 10.0
 
 AFNI_REALTIME_External_Dataset = name of dataset to use as external basis for
                                  registration
-                               * if this variable is set, then the plugin
-                                 assumes that AFNI_REALTIME_Reg_Base_Mode
-                                 is "External_Dataset"
-                               * but AFNI_REALTIME_Base_Image is ignored
-                               * instead, you can use a sub-brick selector here,
-                                 if desired; for example:
-                                 setenv AFNI_REALTIME_External_Dataset 'X+orig[3]'
-                               * to be brutally clear, you can give the name
-                                 of a dataset that is NOT in the current directory
-                                 -- unlike when using the plugin GUI
-                               * the plugin GUI will NOT show the choice of
-                                 external dataset given via this environment
-                                 variable!
+        * if this variable is set, then the plugin assumes that
+          AFNI_REALTIME_Reg_Base_Mode is "External_Dataset"
+        * but AFNI_REALTIME_Base_Image is ignored
+        * instead, you can use a sub-brick selector here, if desired;
+          for example: setenv AFNI_REALTIME_External_Dataset 'X+orig[3]'
+        * to be brutally clear, you can give the name of a dataset that is
+          NOT in the current directory -- unlike when using the plugin GUI
+        * the plugin GUI will NOT show the choice of external dataset given
+          via this environment variable!
 
+AFNI_REALTIME_Mask_Vals  = String (one of the listed strings)
+
+        This allows the user to set the "Vals to Send" field from the RT
+        plugin's "Mask" line.  It determines what data are sent to the remote
+        MP program (e.g. serial_helper).  Valid strings are:
+
+            None        - send nothing
+            Motion_Only - send only the 6 registration parameters
+            ROI_means   - send the mean EPI value per mask ROI (value) per TR
+            All_Data    - send each voxel value (in mask) per TR
+
+AFNI_REALTIME_Mask_Dset  = String (the name of a dataset)
+
+        This option allows the user to set the Mask dataset, used to send ROI
+        and motion data to a program listening at a socket.  This environment
+        variable overrides the variable set in the plugin interface, allowing
+        it to change per run.
+
+        Set the variable to None to either clear the mask or to allow the
+        interface mask to apply.  Note that this can be done via a drive afni
+        command, allowing changes after afni is already running, e.g.
+          plugout_drive -com 'SETENV AFNI_REALTIME_MASK_DSET None' -quit
+
+AFNI_REALTIME_WRITEMODE = Number
+        This variable controls writing individual volumes as they are acquired
+        by the realtime plugin.  Valid Numbers and their effects are:
+            0 = Off        : do nothing [default]
+            1 = Acquired   : write each volume as it is acquired
+            2 = Registered : write each registered volume
+            3 = Merged     : write each merged volume (merged across channels)
+
+---------------------------------------------------------------------------
 The following internal controls can only be set using these environment
 variables (there is no GUI to set these values):
+---------------------------------------------------------------------------
 
 AFNI_REALTIME_volreg_maxite      = an integer >= 1 [default = 9]
 AFNI_REALTIME_volreg_maxite_est  = an integer >= 1 [default = 1]
 AFNI_REALTIME_volreg_graphgeom   = something like 320x320+59+159
 
-AFNI_REALTIME_CHILDWAIT = max wait time (in sec) for child info
-                          process [default = 66.6]; not needed if
-                          child info process is not used
+AFNI_REALTIME_reset_output_index = YES/NO
 
-AFNI_REALTIME_WRITEWAIT = if the image data pauses for this number
-                          of seconds, then the datasets being constructed
-                          will be written to disk [default=37.954];
-                          since this output may take several seconds,
-                          you may need to adjust this if you are in
-                          fact doing imaging with a very long TR.
-                          Note that after this wait, the plugin can
-                          still receive image data -- even if the image
-                          source program is silent for a very long time,
-                          AFNI will still be waiting patiently for data.
+        By default, output files will be named with a prefix, PREFIX__NNN,
+        where PREFIX is given by the AFNI_REALTIME_Root variable or the Root
+        in the interface, and where NNN increments per run.
+
+        If this variable is set to YES, then the plugin will try to use NNN=001
+        each run.
+
+AFNI_REALTIME_CHILDWAIT = max wait time (in sec) for child info process
+        [default = 66.6]; not needed if child info process is not used
+
+AFNI_REALTIME_WRITEWAIT = if the image data pauses for this number of seconds,
+        then the datasets being constructed will be written to disk
+        [default=37.954]; since this output may take several seconds, you may
+        need to adjust this if you are in fact doing imaging with a very long
+        TR.
+        Note that after this wait, the plugin can still receive image data
+        -- even if the image source program is silent for a very long time,
+        AFNI will still be waiting patiently for data.
 
 AFNI_GRAPH_AUTOGRID     = By default, if the number of time points in an
-                          AFNI graph viewer changes, the density of
-                          vertical grid lines changes.  If you don't
-                          want this to happen, set this variable to NO.
+        AFNI graph viewer changes, the density of vertical grid lines changes.
+        If you don't want this to happen, set this variable to NO.
 
 AFNI_REALTIME_MP_HOST_PORT = HOST:PORT
 
@@ -1023,17 +1057,6 @@ AFNI_REALTIME_SEND_VER   = Y/N
         (0, 1 or 2).  In the case of versions 1 or 2, the plugin will send
         the number of ROIs/voxels in a 4-byte int after the HELLO string.
 
-AFNI_REALTIME_Mask_Vals  = String (one of the listed strings)
-
-        This allows the user to set the "Vals to Send" field from the RT
-        plugin's "Mask" line.  It determines what data are sent to the remote
-        MP program (e.g. serial_helper).  Valid strings are:
-
-            None        - send nothing
-            Motion_Only - send only the 6 registration parameters
-            ROI_means   - send the mean EPI value per mask ROI (value) per TR
-            All_Data    - send each voxel value (in mask) per TR
-
 AFNI_REALTIME_SHOW_TIMES = Y/N
 
         If set, the RT plugin will output CPU times whenever motion parameters
@@ -1056,8 +1079,16 @@ AFNI_REALTIME_DATAMODE = Number
 AFNI_REALTIME_CHMERMODE = Number
 
         If set, this variable controls the initial setting of the
-        "ChannelMerge" control, where 0=none, 1=sum, etc.  If not
-        set, the default value is 0.
+        "ChannelMerge" control, where 0=none, 1=sum, 2=L1 norm, 3=L2norm.
+        If not set, the default value is 0.
+
+AFNI_REALTIME_CM_REG_MODE = Number
+
+        If set, this variable controls the ChannelMerge registration mode.
+        Here: 0=none            : no merge registration
+              1=reg_merge       : register merged dastaset
+              2=reg_chan        : apply merge xform to all channels
+        The default is 0.
 
 AFNI_REALTIME_MRG_CHANLIST = String
 
