@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, MAR, 2012, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "added AFNI_REALTIME_Mask_Dset for per-run control over Mask\n",
+   "Also added some missing vars to README.environment.\n"
+   "Done for J Evans."
+ } ,
+
  { 14, MAR, 2012, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added -num_chan and -max_quiet_trs; default sleep = 1.1*TR, max of 2",
    "Added for J Evans and V Roopchansingh."
