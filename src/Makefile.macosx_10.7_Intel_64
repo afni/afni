@@ -11,30 +11,12 @@ LGIFTI    = $(SW_ROOT)/lib/libexpat.a
 # ----------------------------------------------------------------------
 # X configuration
 #
-# uncomment to build using local /usr/local/afniX 'X' tree
-USE_LOCAL_X_TREE = 1
-ifdef USE_LOCAL_X_TREE
-    XROOT   = $(SW_ROOT)
-    XROOT_I = -I$(XROOT)/include
-    XROOT_L = -L$(XROOT)/lib
-else
-    XROOT = /sw
-    XROOT_L = -L$(XROOT)/lib
-endif
 
-# uncomment USE_LESSTIF to use lesstif instead of openmotif
-# USE_LESSTIF = 1
-ifdef USE_LESSTIF
-    LESSTIF_DEFS = -DUSING_LESSTIF
+XROOT   = /usr/X11R6
+XROOT_L = -L$(XROOT)/lib
 
-    XLIBS = $(XROOT)/lib64/libXm.a $(XROOT)/lib64/libXt.a
-else
-    # default is static motif
-    XLIBS = $(XROOT)/lib/libXm.a $(XROOT)/lib/libjpeg.a -lXt
-endif
+XLIBS = /sw/lib/libXm.a /sw/lib/libjpeg.a -lXt
 
-# in case user wants to override with system dynamic libs
-# XLIBS = -lXm -lXt
 # ----------------------------------------------------------------------
 
 
@@ -56,15 +38,13 @@ EXTRA_INSTALL_FILES = /usr/local/lib/libgomp.1.dylib                \
                       /sw/lib/libglib.dylib                         \
                       /usr/local/lib/libgomp.la                     \
                       /sw/lib/libglib.la                            \
-                      /sw/lib/libiconv.2.4.0.dylib                  \
-                      /sw/lib/libiconv.la                           \
                       /sw/lib/fontconfig2/lib/libfontconfig.1.dylib \
-                      /sw/lib/fontconfig2/lib/libfontconfig.la
+                      /sw/lib/fontconfig2/lib/libfontconfig.la      \
+                      /sw/lib/freetype219/lib/libfreetype.6.dylib
 
-EXTRA_INSTALL_COMMANDS = ( cd $INSTALLDIR ;                                  \
-                           ln -s libglib.dylib         libglib-1.2.0.dylib ; \
-                           ln -s libiconv.2.4.0.dylib  libiconv.2.dylib    ; \
-                           ln -s libfontconfig.1.dylib libfontconfig.dylib ;   )
+EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
+                           ln -sf libglib.dylib         libglib-1.2.0.dylib ; \
+                           ln -sf libfontconfig.1.dylib libfontconfig.dylib ;   )
 
 IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include
 LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
