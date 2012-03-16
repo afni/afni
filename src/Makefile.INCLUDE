@@ -5,7 +5,8 @@
 
 # for compiling with OpenMP, if available
 
-CCOMP = $(CCFAST) $(OMPFLAG)
+CCOMP   = $(CCFAST) $(OMPFLAG)
+EXINCOM = echo '..... Extra install commands (if any) .....' ; $(EXTRA_INSTALL_COMMANDS)
 
 F2C = f2c -A
 
@@ -1626,13 +1627,14 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS)  $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
-	$(CP) html/??*.* $(EXTRA_INSTALLS) $(INSTALLDIR)
+	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI.afnirc        ]; then $(CP) AFNI.afnirc $(INSTALLDIR); fi;
 	if [ -f AFNI.sumarc        ]; then $(CP) AFNI.sumarc $(INSTALLDIR); fi;
 	if [ -f R_io.so            ]; then $(CP) R_io.so     $(INSTALLDIR); fi;
 	if [ -f AFNI_atlas_spaces.niml ]; then $(CP) AFNI_atlas_spaces.niml $(INSTALLDIR); fi;
-   echo "===== AFNI install finished (fondly do we hope) ====="
+	$(EXINCOM)
+	echo "===== AFNI install finished (fondly do we hope, fervently we do pray) ====="
 
 install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
