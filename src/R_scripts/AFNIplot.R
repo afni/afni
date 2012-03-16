@@ -193,6 +193,9 @@ plot.1D.setupdevice <- function (P) {
       err.AFNI("Nothing to do");
       return(0)
    }
+   if (is.null(P$img.width)) { P$img.width<- 2000 }
+   if (is.null(P$img.height)) { P$img.height<- 2000 }
+   
    #Note, there are other ways to control graph size, see 
    #?par for pin and fin
    if (!is.null(P$prefix) && P$nodisp) { #render to device directly
