@@ -461,6 +461,14 @@ uncompress.AFNI <- function(an, verb = 1) {
       system(paste('gzip -d', zz));
    }
    
+   zz <- paste(brik.AFNI.name(an),'.bz2', sep='');
+   if (file.exists(zz)) {
+      if (verb) {
+         cat ('bzip2 -d-ing', zz, '\n');
+      }
+      system(paste('bzip2 -d', zz));
+   }
+   
    
    return(an);
 }
@@ -2609,7 +2617,10 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0,
   scale <- values$BRICK_FLOAT_FACS
 
   size <- file.info(brik.AFNI.name(an))$size/(dx*dy*dz*dt)
-
+  if (is.na(size)) {
+   err.AFNI("Failed to determine file size");
+   return(NULL);
+  }
   if (regexpr("MSB",values$BYTEORDER_STRING[1]) != -1) {
     endian <- "big"
   } else {
