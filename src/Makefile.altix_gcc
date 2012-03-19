@@ -9,9 +9,9 @@ LZLIB    = -lz
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
 
-CC     = /usr/bin/gcc -O2 -fPIC -ffast-math -DREAD_WRITE_64 -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCVOL  = /usr/bin/gcc -O2 -fPIC -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCFAST = /usr/bin/gcc -O3 -fPIC -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA) -DUSE_SCSLBLAS
+CC     = /usr/bin/gcc -O2 -fPIC  -DREAD_WRITE_64 -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCVOL  = /usr/bin/gcc -O2 -fPIC  -DREAD_WRITE_64 -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCFAST = /usr/bin/gcc -O2 -fPIC  -DREAD_WRITE_64 -DLINUX2 -DNO_GAMMA $(CEXTRA)
 
 CCMIN  = /usr/bin/gcc $(CPROF)
 CCD    = $(CC) $(CCDEBS)

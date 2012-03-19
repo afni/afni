@@ -2,9 +2,9 @@
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE
-CC     = gcc -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCVOL  = gcc -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCFAST = gcc -O3 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CC     = gcc -O2 -march=i586  -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCVOL  = gcc -O2 -march=i586  -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCFAST = gcc -O2 -march=i586  -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)

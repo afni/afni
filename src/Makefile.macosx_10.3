@@ -7,9 +7,9 @@ LGIFTI    = /sw/lib/libexpat.a
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -DDONT_USE_MCW_MALLOC
-CC     = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
-CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
-CCFAST = cc -O3 -ffast-math -DDARWIN $(CEXTRA)
+CC     = cc -O2  -DDARWIN $(CEXTRA)
+CCVOL  = cc -O2  -DDARWIN $(CEXTRA)
+CCFAST = cc -O2  -DDARWIN $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
