@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 14 , MAR , 2012 , RWC , "AFNI package" , MICRO , TYPE_GENERAL ,
+  { 19 , MAR , 2012 , RWC , "Makefiles" , MICRO , TYPE_GENERAL ,
+   "Remove -O3 and -ffast-math and -ftree-vectorize from all gcc cases" ,
+   "Too many problems on Lion with -O3 make me suspicious of aggressive\n"
+   "optimization in general." } ,
+
+ { 14 , MAR , 2012 , RWC , "AFNI package" , MICRO , TYPE_GENERAL ,
    "Add Makefile for Mac OS X 10.7 == Lion" ,
    "No thanks to Apple, by the way -- breaking OpenMP -- what a bunch of\n"
    "maroons." } ,
