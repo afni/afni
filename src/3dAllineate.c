@@ -294,6 +294,22 @@ int meth_name_to_code( char *nam )  /* 15 Dec 2010 */
 
 /*---------------------------------------------------------------------------*/
 
+char * INTERP_methname( int iii )
+{
+   switch( iii ){
+     default:          return "UNKNOWN" ;
+     case MRI_NN:      return "NN"      ;
+     case MRI_LINEAR:  return "linear"  ;
+     case MRI_CUBIC:   return "cubic"   ;
+     case MRI_QUINTIC: return "quintic" ;
+     case MRI_HEPTIC:  return "heptic"  ;
+     case MRI_WSINC5:  return "wsinc5"  ;
+   }
+   return "MYSTERIOUS" ; /* unreachable */
+}
+
+/*---------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset_out=NULL ;
@@ -593,7 +609,7 @@ int main( int argc , char *argv[] )
 "                         3dAllineate -input dataset+orig         \\\n"
 "                                     -master template+orig       \\\n"
 "                                     -prefix newdataset          \\\n"
-"                                     -final quintic              \\\n"
+"                                     -final wsinc5               \\\n"
 "                                     -1Dparam_apply '1D: 12@0'\\'  \n"
 "                       Here, the identity transformation is specified\n"
 "                       by giving all 12 affine parameters as 0 (note\n"
@@ -666,6 +682,9 @@ int main( int argc , char *argv[] )
 "                     alignment pass; the selection here only affects\n"
 "                     the interpolation method used during the second\n"
 "                     (fine) alignment pass.\n"
+"            ** N.B.: '-interp' does NOT define the final method used\n"
+"                     to produce the output dataset as warped from the\n"
+"                     input dataset.  If you want to do that, use '-final'.\n"
 "\n"
 " -final iii  = Defines the interpolation mode used to create the\n"
 "               output dataset.  [Default == 'cubic']\n"
@@ -2251,6 +2270,7 @@ int main( int argc , char *argv[] )
          ERROR_exit("Unknown code '%s' after '%s' :-(",argv[iarg],argv[iarg-1]) ;
        iarg++ ; continue ;
      }
+
      if( strncmp(argv[iarg],"-final",5) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        if( strcmp(argv[iarg],"NN") == 0 || strncmp(argv[iarg],"nearest",5) == 0 )
@@ -2926,6 +2946,11 @@ int main( int argc , char *argv[] )
    }
 
    if( final_interp < 0 ) final_interp = interp_code ;  /* default */
+
+   if( (interp_code == MRI_NN       && final_interp != MRI_NN)       ||
+       ( MRI_HIGHORDER(interp_code) && !MRI_HIGHORDER(final_interp) )  )
+     WARNING_message("-interp is %s but -final is %s -- are you sure?",
+                     INTERP_methname(interp_code) , INTERP_methname(final_interp) ) ;
 
    /*--- load input datasets ---*/
 
