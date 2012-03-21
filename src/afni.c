@@ -1441,7 +1441,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Are we there yet?"                                             ,
      "Never give up, never surrender"                                ,
      "Activate the Omega 13"                                         ,
-     "No time for pleasantries; we have a level-5 emergency!"        ,
+     "No time for pleasantries Kyle; we have a Level 5 emergency!"   ,
      "Digitize me, Fred"                                             ,
      "Drink to me only with thine eyes, and I will drink with mine"  ,
      "O Captain, My Captain, rise up and hear the bells"             ,
