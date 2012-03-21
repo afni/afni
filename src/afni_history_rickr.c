@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, MAR, 2012, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "use run_lengths for TR list; removed path from external motion file",
+   NULL
+ } ,
+
+ { 21, MAR, 2012, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "look for more motion files; minor changes to output format",
+   NULL
+ } ,
+
+ { 21, MAR, 2012, RCR, "3dcalc", MICRO, TYPE_ENHANCE,
+   "added -help description to -help output",
+   "To get apsearch to enable <tab> completion of -help option."
+ } ,
+
  { 15, MAR, 2012, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
    "added AFNI_REALTIME_Mask_Dset for per-run control over Mask\n",
    "Also added some missing vars to README.environment.\n"
@@ -62,7 +77,7 @@ afni_history_struct rickr_history[] = {
 
  { 14, MAR, 2012, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "test for global timing before local, as it looks like bad local",
-   "Problem noted by P Pallett."
+   "Thanks to P Pallett for noting the problem."
  } ,
 
  { 13, MAR, 2012, RCR, "lib_qt_gui.py", MICRO, TYPE_MODIFY,
@@ -110,12 +125,12 @@ afni_history_struct rickr_history[] = {
  {  5, MAR, 2012, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "EDIT_empty: only propagate writable storage_modes",
    "Added is_writable_storage_mode and DSET_STORAGE_MODE.\n"
-   "Problem noted by Eli."
+   "Thanks to Eli for noting the problem."
  } ,
 
  {  2, MAR, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "fixed $runs in multi-run ricor",
-   "Problem noted by I Mukai."
+   "Thanks to I Mukai for noting the problem."
  } ,
 
  { 27, FEB, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
@@ -126,7 +141,7 @@ afni_history_struct rickr_history[] = {
 
  { 24, FEB, 2012, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
    "added -moderate_mask, fixed -extreme_mask help",
-   "Description problem noted by R Kuplicki."
+   "Thanks to R Kuplicki for noting help inconsistency."
  } ,
 
  { 22, FEB, 2012, RCR, "afni-general", MINOR, TYPE_MODIFY,
