@@ -1114,6 +1114,8 @@ void CALC_Syntax(void)
     " OPTIONS for 3dcalc:                                                    \n"
     " -------                                                                \n"
     "                                                                        \n"
+    "  -help      = Show this help.\n"
+    "                                                                        \n"
     "  -verbose   = Makes the program print out various information as it    \n"
     "               progresses.                                              \n"
     "                                                                        \n"

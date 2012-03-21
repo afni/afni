@@ -326,9 +326,12 @@ g_history = """
         - test for global timing before local
           (global timing would look like bad local timing)
         - problem noted by P Pallett
+    3.14 Mar 21, 2012:
+        - use run_lengths list for TRs per run
+        - removed path from external motion file
 """
 
-g_version = "version 3.13, March 14, 2012"
+g_version = "version 3.14, March 21, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Mar 2012"
