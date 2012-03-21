@@ -98,13 +98,17 @@ def db_cmd_tcat(proc, block):
                     (proc.od_var, proc.prefix_form(block,run+1),
                      proc.dsets[run].rel_input(), first, final)
 
+    proc.reps   -= first+rmlast # update reps to account for removed TRs
+    proc.reps_all = [reps-first-rmlast for reps in proc.reps_all]
+
+    cmd = cmd + '\n'                                                    \
+                '# and make note of repetitions (TRs) per run\n'        \
+                'set tr_counts = ( %s )\n'%UTIL.int_list_string(proc.reps_all)
+
     cmd = cmd + '\n'                                                          \
                 '# -------------------------------------------------------\n' \
                 '# enter the results directory (can begin processing data)\n' \
                 'cd %s\n\n\n' % proc.od_var
-
-    proc.reps   -= first+rmlast # update reps to account for removed TRs
-    proc.reps_all = [reps-first-rmlast for reps in proc.reps_all]
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -691,11 +695,10 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
     cmd = cmd +                                                 \
         "# final result: add REML errts to polynomial baseline\n" \
         "# (and separate back into individual runs)\n"          \
-        "set run_lengths = ( %s )\n"                            \
         "set startind = 0\n"                                    \
         "foreach rind ( `count -digits 1 1 $#runs` )\n"         \
         "    set run = $runs[$rind]\n"                          \
-        "    set runlen = $run_lengths[$rind]\n"                \
+        "    set runlen = $tr_counts[$rind]\n"                  \
         "    @ endind = $startind + $runlen - 1\n"              \
         "\n"                                                    \
         '    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'   \
@@ -704,8 +707,7 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         '           -expr a+b -prefix %s\n'                     \
         "    @ startind = $endind + 1\n"                        \
         'end\n\n'                                               \
-        % (UTIL.int_list_string(proc.reps_all),
-           prefix, proc.view, prefix, proc.view, dstr, cur_prefix)
+        % (prefix, proc.view, prefix, proc.view, dstr, cur_prefix)
 
     return cmd
 
@@ -2493,7 +2495,13 @@ def db_mod_regress(block, proc, user_opts):
     uopt = user_opts.find_opt('-regress_motion_file')
     if uopt:
         # make sure we have labels
-        proc.mot_file = uopt.parlist[0]
+        try:
+            dname, fname = os.path.split(uopt.parlist[0])
+            proc.mot_file = fname
+        except:
+            print '** failed to parse directory/file from -regress_motion_file'
+            print '   (file is %s)' % uopt.parlist[0]
+            errs += 1
         proc.mot_extern = uopt.parlist[0]
         proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
         # -volreg_regress_per_run should be okay  20 May 2011
@@ -3318,11 +3326,11 @@ def blur_est_loop_str(proc, dname, mname, label, outfile):
     cmd = cmd +                                                 \
         'set b0 = 0     # first index for current run\n'        \
         'set b1 = -1    # will be last index for current run\n' \
-        'foreach reps ( %s )\n'                                 \
+        'foreach reps ( $tr_counts )\n'                         \
         '    @ b1 += $reps  # last index for current run\n'     \
         '    3dFWHMx -detrend -mask %s \\\n'                    \
         '        %s"[$b0..$b1]" >> %s\n'                        \
-        % (UTIL.int_list_string(proc.reps_all), mask, input, tmpfile)
+        % (mask, input, tmpfile)
 
     cmd = cmd +                                                 \
         '    @ b0 += $reps  # first index for next run\n'       \
@@ -3832,6 +3840,7 @@ def db_cmd_gen_review(proc):
     lopts = ' '
     if proc.mot_cen_lim > 0.0: lopts += '-mot_limit %s ' % proc.mot_cen_lim
     if proc.out_cen_lim > 0.0: lopts += '-out_limit %s ' % proc.out_cen_lim
+    if proc.mot_extern != '' : lopts += '-motion_dset %s ' % proc.mot_file
         
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
