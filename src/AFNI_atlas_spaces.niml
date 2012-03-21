@@ -540,24 +540,21 @@
 <TEMPLATE
    template_name="TT_avg152T1+tlrc"
    template_space="TT_avg"
-   comment="
-     152 subjects T1 scan aligned to Colin brain template.
+   comment="152 subjects T1 scan aligned to Colin brain template.
      Brett transformed to TLRC"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="TT_avg152T2+tlrc"
    template_space="TT_avg"
-   comment="
-     152 subjects T2 scan aligned to Colin brain template
+   comment="152 subjects T2 scan aligned to Colin brain template
      Brett transformed to TLRC"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="TT_icbm452+tlrc"
    template_space="TT_avg"
-   comment="
-    452 subjects T1 scan aligned to Colin brain template
+   comment="452 subjects T1 scan aligned to Colin brain template
     This dataset was manually transformed to Talairach space from
     an Analyze format dataset from the ICBM/LONI site"
 ></TEMPLATE>
@@ -565,8 +562,7 @@
 <TEMPLATE
    template_name="TT_EPI+tlrc"
    template_space="TT_avg"
-   comment="
-    EPI average template
+   comment="EPI average template
     Brett transformed to TLRC"
 ></TEMPLATE>
 
