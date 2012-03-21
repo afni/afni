@@ -1385,15 +1385,15 @@ void print_template_list(ATLAS_TEMPLATE_LIST *xtl)
 {
    int i, templen;
    ATLAS_TEMPLATE *xt;
-   char *tempstr, tempstr2;
+   char *tempstr, *tempstr2;
    INFO_message("----- Template list: -------");
    if(xtl==NULL)
       return;
    for(i=0;i<xtl->ntemplates;i++) {
       xt = xtl->atlas_template+i;
       if(xt->description) {
-         tempstr = ATL_DESCRIPTION_S(xt);
-         templen = strlen(xt->template) +strlen(tempstr2);
+         tempstr2 = ATL_DESCRIPTION_S(xt);
+         templen = strlen(xt->template)+strlen(tempstr2) + 3;
          tempstr = (char *)calloc( templen, sizeof(char)); 
          sprintf(tempstr, "%s: %s", xt->template, ATL_DESCRIPTION_S(xt));
          show_wrapping_line(tempstr,"", 0, stdout);
@@ -1403,7 +1403,7 @@ void print_template_list(ATLAS_TEMPLATE_LIST *xtl)
          show_wrapping_line(xt->template,"", 0, stdout);
       }
       if(xt->comment){
-         show_wrapping_line("Comment:\n","", 0, stdout);
+/*         show_wrapping_line("Comment:\n","", 0, stdout);*/
          show_wrapping_line(ATL_COMMENT(xt),"   ", 0, stdout);
       }
    }
@@ -1449,7 +1449,7 @@ int show_wrapping_line(char * str, char * prefix, int indent, FILE * fp)
         cline++;
     }
 
-    fprintf(fp,"\n\n");
+    fprintf(fp,"\n");
 
     return 0;
 }
