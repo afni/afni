@@ -634,6 +634,7 @@ static int  RT_mp_mask_free     ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
 
 static int  RT_mp_getenv        ( void );
 static int  RT_mp_show_time     ( char * mesg ) ;
+static int  RT_show_duration    ( char * mesg ) ;
 
 /* string list functions (used for DRIVE_WAIT commands) */
 static int add_to_rt_slist    ( rt_string_list * slist, char * str );
@@ -1512,6 +1513,10 @@ Boolean RT_worker( XtPointer elvis )
                                      "*       Heads Up!         *\n"
                                      "* Incoming realtime data! *\n"
                                      "***************************\n" ) ;
+
+      g_show_times = AFNI_yesenv("AFNI_REALTIME_SHOW_TIMES") ;
+      if( verbose > 1 ) g_show_times = 1;
+      if( g_show_times ) RT_show_duration("starting to receive realtime data");
 
       /** process header info in the data channel;
           note that there must be SOME header info this first time **/
@@ -2593,6 +2598,33 @@ static int RT_mp_mask_free( RT_input * rtin )
     rtin->mask_nvals = 0;
 
     return 1;
+}
+
+/* show time at ms resolution, wrapping per hour */
+static int RT_show_duration( char * mesg )
+{
+   struct timeval  tval ;
+   struct timezone tzone ;
+   static int s_sec = 0, s_msec = -1;
+   int        sec = 0, msec = 0, sdiff, mdiff;
+
+   gettimeofday( &tval , &tzone ) ;
+   sec = ((int)tval.tv_sec)%3600;
+   msec = ((int)tval.tv_usec)/1000;
+   if ( s_msec < 0 ) mdiff = 0;
+   else {
+      sdiff = sec-s_sec;  if ( sdiff < 0 ) sdiff += 3600;
+      mdiff = 1000*sdiff + msec-s_msec;
+   }
+   s_sec = sec;
+   s_msec = msec;
+
+   if( mesg ) fprintf(stderr,"RT TIME (%s): ", mesg);
+   else       fprintf(stderr,"RT TIME : ");
+
+   fprintf(stderr,"%d sec, %d ms (%d ms passed)\n", sec, msec, mdiff);
+
+   return 0;
 }
 
 /* show time at ms resolution, wrapping per hour */
@@ -5642,7 +5674,12 @@ void RT_registration_3D_realtime( RT_input *rtin )
           RT_mp_comm_send_data( rtin, yar+1, ntt-ttbot, ttbot );
           if( verbose > 1 )
              fprintf(stderr,"RTM, sending TRs %d..%d\n",ttbot,ntt-1);
+      } else if( g_show_times ) {
+          char vmesg[64];
+          sprintf(vmesg,"registered %d vol(s), %d..%d",ntt-ttbot,ttbot,ntt-1);
+          RT_show_duration(vmesg);
       }
+
 
       if( ttbot > 0 )  /* modify yar after send_data, when ttbot > 0 */
       {
