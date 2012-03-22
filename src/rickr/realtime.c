@@ -125,7 +125,9 @@ int ART_start_io( ART_comm * ac, int debug )
       /** A negative return is bad news **/
 
       if( ii < 0 ){
+         char * ebuf = iochan_error_string();
          fprintf(stderr,"Transmission of control data to AFNI failed!\a\n") ;
+         fprintf(stderr,"   - iochan error: %s\n", ebuf ? ebuf : "EMPTY" );
          IOCHAN_CLOSENOW(ac->ioc) ;
          ac->mode = 0 ;
          return -1;
@@ -214,9 +216,10 @@ int ART_send_end_of_run( ART_comm * ac, int run, int seq, int debug )
         /* send only the marker */
         if ( iochan_sendall( ac->ioc, image, bytes ) < 0 )
         {
+            char * ebuf = iochan_error_string();
             fprintf( stderr, "** failed to transmit EOR to afni @ %s\n"
                              "   - closing afni connection\n", ac->host );
-
+            fprintf(stderr, "   - iochan error: %s\n", ebuf ? ebuf : "EMPTY" );
             ac->state = ART_STATE_NO_USE;
             ART_exit();
             return -1;
@@ -269,8 +272,10 @@ int ART_send_volume( ART_comm * ac, vol_t * v, int debug )
 
         if ( iochan_sendall( ac->ioc, image, bytes ) < 0 )
         {
+            char * ebuf = iochan_error_string();
             fprintf( stderr, "** failed to transmit data to afni @ %s\n"
                              "   - closing afni connection\n", ac->host );
+            fprintf(stderr,  "   - iochan error: %s\n", ebuf ? ebuf : "EMPTY" );
 
             ac->state = ART_STATE_NO_USE;
             ART_exit();
@@ -675,7 +680,9 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
     if ( rv < 0 )
     {
+        char * ebuf = iochan_error_string();
         fprintf( stderr, "** failure to send control info to afni\n" );
+        fprintf( stderr, "   - iochan error: %s\n", ebuf ? ebuf : "EMPTY" );
         ac->state = ART_STATE_NO_USE;
 
         return -1;
