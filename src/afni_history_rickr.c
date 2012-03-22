@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, MAR, 2012, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "apply AFNI_REALTIME_SHOW_TIMES in non-RT feedback case\n",
+   NULL
+ } ,
+
+ { 22, MAR, 2012, RCR, "Dimon", MICRO, TYPE_ENHANCE,
+   "if RT comm fails with afni, show iochan_error_string()\n",
+   "It occasionally fails at TR=0.125 s."
+ } ,
+
  { 21, MAR, 2012, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "use run_lengths for TR list; removed path from external motion file",
    NULL
