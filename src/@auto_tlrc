@@ -12,6 +12,7 @@ PARSE:
    set cnt = 1
    set tmppref = '__ats_tmp_'
    set cropt = '-coarserot'
+   set inweight = 0     # use -weight INPUT_DATASET   30 Mar 2012 [rickr]
    set RemoveSkull = 1
    set KeepView = 0
    set ref_in = ''
@@ -279,7 +280,11 @@ PARSE:
          set donext = 0		
       endif
       if ($donext && "$argv[$cnt]" == "-ncr") then
-         set cropt = '';		
+         set cropt = ''
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-inweight") then
+         set inweight = 1		
          set donext = 0		
       endif
       if ($donext && "$argv[$cnt]" == "-ok_notice") then
@@ -559,9 +564,9 @@ AUTO_TLRC_MODE:
       echo "parts of the original anatomy gets"
       echo "cropped, try recentering all the "
       echo "input data using this command:"
-      echo "@Align_Centers -base ${ref_in} \"
-      echo "               -dset ${anat_in} \"
-      echo "               -child ${anat_path}/*.HEAD\"
+      echo "@Align_Centers -base ${ref_in} \\"
+      echo "               -dset ${anat_in} \\"
+      echo "               -child ${anat_path}/*.HEAD"
       echo ""
       echo "Then rerun `basename $0` using the _shft"
       echo "version of your datasets."
@@ -687,6 +692,10 @@ AUTO_TLRC_MODE:
       set spopt = "$spopt -verb"
    endif
    set spopt = "$spopt $cropt"
+   # maybe weight from input dataset (esp if coverage is not full)
+   if ($inweight == 1) then
+      set spopt = "$spopt -weight ${rs_pref}${anat_view}"
+   endif
    
    set pass = 1
    set Converged = 0
@@ -1354,6 +1363,11 @@ echo "                       and try again. If the second pass still fails,"
 echo "                       the script will stop unless the user specifies the"
 echo "                       -OK_maxite option."
 echo "      -OK_maxite     : See -maxite option."
+echo "      -inweight      : Apply -weight INPUT (in 3dWarpDrive)."
+echo "                       By default, 3dWarpDrive uses the BASE dataset to"
+echo "                       weight the alignment cost.  Use this option to"
+echo "                       weight via the INPUT dataset, instead."
+echo "                       This might be useful for partial coverage cases."
 echo "      -rigid_equiv   : Also output a the rigid-body version of the "
 echo "                       alignment. This would align the brain with"
 echo "                       TLRC axis without any distortion. Note that"
