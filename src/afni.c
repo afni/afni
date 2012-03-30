@@ -1639,8 +1639,8 @@ int main( int argc , char *argv[] )
      AFNI_start_version_check() ;               /* 21 Nov 2002 */
 
 #ifdef DARWIN
-   if( !THD_is_directory("/sw/bin") )
-     WARNING_message("On Mac OS X, you should install the fink software:\n"
+   if( 0 && !THD_is_directory("/sw/bin") && !AFNI_noenv("AFNI_IMSAVE_WARNINGS") )
+     WARNING_message("On Mac OS X, it helps if you install the fink software:\n"
                      "            cf. http://fink.sourceforge.net/\n"
                      "            and then do\n"
                      "            fink install netpbm\n" ) ;
