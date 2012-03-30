@@ -42,12 +42,10 @@ EXTRA_INSTALL_FILES = /usr/local/lib/libgomp.1.dylib                \
                       /sw/lib/fontconfig2/lib/libfontconfig.la      \
                       /sw/lib/freetype219/lib/libfreetype.6.dylib
 
-EXTRA_INSTALL_COMMANDS = ( if [ -d $(HOME)/EXTRAPROGS ] then                  \
-                             $(CP) $(HOME)/EXTRAPROGS/* $(INSTALLDIR) ;       \
-                           fi ;                                               \
-                           cd $(INSTALLDIR) ;                                 \
+EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
                            ln -sf libglib.dylib         libglib-1.2.0.dylib ; \
-                           ln -sf libfontconfig.1.dylib libfontconfig.dylib ;   )
+                           ln -sf libfontconfig.1.dylib libfontconfig.dylib ; \
+                           if [ -d $(HOME)/EXTRAPROGS ]; then $(CP) $(HOME)/EXTRAPROGS/* . ; fi ; )
 
 IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include
 LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
