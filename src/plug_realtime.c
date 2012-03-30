@@ -2913,8 +2913,7 @@ int RT_mp_check_env_for_mask( void )
 
     /* if old name is the same, just keep it and move on */
     if( g_mask_dset_name && !strcmp(ept, g_mask_dset_name) ) {
-        if( verbose ) fprintf(stderr,"RTM: keeping mask dataset %s\n",
-                              g_mask_dset_name);
+        fprintf(stderr,"RTM: keeping AR_Mask_Dset %s\n", g_mask_dset_name);
         return 0;
     }
 
@@ -2937,7 +2936,8 @@ int RT_mp_check_env_for_mask( void )
     }
     DSET_load(g_mask_dset);  /* just to be sure */
 
-    if(verbose)fprintf(stderr,"RTM: mask dset from env: %s\n",g_mask_dset_name);
+    /* display this fact, regardless of verbose */
+    fprintf(stderr,"RTM: setting AR_Mask_Dset from env: %s\n",g_mask_dset_name);
 
     return 0;
 }

@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 30, MAR, 2012, RCR, "@auto_tlrc", MINOR, TYPE_NEW_OPT,
+ { 30, MAR, 2012, RCR, "plug_realtime", MICRO, TYPE_MODIFY,
+   "let user know when AFNI_REALTIME_Mask_Dset is applied\n",
+   NULL
+ } ,
+
+ { 30, MAR, 2012, RCR, "@auto_tlrc", MICRO, TYPE_NEW_OPT,
    "added option -inweight\n",
    "Added for S Horovitz and S Tinaz."
  } ,
