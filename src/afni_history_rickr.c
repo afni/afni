@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, MAR, 2012, RCR, "@auto_tlrc", MINOR, TYPE_NEW_OPT,
+   "added option -inweight\n",
+   "Added for S Horovitz and S Tinaz."
+ } ,
+
  { 22, MAR, 2012, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
    "apply AFNI_REALTIME_SHOW_TIMES in non-RT feedback case\n",
    NULL
