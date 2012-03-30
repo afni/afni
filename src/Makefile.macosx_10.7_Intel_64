@@ -42,7 +42,10 @@ EXTRA_INSTALL_FILES = /usr/local/lib/libgomp.1.dylib                \
                       /sw/lib/fontconfig2/lib/libfontconfig.la      \
                       /sw/lib/freetype219/lib/libfreetype.6.dylib
 
-EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
+EXTRA_INSTALL_COMMANDS = ( if [ -d $(HOME)/EXTRAPROGS ] then                  \
+                             $(CP) $(HOME)/EXTRAPROGS/* $(INSTALLDIR) ;       \
+                           fi ;                                               \
+                           cd $(INSTALLDIR) ;                                 \
                            ln -sf libglib.dylib         libglib-1.2.0.dylib ; \
                            ln -sf libfontconfig.1.dylib libfontconfig.dylib ;   )
 
