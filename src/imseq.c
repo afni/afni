@@ -365,6 +365,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
 
    pg  = THD_find_executable( "ppmtogif" ) ;
    pg2 = THD_find_executable( "ppmquant" ) ;
+   if( pg2 == NULL ) pg2 = THD_find_executable( "pnmquant" ) ;
    if( pg != NULL && pg2 != NULL ){
       int adel=20 ; char asuff[64] ;               /* 16 Jan 2003 */
 
@@ -418,14 +419,16 @@ printf("\njpeg_compress %d\n", jpeg_compress);
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -c none %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv) ;
-   } else {                                     /* 03 Jul 2001:      */
-      pg = THD_find_executable( "pnmtotiff" ) ; /* must use ppm2tiff */
-      if( pg != NULL ){                         /* and pnmtotiff     */
-         str = AFMALL( char, strlen(pg)+32) ;   /* differently       */
+   } else {                                      /* 03 Jul 2001:      */
+      pg = THD_find_executable( "pnmtotiff" ) ;
+      if( pg == NULL )
+        pg = THD_find_executable( "pamtotiff" ); /* must use ppm2tiff */
+      if( pg != NULL ){                          /* and pnmtotiff     */
+         str = AFMALL( char, strlen(pg)+32) ;    /* differently       */
          sprintf(str,"%s > %%s",pg) ;
          bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv) ;
       }
-      else { CANT_FIND("ppm2tiff OR pnmtotiff","TIFF"); need_netpbm++; }
+      else { CANT_FIND("ppm2tiff OR pnmtotiff OR pamtotiff","TIFF"); need_netpbm++; }
    }
 
    /*-- write Windows BMP --*/
@@ -455,7 +458,9 @@ printf("\njpeg_compress %d\n", jpeg_compress);
       sprintf(str,"%s -noturn > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"eps",bv) ;
    }
+#if 0
    else { CANT_FIND("pnmtops","EPS"); need_netpbm++; }
+#endif
 
 #if 0
    /*-- write a PDF file (God only knows why) --*/
