@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 19 , MAR , 2012 , RWC , "Makefiles" , MICRO , TYPE_GENERAL ,
+  { 2 , APR , 2012 , RWC , "Lion build" , MICRO , TYPE_GENERAL ,
+   "Modify install process to include useful netpbm program binaries" ,
+   "The stuff that imseq.c uses to write images out (GIF, TIFF, PNG, BMP),\n"
+   "so that fink is not required.  Done via Makefile macro\n"
+   "EXTRA_INSTALL_COMMANDS and copying all files in directory EXTRAPROGS to\n"
+   "the output binaries." } ,
+
+ { 19 , MAR , 2012 , RWC , "Makefiles" , MICRO , TYPE_GENERAL ,
    "Remove -O3 and -ffast-math and -ftree-vectorize from all gcc cases" ,
    "Too many problems on Lion with -O3 make me suspicious of aggressive\n"
    "optimization in general." } ,
