@@ -2,6 +2,30 @@
 
 /*-----------------------------------------------------------------------------*/
 
+int is_a_number( char *str )  /* 03 Apr 2012 */
+{
+   double val ; char *cpt ;
+
+   if( str == NULL || *str == '\0' ) return 0 ;
+
+   val = strtod(str,&cpt) ;
+   return ( *cpt == '\0' ) ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+int is_an_int( char *str )
+{
+   double val ; char *cpt ;
+
+   if( str == NULL || *str == '\0' ) return 0 ;
+
+   val = strtod(str,&cpt) ;
+   return ( *cpt == '\0' && val == (int)val ) ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
 char * commaized_integer_string( long long val )
 {
    static char svals[5][128] ;   /* ZSS Aug. 2010 */
