@@ -423,8 +423,11 @@ ENTRY("Corrboot") ;
          xar[ii] = x[jj] ; yar[ii] = y[jj] ; jold = jj ;
        }
      }
-     if( xsig > 0.0f ){ for( ii=0; ii < nn; ii++ ) xar[ii] += zgaussian()*xsig; }
-     if( ysig > 0.0f ){ for( ii=0; ii < nn; ii++ ) yar[ii] += zgaussian()*ysig; }
+     if( xsig > 0.0f || ysig > 0.0f ){
+       for( ii=0; ii < nn; ii++ ){
+         xar[ii] += zgaussian()*xsig; yar[ii] += zgaussian()*ysig;
+       }
+     }
      cbb[kk] = cfun(nn,xar,yar) ;  /* bootstrap result */
    }
 
