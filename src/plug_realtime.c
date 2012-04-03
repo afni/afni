@@ -2856,7 +2856,8 @@ static int RT_mp_comm_init_vars( RT_input * rtin )
     /* now set up the mask data, if g_mask_dset is set */
     if( g_mask_dset )
     {   int c, max;
-        if( verbose > 1 ) fprintf(stderr,"RTM: setting up mask...\n");
+        fprintf(stderr,"RTM MASK: applying mask dataset %s...\n",
+                DSET_FILECODE(g_mask_dset));
         if( rtin->mask ) free(rtin->mask) ; /* in case of change */
         if( thd_multi_mask_from_brick(g_mask_dset, 0, &rtin->mask) )
         {
@@ -2913,7 +2914,8 @@ int RT_mp_check_env_for_mask( void )
 
     /* if old name is the same, just keep it and move on */
     if( g_mask_dset_name && !strcmp(ept, g_mask_dset_name) ) {
-        fprintf(stderr,"RTM: keeping AR_Mask_Dset %s\n", g_mask_dset_name);
+        if( verbose ) fprintf(stderr,"RTM: keeping AR_Mask_Dset %s\n",
+                              g_mask_dset_name);
         return 0;
     }
 

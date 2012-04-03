@@ -49,8 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 3, APR, 2012, RCR, "plug_realtime", MICRO, TYPE_MODIFY,
+   "always print the name of the mask dataset in use (via GUI or env)",
+   NULL
+ } ,
+
  { 30, MAR, 2012, RCR, "plug_realtime", MICRO, TYPE_MODIFY,
-   "let user know when AFNI_REALTIME_Mask_Dset is applied\n",
+   "let user know when AFNI_REALTIME_Mask_Dset is applied",
    NULL
  } ,
 
@@ -60,12 +65,12 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 22, MAR, 2012, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
-   "apply AFNI_REALTIME_SHOW_TIMES in non-RT feedback case\n",
+   "apply AFNI_REALTIME_SHOW_TIMES in non-RT feedback case",
    NULL
  } ,
 
  { 22, MAR, 2012, RCR, "Dimon", MICRO, TYPE_ENHANCE,
-   "if RT comm fails with afni, show iochan_error_string()\n",
+   "if RT comm fails with afni, show iochan_error_string()",
    "It occasionally fails at TR=0.125 s."
  } ,
 
@@ -85,7 +90,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 15, MAR, 2012, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
-   "added AFNI_REALTIME_Mask_Dset for per-run control over Mask\n",
+   "added AFNI_REALTIME_Mask_Dset for per-run control over Mask",
    "Also added some missing vars to README.environment.\n"
    "Done for J Evans."
  } ,
