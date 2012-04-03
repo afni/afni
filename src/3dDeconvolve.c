@@ -1157,8 +1157,8 @@ void display_help_menu(int detail)
     "        duration is a parameter you give (duration is NOT a parameter  \n"
     "        that will be estimated).  Read the descriptions below carefully:\n"
     "        not all functions are (or can be) convolved in this way:       \n"
-    "        * ALWAYS convolved:      BLOCK  dmBLOCK  MION                  \n"
-    "        * NEVER convolved:       TENT   CSPLIN   POLY  SIN  EXPR       \n"
+    "        * ALWAYS convolved:      BLOCK  dmBLOCK  MION  MIONN           \n"
+    "        * NEVER convolved:       TENT   CSPLIN   POLY  SIN   EXPR      \n"
     "        * OPTIONALLY convolved:  GAM    SPMGx    WAV                   \n"
     "                                                                       \n"
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
@@ -1288,6 +1288,8 @@ void display_help_menu(int detail)
     "                  ** Note that this is a positive function, but MION   \n"
     "                     produces a negative response to activation, so the\n"
     "                     beta and t-statistic for MION are usually negative.\n"
+    "               ***** If you want a negative MION function (so you get  \n"
+    "                     a positive beta), use the name 'MIONN' instead.   \n"
     "                  ** After convolution with a square wave 'd' seconds  \n"
     "                     long, the resulting single-trial waveform is      \n"
     "                     scaled to have magnitude 1.  For example, try     \n"
@@ -1416,13 +1418,13 @@ void display_help_menu(int detail)
     "   a block starting at 30 s,                                           \n"
     "   with amplitude modulation parameters 5 and 3,                       \n"
     "   and with duration 12 s.                                             \n"
-    " The unmodulated peak response of dmBLOCK is normally set to 1.        \n"
-    " If you want the peak response to be a different value, use            \n"
+    " The unmodulated peak response of dmBLOCK depends on the duration      \n"
+    " of the stimulus, as the BOLD response accumulates.                    \n"
+    " If you want the peak response to be a set to a fixed value, use       \n"
     "   dmBLOCK(p)                                                          \n"
-    " where p = the desired peak value.  As a special case, if you set      \n"
-    " p = 0, then the peak response will vary with the duration, as         \n"
-    " the simulated BOLD response accumulates.  Understand what you         \n"
-    " are doing in this case, and look at the regression matrix!            \n"
+    " where p = the desired peak value (e.g., 1).                           \n"
+    " *** Understand what you doing when you use dmBLOCK, and look at  ***  \n"
+    " *** the regression matrix!  Otherwise, you will end up confused. ***  \n"
     " *N.B.: The maximum allowed dmBLOCK duration is 999 s.                 \n"
     " *N.B.: You cannot use '-iresp' or '-sresp' with dmBLOCK!              \n"
     " *N.B.: If you are NOT doing amplitude modulation at the same time     \n"
@@ -1434,6 +1436,11 @@ void display_help_menu(int detail)
     "        there is only 1 'married' parameter, the program will print    \n"
     "        a warning message, then convert to '-stim_times_AM1', and      \n"
     "        continue -- so nothing bad will happen to your analysis!       \n"
+    "        (But you will be embarassed in front of your friends.)         \n"
+    " *N.B.: If you are using AM2 (amplitude modulation) with dmBLOCK, you  \n"
+    "        might want to use 'dmBLOCK(1)' to make each block have native  \n"
+    "        amplitude 1 before it is scaled by the amplitude parameter.    \n"
+    "        Or maybe not -- this is a matter for fine judgment.            \n"
     " *N.B.: You can also use dmBLOCK with -stim_times_IM, in which case    \n"
     "        each time in the 'tname' file should have just ONE extra       \n"
     "        parameter -- the duration -- married to it, as in '30:15',     \n"
@@ -1441,11 +1448,12 @@ void display_help_menu(int detail)
     " For some graphs of what dmBLOCK regressors look like, see             \n"
     "   http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/AMregression.pdf   \n"
     " and/or try the following command:                                     \n"
-    "    3dDeconvolve -nodata 100 1 -polort -1 -num_stimts 1 \\             \n"
-    "                 -stim_times_AM1 1 q.1D 'dmBLOCK(1)'    \\             \n"
+    "    3dDeconvolve -nodata 350 1 -polort -1 -num_stimts 1 \\             \n"
+    "                 -stim_times_AM1 1 q.1D 'dmBLOCK'       \\             \n"
     "                 -x1D stdout: | 1dplot -stdin -thick -thick            \n"
     " where file q.1D contains the single line                              \n"
-    "    15:10 50:30                                                        \n"
+    "   10:1 40:2 70:3 100:4 130:5 160:6 190:7 220:8 250:9 280:30           \n"
+    " Change 'dmBLOCK' to 'dmBLOCK(1)' and see how the matrix plot changes. \n"
     "                                                                       \n"
     "[-stim_times_IM k tname Rmodel]                                        \n"
     "   Similar, but each separate time in 'tname' will get a separate      \n"
@@ -10084,6 +10092,18 @@ static float basis_mion( float x, float b, float c, float top, void *q )
 }
 
 /*--------------------------------------------------------------------------*/
+/* MIONN basis function [02 Apr 2012] */
+
+static float basis_mionn( float x, float b, float c, float top, void *q )
+{
+   if( x <= 0.0f || x > 60.0f ) return 0.0f ;
+
+   return -16.4486f * ( -0.184f/ 1.5f * expf(-x/ 1.5f)
+                        +0.330f/ 4.5f * expf(-x/ 4.5f)
+                        +0.670f/13.5f * expf(-x/13.5f) ) ;
+}
+
+/*--------------------------------------------------------------------------*/
 /* SPMG basis functions (corrected 29 May 2007, I hope) */
 
 #undef  SPM_A1
@@ -10135,6 +10155,7 @@ static float waveform_SPMG1( float t ){ return basis_spmg1(t,0.0f,0.0f,0.0f,NULL
 static float waveform_SPMG2( float t ){ return basis_spmg2(t,0.0f,0.0f,0.0f,NULL); }
 static float waveform_SPMG3( float t ){ return basis_spmg3(t,0.0f,0.0f,0.0f,NULL); }
 static float waveform_MION ( float t ){ return basis_mion (t,0.0f,0.0f,0.0f,NULL); }
+static float waveform_MIONN( float t ){ return basis_mionn(t,0.0f,0.0f,0.0f,NULL); }
 
 static float GAM_p , GAM_q , GAM_top ;
 static float waveform_GAM( float t ){ return basis_gam(t,GAM_p,GAM_q,GAM_top,NULL); }
@@ -10184,13 +10205,17 @@ static float basis_block_hrf4( float tt , float TT )
 
 static float basis_block4( float t, float T, float peak, float junk, void *q )
 {
-   float w , tp , pp ;
+   float w , tp , pp , TT ;
 
    w = basis_block_hrf4(t,T) ;
-   if( w > 0.0f && peak > 0.0f ){
-     tp = TPEAK4(T) ;  pp = basis_block_hrf4(tp,T) ;
+
+   if( w > 0.0f ){
+     if( peak != 0.0f ){ TT = T ; }
+     else              { TT = 99.9f ; peak = 1.0f ; }
+     tp = TPEAK4(TT) ; pp = basis_block_hrf4(tp,TT) ;
      if( pp > 0.0f ) w *= peak / pp ;
    }
+
    return w ;
 }
 
@@ -10250,13 +10275,17 @@ static float basis_block_hrf5( float tt, float TT )
 
 static float basis_block5( float t, float T, float peak, float junk, void *q )
 {
-   float w , tp , pp ;
+   float w , tp , pp , TT ;
 
    w = basis_block_hrf5(t,T) ;
-   if( w > 0.0f && peak > 0.0f ){
-     tp = TPEAK5(T) ;  pp = basis_block_hrf5(tp,T) ;
+
+   if( w > 0.0f ){
+     if( peak != 0.0f ){ TT = T ; }
+     else              { TT = 99.9f ; peak = 1.0f ; }
+     tp = TPEAK5(TT) ; pp = basis_block_hrf5(tp,TT) ;
      if( pp > 0.0f ) w *= peak / pp ;
    }
+
    return w ;
 }
 
@@ -10480,6 +10509,7 @@ static float waveform_WAV( float t )
 #define WTYPE_GAM   7
 #define WTYPE_MION  8
 #define WTYPE_WAV   9
+#define WTYPE_MIONN 10
 
 typedef struct {
   int wtype , nfun ;
@@ -10576,6 +10606,11 @@ ENTRY("setup_WFUN_function") ;
      case WTYPE_MION:
        wavfun = waveform_MION  ;
        sprintf(msg,"waveform setup: MION(dur=%g)",dur) ;
+     break ;
+
+     case WTYPE_MIONN:
+       wavfun = waveform_MIONN  ;
+       sprintf(msg,"waveform setup: MIONN(dur=%g)",dur) ;
      break ;
 
      case WTYPE_GAM:
@@ -11017,7 +11052,7 @@ ENTRY("basis_parser") ;
    /*--- dmBLOCKn for n=4 or 5 ; the first 'vfun' function [08 Dec 2008] ---*/
 
    } else if( strncmp(scp,"dmBLOCK",7) == 0 ){
-     int nb=4 ; float peak=1.0f ;
+     int nb=4 ; float peak=0.0f ;  /* 03 Apr 2012: alter default peak from 1 to 0 */
 
      if( scp[7] != '\0' ){
        nb = strtol( scp+7 , NULL , 10 ) ;
@@ -11033,7 +11068,7 @@ ENTRY("basis_parser") ;
      be->tbot  = 0.0f ; be->ttop = BASIS_MAX_DURATION+15.0f ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
      be->bfunc[0].f = (nb==5) ? basis_block5 : basis_block4 ;
-     be->bfunc[0].a = 1.0f;   /* duration; will come from timing file */
+     be->bfunc[0].a = 1.0f;   /* duration: will actually come from timing file */
      be->bfunc[0].b = peak ;
      be->bfunc[0].c = 0.0f ;
      be->vfun       = 1 ;     /* needs 1 param from timing file */
@@ -11212,7 +11247,7 @@ ENTRY("basis_parser") ;
 
    /*--- MION ---*/
 
-   } else if( strcmp(scp,"MION") == 0 ){   /* 28 Aug 2004 */
+   } else if( strcmp(scp,"MION") == 0 ){
      float dur=-1.0f ; int iwav ;
 
      if( cpt != NULL ) sscanf(cpt,"%f",&dur) ; /* 28 Apr 2009: get duration param */
@@ -11238,6 +11273,36 @@ ENTRY("basis_parser") ;
         be->bfunc[0].c = 0.0f ;
         be->tbot = 0.0f ; be->ttop = WFUNDT * WFUNS[iwav].nfun ;
      }
+
+   /*--- MIONN ---*/
+
+   } else if( strcmp(scp,"MIONN") == 0 ){
+     float dur=-1.0f ; int iwav ;
+
+     if( cpt != NULL ) sscanf(cpt,"%f",&dur) ; /* 28 Apr 2009: get duration param */
+
+     be->nfunc = 1 ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+
+     if( dur < 0.0f ){            /* impulse response */
+       be->bfunc[0].f = basis_mionn ;
+       be->bfunc[0].a = 0.0f ;    /* no parameters */
+       be->bfunc[0].b = 0.0f ;
+       be->bfunc[0].c = 0.0f ;
+       be->tbot = 0.0f ; be->ttop = 60.0f ;
+     } else {                     /* convolve with square wave */
+        iwav = setup_WFUN_function( WTYPE_MIONN , dur , NULL ) ;
+        if( iwav < 0 ){
+          ERROR_message("Can't setup MION(%f) for some reason?!",dur) ;
+          free((void *)be); free(scp); RETURN(NULL);
+        }
+        be->bfunc[0].f = basis_WFUN ;
+        be->bfunc[0].a = (float)iwav ;
+        be->bfunc[0].b = 0.0f ;
+        be->bfunc[0].c = 0.0f ;
+        be->tbot = 0.0f ; be->ttop = WFUNDT * WFUNS[iwav].nfun ;
+     }
+
 
    /*--- NO MORE BASIS FUNCTION CHOICES ---*/
 
