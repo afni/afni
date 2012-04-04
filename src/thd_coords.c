@@ -81,6 +81,17 @@ THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset *dset , THD_ivec3 iv )
 }
 
 /*--------------------------------------------------------------------*/
+/* 04 Apr 2012 - RWCox */
+
+THD_fvec3 THD_3dind_to_dicomm_no_wod( THD_3dim_dataset *dset , THD_ivec3 iv )
+{
+   THD_fvec3 fv , gv ;
+   fv = THD_3dind_to_3dmm_no_wod( dset , iv ) ;
+   gv = THD_3dmm_to_dicomm      ( dset , fv ) ;
+   return gv ;
+}
+
+/*--------------------------------------------------------------------*/
 
 THD_fvec3 THD_3dmm_to_3dfind( THD_3dim_dataset *dset , THD_fvec3 fv )
 {
