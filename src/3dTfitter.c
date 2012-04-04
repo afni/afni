@@ -366,6 +366,8 @@ int main( int argc , char *argv[] )
       "              ++ In deconvolution ('-FALTUNG'), all baseline parameters\n"
       "                 (from '-LHS' and/or '-polort') are automatically non-penalized,\n"
       "                 so there is no point to using this un-penalizing feature.\n"
+      "              ++ If you are NOT doing deconvolution, then you'll need this\n"
+      "                 option to un-penalize the '-polort' parameters (if desired).\n"
       "            ** LASSO-ing herein should be considered experimental, and its\n"
       "               implementation is subject to change!  You should definitely\n"
       "               play with different 'lam' values to see how well they work\n"
@@ -1065,6 +1067,8 @@ int main( int argc , char *argv[] )
    }
    nlhs = dsar->num ;                    /* number of -LHS inputs */
 
+   /* deconvolution stuff */
+
    if( fal_klen > 0 ){
      if( fal_set != NULL ){
        if( DSET_NX(fal_set) != nx ||
@@ -1247,14 +1251,14 @@ int main( int argc , char *argv[] )
    /*-- finalize LASSO setup? --*/
 
    if( meth == -2 || meth == -1 ){
-     if( nvoff > 0 ){
+     if( nvoff > 0 ){                                   /* deconvolution */
        float *lam = (float *)malloc(sizeof(float)*(nvar+nvoff)) ;
        for( ii=0 ; ii < nvar+nvoff ; ii++ )
          lam[ii] = (ii < nvoff) ? lasso_flam : 0.0f ;
        THD_lasso_setlamvec( nvar+nvoff , lam ) ; free(lam) ;
        if( verb && nvar > 0 && lasso_ivec != NULL )
          ININFO_message("-FALTUNG ==> All LHS and polort parameters are non-penalized") ;
-     } else if( lasso_ivec != NULL ){
+     } else if( lasso_ivec != NULL ){                    /* standard regression */
        float *lam = (float *)malloc(sizeof(float)*nvar) ;
        for( ii=0 ; ii < nvar ; ii++ ) lam[ii] = lasso_flam ;
        for( jj=0 ; jj < lasso_ivec->nar ; jj++ ){

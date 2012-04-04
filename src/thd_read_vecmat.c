@@ -91,8 +91,7 @@ ENTRY("THD_read_dvecmat") ;
        }
 
       {
-         /* ZSS: Dec 27, the year of our Lord when the War on Christmas 
-                         was raging */
+         /* ZSS: Dec 27, the year of our Lord when the War on Christmas was raging */
          /* Need to include VOLREG_CENTER_OLD, VOLREG_CENTER_BASE,
                             ROTATE_CENTER_OLD, ROTATE_CENTER_BASE, 
                             if applicable. */
