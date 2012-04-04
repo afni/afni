@@ -4003,9 +4003,10 @@ extern int        NI_write_gifti( NI_group *, char * , int);
 extern NI_group * NI_read_gifti( char * , int ) ;
 
 extern int storage_mode_from_filename( char * fname );      /* 20 Apr 2006 */
-int storage_mode_from_prefix( char * fname );
+extern int storage_mode_from_prefix( char * fname );
+extern int is_surface_storage_mode( int smode );            /* 04 Apr 2012 */
 extern char *storage_mode_name(int mode);
-extern int has_known_non_afni_extension( char * fname ) ;   /*     [rickr] */
+extern int has_known_non_afni_extension( char * fname );
 extern int is_writable_storage_mode( int smode ) ;          /* 05 Mar 2012 */
 extern char * find_filename_extension( char * fname );
 extern char * without_afni_filename_extension( char *fname); 
