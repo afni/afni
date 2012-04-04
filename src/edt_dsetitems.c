@@ -210,9 +210,13 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
             if( prefix != NULL ) {
                new_prefix = 1 ;
                new_smode = storage_mode_from_prefix(prefix);
-               if (new_smode != STORAGE_UNDEFINED &&
-                   dset->dblk && dset->dblk->diskptr) { 
-                  dset->dblk->diskptr->storage_mode = new_smode;
+               if (dset->dblk && dset->dblk->diskptr) { 
+                  /* if defined by prefix, apply, else if current is not a
+                     surface, clear (i.e. assume AFNI type) */
+                  if (new_smode != STORAGE_UNDEFINED)
+                     dset->dblk->diskptr->storage_mode = new_smode;
+                  else if ( ! is_surface_storage_mode(DSET_STORAGE_MODE(dset)) )
+                     dset->dblk->diskptr->storage_mode = STORAGE_BY_BRICK;
                }
             } else EDERR("illegal new prefix") ;
          break ;
