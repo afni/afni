@@ -1439,6 +1439,10 @@ typedef struct {
 /*! Center of grid in z-direction. */
 #define DAXES_ZCEN(dax) ((dax)->zzorg + 0.5*((dax)->nzz - 1) * (dax)->zzdel)
 
+#define DSET_XCEN(ds) DAXES_XCEN((ds)->daxes)
+#define DSET_YCEN(ds) DAXES_YCEN((ds)->daxes)
+#define DSET_ZCEN(ds) DAXES_ZCEN((ds)->daxes)
+
 #if 1
 #define DAXES_NUM(dax,ori) \
    ( (ORIENT_xyzint[(ori)] == ORIENT_xyzint[(dax)->xxorient]) ? (dax)->nxx : \
@@ -1466,7 +1470,7 @@ typedef struct {
 
 #define ISVALID_DATAXES(dax) ( (dax) != NULL && (dax)->type == DATAXES_TYPE )
 
-/*! Check if two THD_dataxes are essential equivalent. 
+/*! Check if two THD_dataxes are essential equivalent.
     ***** SEE ALSO ********
     THD_dataset_mismatch ()               */
 
@@ -2892,11 +2896,11 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 /*! Return the storage mode     5 Mar 2012 [rickr] */
 #define DSET_STORAGE_MODE(ds) ( ((ds) && (ds)->dblk && (ds)->dblk->diskptr)\
    ? (ds)->dblk->diskptr->storage_mode:STORAGE_UNDEFINED )
-   
+
 /*! Return the storage mode string */
 #define DSET_STORAGE_MODE_STR(ds) ( ((ds) && (ds)->dblk && (ds)->dblk->diskptr)\
    ? storage_mode_str((ds)->dblk->diskptr->storage_mode):"NULL" )
-   
+
 /* 25 April 1998 */
 
 #define DBLK_BYTEORDER(db)  ((db)->diskptr->byte_order)
@@ -3936,11 +3940,11 @@ extern int THD_copy_labeltable_atr( THD_datablock *d1,  THD_datablock *d2);
 extern void THD_store_dataset_keywords ( THD_3dim_dataset * , char * ) ;
 extern void THD_append_dataset_keywords( THD_3dim_dataset * , char * ) ;
 extern char * THD_dataset_info( THD_3dim_dataset * , int ) ;
-extern int THD_subbrick_minmax( THD_3dim_dataset *dset, int isb, int scl, 
+extern int THD_subbrick_minmax( THD_3dim_dataset *dset, int isb, int scl,
                                  float *min, float *max);
 extern float THD_subbrick_max(THD_3dim_dataset *dset, int isb, int scl);
 extern float THD_subbrick_min(THD_3dim_dataset *dset, int isb, int scl);
-extern int THD_dset_minmax( THD_3dim_dataset *dset, int scl, 
+extern int THD_dset_minmax( THD_3dim_dataset *dset, int scl,
                                  float *min, float *max);
 extern float THD_dset_max(THD_3dim_dataset *dset, int scl);
 extern float THD_dset_min(THD_3dim_dataset *dset, int scl);
@@ -4003,13 +4007,12 @@ extern int        NI_write_gifti( NI_group *, char * , int);
 extern NI_group * NI_read_gifti( char * , int ) ;
 
 extern int storage_mode_from_filename( char * fname );      /* 20 Apr 2006 */
-extern int storage_mode_from_prefix( char * fname );
-extern int is_surface_storage_mode( int smode );            /* 04 Apr 2012 */
+int storage_mode_from_prefix( char * fname );
 extern char *storage_mode_name(int mode);
-extern int has_known_non_afni_extension( char * fname );
+extern int has_known_non_afni_extension( char * fname ) ;   /*     [rickr] */
 extern int is_writable_storage_mode( int smode ) ;          /* 05 Mar 2012 */
 extern char * find_filename_extension( char * fname );
-extern char * without_afni_filename_extension( char *fname); 
+extern char * without_afni_filename_extension( char *fname);
 
 extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
 
@@ -4251,12 +4254,14 @@ extern THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset * , THD_fvec3 ) ;
 extern THD_ivec3 THD_3dmm_to_3dind_warn( THD_3dim_dataset * , THD_fvec3, int * ) ;
 extern THD_ivec3 THD_3dmm_to_3dind_no_wod( THD_3dim_dataset * , THD_fvec3 ) ;
                                                    /* 28 Sep 2004  [rickr] */
+extern THD_fvec3 THD_3dind_to_dicomm_no_wod( THD_3dim_dataset *dset, THD_ivec3 iv ) ;
 
 extern THD_fvec3 THD_3dfind_to_3dmm( THD_3dim_dataset * , THD_fvec3 ) ;
 extern THD_fvec3 THD_3dmm_to_3dfind( THD_3dim_dataset * , THD_fvec3 ) ;
 
 extern THD_fvec3 THD_3dmm_to_dicomm( THD_3dim_dataset * , THD_fvec3 ) ;
 extern THD_fvec3 THD_dicomm_to_3dmm( THD_3dim_dataset * , THD_fvec3 ) ;
+
 
 extern THD_fvec3 THD_tta_to_mni( THD_fvec3 ) ;  /* 29 Apr 2002 */
 extern THD_fvec3 THD_mni_to_tta( THD_fvec3 ) ;
@@ -4271,7 +4276,7 @@ extern float * TS_parse_tpattern( int, float, char * ) ;  /* 11 Dec 2007 */
 
 extern THD_fvec3 THD_dataset_center( THD_3dim_dataset * ) ;  /* 01 Feb 2001 */
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
-extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2, 
+extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);
 extern int THD_dataset_tshift( THD_3dim_dataset * , int ) ; /* 15 Feb 2001 */
 
