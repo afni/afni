@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 4, APR, 2012, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "if prefix shows STORAGE_UNDEFINED, use BRIK only if not potential surface",
+   NULL
+ } ,
+
  { 3, APR, 2012, RCR, "plug_realtime", MICRO, TYPE_MODIFY,
    "always print the name of the mask dataset in use (via GUI or env)",
    NULL
