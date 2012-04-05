@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 3 , APR , 2012 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+  { 5 , APR , 2012 , RWC , "3dTnorm" , MINOR , TYPE_NEW_PROG ,
+   "Normalize each time series in a dataset" ,
+   "Like 1dnorm for 3D+time datasets" } ,
+
+ { 3 , APR , 2012 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "dmBLOCK now defaults to peak=0 ==> variable amplitude" ,
    "Former behavior is now achieved with dmBLOCK(1) ==> fixed amplitude.\n"
    "Also, the peak variable amplitude is now 1, rather than some annoying\n"

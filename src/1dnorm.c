@@ -8,7 +8,7 @@
 
 int main( int argc , char * argv[] )
 {
-   MRI_IMAGE * inim ;
+   MRI_IMAGE *inim ;
    int ii , jj , nx,ny , nopt;
    float *iar , *qar , ss=0.0f ;
    int mode=2 , dem=0 ;  /* 26 Mar 2008 */
