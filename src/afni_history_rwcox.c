@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 5 , APR , 2012 , RWC , "3dTnorm" , MINOR , TYPE_NEW_PROG ,
+  { 5 , APR , 2012 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+   "Add -zcount option: count number of zero values in a voxel" ,
+   NULL } ,
+
+ { 5 , APR , 2012 , RWC , "3dTnorm" , MINOR , TYPE_NEW_PROG ,
    "Normalize each time series in a dataset" ,
    "Like 1dnorm for 3D+time datasets" } ,
 
