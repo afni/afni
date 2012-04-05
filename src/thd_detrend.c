@@ -282,8 +282,8 @@ void THD_normL1( int npt , float *far )
 /*! Detrend a vector with a given polort level, plus some others, using
     least squares regression.
      - npt    = length of vector
-     - far    = vector of data
-     - polort = polynomial order (-1..3)
+     - far    = vector of data (will be modified)
+     - polort = polynomial order
      - nort   = number of extra orts in ort[] (can be 0)
      - ort    = array of extra time series to detrend:
                  ort[j][i] for j=0..nort-1, i=0..npt-1
@@ -308,7 +308,7 @@ void THD_generic_detrend_LSQ( int npt, float *far ,
    if( nort   <  0 ) nort   =  0 ;
 
    nref = polort+1+nort ;
-   if( nref == 0 || nref >= npt-1 ) return ;
+   if( nref <= 0 || nref >= npt-1 ) return ;
 
    /* assemble all reference vectors */
 
@@ -316,44 +316,13 @@ void THD_generic_detrend_LSQ( int npt, float *far ,
    xmid = 0.5*(npt-1) ; xfac = 1.0 / xmid ;
    for( jj=0 ; jj <= polort ; jj++ ){
      ref[jj] = (float *) malloc( sizeof(float) * npt ) ;
-#if 1  /* the new way */
      for( ii=0 ; ii < npt ; ii++ )
        ref[jj][ii] = (float)Plegendre(xfac*(ii-xmid),jj) ;
-#else  /* the olden way */
-     switch( jj ){
-       case 0:
-         for( ii=0 ; ii < npt ; ii++ ) ref[jj][ii] = 1.0 ;
-       break ;
-
-       case 1:
-         for( ii=0 ; ii < npt ; ii++ ) ref[jj][ii] = xfac*(ii-xmid) ;
-       break ;
-
-       case 2:
-         for( ii=0 ; ii < npt ; ii++ ){
-           val = xfac*(ii-xmid) ; ref[jj][ii] = val*val ;
-         }
-       break ;
-
-       case 3:
-         for( ii=0 ; ii < npt ; ii++ ){
-           val = xfac*(ii-xmid) ; ref[jj][ii] = val*val*val ;
-         }
-       break ;
-
-       default:
-         for( ii=0 ; ii < npt ; ii++ ){
-           val = xfac*(ii-xmid) ;
-           ref[jj][ii] = pow(val,(double)(jj)) ;
-         }
-       break ;
-     }
-#endif
    }
    for( jj=0 ; jj < nort ; jj++ )   /* user supplied refs */
      ref[polort+1+jj] = ort[jj] ;
 
-   qfit = lsqfit( npt , far , NULL , nref , ref ) ;
+   qfit = lsqfit( npt , far , NULL , nref , ref ) ;     /* actual fitting */
 
    if( qfit != NULL ){                                  /* good */
      for( ii=0 ; ii < npt ; ii++ ){
@@ -376,8 +345,8 @@ void THD_generic_detrend_LSQ( int npt, float *far ,
 /*! Detrend a vector with a given polort level, plus some others, using
     L1 regression.
      - npt    = length of vector
-     - far    = vector of data
-     - polort = polynomial order (-1..3)
+     - far    = vector of data (will be modified)
+     - polort = polynomial order
      - nort   = number of extra orts in ort[] (can be 0)
      - ort    = array of extra time series to detrend:
                  ort[j][i] for j=0..nort-1, i=0..npt-1
@@ -402,7 +371,7 @@ void THD_generic_detrend_L1( int npt, float *far ,
    if( nort   <  0 ) nort   =  0 ;
 
    nref = polort+1+nort ;
-   if( nref == 0 || nref >= npt-1 ) return ;
+   if( nref <= 0 || nref >= npt-1 ) return ;
 
    /* assemble all reference vectors */
 
@@ -410,33 +379,8 @@ void THD_generic_detrend_L1( int npt, float *far ,
    xmid = 0.5*(npt-1) ; xfac = 1.0 / xmid ;
    for( jj=0 ; jj <= polort ; jj++ ){
      ref[jj] = (float *) malloc( sizeof(float) * npt ) ;
-     switch( jj ){
-       case 0:
-         for( ii=0 ; ii < npt ; ii++ ) ref[jj][ii] = 1.0 ;
-       break ;
-
-       case 1:
-         for( ii=0 ; ii < npt ; ii++ ) ref[jj][ii] = xfac*(ii-xmid) ;
-       break ;
-
-       case 2:
-         for( ii=0 ; ii < npt ; ii++ ){
-           val = xfac*(ii-xmid) ; ref[jj][ii] = val*val ;
-         }
-       break ;
-
-       case 3:
-         for( ii=0 ; ii < npt ; ii++ ){
-           val = xfac*(ii-xmid) ; ref[jj][ii] = val*val*val ;
-         }
-       break ;
-
-       default:
-         for( ii=0 ; ii < npt ; ii++ ){
-           val = xfac*(ii-xmid) ; ref[jj][ii] = pow(val,(double)(jj)) ;
-         }
-       break ;
-     }
+     for( ii=0 ; ii < npt ; ii++ )
+       ref[jj][ii] = (float)Plegendre(xfac*(ii-xmid),jj) ;
    }
    for( jj=0 ; jj < nort ; jj++ )   /* user supplied refs */
      ref[polort+1+jj] = ort[jj] ;

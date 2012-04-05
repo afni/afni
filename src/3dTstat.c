@@ -59,7 +59,9 @@
 #define METH_CVARINV      32  /* RWC 09 Aug 2011 */
 #define METH_CVARINVNOD   33
 
-#define MAX_NUM_OF_METHS  34
+#define METH_ZCOUNT       34
+
+#define MAX_NUM_OF_METHS  35
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 4
@@ -86,7 +88,7 @@ static char *meth_names[] = {
    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
    "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
-   "CVarInv"       , "CvarInv (NOD)"
+   "CVarInv"       , "CvarInv (NOD)", "ZeroCount"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -169,6 +171,7 @@ int main( int argc , char *argv[] )
  "              (sum(i*f(i)) / sum(f(i)))\n"
  " -centduration = compute duration using centroid's index as center\n"
  " -nzmean    = compute mean of non-zero voxels\n"
+ " -zcount    = count number of zero values at each voxel\n"
  "\n"
  " -autocorr n = compute autocorrelation function and return\n"
  "               first n coefficients\n"
@@ -295,6 +298,12 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-DW") == 0 ){
          meth[nmeths++] = METH_DW ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-zcount") == 0 ){
+         meth[nmeths++] = METH_ZCOUNT ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -910,6 +919,13 @@ static void STATS_tsfunc( double tzero, double tdelta ,
          } else {
             val[out_index] = outdex +1;
          }
+      }
+      break ;
+
+      case METH_ZCOUNT:{  /* 05 Apr 2012 */
+        int ii , zc ;
+        for( ii=zc=0 ; ii < npts ; ii++ ) if( ts[ii] == 0.0f ) zc++ ;
+        val[out_index] = zc ;
       }
       break ;
 

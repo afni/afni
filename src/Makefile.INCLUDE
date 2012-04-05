@@ -84,7 +84,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
-           3dLocalSVD  niml_feedme  3dErrtsCormat 3dUndump 3dREMLfit            \
+           3dLocalSVD  niml_feedme  3dErrtsCormat 3dUndump 3dREMLfit 3dTnorm    \
            3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
            3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         \
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
@@ -113,7 +113,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC       \
                   3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI  \
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
-                  3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header         \
+                  3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header 3dTnorm \
                   3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat 3dGetrow \
                   nifti_tool 3dAllineate nifti1_test Dimon 3danisosmooth            \
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
@@ -506,6 +506,10 @@ dsetdup:dsetdup.o
 3dTshift:3dTshift.o
 	$(RM) $@
 	$(CC) -o 3dTshift 3dTshift.o $(LFLAGS) $(LLIBS)
+
+3dTnorm:3dTnorm.o
+	$(RM) $@
+	$(CC) -o 3dTnorm 3dTnorm.o $(LFLAGS) $(LLIBS)
 
 3dTstat:3dTstat.o parser.o parser_int.o
 	$(RM) $@
