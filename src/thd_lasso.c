@@ -100,7 +100,7 @@ static float estimate_sigma( int npt , float *far )
    if( nnz == 1 ){
      mad1 = fabsf(dif[0]) ;
    } else if( nnz > 1 ){
-     qmedmad_float( nnz , dif , NULL , &mad1 ) ; mad1 *= 0.333f ;
+     qmedmad_float( nnz , dif , NULL , &mad1 ) ; mad1 *= 0.456f ;
    }
 
    /* MAD of 2nd differences */
@@ -111,7 +111,7 @@ static float estimate_sigma( int npt , float *far )
    if( nnz == 1 ){
      mad2 = fabsf(dif[0]) ;
    } else if( nnz > 1 ){
-     qmedmad_float( nnz , dif , NULL , &mad2 ) ; mad2 *= 0.333f ;
+     qmedmad_float( nnz , dif , NULL , &mad2 ) ; mad2 *= 0.567f ;
    }
 
 #pragma omp critical (MALLOC)
