@@ -19,7 +19,7 @@ if (R_io == -1) {
    R_io <<- 0
    ll <- find.in.path('R_io.so')
    if (!is.null(ll)) {
-      dd <- dyn.load(ll)
+      dd <- try(dyn.load(ll), silent=TRUE)
       if (!exists('dd')) {
          note.AFNI(paste("Failed to load R_io.so."));
       } else {
