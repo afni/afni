@@ -3475,7 +3475,7 @@ atlas. You may increase or decrease this to show more or fewer structures in
 the whereami results.
 
 -------------------------------
-Variable: AFNI_WHEREAMI_MAX_RAD (editable)
+Variable: AFNI_WHEREAMI_MAX_SEARCH_RAD (editable)
 -------------------------------
 By default, whereami searches a radius of 7.5 mm. Set a radius up to 9.5 mm.
 
