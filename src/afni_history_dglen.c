@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 9 , APR, 2012 , DRG , "whereami" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Typo in AFNI_WAMI_MAX_SEARCH_RAD",
+    "Wrong name listed in AFNI GUI environment and README.environment"
+} ,
+
 { 27 , FEB, 2012 , DRG , "whereami" , 
     MINOR , TYPE_BUG_FIX, 
     "Bug in combination of multiple affine transformations",

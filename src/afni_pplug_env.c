@@ -548,7 +548,7 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_numeric( "AFNI_WHEREAMI_MAX_FIND" ,
                     "Maximum limit for structures from an atlas for whereami output" ,
                     1,50,0,9 , ENV_wami_maxfind ) ;
-   ENV_add_string( "AFNI_WHEREAMI_MAX_RAD" ,
+   ENV_add_string( "AFNI_WHEREAMI_MAX_SEARCH_RAD" ,
                 "Maximum radius for structures from an atlas for whereami output" ,
                  0, NULL, ENV_wami_maxrad ) ;
    /* 01 Jul 2011 [DRG] */
