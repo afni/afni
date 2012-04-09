@@ -1440,7 +1440,7 @@ def int_list_string(ilist, mesg='', nchar=0):
 
    if nchar > 0: slist = ['%*d' % (nchar, val) for val in ilist]
    else:         slist = ['%d' % val for val in ilist]
-   istr = ' '.join(slist)
+   istr += ' '.join(slist)
 
    return istr
 
