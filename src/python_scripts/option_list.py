@@ -114,7 +114,7 @@ class OptionList:
                     del self.olist[index]
                     return 1
 
-    def get_string_opt(self, opt_name, opt=None):
+    def get_string_opt(self, opt_name=None, opt=None):
         """return the option parameter string and err
            (if opt is passed, we don't need to find it)
            err = 0 on success, 1 on failure"""
@@ -128,7 +128,7 @@ class OptionList:
             return None, 1
         return opt.parlist[0], 0
 
-    def get_string_list(self, opt_name, opt=None):
+    def get_string_list(self, opt_name=None, opt=None):
         """return the option parameter string and an error code
            (if opt is passed, we don't need to find it)"""
 
@@ -182,13 +182,15 @@ class OptionList:
         if not opt_name: opt_name = opt.name
         olen = len(opt.parlist)
         if length > 0 and olen != 1 and olen != length:
-            print '** %s takes 1 or %s (%d) values, have %d: %s' % \
+            if verb: 
+               print '** %s takes 1 or %s (%d) values, have %d: %s' % \
                   (opt_name, len_name, length, olen, ', '.join(opt.parlist))
             return 1, 1
         try:
             tlist = map(type,opt.parlist)
         except:
-            print "** %s takes only %ss, have: %s" % (opt_name,type,opt.parlist)
+            if verb: print "** %s takes only %ss, have: %s"  \
+                           % (opt_name,type,opt.parlist)
             return None, 1
         if length > 0 and olen != length:     # expand the list
             tlist = [tlist[0] for i in range(length)]

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 8, APR, 2012, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "-ordered_stimuli now takes labels",
+   NULL
+ } ,
+
  { 4, APR, 2012, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "if prefix shows STORAGE_UNDEFINED, use BRIK only if not potential surface",
    NULL
