@@ -311,9 +311,19 @@ examples:
                  -num_stim 5 -num_reps 8                                \\
                  -stim_labels question answer score face doughnut       \\
                  -stim_dur 2.5 2.5 3 1 1                                \\
-                 -ordered_stimuli 1 2 3                                 \\
+                 -ordered_stimuli question answer score                 \\
                  -pre_stim_rest 20 -post_stim_rest 20                   \\
                  -show_timing_stats -seed 31415 -prefix stimesH
+
+       To verify the stimulus order, consider using timing_tool.py to convert
+       timing files to an event list.  The corresponding command might be the
+       following, output on a TR grid of 1.0 s.
+
+         timing_tool.py -multi_timing stimesH*.1D                       \\
+                -multi_timing_to_events events.stimesH.txt              \\
+                -multi_stim_dur 2.5 2.5 3 1 1                           \\
+                -tr 1.0 -min_frac 0.5 -per_run -run_len 240
+
 
     9. TR-locked example, fixed seed, limited consecutive events.
 
@@ -496,7 +506,9 @@ optional arguments:
 
     -ordered_stimuli STIM1 STIM2 ... : specify a partial ordering of stimuli
 
+        e.g. -ordered_stimuli primer choice reward
         e.g. -ordered_stimuli 4 2 5
+        e.g. -ordered_stimuli stimA replyA -ordered stimuli stimB replyB
         e.g. -ordered_stimuli 1 2 -ordered_stimuli 3 4 -ordered_stimuli 5 6
 
         This option is used to require that some regressors are ordered.
@@ -507,18 +519,19 @@ optional arguments:
         So all the stimuli and rest periods are still random, except that given
         regressors must maintain the specified order.
 
-        Given the first example, whenever stim 4 occurs it is followed first
-        by 2 and then by 5.  Other stimuli might come before 4 or after 5, but
-        not in between.
+        Given the first example, whenever primer occurs it is followed first
+        by choice and then by reward.  Other stimuli might come before primer
+        or after reward, but not in between.
 
-        In the second example the 1/2 pairs are never broken, as well as 3/4
-        and 5/6 pairs.  Those could be 3 types of question/answer regressors.
+        In the third example the stim/reply pairs are never broken, so stimA
+        and replyA are always together, as are stimB and replyB.
 
         Note: - Multiple -ordered_stimuli options may be used.
               - A single stimulus may not appear in more than one such option.
-              - Stimulus indices are 1-based, running from 1..N.
+              - Stimulus entries can be either labels (requiring -labels to be
+                specified first) or 1-based indices, running from 1..N.
 
-        See example 8 above for a detailed example.
+        See example 8 above.
 
     -pre_stim_rest REST_TIME    : specify minimum rest period to start each run
 
@@ -674,9 +687,10 @@ g_history = """
     1.3  Mar 09, 2011: fixed bug writing comment text in 3dD script
          - noted by Z Saad and P Kaskan
     1.4  Jun 08, 2011: tr-lock test: fixed print and added min_rest to durs
+    1.5  Apr 08, 2012: -ordered_stimuli can now use labels
 """
 
-g_version = "version 1.4, June 8, 2011"
+g_version = "version 1.5, April 8, 2012"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -934,11 +948,30 @@ class RandTiming:
            if self.max_consec and self.verb > 1:
                print UTIL.int_list_string(self.max_consec, '-- max_consec : ')
 
+        # get any labels
+        self.labels, err = self.user_opts.get_string_list('-stim_labels')
+        if self.labels and len(self.labels) != self.num_stim:
+            print '** error: %d stim classes but %d labels: %s' \
+                  % (self.num_stim, len(self.labels), self.labels)
+            return 1
+
         # gather a list of lists specified by -ordered_stimuli options
         olist = self.user_opts.find_all_opts('-ordered_stimuli')
         for opt in olist:
-            slist, err = self.user_opts.get_type_list(int, opt=opt)
-            if err: return 1
+            # check for non-int: if labels require labels to be already set
+            slist, err = self.user_opts.get_type_list(int, opt=opt, verb=0)
+            if err:
+                # see if they are labels
+                slist, err = self.user_opts.get_string_list(opt=opt)
+                if err:
+                    print '** -ordered_stimuli: need list of ints or labels'
+                    return 1
+                # see if we have labels to convert into indices
+                ilist, err = self.labels_to_indices(slist)
+                if err:
+                    print '** -ordered_stimuli requires indices or known labels'
+                    return 1
+                slist = ilist
             self.orderstim.append(slist)
             if self.verb>1: print UTIL.int_list_string(slist, '-- orderstim : ')
 
@@ -986,12 +1019,6 @@ class RandTiming:
                 self.t_digits = 3
         elif err: return 1
 
-        self.labels, err = self.user_opts.get_string_list('-stim_labels')
-        if self.labels and len(self.labels) != self.num_stim:
-            print '** error: %d stim classes but %d labels: %s' \
-                  % (self.num_stim, len(self.labels), self.labels)
-            return 1
-
         self.file_3dd_cmd, err = self.user_opts.get_string_opt('-save_3dd_cmd')
         if err: return 1
 
@@ -1011,6 +1038,24 @@ class RandTiming:
                   'offset=%g, t_gran=%g, t_digits=%d'   \
                   % (self.offset, self.t_gran, self.t_digits)
             if self.labels: print '   labels are: %s' % ', '.join(self.labels)
+
+    def labels_to_indices(self, labels, print_err=1):
+        """convert the labels list into an index list
+              - entries must be in self.labels
+           return index_list, err (0 = success)
+        """
+        if len(labels) == 0: return [], 0
+        if len(self.labels) == 0:
+           if print_err: print '** missing labels for conversion'
+           return [], 1
+        ilist = []
+        for lab in labels:
+           try: ind = self.labels.index(lab)
+           except:
+              print '** assumed label %s is not in label list' % lab
+              return [], 1
+           ilist.append(ind+1)
+        return ilist, 0
 
     def create_timing(self):
         """create stimulus timing files
