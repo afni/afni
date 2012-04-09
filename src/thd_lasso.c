@@ -433,11 +433,11 @@ ENTRY("THD_lasso_L2fit") ;
 
 #if 1
    { static int ncall=0 ;
-     if( ncall < 2 ){
+     if( ncall < 2 || ncall%10000 == 1 ){
        for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
        INFO_message("LASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
-       ncall++ ;
      }
+     ncall++ ;
    }
 #endif
 
@@ -661,11 +661,11 @@ ENTRY("THD_sqrtlasso_L2fit") ;
 
 #if 1
    { static int ncall=0 ;
-     if( ncall < 2 ){
+     if( ncall < 2 || ncall%10000 == 1 ){
        for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
        INFO_message("SQRTLASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
-       ncall++ ;
      }
+     ncall++ ;
    }
 #endif
 
