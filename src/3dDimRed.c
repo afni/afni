@@ -49,6 +49,8 @@ void DR_syntax(void)
      "                   is added to the collection of vectors to be processed at each\n"
      "                   voxel.\n"
      "\n"
+     " -input x y ...  = Alternate way to input 3D+time datasets.\n"
+     "\n"
      " -polort qq      = Detrend the time series with polynomial basis of order 'qq'\n"
      "                   prior to further processing.\n"
      "                   * You cannot use this option with '-band'!\n"
@@ -88,9 +90,12 @@ int main( int argc , char *argv[] )
    int do_despike=0 , do_vnorm=1 , do_automask=0 , do_sing=0 , polort=-1 ;
    float fbot=-666.0f, ftop=-999.9f , dt=0.0f ; int have_freq=0 ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0,nmask=0 ;
-   int nx,ny,nz,nvox , nfft=0 , rdim=0 , kk ;
+   int nx,ny,nz,nt,nvox , nfft=0 , rdim=0 , kk,ii , nbad=0 ;
+   int ndset=0,nim=0,nvim=0 , ndim=0 ;
    char *prefix="dimred" ;
-   MRI_IMARR *imarc=NULL ;
+   MRI_IMARR *imarc ;
+   XtPointer_array *dsar ;
+   THD_3dim_dataset *iset,*kset ; MRI_IMAGE *tim ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) DR_syntax() ;
 
@@ -100,14 +105,15 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dDimRed",argc,argv);
    PRINT_VERSION("3dDimRed"); AUTHOR("Uncle John's Band");
 
+   INIT_XTARR(dsar) ; INIT_IMARR(imarc) ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
      if( strcmp(argv[nopt],"-") == 0 ){ nopt++ ; continue ; }
 
      if( strcasecmp(argv[nopt],"-1Dcols") == 0 ){
        MRI_IMAGE *qim ;
-       if( ++nopt >= argc ) ERROR_exit("need an argument after -1Dcols!") ;
-       if( imarc == NULL ) INIT_IMARR(imarc) ;
+       if( ++nopt >= argc ) ERROR_exit("need an argument after %s",argv[nopt-1]) ;
+       if( argv[nopt][0] == '-' ) ERROR_exit("Illegal argument after %s",argv[nopt-1]) ;
        for( ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
          qim = mri_read_1D(argv[nopt]) ;
          if( qim == NULL ) ERROR_exit("Can't read from -1Dcols file '%s'",argv[nopt]) ;
@@ -193,19 +199,95 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-input") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("Need argument after '%s'",argv[nopt-1]);
+       if( argv[nopt][0] == '-' ) ERROR_exit("Illegal argument after '%s'",argv[nopt-1]) ;
+       for( ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
+         kset = THD_open_dataset(argv[nopt]) ;
+         if( kset == NULL ) ERROR_exit("Can't read dataset '%s'",argv[nopt]) ;
+         ADDTO_XTARR(dsar,kset) ;
+         ii = XTARR_NUM(dsar)-1 ; XTARR_IC(dsar,ii) = IC_DSET ;
+       }
+       continue ;
+     }
+
      ERROR_message("Unknown option: %s\n",argv[nopt]) ;
      suggest_best_prog_option(argv[0], argv[nopt]);
      exit(1);
 
    } /*-- end of loop over options --*/
 
+   /*--- read rest of args as input datasets ---*/
+
+   for( ; nopt < argc ; nopt++ ){
+     kset = THD_open_dataset(argv[nopt]) ;
+     if( kset == NULL ) ERROR_exit("Can't read dataset '%s'",argv[nopt]) ;
+     ADDTO_XTARR(dsar,kset) ;
+     ii = XTARR_NUM(dsar)-1 ; XTARR_IC(dsar,ii) = IC_DSET ;
+   }
+
    /*---- check stuff ----*/
 
-   if( nopt >= argc && imarc == NULL )
-     ERROR_exit("No input datasets?  What am I supposed to do?!") ;
+   ndset = XTARR_NUM(dsar) ; nim = IMARR_COUNT(imarc) ;
+   if( ndset < 2 && nim <= 0 )
+     ERROR_exit("Inadequate number of input datasets!  What am I supposed to do?!") ;
+   if( ndset == 0 && nim == 1 && IMARR_SUBIM(imarc,0)->ny == 1 )
+     ERROR_exit("Inadequate number of input 1D columns!  What am I supposed to do?!") ;
 
    if( rdim <= 0 && !do_sing )
      ERROR_exit("No output specified by either -rdim or -sing :-(") ;
+
+   /* check datasets for match */
+
+   if( ndset > 0 ){
+     iset = (THD_3dim_dataset *)XTARR_XT(dsar,0) ;
+     nx = DSET_NX(iset); ny = DSET_NY(iset); nz = DSET_NZ(iset); nvox = nx*ny*nz;
+     nt = DSET_NVALS(iset) ;
+     if( nt < 2 ){
+       ERROR_message("Dataset %s has only 1 point in the time direction!",DSET_HEADNAME(iset)) ;
+       nbad++ ;
+     }
+
+     for( kk=1 ; kk < ndset ; kk++ ){
+       kset = (THD_3dim_dataset *)XTARR_XT(dsar,kk) ;
+       if( DSET_NVOX(kset) != nvox ){
+         ERROR_message("Dataset %s has %d voxels, but first dataset has %d",
+                       DSET_HEADNAME(kset) , DSET_NVOX(kset) , nvox ) ;
+         nbad++ ;
+       }
+       if( DSET_NVALS(kset) != nt ){
+         ERROR_message("Dataset %s has %d time points, but first dataset has %d",
+                       DSET_HEADNAME(kset) , DSET_NVALS(kset) , nt ) ;
+         nbad++ ;
+       }
+     }
+   } else {
+     tim = IMARR_SUBIM(imarc,0) ;
+     nvox = 1 ; nt = tim->nx ;
+     if( nt < 2 ){
+       ERROR_message("1D file %s has only 1 time point!",tim->name) ;
+       nbad++ ;
+     }
+   }
+
+   if( nim > 0 ){
+     for( kk=0 ; kk < nim ; kk++ ){
+       tim = IMARR_SUBIM(imarc,kk) ;
+       if( tim->nx != nt ){
+         ERROR_message("1D file %s has %d time points, but should have %d",
+                       tim->name , tim->nx , nt ) ;
+         nbad++ ;
+       }
+       nvim += tim->ny ;
+     }
+   }
+
+   if( nbad > 0 )
+     ERROR_exit("Can't continue after above ERRORs") ;
+
+   ndim = ndset + nvim ;
+   if( ndim <= rdim )
+     ERROR_exit("Input dimension = %d is not bigger than output = %d",ndim,rdim) ;
 
    exit(0) ;
 }
