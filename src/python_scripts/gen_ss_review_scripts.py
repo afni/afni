@@ -486,9 +486,10 @@ g_history = """
         - look harder for motion files
         - use '3dinfo -ad3' for voxel resolution (so no negatives)
         - use 3 decimal places for TR censor fractions
+   0.18 Apr 12, 2012: replace enumerate(), for backport to python 2.2
 """
 
-g_version = "gen_ss_review_scripts.py version 0.17, March 21, 2012"
+g_version = "gen_ss_review_scripts.py version 0.18, April 12, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -636,7 +637,8 @@ class MyInterface:
       # ------------------------------------------------------------
       # process options sequentially, to make them like a script
       errs = 0
-      for oind, opt in enumerate(uopts.olist):
+      for oind in range(len(uopts.olist)):
+         opt = uopts.olist[oind]
          uvar = opt.name[1:]
 
          # check for anything to skip
