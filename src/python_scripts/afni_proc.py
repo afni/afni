@@ -329,9 +329,11 @@ g_history = """
     3.14 Mar 21, 2012:
         - use run_lengths list for TRs per run
         - removed path from external motion file
+    3.15 Apr 12, 2012: back port to python 2.2
+        - thanks to L Broster for noting 2.2 problems
 """
 
-g_version = "version 3.14, March 21, 2012"
+g_version = "version 3.15, April 12, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Mar 2012"
