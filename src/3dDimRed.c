@@ -4,7 +4,9 @@
 #include <omp.h>
 #endif
 
-void DR_help(void)
+/*----------------------------------------------------------------------------*/
+
+void DR_syntax(void)
 {
    printf(
      "Program 3dDimRed does 'dimensional reduction' on a collection of input 3D+time\n"
@@ -21,11 +23,6 @@ void DR_help(void)
      "input 3D+time dataset, and so forth.  All input datasets must be on the\n"
      "same 3D+time grid, and there must be at least 2 input datasets.\n"
      "\n"
-     "Input datasets can actually be 3D+time datasets, or can be 1D files with\n"
-     "a single column; 1D files with multiple columns are treated as datasets,\n"
-     "where each ROW is a voxel (and so the time dimension is along each row,\n"
-     "not down each column).\n"
-     "\n"
      "--------\n"
      "OPTIONS:\n"
      "--------\n"
@@ -36,15 +33,21 @@ void DR_help(void)
      "                   * If 'rr' is set to 0, or is not given, then no output\n"
      "                     3D+time datasets will be produced!\n"
      "\n"
-     " -rprefix pp     = The string 'pp' is the root prefix for the output datasets.\n"
+     " -prefix pp     =  The string 'pp' is the root prefix for the output datasets.\n"
      "                   The first one will get the prefix 'pp_001', etc.\n"
-     "                   * If '-rprefix' is not given, then the default root prefix\n"
+     "                   * If '-prefix' is not given, then the default root prefix\n"
      "                     is 'dimred'.\n"
      "\n"
      " -sing           = Save the singular values at each voxel into a dataset with\n"
      "                   prefix 'pp_sing', where 'pp' is the root prefix.\n"
      "                   * If this option is not given, the singular values are not\n"
      "                     saved.\n"
+     "\n"
+     " -1Dcols a b ... = This option lets you specify some extra time series to be\n"
+     "                   included in the dimension reduction, which are fixed for each\n"
+     "                   input voxel.  Each column of each 1D file following '-1Dcols'\n"
+     "                   is added to the collection of vectors to be processed at each\n"
+     "                   voxel.\n"
      "\n"
      " -polort qq      = Detrend the time series with polynomial basis of order 'qq'\n"
      "                   prior to further processing.\n"
@@ -65,7 +68,144 @@ void DR_help(void)
      " -despike        = Despike each input time series before other processing.\n"
      "                   * Hopefully, you don't need to do this, which is why it\n"
      "                     is optional.\n"
+     "\n"
+     " -novnorm        = By default, just before the SVD, each time series vector is\n"
+     "                   normalized to L2 magnitude 1.  Use '-novnorm' to turn this\n"
+     "                   step off.\n"
+     "\n"
+     " -mask mset      = Mask dataset\n"
+     " -automask       = Create mask from first input dataset\n"
    ) ;
    PRINT_AFNI_OMP_USAGE("3dDimRed",NULL) ;
    PRINT_COMPILE_DATE ; exit(0) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int main( int argc , char *argv[] )
+{
+   int nopt=1 , verb=1 ;
+   int do_despike=0 , do_vnorm=1 , do_automask=0 , do_sing=0 , polort=-1 ;
+   float fbot=-666.0f, ftop=-999.9f , dt=0.0f ; int have_freq=0 ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0,nmask=0 ;
+   int nx,ny,nz,nvox , nfft=0 , rdim=0 , kk ;
+   char *prefix="dimred" ;
+   MRI_IMARR *imarc=NULL ;
+
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) DR_syntax() ;
+
+   /*-- startup --*/
+
+   mainENTRY("3dDimRed"); machdep();
+   AFNI_logger("3dDimRed",argc,argv);
+   PRINT_VERSION("3dDimRed"); AUTHOR("Uncle John's Band");
+
+   while( nopt < argc && argv[nopt][0] == '-' ){
+
+     if( strcmp(argv[nopt],"-") == 0 ){ nopt++ ; continue ; }
+
+     if( strcasecmp(argv[nopt],"-1Dcols") == 0 ){
+       MRI_IMAGE *qim ;
+       if( ++nopt >= argc ) ERROR_exit("need an argument after -1Dcols!") ;
+       if( imarc == NULL ) INIT_IMARR(imarc) ;
+       for( ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
+         qim = mri_read_1D(argv[nopt]) ;
+         if( qim == NULL ) ERROR_exit("Can't read from -1Dcols file '%s'",argv[nopt]) ;
+         mri_add_name(argv[nopt],qim) ;
+         ADDTO_IMARR(imarc,qim) ;
+       }
+       continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-rdim") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need an argument after -rdim!") ;
+       rdim = (int)strtod(argv[nopt],NULL) ;
+       if( rdim <= 0 )
+         WARNING_message("-rdim value means no output time series datasets") ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-despike") == 0 ){
+       do_despike++ ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-sing") == 0 ){
+       do_sing++ ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-prefix") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need an argument after -prefix!") ;
+       prefix = strdup(argv[nopt]) ;
+       if( !THD_filename_ok(prefix) ) ERROR_exit("bad -prefix option!") ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-automask") == 0 ){
+       if( mask != NULL ) ERROR_exit("Can't use -mask AND -automask!") ;
+       do_automask = 1 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-mask") == 0 ){
+       THD_3dim_dataset *mset ;
+       if( ++nopt >= argc ) ERROR_exit("Need argument after '-mask'") ;
+       if( mask != NULL || do_automask ) ERROR_exit("Can't have two mask inputs") ;
+       mset = THD_open_dataset( argv[nopt] ) ;
+       CHECK_OPEN_ERROR(mset,argv[nopt]) ;
+       DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
+       mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
+       mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
+       if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[nopt]) ;
+       nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
+       if( verb ) INFO_message("Number of voxels in mask = %d",nmask) ;
+       if( nmask < 1 ) ERROR_exit("Mask is too small to process") ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-novnorm") == 0 ){
+       do_vnorm = 0 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-quiet") == 0 ){
+       verb = 0 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-dt") == 0 || strcasecmp(argv[nopt],"-TR") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need an argument after %s",argv[nopt-1]) ;
+       dt = (float)strtod(argv[nopt],NULL) ;
+       if( dt <= 0.0f ) WARNING_message("value after %s illegal!",argv[nopt-1]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-polort") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need an argument after -polort!") ;
+       if( have_freq ) ERROR_exit("Can't use -polort and -band together!") ;
+       polort = (int)strtod(argv[nopt],NULL) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-band") == 0 ){
+       if( ++nopt >= argc-1 ) ERROR_exit("need 2 arguments after -band!") ;
+       if( polort >= 0 ) ERROR_exit("Can't use -band and -polort together!") ;
+       fbot = strtod(argv[nopt++],NULL) ;
+       ftop = strtod(argv[nopt++],NULL) ;
+       if( fbot < 0.0f || ftop <= fbot ) WARNING_message("values after -band are illegal!") ;
+       else                              have_freq = 1 ;
+       continue ;
+     }
+
+     ERROR_message("Unknown option: %s\n",argv[nopt]) ;
+     suggest_best_prog_option(argv[0], argv[nopt]);
+     exit(1);
+
+   } /*-- end of loop over options --*/
+
+   /*---- check stuff ----*/
+
+   if( nopt >= argc && imarc == NULL )
+     ERROR_exit("No input datasets?  What am I supposed to do?!") ;
+
+   if( rdim <= 0 && !do_sing )
+     ERROR_exit("No output specified by either -rdim or -sing :-(") ;
+
+   exit(0) ;
 }
