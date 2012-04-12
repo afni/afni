@@ -262,10 +262,10 @@ typedef struct {
 /*! Dynamically extendable array of XtPointer. */
 
 typedef struct {
-      int num ;          /*!< Number currently in use */
-      int nall ;         /*!< Number currently allocated */
-      XtPointer * ar ;   /*!< Array of pointers: [0..num-1] are valid */
-      int * ic ;         /*!< added 26 Mar 2001 */
+      int num ;         /*!< Number currently in use */
+      int nall ;        /*!< Number currently allocated */
+      XtPointer *ar ;   /*!< Array of pointers: [0..num-1] are valid */
+      int *ic ;         /*!< added 26 Mar 2001 */
 } XtPointer_array ;
 
 /*! Increment for extending XtPointer_array allocation */
