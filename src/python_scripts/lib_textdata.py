@@ -124,7 +124,9 @@ def read_married_file(filename, nlines = -1, verb = 1):
     lnum   = 0
     data = fp.read()
     fp.close()
-    for lind, full_line in enumerate(data.splitlines()):
+    all_lines = data.splitlines()
+    for lind in range(len(all_lines)):
+        full_line = all_lines[lind]
         if 0 <= nlines <= lnum: break   # then stop early
 
         # nuke anything after first comment, proceed with line
@@ -178,7 +180,7 @@ def married_mat_is_consistent(mmat, fname):
     if ttok: # have something to test, else empty mmat
       modlen = len(ttok[1])
       moddur = ttok[2] > 0      # have duration
-      for lind, line in enumerate(mmat):
+      for lind in range(len(mmat)):
          line = mmat[lind]
          for entry in line:
             if len(entry[1]) != modlen:
@@ -287,8 +289,9 @@ def married_type(mdata):
     """
 
     rv = 0
-    for ind, line in enumerate(mdata):
-      if len(line) > 0:
+    for lind in range(len(mdata)):
+       line = mdata[lind]
+       if len(line) > 0:
          ttok = line[0]
          if len(ttok[1]) > 0: rv |= 1   # has amp mods
          if ttok[2] > 0:      rv |= 2   # has dur mods

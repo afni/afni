@@ -135,7 +135,7 @@ class Afni1D:
       if len(self.run_len) == 0:
          if whine: print '** RIIC: ready be len(run_len) == 0!'
          return 0
-      nt = sum(self.run_len)
+      nt = UTIL.loc_sum(self.run_len)
       if nt != self.nt:
          if whine:
             print '** RIIC: nt=%d != sum of run_len: %s'%(self.nt,self.run_len)
@@ -322,7 +322,7 @@ class Afni1D:
                         for vec in self.mat]
 
       if self.verb > 1:
-         count = sum([val for val in self.mat[0] if val == 1])
+         count = UTIL.loc_sum([val for val in self.mat[0] if val == 1])
          print '++ extreme_mask: removing %d of %d vals' % (count,self.nt)
 
       return 0
@@ -352,7 +352,7 @@ class Afni1D:
                         for vec in self.mat]
 
       if self.verb > 1:
-         count = sum([val for val in self.mat[0] if val == 1])
+         count = UTIL.loc_sum([val for val in self.mat[0] if val == 1])
          print '++ moderate_mask: keeping %d of %d vals' % (count,self.nt)
 
       return 0
@@ -481,7 +481,7 @@ class Afni1D:
       # update run info
       self.nruns   = NR
       self.run_len = rlens
-      self.nt      = sum(rlens)
+      self.nt      = UTIL.loc_sum(rlens)
 
       return 0
 
@@ -1063,7 +1063,7 @@ class Afni1D:
          if not UTIL.vals_are_positive(rlens):
             print "** set_runs: non-positive run length in list: %s" % rlens
             return 1
-         if sum(rlens) != self.nt:
+         if UTIL.loc_sum(rlens) != self.nt:
             print "** set_runs: sum of run lengths != nt (%d): %s" \
                   % (self.nt, rlens)
             return 1
@@ -2037,7 +2037,7 @@ class AfniData(object):
       nruns = len(rlens)
       if nruns > 0:
          # if TR, scale it in
-         tot_dur = sum(rlens)
+         tot_dur = UTIL.loc_sum(rlens)
 
          # if nrows is too small, error -- if too big, just warn
          if tot_dur > self.nrows:
@@ -2077,7 +2077,7 @@ class AfniData(object):
       nruns = len(rlens)
       if nruns > 0:
          # if TR, scale it in
-         tot_dur = sum(rlens)
+         tot_dur = UTIL.loc_sum(rlens)
 
          if tot_dur < self.nrows:
             print "** warning for 1D file %s, more rows than TRs: %d > %d" \
@@ -2323,7 +2323,7 @@ class AfniData(object):
       else:        rlens = run_lens
 
       # note the total duration (tr == -1 implies just count TRs)
-      endoftime = sum(rlens)
+      endoftime = UTIL.loc_sum(rlens)
       if tr > 0.0: endoftime *= tr
 
       if data[-1] >= endoftime:

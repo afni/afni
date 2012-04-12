@@ -2822,7 +2822,8 @@ def db_cmd_regress(proc, block):
     if nmotion > 0:
         nlabs = len(proc.mot_labs)
         nmf = len(proc.mot_regs)
-        for findex, mfile in enumerate(proc.mot_regs):
+        for findex in range(len(proc.mot_regs)):
+            mfile = proc.mot_regs[findex]
             for ind in range(nlabs):
                 if nmf > 1: mlab = '%s_%02d' % (proc.mot_labs[ind], findex+1)
                 else:       mlab = '%s'      % (proc.mot_labs[ind])
