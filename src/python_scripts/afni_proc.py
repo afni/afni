@@ -329,7 +329,7 @@ g_history = """
     3.14 Mar 21, 2012:
         - use run_lengths list for TRs per run
         - removed path from external motion file
-    3.15 Apr 12, 2012: back port to python 2.2
+    3.15 Apr 12, 2012: backport to python 2.2
         - thanks to L Broster for noting 2.2 problems
 """
 
