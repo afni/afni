@@ -208,12 +208,12 @@ class OptionList:
         if '-optlist_verbose' in argv:
             ind = argv.index('-optlist_verbose')
             self.verb = 4
-            argv[ind:ind+1] = ''
+            argv[ind:ind+1] = []
             print '++ optlist: setting verb to %d' % self.verb
         if '-optlist_no_show_count' in argv:
             ind = argv.index('-optlist_no_show_count')
             self.show_count = 0
-            argv[ind:ind+1] = ''
+            argv[ind:ind+1] = []
             if self.verb>1: print '++ optlist: clearing show_count'
 
         if self.verb > 1:

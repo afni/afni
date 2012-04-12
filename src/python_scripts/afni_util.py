@@ -146,7 +146,8 @@ def quotize_list(list, opt_prefix='', skip_first=0, quote_wild=0,
     for qstr in list:
         prefix = ''
         if skip_first and first: first = 0       # use current (empty) prefix
-        elif qstr[0] == '-':     prefix = opt_prefix
+	elif len(qstr) == 0: pass
+        elif qstr[0] == '-': prefix = opt_prefix
 
         quotize = 0
         for q in qlist:
@@ -1832,7 +1833,8 @@ def common_parent_dirs(flists):
    if type(flists) != list:
       print '** common_parent_dirs: bad flists type'
       return None
-   for ind, flist in enumerate(flists):
+   for ind in range(len(flists)):
+      flist = flists[ind]
       if type(flist) != list:
          print '** common_parent_dirs: bad flist[%d] type' % ind
          return None, None, None, None
