@@ -95,7 +95,7 @@ int main( int argc , char *argv[] )
    char *prefix="dimred" ;
    MRI_IMARR *imarc ;
    XtPointer_array *dsar ;
-   THD_3dim_dataset *iset,*kset ; MRI_IMAGE *tim ;
+   THD_3dim_dataset *iset=NULL,*kset ; MRI_IMAGE *tim ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) DR_syntax() ;
 
@@ -237,7 +237,7 @@ int main( int argc , char *argv[] )
    if( rdim <= 0 && !do_sing )
      ERROR_exit("No output specified by either -rdim or -sing :-(") ;
 
-   /* check datasets for match */
+   /* check input datasets and/or 1D files for matches of various kinds */
 
    if( ndset > 0 ){
      iset = (THD_3dim_dataset *)XTARR_XT(dsar,0) ;
@@ -261,7 +261,7 @@ int main( int argc , char *argv[] )
          nbad++ ;
        }
      }
-   } else {
+   } else {                       /* no actual input datasets! */
      tim = IMARR_SUBIM(imarc,0) ;
      nvox = 1 ; nt = tim->nx ;
      if( nt < 2 ){
@@ -270,24 +270,127 @@ int main( int argc , char *argv[] )
      }
    }
 
-   if( nim > 0 ){
-     for( kk=0 ; kk < nim ; kk++ ){
-       tim = IMARR_SUBIM(imarc,kk) ;
-       if( tim->nx != nt ){
-         ERROR_message("1D file %s has %d time points, but should have %d",
-                       tim->name , tim->nx , nt ) ;
-         nbad++ ;
-       }
-       nvim += tim->ny ;
+   for( kk=0 ; kk < nim ; kk++ ){
+     tim = IMARR_SUBIM(imarc,kk) ;
+     if( tim->nx != nt ){
+       ERROR_message("1D file %s has %d time points, but should have %d",
+                     tim->name , tim->nx , nt ) ;
+       nbad++ ;
      }
+     nvim += tim->ny ; /* count of number of 1D time series vectors */
+   }
+
+   if( mask != NULL ){
+     if( mask_nx != nx || mask_ny != ny || mask_nz != nz ){
+       ERROR_message("-mask dataset grid doesn't match input dataset") ;
+       nbad++ ;
+     }
+   } else if( do_automask ){
+     if( ndset == 0 ){
+       ERROR_message("Can't use -automask without actual dataset inputs!") ;
+       nbad++ ;
+     } else {
+       mask = THD_automask(iset) ;
+       if( mask == NULL )
+         ERROR_message("Can't create -automask from first input dataset?") ;
+       nmask = THD_countmask( nvox , mask ) ;
+       if( verb ) INFO_message("Number of voxels in automask = %d",nmask);
+       if( nmask < 1 ){ ERROR_message("Automask is too small to process"); nbad++; }
+     }
+   } else {
+     mask = (byte *)malloc(sizeof(byte)*nvox) ; nmask = nvox ;
+     memset(mask,1,sizeof(byte)*nvox) ;
+     if( verb ) INFO_message("No mask ==> processing all %d voxels",nvox);
+   }
+
+   ndim = ndset + nvim ;  /* total number of input dimensions */
+   if( ndim <= rdim ){
+     ERROR_message("Input dimension = %d is not bigger than output = %d",ndim,rdim) ;
+     nbad++ ;
    }
 
    if( nbad > 0 )
-     ERROR_exit("Can't continue after above ERRORs") ;
+     ERROR_exit("Can't continue after above ERRORs") ;  /*** BAD USER ***/
 
-   ndim = ndset + nvim ;
-   if( ndim <= rdim )
-     ERROR_exit("Input dimension = %d is not bigger than output = %d",ndim,rdim) ;
+   /*-- assemble space for time series vectors --*/
 
    exit(0) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+#undef  INVEC
+#define INVEC(k) (inar+(k)*nt)
+
+static void preprocess_dimred( int nt , int nvv , float *inar ,
+                               int polort ,
+                               float dt , float fbot , float ftop ,
+                               int despike , int vnorm  )
+{
+   static double *pcc=NULL ;
+   static float **pref=NULL ;
+   int ii,jj,kk ; float val ;
+
+   if( nt <= 0 ){
+     if( pcc != NULL ){ free(pcc); pcc = NULL; }
+     if( pref != NULL ){
+       for( ii=0 ; ii <= polort ; ii++ ) free(pref[ii]) ;
+       free(pref) ; pref = NULL ;
+     }
+     return ;
+   }
+
+#pragma omp critical
+   { if( pcc == NULL && polort > 0 ){
+       pref = THD_build_polyref(polort+1,nt) ;
+       pcc  = startup_lsqfit( nt , NULL , polort+1 , pref ) ;
+     }
+   }
+
+   if( despike ){
+     for( kk=0 ; kk < nvv ; kk++ ) THD_despike9(nt,INVEC(kk)) ;
+   }
+
+   if( polort == 0 ){
+     for( kk=0 ; kk < nvv ; kk++ ) THD_const_detrend(nt,INVEC(kk),NULL) ;
+   } else if( polort > 0 && pcc != NULL ){
+     float *coef , *vec ;
+     for( kk=0 ; kk < nvv ; kk++ ){
+       vec = INVEC(kk) ;
+       coef = delayed_lsqfit( nt , vec , polort+1 , pref , pcc ) ;
+       if( coef != NULL ){
+         for( ii=0 ; ii < nt ; ii++ ){
+           val = vec[ii] ;
+           for( jj=0 ; jj <= polort ; jj++ ) val -= coef[jj] * pref[jj][ii] ;
+           vec[ii] = val ;
+         }
+         free(coef) ;
+       }
+     }
+   }
+
+   if( dt > 0.0f && fbot >= 0.0f && fbot < ftop ){
+     float **vvar = malloc(sizeof(float *)*nvv) ;
+     for( kk=0 ; kk < nvv ; kk++ ) vvar[kk] = INVEC(kk) ;
+     THD_bandpass_vectors( nt , nvv , vvar , dt , fbot , ftop , 2 , 0 , NULL ) ;
+     free(vvar) ;
+   }
+
+   if( vnorm ){
+     for( kk=0 ; kk < nvv ; kk++ ) THD_normalize(nt,INVEC(kk)) ;
+   }
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_dimred( MRI_IMAGE *inim , int nfixed , float dt , int rdim ,
+                        int polort , float fbot , float ftop ,
+                        int despike , int vnorm                )
+{
+   int nt , nv , kk , ii ;
+   float *inar , *vv ;
+
+   nt = inim->nx ; nv = inim->ny ; inar = MRI_FLOAT_PTR(inim) ;
 }
