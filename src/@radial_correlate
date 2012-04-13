@@ -109,6 +109,13 @@ if ( $#dset_list < 1 ) then
    exit
 endif
 
+# note view
+set view = `3dinfo -av_space $dset_list[1]`
+if ( $status ) then
+   echo "** cannot determine view in $dset_list[1]"
+   exit
+endif
+
 # ----------------------------------------------------------------------
 # make results dir, enter it and nuke old results
 
@@ -179,15 +186,15 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
    # ----------------------------------------
    # nuke pre-SS TRs and generate a mask
-   if ( $do_corr == 'yes' ) 3dAutomask -q -prefix $mset $eset+orig
-   set nmask = `3dBrickStat -non-zero -count $mset+orig`
+   if ( $do_corr == 'yes' ) 3dAutomask -q -prefix $mset $eset$view
+   set nmask = `3dBrickStat -non-zero -count $mset$view`
 
-   if ( $do_corr == 'yes' && -f tt.scale1+orig.HEAD ) \rm -f tt.*
+   if ( $do_corr == 'yes' && -f tt.scale1$view.HEAD ) \rm -f tt.*
 
    # ----------------------------------------
    # compute the correlation dataset, either with the average scaled
    # time series or within the given sphere radius
-   # (in either case, result is $cset+orig)
+   # (in either case, result is $cset$view)
 
    if ( $do_corr == 'yes' ) then
       echo ""
@@ -196,22 +203,22 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
       if ( $sphere_rad != 0 ) then
            set rad = $sphere_rad
-           3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset+orig \
-                  -stat mean -prefix sphere.mean.$rad.$index $eset+orig
-           3dTcorrelate -prefix $cset $eset+orig sphere.mean.$rad.$index+orig
+           3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset$view \
+                  -stat mean -prefix sphere.mean.$rad.$index $eset$view
+           3dTcorrelate -prefix $cset $eset$view sphere.mean.$rad.$index$view
       else
          # get a demeaned and scaled dataset (so sumsq = 1)
-         3dTstat -mean -datum float -prefix $prefix.mean $eset+orig
-         3dcalc -a $eset+orig -b $prefix.mean+orig -c $mset+orig \
+         3dTstat -mean -datum float -prefix $prefix.mean $eset$view
+         3dcalc -a $eset$view -b $prefix.mean$view -c $mset$view \
                 -expr 'c*(a-b)/b' -datum float -prefix tt.scale1
-         3dTstat -sos -datum float -prefix tt.sos tt.scale1+orig
-         3dcalc -a tt.scale1+orig -b tt.sos+orig -c $mset+orig   \
+         3dTstat -sos -datum float -prefix tt.sos tt.scale1$view
+         3dcalc -a tt.scale1$view -b tt.sos$view -c $mset$view   \
                  -expr 'c*a/sqrt(b)' -prefix $sset
 
-         3dmaskave -quiet -mask $mset+orig $sset+orig > $prefix.mean_signal.1D
+         3dmaskave -quiet -mask $mset$view $sset$view > $prefix.mean_signal.1D
 
-         3dTcorr1D -mask $mset+orig -pearson -prefix $cset \
-                 $sset+orig $prefix.mean_signal.1D
+         3dTcorr1D -mask $mset$view -pearson -prefix $cset \
+                 $sset$view $prefix.mean_signal.1D
       endif
    endif
 
@@ -224,22 +231,22 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    # threshold correlations via either cthresh or at the percentile
    set thr = $cthresh
    if ( $thr == 0 ) then
-      set thr = `3dBrickStat -mask $mset+orig -positive         \
+      set thr = `3dBrickStat -mask $mset$view -positive         \
                 -percentile $percentile 1 $percentile           \
-                $cset+orig | awk '{print $2}'`
+                $cset$view | awk '{print $2}'`
    endif
    set thr_list = ( $thr_list $thr )
 
    if ( $do_corr == 'yes' ) then
       3dclust -quiet -nosum -2thresh -10 $thr -dxyz=1 1.01 10 \
-              $cset+orig > $prefix.clust.txt
+              $cset$view > $prefix.clust.txt
    endif
 
    set maxsize = `head -n 1 $prefix.clust.txt    \
                   | grep -v 'NO CLUSTERS' | awk '{print $1}'`
 
    if ( $maxsize == "" ) then
-      echo "-- max clust @ thresh $thr in $cset+orig : no clusters"
+      echo "-- max clust @ thresh $thr in $cset$view : no clusters"
       set res_list = ( $res_list 0 )
       set frac_list = ( $frac_list 0 )
       continue
@@ -249,7 +256,7 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    set frac = `ccalc $maxsize.0/$nmask`
 
    echo "------------------------------------------------------------"
-   echo "-- max clust @ thresh $thr in $cset+orig : $maxsize"
+   echo "-- max clust @ thresh $thr in $cset$view : $maxsize"
    echo "   fraction of mask volume ($nmask) : $frac"
 
    # check for min threshold

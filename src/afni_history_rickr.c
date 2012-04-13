@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, APR, 2012, RCR, "@radial_correlate.py", MICRO, TYPE_ENHANCE,
+   "accept +tlrc datasets",
+   NULL
+ } ,
+
  { 12, APR, 2012, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
    "backport to python 2.2",
    NULL
