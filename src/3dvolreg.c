@@ -1486,9 +1486,9 @@ void VL_syntax(void)
     "                    _DXZZ = x*x*z   _DYYZ = y*y*z  _DYZZ = y*z*z  _DXYZ = x*y*z\n"
     "                  and are intended for use in regressing out per-voxel\n"
     "                  movements at a higher order (currently under construction).\n"
-    "               ** To be precise, by 'x*x' and 'x*x*x', I actually mean
-    "                    Pleg2(x) = 1.5*x*x-0.5     = 2nd order Legendre polynomial
-    "                    Pleg3(x) = (2.5*x*x-1.5)*x = 3rd order Legendre polynomial
+    "               ** To be precise, by 'x*x' and 'x*x*x', I actually mean\n"
+    "                    Pleg2(x) = 1.5*x*x-0.5     = 2nd order Legendre polynomial\n"
+    "                    Pleg3(x) = (2.5*x*x-1.5)*x = 3rd order Legendre polynomial\n"
     "               ** Also, '-SAVEDISP' will cause all 19 output datasets to be\n"
     "                  normalized, with the mean and linear trend removed, and then\n"
     "                  scaled so that the peak absolute value in each voxel's time\n"
@@ -2690,7 +2690,7 @@ void VL_normalize_timeseries( THD_3dim_dataset *dset )
 #define Pleg2(x) (1.5f*(x)*(x)-0.5f)
 #define Pleg3(x) ((2.5f*(x)*(x)-1.5f)*(x))
 
-#undef  Pleg(n,x)
+#undef  Pleg
 #define Pleg(n,x) ( ((n)==0) ? 1 : ((n)==1) ? (x) : ((n)==2) ? Pleg2(x) : Pleg3(x) )
 
 void * VL_create_disprod( THD_3dim_dataset *tdset ,
