@@ -98,11 +98,11 @@ ENTRY("THD_dset_to_vectim") ;
 /*--------------------------------------------------------------------------*/
 
 MRI_vectim * THD_dset_to_vectim_byslice( THD_3dim_dataset *dset, byte *mask ,
-                                         int kzbot , int kztop               )
+                                         int ignore , int kzbot , int kztop  )
 {
    byte *mmm ;
    MRI_vectim *mrv=NULL ;
-   int kk,iv , nvals , nvox , nmask , nx,ny,nz,nxy ;
+   int kk,iv , nvals , nvox , nmask , nxy , nz ;
 
 ENTRY("THD_dset_to_vectim_byslice") ;
 
@@ -112,13 +112,13 @@ ENTRY("THD_dset_to_vectim_byslice") ;
    nvals = DSET_NVALS(dset) ; if( nvals <= 0 ) RETURN(NULL) ;
    nvox  = DSET_NVOX(dset) ;
 
-   nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nxy = nx*ny ; nz = DSET_NZ(dset) ;
+   nxy = DSET_NX(dset) * DSET_NY(dset) ; nz = DSET_NZ(dset) ;
 
    if( kzbot <  0  ) kzbot = 0 ;
    if( kztop >= nz ) kztop = nz-1 ;
    if( kztop < kzbot ) RETURN(NULL) ;
    if( kzbot == 0 && kztop == nz-1 ){
-     mrv = THD_dset_to_vectim( dset , mask, 0 ) ; RETURN(mrv) ;
+     mrv = THD_dset_to_vectim( dset , mask, ignore ) ; RETURN(mrv) ;
    }
 
    /* make a mask that includes cutting out un-desirable slices */
@@ -134,42 +134,10 @@ ENTRY("THD_dset_to_vectim_byslice") ;
        memset( mmm+(kztop+1)*nxy , 0 , sizeof(byte)*(nz-1-kztop)*nxy ) ;
    }
 
-   nmask = THD_countmask( nvox , mmm ) ;  /* number to keep */
-   if( nmask < 1 ){ free(mmm) ; RETURN(NULL); }
+   /* and make the vectim using the standard function */
 
-   mrv = (MRI_vectim *)malloc(sizeof(MRI_vectim)) ;
-
-   mrv->nvec   = nmask ;
-   mrv->nvals  = nvals ;
-   mrv->ignore = 0 ;
-   mrv->ivec   = (int *)malloc(sizeof(int)*nmask) ;
-   if( mrv->ivec == NULL ){
-     ERROR_message("THD_dset_to_vectim: out of memory") ;
-     free(mrv) ; free(mmm) ; RETURN(NULL) ;
-   }
-   mrv->fvec  = (float *)malloc(sizeof(float)*nmask*nvals) ;
-   if( mrv->fvec == NULL ){
-     ERROR_message("THD_dset_to_vectim: out of memory") ;
-     free(mrv->ivec) ; free(mrv) ; free(mmm) ; RETURN(NULL) ;
-   }
-
-   /* store desired voxel time series */
-
-   for( kk=iv=0 ; iv < nvox ; iv++ ){
-     if( mmm[iv] ) mrv->ivec[kk++] = iv ;  /* build index list */
-   }
-
-   THD_extract_many_arrays( nmask , mrv->ivec , dset , mrv->fvec ) ;
-
-   mrv->nx = DSET_NX(dset) ; mrv->dx = fabs(DSET_DX(dset)) ;
-   mrv->ny = DSET_NY(dset) ; mrv->dy = fabs(DSET_DY(dset)) ;
-   mrv->nz = DSET_NZ(dset) ; mrv->dz = fabs(DSET_DZ(dset)) ;
-
-   DSET_UNMSEC(dset) ; mrv->dt = DSET_TR(dset) ;
-   if( mrv->dt <= 0.0f ) mrv->dt = 1.0f ;
-
+   mrv = THD_dset_to_vectim( dset , mmm , ignore ) ;
    free(mmm) ;
-   VECTIM_scan(mrv) ;
    RETURN(mrv) ;
 }
 

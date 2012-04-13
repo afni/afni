@@ -4405,7 +4405,7 @@ extern int THD_vectim_ifind( int iv , MRI_vectim *mrv ) ;
 extern int bsearch_int( int tt , int nar , int *ar ) ;
 extern void THD_vectim_to_dset( MRI_vectim *mrv , THD_3dim_dataset *dset ) ;
 extern MRI_vectim * THD_dset_to_vectim_byslice( THD_3dim_dataset *dset, byte *mask ,
-                                                int kzbot , int kztop               ) ;
+                                                int ignore , int kzbot , int kztop  ) ;
 
 extern void mri_blur3D_vectim( MRI_vectim *vim , float fwhm ) ;
 extern void THD_vectim_normalize( MRI_vectim *mrv ) ;

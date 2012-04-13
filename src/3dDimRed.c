@@ -4,6 +4,36 @@
 #include <omp.h>
 #endif
 
+/*----------------------------- macros and prototypes ------------------------*/
+
+#undef  DR_workspace
+#define DR_workspace(na,nb) (double *)malloc(sizeof(double)*(na)*(nb))
+
+void vec_dimred( int nt , int nv , int nfixed , float *inar , int rdim ,
+                 int polort , float dt , float fbot , float ftop ,
+                 int despike , int vnorm ,
+                 double *ws , float *umm , float *svv  ) ;
+
+void preproc_dimred( int nt , int nvv , float *inar ,
+                     int polort ,
+                     float dt , float fbot , float ftop ,
+                     int despike , int vnorm  ) ;
+
+/*----------------------------------------------------------------------------*/
+
+static char *tempfnam = NULL ;  /* for -byslice temp storage */
+static FILE *tempfile = NULL ;
+
+static void DR_atexit(void) /*-- called by exit(): delete tempfile --*/
+{
+   if( tempfile != NULL ){ fclose(tempfile) ; tempfile = NULL ; }
+   if( tempfnam != NULL ){
+     INFO_message("Deleting -byslice file %s",tempfnam) ;
+     remove(tempfnam) ; tempfnam = NULL ;
+   }
+   return ;
+}
+
 /*----------------------------------------------------------------------------*/
 
 void DR_syntax(void)
@@ -77,6 +107,12 @@ void DR_syntax(void)
      "\n"
      " -mask mset      = Mask dataset\n"
      " -automask       = Create mask from first input dataset\n"
+     "\n"
+     " -byslice        = 3dDimRed can take up a lot of memory.  This option lets\n"
+     "                   you cut down on that by having it operate one slice at\n"
+     "                   time.  The downside is more disk I/O.\n"
+     "                   * '-byslice' alone means to operate 1 slice at a time.\n"
+     "                   * '-byslice 4' means to operate 4 slices at a time, etc.\n"
    ) ;
    PRINT_AFNI_OMP_USAGE("3dDimRed",NULL) ;
    PRINT_COMPILE_DATE ; exit(0) ;
@@ -91,7 +127,7 @@ int main( int argc , char *argv[] )
    float fbot=-666.0f, ftop=-999.9f , dt=0.0f ; int have_freq=0 ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0,nmask=0 ;
    int nx,ny,nz,nt,nvox , nfft=0 , rdim=0 , kk,ii , nbad=0 ;
-   int ndset=0,nim=0,nvim=0 , ndim=0 ;
+   int ndset=0,nim=0,nvim=0 , ndim=0 , byslice=0 ;
    char *prefix="dimred" ;
    MRI_IMARR *imarc ;
    XtPointer_array *dsar ;
@@ -131,6 +167,15 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-byslice") == 0 ){
+       if( ++nopt < argc && isdigit(argv[nopt][0]) ){
+         byslice = (int)strtod(argv[nopt++],NULL) ;
+       } else {
+         byslice = 1 ;
+       }
+       nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-despike") == 0 ){
        do_despike++ ; nopt++ ; continue ;
      }
@@ -163,7 +208,7 @@ int main( int argc , char *argv[] )
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[nopt]) ;
        nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        if( verb ) INFO_message("Number of voxels in mask = %d",nmask) ;
-       if( nmask < 1 ) ERROR_exit("Mask is too small to process") ;
+       if( nmask < 1 ) ERROR_exit("Mask is empty: nothing to process :-(") ;
        nopt++ ; continue ;
      }
 
@@ -268,6 +313,10 @@ int main( int argc , char *argv[] )
        ERROR_message("1D file %s has only 1 time point!",tim->name) ;
        nbad++ ;
      }
+     if( mask != NULL ){
+       WARNING_message("skipping -mask since no 3D+time datasets were input") ;
+       free(mask) ; mask = NULL ;
+     }
    }
 
    for( kk=0 ; kk < nim ; kk++ ){
@@ -287,20 +336,21 @@ int main( int argc , char *argv[] )
      }
    } else if( do_automask ){
      if( ndset == 0 ){
-       ERROR_message("Can't use -automask without actual dataset inputs!") ;
-       nbad++ ;
+       WARNING_message("ignoring -automask since no 3D+time datasets were input") ;
      } else {
        mask = THD_automask(iset) ;
-       if( mask == NULL )
-         ERROR_message("Can't create -automask from first input dataset?") ;
+       if( mask == NULL ){
+         ERROR_message("Can't create -automask from first input dataset?") ; nbad++ ;
+       }
        nmask = THD_countmask( nvox , mask ) ;
        if( verb ) INFO_message("Number of voxels in automask = %d",nmask);
        if( nmask < 1 ){ ERROR_message("Automask is too small to process"); nbad++; }
      }
-   } else {
+   }
+   if( mask == NULL ){
      mask = (byte *)malloc(sizeof(byte)*nvox) ; nmask = nvox ;
      memset(mask,1,sizeof(byte)*nvox) ;
-     if( verb ) INFO_message("No mask ==> processing all %d voxels",nvox);
+     if( verb && nvox > 1 ) INFO_message("No mask ==> processing all %d voxels",nvox);
    }
 
    ndim = ndset + nvim ;  /* total number of input dimensions */
@@ -312,7 +362,31 @@ int main( int argc , char *argv[] )
    if( nbad > 0 )
      ERROR_exit("Can't continue after above ERRORs") ;  /*** BAD USER ***/
 
+   /*---- create temp file for usufruct of byslice -----*/
+
+   if( byslice > 0 && (ndset == 0 || byslice >= nz) ) byslice = 0 ;
+
+   if( byslice > 0 ){
+     tempfnam    = UNIQ_idcode() ;
+     tempfnam[0] = 'D' ; tempfnam[1] = 'R' ; tempfnam[2] = 'X' ;
+     tempfile    = fopen( tempfnam , "w+b" ) ;
+     INFO_message("Creating -byslice temporary file %s",tempfnam) ;
+     atexit(DR_atexit) ;
+   }
+
+   set_svd_sort(-1) ;
+
    /*-- assemble space for time series vectors --*/
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( nvox > 666 )
+ { float *tsar , *umat , *sval ; double *ws ;
+   tsar = (float *)malloc(sizeof(float)*nt*ndim) ;  /* input vectors */
+   umat = (float *)malloc(sizeof(float)*nt*rdim) ;  /* output vectors */
+   sval = (float *)malloc(sizeof(float)*ndim) ;     /* output singular values */
+   ws   = DR_workspace(nt,ndim) ;
+ }
+ AFNI_OMP_END ;
 
    exit(0) ;
 }
@@ -322,23 +396,29 @@ int main( int argc , char *argv[] )
 #undef  INVEC
 #define INVEC(k) (inar+(k)*nt)
 
-static void preprocess_dimred( int nt , int nvv , float *inar ,
-                               int polort ,
-                               float dt , float fbot , float ftop ,
-                               int despike , int vnorm  )
+void preproc_dimred( int nt , int nvv , float *inar ,
+                     int polort ,
+                     float dt , float fbot , float ftop ,
+                     int despike , int vnorm  )
 {
-   static double *pcc=NULL ;
+   static double *pcc=NULL ;   /* for polort detrending */
    static float **pref=NULL ;
-   int ii,jj,kk ; float val ;
+   int ii,jj,kk ;
 
-   if( nt <= 0 ){
-     if( pcc != NULL ){ free(pcc); pcc = NULL; }
-     if( pref != NULL ){
-       for( ii=0 ; ii <= polort ; ii++ ) free(pref[ii]) ;
-       free(pref) ; pref = NULL ;
+   /*-- cleanup the trash call? --*/
+
+#pragma omp critical
+   { if( nt <= 0 ){
+       if( pcc != NULL ){ free(pcc); pcc = NULL; }
+       if( pref != NULL ){
+         for( ii=0 ; ii <= polort ; ii++ ) free(pref[ii]) ;
+         free(pref) ; pref = NULL ;
+       }
      }
-     return ;
    }
+   if( nt <= 0 || nvv <= 0 ) return ;
+
+   /*-- first time in: create polort detrending stuff? --*/
 
 #pragma omp critical
    { if( pcc == NULL && polort > 0 ){
@@ -347,27 +427,32 @@ static void preprocess_dimred( int nt , int nvv , float *inar ,
      }
    }
 
+   /*-- despike? --*/
+
    if( despike ){
      for( kk=0 ; kk < nvv ; kk++ ) THD_despike9(nt,INVEC(kk)) ;
    }
 
+   /*-- polort detrend? --*/
+
    if( polort == 0 ){
      for( kk=0 ; kk < nvv ; kk++ ) THD_const_detrend(nt,INVEC(kk),NULL) ;
    } else if( polort > 0 && pcc != NULL ){
-     float *coef , *vec ;
+     float *coef , *vec , *pr , cf ;
      for( kk=0 ; kk < nvv ; kk++ ){
-       vec = INVEC(kk) ;
+       vec  = INVEC(kk) ;
        coef = delayed_lsqfit( nt , vec , polort+1 , pref , pcc ) ;
        if( coef != NULL ){
-         for( ii=0 ; ii < nt ; ii++ ){
-           val = vec[ii] ;
-           for( jj=0 ; jj <= polort ; jj++ ) val -= coef[jj] * pref[jj][ii] ;
-           vec[ii] = val ;
+         for( jj=0 ; jj <= polort ; jj++ ){
+           cf = coef[jj] ; pr = pref[jj] ;
+           for( ii=0 ; ii < nt ; ii++ ) vec[ii] -= cf * pr[ii] ;
          }
          free(coef) ;
        }
      }
    }
+
+   /*-- bandpass? --*/
 
    if( dt > 0.0f && fbot >= 0.0f && fbot < ftop ){
      float **vvar = malloc(sizeof(float *)*nvv) ;
@@ -375,6 +460,8 @@ static void preprocess_dimred( int nt , int nvv , float *inar ,
      THD_bandpass_vectors( nt , nvv , vvar , dt , fbot , ftop , 2 , 0 , NULL ) ;
      free(vvar) ;
    }
+
+   /*-- L2 normalize? --*/
 
    if( vnorm ){
      for( kk=0 ; kk < nvv ; kk++ ) THD_normalize(nt,INVEC(kk)) ;
@@ -384,13 +471,40 @@ static void preprocess_dimred( int nt , int nvv , float *inar ,
 }
 
 /*----------------------------------------------------------------------------*/
+/* assume the first nfixed vectors are already pre-processed */
 
-MRI_IMAGE * mri_dimred( MRI_IMAGE *inim , int nfixed , float dt , int rdim ,
-                        int polort , float fbot , float ftop ,
-                        int despike , int vnorm                )
+void vec_dimred( int nt , int nv , int nfixed , float *inar , int rdim ,
+                 int polort , float dt , float fbot , float ftop ,
+                 int despike , int vnorm ,
+                 double *ws , float *umm , float *svv  )
 {
-   int nt , nv , kk , ii ;
-   float *inar , *vv ;
+   int ntv=nt*nv , ntr=nt*rdim , ii ;
+   float *vv ;
+   double *wss , *amat , *sval , *umat ;
+   MRI_IMAGE *outim ; float *outar ;
 
-   nt = inim->nx ; nv = inim->ny ; inar = MRI_FLOAT_PTR(inim) ;
+   if( umm == NULL && svv == NULL ) return ;  /* WTF? */
+
+   preproc_dimred( nt , nv-nfixed , inar+nfixed*nt ,
+                   polort , dt,fbot,ftop , despike , vnorm ) ;
+
+   wss = ws ; if( wss == NULL ) wss = DR_workspace(nt,nv) ;
+
+   amat = wss ;
+   umat = amat + nt*nv ;
+   sval = umat + nt*nv ;
+
+   for( ii=0 ; ii < ntv ; ii++ ) amat[ii] = (double)inar[ii] ;
+
+   svd_double( nt , nv , amat , sval , umat , NULL ) ;
+
+   if( umm != NULL ){
+     for( ii=0 ; ii < ntr ; ii++ ) umm[ii] = (float)umat[ii] ;
+   }
+   if( svv != NULL ){
+     for( ii=0 ; ii < nv ; ii++ ) svv[ii] = (float)sval[ii] ;
+   }
+
+   if( wss != ws ) free(wss) ;
+   return ;
 }
