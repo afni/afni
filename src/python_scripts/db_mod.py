@@ -2589,6 +2589,14 @@ def db_mod_regress(block, proc, user_opts):
         if bopt: bopt.parlist = uopt.parlist
         else:    block.opts.add_opt(oname, 1, uopt.parlist, setpar=1)
 
+    # maybe do bandpass filtering in the regression
+    oname = '-regress_bandpass'
+    uopt = user_opts.find_opt(oname)
+    bopt = block.opts.find_opt(oname)
+    if uopt:
+        if bopt: bopt.parlist = uopt.parlist
+        else:    block.opts.add_opt(oname, 1, uopt.parlist, setpar=1)
+
     # prepare to return
     if errs > 0:
         block.valid = 0
@@ -2682,6 +2690,13 @@ def db_cmd_regress(proc, block):
         if newcmd: cmd = cmd + newcmd
 
     # ----------------------------------------
+    # bandpass?
+    if block.opts.find_opt('-regress_bandpass'):
+        err, newcmd = db_cmd_regress_bandpass(proc, block)
+        if err: return
+        if newcmd: cmd = cmd + newcmd
+
+    # ----------------------------------------
     # possibly use a mask
     if proc.mask and proc.regmask:
         mask = '    -mask %s%s' % (proc.mask.prefix, proc.view)
@@ -2726,15 +2741,22 @@ def db_cmd_regress(proc, block):
     if proc.censor_file: censor_str = '    -censor %s' % proc.censor_file
     else:                censor_str = ''
 
+    # check for regress_orts lines
+    reg_orts = []
+    for ort in proc.regress_orts:
+       reg_orts.append('    -ortvec %s %s' % (ort[0], ort[1]))
+
     # make actual 3dDeconvolve command as string c3d:
     #    init c3d, add O3dd elements, finalize c3d
     #    (O3dd = list of 3dd option lines, which may need an extra indent)
 
     O3dd = ['%s3dDeconvolve -input %s' % (istr, proc.prev_dset_form_wild()),
-            censor_str,
-            '    -polort %d%s' % (polort, datum),
-            mask, normall, times_type,
-            '    -num_stimts %d' % total_nstim]
+            mask,
+            censor_str]
+    O3dd.extend(reg_orts)
+    O3dd.extend([ '    -polort %d%s' % (polort, datum),
+                  normall, times_type,
+                  '    -num_stimts %d' % total_nstim])
 
     # verify labels (now that we know the list of stimulus files)
     opt = block.opts.find_opt('-regress_stim_labels')
@@ -3382,6 +3404,59 @@ def db_cmd_regress_sfiles2times(proc, block):
     if proc.verb > 0: print '++ new stim list: %s' % proc.stims
 
     return cmd
+
+def db_cmd_regress_bandpass(proc, block):
+    """apply bandpass filtering in 3dDeconvolve
+
+         - create bandpass files per run
+         - 1dcat them
+         - note resulting file to use as regress_ortvec [file, label] pair
+
+       to be dangerous, make the code differ in complexity:
+         - if 1 run ==> 1 command
+         - else if not proc.reps_vary: small foreach loop
+         - else, more complicated loop
+
+       return an error code (0=success) and command string
+    """
+
+    # maybe we shouldn't be here
+    oname = '-regress_bandpass'
+    opt = block.opts.find_opt(oname)
+    if not opt: return 0, ''
+
+    freq, err = block.opts.get_type_list(float, opt=opt)
+    if len(freq) != 2:
+        print '** %s requires 2 parameters, low and high frequencies' % oname
+        return 1, ''
+    if freq[0] >= freq[1]:
+        print '** %s: must have low freq < high freq' % oname
+        return 1, ''
+
+    bfile = 'bandpass_rall.1D'
+    tfile = 'rm.bpass.1D'
+
+    cmd = '# create bandpass regressors (instead of using 3dBandpass, say)\n'
+    if proc.runs != 1:
+        cmd += '# (make separate regressors per run, with all in one file)\n'
+
+    if proc.runs == 1: # simple case
+        cmd += '1dBport -nodata %s %s -band %g %g -invert -nozero' \
+               ' > %s\n\n' % (proc.reps, proc.tr, freq[0], freq[1], bfile)
+    else: # loop over 1dBport and 1d_tool.py
+        cmd += 'foreach index ( `count -digits 1 1 $#runs` )\n'               \
+               '    set nt = $tr_counts[$index]\n'                            \
+               '    set run = $runs[$index]\n'                                \
+               '    1dBport -nodata $nt %g -band %g %g -invert -nozero > %s\n'\
+               % (proc.tr, freq[0], freq[1], tfile)
+        cmd += '    1d_tool.py -infile %s -pad_into_many_runs $run $#runs \\\n'\
+               '               -write bpass%sr$run.1D\n'                      \
+               'end\n' % (tfile, proc.sep_char)
+        cmd += '1dcat bpass.r*1D > bandpass_rall.1D\n\n'
+
+    proc.regress_orts.append([bfile, 'bandpass'])
+
+    return 0, cmd
 
 def db_cmd_regress_motion_stuff(proc, block):
     """prepare motion parameters for regression
@@ -4096,11 +4171,11 @@ g_help_string = """
            since degrees of freedom are not such a worry, regress the motion
            parameters per-run (each run gets a separate set of 6 regressors).
 
-           The regression will use 198 regressors (all of "no interest"):
+           The regression will use 81 basic regressors (all of "no interest"),
+           with 13 retroicor regressors being removed during pre-processing:
 
                  27 baseline  regressors ( 3 per run * 9 runs)
                  54 motion    regressors ( 6 per run * 9 runs)
-                117 RETROICOR regressors (13 per run * 9 runs)
 
            To example #3, add -do_block, -ricor_* and -regress_motion_per_run.
 
@@ -4110,7 +4185,6 @@ g_help_string = """
                         -tcat_remove_first_trs 3                \\
                         -ricor_regs_nfirst 3                    \\
                         -ricor_regs sb23/RICOR/r*.slibase.1D    \\
-                        -ricor_regress_method 'per-run'         \\
                         -regress_motion_per_run
 
            If tshift, blurring and masking are not desired, consider replacing
@@ -4142,6 +4216,32 @@ g_help_string = """
                         -regress_basis 'BLOCK(30,1)'                       \\
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
+
+           Also consider adding -regress_bandpass.
+
+        5c. RETROICOR example c: censoring and bandpass filtering.
+
+           Censoring due to motion has long been considered appropriate in
+           BOLD FMRI analysis, but is less common for those doing bandpass
+           filtering in RC FMRI because the FFT requires one to either break
+           the time axis (evil) or to replace the censored data with something
+           probably inapproprate.
+
+           Instead, it is slow (no FFT, but maybe SFT :) but effective to
+           regress frequencies within the regression model, where censored is
+           simple.
+
+           To example #5, add -regress_censor_motion and -regress_bandpass.
+
+                afni_proc.py -subj_id sb23.e5a.ricor            \\
+                        -dsets sb23/epi_r??+orig.HEAD           \\
+                        -do_block despike ricor                 \\
+                        -tcat_remove_first_trs 3                \\
+                        -ricor_regs_nfirst 3                    \\
+                        -ricor_regs sb23/RICOR/r*.slibase.1D    \\
+                        -regress_motion_per_run                 \\
+                        -regress_censor_motion 0.3              \\
+                        -regress_bandpass 0.01 0.1
 
         6. A modern example.  GOOD TO CONSIDER.
 
@@ -6197,6 +6297,43 @@ g_help_string = """
             in the final regression (mostly accounting for degrees of freedom).
             But since resting state analysis relies on a subsequent correlation
             analysis, it seems cleaner not to regress them (a second time).
+
+        -regress_bandpass lowf highf : bandpass the frequency range
+
+                e.g.  -regress_bandpass 0.01 0.1
+
+            This option is intended for use in resting state analysis.
+
+            Use this option to perform bandpass filtering during the linear
+            regression.  While such an operation is slow (much slower than the
+            FFT using 3dBandpass), doing it during the regression allows one to
+            perform (e.g. motion) censoring at the same time.
+
+            This option has a similar effect to running 3dBandpass, e.g. the
+            example of '-regress_bandpass 0.01 0.1' is akin to running:
+
+                3dBandpass -ort motion.1D -band 0.01 0.1
+
+            except that it is done in 3dDeconvolve using linear regression.
+            And censoring is easy in the context of regression.
+
+            Note that the Nyquist frequency is 0.5/TR.  That means that if the
+            TR were >= 5 seconds, there would be no frequencies within the band
+            range of 0.01 to 0.1 to filter.  So there is no point to such an
+            operation.
+
+            On the flip side, if the TR is 1.0 second or shorter, the range of
+            0.01 to 0.1 would remove about 80% of the degrees of freedom (since
+            everything above 0.1 is filtered/removed, up through 0.5).  This
+            might result in a model that is overfit, where there are almost as
+            many (or worse, more) regressors than time points to fit.
+
+            So a 0.01 to 0.1 bandpass filter might make the most sense for a
+            TR in [2.0, 3.0], or so.
+
+            A different filter range would affect this, of course.
+
+            See also -regress_censor_motion_file.
 
         -regress_basis BASIS    : specify the regression basis function
 

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, APR, 2012, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "added -regress_bandpass, for bandpass filtering via regression",
+   NULL
+ } ,
+
  { 13, APR, 2012, RCR, "@radial_correlate.py", MICRO, TYPE_ENHANCE,
    "accept +tlrc datasets",
    NULL
