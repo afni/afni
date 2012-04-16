@@ -331,9 +331,10 @@ g_history = """
         - removed path from external motion file
     3.15 Apr 12, 2012: backport to python 2.2
         - thanks to L Broster for noting 2.2 problems
+    3.16 Apr 16, 2012: added -regress_bandpass, to bandpass during regression
 """
 
-g_version = "version 3.15, April 12, 2012"
+g_version = "version 3.16, April 16, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Mar 2012"
@@ -463,6 +464,7 @@ class SubjProcSream:
         self.bash_cmd   = ''            # bash formatted exec_cmd
         self.tcsh_cmd   = ''            # tcsh formatted exec_cmd
         self.regmask    = 0             # apply any full_mask in regression
+        self.regress_orts = []          # list of ortvec [file, label] pairs
         self.origview   = '+orig'       # view could also be '+tlrc'
         self.view       = '+orig'       # (starting and 'current' views)
         self.xmat       = 'X.xmat.1D'   # X-matrix file (might go uncensored)
@@ -736,6 +738,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_apply_ricor', 1, [],
                         acplist=['yes','no'],
                         helpstr="apply ricor regs in regression (def no)")
+        self.valid_opts.add_opt('-regress_bandpass', 2, [],
+                        helpstr="bandpass in this range during regression")
         self.valid_opts.add_opt('-regress_basis', 1, [],
                         helpstr="basis function to use in regression")
         self.valid_opts.add_opt('-regress_basis_multi', -1, [],

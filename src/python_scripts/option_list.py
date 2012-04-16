@@ -185,7 +185,7 @@ class OptionList:
             if verb: 
                print '** %s takes 1 or %s (%d) values, have %d: %s' % \
                   (opt_name, len_name, length, olen, ', '.join(opt.parlist))
-            return 1, 1
+            return None, 1
         try:
             tlist = map(type,opt.parlist)
         except:
