@@ -21,15 +21,15 @@ void preproc_dimred( int nt , int nvv , float *inar ,
 
 /*----------------------------------------------------------------------------*/
 
-static char *tempfnam = NULL ;  /* for -byslice temp storage */
-static FILE *tempfile = NULL ;
+static char *chnkfnam = NULL ;  /* for -chunk temp storage */
+static FILE *chnkfile = NULL ;
 
-static void DR_atexit(void) /*-- called by exit(): delete tempfile --*/
+static void DR_atexit(void) /*-- called by exit(): delete chnkfile --*/
 {
-   if( tempfile != NULL ){ fclose(tempfile) ; tempfile = NULL ; }
-   if( tempfnam != NULL ){
-     INFO_message("Deleting -byslice file %s",tempfnam) ;
-     remove(tempfnam) ; tempfnam = NULL ;
+   if( chnkfile != NULL ){ fclose(chnkfile) ; chnkfile = NULL ; }
+   if( chnkfnam != NULL ){
+     INFO_message("Deleting -chunk file %s",chnkfnam) ;
+     remove(chnkfnam) ; chnkfnam = NULL ;
    }
    return ;
 }
@@ -108,11 +108,11 @@ void DR_syntax(void)
      " -mask mset      = Mask dataset\n"
      " -automask       = Create mask from first input dataset\n"
      "\n"
-     " -byslice        = 3dDimRed can take up a lot of memory.  This option lets\n"
-     "                   you cut down on that by having it operate one slice at\n"
-     "                   time.  The downside is more disk I/O.\n"
-     "                   * '-byslice' alone means to operate 1 slice at a time.\n"
-     "                   * '-byslice 4' means to operate 4 slices at a time, etc.\n"
+     " -chunk          = 3dDimRed can use up a LOT of memory.  This option lets\n"
+     "                   you cut down on that by having it operate on the voxels\n"
+     "                   in chunks.  The downside to doing this is more disk I/O.\n"
+     "                   * '-chunk' along means do 10,000 voxels at one time.\n"
+     "                   * '-chunk 1000' means to do 1,000 voxels at one time (etc).\n"
    ) ;
    PRINT_AFNI_OMP_USAGE("3dDimRed",NULL) ;
    PRINT_COMPILE_DATE ; exit(0) ;
@@ -126,12 +126,13 @@ int main( int argc , char *argv[] )
    int do_despike=0 , do_vnorm=1 , do_automask=0 , do_sing=0 , polort=-1 ;
    float fbot=-666.0f, ftop=-999.9f , dt=0.0f ; int have_freq=0 ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0,nmask=0 ;
-   int nx,ny,nz,nt,nvox , nfft=0 , rdim=0 , kk,ii , nbad=0 ;
-   int ndset=0,nim=0,nvim=0 , ndim=0 , byslice=0 ;
+   int nx,ny,nz,nt,nvox , nfft=0 , rdim=0 , kk,ii,qq,pp , nbad=0 ;
+   int ndset=0,nim=0,nvim=0 , ndim=0 , chunk=0,ivbot,ivtop ;
    char *prefix="dimred" ;
    MRI_IMARR *imarc ;
    XtPointer_array *dsar ;
    THD_3dim_dataset *iset=NULL,*kset ; MRI_IMAGE *tim ;
+   float *cfixv=NULL , *cvect=NULL , *csave=NULL ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) DR_syntax() ;
 
@@ -167,11 +168,12 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
-     if( strcasecmp(argv[nopt],"-byslice") == 0 ){
+     if( strcasecmp(argv[nopt],"-chunk") == 0 ){
        if( ++nopt < argc && isdigit(argv[nopt][0]) ){
-         byslice = (int)strtod(argv[nopt++],NULL) ;
+         chunk = (int)strtod(argv[nopt++],NULL) ;
+         if( chunk < 666 ) chunk = 666 ;  /* Lame user */
        } else {
-         byslice = 1 ;
+         chunk = 10000 ;
        }
        nopt++ ; continue ;
      }
@@ -288,9 +290,14 @@ int main( int argc , char *argv[] )
      iset = (THD_3dim_dataset *)XTARR_XT(dsar,0) ;
      nx = DSET_NX(iset); ny = DSET_NY(iset); nz = DSET_NZ(iset); nvox = nx*ny*nz;
      nt = DSET_NVALS(iset) ;
+     if( dt <= 0.0f ) dt = DSET_TR(iset) ;
      if( nt < 2 ){
        ERROR_message("Dataset %s has only 1 point in the time direction!",DSET_HEADNAME(iset)) ;
        nbad++ ;
+     }
+     if( dt <= 0.0f && have_freq ){
+       WARNING_message("TR not present in first input dataset: using 1 s") ;
+       dt = 1.0f ;
      }
 
      for( kk=1 ; kk < ndset ; kk++ ){
@@ -362,31 +369,110 @@ int main( int argc , char *argv[] )
    if( nbad > 0 )
      ERROR_exit("Can't continue after above ERRORs") ;  /*** BAD USER ***/
 
-   /*---- create temp file for usufruct of byslice -----*/
+   /*---- create temp file for usufruct of chunk -----*/
 
-   if( byslice > 0 && (ndset == 0 || byslice >= nz) ) byslice = 0 ;
+   if( chunk > 0 && ndset == 0 ) chunk = 0 ;
 
-   if( byslice > 0 ){
-     tempfnam    = UNIQ_idcode() ;
-     tempfnam[0] = 'D' ; tempfnam[1] = 'R' ; tempfnam[2] = 'X' ;
-     tempfile    = fopen( tempfnam , "w+b" ) ;
-     INFO_message("Creating -byslice temporary file %s",tempfnam) ;
+   if( chunk > 0 && chunk < nvox ){
+     chnkfnam    = UNIQ_idcode() ;
+     chnkfnam[0] = 'D' ; chnkfnam[1] = 'R' ; chnkfnam[2] = 'X' ;
+     chnkfile    = fopen( chnkfnam , "w+b" ) ;
+     if( chnkfile == NULL )
+       ERROR_exit("Unable to create -chunk temporary file %s",chnkfnam) ;
+     INFO_message("Creating -chunk temporary file %s",chnkfnam) ;
      atexit(DR_atexit) ;
    }
 
+   if( chunk <= 0 || chunk > nvox ) chunk = nvox ;
+
    set_svd_sort(-1) ;
 
-   /*-- assemble space for time series vectors --*/
+   /*--- allocate space to hold results from one chunk ---*/
+   /*--- for each voxel, rdim vectors of length nt,    ---*/
+   /*--- plus the singular values, of length ndim.     ---*/
+
+   csave = (float *)malloc(sizeof(float)*chunk*(rdim*nt+ndim)) ;
+   if( csave == NULL )
+     ERROR_exit("Can't allocate memory for output chunk of %d voxels",chunk) ;
+
+   /* memory to hold dataset inputs from one chunk: ndset vectors of length nt */
+
+   if( ndset > 0 ){
+     cvect = (float *)malloc(sizeof(float)*chunk*nt*ndset) ;
+     if( cvect == NULL )
+       ERROR_exit("Can't allocate memory for input chunk of %d voxels",chunk) ;
+   }
+
+   /* memory for fixed vectors, and pre-process them now */
+
+   if( nvim > 0 ){
+     MRI_IMAGE *tim ; float *tar ;
+     cfixv = (float *)malloc(sizeof(float)*nt*nvim) ;
+     for( qq=kk=0 ; kk < nim ; kk++ ){
+       tim = IMARR_SUBIM(imarc,kk) ; tar = MRI_FLOAT_PTR(tim) ;
+       for( pp=0 ; pp < tim->ny ; pp++,qq++ ){
+         memcpy( cfixv+qq*nt , tar+pp*nt , sizeof(float)*nt ) ;
+       }
+     }
+     preproc_dimred( nt , nvim , cfixv ,
+                     polort , dt , fbot , ftop , do_despike , do_vnorm ) ;
+   }
+
+   /********** loop over chunks **********/
+
+   for( ivbot=0 ; ivbot < nvox ; ivbot += nchunk ){
+     ivtop = ivbot + chunk ; if( ivtop > nvox ) ivtop = nvox ;
+
+     /* extract dataset data into cvect */
+
+     for( kk=0 ; kk < ndset ; kk++ ){
+       kset = (THD_3dim_dataset *)XTARR_XT(dsar,kk) ;
+       DSET_load(kset) ;
+       if( !DSET_LOADED(kset) )
+         ERROR_exit("Can't load data from dataset %s",DSET_BRIKNAME(kset)) ;
+       for( ii=ivbot ; ii < ivtop ; ii++ )
+         THD_extract_array( ii , kset , 0 , cvect+(kk+(ii-ivbot)*ndset)*nt ) ;
+       DSET_unload(kset) ;
+     }
 
  AFNI_OMP_START ;
-#pragma omp parallel if( nvox > 666 )
- { float *tsar , *umat , *sval ; double *ws ;
-   tsar = (float *)malloc(sizeof(float)*nt*ndim) ;  /* input vectors */
-   umat = (float *)malloc(sizeof(float)*nt*rdim) ;  /* output vectors */
-   sval = (float *)malloc(sizeof(float)*ndim) ;     /* output singular values */
-   ws   = DR_workspace(nt,ndim) ;
- }
- AFNI_OMP_END ;
+#pragma omp parallel if( nvox > 66 )
+     { float *tsar , *umat , *sval ; double *ws ; int iv ;
+       tsar = (float *)malloc(sizeof(float)*nt*ndim) ;  /* input vectors */
+       umat = (float *)malloc(sizeof(float)*nt*rdim) ;  /* output vectors */
+       sval = (float *)malloc(sizeof(float)*ndim) ;     /* output singular values */
+       ws   = DR_workspace(nt,ndim) ;
+#pragma omp for
+       for( iv=ivbot ; iv < ivtop ; iv++ ){
+         /* copy fixed data into tsar */
+         if( cfixv != NULL ){
+         }
+         /* copy dataset data into tsar */
+         if( cvect != NULL ){
+         }
+         /* process it into umat and sval */
+         vec_dimred( nt , ndim , nvim , tsar , rdim ,
+                     polort , dt , fbot , ftop , do_despike , do_vnorm ,
+                     ws , umat , sval ) ;
+         /* copy umat and sval into csave */
+       }
+       free(ws) ; free(sval) ; free(umat) ; free(tsar) ;
+     } /* end of parallel-ized loop over voxels */
+     AFNI_OMP_END ;
+
+     /* if using temporary file, write csave to disk */
+
+     if( chnkfile != NULL ){
+     }
+
+   } /* end of loop over chunks of voxels */
+
+   /* create the output datasets */
+
+   /* populate the output datasets from csave
+      (if necessary, re-loaded from disk in chunks) */
+
+   if( chnkfile != NULL ) rewind(chnkfile) ;
 
    exit(0) ;
 }
