@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, APR, 2012, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "added atlas/ROI label use with <> range selectors (MCW_get_angle_range)",
+   NULL
+ } ,
+
  { 16, APR, 2012, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "added -regress_bandpass, for bandpass filtering via regression",
    NULL

@@ -159,29 +159,12 @@ ENTRY("THD_open_dataset") ;
       dset->dblk->master_top = 0.0 ;
    }
 
+   /* moved to new function that goes after labels   17 Apr 2012 [rickr] */
    if( bpt != NULL ){
-      char *dpt = strstr(bpt,"..") ;
-#if 0
-fprintf(stderr,"bpt=%s\n",bpt) ;
-#endif
-      if( dpt != NULL ){
-#if 0
-fprintf(stderr,"dpt=%s\n",dpt) ;
-#endif
-         kk  = sscanf( bpt+1 , "%f" , &bot ) ;
-         kk += sscanf( dpt+2 , "%f" , &top ) ;
-         if( kk == 2 && bot <= top ){
-            dset->dblk->master_bot = bot ;
-            dset->dblk->master_top = top ;
-         } else {
-            dset->dblk->master_bot = 1.0 ;
-            dset->dblk->master_top = 0.0 ;
-         }
-      } else {/* ZSS: Why not allow for <val> ? */
-         kk  = sscanf( bpt+1 , "%f" , &bot ) ;
-         dset->dblk->master_bot = bot ;
-         dset->dblk->master_top = bot ;
-      }
+      bot = 1.0 ; top = 0.0 ; /* in case of odd failure */
+      MCW_get_angle_range(dset, bpt, &bot, &top) ;
+      dset->dblk->master_bot = bot ;
+      dset->dblk->master_top = top ;
    }
 
    /* modify the dataset according to the selector string */

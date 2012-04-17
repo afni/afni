@@ -4027,6 +4027,8 @@ extern int * MCW_get_intlist( int , char * ) ;
 extern int * MCW_get_labels_intlist( char ** , int,  char * ); /* ZSS Dec 09 */
 extern int * MCW_get_thd_intlist( THD_3dim_dataset * , char * ); /* ZSS Dec 09 */
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
+extern int  MCW_get_angle_range(THD_3dim_dataset *, char *, float *, float *);
+
 
 /* copy a dataset, given a list of sub-bricks          [rickr] 26 Jul 2004 */
 extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
@@ -4413,8 +4415,6 @@ extern int64_t THD_vectim_size( THD_3dim_dataset *dset , byte *mask ) ;
 extern int THD_vectim_ifind( int iv , MRI_vectim *mrv ) ;
 extern int bsearch_int( int tt , int nar , int *ar ) ;
 extern void THD_vectim_to_dset( MRI_vectim *mrv , THD_3dim_dataset *dset ) ;
-extern MRI_vectim * THD_dset_to_vectim_byslice( THD_3dim_dataset *dset, byte *mask ,
-                                                int ignore , int kzbot , int kztop  ) ;
 
 extern void mri_blur3D_vectim( MRI_vectim *vim , float fwhm ) ;
 extern void THD_vectim_normalize( MRI_vectim *mrv ) ;
