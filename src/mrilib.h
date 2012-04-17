@@ -112,11 +112,13 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 #ifdef USE_OMP
 static INLINE void AAmemcpy( void *ooo , void *iii , size_t nnn )
 { register size_t jj ; register char *oar, *iar ;
+  if( ooo == NULL || iii == NULL || nnn == 0 ) return ;
   oar = (char *)ooo ; iar = (char *)iii ;
   for( jj=0 ; jj < nnn ; jj++ ) *oar++ = *iar++ ;
 }
 static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 { register size_t jj ; register char cc , *oar ;
+  if( ooo == NULL || nnn == 0 ) return ;
   oar = (char *)ooo ; cc = (char)c ;
   for( jj=0 ; jj < nnn ; jj++ ) *oar++ = cc ;
 }
