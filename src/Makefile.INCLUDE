@@ -1070,6 +1070,14 @@ mri_nstats.o:mri_nstats.c
 
 ## ------- Things to be compiled or linked with OpenMP -------
 
+3dDimRed.o: 3dDimRed.c
+	$(RM) $@
+	$(CCOMP) -c 3dDimRed.c $(INFLAGS)
+
+3dDimRed:3dDimRed.o
+	$(RM) $@
+	$(CCOMP) -o 3dDimRed 3dDimRed.o $(LFLAGS) $(LLIBS)
+
 3dSatCheck.o: 3dSatCheck.c thd_satcheck.c
 	$(RM) $@
 	$(CCOMP) -c 3dSatCheck.c $(INFLAGS)
