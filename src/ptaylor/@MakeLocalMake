@@ -1,0 +1,97 @@
+#!/bin/tcsh -f
+
+set tmp = "./___tmp_LocalMake"
+set mo = "Makefile_loc"
+
+if ( "$1" == "-h" || "$1" == "-help") then
+   goto HELP
+endif
+
+if ( "$1" == "" ) then
+   set am = "../Makefile"
+else
+   set am = $1
+endif
+
+if ( ! -f $am) then
+   echo "Makefile $am not found"
+   goto END
+endif
+ 
+#copy AFNI makefile
+cp $am $tmp
+
+if ( ! -f $tmp) then
+   echo "Could not create temp file"
+   goto END
+endif
+
+
+#remove line that includes AFNI's big makefile
+set grepres = `\grep -n 'include Makefile.INCLUDE' $tmp`
+if ( "$grepres" == "") then 
+   echo "Could not find 'include Makefile.INCLUDE'"
+   echo "Weird"
+   goto END
+endif
+set l = `echo $grepres | cut -d : -f 1`
+#echo "$l"
+
+set grepres = `\grep -n 'include Makefile.R.INCLUDE' $tmp`
+if ( "$grepres" != "") then
+   set l2 = ";`echo $grepres | cut -d : -f 1`d"
+else 
+   set l2 = ""
+endif
+
+
+sed "${l}d$l2" $tmp > $mo
+
+if ( ! -f $mo) then
+   echo "They failed"
+   goto END
+endif
+
+#append the install dir and suma include
+echo "include Makefile.ptaylor.INCLUDE" >> $mo
+
+if ( -f Makefile) then
+   set mold = Makefile.back."`date +%Y`.`date +%m`.`date +%d`"
+   mv Makefile $mold
+   echo "Moved old Makefile to $mold"
+endif
+
+if ( -f Makefile) then
+   echo "Could not move old makefile, new Makefile is called $mo"
+else
+   mv $mo Makefile
+   echo "Local Makefile created."
+endif
+
+goto END
+
+HELP:
+   echo ""
+   echo "Usage `basename $0` [AFNI_Makefile]"
+   echo "Creates a makefile in src/SUMA/ directory"
+   echo "to be used for compiling specific"
+   echo "parts of SUMA's code."
+   echo "Examples:"
+   echo "`basename $0`"
+   echo "`basename $0` ../Makefile.linux_gcc33_64"
+   echo ""
+   echo "AFNI_Makefile is the makefile used "
+   echo "to compile AFNI and SUMA from the"
+   echo "src/ directory. If not specified,"
+   echo "../Makefile is used"
+   echo ""
+   echo "The output makefile is called $mo"
+   echo "Use $mo for making things like"
+   echo "make -f $mo all"
+   echo "make -f $mo 3dSurfMask "
+   echo ""
+   goto END
+
+END:
+   rm -f ./___tmp_LocalMake >& /dev/null
+   
