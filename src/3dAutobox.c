@@ -45,7 +45,6 @@ int main( int argc , char * argv[] )
 
    /*-- startup bureaucracy --*/
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){ help_autobox(); exit(0); }
 
    mainENTRY("3dAutobox main"); machdep(); AFNI_logger("3dAutobox",argc,argv);
    PRINT_VERSION("3dAutobox") ;
@@ -89,10 +88,13 @@ int main( int argc , char * argv[] )
 
       /*- washappenin, dood? -*/
 
-      ERROR_exit("** 3dAutobox: %s makes no sense here.\n"
-                 "   I know it's you, John; stop pretending you have an accent!\n",
+      ERROR_message("** 3dAutobox: %s makes no sense here.\n",
                  argv[iarg]) ;
+      suggest_best_prog_option(argv[0], argv[iarg]);
+      exit(1);
    }
+
+   if( argc < 2){ help_autobox(); exit(0); }
 
    /* got input ? */
 

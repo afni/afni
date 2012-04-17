@@ -566,6 +566,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->CurGroupName = NULL;
       
       SV->PolyMode = SRM_Fill;
+      SV->DO_DrawMask = SDODM_All;
       
       #if SUMA_BACKFACE_CULL
          SV->BF_Cull = YUP;
@@ -1357,6 +1358,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   Show Eye Axis %d\n", SV->ShowEyeAxis);
    SS = SUMA_StringAppend_va(SS,"   Show Cross Hair %d\n", SV->ShowCrossHair);
    SS = SUMA_StringAppend_va(SS,"   PolyMode %d\n", SV->PolyMode);
+   SS = SUMA_StringAppend_va(SS,"   DO_DrawMask %d\n", SV->DO_DrawMask);
    SS = SUMA_StringAppend_va(SS,"   Blend_Mode %d\n", SV->Blend_Mode);
    
    SS = SUMA_StringAppend_va(SS,"   Group Name %s, indexed %d\n", SV->CurGroupName, SV->iCurGroup);

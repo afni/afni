@@ -1708,13 +1708,17 @@ int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp)
      bigmap_name[5] = strdup(BIGMAP_NAMES[5]) ;
      bigmap_name[6] = strdup(BIGMAP_NAMES[6]) ;
      bigmap         = (rgbyte **)malloc(sizeof(rgbyte *)*bigmap_num) ;
-     bigmap[0]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
-     bigmap[1]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
-     bigmap[2]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
-     bigmap[3]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
-     bigmap[4]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
-     bigmap[5]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
-     bigmap[6]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+            /* ZSS: The +1 is to stop a a MCW_malloc post-corruption which happens
+            under certain compiler/OS combinations. The likely cause is the uneven
+            byte size of rgbyte which might be causing misalignment problems at the
+            very end          March 27 2012 */ 
+     bigmap[0]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ; 
+     bigmap[1]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;     
+     bigmap[2]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
+     bigmap[3]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
+     bigmap[4]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
+     bigmap[5]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
+     bigmap[6]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
      for( ii=0 ; ii < NPANE_BIG ; ii++ ){
        bigmap[0][ii] = DC_spectrum_AJJ(      ii*((AJJ_BLU+8.0)/(NPANE_BIG-1.0))-4.0,0.8);
        bigmap[4][ii] = DC_spectrum_AJJ( 60.0-ii*(AJJ_YEL/(NPANE_BIG-1.0))          ,0.7);

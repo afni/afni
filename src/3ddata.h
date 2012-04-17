@@ -4261,6 +4261,15 @@ extern THD_fvec3 THD_3dmm_to_3dfind( THD_3dim_dataset * , THD_fvec3 ) ;
 
 extern THD_fvec3 THD_3dmm_to_dicomm( THD_3dim_dataset * , THD_fvec3 ) ;
 extern THD_fvec3 THD_dicomm_to_3dmm( THD_3dim_dataset * , THD_fvec3 ) ;
+#define AFNI_3D_to_1D_index(i, j, k, ni, nij) \
+      ( (int)(i) + (int)(j) * (ni) + (int)(k) * (nij) )
+
+#define AFNI_1D_to_3D_index(ijk, i, j, k, ni, nij){  \
+   k = ((ijk) / (nij)); \
+   j = ((ijk) % (nij));   \
+   i = ((j) % (ni));  \
+   j = ((j) / (ni)); \
+}
 
 
 extern THD_fvec3 THD_tta_to_mni( THD_fvec3 ) ;  /* 29 Apr 2002 */

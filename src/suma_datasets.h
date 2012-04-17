@@ -279,13 +279,15 @@ typedef enum {
    SUMA_XML_DSET,                  /* 16 */
    SUMA_XML_ASCII_DSET,            /* 17 */
    SUMA_XML_B64_DSET,              /* 18 */
-   SUMA_XML_B64GZ_DSET             /* 19 */
+   SUMA_XML_B64GZ_DSET,             /* 19 */
    
+   SUMA_N_DSET_FORMATS           /* leave at the end */
 } SUMA_DSET_FORMAT; /*!<  Format of data set
                           When you add a new element, modify functions
                           SUMA_Dset_Format_Name
                           SUMA_Dset_Format */ 
 #define SUMA_IS_DSET_1D_FORMAT(d) ( (d)==SUMA_1D || (d)==SUMA_1D_PURE || (d)==SUMA_1D_STDOUT || (d)==SUMA_1D_STDERR ) ? 1:0
+
 #define SUMA_IS_DSET_STDXXX_FORMAT(d) ( (d)>=SUMA_1D_STDOUT && (d)<= SUMA_1D_PURE_STDERR_TRANSPOSE) ? 1:0
 
 typedef enum {
@@ -689,6 +691,7 @@ typedef struct {
    #define SDSET_VECFILLED(dset) dset->dnel->vec_filled
    #define SDSET_NODEINDFILLED(dset) dset->inel->vec_filled
    #define SDSET_NODE_INDEX_COL(dset) ( (!dset || !dset->inel || !dset->inel->vec) ? NULL:(int*)(dset->inel->vec[0]) )
+   #define SDSET_COL(dset, icol) ( (!dset || !dset->dnel || !dset->dnel->vec) ? NULL:(dset->dnel->vec[icol]) )
 #endif
 
 #define DSET_MAX_NODE_INDEX(dset, MM) {\
@@ -1364,16 +1367,19 @@ int SUMA_ShowNel (void *nel);
 char *SUMA_NI_nel_Info (NI_element *nel, int detail);
 
 void SUMA_allow_nel_use(int al);
+int SUMA_AddDsetIndexCol(SUMA_DSET *dset, int *icolu);
 int SUMA_AddDsetNelCol ( SUMA_DSET *dset, char *col_label, 
                      SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride);
-int SUMA_InsertDsetNelCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, void *col, 
+int SUMA_InsertDsetNelCol ( SUMA_DSET *dset, char *col_label, 
+                     SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride, int icol);
 int SUMA_AddNelCol ( NI_element *nel, char *col_label,
                      SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride);
 int SUMA_AddDsetColAttr (SUMA_DSET *dset, char *col_label, 
-                     SUMA_COL_TYPE ctp, void *col_attr, int col_index, int insert_mode);
+                     SUMA_COL_TYPE ctp, void *col_attr, 
+                     int col_index, int insert_mode);
 int SUMA_AddDsetNodeIndexColAttr (SUMA_DSET *dset, char *col_label, 
                      SUMA_COL_TYPE ctp, void *col_attr );
 int SUMA_AddColAttr (NI_element *nel, char *col_label,
@@ -1426,6 +1432,11 @@ SUMA_DSET * SUMA_CreateDsetPointer (
                               char *idcode_str,
                               char *domain_idcode_str,
                               int N_Alloc); 
+SUMA_DSET * SUMA_CreateFullDsetPointer (  
+                              char *filename, SUMA_DSET_TYPE tp,
+                              char *idcode,
+                              char *domain_idcode,
+                              int N_Alloc);
 int SUMA_InsertDsetPointer (SUMA_DSET **dset, DList *DsetList, int replace);
 int SUMA_DeleteDsetPointer (SUMA_DSET **dsetp, DList *DsetList);
 void * SUMA_GetCx(char *idcode_str, DList *DsetList, int ReturnDsetPointer) ;
@@ -1478,7 +1489,7 @@ SUMA_DSET *SUMA_Load1DDset_ns (char *Name, int verb);
 SUMA_DSET *SUMA_LoadDXDset_eng (char *Name, int verb);
 SUMA_DSET *SUMA_LoadDXDset_ns (char *Name, int verb);
 char *SUMA_RemoveDsetExtension_ns (char*Name, SUMA_DSET_FORMAT form);
-char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT form);
+char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT *form);
 char * SUMA_WriteDset_ns (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, 
                           int overwrite, int verb); 
 int SUMA_WriteDset_NameCheck_ns (char *Name, SUMA_DSET *dset, 
@@ -1515,6 +1526,7 @@ SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset);
 SUMA_Boolean SUMA_NewDsetID2 (SUMA_DSET *dset, char *str);
 char *SUMA_DsetColStringAttrCopy(SUMA_DSET *dset, int i, 
                                  int addcolnum, char *attrname);
+char *SUMA_DsetColLabel(SUMA_DSET *dset, int i);
 char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum);
 int SUMA_FindDsetColLabeled(SUMA_DSET *dset, char *label);
 char **SUMA_AllDsetColLabels(SUMA_DSET *dset);
@@ -1616,6 +1628,20 @@ int NoSumaRcFound (void);
 void SUMA_ParseInput_basics_ns (char *argv[], int argc); 
 int SUMA_ParseInput_basics_eng (char *argv[], int argc); 
 void WorkErrLog_ns(void);
+
+#define SUMA_DSET_NAME_CHECK(prefix) { \
+   char *NameOut=NULL; SUMA_DSET_FORMAT form=SUMA_NO_DSET_FORMAT; \
+   if (!THD_ok_overwrite()) { \
+      form = SUMA_GuessFormatFromExtension(prefix, "jeveux.niml.dset" );  \
+      if (SUMA_WriteDset_NameCheck_s (prefix, NULL, form,  \
+                                  0, &NameOut)) {   \
+         SUMA_S_Errv("Dset %s already exists\n", NameOut); \
+         SUMA_free(NameOut); \
+         exit(1);  \
+      }  \
+   } if (NameOut) SUMA_free(NameOut); \
+}
+
 SUMA_FileName SUMA_StripPath (char *FileName);
 SUMA_DSET_FORMAT SUMA_FormatFromFormString(char *arg);
 SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *cwd);

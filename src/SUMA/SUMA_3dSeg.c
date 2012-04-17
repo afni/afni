@@ -415,7 +415,7 @@ SEG_OPTS *Seg_Default(char *argv[], int argc)
    Opt->N_main = 4;
    Opt->clust_cset_init=1;
    
-   Opt->B = 1.0;
+   Opt->B = 0.0;  /* defaulted to 1.0 before March 7 2012 */
    Opt->T = 1.0;
    
    Opt->edge = 0.0;
@@ -500,7 +500,21 @@ int main(int argc, char **argv)
    
    /* Load mask dataset */
    if (Opt->mset_name) {
-      if (!(Opt->mset = Seg_load_dset( Opt->mset_name ))) {      
+      if (!strncasecmp(Opt->mset_name,"auto", 4)) {
+         byte *mm=NULL;
+         int j;
+         short *sb=NULL;
+         if (!(mm = THD_automask(Opt->aset))) {
+            SUMA_RETURN(1);
+         }
+         NEW_SHORTY(Opt->aset, DSET_NVALS(Opt->aset), 
+                              "automask.cp", Opt->mset);
+         sb = (short *)DSET_ARRAY(Opt->mset,0);
+         for (j=0; j<DSET_NVOX(Opt->mset); ++j) {
+               sb[j] = (short)mm[j];
+         }
+         free(mm); mm=NULL;
+      } else if (!(Opt->mset = Seg_load_dset( Opt->mset_name ))) {      
          SUMA_RETURN(1);
       }
    }

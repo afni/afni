@@ -389,14 +389,14 @@ void usage_RetinoMap (SUMA_GENERIC_ARGV_PARSE *ps)
 "%s"
 "%s"
                "\n", 
-               ps->hverb ? sio:"Use -help for more detail.\n", 
-               ps->hverb ? s:"");
+               ps->hverb > 1 ? sio:"Use -help for more detail.\n", 
+               ps->hverb > 1 ? s:"");
       if (s) SUMA_free(s); s = NULL; 
       if (st) SUMA_free(st); st = NULL; 
       if (sio) SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
-      exit(0);
+      return;
 }
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *
@@ -420,7 +420,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 ps->hverb = 1;
+			 ps->hverb = strlen(argv[kar])>3?2:1;
           usage_RetinoMap(ps);
           exit (0);
 		}

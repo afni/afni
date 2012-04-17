@@ -36,6 +36,7 @@
 #include "afni_plugout.h"
 #include "thd_iochan.h"
 #include "niml.h"
+#include "cs.h"
 
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/
@@ -137,7 +138,7 @@ int afni_io(void)
       gettimeofday(&tw, NULL);   /* keep track of time that you began waiting */
 
       if( afni_verbose )
-         fprintf(stderr,"++ AFNI control channel created\n") ;
+         fprintf(stderr,"++ AFNI control channel %s created\n", afni_iocname) ;
    }
 
    /****************************************************/
@@ -162,10 +163,12 @@ int afni_io(void)
          if( afni_verbose )
             fprintf(stderr,"++ AFNI control channel connected\n");
       } else {
-         delta_t = (((float)(tn.tv_sec  - tw.tv_sec )*Time_Fact) +     /* time spent waiting */
+         delta_t = (((float)(tn.tv_sec  - tw.tv_sec )*Time_Fact) +     
+                                                      /* time spent waiting */
                      (float)(tn.tv_usec - tw.tv_usec))/Time_Fact ;
          if (delta_t > maxwait) {
-            fprintf(stderr,"** Waited %g seconds to no avail ==> I quit.\n",maxwait);
+            fprintf(stderr,
+                     "** Waited %g seconds to no avail ==> I quit.\n",maxwait);
             IOCHAN_CLOSE(afni_ioc) ;
             afni_mode = 0 ;
             return -1 ;
@@ -195,7 +198,8 @@ int afni_io(void)
            key (in function string_to_key in iochan.c).       **/
 
       if( strcmp(afni_host,".") == 0 ) {
-         sprintf( shmstr, "shm:test_plugout:%dK+%dK", PLUGOUT_SHM_SIZE_K, PLUGOUT_SHM_SIZE_K);
+         sprintf( shmstr, "shm:test_plugout:%dK+%dK", 
+                     PLUGOUT_SHM_SIZE_K, PLUGOUT_SHM_SIZE_K);
          strcpy( afni_iocname , shmstr ) ;
       } else
          sprintf( afni_iocname , "tcp:%s:%d" , afni_host , afni_port ) ;
@@ -290,7 +294,8 @@ int afni_io(void)
          strcpy(afni_buf, "DRIVE_AFNI ") ;
          strcat(afni_buf, com[I_com]   ) ; strcpy(cmd_buf,com[I_com]) ;
          if (afni_verbose) {
-            fprintf(stderr,"Command String %d Echo: '%s'\n", I_com, afni_buf); fflush(stderr) ;
+            fprintf(stderr,"Command String %d Echo: '%s'\n", 
+                           I_com, afni_buf); fflush(stderr) ;
          }
          I_com++ ;
       } else {

@@ -35,9 +35,11 @@
    else { gts_surface_write_vtk(s, m_fp); fclose(m_fp); m_fp = NULL; }   \
 }
 
+void gts_set_debug_suma(int val);
+int  gts_get_debug_suma(void);
 void gts_surface_suma (GtsSurface * s, 
-                              float **NodeListp, int *N_Nodep, int *NodeDimp, 
-                              int **FaceSetListp, int *N_FaceSetp, int *FaceSetDimp); 
+                        float **NodeListp, int *N_Nodep, int *NodeDimp, 
+                        int **FaceSetListp, int *N_FaceSetp, int *FaceSetDimp); 
 #if 0
 /* obsolete (and fails under OS X, use gts_surface_suma) */
 SUMA_SurfaceObject* GtsToSuma( GtsSurface *gs); /*!< copies gts surface into a suma surface */
@@ -47,6 +49,8 @@ void MakeFaceList_foreach_face ( GtsFace* f, gpointer* data);
 GtsSurface* SumaToGts( SUMA_SurfaceObject *SO); /*!< copies suma surface into a gts surface */
 void coarsen( GtsSurface* s, int stop); /*!< coarsens with set parameters*/
 void refine( GtsSurface* s, int stop); /*!< coarsens with set parameters*/
-SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO, float edge_factor);
-
+SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO, 
+                                        float edge_factor);
+SUMA_SurfaceObject *SUMA_Mesh_Resample_nodes(SUMA_SurfaceObject *SO, 
+                                             int new_N_Nodes);
 #endif /* __SUMAGTS_H__ */

@@ -30,7 +30,8 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void);
 SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *csv);
 void SUMA_Free_SphereMarker (SUMA_SphereMarker *SM);
 SUMA_SphereMarker* SUMA_Alloc_SphereMarker (void);
-SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM, SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM, 
+                                     SUMA_SurfaceViewer *sv);
 SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void);
 void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM);
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *csv);
@@ -67,6 +68,9 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s);
 SUMA_NIDO * SUMA_Alloc_NIDO (char *idcode_str, char *Label, 
                              char *Parent_idcode_str);
 SUMA_NIDO *SUMA_free_NIDO(SUMA_NIDO *TDO) ;
+int SUMA_ProcessDODrawMask(SUMA_SurfaceViewer *sv,          
+                                    SUMA_SurfaceObject *SO,
+                                    byte **mask, int *ncross);
 SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, 
                                        char *parent_idcode, int NodeBased,
                                        SUMA_DO_Types type);
@@ -137,7 +141,8 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
                                              float *txloc, float *txcoord,
                                              int *sz, 
                                              int *orthoreset,
-                                             SUMA_DO_CoordUnits coord_units);
+                                             SUMA_DO_CoordUnits coord_units,
+                                             float *xyzoffset, int *jw);
 SUMA_Boolean SUMA_DrawImageNIDOnel( NI_element *nel, 
                                     SUMA_SurfaceObject *SO,
                                     SUMA_DO_CoordUnits default_coord_type,

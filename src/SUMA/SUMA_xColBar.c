@@ -26,7 +26,9 @@ unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb)
    if (!fname) { if (verb) SUMA_SL_Err("NULL fname");  SUMA_RETURN(imar); }
    im = mri_read_ppm( fname ) ;
    if (!im) { 
-      if (verb) { snprintf(stmp, 500 * sizeof(char), "Failed to read %s", fname); SUMA_SL_Err(stmp); }
+      if (verb) { 
+         snprintf(stmp, 500 * sizeof(char), "Failed to read %s", fname); 
+         SUMA_SL_Err(stmp); }
       SUMA_RETURN(imar); 
    }
    
@@ -35,9 +37,12 @@ unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb)
    *width = im->nx ;
    imx = im->ny * im->nx;
    
-   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nNx (width) = %d, Ny (height) = %d\n", FuncName, im->nx, im->ny);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,"%s:\nNx (width) = %d, Ny (height) = %d\n", 
+                  FuncName, im->nx, im->ny);
    
-   imar = (unsigned char *) SUMA_malloc(sizeof(unsigned char) * im->nx * im->ny * 4);
+   imar = (unsigned char *) 
+            SUMA_malloc(sizeof(unsigned char) * im->nx * im->ny * 4);
    if (!imar) {
       SUMA_SL_Crit("Failed to allocate.");
       mri_free(im) ;
@@ -46,12 +51,15 @@ unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb)
    
    for (ir = 0; ir < im->ny; ++ir) {
       for (ic = 0; ic < im->nx; ++ic) {
-         i1d = ic + ir * im->nx; /* equivalent 1d index into row major image data */
+         i1d = ic + ir * im->nx; /* equiv. 1d index into row major image data */
          i1df = ic + (im->ny - ir - 1) * im->nx; /* column flipped index */
          i1d4 = 4 * i1d; i1d3 = 3*i1df; 
-         imar[i1d4] = (unsigned char)rgb[i1d3]; alf  = (float)imar[i1d4];   ++i1d3; ++i1d4; 
-         imar[i1d4] = (unsigned char)rgb[i1d3]; alf += (float)imar[i1d4];   ++i1d3; ++i1d4; 
-         imar[i1d4] = (unsigned char)rgb[i1d3]; alf += (float)imar[i1d4];            ++i1d4; 
+         imar[i1d4] = (unsigned char)rgb[i1d3]; 
+            alf  = (float)imar[i1d4];   ++i1d3; ++i1d4; 
+         imar[i1d4] = (unsigned char)rgb[i1d3]; 
+            alf += (float)imar[i1d4];   ++i1d3; ++i1d4; 
+         imar[i1d4] = (unsigned char)rgb[i1d3]; 
+            alf += (float)imar[i1d4];            ++i1d4; 
          imar[i1d4] = (unsigned char)(alf/3.0); 
       }
    } 
@@ -897,6 +905,9 @@ int SUMA_SwitchColPlaneIntensity (
 {
    static char FuncName[]={"SUMA_SwitchColPlaneIntensity"};
    char srange[500];
+   double range[2];
+   int loc[2];
+   SUMA_DSET *dset=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -928,48 +939,103 @@ int SUMA_SwitchColPlaneIntensity (
    }
    
    
-   if (SO->SurfCont->curColPlane->LinkMode == SW_LinkMode_Stat) {
-                                       /* Find a corresponding threshold sb*/
-      SUMA_DSET *dset=colp->dset_link;
-      char *lab=SUMA_DsetColLabelCopy(dset, ind, 0), *lab2=NULL, *ext=NULL;
-      int ind2=-1, ipair=0;
-      static char *exta[50]={ "_Coef",    "_Tstat",   /* 3dDeconvolve */
-                              "_mean",    "_Tstat",   /* 3dttest++ */
-                              ":Mean",    ":t-stat",  /* 3dANOVA */
-                              ":Contr",   ":t-stat",  /* 3dANOVA */
-                              ":Inten",   ":F-stat",  /* 3dANOVA */
-                              ":Diff",    ":t-stat",  /* 3dANOVA */
-                              ":b",       ":t",       /* 3dMEMA */
-                              NULL, NULL }; /* leave this alone, at the bottom*/
-      SUMA_LHv("Looking for decent match for %s\n", lab);
-      if (lab) {
-         ipair=0;
-         while(ind2 < 0 && (ext = exta[ipair*2])) {
-            if (STRING_HAS_SUFFIX(lab,ext)) {
-               lab[strlen(lab)-strlen(ext)]='\0';
-               lab2 = SUMA_append_string(lab,exta[ipair*2+1]);
-               if ((ind2 = SUMA_FindDsetColLabeled(dset, lab2)) >= 0) {
-                  SUMA_LHv("Sub-brick %s%s has %s go with it.\n",
-                              lab, ext, lab2);
-                  colp->OptScl->tind = ind2;
-                  if (colp == SO->SurfCont->curColPlane ) {/* you must set this
-                                          regardless of setmen */
-                     SUMA_LH("Setting threshold values");
-                     XtVaSetValues( SO->SurfCont->SwitchThrMenu[0], 
-                        XmNmenuHistory ,
-                        SO->SurfCont->SwitchThrMenu[colp->OptScl->tind+1] , 
-                        NULL ) ;
-                  }
-               } SUMA_free(lab2); lab2=NULL;
+   dset=colp->dset_link;
+   switch(SO->SurfCont->curColPlane->LinkMode) {/* corresponding threshold sb */
+      case SW_LinkMode_Stat:
+            {
+         char *lab=SUMA_DsetColLabelCopy(dset, ind, 0), *lab2=NULL, *ext=NULL;
+         int ind2=-1, ipair=0;
+         static char *exta[50]={ "_Coef",    "_Tstat",   /* 3dDeconvolve */
+                                 "_mean",    "_Tstat",   /* 3dttest++ */
+                                 ":Mean",    ":t-stat",  /* 3dANOVA */
+                                 ":Contr",   ":t-stat",  /* 3dANOVA */
+                                 ":Inten",   ":F-stat",  /* 3dANOVA */
+                                 ":Diff",    ":t-stat",  /* 3dANOVA */
+                                 ":b",       ":t",       /* 3dMEMA */
+                                 NULL, NULL }; /* leave always at the bottom*/
+         SUMA_LHv("Looking for decent match for %s\n", lab);
+         if (lab) {
+            ipair=0;
+            while(ind2 < 0 && (ext = exta[ipair*2])) {
+               if (STRING_HAS_SUFFIX(lab,ext)) {
+                  lab[strlen(lab)-strlen(ext)]='\0';
+                  lab2 = SUMA_append_string(lab,exta[ipair*2+1]);
+                  if ((ind2 = SUMA_FindDsetColLabeled(dset, lab2)) >= 0) {
+                     SUMA_LHv("Sub-brick %s%s has %s go with it.\n",
+                                 lab, ext, lab2);
+                     colp->OptScl->tind = ind2;
+                     if (colp == SO->SurfCont->curColPlane ) {/* must set this
+                                             regardless of setmen */
+                        SUMA_LH("Setting threshold values");
+                        XtVaSetValues( SO->SurfCont->SwitchThrMenu[0], 
+                           XmNmenuHistory ,
+                           SO->SurfCont->SwitchThrMenu[colp->OptScl->tind+1] , 
+                           NULL ) ;
+                        if (SUMA_GetDsetColRange(colp->dset_link, 
+                                             colp->OptScl->tind, range, loc)) {  
+                           SUMA_SetScaleRange(SO, range );
+                           SUMA_InitRangeTable(SO, -1) ;
+                           SUMA_UpdateNodeValField(SO);
+                        }else {
+                           SUMA_S_Err("Failed to get range");
+                        }
+                     }
+                  } SUMA_free(lab2); lab2=NULL;
+               }
+               ++ipair;
             }
-            ++ipair;
          }
-      }
+            }
+         break;
+      case SW_LinkMode_Same:
+         colp->OptScl->tind = ind;
+         if (colp == SO->SurfCont->curColPlane ) {/* must set this
+                                 regardless of setmen */
+            SUMA_LH("Setting threshold values");
+            XtVaSetValues( SO->SurfCont->SwitchThrMenu[0], 
+               XmNmenuHistory ,
+               SO->SurfCont->SwitchThrMenu[colp->OptScl->tind+1] , 
+               NULL ) ;
+            if (SUMA_GetDsetColRange(colp->dset_link, 
+                                 colp->OptScl->tind, range, loc)) {  
+               SUMA_SetScaleRange(SO, range );
+               SUMA_InitRangeTable(SO, -1) ;
+               SUMA_UpdateNodeValField(SO);
+            }else {
+               SUMA_S_Err("Failed to get range");
+            }
+         }
+         break;
+      case SW_LinkMode_Pls1:
+            {
+         if (ind+1 >= SDSET_VECNUM(dset)) break; 
+         colp->OptScl->tind = ind+1;
+         if (colp == SO->SurfCont->curColPlane ) {/* must set this
+                                 regardless of setmen */
+            SUMA_LH("Setting threshold values");
+            XtVaSetValues( SO->SurfCont->SwitchThrMenu[0], 
+               XmNmenuHistory ,
+               SO->SurfCont->SwitchThrMenu[colp->OptScl->tind+1] , 
+               NULL ) ;
+            if (SUMA_GetDsetColRange(colp->dset_link, 
+                                 colp->OptScl->tind, range, loc)) {  
+               SUMA_SetScaleRange(SO, range );
+               SUMA_InitRangeTable(SO, -1) ;
+               SUMA_UpdateNodeValField(SO);
+            }else {
+               SUMA_S_Err("Failed to get range");
+            }
+         }
+            }
+         break;
+      default:
+         break;
    }
    
    
-   SUMA_LH("Setting Range");
+   SUMA_LH("Setting Range, Intensity change");
    SUMA_InitRangeTable(SO, 0) ;
+   SUMA_UpdateCrossHairNodeLabelFieldForSO(SO);
 
    if (colp->ShowMode < 0) { SUMA_RETURN(0); } /* nothing else to do */
    
@@ -988,7 +1054,6 @@ int SUMA_SwitchColPlaneIntensity (
  
    SUMA_UpdateNodeValField(SO);
    SUMA_UpdateNodeLblField(SO);
-
    SUMA_RETURN(1);
 }
 
@@ -1012,7 +1077,8 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
-int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, int ind, int setmen)
+int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+                                 int ind, int setmen)
 {
    static char FuncName[]={"SUMA_SwitchColPlaneThreshold"};
    char srange[500];
@@ -1026,7 +1092,8 @@ int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, in
    
    
    if (LocalHead) {
-      fprintf(SUMA_STDERR, "%s:\n request to switch threshold to col. %d\n", FuncName, ind);
+      fprintf(SUMA_STDERR, "%s:\n request to switch threshold to col. %d\n", 
+                  FuncName, ind);
    }
    if (ind < 0) {
       /* turn threshold off */
@@ -1035,7 +1102,8 @@ int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, in
    } 
    
    if (ind >= SDSET_VECNUM(colp->dset_link)) {
-      SUMA_S_Errv("Col. Index of %d exceeds maximum of %d for this dset.\n", ind, SDSET_VECNUM(colp->dset_link)-1);
+      SUMA_S_Errv("Col. Index of %d exceeds maximum of %d for this dset.\n", 
+            ind, SDSET_VECNUM(colp->dset_link)-1);
       SUMA_RETURN(0);
    }
    colp->OptScl->tind = ind;
@@ -1051,15 +1119,16 @@ int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, in
          SO->SurfCont->SwitchThrMenu[colp->OptScl->tind+1] , NULL ) ; 
    }
    
-   if (SUMA_GetDsetColRange(colp->dset_link, colp->OptScl->tind, range, loc)) {   
+   if (SUMA_GetDsetColRange(colp->dset_link, colp->OptScl->tind, range, loc)) {  
       SUMA_SetScaleRange(SO, range );
    }else {
       SUMA_SLP_Err("Failed to get range");
       SUMA_RETURN(0);
    }
-    
-   SUMA_InitRangeTable(SO, -1) ;
    
+   /* threshold sub-brick change */ 
+   SUMA_InitRangeTable(SO, -1) ;
+   SUMA_UpdateCrossHairNodeLabelFieldForSO(SO);
    SUMA_UpdateNodeValField(SO);
    
    if (!colp->OptScl->UseThr) { SUMA_RETURN(0); } /* nothing else to do */
@@ -1150,9 +1219,10 @@ int SUMA_SwitchColPlaneBrightness(
       SUMA_SLP_Err("Failed to get range");
       SUMA_RETURN(0);
    }
-    
-   SUMA_InitRangeTable(SO, -1) ;
    
+   /* brightness change */ 
+   SUMA_InitRangeTable(SO, -1) ;
+   SUMA_UpdateCrossHairNodeLabelFieldForSO(SO);
    SUMA_UpdateNodeValField(SO);
    
    if (!colp->OptScl->UseBrt) { SUMA_RETURN(0); } /* nothing else to do */
@@ -1574,10 +1644,18 @@ SUMA_MenuItem LinkMode_Menu[] = {
       '\0', NULL, NULL, 
       SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_None, NULL},
     
+   {  "Pls1", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Pls1, NULL},
+   
+   {  "Same", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Same, NULL},
+   
    {  "Stat", &xmPushButtonWidgetClass, 
       '\0', NULL, NULL, 
       SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Stat, NULL},
-   
+
    {NULL},
 };
 
@@ -1662,16 +1740,29 @@ void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data,
    SO = (SUMA_SurfaceObject *)datap->ContID;
    imenu = (INT_CAST)datap->callback_data; 
    NewDisp = NOPE;
-   switch (imenu) {
+   switch (imenu) { /* There is really no need for this 
+                        switching block... */
       case SW_LinkMode_None:
          if (SO->SurfCont->curColPlane->LinkMode != imenu) {
-            SO->SurfCont->curColPlane->LinkMode = imenu;
+             SO->SurfCont->curColPlane->LinkMode = imenu;
+            NewDisp = YUP;
+         }
+         break;
+      case SW_LinkMode_Pls1:
+         if (SO->SurfCont->curColPlane->LinkMode != imenu) {
+             SO->SurfCont->curColPlane->LinkMode = imenu;
+            NewDisp = YUP;
+         }
+         break;
+      case SW_LinkMode_Same:
+         if (SO->SurfCont->curColPlane->LinkMode != imenu) {
+             SO->SurfCont->curColPlane->LinkMode = imenu;
             NewDisp = YUP;
          }
          break;
       case SW_LinkMode_Stat:
          if (SO->SurfCont->curColPlane->LinkMode != imenu) {
-            SO->SurfCont->curColPlane->LinkMode = imenu;
+             SO->SurfCont->curColPlane->LinkMode = imenu;
             NewDisp = YUP;
          }
          break;
@@ -5768,6 +5859,7 @@ SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
             SUMA_LH(str);
             XtVaSetValues(SO->SurfCont->XhairTable->cells[1], 
                            XmNvalue, str, NULL);
+            SUMA_UpdateCrossHairNodeLabelField(sv);
          }
       }
       
@@ -5884,13 +5976,80 @@ SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_SurfaceObject *SO)
    SUMA_RETURN(YUP);
 }
 
+char **SUMA_FormNodeValFieldStrings(SUMA_SurfaceObject *SO, 
+                                 SUMA_DSET *dset, int Node,
+                                 int find, int tind, int bind,
+                                 int dec) 
+{
+   static char FuncName[]={"SUMA_FormNodeValFieldStrings"};
+   char **sar=NULL;
+   double dval;
+   int Found = -1;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !dset) SUMA_RETURN(sar);
+   
+   /* 1- Where is this node in the data set ? */
+   if (Node > -1) {
+      Found = SUMA_GetNodeRow_FromNodeIndex_s(  dset, Node, SO->N_Node );
+   } else {
+      Found = -1;
+   }
+   if (LocalHead) {
+      fprintf( SUMA_STDERR,
+               "%s: Node index %d is at row %d in dset %p "
+               "(label %s, filename %s).\n", 
+               FuncName, Node, Found, 
+               dset, 
+               SDSET_LABEL(dset),
+               SDSET_FILENAME(dset));
+   }
+   
+   if (Found >= 0) {   
+      sar = (char **)SUMA_calloc(3, sizeof(char *));
+      /* 2- What is the value of the intensity */
+      if ((sar[0] = SUMA_GetDsetValInCol(dset, find, Found, &dval))) {
+         if (dec > 0) {
+            SUMA_free(sar[0]); 
+            sar[0] = SUMA_copy_string(MV_format_fval2(dval, dec));
+         } 
+         SUMA_LHv("str_int=%s, dval = %f\n",sar[0], dval);
+      } else {
+         sar[0] = SUMA_copy_string("X");
+         SUMA_SL_Err("Failed to get str_int");
+      }
+      if ((sar[1] = SUMA_GetDsetValInCol(dset, tind, Found, &dval))) {
+         if (dec > 0) {
+            SUMA_free(sar[1]); 
+            sar[1] = SUMA_copy_string(MV_format_fval2(dval, dec));
+         }
+         SUMA_LHv("str_thr=%s, dval = %f\n",sar[1], dval);
+      } else {
+         sar[1] = SUMA_copy_string("X");
+         SUMA_SL_Err("Failed to get str_thr");
+      }
+      if ((sar[2] = SUMA_GetDsetValInCol(dset, bind, Found, &dval))) {
+         if (dec > 0) {
+            SUMA_free(sar[2]); 
+            sar[2] = SUMA_copy_string(MV_format_fval2(dval, dec));
+         }
+         SUMA_LHv("str_brt=%s, dval = %f\n",sar[2], dval);
+      } else {
+         SUMA_SL_Err("Failed to get str_brt");
+         sar[2] = SUMA_copy_string("X");
+      }
+   } 
+      
+   SUMA_RETURN(sar);
+}
+
 SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_UpdateNodeValField"};
+   char **sar=NULL;
    SUMA_OVERLAYS *Sover=NULL;
-   char *str_int=NULL, *str_thr=NULL, *str_brt=NULL;
-   double dval;
-   int Found = -1;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -5906,58 +6065,35 @@ SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO)
       SUMA_RETURN(NOPE);
    }
    
-   /* 1- Where is this node in the data set ? */
-   if (SO->SelectedNode > -1) {
-      Found = SUMA_GetNodeRow_FromNodeIndex_s(  Sover->dset_link, 
-                                             SO->SelectedNode, SO->N_Node);
-   } else {
-      Found = -1;
-   }
-   if (LocalHead) {
-      fprintf( SUMA_STDERR,
-               "%s: Node index %d is at row %d in dset %p "
-               "(label %s, filename %s).\n", 
-               FuncName, SO->SelectedNode, Found, 
-               Sover->dset_link, 
-               SDSET_LABEL(Sover->dset_link),
-               SDSET_FILENAME(Sover->dset_link));
-   }
 
-   if (Found >= 0) {
-      /* 2- What is the value of the intensity */
-      str_int = SUMA_GetDsetValInCol(Sover->dset_link, 
-                                     Sover->OptScl->find, Found, &dval);
-      if (str_int) {
-         SUMA_LHv("str_int=%s, dval = %f\n",str_int, dval);
-         SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 1, str_int);
-      } else {
-         SUMA_SL_Err("Failed to get str_int");
-      }
-      str_thr = SUMA_GetDsetValInCol(Sover->dset_link, 
-                                     Sover->OptScl->tind, Found, &dval);
-      if (str_thr) {
-         SUMA_LH(str_thr);
-         SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 2, str_thr);
-      } else {
-         SUMA_SL_Err("Failed to get str_thr");
-      }
-      str_brt = SUMA_GetDsetValInCol(Sover->dset_link, 
-                                     Sover->OptScl->bind, Found, &dval);
-      if (str_brt) {
-         SUMA_LH(str_brt);
-         SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 3, str_brt);
-      } else {
-         SUMA_SL_Err("Failed to get str_brt");
-      }
-      if (str_int) SUMA_free(str_int); str_int = NULL;
-      if (str_thr) SUMA_free(str_thr); str_thr = NULL;
-      if (str_brt) SUMA_free(str_brt); str_brt = NULL;
-   } else {
-      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 1, "NoData");
-      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 2, "NoData");
-      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 3, "NoData");
+   if (!(sar = SUMA_FormNodeValFieldStrings(SO, Sover->dset_link, 
+                           SO->SelectedNode, 
+                           Sover->OptScl->find, 
+                           Sover->OptScl->tind,
+                           Sover->OptScl->bind, 0))) {
+       SUMA_LH("Failed to get strings");
    }
-   SUMA_RETURN(NOPE);
+   if (sar && sar[0]) {
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 1, sar[0]);
+      SUMA_free(sar[0]); 
+   } else {
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 1, "Err");
+   }
+   if (sar && sar[1]) {
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 2, sar[1]);
+      SUMA_free(sar[1]); 
+   } else {
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 2, "Err");
+   }
+   if (sar && sar[2]) {
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 3, sar[2]);
+      SUMA_free(sar[2]); 
+   } else {
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 3, "Err");
+   }
+   if (sar) SUMA_free(sar); sar = NULL;
+
+   SUMA_RETURN(YUP);
 }
 
 /* Do we have label dsets for this surface ? */
@@ -5965,13 +6101,15 @@ char *SUMA_GetLabelsAtNode(SUMA_SurfaceObject *SO, int node)
 {
    static char FuncName[]={"SUMA_GetLabelsAtNode"};
    char *lbls=NULL;
-   int key = -1, OverInd=-1, i0;
+   int key = -1, OverInd=-1, i0, i, sp;
    SUMA_DSET *cdset=NULL, *dd=NULL;
-   SUMA_OVERLAYS *colplane=NULL;
+   SUMA_OVERLAYS *colplane=NULL, *Sover=NULL;
    SUMA_COLOR_MAP *CM=NULL;
    DListElmt *el=NULL, *NextElm=NULL;
    DList *list=NULL;
-   SUMA_EngineData *ED;
+   SUMA_EngineData *ED=NULL;
+   char **sar=NULL;
+   char *seps[3]={"I=", " T=", " B="};
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -6008,7 +6146,127 @@ char *SUMA_GetLabelsAtNode(SUMA_SurfaceObject *SO, int node)
       } 
       el = dlist_next(el);
    }
+   
+   if ((Sover = SO->SurfCont->curColPlane) && 
+        SDSET_TYPE(Sover->dset_link) != SUMA_NODE_RGB ) {
+      if (!(sar = SUMA_FormNodeValFieldStrings(SO,       
+                              Sover->dset_link, 
+                              node, 
+                              Sover->OptScl->find, 
+                              Sover->OptScl->tind,
+                              Sover->OptScl->bind, 5))) {
+      } else if (1) { /* include sub-brick labels */
+         if (lbls) lbls = SUMA_append_replace_string(lbls,"\n","",1);
+         if (sar[0] && sar[1] && sar[2]) {
+            if (!strcmp(sar[0],sar[1]) && !strcmp(sar[2],sar[1])) {
+               lbls = SUMA_append_replace_string(lbls, "(I,T,B)", "",1);
+               lbls = SUMA_append_replace_string(lbls, 
+                        SUMA_DsetColLabel(Sover->dset_link, Sover->OptScl->find),
+                                                 "",1);
+               lbls = SUMA_append_replace_string(lbls, sar[0], "=",1);
+            } else if (!strcmp(sar[0],sar[1])) {
+               lbls = SUMA_append_replace_string(lbls, "(I,T)", "",1);
+               lbls = SUMA_append_replace_string(lbls, 
+                        SUMA_DsetColLabel(Sover->dset_link, Sover->OptScl->find),
+                                                 "",1);
+               lbls = SUMA_append_replace_string(lbls, sar[0], "=",1);
 
+               lbls = SUMA_append_replace_string(lbls, " (B)", "",1);
+               lbls = SUMA_append_replace_string(lbls, 
+                        SUMA_DsetColLabel(Sover->dset_link, Sover->OptScl->bind),
+                                                 "",1);                  
+               lbls = SUMA_append_replace_string(lbls, sar[2], "=", 1);
+            } else if (!strcmp(sar[1],sar[2])) {
+               lbls = SUMA_append_replace_string(lbls, "(I)", "",1);
+               lbls = SUMA_append_replace_string(lbls, 
+                        SUMA_DsetColLabel(Sover->dset_link, Sover->OptScl->find),
+                                                 "",1);
+               lbls = SUMA_append_replace_string(lbls, sar[0], "=",1);
+
+               lbls = SUMA_append_replace_string(lbls, " (B,T)", "",1);
+               lbls = SUMA_append_replace_string(lbls, 
+                        SUMA_DsetColLabel(Sover->dset_link, Sover->OptScl->bind),
+                                                 "",1);                  
+               lbls = SUMA_append_replace_string(lbls, sar[2], "=", 1);
+            } else if (!strcmp(sar[0],sar[2])) {
+               lbls = SUMA_append_replace_string(lbls, "(I,B)", "",1);
+               lbls = SUMA_append_replace_string(lbls, 
+                        SUMA_DsetColLabel(Sover->dset_link, Sover->OptScl->find),
+                                                 "",1);
+               lbls = SUMA_append_replace_string(lbls, sar[0], "=",1);
+
+               lbls = SUMA_append_replace_string(lbls, " (T)", "",1);
+               lbls = SUMA_append_replace_string(lbls, 
+                        SUMA_DsetColLabel(Sover->dset_link, Sover->OptScl->tind),
+                                                 "",1);                  
+               lbls = SUMA_append_replace_string(lbls, sar[1], "=", 1);
+            } else {
+               for (sp=0,i=0;i<3;++i) {
+                  if (sar[i]) {
+                     if (sp) lbls = SUMA_append_replace_string(lbls," ","", 1);
+                     lbls = SUMA_append_replace_string(lbls, 
+                        SUMA_DsetColLabel(Sover->dset_link, 
+                                             i==0 ? Sover->OptScl->find : 
+                                             ( i == 1 ?  Sover->OptScl->tind:
+                                                         Sover->OptScl->bind)),
+                                                 "",1); 
+                     lbls = SUMA_append_replace_string(lbls,sar[i],"=", 1);
+                     sp=1;
+                     SUMA_free(sar[i]); sar[i]=NULL;
+                  }
+               }
+            }
+         } else {
+               for (sp=0,i=0;i<3;++i) {
+                  if (sar[i]) {
+                     if (sp) lbls = SUMA_append_replace_string(lbls," ","", 1);
+                     lbls = SUMA_append_replace_string(lbls, 
+                        SUMA_DsetColLabel(Sover->dset_link, 
+                                             i==0 ? Sover->OptScl->find : 
+                                             ( i == 1 ?  Sover->OptScl->tind:
+                                                         Sover->OptScl->bind)),
+                                                 "",1); 
+                     lbls = SUMA_append_replace_string(lbls,sar[i],"=", 1);
+                     sp=1;
+                     SUMA_free(sar[i]); sar[i]=NULL;
+                  }
+               }
+
+         }
+         SUMA_free(sar); sar=NULL;
+      } else { /* old approach to labeling, I,T, business only */
+         if (lbls) lbls = SUMA_append_replace_string(lbls,"\n","",1);
+         if (sar[0] && sar[1] && sar[2]) {
+            if (!strcmp(sar[0],sar[1]) && !strcmp(sar[2],sar[1])) {
+               lbls = SUMA_append_replace_string(lbls, sar[0], "I,T,B=",1);
+            } else if (!strcmp(sar[0],sar[1])) {
+               lbls = SUMA_append_replace_string(lbls, sar[0], "I,T=",1);
+               lbls = SUMA_append_replace_string(lbls, sar[2], " B=", 1);
+            } else if (!strcmp(sar[1],sar[2])) {
+               lbls = SUMA_append_replace_string(lbls, sar[0], "I=",1);
+               lbls = SUMA_append_replace_string(lbls, sar[1], " B,T=", 1);
+            } else {
+               for (i=0;i<3;++i) {
+                  if (sar[i]) {
+                     lbls = SUMA_append_replace_string(lbls,sar[i],
+                                                    seps[i], 1); 
+                     SUMA_free(sar[i]); sar[i]=NULL;
+                  }
+               }
+            }
+         } else {
+            for (i=0;i<3;++i) {
+               if (sar[i]) {
+                  lbls = SUMA_append_replace_string(lbls,sar[i],
+                                                 seps[i], 1); 
+                  SUMA_free(sar[i]); sar[i]=NULL;
+               }
+            }
+         }
+         SUMA_free(sar); sar=NULL;
+      }
+   }
+      
    /* Do we need to tell Santa? */
    if (lbls && SUMAg_CF->X->Whereami_TextShell) {
       if (!list) list = SUMA_CreateList();
@@ -6232,6 +6490,32 @@ SUMA_Boolean SUMA_UpdateCrossHairNodeLabelField(SUMA_SurfaceViewer *sv)
    }
    
    SUMA_RETURN(YUP);
+}
+
+int SUMA_UpdateCrossHairNodeLabelFieldForSO(SUMA_SurfaceObject *curSO) 
+{
+   static char FuncName[]={"SUMA_UpdateCrossHairNodeLabelFieldForSO"};
+   int i=0, iup=0;
+   SUMA_SurfaceViewer *sv=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!curSO) SUMA_RETURN(0);
+   
+   /* update any viewer that is showing this 
+      surface */
+   for (i=0; i<SUMAg_N_SVv; ++i) {
+      if (!SUMAg_SVv[i].isShaded && SUMAg_SVv[i].X->TOPLEVEL) {
+         /* is this viewer showing curSO ? */
+         if (SUMA_isRegisteredSO(&(SUMAg_SVv[i]), SUMAg_DOv, curSO)) {
+            sv = &(SUMAg_SVv[i]);
+            SUMA_UpdateCrossHairNodeLabelField(sv);
+            ++iup;
+         }
+      }
+   }
+
+   SUMA_RETURN(iup);
 }
 
 

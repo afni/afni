@@ -74,6 +74,7 @@ SUMA_SurfaceViewer *SUMA_OneViewerWithSOVisible(
                               SUMA_SurfaceObject *curSO);
 SUMA_SurfaceViewer *SUMA_OneViewerWithSORegistered(
                               SUMA_SurfaceObject *curSO);
+int SUMA_UpdateCrossHairNodeLabelFieldForSO(SUMA_SurfaceObject *curSO);
 SUMA_SurfaceViewer *SUMA_BestViewerForSO(
                               SUMA_SurfaceObject *curSO);
 SUMA_PARSED_NAME *SUMA_SetAutoRecord(char *pref);

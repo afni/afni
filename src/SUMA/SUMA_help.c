@@ -443,6 +443,7 @@ void SUMA_Message_destroyed (void *p)
    
    SUMA_RETURNe;
 }
+
 char * SUMA_NIDO_Info(void)
 {
    static char FuncName[]={"SUMA_NIDO_Info"};
@@ -690,6 +691,29 @@ char * SUMA_NIDO_Info(void)
    SUMA_RETURN (s);
 
 }
+
+char * SUMA_OptList_string(HELP_OPT *hol)
+{
+   static char FuncName[]={"SUMA_OptList_string"};
+   char *s = NULL;
+   int i=0;
+   SUMA_STRING *SS = NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   while (hol[i].name) {
+      SS = SUMA_StringAppend_va(SS,"   %s\n", hol[i].help);
+      if (hol[i].val) 
+         SS = SUMA_StringAppend_va(SS,"     default: %s\n", hol[i].val);
+      ++i;
+   }
+   
+   SUMA_SS2S(SS,s);
+   
+   SUMA_RETURN (s);
+}
+
 char * SUMA_sources_Info(void)
 {
    static char FuncName[]={"SUMA_sources_Info"};
@@ -1289,8 +1313,22 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     Ctrl+n: Open a new surface viewer window.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "     p: Viewer rendering mode  \n"
-      "        (Fill, Line, Points, Hide), switch.\n\n");
+"     p: Viewer rendering mode  \n"
+"        (Fill, Line, Points, Hide), switch.\n\n"
+"     Ctrl+p: Cycle between restrictions of where DO node-based \n"
+"             objects are displayed. Available modes are:\n"
+"         All: No restrictions\n"
+"         n3Crosshair: Crosshair node + 3 neighboring layers\n"
+"         n2Crosshair: Crosshair node + 2 neighboring layers\n" 
+"         n1Crosshair: Crosshair node only\n"
+"         None: Show nothing.\n"
+"              See also -do_draw_mask option in DriveSuma\n"
+"        ** DO stands for displayable objects, see 'Ctrl+Alt+s'\n"
+"           below.\n"
+"        ** For the moment, 'Ctrl+p' only applies to segment \n"
+"        and sphere DOs  that are node based. \n"
+"        If you need it applied to other DOs, let me know.\n"
+      );
    SS = SUMA_StringAppend (SS, 
       "     P: Reset viewer and all surfaces to Fill  \n"
       "        rendering mode.\n\n");
@@ -1362,6 +1400,8 @@ char * SUMA_help_message_Info(void)
 "                 name will replace currently loaded versions.\n"
 "                 Note 2: Node-based (Types 3 and 4) objects\n"
 "                 will follow a node when its coordinates change.\n"
+"                 Note 3: See also 'ctrl+p' for restricting which \n"
+"                 node-based objects get displayed.\n"
 "          Type 1:Segments between (x0,y0,z0) and (x1,y1,z1) \n"
 "                 1st line must be '#segments' (without quotes),\n"
 "                 or '#oriented_segments' (slower to render).\n"

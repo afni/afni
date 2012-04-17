@@ -72,8 +72,8 @@ int main( int argc , char *argv[] )
    }
    
    if( argc < 2 ){
-     ERROR_message("Too few options. Try 1ddot -help for details");
-     exit(1) ;
+     usage_1ddot(1);
+     exit(0) ;
    }
 
    if( iarg == argc ){

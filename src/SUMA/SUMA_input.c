@@ -1904,7 +1904,7 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_P_Key"};
-   char tk[]={"P"}, keyname[100];
+   char tk[]={"P"}, keyname[100], msg[100];
    int k, nc;
    int N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
    SUMA_SurfaceObject *SO = NULL;
@@ -1930,10 +1930,19 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          SUMA_SLP_Note("All surfaces displayed as solids");
          break;
       case XK_p:
-         sv->PolyMode = ((sv->PolyMode+1) % SRM_N_RenderModes);
-         if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
+         if (SUMA_CTRL_KEY(key)) {
+            sv->DO_DrawMask = ((sv->DO_DrawMask+1) % SDODM_N_DO_DrawMasks);
+            snprintf(msg,100*sizeof(char),"DO DrawMask now set to: %s", 
+                        SUMA_DO_DrawMaskCode2Name_human(sv->DO_DrawMask));
+            if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_SLP_Note (msg); 
+            } else { SUMA_S_Note (msg); }
+         } else {
+            sv->PolyMode = ((sv->PolyMode+1) % SRM_N_RenderModes);
+            if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
 
-         SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+            SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+         }
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          break;
       default:
@@ -3654,8 +3663,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
          case XK_p:
-            if (!SUMA_P_Key(sv, "p", "interactive")) {
-               SUMA_S_Err("Failed in key func.");
+            if (Kev.state & ControlMask){
+               if (!SUMA_P_Key(sv, "ctrl+p", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
+            } else {
+               if (!SUMA_P_Key(sv, "p", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
             }
             break;
 
@@ -3960,7 +3975,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                OptScl->BrightFact = 0.4;
 
-               /* map the values in SO->Cx to the colormap */
+               /* map the values in Cx to the colormap */
                   /* allocate space for the result */
                   SV = SUMA_Create_ColorScaledVect(SO->N_Node, 0);
                   if (!SV) {
@@ -6333,11 +6348,13 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
    if (N > 1) { /* new, faster method */   
       DListElmt *Eli=NULL, *Eln=NULL;
       float ip[3], d[3];
-      int IncTri[100], N_IncTri=0, n1=-1, n2=-1, n3=-1, ni = -1, ti = -1, N_Neighb=0,DeciLevel = 0, i, j, Removed=0;
+      int IncTri[100], N_IncTri=0, n1=-1, n2=-1, n3=-1, ni = -1, 
+          ti = -1, N_Neighb=0,DeciLevel = 0, i, j, Removed=0;
       int DeciReentry=0, UsedNode[3]={ 0 , 0, 0 };
       SUMA_BRUSH_STROKE_DATUM *bsdi=NULL, *bsdn=NULL, *bsd_deci=NULL;
       SUMA_Boolean  DoesInters=NOPE; /* flag for Decimation mode */
-      SUMA_Boolean  TrackOscillation = YUP; /* flag to tracking algorithm oscillation */
+      SUMA_Boolean  TrackOscillation = YUP; /* flag to tracking 
+                                               algorithm oscillation */
       SUMA_Boolean  TryBruteForce = NOPE;
       int *Visited = NULL;
       
@@ -6349,7 +6366,8 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
          }
       }
       
-      Eli = Elmt; /* initialize current element to the very fist in the brushstroke */
+      Eli = Elmt; /* initialize current element to the 
+                     very fist in the brushstroke */
       MTI = NULL;
       TryBruteForce = NOPE;
       do {   
@@ -6359,18 +6377,23 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
          Eln = Eli->next; /* get the next element in line */
          bsdn = (SUMA_BRUSH_STROKE_DATUM *)Eln->data;
          
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Working from node %d.\n", FuncName, n1);
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,"%s: Working from node %d.\n", FuncName, n1);
 
          if (!TryBruteForce) { /* try the fast method */
             N_Neighb = SO->FN->N_Neighb[n1];
             if (N_Neighb < 3) {
                /* nothing found */
-               SUMA_SLP_Err ("Node has less than 3 neighbors.\n.This method will not apply.");
+               SUMA_SLP_Err ("Node has less than 3 neighbors.\n"
+                             "This method will not apply.");
                SUMA_RETURN(NOPE);
             }
 
-            /* does the ray formed by Eln's NP and FP hit any of the triangles incident to bsdi->SurfNode (or n1) ? */
-            if (LocalHead) fprintf (SUMA_STDERR, "%s: Searching incident triangles:\n", FuncName);
+            /* does the ray formed by Eln's NP and FP hit any of 
+               the triangles incident to bsdi->SurfNode (or n1) ? */
+            if (LocalHead) 
+               fprintf (SUMA_STDERR, 
+                        "%s: Searching incident triangles:\n", FuncName);
             i=0;
             DoesInters = NOPE;
             while ((i < N_Neighb ) && (!DoesInters)) { 
@@ -6379,38 +6402,51 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
                else n3 = SO->FN->FirstNeighb[n1][i+1];
                #if 0
                   if (LocalHead) {
-                     fprintf (SUMA_STDERR, " %d: [%d %d %d] Tri %d\n", i, n1, n2, n3, SUMA_whichTri(SO->EL, n1, n2, n3, 1));
+                     fprintf (SUMA_STDERR, " %d: [%d %d %d] Tri %d\n", 
+                        i, n1, n2, n3, SUMA_whichTri(SO->EL, n1, n2, n3, 1));
                      fprintf (SUMA_STDERR, " %d: [%.2f, %.2f, %.2f]\n", 
-                                             n1, SO->NodeList[3*n1], SO->NodeList[3*n1+1], SO->NodeList[3*n1+2]);
+                        n1, SO->NodeList[3*n1], 
+                            SO->NodeList[3*n1+1], SO->NodeList[3*n1+2]);
                      fprintf (SUMA_STDERR, " %d: [%.2f, %.2f, %.2f]\n", 
-                                             n2, SO->NodeList[3*n2], SO->NodeList[3*n2+1], SO->NodeList[3*n2+2]);
+                        n2, SO->NodeList[3*n2], 
+                            SO->NodeList[3*n2+1], SO->NodeList[3*n2+2]);
                      fprintf (SUMA_STDERR, " %d: [%.2f, %.2f, %.2f]\n", 
-                                             n3, SO->NodeList[3*n3], SO->NodeList[3*n3+1], SO->NodeList[3*n3+2]);                        
-                     fprintf (SUMA_STDERR, " NP: [%.2f, %.2f, %.2f] FP: [%.3f, %.2f, %.2f]\n", 
-                                             bsdn->NP[0], bsdn->NP[1], bsdn->NP[2], 
-                                             bsdn->FP[0], bsdn->FP[1], bsdn->FP[2]);
+                        n3, SO->NodeList[3*n3], 
+                            SO->NodeList[3*n3+1], SO->NodeList[3*n3+2]);
+                     fprintf (SUMA_STDERR, 
+                        " NP: [%.2f, %.2f, %.2f] FP: [%.3f, %.2f, %.2f]\n", 
+                              bsdn->NP[0], bsdn->NP[1], bsdn->NP[2], 
+                              bsdn->FP[0], bsdn->FP[1], bsdn->FP[2]);
                   }
                #endif
                DoesInters = SUMA_MT_isIntersect_Triangle (bsdn->NP, bsdn->FP, 
-                                                          &(SO->NodeList[3*n1]), &(SO->NodeList[3*n2]), &(SO->NodeList[3*n3]),
-                                                          ip, d, &ni);
+                                 &(SO->NodeList[3*n1]),
+                                 &(SO->NodeList[3*n2]), 
+                                 &(SO->NodeList[3*n3]), ip, d, &ni);
                if (DoesInters) {
                   if (ni == 0) ni = n1;
                   else if (ni == 1) ni = n2;
                   else ni = n3;
 
-                  ti = SUMA_whichTri(SO->EL, n1, n2, n3, 1);
+                  ti = SUMA_whichTri(SO->EL, n1, n2, n3, 1, 0);
                }
 
                #if 0
-                  if (LocalHead) fprintf (SUMA_STDERR, "%s: DoesInters = %d, ni = %d\n", FuncName, DoesInters, ni);
+                  if (LocalHead) 
+                     fprintf (SUMA_STDERR, 
+                              "%s: DoesInters = %d, ni = %d\n", 
+                              FuncName, DoesInters, ni);
                   {
                      /* for debuging */                                           
-                     MTI = NULL;MTI = SUMA_MT_intersect_triangle(   bsdn->NP, bsdn->FP, 
+                     MTI = NULL;MTI = 
+                        SUMA_MT_intersect_triangle(   bsdn->NP, bsdn->FP, 
                                                       SO->NodeList, SO->N_Node, 
-                                                      SO->FaceSetList, SO->N_FaceSet, 
+                                                      SO->FaceSetList, 
+                                                      SO->N_FaceSet, 
                                                       MTI);
-                     fprintf (SUMA_STDERR, "%s: Intersection would be with triangle %d, node %d\n", FuncName, MTI->ifacemin, MTI->inodemin);                                 
+                     fprintf (SUMA_STDERR, 
+                        "%s: Intersection would be with triangle %d, node %d\n", 
+                              FuncName, MTI->ifacemin, MTI->inodemin);                                 
                   }
                #endif
                ++i;

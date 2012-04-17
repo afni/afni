@@ -34,12 +34,17 @@ typedef struct {
 
 typedef struct {
    int N_TriIndex;            /*!< Number of triangles considered */
-   int *TriIndex;             /*!< vector (N_TriIndex x 1) of 1D indices of triangles considered */
-   int **IntersectedVoxels;   /*!< sparse matrix (N_TriIndex x N_InteresectedVoxels[i]) containing
-                              1D indices of voxels intersected by the triangle. For example,
-                              triangle of index TriIndex[i] intesects N_InteresectedVoxels[i]
-                              whose 1D indices are stored in IntersectedVoxels[i] */
-                              
+   int *TriIndex;             /*!< vector (N_TriIndex x 1) of 1D indices 
+                                   of triangles considered */
+   int **IntersectedVoxels;   /*!< sparse matrix (N_TriIndex x 
+                  N_InteresectedVoxels[i]) containing
+                  1D indices of voxels intersected by the triangle. For example,
+                  triangle of index TriIndex[i] intesects N_InteresectedVoxels[i]
+                  whose 1D indices are stored in IntersectedVoxels[i] */
+   float **SignedIJKDistance; /*!< sparse matrix (N_TriIndex x 
+                  N_InteresectedVoxels[i]) containing signed distance 
+                        *** in index units, NOT mm ***
+                  from triangle. */                           
    int *N_IntersectedVoxels;  /*!< Number of voxels intersected by some triangle */
 } SUMA_VTI; /*!< Voxel Triangle Intersection Structure. Create with SUMA_CreateVTI, Destroy with SUMA_FreeVTI*/
 
@@ -51,12 +56,23 @@ SUMA_Boolean SUMA_TriTrig(float *p1, float *p2, float *p3,
 
 SUMA_VTI *SUMA_CreateVTI(int N_TriIndex, int *TriIndex);
 SUMA_VTI * SUMA_FreeVTI(SUMA_VTI *vti);
-SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle( SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, float *NodeIJKlist,
-                                                SUMA_VTI *vti);
-
-
-
-DList * SUMA_SPI_to_EdgeStrips(SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT *SPI);
+SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle( 
+         SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, float *NodeIJKlist,
+         SUMA_VTI *vti);
+THD_3dim_dataset *SUMA_SurfaceIntersectionVolume(
+                        SUMA_SurfaceObject *SOo, THD_3dim_dataset *gdset);
+THD_3dim_dataset *SUMA_VoxelToSurfDistances(SUMA_SurfaceObject *SO, 
+                     THD_3dim_dataset *master, byte *mask, 
+                     short *isin, short inval);
+THD_3dim_dataset *SUMA_VoxelizeSurface(SUMA_SurfaceObject *SO, 
+                                       THD_3dim_dataset *gdset, 
+                                       int closed_surf,
+                                       byte *mask);
+THD_3dim_dataset *SUMA_MaskizeSurface(SUMA_SurfaceObject *SO, 
+                                       THD_3dim_dataset *gdset, 
+                                       int method);
+DList * SUMA_SPI_to_EdgeStrips(SUMA_SurfaceObject *SO, 
+                               SUMA_SURF_PLANE_INTERSECT *SPI);
 SUMA_Boolean SUMA_isEdgeStripClosed(DList *edgestrip, SUMA_SurfaceObject *SO);
 int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int FullCount, byte * report);
 int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES ntype, int *nl);
@@ -99,11 +115,18 @@ SUMA_CONTOUR_EDGES *SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes,
                                      byte **isNodeInNodes, int verb);
 SUMA_Boolean SUMA_ShowPatch (SUMA_PATCH *Patch, FILE *Out) ;
 void SUMA_Set_OffsetDebugNode (int d);
-SUMA_Boolean SUMA_getoffsets  (int n, SUMA_SurfaceObject *SO, float *Off, float lim);
-SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GET_OFFSET_STRUCT *OffS, int * CoverThisNode, int N_CoverThisNode);
-DList * SUMA_getoffsets_ll (int n, SUMA_SurfaceObject *SO, float lim, int *CoverThisNode, int N_CoverThisNode);
+SUMA_Boolean SUMA_getoffsets  (int n, SUMA_SurfaceObject *SO, float *Off, 
+                               float lim);
+SUMA_Boolean SUMA_getoffsets2 (  int n, SUMA_SurfaceObject *SO, 
+                                 float lim, SUMA_GET_OFFSET_STRUCT *OffS, 
+                                 int * CoverThisNode, int N_CoverThisNode);
+byte *SUMA_NodeNeighborMask(SUMA_SurfaceObject *SO, int node, 
+                            int maxlay, int *N_inmask);
+DList * SUMA_getoffsets_ll (int n, SUMA_SurfaceObject *SO, float lim, 
+                            int *CoverThisNode, int N_CoverThisNode);
 SUMA_GET_OFFSET_STRUCT *SUMA_Initialize_getoffsets (int N_Node);
-SUMA_Boolean SUMA_AddNodeToLayer (int n, int LayInd, SUMA_GET_OFFSET_STRUCT *OffS);
+SUMA_Boolean SUMA_AddNodeToLayer (int n, int LayInd,
+                                  SUMA_GET_OFFSET_STRUCT *OffS);
 SUMA_GET_OFFSET_STRUCT * SUMA_Free_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS);
 SUMA_Boolean SUMA_Recycle_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS);
 float ** SUMA_CalcNeighbDist (SUMA_SurfaceObject *SO);
@@ -177,13 +200,47 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                             int N_iter, int vpn, SUMA_INDEXING_ORDER d_order,
                             float *fout_user, SUMA_COMM_STRUCT *cs,
                             byte *nmask, byte strict_mask);
-SUMA_Boolean SUMA_ApplyAffine (float *NodeList, int N_Node, float M[][4], float *center);
+int SUMA_Taubin_Smooth_SO(  SUMA_SurfaceObject *SO, 
+                            SUMA_TAUBIN_SMOOTH_OPTIONS smopt, 
+                            float kpb, byte *mask, byte strict_mask,
+                            int Niter); 
+int SUMA_NN_Smooth_SO(   SUMA_SurfaceObject *SO, 
+                         byte *mask, byte strict_mask,
+                         int Niter);
+int SUMA_NN_GeomSmooth2_SO(   SUMA_SurfaceObject *SO, 
+                         byte *nmask, byte strict_mask,
+                         int Niter, int anchor_each,
+                              SUMA_SurfaceObject *SOe,
+                         float *anchor_loc, float *anchor_wght);
+int SUMA_NN_GeomSmooth3_SO(   SUMA_SurfaceObject *SO, 
+                         byte *nmask, byte strict_mask,
+                         int Niter, int anchor_each,
+                              SUMA_SurfaceObject *SOe,
+                         float *anchor_wght, THD_3dim_dataset *voxelize);
+SUMA_Boolean SUMA_ApplyAffine (float *NodeList, int N_Node, float M[][4], 
+                               float *center);
 float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int Niter, float *fin_orig, 
-                           int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
+                           int vpn, SUMA_INDEXING_ORDER d_order, 
+                           float *fout_final_user,
                            SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask);
-SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float max_off, SUMA_COMM_STRUCT *cs);
-SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float perc_tol, SUMA_COMM_STRUCT *cs);
-SUMA_Boolean SUMA_EquateSurfaceAreas(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float perc_tol, SUMA_COMM_STRUCT *cs);
+float *SUMA_NN_GeomSmooth2( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig, 
+                           int vpn, SUMA_INDEXING_ORDER d_order, 
+                           float *fout_final_user,
+                           SUMA_COMM_STRUCT *cs, byte *nmask, int MaskEnforce,
+                           SUMA_SurfaceObject *SOe,
+                           float *anchor_loc, float *anchor_wght);
+float *SUMA_NN_GeomSmooth3( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig, 
+                           int vpn, SUMA_INDEXING_ORDER d_order, 
+                           float *fout_final_user,
+                           SUMA_COMM_STRUCT *cs, byte *nmask, int MaskEnforce,
+                           SUMA_SurfaceObject *SOe,
+                           float *anchor_wght, THD_3dim_dataset *voxelize);
+SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO, 
+               SUMA_SurfaceObject *SOref, float max_off, SUMA_COMM_STRUCT *cs);
+SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, 
+               SUMA_SurfaceObject *SOref, float perc_tol, SUMA_COMM_STRUCT *cs);
+SUMA_Boolean SUMA_EquateSurfaceAreas(SUMA_SurfaceObject *SO, 
+               SUMA_SurfaceObject *SOref, float perc_tol, SUMA_COMM_STRUCT *cs);
 double SUMA_Mesh_Volume(SUMA_SurfaceObject *SO, int *FSI, int N_FaceSet, 
                         int verb, int *prec_prob) ;
 double SUMA_Mesh_Area(SUMA_SurfaceObject *SO, int *FSI, int N_FaceSet) ;
@@ -192,17 +249,23 @@ double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
                            SUMA_SurfaceObject *UseThisSO, 
                            int minhits, int FixBowTie, int adjust_contour,
                            byte *adj_N, int verb);
-double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float *tmpList);
+double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, 
+                            float *tmpList);
 SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float radius, SUMA_COMM_STRUCT *cs);
 SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim, const char *opts, byte *nmask, float FWHM);
 SUMA_OFFSET_STRUCT * SUMA_free_NeighbOffset (SUMA_SurfaceObject *SO, SUMA_OFFSET_STRUCT *OffS_out);
-float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float Offestlim, float *fin_orig, 
-                              int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
-                              SUMA_COMM_STRUCT *cs);
-SUMA_Boolean SUMA_GetOffset2Offset (SUMA_GET_OFFSET_STRUCT *GOS, SUMA_OFFSET_STRUCT *OS);
+float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, 
+                               float Offestlim, float *fin_orig, 
+                               int vpn, SUMA_INDEXING_ORDER d_order, 
+                               float *fout_final_user,
+                               SUMA_COMM_STRUCT *cs);
+byte *SUMA_GetOffset2bytemask (SUMA_GET_OFFSET_STRUCT *GOS, byte *thismask);
+SUMA_Boolean SUMA_GetOffset2Offset (SUMA_GET_OFFSET_STRUCT *GOS, 
+                                    SUMA_OFFSET_STRUCT *OS);
 char * SUMA_ShowOffset_ll_Info (DList *list, int detail);
 char * SUMA_ShowOffset_Info (SUMA_GET_OFFSET_STRUCT *OffS, int detail);
-SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset, byte *nmask, 
+SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset, 
+                                       byte *nmask, 
                                        int icol, SUMA_Boolean MaskZeros); 
 
 /* Begin function prototypes for VolData.c */
@@ -211,8 +274,10 @@ THD_fvec3 SUMA_THD_3dfind_to_3dmm_vp( SUMA_VOLPAR *vp, THD_fvec3 iv );
 THD_fvec3 SUMA_THD_3dind_to_3dmm( SUMA_SurfaceObject *SO, THD_ivec3 iv );
 THD_fvec3 SUMA_THD_3dmm_to_3dfind( SUMA_SurfaceObject *SO , THD_fvec3 fv );
 THD_ivec3 SUMA_THD_3dmm_to_3dind( SUMA_SurfaceObject *SO  , THD_fvec3 fv );
-THD_ivec3 SUMA_THD_3dmm_to_3dind_warn( SUMA_SurfaceObject *SO  , THD_fvec3 fv, int *out );
-THD_fvec3 SUMA_THD_3dmm_to_dicomm( int xxorient, int yyorient, int zzorient , THD_fvec3 imv );
+THD_ivec3 SUMA_THD_3dmm_to_3dind_warn( SUMA_SurfaceObject *SO  , 
+                                       THD_fvec3 fv, int *out );
+THD_fvec3 SUMA_THD_3dmm_to_dicomm( int xxorient, int yyorient, int zzorient , 
+                                    THD_fvec3 imv );
 THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO , THD_fvec3 dicv );
 void SUMA_orcode_to_orstring (int xxorient, int yyorient, int zzorient, char *orstr);
 void SUMA_sizeto3d_2_deltaHEAD(THD_ivec3 orient, THD_fvec3 *delta);            
@@ -230,7 +295,13 @@ SUMA_Boolean SUMA_orstring_to_orcode (char *orstr, int *orient);
 int SUMA_Subdivide_Mesh(float **NodeListp, int *N_Node, int **FaceSetListp, int *N_FaceSet, float maxarea);
 SUMA_Boolean SUMA_FlipTriangles (int *FaceSetList,int N_FaceSet);
 SUMA_Boolean SUMA_FlipSOTriangles(SUMA_SurfaceObject *SO);
-int SUMA_OrientTriangles (float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, int orient, int Force);
+int SUMA_OrientTriangles (float *NodeList, int N_Node, 
+                          int *FaceSetList, int N_FaceSet, 
+                          int orient, int Force, float *c, 
+                          byte *fliphappened);
+int SUMA_OrientSOTriangles(SUMA_SurfaceObject *SO,
+                           int orient, int Force,
+                           float *cu);
 SUMA_Boolean SUMA_Offset_Smooth_dset( SUMA_SurfaceObject *SO, 
                                           float FWHM, float OffsetLim, 
                                           int N_iter,

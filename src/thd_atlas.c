@@ -1385,7 +1385,7 @@ void print_template_list(ATLAS_TEMPLATE_LIST *xtl)
 {
    int i, templen;
    ATLAS_TEMPLATE *xt;
-   char *tempstr, *tempstr2;
+   char *tempstr, *tempstr2=NULL;
    INFO_message("----- Template list: -------");
    if(xtl==NULL)
       return;

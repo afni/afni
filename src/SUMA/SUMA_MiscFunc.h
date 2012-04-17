@@ -59,6 +59,7 @@ int SUMA_iswordsame_ci (const char *sbig,const char *ssub);
 int SUMA_iswordsame (const char *sbig,const char *ssub);
 float SUMA_etime (struct  timeval  *t, int Report);
 int SUMA_etime2(char *name, char *str, char *strloc);
+char *SUMA_time(void);
 char *SUMA_time_stamp(void);
 byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet, int FaceSetDim, int *dims, int *N_in, byte *usethis, byte *mask);
 SUMA_ISINBOX SUMA_isinbox (float * NodeList, int nr, float *S_cent , float *S_dim , int BoundIn);
@@ -90,32 +91,56 @@ int SUMA_compare_double (double *a, double *b );
 void SUMA_disp_dmat (int **v,int nr, int nc , int SpcOpt);
 void SUMA_disp_mat (float **v,int nr, int nc , int SpcOpt);
 void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt, 
-                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, 
+                        SUMA_Boolean AddRowInd);
 void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt, 
-                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, 
+                        SUMA_Boolean AddRowInd);
 void SUMA_disp_vecucmat (unsigned char *v,int nr, int nc , int SpcOpt, 
-                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, 
+                        SUMA_Boolean AddRowInd);
 void SUMA_disp_veccmat (char *v,int nr, int nc , int SpcOpt, 
                         SUMA_INDEXING_ORDER d_order, FILE *fout, 
                         SUMA_Boolean AddRowInd);
 void SUMA_disp_vecdoubmat (double *v,int nr, int nc , int SpcOpt, 
-                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, 
+                        SUMA_Boolean AddRowInd);
 void SUMA_disp_veccompmat (complex *v,int nr, int nc , int SpcOpt, 
-                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, 
+                        SUMA_Boolean AddRowInd);
 void SUMA_disp_vecshortmat (short *v,int nr, int nc , int SpcOpt, 
-                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, 
+                        SUMA_Boolean AddRowInd);
 void SUMA_disp_vecbytemat (byte *v,int nr, int nc , int SpcOpt, 
-                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, 
+                        SUMA_Boolean AddRowInd);
 void SUMA_disp_dvect (int *v,int l);
 void SUMA_disp_vect (float *v,int l);
 void SUMA_disp_doubvect (double *v,int l);
 int SUMA_WriteMxVec(SUMA_MX_VEC *mxv, char *Name, char *title);
 void SUMA_Set_VoxIntersDbg(int v);
-SUMA_Boolean SUMA_isVoxelIntersect_Triangle (float *center, float *dxzy, float *vert0, float *vert1, float *vert2);   
-SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, float *vert1, float *vert2, float *iP, float *d, int *closest_vert);
-SUMA_MT_INTERSECT_TRIANGLE *SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, SUMA_MT_INTERSECT_TRIANGLE * PrevMTI);
+SUMA_Boolean SUMA_isVoxelIntersect_Triangle (float *center, float *dxzy, 
+                                             float *vert0, float *vert1, 
+                                             float *vert2);   
+SUMA_Boolean SUMA_MT_count_intersect_triangle(void *v0, void *v1, 
+                           float *NodeList, int N_Node, 
+                           int *FaceSetList, int N_FaceSet, 
+                           int *N_hits, int *tris_hit,
+                           byte OnlyBetween, byte *nmask,
+                           int input_are_indices,
+                           float *min_dist, int *iface_min_dist, float *proj);
+SUMA_Boolean SUMA_MT_isIntersect_Triangle (
+      float *P0, float *P1, 
+      float *vert0, float *vert1, float *vert2, 
+      float *iP, float *d, int *closest_vert);
+SUMA_MT_INTERSECT_TRIANGLE *SUMA_MT_intersect_triangle(
+      float *P0, float *P1, 
+      float *NodeList, int N_Node, 
+      int *FaceSetList, int N_FaceSet, 
+      SUMA_MT_INTERSECT_TRIANGLE * PrevMTI);
 void * SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI);
-SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, FILE *Out);
+SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, 
+                                             FILE *Out);
 SUMA_Boolean	SUMA_mattoquat (float **mat, float *q);
 SUMA_Boolean SUMA_FromToRotation (float *v0, float *v1, float **mtx);
 int * SUMA_fqsortrow (float **X , int nr, int nc  );
@@ -132,7 +157,12 @@ int SUMA_isConsistent (int *T, int *t);
 int SUMA_isTriLinked (int*T, int *t, int *cn);
 SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_allocate_FaceSet_Edge_Neighb (int N_FaceSet);
 SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, int N_EL);
-float * SUMA_SmoothAttr_Neighb (float *attr,  int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn, int nr, byte *nmask, byte strict_mask);
+float * SUMA_SmoothAttr_Neighb (float *attr,  int N_attr, float *attr_sm, 
+                                SUMA_NODE_FIRST_NEIGHB *fn, int nr, byte *nmask,
+                                byte strict_mask);
+float * SUMA_SmoothAttr_Neighb_wght (float *attr, int N_attr, float *wght, 
+                                     float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn,
+                                     int nr, byte *nmask, byte strict_mask);
 float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, 
                                     float *attr_sm_orig, 
                                     SUMA_NODE_FIRST_NEIGHB *fn, 
@@ -145,8 +175,11 @@ float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSetList, int N_Fac
 float SUMA_TriSurf3 (float *n0, float *n1, float *n2);
 float * SUMA_TriSurf3v (float *NodeList, int *FaceSets, int N_FaceSet);
 SUMA_Boolean SUMA_TriNorm (float *n0, float *n1, float *n2, float *norm);
-SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, float *NodeNormList, float *Face_A, 
-                                                   int N_FaceSet, SUMA_NODE_FIRST_NEIGHB *FN, SUMA_EDGE_LIST *el, char *out, int verb);
+SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, 
+                     float *NodeNormList, float *Face_A, int N_FaceSet, 
+                     SUMA_NODE_FIRST_NEIGHB *FN, SUMA_EDGE_LIST *el, 
+                     char *out, int verb);
+SUMA_DSET *SUMA_CurvatureToDset(SUMA_SURFACE_CURVATURE *SC, char *OutPrefix);
 SUMA_Boolean SUMA_Householder (float *Ni, float **Q);
 void SUMA_Free_SURFACE_CURVATURE (SUMA_SURFACE_CURVATURE *SC);
 float * SUMA_Convexity (float *NodeList, int N_Node, float *NodeNormList, SUMA_NODE_FIRST_NEIGHB *FN);
@@ -157,12 +190,14 @@ char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt);
 char SUMA_ReadCharStdin (char def, int case_sensitive, char *allowed);
 int SUMA_ReadNumStdin (float *fv, int nv);
 int * SUMA_Find_inIntVect (int *x, int xsz, int val, int *nValLocation);
+int SUMA_FindFirst_inIntVect (int *x0, int *x1, int val);
 int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted );
 int * SUMA_UniqueInt_ind (int *ys, int N_y, int *kunq, int **iup);
 void SUMA_Show_Edge_List (SUMA_EDGE_LIST *SEL, FILE *Out);
 int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2);
 int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri); 
-int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace);
+int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace, 
+                     byte quiet);
 int SUMA_whichTri_e (SUMA_EDGE_LIST * EL, int E1, int E2, int IOtrace, 
                      byte quiet);
 SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident, int IOtrace, byte quiet);
