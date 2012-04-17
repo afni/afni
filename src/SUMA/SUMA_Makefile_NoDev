@@ -384,10 +384,22 @@ FSread_annot: SUMA_FSread_annot.c
 SampBias: SUMA_SampBias.c ${SUMALIB} 
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
-		${CCOPT} ${WARNOPT} -o $@ SUMA_SampBias.c ${SUMA_INPATH}	${SUMA_LINK_PATH}		\
-		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
+		${CCOPT} ${WARNOPT} -o $@ SUMA_SampBias.c \
+		${SUMA_INPATH}	${SUMA_LINK_PATH}		\
+		${AFNI_3dOBJS} 		\
+		${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB} 
+
+BrainSkin: SUMA_BrainSkin.c ${SUMALIB} 
+	$(RM) $@
+	${CC} -DSUMA_COMPILED \
+		${CCOPT} ${WARNOPT} -o $@ SUMA_BrainSkin.c \
+		${SUMA_INPATH}	${SUMA_LINK_PATH}		\
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o		\
+		${AFNI_OBJS} -I../avovk -lf2c			\
+		${SUMALIBLIST} -lsegtools ${AFNILIB} ${ZLIB}			\
+		${SUMA_LINK_LIB} -lgsl -lgslcblas -lgts -lSUMAGTS
 
 resolvitivity: SUMA_resolvitivity.c ${SUMALIB} 
 	$(RM) $@

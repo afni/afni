@@ -66,6 +66,122 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16, APR , 2012 , ZSS , "BrainSkin" , MINOR , TYPE_NEW_PROG,
+   "Early version to create a brain envelope surface isotopic with pial surf",
+   "Many functions added/modified for surface/volume intersections\n"
+   "See SUMA_SurfaceInterectionVolume(), SUMA_Push_Nodes_To_Hull(),\n"
+   "SUMA_VoxelToSurfDistances(), SUMA_GetOffset2bytemask(),\n"
+   "SUMA_NodeNeighborMask(), SUMA_NN_GeomSmooth[23],\n"
+   "SUMA_SmoothAttr_Neighb_wght(), SUMA_CurvatureToDset(), \n"
+   "SUMA_mri_volume_infill_solid(), etc.\n"
+   "New convenience functions: SUMA_*_Smooth_SO, SUMA_OrientSOTriangles(),\n"
+   "SUMA_THD_IsoSurface(), and SUMA_Mesh_Resample_nodes(). \n"
+   "Macros SUMA_RECOMPUTE*, SUMA_CLOSEST_NODE_VEC.\n"
+   "New triangle intersection function: SUMA_MT_count_intersect_triangle().\n"
+ },
+
+ { 16, APR , 2012 , ZSS , "SurfaceMetrics" , MINOR , TYPE_MODIFY,
+   "Improved output format and added Displayable Objects to output.",
+   NULL
+ },
+
+ { 16, APR , 2012 , ZSS , "SampBias" , MINOR , TYPE_MODIFY,
+   "Improved I/O",
+   NULL
+ },
+
+ { 16, APR , 2012 , ZSS , "SurfToSurf" , MINOR , TYPE_NEW_OPT,
+   "Added -closest_possible\n",
+   "For allowing the substitution of the projection result with \n"
+   "the closest node that could be found along any direction.\n"
+   "See changes to SUMA_GetM2M_NN()"
+ },
+
+ { 16, APR , 2012 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
+   "Added -do_draw_mask to restrict where node-based DOs are shown",
+   NULL
+ },
+
+ { 16, APR , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "More I/T selector linkage modes.",
+   NULL
+ },
+
+ { 16, APR , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Show data value at crosshair directly in display",
+   "See SUMA_UpdateCrossHairNodeLabelFieldForSO(),\n"
+   "SUMA_FormNodeValFieldStrings(), and SUMA_UpdateNodeValField()\n"
+ },
+
+ { 16, APR , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Better handling on multiline centering for display in viewer window.",
+   NULL
+ },
+
+ { 16, APR , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "New option to control which node-based DOs are displayed.",
+   "See SUMA's interactive help on 'Ctrl+p' for details.\n"
+ },
+
+ { 16, APR , 2012 , ZSS , "suma-general" , MINOR , TYPE_MODIFY,
+   "New convenience functions for I/O",
+   "SUMA_AddDsetIndexCol(), SUMA_CreateFullDsetPointer, and\n"
+   "macro SUMA_DSET_NAME_CHECK "
+   "Improved name parsing and format guessing.\n"
+ },
+
+ { 16, APR , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
+   "Created ptaylor/ under src/ to include Paul Taylor's code contributions",
+   "To compile all of Paul's programs: cd src/ptaylor; make all \n"
+   "or from src/ make ptaylor_all\n"
+   "Added macros AFNI_3D_to_1D_index and AFNI_1D_to_3D_index in 3ddata.h"
+ },
+
+ { 16, APR , 2012 , ZSS , "plugout_drive" , MICRO , TYPE_MODIFY,
+   "Cosmetic error message handling to help debugging SLaconte problems",
+   NULL
+ },
+
+ { 16, APR , 2012 , ZSS , "afni-general" , MICRO , TYPE_MODIFY,
+   "Added new help features to bunch of programs",
+   "1dCorrelate, 1dTsort, 1ddot, 3dANOVA*, 1dplot, 3dAutobox, cat_matvec,\n"
+   "waver\n"
+ },
+
+ { 16, APR , 2012 , ZSS , "afni" , MICRO , TYPE_BUG_FIX,
+   "Increased allocated space for bigmap variables in display.c",
+   "This is to stop a a MCW_malloc post-corruption which happens\n"
+   "under certain compiler/OS combinations. No big deal.\n"
+ },
+
+ { 16, APR , 2012 , ZSS , "1dTsort" , MICRO , TYPE_NEW_OPT,
+   "Added -imode to return the mode of 1D file content.",
+   NULL
+ },
+
+ { 22, MAR , 2012 , ZSS , "@Spharm.examples" , MINOR , TYPE_MODIFY,
+   "Improvements to the script to make it work with new programe versions.",
+   "It will now download its own data for demo purporses.\n"
+ },
+
+ { 22, MAR , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Add values at node to the display.",
+   "This involved an improvement to the centering of text so that\n"
+   "one can center each line in a paragraph",
+ },
+
+ { 22, MAR , 2012 , ZSS , "SurfaceMetrics" , MICRO , TYPE_NEW_OPT,
+   "Now outputs NIML dsets and Displayable objects for certain metrics",
+   NULL,
+ },
+
+ { 22, MAR , 2012 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT,
+   "Improve display of node-based DOs. ctrl+p for showing subset of objects.",
+   "Node-based DOs overwhelm the display. Ctrl+p allows one to show DOs\n"
+   "only around the selected node, or just at it. \n"
+   "See also DriveSuma's -do_mask_mode option.",
+ },
+
  { 6, MAR , 2012 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
    "Option completion killed filename completion. Not anymore.",
    NULL,
@@ -201,7 +317,7 @@ afni_history_struct ziad_history[] = {
  },
  
  { 6, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
-   "Improved (I hope) sub-brick labels. Added FDR to.",
+   "Improved (I hope) sub-brick labels. Added FDR too.",
    "Same improvements to all 3dANOVA programs.\n"
  },
  

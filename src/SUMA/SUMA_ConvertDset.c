@@ -560,7 +560,7 @@ int main (int argc,char *argv[])
             ikps = SUMA_MIN_PAIR(SDSET_VECNUM(dset), (ksp+1)*nsplits);
             if (ikp == ikps) continue; /* all one */
             while (ikp < ikps) colmask[ikp++]=1;
-            prefs = SUMA_RemoveDsetExtension_eng(prefix,SUMA_NO_DSET_FORMAT);
+            prefs = SUMA_RemoveDsetExtension_s(prefix,SUMA_NO_DSET_FORMAT);
             prefs = SUMA_append_replace_string(prefs,cbuf,".", 1);
             if (!(ds = SUMA_MaskedCopyofDset(dset, NULL, colmask, 1, 1))) {
                SUMA_S_Err("Failed to get masked copy");

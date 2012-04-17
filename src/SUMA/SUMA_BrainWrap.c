@@ -18,10 +18,12 @@ int SUMA_DidUserQuit(void)
       (Fast robust automated brain extraction, Stephen M. Smith, HBM 2002 v 17:3 pp 143-155)
    -3 Get convex hull of outer surface and shrink to set limit on expansion
 */         
-float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObject **SOhull)
+float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+                           SUMA_SurfaceObject **SOhull)
 {
    static char FuncName[]={"SUMA_LoadPrepInVol"};
-   int orient, i, nxx, nxy, cnt, *isort = NULL,iPercRangeVal[2], tind, znxy, *ijk=NULL, nf = 0, trouble= 0, Force = 0;
+   int orient, i, nxx, nxy, cnt, *isort = NULL,iPercRangeVal[2], 
+       tind, znxy, *ijk=NULL, nf = 0, trouble= 0, Force = 0;
    THD_fvec3 ncoord, ndicom;
    THD_ivec3 nind3;
    float vol=-1, mass=-1, volmass = -1, *CoordList = NULL;
@@ -283,21 +285,9 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
                fprintf(SUMA_STDERR,"%s: Checking orientation.\n", FuncName);
             SUMA_SL_Warn("Stuff shaky here, Attend to it.");
             Force = 1; 
-            orient = SUMA_OrientTriangles (  SOhullp->NodeList, SOhullp->N_Node, 
-                                             SOhullp->FaceSetList, 
-                                             SOhullp->N_FaceSet, 1, Force);
-            if (orient < 0 || Force) { 
-               /* flipping was done, dump the edge list */ 
-               if (SOhullp->EL) SUMA_free_Edge_List(SOhullp->EL); 
-               SOhullp->EL = NULL; 
-            }
-            if (!orient) { 
+            if (!(orient = SUMA_OrientSOTriangles(SOhullp, 1, Force, NULL))) { 
                fprintf(SUMA_STDERR,"Error %s:\nFailed in SUMA_OrientTriangles\n",
                         FuncName); 
-               }
-            if (LocalHead) {
-               if (orient < 0) { SUMA_SL_Note("Hull was reoriented"); }
-               else { SUMA_SL_Note("Hull was properly oriented"); }
             }
             #endif 
                
@@ -1604,11 +1594,12 @@ int SUMA_StretchToFitLeCerveau (
    do a test to count only the triangles that are intersected in the direction of the ray
    In the end, it turns out to be slower than Meth1. Bad
    
+   If you just want a mask of the bounding box, it is quite fast
    \sa SUMA_FindVoxelsInSurface
 */
 short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, 
                                      SUMA_VOLPAR *VolPar,
-                                     int *N_inp) 
+                                     int *N_inp, int boxonly) 
 {
    static char FuncName[]={"SUMA_FindVoxelsInSurface_SLOW"};
    short *isin = NULL, *tmpin = NULL;
@@ -1647,8 +1638,10 @@ short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO,
    /* transform the surface's coordinates from RAI to 3dfind */
    SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, VolPar);
    
-   /* find the new center and bounding box for the surface in the new coordinate system*/
-   SUMA_MIN_MAX_SUM_VECMAT_COL (tmpXYZ, SO->N_Node, 3, MinDims, MaxDims, SOCenter); 
+   /* find the new center and bounding box for the surface in the new 
+      coordinate system*/
+   SUMA_MIN_MAX_SUM_VECMAT_COL ( tmpXYZ, SO->N_Node, 3, 
+                                 MinDims, MaxDims, SOCenter); 
    SOCenter[0] /= SO->N_Node;  
    SOCenter[1] /= SO->N_Node;  
    SOCenter[2] /= SO->N_Node;  
@@ -1679,7 +1672,8 @@ short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO,
                   }
                }   
             }
-            if (isin[n]) { /* inside bounding box, but is it inside  surface ? */
+            if (isin[n] && !boxonly) { 
+                        /* inside bounding box, but is it inside  surface ? */
                p0[0] = i; p1[0] = i+1000; p0[1] = p1[1] = j; p0[2] = p1[2] = k; 
                #ifdef Meth1
                   /* works, but slow as a turtle */
@@ -1760,19 +1754,25 @@ short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO,
 
 
 /*!
-   \param NodeIJKlist (float *) the equivalent of SO->NodeList only in i,j,k indices into VolPar's grid.
-                           In the future, might want to allow for this param to be NULL and have it
-                           be generated internally from SO->NodeList and VolPar.
+   This function is useful when trying to find all voxels inside a surface
+   
+   \param NodeIJKlist (float *) the equivalent of SO->NodeList 
+                           only in i,j,k indices into VolPar's grid.
+                           If NULL, it gets generated internally from 
+                           SO->NodeList and VolPar.
    \return isin (short *)  1: voxel contains node
                            2: voxel is in box containing triangle
-                           3: voxel is in box containing triangle and is on the side opposite to the normal 
-                           See SUMA_SURF_GRID_INTERSECT_OPTIONS for the various possible values
+                           3: voxel is in box containing triangle and is on 
+                              the side opposite to the normal 
+           See SUMA_SURF_GRID_INTERSECT_OPTIONS for the various possible values
 
-   - The first part of this function is the source for function SUMA_GetVoxelsIntersectingTriangle
+   - The first part of this function is the source for function 
+      SUMA_GetVoxelsIntersectingTriangle
    If you find bugs here, fix them there too. 
-
+   
+   \sa SUMA_SurfaceIntersectionVolume
 */
-short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, 
+short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU, 
                                SUMA_VOLPAR *VolPar, int *N_inp, 
                                int fillhole, THD_3dim_dataset *fillmaskset)
 {
@@ -1785,6 +1785,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist,
        *voxelsijk=NULL, N_alloc, en;
    int N_inbox, nt, nt3, ijkseed = -1, N_in, N_realloc, isincand;
    byte *fillmaskvec=NULL;
+   float *NodeIJKlist=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1797,6 +1798,32 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist,
    nx = VolPar->nx; ny = VolPar->ny; nz = VolPar->nz; 
    nxy = nx * ny; nxyz = nx * ny * nz;
    
+   if (!NodeIJKlistU) {
+      NodeIJKlist = (float *)SUMA_malloc(SO->N_Node * 3 * sizeof(float));
+      memcpy ((void*)NodeIJKlist, (void *)SO->NodeList, 
+                  SO->N_Node * 3 * sizeof(float));
+      /* transform the surface's coordinates from RAI to 3dfind */
+      if (!SUMA_vec_dicomm_to_3dfind (NodeIJKlist, SO->N_Node, VolPar)) {
+         SUMA_SL_Err("Failed to effectuate coordinate transform.");
+         SUMA_free(NodeIJKlist); NodeIJKlist = NULL;
+         SUMA_RETURN(NULL);
+      }
+   } else {
+      NodeIJKlist = NodeIJKlistU;
+      for (nn=0; nn<SO->N_Node ; ++nn) { /* check */
+         if (NodeIJKlist[3*nn  ] < 0 || NodeIJKlist[3*nn  ]>= nx ||
+             NodeIJKlist[3*nn+1] < 0 || NodeIJKlist[3*nn+1]>= nx || 
+             NodeIJKlist[3*nn+2] < 0 || NodeIJKlist[3*nn+2]>= nx ) {
+            SUMA_S_Errv("Looks like NodeIJKlist is not in index units.\n"
+                        "At node %d, have %f %f %f\n"
+                        , nn, 
+                        NodeIJKlist[3*nn  ], 
+                        NodeIJKlist[3*nn+1], 
+                        NodeIJKlist[3*nn+2]);
+            SUMA_RETURN(NULL);
+         } 
+      }
+   }
 
    isin = (short *)SUMA_calloc(nxyz, sizeof(short));
    if (!isin) {
@@ -1882,8 +1909,9 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist,
       /* mark these voxels as inside the business */
       for (nt=0; nt < N_inbox; ++nt) {
          nt3 = 3*nt;
-         if (voxelsijk[nt3] < nx &&  
-             voxelsijk[nt3+1] < ny &&  voxelsijk[nt3+2] < nz) {
+         if (voxelsijk[nt3  ] >= 0 && voxelsijk[nt3  ] < nx &&  
+             voxelsijk[nt3+1] >= 0 && voxelsijk[nt3+1] < ny &&  
+             voxelsijk[nt3+2] >= 0 && voxelsijk[nt3+2] < nz) {
             isincand = 0;
             nijk = SUMA_3D_2_1D_index(voxelsijk[nt3], voxelsijk[nt3+1], 
                                        voxelsijk[nt3+2], nx , nxy);  
@@ -1965,7 +1993,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist,
          SUMA_LH("Failed to write isin for debug...");
       }
    }
-   /* Now fill in inside of the sphere */
+   
       /* create a mask vector*/
       ijkmask = (byte *)SUMA_calloc(nxyz, sizeof(byte));
       ijkout = (byte *)SUMA_calloc(nxyz, sizeof(byte));
@@ -2128,26 +2156,33 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist,
          /* flag it */
          for (nt=0; nt<nxyz; ++nt) {
             if (inmask[nt] && !isin[nt]) {
-               /* it would be nice to fill this value only if the intensity in the spat normed volume is not 0 
-               The problem is that you have to transform coordinates back from this dataset back to the spatnormed set*/
+               /* it would be nice to fill this value only if 
+               the intensity in the spat normed volume is not 0 
+               The problem is that you have to transform coordinates back from 
+               this dataset back to the spatnormed set*/
                   isin[nt] = SUMA_INSIDE_SURFACE;
             }
          }
       }
-      /* now put back the values outside the surface but protect values in mask */
-      for (nt=0; nt<nxyz; ++nt) { if (ijkout[nt] && !inmask[nt]) isin[nt] = SUMA_IN_TRIBOX_OUTSIDE; }
+      /* now put back values outside the surface but protect values in mask */
+      for (nt=0; nt<nxyz; ++nt) { 
+         if (ijkout[nt] && !inmask[nt]) isin[nt] = SUMA_IN_TRIBOX_OUTSIDE; 
+      }
       
    CLEAN_EXIT:   
    if (ijkout) SUMA_free(ijkout); ijkout = NULL;
    if (ijkmask) SUMA_free(ijkmask); ijkmask = NULL;
    if (inmask) SUMA_free(inmask); inmask = NULL;
    if (voxelsijk) SUMA_free(voxelsijk); voxelsijk = NULL;
+   if (!NodeIJKlistU) SUMA_free(NodeIJKlist);
+   
    SUMA_RETURN(isin);
    
 }               
  
 /*!
-   \brief finds voxels inside a closed surface. Surface's normals are to point outwards.
+   \brief finds voxels inside a closed surface. 
+         Surface's normals are to point outwards.
    \sa   SUMA_SurfGridIntersect   
    \sa   SUMA_SURF_GRID_INTERSECT_OPTIONS for the various possible values
  
@@ -2263,128 +2298,6 @@ short *SUMA_FindVoxelsInSurface (
    SUMA_RETURN(isin);
 }
 
-THD_3dim_dataset *SUMA_VoxelToSurfDistances(SUMA_SurfaceObject *SO, 
-                     THD_3dim_dataset *master, byte *mask, short *isin,
-                     short inval) {
-   static char FuncName[]={"SUMA_VoxelToSurfDistances"};
-   int i, j, k, n, nxyz, ijk, *closest=NULL, n_mask, n3;
-   float *dist=NULL, *Points=NULL;
-   byte *sgn=NULL;
-   THD_fvec3 ncoord, ndicom;
-   THD_ivec3 nind3;
-   THD_3dim_dataset *dset=NULL;
-   SUMA_FORM_AFNI_DSET_STRUCT *OptDs = NULL; 
-   SUMA_Boolean LocalHead = NOPE;
-     
-   SUMA_ENTRY;
-   
-   if (isin && mask) {
-      SUMA_S_Err("Not supposed to mix the two ");
-      SUMA_RETURN(NULL);
-   }
-   /* get Points vectors */
-   nxyz = DSET_NVOX(master); 
-   n_mask=0;
-   if (isin) {
-      mask = (byte *)SUMA_calloc(nxyz, sizeof(byte));
-      for (i=0; i<nxyz; ++i) {
-         if (isin[i]) { mask[i] = 1; ++n_mask;}
-      }
-      if (inval) {
-         sgn = (byte *)SUMA_calloc(n_mask, sizeof(byte));
-         j = 0;
-         for (i=0; i<nxyz; ++i) {
-            if (isin[i]) {
-               if (isin[i]>=inval) sgn[j] = 2;
-               else sgn[j] = 1;
-               ++j;
-            }
-         }
-      }
-   } else {
-      if (!mask) {
-         n_mask = nxyz;
-      } else {
-         for (i=0; i<nxyz; ++i) if (mask[i]) ++n_mask; 
-      }
-   }
-   SUMA_LHv("Have %d points in mask on %dx%dx%d grid\n", 
-            n_mask, DSET_NX(master), DSET_NY(master), DSET_NZ(master));
-   Points = (float *)SUMA_calloc(3*n_mask, sizeof(float));
-   n = 0; ijk=0;
-   for (k=0; k<DSET_NZ(master); ++k) { 
-      for (j=0; j<DSET_NY(master); ++j ) { 
-         for (i=0; i<DSET_NX(master); ++i)  { 
-            if (!mask || mask[ijk]) {
-               n3 = 3*n;
-               nind3.ijk[0] = i; nind3.ijk[1] = j; nind3.ijk[2] = k; 
-               ncoord = THD_3dind_to_3dmm(master, nind3);
-               ndicom = THD_3dmm_to_dicomm(master,ncoord);
-               Points[n3  ] = ndicom.xyz[0];
-               Points[n3+1] = ndicom.xyz[1];
-               Points[n3+2] = ndicom.xyz[2];
-               SUMA_LHv("Added [%f %f %f]\n",
-                  Points[n3  ], Points[n3+1], Points[n3+2]);
-               ++n;
-            }
-            ++ijk;
-         }
-      }
-   }
-   
-   /* get distance of each point to surface */
-   if (sgn == NULL) { /* Don't have sign yet. 
-      Let SUMA_Shortest_Point_To_Triangles_Distance compute sign 
-      based on dot product with normals. 
-      This computation is not accurate everywhere ... */
-      if (!SUMA_Shortest_Point_To_Triangles_Distance(
-            Points, n_mask, 
-            SO->NodeList, SO->FaceSetList, SO->N_FaceSet,
-            SO->FaceNormList, &dist, &closest, &sgn )) {
-         SUMA_S_Err("Failed to get shortys");
-         SUMA_RETURN(NULL);     
-      }
-   } else {/* have sign already */
-      if (!SUMA_Shortest_Point_To_Triangles_Distance(
-            Points, n_mask, 
-            SO->NodeList, SO->FaceSetList, SO->N_FaceSet,
-            NULL, &dist, &closest, NULL )) {
-         SUMA_S_Err("Failed to get shortys");
-         SUMA_RETURN(NULL);     
-      }
-   }
-   
-   for (i=0; i<n_mask; ++i) {
-      if (sgn[i]==2) dist[i] = sqrt(dist[i]);
-      else dist[i] = -sqrt(dist[i]);
-   }
-   SUMA_LHv("Point 0: [%f %f %f], Node 0: [%f %f %f]\n"
-            "dist %f, closest triangle %d, sign %d\n",
-            Points[0], Points[1], Points[2],
-            SO->NodeList[0], SO->NodeList[1], SO->NodeList[2],
-            dist[0], closest[0], sgn[0]);
-   OptDs = SUMA_New_FormAfniDset_Opt();
-   OptDs->prefix = SUMA_copy_string("3dVoxelToSurfDistances");
-   OptDs->prefix_path = SUMA_copy_string("./");
-   
-   /* master dset */
-   OptDs->datum = MRI_float; /* you have to do the scaling yourself otherwise */
-   OptDs->full_list = 0;
-   OptDs->do_ijk = 0;
-   OptDs->coorder_xyz = 0;
-   OptDs->fval = 0.0;
-   OptDs->mset = master;
-   dset = SUMA_FormAfnidset (Points, dist, n_mask, OptDs);
-   OptDs->mset=NULL; OptDs = SUMA_Free_FormAfniDset_Opt(OptDs);  
-   if (!dset) {
-      SUMA_SL_Err("Failed to create output dataset!");
-   } 
-
-   /* free if needed */
-   if (isin) SUMA_free(mask); mask=NULL;
-   
-   SUMA_RETURN(dset);
-}
 
 /*!
    \brief A function to recommend node movement towards a better future.
@@ -3477,10 +3390,13 @@ float *SUMA_Suggest_Touchup_PushEdge(SUMA_SurfaceObject *SO,
 /*!
    Push nodes of surface to the surface's convex hull
 */
-void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs, int N_itermax)
+void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, 
+                              SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+                              SUMA_COMM_STRUCT *cs, int N_itermax)
 {
    static char FuncName[]={"SUMA_Push_Nodes_To_Hull"};
-   float U[3], Un, *a, P2[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, *norm, shft, *b; 
+   float U[3], Un, *a, P2[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, 
+         *norm, shft, *b; 
    int *ijk=NULL, nf = 0, N_iter = 0, N_troub, in, N_smooth, inh;
    float *dsmooth=NULL, *refNodeList=NULL, *dirvec = NULL, *diropt=NULL, iscale;
    byte *nmask = NULL;
@@ -3504,9 +3420,11 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
             SUMA_RETURN(NULL);
          }
          SUMA_RECOMPUTE_NORMALS((SOhull));
-         if (!SUMA_SurfaceMetrics_eng(SOhull, "EdgeList,MemberFace,PolyArea", NULL, SUMA_MAX_PAIR(0, Opt->debug -1), SUMAg_CF->DsetList)) {
-            fprintf(SUMA_STDERR,"Error %s: Error in SUMA_SurfaceMetrics\n", FuncName);
-            SUMA_Free_Surface_Object (SOhull); /* that takes care of freeing leftovers in MF */
+         if (!SUMA_SurfaceMetrics_eng(SOhull, "EdgeList,MemberFace,PolyArea", 
+                  NULL, SUMA_MAX_PAIR(0, Opt->debug -1), SUMAg_CF->DsetList)) {
+            fprintf(SUMA_STDERR,
+                     "Error %s: Error in SUMA_SurfaceMetrics\n", FuncName);
+            SUMA_Free_Surface_Object (SOhull); /* freeing leftovers in MF */
             SOhull = NULL;
             SUMA_RETURN(NULL);
          }
@@ -3517,7 +3435,7 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
       if (!SUMA_Save_Surface_Object (SO_name_hull, SOhull, 
                                      Opt->SurfFileType, Opt->SurfFileFormat,
                                      NULL)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+         SUMA_S_Err("Failed to write surface object.\n");
       }
       #endif
    }
@@ -3585,7 +3503,7 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
                                           (center-->node) is negative */
          }
          M2M = SUMA_GetM2M_NN(SO, SOhull, NULL, 
-                              SO->N_Node, diropt, 100.0, Opt->NodeDbg);
+                              SO->N_Node, diropt, 100.0, Opt->NodeDbg, 0);
          /* move each node by fraction of distance along dirvec */
          for (in=0; in < SO->N_Node; ++in) {
             shft = M2M->PD[in];

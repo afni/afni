@@ -676,9 +676,9 @@ void SUMA_dot_product_CB( void *params)
          SUMA_RETURNe;
       }
       snprintf(ident,298*sizeof(char), "filename:%s", SDSET_FILENAME(out_dset));
-      p1 = SUMA_RemoveDsetExtension_eng(SDSET_FILENAME(in_dset),
+      p1 = SUMA_RemoveDsetExtension_s(SDSET_FILENAME(in_dset),
                                         SUMA_NO_DSET_FORMAT);
-      p2 = SUMA_RemoveDsetExtension_eng(SDSET_FILENAME(ts_src_dset),
+      p2 = SUMA_RemoveDsetExtension_s(SDSET_FILENAME(ts_src_dset),
                                         SUMA_NO_DSET_FORMAT);
       if (SO->Side == SUMA_LEFT) Cside = "L";
       else if (SO->Side == SUMA_RIGHT) Cside = "R";

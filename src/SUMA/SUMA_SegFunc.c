@@ -1464,6 +1464,7 @@ int SUMA_find_hole_voxels( int Ni, int Nj, int Nk,
    
    nh = 0;
    for (v=0; v<Nijk; ++v) {
+      if (ba[v]) continue; /* not a hole! */
       if (SUMA_ray_i(v, Ni, Nij, fa, ba, ta, da) 
                      == SUMA_I_HOLE) {
          holeat[nh] = v; ++nh;
@@ -1707,11 +1708,79 @@ int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill,
    SUMA_RETURN(1);
 }
 
+/*!   
+   A brutish filler function, filling interpolation is crude
+*/
+                    
+int SUMA_mri_volume_infill_solid(MRI_IMAGE *imin, int minhits) 
+{
+   static char FuncName[]={"SUMA_mri_volume_infill_solid"};
+   int Ni, Nj, Nk, Nij, Nijk, v;
+   int hitcode, hitsum, da[2];
+   byte *ba=NULL;
+   float *fa=NULL, *fan=NULL, ta[2];
+   float  sI, sK, sJ, nhits=0.0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (minhits <= 0) minhits = 1;
+   
+   Ni = imin->nx; Nj = imin->ny; Nk = imin->nz; 
+   Nij = Ni*Nj; Nijk = Nij*Nk;
+   
+   fa = MRI_FLOAT_PTR(imin);
+   fan = (float *)SUMA_calloc(Nijk, sizeof(float));
+   
+   /* make byte mask, 1 where there is value, 0 otherwise */
+   ba = (byte *)SUMA_calloc(Nijk, sizeof(byte));
+   for (v=0; v<Nijk; ++v) {
+      if (SUMA_ABS(fa[v]-0.0f)>0.00001) ba[v] = 1; 
+   }
+   
+
+   for (v=0; v<Nijk; ++v) {
+      if (ba[v]) continue; /* not a hole */
+      hitcode = 0; nhits=0.0;
+      hitsum=0; sI=0.0; sJ=0.0; sK=0.0;
+      if ( (hitcode = SUMA_ray_i(v, Ni, Nij, fa, ba, ta, da)) == 
+            SUMA_I_HOLE) {
+         hitsum += hitcode;
+         sI = (ta[0]*da[1]+ta[1]*da[0])/(da[1]+da[0]); 
+         ++nhits;
+      }
+      if ( (hitcode = SUMA_ray_j(v, Ni, Nij, Nj, fa, ba, ta, da)) == 
+            SUMA_J_HOLE) {
+         hitsum += hitcode;
+         sJ = (ta[0]*da[1]+ta[1]*da[0])/(da[1]+da[0]);
+         ++nhits;
+      }
+      if ( (hitcode = SUMA_ray_k(v, Ni, Nij, Nk, fa, ba, ta, da)) == 
+            SUMA_K_HOLE) {
+         hitsum += hitcode;
+         sK = (ta[0]*da[1]+ta[1]*da[0])/(da[1]+da[0]);
+         ++nhits;
+      }
+      if (nhits >= minhits) {
+         fan[v] = (sI + sK + sJ) / nhits;
+         /* SUMA_LHv("At vox %d: Got me %d hits of code %d and val %f\n",
+                  v, (int)nhits, hitsum, fan[v]); */
+      }
+   }
+   
+   for (v=0; v<Nijk; ++v) {
+      if (!ba[v] && fan[v] != 0.0f) { fa[v] = fan[v]; }
+   }   
+   
+   SUMA_ifree(ba); SUMA_ifree(fan);     
+   
+   SUMA_RETURN(1);
+}
 
 int SUMA_VolumeInFill(THD_3dim_dataset *aset,
                       THD_3dim_dataset **filledp,
                       int method, int integ,
-                      int MxIter) 
+                      int MxIter, int minhits) 
 {
    static char FuncName[]={"SUMA_VolumeInFill"};
    float *fa=NULL;
@@ -1720,6 +1789,10 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (minhits > 0 && method != 2) {
+      SUMA_S_Err("minhits is only useful with method = 2.\n");
+   }
    
    if (integ < 0) { /* figure it out */
       if (is_integral_dset(aset,1)) integ = 1;
@@ -1733,8 +1806,13 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
          SUMA_S_Err("Failed to fill volume");
          SUMA_RETURN(0);
       }
-   } else { /* faster */
+   } else if (method == 1) { /* faster */
       if (!SUMA_mri_volume_infill_zoom(imin, 0, integ, MxIter)) {
+         SUMA_S_Err("Failed to fill volume");
+         SUMA_RETURN(0);
+      }
+   } else if (method == 2){ /* solid */
+      if (!SUMA_mri_volume_infill_solid(imin, minhits)) {
          SUMA_S_Err("Failed to fill volume");
          SUMA_RETURN(0);
       }

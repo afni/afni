@@ -3094,15 +3094,21 @@ SUMA_Boolean SUMA_FreeSurfer_WritePatch (char *fileNm, SUMA_SurfaceObject *SO, c
    /* write the node coordinates */
    for (i=0; i < SO->N_Node; ++i) {
       if (isInPatch[i]) {
-         fprintf(fout, "%d\n%f\t%f\t%f\n", i, SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2]);
+         fprintf(fout, "%d\n%f\t%f\t%f\n", i, 
+            SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2]);
       }
    }
    for (i=0; i < SO->N_FaceSet; ++i) {
-      iface = SUMA_whichTri (SO_parent->EL, SO->FaceSetList[3*i], SO->FaceSetList[3*i+1], SO->FaceSetList[3*i+2], 0);
+      iface = SUMA_whichTri (SO_parent->EL, SO->FaceSetList[3*i], 
+                  SO->FaceSetList[3*i+1], SO->FaceSetList[3*i+2], 0, 0);
       if (iface < 0) {
-         SUMA_SL_Warn("Parent surface does not contain triangle in patch!\nTriangle skipped.");
+         SUMA_SL_Warn(
+            "Parent surface does not contain triangle in patch!\n"
+            "Triangle skipped.");
       } else {
-         fprintf(fout, "%d\n%d\t%d\t%d\n", iface, SO->FaceSetList[3*i], SO->FaceSetList[3*i+1], SO->FaceSetList[3*i+2]);
+         fprintf(fout, "%d\n%d\t%d\t%d\n", 
+            iface, SO->FaceSetList[3*i], SO->FaceSetList[3*i+1], 
+                   SO->FaceSetList[3*i+2]);
       }
    }
    
@@ -7903,7 +7909,8 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals,
    /*-- fill new dataset brick with the -fval value --*/
    switch( Opt->datum ){
       case MRI_short:
-         if (0) fprintf(SUMA_STDERR,"%s: Filling with %d\n", FuncName, fval_short);
+         if (0) 
+            fprintf(SUMA_STDERR,"%s: Filling with %d\n", FuncName, fval_short);
          sbr = (short *) DSET_BRICK_ARRAY(dset,0) ;
          for( ii=0 ; ii < nxyz ; ii++ ) sbr[ii] = fval_short ;
       break ;

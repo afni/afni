@@ -26,7 +26,10 @@
 #define SUMA_CLOSE_MODE       SUMA_WITHDRAW
 #define SUMA_GL_CLOSE_MODE    SUMA_UNREALIZE
 
-#define SUMA_HOLD_IT  if (0) { SUMA_S_Note("Waiting...");glXWaitGL();glXWaitX(); SUMA_S_Note("Done.");}  
+#define SUMA_HOLD_IT  { \
+   SUMA_S_Note("Waiting...");\
+   glXWaitGL();glXWaitX(); \
+   SUMA_S_Note("Done.");}  
                                   
 typedef struct suma_menu_item {
     char        *label;         /*!< the label for the item */

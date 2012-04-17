@@ -3204,6 +3204,31 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               SUMA_ShowMode2ShowModeMenuItem(
                                  SO->SurfCont->curColPlane->ShowMode));
             }
+            if (NI_get_attribute(EngineData->ngr, "do_draw_mask")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "do_draw_mask", "All")) {
+                  sv->DO_DrawMask = SDODM_All;
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "do_draw_mask", "CrossHair") ||
+                          NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "do_draw_mask", "n0CrossHair") ) {
+                  sv->DO_DrawMask = SDODM_n0CrossHair;
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "do_draw_mask", "n1CrossHair") ) {
+                  sv->DO_DrawMask = SDODM_n1CrossHair;
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "do_draw_mask", "n2CrossHair") ) {
+                  sv->DO_DrawMask = SDODM_n2CrossHair;
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "do_draw_mask", "n3CrossHair") ) {
+                  sv->DO_DrawMask = SDODM_n3CrossHair;
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "do_draw_mask", "Hide")) {
+                  sv->DO_DrawMask = SDODM_Hide;
+               } 
+               /* redisplay */
+               SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+            }
             if (NI_get_attribute(EngineData->ngr, "view_surf")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_surf", "y")) {
                   SO->Show = YUP;

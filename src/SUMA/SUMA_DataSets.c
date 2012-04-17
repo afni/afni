@@ -242,7 +242,7 @@ char *SUMA_WriteDset_PreserveID(char *fn, SUMA_DSET *dset,
 */
 char *SUMA_RemoveDsetExtension_s (char*Name, SUMA_DSET_FORMAT form)
 {
-   char *c=SUMA_RemoveDsetExtension_eng (Name,  form);
+   char *c=SUMA_RemoveDsetExtension_eng (Name,  &form);
    WorkErrLog_s();
    return(c);
 }

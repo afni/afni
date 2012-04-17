@@ -545,10 +545,12 @@ SUMA_Boolean SUMA_NewDsetGrp (SUMA_DSET *dset, SUMA_DSET_TYPE dtp,
    if (!thisidcode) {
       if (!filename) {
          UNIQ_idcode_fill(idcode);
-         NI_set_attribute (dset->ngr, "self_idcode", idcode); /* create one *//* changed from idcode March 31 */
+         NI_set_attribute (dset->ngr, "self_idcode", idcode); 
+                  /* create one *//* changed from idcode March 31 */
       } else { 
          namecode = UNIQ_hashcode(filename);  /* from filename */
-         NI_set_attribute (dset->ngr, "self_idcode", namecode); SUMA_free(namecode);
+         NI_set_attribute (dset->ngr, "self_idcode", namecode); 
+               SUMA_free(namecode);
       }
    } else {
       NI_set_attribute (dset->ngr, "self_idcode", thisidcode);
@@ -558,10 +560,12 @@ SUMA_Boolean SUMA_NewDsetGrp (SUMA_DSET *dset, SUMA_DSET_TYPE dtp,
    if (MeshParent_idcode) {
       NI_set_attribute (dset->ngr, "domain_parent_idcode", MeshParent_idcode); 
    } else {
-      NI_set_attribute (dset->ngr, "domain_parent_idcode", NULL); /* don't use SUMA_EMPTY_ATTR unless you must NULL is nice*/
+      NI_set_attribute (dset->ngr, "domain_parent_idcode", NULL); 
+               /* don't use SUMA_EMPTY_ATTR unless you must NULL is nice*/
    }
    if (geometry_parent_idcode) {
-      NI_set_attribute (dset->ngr, "geometry_parent_idcode", geometry_parent_idcode);
+      NI_set_attribute (dset->ngr, "geometry_parent_idcode", 
+                        geometry_parent_idcode);
    } else {
       NI_set_attribute (dset->ngr, "geometry_parent_idcode", NULL);
    }
@@ -687,6 +691,26 @@ char *SUMA_DsetColStringAttrCopy(SUMA_DSET *dset, int i,
    }
    
    SUMA_RETURN(s);
+}
+
+/* A conveninence function to get a column's label.
+   Do not free what you get back. Labels are truncated at 64 chars.
+ */
+char *SUMA_DsetColLabel(SUMA_DSET *dset, int i) 
+{
+   static char ans[5][65]={""};
+   static int n=0;
+   char *ss=NULL;
+   
+   ++n; if (n>4) n=0;
+   ans[n][0]='\0';
+   
+   if (!(ss = SUMA_DsetColLabelCopy(dset, i,0))) {
+      return(ans[n]);
+   }
+   snprintf(ans[n],64*sizeof(char),"%s",ss);
+   SUMA_free(ss); 
+   return(ans[n]);
 }
 
 /*!
@@ -2597,8 +2621,39 @@ int SUMA_InsertDsetNelCol ( SUMA_DSET *dset, char *col_label,
    SUMA_RETURN(1);
 }
 
+/*! 
+   A convenient form of adding a default node index column
+*/
+int SUMA_AddDsetIndexCol(SUMA_DSET *dset, int *icolu) 
+{
+   static char FuncName[]={"SUMA_AddDsetIndexCol"};
+   int ii=0, *icol=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(NOPE);
+   if (SDSET_VECLEN(dset) <= 0) SUMA_RETURN(NOPE);
+   if (!icolu) {
+      if (!(icol = (int *)SUMA_malloc(sizeof(int)*SDSET_VECLEN(dset)))) {
+         SUMA_S_Err("Failed to icolate");
+         SUMA_RETURN(NOPE); 
+      }
+      for (ii=0; ii<SDSET_VECLEN(dset); ++ii) icol[ii]=ii;
+   } else icol = icolu;
+   
+   if (!SUMA_AddDsetNelIndexCol (dset, "node index", 
+                                 SUMA_NODE_INDEX, (void *)icol,
+                                 NULL, 1)) {
+      SUMA_S_Err("Failed to add default index col");
+      SUMA_RETURN(NOPE);                             
+   }
+   if (!icolu) SUMA_free(icol);
+    
+   SUMA_RETURN(YUP);    
+}
 /*!
    \brief A version of SUMA_AddDsetNelCol that is specific for adding node indices
+   \sa SUMA_AddDsetIndexCol();
 */
 int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label, 
                                SUMA_COL_TYPE ctp, void *col, 
@@ -3883,6 +3938,8 @@ char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr)
       case SUMA_ASCII_OPEN_DX_DSET:
          SUMA_RETURN ("Ascii_OpenDX_dset");
          break;
+      case SUMA_N_DSET_FORMATS:
+         SUMA_RETURN("Number_of_formats");
       default:
          SUMA_RETURN("Cowabonga-gimlauron");
          break;
@@ -3907,7 +3964,7 @@ SUMA_DSET_FORMAT SUMA_Dset_Format (char *Name)
    if (!strcmp(Name,"GIFTI_Base64_GZIPPED")) SUMA_RETURN (SUMA_XML_B64GZ_DSET);
    if (!strcmp(Name,"GIFTI_Base64")) SUMA_RETURN (SUMA_XML_B64_DSET);
    if (!strcmp(Name,"GIFTI_ASCII")) SUMA_RETURN (SUMA_XML_ASCII_DSET);
-  
+   if (!strcmp(Name,"Number_of_formats")) SUMA_RETURN (SUMA_N_DSET_FORMATS);
    SUMA_RETURN(SUMA_ERROR_DSET_FORMAT);
 }
 
@@ -5198,6 +5255,7 @@ SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename, int autoid)
    \sa SUMA_AddNelCol
    \sa SUMA_InsertDsetPointer
    \sa SUMA_NewDsetPointer
+   \sa SUMA_CreateFullDsetPointer
 */
 SUMA_DSET * SUMA_CreateDsetPointer (  
                               char *filename, SUMA_DSET_TYPE tp,
@@ -5251,6 +5309,42 @@ SUMA_DSET * SUMA_CreateDsetPointer (
    if (locid) SUMA_free(locid); locid = NULL;
    SUMA_RETURN(dset);
 }    
+
+/*!
+   An easier way to create a full dset, complete with node index column
+*/
+SUMA_DSET * SUMA_CreateFullDsetPointer (  
+                              char *filename, SUMA_DSET_TYPE tp,
+                              char *idcode,
+                              char *domain_idcode,
+                              int N_Alloc 
+                              ) 
+{
+   static char FuncName[]={"SUMA_CreateFullDsetPointer"};
+   SUMA_DSET *dset=NULL;
+   int ii, *col=NULL;
+   
+   SUMA_ENTRY;
+   
+   dset = SUMA_CreateDsetPointer (filename, tp, idcode, domain_idcode,N_Alloc);
+   if (!dset) SUMA_RETURN(dset);
+   if (!N_Alloc) SUMA_RETURN(dset);
+   
+   if (!(col = (int*)SUMA_malloc(sizeof(int)*N_Alloc))) {
+      SUMA_S_Err("Failed to allocate node index column");
+      SUMA_FreeDset(dset); dset=NULL;
+   } else {
+      for (ii=0; ii<N_Alloc; ++ii) col[ii]=ii;
+      if (!SUMA_AddDsetNelCol ( dset, "Node Index", 
+                                SUMA_NODE_INDEX, (void *)col, NULL, 1)) {
+         SUMA_S_Err("Failed to add node index column");
+         SUMA_FreeDset(dset); dset=NULL;
+      }
+   }
+   if (col) SUMA_free(col); col = NULL;
+   SUMA_RETURN(dset);
+}
+
 
 /*!
    \brief inserts a dataset pointer into the DsetList, 
@@ -5726,7 +5820,8 @@ int SUMA_GetNodeDefColIndex(SUMA_DSET *dset)
    \brief Look for datasets statifying the following:
       type SUMA_NODE_CONVEXITY 
       idcode_str for a geometry domain and a mesh domain
-   \param ReturnDsetPointer if 1 then return pointer is to dset element (SUMA_DSET *)
+   \param ReturnDsetPointer if 1 then return pointer is to 
+                                       dset element (SUMA_DSET *)
                             if 0 then return pointer is to Cx (float *)
    \return A POINTER copy to Cx (float *)
 */    
@@ -7676,7 +7771,7 @@ float * SUMA_DsetCol2FloatFullSortedColumn(
    SUMA_ENTRY;
 
    if (nmaskp) nmask = *nmaskp;
-   *N_inmask =  -1;
+   if (N_inmask) *N_inmask =  -1;
 
    /* get a float copy of the data column */
    fin_orig = SUMA_DsetCol2Float (dset, ico , 1);
@@ -7725,7 +7820,7 @@ float * SUMA_DsetCol2FloatFullSortedColumn(
          }
          locmask = NULL;
       }
-      *N_inmask = N_nmask; 
+      if (N_inmask) *N_inmask = N_nmask; 
    } else {
       SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
       if (!SUMA_MakeSparseColumnFullSorted(
@@ -7735,7 +7830,7 @@ float * SUMA_DsetCol2FloatFullSortedColumn(
          SUMA_RETURN(NULL);
       }
       /* no need for reworking nmask and locmask on this pass...*/
-      *N_inmask =  -1; /* nothing to do */
+      if (N_inmask) *N_inmask =  -1; /* nothing to do */
    }
 
 
@@ -8910,6 +9005,7 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    double range[2];
    int loc[2];
    byte *b_ColSel = NULL, *b_RowSel = NULL;
+   SUMA_DSET_FORMAT fform = SUMA_NO_DSET_FORMAT;
    SUMA_PARSED_NAME *pn=NULL;
    
    SUMA_Boolean LocalHead = NOPE;
@@ -8917,6 +9013,7 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    SUMA_ENTRY;
    
    if (!iName) { SUMA_SL_Err("NULL Name"); goto GOODBYE; }
+   if (!form) form = &fform;
    
    if (LocalHead) {
       fprintf(stderr,"%s: Have %s to work with\n", FuncName, iName);
@@ -9169,6 +9266,10 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
       SUMA_LH(PrefOut);
    }
    
+   if (form == SUMA_NO_DSET_FORMAT) {
+      form = SUMA_GuessFormatFromExtension(Name, NULL);
+   }
+   
    switch (form) {
       case SUMA_XML_DSET:
       case SUMA_XML_ASCII_DSET:
@@ -9213,8 +9314,17 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
       case SUMA_1D_STDERR:
          break;
       case SUMA_NO_DSET_FORMAT:
-         SUMA_PushErrLog("SLP_Err","Must specify output format", FuncName);
+         /* try them all */
          exists = -1;
+         {  
+            SUMA_DSET_FORMAT aform=SUMA_NO_DSET_FORMAT+1;
+            while (exists != 1 && aform < SUMA_N_DSET_FORMATS) {
+               exists = SUMA_WriteDset_NameCheck_eng(
+                           Name, dset, aform, verb, &NameOut); 
+               if (exists == 1) form=aform;
+               ++aform;
+            }
+         }
          break;
       default:
          SUMA_PushErrLog("SLP_Err","Bad format specification", FuncName);
@@ -9284,11 +9394,12 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
    }
    
    if (!Name) { 
-      if (!(Name=NI_get_attribute(dset->ngr, "filename"))) {
-         SUMA_PushErrLog("SL_Err","NULL Name", FuncName); SUMA_RETURN(NameOut); 
+      if (!(Name=SDSET_FILENAME(dset))) {
+         SUMA_PushErrLog("SL_Err","NULL Name and no filename", 
+                         FuncName); SUMA_RETURN(NameOut); 
       }
-   } else {
-      /* call rename dset */
+   } else if (Name != SDSET_FILENAME(dset)) /* yes, a pointer comparison */{
+      /* call rename dset, unless they passed SDSET_FILENAME(dset) for name!*/
       if (!SUMA_RenameDset(dset, Name, rename_autoid)) {
          SUMA_PushErrLog(  "SL_Err",
                            "Failed to rename dset", 
@@ -9623,20 +9734,24 @@ const char *SUMA_ExtensionOfDsetFormat (SUMA_DSET_FORMAT form)
 */
 char *SUMA_RemoveDsetExtension_ns (char*Name, SUMA_DSET_FORMAT form)
 {
-   char *c=SUMA_RemoveDsetExtension_eng (Name,  form);
+   char *c=SUMA_RemoveDsetExtension_eng (Name,  &form);
    WorkErrLog_ns();
    return(c);
 }
-char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT form)
+
+/* Removes the standard extension && sets the format upon return
+   if the format was SUMA_NO_DSET_FORMAT */
+char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT *form)
 {
    static char FuncName[]={"SUMA_RemoveDsetExtension_eng"};
    char *noex = NULL, *tmp = NULL;
+   SUMA_DSET_FORMAT formo=*form;
    
    SUMA_ENTRY;
    
    if (!Name) { SUMA_SL_Err("NULL Name"); SUMA_RETURN(NULL); }
   
-   switch (form) {
+   switch (*form) {
       case SUMA_NIML:
       case SUMA_ASCII_NIML:
       case SUMA_BINARY_NIML:
@@ -9656,17 +9771,24 @@ char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT form)
          break;
       case SUMA_NO_DSET_FORMAT:
          tmp  =  SUMA_Extension(Name, ".1D", YUP);
+            if (strcmp(tmp,Name)) formo=SUMA_1D;
          noex = SUMA_Extension(tmp, ".1D.dset", YUP); 
+            if (strcmp(noex,tmp)) formo=SUMA_1D;
             SUMA_free(tmp); tmp = NULL; tmp = noex;
          noex = SUMA_Extension(tmp, ".niml.dset", YUP); 
+            if (strcmp(noex,tmp)) formo=SUMA_NIML;
             SUMA_free(tmp); tmp = NULL; tmp = noex;
          noex  =  SUMA_Extension(tmp, ".gii", YUP);
+            if (strcmp(noex,tmp)) formo=SUMA_XML_DSET;
             SUMA_free(tmp); tmp = NULL; tmp = noex;
          noex  =  SUMA_Extension(tmp, ".gii.dset", YUP); 
+            if (strcmp(noex,tmp)) formo=SUMA_XML_DSET;
             SUMA_free(tmp); tmp = NULL; tmp = noex;
          noex  =  SUMA_Extension(tmp, ".dx", YUP);
+            if (strcmp(noex,tmp)) formo=SUMA_ASCII_OPEN_DX_DSET;
             SUMA_free(tmp); tmp = NULL; tmp = noex;
          noex  =  SUMA_Extension(tmp, ".dx.dset", YUP); 
+            if (strcmp(noex,tmp)) formo=SUMA_ASCII_OPEN_DX_DSET;
             SUMA_free(tmp); tmp = NULL;
          break;
       case SUMA_XML_DSET:
@@ -9692,6 +9814,7 @@ char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT form)
          break;
    }
    
+   *form=formo;
    SUMA_RETURN(noex);
 }
  
@@ -12634,7 +12757,7 @@ static ENV_SPEC envlist[] = {
       "SUMA_CrossHairLabelFont",
       "f9" }, 
    {  "Linking mode of I and T sub-brick selectors\n"
-      "Choose one of: None, Stat\n",
+      "Choose one of: None, Same, Stat\n",
       "SUMA_IxT_LinkMode",
       "Stat" }, 
    {  NULL, NULL, NULL  }

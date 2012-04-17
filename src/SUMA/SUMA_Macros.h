@@ -31,6 +31,15 @@
 /* return integer between 0 and t-1 */
 #define SUMA_IRAN(t) (lrand48() % (t))
 
+/*! get a random color */
+#define SUMA_RAND_COL(i,r,g,b,a) {\
+   if ((i)>=0) srand((unsigned)(i));   \
+   (r) =  (float) (double)rand()/(double)RAND_MAX;   \
+   (g) =  (float) (double)rand()/(double)RAND_MAX;   \
+   (b) =  (float) (double)rand()/(double)RAND_MAX;   \
+   (a) =  (float) (double)rand()/(double)RAND_MAX;   \
+}
+
 /*!
    Macro to create a new ID code at random (when strn = NULL) or a hash of a string
    written mostly to allow for the allocation of newcode with SUMA's functions
@@ -212,14 +221,9 @@
 #define SUMA_CEIL_POS(a) ( ( ((a) - (int)(a)) == 0.0 ) ? (int)(a) : ((int)(a)+1) )
 #define SUMA_CEIL(a) ( ((a) < 0 ) ? (int)(a) : SUMA_CEIL_POS(a) )
 
-#define SUMA_3D_2_1D_index(i, j, k, ni, nij) ( (int)(i) + (int)(j) * (ni) + (int)(k) * (nij) )
+#define SUMA_3D_2_1D_index AFNI_3D_to_1D_index
 
-#define SUMA_1D_2_3D_index(ijk, i, j, k, ni, nij){  \
-   k = ((ijk) / (nij)); \
-   j = ((ijk) % (nij));   \
-   i = ((j) % (ni));  \
-   j = ((j) / (ni)); \
-}
+#define SUMA_1D_2_3D_index AFNI_1D_to_3D_index
 
 /*!
    \brief Returns the two points that are at a distance d from P1 along the direction of U  
@@ -549,18 +553,38 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
-   A macro to calculate a surface object's normals 
+   A macro to recalculate a surface object's normals 
 */
 #define SUMA_RECOMPUTE_NORMALS(SO){ \
    SUMA_SURF_NORM m_SN;   \
-   if (SO->NodeNormList) SUMA_free(SO->NodeNormList); SO->NodeNormList = NULL;   \
-   if (SO->FaceNormList) SUMA_free(SO->FaceNormList); SO->FaceNormList = NULL;   \
+   if (SO->NodeNormList) SUMA_free(SO->NodeNormList); \
+      SO->NodeNormList = NULL;   \
+   if (SO->FaceNormList) SUMA_free(SO->FaceNormList); \
+      SO->FaceNormList = NULL;   \
    set_surf_norm_quiet(1); \
-   m_SN = SUMA_SurfNorm(SO->NodeList,  SO->N_Node, SO->FaceSetList, SO->N_FaceSet );  \
+   m_SN = SUMA_SurfNorm(SO->NodeList,  SO->N_Node, \
+                        SO->FaceSetList, SO->N_FaceSet );  \
    SO->NodeNormList = m_SN.NodeNormList; \
    SO->FaceNormList = m_SN.FaceNormList; \
-   SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; /* just copy the pointer, not the data */\
+   SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; \
+                        /* just copy the pointer, not the data */\
    SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList;  \
+}
+
+/*!
+   A macro to recalculate a surface object's normals 
+*/
+#define SUMA_RECOMPUTE_POLYGON_AREAS(SO){ \
+   if (SO->PolyArea) SUMA_free(SO->PolyArea); SO->PolyArea=NULL; \
+   if (!SUMA_SurfaceMetrics_eng(SO, "PolyArea", NULL, 0, \
+                                SUMAg_CF->DsetList)) {   \
+      SUMA_S_Err("Failed to recompute poly areas");   \
+   }  \
+}\
+
+#define SUMA_RECOMPUTE_NORMALS_and_AREAS(SO) {\
+   SUMA_RECOMPUTE_NORMALS(SO);   \
+   SUMA_RECOMPUTE_POLYGON_AREAS(SO);   \
 }
 
 /*!
@@ -772,7 +796,9 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
           m_MTSUB_dest[1]=m_MTSUB_v1[1]-m_MTSUB_v2[1]; \
           m_MTSUB_dest[2]=m_MTSUB_v1[2]-m_MTSUB_v2[2]; 
 #define SUMA_NORM(m_NORM_dest, m_NORM_v1) \
-          m_NORM_dest= sqrt(m_NORM_v1[0]*m_NORM_v1[0]+m_NORM_v1[1]*m_NORM_v1[1]+m_NORM_v1[2]*m_NORM_v1[2]);
+          m_NORM_dest= sqrt(m_NORM_v1[0]*m_NORM_v1[0]+\
+                            m_NORM_v1[1]*m_NORM_v1[1]+\
+                            m_NORM_v1[2]*m_NORM_v1[2]);
 #define SUMA_TRI_AREA(m_TRIAREA_n0,m_TRIAREA_n1,m_TRIAREA_n2, m_TRIAREA_A)  {\
       float m_TRIAREA_dv[3], m_TRIAREA_dw[3], m_TRIAREA_cross[3];  \
       SUMA_MT_SUB (m_TRIAREA_dv, m_TRIAREA_n1, m_TRIAREA_n0);  \
@@ -1018,16 +1044,38 @@ sinc is the value of the function at alpha
    float *m_p; \
    int m_n=0;  \
    nc = -1; \
+   d = m_dxyz; \
    for (m_n=0; m_n<SO->N_Node; ++m_n) {   \
       m_p = &(SO->NodeList[SO->NodeDim*m_n]);   \
-      SUMA_SEG_LENGTH_SQ(m_p, xyz, d); \
+      SUMA_SEG_LENGTH_SQ(m_p, xyz, m_dxyz); \
       if (d < m_dxyz) {   \
-         m_dxyz = d; nc = m_n; \
+         d = m_dxyz; nc = m_n; \
+      }  \
+   }  \
+}
+#define SUMA_CLOSEST_NODE_VEC(SO, xyz, nc, d, dv) {  \
+   double m_dxyz = 1023734552736672366372.0; \
+   double m_dv[3];\
+   float *m_p; \
+   int m_n=0;  \
+   nc = -1; \
+   d = m_dxyz; \
+   for (m_n=0; m_n<SO->N_Node; ++m_n) {   \
+      m_p = &(SO->NodeList[SO->NodeDim*m_n]);   \
+      m_dv[0] = m_p[0] - xyz[0]; \
+      m_dv[1] = m_p[1] - xyz[1]; \
+      m_dv[2] = m_p[2] - xyz[2]; \
+      m_dxyz = m_dv[0]*m_dv[0]+\
+               m_dv[1]*m_dv[1]+\
+               m_dv[2]*m_dv[2]; \
+      if (d > m_dxyz) {   \
+         d=m_dxyz; nc = m_n; \
+         dv[0]=m_dv[0]; dv[1]=m_dv[1]; dv[2]=m_dv[2];\
       }  \
    }  \
 }
 
-/* Many of these macros are taken from DSP_in_C examples in
+/* Some macros are taken from DSP_in_C examples in
 C Language Algorithms for Digital Signal Processing 
 by
 Bruce Kimball, Paul Embree and Bruce Kimble 

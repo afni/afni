@@ -162,9 +162,6 @@ int main( int argc , char *argv[] )
    int cormeth=0 ;    /* 0=Pearson, 1=Spearman, 2=Quadrant, 3=Kendall tau_b */
    float (*corfun)(int,float *,float *) ;
 
-   /*-----*/
-
-   if( argc < 2 ){ usage_1dCorrelate(1) ; exit(0) ; }
 
    /*-- start the AFNI machinery --*/
 
@@ -241,12 +238,9 @@ int main( int argc , char *argv[] )
 
    /*--- user should be flogged twice ---*/
 
-#if 0                 /*** NEVER DO THIS AGAIN !!! ***/
    if( argc < 2 ){
-     ERROR_message("Too few arguments. Try 1dCorrelate -help for details.");
-     exit(1) ;
+     usage_1dCorrelate(1) ; exit(0) ; 
    }
-#endif
 
    if( iarg == argc )
      ERROR_exit("No 1D files on command line!?\n") ;

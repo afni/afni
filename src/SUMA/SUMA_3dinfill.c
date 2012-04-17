@@ -284,7 +284,7 @@ int main(int argc, char **argv)
       SUMA_RETURN(1);
    }
    
-   if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, 1, Opt->Other, Opt->N_main)) {
+   if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, 1, Opt->Other, Opt->N_main, -1)) {
       SUMA_S_Err("Failed to fill volume");
       SUMA_RETURN(1);
    }

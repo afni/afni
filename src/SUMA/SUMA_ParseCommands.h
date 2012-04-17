@@ -309,6 +309,9 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd);
 const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp);
 const char * SUMA_SurfaceFormatString (SUMA_SO_File_Format ff);
 SUMA_SO_File_Format SUMA_SurfaceFormatCode (char *cd);
+SUMA_DO_DRAW_MASK SUMA_DO_DrawMaskName2Code (char *name);
+char *SUMA_DO_DrawMaskCode2Name(SUMA_DO_DRAW_MASK dd);
+char *SUMA_DO_DrawMaskCode2Name_human(SUMA_DO_DRAW_MASK dd);
 SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str);
 SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name);
 SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension(
@@ -414,10 +417,10 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 
 */
 #define SUMA_S_Note(msg) {\
-   fprintf (SUMA_STDERR, "++     Notice %s (%s:%d):\n%s\n", FuncName, __FILE__, __LINE__, msg);  \
+   fprintf (SUMA_STDERR, "++     Notice %s (%s:%d @%s):\n%s\n", FuncName, __FILE__, __LINE__, SUMA_time(), msg);  \
 }
 #define SUMA_S_Notev(msg, ...) {\
-   fprintf (SUMA_STDERR, "++     Notice %s (%s:%d):\n", FuncName, __FILE__ , __LINE__);  \
+   fprintf (SUMA_STDERR, "++     Notice %s (%s:%d @%s):\n", FuncName, __FILE__ , __LINE__, SUMA_time());  \
    fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
 }
 

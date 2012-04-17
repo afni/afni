@@ -20,7 +20,7 @@ double waveform( double t ) ;
 double waveform_GAM( double t ) ;
 double waveform_WAV( double t ) ;
 void Process_Options( int c , char * a[] ) ;
-void Syntax(void) ;
+void Syntax(int) ;
 
 double waveform_EXPR( double t ) ;  /* 01 Aug 2001 */
 double waveform_FILE( double t ) ;  /* 23 Aug 2005 */
@@ -223,13 +223,16 @@ int main( int argc , char * argv[] )
    int ii , jj ;
    double val ;
 
-   if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ) Syntax() ;
 
    /* this writes to stdout (default), so no version    06 Jan 2006 [rickr] */
    /* PRINT_VERSION("waver"); */
-   machdep(); AFNI_logger("waver",argc,argv);
-
+   mainENTRY("waver"); machdep(); AFNI_logger("waver",argc,argv);
+   
    Process_Options( argc , argv ) ;
+   if( argc < 2) {
+      Syntax(0);
+      exit(0) ;
+   } 
 
    /*---- compute duration of sampled waveform ----*/
 
@@ -407,7 +410,7 @@ int main( int argc , char * argv[] )
 
 /*----------------------------------------------------------------*/
 
-void Syntax(void)
+void Syntax(int detail)
 {
    printf(
     "Usage: waver [options] > output_filename\n"
@@ -568,7 +571,7 @@ void Syntax(void)
     "* If a square wave is desired, see the 'sqwave' program.\n"
    ) ;
 
-   PRINT_COMPILE_DATE ; exit(0) ;
+   PRINT_COMPILE_DATE ; return;
 }
 
 /*----------------------------------------------------------------*/
@@ -580,7 +583,10 @@ void Process_Options( int argc , char * argv[] )
    while( nopt < argc ){
 
       /*-----*/
-
+      if(!strcmp(argv[nopt],"-help") || !strcmp(argv[nopt],"-h")){
+         Syntax(strlen(argv[nopt])>3?2:1);
+         exit(0);
+      }
       if( strncmp(argv[nopt],"-FILE",4) == 0 ){  /* 23 Aug 2005 */
         MRI_IMAGE *fim ;
         waveform_type = FILE_TYPE ;
@@ -938,7 +944,9 @@ void Process_Options( int argc , char * argv[] )
 
       /*-----*/
 
-      ERROR_exit("Unknown option '%s'",argv[nopt]) ;
+      ERROR_message("Unknown option '%s'",argv[nopt]) ;
+      suggest_best_prog_option(argv[0], argv[nopt]);
+      exit(1);
    }
 
    if( WAV_peak == 0.0 && waveform_type != EXPR_TYPE )

@@ -565,7 +565,6 @@ int main( int argc , char *argv[] )
    }
 
    if( argc < 2 ){
-      ERROR_message("Too few options");
       usage_1dplot(0);
       exit(0) ;
    }

@@ -1,11 +1,6 @@
 #include "mrilib.h"
 
-int main( int argc , char *argv[] )
-{
-   MRI_IMAGE *im ;
-   int dec=0 , flip=0 , iarg , csort=-1 , mode = 0;
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+void usage_1dTsort( int detail ){
      printf(
       "Usage: 1dTsort [options] file.1D\n"
       "Sorts each column of the input 1D file and writes result to stdout.\n"
@@ -28,12 +23,23 @@ int main( int argc , char *argv[] )
       "      For example:\n"
       "        1deval -num 100 -expr 'uran(1)' | 1dTsort stdin | 1dplot stdin\n"
       "\n" ) ;
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
+      PRINT_COMPILE_DATE ;
+      return;
+}
 
+int main( int argc , char *argv[] )
+{
+   MRI_IMAGE *im ;
+   int dec=0 , flip=0 , iarg , csort=-1 , mode = 0;
+
+   mainENTRY("1dTsort main") ; machdep() ;
+   
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
-
+     if( strcmp(argv[iarg],"-help") == 0 || strcmp(argv[iarg],"-h") == 0){
+         usage_1dTsort(strlen(argv[iarg])>3 ? 2:1);
+         exit(0) ;
+     }
      if( strcmp(argv[iarg],"-col") == 0 ){  /* 07 Oct 2011 */
        if( ++iarg >= argc ) ERROR_exit("Need a value after -col") ;
        csort = (int)strtod(argv[iarg],NULL) ;
@@ -57,7 +63,13 @@ int main( int argc , char *argv[] )
        mode = 1 ; iarg++ ; continue ;
      }
 
-     ERROR_exit("Unknown option '%s'",argv[iarg]) ;
+     ERROR_message("Unknown option '%s'",argv[iarg]) ;
+     suggest_best_prog_option(argv[0], argv[iarg]);
+     exit(1);
+   }
+   
+   if( argc < 2 ){
+     usage_1dTsort(1) ; exit(0) ; 
    }
 
    if( iarg >= argc ) ERROR_exit("No 1D file on command line?!") ;

@@ -307,6 +307,15 @@ void * SUMA_Save_Surface_Object_Wrap (
    SUMA_Boolean exists;
    
    SUMA_ENTRY;
+
+   if (!surf_name || !SO) {
+      SUMA_S_Err("NULL input"); SUMA_RETURN(NULL);
+   }
+   
+   if (SO_FT == SUMA_FT_NOT_SPECIFIED) {
+      SO_FT = SUMA_GuessSurfFormatFromExtension(surf_name, "usegifti.gii");
+   }
+
    if (!(SO_name = SUMA_2Prefix2SurfaceName (surf_name, topo_name, 
                                              NULL, NULL, SO_FT, &exists))) {
       SUMA_S_Err("Failed to form SO_name");
@@ -333,7 +342,6 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO,
       SUMA_S_Err("Null filename!");
       SUMA_RETURN(NOPE);
    }
-   
    switch (SO_FT) {
       case SUMA_OPENDX_MESH:
          if (!SUMA_OpenDX_Write ((char *)F_name, SO)) {

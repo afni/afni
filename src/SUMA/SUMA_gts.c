@@ -282,10 +282,24 @@ void refine( GtsSurface* s, int stop)
       (GtsStopFunc)stop_number, &stop);
 }
 
+SUMA_SurfaceObject *SUMA_Mesh_Resample_nodes(SUMA_SurfaceObject *SO, 
+                                             int new_N_Nodes)
+{
+   int new_N_Edges = 0;
+   float edge_factor = 0;
+   
+   /* approximate number of edges */
+   new_N_Edges = 3*new_N_Nodes-6;
+   edge_factor = (float)new_N_Edges/(float)SO->EL->N_Distinct_Edges;
+   
+   return(SUMA_Mesh_Resample (SO, edge_factor));
+} 
+
 /*!
    \brief resample a mesh so that the resultant surface has edge_factor as many edges as the original one
 */
-SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO, float edge_factor)
+SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO, 
+                                        float edge_factor)
 {
    static char FuncName[]={"SUMA_Mesh_Resample"};
    SUMA_SurfaceObject *S2=NULL;
@@ -319,13 +333,13 @@ SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO, float edge_facto
 
    /* resample */
    if (1) {
-      SUMA_S_Note("Changing mesh density\n");
+      SUMA_LH("Changing mesh density\n");
       if (edge_factor < 1)
          coarsen(s, SO->EL->N_Distinct_Edges * edge_factor);
       else
          refine(s, SO->EL->N_Distinct_Edges * edge_factor);
    } else {
-      SUMA_S_Note("Leaving surface untouched\n");
+      SUMA_LH("Leaving surface untouched\n");
    }
    if (!s) {
       SUMA_SL_Err("Failed to refine");
@@ -336,7 +350,7 @@ SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO, float edge_facto
    S2 = SUMA_Alloc_SurfObject_Struct(1);
    gts_surface_suma (s, 
                      &(S2->NodeList), &(S2->N_Node), &(S2->NodeDim), 
-                           &(S2->FaceSetList), &(S2->N_FaceSet), &(S2->FaceSetDim));
+                     &(S2->FaceSetList), &(S2->N_FaceSet), &(S2->FaceSetDim));
    
    gts_object_destroy((GtsObject*)s); s = NULL;
 
