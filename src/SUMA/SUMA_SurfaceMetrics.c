@@ -45,6 +45,8 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "         C[i] = Sum(dj/dij) over all neighbors j of i\n"
 "         dj is the distance of neighboring node j to the tangent plane at i\n"
 "         dij is the length of the segment ij\n"
+"         Note: This option produces a .1D file, and a NIML dataset with \n"
+"         similar content.\n"
 "      -closest_node XYZ_LIST.1D: Find the closest node on the surface\n"
 "                              to each XYZ triplet in XYZ_LIST.1D\n"
 "                              Note that it is assumed that the XYZ\n"
@@ -89,9 +91,14 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "         Col.4-6: vector of 2nd principal direction of surface\n"
 "         Col.7: Curvature along T1\n"
 "         Col.8: Curvature along T2\n"
+"         Col.9: Curvature magnitude sqrt(c7*c7+c8*c8)\n"
 "         Curvature algorithm by G. Taubin from: \n"
 "         'Estimating the tensor of curvature of surface \n"
 "         from a polyhedral approximation.'\n"
+"         Note: This option produces a .1D file, a NIML dataset with similar\n"
+"         content, and Displayable Objects (DO) file containing \n"
+"         the principal directions at each node. You can load these objects\n"
+"         with SUMA's 'Alt+Ctrl+s' option.\n"
 "      -edges: outputs info on each edge. \n"
 "         Output file is prefix.edges. Results in five columns:\n"
 "         Col.0: Edge Index (into a SUMA structure).\n"
@@ -103,6 +110,9 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                     Segments begin at node and have a default\n"
 "                     magnitude of 1. See option 'Alt+Ctrl+s' in \n"
 "                     SUMA for visualization.\n"
+"         Note: This option produces a .1D file and a Displayable Objects \n"
+"         file containing  the principal directions at each node. \n"
+"         You can load these objects with SUMA's 'Alt+Ctrl+s' option.\n"
 "      -face_normals: Outputs segments along triangle normals.\n"
 "                     Segments begin at centroid of triangles and \n"
 "                     have a default magnitude of 1. See option \n"
@@ -230,6 +240,8 @@ int main (int argc,char *argv[])
                   Do_NodeAngles, Do_cen, Do_xmat, Do_inv,
                   Do_NodeNorm, Do_en, Do_in, Do_et; 
    SUMA_Boolean   LocalHead = NOPE;  
+   SUMA_DSET *ndset=NULL;
+   char *oname=NULL;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    
 	SUMA_STANDALONE_INIT;
@@ -892,22 +904,46 @@ int main (int argc,char *argv[])
       }
       
       fprintf (fout,"#Node normals.\n");
-      fprintf (fout,"#  Segments from node along the direction of the normal (of magnitude %f)\n", NormScale);
+      fprintf (fout,"#  Segments from node along the direction of the normal "
+                    "(of magnitude %f)\n", NormScale);
       fprintf (fout,"#  1st three columns are node's coordinates\n");
-      fprintf (fout,"#  2nd three columns are the coordinate of a second point along the normal\n");
+      fprintf (fout,"#  2nd three columns are the coordinate of a second "
+                    "point along the normal\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
       
       for (i=0; i<SO->N_Node; ++i) {
-         norm[0] = SO->NodeNormList[3*i]; norm[1] = SO->NodeNormList[3*i+1]; norm[2] = SO->NodeNormList[3*i+2];
+         norm[0] = SO->NodeNormList[3*i]; 
+         norm[1] = SO->NodeNormList[3*i+1]; 
+         norm[2] = SO->NodeNormList[3*i+2];
          /* normal is expected to be normalized...*/
          norm[0] *= NormScale; norm[1] *= NormScale; norm[2] *= NormScale;
          fprintf (fout,"%f %f %f \t%f %f %f\n", 
             SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2], 
-            SO->NodeList[3*i]+norm[0], SO->NodeList[3*i+1]+norm[1], SO->NodeList[3*i+2]+norm[2]);            
+            SO->NodeList[3*i]+norm[0], SO->NodeList[3*i+1]+norm[1], 
+            SO->NodeList[3*i+2]+norm[2]);            
       }
       
       fclose(fout); fout = NULL;
       
+      /* Also output a DO file*/
+      sprintf(OutName, "%s.NodeNorm.1D.do", OutPrefix);
+      if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
+         SUMA_S_Err("Curvature output dset exists.\nWill not overwrite.");
+         exit(1);
+      }
+      if (!(fout = fopen(OutName,"w"))) {
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
+         exit(1);
+      }
+      fprintf (fout,"#node-based_vectors\n");
+      for (i=0; i < SO->N_Node; ++i) {
+         fprintf (fout, "%d %f %f %f \n",
+                  i, SO->NodeNormList[3*i], 
+                     SO->NodeNormList[3*i+1], 
+                     SO->NodeNormList[3*i+2]);
+      }
+      fclose(fout); fout = NULL;
    }
    
    if (Do_TriNorm) {
@@ -924,14 +960,17 @@ int main (int argc,char *argv[])
       }
       fout = fopen(OutName,"w");
       if (!fout) {
-         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         SUMA_S_Err("Failed to open file for writing.\n"
+                    "Check your permissions.\n");
          exit(1);
       }
       
       fprintf (fout,"#Triangle normals.\n");
-      fprintf (fout,"#  Segments from centroid of triangle along the direction of the normal (of magnitude %f)\n", NormScale);
+      fprintf (fout,"#  Segments from centroid of triangle along the "
+                    "direction of the normal (of magnitude %f)\n", NormScale);
       fprintf (fout,"#  1st three columns are centroid's coordinates\n");
-      fprintf (fout,"#  2nd three columns are the coordinate of a second point along the normal\n");
+      fprintf (fout,"#  2nd three columns are the coordinate of a second "
+                    "point along the normal\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
       
       for (i=0; i<SO->N_FaceSet; ++i) {
@@ -1219,18 +1258,20 @@ int main (int argc,char *argv[])
    if (Do_cord) {
       sprintf(OutName, "%s.coord.1D.dset", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
-         SUMA_S_Err("Edge output file exists.\nWill not overwrite.");
+         SUMA_S_Err("Coord output file exists.\nWill not overwrite.");
          exit(1);
       }
       
       fout = fopen(OutName,"w");
       if (!fout) {
-         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         SUMA_S_Err("Failed to open file for writing.\n"
+                    "Check your permissions.\n");
          exit(1);
       }
       
       fprintf (fout,"#Cartesian coords, \n");
-      fprintf (fout,"#  Center is: [%f %f %f] \n", SO->Center[0], SO->Center[1], SO->Center[2]);
+      fprintf (fout,"#  Center is: [%f %f %f] \n", 
+                  SO->Center[0], SO->Center[1], SO->Center[2]);
       fprintf (fout,"#nI = Node Index\n");
       fprintf (fout,"#x  = X \n");
       fprintf (fout,"#y  = Y\n");
@@ -1263,7 +1304,8 @@ int main (int argc,char *argv[])
       
       fout = fopen(OutName,"w");
       if (!fout) {
-         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         SUMA_S_Err("Failed to open file for writing.\n"
+                    "Check your permissions.\n");
          exit(1);
       }
       
@@ -1283,9 +1325,12 @@ int main (int argc,char *argv[])
             nt = SO->EL->ELps[i][2];
             n1_3 = 3 * n1;
             n2_3 = 3 * n2;
-            edgeL2 = ( (SO->NodeList[n2_3] - SO->NodeList[n1_3]) * (SO->NodeList[n2_3] - SO->NodeList[n1_3]) ) +
-                     ( (SO->NodeList[n2_3+1] - SO->NodeList[n1_3+1]) * (SO->NodeList[n2_3+1] - SO->NodeList[n1_3+1]) ) +
-                     ( (SO->NodeList[n2_3+2] - SO->NodeList[n1_3+2]) * (SO->NodeList[n2_3+2] - SO->NodeList[n1_3+2]) ); 
+            edgeL2 = ( (SO->NodeList[n2_3] - SO->NodeList[n1_3]) * 
+                           (SO->NodeList[n2_3] - SO->NodeList[n1_3]) ) +
+                     ( (SO->NodeList[n2_3+1] - SO->NodeList[n1_3+1]) * 
+                           (SO->NodeList[n2_3+1] - SO->NodeList[n1_3+1]) ) +
+                     ( (SO->NodeList[n2_3+2] - SO->NodeList[n1_3+2]) * 
+                           (SO->NodeList[n2_3+2] - SO->NodeList[n1_3+2]) ); 
                      
             fprintf (fout,"%d\t%d\t%d\t%d\t%f\n",
                   i, n1, n2, nt, sqrt(edgeL2));
@@ -1312,7 +1357,8 @@ int main (int argc,char *argv[])
       
       fout = fopen(OutName,"w");
       if (!fout) {
-         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
          exit(1);
       }
       
@@ -1329,6 +1375,7 @@ int main (int argc,char *argv[])
    }
    
    if (Do_curv) {
+      
       SUMA_S_Note("Writing curvatures ...");
       
       if (!SO->SC) {
@@ -1342,28 +1389,66 @@ int main (int argc,char *argv[])
          exit(1);
       }
       
-      fout = fopen(OutName,"w");
-      if (!fout) {
-         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+      
+      if (!(fout = fopen(OutName,"w"))) {
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
          exit(1);
       }  
       
       fprintf (fout,"#Curvature\n");
       fprintf (fout,"#nI = Node Index\n");
-      fprintf (fout,"#T1 = 1 x 3 vector of 1st principal direction of surface\n");
-      fprintf (fout,"#T2 = 1 x 3 vector of 2nd principal direction of surface\n");
+      fprintf (fout,
+               "#T1 = 1 x 3 vector of 1st principal direction of surface\n");
+      fprintf (fout,
+               "#T2 = 1 x 3 vector of 2nd principal direction of surface\n");
       fprintf (fout,"#Kp1 = curvature along T1\n");
       fprintf (fout,"#Kp2 = curvature along T2\n");
-      fprintf (fout,"#nI\tT1[0]\tT1[1]\tT1[2]\tT2[0]\tT2[1]\tT2[2]\tKp1\tKp2\n\n");
+      fprintf (fout,"#Kp = sqrt(Kp1*Kp1+Kp2*Kp2)\n");
+      fprintf (fout, "#nI\tT1[0]\tT1[1]\tT1[2]\tT2[0]\tT2[1]\tT2[2]"
+                     "\tKp1\tKp2\tKp\n\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
       
       for (i=0; i < SO->N_Node; ++i) {
-         fprintf (fout,"%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n",
+         fprintf (fout,"%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n",
             i, SO->SC->T1[i][0], SO->SC->T1[i][1], SO->SC->T1[i][2], 
             SO->SC->T2[i][0], SO->SC->T2[i][1], SO->SC->T2[i][2],
-            SO->SC->Kp1[i], SO->SC->Kp2[i] );
+            SO->SC->Kp1[i], SO->SC->Kp2[i], 
+            sqrt(SO->SC->Kp1[i]*SO->SC->Kp1[i]+
+                         SO->SC->Kp2[i]*SO->SC->Kp2[i]));
       }
+      fclose(fout); fout = NULL;
       
+      /* Also output nice dset*/
+      sprintf(OutName, "%s.curv.niml.dset", OutPrefix);
+      if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
+         SUMA_S_Err("Curvature output dset exists.\nWill not overwrite.");
+         exit(1);
+      }
+      ndset = SUMA_CurvatureToDset(SO->SC, OutName);
+      SUMA_AddNgrHist(ndset->ngr, "SurfaceMetrics", argc, argv);
+      oname = SUMA_WriteDset_s(OutName, ndset, SUMA_BINARY_NIML, 1, 1);
+      SUMA_free(oname); oname=NULL;
+      SUMA_FreeDset(ndset); ndset=NULL;
+   
+      /* And some niml DOs */
+      sprintf(OutName, "%s.curv.1D.do", OutPrefix);
+      if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
+         SUMA_S_Err("Curvature output DO file exists.\nWill not overwrite.");
+         exit(1);
+      }
+      if (!(fout = fopen(OutName,"w"))) {
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
+         exit(1);
+      }
+      fprintf (fout,"#node-based_vectors\n");
+      for (i=0; i < SO->N_Node; ++i) {
+         fprintf (fout, "%d %f %f %f 1 0 0 1\n"
+                        "%d %f %f %f 0 1 0 1\n",
+                        i, SO->SC->T1[i][0], SO->SC->T1[i][1], SO->SC->T1[i][2], 
+                        i, SO->SC->T2[i][0], SO->SC->T2[i][1], SO->SC->T2[i][2]);
+      }
       fclose(fout); fout = NULL;
    }
    
@@ -1399,6 +1484,32 @@ int main (int argc,char *argv[])
       }
       
       fclose(fout); fout = NULL;
+      
+      /* Also output nice dset*/
+      sprintf(OutName, "%s.conv.niml.dset", OutPrefix);
+      if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
+         SUMA_S_Err("Curvature output dset exists.\nWill not overwrite.");
+         exit(1);
+      }
+      if (!(ndset =  SUMA_CreateFullDsetPointer( 
+            OutPrefix, 
+            SUMA_NODE_BUCKET, 
+            NULL, 
+            NULL,
+            SO->N_Node ))) {
+         SUMA_S_Err("Failed to create dset");
+         exit(1);
+      }
+
+      if (!SUMA_AddDsetNelCol(ndset, "Convexity", SUMA_NODE_FLOAT, 
+                              (void *)Cx, NULL, 1)) {
+         SUMA_S_Err("Failed to add col Convexity");
+         exit(1);
+      } 
+      SUMA_AddNgrHist(ndset->ngr, "SurfaceMetrics", argc, argv);
+      oname = SUMA_WriteDset_s(OutName, ndset, SUMA_BINARY_NIML, 1, 1);
+      SUMA_free(oname); oname=NULL;
+      SUMA_FreeDset(ndset); ndset=NULL;
    }   
    
    if (Do_vol) {
@@ -1530,7 +1641,8 @@ int main (int argc,char *argv[])
       fclose(fout); fout = NULL;
    }
    
-   if (closest_to_xyz) { /* read xyz list, report closest node (SLOW implementation...)*/
+   if (closest_to_xyz) { /* read xyz list, report closest node 
+                            (SLOW implementation...)*/
       MRI_IMAGE *im = NULL;
       float *far=NULL, *p=NULL;
       int nx2, N_XYZ = 0,i, i3, *closest=NULL, n;
@@ -1539,17 +1651,20 @@ int main (int argc,char *argv[])
       /* load the 1D file */
       im = mri_read_1D (closest_to_xyz);
       if (!im) {
-         fprintf(SUMA_STDERR,"Error %s:\n Failed to read/find %s.\n", FuncName, closest_to_xyz);
+         fprintf(SUMA_STDERR,"Error %s:\n Failed to read/find %s.\n", 
+                  FuncName, closest_to_xyz);
          exit(1);
       }   
 
       far = MRI_FLOAT_PTR(im);
       if (im->nx == 0) {
-         fprintf(SUMA_STDERR,"Error %s:\n Empty file %s.\n", FuncName, closest_to_xyz);
+         fprintf(SUMA_STDERR,"Error %s:\n Empty file %s.\n", 
+                  FuncName, closest_to_xyz);
          exit(1);
       }
       if (im->ny != 3) {
-         fprintf(SUMA_STDERR,"Error %s:\n Found %d columns in %s. Expecting 3\n", FuncName, im->ny, closest_to_xyz);
+         fprintf(SUMA_STDERR,"Error %s:\n Found %d columns in %s. Expecting 3\n",
+                     FuncName, im->ny, closest_to_xyz);
          exit(1);
       }
 
@@ -1586,7 +1701,8 @@ int main (int argc,char *argv[])
 
       fout = fopen(OutName,"w");
       if (!fout) {
-         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
          exit(1);
       }  
 
@@ -1633,7 +1749,8 @@ int main (int argc,char *argv[])
  	if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    
    /* dset and its contents are freed in SUMA_Free_CommonFields */
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+      SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
    if (histnote) SUMA_free(histnote);
     

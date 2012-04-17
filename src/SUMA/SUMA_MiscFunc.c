@@ -3845,6 +3845,7 @@ float SUMA_etime (struct  timeval  *t, int Report  )
    in repeated calls. You can't rely on the msec part to be accurate.
    
    Do not free returned string.
+   \sa SUMA_time
 */
 char *SUMA_time_stamp(void )
 {
@@ -3857,6 +3858,17 @@ char *SUMA_time_stamp(void )
    snprintf(res,63*sizeof(char),"%s.%03d", ttt, (int)(tn.tv_usec/1000));
    return(res);
 }  
+
+char *SUMA_time(void) 
+{
+   static char dt[32]={"??:??:??"}, *tm;
+   time_t tnow = time(NULL) ;
+   
+   strftime(dt,31*sizeof(char),"%H:%M:%S", localtime(&tnow));
+   
+   return(dt);
+}
+
 /*!
    
 File : SUMA_MiscFunc.c, from ~Zlib/code/isinsphere.c
@@ -3871,9 +3883,11 @@ Usage :
       Ret =  SUMA_isinsphere (NodeList, nr, S_cent , S_rad , BoundIn)
    
 Input paramters : 
-   NodeList (float * ) : Nx3 vector containing the NodeList of the nodes to consider
+   NodeList (float * ) : Nx3 vector containing the NodeList of the nodes 
+                        to consider
    nr  (int )   : that's N, the number of nodes
-   S_cent (float *) : a 3x1 vector containing the NodeList coordinates of the center of the sphere
+   S_cent (float *) : a 3x1 vector containing the  
+                      coordinates of the center of the sphere
    S_rad  (float ) : the radius of the sphere
    BoundIn (int) : 0/1 set to 0 for exclusive boundary  
    
@@ -3881,20 +3895,16 @@ Input paramters :
 Returns : 
    a structure of the type SUMA_ISINSPHERE with the following fields
    
-   .IsIn    (int *) : a pointer to an [nIsIn x 1] vector will contain the indices into the rows of NodeList that 
+   .IsIn    (int *) : a pointer to an [nIsIn x 1] vector will contain 
+                     the indices into the rows of NodeList that 
                      locates the nodes inside the sphere. 
    .nIsIn   (int) : the number of nodes in the sphere
-   .d (float *) : a pointer to an [nIsIn x 1]  vector containing the distance of those nodes inside the sphere to the center.
-   
-   
+   .d (float *) : a pointer to an [nIsIn x 1]  vector containing 
+                  the distance of those nodes inside the sphere to the center.
    
 Support : 
    
-   
-   
 Side effects : 
-   
-   
    
 ***/
 SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , 
@@ -3923,7 +3933,8 @@ SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent ,
       }
    
    
-   if (BoundIn) /* split into two to avoid checking for this condition all the time */
+   if (BoundIn) /* split into two to avoid checking for this 
+                  condition all the time */
       {
          for (k=0; k < nr; ++k)
             {
@@ -3996,7 +4007,8 @@ SUMA_Boolean SUMA_Free_IsInSphere (SUMA_ISINSPHERE *IB)
    SUMA_ENTRY;
 
    if (IB == NULL) {
-      fprintf (SUMA_STDERR,"Error SUMA_Free_IsInSphere: pointer to null cannot be freed\n");
+      fprintf (SUMA_STDERR,
+               "Error SUMA_Free_IsInSphere: pointer to null cannot be freed\n");
       SUMA_RETURN (NOPE);
    }
    if (IB->IsIn != NULL) SUMA_free(IB->IsIn);
@@ -4047,7 +4059,8 @@ Side effects :
    
    
 ***/
-SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , int BoundIn )
+SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, 
+                           float *S_cent , float *S_dim , int BoundIn )
 {/*SUMA_isinbox*/
    
    static char FuncName[]={"SUMA_isinbox"}; 
@@ -4059,8 +4072,9 @@ SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , i
    
    ND = 3;
    /*
-   fprintf(SUMA_STDOUT,"%f %f %f, %f %f %f, %d, %f, %f, %f\n",\
-      S_cent[0], S_cent[1], S_cent[2], S_dim[0], S_dim[1], S_dim[2], nr, XYZ[0], XYZ[1], XYZ[2]);
+   fprintf(SUMA_STDOUT,"%f %f %f, %f %f %f, %d, %f, %f, %f\n",
+      S_cent[0], S_cent[1], S_cent[2], S_dim[0], S_dim[1], S_dim[2], 
+      nr, XYZ[0], XYZ[1], XYZ[2]);
    */
       
    IsIn_strct.nIsIn = 0;   
@@ -4081,54 +4095,50 @@ SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , i
          SUMA_RETURN (IsIn_strct);
       }
 
-   if (BoundIn) /* split into two to avoid checking for this condition all the time */
-      {
-         /*fprintf(SUMA_STDERR,"%s: inbound\n", FuncName);*/
-         for (k=0; k < nr; ++k)
-            {
-            /*fprintf(SUMA_STDERR,"%s: inbound %d\n", FuncName, k);*/
-            /* relative distance to center */
-               id = ND * k;
-               t0 = hdim0 - fabs(XYZ[id] - S_cent[0]);   
-               
-               if (t0 >= 0) {
-                  t1 = hdim1 - fabs(XYZ[id+1] - S_cent[1]);   
-                  if (t1 >= 0) {
-                     t2 = hdim2 - fabs(XYZ[id+2] - S_cent[2]);   
-                     if (t2 >= 0)
-                        {
-                           IsIn[IsIn_strct.nIsIn] = k;
-                           d[IsIn_strct.nIsIn] = sqrt(t0*t0+t1*t1+t2*t2);
-                           ++(IsIn_strct.nIsIn);
-                        }
-                  }
-               }
-            }         
-            /*fprintf(SUMA_STDERR,"%s: outbound\n", FuncName);*/
+   if (BoundIn) {/* split to avoid checking for this condition all the time */
+      /*fprintf(SUMA_STDERR,"%s: inbound\n", FuncName);*/
+      for (k=0; k < nr; ++k)
+         {
+         /*fprintf(SUMA_STDERR,"%s: inbound %d\n", FuncName, k);*/
+         /* relative distance to center */
+            id = ND * k;
+            t0 = hdim0 - fabs(XYZ[id] - S_cent[0]);   
 
-      }
-   else
-      {
-         for (k=0; k < nr; ++k)
-            {
-               /* relative distance to center */
-               id = ND * k;
-               t0 = hdim0 - fabs(XYZ[id] - S_cent[0]);   
-               
-               if (t0 > 0) {
-                  t1 = hdim1 - fabs(XYZ[id+1] - S_cent[1]);   
-                  if (t1 > 0) {
-                     t2 = hdim2 - fabs(XYZ[id+2] - S_cent[2]);   
-                     if (t2 > 0)
-                        {
-                           IsIn[IsIn_strct.nIsIn] = k;
-                           d[IsIn_strct.nIsIn] = sqrt(t0*t0+t1*t1+t2*t2);
-                           ++(IsIn_strct.nIsIn);
-                        }
-                  }
+            if (t0 >= 0) {
+               t1 = hdim1 - fabs(XYZ[id+1] - S_cent[1]);   
+               if (t1 >= 0) {
+                  t2 = hdim2 - fabs(XYZ[id+2] - S_cent[2]);   
+                  if (t2 >= 0)
+                     {
+                        IsIn[IsIn_strct.nIsIn] = k;
+                        d[IsIn_strct.nIsIn] = sqrt(t0*t0+t1*t1+t2*t2);
+                        ++(IsIn_strct.nIsIn);
+                     }
                }
             }
-      }
+         }         
+         /*fprintf(SUMA_STDERR,"%s: outbound\n", FuncName);*/
+   } else {
+      for (k=0; k < nr; ++k)
+         {
+            /* relative distance to center */
+            id = ND * k;
+            t0 = hdim0 - fabs(XYZ[id] - S_cent[0]);   
+
+            if (t0 > 0) {
+               t1 = hdim1 - fabs(XYZ[id+1] - S_cent[1]);   
+               if (t1 > 0) {
+                  t2 = hdim2 - fabs(XYZ[id+2] - S_cent[2]);   
+                  if (t2 > 0)
+                     {
+                        IsIn[IsIn_strct.nIsIn] = k;
+                        d[IsIn_strct.nIsIn] = sqrt(t0*t0+t1*t1+t2*t2);
+                        ++(IsIn_strct.nIsIn);
+                     }
+               }
+            }
+         }
+   }
    
    if (IsIn_strct.nIsIn) {
       /*fprintf(SUMA_STDERR,"%s: SUMA_realloc\n", FuncName);*/
@@ -4177,7 +4187,9 @@ SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , i
          You must pre-allocate nr values for each of nodesin and dinsq .
          But on Nin values are meaningful
 */
-int SUMA_nodesinbox2 (float *XYZ, int nr, float *S_cent , float *S_dim , int *nodesin, float *dinsq)
+int SUMA_nodesinbox2 (float *XYZ, int nr, 
+                      float *S_cent , float *S_dim , 
+                      int *nodesin, float *dinsq)
 {
    static char FuncName[]={"SUMA_nodesinbox2"};
    int nin = -1;
@@ -4303,7 +4315,10 @@ SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB)
    core based on code by Paul Bourke, see copyright notice in suma -sources
    Does not work for polys with holes 
 */
-byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet, int FaceSetDim, int *dims, int *N_in, byte *usethis, byte *culled)
+byte * SUMA_isinpoly(float *P, float *NodeList, 
+                     int *FaceSetList, int N_FaceSet, 
+                     int FaceSetDim, int *dims, int *N_in, 
+                     byte *usethis, byte *culled)
 {
    static char FuncName[]={"SUMA_isinpoly"};
    byte *isin=NULL;
@@ -4336,7 +4351,8 @@ byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet,
       counter = 0;
       for (i=0; i<FaceSetDim; ++i) { /* form the polygon coordinate vector */
          ni = FaceSetList[FaceSetDim*iv+i];
-         poly[3*i] = NodeList[3*ni];  poly[3*i+1] = NodeList[3*ni+1]; poly[3*i+2] = NodeList[3*ni+2];
+         poly[3*i] = NodeList[3*ni];  
+         poly[3*i+1] = NodeList[3*ni+1]; poly[3*i+2] = NodeList[3*ni+2];
       }
       if (culled) if (culled[iv]) continue;
       
@@ -4348,7 +4364,7 @@ byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet,
             if (p[1] <= SUMA_MAX_PAIR(p1[1], p2[1])) {
                if (p[0] <= SUMA_MAX_PAIR(p1[0], p2[0])) {
                   if (p1[1] != p2[1]) {
-                     xinters = (p[1] - p1[1]) * (p2[0] - p1[0]) / (p2[1] - p1[1]) + p1[0];
+                     xinters = (p[1]-p1[1])*(p2[0]-p1[0])/(p2[1]-p1[1])+p1[0];
                      if (p1[0] == p2[0] || p[0] <= xinters) {
                         counter++; 
                      }
@@ -5705,7 +5721,9 @@ void SUMA_Set_VoxIntersDbg(int v)
    \param vert2 (float *) xyz of third vertex of triangle
    \return YUP == intersects
 */
-SUMA_Boolean SUMA_isVoxelIntersect_Triangle (float *center, float *dxyz, float *vert0, float *vert1, float *vert2)   
+SUMA_Boolean SUMA_isVoxelIntersect_Triangle 
+      (float *center, float *dxyz, 
+       float *vert0, float *vert1, float *vert2)   
 {
    static char FuncName[]={"SUMA_isVoxelIntersect_Triangle"};
    int i = 0;
@@ -5716,9 +5734,11 @@ SUMA_Boolean SUMA_isVoxelIntersect_Triangle (float *center, float *dxyz, float *
    /* loop accross all 12 edges and find out which pierces the triangle */
    for (i=0; i<12; ++i) {
       SUMA_EDGE_OF_VOXEL(center, dxyz, i, P0, P1);
-      if (SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, NULL, NULL)) {
+      if (SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, 
+                                        iP, NULL, NULL)) {
          #if 0 
-            if (VoxIntersDbg) fprintf(SUMA_STDERR, "%s: intersection detected.\n", FuncName);
+            if (VoxIntersDbg) 
+               fprintf(SUMA_STDERR, "%s: intersection detected.\n", FuncName);
          #endif
          /* intersects, make sure intersection is between P0 and P1 */
          if (SUMA_IS_POINT_IN_SEGMENT(iP, P0, P1)) {
@@ -5865,22 +5885,34 @@ SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, f
 /*!
 
 SUMA_MT_INTERSECT_TRIANGLE *
-SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, SUMA_MT_INTERSECT_TRIANGLE *prevMTI)
+SUMA_MT_intersect_triangle(float *P0, float *P1, 
+                           float *NodeList, int N_Node, 
+                           int *FaceSetList, int N_FaceSet, 
+                           SUMA_MT_INTERSECT_TRIANGLE *prevMTI)
 
 \param   P0 (float *) 3x1 containing XYZ of point 0
 \param   P1 (float *) 3x1 containing XYZ of point 1
-\param   NodeList (float *) N_Node x 3 vector containing the XYZ of nodes making up FaceSetList
+\param   NodeList (float *) N_Node x 3 vector containing the XYZ of nodes 
+         making up FaceSetList
 \param   N_Node (int) number of nodes in NodeList
-\param   FaceSetList (int *) N_FaceSet x 3 with each triplet representing a triangle. Triangles are defined
-         by their indices into NodeList 
+\param   FaceSetList (int *) N_FaceSet x 3 with each triplet representing 
+         a triangle. Triangles are defined by their indices into NodeList 
 \param   N_FaceSet (int) number of triangles in FaceSetList
-\param   PrevMTI (SUMA_MT_INTERSECT_TRIANGLE *) To keep the function from reallocating for MTI each time you call it, you can pass the previous MTI
-         structure to the next call. If the number of facesets is the same as in the previous call and PrevMTI is not NULL then MTI is not reallocated for.
-         If PrevMTI is not null and the last N_FaceSet was different from the current, PrevMTI is freed and a new one is returned. This change appears to 
-         save about 18% of the function's execution time. Be careful not to free PrevMTI without setting it to NULL and then send it to SUMA_MT_intersect_triangle.
+\param   PrevMTI (SUMA_MT_INTERSECT_TRIANGLE *) To keep the function from 
+               reallocating for MTI each time you call it, you can pass 
+               the previous MTI structure to the next call. 
+               If the number of facesets is the same as in the previous 
+               call and PrevMTI is not NULL then MTI is not reallocated for.
+               
+               If PrevMTI is not null and the last N_FaceSet was different 
+               from the current, PrevMTI is freed and a new one is returned. 
+               This change appears to save about 18% of the function's 
+               execution time. Be careful not to free PrevMTI without setting 
+               it to NULL and then send it to SUMA_MT_intersect_triangle.
 
 \ret   MTI (SUMA_MT_INTERSECT_TRIANGLE *) pointer to structure containing 
-      isHit (SUMA_Boolean *) N_FaceSet x 1 vector. isHit[i] = YUP --> FaceSet i is pierced by ray P0-->P1
+               isHit (SUMA_Boolean *) N_FaceSet x 1 vector. 
+               isHit[i] = YUP --> FaceSet i is pierced by ray P0-->P1
       t (float *) signed distance to the plane in which the triangle lies
       u & v(float *) location withing the triangle of the intersection point
 
@@ -5898,7 +5930,10 @@ or to your normals.
 */ 
  
 SUMA_MT_INTERSECT_TRIANGLE *
-SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, SUMA_MT_INTERSECT_TRIANGLE *PrevMTI)
+SUMA_MT_intersect_triangle(float *P0, float *P1, 
+                           float *NodeList, int N_Node, 
+                           int *FaceSetList, int N_FaceSet, 
+                           SUMA_MT_INTERSECT_TRIANGLE *PrevMTI)
 {
    static char FuncName[]={"SUMA_MT_intersect_triangle"};
    double edge1[3], edge2[3], tvec[3], pvec[3], qvec[3];
@@ -5917,10 +5952,10 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
    
    if (!PrevMTI) { /* nothing preallocated */
       entry = 0;
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: First entry or nothing pre-allocated.\n", FuncName);
+      SUMA_LH("First entry or nothing pre-allocated.\n");
    } else { /* returning a used MTI, check number of facesets */
       if (N_FaceSet_Previous != N_FaceSet) { /* must reallocate */
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Reallocating for MTI, a change in number of FaceSets.\n", FuncName);
+         SUMA_LH("Reallocating for MTI, a change in number of FaceSets.\n");
          /* free current MTI */
          PrevMTI = SUMA_Free_MT_intersect_triangle (PrevMTI);
          entry = 0;
@@ -5928,7 +5963,8 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
    }
    
    if (!entry) {
-      MTI = (SUMA_MT_INTERSECT_TRIANGLE *)SUMA_malloc(sizeof(SUMA_MT_INTERSECT_TRIANGLE));
+      MTI = (SUMA_MT_INTERSECT_TRIANGLE *)
+                     SUMA_malloc(sizeof(SUMA_MT_INTERSECT_TRIANGLE));
       if (MTI == NULL) {
          fprintf(SUMA_STDERR,"Error %s: Failed to allocate for MTI\n", FuncName);
          SUMA_RETURN (NULL);
@@ -5960,8 +5996,9 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
       MTI->u = (float *)SUMA_calloc(N_FaceSet, sizeof(float));
       MTI->v = (float *)SUMA_calloc(N_FaceSet, sizeof(float));
    
-      if (MTI->isHit == NULL || MTI->t == NULL || MTI->u == NULL || MTI->v == NULL) {
-         fprintf(SUMA_STDERR,"Error : Failed to allocate for MTI->isHit | MTI->t | MTI->u | MTI->v\n");
+      if (MTI->isHit == NULL || MTI->t == NULL || MTI->u == NULL 
+                             || MTI->v == NULL) {
+         SUMA_S_Err("Failed to allocate for MTI->*\n");
          SUMA_RETURN (NULL);
       }
    }
@@ -5998,7 +6035,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
       /* if determinant is near zero, ray lies in plane of triangle */
       det = SUMA_MT_DOT(edge1, pvec);
 
-   #ifdef SUMA_MT_TEST_CULL           /* define TEST_CULL if culling is desired */
+   #ifdef SUMA_MT_TEST_CULL         /* define TEST_CULL if culling is desired */
       if (det > -SUMA_EPSILON && det < SUMA_EPSILON)
          MTI->isHit[iface] = NOPE;
       else {
@@ -6034,18 +6071,27 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
                   tmin = disttest;
                   MTI->ifacemin = iface;
                   /* calculate the location of the intersection in XYZ coords */
-                  MTI->P[0] = vert0[0] + MTI->u[iface] * (vert1[0] - vert0[0] ) + MTI->v[iface] * (vert2[0] - vert0[0] );
-                  MTI->P[1] = vert0[1] + MTI->u[iface] * (vert1[1] - vert0[1] ) + MTI->v[iface] * (vert2[1] - vert0[1] );
-                  MTI->P[2] = vert0[2] + MTI->u[iface] * (vert1[2] - vert0[2] ) + MTI->v[iface] * (vert2[2] - vert0[2] );
+                  MTI->P[0] = vert0[0] + MTI->u[iface] * (vert1[0] - vert0[0] ) +
+                                         MTI->v[iface] * (vert2[0] - vert0[0] );
+                  MTI->P[1] = vert0[1] + MTI->u[iface] * (vert1[1] - vert0[1] ) +
+                                         MTI->v[iface] * (vert2[1] - vert0[1] );
+                  MTI->P[2] = vert0[2] + MTI->u[iface] * (vert1[2] - vert0[2] ) +
+                                         MTI->v[iface] * (vert2[2] - vert0[2] );
                   /* find out which node is closest to P */
                   MTI->inodeminlocal = 0;
-                  MTI->d = (vert0[0] - MTI->P[0])*(vert0[0] - MTI->P[0]) + (vert0[1] - MTI->P[1])*(vert0[1] - MTI->P[1]) + (vert0[2] - MTI->P[2])*(vert0[2] - MTI->P[2]);
-                  dii = (vert1[0] - MTI->P[0])*(vert1[0] - MTI->P[0]) + (vert1[1] - MTI->P[1])*(vert1[1] - MTI->P[1]) + (vert1[2] - MTI->P[2])*(vert1[2] - MTI->P[2]);
+                  MTI->d = (vert0[0] - MTI->P[0])*(vert0[0] - MTI->P[0]) + 
+                           (vert0[1] - MTI->P[1])*(vert0[1] - MTI->P[1]) + 
+                           (vert0[2] - MTI->P[2])*(vert0[2] - MTI->P[2]);
+                  dii = (vert1[0] - MTI->P[0])*(vert1[0] - MTI->P[0]) + 
+                        (vert1[1] - MTI->P[1])*(vert1[1] - MTI->P[1]) + 
+                        (vert1[2] - MTI->P[2])*(vert1[2] - MTI->P[2]);
                   if (dii < MTI->d) {
                      MTI->d = dii;
                      MTI->inodeminlocal = 1;
                   }
-                  dii = (vert2[0] - MTI->P[0])*(vert2[0] - MTI->P[0]) + (vert2[1] - MTI->P[1])*(vert2[1] - MTI->P[1]) + (vert2[2] - MTI->P[2])*(vert2[2] - MTI->P[2]);
+                  dii = (vert2[0] - MTI->P[0])*(vert2[0] - MTI->P[0]) + 
+                        (vert2[1] - MTI->P[1])*(vert2[1] - MTI->P[1]) + 
+                        (vert2[2] - MTI->P[2])*(vert2[2] - MTI->P[2]);
                   if (dii < MTI->d) {
                      MTI->d = dii;
                      MTI->inodeminlocal = 2;
@@ -6093,18 +6139,27 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
                   tmin = disttest;
                   MTI->ifacemin = iface;
                   /* calculate the location of the intersection in XYZ coords */
-                  MTI->P[0] = vert0[0] + MTI->u[iface] * (vert1[0] - vert0[0] ) + MTI->v[iface] * (vert2[0] - vert0[0] );
-                  MTI->P[1] = vert0[1] + MTI->u[iface] * (vert1[1] - vert0[1] ) + MTI->v[iface] * (vert2[1] - vert0[1] );
-                  MTI->P[2] = vert0[2] + MTI->u[iface] * (vert1[2] - vert0[2] ) + MTI->v[iface] * (vert2[2] - vert0[2] );
+                  MTI->P[0] = vert0[0] + MTI->u[iface] * (vert1[0] - vert0[0] ) +
+                                         MTI->v[iface] * (vert2[0] - vert0[0] );
+                  MTI->P[1] = vert0[1] + MTI->u[iface] * (vert1[1] - vert0[1] ) +
+                                         MTI->v[iface] * (vert2[1] - vert0[1] );
+                  MTI->P[2] = vert0[2] + MTI->u[iface] * (vert1[2] - vert0[2] ) +
+                                         MTI->v[iface] * (vert2[2] - vert0[2] );
                   /* find out which node is closest to P */
                   MTI->inodeminlocal = 0;
-                  MTI->d = (vert0[0] - MTI->P[0])*(vert0[0] - MTI->P[0]) + (vert0[1] - MTI->P[1])*(vert0[1] - MTI->P[1]) + (vert0[2] - MTI->P[2])*(vert0[2] - MTI->P[2]);
-                  dii = (vert1[0] - MTI->P[0])*(vert1[0] - MTI->P[0]) + (vert1[1] - MTI->P[1])*(vert1[1] - MTI->P[1]) + (vert1[2] - MTI->P[2])*(vert1[2] - MTI->P[2]);
+                  MTI->d = (vert0[0] - MTI->P[0])*(vert0[0] - MTI->P[0]) + 
+                           (vert0[1] - MTI->P[1])*(vert0[1] - MTI->P[1]) + 
+                           (vert0[2] - MTI->P[2])*(vert0[2] - MTI->P[2]);
+                  dii =    (vert1[0] - MTI->P[0])*(vert1[0] - MTI->P[0]) + 
+                           (vert1[1] - MTI->P[1])*(vert1[1] - MTI->P[1]) + 
+                           (vert1[2] - MTI->P[2])*(vert1[2] - MTI->P[2]);
                   if (dii < MTI->d) {
                      MTI->d = dii;
                      MTI->inodeminlocal = 1;
                   }
-                  dii = (vert2[0] - MTI->P[0])*(vert2[0] - MTI->P[0]) + (vert2[1] - MTI->P[1])*(vert2[1] - MTI->P[1]) + (vert2[2] - MTI->P[2])*(vert2[2] - MTI->P[2]);
+                  dii =    (vert2[0] - MTI->P[0])*(vert2[0] - MTI->P[0]) + 
+                           (vert2[1] - MTI->P[1])*(vert2[1] - MTI->P[1]) + 
+                           (vert2[2] - MTI->P[2])*(vert2[2] - MTI->P[2]);
                   if (dii < MTI->d) {
                      MTI->d = dii;
                      MTI->inodeminlocal = 2;
@@ -6131,8 +6186,249 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
 }
 
 /*!
-Show contents of SUMA_MT_INTERSECT_TRIANGLE structure
+   Yet a another version of SUMA_MT_intersect_triangle intended
+   just to count the number of triangles intersected by a segment.
+   
+   v0, v1 (void *): Segment end points.
+                  1: then v0 and v1 are node indices (int)
+                  0: v0 and v1 are coordinate 3vectors (float *)
+                  2: v0 is a coordinate 3vectors, v1 is a direction vector
+                  
+                  
+   N_hits: (int*) At entry to call:
+                     If the number of triangles hit reach or exceed *N_hits
+                     return, no need to continue. If set to 0, the limit
+                     is automatically set to N_FaceSet
+                  At return from call:
+                     Contains the number of triangles hit (see caveat in
+                     index_input).
+   tris_hit (int *) If not null, will contain the indices of triangles
+                    hit. If you use it, make sure *N_hits is the length
+                    of the pre-allocated array so that the function
+                    knows not to overshoot it.
+   OnlyBetween 1: Only count as hits triangles between P0 && P1
+                  This parameter is ignored with index_input is 2
+   
+   index_input: 1 means input are node indices. Also means to ignore
+               triangles that contain either n0 or n1
+                0 means input are coordinates. 
+*/
 
+SUMA_Boolean SUMA_MT_count_intersect_triangle(void *v0, void *v1, 
+                           float *NodeList, int N_Node, 
+                           int *FaceSetList, int N_FaceSet, 
+                           int *N_hits, int *tris_hit,
+                           byte OnlyBetween, byte *nmask,
+                           int index_input,
+                           float *min_dist, int *iface_min_dist, float *proj)
+{
+   static char FuncName[]={"SUMA_MT_count_intersect_triangle"};
+   double edge1[3], edge2[3], tvec[3], pvec[3], qvec[3];
+   double det,inv_det;
+   int iface, ND, id, NP, ip, MaxHits, isbetween, n0, n1;
+   double vert0[3], vert1[3], vert2[3], dir[3], dirn, orig[3], tip[3], 
+          uu, vv, P[3]={0.0, 0.0, 0.0};
+   float *P0, *P1, this_dist = 0.0, *ftmp=NULL, Ptmp[3]={0.0, 0.0, 0.0};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!NodeList || !FaceSetList || !N_hits) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if ((min_dist && !iface_min_dist) || (!min_dist && iface_min_dist)) {
+      SUMA_S_Err("Both min_dist and iface_min_dist must be either NULL or not");
+      SUMA_RETURN(NOPE);
+   }
+   if (min_dist) { *min_dist = 1000000.0; *iface_min_dist = -1; }
+   
+   ND = 3;
+   NP = 3;
+   
+   switch (index_input) {
+      case 1:
+         n0 = (int)(long)v0; n1 = (int)(long)v1;
+         P0 = NodeList+n0*ND;
+         P1 = NodeList+n1*ND;
+         SUMA_LHv("Nodes %d and %d at the ready.\n", n0, n1);   
+         break;
+      case 0:
+         P0 = (float *)v0; P1 = (float *)v1;
+         n0=-1; n1=-1;
+         break;
+      case 2: /* one node and a direction, turn off OnlyBetween*/
+         n0=-1; n1=-1;
+         P0 = (float *)v0; 
+         P1 = Ptmp;
+         ftmp = (float *)v1;
+         P1[0] = P0[0]+1000.0*ftmp[0];
+         P1[1] = P0[1]+1000.0*ftmp[1]; 
+         P1[2] = P0[2]+1000.0*ftmp[2];
+         OnlyBetween = 0;
+         break;
+      default:
+         SUMA_S_Errv("Bad index_input (%d)\n", index_input);
+         SUMA_RETURN(NOPE);
+         break;
+   }
+   
+   if (*N_hits<=0) MaxHits =  N_FaceSet;
+   else MaxHits = *N_hits;
+   
+   /* direction from two points */
+   orig[0] = (double)P0[0];
+   orig[1] = (double)P0[1];
+   orig[2] = (double)P0[2];
+   
+   
+   dir[0] = (double)P1[0] - orig[0];
+   dir[1] = (double)P1[1] - orig[1];
+   dir[2] = (double)P1[2] - orig[2];
+   dirn = sqrt(dir[0]*dir[0]+dir[1]*dir[1]+dir[2]*dir[2]);
+   dir[0] /= dirn;
+   dir[1] /= dirn;
+   dir[2] /= dirn;
+   
+   *N_hits = 0; 
+   for (iface= 0; iface < N_FaceSet; ++iface) {/* iface */
+      /* set up the coordinates in a humane nomenclature */
+      ip = NP * iface;
+      if (nmask) { /* skip if all nodes are outside mask */
+         if (!nmask[FaceSetList[ip]] && 
+             !nmask[FaceSetList[ip+1]] &&
+             !nmask[FaceSetList[ip+2]]) continue; 
+      }
+      if (n0 >= 0 && (
+                         n0 == FaceSetList[ip  ] || 
+                         n0 == FaceSetList[ip+1] ||
+                         n0 == FaceSetList[ip+2] || 
+                         n1 == FaceSetList[ip  ] || 
+                         n1 == FaceSetList[ip+1] ||
+                         n1 == FaceSetList[ip+2] ) ) {
+         /* One of the segment's tips is at a node of this triangle 
+            This would be an intersection, but it is a trivial condition
+            which will muck up the count of N_hits for the purposes
+            of determining a surface intersection.
+            Hence this condition will be considered a non-intersection.
+         */  
+         continue;                 
+      } 
+      /* SUMA_LHv("Triangle %d will be processed: [%d %d %d]\n",
+                  iface, 
+                  FaceSetList[ip], FaceSetList[ip+1], FaceSetList[ip+2]);*/
+      id = ND * FaceSetList[ip];
+      vert0[0] = (double)NodeList[id];
+       vert0[1] = (double)NodeList[id+1];
+      vert0[2] = (double)NodeList[id+2];
+      
+      id = ND * FaceSetList[ip+1];
+      vert1[0] = (double)NodeList[id];
+       vert1[1] = (double)NodeList[id+1];
+      vert1[2] = (double)NodeList[id+2];
+      
+      id = ND * FaceSetList[ip+2];
+      vert2[0] = (double)NodeList[id];
+       vert2[1] = (double)NodeList[id+1];
+      vert2[2] = (double)NodeList[id+2];
+      
+      
+      /* find vectors for two edges sharing vert0 */
+      SUMA_MT_SUB(edge1, vert1, vert0);
+      SUMA_MT_SUB(edge2, vert2, vert0);
+
+      /* begin calculating determinant - also used to calculate U parameter */
+      SUMA_MT_CROSS(pvec, dir, edge2);
+
+      /* if determinant is near zero, ray lies in plane of triangle */
+      det = SUMA_MT_DOT(edge1, pvec);
+
+      /* the non-culling branch */
+      if (det > -SUMA_EPSILON && det < SUMA_EPSILON) {
+         /* no hit */
+      } else {
+         inv_det = 1.0 / det;
+
+         /* calculate distance from vert0 to ray origin */
+         SUMA_MT_SUB(tvec, orig, vert0);
+
+         /* calculate U parameter and test bounds */
+         uu = SUMA_MT_DOT(tvec, pvec) * inv_det;
+         if (uu < 0.0 || uu > 1.0) {
+            /* no hit */
+         } else {
+            /* prepare to test V parameter */
+            SUMA_MT_CROSS(qvec, tvec, edge1);
+
+            /* calculate V parameter and test bounds */
+            vv = SUMA_MT_DOT(dir, qvec) * inv_det;
+            if (vv < 0.0 || uu + vv > 1.0) {
+               /* no hit */
+            } else {
+               SUMA_LHv("  Triangle %d [%d %d %d] is a hit, N_hits was %d\n", 
+                           iface, 
+                           FaceSetList[ip], FaceSetList[ip+1], FaceSetList[ip+2],
+                           *N_hits);
+               if (OnlyBetween || min_dist || proj) {
+                  P[0] = vert0[0] + uu * (vert1[0] - vert0[0] ) +
+                                    vv * (vert2[0] - vert0[0] );
+                  P[1] = vert0[1] + uu * (vert1[1] - vert0[1] ) +
+                                    vv * (vert2[1] - vert0[1] );
+                  P[2] = vert0[2] + uu * (vert1[2] - vert0[2] ) +
+                                    vv * (vert2[2] - vert0[2] );
+               }
+               isbetween=1; 
+               if (OnlyBetween) { /* Should you want to know if intersection if
+                           between segment ends */
+                  /* calculate the location of the intersection in XYZ coords */
+                  tip[0] = (double)P1[0];
+                  tip[1] = (double)P1[1];
+                  tip[2] = (double)P1[2];
+
+                  isbetween = SUMA_IS_POINT_IN_SEGMENT(P, orig, tip); 
+                  SUMA_LHv("     Its betweenness is %d \n"
+                           "        [%.4f %.4f %.4f \n"
+                           "         %.4f %.4f %.4f \n"
+                           "         %.4f %.4f %.4f]\n",
+                          isbetween, 
+                          orig[0], orig[1], orig[2],
+                          P[0], P[1], P[2],
+                          tip[0], tip[1], tip[2]);
+               } 
+               if (isbetween) {
+                  if (tris_hit) tris_hit[*N_hits]=iface;
+                  if (min_dist) {
+                     if (*N_hits == 0) {
+                        SUMA_SEG_LENGTH(orig, P, (*min_dist));
+                        *iface_min_dist = iface;
+                        if (proj) { 
+                           proj[0]=P[0]; proj[1]=P[1]; proj[2]=P[2];
+                        }   
+                    } else {
+                        SUMA_SEG_LENGTH(orig, P, (this_dist));
+                        if (this_dist < *min_dist) {
+                           *min_dist = this_dist;
+                           *iface_min_dist = iface;
+                           if (proj) { 
+                              proj[0]=P[0]; proj[1]=P[1]; proj[2]=P[2];
+                           }   
+                        }
+                     }   
+                  }
+                  *N_hits = *N_hits+1;
+                  if (*N_hits >= MaxHits) SUMA_RETURN (YUP);
+               }
+            }
+         }
+      }
+   }/*iface */
+   
+   SUMA_RETURN (YUP);
+}
+
+/*!
+Show contents of SUMA_MT_INTERSECT_TRIANGLE structure
 */
 SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, FILE *Out)
 {
@@ -6425,21 +6721,28 @@ typedef enum {SUMA_NO_NEIGHB, SUMA_NO_MORE_TO_VISIT, SUMA_VISITED_ALL, SUMA_BAD_
          -1 if no such triangle was found 
 
 */
-int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace)
+int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace, 
+                   byte quiet)
 {
    static char FuncName[]={"SUMA_whichTri"};
-   int IncTri_E1[100], IncTri_E2[100], N_IncTri_E1 = 0, N_IncTri_E2 = 0, i, j, Tri= -1;
+   int IncTri_E1[100], IncTri_E2[100], N_IncTri_E1 = 0, 
+       N_IncTri_E2 = 0, i, j, Tri= -1;
    SUMA_Boolean Found = NOPE;
    
    if (IOtrace) SUMA_ENTRY;
    
    Tri = -1;
    /* find incident triangles to n1-n2 edge */
-   if (!SUMA_Get_Incident(n1, n2, EL, IncTri_E1, &N_IncTri_E1, IOtrace, 0)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
-   } else if (!SUMA_Get_Incident(n1, n3, EL, IncTri_E2, &N_IncTri_E2, IOtrace, 0)) {
+   if (!SUMA_Get_Incident(n1, n2, EL, IncTri_E1, &N_IncTri_E1, IOtrace, quiet)) {
+      if (!quiet) fprintf (SUMA_STDERR,
+               "Error %s: Failed in SUMA_Get_Incident for nodes A B %d %d.\n", 
+               FuncName, n1, n2);
+   } else if (!SUMA_Get_Incident(n1, n3, EL, 
+                                 IncTri_E2, &N_IncTri_E2, IOtrace, quiet)) {
       /* find incident triangles to n1-n3 edge */
-      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
+      if (!quiet) fprintf (SUMA_STDERR,
+               "Error %s: Failed in SUMA_Get_Incident for nodes A C %d %d.\n", 
+               FuncName, n1, n3);
    } else if (N_IncTri_E1 > 99 || N_IncTri_E2 > 99 ) {
       /* check that we did not go overboard */
       fprintf (SUMA_STDERR,"Error %s: Exceeded preallocated space.\n", FuncName);
@@ -6462,10 +6765,13 @@ int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace)
    if (IOtrace) { SUMA_RETURN (Tri); }
    else return(Tri);
 }
-int SUMA_whichTri_e (SUMA_EDGE_LIST * EL, int E1, int E2, int IOtrace, byte quiet)
+
+int SUMA_whichTri_e (SUMA_EDGE_LIST * EL, int E1, int E2, int IOtrace, 
+                     byte quiet)
 {
    static char FuncName[]={"SUMA_whichTri_e"};
-   int IncTri_E1[100], IncTri_E2[100], N_IncTri_E1 = 0, N_IncTri_E2 = 0, i, j, Tri= -1;
+   int IncTri_E1[100], IncTri_E2[100], N_IncTri_E1 = 0, 
+       N_IncTri_E2 = 0, i, j, Tri= -1;
    int n1, n2, n3;
    SUMA_Boolean Found = NOPE;
    
@@ -6483,10 +6789,15 @@ int SUMA_whichTri_e (SUMA_EDGE_LIST * EL, int E1, int E2, int IOtrace, byte quie
    Tri = -1;
    /* find incident triangles to n1-n2 edge */
    if (!SUMA_Get_Incident(n1, n2, EL, IncTri_E1, &N_IncTri_E1, IOtrace, quiet)) {
-      if (!quiet) fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
-   } else if (!SUMA_Get_Incident(n1, n3, EL, IncTri_E2, &N_IncTri_E2, IOtrace, quiet)) {
+      if (!quiet) 
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", 
+                  FuncName);
+   } else if (!SUMA_Get_Incident(n1, n3, EL, 
+                                 IncTri_E2, &N_IncTri_E2, IOtrace, quiet)) {
       /* find incident triangles to n1-n3 edge */
-      if (!quiet) fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
+      if (!quiet) 
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", 
+                  FuncName);
    } else if (N_IncTri_E1 > 99 || N_IncTri_E2 > 99 ) {
       /* check that we did not go overboard */
       fprintf (SUMA_STDERR,"Error %s: Exceeded preallocated space.\n", FuncName);
@@ -7284,7 +7595,8 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
    \sa SUMA_Make_Edge_List
    \sa SUMA_Get_Incident
 */
-SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident, int *N_Incident)
+SUMA_Boolean SUMA_Get_NodeIncident( int n1, SUMA_SurfaceObject *SO, 
+                                    int *Incident, int *N_Incident)
 {
    static char FuncName[] = {"SUMA_Get_NodeIncident"};
    int i, n3, N_Neighb, N_max;
@@ -7310,15 +7622,18 @@ SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident
       if ( i+1 == N_Neighb) n3 = SO->FN->FirstNeighb[n1][0];
       else n3 = SO->FN->FirstNeighb[n1][i+1];
       if (*N_Incident < N_max) { 
-         if ((Incident[*N_Incident] = SUMA_whichTri (SO->EL, n1, SO->FN->FirstNeighb[n1][i], n3, 1)) < 0) {
-            fprintf (SUMA_STDERR, "Error %s: Triangle formed by nodes %d %d %d not found.\n", 
+         if ((Incident[*N_Incident] = SUMA_whichTri (SO->EL, n1, 
+                                 SO->FN->FirstNeighb[n1][i], n3, 1, 0)) < 0) {
+            fprintf (SUMA_STDERR, 
+               "Error %s: Triangle formed by nodes %d %d %d not found.\n", 
                FuncName, n1, SO->FN->FirstNeighb[n1][i], n3);
             SUMA_RETURN(NOPE);
          }
          ++*N_Incident;
          ++i;
       } else {
-         SUMA_S_Err("More incident triangles than allocated for. Increase your limit.\n");
+         SUMA_S_Err( "More incident triangles than allocated for. "
+                     "Increase your limit.\n");
          SUMA_RETURN(NOPE);  
       }
    }
@@ -7359,6 +7674,13 @@ SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL,
       n2 = nt;
    }
    
+   if (n1 == n2) {
+      if (!quiet) {
+         SUMA_S_Errv("Identical nodes! %d %d\n", n1, n2);
+      }
+      if (IOtrace) { SUMA_RETURN(NOPE); }
+      else return(NOPE);   
+   }
    /* find the location of the first edge with n1 */
    *N_Incident = 0;
    if (n1<SEL->N_ELloc) {
@@ -7741,6 +8063,7 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int de
    \return attr_sm (float *) pointer to smoothed version of attr
    
    \sa   SUMA_SmoothAttr_Neighb_Rec  
+   \sa SUMA_SmoothAttr_Neighb_wght (bugs here == bugs there)
 */
 float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn, int nr, byte *nmask, byte strict_mask)
 {
@@ -7758,7 +8081,8 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
       SUMA_RETURN (NULL); 
    }
    if (nr*fn->N_Node != N_attr) {
-      fprintf (SUMA_STDERR, "Error %s: N_attr (%d) must be equal to nr * fn->N_Node (%d * %d = %d).\n",FuncName, N_attr, nr, fn->N_Node, nr * fn->N_Node);
+      fprintf (SUMA_STDERR, "Error %s: N_attr (%d) must be equal to nr * fn->N_Node (%d * %d = %d).\n",
+               FuncName, N_attr, nr, fn->N_Node, nr * fn->N_Node);
       SUMA_RETURN (NULL); 
    }
    
@@ -7778,7 +8102,9 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
       /* make sure node id corresponds to ni. That is you have a full set of nodes 0..fn->N_Node */
       if (fn->NodeId[ni] != ni) {
          /* It's OK not to die here. This does occur in patches */
-         /*fprintf (SUMA_STDERR, "Warning %s: fn does not seem to contain an explicit list of neighbors, from 0..N_attr. fn->NodeId[ni] = %d, ni = %d. Skipping node %d.\n", \
+         /*fprintf (SUMA_STDERR, 
+                     "Warning %s: fn does not seem to contain an explicit list of neighbors, from 0..N_attr. "
+                     "fn->NodeId[ni] = %d, ni = %d. Skipping node %d.\n", 
             FuncName, fn->NodeId[ni], ni, ni); */
          /*SUMA_free(attr_sm); 
          attr_sm = NULL;
@@ -7819,6 +8145,109 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
    
    SUMA_RETURN (attr_sm);   
 }
+
+/*!
+   \sa SUMA_SmoothAttr_Neighb (bugs here == bugs there)
+*/
+float * SUMA_SmoothAttr_Neighb_wght (float *attr, int N_attr, float *wght, 
+                                     float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn, 
+                                     int nr, byte *nmask, byte strict_mask)
+{
+   static char FuncName[]={"SUMA_SmoothAttr_Neighb_wght"};
+   int ni, im, offs, j, nj;
+   float wgt;
+    
+   SUMA_ENTRY;
+
+   if (attr_sm && attr_sm == attr) {
+      SUMA_S_Err("attr and attr_sm point to the same location. BAD!\n");
+      SUMA_RETURN (NULL); 
+   }
+   
+   if (!wght) SUMA_RETURN(SUMA_SmoothAttr_Neighb(attr, N_attr, attr_sm, 
+                                                fn, nr, nmask, strict_mask));
+   
+   if (fn == NULL) {
+      fprintf (SUMA_STDERR, "Error %s: fn is null, nothing to do.\n",FuncName);
+      SUMA_RETURN (NULL); 
+   }
+   if (nr*fn->N_Node != N_attr) {
+      SUMA_S_Errv("N_attr (%d) must be equal to "
+                  "nr * fn->N_Node (%d * %d = %d).\n",
+               N_attr, nr, fn->N_Node, nr * fn->N_Node);
+      SUMA_RETURN (NULL); 
+   }
+   
+   attr_sm = (float *)attr_sm;
+   if (attr_sm == NULL) {
+      attr_sm = (float *)SUMA_calloc (N_attr, sizeof(float));
+   }
+   
+   if (attr_sm == NULL)
+   {
+      fprintf (SUMA_STDERR,   
+         "Error %s: Failed to allocate for returning variable.\n", FuncName);
+      SUMA_RETURN (NULL);
+   } 
+   
+   
+   for (ni=0; ni < fn->N_Node; ++ni) { /* a counter for node index */
+      /* make sure node id corresponds to ni. 
+         That is you have a full set of nodes 0..fn->N_Node */
+      if (fn->NodeId[ni] != ni) {
+         /* It's OK not to die here.  This does occur in patches */
+         /* SUMA_S_Warnv("fn does not seem to contain an explicit list of"
+                      " neighbors, from 0..N_attr. "
+                      "fn->NodeId[ni] = %d, ni = %d. Skipping node %d.\n", 
+                      fn->NodeId[ni], ni, ni); */
+         /*SUMA_free(attr_sm); 
+         attr_sm = NULL;
+         SUMA_RETURN (attr_sm);*/
+         continue;
+      }
+      offs = nr * ni;
+      if (nmask) {
+         if (nmask[fn->NodeId[ni]]) {  /* the node is in the mask */
+            for (im=0; im<nr; ++im) {
+               attr_sm[offs+im] = wght[fn->NodeId[ni]] * attr[offs+im];
+               wgt = wght[fn->NodeId[ni]];
+               {
+                  wgt = 0;
+                  for (j=0; j < fn->N_Neighb[ni]; ++j)
+                  {
+                     nj = fn->FirstNeighb[ni][j];
+                     if (nmask[nj] || !strict_mask) { 
+                        /* the neighbor is in the mask or we take in 
+                           all neighbors */
+                        attr_sm[offs+im] += (wght[nj] * attr[nr*nj+im]); 
+                        wgt += wght[nj];
+                     }
+                  }   
+                  attr_sm[offs+im] /= ((float)wgt);
+               }
+            }
+         } else { /* the node is not in the mask */
+            for (im=0; im<nr; ++im) attr_sm[offs+im] = attr[offs+im];
+         }
+      } else { 
+         for (im=0; im<nr; ++im) {
+            attr_sm[offs+im] = wght[fn->NodeId[ni]] * attr[offs+im];
+            wgt = wght[fn->NodeId[ni]];
+            for (j=0; j < fn->N_Neighb[ni]; ++j)
+            {
+               nj = fn->FirstNeighb[ni][j];
+               attr_sm[offs+im] += 
+                  (wght[nj] * attr[nr*fn->FirstNeighb[ni][j]+im]); 
+               wgt += wght[nj]; 
+            }   
+            attr_sm[offs+im] /= ((float)wgt);
+         }   
+      }
+   }
+   
+   SUMA_RETURN (attr_sm);   
+}
+
 
 /*!
    \brief float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, 
@@ -7874,7 +8303,7 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    SUMA_RETURN (attr_sm); 
 }
  
-/*-------------------------Node Attributes, smoothing functions END ------------------- */
+/*--------- Node Attributes, smoothing functions END ------ */
 
 /*! 
    build the node neighbor structure. Nodes are neighbors is they share an edge
@@ -7895,6 +8324,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el,
    int i, j, n1, n2,  **FirstNeighb, N_ELm1, jj, tmp, TessErr_Cnt=0, IOtrace = 0;
    SUMA_Boolean skp, LocalHead = NOPE;
    SUMA_NODE_FIRST_NEIGHB *FN;
+   static int nwarn=0;
    
    SUMA_ENTRY;
 
@@ -7967,13 +8397,21 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el,
       if (  n1 < 0 || n2 < 0 || /*n1 >= FN->N_Node || n2 >= FN->N_Node ||*/
             FN->N_Neighb[n1] > SUMA_MAX_NUMBER_NODE_NEIGHB || 
             FN->N_Neighb[n2] > SUMA_MAX_NUMBER_NODE_NEIGHB) {
-         fprintf(SUMA_STDERR, 
-      "Critical Error %s\a:"
+         if (verb > 1 || !nwarn) {
+            fprintf(SUMA_STDERR, 
+      "Warning %s:"
       "Bad node index! %d and/or %d\n"
       "Maximum number of node neighbors for node %d or node %d exceeds %d"
       " (SUMA_MAX_NUMBER_NODE_NEIGHB)\n "
-      "SUMA will try to launch but some functions may not work properly.\n", 
+      "SUMA will try to launch but some functions may not work properly.", 
             FuncName, n1, n2, n1, n2, SUMA_MAX_NUMBER_NODE_NEIGHB);
+            if (verb < 2) {
+               fprintf(SUMA_STDERR, "\nFuture similar messages muted.\n");
+            } else {
+               fprintf(SUMA_STDERR, "\n");
+            }
+         }
+         ++nwarn;
       }else {
          /*register the neighbors for both nodes*/
          FN->NodeId[n1] = n1; /* this field may come in handy when operations 
@@ -8010,7 +8448,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el,
 
    /* now SUMA_reallocate for final FirstNeighb */
    FirstNeighb = (int **) SUMA_allocate2D(FN->N_Node, 
-                              FN->N_Neighb_max, sizeof (int));
+                              FN->N_Neighb_max, sizeof(int));
    if (FirstNeighb == NULL){
       fprintf(SUMA_STDERR, 
          "Error %s: Could not allocate space for FirstNeighb\n", FuncName);
@@ -8031,7 +8469,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el,
         jj = 1;
         while (j < FN->N_Neighb[i]) {
             if (SUMA_whichTri (el, i, FirstNeighb[i][jj-1], 
-                               FN->FirstNeighb[i][j], IOtrace) >= 0) {
+                               FN->FirstNeighb[i][j], IOtrace, 1) >= 0) {
                FirstNeighb[i][jj] = FN->FirstNeighb[i][j];
                /* now swap in FN->FirstNeighb[i] the positions of jj and j */
                tmp =  FN->FirstNeighb[i][jj];
@@ -8364,14 +8802,18 @@ float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSe
 */
 
 
-SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, float *NodeNormList, 
-                                                   float *A, int N_FaceSet, SUMA_NODE_FIRST_NEIGHB *FN, SUMA_EDGE_LIST *SEL,
-                                                   char *odbg_name, int verb)
+SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  
+                           float *NodeList, int N_Node, float *NodeNormList, 
+                           float *A, int N_FaceSet, SUMA_NODE_FIRST_NEIGHB *FN, 
+                           SUMA_EDGE_LIST *SEL,  char *odbg_name, int verb)
 { 
    static char FuncName[] = {"SUMA_Surface_Curvature"};
-   int i, N_Neighb, j, ji, Incident[MAX_INCIDENT_TRI], N_Incident, kk, ii, id, ND; 
-   float  Ntmp[3],  vi[3], vj[3], *Num, NumNorm, num, denum, sWij, T1e[3], T2e[3], mg, c, s;
-   float **fa33, **fb33, **fc33, **Ni, **Nit, *Wij, *Kij, **Tij, **I, **Mi, **Q, **Qt, **fa22, **mMi, **mMir;
+   int i, N_Neighb, j, ji, Incident[MAX_INCIDENT_TRI], N_Incident, 
+       kk, ii, id, ND; 
+   float  Ntmp[3],  vi[3], vj[3], *Num, NumNorm, num, denum, sWij, 
+          T1e[3], T2e[3], mg, c, s;
+   float **fa33, **fb33, **fc33, **Ni, **Nit, *Wij, *Kij, **Tij, **I, **Mi, 
+         **Q, **Qt, **fa22, **mMi, **mMir;
    SUMA_Boolean *SkipNode;
    SUMA_SURFACE_CURVATURE *SC;
    
@@ -8410,8 +8852,10 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
    SC->Kp1 =(float *)SUMA_calloc (N_Node, sizeof(float));
    SC->Kp2 =(float *)SUMA_calloc (N_Node, sizeof(float));
 
-   if (!fa22 || !mMir || !mMi || !Wij || !Kij || !Tij || !Ni || !Nit || !fa33 || !fb33 || !fc33 || !I || !Num || !SkipNode || !Mi || !Q || !Qt || !SC->T1 || !SC->T2 || !SC->Kp1 || !SC->Kp2) {
-      fprintf (SUMA_STDERR, "Error %s: Failed to allocate for Wij, Kij, Tij.\n", FuncName);
+   if ( !fa22 || !mMir || !mMi || !Wij || !Kij || !Tij || !Ni || !Nit || !fa33 ||
+        !fb33 || !fc33 || !I || !Num || !SkipNode || !Mi || !Q || !Qt || 
+        !SC->T1 || !SC->T2 || !SC->Kp1 || !SC->Kp2) {
+      SUMA_S_Err("Failed to allocate for Wij, Kij, Tij.\n");
       if (Wij) SUMA_free(Wij);
       if (Kij) SUMA_free(Kij);
       if (Num) SUMA_free(Num);
@@ -8433,42 +8877,55 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
    }
 
    /* 3x3 identity matrix */
-   I[0][0] = I[1][1] = I[2][2] = 1.0; I[0][1] = I[0][2] = I[1][0] = I[1][2] = I[2][0] = I[2][1] = 0.0;
+   I[0][0] = I[1][1] = I[2][2] = 1.0; 
+   I[0][1] = I[0][2] = I[1][0] = I[1][2] = I[2][0] = I[2][1] = 0.0;
    
    /* initialize SC */
    SC->N_SkipNode = 0;
    SC->N_Node = N_Node;
    
-   if (verb) fprintf (SUMA_STDERR, "%s: Beginning curvature computations:\n", FuncName);
+   if (verb) 
+      fprintf (SUMA_STDERR, "%s: Beginning curvature computations:\n", FuncName);
    
    ND = 3;
    SC->N_SkipNode = 0;
    for (i=0; i < N_Node; ++i) { /* for i */
       #ifdef DBG_1
          if (!(i%10000)) {
-            if (verb) fprintf (SUMA_STDERR, "%s: [%d]/[%d] %.2f/100%% completed\n", FuncName, i, N_Node, (float)i / N_Node * 100);
+            if (verb) 
+               fprintf (SUMA_STDERR, 
+                        "%s: [%d]/[%d] %.2f/100%% completed\n", 
+                        FuncName, i, N_Node, (float)i / N_Node * 100);
          }
       #endif
       SkipNode[i] = NOPE;
       /* sanity copies */
       N_Neighb = FN->N_Neighb[i];
       id = ND * i;
-      Ni[0][0] = NodeNormList[id]; Ni[1][0] = NodeNormList[id+1]; Ni[2][0] = NodeNormList[id+2]; /* Normal vector at i*/
-      Nit[0][0] = NodeNormList[id]; Nit[0][1] = NodeNormList[id+1]; Nit[0][2] = NodeNormList[id+2]; /* transpose of Ni */ 
-      vi[0] = NodeList[id]; vi[1] = NodeList[id+1]; vi[2] = NodeList[id+2];  /* node coordinate vector */ 
+      Ni[0][0] = NodeNormList[id]; 
+      Ni[1][0] = NodeNormList[id+1]; 
+      Ni[2][0] = NodeNormList[id+2]; /* Normal vector at i*/
+      Nit[0][0] = NodeNormList[id]; 
+      Nit[0][1] = NodeNormList[id+1]; 
+      Nit[0][2] = NodeNormList[id+2]; /* transpose of Ni */ 
+      vi[0] = NodeList[id]; vi[1] = NodeList[id+1]; vi[2] = NodeList[id+2];  
       #ifdef DBG_2
-         if (verb > 1) fprintf (SUMA_STDERR, "%s: Looping over neighbors, i = %d\n", FuncName, i);
+         if (verb > 1) 
+            fprintf (SUMA_STDERR, 
+                     "%s: Looping over neighbors, i = %d\n", FuncName, i);
       #endif
       j=0;
       sWij = 0.0;
       while (j < N_Neighb) {
          ji = FN->FirstNeighb[i][j]; /* index of the jth first neighbor of i */
          id = ND * ji;
-         vj[0] = NodeList[id]; vj[1] = NodeList[id+1]; vj[2] = NodeList[id+2];  /* node coordinate vector at jth neighbor */
+         /* node coordinate vector at jth neighbor */
+         vj[0] = NodeList[id]; vj[1] = NodeList[id+1]; vj[2] = NodeList[id+2];  
          
          /* calculate Tij */
          #ifdef DBG_2
-            if (verb > 1) fprintf (SUMA_STDERR, "%s: Mat Op j=%d\n", FuncName, j);
+            if (verb > 1) 
+               fprintf (SUMA_STDERR, "%s: Mat Op j=%d\n", FuncName, j);
          #endif
          
          /* fa33 = Ni*Ni' */
@@ -8478,16 +8935,22 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
          SUMA_SUB_MAT(I, fa33, fb33, 3, 3, float, float, float); 
 
          /* fa33 = vi - vj (only 1st column is meaningful)*/
-         fa33[0][0] = vi[0] - vj[0];  fa33[1][0] = vi[1] - vj[1]; fa33[2][0] = vi[2] - vj[2];
+         fa33[0][0] = vi[0] - vj[0];  
+         fa33[1][0] = vi[1] - vj[1]; 
+         fa33[2][0] = vi[2] - vj[2];
          
-         /* Num = fc33 = (I - Ni*Ni') * (vi - vj) (only 1st column in fc33 is meaningful)*/
+         /* Num = fc33 = (I - Ni*Ni') * (vi - vj) 
+            (only 1st column in fc33 is meaningful)*/
          SUMA_MULT_MAT(fb33, fa33, fc33, 3, 3, 1, float, float, float);
          Num[0] = fc33[0][0]; Num[1] = fc33[1][0]; Num[2] = fc33[2][0];
 
-         /* Calculate Tij at this j, a 3x1 vector unit length normalized projection projection of vj-vi onto the plane perp. to Ni */
+         /* Calculate Tij at this j, a 3x1 vector unit length normalized 
+            projection projection of vj-vi onto the plane perp. to Ni */
          NumNorm = (float)sqrt(Num[0]*Num[0] + Num[1]*Num[1] + Num[2]*Num[2]);
          if (NumNorm == 0) {
-            if (verb) fprintf (SUMA_STDERR, "Warning %s: NumNorm = 0 for node %d.\n", FuncName, i); 
+            if (verb) 
+               fprintf (SUMA_STDERR, 
+                        "Warning %s: NumNorm = 0 for node %d.\n", FuncName, i); 
             SkipNode[i] = YUP;
             SC->N_SkipNode++;
             break;
@@ -8498,29 +8961,37 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
          Tij[j][2] = Num[2] / NumNorm;
          
          #ifdef DBG_2
-            if (verb > 1) fprintf(SUMA_STDOUT,"%s: i,j, ji =%d,%d, %d Ni = %f %f %f\n Tij(%d,:) = %f %f %f.\n", \
-               FuncName, i, j, ji,Ni[0][0], Ni[1][0], Ni[2][0], j, Tij[j][0], Tij[j][1], Tij[j][2]);
+            if (verb > 1) 
+               fprintf(SUMA_STDOUT,
+                        "%s: i,j, ji =%d,%d, %d Ni = %f %f %f\n"
+                        "Tij(%d,:) = %f %f %f.\n",
+                  FuncName, i, j, ji,Ni[0][0], Ni[1][0], Ni[2][0], 
+                               j, Tij[j][0], Tij[j][1], Tij[j][2]);
          #endif
           
          /* calculate Kij(j) the directional curvature along ij*/
          /* fa33 = (vj - vi) (only 1st column is meaningful)*/
-         fa33[0][0] = (vj[0] - vi[0]);  fa33[1][0] = (vj[1] - vi[1]); fa33[2][0] = (vj[2] - vi[2]);
+         fa33[0][0] = (vj[0] - vi[0]);  
+         fa33[1][0] = (vj[1] - vi[1]); 
+         fa33[2][0] = (vj[2] - vi[2]);
          /* Num = fb33 = Ni' * fa33 (only 1st value in fb33 is meaningful)*/
          SUMA_MULT_MAT(Nit, fa33, fb33, 1, 3, 1, float, float, float);
          num = fb33[0][0]; 
          /* denum = sum((vj - vi)^2) */
-         denum = fa33[0][0] * fa33[0][0] + fa33[1][0] * fa33[1][0]+ fa33[2][0] * fa33[2][0]; 
+         denum =  fa33[0][0] * fa33[0][0] + 
+                  fa33[1][0] * fa33[1][0]+ fa33[2][0] * fa33[2][0]; 
          
          Kij[j] = 2 * num / denum;
          #ifdef DBG_2
-            if (verb > 1) fprintf(SUMA_STDOUT,"%s: Kij[%d] = %f\n", FuncName, j, Kij[j]);
+            if (verb > 1) 
+               fprintf(SUMA_STDOUT,"%s: Kij[%d] = %f\n", FuncName, j, Kij[j]);
          #endif
          
          /* calculate the weights for integration, Wij */
             /* find the incident triangles */
-            if (!SUMA_Get_Incident(i, ji, SEL, Incident, &N_Incident, 1, 0))
+            if (!SUMA_Get_Incident(i, ji, SEL, Incident, &N_Incident, 1, !verb))
             {
-               fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
+               SUMA_S_Err("Failed in SUMA_Get_Incident.\n");
                if (Wij) SUMA_free(Wij);
                if (Kij) SUMA_free(Kij);
                if (Num) SUMA_free(Num);
@@ -8553,7 +9024,9 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
 
             if (N_Incident != 2 && N_Incident != 1)
             {
-               if (verb) fprintf (SUMA_STDERR,"Warning %s: Unexpected N_Incident = %d at i,j = %d,%d\n", FuncName, N_Incident, i, j);
+               if (verb) 
+                  SUMA_S_Warnv("Unexpected N_Incident = %d at i,j = %d,%d\n", 
+                               N_Incident, i, j);
                SkipNode[i] = YUP;
                ++SC->N_SkipNode;
                break;
@@ -8564,7 +9037,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
             }
             sWij += Wij[j];
             if (Wij[j] == 0.0) {
-               if (verb) fprintf (SUMA_STDERR,"Warning %s: Null Wij[%d] at i,j=%d,%d\n", FuncName, j, i, j);
+               if (verb) SUMA_S_Warnv("Null Wij[%d] at i,j=%d,%d\n", j, i, j);
                SkipNode[i] = YUP;
                ++SC->N_SkipNode;
                break; 
@@ -8701,9 +9174,101 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
    if (Qt) SUMA_free2D((char **)Qt, 3);
    if (Mi) SUMA_free2D((char **)Mi, 3);
    
-   if (verb) fprintf (SUMA_STDERR, "%s: Done with curvature computations.\n", FuncName);
+   if (verb) fprintf (SUMA_STDERR, 
+                      "%s: Done with curvature computations.\n", FuncName);
 
    SUMA_RETURN (SC);
+}
+
+SUMA_DSET *SUMA_CurvatureToDset(SUMA_SURFACE_CURVATURE *SC, char *OutPrefix)
+{
+   static char FuncName[]={"SUMA_CurvatureToDset"};
+   int i=0;
+   float *Kpmag = NULL;
+   float *fvtmp = NULL;
+   SUMA_DSET *ndset=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!SC || !SC->N_Node || !SC->T1 || !SC->Kp1) SUMA_RETURN(NULL);
+   
+   if (!OutPrefix) OutPrefix = FuncName;
+   if (!(Kpmag = (float*)SUMA_calloc(SC->N_Node, sizeof(float)))) {
+      SUMA_S_Err("Failed to allocate for Kpmag");
+      SUMA_RETURN(NULL);
+   }
+   if (!(fvtmp = (float*)SUMA_calloc(SC->N_Node, sizeof(float)))) {
+      SUMA_S_Err("Failed to allocate for fvtmp");
+      SUMA_free(Kpmag);
+      SUMA_RETURN(NULL);
+   }
+   for (i=0; i < SC->N_Node; ++i) {
+      Kpmag[i] = sqrt(SC->Kp1[i]*SC->Kp1[i]+
+                   SC->Kp2[i]*SC->Kp2[i]);
+   }
+
+   ndset =  SUMA_CreateFullDsetPointer( 
+            OutPrefix, 
+            SUMA_NODE_BUCKET, 
+            NULL, 
+            NULL,
+            SC->N_Node );   
+
+
+   for (i=0; i < SC->N_Node; ++i) fvtmp[i]=SC->T1[i][0];
+   if (!SUMA_AddDsetNelCol(ndset, "P1x", SUMA_NODE_FLOAT, 
+                           (void *)fvtmp, NULL, 1)) {
+      SUMA_S_Err("Failed to add col P1x");
+      exit(1);
+   } 
+   for (i=0; i < SC->N_Node; ++i) fvtmp[i]=SC->T1[i][1];
+   if (!SUMA_AddDsetNelCol(ndset, "P1y", SUMA_NODE_FLOAT, 
+                           (void *)fvtmp, NULL, 1)) {
+      SUMA_S_Err("Failed to add col P1y");
+      exit(1);
+   } 
+   for (i=0; i < SC->N_Node; ++i) fvtmp[i]=SC->T1[i][2];
+   if (!SUMA_AddDsetNelCol(ndset, "P1z", SUMA_NODE_FLOAT, 
+                           (void *)fvtmp, NULL, 1)) {
+      SUMA_S_Err("Failed to add col P1z");
+      exit(1);
+   }
+   for (i=0; i < SC->N_Node; ++i) fvtmp[i]=SC->T2[i][0];
+   if (!SUMA_AddDsetNelCol(ndset, "P2x", SUMA_NODE_FLOAT, 
+                           (void *)fvtmp, NULL, 1)) {
+      SUMA_S_Err("Failed to add col P2x");
+      exit(1);
+   } 
+   for (i=0; i < SC->N_Node; ++i) fvtmp[i]=SC->T2[i][1];
+   if (!SUMA_AddDsetNelCol(ndset, "P2y", SUMA_NODE_FLOAT, 
+                           (void *)fvtmp, NULL, 1)) {
+      SUMA_S_Err("Failed to add col P2y");
+      exit(1);
+   } 
+   for (i=0; i < SC->N_Node; ++i) fvtmp[i]=SC->T2[i][2];
+   if (!SUMA_AddDsetNelCol(ndset, "P2z", SUMA_NODE_FLOAT, 
+                           (void *)fvtmp, NULL, 1)) {
+      SUMA_S_Err("Failed to add col P2z");
+      exit(1);
+   } 
+   if (!SUMA_AddDsetNelCol(ndset, "Kp1", SUMA_NODE_FLOAT, 
+                           (void *)SC->Kp1, NULL, 1)) {
+      SUMA_S_Err("Failed to add col Kp1");
+      exit(1);
+   } 
+   if (!SUMA_AddDsetNelCol(ndset, "Kp2", SUMA_NODE_FLOAT, 
+                           (void *)SC->Kp2, NULL, 1)) {
+      SUMA_S_Err("Failed to add col Kp2");
+      exit(1);
+   }
+   if (!SUMA_AddDsetNelCol(ndset, "Kpmag", SUMA_NODE_FLOAT, 
+                           (void *)Kpmag, NULL, 1)) {
+      SUMA_S_Err("Failed to add col Kp");
+      exit(1);
+   }
+   SUMA_free(Kpmag); Kpmag=NULL; 
+   
+   SUMA_RETURN(ndset);  
 }
 
 /*!
@@ -8816,15 +9381,19 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 /*! 
    C = SUMA_Convexity (NodeList, N_Node, NodeNormList, FN)
 
-   \param NodeList (float *) N_Node x 3 vector containing the coordinates for each node
+   \param NodeList (float *) N_Node x 3 vector containing the coordinates 
+                              for each node
    \param N_Node (int) number of nodes
-   \param NodeNormList (float *) N_Node x 3 vector (was matrix prior to SUMA 1.2) containing the unit normals at each node
+   \param NodeNormList (float *) N_Node x 3 vector (was matrix prior to SUMA 1.2)
+                              containing the unit normals at each node
    \param FN (SUMA_NODE_FIRST_NEIGHB *) first order node neighbor structure
-   \ret C (float *) N_Node x 1 vector containing the curvature at each node. The curvature is the 
-   sum of the signed distance of all the neighboring nodes to the tangent plane. The sign if C[i] 
-   indicates the convexity.
+   \ret C (float *) N_Node x 1 vector containing the curvature at each node. 
+                    The convexity is the sum of the signed distance of all 
+                    the neighboring nodes to the tangent plane. 
+                    The sign of C[i] indicates the convexity.
    
-   C[i] = -Sum(dj/dij) over all neighbors j of i (the - sign was added May 06 04 )
+   C[i] = -Sum(dj/dij) over all neighbors j of i 
+                        (the - sign was added May 06 04 )
    dj is the distance of neighboring node j to the tangent plane at i
    dij is the length of the segment ij
    
@@ -9201,6 +9770,13 @@ int * SUMA_Find_inIntVect (int *x, int xsz, int val, int *nValLocation)
    SUMA_RETURN (ValLocation);
 
 }/*SUMA_Find_inIntVect*/
+
+int SUMA_FindFirst_inIntVect (int *x0, int *x1, int val)
+{/*SUMA_FindFirst_inIntVect*/
+   int *xi=x0;
+   while(x0<x1) if (*x0==val) return((int)(x0-xi)); else ++x0;
+   return(-1);
+}
 
 /***
  

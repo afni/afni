@@ -17,5 +17,7 @@ typedef enum { SUMA_ISO_XFORM_UNDEFINED, SUMA_ISO_XFORM_NONE, SUMA_ISO_XFORM_SHI
 
 SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_GENERIC_PROG_OPTIONS_STRUCT * Opt);
 SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT * Opt);
-
+SUMA_SurfaceObject *SUMA_THD_IsoSurface(THD_3dim_dataset *in_vol,
+                       float v0, float v1,
+                       int debug); 
 #endif

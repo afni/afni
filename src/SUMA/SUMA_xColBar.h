@@ -211,6 +211,9 @@ void  SUMA_SetCellEditMode(SUMA_TABLE_FIELD *TF, int i, int j, int Mode);
 void SUMA_TriInput (void* data);
 SUMA_Boolean SUMA_UpdateTriField(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO);
+char **SUMA_FormNodeValFieldStrings(SUMA_SurfaceObject *SO, 
+                                 SUMA_DSET *dset, int Node,
+                                 int find, int tind, int bind, int dec);
 SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_SurfaceObject *SO);

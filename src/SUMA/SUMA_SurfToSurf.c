@@ -91,6 +91,12 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                      instead of the node normals of S1.\n"
 "                      Each row should contain one direction for each\n"
 "                      of the nodes forming S1.\n"
+"  -closest_possible OO: Flag allowing the substitution of the projection\n"
+"                        result with the closest node that could be found\n"
+"                        along any direction.\n"
+"                        0: Don't do that, direction results only.\n"
+"                        1: Use closest node if projection fails to hit target\n"
+"                        2: Use closest node if it is at a closer distance.\n"
 "  -make_consistent: Force a consistency check and correct triangle \n"
 "                    orientation of S1 if needed. Triangles are also\n"
 "                    oriented such that the majority of normals point\n"
@@ -117,7 +123,8 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
       exit(0);
 }
 
-SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
+SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(
+   char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_BrainWrap_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
@@ -142,11 +149,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
    Opt->in_name = NULL;
    Opt->out_prefix = NULL;
    Opt->fix_winding = 0;
+   Opt->iopt = 0;
    accepting_out = NOPE;
    while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       
-      if (!brk && accepting_out) { /* make sure you have not begun with new options */
+      if (!brk && accepting_out) { 
+         /* make sure you have not begun with new options */
          if (*(argv[kar]) == '-') accepting_out = NOPE;
       }
 		
@@ -190,6 +199,24 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
          }
          
          Opt->in_nodeindices = argv[++kar];
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-closest_possible") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a number after -closest_possible \n");
+            exit (1);
+         }
+         
+         Opt->iopt = atoi(argv[++kar]);
+         if (Opt->iopt != 0 && Opt->iopt != 1 && Opt->iopt != 2) {
+            SUMA_S_Errv("Must choose from 0, 1, or 2 for -closest_possible."
+                        " Have %d\n",
+                         Opt->iopt);
+            exit (1);
+         } 
          brk = YUP;
       }
       
@@ -457,11 +484,16 @@ int main (int argc,char *argv[])
       if (LocalHead) 
          fprintf(SUMA_STDERR,"%s: Checking orientation.\n", FuncName);
       orient = SUMA_OrientTriangles (SO1->NodeList, SO1->N_Node, 
-                                    SO1->FaceSetList, SO1->N_FaceSet, 1, 0);
+                                     SO1->FaceSetList, SO1->N_FaceSet, 
+                                     1, 0, NULL, NULL);
       if (orient < 0) { 
          /* flipping was done, dump the edge list since it is not 
             automatically updated (should do that in function, 
-            just like in SUMA_MakeConsistent,  shame on you) */ 
+            just like in SUMA_MakeConsistent,  shame on you) 
+            
+            If you revisit this section, use the newer:
+            SUMA_OrientSOTriangles
+         */ 
          if (SO1->EL) SUMA_free_Edge_List(SO1->EL); SO1->EL = NULL; 
          if (!SUMA_SurfaceMetrics(SO1, "EdgeList", NULL)) { 
             SUMA_SL_Err("Failed to create edge list for SO1"); exit(1);  
@@ -621,7 +653,7 @@ int main (int argc,char *argv[])
    if (!Opt->s) {
       SUMA_LH("Going for the mapping of SO1 --> SO2");
       M2M = SUMA_GetM2M_NN( SO1, SO2, nodeind, N_nodeind, 
-                            projdir, 0, Opt->NodeDbg);
+                            projdir, 0, Opt->NodeDbg, Opt->iopt);
       SUMA_S_Notev("Saving M2M into %s\n\n",
                Opt->out_prefix);
       if (!(SUMA_Save_M2M(Opt->out_prefix, M2M))) {
@@ -786,8 +818,11 @@ SS = SUMA_StringAppend_va(SS,
    fprintf(outptr,"%s\n",s); SUMA_free(s); s = NULL;
    
    /* put headers atop columns */
-   Nchar = 6; /* if you change this number you'll need to fix the formats below */
-   for (i=0; i<icol; ++i) { sprintf(sbuf,"#%s", MV_format_fval2(i, Nchar -1)); fprintf(outptr,"%6s   ", sbuf); }
+   Nchar = 6; /* if you change this number you'll need to fix  formats below */
+   for (i=0; i<icol; ++i) { 
+      sprintf(sbuf,"#%s", MV_format_fval2(i, Nchar -1)); 
+      fprintf(outptr,"%6s   ", sbuf); 
+   }
    fprintf(outptr,"\n");
    
    /* Now put in the values, make sure you parallel columns above! */
@@ -795,13 +830,17 @@ SS = SUMA_StringAppend_va(SS,
       fprintf(outptr,"%6s   ", MV_format_fval2(M2M->M1n[i], Nchar));
       if (Opt->NearestNode > 0) {
          for (j=0; j<Opt->NearestNode; ++j) { 
-            if (j < M2M->M2Nne_M1n[i]) fprintf(outptr,"%6s   ", MV_format_fval2(M2M->M2ne_M1n[i][j], Nchar)); 
+            if (j < M2M->M2Nne_M1n[i]) 
+               fprintf(outptr,"%6s   ", 
+                  MV_format_fval2(M2M->M2ne_M1n[i][j], Nchar)); 
             else fprintf(outptr,"%6s   ", "-1"); 
          } /* Neighboring nodes */
       } 
       if (Opt->NearestNode > 1) { /* add the weights */
          for (j=0; j<Opt->NearestNode; ++j) { 
-            if (j < M2M->M2Nne_M1n[i]) fprintf(outptr,"%6s   ", MV_format_fval2(M2M->M2we_M1n[i][j], Nchar)); 
+            if (j < M2M->M2Nne_M1n[i]) 
+               fprintf(outptr,"%6s   ", 
+                  MV_format_fval2(M2M->M2we_M1n[i][j], Nchar)); 
             else fprintf(outptr,"%6s   ", "0.0"); 
          } 
       }
@@ -822,7 +861,9 @@ SS = SUMA_StringAppend_va(SS,
             fprintf(outptr,"%6s   ", MV_format_fval2(dt[3*i+1], Nchar));
             fprintf(outptr,"%6s   ", MV_format_fval2(dt[3*i+2], Nchar));
          } else { /* Column major business */
-            for (j=0; j<ncol_data; ++j) { fprintf(outptr,"%6s   ", MV_format_fval2(dt[i+j*M2M->M1Nn], Nchar)); }
+            for (j=0; j<ncol_data; ++j) { 
+               fprintf(outptr,"%6s   ", 
+                     MV_format_fval2(dt[i+j*M2M->M1Nn], Nchar)); }
          }
       }
       fprintf(outptr,"\n");
@@ -834,8 +875,9 @@ SS = SUMA_StringAppend_va(SS,
       SUMA_LH("Writing surface");
       tmpfv = SO1->NodeList;
       SO1->NodeList = dt;
-      if (!SUMA_Save_Surface_Object (SO_name, SO1, ps->o_FT[0], ps->o_FF[0], NULL)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+      if (!SUMA_Save_Surface_Object (SO_name, SO1, 
+                                     ps->o_FT[0], ps->o_FF[0], NULL)) {
+         SUMA_S_Err("Failed to write surface object.\n");
          exit (1);
       }
       SO1->NodeList = tmpfv; tmpfv = NULL;
@@ -844,7 +886,9 @@ SS = SUMA_StringAppend_va(SS,
    if (N_Spec) {
       int k=0; 
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) {
+            SUMA_S_Err("Failed to free spec fields");
+         } 
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }

@@ -49,14 +49,19 @@ float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO, byte *mask)
    
    if (!SO) { SUMA_RETURN(NodeAreas); }
    if (!SO->PolyArea || !SO->MF) {
-      if (!SUMA_SurfaceMetrics_eng(SO, "PolyArea|MemberFace", NULL, 0, SUMAg_CF->DsetList)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+      if (!SUMA_SurfaceMetrics_eng(SO, "PolyArea|MemberFace", NULL, 0, 
+                                   SUMAg_CF->DsetList)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", 
+                               FuncName);
          SUMA_RETURN(NodeAreas);
       }
    }
    
    NodeAreas = (float *)SUMA_malloc(SO->N_Node*sizeof(float));
-   if (!NodeAreas) { SUMA_SL_Crit ("Failed to allocate for NodeAreas"); SUMA_RETURN(NodeAreas); }
+   if (!NodeAreas) { 
+      SUMA_SL_Crit ("Failed to allocate for NodeAreas"); 
+      SUMA_RETURN(NodeAreas); 
+   }
    
    for (i=0; i<SO->N_Node; ++i) {
       NodeAreas[i] = 0.0;

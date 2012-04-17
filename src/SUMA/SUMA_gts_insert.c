@@ -8,6 +8,11 @@ inserting them via:
 gts's surface.c works just fine
 */
 
+static int debug;
+
+void gts_set_debug_suma(int val) { debug = val; return;}
+int  gts_get_debug_suma(void) { return(debug); }
+
 /* functions gts_surface_suma, vertex_load, and face_load 
    are based on 
             gts_surface_write_vtk, write_vertex_vtk, write_face_vtk,
@@ -20,7 +25,12 @@ static void vertex_load (GtsPoint * p, gpointer * data)
   NodeList[*n*3] = (float) p->x;
   NodeList[*n*3+1] = (float) p->y;
   NodeList[*n*3+2] = (float) p->z;
-  fprintf (stderr, "Node %d: %g %g %g\n", *n, (double)NodeList[*n*3], (double)NodeList[*n*3+1] , (double)NodeList[*n*3+2]);
+  if (debug) {
+     fprintf (stderr, "Node %d: %g %g %g\n", 
+      *n, (double)NodeList[*n*3], 
+          (double)NodeList[*n*3+1] , 
+          (double)NodeList[*n*3+2]); 
+  }
   GTS_OBJECT (p)->reserved = GUINT_TO_POINTER ((*((guint *) data[1]))++);
   *n++; /* does not work, but trick above does */
 }
@@ -33,15 +43,20 @@ static void face_load (GtsTriangle * t, gpointer * data)
   FaceSetList[*n*3] = (int)GPOINTER_TO_UINT (GTS_OBJECT (v1)->reserved);
   FaceSetList[*n*3+1] =(int) GPOINTER_TO_UINT (GTS_OBJECT (v2)->reserved);
   FaceSetList[*n*3+2] = (int)GPOINTER_TO_UINT (GTS_OBJECT (v3)->reserved);
-  fprintf (stderr, "Triangle %d: %d %d %d\n", *n, FaceSetList[*n*3], FaceSetList[*n*3+1], FaceSetList[*n*3+2]);
+  if (debug) {
+    fprintf (stderr, "Triangle %d: %d %d %d\n", 
+               *n, FaceSetList[*n*3], 
+                   FaceSetList[*n*3+1], 
+                   FaceSetList[*n*3+2]); 
+  }
   GTS_OBJECT (t)->reserved = GUINT_TO_POINTER ((*((guint *) data[1]))++);
   *n++; /* does not work, but trick above does */
 }
 
 
 void gts_surface_suma (GtsSurface * s, 
-                              float **NodeListp, int *N_Nodep, int *NodeDimp, 
-                              int **FaceSetListp, int *N_FaceSetp, int *FaceSetDimp)
+                        float **NodeListp, int *N_Nodep, int *NodeDimp, 
+                        int **FaceSetListp, int *N_FaceSetp, int *FaceSetDimp)
 {
   guint n = 0;
   gpointer data[2];
@@ -56,12 +71,14 @@ void gts_surface_suma (GtsSurface * s,
   gts_surface_stats (s, &stats);
   
   /* get the stats  */
-  fprintf (stderr,
+  if (debug) {
+   fprintf (stderr,
 	   "gts_surface_suma: Number of vertices %u\n",
 	   stats.edges_per_vertex.n);
-  fprintf (stderr,
+   fprintf (stderr,
 	   "gts_surface_suma: Number of triangles %u\n",
 	   stats.n_faces);
+  }
   NodeList = (float *)calloc( stats.edges_per_vertex.n * 3, sizeof(float));
   FaceSetList = (int *)calloc(stats.n_faces * 3, sizeof(int)); 
   

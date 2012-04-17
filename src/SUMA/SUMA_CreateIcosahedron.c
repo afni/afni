@@ -231,7 +231,7 @@ int main (int argc, char *argv[])
    
    if (LocalHead) 
       fprintf (SUMA_STDERR, 
-               "%s: Recursion depth %d, Size %f.\n", FuncName, depth, r);
+               "%s: depth %d, Size %f.\n", FuncName, depth, r);
 
    if (NumOnly) {
       /* output counts and quit */

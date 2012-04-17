@@ -55,9 +55,15 @@ int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, doub
          n2 = SO->FaceSetList[i3+2]; n2t = 3* n2;
 
          /* Calculate Center of Gravity of each facet. */
-         cent[0  ] = ( SO->NodeList[n0t  ] + SO->NodeList[n1t  ] + SO->NodeList[n2t  ] )  / 3.0;
-         cent[1  ] = ( SO->NodeList[n0t+1] + SO->NodeList[n1t+1] + SO->NodeList[n2t+1] )  / 3.0;
-         cent[2  ] = ( SO->NodeList[n0t+2] + SO->NodeList[n1t+2] + SO->NodeList[n2t+2] )  / 3.0;
+         cent[0  ] = (  SO->NodeList[n0t  ] + 
+                        SO->NodeList[n1t  ] + 
+                        SO->NodeList[n2t  ] )  / 3.0;
+         cent[1  ] = (  SO->NodeList[n0t+1] + 
+                        SO->NodeList[n1t+1] + 
+                        SO->NodeList[n2t+1] )  / 3.0;
+         cent[2  ] = (  SO->NodeList[n0t+2] + 
+                        SO->NodeList[n1t+2] + 
+                        SO->NodeList[n2t+2] )  / 3.0;
 
          /* calculate radius vector */
          r[0] = cent[0  ] - SO->Center[0];
@@ -1192,7 +1198,8 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float *ctru, ch
   Written by Ziad Saad / Brenna Argall
 */
 
-SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *node, float *P0, float *P1) {
+SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, 
+                                int *node, float *P0, float *P1) {
 
    int i=0, j=0, k=0, examinedNum=0;
    SUMA_Boolean found=NOPE;
@@ -1205,23 +1212,28 @@ SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *
    SUMA_ENTRY;
    
    if (nodeList==NULL) {
-      fprintf (SUMA_STDERR, "Warning %s: Assigning surf->NodeList to nodeList.\n", FuncName); 
+      fprintf (SUMA_STDERR, 
+         "Warning %s: Assigning surf->NodeList to nodeList.\n", FuncName); 
       nodeList = surf->NodeList;
    }
 
-   if (LocalHead) fprintf(SUMA_STDERR, "%s: P0-P1 [%f, %f, %f] - [%f, %f, %f]\n", 
+   if (LocalHead) fprintf(SUMA_STDERR, "%s: P0-P1 [%f, %f, %f] - [%f, %f, %f]\n",
                           FuncName, P0[0], P0[1], P0[2], P1[0], P1[1], P1[2]);
 
    found = NOPE;
    itry = 0;
    examinedNum = 0;
    while (itry < 3 && node[itry] >= 0 && !found) {
-      if (LocalHead) fprintf(SUMA_STDERR, "%s: Trying neighbors of node %d.\n", FuncName, node[itry]);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR, "%s: Trying neighbors of node %d.\n", 
+                 FuncName, node[itry]);
       i = 0;
       while ((i < surf->FN->N_Neighb[node[itry]] ) && !found) { 
-
-         if (!SUMA_Get_Incident( node[itry], surf->FN->FirstNeighb[node[itry]][i], surf->EL, incidentTri, &N_incident, 1, 0)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
+         if (!SUMA_Get_Incident( node[itry], 
+                                 surf->FN->FirstNeighb[node[itry]][i], surf->EL, 
+                                 incidentTri, &N_incident, 1, 0)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
             SUMA_RETURN (NOPE);
          }
 
@@ -1241,34 +1253,55 @@ SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *
                i_node1 = surf->FaceSetList[ 3*incidentTri[j]+1 ];
                i_node2 = surf->FaceSetList[ 3*incidentTri[j]+2 ];
 
-               if (SUMA_MT_isIntersect_Triangle (P0, P1, &(nodeList[3*i_node0]), &(nodeList[3*i_node1]), 
-                                                 &(nodeList[3*i_node2]), hitOnSurf, NULL, NULL)) {
+               if (SUMA_MT_isIntersect_Triangle (P0, P1, 
+                        &(nodeList[3*i_node0]), &(nodeList[3*i_node1]), 
+                        &(nodeList[3*i_node2]), hitOnSurf, NULL, NULL)) {
                   found = YUP;
                   node[0] = i_node0;
                   node[1] = i_node1;
                   node[2] = i_node2;
                   if (LocalHead) {
-                     fprintf(SUMA_STDERR, "%s: Triangle %d [%d, %d, %d] is intersected at (%f, %f, %f)\n", 
-                             FuncName, incidentTri[j], node[0], node[1], node[2], hitOnSurf[0], hitOnSurf[1], hitOnSurf[2]);
-                     fprintf(SUMA_STDERR, "%s: Coordinates of nodes forming triangle are:\n", FuncName);
-                     fprintf(SUMA_STDERR, "%f, %f, %f\n", nodeList[3*i_node0], nodeList[3*i_node0+1], nodeList[3*i_node0+2]);
-                     fprintf(SUMA_STDERR, "%f, %f, %f\n", nodeList[3*i_node1], nodeList[3*i_node1+1], nodeList[3*i_node1+2]);
-                     fprintf(SUMA_STDERR, "%f, %f, %f\n", nodeList[3*i_node2], nodeList[3*i_node2+1], nodeList[3*i_node2+2]);
+                     fprintf(SUMA_STDERR, 
+            "%s: Triangle %d [%d, %d, %d] is intersected at (%f, %f, %f)\n", 
+                             FuncName, incidentTri[j], node[0], node[1], node[2],
+                             hitOnSurf[0], hitOnSurf[1], hitOnSurf[2]);
+                     fprintf(SUMA_STDERR, 
+            "%s: Coordinates of nodes forming triangle are:\n", FuncName);
+                     fprintf(SUMA_STDERR, "%f, %f, %f\n", 
+                             nodeList[3*i_node0], 
+                             nodeList[3*i_node0+1], nodeList[3*i_node0+2]);
+                     fprintf(SUMA_STDERR, "%f, %f, %f\n", 
+                             nodeList[3*i_node1], 
+                             nodeList[3*i_node1+1], nodeList[3*i_node1+2]);
+                     fprintf(SUMA_STDERR, "%f, %f, %f\n", 
+                             nodeList[3*i_node2], 
+                             nodeList[3*i_node2+1], nodeList[3*i_node2+2]);
                   }  
 #if 0 /* turn on to compare intersection results to those obtained with SUMA_MT_intersect_triangle */
                   {
-                     /* try the other (slower) method for intersection and compare results*/
+                     /* try other (slower) method 
+                        for intersection and compare results*/
                      SUMA_MT_INTERSECT_TRIANGLE *MTI;
-                     MTI = SUMA_MT_intersect_triangle (P1, P0, nodeList, surf->N_Node, surf->FaceSetList, surf->N_FaceSet, NULL);
+                     MTI = SUMA_MT_intersect_triangle (P1, P0, nodeList, 
+                                                surf->N_Node, surf->FaceSetList, 
+                                                surf->N_FaceSet, NULL);
                      if (MTI) {
-                        if (LocalHead)fprintf(SUMA_STDERR, "%s: Meth2-Triangle %d [%d, %d, %d] is intersected at (%f, %f, %f)\n", 
-                                              FuncName, MTI->ifacemin, surf->FaceSetList[3*MTI->ifacemin], surf->FaceSetList[3*MTI->ifacemin+1],
-                                              surf->FaceSetList[3*MTI->ifacemin+2], MTI->P[0], MTI->P[1], MTI->P[2]);  
+                        if (LocalHead)
+                           fprintf(SUMA_STDERR, 
+         "%s: Meth2-Triangle %d [%d, %d, %d] is intersected at (%f, %f, %f)\n", 
+                                   FuncName, MTI->ifacemin, 
+                                   surf->FaceSetList[3*MTI->ifacemin], 
+                                   surf->FaceSetList[3*MTI->ifacemin+1],
+                                   surf->FaceSetList[3*MTI->ifacemin+2], 
+                                   MTI->P[0], MTI->P[1], MTI->P[2]);  
 
                         if (MTI->N_hits) {
                            /* compare results */
                            if (MTI->ifacemin != incidentTri[j]) {
-                              fprintf (SUMA_STDERR,"Error %s: Warning, mismatch in results of triangle intersection. This should not be\n", FuncName);
+                              fprintf (SUMA_STDERR,
+           "Error %s: Warning, mismatch in results of triangle intersection. "
+           "This should not be\n", 
+                                       FuncName);
                               exit(1);
                            }
                         }
@@ -1279,10 +1312,14 @@ SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *
                   }
 #endif  
 
-                  P1[0] = hitOnSurf[0];  P1[1] = hitOnSurf[1];  P1[2] = hitOnSurf[2];
+                  P1[0] = hitOnSurf[0];  
+                  P1[1] = hitOnSurf[1];  
+                  P1[2] = hitOnSurf[2];
                }else {
-                  if (LocalHead)fprintf(SUMA_STDERR, "%s: Triangle %d [%d, %d, %d] is not intersected.\n",
-                                        FuncName, incidentTri[j], i_node0, i_node1, i_node2);
+                  if (LocalHead)
+                     fprintf(SUMA_STDERR, 
+                        "%s: Triangle %d [%d, %d, %d] is not intersected.\n",
+                          FuncName, incidentTri[j], i_node0, i_node1, i_node2);
                } 
             }
             ++j;
@@ -2289,7 +2326,7 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
                         Otherwise, whine. */
                if ( (ti = SUMA_whichTri(  SO->EL, MI->ClsNodes[j], 
                                           MI->ClsNodes[j+1], MI->ClsNodes[j+2], 
-                                          0)) < 0) {
+                                          0, 0)) < 0) {
                   SUMA_S_Warnv ( "Node %d of the mapping structure has\n"
                                  " three closest nodes %d %d %d that do\n"
                                  " not form a triangle in %s's mesh.\n", 

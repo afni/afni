@@ -1241,13 +1241,10 @@ int SUMA_a_good_col(char *name, int i, float *acol)
                          "returning random colors.\n", name);
             dorand = 1;
    }
-   
+
    if (dorand) {
       /* GIMME SOME RANDOM */
-      srand(i);
-      acol[0] = (float) (double)rand()/(double)RAND_MAX;
-      acol[1] = (float) (double)rand()/(double)RAND_MAX;
-      acol[2] = (float) (double)rand()/(double)RAND_MAX;
+      SUMA_RAND_COL(i, acol[0], acol[1], acol[2], acol[3]);
       acol[3] = 1.0;
       SUMA_RETURN(1);
    } else {
@@ -5241,9 +5238,13 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(
    Sover->LinkMode = SW_LinkMode_Stat;
    if (SUMA_EnvEquals("SUMA_IxT_LinkMode", "None",1,NULL)) {
       Sover->LinkMode = SW_LinkMode_None;
+   } if (SUMA_EnvEquals("SUMA_IxT_LinkMode", "Pls1",1,NULL)) {
+      Sover->LinkMode = SW_LinkMode_Pls1;
+   } if (SUMA_EnvEquals("SUMA_IxT_LinkMode", "Same",1,NULL)) {
+      Sover->LinkMode = SW_LinkMode_Same;
    } if (SUMA_EnvEquals("SUMA_IxT_LinkMode", "Stat",1,NULL)) {
       Sover->LinkMode = SW_LinkMode_Stat;
-   }   
+   }     
    SUMA_RETURN(Sover);   
 }
 

@@ -127,7 +127,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList,
          if (RetStrct.NodeNormList) SUMA_free(RetStrct.NodeNormList);
          if (Index) SUMA_free(Index);
          if (N_Memb) SUMA_free(N_Memb);
-         SUMA_RETURN (RetStrct);*/
+         SUMA_RETURN (RetStrct); */
          RetStrct.FaceNormList[ip] = 1.0;
          RetStrct.FaceNormList[ip+1] = 1.0;
          RetStrct.FaceNormList[ip+2] = 1.0;
@@ -362,9 +362,13 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList,
    SUMA_MEMBER_FACE_SETS *RetStrct;
    int **tmpMember;
    int i, inode, iface, ip , NP;
+   byte *filled=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
+   SUMA_LHv("Nind=%d, nFr=%d, FaceDim=%d\n", Nind, nFr, FaceDim);
+   
    NP = FaceDim;
    RetStrct = (SUMA_MEMBER_FACE_SETS *)
                   SUMA_malloc(sizeof(SUMA_MEMBER_FACE_SETS));
@@ -380,12 +384,13 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList,
    RetStrct->NodeMemberOfFaceSet = NULL;
    
    /* Allocate return variables */
-   tmpMember = (int **) SUMA_allocate2D (Nind, SUMA_MAX_MEMBER_FACE_SETS ,sizeof(int));
+   tmpMember = (int **) SUMA_allocate2D (Nind, 
+                           SUMA_MAX_MEMBER_FACE_SETS ,sizeof(int));
    RetStrct->N_Memb = (int *) SUMA_calloc (Nind, sizeof(int));
-   
+   filled = (byte *)SUMA_calloc(Nind, sizeof(int));
    if (!tmpMember || !RetStrct->N_Memb)
       {
-         fprintf (SUMA_STDERR,"Error %s: Failed to allocate for tmpMember or RetStrct->N_Memb\n", FuncName);
+         SUMA_S_Err("Failed to allocate for tmpMember or RetStrct->N_Memb");
          SUMA_RETURN (RetStrct);
       }
    
@@ -396,30 +401,38 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList,
       do {
          inode = FaceSetList[ip + i];
          if (inode > Nind) {
-            fprintf (SUMA_STDERR,"Error %s: FaceSetList contains node indices >= Nind\n", FuncName);
+            SUMA_S_Err("FaceSetList contains node indices >= Nind");
             SUMA_RETURN (RetStrct);
          }
-         tmpMember[inode][RetStrct->N_Memb[inode]] = iface; 
-         ++RetStrct->N_Memb[inode];
          if (RetStrct->N_Memb[inode] >= SUMA_MAX_MEMBER_FACE_SETS) {
-            fprintf (SUMA_STDERR,"Error %s: Node %d is member of (%d FaceSets) more than SUMA_MAX_MEMBER_FACE_SETS (%d)\n",\
-                FuncName, inode, RetStrct->N_Memb[inode], SUMA_MAX_MEMBER_FACE_SETS);
-            SUMA_RETURN (RetStrct);
+            if (!filled[inode]){
+               SUMA_S_Errv("Node %d is member of (%d FaceSets) more than"
+                        " SUMA_MAX_MEMBER_FACE_SETS (%d)\n"
+                        "Skipping remaining facets\n",
+                  inode, RetStrct->N_Memb[inode], SUMA_MAX_MEMBER_FACE_SETS);
+            }
+            filled[inode]=1;
+         } else {
+            tmpMember[inode][RetStrct->N_Memb[inode]] = iface; 
+            ++RetStrct->N_Memb[inode];
          }
-         if (RetStrct->N_Memb[inode] > RetStrct->N_Memb_max) RetStrct->N_Memb_max = RetStrct->N_Memb[inode];
+         if (RetStrct->N_Memb[inode] > RetStrct->N_Memb_max) 
+            RetStrct->N_Memb_max = RetStrct->N_Memb[inode];
          ++i;
       } while (i < FaceDim);
    }
    
    /*allocate just enough for returning variables */
-   RetStrct->NodeMemberOfFaceSet = (int **) SUMA_allocate2D (Nind, RetStrct->N_Memb_max ,sizeof(int));
+   RetStrct->NodeMemberOfFaceSet = 
+      (int **) SUMA_allocate2D (Nind, RetStrct->N_Memb_max ,sizeof(int));
    if (!RetStrct->NodeMemberOfFaceSet)
       {
-         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for RetStrct->NodeMemberOfFaceSet\n", FuncName);
+         SUMA_S_Err("Failed to allocate for RetStrct->NodeMemberOfFaceSet\n");
          SUMA_RETURN (RetStrct);
       }
 
-   /* loop through all nodes, cp results into RetStrct->NodeMemberOfFaceSet and seal with -1 */
+   /* loop through all nodes, 
+      cp results into RetStrct->NodeMemberOfFaceSet and seal with -1 */
    for (inode = 0; inode < Nind; ++inode) {
       i = 0;
       while (i < RetStrct->N_Memb[inode]) {
@@ -427,11 +440,13 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList,
          ++i;
       }
       /*seal with -1 */
-      if (RetStrct->N_Memb[inode] < RetStrct->N_Memb_max) RetStrct->NodeMemberOfFaceSet[inode][i] = -1;
+      if (RetStrct->N_Memb[inode] < RetStrct->N_Memb_max) 
+               RetStrct->NodeMemberOfFaceSet[inode][i] = -1;
    }
 
    /* Clean up time */
    if (tmpMember) SUMA_free2D((char **)tmpMember, Nind);
+   if (filled) SUMA_free(filled); filled = NULL;
    
    RetStrct->Nnode = Nind;
    SUMA_RETURN (RetStrct);

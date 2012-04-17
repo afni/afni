@@ -287,7 +287,7 @@ SUMA_handleRedisplay(XtPointer closure)
       and drawable at a time. Once bound, OpenGL rendering can begin.
       glXMakeCurrent can be called again to bind to a different window and/or 
       rendering context. */
-      SUMA_HOLD_IT;
+      /* SUMA_HOLD_IT; Not used anymore */
       if (!glXMakeCurrent (sv->X->DPY, XtWindow((Widget)closure), 
                            sv->X->GLXCONTEXT)) {
                fprintf (SUMA_STDERR, 
@@ -1067,6 +1067,8 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    NI_set_attribute (nel, "Back_Modfact", stmp);
    sprintf(stmp, "%d", (int)csv->PolyMode);
    NI_set_attribute (nel, "PolyMode", stmp);
+   sprintf(stmp, "%d", (int)csv->DO_DrawMask);
+   NI_set_attribute (nel, "DO_DrawMask", stmp);
    sprintf(stmp, "%d", csv->ShowEyeAxis);
    NI_set_attribute (nel, "ShowEyeAxis", stmp);
    sprintf(stmp, "%d", csv->ShowMeshAxis);
@@ -1109,7 +1111,7 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
    float quat[4], Aspect[1], FOV[1], tran[2],
          WindWidth[1], WindHeight[1], clear_color[4], 
          BF_Cull[1], Back_Modfact[1], PolyMode[1], ShowEyeAxis[1], 
-         ShowWorldAxis[1],
+         ShowWorldAxis[1], DO_DrawMask[1],
          ShowMeshAxis[1], ShowCrossHair[1], ShowForeground[1], 
          ShowBackground[1], WindX[1], WindY[1];
    Dimension ScrW, ScrH;   
@@ -1197,6 +1199,10 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
       if (!feyl) {
          csv->PolyMode = (SUMA_RENDER_MODES)PolyMode[0];
       }
+   SUMA_S2FV_ATTR(nel, "DO_DrawMask", DO_DrawMask, 1, feyl); 
+      if (!feyl) {
+         csv->DO_DrawMask = (SUMA_DO_DRAW_MASK)DO_DrawMask[0];
+      }
    SUMA_S2FV_ATTR(nel, "ShowEyeAxis", ShowEyeAxis, 1, feyl); 
       if (!feyl) {
          csv->ShowEyeAxis = (int)ShowEyeAxis[0];
@@ -1241,7 +1247,7 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
    float quat[4], Aspect[1], FOV[1], tran[2],
          WindWidth[1], WindHeight[1], clear_color[4], 
          BF_Cull[1], Back_Modfact[1], PolyMode[1], 
-         ShowEyeAxis[1], ShowWorldAxis[1],
+         ShowEyeAxis[1], ShowWorldAxis[1], DO_DrawMask[1],
          ShowMeshAxis[1], ShowCrossHair[1], ShowForeground[1], 
          ShowBackground[1];   char *atmp;
    NI_stream nstdin;
@@ -1731,7 +1737,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    if (LocalHead) 
       fprintf (SUMA_STDOUT,
                "%s: Flushing or swapping ...\n", FuncName);
-   SUMA_HOLD_IT;
+   /* SUMA_HOLD_IT; Not used anymore */
    
    SUMA_GLX_BUF_SWAP(csv);
 
@@ -1835,7 +1841,7 @@ SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call)
                True);              /* Direct rendering if possible. */
 
    /* Setup OpenGL state. */
-   SUMA_HOLD_IT;
+   /* SUMA_HOLD_IT; Not used anymore */
    if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT)) {
       fprintf (SUMA_STDERR, 
                "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
@@ -1943,7 +1949,7 @@ SUMA_resize(Widget w,
 
    /*   fprintf(stdout, "Resizn'...\n");*/
    callData = (GLwDrawingAreaCallbackStruct *) call;
-   SUMA_HOLD_IT;
+   /* SUMA_HOLD_IT; Not used anymore */
 
    if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT)) {
       fprintf (SUMA_STDERR, 
@@ -1954,7 +1960,7 @@ SUMA_resize(Widget w,
       SUMA_RETURNe;
    }
 
-   SUMA_HOLD_IT;  
+   /* SUMA_HOLD_IT; Not used anymore */
    
    glXWaitX();
    sv->X->WIDTH = callData->width;
@@ -3601,7 +3607,7 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    }
 
    /* render to original context */
-   SUMA_HOLD_IT;
+   /* SUMA_HOLD_IT; Not used anymore */
    if (!glXMakeCurrent( XtDisplay(csv->X->GLXAREA), 
                         XtWindow(csv->X->GLXAREA),  csv->X->GLXCONTEXT)) {
       fprintf (SUMA_STDERR, 
@@ -8383,6 +8389,7 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
          SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open 
                                                    ColPlaneShells */
          SUMA_UpdateNodeField(SO);
+         SUMA_UpdateCrossHairNodeLabelFieldForSO(SO);
          /* If you're viewing one plane at a time, do a remix */
          if (SO->SurfCont->ShowCurForeOnly) SUMA_RemixRedisplay(SO);
       }

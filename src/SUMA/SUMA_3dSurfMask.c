@@ -324,18 +324,22 @@ int main (int argc,char *argv[])
    }
    /* some checks ...*/
    if (!Opt->out_vol_prefix) { 
-      Opt->out_vol_prefix = SUMA_AfniPrefix("3dSurfMask", NULL, NULL, &(Opt->out_vol_exists)); 
+      Opt->out_vol_prefix = 
+         SUMA_AfniPrefix("3dSurfMask", NULL, NULL, &(Opt->out_vol_exists)); 
       strncpy(Opt->out_vol_view, Opt->out_grid_view, SUMA_VIEW_LENGTH);
    }
    
    if (SUMA_AfniExistsView(Opt->out_vol_exists, Opt->out_vol_view)) {
-      fprintf(SUMA_STDERR, "Error 3dSurfMask:\nOutput volume %s%s exists.\n", Opt->out_vol_prefix, Opt->out_vol_view);
+      fprintf(SUMA_STDERR, "Error 3dSurfMask:\nOutput volume %s%s exists.\n", 
+               Opt->out_vol_prefix, Opt->out_vol_view);
       exit(1);
    }
    
    if (Opt->out_grid_prefix) {
       if (!SUMA_AfniExistsView(Opt->out_grid_exists, Opt->out_grid_view)) {
-         fprintf(SUMA_STDERR, "Error 3dSurfMask:\nGrid parent %s%s does not exist.\n", Opt->out_grid_prefix, Opt->out_grid_view);
+         fprintf(SUMA_STDERR, 
+                  "Error 3dSurfMask:\nGrid parent %s%s does not exist.\n", 
+                  Opt->out_grid_prefix, Opt->out_grid_view);
          exit(1);
       }
    }
@@ -344,7 +348,7 @@ int main (int argc,char *argv[])
    if (!Opt->b2) {
       isin = SUMA_FindVoxelsInSurface (SO, vp, &N_in, 1, NULL);
    } else {
-      isin = SUMA_FindVoxelsInSurface_SLOW (SO, vp, &N_in);
+      isin = SUMA_FindVoxelsInSurface_SLOW (SO, vp, &N_in, 0);
    }
    if (!isin) {
       SUMA_S_Err("No voxels in surface");

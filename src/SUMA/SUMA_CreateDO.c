@@ -7,6 +7,86 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;
 
+/* This macro is used to decide if displayable objects on a node 'n' are to be
+   drawn. For now, this condition is applied to certain objects only. T
+   The NIDO functions do not call on this macro yet.
+   The problem is that NIDO functions draw one object at a time and you don't 
+   want to form the node mask in SUMA_ProcessDODrawMask each time a DO is to be
+   drawn. The byte mask should probably be formed at the level of main drawing 
+   routine and freed afterwards. That also means that a subject's ID might need
+   to be checked, in addition to the node numbers. But that should not be too 
+   bad. */
+#define DO_DRAW(mask, n, nc) (((nc == n || (nc < 0 && (!mask || mask[n]))))?1:0)
+int SUMA_ProcessDODrawMask(SUMA_SurfaceViewer *sv,          
+                                    SUMA_SurfaceObject *SO,
+                                    byte **mask, int *ncross) 
+{
+   static char FuncName[]={"SUMA_ProcessDODrawMask"};
+   int N_inmask=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!sv || !SO || !mask || !ncross) SUMA_RETURN(-1);
+   if (*mask) {
+      SUMA_S_Err("Must send me a null mask pointer");
+      SUMA_RETURN(-1);
+   }
+   *ncross = -1;
+   if (sv->DO_DrawMask != SDODM_All) { 
+      /* Masking required, make sure surface qualifies */
+      if (!(sv->Ch && sv->Ch->SurfaceID >=0)) {
+         SUMA_LH("Cross hair not initialized yet");
+         SUMA_RETURN (0);
+      }
+      if (SO!=(SUMA_SurfaceObject *)(SUMAg_DOv[sv->Ch->SurfaceID].OP)) {
+         /* Not the surface on which the cross hair lives, get out */
+         SUMA_RETURN (0);
+      }
+      if (sv->Ch->NodeID < 0 || sv->Ch->NodeID >= SO->N_Node) {
+         SUMA_S_Errv("Bad crosshair node %d on %s. This should not happen.\n",
+                     sv->Ch->NodeID, SO->Label);
+         SUMA_RETURN (-1);
+      }
+   }
+   switch (sv->DO_DrawMask) {
+      case SDODM_n0CrossHair:
+      case SDODM_n1CrossHair:
+      case SDODM_n2CrossHair:
+      case SDODM_n3CrossHair:
+         if (sv->DO_DrawMask != SDODM_n0CrossHair) {
+            /* get neighbors */
+            if (!(*mask = SUMA_NodeNeighborMask(SO, sv->Ch->NodeID, 
+                                         SDODM_n0CrossHair-sv->DO_DrawMask, 
+                                         &N_inmask))) {
+               SUMA_S_Warnv("Failed to get neighborhood for node %d\n"
+                            "Proceeding...\n", sv->Ch->NodeID);
+               *ncross = sv->Ch->NodeID; /* show something at least */
+               N_inmask = 1;
+            } else {
+               *(*mask+sv->Ch->NodeID) = 1; ++N_inmask;
+            }
+         } else {
+            *ncross = sv->Ch->NodeID; /* just this node */
+            N_inmask = 1;
+         }
+         break;
+      case SDODM_All:
+         N_inmask = SO->N_Node;
+         break;
+      case SDODM_Hide:
+         N_inmask = 0;
+         break;
+      default:
+         SUMA_S_Err("Bad draw mask mode");
+         SUMA_RETURN (-1);
+         break;  
+   }       
+   SUMA_LHv("Got ncross=%d. %d node objects to draw\n"
+            , *ncross, N_inmask );
+   SUMA_RETURN(N_inmask);
+}
+
 SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void)
 {
    static char FuncName[]={"SUMA_NewNewSOOpt"};
@@ -2473,11 +2553,12 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
 SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
 {
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, comcol[4], *cent=NULL;
-   int i, N_n3, i3;
+   int i, N_n3, i3, ndraw=0, ncross=-1;
    GLfloat rad = 3;
    static char FuncName[]={"SUMA_DrawSphereDO"};
    float origwidth=0.0;
    SUMA_SurfaceObject *SO = NULL;
+   byte *mask=NULL;
    byte AmbDiff = 0;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -2498,7 +2579,13 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
       if (!SO) {
          SUMA_SL_Err("Object's parent surface not found.");
          SUMA_RETURN (NOPE);
-      }       
+      }
+      /* masking? */
+      if ((ndraw = SUMA_ProcessDODrawMask(sv, SO, &mask, &ncross)) < 0) {
+         SUMA_RETURN (NOPE);
+      }  
+      if (!ndraw) SUMA_RETURN(YUP);/* nothing to draw, nothing wrong */
+      SUMA_LHv("ncross=%d\n", ncross);
    } else {
       SUMA_LH("Spheres ");
    }
@@ -2544,7 +2631,8 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
             gluQuadricNormals (SDO->sphobj , GLU_SMOOTH);
          else gluQuadricNormals (SDO->sphobj , GLU_NONE); 
       }
-      if (SDO->NodeBased) {
+      if (  SDO->NodeBased && SDO->NodeID[i] < SO->N_Node && 
+            DO_DRAW(mask,SDO->NodeID[i],ncross)) {
          cent = &(SO->NodeList[3*SDO->NodeID[i]]);
       } else {
          cent = &(SDO->cxyz[i3]);
@@ -2562,6 +2650,7 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
    glLineWidth(origwidth);
 
+   if (mask) SUMA_free(mask); mask=NULL;
    SUMA_RETURN (YUP);
    
 }
@@ -2839,7 +2928,8 @@ SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv)
    }
    
       
-   /* This allows each node to follow the color specified when it was drawn (in case you'll want to color corners differently someday) */ 
+   /* This allows each node to follow the color specified when it was drawn 
+      (in case you'll want to color corners differently someday) */ 
    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
    glEnable(GL_COLOR_MATERIAL);
          
@@ -2856,13 +2946,17 @@ SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv)
    rendmet = 0;
    switch (rendmet) {
       case 0:
-            glDrawElements (GL_QUADS, (GLsizei)SDO->N_FaceSet*4, GL_UNSIGNED_INT, SDO->FaceSetList);
+            glDrawElements (GL_QUADS, (GLsizei)SDO->N_FaceSet*4, 
+                            GL_UNSIGNED_INT, SDO->FaceSetList);
             break;
       case 1:
             glPointSize(4.0); /* keep outside of glBegin */
-            /* it is inefficient to draw points using the glar_FaceSetList because nodes are listed more 
-            than once. You are better off creating an index vector into glar_NodeList to place all the points, just once*/ 
-            glDrawElements (GL_POINTS, (GLsizei)SDO->N_FaceSet*4, GL_UNSIGNED_INT, SDO->FaceSetList);
+            /* it is inefficient to draw points using the 
+               glar_FaceSetList because nodes are listed more 
+               than once. You are better off creating an index vector 
+               into glar_NodeList to place all the points, just once*/ 
+            glDrawElements (GL_POINTS, (GLsizei)SDO->N_FaceSet*4, 
+                            GL_UNSIGNED_INT, SDO->FaceSetList);
             break;
    } /* switch RENDER_METHOD */
 
@@ -2980,21 +3074,21 @@ void SUMA_free_PlaneDO (SUMA_PlaneDO * SDO)
 
 }
 
-
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawSegmentDO"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i, N_n3, i3, n3, n, n1=0, n13=0;
+   int i, N_n3, i3, n3, n, n1=0, n13=0, ncross=-1, ndraw=-1;
    byte *msk=NULL;
    float origwidth=0.0, rad = 0.0, gain = 1.0;
    GLboolean ble=FALSE, dmsk=TRUE, gl_dt=TRUE;
+   byte *mask=NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!SDO) {
+   if (!SDO || !sv) {
       fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
@@ -3009,11 +3103,16 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
       if (!SO) {
          SUMA_SL_Err("Object's parent surface not found.");
          SUMA_RETURN (NOPE);
-      }       
+      }
+      /* masking? */
+      if ((ndraw = SUMA_ProcessDODrawMask(sv, SO, &mask, &ncross)) < 0) {
+         SUMA_RETURN (NOPE);
+      }  
+      if (!ndraw) SUMA_RETURN(YUP);/* nothing to draw, nothing wrong */
+      SUMA_LHv("ncross=%d\n", ncross);
    } else {
       SUMA_LH("Segments ");
    }
-   
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
    if (!SDO->thickv || SDO->NodeBased) glLineWidth(SDO->LineWidth);  
    
@@ -3034,7 +3133,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
          break;
       default:
          fprintf(stderr,"Error %s: Unrecognized Stipple option\n", FuncName);
-         SUMA_RETURN(NOPE);
+         if (mask) SUMA_free(mask); SUMA_RETURN(NOPE);
    }
    
    if (SDO->NodeBased == 0) {
@@ -3094,7 +3193,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
          n = SDO->NodeID[i]; n3 = 3*n;
          if (LocalHead) 
             fprintf(SUMA_STDERR,"%s: %d/%d, %d\n", FuncName, i, SDO->N_n, n);
-         if (n<SO->N_Node) {
+         if (n<SO->N_Node && DO_DRAW(mask,n,ncross)) {
             i3 = 3*i;
             if (SDO->thickv) {
                gain = SDO->thickv[i]; 
@@ -3134,7 +3233,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
             if (LocalHead) 
                fprintf(SUMA_STDERR,"%s: %d/%d, %d,%d\n", 
                         FuncName, i, SDO->N_n, n, n1);
-            if (n<SO->N_Node && n1 < SO->N_Node) {
+            if (n<SO->N_Node && n1 < SO->N_Node && DO_DRAW(mask,n,ncross)) {
                i3 = 3*i;
                
                if (SDO->colv) 
@@ -3163,7 +3262,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
             if (LocalHead) 
                fprintf(SUMA_STDERR,"%s: %d/%d, %d,%d\n", 
                         FuncName, i, SDO->N_n, n, n1);
-            if (n<SO->N_Node && n1 < SO->N_Node) {
+            if (n<SO->N_Node && n1 < SO->N_Node && DO_DRAW(mask,n,ncross)) {
                i3 = 3*i;
                if (SDO->thickv) glLineWidth(SDO->thickv[i]); 
                glBegin(GL_LINES);
@@ -3203,7 +3302,8 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
       }
       
       if (!SDO->NodeBased) {
-         if (!SDO->thickv) rad = SDO->LineWidth*0.5*sv->FOV[sv->iState]/FOV_INITIAL;
+         if (!SDO->thickv) 
+            rad = SDO->LineWidth*0.5*sv->FOV[sv->iState]/FOV_INITIAL;
       } else {
          if (SO->EL) rad = SO->EL->AvgLe/4.0;
          else rad = 1.0/4.0;
@@ -3218,17 +3318,22 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
                glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, &(SDO->colv[i*4]));
                glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[i*4]));
             }
-            if (SDO->thickv) rad = SDO->thickv[i]*0.5*sv->FOV[sv->iState]/FOV_INITIAL;
-            /* fprintf(SUMA_STDERR,"thickv[i] = %f, FOV %f, FOV_INITIAL %f, radinit=%f, radcomp=%f\n", 
-                           SDO->thickv[i], sv->FOV[sv->iState], FOV_INITIAL,
-                           rad,  rad *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)); */
+            if (SDO->thickv) 
+               rad = SDO->thickv[i]*0.5*sv->FOV[sv->iState]/FOV_INITIAL;
+            /* fprintf(SUMA_STDERR,
+                      "thickv[i] = %f, FOV %f, "
+                      "FOV_INITIAL %f, radinit=%f, radcomp=%f\n", 
+                        SDO->thickv[i], sv->FOV[sv->iState], FOV_INITIAL,
+                        rad,  rad *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)); */
             glTranslatef (SDO->n0[i3], SDO->n0[i3+1], SDO->n0[i3+2]);
-            gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
+            gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) 
+                           /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
                       10, 10);
             glTranslatef (-SDO->n0[i3], -SDO->n0[i3+1], -SDO->n0[i3+2]);
          }
       } else { /* Node based vector */
-         /* create a mask for those spheres already drawn, multiple vectors per node possible...*/
+         /* create a mask for those spheres already drawn, 
+            multiple vectors per node possible...*/
          msk = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
          if (!msk) { 
             SUMA_SL_Crit("Failed to allocate!\n");
@@ -3238,18 +3343,23 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
          for (i=0; i<SDO->N_n;++i) {
             i3 = 3*i;
             n = SDO->NodeID[i]; n3 = 3*n;
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: %d/%d, %d\n", FuncName, i, SDO->N_n, n);
-            if (n<SO->N_Node) {
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: %d/%d, %d\n", FuncName, i, SDO->N_n, n);
+            if (n<SO->N_Node && DO_DRAW(mask,n,ncross)) {
                if (!msk[n]) {
                   if (SDO->colv) {
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, &(SDO->colv[i*4]));
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                    &(SDO->colv[i*4]));
                      glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[i*4]));
                   }
 
-                  glTranslatef (SO->NodeList[n3]  , SO->NodeList[n3+1]  , SO->NodeList[n3+2]  );
-                  gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
-                            10, 10);
-                  glTranslatef (-SO->NodeList[n3]  , -SO->NodeList[n3+1]  , -SO->NodeList[n3+2]  );
+                  glTranslatef ( SO->NodeList[n3]  , 
+                                 SO->NodeList[n3+1]  , SO->NodeList[n3+2]  );
+                  gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) 
+                              /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
+                              10, 10);
+                  glTranslatef (-SO->NodeList[n3]  , 
+                                -SO->NodeList[n3+1]  , -SO->NodeList[n3+2]  );
                   msk[n] = 1;
                } else {
                   SUMA_LH("Sphere already drawn");
@@ -3265,6 +3375,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
    
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
    glLineWidth(origwidth);
+   if (mask) SUMA_free(mask); mask=NULL;
      
    SUMA_RETURN (YUP);
    
@@ -3447,7 +3558,7 @@ SUMA_Boolean SUMA_DrawImageNIDOnel( NI_element *nel,
    /* set up projection conditions and coordinates */
    if (!SUMA_PrepForNIDOnelPlacement(sv, nel, default_SO, default_node, 
                                      txloc, NULL, sz, 
-                                     &orthoreset, coord_units)) {
+                                     &orthoreset, coord_units, NULL, NULL)) {
       SUMA_RETURN(NOPE);
    }    
 
@@ -3621,7 +3732,7 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
    /* set up projection conditions and coordinates */
    if (!SUMA_PrepForNIDOnelPlacement(sv, nel, default_SO, default_node, 
                                      txloc, texcoord, sz, 
-                                     &orthoreset, coord_units)) {
+                                     &orthoreset, coord_units, NULL, NULL)) {
       SUMA_RETURN(NOPE);
    }    
 
@@ -3724,7 +3835,9 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
                                              float *txloc, float *texcoord,
                                              int *sz, 
                                              int *orthoreset,
-                                             SUMA_DO_CoordUnits coord_units)
+                                             SUMA_DO_CoordUnits coord_units,
+                                             float *xyzoffset,
+                                             int *jaggedwidths)
 {
    static char FuncName[]={"SUMA_PrepForNIDOnelPlacement"};
    int id = 0, id3=0, k=0;
@@ -3836,12 +3949,24 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
       matrices are set appropriately already */
       /* justify */
       {
-         SUMA_LHv("sz=[%d, %d, %d]\n", sz[0], sz[1], sz[2]);
          glGetIntegerv(GL_VIEWPORT, viewport);
+         SUMA_LHv("sz=[%d, %d, %d]\nviewport=[%d %d %d]\n", 
+               sz[0], sz[1], sz[2], viewport[0], viewport[1],viewport[2]);
          
+         if (xyzoffset) {
+            xyzoffset[0]=txloc[0]; 
+            xyzoffset[1]=txloc[1]; 
+            xyzoffset[2]=txloc[2];
+         }
          if ((atr = atr_ha)) {
             if (atr[0] == 'c' || atr[0] == 'C') { /* center */
-               txloc[0] = txloc[0] - ((float)sz[0]/2.0 / (float)viewport[2]);
+               if (!jaggedwidths) {
+                  txloc[0] = txloc[0] - ((float)sz[0]/2.0 / (float)viewport[2]);
+               } else { /* align based for first line only, 
+                           not widest part of box */
+                  txloc[0] = txloc[0] - 
+                           ((float)jaggedwidths[0]/2.0 / (float)viewport[2]);
+               }
             } else if (atr[0] == 'r' || atr[0] == 'R') { /* right */
                txloc[0] = txloc[0] - ((float)sz[0] / (float)viewport[2]);
             }
@@ -3942,6 +4067,40 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
    SUMA_RETURN(YUP);
 }   
 
+/*!
+   See also SUMA_TextBoxSize 
+*/
+int *SUMA_NIDOtext_LineWidth(char *string, void *font, int *N_lines) 
+{
+   int is = 0, il=0, *iwidth=NULL;
+   int Dx=0;
+   
+   if (N_lines) *N_lines = 0;
+   if (!font || !string || !N_lines) return(NULL);
+   
+   for (is=0; string && string[is] != '\0'; is++) {
+      if (string[is] == '\n') *N_lines=*N_lines+1;
+   }
+   if (is > 0) *N_lines=*N_lines+1;
+   if (*N_lines) {
+      iwidth = (int *)SUMA_calloc(*N_lines, sizeof(int));
+      Dx = 0; il=0;
+      for (is=0; string[is] != '\0'; is++) {
+         if (string[is] == '\n') {
+            iwidth[il] = Dx;
+            /*fprintf(stderr,"ZSS: line[%d]=%d\n", il, iwidth[il]);*/
+            Dx = 0; ++il;
+         } else {
+            Dx = Dx+glutBitmapWidth(font, string[is]);
+         }
+      }
+      if (is > 0) {
+         iwidth[il] = Dx;
+         /*fprintf(stderr,"ZSS: line[%d]=%d\n", il, iwidth[il]);*/
+      }
+   }
+   return(iwidth);
+}
 
 SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel, 
                                     SUMA_SurfaceObject *default_SO,
@@ -3956,11 +4115,11 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
    float Dx = 0.0;
    void *font=NULL;
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   float txloc[3] = {0.0, 0.0, 0.0};
+   float txloc[3] = {0.0, 0.0, 0.0}, xyzoffset[3]={0.0, 0.0, 0.0};
    GLfloat txcol[4];
    GLboolean valid;
-   int orthoreset = 0;
-   int id=0, is = 0, sz[3]={0, 0,0};
+   int orthoreset = 0, il=0, *lwidth=NULL, N_lines=0;
+   int id=0, is = 0, sz[3]={0, 0,0}, newlineopen=0;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_DO_CoordUnits coord_units = default_coord_units;
    SUMA_Boolean LocalHead=NOPE;
@@ -3994,6 +4153,11 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
       txcol[3] = default_color[3];
    }
    
+   /* get the width of each line. Note redundancy with TextBoxSize. */
+   if (!(lwidth = SUMA_NIDOtext_LineWidth(string, font, &N_lines))) {
+      SUMA_S_Warn("Could not get linewidths\n");
+   }
+   
    /* has the box size been determined , 3rd dim is number of lines */
    NI_GET_INTv(nel,"box_size", sz, 3, LocalHead);
    if (!NI_GOT) {
@@ -4003,7 +4167,8 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
    /* set up projection conditions and coordinates */
    if (!SUMA_PrepForNIDOnelPlacement(sv, nel, default_SO, default_node, 
                                      txloc, NULL, sz, 
-                                     &orthoreset, coord_units)) {
+                                     &orthoreset, coord_units, xyzoffset,
+                                     lwidth)) {
       SUMA_RETURN(NOPE);
    }    
 
@@ -4024,18 +4189,39 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
    glColor3fv(txcol);
    SUMA_LHv(  "text:\n"
               ">>>%s<<<\n", string);
+
+   /* The first line is not properly centered, that should be done
+      in the PrepForNIDO placement function using lwidth */
+   il=0;Dx = 0; 
    for (is=0; string && string[is] != '\0'; is++) {
       if (string[is] == '\n') {
+         if (lwidth) { /* use precomputed distance 
+			 Problems still occur when going across states, don't know why yet */
+            Dx = lwidth[il];
+            if (xyzoffset[0]==0.5 && il<N_lines-1) { /* center next line too */
+               Dx = (float)(lwidth[il]+lwidth[il+1])/2.0;
+            }
+            /*fprintf(stderr,"lwidth[%d]=%d, Dx=%f", il, lwidth[il], Dx);*/
+         }  
          glBitmap( 0, 0, 0, 0, 
-                  -(float) Dx, -(float) SUMA_glutBitmapFontHeight(font), 
+               -(float)Dx, -(float) SUMA_glutBitmapFontHeight(font), 
                   NULL );
-         Dx = 0; 
+         Dx = 0; ++il;
+         newlineopen=0;
       } else {
+         newlineopen=1;
          glutBitmapCharacter(font, string[is]);
-         Dx = Dx+(float) glutBitmapWidth(font, string[is]);
+         if (!lwidth) Dx = Dx+glutBitmapWidth(font, string[is]);
       }
    }
-
+   #if 0 /* Reset position after last line if it did not
+            end with \n . Useless for now, but kept here just in case */
+   if (newlineopen) {
+      glBitmap( 0, 0, 0, 0, 
+               -(float)Dx, -(float) SUMA_glutBitmapFontHeight(font), 
+                  NULL );
+   }
+   #endif
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
       /*turn off emissidity for text*/   
 
@@ -4044,6 +4230,7 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
       glPopMatrix();
    }
    
+   if (lwidth) SUMA_free(lwidth); lwidth=NULL;
    SUMA_RETURN(YUP);
 }
 
@@ -4096,7 +4283,7 @@ SUMA_Boolean SUMA_DrawSphereNIDOnel(  NI_element *nel,
    /* set up projection conditions and coordinates */
    if (!SUMA_PrepForNIDOnelPlacement(sv, nel, default_SO, default_node, 
                                      txloc, NULL, sz, 
-                                     &orthoreset, coord_units)) {
+                                     &orthoreset, coord_units, NULL, NULL)) {
       SUMA_RETURN(NOPE);
    }    
 
@@ -4998,7 +5185,10 @@ SUMA_DO_CoordType SUMA_CoordType (char *atr)
    if font is NULL, box sizes are in character units 
    You can use glutBitmapLength
                glutBitmapWidth
-   (some good tips here: http://www.lighthouse3d.com/opengl/glut )            
+   (some good tips here: http://www.lighthouse3d.com/opengl/glut )   
+   See also  SUMA_NIDOtext_LineWidth   
+   
+   Note that w will contain the size of the largest line in a multi-line object  
 */
 SUMA_Boolean SUMA_TextBoxSize (char *txt, int *w, int *h, int *nl, void *font)
 {
@@ -5047,7 +5237,7 @@ SUMA_Boolean SUMA_TextBoxSize (char *txt, int *w, int *h, int *nl, void *font)
             txt, *h,*w, *nl);
    } else {
       SUMA_LHv("For >>>%s<<<\n"
-               "Need %d pixels with a max of %d pixels on one line\n"
+               "Need %d pixels high with a max of %d pixels on one line\n"
                "number of lines: %d\n",
             txt, *h,*w, *nl);
    }
@@ -8125,7 +8315,7 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       
       sprintf (stmp,"RenderMode: %d\n", SO->PolyMode);
       SS = SUMA_StringAppend (SS,stmp);
-      
+
       sprintf (stmp,"N_Node: %d\t NodeDim: %d, EmbedDim: %d\n", \
          SO->N_Node, SO->NodeDim, SO->EmbedDim);
       SS = SUMA_StringAppend (SS,stmp);
@@ -9699,13 +9889,14 @@ void SUMA_ShowDrawnROIDatum (SUMA_ROI_DATUM *ROId, FILE *out, SUMA_Boolean Short
 }
 
 #define SUMA_FS_DIJKSTRA_DISTANCE_FACTOR 1.20711 /* taken from pp 198, col 1 Fischl et al Neuroimage 9, 195-207 1999, Cortical Surface-Based Analysis */
-void SUMA_ReportDrawnROIDatumLength(SUMA_SurfaceObject *SO, SUMA_ROI_DATUM *ROId, FILE *out, SUMA_WIDGET_INDEX_DRAWROI_WHATDIST option)
+void SUMA_ReportDrawnROIDatumLength(SUMA_SurfaceObject *SO, SUMA_ROI_DATUM *ROId,                                     FILE *out, 
+                                    SUMA_WIDGET_INDEX_DRAWROI_WHATDIST option)
 {
    static char FuncName[]={"SUMA_ReportDrawnROIDatumLength"};
    int N0, N1, i, N_n, *nPath, N_left;
    SUMA_Boolean *isNodeInMesh = NULL;
    float *p1, *p2;
-   float ds = 0, d = 0, ds_c, dd, dd_c;
+   float ds = 0, d = 0, ds_c, dd, dd_c, deuc;
    char *s = NULL;
    SUMA_STRING *SS = NULL;   
    SUMA_Boolean LocalHead = NOPE;
@@ -9729,7 +9920,9 @@ void SUMA_ReportDrawnROIDatumLength(SUMA_SurfaceObject *SO, SUMA_ROI_DATUM *ROId
       ds = ds + d;
    }
    ds_c = ds / SUMA_FS_DIJKSTRA_DISTANCE_FACTOR;
-   
+   SUMA_SEG_LENGTH((SO->NodeList+SO->NodeDim*ROId->nPath[0]),
+                   (SO->NodeList+SO->NodeDim*ROId->nPath[ROId->N_n - 1]), 
+                   deuc); 
    dd = -1.0;  dd_c = -1.0;
    if (option == SW_DrawROI_WhatDistAll) { /* do shortest distance */
       isNodeInMesh = (SUMA_Boolean*) SUMA_malloc(  SO->N_Node * 
@@ -9753,17 +9946,17 @@ void SUMA_ReportDrawnROIDatumLength(SUMA_SurfaceObject *SO, SUMA_ROI_DATUM *ROId
       }
       SS = SUMA_StringAppend_va(SS,
          "#Distances on %s\n"
-         "#n0\tn1\tN_n\td\td_c\tds\tds_c\n"
-         "%d\t%d\t%d\t%.2f\t%.2f\t%.2f\t%.2f\n", 
+         "#n0\tn1\tN_n\td\td_c\tds\tds_c\td3\n"
+         "%d\t%d\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n", 
          SO->Label, ROId->nPath[0], ROId->nPath[ROId->N_n - 1], 
-         ROId->N_n, ds, ds_c, dd, dd_c);
+         ROId->N_n, ds, ds_c, dd, dd_c, deuc);
    } else if (option == SW_DrawROI_WhatDistTrace) {
       SS = SUMA_StringAppend_va(SS,
          "#Distances on %s\n"
-         "#n0\tn1\tN_n\td\td_c\n"
-         "%d\t%d\t%d\t%.2f\t%.2f\n", 
+         "#n0\tn1\tN_n\td\td_c\td3\n"
+         "%d\t%d\t%d\t%.2f\t%.2f\t%.2f\n", 
          SO->Label, ROId->nPath[0], ROId->nPath[ROId->N_n - 1], 
-         ROId->N_n, ds, ds_c);
+         ROId->N_n, ds, ds_c, deuc);
    }
    
    SUMA_SS2S(SS,s);

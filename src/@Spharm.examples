@@ -1,76 +1,122 @@
 #!/bin/tcsh -f
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 INIT_VARS:
+set stat = 0
+set demoarch = http://afni.nimh.nih.gov/pub/dist/tgz/suma_tlrc.tgz
 set surf1 = lh.pial.tlrc.ply
 set sph1 = lh.sphere.asc
 set surf2 = lh.smoothwm.tlrc.ply
 set spec = N27_lh_tlrc.spec
 set ld = 35
+set spec_std = ld${ld}.$spec
 set order = 15
+set sphnpb = 777
 set s = 0.001
 
 PARSE:
-if ("$1" == "-h" || "$1" == "-help") then
-   goto HELP
+   set cnt = 1
+   set Narg = $#argv
+   while ($cnt <= $Narg)
+      set donext = 1;
+      if ($donext && "$argv[$cnt]" == '-h' || "$argv[$cnt]" == '-help') then
+         goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo      
+         set donext = 0      
+      endif
+      
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         apsearch -popt `basename $0` -word $argv[$cnt]
+         goto BEND
+      endif
+      
+      @ cnt ++
+   end
+      
+CHECKS:
+if ( ! -f $spec || ! -f $surf2 ) then
+   echo "Missing $spec or other related files. Perhaps you are not running"
+   echo "the script from a directory containing the sample surfaces."
+   echo "Do you want to download and install the demo surfaces from:"
+   echo "   $demoarch"
+   printf "[Y|n]: "
+   set an = $<
+   if ($an == 'Y' || $an == '' || $an == 'y') then
+      curl -O $demoarch
+      if ($status) then
+         echo "Failed to download"
+         goto BEND
+      endif
+      tar xvzf suma_tlrc.tgz
+      if ($status) then
+         echo "Failed to untar"
+         goto BEND
+      endif
+      mkdir SpharmDemo
+      cp -p suma_tlrc/*lh* SpharmDemo/
+      echo ""
+      echo "Have needed data in directrory SpharmDemo/"
+      echo "Now cd into that directory and rerun the script"
+      echo ""
+      echo "cd SpharmDemo/"
+      echo "`basename $0`"
+      echo ""
+      goto END
+   else 
+      goto BEND
+   endif
 endif
 
-echo ""
-echo "Hit enter to start suma in 'listening mode' and begin recording."
-echo "Only one instance of suma should be running for this to work."
-echo ""
-set jnk = $<
+   prompt_user -pause "\
+Hit enter to start suma in 'listening mode' and begin recording."
 
-suma -niml &
+
+@Quiet_Talkers -npb_val $sphnpb 
+suma -npb $sphnpb -niml &
 sleep 3
-echo "************* Hit Enter When SUMA is Running ***********"
-set jnk = $<
 #start recorder
-DriveSuma -com viewer_cont -key 'R' 
+DriveSuma -npb $sphnpb -com viewer_cont -key 'R' 
 
 DOMAIN:
-echo ""  
-echo "Creating a standard-mesh version of all surfaces involved"
-echo "All surfaces used in a SPHARM analysis should be isotopic"
-echo "and all datasets must be defined on the same domain (mesh)."
-echo "Typically, creating standard meshes should be done after"
-echo "surface-based registration (-morph sphere.reg), but for this "
-echo "example it does not matter."
-echo ""
-echo "************* Hit Enter to Proceed ******************"
-set jnk = $<
+   prompt_user -pause "\
+Creating a standard-mesh version of all surfaces involved\n\
+All surfaces used in a SPHARM analysis should be isotopic\
+and all datasets must be defined on the same domain (mesh).\n\
+Typically, creating standard meshes should be done after\
+surface-based registration (-morph sphere.reg), but for this \
+example it does not matter."
 
 #Change the density of the mesh 
 #(this is not necessary when all surfaces involved are isotopic)
-set echo
-   MapIcosahedron -spec $spec -ld $ld -morph sphere -prefix ld${ld}.lh
-   CreateIcosahedron -rad 1.0 -ld $ld -prefix ld${ld}.unitsph 
-unset echo
-   set surf1 = ld${ld}.lh_std.pial.ply
-   set surf2 = ld${ld}.lh_std.smoothwm.ply
-   set sph1 = ld35.unitsph_surf.asc
-   set spec = ld35.lh_std.spec
+if ( ! -f $spec_std) then
+   MapIcosahedron -echo_edu -spec $spec -ld $ld -morph sphere -prefix ld${ld}.
+   CreateIcosahedron -echo_edu -rad 1.0 -ld $ld -prefix ld${ld}.unitsph 
+else
+   echo ""
+   echo "Reusing existing standard-mesh surfaces."
+   echo "" 
+endif
+   set surf1 = ld${ld}.$surf1
+   set surf2 = ld${ld}.$surf2
+   set sph1 = ld35.unitsph.asc
+   set spec = $spec_std
 
 DATA: #create some toy data
-echo ""  
-echo "Creating sample data."
-echo ""
-echo "************* Hit Enter to Proceed ******************"
-set jnk = $<
+   prompt_user -pause "Creating sample data"
 
-set echo
-   SurfMeasures   -spec ${spec} -surf_A smoothwm -surf_B pial \
+   SurfMeasures   -echo_edu -overwrite \
+                  -spec ${spec} -surf_A smoothwm -surf_B pial \
                   -func thick -out_1D ld${ld}.lh_std.thick.1D.dset
-unset echo
 
 DECO:
-echo ""
-echo "Decompose the coordinates of two surfaces and write out the"
-echo "reconstructed surfaces and the coefficients"
-echo ""
-echo "************* Hit Enter to Proceed ******************"
-set jnk = $<
+   prompt_user -pause "\
+Decompose the coordinates of two surfaces and write out the\n\
+reconstructed surfaces and the coefficients"
 
-set echo
 SpharmDeco  -i $sph1 -unit_sph ${sph1} \
             -i ${surf1} -i ${surf2} \
             -l ${order} \
@@ -78,84 +124,61 @@ SpharmDeco  -i $sph1 -unit_sph ${sph1} \
             -o_fs {$surf1:r}_reco${order} \
             -prefix {$surf1:r}_reco${order} \
             -sigma $s  -overwrite   \
-            -talk_suma 
-unset echo
+            -talk_suma -npb $sphnpb -echo_edu 
 
-echo ""
-echo "Redo the reconstruction of one surface but reuse bases computed "
-echo "above"
-echo ""
-echo "************* Hit Enter to Proceed ******************"
-set jnk = $<
+   prompt_user -pause "\
+Redo the reconstruction of one surface but reuse bases computed above"
 
-set echo 
 SpharmDeco  -i ${surf1} -l ${order} \
             -bases_prefix ld${ld}.harmo \
             -o_fs {$surf1:r}_recob${order} \
             -sigma $s  -overwrite \
-            -talk_suma 
-unset echo
+            -talk_suma -npb $sphnpb -echo_edu 
 
-echo ""
-echo "Decompose data defined over the surface's nodes"
-echo ""
-echo "************* Hit Enter to Proceed ******************"
-set jnk = $<
+   prompt_user -pause "Decompose data defined over the surface's nodes"
 
-set echo
 SpharmDeco  -i ${surf1} -l ${order} \
             -bases_prefix ld${ld}.harmo \
             -data ld${ld}.lh_std.thick.1D.dset'[1]'   \
             -prefix ld${ld}.lh_std.thick_reco${order} \
             -sigma $s -overwrite \
-            -talk_suma
-unset echo
+            -talk_suma -npb $sphnpb -echo_edu 
 
 RECO:
 set order2 = `ccalc -i $order - 5`
 if ($order2 < 2) then
    set order2 = $order
 endif
-echo ""
-echo "Given spherical harmonics and corresponding coefficients,"
-echo "reconstruct surfaces at order $order2"
-echo "Note that two surfaces will be written to disk and the coordinates of these"
-echo "reconstructed surfaces are also in {$surf1:r}_RECO${order2}.1D.dset"
-echo ""
-echo "************* Hit Enter to Proceed ******************"
-set jnk = $<
+   prompt_user -pause "\
+Given spherical harmonics and corresponding coefficients,\
+reconstruct surfaces at order $order2\n\
+Note that two surfaces will be written to disk and the coordinates of these\
+reconstructed surfaces are also in {$surf1:r}_RECO${order2}.1D.dset"
 
-set echo 
 SpharmReco               \
             -i ${surf1}            \
             -l $order2                         \
             -bases_prefix  ld${ld}.harmo   \
-            -coef          ld${ld}.lh_std.pial_reco{$order}.beta.col000.1D   \
-            -coef          ld${ld}.lh_std.pial_reco{$order}.beta.col001.1D   \
-            -coef          ld${ld}.lh_std.pial_reco{$order}.beta.col002.1D   \
-            -coef          ld${ld}.lh_std.pial_reco{$order}.beta.col003.1D   \
-            -coef          ld${ld}.lh_std.pial_reco{$order}.beta.col004.1D   \
-            -coef          ld${ld}.lh_std.pial_reco{$order}.beta.col005.1D   \
+            -coef          ld${ld}.lh.pial.tlrc_reco{$order}.beta.col000.1D   \
+            -coef          ld${ld}.lh.pial.tlrc_reco{$order}.beta.col001.1D   \
+            -coef          ld${ld}.lh.pial.tlrc_reco{$order}.beta.col002.1D   \
+            -coef          ld${ld}.lh.pial.tlrc_reco{$order}.beta.col003.1D   \
+            -coef          ld${ld}.lh.pial.tlrc_reco{$order}.beta.col004.1D   \
+            -coef          ld${ld}.lh.pial.tlrc_reco{$order}.beta.col005.1D   \
             -o_ply {$surf1:r}_RECO${order2} -overwrite \
-            -prefix {$surf1:r}_RECO${order2} -talk_suma
-unset echo
+            -prefix {$surf1:r}_RECO${order2} -talk_suma -npb $sphnpb -echo_edu
 
 
-echo ""
-echo "Now reconstuct data only,  not XYZ of surfaces"
-echo ""
-echo "************* Hit Enter to Proceed ******************"
-set jnk = $<
+   prompt_user -pause "\
+Now reconstuct data only,  not XYZ of surfaces"
 
-set echo
 SpharmReco               \
             -i ${surf1}            \
             -l $order2                         \
             -bases_prefix  ld${ld}.harmo   \
             -coef          ld${ld}.lh_std.thick_reco${order}.beta.col000.1D \
             -prefix {$surf1:r}.thick_RECO${order2} -overwrite \
-            -talk_suma
-unset echo
+            -talk_suma  -npb $sphnpb -echo_edu
     
 goto END
 
@@ -166,7 +189,7 @@ HELP:
    echo "with SUMA"
    echo ""
    echo "To run it you will need some of SUMA's N27 tlrc surfaces, which can be "
-   echo "downloaded from: http://afni.nimh.nih.gov/pub/dist/tgz/suma_tlrc.tgz"
+   echo "downloaded from: $demoarch"
    echo "The surfaces needed are $surf1, $surf2, $sph1, and $spec"
    echo ""
    echo "To change the parameter settings, make a copy of this script"
@@ -174,6 +197,15 @@ HELP:
    echo "If you do not make a copy of this script, future AFNI updates will"
    echo "overwrite your changes."
    echo ""
+   @global_parse -gopts_help
+   echo ""
    echo "         Ziad S. Saad               SSCC/NIMH/NIH"
    echo ""
+   goto END
+
+BEND:
+   set stat = 1
+   goto END
+
 END:
+   exit $stat

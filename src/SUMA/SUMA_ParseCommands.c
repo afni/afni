@@ -723,6 +723,70 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
    SUMA_RETURN(SUMA_FT_ERROR); 
    
 }
+
+char *SUMA_DO_DrawMaskCode2Name_human(SUMA_DO_DRAW_MASK dd) {
+   switch(dd) {
+      case SDODM_Error:
+         return("err");
+      case SDODM_All:
+         return("All DOs");
+      case SDODM_n3CrossHair:
+         return("node + 3 Neighb. Layers");
+      case SDODM_n2CrossHair:
+         return("node + 2 Neighb. Layers");
+      case SDODM_n1CrossHair:
+         return("node + 1 Neighb. Layer");
+      case SDODM_n0CrossHair:
+         return("node");
+      case SDODM_Hide:
+         return("no DOs");
+      case SDODM_N_DO_DrawMasks:
+         return("Number of mask modes");
+      default:
+         return("errerrerr");
+   }
+}
+
+char *SUMA_DO_DrawMaskCode2Name(SUMA_DO_DRAW_MASK dd) {
+   switch(dd) {
+      case SDODM_Error:
+         return("err");
+      case SDODM_All:
+         return("all");
+      case SDODM_n3CrossHair:
+         return("node+3");
+      case SDODM_n2CrossHair:
+         return("node+2");
+      case SDODM_n1CrossHair:
+         return("node+1");
+      case SDODM_n0CrossHair:
+         return("node");
+      case SDODM_Hide:
+         return("nothing");
+      case SDODM_N_DO_DrawMasks:
+         return("n_mask_modes");
+      default:
+         return("errerrerr");
+   }
+}
+
+SUMA_DO_DRAW_MASK SUMA_DO_DrawMaskName2Code (char *name) {
+   if (!name) return(SDODM_Error);
+   if (!strcmp(name,"err")) return(SDODM_Error);
+   if (!strcmp(name,"all") || !strcmp(name,"All DOs")) return(SDODM_All);
+   if (!strcmp(name,"node+3") || !strcmp(name,"node + 3 Neighb. Layers"))
+      return(SDODM_n3CrossHair);
+   if (!strcmp(name,"node+2") || !strcmp(name,"node + 2 Neighb. Layers")) 
+      return(SDODM_n2CrossHair);
+   if (!strcmp(name,"node+1") || !strcmp(name,"node + 1 Neighb. Layer")) 
+      return(SDODM_n1CrossHair);
+   if (!strcmp(name,"node")) return(SDODM_n0CrossHair);
+   if (!strcmp(name,"nothing") || !strcmp(name,"no DOs")) return(SDODM_Hide);
+   if (!strcmp(name,"n_mask_modes") || !strcmp(name,"Number of mask modes")) 
+      return(SDODM_N_DO_DrawMasks);
+   return(SDODM_Error);
+}
+
 /*!**
    
 Purpose : 

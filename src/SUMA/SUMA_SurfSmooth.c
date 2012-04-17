@@ -78,7 +78,15 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                          This interpolation method causes surface shrinkage\n"
 "                          that might need to be corrected with the -match_*\n"
 "                          options below. \n" 
+/*
+"                 NN_geom2: Another simple nearest neighbor coordinate \n"
+"                       sommothing. The difference from NN_geom is in the\n"
+"                       way masks are handled. Even with a mask, all nodes\n"
+"                       are smoothed, but nodes outside of the mask are pulled\n"
+"                       back (they are like anchors) each NANCH iterations.\n"
+"                       See option -anchor_each below.\n"
 "\n"
+*/
 /*            "   Options for LB_FEM:\n"
 "   It is now recommended that you use the newer method HEAT (see below).\n"
 "      -input inData: file containing data (in 1D or niml format)\n"
@@ -277,6 +285,13 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "      -surf_out surfname: Writes the surface with smoothed coordinates\n"
 "                          to disk. For SureFit and 1D formats, only the\n"
 "                          coord file is written out.\n"
+/*
+"      -anchor_each NANCH: When using a mask and -met NN_geom2, this option\n"
+"                          specifies that after NANCH iterations, the nodes\n"
+"                          outside the mask are brought back to their initial\n"
+"                          locations in the original surface.\n"
+"                          The default is NANCH = 10\n"
+*/
 "\n"
 "   Common options:\n"
 "      -Niter N: Number of smoothing iterations (default is 100)\n"
@@ -314,6 +329,9 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                                   neighboring node n to contribute to the \n"
 "                                   value at n even if nj is not in the mask.\n"
 "                                   The default is to ignore all nodes not in\n" "                                   the mask.\n"
+/*
+"                          This option is always ON with the NN_geom2 method\n"
+*/
 "\n"
 "%s"
 "\n"
@@ -416,9 +434,11 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 
 #define SURFSMOOTH_MAX_SURF 1  /*!< Maximum number of input surfaces */
 
-typedef enum { SUMA_NO_METH,  SUMA_LB_FEM_1D, SUMA_LB_FEM, SUMA_LM, SUMA_BRUTE_FORCE, 
-                              SUMA_NN_GEOM, SUMA_HEAT_05_1D, SUMA_HEAT_05_Pre_07,
-                              SUMA_HEAT_07} SUMA_SMOOTHING_METHODS;
+typedef enum { SUMA_NO_METH,  
+               SUMA_LB_FEM_1D, SUMA_LB_FEM, SUMA_LM, SUMA_BRUTE_FORCE, 
+               SUMA_NN_GEOM, SUMA_NN_GEOM2, SUMA_NN_GEOM3,
+               SUMA_HEAT_05_1D, SUMA_HEAT_05_Pre_07,
+               SUMA_HEAT_07} SUMA_SMOOTHING_METHODS;
 
 typedef struct {
    float OffsetLim;
@@ -443,7 +463,9 @@ typedef struct {
    char *if_name;
    char *if_name2;
    char *in_name;
+   char *wght_name;
    char *master_name;
+   char *enclosing_surf;
    char *out_name;   /* this one's dynamically allocated so you'll have to free it yourself */
    char *ShowOffset_DBG; /* meant to be a file where one outputs some debugging info. Not being used ...*/
    char *surf_out;
@@ -469,6 +491,8 @@ typedef struct {
    
    byte scaleinput;
    byte scalemaster;
+   
+   int anchor_each;
    SUMA_DSET_FORMAT oform;
    SUMA_GENERIC_ARGV_PARSE *ps;
 } SUMA_SURFSMOOTH_OPTIONS;
@@ -541,11 +565,14 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
    Opt->scaleinput = 0;
    Opt->scalemaster = 1;
    Opt->debug = 0;
+   Opt->anchor_each = -1;
+   Opt->enclosing_surf = NULL;
    for (i=0; i<SURFSMOOTH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL; ooo=NULL;
    exists = 0;
    Opt->overwrite = 0;
    Opt->bmall = 0;
+   Opt->wght_name=NULL;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -640,7 +667,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 			}
 			Opt->OffsetLim = atof(argv[kar]);
          if (Opt->OffsetLim <= 0 && Opt->OffsetLim != -1.0) {
-            fprintf (SUMA_STDERR, "Bad value (%f) for refresh_rate\n", Opt->OffsetLim);
+            SUMA_S_Errv("Bad value (%f) for refresh_rate\n", Opt->OffsetLim);
 				exit (1);
          }
 
@@ -698,7 +725,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 				exit (1);
 			}
          if (Opt->l != -1.0  || Opt->m != -1.0) {
-            fprintf (SUMA_STDERR, "options -lm and -kpb are mutually exclusive\n");
+            SUMA_S_Err("options -lm and -kpb are mutually exclusive\n");
 				exit (1);
          }
 			Opt->kpb = atof(argv[kar]); 
@@ -712,7 +739,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 				exit (1);
 			}
          if (outname) {
-            fprintf (SUMA_STDERR, "-output and -surf_out are mutually exclusive.\n");
+            fprintf (SUMA_STDERR, 
+                     "-output and -surf_out are mutually exclusive.\n");
             exit(1);
          }
 			Opt->surf_out = argv[kar]; 
@@ -726,7 +754,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 				exit (1);
 			}
          if (Opt->kpb != -1.0) {
-            fprintf (SUMA_STDERR, "options -lm and -kpb are mutually exclusive\n");
+            fprintf (SUMA_STDERR, 
+                     "options -lm and -kpb are mutually exclusive\n");
 				exit (1);
          }
 			Opt->l = atof(argv[kar]); kar ++;
@@ -857,6 +886,17 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-match_surf") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -match_surf \n");
+				exit (1);
+			}
+			Opt->enclosing_surf = argv[kar];
+         Opt->MatchMethod = 5;
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-fwhm") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -884,7 +924,24 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 			Opt->sigma = atof(argv[kar]);
 			brk = YUP;
 		}
-      
+      if (!brk && (strcmp(argv[kar], "-anchor_each") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -anchor_each \n");
+				exit (1);
+			}
+			Opt->anchor_each = atoi(argv[kar]);
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-node_weights") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -node_weights \n");
+				exit (1);
+			}
+			Opt->wght_name = argv[kar];
+			brk = YUP;
+		}
       if (!brk && (strcmp(argv[kar], "-met") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -901,6 +958,10 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
                      Opt->Method = SUMA_BRUTE_FORCE;
          else if (strcmp(argv[kar], "NN_geom") == 0)  
                      Opt->Method = SUMA_NN_GEOM;
+         else if (strcmp(argv[kar], "NN_geom2") == 0)  
+                     Opt->Method = SUMA_NN_GEOM2;
+         else if (strcmp(argv[kar], "NN_geom3") == 0)  
+                     Opt->Method = SUMA_NN_GEOM3;
          else if (strcmp(argv[kar], "HEAT_1D") == 0)  
                      Opt->Method = SUMA_HEAT_05_1D;
          else if (strcmp(argv[kar], "HEAT_05") == 0)  
@@ -1096,8 +1157,10 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
             /* form autoname  */
             Opt->oform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
             Opt->out_name = SUMA_RemoveDsetExtension_s(Opt->in_name, Opt->oform);
-            Opt->out_name = SUMA_append_replace_string(Opt->out_name, "_sm", "", 1); /* add _sm to prefix */
-            Opt->out_name = SUMA_append_replace_string(Opt->out_name, (char*)SUMA_ExtensionOfDsetFormat (Opt->oform), "", 1); /* add extension */
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name, "_sm", 
+                                                "", 1); /* add _sm to prefix */
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name, 
+                        (char*)SUMA_ExtensionOfDsetFormat (Opt->oform), "", 1); 
             break;
          case SUMA_LM:
             /* form autoname  */
@@ -1111,28 +1174,42 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
             /* form autoname  */
             Opt->out_name = SUMA_copy_string("NodeList_NNsm.1D");
             break;
+         case SUMA_NN_GEOM2:
+            /* form autoname  */
+            Opt->out_name = SUMA_copy_string("NodeList_NN2sm.1D");
+            break;
+         case SUMA_NN_GEOM3:
+            /* form autoname  */
+            Opt->out_name = SUMA_copy_string("NodeList_NN3sm.1D");
+            break;
          case SUMA_HEAT_05_1D:
             /* form autoname  */
-            Opt->out_name = SUMA_Extension(Opt->in_name, ".1D", YUP); /*remove .1D */
-            Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_smh", "", 1); /* add _smh to prefix */
-            Opt->out_name = SUMA_append_replace_string(Opt->out_name,".1D", "", 1); /* add .1D */
+            Opt->out_name = SUMA_Extension(Opt->in_name, ".1D", YUP); 
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_smh", 
+                                                "", 1); /* add _smh to prefix */
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name,".1D", 
+                                                "", 1); /* add .1D */
             break;
          case SUMA_HEAT_05_Pre_07:
             /* form autoname  */
             Opt->oform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
             Opt->out_name = SUMA_RemoveDsetExtension_s(Opt->in_name, Opt->oform);
-            Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_sm", "", 1); /* add _sm to prefix */
-            Opt->out_name = SUMA_append_replace_string(Opt->out_name, (char*)SUMA_ExtensionOfDsetFormat (Opt->oform), "", 1); /* add extension */
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_sm", "", 
+                                                1); /* add _sm to prefix */
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name, 
+                  (char*)SUMA_ExtensionOfDsetFormat (Opt->oform), "", 1); 
             break;
          case SUMA_HEAT_07:
             /* form autoname  */
             Opt->oform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
             Opt->out_name = SUMA_RemoveDsetExtension_s(Opt->in_name, Opt->oform);
-            Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_smh7", "", 1); /* add _sm to prefix */
-            Opt->out_name = SUMA_append_replace_string(Opt->out_name, (char*)SUMA_ExtensionOfDsetFormat (Opt->oform), "", 1); /* add extension */
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_smh7", "",
+                                                   1); /* add _sm to prefix */
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name, 
+                        (char*)SUMA_ExtensionOfDsetFormat (Opt->oform), "", 1); 
             break;
          default:
-            fprintf (SUMA_STDERR,"Error %s:\nNot ready for this option here.\n", FuncName);
+            SUMA_S_Errv("Not ready for this option (%d)here.\n",Opt->Method);
             exit(1);
             break;
       }
@@ -1140,7 +1217,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
    }
    
    if (  Opt->Method != SUMA_LM && Opt->Method != SUMA_BRUTE_FORCE &&
-         Opt->Method != SUMA_NN_GEOM ) {
+         Opt->Method != SUMA_NN_GEOM && Opt->Method != SUMA_NN_GEOM2 &&
+         Opt->Method != SUMA_NN_GEOM3) {
       exists = SUMA_WriteDset_NameCheck_s (Opt->out_name, NULL, 
                                            Opt->oform, 0, &ooo);
       if (exists != 0 && !Opt->overwrite) {
@@ -1149,9 +1227,19 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          exit(1);
       }
    }
+   
+   if (Opt->anchor_each > -1 && (Opt->Method != SUMA_NN_GEOM2 && 
+                                 Opt->Method != SUMA_NN_GEOM3) ) {
+      SUMA_S_Err("Cannot use -anchor_each without NN_geom2 or 3 method.\n");
+      exit(1);
+   }
+   if ((Opt->Method == SUMA_NN_GEOM2 || Opt->Method == SUMA_NN_GEOM3) && 
+        Opt->anchor_each == -1) {
+      Opt->anchor_each = 10;
+   }
 
    if (Opt->tfwhm > -1  && Opt->Method != SUMA_HEAT_07) {
-      SUMA_S_Err("Cannot use -target_fwhm with anything but the HEAT_07 method.\n");
+      SUMA_S_Err("Cannot use -target_fwhm with anything but HEAT_07 method.\n");
       exit(1);
    }
    
@@ -1166,18 +1254,18 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
       case SUMA_LB_FEM_1D:
       case SUMA_LB_FEM:
          if (!Opt->in_name) {
-            fprintf (SUMA_STDERR,"Error %s:\ninput data not specified.\n", FuncName);
+            SUMA_S_Err("input data not specified.\n");
             exit(1);
          }
          if (Opt->fwhm ==  -1.0) {
-            fprintf (SUMA_STDERR,"Error %s:\n-fwhm option must be used with -met LB_FEM.\n", FuncName); 
+            SUMA_S_Err("-fwhm option must be used with -met LB_FEM.\n"); 
             exit(1);
          }else if (Opt->fwhm <= 0.0) {
-            fprintf (SUMA_STDERR,"Error %s:\nFWHM must be > 0\n", FuncName);
+            SUMA_S_Err("FWHM must be > 0\n");
             exit(1);
          }
          if (Opt->kpb >= 0) {
-            fprintf (SUMA_STDERR,"Error %s:\n-kpb option is not valid with -met LB_FEM.\n", FuncName); 
+            SUMA_S_Err("-kpb option is not valid with -met LB_FEM.\n"); 
             exit(1);
          }         
          
@@ -1185,21 +1273,20 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
       case SUMA_HEAT_05_Pre_07:
       case SUMA_HEAT_05_1D:
          if (!Opt->in_name) {
-            fprintf (SUMA_STDERR,"Error %s:\ninput data not specified.\n", FuncName);
+            SUMA_S_Err("input data not specified.\n");
             exit(1);
          }
          if (Opt->fwhm ==  -1.0) {
-            fprintf (SUMA_STDERR,"Error %s:\n-fwhm option must be used with -met HEAT.\n", FuncName); 
+            SUMA_S_Err("-fwhm option must be used with -met HEAT.\n"); 
             exit(1);
          }else if (Opt->fwhm <= 0.0) {
-            fprintf (SUMA_STDERR,"Error %s:\nFWHM must be > 0\n", FuncName);
+            SUMA_S_Err("FWHM must be > 0\n");
             exit(1);
          }
          if (Opt->kpb >= 0) {
-            fprintf (SUMA_STDERR,"Error %s:\n-kpb option is not valid with -met HEAT.\n", FuncName); 
+            SUMA_S_Err("-kpb option is not valid with -met HEAT.\n"); 
             exit(1);
          }         
-         
          break;
       case SUMA_HEAT_07:
          if (!Opt->in_name) {
@@ -1220,7 +1307,6 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
                exit(1);
             }
          }
-         
          if (Opt->tfwhm > 0.0) {
             if (Opt->N_iter > 0 && Opt->sigma != -1.0) {
                SUMA_S_Err( "With -target_fwhm, you cannot specify "
@@ -1238,7 +1324,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          
          break;
       case SUMA_LM:
-         
+        
          if ( (Opt->l != -1.0 || Opt->m != -1.0) && Opt->kpb != -1.0) {
             SUMA_S_Err("You cannot mix options -kpb and -lm");
             exit(1);
@@ -1282,6 +1368,23 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          
          if (Opt->fwhm !=  -1.0) {
             SUMA_S_Err("Option -fwhm not valid with -met NN_geom.");
+            exit(1);
+         }
+         break;
+      case SUMA_NN_GEOM2:
+      case SUMA_NN_GEOM3:
+         if (Opt->in_name) {
+            SUMA_S_Err("Option -input not valid with -met NN_geom2 or 3.");
+            exit(1);
+         }
+         
+         if (0 && Opt->lim > 1000) {
+            SUMA_S_Err("-lim option not specified.");
+            exit(1);
+         }
+         
+         if (Opt->fwhm !=  -1.0) {
+            SUMA_S_Err("Option -fwhm not valid with -met NN_geom2.");
             exit(1);
          }
          break;
@@ -1450,6 +1553,12 @@ int main (int argc,char *argv[])
             cs->Send = NOPE;
             ps->cs->talk_suma = NOPE;
          }
+      }else if (Opt->Method == SUMA_NN_GEOM2 || Opt->Method == SUMA_NN_GEOM3) { 
+         if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
+            SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
+            cs->Send = NOPE;
+            ps->cs->talk_suma = NOPE;
+         }
       }else if (Opt->Method == SUMA_BRUTE_FORCE) { 
          if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
             SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
@@ -1535,7 +1644,8 @@ int main (int argc,char *argv[])
          }
          break; 
          
-      case SUMA_LB_FEM_1D: /* Operates on 1D files, OBSOLETE but still accessible with -met LB_FEM_1D */
+      case SUMA_LB_FEM_1D: /* Operates on 1D files, OBSOLETE but still 
+                              accessible with -met LB_FEM_1D */
          /* Moo Chung's method for interpolation weights */
          {
             if (Opt->debug) SUMA_S_Note("LB_FEM_1D method");
@@ -1558,8 +1668,8 @@ int main (int argc,char *argv[])
             }
             if (nvec != SO->N_Node) {
                fprintf(SUMA_STDERR, "Error %s:\n"
-                                    "Expecting 1D file to have %d rows\n"
-                                    "                    found %d rows instead.\n",
+                           "Expecting 1D file to have %d rows\n"
+                           "                    found %d rows instead.\n",
                                      FuncName, SO->N_Node, nvec);
                exit(1); 
             }
@@ -1597,8 +1707,11 @@ int main (int argc,char *argv[])
             #if 0
             /* writing is now done below ... */
             fileout = fopen(Opt->out_name, "w");
-            if (Opt->AddIndex) SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, YUP);
-            else SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, NOPE);
+            if (Opt->AddIndex) 
+               SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, 
+                                 d_order, fileout, YUP);
+            else SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, 
+                                 d_order, fileout, NOPE);
             fclose(fileout); fileout = NULL;
 
             if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
@@ -1624,10 +1737,11 @@ int main (int argc,char *argv[])
                exit(1);
             }
             if (SDSET_VECLEN(dset) != SO->N_Node) {
-               if (LocalHead) fprintf(SUMA_STDERR, "Warning %s:\n"
-                                    "Expecting 1D file to have %d rows\n"
-                                    "                    found %d rows instead.\n"
-                                    "Function should deal with this properly but check results\n",
+               if (LocalHead) 
+                  fprintf(SUMA_STDERR, "Warning %s:\n"
+               "Expecting 1D file to have %d rows\n"
+               "                    found %d rows instead.\n"
+               "Function should deal with this properly but check results\n",
                                      FuncName, SO->N_Node, SDSET_VECLEN(dset));
             }
             if (Opt->AddIndex || Opt->oform == SUMA_NIML) {
@@ -1646,26 +1760,28 @@ int main (int argc,char *argv[])
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: weight computation took %f seconds for %d nodes.\n"
-                                 "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+               fprintf(SUMA_STDERR, 
+                     "%s: weight computation took %f seconds for %d nodes.\n"
+                     "Projected time per 100000 nodes is: %f minutes\n", 
+                           FuncName, etime_GetOffset, SO->N_Node, 
+                           etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
             if (Opt->debug) SUMA_S_Note("LB_FEM smoothing");
             if (!SUMA_Chung_Smooth_dset ( SO, wgt, 
-                                          Opt->N_iter, Opt->fwhm, 
-                                          dset, cs, Opt->nmask, Opt->strict_mask)) {
+                              Opt->N_iter, Opt->fwhm, 
+                              dset, cs, Opt->nmask, Opt->strict_mask)) {
                SUMA_S_Err("Failed in  SUMA_Chung_Smooth_dset");
                exit(1);                            
             }
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
-                                 "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+               fprintf(SUMA_STDERR, 
+                     "%s: Total processing took %f seconds for %d nodes.\n"
+                     "Projected time per 100000 nodes is: %f minutes\n", 
+                           FuncName, etime_GetOffset, SO->N_Node, 
+                           etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
             if (wgt) SUMA_free2D ((char **)wgt, SO->N_Node); wgt = NULL;
@@ -2326,10 +2442,11 @@ int main (int argc,char *argv[])
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: weight computation took %f seconds for %d nodes.\n"
-                                 "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+               fprintf(SUMA_STDERR, 
+                  "%s: weight computation took %f seconds for %d nodes.\n"
+                  "Projected time per 100000 nodes is: %f minutes\n", 
+                        FuncName, etime_GetOffset, SO->N_Node, 
+                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
             if (Opt->N_iter <= 0) {
@@ -2337,18 +2454,19 @@ int main (int argc,char *argv[])
                exit(1);
             }
             if (!SUMA_Chung_Smooth_05_Pre_07_dset ( SO, wgt, 
-                                          (Opt->N_iter), (Opt->fwhm), 
-                                          dset, cs, Opt->nmask, Opt->strict_mask)) {
+                              (Opt->N_iter), (Opt->fwhm), 
+                              dset, cs, Opt->nmask, Opt->strict_mask)) {
                SUMA_S_Err("Failed in  SUMA_Chung_Smooth_05_Pre_07_dset");
                exit(1);                            
             }
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
-                                 "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+               fprintf(SUMA_STDERR, 
+                     "%s: Total processing took %f seconds for %d nodes.\n"
+                     "Projected time per 100000 nodes is: %f minutes\n", 
+                           FuncName, etime_GetOffset, SO->N_Node, 
+                           etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
             if (wgt) SUMA_free2D ((char **)wgt, SO->N_Node); wgt = NULL;
@@ -2371,10 +2489,11 @@ int main (int argc,char *argv[])
                exit(1);
             }
             if (SDSET_VECLEN(dset) != SO->N_Node) {
-               if (LocalHead) fprintf(SUMA_STDERR, "Warning %s:\n"
-                                    "Expecting 1D file to have %d rows\n"
-                                    "                    found %d rows instead.\n"
-                                    "Function should deal with this properly but check results\n",
+               if (LocalHead) 
+                  fprintf(SUMA_STDERR, "Warning %s:\n"
+                  "Expecting 1D file to have %d rows\n"
+                  "                    found %d rows instead.\n"
+                  "Function should deal with this properly but check results\n",
                                      FuncName, SO->N_Node, SDSET_VECLEN(dset));
             }
             
@@ -2393,17 +2512,19 @@ int main (int argc,char *argv[])
                SUMA_ShowDset(dset, 0, NULL);
             }
             
-            if (!SUMA_Offset_Smooth_dset( SO, Opt->fwhm, Opt->OffsetLim, Opt->N_iter, dset, cs, Opt->nmask, Opt->strict_mask)) {
+            if (!SUMA_Offset_Smooth_dset( SO, Opt->fwhm, Opt->OffsetLim, 
+                        Opt->N_iter, dset, cs, Opt->nmask, Opt->strict_mask)) {
                SUMA_S_Err("Failed in SUMA_Offset_Smooth_dset ");
                exit(1);  
             }
 
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
-                                 "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+               fprintf(SUMA_STDERR, 
+                  "%s: Total processing took %f seconds for %d nodes.\n"
+                  "Projected time per 100000 nodes is: %f minutes\n", 
+                        FuncName, etime_GetOffset, SO->N_Node, 
+                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
 
             if (0 && LocalHead) {
@@ -2412,9 +2533,9 @@ int main (int argc,char *argv[])
             }
             /* writing of results is done below */
             etime_GetOffset_all = SUMA_etime(&start_time_all,1);
-            fprintf(SUMA_STDERR, "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" , 
-                                 FuncName, Opt->lim, etime_GetOffset_all / 60.0 , SO->N_Node);
-
+            fprintf(SUMA_STDERR, 
+                  "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" , 
+                  FuncName, Opt->lim, etime_GetOffset_all / 60.0 , SO->N_Node);
          }
          break;
       
@@ -2441,6 +2562,80 @@ int main (int argc,char *argv[])
             
             /* writing of results is done below */
          }
+         break;
+      case SUMA_NN_GEOM2:
+         /* brute force2 nearset neighbor interpolation */
+         {
+            SUMA_SurfaceObject *SOenc = 
+                  SUMA_Load_Surface_Object (Opt->enclosing_surf, 
+                           SUMA_FT_NOT_SPECIFIED, SUMA_FF_NOT_SPECIFIED, 
+                           ps->sv[0]);
+            if (LocalHead) SUMA_etime(&start_time,0);
+            if (!SOenc) SUMA_S_Errv("Surface %s could not be loaded\n", 
+                                    Opt->enclosing_surf);
+            d_order =  SUMA_ROW_MAJOR; 
+            dsmooth = SUMA_NN_GeomSmooth2( SO, Opt->N_iter, SO->NodeList,
+                                          3, d_order, NULL, cs, Opt->nmask,
+                                          Opt->anchor_each, SOenc,
+                                          NULL, NULL);
+            if (0 && LocalHead) {
+               SUMA_LH("See dsmooth.1D");
+               SUMA_disp_vecmat (dsmooth, 
+                                 SO->N_Node, 3, 1,  
+                                 d_order, NULL, YUP);
+            }
+            if (!dsmooth) {
+               SUMA_SL_Err("Failed in SUMA_NN_Geom_Smooth");
+               exit(1);
+            }
+            
+            /* writing of results is done below */
+            SUMA_Free_Surface_Object(SOenc); SOenc=NULL;
+         }
+         break;  
+      case SUMA_NN_GEOM3:
+         /* brute force3 nearset neighbor interpolation */
+         {
+            SUMA_DSET *danch=NULL;
+            float *anch_wght=NULL;
+            SUMA_SurfaceObject *SOenc = 
+                  SUMA_Load_Surface_Object (Opt->enclosing_surf, 
+                           SUMA_FT_NOT_SPECIFIED, SUMA_FF_NOT_SPECIFIED, 
+                           ps->sv[0]);
+            if (LocalHead) SUMA_etime(&start_time,0);
+            if (!SOenc) SUMA_S_Errv("Surface %s could not be loaded\n", 
+                                    Opt->enclosing_surf);
+            d_order =  SUMA_ROW_MAJOR; 
+            if (Opt->wght_name) {
+               if (!(danch = SUMA_LoadDset_s(Opt->wght_name, NULL, 0))) {
+                  SUMA_S_Errv("Failed to load %s\n", Opt->wght_name);
+                  exit(1);
+               }
+               anch_wght = SUMA_DsetCol2FloatFullSortedColumn(danch, 0, 
+                                    NULL, 0.0, SO->N_Node, NULL, YUP);
+               for (ii=0; ii<SO->N_Node; ++ii) {
+                  anch_wght[ii] = exp(-anch_wght[ii]);  
+               }
+            }
+            dsmooth = SUMA_NN_GeomSmooth3( SO, Opt->N_iter, SO->NodeList,
+                                          3, d_order, NULL, cs, Opt->nmask,
+                                          Opt->anchor_each, SOenc,
+                                          anch_wght, NULL);
+            if (0 && LocalHead) {
+               SUMA_LH("See dsmooth.1D");
+               SUMA_disp_vecmat (dsmooth, 
+                                 SO->N_Node, 3, 1,  
+                                 d_order, NULL, YUP);
+            }
+            if (!dsmooth) {
+               SUMA_SL_Err("Failed in SUMA_NN_Geom_Smooth");
+               exit(1);
+            }
+            SUMA_free(anch_wght); anch_wght=NULL;
+            SUMA_FreeDset(danch); danch=NULL;
+            /* writing of results is done below */
+            SUMA_Free_Surface_Object(SOenc); SOenc=NULL;
+         }
          break;  
       case SUMA_LM:
          /* Taubin's */
@@ -2451,7 +2646,7 @@ int main (int argc,char *argv[])
             
             d_order =  SUMA_ROW_MAJOR; 
             if (SUMA_Get_Taubin_Weights() == SUMA_FUJIWARA) {
-               SUMA_SL_Note("Fujiwara!!!");
+               SUMA_SL_Note("Fujiwara");
                wgt = SUMA_Taubin_Fujiwara_Smooth_Weights(SO, NULL, NULL);
                if (!wgt) {
                   SUMA_SL_Err("Failed to compute weights.");
@@ -2495,7 +2690,8 @@ int main (int argc,char *argv[])
    }
    
    
-   if (Opt->Method == SUMA_NN_GEOM)
+   if (Opt->Method == SUMA_NN_GEOM || Opt->Method == SUMA_NN_GEOM2 
+            || Opt->Method == SUMA_NN_GEOM3)
    {
       if (Opt->MatchMethod) {   
          SUMA_LH("Fixing shrinkage...");
@@ -2597,6 +2793,9 @@ int main (int argc,char *argv[])
                SOnew->NodeList = NULL; 
                SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
                break;
+            case 5:
+               /* move to enclosure, already handled during iterations */
+               break;
             case 0:
                break;
             default:
@@ -2671,7 +2870,8 @@ int main (int argc,char *argv[])
 
 
 
-   /* you don't want to exit rapidly because SUMA might not be done processing the last elements*/
+   /* you don't want to exit rapidly because SUMA might 
+      not be done processing the last elements*/
    if (cs->Send && !cs->GoneBad) {
       /* cleanup and close connections */
       if (Opt->Method == SUMA_LB_FEM_1D) {
@@ -2682,7 +2882,8 @@ int main (int argc,char *argv[])
          if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NODE_XYZ, 2)) {
             SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCleanup failed");
          }
-      }else if (Opt->Method == SUMA_NN_GEOM) {
+      }else if (Opt->Method == SUMA_NN_GEOM || Opt->Method == SUMA_NN_GEOM2 ||
+                Opt->Method == SUMA_NN_GEOM3) {
          if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NODE_XYZ, 2)) {
             SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCleanup failed");
          }

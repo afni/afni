@@ -88,7 +88,14 @@ static char shelp_GenPriors[] = {
 static char shelp_Seg[] = {
 "3dSeg segments brain volumes into tissue classes.\n"
 "\n"
-"There is no help yet, sorry.\n"
+"Example 1: Segmenting a T1 volume with:\n"
+"              Brain mask, No prior volumes, Uniform mixing fraction\n"
+"           3dSeg    -anat anat.nii    -mask AUTO \\\n"
+"                    -classes 'CSF ; GM ; WM' -bias_classes 'GM ; WM' \\\n"
+"                    -bias_fwhm 25 -mixfrac UNI -main_N 5 \\\n"
+"                    -blur_meth BFT\n"   
+"Options:\n"
+"\n"
 #if 0
 "Examples: (All examples can do without the -gold* options)\n"
 "  Case A: Segmenting a T1 volume with a brain mask available\n"
@@ -123,9 +130,26 @@ static HELP_OPT SegOptList[] = {
       NULL },
    {  "-mask", 
       "-mask MASK: MASK only non-zero voxels in MASK are analyzed.\n"
-      "            MASK is necessary when no voxelwise priors are\n"
-      "            available.\n", 
+      "        MASK is useful when no voxelwise priors are available.\n"
+      "        MASK can either be a dataset or the string 'AUTO'\n"
+      "        which would use AFNI's automask function to create the mask.\n", 
       NULL },
+   {  "-blur_meth",
+      "-blur_meth BMETH: Set the blurring method for bias field estimation.\n"
+      "     -blur_meth takes one of: BFT, BIM, \n"
+      "             BFT: Use Fourier smoothing, masks be damned.\n"
+      "             BIM: Blur in mask, slower, more accurate, not necessarily \n"
+      "                  better bias field estimates.\n"
+      "             BNN: A crude blurring in mask. Faster than BIM but it does\n"
+      "                  not result in accurate FWHM. This option is for \n"
+      "                  impatient testing. Do not use it.\n"
+      "             LSB: Localstat moving average smoothing. Debugging only. \n"
+      "                  Do not use.\n",
+      "BFT" },
+   {  "-bias_fwhm BIAS_FWHM: The amount of blurring used when estimating the\n"
+      "                      field bias with the Wells method.\n"
+      "                      [Wells et. al. IEEE TMI 15, 4, 1997].\n",
+      "25.0" },
    {  "-classes", 
       "-classes 'CLASS_STRING': CLASS_STRING is a semicolon delimited\n"
       "                         string of class labels. At the moment\n"
@@ -142,12 +166,11 @@ static HELP_OPT SegOptList[] = {
       "                                   classes that contribute to the \n"
       "                                   estimation of the bias field.\n",
       "'GM; WM'" },
-   {  "-bias_fwhm BIAS_FWHM: The amount of blurring used when estimating the\n"
-      "                      field bias with the Wells method [].\n",
-      "25.0" },
-   {  "-prefix PREF: PREF is the prefix for all output volume that are not \n"
+   {  "-prefix",
+      "-prefix PREF: PREF is the prefix for all output volume that are not \n"
       "              debugging related.\n", 
       "Segsy" },
+   {  NULL, NULL, NULL  },
    {  "-overwrite",
       "-overwrite: An option common to almost all AFNI programs. It is \n"
       "            automatically turned on if you provide no PREF.\n",
@@ -158,7 +181,7 @@ static HELP_OPT SegOptList[] = {
       "                    directly such as with '0.1 0.45 0.45', or with\n"
       "                    the following special flags:\n"
       "              XXX\n",
-      "UNI" },    
+      "UNI" }, 
    {  NULL, NULL, NULL  }
 };
 
@@ -176,10 +199,14 @@ void GenPriors_usage(int detail)
 void Seg_usage(int detail) 
 {
    int i = 0;
+   char *s=NULL;
    
    ENTRY("Seg_usage");
-   printf( "%s", shelp_Seg );
    
+   printf( "%s", shelp_Seg );
+   s = SUMA_OptList_string(SegOptList);
+   printf( "%s", s );
+   SUMA_free(s);
    
    EXRETURN;
 }
@@ -287,7 +314,7 @@ SEG_OPTS *SegOpt_Struct()
    Opt->Bsetname = NULL;
    Opt->Split = NULL;
    
-   Opt->blur_meth = SEG_BIM;
+   Opt->blur_meth = SEG_BFT;
    RETURN(Opt);
 }
 
@@ -521,12 +548,12 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
       if (!brk && (strcmp(argv[kar], "-mask") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (stderr, "need argument after -mset \n");
+		  		fprintf (stderr, "need argument after -mask \n");
 				exit (1);
 			}
 			Opt->mset_name = argv[kar];
          brk = 1;
-      }
+      }      
       
       if( !brk && (strncmp(argv[kar],"-mrange",5) == 0) ){
          if( kar+2 >= argc )
@@ -715,16 +742,6 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->na = atof(argv[kar]);
          brk = 1;
 		} 
-      
-      if (!brk && (strcmp(argv[kar], "-mask") == 0)) {
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (stderr, "need argument after -mask \n");
-				exit (1);
-			}
-			Opt->mset_name = argv[kar];
-         brk = 1;
-		}
       
       if (!brk && (strcmp(argv[kar], "-blur_meth") == 0)) {
          kar ++;
