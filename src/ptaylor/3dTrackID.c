@@ -886,6 +886,7 @@ int main(int argc, char *argv[]) {
 		     ORCODE(header1.voxel_order[1]),
 		     ORCODE(header1.voxel_order[2]) );
     THD_load_statistics(outsetMAP );
+    tross_Make_History( "3dTrackID" , argc , argv ,  outsetMAP) ;
     THD_write_3dim_dataset(NULL, NULL, outsetMAP, True);
     // re-orient the data as original inputs
     EDIT_substitute_brick(outsetMASK, 0, MRI_byte, temp_byte);
@@ -894,6 +895,7 @@ int main(int argc, char *argv[]) {
 		     ORCODE(header1.voxel_order[1]),
 		     ORCODE(header1.voxel_order[2]) );
     THD_load_statistics(outsetMASK);
+    tross_Make_History( "3dTrackID" , argc , argv ,  outsetMASK) ;
     THD_write_3dim_dataset(NULL, NULL, outsetMASK, True);
 
     INFO_message("Number of tracts found = %d",Numtract) ;
