@@ -1177,6 +1177,11 @@ void display_help_menu(int detail)
     "                       If 'p' is omitted, the amplitude will depend on \n"
     "                       the duration 'd', which is useful only in       \n"
     "                       special circumstances!!                         \n"
+    "                    ** For bad historical reasons, the peak amplitude  \n"
+    "                       BLOCK without the 'p' parameter does not go to  \n"
+    "                       1 as the duration 'd' gets large.  Correcting   \n"
+    "                       this oversight would break some people's lives, \n"
+    "                       so that's just the way it is.                   \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion from times    \n"
     "                       b..c after stimulus time [piecewise linear]     \n"
     "                       [n must be at least 2; time step is (c-b)/(n-1)]\n"
@@ -1445,6 +1450,10 @@ void display_help_menu(int detail)
     "        each time in the 'tname' file should have just ONE extra       \n"
     "        parameter -- the duration -- married to it, as in '30:15',     \n"
     "        meaning a block of duration 15 seconds starting at t=30 s.     \n"
+    " *N.B.: For bad historical reasons, the peak amplitude dmBLOCK without \n"
+    "        the 'p' parameter does not go to 1 as the duration gets large. \n"
+    "        Correcting this oversight would break some people's lives, so  \n"
+    "        that's just the way it is.                                     \n"
     " For some graphs of what dmBLOCK regressors look like, see             \n"
     "   http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/AMregression.pdf   \n"
     " and/or try the following command:                                     \n"
@@ -10203,6 +10212,7 @@ static float basis_block_hrf4( float tt , float TT )
 
 /*--------------------------------------------------------------------------*/
 
+#if 0  /* Ziad and Kyle don't like this */
 static float basis_block4( float t, float T, float peak, float junk, void *q )
 {
    float w , tp , pp , TT ;
@@ -10218,6 +10228,21 @@ static float basis_block4( float t, float T, float peak, float junk, void *q )
 
    return w ;
 }
+#else
+static float basis_block4( float t, float T, float peak, float junk, void *q )
+{
+   float w , tp , pp ;
+
+   w = basis_block_hrf4(t,T) ;
+
+   if( w > 0.0f && peak > 0.0f ){
+     tp = TPEAK4(T) ; pp = basis_block_hrf4(tp,T) ;
+     if( pp > 0.0f ) w *= peak / pp ;
+   }
+
+   return w ;
+}
+#endif
 
 /*--------------------------------------------------------------------------*/
 /*  f(t,T) = int( h(t-s) , s=0..min(t,T) )
@@ -10273,6 +10298,7 @@ static float basis_block_hrf5( float tt, float TT )
 
 /*--------------------------------------------------------------------------*/
 
+#if 0  /* Ziad and Kyle don't like this */
 static float basis_block5( float t, float T, float peak, float junk, void *q )
 {
    float w , tp , pp , TT ;
@@ -10288,6 +10314,21 @@ static float basis_block5( float t, float T, float peak, float junk, void *q )
 
    return w ;
 }
+#else
+static float basis_block5( float t, float T, float peak, float junk, void *q )
+{
+   float w , tp , pp ;
+
+   w = basis_block_hrf5(t,T) ;
+
+   if( w > 0.0f && peak > 0.0f ){
+     tp = TPEAK5(T) ; pp = basis_block_hrf5(tp,T) ;
+     if( pp > 0.0f ) w *= peak / pp ;
+   }
+
+   return w ;
+}
+#endif
 
 /*--------------------------------------------------------------------------*/
 /* Legendre polynomial basis function
