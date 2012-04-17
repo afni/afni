@@ -1,0 +1,110 @@
+#Makefile for avovk's code
+
+PTAYLORLIB = libtracktools.a
+
+PTAYLOR_SRCS = DoTrackit.c 
+       
+PTAYLOR_OBJS = ${PTAYLOR_SRCS:.c=.o}
+
+PTAYLOR_INCLUDE_PATH = ${IFLAGS} -I/usr/local/include \
+                  -I../nifti/niftilib -I../nifti/nifticdf \
+                 -I../nifti/znzlib -I../3DEdge/src -I../rickr \
+                 -I../ -I../niml/ -Igts/src  
+
+PTAYLOR_LINK_PATH = ${LFLAGS} -L/usr/lib -L/usr/local/lib -L../ 
+PTAYLOR_LINK_LIB = ${LLIBS} -lmri
+
+PTAYLOR_HDRS = DoTrackit.h 
+
+AFNI_OBJS = ../xutil.o ../LiteClue.o
+AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o \
+            ../afni_fimmer.o \
+				../afni_slice_short.o ../afni_slice_float.o                  		\
+				../afni_slice_byte.o  ../afni_slice_complex.o                		\
+				../afni_pcor.o ../afni_pcor_float.o ../afni_transforms.o        	\
+				../pbar.o ../afni_graph.o ../afni_plugin.o                      	\
+				../parser.o ../parser_int.o ../afni_plugout.o ../afni_fimfunc.o 	\
+				../afni_setup.o ../afni_receive.o ../mcw_graf.o ../afni_splash.o	\
+				../afni_pplug_env.o ../afni_pplug_2dfunc.o ../afni_friends.o    	\
+				../afni_ttren.o ../afni_pplug_1dfunc.o ../afni_driver.o         	\
+				../afni_niml.o ../afni_sumafunc.o ../afni_slice_rgbyte.o        	\
+				../afni_version.o
+
+AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
+				../afni_slice_float.o ../afni_slice_complex.o               \
+				../afni_slice_rgbyte.o
+             
+AFNI_3dOBJS = ../parser.o ../parser_int.o
+
+#library only
+${PTAYLORLIB} : ${PTAYLOR_OBJS} 
+	rm -f ${PTAYLORLIB}
+	ar q ${PTAYLORLIB} ${PTAYLOR_OBJS} 
+	echo "library Rebuilt ..."
+	$(RANLIB) ${PTAYLORLIB} 
+
+
+
+clean:
+	$(RM) *.o *.a
+
+#cluster.o:cluster.c
+#	$(RM) $@
+#	${CC} ${CCOPT} ${WARNOPT} ${PTAYLOR_INCLUDE_PATH} -c cluster.c 
+
+cluster_floatNOMASK.o:cluster_floatNOMASK.c
+	$(RM) $@
+	${CC} ${CCOPT} ${WARNOPT} ${PTAYLOR_INCLUDE_PATH} -c cluster_floatNOMASK.c 
+
+.c.o:
+	${CC} ${CCOPT} ${WARNOPT} ${PTAYLOR_INCLUDE_PATH} -c $*.c 
+
+### From Paul Taylor
+3dTrackID:3dTrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dTrackID 3dTrackID.o ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH} $(LFLAGS) \
+		$(LLIBS) ${PTAYLORLIB}
+
+3dProbTrackID:3dProbTrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dProbTrackID 3dProbTrackID.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) -lgsl -lgslcblas -lm \
+      $(LLIBS) ${PTAYLORLIB}
+
+3dDWUncert1:3dDWUncert1.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dDWUncert1 3dDWUncert1.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) -lgsl -lgslcblas -lm \
+      $(LLIBS) ${PTAYLORLIB}
+
+3dDWUncert2:3dDWUncert2.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dDWUncert2 3dDWUncert2.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) -lgsl -lgslcblas -lm \
+      $(LLIBS) ${PTAYLORLIB}
+
+
+
+progs: 3dTrackID 3dProbTrackID 3dDWUncert1 3dDWUncert2
+
+all: ${PTAYLORLIB} progs install 
+ 
+afni_all: clean libtracktools.a progs
+	@if [ -f  libtracktools.a ]; then cp -p libtracktools.a ../; fi;	
+	@if [ -f  3dTrackID ]; then mv 3dTrackID ../; fi;	
+	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ../; fi;	
+	@if [ -f  3dDWUncert1 ]; then mv 3dDWUncert1 ../; fi;	
+	@if [ -f  3dDWUncert2 ]; then mv 3dDWUncert2 ../; fi;	
+ 
+
+install:
+	@echo Installing Binaries...
+	@if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created from avovk directory. ; fi;
+	@if [ -f  3dTrackID ]; then mv 3dTrackID ${INSTALLDIR}; fi;
+	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ${INSTALLDIR}; fi;
+	@if [ -f  3dDWUncert1 ]; then mv 3dDWUncert1 ${INSTALLDIR}; fi;
+	@if [ -f  3dDWUncert2 ]; then mv 3dDWUncert2 ${INSTALLDIR}; fi;
