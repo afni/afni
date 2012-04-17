@@ -398,8 +398,9 @@ BrainSkin: SUMA_BrainSkin.c ${SUMALIB}
 		${SUMA_INPATH}	${SUMA_LINK_PATH}		\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o		\
 		${AFNI_OBJS} -I../avovk -lf2c			\
-		${SUMALIBLIST} -lsegtools ${AFNILIB} ${ZLIB}			\
-		${SUMA_LINK_LIB} -lgsl -lgslcblas -lgts -lSUMAGTS
+		libSUMAGTS.a ${SUMALIBLIST} -lglib${SUMA_GLIB_VER} \
+		-lsegtools ${AFNILIB} ${ZLIB}			\
+		${SUMA_LINK_LIB} -lgsl -lgslcblas libgts.a  
 
 resolvitivity: SUMA_resolvitivity.c ${SUMALIB} 
 	$(RM) $@
