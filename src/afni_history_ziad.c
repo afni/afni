@@ -66,6 +66,7 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+#if 0 /* not yet */
  { 16, APR , 2012 , ZSS , "BrainSkin" , MINOR , TYPE_NEW_PROG,
    "Early version to create a brain envelope surface isotopic with pial surf",
    "Many functions added/modified for surface/volume intersections\n"
@@ -79,6 +80,13 @@ afni_history_struct ziad_history[] = {
    "Macros SUMA_RECOMPUTE*, SUMA_CLOSEST_NODE_VEC.\n"
    "New triangle intersection function: SUMA_MT_count_intersect_triangle().\n"
  },
+
+ { 16, APR , 2012 , ZSS , "SurfSmooth" , MINOR , TYPE_NEW_OPT,
+   "Added -NN_geom[23] for controlled inflation.",
+   NULL
+ },
+ 
+#endif
 
  { 16, APR , 2012 , ZSS , "SurfaceMetrics" , MINOR , TYPE_MODIFY,
    "Improved output format and added Displayable Objects to output.",
