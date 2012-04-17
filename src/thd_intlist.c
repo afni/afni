@@ -614,3 +614,77 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
    if( subv[0] == 0 ){ free(subv); subv = NULL; }
    return subv ;
 }
+
+
+/* ----------------------------------------------------------------------
+ * Return a float range (bottom and top vals) for strings of the form
+ * <a..b> or <a> (or without the <> chars).
+ *
+ * Labels:
+ *    For now, allow <label>.  Think about doing it as a range or int list.
+ *
+ * return 0 on success, 1 on error                   17 Apr 2012 [rickr]
+ * ----------------------------------------------------------------------
+ */
+int MCW_get_angle_range(THD_3dim_dataset * dset, char * instr, float * bot,
+                        float * top)
+{
+   char * rstr;         /* copied range string */
+   char * rptr;         /* current pointer within range string */
+   char * tptr;         /* temp pointer */
+   int    rlen, scount;
+   float  fbot, ftop;   /* read values */
+   double dval;         
+
+   /* missing input */
+   if ( !dset || !instr || !bot || !top ) {
+      fprintf(stderr,"** MCW_get_angle_range: missing inputs\n");
+      return 1;
+   }
+
+   /* maybe there is nothing here */
+   if( strlen(instr) == 0 ) { *bot = 1.0;  *top = 0.0;  return 0; }
+
+   /* duplicate input, skip any leaning '<', nuke any trailing '>' */
+   rstr = nifti_strdup(instr);
+   rlen = strlen(rstr);
+
+   rptr = rstr; /* rptr moves, rstr is location of copied string */
+   if( *rptr == '<' ) rptr++;
+   tptr = strchr(rptr, '>');
+   if( tptr ) *tptr = '\0';     /* clear any trailing '>' */
+
+   /* first try the old method with just floats */
+   tptr = strstr(rptr,"..") ;
+   if( tptr ) {
+      *tptr = '\0';
+      scount  = sscanf(rptr,   "%f", &fbot);
+      scount += sscanf(tptr+2, "%f", &ftop);
+      if( scount == 2 && fbot <= ftop ) {
+         *bot = fbot;  *top = ftop;  return 0;  /* success */
+      } else { /* go after labels */
+         if( AFNI_get_dset_label_val(dset, &dval, rptr) ) {
+            *bot = 1.0;  *top = 0.0;  return 1; /* failure */
+         }
+         fbot = dval;
+         if( AFNI_get_dset_label_val(dset, &dval, tptr+2) ) {
+            *bot = 1.0;  *top = 0.0;  return 1; /* failure */
+         }
+         *bot = fbot;  *top = dval;  return 0;  /* success */
+      }
+   } else { /* ZSS: Why not allow for <val> ? */
+      scount = sscanf(rptr,   "%f", &fbot);
+      if( scount == 1 ) {
+         *bot = fbot;  *top = fbot;  return 0;  /* success */
+      } else { /* go after label */
+         if( AFNI_get_dset_label_val(dset, &dval, rptr) ) {
+            *bot = 1.0;  *top = 0.0;  return 1; /* failure */
+         }
+         *bot = dval;  *top = dval;  return 0;  /* success */
+      }
+   }
+
+   /* should not get here */
+   return 1;
+}
+
