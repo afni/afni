@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 5 , APR , 2012 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
+  { 18 , APR , 2012 , RWC , "3dDeconvolve" , MINOR , TYPE_BUG_FIX ,
+   "Patch BLOCK and dmBLOCK to have their old non-unit-peak behavior" ,
+   "New functions UBLOCK and dmUBLOCK now have the unit-peak behavior." } ,
+
+ { 5 , APR , 2012 , RWC , "3dTstat" , MICRO , TYPE_NEW_OPT ,
    "Add -zcount option: count number of zero values in a voxel" ,
    NULL } ,
 
