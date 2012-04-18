@@ -1178,10 +1178,16 @@ void display_help_menu(int detail)
     "                       the duration 'd', which is useful only in       \n"
     "                       special circumstances!!                         \n"
     "                    ** For bad historical reasons, the peak amplitude  \n"
-    "                       BLOCK without the 'p' parameter does not go to  \n"
+    "                       'BLOCK' without the 'p' parameter does not go to\n"
     "                       1 as the duration 'd' gets large.  Correcting   \n"
     "                       this oversight would break some people's lives, \n"
     "                       so that's just the way it is.                   \n"
+    "                    ** The 'UBLOCK' function (U for Unit) is the same  \n"
+    "                       as the 'BLOCK' function except that when the    \n"
+    "                       'p' parameter is missing (or 0), the peak       \n"
+    "                       amplitude goes to 1 as the duration gets large. \n"
+    "                       If p > 0, 'UBLOCK(d,p)' and 'BLOCK(d,p)' are    \n"
+    "                       identical.                                      \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion from times    \n"
     "                       b..c after stimulus time [piecewise linear]     \n"
     "                       [n must be at least 2; time step is (c-b)/(n-1)]\n"
@@ -1454,6 +1460,11 @@ void display_help_menu(int detail)
     "        the 'p' parameter does not go to 1 as the duration gets large. \n"
     "        Correcting this oversight would break some people's lives, so  \n"
     "        that's just the way it is.                                     \n"
+    " *N.B.: The 'dmUBLOCK' function (U for Unit) is the same as the        \n"
+    "        'dmBLOCK' function except that when the 'p' parameter is       \n"
+    "        missing (or 0), the peak amplitude goes to 1 as the duration   \n"
+    "        gets large.  If p > 0, 'dmUBLOCK(p)' and 'dmBLOCK(p)' are      \n"
+    "        identical                                                      \n"
     " For some graphs of what dmBLOCK regressors look like, see             \n"
     "   http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/AMregression.pdf   \n"
     " and/or try the following command:                                     \n"
@@ -10212,8 +10223,8 @@ static float basis_block_hrf4( float tt , float TT )
 
 /*--------------------------------------------------------------------------*/
 
-#if 0  /* Ziad and Kyle don't like this */
-static float basis_block4( float t, float T, float peak, float junk, void *q )
+
+static float basis_block4_NEW( float t, float T, float peak, float junk, void *q )
 {
    float w , tp , pp , TT ;
 
@@ -10228,8 +10239,8 @@ static float basis_block4( float t, float T, float peak, float junk, void *q )
 
    return w ;
 }
-#else
-static float basis_block4( float t, float T, float peak, float junk, void *q )
+
+static float basis_block4_OLD( float t, float T, float peak, float junk, void *q )
 {
    float w , tp , pp ;
 
@@ -10242,7 +10253,6 @@ static float basis_block4( float t, float T, float peak, float junk, void *q )
 
    return w ;
 }
-#endif
 
 /*--------------------------------------------------------------------------*/
 /*  f(t,T) = int( h(t-s) , s=0..min(t,T) )
@@ -10298,8 +10308,8 @@ static float basis_block_hrf5( float tt, float TT )
 
 /*--------------------------------------------------------------------------*/
 
-#if 0  /* Ziad and Kyle don't like this */
-static float basis_block5( float t, float T, float peak, float junk, void *q )
+
+static float basis_block5_NEW( float t, float T, float peak, float junk, void *q )
 {
    float w , tp , pp , TT ;
 
@@ -10314,8 +10324,8 @@ static float basis_block5( float t, float T, float peak, float junk, void *q )
 
    return w ;
 }
-#else
-static float basis_block5( float t, float T, float peak, float junk, void *q )
+
+static float basis_block5_OLD( float t, float T, float peak, float junk, void *q )
 {
    float w , tp , pp ;
 
@@ -10328,7 +10338,6 @@ static float basis_block5( float t, float T, float peak, float junk, void *q )
 
    return w ;
 }
-#endif
 
 /*--------------------------------------------------------------------------*/
 /* Legendre polynomial basis function
@@ -11108,7 +11117,32 @@ ENTRY("basis_parser") ;
      be->nfunc = 1 ;
      be->tbot  = 0.0f ; be->ttop = BASIS_MAX_DURATION+15.0f ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
-     be->bfunc[0].f = (nb==5) ? basis_block5 : basis_block4 ;
+     be->bfunc[0].f = (nb==5) ? basis_block5_OLD : basis_block4_OLD ;
+     be->bfunc[0].a = 1.0f;   /* duration: will actually come from timing file */
+     be->bfunc[0].b = peak ;
+     be->bfunc[0].c = 0.0f ;
+     be->vfun       = 1 ;     /* needs 1 param from timing file */
+     be->no_iresp   = 1 ;     /* 07 Nov 2011 */
+
+   /*--- dmUBLOCKn for n=4 or 5 ; the first 'vfun' function [08 Dec 2008] ---*/
+
+   } else if( strncmp(scp,"dmUBLOCK",8) == 0 ){
+     int nb=4 ; float peak=0.0f ;  /* 03 Apr 2012: alter default peak from 1 to 0 */
+
+     if( scp[8] != '\0' ){
+       nb = strtol( scp+8 , NULL , 10 ) ;
+       if( nb != 4 && nb != 5 ){
+         ERROR_message("'%s' has illegal power: only 4 or 5 allowed",scp) ;
+         free((void *)be); free(scp); RETURN(NULL);
+       }
+     }
+
+     if( cpt != NULL ) sscanf(cpt,"%f",&peak) ; /* 30 Sep 2009: get peak param */
+
+     be->nfunc = 1 ;
+     be->tbot  = 0.0f ; be->ttop = BASIS_MAX_DURATION+15.0f ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     be->bfunc[0].f = (nb==5) ? basis_block5_NEW : basis_block4_NEW ;
      be->bfunc[0].a = 1.0f;   /* duration: will actually come from timing file */
      be->bfunc[0].b = peak ;
      be->bfunc[0].c = 0.0f ;
@@ -11148,12 +11182,83 @@ ENTRY("basis_parser") ;
      be->nfunc = 1 ;
      be->tbot  = 0.0f ; be->ttop = top+15.0f ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
-     be->bfunc[0].f = (nb==5) ? basis_block5 : basis_block4 ;
+     be->bfunc[0].f = (nb==5) ? basis_block5_OLD : basis_block4_OLD ;
      be->bfunc[0].a = top ;
      be->bfunc[0].b = bot ;
      be->bfunc[0].c = 0.0f ;
 
      /* 04 May 2007: check for consistency in BLOCK-izing */
+
+     { static float first_block_peakval = 0.0f ;
+       static char *first_block_peaksym = NULL ;
+       static int   num_block           = 0 ;
+       static float first_len_pkzero    = 0.0f ;
+       static char *first_sym_pkzero    = NULL ;
+
+       if( num_block == 0 ){
+         first_block_peakval = bot ;
+         first_block_peaksym = strdup(sym) ;
+       } else if( FLDIF(bot,first_block_peakval) ){
+         WARNING_message(
+          "%s has different peak value than first %s\n"
+          "            We hope you know what you are doing!" ,
+          sym , first_block_peaksym ) ;
+       }
+
+       if( bot == 0.0f ){
+         if( first_len_pkzero == 0.0f ){
+           first_len_pkzero = top ;
+           first_sym_pkzero = strdup(sym) ;
+         } else if( FLDIF(top,first_len_pkzero) ){
+           WARNING_message(
+            "%s has different duration than first %s\n"
+            "       ==> Amplitudes will differ.  We hope you know what you are doing!" ,
+            sym , first_sym_pkzero ) ;
+         }
+       }
+
+       num_block++ ;
+     }
+
+   /*--- UBLOCKn(duration,peak) for n=4 or 5 ---*/
+
+   } else if( strncmp(scp,"UBLOCK",6) == 0 ){
+     int nb=4 ;
+
+     if( scp[6] != '\0' ){
+       nb = strtol( scp+6 , NULL , 10 ) ;
+       if( nb != 4 && nb != 5 ){
+         ERROR_message("'%s' has illegal power: only 4 or 5 allowed",scp) ;
+         free((void *)be); free(scp); RETURN(NULL);
+       }
+     }
+
+     if( cpt == NULL ){
+       ERROR_message("'%s' by itself is illegal",scp) ;
+       ERROR_message(
+        " Correct format: 'UBLOCKn(dur)' with dur > 0, n=4 or 5\n"
+        "                     *OR* 'UBLOCKn(dur,peak)' with peak > 0 too.") ;
+       free((void *)be); free(scp); RETURN(NULL);
+     }
+     sscanf(cpt,"%f,%f",&top,&bot) ;  /* top = duration, bot = peak */
+     if( top <= 0.0f ){
+       ERROR_message("'%s(%s' is illegal",scp,cpt) ;
+       ERROR_message(
+        " Correct format: 'UBLOCKn(dur)' with dur > 0, n=4 or 4\n"
+        "                      or: 'UBLOCKn(dur,peak)' with peak > 0 too.") ;
+       free((void *)be); free(scp); RETURN(NULL);
+     }
+     if( bot < 0.0f ) bot = 0.0f ;
+
+     be->nfunc = 1 ;
+     be->tbot  = 0.0f ; be->ttop = top+15.0f ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     be->bfunc[0].f = (nb==5) ? basis_block5_NEW : basis_block4_NEW ;
+     be->bfunc[0].a = top ;
+     be->bfunc[0].b = bot ;
+     be->bfunc[0].c = 0.0f ;
+
+     /* 04 May 2007: check for consistency in UBLOCK-izing */
 
      { static float first_block_peakval = 0.0f ;
        static char *first_block_peaksym = NULL ;
