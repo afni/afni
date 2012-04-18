@@ -7,17 +7,20 @@
 /*----------------------------- macros and prototypes ------------------------*/
 
 #undef  DR_workspace
-#define DR_workspace(na,nb) (double *)malloc(sizeof(double)*(2*(na)+3)*(nb))
+#define DR_workspace(na,nb) (double *)malloc(sizeof(double)*(2*(na)+(nb)+3)*(nb))
 
-void vec_dimred( int nt , int nv , int nfixed , float *inar , int rdim ,
-                 int polort , float dt , float fbot , float ftop ,
-                 int despike , int vnorm ,
-                 double *ws , float *umm , float *svv  ) ;
+static void vec_dimred( int nt , int nv , int nfixed , float *inar , int rdim ,
+                        int polort , float dt , float fbot , float ftop ,
+                        int despike , int vnorm ,
+                        double *ws , float *umm , float *svv  ) ;
 
-void preproc_dimred( int nt , int nvv , float *inar ,
-                     int polort ,
-                     float dt , float fbot , float ftop ,
-                     int despike , int vnorm  ) ;
+static void preproc_dimred( int nt , int nvv , float *inar ,
+                            int polort ,
+                            float dt , float fbot , float ftop ,
+                            int despike , int vnorm  ) ;
+
+static void DR_set_svd_sort( int ss ) ;
+static void DR_svd_double( int m, int n, double *a, double *s, double *u, double *v ) ;
 
 /*----------------------------------------------------------------------------*/
 
@@ -139,6 +142,21 @@ void DR_syntax(void)
      "                   in chunks.  The downside to doing this is more disk I/O.\n"
      "                   * '-chunk' alone means do 10,000 voxels at one time.\n"
      "                   * '-chunk 999' means to do 999 voxels at one time (etc).\n"
+     "\n"
+     " -quiet          = Suppress some of the fun informative progress messages.\n"
+     "\n"
+     "------\n"
+     "NOTES:\n"
+     "------\n"
+     " * You can input ONLY 1D files, via the -1Dcols option.  In that case,\n"
+     "   there is only 1 'voxel', and instead of 'rdim' datasets being output\n"
+     "   output to hold the results, a single 1D dataset with 'rdim' columns\n"
+     "   will be produced.\n"
+     " * The output vectors are the first 'rdim' left singular vectors, as\n"
+     "   would be produced by '1dsvd -1Dleft' (for example).  They are intended\n"
+     "   to be used in further processing scripts, and are probably not useful\n"
+     "   by themselves.\n"
+     " * Written by Zhark the Singular -- April 2012\n"
    ) ;
    PRINT_AFNI_OMP_USAGE("3dDimRed",NULL) ;
    PRINT_COMPILE_DATE ; exit(0) ;
@@ -162,18 +180,19 @@ int main( int argc , char *argv[] )
    size_t msize , ntsiz , ndsiz ;
    char *prefout , prefapp[32] ;
 
-   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) DR_syntax() ;
-
    /*-- startup --*/
 
    mainENTRY("3dDimRed"); machdep();
    AFNI_logger("3dDimRed",argc,argv);
    PRINT_VERSION("3dDimRed"); AUTHOR("Uncle John's Band");
+   enable_mcw_malloc() ;
 
    INIT_XTARR(dsar) ; INIT_IMARR(imarc) ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
      if( strcmp(argv[nopt],"-") == 0 ){ nopt++ ; continue ; }
+
+     if( strcasecmp(argv[1],"-help") == 0 ) DR_syntax() ;
 
      if( strcasecmp(argv[nopt],"-1Dcols") == 0 ){
        MRI_IMAGE *qim ;
@@ -291,6 +310,8 @@ int main( int argc , char *argv[] )
      exit(1);
 
    } /*-- end of loop over options --*/
+
+   if( argc < 2 ) DR_syntax() ;
 
    /*--- read rest of args as input datasets ---*/
 
@@ -427,7 +448,7 @@ int main( int argc , char *argv[] )
    if( verb )
      INFO_message("Chunk size = %s voxels",commaized_integer_string(nmask)) ;
 
-   set_svd_sort(-1) ;
+   DR_set_svd_sort(-1) ;
 
    /*--- allocate space to hold results from one chunk ---*/
    /*--- for each voxel, rdim vectors of length nt,    ---*/
@@ -492,16 +513,31 @@ int main( int argc , char *argv[] )
                      polort , dt , fbot , ftop , do_despike , do_vnorm ) ;
    }
 
+#ifdef USE_OMP
+#pragma omp parallel
+ {
+  if( verb && omp_get_thread_num() == 0 )
+    INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
+ }
+#else
+  if( verb && nmask > 1 ) INFO_message("Start main voxel loop") ;
+#endif
+
    /********** loop over chunks **********/
 
    for( imbot=0 ; imbot < nmask ; imbot += chunk ){
 
      imtop = imbot + chunk ; if( imtop > nmask ) imtop = nmask ;
 
+     if( verb && chunk < nmask )
+       ININFO_message("start chunk: voxels %d..%d",imbot,imtop-1) ;
+
      /* extract dataset data into cvect */
 
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
      for( kk=0 ; kk < ndset ; kk++ ){
        kset = (THD_3dim_dataset *)XTARR_XT(dsar,kk) ;
+ININFO_message("Load dataset %s",DSET_HEADNAME(kset)) ;
        DSET_load(kset) ;
        if( !DSET_LOADED(kset) )
          ERROR_exit("Can't load data from dataset %s",DSET_BRIKNAME(kset)) ;
@@ -513,29 +549,35 @@ int main( int argc , char *argv[] )
  AFNI_OMP_START ;
 #pragma omp parallel if( imtop-imbot > 66 )
      { float *tsar , *umat , *sval ; double *ws ; int iv,kd ;
-       tsar = (float *)malloc(ntsiz*ndim) ;               /* input vectors */
+       tsar = (float *)malloc(ntsiz*ndim) ;                /* input vectors */
        umat = (rdim == 0) ? NULL
-                          : (float *)malloc(ntsiz*rdim) ; /* output vectors */
-       sval = (float *)malloc(ndsiz) ;                    /* output sing vals */
+              : (float *)malloc(sizeof(float)*ntsiz*rdim); /* output vectors */
+       sval = (float *)malloc(ndsiz) ;                     /* output sing vals */
        ws   = DR_workspace(nt,ndim) ;
 #pragma omp for
        for( iv=imbot ; iv < imtop ; iv++ ){
          /* copy fixed data into tsar */
          if( cfixv != NULL ){
+/* ININFO_message("iv = %d: cfixv -> tsar",iv) ; */
            AAmemcpy( tsar , cfixv , ntsiz*nvim ) ;
          }
          /* copy dataset data into tsar */
          if( cvect != NULL ){
+/* ININFO_message("iv = %d: cvect -> tsar",iv) ; */
            for( kd=0 ; kd < ndset ; kd++ )
              AAmemcpy( tsar+(nvim+kd)*ntsiz , CVD(kd,iv-imbot) , ntsiz ) ;
          }
          /* process it into umat and sval */
+/* ININFO_message("iv = %d: call vec_dimred",iv) ; */
          vec_dimred( nt , ndim , nvim , tsar , rdim ,
                      polort , dt , fbot , ftop , do_despike , do_vnorm ,
                      ws , umat , sval ) ;
          /* copy umat and sval into csave */
-         if( umat != NULL )
+         if( umat != NULL ){
+/* ININFO_message("iv = %d: umat -> csave",iv) ; */
            AAmemcpy( CSUU(iv-imbot,0) , umat , ntsiz*rdim ) ;
+         }
+/* ININFO_message("iv = %d: sval -> csave",iv) ; */
          AAmemcpy( CSSV(iv-imbot) , sval , ndsiz ) ;
        } /* end of parallel-ized loop over voxels */
        free(ws) ; free(sval) ; free(tsar) ; if( umat != NULL ) free(umat) ;
@@ -602,8 +644,9 @@ int main( int argc , char *argv[] )
 
      qim = mri_new(nt,rdim,MRI_float) ; qar = MRI_FLOAT_PTR(qim) ;
      AAmemcpy( qar , CSUU(0,0) , ntsiz*rdim ) ;
-     prefout = append_to_prefix( prefix , "_vect.1D" ) ;
-     mri_write_1D(prefout,qim) ; mri_free(qim) ; free(prefout) ;
+     prefout = append_to_prefix( prefix , "vect.1D" ) ;
+     mri_write_1D(prefout,qim) ; mri_free(qim) ;
+     INFO_message("Wrote vector file %s",prefout) ; free(prefout) ;
 
    } /* end of writing out vectors */
 
@@ -650,8 +693,9 @@ int main( int argc , char *argv[] )
 
        qim = mri_new(ndim,1,MRI_float) ; qar = MRI_FLOAT_PTR(qim) ;
        AAmemcpy( qar , CSSV(0) , ndsiz ) ;
-       prefout = append_to_prefix( prefix , "_sing.1D" ) ;
-       mri_write_1D(prefout,qim) ; mri_free(qim) ; free(prefout) ;
+       prefout = append_to_prefix( prefix , "sing.1D" ) ;
+       mri_write_1D(prefout,qim) ; mri_free(qim) ;
+       INFO_message("Wrote singular values file %s",prefout) ; free(prefout) ;
      }
 
    } /* end of dosing */
@@ -665,10 +709,10 @@ int main( int argc , char *argv[] )
 #undef  INVEC
 #define INVEC(k) (inar+(k)*nt)
 
-void preproc_dimred( int nt , int nvv , float *inar ,
-                     int polort ,
-                     float dt , float fbot , float ftop ,
-                     int despike , int vnorm  )
+static void preproc_dimred( int nt , int nvv , float *inar ,
+                            int polort ,
+                            float dt , float fbot , float ftop ,
+                            int despike , int vnorm  )
 {
    static double *pcc=NULL ;   /* for polort detrending */
    static float **pref=NULL ;
@@ -742,38 +786,234 @@ void preproc_dimred( int nt , int nvv , float *inar ,
 /*----------------------------------------------------------------------------*/
 /* assume the first nfixed vectors are already pre-processed */
 
-void vec_dimred( int nt , int nv , int nfixed , float *inar , int rdim ,
-                 int polort , float dt , float fbot , float ftop ,
-                 int despike , int vnorm ,
-                 double *ws , float *umm , float *svv  )
+static void vec_dimred( int nt , int nv , int nfixed , float *inar , int rdim ,
+                        int polort , float dt , float fbot , float ftop ,
+                        int despike , int vnorm ,
+                        double *ws , float *umm , float *svv  )
 {
    int ntv=nt*nv , ntr=nt*rdim , ii ;
    float *vv ;
-   double *wss , *amat , *sval , *umat ;
+   double *wss , *amat , *sval , *umat , *vmat ;
    MRI_IMAGE *outim ; float *outar ;
 
    if( umm == NULL && svv == NULL ) return ;  /* WTF? */
 
+/* ININFO_message("  preproc") ; */
    preproc_dimred( nt , nv-nfixed , inar+nfixed*nt ,
                    polort , dt,fbot,ftop , despike , vnorm ) ;
 
    wss = ws ; if( wss == NULL ) wss = DR_workspace(nt,nv) ;
 
-   amat = wss ;          /* ntv long */
-   umat = amat + ntv ;   /* ntv long */
-   sval = umat + ntv ;   /* nv  long */
+   amat = wss ;          /* nt*nv long */
+   umat = amat + ntv ;   /* nt*nv long */
+   vmat = umat + nv*nv ; /* nv*nv long */
+   sval = vmat + ntv ;   /* nv    long */
 
    for( ii=0 ; ii < ntv ; ii++ ) amat[ii] = (double)inar[ii] ;
 
-   svd_double( nt , nv , amat , sval , umat , NULL ) ;
+/* ININFO_message("  svd") ; */
+   DR_svd_double( nt , nv , amat , sval , umat , vmat ) ;
 
    if( umm != NULL ){
+/* ININFO_message("  umat -> umm") ; */
      for( ii=0 ; ii < ntr ; ii++ ) umm[ii] = (float)umat[ii] ;
    }
    if( svv != NULL ){
+/* ININFO_message("  sval -> svv") ; */
      for( ii=0 ; ii < nv ; ii++ ) svv[ii] = (float)sval[ii] ;
    }
 
    if( wss != ws ) free(wss) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+
+#include "eispack.h"
+
+#ifdef isfinite
+# define IS_GOOD_FLOAT(x) isfinite(x)
+#else
+# define IS_GOOD_FLOAT(x) finite(x)
+#endif
+
+/*--------------------------------------------------------------------*/
+
+#define CHECK_SVD
+
+#undef CHK
+#ifdef CHECK_SVD
+# define CHK 1
+# define A(i,j) aa[(i)+(j)*m]
+# define U(i,j) uu[(i)+(j)*m]
+# define V(i,j) vv[(i)+(j)*n]
+#else
+# define CHK 0
+#endif
+
+/** setup for sorting SVD values:
+      0 = no sort (whatever the function returns)
+     +1 = sort in increasing order of singular values
+     -1 = sort in descending order of singular values **/
+
+static int svd_sort = 0 ;
+static void DR_set_svd_sort( int ss ){ svd_sort = ss; }
+
+/*----------------------------------------------------------------------------*/
+/*! Compute SVD of double precision matrix:                      T
+                                            [a] = [u] diag[s] [v]
+    - m = # of rows in a = length of each column
+    - n = # of columns in a = length of each row
+    - a = pointer to input matrix; a[i+j*m] has the (i,j) element
+          (m X n matrix, stored in column-first order)
+    - s = pointer to output singular values; length = n (cannot be NULL)
+    - u = pointer to output matrix, if desired; length = m*n (m X n matrix)
+    - v = pointer to output matrix, if desired; length = n*n (n x n matrix)
+
+  Modified 10 Jan 2007 to add sorting of s and corresponding columns of u & v.
+------------------------------------------------------------------------------*/
+
+static void DR_svd_double( int m, int n, double *a, double *s, double *u, double *v )
+{
+   integer mm,nn , lda,ldu,ldv , ierr ;
+   doublereal *aa, *ww , *uu , *vv , *rv1 ;
+   logical    matu , matv ;
+
+   if( a == NULL || s == NULL || m < 1 || n < 1 ) return ;
+
+   mm  = m ;
+   nn  = n ;
+   aa  = a ;
+   lda = m ;
+   ww  = s ;
+
+   /* make space for u matrix, if not supplied */
+
+   if( u == NULL ){
+     matu = (logical) CHK ;
+     uu   = (doublereal *)calloc(sizeof(double),m*n) ;
+   } else {
+     matu = (logical) 1 ;
+     uu = u ;
+   }
+   ldu = m ;
+
+   /* make space for v matrix if not supplied */
+
+   if( v == NULL ){
+     matv = (logical) CHK ;
+     vv   = (CHK) ? (doublereal *)calloc(sizeof(double),n*n) : NULL ;
+   } else {
+     matv = (logical) 1 ;
+     vv   = v ;
+   }
+   ldv = n ;
+
+   rv1 = (double *)calloc(sizeof(double),n) ;  /* workspace */
+
+   /** the actual SVD **/
+
+   (void) svd_( &mm , &nn , &lda , aa , ww ,
+                &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
+
+#ifdef CHECK_SVD
+   /** back-compute [A] from [U] diag[ww] [V]'
+       and see if it is close to the input matrix;
+       if not, compute the results in another function;
+       this is needed because the svd() function compiles with
+       rare computational errors on some compilers' optimizers **/
+   { register int i,j,k ; register doublereal aij ; double err=0.0,amag=1.e-11 ;
+     for( j=0 ; j < n ; j++ ){
+      for( i=0 ; i < m ; i++ ){
+        aij = A(i,j) ; amag += fabs(aij) ;
+        for( k=0 ; k < n ; k++ ) aij -= U(i,k)*V(j,k)*ww[k] ;
+        err += fabs(aij) ;
+     }}
+     amag /= (m*n) ; /* average absolute value of matrix elements */
+     err  /= (m*n) ; /* average absolute error per matrix element */
+     if( err >= 1.e-5*amag || !IS_GOOD_FLOAT(err) ){
+       fprintf(stderr,"SVD avg err=%g; recomputing ...",err) ;
+
+#if 1     /* mangle all zero columns */
+       { double arep=1.e-11*amag , *aj ;
+         for( j=0 ; j < nn ; j++ ){
+           aj = aa + j*mm ;
+           for( i=0 ; i < mm ; i++ ) if( aj[i] != 0.0 ) break ;
+           if( i == mm ){
+/* ININFO_message("mangling all zero column %d",j) ; */
+             for( i=0 ; i < mm ; i++ ) aj[i] = (drand48()-0.5)*arep ;
+           }
+         }
+       }
+#endif
+
+       /* svd_slow is compiled without optimization */
+
+       (void) svd_slow_( &mm , &nn , &lda , aa , ww ,
+                         &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
+       err = 0.0 ;
+       for( j=0 ; j < n ; j++ ){
+        for( i=0 ; i < m ; i++ ){
+          aij = A(i,j) ;
+          for( k=0 ; k < n ; k++ ) aij -= U(i,k)*V(j,k)*ww[k] ;
+          err += fabs(aij) ;
+       }}
+       err /= (m*n) ;
+       fprintf(stderr," new avg err=%g %s\n",
+               err , (err >= 1.e-5*amag || !IS_GOOD_FLOAT(err)) ? "**BAD**" : "**OK**" ) ;
+     }
+   }
+#endif
+
+   free((void *)rv1) ;
+
+   /* discard [u] and [v] spaces if not needed for output */
+
+   if( u == NULL && uu != NULL ) free((void *)uu) ;
+   if( v == NULL && vv != NULL ) free((void *)vv) ;
+
+   /*--- 10 Jan 2007: sort the singular values and columns of U and V ---*/
+
+   if( n > 1 && svd_sort != 0 ){
+     double *sv , *uv ; int *iv , jj,kk ;
+     sv = (double *)malloc(sizeof(double)*n) ;
+     iv = (int *)   malloc(sizeof(int)   *n) ;
+     for( kk=0 ; kk < n ; kk++ ){
+       iv[kk] = kk ; sv[kk] = (svd_sort > 0) ? s[kk] : -s[kk] ;
+     }
+/* ININFO_message("sorting sv") ; */
+     qsort_doubleint( n , sv , iv ) ;
+     if( u != NULL ){
+       double *cc = (double *)calloc(sizeof(double),m*n) ;
+/* ININFO_message("copying u") ; */
+       AAmemcpy( cc , u , sizeof(double)*m*n ) ;
+       for( jj=0 ; jj < n ; jj++ ){
+/* ININFO_message(" u[%d] <- cc[%d]",jj,kk) ; */
+         kk = iv[jj] ;  /* where the new jj-th col came from */
+         AAmemcpy( u+jj*m , cc+kk*m , sizeof(double)*m ) ;
+       }
+/* ININFO_message("freeing cc") ; */
+       free((void *)cc) ;
+/* ININFO_message("cc is freed") ; */
+     }
+     if( v != NULL ){
+       double *cc ;
+/* ININFO_message("malloc-ing cc: n=%d",n) ; */
+/* ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;*/
+       cc = (double *)calloc(sizeof(double),n*n) ;
+/* ININFO_message("copying cc <- v") ; */
+       AAmemcpy( cc , v , sizeof(double)*n*n ) ;
+       for( jj=0 ; jj < n ; jj++ ){
+         kk = iv[jj] ;
+         AAmemcpy( v+jj*n , cc+kk*n , sizeof(double)*n ) ;
+       }
+       free((void *)cc) ;
+     }
+/* ININFO_message("getting s back") ; */
+     for( kk=0 ; kk < n ; kk++ )
+       s[kk] = (svd_sort > 0) ? sv[kk] : -sv[kk] ;
+     free((void *)iv) ; free((void *)sv) ;
+   }
+
    return ;
 }
