@@ -45,7 +45,7 @@ void usage_TrackID(int detail)
 "   \n"
 "   first draft at AFNIfication, March 2012.\n"
 "\n"
-"   + read in data from 3dDWItoDTI results; use L1 and V1 for actual\n"
+"   + read in data from 3dDWItoDT results; use L1 and V1 for actual\n"
 "   algorithm, and include MD and FA for stats\n"
 "\n"
 "   + current outputs (named using prefix):  \n"
@@ -71,16 +71,16 @@ void usage_TrackID(int detail)
 "	 SeedPerV[1],   Number of seeds per vox in y direc\n"
 "	 SeedPerV[2],   Number of seeds per vox in z direc\n"
 "	 M              number of grads used to scan (for later use with\n"
-"                  probabilist!)\n"
+"                  probabilistic tractography)\n"
 "	 bval           non-b=0 value, e.g., 1000 or so (for later use \n"
-"                  with probabilist!)\n"
+"                  with probabilistic tractography)\n"
 "	 \n"
 "\n"
 "   + to run, need to give:\n"
 "      -mask1  MASK1: mask of ROI1\n"
 "      -mask2  MASK2: mask of ROI2\n"
 "      -prefix PREFIX: output file name part\n"
-"      -input  INPREF: Specify DTI volumes output by 3dDWItoDTI\n"
+"      -input  INPREF: Specify DTI volumes output by 3dDWItoDT\n"
 "                      The program expects to the following volumes:\n"
 "                      INPREF_V1, INPREF_MD, INPREF_L1, and INPREF_FA\n" 
 "      -algopt ALGO: ASCII file with eight numbers defining parameter \n"
@@ -165,7 +165,7 @@ struct io_header
 	     .n_properties = 0,
 	     .vox_to_ras = { {0.,0.,0.,0.},{0.,0.,0.,0.},
 			     {0.,0.,0.,0.},{0.,0.,0.,0.}},
-	     // !!!!! will reset this later based on actual data set!!1
+	     // will reset this later based on actual data set
 	     .voxel_order = "RAI\0", 
 	     .invert_x = 0,
 	     .invert_y = 0,
@@ -249,7 +249,9 @@ int main(int argc, char *argv[]) {
   char dset_or[3] = "RAI";
   THD_3dim_dataset *dsetn;
   int TV_switch[3] = {0,0,0};
-
+  TAYLOR_BUNDLE *tb=NULL;
+  TAYLOR_TRACT *tt=NULL;
+  
   mainENTRY("3dTrackID"); machdep(); 
    
   // ****************************************************************
@@ -425,48 +427,6 @@ int main(int argc, char *argv[]) {
   // everything to RAI, and then resample back later.  guess this will
   // just slow things down slightly.
    
-  /* !!!! why didn't this work to actually change things?
-    printf("\n before %c%c%c\n" ,ORIENT_typestr[insetFA->daxes->xxorient][0],ORIENT_typestr[insetFA->daxes->yyorient][0],ORIENT_typestr[insetFA->daxes->zzorient][0]);
-
-    EDIT_DSET_ORIENT(insetFA,
-		     ORCODE(dset_or[0]),
-		     ORCODE(dset_or[1]),
-		     ORCODE(dset_or[2]) );
-    
-    EDIT_DSET_ORIENT(insetMD,
-		     ORCODE(dset_or[0]),
-		     ORCODE(dset_or[1]),
-		     ORCODE(dset_or[2]) );
-
-    EDIT_DSET_ORIENT(insetL1,
-		     ORCODE(dset_or[0]),
-		     ORCODE(dset_or[1]),
-		     ORCODE(dset_or[2]) );
-
-    EDIT_DSET_ORIENT(insetV1,
-		     ORCODE(dset_or[0]),
-		     ORCODE(dset_or[1]),
-		     ORCODE(dset_or[2]) );
-
-    EDIT_DSET_ORIENT(mset1,
-		     ORCODE(dset_or[0]),
-		     ORCODE(dset_or[1]),
-		     ORCODE(dset_or[2]) );
-
-    EDIT_DSET_ORIENT(mset2,
-		     ORCODE(dset_or[0]),
-		     ORCODE(dset_or[1]),
-		     ORCODE(dset_or[2]) );
-    printf("\n after %c%c%c\n" ,ORIENT_typestr[insetFA->daxes->xxorient][0],ORIENT_typestr[insetFA->daxes->yyorient][0],ORIENT_typestr[insetFA->daxes->zzorient][0]);
-    printf("\n after %c%c%c\n" ,ORIENT_typestr[insetMD->daxes->xxorient][0],ORIENT_typestr[insetMD->daxes->yyorient][0],ORIENT_typestr[insetMD->daxes->zzorient][0]);
-    printf("\n after %c%c%c\n" ,ORIENT_typestr[insetL1->daxes->xxorient][0],ORIENT_typestr[insetL1->daxes->yyorient][0],ORIENT_typestr[insetL1->daxes->zzorient][0]);
-    printf("\n after %c%c%c\n" ,ORIENT_typestr[insetV1->daxes->xxorient][0],ORIENT_typestr[insetV1->daxes->yyorient][0],ORIENT_typestr[insetV1->daxes->zzorient][0]);
-    printf("\n after %c%c%c\n" ,ORIENT_typestr[mset1->daxes->xxorient][0],ORIENT_typestr[mset1->daxes->yyorient][0],ORIENT_typestr[mset1->daxes->zzorient][0]);
-    printf("\n after %c%c%c\n" ,ORIENT_typestr[mset2->daxes->xxorient][0],ORIENT_typestr[mset2->daxes->yyorient][0],ORIENT_typestr[mset2->daxes->zzorient][0]);
-  */
-
-    
-
     dsetn = r_new_resam_dset(insetFA, NULL, 0.0, 0.0, 0.0,
 			     dset_or, RESAM_NN_TYPE, NULL, 1, 0);
     DSET_delete(insetFA); 
@@ -633,7 +593,9 @@ int main(int argc, char *argv[]) {
     exit(16);
   }
   fwrite(&header1,sizeof(struct io_header),1,fout0);
-
+  
+  tb = AppCreateBundle(NULL, 0, NULL); // start bundle
+  
   for( k=0 ; k<Dim[2] ; k++ ) 
     for( j=0 ; j<Dim[1] ; j++ ) 
       for( i=0 ; i<Dim[0] ; i++ ) 
@@ -655,7 +617,7 @@ int main(int argc, char *argv[]) {
 		len_forw = TrackIt(coorded, in, physin, Ledge, Dim, 
 				   MinFA, MaxAng, ArrMax, Tforw, 
 				   flTforw, 1, phys_forw);
-
+      
 		in[0] = i; // reset, because it's changed in TrackIt func
 		in[1] = j;
 		in[2] = k;
@@ -669,7 +631,10 @@ int main(int argc, char *argv[]) {
 		len_back = TrackIt(coorded, in, physin, Ledge, Dim, 
 				   MinFA, MaxAng, ArrMax, Tback, 
 				   flTback, -1, phys_back);
-		
+               
+		tt = CreateTract(len_back, flTback, len_forw, flTforw);
+      tb = AppCreateBundle(tb, 1, tt);
+      
 		KEEPIT = 0; // a simple switch
 		totlen = len_forw+len_back-1; // b/c of overlap of starts
 		totlen_phys = phys_forw[0] + phys_back[0];
@@ -783,7 +748,8 @@ int main(int argc, char *argv[]) {
 	}
   fclose(fout0); 
 
-
+  Show_Taylor_Bundle(tb, NULL, -1);
+   
   // **************************************************************
   // **************************************************************
   //                    Some simple stats on ROIs and outputs
@@ -848,10 +814,9 @@ int main(int argc, char *argv[]) {
     sprintf(prefix_map,"%s_MAP",prefix); 
     sprintf(prefix_mask,"%s_MASK",prefix); 
 
-    // !!! have to check on the particulars of this!!!
     outsetMAP = EDIT_empty_copy( mset1 ) ;
     EDIT_dset_items( outsetMAP ,
-    		     ADN_datum_all , MRI_float , // !!!! why can't I make this an MRI_int??
+    		     ADN_datum_all , MRI_float , 
     		     ADN_prefix    , prefix_map ,
     		     ADN_none ) ;
     if( THD_is_ondisk(DSET_HEADNAME(outsetMAP)) )

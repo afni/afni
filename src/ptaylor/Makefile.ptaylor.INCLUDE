@@ -93,7 +93,7 @@ progs: 3dTrackID 3dProbTrackID 3dDWUncert1 3dDWUncert2
 
 all: ${PTAYLORLIB} progs install 
  
-afni_all: clean libtracktools.a progs
+afni_all: clean ${PTAYLORLIB} progs
 	@if [ -f  libtracktools.a ]; then cp -p libtracktools.a ../; fi;	
 	@if [ -f  3dTrackID ]; then mv 3dTrackID ../; fi;	
 	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ../; fi;	
@@ -103,7 +103,7 @@ afni_all: clean libtracktools.a progs
 
 install:
 	@echo Installing Binaries...
-	@if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created from avovk directory. ; fi;
+	@if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created from ptaylor directory. ; fi;
 	@if [ -f  3dTrackID ]; then mv 3dTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dDWUncert1 ]; then mv 3dDWUncert1 ${INSTALLDIR}; fi;
