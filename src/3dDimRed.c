@@ -525,7 +525,7 @@ int main( int argc , char *argv[] )
 
    /********** loop over chunks **********/
 
-   for( imbot=0 ; imbot < nmask ; imbot += chunk ){
+   for( imbot=0 ; imbot < nmask ; imbot+=chunk ){
 
      imtop = imbot + chunk ; if( imtop > nmask ) imtop = nmask ;
 
@@ -545,12 +545,13 @@ ININFO_message("Load dataset %s",DSET_HEADNAME(kset)) ;
          THD_extract_array( imask[ii] , kset , 0 , CVD(kk,ii-imbot) ) ;
        DSET_unload(kset) ;
      }
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
 
  AFNI_OMP_START ;
 #pragma omp parallel if( imtop-imbot > 66 )
      { float *tsar , *umat , *sval ; double *ws ; int iv,kd ;
        tsar = (float *)malloc(ntsiz*ndim) ;                /* input vectors */
-       umat = (rdim == 0) ? NULL
+       umat = (rdim <= 0) ? NULL
               : (float *)malloc(sizeof(float)*ntsiz*rdim); /* output vectors */
        sval = (float *)malloc(ndsiz) ;                     /* output sing vals */
        ws   = DR_workspace(nt,ndim) ;
@@ -558,28 +559,33 @@ ININFO_message("Load dataset %s",DSET_HEADNAME(kset)) ;
        for( iv=imbot ; iv < imtop ; iv++ ){
          /* copy fixed data into tsar */
          if( cfixv != NULL ){
-/* ININFO_message("iv = %d: cfixv -> tsar",iv) ; */
+ININFO_message("iv = %d: cfixv -> tsar",iv) ;
            AAmemcpy( tsar , cfixv , ntsiz*nvim ) ;
          }
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
          /* copy dataset data into tsar */
          if( cvect != NULL ){
-/* ININFO_message("iv = %d: cvect -> tsar",iv) ; */
+ININFO_message("iv = %d: cvect -> tsar",iv) ;
            for( kd=0 ; kd < ndset ; kd++ )
-             AAmemcpy( tsar+(nvim+kd)*ntsiz , CVD(kd,iv-imbot) , ntsiz ) ;
+             AAmemcpy( tsar+(nvim+kd)*nt , CVD(kd,iv-imbot) , ntsiz ) ;
          }
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
          /* process it into umat and sval */
-/* ININFO_message("iv = %d: call vec_dimred",iv) ; */
+ININFO_message("iv = %d: call vec_dimred",iv) ;
          vec_dimred( nt , ndim , nvim , tsar , rdim ,
                      polort , dt , fbot , ftop , do_despike , do_vnorm ,
                      ws , umat , sval ) ;
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
          /* copy umat and sval into csave */
          if( umat != NULL ){
-/* ININFO_message("iv = %d: umat -> csave",iv) ; */
+ININFO_message("iv = %d: umat -> csave",iv) ;
            AAmemcpy( CSUU(iv-imbot,0) , umat , ntsiz*rdim ) ;
          }
-/* ININFO_message("iv = %d: sval -> csave",iv) ; */
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
+ININFO_message("iv = %d: sval -> csave",iv) ;
          AAmemcpy( CSSV(iv-imbot) , sval , ndsiz ) ;
        } /* end of parallel-ized loop over voxels */
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
        free(ws) ; free(sval) ; free(tsar) ; if( umat != NULL ) free(umat) ;
      } /* end of parallel-ized code */
      AFNI_OMP_END ;
@@ -592,6 +598,7 @@ ININFO_message("Load dataset %s",DSET_HEADNAME(kset)) ;
          ERROR_exit("Failure to write to -chunk file %s -- is disk full?",
                     chunk_fnam ) ;
      }
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
 
    } /* end of loop over chunks of voxels */
 
@@ -791,16 +798,17 @@ static void vec_dimred( int nt , int nv , int nfixed , float *inar , int rdim ,
                         int despike , int vnorm ,
                         double *ws , float *umm , float *svv  )
 {
-   int ntv=nt*nv , ntr=nt*rdim , ii ;
+   int ntv=nt*nv , ntr=nt*rdim , ii,jj,pp,nnz ;
    float *vv ;
    double *wss , *amat , *sval , *umat , *vmat ;
    MRI_IMAGE *outim ; float *outar ;
 
    if( umm == NULL && svv == NULL ) return ;  /* WTF? */
 
-/* ININFO_message("  preproc") ; */
+ININFO_message("  preproc") ;
    preproc_dimred( nt , nv-nfixed , inar+nfixed*nt ,
                    polort , dt,fbot,ftop , despike , vnorm ) ;
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
 
    wss = ws ; if( wss == NULL ) wss = DR_workspace(nt,nv) ;
 
@@ -809,18 +817,54 @@ static void vec_dimred( int nt , int nv , int nfixed , float *inar , int rdim ,
    vmat = umat + nv*nv ; /* nv*nv long */
    sval = vmat + ntv ;   /* nv    long */
 
-   for( ii=0 ; ii < ntv ; ii++ ) amat[ii] = (double)inar[ii] ;
+   /** copy vectors into amat, removing all zero columns **/
 
-/* ININFO_message("  svd") ; */
-   DR_svd_double( nt , nv , amat , sval , umat , vmat ) ;
+ININFO_message("  copy data in") ;
+#undef  AM
+#undef  IM
+#define AM(i,j) amat[(i)+(j)*nt]
+#define IM(i,j) inar[(i)+(j)*nt]
+   for( jj=pp=0 ; jj < nv ; jj++ ){
+     for( nnz=ii=0 ; ii < nt ; ii++ ){
+       AM(ii,pp) = (double)IM(ii,jj) ; nnz += ( AM(ii,pp) != 0.0 ) ;
+     }
+     if( nnz > 0 ) pp++ ;
+   }
+#undef  AM
+#undef  IM
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
+
+if( pp < nv )
+ININFO_message("removed %d all zero vectors",nv-pp) ;
+
+   /* initialize outputs to 0? */
+
+   if( pp < nv ){
+     if( umm != NULL ) AAmemset(umm,0,sizeof(float)*ntr) ;
+     if( svv != NULL ) AAmemset(svv,0,sizeof(float)*nv ) ;
+     if( pp == 0 ){  /* if all inputs 0, output 0 */
+       if( wss != ws ) free(wss) ;
+       return ;
+     }
+   }
+
+   /* second dimension is now pp, possibly less than nv */
+
+ININFO_message("**svd") ;
+   DR_svd_double( nt , pp , amat , sval , umat , vmat ) ;
+ININFO_message("**svd done") ;
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
 
    if( umm != NULL ){
-/* ININFO_message("  umat -> umm") ; */
-     for( ii=0 ; ii < ntr ; ii++ ) umm[ii] = (float)umat[ii] ;
+ININFO_message("  umat -> umm") ;
+     nnz = nt*MIN(pp,rdim) ;
+     for( ii=0 ; ii < nnz ; ii++ ) umm[ii] = (float)umat[ii] ;
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
    }
    if( svv != NULL ){
-/* ININFO_message("  sval -> svv") ; */
-     for( ii=0 ; ii < nv ; ii++ ) svv[ii] = (float)sval[ii] ;
+ININFO_message("  sval -> svv") ;
+     for( ii=0 ; ii < pp ; ii++ ) svv[ii] = (float)sval[ii] ;
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
    }
 
    if( wss != ws ) free(wss) ;
@@ -940,7 +984,7 @@ static void DR_svd_double( int m, int n, double *a, double *s, double *u, double
            aj = aa + j*mm ;
            for( i=0 ; i < mm ; i++ ) if( aj[i] != 0.0 ) break ;
            if( i == mm ){
-/* ININFO_message("mangling all zero column %d",j) ; */
+ININFO_message("mangling all zero column %d",j) ;
              for( i=0 ; i < mm ; i++ ) aj[i] = (drand48()-0.5)*arep ;
            }
          }
@@ -975,33 +1019,39 @@ static void DR_svd_double( int m, int n, double *a, double *s, double *u, double
    /*--- 10 Jan 2007: sort the singular values and columns of U and V ---*/
 
    if( n > 1 && svd_sort != 0 ){
-     double *sv , *uv ; int *iv , jj,kk ;
+     double *sv ; int *iv , jj,kk ;
      sv = (double *)malloc(sizeof(double)*n) ;
      iv = (int *)   malloc(sizeof(int)   *n) ;
      for( kk=0 ; kk < n ; kk++ ){
        iv[kk] = kk ; sv[kk] = (svd_sort > 0) ? s[kk] : -s[kk] ;
      }
-/* ININFO_message("sorting sv") ; */
+ININFO_message("sorting sv") ;
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
      qsort_doubleint( n , sv , iv ) ;
+ININFO_message(" -- sorted") ;
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
      if( u != NULL ){
-       double *cc = (double *)calloc(sizeof(double),m*n) ;
-/* ININFO_message("copying u") ; */
+       double *cc ;
+ININFO_message("malloc-ing cc: n=%d",n) ;
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
+       cc = (double *)calloc(sizeof(double),m*n) ;
+ININFO_message("copying u") ;
        AAmemcpy( cc , u , sizeof(double)*m*n ) ;
        for( jj=0 ; jj < n ; jj++ ){
-/* ININFO_message(" u[%d] <- cc[%d]",jj,kk) ; */
+ININFO_message(" u[%d] <- cc[%d]",jj,kk) ;
          kk = iv[jj] ;  /* where the new jj-th col came from */
          AAmemcpy( u+jj*m , cc+kk*m , sizeof(double)*m ) ;
        }
-/* ININFO_message("freeing cc") ; */
+ININFO_message("freeing cc") ;
        free((void *)cc) ;
-/* ININFO_message("cc is freed") ; */
+ININFO_message("cc is freed") ;
      }
      if( v != NULL ){
        double *cc ;
-/* ININFO_message("malloc-ing cc: n=%d",n) ; */
-/* ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;*/
+ININFO_message("malloc-ing cc: n=%d",n) ;
+ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
        cc = (double *)calloc(sizeof(double),n*n) ;
-/* ININFO_message("copying cc <- v") ; */
+ININFO_message("copying cc <- v") ; 
        AAmemcpy( cc , v , sizeof(double)*n*n ) ;
        for( jj=0 ; jj < n ; jj++ ){
          kk = iv[jj] ;
@@ -1009,7 +1059,7 @@ static void DR_svd_double( int m, int n, double *a, double *s, double *u, double
        }
        free((void *)cc) ;
      }
-/* ININFO_message("getting s back") ; */
+ININFO_message("getting s back") ;
      for( kk=0 ; kk < n ; kk++ )
        s[kk] = (svd_sort > 0) ? sv[kk] : -sv[kk] ;
      free((void *)iv) ; free((void *)sv) ;
