@@ -13,6 +13,7 @@
     -- 3dTcorrMap-like scan through whole brain as seed    -- TBD
    ++ Per-subject covariates                               -- DONE!
    ++ Send per-subject correlations to AFNI (as an option) -- DONE!
+   ++ Allow a sub-range of time indexes                    -- TBD
 ***/
 
 #include "mrilib.h"
@@ -34,6 +35,10 @@ static int verb  = 1 ;  /* default verbosity level */
 static int debug = 0 ;  /* default non-debug mode */
 
 static unsigned short xran[3] = { 0x330e , 0x747a , 0x9754 } ;
+
+static int tbot=999999999 , ttop = 0 ;  /* 23 Apr 2012 */
+#undef  USE_TRANGE
+#define USE_TRANGE (ttop-tbot > 8)
 
 #undef  UINT32
 #define UINT32 unsigned int  /* 20 May 2010 */
@@ -215,10 +220,11 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 
    /* get data element */
 
-   if (!THD_is_ondisk(fname)) {
-      GQUIT("not on disk");
-   }
+   if (!THD_is_ondisk(fname))
+     GQUIT("not on disk") ;
+
    nel = NI_read_element_fromfile(fname) ;
+
    if( nel == NULL || nel->type != NI_ELEMENT_TYPE )
      GQUIT("not properly formatted") ;
    if( strcmp(nel->name,"3dGroupInCorr") != 0 )
@@ -330,7 +336,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    } else if( nbytes_dfname < nbytes_needed ){
      char mess[THD_MAX_NAME+1024] ;
      sprintf(mess,"datafile %s has %s bytes but needs at least %s",
-              dfname , 
+              dfname ,
               commaized_integer_string(nbytes_dfname) ,
               commaized_integer_string(nbytes_needed) ) ;
      GQUIT(mess) ;
@@ -547,10 +553,35 @@ void GRINCOR_many_dotprod( MRI_shindss *shd , float **vv , float **ddp )
        for( nbad=iv=0 ; iv < nvec ; iv++ ){
          if( !isfinite(ddp[ids][iv]) ){ ddp[ids][iv] = 0.0f; nbad++; }
        }
-       if( nbad > 0 ) WARNING_message("GIC: %d bad correlations in dataset #%d",nbad,ids) ;
+       if( nbad > 0 )
+         WARNING_message("GIC: %d bad correlations in dataset #%d",nbad,ids) ;
      }
    }
 #endif
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Remove the mean and make the sum of squares = 1. */
+
+void GRINCOR_standardize_vector( int nv , float *vv )
+{
+   int ibot=0 , itop=nv-1 , ii ; float vs , vq ;
+
+   if( USE_TRANGE ){
+     ibot = tbot ; if( ttop < itop ) itop = ttop ;
+   }
+
+   for( vs=0.0f,ii=ibot ; ii <= itop ; ii++ ) vs += vv[ii] ;
+   vs /= (itop-ibot+1) ;
+   for( vq=0.0f,ii=ibot ; ii <= itop ; ii++ ){
+     vv[ii] -= vs ; vq += vv[ii] * vv[ii] ;
+   }
+   if( vq > 0.0f ){
+     vq = 1.0f / sqrtf(vq) ;
+     for( ii=ibot ; ii <= itop ; ii++ ) vv[ii] *= vq ;
+   }
 
    return ;
 }
@@ -1418,7 +1449,7 @@ int main( int argc , char *argv[] )
 "                 if you include the extension. See also -sdset_TYPE option.\n"
 "                 for controlling output format.\n"
 "                 The node number specifies the seed node. Because you might\n"
-"                 have two surfaces (-LRpairs option in 3dSetupGroupInCorr)\n"  
+"                 have two surfaces (-LRpairs option in 3dSetupGroupInCorr)\n"
 "                 you can add 'L', or 'R' to the node index to specify its\n"
 "                 hemisphere.\n"
 "                 For example:\n"
@@ -1498,7 +1529,7 @@ int main( int argc , char *argv[] )
      }
 
      if( strncasecmp(argv[nopt],"-sdset_",7) == 0 ){
-       oform = SUMA_FormatFromFormString(argv[nopt]+7); 
+       oform = SUMA_FormatFromFormString(argv[nopt]+7);
        if (oform != SUMA_ERROR_DSET_FORMAT) {
          nopt++ ; continue ;
        } else {
@@ -1762,12 +1793,12 @@ int main( int argc , char *argv[] )
      else                     { bname = "XYZAVE" ; bmode = XYZ_MODE ; }
      WARNING_message("GIC: seedrad=0 means -batch %s is changed to %s",bold,bname) ;
    }
-   
+
    if (bmode == NODE_MODE && seedrad != 0.0f) {
       WARNING_message("GIC: seedrad must be 0 with NODE mode.\n"
                       "     Resetting seedrad of %f to 0.0\n", seedrad);
       seedrad = 0.0;
-   }  
+   }
 
    if( shd_AAA == NULL ) ERROR_exit("GIC:  !! You must use the '-setA' option !!") ;
 
@@ -2274,7 +2305,7 @@ int main( int argc , char *argv[] )
    NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
    free(bricklabels) ;
 
-   /* ZSS: set surface attributes [note Ziad's TERRIBLE use of spaces] 
+   /* ZSS: set surface attributes [note Ziad's TERRIBLE use of spaces]
             Perhaps, but   at least      he wraps at 80             . */
 
    if (shd_AAA->nnode[0] >= 0) {
@@ -2297,16 +2328,16 @@ int main( int argc , char *argv[] )
      }
 
    } else {       /* batch mode ==> setup internally */
-     if (bmode != NODE_MODE) { 
+     if (bmode != NODE_MODE) {
       giset = GRINCOR_setup_dataset( nelcmd ) ;
       if( giset == NULL )
          ERROR_exit("Can't setup batch mode dataset for some reason :-(") ;
      } else {
       giset = (GICOR_setup*)calloc(1,sizeof(GICOR_setup)) ;
       if (!SUMA_init_GISET_setup(NULL , nelcmd, giset)) {
-         ERROR_exit("Failed to setup batch mode dataset for some reason >:-(") ; 
+         ERROR_exit("Failed to setup batch mode dataset for some reason >:-(") ;
       }
-     }  
+     }
    }
 
    NI_free_element(nelcmd) ;  /* setup is done (here or there) */
@@ -2410,7 +2441,7 @@ int main( int argc , char *argv[] )
        char cline[6666], buf[666] , *cpt ; static int nbatch=0 ;
        static NI_str_array *bsar=NULL ;
        static int nwarn=0;
-       
+
        if( bfp == NULL && nbatch > 0 ) goto GetOutOfDodge ;  /* done */
 
        atim = btim = NI_clock_time() ;  /* start timer, for user info */
@@ -2442,7 +2473,7 @@ int main( int argc , char *argv[] )
        switch( bmode ){  /* each mode must create the correct nelcmd NI_element */
          default:
            ERROR_message("GIC: you should never see this message!"); goto GetOutOfDodge;
-         
+
          case NODE_MODE:
             if( bsar->num != 2) {
                ERROR_message("GIC: bad batch command line: "
@@ -2473,17 +2504,17 @@ int main( int argc , char *argv[] )
                               "or"
                               "   %s L%s\n"
                               "This message is only shown once.\n",
-                               bsar->str[1], 
+                               bsar->str[1],
                                bsar->str[0], bsar->str[1],
                                bsar->str[0], bsar->str[1]);
-                  
+
                }
                qijk = (int)strtod(bsar->str[1],NULL);
             }
             sprintf( buf , "%d" , qijk ) ;
             NI_set_attribute( nelcmd , "index" , buf ) ;
             break ;
-            
+
          case XYZPV_MODE:   /* x y z */
          case XYZ_MODE:     /* x y z */
          case IJKPV_MODE:   /* i j k */
@@ -2799,14 +2830,14 @@ int main( int argc , char *argv[] )
        goto LoopBack ;
 
      }
-     
+
      /** boomerang message **/
-     { 
+     {
        char *boomerang = NI_get_attribute(nelcmd,"boomerang_msg");
-       if (nelset && boomerang) 
+       if (nelset && boomerang)
           NI_set_attribute(nelset, "boomerang_msg", boomerang);
      }
-     
+
      /**--- throw away the message from AFNI ---**/
 
      NI_free_element( nelcmd ) ;
@@ -3630,7 +3661,7 @@ GICOR_setup * GRINCOR_setup_dataset( NI_element *nel )
 }
 
 /*---------------------------------------------------------------------------*/
-int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel, 
+int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
                                 char *target_name )
 {
 
@@ -3645,58 +3676,58 @@ int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
    NI_str_array *labar=NULL ;
    long sszz=0;
    int LocalHead = NOPE;
-   
+
    if( nel == NULL || nel->vec_num < 2 ) return(-1) ;
 
    if (giset->nnode_domain[0] <= 0 && giset->nnode_domain[1] <= 0) {
       ERROR_message("Bad values");
       return;
    }
-   
+
    if (giset->nnode_domain[1] > 0) {
       targetv[0] = SUMA_ModifyName(target_name, "append", ".lh", NULL);
       targetv[1] = SUMA_ModifyName(target_name, "append", ".rh", NULL);
    } else {
       targetv[0] = SUMA_copy_string(target_name);
    }
-   
+
    if (sdsetv[0] == NULL) { /* create output sets */
       for (i=0; i<2; ++i) {
          if (targetv[i]) {
             SUMA_LHv("Working %s\n", targetv[i]);
             /* dset names */
-            sdsetv[i] = SUMA_CreateDsetPointer (targetv[i], 
+            sdsetv[i] = SUMA_CreateDsetPointer (targetv[i],
                                         SUMA_NODE_BUCKET,
                                         NULL,
                                         NULL,
                                         giset->nnode_domain[i]);
             sprintf(giset->sdset_ID[i],"%s", SDSET_ID(sdsetv[i]));
-            
+
             SUMA_LHv("Adding columns %d\n", i);
             /* add the columns */
             Ti = (int *) SUMA_calloc(SDSET_VECLEN(sdsetv[i]), sizeof(int));
             for (ii=0; ii <SDSET_VECLEN(sdsetv[i]); ++ii) Ti[ii]=ii;
-            SUMA_AddDsetNelCol (sdsetv[i], "node index", 
+            SUMA_AddDsetNelCol (sdsetv[i], "node index",
                                 SUMA_NODE_INDEX, Ti, NULL, 1);
             SUMA_free(Ti); Ti=NULL;
 
             if (!(atr = NI_get_attribute( nel , "target_nvals" ))) {
                nvals = giset->nvals;
             } else {
-               nvals = (int)strtod(atr,NULL) ;  nvals = MAX(1,nvals);     
+               nvals = (int)strtod(atr,NULL) ;  nvals = MAX(1,nvals);
             }
-         
+
             if (nvals < 1) {
                WARNING_message("Bad nvals %d. Going with 6\n",nvals);
                nvals = 6;
             }
-            
+
             if (!(atr = NI_get_attribute( nel , "target_labels" ))) {
                atr = giset->brick_labels;
             }
             if( atr != NULL )
                labar = NI_decode_string_list( atr , ";" ) ;
-            
+
             for( vv=0 ; vv < nvals ; vv++ ){
                if (labar != NULL && vv < labar->num) atr = labar->str[vv];
                else if (vv < 6) {
@@ -3710,25 +3741,25 @@ int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
                                 SUMA_NODE_FLOAT, NULL, NULL, 1);
                } else { /* zscore */
                   SUMA_AddDsetNelCol (sdsetv[i], atr,
-                                SUMA_NODE_ZSCORE, NULL, NULL, 1);  
+                                SUMA_NODE_ZSCORE, NULL, NULL, 1);
                }
             }
             if (labar) SUMA_free_NI_str_array(labar); labar=NULL;
          }
       }
    }
-   
+
    /* have dsets, populate them */
    if (!SUMA_PopulateDsetsFromGICORnel(nel, giset, sdsetv)) {
       SUMA_S_Err("Failed to populate. Not fun.");
       return;
    }
-   
+
    /* write them and quit */
    for (i=0; i<2; ++i) {
       if (targetv[i]) {
          SUMA_NewDsetID2(sdsetv[i],targetv[i]);
-         if (!(oname = SUMA_WriteDset_ns (targetv[i], sdsetv[i], 
+         if (!(oname = SUMA_WriteDset_ns (targetv[i], sdsetv[i],
                                        oform, 1, 1))) {
             ERROR_message("Failed to write %s\n", targetv[i]);
          } else {
@@ -3752,7 +3783,7 @@ int GRINCOR_output_dataset( GICOR_setup *giset, NI_element *nel, char *pref )
       /* go to surfac output */
       return(GRINCOR_output_srf_dataset(giset, nel, pref));
    }
-   
+
    /* copy NIML data into dataset */
 
    nvec = nel->vec_len ;
