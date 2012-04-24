@@ -55,6 +55,7 @@ void memplot_to_postscript( char *fname , MEM_plotdata *mp )
       if( new_thick < 0.0 ){           /* 21 Mar 2001: negative thickness codes */
          int thc = (int)(-new_thick) ;
          switch( thc ){
+            case THCODE_FRECT:
             case THCODE_RECT:{        /* rectangle */
                x1 = 0.499 + PSIZE * (1.0 - MEMPLOT_Y1(mp,ii)) ;
                x2 = 0.499 + PSIZE * (1.0 - MEMPLOT_Y2(mp,ii)) ;

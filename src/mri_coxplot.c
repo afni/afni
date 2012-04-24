@@ -116,6 +116,7 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
       if( new_thick < 0.0 ){               /* special negative thickness codes */
          int thc = (int)(-new_thick) ;
          switch( thc ){
+            case THCODE_FRECT:
             case THCODE_RECT:{        /* rectangle */
                int xb,yb , xt,yt ;
                int w,h ;

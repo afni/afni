@@ -241,6 +241,20 @@ void plotrect_memplot( float x1 , float y1 , float x2 , float y2 ) /* 21 Mar 200
    return ;
 }
 
+void plotfrect_memplot( float x1 , float y1 , float x2 , float y2 ) /* 24 Apr 2012 */
+{
+   MEM_plotdata * mp ;
+
+   if( active_plot < 0 || active_plot >= num_plotar ||
+       num_plotar == 0 || plotar == NULL            ||
+       plotar[active_plot] == NULL                    ) return ;
+
+   mp = plotar[active_plot] ;
+
+   ADDTO_MEMPLOT( mp , x1,y1,x2,y2 , active_color , -THCODE_FRECT ) ;
+   return ;
+}
+
 void plotcirc_memplot( float x1 , float y1 , float rad ) /* 10 Mar 2002 */
 {
    MEM_plotdata * mp ;
