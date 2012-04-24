@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , APR , 2012 , RWC , "3dDeconvolve" , MINOR , TYPE_BUG_FIX ,
+  { 24 , APR , 2012 , RWC , "1dplot" , MINOR , TYPE_NEW_OPT ,
+   "Add censor stuff to 1dplot, for Colm" ,
+   NULL } ,
+
+ { 18 , APR , 2012 , RWC , "3dDeconvolve" , MINOR , TYPE_BUG_FIX ,
    "Patch BLOCK and dmBLOCK to have their old non-unit-peak behavior" ,
    "New functions UBLOCK and dmUBLOCK now have the unit-peak behavior." } ,
 
