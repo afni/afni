@@ -50,6 +50,12 @@
 afni_history_struct rickr_history[] = {
 
  { 17, APR, 2012, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "if surface data with generic prefix, append surf-type suffix",
+   "Done to fix ANOVA commands on surface.\n"
+   "Thanks to R Ray for bringing this up."
+ } ,
+
+ { 17, APR, 2012, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "added atlas/ROI label use with <> range selectors (MCW_get_angle_range)",
    NULL
  } ,
