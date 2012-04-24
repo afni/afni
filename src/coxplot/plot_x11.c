@@ -227,6 +227,7 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
          int thc = (int)(-new_thick) ;
          switch( thc ){  /* default is to do nothing (e.g., thd = THCODE_INVALID) */
 
+            case THCODE_FRECT:
             case THCODE_RECT:{        /* rectangle */
                short xb,yb , xt,yt ;
                unsigned short w,h ;
@@ -238,7 +239,7 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
                if( y1 < y2 ){ yb=y1; yt=y2; } else { yb=y2; yt=y1; }
                w = xt-xb ; h = yt-yb ;
                if( w || h ){
-                 if( rectfill )
+                 if( rectfill || thc == THCODE_FRECT )
                    XFillRectangle( old_dpy,old_w,old_GC , xb,yb,w,h ) ;
                  else
                    XDrawRectangle( old_dpy,old_w,old_GC , xb,yb,w,h ) ;

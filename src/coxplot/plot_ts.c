@@ -174,6 +174,41 @@ void plot_ts_setthik( float thk )
    THIK = (thk >= 0.0f && thk <= 0.05001f) ? thk : 0.003f ;
 }
 
+/*-----------------------------------------------------------------------*/
+
+#undef  VBOX
+#define VBOX  1
+
+typedef struct {
+  int code ;
+  int ygr ;
+  float x1 , x2 ;
+  float rr , gg , bb ;
+} TS_vbox ;
+
+static int     nvbox = 0 ;
+static TS_vbox *vbox = NULL ;
+
+void plot_ts_add_vbox( int ygr , float x1 , float x2 ,
+                       float rr , float gg , float bb )
+{
+   vbox = (TS_vbox *)realloc( (void *)vbox , sizeof(TS_vbox)*(nvbox+1) ) ;
+   vbox[nvbox].code = VBOX ;
+   vbox[nvbox].ygr  = ygr ;
+   vbox[nvbox].x1   = x1 ;
+   vbox[nvbox].x2   = x2 ;
+   vbox[nvbox].rr   = rr ;
+   vbox[nvbox].gg   = gg ;
+   vbox[nvbox].bb   = bb ;
+   nvbox++ ;
+}
+
+void plot_ts_clear_vbox(void)
+{
+   if( vbox != NULL ) free(vbox) ;
+   vbox = NULL ; nvbox = 0 ; return ;
+}
+
 /*-----------------------------------------------------------------------
   Plot some timeseries data into an in-memory plot structure, which
   must be displayed later in some fashion.
@@ -198,6 +233,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    int yall , ysep ;
    float *ylo , *yhi , yll,yhh ;
    MEM_plotdata *mp ;
+   float xb1,xb2,yb1,yb2 ; int iv ;
 
    /*-- sanity check --*/
 
@@ -389,10 +425,22 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
       /* plot axes */
 
-      set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-      set_thick_memplot( 0.002f ) ;
       floatfix(ybot) ; floatfix(ytop) ;
       plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
+
+      /* 24 Apr 2012: add vbox stuff now, before other plotting */
+
+      for( iv=0 ; iv < nvbox ; iv++ ){
+        set_color_memplot( vbox[iv].rr , vbox[iv].gg , vbox[iv].bb ) ;
+        set_thick_memplot( 0 ) ;
+        xb1 = vbox[iv].x1 ; xb2 = vbox[iv].x2 ;
+        yb1 = ybot        ; yb2 = ytop        ;
+        zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2); 
+        plotfrect_memplot( xb1,yb1 , xb2,yb2 ) ;
+      }
+
+      set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+      set_thick_memplot( 0.002f ) ;
       plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)+2*(nnay>0)] ) ;
 
       /* plot data */
@@ -458,6 +506,19 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          floatfix(ylo[jj]) ; floatfix(yhi[jj]) ;
          plotpak_set( xobot,xotop , yll,yhh , xbot,xtop , ylo[jj],yhi[jj] , 1 ) ;
 
+         /* 24 Apr 2012: add vbox stuff now, before other plotting */
+
+         set_thick_memplot(0.0f) ;
+         for( iv=0 ; iv < nvbox ; iv++ ){
+           if( vbox[iv].ygr == jj || vbox[iv].ygr < 0 ){
+             set_color_memplot( vbox[iv].rr , vbox[iv].gg , vbox[iv].bb ) ;
+             xb1 = vbox[iv].x1 ; xb2 = vbox[iv].x2 ;
+             yb1 = ylo[jj]     ; yb2 = yhi[jj]     ;
+             zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2); 
+             plotfrect_memplot( xb1,yb1 , xb2,yb2 ) ;
+           }
+         }
+
          if( nnay > 0 ){
            nnay = 1 ;
            pbot = p10(ylo[jj]) ; ptop = p10(yhi[jj]) ;
@@ -510,6 +571,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    set_thick_memplot( 0.0 ) ;
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   plot_ts_clear_vbox() ;
 
    if( xx != x ) free(xx) ;
    free(ylo) ; free(yhi) ;

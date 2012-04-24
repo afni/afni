@@ -59,8 +59,8 @@ void ppmd_filledrectangle( byte *pixels, int cols, int rows,
 
     /* Draw. */
     for ( row = cy; row < cy + cheight; ++row )
-	for ( col = cx; col < cx + cwidth; ++col )
-            ASSPIX(pixels,col,row,r,g,b) ;
+      for ( col = cx; col < cx + cwidth; ++col )
+          ASSPIX(pixels,col,row,r,g,b) ;
 }
 
 /*----------------------------------------------------------------------------*/

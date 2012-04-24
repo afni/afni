@@ -48,202 +48,289 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId *id ) ;
 #define PNG_MODE      4
 
 /*-----------------------------------------------------------------*/
-void usage_1dplot(int detail) 
+/* Stuff for censor color overlay boxes (cf. 3dDeconvolve.c) */
+
+static int           num_CENSOR = 0 ;
+static int_triple   *abc_CENSOR = NULL ;
+static float_triple *rgb_CENSOR = NULL ;
+
+static float_triple  rgb_NOW = { 1.0f , 0.9f , 0.3f } ;
+
+static int  num_blocks = 0 ;
+static int *block_list = NULL ;
+
+static int       num_censor_array = 0    ;
+static float        *censor_array = NULL ;
+static float_triple *censor_rgb   = NULL ;
+static float_triple  censor_rgbAA = { 1.0f , 0.9f , 0.3f } ;
+
+/*-----------------------------------------------------------------*/
+void usage_1dplot(int detail)
 {
-        printf(
-"Usage: 1dplot [options] tsfile ...\n"
-"Graphs the columns of a *.1D time series file to the X11 screen.\n"
-"\n"
-"Options:\n"
-" -install   = Install a new X11 colormap.\n"
-" -sep       = Plot each column in a separate sub-graph.\n"
-" -one       = Plot all columns together in one big graph.\n"
-"                [default = -sep]\n"
-" -sepscl    = Plot each column in a separate sub-graph\n"
-"              and allow each sub-graph to have a different\n"
-"              y-scale.  -sepscl is meaningless with -one!\n"
-" -noline    = Don't plot the connecting lines (also implies '-box').\n"
-" -NOLINE    = Same as '-noline', but will not try to plot values outside\n"
-"              the rectangular box that contains the graph axes.\n"
-" -box       = Plot a small 'box' at each data point, in addition\n"
-"              to the lines connecting the points.\n"
-"             * The box size can be set via the environment variable\n"
-"               AFNI_1DPLOT_BOXSIZE; the value is a fraction of the\n"
-"               overall plot size.  The standard box size is 0.006.\n"
-"               Example with a bigger box:\n"
-"                 1dplot -DAFNI_1DPLOT_BOXSIZE=0.01 -box A.1D\n"
-"\n"
-"           ** The '-norm' options below can be useful for\n"
-"               plotting data with different value ranges on\n"
-"               top of each other using '-one':\n"
-" -norm2     = Independently scale each time series plotted to\n"
-"              have L_2 norm = 1 (sum of squares).\n"
-" -normx     = Independently scale each time series plotted to\n"
-"              have max absolute value = 1 (L_infinity norm).\n"
-" -norm1     = Independently scale each time series plotted to\n"
-"              have max sum of absolute values = 1 (L_1 norm).\n"
-"\n"
-" -x  X.1D   = Use for X axis the data in X.1D.\n"
-"              Note that X.1D should have one column\n"
-"              of the same length as the columns in tsfile. \n"
-" N.B.: -x will override -dx and -xzero; -xaxis still has effects\n"
-" -xl10 X.1D = Use log10(X.1D) as the X axis.\n"
-"\n"
-" -dx xx     = Spacing between points on the x-axis is 'xx'\n"
-"                [default = 1] SYNONYMS: '-dt' and '-del'\n"
-" -xzero zz  = Initial x coordinate is 'zz' [default = 0]\n"
-"                SYNONYMS: '-tzero' and '-start'\n"
-" -nopush    = Don't 'push' axes ranges outwards.\n"
-" -ignore nn = Skip first 'nn' rows in the input file\n"
-"                [default = 0]\n"
-" -use mm    = Plot 'mm' points [default = all of them]\n"
-" -xlabel aa = Put string 'aa' below the x-axis\n"
-"                [default = no axis label]\n"
-" -ylabel aa = Put string 'aa' to the left of the y-axis\n"
-"                [default = no axis label]\n"
-" -plabel pp = Put string 'pp' atop the plot.\n"
-"              Some characters, such as '_' have\n"
-"              special formatting effects. You \n"
-"              can escape that with '\'. For example:\n"
-"        echo 2 4.5 -1 | 1dplot -plabel 'test_underscore' -stdin\n"
-"              versus\n"
-"        echo 2 4.5 -1 | 1dplot -plabel 'test\\_underscore' -stdin\n"
-" -title pp = Same as -plabel, but only works with -ps/-png/-jpg options.\n"
-" -wintitle pp = Set string 'pp' as the title of the frame \n"
-"                containing the plot. Default is based on input.\n"
-#if 0
-"             Use -plabel instead for full interoperability.\n"
-"             [In X11 mode, the X11 startup 'consumes' the '-title' ]\n"
-"             [before the program scans the command line for options]\n"
-#endif
-"\n"
-" -stdin     = Don't read from tsfile; instead, read from\n"
-"              stdin and plot it. You cannot combine input\n"
-"              from stdin and tsfile(s).  If you want to do so,\n"
-"              use program 1dcat first.\n"
-"\n"
-" -ps        = Don't draw plot in a window; instead, write it\n"
-"              to stdout in PostScript format.\n"
-"             * If you view the result in 'gv', you should turn\n"
-"               'anti-alias' off, and switch to landscape mode.\n"
-"             * You can use the 'gs' program to convert PostScript\n"
-"               to other formats; for example, a .bmp file:\n"
-"            1dplot -ps ~/data/verbal/cosall.1D | \n"
-"             gs -r100 -sOutputFile=fred.bmp -sDEVICE=bmp256 -q -dBATCH -\n"
-"\n"
-" -jpg fname  } = Render plot to an image and save to a file named\n"
-" -jpeg fname } = 'fname', in JPEG mode or in PNG mode.\n"
-" -png fname  } = The default image width is 1024 pixels; to change\n"
-"                 this value to 2000 pixels (say), do\n"
-"                   setenv AFNI_1DPLOT_IMSIZE 2000\n"
-"                 before running 1dplot.  Widths over 2000 may start\n"
-"                 to look odd, and will run more slowly.\n"
-"               * PNG files will be smaller than JPEG, and are\n"
-"                 compressed without loss.\n"
-"               * PNG output requires that the netpbm program\n"
-"                 pnmtopng be installed somewhere in your PATH.\n"
-"\n"
-" -pngs SIZE fname } = a convenience function equivalent to\n"
-" -jpgs SIZE fname } = setenv AFNI_1DPLOT_IMSIZE SIZE and \n"
-" -jpegs SIZE fname} = -png (or -jpg) fname\n"
-"\n"
-" -ytran 'expr'   = Transform the data along the y-axis by\n"
-"                   applying the expression to each input value.\n"
-"                   For example:\n"
-"                     -ytran 'log10(z)'\n"
-"                   will take log10 of each input time series value\n"
-"                   before plotting it.\n"
-"                 * The expression should have one variable (any letter\n"
-"                   from a-z will do), which stands for the time series\n"
-"                   data to be transformed.\n"
-"                 * An expression such as 'sqrt(x*x+i)' will use 'x'\n"
-"                   for the time series value and use 'i' for the time\n"
-"                   index (starting at 0) -- in this way, you can use\n"
-"                   time-dependent transformations, if needed.\n"
-"                 * This transformation applies to all input time series\n"
-"                   (at present, there is no way to transform different\n"
-"                   time series in distinct ways inside 1dplot).\n"
-"                 * '-ytran' is applied BEFORE the various '-norm' options.\n"
-"\n"
-" -xaxis b:t:n:m  = Set the x-axis to run from value 'b' to\n"
-"                   value 't', with 'n' major divisions and\n"
-"                   'm' minor tic marks per major division.\n"
-"                   For example:\n"
-"                     -xaxis 0:100:5:20\n"
-"                   Setting 'n' to 0 means no tic marks or labels.\n"
-"\n"
-" -yaxis b:t:n:m  = Similar to above, for the y-axis.  These\n"
-"                   options override the normal autoscaling\n"
-"                   of their respective axes.\n"
-"\n"
-" -ynames a b ... = Use the strings 'a', 'b', etc., as\n"
-"                   labels to the right of the graphs,\n"
-"                   corresponding to each input column.\n"
-"                   These strings CANNOT start with the\n"
-"                   '-' character.\n"
-"             N.B.: Each separate string after '-ynames'\n"
-"                   is taken to be a new label, until the\n"
-"                   end of the command line or until some\n"
-"                   string starts with a '-'.  In particular,\n"
-"                   This means you CANNOT do something like\n"
-"                     1dplot -ynames a b c file.1D\n"
-"                   since the input filename 'file.1D' will\n"
-"                   be used as a label string, not a filename.\n"
-"                   Instead, you must put another option between\n"
-"                   the end of the '-ynames' label list, OR you\n"
-"                   can put a single '-' at the end of the label\n"
-"                   list to signal its end:\n"
-"                     1dplot -ynames a b c - file.1D\n"
-"\n"
-" -volreg         = Makes the 'ynames' be the same as the\n"
-"                   6 labels used in plug_volreg for\n"
-"                   Roll, Pitch, Yaw, I-S, R-L, and A-P\n"
-"                   movements, in that order.\n"
-"\n"
-" -thick          = Each time you give this, it makes the line\n"
-"                   thickness used for plotting a little larger.\n"
-"                   [An alternative to using '-DAFNI_1DPLOT_THIK=...']\n"
-" -THICK          = Twice the power of '-thick' at no extra cost!!\n"
-"\n"
-" -Dname=val      = Set environment variable 'name' to 'val'\n"
-"                   for this run of the program only:\n"
-" 1dplot -DAFNI_1DPLOT_THIK=0.01 -DAFNI_1DPLOT_COLOR_01=blue '1D:3 4 5 3 1 0'\n"
-"\n"
-"You may also select a subset of columns to display using\n"
-"a tsfile specification like 'fred.1D[0,3,5]', indicating\n"
-"that columns #0, #3, and #5 will be the only ones plotted.\n"
-"For more details on this selection scheme, see the output\n"
-"of '3dcalc -help'.\n"
-"\n"
-"Example: graphing a 'dfile' output by 3dvolreg, when TR=5:\n"
-"   1dplot -volreg -dx 5 -xlabel Time 'dfile[1..6]'\n"
-"\n"
-"You can also input more than one tsfile, in which case the files\n"
-"will all be plotted.  However, if the files have different column\n"
-"lengths, the shortest one will rule.\n"
-"\n"
-"The colors for the line graphs cycle between black, red, green, and\n"
-"blue.  You can alter these colors by setting Unix environment\n"
-"variables of the form AFNI_1DPLOT_COLOR_xx -- cf. README.environment.\n"
-"You can alter the thickness of the lines by setting the variable\n"
-"AFNI_1DPLOT_THIK to a value between 0.00 and 0.05 -- the units are\n"
-"fractions of the page size.\n"
-"\n"
-"LABELS\n"
-"------\n"
-"Besides normal alphabetic text, the various labels can include some\n"
-"special characters, using TeX-like escapes starting with '\\'.\n"
-"Also, the '^' and '_' characters denote super- and sub-scripts,\n"
-"respectively.  The following command shows many of the escapes:\n"
-" 1deval -num 100 -expr 'J0(t/4)' | 1dplot -stdin -thick \\\n"
-" -xlabel '\\alpha\\beta\\gamma\\delta\\epsilon\\zeta\\eta^{\\oplus\\dagger}\\times c' \\\n"
-" -ylabel 'Bessel Function \\green J_0(t/4)'     \\\n"
-" -plabel '\\Upsilon\\Phi\\Chi\\Psi\\Omega\\red\\leftrightarrow\\blue\\partial^{2}f/\\partial x^2'\n"
-"\n"
-            TS_HELP_STRING
-           ) ;
-      PRINT_COMPILE_DATE ;
-      return;
+   printf(
+     "Usage: 1dplot [options] tsfile ...\n"
+     "Graphs the columns of a *.1D time series file to the X11 screen.\n"
+     "\n"
+     "-------\n"
+     "OPTIONS\n"
+     "-------\n"
+     " -install   = Install a new X11 colormap.\n"
+     " -sep       = Plot each column in a separate sub-graph.\n"
+     " -one       = Plot all columns together in one big graph.\n"
+     "                [default = -sep]\n"
+     " -sepscl    = Plot each column in a separate sub-graph\n"
+     "              and allow each sub-graph to have a different\n"
+     "              y-scale.  -sepscl is meaningless with -one!\n"
+     " -noline    = Don't plot the connecting lines (also implies '-box').\n"
+     " -NOLINE    = Same as '-noline', but will not try to plot values outside\n"
+     "              the rectangular box that contains the graph axes.\n"
+     " -box       = Plot a small 'box' at each data point, in addition\n"
+     "              to the lines connecting the points.\n"
+     "             * The box size can be set via the environment variable\n"
+     "               AFNI_1DPLOT_BOXSIZE; the value is a fraction of the\n"
+     "               overall plot size.  The standard box size is 0.006.\n"
+     "               Example with a bigger box:\n"
+     "                 1dplot -DAFNI_1DPLOT_BOXSIZE=0.01 -box A.1D\n"
+     "\n"
+     "           ** The '-norm' options below can be useful for\n"
+     "               plotting data with different value ranges on\n"
+     "               top of each other using '-one':\n"
+     " -norm2     = Independently scale each time series plotted to\n"
+     "              have L_2 norm = 1 (sum of squares).\n"
+     " -normx     = Independently scale each time series plotted to\n"
+     "              have max absolute value = 1 (L_infinity norm).\n"
+     " -norm1     = Independently scale each time series plotted to\n"
+     "              have max sum of absolute values = 1 (L_1 norm).\n"
+     "\n"
+     " -x  X.1D   = Use for X axis the data in X.1D.\n"
+     "              Note that X.1D should have one column\n"
+     "              of the same length as the columns in tsfile. \n"
+     " N.B.: -x will override -dx and -xzero; -xaxis still has effects\n"
+     " -xl10 X.1D = Use log10(X.1D) as the X axis.\n"
+     "\n"
+     " -dx xx     = Spacing between points on the x-axis is 'xx'\n"
+     "                [default = 1] SYNONYMS: '-dt' and '-del'\n"
+     " -xzero zz  = Initial x coordinate is 'zz' [default = 0]\n"
+     "                SYNONYMS: '-tzero' and '-start'\n"
+     " -nopush    = Don't 'push' axes ranges outwards.\n"
+     " -ignore nn = Skip first 'nn' rows in the input file\n"
+     "                [default = 0]\n"
+     " -use mm    = Plot 'mm' points [default = all of them]\n"
+     " -xlabel aa = Put string 'aa' below the x-axis\n"
+     "                [default = no axis label]\n"
+     " -ylabel aa = Put string 'aa' to the left of the y-axis\n"
+     "                [default = no axis label]\n"
+     " -plabel pp = Put string 'pp' atop the plot.\n"
+     "              Some characters, such as '_' have\n"
+     "              special formatting effects. You \n"
+     "              can escape that with '\'. For example:\n"
+     "        echo 2 4.5 -1 | 1dplot -plabel 'test_underscore' -stdin\n"
+     "              versus\n"
+     "        echo 2 4.5 -1 | 1dplot -plabel 'test\\_underscore' -stdin\n"
+     " -title pp = Same as -plabel, but only works with -ps/-png/-jpg options.\n"
+     " -wintitle pp = Set string 'pp' as the title of the frame \n"
+     "                containing the plot. Default is based on input.\n"
+     #if 0
+     "             Use -plabel instead for full interoperability.\n"
+     "             [In X11 mode, the X11 startup 'consumes' the '-title' ]\n"
+     "             [before the program scans the command line for options]\n"
+     #endif
+     "\n"
+     " -stdin     = Don't read from tsfile; instead, read from\n"
+     "              stdin and plot it. You cannot combine input\n"
+     "              from stdin and tsfile(s).  If you want to do so,\n"
+     "              use program 1dcat first.\n"
+     "\n"
+     " -ps        = Don't draw plot in a window; instead, write it\n"
+     "              to stdout in PostScript format.\n"
+     "             * If you view the result in 'gv', you should turn\n"
+     "               'anti-alias' off, and switch to landscape mode.\n"
+     "             * You can use the 'gs' program to convert PostScript\n"
+     "               to other formats; for example, a .bmp file:\n"
+     "            1dplot -ps ~/data/verbal/cosall.1D | \n"
+     "             gs -r100 -sOutputFile=fred.bmp -sDEVICE=bmp256 -q -dBATCH -\n"
+     "\n"
+     " -jpg fname  } = Render plot to an image and save to a file named\n"
+     " -jpeg fname } = 'fname', in JPEG mode or in PNG mode.\n"
+     " -png fname  } = The default image width is 1024 pixels; to change\n"
+     "                 this value to 2000 pixels (say), do\n"
+     "                   setenv AFNI_1DPLOT_IMSIZE 2000\n"
+     "                 before running 1dplot.  Widths over 2000 may start\n"
+     "                 to look odd, and will run more slowly.\n"
+     "               * PNG files will be smaller than JPEG, and are\n"
+     "                 compressed without loss.\n"
+     "               * PNG output requires that the netpbm program\n"
+     "                 pnmtopng be installed somewhere in your PATH.\n"
+     "\n"
+     " -pngs SIZE fname } = a convenience function equivalent to\n"
+     " -jpgs SIZE fname } = setenv AFNI_1DPLOT_IMSIZE SIZE and \n"
+     " -jpegs SIZE fname} = -png (or -jpg) fname\n"
+     "\n"
+     " -ytran 'expr'   = Transform the data along the y-axis by\n"
+     "                   applying the expression to each input value.\n"
+     "                   For example:\n"
+     "                     -ytran 'log10(z)'\n"
+     "                   will take log10 of each input time series value\n"
+     "                   before plotting it.\n"
+     "                 * The expression should have one variable (any letter\n"
+     "                   from a-z will do), which stands for the time series\n"
+     "                   data to be transformed.\n"
+     "                 * An expression such as 'sqrt(x*x+i)' will use 'x'\n"
+     "                   for the time series value and use 'i' for the time\n"
+     "                   index (starting at 0) -- in this way, you can use\n"
+     "                   time-dependent transformations, if needed.\n"
+     "                 * This transformation applies to all input time series\n"
+     "                   (at present, there is no way to transform different\n"
+     "                   time series in distinct ways inside 1dplot).\n"
+     "                 * '-ytran' is applied BEFORE the various '-norm' options.\n"
+     "\n"
+     " -xaxis b:t:n:m  = Set the x-axis to run from value 'b' to\n"
+     "                   value 't', with 'n' major divisions and\n"
+     "                   'm' minor tic marks per major division.\n"
+     "                   For example:\n"
+     "                     -xaxis 0:100:5:20\n"
+     "                   Setting 'n' to 0 means no tic marks or labels.\n"
+     "\n"
+     " -yaxis b:t:n:m  = Similar to above, for the y-axis.  These\n"
+     "                   options override the normal autoscaling\n"
+     "                   of their respective axes.\n"
+     "\n"
+     " -ynames a b ... = Use the strings 'a', 'b', etc., as\n"
+     "                   labels to the right of the graphs,\n"
+     "                   corresponding to each input column.\n"
+     "                   These strings CANNOT start with the\n"
+     "                   '-' character.\n"
+     "             N.B.: Each separate string after '-ynames'\n"
+     "                   is taken to be a new label, until the\n"
+     "                   end of the command line or until some\n"
+     "                   string starts with a '-'.  In particular,\n"
+     "                   This means you CANNOT do something like\n"
+     "                     1dplot -ynames a b c file.1D\n"
+     "                   since the input filename 'file.1D' will\n"
+     "                   be used as a label string, not a filename.\n"
+     "                   Instead, you must put another option between\n"
+     "                   the end of the '-ynames' label list, OR you\n"
+     "                   can put a single '-' at the end of the label\n"
+     "                   list to signal its end:\n"
+     "                     1dplot -ynames a b c - file.1D\n"
+     "\n"
+     " -volreg         = Makes the 'ynames' be the same as the\n"
+     "                   6 labels used in plug_volreg for\n"
+     "                   Roll, Pitch, Yaw, I-S, R-L, and A-P\n"
+     "                   movements, in that order.\n"
+     "\n"
+     " -thick          = Each time you give this, it makes the line\n"
+     "                   thickness used for plotting a little larger.\n"
+     "                   [An alternative to using '-DAFNI_1DPLOT_THIK=...']\n"
+     " -THICK          = Twice the power of '-thick' at no extra cost!!\n"
+     "\n"
+     " -Dname=val      = Set environment variable 'name' to 'val'\n"
+     "                   for this run of the program only:\n"
+     " 1dplot -DAFNI_1DPLOT_THIK=0.01 -DAFNI_1DPLOT_COLOR_01=blue '1D:3 4 5 3 1 0'\n"
+     "\n"
+     "You may also select a subset of columns to display using\n"
+     "a tsfile specification like 'fred.1D[0,3,5]', indicating\n"
+     "that columns #0, #3, and #5 will be the only ones plotted.\n"
+     "For more details on this selection scheme, see the output\n"
+     "of '3dcalc -help'.\n"
+     "\n"
+     "Example: graphing a 'dfile' output by 3dvolreg, when TR=5:\n"
+     "   1dplot -volreg -dx 5 -xlabel Time 'dfile[1..6]'\n"
+     "\n"
+     "You can also input more than one tsfile, in which case the files\n"
+     "will all be plotted.  However, if the files have different column\n"
+     "lengths, the shortest one will rule.\n"
+     "\n"
+     "The colors for the line graphs cycle between black, red, green, and\n"
+     "blue.  You can alter these colors by setting Unix environment\n"
+     "variables of the form AFNI_1DPLOT_COLOR_xx -- cf. README.environment.\n"
+     "You can alter the thickness of the lines by setting the variable\n"
+     "AFNI_1DPLOT_THIK to a value between 0.00 and 0.05 -- the units are\n"
+     "fractions of the page size.\n"
+     "\n"
+     "------\n"
+     "LABELS\n"
+     "------\n"
+     "Besides normal alphabetic text, the various labels can include some\n"
+     "special characters, using TeX-like escapes starting with '\\'.\n"
+     "Also, the '^' and '_' characters denote super- and sub-scripts,\n"
+     "respectively.  The following command shows many of the escapes:\n"
+     " 1deval -num 100 -expr 'J0(t/4)' | 1dplot -stdin -thick \\\n"
+     " -xlabel '\\alpha\\beta\\gamma\\delta\\epsilon\\zeta\\eta^{\\oplus\\dagger}\\times c' \\\n"
+     " -ylabel 'Bessel Function \\green J_0(t/4)'     \\\n"
+     " -plabel '\\Upsilon\\Phi\\Chi\\Psi\\Omega\\red\\leftrightarrow\\blue\\partial^{2}f/\\partial x^2'\n"
+     "\n"
+     TS_HELP_STRING
+   ) ;
+
+   printf("\n"
+     "--------------\n"
+     "MARKING BLOCKS\n"
+     "--------------\n"
+     "The following options let you mark blocks along the x-axis.  The intended\n"
+     "application is to mark blocks of time points that are censored out of an\n"
+     "analysis, which is why the options are the same as those in 3dDeconvolve --\n"
+     "but you can mark for any reason, of course.\n"
+     "\n"
+     " -censor_RGB clr   = set the color used for the marking to 'clr', which\n"
+     "                     can be one of the strings below:\n"
+     "                       red green blue yellow violet pink\n"
+     "                   * OR 'clr' can be in the form 'rgbi:rf/gf/bf' where\n"
+     "                     each color intensity (rf, gf, bf) is a number between\n"
+     "                     0.0 and 1.0 -- e.g., white is 'rgbi:1.0/1.0/1.0'.\n"
+     "                     Since the background is white, dark colors don't look\n"
+     "                     good here; for example, pink is defined here as\n"
+     "                     'rgbi:1.0/0.5/0.5'.\n"
+     "                   * The default color is yellow.\n"
+     "                   * You can use '-censor_RGB' more than once.  The color\n"
+     "                     most recently specified previous on the command line\n"
+     "                     is what will be used with the '-censor' and '-CENSORTR'\n"
+     "                     options.  This allows you to mark different blocks\n"
+     "                     with different colors (e.g., if they were censored\n"
+     "                     for different reasons).\n"
+     "\n"
+     " -censor cname     = cname is the filename of censor .1D time series   \n"
+     "                   * This is a file of 1s and 0s, indicating which     \n"
+     "                     time points are to be included (1) and which are  \n"
+     "                     to be excluded (0).                               \n"
+     "                   * The option below may be simpler to use!           \n"
+     "\n"
+     " -CENSORTR clist   = clist is a list of strings that specify time indexes \n"
+     "                       to be removed from the analysis.  Each string is\n"
+     "                       of one of the following forms:                  \n"
+     "                           37 => remove global time index #37          \n"
+     "                         2:37 => remove time index #37 in run #2       \n"
+     "                       37..47 => remove global time indexes #37-47     \n"
+     "                       37-47  => same as above                         \n"
+     "                     2:37..47 => remove time indexes #37-47 in run #2  \n"
+     "                     *:0-2    => remove time indexes #0-2 in all runs  \n"
+     "                    ++ Time indexes within each run start at 0.        \n"
+     "                    ++ Run indexes start at 1 (just be to confusing).  \n"
+     "                    ++ Multiple -CENSORTR options may be used, or      \n"
+     "                        multiple -CENSORTR strings can be given at     \n"
+     "                        once, separated by spaces or commas.           \n"
+     "                    ++ N.B.: 2:37,47 means index #37 in run #2 and     \n"
+     "                        global time index 47; it does NOT mean         \n"
+     "                        index #37 in run #2 AND index #47 in run #2.   \n"
+     " -concat rname      = rname is the filename for list of concatenated runs\n"
+     "                      * 'rname' can be in the format                   \n"
+     "                          '1D: 0 100 200 300'                          \n"
+     "                        which indicates 4 runs, the first of which     \n"
+     "                        starts at time index=0, second at index=100,   \n"
+     "                        and so on.                                     \n"
+     "                      * The only function of '-concat' is for use with \n"
+     "                        '-CENSORTR', to be compatible with 3dDeconvolve\n"
+     "                          [e.g., for plotting motion parameters from]\n"
+     "                          [3dvolreg -1Dfile, where you've cat-enated]\n"
+     "                          [the 1D files from separate runs into one ]\n"
+     "                          [long file for plotting with this program.]\n"
+     "\n"
+     "EXAMPLE:\n"
+     " 1deval -num 100 -expr 'gran(0,1)' | 1dplot -stdin -THICK -CENSORTR 20..30 70..75\n"
+   ) ;
+
+   PRINT_COMPILE_DATE ;
+   return;
 }
 
 int main( int argc , char *argv[] )
@@ -266,7 +353,7 @@ int main( int argc , char *argv[] )
    char autotitle[512]={""}; /* 23 March 2009 */
    float tsbox=0.0f , boxsiz ; int noline=0 ;
 
-   mainENTRY("1dplot main"); machdep(); 
+   mainENTRY("1dplot main"); machdep();
    PRINT_VERSION("1dplot"); AUTHOR("RWC et al.");
 
    boxsiz = AFNI_numenv("AFNI_1DPLOT_BOXSIZE") ;
@@ -319,6 +406,15 @@ int main( int argc , char *argv[] )
          exit(0) ;
       }
 
+#if 0
+     if( strcmp(argv[iarg],"-vbox") == 0 ){   /* HIDDEN: just for testing */
+       float xb1,xb2 ;
+       xb1 = (float)strtod(argv[++iarg],NULL) ;
+       xb2 = (float)strtod(argv[++iarg],NULL) ;
+       plot_ts_add_vbox( -1 , xb1,xb2 , 1.0f,1.0f,0.0f ) ;
+       iarg++ ; continue ;
+     }
+#endif
 
      if( strcmp(argv[iarg],"-") == 0 ){  /* 23 Aug 2006: null option */
        iarg++ ; continue ;
@@ -559,15 +655,148 @@ int main( int argc , char *argv[] )
      }
 #endif
 
+     /*--- censoring stuff -- for Colm -- 24 Apr 2012 ---*/
+
+     if( strcasecmp(argv[iarg],"-censor_RGB") == 0 || strcasecmp(argv[iarg],"-censor_color") == 0 ){
+       float rf,gf,bf ; char *eee ;
+       if( ++iarg >= argc ) ERROR_exit("need argument after %s",argv[iarg-1]) ;
+       rf = gf = bf = -1.0f ; eee = argv[iarg] ;
+       (void)sscanf( eee , "rgbi:%f/%f/%f" , &rf,&gf,&bf ) ;
+       if( rf >= 0.0f && rf <= 1.0f &&
+           gf >= 0.0f && gf <= 1.0f &&
+           bf >= 0.0f && bf <= 1.0f   ){
+         /* OK -- do nothing more here */
+       } else if( strcasecmp(eee,"green") == 0 ){
+         rf = 0.5f; gf = 1.0f; bf = 0.5f;
+       } else if( strcasecmp(eee,"red") == 0 ){
+         rf = 1.0f; gf = 0.3f; bf = 0.3f;
+       } else if( strcasecmp(eee,"blue") == 0 ){
+         rf = 0.5f; gf = 0.5f; bf = 1.0f;
+       } else if( strcasecmp(eee,"purple") == 0 || strcasecmp(eee,"violet") == 0 ){
+         rf = 1.0f; gf = 0.5f; bf = 1.0f;
+       } else if( strcasecmp(eee,"gold") == 0 || strcasecmp(eee,"yellow") == 0 ){
+         rf = 1.0f; gf = 0.9f; bf = 0.3f;
+       } else if( strcasecmp(eee,"pink") == 0 ){
+         rf = 1.0f; gf = 0.5f; bf = 0.5f;
+       } else if( *eee == '#' && *(eee+1) != '\0' ){
+         int le=strlen(eee+1) , val , bas , rr,gg,bb ;
+         val = (int)strtol( eee+1 , NULL , 16 ) ;
+         bas = (le <= 3) ? 16 : 256 ;
+         bb  = val % bas ; val = val / bas ; bf  = bb / ((float)bas) ;
+         gg  = val % bas ; val = val / bas ; gf  = gg / ((float)bas) ;
+         rr  = val % bas ;                   rf  = rr / ((float)bas) ;
+       } else {
+         WARNING_message("%s is not a recognizable color",eee ) ;
+         rf = rgb_NOW.a ; gf = rgb_NOW.b ; bf = rgb_NOW.c ;
+       }
+       rgb_NOW.a = rf ; rgb_NOW.b = gf ; rgb_NOW.c = bf ;
+       iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-CENSOR",7)   == 0 ||
+         strncmp(argv[iarg],"-censorTR",9) == 0   ){
+
+       NI_str_array *nsar ;
+       char *src=malloc(1), *cpt, *dpt ;
+       int ns, r,a,b ; int_triple rab ;
+
+       *src = '\0' ;   /* cat all following options until starts with '-' */
+       for( iarg++ ;
+            iarg < argc && argv[iarg][0] != '-' && !isalpha(argv[iarg][0]) ;
+            iarg++ ){
+         ns = strlen(argv[iarg]) ; if( ns == 0 ) continue ;
+         src = realloc(src,strlen(src)+ns+2) ;
+         strcat(src," ") ; strcat(src,argv[iarg]) ;
+       }
+       if( *src == '\0' ){
+         WARNING_message("Bad argument after -CENSORTR") ; continue ;
+       }
+       nsar = NI_decode_string_list( src , "," ) ; /* break into substrings */
+       for( ns=0 ; ns < nsar->num ; ns++ ){ /* loop over substrings */
+         cpt = nsar->str[ns] ; dpt = strchr(cpt,':') ; r = 0 ;
+         if( *cpt == '\0' ) continue ;   /* skip an empty string */
+         if( dpt != NULL ){              /* found 'run:' */
+           if( *cpt == '*' ){ /* wildcard = all runs */
+             r = -666 ;
+           } else {
+             r = (int)strtol(cpt,NULL,10) ;
+             if( r <= 0 ){  /* skip out */
+               WARNING_message("-CENSORTR %s -- run index '%d' is bad! [iarg=%d]",
+                             nsar->str[ns],r,iarg);
+               continue ;
+             }
+           }
+           cpt = dpt+1 ;  /* skip to character after ':' */
+           if( *cpt == '\0' ){  /* skip out */
+             WARNING_message("-CENSORTR %s -- no data after run index! [iarg=%d]",
+                           nsar->str[ns],iarg);
+             continue ;
+           }
+         }
+         a = (int)strtol(cpt,&dpt,10) ;    /* get first index number */
+         if( a < 0 ){  /* skip out */
+           WARNING_message("-CENSORTR %s -- time index '%d' is bad! [iarg=%d]",
+                         nsar->str[ns],a,iarg);
+           continue ;
+         }
+         if( *dpt == '\0' ){  /* no second number */
+           b = a ;
+         } else {             /* get second number */
+           for( dpt++ ; *dpt != '\0' && !isdigit(*dpt) ; dpt++ ) ; /*nada*/
+           b = (int)strtol(dpt,NULL,10) ;
+           if( b < a || b < 0 ){  /* skip out */
+             WARNING_message("-CENSORTR %s -- time indexes '%d' to '%d' is bad! [iarg=%d]",
+                           nsar->str[ns],a,b,iarg);
+             continue ;
+           }
+         }
+         rgb_CENSOR = (float_triple *)realloc( rgb_CENSOR ,
+                                               sizeof(float_triple)*(num_CENSOR+1) );
+         rgb_CENSOR[num_CENSOR] = rgb_NOW ;
+         abc_CENSOR = (int_triple *)  realloc( abc_CENSOR ,
+                                               sizeof(int_triple)*(num_CENSOR+1) );
+         rab.i = r; rab.j = a; rab.k = b; abc_CENSOR[num_CENSOR++] = rab ;
+       } /* end of loop over -CENSORTR strings */
+       NI_delete_str_array(nsar) ; free(src) ;
+       continue ;  /* next option */
+     }
+
+     /*-----   -concat filename   -----*/
+
+     if( strcmp(argv[iarg],"-concat") == 0 ){
+       MRI_IMAGE *cim ; float *car ; int qq ;
+       if( ++iarg >= argc ) ERROR_exit("need argument after -concat") ;
+       cim = mri_read_1D(argv[iarg]) ;
+       if( cim == NULL ) ERROR_exit("can't read -concat file '%s'",argv[iarg]) ;
+       car = MRI_FLOAT_PTR(cim) ;
+       num_blocks = cim->nx ;
+       block_list = (int *)malloc(sizeof(int)*num_blocks) ;
+       for( qq=0 ; qq < num_blocks ; qq++ )
+         block_list[qq] = (int)(car[qq]+0.5f) ;
+       mri_free(cim) ; iarg++; continue;
+     }
+
+      /*-----   -censor filename   -----*/
+
+     if( strcmp(argv[iarg], "-censor") == 0 ){
+       MRI_IMAGE *cim ;
+       if( ++iarg >= argc ) ERROR_exit("need argument after -censor") ;
+       cim = mri_read_1D(argv[iarg]) ;
+       if( cim == NULL ) ERROR_exit("can't read -censor file '%s'",argv[iarg]) ;
+       censor_array = MRI_FLOAT_PTR(cim) ;
+       num_censor_array = cim->nx ;
+       censor_rgbAA = rgb_NOW ;
+       iarg++; continue;
+     }
+
+     /*--- symplectically stoopid user ---*/
+
      ERROR_message("Unknown option: %s\n",argv[iarg]) ;
      suggest_best_prog_option(argv[0], argv[iarg]);
      exit(1);
    }
 
-   if( argc < 2 ){
-      usage_1dplot(0);
-      exit(0) ;
-   }
+   if( argc < 2 ){ usage_1dplot(0); exit(0) ; }
 
 
    if( thik > 0.0f ){
@@ -763,9 +992,101 @@ int main( int argc , char *argv[] )
 
    /*--- make x axis ---*/
 
-   if (!xfile) {
+   if( !xfile ){
       xar = (float *) malloc( sizeof(float) * nx ) ;
       for( ii=0 ; ii < nx ; ii++ ) xar[ii] = xzero + dx*ii ;
+
+      /** 24 Apr 2012: add vbox stuff for censoring **/
+
+      if( censor_array != NULL || num_CENSOR > 0 ){
+        int ic,it ; float_triple clr ;
+        if( num_blocks == 0 ){
+          num_blocks = 1; block_list = (int *)malloc(sizeof(int)); block_list[0] = 0;
+        }
+        if( censor_array == NULL ){
+          censor_array = (float *)malloc(sizeof(float)*nx) ;
+          for( ii=0 ; ii < nx ; ii++ ) censor_array[ii] = 1.0f ;
+        } else if( num_censor_array < nx ){
+          WARNING_message("-censor array is too short ==> extending it from %d to %d",
+                          num_censor_array , nx ) ;
+          censor_array = (float *)realloc((void *)censor_array,sizeof(float)*nx) ;
+          for( ii=num_censor_array ; ii < nx ; ii++ ) censor_array[ii] = 1.0f ;
+          censor_rgbAA = rgb_NOW ;
+        }
+        censor_rgb = (float_triple *)malloc(sizeof(float_triple)*nx) ;
+        for( ii=0 ; ii < nx ; ii++ ) censor_rgb[ii] = censor_rgbAA ;
+        if( abc_CENSOR != NULL ){
+          int rr , aa,bb , bbot,btop , nblk=num_blocks ;
+          for( ic=0 ; ic < num_CENSOR ; ic++ ){  /* loop over CENSOR commands */
+            clr = rgb_CENSOR[ic] ;
+            rr = abc_CENSOR[ic].i ;
+            aa = abc_CENSOR[ic].j ; if( aa < 0  ) continue ;  /* shouldn't happen */
+            bb = abc_CENSOR[ic].k ; if( bb < aa ) continue ;  /* shouldn't happen */
+            if( rr == -666 ){  /* run = wildcard ==> expand to nblk new triples */
+              int_triple rab ;
+              abc_CENSOR = (int_triple *)realloc( abc_CENSOR ,
+                                                  sizeof(int_triple)*(num_CENSOR+nblk) );
+              for( rr=1 ; rr <= nblk ; rr++ ){
+                rab.i = rr; rab.j = aa; rab.k = bb; abc_CENSOR[num_CENSOR++] = rab;
+              }
+              continue ;  /* skip to next one */
+            }
+            if( rr > 0 ){       /* convert local indexes to global */
+              if( rr > nblk ){  /* stupid user */
+                WARNING_message("-CENSORTR %d:%d-%d has run index out of range 1..%d",
+                                rr,aa,bb , nblk ) ;
+                aa = -66666666 ;
+              } else {
+                bbot = block_list[rr-1] ;        /* start index of block #rr */
+                btop = (rr < nblk) ? block_list[rr]-1 : nx-1 ; /* last index */
+                if( aa+bbot > btop ){  /* WTF? */
+                  WARNING_message(
+                   "-CENSORTR %d:%d-%d has start index past end of run (%d) - IGNORING",
+                   rr,aa,bb,btop-bbot ) ; aa = -66666666 ;
+                } else if( bb+bbot > btop ){  /* oopsie */
+                  WARNING_message(
+                   "-CENSORTR %d:%d-%d has stop index past end of run (%d) - STOPPING THERE",
+                   rr,aa,bb,btop-bbot ) ;
+                }
+                aa += bbot ; bb += bbot ; if( bb > btop ) bb = btop ;
+              }
+            } else {           /* global indexes: check for stupidities */
+              if( aa >= nx ){
+                WARNING_message(
+                 "-CENSORTR %d..%d has start index past end of data (%d) - IGNORING",
+                 rr,aa,bb,nx-1 ) ; aa = -66666666 ;
+              } else if( bb > nx ){
+                WARNING_message(
+                 "-CENSORTR %d..%d has stop index past end of data (%d) - STOPPING THERE",
+                 rr,aa,bb,nx-1 ) ; bb = nx-1 ;
+              }
+            }
+            if( aa < 0  || aa >= nx ) continue ;  /* nothing to do */
+            if( bb < aa || bb >= nx ) continue ;
+            for( it=aa ; it <= bb ; it++ ){
+              censor_array[it] = 0.0f ; censor_rgb[it] = clr ;
+            }
+          } /* end of loop over CENSOR commands */
+          free((void *)abc_CENSOR) ; abc_CENSOR = NULL ; num_CENSOR = 0 ;
+        }
+
+        /* at this point, convert censor_array to vboxes */
+
+#undef  FTEQ
+#define FTEQ(p,q) ( (p).a==(q).a && (p).b==(q).b && (p).c==(q).c )
+
+        for( ic=0 ; ic < nx ; ){
+          if( censor_array[ic] > 0.0f ){ ic++ ; continue ; }
+          clr = censor_rgb[ic] ;
+          for( it=ic+1 ; it < nx ; it++ ){
+            if( censor_array[it] > 0.0f ) break ;
+            if( !FTEQ(clr,censor_rgb[it]) ) break ;
+          }
+          plot_ts_add_vbox( -1 , xar[ic],xar[it-1] , clr.a,clr.b,clr.c ) ;
+          ic = it ;
+        }
+     } /** end of censoring => vboxes */
+
    } else {
       /* read xfile */
       MRI_IMAGE *inimx = mri_read_1D( xfile ) ;

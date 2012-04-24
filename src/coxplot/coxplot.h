@@ -139,6 +139,7 @@ typedef struct {
 #define THCODE_CIRC       2  /* 10 Mar 2002: circle at (x1,y1), radius x2 */
 #define THCODE_OPAC       3  /* 22 Jul 2004: set opacity of further drawing to x1 */
 #define THCODE_BALL       4
+#define THCODE_FRECT      5  /* 24 Apr 2012: filled rectangle */
 #define THCODE_INVALID  666
 
 /* convert (r,g,b) in [0,1]**3 into a single number, and vice-versa */
@@ -190,6 +191,7 @@ extern void           set_thick_memplot( float ) ;
 extern float          get_thick_memplot(void) ;
 extern int            nline_active_memplot(void) ;
 extern void           plotrect_memplot( float,float,float,float ) ; /* 21 Mar 2001 */
+extern void           plotfrect_memplot( float,float,float,float) ; /* 24 Apr 2012 */
 extern void           plotcirc_memplot( float,float,float ) ;       /* 10 Mar 2002 */
 extern void           plotball_memplot( float,float,float ) ;
 extern int            create_memplot_surely( char *, float ) ;      /* 20 Sep 2001 */
@@ -289,6 +291,8 @@ extern void plot_ts_xypush( int , int ) ;
 extern void plot_ts_dobox ( float ) ;
 extern void plot_ts_xfix( int,int , float,float ) ;  /* 22 Jul 2003 */
 extern void plot_ts_yfix( int,int , float,float ) ;
+
+extern void plot_ts_add_vbox( int,float,float,float,float,float ); /* 24 Apr 2012 */
 
 extern void plot_ts_setcolors( int, float *, float *, float * ) ; /* 23 Nov 2007 */
 extern void plot_ts_setthik( float thk ) ;                        /* 26 Nov 2007 */
