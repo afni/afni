@@ -54,7 +54,7 @@ static int           num_CENSOR = 0 ;
 static int_triple   *abc_CENSOR = NULL ;
 static float_triple *rgb_CENSOR = NULL ;
 
-static float_triple  rgb_NOW = { 1.0f , 0.9f , 0.3f } ;
+static float_triple  rgb_NOW = { 1.0f , 0.9f , 0.4f } ;
 
 static int  num_blocks = 0 ;
 static int *block_list = NULL ;
@@ -62,7 +62,7 @@ static int *block_list = NULL ;
 static int       num_censor_array = 0    ;
 static float        *censor_array = NULL ;
 static float_triple *censor_rgb   = NULL ;
-static float_triple  censor_rgbAA = { 1.0f , 0.9f , 0.3f } ;
+static float_triple  censor_rgbAA = { 1.0f , 0.9f , 0.4f } ;
 
 /*-----------------------------------------------------------------*/
 void usage_1dplot(int detail)
@@ -265,68 +265,91 @@ void usage_1dplot(int detail)
 
    printf("\n"
      "--------------\n"
-     "MARKING BLOCKS\n"
+     "MARKING BLOCKS (e.g., censored time points)\n"
      "--------------\n"
-     "The following options let you mark blocks along the x-axis.  The intended\n"
-     "application is to mark blocks of time points that are censored out of an\n"
-     "analysis, which is why the options are the same as those in 3dDeconvolve --\n"
-     "but you can mark for any reason, of course.\n"
+     "The following options let you mark blocks along the x-axis, by drawing\n"
+     "colored vertical boxes over the standard white background.\n"
+     " * The intended use is to mark blocks of time points that are censored\n"
+     "   out of an analysis, which is why the options are the same as those\n"
+     "   in 3dDeconvolve -- but you can mark blocks for any reason, of course.\n"
+     " * These options don't do anything when the '-x' option is used to\n"
+     "   alter the x-axis spacings.\n"
+     " * To see what the color markings look like, try this silly example:\n"
+     " 1deval -num 100 -expr 'lran(2)' | 1dplot -stdin -THICK -CENSORTR 21..27 70..75\n"
      "\n"
      " -censor_RGB clr   = set the color used for the marking to 'clr', which\n"
      "                     can be one of the strings below:\n"
-     "                       red green blue yellow violet pink\n"
+     "                       red green blue yellow violet pink gray (OR grey)\n"
+     "                   * OR 'clr' can be in the form '#xyz' or '#xxyyzz', where\n"
+     "                     'x', 'y', and 'z' are hexadecimal digits -- for example,\n"
+     "                     '#2cf' is sort of a cyan color.\n"
      "                   * OR 'clr' can be in the form 'rgbi:rf/gf/bf' where\n"
      "                     each color intensity (rf, gf, bf) is a number between\n"
      "                     0.0 and 1.0 -- e.g., white is 'rgbi:1.0/1.0/1.0'.\n"
      "                     Since the background is white, dark colors don't look\n"
-     "                     good here; for example, pink is defined here as\n"
-     "                     'rgbi:1.0/0.5/0.5'.\n"
-     "                   * The default color is yellow.\n"
+     "                     good here, and will obscure the graphs; for example,\n"
+     "                     pink is defined here as 'rgbi:1.0/0.5/0.5'.\n"
+     "                   * The default color is (a rather pale) yellow.\n"
      "                   * You can use '-censor_RGB' more than once.  The color\n"
      "                     most recently specified previous on the command line\n"
      "                     is what will be used with the '-censor' and '-CENSORTR'\n"
      "                     options.  This allows you to mark different blocks\n"
      "                     with different colors (e.g., if they were censored\n"
      "                     for different reasons).\n"
+     "                   * The feature of allowing multiple '-censor_RGB options\n"
+     "                     means that you must put this option BEFORE the\n"
+     "                     relevant '-censor' and/or '-CENSORTR' options.\n"
+     "                     Otherwise, you'll get the default yellow color!\n"
      "\n"
      " -censor cname     = cname is the filename of censor .1D time series   \n"
      "                   * This is a file of 1s and 0s, indicating which     \n"
-     "                     time points are to be included (1) and which are  \n"
-     "                     to be excluded (0).                               \n"
+     "                     time points are to be un-marked (1) and which are \n"
+     "                     to be marked (0).                                 \n"
      "                   * The option below may be simpler to use!           \n"
      "\n"
-     " -CENSORTR clist   = clist is a list of strings that specify time indexes \n"
-     "                       to be removed from the analysis.  Each string is\n"
-     "                       of one of the following forms:                  \n"
-     "                           37 => remove global time index #37          \n"
-     "                         2:37 => remove time index #37 in run #2       \n"
-     "                       37..47 => remove global time indexes #37-47     \n"
+     " -CENSORTR clist   = clist is a list of strings that specify time indexes\n"
+     "                     to be marked in the graph(s).  Each string is of  \n"
+     "                     one of the following forms:                       \n"
+     "                           37 => mark global time index #37            \n"
+     "                         2:37 => mark time index #37 in run #2         \n"
+     "                       37..47 => mark global time indexes #37-47       \n"
      "                       37-47  => same as above                         \n"
-     "                     2:37..47 => remove time indexes #37-47 in run #2  \n"
-     "                     *:0-2    => remove time indexes #0-2 in all runs  \n"
-     "                    ++ Time indexes within each run start at 0.        \n"
-     "                    ++ Run indexes start at 1 (just be to confusing).  \n"
-     "                    ++ Multiple -CENSORTR options may be used, or      \n"
-     "                        multiple -CENSORTR strings can be given at     \n"
-     "                        once, separated by spaces or commas.           \n"
-     "                    ++ N.B.: 2:37,47 means index #37 in run #2 and     \n"
-     "                        global time index 47; it does NOT mean         \n"
-     "                        index #37 in run #2 AND index #47 in run #2.   \n"
+     "                     *:0-2    => mark time indexes #0-2 in all runs    \n"
+     "                     2:37..47 => mark time indexes #37-47 in run #2    \n"
+     "                   * Time indexes within each run start at 0.          \n"
+     "                   * Run indexes start at 1 (just be to confusing).    \n"
+     "                   * Multiple -CENSORTR options may be used, or        \n"
+     "                     multiple -CENSORTR strings can be given at        \n"
+     "                     once, separated by spaces or commas.              \n"
+     "                   * Each argument on the command line after           \n"
+     "                     '-CENSORTR' is treated as a censoring string,     \n"
+     "                     until an argument starts with a '-' or an         \n"
+     "                     alphabetic character.  This means that if you     \n"
+     "                     want to plot a file named '9zork.1D', you may     \n"
+     "                     have to do something like                         \n"
+     "                       1dplot -CENSORTR 3-7 18-22 - 9zork.1D           \n"
+     "                     The stand-alone '-' will stop the processing      \n"
+     "                     of censor strings; otherwise, the '9zork.1D'      \n"
+     "                     string, since it doesn't start with a letter,     \n"
+     "                     would be treated as a censoring string, which     \n"
+     "                     you would not like.                               \n"
+     "                   * N.B.: 2:37,47 means index #37 in run #2 and       \n"
+     "                     global time index 47; it does NOT mean            \n"
+     "                     index #37 in run #2 AND index #47 in run #2.      \n"
+     "\n"
      " -concat rname      = rname is the filename for list of concatenated runs\n"
      "                      * 'rname' can be in the format                   \n"
      "                          '1D: 0 100 200 300'                          \n"
      "                        which indicates 4 runs, the first of which     \n"
      "                        starts at time index=0, second at index=100,   \n"
      "                        and so on.                                     \n"
-     "                      * The only function of '-concat' is for use with \n"
+     "                      * The ONLY function of '-concat' is for use with \n"
      "                        '-CENSORTR', to be compatible with 3dDeconvolve\n"
      "                          [e.g., for plotting motion parameters from]\n"
      "                          [3dvolreg -1Dfile, where you've cat-enated]\n"
      "                          [the 1D files from separate runs into one ]\n"
      "                          [long file for plotting with this program.]\n"
      "\n"
-     "EXAMPLE:\n"
-     " 1deval -num 100 -expr 'gran(0,1)' | 1dplot -stdin -THICK -CENSORTR 20..30 70..75\n"
    ) ;
 
    PRINT_COMPILE_DATE ;
@@ -371,7 +394,9 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[ii],"-jpegs")== 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-png")  == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-pngs") == 0 ){ skip_x11 = 1; break; }
+     if( strcasecmp(argv[ii],"-help") == 0 ){ skip_x11 = 1; break; }
    }
+   if( argc == 1 ) skip_x11 = 1 ;  /* this is because Ziad is trouble */
 
    if( !skip_x11 ){
      for( ii=1 ; ii < argc ; ii++ ){
@@ -670,12 +695,14 @@ int main( int argc , char *argv[] )
          rf = 0.5f; gf = 1.0f; bf = 0.5f;
        } else if( strcasecmp(eee,"red") == 0 ){
          rf = 1.0f; gf = 0.3f; bf = 0.3f;
+       } else if( strcasecmp(eee,"gray") == 0 || strcasecmp(eee,"grey") == 0 ){
+         rf = gf = bf = 0.7654321f ;
        } else if( strcasecmp(eee,"blue") == 0 ){
-         rf = 0.5f; gf = 0.5f; bf = 1.0f;
+         rf = 0.55f; gf = 0.55f; bf = 1.0f;
        } else if( strcasecmp(eee,"purple") == 0 || strcasecmp(eee,"violet") == 0 ){
          rf = 1.0f; gf = 0.5f; bf = 1.0f;
        } else if( strcasecmp(eee,"gold") == 0 || strcasecmp(eee,"yellow") == 0 ){
-         rf = 1.0f; gf = 0.9f; bf = 0.3f;
+         rf = 1.0f; gf = 0.9f; bf = 0.4f;
        } else if( strcasecmp(eee,"pink") == 0 ){
          rf = 1.0f; gf = 0.5f; bf = 0.5f;
        } else if( *eee == '#' && *(eee+1) != '\0' ){
@@ -702,7 +729,9 @@ int main( int argc , char *argv[] )
 
        *src = '\0' ;   /* cat all following options until starts with '-' */
        for( iarg++ ;
-            iarg < argc && argv[iarg][0] != '-' && !isalpha(argv[iarg][0]) ;
+            iarg < argc && argv[iarg][0] != '-'
+                        && !isalpha(argv[iarg][0])
+                        && strstr(argv[iarg],".1D") == NULL ;
             iarg++ ){
          ns = strlen(argv[iarg]) ; if( ns == 0 ) continue ;
          src = realloc(src,strlen(src)+ns+2) ;
@@ -992,7 +1021,8 @@ int main( int argc , char *argv[] )
 
    /*--- make x axis ---*/
 
-   if( !xfile ){
+   if( !xfile ){  /* bog standard uniformly spaced x-axis */
+
       xar = (float *) malloc( sizeof(float) * nx ) ;
       for( ii=0 ; ii < nx ; ii++ ) xar[ii] = xzero + dx*ii ;
 
@@ -1087,9 +1117,13 @@ int main( int argc , char *argv[] )
         }
      } /** end of censoring => vboxes */
 
-   } else {
-      /* read xfile */
-      MRI_IMAGE *inimx = mri_read_1D( xfile ) ;
+   } else {   /** -x option was given */
+
+      MRI_IMAGE *inimx ;
+      if( censor_array != NULL || num_CENSOR > 0 )
+        WARNING_message("-x option used ==> -censor and -CENSORTR are ignored!") ;
+
+      inimx = mri_read_1D( xfile ) ;  /* read x-axis */
       if( inimx == NULL )
          ERROR_exit("Can't read x-axis '-x %s'",xfile) ;
       if (inimx->nx < flim->nx)
