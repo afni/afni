@@ -274,8 +274,18 @@ void usage_1dplot(int detail)
      "   in 3dDeconvolve -- but you can mark blocks for any reason, of course.\n"
      " * These options don't do anything when the '-x' option is used to\n"
      "   alter the x-axis spacings.\n"
-     " * To see what the color markings look like, try this silly example:\n"
-     " 1deval -num 100 -expr 'lran(2)' | 1dplot -stdin -THICK -CENSORTR 21..27 70..75\n"
+     " * To see what the various color markings look like, try this silly example:\n"
+     "\n"
+     "   1deval -num 100 -expr 'lran(2)' > zz.1D\n"
+     "   1dplot -thick -censor_RGB red    -CENSORTR 3-8   \\\n"
+     "                 -censor_RGB green  -CENSORTR 11-16 \\\n"
+     "                 -censor_RGB blue   -CENSORTR 22-27 \\\n"
+     "                 -censor_RGB yellow -CENSORTR 34-39 \\\n"
+     "                 -censor_RGB violet -CENSORTR 45-50 \\\n"
+     "                 -censor_RGB pink   -CENSORTR 55-60 \\\n"
+     "                 -censor_RGB gray   -CENSORTR 65-70 \\\n"
+     "                 -censor_RGB #2cf   -CENSORTR 75-80 \\\n"
+     "          -plabel 'red green blue yellow violet pink gray #2cf' zz.1D &\n"
      "\n"
      " -censor_RGB clr   = set the color used for the marking to 'clr', which\n"
      "                     can be one of the strings below:\n"
@@ -682,7 +692,14 @@ int main( int argc , char *argv[] )
 
      /*--- censoring stuff -- for Colm -- 24 Apr 2012 ---*/
 
-     if( strcasecmp(argv[iarg],"-censor_RGB") == 0 || strcasecmp(argv[iarg],"-censor_color") == 0 ){
+     if( strcasecmp(argv[iarg],"-censor_RGB"  ) == 0 ||
+         strcasecmp(argv[iarg],"-censor_RBG"  ) == 0 ||
+         strcasecmp(argv[iarg],"-censor_GBR"  ) == 0 ||
+         strcasecmp(argv[iarg],"-censor_GRB"  ) == 0 ||
+         strcasecmp(argv[iarg],"-censor_BRG"  ) == 0 ||
+         strcasecmp(argv[iarg],"-censor_BGR"  ) == 0 ||
+         strcasecmp(argv[iarg],"-censor_clr"  ) == 0 ||
+         strcasecmp(argv[iarg],"-censor_color") == 0   ){
        float rf,gf,bf ; char *eee ;
        if( ++iarg >= argc ) ERROR_exit("need argument after %s",argv[iarg-1]) ;
        rf = gf = bf = -1.0f ; eee = argv[iarg] ;
