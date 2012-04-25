@@ -306,7 +306,7 @@ void usage_1dplot(int detail)
      "                     options.  This allows you to mark different blocks\n"
      "                     with different colors (e.g., if they were censored\n"
      "                     for different reasons).\n"
-     "                   * The feature of allowing multiple '-censor_RGB options\n"
+     "                   * The feature of allowing multiple '-censor_RGB' options\n"
      "                     means that you must put this option BEFORE the\n"
      "                     relevant '-censor' and/or '-CENSORTR' options.\n"
      "                     Otherwise, you'll get the default yellow color!\n"
