@@ -70,7 +70,7 @@ int multiply_dsets(options_t * opts, THD_3dim_dataset ** oset)
    THD_3dim_dataset * outset = NULL;  /* assign to oset at end */
    THD_ivec3          nxyz;
    double             sum;
-   float            * volout, * sliceA, * sliceB, * sliceC;
+   float            * volout, * sliceA, * sliceB, * sliceC, fac;
    int                nvals, onesub;
    int                nxa, nya, nza, nxya;
    int                nxb, nyb, nzb, nxyb;
@@ -175,10 +175,11 @@ int multiply_dsets(options_t * opts, THD_3dim_dataset ** oset)
       }  /* slice */
 
       /* scale floats to output datum */
-      EDIT_convert_dtype(nxyc*nzc,          /* nvox */
+      fac = EDIT_convert_dtype(nxyc*nzc,         /* nvox */
                          MRI_float, volout, /* type/data */
                          opts->datum, DBLK_ARRAY(outset->dblk, sub),
-                         0.0);              /* limit */
+                         0);                /* limit */
+      DSET_BRICK_FACTOR(outset, 0) = (fac != 0.0) ? 1.0/fac : 0.0 ;
    }
    if( opts->verb > 0 && nvals > 1 ) fprintf(stderr," done\n");
 
@@ -332,7 +333,7 @@ int show_help(void)
    "----------------------------------------\n"
    "optional command arguments:\n"
    "\n"
-   "    -datum TYPE             : specify verbosity level\n"
+   "    -datum TYPE             : specify output data type\n"
    "\n"
    "        Valid TYPEs are 'byte', 'short' and 'float'.  The default is\n"
    "        that of the inputB dataset.\n"

@@ -361,7 +361,7 @@ int init_voidp_list( voidp_list * d_list, int nel, int len )
  *   return:
  *       success: nel (>= 1)
  *----------------------------------------------------------------------*/
-int add_to_float_list( float_list * d_list, float fval, int inc_size )
+int add_to_float_list( float_list * d_list, float val, int inc_size )
 {
     int llen;
 
@@ -373,9 +373,30 @@ int add_to_float_list( float_list * d_list, float fval, int inc_size )
         else               llen = d_list->nall + inc_size;
         d_list->nall = llen;
         d_list->list = (float *)realloc(d_list->list, llen*sizeof(float));
+        if( !d_list->list ) return 0;
     }
 
-    d_list->list[d_list->num++] = fval;
+    d_list->list[d_list->num++] = val;
+
+    return d_list->num;
+}
+
+int add_to_int_list( int_list * d_list, int val, int inc_size )
+{
+    int llen;
+
+    if ( !d_list ) return -1;
+
+    /* maybe we need more space */
+    if ( d_list->num >= d_list->nall ) {
+        if (inc_size <= 0) llen = d_list->nall + 1;
+        else               llen = d_list->nall + inc_size;
+        d_list->nall = llen;
+        d_list->list = (int *)realloc(d_list->list, llen*sizeof(int));
+        if( !d_list->list ) return 0;
+    }
+
+    d_list->list[d_list->num++] = val;
 
     return d_list->num;
 }
