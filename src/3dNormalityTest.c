@@ -76,7 +76,7 @@ float * anderson_darling_simulate( int npt , int ntrial )
 
 /*----------------------------------------------------------------------------*/
 
-void anderson_darling_expify( int naval , float *aval , int natr , float *atr )
+void anderson_darling_expify( int naval, float *aval, int natr, float *atr, int dopval )
 {
    float *qaval , avv , pfac,pval,dd ; int *kaval , jj,kk ;
 
@@ -91,23 +91,27 @@ void anderson_darling_expify( int naval , float *aval , int natr , float *atr )
 
    pfac = 1.0f / (1.0f+natr) ;
 
+   /* process aval[] entries larger than the largest atr value */
+
    for( kk=0 ; kk < naval ; kk++ ){
      if( qaval[kk] >= atr[0] ){
-       pval = atr[0] / qaval[kk] ;
-       aval[kaval[kk]] = -logf(pfac*pval) ;
+       pval = pfac * atr[0] / qaval[kk] ;         /* make up a small p-value */
+       aval[kaval[kk]] = (dopval) ? pval : -logf(pval) ;   /* convert to exp */
      } else {
        break ;
      }
    }
-   /** ININFO_message("kk = %d/%d after atr[0] step",kk,naval) ; **/
+
+   /* process the remaining aval[] entries, starting at aval[kk] */
 
    for( jj=0 ; kk < naval ; kk++ ){
      avv = qaval[kk] ;
-     for( ; jj < natr && avv <= atr[jj] ; jj++ ) ; /*nada*/
+     for( ; jj < natr && avv <= atr[jj] ; jj++ ) ; /* get bounding atr[] vals */
      if( jj == natr ) break ;
      pval = jj ; dd = atr[jj] - atr[jj-1] ;
-     if( dd != 0.0f ) pval += (atr[jj-1]-avv) / dd ;
-     aval[kaval[kk]] = -logf(pfac*pval) ;
+     if( dd != 0.0f ) pval += (atr[jj-1]-avv) / dd ;    /* interpolate a pval */
+     pval *= pfac ;
+     aval[kaval[kk]] = (dopval) ? pval : -logf(pval) ;      /* convert to exp */
    }
    /** ININFO_message("kk = %d/%d after middle step",kk,naval) ; **/
 
@@ -122,7 +126,7 @@ void anderson_darling_expify( int naval , float *aval , int natr , float *atr )
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL , *outset ;
-   int nvox , nvals , nopt=1 , ii,jj , nbad , ntr , convertize=1 ;
+   int nvox , nvals , nopt=1 , ii,jj , nbad , ntr , convertize=1 , dopval=0 ;
    char *prefix="NormTest" ;
    float *avar , *dval , *atr ; double *eval ;
 
@@ -156,10 +160,11 @@ int main( int argc , char *argv[] )
        " -noexp       = Do not convert the A-D statistic to an exponentially\n"
        "                distributed value -- just leave the raw A-D score in\n"
        "                the output dataset.\n"
+       " -pval        = Output the results as a pure (estimated) p-value.\n"
        "\n"
-       "EXAMPLE:\n"
-       "--------\n"
-       "Simulate a 2D square dataset with the values being normal on one\n"
+       "EXAMPLES:\n"
+       "---------\n"
+       "(1) Simulate a 2D square dataset with the values being normal on one\n"
        "edge and exponentially distributed on the other, and mixed in-between.\n"
        "\n"
        "  3dUndump -dimen 101 101 1 -prefix UUU\n"
@@ -174,6 +179,15 @@ int main( int argc , char *argv[] )
        "to create a dataset with 10 time points.  The values are random deviates,\n"
        "ranging from pure Gaussian where i=100 to pure exponential at i=0.\n"
        "\n"
+       "(2) Simulate a single logistic random variable into a 1D file and compute\n"
+       "the A-D nominal p-value:\n"
+       "\n"
+       "  1deval -num 200 -expr 'lran(2)' > logg.1D\n"
+       "  3dNormalityTest -input logg.1D\\' -prefix stdout: -pval\n"
+       "\n"
+       "Note the necessity to transpose the logg.1D file (with the \\' operator),\n"
+       "since 3D programs interpret each 1D file row as a voxel time series.\n"
+       "\n"
        "++ March 2012 -- by The Ghost of Carl Friedrich Gauss\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -186,6 +200,9 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-noexp") == 0 ){
        convertize = 0 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-pval") == 0 ){
+       convertize = 1 ; dopval = 1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-input") == 0 ){
@@ -276,7 +293,7 @@ int main( int argc , char *argv[] )
 
      INFO_message("Converting A-D statistics to exponential distribution") ;
 
-     anderson_darling_expify( nvox , avar , ntr , atr ) ;
+     anderson_darling_expify( nvox , avar , ntr , atr , dopval ) ;
      free(atr) ;
 
      EDIT_BRICK_TO_FIGT( outset , 0 , 1.0f , 1.0f ) ;
