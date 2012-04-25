@@ -91,7 +91,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
            1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch 1dBport   \
-           3dNormalityTest                                                      \
+           3dNormalityTest 3dmask_tool                                          \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -124,7 +124,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase     \
                   3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat 3dPolyfit        \
                   3dNwarpApply 1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo    \
-                  apsearch 3dNormalityTest                                          \
+                  apsearch 3dNormalityTest 3dmask_tool                              \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -2295,10 +2295,6 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(RM) $@
 	$(CC) -o 3dmaxima 3dmaxima.o maxima.o $(LFLAGS) $(LLIBS)
 
-3dmatmult: 3dmatmult.o libmri.a
-	$(RM) $@
-	$(CC) -o 3dmatmult 3dmatmult.o $(LFLAGS) $(LLIBS)
-
 3dresample: 3dresample.o libmri.a
 	$(RM) $@
 	$(CC) -o 3dresample 3dresample.o $(LFLAGS) $(LLIBS)
@@ -2337,6 +2333,14 @@ gtest:
 	$(MAKE) gtest 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'         \
 	                'LFLAGS=$(LFLAGS)' ;                            \
 	$(MV) gtest .. ; )
+
+3dmatmult: 3dmatmult.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dmatmult 3dmatmult.o $(LFLAGS) $(LLIBS)
+
+3dmask_tool: 3dmask_tool.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dmask_tool 3dmask_tool.o $(LFLAGS) $(LLIBS)
 
 #######
 # rendering library

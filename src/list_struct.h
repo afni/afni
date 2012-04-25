@@ -34,7 +34,8 @@ int init_shortp_list ( shortp_list * d_list, int nel, int len );
 int init_voidp_list  ( voidp_list  * d_list, int nel, int len );
 
 /* add to lists, possibly increment length */
-int add_to_float_list( float_list * d_list, float fval, int inc_size );
+int add_to_float_list( float_list * d_list, float val, int inc_size );
+int add_to_int_list( int_list * d_list, int val, int inc_size );
 
 /* free simple lists and clear structures */
 int free_float_list  ( float_list * d_list );
