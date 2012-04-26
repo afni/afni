@@ -5,13 +5,14 @@ static float hbot1 =  1.0f ;
 static float htop1 = -1.0f ;
 static float hbot2 =  1.0f ;
 static float htop2 = -1.0f ;
+
 void mri_nbistat_setclip( float hb1, float ht1 , float hb2, float ht2 )
 {
   hbot1 = hb1 ; htop1 = ht1 ; hbot2 = hb2 ; htop2 = ht2 ;
 }
 
 /*--------------------------------------------------------------------------*/
-static MRI_IMAGE *wim = NULL ;
+static MRI_IMAGE *wim  = NULL ;
 static MRI_IMAGE *wnim = NULL ;
 
 void mri_bistat_setweight( MRI_IMAGE *wm )  /* 14 Aug 2007 */
@@ -31,6 +32,7 @@ float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
    MRI_IMAGE *fim , *gim ;
    float     *far , *gar ; float outval=0.0f ;
    int npt , ii ;
+   static int lref=0 ; static float **ref=NULL ;  /* 26 Apr 2012 */
 
    if( im == NULL || jm == NULL || im->nvox == 0 || im->nvox != jm->nvox )
      return outval ;
@@ -52,6 +54,16 @@ float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
      for( ii=0 ; ii < npt ; ii++ )
             if( gar[ii] < hbot2 ) gar[ii] = hbot2 ;
        else if( gar[ii] > htop2 ) gar[ii] = htop2 ;
+   }
+
+#pragma omp critical
+   { if( (code == NBISTAT_L2SLOPE || code == NBISTAT_L1SLOPE) && lref < npt ){
+       if( ref == NULL ){
+         ref = (float **)malloc(sizeof(float *)*2) ; ref[0] = NULL ;
+       }
+       ref[0] = (float *)realloc(ref[0],sizeof(float)*npt) ; lref = npt ;
+       for( ii=0 ; ii < npt ; ii++ ) ref[0][ii] = 1.0f ;
+     }
    }
 
    switch( code ){
@@ -99,6 +111,23 @@ float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
 
      case NBISTAT_NCD:
        outval = THD_ncdfloat( npt , far , gar ) ; break ;
+
+     case NBISTAT_L2SLOPE:{
+       float *qfit ;
+       ref[1] = far ;
+       qfit = lsqfit( npt , gar , NULL , 2 , ref ) ;
+       if( qfit != NULL ){ outval = qfit[1] ; free(qfit) ; }
+     }
+     break ;
+
+     case NBISTAT_L1SLOPE:{
+       float qfit[2] , val ;
+       ref[1] = far ;
+       val = cl1_solve( npt , 2 , gar , ref , qfit , 0 ) ;
+       if( val >= 0.0f ) outval = qfit[1] ;
+     }
+     break ;
+
    }
 
    /* cleanup and exit */
@@ -167,7 +196,7 @@ THD_3dim_dataset * THD_localbistat( THD_3dim_dataset *dset ,
    MRI_IMAGE *nbim , *nbjm ;
    int iv,cc , nvin,nvout , nx,ny,nz,nxyz , ii,jj,kk,ijk ;
    float **aar ;
-   int vstep ;
+   int vstep , iiv , jjv , nvd,nve ;
 
 ENTRY("THD_localbistat") ;
 
@@ -179,7 +208,9 @@ ENTRY("THD_localbistat") ;
    DSET_load(eset) ; if( !DSET_LOADED(eset) ) RETURN(NULL) ;
 
    oset  = EDIT_empty_copy( dset ) ;
-   nvin  = DSET_NVALS( dset ) ;
+   nvd   = DSET_NVALS( dset ) ;
+   nve   = DSET_NVALS( eset ) ;
+   nvin  = MAX(nvd,nve) ;
    nvout = nvin * ncode ;
    EDIT_dset_items( oset ,
                       ADN_nvals     , nvout         ,
@@ -200,6 +231,8 @@ ENTRY("THD_localbistat") ;
    aar = (float **)malloc(sizeof(float *)*ncode) ;
 
    for( iv=0 ; iv < nvin ; iv++ ){
+     iiv = iv ; if( iiv >= nvd ) iiv = nvd-1 ;  /* sub-brick for dset */
+     jjv = iv ; if( jjv >= nve ) jjv = nve-1 ;  /* sub-brick for eset */
      for( cc=0 ; cc < ncode ; cc++ ){
        aar[cc] = (float *)malloc(sizeof(float)*nxyz) ;
        if( aar[cc] == NULL )
@@ -210,8 +243,8 @@ ENTRY("THD_localbistat") ;
       for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++,ijk++ ){
          if( vstep && ijk%vstep==vstep-1 ) vstep_print() ;
-         nbim = THD_get_dset_nbhd( dset,iv , mask,ii,jj,kk , nbhd ) ;
-         nbjm = THD_get_dset_nbhd( eset,iv , mask,ii,jj,kk , nbhd ) ;
+         nbim = THD_get_dset_nbhd( dset,iiv , mask,ii,jj,kk , nbhd ) ;
+         nbjm = THD_get_dset_nbhd( eset,jjv , mask,ii,jj,kk , nbhd ) ;
          if( wim != NULL ) wnim = mri_get_nbhd( wim , mask,ii,jj,kk , nbhd ) ;
          for( cc=0 ; cc < ncode ; cc++ )
            aar[cc][ijk] = mri_nbistat( code[cc] , nbim,nbjm ) ;
@@ -219,7 +252,8 @@ ENTRY("THD_localbistat") ;
          if( wnim != NULL ){ mri_free(wnim); wnim = NULL; }
      }}}
 
-     DSET_unload_one(dset,iv) ; DSET_unload_one(eset,iv)  ;
+     if( iiv < nvd-1 ) DSET_unload_one(dset,iiv) ;
+     if( jjv < nve-1 ) DSET_unload_one(eset,jjv)  ;
 
      for( cc=0 ; cc < ncode ; cc++ )
        EDIT_substitute_brick( oset , iv*ncode+cc , MRI_float , aar[cc] ) ;

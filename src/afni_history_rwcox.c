@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 25 , APR , 2012 , RWC , "3dNormalityTest" , MICRO , TYPE_NEW_OPT ,
+  { 26 , APR , 2012 , RWC , "3dLocalBistat" , MINOR , TYPE_NEW_OPT ,
+   "Allow 1 volume vs. multi-volume; Add slope options" ,
+   NULL } ,
+
+ { 25 , APR , 2012 , RWC , "3dNormalityTest" , MICRO , TYPE_NEW_OPT ,
    "Add -pval option, to get a 'pure' p-value out" ,
    NULL } ,
 
