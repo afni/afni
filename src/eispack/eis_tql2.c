@@ -22,9 +22,9 @@ static doublereal c_b10 = 1.;
     /* Local variables */
     doublereal c__, f, g, h__;
     integer i__, j, k, l, m;
-    doublereal p, r__, s, c2, c3;
+    doublereal p=0.0, r__=0.0, s=0.0, c2=0.0, c3=0.0;
     integer l1, l2;
-    doublereal s2;
+    doublereal s2=0.0;
     integer ii;
     extern doublereal pythag_(doublereal *, doublereal *);
     doublereal dl1, el1;
