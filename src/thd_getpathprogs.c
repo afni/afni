@@ -425,7 +425,7 @@ THD_string_array * THD_get_all_afni_dsets(void )
       if (
           !THD_is_directory(elist->ar[ii]) &&
           !strncmp(af, elist->ar[ii], N_af) &&
-          (smode > STORAGE_UNDEFINED && smode < LAST_STORAGE_MODE) &&
+          (smode > STORAGE_UNDEFINED && smode <= LAST_STORAGE_MODE) &&
           (smode != STORAGE_BY_BRICK ||  /* don't want the .BRICK, just .HEAD */
                STRING_HAS_SUFFIX(elist->ar[ii], ".HEAD")) &&
           (smode != STORAGE_BY_NIFTI ||        /* don't want the .img */

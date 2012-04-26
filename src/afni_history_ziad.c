@@ -66,6 +66,29 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26, APR , 2012 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
+   "Made header_name be same as brik_name for NIFTI dsets",
+   "Changes were in EDIT_dset_items(), search for April 26"
+ },
+ 
+ { 24, APR , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Can read .niml.tract files as DOs. Nothing too fancy yet",
+   "Tractography files are loaded and handled like any DO.\n"
+   "See function SUMA_DrawTractDO().\n"
+ },
+ 
+ { 24, APR , 2012 , ZSS , "3dTrackID" , MINOR , TYPE_MODIFY,
+   "Modified 3dTrackID to make use of new track I/O functions.",
+   NULL
+ },
+ 
+ { 24, APR , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
+   "Wrote TrackIO.[ch] to handle tractography data I/O.",
+   "All changes are under ptaylor/ . New tract format is in NIML.\n"
+   "See functions in TrackIO.h for details.\n"
+ },
+ 
+
 #if 0 /* not yet */
  { 16, APR , 2012 , ZSS , "BrainSkin" , MINOR , TYPE_NEW_PROG,
    "Early version to create a brain envelope surface isotopic with pial surf",

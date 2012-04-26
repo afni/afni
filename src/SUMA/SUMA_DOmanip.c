@@ -298,6 +298,9 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
       case SDSET_type:
          SUMA_FreeDset(dov->OP);
          break;
+      case TRACT_type:
+         SUMA_free_TractDO(dov->OP);
+         break;
       default:
          SUMA_S_Errv("Type %d not accounted for!\n", dov->ObjectType);
          break;   
@@ -668,6 +671,9 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd)
          break;
       case NIDO_type:
          return("NIDO");
+         break;
+      case TRACT_type:
+         return("TRACT");
          break;
       case N_DO_TYPES:
          return("Number_Of_DO_Types");

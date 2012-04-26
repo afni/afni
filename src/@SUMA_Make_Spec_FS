@@ -110,6 +110,7 @@ L_PARSE_COMMAND:
     set neuro_ori   = 0
     set ldu = ()
     set ldpref = ()
+    set use_mgz = 0
     set args     = $#argv
     set count    = 1
 
@@ -163,6 +164,14 @@ L_PARSE_COMMAND:
        case "-neuro":
 
       set neuro_ori = 1
+
+       breaksw
+
+       # ----------------------------------------------------------
+       # usage : -neuro
+       case "-use_mgz":
+
+      set use_mgz = 1
 
        breaksw
 
@@ -500,7 +509,8 @@ L_CONVERT_SURFACES:
        mris_convert -p $surf $surf.asc
    else
        echo "-- running 'mris_convert $surf $surf.asc'"
-       mris_convert $surf $surf.asc
+       mris_convert $surf $surf.asc >& ___out
+       tail ___out ; \rm -f ___out
    endif
 
    if ( ! -f $surf.asc ) then
@@ -789,7 +799,7 @@ L_CREATE_BRICK:
     # verify existence of 256 COR files, Checking for 256 is now obsolete ZSS Oct 14 04
     set cor_files = ( `echo COR-???` ) >& /dev/null 
     
-    if ( $status) then
+    if ( $status || $use_mgz == 1) then
       if ($orig_mgz != "") then   
          #Try the orig.mgz business
          echo "No COR files, converting $orig_mgz ..."
@@ -797,13 +807,17 @@ L_CREATE_BRICK:
          mri_convert -ot cor $orig_mgz $orig_dir
          cd $orig_dir
       else 
-         set endstr = "failure: No COR files and no $orig.mgz"
+         if ($use_mgz == 0) then
+            set endstr = "failure: No COR files and no $orig.mgz"
+         else
+            set endstr = "failure: No mgz files"
+         endif
          goto L_BAD_END
       endif
     else
       if ($orig_mgz != "") then  
          echo ""
-         echo "Warning: Found COR files and $orig_mgz"
+         echo "Notice: Found COR files and $orig_mgz"
          echo "******** Will use COR files."
          echo ""
       endif
@@ -1017,6 +1031,8 @@ L_HELP_END:
     echo ""
     echo "          Note: when this option is provided, all file/path"
     echo "          messages will be with respect to this directory."
+    echo ""
+    echo "    -use_mgz        : use MGZ volumes even if COR volumes are there"
     echo ""
     echo "    -neuro          : use neurological orientation"
     echo "          e.g. -neuro"

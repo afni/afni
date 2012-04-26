@@ -1002,8 +1002,9 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_NIML          12  /* NIML AFNI dset   25 May 2006 [rickr] */
 #define STORAGE_BY_NI_SURF_DSET  13  /* NIML surface dset */
 #define STORAGE_BY_GIFTI         14  /* GIFTI surface dset */
+#define STORAGE_BY_NI_TRACT      15  /* NIML tract dset */
 
-#define LAST_STORAGE_MODE        14
+#define LAST_STORAGE_MODE        15
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -2751,6 +2752,7 @@ typedef struct THD_3dim_dataset {
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MPEG         ||  \
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NIML         ||  \
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NI_SURF_DSET ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NI_TRACT     ||  \
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_GIFTI            \
           ) )
 

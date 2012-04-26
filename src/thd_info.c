@@ -49,6 +49,8 @@ const char * storage_mode_str(int mode) {
          return("NIML") ;
       case STORAGE_BY_NI_SURF_DSET:
          return("NI_SURF_DSET") ;
+      case STORAGE_BY_NI_TRACT:
+         return("NI_TRACT") ;
       case STORAGE_BY_GIFTI:
          return("GIFTI") ;
     }
