@@ -170,7 +170,7 @@ typedef enum { type_not_set = -1,
                NBSP_type, PL_type, VO_type,
                NBT_type, SBT_type, DBT_type, /*!< Those three will 
                                                    likely not be used */
-               NIDO_type, SDSET_type,
+               NIDO_type, SDSET_type, TRACT_type,
                N_DO_TYPES } SUMA_DO_Types;   
 
 /*!< Displayable Object Types 
@@ -1516,7 +1516,8 @@ typedef struct {
    char *Label; /*!< ascii label for DO */ 
    SUMA_DO_Types do_type;
    
-   int NodeBased; /*!< flag: 1 if segments are formed by vectors at surface nodes */
+   int NodeBased; /*!< flag: 1 if segments are formed by vectors at surface 
+                             nodes */
    char *Parent_idcode_str; /*!< Parent surface's id 
                                  (only used if NodeBased = 1
                                  NULL if NodeBased)*/
@@ -1524,18 +1525,23 @@ typedef struct {
                      NULL if NodeBased = 0 */
    int *NodeID1; /*!< Used to define the 2 node of vectors that are fully
                       nodebased */
+   
    GLfloat *n0; /*!< vector containing XYZ of nodes 1 (3*N_n elements long)
                      NULL if NodeBased*/
    GLfloat *n1; /*!< vector containing XYZ of nodes 2 (3*N_n elements long)*/
+   
    GLUquadricObj *topobj; /*!< quadric object, representing n1 */
    GLUquadricObj *botobj; /*!< quadric object, representing n0 */
+   
    int N_n; /*!< Number of elements in n0 and n1 */
+   
    GLfloat LineWidth; /*!< Common LineWidth of all segment*/
    GLfloat LineCol[4]; /*!< Common LineColor of all segments*/
-   GLfloat *colv; /*!< Vector of segment colors, 4 elements per segment. NULL if using LineCol */
-   GLfloat *thickv; /*!< Vector of segment thincknesses, 1 elements per segment. NULL if using LineWidth */
+   GLfloat *colv; /*!< Vector of segment colors, 4 elements per segment. 
+                        NULL if using LineCol */
+   GLfloat *thickv; /*!< Vector of segment thincknesses, 
+                         1 elements per segment. NULL if using LineWidth */
    SUMA_STIPPLE Stipple; /*!< dashed or solid line */
-   
 }SUMA_SegmentDO;
 
 typedef struct {
@@ -1554,7 +1560,7 @@ typedef struct {
    char *Label; /*!< ascii label for DO */ 
    SUMA_DO_Types do_type;
    
-   int NodeBased; /*!< flag: 1 if segments are formed by vectors at surface nodes */
+   int NodeBased; /*!< flag: 1 if segments are formed by vectors at nodes */
    char *Parent_idcode_str; /*!< Parent surface's id 
                                  (only used if NodeBased = 1
                                  NULL if NodeBased)*/
@@ -1568,12 +1574,33 @@ typedef struct {
    GLfloat CommonCol[4]; /*!< common colors */
    GLint CommonSlices; /*!< think pizza */
    GLint CommonStacks; /*!< think lattitudes */
-   GLfloat *radv; /*!< Vector of sphere radii, 1 elements per sphere. NULL if using CommonRad */
-   GLfloat *colv; /*!< Vector of sphere colors, 4 elements per sphere. NULL if using CommonCol */
-   GLenum CommonStyle; /*!< Common sphere drawing style. Choose from: GLU_FILL, GLU_LINE, GLU_SILHOUETTE, GLU_POINT */
+   GLfloat *radv; /*!< Vector of sphere radii, 1 elements per sphere. 
+                        NULL if using CommonRad */
+   GLfloat *colv; /*!< Vector of sphere colors, 4 elements per sphere. 
+                        NULL if using CommonCol */
+   GLenum CommonStyle; /*!< Common sphere drawing style. 
+            Choose from: GLU_FILL, GLU_LINE, GLU_SILHOUETTE, GLU_POINT */
    GLenum *stylev; /*!< Vector of sphere styles */
    
 }SUMA_SphereDO;
+
+typedef struct {
+   char *idcode_str;
+   char *Label;
+   SUMA_DO_Types do_type;
+   
+   char *Parent_idcode_str;
+   
+   TAYLOR_BUNDLE *tb; 
+
+   GLfloat LineWidth; /*!< Common LineWidth of all segment*/
+   GLfloat LineCol[4]; /*!< Common LineColor of all segments*/
+   GLfloat *colv; /*!< Vector of segment colors, 4 elements per segment. 
+                        NULL if using LineCol */
+   GLfloat *thickv; /*!< Vector of segment thincknesses, 
+                         1 elements per segment. NULL if using LineWidth */
+   SUMA_STIPPLE Stipple; /*!< dashed or solid line */
+} SUMA_TractDO;
 
 typedef struct {
    char *idcode_str;    /*!< unique idcode for DO */

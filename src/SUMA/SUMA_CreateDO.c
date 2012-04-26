@@ -776,6 +776,8 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    
    if (strstr(s,"<nido_head")) SUMA_RETURN(NIDO_type);
    
+   if (SUMA_isExtension(s,".niml.tract")) SUMA_RETURN(TRACT_type);
+   
    fid = fopen(s,"r");
    
    if (!fid) {
@@ -1981,13 +1983,40 @@ SUMA_SphereDO * SUMA_ReadSphDO (char *s)
       /* fill up idividual style */
       itmp = 0;
       while (itmp < SDO->N_n) {
-         SDO->stylev[itmp]     = SUMA_SphereStyleConvert((int)far[itmp+(icol_style  )*ncol]);
+         SDO->stylev[itmp] = SUMA_SphereStyleConvert(
+                                 (int)far[itmp+(icol_style  )*ncol]);
          ++itmp;
       } 
    }
    mri_free(im); im = NULL; far = NULL;
 
    SUMA_RETURN(SDO);
+}
+
+SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id) 
+{
+   static char FuncName[]={"SUMA_ReadTractDO"};
+   TAYLOR_BUNDLE *tb=NULL;
+   SUMA_TractDO *TDO=NULL;
+   
+   SUMA_ENTRY;
+      
+   if (!s) {
+      SUMA_SLP_Err("NULL s");
+      SUMA_RETURN(NULL);
+   }
+   if (!(tb = Read_Bundle(s))) {
+      SUMA_S_Errv("Failed to read %s\n",s);
+      SUMA_RETURN(NULL);
+   }
+   if (!(TDO = SUMA_Alloc_TractDO (s, parent_SO_id))) {
+      SUMA_S_Err("Failed to init TDO.");
+      SUMA_RETURN(NULL);
+   }
+   
+   TDO->tb = tb;
+   
+   SUMA_RETURN(TDO);
 }
 
 SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id)
@@ -2729,7 +2758,10 @@ SUMA_SphereDO * SUMA_Alloc_SphereDO (  int N_n, char *Label,
    /* setup some default values */
    SDO->LineWidth = 4.0;
    SDO->CommonRad = 2.0;
-   SDO->CommonCol[0] = 1.0; SDO->CommonCol[1] = 1.0; SDO->CommonCol[2] = 1.0; SDO->CommonCol[3] = 1.0; 
+   SDO->CommonCol[0] = 1.0; 
+   SDO->CommonCol[1] = 1.0; 
+   SDO->CommonCol[2] = 1.0; 
+   SDO->CommonCol[3] = 1.0; 
    SDO->CommonSlices = 10;
    SDO->CommonStacks = 10;
    SDO->CommonStyle = GLU_FILL;
@@ -2759,6 +2791,75 @@ void SUMA_free_SphereDO (SUMA_SphereDO * SDO)
    if (SDO->stylev) SUMA_free(SDO->stylev);
 
    if (SDO) SUMA_free(SDO);
+   
+   SUMA_RETURNe;
+
+}
+
+SUMA_TractDO * SUMA_Alloc_TractDO (  char *Label, 
+                                     char *Parent_idcode_str)
+{
+   static char FuncName[]={"SUMA_Alloc_TractDO"};
+   SUMA_TractDO* TDO;
+   char *hs = NULL;
+   
+   SUMA_ENTRY;
+
+   TDO = (SUMA_TractDO*)SUMA_calloc(1,sizeof (SUMA_TractDO));
+   if (TDO == NULL) {
+      fprintf(stderr,"SUMA_Alloc_TractDO Error: Failed to allocate TDO\n");
+      SUMA_RETURN (NULL);
+   }
+   TDO->do_type = TRACT_type;
+   
+   
+   if (!Parent_idcode_str) {
+      TDO->Parent_idcode_str = NULL;
+   } else {
+      TDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
+   } 
+   
+   /* create a string to hash an idcode */
+   if (Label) hs = SUMA_copy_string(Label);
+   else hs = SUMA_copy_string("NULL_");
+   if (Parent_idcode_str) 
+      hs = SUMA_append_replace_string(hs,Parent_idcode_str,"_",1);
+   else hs = SUMA_append_replace_string(hs,"NULL","",1);
+   TDO->idcode_str = UNIQ_hashcode(hs);
+   SUMA_free(hs); hs = NULL;
+
+   
+   if (Label) {
+      TDO->Label = (char *)SUMA_calloc (strlen(Label)+1, sizeof(char));
+      TDO->Label = strcpy (TDO->Label, Label);
+   } else {
+      TDO->Label = NULL;
+   }
+   
+   TDO->LineWidth = 1.0;
+   TDO->LineCol[0] = 1.0;
+   TDO->colv = NULL;
+   TDO->thickv = NULL;
+   
+   TDO->Stipple = SUMA_SOLID_LINE;
+   
+   SUMA_RETURN (TDO);
+}
+
+void SUMA_free_TractDO (SUMA_TractDO * TDO)
+{
+   static char FuncName[]={"SUMA_free_TractDO"};
+
+   SUMA_ENTRY;
+   
+   if (!TDO) SUMA_RETURNe;
+   
+   if (TDO->Parent_idcode_str) SUMA_free(TDO->Parent_idcode_str);
+   if (TDO->Label) SUMA_free(TDO->Label);
+   if (TDO->idcode_str) SUMA_free(TDO->idcode_str);
+   if (TDO->tb) Free_Bundle(TDO->tb);
+   
+   if (TDO) SUMA_free(TDO);
    
    SUMA_RETURNe;
 
@@ -3072,6 +3173,135 @@ void SUMA_free_PlaneDO (SUMA_PlaneDO * SDO)
    
    SUMA_RETURNe;
 
+}
+
+SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_DrawTractDO"};
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   int i, i3a, i3b, n, N_pts;
+   float origwidth=0.0, Un, U[4]={0.0, 0.0, 0.0, 1.0}, *pa=NULL, *pb=NULL;
+   TAYLOR_TRACT *tt=NULL;
+   byte *mask=NULL;
+   byte color_by_mid = 0; /* this one should be interactively set ... */
+   GLboolean gl_sm=FALSE;
+   SUMA_Boolean LocalHead = NOPE, ans = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!TDO || !sv) {
+      fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   if (!TDO->tb) SUMA_RETURN(YUP);
+   
+   glGetFloatv(GL_LINE_WIDTH, &origwidth);
+   gl_sm = glIsEnabled(GL_LINE_SMOOTH);
+   if (!TDO->thickv) glLineWidth(0.1); //TDO->LineWidth);  
+   
+   switch (TDO->Stipple) {
+      case SUMA_DASHED_LINE:
+         glEnable(GL_LINE_STIPPLE);
+         glLineStipple (1, 0x00FF); /* dashed, see OpenGL Prog guide, page 55 */
+         break;
+      case SUMA_SOLID_LINE:
+         if (0) { 
+            glEnable (GL_LINE_SMOOTH); /* makes lines fat, can't go too low 
+                                          in thickness, fughetaboutit */
+            if (0) glDepthMask(FALSE); /* Disabling depth masking makes lines 
+                           coplanar with polygons
+                           render without stitching, bleeding, or Z fighting.
+                           Problem is, that it need to be turned on for proper
+                           rendering of remaing objects, and that brings the 
+                           artifact back. */
+            glHint (GL_LINE_SMOOTH_HINT, GL_NICEST); 
+         } else {
+            glDisable(GL_LINE_SMOOTH);
+         }
+         break;
+      default:
+         fprintf(stderr,"Error %s: Unrecognized Stipple option\n", FuncName);
+         ans = NOPE; goto GETOUT;
+   }
+   
+   if (TDO->thickv) {/* slow slow slow */
+      SUMA_S_Err("Not ready for thickness business");
+      #if 0
+      SUMA_LH("Drawing xyz to xyz with thickness ");
+      if (!TDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, TDO->LineCol);
+      glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
+         /* turn off ambient and diffuse components */
+      glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
+      i = 0;
+      N_n3 = 3*SDO->N_n;
+      while (i < N_n3) {
+         if (TDO->thickv) glLineWidth(TDO->thickv[i/3]);   
+         glBegin(GL_LINES);
+         if (TDO->colv) 
+            glMaterialfv(GL_FRONT, GL_EMISSION, &(TDO->colv[4*(i/3)]));
+         glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
+         glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
+         i += 3;
+         glEnd();
+      }
+      #endif
+   } else {
+      SUMA_LH("Drawing xyz to xyz ");
+      glBegin(GL_LINES);
+      if (!TDO->colv) 
+         glMaterialfv(GL_FRONT, GL_EMISSION, TDO->LineCol); 
+               /*turn on emissivity  */
+      glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
+               /* turn off ambient and diffuse components */
+      glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
+      
+      for (n=0; n<TDO->tb->N_tracts; ++n) {
+         tt = TDO->tb->tracts+n;
+         N_pts = TRACT_NPTS(tt);
+         if (N_pts>2 && color_by_mid) {
+            /* set color based on mid point */
+            pa = tt->pts+(tt->N_pts3/2);
+            pb = pa - 3;
+            SUMA_SEG_DELTA_COL(pa,pb,U);
+            glMaterialfv(GL_FRONT, GL_EMISSION, U);
+         }
+         i = 1;
+         while (i < N_pts) {
+            i3a = 3*(i-1); i3b = 3*i;
+            pa = tt->pts+i3a; pb = tt->pts+i3b;
+            if (TDO->colv) {
+               glMaterialfv(GL_FRONT, GL_EMISSION, &(TDO->colv[4*(i/3)]));
+            } else if (!color_by_mid) { 
+               SUMA_SEG_DELTA_COL(pa,pb,U);
+               glMaterialfv(GL_FRONT, GL_EMISSION, U);
+            }   
+            glVertex3f(pa[0], pa[1], pa[2]);
+            glVertex3f(pb[0], pb[1], pb[2]);
+            ++i;
+         }
+      }
+      glEnd();
+   }
+         
+   switch (TDO->Stipple) {
+      case SUMA_DASHED_LINE:
+         glDisable(GL_LINE_STIPPLE);
+         break;
+      case SUMA_SOLID_LINE:
+         glDisable(GL_LINE_SMOOTH);
+         break;
+   }
+   
+
+   GETOUT:
+   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
+   glLineWidth(origwidth);
+   if (gl_sm) glEnable(GL_LINE_SMOOTH); else glDisable(GL_LINE_SMOOTH);
+   if (mask) SUMA_free(mask); mask=NULL;
+   
+   
+   SUMA_RETURN(ans);
 }
 
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)

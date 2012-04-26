@@ -91,6 +91,7 @@ ENTRY("THD_init_diskptr_names") ;
             break;
          case STORAGE_BY_1D:
          case STORAGE_BY_NI_SURF_DSET:
+         case STORAGE_BY_NI_TRACT:
          case STORAGE_BY_GIFTI:
          case STORAGE_BY_NIFTI:
             strcpy(dkptr->filecode, dkptr->prefix);
@@ -99,7 +100,6 @@ ENTRY("THD_init_diskptr_names") ;
    }
 
    /*-- rewrite header_name --*/
-
    if( headname != NULL && strlen(headname) > 0 ){
       MCW_strncpy( dkptr->header_name , headname , THD_MAX_NAME ) ;
    } else {
@@ -114,6 +114,7 @@ ENTRY("THD_init_diskptr_names") ;
             break;
          case STORAGE_BY_1D:
          case STORAGE_BY_NI_SURF_DSET:
+         case STORAGE_BY_NI_TRACT:
          case STORAGE_BY_GIFTI:
          case STORAGE_BY_NIFTI:
             sprintf( dkptr->header_name , "%s%s" ,
@@ -123,7 +124,6 @@ ENTRY("THD_init_diskptr_names") ;
    }
 
    /*-- if desired, create the datafile names as well --*/
-
    if( do_datafiles ){
       switch (dkptr->storage_mode) { /* ZSS: Oct 2011 */
          case STORAGE_BY_BRICK:
@@ -136,6 +136,7 @@ ENTRY("THD_init_diskptr_names") ;
             break;
          case STORAGE_BY_1D:
          case STORAGE_BY_NI_SURF_DSET:
+         case STORAGE_BY_NI_TRACT:
          case STORAGE_BY_GIFTI:
          case STORAGE_BY_NIFTI:
             sprintf( dkptr->brick_name , "%s%s",
@@ -143,5 +144,6 @@ ENTRY("THD_init_diskptr_names") ;
             break;
       }
    }
+
    EXRETURN ;
 }

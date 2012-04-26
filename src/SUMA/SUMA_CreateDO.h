@@ -76,20 +76,29 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
                                        SUMA_DO_Types type);
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO);
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv);
-SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *parent_idcode, SUMA_DO_Types type);
+SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv);
+SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *parent_idcode, 
+                                     SUMA_DO_Types type);
+SUMA_TractDO * SUMA_Alloc_TractDO (char *Label, char *parent_idcode);
 SUMA_PlaneDO * SUMA_Alloc_PlaneDO (int N_n, char *Label, SUMA_DO_Types type);
 void SUMA_free_SphereDO (SUMA_SphereDO * SDO);
+void SUMA_free_TractDO (SUMA_TractDO * SDO);
 void SUMA_free_PlaneDO (SUMA_PlaneDO * SDO);
 SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_isROIdequal (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2);
 void SUMA_FreeROIDatum (void * data);
 SUMA_ROI_DATUM * SUMA_AllocROIDatum (void);
-SUMA_Boolean SUMA_PrependToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2);
-void SUMA_ShowDrawnROI (SUMA_DRAWN_ROI *D_ROI, FILE *out, SUMA_Boolean ShortVersion);
-void SUMA_ShowDrawnROIDatum (SUMA_ROI_DATUM *ROId, FILE *out, SUMA_Boolean ShortVersion);
-SUMA_Boolean SUMA_AppendToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2);
-SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int FirstSurfNode);
+SUMA_Boolean SUMA_PrependToROIdatum (SUMA_ROI_DATUM *ROId1, 
+                                     SUMA_ROI_DATUM *ROId2);
+void SUMA_ShowDrawnROI (SUMA_DRAWN_ROI *D_ROI, FILE *out, 
+                        SUMA_Boolean ShortVersion);
+void SUMA_ShowDrawnROIDatum (SUMA_ROI_DATUM *ROId, FILE *out, 
+                             SUMA_Boolean ShortVersion);
+SUMA_Boolean SUMA_AppendToROIdatum (SUMA_ROI_DATUM *ROId1,
+                                    SUMA_ROI_DATUM *ROId2);
+SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, 
+                                 int FirstSurfNode);
 void SUMA_FillToMask_Engine (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_mask, int seed, int *N_Visited, int N_Node);
 void SUMA_FillToMask_Engine_old (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_mask, int seed, int *N_Visited);
 SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, int *N_ROI);
@@ -103,12 +112,14 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes_w (SUMA_SurfaceObject *SO,
 void SUMA_Free_ROI_PlaneData (void *da);
 DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov);
 int * SUMA_NodesInROI (SUMA_DRAWN_ROI *D_ROI, int *N_Nodes, SUMA_Boolean Unique);
-SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char *Parent_idcode_str, 
-                                          char *Label, char *ColPlaneName, 
-                                          float *FillColor, float *EdgeColor, int EdgeThickness , 
-                                          SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay);
+SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, 
+                     char *Parent_idcode_str, 
+                     char *Label, char *ColPlaneName, 
+                     float *FillColor, float *EdgeColor, int EdgeThickness , 
+                     SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay);
 SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id);
 SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id);
+SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id);
 SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *soid);
 SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *soid);
 SUMA_SphereDO * SUMA_ReadSphDO (char *s);

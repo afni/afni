@@ -700,9 +700,6 @@ void color_palette(int nclusters, char* jobname)
     }
   }
 
-  if (nclusters > 6) {
-    printf("COLOR PALETTE CAN HANDLE MAX & CLUSTERS FOR NOW!!!");
-  }
   
   if (verb) printf ("------- Color palette written to file:\t\t"
 	  "%s_K%d.pal\n",jobname,nclusters);

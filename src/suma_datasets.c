@@ -9658,7 +9658,8 @@ SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension_core(char *Name)
    if (LocalHead) SUMA_ShowParsedFname(fn, NULL);
    
    if (SUMA_isExtension(fn->FileName, ".niml.dset") ||
-       SUMA_isExtension(fn->FileName, ".niml.do") ) 
+       SUMA_isExtension(fn->FileName, ".niml.do") ||
+       SUMA_isExtension(fn->FileName, ".niml.tract") ) 
       form = SUMA_NIML;
    else if (  SUMA_isExtension(fn->FileName, ".gii.dset") ||
          SUMA_isExtension(fn->FileName, ".gii") ) 

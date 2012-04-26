@@ -306,6 +306,9 @@ ENTRY("storage_mode_from_niml");
                   !strcmp(atr, "Node_Label")  )   ) /* then SUMA DSET */
                 RETURN(STORAGE_BY_NI_SURF_DSET);
             RETURN(STORAGE_BY_NIML);                 /* else assume AFNI */
+        } else if ( ! strcmp(ng->name, "bundle") )
+        {
+            RETURN(STORAGE_BY_NI_TRACT);
         }
         else if(gni.debug)
             fprintf(stderr,"** SMFN: NI_group, but bad name '%s'\n",ng->name);

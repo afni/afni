@@ -464,7 +464,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
                      SUMA_LoadSegDO, (void *)sv,
                      NULL, NULL,
-                     "*.1D*",
+                     "*.*",
                      SUMAg_CF->X->FileSelectDlg);
             } else {
                SUMAg_CF->X->FileSelectDlg = 
@@ -472,7 +472,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      (Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
                      SUMA_LoadSegDO, (void *)sv,
                      NULL, NULL,
-                     "*.1D*",
+                     "*.*",
                      SUMAg_CF->X->FileSelectDlg);
             }
             SUMAg_CF->X->FileSelectDlg = 
