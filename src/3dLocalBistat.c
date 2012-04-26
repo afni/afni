@@ -24,6 +24,11 @@ int main( int argc , char *argv[] )
       "at each voxel, based on a local neighborhood of that voxel.\n"
       " - The neighborhood is defined by the '-nbhd' option.\n"
       " - Statistics to be calculated are defined by the '-stat' option(s).\n"
+      " - The 2 input datasets should have the same number of sub-bricks.\n"
+      " - OR dataset1 should have 1 sub-brick and dataset2 can have more than 1:\n"
+      "   - In which case, the statistics of dataset2 against dataset1 are\n"
+      "     calculated for the #0 sub-brick of dataset1 against each sub-brick\n"
+      "     of dataset2.\n"
       "\n"
       "OPTIONS\n"
       "-------\n"
@@ -63,13 +68,20 @@ int main( int argc , char *argv[] )
       "               * crU      = Correlation ratio (Unsymmetric)\n"
       "               * crM      = Correlation ratio (symmetrized by Multiplication)\n"
       "               * crA      = Correlation ratio (symmetrized by Addition)\n"
-      "               * num    = number of the values in the region:\n"
-      "                          with the use of -mask or -automask,\n"
-      "                          the size of the region around any given\n"
-      "                          voxel will vary; this option lets you\n"
-      "                          map that size.\n"
-      "               * ncd    = Normalized Compression Distance (zlib; very slow)\n"
-      "               * ALL    = all of the above, in that order\n"
+      "               * L2slope  = slope of least-squares (L2) linear regression of\n"
+      "                            the data from dataset1 vs. the dataset2\n"
+      "                            (i.e., d2 = a + b*d1 ==> this is 'b')\n"
+      "               * L1slope  = slope of least-absolute-sum (L1) linear regression\n"
+      "                            of the data from dataset1 vs. the dataset2\n"
+      "               * num      = number of the values in the region:\n"
+      "                            with the use of -mask or -automask,\n"
+      "                            the size of the region around any given\n"
+      "                            voxel will vary; this option lets you\n"
+      "                            map that size.\n"
+#if 0
+      "               * ncd      = Normalized Compression Distance (zlib; very slow)\n"
+#endif
+      "               * ALL      = all of the above, in that order\n"
       "               More than one '-stat' option can be used.\n"
       "\n"
       " -mask mset  = Read in dataset 'mset' and use the nonzero voxels\n"
@@ -88,7 +100,7 @@ int main( int argc , char *argv[] )
       "ADVANCED OPTIONS\n"
       "----------------\n"
       " -histpow pp   = By default, the number of bins in the histogram used\n"
-      "                 for calculating the Hellinger, Mutual Information, NCD,\n"
+      "                 for calculating the Hellinger, Mutual Information,\n"
       "                 and Correlation Ratio statistics is n^(1/3), where n\n"
       "                 is the number of data points in the -nbhd mask.  You\n"
       "                 can change that exponent to 'pp' with this option.\n"
@@ -215,15 +227,23 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"crU")      == 0 ) code[ncode++] = NBISTAT_CORR_RATIO_U ;
        else if( strcasecmp(cpt,"crM")      == 0 ) code[ncode++] = NBISTAT_CORR_RATIO_M ;
        else if( strcasecmp(cpt,"crA")      == 0 ) code[ncode++] = NBISTAT_CORR_RATIO_A ;
+       else if( strcasecmp(cpt,"L2slope")  == 0 ) code[ncode++] = NBISTAT_L2SLOPE      ;
+       else if( strcasecmp(cpt,"L1slope")  == 0 ) code[ncode++] = NBISTAT_L1SLOPE      ;
        else if( strcasecmp(cpt,"num")      == 0 ) code[ncode++] = NBISTAT_NUM          ;
+#if 0
        else if( strcasecmp(cpt,"ncd")      == 0 ) code[ncode++] = NBISTAT_NCD          ;
+#endif
        else if( strcasecmp(cpt,"ALL")      == 0 ){
           code[ncode++] = NBISTAT_PEARSON_CORR ; code[ncode++] = NBISTAT_SPEARMAN_CORR;
           code[ncode++] = NBISTAT_QUADRANT_CORR; code[ncode++] = NBISTAT_MUTUAL_INFO  ;
           code[ncode++] = NBISTAT_NORMUT_INFO  ; code[ncode++] = NBISTAT_JOINT_ENTROPY;
           code[ncode++] = NBISTAT_HELLINGER    ; code[ncode++] = NBISTAT_CORR_RATIO_U ;
           code[ncode++] = NBISTAT_CORR_RATIO_M ; code[ncode++] = NBISTAT_CORR_RATIO_A ;
-          code[ncode++] = NBISTAT_NUM          ; code[ncode++] = NBISTAT_NCD          ;
+          code[ncode++] = NBISTAT_L2SLOPE      ; code[ncode++] = NBISTAT_L1SLOPE      ;
+          code[ncode++] = NBISTAT_NUM          ;
+#if 0
+          code[ncode++] = NBISTAT_NCD          ;
+#endif
        }
        else
          ERROR_exit("-stat '%s' is an unknown statistic type",argv[iarg]) ;
@@ -279,8 +299,14 @@ int main( int argc , char *argv[] )
    if( jnset == NULL  ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
    if( DSET_NVOX(jnset)  != DSET_NVOX(inset) )
      ERROR_exit("Input datasets have different numbers of voxels!?");
-   if( DSET_NVALS(jnset) != DSET_NVALS(inset)  )
-     ERROR_exit("Input datasets have different numbers of sub-bricks!?");
+
+   if( DSET_NVALS(jnset) != DSET_NVALS(inset)  ){
+     if( DSET_NVALS(inset) > 1 ){
+       ERROR_exit("Input datasets have different numbers of sub-bricks!?");
+     } else {
+       INFO_message("first input dataset has 1 sub-brick, second has %d",DSET_NVALS(jnset)) ;
+     }
+   }
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
    DSET_load(jnset) ; CHECK_LOAD_ERROR(jnset) ;
@@ -303,7 +329,7 @@ int main( int argc , char *argv[] )
      for( ii=0 ; ii < nvox ; ii++ ) mask[ii] = (mask[ii] || jask[ii]) ;
      free(jask) ;
      mmm = THD_countmask( nvox , mask ) ;
-     INFO_message("Number of voxels in automask = %d",mmm) ;
+     INFO_message("Number of voxels in dual automask = %d",mmm) ;
      if( mmm < 11 ) ERROR_exit("Automask is too small to process") ;
    }
 

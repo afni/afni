@@ -819,6 +819,8 @@ extern void binarize_mask( int , byte * ) ;
 #define NBISTAT_NCD                66612
 #define NBISTAT_KENDALL_TAUB       66613 /* 29 Apr 2010 */
 #define NBISTAT_TICTACTOE_CORR     66614 /* 30 Mar 2011 */
+#define NBISTAT_L2SLOPE            66615 /* 26 Apr 2012 */
+#define NBISTAT_L1SLOPE            66616 /* 26 Apr 2012 */
 
 #define NBISTAT_BC_PEARSON_M       66691
 #define NBISTAT_BC_PEARSON_V       66692
