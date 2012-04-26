@@ -218,6 +218,7 @@ int main(int argc, char *argv[]) {
   // ****************************************************************
   
   /** scan args **/
+  if (argc == 1) { usage_ProbTrackID(1); exit(0); }
   iarg = 1;
   while( iarg < argc && argv[iarg][0] == '-' ){
     if( strcmp(argv[iarg],"-help") == 0 || 
