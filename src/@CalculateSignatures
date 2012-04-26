@@ -75,7 +75,9 @@ REGROUP:
          end
          if ($prepend_anat && $AddedAnat == 0 && \
              ($lstat =~ med* || $lstat =~ mean*)) then
-            set AddAnatOpt = "$stdir/${involume}"
+            3dcalc -datum short -a $stdir/${involume} \
+                        -prefix $stdir/short_${involume} -expr 'a'
+            set AddAnatOpt = "$stdir/short_${involume}"
          else
             set AddAnatOpt = ''
          endif
@@ -87,6 +89,7 @@ REGROUP:
             else 
                3drefit -sublabel 0 MEAN.00_mm ${inpref}.us.${lstat}+orig
             endif
+            \rm -f $stdir/short_${involume}*
             set AddedAnat = 1
          endif
          unset noglob
