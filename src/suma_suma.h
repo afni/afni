@@ -56,6 +56,7 @@
    #define SUMA_mainENTRY mainENTRY(FuncName)
    
    #include "mcw_malloc.h"
+   #include "ptaylor/TrackIO.h"
    
    /* post March 3 04, using AFNI's allocation and tracing routines
    instead of SUMA's 

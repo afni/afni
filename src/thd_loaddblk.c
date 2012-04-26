@@ -307,6 +307,11 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      RETURN( False ) ;
    }
 
+   if( dkptr->storage_mode == STORAGE_BY_NI_TRACT ) {
+      ERROR_message("Cannot handle tracts here");
+      RETURN( False ) ;
+   }
+   
    if( dkptr->storage_mode == STORAGE_BY_GIFTI ) {  /* 13 Feb 2008 */
      THD_load_gifti( blk ) ;
      ii = THD_count_databricks( blk ) ;

@@ -183,7 +183,9 @@ int main(int argc, char *argv[])
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
 
-    /* scan argument list */
+   /* scan argument list */
+   if (argc == 1) { usage_3dROIstats(1); exit(0); } /* Bob's help shortcut */
+
    disp1d = 0;
    mean = 1;   /* LEAVE this as the default ZSS March 09 2010 */
     while (narg < argc && argv[narg][0] == '-') {
@@ -379,9 +381,8 @@ int main(int argc, char *argv[])
     }
 
     if (argc < 3) {
-      ERROR_message("Too few options");
-      usage_3dROIstats(0);
-      exit(0);
+      ERROR_message("Too few options, use -help for details");
+      exit(1);
     }
 
 
@@ -653,7 +654,11 @@ int main(int argc, char *argv[])
 	    continue;
 	}
    if( !EQUIV_GRIDS(mask_dset,input_dset) )
-     WARNING_message("Input dataset %s grid mismatch from mask",argv[narg]) ;
+     WARNING_message("Input dataset %s grid mismatch from mask.\n"
+             "Try the following command for grid comparison:\n"
+             " 3dinfo -header_line -prefix -same_all_grid %s %s\n"
+             ,argv[narg], 
+             DSET_HEADNAME(mask_dset), DSET_HEADNAME(input_dset)) ;
 
 	DSET_load(input_dset);
 

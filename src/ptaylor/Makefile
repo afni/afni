@@ -1,9 +1,12 @@
-# This Makefile is for Mac OSX 10.5 (Panther) for 64 bit AFNI
+
+# This Makefile is for Mac OSX 10.6 (Snow Leopard) for 64 bit AFNI
+
+SW_ROOT   = /sw
 
 USE_ZLIB  = -DHAVE_ZLIB
 LZLIB     = -lz
 USE_GIFTI = -DHAVE_GIFTI
-LGIFTI    = /usr/local64/lib/libexpat64.a
+LGIFTI    = $(SW_ROOT)/lib/libexpat.a
 
 # ----------------------------------------------------------------------
 # X configuration
@@ -11,9 +14,9 @@ LGIFTI    = /usr/local64/lib/libexpat64.a
 # uncomment to build using local /usr/local/afniX 'X' tree
 USE_LOCAL_X_TREE = 1
 ifdef USE_LOCAL_X_TREE
-    XROOT = /usr/local/afniX
+    XROOT   = $(SW_ROOT)
     XROOT_I = -I$(XROOT)/include
-    XROOT_L = -L$(XROOT)/lib64
+    XROOT_L = -L$(XROOT)/lib
 else
     XROOT = /sw
     XROOT_L = -L$(XROOT)/lib
@@ -24,10 +27,10 @@ endif
 ifdef USE_LESSTIF
     LESSTIF_DEFS = -DUSING_LESSTIF
 
-    XLIBS = $(XROOT)/lib64/libXm.a $(XROOT)/lib64/libXt.a 
+    XLIBS = $(XROOT)/lib64/libXm.a $(XROOT)/lib64/libXt.a
 else
     # default is static motif
-    XLIBS = $(XROOT)/lib64/libXm.a -lXt
+    XLIBS = $(XROOT)/lib/libXm.a -lXt
 endif
 
 # in case user wants to override with system dynamic libs
@@ -36,20 +39,18 @@ endif
 
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -UDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
-CC     = cc -O2  -DDARWIN $(CEXTRA)
-CCVOL  = cc -O2  -DDARWIN $(CEXTRA)
-CCFAST = cc -O2  -DDARWIN $(CEXTRA)
+CEXTRA = -g -Wuninitialized -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -UDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
+CC     = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
+CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
+CCFAST = cc -O3 -ftree-vectorize -ffast-math -DDARWIN $(CEXTRA)
 CCMIN  = cc -m64
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 
 OMPFLAG = -fopenmp -DUSE_OMP
 
-EXTRA_INSTALL_COMMAND = echo '++ Test of EXINCOM ++' ;
-
-IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include 
-LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load -Bstatic
+IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include
+LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
 
 CCSVD  = cc -m64 -O0 -no-cpp-precomp
 
@@ -74,9 +75,9 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = $(HOME)/abin
+INSTALLDIR = /Users/ziad/abin
 LIBDIR = $(INSTALLDIR)
-SHOWOFF = -DSHOWOFF=Cox_private_gcc
+SHOWOFF = -DSHOWOFF=macosx_10.6_Intel_64
 
 INSTALL_PREREQ = suma
 #INSTALL_PREREQ = suma
@@ -89,8 +90,8 @@ EXPROGS = gifti_tool $(GSLPROGS)
 LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig -lpng -liconv -lXmu -lXp -lXpm -lXext -lX11 $(LZLIB) $(LGIFTI) -lm -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-# For suma 
-# ZSS Aug. 08. LibGLw.a now made locally and called libGLws.a 
+# For suma
+# ZSS Aug. 08. LibGLw.a now made locally and called libGLws.a
 
 # -------------------------------------------------------------------
 #  # OSX 10.5 has issues with libGL, where the multiple copies cause a cycle
@@ -103,14 +104,14 @@ SUMA_GL_DYLIB_CMD = -dylib_file $(SUMA_GLLIB): $(SUMA_GLLIB)
 GLw_IPATH  =
 GLw_LIB = -lGLw
 #uncomment next two lines if you want to use libGLws.a, SUMA's copy of GLw
-GLw_IPATH  = -IGLw_local 
+GLw_IPATH  = -IGLw_local
 GLw_LIB = libGLws.a
 
 
-SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I/usr/local64/glib-2.0 -I/usr/local64/glib-2.0/include
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I${SW_ROOT}/lib/glib-2.0/include
 SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
 
-SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx /usr/local64/lib/libglib-2.0.a $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx -L${SW_ROOT}/lib/ -lglib $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 
@@ -120,4 +121,5 @@ SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 ###############################################################
 
 MAKE = make
+WARNOPT = -Wall 
 include Makefile.ptaylor.INCLUDE

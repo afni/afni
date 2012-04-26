@@ -1699,6 +1699,17 @@ WARNING: The input data vectors are not cast to the type of s.
          U[0] = U[1] = U[2] = 0; \
       }  \
    }  \
+
+/*!
+   Pick a color based on the direction of the unit vector
+   between pa and pb. Direction sign ignored 
+*/
+#define SUMA_SEG_DELTA_COL(pa,pb,U) {\
+   SUMA_UNIT_VEC(pa, pb, U, Un); \
+   U[0] = SUMA_ABS(U[0]);        \
+   U[1] = SUMA_ABS(U[1]);        \
+   U[2] = SUMA_ABS(U[2]); U[3]=1.0; \
+}
    
 /*!
    \brief Macro to calculate normal of a triangle 

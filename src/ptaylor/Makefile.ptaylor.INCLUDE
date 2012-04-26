@@ -1,8 +1,8 @@
-#Makefile for avovk's code
+#Makefile for ptaylor's code
 
 PTAYLORLIB = libtracktools.a
 
-PTAYLOR_SRCS = DoTrackit.c 
+PTAYLOR_SRCS = DoTrackit.c TrackIO.c
        
 PTAYLOR_OBJS = ${PTAYLOR_SRCS:.c=.o}
 
@@ -14,7 +14,7 @@ PTAYLOR_INCLUDE_PATH = ${IFLAGS} -I/usr/local/include \
 PTAYLOR_LINK_PATH = ${LFLAGS} -L/usr/lib -L/usr/local/lib -L../ 
 PTAYLOR_LINK_LIB = ${LLIBS} -lmri
 
-PTAYLOR_HDRS = DoTrackit.h 
+PTAYLOR_HDRS = DoTrackit.h TrackIO.h
 
 AFNI_OBJS = ../xutil.o ../LiteClue.o
 AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o \
@@ -36,6 +36,8 @@ AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
              
 AFNI_3dOBJS = ../parser.o ../parser_int.o
 
+WARNTOPT = ${WARNOPT} -Wno-unused-variable
+
 #library only
 ${PTAYLORLIB} : ${PTAYLOR_OBJS} 
 	rm -f ${PTAYLORLIB}
@@ -50,14 +52,14 @@ clean:
 
 #cluster.o:cluster.c
 #	$(RM) $@
-#	${CC} ${CCOPT} ${WARNOPT} ${PTAYLOR_INCLUDE_PATH} -c cluster.c 
+#	${CC} ${CCOPT} ${WARNTOPT} ${PTAYLOR_INCLUDE_PATH} -c cluster.c 
 
 cluster_floatNOMASK.o:cluster_floatNOMASK.c
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} ${PTAYLOR_INCLUDE_PATH} -c cluster_floatNOMASK.c 
+	${CC} ${CCOPT} ${WARNTOPT} ${PTAYLOR_INCLUDE_PATH} -c cluster_floatNOMASK.c 
 
 .c.o:
-	${CC} ${CCOPT} ${WARNOPT} ${PTAYLOR_INCLUDE_PATH} -c $*.c 
+	${CC} ${CCOPT} ${WARNTOPT} ${PTAYLOR_INCLUDE_PATH} -c $*.c 
 
 ### From Paul Taylor
 3dTrackID:3dTrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}

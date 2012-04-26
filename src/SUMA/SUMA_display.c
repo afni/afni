@@ -733,6 +733,17 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    }
    coord_type = SUMA_WORLD;
    switch (dotp) {
+      case TRACT_type:
+         if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+            SUMA_S_Note("No surface in focus to which the tracts "
+                        "would be attached. That's OK.\n");
+         }
+         if (!(VDO = (void *)SUMA_ReadTractDO(s, SO?SO->idcode_str:NULL))) {
+               SUMA_SL_Err("Failed to read tracts file.\n");
+               SUMA_RETURNe;
+         }
+         ((SUMA_TractDO*)VDO)->do_type = dotp;
+         break;
       case ONBV_type:
       case NBV_type:
          if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
@@ -1555,6 +1566,8 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                            FuncName);
                }
                break;
+            case TRACT_type: /* should not be fixed */
+               break;
          }
       }
       ++i;
@@ -1648,6 +1661,14 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case SDSET_type:
                SUMA_S_Warn("Should not have type in DO list to be rendered");
+               break;
+            case TRACT_type:
+               if (!SUMA_DrawTractDO (
+                     (SUMA_TractDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_DrawTractDO.\n", 
+                           FuncName);
+               }
                break;
             case OLS_type:
             case LS_type:
@@ -11954,7 +11975,7 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (
    if (FilePattern) {
       /* new one specified, destroy the old one */
       if (dlg->FilePattern) {
-         SUMA_LHv("Restting dlg->FilePattern to %s\n", FilePattern);
+         SUMA_LHv("Reseting dlg->FilePattern to %s\n", FilePattern);
          SUMA_free(dlg->FilePattern);
       }   
       dlg->FilePattern = SUMA_copy_string (FilePattern);

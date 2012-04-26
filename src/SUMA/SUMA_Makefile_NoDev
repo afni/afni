@@ -3,7 +3,7 @@
 MAKE = make
 SUMALIB = libSUMA.a
 SUMAGTSLIB = libSUMAGTS.a
-AFNILIB = -lmrix -lcoxplot -lmri -lf2c -l3DEdge
+AFNILIB = -lmrix -lcoxplot -lmri -ltracktools -lf2c -l3DEdge
 MAINCODE = SUMA
 SUMALIBLIST = libSUMA.a libglut.a libply.a 
 GLWLIB = libGLws.a
@@ -102,6 +102,11 @@ ${GLWLIB} : ${GLW_OBJS}
 libmri.a : ../suma_algorithms.c  ../suma_datasets.c  ../suma_niml.c
 	( cd .. ;	\
 	  $(MAKE) libmri.a ; \
+	  cd SUMA  )
+
+libtracktools.a : 
+	( cd .. ;	\
+	  $(MAKE) libtracktools.a ; \
 	  cd SUMA  )
 
 #library using GTS functions
@@ -729,8 +734,8 @@ packbins:
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
 	
-all: libGLws.a libmri.a libSUMA.a mainobj suma install 
-allgts: libGLws.a libmri.a libSUMA.a libgts.a mainobj suma SurfMesh install 
+all: libGLws.a libmri.a libtracktools.a libSUMA.a mainobj suma install 
+allgts: libGLws.a libmri.a libtracktools.a libSUMA.a libgts.a mainobj suma SurfMesh install 
 
 standalones: ${SUMA_EXECS}
 

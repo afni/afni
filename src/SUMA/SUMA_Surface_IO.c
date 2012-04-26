@@ -5791,7 +5791,9 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
                   }
                   if (iDO < 0) { /* try one last time */
                            /* Damnit, Janet, get anything */
-                     iDO = SUMA_BiggestLocalDomainParent(SUMAg_DOv, SUMAg_N_DOv);                      SUMA_LHv("Got big one (%d) of any side?\n", iDO);
+                     iDO = SUMA_BiggestLocalDomainParent(SUMAg_DOv, 
+                                                         SUMAg_N_DOv);    
+                     SUMA_LHv("Got big one (%d) of any side?\n", iDO);
                   }
                   if (iDO < 0) {
                      SUMA_S_Err("Can't find adoptive surface\n"

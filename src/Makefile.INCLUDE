@@ -205,7 +205,8 @@ vastness:all plugins install install_plugins install_lib
 
 ### Make many things
 
-all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a R_io.so programs
+all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a libtracktools.a \
+             R_io.so programs
 
 ### Make afni binaries
 
@@ -2843,7 +2844,7 @@ ptaylor_all:
 	$(MAKE) all  ;	\
 	cd ../	;		)
 
-libtracktools.a: ptaylor/libtracktools.a
+libtracktools.a:
 	( cd ptaylor ;	\
 	./@MakeLocalMake	;\
 	$(MAKE) libtracktools.a  ;	\
@@ -2854,7 +2855,7 @@ libtracktools.a: ptaylor/libtracktools.a
 #############
 #SUMA
 
-libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a
+libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a libtracktools.a
 	( cd SUMA ;	\
 	rm -f libSUMA.a	;\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) clean MarchingCubes.o libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
@@ -2894,7 +2895,7 @@ libGLws.a:
 	$(CP) SUMA/libGLws.a ./;	)
 ###
 #link executables but check for libraries first and create them if needed	
-suma_exec:libGLws.a libSUMA.a libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_exec:libGLws.a libSUMA.a libtracktools.a libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces \
 	MakeColorMap ROI2dataset 3dVol2Surf \
@@ -2936,7 +2937,7 @@ suma_gts_progs: libgts.a
 
 ###
 #run make all in SUMA directory, USE FOR DEVELOPMENT ONLY	
-suma_all:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_all:libmri.a libtracktools.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) all 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -2952,7 +2953,7 @@ suma_all:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.
 
 ###
 #run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY	
-suma_anew:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_anew:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a libtracktools.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) anew 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -3073,7 +3074,7 @@ suma_link:
 	( cd SUMA ;	\
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
-	$(CP) libmri.a libmrix.a libcoxplot.a libf2c.a ../	;\
+	$(CP) libmri.a libtractools.a libmrix.a libcoxplot.a libf2c.a ../	;\
 	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol \
    SurfMeasures  SurfFWHM \
    ScaleToMap MapIcosahedron \

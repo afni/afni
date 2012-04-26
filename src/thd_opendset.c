@@ -553,6 +553,7 @@ ENTRY("storage_mode_from_filename");
     if( STRING_HAS_SUFFIX(fname, ".niml") )     RETURN(STORAGE_BY_NIML);
 
     if( STRING_HAS_SUFFIX(fname,".niml.dset") ) RETURN(STORAGE_BY_NI_SURF_DSET);
+    if( STRING_HAS_SUFFIX(fname,".tract.dset") ) RETURN(STORAGE_BY_NI_TRACT);
 
     if( STRING_HAS_SUFFIX(fname,".gii") ||
         STRING_HAS_SUFFIX(fname,".gii.dset") )  RETURN(STORAGE_BY_GIFTI);
@@ -632,6 +633,8 @@ char *storage_mode_name(int mode) {
          return("NIML");
       case STORAGE_BY_NI_SURF_DSET:
          return("NI_SURF_DSET");
+      case STORAGE_BY_NI_TRACT:
+         return("NI_TRACT");
       case STORAGE_BY_GIFTI:
          return("GIFTI");
    }
@@ -705,6 +708,7 @@ ENTRY("has_writable_extension");
       case STORAGE_BY_NIFTI:            RETURN(1);
       case STORAGE_BY_NIML:             RETURN(1);
       case STORAGE_BY_NI_SURF_DSET:     RETURN(1);
+      case STORAGE_BY_NI_TRACT:         RETURN(1);
       case STORAGE_BY_GIFTI:            RETURN(1);
    }
 

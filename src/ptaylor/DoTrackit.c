@@ -5,6 +5,7 @@
 #include <debugtrace.h>
 #include <mrilib.h>     // AFNIadd
 #include <3ddata.h>     // AFNIadd
+#include <TrackIO.h>
 #include <DoTrackit.h>
 
 /* ZSS: it would be best if we kept all computing functions here.
@@ -49,6 +50,7 @@ int TrackIt(float ****CC, int *IND, float *PHYSIND,
 
 
   ENTRY("TrackIt"); 
+  
   AA = 0.5*(1.0-FF);
   BB = 0.5*(1.0+FF);
 
@@ -233,120 +235,4 @@ int TrackIt(float ****CC, int *IND, float *PHYSIND,
   
   RETURN(tracL); 
 }
-
-TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_trctsbuf, 
-                              TAYLOR_TRACT *trcts_buff)
-{
-   TAYLOR_BUNDLE *tb=NULL;
-   
-   ENTRY("AppCreateBundle");
-   
-   if (!tbu) {
-      tb = (TAYLOR_BUNDLE *)calloc(1,sizeof(TAYLOR_BUNDLE));
-      tb->N_allocated = 0;
-      tb->N_trcts = 0;
-   } else {
-      tb = tbu;
-   }
-   while (N_trctsbuf > tb->N_allocated - tb->N_trcts) {
-      tb->N_allocated += 1000;
-      tb->trcts = (TAYLOR_TRACT*)realloc(tb->trcts,
-                                          tb->N_allocated*sizeof(TAYLOR_TRACT));
-   }
-   
-   if (trcts_buff && N_trctsbuf > 0) {
-      memcpy(tb->trcts+tb->N_trcts, trcts_buff, 
-             N_trctsbuf*sizeof(TAYLOR_TRACT)); 
-      tb->N_trcts += N_trctsbuf;
-   }
-   RETURN(tb);
-}
-
-TAYLOR_TRACT *CreateTract(int N_ptsB, float **pts_buffB, 
-                          int N_ptsF, float **pts_buffF)
-{
-   TAYLOR_TRACT *tt=NULL;
-   int kk = 0, ii=0;
-   
-   ENTRY("CreateTract");
-   
-   tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
-   if (tt == NULL) {
-      ERROR_message("Failed to allocate tract");
-   }
-   tt->id = -1; tt->N_pts = (N_ptsB+N_ptsF-1);
-   if (!(tt->pts = (float *)calloc(3*tt->N_pts, sizeof(float)))) {
-      ERROR_message("Failed to allocate pts vector");
-      FreeTract(tt); RETURN(NULL);
-   }
-   kk=0;
-   if (pts_buffB) {
-      for (ii=(N_ptsB-1); ii>0; --ii) {
-         tt->pts[kk] = pts_buffB[ii][0];++kk;
-         tt->pts[kk] = pts_buffB[ii][1];++kk;
-         tt->pts[kk] = pts_buffB[ii][2];++kk;
-      }
-   }
-   if (pts_buffF) {
-      for (ii=0; ii<N_ptsF; ++ii) {
-         tt->pts[kk] = pts_buffF[ii][0];++kk;
-         tt->pts[kk] = pts_buffF[ii][1];++kk;
-         tt->pts[kk] = pts_buffF[ii][2];++kk;
-      }
-   }
-   RETURN(tt);
-}
-
-TAYLOR_TRACT *FreeTract(TAYLOR_TRACT *tb) 
-{
-   ENTRY("FreeTract");
-   if (!tb) RETURN(NULL);
-   if (tb->pts) free(tb->pts);
-   free(tb); 
-   RETURN(NULL);
-}
-
-void Show_Taylor_Tract(TAYLOR_TRACT *tt, FILE *out, int show_maxu) 
-{
-   int show_max;
-   int ii=0;
-   
-   ENTRY("Show_Taylor_Tract");
-   if (!out) out = stderr;
-   if (!tt) {
-      fprintf(out,"NULL tt"); 
-      EXRETURN;
-   }
-   fprintf(out,"  track id %d, Npts=%d\n", tt->id, tt->N_pts);
-   if (show_maxu < 0) show_max = tt->N_pts;
-   else if (show_maxu == 0) show_max = (tt->N_pts < 5) ? tt->N_pts : 5;  
-   else show_max = show_maxu;
-   for (ii=0; ii<show_max; ++ii) {
-      fprintf(out, "   %f %f %f\n", 
-               tt->pts[3*ii], tt->pts[3*ii+1],tt->pts[3*ii+2]);
-   }  
-   EXRETURN;
-}
-
-void Show_Taylor_Bundle(TAYLOR_BUNDLE *tb, FILE *out, int show_maxu) 
-{
-   int show_max;
-   int ii=0;
-   ENTRY("Show_Taylor_Bundle");
-   if (!out) out = stderr;
-   if (!tb) {
-      fprintf(out,"NULL tb"); 
-      EXRETURN;
-   }
-   fprintf(out,"  Bundle has %d tracts\n", tb->N_trcts);
-   if (show_maxu < 0) show_max = tb->N_trcts;
-   else if (show_maxu == 0) show_max = (tb->N_trcts < 5) ? tb->N_trcts : 5;  
-   else show_max = show_maxu;
-   
-   for (ii=0; ii<show_max; ++ii) {
-      Show_Taylor_Tract(tb->trcts+ii, out, show_maxu);
-   }  
-   EXRETURN;
-}
-
 

@@ -10,9 +10,17 @@
 # Commannd line to run this script: 3dIVA.R Output (Output is a file
 # in which the running progress including error message will be stored)
 
+#Clean up
+rm(list = ls())
+
+first.in.path <- function(file) {
+   ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
+   ff<-ff[lapply(ff,file.exists)==TRUE];
+   #cat('Using ', ff[1],'\n');
+   return(gsub('//','/',ff[1], fixed=TRUE)) 
+}
+source(first.in.path('AFNIio.R'))
 system("rm -f .RData")
-source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
-#source("~/abin/AFNIio.R")
 library(fastICA)
 
 # C is much faster than R!

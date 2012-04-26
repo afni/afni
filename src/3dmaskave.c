@@ -27,6 +27,126 @@ static float max_float( int n , float *x )   /* 24 Feb 2005 */
    for( i=1 ; i < n ; i++ ) if( m < x[i] ) m = x[i] ;
    return m ;
 }
+void usage_3dmaskave(int detail) {
+        printf(
+"Usage: 3dmaskave [options] inputdataset\n"
+"\n"
+"Computes average of all voxels in the input dataset\n"
+"which satisfy the criterion in the options list.\n"
+"If no options are given, then all voxels are included.\n"
+"\n"                         /* examples: 13 Mar 2006 [rickr] */
+"------------------------------------------------------------\n"
+"Examples:\n"
+"\n"
+"1. compute the average timeseries in epi_r1+orig, over voxels\n"
+"   that are set (any non-zero value) in the dataset, ROI+orig:\n"
+"\n"
+"    3dmaskave -mask ROI+orig epi_r1+orig\n"
+"\n"
+"2. restrict the ROI to values of 3 or 4, and save (redirect)\n"
+"   the output to the text file run1_roi_34.txt:\n"
+"\n"
+"    3dmaskave -mask ROI+orig -quiet -mrange 3 4   \\\n"
+"              epi_r1+orig > run1_roi_34.txt\n"
+"------------------------------------------------------------\n"
+"\n"
+"Options:\n"
+"  -mask mset   Means to use the dataset 'mset' as a mask:\n"
+"                 Only voxels with nonzero values in 'mset'\n"
+"                 will be averaged from 'dataset'.  Note\n"
+"                 that the mask dataset and the input dataset\n"
+"                 must have the same number of voxels.\n"
+"               SPECIAL CASE: If 'mset' is the string 'SELF',\n"
+"                             then the input dataset will be\n"
+"                             used to mask itself.  That is,\n"
+"                             only nonzero voxels from the\n"
+"                             #miv sub-brick will be used.\n"
+"\n"
+"  -mindex miv  Means to use sub-brick #'miv' from the mask\n"
+"                 dataset.  If not given, miv=0.\n"
+"  -mrange a b  Means to further restrict the voxels from\n"
+"                 'mset' so that only those mask values\n"
+"                 between 'a' and 'b' (inclusive) will\n"
+"                 be used.  If this option is not given,\n"
+"                 all nonzero values from 'mset' are used.\n"
+"                 Note that if a voxel is zero in 'mset', then\n"
+"                 it won't be included, even if a < 0 < b.\n"
+"                   [-mindex and -mrange are old options that predate]\n"
+"                   [the introduction of the sub-brick selector '[]' ]\n"
+"                   [and the sub-range value selector '<>' to AFNI.  ]\n"
+"\n"
+"  -xbox x y z     } These options are the same as in\n"
+"  -dbox x y z     } program 3dmaskdump:\n"
+"  -nbox x y z     } They create a mask by putting down boxes\n"
+"  -ibox x y z     } or balls (filled spheres) at the specified\n"
+"  -xball x y z r  } locations.  See the output of\n"
+"  -dball x y z r  }   3dmaskdump -help\n"
+"  -nball x y z r  } for the gruesome and tedious details.\n"
+"   http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dmaskdump.html\n"
+"\n"
+"  -dindex div  Means to use sub-brick #'div' from the inputdataset.\n"
+"                 If not given, all sub-bricks will be processed.\n"
+"  -drange a b  Means to only include voxels from the inputdataset whose\n"
+"                 values fall in the range 'a' to 'b' (inclusive).\n"
+"                 Otherwise, all voxel values are included.\n"
+"                   [-dindex and -drange are old options that predate]\n"
+"                   [the introduction of the sub-brick selector '[]' ]\n"
+"                   [and the sub-range value selector '<>' to AFNI.  ]\n"
+"\n"
+"  -slices p q  Means to only included voxels from the inputdataset\n"
+"                 whose slice numbers are in the range 'p' to 'q'\n"
+"                 (inclusive).  Slice numbers range from 0 to\n"
+"                 NZ-1, where NZ can be determined from the output\n"
+"                 of program 3dinfo.  The default is to include\n"
+"                 data from all slices.\n"
+"                   [There is no provision for geometrical voxel]\n"
+"                   [selection except in the slice (z) direction]\n"
+"\n"
+"  -sigma       Means to compute the standard deviation in addition\n"
+"                 to the mean.\n"
+"  -sum         Means to compute the sum instead of the mean.\n"
+"  -median      Means to compute the median instead of the mean.\n"
+"  -max         Means to compute the max instead of the mean.\n"
+"  -min         Means to compute the min instead of the mean.\n"
+"                 [-sigma is ignored with -sum, -median, -max, or -min.]\n"
+"                 [the last given of -sum, -median, -max, or -min wins.]\n"
+"  -dump        Means to print out all the voxel values that\n"
+"                 go into the result.\n"
+"  -udump       Means to print out all the voxel values that\n"
+"                 go into the average, UNSCALED by any internal\n"
+"                 factors.\n"
+"                 N.B.: the scale factors for a sub-brick\n"
+"                       can be found using program 3dinfo.\n"
+"  -indump      Means to print out the voxel indexes (i,j,k) for\n"
+"                 each dumped voxel.  Has no effect if -dump\n"
+"                 or -udump is not also used.\n"
+"                 N.B.: if nx,ny,nz are the number of voxels in\n"
+"                       each direction, then the array offset\n"
+"                       in the brick corresponding to (i,j,k)\n"
+"                       is i+j*nx+k*nx*ny.\n"
+" -q     or\n"
+" -quiet        Means to print only the minimal numerical result(s).\n"
+"               This is useful if you want to create a *.1D file,\n"
+"               without any extra text; for example:\n"
+"                 533.814 [18908 voxels]   ==   'normal' output\n"
+"                 533.814                  ==   'quiet' output\n"
+"\n"
+"The output is printed to stdout (the terminal), and can be\n"
+"saved to a file using the usual redirection operation '>'.\n"
+"\n"
+"Or you can do fun stuff like\n"
+"  3dmaskave -q -mask Mfile+orig timefile+orig | 1dplot -stdin -nopush\n"
+"to pipe the output of 3dmaskave into 1dplot for graphing.\n"
+"\n"
+"-- Author: RWCox\n"
+            ) ;
+
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
+
+      PRINT_COMPILE_DATE ; 
+   
+   return;
+}
 
 /*-----------------------------------------------------------------------
   A quickie.  (Not so quick any more, with all the options added.)
@@ -57,131 +177,17 @@ int main( int argc , char * argv[] )
    int    boxball_num=0 ;                     /* 09 Sep 2009 */
    float *boxball_dat=NULL ;
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dmaskave [options] inputdataset\n"
-             "\n"
-             "Computes average of all voxels in the input dataset\n"
-             "which satisfy the criterion in the options list.\n"
-             "If no options are given, then all voxels are included.\n"
-             "\n"                         /* examples: 13 Mar 2006 [rickr] */
-             "------------------------------------------------------------\n"
-             "Examples:\n"
-             "\n"
-             "1. compute the average timeseries in epi_r1+orig, over voxels\n"
-             "   that are set (any non-zero value) in the dataset, ROI+orig:\n"
-             "\n"
-             "    3dmaskave -mask ROI+orig epi_r1+orig\n"
-             "\n"
-             "2. restrict the ROI to values of 3 or 4, and save (redirect)\n"
-             "   the output to the text file run1_roi_34.txt:\n"
-             "\n"
-             "    3dmaskave -mask ROI+orig -quiet -mrange 3 4   \\\n"
-             "              epi_r1+orig > run1_roi_34.txt\n"
-             "------------------------------------------------------------\n"
-             "\n"
-             "Options:\n"
-             "  -mask mset   Means to use the dataset 'mset' as a mask:\n"
-             "                 Only voxels with nonzero values in 'mset'\n"
-             "                 will be averaged from 'dataset'.  Note\n"
-             "                 that the mask dataset and the input dataset\n"
-             "                 must have the same number of voxels.\n"
-             "               SPECIAL CASE: If 'mset' is the string 'SELF',\n"
-             "                             then the input dataset will be\n"
-             "                             used to mask itself.  That is,\n"
-             "                             only nonzero voxels from the\n"
-             "                             #miv sub-brick will be used.\n"
-             "\n"
-             "  -mindex miv  Means to use sub-brick #'miv' from the mask\n"
-             "                 dataset.  If not given, miv=0.\n"
-             "  -mrange a b  Means to further restrict the voxels from\n"
-             "                 'mset' so that only those mask values\n"
-             "                 between 'a' and 'b' (inclusive) will\n"
-             "                 be used.  If this option is not given,\n"
-             "                 all nonzero values from 'mset' are used.\n"
-             "                 Note that if a voxel is zero in 'mset', then\n"
-             "                 it won't be included, even if a < 0 < b.\n"
-             "                   [-mindex and -mrange are old options that predate]\n"
-             "                   [the introduction of the sub-brick selector '[]' ]\n"
-             "                   [and the sub-range value selector '<>' to AFNI.  ]\n"
-             "\n"
-             "  -xbox x y z     } These options are the same as in\n"
-             "  -dbox x y z     } program 3dmaskdump:\n"
-             "  -nbox x y z     } They create a mask by putting down boxes\n"
-             "  -ibox x y z     } or balls (filled spheres) at the specified\n"
-             "  -xball x y z r  } locations.  See the output of\n"
-             "  -dball x y z r  }   3dmaskdump -help\n"
-             "  -nball x y z r  } for the gruesome and tedious details.\n"
-             "   http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dmaskdump.html\n"
-             "\n"
-             "  -dindex div  Means to use sub-brick #'div' from the inputdataset.\n"
-             "                 If not given, all sub-bricks will be processed.\n"
-             "  -drange a b  Means to only include voxels from the inputdataset whose\n"
-             "                 values fall in the range 'a' to 'b' (inclusive).\n"
-             "                 Otherwise, all voxel values are included.\n"
-             "                   [-dindex and -drange are old options that predate]\n"
-             "                   [the introduction of the sub-brick selector '[]' ]\n"
-             "                   [and the sub-range value selector '<>' to AFNI.  ]\n"
-             "\n"
-             "  -slices p q  Means to only included voxels from the inputdataset\n"
-             "                 whose slice numbers are in the range 'p' to 'q'\n"
-             "                 (inclusive).  Slice numbers range from 0 to\n"
-             "                 NZ-1, where NZ can be determined from the output\n"
-             "                 of program 3dinfo.  The default is to include\n"
-             "                 data from all slices.\n"
-             "                   [There is no provision for geometrical voxel]\n"
-             "                   [selection except in the slice (z) direction]\n"
-             "\n"
-             "  -sigma       Means to compute the standard deviation in addition\n"
-             "                 to the mean.\n"
-             "  -sum         Means to compute the sum instead of the mean.\n"
-             "  -median      Means to compute the median instead of the mean.\n"
-             "  -max         Means to compute the max instead of the mean.\n"
-             "  -min         Means to compute the min instead of the mean.\n"
-             "                 [-sigma is ignored with -sum, -median, -max, or -min.]\n"
-             "                 [the last given of -sum, -median, -max, or -min wins.]\n"
-             "  -dump        Means to print out all the voxel values that\n"
-             "                 go into the result.\n"
-             "  -udump       Means to print out all the voxel values that\n"
-             "                 go into the average, UNSCALED by any internal\n"
-             "                 factors.\n"
-             "                 N.B.: the scale factors for a sub-brick\n"
-             "                       can be found using program 3dinfo.\n"
-             "  -indump      Means to print out the voxel indexes (i,j,k) for\n"
-             "                 each dumped voxel.  Has no effect if -dump\n"
-             "                 or -udump is not also used.\n"
-             "                 N.B.: if nx,ny,nz are the number of voxels in\n"
-             "                       each direction, then the array offset\n"
-             "                       in the brick corresponding to (i,j,k)\n"
-             "                       is i+j*nx+k*nx*ny.\n"
-             " -q     or\n"
-             " -quiet        Means to print only the minimal numerical result(s).\n"
-             "               This is useful if you want to create a *.1D file,\n"
-             "               without any extra text; for example:\n"
-             "                 533.814 [18908 voxels]   ==   'normal' output\n"
-             "                 533.814                  ==   'quiet' output\n"
-             "\n"
-             "The output is printed to stdout (the terminal), and can be\n"
-             "saved to a file using the usual redirection operation '>'.\n"
-             "\n"
-             "Or you can do fun stuff like\n"
-             "  3dmaskave -q -mask Mfile+orig timefile+orig | 1dplot -stdin -nopush\n"
-             "to pipe the output of 3dmaskave into 1dplot for graphing.\n"
-             "\n"
-             "-- Author: RWCox\n"
-            ) ;
-
-      printf("\n" MASTER_SHORTHELP_STRING ) ;
-
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
-
    mainENTRY("3dmaskave main"); machdep(); AFNI_logger("3dmaskave",argc,argv);
    PRINT_VERSION("3dmaskave") ;
 
    /* scan argument list */
-
+   if (argc == 1) { usage_3dmaskave(1); exit(0); } /* Bob's help shortcut */
    narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
+      if (strcmp(argv[narg], "-h") == 0 || strcmp(argv[narg], "-help") == 0) {
+         usage_3dmaskave(strlen(argv[narg]) > 3 ? 2:1);
+         exit(0);
+      }
 
       if( strcmp(argv[narg]+2,"box")  == 0 ||    /* 09 Sep 2009 */
           strcmp(argv[narg]+2,"ball") == 0   ){
@@ -331,9 +337,16 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
-      fprintf(stderr,"*** Unknown option: %s\n",argv[narg]) ; exit(1) ;
+      fprintf(stderr,"*** Unknown option: %s\n",argv[narg]) ; 
+      suggest_best_prog_option(argv[0], argv[narg]);
+      exit(1) ;
    }
-
+   
+   if (argc < 2) {
+      ERROR_message("Too few options, use -help option for details");
+      exit(1);
+   }
+   
    if( medianit ){ sigmait = 0; sname = "Median"; }
    if( maxit    ){ sigmait = 0; sname = "Max"   ; } /* 24 Feb 2005 */
    if( minit    ){ sigmait = 0; sname = "Min"   ; } /* 25 Feb 2005 */
@@ -400,6 +413,13 @@ int main( int argc , char * argv[] )
    }
 
    if( mask_dset != NULL ){
+      if( !EQUIV_GRIDS(mask_dset,input_dset) )
+         WARNING_message("Input dataset %s grid mismatch from mask.\n"
+             "Try the following command for grid comparison:\n"
+             " 3dinfo -header_line -prefix -same_all_grid %s %s\n"
+             ,argv[narg], 
+             DSET_HEADNAME(mask_dset), DSET_HEADNAME(input_dset)) ;
+
       if( DSET_NVOX(mask_dset) != nvox ){
         fprintf(stderr,"*** Input and mask datasets are not same dimensions!\n") ;
         exit(1) ;
