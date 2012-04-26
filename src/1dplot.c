@@ -246,7 +246,8 @@ void usage_1dplot(int detail)
      "variables of the form AFNI_1DPLOT_COLOR_xx -- cf. README.environment.\n"
      "You can alter the thickness of the lines by setting the variable\n"
      "AFNI_1DPLOT_THIK to a value between 0.00 and 0.05 -- the units are\n"
-     "fractions of the page size.\n"
+     "fractions of the page size; of course, you can also use the options\n"
+     "'-thick' or '-THICK' if you prefer.\n"
      "\n"
      "------\n"
      "LABELS\n"
@@ -471,15 +472,18 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[iarg],"-x") == 0 ){   /* ZSS: April 2007 */
+       if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
        xfile = argv[++iarg]; xl10 = 0 ;
        iarg++; continue;
      }
      if( strcasecmp(argv[iarg],"-xl10") == 0 ){
+       if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
        xfile = argv[++iarg]; xl10 = 1 ;
        iarg++; continue;
      }
 
      if( strcmp(argv[iarg],"-xaxis") == 0 ){   /* 22 Jul 2003 */
+       if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
        sscanf(argv[++iarg],"%f:%f:%d:%d",&xbot,&xtop,&nnax,&mmax) ;
        if( xbot >= xtop || nnax < 0 || mmax < 1 )
          ERROR_exit("String after -xaxis is illegal!\n") ;
@@ -489,6 +493,7 @@ int main( int argc , char *argv[] )
      }
 
      if( strcmp(argv[iarg],"-yaxis") == 0 ){   /* 22 Jul 2003 */
+       if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
        sscanf(argv[++iarg],"%f:%f:%d:%d",&ybot,&ytop,&nnay,&mmay) ;
        if( ybot >= ytop || nnay < 0 || mmay < 1 )
          ERROR_exit("String after -yaxis is illegal!\n") ;
@@ -583,11 +588,8 @@ int main( int argc , char *argv[] )
        use_stdin++ ; iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-") == 0 ){  /* skip */
-       iarg++ ; continue ;
-     }
-
      if( strcmp(argv[iarg],"-ynames") == 0 ){
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         iarg++ ;
         while( iarg < argc && argv[iarg][0] != '-' ){
            ynar[nyar++] = argv[iarg++] ;
@@ -604,11 +606,13 @@ int main( int argc , char *argv[] )
      }
 
      if( strcmp(argv[iarg],"-plabel") == 0 ){
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         title = argv[++iarg] ;
         iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-wintitle") == 0 ){
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         wintitle = argv[++iarg] ;
         iarg++ ; continue ;
      }
@@ -619,27 +623,32 @@ int main( int argc , char *argv[] )
          "Consider using -plabel; -title "   /* it don't hurt. */
          "only works with the -ps / -jpg / -png options"  );
 #endif
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         title = argv[++iarg] ;
         iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-xlabel") == 0 ){
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         xlabel = argv[++iarg] ;
         iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-ylabel") == 0 ){
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         ylabel = argv[++iarg] ;
         iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-ignore") == 0 ){
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         ignore = strtod( argv[++iarg] , NULL ) ;
         if( ignore < 0 ) ERROR_exit("Illegal -ignore value!\n") ;
         iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-use") == 0 || strcmp(argv[iarg],"-num") == 0 ){
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         use = strtod( argv[++iarg] , NULL ) ;
         if( use < 2 ) ERROR_exit("Illegal -use value!\n") ;
         iarg++ ; continue ;
@@ -649,6 +658,7 @@ int main( int argc , char *argv[] )
          strcmp(argv[iarg],"-del") == 0 ||
          strcmp(argv[iarg],"-dt" ) == 0   ){
 
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         dx = strtod( argv[++iarg] , NULL ) ;
         if( dx <= 0.0 ) ERROR_exit("Illegal -dx value!\n");
         iarg++ ; continue ;
@@ -656,6 +666,8 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-xzero") == 0 || strcmp(argv[iarg],"-start") == 0 ||
          strcmp(argv[iarg],"-tzero") == 0   ){
+
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         xzero = strtod( argv[++iarg] , NULL ) ;
         iarg++ ; continue ;
      }
@@ -690,7 +702,7 @@ int main( int argc , char *argv[] )
      }
 #endif
 
-     /*--- censoring stuff -- for Colm -- 24 Apr 2012 ---*/
+     /*--- censoring/marking stuff -- for Colm -- 24 Apr 2012 ---*/
 
      if( strcasecmp(argv[iarg],"-censor_RGB"  ) == 0 ||
          strcasecmp(argv[iarg],"-censor_RBG"  ) == 0 ||
@@ -724,14 +736,16 @@ int main( int argc , char *argv[] )
          rf = 1.0f; gf = 0.5f; bf = 0.5f;
        } else if( *eee == '#' && *(eee+1) != '\0' ){
          int le=strlen(eee+1) , val , bas , rr,gg,bb ;
-         val = (int)strtol( eee+1 , NULL , 16 ) ;
+         val = (int)strtol( eee+1 , NULL , 16 ) ;       /* hexadecimal */
          bas = (le <= 3) ? 16 : 256 ;
          bb  = val % bas ; val = val / bas ; bf  = bb / ((float)bas) ;
          gg  = val % bas ; val = val / bas ; gf  = gg / ((float)bas) ;
          rr  = val % bas ;                   rf  = rr / ((float)bas) ;
        } else {
-         WARNING_message("%s is not a recognizable color",eee ) ;
-         rf = rgb_NOW.a ; gf = rgb_NOW.b ; bf = rgb_NOW.c ;
+         WARNING_message("%s is not a recognizable color -- choosing a random color :-)",eee ) ;
+         rf = 0.4f * ( 1.0f + (float)drand48() ) ;
+         gf = 0.4f * ( 1.0f + (float)drand48() ) ;
+         bf = 0.4f * ( 1.0f + (float)drand48() ) ;
        }
        rgb_NOW.a = rf ; rgb_NOW.b = gf ; rgb_NOW.c = bf ;
        iarg++ ; continue ;
@@ -743,6 +757,8 @@ int main( int argc , char *argv[] )
        NI_str_array *nsar ;
        char *src=malloc(1), *cpt, *dpt ;
        int ns, r,a,b ; int_triple rab ;
+
+       if( iarg == argc-1 ) ERROR_exit("need an argument after option %s",argv[iarg]) ;
 
        *src = '\0' ;   /* cat all following options until starts with '-' */
        for( iarg++ ;
@@ -811,7 +827,7 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-concat") == 0 ){
        MRI_IMAGE *cim ; float *car ; int qq ;
-       if( ++iarg >= argc ) ERROR_exit("need argument after -concat") ;
+       if( ++iarg >= argc ) ERROR_exit("need argument after option %s",argv[iarg-1]) ;
        cim = mri_read_1D(argv[iarg]) ;
        if( cim == NULL ) ERROR_exit("can't read -concat file '%s'",argv[iarg]) ;
        car = MRI_FLOAT_PTR(cim) ;
@@ -826,7 +842,7 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg], "-censor") == 0 ){
        MRI_IMAGE *cim ;
-       if( ++iarg >= argc ) ERROR_exit("need argument after -censor") ;
+       if( ++iarg >= argc ) ERROR_exit("need argument after option %s",argv[iarg-1]) ;
        cim = mri_read_1D(argv[iarg]) ;
        if( cim == NULL ) ERROR_exit("can't read -censor file '%s'",argv[iarg]) ;
        censor_array = MRI_FLOAT_PTR(cim) ;
@@ -843,7 +859,6 @@ int main( int argc , char *argv[] )
    }
 
    if( argc < 2 ){ usage_1dplot(0); exit(0) ; }
-
 
    if( thik > 0.0f ){
      char cmd[128]; sprintf(cmd,"AFNI_1DPLOT_THIK=%.3f",thik); AFNI_setenv(cmd);
