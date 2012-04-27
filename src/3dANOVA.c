@@ -73,7 +73,11 @@
 
 /*---------------------------------------------------------------------------*/
 
+#if 0
 #define SUFFIX ".3danova"                 /* suffix for temporary data files */
+#else
+char SUFFIX[1024] = ".3danova." ;
+#endif
 
 #include "3dANOVA.h"
 #include "3dANOVA.lib"
@@ -1881,6 +1885,7 @@ int main (int argc, char ** argv)
    printf ("\n");
 #endif
 
+   UNIQ_idcode_fill(SUFFIX+strlen(SUFFIX)) ;  /* 27 Apr 2012 */
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
