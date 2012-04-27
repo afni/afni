@@ -5,6 +5,10 @@
 #undef  ASSIF
 #define ASSIF(p,v) if( p!= NULL ) *p = v
 
+/* local prototypes */
+static int find_connected_set(byte *, int, int, int, int, int_list *);
+static int set_mask_vals     (byte *, int_list *, byte);
+
 static int dall = 1024 ;
 
 # define DALL 1024  /* Allocation size for cluster arrays */
@@ -340,7 +344,8 @@ ENTRY("mri_automask_image") ;
 int THD_mask_clip_neighbors( int nx, int ny, int nz ,
                             byte *mmm, float clip_val, float tclip, float *mar )
 {
-   int ii,jj,kk , ntot=0,nnew , jm,jp,j3 , km,kp,k3 , im,ip,i3 , nxy=nx*ny ;
+   /* int jm,jp , km,kp , im,ip ; */
+   int ii,jj,kk , ntot=0,nnew , j3,k3,i3 , nxy=nx*ny ;
 
    if( mmm == NULL || mar == NULL ) return 0 ;
 
@@ -547,6 +552,201 @@ ENTRY("THD_mask_fillin_completely") ;
    RETURN(nfill) ;
 }
 
+/*----------------------------------------------------------------------*/
+/*! Fill any holes in a byte mask.                   26 Apr 2012 [rickr]
+ 
+    A hole is defined as a connected set of zero voxels that does not
+    reach a volume edge.
+
+    method: use less than two volumes of extra memory to be fast
+            (one volume is to make 0/1 copy of first, so values are known)
+       make 0/1 copy of volume
+       for each voxel
+          if set, continue
+          find connected set of zero voxels, setting to 2
+          if this does not contain an edge voxel, reset to 1
+       clear all edge voxels (set any 2 to 0)
+
+    return -1 on error, else number of voxels filled
+------------------------------------------------------------------------*/
+
+int THD_mask_fill_holes( int nx, int ny, int nz, byte *mmm, int verb )
+{
+   int_list   Cset; /* current connected set of voxels */
+   byte     * bmask=NULL;
+   int        nholes=0, nfilled=0, voxel;
+   int        nvox, has_edge;
+
+ENTRY("THD_mask_fill_holes");
+
+   nvox = nx*ny*nz;
+
+   if( verb > 1 ) INFO_message("filling holes");
+
+   /* make a 0/1 copy that we can edit along the way */
+   bmask = (byte *)malloc(nvox*sizeof(byte));
+   if( !bmask ) {
+      ERROR_message("TFMH: alloc failure of %d bytes", nvox);
+      RETURN(-1);
+   }
+   for( voxel = 0; voxel < nvox; voxel++ )
+      if( mmm[voxel] ) bmask[voxel] = 1;
+      else             bmask[voxel] = 0;
+
+   /* initialize empty connected set list */
+   if( init_int_list(&Cset, 100) != 100 ) {
+      ERROR_message("TFMH: failed init_int_list of size %d", 100);
+      RETURN(-1);
+   }
+
+   /* start at any unset voxel and fill as either a hole or an edge set */
+   for( voxel = 0; voxel < nvox; voxel++ ) {
+      if( bmask[voxel] ) continue;       /* skip any set voxel */
+
+      /* current Cset of voxels will be initialized to 2 */
+      has_edge = find_connected_set(bmask, nx, ny, nz, voxel, &Cset);
+      if( has_edge < 0 ) RETURN(-1);
+      if( Cset.num < 1 ){ ERROR_message("TFMH: FCS failure"); RETURN(-1); }
+
+      if( ! has_edge ) {
+         /* then this was a hole, count and reset new values to 1 */
+         if(verb>1) INFO_message("found hole of %d voxels", Cset.num);
+         nholes++;                        /* track filled interior holes */
+         nfilled += Cset.num;
+         set_mask_vals(bmask, &Cset, 1);  /* modify these 2's to 1's */
+      } else if (verb>1) INFO_message("found edge set of %d voxels", Cset.num);
+   }
+
+   /* now all voxels should be set, apply bmask to mmm :
+    *    set all values where bmask == 1 (ignore bmask == 2) */
+   for( voxel = 0; voxel < nvox; voxel++ )
+      if( bmask[voxel] == 1 && !mmm[voxel] ) mmm[voxel] = 1;
+
+   if(verb) INFO_message("filled %d holes (%d voxels)", nholes, nfilled);
+
+   RETURN(nfilled);
+}
+
+
+/*------------------------------------------------------------------*/
+/*! set list of mask voxels to the given value */
+static int set_mask_vals(byte * bmask, int_list * L, byte val)
+{
+   int ind;
+
+   ENTRY("set_mask_vals");
+   for( ind = 0; ind < L->num; ind++ )
+      bmask[L->list[ind]] = val;
+   RETURN(0);
+}
+
+
+/*------------------------------------------------------------------*/
+/*! find connected set of zero voxels, and note whether this is an
+ *  edge set (whether any voxel is at a volume edge)
+
+    modify new set of bmask values to 2
+
+    method:
+       set voxel
+       init as search list
+       while search list is not empty
+          init new search list
+          for each voxel in list
+             for each zero neighbor (6, 18 or 26?  start with 6)
+                set and add to new list
+          current list = new list
+
+    return whether there was an edge voxel, or -1 on error
+ *------------------------------------------------------------------*/
+static int find_connected_set(byte * bmask, int nx, int ny, int nz, int voxel,
+                              int_list * IL)
+{
+   int_list   SL1, SL2;         /* search lists */
+   int_list * spa, *spb, *spt;  /* changing pointers to search lists */
+   int        index, nxy = nx*ny, newvox, testvox;
+   int        has_edge = 0;     /* is there an edge voxel */
+   int        newval = 2;       /* easy to change */
+   int        i, j, k;
+
+   ENTRY("find_connected_set");
+
+   if( !bmask || nx<0 || ny<0 || nz<0 || voxel<0 || !IL ) {
+      ERROR_message("FCS: invalid inputs");  RETURN(-1);
+   }
+
+   IL->num = 0; /* set current list as empty */
+
+   if( bmask[voxel] ) RETURN(0); /* nothing to do */
+
+   bmask[voxel] = newval; /* set current voxel and init search lists */
+   if( init_int_list(&SL1, 1000) != 1000 ) RETURN(-1);
+   if( init_int_list(&SL2, 1000) != 1000 ) RETURN(-1);
+
+   /* for a little more speed, do not move list contents around */
+   spa = &SL1;  spb = &SL2;
+
+   /* using 1000 as the list memory increment size */
+   if( add_to_int_list(spa, voxel, 1000) < 0 ) RETURN(-1);
+
+   while( spa->num > 0 ) {
+      spb->num = 0;             /* init as empty */
+      extend_int_list(IL, spa); /* track all connected voxels */
+
+      /* for each voxel in list, add any unset neighbors to new list */
+      for( index = 0; index < spa->num; index++ ) {
+         newvox = spa->list[index];
+         IJK_TO_THREE(newvox, i,j,k, nx,nxy);
+
+         /* check whether this is an edge voxel */
+         if( ! has_edge &&
+               ( i==0 || j==0 || k==0 || i == nx-1 || j==ny-1 || k==nz-1 ) )
+            has_edge = 1;
+
+         /* in each of 6 directions:
+          *    if neighbor is not off edge and is not set
+          *       set and add to next search list
+          */
+         testvox = newvox-1;
+         if( i > 0    && !bmask[testvox] ) {  /* should never happen */
+            bmask[testvox] = newval;
+            add_to_int_list(spb, testvox, 1000);
+         }
+         testvox = newvox+1;
+         if( i < nx-1 && !bmask[testvox] ) {
+            bmask[testvox] = newval;
+            add_to_int_list(spb, testvox, 1000);
+         }
+         testvox = newvox-nx;
+         if( j > 0    && !bmask[testvox] ) {
+            bmask[testvox] = newval;
+            add_to_int_list(spb, testvox, 1000);
+         }
+         testvox = newvox+nx;
+         if( j < ny-1 && !bmask[testvox] ) {
+            bmask[testvox] = newval;
+            add_to_int_list(spb, testvox, 1000);
+         }
+         testvox = newvox-nxy;
+         if( k > 0    && !bmask[testvox] ) {
+            bmask[testvox] = newval;
+            add_to_int_list(spb, testvox, 1000);
+         }
+         testvox = newvox+nxy;
+         if( k < nz-1 && !bmask[testvox] ) {
+            bmask[testvox] = newval;
+            add_to_int_list(spb, testvox, 1000);
+         }
+      }
+
+      /* now switch search list pointers */
+      spt = spa;  spa = spb;  spb = spt;
+   }
+
+   RETURN(has_edge);
+}
+
+
 /*------------------------------------------------------------------*/
 
 /*! Put (i,j,k) into the current cluster, if it is nonzero. */
@@ -571,7 +771,7 @@ ENTRY("THD_mask_fillin_completely") ;
 
 void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
 {
-   int ii,jj,kk, icl ,  nxy,nxyz , ijk , ijk_last , mnum ;
+   int ii,jj,kk, icl ,  nxy,nxyz , ijk , ijk_last ;
    int ip,jp,kp , im,jm,km ;
    int nbest ; short *ibest, *jbest , *kbest ;
    int nnow  ; short *inow , *jnow  , *know  ; int nall ;
@@ -1042,7 +1242,7 @@ ENTRY("MRI_autobbox") ;
 int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
 {
    int nxy=nx*ny , ii,jj,kk , ijk , bot,top , pd=pdepth ;
-   int nxp=nx-pd , nyp=ny-pd , nzp=nz-pd ;
+   /* int nxp=nx-pd , nyp=ny-pd , nzp=nz-pd ; */
    int num=0 , dnum , nite ;
 
    for( nite=0 ; nite < pd ; nite++ ){
@@ -1204,7 +1404,7 @@ short *THD_mask_depth ( int nx, int ny, int nz, byte *mask,
 
 void THD_mask_clust2D( int nx, int ny, float kfrac, byte *mmm )
 {
-   int ii,jj, icl ,  nxy, ijk , ijk_last , mnum ;
+   int ii,jj, icl ,  nxy, ijk , ijk_last ;
    int ip,jp, im,jm , nbest ;
    short *inow , *jnow  ; int nall , nnow , nkeep ;
 
