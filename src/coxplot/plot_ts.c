@@ -372,7 +372,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    /*-- setup to plot --*/
 
    create_memplot_surely( "tsplot" , 1.3 ) ;
-   set_thick_memplot( 0.002f ) ;  /* for labels */
+   set_thick_memplot( 0.003f ) ;  /* for labels */
 
    /*-- plot labels, if any --*/
 
