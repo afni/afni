@@ -409,8 +409,8 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(
       NodeIJKlist = NodeIJKlistU;
       for (ti=0; ti<SO->N_Node ; ++ti) { /* check */
          if (NodeIJKlist[3*ti  ] < 0 || NodeIJKlist[3*ti  ]>= nx ||
-             NodeIJKlist[3*ti+1] < 0 || NodeIJKlist[3*ti+1]>= nx || 
-             NodeIJKlist[3*ti+2] < 0 || NodeIJKlist[3*ti+2]>= nx ) {
+             NodeIJKlist[3*ti+1] < 0 || NodeIJKlist[3*ti+1]>= ny || 
+             NodeIJKlist[3*ti+2] < 0 || NodeIJKlist[3*ti+2]>= nz ) {
             SUMA_S_Errv("Looks like NodeIJKlist is not in index units.\n"
                         "At node %d, have %f %f %f\n"
                         , ti, 

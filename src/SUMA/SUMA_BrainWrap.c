@@ -1812,8 +1812,8 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
       NodeIJKlist = NodeIJKlistU;
       for (nn=0; nn<SO->N_Node ; ++nn) { /* check */
          if (NodeIJKlist[3*nn  ] < 0 || NodeIJKlist[3*nn  ]>= nx ||
-             NodeIJKlist[3*nn+1] < 0 || NodeIJKlist[3*nn+1]>= nx || 
-             NodeIJKlist[3*nn+2] < 0 || NodeIJKlist[3*nn+2]>= nx ) {
+             NodeIJKlist[3*nn+1] < 0 || NodeIJKlist[3*nn+1]>= ny || 
+             NodeIJKlist[3*nn+2] < 0 || NodeIJKlist[3*nn+2]>= nz ) {
             SUMA_S_Errv("Looks like NodeIJKlist is not in index units.\n"
                         "At node %d, have %f %f %f\n"
                         , nn, 
