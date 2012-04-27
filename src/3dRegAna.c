@@ -69,7 +69,11 @@
 
 /*---------------------------------------------------------------------------*/
 
+#if 0
 #define SUFFIX ".3dregana"                     /* suffix for temporary files */
+#else
+char SUFFIX[1024] = ".3dregana." ;
+#endif
 
 #include <stdio.h>
 #include <math.h>
@@ -3208,6 +3212,8 @@ int main
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 #endif
+
+   UNIQ_idcode_fill(SUFFIX+strlen(SUFFIX)) ;  /* 27 Apr 2012 */
 
   /*-- 22 Feb 1999: addto the arglist, if user wants to --*/
 

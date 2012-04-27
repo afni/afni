@@ -87,9 +87,13 @@
 #define PROGRAM_INITIAL "09 Dec 1996"     /* date of initial program release */
 #define PROGRAM_LATEST  "01 Sep 2005"     /* date of latest program revision */
 
-/*---------------------------------------------------------------------------*/
-
+/*---
+------------------------------------------------------------------------*/
+#if 0
 #define SUFFIX ".3danova2"                /* suffix for temporary data files */
+#else
+char SUFFIX[1024] = ".3danova2." ;
+#endif
 
 #include "3dANOVA.h"
 #include "3dANOVA.lib"
@@ -3926,6 +3930,8 @@ int main (int argc, char ** argv)
    printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
    printf ("\n");
 #endif
+
+   UNIQ_idcode_fill(SUFFIX+strlen(SUFFIX)) ;  /* 27 Apr 2012 */
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
