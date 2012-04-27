@@ -258,11 +258,14 @@ static MRI_IMAGE * memplot_to_mri( MEM_plotdata *mp )  /* 05 Dec 2007 */
 {
    MRI_IMAGE *im ; int nx , ny , imsiz ;
    byte *imp ;
+#ifdef DUPLICATION
+   int did_dup=0 ;
+#endif
 
    if( mp == NULL || MEMPLOT_NLINE(mp) < 1 ) return NULL ;
 
    imsiz = (int)AFNI_numenv("AFNI_1DPLOT_IMSIZE") ;
-   if( imsiz < 100 || imsiz > 9999 ) imsiz = IMSIZ ; /* bad user, bad bad bad */
+   if( imsiz < 100 || imsiz > 9999 ) imsiz = IMSIZ ;
 
    if( mp->aspect > 1.0f ){
      nx = imsiz ; ny = nx / mp->aspect ;
@@ -270,7 +273,7 @@ static MRI_IMAGE * memplot_to_mri( MEM_plotdata *mp )  /* 05 Dec 2007 */
      nx = imsiz * mp->aspect ; ny = imsiz ;
    }
 #ifdef DUPLICATION    /* double image size for rendering */
-   nx *=2 ; ny *=2 ;
+   if( imsiz <= 2048 ){ nx *=2 ; ny *=2 ; did_dup = 1 ; }
 #endif
    im = mri_new( nx , ny , MRI_rgb ) ;
    imp = MRI_RGB_PTR(im) ; memset( imp , 255 , 3*nx*ny ) ; /* white-ize */
@@ -279,7 +282,9 @@ static MRI_IMAGE * memplot_to_mri( MEM_plotdata *mp )  /* 05 Dec 2007 */
    memplot_to_RGB_sef( im , mp , 0 , 0 , 0 ) ;
    do_thick = 0 ;
 #ifdef DUPLICATION    /* then downsample for beauty */
-   { MRI_IMAGE *qim = mri_downsize_by2(im) ; mri_free(im) ; im = qim ; }
+   if( did_dup ){
+     MRI_IMAGE *qim = mri_downsize_by2(im) ; mri_free(im) ; im = qim ;
+   }
 #endif
    return im ;
 }
