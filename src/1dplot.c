@@ -528,16 +528,16 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[iarg],"-jpegs") == 0 ||
-         strcasecmp(argv[iarg],"-jpgs") == 0 ){
-        int isize; char sss[256]={""} ;
+         strcasecmp(argv[iarg],"-jpgs" ) == 0   ){
+        int isize; static char sss[256]={""} ;
         out_ps = 0 ; imsave = JPEG_MODE ;
         iarg++ ;
         if( iarg+1 >= argc )
-         ERROR_exit("need 2 argument after '%s'",argv[iarg-1]) ;
+          ERROR_exit("need 2 arguments after '%s'",argv[iarg-1]) ;
         isize = (int) strtod(argv[iarg], NULL);
         if (isize < 100 || isize > 9999) {
-         ERROR_exit("SIZE value of %d is rather fishy. \n"
-                    "Allowed range is between 100 and 9999", isize);
+          ERROR_exit("SIZE value of %d is rather fishy. \n"
+                     "Allowed range is between 100 and 9999", isize);
         }
         sprintf(sss,"AFNI_1DPLOT_IMSIZE=%d", isize);
         putenv(sss) ;
@@ -560,15 +560,15 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[iarg],"-pngs") == 0 ){
-        int isize; char sss[256]={""} ;
+        int isize; static char sss[256]={""} ;
         out_ps = 0 ; imsave = PNG_MODE ;
         iarg++ ;
         if( iarg+1 >= argc )
-         ERROR_exit("need 2 arguments after '%s'",argv[iarg-1]) ;
+          ERROR_exit("need 2 arguments after '%s'",argv[iarg-1]) ;
         isize = (int) strtod(argv[iarg], NULL);
         if (isize < 100 || isize > 9999) {
-         ERROR_exit("SIZE value of %d is rather fishy. \n"
-                    "Allowed range is between 100 and 9999", isize);
+          ERROR_exit("SIZE value of %d is rather fishy. \n"
+                     "Allowed range is between 100 and 9999", isize);
         }
         sprintf(sss,"AFNI_1DPLOT_IMSIZE=%d", isize);
         putenv(sss) ;
