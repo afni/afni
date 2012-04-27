@@ -3,22 +3,14 @@
  *
  * usage: 3dmask_tool [options] dset1 dset2 ...
  *
- * options:
- *
- *      -count
- *      -datum
- *
- *      -dilate N       (can have many ordered options, where N<0 means erode)
- *                      (dilation is applied to the result, after -frac)
- *      -frac
- *      -intersect
- *      -union
- *
+ * Allow users to read multiple datasets as masks, optionally dilate
+ * and/or erode them, compute a mask from a fractional overlap, optionally
+ * dilate and/or erode that, and write the result.
  *
  * - union/intersect/frac overlap
  * - dilate/erode as ordered list of operations
  *
- * Author: R Reynolds  23 Apr 2012
+ * Author: R Reynolds  27 Apr 2012
  */
 
 static char * g_history[] =
@@ -26,25 +18,26 @@ static char * g_history[] =
   "----------------------------------------------------------------------\n"
   "history (of 3dmask_tool):\n"
   "\n",
-  "0.0  23 Apr 2012\n"
+  "0.0  27 Apr 2012\n"
   "     (Rick Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
   "     -initial version\n"
 };
 
-static char g_version[] = "3dmask_tool version 0.0, 23 April 2012";
+static char g_version[] = "3dmask_tool version 0.0, 27 April 2012";
 
-#include <stdio.h>
 #include "mrilib.h"
 
 /*--------------- global parameters struct ---------------*/
 typedef struct
 { /* options */
-   int_list            dilations; /* list of dilations/erodes to apply      */
+   int_list            IND;       /* dilations/erodes to apply to inputs    */
+   int_list            RESD;      /* dilations/erodes to apply to result    */
    THD_3dim_dataset ** dsets;     /* input and possibly modified datasets   */
    char             ** inputs;    /* list of input dataset names (in argv)  */
    char              * prefix;    /* prefix for output dataset              */
    float               frac;      /* min frac of overlap/Ndset (0=union)    */
    int                 count;     /* flag to output counts                  */
+   int                 fill;      /* flag to fill holes in mask             */
    int                 datum;     /* output data type                       */
    int                 verb;      /* verbose level                          */
 
@@ -57,11 +50,14 @@ typedef struct
 param_t g_params;
 
 /*--------------- prototypes ---------------*/
-int apply_dilations     (THD_3dim_dataset *, int_list *, int);
+THD_3dim_dataset * apply_dilations (THD_3dim_dataset *, int_list *, int, int);
 int convert_to_bytemask (THD_3dim_dataset * dset, int verb);
-int count_masks         (THD_3dim_dataset *[], int, char *, int,
-                         THD_3dim_dataset **, int *, int *);
+int count_masks         (THD_3dim_dataset *[], int, int,
+                         THD_3dim_dataset **, int *);
+int dilations_are_valid (int_list *);
+int fill_holes          (THD_3dim_dataset *, int);
 int limit_to_frac       (THD_3dim_dataset *, int, int, int);
+int needed_padding      (int_list *);
 int process_input_dsets (param_t * params);
 int process_opts        (param_t *, int, char *[]);
 int show_help           (void);
@@ -74,6 +70,7 @@ int write_result        (param_t *, THD_3dim_dataset *, int, char *[]);
  *    - convert to bytemask
  *    - zeropad as needed
  *    - apply list of dilations
+ *    - undo any zeropad as needed
  *
  * - create mask counts
  *    - foreach dset, foreach voxel, if set: increment voxel
@@ -82,8 +79,6 @@ int write_result        (param_t *, THD_3dim_dataset *, int, char *[]);
  * - foreach voxel
  *    - if count < overlap_frac * nset: clear
  *    - else if not -count: set to 1 (else leave as count)
- *
- * - undo any zeropad
  *
  * - create dset of first type or via -datum and write
  */
@@ -109,13 +104,12 @@ int main( int argc, char *argv[] )
    /* open, convert to byte, zeropad, dilate, unzeropad */
    if( process_input_dsets(params) ) RETURN(1);
 
-   /* create mask count dataset, return num volumes and maybe set datum */
-   if( count_masks(params->dsets, params->ndsets,
-                   params->prefix, params->verb,
-                   &countset, &params->nvols, &params->datum) ) RETURN(1);
+   /* create mask count dataset and return num volumes (delete old dsets) */
+   if( count_masks(params->dsets, params->ndsets, params->verb,
+                   &countset, &params->nvols) ) RETURN(1);
 
    /* limit to frac of nvols (if not counting, convert to 0/1 mask) */
-   limit = ceil(params->nvols * params->frac);
+   limit = ceil((params->frac>1) ? params->frac : params->nvols*params->frac );
    if( params->verb )
       INFO_message("frac %g over %d volumes gives min count %d\n",
                    params->frac, params->nvols, limit);
@@ -124,6 +118,16 @@ int main( int argc, char *argv[] )
    /* if not counting, result is binary 0/1 */
    if( limit_to_frac(countset, limit, params->count, params->verb) )
       RETURN(1);
+
+   /* maybe apply dilations to output */
+   if( params->RESD.num > 0 ) {
+      countset = apply_dilations(countset, &params->RESD, 0, params->verb);
+      if( !countset ) RETURN(1);
+   }
+
+   /* maybe fill any remaining holes */
+   if( params->fill )
+      if ( fill_holes(countset, params->verb) ) RETURN(1);
 
    /* create output */
    if( write_result(params, countset, argc, argv) ) RETURN(1);
@@ -136,32 +140,63 @@ int main( int argc, char *argv[] )
 }
 
 
-/*--------------- apply dilations to mask ---------------*/
+/*--------------- apply dilations to dataset ---------------*/
 /*
+ * 1. zeropad (if needed for dilations)
+ * 2. make byte copy of dataset (if not already)
+ * 3. dilate (using binary mask)
+ * 4. if not converting, modify original data
+ * 5. undo any zeropad
+ * 6. return new dataset (might be same as old)
+ * 
  * dilations are passed as a list of +/- integers (- means erode)
+ *
+ * convert: flag specifying whether dset should be converted to MRI_byte
  *
  * note: the dilations list should not be long (does more than 2 even
  *       make any sense?), but here they will be treated generically
  *    - foreach dilation: dilate or erode, as specified by sign
  */
-int apply_dilations(THD_3dim_dataset * dset, int_list * D, int verb)
+THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
+                                   int convert, int verb)
 {
-   byte  * bdata;
-   int     index, ivol, id, dsize;
-   int     nx, ny, nz;
+   THD_3dim_dataset * dnew = NULL;
+   byte             * bdata = NULL;
+   int                index, ivol, id, dsize, datum, pad;
+   int                nx, ny, nz, nvox;
 
    ENTRY("apply_dilations");
 
    if( !dset || !D ) ERROR_exit("missing inputs to apply_dilations");
 
-   /* note geometry */
-   nx = DSET_NX(dset);  ny = DSET_NY(dset);  nz = DSET_NZ(dset);
+   /* note and apply any needed zeropadding */
+   pad = needed_padding(D);
+   if(verb && pad) INFO_message("padding by %d (for dilations)", pad);
+   if( pad ) dnew = THD_zeropad(dset, pad, pad, pad, pad, pad, pad, "pad", 0);
+   else      dnew = dset;
 
-   /* apply the actual dilations */
+   /* note geometry */
+   nx = DSET_NX(dnew);  ny = DSET_NY(dnew);  nz = DSET_NZ(dnew);
+   nvox = nx*ny*nz;
+
+   /* now apply the actual dilations */
    if(verb>1) INFO_message("applying dilation list to dataset");
 
-   for( ivol=0; ivol < DSET_NVALS(dset); ivol++ ) {
-      bdata = DBLK_ARRAY(dset->dblk, ivol);
+   for( ivol=0; ivol < DSET_NVALS(dnew); ivol++ ) {
+      datum = DSET_BRICK_TYPE(dnew, ivol);
+      /* if non-byte data (short/float), make byte mask of volume */
+      if( datum == MRI_byte )
+         bdata = DBLK_ARRAY(dnew->dblk, ivol);
+      else if ( datum == MRI_float || datum == MRI_short )
+         bdata = THD_makemask(dnew, ivol, 1, 0);
+      else {
+         ERROR_message("invalid datum for result: %d", datum);
+         RETURN(NULL);
+      }
+      if( !bdata ) {
+         ERROR_message("failed to make as mask");
+         RETURN(NULL);
+      }
 
       for( index=0; index < D->num; index++ ) {
          dsize = D->list[index];
@@ -172,9 +207,42 @@ int apply_dilations(THD_3dim_dataset * dset, int_list * D, int verb)
            for( id=0; id > dsize; id-- ) THD_mask_erode (nx, ny, nz, bdata, 0);
          }
       }
+
+      /* if we are converting, just replace the old data */
+      if( convert && (datum == MRI_short || datum == MRI_float) ) {
+         if( verb > 2 ) INFO_message("applying byte result from dilate");
+         EDIT_substitute_brick(dnew, ivol, MRI_byte, bdata);
+         continue;  /* so nothing more to do */
+      }
+
+      /* if short or float data, apply mask changes to data */
+      if( datum == MRI_short ) {
+         short * dptr = DBLK_ARRAY(dnew->dblk, ivol);
+         int     nfill=0;
+         if( verb > 2 ) INFO_message("applying dilate result to short data");
+         for( index = 0; index < nvox; index++ )
+            if( ! dptr[index] && bdata[index] ){ dptr[index] = 1; nfill++; }
+         if( verb > 1 ) INFO_message("AD: filled %d voxels", nfill);
+         free(bdata);
+      }
+      else if( datum == MRI_float ) {
+         float * dptr = DBLK_ARRAY(dnew->dblk, ivol);
+         if( verb > 2 ) INFO_message("applying dilate result to float data");
+         for( index = 0; index < nvox; index++ )
+            if( ! dptr[index] && bdata[index] ) dptr[index] = 1.0;
+         free(bdata);
+      }
    }
 
-   RETURN(0);
+   /* undo any zeropadding (delete original and temporary datasets) */
+   if( pad ) {
+      DSET_delete(dset);
+      dset = THD_zeropad(dnew, -pad, -pad, -pad, -pad, -pad, -pad, "pad", 0);
+      DSET_delete(dnew);
+      dnew = dset;
+   }
+
+   RETURN(dnew);
 }
 
 
@@ -228,17 +296,16 @@ int limit_to_frac(THD_3dim_dataset * cset, int limit, int count, int verb)
 /*--------------- process input datasets ---------------*/
 /*
  * for each input dataset name
- *    open
- *    convert to byte mask (still multiple volumes)
- *    zeropad as needed
- *    apply list of dilations
+ *    open (check dims, etc.)
+ *    dilate (zeropad, make binary, dilate, unpad, apply)
+ *    fill list of bytemask datasets
  *
  * also, count total volumes
  */
 int process_input_dsets(param_t * params)
 {
    THD_3dim_dataset * dset, * dfirst=NULL;
-   int                iset, nxyz, nvol, index, sum;
+   int                iset, nxyz;
 
    ENTRY("process_input_dsets");
 
@@ -257,17 +324,8 @@ int process_input_dsets(param_t * params)
    if( params->verb ) INFO_message("processing %d input datasets...",
                                    params->ndsets);
    
-   /* compute max cumulative dilation to apply to dsets */
-   params->zeropad = 0;
-   for( index=0, sum=0; index < params->dilations.num; index++ ) {
-      sum += params->dilations.list[index];
-      if( sum > params->zeropad ) params->zeropad = sum;
-   }
-   if( params->verb ) INFO_message("zero padding by %d (for dilations)\n",
-                                   params->zeropad);
-
    /* process the datasets */
-   nvol = nxyz = 0;
+   nxyz = 0;
    for( iset=0; iset < params->ndsets; iset++ ) {
       /* open and verify dataset */
       dset = THD_open_dataset(params->inputs[iset]);
@@ -286,38 +344,27 @@ int process_input_dsets(param_t * params)
          WARNING_message("grid from dset %s does not match that of dset %s",
                          DSET_PREFIX(dset), DSET_PREFIX(dfirst));
 
-      /* convert to byte mask */
-      if( convert_to_bytemask(dset, params->verb) ) RETURN(1);
-
-      /* add to our list of dsets, either padded or not */
-      if( params->zeropad > 0 ) {
-         int pad = params->zeropad;
-         params->dsets[iset] = THD_zeropad(dset, pad, pad, pad, pad, pad, pad,
-                                           "pad", 0);
-         if( dset != dfirst ) DSET_delete(dset);
-      } else params->dsets[iset] = dset;
-
-      /* now apply dilations to all volumes */
-      if( apply_dilations(params->dsets[iset],&params->dilations,params->verb) )
-         RETURN(1);
+      /* apply dilations to all volumes, returning bytemask datasets */
+      params->dsets[iset] = apply_dilations(dset, &params->IND,1,params->verb);
+      if( ! params->dsets[iset] ) RETURN(1);
    } 
-
-   /* undo any zeropadding */
-   if( params->zeropad > 0 ) {
-      int pad = params->zeropad;
-      DSET_delete(dfirst);       /* not in dsets list and no longer needed */
-      if( params->verb>1 ) INFO_message("undoing zeropad");
-      for( iset=0; iset < params->ndsets; iset++ ) {
-         dset = THD_zeropad(params->dsets[iset], -pad,-pad,-pad,-pad,-pad,-pad,
-                            "pad", 0);
-         DSET_delete(params->dsets[iset]);
-         params->dsets[iset] = dset;
-      }
-   }
 
    RETURN(0);
 }
 
+/* compute max cumulative dilation to apply to dsets
+ * (as the largest cumulative sum of dilations)
+ */
+int needed_padding(int_list * L)
+{
+   int index, sum, pad;
+   ENTRY("needed_padding");
+   for( index=0, sum=0, pad=0; index < L->num; index++ ) {
+      sum += L->list[index];
+      if( sum > pad ) pad = sum;
+   }
+   RETURN(pad);
+}
 
 /*--------------- count masks per voxel ---------------*/
 /*
@@ -326,9 +373,8 @@ int process_input_dsets(param_t * params)
  *    for each voxel, if set: increment
  * close datasets as they are processed
  */
-int count_masks(THD_3dim_dataset * dsets[], int ndsets,           /* inputs */
-                char * prefix, int verb,
-                THD_3dim_dataset ** cset, int * nvol, int * datum)/* outputs */
+int count_masks(THD_3dim_dataset * dsets[], int ndsets, int verb, /* inputs */
+                THD_3dim_dataset ** cset, int * nvol)             /* outputs */
 {
    THD_3dim_dataset * dset;
    short * counts = NULL;             /* will become data for returned cset */
@@ -337,7 +383,7 @@ int count_masks(THD_3dim_dataset * dsets[], int ndsets,           /* inputs */
 
    ENTRY("count_masks");
 
-   if( !dsets || !cset || !nvol || !prefix )
+   if( !dsets || !cset || !nvol )
       ERROR_exit("NULL inputs to count_masks");
 
    if( ndsets <= 0 ) {
@@ -383,13 +429,10 @@ int count_masks(THD_3dim_dataset * dsets[], int ndsets,           /* inputs */
    if( *nvol >= (1<<15) )
       WARNING_message("too many volumes to count as shorts: %d", *nvol);
 
-   /* create output dataset, and copy datum if not initialized */
+   /* create output dataset */
    *cset = EDIT_empty_copy(dsets[0]);
-   EDIT_dset_items(*cset,
-          ADN_prefix, prefix,  ADN_nvals, 1,  ADN_ntt, 0,
-          ADN_none);
+   EDIT_dset_items(*cset, ADN_nvals, 1,  ADN_ntt, 0, ADN_none);
    EDIT_substitute_brick(*cset, 0, MRI_short, counts);
-   if( *datum < 0 ) *datum = DSET_BRICK_TYPE(dsets[0], 0);
 
    DSET_delete(dsets[0]);  /* now finished with first dataset */
 
@@ -407,6 +450,8 @@ int write_result(param_t * params, THD_3dim_dataset * oset,
    int     nvox = DSET_NVOX(oset), ind;
 
    ENTRY("write_results");
+
+   EDIT_dset_items(oset, ADN_prefix, params->prefix, ADN_none);
 
    if( params->verb )
       INFO_message("writing result %s...\n", DSET_PREFIX(oset));
@@ -453,14 +498,69 @@ int show_help(void)
 
    printf(
    "-------------------------------------------------------------------------\n"
-   "Help me...\n"
+   "3dmask_tool         - for combining/dilating/eroding/filling masks\n"
    "\n"
+   "This program can be used to:\n"
+   "   1. combine masks, with a specified overlap fraction\n"
+   "   2. dilate and/or erode a mask or combination of masks\n"
+   "   3. fill holes in masks\n"
+   "\n"
+   "The outline of operations is as follows.\n"
+   "\n"
+   "   - read all input volumes\n"
+   "      - optionally dilate/erode inputs (with any needed zero-padding)\n"
+   "   - restrict voxels to the fraction of overlap\n"
+   "   - optionally dilate/erode combination (with zero-padding)\n"
+   "   - optionally fill any holes\n"
+   "   - write result\n"
+   "\n"
+   "Note : a hole is defined as a fully connected set of zero voxels that\n"
+   "       does not contain an edge voxel.  For any voxel in such a set, it\n"
+   "       is not possible to find a path of voxels to reach an edge.\n"
+   "\n"
+   "       Such paths are evaluated using 6 face neighbors, no diagonals.\n"
    "\n"
    "----------------------------------------\n"
    "examples:\n"
    "\n"
-   "    3dmatmult -inputA matrix+orig -inputB image+orig  \\\n"
-   "              -prefix transformed -datum float -verb 2\n"
+   "   a. dilate a mask by 5 levels\n"
+   "\n"
+   "      3dmask_tool -input mask_anat.FT+tlrc -prefix ma.dilate \\\n"
+   "                  -dilate_input 5\n"
+   "\n"
+   "   b. dilate and then erode, which connects areas that are close\n"
+   "\n"
+   "      3dmask_tool -input mask_anat.FT+tlrc -prefix ma.close.edges \\\n"
+   "                  -dilate_input 5 -5\n"
+   "\n"
+   "   b2. dilate and erode after combining many masks\n"
+   "\n"
+   "      3dmask_tool -input mask_anat.*+tlrc.HEAD -prefix ma.close.result \\\n"
+   "                  -dilate_result 5 -5\n"
+   "\n"
+   "   c1. compute an intersection mask\n"
+   "\n"
+   "      3dmask_tool -input mask_anat.*+tlrc.HEAD -prefix mask_inter \\\n"
+   "                  -frac 1.0\n"
+   "\n"
+   "   c2. compute a mask of 70%% overlap\n"
+   "\n"
+   "      3dmask_tool -input mask_anat.*+tlrc.HEAD -prefix mask_overlap.7 \\\n"
+   "                  -frac 0.7\n"
+   "   c3. simply count the voxels that overlap\n"
+   "\n"
+   "      3dmask_tool -input mask_anat.*+tlrc.HEAD -prefix mask.counts \\\n"
+   "                  -count\n"
+   "\n"
+   "   d. fill holes\n"
+   "\n"
+   "      3dmask_tool -input mask_anat.FT+tlrc -prefix ma.filled \\\n"
+   "                  -fill_holes\n"
+   "\n"
+   "   e. read many masks, dilate and erode, restrict to 70%%, and fill holes\n"
+   "\n"
+   "      3dmask_tool -input mask_anat.*+tlrc.HEAD -prefix ma.fill.7 \\\n"
+   "                  -dilate_input 5 -5 -frac 0.7 -fill_holes\n"
    "\n"
    "----------------------------------------\n"
    "informational command arguments (execute option and quit):\n"
@@ -472,19 +572,121 @@ int show_help(void)
    "----------------------------------------\n"
    "optional command arguments:\n"
    "\n"
-   "    -datum TYPE             : specify verbosity level\n"
+   "    -count                  : count the voxels that overlap\n"
    "\n"
-   "        Valid TYPEs are 'byte', 'short' and 'float'.  The default is\n"
-   "        that of the inputB dataset.\n"
+   "        Instead of created a binary 0/1 mask dataset, create one with.\n"
+   "        counts of voxel overlap, i.e each voxel will contain the number\n"
+   "        of masks that it is set in.\n"
+   "\n"
+   "    -datum TYPE             : specify data type for output\n"
+   "\n"
+   "            e.g: -datum short\n"
+   "            default: -datum byte\n"
+   "\n"
+   "        Valid TYPEs are 'byte', 'short' and 'float'.\n"
+   "\n"
+   "    -dilate_inputs D1 D2 ... : dilate inputs at the given levels\n"
+   "\n"
+   "            e.g. -dilate_inputs 3\n"
+   "            e.g. -dilate_inputs -4\n"
+   "            e.g. -dilate_inputs 8 -8\n"
+   "            default: no dilation\n"
+   "\n"
+   "        Use this option to dilate and/or erode datasets as they are read.\n"
+   "\n"
+   "        Dilations are across the 18 voxel neighbors that share either a\n"
+   "        face or an edge (i.e. of the 26 neighbors in a 3x3x3 box, it is\n"
+   "        all but the outer 8 corners).\n"
+   "        \n"
+   "        An erosion is specified by a negative dilation.\n"
+   "        \n"
+   "        One can apply a list of dilations and erosions, though there\n"
+   "        should be no reason to apply more than one of each.\n"
+   "        \n"
+   "        Note: use -dilate_result for dilations on the combined masks.\n"
+   "\n"
+   "    -dilate_result D1 D2 ... : dilate combined mask at the given levels\n"
+   "\n"
+   "            e.g. -dilate_result 3\n"
+   "            e.g. -dilate_result -4\n"
+   "            e.g. -dilate_result 8 -8\n"
+   "            default: no dilation\n"
+   "\n"
+   "        Use this option to dilate and/or erode the result of combining\n"
+   "        masks that exceed the -frac cutoff.\n"
+   "\n"
+   "        See -dilate_inputs for details of the operation.\n"
+   "\n"
+   "    -frac LIMIT             : specify required overlap threshold\n"
+   "\n"
+   "            e.g. -frac 0    (same as -union)\n"
+   "            e.g. -frac 1.0  (same as -inter)\n"
+   "            e.g. -frac 0.6\n"
+   "            e.g. -frac 17\n"
+   "            default: union (-frac 0)\n"
+   "\n"
+   "        When combining masks (across datasets and sub-bricks), use this\n"
+   "        option to restrict the result to a certain fraction of the set of\n"
+   "        volumes (or to a certain number of volumes if LIMIT > 1).\n"
+   "\n"
+   "        For example, assume there are 7 volumes across 3 datasets.  Then\n"
+   "        at each voxel, count the number of masks it is in over the 7\n"
+   "        volumes of input.\n"
+   "\n"
+   "            LIMIT = 0       : union, counts > 0 survive\n"
+   "            LIMIT = 1.0     : intersection, counts = 7 survive\n"
+   "            LIMIT = 0.6     : 60%% fraction, counts >= 5 survive\n"
+   "            LIMIT = 5       : count limit, counts >= 5 survive  \n"
+   "\n"
+   "        See also -inter and -union.\n"
+   "\n"
+   "    -inter                  : intersection, this means -frac 1.0\n"
+   "    -union                  : union, this means -frac 0\n"
+   "\n"
+   "    -fill_holes             : fill holes within the combined mask\n"
+   "\n"
+   "        This option can be used to fill holes in the resulting mask, i.e.\n"
+   "        after all other processing has been done.\n"
+   "\n"
+   "        A hole is defined as a connected set of voxels that is surrounded\n"
+   "        by non-zero voxels, and which contains no volume edge voxel.\n"
+   "\n"
+   "        Here, connections are via the 6 faces only, meaning a voxel could\n"
+   "        be consider to be part of a hole even if there were a diagonal\n"
+   "        path to an edge.  Please pester me if that is not desirable.\n"
+   "\n"
+   "    -inputs DSET1 ...       : specify the set of inputs (taken as masks)\n"
+   "\n"
+   "            e.g. -inputs group_mask.nii\n"
+   "            e.g. -inputs full_mask.subj*+tlrc.HEAD\n"
+   "            e.g. -inputs amygdala_subj*+tlrc.HEAD\n"
+   "\n"
+   "        Use this option to specify the input datasets to process.  Any\n"
+   "        non-zero voxel will be consider part of that volume's mask.\n"
+   "\n"
+   "        An input dataset is allowed to have multiple sub-bricks.\n"
+   "\n"
+   "    -prefix PREFIX          : specify a prefix for the output dataset\n"
+   "\n"
+   "            e.g. -prefix intersect_mask\n"
+   "            default: -prefix combined_mask\n"
+   "\n"
+   "        The resulting mask dataset will be named using the given prefix.\n"
+   "\n"
+   "    -quiet                  : limit text output to errors\n"
+   "\n"
+   "        Restrict text output.  This option is equivalent to '-verb 0'.\n"
+   "\n"
+   "        See also -verb.\n"
    "\n"
    "    -verb LEVEL             : specify verbosity level\n"
    "\n"
    "        The default level is 1, while 0 is considered 'quiet'.\n"
+   "        The maximum level is currently 3, but most poeple don't care.\n"
    "\n"
-   "----------------------------------------\n"
-   "* comments\n"
-   "----------------------------------------------------------------------\n"
+   "-------------------------------\n"
    "R. Reynolds         April, 2012\n"
+   "----------------------------------------------------------------------\n"
    "\n"
    );
 
@@ -505,11 +707,12 @@ int process_opts(param_t * params, int argc, char * argv[] )
 
    memset(params, 0, sizeof(param_t));  /* init everything to 0 */
    params->inputs = NULL;
-   params->prefix = NULL;
-   init_int_list(&params->dilations, 0);
+   params->prefix = "combined_mask";
+   init_int_list(&params->IND, 0);
+   init_int_list(&params->RESD, 0);
 
    params->frac = -1.0;
-   params->datum = -1;                    /* valid datum start at 0 */
+   params->datum = MRI_byte;
    params->verb = 1;
    params->ndsets = 0;
 
@@ -552,22 +755,43 @@ int process_opts(param_t * params, int argc, char * argv[] )
       }
 
       /* read in a list of dilations (negatives are erosions) */
-      else if( strcmp(argv[ac],"-dilate") == 0 ) {
+      else if( strncmp(argv[ac],"-dilate_in", 10) == 0 ) {
          char * rptr; /* return pointer for strtol */
          int    ndilates = 0;
 
-         if( ++ac >= argc ) ERROR_exit("need argument after '-dilate'");
+         if( ++ac >= argc ) ERROR_exit("need argument after '-dilate_inputs'");
 
          ival = strtol(argv[ac], &rptr, 10);
          while( ac < argc && rptr > argv[ac] ) {
-            if( ! add_to_int_list(&params->dilations, ival, 1) ) RETURN(-1);
+            if( ! add_to_int_list(&params->IND, ival, 1) ) RETURN(-1);
             ndilates++;
-            ac++;
+            if( ++ac >= argc ) break;
             ival = strtol(argv[ac], &rptr, 10);
          }
 
          if( ndilates == 0 )
-            ERROR_exit("no integral dilations found after -dilate");
+            ERROR_exit("no integral dilations found after -dilate_inputs");
+
+         /* ac is already past last number */ continue;
+      }
+
+      /* read in a list of dilations (negatives are erosions) */
+      else if( strncmp(argv[ac],"-dilate_result", 11) == 0 ) {
+         char * rptr; /* return pointer for strtol */
+         int    ndilates = 0;
+
+         if( ++ac >= argc ) ERROR_exit("need argument after '-dilate_result'");
+
+         ival = strtol(argv[ac], &rptr, 10);
+         while( ac < argc && rptr > argv[ac] ) {
+            if( ! add_to_int_list(&params->RESD, ival, 1) ) RETURN(-1);
+            ndilates++;
+            if( ++ac >= argc ) break;
+            ival = strtol(argv[ac], &rptr, 10);
+         }
+
+         if( ndilates == 0 )
+            ERROR_exit("no integral dilations found after -dilate_result");
 
          /* ac is already past last number */ continue;
       }
@@ -583,15 +807,20 @@ int process_opts(param_t * params, int argc, char * argv[] )
          ac++; continue;
       }
       else if( strncmp(argv[ac],"-inter", 6) == 0 ) {
-         params->frac = 0.0;
-         ac++; continue;
-      }
-      else if( strcmp(argv[ac],"-union") == 0 ) {
          params->frac = 1.0;
          ac++; continue;
       }
+      else if( strcmp(argv[ac],"-union") == 0 ) {
+         params->frac = 0.0;
+         ac++; continue;
+      }
 
-      else if( strcmp(argv[ac],"-inputs") == 0 ) {
+      else if( strcmp(argv[ac],"-fill_holes") == 0 ) {
+         params->fill = 1;
+         ac++; continue;
+      }
+
+      else if( strncmp(argv[ac],"-inputs", 4) == 0 ) {
          /* store list of names from argv */
          ac++;
 
@@ -631,86 +860,81 @@ int process_opts(param_t * params, int argc, char * argv[] )
        
    }
 
-   if( params->dilations.num > 0 ) {
-      int * ilist = params->dilations.list;
-      int   err = 0;
-      for( ival = 0; ival < params->dilations.num; ival++ )
-         if( ilist[ival] == 0 ) {
-            ERROR_message("dilation[%d] is zero", ival);
-            err++;
-         }
-      for( ival = 1; ival < params->dilations.num; ival++ )
-         if( ilist[ival-1]*ilist[ival] > 0){
-            ERROR_message(
-               "have sequential dilations of same sign (assuming mistake)\n"
-               "   (d[%d] = %d, d[%d] = %d)\n",
-               ival-1,ilist[ival-1],ival,ilist[ival]);
-            err++;
-         }
-      if( err ) RETURN(-1);
-   }
+   if( !dilations_are_valid(& params->IND) ||
+       !dilations_are_valid(& params->RESD) ) RETURN(-1);
 
    if( params->ndsets <= 0 ) ERROR_exit("missing -input dataset list");
    if( !params->prefix ) ERROR_exit("missing -prefix option");
-   if( params->frac < 0 ) ERROR_exit("missing -frac option (or -inter/-union)");
+   if( params->frac < 0.0 ) {
+      if( params->verb ) INFO_message("no -frac option: defaulting to -union");
+      params->frac = 0.0;
+   }
 
    if( params->verb > 1 )
-      INFO_message("%d datasets specified, frac = %g, %d dilation(s)\n",
-                   params->ndsets, params->frac, params->dilations.num);
+      INFO_message("%d datasets, frac = %g, %d IN dilation(s), %d OUT D(s)\n",
+             params->ndsets, params->frac, params->IND.num, params->RESD.num);
 
    RETURN(0);
 }
 
-/*--------------- convert each dset volume to byte mask ---------------*/
-int convert_to_bytemask(THD_3dim_dataset * dset, int verb)
+/*--------------- check for invalid dilations ---------------*/
+int dilations_are_valid(int_list * D)
 {
-   byte * bdata;
-   int    ivol, nxyz, ixyz;
+   int * ilist;
+   int   ival, err = 0;
 
-   ENTRY("convert_to_bytemask");
+   ENTRY("dilations_are_valid");
 
-   if( !dset ) { ERROR_message("CDTB: no dset"); RETURN(1); }
+   ilist = D->list;
+   for( ival = 0; ival < D->num; ival++ )
+      if( ilist[ival] == 0 ) {
+         ERROR_message("dilation[%d] is zero", ival);
+         err++;
+      }
+   for( ival = 1; ival < D->num; ival++ )
+      if( ilist[ival-1]*ilist[ival] > 0){
+         ERROR_message(
+            "have sequential dilations of same sign (assuming mistake)\n"
+            "   (d[%d] = %d, d[%d] = %d)\n",
+            ival-1,ilist[ival-1],ival,ilist[ival]);
+         err++;
+      }
+   if( err ) RETURN(0);
 
-   nxyz = DSET_NVOX(dset);
+   RETURN(1);
+}
 
-   /* convert to byte mask */
-   for( ivol=0; ivol < DSET_NVALS(dset); ivol++ ) {
 
-      if( verb>2 ) INFO_message("converting vol %d to byte mask", ivol);
+/*--------------- fill any holes in volumes ---------------*/
+/*
+ * A hole is defined as a connected set of zero voxels that does
+ * not reach an edge.
+ *
+ * The core functionality was added to libmri.a in THD_mask_fill_holes.
+ */
+int fill_holes(THD_3dim_dataset * dset, int verb)
+{
+   short * sptr;     /* to for filling holes */
+   byte  * bmask;    /* computed result */
+   int     nfilled;
+   int     nx, ny, nz, nvox, index, fill=0;
 
-      bdata = (byte *)malloc(nxyz * sizeof(byte));
-      if( !bdata ) ERROR_exit("failed to alloc %d bytes: dset %s, vol %d\n",
-                              nxyz, DSET_PREFIX(dset), ivol);
+   ENTRY("fill_holes");
 
-      /* fill bdata based on input datum */
-      switch( DSET_BRICK_TYPE(dset, ivol) ) {
-         default: ERROR_exit("illegal datum %d", DSET_BRICK_TYPE(dset,ivol));
-         case MRI_byte: { /* count set voxels in this volume */
-            byte * dptr = DBLK_ARRAY(dset->dblk, ivol);
-            for( ixyz = 0; ixyz < nxyz; ixyz++ )
-               if( dptr[ixyz] ) bdata[ixyz] = 1;
-               else             bdata[ixyz] = 0;
-            break;
-         }
-         case MRI_short: { /* count set voxels in this volume */
-            short * dptr = DBLK_ARRAY(dset->dblk, ivol);
-            for( ixyz = 0; ixyz < nxyz; ixyz++ )
-               if( dptr[ixyz] ) bdata[ixyz] = 1;
-               else             bdata[ixyz] = 0;
-            break;
-         }
-         case MRI_float: { /* count set voxels in this volume */
-            float * dptr = DBLK_ARRAY(dset->dblk, ivol);
-            for( ixyz = 0; ixyz < nxyz; ixyz++ )
-               if( dptr[ixyz] ) bdata[ixyz] = 1;
-               else             bdata[ixyz] = 0;
-            break;
-         }
-      }  /* switch */
+   bmask = THD_makemask(dset, 0, 1, 0); /* copy input as byte mask */
+   nx = DSET_NX(dset);  ny = DSET_NY(dset);  nz = DSET_NZ(dset);
+   nvox = DSET_NVOX(dset);
 
-      /* replace old data with new */
-      EDIT_substitute_brick(dset, ivol, MRI_byte, bdata);
-   }  /* volume */
+   /* created filled mask */
+   nfilled = THD_mask_fill_holes(nx,ny,nz, bmask, verb);
+   if( nfilled < 0 ) { ERROR_message("failed to fill holes");  RETURN(1); }
+
+   /* apply to short volume */
+   sptr = DBLK_ARRAY(dset->dblk, 0);
+   for( index = 0; index < nvox; index++ )
+      if( !sptr[index] && bmask[index] ) { fill++;  sptr[index] = 1; }
+
+   if(verb>2) INFO_message("final check: fill=%d, nfilled=%d", fill, nfilled);
 
    RETURN(0);
 }

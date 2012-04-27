@@ -1002,9 +1002,8 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_NIML          12  /* NIML AFNI dset   25 May 2006 [rickr] */
 #define STORAGE_BY_NI_SURF_DSET  13  /* NIML surface dset */
 #define STORAGE_BY_GIFTI         14  /* GIFTI surface dset */
-#define STORAGE_BY_NI_TRACT      15  /* NIML tract dset */
 
-#define LAST_STORAGE_MODE        15
+#define LAST_STORAGE_MODE        14
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -2752,7 +2751,6 @@ typedef struct THD_3dim_dataset {
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MPEG         ||  \
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NIML         ||  \
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NI_SURF_DSET ||  \
-            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NI_TRACT     ||  \
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_GIFTI            \
           ) )
 
@@ -4672,6 +4670,8 @@ extern int THD_mask_fillin_completely( int,int,int, byte *, int ) ; /* 19 Apr 20
 extern int THD_mask_fillin_once      ( int,int,int, byte *, int ) ;
 
 extern int THD_mask_clip_neighbors( int,int,int, byte *, float,float,float *) ; /* 28 Oct 2003 */
+extern int THD_mask_fill_holes( int,int,int, byte *, int);  /* 27 Apr 2012 */
+
 
 extern void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
 extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate ) ;
