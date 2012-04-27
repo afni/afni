@@ -30,10 +30,10 @@
 #  define getwin_from_XDBE(dd,ww) (ww)
 #endif
 
-#undef MAX
+#undef  MAX
 #define MAX(a,b) (((a)<(b)) ? (b) : (a))
 
-#undef MIN
+#undef  MIN
 #define MIN(a,b) (((a)>(b)) ? (b) : (a))
 
 #ifndef HOTCOLOR
