@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 17, APR, 2012, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+ { 27, APR, 2012, RCR, "3dmask_tool", MAJOR, TYPE_NEW_PROG,
+   "a program to manipulate mask datasets",
+   NULL
+ } ,
+
+ { 24, APR, 2012, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "if surface data with generic prefix, append surf-type suffix",
    "Done to fix ANOVA commands on surface.\n"
    "Thanks to R Ray for bringing this up."
