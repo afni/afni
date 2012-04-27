@@ -159,6 +159,10 @@ SET_FUNC_AUTORANGE [c.]{+|-}
   Sets the function "autoRange" toggle to be on ('+') or off ('-'):
     SET_FUNC_AUTORANGE A.+
 
+SET_FUNC_PERCENTILE [c.]{+|-}
+  Sets the function "%" toggle to be on ('+') or off ('-'):
+    SET_FUNC_PERCENTILE A.+
+
 SET_FUNC_RANGE [c.]value
   Sets the functional range to 'value'.  If value is 0, this turns autoRange
   on; if value is positive, this turns autoRange off:
