@@ -95,7 +95,11 @@
 
 /*---------------------------------------------------------------------------*/
 
+#if 0
 #define SUFFIX ".3danova3"                /* suffix for temporary data files */
+#else
+char SUFFIX[1024] = ".3danova3." ;
+#endif
 
 
 #include "3dANOVA.h"
@@ -7087,6 +7091,8 @@ int main (int argc, char ** argv)
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 #endif
+
+   UNIQ_idcode_fill(SUFFIX+strlen(SUFFIX)) ;  /* 27 Apr 2012 */
 
   /*----- does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();

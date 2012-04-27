@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , APR , 2012 , RWC , "3dLocalBistat" , MINOR , TYPE_NEW_OPT ,
+  { 27 , APR , 2012 , RWC , "3dANOVA and 3dRegANA" , MICRO , TYPE_GENERAL ,
+   "Modified to use a random SUFFIX for temp filenames" ,
+   "To avoid conflict when running 2+ copies in the same directory.  Per the\n"
+   "request of Tom Holroyd." } ,
+
+ { 26 , APR , 2012 , RWC , "3dLocalBistat" , MINOR , TYPE_NEW_OPT ,
    "Allow 1 volume vs. multi-volume; Add slope options" ,
    NULL } ,
 
