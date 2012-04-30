@@ -1835,6 +1835,8 @@ int main( int argc , char *argv[] )
                     INIT_ncolovr , INIT_colovr , INIT_labovr ,
                     GLOBAL_argopt.gamma , GLOBAL_argopt.install_cmap ) ;
 
+   memplot_to_X11_set_DC(MAIN_dc) ; /* 30 Apr 2012 */
+
    if( MAIN_dc->depth < 9 && MAIN_dc->visual_class != TrueColor && GLOBAL_argopt.unique_dcs ){
      GLOBAL_argopt.unique_dcs = False ;
      REPORT_PROGRESS("[-unique off]") ;

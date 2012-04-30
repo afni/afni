@@ -355,6 +355,8 @@ void pm_expose_CB( Widget w , XtPointer cd , XtPointer cb )
     }
 #endif
 
+   /* skip any future pending Expose events */
+
    while( XCheckWindowEvent(dpy, win ,
                             ExposureMask|StructureNotifyMask,&evjunk) ) ;
    return ;

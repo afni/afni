@@ -18,6 +18,9 @@ static int box_xbot=0 , box_xtop=0 ,
            box_ybot=0 , box_ytop=0  ;
 
 static int do_thick=0 ;
+void memplot_to_mri_set_dothick( int dt ){ do_thick = dt ; }
+static int do_freee=0 ;
+void memplot_to_mri_set_dofreee( int df ){ do_freee = df ; }
 
 void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop )
 {
@@ -80,7 +83,7 @@ ENTRY("memplot_to_RGB_sef") ;
       yoff  = box_ybot + 0.499    ;
    }
 
-   if( !freee ){                           /* no aspect freedom ==> */
+   if( !freee && !do_freee ){              /* no aspect freedom ==> */
       if( yscal < xscal ) xscal = yscal ;  /* use smaller scaling   */
       else                yscal = xscal ;
    }
@@ -196,10 +199,6 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
 }
 
 /*-----------------------------------------------------------------------*/
-#define DUPLICATION
-
-#ifdef DUPLICATION  /* 27 Apr 2012: slower, but produces nicer looking images */
-
 # undef  BOr
 # undef  BOg
 # undef  BOb
@@ -213,7 +212,7 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
 # define BIg(i,j) ((unsigned int)bin [3*((i)+(j)*nxin )+1])
 # define BIb(i,j) ((unsigned int)bin [3*((i)+(j)*nxin )+2])
 
-static MRI_IMAGE * mri_downsize_by2( MRI_IMAGE *imin )
+MRI_IMAGE * mri_downsize_by2( MRI_IMAGE *imin )
 {
    MRI_IMAGE *imout ; int nxin,nyin , nxout,nyout , ii,jj,i2,j2 ;
    byte *bin , *bout ; unsigned int val ;
@@ -247,8 +246,6 @@ static MRI_IMAGE * mri_downsize_by2( MRI_IMAGE *imin )
 # undef  BIg
 # undef  BIb
 
-#endif /* DUPLICATION */
-
 /*-----------------------------------------------------------------------*/
 
 #undef  IMSIZ
@@ -258,9 +255,7 @@ static MRI_IMAGE * memplot_to_mri( MEM_plotdata *mp )  /* 05 Dec 2007 */
 {
    MRI_IMAGE *im ; int nx , ny , imsiz ;
    byte *imp ;
-#ifdef DUPLICATION
    int did_dup=0 ;
-#endif
 
    if( mp == NULL || MEMPLOT_NLINE(mp) < 1 ) return NULL ;
 
@@ -272,20 +267,16 @@ static MRI_IMAGE * memplot_to_mri( MEM_plotdata *mp )  /* 05 Dec 2007 */
    } else {
      nx = imsiz * mp->aspect ; ny = imsiz ;
    }
-#ifdef DUPLICATION    /* double image size for rendering */
    if( imsiz <= 2048 ){ nx *=2 ; ny *=2 ; did_dup = 1 ; }
-#endif
    im = mri_new( nx , ny , MRI_rgb ) ;
    imp = MRI_RGB_PTR(im) ; memset( imp , 255 , 3*nx*ny ) ; /* white-ize */
    set_memplot_RGB_box(0,0,0,0) ;
    do_thick = 1 ;
    memplot_to_RGB_sef( im , mp , 0 , 0 , 0 ) ;
    do_thick = 0 ;
-#ifdef DUPLICATION    /* then downsample for beauty */
    if( did_dup ){
      MRI_IMAGE *qim = mri_downsize_by2(im) ; mri_free(im) ; im = qim ;
    }
-#endif
    return im ;
 }
 

@@ -6,7 +6,7 @@
 
 #include "mrilib.h"
 #include "coxplot.h"
-#include "display.h"
+#include "xim.h"
 
 /*-------------------------------------------------------------------*/
 /*---- quickie program to look at some graphs - RWCox - Feb 1999 ----*/
@@ -248,6 +248,22 @@ void usage_1dplot(int detail)
      "AFNI_1DPLOT_THIK to a value between 0.00 and 0.05 -- the units are\n"
      "fractions of the page size; of course, you can also use the options\n"
      "'-thick' or '-THICK' if you prefer.\n"
+     "\n"
+     "----------------\n"
+     "RENDERING METHOD\n"
+     "----------------\n"
+     "On 30 Apr 2012, a new method of rendering the 1dplot graph into an X11\n"
+     "window was introduced -- this method uses 'anti-aliasing' to produce\n"
+     "smoother-looking lines and characters.  If you want the old coarser-looking\n"
+     "rendering method, set environment variable AFNI_1DPLOT_RENDEROLD to YES.\n"
+     "\n"
+     "The program always uses the new rendering method when drawing to a JPEG\n"
+     "or PNG file (which is not and never has been just a screen capture).\n"
+     "There is no way to disable the new rendering method for image-file saves.\n"
+     "\n"
+     "With the anti-aliasing method, lines tend to look thinner.  You might want\n"
+     "to use '-THICK' to compensate for that, depending on what look you desire\n"
+     "for your plot.\n"
      "\n"
      "------\n"
      "LABELS\n"
@@ -872,10 +888,17 @@ int main( int argc , char *argv[] )
 
    /*-- setup color info --*/
 
-   if( !skip_x11 )
+   if( !skip_x11 ){
      dc = MCW_new_DC( shell , 16 ,
                       DEFAULT_NCOLOVR , INIT_colovr , INIT_labovr ,
                       1.0 , install ) ;
+
+     if( !AFNI_yesenv("AFNI_1DPLOT_RENDEROLD") ){  /* 30 Apr 2012 */
+       memplot_to_X11_set_DC(dc) ;
+       X11_DO_NEW_PLOT ;                           /* cf. xim.h */
+       thik += 0.005f ;
+     }
+   }
 
    if( nyar > 0 ) yname = ynar ;
 
