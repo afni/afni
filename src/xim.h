@@ -39,10 +39,17 @@ extern void memplot_to_X11_set_DC( MCW_DC *dc ) ;  /* 30 Apr 2012 */
 extern void memplot_to_X11_funfunfun( Display *dpy , Window w , MEM_plotdata *mp ,
                                       int start , int end , int mask ) ;
 
-#undef  X11_DO_NEW_PLOT
-#undef  X11_DO_OLD_PLOT
-#define X11_DO_NEW_PLOT memplot_to_X11_set_substitute(memplot_to_X11_funfunfun)
-#define X11_DO_OLD_PLOT memplot_to_X11_set_substitute(NULL)
+#undef  X11_SET_NEW_PLOT
+#define X11_SET_NEW_PLOT      memplot_to_X11_set_substitute(memplot_to_X11_funfunfun)
+
+#undef  X11_SET_OLD_PLOT
+#define X11_SET_OLD_PLOT      memplot_to_X11_set_substitute(NULL)
+
+#undef  X11_GET_PLOT_FUNC
+#define X11_GET_PLOT_FUNC     memplot_to_X11_get_substitute()
+
+#undef  X11_SET_PLOT_FUNC
+#define X11_SET_PLOT_FUNC(pf) memplot_to_X11_set_substitute(pf)
 
 #ifdef  __cplusplus
 }
