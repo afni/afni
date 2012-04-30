@@ -36,7 +36,7 @@ AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
              
 AFNI_3dOBJS = ../parser.o ../parser_int.o
 
-WARNTOPT = ${WARNOPT} -Wno-unused-variable
+WARNTOPT = ${WARNOPT}
 
 #library only
 ${PTAYLORLIB} : ${PTAYLOR_OBJS} 
