@@ -1422,11 +1422,18 @@ ENTRY("AFNI_clus_action_CB") ;
 
    /*--------- Scat.1D button ----------*/
 
-   if( w == cwid->splot_pb && IMARR_COUNT(GLOBAL_library.timeseries) > 0 ){
-     int init_ts = AFNI_ts_in_library( cwid->splotim ) ;
-     MCW_choose_timeseries( cwid->top_lab , "Scatterplot x-axis" ,
-                                   GLOBAL_library.timeseries , init_ts ,
-                                   AFNI_clus_finalize_scat1D_CB , (XtPointer)im3d ) ;
+   if( w == cwid->splot_pb ){
+     if( IMARR_COUNT(GLOBAL_library.timeseries) > 0 ){
+       int init_ts = AFNI_ts_in_library(cwid->splotim) ;
+       MCW_choose_timeseries( cwid->top_lab , "Scatterplot x-axis" ,
+                                     GLOBAL_library.timeseries , init_ts ,
+                                     AFNI_clus_finalize_scat1D_CB , (XtPointer)im3d ) ;
+     } else {
+       MCW_popup_message( w , " \n"
+                              "** No 1D files have  **\n"
+                              "** been read in yet! **\n " ,
+                          MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     }
      EXRETURN ;
    }
 
