@@ -1427,6 +1427,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Little by little, one travels far"                             ,
      "Divide By Cucumber Error; Please Reinstall Universe and Reboot",
      "Out of Cheese Error; Please Install Wensleydale and Try Again" ,
+     "Out of Cheese Error; Please Install Stilton and Try Again"     ,
      "If at first you don't succeed -- call it version 1.0"          ,
      "Never trust a statistic you haven't faked yourself"            ,
      "May your teeth never be replaced by damp woolen socks"         ,
