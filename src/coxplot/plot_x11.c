@@ -110,6 +110,11 @@ void memplot_to_X11_set_substitute( void (*msf)() )
    return ;
 }
 
+void * memplot_to_X11_get_substitute(void)
+{
+   return (void *)memplot_to_X11_substitute_function ;
+}
+
 /*--------------------------------------------------------------------------
   Actually do the rendering.
   Plotting will start with line #start and go to #end-1.
