@@ -234,6 +234,11 @@ extern X11_colordef * get_X11_colordef( Display * , Window ) ;
 extern void memplot_to_X11_sef( Display * , Window ,
                                 MEM_plotdata * , int,int,int ) ;
 
+extern void memplot_to_X11_set_substitute( void (*msf)() ) ;  /* 30 Apr 2012 */
+
+extern void drawable_geom( Display *dpy , Drawable ddd ,      /* 30 Apr 2012 */
+                           int *width , int *height , int *depth ) ;
+
 extern void set_memplot_X11_box( int,int,int,int ) ;  /* 26 Feb 2001 */
 
 extern void set_X11_background( Display * , Window ,

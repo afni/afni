@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , APR , 2012 , RWC , "1dplot" , MICRO , TYPE_GENERAL ,
+  { 30 , APR , 2012 , RWC , "1dplot" , MICRO , TYPE_GENERAL ,
+   "Add anti-aliasing rendering to X11 drawing as well." ,
+   "Set AFNI_1DPLOT_RENDEROLD to YES to turn this feature off (but why?)." } ,
+
+ { 27 , APR , 2012 , RWC , "1dplot" , MICRO , TYPE_GENERAL ,
    "Modify rendering of images (jpeg, png) to look nicer" ,
    NULL } ,
 

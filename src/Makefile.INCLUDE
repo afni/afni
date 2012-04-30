@@ -1344,7 +1344,7 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 
 1dplot:libcoxplot.a 1dplot.o display.o
 	$(RM) $@
-	$(CC) -o 1dplot 1dplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS)
+	$(CC) -o 1dplot 1dplot.o display.o $(LFLAGS) -lcoxplot -lmrix $(LLIBS)
 
 1dgrayplot:libcoxplot.a 1dgrayplot.o display.o
 	$(RM) $@

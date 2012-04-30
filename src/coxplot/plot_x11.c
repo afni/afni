@@ -86,8 +86,8 @@ void set_memplot_X11_rectfill( int i ){ rectfill = i ; }  /* 26 Oct 2005 */
 /*! Get the layout of a window/pixmap.  [12 Mar 2002]
 --------------------------------------------------------------------------*/
 
-static void drawable_geom( Display *dpy , Drawable ddd ,
-                           int *width , int *height , int *depth )
+void drawable_geom( Display *dpy , Drawable ddd ,
+                    int *width , int *height , int *depth )
 {
    int xx,yy ;
    unsigned int ww,hh,bb,dd ;
@@ -98,6 +98,16 @@ static void drawable_geom( Display *dpy , Drawable ddd ,
    if( width  != NULL ) *width  = ww ;
    if( height != NULL ) *height = hh ;
    if( depth  != NULL ) *depth  = dd ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static void (*memplot_to_X11_substitute_function)() = NULL ;
+
+void memplot_to_X11_set_substitute( void (*msf)() )
+{
+   memplot_to_X11_substitute_function = msf ;
+   return ;
 }
 
 /*--------------------------------------------------------------------------
@@ -121,7 +131,7 @@ static int      nseg = 0 ;    /* number in the buffer */
 
 static void draw_xseg(void) ; /* prototype for function below */
 
-void memplot_to_X11_sef( Display * dpy , Window w , MEM_plotdata * mp ,
+void memplot_to_X11_sef( Display *dpy , Window w , MEM_plotdata *mp ,
                          int start , int end , int mask                )
 {
    int ii , nline , same ;
@@ -144,6 +154,11 @@ void memplot_to_X11_sef( Display * dpy , Window w , MEM_plotdata * mp ,
    if( nline < 1 || start >= nline ) return ;
 
    if( end <= start || end > nline ) end = nline ;
+
+   if( memplot_to_X11_substitute_function != NULL ){
+     memplot_to_X11_substitute_function(dpy,w,mp,start,end,mask) ;
+     return ;
+   }
 
    /*-- if we have a new X11 Display, get its coloring
         (note the tacit assumption that all windows on the same

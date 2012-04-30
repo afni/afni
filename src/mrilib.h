@@ -1305,6 +1305,10 @@ extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
 extern void memplot_to_jpg( char * , MEM_plotdata * ) ; /* 05 Dec 2007 */
 extern void memplot_to_png( char * , MEM_plotdata * ) ;
 
+extern void memplot_to_mri_set_dothick( int ) ;         /* 30 Apr 2012 */
+extern void memplot_to_mri_set_dofreee( int ) ;         /* 30 Apr 2012 */
+extern MRI_IMAGE * mri_downsize_by2( MRI_IMAGE * ) ;    /* 27 Apr 2012 */
+
 /************************ Statistics routines *************************/
 
 /**
