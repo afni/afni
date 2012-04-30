@@ -2073,6 +2073,14 @@ This variable sets the size of the boxes that are plotted with the 1dplot
 a value of 0.006 is the default.  The largest allowed value is 0.02 and
 the smallest is 0.001.
 
+-------------------------------
+Variable: AFNI_1DPLOT_RENDEROLD
+-------------------------------
+On 30 Apr 2012, a new method of rendering the 1dplot graph into an X11
+window was introduced -- this method uses 'anti-aliasing' to produce
+smoother lines and characters.  If you want the old coarser-looking
+rendering method, set this variable to YES.
+
 ---------------------------------
 Variable: AFNI_SIEMENS_INTERLEAVE
 ---------------------------------
