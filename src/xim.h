@@ -35,6 +35,15 @@ extern XImage * rgb_to_XImage( MCW_DC * , MRI_IMAGE * ) ;
 extern void ISQ_snapfile( Widget w ) ;  /* 25 Jun 2003 */
 extern MRI_IMAGE * SNAP_grab_image( Widget , MCW_DC * ) ;
 
+extern void memplot_to_X11_set_DC( MCW_DC *dc ) ;  /* 30 Apr 2012 */
+extern void memplot_to_X11_funfunfun( Display *dpy , Window w , MEM_plotdata *mp ,
+                                      int start , int end , int mask ) ;
+
+#undef  X11_DO_NEW_PLOT
+#undef  X11_DO_OLD_PLOT
+#define X11_DO_NEW_PLOT memplot_to_X11_set_substitute(memplot_to_X11_funfunfun)
+#define X11_DO_OLD_PLOT memplot_to_X11_set_substitute(NULL)
+
 #ifdef  __cplusplus
 }
 #endif

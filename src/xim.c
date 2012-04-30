@@ -860,3 +860,49 @@ ENTRY("ISQ_snapfile") ;
    mri_free(tim) ; last_ii = ii ;
    EXRETURN ;
 }
+
+
+/*-----------------------------------------------------------------------*/
+static MCW_DC       *old_dc  = NULL ;
+static Display      *old_dpy = NULL ;
+static Window        old_w   = (Window)0 ;
+static GC            old_GC ;
+static XGCValues     old_gcv ;
+
+void memplot_to_X11_set_DC( MCW_DC *dc ){ old_dc = dc ; return ; }
+
+void memplot_to_X11_funfunfun( Display *dpy , Window w , MEM_plotdata *mp ,
+                               int start , int end , int mask )
+{
+   MRI_IMAGE *im ; byte *imp ;
+   int nx=0 , ny=0 , did_dup=0 ;
+   XImage *xim ;
+
+   if( old_dpy != dpy ){
+     old_gcv.function   = GXcopy ;
+     old_gcv.fill_style = FillSolid ;
+     old_GC             = XCreateGC( dpy , w , GCFunction|GCFillStyle , &old_gcv ) ;
+     old_dpy            = dpy ;
+     old_w              = getwin_from_XDBE(dpy,w) ;
+   }
+
+   drawable_geom( dpy,old_w , &nx,&ny,NULL ) ;
+   if( nx < 19 || ny < 19 ) return ;
+
+   if( nx < 2048 && ny < 2048 ){ nx *= 2; ny *= 2; did_dup = 1; }
+
+   im  = mri_new( nx , ny , MRI_rgb ) ;
+   imp = MRI_RGB_PTR(im) ; memset( imp , 255 , 3*nx*ny ) ; /* white-ize */
+   set_memplot_RGB_box(0,0,0,0) ;
+   memplot_to_mri_set_dothick(1) ;
+   memplot_to_RGB_sef( im , mp , 0 , 0 , 1 ) ;
+   memplot_to_mri_set_dothick(0) ;
+   if( did_dup ){
+     MRI_IMAGE *qim = mri_downsize_by2(im) ; mri_free(im) ; im = qim ;
+   }
+
+   xim = rgb_to_XImage( old_dc , im ) ; mri_free(im) ;
+   XPutImage( dpy , w , old_GC , xim , 0,0,0,0 , xim->width , xim->height ) ;
+   MCW_kill_XImage(xim) ;
+   return ;
+}

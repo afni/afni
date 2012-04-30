@@ -5099,7 +5099,7 @@ ENTRY("PLUTO_scatterplot") ;
       else if( y[ii] > ytop ) ytop = y[ii] ;
    }
    if( xbot >= xtop || ybot >= ytop ){
-      fprintf(stderr,"*** Data has no range in PLUTO_scatterplot!\n\a");
+      ERROR_message("Data has no range in PLUTO_scatterplot!\a") ;
       EXRETURN ;
    }
 
@@ -5164,7 +5164,7 @@ ENTRY("PLUTO_scatterplot") ;
 
    /* x-axis label? */
 
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ; set_thick_memplot( 0.004f ) ;
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ; set_thick_memplot( 0.003f ) ;
    if( STGOOD(xlab) )
       plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , xlab , 16 , 0 , 0 ) ;
 
@@ -5180,7 +5180,7 @@ ENTRY("PLUTO_scatterplot") ;
 
    /* plot axes */
 
-   set_thick_memplot( 0.0f ) ;
+   set_thick_memplot( 0.001f ) ;
    plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
    plotpak_periml( nnax,mmax , nnay,mmay ) ;
 
@@ -5188,6 +5188,7 @@ ENTRY("PLUTO_scatterplot") ;
 
 #define DSQ 0.001
 
+   set_thick_memplot( 0.0f ) ;
    set_color_memplot( 0.0 , 0.0 , 0.4 ) ;        /* 28 Feb 2011 */
    dsq = AFNI_numenv( "AFNI_SCATPLOT_FRAC" ) ;   /* 15 Feb 2005 */
    if( dsq <= 0.0 || dsq >= 0.01 ){
