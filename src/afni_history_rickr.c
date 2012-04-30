@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, APR, 2012, RCR, "afni_restproc.py", MAJOR, TYPE_NEW_PROG,
+   "this program is by Rayus Kuplicki, please contact him for information",
+   NULL
+ } ,
+
  { 27, APR, 2012, RCR, "3dmask_tool", MAJOR, TYPE_NEW_PROG,
    "a program to manipulate mask datasets",
    NULL
