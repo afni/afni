@@ -465,29 +465,29 @@ double qginv( double p )
 
    dp = (p <= 0.5) ? (p) : (1.0-p) ;   /* make between 0 and 0.5 */
 
-   if( dp <= 6.12e-39 ){
-      dx = 13.0 ;                      /* 13 sigma has p < 10**(-38) */
+   if( dp <= 6.1172e-39 ){             /* cut off at 13 sigma */
+      dx = 13.0 ;
       return ( (p <= 0.5) ? (dx) : (-dx) ) ;
    }
 
 /**  Step 1:  use 26.2.23 from Abramowitz and Stegun **/
 
-      dt = sqrt( -2.0 * log(dp) ) ;
-      dx = dt
-           - ((.010328*dt + .802853)*dt + 2.515517)
-           /(((.001308*dt + .189269)*dt + 1.432788)*dt + 1.) ;
+   dt = sqrt( -2.0 * log(dp) ) ;
+   dx = dt
+        - ((.010328*dt + .802853)*dt + 2.515517)
+        /(((.001308*dt + .189269)*dt + 1.432788)*dt + 1.) ;
 
 /**  Step 2:  do 3 Newton steps to improve this
               (uses the math library erfc function) **/
 
-      for( newt=0 ; newt < 3 ; newt++ ){
-         dq  = 0.5 * erfc( dx / 1.414213562373095 ) - dp ;
-         ddq = exp( -0.5 * dx * dx ) / 2.506628274631000 ;
-         dx  = dx + dq / ddq ;
-      }
+   for( newt=0 ; newt < 3 ; newt++ ){
+      dq  = 0.5 * erfc( dx / 1.414213562373095 ) - dp ;
+      ddq = exp( -0.5 * dx * dx ) / 2.506628274631000 ;
+      dx  = dx + dq / ddq ;
+   }
 
-      if( dx > 13.0 ) dx = 13.0 ;
-      return ( (p <= 0.5) ? (dx) : (-dx) ) ;  /* return with correct sign */
+   if( dx > 13.0 ) dx = 13.0 ;
+   return ( (p <= 0.5) ? (dx) : (-dx) ) ;  /* return with correct sign */
 }
 
 /*---------------------------------------------------------------
