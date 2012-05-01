@@ -107,12 +107,47 @@ static void (*memplot_to_X11_substitute_function)() = NULL ;
 void memplot_to_X11_set_substitute( void (*msf)() )
 {
    memplot_to_X11_substitute_function = msf ;
+/* INFO_message("substitute set to %p",(void *)msf) ; */
    return ;
 }
 
 void * memplot_to_X11_get_substitute(void)
 {
    return (void *)memplot_to_X11_substitute_function ;
+}
+
+static int   nxdlist = 0 ;
+static XID   *xdlist = NULL ;
+static void **xdfunc = NULL ;
+
+static void addto_xdlist( XID xd , void *fn )
+{
+   int ii ;
+
+   if( fn == NULL ) return ;
+
+   for( ii=0 ; ii < nxdlist ; ii++ ){
+     if( xdlist[ii] == xd ){
+       xdfunc[ii] = fn ; return ;
+/* INFO_message("window ID %u reset substitute to %p",(unsigned int)xd,fn) ; */
+     }
+   }
+
+   xdlist = (XID *)  realloc(xdlist,sizeof(XID)    *(nxdlist+1)) ;
+   xdfunc = (void **)realloc(xdfunc,sizeof(void **)*(nxdlist+1)) ;
+   xdlist[nxdlist] = xd ;
+   xdfunc[nxdlist] = fn ;
+/* INFO_message("window ID %u gets substitute %p",(unsigned int)xd,fn) ; */
+   nxdlist++ ; return ;
+}
+
+static void * findin_xdlist( XID xd )
+{
+   int ii ; void *fp=NULL ;
+   for( ii=0 ; ii < nxdlist ; ii++ )
+     if( xdlist[ii] == xd ){ fp =xdfunc[ii] ; break ; }
+/* INFO_message("find window ID %u has substitute %p",(unsigned int)xd,fp) ; */
+   return fp ;
 }
 
 /*--------------------------------------------------------------------------
@@ -146,13 +181,14 @@ void memplot_to_X11_sef( Display *dpy , Window w , MEM_plotdata *mp ,
    int skip ;
    int w_width, w_height, w_depth ;  /* 12 Mar 2002 */
    XGCValues gcv ;
+   void *xdf ;
 
    int freee = (mask & MEMPLOT_FREE_ASPECT) != 0 ;  /* 16 Nov 2001 */
    int erase = (mask & MEMPLOT_ERASE      ) != 0 ;
 
    /*--- check for madness ---*/
 
-   if( dpy == NULL || w == (Window) 0 || mp == NULL ) return ;
+   if( dpy == NULL || w == (Window)0 || mp == NULL ) return ;
    if( start < 0 ) start = 0 ;
 
    nline = MEMPLOT_NLINE(mp) ;
@@ -160,8 +196,19 @@ void memplot_to_X11_sef( Display *dpy , Window w , MEM_plotdata *mp ,
 
    if( end <= start || end > nline ) end = nline ;
 
+   /* 30 Apr 2012 -- check if we call some other function */
+
    if( memplot_to_X11_substitute_function != NULL ){
+     addto_xdlist( (XID)w , (void *)memplot_to_X11_substitute_function ) ;
+/* ININFO_message("calling substitute") ; */
      memplot_to_X11_substitute_function(dpy,w,mp,start,end,mask) ;
+     return ;
+   }
+   xdf = findin_xdlist( (XID)w ) ;
+   if( xdf != NULL ){
+     void (*fp)() = (void (*)())xdf ;
+/* ININFO_message("re-calling substitute") ; */
+     fp(dpy,w,mp,start,end,mask) ;
      return ;
    }
 

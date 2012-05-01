@@ -261,10 +261,6 @@ void usage_1dplot(int detail)
      "or PNG file (which is not and never has been just a screen capture).\n"
      "There is no way to disable the new rendering method for image-file saves.\n"
      "\n"
-     "With the anti-aliasing method, lines tend to look thinner.  You might want\n"
-     "to use '-THICK' to compensate for that, depending on what look you desire\n"
-     "for your plot.\n"
-     "\n"
      "------\n"
      "LABELS\n"
      "------\n"
@@ -895,7 +891,7 @@ int main( int argc , char *argv[] )
 
      if( !AFNI_yesenv("AFNI_1DPLOT_RENDEROLD") ){  /* 30 Apr 2012 */
        memplot_to_X11_set_DC(dc) ;
-       X11_DO_NEW_PLOT ;                           /* cf. xim.h */
+       X11_SET_NEW_PLOT ;                           /* cf. xim.h */
        thik += 0.005f ;
      }
    }

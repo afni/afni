@@ -1674,6 +1674,9 @@ ENTRY("AFNI_clus_action_CB") ;
          SHOW_AFNI_READY; EXRETURN ;
        }
 
+/* INFO_message("clusterize does X11_SET_NEW_PLOT") ; */
+       X11_SET_NEW_PLOT ;  /* 30 Apr 2012 */
+
        nx = IMARR_SUBIM(imar,0)->nx ;  /* number of voxel time series */
        ibot = cwid->from_av->ival ; itop = cwid->to_av->ival ;
        if( ibot >= nx ) ibot = 0 ;
@@ -1700,7 +1703,11 @@ ENTRY("AFNI_clus_action_CB") ;
                if( htop < val ) htop = val ;
              }
            }
-           if( hbot >= htop ){ DESTROY_IMARR(imar); SHOW_AFNI_READY; EXRETURN; } /* bad */
+           if( hbot >= htop ){
+             DESTROY_IMARR(imar); SHOW_AFNI_READY;
+/* ININFO_message("clusterize does X11_SET_OLD_PLOT") ; */
+             X11_SET_OLD_PLOT; EXRETURN;            /* bad */
+           }
          }
          if( (int)hbot == hbot && (int)htop == htop ){
            nbin = htop - hbot ;
@@ -1773,7 +1780,9 @@ ENTRY("AFNI_clus_action_CB") ;
 
          }
 
-         free((void *)hbin); DESTROY_IMARR(imar); SHOW_AFNI_READY; EXRETURN;
+         free((void *)hbin); DESTROY_IMARR(imar);
+/* ININFO_message("clusterize does X11_SET_OLD_PLOT") ; */
+         SHOW_AFNI_READY; X11_SET_OLD_PLOT; EXRETURN;
 
        } /* done with histogram-ification */
 
@@ -1785,7 +1794,8 @@ ENTRY("AFNI_clus_action_CB") ;
                                 "** time series indexes **\n"
                                 "** for graphing that!  **\n " ,
                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
-         DESTROY_IMARR(imar) ; SHOW_AFNI_READY; EXRETURN ;
+/* ININFO_message("clusterize does X11_SET_OLD_PLOT") ; */
+         DESTROY_IMARR(imar) ; SHOW_AFNI_READY; X11_SET_OLD_PLOT; EXRETURN ;
        }
 
        /*--- extract single vector for display or save ---*/
@@ -1930,7 +1940,8 @@ ENTRY("AFNI_clus_action_CB") ;
          if( im != IMARR_SUBIM(imar,0) ) mri_free(im) ;
          if( sim != NULL ) mri_free(sim) ;
        }
-       DESTROY_IMARR(imar) ; SHOW_AFNI_READY; EXRETURN ;
+/* ININFO_message("clusterize does X11_SET_OLD_PLOT") ; */
+       DESTROY_IMARR(imar) ; SHOW_AFNI_READY; X11_SET_OLD_PLOT; EXRETURN ;
 
      /*--------- flash the voxels for this cluster ---------*/
 
