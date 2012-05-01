@@ -54,11 +54,19 @@ double student_t2z( double tt , double dof )
    xx = dof/(dof + tt*tt) ;
    pp = incbeta( xx , 0.5*dof , 0.5 , bb ) ;
 
+#if 1
+   if( tt > 0.0 ){
+     xx = qginv(0.5*pp) ;
+   } else {
+     xx = -qginv(0.5*pp) ;
+   }
+   return xx ;
+#else
    if( tt > 0.0 ) pp = 1.0 - 0.5 * pp ;
    else           pp = 0.5 * pp ;
-
    xx = qginv(pp) ;
    return -xx ;
+#endif
 }
 
 /*---------------------------------------------------------------------
