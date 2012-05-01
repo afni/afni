@@ -26,8 +26,12 @@
 
    extern void init_XDBE(Display *) ;
    extern Window getwin_from_XDBE( Display * , Drawable ) ;
+   extern int  get_XDBE_suspension(int) ; /* 01 May 2012 */
+   extern void set_XDBE_suspension(int) ;
 #else
 #  define getwin_from_XDBE(dd,ww) (ww)
+#  define get_XDBE_suspension(qq) (1)
+#  define set_XDBE_suspension(qq) /*nada*/
 #endif
 
 #undef  MAX

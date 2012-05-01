@@ -327,7 +327,7 @@ void pm_expose_CB( Widget w , XtPointer cd , XtPointer cb )
    }
 
 #ifdef HAVE_XDBE
-   if( use_xdbe > 0 && mpcb->have_xdbe == 0 ){
+   if( use_xdbe > 0 && mpcb->have_xdbe == 0 && get_XDBE_suspension(0)==0 ){
       XdbeSwapInfo info_xdbe ;
 
       mpcb->buf_xdbe  = XdbeAllocateBackBufferName( dpy,win,XdbeBackground );
@@ -647,4 +647,3 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    mpcb->valid = 1 ; mpcb->userdata = NULL ; mpcb->drawing = drawing ;
    return mpcb ;
 }
-

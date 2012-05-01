@@ -202,6 +202,8 @@ void memplot_to_X11_sef( Display *dpy , Window w , MEM_plotdata *mp ,
      addto_xdlist( (XID)w , (void *)memplot_to_X11_substitute_function ) ;
 /* ININFO_message("calling substitute") ; */
      memplot_to_X11_substitute_function(dpy,w,mp,start,end,mask) ;
+     /* XSync(dpy,False) ; */
+     memplot_to_X11_substitute_function = NULL ;
      return ;
    }
    xdf = findin_xdlist( (XID)w ) ;
@@ -708,4 +710,9 @@ Window getwin_from_XDBE( Display * dpy , Drawable w )
    if( bw == (Window) 0 ) bw = w ;
    return bw ;
 }
+
+static int XDBE_suspended = 0 ;
+
+int  get_XDBE_suspension(int i){ return XDBE_suspended ; }
+void set_XDBE_suspension(int i){ XDBE_suspended = i ; return ; }
 #endif  /* HAVE_XDBE */
