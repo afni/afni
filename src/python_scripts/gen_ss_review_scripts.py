@@ -59,6 +59,10 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
            Note that if out_prefix is a directory, it will need a trailing
            '/', since it is a file name prefix.
 
+       2c. Simplified.  Use -prefix instead of -cvar out_prefix.
+
+                gen_ss_review_scripts.py -prefix test.
+
 ------------------------------------------
 
    required files/datasets (these must exist in the current directory):
@@ -96,6 +100,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
    other options
 
       -exit0                    : regardless of errors, exit with status 0
+      -prefix OUT_PREFIX        : set prefix for script names
       -verb LEVEL               : set the verbosity level
 
    options for setting main variables
@@ -487,9 +492,10 @@ g_history = """
         - use '3dinfo -ad3' for voxel resolution (so no negatives)
         - use 3 decimal places for TR censor fractions
    0.18 Apr 12, 2012: replace enumerate(), for backport to python 2.2
+   0.19 May 01, 2012: added -prefix option; added censoring to 1dplot commands
 """
 
-g_version = "gen_ss_review_scripts.py version 0.18, April 12, 2012"
+g_version = "gen_ss_review_scripts.py version 0.19, May 1, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -553,6 +559,8 @@ class MyInterface:
       vopts.add_opt('-cvar', -2, [],
                     helpstr='set given control variable to given value(s)')
       vopts.add_opt('-exit0', 0, [], helpstr='force return of 0 on exit')
+      vopts.add_opt('-prefix', 1, [],
+                    helpstr='short for -cvar out_prefix')
       vopts.add_opt('-script_basic', 1, [],
                     helpstr='specify basic overview script name')
       vopts.add_opt('-script_driver', 1, [],
@@ -560,6 +568,8 @@ class MyInterface:
       vopts.add_opt('-uvar', -2, [],
                     helpstr='set given user variable to given value(s)')
       vopts.add_opt('-verb', 1, [], helpstr='set the verbose level (def=1)')
+
+      vopts.sort()
 
       return vopts
 
@@ -671,6 +681,13 @@ class MyInterface:
                         as_type=1, oname='cvars', verb=C.verb) < 0:
                errs += 1
                continue
+
+         elif opt.name == '-prefix':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err:
+               errs +=1
+               continue
+            C.out_prefix = val
 
          elif opt.name == '-script_basic':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -1519,8 +1536,8 @@ class MyInterface:
       else:
          cset = copts[1]
          if not os.path.isfile(cset):
-            print '** have censoring in X-matrix, but no censor file'
-            return 1
+            print '** warning: have censoring in X-matrix, but no censor file'
+            return 0
          self.uvars.censor_dset = cset
          self.dsets.censor_dset = BASE.afni_name(cset)
          if self.cvars.verb > 1:
@@ -2056,11 +2073,19 @@ class MyInterface:
          errs += 1
       if errs: return 1
 
+      # maybe include -censor option
+      cstr = ''
+      if self.uvars.is_not_empty('censor_dset'):
+         cfile = self.uvars.val('censor_dset')
+         if os.path.isfile(cfile):
+            cstr = '-censor_RGB green -censor %s ' % cfile
+
+
       txt = 'echo ' + UTIL.section_divider('outliers and motion',
                                            maxlen=60, hchar='-') + '\n\n'
 
       txt += '1dplot -wintitle "motion, outliers" -ynames Mot OFrac \\\n' \
-             '       -sepscl %s %s &\n' % (efile, ofile)
+             '       -sepscl %s%s %s &\n' % (cstr, efile, ofile)
 
       # get total TRs from any uncensored X-matrix
       if self.dsets.is_not_empty('xmat_ad_nocen'):
@@ -2070,8 +2095,8 @@ class MyInterface:
       mlimit = self.uvars.mot_limit
       olimit = self.uvars.out_limit
 
-      txt += '1dplot -one %s "1D: %d@%g" &\n' % (ofile, nt, olimit)
-      txt += '1dplot -one %s "1D: %d@%g" &\n' % (efile, nt, mlimit)
+      txt += '1dplot -one %s%s "1D: %d@%g" &\n' % (cstr, ofile, nt, olimit)
+      txt += '1dplot -one %s%s "1D: %d@%g" &\n' % (cstr, efile, nt, mlimit)
 
       txt += '\n'                                                       \
              'prompt_user -pause "                              \\\n'   \
@@ -2086,9 +2111,11 @@ class MyInterface:
 
       self.commands_drive += \
          '1dplot -wintitle "motion, outliers" -ynames OFrac Mot \\\n' \
-         '       -sepscl %s %s &\n' % (efile, ofile)
-      self.commands_drive += '1dplot -one %s "1D: %d@%g" &\n'%(ofile,nt,olimit)
-      self.commands_drive += '1dplot -one %s "1D: %d@%g" &\n'%(efile,nt,mlimit)
+         '       -sepscl %s%s %s &\n' % (cstr, efile, ofile)
+      self.commands_drive += '1dplot -one %s%s "1D: %d@%g" &\n' \
+                             % (cstr, ofile, nt, olimit)
+      self.commands_drive += '1dplot -one %s%s "1D: %d@%g" &\n' \
+                             % (cstr, efile, nt, mlimit)
 
       self.text_drive += txt
 
