@@ -199,7 +199,11 @@ examples (very basic for now):
           1d_tool.py -infile data.txt -looks_like_global_times \\
                      -set_run_lengths 64 64 64 -set_tr 2
 
-       e. perform all tests, reporting all errors
+       e. report modulation type (amplitude and/or duration)
+
+          1d_tool.py -infile data.txt -looks_like_AM 
+
+       f. perform all tests, reporting all errors
 
           1d_tool.py -infile data.txt -looks_like_test_all \\
                      -set_run_lengths 64 64 64 -set_tr 2
@@ -324,6 +328,7 @@ general options:
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
    -demean                      : demean each run (new mean of each run = 0.0)
    -derivative                  : take the temporal derivative of each vector
+                                  (done as backward difference)
    -extreme_mask MIN MAX        : make mask of extreme values
 
         Convert to a 0/1 mask, where 1 means the given value is extreme
@@ -360,6 +365,15 @@ general options:
             - must be rectangular (same number of columns per row)
             - duration must match number of rows (if run lengths are given)
 
+   -looks_like_AM               : does the file have modulators?
+
+        Does the file seem to be in local or global times format, and
+        do the times have modulators?
+
+            - amplitude modulators should use '*' format (e.g. 127.3*5.1)
+            - duration modulators should use trailing ':' format (12*5.1:3.4)
+            - number of amplitude modulators should be constant
+
    -looks_like_local_times      : is the file in local stim_times format
 
         Does the input data file seem to be in the -stim_times format used by
@@ -384,7 +398,7 @@ general options:
 
    -looks_like_test_all         : run all -looks_like tests
 
-        Applies all "looks like" test options: -looks_like_1D,
+        Applies all "looks like" test options: -looks_like_1D, -looks_like_AM,
         -looks_like_local_times and -looks_like_global_times.
 
    -overwrite                   : allow overwriting of any output dataset
@@ -534,9 +548,10 @@ g_history = """
         - added -moderate_mask
         - fixed help (-extreme_mask was described backwards)
         - as noted by R Kuplicki
+   1.04 May  1, 2012 - added -look_like_AM
 """
 
-g_version = "1d_tool.py version 1.03, February 24, 2012"
+g_version = "1d_tool.py version 1.04, May 1, 2012"
 
 
 class A1DInterface:
@@ -596,7 +611,7 @@ class A1DInterface:
       self.write_file      = None       # output filename
 
       # test variables
-      self.looks_like      = 0          # 1,2,4,8 = TEST,1D,local,global
+      self.looks_like      = 0          # 1,2,4,8,16 = TEST,1D,local,global,AM
 
       # general variables
       self.extreme_min     = 0          # minimum for extreme limit
@@ -716,6 +731,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-looks_like_1D', 0, [], 
                       helpstr='show whether file has 1D format')
+
+      self.valid_opts.add_opt('-looks_like_AM', 0, [], 
+                      helpstr='show whether file has amp/dur modulators')
 
       self.valid_opts.add_opt('-looks_like_local_times', 0, [], 
                       helpstr='show whether file has local stim_times format')
@@ -990,6 +1008,8 @@ class A1DInterface:
             self.looks_like |= 4
          elif opt.name == '-looks_like_global_times':
             self.looks_like |= 8
+         elif opt.name == '-looks_like_AM':
+            self.looks_like |= 16
          elif opt.name == '-looks_like_test_all':
             self.looks_like = -1
 
@@ -1106,6 +1126,8 @@ class A1DInterface:
       if self.looks_like & 8:
          self.adata.looks_like_global_times(run_lens=self.set_run_lengths,
                                             tr=self.set_tr, verb=verb)
+
+      if self.looks_like & 16: self.adata.show_married_info()
 
       return 0
 

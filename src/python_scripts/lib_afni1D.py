@@ -1819,12 +1819,53 @@ class AfniData(object):
 
       return 0
 
-   def married_type_string(self, mtype):
-      if   mtype == 0: return 'None'
-      elif mtype == 1: return 'Amp Mod'
-      elif mtype == 2: return 'Dur Mod'
-      elif mtype == 3: return 'Amp/Dur Mod'
-      else:            return 'Unknown'
+   def show_married_info(self):
+      print '-- modulation type: %s' % self.married_info_string()
+
+   def married_info_string(self):
+      if   self.mtype == MTYPE_NONE: return 'not a married format'
+
+      namp = self.num_amplitudes()
+      adur = self.ave_dur_modulation()
+
+      if self.mtype == MTYPE_AMP:
+         return 'amplitude modulation (%d modulators)' % namp
+
+      if self.mtype == MTYPE_DUR:
+         return 'duration modulation (average duration %g)' % adur
+
+      if self.mtype == MTYPE_AMP|MTYPE_DUR:
+         return 'amp and dur modulation (%d amp mods, ave dur %g)'%(namp, adur)
+
+      return '** invalid modulation type %d' % self.mtype
+
+   def num_amplitudes(self):
+      if not self.mtype & MTYPE_AMP: return 0
+      if not self.mdata: return 0
+      for row in self.mdata:
+         if len(row) == 0: continue
+         return len(row[0][1])  # have amplitudes, return the length
+      return 0 # no valid rows found
+
+   def ave_dur_modulation(self):
+      if not self.mtype & MTYPE_DUR: return 0
+      if not self.mdata: return 0
+      sum, count = 0.0, 0
+      for row in self.mdata:
+         if len(row) == 0: continue
+         count += len(row)
+         sum += UTIL.loc_sum([entry[2] for entry in row])
+      if count == 0: return 0
+      return sum*1.0/count # be wary of integers
+
+   def married_type_string(self, mtype=None):
+      if mtype == None: mtype = self.mtype
+
+      if   mtype == MTYPE_NONE:            return 'None'
+      elif mtype == MTYPE_AMP:             return 'Amp Mod'
+      elif mtype == MTYPE_DUR:             return 'Dur Mod'
+      elif mtype == MTYPE_AMP | MTYPE_DUR: return 'Amp/Dur Mod'
+      else:                                return 'Unknown'
 
    def randomize_trs(self, seed=0):
       """reorder the matrix rows randomly"""
