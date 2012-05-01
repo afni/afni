@@ -5173,7 +5173,7 @@ void RT_finish_dataset( RT_input * rtin )
          yar[3][ii] = rtin->reg_phi[ iar[ii] ] ;
       }
 
-      X11_SET_NEW_PLOT ;         /* 01 May 2012 - RWCox */
+      X11_SET_NEW_PLOT ;          /* 01 May 2012 - RWCox */
       plot_ts_lab( THE_DISPLAY ,
                    nn , yar[0] , -3 , yar+1 ,
                    "time" , NULL , DSET_FILECODE(rtin->dset[0]) , nar , NULL ) ;
@@ -5217,7 +5217,7 @@ void RT_finish_dataset( RT_input * rtin )
          yar[1] = rtin->reg_eval;
       }
 
-      X11_SET_NEW_PLOT ;
+      X11_SET_NEW_PLOT ;         /* 01 May 2012 - RWCox */
       plot_ts_lab( THE_DISPLAY ,
                    nn , yar[0] , ycount , yar+1 ,
                    "reps" , NULL , ttl , nar , NULL ) ;
