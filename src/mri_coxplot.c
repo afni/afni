@@ -72,15 +72,15 @@ ENTRY("memplot_to_RGB_sef") ;
    if( box_xbot >= box_xtop || box_ybot >= box_ytop ){
 
       xscal = im->nx / mp->aspect ; /* aspect = x-axis objective size */
-      yscal = im->ny / 1.0 ;        /* 1.0    = y-axis objective size */
-      xoff  = yoff = 0.499 ;
+      yscal = im->ny / 1.0f ;       /* 1.0    = y-axis objective size */
+      xoff  = yoff = 0.499f ;
 
    } else {  /* scale to a given sub-box in the window */
 
       xscal = box_xtop - box_xbot ;
       yscal = box_ytop - box_ybot ;
-      xoff  = box_xbot + 0.499    ;
-      yoff  = box_ybot + 0.499    ;
+      xoff  = box_xbot + 0.499f   ;
+      yoff  = box_ybot + 0.499f   ;
    }
 
    if( !freee && !do_freee ){              /* no aspect freedom ==> */
@@ -89,12 +89,12 @@ ENTRY("memplot_to_RGB_sef") ;
    }
    scal = sqrt(fabs(xscal*yscal)) ;
 
-   old_color = -1.0 ;            /* these don't occur naturally */
+   old_color = -1.0f ;            /* these don't occur naturally */
    old_thick = -THCODE_INVALID ;
 
    /*--- loop over lines, scale and plot ---*/
 
-   mri_draw_opacity( 1.0 ) ;
+   mri_draw_opacity( 1.0f ) ;
 
    for( ii=start ; ii < end ; ii++ ){
 
@@ -180,8 +180,15 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
         if( do_thick && sthick >= 1.0f && (x1 != x2 || y1 != y2) ){  /* 06 Dec 2007 */
           float da=a2-a1 , db=b2-b1 , dl=new_thick/sqrtf(da*da+db*db) ;
           float c1,c2 , d1,d2 ;
-          int jj , ss=(int)(2.5f*sthick) ;
+          int jj , ss=(int)(3.5f*sthick) ;
           dl /= (2*ss) ; da *= dl ; db *= dl ; ss = MAX(ss,2) ;
+#if 0
+          if( sthick >= 2.0f ){                    /* 01 May 2012: end caps */
+            int rad = (int)(1.0f*sthick+0.001f) ;
+            mri_drawcircle( im , x1,y1 , rad, rrr,ggg,bbb , 1 ) ;
+            mri_drawcircle( im , x2,y2 , rad, rrr,ggg,bbb , 1 ) ;
+          }
+#endif
           for( jj=-ss ; jj <= ss ; jj++ ){
             if( jj == 0 ) continue ;
             c1 = a1 + jj*db ; c2 = a2 + jj*db ;
