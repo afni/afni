@@ -465,7 +465,7 @@ double qginv( double p )
 
    dp = (p <= 0.5) ? (p) : (1.0-p) ;   /* make between 0 and 0.5 */
 
-   if( dp <= 1.e-37 ){
+   if( dp <= 6.12e-39 ){
       dx = 13.0 ;                      /* 13 sigma has p < 10**(-38) */
       return ( (p <= 0.5) ? (dx) : (-dx) ) ;
    }
