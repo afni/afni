@@ -863,13 +863,13 @@ ENTRY("ISQ_snapfile") ;
 
 
 /*-----------------------------------------------------------------------*/
-static MCW_DC       *old_dc  = NULL ;
-static Display      *old_dpy = NULL ;
-static Window        old_w   = (Window)0 ;
-static GC            old_GC ;
-static XGCValues     old_gcv ;
+static MCW_DC       *cur_dc  = NULL ;
+static Display      *cur_dpy = NULL ;
+static Window        cur_w   = (Window)0 ;
+static GC            cur_GC ;
+static XGCValues     cur_gcv ;
 
-void memplot_to_X11_set_DC( MCW_DC *dc ){ old_dc = dc ; return ; }
+void memplot_to_X11_set_DC( MCW_DC *dc ){ cur_dc = dc ; return ; }
 
 void memplot_to_X11_funfunfun( Display *dpy , Window w , MEM_plotdata *mp ,
                                int start , int end , int mask )
@@ -878,15 +878,16 @@ void memplot_to_X11_funfunfun( Display *dpy , Window w , MEM_plotdata *mp ,
    int nx=0 , ny=0 , did_dup=0 ;
    XImage *xim ;
 
-   if( old_dpy != dpy ){
-     old_gcv.function   = GXcopy ;
-     old_gcv.fill_style = FillSolid ;
-     old_GC             = XCreateGC( dpy , w , GCFunction|GCFillStyle , &old_gcv ) ;
-     old_dpy            = dpy ;
-     old_w              = getwin_from_XDBE(dpy,w) ;
+   if( cur_dpy != dpy ){
+     cur_gcv.function   = GXcopy ;
+     cur_gcv.fill_style = FillSolid ;
+     cur_GC             = XCreateGC( dpy , w , GCFunction|GCFillStyle , &cur_gcv ) ;
+     cur_dpy            = dpy ;
    }
+   cur_w = getwin_from_XDBE(dpy,w) ;
 
-   drawable_geom( dpy,old_w , &nx,&ny,NULL ) ;
+   drawable_geom( dpy,cur_w , &nx,&ny,NULL ) ;
+/* INFO_message("memplot_to_X11_funfunfun: nx=%d ny=%d",nx,ny) ; */
    if( nx < 19 || ny < 19 ) return ;
 
    if( nx < 2048 && ny < 2048 ){ nx *= 2; ny *= 2; did_dup = 1; }
@@ -901,8 +902,8 @@ void memplot_to_X11_funfunfun( Display *dpy , Window w , MEM_plotdata *mp ,
      MRI_IMAGE *qim = mri_downsize_by2(im) ; mri_free(im) ; im = qim ;
    }
 
-   xim = rgb_to_XImage( old_dc , im ) ; mri_free(im) ;
-   XPutImage( dpy , w , old_GC , xim , 0,0,0,0 , xim->width , xim->height ) ;
+   xim = rgb_to_XImage( cur_dc , im ) ; mri_free(im) ;
+   XPutImage( dpy , w , cur_GC , xim , 0,0,0,0 , xim->width , xim->height ) ;
    MCW_kill_XImage(xim) ;
    return ;
 }
