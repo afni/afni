@@ -64,6 +64,10 @@ class OptionList:
         if setpar: com.parlist = com.deflist
         self.olist.append(com)
 
+    def sort(self):
+        """sort command option list by name"""
+        self.olist.sort(cmp=compare_comopts)
+
     def show(self, mesg = '', verb = 0):
         if verb or mesg != '': print "%sOptionList: %s (len %d)" % \
                                       (mesg, self.label, len(self.olist))
@@ -393,6 +397,14 @@ def opt_is_val(opt, optval):
     except: pass
 
     return rv
+
+def compare_comopts(c1, c2):
+    """comparison function for use in sort()
+     return -1, 0, 1 for c1 compared with c2
+    """
+    if c1.name < c2.name: return -1
+    if c1.name > c2.name: return  1
+    return 0
 
 def test_comopts():
 
