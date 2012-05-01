@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 30 , APR , 2012 , RWC , "1dplot" , MICRO , TYPE_GENERAL ,
+  { 1 , MAY , 2012 , RWC , "mri_stats" , MICRO , TYPE_BUG_FIX ,
+   "Fixed student_t2z problem with very tiny p values (roundoff error)" ,
+   NULL } ,
+
+ { 30 , APR , 2012 , RWC , "1dplot" , MICRO , TYPE_GENERAL ,
    "Add anti-aliasing rendering to X11 drawing as well." ,
    "Set AFNI_1DPLOT_RENDEROLD to YES to turn this feature off (but why?)." } ,
 
