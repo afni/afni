@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 1, MAY, 2012, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "allow -looks_like_AM",
+   NULL
+ } ,
+
  { 1, MAY, 2012, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
    "allow -ordered_stimuli and -max_consec, together",
    "Requested by Liat."
