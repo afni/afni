@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 1, MAY, 2012, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "allow -ordered_stimuli and -max_consec, together",
+   "Requested by Liat."
+ } ,
+
  { 30, APR, 2012, RCR, "afni_restproc.py", MAJOR, TYPE_NEW_PROG,
    "this program is by Rayus Kuplicki, please contact him for information",
    NULL
