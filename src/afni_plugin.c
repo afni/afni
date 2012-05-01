@@ -4998,6 +4998,7 @@ ENTRY("PLUTO_histoplot") ;
    for( jj=0 ; jj < njist ; jj++ )
      yzar[jj+1][0] = yzar[jj+1][2*nbin+1] = 0.0f ;
 
+   X11_SET_NEW_PLOT ;
    plot_ts_lab( GLOBAL_library.dc->display ,
                 nx , xar , ny , yzar ,
                 xlab,ylab,tlab , NULL , NULL ) ;
@@ -5223,6 +5224,7 @@ ENTRY("PLUTO_scatterplot") ;
 
    mp = get_active_memplot() ;
 
+   X11_SET_NEW_PLOT ;
    (void) memplot_to_topshell( GLOBAL_library.dc->display , mp , NULL ) ;
 
    EXRETURN ;

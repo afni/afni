@@ -5,6 +5,7 @@
 ******************************************************************************/
 
 #include "bbox.h"
+#include "xim.h"
 
 static Widget wtemp ;
 
@@ -4288,6 +4289,7 @@ printf("MCW_choose_CB: plotting selected timeseries\n") ;
                      sprintf(nar[jj],"column %d",jj+1) ;
                   }
 #endif
+                  X11_SET_NEW_PLOT ;
                   plot_ts_lab( XtDisplay(w) ,
                                fim->nx , NULL , fim->ny , yar ,
                                "index" , NULL , fim->name , nar , NULL ) ;
