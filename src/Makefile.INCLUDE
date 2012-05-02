@@ -91,7 +91,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
            1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch 1dBport   \
-           3dNormalityTest 3dmask_tool 3dTrackID                                 \
+           3dNormalityTest 3dmask_tool                                          \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -201,7 +201,7 @@ totality:clean all plugins install install_plugins install_lib cleann
 
 ### Make everything, install it too, but don't cleanup
 
-vastness:all plugins install install_plugins install_lib
+vastness:all plugins install ptaylor_install install_plugins install_lib
 
 ### Make many things
 
@@ -2838,12 +2838,16 @@ libsegtools.a: avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
 #############
 #PTAYLOR directory
 
-3dTrackID: ptaylor_all
-
 ptaylor_all: 
 	( cd ptaylor ;	\
 	./@MakeLocalMake	;\
 	$(MAKE) afni_all  ;	\
+	cd ../	;		)
+
+ptaylor_install:
+	( cd ptaylor ;	\
+	./@MakeLocalMake	;\
+	$(MAKE) afni_install  ;	\
 	cd ../	;		)
 
 libtracktools.a:
