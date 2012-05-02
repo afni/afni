@@ -406,7 +406,7 @@ ENTRY("AFNI_thresh_lock_carryout") ;
 
    /* get true threshold of this controller => all others get this value, too*/
 
-   thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+   thresh = get_3Dview_func_thresh(im3d,1) ;
 
    /* get p-value corresponding, if that is what's being locked */
 
@@ -575,7 +575,7 @@ ENTRY("AFNI_thrdrag_lock_carryout") ;
    busy = 1 ;  /* don't let this routine be called recursively */
 
    ival   = rint(im3d->vinfo->func_threshold/THR_factor) ;
-   thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+   thresh = get_3Dview_func_thresh(im3d,1) ;
    stop   = (int)( rint( pow(10.0,THR_top_expon) ) - 1.0 ) ;
 
    if( dopval ){

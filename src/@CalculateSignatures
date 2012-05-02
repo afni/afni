@@ -32,7 +32,7 @@ LOCALSTATS:
    if ($inmask != '') set mopt = "-mask $inmask"
    set inpref = `@GetAfniPrefix $involume | sed 's/.nii$//g'` 
    if ( ! -f $odir/${inpref}+orig.HEAD) then
-      3dcopy "${involume}" $odir/${inpref}+orig
+      3dcalc -a "${involume}" -expr 'a' -datum short -prefix $odir/${inpref}+orig
    endif
    foreach neigh ($localvector)
       set oneigh = `printf '%02d' $neigh`
@@ -75,9 +75,7 @@ REGROUP:
          end
          if ($prepend_anat && $AddedAnat == 0 && \
              ($lstat =~ med* || $lstat =~ mean*)) then
-            3dcalc -datum short -a $stdir/${involume} \
-                        -prefix $stdir/short_${involume} -expr 'a'
-            set AddAnatOpt = "$stdir/short_${involume}"
+            set AddAnatOpt = "${inpref}+orig"
          else
             set AddAnatOpt = ''
          endif
@@ -89,7 +87,6 @@ REGROUP:
             else 
                3drefit -sublabel 0 MEAN.00_mm ${inpref}.us.${lstat}+orig
             endif
-            \rm -f $stdir/short_${involume}*
             set AddedAnat = 1
          endif
          unset noglob
@@ -257,16 +254,18 @@ SCALE:
       end
       if ( ! -f ${inpref}.sc${Scale}.${sigset}+orig.HEAD) then
          3dTcat -prefix ${inpref}.sc${Scale}.${sigset} $ttal
-         if ("$extrascl" == '-feat_znorm') then
-            3drename    ${inpref}.sc${Scale}.${sigset}+orig   \
-                        ${inpref}.sc${Scale}.${sigset}__ddd
-            @ScaleVolume   -feat_znorm    \
-                           -prefix  ${inpref}.sc${Scale}.${sigset} \
-                           -input ${inpref}.sc${Scale}.${sigset}__ddd+orig
-            \rm -f ${inpref}.sc${Scale}.${sigset}__ddd+orig*
-         endif
       else
          echo "Reusing ${inpref}.sc${Scale}.${sigset}"
+      endif
+   endif
+   
+   if ("$extrascl" == '-feat_znorm') then
+      if ( ! -f ${inpref}.sc${Scale}z.${sigset}+orig.HEAD) then
+         @ScaleVolume   -feat_znorm    \
+                        -prefix  ${inpref}.sc${Scale}z.${sigset} \
+                        -input ${inpref}.sc${Scale}.${sigset}+orig
+      else
+         echo "Reusing ${inpref}.sc${Scale}z.${sigset}+orig.HEAD"
       endif
    endif
    

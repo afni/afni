@@ -91,6 +91,7 @@ static char *AFNI_xhall_bbox_label[1] = {"X+"} ;
 static char *AFNI_marks_edits_bbox_label[1] = { "Allow edits" } ;
 
 static char *AFNI_range_bbox_label[1] = { "autoRange:xxxxxxxxx" } ;
+static char *AFNI_perc_bbox_label[1] = { "%" } ;
 
 static char *AFNI_inten_bbox_label[1] = { "Pos?" } ;
 
@@ -3931,12 +3932,21 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->range_label , "Ranges of dataset values" ) ;
 
    /*--- toggle button to control automatic range scaling for pbar ---*/
+   /*--- ZSS: Add percentile button, put both in horiz rowcol Apr. 27 2012 ---*/
+   
+   hrc = XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->range_rowcol ,
+            XmNorientation , XmHORIZONTAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
 
    im3d->vinfo->autorange_label =
       XmStringCreateLtoR( AFNI_range_bbox_label[0] , XmFONTLIST_DEFAULT_TAG ) ;
 
    func->range_bbox =
-      new_MCW_bbox( func->range_rowcol ,
+      new_MCW_bbox( hrc ,
                     1 , AFNI_range_bbox_label ,
                     MCW_BB_check ,
                     MCW_BB_noframe ,
@@ -3956,9 +3966,33 @@ STATUS("making func->rowcol") ;
                        ) ;
    MCW_reghint_children( func->range_bbox->wrowcol ,
                          "Automatic or user-controlled color range scaling" ) ;
-
    ADDTO_KILL(im3d->kl,func->range_bbox) ;
 
+   func->perc_bbox =
+      new_MCW_bbox( hrc ,
+                    1 , AFNI_perc_bbox_label, 
+                    MCW_BB_check ,
+                    MCW_BB_noframe ,
+                    AFNI_perc_bbox_CB , (XtPointer)im3d ) ;
+
+   func->perc_bbox->parent = (XtPointer) im3d ;
+
+   MCW_set_bbox( func->perc_bbox ,
+                 (im3d->cont_perc_thr) ? (1) : (0) ) ;
+
+   MCW_reghelp_children( func->perc_bbox->wrowcol ,
+                         "This button determines whether the slider sets\n"
+                         "the threshold based on percentile, rather than\n"
+                         "value. The slider power is ignored in percentile\n"
+                         "mode.\n"
+                       ) ;
+   MCW_reghint_children( func->perc_bbox->wrowcol ,
+                         "Percentile Thresholding" ) ;
+
+   
+   ADDTO_KILL(im3d->kl,func->perc_bbox) ;
+   XtManageChild( hrc ) ;
+   
    /*--- 30 Mar 2001: put the next 2 things in a horizontal rowcol ---*/
 
    hrc = XtVaCreateWidget(
@@ -5518,7 +5552,8 @@ ENTRY("new_AFNI_controller") ;
    im3d->opened = 0 ;          /* not yet opened up */
    im3d->dc     = dc ;
    im3d->vinfo  = myXtNew( AFNI_view_info ); ADDTO_KILL(im3d->kl,im3d->vinfo);
-
+      flush_vinfo_sort(im3d->vinfo, NULL);     /* ZSS April 26 2012 */
+      
    im3d->brand_new = 1 ; /* 07 Dec 2001 */
 
    /* 27 Jan 2004: mark if this currently looking at dummy dataset */
@@ -5671,6 +5706,7 @@ ENTRY("new_AFNI_controller") ;
    im3d->cont_autorange = 1;
    im3d->cont_range_fval = 1.0;
    im3d->first_integral = -1;
+   im3d->cont_perc_thr = 0; /* No percentile thresholding. ZSS: April 27 2012 */
    RETURN(im3d) ;
 }
 
@@ -6840,6 +6876,7 @@ int AFNI_set_func_range_nval(XtPointer *vp_im3d, float rval)
      im3d->cont_autorange = im3d->vinfo->use_autorange;
      im3d->cont_range_fval = im3d->vwid->func->range_av->fval;
      im3d->cont_pos_only = MCW_val_bbox( im3d->vwid->func->inten_bbox) ;
+     im3d->cont_perc_thr = MCW_val_bbox( im3d->vwid->func->perc_bbox) ;
      im3d->cont_pbar_index = im3d->vwid->func->inten_pbar->bigmap_index;
 
      im3d->first_integral = 0;
@@ -6885,6 +6922,11 @@ int AFNI_reset_func_range_cont(XtPointer *vp_im3d)
    /* reset positive only */
    MCW_set_bbox( im3d->vwid->func->inten_bbox , im3d->cont_pos_only ) ;
    AFNI_inten_bbox_CB( im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ,
+                       (XtPointer)im3d , NULL ) ;
+
+   /* reset perc only */
+   MCW_set_bbox( im3d->vwid->func->perc_bbox , im3d->cont_perc_thr ) ;
+   AFNI_inten_bbox_CB( im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] ,
                        (XtPointer)im3d , NULL ) ;
 
    /* reset auto-range - redisplays if auto-ranging */
@@ -7084,4 +7126,115 @@ ENTRY("AFNI_sesslab_EV") ;
    }
 
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------
+  A set of functions to handle thresholding based on percentile of threshold 
+  sub-brick.
+-----------------------------------------------------------------------------*/
+void flush_vinfo_sort(AFNI_view_info *vinfo, char *sel) 
+{/* ZSS April 26 2012 */
+   if (vinfo) {
+      if (!sel || sel[0]=='T') {/* threshold sorting */
+         /* INFO_message("Flushing threshold sorting"); */
+         if (vinfo->th_sort) free(vinfo->th_sort); vinfo->th_sort=NULL;
+         vinfo->th_sortid[0]='\0';
+         vinfo->N_th_sort = 0;
+      }
+   }
+   return;
+}
+
+void flush_3Dview_sort(Three_D_View *im3d, char *sel) 
+{ /* ZSS April 26 2012 */
+   if (im3d && im3d->vinfo) flush_vinfo_sort(im3d->vinfo, sel);
+   return;
+}
+
+#define FillSortID(sss, im3d) { \
+   sprintf(sss,"%s_%d_%s",  \
+           im3d->vinfo->use_posfunc ? "++":"+-",  \
+           im3d->vinfo->thr_index, im3d->fim_now->idcode.str); \
+}
+
+float * get_3Dview_sort(Three_D_View *im3d, char *sel) 
+{ /* ZSS April 26 2012 */
+   char cur_dset_id[256]={""};
+   int ii, nn;
+   
+   if (!im3d || !im3d->fim_now || !im3d->vinfo || im3d->vinfo->thr_index < 0) {
+      return(NULL);
+   }
+   
+   if (!sel || sel[0] == 'T') { /* threshold sorting */
+      FillSortID(cur_dset_id, im3d);
+      if (  !im3d->vinfo->th_sort || 
+            strcmp(cur_dset_id, im3d->vinfo->th_sortid)) {
+         flush_3Dview_sort(im3d, sel); /* cleanup if needed */
+         DSET_load(im3d->fim_now);
+         if (!(im3d->vinfo->th_sort = 
+                  THD_extract_to_float(im3d->vinfo->thr_index,
+                                                     im3d->fim_now))) {
+            return(NULL); /* failed */
+         }
+         /* get rid of zeros */
+         nn = DSET_NVOX(im3d->fim_now);
+         if (im3d->vinfo->use_posfunc) {
+            ii=0; nn = 0;
+            while(ii<DSET_NVOX(im3d->fim_now)) {
+               if (im3d->vinfo->th_sort[ii] > 0.0f) { 
+                  im3d->vinfo->th_sort[nn] = im3d->vinfo->th_sort[ii]; ++nn; 
+               }
+               ++ii;
+            }
+         } else {
+            ii=0; nn = 0;
+            while(ii<DSET_NVOX(im3d->fim_now)) {
+               if (im3d->vinfo->th_sort[ii] != 0.0f) { 
+                  im3d->vinfo->th_sort[nn] = im3d->vinfo->th_sort[ii]; ++nn; 
+               }
+               ++ii;
+            }
+         }
+         im3d->vinfo->N_th_sort = nn;
+         
+         qsort_float(im3d->vinfo->N_th_sort, im3d->vinfo->th_sort); 
+         FillSortID(im3d->vinfo->th_sortid, im3d);
+      } else { 
+         /* current one is OK, nothing to be done */
+      }   
+   
+      return(im3d->vinfo->th_sort);
+   }
+   
+   ERROR_message("Not ready for selection %s\n",sel);
+   return(NULL);
+}
+   
+float get_3Dview_func_thresh( Three_D_View *im3d, int apply_power)
+{
+   float thresh = 0.0;
+   
+ENTRY("get_3Dview_func_thresh") ;
+   if( ! IM3D_VALID(im3d) || ! ISVALID_3DIM_DATASET(im3d->fim_now) ) 
+      RETURN(thresh) ;
+   
+   if (im3d->cont_perc_thr) {
+      thresh = AFNI_thresh_from_percentile(im3d, im3d->vinfo->func_threshold);
+      /* INFO_message("In percentile mode %p %d\n"
+                      "Still need to put flush action when 'pos' is toggled,\n"
+                "or when a new on the fly set is computed as in Insta stuff.\n"
+                "Perc. %f, thresh now: %f\n",
+                        im3d->fim_now, im3d->vinfo->thr_index,
+                        im3d->vinfo->func_threshold,thresh ); */
+   } else {
+      thresh = im3d->vinfo->func_threshold;
+      if (apply_power) {
+         /* get the "true" threshold (scaled up from being in [0,1]) */
+
+         thresh = thresh * im3d->vinfo->func_thresh_top ;
+      }
+   }
+   
+   RETURN(thresh); 
 }

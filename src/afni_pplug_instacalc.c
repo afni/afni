@@ -544,6 +544,7 @@ if(DEBUG) ININFO_message("change fim_now") ;
    }
 if(DEBUG) ININFO_message("reset func range") ;
    AFNI_reset_func_range(im3d) ;
+   flush_3Dview_sort(im3d,"T");  /* ZSS April 27 2012: Reset sorted threshold */
 
    if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay is off */
      char cmd[32] , *cpt=AFNI_controller_label(im3d) ;

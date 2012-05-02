@@ -66,6 +66,19 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27, APR , 2012 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
+   "Added percentile thresholding to AFNI's interface",
+   "Relevant functions:\n"
+   "  flush_vinfo_sort();\n"
+   "  flush_3Dview_sort();\n"
+   "  get_3Dview_sort();\n"
+   "  AFNI_thresh_from_percentile()\n"
+   "Relevant structure variables:\n"
+   "  cont_perc_thr in Three_D_View;\n"
+   "  th_sort, N_th_sort, th_sortid in AFNI_view_info;\n"
+   "Feature also accessible from plugout_drive with: SET_FUNC_PERCENTILE +/-\n"
+ },
+ 
  { 26, APR , 2012 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
    "Made header_name be same as brik_name for NIFTI dsets",
    "Changes were in EDIT_dset_items(), search for April 26"
