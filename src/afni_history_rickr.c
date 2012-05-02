@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 2, MAY, 2012, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "added AFNI_PATH_SPACES_OK, for input of datasets with spaces in path",
+   "Added for V Roopchansingh."
+ } ,
+
  { 1, MAY, 2012, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "added -prefix option; added censor coloring to 1dplot commands",
    NULL
