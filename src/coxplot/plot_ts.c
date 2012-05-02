@@ -421,9 +421,9 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
              set_thick_memplot( 1.234f*THIK ) ;
              plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
-             set_thick_memplot( thik ) ;
              set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-             sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 10 ;
+             sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
+             set_thick_memplot( thik*sz/13.9f ) ;
              plotpak_pwritf( xotop+0.048 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
              yv -= 0.05 ;
            }
@@ -497,7 +497,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
                plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
                set_thick_memplot( thik ) ;
                set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-               sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 10 ;
+               sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
+               set_thick_memplot( thik*sz/13.9f ) ;
                plotpak_pwritf( xotop+0.048 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
             }
          }
@@ -749,9 +750,9 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
                set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
                set_thick_memplot( 1.234f*THIK ) ;
                plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
-               set_thick_memplot( thik*1.5f ) ;
                set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-               sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 10 ;
+               sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
+               set_thick_memplot( thik*sz/13.9f ) ;
                plotpak_pwritf( xotop+0.048 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
                yv -= 0.05 ;
             }
@@ -781,9 +782,9 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
                set_thick_memplot( 1.234f*THIK ) ;
                yv = 0.7*yhh + 0.3*yll ;
                plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
-               set_thick_memplot( thik*1.5f ) ;
                set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-               sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 10 ;
+               sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
+               set_thick_memplot( thik*sz/13.9f ) ;
                plotpak_pwritf( xotop+0.048 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
             }
          }
