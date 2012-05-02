@@ -469,7 +469,7 @@ int main( int argc , char *argv[] )
      }
 
      if( strncasecmp(argv[iarg],"-thi",4) == 0 ){  /* 15 Apr 2009: thickness */
-       thik += 0.005f ; if( argv[iarg][1] == 'T' ) thik += 0.005f ;
+       thik += 0.004f ; if( argv[iarg][1] == 'T' ) thik += 0.004f ;
        iarg++ ; continue ;
      }
 
@@ -872,9 +872,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 ){ usage_1dplot(0); exit(0) ; }
 
-   if( thik > 0.0f ){
-     char cmd[128]; sprintf(cmd,"AFNI_1DPLOT_THIK=%.3f",thik); AFNI_setenv(cmd);
-   }
+   if( thik > 0.0f ) plot_ts_setthik(thik) ;
 
    if(sepscl && sep == 0) {
       WARNING_message("Cannot use -sepscl with -one!") ; sepscl=0 ;
@@ -892,7 +890,7 @@ int main( int argc , char *argv[] )
      if( !AFNI_yesenv("AFNI_1DPLOT_RENDEROLD") ){  /* 30 Apr 2012 */
        memplot_to_X11_set_DC(dc) ;
        X11_SET_NEW_PLOT ;                           /* cf. xim.h */
-       thik += 0.005f ;
+       thik += 0.001f ;
      }
    }
 

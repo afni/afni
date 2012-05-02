@@ -159,7 +159,7 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
       } else if( new_thick != old_thick ){ /* normal case: change line thickness */
 
          old_thick = new_thick ;  /* thickness not used at this time */
-         sthick = new_thick * scal ; sthick = MIN(sthick,9.0f) ;
+         sthick = new_thick * scal ; /* sthick = MIN(sthick,9.0f) ; */
 
       }
 
@@ -182,10 +182,11 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
           float da=a2-a1 , db=b2-b1 , dl=new_thick/sqrtf(da*da+db*db) ;
           float c1,c2 , d1,d2 ;
           int jj , ss=(int)(3.5f*sthick) ;
+
           dl /= (2*ss) ; da *= dl ; db *= dl ; ss = MAX(ss,2) ;
 #if 1
           if( sthick >= 2.0f && sthick == sthick_old ){  /* 01 May 2012 */
-            int rad = (int)(0.555f*sthick+0.001f) ;
+            int rad = (int)(0.505f*sthick+0.001f) ;
             if( x1 == x2_old && y1 == y2_old ){
               mri_drawcircle( im , x1,y1 , rad, rrr,ggg,bbb , 1 ) ;
             }
