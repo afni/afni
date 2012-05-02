@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , MAY , 2012 , RWC , "mri_stats" , MICRO , TYPE_BUG_FIX ,
+  { 2 , MAY , 2012 , RWC , "coxplot" , MICRO , TYPE_GENERAL ,
+   "More minor changes to timeseries plotting" ,
+   "Rounded joins for lines drawn in 'new' mode.  Use new mode for final\n"
+   "rendering in plug_realtime.c (but not for realtime graphing).  Etc." } ,
+
+ { 1 , MAY , 2012 , RWC , "mri_stats" , MICRO , TYPE_BUG_FIX ,
    "Fixed student_t2z problem with very tiny p values (roundoff error)" ,
    NULL } ,
 

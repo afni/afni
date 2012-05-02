@@ -872,7 +872,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 ){ usage_1dplot(0); exit(0) ; }
 
-   if( thik > 0.0f ) plot_ts_setthik(thik) ;
+   if( thik > 0.0f ) plot_ts_setTHIK(thik) ;
 
    if(sepscl && sep == 0) {
       WARNING_message("Cannot use -sepscl with -one!") ; sepscl=0 ;
@@ -890,7 +890,8 @@ int main( int argc , char *argv[] )
      if( !AFNI_yesenv("AFNI_1DPLOT_RENDEROLD") ){  /* 30 Apr 2012 */
        memplot_to_X11_set_DC(dc) ;
        X11_SET_NEW_PLOT ;                           /* cf. xim.h */
-       thik += 0.001f ;
+       thik += 0.0015f ;
+       plot_ts_setthik(0.0015f) ;
      }
    }
 
