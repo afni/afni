@@ -497,8 +497,8 @@ if(DEBUG)fprintf(stderr,"++ mri_histogram(#%d)\n",id) ;
    }
 if(DEBUG)fprintf(stderr,"++ about to plot\n") ;
    hrad = AFNI_numenv("AFNI_1DPLOT_THIK") ;
-   if( hrad <= 0.0f || hrad >= 0.02f ) hrad = 0.005f ;
-   plot_ts_setthik(hrad) ;
+   if( hrad <= 0.0f || hrad >= 0.02f ) hrad = 0.004f ;
+   plot_ts_setTHIK(hrad) ; plot_ts_setthik(0.0015f) ;
    plot_ts_setcolors( num_dset , ovc_rrr , ovc_ggg , ovc_bbb ) ;
    plot_ts_xypush(0,-1) ;
    sprintf(buf,"#mask=%d #values=%d",mcount,tval);
