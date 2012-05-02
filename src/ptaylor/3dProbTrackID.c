@@ -44,7 +44,7 @@ void usage_ProbTrackID(int detail)
 "   first draft at AFNIfication, March 2012.\n"
 "\n"
 "   + read in data from 3dDWItoDTI results and\n"
-"     also results from 3dDWUncert1, for uncertainty measures\n"
+"     also results from 3dDWUncert, for uncertainty measures\n"
 "\n\n"
 "   + current outputs: \n"
 "     (and note that this is for each network, with subbricks per ROI) \n"
@@ -652,7 +652,7 @@ int main(int argc, char *argv[]) {
 
 	      // w1 = 1.0;
 	      // these are weights determined by rotation angle,
-	      // (prob. determined by jackknifing with 3dDWUncert1)
+	      // (prob. determined by jackknifing with 3dDWUncert)
 	      // each tips in the +/- direc toward/away from each evec 
 	      // by averaging and that's why tan of angle is taken
 	      thetval = pow(THD_get_voxel(insetUC,INDEX[i][j][k],0),2) +
