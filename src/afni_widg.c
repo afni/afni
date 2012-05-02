@@ -3983,8 +3983,13 @@ STATUS("making func->rowcol") ;
    MCW_reghelp_children( func->perc_bbox->wrowcol ,
                          "This button determines whether the slider sets\n"
                          "the threshold based on percentile, rather than\n"
-                         "value. The slider power is ignored in percentile\n"
-                         "mode.\n"
+                         "value. At 0.75 you threshold the bottom 75%% of\n"
+                         "the voxels that would be displayed with no\n"
+                         "thresholding. At 0.5 you see the top half.\n"
+                         "The slider power is ignored in percentile\n"
+                         "mode, so 0.5 is the same as 5, 50, etc.\n"
+                         "Zero voxels are not considered. Only positive\n"
+                         "voxels are considered if 'Pos?' is set\n"
                        ) ;
    MCW_reghint_children( func->perc_bbox->wrowcol ,
                          "Percentile Thresholding" ) ;
