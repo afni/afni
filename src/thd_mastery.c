@@ -82,8 +82,10 @@ ENTRY("THD_open_dataset") ;
 
    /*-- 04 Aug 2004: allow input of a list of datasets, separated by spaces --*/
    /*  unless a count command is used inside the brackets 9 May 2007 drg*/
-   if((strchr(pathname,' ') != NULL ) &&
-      (strstr(pathname,"[count ")==NULL)){
+   /* allow use of spaces with AFNI_PATH_SPACES_OK        2 May 2012 [rickr]  */
+   if( ! AFNI_yesenv("AFNI_PATH_SPACES_OK") && 
+         (strchr(pathname,' ') != NULL )    && 
+         (strstr(pathname,"[count ")==NULL) ) {
      dset = THD_open_tcat( pathname ) ;
      if( ISVALID_DSET(dset) &&
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
