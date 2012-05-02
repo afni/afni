@@ -104,7 +104,7 @@ void usage_DWUncert1(int detail)
 "    -iters  [NUMBER]   number of jackknife resample iterations\n"
 "\n"
 "\n Example usage:\n"
-"3dDWUncert1 \\\n"
+"3dDWUncert \\\n"
 "     -inset TEST_FILES/DTI/fin2_DTI_3mm_1+orig \\\n"
 "     -prefix TEST_FILES/DTI/o.UNCERT_TESTb \\\n"
 "     -input TEST_FILES/DTI/DT \\\n"
@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
   r = gsl_rng_alloc (T);
   gsl_rng_set (r, seed);
 
-  mainENTRY("3dDWUncert1"); machdep(); 
+  mainENTRY("3dDWUncert"); machdep(); 
    
   // ****************************************************************
   // ****************************************************************
