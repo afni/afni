@@ -7191,7 +7191,8 @@ float * get_3Dview_sort(Three_D_View *im3d, char *sel)
             ii=0; nn = 0;
             while(ii<DSET_NVOX(im3d->fim_now)) {
                if (im3d->vinfo->th_sort[ii] != 0.0f) { 
-                  im3d->vinfo->th_sort[nn] = im3d->vinfo->th_sort[ii]; ++nn; 
+                  im3d->vinfo->th_sort[nn] = ABS(im3d->vinfo->th_sort[ii]); 
+                                                                        ++nn; 
                }
                ++ii;
             }

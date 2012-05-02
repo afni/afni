@@ -336,12 +336,16 @@ float  AFNI_thresh_from_percentile( Three_D_View *im3d, float perc)
       thresh = fv[ithr];
    }
    
-   /*
-   fprintf(stderr,"ZSS: Top val %f, mask bottom %f%% thresh=%f.\n"
-                  "Sorting on %d vals out of %d voxels.\n",
-                   fv[im3d->vinfo->N_th_sort-1], 100*perc, thresh,
-                   im3d->vinfo->N_th_sort, DSET_NVOX(im3d->fim_now));
-   */
+   #if 0
+   INFO_message(  "Top val %f, bottom val %f\n"
+                  "Sorting on set of %d voxels out of %d voxels in grid.\n"
+                  "Thresholding bottom %f%% thresh=%f, ithr=%d.\n"
+                  ,
+                   fv[im3d->vinfo->N_th_sort-1], fv[0],
+                   im3d->vinfo->N_th_sort, DSET_NVOX(im3d->fim_now),
+                   100*perc, thresh, ithr
+                   );
+   #endif
    return(thresh);
 }
 
