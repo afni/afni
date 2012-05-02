@@ -5222,7 +5222,7 @@ void RT_finish_dataset( RT_input * rtin )
       plot_ts_setTHIK(0.004f) ; plot_ts_setthik(0.0015f) ;
       plot_ts_lab( THE_DISPLAY ,
                    nn , yar[0] , ycount , yar+1 ,
-                   "Reps" , NULL , ttl , nar , NULL ) ;
+                   "Reps (TR)" , "Motion parameters" , ttl , nar , NULL ) ;
 
       free(ttl) ;
    }
@@ -5640,7 +5640,7 @@ void RT_registration_3D_realtime( RT_input *rtin )
          rtin->mp = plot_ts_init( GLOBAL_library.dc->display ,
                                   0.0,rtin->reg_graph_xr-1 ,
                                   ycount,-rtin->reg_graph_yr,rtin->reg_graph_yr,
-                                  "reps", NULL, ttl, nar , NULL ) ;
+                                  "reps (TR)", "motion parameters" , ttl, nar , NULL ) ;
 
          if( rtin->mp != NULL ) rtin->mp->killfunc = MTD_killfunc ;
 

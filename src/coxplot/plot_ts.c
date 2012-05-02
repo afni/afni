@@ -544,7 +544,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)*(jj==0)+2*(nnay>0)] ) ;
          if( ylo[jj] < 0.0 && yhi[jj] > 0.0 ){
            set_thick_memplot( 0.0 ) ;
-           plotpak_setlin(5) ;
+           plotpak_setlin(3) ;
            plotpak_line( xbot,0.0 , xtop,0.0 ) ;
            plotpak_setlin(1) ;
          }

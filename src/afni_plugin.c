@@ -5165,7 +5165,7 @@ ENTRY("PLUTO_scatterplot") ;
 
    /* x-axis label? */
 
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ; set_thick_memplot( 0.003f ) ;
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ; set_thick_memplot( 0.002f ) ;
    if( STGOOD(xlab) )
       plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , xlab , 16 , 0 , 0 ) ;
 
@@ -5187,7 +5187,7 @@ ENTRY("PLUTO_scatterplot") ;
 
    /* plot data */
 
-#define DSQ 0.001
+#define DSQ 0.0011111
 
    set_thick_memplot( 0.0f ) ;
    set_color_memplot( 0.0 , 0.0 , 0.4 ) ;        /* 28 Feb 2011 */
@@ -5218,8 +5218,10 @@ ENTRY("PLUTO_scatterplot") ;
    }
 
    if( a != 0.0f || b != 0.0f ){              /* 02 May 2005 */
-     set_color_memplot( 0.8 , 0.0 , 0.0 ) ; set_thick_memplot( 0.003f ) ;
+     set_color_memplot( 0.7 , 0.0 , 0.0 ) ; set_thick_memplot( 0.003f ) ;
+     plotpak_setlin(2) ;
      plotpak_line( xbot,a*xbot+b , xtop,a*xtop+b ) ;
+     plotpak_setlin(1) ;
    }
 
    mp = get_active_memplot() ;
