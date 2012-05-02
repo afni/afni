@@ -94,8 +94,8 @@ cluster_floatNOMASK.o:cluster_floatNOMASK.c
 progs: 3dTrackID 3dProbTrackID 3dDWUncert1 3dDWUncert2
 
 all: ${PTAYLORLIB} progs install 
- 
-afni_all: clean ${PTAYLORLIB} progs
+
+afni_all: ${PTAYLORLIB} progs
 	@if [ -f  libtracktools.a ]; then cp -p libtracktools.a ../; fi;	
 	@if [ -f  3dTrackID ]; then mv 3dTrackID ../; fi;	
 	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ../; fi;	

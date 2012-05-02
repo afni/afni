@@ -42,5 +42,11 @@ TAYLOR_BUNDLE * Read_Bundle(char *name) ;
 NI_group * Read_NI_Bundle(char *name);
 int get_tract_verb(void);
 void set_tract_verb(int v);
+int NI_getTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAng, 
+                       float *MinL, int *SeedPerV, int *M, int *bval);
+NI_element * NI_setTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAng, 
+                     float *MinL, int *SeedPerV, int *M, int *bval);
+NI_element *ReadTractAlgOpts(char *fname);
+int WriteTractAlgOpts(char *fname, NI_element *nel); 
 
 #endif
