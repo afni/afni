@@ -3238,6 +3238,14 @@ Variable: AFNI_WAMI_DEBUG
 This integer sets the debugging level in whereami routines.
 Currently used values range from 0 to 3.
 
+-----------------------------------
+Variable: AFNI_PATH_SPACES_OK
+-----------------------------------
+If this variable is set to YES, dataset names with spaces in them will go
+through "normal" reading routines, rather than using THD_open_tcat() to try
+to combine multiple datasets.
+
+
 
 =============================================
 | Robert W Cox, PhD                         |
