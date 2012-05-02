@@ -172,7 +172,7 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
 	im_thr = DSET_BRICK(oset,tind);
 
  	/* note real threshold */
-        thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top;
+        thresh = get_3Dview_func_thresh(im3d,1) ;
 
         /* maybe we want to return this */
         if ( Rthr ) *Rthr = thresh;

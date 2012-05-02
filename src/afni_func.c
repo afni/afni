@@ -320,6 +320,31 @@ ENTRY("AFNI_thresh_top_CB") ;
   Used to set the pval (significance) label at the bottom of the
   threshold scale.
 -------------------------------------------------------------------------*/
+float  AFNI_thresh_from_percentile( Three_D_View *im3d, float perc) 
+{
+   float *fv, thresh=0.0;
+   int ithr;
+
+   if (!(fv = get_3Dview_sort(im3d, "T"))) return(perc);
+      
+   ithr = (int)(perc*(float)(im3d->vinfo->N_th_sort-1)+0.5);
+   if (ithr < 0) {
+      thresh = fv[0]-1.0;
+   } else if (ithr > im3d->vinfo->N_th_sort) {
+      thresh = fv[im3d->vinfo->N_th_sort-1]+1.0;
+   } else {
+      thresh = fv[ithr];
+   }
+   
+   /*
+   fprintf(stderr,"ZSS: Top val %f, mask bottom %f%% thresh=%f.\n"
+                  "Sorting on %d vals out of %d voxels.\n",
+                   fv[im3d->vinfo->N_th_sort-1], 100*perc, thresh,
+                   im3d->vinfo->N_th_sort, DSET_NVOX(im3d->fim_now));
+   */
+   return(thresh);
+}
+
 
 void AFNI_set_thr_pval( Three_D_View *im3d )
 {
@@ -330,10 +355,9 @@ ENTRY("AFNI_set_thr_pval") ;
 
    if( ! IM3D_VALID(im3d) || ! ISVALID_3DIM_DATASET(im3d->fim_now) ) EXRETURN ;
 
-   /* get the "true" threshold (scaled up from being in [0,1]) */
 
-   thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
-
+   thresh = get_3Dview_func_thresh(im3d,1);
+   
    /* get the p-value that goes with this threshold, for this functional dataset */
 
    pval = THD_stat_to_pval( thresh ,
@@ -1335,8 +1359,7 @@ ENTRY("AFNI_func_overlay") ;
    if( im_fim->kind == MRI_rgb ){                  /* 15 Apr 2002: RGB overlays */
 
      if( im_thr != NULL && im_thr != im_fim ){     /* 20 Dec 2004: threshold */
-       float thresh = im3d->vinfo->func_threshold
-                    * im3d->vinfo->func_thresh_top / scale_thr ;
+       float thresh = get_3Dview_func_thresh(im3d,1) / scale_thr ;
        float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
        mri_threshold( thb,tht , im_thr , im_fim ) ;  /* in place */
      }
@@ -1398,8 +1421,7 @@ ENTRY("AFNI_func_overlay") ;
 #define NFO_ZABOVE_MASK  2
 
    if( pbar->bigmode ){
-     float thresh =  im3d->vinfo->func_threshold
-                   * im3d->vinfo->func_thresh_top / scale_thr ;
+     float thresh = get_3Dview_func_thresh(im3d,1) / scale_thr ;
      float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
      int zbelow=0 , zabove=0 , flags ;
 
@@ -1410,8 +1432,10 @@ if( PRINT_TRACING && im_thr != NULL )
   tmax = (float)mri_maxabs(im_thr) ;
   sprintf(str,"maxabs(im_thr)=%g scale_thr=%g thresh=%g",tmax,scale_thr,thresh);
   STATUS(str) ;
-  sprintf(str,"func_threshold=%g func_thresh_top=%g",
-          im3d->vinfo->func_threshold,im3d->vinfo->func_thresh_top); STATUS(str);
+  sprintf(str,"func_threshold=%g func_thresh_top=%g cont_perc_thr=%d",
+          im3d->vinfo->func_threshold,im3d->vinfo->func_thresh_top, 
+          im3d->cont_perc_thr); 
+  STATUS(str);
 }
 
      if( pbar->big30 ) reject_zero = 0 ;
@@ -1466,8 +1490,7 @@ if( PRINT_TRACING && im_thr != NULL )
            fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
 
          if( simult_thr ){
-           float thresh = im3d->vinfo->func_threshold
-                        * im3d->vinfo->func_thresh_top / scale_thr ;
+           float thresh = get_3Dview_func_thresh(im3d,1) / scale_thr ;
            float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
            short *ar_thr = MRI_SHORT_PTR(im_thr) ;
            for( ii=0 ; ii < npix ; ii++ ){
@@ -1500,8 +1523,7 @@ if( PRINT_TRACING && im_thr != NULL )
                                                   : 0.0                          ;
 
          if( simult_thr ){
-           float thresh = im3d->vinfo->func_threshold
-                         * im3d->vinfo->func_thresh_top / scale_thr ;
+           float thresh = get_3Dview_func_thresh(im3d,1) / scale_thr ;
            float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
            byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
 
@@ -1534,7 +1556,7 @@ if( PRINT_TRACING && im_thr != NULL )
            fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
 
          if( simult_thr ){
-           float thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+           float thresh = get_3Dview_func_thresh(im3d,1) ;
            float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
            float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
 
@@ -1567,8 +1589,7 @@ if( PRINT_TRACING && im_thr != NULL )
      switch( im_thr->kind ){
 
        case MRI_short:{
-         float thresh = im3d->vinfo->func_threshold
-                      * im3d->vinfo->func_thresh_top / scale_thr ;
+         float thresh = get_3Dview_func_thresh(im3d,1) / scale_thr ;
          float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
          short *ar_thr = MRI_SHORT_PTR(im_thr) ;
 
@@ -1578,8 +1599,7 @@ if( PRINT_TRACING && im_thr != NULL )
        break ;
 
        case MRI_byte:{
-         float thresh = im3d->vinfo->func_threshold
-                      * im3d->vinfo->func_thresh_top / scale_thr ;
+         float thresh = get_3Dview_func_thresh(im3d,1) / scale_thr ;
          float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
          byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
 
@@ -1589,7 +1609,7 @@ if( PRINT_TRACING && im_thr != NULL )
        break ;
 
        case MRI_float:{
-         float thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+         float thresh = get_3Dview_func_thresh(im3d,1) ;
          float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
          float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
 
@@ -5391,6 +5411,30 @@ ENTRY("AFNI_range_bbox_CB") ;
 
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------
+   called when the user toggles the percentile button
+------------------------------------------------------------------*/
+
+void AFNI_perc_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
+{
+   Three_D_View *im3d = (Three_D_View *) cd ;
+
+ENTRY("AFNI_perc_bbox_CB") ;
+
+   if( ! IM3D_VALID(im3d) ||
+       w != im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] ) EXRETURN ;
+
+   im3d->cont_perc_thr = MCW_val_bbox(im3d->vwid->func->perc_bbox);
+   flush_3Dview_sort(im3d, "T");
+      
+   AFNI_redisplay_func( im3d ) ;
+
+   AFNI_thresh_lock_carryout(im3d) ;  
+
+   EXRETURN ;
+}
+
 
 /*----------------------------------------------------------------
   called when the user (that rotten fellow) changes the fim range

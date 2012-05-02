@@ -610,7 +610,8 @@ ENTRY("AFNI_icor_setref_xyz") ;
 
    DSET_BRICK_FDRCURVE_ALLKILL(icoset) ;
    DSET_BRICK_MDFCURVE_ALLKILL(icoset) ;
-
+   flush_3Dview_sort(im3d,"T");  /* ZSS April 27 2012: Reset sorted threshold */
+   
    if( ncall <= 1 )
      ININFO_message(" InstaCorr elapsed time = %.2f sec: dataset ops" ,
                     PLUTO_elapsed_time()-etim ) ;
@@ -1031,7 +1032,7 @@ INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
 #define THTOP(t) ((thrsign==0 || thrsign==1) ? (t)    :  (THBIG))
 
    vmul = giset->vmul ;
-   thr  = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+   thr  = get_3Dview_func_thresh(im3d,1) ;
 #ifdef GIC_ALLOW_CLUST
    if( vmul > 0 && thr > 0.0f ){
      MRI_IMAGE *dsim , *tsim , *clim ;
@@ -1052,6 +1053,7 @@ INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
 #endif
    DSET_KILL_STATS(giset->dset) ; THD_load_statistics(giset->dset) ;
    AFNI_reset_func_range(im3d) ;
+   flush_3Dview_sort(im3d,"T");  /* ZSS April 27 2012: Reset sorted threshold */
 
    /* redisplay overlay */
 
