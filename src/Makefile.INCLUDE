@@ -91,7 +91,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
            1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch 1dBport   \
-           3dNormalityTest 3dmask_tool                                          \
+           3dNormalityTest 3dmask_tool 3dTrackID                                    \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -206,7 +206,7 @@ vastness:all plugins install install_plugins install_lib
 ### Make many things
 
 all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a libtracktools.a \
-             R_io.so programs
+             R_io.so programs ptaylor_all
 
 ### Make afni binaries
 
@@ -2841,13 +2841,13 @@ libsegtools.a: avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
 ptaylor_all: 
 	( cd ptaylor ;	\
 	./@MakeLocalMake	;\
-	$(MAKE) all  ;	\
+	$(MAKE) afni_all  ;	\
 	cd ../	;		)
 
 libtracktools.a:
 	( cd ptaylor ;	\
 	./@MakeLocalMake	;\
-	$(MAKE) libtracktools.a  ;	\
+	$(MAKE) clean libtracktools.a  ;	\
 	$(CP) libtracktools.a ../;	\
 	cd ../	;		)
 

@@ -1945,8 +1945,7 @@ ENTRY("AFNI_clus_action_CB") ;
        if( ISVALID_DSET(fset) && fset->dblk->vedim == NULL ){
          im3d->vedset.ival     = im3d->vinfo->fim_index ;
          im3d->vedset.param[0] = (float)im3d->vinfo->thr_index ;
-         im3d->vedset.param[1] = im3d->vinfo->func_threshold
-                                *im3d->vinfo->func_thresh_top ;
+         im3d->vedset.param[1] = get_3Dview_func_thresh(im3d,1);
          im3d->vedset.param[4] = im3d->vinfo->thr_sign ;
          im3d->vedset.param[5] = im3d->vinfo->use_posfunc ;
          im3d->vedset.exinfo   = NULL ;

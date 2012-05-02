@@ -91,6 +91,7 @@ static int AFNI_redisplay              ( char *cmd ) ;
 static int AFNI_read_niml_file         ( char *cmd ) ; /* 01 Feb 2008 */
 static int AFNI_drive_quiet_plugouts   ( char *cmd);   /* 15 Oct 2008 */
 static int AFNI_drive_noisy_plugouts   ( char *cmd);   /* 15 Oct 2008 */
+static int AFNI_set_func_percentile    ( char *cmd ) ; /* 27 Apr 2012 */
 
 static int AFNI_trace                  ( char *cmd ) ; /* 04 Oct 2005 */
 
@@ -203,6 +204,7 @@ static AFNI_driver_pair dpair[] = {
  { "TRACE"              , AFNI_trace                   } , /* debugging */
  { "QUIET_PLUGOUTS"     , AFNI_drive_quiet_plugouts    } , /* 15 Oct 2008 */
  { "NOISY_PLUGOUTS"     , AFNI_drive_noisy_plugouts    } , /* 15 Oct 2008 */
+ { "SET_FUNC_PERCENTILE", AFNI_set_func_percentile     } , /* 27 Apr 2012,zss */
 
  { NULL , NULL }  /* flag that we've reached the end times */
 } ;
@@ -304,7 +306,9 @@ ENTRY("AFNI_driver") ;
 
    /*--- didn't match user command to anything at all?!? ---*/
 
-   ERROR_message("Can't drive AFNI with '%s'",cmd) ;  /* 22 Feb 2007 */
+   ERROR_message( "Can't drive AFNI with '%s'\n"
+         "  For command options see README.driver or try:\n"
+         "       apsearch -view_readme driv \n",cmd) ;  /* 22 Feb 2007 */
 
    free(dmd) ; RETURN(-1) ;  /* not in the lists */
 }
@@ -2187,6 +2191,39 @@ ENTRY("AFNI_set_func_autorange") ;
                        im3d , NULL ) ;
    RETURN(0) ;
 }
+
+/*-------------------------------------------------------------------------*/
+/*! SET_FUNC_PERCENTILE [c.]{+|-}
+   "SET_FUNC_PERCENTILE A.+"
+---------------------------------------------------------------------------*/
+
+static int AFNI_set_func_percentile( char *cmd )
+{
+   int ic , dadd=2 , nn ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_set_func_percentile") ;
+
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   switch( cmd[dadd] ){
+     default: RETURN(-1) ;
+     case '+': nn = 1 ; break ;
+     case '-': nn = 0 ; break ;
+   }
+
+   MCW_set_bbox( im3d->vwid->func->perc_bbox , nn ) ;
+   AFNI_perc_bbox_CB( im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] ,
+                       im3d , NULL ) ;
+   RETURN(0) ;
+}
+
 
 /*-------------------------------------------------------------------------*/
 /*! SET_FUNC_RANGE [c.]value
