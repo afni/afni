@@ -48,9 +48,10 @@ void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
 {
    byte rrr=0,ggg=0,bbb=0 ;
    int ii , nline , same ;
-   float old_thick , old_color , new_color , new_thick , sthick=0.0 ;
+   float old_thick , old_color , new_color , new_thick , sthick=0.0f ;
    float scal,xscal,yscal , xoff,yoff ;
    int x1,y1 , x2,y2 ;
+   int x1_old=-666,y1_old=-666 , x2_old=-666,y2_old=-666 ; float sthick_old=-666.f ;
    int skip ;
 
 ENTRY("memplot_to_RGB_sef") ;
@@ -182,12 +183,17 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
           float c1,c2 , d1,d2 ;
           int jj , ss=(int)(3.5f*sthick) ;
           dl /= (2*ss) ; da *= dl ; db *= dl ; ss = MAX(ss,2) ;
-#if 0
-          if( sthick >= 2.0f ){                    /* 01 May 2012: end caps */
-            int rad = (int)(1.0f*sthick+0.001f) ;
-            mri_drawcircle( im , x1,y1 , rad, rrr,ggg,bbb , 1 ) ;
-            mri_drawcircle( im , x2,y2 , rad, rrr,ggg,bbb , 1 ) ;
+#if 1
+          if( sthick >= 2.0f && sthick == sthick_old ){  /* 01 May 2012 */
+            int rad = (int)(0.555f*sthick+0.001f) ;
+            if( x1 == x2_old && y1 == y2_old ){
+              mri_drawcircle( im , x1,y1 , rad, rrr,ggg,bbb , 1 ) ;
+            }
+            else if( x2 == x1_old && y2 == y1_old ){
+              mri_drawcircle( im , x2,y2 , rad, rrr,ggg,bbb , 1 ) ;
+            }
           }
+          x1_old = x1; x2_old = x2; y1_old = y1; y2_old = y2; sthick_old = sthick;
 #endif
           for( jj=-ss ; jj <= ss ; jj++ ){
             if( jj == 0 ) continue ;
