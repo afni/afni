@@ -5219,8 +5219,16 @@ ENTRY("PLUTO_scatterplot") ;
 
    if( a != 0.0f || b != 0.0f ){              /* 02 May 2005 */
      set_color_memplot( 0.7 , 0.0 , 0.0 ) ; set_thick_memplot( 0.003f ) ;
+     xa = xbot ; ya = a*xa+b ; xb = xtop ; yb = a*xb+b ;
+/* INFO_message("pre-clip : xa=%g ya=%g xb=%g yb=%g",xa,ya,xb,yb) ; */
+          if( ya < ybot && a > 0.0f ){ xa = (ybot-b)/a ; ya = ybot ; }
+     else if( ya > ytop && a < 0.0f ){ xa = (ytop-b)/a ; ya = ytop ; }
+          if( yb < ybot && a < 0.0f ){ xb = (ybot-b)/a ; yb = ybot ; }
+     else if( yb > ytop && a > 0.0f ){ xb = (ytop-b)/a ; yb = ytop ; }
+/* ININFO_message("post-clip: xa=%g ya=%g xb=%g yb=%g",xa,ya,xb,yb) ; */
+/* ININFO_message("clip box:  xbot=%g ybot=%g xtop=%g ytop=%g",xbot,ybot,xtop,ytop) ; */
      plotpak_setlin(2) ;
-     plotpak_line( xbot,a*xbot+b , xtop,a*xtop+b ) ;
+     plotpak_line( xa,ya , xb,yb ) ;
      plotpak_setlin(1) ;
    }
 
