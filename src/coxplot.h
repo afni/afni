@@ -305,7 +305,8 @@ extern void plot_ts_yfix( int,int , float,float ) ;
 extern void plot_ts_add_vbox( int,float,float,float,float,float ); /* 24 Apr 2012 */
 
 extern void plot_ts_setcolors( int, float *, float *, float * ) ; /* 23 Nov 2007 */
-extern void plot_ts_setthik( float thk ) ;                        /* 26 Nov 2007 */
+extern void plot_ts_setTHIK( float thk ) ;                        /* 26 Nov 2007 */
+extern void plot_ts_setthik( float thk ) ;                        /* 02 May 2012 */
 #define plot_ts_setthick plot_ts_setthik /* for clumsy typists */
 #define plot_ts_sethik   plot_ts_setthik
 #define plot_ts_sethick  plot_ts_setthik

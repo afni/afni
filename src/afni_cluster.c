@@ -1735,7 +1735,7 @@ ENTRY("AFNI_clus_action_CB") ;
            strcat(ylab,(dosqrt)?" [SqrtHist]" : " [Hist]") ;
            sprintf(tlab,"\\noesc %s[%d..%d]",
                    THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL) , ibot,itop ) ;
-           plot_ts_xypush(0,-1) ; plot_ts_setthik(0.005f) ;
+           plot_ts_xypush(0,-1) ; plot_ts_setTHIK(0.004f) ; plot_ts_setthik(0.0015f) ;
            PLUTO_histoplot_f( nbin,hbot,htop , hbin , xlab,ylab,tlab , 0,NULL ) ;
 
          } else {         /*----- save histogram -----*/
@@ -1876,7 +1876,7 @@ ENTRY("AFNI_clus_action_CB") ;
            sprintf(tlab,"\\noesc %s[%d..%d]",
                    THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL),
                    ibot,itop) ;
-           plot_ts_xypush(1,0) ; plot_ts_setthik(0.006f) ;
+           plot_ts_xypush(1,0) ; plot_ts_setTHIK(0.006f) ; plot_ts_setthik(0.0015f) ;
            xax = (float *)malloc(sizeof(float)*im->nx) ;
            for( jj=0 ; jj < im->nx ; jj++ ) xax[jj] = ibot+jj ;
            X11_SET_NEW_PLOT ;
