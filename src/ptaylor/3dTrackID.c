@@ -89,11 +89,17 @@ void usage_TrackID(int detail)
 "      -mask1  MASK1: mask of ROI1\n"
 "      -mask2  MASK2: mask of ROI2\n"
 "      -prefix PREFIX: output file name part\n"
+"      -write_opts: Write out all the options' values into PREFIX.niml.opts.\n" 
 "      -input  INPREF: Specify DTI volumes output by 3dDWItoDT\n"
 "                      The program expects to the following volumes:\n"
 "                      INPREF_V1, INPREF_MD, INPREF_L1, and INPREF_FA\n" 
 "      -algopt ALGO: ASCII file with eight numbers defining parameter \n"
 "                    quantities just above.\n"
+"                    ALGO can also be in NIML format, which is clearer\n"
+"                    to read. Use -write_opts to get an idea of the format.\n"
+"                    You do not need to use this option if you want to use\n"
+"                    the built in defaults. If you want the values of the \n"
+"                    defaults add option -write_opts to your command.\n"
 "      -logic  [AND, OR, ALL]: Set the combinatorial logic of two ROIs;\n"
 "               for just one ROI, make both `mask's the same file and use," 
 "               e.g., AND]\n"
@@ -218,15 +224,20 @@ int main(int argc, char *argv[]) {
 
   // FACT algopts
   FILE *fin4, *fin1, *fout0;
-  float MinFA,MaxAng,MinL;
-  //  float SideAng = 45.0; // opening angle for ID
-  int SeedPerV[3];
+  
+  /* default values */
+     float MinFA=0.2,MaxAngDeg=45,MinL=20.0;
+     int SeedPerV[3]={2,2,2}, M=30, bval=1000;
+     //  float SideAng = 45.0; // opening angle for ID
+  
+  
   int ArrMax;
-  //  float frac; 
+  
+  float MaxAng; 
 
   int Nvox=-1;   // tot number vox
   int Dim[3]; // dim in each dir
-  int Nseed,M,bval;
+  int Nseed;
   int DimSeed[3]; // number of seeds there will be
   float Ledge[3]; // voxel edge lengths
 
@@ -264,6 +275,8 @@ int main(int argc, char *argv[]) {
   TAYLOR_BUNDLE *tb=NULL;
   TAYLOR_TRACT *tt=NULL;
   char *mode = "NI_fast_binary";
+  NI_element *nel=NULL;
+  int dump_opts=0;
   
   mainENTRY("3dTrackID"); machdep(); 
    
@@ -287,6 +300,11 @@ int main(int argc, char *argv[]) {
       if( ++iarg >= argc ) 
    ERROR_exit("Need argument after '-verb'") ;
       set_tract_verb(atoi(argv[iarg]));
+      iarg++ ; continue ;
+    }
+
+    if( strcmp(argv[iarg],"-write_opts") == 0) {
+      dump_opts=1;
       iarg++ ; continue ;
     }
     
@@ -412,22 +430,38 @@ int main(int argc, char *argv[]) {
       if( iarg >= argc ) 
    ERROR_exit("Need argument after '-algopt'");
    
-      // Opening/Reading in FACT params
-      if( (fin4 = fopen(argv[iarg], "r")) == NULL) {
-   fprintf(stderr, "Error opening file %s.",argv[iarg]);
-   exit(19);
+      if (!(nel = ReadTractAlgOpts(argv[iarg]))) {
+         ERROR_message("Failed to read options in %s\n", argv[iarg]);
+         exit(1);
       }
-      fscanf(fin4, "%f %f %f %d %d %d %d %d",
-        &MinFA,&MaxAng,&MinL,&SeedPerV[0],&SeedPerV[1],
-        &SeedPerV[2],&M,&bval);
-      fclose(fin4);
-   
-      for( i=0 ; i<3 ; i++)
-   DimSeed[i] = Dim[i]*SeedPerV[i];
-      Nseed = Nvox*SeedPerV[0]*SeedPerV[1]*SeedPerV[2];
-   
-      // convert to cos of rad value for comparisons, instead of using acos()
-      MaxAng = cos(CONV*MaxAng); 
+      if (NI_getTractAlgOpts(nel, &MinFA, &MaxAngDeg, &MinL, 
+                             SeedPerV, &M, &bval)) {
+         ERROR_message("Failed to get options");
+         exit(1);
+      }
+      NI_free_element(nel); nel=NULL;
+      
+      #if 0 /* Just for a demo chunk. Delete when you're done with it */
+      
+      /* PT: This is just a demo to illustrate the other option
+      handling functions. As a sanity check, let us rewrite the 
+      options. This comes in handy should we want to transmit 
+      such options or write them out for record keeping.
+      Note that it does not matter whether or not you entered
+      the options in the old way, the new way, or you loaded
+      then modified the options at some point.... */
+      nel = NI_setTractAlgOpts(NULL, &MinFA, &MaxAngDeg, &MinL, 
+                             SeedPerV, &M, &bval);
+      WriteTractAlgOpts("junk1", nel);
+      /* say some option got changed */
+      SeedPerV[1] = 12;
+      nel = NI_setTractAlgOpts(nel, NULL, NULL, NULL, SeedPerV, NULL, NULL);
+      WriteTractAlgOpts("junk2", nel);
+      NI_free_element(nel); nel=NULL;
+      INFO_message("Try this for the difference:\n"
+                   " diff junk1.niml.opts junk2.niml.opts\n"
+      exit(1);
+      #endif
 
       iarg++ ; continue ;
     }
@@ -458,6 +492,23 @@ int main(int argc, char *argv[]) {
    exit(1);
   }
   
+  if (dump_opts) {
+      nel = NI_setTractAlgOpts(NULL, &MinFA, &MaxAngDeg, &MinL, 
+                             SeedPerV, &M, &bval);
+      WriteTractAlgOpts(prefix, nel);
+      NI_free_element(nel); nel=NULL;
+  }
+  
+        
+   /* Process the options a little */
+      for( i=0 ; i<3 ; i++)
+   DimSeed[i] = Dim[i]*SeedPerV[i];
+      Nseed = Nvox*SeedPerV[0]*SeedPerV[1]*SeedPerV[2];
+   
+      // convert to cos of rad value for comparisons, instead of using acos()
+      MaxAng = cos(CONV*MaxAngDeg); 
+
+
   // at some point, we will have to convert indices into
   // pseudo-locations; being forced into this choice means that
   // different data set orientations would be represented differently

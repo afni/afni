@@ -52,7 +52,23 @@ if ( ! -f $mo) then
    goto END
 endif
 
-#append the install dir and suma include
+#append the install dir and extra include
+set grepres = `\grep -nw '^ *INSTALLDIR' $tmp`
+if ( "$grepres" == "") then 
+   echo "Could not find INSTALLDIR"
+   echo "Weird"
+   goto END
+endif
+set idir = `\grep -w '^ *INSTALLDIR' Makefile | \
+               cut -f 2 -d '=' | sed 's/^ *//g'`
+if ("${idir}" =~ /* || "${idir}" =~ '~*') then
+   echo "Got full path ('${idir}'), good"
+else
+   echo "Got relative path, append"
+   sed "s:^ *INSTALLDIR *= *${idir}:INSTALLDIR = ../${idir}:g" $mo > $tmp
+   mv $tmp $mo
+endif
+
 echo "include Makefile.ptaylor.INCLUDE" >> $mo
 
 if ( -f Makefile) then
