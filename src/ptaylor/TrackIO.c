@@ -144,7 +144,6 @@ TAYLOR_TRACT *Free_Tracts(TAYLOR_TRACT *tt, int n)
 
 TAYLOR_BUNDLE *Free_Bundle(TAYLOR_BUNDLE *tb) 
 {
-   int ii=0;
    ENTRY("Free_Bundle");
    
    if (!tb) RETURN(NULL);
@@ -229,7 +228,6 @@ NI_element *Tract_2_NIel(TAYLOR_TRACT *tt)
 NI_element *Tracts_2_NIel(TAYLOR_TRACT *tt, int N_tt)
 {
    NI_element *nel=NULL;
-   char colabs[1024]={""};
    
    ENTRY("Tracts_2_NIel");
    
@@ -534,3 +532,139 @@ TAYLOR_BUNDLE * Read_Bundle(char *name)
    RETURN(tb);
 }
 
+
+int NI_getTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAng, 
+                       float *MinL, int *SeedPerV, int *M, int *bval)
+{
+   char *atr=NULL;
+   
+   ENTRY("NI_getTractAlgOpts");
+   if (!nel) RETURN(1);
+   
+   if (MinFA && (atr=NI_get_attribute(nel,"Thresh_FA"))) {
+      *MinFA = (float)strtod(atr,NULL);
+   }
+   if (MaxAng && (atr=NI_get_attribute(nel,"Thresh_ANG"))) {
+      *MaxAng = (float)strtod(atr,NULL);
+   }
+   if (MinL && (atr=NI_get_attribute(nel,"Thresh_Len"))) {
+      *MinL = (float)strtod(atr,NULL);
+   }
+   if (SeedPerV && (atr=NI_get_attribute(nel,"Nseed_X"))) {
+      SeedPerV[0] = (int)strtod(atr,NULL);
+   }
+   if (SeedPerV && (atr=NI_get_attribute(nel,"Nseed_Y"))) {
+      SeedPerV[1] = (int)strtod(atr,NULL);
+   }
+   if (SeedPerV && (atr=NI_get_attribute(nel,"Nseed_Z"))) {
+      SeedPerV[2] = (int)strtod(atr,NULL);
+   }
+   if (M && (atr=NI_get_attribute(nel,"Ngrads"))) {
+      *M = (int)strtod(atr,NULL);
+   }
+   if (bval && (atr=NI_get_attribute(nel,"Bval"))) {
+      *bval = (int)strtod(atr,NULL);
+   }
+   RETURN(0);
+}
+
+NI_element * NI_setTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAng, 
+                     float *MinL, int *SeedPerV, int *M, int *bval)
+{   
+   ENTRY("NI_setTractAlgOpts");
+   
+   if (!nel) nel = NI_new_data_element ("TRACK_opts",0);
+   
+   if (MinFA ) {
+      NI_SETA_FLOAT(nel,"Thresh_FA",*MinFA);
+   }
+   if (MaxAng) {
+      NI_SETA_FLOAT(nel,"Thresh_ANG",*MaxAng);
+   }
+   if (MinL) {
+      NI_SETA_FLOAT(nel,"Thresh_Len",*MinL);
+   }
+   if (SeedPerV) {
+      NI_SETA_INT(nel,"Nseed_X",SeedPerV[0]);
+      NI_SETA_INT(nel,"Nseed_Y",SeedPerV[1]);
+      NI_SETA_INT(nel,"Nseed_Z",SeedPerV[2]);
+   }
+   if (M) {
+      NI_SETA_INT(nel,"Ngrads",*M);
+   }
+   if (bval) {
+      NI_SETA_INT(nel,"Bval",*bval);
+   }
+   
+   RETURN(nel);
+}
+
+NI_element * ReadTractAlgOpts(char *fname) 
+{
+   NI_stream ns=NULL;
+   NI_element *nel=NULL;
+   float MinFA, MaxAng, MinL;
+   int SeedPerV[3], M, bval;
+   char *strm=NULL;
+   FILE *fin4=NULL;
+   
+   ENTRY("ReadTractAlgOpts");  
+       
+   if (!fname || !THD_is_file(fname)) RETURN(NULL);
+   
+   if (STRING_HAS_SUFFIX(fname,".niml.opts")) {
+      strm = (char *)calloc(strlen(fname)+20, sizeof(char));
+      sprintf(strm,"file:%s",fname);
+      if (!(ns = NI_stream_open( strm , "r" ))) {
+         ERROR_message("Failed to open %s\n", strm);
+         free(strm); RETURN(NULL);
+      }
+      if (!(nel = NI_read_element( ns , 2 ))) {
+         ERROR_message("Failed to read element from \n", strm);
+         free(strm); RETURN(NULL);
+      }
+      NI_stream_close(ns); free(strm); strm = NULL;
+   } else {
+      // Opening/Reading in FACT params
+      if( (fin4 = fopen(fname, "r")) == NULL) {
+   fprintf(stderr, "Error opening file %s.",fname);
+   RETURN(NULL);
+      }
+      fscanf(fin4, "%f %f %f %d %d %d %d %d",
+        &MinFA,&MaxAng,&MinL,&SeedPerV[0],&SeedPerV[1],
+        &SeedPerV[2],&M,&bval);
+      fclose(fin4);
+      if (!(nel = 
+            NI_setTractAlgOpts(NULL, &MinFA, &MaxAng, &MinL, 
+                               SeedPerV, &M, &bval))){
+         ERROR_message("Failed to get options");
+         RETURN(NULL);
+      }
+   }
+   
+   RETURN(nel);
+}      
+
+int WriteTractAlgOpts(char *fname, NI_element *nel) 
+{
+   char *strm=NULL;
+   NI_stream ns=NULL;
+   
+   ENTRY("WriteTractAlgOpts");
+   
+   if (!nel || !fname) RETURN(1);
+   
+   strm = (char *)calloc(strlen(fname)+20, sizeof(char));
+   if (STRING_HAS_SUFFIX(fname,".niml.opts")) {
+      sprintf(strm,"file:%s",fname);
+   } else {
+      sprintf(strm,"file:%s.niml.opts",fname);
+   }
+   if (!(ns = NI_stream_open( strm , "w" ))) {
+      ERROR_message("Failed to open %s\n", strm);
+      free(strm); RETURN(1);
+   }
+   NI_write_element(ns,nel,NI_TEXT_MODE);
+   NI_stream_close(ns); free(strm); strm = NULL;
+   RETURN(0);
+} 
