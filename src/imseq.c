@@ -10011,6 +10011,7 @@ ENTRY("ISQ_rowgraph_draw") ;
 
    } else {  /* make a new plot window */
 
+      X11_SET_NEW_PLOT ;
       seq->rowgraph_mtd = memplot_to_topshell( seq->dc->display, mp,
                                                ISQ_rowgraph_mtdkill ) ;
 
@@ -10147,6 +10148,7 @@ ENTRY("ISQ_graymap_draw") ;
 
    } else {  /* make a new plot window */
 
+      X11_SET_NEW_PLOT ;
       seq->graymap_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_graymap_mtdkill ) ;
       if( seq->graymap_mtd == NULL ){ delete_memplot(mp); EXRETURN; }
       seq->graymap_mtd->userdata = (void *) seq ;
@@ -10254,17 +10256,19 @@ ENTRY("ISQ_surfgraph_draw") ;
 
       seq->surfgraph_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_surfgraph_mtdkill ) ;
 
-      if( seq->surfgraph_mtd == NULL ){ delete_memplot( mp ); EXRETURN; }
+      if( seq->surfgraph_mtd == NULL ){ delete_memplot(mp); EXRETURN; }
 
-      seq->surfgraph_mtd->userdata = (void *) seq ;
+      seq->surfgraph_mtd->userdata = (void *)seq ;
 
       /* add an arrowpad to it (lower right corner) */
 
+      WAIT_for_window(seq->surfgraph_mtd->top) ;
+
       seq->surfgraph_arrowpad = new_MCW_arrowpad( seq->surfgraph_mtd->form ,
                                                   ISQ_surfgraph_arrowpad_CB ,
-                                                  (XtPointer) seq ) ;
+                                                  (XtPointer)seq ) ;
 
-      XtUnmanageChild( seq->surfgraph_arrowpad->wform ) ;
+      /* XtUnmanageChild( seq->surfgraph_arrowpad->wform ) ; */
 
       XtVaSetValues( seq->surfgraph_arrowpad->wform ,
                         XmNbottomAttachment , XmATTACH_FORM ,
@@ -10279,7 +10283,7 @@ ENTRY("ISQ_surfgraph_draw") ;
 
       XtManageChild( seq->surfgraph_arrowpad->wform ) ;
 
-      seq->surfgraph_arrowpad->parent = (XtPointer) seq ;
+      seq->surfgraph_arrowpad->parent = (XtPointer)seq ;
       seq->surfgraph_arrowpad->fastdelay = MCW_AV_longdelay ;
    }
 
@@ -12862,7 +12866,7 @@ ENTRY("ISQ_save_anim") ;
    prefix = (char*)calloc( ll+16, sizeof(char)) ;
    strcpy( prefix , prefin ) ;
    fnamep = (char*)calloc( ll+32,  sizeof(char)) ;
-   
+
    ppo = THD_trailname(prefix,0) ;               /* strip directory */
 
    if( prefix[ll-1] != '.' ){  /* add a . at the end */
