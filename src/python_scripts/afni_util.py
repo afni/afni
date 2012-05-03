@@ -653,10 +653,11 @@ def transpose(matrix):
         newmat.append(newrow)
     return newmat
 
-def derivative(vector, in_place=0):
+def derivative(vector, in_place=0, direct=0):
     """take the derivative of the vector, setting d(t=0) = 0
 
         in_place: if set, the passed vector will be modified
+        direct:   if 0, use backward difference, if 1 use forward
 
        return v[t]-v[t-1] for 1 in {1,..,len(v)-1}, d[0]=0"""
 
@@ -668,9 +669,15 @@ def derivative(vector, in_place=0):
     else:        vec = vector[:] # start with copy
     
     # count from the end to allow memory overwrite
-    for t in range(len(vec)-1, 0, -1):
-        vec[t] -= vec[t-1]
-    vec[0] = 0
+    if direct:  # forward difference
+       vlen = len(vec)
+       for t in range(vlen-1):
+           vec[t] = vec[t+1] - vec[t]
+       vec[vlen-1] = 0
+    else:       # backward difference
+       for t in range(len(vec)-1, 0, -1):
+           vec[t] -= vec[t-1]
+       vec[0] = 0
 
     return vec
 

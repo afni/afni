@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 3, MAY, 2012, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -backward_diff and -forward_diff",
+   "Note, -backward_diff is the same as -derivative."
+ } ,
+
  { 2, MAY, 2012, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "added AFNI_PATH_SPACES_OK, for input of datasets with spaces in path",
    "Added for V Roopchansingh."
