@@ -9960,6 +9960,7 @@ ENTRY("ISQ_rowgraph_draw") ;
 
    ymask = TSP_SEPARATE_YBOX ;
 
+   plot_ts_setTHIK(0.0034567f) ;
    mp = plot_ts_mem( nx , NULL , nrow,ymask,yar , "Column (pixels)",NULL,NULL,NULL ) ;
    if( mp == NULL ){
       ERROR_message("in ISQ_rowgraph_draw: can't make plot_ts_mem") ;
@@ -10129,6 +10130,7 @@ ENTRY("ISQ_graymap_draw") ;
 
    /* make a plot in memory */
 
+   plot_ts_setTHIK(0.002468f) ;
    mp = plot_ts_mem( nxx,xar, ny,0,yar, "Data Value",
                      (ny == 1) ? "GrayLevel"
                                : "GrayLevel\\red/Histogram\\black" ,
@@ -10148,7 +10150,6 @@ ENTRY("ISQ_graymap_draw") ;
 
    } else {  /* make a new plot window */
 
-      X11_SET_NEW_PLOT ;
       seq->graymap_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_graymap_mtdkill ) ;
       if( seq->graymap_mtd == NULL ){ delete_memplot(mp); EXRETURN; }
       seq->graymap_mtd->userdata = (void *) seq ;
@@ -10381,7 +10382,7 @@ ENTRY("plot_image_surface") ;
                       (integer *)(&ii) ) ;
 
 #undef  THIK
-#define THIK 0.004
+#define THIK 0.00333
 
       dx = 0.016 * x[nx-1] ; dy = 0.016 * y[ny-1] ; dx = MAX(dx,dy) ;
       xi = x[ix]+dx ; yi = y[ny-1-jy]+dx ; zi = z[ix+(ny-1-jy)*nx] ;
