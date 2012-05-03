@@ -127,7 +127,7 @@ char * SCAT_main( PLUGIN_interface *plint )
    THD_3dim_dataset *xdset, *ydset , *mask_dset=NULL ;
    int ivx,ivy , mcount , nvox , ii,jj , nbin=-1 ;
    float mask_bot=666.0 , mask_top=-666.0 ;
-   float xbot,xtop , ybot,ytop , pcor=0 , a=0,b=0 , p025=0,p975=0 ;
+   float xbot,xtop, ybot,ytop, pcor=0.0f, a=0.0f,b=0.0f, p025=0.0f,p975=0.0f, mi=0.0f ;
    char *tag , *str ;
    char xlab[THD_MAX_NAME],ylab[THD_MAX_NAME],tlab[THD_MAX_NAME+64] ;
    char ab[16] , bb[16] , *pab,*pbb ;
@@ -511,11 +511,13 @@ char * SCAT_main( PLUGIN_interface *plint )
      if( mcount < 6666 ){
        THD_pearson_corr_boot( mcount,xar,yar , &rrr,&aaa,&bbb ) ;
        pcor = rrr.a ; p025 = rrr.b ; p975 = rrr.c ; a = aaa.a ; b = bbb.a ;
+       INFO_message("Scatterplot: R=%.3f  a=%.3f  b=%.3f  [y=ax+b fit]",pcor,a,b) ;
      } else {
        rrr = THD_pearson_indexed( mcount,NULL , xar,yar ) ;
        pcor = rrr.c ; a = rrr.a ; b = rrr.b ; p025 = 6.66f ; p975 = -6.66f ;
+       mi = THD_mutual_info( mcount , xar , yar ) ;
+       INFO_message("Scatterplot: R=%.3f  a=%.3f  b=%.3f  [y=ax+b fit]  MI=%.3f",pcor,a,b,mi) ;
      }
-     INFO_message("Scatterplot: R=%.3f  a=%.3f  b=%.3f  [y=ax+b fit]",pcor,a,b) ;
    }
 
    if( label != NULL ){
@@ -528,14 +530,16 @@ char * SCAT_main( PLUGIN_interface *plint )
    }
    if( pcor != 0.0f ){
      if( strlen(tlab) > 25 && p025 < pcor && p975 > pcor ){
-       sprintf(tlab+strlen(tlab),"\\esc\\red  R=%.2f",pcor) ;
+       sprintf(tlab+strlen(tlab),"\\esc\\red  R\\approx %.2f",pcor) ;
        sprintf(tlab+strlen(tlab),"\\in[%.2f..%.2f]_{95%%}",p025,p975) ;
        if( p025*p975 > 0.0f ) strcat(tlab,"^{*}") ;
      } else {
-       sprintf(tlab+strlen(tlab),"\\esc\\red  R=%.3f",pcor) ;
+       sprintf(tlab+strlen(tlab),"\\esc\\red  R\\approx %.3f",pcor) ;
        if( p025 < pcor && p975 > pcor ){
          sprintf(tlab+strlen(tlab),"\\in[%.3f..%.3f]_{95%%}",p025,p975) ;
          if( p025*p975 > 0.0f ) strcat(tlab,"^{*}") ;
+       } else if( mi != 0.0f ){
+         sprintf(tlab+strlen(tlab)," MI\\approx %.3f",mi) ;
        }
      }
      sprintf(tlab+strlen(tlab),"\\black") ;
