@@ -83,6 +83,12 @@ examples (very basic for now):
                     -set_run_lengths 64 64 64 64 64 64 64 64 64 \\
                     -derivative -write motion.deriv.rlens.1D
 
+   7c. Use forward differences, instead of the default backward differences.
+
+         1d_tool.py -infile dfile.rall.1D                       \\
+                    -set_run_lengths 64 64 64 64 64 64 64 64 64 \\
+                    -forward_diff -write motion.deriv.rlens.1D
+
    8.  Verify whether labels show slice-major ordering (where all slice0
        regressors come first, then all slice1 regressors, etc).  Either
        show the labels and verify visually, or print whether it is true.
@@ -271,6 +277,16 @@ required input:
 general options:
 
    -add_cols NEW_DSET.1D        : extend dset to include these columns
+
+   -backward_diff               : take derivative as backward difference
+
+        Take the backward differences at each time point.  For each index > 0,
+        value[index] = value[index] - value[index-1], and value[0] = 0.
+
+        This option is identical to -derivative.
+
+        See also -forward_diff, -derivative, -set_nruns, -set_run_lens.
+
    -collapse_cols METHOD        : collapse multiple columns into one, where
 
         METHOD is one of: min, max, minabs, maxabs, euclidean_norm.
@@ -327,8 +343,17 @@ general options:
    -censor_prev_TR              : for each censored TR, also censor previous
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
    -demean                      : demean each run (new mean of each run = 0.0)
+
    -derivative                  : take the temporal derivative of each vector
                                   (done as backward difference)
+
+        Take the backward differences at each time point.  For each index > 0,
+        value[index] = value[index] - value[index-1], and value[0] = 0.
+
+        This option is identical to -backward_diff.
+
+        See also -backward_diff, -forward_diff, -set_nruns, -set_run_lens.
+
    -extreme_mask MIN MAX        : make mask of extreme values
 
         Convert to a 0/1 mask, where 1 means the given value is extreme
@@ -338,6 +363,17 @@ general options:
         Note: values = MIN or MAX will be in both extreme and moderate masks.
 
         Note: this was originally described incorrectly in the help.
+
+   -forward_diff                : take the temporal derivative of each vector
+
+        Take the forward differences at each time point.  For index < last,
+        value[index] = value[index+1] - value[index], and value[last] = 0.
+
+        The difference between -forward_diff and -backward_diff is a time shift
+        by one index.
+
+        See also -backward_diff, -derivative, -set_nruns, -set_run_lens.
+
 
    -moderate_mask MIN MAX       : make mask of moderate values
 
@@ -549,9 +585,11 @@ g_history = """
         - fixed help (-extreme_mask was described backwards)
         - as noted by R Kuplicki
    1.04 May  1, 2012 - added -look_like_AM
+   1.05 May  3, 2012
+        - added -backward_diff (same as -derivative) and new -forward_diff
 """
 
-g_version = "1d_tool.py version 1.04, May 1, 2012"
+g_version = "1d_tool.py version 1.05, May 3, 2012"
 
 
 class A1DInterface:
@@ -578,6 +616,7 @@ class A1DInterface:
       self.collapse_method = ''         # method for collapsing columns
       self.demean          = 0          # demean the data
       self.derivative      = 0          # take temporal derivative
+      self.direct          = 0          # for deriv: 0=backward diff, 1=forward
       self.overwrite       = 0          # whether to allow overwriting
       self.pad_to_runs     = []         # pad as run #A out of #B runs
       self.rand_trs        = 0          # randomize order of data over time
@@ -692,6 +731,9 @@ class A1DInterface:
       self.valid_opts.add_opt('-add_cols', 1, [],
                       helpstr='extend dataset with columns from new file')
 
+      self.valid_opts.add_opt('-backward_diff', 0, [], 
+                      helpstr='take derivative using backward differences')
+
       self.valid_opts.add_opt('-censor_fill', 0, [], 
                       helpstr='zero-fill previously censored TRs')
 
@@ -725,6 +767,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-extreme_mask', 2, [], 
                       helpstr='create mask for values outside (MIN,MAX)')
+
+      self.valid_opts.add_opt('-forward_diff', 0, [], 
+                      helpstr='take derivative using forward differences')
 
       self.valid_opts.add_opt('-moderate_mask', 2, [], 
                       helpstr='create mask for values within [MIN,MAX]')
@@ -990,6 +1035,13 @@ class A1DInterface:
                print '** -extreme_mask: must have min <= max'
                return 1
 
+         elif opt.name == '-backward_diff':
+            self.derivative = 1
+
+         elif opt.name == '-forward_diff':
+            self.derivative = 1
+            self.direct = 1
+
          elif opt.name == '-moderate_mask':
             val, err = uopts.get_type_list(float, '', opt=opt)
             if err: return 1
@@ -1180,7 +1232,7 @@ class A1DInterface:
       if self.set_tr > 0: self.adata.tr = self.set_tr
 
       if self.derivative:
-         if self.adata.derivative(): return 1
+         if self.adata.derivative(self.direct): return 1
 
       if self.demean:
          if self.adata.demean(): return 1

@@ -171,11 +171,13 @@ class Afni1D:
 
       return 0
 
-   def derivative(self):
+   def derivative(self, direct=0):
       """change each value to its derivative (cur val - previous)
          new time[0] will always be 0
 
          process the data per run, so derivatives do not cross boundaries
+
+         direct: 0 means backward difference, 1 means forward
 
          return 0 on success"""
 
@@ -194,13 +196,20 @@ class Afni1D:
           print "-- derivative: over %d runs of lengths %s" \
                 % (self.nruns, self.run_len)
 
-      # apply derivative to each vector as one run, then clear run breaks
+      # apply derivative to each run of each vector
       for ind in range(self.nvec):
-         UTIL.derivative(self.mat[ind], in_place=1)
-         offset = 0
-         for t in self.run_len:
-            self.mat[ind][offset] = 0
-            offset += t
+         UTIL.derivative(self.mat[ind], in_place=1, direct=direct)
+         # if forward diff, clear final indexes, else clear initial
+         if direct:
+            offset = -1
+            for t in self.run_len:
+               offset += t
+               self.mat[ind][offset] = 0
+         else:
+            offset = 0
+            for t in self.run_len:
+               self.mat[ind][offset] = 0
+               offset += t
 
       return 0
 
