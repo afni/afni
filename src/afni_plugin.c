@@ -3011,7 +3011,7 @@ ENTRY("PLUG_finalize_dataset_CB") ;
 
    XtVaGetValues( w , XmNuserData , &av , NULL ) ;
    if( plint == NULL || av == NULL ) EXRETURN ;
-   
+
    shrtit = TrimString(av->dset_link[cbs->ival].title, 20); /* ZSS Jan 2012*/
    if( ! av->multi ){
       xstr = XmStringCreateLtoR( shrtit ,
@@ -5217,19 +5217,28 @@ ENTRY("PLUTO_scatterplot") ;
       plotpak_line( xb,ya , xa,ya ) ;
    }
 
+   /* draw a line (showing the least squares linear fit of y to x) */
+
    if( a != 0.0f || b != 0.0f ){              /* 02 May 2005 */
-     set_color_memplot( 0.7 , 0.0 , 0.0 ) ; set_thick_memplot( 0.003f ) ;
+
+     /* endpoints of line passing from left edge to right edge */
+
      xa = xbot ; ya = a*xa+b ; xb = xtop ; yb = a*xb+b ;
-/* INFO_message("pre-clip : xa=%g ya=%g xb=%g yb=%g",xa,ya,xb,yb) ; */
+
+     /* clip line at left end */
+
           if( ya < ybot && a > 0.0f ){ xa = (ybot-b)/a ; ya = ybot ; }
      else if( ya > ytop && a < 0.0f ){ xa = (ytop-b)/a ; ya = ytop ; }
+
+     /* clip line at right end */
+
           if( yb < ybot && a < 0.0f ){ xb = (ybot-b)/a ; yb = ybot ; }
      else if( yb > ytop && a > 0.0f ){ xb = (ytop-b)/a ; yb = ytop ; }
-/* ININFO_message("post-clip: xa=%g ya=%g xb=%g yb=%g",xa,ya,xb,yb) ; */
-/* ININFO_message("clip box:  xbot=%g ybot=%g xtop=%g ytop=%g",xbot,ybot,xtop,ytop) ; */
-     plotpak_setlin(2) ;
-     plotpak_line( xa,ya , xb,yb ) ;
-     plotpak_setlin(1) ;
+
+     set_color_memplot(0.7f,0.0f,0.0f) ; set_thick_memplot(0.003456789f) ;
+     plotpak_setlin(2) ;             /* dashed line mode */
+     plotpak_line( xa,ya , xb,yb ) ; /* draw it */
+     plotpak_setlin(1) ;             /* back to solid line mode */
    }
 
    mp = get_active_memplot() ;
