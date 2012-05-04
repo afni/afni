@@ -2,7 +2,6 @@
 
 import sys
 import os
-import subprocess
 import option_list as OL
 import random
 from afni_base import *
@@ -296,6 +295,18 @@ Processing is done in the following steps:
 		your data are higher resolution, you may want to use -venterode
 		1. It is a good idea to check both the WM and ventricle masks 
 		to make sure they look good.
+	Prep Blurring Mask:
+		The last step (after regression) is to apply gaussian smoothing.
+		By default (if -aseg was specified), this smoothing is done in
+		the grey and nongrey matter seperately via 3dBlurInMask. The
+		blurring mask is created so that grey matter voxels are labeled 1
+		and nongrey voxels (inside the brain) are labeld 2. The labeling
+		is simply (automask + WM mask + Vent mask). If -aseg was not
+		specified, or -smoothtogether was given, the smoothing is done
+		using the whole brain as one region.
+	Smoothing:
+		If -smoothfirst was selected, this is where smoothing takes
+		place. It is done as described below.
 	Extract Regressors from masks:
 		Regressor timeseries are extracted from the WM and ventricle
 		masks as well as any masks supplied by the user with the
@@ -312,15 +323,6 @@ Processing is done in the following steps:
 		ventricle mask and supply it as a global mask. Likewise, you can
 		create a whitematter mask and supply it as a local regressor.
 		Multiple local and global masks can be supplied.
-	Prep Blurring Mask:
-		The last step (after regression) is to apply gaussian smoothing.
-		By default (if -aseg was specified), this smoothing is done in
-		the grey and nongrey matter seperately via 3dBlurInMask. The
-		blurring mask is created so that grey matter voxels are labeled 1
-		and nongrey voxels (inside the brain) are labeld 2. The labeling
-		is simply (automask + WM mask + Vent mask). If -aseg was not
-		specified, or -smoothtogether was given, the smoothing is done
-		using the whole brain as one region.
 	Differentiate Regressors:
 		If desired, the temporal derivatives of each regressor are 
 		computed and added to the list of regressors.
@@ -328,9 +330,6 @@ Processing is done in the following steps:
 		The polynomial of order -polort is removed from each of the
 		regressors (RVT, WM, Vent, Motion). This is done so there are 
 		no competing polynomial terms during the regression step.
-	Smoothing:
-		If -smoothfirst was selected, this is where smoothing takes
-		place. It is done as described below.
 	Bandpass Filtering:
 		If bandpass filtering is selected, it is applied to the EPI 
 		data here instead of after regression.
@@ -469,17 +468,24 @@ Example Usage:
 		censor.1D \\
 		epi.censored
 
-Original  version by Rayus Kuplicki.
+Original version by Rayus Kuplicki.
 University of Tulsa
 Laureate Institute for Brain Research
 Report problems or feature requests to rkuplicki@laureateinstitute.org.
-1-26-12
+5-4-12
 """
 	
 change_string = """
 Changelog for afni_restproc.py:
 4-26-12
 Initial version
+
+5-4-12
+fixed -dreg so now the derivatives of the regressors are computed and used 
+	properly
+if -smoothfirst is chosen, smoothing now takes place before computing regressors
+removed import subprocess
+fixed placement of comment about copying results
 """
 class RestInterface:
    """Rest Processing Interface Class"""
@@ -1196,7 +1202,7 @@ class RestInterface:
    def differentiate_all(self, regs):
       #add the first derivatives as additional regressors
       if not self.dreg:
-         return
+         return regs
       self.info("Differentiate regressors")
       newregs = list(regs)
       for i in range(len(regs)):
@@ -1208,13 +1214,15 @@ class RestInterface:
             newregs.append(self.dif_4D(regs[i]))
          else:
             print "ERROR: %s is not a .1D or a .BRIK file" % regs[i]
-      regs = newregs
+      #regs = newregs
+      return newregs
 
    def dif_1D(self, cur1D):
       #differentiate the given 1D file (simple backwards differences)
       cur1Dp = split_1D(cur1D)
       cmd = "1d_tool.py -derivative -infile %s -write %s.backdif.1D" % (cur1D, cur1Dp)
-      return "%s.backdif.1D" % cur1D
+      self.write_execute(cmd)
+      return "%s.backdif.1D" % cur1Dp
 
    def dif_4D(self, cur4D):
       #differentiate the given 4D file (simple backwards differences)
@@ -1615,23 +1623,22 @@ class RestInterface:
       #include whole brain regressor, if requested
       if self.includebrain:
          curREGMASKS.append(maskBRAIN)
-      #extract regressors from masks
-      self.regressors = self.ext_mask_regs(curEPI, self.regressors, curREGMASKS)
-  
-      self.regressors.append(curMOTION)
-      self.regressors.append(curRVT)
-      
-      #differentiate regressors, if requested
-      self.differentiate_all(self.regressors)
-
-      #detrend regressors
-      self.detrend_all(self.regressors)
       #smooth before regression, if desired
       if self.smoothfirst:
          if self.smoothtogether:
             curEPI = self.smooth(curEPI, maskBRAIN)
          else:
             curEPI = self.smooth(curEPI, maskBLUR)
+      #extract regressors from masks
+      self.regressors = self.ext_mask_regs(curEPI, self.regressors, curREGMASKS)
+      self.regressors.append(curMOTION)
+      self.regressors.append(curRVT)
+      
+      #differentiate regressors, if requested
+      self.regressors = self.differentiate_all(self.regressors)
+
+      #detrend regressors
+      self.detrend_all(self.regressors)
 
       #do bandpass filtering
       curEPI = self.bpass(curEPI)
@@ -1664,6 +1671,7 @@ class RestInterface:
       curMC,curMCGT,curHIST = self.compute_corrmap(curEPI, maskGM)
       #copy and name results
       #also talairach them if -tlrclast is chosen
+      self.info("Copy results, possibly talairaching them")
       if self.tlrclast:
          curANATT = self.tlrc_anat(curANAT)
          self.just_copy_result_BRIK(curANATT, "../%s.anat" % (self.prefix))
@@ -1671,7 +1679,6 @@ class RestInterface:
          curANATT = None
          self.just_copy_result_BRIK(curANAT, "../%s.anat" % (self.prefix))
       
-      self.info("Copy results, possibly talairaching them")
       self.copy_result_1D(curCENSOR, "../%s.censor.1D" % self.prefix)
       self.copy_result_BRIK(curEPI, "../%s.cleanEPI" % (self.prefix), curANATT, "quintic")
       self.copy_result_BRIK(maskVENT, "../%s.mask.vent" % (self.prefix), curANATT, "NN")

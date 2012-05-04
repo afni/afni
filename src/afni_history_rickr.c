@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 4, MAY, 2012, RCR, "afni_restproc.py", MINOR, TYPE_BUG_FIX,
+   "submitting updates from Rayus",
+   "Updates are in changelog."
+ } ,
+
  { 3, MAY, 2012, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -backward_diff and -forward_diff",
    "Note, -backward_diff is the same as -derivative."
