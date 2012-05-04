@@ -11,7 +11,7 @@ int main( int argc , char *argv[] )
    float dt=1.0f ;
    int dtforce=0 , ntime=0 , tt , nblock=0 , *blocklist=NULL , *blocklen=NULL ;
    int bbot, btop ;
-   int nband=0 , nozero=0 ; float fbot[BMAX] , ftop[BMAX] ;
+   int nband=0 , nozero=0 , quad=0 ; float fbot[BMAX] , ftop[BMAX] ;
 
    /*-----*/
 
@@ -48,9 +48,10 @@ int main( int argc , char *argv[] )
        "                     filter -- probably not what you want!\n"
        "                  ** It is legitimate to set fbot = ftop.\n"
        "                  ** The 0 frequency (fbot = 0) component is all 1, of course.\n"
-       "                     But nothing generated here will deal well with linear-ish\n"
-       "                     or quadratic-ish trends, which fall below the lowest nonzero\n"
-       "                     frequency representable in a full cycle on the grid:\n"
+       "                     But unless you use the '-quad' option, nothing generated\n"
+       "                     herein will deal well with linear-ish or quadratic-ish\n"
+       "                     trends, which fall below the lowest nonzero frequency\n"
+       "                     representable in a full cycle on the grid:\n"
        "                        f_low = 1 / ( NT * TR )\n"
        "                     where NT = number of time points.\n"
        "                  ** See the fourth EXAMPLE to learn how to use 3dDeconvolve\n"
@@ -65,6 +66,9 @@ int main( int argc , char *argv[] )
        "   *OR            } when fbot = 0; this has the effect of setting fbot to\n"
        " -noconst         } 1/(N*TR), and is essentially a convenient way to say\n"
        "                    'eliminate all oscillations below the ftop frequency'.\n"
+       "\n"
+       " -quad            = Add regressors for linear and quadratic trends.\n"
+       "                    (These will be the last columns in the output.)\n"
        "\n"
        " -input dataset   } One of these options is used to specify the number of\n"
        "   *OR*           } time points to be created, as in 3dDeconvolve.\n"
@@ -136,6 +140,10 @@ int main( int argc , char *argv[] )
          strcasecmp(argv[nopt],"-nonzero") == 0   ){
 
        mri_bport_set_ffbot(1) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-quad") == 0 ){
+       mri_bport_set_quad(1) ; quad = 1 ; nopt++ ; continue ;
      }
 
      /*-----*/

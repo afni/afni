@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 2 , MAY , 2012 , RWC , "coxplot" , MICRO , TYPE_GENERAL ,
+  { 4 , MAY , 2012 , RWC , "1dBport" , MICRO , TYPE_NEW_OPT ,
+   "Add -quad option = linear and quadratic trend regressors" ,
+   NULL } ,
+
+ { 2 , MAY , 2012 , RWC , "coxplot" , MICRO , TYPE_GENERAL ,
    "More minor changes to timeseries plotting" ,
    "Rounded joins for lines drawn in 'new' mode.  Use new mode for final\n"
    "rendering in plug_realtime.c (but not for realtime graphing).  Etc." } ,
