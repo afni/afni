@@ -6,6 +6,9 @@ void mri_bport_set_ffbot( int q ){ BP_ffbot = q ; }
 static int BP_invert = 0 ;
 void mri_bport_set_invert( int q ){ BP_invert = q ; }
 
+static int BP_quad = 0 ;
+void mri_bport_set_quad( int q ){ BP_quad = q ; }
+
 /*---------------------------------------------------------------------------*/
 
 intvec * invert_integer_list( int nind , int *ind , int ibot , int itop )
@@ -86,6 +89,8 @@ ENTRY("mri_bport_indexed") ;
    }
    if( ncol == 0 ){ free(qind) ; RETURN(NULL) ; }
 
+   if( BP_quad ) ncol += 2 ;
+
    nrow = ntime + nbefore + nafter ;
    fim  = mri_new( nrow , ncol , MRI_float ) ;
    far  = MRI_FLOAT_PTR(fim) ;
@@ -106,6 +111,14 @@ ENTRY("mri_bport_indexed") ;
        }
        ii += 2 ;  /* added 2 cols */
      }
+   }
+
+   if( BP_quad ){
+     float xmid=0.5*(ntime-1) , xfac=1.0f/xmid ;
+     fii = far + (ii*nrow + nbefore) ;
+     for( kk=0 ; kk < ntime ; kk++ ) fii[kk] = (float)Plegendre(xfac*(kk-xmid),1) ;
+     ii++ ; fii = far + (ii*nrow + nbefore) ;
+     for( kk=0 ; kk < ntime ; kk++ ) fii[kk] = (float)Plegendre(xfac*(kk-xmid),2) ;
    }
 
    free(qind) ; RETURN(fim) ;

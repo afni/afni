@@ -533,6 +533,8 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 1dAstrip 1dAstrip.o
 
+1dBport.o:1dBport.c mri_bport.c
+
 1dBport:1dBport.o
 	$(RM) $@
 	$(CC) -o 1dBport 1dBport.o $(LFLAGS) $(LLIBS)
