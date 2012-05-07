@@ -4677,6 +4677,8 @@ extern int THD_mask_fill_holes( int,int,int, byte *, int);  /* 27 Apr 2012 */
 
 extern void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
 extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate ) ;
+extern void THD_mask_erode_sym(int nx,int ny,int nz, byte *mmm, int nerode);
+
 extern void THD_mask_erodemany( int nx, int ny, int nz, byte *mmm, int npeel ) ; /* 24 Oct 2006 */
 
 extern int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth ) ;

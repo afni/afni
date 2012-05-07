@@ -1979,6 +1979,17 @@ def euclidean_norm(vals):
    if len(vals) < 1: return 0.0
    return math.sqrt(loc_sum([v*v for v in vals]))
 
+def weighted_enorm(vals, weights):
+
+   if len(vals) < 1: return 0.0
+   if len(vals) != len(weights): return 0.0
+
+   sum = 0.0
+   for ind in range(len(vals)):
+      vv = vals[ind]*weights[ind]
+      sum += vv*vv
+   return math.sqrt(sum)
+
 def dotprod(v1,v2):
    """compute the dot product of 2 vectors"""
    try: dsum = loc_sum([v1[i]*v2[i] for i in range(len(v1))])

@@ -112,6 +112,14 @@ examples (very basic for now):
                     -derivative  -collapse_cols euclidean_norm  \\
                     -write e.norm.rlens.1D
 
+   9c. Similar to 9b, but weight the rotations as 0.9 mm.
+
+         1d_tool.py -infile motion.1D                           \\
+                    -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
+                    -derivative  -collapse_cols weighted_enorm  \\
+                    -weight_vec .9 .9 .9 1 1 1                  \\
+                    -write e.norm.weighted.1D
+
   10.  Given motion.1D, create censor files to use in 3dDeconvolve, where a
        TR is censored if the derivative values have a Euclidean Norm above 1.2.
 
@@ -289,7 +297,31 @@ general options:
 
    -collapse_cols METHOD        : collapse multiple columns into one, where
 
-        METHOD is one of: min, max, minabs, maxabs, euclidean_norm.
+        METHOD is one of: min, max, minabs, maxabs, euclidean_norm,
+                          weighted_enorm.
+
+        Consideration of the euclidean_norm method:
+
+           For censoring, the euclidean_norm method is used (sqrt(sum squares)).
+           This combines rotations (in degrees) with shifts (in mm) as if they
+           had the same weight.
+
+           Note that assuming rotations are about the center of mass (which
+           should produce a minimum average distance), then the average arc
+           length (averaged over the brain mask) of a voxel rotated by 1 degree
+           (about the CM) is the following (for the given datasets):
+
+              TT_N27+tlrc:        0.967 mm (average radius = 55.43 mm)
+              MNIa_caez_N27+tlrc: 1.042 mm (average radius = 59.69 mm)
+              MNI_avg152T1+tlrc:  1.088 mm (average radius = 62.32 mm)
+
+           The point of these numbers is to suggest that equating degrees and
+           mm should be fine.  The average distance caused by a 1 degree
+           rotation is very close to 1 mm (in an adult human).
+
+         * Use of weighted_enorm requires the -weight_vec option.
+
+              e.g. -collapse_cols weighted_enorm -weight_vec .9 .9 .9 1 1 1 
 
    -censor_motion LIMIT PREFIX  : create censor files
 
@@ -495,6 +527,18 @@ general options:
 
    -transpose                   : transpose the matrix (rows for columns)
    -write FILE                  : write the current 1D data to FILE
+
+   -weight_vec v1 v2 ...        : supply weighting vector
+
+        e.g. -weight_vec 0.9 0.9 0.9 1 1 1
+
+        This vector currently works only with the weighted_enorm method for
+        the -collapse_cols option.  If supplied (as with the example), it will
+        weight the angles at 0.9 times the weights of the shifts in the motion
+        parameters output by 3dvolreg.
+
+        See also -collapse_cols.
+
    -write_censor FILE           : write as boolean censor.1D
 
         e.g. -write_censor subjA_censor.1D
@@ -587,9 +631,12 @@ g_history = """
    1.04 May  1, 2012 - added -look_like_AM
    1.05 May  3, 2012
         - added -backward_diff (same as -derivative) and new -forward_diff
+   1.06 May  7, 2012
+        - added weighted_enorm method for -collapse_cols
+        - added corresponding -weight_vec option
 """
 
-g_version = "1d_tool.py version 1.05, May 3, 2012"
+g_version = "1d_tool.py version 1.06, May 7, 2012"
 
 
 class A1DInterface:
@@ -648,6 +695,8 @@ class A1DInterface:
       self.censortr_file   = None       # output as CENSORTR string
       self.collapse_file   = None       # output as 1D collapse file
       self.write_file      = None       # output filename
+
+      self.weight_vec      = None       # weight vector (for enorms?)
 
       # test variables
       self.looks_like      = 0          # 1,2,4,8,16 = TEST,1D,local,global,AM
@@ -753,7 +802,8 @@ class A1DInterface:
                       helpstr='if censoring a TR, also censor previous one')
 
       self.valid_opts.add_opt('-collapse_cols', 1, [], 
-                      acplist=['min','max','minabs','maxabs','euclidean_norm'],
+                      acplist=['min','max','minabs','maxabs',
+                               'euclidean_norm', 'weighted_enorm'],
                       helpstr='collapse into one column via supplied METHOD')
 
       self.valid_opts.add_opt('-cormat_cutoff', 1, [], 
@@ -854,6 +904,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-transpose', 0, [], 
                       helpstr='transpose the data')
+
+      self.valid_opts.add_opt('-weight_vec', -1, [], 
+                      helpstr='specify weights (for enorm computation)')
 
       self.valid_opts.add_opt('-write', 1, [], 
                       helpstr='write 1D data to the given file')
@@ -1023,6 +1076,11 @@ class A1DInterface:
 
          elif opt.name == '-derivative':
             self.derivative = 1
+
+         elif opt.name == '-weight_vec':
+            val, err = uopts.get_type_list(float, '', opt=opt)
+            if err: return 1
+            self.weight_vec = val
 
          elif opt.name == '-extreme_mask':
             val, err = uopts.get_type_list(float, '', opt=opt)
@@ -1261,7 +1319,8 @@ class A1DInterface:
          if self.adata.transpose(): return 1
 
       if self.collapse_method:
-         if self.adata.collapse_cols(self.collapse_method): return 1
+         if self.adata.collapse_cols(self.collapse_method, self.weight_vec):
+            return 1
          if self.collapse_file:
             if self.write_1D(self.collapse_file): return 1
 
