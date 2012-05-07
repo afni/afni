@@ -66,6 +66,15 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4, May , 2012 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
+   "Added inverse distance measures to InstaCorr",
+   "For the moment, those options are only accessible to usernames \n"
+   " rwcox and ziad. Relevant functions are:\n"
+   "  THD_vectim_distance(), and THD_distance(). THD_distance() is not\n"
+   "used at the moment, it would be from 3dLocalBistat once I get around\n"
+   "to testing it. For now, its access from 3dLocalBistat is #if-ed out.\n"
+ },
+ 
  { 27, APR , 2012 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Added percentile thresholding to AFNI's interface",
    "Relevant functions:\n"

@@ -825,6 +825,10 @@ extern void binarize_mask( int , byte * ) ;
 #define NBISTAT_BC_PEARSON_M       66691
 #define NBISTAT_BC_PEARSON_V       66692
 
+#define NBISTAT_EUCLIDIAN_DIST     66693 /* 4 May 2012, ZSS */
+#define NBISTAT_CITYBLOCK_DIST     66694 /* 4 May 2012, ZSS */
+
+
 extern float mri_nstat  ( int , int , float * , float) ;  /* 19 Aug 2005 */
 extern float mri_nbistat( int , MRI_IMAGE *, MRI_IMAGE * ) ; /* 26 Oct 2006 */
 extern void mri_nbistat_setclip( float, float , float, float ) ;

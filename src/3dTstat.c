@@ -101,25 +101,10 @@ static int Calc_duration(float *ts, int npts, float vmax, int max_index,
    int *onset, int *offset);
 static float Calc_centroid(float *ts, int npts);
 
-
-int main( int argc , char *argv[] )
+void usage_3dTstat(int detail) 
 {
-   THD_3dim_dataset *old_dset , *new_dset ;  /* input and output datasets */
-   THD_3dim_dataset *mask_dset=NULL  ;
-   float mask_bot=666.0 , mask_top=-666.0 ;
-   byte *cmask=NULL ; int ncmask=0 ;
-   byte *mmm   = NULL ;
-   int mcount=0, verb=0;
-   int nopt, nbriks, ii ;
-   int addBriks = 0 ;   /* n-1 sub-bricks out */
-   int fullBriks = 0 ;  /* n   sub-bricks out */
-   int tsout = 0 ;      /* flag to output a time series (not a stat bucket) */
-   int numMultBriks,methIndex,brikIndex;
 
-   /*----- Help the pitiful user? -----*/
-
-   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
-      printf(
+     printf(
 "Usage: 3dTstat [options] dataset\n"
  "Computes one or more voxel-wise statistics for a 3D+time dataset\n"
  "and stores them in a bucket dataset.  If no statistic option is\n"
@@ -260,22 +245,46 @@ int main( int argc , char *argv[] )
   "option, then the output will be written into a NIML-formatted 1D\n"
   "dataset, which you might find slightly confusing (but still usable).\n"
  ) ;
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
+   
+   PRINT_COMPILE_DATE ;  
+   
+   return;
+}
+
+int main( int argc , char *argv[] )
+{
+   THD_3dim_dataset *old_dset , *new_dset ;  /* input and output datasets */
+   THD_3dim_dataset *mask_dset=NULL  ;
+   float mask_bot=666.0 , mask_top=-666.0 ;
+   byte *cmask=NULL ; int ncmask=0 ;
+   byte *mmm   = NULL ;
+   int mcount=0, verb=0;
+   int nopt, nbriks, ii ;
+   int addBriks = 0 ;   /* n-1 sub-bricks out */
+   int fullBriks = 0 ;  /* n   sub-bricks out */
+   int tsout = 0 ;      /* flag to output a time series (not a stat bucket) */
+   int numMultBriks,methIndex,brikIndex;
+
+   /*----- Help the pitiful user? -----*/
+
 
    /* bureaucracy */
-
    mainENTRY("3dTstat main"); machdep(); AFNI_logger("3dTstat",argc,argv);
    PRINT_VERSION("3dTstat"); AUTHOR("KR Hammett & RW Cox");
 
    /*--- scan command line for options ---*/
 
+   if (argc == 1) { usage_3dTstat(1); exit(0); } /* Bob's help shortcut */
    nopt = 1 ;
    nbriks = 0 ;
    nmeths = 0 ;
    verb = 0;
    while( nopt < argc && argv[nopt][0] == '-' ){
-
+      if (strcmp(argv[nopt], "-h") == 0 || strcmp(argv[nopt], "-help") == 0) {
+         usage_3dTstat(strlen(argv[nopt]) > 3 ? 2:1);
+         exit(0);
+      }
+      
       /*-- methods --*/
 
       if( strcasecmp(argv[nopt],"-centromean") == 0 ){ /* 01 Nov 2010 */
@@ -578,8 +587,15 @@ int main( int argc , char *argv[] )
 
       /*-- Quien sabe'? --*/
 
-      ERROR_exit("Unknown option: %s\n",argv[nopt]) ;
+      ERROR_message("Unknown option: %s\n",argv[nopt]) ;
+      suggest_best_prog_option(argv[0], argv[nopt]);
+      exit(1);
    }
+
+    if (argc < 2) {
+      ERROR_message("Too few options, use -help for details");
+      exit(1);
+    }
 
    /*--- If no options selected, default to single stat MEAN -- KRH ---*/
 

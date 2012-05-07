@@ -432,6 +432,29 @@ ININFO_message("THD_pearson_corr_wt: n=%d ws=%g xm=%g ym=%g xv=%g yv=%g xy=%g",
    return xy/sqrtf(xv*yv) ;
 }
 
+/*----------------------------------------------------------------*/
+/* compute distance between two arrays    ZSS May 04 2012 */
+float THD_distance( int n, float *x , float *y, int abs)
+{
+  float dp=0.0, a1, a2;
+  int ii, n1 = n-1;
+
+  for( ii=0 ; ii < n1 ; ii+=2 ) {
+     a1 = x[ii]-y[ii]; a2 = x[ii+1]-y[ii+1];
+     if (!abs) dp += (a1*a1+a2*a2);
+     else dp += (ABS(a1)+ABS(a2));
+  }
+  if( ii == n1 ) {
+    a1 = x[ii]-y[ii];
+    if (!abs) dp += a1*a1;
+    else dp += ABS(a1);
+  }
+
+  if (!abs) dp = sqrt(dp) ;
+ 
+  return (dp);
+}
+
 /*--------------------------------------------------------------------------*/
 /*! Compute the rank-order correlation between 2 images [08 Mar 2006].
 ----------------------------------------------------------------------------*/

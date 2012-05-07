@@ -3131,6 +3131,8 @@ static int AFNI_drive_instacorr( char *cmd )
            case 'B': iset->cmeth = NBISTAT_BC_PEARSON_M  ; break ;
            case 'V': iset->cmeth = NBISTAT_BC_PEARSON_V  ; break ;
            case 'T': iset->cmeth = NBISTAT_TICTACTOE_CORR; break ;
+           case 'E': iset->cmeth = NBISTAT_EUCLIDIAN_DIST; break ; /* ZSS */
+           case 'C': iset->cmeth = NBISTAT_CITYBLOCK_DIST; break ; /* ZSS */
          }
 
        } else if( strcasecmp(cpt,"polort") == 0 ){                  /* polort */
