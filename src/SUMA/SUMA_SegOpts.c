@@ -160,7 +160,7 @@ static HELP_OPT SegOptList[] = {
       "            BMRF = 0.0 means no MRF, 1.0 is typical, the larger BMRF\n"
       "            the stronger the MRF. Use -Bmrf when you have no voxelwise\n"
       "            priors.\n",
-      "1.0" },           
+      "0.0" },           
    {  "-bias_classes",
       "-bias_classes 'BIAS_CLASS_STRING': A semcolon demlimited string of \n"
       "                                   classes that contribute to the \n"
@@ -180,7 +180,9 @@ static HELP_OPT SegOptList[] = {
       "                    segmentation. You can specify the mixing fractions\n"
       "                    directly such as with '0.1 0.45 0.45', or with\n"
       "                    the following special flags:\n"
-      "              XXX\n",
+      "              'UNI': Equal mixing fractions \n"
+      "              'AVG152_BRAIN_MASK': Mixing fractions reflecting AVG152\n"
+      "                                   template.\n",
       "UNI" }, 
    {  NULL, NULL, NULL  }
 };

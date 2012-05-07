@@ -64,8 +64,8 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
             SUMA_S_Err("NULL Opt->priCgALL");
             SUMA_RETURN(0);
          }
-      } else if ((Opt->priCgLname && !strcmp(Opt->priCgLname, "INIT_MIXFRAC")) ||
-                 (Opt->priCgAname && !strcmp(Opt->priCgAname, "INIT_MIXFRAC")) ){
+      } else if ((Opt->priCgLname && !strcmp(Opt->priCgLname,"INIT_MIXFRAC")) ||
+                 (Opt->priCgAname && !strcmp(Opt->priCgAname,"INIT_MIXFRAC")) ){
          SUMA_S_Note("Forcing spatial priors at initial mixing fraction");
          if (!SUMA_MergeCpriors( Opt->cs, Opt->cmask, Opt->aset, 
                                  NULL, 0.0, 
@@ -462,7 +462,8 @@ int Seg_CheckOpts(SEG_OPTS *Opt)
                         Opt->VoxDbg3[2]*DSET_NX(Opt->aset)*DSET_NY(Opt->aset);
    }
    
-   SUMA_set_SegFunc_debug(Opt->debug, Opt->VoxDbg, Opt->VoxDbg3, Opt->VoxDbgOut);
+   SUMA_set_SegFunc_debug( Opt->debug, Opt->VoxDbg, Opt->VoxDbg3, 
+                           Opt->VoxDbgOut);
    
    SUMA_RETURN(1);
 }

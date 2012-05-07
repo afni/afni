@@ -4447,11 +4447,11 @@ typedef struct {
   MRI_IMAGE *gortim ;
   int ignore , automask , mindex ;
   float fbot , ftop , blur , sblur ;
-  int polort , cmeth , despike ;
+  int polort , cmeth , despike , change ;
   MRI_vectim *mv ;
   char *prefix ; int ndet ;
   float *tseed ;
-
+  
   THD_3dim_dataset *eset ; MRI_vectim *ev ;
 } ICOR_setup ;
 
