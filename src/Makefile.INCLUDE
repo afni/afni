@@ -91,7 +91,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
            1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch 1dBport   \
-           3dNormalityTest 3dmask_tool                                          \
+           3dNormalityTest 3dmask_tool FIRdesign                                \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -397,6 +397,12 @@ imstack:imstack.o
 imreg:imreg.o pcor.o
 	$(RM) $@
 	$(CC) -o imreg imreg.o pcor.o $(LFLAGS) $(LLIBS)
+
+FIRdesign.o:FIRdesign.c remez.c remez.h
+
+FIRdesign:FIRdesign.o
+	$(RM) $@
+	$(CC) -o FIRdesign FIRdesign.o $(LFLAGS) $(LLIBS)
 
 imfit:imfit.o
 	$(RM) $@
