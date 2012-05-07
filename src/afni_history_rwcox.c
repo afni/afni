@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , MAY , 2012 , RWC , "1dBport" , MICRO , TYPE_NEW_OPT ,
+  { 7 , MAY , 2012 , RWC , "AFNI instacorr" , MICRO , TYPE_MODIFY ,
+   "Modify treatment of Global Ort file" ,
+   "If too short to allow for Ignore, then doesn't do Ignore on the Global\n"
+   "Ort time series.  Otherwise, does the initial Ignore on that input.  The\n"
+   "Help also reflects this change.  In the past, it always did the Ignore\n"
+   "on the Global Ort data, and if it couldn't, then it skipped them\n"
+   "entirely." } ,
+
+ { 4 , MAY , 2012 , RWC , "1dBport" , MICRO , TYPE_NEW_OPT ,
    "Add -quad option = linear and quadratic trend regressors" ,
    NULL } ,
 
