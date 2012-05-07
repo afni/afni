@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , MAY , 2012 , RWC , "AFNI instacorr" , MICRO , TYPE_MODIFY ,
+  { 7 , MAY , 2012 , RWC , "FIRdesign" , MICRO , TYPE_NEW_PROG ,
+   "Finite Impulse Design filter design program -- for bandpass" ,
+   NULL } ,
+
+ { 7 , MAY , 2012 , RWC , "AFNI instacorr" , MICRO , TYPE_MODIFY ,
    "Modify treatment of Global Ort file" ,
    "If too short to allow for Ignore, then doesn't do Ignore on the Global\n"
    "Ort time series.  Otherwise, does the initial Ignore on that input.  The\n"

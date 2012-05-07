@@ -24,9 +24,11 @@
 
 int main( int argc , char *argv[] )
 {
-   double weight[3] , desired[3] , band[6] , h[1024] ;
+   double weight[3] , desired[3] , band[6] , h[2048] ;
    int i , ntap=-666 , nband , iarg=1 ;
-   double fbot=-666.9 , ftop=-999.9 , df , fdel , TR=1.0 ;
+   double fbot=-666.9 , ftop=-999.9 , df,dff , fdel , TR=1.0 , dqq ;
+
+   /*-- help me if you can ---*/
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf(
@@ -42,12 +44,15 @@ int main( int argc , char *argv[] )
        "  ntap = Number of filter weights (AKA 'taps') to use.\n"
        "        * Define df = 1/(ntap*TR) = frequency resolution:\n"
        "        * Then if fbot < 1.1*df, it will be replaced by 0;\n"
-       "         in other words, a pure lowpass filter.\n"
+       "         in other words, a pure lowpass filter.  This change\n"
+       "         is necessary since the duration ntap*TR must be longer\n"
+       "         than 1 full cycle of the lowest frequency (1/fbot) in\n"
+       "         order to filter out slower frequency components.\n"
        "        * Similarly, if ftop > 0.5/TR-1.1*df, it will be\n"
        "          replaced by 0.5/TR; in other words, a pure\n"
        "          highpass filter.\n"
        "        * If ntap is odd, it will be replaced by ntap+1.\n"
-       "        * Maximum value allowed for ntap is 1024.\n"
+       "        * ntap must be in the range 8..2000 (inclusive).\n"
        "\n"
        "OPTIONS:\n"
        "--------\n"
@@ -75,6 +80,8 @@ int main( int argc , char *argv[] )
      exit(0);
    }
 
+   /*-- option processing --*/
+
    while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcasecmp(argv[iarg],"-TR")  == 0 ||
@@ -91,7 +98,7 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-ntap") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("need argument after %s",argv[iarg-1]) ;
        ntap = (int)strtod(argv[iarg],NULL) ;
-       if( ntap < 4 || ntap > 1024 )
+       if( ntap < 8 || ntap > 2000 )
          ERROR_exit("Illegal value after %s",argv[iarg-1]) ;
        iarg++ ; continue ;
      }
@@ -107,6 +114,8 @@ int main( int argc , char *argv[] )
      ERROR_exit("Unknown option '%s'",argv[iarg]) ; exit(1) ;
    }
 
+   /*-- get fbot ftop if not already present --*/
+
    if( fbot < 0.0f && ftop < 0.0f ){
      if( iarg >= argc-1 ) ERROR_exit("Need 2 arguments for fbot ftop") ;
      fbot = strtod(argv[iarg++],NULL) ;
@@ -114,55 +123,81 @@ int main( int argc , char *argv[] )
      if( ftop <= fbot ) ERROR_exit("Disorderd fbot ftop values") ;
    }
 
+   /*-- get ntap if not already present --*/
+
    if( ntap < 0 ){
      if( iarg >= argc ) ERROR_exit("Need argument for ntap") ;
      ntap = (int)strtod(argv[iarg],NULL) ;
-     if( ntap < 4 || ntap > 1024 )
+     if( ntap < 8 || ntap > 2000 )
        ERROR_exit("Illegal value after %s",argv[iarg-1]) ;
      iarg++ ;
    }
 
+   /*-- make ntap even, if need be --*/
+
    if( ntap%2 ){
-     ntap++ ;  /* must be even */
-     INFO_message("ntap increased to %d (to be even)",ntap) ;
+     ntap++ ; INFO_message("ntap increased to %d (to be even)",ntap) ;
    }
 
-   fbot *= TR ; ftop *= TR ; df = 1.0/ntap ; fdel = 1.1*df ;
+   /*-- scale frequencies by TR to get them into the TR=1 case --*/
+
+   fbot *= TR ; ftop *= TR ; df = 1.0/ntap ; fdel = 1.1*df ; dff = 1.0444*df ;
+
+   /*-- edit frequencies if needed --*/
 
    if( fbot <= fdel && fbot != 0.0 ){
      fbot = 0.0 ; INFO_message("fbot re-set to 0") ;
    }
    if( ftop >= 0.5-fdel && ftop != 0.5 ){
-     ftop = 0.5 ; fprintf(stderr,"ftop re-set to Nyquist 0.5/TR=%g\n",0.5/TR) ;
+     ftop = 0.5 ; INFO_message("ftop re-set to Nyquist 0.5/TR=%g\n",0.5/TR) ;
    }
    if( fbot == 0.0 && ftop == 0.5 )
      ERROR_exit("fbot=0 and ftop=Nyquist ==> nothing to do") ;
 
+   /*-- are they too close for comfort? --*/
+
+   dqq = 3.0*fdel - (ftop-fbot) ;
+INFO_message("ftop-fbot=%g  3*fdel=%g  dqq=%g",ftop-fbot,3.0*fdel,dqq) ;
+   if( dqq > 0.0 ){
+     dqq *= 0.5 ;
+     INFO_message("fbot=%g and ftop=%g are too close: adjusting",fbot/TR,ftop/TR) ;
+     fbot -= dqq ; ftop += dqq ;
+     ININFO_message("adjusted fbot=%g  ftop=%g",fbot/TR,ftop/TR) ;
+     if( fbot <= fdel && fbot != 0.0 ){
+       fbot = 0.0 ; ININFO_message("and now fbot re-set to 0") ;
+     }
+     if( ftop >= 0.5-fdel && ftop != 0.5 ){
+       ftop = 0.5 ; ININFO_message("and now ftop re-set to Nyquist 0.5/TR=%g\n",0.5/TR) ;
+     }
+   }
+
+   /*-- initialize number of bands --*/
+
    nband = 0 ;
 
-   /* reject below fbot */
+   /*-- reject below fbot --*/
 
    if( fbot > 0.0 ){
      weight[nband] = 1.0 ; desired[nband]  = 0 ;
-     band[2*nband] = 0.0 ; band[2*nband+1] = fbot-df ;
+     band[2*nband] = 0.0 ; band[2*nband+1] = fbot-dff ;
      nband++ ;
    }
 
-   /* pass between fbot and ftop */
+   /*-- pass between fbot and ftop --*/
 
    weight[nband] = 1.0 ; desired[nband] = 1 ;
    if( fbot > 0.0 ){
-     band[2*nband] = fbot+df ; band[2*nband+1] = (ftop < 0.5) ? ftop-df : ftop ;
+     band[2*nband] = fbot+dff ; band[2*nband+1] = (ftop < 0.5) ? ftop-dff : 0.5 ;
    } else {
-     band[2*nband] = 0.0     ; band[2*nband+1] = ftop-fdel ;
+     band[2*nband] = 0.0      ; band[2*nband+1] = ftop-dff ;
    }
    nband++ ;
 
-   /* reject above ftop */
+   /*-- reject above ftop --*/
 
    if( ftop < 0.5 ){
-     weight[nband] = 1.0 ;       desired[nband]  = 0   ;
-     band[2*nband] = ftop+fdel ; band[2*nband+1] = 0.5 ;
+     weight[nband] = 1.0 ;      desired[nband]  = 0   ;
+     band[2*nband] = ftop+dff ; band[2*nband+1] = 0.5 ;
      nband++ ;
    }
 
