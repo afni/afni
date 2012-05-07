@@ -250,7 +250,7 @@ class Afni1D:
 
       return 0
 
-   def collapse_cols(self, method):
+   def collapse_cols(self, method, weight=None):
       """collapsed the matrix to a single array of length nt (nvec will = 1)
 
          collapsing will apply 'method' across the nvec per time point
@@ -260,6 +260,7 @@ class Afni1D:
              method = 'max'             : max across nvec
              method = 'maxabs'          : max abs across nvec
              method = 'euclidean_norm'  : sqrt(sum squares)
+             method = 'weighted_enorm'  : sqrt(sum weighted squares)
 
          Note: the result will still be a trivial 2-D array, where element 0
                is the collapsed time series.  This allows other functionality
@@ -290,6 +291,17 @@ class Afni1D:
       elif method == 'euclidean_norm':
          mat = [UTIL.euclidean_norm([self.mat[v][t] for v in range(self.nvec)])\
                                                     for t in range(self.nt)]
+      elif method == 'weighted_enorm':
+         if weight == None:
+            print '** missing weight vector for weighted_enorm'
+            return 1
+         if len(weight) != self.nvec:
+            print '** weighted_enorm weight vector length (%d) != nvec (%d)' \
+                  % (len(weight), self.nvec)
+            return 1
+         mat = [UTIL.weighted_enorm(
+                  [self.mat[v][t] for v in range(self.nvec)], weight) \
+                  for t in range(self.nt)]
       else:
          print "** collapse_cols: unknown method:", method
          return 1
