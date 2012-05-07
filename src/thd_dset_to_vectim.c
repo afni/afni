@@ -520,6 +520,68 @@ STATUS("loop") ;
    free(qv) ; free(bv) ; free(aav) ; free(av) ; EXRETURN ;
 }
 
+/*---------------------------------------------------------------------*/
+/* 04 May 2012: Distances. */
+/* Special parameters:
+   abs: 0 --> Euclidian distance
+        1 --> City Block distance
+   xform: String flags for transforming distance.
+            If string contains "n_scale", scale distance by number
+            of values (dimensions) at each voxel
+            If string contains "inv", return the inverse of the distance
+*/
+void THD_vectim_distance( MRI_vectim *mrv , float *vec , 
+                          float *dp, int abs, char *xform)
+{
+   
+   if( mrv == NULL || vec == NULL || dp == NULL ) return ;
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( mrv->nvec > 1 && mrv->nvec * mrv->nvals > 999999 )
+   {  int nvec=mrv->nvec, nvals=mrv->nvals, nv1=nvals-1, iv, ii ; 
+      float sum, *fv, a1, a2;
+#pragma omp for
+      for( iv=0 ; iv < nvec ; iv++ ){
+         fv = VECTIM_PTR(mrv,iv) ;
+         for( sum=0.0f,ii=0 ; ii < nv1 ; ii+=2 ) {
+            a1 = fv[ii]-vec[ii]; a2 = fv[ii+1]-vec[ii+1];
+            if (!abs) sum += (a1*a1+a2*a2);
+            else sum += (ABS(a1)+ABS(a2));
+         }
+         if( ii == nv1 ) {
+            a1 = fv[ii]-vec[ii];
+            if (!abs) sum += a1*a1;
+            else sum += ABS(a1);
+         }
+         if (!abs) dp[iv] = sqrt(sum) ;
+         else dp[iv] = sum;
+      }
+   } /* end OpenMP */
+   AFNI_OMP_END ;
+
+   if (xform) {
+      float a1 = 1.0; int iv, nvec=mrv->nvec;
+      if (strstr(xform,"n_scale")) { a1 = (float)mrv->nvals; }
+      if (strstr(xform,"inv")) {
+         for( iv=0 ; iv < nvec ; iv++ ) {
+            if (dp[iv] != 0.0) {
+               dp[iv] = a1/dp[iv]; 
+            } 
+         }
+      } else if (a1 != 1.0) {
+         for( iv=0 ; iv < nvec ; iv++ ) {
+            if (dp[iv] != 0.0) {
+               dp[iv] = dp[iv]/a1;
+            } 
+         }
+      } 
+   }
+ 
+  return ;
+}
+
+
+
 #define USE_VSTEP
 #ifdef  USE_VSTEP
 /*---------------------------------------------------------------------------*/

@@ -4475,7 +4475,7 @@ typedef struct {
 
 extern int         THD_instacorr_prepare( ICOR_setup *iset ) ;
 extern MRI_IMAGE * THD_instacorr        ( ICOR_setup *iset, int ijk, int ata ) ;
-
+extern int         THD_instacorr_cmeth_needs_normalize( int cmeth );
 /*---------------------------------------------------------------------------*/
 
 extern int THD_extract_array      ( int, THD_3dim_dataset *, int, void * ) ;
@@ -5191,6 +5191,7 @@ extern float THD_bootstrap_vectcorr( int nlen, int nboot, int use_pv, int xtyp,
 
 extern float THD_spearman_corr_nd( int,float *,float *) ;  /* 23 Aug 2006 */
 extern float THD_quadrant_corr_nd( int,float *,float *) ;
+extern float THD_distance( int, float *, float *, int ); /* 04 May 2012 */
 #define THD_pearson_corr_nd THD_pearson_corr
 
 extern void  rank_order_float     ( int , float * );

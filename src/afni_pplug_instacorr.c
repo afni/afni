@@ -180,9 +180,10 @@ PLUGIN_interface * ICOR_init( char *lab )
 {
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
-   static char *meth_string[7] = { "Pearson" , "Spearman" ,
+   static char *meth_string[9] = { "Pearson" , "Spearman" ,
                                    "Quadrant", "Ken Tau_b", "TicTacToe" ,
-                                   "BCpearson" , "VCpearson"  } ;
+                                   "BCpearson" , "VCpearson", "Euclidian",
+                                   "CityBlock" } ;
    char sk[32] , sc[32] ;
    int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
 
@@ -233,7 +234,9 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_number( plint , "Polort" , -1,2,0,2 , FALSE ) ;
    { char *un = tross_username() ;
      PLUTO_add_string( plint , "Method" ,
-                       (un != NULL && strstr(un,"cox") != NULL) ? 7 : 4 ,
+                       (un != NULL && 
+                        (strstr(un,"cox") != NULL ||
+                         strstr(un,"ziad") != NULL) ) ? 9 : 4 ,
                        meth_string , 0 ) ;
    }
 
@@ -347,6 +350,8 @@ static char * ICOR_main( PLUGIN_interface *plint )
          case 'B': cmeth = NBISTAT_BC_PEARSON_M  ; break ; /* 07 Mar 2011 */
          case 'V': cmeth = NBISTAT_BC_PEARSON_V  ; break ; /* 07 Mar 2011 */
          case 'T': cmeth = NBISTAT_TICTACTOE_CORR; break ; /* 30 Mar 2011 */
+         case 'E': cmeth = NBISTAT_EUCLIDIAN_DIST; break ; /* 04 May 2012, ZSS*/
+         case 'C': cmeth = NBISTAT_CITYBLOCK_DIST; break ; /* 04 May 2012, ZSS*/
        }
        continue ;
      }
@@ -379,7 +384,6 @@ static char * ICOR_main( PLUGIN_interface *plint )
      WARNING_message("Combining Polort=-1 and Bandpass may give peculiar results!") ;
 
    /** check if only thing changed is sblur -- don't need to re-prepare in that case **/
-
    if( im3d->iset           != NULL     &&
        im3d->iset->mv       != NULL     &&
        im3d->iset->dset     == dset     &&
@@ -393,7 +397,10 @@ static char * ICOR_main( PLUGIN_interface *plint )
        im3d->iset->ftop     == ftop     &&
        im3d->iset->blur     == blur     &&
        im3d->iset->despike  == despike  &&
-       im3d->iset->polort   == polort      ){
+       im3d->iset->polort   == polort   &&
+       THD_instacorr_cmeth_needs_norm(im3d->iset->cmeth)
+                            == 
+       THD_instacorr_cmeth_needs_norm(cmeth)   ){
 
      INFO_message("InstaCorr setup: minor changes accepted") ;
      im3d->iset->sblur = sblur ; im3d->iset->cmeth = cmeth ; return NULL ;

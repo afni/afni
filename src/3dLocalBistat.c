@@ -81,6 +81,10 @@ int main( int argc , char *argv[] )
 #if 0
       "               * ncd      = Normalized Compression Distance (zlib; very slow)\n"
 #endif
+#if 0 /* activate after testing */
+      "               * euclidian = Euclidian distance.\n"
+      "               * cityblock = City Block distance.\n"
+#endif
       "               * ALL      = all of the above, in that order\n"
       "               More than one '-stat' option can be used.\n"
       "\n"
@@ -233,6 +237,12 @@ int main( int argc , char *argv[] )
 #if 0
        else if( strcasecmp(cpt,"ncd")      == 0 ) code[ncode++] = NBISTAT_NCD          ;
 #endif
+#if 0 /* activate after testing */
+       else if( strcasecmp(cpt,"euclidian")  == 0 )
+                              code[ncode++] = NBISTAT_EUCLIDIAN_DIST      ;
+       else if( strcasecmp(cpt,"cityblock")  == 0 )
+                              code[ncode++] = NBISTAT_CITYBLOCK_DIST      ;
+#endif
        else if( strcasecmp(cpt,"ALL")      == 0 ){
           code[ncode++] = NBISTAT_PEARSON_CORR ; code[ncode++] = NBISTAT_SPEARMAN_CORR;
           code[ncode++] = NBISTAT_QUADRANT_CORR; code[ncode++] = NBISTAT_MUTUAL_INFO  ;
@@ -243,6 +253,10 @@ int main( int argc , char *argv[] )
           code[ncode++] = NBISTAT_NUM          ;
 #if 0
           code[ncode++] = NBISTAT_NCD          ;
+#endif
+#if 0 /* activate after testing */
+         code[ncode++] = NBISTAT_EUCLIDIAN_DIST;
+         code[ncode++] = NBISTAT_CITYBLOCK_DIST;
 #endif
        }
        else
@@ -448,6 +462,8 @@ int main( int argc , char *argv[] )
      lcode[9] = "CorRatUnsym" ;
      lcode[10]= "Number" ;
      lcode[11]= "NCD" ;
+     lcode[12]= "Euclidian Dist";
+     lcode[13]= "CityBlock Dist";
      if( DSET_NVALS(inset) == 1 ){
        for( ii=0 ; ii < DSET_NVALS(outset) ; ii++ )
          EDIT_dset_items( outset ,

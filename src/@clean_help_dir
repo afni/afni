@@ -62,16 +62,35 @@ end
    echo "Combining all command completions into all_progs.COMP"
    cat *.complete > all_progs.COMP
    
-   echo ""
-   echo "If you have not done so already, add the following lines to your .csrhc"
-   echo ''
-   echo ''
-   echo 'set ahdir = `apsearch -afni_help_dir`'
-   echo 'if ( -f $ahdir/all_progs.COMP ) then'
-   echo '   source $ahdir/all_progs.COMP'
-   echo 'endif'
-   echo ''
-   echo ''
+   set shh = $SHELL:t
+   if ("$shh" == 'csh' || "$shh" == 'tcsh') then
+      \grep all_progs.COMP ~/.cshrc > & /dev/null
+      set is_set = $status
+      if ($is_set != 0) then
+         echo ""
+         echo "Add the following lines to your ~/.csrhc"
+         echo ''
+         echo ''
+         echo 'set ahdir = `apsearch -afni_help_dir`'
+         echo 'if ( -f $ahdir/all_progs.COMP ) then'
+         echo '   source $ahdir/all_progs.COMP'
+         echo 'endif'
+         echo ''
+         echo ''
+         echo 'The run from this shell: source ~/.cshrc'
+         echo 'or just open a new shell'
+         echo ''
+      else
+         echo ""
+         echo "For the updates to take effect in this shell, run:"
+         echo "source ~/.cshrc"
+         echo "Otherwise just open a new shell."
+         echo ""
+      endif
+   else 
+      echo "Not ready to setup completion for shell $shh."
+      echo "Complain to AFNI folks."
+   endif
    
 cd $sdir
 goto END
