@@ -1,0 +1,177 @@
+/**************************************************************************
+ * Parks-McClellan algorithm for FIR filter design (C version)
+ *-------------------------------------------------
+ *  Copyright (C) 1995  Jake Janovetz (janovetz@coewl.cen.uiuc.edu)
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ *************************************************************************/
+
+#include "mrilib.h"
+#include "remez.c"
+
+int main( int argc , char *argv[] )
+{
+   double weight[3] , desired[3] , band[6] , h[1024] ;
+   int i , ntap=-666 , nband , iarg=1 ;
+   double fbot=-666.9 , ftop=-999.9 , df , fdel , TR=1.0 ;
+
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
+     printf(
+       "Usage: FIRdesign [options] fbot ftop ntap\n"
+       "\n"
+       "Uses the Remez algorithm to calculate the FIR filter\n"
+       "weights for a bandpass filter; results are written to stdout.\n"
+       "Inputs are\n"
+       "  fbot = lowest freqency in the pass band.\n"
+       "  ftop = highest frequency in the pass band.\n"
+       "        * 0 <= fbot < ftop <= 0.5/TR\n"
+       "        * Unless the '-TR' option is given, TR=1.\n"
+       "  ntap = Number of filter weights (AKA 'taps') to use.\n"
+       "        * Define df = 1/(ntap*TR) = frequency resolution:\n"
+       "        * Then if fbot < 1.1*df, it will be replaced by 0;\n"
+       "         in other words, a pure lowpass filter.\n"
+       "        * Similarly, if ftop > 0.5/TR-1.1*df, it will be\n"
+       "          replaced by 0.5/TR; in other words, a pure\n"
+       "          highpass filter.\n"
+       "        * If ntap is odd, it will be replaced by ntap+1.\n"
+       "        * Maximum value allowed for ntap is 1024.\n"
+       "\n"
+       "OPTIONS:\n"
+       "--------\n"
+       " -TR dd          = Set time grid spacing to 'dd' [default is 1.0]\n"
+       " -band fbot ftop = Alternative way to specify the passband\n"
+       " -ntap nnn       = Alternative way to specify the number of taps\n"
+       "\n"
+       "EXAMPLES:\n"
+       "---------\n"
+       "  FIRdesign 0.01 0.10 180 | 1dplot -stdin\n"
+       "  FIRdesign 0.01 0.10 180 | 1dfft -nodetrend -nfft 512 stdin: - \\\n"
+       "            | 1dplot -stdin -xaxis 0:0.5:10:10 -dt 0.001953\n"
+       "\n"
+       "The first line plots the filter weights\n"
+       "The second line plots the frequency response (0.001953 = 1/512)\n"
+       "\n"
+       "NOTES:\n"
+       "------\n"
+       "* The Remez algorithm code is GPL-ed by Jake Janovetz\n"
+       "* In principle, multiple passbands could be designed this way;\n"
+       "  let me know if you need such an option\n"
+       "* Don't try to be stupidly clever when using this program\n"
+       "* RWCox -- May 2012\n"
+     ) ;
+     exit(0);
+   }
+
+   while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcasecmp(argv[iarg],"-TR")  == 0 ||
+         strcasecmp(argv[iarg],"-dt")  == 0 ||
+         strcasecmp(argv[iarg],"-del") == 0 ||
+         strcasecmp(argv[iarg],"-dx")  == 0   ){
+
+       if( ++iarg >= argc ) ERROR_exit("need argument after %s",argv[iarg-1]) ;
+       TR = strtod(argv[iarg],NULL) ;
+       if( TR <= 0.0 ) ERROR_exit("Illegal value after %s",argv[iarg-1]) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-ntap") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("need argument after %s",argv[iarg-1]) ;
+       ntap = (int)strtod(argv[iarg],NULL) ;
+       if( ntap < 4 || ntap > 1024 )
+         ERROR_exit("Illegal value after %s",argv[iarg-1]) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-band") == 0 ){
+       if( ++iarg >= argc-1 ) ERROR_exit("need 2 arguments after %s",argv[iarg-1]) ;
+       fbot = strtod(argv[iarg++],NULL) ;
+       ftop = strtod(argv[iarg++],NULL) ;
+       if( ftop <= fbot ) ERROR_exit("Disorderd values after %s",argv[iarg-3]) ;
+       continue ;
+     }
+
+     ERROR_exit("Unknown option '%s'",argv[iarg]) ; exit(1) ;
+   }
+
+   if( fbot < 0.0f && ftop < 0.0f ){
+     if( iarg >= argc-1 ) ERROR_exit("Need 2 arguments for fbot ftop") ;
+     fbot = strtod(argv[iarg++],NULL) ;
+     ftop = strtod(argv[iarg++],NULL) ;
+     if( ftop <= fbot ) ERROR_exit("Disorderd fbot ftop values") ;
+   }
+
+   if( ntap < 0 ){
+     if( iarg >= argc ) ERROR_exit("Need argument for ntap") ;
+     ntap = (int)strtod(argv[iarg],NULL) ;
+     if( ntap < 4 || ntap > 1024 )
+       ERROR_exit("Illegal value after %s",argv[iarg-1]) ;
+     iarg++ ;
+   }
+
+   if( ntap%2 ){
+     ntap++ ;  /* must be even */
+     INFO_message("ntap increased to %d (to be even)",ntap) ;
+   }
+
+   fbot *= TR ; ftop *= TR ; df = 1.0/ntap ; fdel = 1.1*df ;
+
+   if( fbot <= fdel && fbot != 0.0 ){
+     fbot = 0.0 ; INFO_message("fbot re-set to 0") ;
+   }
+   if( ftop >= 0.5-fdel && ftop != 0.5 ){
+     ftop = 0.5 ; fprintf(stderr,"ftop re-set to Nyquist 0.5/TR=%g\n",0.5/TR) ;
+   }
+   if( fbot == 0.0 && ftop == 0.5 )
+     ERROR_exit("fbot=0 and ftop=Nyquist ==> nothing to do") ;
+
+   nband = 0 ;
+
+   /* reject below fbot */
+
+   if( fbot > 0.0 ){
+     weight[nband] = 1.0 ; desired[nband]  = 0 ;
+     band[2*nband] = 0.0 ; band[2*nband+1] = fbot-df ;
+     nband++ ;
+   }
+
+   /* pass between fbot and ftop */
+
+   weight[nband] = 1.0 ; desired[nband] = 1 ;
+   if( fbot > 0.0 ){
+     band[2*nband] = fbot+df ; band[2*nband+1] = (ftop < 0.5) ? ftop-df : ftop ;
+   } else {
+     band[2*nband] = 0.0     ; band[2*nband+1] = ftop-fdel ;
+   }
+   nband++ ;
+
+   /* reject above ftop */
+
+   if( ftop < 0.5 ){
+     weight[nband] = 1.0 ;       desired[nband]  = 0   ;
+     band[2*nband] = ftop+fdel ; band[2*nband+1] = 0.5 ;
+     nband++ ;
+   }
+
+   /* compute */
+
+   remez(h, ntap, nband, band, desired, weight, BANDPASS);
+
+   /* print */
+
+   for (i=0; i<ntap; i++) printf("%23.20f\n", h[i]) ;
+   exit(0) ;
+}
