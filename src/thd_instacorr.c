@@ -47,15 +47,38 @@ ENTRY("THD_instacorr_tsprep") ;
    dvec = (float **)malloc(sizeof(float *)*nmmm) ;
    for( iv=0 ; iv < nmmm ; iv++ ) dvec[iv] = VECTIM_PTR(mv,iv) ;
 
-   if( iset->gortim != NULL ){
-     if( iset->gortim->nx < ntime+iset->ignore ){
-       ERROR_message("Global ort time series length=%d is shorter than dataset=%d",
-                     iset->gortim->nx , ntime+iset->ignore ) ;
+   if( iset->gortim != NULL ){         /** set up the extra orts **/
+     if( iset->gortim->nx < ntime ){
+
+       /* too short to be useful */
+
+       ERROR_message("Global Ort time series length=%d is too short!",iset->gortim->nx);
+       ERROR_message(" ==> ignoring Global Ort file") ;
+
+     } else if( iset->gortim->nx >= ntime && iset->gortim->nx < ntime+iset->ignore ){
+
+       /* too short to ignore initial points */
+
+       if( iset->ignore > 0 )
+         ININFO_message("Global Ort time series length=%d: not ignoring initial points",
+                        iset->gortim->nx ) ;
+       ngvec = iset->gortim->ny ;
+       gvec  = (float **)malloc(sizeof(float *)*ngvec) ;
+       for( iv=0 ; iv < ngvec ; iv++ )
+         gvec[iv] = MRI_FLOAT_PTR(iset->gortim) + iv*iset->gortim->nx ;
+
      } else {
+
+       /* long enough to ignore initial points */
+
+       if( iset->ignore > 0 )
+         ININFO_message("Global Ort time series length=%d: ignoring first %d points",
+                        iset->gortim->nx , iset->ignore ) ;
        ngvec = iset->gortim->ny ;
        gvec  = (float **)malloc(sizeof(float *)*ngvec) ;
        for( iv=0 ; iv < ngvec ; iv++ )
          gvec[iv] = MRI_FLOAT_PTR(iset->gortim) + iv*iset->gortim->nx + iset->ignore ;
+
      }
    }
 
