@@ -20,7 +20,10 @@ static char * g_history[] =
   "\n",
   "0.0  27 Apr 2012\n"
   "     (Rick Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
-  "     -initial version\n"
+  "     -initial version\n",
+  "0.1   7 May 2012\n"
+  "     - replaced THD_mask_erode with new THD_mask_erode_sym\n"
+  "       (now dilations and erosions should be symmetric)\n"
 };
 
 static char g_version[] = "3dmask_tool version 0.0, 27 April 2012";
@@ -202,9 +205,11 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
          dsize = D->list[index];
          if(verb>2) INFO_message("... dilating vol %d by %d\n", ivol, dsize);
          if( dsize > 0 ) {
-           for( id=0; id < dsize; id++ ) THD_mask_dilate(nx, ny, nz, bdata, 1);
+            for( id=0; id < dsize; id++ )
+               THD_mask_dilate(nx, ny, nz, bdata, 1);
          } else if( dsize < 0 ) {
-           for( id=0; id > dsize; id-- ) THD_mask_erode (nx, ny, nz, bdata, 0);
+            for( id=0; id > dsize; id-- )
+               THD_mask_erode_sym(nx, ny, nz, bdata, 1);
          }
       }
 

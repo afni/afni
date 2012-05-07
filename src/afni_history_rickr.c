@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 7, MAY, 2012, RCR, "3dmask_tool", MINOR, TYPE_ENHANCE,
+   "replaced THD_mask_erode with new THD_mask_erode_sym",
+   "This change should make dilate and erosion operations symmetric."
+ } ,
+
+ { 7, MAY, 2012, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added weighted_enorm method for -collapse_cols; added -weight_vec",
+   NULL
+ } ,
+
  { 4, MAY, 2012, RCR, "afni_restproc.py", MINOR, TYPE_BUG_FIX,
    "submitting updates from Rayus",
    "Updates are in changelog."
@@ -402,7 +412,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 19, JAN, 2012, RCR, "Dimon", MINOR, TYPE_MODIFY,
-   "made -quit more agressive",
+   "made -quit more aggressive",
    NULL
  } ,
 
@@ -2713,7 +2723,7 @@ afni_history_struct rickr_history[] = {
  { 12, MAR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "warn user about masking in orig space",
    "- if despiking and no regression mask, apply -nomask\n"
-   "- added 'MASKING NOTE', to suggest no regresion mask until group space"
+   "- added 'MASKING NOTE', to suggest no regression mask until group space"
  } ,
 
  { 12, MAR, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,

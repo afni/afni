@@ -956,6 +956,77 @@ ENTRY("THD_mask_erode") ;
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Erode away nonzero voxels that aren't neighbored by mostly other nonzero
+    voxels.
+
+    Pass nerode to match ndil from THD_mask_dilate.
+
+    For each masked voxel, count unmasked neighbors.  If there are
+    at least nerode, then erode the voxel.
+
+    This allows for symmetric dilate/erode operations.
+    It is symmetric with THD_mask_dilate.                 7 May 2012 [rickr]
+----------------------------------------------------------------------------*/
+
+void THD_mask_erode_sym( int nx, int ny, int nz, byte *mmm, int nerode )
+{
+   int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
+   int nxy=nx*ny , nxyz=nxy*nz, nmask ;
+   byte *nnn ;
+
+ENTRY("THD_mask_erode") ;
+
+   if( mmm == NULL ) EXRETURN ;
+        if( nerode < 1  ) nerode =  1 ;
+   else if( nerode > 17 ) nerode = 17 ;
+
+   /* erode if at least nerode empty neighbors, or at most 18-nerode masked */
+   nmask = 18-nerode;
+
+   nnn = (byte *)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
+   if( nnn == NULL ) EXRETURN ;               /* WTF? */
+
+   /* mark interior voxels that don't have 17 out of 18 nonzero nbhrs */
+
+   STATUS("marking to erode") ;
+   for( kk=0 ; kk < nz ; kk++ ){
+    kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
+    if( kk == 0    ) km = kz ;
+    if( kk == nz-1 ) kp = kz ;
+
+    for( jj=0 ; jj < ny ; jj++ ){
+     jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
+     if( jj == 0    ) jm = jy ;
+     if( jj == ny-1 ) jp = jy ;
+
+     for( ii=0 ; ii < nx ; ii++ ){
+       if( mmm[ii+jy+kz] ){           /* count nonzero nbhrs */
+         im = ii-1 ; ip = ii+1 ;
+         if( ii == 0    ) im = 0 ;
+         if( ii == nx-1 ) ip = ii ;
+         num =  mmm[im+jy+km]
+              + mmm[ii+jm+km] + mmm[ii+jy+km] + mmm[ii+jp+km]
+              + mmm[ip+jy+km]
+              + mmm[im+jm+kz] + mmm[im+jy+kz] + mmm[im+jp+kz]
+              + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
+              + mmm[ip+jm+kz] + mmm[ip+jy+kz] + mmm[ip+jp+kz]
+              + mmm[im+jy+kp]
+              + mmm[ii+jm+kp] + mmm[ii+jy+kp] + mmm[ii+jp+kp]
+              + mmm[ip+jy+kp] ;
+         if( num <= nmask ) nnn[ii+jy+kz] = 1 ;  /* mark to erode */
+       }
+   } } }
+
+   STATUS("eroding") ;
+   for( jj=ii=0 ; ii < nxyz ; ii++ )            /* actually erode */
+     if( nnn[ii] ){ mmm[ii] = 0 ; jj++ ; }
+
+   if( verb && jj > 0 ) ININFO_message("Eroded   %d voxels\n",jj) ;
+
+   free(nnn) ; EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Generalization of THD_mask_erode(), to peel away multiple layers and
     then redilate.
 ----------------------------------------------------------------------------*/
