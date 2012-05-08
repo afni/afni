@@ -12,6 +12,8 @@ void usage_1ddot(int detail) {
             " -dem  =  Remove mean from all vectors (conflicts with '-one')\n"
             " -cov  =  Compute with covariance matrix instead of correlation\n"
             " -inn  =  Computed with inner product matrix instead\n"
+            " -rank =  Compute Spearman rank correlation instead\n"
+            "          (also implies '-terse')\n"
             " -terse=  Output only the correlation or covariance matrix\n"
             "          and without any of the garnish. \n"
             " -okzero= Do not quit if a vector is all zeros.\n"
@@ -22,6 +24,9 @@ void usage_1ddot(int detail) {
    PRINT_COMPILE_DATE ;
    return;
 }
+
+/*----------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    int iarg , ii,jj,kk,mm , nvec , do_one=0 , nx=0,ny , ff, doterse = 0 ;
@@ -32,16 +37,18 @@ int main( int argc , char *argv[] )
    int demean=0 , docov=0 ;
    char *matname ;
    int okzero = 0;
-   
+
    mainENTRY("1ddot main"); machdep();
    /* options */
 
    iarg = 1 ; nvec = 0 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
      if (strcmp(argv[iarg],"-help") == 0 || strcmp(argv[iarg],"-h") == 0){
        usage_1ddot(strlen(argv[iarg])>3 ? 2:1);
        exit(0);
      }
+
      if( strcmp(argv[iarg],"-one") == 0 ){
        demean = 0 ; do_one = 1 ; iarg++ ; continue ;
      }
@@ -55,30 +62,30 @@ int main( int argc , char *argv[] )
      }
 
      if( strncmp(argv[iarg],"-cov",4) == 0 ){
-       docov=1 ; iarg++ ; continue ;
+       docov = 1 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-inn",4) == 0 ){
-       docov=2 ; iarg++ ; continue ;
+       docov = 2 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-rank")     == 0 ||
+         strcasecmp(argv[iarg],"-spearman") == 0   ){
+       do_one = 0; docov = 3; demean = 0; doterse = 1; iarg++; continue;
      }
 
      if( strncmp(argv[iarg],"-terse",4) == 0 ){
        doterse = 1 ; iarg++ ; continue ;
      }
 
-     fprintf(stderr,"** Unknown option: %s\n",argv[iarg]); 
+     fprintf(stderr,"** Unknown option: %s\n",argv[iarg]);
      suggest_best_prog_option(argv[0], argv[iarg]);
      exit(1);
    }
-   
-   if( argc < 2 ){
-     usage_1ddot(1);
-     exit(0) ;
-   }
 
-   if( iarg == argc ){
-     fprintf(stderr,"** No 1D files on command line!?\n"); exit(1);
-   }
+   if( argc < 2 ){ usage_1ddot(1); exit(0) ; }
+
+   if( iarg == argc ) ERROR_exit("No 1D files on command line!?") ;
 
    /* input 1D files */
 
@@ -142,7 +149,7 @@ int main( int argc , char *argv[] )
        sum = 0.0 ;
        for( ii=0 ; ii < nx ; ii++ ) sum += tvec[kk][ii] * tvec[kk][ii] ;
        if( sum == 0.0 ) {
-         if (okzero) svec[kk] = 0.0; 
+         if (okzero) svec[kk] = 0.0;
          else ERROR_exit("Input column %02d is all zero!",kk) ;
        } else {
          svec[kk] = 1.0 / sqrt(sum) ;
@@ -151,7 +158,7 @@ int main( int argc , char *argv[] )
    }
    DESTROY_IMARR(tar) ;
 
-   /* normalize vectors? */
+   /* normalize vectors? (for ordinary correlation) */
 
    if( !docov ){
      for( kk=0 ; kk < nvec ; kk++ ){
@@ -162,6 +169,7 @@ int main( int argc , char *argv[] )
 
    switch(docov){
      default:
+     case 3:  matname = "Spearman"     ; break ;
      case 2:  matname = "InnerProduct" ; break ;
      case 1:  matname = "Covariance"   ; break ;
      case 0:  matname = "Correlation"  ; break ;
@@ -171,12 +179,21 @@ int main( int argc , char *argv[] )
 
    amat = (double *) calloc( sizeof(double) , nvec*nvec ) ;
 
-   for( kk=0 ; kk < nvec ; kk++ ){
-     for( jj=0 ; jj <= kk ; jj++ ){
-       sum = 0.0 ;
-       for( ii=0 ; ii < nx ; ii++ ) sum += tvec[jj][ii] * tvec[kk][ii] ;
-       amat[jj+nvec*kk] = sum ;
-       if( jj < kk ) amat[kk+nvec*jj] = sum ;
+   if( docov != 3 ){
+     for( kk=0 ; kk < nvec ; kk++ ){
+       for( jj=0 ; jj <= kk ; jj++ ){
+         sum = 0.0 ;
+         for( ii=0 ; ii < nx ; ii++ ) sum += tvec[jj][ii] * tvec[kk][ii] ;
+         amat[jj+nvec*kk] = sum ;
+         if( jj < kk ) amat[kk+nvec*jj] = sum ;
+       }
+     }
+   } else {  /* Spearman */
+     for( kk=0 ; kk < nvec ; kk++ ){
+       for( jj=0 ; jj <= kk ; jj++ ){
+         amat[jj+nvec*kk] = THD_spearman_corr_dble( nx , tvec[jj] , tvec[kk] ) ;
+         if( jj < kk ) amat[kk+nvec*jj] = amat[jj+nvec*kk] ;
+       }
      }
    }
 
