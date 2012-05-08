@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , MAY , 2012 , RWC , "FIRdesign" , MICRO , TYPE_NEW_PROG ,
+  { 8 , MAY , 2012 , RWC , "1ddot" , MICRO , TYPE_NEW_OPT ,
+   "Add -rank option to do Spearman correlations" ,
+   NULL } ,
+
+ { 7 , MAY , 2012 , RWC , "FIRdesign" , MICRO , TYPE_NEW_PROG ,
    "Finite Impulse Design filter design program -- for bandpass" ,
    NULL } ,
 
