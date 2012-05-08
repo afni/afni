@@ -5196,6 +5196,8 @@ extern float THD_quadrant_corr_nd( int,float *,float *) ;
 extern float THD_distance( int, float *, float *, int ); /* 04 May 2012 */
 #define THD_pearson_corr_nd THD_pearson_corr
 
+double THD_spearman_corr_dble( int n , double *x , double *y ) ;
+
 extern void  rank_order_float     ( int , float * );
 extern float spearman_rank_prepare( int , float * );
 extern float quadrant_corr_prepare( int , float * );

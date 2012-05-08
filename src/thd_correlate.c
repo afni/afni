@@ -225,6 +225,17 @@ float THD_spearman_corr_nd( int n , float *x , float *y )
    return cv ;
 }
 
+double THD_spearman_corr_dble( int n , double *x , double *y )
+{
+   float *qx, *qy , cv=0.0f ; int ii ;
+   qx = (float *)malloc(sizeof(float)*n);
+   qy = (float *)malloc(sizeof(float)*n);
+   for( ii=0 ; ii < n ; ii++ ){ qx[ii] = x[ii] ; qy[ii] = y[ii] ; }
+   cv = THD_spearman_corr(n,qx,qy) ;
+   free((void *)qy); free((void *)qx);
+   return (double)cv ;
+}
+
 /*--------------------------------------------------------------------------*/
 /*! Kendall Tau_b (x and y are modified) */
 
