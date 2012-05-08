@@ -34,8 +34,9 @@ int main( int argc , char *argv[] )
      printf(
        "Usage: FIRdesign [options] fbot ftop ntap\n"
        "\n"
-       "Uses the Remez algorithm to calculate the FIR filter\n"
-       "weights for a bandpass filter; results are written to stdout.\n"
+       "Uses the Remez algorithm to calculate the FIR filter weights\n"
+       "for a bandpass filter; results are written to stdout in an\n"
+       "unadorned (no header) column of numbers.\n"
        "Inputs are\n"
        "  fbot = lowest freqency in the pass band.\n"
        "  ftop = highest frequency in the pass band.\n"
@@ -44,10 +45,10 @@ int main( int argc , char *argv[] )
        "  ntap = Number of filter weights (AKA 'taps') to use.\n"
        "        * Define df = 1/(ntap*TR) = frequency resolution:\n"
        "        * Then if fbot < 1.1*df, it will be replaced by 0;\n"
-       "         in other words, a pure lowpass filter.  This change\n"
-       "         is necessary since the duration ntap*TR must be longer\n"
-       "         than 1 full cycle of the lowest frequency (1/fbot) in\n"
-       "         order to filter out slower frequency components.\n"
+       "          in other words, a pure lowpass filter.  This change\n"
+       "          is necessary since the duration ntap*TR must be longer\n"
+       "          than 1 full cycle of the lowest frequency (1/fbot) in\n"
+       "          order to filter out slower frequency components.\n"
        "        * Similarly, if ftop > 0.5/TR-1.1*df, it will be\n"
        "          replaced by 0.5/TR; in other words, a pure\n"
        "          highpass filter.\n"
@@ -71,9 +72,10 @@ int main( int argc , char *argv[] )
        "\n"
        "NOTES:\n"
        "------\n"
-       "* The Remez algorithm code is GPL-ed by Jake Janovetz\n"
-       "* In principle, multiple passbands could be designed this way;\n"
-       "  let me know if you need such an option\n"
+       "* http://en.wikipedia.org/wiki/Parks-McClellan_filter_design_algorithm\n"
+       "* The Remez algorithm code is written and GPL-ed by Jake Janovetz\n"
+       "* Multiple passbands could be designed this way; let me know if you\n"
+       "  need such an option; a Hilbert transform FIR is also possible\n"
        "* Don't try to be stupidly clever when using this program\n"
        "* RWCox -- May 2012\n"
      ) ;
@@ -83,6 +85,8 @@ int main( int argc , char *argv[] )
    /*-- option processing --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /* -TR */
 
      if( strcasecmp(argv[iarg],"-TR")  == 0 ||
          strcasecmp(argv[iarg],"-dt")  == 0 ||
@@ -95,6 +99,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /* -ntap */
+
      if( strcasecmp(argv[iarg],"-ntap") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("need argument after %s",argv[iarg-1]) ;
        ntap = (int)strtod(argv[iarg],NULL) ;
@@ -103,6 +109,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /* -band */
+
      if( strcasecmp(argv[iarg],"-band") == 0 ){
        if( ++iarg >= argc-1 ) ERROR_exit("need 2 arguments after %s",argv[iarg-1]) ;
        fbot = strtod(argv[iarg++],NULL) ;
@@ -110,6 +118,8 @@ int main( int argc , char *argv[] )
        if( ftop <= fbot ) ERROR_exit("Disorderd values after %s",argv[iarg-3]) ;
        continue ;
      }
+
+     /* ssttooppiidd */
 
      ERROR_exit("Unknown option '%s'",argv[iarg]) ; exit(1) ;
    }
@@ -152,12 +162,11 @@ int main( int argc , char *argv[] )
      ftop = 0.5 ; INFO_message("ftop re-set to Nyquist 0.5/TR=%g\n",0.5/TR) ;
    }
    if( fbot == 0.0 && ftop == 0.5 )
-     ERROR_exit("fbot=0 and ftop=Nyquist ==> nothing to do") ;
+     ERROR_exit("fbot=0 and ftop=Nyquist=0.5/TR=%g ==> nothing to do",0.5/TR) ;
 
-   /*-- are they too close for comfort? --*/
+   /*-- are fbot and ftop too close for comfort? --*/
 
-   dqq = 3.0*fdel - (ftop-fbot) ;
-INFO_message("ftop-fbot=%g  3*fdel=%g  dqq=%g",ftop-fbot,3.0*fdel,dqq) ;
+   dqq = 3.0*fdel - (ftop-fbot) ;  /* should be negative */
    if( dqq > 0.0 ){
      dqq *= 0.5 ;
      INFO_message("fbot=%g and ftop=%g are too close: adjusting",fbot/TR,ftop/TR) ;
@@ -171,11 +180,11 @@ INFO_message("ftop-fbot=%g  3*fdel=%g  dqq=%g",ftop-fbot,3.0*fdel,dqq) ;
      }
    }
 
-   /*-- initialize number of bands --*/
+   /*-- initialize number of bands (might end up as 2 or 3) --*/
 
    nband = 0 ;
 
-   /*-- reject below fbot --*/
+   /*-- reject below fbot, if fbot > 0 --*/
 
    if( fbot > 0.0 ){
      weight[nband] = 1.0 ; desired[nband]  = 0 ;
@@ -193,7 +202,7 @@ INFO_message("ftop-fbot=%g  3*fdel=%g  dqq=%g",ftop-fbot,3.0*fdel,dqq) ;
    }
    nband++ ;
 
-   /*-- reject above ftop --*/
+   /*-- reject above ftop, if ftop < Nyquist --*/
 
    if( ftop < 0.5 ){
      weight[nband] = 1.0 ;      desired[nband]  = 0   ;
@@ -201,12 +210,13 @@ INFO_message("ftop-fbot=%g  3*fdel=%g  dqq=%g",ftop-fbot,3.0*fdel,dqq) ;
      nband++ ;
    }
 
-   /* compute */
+   /*-- compute FIR weights --*/
 
-   remez(h, ntap, nband, band, desired, weight, BANDPASS);
+   remez( h, ntap, nband, band, desired, weight, BANDPASS ) ;
 
-   /* print */
+   /*-- print --*/
 
-   for (i=0; i<ntap; i++) printf("%23.20f\n", h[i]) ;
+   for( i=0 ; i < ntap ; i++ ) printf("%23.20f\n", h[i]) ;
+
    exit(0) ;
 }
