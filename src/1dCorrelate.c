@@ -1,15 +1,15 @@
 #include "mrilib.h"
 #include "zgaussian.c"
 
-#define NCOR 5
+#define NCOR 6
 
-static char *cor_name[NCOR] = { "Pearson" , "Spearman" , "Quadrant" , "K-Tau-b" , "TicTacToe" } ;
+static char *cor_name[NCOR] = { "Pearson" , "Spearman" , "Quadrant" , "K-Tau-b" , "TicTacToe" , "Quantile:9" } ;
 
 /* list of functions to compute correlations [cf. thd_correlate.c] */
 
 typedef float (*ccfun)(int,float *,float *) ;
 static ccfun cor_func[NCOR] =
- { THD_pearson_corr, THD_spearman_corr, THD_quadrant_corr, THD_ktaub_corr, THD_tictactoe_corr } ;
+ { THD_pearson_corr, THD_spearman_corr, THD_quadrant_corr, THD_ktaub_corr, THD_tictactoe_corr , THD_quantile_corr } ;
 
 /* prototype for function to bootstrap the correlations */
 
@@ -162,7 +162,6 @@ int main( int argc , char *argv[] )
    int cormeth=0 ;    /* 0=Pearson, 1=Spearman, 2=Quadrant, 3=Kendall tau_b */
    float (*corfun)(int,float *,float *) ;
 
-
    /*-- start the AFNI machinery --*/
 
    mainENTRY("1dCorrelate main") ; machdep() ;
@@ -185,6 +184,7 @@ int main( int argc , char *argv[] )
      if( toupper(argv[iarg][1]) == 'Q' ){ cormeth = 2 ; iarg++ ; continue ; }
      if( toupper(argv[iarg][1]) == 'K' ){ cormeth = 3 ; iarg++ ; continue ; }
      if( toupper(argv[iarg][1]) == 'T' ){ cormeth = 4 ; iarg++ ; continue ; }
+     if( toupper(argv[iarg][1]) == 'U' ){ cormeth = 5 ; iarg++ ; continue ; }
 
      /*--- set nboot ---*/
 
