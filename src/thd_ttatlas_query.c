@@ -7512,7 +7512,7 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
 {
    ATLAS_QUERY *wami = NULL;
    ATLAS_COORD ac;
-   ATLAS_XFORM_LIST *xfl=NULL;
+   ATLAS_XFORM_LIST *xfl=NULL, *cxfl=NULL;
    ATLAS_SPACE_LIST *asl=get_G_space_list();
    ATLAS *atlas=NULL;
    int *iatl=NULL, ii;
@@ -7564,7 +7564,13 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
          ERROR_message("Should not happen here");
          RETURN(0);
       }
-      apply_xform_chain(xfl, aci.x, aci.y, aci.z, &xout, &yout, &zout);
+      cxfl = calc_xform_list(xfl);
+      apply_xform_chain(cxfl, aci.x, aci.y, aci.z, &xout, &yout, &zout);
+      if(cxfl)
+        free_xform_list(cxfl);
+      if(xfl)
+        free_xform_list(xfl);
+/*      apply_xform_chain(xfl, aci.x, aci.y, aci.z, &xout, &yout, &zout);*/
       if (wami_verb() > 1)
          INFO_message(
            "Coords in: %f, %f, %f (%s) -> out: %f, %f, %f (%s - %s)\n",

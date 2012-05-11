@@ -38,6 +38,7 @@ PARSE:
    set prexform = ""
    set OneWarp = 0
    set just_copy_base = ""
+   set out_space = ""
    if ("$1" == '') goto HELP
 
    while ($cnt <= $Narg)
@@ -325,6 +326,18 @@ PARSE:
          set ss_opt = "$ss_opt -no_avoid_eyes";      
          set donext = 0      
       endif
+      if ($donext && "$argv[$cnt]" == "-out_space") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need name of space for output after -out_space"
+            echo "See whereami -show_spaces for some possibilities"
+            goto END
+         else
+            @ cnt ++
+            set out_space = "$argv[$cnt]"
+            set donext = 0  
+         endif   
+      endif
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
          apsearch -popt `basename $0` -word $argv[$cnt]
@@ -461,8 +474,11 @@ PARSE:
       set ref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`${ref_view}"
    endif
    # use the template space for the transformed dataset
-   set ref_space = `3dinfo ${ref_in} | grep "Template Space"` 
-   set ref_space = "$ref_space[3]"
+   if ($out_space == "" ) then
+      set ref_space = `3dinfo -space ${ref_in}` 
+   else
+      set ref_space = $out_space
+   endif
 
 IN_CHECK:
 if ("$suf" == '' && $KeepView == 1) then
@@ -1247,10 +1263,14 @@ echo "         to match a template in TLRC space. "
 echo ""
 echo "   `basename $0` [options] <-base template> <-input anat>"
 echo "   Mandatory parameters:"
-echo "      -base template :  Reference anatomical volume in TLRC space (+tlrc)."
+echo "      -base template :  Reference anatomical volume"
+echo "                        Usually this volume is in some standard space like"
+echo "                        TLRC or MNI space and with afni dataset view of"
+echo "                        (+tlrc)."
 echo "                        Preferably, this reference volume should have had"
 echo "                        the skull removed but that is not mandatory."
-echo "                        AFNI's distribution contains a few templates:"
+echo "                        AFNI's distribution contains several templates."
+echo "                        For a longer list, use "\"whereami -show_templates\"
 echo "          TT_N27+tlrc --> Single subject, skull stripped volume."
 echo "                       This volume is also known as "
 echo "                       N27_SurfVol_NoSkull+tlrc elsewhere in "
@@ -1400,6 +1420,10 @@ echo "                           > XFORM0.1D  "
 echo ""
 echo "                    See cat_matvec -help for more details on extracting"
 echo "                    appropriate affine transforms from dataset headers."
+echo "      -out_space spacename: Set output to a particular space"
+echo "                       Usually, the output space is determined by the space "
+echo "                       of the input template and does not need to set"
+echo "                       explicitly here"
 echo ""                      
 echo "   Example:"
 echo "   `basename $0` -base TT_N27+tlrc. -input SubjectHighRes+orig."
