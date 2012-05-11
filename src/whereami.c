@@ -995,8 +995,10 @@ int main(int argc, char **argv)
       }
       if(xform_xyz) {
          if(!cxfl)
-            cxfl = calc_xform_list(xfl);
-         apply_xform_chain(cxfl, xi, yi, zi, &xout, &yout, &zout);
+            apply_xform_chain(xfl, xi, yi, zi, &xout, &yout, &zout);
+         else
+            apply_xform_chain(cxfl, xi, yi, zi, &xout, &yout, &zout);
+/*            cxfl = calc_xform_list(xfl);*/
                
          if (xform_xyz_quiet) {
             printf("%f %f %f\n", xout,yout,zout);

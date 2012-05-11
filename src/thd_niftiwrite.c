@@ -105,7 +105,7 @@ ENTRY("THD_write_nifti") ;
 
 nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t options)
 {
-  int nparam, type0 , ii , jj, val;
+  int nparam, type0 , ii , jj;
   int nif_x_axnum=0, nif_y_axnum=0, nif_z_axnum=0;
   int slast, sfirst ;
   int pattern, tlen ;
@@ -737,16 +737,28 @@ ENTRY("get_slice_timing_pattern");
 /* set NIFTI sform code  based on atlas space */
 static int space_to_NIFTI_code(THD_3dim_dataset *dset)
 {
-    int i;
-    
-    if ((i=is_Dset_Space_Named(dset,"TLRC"))!=0) {
-      if (i<0) return(NIFTI_XFORM_SCANNER_ANAT);
-      else return(NIFTI_XFORM_TALAIRACH);
-    } else if (is_Dset_Space_Named(dset,"MNI") > 0) {
+    char *genspc = NULL;
+    /* several changes for generic spaces and defaults 05/02/2012 -mod drg */
+    /* use generic space or space of dataset to choose xform code */
+    genspc = THD_get_generic_space(dset);
+    if(genspc == NULL)
+       return(NIFTI_XFORM_SCANNER_ANAT);
+
+    if (strcmp(genspc,"TLRC") == 0) {
+      return(NIFTI_XFORM_TALAIRACH);
+    }
+    if (strcmp(genspc,"MNI") == 0) {
       return(NIFTI_XFORM_MNI_152);
-    } else if (is_Dset_Space_Named(dset,"MNI_ANAT") > 0) {
+    }
+    /* call MNI_ANAT as aligned to something else*/
+    if (strcmp(genspc,"MNI_ANAT") == 0) {
       return(NIFTI_XFORM_ALIGNED_ANAT);
-    } else {  
+    }
+    if((strcmp(genspc,"ORIG") == 0) ||
+       (strcmp(genspc,"ACPC") == 0)){
       return(NIFTI_XFORM_SCANNER_ANAT);
     }
+    /* make catch-all for other spaces as an aligned space
+       alternative is use SCANNER_ANAT again or UNKNOWN */
+    return(NIFTI_XFORM_ALIGNED_ANAT);
 }

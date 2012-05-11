@@ -204,9 +204,12 @@ ENTRY("mri_read_dicom") ;
        }
        if( ts_endian < 0 ){
          static int nwarn=0 ;
-         if( nwarn < NWMAX )
-           WARNING_message("DICOM file %s: unsupported Transfer Syntax '%s'",
+         if( nwarn < NWMAX ){
+           WARNING_message("DICOM file %s: unsupported Transfer Syntax '%s'\n"
+               "***** Reading this data is likely to fail because this format is not understood\n"
+               "***** AFNI reads only uncompressed DICOM. Other formats are not supported.",
                            fname,ts) ;
+         }
          if( nwarn == NWMAX )
            WARNING_message("DICOM: no more Transfer Syntax messages "
                            " will be printed") ;

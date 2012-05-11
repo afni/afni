@@ -49,6 +49,37 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 8 , MAY, 2012 , DRG , "3dinfo" , 
+    MICRO , TYPE_NEW_OPT, 
+    "gen_space option to see generic space type for a dataset"
+} ,
+{ 7 , MAY, 2012 , DRG , "NIFTI input/output" , 
+    MINOR , TYPE_MODIFY, 
+    "NIFTI qform/sform codes from generic space of template space",
+    "qform and sform codes are set by string in generic space, not template\n"
+    "space, of input dataset. For example, TT_N27 spaces will be marked for\n"
+    "NIFTI output as TLRC. NIFTI data with any non-ORIG or ACPC space will\n"
+    "be marked as an 'aligned' space in NIFTI with the sform and qform codes.\n"
+    "Currently only TLRC/MNI/Aligned are supported spaces in NIFTI standard.\n"
+    "'aligned' space datasets will be interpreted as equivalent to TLRC view\n"
+    "datasets. See AFNI_atlas_spaces.niml for space definitions that include\n"
+    "generic space names."
+} ,
+{ 7 , MAY, 2012 , DRG , "@auto_tlrc" , 
+    MICRO , TYPE_NEW_OPT, 
+    "out_space option to force output space for auto-talairached data"
+} ,
+{ 7 , MAY, 2012 , DRG , "to3d" , 
+    MICRO , TYPE_MODIFY, 
+    "Clearer warning for illegal transfer syntax"
+} ,
+{ 7 , MAY, 2012 , DRG , "whereami" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Coordinate transformations in atlas access",
+    "Coordinates were not transformed properly if an inverse affine\n"
+    "transformation was required for the case of atlases in another\n"
+    "space than the dataset."
+} ,
 { 9 , APR, 2012 , DRG , "whereami" , 
     MICRO , TYPE_BUG_FIX, 
     "Typo in AFNI_WAMI_MAX_SEARCH_RAD",

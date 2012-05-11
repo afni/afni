@@ -36,6 +36,7 @@ void Syntax(void)
 "   -is_atlas: 1 if dset is an atlas.\n"
 "   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
 "   -space: dataset's space\n"
+"   -gen_space: datasets generic space\n"
 "   -av_space: AFNI format's view extension for the space\n"
 "   -is_oblique: 1 if dset is oblique\n"
 "   -obliquity: Angle from plumb direction.\n"
@@ -184,7 +185,7 @@ THD_3dim_dataset *load_3dinfo_dataset(char *name)
 }   
 
 typedef enum {
-   CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, IS_NIFTI, DSET_EXISTS,
+   CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, IS_NIFTI, DSET_EXISTS,
    IS_ATLAS, IS_OBLIQUE, OBLIQUITY, PREFIX , PREFIX_NOEXT, 
    NI, NJ, NK, NT, NTI, NTIMES, MAX_NODE, 
    NV, NVI, NIJK, 
@@ -204,7 +205,7 @@ typedef enum {
                               Leave N_FIELDS at the end */
 
 char Field_Names[][32]={
-   {"-classic-"}, {"space"}, {"AV_spc"}, {"nifti?"}, {"exist?"},
+   {"-classic-"}, {"space"}, {"AV_spc"}, {"gen_spc"}, {"nifti?"}, {"exist?"},
    {"atlas?"}, {"oblq?"}, {"oblq"}, {"prefix"}, {"pref_nx"}, 
    {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, {"MxNode"},
    {"Nv"}, {"Nvi"}, {"Nijk"}, 
@@ -260,11 +261,12 @@ int main( int argc , char *argv[] )
    char *sbdelim = {"|"};
    char *NAflag = {"NA"};
    char *atrdelim = {"\t"}, *form=NULL;
-   INFO_FIELDS sing[512]; 
+   INFO_FIELDS sing[512];
    int iis=0, N_sing = 0, isb=0, withhead = 0, itmp=0;
    int ip=0, needpair = 0, namelen=0, monog_pairs = 0;
    THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
-   
+   char *tempstr = NULL;
+
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
    mainENTRY("3dinfo main") ; machdep() ; 
@@ -316,6 +318,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = DSET_SPACE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-av_space") == 0) { 
          sing[N_sing++] = AV_DSET_SPACE; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-gen_space") == 0) { 
+         sing[N_sing++] = DSET_GEN_SPACE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-is_nifti") == 0) { 
          sing[N_sing++] = IS_NIFTI; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-is_atlas") == 0) { 
@@ -618,16 +622,30 @@ int main( int argc , char *argv[] )
             fprintf(stdout, "%d", dset ? 1:0);
             break;
          case DSET_SPACE:
-            fprintf(stdout, "%s", dset->atlas_space);
+            tempstr = THD_get_space(dset);
+            if(tempstr==NULL)
+                  fprintf(stdout, "-----");
+            else
+                  fprintf(stdout, "%s", tempstr);
+            break;
+         case DSET_GEN_SPACE:
+            tempstr = THD_get_generic_space(dset);
+            if(tempstr==NULL)
+                  fprintf(stdout, "-----");
+            else
+                  fprintf(stdout, "%s", tempstr);
             break;
          case AV_DSET_SPACE:
-                 if (!strncmp(dset->atlas_space,"ORIG",4)) 
+            tempstr = THD_get_space(dset);
+            if(tempstr==NULL)
+                  fprintf(stdout, "-----");
+            else if (!strncmp(tempstr,"ORIG",4)) 
                   fprintf(stdout, "+orig");
-            else if (!strncmp(dset->atlas_space,"ACPC",4)) 
+            else if (!strncmp(tempstr,"ACPC",4)) 
                   fprintf(stdout, "+acpc");
-            else if (!strncmp(dset->atlas_space,"TLRC",4)) 
+            else if (!strncmp(tempstr,"TLRC",4)) 
                   fprintf(stdout, "+tlrc");
-            else if (!strncmp(dset->atlas_space,"MNI",3)) 
+            else if (!strncmp(tempstr,"MNI",3)) 
                   fprintf(stdout, "+tlrc");
             else
                   fprintf(stdout, "-----");
@@ -751,7 +769,6 @@ int main( int argc , char *argv[] )
             break;
          case LTABLE_AS_ATLAS_POINT_LIST:
             {
-               char *str;
                ATLAS_POINT_LIST *apl=NULL;
                if ((apl = 
                      label_table_to_atlas_point_list(DSET_Label_Dtable(dset)))) {
