@@ -315,11 +315,14 @@ ENTRY("THD_instacorr") ;
      case NBISTAT_BC_PEARSON_V:
        THD_vectim_pearsonBC( mv,sblur,ijk,1,dar ); break; /* 07 Mar 2011 */
        
-     case NBISTAT_EUCLIDIAN_DIST:/* 4 Apr 2012, ZSS*/
+     case NBISTAT_EUCLIDIAN_DIST:/* 04 Apr 2012, ZSS*/
        THD_vectim_distance( mv , tsar , dar , 0, "inv;n_scale") ; break ;  
 
-     case NBISTAT_CITYBLOCK_DIST:/* 4 Apr 2012, ZSS*/
+     case NBISTAT_CITYBLOCK_DIST:/* 04 Apr 2012, ZSS*/
        THD_vectim_distance( mv , tsar , dar , 1, "inv;n_scale") ; break ;  
+
+     case NBISTAT_QUANTILE_CORR: /* 11 May 2012 */
+       THD_vectim_quantile( mv , tsar , dar ) ; break ;
    }
 
    /** put them into the output image **/
