@@ -156,7 +156,7 @@ def make_outlier_commands(proc):
           '    # censor outlier TRs per run, ignoring the first %d TRs\n'     \
           '    # - censor when more than %g of automask voxels are outliers\n'\
           '    # - step() defines which TRs to remove via censoring\n'        \
-          '    1deval -a outcount_r$run.1D '                                  \
+          '    1deval -a outcount.r$run.1D '                                  \
           '-expr "1-step(a-%g)%s" > rm.out.cen.r$run.1D\n'                    \
           % (nskip, censor, censor, dstr)
         cs1 = '\n'                                                          \
@@ -188,7 +188,7 @@ def make_outlier_commands(proc):
     else:                             lstr = ''
 
     prev_prefix = proc.prev_prefix_form_run(view=1)
-    ofile = 'outcount_r$run.1D'
+    ofile = 'outcount.r$run.1D'
     warn  = '** TR #0 outliers: possible pre-steady state TRs in run $run'
     proc.out_wfile = 'out.pre_ss_warn.txt'
 
@@ -213,7 +213,7 @@ def make_outlier_commands(proc):
 
     cmd += 'end\n\n'                                                      \
            '# catenate outlier counts into a single time series\n'        \
-           'cat outcount_r??.1D > outcount.rall.1D\n'                     \
+           'cat outcount.r*.1D > outcount_rall.1D\n'                      \
            '%s\n' % cs1
  
     return 0, cmd
@@ -1198,10 +1198,10 @@ def db_cmd_volreg(proc, block):
         cmd = cmd + '\n    # if there was an error, exit so user can see'     \
                     '\n    if ( $status ) exit\n\n'
 
+    proc.mot_default = 'dfile_rall.1D'
     cmd = cmd + "end\n\n"                                                     \
                 "# make a single file of registration params\n"               \
-                "cat dfile.r??.1D > dfile.rall.1D\n\n"
-    proc.mot_default = 'dfile.rall.1D'
+                "cat dfile.r*.1D > %s\n\n" % proc.mot_default
 
     # if not censoring motion, make a generic motion file
     if not proc.user_opts.find_opt('-regress_censor_motion'):
@@ -6269,7 +6269,7 @@ g_help_string = """
 
             This option gives the ability to choose a combination of:
 
-                basic:  dfile.rall.1D - the parameters straight from 3dvolreg
+                basic:  dfile_rall.1D - the parameters straight from 3dvolreg
                         (or an external motion file, see -regress_motion_file)
                 demean: 'basic' params with the mean removed, per run
                 deriv:  per-run derivative of 'basic' params (de-meaned)
@@ -6738,7 +6738,7 @@ g_help_string = """
 
             Particularly if the user performs motion correction outside of
             afni_proc.py, they may wish to specify a motion parameter file
-            other than dfile.rall.1D (the default generated in the volreg
+            other than dfile_rall.1D (the default generated in the volreg
             block).
 
             If the motion parameter file is in an external directory, the
