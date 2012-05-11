@@ -180,10 +180,10 @@ PLUGIN_interface * ICOR_init( char *lab )
 {
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
-   static char *meth_string[9] = { "Pearson" , "Spearman" ,
-                                   "Quadrant", "Ken Tau_b", "TicTacToe" ,
-                                   "BCpearson" , "VCpearson", "Euclidian",
-                                   "CityBlock" } ;
+   static char *meth_string[10] = { "Pearson" , "Spearman" ,
+                                    "Quadrant", "Ken Tau_b", "TicTacToe" ,
+                                    "BCpearson" , "VCpearson", "Euclidian",
+                                    "CityBlock" , "Quantile:9" } ;
    char sk[32] , sc[32] ;
    int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
 
@@ -235,8 +235,8 @@ PLUGIN_interface * ICOR_init( char *lab )
    { char *un = tross_username() ;
      PLUTO_add_string( plint , "Method" ,
                        (un != NULL && 
-                        (strstr(un,"cox") != NULL ||
-                         strstr(un,"ziad") != NULL) ) ? 9 : 4 ,
+                        (strstr(un,"cox")  != NULL ||
+                         strstr(un,"ziad") != NULL)  ) ? 10 : 4 ,
                        meth_string , 0 ) ;
    }
 
@@ -345,13 +345,16 @@ static char * ICOR_main( PLUGIN_interface *plint )
        switch( cm[0] ){
          default:  cmeth = NBISTAT_PEARSON_CORR  ; break ;
          case 'S': cmeth = NBISTAT_SPEARMAN_CORR ; break ;
-         case 'Q': cmeth = NBISTAT_QUADRANT_CORR ; break ;
          case 'K': cmeth = NBISTAT_KENDALL_TAUB  ; break ;
          case 'B': cmeth = NBISTAT_BC_PEARSON_M  ; break ; /* 07 Mar 2011 */
          case 'V': cmeth = NBISTAT_BC_PEARSON_V  ; break ; /* 07 Mar 2011 */
          case 'T': cmeth = NBISTAT_TICTACTOE_CORR; break ; /* 30 Mar 2011 */
          case 'E': cmeth = NBISTAT_EUCLIDIAN_DIST; break ; /* 04 May 2012, ZSS*/
          case 'C': cmeth = NBISTAT_CITYBLOCK_DIST; break ; /* 04 May 2012, ZSS*/
+         case 'Q': 
+           if( cm[3] == 'n' ) cmeth = NBISTAT_QUANTILE_CORR ;
+           else               cmeth = NBISTAT_QUADRANT_CORR ;
+         break ;
        }
        continue ;
      }
