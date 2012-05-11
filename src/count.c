@@ -8,27 +8,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include "mrilib.h"
 
 int ranco(int,int, long int) ;
 extern int *z_rand_order(int bot, int top, long int seed);
-
-int main( int argc , char *argv[] )
-{
-   int ii , bot = -1 , top = -1 , step = -1 , rando_count = 0, rando_num=0, col ;
-   int narg , ndig = 4 , iout ;
-   long int seed = 0;
-   static char root[6664] , fmt[128] , suffix[6664] ;
-   float sclfac = 0.0 ;
-   int comma=0 , quiet = 0;   /* 18 Jan 2007 */
-   char sep=' ' ;
-   int skipn = 0; /* skip numbers that modulus m = n  08 May 2007 */
-   int skipm = 0;
-   int skipout;
-
-/*** Usage ***/
-
-   if( argc < 3 || strncmp(argv[1],"-help",2) == 0 ){
-
+void usage_count(int detail) {
      printf(
 "Usage: count [options] bot top [step]\n"
 "\n"
@@ -42,13 +26,27 @@ int main( int argc , char *argv[] )
 "    A number after S ('S#') indicates the number of unique integers\n"
 "    to output. If # exceeds the number of unique values, the shuffled\n"
 "    sequence will simply repeat itself. (N.B.: 'S' is for 'Shuffle'.)\n"
-"* 'bot' and 'top' must not be negative; step must be positive (defaults to 1).\n"
+"* 'bot' and 'top' must not be negative; step must be +ve (defaults to 1).\n"
+"* 'bot' and 'top' can be any character between 'A' and 'Z' or 'a' and 'z'.\n"
+"                  In these instances, the counting is from character bot \n"
+"                  to character top. If you do not specify -form, the program\n"
+"                  will automatically choose -form '%%c'. For example:\n"
+"                       count a z\n"
+"                  or to get the ASCII value of the characters:\n"
+"                       count -form %%d a z\n"
 "\n"
 "Options:\n"
 "  -seed        seed number for random number generator (for S and R above)\n"
 "  -sseed       seed string for random number generator (for S and R above)\n"
 "  -column      writes output, one number per line (with root and suffix, if any)\n"
 "  -digits n    prints numbers with 'n' digits [default=4]\n"
+"  -form CFRM   print the numbers with the CFRM formatting string. \n"
+"               e.g.: count -form %%c 49 130 \n"
+"                  or count -form '%%03d<:-)' 97 99 \n"
+"               You can't use any type of C formatting, only those who\n"
+"               take an integer for an input. Using '%%f', or '%%s' will \n"
+"               cause a crash.\n"
+"               -form overrides -digits.\n"
 "  -root rrr    prints string 'rrr' before the number [default=empty]\n"
 "  -sep s       prints single character 's' between the numbers [default=blank]\n"
 "                 [normally you would not use '-sep' with '-column']\n"
@@ -87,9 +85,25 @@ int main( int argc , char *argv[] )
 "\n"
 "-- Written by RWCox back in the ancient mists of forgotten time --\n\n"
      ) ;
+   return;
+}
+int main( int argc , char *argv[] )
+{
+   int ii , bot = -1 , top = -1 , step = -1 , 
+       rando_count = 0, rando_num=0, col ;
+   int narg , ndig = 4 , iout ;
+   long int seed = 0;
+   static char root[6664] , fmt[128] , nfmr[36], suffix[6664], *ufrm=NULL;
+   float sclfac = 0.0 ;
+   int comma=0 , quiet = 0;   /* 18 Jan 2007 */
+   char sep=' ' ;
+   int skipn = 0; /* skip numbers that modulus m = n  08 May 2007 */
+   int skipm = 0;
+   int skipout;
 
-     exit(0) ;
-   }
+   mainENTRY("count");machdep() ; 
+
+   if (argc == 1) { usage_count(1); exit(0); } /* Bob's help shortcut */
 
 /*** read arguments ***/
 
@@ -103,7 +117,11 @@ int main( int argc , char *argv[] )
    do {
 
    /*** switches ***/
-
+      if (strcmp(argv[narg], "-h") == 0 || strcmp(argv[narg], "-help") == 0) {
+         usage_count(strlen(argv[narg]) > 3 ? 2:1);
+         exit(0);
+      }
+      
       if( strncmp(argv[narg],"-digits",2) == 0 ){
          ndig = strtol( argv[++narg] , NULL , 10 ) ;
          if( ndig < 1 ) ERROR_exit("-digits value must be > 0") ;
@@ -156,6 +174,11 @@ int main( int argc , char *argv[] )
          continue ;
       }
 
+      if( strncmp(argv[narg],"-form",4) == 0 ){
+         ufrm = argv[++narg] ;
+         continue ;
+      }
+
       if( strncmp(argv[narg],"-comma",4) == 0 ||
           strncmp(argv[narg],"-,",2) == 0 ){
         comma = 1 ; sep = ',' ; col = 0 ; continue ;
@@ -176,19 +199,33 @@ int main( int argc , char *argv[] )
    /*** numbers ***/
 
       if( bot < 0 ){
-         bot = strtol( argv[narg] , NULL , 10 ) ;
-         if( bot < 0 ){
-            fprintf( stderr , "illegal value of bot %d\n" , bot ) ;
-            exit(1) ;
+         if (  strlen(argv[narg])==1 && 
+               ( (argv[narg][0]>='A' && argv[narg][0]<='Z') ||
+                 (argv[narg][0]>='a' && argv[narg][0]<='z')    )  ) {
+            bot = (int)argv[narg][0];
+            if (!ufrm) ufrm = "%c";
+         } else {
+            bot = strtol( argv[narg] , NULL , 10 ) ;
+            if( bot < 0 ){
+               fprintf( stderr , "illegal value of bot %d\n" , bot ) ;
+               exit(1) ;
+            }
          }
          continue ;
       }
 
       if( top < 0 ){
-         top = strtol( argv[narg] , NULL , 10 ) ;
-         if( top < 0 ){
-            fprintf( stderr , "illegal value of top %d\n" , top ) ;
-            exit(1) ;
+         if (  strlen(argv[narg])==1 && 
+               ( (argv[narg][0]>='A' && argv[narg][0]<='Z') ||
+                 (argv[narg][0]>='a' && argv[narg][0]<='z')    )  ) {
+            top = (int)argv[narg][0];
+            if (!ufrm) ufrm = "%c";
+         } else {
+            top = strtol( argv[narg] , NULL , 10 ) ;
+            if( top < 0 ){
+               fprintf( stderr , "illegal value of top %d\n" , top ) ;
+               exit(1) ;
+            }
          }
          continue ;
       }
@@ -223,21 +260,28 @@ int main( int argc , char *argv[] )
          continue ;
       }
 
-      fprintf( stderr , "too many arguments: %s\n" , argv[narg] ) ;
+      ERROR_message("too many arguments: %s\n", argv[narg]);
+      suggest_best_prog_option(argv[0], argv[narg]);
       exit(1) ;
-
    } while ( ++narg < argc ) ;
 
+   if (argc < 3) {
+      ERROR_message("Too few options, use -help for details");
+      exit(1);
+   }
 /*** set up to iterate ***/
-
+   if (ufrm) {
+      sprintf (nfmr, "%s", ufrm);
+   } else {
+      sprintf (nfmr, "%%0%dd", ndig);
+   }
    if( step <= 0 ) step = 1 ;
-
    if (col == 0) {
-      if( sclfac == 0.0 ) sprintf( fmt , "%%s%%0%dd%%s" , ndig ) ;
+      if( sclfac == 0.0 ) sprintf( fmt , "%%s%s%%s" , nfmr ) ;
       else                strcpy ( fmt , " %s%g%s" ) ;
       if( isspace(sep) )  strcat ( fmt," ") ;
    } else {
-      if( sclfac == 0.0 ) sprintf( fmt , " %%s%%0%dd%%s\n" , ndig ) ;
+      if( sclfac == 0.0 ) sprintf( fmt , " %%s%s%%s\n" , nfmr ) ;
       else                strcpy ( fmt , " %s%g%s\n" ) ;
    }
 /*** iterate ***/

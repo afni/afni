@@ -242,7 +242,7 @@ SEXP R_THD_write_dset(SEXP Sfname, SEXP Sdset, SEXP Opts)
    }
    
    for (i=0; i<DSET_NVALS(dset); ++i) {
-      if ( ( DSET_BRICK_TYPE(dset,i) != MRI_byte && 
+      if (  ( DSET_BRICK_TYPE(dset,i) != MRI_byte && 
       	     DSET_BRICK_TYPE(dset,i) != MRI_short ) ||
 	     scale == 0 ) {
       	EDIT_substitute_brick(dset, i, 
@@ -266,8 +266,9 @@ SEXP R_THD_write_dset(SEXP Sfname, SEXP Sdset, SEXP Opts)
          mri_fdr_setmask( (nFDRmask == DSET_NVOX(dset)) ? FDRmask : NULL ) ;
          ip = THD_create_all_fdrcurves(dset) ;
          if( ip > 0 ){
-            if (debug) ININFO_message("created %d FDR curve%s in dataset header",
-                           ip,(ip==1)?"\0":"s") ;
+            if (debug) 
+               ININFO_message("created %d FDR curve%s in dataset header",
+                              ip,(ip==1)?"\0":"s") ;
          } else {
             if (debug) 
                ININFO_message("failed to create FDR curves in dataset header") ;

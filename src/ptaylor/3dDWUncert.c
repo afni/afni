@@ -74,7 +74,7 @@ int expb_fdf(const gsl_vector *x, void *data, gsl_vector *f, gsl_matrix *J);
 // from Numerical Recipes by Press, Teukolsky, Vetterling and Flannery
 void piksr2(int n, unsigned int arr[], int brr[]); 
 
-void usage_DWUncert1(int detail) 
+void usage_DWUncert(int detail) 
 {
   printf(
 "\n Use jackknifing to estimate uncertainty of DTI parameters which are\n"
@@ -203,13 +203,13 @@ int main(int argc, char *argv[]) {
   //                    load AFNI stuff
   // ****************************************************************
   // ****************************************************************
-  if (argc == 1) { usage_DWUncert1(1); exit(0); }
+  if (argc == 1) { usage_DWUncert(1); exit(0); }
 
   iarg = 1;
   while( iarg < argc && argv[iarg][0] == '-' ){
     if( strcmp(argv[iarg],"-help") == 0 || 
 	strcmp(argv[iarg],"-h") == 0 ) {
-      usage_DWUncert1(strlen(argv[iarg])>3 ? 2:1);
+      usage_DWUncert(strlen(argv[iarg])>3 ? 2:1);
       exit(0);
     }
     if( strcmp(argv[iarg],"-inset") == 0 ){ // in DWIs
@@ -894,10 +894,10 @@ int main(int argc, char *argv[]) {
 		   DSET_HEADNAME(UNC_OUT));
       
       
-      EDIT_DSET_ORIENT(UNC_OUT, // have to make sure this way is fine enough!!!
-		       ORCODE(voxel_order[0]),
-		       ORCODE(voxel_order[1]),
-		       ORCODE(voxel_order[2]));
+      //EDIT_DSET_ORIENT(UNC_OUT, // have to make sure this way is fine enough!!!
+      //		       ORCODE(voxel_order[0]),
+      //	       ORCODE(voxel_order[1]),
+      //	       ORCODE(voxel_order[2]));
       
       for( n=0; n<6 ; n++)
 	EDIT_substitute_brick(UNC_OUT, n, MRI_float, OUT[n]);
@@ -908,6 +908,7 @@ int main(int argc, char *argv[]) {
       EDIT_BRICK_LABEL(UNC_OUT,3,"std_E1e3");      
       EDIT_BRICK_LABEL(UNC_OUT,4,"bias_FA");      
       EDIT_BRICK_LABEL(UNC_OUT,5,"std_FA");      
+      INFO_message("Writing output. NB: it will be %s!",dset_or);
 
       THD_update_statistics( UNC_OUT );
       THD_write_3dim_dataset(NULL, NULL, UNC_OUT, True);

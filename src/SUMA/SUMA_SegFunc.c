@@ -1829,7 +1829,12 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
    EDIT_substscale_brick(  filled, 0, MRI_float, fa, 
                            DSET_BRICK_TYPE(filled,0), -1.0);
    EDIT_BRICK_LABEL(filled,0,"HolesFilled"); 
-   
+   if (DSET_BRICK_TYPE(filled,0) == MRI_float) {
+      mri_clear_and_free(imin);  /* pointer was recycled */
+   } else {
+     mri_free(imin);  
+   }
+   imin = NULL; fa = NULL; 
    if (integ) { /* copy attributes, if any */
       THD_copy_labeltable_atr( filled->dblk,  aset->dblk);          
    }
@@ -1926,6 +1931,7 @@ AFNI_OMP_END ;
       /* Stick mm back into dset */
       EDIT_substscale_brick(blurred, sb, MRI_float, mm, 
                             DSET_BRICK_TYPE(blurred,sb), -1.0); 
+      if (DSET_BRICK_TYPE(blurred,sb) != MRI_float) free(mm);
       mm = NULL;
       EDIT_BRICK_LABEL(blurred,sb,"LSBlurredInMask");      
       mri_free(imin); imin = NULL;
@@ -2003,7 +2009,12 @@ int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
             DSET_PREFIX(aset), k, fac);
       EDIT_substscale_brick(blurred, k, MRI_float, fa, 
                               DSET_BRICK_TYPE(blurred,k), fac);
-      
+      if (DSET_BRICK_TYPE(blurred,k) == MRI_float) {
+         mri_clear_and_free(imin); /* data pointer was recycled */
+      } else {
+         mri_free(imin);
+      }
+      imin = NULL; fa = NULL;
       EDIT_BRICK_LABEL(blurred,k,"BlurredInMask"); 
    }
    
@@ -2050,6 +2061,12 @@ int SUMA_VolumeBlur(THD_3dim_dataset *aset,
       EDIT_substscale_brick(blurred, k, 
                      MRI_float, fa,
                      DSET_BRICK_TYPE(blurred,k), DSET_BRICK_FACTOR(aset,k));  
+      if (DSET_BRICK_TYPE(blurred,k) == MRI_float) {
+         mri_clear_and_free(imin);
+      } else {
+         mri_free(imin);
+      }
+      imin = NULL; fa = NULL;
       EDIT_BRICK_LABEL(blurred,k,"BlurredNoMask"); 
    }
    
@@ -2429,7 +2446,7 @@ THD_3dim_dataset *SUMA_estimate_bias_field (SEG_OPTS *Opt,
       mri_blur3D_addfwhm(imin, mm, FWHMbias); 
       /* do the fit */
       mri_polyfit_verb(Opt->debug) ;
-      if (!(imout = mri_polyfit( imin , polorder , mm , 0.0 , Opt->fitmeth )))  {
+      if (!(imout = mri_polyfit( imin, polorder , mm , 0.0 , Opt->fitmeth )))  {
          ERROR_exit("Failed to fit");
       }
       dmv = MRI_FLOAT_PTR(imout) ;   
@@ -2460,10 +2477,7 @@ THD_3dim_dataset *SUMA_estimate_bias_field (SEG_OPTS *Opt,
    M_dg /= (double)N_mm;  /* grand mean */
    
    
-   /* cleanup  */
-   mri_free(imin); imin = NULL;
-   if (imout) mri_free(imout); imout = NULL;
-   
+
    /* scale bias by mean to make output image be closer to input */
    for (i=0; i<DSET_NVOX(aset); ++i) dmv[i] /= M_dg;
       
@@ -2471,6 +2485,10 @@ THD_3dim_dataset *SUMA_estimate_bias_field (SEG_OPTS *Opt,
    EDIT_substscale_brick(pout, 0, MRI_float, dmv, MRI_short, -1.0);
    EDIT_BRICK_LABEL(pout,0,"BiasField");
    
+   /* cleanup  */
+   mri_free(imin); imin = NULL;
+   if (imout) mri_free(imout); imout = NULL;
+ 
 
    SUMA_RETURN(pout);
 }
@@ -2830,7 +2848,7 @@ int SUMA_apply_bias_field (SEG_OPTS *Opt,
    }
    EDIT_substscale_brick(xset, 0, MRI_float, d, MRI_short, -1.0);
    EDIT_BRICK_LABEL(xset,0,"BiasCorrected");
-
+   free(d); d = NULL;
    SUMA_RETURN(1);
 }
 
@@ -3471,7 +3489,7 @@ THD_3dim_dataset *SUMA_p_Y_GIV_C_B_O(
    
    /* put vector back in pout */
    EDIT_substscale_brick(pout, 0, MRI_double, p, MRI_short, -1.0);
-   
+   free(p); p = NULL;
    SUMA_RETURN(pout);
 }
 
@@ -3826,7 +3844,8 @@ int SUMA_MAP_labels(THD_3dim_dataset *aset,
    float af=0.0, *fpCgN=NULL, *fpC=NULL;
    int iter=0, i=0, k, ni, nj, nk, nij, ijkn[6];
    int Niter = 3, kmin;
-   double eG[Niter], e, eG1, eG2, *mv, *sv, dd, *e1=NULL, *e2=NULL, BoT, pp, *wv;
+   double eG[Niter], e, eG1, eG2, *mv, *sv, dd, *e1=NULL, 
+          *e2=NULL, BoT, pp, *wv;
    short *ci=NULL, *co=NULL, *a=NULL;
    
    SUMA_ENTRY;

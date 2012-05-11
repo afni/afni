@@ -39,7 +39,6 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
     INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
 }
 #endif
-
    if (Opt->cset) {/* Hide Classes not for analysis */
       int mm;
       short *sc=NULL;
@@ -140,6 +139,9 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
    /* To begin iterations, we should have class stats and pstCgALL. 
       Also, need an initial cset if B > 0.0  */
    for (iter=0; iter<Opt->N_main; ++iter) {
+      if (Opt->debug) {
+         INFO_message("Iteration %d memory check:\n",iter);MCHECK;
+      }
       /* improve parameters based on edge energy */
       if (Opt->edge) {
          double en;
@@ -412,7 +414,7 @@ SEG_OPTS *Seg_Default(char *argv[], int argc)
    Opt->group_keys = NULL;
    Opt->fitmeth = SEG_LSQFIT;
    Opt->N_enhance_cset_init = 0;
-   Opt->N_main = 4;
+   Opt->N_main = 5; /* defaulted to 4 before May 7 2012 */
    Opt->clust_cset_init=1;
    
    Opt->B = 0.0;  /* defaulted to 1.0 before March 7 2012 */
@@ -435,7 +437,7 @@ SEG_OPTS *Seg_Default(char *argv[], int argc)
    Opt->pstCgALLname = NULL;
    Opt->Bsetname = NULL;
    
-   Opt->proot = "Seg";
+   Opt->proot = "Segsy";
    SUMA_RETURN(Opt);
 }
 
@@ -777,7 +779,7 @@ int main(int argc, char **argv)
       SUMA_Seg_Write_Dset(Opt->proot, "Anat",  
                           Opt->aset, -1, Opt->hist);
    }
-   SUMA_S_Warn("Unmodulated output");
+   if (Opt->debug) SUMA_S_Note("Writing Unmodulated output");
    if (!(SUMA_pst_C_giv_ALL(Opt->xset, 
                                Opt->cmask, Opt->cmask_count,
                                Opt->cs,  

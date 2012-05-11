@@ -2812,6 +2812,17 @@ typedef struct THD_3dim_dataset {
 
 #define DSET_ARRAY(ds,iv) DBLK_ARRAY((ds)->dblk,(iv))
 
+/* set a sub-brick pointer to null              ZSS May 08 2012 */
+#define DSET_NULL_ARRAY(ds,iv) \
+   mri_clear_data_pointer(DBLK_BRICK((ds)->dblk,(iv)))
+/* free then set a sub-brick pointer to null    ZSS May 08 2012 */
+#define DSET_FREE_ARRAY(ds,iv) { \
+   if (DSET_ARRAY((ds),(iv))) {\
+      free(DSET_ARRAY((ds),(iv))); \
+      mri_clear_data_pointer(DBLK_BRICK((ds)->dblk,(iv)));  \
+   }  \
+}
+
 #define DSET_BRICK_ARRAY DSET_ARRAY  /* Because I sometimes forget the  */
 #define DBLK_BRICK_ARRAY DBLK_ARRAY  /* correct names given above - RWC */
 
