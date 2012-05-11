@@ -65,6 +65,25 @@ char * THD_get_space(THD_3dim_dataset *dset)
    RETURN(dset->atlas_space);
 }
 
+/* return the generic space associated with the space of a dataset
+   the principal goal is to give generic TLRC for all flavors of TLRC, TT_N27
+   or generic MNI for all flavors of MNI, MNI_FSL, MNI_ANAT */
+char * THD_get_generic_space(THD_3dim_dataset *dset)
+{
+   char *spcstr=NULL, *genspcstr=NULL;
+
+   ENTRY("THD_get_generic_space");
+
+   if(!dset) RETURN(NULL);
+   spcstr = THD_get_space(dset); /* space from dataset structure - do not free */
+   if(spcstr) 
+       genspcstr = gen_space_str(spcstr); /* space string from space structure - also do not free */
+   if(genspcstr)
+      RETURN(genspcstr);
+   else
+      RETURN(spcstr);
+}
+
 /* assign space codes used by whereami for specific atlases */
 int
 THD_space_code(char *space)
@@ -1967,6 +1986,8 @@ apply_xform_general(ATLAS_XFORM *xf, float x,float y,float z,
                         float *xout, float *yout, float *zout)
 {
    int xgc = 1;
+
+   invert_xform(xf);   /* possibly need to invert transform */
 
    if(strcmp(xf->xform_type,"Affine")==0){
       xgc = apply_xform_affine(xf, x, y, z, xout, yout, zout);
