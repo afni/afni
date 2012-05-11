@@ -13,6 +13,11 @@ int TrackIt(float ****CC, int *IND, float *PHYSIND,
             float *Edge, int *dim, float minFA, 
 	    float maxAng, int arrMax, 
             int **T, float **flT, int FB, float *physL);
+int TrackItP(float **CC, int *IND, float *PHYSIND, 
+	     float *Edge, int *dim, float minFA, 
+	     float maxAng, int arrMax, 
+	     int **T, float **flT, int FB, float *physL,
+	     int ***ID2);
 
 #endif /* _DOTRACKIT_HEADER_ */
 

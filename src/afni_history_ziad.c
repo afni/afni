@@ -66,6 +66,22 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+ { 8, May , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
+   "Code updates for P. Taylor's tractography",
+   NULL
+ },
+ 
+ { 8, May , 2012 , ZSS , "3dSeg" , MINOR , TYPE_BUG_FIX,
+   "Fixed memory leak problem",
+   NULL
+ },
+ 
+ { 8, May , 2012 , ZSS , "count" , MINOR , TYPE_NEW_OPT,
+   "Added -form to count: count -form %c 49 130",
+   NULL
+ },
+ 
  { 4, May , 2012 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Added inverse distance measures to InstaCorr",
    "For the moment, those options are only accessible to usernames \n"
