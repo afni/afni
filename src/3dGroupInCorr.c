@@ -1882,6 +1882,7 @@ int main( int argc , char *argv[] )
      int nbad=0 , nA , nB=0;
      float *ctrA=NULL , *ctrB=NULL ;
      MRI_IMARR *impr ;
+     int cdebug = AFNI_yesenv("3dGroupInCorr_DEBUG") ;
 
      /* simmple tests to gaurd against stoopid users [is there any other kind?] */
 
@@ -1928,6 +1929,8 @@ int main( int argc , char *argv[] )
            AXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
        }
      }
+     if( cdebug )
+       INFO_message("un-centered axx matrix") ; mri_write_1D( "-" , axxim ) ;
 
      /*--- ditto for the setB matrix (uncentered), if any ---*/
 
@@ -1948,6 +1951,8 @@ int main( int argc , char *argv[] )
              BXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
          }
        }
+       if( cdebug )
+         INFO_message("un-centered bxx matrix") ; mri_write_1D( "-" , bxxim ) ;
      }
 
      if( nbad )
@@ -2020,6 +2025,11 @@ int main( int argc , char *argv[] )
      if( impr == NULL ) ERROR_exit("GIC: Can't process setA covariate matrix?! :-(") ;
      axxim_psinv  = IMARR_SUBIM(impr,0) ; axx_psinv  = MRI_FLOAT_PTR(axxim_psinv ) ;
      axxim_xtxinv = IMARR_SUBIM(impr,1) ; axx_xtxinv = MRI_FLOAT_PTR(axxim_xtxinv) ;
+     if( cdebug ){
+       INFO_message("centered axx matrix")       ; mri_write_1D( "-" , axxim )       ;
+       INFO_message("centered axx_psinv matrix") ; mri_write_1D( "-" , axxim_psinv ) ;
+       INFO_message("axx_xtxinv matrix")         ; mri_write_1D( "-" , axxim_xtxinv) ;
+     }
 
      /*--- process the setB matrix ---*/
 
@@ -2033,6 +2043,11 @@ int main( int argc , char *argv[] )
        if( impr == NULL ) ERROR_exit("GIC: Can't process setB covariate matrix?! :-(") ;
        bxxim_psinv  = IMARR_SUBIM(impr,0) ; bxx_psinv  = MRI_FLOAT_PTR(bxxim_psinv ) ;
        bxxim_xtxinv = IMARR_SUBIM(impr,1) ; bxx_xtxinv = MRI_FLOAT_PTR(bxxim_xtxinv) ;
+       if( cdebug ){
+         INFO_message("centered bxx matrix")       ; mri_write_1D( "-" , bxxim )       ;
+         INFO_message("centered bxx_psinv matrix") ; mri_write_1D( "-" , bxxim_psinv ) ;
+         INFO_message("bxx_xtxinv matrix")         ; mri_write_1D( "-" , bxxim_xtxinv) ;
+       }
 
      } else if( shd_BBB != NULL && ttest_opcode == 2 ){  /* paired case */
 
@@ -3550,6 +3565,7 @@ void GRINCOR_many_regress( int nvec , int numx , float **xxar ,
                                       int nout , float **dtar  )
 {
    if( numy > 0 && yyar != NULL ){  /*--- 2 sample ---*/
+
    AFNI_OMP_START ;
 #pragma omp parallel
    { int ii,kk ; float *xar,*yar,*var,*wss ;
