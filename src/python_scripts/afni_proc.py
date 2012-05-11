@@ -332,9 +332,12 @@ g_history = """
     3.15 Apr 12, 2012: backport to python 2.2
         - thanks to L Broster for noting 2.2 problems
     3.16 Apr 16, 2012: added -regress_bandpass, to bandpass during regression
+    3.17 May 10, 2012:
+        - allow for processing more than 99 runs
+        - catenated 'rall' files will use '_' until prefix
 """
 
-g_version = "version 3.16, April 16, 2012"
+g_version = "version 3.17, May 10, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Mar 2012"
@@ -393,12 +396,12 @@ class SubjProcSream:
 
         self.mot_labs   = []            # labels for motion params
         # motion parameter file (across all runs)
-        self.mot_file   = 'dfile.rall.1D' # either mot_default or mot_extern
+        self.mot_file   = 'dfile_rall.1D' # either mot_default or mot_extern
         # for regression, maybe just mot_file, maybe per run, external
         # or might include demean and/or derivatives
         self.mot_regs   = []            # motion files to use in regression
         self.mot_per_run= 0             # motion regression per run
-        self.mot_default= ''            # probably 'dfile.rall.1D', if set
+        self.mot_default= ''            # probably 'dfile_rall.1D', if set
         self.mot_extern = ''            # from -regress_motion_file
         self.mot_demean = ''            # from demeaned motion file
         self.mot_deriv  = ''            # motion derivatives
@@ -1581,7 +1584,10 @@ class SubjProcSream:
                 '    exit\n'                                              \
                 'endif\n\n' % self.od_var)
         self.fp.write('# set list of runs\n')
-        self.fp.write('set runs = (`count -digits 2 1 %d`)\n\n' % self.runs)
+        digs = 2
+        if self.runs > 99: digs = 3
+        self.fp.write('set runs = (`count -digits %d 1 %d`)\n\n' \
+                      % (digs,self.runs) )
 
         self.fp.write('# create results and stimuli directories\n')
         self.fp.write('mkdir %s\nmkdir %s/stimuli\n%s\n' \
@@ -1675,12 +1681,12 @@ class SubjProcSream:
             cmd_str = \
               "# move preprocessing files to 'preproc.data' directory\n"   \
               "mkdir preproc.data\n"                                       \
-              "mv dfile.r??.1D outcount* pb??.$subj.r??.* rm.* preproc.data\n\n"
+              "mv dfile.r*.1D outcount* pb*.$subj.r*.* rm.* preproc.data\n\n"
             self.fp.write(add_line_wrappers(cmd_str))
         elif self.user_opts.find_opt('-remove_preproc_files'):
             cmd_str = \
               "# remove preprocessing files to save disk space\n"   \
-              "\\rm dfile.r??.1D pb??.$subj.r??.* rm.*\n\n"
+              "\\rm dfile.r*.1D pb*.$subj.r*.* rm.*\n\n"
             self.fp.write(add_line_wrappers(cmd_str))
 
         # at the end, if the basic review script is here, run it
@@ -1734,6 +1740,8 @@ class SubjProcSream:
     # if surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
     # (pass as 0/1, -1 for default)
     def prefix_form(self, block, run, view=0, surf_names=-1):
+        if self.runs > 99: rstr = 'r%03d' % run
+        else:              rstr = 'r%02d' % run
         if view: vstr = self.view
         else:    vstr = ''
         # if surface, change view to hemisphere and dataset suffix
@@ -1743,12 +1751,12 @@ class SubjProcSream:
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
         else: hstr = ''
         if self.sep_char == '.': # default
-           return 'pb%02d.%s%s.r%02d.%s%s' %    \
-                  (self.bindex, self.subj_label, hstr, run, block.label, vstr)
+           return 'pb%02d.%s%s.%s.%s%s' %    \
+                  (self.bindex, self.subj_label, hstr, rstr, block.label, vstr)
         else:
            s = self.sep_char
-           return 'pb%02d%s%s%s%sr%02d%s%s%s' %    \
-                  (self.bindex, s, self.subj_label, hstr, s, run, s,
+           return 'pb%02d%s%s%s%s%s%s%s%s' %    \
+                  (self.bindex, s, self.subj_label, hstr, s, rstr, s,
                    block.label, vstr)
 
     # same, but leave run as a variable
@@ -1773,6 +1781,8 @@ class SubjProcSream:
     # (so we don't need the block)
     # if self.surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
     def prev_prefix_form(self, run, view=0, surf_names=-1):
+        if self.runs > 99: rstr = 'r%03d' % run
+        else:              rstr = 'r%02d' % run
         if view: vstr = self.view
         else:    vstr = ''
         # if surface, change view to hemisphere and dataset suffix
@@ -1782,12 +1792,12 @@ class SubjProcSream:
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
         else: hstr = ''
         if self.sep_char == '.': # default
-           return 'pb%02d.%s%s.r%02d.%s%s' %    \
-                  (self.bindex-1, self.subj_label,hstr,run, self.pblabel, vstr)
+           return 'pb%02d.%s%s.%s.%s%s' %    \
+                  (self.bindex-1, self.subj_label,hstr,rstr, self.pblabel,vstr)
         else:
            s = self.sep_char
-           return 'pb%02d%s%s%s%sr%02d%s%s%s' %    \
-                  (self.bindex-1, s, self.subj_label, hstr, s, run, s,
+           return 'pb%02d%s%s%s%s%s%s%s%s' %    \
+                  (self.bindex-1, s, self.subj_label, hstr, s, rstr, s,
                   self.pblabel, vstr)
 
     # same, but leave run as a variable
@@ -1820,11 +1830,11 @@ class SubjProcSream:
            vstr = '%s.HEAD' % self.view
            hstr = ''
         if self.sep_char == '.': # default
-           return 'pb%02d.%s%s.r??.%s%s' %    \
+           return 'pb%02d.%s%s.r*.%s%s' %    \
                 (self.bindex-1, self.subj_label, hstr, self.pblabel, vstr)
         else:
            s = self.sep_char
-           return 'pb%02d%s%s%s%sr??%s%s%s' %    \
+           return 'pb%02d%s%s%s%sr*%s%s%s' %    \
                 (self.bindex-1, s, self.subj_label,hstr, s, s,
                 self.pblabel, vstr)
 
@@ -1846,11 +1856,11 @@ class SubjProcSream:
            vstr = '%s.HEAD' % self.view
            hstr = ''
         if self.sep_char == '.': # default
-           return 'pb%02d.%s%s.r??.%s%s' %      \
+           return 'pb%02d.%s%s.r*.%s%s' %      \
                (bind, self.subj_label, hstr, blabel, vstr)
         else:
            s = self.sep_char
-           return 'pb%02d%s%s%s%sr??%s%s%s' %      \
+           return 'pb%02d%s%s%s%sr*%s%s%s' %      \
                (bind, s, self.subj_label, hstr, s, s, blabel, vstr)
 
 class ProcessBlock:

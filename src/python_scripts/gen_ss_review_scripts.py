@@ -70,9 +70,9 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       variable name        example file name
       -------------        -----------------
       tcat_dset            pb00.FT.r01.tcat+orig.HEAD
-      outlier_dset         outcount.rall.1D
+      outlier_dset         outcount_rall.1D
       enorm_dset           motion_FT_enorm.1D
-      motion_dset          dfile.rall.1D
+      motion_dset          dfile_rall.1D
       volreg_dset          pb02.FT.r01.volreg+tlrc.HEAD
       xmat_regress         X.xmat.1D
       stats_dset           stats.FT+tlrc.HEAD
@@ -401,8 +401,8 @@ g_eg_uvar.rm_trs          = 2
 g_eg_uvar.num_stim        = 2
 g_eg_uvar.tcat_dset       = 'pb00.FT.r01.tcat+orig.HEAD'
 g_eg_uvar.enorm_dset      = 'motion_FT_enorm.1D'
-g_eg_uvar.motion_dset     = 'dfile.rall.1D'
-g_eg_uvar.outlier_dset    = 'outcount.rall.1D'
+g_eg_uvar.motion_dset     = 'dfile_rall.1D'
+g_eg_uvar.outlier_dset    = 'outcount_rall.1D'
 g_eg_uvar.mot_limit       = 0.3
 g_eg_uvar.out_limit       = 0.1
 g_eg_uvar.xmat_regress    = 'X.xmat.1D'
@@ -423,7 +423,7 @@ g_uvar_dict = {
  'tcat_dset'        :'set first tcat dataset',
  'enorm_dset'       :'set motion_enorm file',
  'motion_dset'      :'set motion parameter file',
- 'outlier_dset'     :'set outcount.rall file',
+ 'outlier_dset'     :'set outcount_rall file',
  'mot_limit'        :'set motion limit (maybe for censoring)',
  'out_limit'        :'set outlier limit (maybe for censoring)',
  'xmat_regress'     :'set X-matrix file used in regression',
@@ -493,9 +493,10 @@ g_history = """
         - use 3 decimal places for TR censor fractions
    0.18 Apr 12, 2012: replace enumerate(), for backport to python 2.2
    0.19 May 01, 2012: added -prefix option; added censoring to 1dplot commands
+   0.20 May 09, 2012: accomodate more than 99 runs
 """
 
-g_version = "gen_ss_review_scripts.py version 0.19, May 1, 2012"
+g_version = "gen_ss_review_scripts.py version 0.20, May 9, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -1054,21 +1055,21 @@ class MyInterface:
 
       if self.dsets.is_empty('stats_dset'):
          print '** no stats_dset to get final_view from'
-         return 1
+         view = ''
+      else:
+         view = self.dsets.stats_dset.view
 
-      view = self.dsets.stats_dset.view
       if len(view) != 5: # maybe surface, go after volreg explicitly for now
-         glist = glob.glob('pb0??%s?r01?volreg+orig.HEAD'%(self.uvars.subj))
-         if len(glist) > 0: view = '+orig'
-         glist = glob.glob('pb0??%s?r01?volreg+tlrc.HEAD'%(self.uvars.subj))
-         if len(glist) > 0: view = '+tlrc'
+         vv = "+orig"
+         glist = glob.glob('pb0*%s?r0*volreg%s.HEAD'%(self.uvars.subj, vv))
+         if len(glist) == 0:
+            vv = "+tlrc"
+            glist = glob.glob('pb0*%s?r0*volreg%s.HEAD'%(self.uvars.subj, vv))
+         if len(glist) > 0: view = vv
 
       if len(view) != 5:
-         print "** unknown view '%s' in stats_dset %s" \
-               % (view,self.dsets.stats_dset.pv())
-         # print "** failing to set final_view"
-         # return 1
-
+         print "** could not find view in stats or volreg dsets"
+         return 1
 
       self.uvars.final_view = view[1:]
 
@@ -1077,12 +1078,12 @@ class MyInterface:
                % self.uvars.final_view
 
       # do a basic test of the subject ID and view
-      gform = 'pb0??%s?r01?volreg+%s.HEAD' \
+      gform = 'pb*%s?r0*volreg+%s.HEAD' \
               % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gform)
       if len(glist) == 0:
          # try a more general form
-         gform = 'pb*r01*volreg+%s.HEAD' % self.uvars.final_view
+         gform = 'pb*r*1*volreg+%s.HEAD' % self.uvars.final_view
          glist = glob.glob(gform)
 
       if len(glist) == 0:
@@ -1289,7 +1290,9 @@ class MyInterface:
          if self.cvars.verb > 3:
             print '-- already set: motion_dset = %s' % self.uvars.motion_dset
 
-      gstr = 'dfile.rall.1D'
+      gstr = 'dfile_rall.1D'
+      if not os.path.isfile(gstr): gstr = 'dfile.rall.1D'
+
       if os.path.isfile(gstr):
          self.uvars.motion_dset = gstr
          return 0
@@ -1315,7 +1318,9 @@ class MyInterface:
          if self.cvars.verb > 3:
             print '-- already set: outlier_dset = %s' % self.uvars.outlier_dset
 
-      gstr = 'outcount.rall.1D'
+      gstr = 'outcount_rall.1D'
+      if not os.path.isfile(gstr): gstr = 'outcount.rall.1D'
+
       if os.path.isfile(gstr):
          self.uvars.outlier_dset = gstr
          return 0
@@ -1381,15 +1386,17 @@ class MyInterface:
 
       gstr = 'pb??.*.r01.volreg+%s.HEAD' % self.uvars.final_view
       glist = glob.glob(gstr)
-      if len(glist) == 1:
-         self.uvars.volreg_dset = glist[0]
-         self.dsets.volreg_dset = BASE.afni_name(glist[0])
-         return 0
 
-      # try again...
-      gstr = 'pb*r01*volreg+%s.HEAD' % self.uvars.final_view
-      glist = glob.glob(gstr)
-      if len(glist) == 1:
+      if len(glist) == 0:
+         gstr = 'pb*r001*volreg+%s.HEAD' % self.uvars.final_view
+         glist = glob.glob(gstr)
+
+      if len(glist) == 0:
+         gstr = 'pb*r01*volreg+%s.HEAD' % self.uvars.final_view
+         glist = glob.glob(gstr)
+
+      if len(glist) >= 1:
+         glist.sort()   # just to be sure
          self.uvars.volreg_dset = glist[0]
          self.dsets.volreg_dset = BASE.afni_name(glist[0])
          return 0
@@ -2095,19 +2102,23 @@ class MyInterface:
       mlimit = self.uvars.mot_limit
       olimit = self.uvars.out_limit
 
+      colorstr = '(colored TRs are censored):'
+      if self.dsets.is_empty('censor_dset'):
+         colorstr = ':' + ' ' * len(colorstr)
+
       txt += '1dplot -one %s%s "1D: %d@%g" &\n' % (cstr, ofile, nt, olimit)
       txt += '1dplot -one %s%s "1D: %d@%g" &\n' % (cstr, efile, nt, mlimit)
 
       txt += '\n'                                                       \
              'prompt_user -pause "                              \\\n'   \
-             '   review plots:                                  \\\n'   \
+             '   review plots %s      \\\n'                             \
              '     - outliers and motion (plotted together)     \\\n'   \
-             '     - outliers with limit %3.1f                    \\\n'   \
-             '     - motion with limit %3.1f                      \\\n'   \
+             '     - outliers with limit %g                    \\\n' \
+             '     - motion with limit %g                      \\\n' \
              '                                                  \\\n'   \
              '   --- close plots and click OK when finished --- \\\n'   \
              '   "\n'                                                   \
-             'echo ""\n\n\n' % (olimit, mlimit)
+             'echo ""\n\n\n' % (colorstr, olimit, mlimit)
 
       self.commands_drive += \
          '1dplot -wintitle "motion, outliers" -ynames OFrac Mot \\\n' \
