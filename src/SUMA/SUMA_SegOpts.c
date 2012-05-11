@@ -86,9 +86,15 @@ static char shelp_GenPriors[] = {
 };
 
 static char shelp_Seg[] = {
-"3dSeg segments brain volumes into tissue classes.\n"
+"3dSeg segments brain volumes into tissue classes. The program allows\n"
+"for adding a variety of global and voxelwise priors. However for the moment,\n"
+"only mixing fractions and MRF are documented.\n"
 "\n"
-"Example 1: Segmenting a T1 volume with:\n"
+"I do not recommend you use this program for quantitative segmentation,\n"
+"at least not yet. I have a lot of emotional baggage to overcome on that\n"
+"front.\n" 
+"\n"
+"Example 1: Segmenting a skull-stripped T1 volume with:\n"
 "              Brain mask, No prior volumes, Uniform mixing fraction\n"
 "           3dSeg    -anat anat.nii    -mask AUTO \\\n"
 "                    -classes 'CSF ; GM ; WM' -bias_classes 'GM ; WM' \\\n"
@@ -125,65 +131,113 @@ static char shelp_Seg[] = {
 };
 
 static HELP_OPT SegOptList[] = {
-   {  "-anat", 
-      "-anat ANAT: ANAT is the volume to segment", 
-      NULL },
-   {  "-mask", 
-      "-mask MASK: MASK only non-zero voxels in MASK are analyzed.\n"
-      "        MASK is useful when no voxelwise priors are available.\n"
-      "        MASK can either be a dataset or the string 'AUTO'\n"
-      "        which would use AFNI's automask function to create the mask.\n", 
-      NULL },
-   {  "-blur_meth",
-      "-blur_meth BMETH: Set the blurring method for bias field estimation.\n"
-      "     -blur_meth takes one of: BFT, BIM, \n"
-      "             BFT: Use Fourier smoothing, masks be damned.\n"
-      "             BIM: Blur in mask, slower, more accurate, not necessarily \n"
-      "                  better bias field estimates.\n"
-      "             BNN: A crude blurring in mask. Faster than BIM but it does\n"
-      "                  not result in accurate FWHM. This option is for \n"
-      "                  impatient testing. Do not use it.\n"
-      "             LSB: Localstat moving average smoothing. Debugging only. \n"
-      "                  Do not use.\n",
-      "BFT" },
-   {  "-bias_fwhm BIAS_FWHM: The amount of blurring used when estimating the\n"
-      "                      field bias with the Wells method.\n"
-      "                      [Wells et. al. IEEE TMI 15, 4, 1997].\n",
-      "25.0" },
-   {  "-classes", 
-      "-classes 'CLASS_STRING': CLASS_STRING is a semicolon delimited\n"
-      "                         string of class labels. At the moment\n"
-      "                         CLASS_STRING can only be 'CSF; GM; WM'\n", 
-      NULL},
-   {  "-Bmrf",
-      "-Bmrf BMRF: Weighting factor controlling influence of MRF step. \n"
-      "            BMRF = 0.0 means no MRF, 1.0 is typical, the larger BMRF\n"
-      "            the stronger the MRF. Use -Bmrf when you have no voxelwise\n"
-      "            priors.\n",
-      "0.0" },           
-   {  "-bias_classes",
-      "-bias_classes 'BIAS_CLASS_STRING': A semcolon demlimited string of \n"
-      "                                   classes that contribute to the \n"
-      "                                   estimation of the bias field.\n",
-      "'GM; WM'" },
-   {  "-prefix",
-      "-prefix PREF: PREF is the prefix for all output volume that are not \n"
-      "              debugging related.\n", 
-      "Segsy" },
-   {  NULL, NULL, NULL  },
-   {  "-overwrite",
-      "-overwrite: An option common to almost all AFNI programs. It is \n"
-      "            automatically turned on if you provide no PREF.\n",
-      NULL },
-   {  "-mixfrac 'MIXFRAC': MIXFRAC sets up the volume-wide (within mask)\n"
-      "                    tissue fractions while initializing the \n"
-      "                    segmentation. You can specify the mixing fractions\n"
-      "                    directly such as with '0.1 0.45 0.45', or with\n"
-      "                    the following special flags:\n"
-      "              'UNI': Equal mixing fractions \n"
-      "              'AVG152_BRAIN_MASK': Mixing fractions reflecting AVG152\n"
-      "                                   template.\n",
-      "UNI" }, 
+   {  
+"-anat", 
+"-anat ANAT: ANAT is the volume to segment", 
+NULL 
+      },
+   {  
+"-mask", 
+"-mask MASK: MASK only non-zero voxels in MASK are analyzed.\n"
+"        MASK is useful when no voxelwise priors are available.\n"
+"        MASK can either be a dataset or the string 'AUTO'\n"
+"        which would use AFNI's automask function to create the mask.\n", 
+NULL 
+      },
+   {  
+"-blur_meth",
+"-blur_meth BMETH: Set the blurring method for bias field estimation.\n"
+"     -blur_meth takes one of: BFT, BIM, \n"
+"             BFT: Use Fourier smoothing, masks be damned.\n"
+"             BIM: Blur in mask, slower, more accurate, not necessarily \n"
+"                  better bias field estimates.\n"
+"             BNN: A crude blurring in mask. Faster than BIM but it does\n"
+"                  not result in accurate FWHM. This option is for \n"
+"                  impatient testing. Do not use it.\n"
+"             LSB: Localstat moving average smoothing. Debugging only. \n"
+"                  Do not use.",
+"BFT" 
+      },
+   {  
+"-bias_fwhm",
+"-bias_fwhm BIAS_FWHM: The amount of blurring used when estimating the\n"
+"                      field bias with the Wells method.\n"
+"                      [Wells et. al. IEEE TMI 15, 4, 1997].",
+"25.0" 
+      },
+   {  
+"-classes", 
+"-classes 'CLASS_STRING': CLASS_STRING is a semicolon delimited\n"
+"                         string of class labels. At the moment\n"
+"                         CLASS_STRING can only be 'CSF; GM; WM'", 
+NULL
+      },
+   {  
+"-Bmrf",
+"-Bmrf BMRF: Weighting factor controlling spatial homogeneity of the \n"
+"            classifications. The larger BMRF, the more homogenious the\n"
+"            classifications will be.\n"
+"            See Berthod et al. Image and Vision Computing 14 (1996),\n"
+"            MRFs are also used in FSL's FAST program.\n"
+"            BMRF = 0.0 means no MRF, 1.0 is a start. \n"
+"            Use this option if you have noisy data and no good \n"
+"            voxelwise priors.",
+"0.0" 
+      },           
+   {  
+"-bias_classes",
+"-bias_classes 'BIAS_CLASS_STRING': A semcolon demlimited string of \n"
+"                                   classes that contribute to the \n"
+"                                   estimation of the bias field.",
+"'GM; WM'" 
+      },
+   {  
+"-prefix",
+"-prefix PREF: PREF is the prefix for all output volume that are not \n"
+"              debugging related.", 
+"Segsy" 
+      },
+   {  
+"-overwrite",
+"-overwrite: An option common to almost all AFNI programs. It is \n"
+"            automatically turned on if you provide no PREF.",
+NULL
+      },
+   {  
+"-mixfrac",
+"-mixfrac 'MIXFRAC': MIXFRAC sets up the volume-wide (within mask)\n"
+"                    tissue fractions while initializing the \n"
+"                    segmentation. You can specify the mixing fractions\n"
+"                    directly such as with '0.1 0.45 0.45', or with\n"
+"                    the following special flags:\n"
+"              'UNI': Equal mixing fractions \n"
+"              'AVG152_BRAIN_MASK': Mixing fractions reflecting AVG152\n"
+"                                   template.",
+"UNI" 
+      }, 
+   {  
+"-gold",
+"-gold GOLD: A goldstandard segmentation volume should you wish to\n"
+"               compare 3dSeg's results to it.",
+NULL 
+      },
+   {  
+"-gold_bias",
+"-gold_bias GOLD: A goldstandard bias volume should you wish to\n"
+"               compare 3dSeg's bias estimate to it.\n",
+NULL 
+      },
+   {  
+"-main_N",
+"-main_N Niter: Number of iterations to perform.",
+"5" 
+      },
+   {  
+"-cset",
+"-cset CSET: Initial classfication. If CSET is not given,\n"
+"            initialization is carried out with 3dkmean's engine.\n",
+NULL 
+      },
    {  NULL, NULL, NULL  }
 };
 
@@ -1205,6 +1259,11 @@ int SUMA_ShortizeDset(THD_3dim_dataset **dsetp, float thisfac) {
       } else {
          EDIT_substscale_brick(cpset, i, DSET_BRICK_TYPE(dset,i), 
                             DSET_ARRAY(dset,i), MRI_short, thisfac);
+         if (DSET_BRICK_TYPE(dset,i) != MRI_short) {
+            DSET_FREE_ARRAY(dset, i);
+         } else {
+            DSET_NULL_ARRAY(dset, i);
+         }
       }
    }
    /* preserve tables, if any */
@@ -1219,7 +1278,9 @@ THD_3dim_dataset *Seg_load_dset( char *set_name ) {
    THD_3dim_dataset *dset=NULL, *sdset=NULL;
    int i=0;
    byte make_cp=0;
+   int verb=0;
    char sprefix[THD_MAX_PREFIX+10];
+   
    ENTRY("Seg_load_dset");
    
    dset = THD_open_dataset( set_name );
@@ -1232,7 +1293,7 @@ THD_3dim_dataset *Seg_load_dset( char *set_name ) {
    
    for (i=0; i<DSET_NVALS(dset); ++i) {
       if (DSET_BRICK_TYPE(dset,i) != MRI_short) {
-         INFO_message("Sub-brick %d in %s not of type short.\n"
+         if (verb) INFO_message("Sub-brick %d in %s not of type short.\n"
                        "Creating new short copy of dset ", 
                        i, DSET_PREFIX(dset));
          make_cp=1; break;
