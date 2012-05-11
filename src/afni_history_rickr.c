@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, MAY, 2012, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "also output average censored per-TR motion",
+   NULL
+ } ,
+
  { 10, MAY, 2012, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "allow processing of more than 99 runs",
    NULL

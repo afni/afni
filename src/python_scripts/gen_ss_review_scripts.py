@@ -216,14 +216,21 @@ g_mot_n_trs_str = """
 
 echo "motion limit              : $mot_limit"
 
-set mmean = `3dTstat -prefix - -mean $enorm_dset\\' | & tail -n 1`
-echo "average motion (per TR)   : $mmean"
-
 set mcount = `1deval -a $enorm_dset -expr "step(a-$mot_limit)"      \\
                         | awk '$1 != 0 {print}' | wc -l`
 echo "num TRs above mot limit   : $mcount"
 
+set mmean = `3dTstat -prefix - -mean $enorm_dset\\' | & tail -n 1`
+echo "average motion (per TR)   : $mmean"
+
 if ( $?motion_dset ) then
+    if ( $was_censored ) then
+        # compute average censored motion
+        1deval -a $enorm_dset -b $censor_dset -expr 'a*b' > rm.ec.1D
+        set mmean = `3dTstat -prefix - -nzmean rm.ec.1D\\' | & tail -n 1`
+        echo "average censored motion   : $mmean"
+    endif
+
     # compute the maximum motion displacement over all TR pairs
     set disp = `1d_tool.py -infile $motion_dset -show_max_displace -verb 0`
     echo "max motion displacement   : $disp"
@@ -494,9 +501,10 @@ g_history = """
    0.18 Apr 12, 2012: replace enumerate(), for backport to python 2.2
    0.19 May 01, 2012: added -prefix option; added censoring to 1dplot commands
    0.20 May 09, 2012: accomodate more than 99 runs
+   0.21 May 11, 2012: also output average censored motion (per TR)
 """
 
-g_version = "gen_ss_review_scripts.py version 0.20, May 9, 2012"
+g_version = "gen_ss_review_scripts.py version 0.21, May 11, 2012"
 
 g_todo_str = """
    - figure out template_space
