@@ -62,8 +62,8 @@ float spearman_rank_prepare( int n , float *a )
 
    rb = 0.5f*(n-1) ; rs=0.0f ;
    for( ii=0 ; ii < n ; ii++ ){
-     a[ii] -= rb ;
-     rs    += a[ii]*a[ii] ;
+     a[ii] -= rb ;                /* remove mean rank */
+     rs    += a[ii]*a[ii] ;       /* sum squares */
    }
 
    return rs ;
@@ -130,7 +130,73 @@ float quadrant_corr( int n , float *x , float rv , float *r )
    return ( ss/sqrtf(rv*xv) ) ;
 }
 
+/*------------------------------------------------------------------------------*/
+
+static int num_quantile = 9 ;
+void THD_quantile_corr_setup( int nq )
+{
+   if( nq > 1 && nq < 100 ) num_quantile = nq ;
+}
+
+float quantile_prepare( int n , float *a )
+{
+   int ii ;
+   float rb , rs , jf ;
+
+   jf = 0.001f + 1.00001f * (n-0.5f) / (float)num_quantile ;
+   if( jf <= 2.0f ) return spearman_rank_prepare(n,a) ;
+   jf = 1.0f / jf ;
+
+   rank_order_float(n,a) ;        /* convert to ranks */
+
+   for( rb=0.0f,ii=0 ; ii < n ; ii++ ){
+     a[ii] = (int)( (a[ii]+0.333f)*jf ) ; rb += a[ii] ;
+   }
+   rb /= n ;
+   for( rs=0.0f,ii=0 ; ii < n ; ii++ ){
+     a[ii] -= rb ; rs += a[ii]*a[ii] ;
+   }
+
+   return rs ;
+}
+
+float THD_quantile_corr( int n , float *x , float *y )
+{
+   float xv,yv,ss ; int ii ;
+
+   if( n < 2 ) return 0.0f ;
+
+   xv = quantile_prepare(n,x) ; if( xv <= 0.0f ) return 0.0f ;
+   yv = quantile_prepare(n,y) ; if( yv <= 0.0f ) return 0.0f ;
+
+   for( ii=0,ss=0.0f ; ii < n ; ii++ ) ss += x[ii] * y[ii] ;
+
+   return ( ss/sqrtf(yv*xv) ) ;
+}
+
+float quantile_corr( int n , float *x , float rv , float *r )
+{
+   register int ii ;
+   register float ss ; float xv ;
+
+   xv = quantile_prepare( n , x ) ; if( xv <= 0.0f ) return 0.0f ;
+
+   for( ii=0,ss=0.0f ; ii < n ; ii++ ) ss += x[ii] * r[ii] ;
+
+   return ( ss/sqrtf(rv*xv) ) ;
+}
+
 /*---------------------------------------------------------------------------*/
+
+#if 1
+#undef  ttt_bot
+#undef  ttt_top
+#define ttt_bot 0.3333333f
+#define ttt_top 0.6666667f
+
+void tictactoe_set_thresh( float bb , float tt ){ return; }
+
+#else
 
 static float ttt_bot = 0.3333333f ;
 static float ttt_top = 0.6666667f ;
@@ -140,6 +206,8 @@ void tictactoe_set_thresh( float bb , float tt )
    if( bb >= 0.0f && bb < tt && tt <= 1.0f ){ ttt_bot = bb; ttt_top = tt; }
    else                     { ttt_bot = 0.3333333f; ttt_top = 0.6666667f; }
 }
+
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*! Prepare for tictactoe correlation with a[].

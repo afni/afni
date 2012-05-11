@@ -4422,9 +4422,12 @@ extern void mri_blur3D_vectim( MRI_vectim *vim , float fwhm ) ;
 extern void THD_vectim_normalize( MRI_vectim *mrv ) ;
 extern void THD_vectim_dotprod  ( MRI_vectim *mrv, float *vec, float *dp, int ata ) ;
 extern void THD_vectim_spearman ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
+extern void THD_vectim_quantile ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 11 May 2012 */
 extern void THD_vectim_quadrant ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 01 Mar 2010 */
 extern void THD_vectim_ktaub    ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 29 Apr 2010 */
 extern void THD_vectim_tictactoe( MRI_vectim *mrv, float *vec, float *dp ) ; /* 30 Mar 2011 */
+
+extern void THD_vectim_applyfunc( MRI_vectim *mrv , void *vp ) ;        /* 10 May 2012 */
 
 extern void THD_vectim_pearsonBC( MRI_vectim *mrv, float srad, int sijk, int pv, float *par ) ;
 
@@ -5174,6 +5177,11 @@ extern float THD_pearson_corr ( int,float *,float *) ;
 extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
 extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
+
+extern float THD_quantile_corr( int,float *,float *) ;  /* 10 May 2012 */
+extern float quantile_corr( int n , float *x , float rv , float *r ) ;
+extern void THD_quantile_corr_setup( int ) ;
+extern float quantile_prepare( int n , float *a ) ;
 
 extern float THD_tictactoe_corr( int,float *,float *) ;  /* 19 Jul 2011 */
 
