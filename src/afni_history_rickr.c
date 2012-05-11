@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, MAY, 2012, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow processing of more than 99 runs",
+   NULL
+ } ,
+
+ { 10, MAY, 2012, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "allow for a wider range of file names",
+   "- handle case of more than 99 runs\n"
+   "- look for files of the form *_rall.1D, as well as *.rall.1D"
+ } ,
+
  { 7, MAY, 2012, RCR, "3dmask_tool", MINOR, TYPE_ENHANCE,
    "replaced THD_mask_erode with new THD_mask_erode_sym",
    "This change should make dilate and erosion operations symmetric."
