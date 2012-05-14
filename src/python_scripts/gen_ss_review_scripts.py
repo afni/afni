@@ -229,6 +229,7 @@ if ( $?motion_dset ) then
         1deval -a $enorm_dset -b $censor_dset -expr 'a*b' > rm.ec.1D
         set mmean = `3dTstat -prefix - -nzmean rm.ec.1D\\' | & tail -n 1`
         echo "average censored motion   : $mmean"
+        \rm -f rm.ec.1D
     endif
 
     # compute the maximum motion displacement over all TR pairs
