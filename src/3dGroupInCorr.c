@@ -912,8 +912,9 @@ int main( int argc , char *argv[] )
 
    NI_element   *covnel=NULL ;       /* covariates */
    NI_str_array *covlab=NULL ;
-   MRI_IMAGE *axxim , *axxim_psinv , *axxim_xtxinv ;
-   MRI_IMAGE *bxxim=NULL, *bxxim_psinv , *bxxim_xtxinv ;
+   MRI_IMAGE *axxim=NULL , *axxim_psinv=NULL , *axxim_xtxinv=NULL ;
+   MRI_IMAGE *bxxim=NULL , *bxxim_psinv=NULL , *bxxim_xtxinv=NULL ;
+   MRI_IMARR *covimar=NULL ;  /* 14 May 2012 */
    float **dtar=NULL ;
    int no_ttest = 0 ;  /* 02 Nov 2010 */
 
@@ -1929,8 +1930,9 @@ int main( int argc , char *argv[] )
            AXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
        }
      }
-     if( cdebug )
+     if( cdebug ){
        INFO_message("un-centered axx matrix") ; mri_write_1D( "-" , axxim ) ;
+     }
 
      /*--- ditto for the setB matrix (uncentered), if any ---*/
 
@@ -1951,8 +1953,9 @@ int main( int argc , char *argv[] )
              BXX(kk,jj) = ((float *)covnel->vec[jj])[ii] ;
          }
        }
-       if( cdebug )
+       if( cdebug ){
          INFO_message("un-centered bxx matrix") ; mri_write_1D( "-" , bxxim ) ;
+       }
      }
 
      if( nbad )
@@ -2055,11 +2058,30 @@ int main( int argc , char *argv[] )
 
      }
 
+     /*--- create array of all covariates to send to AFNI as 1D files [14 May 2012] ---*/
+
+     { MRI_IMAGE *aim,*bim,*qim ; char clab[MAX_LABEL_SIZE+16] ;
+       INIT_IMARR(covimar) ;
+       for( jj=1 ; jj <= mcov ; jj++ ){
+         aim = mri_cut_2D( axxim , 0 , shd_AAA->ndset-1 , jj,jj ) ; /* A column #jj */
+         if( bxxim != NULL ){
+           MRI_IMAGE *bim,*qim ; MRI_IMARR *qar ;           /* append column from B */
+           bim = mri_cut_2D( bxxim , 0 , shd_BBB->ndset-1 , jj,jj ) ;
+           INIT_IMARR(qar) ; ADDTO_IMARR(qar,aim) ; ADDTO_IMARR(qar,bim) ;
+           qim = mri_catvol_1D(qar,1) ;
+           DESTROY_IMARR(qar) ; aim = qim ;
+         }
+         sprintf(clab,"GIC:%s",covlab->str[jj]) ; mri_add_name(clab,aim) ;
+         ADDTO_IMARR(covimar,aim) ;
+       }
+     }
+
    } /*---------- covariates regression matrices now setup ----------*/
 
    /*--- scan through all the data, which will make it be page faulted
          into RAM, which will make the correlation-izing process faster;
-         the downside is that this may take quite a while, which is boring ---*/
+         the downside is that this may take quite a while, which is boring,
+         but it's better to wait now than to wait for the 1st result, IMHO ---*/
 
 #undef  BSTEP
 #define BSTEP 64
@@ -2340,6 +2362,20 @@ int main( int argc , char *argv[] )
      nn = NI_write_element( GI_stream , nelcmd , NI_BINARY_MODE ) ;
      if( nn < 0 ){
        ERROR_exit("GIC: Can't send setup data to %s!?",pname) ;
+     }
+
+     /* 14 May 2012: send covariate 1D vectors now (covimar) */
+
+     if( covimar != NULL && TalkToAfni ){
+       NI_element *nel1D ;
+       if( verb > 1 ) INFO_message("GIC: Sending covariate 1D vectors to %s",pname) ;
+       for( jj=0 ; jj < IMARR_COUNT(covimar) ; jj++ ){
+         nel1D = mri_to_niml( IMARR_SUBIM(covimar,jj) ) ;
+         nn = NI_write_element( GI_stream , nel1D , NI_BINARY_MODE ) ;
+         if( nn < 0 ) ERROR_exit("GIC: Can't send 1D vector to %s :-(",pname) ;
+         NI_free_element(nel1D) ;
+       }
+       DESTROY_IMARR(covimar) ; covimar = NULL ;  /* done with this sucker */
      }
 
    } else {       /* batch mode ==> setup internally */
