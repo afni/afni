@@ -1823,10 +1823,11 @@ ENTRY("AFNI_clus_action_CB") ;
            }
          }
          xar = (float *)malloc(sizeof(float)*nixy) ;
-         if( cwid->splotim != NULL && cwid->splotim->nx >= nix+ibot ){
-           float *spar = MRI_FLOAT_PTR(cwid->splotim) ;
+         if( cwid->splotim != NULL && cwid->splotim->nx >= nix ){
+           float *spar = MRI_FLOAT_PTR(cwid->splotim) ; int sbot ;
+           sbot = (cwid->splotim->nx >= nix+ibot) ? ibot : 0 ;
            for( kk=0 ; kk < niy ; kk++ ){
-             for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = spar[jj+ibot] ;
+             for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = spar[jj+sbot] ;
            }
            sprintf(xlab,"%.62s",cwid->splotim->name) ;
          } else {

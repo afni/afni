@@ -811,7 +811,7 @@ ENTRY("mri_to_niml") ;
    }
 
    if( im->name != NULL && im->name[0] != '\0' )
-     NI_set_attribute( nel , "mri_name" , rhs ) ;
+     NI_set_attribute( nel , "mri_name" , im->name ) ;
 
    /* put in the data */
     NI_add_column( nel , im->kind , vpt ) ;

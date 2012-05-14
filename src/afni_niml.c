@@ -609,37 +609,37 @@ ENTRY("AFNI_process_NIML_data") ;
 
    if( strcmp(nel->name,"SUMA_ixyz") == 0 ){
 
-     process_NIML_SUMA_ixyz(nel, ct_start) ;  /* surface nodes for a dataset */
+     process_NIML_SUMA_ixyz(nel, ct_start) ;    /* surface nodes for a dataset */
 
    } else if( strcmp(nel->name,"SUMA_ijk") == 0 ){
 
-     process_NIML_SUMA_ijk(nel, ct_start) ;   /* surface triangles from SUMA */
+     process_NIML_SUMA_ijk(nel, ct_start) ;     /* surface triangles from SUMA */
 
    } else if( strcmp(nel->name,"SUMA_node_normals") == 0 ){
 
-     process_NIML_SUMA_node_normals(nel, ct_start) ;/* node normals for surf */
+     process_NIML_SUMA_node_normals(nel, ct_start) ;  /* node normals for surf */
 
    } else if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0 ){
 
-     process_NIML_SUMA_crosshair_xyz(nel) ;            /* new focus position */
+     process_NIML_SUMA_crosshair_xyz(nel) ;              /* new focus position */
 
    } else if( strcmp(nel->name,"Node_ROI") == 0 ){
 
-     process_NIML_Node_ROI(nel, ct_start) ;         /* ROI drawing from SUMA */
+     process_NIML_Node_ROI(nel, ct_start) ;           /* ROI drawing from SUMA */
 
-   } else if( strncmp(nel->name,"VOLUME_DATA",11) == 0 ){     /* 10 Mar 2005 */
+   } else if( strncmp(nel->name,"VOLUME_DATA",11) == 0 ){       /* 10 Mar 2005 */
 
-     process_NIML_AFNI_volumedata( nel , ct_start ) ;     /* AFNI sub-bricks */
+     process_NIML_AFNI_volumedata( nel , ct_start ) ;       /* AFNI sub-bricks */
 
-   } else if( strcmp(nel->name,"MRI_IMAGE") == 0 ){           /* 22 Mar 2005 */
+   } else if( strcmp(nel->name,"MRI_IMAGE") == 0 ){             /* 22 Mar 2005 */
 
-     process_NIML_MRI_IMAGE( nel , ct_start ) ;       /* store as a .1D file */
+     process_NIML_MRI_IMAGE( nel , ct_start ) ;         /* store as a .1D file */
 
-   } else if( strcmp(nel->name,"3dGroupInCorr_setup") == 0 ){ /* 22 Dec 2009 */
+   } else if( strcmp(nel->name,"3dGroupInCorr_setup") == 0 ){   /* 22 Dec 2009 */
 
      GICOR_setup_func( ns_listen[chan] , nel ) ;
 
-   } else if( strcmp(nel->name,"3dGroupInCorr_dataset") == 0 ){  /* 23 Dec 2009 */
+   } else if( strcmp(nel->name,"3dGroupInCorr_dataset") == 0 ){ /* 23 Dec 2009 */
 
      GICOR_process_dataset( nel , ct_start ) ;
 
@@ -648,7 +648,7 @@ ENTRY("AFNI_process_NIML_data") ;
      sprintf(msg,"*** ERROR:\n\n"
                  " Unknown NIML input: \n"
                  "  <%.222s ...> \n"
-                 " Ignoring it, and hoping it goes away.\n" ,
+                 " Ignoring it, and hoping it goes away quietly\n" ,
                  nel->name) ;
      AFNI_popup_message(msg) ;
    }
