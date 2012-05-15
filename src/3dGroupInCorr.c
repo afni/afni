@@ -207,7 +207,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    char *dfname=NULL , *atr ;
    NI_float_array *facar ; NI_int_array *nvar, *nnode=NULL, *ninmask=NULL;
    MRI_shindss *shd ;
-   long long nbytes_needed , nbytes_dfname ; int fdes ;
+   long long nbytes_needed , nbytes_dfname=0 ; int fdes ;
    void *var ; int ids , nvmax , nvtot ;
    int datum , datum_size ;
 
@@ -323,12 +323,18 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    /* name of data file: check its size against what's needed */
 
    atr = NI_get_attribute(nel,"datafile") ;
-   if( atr == NULL ) GQUIT("datafile attribute missing") ;
-   dfname = strdup(atr) ; nbytes_dfname = THD_filesize(dfname) ;
-   if( nbytes_dfname <= 0 && strstr(dfname,"/") != NULL ){
-     char *tnam = THD_trailname(atr,0) ;
-     nbytes_dfname = THD_filesize(tnam) ;
-     if( nbytes_dfname > 0 ){ free(dfname); dfname = strdup(tnam); }
+   if( atr != NULL ){
+     dfname = strdup(atr) ; nbytes_dfname = THD_filesize(dfname) ;
+     if( nbytes_dfname <= 0 && strstr(dfname,"/") != NULL ){
+       char *tnam = THD_trailname(atr,0) ;
+       nbytes_dfname = THD_filesize(tnam) ;
+       if( nbytes_dfname > 0 ){ free(dfname); dfname = strdup(tnam); }
+     }
+   }
+   if( nbytes_dfname <= 0 && strstr(fname,".niml") != NULL ){
+     if( dfname != NULL ) free(dfname) ;
+     dfname = strdup(fname) ; strcpy(dfname+strlen(dfname)-5,".data") ;
+     nbytes_dfname = THD_filesize(dfname) ;
    }
    if( nbytes_dfname <= 0 ){
      char mess[THD_MAX_NAME+256] ;
@@ -340,6 +346,9 @@ MRI_shindss * GRINCOR_read_input( char *fname )
               commaized_integer_string(nbytes_dfname) ,
               commaized_integer_string(nbytes_needed) ) ;
      GQUIT(mess) ;
+   } else {
+     INFO_message("GIC: data file %s found with %s bytes of data",
+                  dfname , commaized_integer_string(nbytes_dfname) ) ;
    }
    fdes = open( dfname , O_RDONLY ) ;
    if( fdes < 0 ){
@@ -447,6 +456,8 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 
 /*--------------------------------------------------------------------------*/
 
+static int do_atanh = 1 ;  /* 15 May 2012 */
+
 #undef  MYatanh
 #define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
                     :((x)>+0.999329f) ? +4.0f : atanhf(x) )
@@ -466,23 +477,27 @@ void GRINCOR_dotprod_short( MRI_shindss *shd, int ids, float *vv, float *dp )
    for( iv=0 ; iv < nvec ; iv++ ){
      svv = sv + iv*nvals ;
      for( sum=0.0f,ii=0 ; ii < nvals ; ii++ ) sum += vv[ii]*svv[ii] ;
-     sum *= fac ; dp[iv] = MYatanh(sum) ;
+     dp[iv] = sum*fac ;
    }
 #else
    if( nvals%2 == 0 ){  /* even number of samples */
      for( iv=0 ; iv < nvec ; iv++ ){
        svv = sv + iv*nvals ; sum = 0.0f ;
        for( ii=0 ; ii < nvals ; ii+=2 ) sum += vv[ii]*svv[ii] + vv[ii+1]*svv[ii+1] ;
-       sum *= fac ; dp[iv] = MYatanh(sum) ;
+       dp[iv] = sum*fac ;
      }
    } else {             /* odd number of samples */
      for( iv=0 ; iv < nvec ; iv++ ){
        svv = sv + iv*nvals ; sum = vv[0]*svv[0] ;
        for( ii=1 ; ii < nvals ; ii+=2 ) sum += vv[ii]*svv[ii] + vv[ii+1]*svv[ii+1] ;
-       sum *= fac ; dp[iv] = MYatanh(sum) ;
+       dp[iv] = sum*fac ;
      }
    }
 #endif
+
+   if( do_atanh ){
+     for( iv=0 ; iv < nvec ; iv++ ) dp[iv] = MYatanh(dp[iv]) ;
+   }
 
    return ;
 }
@@ -500,23 +515,27 @@ void GRINCOR_dotprod_sbyte( MRI_shindss *shd, int ids, float *vv, float *dp )
    for( iv=0 ; iv < nvec ; iv++ ){
      bvv = bv + iv*nvals ;
      for( sum=0.0f,ii=0 ; ii < nvals ; ii++ ) sum += vv[ii]*bvv[ii] ;
-     sum *= fac ; dp[iv] = MYatanh(sum) ;
+     dp[iv] = sum*fac ;
    }
 #else
    if( nvals%2 == 0 ){  /* even number of samples */
      for( iv=0 ; iv < nvec ; iv++ ){
        bvv = bv + iv*nvals ; sum = 0.0f ;
        for( ii=0 ; ii < nvals ; ii+=2 ) sum += vv[ii]*bvv[ii] + vv[ii+1]*bvv[ii+1] ;
-       sum *= fac ; dp[iv] = MYatanh(sum) ;
+       dp[iv] = sum*fac ;
      }
    } else {             /* odd number of samples */
      for( iv=0 ; iv < nvec ; iv++ ){
        bvv = bv + iv*nvals ; sum = vv[0]*bvv[0] ;
        for( ii=1 ; ii < nvals ; ii+=2 ) sum += vv[ii]*bvv[ii] + vv[ii+1]*bvv[ii+1] ;
-       sum *= fac ; dp[iv] = MYatanh(sum) ;
+       dp[iv] = sum*fac ;
      }
    }
 #endif
+
+   if( do_atanh ){
+     for( iv=0 ; iv < nvec ; iv++ ) dp[iv] = MYatanh(dp[iv]) ;
+   }
 
    return ;
 }
@@ -1507,6 +1526,10 @@ int main( int argc , char *argv[] )
        do_shm = 0 ; nopt++ ; continue ;
      }
 #endif
+
+     if( strcasecmp(argv[nopt],"-noatanh") == 0 ){  /* 15 May 2012 */
+       do_atanh = 0 ; nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-sendall") == 0 ){  /* 22 Jan 2011 */
        do_sendall++ ; nopt++ ; continue ;

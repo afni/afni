@@ -909,6 +909,10 @@ qm:qm.o
 	$(RM) $@
 	$(CCFAST) -o 3dTransformGroupInCorr 3dTransformGroupInCorr.o $(LFLAGS) $(LLIBS)
 
+3dExtractGroupInCorr:3dExtractGroupInCorr.o
+	$(RM) $@
+	$(CCFAST) -o 3dExtractGroupInCorr 3dExtractGroupInCorr.o $(LFLAGS) $(LLIBS)
+
 rotcom:rotcom.o
 	$(RM) $@
 	$(CC) -o rotcom rotcom.o $(LFLAGS) $(LLIBS)

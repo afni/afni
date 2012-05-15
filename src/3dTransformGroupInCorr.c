@@ -9,12 +9,56 @@
 static int num_quantile = 9 ;
 
 /*--------------------------------------------------------------------------*/
+
+static void rank_orderize( int n , float *a )
+{
+   register int ii , ns , n1 , ib ;
+   int   *b ;  /* workspaces */
+   float *c ;
+   float cs ;
+
+   /*- handle special cases -*/
+
+   if( a == NULL || n < 1 ) return ;        /* meaningless input */
+   if( n == 1 ){ a[0] = 0.0f ; return ; }    /* only one point!? */
+
+   /*- make workspaces -*/
+
+   b = (int   *) malloc(sizeof(int  )*n) ;
+   c = (float *) malloc(sizeof(float)*n) ;
+
+   for( ii=0 ; ii < n ; ii++ ) c[ii] = b[ii] = ii ;
+
+   /*- sort input, carrying b=original index along -*/
+
+   qsort_floatint( n , a , b ) ;  /* see cs_sort_fi.c */
+
+   /* compute ranks into c[] */
+
+   n1 = n-1 ;
+   for( ii=0 ; ii < n1 ; ii++ ){
+     if( a[ii] == a[ii+1] ){                  /* handle ties */
+       cs = 2*ii+1 ; ns = 2 ; ib = ii ; ii++ ;
+       while( ii < n1 && a[ii] == a[ii+1] ){ ii++ ; ns++ ; cs += ii ; }
+       for( cs/=ns ; ib <= ii ; ib++ ) c[ib] = cs ;
+     }
+   }
+
+   /* put ranks into original vector at original index locations */
+
+   for( ii=0 ; ii < n ; ii++ ) a[b[ii]] = c[ii] ;
+
+   free(c) ; free(b) ; return ;
+}
+
+/*--------------------------------------------------------------------------*/
 /* These PREP function process the data in-place. */
 
 void PREP_spearman( int n , float *ar )
 {
    int ii ; float rb ;
-   rank_order_float(n,ar) ;     /*  ranks are 0..n-1 (cf. thd_correlate.c) */
+
+   rank_orderize(n,ar) ;        /*  ranks are 0..n-1 (cf. thd_correlate.c) */
    rb = 0.5f*(n-1) ;                                          /* mean rank */
    for( ii=0 ; ii < n ; ii++ ) ar[ii] -= rb ;          /* remove mean rank */
    return ;
@@ -30,7 +74,7 @@ void PREP_quantile( int n , float *a )
    if( jf <= 2.0f ){ PREP_spearman(n,a) ; return ; }
    jf = 1.0f / jf ;
 
-   rank_order_float(n,a) ;        /* convert to ranks */
+   rank_orderize(n,a) ;        /* convert to ranks */
 
    for( rb=0.0f,ii=0 ; ii < n ; ii++ ){
      a[ii] = (int)( (a[ii]+0.333f)*jf ) ; rb += a[ii] ;
@@ -45,27 +89,37 @@ void PREP_quantile( int n , float *a )
 void usage_3dTransformGroupInCorr(int detail)
 {
    printf(
- "Usage: 3dTransformGroupInCorr [options] AAA.grpincorr.niml\n"
- "\n"
- "This program reads in a collection of AFNI 3D+time datasets\n"
- "that were processed by 3dSetupGroupInCorr and then applies\n"
- "a transform to each time series in the file AAA.grpincorr.data.\n"
- "\n"
- "** WARNING **\n"
- " The .data file is transformed IN-PLACE -- that is, it is re-written.\n"
- " If you want to keep the original, then you must use this program\n"
- " on a COPY of the original file, or it will be lost forever.\n"
- "\n"
- "OPTIONS:\n"
- "--------\n"
- " -prep XXX    = Defines the transformation.  The current possibilities are:\n"
- "                  SPEARMAN   ==> convert the data to ranks, so that the\n"
- "                                 resulting individual subject correlations\n"
- "                                 in 3dGroupInCorr are Spearman correlations\n"
- "                  QUANTILE:n ==> convert the data to n-levels of quantiles,\n"
- "                                 so that the individual subject correlations\n"
- "                                 become quantile correlations.  If ':n' is\n"
- "                                 not given, then n=9 will be used.\n"
+     "Usage: 3dTransformGroupInCorr [options] AAA.grpincorr.niml\n"
+     "\n"
+     "This program reads in a collection of AFNI 3D+time datasets\n"
+     "that were processed by 3dSetupGroupInCorr and then applies\n"
+     "a transform to each time series in the file AAA.grpincorr.data.\n"
+     "\n"
+     "** WARNING **\n"
+     " The .data and .niml files are transformed IN-PLACE -- that is, they\n"
+     " are re-written. If you want to keep the original, then you must use this\n"
+     " program on a COPY of the original files, or they will be lost forever.\n"
+     "\n"
+     "OPTIONS:\n"
+     "--------\n"
+     " -prep XXX    = Defines the transformation.  The current possibilities are:\n"
+     "                  SPEARMAN   ==> convert the data to ranks, so that the\n"
+     "                                 resulting individual subject correlations\n"
+     "                                 in 3dGroupInCorr are Spearman correlations\n"
+     "                  QUANTILE:n ==> convert the data to n-levels of quantiles,\n"
+     "                                 so that the individual subject correlations\n"
+     "                                 become quantile correlations.  If ':n' is\n"
+     "                                 not given, then n=9 will be used.\n"
+     "\n"
+     "NOTA BENE:\n"
+     "----------\n"
+     "Normally, you would probably do something like\n"
+     "  cp XXX.grpincorr.niml SP_XXX.grpincorr.niml\n"
+     "  cp XXX.grpincorr.data SP_XXX.grpincorr.data\n"
+     "  3dTransformGroupInCorr -prep SPEARMAN SP_XXX.grpincorr.niml\n"
+     "In this way, you would keep the original files for comparison purposes.\n"
+     "\n"
+     "Author -- RWCox -- May 2012\n"
    ) ;
    PRINT_COMPILE_DATE ;
    return;
@@ -131,7 +185,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
    char *dfname=NULL , *atr ;
    NI_float_array *facar ; NI_int_array *nvar, *nnode=NULL, *ninmask=NULL;
    MRI_shindss *shd ;
-   long long nbytes_needed , nbytes_dfname ; int fdes ;
+   long long nbytes_needed , nbytes_dfname=0 ; int fdes ;
    void *var ; int ids , nvmax , nvtot ;
    int datum , datum_size ;
 
@@ -246,13 +300,20 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 
    /* name of data file: check its size against what's needed */
 
+#if 0
    atr = NI_get_attribute(nel,"datafile") ;
-   if( atr == NULL ) GQUIT("datafile attribute missing") ;
-   dfname = strdup(atr) ; nbytes_dfname = THD_filesize(dfname) ;
-   if( nbytes_dfname <= 0 && strstr(dfname,"/") != NULL ){
-     char *tnam = THD_trailname(atr,0) ;
-     nbytes_dfname = THD_filesize(tnam) ;
-     if( nbytes_dfname > 0 ){ free(dfname); dfname = strdup(tnam); }
+   if( atr != NULL ){
+     dfname = strdup(atr) ; nbytes_dfname = THD_filesize(dfname) ;
+     if( nbytes_dfname <= 0 && strstr(dfname,"/") != NULL ){
+       char *tnam = THD_trailname(atr,0) ;
+       nbytes_dfname = THD_filesize(tnam) ;
+       if( nbytes_dfname > 0 ){ free(dfname); dfname = strdup(tnam); }
+   }
+#endif
+   if( nbytes_dfname <= 0 && strstr(fname,".niml") != NULL ){
+     if( dfname != NULL ) free(dfname) ;
+     dfname = strdup(fname) ; strcpy(dfname+strlen(dfname)-5,".data") ;
+     nbytes_dfname = THD_filesize(dfname) ;
    }
    if( nbytes_dfname <= 0 ){
      char mess[THD_MAX_NAME+256] ;
@@ -264,12 +325,16 @@ MRI_shindss * GRINCOR_read_input( char *fname )
               commaized_integer_string(nbytes_dfname) ,
               commaized_integer_string(nbytes_needed) ) ;
      GQUIT(mess) ;
+   } else {
+     INFO_message("TIC: data file %s found with %s bytes of data",
+                  dfname , commaized_integer_string(nbytes_dfname) ) ;
    }
-   fdes = open( dfname , O_RDONLY ) ;
+   fdes = open( dfname , O_RDWR ) ;
    if( fdes < 0 ){
      char mess[THD_MAX_NAME+256] ;
      sprintf(mess,"can't open datafile (%s)",dfname) ; GQUIT(mess) ;
    }
+   NI_set_attribute( nelshd , "datafile" , dfname ) ;
 
    /* ivec[i] is the voxel spatial index of the i-th vector */
 
@@ -373,7 +438,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 MRI_vectim * GRINCOR_extract_vectim_short( MRI_shindss *shd , int ids )
 {
    MRI_vectim *mv ;
-   int nvec=shd->nvec , nvals=shd->nvals[ids] , iv,ii,nvv ;
+   long long nvec=shd->nvec , nvals=shd->nvals[ids] , ii,nvv ;
    float fac=shd->fac[ids] , *fv ;
    short *sv = shd->sv[ids] ;
 
@@ -387,7 +452,7 @@ MRI_vectim * GRINCOR_extract_vectim_short( MRI_shindss *shd , int ids )
 MRI_vectim * GRINCOR_extract_vectim_sbyte( MRI_shindss *shd , int ids )
 {
    MRI_vectim *mv ;
-   int nvec=shd->nvec , nvals=shd->nvals[ids] , iv,ii,nvv ;
+   long long nvec=shd->nvec , nvals=shd->nvals[ids] , ii,nvv ;
    float fac=shd->fac[ids] , *fv ;
    sbyte *sv = shd->bv[ids] ;
 
@@ -411,13 +476,14 @@ MRI_vectim * GRINCOR_extract_vectim( MRI_shindss *shd , int ids )
 
 float GRINCOR_scale_vectim( MRI_vectim *mv )
 {
-   int kk , nvv ; float *fv , val, top ;
+   long long nvec , nvals , kk , nvv ; float *fv , val, top ;
 
    THD_vectim_normalize( mv ) ;   /* L2 normalize */
 
    /* find largest absolute value over all vectors */
 
-   nvv = mv->nvec * mv->nvals ; top = 0.0f ; fv = mv->fvec ;
+   nvec = mv->nvec ; nvals = mv->nvals ; nvv = nvec * nvals ;
+   top = 0.0f ; fv = mv->fvec ;
    for( kk=0 ; kk < nvv ; kk++ ){
      val = fabsf(fv[kk]) ; if( val > top ) top = val ;
    }
@@ -428,13 +494,13 @@ float GRINCOR_scale_vectim( MRI_vectim *mv )
 
 void GRINCOR_insert_vectim_short( MRI_shindss *shd , int ids , MRI_vectim *mv )
 {
-   int nvec=shd->nvec , nvals=shd->nvals[ids] , iv,ii , kk,nvv ;
-   float fac=shd->fac[ids] , *fv , val,top ;
+   long long nvec=shd->nvec , nvals=shd->nvals[ids] , ii , kk,nvv ;
+   float *fv , val,top ;
    short *sv = shd->sv[ids] ;
 
    top = 32766.0f / GRINCOR_scale_vectim(mv) ;
    shd->fac[ids] = 1.0f / top ;
-   nvv = mv->nvec * mv->nvals ;
+   nvv = nvec * nvals ;
    fv  = mv->fvec ;
    for( kk=0 ; kk < nvv ; kk++ ) sv[kk] = (short)rintf(top*fv[kk]) ;
    return ;
@@ -442,13 +508,13 @@ void GRINCOR_insert_vectim_short( MRI_shindss *shd , int ids , MRI_vectim *mv )
 
 void GRINCOR_insert_vectim_sbyte( MRI_shindss *shd , int ids , MRI_vectim *mv )
 {
-   int nvec=shd->nvec , nvals=shd->nvals[ids] , iv,ii , kk,nvv ;
-   float fac=shd->fac[ids] , *fv , val,top ;
+   long long nvec=shd->nvec , nvals=shd->nvals[ids] , ii , kk,nvv ;
+   float *fv , val,top ;
    sbyte *sv = shd->bv[ids] ;
 
-   top = 32766.0f / GRINCOR_scale_vectim(mv) ;
+   top = 127.4f / GRINCOR_scale_vectim(mv) ;
    shd->fac[ids] = 1.0f / top ;
-   nvv = mv->nvec * mv->nvals ;
+   nvv = nvec * nvals ;
    fv  = mv->fvec ;
    for( kk=0 ; kk < nvv ; kk++ ) sv[kk] = (sbyte)rintf(top*fv[kk]) ;
    return ;
@@ -519,6 +585,8 @@ int main( int argc , char *argv[] )
      exit(1);
    }
 
+   if( argc < 2 ){ usage_3dTransformGroupInCorr(2) ; exit(0) ; }
+
    /* check for errors */
 
    if( prepfunc == NULL ) ERROR_exit("no -prep option given? :-(") ;
@@ -547,18 +615,15 @@ int main( int argc , char *argv[] )
 
    /*-- process input file --*/
 
-   fprintf(stderr,"++ %s %d datasets:",prepname,shd->ndset) ;
+   fprintf(stderr,"++ %s %d datasets: ",prepname,shd->ndset) ;
    for( ids=0 ; ids < shd->ndset ; ids++ ){
-     fprintf(stderr," %d",ids+1) ;
-     mv = GRINCOR_extract_vectim( shd , ids ) ;
-     fprintf(stderr,".") ;
-     THD_vectim_applyfunc( mv , prepfunc ) ;
-     fprintf(stderr,".") ;
-     GRINCOR_insert_vectim( shd , ids , mv ) ;
+     fprintf(stderr,"%d",ids+1) ;
+     mv = GRINCOR_extract_vectim( shd , ids ) ; fprintf(stderr,".") ;
+     THD_vectim_applyfunc( mv , prepfunc ) ;    fprintf(stderr,".") ;
+     GRINCOR_insert_vectim( shd , ids , mv ) ;  fprintf(stderr,".") ;
      VECTIM_destroy( mv ) ;
-     fprintf(stderr,".") ;
    }
-   fprintf(stderr,"\n") ;
+   sync() ; fprintf(stderr,"\n") ;
 
    facar = (NI_float_array *)malloc(sizeof(NI_float_array)) ;
    facar->num = shd->ndset ; facar->ar = shd->fac ;
