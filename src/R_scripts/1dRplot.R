@@ -337,8 +337,16 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
    "-save.Rdat : Save data list for reproducing plot in R.\n",
    "             You need to specify -prefix or -save\n",
    "             along with this option to set the prefix.\n",
-   "    For example, say you have dice.Rdat saved from a previous command\n",
-   "    load('dice.Rdat'); P$nodisp <- TRUE; plot.1D.eng(P)\n"
+   "             See also -load.Rdat\n"
+                     ) ),
+      
+      '-load.Rdat' = apl(n = 1, d = NA,  h = paste(
+   "-load.Rdat RDAT: load data list from save.Rdat for reproducing plot.\n",
+   "                 Note that you cannot override the settings in RDAT,\n",
+   "                 unless you run in the interactive R mode. For example,\n",
+   "                 say you have dice.Rdat saved from a previous command\n",
+   "                 and you want to change P$nodisp to TRUE:\n",
+   "              load('dice.Rdat'); P$nodisp <- TRUE; plot.1D.eng(P)\n"
                      ) ),
       
       '-save.size' = apl(n = 2, d = c(2000,2000),  h = paste(
@@ -555,6 +563,7 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
              prefix = lop$prefix  <- ops[[i]],
              save = {lop$prefix <- ops[[i]]; lop$nodisp=TRUE;} ,
              save.Rdat = {lop$save.Rdat=TRUE;} ,
+             load.Rdat = { reload_mode(ops[[i]]); } ,
              save.size = lop$save.size <- ops[[i]],
              nozeros = lop$col.nozeros <- TRUE,
              col.nozeros = lop$col.nozeros <- TRUE,
@@ -615,7 +624,14 @@ process.1dRplot.opts <- function (lop, verb = 0) {
 }
 
 
-
+reload_mode <- function (rdat) {
+   load(rdat); 
+   thisplot = plot.1D.eng(P);
+   if (BATCH_MODE) { #do not quit until device is closed
+      while (length(which(dev.list()==thisplot))) Sys.sleep(0.25);
+   }
+   exit.AFNI();
+}  
 
 
 #################################################################################
