@@ -300,6 +300,10 @@ void BUCK_read_opts( int argc , char * argv[] )
 
       cpt = strstr(argv[nopt],"[") ;
       if( cpt == NULL ){
+         if (strlen(argv[nopt]) > THD_MAX_NAME-1) {
+            ERROR_exit( "Too long a filename for '%s'\n"
+                           "Maximum limit is %d\n", argv[nopt], THD_MAX_NAME-1);
+         }  
          strcpy(dname,argv[nopt]) ;
          subv[0] = '\0' ;  /* make sure subv is reset ZSS Nov. 2010*/
       } else if( cpt == argv[nopt] ){
@@ -307,6 +311,18 @@ void BUCK_read_opts( int argc , char * argv[] )
          exit(1) ;
       } else {
          ii = cpt - argv[nopt] ;
+         if (ii > THD_MAX_NAME-1) {
+            ERROR_exit( "Too long a filename for '%s'\n"
+                        "Maximum character limit is %d, have %d\\n", 
+                        argv[nopt], THD_MAX_NAME-1, ii);
+         }  
+         if (strlen(argv[nopt])-ii > THD_MAX_NAME-1) {
+            ERROR_exit( "Too long a sub-brick selection for '%s'\n"
+                        "Maximum limit is %d, have %d\n"
+                  "Consider using '[1dcat FF.1D]' or '[count ...]' methods\n"
+                  "for sub-brick selection. See 3dTcat -help for details.\n", 
+                        argv[nopt], THD_MAX_NAME-1, strlen(argv[nopt])-ii);
+         }  
          memcpy(dname,argv[nopt],ii) ; dname[ii] = '\0' ;
          strcpy(subv,cpt) ;
       }

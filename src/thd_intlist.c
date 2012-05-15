@@ -152,6 +152,75 @@ int * get_count_intlist ( char *str , int *nret)
    return(subv);
 }
 
+
+int * get_1dcat_intlist ( char *sin , int *nret)
+{
+   int ipos , slen, *ret=NULL, ii=0;
+   MRI_IMAGE *aim = NULL;
+   float *far=NULL;
+   char *str = NULL;
+   int op = 0;
+   
+   *nret = -1;
+   if (!sin || !strstr(sin,"1dcat ") || strlen (sin) < 8) {
+      fprintf(stderr, "NULL input or string does not have '1dcat '"
+                      " or a 1D filename not present after '1dcat '\n");
+      return (NULL);
+   }
+   
+   str = strdup(sin);
+   
+   /* move past count */
+   slen = strlen(str) ;
+   ipos = strlen("1dcat ");
+   /* find ending square */
+   for (ii=ipos; ii<slen; ++ii) {
+      if (str[ii]=='[') ++op;
+      if (str[ii]==']') { --op; }
+      if (op < 0) { str[ii] = '\0'; break; }
+   }
+   /* read the filename */
+   deblank_name(str+ipos);
+   if (!(aim = mri_read_1D(str+ipos))) {
+      ERROR_message("Can't read 1D file '%s'", str+ipos) ;
+      free(str); str=NULL;
+      return(NULL);
+   } 
+
+   /* return the indices */
+   far = MRI_FLOAT_PTR(aim);
+   *nret = aim->nx*aim->ny;
+   ret = (int *)malloc(sizeof(int)*(*nret+1));
+   
+   ret[0] = *nret;
+   for (ii=0; ii<*nret; ++ii) {
+      ret[ii+1] = (int)far[ii];
+      #if 0
+      if (ret[ii]<0) { /* leave error handling for elsewhere */
+         ERROR_message( "Bad brick selection value in 1D file '%s' "
+                        "where value %d is %f\n", str+ipos, ii, far[ii]);
+         mri_free(aim); aim = NULL; far=NULL;
+         free(str); str=NULL;
+         free(ret); ret=NULL;
+         return(NULL); 
+      }
+      #endif
+   }
+   
+   mri_free(aim); aim = NULL; far=NULL;
+   
+   #if 0
+      fprintf(stderr,"ZSS: Selecting %d values from '%s':\n", *nret, str+ipos);
+      for (ii=1; ii<=*nret; ++ii) { 
+         fprintf(stderr,"%d,",ret[ii]);
+      }
+      fprintf(stderr,"\n");
+   #endif
+   
+   free(str); str=NULL;
+   return(ret);
+}
+
 /*-----------------------------------------------------------------*/
 /*! Get an integer list in the range 0..(nvals-1), from the
    character string str.  If we call the output pointer fred,
@@ -465,6 +534,10 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
    ipos = 0 ;
    if( str[ipos] == '[' || str[ipos] == '{' || str[ipos] == '#') ipos++ ;
 
+   /* do we have a 1dcat string in there ZSS ? */
+   if (strstr(str,"1dcat ")) {
+      return(get_1dcat_intlist ( str, &ii));
+   }
    /* do we have a count string in there ZSS ? */
    if (strstr(str,"count ")) {
       return(get_count_intlist ( str, &ii));
