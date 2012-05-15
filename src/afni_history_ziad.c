@@ -67,6 +67,19 @@ afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+ { 15, May , 2012 , ZSS , "1dRplot" , MICRO , TYPE_NEW_OPT,
+   "Added -load.Rdat to regenerate previous plot on command line",
+   NULL
+ },
+ 
+ { 15, May , 2012 , ZSS , "afni-general" , MINOR , TYPE_NEW_OPT,
+   "Added '[1dcat FF.1D]' syntax for sub-brick selections in 1D file",
+   "This was added for the same reason '[count ...]' was added, and \n"
+   "that is to allow for lengthy selection values. Dealing with selections\n"
+   "of 100+ sub-bricks virtually guarantees some string limit is reached,\n"
+   "somewhere. See 3dTcat -help for details"
+ },
+ 
  { 8, May , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
    "Code updates for P. Taylor's tractography",
    NULL

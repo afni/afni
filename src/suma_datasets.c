@@ -11606,13 +11606,15 @@ SUMA_DSET *SUMA_Load1DDset_eng (char *oName, int verb)
    \return far(float *), the float array. Should be freed with free but SUMA_free 
    would work too. 
 */
-float *SUMA_Load1D_ns (char *oName, int *ncol, int *nrow, int RowMajor, int verb)
+float *SUMA_Load1D_ns (char *oName, int *ncol, int *nrow, int RowMajor, 
+                       int verb)
 {
    float *far=SUMA_Load1D_eng (oName, ncol, nrow,  RowMajor,  verb);
    WorkErrLog_ns();
    return(far);
 }
-float *SUMA_Load1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, int verb)
+float *SUMA_Load1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, 
+                        int verb)
 {
    static char FuncName[]={"SUMA_Load1D_eng"};
    char *FullName = NULL;
@@ -11623,7 +11625,8 @@ float *SUMA_Load1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, int ver
    
    SUMA_ENTRY;
    
-   if (!oName) { SUMA_PushErrLog("SL_Err", "Null Name", FuncName); SUMA_RETURN(NULL); }
+   if (!oName) { 
+      SUMA_PushErrLog("SL_Err", "Null Name", FuncName); SUMA_RETURN(NULL); }
    
    /* got the name, now read it */
    im = mri_read_1D (oName);
@@ -11633,7 +11636,8 @@ float *SUMA_Load1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, int ver
    }   
    *ncol = im->ny;
    *nrow = im->nx;
-   if (LocalHead) fprintf(SUMA_STDERR, "Read %s, found %d cols, %d rows\n", oName, *ncol, *nrow);
+   if (LocalHead) fprintf(SUMA_STDERR, 
+                     "Read %s, found %d cols, %d rows\n", oName, *ncol, *nrow);
    if (RowMajor) {
       imt = mri_transpose(im); mri_free(im); im = imt; imt = NULL;
    }   
