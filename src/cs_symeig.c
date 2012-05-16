@@ -45,10 +45,13 @@
 
 /*---------------------------------------------------------------------------*/
 /*! Do a 3x3 symmetric eigen-problem.
-     - INPUT: double a[9] = input matrix; a[i+3*j] = A(i,j) element
+     - INPUT:  double a[9] = input matrix; a[i+3*j] = A(i,j) element
+     _         (only the [0], [1], [2], [4], [5], and [8] elements are used)
      - OUTPUT: e[i] = i'th eigenvalue, with e[0] <= e[1] <= e[2].
      - OUTPUT: if(dovec) then a[] is replaced with eigenvectors,
                and this orthogonal matrix will have determinant=1.
+     - METHOD: direct solution of cubic equation
+     - AUTHOR: RW Cox
 -----------------------------------------------------------------------------*/
 
 void symeig_3( double *a , double *e , int dovec )
@@ -150,7 +153,7 @@ void symeig_3( double *a , double *e , int dovec )
      if( lam1 > lam2 ) SWAP(lam1,lam2) ;
      if( lam1 > lam3 ) SWAP(lam1,lam3) ;
      if( lam2 > lam3 ) SWAP(lam2,lam3) ;
-     e[0] = ann*lam1 ; e[1] = ann*lam2 ; e[2] = ann*lam3 ;
+     e[0] = ann*lam1 ; e[1] = ann*lam2 ; e[2] = ann*lam3 ;  /* re-scale */
      return ;
    }
 
@@ -168,7 +171,7 @@ void symeig_3( double *a , double *e , int dovec )
      if( lam1 > lam2 )  SWAP(lam1,lam2) ;  /* start by sorting eigenvalues */
      if( lam1 > lam3 )  SWAP(lam1,lam3) ;
      if( lam2 > lam3 )  SWAP(lam2,lam3) ;
-     e[0] = ann*lam1 ; e[1] = ann*lam2 ; e[2] = ann*lam3 ;
+     e[0] = ann*lam1 ; e[1] = ann*lam2 ; e[2] = ann*lam3 ;  /* re-scale */
 
      /* find eigenvector for lam1 by computing Ay-lam1*y for
         vectors y1=[1,0,0], y2=[0,1,0], and y3=[0,0,1]; the eigenvector
@@ -198,7 +201,7 @@ void symeig_3( double *a , double *e , int dovec )
          CROSS(v1,v2,v3 , w1,w2,w3 , t1,t2,t3 ) ; tn = sqrt(t1*t1+t2*t2+t3*t3) ;
        }
      }
-     a[3] = t1/tn ; a[4] = t2/tn ; a[5] = t3/tn ;
+     a[3] = t1/tn ; a[4] = t2/tn ; a[5] = t3/tn ;  /* normalize */
 
      /* orthgonality of eigenvectors ==> can get last one by cross product */
 
@@ -215,10 +218,8 @@ void symeig_3( double *a , double *e , int dovec )
          CROSS(v1,v2,v3 , w1,w2,w3 , t1,t2,t3 ) ; tn = sqrt(t1*t1+t2*t2+t3*t3) ;
        }
      }
-     a[6] = t1/tn ; a[7] = t2/tn ; a[8] = t3/tn ;
+     a[6] = t1/tn ; a[7] = t2/tn ; a[8] = t3/tn ;  /* normalize */
 #endif
-
-     return ;
 
    } else { /*---- if here, we have a double root ----*/
 
@@ -255,7 +256,8 @@ void symeig_3( double *a , double *e , int dovec )
 
      /* and the final vector is the cross product of these two */
 
-     CROSS( w1,w2,w3 , a[0],a[1],a[2] , a[3],a[4],a[5] ) ;
+     CROSS( w1,w2,w3 , a[0],a[1],a[2] , t1,t2,t3 ) ; tn = sqrt(t1*t1+t2*t2+t3*t3) ;
+     a[3] = t1/tn ; a[4] = t2/tn ; a[5] = t3/tn ;
 
      /* sort results (we know lam1==lam2) */
 
@@ -264,9 +266,10 @@ void symeig_3( double *a , double *e , int dovec )
        if( DET3(a) < 0.0 ){ a[6] = -a[6]; a[7] = -a[7]; a[8] = -a[8]; }
      }
 
-     e[0] = ann*lam1 ; e[1] = ann*lam2 ; e[2] = ann*lam3 ;
-     return ;
+     e[0] = ann*lam1 ; e[1] = ann*lam2 ; e[2] = ann*lam3 ;  /* re-scale */
    }
+
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -604,7 +607,7 @@ int first_principal_vectors( int n , int m , float *xx ,
                     will give the corresponding column in [U], but scaled;
                     below, just L2-normalize the column to get output vector **/
 
-	if( nn <= mm ){                    /* copy eigenvectors into output directly */
+   if( nn <= mm ){                    /* copy eigenvectors into output directly */
                                       /* (e.g., more vectors than time points) */
      for( jj=0 ; jj < nvec ; jj++ ){
        qq = nvec-1-jj ;               /* eigenvalues are in reversed order */
