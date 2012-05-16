@@ -65,7 +65,7 @@ void get_linear_trend( int npt, float *xx, float *f0, float *f1 )
 
 void THD_linear_detrend( int npt, float *far, float *xx0, float *xx1 )
 {
-   register int ii ;
+   int ii ;
    float f0=0.0, f1=0.0;
 
    if( npt < 3 || far == NULL ) return ;
@@ -85,7 +85,7 @@ void THD_linear_detrend( int npt, float *far, float *xx0, float *xx1 )
 
 void THD_linear_detrend_complex( int npt , complex *cx )  /* 05 Mar 2007 */
 {
-   register float *f ; register int ii ;
+   float *f ; int ii ;
 
    if( npt < 3 || cx == NULL ) return ;
 
@@ -107,8 +107,8 @@ void THD_linear_detrend_complex( int npt , complex *cx )  /* 05 Mar 2007 */
 
 void get_quadratic_trend( int npt, float *xx, float *f0, float *f1, float *f2 )
 {
-   register double x0,x1,x2 ; double N=npt ;
-   register int ii ;
+   double x0,x1,x2 ; double N=npt ;
+   int ii ;
 
    if( npt < 3 || xx == NULL || f0 == NULL || f1 == NULL || f2 == NULL ) return;
 
@@ -143,7 +143,7 @@ void get_quadratic_trend( int npt, float *xx, float *f0, float *f1, float *f2 )
 void THD_quadratic_detrend( int npt, float *far,
                             float *xx0, float *xx1, float *xx2 )
 {
-   register int ii ;
+   int ii ;
    float f0 , f1 , f2 ;
 
    if( npt < 4 || far == NULL ) return ;
@@ -165,7 +165,7 @@ void THD_quadratic_detrend( int npt, float *far,
 
 void THD_cubic_detrend( int npt , float *far )  /* 15 Nov 1999 */
 {
-   register int ii ;
+   int ii ;
    float g0,g1,g2,g3 , f0,f1,f2,f3 , t1,t2,t5,t8 , t95,t56,t22,t25,txx ;
 
    if( npt < 5 || far == NULL ) return ;
@@ -212,8 +212,8 @@ void THD_cubic_detrend( int npt , float *far )  /* 15 Nov 1999 */
 
 float THD_normalize( int npt , float *far )
 {
-   register int ii ;
-   register float fac ;
+   int ii ;
+   float fac ;
 
    if( npt <= 0 || far == NULL ) return 0.0f ;
 
@@ -231,8 +231,8 @@ float THD_normalize( int npt , float *far )
 
 void THD_normRMS( int npt , float *far )
 {
-   register int ii ;
-   register float fac ;
+   int ii ;
+   float fac ;
 
    if( npt <= 0 || far == NULL ) return ;
 
@@ -249,8 +249,8 @@ void THD_normRMS( int npt , float *far )
 
 void THD_normmax( int npt , float *far )
 {
-   register int ii ;
-   register float fac , val ;
+   int ii ;
+   float fac , val ;
 
    if( npt <= 0 || far == NULL ) return ;
    fac = 0.0f ;
@@ -266,8 +266,8 @@ void THD_normmax( int npt , float *far )
 
 void THD_normL1( int npt , float *far )
 {
-   register int ii ;
-   register float fac , val ;
+   int ii ;
+   float fac , val ;
 
    if( npt <= 0 || far == NULL ) return ;
    fac = 0.0f ;
@@ -616,7 +616,7 @@ ENTRY("THD_time_fit_dataset") ;
        switch(meth){                    /* get stdev or MAD */
          default:
          case 2:{
-           register float mm,vv ;
+           float mm,vv ;
            for( mm=0.0,tt=0 ; tt < nval ; tt++ ) mm += far[tt] ;
            mm /= nval ;
            for( vv=0.0,tt=0 ; tt < nval ; tt++ ) vv += (far[tt]-mm)*(far[tt]-mm) ;
