@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, MAY, 2012, RCR, "@GetAfniOrient", MICRO, TYPE_MODIFY,
+   "suppress 3dinfo version text",
+   NULL
+ } ,
+
  { 16, MAY, 2012, RCR, "@auto_tlrc", MICRO, TYPE_MODIFY,
    "do not ask for user input, even if centers are off by 80+ mm",
    NULL
