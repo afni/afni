@@ -589,11 +589,12 @@ AUTO_TLRC_MODE:
       echo ""
       echo "*********************************"
       echo ""
-      if (`ccalc -form int -eval "step($dist_cent - 80)"`) then
-         echo "Hit Enter to proceed."
-         echo ""
-         set junk = $<
-      endif
+      # do not stop processing, the user has been warned  16 May 2012 [rickr]
+      #
+      # if (`ccalc -form int -eval "step($dist_cent - 80)"`) then
+      #    echo "Hit Enter to proceed."
+      #    set junk = $<
+      # endif
    else
       echo "Center distance of $dist_cent mm"   
    endif 
