@@ -640,11 +640,17 @@ int main( int argc , char * argv[] )
         if( do_byte ){
           top = 127.4f / top ; fac[ids/2] = 1.0f / top ;  /* save scale factor */
           bv = (sbyte *)malloc(sizeof(sbyte)*nvv) ;       /* output array */
-          for( kk=0 ; kk < nvv ; kk++ ) bv[kk] = (sbyte)rintf(top*fv[kk]) ;
+          for( kk=0 ; kk < nvv ; kk++ ){
+            val = fv[kk]*top ;
+            bv[kk] = (val >= 0.0f) ? (sbyte)(val+0.499f) : (sbyte)(val-0.499f) ;
+          }
         } else {
           top = 32766.0f / top ; fac[ids/2] = 1.0f / top ;  /* save scale factor */
-          sv = (short *)malloc(sizeof(short)*nvv) ;       /* output array */
-          for( kk=0 ; kk < nvv ; kk++ ) sv[kk] = (short)rintf(top*fv[kk]) ;
+          sv = (short *)malloc(sizeof(short)*nvv) ;         /* output array */
+          for( kk=0 ; kk < nvv ; kk++ ){
+            val = fv[kk]*top ;
+            sv[kk] = (val >= 0.0f) ? (short)(val+0.499f) : (short)(val-0.499f) ;
+          }
         }
         VECTIM_destroy(mv) ;
 
@@ -676,7 +682,7 @@ int main( int argc , char * argv[] )
          ndset /= 2;
    } else {
       for( ids=0 ; ids < ndset ; ids++ ){
-        fprintf(stderr,"++ Dataset %s:",DSET_BRIKNAME(inset[ids])) ;
+        fprintf(stderr,"++ Dataset %d/%d: %s",ids+1,ndset,DSET_BRIKNAME(inset[ids])) ;
         btim = NI_clock_time() ;
 
         /* extract all time series in the mask, as floats */
@@ -694,7 +700,25 @@ int main( int argc , char * argv[] )
         inset[ids] = NULL ;
 
         THD_vectim_applyfunc( mv , prepfunc ) ;  /* prep each time series */
+#if 0
+        /* find largest absolute value over all vectors */
+        nvv = mv->nvec * mv->nvals ; top = 0.0f ; fv = mv->fvec ;
+        for( kk=0 ; kk < nvv ; kk++ ){
+          val = fabsf(fv[kk]) ; if( val > top ) top = val ;
+        }
+        fprintf(stderr,"[post top=%g]",top) ;
+#endif
         THD_vectim_normalize( mv ) ;     /* L2 normalize each time series */
+
+#if 0
+        { float sq ;
+          for( iv=0 ; iv < mv->nvec ; iv++ ){
+            sq = 0.0f ; fv = VECTIM_PTR(mv,iv) ;
+            for( kk=0 ; kk < mv->nvals ; kk++ ) sq += fv[kk]*fv[kk] ;
+            if( sq != 0.0f && fabsf(sq-1.0f) > 0.0001f ) ININFO_message("index=%d sq=%g",iv,sq) ;
+          }
+        }
+#endif
 
         /* find largest absolute value over all vectors */
 
@@ -702,6 +726,9 @@ int main( int argc , char * argv[] )
         for( kk=0 ; kk < nvv ; kk++ ){
           val = fabsf(fv[kk]) ; if( val > top ) top = val ;
         }
+#if 0
+        fprintf(stderr,"[post top=%g]",top) ;
+#endif
 
         if( top == 0.0f ){
           fclose(fp) ; remove(dfname) ; ERROR_exit("Dataset is all zero?!") ;
@@ -712,11 +739,17 @@ int main( int argc , char * argv[] )
         if( do_byte ){
           top = 127.4f / top ; fac[ids] = 1.0f / top ;  /* save scale factor */
           bv = (sbyte *)malloc(sizeof(sbyte)*nvv) ;     /* output array */
-          for( kk=0 ; kk < nvv ; kk++ ) bv[kk] = (sbyte)rintf(top*fv[kk]) ;
+          for( kk=0 ; kk < nvv ; kk++ ){
+            val = fv[kk]*top ;
+            bv[kk] = (val >= 0.0f) ? (sbyte)(val+0.499f) : (sbyte)(val-0.499f) ;
+          }
         } else {
           top = 32766.0f / top ; fac[ids] = 1.0f / top ;  /* save scale factor */
           sv = (short *)malloc(sizeof(short)*nvv) ;       /* output array */
-          for( kk=0 ; kk < nvv ; kk++ ) sv[kk] = (short)rintf(top*fv[kk]) ;
+          for( kk=0 ; kk < nvv ; kk++ ){
+            val = fv[kk]*top ;
+            sv[kk] = (val >= 0.0f) ? (short)(val+0.499f) : (short)(val-0.499f) ;
+          }
         }
         VECTIM_destroy(mv) ;
 
