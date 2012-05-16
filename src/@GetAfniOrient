@@ -10,7 +10,7 @@ if ("$1" == '-exp') then
    set inf = "$2"
 endif
 
-set ans = `3dinfo "$inf" | grep '\[-orient' | cut -d[ -f2 | cut -d] -f1`
+set ans = `3dinfo "$inf" |& grep '\[-orient' | cut -d[ -f2 | cut -d] -f1`
 if ( "$ans[1]" != "-orient" ) then
    echo "Error: Failed to find -orient string in 3dinfo output"
    goto ENDALL
