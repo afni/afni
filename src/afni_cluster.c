@@ -1807,7 +1807,7 @@ ENTRY("AFNI_clus_action_CB") ;
        } else if( doscat ){  /* scatterplot */
          float *xar=NULL, *yar=NULL ; int nix=0, niy=0, nixy=0, jj,kk ;
          float a=0,b=0,pcor=0,p025=0,p975=0 ;
-         char xlab[64] , ylab[64] , tlab[THD_MAX_NAME+2] ;
+         char xlab[256] , ylab[256] , tlab[THD_MAX_NAME+256] ;
          if( dosmea ){
            im = mri_meanvector( imar , ibot,itop ) ; xar = MRI_FLOAT_PTR(im) ;
            nix = im->nx ; niy = 1 ; nixy = nix*niy ;
@@ -1824,12 +1824,21 @@ ENTRY("AFNI_clus_action_CB") ;
          }
          xar = (float *)malloc(sizeof(float)*nixy) ;
          if( cwid->splotim != NULL && cwid->splotim->nx >= nix ){
-           float *spar = MRI_FLOAT_PTR(cwid->splotim) ; int sbot ;
-           sbot = (cwid->splotim->nx >= nix+ibot) ? ibot : 0 ;
+           float *spar = MRI_FLOAT_PTR(cwid->splotim) ; int sbot ; char *eee ;
+           eee = getenv("AFNI_CLUSTER_SCAT1D_START") ;
+           if( eee != NULL && isdigit(*eee) ){
+             sbot = (int)strtod(eee,NULL) ;
+           } else {
+#if 0
+             sbot = cwid->splotim->nx - nix ;
+#else
+             sbot = (cwid->splotim->nx >= nix+ibot) ? ibot : 0 ;
+#endif
+           }
            for( kk=0 ; kk < niy ; kk++ ){
              for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = spar[jj+sbot] ;
            }
-           sprintf(xlab,"%.62s",cwid->splotim->name) ;
+           sprintf(xlab,"%.62s[%d..%d]",cwid->splotim->name,sbot,sbot+nix-1) ;
          } else {
            for( kk=0 ; kk < niy ; kk++ )
              for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = jj+ibot ;
