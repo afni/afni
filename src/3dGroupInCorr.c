@@ -907,7 +907,7 @@ static int   oform = SUMA_NO_DSET_FORMAT; /* output format for surface-based */
 
 int main( int argc , char *argv[] )
 {
-   int nopt , kk , nn , ii,jj, TalkToAfni=1;
+   int nopt , kk , nn , ii,jj, TalkToAfni=1 ;
    char nsname[2048]  ; /* NIML socket name */
    NI_element *nelset ; /* NIML element with dataset to send to AFNI */
    NI_element *nelcmd ; /* NIML element with command from AFNI */
