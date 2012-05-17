@@ -885,7 +885,7 @@ static int ttest_opcode_max =  2   ;
 
 static UINT32 testA, testB, testAB ;  /* 23 May 2010 */
 static int mcov = 0 ;
-static int nout = 0 ;
+static int nout = 0 , nout_mcov = 0 ;
 static float *axx , *axx_psinv , *axx_xtxinv ;
 static float *bxx , *bxx_psinv , *bxx_xtxinv ;
 
@@ -907,7 +907,7 @@ static int   oform = SUMA_NO_DSET_FORMAT; /* output format for surface-based */
 
 int main( int argc , char *argv[] )
 {
-   int nopt , kk , nn , ii,jj, TalkToAfni=1 ;
+   int nopt , kk , nn , ii,jj, TalkToAfni=1 , do_nocov=0 ;
    char nsname[2048]  ; /* NIML socket name */
    NI_element *nelset ; /* NIML element with dataset to send to AFNI */
    NI_element *nelcmd ; /* NIML element with command from AFNI */
@@ -1296,6 +1296,11 @@ int main( int argc , char *argv[] )
       "                might happen! (e.g., your computer runs out of memory.)\n"
       "             ++ This option is also known as the 'Tim Ellmore special'.\n"
       "\n"
+      " -donocov   = If covariates are used, this option tells 3dGroupInCorr to also\n"
+      "              compute the results without using covariates, and attach those\n"
+      "              to the output dataset -- presumably to facilitate comparison.\n"
+      "             ++ If covariates are NOT used, this option has no effect at all.\n"
+      "\n"
       " -ah host = Connect to AFNI/SUMA on the computer named 'host', rather than\n"
       "            on the current computer system 'localhost'.\n"
       "     ++ This allows 3dGroupInCorr to run on a separate system than\n"
@@ -1533,6 +1538,10 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-sendall") == 0 ){  /* 22 Jan 2011 */
        do_sendall++ ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-donocov") == 0 ){  /* 17 May 2012 */
+       do_nocov++ ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-quiet") == 0 ){
@@ -1807,6 +1816,8 @@ int main( int argc , char *argv[] )
    /*-- check inputs for OK-ness --*/
 
    do_lpi = AFNI_yesenv("AFNI_INSTACORR_XYZ_LPI") ;  /* 07 Feb 2011 */
+
+   if( do_nocov && mcov == 0 ) do_nocov = 0 ;        /* 17 May 2012 */
 
    if( 0 && bmode && !TalkToAfni ) /* Now wait a doggone minute! */
      ERROR_exit("GIC: Alas, -batch and -suma are not compatible :-(") ;
@@ -2150,32 +2161,11 @@ int main( int argc , char *argv[] )
 
    /*----- if no covariates, do it the olden style way -----*/
 
-   if( mcov == 0 ){ /* create columns in nelset, 1 for each output sub-brick */
+   nout = nout_mcov = 0 ;
 
-     NI_add_column( nelset, NI_FLOAT, NULL );
-     NI_add_column( nelset, NI_FLOAT, NULL );
-     neldar = (float *)nelset->vec[0];          /* neldar = delta  sub-brick */
-     nelzar = (float *)nelset->vec[1];          /* nelzar = Zscore sub-brick */
-     if( neldar == NULL || nelzar == NULL )
-       ERROR_exit("GIC: Can't setup output dataset?") ; /* should never transpire */
+   if( mcov > 0 ){  /* setup for covariates result */
 
-     /* for a 2-sample test, create arrays for the 1-sample results as well */
-
-     if( dosix ){
-       NI_add_column( nelset, NI_FLOAT, NULL ); neldar_AAA = (float *)nelset->vec[2];
-       NI_add_column( nelset, NI_FLOAT, NULL ); nelzar_AAA = (float *)nelset->vec[3];
-       NI_add_column( nelset, NI_FLOAT, NULL ); neldar_BBB = (float *)nelset->vec[4];
-       NI_add_column( nelset, NI_FLOAT, NULL ); nelzar_BBB = (float *)nelset->vec[5];
-       if( neldar_AAA == NULL || nelzar_AAA == NULL ||
-           neldar_BBB == NULL || nelzar_BBB == NULL   )
-        ERROR_exit("GIC: Can't setup output dataset?") ; /* should never transpire */
-     }
-
-     nout = (dosix) ? 6 : 2 ;
-
-   } else {  /* alternative setup for covariates results */
-
-     nout = (dosix) ? 6*(mcov+1) : 2*(mcov+1) ;
+     nout_mcov = nout = (dosix) ? 6*(mcov+1) : 2*(mcov+1) ;
      dtar = (float **)malloc(sizeof(float *)*nout) ;
      for( kk=0 ; kk < nout ; kk++ ){
        NI_add_column( nelset , NI_FLOAT , NULL ) ;
@@ -2189,6 +2179,30 @@ int main( int argc , char *argv[] )
        testAB = testB = 0 ; testA = (UINT32)(-1) ;
      }
 
+   }
+
+   if( mcov == 0 || do_nocov ){  /* do_nocov changes: 17 May 2012 */
+
+     NI_add_column( nelset, NI_FLOAT, NULL );
+     NI_add_column( nelset, NI_FLOAT, NULL );
+     neldar = (float *)nelset->vec[nout+0];          /* neldar = delta  sub-brick */
+     nelzar = (float *)nelset->vec[nout+1];          /* nelzar = Zscore sub-brick */
+     if( neldar == NULL || nelzar == NULL )
+       ERROR_exit("GIC: Can't setup output dataset?") ; /* should never transpire */
+
+     /* for a 2-sample test, create arrays for the 1-sample results as well */
+
+     if( dosix ){
+       NI_add_column( nelset, NI_FLOAT, NULL ); neldar_AAA = (float *)nelset->vec[nout+2];
+       NI_add_column( nelset, NI_FLOAT, NULL ); nelzar_AAA = (float *)nelset->vec[nout+3];
+       NI_add_column( nelset, NI_FLOAT, NULL ); neldar_BBB = (float *)nelset->vec[nout+4];
+       NI_add_column( nelset, NI_FLOAT, NULL ); nelzar_BBB = (float *)nelset->vec[nout+5];
+       if( neldar_AAA == NULL || nelzar_AAA == NULL ||
+           neldar_BBB == NULL || nelzar_BBB == NULL   )
+        ERROR_exit("GIC: Can't setup output dataset?") ; /* should never transpire */
+     }
+
+     nout += (dosix) ? 6 : 2 ;
    }
 
    /* add columns for the individual dataset arctanh(corr) results */
@@ -2294,51 +2308,61 @@ int main( int argc , char *argv[] )
    NI_set_attribute_int( nelcmd , "target_nvals" , nout+nsaar ) ;
 
    bricklabels = (char *)calloc(sizeof(char),(5*MAX_LABEL_SIZE+16)*(nout+nsaar+1)) ;
-   if( mcov == 0 ){
 
-     if( shd_BBB == NULL ){  /* 1 sample */
-       sprintf( bricklabels , "%s_mean ; %s_Zscr" , label_AAA , label_AAA ) ;
-     } else {                /* 2 samples */
-       sprintf( bricklabels , "%s-%s_mean ; %s-%s_Zscr" ,
-                label_AAA , label_BBB , label_AAA , label_BBB ) ;
-       if( dosix )           /* plus the extras */
-         sprintf( bricklabels+strlen(bricklabels) ,
-                  " ; %s_mean ; %s_Zscr ; %s_mean ; %s_Zscr" ,
-                  label_AAA , label_AAA , label_BBB , label_BBB ) ;
-     }
-
-   } else {  /* labels for the myriad of covariates results [23 May 2010] */
+   if( mcov > 0 ){ /* labels for the myriad of covariates results [23 May 2010] */
 
      if( testAB ){
-       sprintf( bricklabels , "%s-%s_mean ; %s-%s_Zscr ;" ,
+       sprintf( bricklabels+strlen(bricklabels) ,
+                "%s-%s_mean ; %s-%s_Zscr ;" ,
                 label_AAA , label_BBB , label_AAA , label_BBB ) ;
        for( kk=1 ; kk <= mcov ; kk++ )
          sprintf( bricklabels+strlen(bricklabels) ,
-                  "%s-%s_%s ; %s-%s_%s_Zscr ;" ,
+                  " %s-%s_%s ; %s-%s_%s_Zscr ;" ,
                 label_AAA , label_BBB , covlab->str[kk] ,
                 label_AAA , label_BBB , covlab->str[kk]  ) ;
      }
      if( testA ){
        sprintf( bricklabels+strlen(bricklabels) ,
-                "%s_mean ; %s_mean_Zscr ;" , label_AAA , label_AAA ) ;
+                " %s_mean ; %s_mean_Zscr ;" , label_AAA , label_AAA ) ;
        for( kk=1 ; kk <= mcov ; kk++ )
          sprintf( bricklabels+strlen(bricklabels) ,
-                  "%s_%s ; %s_%s_Zscr ;" ,
+                  " %s_%s ; %s_%s_Zscr ;" ,
                   label_AAA , covlab->str[kk] ,
                   label_AAA , covlab->str[kk]  ) ;
      }
      if( testB ){
        sprintf( bricklabels+strlen(bricklabels) ,
-                "%s_mean ; %s_Zscr ;" , label_BBB , label_BBB ) ;
+                " %s_mean ; %s_Zscr ;" , label_BBB , label_BBB ) ;
        for( kk=1 ; kk <= mcov ; kk++ )
          sprintf( bricklabels+strlen(bricklabels) ,
-                  "%s_%s ; %s_%s_Zscr ;" ,
+                  " %s_%s ; %s_%s_Zscr ;" ,
                   label_BBB , covlab->str[kk] ,
                   label_BBB , covlab->str[kk]  ) ;
      }
 
-     kk = strlen(bricklabels) ; bricklabels[kk-1] = '\0' ;  /* truncate last ';' */
    }
+
+   if( mcov == 0 || do_nocov ){
+
+     char *Clab = (mcov == 0) ? "\0" : "NC" ;
+
+     if( shd_BBB == NULL ){  /* 1 sample */
+       sprintf( bricklabels+strlen(bricklabels) ,
+                " %s_mean%s ; %s_Zscr%s" , label_AAA,Clab , label_AAA,Clab ) ;
+     } else {                /* 2 samples */
+       sprintf( bricklabels+strlen(bricklabels) ,
+                " %s-%s_mean%s ; %s-%s_Zscr%s" ,
+                label_AAA,label_BBB,Clab , label_AAA,label_BBB,Clab ) ;
+       if( dosix )           /* plus the extras */
+         sprintf( bricklabels+strlen(bricklabels) ,
+                  " ; %s_mean%s ; %s_Zscr%s ; %s_mean%s ; %s_Zscr%s" ,
+                  label_AAA,Clab , label_AAA,Clab , label_BBB,Clab , label_BBB,Clab ) ;
+     }
+
+   }
+
+   kk = strlen(bricklabels) ;
+   if( bricklabels[kk-1] == ';' ) bricklabels[kk-1] = '\0' ;  /* truncate last ';' */
 
    /* add labels for the subject-level bricks, if needed */
 
@@ -2357,7 +2381,7 @@ int main( int argc , char *argv[] )
        sprintf( bricklabels+strlen(bricklabels) , "%s_zcorr ; " , buf ) ;
      }
 
-     kk = strlen(bricklabels) ; bricklabels[kk-1] = '\0' ;  /* truncate last ';' */
+     kk = strlen(bricklabels) ; bricklabels[kk-2] = '\0' ;  /* truncate last ';' */
    }
 
    /* set the brick labels into the header being sent to AFNI/SUMA */
@@ -2375,6 +2399,13 @@ int main( int argc , char *argv[] )
    if (shd_AAA->ninmask[0] >= 0) {
       sprintf(buf,"%d, %d", shd_AAA->ninmask[0], shd_AAA->ninmask[1]);
       NI_set_attribute( nelcmd , "LRpair_ninmask", buf);
+   }
+
+   if( verb > 3 && !bmode ){
+     INFO_message("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++") ;
+     INFO_message("Header being sent to AFNI follows:") ;
+     NI_write_element_tofile( "stderr:" , nelcmd , NI_TEXT_MODE | NI_HEADERONLY_FLAG ) ;
+     INFO_message("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++") ;
    }
 
    /*-- either tell AFNI what's going on, or setup stuff ourselves --*/
@@ -2972,10 +3003,11 @@ int main( int argc , char *argv[] )
 
      /* step 3: lots of t-test-ification */
 
-     if( mcov == 0 ){   /*-- no covariates ==> pure t-tests --*/
+     if( mcov == 0 || do_nocov ){   /*-- no covariates ==> pure t-tests --*/
 
        if( verb > 3 )
          ININFO_message("GIC:  start %d-sample t-test-izing" , (ndset_BBB > 0) ? 2 : 1 ) ;
+
        GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
                                   ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
 
@@ -2996,13 +3028,15 @@ int main( int argc , char *argv[] )
          btim = ctim ;
        }
 
-     } else {  /*-- covariates ==> regression analyses --*/
+     }
+
+     if( mcov > 0 ){  /*-- covariates ==> regression analyses --*/
 
        if( verb > 3 )
          ININFO_message("GIC:  start %d-sample regression-izing" , (ndset_BBB > 0) ? 2 : 1 ) ;
 
        GRINCOR_many_regress( nvec , ndset_AAA , dotprod_AAA ,
-                                    ndset_BBB , dotprod_BBB , nout , dtar ) ;
+                                    ndset_BBB , dotprod_BBB , nout_mcov , dtar ) ;
 
        if( verb > 2 || (verb==1 && nsend < NSEND_LIMIT) ){
          ctim = NI_clock_time() ;
