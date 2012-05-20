@@ -335,9 +335,10 @@ g_history = """
     3.17 May 10, 2012:
         - allow for processing more than 99 runs
         - catenated 'rall' files will use '_' until prefix
+    3.18 May 19, 2012: small help update for resting state examples
 """
 
-g_version = "version 3.17, May 10, 2012"
+g_version = "version 3.18, May 19, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Mar 2012"
