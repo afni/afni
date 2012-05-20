@@ -4219,7 +4219,11 @@ g_help_string = """
 
            Also consider adding -regress_bandpass.
 
-        5c. RETROICOR example c: censoring and bandpass filtering.
+        5c. RETROICOR example c (modern): censoring and bandpass filtering.
+
+           This is an example of how we would current suggest analyzing
+           resting state data.  If no RICOR regressors exist, see example 9
+           (or just remove any ricor options).
 
            Censoring due to motion has long been considered appropriate in
            BOLD FMRI analysis, but is less common for those doing bandpass
@@ -4231,18 +4235,24 @@ g_help_string = """
            regress frequencies within the regression model, where censored is
            simple.
 
-           To example #5, add -regress_censor_motion and -regress_bandpass.
+           Also, align EPI to anat and warp to standard space.
 
                 afni_proc.py -subj_id sb23.e5a.ricor            \\
                         -dsets sb23/epi_r??+orig.HEAD           \\
-                        -do_block despike ricor                 \\
+                        -blocks despike ricor align tlrc volreg \\
+                                blur mask regress               \\
                         -tcat_remove_first_trs 3                \\
                         -ricor_regs_nfirst 3                    \\
                         -ricor_regs sb23/RICOR/r*.slibase.1D    \\
+                        -volreg_align_e2a                       \\
+                        -volreg_tlrc_warp                       \\
                         -regress_motion_per_run                 \\
                         -regress_censor_motion 0.3              \\
-                        -regress_bandpass 0.01 0.1
-
+                        -regress_bandpass 0.01 0.1              \\
+                        -regress_apply_mot_types demean deriv   \\
+                        -regress_run_clustsim no                \\
+                        -regress_est_blur_errts
+                        
         6. A modern example.  GOOD TO CONSIDER.
 
            Align the EPI to the anatomy.  Also, process in standard space.
@@ -4398,6 +4408,49 @@ g_help_string = """
                         -jobs 2                                          \\
                         -gltsym 'SYM: vis -aud' -glt_label 1 V-A
 
+        9. Resting state analysis (modern): censoring and bandpass filtering.
+
+           This is our suggested way to do pre-processing for resting state
+           analysis, under the assumption that no cardio/physio recordings
+           were made (see example 5 for cardio files).
+
+           Censoring due to motion has long been considered appropriate in
+           BOLD FMRI analysis, but is less common for those doing bandpass
+           filtering in RC FMRI because the FFT requires one to either break
+           the time axis (evil) or to replace the censored data with something
+           probably inapproprate.
+
+           Instead, it is slow (no FFT, but maybe SFT :) but effective to
+           regress frequencies within the regression model, where censored is
+           simple.
+
+           inputs: anat, EPI
+           output: errts dataset (to be used for correlation)
+
+           special processing:
+              - despike, as another way to reduce motion effect
+                 (see block despike)
+              - censor motion TRs at the same time as bandpassing data
+                 (see -regress_censor_motion, -regress_bandpass)
+              - regress motion parameters AND derivatives
+                 (see -regress_apply_mot_types)
+
+           Note: if regressing out regions of interest, either create the ROI
+                 time series before the blur step, or remove blur from the list
+                 of blocks (and apply any desired blur after the regression).
+
+                afni_proc.py -subj_id subj123                               \\
+                        -dsets epi_run1+orig.HEAD                           \\
+                        -copy_anat anat+orig                                \\
+                        -blocks despike align tlrc volreg blur mask regress \\
+                        -tcat_remove_first_trs 3                            \\
+                        -volreg_align_e2a                                   \\
+                        -volreg_tlrc_warp                                   \\
+                        -regress_censor_motion 0.3                          \\
+                        -regress_bandpass 0.01 0.1                          \\
+                        -regress_apply_mot_types demean deriv               \\
+                        -regress_run_clustsim no                            \\
+                        -regress_est_blur_errts
 
     --------------------------------------------------
     -ask_me EXAMPLES:

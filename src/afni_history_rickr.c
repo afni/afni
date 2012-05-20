@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, MAY, 2012, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "added help examples for resting state analysis",
+   NULL
+ } ,
+
+ { 19, MAY, 2012, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "allow for auto-tcat of 1D inputs that are separated by spaces",
+   "For E Demir to use in 3dDeconovolve."
+ } ,
+
  { 16, MAY, 2012, RCR, "@GetAfniOrient", MICRO, TYPE_MODIFY,
    "suppress 3dinfo version text",
    NULL
