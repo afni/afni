@@ -12,7 +12,9 @@ void usage_3dExtractGroupInCorr(int detail)
      "\n"
      "OPTION:\n"
      "-------\n"
-     " -prefix PPP\n"
+     " -prefix PPP The actual dataset prefix with be the internal dataset\n"
+     "             label with the string 'PPP_' pre-prended.\n"
+     "             ++ Use NULL to skip the use of the prefix.\n"
      "\n"
      "Author -- RWCox -- May 2012\n"
    ) ;
@@ -381,7 +383,7 @@ THD_3dim_dataset * GRINCOR_extract_dataset( MRI_shindss *shd, int ids, char *pre
    dset = EDIT_empty_copy( shd->tdset ) ;
 
    prefix[0] = '\0' ;
-   if( pref != NULL ){ strcpy(prefix,pref) ; strcat(prefix,"_") ; }
+   if( pref != NULL && *pref != '\0' ){ strcpy(prefix,pref) ; strcat(prefix,"_") ; }
    strcat(prefix,shd->dslab[ids]) ;
 
    EDIT_dset_items( dset ,
@@ -432,7 +434,10 @@ int main( int argc , char *argv[] )
    while( nopt < argc && argv[nopt][0] == '-' ){
 
      if( strcasecmp(argv[nopt],"-prefix") == 0 ){
-       prefix = strdup(argv[++nopt]) ; nopt++ ; continue ;
+       nopt++ ;
+       if( strcasecmp(argv[nopt],"NULL") == 0 ) prefix = NULL ;
+       else                                     prefix = strdup(argv[nopt]) ;
+       nopt++ ; continue ;
      }
 
      ERROR_message("Unknown option: '%s'",argv[nopt]) ;
