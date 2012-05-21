@@ -4,6 +4,65 @@
 #define QUADRANT 2
 #define PEARSON  3
 #define KTAUB    4
+#define COVAR    5
+
+void usage_3dTcorrelate(int detail) 
+{
+         printf(
+"Usage: 3dTcorrelate [options] xset yset\n"
+"Computes the correlation coefficient between corresponding voxel\n"
+"time series in two input 3D+time datasets 'xset' and 'yset', and\n"
+"stores the output in a new 1 sub-brick dataset.\n"
+"\n"
+"Options:\n"
+"  -pearson  = Correlation is the normal Pearson (product moment)\n"
+"                correlation coefficient [this is the default method].\n"
+"  -spearman = Correlation is the Spearman (rank) correlation\n"
+"                coefficient.\n"
+"  -quadrant = Correlation is the quadrant correlation coefficient.\n"
+"  -ktaub    = Correlation is Kendall's tau_b coefficient.\n"
+"              ++ For 'continuous' or finely-discretized data, tau_b\n"
+"                 and rank correlation are nearly equivalent.\n"
+"  -covariance = Covariance instead of correlation. That would be \n"
+"                the pearson correlation without scaling by the product\n"
+"                of the standard deviations.\n"
+"\n"
+"  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
+"                [default is m=1; removal is by least squares].\n"
+"                Using m=-1 means no detrending; this is only useful\n"
+"                for data/information that has been pre-processed.\n"
+"\n"
+"  -ort r.1D = Also detrend using the columns of the 1D file 'r.1D'.\n"
+"                Only one -ort option can be given.  If you want to use\n"
+"                more than one, create a temporary file using 1dcat.\n"
+"\n"
+"  -autoclip = Clip off low-intensity regions in the two datasets,\n"
+"  -automask =  so that the correlation is only computed between\n"
+"               high-intensity (presumably brain) voxels.  The\n"
+"               intensity level is determined the same way that\n"
+"               3dClipLevel works.\n"
+"\n"
+"  -prefix p = Save output into dataset with prefix 'p'\n"
+"               [default prefix is 'Tcorr'].\n"
+"\n"
+"Notes:\n"
+"* The output dataset is functional bucket type, with just one\n"
+"   sub-brick, stored in floating point format.\n"
+"* Because both time series are detrended prior to correlation,\n"
+"   the results will not be identical to using FIM or FIM+ to\n"
+"   calculate correlations (whose ideal vector is not detrended).\n"
+"* Also see 3dTcorr1D if you want to correlate each voxel time series\n"
+"   in a dataset xset with a single 1D time series file.\n"
+"* http://en.wikipedia.org/wiki/Correlation\n"
+"* http://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient\n"
+"* http://en.wikipedia.org/wiki/Spearman%%27s_rank_correlation_coefficient\n"
+"* http://en.wikipedia.org/wiki/Kendall_tau_rank_correlation_coefficient\n"
+"\n"
+"-- RWCox - Aug 2001\n"
+            ) ;
+      PRINT_COMPILE_DATE ;
+   return;
+}
 
 int main( int argc , char *argv[] )
 {
@@ -18,58 +77,8 @@ int main( int argc , char *argv[] )
    int nort=0 ; float **fort=NULL ;
 
    /*----*/
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dTcorrelate [options] xset yset\n"
-             "Computes the correlation coefficient between corresponding voxel\n"
-             "time series in two input 3D+time datasets 'xset' and 'yset', and\n"
-             "stores the output in a new 1 sub-brick dataset.\n"
-             "\n"
-             "Options:\n"
-             "  -pearson  = Correlation is the normal Pearson (product moment)\n"
-             "                correlation coefficient [this is the default method].\n"
-             "  -spearman = Correlation is the Spearman (rank) correlation\n"
-             "                coefficient.\n"
-             "  -quadrant = Correlation is the quadrant correlation coefficient.\n"
-             "  -ktaub    = Correlation is Kendall's tau_b coefficient.\n"
-             "              ++ For 'continuous' or finely-discretized data, tau_b\n"
-             "                 and rank correlation are nearly equivalent.\n"
-             "\n"
-             "  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
-             "                [default is m=1; removal is by least squares].\n"
-             "                Using m=-1 means no detrending; this is only useful\n"
-             "                for data/information that has been pre-processed.\n"
-             "\n"
-             "  -ort r.1D = Also detrend using the columns of the 1D file 'r.1D'.\n"
-             "                Only one -ort option can be given.  If you want to use\n"
-             "                more than one, create a temporary file using 1dcat.\n"
-             "\n"
-             "  -autoclip = Clip off low-intensity regions in the two datasets,\n"
-             "  -automask =  so that the correlation is only computed between\n"
-             "               high-intensity (presumably brain) voxels.  The\n"
-             "               intensity level is determined the same way that\n"
-             "               3dClipLevel works.\n"
-             "\n"
-             "  -prefix p = Save output into dataset with prefix 'p'\n"
-             "               [default prefix is 'Tcorr'].\n"
-             "\n"
-             "Notes:\n"
-             "* The output dataset is functional bucket type, with just one\n"
-             "   sub-brick, stored in floating point format.\n"
-             "* Because both time series are detrended prior to correlation,\n"
-             "   the results will not be identical to using FIM or FIM+ to\n"
-             "   calculate correlations (whose ideal vector is not detrended).\n"
-             "* Also see 3dTcorr1D if you want to correlate each voxel time series\n"
-             "   in a dataset xset with a single 1D time series file.\n"
-             "* http://en.wikipedia.org/wiki/Correlation\n"
-             "* http://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient\n"
-             "* http://en.wikipedia.org/wiki/Spearman%%27s_rank_correlation_coefficient\n"
-             "* http://en.wikipedia.org/wiki/Kendall_tau_rank_correlation_coefficient\n"
-             "\n"
-             "-- RWCox - Aug 2001\n"
-            ) ;
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
+   
+   if (argc == 1) { usage_3dTcorrelate(1); exit(0); } /* Bob's help shortcut */
 
    mainENTRY("3dTCorrelate main"); machdep(); AFNI_logger("3dTcorrelate",argc,argv);
    PRINT_VERSION("3dTcorrelate") ; THD_check_AFNI_version("3dTcorrelate") ;
@@ -77,6 +86,10 @@ int main( int argc , char *argv[] )
    /*-- option processing --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+       if (strcmp(argv[nopt], "-h") == 0 || strcmp(argv[nopt], "-help") == 0) {
+         usage_3dTcorrelate(strlen(argv[nopt]) > 3 ? 2:1);
+         exit(0);
+       }
 
       if( strcmp(argv[nopt],"-ort") == 0 ){           /* 13 Mar 2003 */
         if( im_ort != NULL ){
@@ -102,6 +115,10 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-pearson") == 0 ){
          method = PEARSON ; nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-covariance") == 0 ){
+         method = COVAR ; nopt++ ; continue ;
       }
 
       if( strcasecmp(argv[nopt],"-spearman") == 0 ){
@@ -133,9 +150,17 @@ int main( int argc , char *argv[] )
          polort = val ; nopt++ ; continue ;
       }
 
-      fprintf(stderr,"** Illegal option: %s\n",argv[nopt]) ; exit(1) ;
+      ERROR_message("Illegal option %s\n", argv[nopt]);
+      suggest_best_prog_option(argv[0], argv[nopt]);
+      exit(1);
+      
    }
 
+   if (argc < 2) {
+      ERROR_message("Too few options, use -help for details");
+      exit(1);
+   }
+   
    /*-- open datasets, check for legality --*/
 
    if( nopt+1 >= argc ){
@@ -147,7 +172,8 @@ int main( int argc , char *argv[] )
       fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
    }
    if( DSET_NUM_TIMES(xset) < 2 ){
-      fprintf(stderr,"** Input dataset %s is not 3D+time\n",argv[nopt]); exit(1);
+      fprintf(stderr,"** Input dataset %s is not 3D+time\n",argv[nopt]); 
+      exit(1);
    }
    yset = THD_open_dataset( argv[++nopt] ) ;
    if( yset == NULL ){
@@ -205,15 +231,17 @@ int main( int argc , char *argv[] )
       exit(1) ;
    }
 
-   EDIT_BRICK_TO_FICO(cset,0,nvals,1,polort+1+nort) ;  /* stat params */
    EDIT_BRICK_FACTOR(cset,0,0.0) ;                     /* to be safe  */
 
    switch( method ){                                   /* looks nice  */
       default:
-      case PEARSON:  EDIT_BRICK_LABEL(cset,0,"Pear.Corr.") ; break ;
+      case PEARSON:  EDIT_BRICK_LABEL(cset,0,"Pear.Corr.") ; 
+          EDIT_BRICK_TO_FICO(cset,0,nvals,1,polort+1+nort) ;  /* stat params */
+                                                             break ;
       case SPEARMAN: EDIT_BRICK_LABEL(cset,0,"Spmn.Corr.") ; break ;
       case QUADRANT: EDIT_BRICK_LABEL(cset,0,"Quad.Corr.") ; break ;
       case KTAUB:    EDIT_BRICK_LABEL(cset,0,"Taub.Corr.") ; break ;
+      case COVAR:    EDIT_BRICK_LABEL(cset,0,"Covariance") ; break ;
    }
 
    EDIT_substitute_brick( cset , 0 , MRI_float , NULL ) ; /* make array  */
@@ -236,13 +264,14 @@ int main( int argc , char *argv[] )
 
       (void)THD_generic_detrend_LSQ( nvals,xsar, polort, nort,fort,NULL ) ;  /* 13 Mar 2003 */
       (void)THD_generic_detrend_LSQ( nvals,ysar, polort, nort,fort,NULL ) ;
-
+      
       switch( method ){                    /* correlate */
          default:
          case PEARSON:  car[ii] = THD_pearson_corr ( nvals,xsar,ysar ); break;
          case SPEARMAN: car[ii] = THD_spearman_corr( nvals,xsar,ysar ); break;
          case QUADRANT: car[ii] = THD_quadrant_corr( nvals,xsar,ysar ); break;
          case KTAUB:    car[ii] = THD_ktaub_corr   ( nvals,xsar,ysar ); break;
+         case COVAR:    car[ii] = THD_covariance   ( nvals,xsar,ysar ); break;
       }
 
       mri_free(xsim) ; mri_free(ysim) ;    /* toss time series */
