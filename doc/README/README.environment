@@ -3400,6 +3400,14 @@ will NOT be carried out.  As of 26 Mar 2009, this adjustment of
 q-values is the default in AFNI programs.  If you want the old
 behavior, set this variable to YES.
 
+----------------------------------
+Variable: AFNI_NON_INDEPENDENT_FDR
+----------------------------------
+If this variable is set to YES, then the FDR calculation is made using
+the non-independent assumption, as in the '-cdep' option for program
+3dFDR.  This setting will affect the calculation of FDR curves via
+program 3drefit, et cetera.
+
 ----------------------------
 Variable: AFNI_SKIP_SATCHECK
 ----------------------------

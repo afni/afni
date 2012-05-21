@@ -3401,6 +3401,14 @@ static char * readme_env[] = {
    "q-values is the default in AFNI programs.  If you want the old\n" ,
    "behavior, set this variable to YES.\n" ,
    "\n" ,
+   "----------------------------------\n" ,
+   "Variable: AFNI_NON_INDEPENDENT_FDR\n" ,
+   "----------------------------------\n" ,
+   "If this variable is set to YES, then the FDR calculation is made using\n" ,
+   "the non-independent assumption, as in the '-cdep' option for program\n" ,
+   "3dFDR.  This setting will affect the calculation of FDR curves via\n" ,
+   "program 3drefit, et cetera.\n" ,
+   "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_SKIP_SATCHECK\n" ,
    "----------------------------\n" ,
@@ -3560,4 +3568,4 @@ static char * readme_env[] = {
    "\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 3560
+#define NUM_readme_env 3568
