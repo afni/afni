@@ -61,6 +61,7 @@ L_INIT_VARS:
     set endstr = "$prog_name ... finished"
     set debug     = 0
     set ldlist = (141 60)
+    set fsdsets = (.thickness.gii.dset)
 
     set surf_attribs = (smoothwm      \
          pial         \
@@ -579,6 +580,17 @@ L_CONVERT_SURFACES:
       cd $start_dir
    endif
    
+   #and the thickness data
+   cd $surf_dir
+   foreach hand ( lh rh )
+      if ( -f ${hand}.thickness ) then
+         mris_convert -c ${hand}.thickness ${hand}.white ${hand}.thickness.gii
+         mv    ${hand}.thickness.gii   \
+               $start_dir/$suma_dir/${hand}.thickness.gii.dset
+      endif
+   end
+   cd $start_dir
+   
 goto L_CONVERT_SURFACES_DONE
 
 
@@ -839,7 +851,8 @@ L_CREATE_BRICK:
     #out by A. Thomas. Good info found here:
     #www.wideman-one.com/gw/brain/fs/coords/fscoords.htm
     
-      #New block added for reading COR images that are no longer 256x256x256 / 1mm cubic voxels ZSS Oct 20 04
+      #New block added for reading COR images that are no longer 
+      #256x256x256 / 1mm cubic voxels ZSS Oct 20 04
       
       set Sr = `grep -w imnr0 COR-.info`
       set i0 = $Sr[$#Sr]
@@ -870,20 +883,30 @@ L_CREATE_BRICK:
          echo "pdim = $psize mm, thick = $zthick mm"
          echo "SLABS: $xSLAB0..$xSLAB1, $ySLAB0..$ySLAB1, $zSLAB0..$zSLAB1"
          if ( $neuro_ori == 1 ) then
-            echo "to3d -xSLAB $xSLAB0'L'-$xSLAB1'R' -ySLAB $ySLAB0'S'-$ySLAB1'I' \
-                     -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'"
+            echo "to3d -xSLAB $xSLAB0'L'-$xSLAB1'R' \
+                     -ySLAB $ySLAB0'S'-$ySLAB1'I' \
+                     -zSLAB $zSLAB0'P'-$zSLAB1'A' \
+                        '3Db:0:0:'$nx':'$ny':1:COR-???'"
          else 
-            echo "to3d -xSLAB $xSLAB0'R'-$xSLAB1'L' -ySLAB $ySLAB0'S'-$ySLAB1'I' \
-                     -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'"
+            echo "to3d -xSLAB $xSLAB0'R'-$xSLAB1'L' \
+                     -ySLAB $ySLAB0'S'-$ySLAB1'I' \
+                     -zSLAB $zSLAB0'P'-$zSLAB1'A' \
+                        '3Db:0:0:'$nx':'$ny':1:COR-???'"
          endif
       endif
     
     if ( $neuro_ori == 1 ) then
-      to3d -prefix $afni_prefix -xSLAB $xSLAB0'L'-$xSLAB1'R' -ySLAB $ySLAB0'S'-$ySLAB1'I' -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
+      to3d -prefix $afni_prefix \
+               -xSLAB $xSLAB0'L'-$xSLAB1'R' \
+               -ySLAB $ySLAB0'S'-$ySLAB1'I' \
+               -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
       #to3d -prefix $afni_prefix -xSLAB 127L-128R -ySLAB 128S-127I \
       #  -zSLAB 128P-127A $cor_files
     else
-      to3d -prefix $afni_prefix -xSLAB $xSLAB0'R'-$xSLAB1'L' -ySLAB $ySLAB0'S'-$ySLAB1'I' -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
+      to3d -prefix $afni_prefix \
+               -xSLAB $xSLAB0'R'-$xSLAB1'L' \
+               -ySLAB $ySLAB0'S'-$ySLAB1'I' \
+               -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
       #to3d -prefix $afni_prefix -xSLAB 128R-127L -ySLAB 128S-127I \
       #  -zSLAB 128P-127A $cor_files
     endif
@@ -900,7 +923,7 @@ L_CREATE_BRICK:
        foreach other ($other_mgz)
          #@SUMA_FSvolToBRIK $other $start_dir/$suma_dir/$other:t:r
          #rm -f $start_dir/$suma_dir/COR-??? $start_dir/$suma_dir/COR-.info \
-         #                                                           >& /dev/null
+         #                                                        >& /dev/null
          mri_convert -ot nii $other $start_dir/$suma_dir/${other:t:r}".nii"
          #Now shift the damned volumes to match the surface volumes
          cd $start_dir/$suma_dir/
@@ -949,11 +972,21 @@ L_ICO:
       @ ild ++
       set both = ()
       foreach hem (lh rh)
+         set echo
          set sp = {$subj_id}_${hem}.spec
+         set dm = ()
+         if ($#fsdsets > 0) then
+            foreach fsd ($fsdsets)
+               if ( -f ${hem}${fsd} ) then
+                  set dm = ($dm "-dset_map" ${hem}${fsd})
+               endif
+            end
+         endif
          if ( -f $sp) then
-            MapIcosahedron -spec $sp -ld $ld -prefix $ldpref[$ild] 
+            MapIcosahedron -spec $sp -ld $ld $dm -prefix $ldpref[$ild] 
             set both = ($both ${ldpref[$ild]}{$subj_id}_${hem}.spec)
          endif
+         unset echo
       end
       if ($#both == 2) then
          inspec -LRmerge $both -prefix ${ldpref[$ild]}{$subj_id}_both.spec

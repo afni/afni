@@ -18,6 +18,298 @@
 
 static int vn=0 ;
 
+static HELP_OPT SegOptList[] = {
+   {  
+"-anat", 
+"-anat ANAT: ANAT is the volume to segment", 
+NULL 
+      },
+   {  
+"-mask", 
+"-mask MASK: MASK only non-zero voxels in MASK are analyzed.\n"
+"        MASK is useful when no voxelwise priors are available.\n"
+"        MASK can either be a dataset or the string 'AUTO'\n"
+"        which would use AFNI's automask function to create the mask.\n", 
+NULL 
+      },
+   {  
+"-blur_meth",
+"-blur_meth BMETH: Set the blurring method for bias field estimation.\n"
+"     -blur_meth takes one of: BFT, BIM, \n"
+"             BFT: Use Fourier smoothing, masks be damned.\n"
+"             BIM: Blur in mask, slower, more accurate, not necessarily \n"
+"                  better bias field estimates.\n"
+"             BNN: A crude blurring in mask. Faster than BIM but it does\n"
+"                  not result in accurate FWHM. This option is for \n"
+"                  impatient testing. Do not use it.\n"
+"             LSB: Localstat moving average smoothing. Debugging only. \n"
+"                  Do not use.",
+"BFT" 
+      },
+   {  
+"-bias_fwhm",
+"-bias_fwhm BIAS_FWHM: The amount of blurring used when estimating the\n"
+"                      field bias with the Wells method.\n"
+"                      [Wells et. al. IEEE TMI 15, 4, 1997].",
+"25.0" 
+      },
+   {  
+"-classes", 
+"-classes 'CLASS_STRING': CLASS_STRING is a semicolon delimited\n"
+"                         string of class labels. At the moment\n"
+"                         CLASS_STRING can only be 'CSF; GM; WM'", 
+"'CSF; GM; WM'"
+      },
+   {  
+"-Bmrf",
+"-Bmrf BMRF: Weighting factor controlling spatial homogeneity of the \n"
+"            classifications. The larger BMRF, the more homogenious the\n"
+"            classifications will be.\n"
+"            See Berthod et al. Image and Vision Computing 14 (1996),\n"
+"            MRFs are also used in FSL's FAST program.\n"
+"            BMRF = 0.0 means no MRF, 1.0 is a start. \n"
+"            Use this option if you have noisy data and no good \n"
+"            voxelwise priors.",
+"0.0" 
+      },           
+   {  
+"-bias_classes",
+"-bias_classes 'BIAS_CLASS_STRING': A semcolon demlimited string of \n"
+"                                   classes that contribute to the \n"
+"                                   estimation of the bias field.",
+"'GM; WM'" 
+      },
+   {  
+"-prefix",
+"-prefix PREF: PREF is the prefix for all output volume that are not \n"
+"              debugging related.", 
+"Segsy" 
+      },
+   {  
+"-overwrite",
+"-overwrite: An option common to almost all AFNI programs. It is \n"
+"            automatically turned on if you provide no PREF.",
+NULL
+      },
+   {  
+"-mixfrac",
+"-mixfrac 'MIXFRAC': MIXFRAC sets up the volume-wide (within mask)\n"
+"                    tissue fractions while initializing the \n"
+"                    segmentation. You can specify the mixing fractions\n"
+"                    directly such as with '0.1 0.45 0.45', or with\n"
+"                    the following special flags:\n"
+"              'UNI': Equal mixing fractions \n"
+"              'AVG152_BRAIN_MASK': Mixing fractions reflecting AVG152\n"
+"                                   template.",
+"UNI" 
+      }, 
+   {  
+"-gold",
+"-gold GOLD: A goldstandard segmentation volume should you wish to\n"
+"               compare 3dSeg's results to it.",
+NULL 
+      },
+   {  
+"-gold_bias",
+"-gold_bias GOLD: A goldstandard bias volume should you wish to\n"
+"               compare 3dSeg's bias estimate to it.\n",
+NULL 
+      },
+   {  
+"-main_N",
+"-main_N Niter: Number of iterations to perform.",
+"5" 
+      },
+   {  
+"-cset",
+"-cset CSET: Initial classfication. If CSET is not given,\n"
+"            initialization is carried out with 3dkmean's engine.\n",
+NULL 
+      },
+   {  NULL, NULL, NULL  }
+};
+
+static char shelp_Seg[] = {
+"3dSeg segments brain volumes into tissue classes. The program allows\n"
+"for adding a variety of global and voxelwise priors. However for the moment,\n"
+"only mixing fractions and MRF are documented.\n"
+"\n"
+"I do not recommend you use this program for quantitative segmentation,\n"
+"at least not yet. I have a lot of emotional baggage to overcome on that\n"
+"front.\n" 
+"\n"
+"Example 1: Segmenting a skull-stripped T1 volume with:\n"
+"              Brain mask, No prior volumes, Uniform mixing fraction\n"
+"           3dSeg    -anat anat.nii    -mask AUTO \\\n"
+"                    -classes 'CSF ; GM ; WM' -bias_classes 'GM ; WM' \\\n"
+"                    -bias_fwhm 25 -mixfrac UNI -main_N 5 \\\n"
+"                    -blur_meth BFT\n"   
+"Options:\n"
+"\n"
+#if 0
+"Examples: (All examples can do without the -gold* options)\n"
+"  Case A: Segmenting a T1 volume with a brain mask available\n"
+"  A.1:  Brain mask and MRF only.\n"
+"  3dSeg    -anat banat+orig     \\\n"
+"           -mask anat.ns+orig   \\\n"
+"           -gold goldseg+orig   -gold_bias goldbias+orig   \\\n"
+"           -classes 'CSF ; GM ; WM' \\\n"
+"           -Bmrf 1.0            \\\n"
+"           -bias_classes 'GM ; WM' -bias_fwhm 25 \\\n"
+"           -prefix case.A.1  -overwrite    \\\n"
+"\n"
+"  A.2:  Adding average mixing fraction constraint derived from\n"
+"        population based spatial priors, and preserving the weighting\n"
+"        throughout the segmentation.\n"
+"  3dSeg    -anat banat+orig     \\\n"
+"           -mask anat.ns+orig   \\\n"
+"           -gold goldseg+orig   -gold_bias goldbias+orig   \\\n"
+"           -classes 'CSF ; GM ; WM' \\\n"
+"           -bias_classes 'GM ; WM' -bias_fwhm 25 \\\n"
+"           -prefix case.A.2  -overwrite    \\\n"
+"           -mixfrac WHOLE_BRAIN \\\n"
+"           -Bmrf 1.0 -main_N 4           \\\n"
+#endif
+"\n"
+"\n"
+};
+
+void Seg_usage(int detail) 
+{
+   int i = 0;
+   char *s=NULL;
+   
+   ENTRY("Seg_usage");
+   
+   printf( "%s", shelp_Seg );
+   s = SUMA_OptList_string(SegOptList);
+   printf( "%s", s );
+   SUMA_free(s);
+   
+   EXRETURN;
+}
+
+SEG_OPTS *Seg_Default(char *argv[], int argc) 
+{
+   SEG_OPTS *Opt=NULL;
+   
+   ENTRY("Seg_Default");
+   
+   Opt = SegOpt_Struct();
+   Opt->helpfunc = &Seg_usage;
+   Opt->ps = SUMA_Parse_IO_Args(argc, argv, "-talk;");
+   Opt->aset_name = NULL;
+   Opt->mset_name = NULL;
+   Opt->sig_name = NULL;
+   Opt->gold_name=NULL;
+   Opt->gold_bias_name=NULL;
+   Opt->this_pset_name = NULL;
+   Opt->this_cset_name = NULL;
+   Opt->ndist_name = NULL;
+   Opt->uid[0] = '\0';
+   Opt->prefix = NULL;
+   Opt->aset = NULL;
+   Opt->mset = NULL;
+   Opt->gset = NULL;
+   Opt->sig = NULL;
+   Opt->ndist = NULL;
+   Opt->pset = NULL;
+   Opt->cset = NULL;
+   Opt->gold = NULL;
+   Opt->gold_bias = NULL;
+   Opt->bias_meth = "Wells";
+   Opt->bias_param = (float)strtod(
+                    SUMA_OptList_get(SegOptList, "-bias_fwhm", "val"), NULL);
+   Opt->debug = 0;
+   Opt->idbg = Opt->kdbg = Opt->jdbg = -1;
+   Opt->binwidth = 0.01; /* the R function area.gam was used to pick a decent 
+                            binwidth. I picked a large one where discrepancy
+                            between Reference and Approximation was good. 
+                            0.1 is too coarse, 0.001 is overkill*/ 
+   Opt->feats=NULL;
+   Opt->clss=NI_strict_decode_string_list(
+            SUMA_OptList_get(SegOptList, "-classes", "value"),";, ");
+   Opt->Other = 0;
+   Opt->keys = NULL;
+   Opt->UseTmp = 1; 
+   Opt->logp = 1;
+   Opt->VoxDbg = -1;
+   Opt->VoxDbg3[0] = Opt->VoxDbg3[1] = Opt->VoxDbg3[2] = -1;
+   Opt->VoxDbgOut = stderr;
+   Opt->rescale_p = 1;
+   Opt->openmp = 0;
+   Opt->labeltable_name = NULL;
+   Opt->smode = STORAGE_BY_BRICK;
+   Opt->pweight = 1;
+   Opt->cmask = NULL;
+   Opt->dimcmask = 0;
+   Opt->cmask_count=0;
+   Opt->mask_bot = 1.0;
+   Opt->mask_top = -1.0;
+   Opt->DO_p = TRUE;
+   Opt->DO_c = TRUE;
+   Opt->DO_r = FALSE;
+   Opt->group_classes = NULL;
+   Opt->group_keys = NULL;
+   Opt->fitmeth = SEG_LSQFIT;
+   Opt->N_enhance_cset_init = 0;
+   Opt->N_main = (int)strtod(
+                  SUMA_OptList_get(SegOptList, "-main_N", "val"), NULL); 
+                              /* defaulted to 4 before May 7 2012 */
+   Opt->clust_cset_init=1;
+   
+   Opt->B = 0.0;  /* defaulted to 1.0 before March 7 2012 */
+   Opt->T = 1.0;
+   
+   Opt->edge = 0.0;
+   Opt->na = 8.0;
+   
+   Opt->priCgA=NULL;
+   Opt->wA = -1.0;
+   Opt->priCgL=NULL;
+   Opt->wL = -1.0;
+   Opt->priCgAname=NULL;
+   Opt->priCgLname=NULL;
+   Opt->priCgALL=NULL;
+   Opt->priCgALLname=NULL;
+   
+   Opt->pstCgALL=NULL;
+   Opt->Bset=NULL;
+   Opt->pstCgALLname = NULL;
+   Opt->Bsetname = NULL;
+   
+   Opt->proot = SUMA_OptList_get(SegOptList, "-prefix","val");
+   SUMA_RETURN(Opt);
+}
+
+int Seg_CheckOpts(SEG_OPTS *Opt) 
+{
+   static char FuncName[]={"Seg_CheckOpts"};
+   
+   SUMA_ENTRY;
+   
+   if( ! THD_is_directory(Opt->proot) ){
+      if( mkdir( Opt->proot , THD_MKDIR_MODE ) != 0 ){
+         SUMA_S_Errv("Failed to create %s\n", Opt->proot);
+         exit(1);
+      }
+   }
+   
+   /* Fix VoxDbg */
+   if (Opt->VoxDbg >= 0) {
+      Vox1D2Vox3D(Opt->VoxDbg, 
+                  DSET_NX(Opt->aset), DSET_NX(Opt->aset)*DSET_NY(Opt->aset),
+                  Opt->VoxDbg3);
+   } else if (Opt->VoxDbg3[0]>=0) {
+      Opt->VoxDbg = Opt->VoxDbg3[0] + Opt->VoxDbg3[1]*DSET_NX(Opt->aset) +
+                        Opt->VoxDbg3[2]*DSET_NX(Opt->aset)*DSET_NY(Opt->aset);
+   }
+   
+   SUMA_set_SegFunc_debug( Opt->debug, Opt->VoxDbg, Opt->VoxDbg3, 
+                           Opt->VoxDbgOut);
+   
+   SUMA_RETURN(1);
+}
 
 
 int SUMA_SegEngine(SEG_OPTS *Opt) 
@@ -352,123 +644,6 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
    SUMA_RETURN(1);
 }
 
-SEG_OPTS *Seg_Default(char *argv[], int argc) 
-{
-   SEG_OPTS *Opt=NULL;
-   
-   ENTRY("Seg_Default");
-   
-   Opt = SegOpt_Struct();
-   Opt->helpfunc = &Seg_usage;
-   Opt->ps = SUMA_Parse_IO_Args(argc, argv, "-talk;");
-   Opt->aset_name = NULL;
-   Opt->mset_name = NULL;
-   Opt->sig_name = NULL;
-   Opt->gold_name=NULL;
-   Opt->gold_bias_name=NULL;
-   Opt->this_pset_name = NULL;
-   Opt->this_cset_name = NULL;
-   Opt->ndist_name = NULL;
-   Opt->uid[0] = '\0';
-   Opt->prefix = NULL;
-   Opt->aset = NULL;
-   Opt->mset = NULL;
-   Opt->gset = NULL;
-   Opt->sig = NULL;
-   Opt->ndist = NULL;
-   Opt->pset = NULL;
-   Opt->cset = NULL;
-   Opt->gold = NULL;
-   Opt->gold_bias = NULL;
-   Opt->bias_meth = "Wells";
-   Opt->bias_param = 25;
-   Opt->debug = 0;
-   Opt->idbg = Opt->kdbg = Opt->jdbg = -1;
-   Opt->binwidth = 0.01; /* the R function area.gam was used to pick a decent 
-                            binwidth. I picked a large one where discrepancy
-                            between Reference and Approximation was good. 
-                            0.1 is too coarse, 0.001 is overkill*/ 
-   Opt->feats=NULL;
-   Opt->clss=NULL;
-   Opt->Other = 0;
-   Opt->keys = NULL;
-   Opt->UseTmp = 1; 
-   Opt->logp = 1;
-   Opt->VoxDbg = -1;
-   Opt->VoxDbg3[0] = Opt->VoxDbg3[1] = Opt->VoxDbg3[2] = -1;
-   Opt->VoxDbgOut = stderr;
-   Opt->rescale_p = 1;
-   Opt->openmp = 0;
-   Opt->labeltable_name = NULL;
-   Opt->smode = STORAGE_BY_BRICK;
-   Opt->pweight = 1;
-   Opt->cmask = NULL;
-   Opt->dimcmask = 0;
-   Opt->cmask_count=0;
-   Opt->mask_bot = 1.0;
-   Opt->mask_top = -1.0;
-   Opt->DO_p = TRUE;
-   Opt->DO_c = TRUE;
-   Opt->DO_r = FALSE;
-   Opt->group_classes = NULL;
-   Opt->group_keys = NULL;
-   Opt->fitmeth = SEG_LSQFIT;
-   Opt->N_enhance_cset_init = 0;
-   Opt->N_main = 5; /* defaulted to 4 before May 7 2012 */
-   Opt->clust_cset_init=1;
-   
-   Opt->B = 0.0;  /* defaulted to 1.0 before March 7 2012 */
-   Opt->T = 1.0;
-   
-   Opt->edge = 0.0;
-   Opt->na = 8.0;
-   
-   Opt->priCgA=NULL;
-   Opt->wA = -1.0;
-   Opt->priCgL=NULL;
-   Opt->wL = -1.0;
-   Opt->priCgAname=NULL;
-   Opt->priCgLname=NULL;
-   Opt->priCgALL=NULL;
-   Opt->priCgALLname=NULL;
-   
-   Opt->pstCgALL=NULL;
-   Opt->Bset=NULL;
-   Opt->pstCgALLname = NULL;
-   Opt->Bsetname = NULL;
-   
-   Opt->proot = "Segsy";
-   SUMA_RETURN(Opt);
-}
-
-int Seg_CheckOpts(SEG_OPTS *Opt) 
-{
-   static char FuncName[]={"Seg_CheckOpts"};
-   
-   SUMA_ENTRY;
-   
-   if( ! THD_is_directory(Opt->proot) ){
-      if( mkdir( Opt->proot , THD_MKDIR_MODE ) != 0 ){
-         SUMA_S_Errv("Failed to create %s\n", Opt->proot);
-         exit(1);
-      }
-   }
-   
-   /* Fix VoxDbg */
-   if (Opt->VoxDbg >= 0) {
-      Vox1D2Vox3D(Opt->VoxDbg, 
-                  DSET_NX(Opt->aset), DSET_NX(Opt->aset)*DSET_NY(Opt->aset),
-                  Opt->VoxDbg3);
-   } else if (Opt->VoxDbg3[0]>=0) {
-      Opt->VoxDbg = Opt->VoxDbg3[0] + Opt->VoxDbg3[1]*DSET_NX(Opt->aset) +
-                        Opt->VoxDbg3[2]*DSET_NX(Opt->aset)*DSET_NY(Opt->aset);
-   }
-   
-   SUMA_set_SegFunc_debug( Opt->debug, Opt->VoxDbg, Opt->VoxDbg3, 
-                           Opt->VoxDbgOut);
-   
-   SUMA_RETURN(1);
-}
 
 int main(int argc, char **argv)
 {

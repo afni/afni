@@ -29,6 +29,7 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
 void SUMA_unSetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
 char *SUMA_sources_Info(void );
 char * SUMA_OptList_string(HELP_OPT *hol);
+char *SUMA_OptList_get(HELP_OPT *hol, char *opname, char *what);
 char *SUMA_NIDO_Info(void );
 char * SUMA_Help_AllSurfCont (void);
 
