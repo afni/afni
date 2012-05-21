@@ -336,9 +336,10 @@ g_history = """
         - allow for processing more than 99 runs
         - catenated 'rall' files will use '_' until prefix
     3.18 May 19, 2012: small help update for resting state examples
+    3.19 May 21, 2012: added -regress_stim_types
 """
 
-g_version = "version 3.18, May 19, 2012"
+g_version = "version 3.19, May 21, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Mar 2012"
@@ -787,6 +788,9 @@ class SubjProcSream:
                         helpstr="do not convert stim_files to timing")
         self.valid_opts.add_opt('-regress_stim_times_offset', 1, [],
                         helpstr="add offset when converting to timing")
+        self.valid_opts.add_opt('-regress_stim_types', -1, [],
+                        acplist=['times', 'AM1', 'AM2', 'IM'],
+                        helpstr="specify times/AM1/AM2/IM for each stim class")
         self.valid_opts.add_opt('-regress_use_stim_files', 0, [],
                         helpstr="do not convert stim_files to timing")
 
