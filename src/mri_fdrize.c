@@ -348,7 +348,7 @@ floatvec * mri_fdr_curve( MRI_IMAGE *im, int statcode, float *stataux )
   int nvox , ii , nq , *iq ;
   floatvec *fv=NULL ;
   float tbot,ttop , zbot,ztop , dt,tt,zz , t1,t2,z1,z2 , tf,zf ;
-  int kk,klast,jj ;
+  int kk,klast,jj , flags=0 ;
 
 ENTRY("mri_fdr_curve") ;
 
@@ -365,7 +365,9 @@ ENTRY("mri_fdr_curve") ;
 STATUS("copy statistics image") ;
   cim = mri_to_float(im) ; car = MRI_FLOAT_PTR(cim) ;
 
-  nq = mri_fdrize( cim , statcode , stataux , 0 ) ;
+  if( AFNI_yesenv("AFNI_NON_INDEPENDENT_FDR") ) flags = 2 ;  /* 21 May 2012 */
+
+  nq = mri_fdrize( cim , statcode , stataux , flags ) ;
   if( nq < 9 ){ mri_free(cim); RETURN(NULL); }  /* bad FDR-izing */
 
   /* create iq[] = list of voxels that were validly FDR-ized */
