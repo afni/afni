@@ -368,8 +368,21 @@ static char * ICOR_main( PLUGIN_interface *plint )
 
    if( dset == NULL )
      return "** No TimeSeries dataset? **" ;
-   if( DSET_NVALS(dset)-ignore < 9 )
-     return "** TimeSeries dataset is too short for InstaCorr **" ;
+   if( DSET_NVALS(dset)-ignore < 9 ) {
+     WARNING_message("**************************\n"
+                     "   Too few samples in time series!\n"
+                     "   I hope you know what you are doing.\n");
+     if (polort >= 0) {
+         /* object even if we can get away with less. Otherwise
+            the < 9 condition has to be ammended in 
+            thd_bandpass.c's THD_bandpass_vectors() */
+         return "** TimeSeries dataset is way too short for InstaCorr **" ;
+     } else { /* allow it to proceed if series is not extremely short */
+      if (  DSET_NVALS(dset) - ignore < 3) {/* too much! */ 
+         return "** TimeSeries dataset is way too short for InstaCorr **" ;
+      }
+     } 
+   }
    if( eset != NULL &&
        ( DSET_NVALS(dset) != DSET_NVALS(eset) || DSET_NVOX(dset) != DSET_NVOX(eset) ) )
      return "** TimeSeries Dataset and Extraset don't match **" ;

@@ -64,12 +64,14 @@ int update_help_for_afni_programs(int force_recreate,
       snprintf(houtc, 120*sizeof(char),
                "%s/%s.complete", hdir, etr);
       if (!force_recreate && THD_is_file(hout)) {
-         if (verb) fprintf(stderr,"Reusing %s (%d/%d)\n", hout, ii, progs->num );
+         if (verb) 
+            fprintf(stderr,"Reusing %s (%d/%d)\n", hout, ii, progs->num );
          if (!THD_is_file(houtc)) {
             prog_complete_command(etr, houtc);
          }      
       } else {
-         if (verb) fprintf(stderr,"Creating %s (%d/%d)\n", hout, ii, progs->num); 
+         if (verb) 
+            fprintf(stderr,"Creating %s (%d/%d)\n", hout, ii, progs->num); 
          if (icomm > 25) { /* sleep a little to allow 
                               forked processes to end */
             NI_sleep(250); icomm = 0;

@@ -138,7 +138,7 @@ void SUMA_MapIcosahedron_usage ()
 "                   three nodes in the original mesh.\n"
 "                   The file is named by the prefix of the output\n"
 "                   spec file and suffixed by MI.1D\n"
-"  NOTE: This option is useful for understanding what contributed\n"
+"  NOTE I: This option is useful for understanding what contributed\n"
 "        to a node's position in the standard meshes (STD_M).\n"
 "        Say a triangle on the  STD_M version of the white matter\n"
 "        surface (STD_WM) looks fishy, such as being large and \n"
@@ -151,7 +151,24 @@ void SUMA_MapIcosahedron_usage ()
 "        (or N0 or N2) on the original sphere.reg and examine the\n"
 "        mesh there, which is best seen in mesh view mode ('p' button).\n"
 "        It will most likely be the case that the sphere.reg mesh\n"
-"        there would be highly distorted (quite compressed).\n"    
+"        there would be highly distorted (quite compressed).\n"
+"  NOTE II: The program also outputs a new mapping file in the format\n"
+"        that SurfToSurf  likes. This format has the extension .niml.M2M\n"
+"        This way you can use SurfToSurf to map a new dataset from original\n"
+"        to standard meshes in the same way that MapIcosahedron would have\n"
+"        carried out the mapping.\n"
+"        For example, the following command creates standard meshes and\n"
+"        also maps thickness data onto the new meshes:\n"
+"            MapIcosahedron -spec rh.spec -ld 60 \\\n"
+"                           -dset_map rh.thickness.gii.dset \\\n"
+"                           -prefix std.60.\n"
+"        Say you want to map another (SOMEDSET) dataset defined on the\n"
+"        orignal mesh onto the std.60 mesh and use the same mapping derived \n"
+"        by MapIcosahedron. The command for that would be:\n"
+"            SurfToSurf -i_fs rh.smoothwm.asc -i_fs std.60.rh.smoothwm.asc \\\n"
+"                       -prefix std.60.SOMEDSET.rh \\\n"
+"                       -mapfile std.60.rh.niml.M2M \\\n"
+"                       -dset rh.SOMEDSET.gii.dset\n"
 "   -no_nodemap: Opposite of write_nodemap\n"
 "\n"
 "NOTE 1: The algorithm used by this program is applicable\n"
@@ -1204,6 +1221,16 @@ int main (int argc, char *argv[])
          SUMA_S_Err("Failed to create M2M");
          exit(1);
       }
+      if (WriteMI) {
+         char *fname =  SUMA_copy_string(outSpecFileNm);
+         fname = SUMA_append_replace_string( SUMA_CropExtension(fname,".spec"),
+                           "","",1);
+         if (!(SUMA_Save_M2M(fname, M2M))) {
+            SUMA_S_Err("Failed to save M2M");
+            exit(1);
+         }
+         SUMA_free(fname); fname=NULL; 
+      }
       for (i=0; i<N_in_name; ++i) {
          if (verb) SUMA_S_Notev("Processing dset %s\n", in_name[i]);
          iform = SUMA_NO_DSET_FORMAT;
@@ -1217,7 +1244,7 @@ int main (int argc, char *argv[])
          }
          uname = SUMA_append_replace_string(
                SUMA_FnameGet(in_name[i],"pa", SUMAg_CF->cwd), 
-                             SUMA_FnameGet(in_name[i],"f",SUMAg_CF->cwd), 
+                             SUMA_FnameGet(in_name[i],"l",SUMAg_CF->cwd), 
                              fout, 0);
          oname = SUMA_WriteDset_s (uname, dseto, SUMA_ASCII_NIML, 1, 1); 
          if (verb) SUMA_S_Notev("Wrote %s\n", oname);

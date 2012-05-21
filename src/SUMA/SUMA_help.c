@@ -714,6 +714,30 @@ char * SUMA_OptList_string(HELP_OPT *hol)
    SUMA_RETURN (s);
 }
 
+char *SUMA_OptList_get(HELP_OPT *hol, char *opname, char *what) 
+{
+   static char FuncName[]={"SUMA_OptList_default"};
+   int i = 0;
+   
+   SUMA_ENTRY;
+   
+   while (hol[i].name) {
+      if (!strcasecmp(hol[i].name, opname)) {
+         if (what[0] == 'd' || what[0] == 'D') {
+            SUMA_RETURN(hol[i].val);
+         } else if (what[0] == 'v' || what[0] == 'V') {
+            SUMA_RETURN(hol[i].val);
+         } else if (what[0] == 'h' || what[0] == 'H') {
+            SUMA_RETURN(hol[i].help);
+         } else {
+            SUMA_RETURN(NULL);
+         }
+      }
+      ++i;
+   }
+   SUMA_RETURN(NULL);  
+}
+
 char * SUMA_sources_Info(void)
 {
    static char FuncName[]={"SUMA_sources_Info"};

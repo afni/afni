@@ -383,6 +383,26 @@ float THD_pearson_corr( int n, float *x , float *y )
    return xy/sqrtf(xv*yv) ;
 }
 
+/*--------------------------------------------------------------------------*/
+/*! Covariance of x[] and y[] (x and y are NOT modified).    ZSS May 18 2012*/
+
+float THD_covariance( int n, float *x , float *y )
+{
+   float xy=0.0f , vv,ww ;
+   float xm=0.0f , ym=0.0f ;
+   register int ii ;
+
+   if( n < 2 ) return 0.0f ;
+   for( ii=0 ; ii < n ; ii++ ){ xm += x[ii] ; ym += y[ii] ; }
+   xm /= n ; ym /= n ;
+   for( ii=0 ; ii < n ; ii++ ){
+     xy += (x[ii]-xm)*(y[ii]-ym);
+   }
+
+   return xy/(float)(n-1) ;
+}
+
+
 /*-------------------------------------------------------------------------*/
 /*! Returns a float_triple with (a,b,r) where
       y = a*x + b
