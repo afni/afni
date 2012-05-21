@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, MAY, 2012, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added the long-desired-but-not-so-needed -regress_stim_types option",
+   "This allows users to specify -stim_times/_AM1/_AM2/_IM."
+ } ,
+
  { 19, MAY, 2012, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "added help examples for resting state analysis",
    NULL
