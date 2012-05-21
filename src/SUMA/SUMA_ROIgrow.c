@@ -73,7 +73,7 @@ void usage_ROIgrow (SUMA_GENERIC_ARGV_PARSE *ps)
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
                char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_BrainWrap_ParseInput"}; 
+   static char FuncName[]={"SUMA_ROIgrow_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
@@ -353,7 +353,7 @@ int main (int argc,char *argv[])
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-i;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-spec;-t;-s;");
    
    if (argc < 2) {
       usage_ROIgrow(ps);

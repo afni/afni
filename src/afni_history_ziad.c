@@ -67,7 +67,12 @@ afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
- { 27, May , 2012 , ZSS , "@SUMA_Make_Spec_FS" , MICRO , TYPE_NEW_OPT,
+ { 27, May , 2012 , ZSS , "ROIgrow" , MICRO , TYPE_BUG_FIX,
+   "ROIgrow was not taking -spec surface definition",
+   NULL
+ },
+ 
+ { 27, May , 2012 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "Made the script also port thickness data and take them to std. space",
    NULL
  },
