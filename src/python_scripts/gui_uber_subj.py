@@ -293,6 +293,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          self.update_textLine_check(obj, obj.text(), 'regress_GOFORIT',
                                  'GOFORIT warning override', QLIB.valid_as_int)
 
+      elif obj == self.gvars.Line_regress_bandpass:
+         self.set_bandpass(str(obj.text()))
+
       elif obj == self.gvars.Line_align_cost:
          text = str(obj.text())
          if text == '': text = USUBJ.g_def_align_cost
@@ -318,6 +321,34 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                             % (text, ', '.join(USUBJ.g_tlrc_base_list)), obj)
 
       else: print '** CB_line_text: unknown sender'
+
+   def set_bandpass(self, bstring):
+      flist = UTIL.string_to_float_list(bstring)
+      if bstring == None:
+         self.set_svar('regress_bandpass', [])
+         return
+      if flist == None:
+         QLIB.guiError('Error',
+                       "** invalid bandpass values\n"   \
+                       "   (2 floats are required)\n\n" \
+                       "   e.g. 0.01 0.1\n\n"           \
+                       "   resetting to previous...",
+                       self)
+         bpstr = ' '.join(self.svars.val('regress_bandpass'))
+         self.gvars.Line_regress_bandpass.setText(bpstr)
+         return
+
+      if len(flist) == 0: self.set_svar('regress_bandpass', [])
+      elif len(flist) == 2: self.set_svar('regress_bandpass', bstring.split())
+      else:
+         QLIB.guiError('Error',
+                       "** invalid bandpass values\n"           \
+                       "   (exactly 2 floats are required)\n\n" \
+                       "   e.g. 0.01 0.1\n\n"                   \
+                       "   resetting to previous...",
+                       self)
+         bpstr = ' '.join(self.svars.val('regress_bandpass'))
+         self.gvars.Line_regress_bandpass.setText(bpstr)
 
    def make_l3_group_boxes(self):
       """create anat, EPI, stim, etc. group boxes, and add to m2_vlayout"""
@@ -489,10 +520,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
 
       layout = QtGui.QGridLayout(frame)         # now a child of frame
+      lineno = 0
 
       # --------------------------------------------------
 
-      # rcr - here: add help buttons for expected and extra regress options
+      # rcr - add help buttons for expected and extra regress options
 
       # outlier_limit
       label = QtGui.QLabel("outlier censor limit (per TR)")
@@ -502,8 +534,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.connect(self.gvars.Line_outlier_limit,
                    QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
-      layout.addWidget(label, 0, 0)
-      layout.addWidget(self.gvars.Line_outlier_limit, 0, 1)
+      layout.addWidget(label, lineno, 0)
+      layout.addWidget(self.gvars.Line_outlier_limit, lineno, 1)
+      lineno += 1
 
       # jobs
       label = QtGui.QLabel("jobs for regression (num CPUs)")
@@ -513,8 +546,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.connect(self.gvars.Line_regress_jobs,
                    QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
-      layout.addWidget(label, 1, 0)
-      layout.addWidget(self.gvars.Line_regress_jobs, 1, 1)
+      layout.addWidget(label, lineno, 0)
+      layout.addWidget(self.gvars.Line_regress_jobs, lineno, 1)
+      lineno += 1
 
       # GOFORIT
       label = QtGui.QLabel("GOFORIT level (override 3dD warnings)")
@@ -524,25 +558,52 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.connect(self.gvars.Line_regress_GOFORIT,
                    QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
 
-      layout.addWidget(label, 2, 0)
-      layout.addWidget(self.gvars.Line_regress_GOFORIT, 2, 1)
+      layout.addWidget(label, lineno, 0)
+      layout.addWidget(self.gvars.Line_regress_GOFORIT, lineno, 1)
+      lineno += 1
+
+      # regress bandpass (entry takes 2 values)
+      label = QtGui.QLabel("bandpass in regression (2 floats)")
+      label.setStatusTip("give bottom/top bandpass frequencies (e.g. 0.01 0.1)")
+      self.gvars.Line_regress_bandpass = QtGui.QLineEdit()
+      val = self.svars.val('regress_bandpass')
+      if self.svars.val_len('regress_bandpass') == 2:
+         bpstr = ' '.join(self.svars.val('regress_bandpass'))
+         self.gvars.Line_regress_bandpass.setText(bpstr)
+      self.connect(self.gvars.Line_regress_bandpass,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
+
+      layout.addWidget(label, lineno, 0)
+      layout.addWidget(self.gvars.Line_regress_bandpass, lineno, 1)
+      lineno += 1
+
+      # checkbox : regress_mot_deriv
+      cbox = QtGui.QCheckBox("regress motion derivatives")
+      cbox.setStatusTip("regress motion derivatives (in addition to motion)")
+      cbox.setChecked(self.svars.regress_mot_deriv=='yes')
+      self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
+      layout.addWidget(cbox, lineno, 0)
+      lineno += 1
+      gbox.checkBox_mot_deriv = cbox
 
       # checkbox : reml_exec
-      cbox = QtGui.QCheckBox("reml_exec")
+      cbox = QtGui.QCheckBox("execute 3dREMLfit")
       cbox.setStatusTip("execute 3dREMLfit regression script")
       cbox.setChecked(self.svars.reml_exec=='yes')
       # cbox.clicked.connect(self.CB_checkbox)
       self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
-      layout.addWidget(cbox, 4, 0)
+      layout.addWidget(cbox, lineno, 0)
+      lineno += 1
       gbox.checkBox_reml_exec = cbox
 
       # checkbox : run_clustsim
-      cbox = QtGui.QCheckBox("run_clustsim")
+      cbox = QtGui.QCheckBox("run cluster simulation")
       cbox.setStatusTip("store 3dClustSim table in stats results")
       cbox.setChecked(self.svars.run_clustsim=='yes')
       # cbox.clicked.connect(self.CB_checkbox)
       self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
-      layout.addWidget(cbox, 5, 0)
+      layout.addWidget(cbox, lineno, 0)
+      lineno += 1
       gbox.checkBox_run_clustsim = cbox
 
       # checkbox : compute_fitts
@@ -551,7 +612,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       cbox.setChecked(self.svars.compute_fitts=='yes')
       # cbox.clicked.connect(self.CB_checkbox)
       self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
-      layout.addWidget(cbox, 3, 0)
+      layout.addWidget(cbox, lineno, 0)
+      lineno += 1
       gbox.checkBox_compute_fitts = cbox
 
       # --------------------------------------------------
@@ -1389,6 +1451,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif obj == self.gvars.gbox_stim.checkBox_wildcard:
          if obj.isChecked(): self.set_svar('stim_wildcard', 'yes')
          else:               self.set_svar('stim_wildcard', 'no')
+      elif obj == self.gvars.gbox_regress.checkBox_mot_deriv:
+         if obj.isChecked(): self.set_svar('regress_mot_deriv', 'yes')
+         else:               self.set_svar('regress_mot_deriv', 'no')
       elif obj == self.gvars.gbox_regress.checkBox_reml_exec:
          if obj.isChecked(): self.set_svar('reml_exec', 'yes')
          else:               self.set_svar('reml_exec', 'no')
@@ -2429,6 +2494,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif svar == 'regress_GOFORIT':
                                    obj = self.gvars.Line_regress_GOFORIT
                                    obj.setText(self.svars.regress_GOFORIT)
+      elif svar == 'regress_bandpass':
+                          obj = self.gvars.Line_regress_bandpass
+                          obj.setText(' '.join(self.svars.regress_bandpass))
+      elif svar == 'regress_mot_deriv':        
+                          var = self.svars.regress_mot_deriv
+                          obj = self.gvars.gbox_regress
+                          obj.checkBox_mot_deriv.setChecked(var=='yes')
       elif svar == 'reml_exec':        
                           var = self.svars.reml_exec
                           obj = self.gvars.gbox_regress

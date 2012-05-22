@@ -493,6 +493,7 @@ def valid_as_int(text, name, warn=0, wparent=None, empty_ok=1):
    if len(text) == 0:
       if empty_ok: return 1  
       extext = "<empty>"
+      valid = 0
    else:
       try: val = int(text)
       except:
@@ -520,6 +521,7 @@ def valid_as_float(text, name, warn=0, wparent=None, empty_ok=1):
    if len(text) == 0:
       if empty_ok: return 1  
       extext = "<empty>"
+      valid = 0
    else:
       try: val = float(text)
       except:
@@ -531,9 +533,44 @@ def valid_as_float(text, name, warn=0, wparent=None, empty_ok=1):
    if warn: guiWarning(                                                 \
                "Error: invalid identifier",                             \
                "bad text: %s%s\n\n"                                     \
-               "Characters in field '%s' must be alphabetic, numeric\n" \
-               "or '_' (underscore), starting with alphabetic."         \
+               "Expected float in field '%s'.\n"                        \
                % (text, extext, name), wparent)
+
+   return 0
+
+def valid_as_float_list(text, name, warn=0, wparent=None, empty_ok=1, clen=0):
+   """the text can be either empty (if empty_ok) or be a float
+      - if not and 'warn' is set, show a warning message
+      - if clen > 0 and length does not match, report an error
+      return 1 if valid, 0 otherwise
+   """
+   # search for valid cases
+   valid = 1
+   if len(text) == 0:
+      if empty_ok: return 1  
+      extext = "<empty>"
+      valid = 0
+   else:
+      slist = text.split()
+      if clen > 0 and len(slist) != clen:
+         extext = '   <%d floats are required>'
+         valid = 0
+      else:
+         try: flist = [float(sval) for sval in slist]
+         except:
+            extext = '   <not valid as list of floats>'
+            valid = 0
+
+   if valid: return 1
+
+   if clen == 0: fstr = 'float list'
+   else:         fstr = '%d float entries' % clen
+
+   if warn: guiWarning(                                                 \
+               "Error: invalid identifier",                             \
+               "bad text: %s%s\n\n"                                     \
+               "Expected %s in field '%s'.\n"                           \
+               % (text, extext, fstr, name), wparent)
 
    return 0
 
@@ -552,6 +589,7 @@ def valid_as_identifier(text, name, warn=0, wparent=None, empty_ok=1):
    if len(text) == 0:
       if empty_ok: return 1  
       extext = "<empty>"
+      valid = 0
    else:
       # check for valid characters
       # replace '_' with alpha, then check s[0].isalpha and rest isalphanum

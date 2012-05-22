@@ -130,12 +130,16 @@ g_history = """
          - removed requirement of stim timing files
     0.29 Nov 22, 2011 : allow for passing variables directly, not via -svar
          - added accompanying -show_svar_dict option
+    0.30 May 22, 2012 : basics of resting state
+         - added regress_bandpass and regress_motion_deriv fields
 """
 
-g_version = '0.29 (November 22, 2011)'
+g_version = '0.30 (May 22, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
+g_def_anal_types  = ['volume:task', 'volume:rest',
+                     'surface:task', 'surface:rest']
 g_def_blocks      = ['tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 g_def_blocks_anat = ['tshift', 'align', 'tlrc', 'volreg', 'blur', 'mask',
                      'scale', 'regress']
@@ -168,6 +172,7 @@ g_res_defs.output_proc   = ''           # output from running proc script
 # ----------------------------------------------------------------------
 # a global definition of subject defaults for single subject analysis
 g_subj_defs = SUBJ.VarsObject("Single Subject Dialog defaults")
+g_subj_defs.analysis      = 'volume:task' # see g_def_anal_types
 g_subj_defs.blocks        = []
 g_subj_defs.sid           = ''          # subject ID    (no spaces - required)
 g_subj_defs.gid           = ''          # group ID      (no spaces)
@@ -209,6 +214,9 @@ g_subj_defs.regress_opts_3dD = ''       # extra options for 3dDeconvolve
 g_subj_defs.align_opts_aea   = ''       # extra aea opts, e.g. -AddEdge
 g_subj_defs.tlrc_opts_at     = ''       # extra at opts
 
+g_subj_defs.regress_bandpass = []       # for -regress_bandpass
+g_subj_defs.regress_mot_deriv= 'no'     # include motion derivative?
+
 g_svar_dict = {
    'blocks'             : 'set list of processing blocks to apply',
    'sid'                : 'set subject ID',
@@ -246,7 +254,36 @@ g_svar_dict = {
    'regress_opts_3dD'   : 'specify extra options for 3dDeconvolve',
    'align_opts_aea'     : 'specify extra options for align_epi_anat.py',
    'tlrc_opts_at'       : 'specify extra options for @auto_tlrc',
+
+   'regress_bandpass'   : 'specify bandpass limits to remain after regress',
+   'regress_mot_deriv'  : 'yes/no: regress motion derivatives',
 }
+
+# ----------------------------------------------------------------------
+# subj defaults for resting state analysis
+# ## GUI: add 'analysis type options' group box
+#         - analysis type / "chooser" (task-based, resting, surface) / INIT
+#            - user can choose type, and initialize based on those defaults
+#               - lib: must have union of options of each analysis type
+#            - user can apply basic options here
+#               - should display window stating affected options
+#         - add FULL-GUI-reset based on task
+#         - add blocks list
+#         - under subj ID / group ID, add read-only analysis type string
+#         - under extra regress options, add bandpass and regress_motion_deriv
+g_rest_defs = SUBJ.VarsObject("resting state defaults")
+g_rest_defs.analysis      = 'volume:rest'       # see g_def_anal_types
+g_rest_defs.blocks        = ['despike', 'tshift', 'align', 'tlrc', 'volreg',
+                             'blur', 'mask', 'regress']
+g_rest_defs.regress_bandpass  = [0.01, 0.1]     # -regress_bandpass
+g_rest_defs.regress_mot_deriv = 'yes'           # -regress motion derivatives
+g_rest_defs.run_clustsim  = 'no'
+g_rest_defs.stim          = []                  # no stim or labels
+g_rest_defs.gltsym        = []                  # no GLTs
+
+# rcr - add g_task_defs (to distinguish task/rest analysis)
+# rcr - add g_vol_defs and g_surf_defs (to distinguish volume/surface analysis)
+
 
 # string versions of subject variables, to be used by GUI
 g_cdef_strs = g_ctrl_defs.copy(as_strings=1)
@@ -490,33 +527,53 @@ class AP_Subject(object):
       cmd += self.script_ap_stim_basis()
       cmd += self.script_ap_regress_other()
       cmd += self.script_ap_regress_opts_3dD()
+      cmd += self.script_ap_post_regress()
 
-      # ------------------------------------------------------------
-      # at end, add post 3dD options
+      return cmd
+
+   def script_ap_post_regress(self):
+      """at end, add post 3dD options
+
+           reml_exec, compute_fitts, make_ideal_sum, est_blur_*, run_clustsim
+      """
+
+      cmd = ''
+
+      if self.svars.val('reml_exec') == 'yes':          # default is 'no'
+         cmd += '%s-regress_reml_exec \\\n' % self.LV.istr
+      if self.svars.val('compute_fitts') == 'yes':      # default is 'no'
+         cmd += '%s-regress_compute_fitts \\\n' % self.LV.istr
       if self.svars.stim:
          cmd += '%s-regress_make_ideal_sum sum_ideal.1D \\\n' % self.LV.istr
-      cmd += '%s-regress_est_blur_epits \\\n' \
-             '%s-regress_est_blur_errts \\\n' % (self.LV.istr, self.LV.istr)
+
+      # skip epits if rest
+      if self.svars.val('analysis') == 'volume:task':
+         cmd += '%s-regress_est_blur_epits \\\n' % self.LV.istr
+      cmd += '%s-regress_est_blur_errts \\\n' % self.LV.istr
+
+      if self.svars.val('run_clustsim') == 'no':        # default is 'yes'
+         cmd += '%s-regress_run_clustsim no \\\n' % self.LV.istr
 
       return cmd
 
    def script_ap_regress_other(self):
       """apply items with their own -regress_* options:
 
-           motion_limit, outlier_limit, compute_fitts, reml_exec, run_clustsim
+           motion_limit, outlier_limit, regress_bandpass, regress_mot_deriv,
       """
 
+      istr = self.LV.istr
       rstr = ''
       rstr += self.script_ap_apply_svar_1('motion_limit', vtype=float, 
                         defval=0.0, oname='-regress_censor_motion')
       rstr += self.script_ap_apply_svar_1('outlier_limit', vtype=float, 
                         defval=0.0, oname='-regress_censor_outliers')
-      if self.svars.val('reml_exec') == 'yes':          # default is 'no'
-         rstr += '%s-regress_reml_exec \\\n' % self.LV.istr
-      if self.svars.val('run_clustsim') == 'no':        # default is 'yes'
-         rstr += '%s-regress_run_clustsim no \\\n' % self.LV.istr
-      if self.svars.val('compute_fitts') == 'yes':      # default is 'no'
-         rstr += '%s-regress_compute_fitts \\\n' % self.LV.istr
+      if self.svars.val_len('regress_bandpass') == 2:
+         val = self.svars.regress_bandpass
+         rstr += '%s-regress_bandpass %s %s \\\n' % (istr, val[0], val[1])
+      if self.svars.val('regress_mot_deriv') == 'yes':      # default is 'no'
+         rstr += '%s-regress_apply_mot_types demean deriv \\\n' % istr
+
       return rstr
 
    def script_ap_regress_opts_3dD(self):
@@ -624,6 +681,7 @@ class AP_Subject(object):
    def script_ap_stim_basis(self):
       slen = len(self.svars.stim_basis)
       if slen == 0: return ''
+      if len(self.svars.stim) == 0: return '' # if stim are cleared, skip
 
       if UTIL.vals_are_constant(self.svars.stim_basis):
          return "%s-regress_basis '%s' \\\n"  \
@@ -640,6 +698,7 @@ class AP_Subject(object):
    def script_ap_stim_labels(self):
       slen = len(self.svars.stim_label)
       if slen == 0: return ''
+      if len(self.svars.stim) == 0: return '' # if stim are cleared, skip
 
       if slen != len(self.svars.stim):
          self.errors.append('** error: num stim files != num stim labels\n')
@@ -655,7 +714,9 @@ class AP_Subject(object):
               matches the list of stim names (else warning)
       """
       if not self.svars.stim:
-         self.warnings.append('** warnings: no stim timing files given\n')
+         if len(self.svars.regress_bandpass) != 2:
+            ww = '** warnings: no stim timing files given (resting state?)'
+            self.warnings.append('%s\n' % ww)
          return ''
       if len(self.svars.stim) == 0:
          self.errors.append('** error: no stim timing files given\n')
@@ -1400,8 +1461,14 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
+- set regress_bandpass and regress motion derivs (along with motion)
 - surface analysis
 - resting state analysis
+- choose block list
+- init from analysis type (vol/surf-task/rest)
+   - help for what this means
+- set stim_times type (times/AM1/AM2/IM)
+   - help for what this means
 - change print statements to LOG statements
    - optionally store to pass up to GUI (maybe start applying APSubj.status)
    - GUI could process (display as html?) and clear log
@@ -1440,6 +1507,17 @@ tools (maybe put in uber_proc.py, instead):
    - help to create and play with stimulus timing design (sug. by A Barbey)
 ---------------------------------------------------------------------------
 """
+ 
+helpstr_howto_program = """
+   For details on programming, see output from:
+
+      uber_align_test.py -help_howto_program
+
+   Note the secion under "Writing the GUI":
+
+      The current 'todo' list when adding a new variable interface to the GUI:
+"""
+
 
 helpstr_usubj_gui = """
 uber_subject.py GUI             - a graphical interface to afni_proc.py

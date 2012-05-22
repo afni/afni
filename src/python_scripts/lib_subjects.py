@@ -260,6 +260,12 @@ class VarsObject(object):
       if val == '' or val == []: return True
       return False
 
+   def val_len(self, atr):
+      """return 0 or len(atr)"""
+      val = self.val(atr)
+      if type(val) == list: return len(val)
+      return 0
+
    def is_not_empty(self, atr):
       """true if set and neither '' nor []"""
       return not self.is_empty(atr)
