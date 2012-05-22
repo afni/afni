@@ -1066,6 +1066,11 @@ int NI_write_rowtype( NI_stream_type *ns , NI_rowtype *rt ,
 }
 
 /*------------------------------------------------------------------------*/
+
+#undef  WCERR
+#define WCERR(x) fprintf(stderr,"NIML write data error %s\n",x)
+
+/*------------------------------------------------------------------------*/
 /*! Write "columns" of data to a NI_stream.  Each column is an array of
     structs of some NI_rowtype (including the builtin types):
       - ns         = stream to write to
@@ -1108,9 +1113,9 @@ int NI_write_columns( NI_stream_type *ns,
 
    /*-- check inputs --*/
 
-   if( col_num <= 0    || col_len <= 0    ) return  0 ;
-   if( col_typ == NULL || col_dat == NULL ) return -1 ;
-   if( !NI_stream_writeable(ns)           ) return -1 ;
+   if( col_num <= 0    || col_len <= 0    )              return  0;
+   if( col_typ == NULL || col_dat == NULL ){ WCERR("a"); return -1; }
+   if( !NI_stream_writeable(ns)           ){ WCERR("b"); return -1; }
 
 #if 0
 fprintf(stderr,"NI_write_columns: col_num=%d col_len=%d tmode=%d\n",col_num,col_len,tmode) ;
@@ -1120,11 +1125,12 @@ fprintf(stderr,"NI_write_columns: col_num=%d col_len=%d tmode=%d\n",col_num,col_
 
    if( ns->bad ){                        /* not connected yet? */
      jj = NI_stream_goodcheck(ns,666) ;  /* try to connect it */
+     if( jj < 0 ) WCERR("c") ;
      if( jj < 1 ) return jj ;            /* 0 is nothing yet, -1 is death */
    }
 #if 1
    jj = NI_stream_writecheck(ns,666) ;
-   if( jj < 0 ) return jj ;              /* only exit if stream is actually bad */
+   if( jj < 0 ){ WCERR("d"); return jj; }  /* only exit if stream is actually bad */
 #endif
 
    if( ns->type == NI_STRING_TYPE )  /* output to string buffer ==> text mode */
@@ -1143,7 +1149,7 @@ fprintf(stderr,"NI_write_columns: col_num=%d col_len=%d tmode=%d\n",col_num,col_
 
      /* can't find type, or no data in column?  take this job and shove it */
 
-     if( rt[col] == NULL || col_dat[col] == NULL ){ FREEUP; return -1; }
+     if( rt[col] == NULL || col_dat[col] == NULL ){ FREEUP; WCERR("e"); return -1; }
 
      vsiz[col] = ROWTYPE_is_varsize(rt[col]) ;         /* variable dim type? */
      fsiz[col] = rt[col]->size ;         /* fixed size of struct (w/padding) */
@@ -1168,7 +1174,8 @@ int ct = NI_clock_time() ;
 ct = NI_clock_time()-ct ;
 fprintf(stderr,"NI_write_columns FAST case: %d bytes in %d ms\n",fsiz[0]*col_len,ct) ;
 #endif
-     FREEUP ; return nout ;
+     FREEUP ; if( nout < 0 ) WCERR("f") ;
+     return nout ;
    }
 
    /*-- allocate space for the write buffer (1 row at a time) --*/
@@ -1195,10 +1202,10 @@ fprintf(stderr,"NI_write_columns FAST case: %d bytes in %d ms\n",fsiz[0]*col_len
       if all was not well with the write, then it aborts the output */
 
 # undef  ADDOUT
-# define ADDOUT                              \
+# define ADDOUT(x)                           \
   if( nout < 0 ){                            \
     fprintf(stderr,"NIML:: write abort!\n"); \
-    FREEUP ; return -1 ;                     \
+    FREEUP ; WCERR(x) ; return -1 ;          \
   } else ntot+=nout
 
    /*-- loop over output rows,
@@ -1293,7 +1300,7 @@ fprintf(stderr,"NI_write_columns FAST case: %d bytes in %d ms\n",fsiz[0]*col_len
        case NI_TEXT_MODE:     /* each row is on a separate line */
          strcat(wbuf,"\n") ;
          nout = NI_stream_writestring( ns , wbuf ) ;
-         ADDOUT ;
+         ADDOUT("A") ;
        break ;
 
        case NI_BINARY_MODE:   /* jj bytes of binary in wbuf */
@@ -1301,7 +1308,7 @@ fprintf(stderr,"NI_write_columns FAST case: %d bytes in %d ms\n",fsiz[0]*col_len
 #ifdef NIML_DEBUG
 if( nout != jj ) NI_dpr("NI_write_columns: col#%d sends %d bytes; nout=%d\n",col,jj,nout) ;
 #endif
-         ADDOUT ;
+         ADDOUT("B") ;
        break ;
 
        case NI_BASE64_MODE:{  /* convert binary triples into base64 quads */
@@ -1331,7 +1338,7 @@ if( nout != jj ) NI_dpr("NI_write_columns: col#%d sends %d bytes; nout=%d\n",col
          /* write base64 bytes to output */
 
          nout = NI_stream_write( ns , cbuf , qq ) ;
-         ADDOUT ;
+         ADDOUT("C") ;
 
          /* deal with leftover bytes in bbuf */
 
@@ -1358,17 +1365,17 @@ if( nout != jj ) NI_dpr("NI_write_columns: col#%d sends %d bytes; nout=%d\n",col
        cbuf[0] = w ; cbuf[1] = x ;
        cbuf[2] = y ; cbuf[3] = z ; cbuf[4] = B64_EOL2 ;
        nout = NI_stream_write( ns , cbuf , 5 ) ;
-       ADDOUT ;
+       ADDOUT("D") ;
      } else if( cc > 0 ){           /* just write an end of line */
        cbuf[0] = B64_EOL2 ;
        nout = NI_stream_write( ns , cbuf , 1 ) ;
-       ADDOUT ;
+       ADDOUT("E") ;
      }
    }
 
    /*-- cleanup and return --*/
 
-   FREEUP ;
+   FREEUP ; if( ntot < 0 ) WCERR("Z") ;
    return ntot ;
 }
 
