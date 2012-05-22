@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 22 , MAY, 2012 , DRG , "3dDWItoDT" , 
+    MINOR , TYPE_NEW_OPT, 
+    "csf_val and csf_fa options for default values if B=0 less than gradient values"
+} ,
 { 8 , MAY, 2012 , DRG , "3dinfo" , 
     MICRO , TYPE_NEW_OPT, 
     "gen_space option to see generic space type for a dataset"

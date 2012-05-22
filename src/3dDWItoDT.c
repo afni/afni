@@ -22,6 +22,7 @@ static int datum = MRI_float;
 static matrix Rtmat;
 static double *Rvector;		/* residuals at each gradient */
 static double *tempRvector;     /* copy of residuals at each gradient */
+static double *B0list = NULL;
 static matrix Fmatrix;
 static matrix Dmatrix;
 static matrix OldD;
@@ -58,6 +59,9 @@ static float *Powell_ts;        /* pointer to time-wise voxel data for Powell op
 static double Powell_J;
 static double backoff_factor = 0.2; /* minimum allowable factor for lambda2,3 relative to
                                  lambda1 eigenvalues*/
+static float csf_val = 3.0;  /* a default value for diffusivity for CSF at 37C */
+static float csf_fa = 0.012345678; /* default FA value where there is CSF */
+
 static NI_stream_type * DWIstreamid = 0;     /* NIML stream ID */
 
 static void Form_R_Matrix (MRI_IMAGE * grad1Dptr);
@@ -91,6 +95,10 @@ static void vals_to_NIFTI(float *val);
 static void Save_Sep_DTdata(THD_3dim_dataset *, char *, int);
 static void Copy_dset_array(THD_3dim_dataset *, int,int,char *, int);
 static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks);
+static int bad_DWI_data(int npts, float *ts);
+static double compute_mean_B0(int npts, float *ts, char B0flag);
+static void Assign_CSF_values(float *val);
+static int all_dwi_zero(int npts, float *ts);
 
 int
 main (int argc, char *argv[])
@@ -153,6 +161,14 @@ main (int argc, char *argv[])
               "   -drive_afni nnnnn = show convergence graphs every nnnnn voxels that survive\n"
               "    to convergence loops. AFNI must have NIML communications on (afni -niml)\n\n"
               "   -sep_dsets = save tensor, eigenvalues,vectors,FA,MD in separate datasets\n\n"
+              "   -csf_val n.nnn = assign diffusivity value to DWI data where the mean values\n"
+              "    for B=0 volumes is less than the mean of the remaining volumes at each\n"
+              "    voxel. The default value is 3.0. The assumption is that there are flow\n"
+              "    artifacts in CSF and blood vessels that give rise to lower B=0 voxels.\n"
+              "    This is only applied when using the non-linear optimization method.\n\n"
+              "   -csf_fa n.nnn = assign a specific FA value to those voxels described above\n"
+              "    The default is 0.012345678 for use in tractography programs that may\n"
+              "    make special use of these voxels\n\n"
 	      "   -opt mname =  if mname is 'powell', use Powell's 2004 method for optimization\n"
 	      "    If mname is 'gradient' use gradient descent method. If mname is 'hybrid',\n"
               "    use combination of methods.\n"
@@ -404,7 +420,23 @@ main (int argc, char *argv[])
 	  continue;
         }
 
-	ERROR_exit("Error - unknown option %s", argv[nopt]);
+      if (strcmp (argv[nopt], "-csf_val") == 0){
+	      if(++nopt >=argc )
+            ERROR_exit("Error - need an argument after -csf_val!");
+         csf_val = (float) strtod(argv[nopt], NULL);
+         nopt++;
+  	      continue;
+      }
+
+      if (strcmp (argv[nopt], "-csf_fa") == 0){
+	      if(++nopt >=argc )
+            ERROR_exit("Error - need an argument after -csf_fa!");
+         csf_fa = (float) strtod(argv[nopt], NULL);
+         nopt++;
+  	      continue;
+      }
+
+      ERROR_exit("Error - unknown option %s", argv[nopt]);
     }
   
   if(method==-1)
@@ -811,7 +843,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 		void *ud, int nbriks, float *val)
 {
   int i, converge_step, converge, trialstep, ntrial, adjuststep, recordflag;
-  double orig_deltatau, best_deltatau, EDold, J, dt;
+  double orig_deltatau, best_deltatau, EDold, J;
   static int nvox, ncall, noisecall;
   register double i0;
   register double dv, dv0;
@@ -850,21 +882,15 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
   ncall++;
   /* if there is any mask (automask or user mask), use corresponding voxel as a flag */
-  if (maskptr)
-    {
-#if 0
-     npts = npts - 1;
-     if (ts[npts] == 0)
-#endif
-       if(maskptr[ncall-1]==0)
-	{			/* don't include this voxel for mask */
+   if((maskptr && (maskptr[ncall-1]==0)) ||
+      all_dwi_zero(npts, ts)){
+     /* don't include this voxel for mask or if all zeros*/
 	  for (i = 0; i < nbriks; i++)	/* faster to copy preset vector */
 	    val[i] = 0.0;	/* return 0 for all Dxx,Dxy,... */
           if(debug_briks)  /* use -3 as flag for number of converge steps to mean exited for masked voxels */
              val[nbriks-4] = -3.0;
 	  EXRETURN;
 	}
-    }
   /* load the symmetric matrix vector from the "timeseries" subbrik vector values */
   vector_initialize (&lnvector);
   vector_create_noinit (npts - 1, &lnvector);
@@ -912,7 +938,13 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
      EXRETURN;
   }
- 
+
+  /* check for valid data at this series */
+  if(bad_DWI_data(npts, ts)) {
+     Assign_CSF_values(val);
+     EXRETURN;
+  } 
+
   /* now more complex part that takes into account noise */
 
   /* calculate initial estimate of D using standard linear model */
@@ -941,6 +973,8 @@ DWItoDT_tsfunc (double tzero, double tdelta,
      recordflag = 1;
      else
      recordflag = 0;
+  if(ncall==202293)
+     recordflag = 1;
 
   if(afnitalk_flag&&(!(noisecall%afnitalk_flag))) {  /* graph in AFNI convergence steps every afnitalk_flag=n voxels */
      graphflag = 1;
@@ -956,6 +990,8 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
   /* need to use Powell optimize method instead */
   if( (opt_method==1) || ((opt_method==2) && (voxel_opt_method==1))) { 
+    if(recordflag)
+       printf("using  powell method\n");
     converge_step = ComputeDwithPowell(ts, val, npts, nbriks); /*compute D tensor */
     Dmatrix.elts[0][0] = val[0];
     Dmatrix.elts[0][1] = val[1];
@@ -1064,9 +1100,11 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
                 if(recordflag==1) {
                   if(i==0)
-                    INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt*2 best", ncall, converge_step, deltatau, ED);
+                    INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt*2 best",
+                         ncall, converge_step, deltatau, ED);
                   else
-                    INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt/2 best", ncall, converge_step, deltatau, ED);
+                    INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt/2 best",
+                         ncall, converge_step, deltatau, ED);
                 }
                 if(graphflag==1) {
                   dtau[graphpoint] = deltatau;
@@ -1140,6 +1178,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
   
 Other_Bricks:
   if(eigs_flag) {                            /* if user wants eigenvalues in output dataset */
+    double length, dl;
     udmatrix_to_vector(Dmatrix, &Dvector);
     EIG_func();                              /* calculate eigenvalues, eigenvectors here */
     for(i=0;i<3;i++) {
@@ -1151,6 +1190,19 @@ Other_Bricks:
     /* calc FA */
     val[18] = Calc_FA(val+6);                /* calculate fractional anisotropy */
     val[19] = Calc_MD(val+6);               /* calculate average (mean) diffusivity */
+    length = sqrt(eigs[3]*eigs[3]+eigs[4]*eigs[4]+eigs[5]*eigs[5]);
+    dl = fabs(1.0 - length);
+    if (dl>SMALLNUMBER) {
+      if(recordflag) {
+         printf("V1 not a unit vector, length = %f\n", length);
+         printf("  V1 eigs %f %f %f\n", eigs[3], eigs[4], eigs[5]);
+         printf("D tensor %f %f %f %f %f %f\n",
+         val[0],val[1],val[2],val[3],val[4],val[5]);
+         printf("Time series:\n");
+         for(i=0;i<npts;i++) printf("%f ", ts[i]);
+         printf("\n");
+      }
+    }
   }
 
   /* testing information only */
@@ -1166,8 +1218,69 @@ Other_Bricks:
   }
 
   vals_to_NIFTI(val);   /* swap D tensor values for NIFTI standard */
-
+ 
   EXRETURN;
+}
+
+/* some simple checks for bad DWI data */
+static int
+bad_DWI_data(int npts, float *ts)
+{
+   double m0, m1;
+
+   ENTRY("bad_DWI_data");
+   /* check if mean of B0 is less than mean of rest of data */
+   m0 = compute_mean_B0(npts, ts, 1);
+   m1 = compute_mean_B0(npts, ts, 0);
+   if(m0<=m1) RETURN(1); /* bad data */
+   RETURN(0);
+}
+
+static int
+all_dwi_zero(int npts, float *ts)
+{
+   int i;
+
+   ENTRY("all_DWI_zero");
+   for(i=0;i<npts;i++) {
+      if(ts[i]!=0.0) RETURN(0);
+   }
+   RETURN(1);
+}
+
+static double
+compute_mean_B0(int npts, float *ts, char B0flag)
+{
+   int i, nb=0;
+   double m0=0.0, sum=0.0;
+
+   ENTRY("compute_mean_B0");
+   for(i=0;i<npts;i++) {
+      if(B0list[i] == B0flag) {
+         sum += (double) ts[i];
+         nb++;
+      }
+   }
+   m0 = sum / nb;
+   RETURN(m0);
+}
+
+static void
+Assign_CSF_values(float *val)
+{
+   /* assign default CSF values to tensor */
+   val[0] = val[3] = val[5] = csf_val;
+   val[1] = val[2] = val[4] = 0.0;
+  if(eigs_flag) {                            /* if user wants eigenvalues in output dataset */
+     val[6] = 1.0;
+     val[7] = 1.0;
+     val[8] = 1.0;
+     val[9] = 1.0;val[10] = 0.0;val[11] = 0.0;
+     val[12] = 0.0;val[13] = 1.0;val[14] = 0.0;
+     val[15] = 0.0;val[16] = 0.0;val[17] = 1.0;
+     val[18] = csf_fa;                /* calculate fractional anisotropy */
+     val[19] = csf_val;               /* calculate average (mean) diffusivity */
+  }
 }
 
 /* taken from 3dDTeig.c */
@@ -1482,6 +1595,8 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
   for (i = 0; i < 6; i++)
     *bptr++ = 0.0;		/* initialize first 6 elements to 0.0 for the I0 gradient */
 
+  B0list[0]= 1;      /* keep a record of which volumes have no gradient */
+
   for (i = 0; i < n; i++)
     {
       Gx = *Gxptr++;
@@ -1493,9 +1608,14 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
       *bptr++ = Gy * Gy;
       *bptr++ = Gy * Gz;
       *bptr++ = Gz * Gz;
+      if((Gx==0.0) && (Gy==0.0) && (Gz==0.0))
+         B0list[i+1] = 1;   /* no gradient applied*/
+      else
+         B0list[i+1] = 0;
     }
   EXRETURN;
 }
+
 
 /*! compute non-gradient intensity, J, based on current calculated values of 
    diffusion tensor matrix, D */
@@ -1671,6 +1791,7 @@ InitGlobals (int npts)
   Rvector = malloc (npts * sizeof (double));
   tempRvector = malloc (npts * sizeof(double));
   wtfactor = malloc (npts * sizeof (double));
+  B0list = malloc (npts * sizeof (double));
 
   if(cumulative_flag && reweight_flag) {
      cumulativewt = malloc (npts * sizeof (double));
@@ -1715,6 +1836,9 @@ FreeGlobals ()
   Rvector = NULL;
   free (tempRvector);
   tempRvector = NULL;
+  free(B0list);
+  B0list = NULL;
+
   vector_destroy (&Dvector);	/* need to free elements of Dvector - mod-drg 12/20/2004 */
   /*  vector_destroy (&tempDvector);*/
   if(cumulative_flag && reweight_flag) {
@@ -2346,6 +2470,9 @@ static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*com
    x[4] = (Dvector.elts[4] - (x[1]*x[3]))/x[2];
    x[5] = sqrt(Dvector.elts[5] - (x[3]*x[3])-(x[4]*x[4]));
 
+/*printf("Dvector.elts[] %f %f %f %f %f %f\n",
+        Dvector.elts[0],Dvector.elts[1],Dvector.elts[2],
+        Dvector.elts[3],Dvector.elts[4],Dvector.elts[5]);*/
    if(debug_briks) {
      DT_Powell_optimize_fun(6, x);     /*  calculate original error */
      val[nbriks-2] = ED;                  /* store original error */
@@ -2382,7 +2509,10 @@ static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*com
    val[3] = (x[1]*x[1])+(x[2]*x[2]);
    val[4] = (x[1]*x[3])+(x[2]*x[4]);
    val[5] = (x[3]*x[3]) + (x[4]*x[4]) + (x[5]*x[5]);
-
+/*
+printf("D tensor %f %f %f %f %f %f\n",
+       val[0],val[1],val[2],val[3],val[4],val[5]);
+*/ 
    if(debug_briks) {
       val[nbriks-4] = (float) icalls;
       if(icalls<1) { 
