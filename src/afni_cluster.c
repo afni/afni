@@ -1819,7 +1819,7 @@ ENTRY("AFNI_clus_action_CB") ;
            yar = (float *)malloc(sizeof(float)*nixy) ;
            for( kk=0 ; kk < niy ; kk++ ){
              xar= MRI_FLOAT_PTR(IMARR_SUBIM(imar,kk)) ;
-             for( jj=0 ; jj < nix ; jj++ ) yar[jj+kk*nix] = xar[jj] ;
+             for( jj=0 ; jj < nix ; jj++ ) yar[jj+kk*nix] = xar[jj+ibot] ;
            }
          }
          xar = (float *)malloc(sizeof(float)*nixy) ;
