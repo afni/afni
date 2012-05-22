@@ -1341,11 +1341,12 @@ class SubjProcSream:
                 return 1
 
         # note data type and whether data is scaled
-        err, vlist = get_typed_dset_attr_list(dset, "BRICK_TYPES", int)
+        err, vlist = get_typed_dset_attr_list(dset, "BRICK_TYPES", int, verb=0)
         if not err and len(vlist) >= 1:
             self.datatype = vlist[0]
 
-        err, vlist = get_typed_dset_attr_list(dset, "BRICK_FLOAT_FACS", int)
+        err, vlist = get_typed_dset_attr_list(dset, "BRICK_FLOAT_FACS", int,
+                                              verb=0)
         if not err and len(vlist) >= 1:
             if vals_are_constant(vlist, 0) or vals_are_constant(vlist, 1):
                 self.scaled = 0
