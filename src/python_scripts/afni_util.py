@@ -1407,6 +1407,21 @@ def lists_are_same(list1, list2):
 
    return 1
 
+def string_to_float_list(fstring):
+   """return a list of floats, converted from the string
+      return None on error
+   """
+
+   if type(fstring) != str: return None
+   slist = fstring.split()
+
+   if len(slist) == 0: return []
+
+   try: flist = [float(sval) for sval in slist]
+   except: return None
+
+   return flist
+
 def float_list_string(vals, nchar=7, ndec=3, nspaces=2, mesg='', left=0):
    """return a string to display the floats:
         vals    : the list of float values

@@ -69,11 +69,16 @@ Examples:
              -anat FT_anat+orig.HEAD -epi FT_epi_r*.HEAD   \\
              -stim AV*.txt -stim_basis 'BLOCK(15,1)'
 
-      2. Process the EPI data as in a very simple resting state analysis.
-         Pass a subject ID, EPI datasets and the number of TRs to remove.
+      2. Process the EPI data as resting state analysis.
+
+         Pass a subject ID, anat and EPI datasets, and # TRs to remove.
+         Also, bandpass via 3dDeconvolve (while censoring), and regress
+         motion derivatives (in addition to motion).
 
          uber_subject.py -no_gui -save_ap_command cmd.rest_state  \\
-             -sid FT.rest -tcat_nfirst 2 -epi FT/FT_epi_r*.HEAD
+             -sid FT.rest -tcat_nfirst 2                          \\
+             -anat FT/FT_anat+orig -epi FT/FT_epi_r*.HEAD         \\
+             -regress_bandpass 0.01 0.1 -regress_mot_deriv yes
 
 ----------------------------------------------------------------------
 Note, for passing subject variables, use of -svar is safer then using
@@ -107,6 +112,7 @@ def get_valid_opts():
    vopts = OPT.OptionList('uber_subject.py options')
    vopts.add_opt('-help', 0, [], helpstr='show this help')
    vopts.add_opt('-help_gui', 0, [], helpstr='show help for GUI')
+   vopts.add_opt('-help_howto_program', 0, [], helpstr='help for programming')
    vopts.add_opt('-help_install', 0, [], helpstr='show install notes')
    vopts.add_opt('-help_install_nokia', 0, [], helpstr='Nokia install help')
    vopts.add_opt('-hist', 0, [], helpstr='show revision history')
@@ -161,6 +167,10 @@ def process_options(valid_opts, argv):
 
    if '-help_gui' in sys.argv:
       print USUBJ.helpstr_usubj_gui
+      return 1, None, None, None
+
+   if '-help_howto_program' in sys.argv:
+      print USUBJ.helpstr_howto_program
       return 1, None, None, None
 
    if '-help_install' in sys.argv:
