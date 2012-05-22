@@ -166,7 +166,7 @@ typedef struct {
  do{ if( tdset != NULL ) DSET_delete(tdset) ;                          \
      if( dfname != NULL ) free(dfname) ;                               \
      if( geometry_string != NULL ) free(geometry_string) ;             \
-     NI_free_element(nel) ;                                            \
+     NI_free_element(nel) ; nelshd = NULL ;                            \
      if( sss != NULL ) ERROR_message("TIC: file %s: %s",fname,(sss)) ; \
      return(NULL) ;                                                    \
  } while(0)
@@ -609,7 +609,7 @@ int main( int argc , char *argv[] )
      INFO_message("TIC: Added 'niml' to end of filename") ;
    }
    shd = GRINCOR_read_input( fname ) ;
-   if( shd == NULL ) ERROR_exit("TIC: Cannot continue after input error") ;
+   if( shd == NULL || nelshd == NULL ) ERROR_exit("TIC: Cannot continue after input error") ;
    INFO_message("TIC: file opened, contains %d datasets, %d time series, %s bytes",
                 shd->ndset , shd->nvec , commaized_integer_string(shd->nbytes) ) ;
 
@@ -628,11 +628,12 @@ int main( int argc , char *argv[] )
    facar = (NI_float_array *)malloc(sizeof(NI_float_array)) ;
    facar->num = shd->ndset ; facar->ar = shd->fac ;
    buf = NI_encode_float_list( facar , "," ) ;
-   NI_set_attribute( nelshd , "fac" , buf ) ;       /* scale factor per dataset */
+   NI_set_attribute( nelshd , "fac"  , buf ) ;       /* scale factor per dataset */
+   NI_set_attribute( nelshd , "prep" , prepname ) ;
 
-   kk = NI_write_element_tofile( fname , nelshd , NI_BINARY_MODE ) ;
+   kk = NI_write_element_tofile( fname , nelshd , NI_TEXT_MODE ) ;
    if( kk < 0 )
-     ERROR_exit("Failed to write header file %s",fname) ;
+     ERROR_exit("TIC: Error while writing header file %s",fname) ;
 
-   INFO_message("Re-wrote header file %s",fname) ; exit(0) ;
+   INFO_message("TIC: Re-wrote header file %s",fname) ; exit(0) ;
 }

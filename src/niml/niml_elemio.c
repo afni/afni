@@ -974,7 +974,7 @@ NI_dpr("ENTER NI_write_element\n") ;
 
 #undef  AF
 #define AF      
-#define ADDOUT if(nout<0){AF;fprintf(stderr,"NIML: write abort!\n");return -1;} else ntot+=nout
+#define ADDOUT(q) if(nout<0){AF;fprintf(stderr,"NIML: write abort %s\n",q);return -1;} else ntot+=nout
 
    if( !NI_stream_writeable(ns) ) return -1 ;  /* stupid user */
 
@@ -1016,32 +1016,32 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
      NI_procins *npi = (NI_procins *)nini ;
 
-     if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
+     if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT("a"); }
 
-     nout = NI_stream_writestring( ns , "<?"   )    ; ADDOUT ;
-     nout = NI_stream_writestring( ns , npi->name ) ; ADDOUT ;
+     nout = NI_stream_writestring( ns , "<?"   )    ; ADDOUT("b") ;
+     nout = NI_stream_writestring( ns , npi->name ) ; ADDOUT("c") ;
 
      /*- attributes -*/
 
      for( ii=0 ; ii < npi->attr_num ; ii++ ){
 
        jj = NI_strlen( npi->attr_lhs[ii] ) ; if( jj == 0 ) continue ;
-       nout = NI_stream_writestring( ns , " " ) ; ADDOUT ;
+       nout = NI_stream_writestring( ns , " " ) ; ADDOUT("d") ;
        if( NI_is_name(npi->attr_lhs[ii]) ){
          nout = NI_stream_write( ns , npi->attr_lhs[ii] , jj ) ;
        } else {
          att = quotize_string( npi->attr_lhs[ii] ) ;
          nout = NI_stream_writestring( ns , att ) ; NI_free(att) ;
        }
-       ADDOUT ;
+       ADDOUT("e") ;
 
        jj = NI_strlen( npi->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
-       nout = NI_stream_writestring( ns , "=" ) ; ADDOUT ;
+       nout = NI_stream_writestring( ns , "=" ) ; ADDOUT("f") ;
        att = quotize_string( npi->attr_rhs[ii] ) ;
-       nout = NI_stream_writestring( ns , att ) ; NI_free(att) ; ADDOUT ;
+       nout = NI_stream_writestring( ns , att ) ; NI_free(att) ; ADDOUT("g") ;
      }
 
-     nout = NI_stream_writestring( ns , " ?>\n" ) ; ADDOUT ;
+     nout = NI_stream_writestring( ns , " ?>\n" ) ; ADDOUT("h") ;
 
      return ntot ;   /*** done with processing instruction ***/
 
@@ -1060,12 +1060,12 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
       /*- group header -*/
 
-      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
+      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT("i"); }
 #if 1
-      nout = NI_stream_writestring( ns , "<"   ) ; ADDOUT ;
-      nout = NI_stream_writestring( ns , gname ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , "<"   ) ; ADDOUT("j") ;
+      nout = NI_stream_writestring( ns , gname ) ; ADDOUT("k") ;
 #else
-      nout = NI_stream_writestring( ns , "<ni_group" ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , "<ni_group" ) ; ADDOUT("l") ;
 #endif
 
       /*- attributes -*/
@@ -1075,25 +1075,25 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       for( ii=0 ; ii < ngr->attr_num ; ii++ ){
 
         jj = NI_strlen( ngr->attr_lhs[ii] ) ; if( jj == 0 ) continue ;
-        nout = NI_stream_writestring( ns , att_prefix ) ; ADDOUT ;
+        nout = NI_stream_writestring( ns , att_prefix ) ; ADDOUT("m") ;
         if( NI_is_name(ngr->attr_lhs[ii]) ){
           nout = NI_stream_write( ns , ngr->attr_lhs[ii] , jj ) ;
         } else {
           att = quotize_string( ngr->attr_lhs[ii] ) ;
           nout = NI_stream_writestring( ns , att ) ; NI_free(att) ;
         }
-        ADDOUT ;
+        ADDOUT("n") ;
 
         jj = NI_strlen( ngr->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
-        nout = NI_stream_writestring( ns , att_equals ) ; ADDOUT ;
+        nout = NI_stream_writestring( ns , att_equals ) ; ADDOUT("o") ;
         att = quotize_string( ngr->attr_rhs[ii] ) ;
-        nout = NI_stream_writestring( ns , att ) ; NI_free(att) ; ADDOUT ;
+        nout = NI_stream_writestring( ns , att ) ; NI_free(att) ; ADDOUT("p") ;
       }
 
       /*- close group header -*/
 
-      nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT ;
-      nout = NI_stream_writestring( ns , ">\n" ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT("q") ;
+      nout = NI_stream_writestring( ns , ">\n" ) ; ADDOUT("r") ;
 
       /*- write the group parts (recursively) -*/
 
@@ -1107,18 +1107,18 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qgr->outmode = outmode ;
           }
         }
-        nout = NI_write_element( ns , ngr->part[ii] , tmode ) ; ADDOUT ;
+        nout = NI_write_element( ns , ngr->part[ii] , tmode ) ; ADDOUT("s") ;
       }
 
       /*- group trailer -*/
 
-      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
+      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT("t"); }
 #if 1
-      nout = NI_stream_writestring( ns , "</"  ) ; ADDOUT ;
-      nout = NI_stream_writestring( ns , gname ) ; ADDOUT ;
-      nout = NI_stream_writestring( ns , ">\n" ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , "</"  ) ; ADDOUT("u") ;
+      nout = NI_stream_writestring( ns , gname ) ; ADDOUT("v") ;
+      nout = NI_stream_writestring( ns , ">\n" ) ; ADDOUT("w") ;
 #else
-      nout = NI_stream_writestring( ns , "</ni_group>\n" ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , "</ni_group>\n" ) ; ADDOUT("x") ;
 #endif
 
       return ntot ;   /*** done with group element ***/
@@ -1162,9 +1162,9 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
       /* write start of header "<name" */
 
-      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
+      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT("y"); }
       strcpy(att,"<") ; strcat(att,nel->name) ;
-      nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , att ) ; ADDOUT("z") ;
 
       /*- write "special" attributes, if not an empty element -*/
 
@@ -1188,7 +1188,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             break ;
          }
          if( *att != '\0' ){
-            nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+            nout = NI_stream_writestring( ns , att ) ; ADDOUT("A") ;
          }
 
          /** do ni_type **/
@@ -1213,7 +1213,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          if( jj > 1 ) sprintf(btt,"%d*%s\"",jj,NI_type_name(ll)) ;
          else         sprintf(btt,"%s\""   ,   NI_type_name(ll)) ;
 
-         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT("B") ;
 
          /** do ni_dimen **/
 
@@ -1225,7 +1225,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          } else {
            sprintf(att,"%sni_dimen%s\"%d\"",att_prefix,att_equals,nel->vec_len);
          }
-         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT("C") ;
 
 #if 0
          /** 26 Mar 2003: write number of bytes of data contained herein **/
@@ -1234,17 +1234,17 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             jj += NI_size_column( NI_rowtype_find_code(nel->vec_typ[ii]) ,
                                   nel->vec_len , nel->vec[ii] ) ;
          sprintf(att,"%sni_datasize%s\"%d\"" , att_prefix , att_equals , jj ) ;
-         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT("D") ;
 #endif
 
 #if 0
          /* extras: ni_veclen and ni_vecnum attributes */
 
          sprintf(att,"%sni_veclen%s\"%d\"", att_prefix,att_equals,nel->vec_len) ;
-         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT("E") ;
 
          sprintf(att,"%sni_vecnum%s\"%d\"", att_prefix,att_equals,nel->vec_num) ;
-         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT("F") ;
 #endif
          /* ni_delta */
 
@@ -1253,7 +1253,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qtt = quotize_float_vector( nel->vec_rank ,
                                         nel->vec_axis_delta , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+            nout = NI_stream_writestring( ns , att ) ; ADDOUT("G") ;
          }
 
          /* ni_origin */
@@ -1263,7 +1263,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qtt = quotize_float_vector( nel->vec_rank ,
                                         nel->vec_axis_origin , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+            nout = NI_stream_writestring( ns , att ) ; ADDOUT("H") ;
          }
 
          /* ni_units */
@@ -1273,7 +1273,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qtt = quotize_string_vector( nel->vec_rank ,
                                          nel->vec_axis_unit , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+            nout = NI_stream_writestring( ns , att ) ; ADDOUT("I") ;
          }
 
          /* ni_axes */
@@ -1283,7 +1283,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qtt = quotize_string_vector( nel->vec_rank ,
                                          nel->vec_axis_label , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+            nout = NI_stream_writestring( ns , att ) ; ADDOUT("J") ;
          }
 
       }
@@ -1332,7 +1332,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             if( kk > att_len ){ att_len=kk; att=NI_realloc(att,char,att_len); }
             strcat(att,qtt) ; NI_free(qtt) ;
          }
-         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT("K") ;
       }
 
       NI_free(att) ; att = NULL ; /**** done with attributes ****/
@@ -1347,8 +1347,8 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
           nel->vec_typ == NULL ||
           nel->vec     == NULL   ){
 
-        nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT ;
-        nout = NI_stream_writestring( ns , "/>\n" )    ; ADDOUT ;
+        nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT("L") ;
+        nout = NI_stream_writestring( ns , "/>\n" )    ; ADDOUT("M") ;
 
 #ifdef NIML_DEBUG
   NI_dpr("NI_write_element: empty element '%s' had %d total bytes\n",nel->name,ntot) ;
@@ -1376,15 +1376,15 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          break ;
       }
 
-      nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT ;
-      nout = NI_stream_writestring( ns , btt ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT("N") ;
+      nout = NI_stream_writestring( ns , btt ) ; ADDOUT("O") ;
 
       /*-- 13 Feb 2003: data output is now done elsewhere --*/
 
       if( !header_only ){
         nout = NI_write_columns( ns, nel->vec_num, nel->vec_typ,
                                      nel->vec_len, nel->vec    , tmode ) ;
-        ADDOUT ;
+        ADDOUT("P") ;
       }
 #ifdef NIML_DEBUG
       else NI_dpr("NI_write_element: header_only case\n") ;
@@ -1392,10 +1392,10 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
       /*- write element trailer -*/
 
-      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
-      nout = NI_stream_writestring( ns , "</" ) ; ADDOUT ;
-      nout = NI_stream_writestring( ns , nel->name ) ; ADDOUT ;
-      nout = NI_stream_writestring( ns , ">\n\n" ) ; ADDOUT ;
+      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT("Q"); }
+      nout = NI_stream_writestring( ns , "</" )      ; ADDOUT("R") ;
+      nout = NI_stream_writestring( ns , nel->name ) ; ADDOUT("S") ;
+      nout = NI_stream_writestring( ns , ">\n\n" )   ; ADDOUT("T") ;
 
 #ifdef NIML_DEBUG
   NI_dpr("NI_write_element: data element '%s' had %d total bytes\n",nel->name,ntot) ;
@@ -1426,7 +1426,7 @@ int NI_write_element_tofile( char *fname , void *nini , int tmode )
      strcpy(nsname,"file:") ; strcat(nsname,fname) ;
    }
    ns = NI_stream_open( nsname , "w" ) ; free((void *)nsname) ;
-   if( ns == NULL ) return -1 ;
+   if( ns == NULL ){ fprintf(stderr,"NIML: fail to open file %s for writing\n",fname); return -1; }
    vv = NI_write_element( ns , nini , tmode ) ;
    NI_stream_close( ns ) ;
    return vv ;
