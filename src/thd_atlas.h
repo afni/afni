@@ -78,6 +78,7 @@ void report_available_spaces(char *src);
 ATLAS_SPACE_LIST *find_available_spaces(char *src_space_name, 
                                         ATLAS_SPACE_LIST *this_list);
 char * THD_get_generic_space(THD_3dim_dataset *dset);
+char * THD_get_view_space(THD_3dim_dataset *dset);
 
 void free_global_atlas_structs(void);
 

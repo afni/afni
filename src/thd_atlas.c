@@ -84,6 +84,27 @@ char * THD_get_generic_space(THD_3dim_dataset *dset)
       RETURN(spcstr);
 }
 
+/* return the generic space associated with the space of a dataset
+   the principal goal is to give generic TLRC for all flavors of TLRC, TT_N27
+   or generic MNI for all flavors of MNI, MNI_FSL, MNI_ANAT */
+char * THD_get_view_space(THD_3dim_dataset *dset)
+{
+   char *spcstr=NULL, *space=NULL;
+
+   ENTRY("THD_get_view_space");
+
+   if(!dset) RETURN(NULL);
+   spcstr = THD_get_generic_space(dset); /* space from dataset structure - do not free */
+
+   if (strcmp(spcstr, "ORIG")==0)
+      RETURN("ORIG");
+   if (strcmp(spcstr, "ACPC")==0)
+      RETURN("ACPC");
+   /* all other spaces are assumed to be TLRC */
+/*   if (strcmp(space, "TLRC")==0) || (strcmp(space, "MNI_ANAT")==0) || (strcmp(space, "MNI")==0))*/
+   RETURN("TLRC");
+}
+
 /* assign space codes used by whereami for specific atlases */
 int
 THD_space_code(char *space)
