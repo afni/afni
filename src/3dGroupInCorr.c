@@ -50,6 +50,9 @@ static int tbot=999999999 , ttop = 0 ;  /* 23 Apr 2012 */
 #define CENTER_SAME 2
 #define CENTER_VALS 3
 
+#define CENTER_SAME_MEDIAN 4  /* 23 May 2012 */
+#define CENTER_DIFF_MEDIAN 5
+
 static int center_code = CENTER_DIFF ;
 static MRI_IMAGE *center_valimA=NULL , *center_valimB=NULL ;
 
@@ -947,6 +950,9 @@ int main( int argc , char *argv[] )
    FILE *bfp=NULL ;
    GICOR_setup *giset=NULL ;
 
+   char *clust_NN1=NULL, *clust_NN2=NULL, *clust_NN3=NULL, *clust_mask=NULL ;
+   char *clatr[4] = { NULL , NULL , NULL , NULL } ;
+
 #ifdef COVTEST
    float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;
 #endif
@@ -1253,7 +1259,11 @@ int main( int argc , char *argv[] )
       " -center DIFF = Each set will have the means removed separately [default].\n"
       "\n"
       " -center SAME = The means across both sets will be computed and subtracted.\n"
-      "                (This option only applies to a 2-sample unpaired test.)\n"
+      "               * This option only applies to a 2-sample unpaired test.\n"
+      "               * You can attach '_MEDIAN' after 'DIFF' or 'SAME' to have the\n"
+      "                 centering be done at the median of covariate values, rather\n"
+      "                 than the mean, as in 'DIFF_MEDIAN' or 'SAME_MEDIAN'.\n"
+      "                 (Why you would do this is up to you, as always.)\n"
       "\n"
       " -center VALS A.1D [B.1D]\n"
       "                This option (for Gang Chen) allows you to specify the\n"
@@ -1301,6 +1311,20 @@ int main( int argc , char *argv[] )
       "              to the output dataset -- presumably to facilitate comparison.\n"
       "             ++ These extra output sub-bricks have 'NC' attached to their labels.\n"
       "             ++ If covariates are NOT used, this option has no effect at all.\n"
+      "\n"
+      " -clust PP  = This option lets you input the results from a 3dClustSim run,\n"
+      "              to be transmitted to AFNI to aid with the interactive Clusterize.\n"
+      "              3dGroupInCorr will look for files named\n"
+      "                PP.NN1.niml  PP.NN2.niml  PP.NN3.niml  PP.mask\n"
+      "              and if at least one of these .niml files is found, will send\n"
+      "              it to AFNI to be incorporated into the dataset.  For example,\n"
+      "              if the datasets' average smoothness is 8 mm, you could do\n"
+      "                3dClustSim -fwhm 8 -mask Amask+orig -niml -prefix Gclus\n"
+      "                3dGroupInCorr ... -clust Gclus\n"
+      "              Presumably the mask would be the same as used when you ran\n"
+      "              3dSetupGroupInCorr, and the smoothness you would have estimated\n"
+      "              via 3dFWHMx, via sacred divination, or via random guesswork.\n"
+      "             ++ This option only applies to AFNI usage, not to SUMA.\n"
       "\n"
       " -ah host = Connect to AFNI/SUMA on the computer named 'host', rather than\n"
       "            on the current computer system 'localhost'.\n"
@@ -1579,6 +1603,41 @@ int main( int argc , char *argv[] )
        nosix = 1 ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-clust") == 0 ){    /* 23 May 2012 */
+       char *cpref , *cname ;
+       if( clust_NN1 != NULL || clust_NN2 != NULL || clust_NN3 != NULL )
+         ERROR_exit("GIC: can't use '%s' twice!",argv[nopt]) ;
+       if( ++nopt >= argc ) ERROR_exit("GIC: need an argument after option '%s'",argv[nopt-1]) ;
+       cpref = argv[nopt] ;
+       if( *cpref == '\0' ) ERROR_exit("Illegal prefix after option '%s'",argv[nopt-1]) ;
+       cname = (char *)malloc(sizeof(char)*(strlen(cpref)+16)) ;
+       sprintf(cname,"%s.NN1.niml",cpref) ; clust_NN1  = AFNI_suck_file(cname) ;
+       sprintf(cname,"%s.NN2.niml",cpref) ; clust_NN2  = AFNI_suck_file(cname) ;
+       sprintf(cname,"%s.NN3.niml",cpref) ; clust_NN3  = AFNI_suck_file(cname) ;
+       sprintf(cname,"%s.mask"    ,cpref) ; clust_mask = AFNI_suck_file(cname) ;
+       if( clust_NN1 == NULL && clust_NN2 == NULL && clust_NN3 == NULL )
+         WARNING_message("Can't read any -clust files, such as %s.NN1.niml",cpref) ;
+
+       kk = 0 ;
+       if( clust_NN1 != NULL ){
+         clatr[kk] = (char *)malloc(sizeof(char)*(strlen(clust_NN1)+128)) ;
+         strcpy(clatr[kk],"AFNI_CLUSTSIM_NN1 ==> ") ; strcat(clatr[kk],clust_NN1) ; kk++ ;
+       }
+       if( clust_NN2 != NULL ){
+         clatr[kk] = (char *)malloc(sizeof(char)*(strlen(clust_NN2)+128)) ;
+         strcpy(clatr[kk],"AFNI_CLUSTSIM_NN2 ==> ") ; strcat(clatr[kk],clust_NN2) ; kk++ ;
+       }
+       if( clust_NN3 != NULL ){
+         clatr[kk] = (char *)malloc(sizeof(char)*(strlen(clust_NN3)+128)) ;
+         strcpy(clatr[kk],"AFNI_CLUSTSIM_NN3 ==> ") ; strcat(clatr[kk],clust_NN3) ; kk++ ;
+       }
+       if( kk > 0 && clust_mask != NULL ){
+         clatr[kk] = (char *)malloc(sizeof(char)*(strlen(clust_mask)+128)) ;
+         strcpy(clatr[kk],"AFNI_CLUSTSIM_MASK ==> ") ; strcat(clatr[kk],clust_mask) ; kk++ ;
+       }
+       nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-batch") == 0 ){  /* Feb 2011 */
        if( bmode )            ERROR_exit("GIC: can't use '%s' twice!",argv[nopt]) ;
        if( ++nopt >= argc+1 ) ERROR_exit("GIC: need 2 arguments after option '%s'",argv[nopt-1]) ;
@@ -1648,38 +1707,40 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[nopt],"-center") == 0 ){  /* 15 Jul 2011 */
        if( ++nopt >= argc )
          ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
-       switch( argv[nopt][0] ){
-         case 'n': case 'N': center_code = CENTER_NONE ; break ;
-         case 'd': case 'D': center_code = CENTER_DIFF ; break ;
-         case 's': case 'S': center_code = CENTER_SAME ; break ;
 
-         case 'v': case 'V':
-           center_code = CENTER_VALS ;
-           if( ++nopt > argc )
-             ERROR_exit("Need a second argument after '%s %s'",argv[nopt-2],argv[nopt-1]) ;
-           center_valimA = mri_read_1D( argv[nopt] ) ;
-           if( center_valimA == NULL )
-             ERROR_exit("Can't read 1D file '%s'",argv[nopt]) ;
-           if( ++nopt < argc && argv[nopt][0] != '-' ){
-             if( strcasecmp(argv[nopt],"DITTO") == 0 ){
-               center_valimB = center_valimA ;
-             } else {
-               center_valimB = mri_read_1D( argv[nopt] ) ;
-               if( center_valimB == NULL )
-                 ERROR_exit("Can't read 1D file '%s'",argv[nopt]) ;
-             }
+       if( strcasecmp(argv[nopt],"NONE") == 0 ){
+         center_code = CENTER_NONE ;
+       } else if( strcasecmp(argv[nopt],"DIFF") == 0 ){
+         center_code = CENTER_DIFF ;
+       } else if( strcasecmp(argv[nopt],"DIFF_MEDIAN") == 0 ){  /* 23 May 2012 */
+         center_code = CENTER_DIFF_MEDIAN ;
+       } else if( strcasecmp(argv[nopt],"SAME") == 0 ){
+         center_code = CENTER_SAME ;
+       } else if( strcasecmp(argv[nopt],"SAME_MEDIAN") == 0 ){  /* 23 May 2012 */
+         center_code = CENTER_SAME_MEDIAN ;
+       } else if( strcasecmp(argv[nopt],"VALS") == 0 ){
+         center_code = CENTER_VALS ;
+         if( ++nopt > argc )
+           ERROR_exit("Need a second argument after '%s %s'",argv[nopt-2],argv[nopt-1]) ;
+         center_valimA = mri_read_1D( argv[nopt] ) ;
+         if( center_valimA == NULL )
+           ERROR_exit("Can't read 1D file '%s'",argv[nopt]) ;
+         if( ++nopt < argc && argv[nopt][0] != '-' ){
+           if( strcasecmp(argv[nopt],"DITTO") == 0 ){
+             center_valimB = center_valimA ;
+           } else {
+             center_valimB = mri_read_1D( argv[nopt] ) ;
+             if( center_valimB == NULL )
+               ERROR_exit("Can't read 1D file '%s'",argv[nopt]) ;
            }
-         break ;
-
-         default:
+         }
+       } else {
            WARNING_message(
              "Unknown -center option '%s' -- using 'DIFF'",argv[nopt]) ;
            center_code = CENTER_DIFF ;
-         break ;
        }
        nopt++ ; continue ;
      }
-
 
      if( strcasecmp(argv[nopt],"-covariates") == 0 ){  /* 20 May 2010 */
        char *lab ; float sig ; int nbad ;
@@ -1878,8 +1939,12 @@ int main( int argc , char *argv[] )
 
    if( shd_BBB == NULL && center_code == CENTER_SAME )  /* 15 Jul 2011 */
      center_code = CENTER_DIFF ;
+   else if( shd_BBB == NULL && center_code == CENTER_SAME_MEDIAN )
+     center_code = CENTER_DIFF_MEDIAN ;
    else if( shd_BBB != NULL && ttest_opcode == 2 && center_code == CENTER_SAME )
      center_code = CENTER_DIFF ;
+   else if( shd_BBB != NULL && ttest_opcode == 2 && center_code == CENTER_SAME_MEDIAN )
+     center_code = CENTER_DIFF_MEDIAN ;
 
 #if 0
    /*-- attach use list to dataset collections [07 Apr 2010] --*/
@@ -2038,6 +2103,27 @@ int main( int argc , char *argv[] )
        }
        break ;
 
+       case CENTER_DIFF_MEDIAN:{  /* 23 May 2012 */
+         float *qar ; int nqar ;
+         nqar = shd_AAA->ndset ;
+         if( shd_BBB != NULL && shd_BBB->ndset > nqar ) nqar = shd_BBB->ndset ;
+         qar = (float *)malloc(sizeof(float)*nqar) ;
+         center_valimA = mri_new(mcov,1,MRI_float) ; ctrA = MRI_FLOAT_PTR(center_valimA) ;
+         for( jj=1 ; jj <= mcov ; jj++ ){  /* average the columns */
+           for( kk=0 ; kk < shd_AAA->ndset ; kk++ ) qar[kk] = AXX(kk,jj) ;
+           ctrA[jj-1] = qmed_float( shd_AAA->ndset , qar ) ;
+         }
+         if( shd_BBB != NULL && ttest_opcode != 2 ){  /* unpaired */
+           center_valimB = mri_new(mcov,1,MRI_float) ; ctrB = MRI_FLOAT_PTR(center_valimB) ;
+           for( jj=1 ; jj <= mcov ; jj++ ){  /* average the columns */
+             for( kk=0 ; kk < shd_BBB->ndset ; kk++ ) qar[kk] = BXX(kk,jj) ;
+             ctrB[jj-1] = qmed_float( shd_BBB->ndset , qar ) ;
+           }
+         }
+         free(qar) ;
+       }
+       break ;
+
        case CENTER_SAME:{  /* only possible in 2 sample unpaired case */
          float sum ;
          center_valimA = mri_new(mcov,1,MRI_float) ; ctrA = MRI_FLOAT_PTR(center_valimA) ;
@@ -2050,6 +2136,19 @@ int main( int argc , char *argv[] )
        }
        break ;
 
+       case CENTER_SAME_MEDIAN:{  /* 23 May 2012 */
+         float *qar ; int nqar = shd_AAA->ndset + shd_BBB->ndset ;
+         qar = (float *)malloc(sizeof(float)*nqar) ;
+         center_valimA = mri_new(mcov,1,MRI_float) ; ctrA = MRI_FLOAT_PTR(center_valimA) ;
+         for( jj=1 ; jj <= mcov ; jj++ ){  /* average the columns */
+           for( kk=0 ; kk < shd_AAA->ndset ; kk++ ) qar[kk]                = AXX(kk,jj) ;
+           for( kk=0 ; kk < shd_BBB->ndset ; kk++ ) qar[kk+shd_AAA->ndset] = BXX(kk,jj) ;
+           ctrA[jj-1] = qmed_float( nqar , qar ) ;
+         }
+         center_valimB = center_valimA ; free(qar) ;
+       }
+       break ;
+
      } /* end of switch on center_code */
 
      /*--- process the matrix for setA ---*/
@@ -2057,6 +2156,12 @@ int main( int argc , char *argv[] )
      ctrA = MRI_FLOAT_PTR(center_valimA) ;
      for( jj=1 ; jj <= mcov ; jj++ ){  /* center the columns */
        for( kk=0 ; kk < shd_AAA->ndset ; kk++ ) AXX(kk,jj) -= ctrA[jj-1] ;
+     }
+     if( verb > 1 && center_code != CENTER_NONE ){
+       fprintf(stderr," + setA covariates centering:") ;
+       for( jj=1 ; jj <= mcov ; jj++ )
+         fprintf(stderr," %s=%g",covlab->str[jj],ctrA[jj-1]) ;
+       fprintf(stderr,"\n") ;
      }
      /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
      impr = mri_matrix_psinv_pair( axxim , 0.0f ) ;
@@ -2075,6 +2180,12 @@ int main( int argc , char *argv[] )
        ctrB = MRI_FLOAT_PTR(center_valimB) ;
        for( jj=1 ; jj <= mcov ; jj++ ){  /* center the columns */
          for( kk=0 ; kk < shd_BBB->ndset ; kk++ ) BXX(kk,jj) -= ctrB[jj-1] ;
+       }
+       if( verb > 1 && center_code != CENTER_NONE ){
+         fprintf(stderr," + setB covariates centering:") ;
+         for( jj=1 ; jj <= mcov ; jj++ )
+           fprintf(stderr," %s=%g",covlab->str[jj],ctrB[jj-1]) ;
+         fprintf(stderr,"\n") ;
        }
        /* Compute inv[X'X] and the pseudo-inverse inv[X'X]X' for this matrix */
        impr = mri_matrix_psinv_pair( bxxim , 0.0f ) ;
@@ -2389,6 +2500,27 @@ int main( int argc , char *argv[] )
 
    NI_set_attribute( nelcmd , "target_labels" , bricklabels ) ;
    free(bricklabels) ;
+
+   /* 23 May 2012: set the ClustStim attributes? */
+
+   if( TalkToAfni ){
+     if( clatr[0] != NULL ){
+       NI_set_attribute( nelcmd, "string_attribute_000000", clatr[0] ); free(clatr[0]);
+     }
+     if( clatr[1] != NULL ){
+       NI_set_attribute( nelcmd, "string_attribute_000001", clatr[1] ); free(clatr[1]);
+     }
+     if( clatr[2] != NULL ){
+       NI_set_attribute( nelcmd, "string_attribute_000002", clatr[2] ); free(clatr[2]);
+     }
+     if( clatr[3] != NULL ){
+       NI_set_attribute( nelcmd, "string_attribute_000003", clatr[3] ); free(clatr[3]);
+     }
+     if( clust_NN1  != NULL ) free(clust_NN1 ) ;
+     if( clust_NN2  != NULL ) free(clust_NN2 ) ;
+     if( clust_NN3  != NULL ) free(clust_NN3 ) ;
+     if( clust_mask != NULL ) free(clust_mask) ;
+   }
 
    /* ZSS: set surface attributes [note Ziad's TERRIBLE use of spaces]
             Perhaps, but   at least      he wraps at 80             . */
@@ -3767,10 +3899,34 @@ GICOR_setup * GRINCOR_setup_dataset( NI_element *nel )
      for( ii=0 ; ii < nn ; ii++ ) giset->ivec[ii] = iv[ii] ;
    }
 
+   /* 23 May 2012: extra string attributes to set? */
+
+   { ATR_string *aatr ; int nn ;
+     char aaname[THD_MAX_NAME], *aastr, *nnatr, nnam[128], *cpt ;
+
+     for( nn=0 ; ; nn++ ){
+       sprintf(nnam,"string_attribute_%06d",nn) ;
+       nnatr = NI_get_attribute( nel , nnam ) ;
+       if( nnatr == NULL || *nnatr == '\0' ) break ;
+       cpt = strstr(nnatr," ==> ") ;
+       if( cpt == NULL || cpt == nnatr || cpt-nnatr > 256 ) continue ;
+       strncpy(aaname,nnatr,cpt-nnatr) ; aaname[cpt-nnatr] = '\0' ;
+       cpt += 5 ; if( *cpt == '\0' ) continue ;
+       aatr = (ATR_string *)XtMalloc(sizeof(ATR_string)) ;
+       aatr->type = ATR_STRING_TYPE ;
+       aatr->name = XtNewString(aaname) ;
+       aatr->nch  = strlen(cpt+1) ;
+       aatr->ch   = (char *)XtMalloc( sizeof(char) * aatr->nch ) ;
+       memcpy( aatr->ch , cpt , sizeof(char) * aatr->nch ) ;
+       THD_insert_atr( dset->dblk , (ATR_any *)aatr ) ;
+     }
+   }
+
    return giset ;
 }
 
 /*---------------------------------------------------------------------------*/
+
 int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
                                 char *target_name )
 {
@@ -3882,6 +4038,8 @@ int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
    return;
 }
 
+/*---------------------------------------------------------------------------*/
+
 int GRINCOR_output_dataset( GICOR_setup *giset, NI_element *nel, char *pref )
 {
    float *nelar , *dsdar ;
@@ -3920,4 +4078,3 @@ int GRINCOR_output_dataset( GICOR_setup *giset, NI_element *nel, char *pref )
    if( verb ) WROTE_DSET(giset->dset) ;
    return ((int)DSET_TOTALBYTES(giset->dset));
 }
-

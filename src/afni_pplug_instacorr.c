@@ -234,7 +234,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_number( plint , "Polort" , -1,2,0,2 , FALSE ) ;
    { char *un = tross_username() ;
      PLUTO_add_string( plint , "Method" ,
-                       (un != NULL && 
+                       (un != NULL &&
                         (strstr(un,"cox")  != NULL ||
                          strstr(un,"ziad") != NULL)  ) ? 10 : 4 ,
                        meth_string , 0 ) ;
@@ -351,7 +351,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
          case 'T': cmeth = NBISTAT_TICTACTOE_CORR; break ; /* 30 Mar 2011 */
          case 'E': cmeth = NBISTAT_EUCLIDIAN_DIST; break ; /* 04 May 2012, ZSS*/
          case 'C': cmeth = NBISTAT_CITYBLOCK_DIST; break ; /* 04 May 2012, ZSS*/
-         case 'Q': 
+         case 'Q':
            if( cm[3] == 'n' ) cmeth = NBISTAT_QUANTILE_CORR ;
            else               cmeth = NBISTAT_QUADRANT_CORR ;
          break ;
@@ -374,14 +374,14 @@ static char * ICOR_main( PLUGIN_interface *plint )
                      "   I hope you know what you are doing.\n");
      if (polort >= 0) {
          /* object even if we can get away with less. Otherwise
-            the < 9 condition has to be ammended in 
+            the < 9 condition has to be ammended in
             thd_bandpass.c's THD_bandpass_vectors() */
          return "** TimeSeries dataset is way too short for InstaCorr **" ;
      } else { /* allow it to proceed if series is not extremely short */
-      if (  DSET_NVALS(dset) - ignore < 3) {/* too much! */ 
+      if (  DSET_NVALS(dset) - ignore < 3) {/* too much! */
          return "** TimeSeries dataset is way too short for InstaCorr **" ;
       }
-     } 
+     }
    }
    if( eset != NULL &&
        ( DSET_NVALS(dset) != DSET_NVALS(eset) || DSET_NVOX(dset) != DSET_NVOX(eset) ) )
@@ -415,13 +415,13 @@ static char * ICOR_main( PLUGIN_interface *plint )
        im3d->iset->despike  == despike  &&
        im3d->iset->polort   == polort   &&
        THD_instacorr_cmeth_needs_norm(im3d->iset->cmeth)
-                            == 
+                            ==
        THD_instacorr_cmeth_needs_norm(cmeth)   ){
 
      INFO_message("InstaCorr setup: minor changes accepted") ;
-     im3d->iset->sblur = sblur ; im3d->iset->cmeth = cmeth ; 
+     im3d->iset->sblur = sblur ; im3d->iset->cmeth = cmeth ;
      im3d->iset->change = 1; return NULL ;
-   } 
+   }
 
    /** (re)create InstaCorr setup **/
 
@@ -655,7 +655,7 @@ ENTRY("AFNI_icor_setref_xyz") ;
    DSET_BRICK_FDRCURVE_ALLKILL(icoset) ;
    DSET_BRICK_MDFCURVE_ALLKILL(icoset) ;
    flush_3Dview_sort(im3d,"T");  /* ZSS April 27 2012: Reset sorted threshold */
-   
+
    if( ncall <= 1 )
      ININFO_message(" InstaCorr elapsed time = %.2f sec: dataset ops" ,
                     PLUTO_elapsed_time()-etim ) ;
@@ -689,7 +689,7 @@ ENTRY("AFNI_icor_setref_xyz") ;
                                (XtPointer)im3d ,  &cbs           ) ;
      AFNI_set_fim_index(im3d,0) ;
      AFNI_set_thr_index(im3d,0) ;
-     
+
      sprintf(cmd,"SET_FUNC_RANGE %c.%.2f",cpt[1], rng) ;
      AFNI_driver(cmd) ;
    }
@@ -705,7 +705,7 @@ ENTRY("AFNI_icor_setref_xyz") ;
    AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ;
 
    im3d->iset->change = 0;    /* resset change flag */
-   
+
    if( ncall <= 1 )
      ININFO_message(" InstaCorr elapsed time = %.2f sec: redisplay" ,
                     PLUTO_elapsed_time()-etim ) ;
@@ -952,6 +952,29 @@ ENTRY("GICOR_setup_func") ;
      nn = MIN(giset->nvec,nel->vec_len) ; giset->nivec = nn ;
      for( ii=0 ; ii < nn ; ii++ ) giset->ivec[ii] = iv[ii] ;
 /* INFO_message("DEBUG: GICOR_setup_func has ivec=int[%d]",nn) ; */
+   }
+
+   /* 23 May 2012: extra string attributes to set? */
+
+   { ATR_string *aatr ; int nn ;
+     char aaname[THD_MAX_NAME], *aastr, *nnatr, nnam[128], *cpt ;
+
+     for( nn=0 ; ; nn++ ){
+       sprintf(nnam,"string_attribute_%06d",nn) ;
+       nnatr = NI_get_attribute( nel , nnam ) ;
+       if( nnatr == NULL || *nnatr == '\0' ) break ;
+       cpt = strstr(nnatr," ==> ") ;
+       if( cpt == NULL || cpt == nnatr || cpt-nnatr > 256 ) continue ;
+       strncpy(aaname,nnatr,cpt-nnatr) ; aaname[cpt-nnatr] = '\0' ;
+       cpt += 5 ; if( *cpt == '\0' ) continue ;
+       aatr = (ATR_string *)XtMalloc(sizeof(ATR_string)) ;
+       aatr->type = ATR_STRING_TYPE ;
+       aatr->name = XtNewString(aaname) ;
+       aatr->nch  = strlen(cpt+1) ;
+       aatr->ch   = (char *)XtMalloc( sizeof(char) * aatr->nch ) ;
+       memcpy( aatr->ch , cpt , sizeof(char) * aatr->nch ) ;
+       THD_insert_atr( dset->dblk , (ATR_any *)aatr ) ;
+     } 
    }
 
    giset->ready = 1 ;          /* that is, ready to ROCK AND ROLL */
