@@ -342,7 +342,6 @@ MRI_shindss * GRINCOR_read_input( char *fname )
      ivec = NULL ;  /* means all voxels: ivec[i] == i */
    } else {
      ivec = (int *)nel->vec[0] ; /* copy pointer */
-     nel->vec[0] = NULL ;        /* NULL out in element so won't be free-ed */
    }
 
    /* And stuff for LR surface pairs      ZSS Jan 09*/
@@ -631,7 +630,7 @@ int main( int argc , char *argv[] )
    NI_set_attribute( nelshd , "fac"  , buf ) ;       /* scale factor per dataset */
    NI_set_attribute( nelshd , "prep" , prepname ) ;
 
-   kk = NI_write_element_tofile( fname , nelshd , NI_TEXT_MODE ) ;
+   kk = NI_write_element_tofile( fname , nelshd , NI_BINARY_MODE ) ;
    if( kk < 0 )
      ERROR_exit("TIC: Error while writing header file %s",fname) ;
 

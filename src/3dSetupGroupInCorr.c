@@ -840,6 +840,9 @@ int main( int argc , char * argv[] )
      free(cmdline) ;
    }
 
+   if( prepname != NULL && prepname[0] != '\0' )               /* 23 May 2012 */
+     NI_set_attribute( nel , "prep" , prepname ) ;
+
    /*--- write header file ---*/
 
    kk = NI_write_element_tofile( hfname , nel , NI_BINARY_MODE ) ;
