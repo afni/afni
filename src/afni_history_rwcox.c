@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 21 , MAY , 2012 , RWC , "FDR calculations" , MICRO , TYPE_NEW_ENV ,
+  { 23 , MAY , 2012 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
+   "Add -clust option, to allow 3dClustSim stuff to be used" ,
+   NULL } ,
+
+ { 21 , MAY , 2012 , RWC , "FDR calculations" , MICRO , TYPE_NEW_ENV ,
    "AFNI_NON_INDEPENDENT_FDR == YES --> like '-cdep' in 3dFDR." ,
    NULL } ,
 
