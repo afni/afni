@@ -636,9 +636,10 @@ int main( int argc , char *argv[] )
                   fprintf(stdout, "%s", tempstr);
             break;
          case AV_DSET_SPACE:
-            tempstr = THD_get_space(dset);
+            /* don't allow anything but the three AFNI views */
+            tempstr = THD_get_view_space(dset);
             if(tempstr==NULL)
-                  fprintf(stdout, "-----");
+                  fprintf(stdout, "+orig");
             else if (!strncmp(tempstr,"ORIG",4)) 
                   fprintf(stdout, "+orig");
             else if (!strncmp(tempstr,"ACPC",4)) 
@@ -648,7 +649,7 @@ int main( int argc , char *argv[] )
             else if (!strncmp(tempstr,"MNI",3)) 
                   fprintf(stdout, "+tlrc");
             else
-                  fprintf(stdout, "-----");
+                  fprintf(stdout, "+orig");
             break;
          case IS_NIFTI:
             if (  dset->dblk->diskptr && 

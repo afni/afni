@@ -8145,12 +8145,26 @@ char *gen_space_str(char *space_str)
    ATLAS_SPACE_LIST *asl=get_G_space_list();
    ATLAS_SPACE *at_space;
 
+   ENTRY("gen_space_str");
+
+   if(asl==NULL){
+      ERROR_message("can not load spaces\n");
+      RETURN(NULL);
+   }
+
    for(i=0;i<asl->nspaces;i++){
       at_space = asl->space+i;
       if(strcmp(at_space->atlas_space, space_str)==0)
-         return(at_space->generic_space);
+         RETURN(at_space->generic_space);
    }
-   return(NULL);
+
+   if(strcmp(space_str, "ORIG")==0)
+      RETURN("ORIG");
+
+   if(strcmp(space_str, "ACPC")==0)
+      RETURN("ACPC");
+ 
+   RETURN(NULL);
 }
 
 int find_in_names_list(char **nl, int N_nl, char *name) {
