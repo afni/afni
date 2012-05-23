@@ -31,6 +31,7 @@ static int    nsd_add_str_atr_to_group(char*, char*, THD_datablock*, NI_group*);
 static int    nsd_add_atr_to_group(char*, char*, THD_datablock*, NI_group*);
 static int    nsd_fill_index_list(NI_group *, THD_3dim_dataset *);
 static int    process_NSD_attrs(THD_3dim_dataset *);
+static int    process_NSD_labeltable(NI_group * ngr, THD_3dim_dataset *dset);
 static int    process_NSD_group_attrs(NI_group *, THD_3dim_dataset *);
 static int    process_NSD_index_list(NI_group *, THD_datablock *);
 static int    process_NSD_sparse_data(NI_group *, THD_3dim_dataset *);
@@ -575,9 +576,120 @@ ENTRY("THD_ni_surf_dset_to_afni");
     if( !rv ) rv = process_NSD_sparse_data(ngr, dset); /* SPARSE_DATA attr  */
     if( !rv ) rv = process_NSD_group_attrs(ngr, dset); /* store group attrs */
     if( !rv ) rv = process_NSD_attrs(dset);            /* apply other attrs */
-
+    if( !rv ) rv = process_NSD_labeltable(ngr, dset);  /* get AFNI_labeltable */
     RETURN(dset);
 }
+
+/* 
+   Change AFNI_Labeltable, if any, to VALUE_LABEL_DTABLE
+   This is a lossy conversion, colors are not preserved in DTABLE
+*/
+
+static int process_NSD_labeltable(NI_group * ngr, THD_3dim_dataset *dset)
+{
+    NI_element     * nel = NULL, * tel;
+    void           ** elist = NULL;
+    int            ind, ncols, length, c, ii = 0;
+    NI_group       * ltg = NULL;
+    float          * rgba = NULL;
+    char           * cp, *label_table=NULL, sval[32]={""};
+    Dtable         *dt = NULL;
+
+ENTRY("process_NSD_labeltable");
+
+    if( !ngr || !ISVALID_DSET(dset) )
+    {
+        if(gni.debug) fprintf(stderr,"** PNSDLT: bad params\n");
+        RETURN(1);
+    }
+
+    /* find the SPARSE_DATA element of the AFNI_labeltable group */
+    ind = NI_search_group_shallow(ngr, "AFNI_labeltable", &elist);
+    if(ind > 0){ ltg = (NI_group *)elist[0]; NI_free(elist); elist = NULL; }
+    if( !ltg ) { /* not an error, but we are done */
+        if( gni.debug > 0) fprintf(stderr,"-- NSDG: no AFNI_labeltable\n");
+        RETURN(0);
+    }
+
+    ind = NI_search_group_shallow(ltg, "SPARSE_DATA", &elist);
+    if(ind > 0){ nel = (NI_element *)elist[0]; NI_free(elist); elist = NULL; }
+    if( !nel ) { /* probably an error */
+        if(gni.debug > 0)
+            fprintf(stderr,"-- NSDG: AFNI_labeltable: missing SPARSE_DATA\n");
+        RETURN(0);
+    }
+
+    ncols = nel->vec_num;
+    length = nel->vec_len;
+
+    /* verify either 2 or 6 columns */
+    if( ncols != 2 && ncols != 6 ) {
+        fprintf(stderr,"** NIML ALT SData, bad ncols = %d\n", ncols);
+        RETURN(1);
+    }
+    if( length <= 0 ) {
+        fprintf(stderr,"** NIML ALT SData, bad length = %d\n", length);
+        RETURN(1);
+    }
+
+    /* verify COLMS_LABS, if present (2 or 6 columns) */
+    tel = NI_find_element_by_aname(ltg,"AFNI_atr","atr_name","COLMS_LABS");
+    if( tel ) { /* then verify */
+        cp = ((char **)tel->vec[0])[0];
+        if( ncols == 6 ) {
+            if( strcmp(cp, "R;G;B;A;key;name") )
+               fprintf(stderr,"** have ALT CLABS '%s', should be '%s'\n",
+                              cp, "R;G;B;A;key;name");
+        } else if( ncols == 2 ) {
+            if( strcmp(cp, "key;name") )
+               fprintf(stderr,"** have ALT CLABS '%s', should be '%s'\n",
+                              cp, "key;name");
+        }
+        if(gni.debug>0) fprintf(stderr,"-- SData len %d, COLMS_LABS[%d]='%s'\n",
+                               length,ncols,cp);
+    }
+
+    /* verify types: require 4*float,int,String or just int,String */
+
+    ind = 0;
+    if( ncols == 6 ) {
+        if( nel->vec_typ[ind  ] != NI_FLOAT32 ||
+            nel->vec_typ[ind+1] != NI_FLOAT32 ||
+            nel->vec_typ[ind+2] != NI_FLOAT32 ||
+            nel->vec_typ[ind+3] != NI_FLOAT32 ) {
+            fprintf(stderr,"** bad types for NIML ALT RGBA\n");
+            RETURN(1);
+        }
+        ind += 4;
+    }
+    if( nel->vec_typ[ind] != NI_INT || nel->vec_typ[ind+1] != NI_STRING ) {
+        fprintf(stderr,"** bad types for NIML ALT key;name\n");
+        RETURN(1);
+    }
+
+    /* if there are colors, get them */
+    if( ncols == 6 ) if(gni.debug) INFO_message("Colors will be ignored");
+    else             rgba = NULL;
+
+    /* convert to label table */
+    ii = rint(sqrt(2*length+1.0l)) ;
+    if( ii < 7 ) ii = 7 ; else if( ii%2 == 0 ) ii++ ;
+
+    /* make table, insert strings */
+    dt = new_Dtable( ii ) ;
+    for( ii=0 ; ii < length ; ii++ ) {
+      sprintf(sval,"%d", ((int *)nel->vec[ind])[ii]); 
+      addto_Dtable( sval , ((char **)nel->vec[ind+1])[ii] , dt ) ;
+    }
+    label_table = Dtable_to_nimlstring(dt, "VALUE_LABEL_DTABLE");
+    destroy_Dtable(dt); dt = NULL;
+    THD_set_string_atr( dset->dblk , 
+                        "VALUE_LABEL_DTABLE" , label_table ) ;
+    free(label_table); label_table = NULL;
+
+   RETURN(0);
+}
+
 
 /* process any INDEX_LIST attribute, setting nnodes and node_list in
    the datablock (going from NIML to AFNI)

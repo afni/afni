@@ -66,7 +66,13 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-
+ { 23, May , 2012 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
+   "Allow label-based selection for annotation files",
+   "See function: process_NSD_labeltable(), now you can do something like:\n"
+   "3dcalc -a std.60.lh.aparc.a2009s.annot.niml.dset'<wm_lh_G_precentral>' \\\n"
+   "       -expr 'step(a)' -prefix wm_lh_G_precentral.niml.dset \n"
+ },
+ 
  { 21, May , 2012 , ZSS , "ROIgrow" , MICRO , TYPE_BUG_FIX,
    "ROIgrow was not taking -spec surface definition",
    NULL
