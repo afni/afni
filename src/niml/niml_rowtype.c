@@ -734,9 +734,11 @@ NI_rowtype * NI_rowtype_find_name( char *nn )
 
 NI_rowtype * NI_rowtype_find_code( int nn )
 {
+fprintf(stderr,"NI_rowtype_find_code(%d)\n",nn) ;
    if( nn < 0 ) return NULL ;
    if( rowtype_table == NULL ) setup_basic_types() ;
    if( nn >= ROWTYPE_OFFSET ) nn = nn - ROWTYPE_BASE_CODE ;
+fprintf(stderr,"  nn=%d rowtype_num=%d\n",nn,rowtype_num) ;
    if( nn < 0 || nn >= rowtype_num ) return NULL ;
    return rowtype_array[nn] ;
 }
@@ -1145,6 +1147,7 @@ fprintf(stderr,"NI_write_columns: col_num=%d col_len=%d tmode=%d\n",col_num,col_
 
      /* convert column type code to rowtype pointer */
 
+fprintf(stderr,"NI_rowtype_find_code(%d)\n",col_typ[col]) ;
      rt[col] = NI_rowtype_find_code( col_typ[col] ) ;
 
      /* can't find type, or no data in column?  take this job and shove it */
