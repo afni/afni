@@ -67,28 +67,28 @@ afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
- { 27, May , 2012 , ZSS , "ROIgrow" , MICRO , TYPE_BUG_FIX,
+ { 21, May , 2012 , ZSS , "ROIgrow" , MICRO , TYPE_BUG_FIX,
    "ROIgrow was not taking -spec surface definition",
    NULL
  },
  
- { 27, May , 2012 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
+ { 21, May , 2012 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "Made the script also port thickness data and take them to std. space",
    NULL
  },
  
- { 27, May , 2012 , ZSS , "3dTcorrelate" , MINOR , TYPE_NEW_OPT,
+ { 21, May , 2012 , ZSS , "3dTcorrelate" , MINOR , TYPE_NEW_OPT,
    "Added -covariance option, turned off DOF setting for anything but pearson.",
    "See function THD_covariance()\n"
  },
  
- { 27, May , 2012 , ZSS , "MapIcosahedron" , MINOR , TYPE_NEW_OPT,
+ { 21, May , 2012 , ZSS , "MapIcosahedron" , MINOR , TYPE_NEW_OPT,
    "Made program output mapping info file for use with SurfToSurf",
    "Also made microscopic improvement to automatic dset name generation for"
    " -dset_map"
  },
  
- { 27, May , 2012 , ZSS , "SurfToSurf" , MICRO , TYPE_BUG_FIX,
+ { 21, May , 2012 , ZSS , "SurfToSurf" , MICRO , TYPE_BUG_FIX,
    "Microscopic improvement to automatic dset name generation for output dsets",
    NULL
  },
