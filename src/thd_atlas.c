@@ -84,9 +84,19 @@ char * THD_get_generic_space(THD_3dim_dataset *dset)
       RETURN(spcstr);
 }
 
-/* return the generic space associated with the space of a dataset
-   the principal goal is to give generic TLRC for all flavors of TLRC, TT_N27
-   or generic MNI for all flavors of MNI, MNI_FSL, MNI_ANAT */
+/* return the VIEW (ORIG,ACPC or TLRC) for a dataset */
+/* This is intended as the AFNI output view for a given dataset,
+   i.e.what dataset view should be associated with an AFNI output file.
+   Given an AFNI format input dataset, this will usually be the same
+   as the view of the input (dset->dblk->diskptr->viewcode), but is not
+   guaranteed to be the same. The function solves the problem of 
+   NIFTI or other format input and naming the AFNI format output.
+
+   For NIFTI format, the sform or qform codes determine whether the
+   data is in TLRC, MNI or some other aligned space. If it is any aligned
+   space, the dataset will be assigned a TLRC view and a space if one
+   is already defined in an AFNI extension. Otherwise, the TLRC space
+   is assigned to the dataset */
 char * THD_get_view_space(THD_3dim_dataset *dset)
 {
    char *spcstr=NULL, *space=NULL;
