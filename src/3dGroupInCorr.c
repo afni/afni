@@ -1325,6 +1325,8 @@ int main( int argc , char *argv[] )
       "              3dSetupGroupInCorr, and the smoothness you would have estimated\n"
       "              via 3dFWHMx, via sacred divination, or via random guesswork.\n"
       "             ++ This option only applies to AFNI usage, not to SUMA.\n"
+      "             ++ See the Clusterize notes, far below, for more information on\n"
+      "                using the interactive clustering GUI in AFNI with 3dGroupInCorr.\n"
       "\n"
       " -ah host = Connect to AFNI/SUMA on the computer named 'host', rather than\n"
       "            on the current computer system 'localhost'.\n"
