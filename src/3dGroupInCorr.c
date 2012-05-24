@@ -3,7 +3,7 @@
 /***
   Ideas for making this program more cromulently embiggened:
    ++ 2-way case: produce 1-way result sub-bricks as well  -- DONE!
-   ++ Rank or other robust analog to t-test (slow)         -- TBD
+   ++ Rank or other robust analog to t-test (slow)         -- DONE!
    ++ Send sub-brick data as scaled shorts                 -- TBD
    ++ Fix shm: bug in AFNI libray (but how?)               -- TBD
    ++ Have non-server modes:
@@ -1017,6 +1017,10 @@ int main( int argc , char *argv[] )
       "   -- Correlate it with all other voxel time series in the same dataset\n"
       "        [you could do this manually with 3dDeconvolve or 3dfim]\n"
       "   -- Result is one 3D correlation map per input dataset\n"
+      "   -- The standard processing uses Pearson correlation between time series\n"
+      "        vectors.  You can also pre-process the data to use Spearman (rank)\n"
+      "        correlation instead.  This alteration must be done in program\n"
+      "        3dSetupGroupInCorr, or with program 3dTransformGroupInCorr.\n"
       " ++ Then carry out the t-test between/among these 3D correlation maps,\n"
       "      possibly allowing for dataset-level covariates.\n"
       "   -- Actually, between the arctanh() of these maps:\n"
@@ -1026,7 +1030,7 @@ int main( int argc , char *argv[] )
       "       [the t-statistics to Z-scores using yet another 3dcalc run.]\n"
       "   -- To be overly precise, if the correlation is larger than 0.999329,\n"
       "       then the arctanh is clipped to 4.0, to avoid singularities.\n"
-      "       If you consider this to be a problem, please go away.\n"
+      "       If you consider this clipping to be a problem, please go away.\n"
       " ++ The dataset returned to AFNI converts the t-statistic maps\n"
       "    to Z-scores, for various reasons of convenience.\n"
       "   -- Conversion is done via the same mechanism used in program\n"
@@ -1041,11 +1045,12 @@ int main( int argc , char *argv[] )
       " ++ If your computer DOESN'T have enough RAM to hold all the data,\n"
       "    then this program will be very slow -- buy more memory!\n"
       " ++ Note that the .data file(s) are mapped directly into memory (mmap),\n"
-      "    rather than being read with standard input methods.  This operation\n"
-      "    may not work well on network-mounted drives, in which case you\n"
-      "    will have to run 3dGroupInCorr on the same computer with the data\n"
-      "    files.  However, 3dGroupInCorr does NOT need to be run on the same\n"
-      "    computer as AFNI or SUMA: see the '-ah' option (far below).\n"
+      "    rather than being read with standard file input methods (fread).\n"
+      " ++ This memory-mapping operation may not work well on network-mounted\n"
+      "    drives, in which case you will have to run 3dGroupInCorr on the same\n"
+      "    computer with the data files.\n"
+      " ++ However, 3dGroupInCorr does NOT need to be run on the same computer\n"
+      "    as AFNI or SUMA: see the '-ah' option (described far below).\n"
 #ifdef USE_OMP
       "\n"
       "* One reason this program is a server (rather than being built in\n"
@@ -1209,6 +1214,10 @@ int main( int argc , char *argv[] )
       "            -- At present, there is no way to tell 3dGroupInCorr not to send\n"
       "               all this information back to AFNI/SUMA.\n"
       "\n"
+      "        ++ The '-donocov' option, described later, lets you get the results\n"
+      "            calculated without covariates in addition to the results with\n"
+      "            covariate regression included, for comparison fun.\n"
+      "\n"
       "        ++ EXAMPLE:\n"
       "           If there are 2 groups of datasets (with setA labeled 'Pat', and setB\n"
       "           labeled 'Ctr'), and one covariate (labeled IQ), then the following\n"
@@ -1360,7 +1369,8 @@ int main( int argc , char *argv[] )
       "            SUMA].  You must give the corresponding option to AFNI to\n"
       "            get proper communication going.  Using '-np' properly is the\n"
       "            only way to have multiple copies of 3dGroupInCorr and AFNI\n"
-      "            talking to each other!\n"  ZSS June 2011*/
+      "            talking to each other!\n"
+ ZSS June 2011 */
       "%s"
 #ifndef DONT_USE_SHM
       "\n"
@@ -1435,6 +1445,14 @@ int main( int argc , char *argv[] )
       "      your GrpInCorr seed in the A image viewers but view the results\n"
       "      you want to see in the B image viewers.  And scrolling around in\n"
       "      the unlocked image viewers can also be annoying.\n"
+      "\n"
+      "If you use '-covariates' and '-sendall', 3dGroupInCorr will send to AFNI\n"
+      "a set of 1D files containing the covariates.  You can use one of these\n"
+      "as a 'Scat.1D' file in the Clusterize GUI to plot the individual subject\n"
+      "correlations (averaged across a cluster) vs. the covariate values -- this\n"
+      "graph can be amusing and even useful.\n"
+      " --  If you don't know how to use this feature in Clusterize, then learn!\n"
+
      , get_np_help()) ;
 
      printf(
