@@ -164,8 +164,7 @@ main (int argc, char *argv[])
               "   -csf_val n.nnn = assign diffusivity value to DWI data where the mean values\n"
               "    for B=0 volumes is less than the mean of the remaining volumes at each\n"
               "    voxel. The default value is 3.0. The assumption is that there are flow\n"
-              "    artifacts in CSF and blood vessels that give rise to lower B=0 voxels.\n"
-              "    This is only applied when using the non-linear optimization method.\n\n"
+              "    artifacts in CSF and blood vessels that give rise to lower B=0 voxels.\n\n"
               "   -csf_fa n.nnn = assign a specific FA value to those voxels described above\n"
               "    The default is 0.012345678 for use in tractography programs that may\n"
               "    make special use of these voxels\n\n"
@@ -863,50 +862,59 @@ DWItoDT_tsfunc (double tzero, double tdelta,
      where Rt is the pseudo-inverse of the [bxx 2bxy 2bxz byy 2byz bzz] for
      each gradient vector b */
    /** is this a "notification"? **/
-   if (val == NULL)
-    {
+   if (val == NULL){
 
       if (npts > 0)
-	{			/* the "start notification" */
-	  nvox = npts;		/* keep track of   */
-	  ncall = 0;		/* number of calls */
-          noisecall = 0;
-	}
+	   {			/* the "start notification" */
+	     nvox = npts;		/* keep track of   */
+	     ncall = 0;		/* number of calls */
+             noisecall = 0;
+	   }
       else
-	{			/* the "end notification" */
+	   {			/* the "end notification" */
 
-	  /* nothing to do here */
-	}
+	     /* nothing to do here */
+	   }
       EXRETURN;
-    }
+   }
 
-  ncall++;
-  /* if there is any mask (automask or user mask), use corresponding voxel as a flag */
+   ncall++;
+   /* if there is any mask (automask or user mask), use corresponding voxel as a flag */
    if((maskptr && (maskptr[ncall-1]==0)) ||
-      all_dwi_zero(npts, ts)){
-     /* don't include this voxel for mask or if all zeros*/
-	  for (i = 0; i < nbriks; i++)	/* faster to copy preset vector */
-	    val[i] = 0.0;	/* return 0 for all Dxx,Dxy,... */
-          if(debug_briks)  /* use -3 as flag for number of converge steps to mean exited for masked voxels */
-             val[nbriks-4] = -3.0;
-	  EXRETURN;
-	}
-  /* load the symmetric matrix vector from the "timeseries" subbrik vector values */
-  vector_initialize (&lnvector);
-  vector_create_noinit (npts - 1, &lnvector);
-  dv0 = ts[0];
-  if (dv0 > 0.0)
-    i0 = log (dv0);
-  else
-    i0 = 0.0;
-  for (i = 0; i < (npts - 1); i++)
-    {
-      dv = ts[i + 1];
-      if ((dv > 0.0) && (dv0 > 0.0))
-	lnvector.elts[i] = i0 - log (dv);	/* ln I0/Ip = ln I0 - ln Ip */
-      else
-	lnvector.elts[i] = 0.0;
-    }
+       all_dwi_zero(npts, ts)){
+      /* don't include this voxel for mask or if all zeros*/
+	   for (i = 0; i < nbriks; i++)	/* faster to copy preset vector */
+	     val[i] = 0.0;	/* return 0 for all Dxx,Dxy,... */
+           if(debug_briks)  /* use -3 as flag for number of converge steps to mean exited for masked voxels */
+              val[nbriks-4] = -3.0;
+	   EXRETURN;
+   }
+
+  /* check for valid data at this series */
+  if(bad_DWI_data(npts, ts)) {
+     for (i = 0; i < nbriks; i++)	/* faster to copy preset vector */
+	     val[i] = 0.0;	/* return 0 for all Dxx,Dxy,... */
+     Assign_CSF_values(val);
+     EXRETURN;
+  } 
+
+
+   /* load the symmetric matrix vector from the "timeseries" subbrik vector values */
+   vector_initialize (&lnvector);
+   vector_create_noinit (npts - 1, &lnvector);
+   dv0 = ts[0];
+   if (dv0 > 0.0)
+     i0 = log (dv0);
+   else
+     i0 = 0.0;
+   for (i = 0; i < (npts - 1); i++)
+     {
+       dv = ts[i + 1];
+       if ((dv > 0.0) && (dv0 > 0.0))
+	 lnvector.elts[i] = i0 - log (dv);	/* ln I0/Ip = ln I0 - ln Ip */
+       else
+	 lnvector.elts[i] = 0.0;
+     }
 
   vector_multiply (Rtmat, lnvector, &Dvector);	/* D = Rt * ln(I0/Ip), allocated Dvector here */
 
@@ -939,11 +947,6 @@ DWItoDT_tsfunc (double tzero, double tdelta,
      EXRETURN;
   }
 
-  /* check for valid data at this series */
-  if(bad_DWI_data(npts, ts)) {
-     Assign_CSF_values(val);
-     EXRETURN;
-  } 
 
   /* now more complex part that takes into account noise */
 

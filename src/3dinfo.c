@@ -646,9 +646,7 @@ int main( int argc , char *argv[] )
                   fprintf(stdout, "+acpc");
             else if (!strncmp(tempstr,"TLRC",4)) 
                   fprintf(stdout, "+tlrc");
-            else if (!strncmp(tempstr,"MNI",3)) 
-                  fprintf(stdout, "+tlrc");
-            else
+            else  /* shouldn't get here */
                   fprintf(stdout, "+orig");
             break;
          case IS_NIFTI:

@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 24 , MAY, 2012 , DRG , "3dDWItoDT" , 
+    MINOR , TYPE_NEW_OPT, 
+    "csf_val and csf_fa options apply to linear solutions too"
+} ,
 { 23 , MAY, 2012 , DRG , "3dinfo, @auto_tlrc" , 
     MAJOR , TYPE_BUG_FIX, 
     "Generic space handling corrected for TT_N27 and other spaces",
