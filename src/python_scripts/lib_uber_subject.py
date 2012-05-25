@@ -132,9 +132,10 @@ g_history = """
          - added accompanying -show_svar_dict option
     0.30 May 22, 2012 : basics of resting state
          - added regress_bandpass and regress_motion_deriv fields
+    0.31 May 25, 2012 : show modified options and subject defaults
 """
 
-g_version = '0.30 (May 22, 2011)'
+g_version = '0.31 (May 25, 2011)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -258,6 +259,15 @@ g_svar_dict = {
    'regress_bandpass'   : 'specify bandpass limits to remain after regress',
    'regress_mot_deriv'  : 'yes/no: regress motion derivatives',
 }
+
+# list of subject vars not considered options
+g_svars_not_opt = [ 
+   'name',
+   'sid', 'gid',
+   'anat', 'epi',
+   'stim', 'stim_label', 'stim_basis',
+   'gltsym', 'gltsym_label'
+]
 
 # ----------------------------------------------------------------------
 # subj defaults for resting state analysis
