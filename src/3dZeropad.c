@@ -83,6 +83,7 @@ int main( int argc , char * argv[] )
    PRINT_VERSION("3dZeropad") ;
 
    /*-- read command line options --*/
+   if( argc == 1){ usage_3dZeropad(1); exit(0); } /* Bob's help shortcut */
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){

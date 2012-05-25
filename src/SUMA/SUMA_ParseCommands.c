@@ -2984,6 +2984,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->in_vol_view[0]='\0';
    Opt->in_vol_exists = -1;
    Opt->out_prefix = NULL;
+   Opt->oform = SUMA_NO_DSET_FORMAT;
    Opt->sv_name = NULL;
    Opt->N_surf = -1;
    Opt->in_name = NULL;

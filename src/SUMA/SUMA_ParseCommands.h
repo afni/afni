@@ -123,6 +123,8 @@ typedef struct {
    char *surftype; /* do not free, argv[.] copy */
    char *out_prefix;   /* this one's dynamically allocated so 
                           you'll have to free it yourself */
+   SUMA_DSET_FORMAT oform;
+   
    char *out_vol_prefix; /* this one's dynamically allocated so 
                            you'll have to free it yourself */
    char out_vol_view[SUMA_VIEW_LENGTH];

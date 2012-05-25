@@ -151,6 +151,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(
    Opt->out_prefix = NULL;
    Opt->fix_winding = 0;
    Opt->iopt = 0;
+   Opt->oform = SUMA_NO_DSET_FORMAT;
    accepting_out = NOPE;
    while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -325,7 +326,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(
             exit (1);
          }
          
-         Opt->out_prefix = SUMA_Extension(argv[++kar],".1D", YUP);
+         Opt->out_prefix = SUMA_RemoveDsetExtension_eng(argv[++kar],
+                                                      &(Opt->oform));
          brk = YUP;
       }
 
@@ -434,8 +436,7 @@ int main (int argc,char *argv[])
    } 
    
    if (Opt->debug > 2) LocalHead = YUP;
-   
-   outname = SUMA_append_string(Opt->out_prefix,".1D");
+   outname = SUMA_append_extension(Opt->out_prefix,".1D");
    if (SUMA_filexists(outname) && !THD_ok_overwrite()) {
       fprintf(SUMA_STDERR,"Output file %s exists.\n", outname);
       exit(1);
@@ -698,8 +699,8 @@ int main (int argc,char *argv[])
       }
    } else if (Opt->Data < 0) {
          SUMA_DSET *dset=NULL, *dseto=NULL;
-         char *oname=NULL, *uname=NULL;
-         int oform=SUMA_ASCII_NIML, iform=SUMA_NO_DSET_FORMAT;
+         char *oname=NULL, *uname=NULL, *s1=NULL, *s2=NULL;
+         int iform=SUMA_NO_DSET_FORMAT;
          if (Opt->NodeDbg>= 0) {
             SUMA_S_Notev("Processing dset %s\n", Opt->in_name);
          }
@@ -713,11 +714,15 @@ int main (int argc,char *argv[])
             SUMA_S_Errv("Failed to map %s\n", Opt->in_name);
             exit(1);
          }
-         uname = SUMA_append_replace_string(
-               SUMA_FnameGet(Opt->in_name,"pa", SUMAg_CF->cwd), 
-                             SUMA_FnameGet(Opt->in_name,"l",SUMAg_CF->cwd), 
-                             Opt->out_prefix, 0);
-         oname = SUMA_WriteDset_s (uname, dseto, oform, 1, 1);
+         s1 = SUMA_append_string(
+                  SUMA_FnameGet(Opt->in_name,"pa", SUMAg_CF->cwd),
+                  Opt->out_prefix); 
+         s2 = SUMA_RemoveDsetExtension_s(
+               SUMA_FnameGet(Opt->in_name,"l",SUMAg_CF->cwd), 
+               SUMA_NO_DSET_FORMAT);
+         uname = SUMA_append_extension(s1,s2);      
+         SUMA_free(s1); SUMA_free(s2);
+         oname = SUMA_WriteDset_s (uname, dseto, Opt->oform, 1, 1);
          if (Opt->NodeDbg>= 0) SUMA_S_Notev("Wrote %s\n", oname);
          if (oname) SUMA_free(oname); oname=NULL;
          if (uname) SUMA_free(uname); oname=NULL;

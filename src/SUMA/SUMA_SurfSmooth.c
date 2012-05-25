@@ -1156,7 +1156,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          case SUMA_LB_FEM:
             /* form autoname  */
             Opt->oform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
-            Opt->out_name = SUMA_RemoveDsetExtension_s(Opt->in_name, Opt->oform);
+            Opt->out_name = SUMA_RemoveDsetExtension_s(Opt->in_name, 
+                                                               Opt->oform);
             Opt->out_name = SUMA_append_replace_string(Opt->out_name, "_sm", 
                                                 "", 1); /* add _sm to prefix */
             Opt->out_name = SUMA_append_replace_string(Opt->out_name, 

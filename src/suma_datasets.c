@@ -13949,8 +13949,7 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
          SUMA_RETURN(ans);
       } else { /* add extension */
          SUMA_LH("NoMatch, adding extension");
-         ans = (char *)SUMA_malloc((nfilename+next+1)*sizeof(char));
-         sprintf(ans,"%s%s", filename, ext);
+         ans = SUMA_append_extension(filename, ext);
          SUMA_RETURN(ans);
       }
    }else {
@@ -14804,6 +14803,28 @@ char *args_in_simple_quotes(char **argv, int *kar, int N_argv, int clearused)
       return(aq);
    }  
    return(NULL);
+}
+
+char * SUMA_append_extension(char *s1, char *s2)
+{
+   static char FuncName[]={"SUMA_append_extension"};
+   char *s1c = NULL;
+   int ns1c=0;
+   
+   SUMA_ENTRY;
+   
+   /* remove last dot */
+   if (s1) {
+      s1c = SUMA_copy_string(s1);
+      ns1c = strlen(s1);
+      if (s1c[ns1c-1]=='.') s1c[ns1c-1]='\0';
+   }
+   
+   /* remove first dot */
+   if (s2 && s2[0] == '.') ++s2;
+   
+   /* put them together */
+   RETURN(SUMA_append_replace_string(s1c, s2, ".", 1));
 }
 
 /*!

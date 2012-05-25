@@ -1676,6 +1676,7 @@ char *args_in_quotes(char **argv, int *kar, int N_argv, char *opq,
 char *args_in_niml_quotes(char **argv, int *kar, int N_argv, int clearused);
 char *args_in_simple_quotes(char **argv, int *kar, int N_argv, int clearused);
 char * SUMA_append_string(char *s1, char *s2);
+char * SUMA_append_extension(char *s1, char *s2);
 char * SUMA_append_replace_string(  char *s1, char *s2, 
                                     char *Spc, int whichTofree);
 char * SUMA_append_replace_num(char *s1, char *form, double num, SUMA_VARTYPE tp, int whichTofree);
