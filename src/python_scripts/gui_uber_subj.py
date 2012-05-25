@@ -1788,6 +1788,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # View menu - all for static view windows
       self.gvars.MBar_view = self.menuBar().addMenu("&View")
 
+      act0 = self.createAction("updated variables",
+        slot=self.cb_view,
+        tip="display changes from defaults variables")
+
       act1 = self.createAction("afni_proc.py command",
         slot=self.cb_view,
         tip="display current afni_proc.py command")
@@ -1804,8 +1808,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
           slot=self.cb_view,
           tip="show command to populate this interface")
 
-      self.addActions(self.gvars.MBar_view, [act1, act2, act3, None, act4])
+      self.addActions(self.gvars.MBar_view, [act0, None,
+                                             act1, act2, act3, None, act4])
 
+      self.gvars.act_view_vars     = act0
       self.gvars.act_view_ap_cmd   = act1
       self.gvars.act_view_proc     = act2
       self.gvars.act_view_outproc  = act3
@@ -1939,9 +1945,12 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                 - gvars.browser for web links"""
 
       # text window (if None (for now), new windows will be created)
-      # self.gvars.Text_help = None
-      self.gvars.Text_help      = QLIB.TextWindow(parent=self)
-      self.gvars.Text_AP_result = QLIB.TextWindow(parent=self)
+      # for help text
+      self.gvars.Text_help         = QLIB.TextWindow(parent=self)
+      # for output messages from AP_Subject class processing
+      self.gvars.Text_AP_result    = QLIB.TextWindow(parent=self)
+      # to show applied subject variables
+      self.gvars.Text_applied_vars = QLIB.TextWindow(parent=self)
 
       # note whether we have a browser via import
       self.gvars.browser = None
@@ -1956,6 +1965,85 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if self.gvars.browser == None:
          QLIB.guiWarning('Error', 'no browser to use for site: %s'%site,self)
       else: self.gvars.browser.open(site)
+
+   def get_changed_attrs_string(self):
+      """show changes from defaults
+         note: this may depend on analysis type (surf? rest?)
+      """
+
+      vobj = self.svars
+      xobj = USUBJ.g_sdef_strs
+      skiplist = USUBJ.g_svars_not_opt
+
+      rlist = []
+
+      # start with options (things not in skiplist)
+      clist = vobj.changed_attrs(xobj)
+      acount = 0
+      if len(clist) > 0:
+         for attr in clist:
+            if attr in skiplist: continue
+            acount += 1
+            if vobj.get_type(attr) == list:
+               rlist.append('  %-20s : %s' % \
+                            (attr,'[list of %d elements]'%vobj.val_len(attr)))
+            else: rlist.append('  %-20s : %s' % (attr, vobj.val(attr)))
+         if acount > 0:
+            rlist.insert(0, 'options changed from defaults (%d):\n' % acount)
+            rlist.append('')
+         else:
+            rlist.insert(0, 'options: using all defaults\n')
+
+      # now go after ONLY skiplist attrs (these are not as options)
+      clist = vobj.changed_attrs(xobj)
+      acount = 0
+      nlist = []
+      if len(clist) > 0:
+         for attr in clist:
+            if attr not in skiplist: continue
+            if attr == 'name': continue
+            acount += 1
+            if vobj.get_type(attr) == list:
+               nlist.append('  %-20s : %s' % \
+                            (attr,'[list of %d elements]'%vobj.val_len(attr)))
+            else: nlist.append('  %-20s : %s' % (attr, vobj.val(attr)))
+         if acount > 0:
+            nlist.insert(0, 'applied subject variables (%d):\n' % acount)
+         else:
+            nlist.insert(0, '** no subject variables set?\n')
+         nlist.append('')
+         rlist.extend(nlist)
+
+      if len(rlist) == 0: return '** using all defaults'
+      clist = vobj.deleted_attrs(xobj)
+      if len(clist) > 0:
+         rlist.append('deleted vars (%d):\n' % len(clist)) 
+         for attr in clist:
+            rlist.append('  %s' % attr)
+         rlist.append('')
+
+      if len(rlist) == 0: return '** using all defaults'
+
+      return '\n'.join(rlist)
+
+   def update_applied_vars_window(self, win=None, text='', title='', fname=''):
+      """default window is Text_AP_result
+         - if fname, read file
+           else if text, use text
+           else (likely case), show changed_attrs
+      """
+      if win: window = win
+      else:   window = self.gvars.Text_applied_vars
+
+      if text == '': text = self.get_changed_attrs_string()
+
+      if title: window.setWindowTitle(title)
+      if fname: # then read from file
+         window.filename = fname
+         window.readfile()
+      else: window.editor.setText(text)
+      window.show()
+      window.raise_()
 
    def update_AP_result_window(self, win=None, text='', title='', fname=''):
       """default window is Text_AP_result
@@ -2067,6 +2155,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          self.update_AP_warn_window('** proc script not found\n' \
                                     '   (should be file %s)' % fname)
          return
+
+      self.update_applied_vars_window(title="Applied Variables")
 
       self.update_AP_result_window(title="Success!  afni_proc.py command:",
                                    fname=fname)
@@ -2278,6 +2368,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
    def cb_view(self):
       """create permanent windows with given text"""
       obj = self.sender()
+
+      if obj == self.gvars.act_view_vars:
+         self.update_applied_vars_window()
 
       if obj == self.gvars.act_view_ap_cmd:
          self.show_static_file('file_ap', 'afni_proc.py script')

@@ -34,6 +34,16 @@ class VarsObject(object):
 
       return 1
 
+   def get_type(self, atr):
+      """return the type of an object, if atomic, else None
+         return one of int, float, str, list or None
+      """
+
+      val = getattr(self, atr)
+      if type(val) in g_valid_atomic_types: return type(val)
+
+      return None       # not a simple atomic type
+
    def get_atomic_type(self, atr):
       """return the atomic type of an object
          return one of int, float, str, list
@@ -298,6 +308,28 @@ class VarsObject(object):
       if vobj.get_atomic_type(atr) not in g_valid_atomic_types: return False
 
       return self.val(atr) == vobj.val(atr)
+
+   def changed_attrs(self, vobj):
+      """return a list of attributes that differ from those in passed vobj
+      """
+
+      retlist = []
+      for attr in self.attributes():
+         if not self.get_atomic_type(attr): continue
+         if self.val(attr) != vobj.val(attr): retlist.append(attr)
+
+      return retlist
+
+   def deleted_attrs(self, vobj):
+      """return a list of attributes that no longer exist
+         (i.e. they are in the passed vobj, but not the local instance)
+      """
+
+      retlist = []
+      for attr in vobj.attributes():
+         if not hasattr(self, attr): retlist.append(attr)
+
+      return retlist
 
    def valid_atr_type(self, atr='noname', atype=None, alevel=0, exists=0):
       """check for the existence and type of the given variable 'atr'
