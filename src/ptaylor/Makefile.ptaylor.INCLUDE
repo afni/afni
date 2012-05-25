@@ -82,16 +82,9 @@ cluster_floatNOMASK.o:cluster_floatNOMASK.c
 		$(LFLAGS) -lgsl -lgslcblas -lm \
       $(LLIBS) ${PTAYLORLIB}
 
-3dDWUncert2:3dDWUncert2.o ${AFNI_3dOBJS} ${PTAYLORLIB}
-	$(RM) $@
-	$(CC) -o 3dDWUncert2 3dDWUncert2.o  ${AFNI_3dOBJS} \
-		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
-		$(LFLAGS) -lgsl -lgslcblas -lm \
-      $(LLIBS) ${PTAYLORLIB}
 
 
-
-progs: 3dTrackID 3dProbTrackID 3dDWUncert 3dDWUncert2
+progs: 3dTrackID 3dProbTrackID 3dDWUncert
 
 all: ${PTAYLORLIB} progs install 
 
@@ -105,7 +98,6 @@ install:
 	@if [ -f  3dTrackID ]; then mv 3dTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dDWUncert ]; then mv 3dDWUncert ${INSTALLDIR}; fi;
-	@if [ -f  3dDWUncert2 ]; then mv 3dDWUncert2 ${INSTALLDIR}; fi;
 
 afni_install:
 	@echo Installing Binaries...

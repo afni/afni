@@ -5,38 +5,15 @@
  */
 
 
-
-
-// !!!! need to use brick factors??
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>     // AFNIadd
-#include <3ddata.h>     // AFNIadd
+#include <mrilib.h>    
+#include <3ddata.h>    
 #include <TrackIO.h>
 #include <DoTrackit.h>
-
-//#define EPS_V (0.0000001) // for eigvec 'vel' to not have badness dividing
-//#define CONV (3.141592654/180)
-
-// from <editvol.h>
-#define EDIT_DSET_ORIENT(ds,ox,oy,oz)                              \
- do{ THD_ivec3 orixyz ;                                            \
-     LOAD_IVEC3( orixyz , (ox),(oy),(oz) ) ;                       \
-     EDIT_dset_items( (ds) , ADN_xyzorient , orixyz , ADN_none ) ; \
- } while(0)
-
-// from 3dUndump.c
-#define ORCODE(aa) \
-  ( (aa)=='R' ? ORI_R2L_TYPE : (aa)=='L' ? ORI_L2R_TYPE : \
-    (aa)=='P' ? ORI_P2A_TYPE : (aa)=='A' ? ORI_A2P_TYPE : \
-    (aa)=='I' ? ORI_I2S_TYPE : (aa)=='S' ? ORI_S2I_TYPE : ILLEGAL_TYPE )
-
 
 
 void usage_TrackID(int detail) 
@@ -196,13 +173,12 @@ struct io_header
         .hdr_size = 1000};   
 
 int main(int argc, char *argv[]) {
-  int i,j,k,m,n,aa,ii,jj,kk,mm;
+  int i,j,k,m,n,aa,ii,jj,kk,mm,rr;
   int iarg;
   //  byte *mask1=NULL ; // !!! may or may not use these??
   // byte *mask2=NULL ; 
   int nmask1=0;
   int nmask2=0;
-  int mmm;
   THD_3dim_dataset *insetFA = NULL, *insetV1 = NULL, 
                    *insetMD = NULL, *insetL1 = NULL;
   THD_3dim_dataset *mset2=NULL; 
@@ -217,34 +193,28 @@ int main(int argc, char *argv[]) {
 
   char OUT_bin[300];
   char OUT_tracstat[300];
-  char OUT_map[300];
-  char OUT_mask[300];
   char prefix_mask[300];
   char prefix_map[300];
 
   // FACT algopts
-  FILE *fin4, *fin1, *fout0;
+  FILE *fout0;
+  float MinFA=0.2,MaxAngDeg=45,MinL=20.0;
+  float MaxAng;
+  int SeedPerV[3]={2,2,2};
+  int ArrMax=0;
+  float tempvmagn;
   
-  /* default values */
-     float MinFA=0.2,MaxAngDeg=45,MinL=20.0;
-     int SeedPerV[3]={2,2,2}, M=30, bval=1000;
-     //  float SideAng = 45.0; // opening angle for ID
-  
-  
-  int ArrMax;
-  
-  float MaxAng; 
-
   int Nvox=-1;   // tot number vox
-  int Dim[3]; // dim in each dir
-  int Nseed;
+  int Dim[3]={0,0,0}; // dim in each dir
+  int Nseed=0,M=30,bval=1000.;
   int DimSeed[3]; // number of seeds there will be
   float Ledge[3]; // voxel edge lengths
 
   int *ROI1, *ROI2;
-  float *temp_arr;
+  short int *temp_arr;
   char *temp_byte; 
   int **Tforw, **Tback;
+  int **Ttot;
   float **flTforw, **flTback;
   float ****coorded;
   int ****INDEX;
@@ -260,16 +230,16 @@ int main(int argc, char *argv[]) {
   float totlen_phys;
   int Numtract;
 
-  char READS_ch;
-  short int READS_sh; 
   int READS_in;
   float READS_fl;
+  int end[2][3];
+  int test_ind[2][3];
 
   int  roi3_ct=0, id=0;
   float roi3_mu_MD = 0.,roi3_mu_RD = 0.,roi3_mu_L1 = 0.,roi3_mu_FA = 0.;  
   float roi3_sd_MD = 0.,roi3_sd_RD = 0.,roi3_sd_L1 = 0.,roi3_sd_FA = 0.;  
   float tempMD,tempFA,tempRD,tempL1;
-  char dset_or[3] = "RAI";
+  char dset_or[4] = "RAI";
   THD_3dim_dataset *dsetn;
   int TV_switch[3] = {0,0,0};
   TAYLOR_BUNDLE *tb=NULL;
@@ -285,6 +255,8 @@ int main(int argc, char *argv[]) {
   //                    load AFNI stuff
   // ****************************************************************
   // ****************************************************************
+
+  INFO_message("version: ZETA");
 
   /** scan args **/
   if (argc == 1) { usage_TrackID(1); exit(0); }
@@ -401,9 +373,10 @@ int main(int argc, char *argv[]) {
    header1.dim[i] = Dim[i];
    header1.voxel_size[i] = Ledge[i];
    // will want this when outputting file later for TrackVis.
-   TV_switch[i] = (dset_or[i]==header1.voxel_order[i]);
+   TV_switch[i] = !(dset_or[i]==header1.voxel_order[i]);
       }
-
+      dset_or[3]='\0';
+      
       sprintf(in_V1,"%s_V1+orig", argv[iarg]); 
       insetV1 = THD_open_dataset(in_V1);
       if( insetV1 == NULL ) 
@@ -428,11 +401,11 @@ int main(int argc, char *argv[]) {
     if( strcmp(argv[iarg],"-algopt") == 0 ){
       iarg++ ; 
       if( iarg >= argc ) 
-   ERROR_exit("Need argument after '-algopt'");
+         ERROR_exit("Need argument after '-algopt'");
    
       if (!(nel = ReadTractAlgOpts(argv[iarg]))) {
          ERROR_message("Failed to read options in %s\n", argv[iarg]);
-         exit(1);
+         exit(19);
       }
       if (NI_getTractAlgOpts(nel, &MinFA, &MaxAngDeg, &MinL, 
                              SeedPerV, &M, &bval)) {
@@ -515,7 +488,9 @@ int main(int argc, char *argv[]) {
   // and incorrectly in some instances... so, for now, we'll resample
   // everything to RAI, and then resample back later.  guess this will
   // just slow things down slightly.
-   
+  
+    // have all be RAI for processing here
+  if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
     dsetn = r_new_resam_dset(insetFA, NULL, 0.0, 0.0, 0.0,
               dset_or, RESAM_NN_TYPE, NULL, 1, 0);
     DSET_delete(insetFA); 
@@ -551,8 +526,8 @@ int main(int argc, char *argv[]) {
     DSET_delete(mset2); 
     mset2=dsetn;
     dsetn=NULL;
+  }
   
-
   
 
   // ****************************************************************
@@ -569,54 +544,59 @@ int main(int argc, char *argv[]) {
   if(4*Dim[2] > ArrMax)
     ArrMax = Dim[2] * 4;
 
-  ROI1 = (int *)malloc(Nvox * sizeof(int)); 
-  ROI2 = (int *)malloc(Nvox * sizeof(int)); 
-  temp_arr = (float *)malloc(Nvox * sizeof(float)); 
-  temp_byte = (char *)malloc(Nvox * sizeof(char)); 
+  ROI1 = (int *)calloc(Nvox, sizeof(int)); 
+  ROI2 = (int *)calloc(Nvox, sizeof(int)); 
+  temp_arr = (short int *)calloc(Nvox, sizeof(short int)); 
+  temp_byte = (char *)calloc(Nvox, sizeof(char)); 
   // temp storage whilst tracking
-  Tforw = malloc(ArrMax*sizeof(Tforw)); 
+  Tforw = calloc(ArrMax, sizeof(Tforw)); 
   for(i=0 ; i<ArrMax ; i++) 
-    Tforw[i] = malloc(3*sizeof(int)); 
-  Tback = malloc(ArrMax*sizeof(Tback)); 
+    Tforw[i] = calloc(3, sizeof(int)); 
+  Ttot = calloc(2*ArrMax , sizeof(Ttot)); 
+  for(i=0 ; i<2*ArrMax ; i++) 
+    Ttot[i] = calloc(3, sizeof(int)); 
+  Tback = calloc(ArrMax, sizeof(Tback)); 
   for(i=0 ; i<ArrMax ; i++) 
-    Tback[i] = malloc(3*sizeof(int)); 
+    Tback[i] = calloc(3, sizeof(int)); 
   // temp storage whilst tracking, physical loc
-  flTforw = malloc(ArrMax*sizeof(flTforw)); 
+  flTforw = calloc(ArrMax, sizeof(flTforw)); 
   for(i=0 ; i<ArrMax ; i++) 
-    flTforw[i] = malloc(3*sizeof(int)); 
-  flTback = malloc(ArrMax*sizeof(flTback)); 
+    flTforw[i] = calloc(3, sizeof(int)); 
+  flTback = calloc(ArrMax,sizeof(flTback)); 
   for(i=0 ; i<ArrMax ; i++) 
-    flTback[i] = malloc(3*sizeof(int)); 
+    flTback[i] = calloc(3, sizeof(int)); 
   if( (ROI1 == NULL) || (ROI2 == NULL) || (temp_arr == NULL) 
       || (Tforw == NULL) || (Tback == NULL) || (flTforw == NULL) 
-      || (flTback == NULL)) {
+      || (flTback == NULL) || (Ttot == NULL)) {
     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
     exit(12);
   }
   
-  coorded = (float ****) malloc( Dim[0] * sizeof(float ***) );
+  coorded = (float ****) calloc( Dim[0], sizeof(float ***) );
   for ( i = 0 ; i < Dim[0] ; i++ ) 
-    coorded[i] = (float ***) malloc( Dim[1] * sizeof(float **) );
+    coorded[i] = (float ***) calloc( Dim[1], sizeof(float **) );
   for ( i = 0 ; i < Dim[0] ; i++ ) 
     for ( j = 0 ; j < Dim[1] ; j++ ) 
-      coorded[i][j] = (float **) malloc( Dim[2] * sizeof(float *) );
+      coorded[i][j] = (float **) calloc( Dim[2], sizeof(float *) );
   for ( i=0 ; i<Dim[0] ; i++ ) 
     for ( j=0 ; j<Dim[1] ; j++ ) 
       for ( k= 0 ; k<Dim[2] ; k++ ) //3 comp of V1 and FA
-   coorded[i][j][k] = (float *) malloc( 4 * sizeof(float) ); 
+   coorded[i][j][k] = (float *) calloc( 4, sizeof(float) ); 
   
-  INDEX = (int ****) malloc( Dim[0] * sizeof(int ***) );
+  INDEX = (int ****) calloc( Dim[0], sizeof(int ***) );
   for ( i = 0 ; i < Dim[0] ; i++ ) 
-    INDEX[i] = (int ***) malloc( Dim[1] * sizeof(int **) );
+    INDEX[i] = (int ***) calloc( Dim[1], sizeof(int **) );
   for ( i = 0 ; i < Dim[0] ; i++ ) 
     for ( j = 0 ; j < Dim[1] ; j++ ) 
-      INDEX[i][j] = (int **) malloc( Dim[2] * sizeof(int *) );
+      INDEX[i][j] = (int **) calloc( Dim[2], sizeof(int *) );
   for ( i=0 ; i<Dim[0] ; i++ ) 
     for ( j=0 ; j<Dim[1] ; j++ ) 
       for ( k= 0 ; k<Dim[2] ; k++ ) 
-   INDEX[i][j][k] = (int *) malloc( 4 * sizeof(int) );
-
-  if( (INDEX == NULL) || (coorded == NULL) ) {
+   INDEX[i][j][k] = (int *) calloc( 4,  sizeof(int) );
+  
+  if( (INDEX == NULL) || (coorded == NULL) ) { /* this statement will  
+                                               never be executed if allocation
+                                               fails above */
     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
     exit(122);
   }
@@ -641,7 +621,17 @@ int main(int argc, char *argv[]) {
    for( m=0 ; m<3 ; m++ ) 
      coorded[i][j][k][m] = THD_get_voxel(insetV1, idx, m);
    coorded[i][j][k][3] = THD_get_voxel(insetFA, idx, 0); 
-
+   
+   // make sure that |V1| == 1 for all eigenvects, otherwise it's
+   /// a problem in the tractography; currently, some from
+   // 3dDWItoDT do not have this property...
+   tempvmagn = sqrt(coorded[i][j][k][0]*coorded[i][j][k][0]+
+          coorded[i][j][k][1]*coorded[i][j][k][1]+
+          coorded[i][j][k][2]*coorded[i][j][k][2]);
+   if( tempvmagn<0.99 ) 
+     for( m=0 ; m<3 ; m++ ) 
+       coorded[i][j][k][m]/= tempvmagn;
+   
    INDEX[i][j][k][0] =idx; // first value is the index itself
    if( ROI1[idx]==1 ) 
      INDEX[i][j][k][1]=1; // second value identifies ROI1 mask
@@ -733,31 +723,61 @@ int main(int argc, char *argv[]) {
       totlen_phys = phys_forw[0] + phys_back[0];
 
       if( totlen_phys >= MinL ) {
+   
+         // glue together for simpler notation later
+         for( n=0 ; n<len_back ; n++) { // all of this
+           rr = len_back-n-1; // read in backward
+           for(m=0;m<3;m++)
+             Ttot[rr][m] = Tback[n][m];
+         }
+         for( n=1 ; n<len_forw ; n++) { // skip first->overlap
+           rr = n+len_back-1; // put after
+           for(m=0;m<3;m++)
+             Ttot[rr][m] = Tforw[n][m];
+         }
+         // <<So close and orthogonal condition>>:
+         // test projecting ends, to see if they abut ROI.  
+         for(m=0;m<3;m++) { 
+           //actual projected ends
+           end[1][m] = 2*Ttot[totlen-1][m]-Ttot[totlen-2][m];
+           end[0][m] = 2*Ttot[0][m]-Ttot[1][m];
+           // default choice, just retest known ends as default
+           test_ind[1][m] = test_ind[0][m] = Ttot[0][m];
+         }
+
         tt = Create_Tract(len_back, flTback, len_forw, 
                           flTforw, id, insetFA); ++id; 
         
         if (LOG_TYPE == -1) {
            KEEPIT = 1; 
         } else {
-           inroi1 = 0;
-           // check forw
-           for( n=0 ; n<len_forw ; n++) {
-             if(INDEX[Tforw[n][0]][Tforw[n][1]][Tforw[n][2]][1]==1){
-               inroi1 = 1;
-               break;
-             }
-             else
-               continue;
+            inroi1 = 0;
+            // check forw
+            for( n=0 ; n<len_forw ; n++) {
+            /* fprintf(stderr,"ZSS: n=%d, Dim=[%d %d %d], "
+                              "Tforw[n]=[%d %d %d]\n",
+                     n, Dim[0], Dim[1], Dim[2], Tforw[n][0], 
+                     Tforw[n][1], Tforw[n][2]); */
+               if(INDEX[Tforw[n][0]][Tforw[n][1]][Tforw[n][2]][1]==1){
+                  inroi1 = 1;
+                  break;
+               } else
+                  continue;
            }
            if( inroi1==0 ) { // after 1st half, check 2nd half
              for( m=0 ; m<len_back ; m++) {
                if(INDEX[Tback[m][0]][Tback[m][1]][Tback[m][2]][1]==1){
-            inroi1 = 1;
-            break;
-               }
-               else
-            continue;
+                  inroi1 = 1;
+                  break;
+               } else
+                  continue;
              }
+           }
+           if( inroi1==0 ) { // after 1st&2nd halves, check bound/neigh
+             if(INDEX[test_ind[1][0]][test_ind[1][1]][test_ind[1][2]][1]==1)
+               inroi1 = 1;
+             if(INDEX[test_ind[0][0]][test_ind[0][1]][test_ind[0][2]][1]==1)
+               inroi1 = 1;
            }
 
            if( ((LOG_TYPE ==0) && (inroi1 ==0)) || 
@@ -768,30 +788,34 @@ int main(int argc, char *argv[]) {
              // check forw
              for( n=0 ; n<len_forw ; n++) {
                if(INDEX[Tforw[n][0]][Tforw[n][1]][Tforw[n][2]][2]==1){
-            inroi2 = 1;
-            break;
-               }
-               else
-            continue;
+                  inroi2 = 1;
+                  break;
+               } else
+                  continue;
              }
              if( inroi2==0 ) { //after 1st half, check 2nd half
                for( m=0 ; m<len_back ; m++) {
-            if(INDEX[Tback[m][0]][Tback[m][1]][Tback[m][2]][2]==1){
-              inroi2 = 1;
-              break;
-            }
-            else
-              continue;
+                  if(INDEX[Tback[m][0]][Tback[m][1]][Tback[m][2]][2]==1){
+                     inroi2 = 1;
+                     break;
+                  } else
+                     continue;
                }
              }
-
+       
+             if( inroi2==0 ) { // after 1st&2nd halves, check bound/neigh
+               if(INDEX[test_ind[1][0]][test_ind[1][1]][test_ind[1][2]][2]==1)
+                  inroi2 = 1;
+               if(INDEX[test_ind[0][0]][test_ind[0][1]][test_ind[0][2]][2]==1)
+                  inroi2 = 1;
+             }
+       
              // for both cases, need to see it here to keep
              if( inroi2 ==1 )
                KEEPIT = 1; // otherwise, it's gone
 
-           }
-           else if((LOG_TYPE ==0) && (inroi1 ==1))
-             KEEPIT = 1;
+           } else if((LOG_TYPE ==0) && (inroi1 ==1))
+                   KEEPIT = 1;
          }
       }
       
@@ -808,8 +832,8 @@ int main(int argc, char *argv[]) {
             // recenter phys loc for trackvis, if nec...
             // just works this way (where they define origin)
             READS_fl = flTback[m][aa];
-            if(TV_switch[aa])
-         READS_fl = Ledge[aa]*Dim[aa]-READS_fl;
+            if(!TV_switch[aa])
+               READS_fl = Ledge[aa]*Dim[aa]-READS_fl;
             fwrite(&READS_fl,sizeof(READS_fl),1,fout0);
           }
           mm = INDEX[Tback[m][0]][Tback[m][1]][Tback[m][2]][0];
@@ -827,8 +851,8 @@ int main(int argc, char *argv[]) {
           for(aa=0 ; aa<3 ; aa++) {
             // recenter phys loc for trackvis, if nec...
             READS_fl = flTforw[m][aa];
-            if(TV_switch[aa])
-         READS_fl = Ledge[aa]*Dim[aa]-READS_fl;
+            if(!TV_switch[aa])
+               READS_fl = Ledge[aa]*Dim[aa]-READS_fl;
             fwrite(&READS_fl,sizeof(READS_fl),1,fout0);
           }
           mm = INDEX[Tforw[m][0]][Tforw[m][1]][Tforw[m][2]][0];
@@ -868,21 +892,21 @@ int main(int argc, char *argv[]) {
   for( k=0 ; k<Dim[2] ; k++ ) 
     for( j=0 ; j<Dim[1] ; j++ ) 
       for( i=0 ; i<Dim[0] ; i++ ) {
-   if( INDEX[i][j][k][3]>=1 ) {
-     tempMD = THD_get_voxel(insetMD,INDEX[i][j][k][0],0);
-     tempFA = THD_get_voxel(insetFA,INDEX[i][j][k][0],0);
-     tempL1 = THD_get_voxel(insetL1,INDEX[i][j][k][0],0);
-     tempRD = 0.5*(3*tempMD-tempL1);
-     roi3_mu_MD+= tempMD;
-     roi3_mu_FA+= tempFA;
-     roi3_mu_L1+= tempL1;
-     roi3_mu_RD+= tempRD;
-     roi3_sd_MD+= tempMD*tempMD;
-     roi3_sd_FA+= tempFA*tempFA;
-     roi3_sd_L1+= tempL1*tempL1;
-     roi3_sd_RD+= tempRD*tempRD;
-     roi3_ct+= 1;
-   }
+         if( INDEX[i][j][k][3]>=1 ) {
+           tempMD = THD_get_voxel(insetMD,INDEX[i][j][k][0],0);
+           tempFA = THD_get_voxel(insetFA,INDEX[i][j][k][0],0);
+           tempL1 = THD_get_voxel(insetL1,INDEX[i][j][k][0],0);
+           tempRD = 0.5*(3*tempMD-tempL1);
+           roi3_mu_MD+= tempMD;
+           roi3_mu_FA+= tempFA;
+           roi3_mu_L1+= tempL1;
+           roi3_mu_RD+= tempRD;
+           roi3_sd_MD+= tempMD*tempMD;
+           roi3_sd_FA+= tempFA*tempFA;
+           roi3_sd_L1+= tempL1*tempL1;
+           roi3_sd_RD+= tempRD*tempRD;
+           roi3_ct+= 1;
+         }
       }
   
   if(roi3_ct > 0 ) { // !!!! make into afni file
@@ -925,7 +949,7 @@ int main(int argc, char *argv[]) {
 
     outsetMAP = EDIT_empty_copy( mset1 ) ;
     EDIT_dset_items( outsetMAP ,
-               ADN_datum_all , MRI_float , 
+               ADN_datum_all , MRI_short , 
                ADN_prefix    , prefix_map ,
                ADN_none ) ;
     if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetMAP)) )
@@ -944,31 +968,54 @@ int main(int argc, char *argv[]) {
     m=0;
     for( k=0 ; k<Dim[2] ; k++ ) 
       for( j=0 ; j<Dim[1] ; j++ ) 
-   for( i=0 ; i<Dim[0] ; i++ ) {
-     temp_arr[m]=INDEX[i][j][k][3];
-     if(temp_arr[m]>0.5)
-       temp_byte[m]=1;
-     else
-       temp_byte[m]=0;
-     m++;
-   }
+         for( i=0 ; i<Dim[0] ; i++ ) {
+           temp_arr[m]=INDEX[i][j][k][3];
+           if(temp_arr[m]>0.5)
+             temp_byte[m]=1;
+           else
+             temp_byte[m]=0;
+           m++;
+         }
     
-    // re-orient the data as original inputs
-    EDIT_substitute_brick(outsetMAP, 0, MRI_float, temp_arr);
-    EDIT_DSET_ORIENT(outsetMAP, // have to make sure this way is fine enough!!!
-           ORCODE(header1.voxel_order[0]),
-           ORCODE(header1.voxel_order[1]),
-           ORCODE(header1.voxel_order[2]) );
+    // re-orient the data as original inputs 
+    // (this function copies the pointer)
+    EDIT_substitute_brick(outsetMAP, 0, MRI_short, temp_arr); 
+    temp_arr=NULL;
+    if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
+      dsetn = r_new_resam_dset(outsetMAP, NULL, 0.0, 0.0, 0.0,
+                header1.voxel_order, RESAM_NN_TYPE, 
+                NULL, 1, 0);
+      DSET_delete(outsetMAP); 
+      outsetMAP=dsetn;
+      dsetn=NULL;
+    }
+    EDIT_dset_items( outsetMAP ,
+           ADN_prefix    , prefix_map ,
+           ADN_none ) ;
     THD_load_statistics(outsetMAP );
+    if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetMAP)) )
+      ERROR_exit("Can't overwrite existing dataset '%s'",
+       DSET_HEADNAME(outsetMAP));
     tross_Make_History( "3dTrackID" , argc , argv ,  outsetMAP) ;
     THD_write_3dim_dataset(NULL, NULL, outsetMAP, True);
     // re-orient the data as original inputs
     EDIT_substitute_brick(outsetMASK, 0, MRI_byte, temp_byte);
-    EDIT_DSET_ORIENT(outsetMASK,
-           ORCODE(header1.voxel_order[0]),
-           ORCODE(header1.voxel_order[1]),
-           ORCODE(header1.voxel_order[2]) );
+    temp_byte=NULL;
+    if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
+      dsetn = r_new_resam_dset(outsetMASK, NULL, 0.0, 0.0, 0.0,
+                header1.voxel_order, RESAM_NN_TYPE, 
+                NULL, 1, 0);
+      DSET_delete(outsetMASK); 
+      outsetMASK=dsetn;
+      dsetn=NULL;
+    }
+    EDIT_dset_items( outsetMASK ,
+           ADN_prefix    , prefix_mask ,
+           ADN_none ) ;
     THD_load_statistics(outsetMASK);
+    if(!THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetMASK)) )
+      ERROR_exit("Can't overwrite existing dataset '%s'",
+       DSET_HEADNAME(outsetMASK));
     tross_Make_History( "3dTrackID" , argc , argv ,  outsetMASK) ;
     THD_write_3dim_dataset(NULL, NULL, outsetMASK, True);
 
@@ -1006,7 +1053,8 @@ int main(int argc, char *argv[]) {
   
   free(ROI1);
   free(ROI2);
-  free(temp_arr);
+  /* free(temp_arr); */ /* ZSS This should not be done, 
+                           temp_arr has been copied into dset*/
   free(temp_byte);
   
   for( i=0 ; i<ArrMax ; i++) {
@@ -1023,7 +1071,7 @@ int main(int argc, char *argv[]) {
   for( i=0 ; i<Dim[0] ; i++) 
     for( j=0 ; j<Dim[1] ; j++) 
       for( k=0 ; k<Dim[2] ; k++) 
-   free(coorded[i][j][k]);
+         free(coorded[i][j][k]);
   for( i=0 ; i<Dim[0] ; i++) 
     for( j=0 ; j<Dim[1] ; j++) 
       free(coorded[i][j]);
@@ -1034,7 +1082,7 @@ int main(int argc, char *argv[]) {
   for( i=0 ; i<Dim[0] ; i++) 
     for( j=0 ; j<Dim[1] ; j++) 
       for( k=0 ; k<Dim[2] ; k++) 
-   free(INDEX[i][j][k]);
+         free(INDEX[i][j][k]);
   for( i=0 ; i<Dim[0] ; i++) 
     for( j=0 ; j<Dim[1] ; j++) 
       free(INDEX[i][j]);

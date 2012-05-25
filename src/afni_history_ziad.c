@@ -66,6 +66,16 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25, May , 2012 , ZSS , "SurfToSurf" , MICRO , TYPE_BUG_FIX,
+   "Improve auto-name generation and enabled output format specification",
+   NULL
+ },
+ 
+ { 24, May , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
+   "Merger of changes in P. Taylor's code",
+   NULL
+ },
+ 
  { 23, May , 2012 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
    "Allow label-based selection for annotation files",
    "See function: process_NSD_labeltable(), now you can do something like:\n"
