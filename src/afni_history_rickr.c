@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, MAY, 2012, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "display modified options and subject defaults",
+   NULL
+ } ,
+
  { 22, MAY, 2012, RCR, "uber_subject.py", MINOR, TYPE_NEW_OPT,
    "added regress_bandpass and regress_mot_deriv (probably for resting state)",
    NULL
