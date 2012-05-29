@@ -2410,6 +2410,7 @@ ENTRY("ISQ_adjust_crop") ;
    ISQ_redisplay( seq , -1 , isqDR_display ) ;
    EXRETURN ;
 }
+
 /*---------------------------------------------------------------------*/
 
 void ISQ_set_crop_hint( MCW_imseq *seq )
