@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 30 , MAY, 2012 , DRG , "3dinfo, 3drefit" , 
+    MINOR , TYPE_MODIFY, 
+    "av_space option handling and orig/other space refitting",
+    "3dinfo reports view extension for -av_space instead of generic\n"
+    "space view extension. 3drefit will warn if setting non-orig\n"
+    "space on orig view data or orig space on tlrc view data."
+} ,
 { 24 , MAY, 2012 , DRG , "3dDWItoDT" , 
     MINOR , TYPE_NEW_OPT, 
     "csf_val and csf_fa options apply to linear solutions too"

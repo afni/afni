@@ -640,11 +640,11 @@ int main( int argc , char *argv[] )
             tempstr = THD_get_view_space(dset);
             if(tempstr==NULL)
                   fprintf(stdout, "+orig");
-            else if (!strncmp(tempstr,"ORIG",4)) 
+            else if (!strncasecmp(tempstr,"ORIG",4)) 
                   fprintf(stdout, "+orig");
-            else if (!strncmp(tempstr,"ACPC",4)) 
+            else if (!strncasecmp(tempstr,"ACPC",4)) 
                   fprintf(stdout, "+acpc");
-            else if (!strncmp(tempstr,"TLRC",4)) 
+            else if (!strncasecmp(tempstr,"TLRC",4)) 
                   fprintf(stdout, "+tlrc");
             else  /* shouldn't get here */
                   fprintf(stdout, "+orig");
