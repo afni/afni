@@ -104,6 +104,10 @@ char * THD_get_view_space(THD_3dim_dataset *dset)
    ENTRY("THD_get_view_space");
 
    if(!dset) RETURN(NULL);
+   spcstr = dset->dblk->diskptr->viewcode;
+   if(spcstr != NULL)
+      RETURN(spcstr);
+
    spcstr = THD_get_generic_space(dset); /* space from dataset structure - do not free */
 
    if (strcmp(spcstr, "ORIG")==0)
@@ -111,7 +115,6 @@ char * THD_get_view_space(THD_3dim_dataset *dset)
    if (strcmp(spcstr, "ACPC")==0)
       RETURN("ACPC");
    /* all other spaces are assumed to be TLRC */
-/*   if (strcmp(space, "TLRC")==0) || (strcmp(space, "MNI_ANAT")==0) || (strcmp(space, "MNI")==0))*/
    RETURN("TLRC");
 }
 
