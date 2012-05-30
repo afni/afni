@@ -1700,9 +1700,28 @@ int main( int argc , char * argv[] )
 
       /* set the space of the dataset */
       if(space) {
-            MCW_strncpy(dset->atlas_space, spacename, THD_MAX_NAME);
-            did_something++;
+         int old_vtype = dset->view_type ;
+         /* check if trying to assign a non-orig space to orig view data */
+         if( strcmp("orig",VIEW_codestr[old_vtype]) == 0 ) {
+            if(strncmp(spacename, "ORIG", 4)!=0){
+               WARNING_message("Changing the space of an ORIG view dataset may cause confusion!");
+               WARNING_message(" NIFTI copies will be interpreted as TLRC view (not TLRC space).");
+               WARNING_message(" Consider changing the view of the dataset to TLRC view also");
+            }
+         }
+         /* check if trying to assign orig space to tlrc view data */
+         else if( strcmp("tlrc",VIEW_codestr[old_vtype]) == 0 ) {
+            if(strncmp(spacename, "ORIG", 4)==0){
+               WARNING_message("Changing the space of a TLRC view dataset to an ORIG type may cause confusion!");
+               WARNING_message(" NIFTI copies will be interpreted as ORIG view.");
+               WARNING_message(" Consider changing the view of the dataset to ORIG view also");
+            }
+         }
+         /* actually update the space */
+         MCW_strncpy(dset->atlas_space, spacename, THD_MAX_NAME);
+         did_something++;
       }
+
       /* set the colormap type of the dataset */
       if(cmap>=0)
       {
