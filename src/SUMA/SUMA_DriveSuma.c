@@ -46,7 +46,7 @@ static char uDS_viewer_cont[]={
 };
 static char uDS_recorder_cont[]={
 "       DriveSuma -com  recorder_cont -save_as allanimgif.agif \\\n"
-"                 -com  recorder_cont -save_as lastone.jpg \\\n"
+"                 -com  recorder_cont -save_last lastone.jpg \\\n"
 "                 -com  recorder_cont -save_as three.jpg -save_index 3\\\n"
 "                 -com  recorder_cont -save_as some.png -save_range 3 6\n"
 };

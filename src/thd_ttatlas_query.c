@@ -4650,7 +4650,7 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname)
             trouble */
          if (THD_is_file( hout)) {
             snprintf(scomm, 1000*sizeof(char),
-               "chmod u+w %s", hout);
+               "chmod u+w %s > /dev/null 2>&1", hout);
             system(scomm); 
          }
          snprintf(scomm, 1000*sizeof(char),
@@ -4667,7 +4667,7 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname)
          } while (ml != mn && cnt < 20);
          
          snprintf(scomm, 1000*sizeof(char),
-               "chmod a-w %s", hout);
+               "chmod a-w %s > /dev/null 2>&1", hout);
          system(scomm); 
          prog_complete_command(etr, houtc);
       }
