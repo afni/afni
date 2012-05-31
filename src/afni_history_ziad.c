@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 31, May , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
+   "Merged ptaylor's code changes into the distribution",
+   NULL
+ },
+ 
  { 25, May , 2012 , ZSS , "SurfToSurf" , MICRO , TYPE_BUG_FIX,
    "Improve auto-name generation and enabled output format specification",
    NULL

@@ -6,7 +6,7 @@ static int NI_tract_type = -1;
 int get_NI_tract_type(void) {
    if (NI_tract_type == -1) {
       if ((NI_tract_type = NI_rowtype_define("TAYLOR_TRACT_DATUM", 
-                                        TAYLOR_TRACT_DATUM_NIML_DEF)) < 0) {
+															TAYLOR_TRACT_DATUM_NIML_DEF)) < 0) {
          ERROR_message("Failed to define NIML tract type");
          return(-2);
       }
@@ -20,12 +20,12 @@ void set_tract_verb(int v) { tract_verb=v; return; }
 
 /*!
 
-   tracts_buff (TAYLOR_TRACT *) array of N_tractsbuf tracts. 
-                                free tracts_buff when this
-                                function returns.
+  tracts_buff (TAYLOR_TRACT *) array of N_tractsbuf tracts. 
+  free tracts_buff when this
+  function returns.
                                  
-   grid (THD_3dim_dataset *) grid defining coordinate space.
-                             Only used at initialization level
+  grid (THD_3dim_dataset *) grid defining coordinate space.
+  Only used at initialization level
 */ 
 TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf, 
                                TAYLOR_TRACT *tracts_buff, 
@@ -63,7 +63,7 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
          tt->pts = (float *)calloc(tt->N_pts3, sizeof(float));
          if (tract_verb > 1 && nn<3) {
             fprintf(stderr,"AppCreateBundle %d , id %d, N_pts %d, pts %p\n",
-                  nn, tt->id, TRACT_NPTS(tt), tracts_buff[nn].pts);
+						  nn, tt->id, TRACT_NPTS(tt), tracts_buff[nn].pts);
          }
          memcpy(tt->pts, tracts_buff[nn].pts, tt->N_pts3*sizeof(float));
       }
@@ -74,12 +74,12 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
 }
 
 /*!
-   grid (THD_3dim_dataset *) Without the grid structure, coordinates
-                             will not be in RAI, but in UHU, unholy units.
+  grid (THD_3dim_dataset *) Without the grid structure, coordinates
+  will not be in RAI, but in UHU, unholy units.
 */
 TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB, 
-                          int N_ptsF, float **pts_buffF,
-                          int id, THD_3dim_dataset *grid)
+									int N_ptsF, float **pts_buffF,
+									int id, THD_3dim_dataset *grid)
 {
    TAYLOR_TRACT *tt=NULL;
    int kk = 0, ii=0;
@@ -171,7 +171,7 @@ void Show_Taylor_Tract(TAYLOR_TRACT *tt, FILE *out, int show_maxu)
    else show_max = show_maxu;
    for (ii=0; ii<show_max; ++ii) {
       fprintf(out, "   %f %f %f\n", 
-               tt->pts[3*ii], tt->pts[3*ii+1],tt->pts[3*ii+2]);
+				  tt->pts[3*ii], tt->pts[3*ii+1],tt->pts[3*ii+2]);
    }  
    EXRETURN;
 }
@@ -274,7 +274,7 @@ TAYLOR_TRACT *NIel_2_Tracts(NI_element *nel, int *N_tracts)
    } else if (!strcmp(nel->name,"tracts")) {
       if (nel->vec_typ[0] != get_NI_tract_type()) {
          ERROR_message("Bad vec_type, have %d, expected %d",
-               nel->vec_typ[0], get_NI_tract_type());
+							  nel->vec_typ[0], get_NI_tract_type());
          RETURN(NULL);
       }
       *N_tracts = nel->vec_len;
@@ -286,7 +286,7 @@ TAYLOR_TRACT *NIel_2_Tracts(NI_element *nel, int *N_tracts)
          tt[nn].pts = (float *)calloc(ttn->N_pts3, sizeof(float));
          if (tract_verb && nn<3) {
             fprintf(stderr,"NIel_2_Tracts %d , id %d, N_pts %d, pts %p\n",
-                  nn, ttn->id, TRACT_NPTS(ttn), ttn->pts);
+						  nn, ttn->id, TRACT_NPTS(ttn), ttn->pts);
          }
          memcpy(tt[nn].pts, ttn->pts, ttn->N_pts3*sizeof(float));
       }       
@@ -350,42 +350,42 @@ TAYLOR_BUNDLE *NIgr_2_Bundle(NI_group *ngr)
       tb = (TAYLOR_BUNDLE *)calloc(1,sizeof(TAYLOR_BUNDLE));
       for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
          switch( ngr->part_typ[ip] ){
-            case NI_GROUP_TYPE:
-               if (!(bad = NI_get_attribute(ngr,"bundle_aux_dset"))) {
-                  WARNING_message("Got unknown group in here! Plodding along");
-               }
-               if (!strcmp(bad,"grid")) {
-                  tb->grid = THD_niml_to_dataset((NI_group*)ngr->part[ip], 0);
-               } else if (!strcmp(bad,"FA")) {
-                  tb->FA = THD_niml_to_dataset((NI_group*)ngr->part[ip], 0);
-               } else {
-                  WARNING_message("Not ready to feel the love for %s\n", bad);
-               }  
-               if ((sbuf = NI_get_attribute((NI_group*)ngr->part[ip]
-                                                      ,"atlas_space"))) {
-                  snprintf(tb->atlas_space,64*sizeof(char),"%s",sbuf);
-               } else {
-                  snprintf(tb->atlas_space,64*sizeof(char),"UNKNOWN");
-               }
-               break ;
-            case NI_ELEMENT_TYPE:
-               nel = (NI_element *)ngr->part[ip] ;
-               if (!strcmp(nel->name,"tract") || !strcmp(nel->name,"tracts")) {
-                  if ((tt = NIel_2_Tracts(nel, &N_tracts))) {
-                     tb = AppCreateBundle(tb, N_tracts, tt, NULL); 
-                     tt = Free_Tracts(tt, N_tracts);
-                  } else {
-                     WARNING_message("Failed to interpret nel tract,"
-                                     " ignoring.\n");
-                  }
-               } else {
-                  WARNING_message("Don't know about nel %s\n", nel->name);
-               }
-               break;
-            default:
-               ERROR_message("Don't know what to make of this "
-                           "group element, ignoring.");
-               break;
+			case NI_GROUP_TYPE:
+				if (!(bad = NI_get_attribute(ngr,"bundle_aux_dset"))) {
+					WARNING_message("Got unknown group in here! Plodding along");
+				}
+				if (!strcmp(bad,"grid")) {
+					tb->grid = THD_niml_to_dataset((NI_group*)ngr->part[ip], 0);
+				} else if (!strcmp(bad,"FA")) {
+					tb->FA = THD_niml_to_dataset((NI_group*)ngr->part[ip], 0);
+				} else {
+					WARNING_message("Not ready to feel the love for %s\n", bad);
+				}  
+				if ((sbuf = NI_get_attribute((NI_group*)ngr->part[ip]
+													  ,"atlas_space"))) {
+					snprintf(tb->atlas_space,64*sizeof(char),"%s",sbuf);
+				} else {
+					snprintf(tb->atlas_space,64*sizeof(char),"UNKNOWN");
+				}
+				break ;
+			case NI_ELEMENT_TYPE:
+				nel = (NI_element *)ngr->part[ip] ;
+				if (!strcmp(nel->name,"tract") || !strcmp(nel->name,"tracts")) {
+					if ((tt = NIel_2_Tracts(nel, &N_tracts))) {
+						tb = AppCreateBundle(tb, N_tracts, tt, NULL); 
+						tt = Free_Tracts(tt, N_tracts);
+					} else {
+						WARNING_message("Failed to interpret nel tract,"
+											 " ignoring.\n");
+					}
+				} else {
+					WARNING_message("Don't know about nel %s\n", nel->name);
+				}
+				break;
+			default:
+				ERROR_message("Don't know what to make of this "
+								  "group element, ignoring.");
+				break;
          }
       }
    } 
@@ -533,7 +533,7 @@ TAYLOR_BUNDLE * Read_Bundle(char *name)
 }
 
 
-int NI_getTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAng, 
+int NI_getTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAngDeg, 
                        float *MinL, int *SeedPerV, int *M, int *bval)
 {
    char *atr=NULL;
@@ -544,8 +544,8 @@ int NI_getTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAng,
    if (MinFA && (atr=NI_get_attribute(nel,"Thresh_FA"))) {
       *MinFA = (float)strtod(atr,NULL);
    }
-   if (MaxAng && (atr=NI_get_attribute(nel,"Thresh_ANG"))) {
-      *MaxAng = (float)strtod(atr,NULL);
+   if (MaxAngDeg && (atr=NI_get_attribute(nel,"Thresh_ANG"))) {
+      *MaxAngDeg = (float)strtod(atr,NULL);
    }
    if (MinL && (atr=NI_get_attribute(nel,"Thresh_Len"))) {
       *MinL = (float)strtod(atr,NULL);
@@ -568,8 +568,9 @@ int NI_getTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAng,
    RETURN(0);
 }
 
-NI_element * NI_setTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAng, 
-                     float *MinL, int *SeedPerV, int *M, int *bval)
+NI_element * NI_setTractAlgOpts(NI_element *nel, float *MinFA, 
+										  float *MaxAngDeg, float *MinL, 
+										  int *SeedPerV, int *M, int *bval)
 {   
    ENTRY("NI_setTractAlgOpts");
    
@@ -578,8 +579,8 @@ NI_element * NI_setTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAng,
    if (MinFA ) {
       NI_SETA_FLOAT(nel,"Thresh_FA",*MinFA);
    }
-   if (MaxAng) {
-      NI_SETA_FLOAT(nel,"Thresh_ANG",*MaxAng);
+   if (MaxAngDeg) {
+      NI_SETA_FLOAT(nel,"Thresh_ANG",*MaxAngDeg);
    }
    if (MinL) {
       NI_SETA_FLOAT(nel,"Thresh_Len",*MinL);
@@ -603,7 +604,7 @@ NI_element * ReadTractAlgOpts(char *fname)
 {
    NI_stream ns=NULL;
    NI_element *nel=NULL;
-   float MinFA, MaxAng, MinL;
+   float MinFA, MaxAngDeg, MinL;
    int SeedPerV[3], M, bval;
    char *strm=NULL;
    FILE *fin4=NULL;
@@ -627,15 +628,15 @@ NI_element * ReadTractAlgOpts(char *fname)
    } else {
       // Opening/Reading in FACT params
       if( (fin4 = fopen(fname, "r")) == NULL) {
-   fprintf(stderr, "Error opening file %s.",fname);
-   RETURN(NULL);
+			fprintf(stderr, "Error opening file %s.",fname);
+			RETURN(NULL);
       }
       fscanf(fin4, "%f %f %f %d %d %d %d %d",
-        &MinFA,&MaxAng,&MinL,&SeedPerV[0],&SeedPerV[1],
-        &SeedPerV[2],&M,&bval);
+				 &MinFA,&MaxAngDeg,&MinL,&SeedPerV[0],&SeedPerV[1],
+				 &SeedPerV[2],&M,&bval);
       fclose(fin4);
       if (!(nel = 
-            NI_setTractAlgOpts(NULL, &MinFA, &MaxAng, &MinL, 
+            NI_setTractAlgOpts(NULL, &MinFA, &MaxAngDeg, &MinL, 
                                SeedPerV, &M, &bval))){
          ERROR_message("Failed to get options");
          RETURN(NULL);
@@ -668,3 +669,124 @@ int WriteTractAlgOpts(char *fname, NI_element *nel)
    NI_stream_close(ns); free(strm); strm = NULL;
    RETURN(0);
 } 
+
+// **********************************
+
+int NI_getProbTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAngDeg, 
+									float *MinL, float *NmNsFr, int *Nseed, 
+									int *Nmonte, int *M, int *bval)
+{
+   char *atr=NULL;
+   
+   ENTRY("NI_getProbTractAlgOpts");
+   if (!nel) RETURN(1);
+   
+   if (MinFA && (atr=NI_get_attribute(nel,"Thresh_FA"))) {
+      *MinFA = (float)strtod(atr,NULL);
+   }
+   if (MaxAngDeg && (atr=NI_get_attribute(nel,"Thresh_ANG"))) {
+      *MaxAngDeg = (float)strtod(atr,NULL);
+   }
+   if (MinL && (atr=NI_get_attribute(nel,"Thresh_Len"))) {
+      *MinL = (float)strtod(atr,NULL);
+   }
+   if (NmNsFr && (atr=NI_get_attribute(nel,"Thresh_Frac"))) {
+      *NmNsFr = (float)strtod(atr,NULL);
+   }
+   if (Nseed && (atr=NI_get_attribute(nel,"Nseed_Vox"))) {
+	   *Nseed = (int)strtod(atr,NULL);
+   }
+   if (Nmonte && (atr=NI_get_attribute(nel,"Nmonte"))) {
+      *Nmonte = (int)strtod(atr,NULL);
+   }
+   if (M && (atr=NI_get_attribute(nel,"Ngrads"))) {
+      *M = (int)strtod(atr,NULL);
+   }
+   if (bval && (atr=NI_get_attribute(nel,"Bval"))) {
+      *bval = (int)strtod(atr,NULL);
+   }
+   RETURN(0);
+}
+
+NI_element * NI_setProbTractAlgOpts(NI_element *nel, float *MinFA, 
+												float *MaxAngDeg, float *MinL,
+												float *NmNsFr, int *Nseed, 
+												int *Nmonte, int *M, int *bval)
+{   
+   ENTRY("NI_setProbTractAlgOpts");
+   
+   if (!nel) nel = NI_new_data_element ("PROBTRACK_opts",0);
+   
+   if (MinFA ) {
+      NI_SETA_FLOAT(nel,"Thresh_FA",*MinFA);
+   }
+   if (MaxAngDeg) {
+      NI_SETA_FLOAT(nel,"Thresh_ANG",*MaxAngDeg);
+   }
+   if (MinL) {
+      NI_SETA_FLOAT(nel,"Thresh_Len",*MinL);
+   }
+   if (NmNsFr) {
+	   NI_SETA_FLOAT(nel,"Thresh_Frac",*NmNsFr);
+   }
+	if (Nseed) {
+	   NI_SETA_INT(nel,"Nseed_Vox",*Nseed);
+   }
+	if (Nmonte) {
+      NI_SETA_INT(nel,"Nmonte",*Nmonte);
+	}
+   if (M) {
+      NI_SETA_INT(nel,"Ngrads",*M);
+   }
+   if (bval) {
+      NI_SETA_INT(nel,"Bval",*bval);
+   }
+   
+   RETURN(nel);
+}
+
+NI_element * ReadProbTractAlgOpts(char *fname) 
+{
+   NI_stream ns=NULL;
+   NI_element *nel=NULL;
+   float MinFA, MaxAngDeg, MinL,NmNsFr;
+   int Nseed, Nmonte, M, bval;
+   char *strm=NULL;
+   FILE *fin4=NULL;
+   
+   ENTRY("ReadProbTractAlgOpts");  
+       
+   if (!fname || !THD_is_file(fname)) RETURN(NULL);
+   
+   if (STRING_HAS_SUFFIX(fname,".niml.opts")) {
+      strm = (char *)calloc(strlen(fname)+20, sizeof(char));
+      sprintf(strm,"file:%s",fname);
+      if (!(ns = NI_stream_open( strm , "r" ))) {
+         ERROR_message("Failed to open %s\n", strm);
+         free(strm); RETURN(NULL);
+      }
+      if (!(nel = NI_read_element( ns , 2 ))) {
+         ERROR_message("Failed to read element from \n", strm);
+         free(strm); RETURN(NULL);
+      }
+      NI_stream_close(ns); free(strm); strm = NULL;
+   } else {
+      // Opening/Reading in FACT params
+      if( (fin4 = fopen(fname, "r")) == NULL) {
+			fprintf(stderr, "Error opening file %s.",fname);
+			RETURN(NULL);
+      }
+      fscanf(fin4, "%f %f %f %f %d %d %d %d",
+             &MinFA,&MaxAngDeg,&MinL,&NmNsFr,&Nseed,&Nmonte,&M,&bval);
+      fclose(fin4);
+      if (!(nel = 
+            NI_setProbTractAlgOpts(NULL, &MinFA, &MaxAngDeg, &MinL, 
+											  &NmNsFr,&Nseed,&Nmonte,&M,&bval))){
+         ERROR_message("Failed to get options");
+         RETURN(NULL);
+      }
+   }
+   
+   RETURN(nel);
+}      
+
