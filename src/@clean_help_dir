@@ -77,7 +77,7 @@ end
          echo 'endif'
          echo ''
          echo ''
-         echo 'The run from this shell: source ~/.cshrc'
+         echo 'Then run from this shell: source ~/.cshrc'
          echo 'or just open a new shell'
          echo ''
       else
