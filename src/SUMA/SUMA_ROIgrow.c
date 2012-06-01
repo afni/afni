@@ -435,7 +435,10 @@ int main (int argc,char *argv[])
    nodelabels = NULL; N_nodelabels = 0;
    if (Opt->in_name) {
       SUMA_DSET_FORMAT form=SUMA_NO_DSET_FORMAT;
-      lbls_dset = SUMA_LoadDset_s(Opt->in_name, &form, 0);
+      if (!(lbls_dset = SUMA_LoadDset_s(Opt->in_name, &form, 0))) {
+         SUMA_S_Errv("Failed to load -roi_labels %s\n", Opt->in_name);
+         exit(1);
+      }
       if (SDSET_VECNUM(lbls_dset) != 1) {
          SUMA_S_Errv(
             "Node labels dset (%s) has more than one column.\n",
