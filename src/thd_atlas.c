@@ -1815,6 +1815,8 @@ invert_affine(ATLAS_XFORM *xf)
    float *xfptr;
    ENTRY("invert_affine");
 
+   if ( !xf || !xf->xform) RETURN(1);
+   
    matrix_initialize (&tempmat);
    matrix_create(4,4,&tempmat);
    xfptr = (float *) xf->xform;
@@ -1834,7 +1836,7 @@ invert_affine(ATLAS_XFORM *xf)
    matrix_destroy(&invmat);
    matrix_destroy(&tempmat);
 
-   return(0);
+   RETURN(0);
 }
 
 /* invert a 12 piece matrix - do in place */
