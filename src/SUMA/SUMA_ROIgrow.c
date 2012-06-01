@@ -173,6 +173,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
 			fprintf (SUMA_STDERR,
                   "Error %s:\nOption %s not understood.\n"
                   "Try -help for usage\n", FuncName, argv[kar]);
+			suggest_best_prog_option(argv[0], argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
