@@ -708,12 +708,17 @@ int main(int argc, char *argv[])
 
 	    case MRI_float:{
 		    float fac = DSET_BRICK_FACTOR(input_dset, brik);
-		    input_data = (float *) DSET_ARRAY(input_dset, brik);
-		    if (fac == 0)
+          input_data = (float *) DSET_ARRAY(input_dset, brik);
+		    
+          if (fac == 0)
 			fac = 1.0;
-		    else
-			for (i = 0; i < nvox; input_data[i++] *= fac);
-		    break;
+		    else {
+			DSET_unload(input_dset); 
+         DSET_mallocize(input_dset); DSET_load(input_dset);
+         input_data = (float *) DSET_ARRAY(input_dset, brik);
+         for (i = 0; i < nvox; input_data[i++] *= fac);
+		    }
+          break;
 		}
 
 	    default:{
