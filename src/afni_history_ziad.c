@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1, Jun , 2012 , ZSS , "3dROIstats" , MICRO , TYPE_BUG_FIX,
+   "3dROIstats crashed on float dsets with scaling. Not anymore",
+   "Problem was scaling brick pointer without mallocizing first."
+ },
+ 
  { 31, May , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
    "Merged ptaylor's code changes into the distribution",
    NULL
