@@ -4300,7 +4300,7 @@ g_help_string = """
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
                                              eneu fneg fpos fneu           \\
                         -regress_basis 'BLOCK(30,1)'                       \\
-                        -regress_censor_motion 1.0                         \\
+                        -regress_censor_motion 0.3                         \\
                         -regress_opts_3dD                                  \\
                             -gltsym 'SYM: +eneg -fneg'                     \\
                             -glt_label 1 eneg_vs_fneg                      \\
@@ -4374,7 +4374,7 @@ g_help_string = """
                            'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
                            'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
                         -regress_apply_mot_types demean deriv              \\
-                        -regress_censor_motion 1.0                         \\
+                        -regress_censor_motion 0.3                         \\
                         -regress_censor_outliers 0.1                       \\
                         -regress_compute_fitts                             \\
                         -regress_opts_3dD                                  \\
@@ -4464,6 +4464,13 @@ g_help_string = """
               - regress motion parameters AND derivatives
                  (see -regress_apply_mot_types)
 
+           Note: for resting state data, a more strict threshold may be a good
+                 idea, since motion artifacts should play a bigger role than in
+                 a task-based analysis.  
+
+                 So the typical suggestion of 0.3 for task-based analysis has
+                 been changed to 0.2 for this resting-state example.
+
            Note: if regressing out regions of interest, either create the ROI
                  time series before the blur step, or remove blur from the list
                  of blocks (and apply any desired blur after the regression).
@@ -4475,7 +4482,7 @@ g_help_string = """
                         -tcat_remove_first_trs 3                            \\
                         -volreg_align_e2a                                   \\
                         -volreg_tlrc_warp                                   \\
-                        -regress_censor_motion 0.3                          \\
+                        -regress_censor_motion 0.2                          \\
                         -regress_bandpass 0.01 0.1                          \\
                         -regress_apply_mot_types demean deriv               \\
                         -regress_run_clustsim no                            \\
@@ -6451,7 +6458,7 @@ g_help_string = """
 
         -regress_censor_motion LIMIT : censor TRs with excessive motion
 
-                e.g. -regress_censor_motion 1.0
+                e.g. -regress_censor_motion 0.3
 
             This option is used to censor TRs where the subject moved too much.
             "Too much" is decided by taking the derivative of the motion
