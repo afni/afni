@@ -49,9 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
- { 3, JUN, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+ { 3, JUN, 2012, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "for resting state analysis, suggest -regress_censor_motion 0.2",
    "Suggest a more strict limit for resting state than for task analysis."
+ } ,
+
+ { 3, JUN, 2012, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "for variable updates: actually show list if it is short enough",
+   NULL
  } ,
 
  { 25, MAY, 2012, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
