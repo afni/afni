@@ -1985,8 +1985,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             if attr in skiplist: continue
             acount += 1
             if vobj.get_type(attr) == list:
-               rlist.append('  %-20s : %s' % \
-                            (attr,'[list of %d elements]'%vobj.val_len(attr)))
+               # show list if short enough
+               lstr = ' '.join(vobj.val(attr))
+               if len(lstr)>52: lstr='[list of %d elements]'%vobj.val_len(attr)
+               rlist.append('  %-20s : %s' % (attr,lstr))
             else: rlist.append('  %-20s : %s' % (attr, vobj.val(attr)))
          if acount > 0:
             rlist.insert(0, 'options changed from defaults (%d):\n' % acount)
@@ -2004,8 +2006,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             if attr == 'name': continue
             acount += 1
             if vobj.get_type(attr) == list:
-               nlist.append('  %-20s : %s' % \
-                            (attr,'[list of %d elements]'%vobj.val_len(attr)))
+               # show list if short enough
+               lstr = ' '.join(vobj.val(attr))
+               if len(lstr)>52: lstr='[list of %d elements]'%vobj.val_len(attr)
+               nlist.append('  %-20s : %s' % (attr,lstr))
             else: nlist.append('  %-20s : %s' % (attr, vobj.val(attr)))
          if acount > 0:
             nlist.insert(0, 'applied subject variables (%d):\n' % acount)
