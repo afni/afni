@@ -27,7 +27,7 @@ else
    curl -O http://afni.nimh.nih.gov/pub/dist/tgz/AfniRetinoDemo.tgz
 endif
 tar xvzf AfniRetinoDemo.tgz
-goto END
+
 cd ./AfniRetinoDemo
    echo "********************************************************"
    echo "There are many processing options, only @Proc.All will"

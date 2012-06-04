@@ -180,7 +180,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @2dwarper.Allin @Shift_Volume  @help.AFNI @1dDiffMag @FSlabel2dset      \
           @Install_InstaCorr_Demo @Quiet_Talkers @radial_correlate               \
           @DeblankFileNames @clean_help_dir @global_parse @AfniEnv @Atlasize     \
-          @Install_TSrestMovieDemo
+          @Install_TSrestMovieDemo @Install_AfniRetinoDemo
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
