@@ -35,7 +35,8 @@ cd Suma_TSrestMovieDemo
    echo "generate a movie of the time series at 30 frames per "
    echo "second. You should see SUMA working on your screen,"
    echo "Images will be saved to the disk. Check for further"
-   echo "comments once SUMA stops."
+   echo "comments once SUMA stops. "
+   echo "See also README file in ./Suma_TSrestMovieDemo"
    echo "---------------------------------------------------------"
    tcsh ./@CreateMovie >& ./cm.log
    echo "---------------------------------------------------------"
