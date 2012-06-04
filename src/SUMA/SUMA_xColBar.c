@@ -3840,14 +3840,12 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset,
 
       /* Set the CoordBias's menu history to reflect current setting */
       SUMA_LH("Updating CoorBias chooser History");
-      XtVaSetValues(  SO->SurfCont->CoordBiasMenu[0], XmNmenuHistory , 
-           SO->SurfCont->CoordBiasMenu[SO->SurfCont->curColPlane->OptScl->DoBias]
+      XtVaSetValues(  SO->SurfCont->CoordBiasMenu[0], XmNmenuHistory ,            SO->SurfCont->CoordBiasMenu[SO->SurfCont->curColPlane->OptScl->DoBias]
            , NULL ) ; 
  
       /* Set the Col's menu history to reflect current setting */
       SUMA_LH("Updating Col chooser History");
-      XtVaSetValues(  SO->SurfCont->CmapModeMenu[0], XmNmenuHistory , 
-       SO->SurfCont->CmapModeMenu[SO->SurfCont->curColPlane->OptScl->interpmode],
+      XtVaSetValues(  SO->SurfCont->CmapModeMenu[0], XmNmenuHistory ,        SO->SurfCont->CmapModeMenu[SO->SurfCont->curColPlane->OptScl->interpmode],
                      NULL ) ; 
  
       /* add the selectors for symmetric range and absolute threshold */

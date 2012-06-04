@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4, Jun , 2012 , ZSS , "@Install_TSrestMovieDemo" , MICRO , TYPE_NEW_PROG,
+   "Demo script to make a resting state movie a la Daniel Margulies'",
+   NULL
+ },
+ 
  { 1, Jun , 2012 , ZSS , "3dROIstats" , MICRO , TYPE_BUG_FIX,
    "3dROIstats crashed on float dsets with scaling. Not anymore",
    "Problem was scaling brick pointer without mallocizing first."
