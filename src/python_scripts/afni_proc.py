@@ -338,9 +338,10 @@ g_history = """
     3.18 May 19, 2012: small help update for resting state examples
     3.19 May 21, 2012: added -regress_stim_types
     3.20 Jun 03, 2012: suggest -regress_motion_censor of 0.2 for resting-state
+    3.21 Jun 05, 2012: verify that married types match
 """
 
-g_version = "version 3.20, June 3, 2012"
+g_version = "version 3.21, June 5, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Mar 2012"
