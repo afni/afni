@@ -26,6 +26,7 @@ static char * g_history[] =
   "       (now dilations and erosions should be symmetric)\n"
   "0.2   5 Jun 2012\n"
   "     - explicit set of DSET_BRICK_TYPE() needed on F8 system?\n"
+  "     - make empty copy for grid test\n"
 };
 
 static char g_version[] = "3dmask_tool version 0.2, 5 June 2012";
@@ -351,7 +352,10 @@ int process_input_dsets(param_t * params)
       if( params->verb>1 ) INFO_message("loaded dset %s, with %d volumes",
                                         DSET_PREFIX(dset), DSET_NVALS(dset));
 
-      if( nxyz == 0 ) { nxyz = DSET_NVOX(dset);  dfirst = dset; }
+      if( nxyz == 0 ) { /* make an empty copy of the first dataset */
+         nxyz = DSET_NVOX(dset);
+         dfirst = EDIT_empty_copy(dset);
+      }
 
       /* check for consistency in voxels and grid */
       if( DSET_NVOX(dset) != nxyz ) ERROR_exit("nvoxel mis-match");
@@ -363,6 +367,8 @@ int process_input_dsets(param_t * params)
       params->dsets[iset] = apply_dilations(dset, &params->IND,1,params->verb);
       if( ! params->dsets[iset] ) RETURN(1);
    } 
+
+   DSET_delete(dfirst); /* and nuke */
 
    RETURN(0);
 }
