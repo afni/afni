@@ -982,7 +982,7 @@ int main(int argc, char *argv[]) {
 		}
 		INFO_message("Writing output. NB: it will be %s.",voxel_order);
 
-		INFO_message("Number of tracts found = %d",Numtract);
+		INFO_message("Brainwide total number of tracts found = %d",Numtract);
 	}
 	else{
 		INFO_message(" No Tracts Found!!!");

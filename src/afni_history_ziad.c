@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4, Jun , 2012 , ZSS , "@Install_AfniRetinoDemo" , MICRO , TYPE_NEW_PROG,
+   "Demo script to download and run Retinotopy pipeline demo",
+   NULL
+ },
+ 
  { 4, Jun , 2012 , ZSS , "@Install_TSrestMovieDemo" , MICRO , TYPE_NEW_PROG,
    "Demo script to make a resting state movie a la Daniel Margulies'",
    NULL
