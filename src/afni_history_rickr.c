@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 5, JUN, 2012, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+ { 5, JUN, 2012, RCR, "3dmask_tool", MICRO, TYPE_BUG_FIX,
+   "need to explicitly set DSET_BRICK_TYPE() on some systems",
+   NULL
+ } ,
+
+ { 5, JUN, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "warn users if married types and files do not seem to match",
    NULL
  } ,
