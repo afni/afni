@@ -2693,7 +2693,7 @@ def db_cmd_regress(proc, block):
                   % (len(stim_types), len(proc.stims))
             return
     if not UTIL.vals_are_constant(stim_types, 'times'):
-        print '++ apply %d stim types: %s' % (len(stim_types),stim_types)
+        print '++ applying %d stim types: %s' % (len(stim_types),stim_types)
 
     # ----------------------------------------
     # deal with motion (demean, deriv, per-run, censor)
@@ -2744,6 +2744,9 @@ def db_cmd_regress(proc, block):
 
     # and check any extras against 1D only
     if not valid_file_types(proc, proc.extra_stims_orig, 1): return
+
+    # and check any extras against 1D only
+    if not married_types_match(proc, proc.stims_orig, stim_types, basis): return
 
     nmotion = len(proc.mot_labs) * len(proc.mot_regs)
     if proc.ricor_apply == 'yes': nricor = proc.ricor_nreg
@@ -3061,14 +3064,14 @@ def db_cmd_regress(proc, block):
             print '** internal error: label and basis arrays not equal lengths'
             print '   (%d labels, %d basis functions)'%(len(labels),len(basis))
             return
-        # while basis functions are known, extract ideals
-        # (so no ideal after unknown, and therefore first must be known)
-        if UTIL.basis_has_known_response(basis[0]):
+        # while basis functions have one regressor, make ideals
+        # (so no ideal after failure)
+        if UTIL.basis_has_one_reg(basis[0]):
             cmd = cmd + "# create ideal files for fixed response stim types\n"
             first = (polort+1) * proc.runs
             for ind in range(len(labels)):
-                # once unknown, quit
-                if not UTIL.basis_has_known_response(basis[ind]): break
+                # once unknown or multiple regs, quit
+                if not UTIL.basis_has_one_reg(basis[ind]): break
                 cmd = cmd + "1dcat %s'[%d]' > ideal_%s.1D\n" % \
                             (proc.xmat, first+ind, labels[ind])
             cmd = cmd + '\n'
@@ -3790,6 +3793,59 @@ def db_cmd_tlrc(proc, block):
            % (base, dname, ss, rmode, suffix, extra_opts)
 
     return cmd
+
+def married_types_match(proc, stims, stypes, bases):
+    """if any stim files are married, the stype should be AM1 or AM2
+       some basis functions require married files
+    """
+
+    if len(stims) == 0: return 1
+    if not proc.test_stims: return 1
+    
+    if proc.verb > 2:
+        print '-- checking married type match for:'
+        print '   stims : %s' % stims
+        print '   types : %s' % stypes
+
+    ok_all = 1  # assume good, and look for failure
+    mtypes = ['AM1', 'AM2']
+
+    for ind in range(len(stims)):
+        fname = stims[ind]
+        stype = stypes[ind]
+        basis = bases[ind]
+
+        adata = LD.AfniData(fname)
+        if adata == None:
+            print "** MTM: failed to load stim timing file '%s'" % fname
+            ok_all = 0
+            continue
+        if not adata.ready:
+            print "** MTM: failed to load stimulus timing file '%s'" % fname
+
+        if stype in mtypes and not adata.married:
+            print '** stim type %d is married (%s), but file (%s) is not' \
+                  % (ind+1, stype, fname)
+            ok_all = 0
+
+        # just a warning for now, since stim_types are new
+
+        if stype not in mtypes and adata.married:
+            print '** stim type %d is not married, but file (%s) is' \
+                  % (ind+1, fname)
+
+        if UTIL.basis_is_married(basis) and not stype in mtypes:
+            print '** have married basis (#%d = %s), but not married type\n' \
+                  '   (consider -regress_stim_types)' % (ind+1,basis)
+
+        if UTIL.basis_is_married(basis) and not adata.married:
+            print '** have married basis (#%d = %s), but not married file %s\n'\
+                  % (ind+1, basis, fname)
+
+    if not ok_all and proc.verb > 0:
+        print '   (use "-test_stim_files no" to ignore such errors)'
+
+    return ok_all
 
 def valid_file_types(proc, stims, file_type):
     """verify that the files are valid as 1D, local or global times
