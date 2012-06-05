@@ -8,6 +8,10 @@ import lib_textdata as TD
 import glob
 import pdb
 
+# global lists for basis functions
+basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'SPMG1', 'WAV', 'MION']
+basis_one_regr_l   = ['GAM', 'BLOCK', 'SPMG1', 'WAV', 'EXPR', 'MION']
+
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
 def change_path_basename(orig, prefix, suffix):
@@ -278,7 +282,6 @@ def list_to_datasets(words, whine=0):
         return None
     return dsets
 
-
 def basis_has_known_response(basis, warn=0):
     """given a string, if the prefix is either GAM or BLOCK, then the basis
        function has a known response curve
@@ -286,14 +289,37 @@ def basis_has_known_response(basis, warn=0):
        if warn, warn users about any basis function peculiarities"""
     if not basis: return 0
 
-    if warn and basis == 'dmBLOCK':
-        print '** basis function is dmBLOCK  ==>  script must be edited'
-        print '   --> please change -stim_times to either'
-        print '        -stim_times_AM1 or -stim_times_AM2'
-        print '   (please mention this on the AFNI message board)'
+    if starts_with_any_str(basis, basis_known_resp_l): return 1
+    return 0
 
-    if basis[0:3] == 'GAM' or basis[0:5] == 'BLOCK': return 1
-    else:                                            return 0
+def basis_is_married(basis):
+    """if the given basis function is known to require married times, return 1
+    """
+    if not basis: return 0
+
+    if starts_with(basis, 'dmBLOCK'): return 1
+    else:                             return 0
+
+def basis_has_one_reg(basis):
+    """if the given basis function is known to have 1 regressor, return 1
+    """
+    if not basis: return 0
+
+    if starts_with_any_str(basis, basis_one_regr_l): return 1
+    return 0
+
+def starts_with(word, sstr):
+    """return 1 if word starts with sstr"""
+    slen = len(sstr)
+    if word[0:slen] == sstr: return 1
+    return 0
+
+def starts_with_any_str(word, slist):
+    """return 1 if word starts with anything in slist"""
+    for sstr in slist:
+       slen = len(sstr)
+       if word[0:slen] == sstr: return 1
+    return 0
 
 def get_default_polort(tr, reps):
     """compute a default run polort, as done in 3dDeconvolve
