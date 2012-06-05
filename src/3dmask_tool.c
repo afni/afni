@@ -24,9 +24,11 @@ static char * g_history[] =
   "0.1   7 May 2012\n"
   "     - replaced THD_mask_erode with new THD_mask_erode_sym\n"
   "       (now dilations and erosions should be symmetric)\n"
+  "0.2   5 Jun 2012\n"
+  "     - explicit set of DSET_BRICK_TYPE() needed on F8 system?\n"
 };
 
-static char g_version[] = "3dmask_tool version 0.0, 27 April 2012";
+static char g_version[] = "3dmask_tool version 0.2, 5 June 2012";
 
 #include "mrilib.h"
 
@@ -174,7 +176,7 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
 
    /* note and apply any needed zeropadding */
    pad = needed_padding(D);
-   if(verb && pad) INFO_message("padding by %d (for dilations)", pad);
+   if(verb > 3 && pad) INFO_message("padding by %d (for dilations)", pad);
    if( pad ) dnew = THD_zeropad(dset, pad, pad, pad, pad, pad, pad, "pad", 0);
    else      dnew = dset;
 
@@ -217,6 +219,8 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
       if( convert && (datum == MRI_short || datum == MRI_float) ) {
          if( verb > 2 ) INFO_message("applying byte result from dilate");
          EDIT_substitute_brick(dnew, ivol, MRI_byte, bdata);
+         /* explicit set needed on an Fedora 8 system?   5 Jun 2012 */
+         DSET_BRICK_TYPE(dnew, ivol) = MRI_byte; 
          continue;  /* so nothing more to do */
       }
 
@@ -329,6 +333,12 @@ int process_input_dsets(param_t * params)
    if( params->verb ) INFO_message("processing %d input datasets...",
                                    params->ndsets);
    
+   /* warn user of dilations */
+   if(params->verb && params->ndsets) {
+      int pad = needed_padding(&params->IND);
+      INFO_message("padding all datasets by %d (for dilations)", pad);
+   }
+
    /* process the datasets */
    nxyz = 0;
    for( iset=0; iset < params->ndsets; iset++ ) {
@@ -411,7 +421,8 @@ int count_masks(THD_3dim_dataset * dsets[], int ndsets, int verb, /* inputs */
       /* for each volume in this dataset, count set voxels */
       for( ivol=0; ivol < DSET_NVALS(dset); ivol++ ) {
          if( DSET_BRICK_TYPE(dset, ivol) != MRI_byte )
-            ERROR_exit("in count_masks with non-byte data");
+            ERROR_exit("in count_masks with non-byte data (set %d, vol %d)",
+                       iset, ivol);
 
          bptr = DBLK_ARRAY(dset->dblk, ivol);
          for( ixyz = 0; ixyz < nxyz; ixyz++ ) 
