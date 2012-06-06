@@ -339,9 +339,10 @@ g_history = """
     3.19 May 21, 2012: added -regress_stim_types
     3.20 Jun 03, 2012: suggest -regress_motion_censor of 0.2 for resting-state
     3.21 Jun 05, 2012: verify that married types match
+    3.22 Jun 06, 2012: check for EPI +tlrc view in NIfTI datasets
 """
 
-g_version = "version 3.21, June 5, 2012"
+g_version = "version 3.22, June 6, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Mar 2012"
@@ -1023,10 +1024,16 @@ class SubjProcSream:
                         missing = 1
                 if missing: return 1
 
+            # and check for EPI view
             if self.dsets[0].view and self.dsets[0].view != self.view:
                 self.view = self.dsets[0].view
                 self.origview = self.view
                 if self.verb > 0: print '-- applying view as %s' % self.view
+            elif self.dsets[0].view == '':
+                view = dset_view(self.dsets[0].ppve())
+                self.view = view
+                self.origview = self.view
+                if self.verb>0: print '-- applying orig view as %s' % self.view
 
         # next, check for -surf_anat, which defines whether to do volume
         # or surface analysis
