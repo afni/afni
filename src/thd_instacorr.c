@@ -197,7 +197,10 @@ ENTRY("THD_instacorr_prepare") ;
      iset->mmm = mmm ;
    }
 
-   if( iset->mmm == NULL ) ININFO_message("No mask for InstaCorr") ;
+   if( iset->mmm == NULL ){
+     ININFO_message("No mask for InstaCorr") ;
+     nmmm = DSET_NVOX(iset->dset) ;
+   }
 
    iset->mv = THD_instacorr_tsprep( iset , iset->dset ) ;
    if( iset->mv == NULL ) RETURN(0) ;
