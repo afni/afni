@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, JUN, 2012, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "use afni -com instead of plugout_drive (for case of multiple users)",
+   "Thanks to V Razdan and N Adleman for noting the issue."
+ } ,
+
  { 6, JUN, 2012, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "look for input of EPI datasets in standard space and NIfTI format",
    NULL
