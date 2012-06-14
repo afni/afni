@@ -503,6 +503,9 @@ g_history = """
    0.19 May 01, 2012: added -prefix option; added censoring to 1dplot commands
    0.20 May 09, 2012: accomodate more than 99 runs
    0.21 May 11, 2012: also output average censored motion (per TR)
+   0.22 Jun 14, 2012: use afni -com instead of plugout_drive
+                      (avoids issue on systems with multiple users)
+                      Thanks to V Razdan and N Adleman for noting the issue.
 """
 
 g_version = "gen_ss_review_scripts.py version 0.21, May 11, 2012"
@@ -1799,34 +1802,33 @@ class MyInterface:
 
       aset = self.dsets.val('final_anat')
       if not self.check_for_dset('final_anat', ''):
-         s3 = '              -com "SWITCH_UNDERLAY %s"      \\\n'%aset.prefix
+         s3 = '     -com "SWITCH_UNDERLAY %s" \\\n'%aset.prefix
       else: s3 = ''
+
+      s4  = \
+          '# locate peak coords of biggest cluster and jump there\n'    \
+          'set maxcoords = ( `3dclust -1thresh $thresh -dxyz=1 1 2 \\\n'\
+          '    %s"[0]" | & awk \'/^ / {print $14, $15, $16}\' | head -n 1` )\n'\
+          'echo -- jumping to max coords: $maxcoords\n'                 \
+          % sset.pv()
 
       txt += '# get 90 percentile for thresholding in afni GUI\n'       \
              '%s'                                                       \
              '%s'                                                       \
              '\n'                                                       \
-             'afni -niml -yesplugouts &\n'                              \
-             'plugout_drive -com "OPEN_WINDOW A.axialimage"     \\\n'   \
-             '              -com "OPEN_WINDOW A.sagittalimage"  \\\n'   \
+             '%s\n' % (s1, s2, s4)
+
+      ac   = 'afni -com "OPEN_WINDOW A.axialimage"     \\\n'            \
+             '     -com "OPEN_WINDOW A.sagittalimage"  \\\n'            \
              '%s'                                                       \
-             '              -com "SWITCH_OVERLAY %s"   \\\n'            \
-             '              -com "SET_SUBBRICKS A 0 0 0"        \\\n'   \
-             '              -com "SET_THRESHNEW A $thresh"      \\\n'   \
-             '              -quit\n'                                    \
-             '\n' % (s1, s2, s3, sset.prefix)
-
-      s4  = 'set maxcoords = ( `3dclust -1thresh $thresh -dxyz=1 1 2 \\\n' \
-          '    %s"[0]" | & awk \'/^ / {print $14, $15, $16}\' | head -n 1` )\n'\
-          'echo -- jumping to max coords: $maxcoords\n'                     \
-          % sset.pv()
-
-      txt +=    \
-          '# locate peak coords of biggest cluster and jump there\n'   \
-          '%s'                                                         \
-          '\n'                                                         \
-          'plugout_drive -com "SET_DICOM_XYZ A $maxcoords" -quit\n'    \
-          % s4 
+             '     -com "SWITCH_OVERLAY %s"   \\\n'                     \
+             '     -com "SET_SUBBRICKS A 0 0 0"        \\\n'            \
+             '     -com "SET_THRESHNEW A $thresh"      \\\n'            \
+             '     -com "SET_DICOM_XYZ A $maxcoords"\n'                 \
+             '\n' % (s3, sset.prefix)
+      
+      txt += '# start afni with stats thresholding at peak location\n'  \
+             + ac
 
       txt += '\n'                                                      \
              'prompt_user -pause "                                 \\\n' \
@@ -1837,9 +1839,7 @@ class MyInterface:
              '   --- close afni and click OK when finished ---     \\\n' \
              '   "\n'                                                  \
 
-      self.commands_drive += s1 + s2 +  \
-          'afni -niml -yesplugouts &\n' \
-          + s4 
+      self.commands_drive += s1 + s2 + s4 + ac
 
       self.text_drive += txt + '\n\n'
 
@@ -2094,14 +2094,17 @@ class MyInterface:
       if self.uvars.is_not_empty('censor_dset'):
          cfile = self.uvars.val('censor_dset')
          if os.path.isfile(cfile):
-            cstr = '-censor_RGB green -censor %s ' % cfile
+            cstr  = '-censor_RGB green -censor %s ' % cfile
+            cpad1 = '       %s \\\n' % cstr
+            cpad2 = '%s \\\n       ' % cstr
 
 
       txt = 'echo ' + UTIL.section_divider('outliers and motion',
                                            maxlen=60, hchar='-') + '\n\n'
 
       txt += '1dplot -wintitle "motion, outliers" -ynames Mot OFrac \\\n' \
-             '       -sepscl %s%s %s &\n' % (cstr, efile, ofile)
+             '%s'                                                         \
+             '       -sepscl %s %s &\n' % (cpad1, efile, ofile)
 
       # get total TRs from any uncensored X-matrix
       if self.dsets.is_not_empty('xmat_ad_nocen'):
@@ -2115,12 +2118,12 @@ class MyInterface:
       if self.dsets.is_empty('censor_dset'):
          colorstr = ':' + ' ' * len(colorstr)
 
-      txt += '1dplot -one %s%s "1D: %d@%g" &\n' % (cstr, ofile, nt, olimit)
-      txt += '1dplot -one %s%s "1D: %d@%g" &\n' % (cstr, efile, nt, mlimit)
+      txt += '1dplot -one %s%s "1D: %d@%g" &\n' % (cpad2, ofile, nt, olimit)
+      txt += '1dplot -one %s%s "1D: %d@%g" &\n' % (cpad2, efile, nt, mlimit)
 
       txt += '\n'                                                       \
              'prompt_user -pause "                              \\\n'   \
-             '   review plots %s      \\\n'                             \
+             '   review plots %s       \\\n'                            \
              '     - outliers and motion (plotted together)     \\\n'   \
              '     - outliers with limit %g                    \\\n' \
              '     - motion with limit %g                      \\\n' \
