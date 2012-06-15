@@ -133,9 +133,10 @@ static char * gifti_history[] =
   "     - can read/write ascii COMPLEX64, COMPLEX128, RGB24\n"
   "       (requested by H Breman, J Mulders, N Schmansky)\n"
   "1.11 07 March, 2012: fixed sizeof in memset of gim (noted by B Cox)\n",
+  "1.12 15 June, 2012: make num_dim violation a warning, because of mris_convert\n",
 };
 
-static char gifti_version[] = "gifti library version 1.11, 07 March, 2012";
+static char gifti_version[] = "gifti library version 1.12, 15 June, 2012";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -948,10 +949,11 @@ int gifti_valid_dims(const giiDataArray * da, int whine)
     /* verify that num_dim is not too big, the most significant dimension
      * is not allowed to be 1
      * (requested by N Schmansky)                       11 Mar 2010 */
-    if( da->num_dim > 1 && da->dims[da->num_dim-1] < 2 ) {
+    if( da->num_dim > 1 && da->dims[da->num_dim-1] < 2 && whine ) {
         fprintf(stderr,"** num_dim violation: num_dim = %d, yet dim[%d] = %d\n",
                        da->num_dim, da->num_dim-1, da->dims[da->num_dim-1]);
-        return 0;
+        /* now FS is writing these in mris_convert, grrrr...  15 Jun 2012 */
+        /* return 0; */
     }
 
     return 1;
