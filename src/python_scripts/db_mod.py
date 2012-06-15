@@ -6478,7 +6478,7 @@ g_help_string = """
 
             A different filter range would affect this, of course.
 
-            See also -regress_censor_motion_file.
+            See also -regress_censor_motion.
 
         -regress_basis BASIS    : specify the regression basis function
 
@@ -6511,6 +6511,18 @@ g_help_string = """
 
             Please see '3dDeconvolve -help' for more information.
             See also -regress_basis.
+
+        -regress_censor_extern CENSOR.1D : supply an external censor file
+
+                e.g. -regress_censor_extern censor_bad_trs.1D
+
+            This option is used to provide an initial censor file, if there
+            is some censoring that is desired beyond the automated motion and
+            outlier censoring.
+
+            Any additional censoring (motion or outliers) will be combined.
+
+             See also -regress_censor_motion, -regress_censor_outliers.
 
         -regress_censor_motion LIMIT : censor TRs with excessive motion
 
