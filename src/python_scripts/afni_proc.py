@@ -340,9 +340,10 @@ g_history = """
     3.20 Jun 03, 2012: suggest -regress_motion_censor of 0.2 for resting-state
     3.21 Jun 05, 2012: verify that married types match
     3.22 Jun 06, 2012: check for EPI +tlrc view in NIfTI datasets
+    3.23 Jun 15, 2012: added -regress_censor_extern
 """
 
-g_version = "version 3.22, June 6, 2012"
+g_version = "version 3.23, June 15, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Mar 2012"
@@ -468,6 +469,7 @@ class SubjProcSream:
         self.mask_extents = None        # mask dataset (of EPI extents)
         self.censor_file  = ''          # for use as '-censor FILE' in 3dD
         self.censor_count = 0           # count times censoring
+        self.censor_extern = ''         # from -regress_censor_extern
         self.exec_cmd   = ''            # script execution command string
         self.bash_cmd   = ''            # bash formatted exec_cmd
         self.tcsh_cmd   = ''            # tcsh formatted exec_cmd
@@ -761,6 +763,8 @@ class SubjProcSream:
                         acplist=['yes','no'],
                         helpstr="request cbucket dataset of all betas (yes/no)")
 
+        self.valid_opts.add_opt('-regress_censor_extern', 1, [],
+                        helpstr="apply external censor file")
         self.valid_opts.add_opt('-regress_censor_motion', 1, [],
                         helpstr="censor TR if motion derivative exceeds limit")
         self.valid_opts.add_opt('-regress_censor_prev', 1, [],
@@ -1658,6 +1662,18 @@ class SubjProcSream:
                       (' '.join(quotize_list(opt.parlist,'')),self.od_var)
             self.fp.write(add_line_wrappers(str))
             self.fp.write("%s\n" % stat_inc)
+
+        opt = self.user_opts.find_opt('-regress_censor_extern')
+        if opt and len(opt.parlist) > 0:
+            fname = opt.parlist[0]
+            str = '# copy external censor file into results dir\n' \
+                  'cp %s %s\n' % (fname,self.od_var)
+            self.fp.write(add_line_wrappers(str))
+            self.fp.write("%s\n" % stat_inc)
+            self.censor_file = os.path.basename(fname)
+            self.censor_count += 1
+            if self.verb > 1:
+                print '++ copying external censor file to %s'%self.censor_file
 
         opt = self.user_opts.find_opt('-copy_files')
         if opt and len(opt.parlist) > 0:
