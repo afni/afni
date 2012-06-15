@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, JUN, 2012, RCR, "GIFTI", MINOR, TYPE_MODIFY,
+   "make num_dim violation a warning, because of mris_convert",
+   NULL
+ } ,
+
  { 15, JUN, 2012, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_censor_extern",
    NULL
