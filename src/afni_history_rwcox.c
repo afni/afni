@@ -43,6 +43,10 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+  { 19 , JUN , 2012 , RWC , "3dttest++" , MINOR , TYPE_GENERAL ,
+   "Internal wildcard expansion with SHORT FORM '-set' options." ,
+   NULL } ,
+
   { 23 , MAY , 2012 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
    "Add -clust option, to allow 3dClustSim stuff to be used" ,
    NULL } ,
