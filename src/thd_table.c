@@ -235,6 +235,32 @@ ENTRY("THD_simple_table_read") ;
 }
 
 /*------------------------------------------------------------------------*/
+
+void string_ectomy( char *src , char *bad )  /* 20 Jun 2012 */
+{
+   int nsrc , nbad , is , io , ib ;
+   char *out , ccc ;
+
+   if( src == NULL || bad == NULL || *src == '\0' || *bad == '\0' ) return ;
+
+   nsrc = strlen(src) ; out = calloc(sizeof(char),(nsrc+1)) ;
+   nbad = strlen(bad) ;
+
+   for( io=is=0 ; is < nsrc ; is++ ){
+     ccc = src[is] ;
+     for( ib=0 ; ib < nbad && bad[ib] != ccc ; ib++ ) ; /*nada*/
+     if( ib == nbad ) out[io++] = ccc ;
+   }
+
+   if( io < nsrc ){
+     ININFO_message("Table reading: replaced string %s with %s",src,out) ;
+     strcpy(src,out) ;
+   }
+
+   free(out) ; return ;
+}
+
+/*------------------------------------------------------------------------*/
 /* This table has column #0 as strings (labels), and remaining
    columns are numbers or strings.  Each column is 'pure' in type.
 *//*----------------------------------------------------------------------*/
@@ -432,6 +458,7 @@ ENTRY("THD_mixed_table_read") ;
          } else {
            if( ii < sar->num ) dpt = sar->str[ii] ;
            else                dpt = "N/A" ;
+           string_ectomy( dpt , "\"'" ) ;
            NI_insert_string( nel , row , ii , dpt ) ;
          }
        }
@@ -453,6 +480,7 @@ ENTRY("THD_mixed_table_read") ;
          } else {
            if( ii < sar->num ) dpt = sar->str[ii] ;
            else                dpt = "N/A" ;
+           string_ectomy( dpt , "\"'" ) ;
            NI_insert_string( nel , row , jj-1 , dpt ) ;
          }
        }
