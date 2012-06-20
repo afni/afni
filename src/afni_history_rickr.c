@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, JUN, 2012, RCR, "plug_realtime", MICRO, TYPE_BUG_FIX,
+   "comment out plot_ts_setthik() type calls for now",
+   "When registering, finalize_dset() will result in white image window.\n"
+   "Thanks to V Roopchansingh for noting the problem."
+ } ,
+
  { 15, JUN, 2012, RCR, "GIFTI", MINOR, TYPE_MODIFY,
    "make num_dim violation a warning, because of mris_convert",
    NULL
