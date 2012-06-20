@@ -1137,7 +1137,7 @@ int main( int argc , char *argv[] )
    twosam = (nval_BBB > 1) ; /* 2 sample test? */
 
    if( nval_AAA <= 0 )
-     ERROR_exit("No '-setA' option?  Please please read the instructions!") ;
+     ERROR_exit("No '-setA' option?  Please please read the -help instructions!") ;
 
    if( nval_AAA != nval_BBB && ttest_opcode == 2 )
      ERROR_exit("Can't do '-paired' with unequal set sizes: #A=%d #B=%d",
