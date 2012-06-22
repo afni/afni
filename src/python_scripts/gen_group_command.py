@@ -13,8 +13,9 @@ import lib_subjects as SUBJ
 
 g_help_string = """
 =============================================================================
-gen_group_command.py    - generate group commands: 3dttest++, 3dMEMA
-                        - todo: 3dANOVA2, 3dANOVA3, 3dttest?, GroupAna?
+gen_group_command.py    - generate group commands: 3dttest++, 3dMEMA,
+                          3dANOVA2, 3dANOVA3
+                        - todo (maybe): 3dttest, GroupAna
 
    This program is to assist in writing group commands.  The hardest part (or
    most tedious) is generally listing datasets and such, and that is the main
@@ -214,6 +215,80 @@ examples (by program)
 
          See "3dMEMA -help" for details on the extra options.
 
+   --------------------
+
+   C. 3dANOVA2
+
+      Note: these commands apply to the sample group data under
+            AFNI_data6/group_results.
+
+      Note: it seems better to create the script without any contrasts, and
+            add them afterwards (so the user can format well).  However, if
+            no contrasts are given, the program will add 1 trivial one.
+
+
+      1. The most simple case, providing just the datasets and a list of
+         sub-bricks.  
+
+            gen_group_command.py -command 3dANOVA2         \\
+                                 -dsets OLSQ*.HEAD         \\
+                                 -subs_betas 0 1
+
+      2. Get more useful:
+            - apply with a directory
+            - specify a script name
+            - specify a dataset prefix for the 3dANOVA2 command
+            - use labels for sub-brick indices
+            - specify a simple contrast
+
+            gen_group_command.py -command 3dANOVA2                           \\
+                                 -write_script cmd.A2.2                      \\
+                                 -prefix outset.A2.2                         \\
+                                 -dsets AFNI_data6/group_results/REML*.HEAD  \\
+                                 -subs_betas 'Vrel#0_Coef' 'Arel#0_Coef'     \\
+                                 -options                                    \\
+                                    -adiff 1 2 VvsA
+
+   --------------------
+
+   D. 3dANOVA3
+
+      Note: these commands apply to the sample group data under
+            AFNI_data6/group_results.
+
+      Note: it seems better to create the script without any contrasts, and
+            add them afterwards (so the user can format well).  However, if
+            no contrasts are given, the program will add 2 trivial ones.
+
+      Note: applies either -type 4 or -type 5 from 3dANOVA3.
+            See "3dANOVA3 -help" for details on the types.
+
+
+      1. The most simple case, providing just 2 groups of datasets and a list
+         of sub-bricks.  
+
+            gen_group_command.py -command 3dANOVA3         \\
+                                 -dsets OLSQ*.HEAD         \\
+                                 -dsets REML*.HEAD         \\
+                                 -subs_betas 0 1
+
+      2. Get more useful:
+            - apply with a directory
+            - specify a script name
+            - specify a dataset prefix for the 3dANOVA3 command
+            - use labels for sub-brick indices
+            - specify simple contrasts
+
+            gen_group_command.py -command 3dANOVA3                           \\
+                                 -write_script cmd.A3.2                      \\
+                                 -prefix outset.A3.2                         \\
+                                 -dsets AFNI_data6/group_results/OLSQ*.HEAD  \\
+                                 -dsets AFNI_data6/group_results/REML*.HEAD  \\
+                                 -subs_betas 'Vrel#0_Coef' 'Arel#0_Coef'     \\
+                                 -options                                    \\
+                                    -adiff 1 2 OvsR                          \\
+                                    -bdiff 1 2 VvsA
+
 ------------------------------------------
 terminal options:
 
@@ -333,9 +408,12 @@ g_history = """
         - added -dset_index0_list/-dset_index1_list options (for R Momenan)
         - ttest++ and MEMA commands now apply directories to datasets
         - changed Subject.atrs to be VarsObject instance, not dictionary
+   0.6  Jun 22, 2012
+        - added commands 3dANOVA2 and 3dANOVA3
+        - added -factors for 3dANOVA3 -type 4
 """
 
-g_version = "gen_group_command.py version 0.4, June 15, 2011"
+g_version = "gen_group_command.py version 0.6, June 22, 2011"
 
 
 class CmdInterface:
@@ -357,6 +435,7 @@ class CmdInterface:
       self.betasubs        = None       # list of beta weight sub-brick indices
       self.tstatsubs       = None       # list of t-stat sub-brick indices
       self.lablist         = None       # list of set labels
+      self.factors         = []         # list of factors of each type
 
       self.subj_prefix     = ''         # prefix for each subject ID
       self.subj_suffix     = ''         # suffix for each subject ID
@@ -424,6 +503,8 @@ class CmdInterface:
                       helpstr='restrict dsets to 0-based index list')
       self.valid_opts.add_opt('-dset_index1_list', -1, [], 
                       helpstr='restrict dsets to 1-based index list')
+      self.valid_opts.add_opt('-factors', -1, [], 
+                      helpstr='num factors, per condition (probably 2 ints)')
       self.valid_opts.add_opt('-options', -1, [], 
                       helpstr='specify options to pass to the command')
       self.valid_opts.add_opt('-prefix', 1, [], 
@@ -520,6 +601,12 @@ class CmdInterface:
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return 1
             self.index1_list.append(val)      # allow multiple such options
+            continue
+
+         if opt.name == '-factors':
+            val, err = uopts.get_type_list(int, '', opt=opt)
+            if val == None or err: return 1
+            self.factors = val
             continue
 
          if opt.name == '-options':
@@ -662,10 +749,12 @@ class CmdInterface:
          cmd = self.get_mema_command()
       elif self.command == '3dttest++':
          cmd = self.get_ttpp_command()
-      elif self.command == '3dttest':
-         print '** 3dttest command not yet implemented'
+      elif self.command == '3dANOVA2':
+         cmd = self.get_anova2_command()
+      elif self.command == '3dANOVA3':
+         cmd = self.get_anova3_command()
       else:
-         print '** unrecognized command: %s' % self.command
+         print '** command not implemented: %s' % self.command
 
       # bail on failure, else wrap command
       if cmd == None:
@@ -699,6 +788,26 @@ class CmdInterface:
       return self.slist[0].make_ttestpp_command(set_labs=self.lablist,
                      bsubs=self.betasubs, subjlist2=s2, prefix=self.prefix,
                      comp_dir=self.comp_dir, options=self.options)
+
+   def get_anova2_command(self):
+      """generate 3dANOVA2 command
+                type 2: requires one group and one list of betas
+      """
+      if self.betasubs == None:
+         print '** missing required -subs_betas option for sub-brick list'
+         return None
+
+      return self.slist[0].make_anova2_command( bsubs=self.betasubs,
+               prefix=self.prefix, options=self.options, verb=self.verb)
+
+   def get_anova3_command(self):
+      """generate 3dANOVA3 command
+                type 5: requires 2 groups and one list of betas
+      """
+
+      return self.slist[0].make_anova3_command( bsubs=self.betasubs,
+               prefix=self.prefix, subjlists=self.slist, options=self.options,
+               factors=self.factors, verb=self.verb)
 
    def help_mema_command(self):
       helpstr = """
