@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, JUN, 2012, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
+   "added commands 3dANOVA2 and 3dANOVA3; added option -factors",
+   "Need to add help for -factors (i.e. for 3dANOVA3 -type 4)."
+ } ,
+
  { 20, JUN, 2012, RCR, "plug_realtime", MICRO, TYPE_BUG_FIX,
    "comment out plot_ts_setthik() type calls for now",
    "When registering, finalize_dset() will result in white image window.\n"
