@@ -506,9 +506,10 @@ g_history = """
    0.22 Jun 14, 2012: use afni -com instead of plugout_drive
                       (avoids issue on systems with multiple users)
                       Thanks to V Razdan and N Adleman for noting the issue.
+   0.23 Jun 25, 2012: ick, fixed uninitilaized cpad1,2 (if no censoring)
 """
 
-g_version = "gen_ss_review_scripts.py version 0.21, May 11, 2012"
+g_version = "gen_ss_review_scripts.py version 0.23, June 25, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -2091,6 +2092,8 @@ class MyInterface:
 
       # maybe include -censor option
       cstr = ''
+      cpad1 = ''
+      cpad2 = ''
       if self.uvars.is_not_empty('censor_dset'):
          cfile = self.uvars.val('censor_dset')
          if os.path.isfile(cfile):
