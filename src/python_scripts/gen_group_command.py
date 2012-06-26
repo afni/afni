@@ -258,13 +258,63 @@ examples (by program)
 
       Note: it seems better to create the script without any contrasts, and
             add them afterwards (so the user can format well).  However, if
-            no contrasts are given, the program will add 2 trivial ones.
+            no contrasts are given, the program will add 2 trivial ones,
+            just for a starting point.
 
-      Note: applies either -type 4 or -type 5 from 3dANOVA3.
+      Note: this applies either -type 4 or -type 5 from 3dANOVA3.
             See "3dANOVA3 -help" for details on the types.
 
+            The user does not specify type 4 or 5.
 
-      1. The most simple case, providing just 2 groups of datasets and a list
+            type 4: there should be one -dsets option and a -factors option
+            type 5: there should be two -dsets options and no -factor
+
+      1. 3dANOVA3 -type 4
+
+         This is a simple example of a 2-way factorial ANOVA (color by image
+         type), across many subjects.  The colors are pink and blue, while the
+         images are of houses, faces and donuts.  So there are 6 stimulus types
+         in this 2 x 3 design:
+
+                pink house      pink face       pink donut
+                blue house      blue face       blue donut
+
+         Since those were the labels given to 3dDeconvolve, the beta weights
+         will have #0_Coef appended, as in pink_house#0_Coef.  Note that in a
+         script, the '#' character will need to be quoted.
+
+         There is only one set of -dsets given, as there are no groups.
+
+            gen_group_command.py -command 3dANOVA3                          \\
+               -dsets OLSQ*.HEAD                                            \\
+               -subs_betas                                                  \\
+                 "pink_house#0_Coef" "pink_face#0_Coef" "pink_donut#0_Coef" \\
+                 "blue_house#0_Coef" "blue_face#0_Coef" "blue_donut#0_Coef" \\
+               -factors 2 3
+
+      2. 3dANOVA3 -type 4
+
+         Get more useful:
+            - apply with an input data directory
+            - specify a script name
+            - specify a dataset prefix for the 3dANOVA3 command
+            - specify simple contrasts
+
+            gen_group_command.py -command 3dANOVA3                          \\
+               -write_script cmd.A3.2                                       \\
+               -prefix outset.A3.2                                          \\
+               -dsets AFNI_data6/group_results/OLSQ*.HEAD                   \\
+               -subs_betas                                                  \\
+                 "pink_house#0_Coef" "pink_face#0_Coef" "pink_donut#0_Coef" \\
+                 "blue_house#0_Coef" "blue_face#0_Coef" "blue_donut#0_Coef" \\
+               -factors 2 3                                                 \\
+               -options                                                     \\
+                 -adiff 1 2 pink_vs_blue                                    \\
+                 -bcontr -0.5 -0.5 1.0 donut_vs_house_face
+
+      3. 3dANOVA3 -type 5
+
+         Here is a simple case, providing just 2 groups of datasets and a list
          of sub-bricks.  
 
             gen_group_command.py -command 3dANOVA3         \\
@@ -272,15 +322,17 @@ examples (by program)
                                  -dsets REML*.HEAD         \\
                                  -subs_betas 0 1
 
-      2. Get more useful:
-            - apply with a directory
+      4. 3dANOVA3 -type 5
+
+         Get more useful:
+            - apply with an input data directory
             - specify a script name
             - specify a dataset prefix for the 3dANOVA3 command
             - use labels for sub-brick indices
             - specify simple contrasts
 
             gen_group_command.py -command 3dANOVA3                           \\
-                                 -write_script cmd.A3.2                      \\
+                                 -write_script cmd.A3.4                      \\
                                  -prefix outset.A3.2                         \\
                                  -dsets AFNI_data6/group_results/OLSQ*.HEAD  \\
                                  -dsets AFNI_data6/group_results/REML*.HEAD  \\
@@ -300,6 +352,15 @@ terminal options:
 required parameters:
 
    -command COMMAND_NAME     : resulting command, such as 3dttest++
+
+        The current list of group commands is: 3dttest++, 3dMEMA, 3dANOVA2,
+        3dANOVA3.
+
+           3dANOVA2:    applied as -type 3 only (factor x subjects)
+           3dANOVA3:    -type 4: condition x condition x subject
+                                 (see -factors option)
+                        -type 5: group x condition x subject
+
    -dsets   datasets ...     : list of datasets
                                   (this option can be used more than once)
 
@@ -342,6 +403,40 @@ other options:
 
         The format for these index lists is the same as for AFNI sub-brick
         selection.
+
+   -factors NF1 NF2 ...         : list of factor levels, per condition
+
+           example: -factors 2 3
+
+        This option is currently only for '3dANOVA3 -type 4', which is a
+        condition x condition x subject test.  It is meant to parse the
+        -subs_betas option, which lists all sub-bricks input to the ANOVA.
+        
+        Assuming condition A has nA levels, and B has nB (2 and 3 in the
+        above example), then this option (applied '-factors nA nB', and
+        -subs_betas) would take nA * nB parameters (for the cross product of
+        factor A and factor B levels).
+        The betas should be specified in A major order, as in:
+
+           -subs_betas A1B1_name A1B2_name ... A1BnB A2B1 A2B2 ... AnABnB_name
+
+        or as in the 2 x 3 case:
+
+           -subs_betas A1B1 A1B2 A1B3 A2B1 A2B2 A2B3   -factors 2 3
+
+        e.g. for pink/blue x house/face/donut, output be 3dDeconvolve
+             (i.e. each betas probably has #0_Coef attached)
+
+           -subs_betas                                                   \\
+              "pink_house#0_Coef" "pink_face#0_Coef" "pink_donut#0_Coef" \\
+              "blue_house#0_Coef" "blue_face#0_Coef" "blue_donut#0_Coef" \\
+           -factors 2 3                                                  \\
+
+        Again, these factor combination names should be either sub-brick labels
+        or indices (labels are suggested, to avoid confusion).
+
+        See the example with '3dANOVA3 -type 4' as part of example D, above.
+        See also -subs_betas.
 
    -options OPT1 OPT2 ...       : list of options to pass along to result
 
@@ -411,9 +506,10 @@ g_history = """
    0.6  Jun 22, 2012
         - added commands 3dANOVA2 and 3dANOVA3
         - added -factors for 3dANOVA3 -type 4
+   0.7  Jun 25, 2012    - added help for -factors and 3dANOVA3 -type 4 examples
 """
 
-g_version = "gen_group_command.py version 0.6, June 22, 2011"
+g_version = "gen_group_command.py version 0.7, June 25, 2011"
 
 
 class CmdInterface:
