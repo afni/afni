@@ -221,6 +221,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_da
 void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, XtPointer call_data);
+SUMA_Boolean SUMA_SetCmapMode(SUMA_SurfaceObject *SO, int imenu);
 void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data, XtPointer call_data);
 void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_LoadCmapFile (char *filename, void *data);

@@ -2131,6 +2131,49 @@ void SUMA_BuildMenuReset(int n_max)
    SUMA_RETURNe;
 }
 
+int SUMA_BuildMenu_Numerous(  Widget parent, int menu_type, char *menu_title, 
+                     char menu_mnemonic, SUMA_Boolean tear_off, 
+                     SUMA_MenuItem *items, 
+                     void *ContID, 
+                     char *hint, char *help,
+                     Widget *MenuWidgets )
+{
+   static char FuncName[]={"SUMA_BuildMenu_Numerous"};
+   char nlabel[300]="\0";
+   Widget menu = NULL, cascade = NULL;
+   XmString str=NULL;
+   int i=-1; int N_items=0;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+
+   if (!menu_title) {
+      SUMA_S_Warn("menu_title is NULL, alert Rick Reynolds!");
+      menu_title = "";
+   }
+   
+   if (items) while(items[N_items++].label);
+    
+   SUMA_LHv("Entered. menu_title %s, type %d, %d items.\n", 
+               menu_title, menu_type, N_items);
+#if 0
+   SUMA_CreateArrowField ( parent, "Opa",
+                     1, 0.0, 1.0, 0.1,
+                     3, SUMA_float,
+                     NOPE,
+                     SUMA_ColPlane_NewOpacity, (void *)SO,
+                     SUMA_SurfCont_ColPlaneOpacity_hint,
+                     SUMA_SurfContHelp_DsetOpa,
+                     SO->SurfCont->ColPlaneOpacity);
+#endif
+
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: Returning %d widgets created.\n", FuncName, i_wid);
+   
+   SUMA_RETURN (i_wid);
+}
+
 int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title, 
                      char menu_mnemonic, SUMA_Boolean tear_off, 
                      SUMA_MenuItem *items, 
@@ -2142,7 +2185,7 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
    char nlabel[300]="\0";
    Widget menu = NULL, cascade = NULL;
    XmString str=NULL;
-   int i=-1;
+   int i=-1; int N_items=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2152,8 +2195,20 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
       menu_title = "";
    }
    
-   SUMA_LHv("Entered. menu_title %s.\n", menu_title);
-      
+   if (items) while(items[N_items++].label);
+    
+   SUMA_LHv("Entered. menu_title %s, type %d, %d items.\n", 
+               menu_title, menu_type, N_items);
+   if (0 && N_items >100 && SUMAg_CF->Dev) {
+      SUMA_S_Warnv("Entering experimental territory!\n"
+                   "Entered. menu_title %s, type %d, %d items.\n", 
+               menu_title, menu_type, N_items);
+                   
+      SUMA_RETURN(
+         SUMA_BuildMenu_Numerous(parent, menu_type, menu_title, 
+                                 menu_mnemonic, tear_off, 
+                                 items, ContID, hint, help, MenuWidgets ));
+   }   
    if (menu_type == XmMENU_PULLDOWN || menu_type == XmMENU_OPTION)
      menu = XmCreatePulldownMenu (parent, "_pulldown", NULL, 0);
    else if (menu_type == XmMENU_POPUP)

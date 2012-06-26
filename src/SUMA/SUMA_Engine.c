@@ -3003,6 +3003,17 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }
             
+            if (NI_get_attribute(EngineData->ngr, "switch_cmode")) {
+               /* Set the menu button to the current choice */
+               if (!SUMA_SetCmodeMenuChoice (SO, 
+                        NI_get_attribute(EngineData->ngr, "switch_cmode"))) {
+                  SUMA_SL_Err("Failed in SUMA_SetCmodeMenuChoice");
+               }
+               
+               /* update Lbl fields */
+               SUMA_UpdateNodeLblField(SO);
+            }
+            
             if (NI_get_attribute(EngineData->ngr, "load_cmap")) {
                SUMA_LoadCmapFile (NI_get_attribute(EngineData->ngr, "load_cmap"),                                   (void *)SO);
             }
@@ -3306,6 +3317,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
 
             break;
+            
          case SE_SetViewerCont:
             /* expects a ngr and SO in vp */
             if (  EngineData->ngr_Dest != NextComCode || 

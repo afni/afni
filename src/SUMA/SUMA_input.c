@@ -2284,7 +2284,8 @@ void SUMA_free_Save_List_El(void *selu) {
    return;
 }
 
-int SUMA_Add_to_SaveList(DList **SLp, char *type, char *identifier, char *prefix) 
+int SUMA_Add_to_SaveList(DList **SLp, char *type, 
+                         char *identifier, char *prefix) 
 {
    static char FuncName[]={"SUMA_Add_to_SaveList"};
    DList *SL=NULL;
@@ -2329,21 +2330,41 @@ int SUMA_Add_to_SaveList(DList **SLp, char *type, char *identifier, char *prefix
    }
    
    if (LocalHead) {
-      SUMA_LH("SaveList now:")
-      el = dlist_head(SL);
-      while (el) {
-         if ((sel = (SUMA_SAVE_LIST_EL *)el->data)) {
-            fprintf(stderr,"     %s, %s (%s)\n", 
-                           sel->identifier, sel->prefix, sel->type);
-         } else {
-            fprintf(stderr,"     NULL sel\n");
-         }
-         el = dlist_next(el);
-      }
+      SUMA_Show_SaveList(SL, "SaveList now:\n");
    }
      
    *SLp = SL;
    SUMA_RETURN(1);
+}
+
+void SUMA_Show_SaveList(DList *SL, char *head) 
+{
+   static char FuncName[]={"SUMA_Show_SaveList"};
+   FILE *out=NULL;
+   DListElmt *el= NULL;
+   SUMA_SAVE_LIST_EL *sel=NULL;
+   int cnt = 0;
+   
+   SUMA_ENTRY;
+      
+   if (!out) out = stderr;
+   if (head) { fprintf(out, "%s", head); }
+   if (!SL) { fprintf(out,"NULL SaveList\n"); SUMA_RETURNe; }
+      
+   el = dlist_head(SL);
+   cnt = 0;
+   while (el) {
+      if ((sel = (SUMA_SAVE_LIST_EL *)el->data)) {
+         fprintf(out,"   %d:     id>%s<, prefix>%s<, type>%s<\n", 
+                        cnt, sel->identifier, sel->prefix, sel->type);
+      } else {
+         fprintf(out,"   %d:     NULL sel\n", cnt);
+      }
+      el = dlist_next(el);
+      fprintf(out,"\n");
+   }
+
+   SUMA_RETURNe;
 }
 
 int SUMA_SaveSaveListElement(SUMA_SAVE_LIST_EL *sel) 
