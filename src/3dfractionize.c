@@ -11,7 +11,15 @@
 /*-- 18 Oct 1999: modified to implement -preserve option --*/
 
 THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv ) ;
-
+/*== Note any changes here should be reflected in both ================
+     plug_drawdset.c:DRAW_ttatlas_CB()
+     3dfractionize.c:main()
+  or updated to use the same function instead in the future....
+  Unless voting, this function doesn't really need to work this way;
+  it can instead use the 3dresample or future warp-on-demand way.
+  Resulting ROIs are different between this method and "Show Atlas Colors"
+==========================================================================
+*/
 int main( int argc , char * argv[] )
 {
    char *prefix = "fractionize" ;

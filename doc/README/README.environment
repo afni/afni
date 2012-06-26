@@ -2355,6 +2355,13 @@ of undo levels, you could set this to a larger value; however, this
 would only be needed if you are drawing huge 3D swaths of data at a
 time (e.g., using the 3D sphere option with a large radius).
 
+----------------------------
+Variable: AFNI_DRAW_THRESH
+----------------------------
+This variable controls the clipping threshold for converting atlas
+regions into ROIs in the Draw Dataset plugin. The default value is 49
+percent unless set by this variable.
+
 ---------------------
 Variable: AFNI_SPEECH (editable)
 ---------------------

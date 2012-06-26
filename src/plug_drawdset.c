@@ -79,6 +79,7 @@ char * DRAW_value_string( float val ) ;
 static void choose_new_atlas_CB(MCW_arrowval * , XtPointer );
 static MCW_arrowval *Atlas_chooser(Widget rc);
 static void free_plugdraw_atlas_list();
+static float get_afni_thresh_percent();
 
 static char *plugdraw_atlasname;
 
@@ -3046,11 +3047,19 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
 /*--------------------------------------------------------------------------
    22 Aug 2001: TT Atlas Regions action callback
 ----------------------------------------------------------------------------*/
-
+/******* Note any changes here should be reflected in both 
+     plug_drawdset.c:DRAW_ttatlas_CB()
+     3dfractionize.c:main()
+  or updated to use the same function instead in the future....
+  This function doesn't really need to do this the 3dfractionize way;
+  it can instead use the 3dresample or future warp-on-demand way.
+  Resulting ROIs are different between this method and "Show Atlas Colors"
+*/
 void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    THD_3dim_dataset *dseTT ;
-   byte *voxout , *bb=NULL;
+   float *voxout ;
+   byte *bb=NULL;
    short *ss=NULL, sval ;
    float *ff=NULL;
    MRI_IMAGE *b0im;
@@ -3061,6 +3070,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
    float dxout,dyout,dzout , xorgout,yorgout,zorgout ;
    float z1,z2 , y1,y2 , x1,x2 , xx1,xx2,yy1,yy2,zz1,zz2 ;
    float f1,f2,f , g1,g2,g , h1,h2,h , sx,sy,sz , tx,ty,tz , sxyz ;
+   float vthresh;
    int at_sbi, fim_type, at_nsb; 
    THD_fvec3 vv ;
 
@@ -3087,7 +3097,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
    xorgTT=dseTT->daxes->xxorg; yorgTT=dseTT->daxes->yyorg; zorgTT=dseTT->daxes->zzorg;
 
    nvoxout= DSET_NVOX(dset) ;
-   voxout = (byte *) calloc(sizeof(byte),nvoxout) ;
+   voxout = (float *) calloc(sizeof(float),nvoxout) ;
    nxout  =dset->daxes->nxx  ; nyout  =dset->daxes->nyy  ; nzout  =dset->daxes->nzz  ;
    dxout  =dset->daxes->xxdel; dyout  =dset->daxes->yydel; dzout  =dset->daxes->zzdel;
    xorgout=dset->daxes->xxorg; yorgout=dset->daxes->yyorg; zorgout=dset->daxes->zzorg;
@@ -3151,6 +3161,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
          }
 
 
+         /* got here, so voxel found in atlas that matches region number */
 
          x1 = xorgTT + dxTT * (iv-0.5) ; x2 = xorgTT + dxTT * (iv+0.49999) ;
 
@@ -3207,7 +3218,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
                for( h=h1 ; h < h2 ; h = kp ){
                   k = (int) h ; kp = k+1 ; tz = MIN(kp,h2) ; sz = tz - h ;
                   sxyz = sx * sy * sz ;
-                  voxout[ i + j*nxout + k * nxyout ] += (byte)(100.0*sxyz) ;
+                  voxout[ i + j*nxout + k * nxyout ] += (float)(100.0*sxyz) ;
                }
             }
          }
@@ -3218,18 +3229,18 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
        voxel has with an Atlas voxel which had the target value;
        now, count voxels with enough overlap, and store their indexes **/
 
-#define VTHRESH 49  /* at least 49% overlap */
+   vthresh = get_afni_thresh_percent();
 
-   for( nftot=ijk=0 ; ijk < nvoxout ; ijk++ )
-      if( voxout[ijk] >= VTHRESH ) nftot++ ;
-
+   for( nftot=ijk=0 ; ijk < nvoxout ; ijk++ ){
+      if(voxout[ijk] >= vthresh) nftot++ ;
+   }
    /* now load results into dataset */
 
    if( nftot > 0 ){
      int *xd = (int *) malloc(sizeof(int)*nftot) , ff ;
 
      for( ff=ijk=0 ; ijk < nvoxout ; ijk++ )
-       if( voxout[ijk] >= VTHRESH ) xd[ff++] = ijk ;
+       if( voxout[ijk] >= vthresh ) xd[ff++] = ijk ;
 
      infill_mode = (strcmp(XtName(w),TTATLAS_infill_label) == 0) ;
      ff = DRAW_into_dataset( nftot , xd,NULL,NULL , NULL ) ;
@@ -3244,6 +3255,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
      if( recv_open ) AFNI_process_drawnotice( im3d ) ;
    } else {
       fprintf(stderr,"++ No atlas voxels found at all for some reason!?\a\n") ;
+      fprintf(stderr,"   Consider setting the value for AFNI_DRAW_THRESH to less than %f\n", vthresh);
    }
 
    free(voxout) ; /* toss trash */
@@ -3884,4 +3896,22 @@ free_plugdraw_atlas_list()
    free(ttatlas_list);
 
    return;
+}
+
+/* return the threshold in percent to cutoff atlas voxels */
+static float get_afni_thresh_percent()
+{
+   static int thresh_set = -1;
+   float thresh = 49.0;
+   float ppp;
+
+   if(thresh_set > 0)
+     return(thresh);
+
+   ppp = AFNI_numenv("AFNI_DRAW_THRESH");
+
+   if( ppp > 0.0f && ppp <= 100.0f ) {
+      thresh = ppp; 
+   }
+   return(thresh);
 }
