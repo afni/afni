@@ -2360,7 +2360,8 @@ Variable: AFNI_DRAW_THRESH
 ----------------------------
 This variable controls the clipping threshold for converting atlas
 regions into ROIs in the Draw Dataset plugin. The default value is 49
-percent unless set by this variable.
+percent unless set by this variable as a percentage greater than 0.0
+and at most 100.0 percent
 
 ---------------------
 Variable: AFNI_SPEECH (editable)
