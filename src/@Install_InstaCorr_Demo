@@ -2,15 +2,41 @@
 
 set stat = 0
 set sdir = $PWD
+set ok_1surf = 0
+set ok_Gsurf = 0
+set ok_Gvol = 0
 
+set cdir = `\pwd | \grep AFNI_InstaCorrDemo`
+if ($status == 0 && ${cdir} != '') then
+   echo "You should not run this command from a directory under AFNI_InstaCorrDemo"
+   set sugdir = `echo $cdir | sed 's/AFNI_InstaCorrDemo/ /g' | cut -f 1 -d ' '`
+   echo "Consider running this script again with: "
+   echo "   cd $sugdir"
+   echo "   `basename $0` $argv[*]"
+   echo ""
+   goto END
+endif
 
 goto PARSE
 RET_PARSE:
 
-if ( -d ./AFNI_InstaCorrDemo || -f AFNI_InstaCorrDemo.tgz) then
+if ( -f AFNI_InstaCorrDemo/srf/rest_sub99965.STL_rh_SM.niml.dset.1D.smrec ) then
+   echo "Subject single surf processed"
+   set ok_1surf = 1
+endif
+if ( -f AFNI_InstaCorrDemo/srf/G1.LR.grpincorr.niml ) then
+   echo "Subject group surf processed"
+   set ok_Gsurf = 1
+endif
+if ( -f AFNI_InstaCorrDemo/vol/G1.grpincorr.niml ) then
+   echo "Subject group vol processed"
+   set ok_Gvol = 1
+endif
+
+if ( $ok_Gvol == 1 || $ok_Gsurf == 1 || $ok_1surf == 1 )  then
 echo ""
-echo "ERROR:"
-echo "   Directory AFNI_InstaCorrDemo or AFNI_InstaCorrDemo.tgz exists already"
+echo "Notice:"
+echo "   Output files already exist."
 echo "   If you need to reinstall, remove both AFNI_InstaCorrDemo and"
 echo "   AFNI_InstaCorrDemo.tgz with:"
 echo "\\rm -rf AFNI_InstaCorrDemo.tgz AFNI_InstaCorrDemo"
@@ -22,13 +48,19 @@ set ret_coms = END
 goto SHOW_COM
    endif
 
-which curl
-if ($status) then
-   wget http://afni.nimh.nih.gov/pub/dist/data/AFNI_InstaCorrDemo.tgz
+if ( ! -f AFNI_InstaCorrDemo.tgz) then
+   which curl
+   if ($status) then
+      wget http://afni.nimh.nih.gov/pub/dist/data/AFNI_InstaCorrDemo.tgz
+   else
+      curl -O http://afni.nimh.nih.gov/pub/dist/data/AFNI_InstaCorrDemo.tgz
+   endif
+   tar xvzf AFNI_InstaCorrDemo.tgz
 else
-   curl -O http://afni.nimh.nih.gov/pub/dist/data/AFNI_InstaCorrDemo.tgz
+   echo "Reusing existing AFNI_InstaCorrDemo.tgz"
+   tar xvzf AFNI_InstaCorrDemo.tgz
 endif
-tar xvzf AFNI_InstaCorrDemo.tgz
+
 cd AFNI_InstaCorrDemo/vol
    tcsh ./@SetupVolGroupInCorr
 cd -

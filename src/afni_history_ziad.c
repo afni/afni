@@ -66,6 +66,16 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19, Jun , 2012 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
+   "Added -switch_cmode to allow switching how values map to colors",
+   "This controls the 'Col' menu in SUMA's surface controller.\n" 
+ },
+ 
+ { 19, Jun , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Ctrl+W was not saving datasets when filenames contained a path",
+   "Problem had to do with clumsy prefix forming.\n" 
+ },
+ 
  { 4, Jun , 2012 , ZSS , "@Install_AfniRetinoDemo" , MICRO , TYPE_NEW_PROG,
    "Demo script to download and run Retinotopy pipeline demo",
    NULL

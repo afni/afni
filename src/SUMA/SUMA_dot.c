@@ -675,11 +675,21 @@ void SUMA_dot_product_CB( void *params)
          SUMA_S_Err("Failed to compute dot product");
          SUMA_RETURNe;
       }
-      snprintf(ident,298*sizeof(char), "filename:%s", SDSET_FILENAME(out_dset));
-      p1 = SUMA_RemoveDsetExtension_s(SDSET_FILENAME(in_dset),
+      
+	   snprintf(ident,298*sizeof(char), "filename:%s", SDSET_FILENAME(out_dset));
+      
+      {
+      	SUMA_PARSED_NAME *p1p, *p2p;
+      p1p = SUMA_ParseFname(SDSET_FILENAME(in_dset), SUMAg_CF->cwd);
+      p1 = SUMA_RemoveDsetExtension_s(p1p->FileName_NoExt,
                                         SUMA_NO_DSET_FORMAT);
-      p2 = SUMA_RemoveDsetExtension_s(SDSET_FILENAME(ts_src_dset),
+      p2p = SUMA_ParseFname(SDSET_FILENAME(ts_src_dset), SUMAg_CF->cwd);
+      p2 = SUMA_RemoveDsetExtension_s(p2p->FileName_NoExt,
                                         SUMA_NO_DSET_FORMAT);
+      SUMA_Free_Parsed_Name(p1p); p1p = NULL;
+      SUMA_Free_Parsed_Name(p2p); p2p = NULL;
+      }
+      
       if (SO->Side == SUMA_LEFT) Cside = "L";
       else if (SO->Side == SUMA_RIGHT) Cside = "R";
       else Cside = "";

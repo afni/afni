@@ -73,6 +73,7 @@ static char uDS_surf_cont[]={
 "       DriveSuma -com surf_cont -B_sb 7 -B_range 0.5 -B_scale 0.1 0.9\n"
 "       DriveSuma -com surf_cont -switch_dset Convexity -1_only y\n"
 "       DriveSuma -com surf_cont -switch_cmap roi64 -1_only n\n"
+"       DriveSuma -com surf_cont -switch_cmode Dir \n"
 "       DriveSuma -com surf_cont -view_dset n\n"
 "       DriveSuma -com surf_cont -switch_dset blooby.curv.1D.dset \\\n"
 "                      -view_surf_cont n -I_range -0.05 0.14\n"
@@ -272,7 +273,7 @@ if (detail > 1) {
 "                  At the shell you would enter:\n"
 "                    DriveSuma -com viewer_cont '-key:v\"0.8 0 10.3\"' ctrl+j\n"
 "                  In another example, say you want to jump to node 54 on the\n"
-"                  right hemisphere, then you would execute:\n"
+"                  right hemisphere (hence the 'R' in '54R'), then you would execute:\n"
 "                    DriveSuma -com viewer_cont '-key:v54R' j\n"
 "        -viewer VIEWER: Specify which viewer should be acted \n"
 "                        upon. Default is viewer 'A'. Viewers\n"
@@ -356,6 +357,7 @@ if (detail > 1) {
 "       -view_dset y/n: Set view toggle button of DSET\n"
 "       -1_only y/n: Set 1_only toggle button of DSET\n"
 "       -switch_cmap CMAP: switch colormap to CMAP\n"
+"       -switch_cmode CMODE: switch color mapping mode to CMODE\n"
 "       -load_cmap CMAP.1D.cmap: load and switch colormap in \n"
 "                                file CMAP.1D.cmap\n"
 "       -I_sb ISB: Switch intensity to ISBth column (sub-brick)\n"
@@ -648,6 +650,29 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "switch_cmap", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && ( (strcmp(argt[kar], "-switch_cmode") == 0) ))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, 
+                     "need a color mapping mode after -switch_cmode \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         if (strcasecmp(argt[kar],"nn") &&
+             strcasecmp(argt[kar],"dir") &&
+             strcasecmp(argt[kar],"int")) {
+            fprintf(SUMA_STDERR,
+                  "CMODE %s not allowed. Choose from 'NN', 'Dir', or 'Int'\n", 
+                  argt[kar]);   
+            SUMA_RETURN(0);
+         }
+         NI_set_attribute(ngr, "switch_cmode", argt[kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }

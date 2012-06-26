@@ -13,7 +13,9 @@ foreach prog ($proglist)
    if ("$pif" == '') then
       echo "searching for talking $prog..."
       if ($no_npb == 1) then
-         set pidl = `ps ${psopt} |  \grep $prog | \grep -v $pname |\
+         set pidl = `ps ${psopt} |  \grep -w $prog |\
+                              \grep -v grep |\
+                              \grep -v $pname |\
                               \sed 's/^[ \t]*//g' | \
                               \cut -d ' ' -f 1`   
          if ($list == 1) then
@@ -36,7 +38,9 @@ foreach prog ($proglist)
          #don't use foreach npb ($npb_vals), it won't work if npb_vals = ('')
          while ($cc <= $#npb_vals) 
             set npb = $npb_vals[$cc]
-            set pidl = `ps ${psopt} |  \grep $prog | \grep -v $pname |\
+            set pidl = `ps ${psopt} |  \grep -w $prog |\
+                                 \grep -v grep |\
+                                 \grep -v $pname |\
                                  \grep "\-npb[[:space:]][[:space:]]*$npb" | \
                                  \sed 's/^[ \t]*//g' | \
                                  \cut -d ' ' -f 1`
@@ -59,7 +63,9 @@ foreach prog ($proglist)
          end
       endif
    else
-      set pidl = `ps ${psopt} |  \grep $prog | \grep -v $pname |\
+      set pidl = `ps ${psopt} |  \grep -w $prog |\
+                           \grep -v grep  |\
+                           \grep -v $pname |\
                            \grep "$pif"   |\
                            \sed 's/^[ \t]*//g' | \
                            \cut -d ' ' -f 1`   

@@ -72,6 +72,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 void SUMA_input(Widget w, XtPointer clientData, XtPointer callData) ;
+void SUMA_Show_SaveList(DList *SL, char *head);
 int SUMA_Add_to_SaveList(DList **SLp, char *type, char *ident, char *prefix);
 void SUMA_free_Save_List_El(void *selu);
 int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
