@@ -1672,7 +1672,6 @@ void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data,
    SUMA_MenuCallBackData *datap=NULL;
    int imenu;
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_Boolean NewDisp = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1681,6 +1680,24 @@ void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data,
    datap = (SUMA_MenuCallBackData *)client_data;
    SO = (SUMA_SurfaceObject *)datap->ContID;
    imenu = (INT_CAST)datap->callback_data; 
+   
+   SUMA_SetCmapMode(SO, imenu);
+      
+   SUMA_RETURNe;
+}
+
+SUMA_Boolean SUMA_SetCmapMode(SUMA_SurfaceObject *SO, int imenu)
+{
+   static char FuncName[]={"SUMA_SetCmapMode"};
+   SUMA_Boolean NewDisp = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !SO->SurfCont || 
+       !SO->SurfCont->curColPlane || imenu < 1) SUMA_RETURN(NOPE);
+   
+   /* get the surface object that the setting belongs to */
    NewDisp = NOPE;
    switch (imenu) {
       case SW_Interp:
@@ -1702,8 +1719,11 @@ void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data,
          }
          break;
       default: 
-         fprintf (SUMA_STDERR, "Error %s: Unexpected widget index.\n", FuncName);
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Unexpected widget index.\n", FuncName);
+         SUMA_RETURN(NOPE);
          break;
+      
    }
    
    /* redisplay all viewers showing SO*/
@@ -1715,7 +1735,7 @@ void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data,
    SUMA_UpdateNodeNodeField(SO);
    SUMA_UpdateNodeLblField(SO);
    
-   SUMA_RETURNe;
+   SUMA_RETURN(YUP);
 }
 
 /*!
@@ -4767,9 +4787,64 @@ SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh, int bringu
       }
    }
    
-   if (bringup) SUMA_CreateScrolledList ( LW->ALS->clist, LW->ALS->N_clist, NOPE, LW);
+   if (bringup) 
+      SUMA_CreateScrolledList ( LW->ALS->clist, LW->ALS->N_clist, NOPE, LW);
    
    SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_SurfaceObject *SO, char *str)
+{
+   static char FuncName[]={"SUMA_SetCmodeMenuChoice"};
+   int i, Nbutt = 0, nstr=0, nf=0;
+   Widget whist = NULL, *w = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LHv("So(%p), SurfCont(%p), CmapModeMenu(%p)\n", 
+            SO, SO->SurfCont, SO->SurfCont->CmapModeMenu);
+   w = SO->SurfCont->CmapModeMenu;
+   if (!w) {
+      SUMA_LH("NULL w");
+      SUMA_RETURN(NOPE);
+   }
+   if (!str) {
+      SUMA_S_Err("NULL str");
+      SUMA_RETURN(NOPE);
+   }
+   /* what's your history joe ? */
+   XtVaGetValues(  w[0], XmNmenuHistory , &whist , NULL ) ;  
+   if (!whist) {
+      SUMA_SL_Err("NULL whist!");
+      SUMA_RETURN(NOPE);
+   }
+
+   if (LocalHead) { 
+      fprintf (SUMA_STDERR,"%s: The history is NAMED: %s (%d buttons total)\n", 
+               FuncName, XtName(whist), Nbutt);
+   } 
+   if (!strcasecmp(XtName(whist), str)) {
+      SUMA_LHv("Current setting of %s same as %s, nothing to do.\n",
+               XtName(whist),str);
+      SUMA_RETURN(YUP);
+   }   
+   nstr = strlen(str);
+   
+   /* Now search the widgets in w for a widget labeled str */
+   for (i=0; i< SW_N_CmapMode; ++i) {
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"I have %s, want %s\n", XtName(w[i]), str);
+      nf = strcasecmp(str, XtName(w[i]));
+      if (nf == 0) {
+         SUMA_LH("Match!");
+         XtVaSetValues(  w[0], XmNmenuHistory , w[i] , NULL ) ;  
+         SUMA_SetCmapMode(SO, i);
+         SUMA_RETURN(YUP);
+     }
+   }
+   
+   SUMA_RETURN(NOPE);
 }
 
 /*!
@@ -4785,7 +4860,8 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str)
    
    SUMA_ENTRY;
    
-   SUMA_LHv("So(%p), SurfCont(%p), SwitchCmapMenu(%p)\n", SO, SO->SurfCont, SO->SurfCont->SwitchCmapMenu);
+   SUMA_LHv("So(%p), SurfCont(%p), SwitchCmapMenu(%p)\n", 
+            SO, SO->SurfCont, SO->SurfCont->SwitchCmapMenu);
    w = SO->SurfCont->SwitchCmapMenu;
    if (!w) {
       SUMA_LH("NULL w");
@@ -4803,13 +4879,15 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str)
    }
 
    if (LocalHead) { 
-      fprintf (SUMA_STDERR,"%s: The history is NAMED: %s (%d buttons total)\n", FuncName, XtName(whist), Nbutt);
+      fprintf (SUMA_STDERR,"%s: The history is NAMED: %s (%d buttons total)\n", 
+               FuncName, XtName(whist), Nbutt);
    } 
       
    nstr = strlen(str);
    /* Now search the widgets in w for a widget labeled str */
    for (i=0; i< SO->SurfCont->N_CmapMenu; ++i) {
-      if (LocalHead) fprintf (SUMA_STDERR,"I have %s, want %s\n", XtName(w[i]), str);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"I have %s, want %s\n", XtName(w[i]), str);
       if (nstr > strlen(XtName(w[i]))) { /* name in list got trunctated ...*/
          nf = strncmp(str, XtName(w[i]), strlen(XtName(w[i])));
       } else {
