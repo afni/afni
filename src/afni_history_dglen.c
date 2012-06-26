@@ -49,6 +49,16 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 28 , JUN, 2012 , DRG , "Draw Dataset plugin" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Resampling of atlas regions to lower resolution undercounted",
+    "Draw Dataset plugin atlas resampling to a lower resolution dataset\n"
+    "undercounts number of voxels. Incorrect usage of temporary volume\n"
+    "in byte storage was fixed with float volume. Additionally, new\n"
+    "environment variable, AFNI_DRAW_THRESH, allows for variable\n"
+    "threshold level (done with RCR)"
+} ,
+
 { 30 , MAY, 2012 , DRG , "3dinfo, 3drefit" , 
     MINOR , TYPE_MODIFY, 
     "av_space option handling and orig/other space refitting",
