@@ -15,7 +15,7 @@ SEXP getListElement(SEXP list, const char *str)
    
    if (!debug) debug = get_odebug();
    
-   for (R_len_t i = 0; i < length(list); i++) {
+   for ( i = 0; i < length(list); i++) {
       if (debug) INFO_message("Element %d/%d: named %s\n", 
                      i, length(list), CHAR(STRING_ELT(names, i)));
       if(strcmp(CHAR(STRING_ELT(names, i)), str) == 0) {
