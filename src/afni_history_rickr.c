@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, JUN, 2012, RCR, "@Install_Cambridge_Demo", MINOR, TYPE_NEW_PROG,
+   "program is for installing Cambridge resting state InstaCorr demo",
+   NULL
+ } ,
+
  { 28, JUN, 2012, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fixed help error regarding IM",
    "Thanks to I Blair for noting it."
