@@ -1,0 +1,135 @@
+#!/bin/tcsh -f
+
+
+set top_dir = `pwd`
+set demo_dir = AFNI_Demo_Cambridge_Icorr
+set ret_coms = END
+set stat = 0
+
+set cdir = `echo $top_dir | grep $demo_dir`
+if ($status == 0 && $cdir != '') then
+   echo "Please do not run this from under some $demo_dir."
+   set sugdir = `echo $cdir | sed "s/.$demo_dir/ /g" | cut -f 1 -d ' '`
+   echo "Consider running this script again with: "
+   echo "   cd $sugdir"
+   echo "   `basename $0` $argv[*]"
+   echo ""
+   goto END
+endif
+
+goto PARSE
+RET_PARSE:
+
+set state = 0
+set subj = sub99330
+set sdir = $demo_dir/subject_results/$subj/$subj.results
+# check input, subject results, icorr results
+if ( -f $demo_dir/input_data/rest_$subj.nii.gz ) then
+   @ state += 1
+
+   if ( -f $sdir/errts.$subj+tlrc.HEAD ) then
+      echo "subject preprocessing done"
+      @ state += 1
+
+      if ( -f $demo_dir/instacorr/ic.small.errts.grpincorr.niml ) then
+         echo "3dSetupGroupInCorr is done"
+         @ state += 1
+      endif
+   endif
+endif
+
+
+# if data has already been processed, just give execution usage
+if ( $state == 3 ) then
+   echo ""
+   echo "Notice:"
+   echo "   Output files already exist."
+   echo "   If you need to reinstall, remove both $demo_dir and"
+   echo "   $demo_dir.tgz with:"
+   echo "\\rm -rf $demo_dir.tgz $demo_dir"
+   echo "   then run `basename $0` $argv[*] again."
+   echo ""
+   echo "Otherwise to just run the demos do:"
+   echo ""
+   set ret_coms = END
+   goto SHOW_COM
+endif
+
+
+if ( $state == 0 ) then
+   if ( ! -f $demo_dir.tgz) then
+      which curl > /dev/null
+      if ($status) then
+         wget http://afni.nimh.nih.gov/pub/dist/data/$demo_dir.tgz
+      else
+         curl -O http://afni.nimh.nih.gov/pub/dist/data/$demo_dir.tgz
+      endif
+      tar xvzf $demo_dir.tgz
+   else
+      echo "Reusing existing $demo_dir.tgz"
+      tar xvzf $demo_dir.tgz
+   endif
+   @ state += 1
+endif
+
+cd $demo_dir
+
+if ( $state <= 1 ) tcsh run.stage.1.preprocess.txt
+if ( $state <= 2 ) tcsh run.stage.2.set.groups.txt
+if ( $state <= 3 ) tcsh run.stage.3.setup.GIC.txt
+
+goto SHOW_COM
+
+SHOW_COM:
+   echo "============================================================"
+   echo "cd $demo_dir"
+   echo "tcsh run.stage.4.run.GIC.txt"
+   echo "============================================================"
+goto $ret_coms
+
+goto END
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
+         goto HELP
+         set donext = 0;	 goto NEXT	
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+      NEXT:
+		@ cnt ++
+	end
+   
+goto RET_PARSE
+
+HELP:
+   echo "Installs and sets up an AFNI InstaCorr demo archive, based"
+   echo "on 190 Cambridge subjects from FCON_1000."
+   echo ""
+   echo "After setup, all you need to do is run the demo scripts this way:"
+   set ret_coms = HELP_COM
+   goto SHOW_COM
+   HELP_COM:
+   echo ""
+   echo "It takes a while to download, unpack, and run the setup scripts"
+   echo ""
+   goto END
+
+BEND:
+   echo "Failed"
+   set stat = 1
+   goto END
+   
+END:
+   exit $stat
