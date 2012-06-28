@@ -341,9 +341,10 @@ g_history = """
     3.21 Jun 05, 2012: verify that married types match
     3.22 Jun 06, 2012: check for EPI +tlrc view in NIfTI datasets
     3.23 Jun 15, 2012: added -regress_censor_extern
+    3.24 Jun 28, 2012: help mistake on IM, thanks to I Blair for noting
 """
 
-g_version = "version 3.23, June 15, 2012"
+g_version = "version 3.24, June 28, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Mar 2012"

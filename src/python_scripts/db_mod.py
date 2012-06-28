@@ -7230,7 +7230,7 @@ g_help_string = """
                 AM2:    have one or more married parameters
                         ==> use -stim_times_AM2 in 3dDeconvolve command
 
-                IM:     have (exactly) one married parameter
+                IM:     NO married parameters, but get beta for each stim
                         ==> use -stim_times_IM in 3dDeconvolve command
             
             Please see '3dDeconvolve -help' for more information.
