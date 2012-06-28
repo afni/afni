@@ -60,8 +60,9 @@
 #define METH_CVARINVNOD   33
 
 #define METH_ZCOUNT       34
+#define METH_NZMEDIAN     35   /* RCR 27 Jun 2012 */
 
-#define MAX_NUM_OF_METHS  35
+#define MAX_NUM_OF_METHS  36
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 4
@@ -128,17 +129,18 @@ void usage_3dTstat(int detail)
  "                   options only, to turn off detrending, as in\n"
  "                     -stdevNOD  and/or  -cvarNOD  and/or  -cvarinvNOD\n"
  "\n"
- " -MAD    = compute MAD (median absolute deviation) of\n"
- "             input voxels = median(|voxel-median(voxel)|)\n"
- "             [N.B.: the trend is NOT removed for this]\n"
- " -DW    = compute Durbin-Watson Statistic of input voxels\n"
- "             [N.B.: the trend IS removed for this]\n"
- " -median = compute median of input voxels  [undetrended]\n"
- " -bmv    = compute biweight midvariance of input voxels [undetrended]\n"
- "             [actually is 0.989*sqrt(biweight midvariance), to make]\n"
- "             [the value comparable to the standard deviation output]\n"
- " -min    = compute minimum of input voxels [undetrended]\n"
- " -max    = compute maximum of input voxels [undetrended]\n"
+ " -MAD       = compute MAD (median absolute deviation) of\n"
+ "                input voxels = median(|voxel-median(voxel)|)\n"
+ "                [N.B.: the trend is NOT removed for this]\n"
+ " -DW        = compute Durbin-Watson Statistic of input voxels\n"
+ "                [N.B.: the trend IS removed for this]\n"
+ " -median    = compute median of input voxels  [undetrended]\n"
+ " -nzmedian  = compute median of non-zero input voxels [undetrended]\n"
+ " -bmv       = compute biweight midvariance of input voxels [undetrended]\n"
+ "                [actually is 0.989*sqrt(biweight midvariance), to make]\n"
+ "                [the value comparable to the standard deviation output]\n"
+ " -min       = compute minimum of input voxels [undetrended]\n"
+ " -max       = compute maximum of input voxels [undetrended]\n"
  " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
  " -argmin    = index of minimum of input voxels [undetrended]\n"
  " -argmin1   = index + 1 of minimum of input voxels [undetrended]\n"
@@ -301,6 +303,12 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-median") == 0 ){
          meth[nmeths++] = METH_MEDIAN ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-nzmedian") == 0 ){
+         meth[nmeths++] = METH_NZMEDIAN ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -886,6 +894,21 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         ts_copy = (float*)calloc(npts, sizeof(float));
         memcpy( ts_copy, ts, npts * sizeof(float));
         val[out_index] = qmed_float( npts , ts_copy ) ;
+        free(ts_copy);
+      }
+      break ;
+
+      case METH_NZMEDIAN:{      /* 27 Jun 2012 [rickr] */
+        float* ts_copy;
+        int    lind, lnzcount;
+        ts_copy = (float*)calloc(npts, sizeof(float));
+        /* replace memcpy with non-zero copy */
+        lnzcount=0;
+        for (lind=0; lind < npts; lind++)
+           if( ts[lind] ) ts_copy[lnzcount++] = ts[lind];
+        /* and get the result from the possibly shortened array */
+        if( lnzcount > 0 ) val[out_index] = qmed_float( lnzcount , ts_copy ) ;
+        else               val[out_index] = 0.0 ;
         free(ts_copy);
       }
       break ;
