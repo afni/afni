@@ -62,12 +62,25 @@ int SUMA_etime2(char *name, char *str, char *strloc);
 char *SUMA_time(void);
 char *SUMA_time_stamp(void);
 byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet, int FaceSetDim, int *dims, int *N_in, byte *usethis, byte *mask);
-SUMA_ISINBOX SUMA_isinbox (float * NodeList, int nr, float *S_cent , float *S_dim , int BoundIn);
+SUMA_ISINBOX SUMA_isinbox (float * NodeList, int nr, float *S_cent , 
+                           float *S_dim , int BoundIn);
+byte *SUMA_isinsphere_bm (float * NodeList, int nr, float *S_cent , 
+                          float S_rad , int BoundIn );
 SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB);
-SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float S_rad , int BoundIn);
+SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , 
+                                 float S_rad , int BoundIn);
+
 SUMA_Boolean SUMA_Free_IsInSphere (SUMA_ISINSPHERE *IB);
-int SUMA_nodesinsphere2 (float *XYZ, int nr, float *S_cent , float S_dim , int *nodesin, float *dinsq);
-int SUMA_nodesinbox2 (float *XYZ, int nr, float *S_cent , float *S_dim , int *nodesin, float *dinsq);
+int SUMA_nodesinsphere2 (float *XYZ, int nr, float *S_cent , 
+                         float S_dim , int *nodesin, float *dinsq);
+byte *SUMA_nodesinsphere2_bm (float * NodeList, int nr, 
+                           float *S_cent , float S_rad,
+                           byte *bmu);
+int SUMA_nodesinbox2 (float *XYZ, int nr, float *S_cent , 
+                      float *S_dim , int *nodesin, float *dinsq);
+byte *SUMA_nodesinbox2_bm (float * NodeList, int nr, 
+                        float *S_cent , float *S_edge, 
+                        byte *bmu);
 float **SUMA_Point_At_Distance(float *U, float *P1, float d);
 double **SUMA_dPoint_At_Distance(double *U, double *P1, double d);
 int SUMA_Point_To_Triangle_Distance (float *Points, int N_points, 

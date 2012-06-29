@@ -66,6 +66,12 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28, Jun , 2012 , ZSS , "ROIgrow" , MINOR , TYPE_NEW_OPT,
+   "Added -insphere and -inbox options",
+   "These options grow ROIs by finding nodes that fall inside a box or sphere\n"
+   "of preset size around nodes in the original ROIs."
+ },
+ 
  { 19, Jun , 2012 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
    "Added -switch_cmode to allow switching how values map to colors",
    "This controls the 'Col' menu in SUMA's surface controller.\n" 

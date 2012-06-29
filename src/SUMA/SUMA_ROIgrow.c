@@ -8,61 +8,68 @@ void usage_ROIgrow (SUMA_GENERIC_ARGV_PARSE *ps)
       int i;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      printf ( "\n"
-               "Usage: ROIgrow <-i_TYPE SURF> <-roi_nodes ROI.1D> <-lim LIM>\n"
-               "               [-prefix PREFIX]\n"
-               "       A program to expand an ROI on the surface.\n"
-               "       The roi is grown from each node by a user-determined\n"
-               "       distance (geodesic, measured along the mesh).\n"
-               "\n"
-               "  Mandatory Parameters:\n"
-               "     -i_TYPE SURF: Specify input surface.\n"
-               "             You can also use -t* and -spec and -surf\n"
-               "             methods to input surfaces. See below\n"
-               "             for more details.\n"
-               "     -roi_labels ROI_LABELS: Data column containing\n"
-               "                             integer labels of ROIs.\n"
-               "                             Each integer label gets\n"
-               "                             grown separately.\n"
-               "                             If ROI_LABELS is in niml\n"
-               "                             format, then you need not\n"
-               "                             use -roi_nodes because node \n"
-               "                             indices are stored with the \n"
-               "                             labels.\n"
-               "        Notice: With this option, an output is created for\n"
-               "                each label. The output contains two columns:\n"
-               "                One with node indices and one with the label.\n"
-               "                When this option is not used, you get one\n"
-               "                column out containing node indices only.\n"
-               "     -full_list: Output a row for each node on the surface.\n"
-               "                 Nodes not in the grown ROI, receive a 0 for\n"
-               "                 a label. This option is ONLY for use with\n"
-               "                 -roi_labels. This way you can combine \n"
-               "                 multiple grown ROIs with, say, 3dcalc.\n"
-               "                 For such operations, you are better off \n"
-               "                 using powers of 2 for integer labels.\n"
-               "     -roi_nodes ROI_INDICES: Data column containing\n"
-               "                     node indices of ROI. \n"
-               "                     Use the [] column\n"
-               "                     specifier if you have more than\n"
-               "                     one column in the data file.\n"
-               "                     To get node indices from a niml dset\n"
-               "                     use the '[i]' selector.\n"
-               "     -grow_from_edge: Grow ROIs from their edges rather than\n"
-               "                      the brute force default. This might \n"
-               "                      make the program faster on large ROIs  \n"
-               "                      and large surfaces.\n"
-               "     -lim LIM: Distance to cover from each node.\n"
-               "               The units of LIM are those of the surface's\n"
-               "               node coordinates. Distances are calculated\n"
-               "               along the surface's mesh."
-               "\n"
-               "  Optional Parameters:\n"
-               "     -prefix PREFIX: Prefix of 1D output dataset.\n"
-               "                     Default is ROIgrow\n"
-               " \n"
-               "%s"
-               "%s"
+      printf ( 
+"\n"
+"Usage: ROIgrow <-i_TYPE SURF> <-roi_nodes ROI.1D> <-lim LIM>\n"
+"               [-prefix PREFIX]\n"
+"       A program to expand an ROI on the surface.\n"
+"       The roi is grown from each node by a user-determined\n"
+"       distance (geodesic, measured along the mesh).\n"
+"\n"
+"  Mandatory Parameters:\n"
+"     -i_TYPE SURF: Specify input surface.\n"
+"             You can also use -t* and -spec and -surf\n"
+"             methods to input surfaces. See below\n"
+"             for more details.\n"
+"     -roi_labels ROI_LABELS: Data column containing\n"
+"                             integer labels of ROIs.\n"
+"                             Each integer label gets\n"
+"                             grown separately.\n"
+"                             If ROI_LABELS is in niml\n"
+"                             format, then you need not\n"
+"                             use -roi_nodes because node \n"
+"                             indices are stored with the \n"
+"                             labels.\n"
+"        Notice: With this option, an output is created for\n"
+"                each label. The output contains two columns:\n"
+"                One with node indices and one with the label.\n"
+"                When this option is not used, you get one\n"
+"                column out containing node indices only.\n"
+"     -full_list: Output a row for each node on the surface.\n"
+"                 Nodes not in the grown ROI, receive a 0 for\n"
+"                 a label. This option is ONLY for use with\n"
+"                 -roi_labels. This way you can combine \n"
+"                 multiple grown ROIs with, say, 3dcalc.\n"
+"                 For such operations, you are better off \n"
+"                 using powers of 2 for integer labels.\n"
+"     -roi_nodes ROI_INDICES: Data column containing\n"
+"                     node indices of ROI. \n"
+"                     Use the [] column\n"
+"                     specifier if you have more than\n"
+"                     one column in the data file.\n"
+"                     To get node indices from a niml dset\n"
+"                     use the '[i]' selector.\n"
+"     -grow_from_edge: Grow ROIs from their edges rather than\n"
+"                      the brute force default. This might \n"
+"                      make the program faster on large ROIs  \n"
+"                      and large surfaces.\n"
+"     -lim LIM: Distance to cover from each node.\n"
+"               The units of LIM are those of the surface's\n"
+"               node coordinates. Distances are calculated\n"
+"               along the surface's mesh."
+"     -insphere DIA: Instead of growing along the surface, \n"
+"                    just add nodes that are inside a sphere of\n"
+"                    diameter DIA around the ROI node.\n"
+"                    Option -grow_from_edge is useless in this mode.\n"
+"     -inbox E1 E2 E3: Like -isinsphere, but use a box of edge widths\n"
+"                        E1 E2 E3 instead of DIA.\n"
+"\n"
+"  Optional Parameters:\n"
+"     -prefix PREFIX: Prefix of 1D output dataset.\n"
+"                     Default is ROIgrow\n"
+" \n"
+"%s"
+"%s"
                "\n", sio,  s);
       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
@@ -83,11 +90,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
    
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->out_prefix = NULL;
-   Opt->d1 = -1;
    Opt->in_nodeindices = NULL;
    Opt->in_name = NULL;
    Opt->PushToEdge = 0;
-   Opt->b1 = 0;
+   Opt->b1 = 0; Opt->b2 = 0;
+   Opt->cog[0]=-1; Opt->cog[1]=0.0; Opt->cog[2]=0.0;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -155,7 +162,36 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
             exit (1);
          }
          
-         Opt->d1 = atof(argv[++kar]);
+         Opt->b2 = 0;
+         Opt->cog[0] = atof(argv[++kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-insphere") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a parameter after -insphere \n");
+            exit (1);
+         }
+         
+         Opt->b2 = 1;
+         Opt->cog[0] = atof(argv[++kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-inbox") == 0))
+      {
+         if (kar+3 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need 3 parameters after -inbox \n");
+            exit (1);
+         }
+         
+         Opt->b2 = 2;
+         Opt->cog[0] = atof(argv[++kar]);
+         Opt->cog[1] = atof(argv[++kar]);
+         Opt->cog[2] = atof(argv[++kar]);
          brk = YUP;
       }
       
@@ -182,7 +218,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
    }
    
    if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("ROIgrow"); 
-   if (Opt->d1 < 0) {
+   if (Opt->cog[0] < 0) {
       fprintf (SUMA_STDERR,"-lim option not specified.");
       exit (1);
    }
@@ -347,6 +383,7 @@ int main (int argc,char *argv[])
    char *outname = NULL;
    SUMA_DSET *inds_dset=NULL, *lbls_dset=NULL;
    SUMA_SurfaceObject *SO = NULL;
+   float *cent=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_STANDALONE_INIT;
@@ -489,13 +526,51 @@ int main (int argc,char *argv[])
                }
             }
             N_nodeind_tmp = cnt;
-            SUMA_LHv("Processing label %d, %d nodes...\n",
-                     lbls[i], N_nodeind_tmp);
-            if (!(nmask = SUMA_ROIgrow(SO, nodeind_tmp, 
-                                       N_nodeind_tmp, Opt->d1,
-                                       Opt->PushToEdge))) {
-               SUMA_S_Err("Failed in SUMA_ROIgrow");
-               exit(1);
+            switch (Opt->b2) {
+               case 0:
+                  SUMA_LHv("Processing label %d, %d nodes, growing mode %f.\n",
+                           lbls[i], N_nodeind_tmp, Opt->cog[0]);
+                  if (!(nmask = SUMA_ROIgrow(SO, nodeind_tmp, 
+                                             N_nodeind_tmp, Opt->cog[0],
+                                             Opt->PushToEdge))) {
+                     SUMA_S_Err("Failed in SUMA_ROIgrow");
+                     exit(1);
+                  }
+                  break;
+               case 1:
+                  if (nmask) SUMA_free(nmask); nmask=NULL;
+                  SUMA_LHv("Processing label %d, %d nodes, "
+                           "isinsphere mode diameter %f.\n",
+                           lbls[i], N_nodeind_tmp, Opt->cog[0]);
+                  for (j=0; j<N_nodeind_tmp; ++j) {
+                     cent = SO->NodeList+(SO->NodeDim*nodeind_tmp[j]);
+                     if (!(nmask = 
+                              SUMA_nodesinsphere2_bm(SO->NodeList, SO->N_Node,
+                                             cent, Opt->cog[0]/2.0, nmask))) {
+                        SUMA_S_Err("Failed in SUMA_nodesinsphere2_bm");
+                        exit(1);
+                     }
+                  }
+                  break;
+               case 2:
+                  if (nmask) SUMA_free(nmask); nmask=NULL;
+                  SUMA_LHv("Processing label %d, %d nodes, "
+                           "isinbox mode edges %f %f %f.\n",
+                           lbls[i], N_nodeind_tmp, 
+                           Opt->cog[0], Opt->cog[1],Opt->cog[2]);
+                  for (j=0; j<N_nodeind_tmp; ++j) {
+                     cent = SO->NodeList+(SO->NodeDim*nodeind_tmp[j]);
+                     if (!(nmask = 
+                              SUMA_nodesinbox2_bm(SO->NodeList, SO->N_Node,
+                                                  cent, Opt->cog, nmask))) {
+                        SUMA_S_Err("Failed in SUMA_nodesinbox2_bm");
+                        exit(1);
+                     }
+                  }
+                  break;
+               default:
+                  SUMA_S_Errv("Groing mode of %d not good.\n", Opt->b2);
+                  exit(1);             
             }
             SUMA_WRITE_GROWN_MASK(lbls[i]);
             SUMA_free(nmask); nmask=NULL; 
@@ -504,11 +579,40 @@ int main (int argc,char *argv[])
       }
       SUMA_free(lbls); lbls = NULL;
    } else {
-      if (!(nmask = SUMA_ROIgrow(SO, nodeind,
-                                 N_nodeind, Opt->d1, 
-                                 Opt->PushToEdge))) {
-         SUMA_S_Err("Failed in SUMA_ROIgrow");
-         exit(1);
+      switch (Opt->b2) {
+         case 0:
+            if (!(nmask = SUMA_ROIgrow(SO, nodeind,
+                                       N_nodeind, Opt->cog[0], 
+                                       Opt->PushToEdge))) {
+               SUMA_S_Err("Failed in SUMA_ROIgrow");
+               exit(1);
+            }
+            break;
+         case 1:
+           for (j=0; j<N_nodeind; ++j) {
+               cent = SO->NodeList+(SO->NodeDim*nodeind[j]);
+               if (!(nmask = SUMA_nodesinsphere2_bm(
+                                    SO->NodeList, SO->N_Node,
+                                    cent, Opt->cog[0]/2.0, nmask))) {
+                  SUMA_S_Err("Failed in SUMA_nodesinsphere2_bm");
+                  exit(1);
+               }
+            }
+            break;
+         case 2:
+            for (j=0; j<N_nodeind; ++j) {
+               cent = SO->NodeList+(SO->NodeDim*nodeind[j]);
+               if (!(nmask = 
+                        SUMA_nodesinbox2_bm(SO->NodeList, SO->N_Node,
+                                            cent, Opt->cog, nmask))) {
+                  SUMA_S_Err("Failed in SUMA_nodesinbox2_bm");
+                  exit(1);
+               }
+            }
+            break;
+         default:
+            SUMA_S_Errv("Groing mode of %d not good.\n", Opt->b2);
+            exit(1);         
       }
       SUMA_WRITE_GROWN_MASK(-1);  
    }
