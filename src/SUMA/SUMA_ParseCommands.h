@@ -118,7 +118,7 @@ typedef struct {
    int N_surf;
    char *spec_file; /* do not free, argv[.] copy */
    char *in_name;    /* do not free, argv[.] copy */
-   char *in_namev[SUMA_GENERIC_PROG_MAX_IN_NAME];/*a whole bunch of input files*/
+   char *in_namev[SUMA_GENERIC_PROG_MAX_IN_NAME];/*whole bunch of input files*/
    int n_in_namev;
    char *surftype; /* do not free, argv[.] copy */
    char *out_prefix;   /* this one's dynamically allocated so 

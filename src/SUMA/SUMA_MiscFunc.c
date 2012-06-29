@@ -3996,6 +3996,26 @@ SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent ,
    
 }/*SUMA_isinsphere*/
 
+/* Same as SUMA_isinsphere but return a byte mask */
+byte *SUMA_isinsphere_bm (float * NodeList, int nr, float *S_cent , 
+                                 float S_rad , int BoundIn )
+{/*SUMA_isinsphere_bm*/
+   static char FuncName[]={"SUMA_isinsphere_bm"}; 
+   int k;
+   SUMA_ISINSPHERE IsIn_strct;
+   byte *bm = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!NodeList || !nr) SUMA_RETURN(bm);
+   IsIn_strct = SUMA_isinsphere(NodeList, nr, S_cent, S_rad, BoundIn);
+   bm = (byte *)calloc(nr, sizeof(byte));
+   for (k=0; k<IsIn_strct.nIsIn;++k) bm[IsIn_strct.IsIn[k]]=1;
+   SUMA_Free_IsInSphere(&IsIn_strct);
+   
+   SUMA_RETURN(bm);
+}
+
 /*!
 free SUMA_ISINSPHERE structure contents. 
 Structure pointer is not freed
@@ -4229,9 +4249,35 @@ int SUMA_nodesinbox2 (float *XYZ, int nr,
    
    SUMA_RETURN(nin);
 }
+/* Same as SUMA_nodesinbox2 but return a byte mask */
+byte *SUMA_nodesinbox2_bm (float *NodeList, int nr, 
+                        float *S_cent , float *S_edge, 
+                        byte *bmu)
+{/*SUMA_nodesinbox2_bm*/
+   static char FuncName[]={"SUMA_nodesinbox2_bm"}; 
+   int k, nin;
+   int *nodesin=NULL;
+   byte *bm = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!NodeList || !nr) SUMA_RETURN(bm);
+   nodesin = (int *)SUMA_calloc(nr, sizeof(int));
+   nin = SUMA_nodesinbox2(NodeList, nr, S_cent, S_edge, nodesin, NULL);
+   if (!bmu) bm = (byte *)calloc(nr, sizeof(byte));
+   else bm = bmu;
+   for (k=0; k<nin;++k) bm[nodesin[k]]=1;
+   SUMA_free(nodesin); nodesin = NULL;
+   
+   SUMA_RETURN(bm);
+}
+
+
+
 /* same as nodesinbox2 only sdim is one float, specifying the RADIUS,
 see SUMA_NODESINSPHERE2 for slimmed, slightly faster version*/
-int SUMA_nodesinsphere2 (float *XYZ, int nr, float *S_cent , float S_dim , int *nodesin, float *dinsq)
+int SUMA_nodesinsphere2 (float *XYZ, int nr, float *S_cent , float S_dim , 
+                         int *nodesin, float *dinsq)
 {
    static char FuncName[]={"SUMA_nodesinsphere2"};
    int k;
@@ -4271,6 +4317,29 @@ int SUMA_nodesinsphere2 (float *XYZ, int nr, float *S_cent , float S_dim , int *
    
    SUMA_RETURN(nin);
 }
+/* Same as SUMA_nodesinsphere2 but return a byte mask */
+byte *SUMA_nodesinsphere2_bm (float * NodeList, int nr, 
+                           float *S_cent , float S_rad,
+                           byte *bmu)
+{/*SUMA_nodesinsphere2_bm*/
+   static char FuncName[]={"SUMA_nodesinsphere2_bm"}; 
+   int k, nin;
+   int *nodesin=NULL;
+   byte *bm = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!NodeList || !nr) SUMA_RETURN(bm);
+   nodesin = (int *)SUMA_calloc(nr, sizeof(int));
+   nin = SUMA_nodesinsphere2(NodeList, nr, S_cent, S_rad, nodesin, NULL);
+   if (!bmu) bm = (byte *)calloc(nr, sizeof(byte));
+   else bm = bmu;
+   for (k=0; k<nin;++k) bm[nodesin[k]]=1;
+   SUMA_free(nodesin); nodesin = NULL;
+   
+   SUMA_RETURN(bm);
+}
+
 
 
 /*!
