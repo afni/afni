@@ -1,5 +1,8 @@
 #include "SUMA_suma.h"
 
+/* local proto */
+static char * read_file_text(FILE * fp);  /* 29 Jun 2012 [rickr] */
+
 void usage_prompt_user (SUMA_GENERIC_ARGV_PARSE *ps)
 {
       static char FuncName[]={"usage_prompt_user"};
@@ -9,6 +12,7 @@ void usage_prompt_user (SUMA_GENERIC_ARGV_PARSE *ps)
          "Usage: prompt_user <-pause MESSAGE> \n"
          "  -pause MESSAGE: Pops a window prompting the user with MESSAGE.\n"
          "                  Program does not return until user responds.\n"
+         "                  note: if MESSAGE is '-', it is read from stdin\n"
          "\n");
 
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
@@ -64,6 +68,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_prompt_user_ParseInput(
          Opt->b1 = 1;
          Opt->in_name = argv[++kar];
          brk = YUP;
+
+         if (!strcmp(Opt->in_name, "-")) Opt->in_name = read_file_text(stdin);
       }
       
       if (!brk && !ps->arg_checked[kar]) {
@@ -78,6 +84,36 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_prompt_user_ParseInput(
    }
    
    SUMA_RETURN(Opt);
+}
+
+/* return all of fp (stdin, probably) in a string */
+static char * read_file_text(FILE * fp)
+{
+   static char FuncName[]={"read_file_text"}; 
+   char * str, ch;
+   int    i, len, nalloc;
+
+   SUMA_ENTRY;
+
+   if ( ! fp ) SUMA_RETURN(NULL);
+
+   str = NULL;
+   len = 0;
+   nalloc = 1;  /* add space for nul term */
+   while ( ! feof(fp) ) {
+      nalloc += 100; /* read block size */
+      str = realloc(str, nalloc * sizeof(char));
+      if( !str ) {
+         fprintf(stderr,"** RFT alloc fail on len %d\n", nalloc);
+         SUMA_RETURN(NULL);
+      }
+      for( i=0; i < 100 && !feof(fp); i++ )
+         str[len++] = fgetc(fp);
+      if( feof(fp) ) len--;
+   }
+   str[len] = '\0'; /* terminate */
+
+   SUMA_RETURN(str);
 }
 
 int main (int argc,char *argv[])

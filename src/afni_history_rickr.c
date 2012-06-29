@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, JUN, 2012, RCR, "prompt_user", MICRO, TYPE_NEW_OPT,
+   "if MESSAGE is '-', read from stdin",
+   NULL
+ } ,
+
  { 29, JUN, 2012, RCR, "@Install_RSFMRI_Motion_Group_Demo", MINOR, TYPE_NEW_PROG,
    "program is for installing demo of RSFMR on big and small motion groups",
    NULL
