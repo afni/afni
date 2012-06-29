@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 28, JUN, 2012, RCR, "@Install_Cambridge_Demo", MINOR, TYPE_NEW_PROG,
-   "program is for installing Cambridge resting state InstaCorr demo",
+ { 29, JUN, 2012, RCR, "@Install_RSFMRI_Motion_Group_Demo", MINOR, TYPE_NEW_PROG,
+   "program is for installing demo of RSFMR on big and small motion groups",
    NULL
  } ,
 
