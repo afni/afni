@@ -63,7 +63,7 @@ void usage_DWUncert(int detail)
 "    estimates and determining an optimal b value. MRI 29:777–788.\n"
 "\n"
 "  COMMAND: 3dDWUncert -inset FILE -input [base of FA/MD/etc.] \\\n"
-"           -grads FILE -prefix NAME -iters NUMBER \n"
+"           {-grads | -bmatr} FILE -prefix NAME -iters NUMBER \n"
 "\n\n"
 "  + OUTPUT:\n"
 "     1) AFNI-format file with 6 subbricks, containing uncertainty\n"
@@ -75,14 +75,32 @@ void usage_DWUncert(int detail)
 "            [4] bias of FA \n"
 "            [5] stdev of FA\n"
 "\n\n"
-"  + RUNNING, need to provide:\n"
-"    -inset  FILE     :File with b0 and DWI subbricks \n"
+"  + RUNNING, need to provide (and your data should be masked already):\n"
+"    -inset  FILE     :file with b0 and DWI subbricks \n"
 "                      (e.g., input to 3dDWtoDTI)\n"
-"    -prefix PREFIX   :Output file name part.\n"
-"    -input  INPREF   :Basename of DTI volumes output by,\n" 
-"                      e.g., 3dDWItoDT.\n"
-"    -grads  FILE     :file with 3cols, for x-, y-, and z-comps\n"
-"                      of DW-gradients.\n"
+"    -prefix PREFIX   :output file name part.\n"
+"    -input  INPREF   :basename of DTI volumes output by,\n" 
+"                      e.g., 3dDWItoDT or TORTOISE. Assumes format of name\n"
+"                      is, e.g.:  INPREF_FA+orig.HEAD or INPREF_FA.nii.gz .\n"
+"                      Files needed with same prefix are:\n"
+"                      *_FA*, *_L1*, *_V1*, *_V2*, *_V3* .\n"
+"    -grads  FILE     :file with 3 columns for x-, y-, and z-comps\n"
+"                      of DW-gradients (which have unit magnitude).\n"
+"                      NB: this option also assumes that only 1st DWI\n"
+"                      subbrick has a b=0 image (i.e., all averaging of\n"
+"                      multiple b=0 images has been done already); if such\n"
+"                      is not the case, then you should convert your grads to\n"
+"                      the bmatrix format and use `-bmatr'.\n"
+"  OR\n"
+"    -bmatr  FILE     :using this means that file with gradient info\n"
+"                      is in b-matrix format, with 6 columns representing:\n"
+"                      b_xx 2b_xy 2b_xz b_yy 2b_yz b_zz.\n"
+"                      NB: here, bvalue per image is the trace of the bmatr,\n"
+"                      bval = b_xx+b_yy+b_zz, such as 1000 s/mm^2. This\n"
+"                      option might be used, for example, if multiple \n"
+"                      b-values were used to measure DWI data; if TORTOISE\n"
+"                      preprocessing has been employed, then its *.bmtxt\n"
+"                      file can be used directly.\n"
 "    -iters  NUMBER   :number of jackknife resample iterations,\n"
 "                      e.g. 50.\n"
 "    -csf_fa NUMBER   :number marking FA value of `bad' voxels, such as \n"
@@ -91,10 +109,11 @@ void usage_DWUncert(int detail)
 "                      Default value of this matches 3dDWItoDT value of\n"
 "                      csf_fa=0.012345678.\n"
 "\n\n"
-"  + EXAMPLE:\n"
+"  + EXAMPLE (NB: for now, you will need to have -inset as first option,\n"
+"    i.e., the order of commands matters a bit for running successfully...):\n"
 "      3dDWUncert \\\n"
 "      -inset TEST_FILES/DTI/fin2_DTI_3mm_1+orig \\\n"
-"      -prefix TEST_FILES/DTI/o.UNCERT_TESTb \\\n"
+"      -prefix TEST_FILES/DTI/o.UNCERT \\\n"
 "      -input TEST_FILES/DTI/DT \\\n"
 "      -grads TEST_FILES/Siemens_d30_GRADS.dat \\\n"
 "      -iters 50\n"
@@ -129,9 +148,9 @@ int main(int argc, char *argv[]) {
 	int M=0;
 	// like 3dDWtoDTI, we don't need bval--
 	// just leave this here in case we ever want it later.
-	int bval=1.0; 
+	float bval=1.0; 
 	
-	THD_3dim_dataset *dsetn;
+	//	THD_3dim_dataset *dsetn;
 	
 	float *allS; 
 	float **sortedout; // output for evals, evecs, Nvox x 12 
@@ -150,7 +169,7 @@ int main(int argc, char *argv[]) {
 	float *delE1e2,*delE1e1,*delE1e3, *delFA;
 	int worstS, Nbad; // switch for testing bad ADC_i (i.e., S_i) 
 	float aveADC, mostpos;
-	int  NONLINLM=0; 
+	//	int  NONLINLM=0; // only linear fitting for this approx.
 	float E1e2,E1e1,E1e3;
 	float temp,ang,md;
 	int BADNESS;
@@ -166,7 +185,25 @@ int main(int argc, char *argv[]) {
 	long seed;
 	const gsl_rng_type * T;
 	gsl_rng *r;
-	// for random number generation
+         /* ZSS2PT: Don't decalre variables in the middle of a scope
+                Older compilers won't like it */
+	int BMAT = 0; // switch about whether using grads or bmatr input 
+                 // with potentially several b-vals
+	int FOUND =-1;
+	int Min=0,Nb0=0;
+	int count;  /* ZSS2PT: Unused variable */
+	int *DWcheck=NULL; /* ZSS2PT: Might be unused */
+	float *DWs=NULL;  /* ZSS2PT: Might be unused */
+	float DWval;
+	float DWmax=0.0;
+	float **grads_dyad=NULL; // will store grads in bmatr form
+	float **rearr_dwi=NULL;
+	// for testing names...
+	char *postfix[4]={"+orig.HEAD\0",".nii.gz\0",".nii\0","+tlrc.HEAD\0"};
+	
+
+	
+   // for random number generation
 	srand(time(0));
 	seed = time(NULL) ;
 	gsl_rng_env_setup();
@@ -174,6 +211,7 @@ int main(int argc, char *argv[]) {
 	r = gsl_rng_alloc (T);
 	gsl_rng_set (r, seed);
 	
+
 	mainENTRY("3dDWUncert"); machdep(); 
    
 	// ****************************************************************
@@ -181,7 +219,7 @@ int main(int argc, char *argv[]) {
 	//                    load AFNI stuff
 	// ****************************************************************
 	// ****************************************************************
-	INFO_message("version: EPSILON");
+	INFO_message("version: ETA");
 	
 	if (argc == 1) { usage_DWUncert(1); exit(0); }
 	
@@ -192,6 +230,7 @@ int main(int argc, char *argv[]) {
 			usage_DWUncert(strlen(argv[iarg])>3 ? 2:1);
 			exit(0);
 		}
+
 		if( strcmp(argv[iarg],"-inset") == 0 ){ // in DWIs
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-inset'") ;
@@ -202,19 +241,6 @@ int main(int argc, char *argv[]) {
 			xmask1 = DSET_NX(dwset1); ymask1 = DSET_NY(dwset1); 
 			zmask1 = DSET_NZ(dwset1); 
 			
-			M = DSET_NVALS(dwset1)-1; // because 1st one is b=0
-			
-			grads = calloc(M,sizeof(grads)); 
-			for(i=0 ; i<M ; i++) 
-				grads[i] = calloc(3,sizeof(float)); 
-			
-			Mj = (int) floor(0.75*M);
-			INFO_message("Number of DWI in inset=%d. Jackknife sample size=%d",
-							 M,Mj);
-			
-			MAXBAD = (int) (0.25*M);
-			if(Mj-MAXBAD<6)
-				MAXBAD=Mj-6;
 			
 			iarg++ ; continue ;
 		}
@@ -231,11 +257,18 @@ int main(int argc, char *argv[]) {
 		if( strcmp(argv[iarg],"-input") == 0 ){ // initial results of 3dDWItoDTI
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-input'");
-			sprintf(in_FA,"%s_FA+orig", argv[iarg]); 
+
+			for( i=0 ; i<4 ; i++) {
+				sprintf(in_FA,"%s_FA%s", argv[iarg],postfix[i]); 
+				if(THD_is_ondisk(in_FA)) {
+					FOUND = i;
+					break;
+				}
+			}
 			
 			insetFA = THD_open_dataset(in_FA) ;
-			if( insetFA == NULL ) 
-				ERROR_exit("Can't open dataset '%s':FA",in_FA);
+			if( (insetFA == NULL ) || (FOUND==-1))
+				ERROR_exit("Can't open dataset '%s': for FA.",in_FA);
 			DSET_load(insetFA) ; CHECK_LOAD_ERROR(insetFA) ;
 			Nvox = DSET_NVOX(insetFA) ;
 			Dim[0] = DSET_NX(insetFA); Dim[1] = DSET_NY(insetFA); 
@@ -243,26 +276,57 @@ int main(int argc, char *argv[]) {
 			
 			if( (Dim[0] != xmask1) || (Dim[1] != ymask1) || (Dim[2] != zmask1))
 				ERROR_exit("Input dataset does not match both mask volumes!");
-			
-			sprintf(in_V1,"%s_V1+orig", argv[iarg]); 
+
+			FOUND = -1;
+			for( i=0 ; i<4 ; i++) {
+				sprintf(in_V1,"%s_V1%s", argv[iarg],postfix[i]); 
+				if(THD_is_ondisk(in_V1)) {
+					FOUND = i;
+					break;
+				}
+			}
 			insetV1 = THD_open_dataset(in_V1);
 			if( insetV1 == NULL ) 
 				ERROR_exit("Can't open dataset '%s':V1",in_V1);
 			DSET_load(insetV1) ; CHECK_LOAD_ERROR(insetV1) ;
-			
-			sprintf(in_V2,"%s_V2+orig", argv[iarg]); 
+
+			// probably could use the ending of the first data set to get
+			// all... but not too bad to keep checking, I guess.
+
+			FOUND = -1;
+			for( i=0 ; i<4 ; i++) {
+				sprintf(in_V2,"%s_V2%s", argv[iarg],postfix[i]); 
+				if(THD_is_ondisk(in_V2)) {
+					FOUND = i;
+					break;
+				}
+			}
 			insetV2 = THD_open_dataset(in_V2);
 			if( insetV2 == NULL ) 
 				ERROR_exit("Can't open dataset '%s':V2",in_V2);
 			DSET_load(insetV2) ; CHECK_LOAD_ERROR(insetV2) ;
-			
-			sprintf(in_V3,"%s_V3+orig", argv[iarg]); 
+
+			FOUND = -1;
+			for( i=0 ; i<4 ; i++) {
+				sprintf(in_V3,"%s_V3%s", argv[iarg],postfix[i]); 
+				if(THD_is_ondisk(in_V3)) {
+					FOUND = i;
+					break;
+				}
+			}
 			insetV3 = THD_open_dataset(in_V3);
 			if( insetV3 == NULL ) 
 				ERROR_exit("Can't open dataset '%s':V3",in_V3);
 			DSET_load(insetV3) ; CHECK_LOAD_ERROR(insetV3) ;
-			
-			sprintf(in_L1,"%s_L1+orig", argv[iarg]); 
+
+			FOUND = -1;
+			for( i=0 ; i<4 ; i++) {
+				sprintf(in_L1,"%s_L1%s", argv[iarg],postfix[i]); 
+				if(THD_is_ondisk(in_L1)) {
+					FOUND = i;
+					break;
+				}
+			}
 			insetL1 = THD_open_dataset(in_L1);
 			if( insetL1 == NULL ) 
 				ERROR_exit("Can't open dataset '%s':L1",in_L1);
@@ -271,25 +335,154 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 	 
-		if( strcmp(argv[iarg],"-grads") == 0 ){ // 3cols of grad vecs
+		if( strcmp(argv[iarg],"-grads") == 0 ){ 
 			iarg++ ; 
 			if( iarg >= argc ) 
 				ERROR_exit("Need argument after '-grads'");
+			
+			// 3cols of grad vecs
+			M = DSET_NVALS(dwset1)-1; // because 1st one is b=0
+			Mj = (int) floor(0.7*M);
+			if(Mj<7)
+				Mj=7;
+			INFO_message("Grads. Number of DWI in inset=%d. Jackknife sample size=%d",
+							 M,Mj);
+			MAXBAD = (int) (0.125*M);
+			if(Mj-MAXBAD<6)
+				MAXBAD=Mj-6;
+			
+			grads = calloc(M,sizeof(grads)); 
+			for(i=0 ; i<M ; i++) 
+				grads[i] = calloc(3,sizeof(float)); 
+			grads_dyad = calloc(M,sizeof(grads_dyad)); 
+			for(i=0 ; i<M ; i++) 
+				grads_dyad[i] = calloc(6,sizeof(float)); 
+			
+			if( (grads == NULL) || (grads_dyad == NULL) ) {
+				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+				exit(1254);
+			}
 			
 			// Opening/Reading in FACT params
 			if( (fin4 = fopen(argv[iarg], "r")) == NULL) {
 				fprintf(stderr, "Error opening file %s.",argv[iarg]);
 				exit(19);
 			}
-			
 			for(i=0 ; i<M ; i++) 
 				for(j=0 ; j<3 ; j++) 
 					fscanf(fin4, "%f",&grads[i][j]);
 			fclose(fin4);
-		
+			
+			// these are what go into the fitting matrices
+			// diagonals and then UHT
+			for(i=0 ; i<M ; i++) {
+				for(j=0 ; j<3 ; j++)
+						grads_dyad[i][j] = grads[i][j]*grads[i][j];
+				grads_dyad[i][3] = 2.*grads[i][0]*grads[i][1];
+				grads_dyad[i][4] = 2.*grads[i][0]*grads[i][2];
+				grads_dyad[i][5] = 2.*grads[i][2]*grads[i][1];
+			}
+			
 			iarg++ ; continue ;
 		}
-	 
+		else if( strcmp(argv[iarg],"-bmatr") == 0 ){ 
+			iarg++ ; 
+			if( iarg >= argc ) 
+				ERROR_exit("Need argument after '-bmatr'");
+			 
+			// if b-matrix is being used as input,
+			// have to find out still which one(s) are b=0.
+			BMAT = 1;
+			Min = DSET_NVALS(dwset1); 
+			
+			DWcheck = (int *)calloc(Min,sizeof(int)); 
+			DWs = (float *)calloc(Min,sizeof(float)); //DWs
+			// just use this to read in all
+			grads = calloc(Min,sizeof(grads)); 
+			for(i=0 ; i<Min ; i++) 
+				grads[i] = calloc(6,sizeof(float)); 
+			
+			if( (grads == NULL) || (DWs == NULL) || (DWcheck == NULL) ) {
+				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+				exit(1254);
+			}
+			// Opening/Reading in FACT params
+			if( (fin4 = fopen(argv[iarg], "r")) == NULL) {
+				fprintf(stderr, "Error opening file %s.",argv[iarg]);
+				exit(19);
+			}
+
+			for(i=0 ; i<Min ; i++) {
+				for(j=0 ; j<6 ; j++) {
+					fscanf(fin4, "%f",&grads[i][j]);
+				}
+				// trace of bmatr is DWval
+				DWval = grads[i][0]+grads[i][3]+grads[i][5];
+				if( DWval<EPS_MASK ) {
+					DWcheck[i] = 1; // flag b=0 ones
+					Nb0+=1;
+				}
+				else {
+					DWs[M] = DWval;
+					if(DWval>DWmax)
+						DWmax = DWval;// check for max DW, in case mult DWval
+					M+=1;
+				}			
+			}
+		  			
+			fclose(fin4);
+			if(Nb0<1)
+				ERROR_exit("There appear to be no b=0 bricks!");
+
+			Mj = (int) floor(0.7*M);
+			if(Mj<7)
+				Mj=7;
+			INFO_message("Bmatrs. Number of DWI in inset=%d. Jackknife sample size=%d",
+							 M,Mj);
+			MAXBAD = (int) (0.125*M);
+			if(Mj-MAXBAD<6)
+				MAXBAD=Mj-6;
+			
+			grads_dyad = calloc(M,sizeof(grads_dyad)); 
+			for(i=0 ; i<M ; i++) 
+				grads_dyad[i] = calloc(6,sizeof(float)); 
+			// start to restructure DWIs in a copy, 
+			// averaging all b=0 bricks together
+			rearr_dwi = calloc(Nvox,sizeof(rearr_dwi)); 
+			for(i=0 ; i<Nvox ; i++) 
+				rearr_dwi[i] = calloc(M+1,sizeof(float)); 
+			
+			if( (grads_dyad == NULL) || (rearr_dwi == NULL) ) {
+				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+				exit(125);
+			}
+			
+			M=0;
+			for( j=0 ; j<Min ; j++) 
+				if(DWcheck[j] == 0) {// is not a b=0
+					grads_dyad[M][0] = grads[j][0];
+					grads_dyad[M][1] = grads[j][3];
+					grads_dyad[M][2] = grads[j][5];
+					grads_dyad[M][3] = grads[j][1];
+					grads_dyad[M][4] = grads[j][2];
+					grads_dyad[M][5] = grads[j][4];
+					M+=1; 
+					for(i=0 ; i<Nvox ; i++)
+						if( THD_get_voxel(insetL1,i,0)>EPS_V)  // as below
+							rearr_dwi[i][M] = THD_get_voxel(dwset1,i,j);
+				}
+				else 
+					for(i=0 ; i<Nvox ; i++)
+						if( THD_get_voxel(insetL1,i,0)>EPS_V) 
+							rearr_dwi[i][0]+= THD_get_voxel(dwset1,i,j);
+			
+			// because this was an average
+			for(i=0 ; i<Nvox ; i++)
+				rearr_dwi[i][0]/= 1.0*Nb0;
+
+			iarg++ ; continue ;
+		}
+		
 		if( strcmp(argv[iarg],"-iters") == 0 ){
 			iarg++ ; 
 			if( iarg >= argc ) 
@@ -316,7 +509,7 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
   
-	if (iarg < 4) {
+	if (iarg < 5) {
 		ERROR_message("Too few options. Try -help for details.\n");
 		exit(1);
 	}
@@ -350,7 +543,6 @@ int main(int argc, char *argv[]) {
 		exit(12);
 	}
   
-  
 	// make vec/matr for doing calcs per vox
 	// (H^T Wei H)^-1 H^T Wei Y = dd
 	gsl_matrix *H = gsl_matrix_alloc(Mj, 6);// of (grad x grad) quants
@@ -372,7 +564,7 @@ int main(int argc, char *argv[]) {
 	gsl_eigen_symm_workspace *EigenV = gsl_eigen_symm_alloc(3);
   
   
-  
+	
   
 	// ****************************************************************
 	// ****************************************************************
@@ -406,34 +598,42 @@ int main(int argc, char *argv[]) {
 			OUT[5][i] = 1.0; // max uncert
 		}
 		else {
-			S0 = 1.0*THD_get_voxel(dwset1,i,0);
-			for(j=0 ; j<M ; j++) {
-				if( THD_get_voxel(dwset1,i,j+1)>=S0 )
-					allS[j] = 0.99*S0;
-				else if( THD_get_voxel(dwset1,i,j+1) <=0 ) 
-					allS[j] = 1.;
-				else //scale all signals
-					allS[j] = THD_get_voxel(dwset1,i,j+1)*1.0/S0; 
+
+			if( BMAT==0 ) {
+				S0 = 1.0*THD_get_voxel(dwset1,i,0);
+				for(j=0 ; j<M ; j++) {
+					if( THD_get_voxel(dwset1,i,j+1)>=S0 )
+						allS[j] = -log(0.99*S0)/bval;
+					else if( THD_get_voxel(dwset1,i,j+1) <=0 ) 
+						allS[j] = 0.;//-log(1.)/bval;
+					else //scale all signals
+						allS[j] = -log(THD_get_voxel(dwset1,i,j+1)*1.0/S0)/bval; 
+				}
 			}
-		
+			else{
+				S0 = 1.0*rearr_dwi[i][0];
+				for(j=0 ; j<M ; j++) {
+					if( rearr_dwi[i][j+1]>=S0 )
+						allS[j] = -log(0.99*S0)/DWs[j];
+					else if( rearr_dwi[i][j+1] <=0 ) 
+						allS[j] = 0.;//-log(1.)/DWs[j];
+					else //scale all signals
+						allS[j] = -log(rearr_dwi[i][j+1]*1.0/S0)/DWs[j];
+				}
+			}
+
+
 			for( jj=0 ; jj<Nj ; jj++) {
 				BADNESS = 0;
-		  
+				
 				//  H matr of grads
 				for(ii=0 ; ii<Mj ; ii++) {
-					for(j=0 ; j<3 ; j++) 
-						gsl_matrix_set(H,ii,j,grads[StoreRandInd[jj][ii]][j]
-											*grads[StoreRandInd[jj][ii]][j]);
-					gsl_matrix_set(H,ii,3,2*grads[StoreRandInd[jj][ii]][0]
-										*grads[StoreRandInd[jj][ii]][1]);
-					gsl_matrix_set(H,ii,4,2*grads[StoreRandInd[jj][ii]][0]
-										*grads[StoreRandInd[jj][ii]][2]);
-					gsl_matrix_set(H,ii,5,2*grads[StoreRandInd[jj][ii]][1]
-										*grads[StoreRandInd[jj][ii]][2]);
-					//not +1 in index!
-					gsl_vector_set(Y,ii,-log( allS[StoreRandInd[jj][ii]])/bval);
+					for(j=0 ; j<6 ; j++) 
+						gsl_matrix_set(H,ii,j,grads_dyad[StoreRandInd[jj][ii]][j]);					
+					//not +1 in index!; already did log part above
+					gsl_vector_set(Y,ii,allS[StoreRandInd[jj][ii]]);
 				}
-		  
+				
 				Nbad =0;
 				gsl_vector_set_zero(dd);
         
@@ -579,126 +779,9 @@ int main(int argc, char *argv[]) {
 		  
 				// right now, vector 'dd' (and linear array 'testdd') has linear
 				// least squares fit of values, tested for multiple badness
-				// so, we can either go on to LM loop, or stop here and just 
-				// keep LLS results -- should always go on to nonlinear!
-        
-				// start the LM loop of calculating
-				if( NONLINLM ==1) {
-			 
-					for(j=0 ; j<Mj ; j++) {
-						bmatr[6*j+0] = bval*pow(grads[StoreRandInd[jj][j]][0],2);
-						bmatr[6*j+1] = bval*pow(grads[StoreRandInd[jj][j]][1],2);
-						bmatr[6*j+2] = bval*pow(grads[StoreRandInd[jj][j]][2],2);
-						bmatr[6*j+3] = bval*grads[StoreRandInd[jj][j]][0]*
-							grads[StoreRandInd[jj][j]][1];
-						bmatr[6*j+4] = bval*grads[StoreRandInd[jj][j]][0]*
-							grads[StoreRandInd[jj][j]][2];
-						bmatr[6*j+5] = bval*grads[StoreRandInd[jj][j]][2]*
-							grads[StoreRandInd[jj][j]][1];
-						testS[j] = allS[StoreRandInd[jj][j]]; //not +1 in index!
-					}
-			 
-					for(j=0 ; j<Mj ; j++) 
-						Wei2[j] = 1.; // part 2: default per voxel: no bad signals
-			 
-					// always use that result to make initial guess for LM;  
-					// we will store and return that guess.
-          
-					// FIT!
-					LevMarq(testS, bmatr, Mj, testdd, Wei2);
-			 
-					// make sure eigenvalues are all positive
-					for(j=0 ; j<3 ; j++) //diagonal elements
-						gsl_matrix_set(testD,j,j,testdd[j]);
-					gsl_matrix_set(testD,0,1,testdd[3]);
-					gsl_matrix_set(testD,1,0,testdd[3]);
-					gsl_matrix_set(testD,0,2,testdd[4]);
-					gsl_matrix_set(testD,2,0,testdd[4]);
-					gsl_matrix_set(testD,1,2,testdd[5]);
-					gsl_matrix_set(testD,2,1,testdd[5]);
-          
-					j = gsl_eigen_symm(testD, Eval, EigenV);
-          
-					{ // testing/fixing badness in signals
-						if( (gsl_vector_get(Eval,0) <= MINEIG) 
-							 || (gsl_vector_get(Eval,1) <= MINEIG) 
-							 || (gsl_vector_get(Eval,2) <= MINEIG) ) {
-				  
-							Nbad = 0;
-							b = 0;
-              
-							while( (Nbad < MAXBAD) && (b<Mj+3) ) {
-								// part 1: so, default per voxel is no bad signals
-								mostpos = -1.e10; // to be baddest...
-								worstS = -1; 
-					 
-								// iterate through for eliminating potential 'bad'
-								for( b=0 ; b<Mj ; b++) {
-									if( Wei2[b] < 2) { 
-										// in case we've already found 1 bad, skip now.
-										// large weight, effectively zeros.
-										Wei2[b] = pow(10,6); 
-						  
-										// FIT with a test value weighted out
-										LevMarq(testS, bmatr, Mj, testdd, Wei2);
-                    
-										// make sure eigenvalues are all positive
-										for(j=0 ; j<3 ; j++) //diagonal elements
-											gsl_matrix_set(testD,j,j,testdd[j]);
-										gsl_matrix_set(testD,0,1,testdd[3]);
-										gsl_matrix_set(testD,1,0,testdd[3]);
-										gsl_matrix_set(testD,0,2,testdd[4]);
-										gsl_matrix_set(testD,2,0,testdd[4]);
-										gsl_matrix_set(testD,1,2,testdd[5]);
-										gsl_matrix_set(testD,2,1,testdd[5]);
-                    
-										j = gsl_eigen_symm(testD, Eval, EigenV);
-                    
-										if( (gsl_vector_get(Eval,0) <= MINEIG) || 
-											 (gsl_vector_get(Eval,1) <= MINEIG) || 
-											 (gsl_vector_get(Eval,2) <= MINEIG) ) {
-											// i.e., still haven't found only bad
-											Wei2[b] = 1.; // reset value; undo elimination
-											for(j=0 ; j<3 ; j++) 
-												if(gsl_vector_get(Eval,j) >= mostpos) {
-													worstS = b;
-													mostpos = gsl_vector_get(Eval,j);
-												}
-										}
-										else {// i.e., have eliminated bads- 
-											// they are recorded in Wei2 (or
-											// latest one will
-											// be shortly), so we can exit loop
-											worstS = b;
-											b = Mj+3; // exit loop searching for bad ones
-										}
-                    
-									}
-								} // endfor
-                
-								// if made it to end without finding bad S, eliminate
-								// worst and then go back to find another bad;  
-								// reset tests to find, again
-								Wei2[worstS] = pow(10,6);
-								Nbad+=1;
-					 
-							} // end while
-						} // endif
-					} // endsec
-          
-					{ // 2nd time around
-						// if we have so many many bad, then call voxel corrupted, 
-						// make it a sphere of average ADC and move on
-						if((Nbad >= MAXBAD) && (b<Mj+3)) {
-							// i.e., full amount of bad, and still didn't get 
-							// all pos evals
-				  
-							BADNESS = 1;                
-						}
-					}
-				}
-        
-				// done with BOTH lin fit and nonlinear fit.  
+
+				// ****** no longer doing nonlinear, not nec for uncert...
+
 				// calculate all values we need now, and 'testdd' array 
 				// has all we need in either case
         
@@ -842,7 +925,7 @@ int main(int argc, char *argv[]) {
 	DSET_delete(UNC_OUT); 
 	free(OUT);
   
-  
+	
 	// ************************************************************
 	// ************************************************************
 	//                    Freeing
@@ -872,24 +955,38 @@ int main(int argc, char *argv[]) {
   
 	for( i=0; i<Nvox ; i++) {
 		free(sortedout[i]);
+		if(BMAT != 0)
+			free(rearr_dwi[i]);
 	}
 	free(sortedout);
 	free(allS);
-  
+	free(rearr_dwi);
+
+	if(BMAT != 0) {
+		free(DWcheck);
+		free(DWs);
+	}
   
 	for( i=0; i<Nj ; i++) 
 		free(StoreRandInd[i]);
 	free(StoreRandInd);
   
-	for( i=0; i<M ; i++) 
-		free(grads[i]);
-  
+	if( BMAT==0 )
+		for( i=0; i<M ; i++)
+			free(grads[i]);
+	else
+		for( i=0; i<Min ; i++)
+			free(grads[i]);
+	free(grads);
+	
+	for( i=0; i<M ; i++)
+		free(grads_dyad[i]);
+
 	free(delE1e1);
 	free(delE1e3);
 	free(delE1e2);
 	free(delFA);
   
-	free(grads);
 	free(Wei2);
 	free(bmatr);
 	free(testS);
@@ -982,8 +1079,8 @@ void LevMarq( float *xS, float *xB, int N, float *A, float *sigma)
 	//#define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
   
 	{ 
-		float chi = gsl_blas_dnrm2(s->f);
-		float dof = n - p;
+		float chi = gsl_blas_dnrm2(s->f);  /* ZSS2PT: Unused variable chi */
+		float dof = n - p;   /* ZSS2PT: Unused variable dof */
 		//    float c = GSL_MAX_DBL(1, chi / sqrt(dof)); 
     
 		//printf("chisq/dof = %g\n",  pow(chi, 2.0) / dof);
