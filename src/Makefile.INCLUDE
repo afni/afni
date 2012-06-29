@@ -181,7 +181,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @Install_InstaCorr_Demo @Quiet_Talkers @radial_correlate                \
           @DeblankFileNames @clean_help_dir @global_parse @AfniEnv @Atlasize      \
           @Install_TSrestMovieDemo @Install_AfniRetinoDemo                        \
-          @Install_PTaylor_TractDemo @Install_Cambridge_Demo
+          @Install_PTaylor_TractDemo @Install_RSFMRI_Motion_Group_Demo
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
