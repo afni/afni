@@ -1,0 +1,180 @@
+#!/bin/tcsh -f
+
+
+set top_dir = `pwd`
+set demo_dir = AFNI_Demo_Motion_Groups
+set ret_coms = END
+set get_updates = 0
+set stat = 0
+
+goto PARSE
+RET_PARSE:
+
+set cdir = `echo $top_dir | grep $demo_dir`
+if ($status == 0 && $cdir != '') then
+   echo "Please do not run this from under some $demo_dir."
+   set sugdir = `echo $cdir | sed "s/.$demo_dir/ /g" | cut -f 1 -d ' '`
+   echo "Consider running this script again with: "
+   echo "   cd $sugdir"
+   echo "   `basename $0` $argv[*]"
+   echo ""
+   goto END
+endif
+
+set state = 0
+set subj = sub99330
+set sdir = $demo_dir/subject_results/$subj/$subj.results
+# check input, subject results, icorr results
+if ( -f $demo_dir/input_data/rest_$subj.nii.gz ) then
+   echo ""
+   echo "-- input data found"
+   @ state += 1
+
+   if ( -f $sdir/errts.$subj+tlrc.HEAD ) then
+      echo "-- subject preprocessing already done"
+      @ state += 1
+
+      if ( -f $demo_dir/misc_dir/mot_covary.txt ) then
+         echo "-- motion groups already defined"
+         @ state += 1
+
+         if ( -f $demo_dir/instacorr/ic.small.errts.grpincorr.niml ) then
+            echo "-- 3dSetupGroupInCorr already done"
+            @ state += 1
+         endif
+      endif
+   endif
+endif
+
+
+# if data has already been processed, just give execution usage
+if ( $state == 4 ) then
+   echo ""
+   echo "Notice:"
+   echo "   Output files already exist."
+   echo "   If you need to reinstall, remove both $demo_dir and"
+   echo "   $demo_dir.tgz with:"
+   echo "       \\rm -rf $demo_dir.tgz $demo_dir"
+   echo "   then run `basename $0` $argv[*] again."
+   echo ""
+   echo "Otherwise to just run the demos do:"
+   echo ""
+   set ret_coms = END
+   goto SHOW_COM
+endif
+
+
+if ( $state == 0 ) then
+   if ( ! -f $demo_dir.tgz) then
+      set site = http://afni.nimh.nih.gov/pub/dist/data
+      set link = $site/$demo_dir.tgz
+      which curl > /dev/null
+      if ($status) then
+         wget $link
+      else
+         curl -O $link
+      endif
+   else
+      echo "Reusing existing $demo_dir.tgz"
+   endif
+   tar xvzf $demo_dir.tgz
+   @ state += 1
+endif
+
+cd $demo_dir
+
+if ( $state <= 1 ) then
+    echo "== running run.stage.1.preprocess.txt ..."
+    tcsh run.stage.1.preprocess.txt
+endif
+if ( $state <= 2 ) then
+    echo "== running run.stage.2.set.groups.txt ..."
+    tcsh run.stage.2.set.groups.txt
+endif
+if ( $state <= 3 ) then
+    echo "== running run.stage.3.setup.GIC.txt ..."
+    tcsh run.stage.3.setup.GIC.txt
+endif
+
+goto SHOW_COM
+
+SHOW_COM:
+   echo "   ============================================================"
+   echo "   cd $demo_dir"
+   echo "   tcsh run.stage.4.run.GIC.txt"
+   echo "   ============================================================"
+goto $ret_coms
+
+goto END
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   while ($cnt <= $Narg)
+      set a1 = `echo $argv[$cnt] | cut -b2`
+      if ( "$a1" == e || "$argv[$cnt]" == "-echo" ) then
+         set echo
+         @ cnt ++
+      else if ( "$a1" == u || "$argv[$cnt]" == "-update" ) then
+         set get_updates = 1
+         @ cnt ++
+      else if ( "$a1" == h || "$argv[$cnt]" == "-help" ) then
+         goto HELP
+      else
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+   end
+   
+goto RET_PARSE
+
+HELP:
+   echo ""
+   echo "-----------------------------------------------------------------"
+   echo "Installs and sets up an AFNI InstaCorr demo archive, based on 190"
+   echo "Cambridge subjects from FCON_1000."
+   echo ""
+   echo "The pupose of this is to demonstrate an expected false positive"
+   echo "group result when comparing groups of big and small movers (based"
+   echo "on the average motion, per TR), and then a way to account for it"
+   echo "based on inclusion of the motion as a covariate."
+   echo ""
+   echo "It is also a nice demonstration of resting state analysis and the"
+   echo "power of doing group comparisons of correlation maps on the fly."
+   echo "Two groups of 95 subjects are compared on the fly, as the seed voxel"
+   echo "changes."
+   echo ""
+   echo "This script will:"
+   echo "  - download and expand the $demo_dir archive (6.6 GB)"
+   echo "      o included data is unprocessed"
+   echo "  - preprocess 190 subjects"
+   echo "      -> despike, align, blur, regress (censor, bandpass)"
+   echo "  - assign subjects to 2 groups, based on average motion"
+   echo "  - prepare to run 3dGroupInCorr"
+   echo ""
+   echo "Once ready, you can run the 3dGroupInCorr script:"
+   echo "  - as you ctrl-shift and drag left mouse button:"
+   echo "      o for each subject, generate correlation map between current"
+   echo "        voxel time series and those across the entire brain"
+   echo "        (for all of 190 subjects!)"
+   echo "      o perform Fisher's Transform to normalize r-values"
+   echo "      o run a 2-sample t-test between 'big' and 'small' movers (95 ea)"
+   echo "      o display the results"
+   echo ""
+   echo "After setup, all you need to do is run the demo scripts this way:"
+   set ret_coms = HELP_COM
+   goto SHOW_COM
+   HELP_COM:
+   echo ""
+   echo "It takes a while to download, unpack, and run the setup scripts."
+   echo "-----------------------------------------------------------------"
+   echo ""
+   goto END
+
+BEND:
+   echo "Failed"
+   set stat = 1
+   goto END
+   
+END:
+   exit $stat
