@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, JUN, 2012, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "moved ptaylor_install dependency from 'vastness' to 'install'",
+   NULL
+ } ,
+
  { 29, JUN, 2012, RCR, "prompt_user", MICRO, TYPE_NEW_OPT,
    "if MESSAGE is '-', read from stdin",
    NULL

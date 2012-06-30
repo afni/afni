@@ -203,7 +203,7 @@ totality:clean all plugins install install_plugins install_lib cleann
 
 ### Make everything, install it too, but don't cleanup
 
-vastness:all plugins install ptaylor_install install_plugins install_lib
+vastness:all plugins install install_plugins install_lib
 
 ### Make many things
 
@@ -1654,7 +1654,7 @@ afni_doc.tgz:
 
 ### Put things in their places
 
-install: $(INSTALLDIR) $(INSTALL_PREREQ)
+install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS)  $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
