@@ -28,7 +28,7 @@ static int   aff_use_before=0 , aff_use_after=0 ;
 static mat44 aff_before       , aff_after       , aff_gamijk , aff_gamxyz ;
 
 /*---------------------------------------------------------------------------*/
-static int mverb = 0 ;
+static int mverb = 0 , mpr = 0 ;
 void mri_genalign_verbose(int v){ mverb = v ; }
 
 /*---------------------------------------------------------------------------*/
@@ -666,10 +666,11 @@ ENTRY("GA_scalar_fitter") ;
       if( ncall > 0 ){
         if( mverb == 2 ) fprintf(stderr,"*") ;
         else             fprintf(stderr,"*[#%d=%.6g] ",ncall,val) ;
+        mpr++ ;
       }
       vsmall = val ;
     } else if( mverb > 6 ){
-                         fprintf(stderr," [#%d=%.6g] ",ncall,val) ;
+                         fprintf(stderr," [#%d=%.6g] ",ncall,val) ; mpr++ ;
     }
     ncall++ ;
   }
@@ -1263,13 +1264,14 @@ ENTRY("mri_genalign_scalar_optim") ;
 
    /*** all the real work takes place now ***/
 
+   mpr = 0 ;
    nfunc = powell_newuoa( stup->wfunc_numfree , wpar ,
                           rstart , rend , nstep , GA_scalar_fitter ) ;
 
    stup->vbest = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
 
 #if 1
-  if( mverb > 1 ) fprintf(stderr,"\n") ;
+  if( mpr > 0 && mverb > 1 ) fprintf(stderr,"\n") ;
 #endif
 
    /* copy+scale output parameter values back to stup struct */
@@ -1435,6 +1437,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    /* try the middle of the allowed parameter range, and save it */
 
    for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5 ;
+   mpr = 0 ;
    val = GA_scalar_fitter( nfr , wpar ) ;
    memcpy(kpar[0],wpar,sizeof(double)*nfr) ;           /* saved parameters */
    kval[0]  = val ;                                    /* saved cost function */
@@ -1499,7 +1502,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    }
 
    if( mverb ){                    /* print table of results? */
-     fprintf(stderr,"\n") ;
+     if( mpr > 0 ) fprintf(stderr,"\n") ;
      fprintf(stderr," + - best %d costs found:\n",ngood) ;
      for(kk=0;kk<ngood;kk++){
       fprintf(stderr,"   %2d v=% 9.6f:",kk,kval[kk]);
