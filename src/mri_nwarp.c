@@ -2224,6 +2224,8 @@ ENTRY("NwarpCalcRPN") ;
 
      if( *cmd == '\0' ) continue ;  /* WTF?! */
 
+     /*--- munge command? ---*/
+
      if( *cmd == '%' || *cmd == '@' ){                    /* a cheap trick */
        *cmd = '&' ;
      } else if( *cmd != '&' ){
@@ -2232,8 +2234,10 @@ ENTRY("NwarpCalcRPN") ;
 
      /*--- read warp from a dataset ---*/
 
-     else if( strncasecmp(cmd,"&readnwarp(",11) == 0 ){
-       char *buf=strdup(cmd+11) , *bp ; THD_3dim_dataset *dset ;
+     if( strncasecmp(cmd,"&readnwarp(",11) == 0 ||
+         strncasecmp(cmd,"&readwarp(" ,10) == 0   ){
+       char *buf , *bp=strchr(cmd,'(') ; THD_3dim_dataset *dset ;
+       buf = strdup(bp+1) ;
        for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
        if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
        dset = THD_open_dataset(buf) ;
