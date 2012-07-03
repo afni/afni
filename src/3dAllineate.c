@@ -4779,34 +4779,45 @@ STATUS("zeropad weight dataset") ;
            static int fst[8] = { 12+3*NPOL(3) , 12+3*NPOL(4) , 12+3*NPOL(5) ,
                                  12+3*NPOL(6) , 12+3*NPOL(7) , 12+3*NPOL(8) ,
                                  12+3*NPOL(9)  } ;
-           int pq ;
-           for( pq=0 ; pq < 7 ; pq++ ){
-             for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
-             FREEZE_POLYNO_PARAMS ;
-             for( jj=fst[pq] ; jj < NPNONI ; jj++ )
-               if( stup.wfunc_param[jj].fixed == 0 ) stup.wfunc_param[jj].fixed = 1 ;
-             COUNT_FREE_PARAMS(nbf) ;
+           int pq , ngite=2 , ig ; char *eee ; float gfac ;
+           eee = my_getenv("AFNI_NONIC_GRADUAL") ;
+           if( eee != NULL && isdigit(*eee) ) ngite = (int)strtod(eee,NULL) ;
+           for( ig=0 ; ig < ngite ; ig++ ){
              if( verb > 0 )
-               INFO_message("Level %d of Nonic/Poly9 warping: %d free parameters",pq+3,nbf) ;
-             if( nbf == 0 ) continue ;
-             if( pq > 0 ){
-               for( jj=0 ; jj < fst[pq] ; jj++ ){
-                 if( stup.wfunc_param[jj].fixed == 0 )
-                   stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
+               INFO_message("Start iteration #%d/%d of Nonic/Poly9 gradual warp",ig+1,ngite) ;
+             for( pq=0 ; pq < 7 ; pq++ ){
+               for( jj=12 ; jj < NPNONI ; jj++ ) stup.wfunc_param[jj].fixed = 0 ;
+               FREEZE_POLYNO_PARAMS ;
+               for( jj=fst[pq] ; jj < NPNONI ; jj++ )
+                 if( stup.wfunc_param[jj].fixed == 0 ) stup.wfunc_param[jj].fixed = 1 ;
+               COUNT_FREE_PARAMS(nbf) ;
+               if( verb > 0 )
+                 ININFO_message("Level %d of Nonic/Poly9 warping: %d free parameters",pq+3,nbf) ;
+               if( nbf == 0 ) continue ;
+               if( pq > 0 || ig > 0 ){
+                 for( jj=0 ; jj < fst[pq] ; jj++ ){
+                   if( stup.wfunc_param[jj].fixed == 0 )
+                     stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
+                 }
                }
-             }
-             if( verb ) ctim = COX_cpu_time() ;
-             rad  = 0.03f ; crad = 0.003f ;
-             nite = MAX(6*nbf,nwarp_itemax) ;
-             nbf  = mri_genalign_scalar_optim( &stup , rad, crad, nite );
-             if( verb ){
-               dtim = COX_cpu_time() ;
-               ININFO_message("- Nonic/Poly9 cost = %f ; %d funcs ; net CPU = %.1f s",
-                              stup.vbest,nbf,dtim-ctim) ;
-               ctim = dtim ;
-             }
-           }
-         }
+               if( verb ) ctim = COX_cpu_time() ;
+               gfac = 1.0f / sqrtf(ig+1.0f) ;
+               rad  = 0.05f*gfac ; crad = 0.003f*gfac ;
+               nite = MAX(19*nbf,nwarp_itemax) ;
+               nbf  = mri_genalign_scalar_optim( &stup , rad, crad, nite );
+               for( jj=0 ; jj < NPNONI ; jj++ ){        /* for fixers next time thru */
+                 if( stup.wfunc_param[jj].fixed == 0 )
+                   stup.wfunc_param[jj].val_fixed = stup.wfunc_param[jj].val_out ;
+               }
+               if( verb ){
+                 dtim = COX_cpu_time() ;
+                 ININFO_message("- Nonic/Poly9 cost = %f ; %d funcs ; net CPU = %.1f s",
+                                stup.vbest,nbf,dtim-ctim) ;
+                 ctim = dtim ;
+               }
+             } /* end of pq loop */
+           } /* end of ig loop */
+         } /* end of GRADUAL-osity */
 
          /** if( verb > 1 ) PAROUT("- Nonic/Poly9 final") ; **/
          strcpy(warp_code_string,"nonic") ;

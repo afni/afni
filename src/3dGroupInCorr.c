@@ -892,6 +892,11 @@ static int nout = 0 , nout_mcov = 0 ;
 static float *axx , *axx_psinv , *axx_xtxinv ;
 static float *bxx , *bxx_psinv , *bxx_xtxinv ;
 
+ /* Jun 2012: for voxel-wise covariates */
+
+static float **axxM=NULL , **axxM_psinv=NULL , **axxM_xtxinv=NULL ;
+static float **bxxM=NULL , **bxxM_psinv=NULL , **bxxM_xtxinv=NULL ;
+
 static int   oform = SUMA_NO_DSET_FORMAT; /* output format for surface-based */
 
 #define MAX_LABEL_SIZE 12
@@ -2005,7 +2010,7 @@ int main( int argc , char *argv[] )
      MRI_IMARR *impr ;
      int cdebug = AFNI_yesenv("3dGroupInCorr_DEBUG") ;
 
-     /* simmple tests to gaurd against stoopid users [is there any other kind?] */
+     /* simmple tests to gaurd against stoopid users [am there any other kind?] */
 
      if( shd_AAA->dslab == NULL ){
        ERROR_message("GIC: Can't use covariates, since setA doesn't have dataset labels!") ;
