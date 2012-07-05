@@ -312,6 +312,17 @@ IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac
 }
 
 /*----------------------------------------------------------------------------*/
+/* smooth locally */
+
+#define M7  0.142857143f
+#define M28 0.035714286f
+#define M84 0.011904762f
+
+void IW3D_7smooth( IndexWarp3D *AA )
+{
+}
+
+/*----------------------------------------------------------------------------*/
 /* Convert a 3D dataset of displacments in mm to an index warp. */
 
 IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty )
@@ -1414,8 +1425,8 @@ ENTRY("IW3D_invert") ;
        RETURN(BB) ;   /* converged */
      }
 
-     if( nss > 0 && nrat < 0.199f && nrat < orat && inewtfac < 0.888888f ){
-       nss = 0 ; inewtfac *= 1.444f ; if( inewtfac > 0.888888f ) inewtfac = 0.888888f ;
+     if( nss > 0 && nrat < 0.199f && nrat < orat && inewtfac < 0.678901f ){
+       nss = 0 ; inewtfac *= 1.234f ; if( inewtfac > 0.678901f ) inewtfac = 0.678901f ;
        if( verb_nww > 1 ) ININFO_message("  - switch to inewtfac=%f",inewtfac) ;
      } else if( nss > 0 && nrat > orat ){
        nss = -66 ; inewtfac *= 0.444f ;
@@ -1437,6 +1448,9 @@ ENTRY("IW3D_invert") ;
    This is actually a step to produce the square root of inverse(A). */
 
 static float sstepfac = 0.5f ;
+
+static float sstepfac_MAX = 0.456789f ;
+static float sstepfac_MIN = 0.234567f ;
 
 static IndexWarp3D * IW3D_sqrtinv_step( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
 {
@@ -1624,7 +1638,14 @@ ENTRY("IW3D_sqrtinv") ;
 
    normAA   = IW3D_normL2( AA , NULL ) ;
    sstepfac = 1.0f / (1.0f+sqrtf(normAA)) ;  /* Newton damping factor */
-   if( sstepfac > 0.3f ) sstepfac = 0.3f ;
+
+   nrat = AFNI_numenv("AFNI_NWARP_SSTEPFAC_MIN") ;
+   if( nrat > 0.0f && nrat < 1.0f ) sstepfac_MIN = nrat ;
+
+   nrat = AFNI_numenv("AFNI_NWARP_SSTEPFAC_MAX") ;
+   if( nrat > 0.0f && nrat < 1.0f ) sstepfac_MAX = nrat ;
+
+   if( sstepfac > sstepfac_MIN ) sstepfac = sstepfac_MIN ;
 
    if( verb_nww )
      ININFO_message("  - start iterations: normAA=%f sstepfac=%f",normAA,sstepfac) ;
@@ -1661,8 +1682,8 @@ ENTRY("IW3D_sqrtinv") ;
        RETURN(BB) ;   /* converged */
      }
 
-     if( nss > 0 && nrat < 0.199f && nrat < orat && sstepfac < 0.555555f ){
-       nss = 0 ; sstepfac *= 1.333f ; if( sstepfac > 0.555555f ) sstepfac = 0.555555f ;
+     if( nss > 0 && nrat < 0.199f && nrat < orat && sstepfac < sstepfac_MAX ){
+       nss = 0 ; sstepfac *= 1.123f ; if( sstepfac > sstepfac_MAX ) sstepfac = sstepfac_MAX ;
        if( verb_nww > 1 ) ININFO_message("  - switch to sstepfac=%f",sstepfac) ;
      } else if( nss > 0 && nrat > orat ){
        nss = -66 ; sstepfac *= 0.444f ;
@@ -1675,7 +1696,7 @@ ENTRY("IW3D_sqrtinv") ;
 
    /* failed to converge, return latest result anyhoo */
 
-   WARNING_message("sqrt: iterations failed to converge") ;
+   WARNING_message("sqrtinv: iterations failed to converge") ;
    RETURN(BB) ;
 }
 
