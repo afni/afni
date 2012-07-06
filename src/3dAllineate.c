@@ -4044,30 +4044,28 @@ STATUS("zeropad weight dataset") ;
          /* startup search only allows up to 6 parameters, so freeze excess */
 
          eee = my_getenv("AFNI_TWOPASS_NUM") ;
-         if( eee != NULL ){
-           if( isdigit(*eee) ){
-             sscanf( eee , "%d" , &nptwo ) ;
-             if( nptwo < 1 || nptwo > 6 ) nptwo = 6 ;
-             if( nparam_free > nptwo ){  /* old way: just free first nptwo params */
-               for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
-                 if( !stup.wfunc_param[jj].fixed ){
-                   ii++ ;  /* number free so far */
-                   if( ii > nptwo ) stup.wfunc_param[jj].fixed = 1 ;  /* temp freeze */
-                 }
+         if( eee == NULL || *eee != ':' ){
+           if( eee != NULL ) sscanf( eee , "%d" , &nptwo ) ;
+           if( nptwo < 1 || nptwo > 6 ) nptwo = 6 ;
+           if( nparam_free > nptwo ){  /* old way: just free first nptwo params */
+             for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
+               if( !stup.wfunc_param[jj].fixed ){
+                 ii++ ;  /* number free so far */
+                 if( ii > nptwo ) stup.wfunc_param[jj].fixed = 1 ;  /* temp freeze */
                }
              }
-           } else {                      /* the new way: free from a list */
-             int npk[6]={-1,-1,-1,-1,-1,-1} ;
-             sscanf( eee , ":%d:%d:%d:%d:%d:%d" ,
-                     npk+0 , npk+1 , npk+2 , npk+3 , npk+4 , npk+5 ) ;
-             for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
-               if( !stup.wfunc_param[jj].fixed ) stup.wfunc_param[jj].fixed = 1 ;
-             }
-             for( ii=0 ; ii < 6 ; ii++ ){
-               jj = npk[ii] ;
-               if( jj >= 0 && jj < stup.wfunc_numpar && stup.wfunc_param[jj].fixed == 1 )
-                 stup.wfunc_param[jj].fixed = 0 ;
-             }
+           }
+         } else {                      /* the new way: free from a list */
+           int npk[6]={-1,-1,-1,-1,-1,-1} ;
+           sscanf( eee , ":%d:%d:%d:%d:%d:%d" ,
+                   npk+0 , npk+1 , npk+2 , npk+3 , npk+4 , npk+5 ) ;
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
+             if( !stup.wfunc_param[jj].fixed ) stup.wfunc_param[jj].fixed = 1 ;
+           }
+           for( ii=0 ; ii < 6 ; ii++ ){
+             jj = npk[ii] ;
+             if( jj >= 0 && jj < stup.wfunc_numpar && stup.wfunc_param[jj].fixed == 1 )
+               stup.wfunc_param[jj].fixed = 0 ;
            }
          }
 
