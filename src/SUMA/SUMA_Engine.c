@@ -822,7 +822,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            ++nwarn;
                         }
                         SO->SurfCont->curColPlane->ShowMode = it; /* get back */ 
-                        SUMA_SET_MENU( SO->SurfCont->DsetViewModeMenu,
+                        SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(it));
                         /* kill current contours, if any */
                         SUMA_KillOverlayContours(SO->SurfCont->curColPlane);
@@ -851,7 +851,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            ++nwarn2;
                         }
                         SO->SurfCont->curColPlane->ShowMode = it; /* get back */ 
-                        SUMA_SET_MENU( SO->SurfCont->DsetViewModeMenu,
+                        SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(it));
                         /* kill current contours, if any . There should be none
                            here but there is no harm */
@@ -1925,7 +1925,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                 
                }
             
-            XmToggleButtonSetState (sv->X->ViewMenu[SW_ViewNodeInFocus], 
+            XmToggleButtonSetState (sv->X->ViewMenu->mw[SW_ViewNodeInFocus], 
                   CommonState, NOPE); 
                 
             }
@@ -1987,7 +1987,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      }
                   }
                }
-            XmToggleButtonSetState (sv->X->ViewMenu[SW_ViewSelectedFaceset], 
+            XmToggleButtonSetState (sv->X->ViewMenu->mw[SW_ViewSelectedFaceset], 
                   CommonState, NOPE);  
             }          
             break;
@@ -2034,7 +2034,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_ToggleCrossHair:
             /* expects nothing in EngineData */
             sv->ShowCrossHair = !sv->ShowCrossHair;
-            XmToggleButtonSetState (sv->X->ViewMenu[SW_ViewCrossHair], 
+            XmToggleButtonSetState (sv->X->ViewMenu->mw[SW_ViewCrossHair], 
                sv->ShowCrossHair, NOPE);            
             break;
             
@@ -3211,7 +3211,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               NI_get_attribute(EngineData->ngr, "view_dset"));
                   SO->SurfCont->curColPlane->ShowMode = SW_SurfCont_DsetViewCol;
                }
-               SUMA_SET_MENU( SO->SurfCont->DsetViewModeMenu,
+               SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu,
                               SUMA_ShowMode2ShowModeMenuItem(
                                  SO->SurfCont->curColPlane->ShowMode));
             }
@@ -3248,27 +3248,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                           "view_surf", "Viewer")) {
                   SUMA_SET_SO_POLYMODE(SO,SRM_ViewerDefault);
-                  SUMA_SET_MENU( SO->SurfCont->RenderModeMenu,
+                  SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu,
                          SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                           "view_surf", "Fill")) {
                   SUMA_SET_SO_POLYMODE(SO,SRM_Fill);
-                  SUMA_SET_MENU( SO->SurfCont->RenderModeMenu,
+                  SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu,
                          SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                           "view_surf", "Line")) {
                   SUMA_SET_SO_POLYMODE( SO, SRM_Line );
-                  SUMA_SET_MENU( SO->SurfCont->RenderModeMenu,
+                  SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu,
                          SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                           "view_surf", "Points")) {
                   SUMA_SET_SO_POLYMODE(SO,SRM_Points);
-                  SUMA_SET_MENU( SO->SurfCont->RenderModeMenu,
+                  SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu,
                          SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                           "view_surf", "Hide")) {
                   SUMA_SET_SO_POLYMODE(SO,SRM_Hide);
-                  SUMA_SET_MENU( SO->SurfCont->RenderModeMenu,
+                  SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu,
                          SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
                } else { 
                   SUMA_S_Errv("Bad value of %s for view_surf, setting to 'y'\n", 

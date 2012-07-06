@@ -2106,11 +2106,14 @@ char * SUMA_Help_AllSurfCont ()
          "++++ v\n%s\n"
          "+++ B\n%s\n"
          "++++ v\n%s\n"
+         "\n"
+         "     Note: %s\n"
          "\n", 
          SUMA_SurfContHelp_Link, 
          SUMA_SurfContHelp_SelInt, SUMA_SurfContHelp_SelIntTgl,
          SUMA_SurfContHelp_SelThr, SUMA_SurfContHelp_SelThrTgl, 
-         SUMA_SurfContHelp_SelBrt, SUMA_SurfContHelp_SelBrtTgl );
+         SUMA_SurfContHelp_SelBrt, SUMA_SurfContHelp_SelBrtTgl,
+         SUMA_SurfContHelp_ArrowFieldMenu );
          
    SS = SUMA_StringAppend_va(SS, 
          "++ Mapping Parameters Table:\n%s\n"

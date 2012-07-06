@@ -49,6 +49,8 @@ SUMA_X_ViewCont *SUMA_CreateViewContStruct (void);
 void *SUMA_FreeViewContStruct (SUMA_X_ViewCont *ViewCont);
 SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str);
 void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont);
+SUMA_MENU_WIDGET *SUMA_Free_Menu_Widget(SUMA_MENU_WIDGET *smw);
+SUMA_MENU_WIDGET *SUMA_Alloc_Menu_Widget(int nw);
 SUMA_rb_group *SUMA_CreateLock_rb (int N_rb_group, int N_but);
 void * SUMA_FreeLock_rb (SUMA_rb_group *Lock_rb);
 SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void);

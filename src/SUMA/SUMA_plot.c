@@ -740,7 +740,7 @@ void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp )
    SUMA_OVERLAYS * Sover=NULL ;
    int i=0;
    SUMA_MEMPLOT_USERDATA *mpud=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY ;
 
    if( mp == NULL ) SUMA_RETURNe; 

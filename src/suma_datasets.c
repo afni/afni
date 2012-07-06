@@ -12757,14 +12757,17 @@ static ENV_SPEC envlist[] = {
       "SUMA_AutoRecordPrefix",
       "./SUMA_Recordings/autorecord.jpg" }, 
    {  "Font for cross hair label in SUMA viewer\n"
-      "Choose one of: f8 f9 tr10 tr24 he10 he12 he18\n"
-      "Default is f9.\n",
+      "Choose one of: f8 f9 tr10 tr24 he10 he12 he18\n",
       "SUMA_CrossHairLabelFont",
       "f9" }, 
    {  "Linking mode of I and T sub-brick selectors\n"
       "Choose one of: None, Same, Stat\n",
       "SUMA_IxT_LinkMode",
       "Stat" }, 
+   {  "Minimum Number of sub-bricks to trigger use of arrow field for \n"
+      "sub-brick selectors.\n",
+      "SUMA_ArrowFieldSelectorTrigger",
+      "200" }, 
    {  NULL, NULL, NULL  }
 };
       
