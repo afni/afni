@@ -193,8 +193,11 @@ int main(int argc, char *argv[]) {
 									.n_count = 0,
 									.version = 2,
 									.hdr_size = 1000};
-  
-  
+
+  	// for testing names...
+	char *postfix[4]={"+orig.HEAD\0",".nii.gz\0",".nii\0","+tlrc.HEAD\0"};
+  	int FOUND =-1;
+
 	mainENTRY("3dTrackID"); machdep(); 
   
 	// ****************************************************************
@@ -203,7 +206,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 
-	INFO_message("version: ETA");
+	INFO_message("version: THETA");
 
 	/** scan args **/
 	if (argc == 1) { usage_TrackID(1); exit(0); }
@@ -277,10 +280,18 @@ int main(int argc, char *argv[]) {
 		if( strcmp(argv[iarg],"-input") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-input'");
-			sprintf(in_FA,"%s_FA+orig", argv[iarg]); 
-			insetFA = THD_open_dataset(in_FA) ;//argv[iarg] ) ;
-			if( insetFA == NULL ) 
-				ERROR_exit("Can't open dataset '%s':FA",in_FA);
+
+			for( i=0 ; i<4 ; i++) {
+				sprintf(in_FA,"%s_FA%s", argv[iarg],postfix[i]); 
+				if(THD_is_ondisk(in_FA)) {
+					FOUND = i;
+					break;
+				}
+			}
+			insetFA = THD_open_dataset(in_FA) ;
+			if( (insetFA == NULL ) || (FOUND==-1))
+				ERROR_exit("Can't open dataset '%s': for FA.",in_FA);
+			
 			DSET_load(insetFA) ; CHECK_LOAD_ERROR(insetFA) ;
 			Nvox = DSET_NVOX(insetFA) ;
 			Dim[0] = DSET_NX(insetFA); Dim[1] = DSET_NY(insetFA); 
@@ -307,24 +318,45 @@ int main(int argc, char *argv[]) {
 			}
 			dset_or[3]='\0';
       
-			sprintf(in_V1,"%s_V1+orig", argv[iarg]); 
+			FOUND = -1;
+			for( i=0 ; i<4 ; i++) {
+				sprintf(in_V1,"%s_V1%s", argv[iarg],postfix[i]); 
+				if(THD_is_ondisk(in_V1)) {
+					FOUND = i;
+					break;
+				}
+			}
 			insetV1 = THD_open_dataset(in_V1);
 			if( insetV1 == NULL ) 
 				ERROR_exit("Can't open dataset '%s':V1",in_V1);
 			DSET_load(insetV1) ; CHECK_LOAD_ERROR(insetV1) ;
 		
-			sprintf(in_MD,"%s_MD+orig", argv[iarg]); 
-			insetMD = THD_open_dataset(in_MD);
-			if( insetMD == NULL ) 
-				ERROR_exit("Can't open dataset '%s':MD",in_MD);
-			DSET_load(insetMD) ; CHECK_LOAD_ERROR(insetMD) ;
-		
-			sprintf(in_L1,"%s_L1+orig", argv[iarg]); 
+			FOUND = -1;
+			for( i=0 ; i<4 ; i++) {
+				sprintf(in_L1,"%s_L1%s", argv[iarg],postfix[i]); 
+				if(THD_is_ondisk(in_L1)) {
+					FOUND = i;
+					break;
+				}
+			}
 			insetL1 = THD_open_dataset(in_L1);
 			if( insetL1 == NULL ) 
 				ERROR_exit("Can't open dataset '%s':L1",in_L1);
 			DSET_load(insetL1) ; CHECK_LOAD_ERROR(insetL1) ;
-		
+
+			FOUND = -1;
+			for( i=0 ; i<4 ; i++) {
+				sprintf(in_MD,"%s_MD%s", argv[iarg],postfix[i]); 
+				if(THD_is_ondisk(in_MD)) {
+					FOUND = i;
+					break;
+				}
+			}
+			insetMD = THD_open_dataset(in_MD);
+			if( insetMD == NULL ) 
+				ERROR_exit("Can't open dataset '%s':MD",in_MD);
+			DSET_load(insetMD) ; CHECK_LOAD_ERROR(insetMD) ;
+
 			iarg++ ; continue ;
 		}
 
