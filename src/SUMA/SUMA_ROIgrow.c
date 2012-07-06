@@ -56,7 +56,7 @@ void usage_ROIgrow (SUMA_GENERIC_ARGV_PARSE *ps)
 "     -lim LIM: Distance to cover from each node.\n"
 "               The units of LIM are those of the surface's\n"
 "               node coordinates. Distances are calculated\n"
-"               along the surface's mesh."
+"               along the surface's mesh.\n"
 "     -insphere DIA: Instead of growing along the surface, \n"
 "                    just add nodes that are inside a sphere of\n"
 "                    diameter DIA around the ROI node.\n"

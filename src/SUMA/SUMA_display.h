@@ -23,6 +23,8 @@
 #define SUMA_WITHDRAW   2
 #define SUMA_UNREALIZE  3
 
+#define SUMA_XmArrowFieldMenu -123
+
 #define SUMA_CLOSE_MODE       SUMA_WITHDRAW
 #define SUMA_GL_CLOSE_MODE    SUMA_UNREALIZE
 
@@ -60,7 +62,10 @@ typedef struct suma_menu_item {
 
 typedef struct {
    XtPointer callback_data; /*!< usually the item number in the menu */
+   void       (*callback)();/*!< routine to call; This is only used when
+                                 and arrow field is usurping a menu's job */
    void *ContID; /*!< some identifier of the controller */
+   SUMA_MENU_WIDGET *SMW; /*!< This is needed for handling arrow fields */
 } SUMA_MenuCallBackData;/*!< a structure to help in the creation of menus. The main problem is that I may have the same 
 menu item in different controllers and one needs a way to know from which controller the menu was
 activated.
@@ -265,10 +270,11 @@ void SUMA_set_Lock_arb (SUMA_rb_group * Lock_rbg);
 void SUMA_cb_XHaviewlock_toggled (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_XHalock_toggled (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_set_LockView_atb (void);
-int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, char menu_mnemonic, \
-                     SUMA_Boolean tear_off, SUMA_MenuItem *items, void *ContID, 
-                     char *hint, char *help,
-                     Widget *MenuWidgets);
+int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, 
+                   char menu_mnemonic,  SUMA_Boolean tear_off, 
+                   SUMA_MenuItem *items, void *ContID, 
+                   char *hint, char *help,
+                   SUMA_MENU_WIDGET *SMW);
 void SUMA_cb_FileOpenSpec (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_FileOpenSurf (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_FileClose (Widget w, XtPointer client_data, XtPointer callData);
@@ -325,7 +331,8 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
                               float value, float vmin, float vmax, float vstep,
                               int cwidth, SUMA_VARTYPE type,
                               SUMA_Boolean wrap,
-                              void (*NewValueCallback)(void * data), void *cb_data,
+                              void (*NewValueCallback)(void * data), 
+                              void *cb_data,
                               char *hint, char *help,
                               SUMA_ARROW_TEXT_FIELD *AF);
 void SUMA_CreateTextField ( Widget pw, char *label,
@@ -375,23 +382,26 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_FileSelection_popdown_cb (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtPointer call_data);
 SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title, SUMA_SELECTION_DIALOG_STRUCT **dlg);
-SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy, SUMA_FILE_SELECT_MODE Mode, SUMA_Boolean preserve,
-                                                                  void (*SelectCallback)(char *filename, void *data), void *SelectData,
-                                                                  void (*CancelCallback)(void *data), void *CancelData,
-                                                                  char *FilePattern,
-                                                                  SUMA_SELECTION_DIALOG_STRUCT *dlg);
+SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (
+   Widget daddy, SUMA_FILE_SELECT_MODE Mode, SUMA_Boolean preserve,
+   void (*SelectCallback)(char *filename, void *data), void *SelectData,
+   void (*CancelCallback)(void *data), void *CancelData,
+   char *FilePattern,
+   SUMA_SELECTION_DIALOG_STRUCT *dlg);
 void SUMA_FileSelection_Unmap_cb (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_FreeFileSelectionDialogStruct(SUMA_SELECTION_DIALOG_STRUCT *dlg);
-SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (SUMA_PROMPT_MODE Mode, char *TextFieldLabel, 
-                                                         char *init_selection, 
-                                                         Widget daddy, SUMA_Boolean preserve,
-                                                         SUMA_PROMPT_BUTTONS Return_button,
-                                                         void(*SelectCallback)(char *selection, void *data), void *SelectData,
-                                                         void(*CancelCallback)(void *data), void *CancelData,
-                                                         void(*HelpCallback)(void *data), void *HelpData,
-                                                         int(*VerifyFunction)(char *selection, void *data), void *VerifyData,
-                                                         SUMA_PROMPT_DIALOG_STRUCT *oprmpt);
-SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_PROMPT_DIALOG_STRUCT *prmpt);
+SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (
+   SUMA_PROMPT_MODE Mode, char *TextFieldLabel, 
+   char *init_selection, 
+   Widget daddy, SUMA_Boolean preserve,
+   SUMA_PROMPT_BUTTONS Return_button,
+   void(*SelectCallback)(char *selection, void *data), void *SelectData,
+   void(*CancelCallback)(void *data), void *CancelData,
+   void(*HelpCallback)(void *data), void *HelpData,
+   int(*VerifyFunction)(char *selection, void *data), void *VerifyData,
+   SUMA_PROMPT_DIALOG_STRUCT *oprmpt);
+SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(
+               char *title_extension, SUMA_PROMPT_DIALOG_STRUCT *prmpt);
 const char * SUMA_PromptButtonLabel(SUMA_PROMPT_BUTTONS code);
 SUMA_Boolean SUMA_CreatePromptActionArea (SUMA_PROMPT_DIALOG_STRUCT *prmpt);
 void SUMA_PromptOk_cb (Widget w, XtPointer data, XtPointer calldata);
@@ -442,6 +452,7 @@ void SUMA_SaveVisualState(char *fname, void *csvp);
 void SUMA_LoadSegDO (char *s, void *csvp);
 void SUMA_SiSi_I_Insist(void);
 void SUMA_BuildMenuReset(int nchar);
+void SUMA_MenuArrowFieldCallback (void *CB);
 SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO);
 int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
                                           SUMA_SurfaceObject *SO,
@@ -529,14 +540,7 @@ void SUMA_DotXform_NewOrtName(  SUMA_XFORM *xf,
 void SUMA_OpenXformOrtFile (char *filename, void *data);
 SUMA_Boolean SUMA_WildcardChoice(int filetype, 
                   SUMA_SurfaceObject *SO, char wild[]); 
-
-/*! \brief Sets the GUI menu selection to the ith selection
-           for a menu created by SUMA_BuildMenu. i starts at 1 */
-#define SUMA_SET_MENU(men,i) {   \
-   if (i<1) { SUMA_S_Err("i must be >=1");    } \
-   if (!men || !men[i]) { SUMA_S_Err("Empty widgets");    } \
-   XtVaSetValues(  men[0], XmNmenuHistory ,  men[i], NULL); \
-}
+SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i);
       
 #define SUMA_XformOrtFile_Load_help   \
    "Load an ort file"

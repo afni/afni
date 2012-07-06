@@ -2131,61 +2131,36 @@ void SUMA_BuildMenuReset(int n_max)
    SUMA_RETURNe;
 }
 
-int SUMA_BuildMenu_Numerous(  Widget parent, int menu_type, char *menu_title, 
-                     char menu_mnemonic, SUMA_Boolean tear_off, 
-                     SUMA_MenuItem *items, 
-                     void *ContID, 
-                     char *hint, char *help,
-                     Widget *MenuWidgets )
+/* can't allow any menu to do arrow fields. For example 
+Cmp will choke in function SUMA_SetCmapMenuChoice so you'll
+have to fix that case if you want to allow arrow fields for
+colormaps. But why on earth would that be needed? 
+Only allow arrow fields for I, T, and B
+*/
+int SUMA_AllowArrowFieldMenus(int N_items, char *menu_title) 
 {
-   static char FuncName[]={"SUMA_BuildMenu_Numerous"};
-   char nlabel[300]="\0";
-   Widget menu = NULL, cascade = NULL;
-   XmString str=NULL;
-   int i=-1; int N_items=0;
-   SUMA_Boolean LocalHead = YUP;
-   
-   SUMA_ENTRY;
-
-   if (!menu_title) {
-      SUMA_S_Warn("menu_title is NULL, alert Rick Reynolds!");
-      menu_title = "";
+   if (!menu_title || 
+        N_items < SUMA_floatEnv("SUMA_ArrowFieldSelectorTrigger", 200)) {
+      return(0);    
    }
-   
-   if (items) while(items[N_items++].label);
-    
-   SUMA_LHv("Entered. menu_title %s, type %d, %d items.\n", 
-               menu_title, menu_type, N_items);
-#if 0
-   SUMA_CreateArrowField ( parent, "Opa",
-                     1, 0.0, 1.0, 0.1,
-                     3, SUMA_float,
-                     NOPE,
-                     SUMA_ColPlane_NewOpacity, (void *)SO,
-                     SUMA_SurfCont_ColPlaneOpacity_hint,
-                     SUMA_SurfContHelp_DsetOpa,
-                     SO->SurfCont->ColPlaneOpacity);
-#endif
-
-   if (LocalHead) 
-      fprintf (SUMA_STDERR, 
-               "%s: Returning %d widgets created.\n", FuncName, i_wid);
-   
-   SUMA_RETURN (i_wid);
+   if (  !strcmp(menu_title,"I") ||
+         !strcmp(menu_title,"T") ||   
+         !strcmp(menu_title,"B") ) return(1);
+   return(0); 
 }
 
 int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title, 
-                     char menu_mnemonic, SUMA_Boolean tear_off, 
+                     char menu_mnemonic, SUMA_Boolean tear_off,
                      SUMA_MenuItem *items, 
                      void *ContID, 
                      char *hint, char *help,
-                     Widget *MenuWidgets )
+                     SUMA_MENU_WIDGET *SMW )
 {
    static char FuncName[]={"SUMA_BuildMenu"};
    char nlabel[300]="\0";
    Widget menu = NULL, cascade = NULL;
    XmString str=NULL;
-   int i=-1; int N_items=0;
+   int i=-1; int N_items=0, ok_tear_off=1;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2194,32 +2169,49 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
       SUMA_S_Warn("menu_title is NULL, alert Rick Reynolds!");
       menu_title = "";
    }
-   
-   if (items) while(items[N_items++].label);
-    
+
+   if (items) {
+      while(items[N_items].label) {
+         if (N_items < 4) {
+            SUMA_LHv("item %d %s callback %p\n", 
+               N_items, items[N_items].label, items[N_items].callback);
+         } else {
+            if (LocalHead) {fprintf(stderr,".");}
+         }   
+         ++N_items;
+     }
+     if (LocalHead && N_items > 4) {fprintf(stderr,"\n");}
+   } 
    SUMA_LHv("Entered. menu_title %s, type %d, %d items.\n", 
                menu_title, menu_type, N_items);
-   if (0 && N_items >100 && SUMAg_CF->Dev) {
-      SUMA_S_Warnv("Entering experimental territory!\n"
-                   "Entered. menu_title %s, type %d, %d items.\n", 
+   
+   if (SUMA_AllowArrowFieldMenus(N_items, menu_title)) {
+      menu_type = SUMA_XmArrowFieldMenu;
+      SUMA_LHv("Arrow field triggered menu_title %s, type %d, %d items.\n", 
                menu_title, menu_type, N_items);
-                   
-      SUMA_RETURN(
-         SUMA_BuildMenu_Numerous(parent, menu_type, menu_title, 
-                                 menu_mnemonic, tear_off, 
-                                 items, ContID, hint, help, MenuWidgets ));
-   }   
+   }
    if (menu_type == XmMENU_PULLDOWN || menu_type == XmMENU_OPTION)
      menu = XmCreatePulldownMenu (parent, "_pulldown", NULL, 0);
    else if (menu_type == XmMENU_POPUP)
      menu = XmCreatePopupMenu (parent, "_popup", NULL, 0);
+   else if (menu_type == SUMA_XmArrowFieldMenu) { /* an arrow field */
+     menu = XtVaCreateWidget ("rowcolumn",
+                  xmRowColumnWidgetClass, parent,
+                  XmNpacking, XmPACK_TIGHT,
+                  XmNleftAttachment,XmATTACH_FORM ,  
+                  XmNorientation , XmHORIZONTAL ,
+                  XmNmarginHeight , 0 ,
+                  XmNmarginWidth  , 0 ,
+                     NULL);
+      ok_tear_off = 0; 
+   }
    else {
      XtWarning ("Invalid menu type passed to BuildMenu()");
      SUMA_RETURN(-1);
    }
    
 
-   if (tear_off)
+   if (tear_off && ok_tear_off)
      XtVaSetValues (menu, XmNtearOffModel, XmTEAR_OFF_ENABLED, NULL);
 
    /* Pulldown menus require a cascade button to be made */
@@ -2244,7 +2236,7 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
      /* Option menus are a special case, but not hard to handle */
      Arg args[10];
      int n = 0;
-     SUMA_LHv("XmMENU_OPTION %s", menu_title);
+     SUMA_LHv("XmMENU_OPTION %s\n", menu_title);
      str = XmStringCreateLocalized (menu_title);
      XtSetArg (args[n], XmNsubMenuId, menu); n++;
      XtSetArg (args[n], XmNlabelString, str); n++;
@@ -2262,107 +2254,147 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
      cascade = XmCreateOptionMenu (parent, menu_title, args, n);
      XmStringFree (str);
    }
+   else if (menu_type == SUMA_XmArrowFieldMenu) {
+      SUMA_LHv("XmMENU_OPTION %s\n", "ArrowFieldMode");
+   }
+   
+   /* save the type */
+   SMW->menu_type = menu_type;
    
    /* hide your jewel */
-   if (menu_type == XmMENU_POPUP) {  MenuWidgets[i_wid] = menu; }
-   else { MenuWidgets[i_wid] = cascade; } 
+   if (menu_type == XmMENU_POPUP || menu_type == SUMA_XmArrowFieldMenu) {  
+      SMW->mw[i_wid] = menu; }
+   else { SMW->mw[i_wid] = cascade; } 
    
-   if (hint) MCW_register_hint(MenuWidgets[i_wid], hint);
-   if (help) MCW_reghelp_children(MenuWidgets[i_wid], help);
+   if (hint) MCW_register_hint(SMW->mw[i_wid], hint);
+   if (help) MCW_reghelp_children(SMW->mw[i_wid], help);
    
    ++i_wid;
    
-   /* Now add the menu items */
-   for (i = 0; items[i].label != NULL; i++) {
-      if (LocalHead) 
-         fprintf (SUMA_STDERR, 
-                  "%s: Adding label # %d - %s\n", 
-                  FuncName, i, items[i].label);
-     /* If subitems exist, create the pull-right menu by calling this
-      * function recursively.  Since the function returns a cascade
-      * button, the widget returned is used..
-      */
-     if (items[i].subitems)
-         if (menu_type == XmMENU_OPTION) {
-             XtWarning ("You can't have submenus from option menu items.");
-             continue;
-         } 
-         else {
-             if (LocalHead) 
-               fprintf (SUMA_STDERR, "%s: Going for sub-menu.\n", FuncName);
-             SUMA_BuildMenu ( menu, XmMENU_PULLDOWN, items[i].label, 
-                              items[i].mnemonic, tear_off, 
-                              items[i].subitems, ContID, 
-                              hint, help, MenuWidgets);
-         }
-     else {
+   if (menu_type != SUMA_XmArrowFieldMenu) {
+      /* Now add the menu items */
+      for (i = 0; items[i].label != NULL; i++) {
          if (LocalHead) 
             fprintf (SUMA_STDERR, 
-                     "%s: Creating widgets MenuWidgets[%d]\n", 
-                     FuncName, (INT_CAST)items[i].callback_data);
-         if (nchar > 0) {
-            snprintf(nlabel, nchar*sizeof(char), "%s", items[i].label);
-            MenuWidgets[i_wid] = XtVaCreateManagedWidget (nlabel,
-                *items[i].class, menu,
-                NULL);
-         } else {
-            MenuWidgets[i_wid] = XtVaCreateManagedWidget (items[i].label,
-                *items[i].class, menu,
-                NULL);
+                     "%s: Adding label # %d - %s (CB: %p)\n", 
+                     FuncName, i, items[i].label, items[i].callback);
+        /* If subitems exist, create the pull-right menu by calling this
+         * function recursively.  Since the function returns a cascade
+         * button, the widget returned is used..
+         */
+        if (items[i].subitems)
+            if (menu_type == XmMENU_OPTION) {
+                XtWarning ("You can't have submenus from option menu items.");
+                continue;
+            } 
+            else {
+                if (LocalHead) 
+                  fprintf (SUMA_STDERR, "%s: Going for sub-menu.\n", FuncName);
+                SUMA_BuildMenu ( menu, XmMENU_PULLDOWN, items[i].label, 
+                                 items[i].mnemonic, tear_off, 
+                                 items[i].subitems, ContID, 
+                                 hint, help, SMW);
+            }
+        else {
+            if (LocalHead) 
+               fprintf (SUMA_STDERR, 
+                        "%s: Creating widgets MenuWidgets[%d]\n", 
+                        FuncName, (INT_CAST)items[i].callback_data);
+            if (nchar > 0) {
+               snprintf(nlabel, nchar*sizeof(char), "%s", items[i].label);
+               SMW->mw[i_wid] = XtVaCreateManagedWidget (nlabel,
+                   *items[i].class, menu,
+                   NULL);
+            } else {
+               SMW->mw[i_wid] = 
+                  XtVaCreateManagedWidget (items[i].label,
+                   *items[i].class, menu,
+                   NULL);
+            }
          }
-      }
 
-      
-      /* Whether the item is a real item or a cascade button with a
-      * menu, it can still have a mnemonic.
-      */
-      if (LocalHead) 
-         fprintf (SUMA_STDERR, "%s: Setting Mnemonic ...\n", FuncName);
-      if (items[i].mnemonic)
-         XtVaSetValues (MenuWidgets[i_wid], XmNmnemonic, 
-                        items[i].mnemonic, NULL);
 
-      /* any item can have an accelerator, except cascade menus. But,
-      * we don't worry about that; we know better in our declarations.
-      */
+         /* Whether the item is a real item or a cascade button with a
+         * menu, it can still have a mnemonic.
+         */
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, "%s: Setting Mnemonic ...\n", FuncName);
+         if (items[i].mnemonic)
+            XtVaSetValues (SMW->mw[i_wid], XmNmnemonic, 
+                           items[i].mnemonic, NULL);
 
-      if (LocalHead) 
-         fprintf (SUMA_STDERR, "%s: Setting accelerator ...\n", FuncName);
-      if (items[i].accelerator) {
-         str = XmStringCreateLocalized (items[i].accel_text);
-         XtVaSetValues (MenuWidgets[i_wid],
-             XmNaccelerator, items[i].accelerator,
-             XmNacceleratorText, str,
-             NULL);
-         XmStringFree (str);
-      }
+         /* any item can have an accelerator, except cascade menus. But,
+         * we don't worry about that; we know better in our declarations.
+         */
 
-      if (items[i].class == &xmToggleButtonWidgetClass ||
-              items[i].class == &xmToggleButtonWidgetClass) {
-         Pixel fg_pix=0;
-         XtVaGetValues (MenuWidgets[i_wid], XmNforeground, &fg_pix, NULL);
-         XtVaSetValues (MenuWidgets[i_wid], XmNselectColor, fg_pix, NULL); 
-          
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, "%s: Setting accelerator ...\n", FuncName);
+         if (items[i].accelerator) {
+            str = XmStringCreateLocalized (items[i].accel_text);
+            XtVaSetValues (SMW->mw[i_wid],
+                XmNaccelerator, items[i].accelerator,
+                XmNacceleratorText, str,
+                NULL);
+            XmStringFree (str);
+         }
+
+         if (items[i].class == &xmToggleButtonWidgetClass ||
+                 items[i].class == &xmToggleButtonWidgetClass) {
+            Pixel fg_pix=0;
+            XtVaGetValues (SMW->mw[i_wid], 
+                              XmNforeground, &fg_pix, NULL);
+            XtVaSetValues (SMW->mw[i_wid], 
+                              XmNselectColor, fg_pix, NULL); 
+
+         }
+
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, "%s: Setting callback ...\n", FuncName);
+         if (items[i].callback) {
+            SUMA_MenuCallBackData *CBp=NULL;
+            CBp = (SUMA_MenuCallBackData *)
+                        calloc(1,sizeof(SUMA_MenuCallBackData));
+            /* There is no freeing of this pointer in SUMA. 
+                        Once created, a widget is only destroyed when 
+                        SUMA is killed */
+            /* prepare the callback pointer */
+            CBp->callback_data = (XtPointer) items[i].callback_data;
+            CBp->ContID = ContID;
+            XtAddCallback (SMW->mw[i_wid],
+                (items[i].class == &xmToggleButtonWidgetClass ||
+                 items[i].class == &xmToggleButtonWidgetClass) ?
+                    XmNvalueChangedCallback : /* ToggleButton class */
+                    XmNactivateCallback,      /* PushButton class */
+                items[i].callback, (XtPointer)CBp);
+         }
+         ++i_wid;
       }
-     
-      if (LocalHead) 
-         fprintf (SUMA_STDERR, "%s: Setting callback ...\n", FuncName);
-      if (items[i].callback) {
-         SUMA_MenuCallBackData *CBp=NULL;
-         CBp = (SUMA_MenuCallBackData *)calloc(1,sizeof(SUMA_MenuCallBackData));                      /* There is no freeing of this pointer in SUMA. 
-                     Once created, a widget is only destroyed when 
-                     SUMA is killed */
-         /* prepare the callback pointer */
-         CBp->callback_data = (XtPointer) items[i].callback_data;
-         CBp->ContID = ContID;
-         XtAddCallback (MenuWidgets[i_wid],
-             (items[i].class == &xmToggleButtonWidgetClass ||
-              items[i].class == &xmToggleButtonWidgetClass) ?
-                 XmNvalueChangedCallback : /* ToggleButton class */
-                 XmNactivateCallback,      /* PushButton class */
-             items[i].callback, (XtPointer)CBp);
+   } else { /* special arrow field case */
+      SUMA_MenuCallBackData *CBp=NULL;
+      i = 0; /* all callbacks will be the same */
+      /* An arrow field */
+      if (!SMW->af) {
+         SMW->af = (SUMA_ARROW_TEXT_FIELD*)
+                           calloc(1,sizeof(SUMA_ARROW_TEXT_FIELD));
       }
-      ++i_wid;
+      CBp = (SUMA_MenuCallBackData *)
+                  calloc(1,sizeof(SUMA_MenuCallBackData));
+      CBp->SMW = SMW;
+      CBp->callback = items[i].callback;
+      CBp->callback_data = NULL; /* this will be set in 
+                                  SUMA_MenuArrowFieldCallback*/
+      CBp->ContID = ContID;      
+      SUMA_LHv("Building an arrow field, i=%d\n", i);
+      SUMA_LHv("callback %p data %p\n", 
+                   items[i].callback, items[i].callback_data);
+      SUMA_CreateArrowField ( menu, menu_title,
+                     0, 0, N_items-1, 1,
+                     8, SUMA_int,
+                     YUP,
+                     SUMA_MenuArrowFieldCallback, (void *)CBp,
+                     "A way to switch sub-bricks in dsets with lots of them.",
+                     SUMA_SurfContHelp_ArrowFieldMenu,
+                     SMW->af);
    }
 
    #if 0
@@ -2397,6 +2429,30 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
                "%s: Returning %d widgets created.\n", FuncName, i_wid);
    SUMA_RETURN (i_wid);
 }
+
+/* This function is a wrapper for calling menu callbacks when the
+Arrow field is used to setup the menu */
+void SUMA_MenuArrowFieldCallback (void *CB) 
+{
+   static char FuncName[]={"SUMA_MenuArrowFieldCallback"};
+   SUMA_MenuCallBackData *CBp = (SUMA_MenuCallBackData *)CB;
+   
+   
+   if (!CBp) {
+      SUMA_S_Err("Bad setup, NULL CB"); SUMA_RETURNe;
+   }
+   if (!CBp->callback) {
+      SUMA_S_Err("Bad setup, NULL CB->callback"); SUMA_RETURNe;
+   }
+   if (!CBp->SMW) {
+      SUMA_S_Err("Need menu structure for arrofields"); SUMA_RETURNe;
+   }
+
+   CBp->callback_data = (XTP_CAST)((int)CBp->SMW->af->value+1);
+   CBp->callback(NULL, (XtPointer)CBp, NULL);
+   SUMA_RETURNe;
+}
+
 
 Widget mainw, menubar, menupane, btn, sep, cascade, frame;
 Arg menuPaneArgs[1], args[1];
@@ -2833,20 +2889,23 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                                  SUMAg_SVv[ic].X->HelpMenu );
          
          XtVaSetValues (menubar, XmNmenuHelpWidget, 
-                        SUMAg_SVv[ic].X->HelpMenu[SW_Help], NULL);
+                        SUMAg_SVv[ic].X->HelpMenu->mw[SW_Help], NULL);
                                  
          /* set states of the some view menu widgets */
-         XmToggleButtonSetState (SUMAg_SVv[ic].X->ViewMenu[SW_ViewCrossHair], 
+         XmToggleButtonSetState (
+            SUMAg_SVv[ic].X->ViewMenu->mw[SW_ViewCrossHair], 
             SUMAg_SVv[ic].ShowCrossHair, NOPE);
          
-         XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpMemTrace], 
+         XmToggleButtonSetState (
+            SUMAg_SVv[ic].X->HelpMenu->mw[SW_HelpMemTrace], 
             SUMAg_CF->MemTrace, NOPE);
          if (SUMAg_CF->MemTrace) {  
-            XtSetSensitive (SUMAg_SVv[ic].X->HelpMenu[SW_HelpMemTrace], 0); }
+            XtSetSensitive(SUMAg_SVv[ic].X->HelpMenu->mw[SW_HelpMemTrace], 0); }
 
-         XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpIONotify], 
+         XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu->mw[SW_HelpIONotify],
             SUMAg_CF->InOut_Notify, NOPE);
-      XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpEchoKeyPress], 
+         XmToggleButtonSetState (
+            SUMAg_SVv[ic].X->HelpMenu->mw[SW_HelpEchoKeyPress],
             SUMAg_CF->Echo_KeyPress, NOPE);
  
          
@@ -4376,8 +4435,9 @@ void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData)
          /* you must check for both conditions because by default 
          all viewers are initialized to isShaded = NOPE, 
          even before they are ever opened */
-         if (w != SUMAg_SVv[ii].X->HelpMenu[SW_HelpIONotify]) {
-            XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpIONotify], 
+         if (w != SUMAg_SVv[ii].X->HelpMenu->mw[SW_HelpIONotify]) {
+            XmToggleButtonSetState (
+               SUMAg_SVv[ii].X->HelpMenu->mw[SW_HelpIONotify], 
                SUMAg_CF->InOut_Notify, NOPE);
          }
       }
@@ -4404,7 +4464,8 @@ void SUMA_setIO_notify(int val)
          all viewers are initialized to isShaded = NOPE, 
          even before they are ever opened */
          {
-            XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpIONotify], 
+            XmToggleButtonSetState (
+               SUMAg_SVv[ii].X->HelpMenu->mw[SW_HelpIONotify], 
                SUMAg_CF->InOut_Notify, NOPE);
          }
       }
@@ -4432,8 +4493,9 @@ void SUMA_cb_helpEchoKeyPress(Widget w, XtPointer data, XtPointer callData)
          /* you must check for both conditions because by default 
          all viewers are initialized to isShaded = NOPE, 
          even before they are ever opened */
-         if (w != SUMAg_SVv[ii].X->HelpMenu[SW_HelpEchoKeyPress]) {
-       XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpEchoKeyPress], 
+         if (w != SUMAg_SVv[ii].X->HelpMenu->mw[SW_HelpEchoKeyPress]) {
+            XmToggleButtonSetState (
+               SUMAg_SVv[ii].X->HelpMenu->mw[SW_HelpEchoKeyPress], 
                SUMAg_CF->Echo_KeyPress, NOPE);
          }
       }
@@ -4460,7 +4522,8 @@ void SUMA_setEcho_KeyPress(int val)
          all viewers are initialized to isShaded = NOPE, 
          even before they are ever opened */
          {
-      XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpEchoKeyPress], 
+      XmToggleButtonSetState (
+            SUMAg_SVv[ii].X->HelpMenu->mw[SW_HelpEchoKeyPress], 
                SUMAg_CF->Echo_KeyPress, NOPE);
          }
       }
@@ -4486,12 +4549,14 @@ void SUMA_cb_helpMemTrace(Widget w, XtPointer data, XtPointer callData)
    for (ii=0; ii<SUMAg_N_SVv; ++ii) {
       if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
          /* you must check for both conditions because by default 
-         all viewers are initialized to isShaded = NOPE, even before they are ever opened */
-         XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace], 
+         all viewers are initialized to isShaded = NOPE, 
+         even before they are ever opened */
+         XmToggleButtonSetState (
+            SUMAg_SVv[ii].X->HelpMenu->mw[SW_HelpMemTrace], 
             SUMAg_CF->MemTrace, NOPE);
          if (SUMAg_CF->MemTrace) {
             /* can't turn it off */
-             XtSetSensitive (SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace], 0);
+             XtSetSensitive (SUMAg_SVv[ii].X->HelpMenu->mw[SW_HelpMemTrace], 0);
          }
       }
    }
@@ -5505,13 +5570,15 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
       /* rendering menu option */
       SUMA_BuildMenuReset(0);
+      SO->SurfCont->RenderModeMenu = 
+            SUMA_Alloc_Menu_Widget(SW_N_SurfCont_Render);
       SUMA_BuildMenu (rc, XmMENU_OPTION, 
                                  "RenderMode", '\0', YUP, RenderMode_Menu, 
                                  (void *)(SO->SurfCont->curSOp), 
                                  "Choose the rendering mode for this surface.",
                                  SUMA_SurfContHelp_RenderMode, 
                                  SO->SurfCont->RenderModeMenu );
-      XtManageChild (SO->SurfCont->RenderModeMenu[SW_SurfCont_Render]);
+      XtManageChild (SO->SurfCont->RenderModeMenu->mw[SW_SurfCont_Render]);
       
       pb = XtVaCreateWidget ("Dsets", 
          xmPushButtonWidgetClass, rc, 
@@ -5719,14 +5786,16 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShow_tb);
      #else
       SUMA_BuildMenuReset(0);
+      SO->SurfCont->DsetViewModeMenu = 
+         SUMA_Alloc_Menu_Widget(SW_N_SurfCont_DsetView);
       SUMA_BuildMenu (rc, XmMENU_OPTION, 
                       "Dsp", '\0', YUP, DsetViewMode_Menu, 
                       (void *)(SO->SurfCont->curSOp), 
                       "Choose the rendering mode for this dataset.",
                       SUMA_SurfContHelp_DsetViewMode, 
                       SO->SurfCont->DsetViewModeMenu );
-      XtManageChild (SO->SurfCont->DsetViewModeMenu[SW_SurfCont_DsetView]);
-      SUMA_SET_MENU(SO->SurfCont->DsetViewModeMenu,
+      XtManageChild (SO->SurfCont->DsetViewModeMenu->mw[SW_SurfCont_DsetView]);
+      SUMA_Set_Menu_Widget(SO->SurfCont->DsetViewModeMenu,
                     SUMA_ShowMode2ShowModeMenuItem(
                                  SO->SurfCont->curColPlane->ShowMode));
 
@@ -6101,7 +6170,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
             Name = RenderMode_Menu[i].label;
             if (LocalHead) fprintf (SUMA_STDERR,"Looking for %s\n", Name);
             /* now we know what the name of the button needed is, look for it*/
-            w = SO->SurfCont->RenderModeMenu;
+            w = SO->SurfCont->RenderModeMenu->mw;
             for (i=0; i< SW_N_SurfCont_Render; ++i) {
                if (LocalHead) fprintf (SUMA_STDERR,"I have %s\n", XtName(w[i]));
                if (strcmp(Name, XtName(w[i])) == 0) {
@@ -6307,7 +6376,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
                 SO->SurfCont->curColPlane->ShowMode,
                 SUMA_ShowMode2ShowModeMenuItem(
                               SO->SurfCont->curColPlane->ShowMode));
-   SUMA_SET_MENU(SO->SurfCont->DsetViewModeMenu,
+   SUMA_Set_Menu_Widget(SO->SurfCont->DsetViewModeMenu,
                  SUMA_ShowMode2ShowModeMenuItem(
                               SO->SurfCont->curColPlane->ShowMode));
    /* obsolete 
@@ -6606,13 +6675,15 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_LH("Building menu");
    /* put a menu for writing distance info */
    SUMA_BuildMenuReset(0);
+   SUMAg_CF->X->DrawROI->WhatDistMenu = 
+      SUMA_Alloc_Menu_Widget(SW_N_DrawROI_WhatDist);
    SUMA_BuildMenu (rc, XmMENU_OPTION, 
                    "Dist", '\0', YUP, DrawROI_WhatDist_Menu, 
                    "DoDist", 
                    "Report length of drawn segments? (BHelp for more)", 
                    SUMA_DrawROI_WhatDist_help,   
                    SUMAg_CF->X->DrawROI->WhatDistMenu);
-   XtManageChild (SUMAg_CF->X->DrawROI->WhatDistMenu[SW_DrawROI_WhatDist]);
+   XtManageChild (SUMAg_CF->X->DrawROI->WhatDistMenu->mw[SW_DrawROI_WhatDist]);
    
     /* manage rc */
    XtManageChild (rc);
@@ -6793,6 +6864,8 @@ void SUMA_CreateDrawROIWindow(void)
 
    /* Saving Mode */
    SUMA_BuildMenuReset(0);
+   SUMAg_CF->X->DrawROI->SaveModeMenu = 
+         SUMA_Alloc_Menu_Widget(SW_N_DrawROI_SaveMode);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                "", '\0', YUP, DrawROI_SaveMode_Menu, 
                                "Frm.", "Format for saving ROI, "
@@ -6800,16 +6873,18 @@ void SUMA_CreateDrawROIWindow(void)
                                        "Use BHelp for more.", 
                                SUMA_DrawROI_SaveFormat_help, 
                                SUMAg_CF->X->DrawROI->SaveModeMenu);
-   XtManageChild (SUMAg_CF->X->DrawROI->SaveModeMenu[SW_DrawROI_SaveMode]);
+   XtManageChild (SUMAg_CF->X->DrawROI->SaveModeMenu->mw[SW_DrawROI_SaveMode]);
       
    /* Saving what ? */
    SUMA_BuildMenuReset(0);
+   SUMAg_CF->X->DrawROI->SaveWhatMenu = 
+          SUMA_Alloc_Menu_Widget(SW_N_DrawROI_SaveWhat);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                "", '\0', YUP, DrawROI_SaveWhat_Menu, 
                                "What", "Which ROIs to save?", 
                                SUMA_DrawROI_SaveWhat_help,   
                                SUMAg_CF->X->DrawROI->SaveWhatMenu);
-   XtManageChild (SUMAg_CF->X->DrawROI->SaveWhatMenu[SW_DrawROI_SaveWhat]);
+   XtManageChild (SUMAg_CF->X->DrawROI->SaveWhatMenu->mw[SW_DrawROI_SaveWhat]);
       
 
    XtVaCreateManagedWidget (  "sep", 
@@ -7481,6 +7556,34 @@ void SUMA_CreateArrowField (  Widget pw, char *label,
                          XtListTail ) ;     /* last in queue */      
    XtManageChild (AF->rc);
    SUMA_RETURNe;
+}
+
+
+/*! \brief Sets the GUI menu selection to the ith selection
+           for a menu created by SUMA_BuildMenu. i starts at 1 */
+SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i)
+{
+   static char FuncName[]={"SUMA_Set_Menu_Widget"};
+   char stmp[64]={""};
+   
+   SUMA_ENTRY;
+   
+   if (i<1) { SUMA_S_Err("i must be >=1"); SUMA_RETURN(NOPE);   }
+   if (!men) { SUMA_S_Err("NULL widget struct"); SUMA_RETURN(NOPE); }
+   if(men->menu_type == SUMA_XmArrowFieldMenu) {
+      if (!men->af) {
+         SUMA_S_Err("Null AF for arrow field menu!");  SUMA_RETURN(NOPE);
+      }
+      sprintf(stmp,"%d", i-1);
+      XtVaSetValues( men->af->textfield, XmNvalue, stmp, NULL); 
+   } else {
+      if (!men->mw || !men->mw[i]) {
+         SUMA_S_Err("Null menu widgets for menu!");  SUMA_RETURN(NOPE);
+      } 
+      XtVaSetValues(  men->mw[0], XmNmenuHistory ,  men->mw[i], NULL);
+   } 
+   
+   SUMA_RETURN(YUP);
 }
 
 /*! 
@@ -8552,38 +8655,7 @@ void SUMA_cb_SelectSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
       SUMA_RETURNe;
    }
 
-   #if 0
-   if (cbs->reason == XmCR_SINGLE_SELECT) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", FuncName, LW->Label);
-   } else {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Default selection, list widget %s... \n", FuncName, LW->Label);
-      /*double click or enter on that one, close shop after selection */
-      CloseShop = YUP;
-   }
-   
-   XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Selected item: %s (%d)\n", FuncName, choice, cbs->item_position);
-   LW->lastitempos = cbs->item_position;   /* store for next opening */
- 
-   /* because of sorting, choice cannot be used as an index into clist and oplist in ALS */
-   Found = NOPE;
-   ichoice = 0;
-   do {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<", FuncName, LW->ALS->clist[ichoice], choice);
-      if (strncmp(LW->ALS->clist[ichoice], choice, strlen(LW->ALS->clist[ichoice])) == 0) Found = YUP; 
-      else ++ichoice;
-   } while (ichoice < LW->ALS->N_clist && !Found);
-   
-   if (!Found) {
-      SUMA_SLP_Err("Choice not found.");
-      SUMA_RETURNe;
-   }
-   
-   XtFree (choice);
-   #else
-   /* the new way */
    ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
-   #endif
 
    /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
    if (LW->ALS) {
@@ -8680,38 +8752,7 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
       SUMA_RETURNe;
    }
 
-   #if 0   
-   if (cbs->reason == XmCR_SINGLE_SELECT) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", FuncName, LW->Label);
-   } else {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Default selection, list widget %s... \n", FuncName, LW->Label);
-      /*double click or enter on that one, close shop after selection */
-      CloseShop = YUP;
-   }
-
-   XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Selected item: %s (%d)\n", FuncName, choice, cbs->item_position);
-   LW->lastitempos = cbs->item_position;   /* store for next opening */
- 
-   /* because of sorting, choice cannot be used as an index into clist and oplist in ALS */
-   Found = NOPE;
-   ichoice = 0;
-   do {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<", FuncName, LW->ALS->clist[ichoice], choice);
-      if (strncmp(LW->ALS->clist[ichoice], choice, strlen(LW->ALS->clist[ichoice])) == 0) Found = YUP; 
-      else ++ichoice;
-   } while (ichoice < LW->ALS->N_clist && !Found);
-   
-   if (!Found) {
-      SUMA_SLP_Err("Choice not found.");
-      SUMA_RETURNe;
-   }
-   
-   XtFree (choice);
-   #else
-   /* the new way */
    ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
-   #endif
 
    /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
    if (LW->ALS) {
@@ -10449,7 +10490,7 @@ int SUMA_SetDsetViewMode(SUMA_SurfaceObject *SO, int imenu, int updatemenu)
    }
 
    if (updatemenu) {
-      SUMA_SET_MENU( SO->SurfCont->DsetViewModeMenu,
+      SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu,
                      SO->SurfCont->curColPlane->ShowMode);
    }
 

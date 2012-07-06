@@ -236,6 +236,7 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleDsetColList(SUMA_DSET *dset);
 void SUMA_UpdatePvalueField (SUMA_SurfaceObject *SO, float thresh);
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO);
 char *SUMA_GetLabelsAtNode(SUMA_SurfaceObject *SO, int node);
+SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_SurfaceObject *SO, char *str);
 
 /* the help strings */
 
@@ -336,7 +337,12 @@ char *SUMA_GetLabelsAtNode(SUMA_SurfaceObject *SO, int node);
    "on top of the stack. Separate \n"  \
    "stacks exits for foreground (fg:)\n" \
    "and background planes (bg:)."
-
+   
+#define SUMA_SurfContHelp_ArrowFieldMenu \
+   "For datasets with sub-bricks exceeding what you have\n" \
+   "set in environment variable SUMA_ArrowFieldSelectorTrigger\n"\
+   "the menu selection switches to this format."
+   
 #define SUMA_SurfContHelp_DsetOpa \
    "Opacity of Dset's colorplane.\n"  \
    "Opaque planes have an opacity\n"   \

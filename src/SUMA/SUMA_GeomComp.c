@@ -685,7 +685,7 @@ THD_3dim_dataset *SUMA_MaskizeSurface(SUMA_SurfaceObject *SO,
    int N_in=0, ii=0;
    THD_3dim_dataset *dset=NULL;
    SUMA_VOLPAR *vp=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -759,7 +759,7 @@ THD_3dim_dataset *SUMA_VoxelizeSurface(SUMA_SurfaceObject *SO,
    int N_in=0, ii=0;
    THD_3dim_dataset *dset=NULL;
    SUMA_VOLPAR *vp=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
