@@ -7989,7 +7989,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
       /* set the opacity, index column and the range */
       NewColPlane->GlobalOpacity = YUP;
       NewColPlane->ShowMode = SW_SurfCont_DsetViewCol;
-      if (!colplanepre) { /* only set this default if first time creating plane*/
+      if (!colplanepre) {/* only set this default if first time creating plane*/
          NewColPlane->OptScl->BrightFact = 0.8;
       }
       NewColPlane->OptScl->find = 0;
@@ -8038,13 +8038,13 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
       }  
       
       /* if lists for switching sub-bricks are not shaded, update them too */
-      if ((LW = SO->SurfCont->SwitchIntLst) && !LW->isShaded) {
+      if ((LW = SO->SurfCont->SwitchIntMenu->lw) && !LW->isShaded) {
          SUMA_DsetColSelectList(SO, 0, 0, 1);
       }
-      if ((LW = SO->SurfCont->SwitchThrLst) && !LW->isShaded) {
+      if ((LW = SO->SurfCont->SwitchThrMenu->lw) && !LW->isShaded) {
          SUMA_DsetColSelectList(SO, 1, 0, 1);
       }
-      if ((LW = SO->SurfCont->SwitchBrtLst) && !LW->isShaded) {
+      if ((LW = SO->SurfCont->SwitchBrtMenu->lw) && !LW->isShaded) {
          SUMA_DsetColSelectList(SO, 2, 0, 1);
       }
       

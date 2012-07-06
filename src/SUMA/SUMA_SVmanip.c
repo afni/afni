@@ -540,18 +540,10 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->X->CrappyDrawable = 0;
       SV->X->gc=NULL;
       SV->X->ToggleCrossHair_View_tglbtn=NULL;
-      for (iii=0; iii<SW_N_Tools; ++iii) {
-         SV->X->ToolsMenu[iii] = NULL;
-      }
-      for (iii=0; iii<SW_N_File; ++iii) {
-         SV->X->FileMenu[iii] = NULL;
-      }
-      for (iii=0; iii<SW_N_View; ++iii) {
-         SV->X->ViewMenu[iii] = NULL;
-      }
-      for (iii=0; iii<SW_N_Help; ++iii) {
-         SV->X->HelpMenu[iii] = NULL;
-      }
+      SV->X->ToolsMenu = SUMA_Alloc_Menu_Widget(SW_N_Tools);
+      SV->X->FileMenu = SUMA_Alloc_Menu_Widget(SW_N_File);
+      SV->X->ViewMenu = SUMA_Alloc_Menu_Widget(SW_N_View);
+      SV->X->HelpMenu = SUMA_Alloc_Menu_Widget(SW_N_Help);
       
       SV->Focus_SO_ID = -1;
       SV->Focus_DO_ID = -1;
@@ -2561,14 +2553,19 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->SwitchIntMenu = NULL;
    SurfCont->SwitchBrtMenu = NULL;
    SurfCont->SwitchThrMenu = NULL;
+   #if 0 /* Now in SwitchIntMenu */
    SurfCont->SwitchIntLst = NULL;
    SurfCont->SwitchThrLst = NULL;
    SurfCont->SwitchBrtLst = NULL;
+   SurfCont->SwitchIntArrow = NULL;
+   SurfCont->SwitchBrtArrow = NULL;
+   SurfCont->SwitchThrArrow = NULL;
+   #endif
    SurfCont->SwitchCmapMenu = NULL;
    SurfCont->rc_CmapCont = NULL;
-   SurfCont->N_CmapMenu = -1;
-   SurfCont->CoordBiasMenu[SW_CoordBias] = NULL;
-   SurfCont->LinkModeMenu[SW_LinkMode] = NULL;
+   SurfCont->CoordBiasMenu = SUMA_Alloc_Menu_Widget(SW_N_CoordBias);
+   SurfCont->LinkModeMenu = SUMA_Alloc_Menu_Widget(SW_N_LinkMode);
+   SurfCont->CmapModeMenu = SUMA_Alloc_Menu_Widget(SW_N_CmapMode);
    SurfCont->opts_rc = NULL;
    SurfCont->opts_form = NULL;
    SurfCont->rcvo = NULL;
@@ -2621,22 +2618,41 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    if (SurfCont->SwitchDsetlst) SUMA_FreeScrolledList (SurfCont->SwitchDsetlst);
    if (SurfCont->SurfInfo_TextShell) { 
       SUMA_SL_Warn("SurfCont->SurfInfo_TextShell is not being freed") };
-   if (SurfCont->SwitchIntMenu) { 
-      XtDestroyWidget(SurfCont->SwitchIntMenu[0]); 
-      SUMA_free(SurfCont->SwitchIntMenu); }
-   if (SurfCont->SwitchThrMenu) { 
-      XtDestroyWidget(SurfCont->SwitchThrMenu[0]); 
-      SUMA_free(SurfCont->SwitchThrMenu); }
-   if (SurfCont->SwitchBrtMenu) { 
-      XtDestroyWidget(SurfCont->SwitchBrtMenu[0]); 
-      SUMA_free(SurfCont->SwitchBrtMenu); }
-   if (SurfCont->SwitchCmapMenu) { 
-      XtDestroyWidget(SurfCont->SwitchCmapMenu[0]); 
-      SUMA_free(SurfCont->SwitchCmapMenu); }
+   SurfCont->SwitchIntMenu = SUMA_Free_Menu_Widget(SurfCont->SwitchIntMenu);
+   SurfCont->SwitchThrMenu = SUMA_Free_Menu_Widget(SurfCont->SwitchThrMenu); 
+   SurfCont->SwitchBrtMenu = SUMA_Free_Menu_Widget(SurfCont->SwitchBrtMenu); 
+   SurfCont->SwitchCmapMenu = SUMA_Free_Menu_Widget(SurfCont->SwitchCmapMenu); 
    if (SurfCont->curSOp) free(SurfCont->curSOp);
    if (SurfCont->cmp_ren) free(SurfCont->cmp_ren);
    if (SurfCont) free(SurfCont);
    return (NULL);
+}
+
+SUMA_MENU_WIDGET *SUMA_Free_Menu_Widget(SUMA_MENU_WIDGET *smw) 
+{
+   static char FuncName[]={"SUMA_Free_Menu_Widget"};
+   if (!smw) return(NULL);
+   if (smw->mw) {
+      XtDestroyWidget(smw->mw[0]);
+      SUMA_free(smw->mw);
+   }
+   if (smw->lw) {
+      SUMA_cb_CloseSwitchLst (NULL, (XtPointer)smw->lw, NULL);
+      smw->lw = SUMA_FreeScrolledList(smw->lw);
+   }
+   if (smw) SUMA_free(smw);
+   return(NULL);
+}
+
+SUMA_MENU_WIDGET *SUMA_Alloc_Menu_Widget(int nw) 
+{
+   SUMA_MENU_WIDGET *smw=NULL;
+   smw = (SUMA_MENU_WIDGET *)SUMA_calloc(1, sizeof(SUMA_MENU_WIDGET));
+   if (nw) {
+      smw->mw = (Widget *)SUMA_calloc(nw, sizeof(Widget));
+      smw->N_mw = nw;
+   }
+   return(smw);
 }
 
 /*! free SUMA_CommonFields 

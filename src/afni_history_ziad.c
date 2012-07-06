@@ -66,6 +66,18 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6, Jul , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Use ArrowFields when datasets have large numbers of sub-bricks",
+   "The switch is done automatically and is controlled with env:\n"
+   "SUMA_ArrowFieldSelectorTrigger"
+ },
+ 
+ { 6, Jul , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_ENV,
+   "SUMA_ArrowFieldSelectorTrigger set threshold for using ArrowFields",
+   "For datasets with sub-bricks >= SUMA_ArrowFieldSelectorTrigger\n"
+   "and arrow field is used to switch between sub-bricks"
+ },
+ 
  { 28, Jun , 2012 , ZSS , "ROIgrow" , MINOR , TYPE_NEW_OPT,
    "Added -insphere and -inbox options",
    "These options grow ROIs by finding nodes that fall inside a box or sphere\n"
