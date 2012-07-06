@@ -834,6 +834,13 @@ int main( int argc , char *argv[] )
 "                 then the default '-twofirst' makes sense if you don't expect\n"
 "                 large movements WITHIN the source, but expect large motions\n"
 "                 between the source and base.\n"
+"               * '-twopass' re-starts the alignment process for each sub-brick\n"
+"                 in the source dataset -- this option can be time consuming,\n"
+"                 and is really intended to be used when you might expect large\n"
+"                 movements between sub-bricks; for example, when the different\n"
+"                 volumes are gathered on different days.  For most purposes,\n"
+"                 '-twofirst' (the default process) will be adequate and faster,\n"
+"                 when operating on multi-volume source datasets.\n"
 
        , tbest , PARAM_MAXTRIAL  /* for -twobest */
       ) ;
