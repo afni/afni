@@ -15615,10 +15615,12 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
       SUMA_RETURN(YUP);
    }
    
-   /* if (!(col % 1000)) 
-      fprintf(stderr,"%d\n", col); *//* To illustrate the slowdown with 
-                                    increasing numbers of columns */
-   
+   #if 0
+   if (!(col % 1000)) { 
+      LocalHead=YUP;
+      SUMA_LHv("%d\n", col); 
+   }
+   #endif
    num_string_components = SUMA_NI_get_num_strings(cs, sep);
    
    if (num_string_components < 0 || col != num_string_components) {
@@ -15639,7 +15641,8 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
    
    if (col == num_string_components) { /* add at the end */
       if (LocalHead) 
-         fprintf(SUMA_STDERR,"%s: append %s to end of %s\n", FuncName, lbl, cs);
+         fprintf(SUMA_STDERR,"%s: append %s to end of string\n", 
+                  FuncName, lbl);
       #if 0 /* this gets real slow when adding column after column for 
                dsets with a very large number of columns */
       ns = SUMA_append_replace_string(cs, lbl, sep, 0);
@@ -15648,12 +15651,19 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
                (still slow, but less so...)*/
       { 
       char **rc;
-      int n0, n1, n2;
+      int n0, n1, n2, nalloc;
       if (cs) n0 = strlen(cs); else n0 = 0; 
       if (sep) n1 = strlen(sep); else n1 = 0; 
       if (lbl) n2 = strlen(lbl); else n2 = 0;
-      cs = (char *)NI_realloc(cs, char,
-                  (n0+n1+n2+1)*sizeof(char));
+      nalloc = SUMA_NI_get_int(nel,"alloc_max");
+      if (nalloc < (n0+n1+n2+1)) { /* and a little faster July 2012 
+                                    still need to go faster, but 
+                                    bottle neck may be elsewhere */
+         nalloc += (n0+n1+n2+1)+8192;
+         cs = (char *)NI_realloc(cs, char,
+                  nalloc*sizeof(char));
+         SUMA_NI_set_int(nel,"alloc_max", nalloc);
+      }
       i = 0; while(sep[i]) { cs[n0++] = sep[i]; ++i; }            
       if (n2) {
          i = 0; while(lbl[i]) { cs[n0++] = lbl[i]; ++i; }
@@ -15661,10 +15671,15 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
       cs[n0] = '\0';
       rc = (char **)(nel->vec[0]);
       rc[0] = cs; 
-      if (LocalHead) 
-         fprintf(SUMA_STDERR,"%s: cs (%d strings) now: %s\n", 
-                              FuncName, SUMA_NI_get_num_strings(cs, sep), cs);
-      }  
+      
+      if (0) {
+         SUMA_LHv("cs (%d strings) now: %s\n", 
+                              SUMA_NI_get_num_strings(cs, sep), cs);
+      } else {
+         SUMA_LHv("cs (%d strings)\n", 
+                              SUMA_NI_get_num_strings(cs, sep));
+      }
+      }
       #endif
    } else if (!insertmode) { /* REPLACE! in middle */
       if (nisa->str[col]) NI_free(nisa->str[col]); nisa->str[col] = NULL;

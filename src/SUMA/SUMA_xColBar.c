@@ -5473,7 +5473,7 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, in
 {
    static char FuncName[]={"SUMA_FormSwitchColMenuVector"};
    SUMA_MenuItem *menu = NULL;
-   int i;
+   int i, isarrow;
    void (*callback)();
    NI_element *nel = NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -5507,12 +5507,21 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, in
    
    /* Allocate for menu */
    menu = (SUMA_MenuItem *)SUMA_calloc((nel->vec_num+1), sizeof(SUMA_MenuItem));
-   
+   isarrow = SUMA_AllowArrowFieldMenus((nel->vec_num+1), "I");
+                                          /* "I", or "B", or "T" OK */   
 
    /* fillup menu */
    for (i=0; i < nel->vec_num; ++i) {
-      menu[i].label = 
-         SUMA_DsetColLabelCopy(SO->SurfCont->curColPlane->dset_link, i, 1);
+      if (!isarrow) {
+         menu[i].label = 
+            SUMA_DsetColLabelCopy(SO->SurfCont->curColPlane->dset_link, i, 1);
+      } else {
+         /* SUMA_DsetColLabelCopy is slow as a dog for very large numbers
+            of sub-bricks. In any case, sub-brick labels are not that 
+            important here, this should be improved someday*/
+         menu[i].label = (char*)malloc(13*sizeof(char));
+         snprintf(menu[i].label,11*sizeof(char), "sb%d", i-1);
+      }
       menu[i].class = &xmPushButtonWidgetClass;
       menu[i].mnemonic = '\0';
       menu[i].accelerator = NULL;
