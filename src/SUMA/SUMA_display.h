@@ -327,6 +327,7 @@ void SUMA_cb_DrawROI_Redo (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_Save (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_Load (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_setlabel (Widget w, XtPointer data, XtPointer client_data);
+int SUMA_AllowArrowFieldMenus(int N, char *t);
 void SUMA_CreateArrowField ( Widget pw, char *label,
                               float value, float vmin, float vmax, float vstep,
                               int cwidth, SUMA_VARTYPE type,
