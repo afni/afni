@@ -2934,21 +2934,21 @@ class RegWrap:
    def fresh_start(self, epref="", apref="", rmold = 0 ):
       self.info_msg("Removing all the temporary files")
       if epref == "" and apref == "":
-         com = shell_com(  "rm -f __tt_*", ps.oexec)
+         com = shell_com(  "\\rm -f __tt_*", ps.oexec)
          com.run()     
       else:
          if epref != "":
-            com = shell_com(  "rm -f __tt_%s*" % (epref), ps.oexec)
+            com = shell_com(  "\\rm -f __tt_%s*" % (epref), ps.oexec)
             com.run() 
             if(rmold):
-               com = shell_com(  "rm -f %s*%s*" % (epref, ps.suffix), ps.oexec)
+               com = shell_com( "\\rm -f %s*%s*" % (epref, ps.suffix), ps.oexec)
                com.run() 
 
          if apref != "":
-            com = shell_com(  "rm -f __tt_%s*" % (apref), ps.oexec)
+            com = shell_com(  "\\rm -f __tt_%s*" % (apref), ps.oexec)
             com.run()  
             if(rmold):
-               com = shell_com(  "rm -f %s*%s*" % (apref, ps.suffix), ps.oexec)
+               com = shell_com( "\\rm -f %s*%s*" % (apref, ps.suffix), ps.oexec)
                com.run() 
 
       return
@@ -3056,7 +3056,7 @@ if __name__ == '__main__':
          ps.anat_alnd = ''
 
       if(ps.AddEdge):
-         com = shell_com(  "rm -f AddEdge/*", ps.oexec)
+         com = shell_com(  "\\rm -f AddEdge/*", ps.oexec)
          com.run()
          # @AddEdge requires single sub-brick, resampled data (grids must match)
          #  and skullstripped data to avoid extracranial and cranial edges
