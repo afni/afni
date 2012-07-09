@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 9, JUL, 2012, RCR, "@auto_tlrc", MICRO, TYPE_MODIFY,
+   "escape (unalias) every 'rm' command",
+   NULL
+ } ,
+
+ { 9, JUL, 2012, RCR, "align_epi_anat.py", MICRO, TYPE_MODIFY,
+   "escape (unalias) every 'rm' command",
+   NULL
+ } ,
+
  { 29, JUN, 2012, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
    "moved ptaylor_install dependency from 'vastness' to 'install'",
    NULL

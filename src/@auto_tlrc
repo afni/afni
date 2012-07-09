@@ -640,7 +640,7 @@ AUTO_TLRC_MODE:
 
    CLIP_BELOW:
    if ($clpbelow != '') then
-      rm -rf ${ns_pref}_clpbel*.???? >& /dev/null
+      \rm -rf ${ns_pref}_clpbel*.???? >& /dev/null
       @clip_volume   -below $clpbelow \
                      -input ${ns_pref}${anat_view} -prefix ${ns_pref}_clpbel
       set ns_pref = ${ns_pref}_clpbel
@@ -655,7 +655,7 @@ AUTO_TLRC_MODE:
    #Resamplin
    if ( `@CheckForAfniDset ${rs_pref}${anat_view}` != 2 ) then
       echo "Resampling ..."
-      rm -f ${tmppref}_resamp* >& /dev/null
+      \rm -f ${tmppref}_resamp* >& /dev/null
       #Use cubic for somoothness of result 
       #  since it will be used in registration.
       #But that causes edge artifacts from interpolation. 
@@ -692,7 +692,7 @@ AUTO_TLRC_MODE:
       3drefit -view ${anat_view} ${rs_pref}${ref_view}.HEAD
       3drefit -view ${anat_view} ${tmppref}_resamp_NN${ref_view}.HEAD
       3drefit -view ${anat_view} ${tmppref}_resamp_edge_art${ref_view}.HEAD
-      if ( $KeepTmp == 0) rm -f ${tmppref}_resamp* >& /dev/null 
+      if ( $KeepTmp == 0) \rm -f ${tmppref}_resamp* >& /dev/null 
       if ( `@CheckForAfniDset ${rs_pref}${anat_view}` != 2 ) then
          echo "Error: Failed to change view of resampled volume"
          set estat = 1
@@ -703,7 +703,7 @@ AUTO_TLRC_MODE:
    REG:
    #Registration
    echo "Registration ($rmode final interpolation) ..."
-   if ( $KeepTmp == 0) rm -f ${tmppref}_reg* >& /dev/null 
+   if ( $KeepTmp == 0) \rm -f ${tmppref}_reg* >& /dev/null 
    set spopt = ''
    if ($verb == 1) then
       set spopt = "$spopt -verb"
@@ -717,7 +717,7 @@ AUTO_TLRC_MODE:
    set pass = 1
    set Converged = 0
    while ($Converged == 0 && $pass < 3)
-      rm -f ${ns_pref}_WarpDrive.log >& /dev/null
+      \rm -f ${ns_pref}_WarpDrive.log >& /dev/null
       3dWarpDrive ${maxite} ${spopt}  ${npass} \
                   -${xform_type} -cubic  \
                   -final ${rmode} -1Dmatrix_save ${ns_pref}.Xaff12.1D \
@@ -740,7 +740,7 @@ AUTO_TLRC_MODE:
       # this should do it:
          cat "${ns_pref}_WarpDrive.log" > ___cat.tmp
          set res = "`grep 'RMS\[0\]' ___cat.tmp`"
-         rm -f ___cat.tmp >& /dev/null 
+         \rm -f ___cat.tmp >& /dev/null 
 
       echo "$res"
       set rms_i = `echo "$res" | cut -d ' ' -f3`
@@ -1039,7 +1039,7 @@ APAR_MODE:
    set tmp_out_pref = ${tmppref}${out_pref}
    echo "Applying tlrc warp from ${ref_nopad} to ${ns_pref}${anat_view} ..."
    if ( -f warp_tmp${anat_view}.HEAD) then
-      rm -f warp_tmp${anat_view}.HEAD warp_tmp${anat_view}.BRIK*
+      \rm -f warp_tmp${anat_view}.HEAD warp_tmp${anat_view}.BRIK*
    endif
    
    echo "Padding the input data before warping"
@@ -1165,7 +1165,7 @@ APAR_MODE:
       endif
    endif
    
-   if ( $KeepTmp == 0) rm -f ${tmppref}*+????.???? >& /dev/null
+   if ( $KeepTmp == 0) \rm -f ${tmppref}*+????.???? >& /dev/null
 
    goto WRAP_UP
 #######################
@@ -1182,7 +1182,7 @@ if ($KeepTmp != 1) then
    #be execute at exit.
    if ($#delete_this) then
       foreach ff ($delete_this)
-         if ( -f "$ff") rm -f "$ff" >& /dev/null 
+         if ( -f "$ff") \rm -f "$ff" >& /dev/null 
       end
    endif
    goto CLEANUP
@@ -1196,17 +1196,17 @@ goto END
 #ONLY SUB-ROUTINES BELOW
 
 CLEANUP:
-rm -f ${tmppref}*ref*.????*     >& /dev/null
-rm -f ${tmppref}*_reg*.????*     >& /dev/null
-rm -f ${tmppref}*_resam*.????*   >& /dev/null
-rm -f ${tmppref}*_rs*.????*      >& /dev/null
-rm -f ${tmppref}*_pad*.????*     >& /dev/null
-rm -f ${tmppref}_acpc*.????*     >& /dev/null
-rm -f ${tmppref}*gridout*.????*  >& /dev/null
-rm -f ${tmppref}*ipad*.????*  >& /dev/null
-rm -f ${tmppref}_MP* >& /dev/null
-rm -f ${tmppref}*upad*.????*  >& /dev/null
-rm -f ${tmppref}*warp_grid*.????*  >& /dev/null
+\rm -f ${tmppref}*ref*.????*     >& /dev/null
+\rm -f ${tmppref}*_reg*.????*     >& /dev/null
+\rm -f ${tmppref}*_resam*.????*   >& /dev/null
+\rm -f ${tmppref}*_rs*.????*      >& /dev/null
+\rm -f ${tmppref}*_pad*.????*     >& /dev/null
+\rm -f ${tmppref}_acpc*.????*     >& /dev/null
+\rm -f ${tmppref}*gridout*.????*  >& /dev/null
+\rm -f ${tmppref}*ipad*.????*  >& /dev/null
+\rm -f ${tmppref}_MP* >& /dev/null
+\rm -f ${tmppref}*upad*.????*  >& /dev/null
+\rm -f ${tmppref}*warp_grid*.????*  >& /dev/null
 
 goto $Ret_Clean
 
