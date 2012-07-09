@@ -67,6 +67,16 @@ void GRINCOR_many_regress( int nvec , int numx , float **xxar ,
                                       int numy , float **yyar ,
                                       int nout , float **dtar  ) ;
 
+/*--------------------------------------------------------------------------*/
+
+static int do_atanh = 1 ;  /* 15 May 2012 */
+
+#undef  MYatanh
+#define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
+                    :((x)>+0.999329f) ? +4.0f : atanhf(x) )
+
+#define UNROLL  /* to speed things up in the correlation inner loop */
+
 /*----------------------------------------------------------------------------*/
 
 static int vstep_n = 0 ;
@@ -457,15 +467,86 @@ MRI_shindss * GRINCOR_read_input( char *fname )
 
 #undef GQUIT
 
+#if 0
+/*==========================================================================*/
+/* Stuff for mean dot product as an extra covariate */
+/*==========================================================================*/
+
+void GRINCOR_meanvec_short( MRI_shindss *shd, int ids, float *vv )
+{
+   int nvec = shd->nvec , nvals = shd->nvals[ids] , iv,ii ;
+   short *sv = shd->sv[ids] , *svv ;
+
+   for( ii=0 ; ii < nvals ; ii++ ) vv[ii] = 0.0f ;
+   for( iv=0 ; iv < nvec ; iv++ ){
+     svv = sv + iv*nvals ;
+     for( ii=0 ; ii < nvals ; ii++ ) vv[ii] += svv[ii] ;
+   }
+   (void)THD_normalize( nvals , vv ) ;
+   return ;
+}
+
 /*--------------------------------------------------------------------------*/
 
-static int do_atanh = 1 ;  /* 15 May 2012 */
+void GRINCOR_meanvec_sbyte( MRI_shindss *shd, int ids, float *vv )
+{
+   int nvec = shd->nvec , nvals = shd->nvals[ids] , iv,ii ;
+   sbyte *sv = shd->bv[ids] , *svv ;
 
-#undef  MYatanh
-#define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
-                    :((x)>+0.999329f) ? +4.0f : atanhf(x) )
+   for( ii=0 ; ii < nvals ; ii++ ) vv[ii] = 0.0f ;
+   for( iv=0 ; iv < nvec ; iv++ ){
+     svv = sv + iv*nvals ;
+     for( ii=0 ; ii < nvals ; ii++ ) vv[ii] += svv[ii] ;
+   }
+   (void)THD_normalize( nvals , vv ) ;
+   return ;
+}
 
-#define UNROLL  /* to speed things up in the correlation inner loop */
+/*--------------------------------------------------------------------------*/
+
+void GRINCOR_meanvec( MRI_shindss *shd, int ids, float *vv )
+{
+  if( shd->datum == 1 ) GRINCOR_meanvec_sbyte( shd, ids, vv ) ;
+  else                  GRINCOR_meanvec_short( shd, ids, vv ) ;
+  return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+float GRINCOR_meandot( MRI_shindss *shd , int ids )
+{
+   int nvals=shd->nvals[ids] , nvec=shd->nvec , iv ;
+   float *mv , *dp , sum ;
+
+   mv = (float *)malloc(sizeof(float)*nvals) ;
+   GRINCOR_meanvec( shd , ids , mv ) ;
+
+   dp = (float *)malloc(sizeof(float)*nvec) ;
+   GRINCOR_dotprod( shd, ids, mv, dp ) ;
+
+   for( sum=0.0f,iv=0 ; iv < nvec ; iv++ ) sum += dp[iv] ;
+   free(dp) ; free(mv) ; return (sum/nvec) ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+float GRINCOR_zmeandot( MRI_shindss *shd , int ids )
+{
+   int nvals=shd->nvals[ids] , nvec=shd->nvec , iv ;
+   float *mv , *dp , sum ;
+
+   mv = (float *)malloc(sizeof(float)*nvals) ;
+   GRINCOR_meanvec( shd , ids , mv ) ;
+
+   dp = (float *)malloc(sizeof(float)*nvec) ;
+   GRINCOR_dotprod( shd, ids, mv, dp ) ;
+
+   for( sum=0.0f,iv=0 ; iv < nvec ; iv++ ) sum += MYatanh(dp[iv]) ;
+   free(dp) ; free(mv) ; return (sum/nvec) ;
+}
+
+/*==========================================================================*/
+#endif
 
 /*--------------------------------------------------------------------------*/
 /* This cute little function consumes a lot of CPU time. */
