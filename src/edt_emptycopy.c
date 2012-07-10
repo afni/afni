@@ -127,16 +127,19 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    }
    new_dkptr->allow_directwrite = 0 ;  /* 08 May 2009 */
 
-   if( old_good )
+   if( old_good ) {
+      /* ZSS: old_dset->dblk->diskptr->directory_name
+      was used instead of "./" before  July 10 2012. 
+      See afni_history -author ziad | grep -A10 '10 Jul 2012' */
       THD_init_diskptr_names( new_dkptr ,
-                              old_dset->dblk->diskptr->directory_name ,
+                              "./", /* ZSS 07/10/2012*/
                               NULL , DUMMY_NAME ,
                               new_dset->view_type , True ) ;
-   else
+   } else {
       THD_init_diskptr_names( new_dkptr ,
                               "./" , NULL , DUMMY_NAME ,
                               new_dset->view_type , True ) ;
-
+   }
    new_dblk->type        = DATABLOCK_TYPE ;
    new_dblk->nvals       = new_nvals ;
    new_dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
