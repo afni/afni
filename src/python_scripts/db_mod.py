@@ -2464,7 +2464,10 @@ def db_mod_regress(block, proc, user_opts):
     # maybe the user really does want to apply the mask to regression
     # note: no_mask is now the default    24 Mar 2009
     uopt = user_opts.find_opt('-regress_apply_mask')
-    if uopt: proc.regmask = 1
+    if uopt:
+        print "** regress_apply_mask has been deprecated"
+        print "   (consider '-mask_apply epi')"
+        proc.regmask = 1
 
     # check for global or local stim_times
     uopt = user_opts.find_opt('-regress_global_times')
@@ -3229,7 +3232,7 @@ def db_cmd_blur_est(proc, block):
     sopt = block.opts.find_opt('-regress_3dD_stop')
 
     if not aopt and not eopt:
-        if proc.verb > 2: print '-- no blur estimation'
+        if proc.verb > 0: print '-- no 3dClustSim (since no blur estimation)'
         return cmd
 
     # set the mask (if we don't have one, bail)
@@ -3288,6 +3291,7 @@ def db_cmd_blur_est(proc, block):
 
 def make_clustsim_commands(proc, block, blur_file, mask_dset,
                            stats_dset, reml_dset):
+    if proc.verb > 0: print '-- will add 3dClustSim table to stats dset'
     if proc.verb > 1:
         print '-- make_clustsim_commands: blur = %s\n'  \
               '   mask = %s, stats = %s, reml = %s'\

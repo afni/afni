@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, JUL, 2012, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "let the user know whether 3dClustSim will be run",
+   NULL
+ } ,
+
  { 9, JUL, 2012, RCR, "@auto_tlrc", MICRO, TYPE_MODIFY,
    "escape (unalias) every 'rm' command",
    NULL
