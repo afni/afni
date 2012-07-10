@@ -66,6 +66,18 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10, Jul , 2012 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
+   "Made default prefix path be ./ instead of path of input",
+   "The change was done to function EDIT_empty_copy() which assigned\n"
+   "to a pathless prefix the path of the input dataset if the latter\n"
+   "was specified. The problem was that something like:\n"
+   "3dMean -prefix mmm P1/joe+orig P2/jane+orig \n"
+   "would have written mmm+orig under P1/\n"
+   "To make matters less palatable other programs like 3dcalc behaved \n"
+   "differently: 3dcalc -prefix ccc -a P1/joe+orig -expr 'a' \n"
+   "would produce ./ccc+orig \n" 
+ },
+ 
  { 6, Jul , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Use ArrowFields when datasets have large numbers of sub-bricks",
    "The switch is done automatically and is controlled with env:\n"
