@@ -342,6 +342,7 @@ g_history = """
     3.22 Jun 06, 2012: check for EPI +tlrc view in NIfTI datasets
     3.23 Jun 15, 2012: added -regress_censor_extern
     3.24 Jun 28, 2012: help mistake on IM, thanks to I Blair for noting
+    3.25 Jul 10, 2012: let user know whether 3dClustSim will be run
 """
 
 g_version = "version 3.24, June 28, 2012"
