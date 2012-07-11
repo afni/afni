@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, JUL, 2012, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "fill gaps and holes in anatomical masks",
+   "(now requires AFNI from 7 May, 2012)"
+ } ,
+
  { 10, JUL, 2012, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "let the user know whether 3dClustSim will be run",
    NULL

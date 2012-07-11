@@ -343,12 +343,14 @@ g_history = """
     3.23 Jun 15, 2012: added -regress_censor_extern
     3.24 Jun 28, 2012: help mistake on IM, thanks to I Blair for noting
     3.25 Jul 10, 2012: let user know whether 3dClustSim will be run
+    3.26 Jul 11, 2012: fill gaps and holes in anatomical masks
+                       (now requires AFNI from 7 May, 2012)
 """
 
-g_version = "version 3.24, June 28, 2012"
+g_version = "version 3.26, July 11, 2012"
 
 # version of AFNI required for script execution
-g_requires_afni = "9 Mar 2012"
+g_requires_afni = "7 May 2012"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
