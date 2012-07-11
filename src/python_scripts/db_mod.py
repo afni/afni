@@ -1980,9 +1980,10 @@ def group_mask_command(proc, block):
                 "           -input %s\n\n"                \
                 % (proc.mask_epi.pv(), tanat.prefix, proc.tlrc_base.ppv())
 
-    # and finally, convert to the binary mask of choice
-    cmd = cmd + "# convert resampled group brain to binary mask\n"  \
-                "3dcalc -a %s -expr 'ispositive(a)' -prefix %s\n\n" \
+    # convert to a binary mask via 3dmask_tool, to fill in a bit
+    cmd = cmd + "# convert to binary group mask; fill gaps and holes\n"     \
+                "3dmask_tool -dilate_input 5 -5 -fill_holes -input %s \\\n" \
+                "            -prefix %s\n\n"                                \
                 % (tanat.pv(), proc.mask_group.prefix)
 
     proc.mask_group.created = 1  # so this mask 'exists' now
@@ -2035,13 +2036,14 @@ def anat_mask_command(proc, block):
     #else:
 
     # resample masked anat to epi grid, output is temp anat
-    cmd = cmd + "3dresample -master %s -prefix %s \\\n"             \
-                "           -input %s\n\n"                          \
-                % (proc.mask_epi.pv(), tanat.prefix, anat.pv())
+    cmd = cmd + "3dresample -master %s -input %s \\\n"                  \
+                "           -prefix %s\n\n"                             \
+                % (proc.mask_epi.pv(), anat.pv(), tanat.prefix)
 
-    # and finally, convert to the binary mask of choice
-    cmd = cmd + "# convert resampled anat brain to binary mask\n"   \
-                "3dcalc -a %s -expr 'ispositive(a)' -prefix %s\n\n" \
+    # and convert to binary mask via 3dmask_tool, to fill in a bit
+    cmd = cmd + "# convert to binary anat mask; fill gaps and holes\n"      \
+                "3dmask_tool -dilate_input 5 -5 -fill_holes -input %s \\\n" \
+                "            -prefix %s\n\n"                                \
                 % (tanat.pv(), proc.mask_anat.prefix)
 
     opt = block.opts.find_opt('-mask_test_overlap')
