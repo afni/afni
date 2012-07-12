@@ -500,6 +500,7 @@ typedef struct {
   float tbot,ttop ;
   basis_func *bfunc ;
   char *name , *symfun , *option ;
+  float *modsub ;                   /* 12 Jul 2012: modulation subtractors */
 } basis_expansion ;
 
 /** Extra baseline orts **/
@@ -710,7 +711,6 @@ void DC_error (char * message)
 #else
 # define DC_error(m) ERROR_exit("3dDeconvolve dies: %s",(m))
 #endif
-
 
 /*---------------------------------------------------------------------------*/
 
@@ -1403,6 +1403,25 @@ void display_help_menu(int detail)
     "      the mean will NOT be removed from the auxiliary parameter(s).    \n"
     "      This ability is provided for users who want to center their      \n"
     "      parameters using their own method.                               \n"
+    "  *** [12 Jul 2012] You can now specify the value to subtract from     \n"
+    "      each modulation parameter -- this value will replace the         \n"
+    "      subtraction of the average parameter value that usually happens. \n"
+    "      To do this, add an extra parameter after the option, as in       \n"
+    "        -stim_times_AM2 1 timesAM.1D 'BLOCK(2,1)' :5.2:x:2.0           \n"
+    "      The extra argument must start with the colon ':' character, and  \n"
+    "      there should be as many different values (separated by ':') as   \n"
+    "      there are parameters in the timing file (timesAM.1D above).      \n"
+    "  ==> In the example above, ':5.2:x:2.0' means                         \n"
+    "        subtract 5.2 from each value of the first parameter in timesAM.1D\n"
+    "        subtract the MEAN from each value of the second parameter      \n"
+    "          (since 'x' doesn't translate to a number)                    \n"
+    "        subtract 2.0 from each value of the third parameter            \n"
+    "  ==> What is this option for, anyway?  The purpose is to facilitate   \n"
+    "      GROUP analysis the results from a collection of subjects, where  \n"
+    "      you want to treat each subject's analysis exactly the same       \n"
+    "      way -- and thus, the subtraction value for a parameter (e.g.,    \n"
+    "      reaction time) should then be the mean over all the reaction     \n"
+    "      times from all trials in all subjects.                           \n"
     "                                                                       \n"
     "** NOTE [04 Dec 2008] **                                               \n"
     " -stim_times_AM1 and -stim_times_AM2 now take files with more          \n"
@@ -2788,6 +2807,28 @@ void get_options
           } else {
             basis_stim[k]->type = BASIS_MODULATED_PAIR;
             basis_stim[k]->nparm *= (vmod+1) ;      /* one for each amplitude */
+
+            if( nopt < argc-1 && argv[nopt+1][0] == ':' ){  /* 12 Jul 2012 */
+              char *mss = strdup(argv[++nopt]) , *ccc,*ddd ; int iss ;
+              basis_stim[k]->modsub = (float *)malloc(sizeof(float)*vmod) ;
+              for( iss=0 ; iss < vmod ; iss++ ) basis_stim[k]->modsub[iss] = basis_filler ;
+              for( ccc=mss ; *ccc != '\0' ; ccc++ ){ if( *ccc == ':' || *ccc == ',' ) *ccc = ' ' ; }
+              INFO_message("'%s %d %s' has modulation parameter centering string '%s'",
+                           sopt,ival,argv[nopt-2],mss) ;
+              for( ccc=mss,iss=0 ; iss < vmod ; iss++ ){
+                for( ; isspace(*ccc) ; ccc++ ) ; /*nada*/
+                if( isdigit(*ccc) || *ccc == '-' || *ccc == '+' || *ccc == '.' ){
+                  basis_stim[k]->modsub[iss] = (float)strtod(ccc,&ddd) ;
+                  ccc = ddd ;
+                  ININFO_message("'%s %d %s' will subtract %g from input modulation parameter #%d",
+                                 sopt,ival,argv[nopt-2],basis_stim[k]->modsub[iss],iss+1) ;
+                } else {       /* skip to next nonblank location */
+                  for( ccc++ ; !isspace(*ccc) ; ccc++ ) ; /*nada*/
+                  ININFO_message("'%s %d %s' will subtract MEAN from modulation parameter #%d",
+                                 sopt,ival,argv[nopt-2],iss+1) ;
+                }
+              }
+            }
           }
           INFO_message("'%s %d %s' will have %d regressors",
                        sopt,ival,argv[nopt-1],basis_stim[k]->nparm) ;
@@ -4365,9 +4406,15 @@ STATUS("checking for bad param values") ;
                          be->option , is+1 ) ;
           } else {
             for( vv=0 ; vv < vmod ; vv++ ){
-              zbar[vv] /= nzb ; /* average */
-              INFO_message("'%s %d' average amplitude#%d=%g",
-                           be->option, is+1,vv+1,zbar[vv]    ) ;
+              if( be->modsub == NULL || be->modsub[vv] >= basis_filler ){
+                zbar[vv] /= nzb ; /* average */
+                INFO_message("'%s %d' average amplitude#%d=%g",
+                             be->option, is+1,vv+1,zbar[vv]    ) ;
+              } else if( btyp == BASIS_MODULATED_PAIR ){
+                INFO_message("'%s %d' average amplitude#%d=%g -- but subtracting %g",
+                             be->option, is+1,vv+1,zbar[vv],be->modsub[vv] ) ;
+                zbar[vv] = be->modsub[vv] ;
+              }
             }
           }
         }
@@ -10777,6 +10824,7 @@ ENTRY("basis_parser") ;
    be = (basis_expansion *)malloc(sizeof(basis_expansion)) ;
    be->name = NULL ;   /* will be fixed later */
    be->symfun = strdup(sym) ;  /* 06 Mar 2007 */
+   be->modsub = NULL ;         /* 12 Jul 2012 */
 
    be->vmod = be->vfun = 0 ;   /* 05 Dec 2008 */
 

@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 19 , JUN , 2012 , RWC , "3dttest++" , MINOR , TYPE_GENERAL ,
+  { 12 , JUL , 2012 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
+   "added ':a:b:c' appendage to -stim_times_AM2" ,
+   "To allow user to specify what values to subtract from modulation\n"
+   "parameters (over-riding the default subtraction of the average)." } ,
+
+ { 19 , JUN , 2012 , RWC , "3dttest++" , MINOR , TYPE_GENERAL ,
    "Internal wildcard expansion with SHORT FORM '-set' options." ,
    NULL } ,
 
