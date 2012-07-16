@@ -45,7 +45,7 @@ int main( int argc , char *argv[] )
       "-mxb xx = max value of ARMA11 parameter 'b' to use   [default=+0.5]\n"
       "-mnb xx = max value of ARMA11 parameter 'b' to use   [default=-0.5]\n"
       "-smx xx = max value of time series stdev to use      [default=5   ]\n"
-      "-smn xx = min value of time series stdev to use\n"
+      "-smn xx = min value of time series stdev to use      [default=1   ]\n"
       "-1D  xx = 1D file to use for response model          [no default  ]\n"
       "-tmx xx = max value of tau to use                    [default=3   ]\n"
       "-pre pp = output dataset prefix                      [default=Simm]\n"
@@ -202,8 +202,8 @@ int main( int argc , char *argv[] )
    /* add noise model */
 
    fprintf(stderr,"++ adding ARMA(1,1) model") ;
-   kk = (nxy+nxy-2)/(2*ndiv) ; a0 = amn ; a1 = (amx-amn)/kk ;
-   kk = (nxy-1)    /(2*ndiv) ; b0 = 0.5f*(bmn+bmx) ; b1 = (bmx-bmn)/(2.0f*kk) ;
+   kk = (nxy+nxy-2)/(2*ndiv) ; kk = MAX(kk,1) ; a0 = amn ; a1 = (amx-amn)/kk ;
+   kk = (nxy-1)    /(2*ndiv) ; kk = MAX(kk,1) ; b0 = 0.5f*(bmn+bmx) ; b1 = (bmx-bmn)/(2.0f*kk) ;
    kk = 1 + (nxy-1)/ndiv ; dsig = (sigmx-sigmn)/kk ; kold = -1 ;
    for( zz=0 ; zz < nz ; zz++,kold=-1 ){
      fprintf(stderr,".") ;

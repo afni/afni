@@ -39,7 +39,7 @@ float mri_nstat( int code , int npt , float *far , float voxval)
        register float mm,vv ; register int ii ;
        if( npt == 1 ) break ;                     /* will return 0.0 */
        for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
-       mm /= npt ; 
+       mm /= npt ;
        for( vv=0.0,ii=0 ; ii < npt ; ii++ ) vv += (far[ii]-mm)*(far[ii]-mm) ;
        vv /= (npt-1) ;
             if( code == NSTAT_SIGMA ) outval = sqrt(vv) ;
@@ -62,11 +62,11 @@ float mri_nstat( int code , int npt , float *far , float voxval)
           register float mm,vv, sig, mean; register int ii ;
           if( npt == 1 ) break ;                     /* will return 0.0 */
           for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
-          mm /= npt ; mean = mm; 
-          for( vv=0.0,ii=0 ; ii < npt ; ii++ ) 
+          mm /= npt ; mean = mm;
+          for( vv=0.0,ii=0 ; ii < npt ; ii++ )
                                  vv += (far[ii]-mm)*(far[ii]-mm) ;
           vv /= (npt-1) ;
-          sig = sqrt(vv) ; 
+          sig = sqrt(vv) ;
           if (sig) {
             qmedmad_float( npt , far , &val , NULL ) ;
             outval = 3.0 * (mean - val) / sig;
@@ -80,7 +80,7 @@ float mri_nstat( int code , int npt , float *far , float voxval)
           register double mm,vv,vv2,pp, sig; register int ii ;
           if( npt < 4  ) break ;                     /* will return 0.0 */
           for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
-          mm /= npt ;  
+          mm /= npt ;
           for( vv=0.0,vv2=0.0,ii=0 ; ii < npt ; ii++ ) {
                                  pp = (far[ii]-mm)*(far[ii]-mm) ;
                                  vv += pp; vv2 += pp*pp;
@@ -115,7 +115,7 @@ float mri_nstat( int code , int npt , float *far , float voxval)
        }
      }
      break ;
-     
+
      case NSTAT_RANK:{
        register int ii ;
        qsort_float(npt, far);
@@ -126,7 +126,7 @@ float mri_nstat( int code , int npt , float *far , float voxval)
        }
      }
      break ;
-     
+
      case NSTAT_FRANK:{
        register int ii ;
        outval = 1.0 ;
@@ -140,39 +140,39 @@ float mri_nstat( int code , int npt , float *far , float voxval)
        }
      }
      break ;
-     
+
    }
 
    return outval ;
 }
 
 /*--------------------------------------------------------------------------*/
-/*! 
+/*!
    A specialized function for speeding up computations for segmentation
-    computes  5 statistic values: mean, median, sigma, mad, and skew and 
+    computes  5 statistic values: mean, median, sigma, mad, and skew and
     stores them in fv5
 */
 /*------------------------------------------------------------------------*/
 
 int mri_nstat_mMP2S( int npt , float *far , float voxval, float *fv5)
 {
-   /*             fv5[5]={mean, median, sigma, MAD, skew} */ 
-   register float mm,vv; 
+   /*             fv5[5]={mean, median, sigma, MAD, skew} */
+   register float mm,vv;
    register int ii ;
-   
+
    fv5[0] = fv5[1] = fv5[2] = fv5[3] = fv5[4] = 0.0;
    if( npt <= 0 || far == NULL ) return 0 ;
    if ( npt == 1 ) {
-      fv5[0] = fv5[1] = voxval ; 
+      fv5[0] = fv5[1] = voxval ;
       return 1;
    }
-   
+
    for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
-   mm /= npt ; fv5[0] = mm; 
-   for( vv=0.0,ii=0 ; ii < npt ; ii++ ) 
+   mm /= npt ; fv5[0] = mm;
+   for( vv=0.0,ii=0 ; ii < npt ; ii++ )
                            vv += (far[ii]-mm)*(far[ii]-mm) ;
    vv /= (npt-1) ;
-   fv5[2] = sqrt(vv) ; 
+   fv5[2] = sqrt(vv) ;
    if (fv5[2]) {
      qmedmad_float( npt , far , fv5+1 , fv5+3 ) ;
      fv5[4] = 3.0 * (fv5[0] - fv5[1]) / fv5[2];
@@ -190,7 +190,7 @@ void mri_nstat_fwhmxyz_usevar( int i ){ fwhm_use_variance = i; }
 #endif
 
 #undef  INMASK
-#define INMASK(i) (mask == NULL || mask[i] != 0)
+#define INMASK(i) (mask==NULL || mask[i])
 
 /*--------------------------------------------------------------------------*/
 /*! FWHM parameters in a neigbhorhood of a point. */
@@ -316,6 +316,157 @@ float mri_nstat_fwhmbar( int xx, int yy, int zz,
    return sum ;
 }
 
+/*--------------------------------------------------------------------------*/
+/*! FWHM parameters in a neigbhorhood of a point -- another way. */
+
+THD_fvec3 mri_nstat_fwhmxyz_12dif( int xx, int yy, int zz,
+                                   MRI_IMAGE *im, byte *mask, MCW_cluster *nbhd,
+                                   float *ws )
+{
+  int nx;                      /* number of voxels along x-axis */
+  int ny;                      /* number of voxels along y-axis */
+  int nz;                      /* number of voxels along z-axis */
+  int nxy, nxyz;               /* total number of voxels */
+  float dx;                    /* voxel size along x-axis */
+  float dy;                    /* voxel size along y-axis */
+  float dz;                    /* voxel size along z-axis */
+  int aa,bb,cc, ii,kk, qm,qp ;
+  float vx1,vy1,vz1 , arg ;
+  float vx2,vy2,vz2 ;
+  int countx, county, countz , npt ;
+  float *dx1ar,*dy1ar,*dz1ar , *dx2ar,*dy2ar,*dz2ar , *fim ;
+  float sx=-1.0f,sy=-1.0f,sz=-1.0f ;
+  THD_fvec3 fw_xyz ;
+
+  /*----- initialize local variables -----*/
+
+  LOAD_FVEC3(fw_xyz,sx,sy,sz) ;  /* load with error flags */
+
+  if( im == NULL || im->kind != MRI_float || nbhd == NULL ) return fw_xyz ;
+  nx  = im->nx; ny = im->ny; nz = im->nz; nxy = nx*ny; nxyz = nxy*nz;
+  kk  = xx + yy*nx + zz*nxy ; npt = nbhd->num_pt ;
+  if( npt < 9 || kk < 0 || kk >= nxyz || !INMASK(kk) ) return fw_xyz ;
+  fim = MRI_FLOAT_PTR(im) ;
+
+  if( ws == NULL ){
+#pragma omp critical (MALLOC)
+    { dx1ar = (float *)malloc(sizeof(float)*npt) ;
+      dy1ar = (float *)malloc(sizeof(float)*npt) ;
+      dz1ar = (float *)malloc(sizeof(float)*npt) ;
+      dx2ar = (float *)malloc(sizeof(float)*npt) ;
+      dy2ar = (float *)malloc(sizeof(float)*npt) ;
+      dz2ar = (float *)malloc(sizeof(float)*npt) ;
+    }
+  } else {
+    dx1ar = ws + 0*npt ; dy1ar = ws + 1*npt ;
+    dz1ar = ws + 2*npt ; dx2ar = ws + 3*npt ;
+    dy2ar = ws + 4*npt ; dz2ar = ws + 5*npt ;
+  }
+
+  /*----- loop over voxels, compute differences, sum and sum squares -----*/
+
+  countx = county = countz = 0 ;
+  for( ii=0 ; ii < npt ; ii++ ){
+    aa = xx + nbhd->i[ii] ; if( aa < 0 || aa >= nx ) continue ;
+    bb = yy + nbhd->j[ii] ; if( bb < 0 || bb >= ny ) continue ;
+    cc = zz + nbhd->k[ii] ; if( cc < 0 || cc >= nz ) continue ;
+    kk = aa + bb*nx + cc*nxy ;     if( !INMASK(kk) ) continue ;
+
+    arg = fim[kk] ;
+
+    if( aa-1 >= 0 && aa+1 < nx ){
+      qp = kk+1 ; qm = kk-1 ;
+      if( INMASK(qp) && INMASK(qm) ){
+        dx1ar[countx] = fim[qp]-arg ; dx2ar[countx] = fim[qp]-fim[qm] ; countx++ ;
+      }
+    }
+
+    if( bb-1 >= 0 && bb+1 < ny ){
+      qp = kk+nx ; qm = kk-nx ;
+      if( INMASK(qp) && INMASK(qm) ){
+        dy1ar[county] = fim[qp]-arg ; dy2ar[county] = fim[qp]-fim[qm] ; county++ ;
+      }
+    }
+
+    if( cc-1 >= 0 && cc+1 < nz ){
+      qp = kk+nxy ; qm = kk-nxy ;
+      if( INMASK(qp) && INMASK(qm) ){
+        dz1ar[countz] = fim[qp]-arg ; dz2ar[countz] = fim[qp]-fim[qm] ; countz++ ;
+      }
+    }
+  }
+
+  /*----- estimate variances of differences -----*/
+
+  qmedmad_float( countx , dx1ar , NULL , &vx1 ) ; vx1 = vx1*vx1 ;
+  qmedmad_float( county , dy1ar , NULL , &vy1 ) ; vy1 = vy1*vy1 ;
+  qmedmad_float( countz , dz1ar , NULL , &vz1 ) ; vz1 = vz1*vz1 ;
+  qmedmad_float( countx , dx2ar , NULL , &vx2 ) ; vx2 = vx2*vx2 ;
+  qmedmad_float( county , dy2ar , NULL , &vy2 ) ; vy2 = vy2*vy2 ;
+  qmedmad_float( countz , dz2ar , NULL , &vz2 ) ; vz2 = vz2*vz2 ;
+
+  if( ws == NULL ){
+#pragma omp critical (MALLOC)
+    { free(dx1ar); free(dy1ar); free(dz1ar); free(dx2ar); free(dy2ar); free(dz2ar); }
+  }
+
+  /*----- now estimate the FWHMs -----*/
+
+  dx = im->dx; dy = im->dy; dz = im->dz;
+
+  /*--- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ---*/
+  /*--- y = cbrt(12*sqrt(48-120*r+81*r*r)+108*r-80), and then
+        x = y/6 - 4/(3*y) - 1/3
+        is the real solution to the equation (1-x^4)/(1-x) = r > 1 ;
+        here, r = vx2/vx1 = ratio of variances at Delta=2*dx vs. Delta=1*dx;
+        x = exp[-dx**2/(4*sigma**2)] = correlation coefficient of neighbors;
+        we solve for x, then use that to solve for sigma, and scale to FWHM --*/
+
+  if( vx1 > 0.0 && vx2 > vx1 ){
+    arg = vx2 / vx1 ;
+    arg = cbrt(12.0*sqrt(48.0 - 120.0*arg + 81.0*arg*arg) + 108.0*arg - 80.0) ;
+    arg = arg/6.0 - 4.0/(3.0*arg) - 1.0/3.0 ;
+    if( arg > 0.0 && arg < 1.0 ) sx = 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dx ;
+  }
+
+  if( vy1 > 0.0 && vy2 > vy1 ){
+    arg = vy2 / vy1 ;
+    arg = cbrt(12.0*sqrt(48.0 - 120.0*arg + 81.0*arg*arg) + 108.0*arg - 80.0) ;
+    arg = arg/6.0 - 4.0/(3.0*arg) - 1.0/3.0 ;
+    if( arg > 0.0 && arg < 1.0 ) sy = 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dy ;
+  }
+
+  if( vz1 > 0.0 && vz2 > vz1 ){
+    arg = vz2 / vz1 ;
+    arg = cbrt(12.0*sqrt(48.0 - 120.0*arg + 81.0*arg*arg) + 108.0*arg - 80.0) ;
+    arg = arg/6.0 - 4.0/(3.0*arg) - 1.0/3.0 ;
+    if( arg > 0.0 && arg < 1.0 ) sz = 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dz ;
+  }
+
+  LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
+  return fw_xyz ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+float mri_nstat_fwhmbar12( int xx, int yy, int zz,
+                           MRI_IMAGE *im, byte *mask, MCW_cluster *nbhd,float *ws )
+{
+   THD_fvec3 fw ;
+   float fx,fy,fz , sum ; int nsum ;
+
+   fw = mri_nstat_fwhmxyz_12dif( xx,yy,zz , im,mask,nbhd,ws ) ;
+   UNLOAD_FVEC3(fw,fx,fy,fz) ;
+
+   sum = 0.0f ; nsum = 0 ;
+   if( fx > 0.0f ){ sum += fx ; nsum++ ; }
+   if( fy > 0.0f ){ sum += fy ; nsum++ ; }
+   if( fz > 0.0f ){ sum += fz ; nsum++ ; }
+   if( nsum > 0 ) sum /= nsum ;
+   return sum ;
+}
+
+/*--------------------------------------------------------------------------*/
 #if 0
 /*--------------------------------------------------------------------------*/
 /*! Compute a local statistic at each voxel of an image, possibly with
@@ -379,19 +530,19 @@ static void vstep_print(void)
 #endif
 
 /*--------------------------------------------------------------------------*/
-/* 
-   Function to turn ijk 1D index on iset into its equivalent i,j,k on a 
-   different gridset gset 
-   
+/*
+   Function to turn ijk 1D index on iset into its equivalent i,j,k on a
+   different gridset gset
+
    ZSS Gov. Shutdown Imminent 2011
 */
-int DSET_1Dindex_to_regrid_ijk( THD_3dim_dataset *iset, int ijk, 
-                                 THD_3dim_dataset *gset, 
+int DSET_1Dindex_to_regrid_ijk( THD_3dim_dataset *iset, int ijk,
+                                 THD_3dim_dataset *gset,
                                  int *ii, int *jj, int *kk)
 {
-   THD_fvec3 m_ncoord, m_ndicom; 
+   THD_fvec3 m_ncoord, m_ndicom;
    THD_ivec3 m_nind3;
-     
+
    /* turn ijk on oset to RAI */
    m_nind3.ijk[0] = DSET_index_to_ix(iset,ijk) ;
    m_nind3.ijk[1] = DSET_index_to_jy(iset,ijk) ;
@@ -399,7 +550,7 @@ int DSET_1Dindex_to_regrid_ijk( THD_3dim_dataset *iset, int ijk,
    m_ncoord = THD_3dind_to_3dmm(iset,m_nind3);
    /* setenv OMP_NUM_THREADS 1 when you uncomment debugging lines */
    /*
-   if (ijk < 10) fprintf(stderr,"LR ijk %d [%d %d %d] [%f %f %f]\n", 
+   if (ijk < 10) fprintf(stderr,"LR ijk %d [%d %d %d] [%f %f %f]\n",
             ijk, m_nind3.ijk[0], m_nind3.ijk[1], m_nind3.ijk[2],
             m_ncoord.xyz[0], m_ncoord.xyz[1], m_ncoord.xyz[2]);
    */
@@ -407,11 +558,11 @@ int DSET_1Dindex_to_regrid_ijk( THD_3dim_dataset *iset, int ijk,
    /* now go back to new grid ijk */
    m_ncoord = THD_dicomm_to_3dmm(gset, m_ndicom);
    m_nind3 = THD_3dmm_to_3dind(gset,m_ncoord);
-   *ii = m_nind3.ijk[0]; 
-   *jj = m_nind3.ijk[1]; 
-   *kk = m_nind3.ijk[2]; 
+   *ii = m_nind3.ijk[0];
+   *jj = m_nind3.ijk[1];
+   *kk = m_nind3.ijk[2];
    /*
-   if (ijk < 10) fprintf(stderr,"HR    [%d %d %d] [%f %f %f]\n", 
+   if (ijk < 10) fprintf(stderr,"HR    [%d %d %d] [%f %f %f]\n",
              m_nind3.ijk[0], m_nind3.ijk[1], m_nind3.ijk[2],
              m_ncoord.xyz[0], m_ncoord.xyz[1], m_ncoord.xyz[2]);
    */
@@ -425,9 +576,9 @@ THD_3dim_dataset * THD_reduced_grid_copy(THD_3dim_dataset *dset, float *redx)
 {
    float dx_o,dy_o,dz_o ;
    THD_3dim_dataset *oset=NULL;
-   
+
    if( dset == NULL) return(NULL);
-   
+
    if (!redx) {
       oset  = EDIT_empty_copy( dset ) ;
    } else { /* create a new grid */
@@ -442,20 +593,20 @@ THD_3dim_dataset * THD_reduced_grid_copy(THD_3dim_dataset *dset, float *redx)
                                NULL, 0, NULL, 0, 1))) {
          ERROR_message("Failed to reduce output grid");
          return(NULL);
-      }      
+      }
    }
    return(oset);
 }
 
-
 /*--------------------------------------------------------------------------*/
+
 THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
                                   MCW_cluster *nbhd , int ncode, int *code,
-                                  float codeparam[][MAX_CODE_PARAMS+1], 
+                                  float codeparam[][MAX_CODE_PARAMS+1],
                                   float *redx, int resam_mode)
 {
    THD_3dim_dataset *oset=NULL;
-   int iv,cc , nvin,nvout , nxyz_o , need_nbar=0 , npt ;
+   int iv,cc , nvin,nvout , nxyz_o , need_nbar=0,need_ws12=0 , npt ;
    float **aar ;
    MRI_IMAGE *dsim ;
    float dx,dy,dz , fac ;
@@ -471,12 +622,12 @@ ENTRY("THD_localstat") ;
 
    /* check for stupid reduction parameters allowing = 1.0 for testing purposes*/
    if (redx && redx[0] < 1.0 && redx[1]<1.0 && redx[2] <1.0) redx = NULL;
-   
+
    if (!(oset  = THD_reduced_grid_copy(dset, redx))) {
       ERROR_message("Failed to create output dset");
       return(NULL);
    }
-   
+
    nvin  = DSET_NVALS( dset ) ;
    nvout = nvin * ncode ;
    EDIT_dset_items( oset ,
@@ -488,7 +639,7 @@ ENTRY("THD_localstat") ;
                     ADN_none ) ;
 
    nxyz_o = DSET_NX(oset)*DSET_NY(oset)*DSET_NZ(oset) ;
-   
+
    dx = fabsf(DSET_DX(dset)) ; if( dx <= 0.0f ) dx = 1.0f ;
    dy = fabsf(DSET_DY(dset)) ; if( dy <= 0.0f ) dy = 1.0f ;
    dz = fabsf(DSET_DZ(dset)) ; if( dz <= 0.0f ) dz = 1.0f ;
@@ -500,7 +651,8 @@ ENTRY("THD_localstat") ;
    aar = (float **)malloc(sizeof(float *)*ncode) ;  /* output array of arrays */
 
    for( cc=0 ; cc < ncode ; cc++ ){
-     if( code[cc] <  NSTAT_FWHMx ){ need_nbar = 1; break;}  /* need nbhd image */
+     if( code[cc] <  NSTAT_FWHMx     ){ need_nbar = 1; }  /* need nbhd image */
+     if( code[cc] == NSTAT_FWHMbar12 ){ need_ws12 = 1; }
    }
 
    /** loop over input sub-bricks **/
@@ -536,10 +688,12 @@ ENTRY("THD_localstat") ;
    THD_fvec3 fwv ;
    double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS] ;  /* no longer static */
    float *nbar , fv5[5]={0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; int nbar_num=0;
+   float *ws12 ;
 
    /* 17 Jul 2009: create workspace for neighborhood data */
 
-   nbar = (need_nbar) ? (float *)malloc(sizeof(float)*npt) : NULL ;
+   nbar = (need_nbar) ? (float *)malloc(sizeof(float)*npt  ) : NULL ;
+   ws12 = (need_ws12) ? (float *)malloc(sizeof(float)*npt*6) : NULL ;
 #pragma omp for
      for( ijk=0 ; ijk < nxyz_o ; ijk++ ){   /* parallelized loop */
        if (!redx) { /* no grid change */
@@ -563,6 +717,10 @@ ENTRY("THD_localstat") ;
          if( code[cc] == NSTAT_FWHMbar ){       /* 1 FWHM measurement */
 
            aar[cc][ijk] = mri_nstat_fwhmbar( ii,jj,kk , dsim,mask,nbhd ) ;
+
+         } else if( code[cc] == NSTAT_FWHMbar12 ){
+
+           aar[cc][ijk] = mri_nstat_fwhmbar12( ii,jj,kk , dsim,mask,nbhd,ws12 ) ;
 
          } else if( code[cc] == NSTAT_FWHMx ){  /* 3 FWHM measurements */
 
@@ -606,20 +764,20 @@ ENTRY("THD_localstat") ;
            mri_nstat_mMP2S( nbar_num , nbar, brick[ijk], fv5 ) ;
            aar[cc  ][ijk] = fv5[1]; /* median */
            aar[cc+1][ijk] = fv5[3]; /* MAD */
-           aar[cc+2][ijk] = fv5[4]; /* Skew */ 
+           aar[cc+2][ijk] = fv5[4]; /* Skew */
            cc += 2 ;  /* skip redundant codes that follow */
-         } else if( code[cc] == NSTAT_mmMP2s0 ){ 
+         } else if( code[cc] == NSTAT_mmMP2s0 ){
                /*4 values, mean, median, MAD, P2Skew*/
            mri_nstat_mMP2S( nbar_num , nbar, brick[ijk], fv5 ) ;
            aar[cc  ][ijk] = fv5[0]; /* mean */
            aar[cc+1][ijk] = fv5[1]; /* median */
            aar[cc+2][ijk] = fv5[3]; /* MAD */
-           aar[cc+3][ijk] = fv5[4]; /* Skew */ 
+           aar[cc+3][ijk] = fv5[4]; /* Skew */
            cc += 3 ;  /* skip redundant codes that follow */
          } else {   /* the "usual" (catchall) case */
-      
+
            aar[cc][ijk] = mri_nstat( code[cc] , nbar_num , nbar, brick[ijk] ) ;
-           
+
          }
 
        } /* end of loop over cc */
@@ -627,6 +785,7 @@ ENTRY("THD_localstat") ;
      } /** end of voxel loop **/
 
      if( nbar != NULL ) free(nbar) ;
+     if( ws12 != NULL ) free(ws12) ;
 
  } /* end OpenMP */
  AFNI_OMP_END ;
@@ -641,7 +800,7 @@ ENTRY("THD_localstat") ;
 
      for( cc=0 ; cc < ncode ; cc++ ) {
        /* EDIT_substitute_brick( oset , iv*ncode+cc , MRI_float , aar[cc] ) ; */
-       EDIT_substscale_brick( oset , iv*ncode+cc , MRI_float , aar[cc], 
+       EDIT_substscale_brick( oset , iv*ncode+cc , MRI_float , aar[cc],
                               localstat_datum, -1.0);
        if( localstat_datum != MRI_float ) free(aar[cc]) ;  /* 13 Jul 2009 */
      }
@@ -649,7 +808,7 @@ ENTRY("THD_localstat") ;
    } /** end of sub-brick loop **/
 
    free((void *)aar) ;
-   
+
    if ( resam_mode >= FIRST_RESAM_TYPE) {
       THD_3dim_dataset *tout=NULL;
       INFO_message("Restoring grid with %d resampling mode", resam_mode);
@@ -658,7 +817,7 @@ ENTRY("THD_localstat") ;
                                NULL, resam_mode, NULL, 1, 1))) {
          ERROR_exit("Failed to reduce output grid");
       }
-      DSET_delete(oset) ; oset = tout; tout = NULL;  
+      DSET_delete(oset) ; oset = tout; tout = NULL;
    }
    RETURN(oset) ;
 }
