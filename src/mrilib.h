@@ -803,6 +803,7 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_FWHMy      64
 #define NSTAT_FWHMz      65
 #define NSTAT_FWHMbar    66
+#define NSTAT_FWHMbar12  67
 
 #define NBISTAT_BASE               66601
 #define NBISTAT_SPEARMAN_CORR      66601
