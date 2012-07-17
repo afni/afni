@@ -12,15 +12,15 @@
 #define FREEIFNN(x) do{ if((x)!=NULL){ free((void *)(x)); (x)=NULL;} } while(0)
 
 #undef  HVPRINT
-#define HVPRINT(lab,ZZ)                                                         \
- do{ float_pair bt = IW3D_load_hexvol(ZZ) ;                                      \
-     if( bt.b > bt.a ) ININFO_message("%s hexvol range %f .. %f",lab,bt.a,bt.b) ; \
+#define HVPRINT(lab,ZZ)                                                      \
+ do{ float_pair bt = IW3D_load_hexvol(ZZ) ;                                   \
+     if(bt.b > bt.a) ININFO_message("%s hexvol range %f .. %f",lab,bt.a,bt.b); \
  } while(0)
 
 static int verb_nww=0 ;
 void NwarpCalcRPN_verb(int i){ verb_nww = i; }
 
-#define NGMIN 9               /* min num grid points in a given direction */
+#define NGMIN 9              /* minimum num grid points in a given direction */
 
 /*---------------------------------------------------------------------------*/
 /* Creation ex nihilo! */
@@ -1962,7 +1962,7 @@ ENTRY("THD_interp") ;
    }
 
    The output is the array of images of (is,js,ks) = indexes in the source
-   dataset, for each point to interpolated to in the output dataset (io,jo,ko).
+   dataset, for each point to interpolate to in the output dataset (io,jo,ko).
    This set of images can be used, in turn, to interpolate a src grid image
    to an out grid warped image via THD_interp_floatim().
 *//*--------------------------------------------------------------------------*/
@@ -2556,7 +2556,7 @@ static int IW3D_munge_flags( int nx , int ny , int nz , int flags )
 
 /*----------------------------------------------------------------------------*/
 /* C1 Hermite cubics over [-1..1].
-   Scale factors are adjusted so that the functions peak values are all 1.
+   Scale factors are adjusted so that the functions' peak values are all 1.
    Return value is a float_pair comprising the 2 function values.
 *//*--------------------------------------------------------------------------*/
 
@@ -2577,7 +2577,7 @@ static INLINE float_pair HCwarp_eval_basis( float x )
 
 /*----------------------------------------------------------------------------*/
 /* C2 Hermite quintics over [-1..1].
-   Scale factors are adjusted so that the functions peak values are all 1.
+   Scale factors are adjusted so that the functions' peak values are all 1.
    Return value is a float_triple comprising the 3 function values.
 *//*--------------------------------------------------------------------------*/
 
@@ -2601,9 +2601,9 @@ static INLINE float_triple HQwarp_eval_basis( float x )
 /* Hermite polynomial basis arrays for each direction: x,y,z. */
 
 static int nbx=0, nby=0, nbz=0 ;
-static float *b0x=NULL , *b1x=NULL , *b2x=NULL , *ccx=NULL , delx=0.0f , dxi=0.0f ;
-static float *b0y=NULL , *b1y=NULL , *b2y=NULL , *ccy=NULL , dely=0.0f , dyi=0.0f ;
-static float *b0z=NULL , *b1z=NULL , *b2z=NULL , *ccz=NULL , delz=0.0f , dzi=0.0f ;
+static float *b0x=NULL, *b1x=NULL, *b2x=NULL, *ccx=NULL, delx=0.0f, dxi=0.0f ;
+static float *b0y=NULL, *b1y=NULL, *b2y=NULL, *ccy=NULL, dely=0.0f, dyi=0.0f ;
+static float *b0z=NULL, *b1z=NULL, *b2z=NULL, *ccz=NULL, delz=0.0f, dzi=0.0f ;
 
 /* global indexes of cut-out section that we are optimizing */
 
@@ -2791,23 +2791,25 @@ static void HCwarp_load( float *par )  /* 24 elements in par */
      for( qq=0 ; qq < nxyz ; qq++ ){
        ii = qq % nbx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nbx ;
 
-       b0zb0yb0x = b0z[kk]*b0y[jj]*b0x[ii] ; b1zb0yb0x = b1z[kk]*b0y[jj]*b0x[ii] ;
-       b0zb1yb0x = b0z[kk]*b1y[jj]*b0x[ii] ; b1zb1yb0x = b1z[kk]*b1y[jj]*b0x[ii] ;
-       b0zb0yb1x = b0z[kk]*b0y[jj]*b1x[ii] ; b1zb0yb1x = b1z[kk]*b0y[jj]*b1x[ii] ;
-       b0zb1yb1x = b0z[kk]*b1y[jj]*b1x[ii] ; b1zb1yb1x = b1z[kk]*b1y[jj]*b1x[ii] ;
+       b0zb0yb0x = b0z[kk]*b0y[jj]*b0x[ii]; b1zb0yb0x = b1z[kk]*b0y[jj]*b0x[ii];
+       b0zb1yb0x = b0z[kk]*b1y[jj]*b0x[ii]; b1zb1yb0x = b1z[kk]*b1y[jj]*b0x[ii];
+       b0zb0yb1x = b0z[kk]*b0y[jj]*b1x[ii]; b1zb0yb1x = b1z[kk]*b0y[jj]*b1x[ii];
+       b0zb1yb1x = b0z[kk]*b1y[jj]*b1x[ii]; b1zb1yb1x = b1z[kk]*b1y[jj]*b1x[ii];
+
+       /* scale functions by size of grid (dxi, dyi, dzi) */
 
        if( dox ) xx[qq] = dxi *
                   (  b0zb0yb0x*xpar[0] + b1zb0yb0x*xpar[1] + b0zb1yb0x*xpar[2]
                    + b1zb1yb0x*xpar[3] + b0zb0yb1x*xpar[4] + b1zb0yb1x*xpar[5]
-                   + b0zb1yb1x*xpar[6] + b1zb1yb1x*xpar[7] ) ;
+                   + b0zb1yb1x*xpar[6] + b1zb1yb1x*xpar[7]                     ) ;
        if( doy ) yy[qq] = dyi *
                   (  b0zb0yb0x*ypar[0] + b1zb0yb0x*ypar[1] + b0zb1yb0x*ypar[2]
                    + b1zb1yb0x*ypar[3] + b0zb0yb1x*ypar[4] + b1zb0yb1x*ypar[5]
-                   + b0zb1yb1x*ypar[6] + b1zb1yb1x*ypar[7] ) ;
+                   + b0zb1yb1x*ypar[6] + b1zb1yb1x*ypar[7]                     ) ;
        if( doz ) zz[qq] = dzi *
                   (  b0zb0yb0x*zpar[0] + b1zb0yb0x*zpar[1] + b0zb1yb0x*zpar[2]
                    + b1zb1yb0x*zpar[3] + b0zb0yb1x*zpar[4] + b1zb0yb1x*zpar[5]
-                   + b0zb1yb1x*zpar[6] + b1zb1yb1x*zpar[7] ) ;
+                   + b0zb1yb1x*zpar[6] + b1zb1yb1x*zpar[7]                     ) ;
      }
    }
    AFNI_OMP_END ;
@@ -2848,45 +2850,51 @@ static void HQwarp_load( float *par )  /* 81 elements in par */
      for( qq=0 ; qq < nxyz ; qq++ ){
        ii = qq % nbx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nbx ;
 
-       b0zb0yb0x = b0z[kk]*b0y[jj]*b0x[ii] ; b1zb0yb0x = b1z[kk]*b0y[jj]*b0x[ii] ;
-       b2zb0yb0x = b2z[kk]*b0y[jj]*b0x[ii] ; b0zb1yb0x = b0z[kk]*b1y[jj]*b0x[ii] ;
-       b1zb1yb0x = b1z[kk]*b1y[jj]*b0x[ii] ; b2zb1yb0x = b2z[kk]*b1y[jj]*b0x[ii] ;
-       b0zb2yb0x = b0z[kk]*b2y[jj]*b0x[ii] ; b1zb2yb0x = b1z[kk]*b2y[jj]*b0x[ii] ;
-       b2zb2yb0x = b2z[kk]*b2y[jj]*b0x[ii] ; b0zb0yb1x = b0z[kk]*b0y[jj]*b1x[ii] ;
-       b1zb0yb1x = b1z[kk]*b0y[jj]*b1x[ii] ; b2zb0yb1x = b2z[kk]*b0y[jj]*b1x[ii] ;
-       b0zb1yb1x = b0z[kk]*b1y[jj]*b1x[ii] ; b1zb1yb1x = b1z[kk]*b1y[jj]*b1x[ii] ;
-       b2zb1yb1x = b2z[kk]*b1y[jj]*b1x[ii] ; b0zb2yb1x = b0z[kk]*b2y[jj]*b1x[ii] ;
-       b1zb2yb1x = b1z[kk]*b2y[jj]*b1x[ii] ; b2zb2yb1x = b2z[kk]*b2y[jj]*b1x[ii] ;
-       b0zb0yb2x = b0z[kk]*b0y[jj]*b2x[ii] ; b1zb0yb2x = b1z[kk]*b0y[jj]*b2x[ii] ;
-       b2zb0yb2x = b2z[kk]*b0y[jj]*b2x[ii] ; b0zb1yb2x = b0z[kk]*b1y[jj]*b2x[ii] ;
-       b1zb1yb2x = b1z[kk]*b1y[jj]*b2x[ii] ; b2zb1yb2x = b2z[kk]*b1y[jj]*b2x[ii] ;
-       b0zb2yb2x = b0z[kk]*b2y[jj]*b2x[ii] ; b1zb2yb2x = b1z[kk]*b2y[jj]*b2x[ii] ;
-       b2zb2yb2x = b2z[kk]*b2y[jj]*b2x[ii] ;
+       b0zb0yb0x = b0z[kk]*b0y[jj]*b0x[ii]; b1zb0yb0x = b1z[kk]*b0y[jj]*b0x[ii];
+       b2zb0yb0x = b2z[kk]*b0y[jj]*b0x[ii]; b0zb1yb0x = b0z[kk]*b1y[jj]*b0x[ii];
+       b1zb1yb0x = b1z[kk]*b1y[jj]*b0x[ii]; b2zb1yb0x = b2z[kk]*b1y[jj]*b0x[ii];
+       b0zb2yb0x = b0z[kk]*b2y[jj]*b0x[ii]; b1zb2yb0x = b1z[kk]*b2y[jj]*b0x[ii];
+       b2zb2yb0x = b2z[kk]*b2y[jj]*b0x[ii]; b0zb0yb1x = b0z[kk]*b0y[jj]*b1x[ii];
+       b1zb0yb1x = b1z[kk]*b0y[jj]*b1x[ii]; b2zb0yb1x = b2z[kk]*b0y[jj]*b1x[ii];
+       b0zb1yb1x = b0z[kk]*b1y[jj]*b1x[ii]; b1zb1yb1x = b1z[kk]*b1y[jj]*b1x[ii];
+       b2zb1yb1x = b2z[kk]*b1y[jj]*b1x[ii]; b0zb2yb1x = b0z[kk]*b2y[jj]*b1x[ii];
+       b1zb2yb1x = b1z[kk]*b2y[jj]*b1x[ii]; b2zb2yb1x = b2z[kk]*b2y[jj]*b1x[ii];
+       b0zb0yb2x = b0z[kk]*b0y[jj]*b2x[ii]; b1zb0yb2x = b1z[kk]*b0y[jj]*b2x[ii];
+       b2zb0yb2x = b2z[kk]*b0y[jj]*b2x[ii]; b0zb1yb2x = b0z[kk]*b1y[jj]*b2x[ii];
+       b1zb1yb2x = b1z[kk]*b1y[jj]*b2x[ii]; b2zb1yb2x = b2z[kk]*b1y[jj]*b2x[ii];
+       b0zb2yb2x = b0z[kk]*b2y[jj]*b2x[ii]; b1zb2yb2x = b1z[kk]*b2y[jj]*b2x[ii];
+       b2zb2yb2x = b2z[kk]*b2y[jj]*b2x[ii];
 
        if( dox ) xx[qq] = dxi *
-        (  b0zb0yb0x*xpar[ 0] + b1zb0yb0x*xpar[ 1] + b2zb0yb0x*xpar[ 2] + b0zb1yb0x*xpar[ 3]
-         + b1zb1yb0x*xpar[ 4] + b2zb1yb0x*xpar[ 5] + b0zb2yb0x*xpar[ 6] + b1zb2yb0x*xpar[ 7]
-         + b2zb2yb0x*xpar[ 8] + b0zb0yb1x*xpar[ 9] + b1zb0yb1x*xpar[10] + b2zb0yb1x*xpar[11]
-         + b0zb1yb1x*xpar[12] + b1zb1yb1x*xpar[13] + b2zb1yb1x*xpar[14] + b0zb2yb1x*xpar[15]
-         + b1zb2yb1x*xpar[16] + b2zb2yb1x*xpar[17] + b0zb0yb2x*xpar[18] + b1zb0yb2x*xpar[19]
-         + b2zb0yb2x*xpar[20] + b0zb1yb2x*xpar[21] + b1zb1yb2x*xpar[22] + b2zb1yb2x*xpar[23]
-         + b0zb2yb2x*xpar[24] + b1zb2yb2x*xpar[25] + b2zb2yb2x*xpar[26]  ) ;
+        (  b0zb0yb0x*xpar[ 0] + b1zb0yb0x*xpar[ 1] + b2zb0yb0x*xpar[ 2]
+         + b0zb1yb0x*xpar[ 3] + b1zb1yb0x*xpar[ 4] + b2zb1yb0x*xpar[ 5]
+         + b0zb2yb0x*xpar[ 6] + b1zb2yb0x*xpar[ 7] + b2zb2yb0x*xpar[ 8]
+         + b0zb0yb1x*xpar[ 9] + b1zb0yb1x*xpar[10] + b2zb0yb1x*xpar[11]
+         + b0zb1yb1x*xpar[12] + b1zb1yb1x*xpar[13] + b2zb1yb1x*xpar[14]
+         + b0zb2yb1x*xpar[15] + b1zb2yb1x*xpar[16] + b2zb2yb1x*xpar[17]
+         + b0zb0yb2x*xpar[18] + b1zb0yb2x*xpar[19] + b2zb0yb2x*xpar[20]
+         + b0zb1yb2x*xpar[21] + b1zb1yb2x*xpar[22] + b2zb1yb2x*xpar[23]
+         + b0zb2yb2x*xpar[24] + b1zb2yb2x*xpar[25] + b2zb2yb2x*xpar[26] ) ;
        if( doy ) yy[qq] = dyi *
-        (  b0zb0yb0x*ypar[ 0] + b1zb0yb0x*ypar[ 1] + b2zb0yb0x*ypar[ 2] + b0zb1yb0x*ypar[ 3]
-         + b1zb1yb0x*ypar[ 4] + b2zb1yb0x*ypar[ 5] + b0zb2yb0x*ypar[ 6] + b1zb2yb0x*ypar[ 7]
-         + b2zb2yb0x*ypar[ 8] + b0zb0yb1x*ypar[ 9] + b1zb0yb1x*ypar[10] + b2zb0yb1x*ypar[11]
-         + b0zb1yb1x*ypar[12] + b1zb1yb1x*ypar[13] + b2zb1yb1x*ypar[14] + b0zb2yb1x*ypar[15]
-         + b1zb2yb1x*ypar[16] + b2zb2yb1x*ypar[17] + b0zb0yb2x*ypar[18] + b1zb0yb2x*ypar[19]
-         + b2zb0yb2x*ypar[20] + b0zb1yb2x*ypar[21] + b1zb1yb2x*ypar[22] + b2zb1yb2x*ypar[23]
-         + b0zb2yb2x*ypar[24] + b1zb2yb2x*ypar[25] + b2zb2yb2x*ypar[26]  ) ;
+        (  b0zb0yb0x*ypar[ 0] + b1zb0yb0x*ypar[ 1] + b2zb0yb0x*ypar[ 2]
+         + b0zb1yb0x*ypar[ 3] + b1zb1yb0x*ypar[ 4] + b2zb1yb0x*ypar[ 5]
+         + b0zb2yb0x*ypar[ 6] + b1zb2yb0x*ypar[ 7] + b2zb2yb0x*ypar[ 8]
+         + b0zb0yb1x*ypar[ 9] + b1zb0yb1x*ypar[10] + b2zb0yb1x*ypar[11]
+         + b0zb1yb1x*ypar[12] + b1zb1yb1x*ypar[13] + b2zb1yb1x*ypar[14]
+         + b0zb2yb1x*ypar[15] + b1zb2yb1x*ypar[16] + b2zb2yb1x*ypar[17]
+         + b0zb0yb2x*ypar[18] + b1zb0yb2x*ypar[19] + b2zb0yb2x*ypar[20]
+         + b0zb1yb2x*ypar[21] + b1zb1yb2x*ypar[22] + b2zb1yb2x*ypar[23]
+         + b0zb2yb2x*ypar[24] + b1zb2yb2x*ypar[25] + b2zb2yb2x*ypar[26] ) ;
        if( doz ) zz[qq] = dzi *
-        (  b0zb0yb0x*zpar[ 0] + b1zb0yb0x*zpar[ 1] + b2zb0yb0x*zpar[ 2] + b0zb1yb0x*zpar[ 3]
-         + b1zb1yb0x*zpar[ 4] + b2zb1yb0x*zpar[ 5] + b0zb2yb0x*zpar[ 6] + b1zb2yb0x*zpar[ 7]
-         + b2zb2yb0x*zpar[ 8] + b0zb0yb1x*zpar[ 9] + b1zb0yb1x*zpar[10] + b2zb0yb1x*zpar[11]
-         + b0zb1yb1x*zpar[12] + b1zb1yb1x*zpar[13] + b2zb1yb1x*zpar[14] + b0zb2yb1x*zpar[15]
-         + b1zb2yb1x*zpar[16] + b2zb2yb1x*zpar[17] + b0zb0yb2x*zpar[18] + b1zb0yb2x*zpar[19]
-         + b2zb0yb2x*zpar[20] + b0zb1yb2x*zpar[21] + b1zb1yb2x*zpar[22] + b2zb1yb2x*zpar[23]
-         + b0zb2yb2x*zpar[24] + b1zb2yb2x*zpar[25] + b2zb2yb2x*zpar[26]  ) ;
+        (  b0zb0yb0x*zpar[ 0] + b1zb0yb0x*zpar[ 1] + b2zb0yb0x*zpar[ 2]
+         + b0zb1yb0x*zpar[ 3] + b1zb1yb0x*zpar[ 4] + b2zb1yb0x*zpar[ 5]
+         + b0zb2yb0x*zpar[ 6] + b1zb2yb0x*zpar[ 7] + b2zb2yb0x*zpar[ 8]
+         + b0zb0yb1x*zpar[ 9] + b1zb0yb1x*zpar[10] + b2zb0yb1x*zpar[11]
+         + b0zb1yb1x*zpar[12] + b1zb1yb1x*zpar[13] + b2zb1yb1x*zpar[14]
+         + b0zb2yb1x*zpar[15] + b1zb2yb1x*zpar[16] + b2zb2yb1x*zpar[17]
+         + b0zb0yb2x*zpar[18] + b1zb0yb2x*zpar[19] + b2zb0yb2x*zpar[20]
+         + b0zb1yb2x*zpar[21] + b1zb1yb2x*zpar[22] + b2zb1yb2x*zpar[23]
+         + b0zb2yb2x*zpar[24] + b1zb2yb2x*zpar[25] + b2zb2yb2x*zpar[26] ) ;
      }
    }
    AFNI_OMP_END ;
@@ -2895,20 +2903,21 @@ static void HQwarp_load( float *par )  /* 81 elements in par */
 }
 
 /*----------------------------------------------------------------------------*/
-/* Evaluate srcim[ Awarp(Hwarp(x)) ]
-   Note that Awarp is a global warp, whereas Hwarp is a local patch.
+/* Evaluate srcim[ Awarp(Hwarp(x)) ] into the val[] array.
+   Note that Awarp is a global warp for srcim, whereas Hwarp is a local patch.
+   The val[] array contains the interpolated warped values over this patch.
 *//*--------------------------------------------------------------------------*/
 
 static void Hwarp_apply( MRI_IMAGE *srcim , IndexWarp3D *Awarp , float *val )
 {
-   int nbxy,nbxyz , nAx,nAy,nAz , nAx1,nAy1,nAz1 , nAxy ;
+   int   nbxy,nbxyz , nAx,nAy,nAz , nAx1,nAy1,nAz1 , nAxy ;
    float nAxh,nAyh,nAzh ;
    float *hxd,*hyd,*hzd , *Axd,*Ayd,*Azd , *sar ;
 
    if( srcim == NULL || Awarp == NULL || val == NULL || Hwarp == NULL ) return ;
 
-   hxd = Hwarp->xd ; hyd = Hwarp->yd ; hzd = Hwarp->zd ;
-   Axd = Awarp->xd ; Ayd = Awarp->yd ; Azd = Awarp->zd ;
+   hxd = Hwarp->xd; hyd = Hwarp->yd; hzd = Hwarp->zd;  /* Hwarp displacements */
+   Axd = Awarp->xd; Ayd = Awarp->yd; Azd = Awarp->zd;  /* Awarp displacements */
 
    nbxy = nbx*nby ; nbxyz = nbxy*nbz ;
 
@@ -2930,7 +2939,7 @@ AFNI_OMP_START ;
    float h_j00_k00, h_jp1_k00, h_j00_kp1, h_jp1_kp1, h_k00, h_kp1 ;
 
 #pragma omp for
-   for( qq=0 ; qq < nbxyz ; qq++ ){
+   for( qq=0 ; qq < nbxyz ; qq++ ){           /* for each voxel in the patch */
      ii = qq % nbx ; kk = qq / nbxy ; jj = (qq-kk*nbxy) / nbx ;
 
      /* get Hwarp-ed indexes into Awarp */
@@ -2961,17 +2970,18 @@ AFNI_OMP_START ;
      h_j00_k00 = XINT(Azd,jy_00,kz_00) ; h_jp1_k00 = XINT(Azd,jy_p1,kz_00) ;
      h_j00_kp1 = XINT(Azd,jy_00,kz_p1) ; h_jp1_kp1 = XINT(Azd,jy_p1,kz_p1) ;
 
-     wt_00 = 1.0f-fy ; wt_p1 = fy ;
-     f_k00 = wt_00 * f_j00_k00 + wt_p1 * f_jp1_k00 ;
-     f_kp1 = wt_00 * f_j00_kp1 + wt_p1 * f_jp1_kp1 ;
-     g_k00 = wt_00 * g_j00_k00 + wt_p1 * g_jp1_k00 ;
-     g_kp1 = wt_00 * g_j00_kp1 + wt_p1 * g_jp1_kp1 ;
-     h_k00 = wt_00 * h_j00_k00 + wt_p1 * h_jp1_k00 ;
-     h_kp1 = wt_00 * h_j00_kp1 + wt_p1 * h_jp1_kp1 ;
+     wt_00 = 1.0f-fy ;
+     f_k00 = wt_00 * f_j00_k00 + fy * f_jp1_k00 ;
+     f_kp1 = wt_00 * f_j00_kp1 + fy * f_jp1_kp1 ;
+     g_k00 = wt_00 * g_j00_k00 + fy * g_jp1_k00 ;
+     g_kp1 = wt_00 * g_j00_kp1 + fy * g_jp1_kp1 ;
+     h_k00 = wt_00 * h_j00_k00 + fy * h_jp1_k00 ;
+     h_kp1 = wt_00 * h_j00_kp1 + fy * h_jp1_kp1 ;
 
-     xq = (1.0f-fz) * f_k00 + fz * f_kp1 + Hibot + hxd[qq] ; /* add in Hwarp */
-     yq = (1.0f-fz) * g_k00 + fz * g_kp1 + Hjbot + hyd[qq] ; /* displacments */
-     zq = (1.0f-fz) * h_k00 + fz * h_kp1 + Hkbot + hzd[qq] ;
+     wt_00 = 1.0f-fz ;
+     xq = wt_00 * f_k00 + fz * f_kp1 + Hibot + hxd[qq] ; /* add in Hwarp */
+     yq = wt_00 * g_k00 + fz * g_kp1 + Hjbot + hyd[qq] ; /* displacments */
+     zq = wt_00 * h_k00 + fz * h_kp1 + Hkbot + hzd[qq] ;
 
      /* linearly interpolate at (xq,yq,zq) indexes in sar to get val output */
 
@@ -2988,9 +2998,9 @@ AFNI_OMP_START ;
      wt_00 = 1.0f-fx ; wt_p1 = fx ;
      f_j00_k00 = XINT(sar,jy_00,kz_00) ; f_jp1_k00 = XINT(sar,jy_p1,kz_00) ;
      f_j00_kp1 = XINT(sar,jy_00,kz_p1) ; f_jp1_kp1 = XINT(sar,jy_p1,kz_p1) ;
-     wt_00 = 1.0f-fy ; wt_p1 = fy ;
-     f_k00 = wt_00 * f_j00_k00 + wt_p1 * f_jp1_k00 ;
-     f_kp1 = wt_00 * f_j00_kp1 + wt_p1 * f_jp1_kp1 ;
+     wt_00 = 1.0f-fy ;
+     f_k00 = wt_00 * f_j00_k00 + fy * f_jp1_k00 ;
+     f_kp1 = wt_00 * f_j00_kp1 + fy * f_jp1_kp1 ;
      val[qq] = (1.0f-fz) * f_k00 + fz * f_kp1 ;
    }
  }
@@ -3000,6 +3010,7 @@ AFNI_OMP_END ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Stuff for incremental warping */
 
 static void (*Hloader)(float *) = NULL ; /* function to make warp from params */
 static int          Hnpar       = 0    ; /* num params for warp */
@@ -3024,7 +3035,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
 
    Hwarp_apply( Hsrcim , Haawarp , Hwval ) ;
 
-   /* finalize the cost function */
+   /* finalize the cost function ??? */
 
    return cost ;
 }
@@ -3032,7 +3043,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
 /*----------------------------------------------------------------------------*/
 
 static MRI_IMAGE *basim  ; static int nxb,nyb,nzb,nxyzb; static float *bfar;
-static MRI_IMAGE *wbasim ; static float *wbfar; static byte *wbmask ;
+static MRI_IMAGE *wbasim ; static float *wbfar, wbbar; static byte *wbmask ;
 static MRI_IMAGE *srcim  ; static int nxs,nys,nzs,nxyzs; static float *sfar;
 static MRI_IMAGE *wsrcim ;
 static IndexWarp3D *Awarp;
@@ -3044,18 +3055,19 @@ static int basis_flags   ;
 static double basis_parmax = 0.0 ;
 
 /*----------------------------------------------------------------------------*/
+/* Sets a bunch of global variables */
 
-void IW3D_setup_for_warpdrive( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
+void IW3D_setup_for_warposity( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
                                IndexWarp3D *Iwarp,
                                int meth_code, int warp_code, int warp_flags )
 {
-ENTRY("IW3D_setup_for_warpdrive") ;
+ENTRY("IW3D_setup_for_warposity") ;
 
    if( bim == NULL ||  bim->kind != MRI_float )
-     ERROR_exit("IW3D_setup_for_warpdrive: bad bim input") ;
+     ERROR_exit("IW3D_setup_for_warposity: bad bim input") ;
 
    if( sim == NULL ||  sim->kind != MRI_float )
-     ERROR_exit("IW3D_setup_for_warpdrive: bad sim input") ;
+     ERROR_exit("IW3D_setup_for_warposity: bad sim input") ;
 
    basim = bim; nxb = basim->nx; nyb = basim->ny; nzb = basim->nz; nxyzb = nxb*nyb*nzb;
    srcim = sim; nxs = srcim->nx; nys = srcim->ny; nzs = srcim->nz; nxyzs = nxs*nys*nzs;
@@ -3063,38 +3075,49 @@ ENTRY("IW3D_setup_for_warpdrive") ;
    bfar = MRI_FLOAT_PTR(basim) ; sfar = MRI_FLOAT_PTR(srcim) ;
 
    if( wbim != NULL ){
+     int ii ;
      if( wbim->kind != MRI_float ||
          wbim->nx != nxb || wbim->ny != nyb || wbim->nz != nzb )
-       ERROR_exit("IW3D_setup_for_warpdrive: bad wbim input") ;
+       ERROR_exit("IW3D_setup_for_warposity: bad wbim input") ;
 
      wbasim = wbim ; wbfar = MRI_FLOAT_PTR(wbasim) ;
+     wbmask = (byte *)malloc(sizeof(byte)*nxyzb) ;
+     for( wbbar=ii=0 ; ii < nxyzb ; ii++ ){
+       wbmask[ii] = (wbfar[ii] > 0.0f) ; if( wbmask[ii] ) wbbar += wbfar[ii] ;
+     }
+     if( wbbar == 0.0f )
+       ERROR_exit("IW3D_setup_for_warposity: all zero wbim input") ;
+     wbbar /= nxyzb ;
+   } else {
+     wbasim = NULL ; wbfar = NULL ; wbmask = NULL ; wbbar = 0.0f ;
    }
 
    match_code = meth_code ;
    if( INCOR_check_meth_code(meth_code) == 0 )
-     ERROR_exit("IW3D_setup_for_warpdrive: bad meth_code input") ;
+     ERROR_exit("IW3D_setup_for_warposity: bad meth_code input") ;
 
    if( warp_code == MRI_QUINTIC ){
      basis_code = MRI_QUINTIC ;
-     basis_parmax = 0.007 ;
+     basis_parmax = 0.007 ;       /* max displacement from 1 function (of 81) */
    } else {
      if( warp_code != MRI_CUBIC )
-       WARNING_message("IW3D_setup_for_warpdrive: bad warp_code replaced with MRI_CUBIC");
+       WARNING_message(
+         "IW3D_setup_for_warposity: bad warp_code replaced with MRI_CUBIC");
      basis_code = MRI_CUBIC ;
-     basis_parmax = 0.021 ;
+     basis_parmax = 0.021 ;       /* max displacement from 1 function (of 24) */
    }
 
    basis_flags = IW3D_munge_flags(nxs,nys,nzs,warp_flags) ;
-   if( warp_flags < 0 )
-     ERROR_exit("IW3D_setup_for_warpdrive: bad warp_flags input") ;
+   if( basis_flags < 0 )
+     ERROR_exit("IW3D_setup_for_warposity: bad warp_flags input") ;
 
    if( Iwarp != NULL ){
      if( Iwarp->nx != nxs || Iwarp->ny != nys || Iwarp->nz != nzs )
-       ERROR_exit("IW3D_setup_for_warpdrive: bad Iwarp input") ;
+       ERROR_exit("IW3D_setup_for_warposity: bad Iwarp input") ;
 
      Awarp = Iwarp ;
    } else {
-     Awarp = IW3D_create(nxs,nys,nzs) ;
+     Awarp = IW3D_create(nxs,nys,nzs) ;  /* initialize to 0 displacements */
    }
 
    EXRETURN ;
