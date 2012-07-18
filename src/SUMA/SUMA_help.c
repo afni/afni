@@ -2083,7 +2083,8 @@ char * SUMA_Help_AllSurfCont ()
          "++ Switch Dset:\n%s\n"
          "\n", 
          SUMA_SurfContHelp_DsetLblTblr0, SUMA_SurfContHelp_DsetLblTblr1, 
-         SUMA_SurfContHelp_DsetOrd, SUMA_SurfContHelp_DsetOpa, SUMA_SurfContHelp_DsetDim,
+         SUMA_SurfContHelp_DsetOrd, SUMA_SurfContHelp_DsetOpa, 
+         SUMA_SurfContHelp_DsetDim,
          SUMA_SurfContHelp_DsetView, SUMA_SurfContHelp_DsetSwitch);
    
    SS = SUMA_StringAppend_va(SS,       

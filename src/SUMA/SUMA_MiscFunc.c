@@ -2616,6 +2616,60 @@ void SUMA_error_message (char *s1,char *s2,int ext)
   }
 
 /*!
+   Return a string that is a catenation
+   of the characters that differ between s1 and s2
+   s1 and s2 are switched in the function so that
+   s1 is always the longest of the two
+*/
+char *SUMA_StringDiff(char *s1, char *s2) 
+{
+   static char FuncName[]={"SUMA_StringDiff"};
+   char *sd=NULL;
+   int ns1=0, ns2=0, ns=0, i;
+   SUMA_Boolean LocalHead = NOPE;
+  
+   SUMA_ENTRY;
+    
+   SUMA_LHv("Will diff on %p and %p\n", s1, s2);
+   if (!s1 && !s2) {
+      SUMA_RETURN(sd);
+   }
+   if (!s1 && s2) {
+      SUMA_RETURN(SUMA_copy_string(s2));
+   }
+   if (s1 && !s2) {
+      SUMA_RETURN(SUMA_copy_string(s1));
+   }
+   ns1 = strlen(s1);
+   ns2 = strlen(s2);
+   if (ns1 < ns2) {
+      sd = s1; ns = ns1;
+      s1 = s1;
+      s2 = sd; sd = NULL;
+      ns1 = ns2;
+      ns2 = ns; ns = 0;
+   }
+   
+   /* OK, have s1, and s2, and s1 is the longest */
+   sd = (char *)calloc(ns1+1, sizeof(char));
+   ns = 0;
+   for (i=0; i < ns2; ++i) {
+      if (s1[i] != s2[i]) {
+         sd[ns]=s1[i];++ns;
+      }
+   }
+   for (i=ns2; i < ns1; ++i) {
+      sd[ns]=s1[i];++ns;
+   }
+   sd[ns]='\0';
+   
+   SUMA_LHv("Diff of %s and %s is\n%s\n",
+               s1, s2, sd);
+   RETURN(sd);
+} 
+
+
+/*!
    \brief case insensitive version of SUMA_iswordin 
 */
 int SUMA_iswordin_ci ( const char *sbig, const char *ssub)

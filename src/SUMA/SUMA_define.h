@@ -809,7 +809,6 @@ typedef struct {
 } SUMA_OVERLAYS;
 
 
-
 /*! 
 Stucture to hold the contents of the specs file 
 */

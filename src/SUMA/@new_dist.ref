@@ -47,10 +47,10 @@ if ("$package" == "") then
       #can't compile there
       echo "Machine not setup for compiling"
       goto END
-   else if ( "${thishost}" =~ ZIAD8600* || "${thishost}" =~ oldgothmog* ) then
+   else if ( "${thishost}" =~ morwen* ) then
       set package = linux_xorg7
-      echo "Forcing use of localX"
-      set localX = 1
+      #echo "Forcing use of localX"
+      #set localX = 1
    else if ( "${thishost}" =~ gothmog* ) then
       set package = linux_openmp_64
       echo "Forcing use of localX, -expat_sh, -fontconf, -fixccold"
