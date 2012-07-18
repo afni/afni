@@ -70,9 +70,14 @@ char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov);
 char *SUMA_find_VOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov);
 char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov);
 char *SUMA_find_VOidcode_from_label (char *label, SUMA_DO *dov, int N_dov);
+SUMA_Boolean SUMA_isContralateral_name(char *s1, char *s2);
+char *SUMA_Contralateral_file(char *f1);
 SUMA_SurfaceObject *SUMA_Contralateral_SO(SUMA_SurfaceObject *SO,
                                           SUMA_DO *dov, int N_dov); 
 SUMA_DSET * SUMA_Contralateral_dset(SUMA_DSET *dset, SUMA_SurfaceObject *SO, 
+                                    SUMA_SurfaceObject**SOCp);
+SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
+                                          SUMA_SurfaceObject *SO, 
                                     SUMA_SurfaceObject**SOCp);
 SUMA_Boolean SUMA_ismappable (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isINHmappable (SUMA_SurfaceObject *SO);
