@@ -101,9 +101,9 @@ int main(int argc, char *argv[]) {
 	int CHI_ON = 0; // default to not output chi-sq
 
 	int Nvox=-1;   // tot number vox
-	int *Dim;
-	int *here;
-	int *ndof;
+	int *Dim=NULL;
+	int *here=NULL;
+	int *ndof=NULL;
 
 	int val;
 	int idx;
