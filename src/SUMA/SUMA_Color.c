@@ -4261,8 +4261,8 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    Opt->BrightFact = 1.0;
    Opt->interpmode = SUMA_INTERP;
    Opt->alaAFNI = NOPE;
-   Opt->AutoIntRange = SUMA_isEnv("SUMA_Auto_I_Range","YES") ? 1:0;
-   Opt->AutoBrtRange = SUMA_isEnv("SUMA_Auto_B_Range","YES") ? 1:0;
+   Opt->AutoIntRange = -1;
+   Opt->AutoBrtRange = -1;
    Opt->ColsContMode = 0;
    {
       char *eee = getenv("SUMA_MaskZero");

@@ -122,6 +122,13 @@ FIX_SCALE_SIZE*/
       SUMA_UpdateNodeLblField(SO);  \
 }    
 
+/*! structure for holding table data for range setting */
+typedef struct {
+   SUMA_SurfaceObject *SO;
+   SUMA_OVERLAYS *colp;
+} SUMA_SRV_DATA;
+
+
 void SUMA_ShowMeTheChildren(Widget w);
 void SUMA_UnmanageTheChildren(Widget w);
 void SUMA_ManageTheChildren(Widget w);
@@ -139,13 +146,26 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer call);
 unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb);
 void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO);
 void SUMA_cb_ColMap_Switch(Widget w, XtPointer clientData, XtPointer call);
+int SUMA_SwitchColPlaneBrightness_one(
+         SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+         int ind, int setmen);
 int SUMA_SwitchColPlaneBrightness(
          SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
          int ind, int setmen);
 void SUMA_cb_SwitchBrightness(Widget w, XtPointer clientData, XtPointer call);
-int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, int ind, int setmen);
+int SUMA_SwitchColPlaneThreshold(
+         SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+         int ind, int setmen);
+int SUMA_SwitchColPlaneThreshold_one(
+         SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+         int ind, int setmen);
 void SUMA_cb_SwitchThreshold(Widget w, XtPointer clientData, XtPointer call);
-int SUMA_SwitchColPlaneIntensity(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, int ind, int setmen);
+int SUMA_SwitchColPlaneIntensity(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+                                 int ind, int setmen);
+int SUMA_SwitchColPlaneIntensity_one (
+         SUMA_SurfaceObject *SO, 
+         SUMA_OVERLAYS *colp, 
+         int ind, int setmen);
 void SUMA_cb_SwitchIntensity(Widget w, XtPointer clientData, XtPointer call);
 SUMA_MenuItem *SUMA_FreeMenuVector(SUMA_MenuItem *menu, int Nels);
 SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, int *N_items);
@@ -176,27 +196,54 @@ int SUMA_SelectSwitchDsetCol(
          int ichoice);
 void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call);
 void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, double range[2]);  
-void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call);
+int SUMA_set_threshold_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                           float *val);
+int SUMA_set_threshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                           float *val);
+void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call);
+int SUMA_set_threshold_label(SUMA_SurfaceObject *SO, float val);
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch );
-void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, XtPointer call_data);
-SUMA_Boolean SUMA_RedisplayAllShowing(char *SO_idcode_str, SUMA_SurfaceViewer *SVv, int N_SVv);
+void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, 
+                          XtPointer call_data);
+SUMA_Boolean SUMA_RedisplayAllShowing(char *SO_idcode_str, 
+                                      SUMA_SurfaceViewer *SVv, int N_SVv);
 void SUMA_CreateTable(  Widget parent,
-                        int Ni, int Nj, 
-                        char **row_tit, char **col_tit, 
-                        char **row_hint, char **col_hint,
-                        char **row_help, char **col_help, 
-                        int *cwidth, SUMA_Boolean editable, SUMA_VARTYPE type, 
-                        void (*NewValueCallback)(void * data), void *cb_data,
-                        void (*TitLabelEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *TitLabelEVHandlerData,
-                        void (*CellEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *CellEVHandlerData,
+            int Ni, int Nj, 
+            char **row_tit, char **col_tit, 
+            char **row_hint, char **col_hint,
+            char **row_help, char **col_help, 
+            int *cwidth, SUMA_Boolean editable, SUMA_VARTYPE type, 
+            void (*NewValueCallback)(void * data), void *cb_data,
+            void (*TitLabelEVHandler)(Widget w , XtPointer cd , 
+                                      XEvent *ev , Boolean *ctd), 
+            void *TitLabelEVHandlerData,
+            void (*CellEVHandler)(Widget w , XtPointer cd , 
+                                  XEvent *ev , Boolean *ctd), 
+            void *CellEVHandlerData,
                         SUMA_TABLE_FIELD *TF);
 void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_TableF_SetString (SUMA_TABLE_FIELD * AF);
 void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_leave_TableField( Widget w , XtPointer client_data ,
                            XEvent * ev , Boolean * continue_to_dispatch );
-void SUMA_SetRangeValue (void *data);
+#if 0 /* Kill after a while. ZSS July 2012 */
+void SUMA_SetRangeValueOld (void *data);
+void SUMA_SetRangeValueOld_one (void *data);
+#endif
+int SUMA_SetRangeValueNew(SUMA_SurfaceObject *SO, 
+                          SUMA_OVERLAYS *colp,
+                          int row, int col,
+                          float v1, float v2,
+                          int setmen, 
+                          int redisplay, float *reset);
+int SUMA_SetRangeValueNew_one(SUMA_SurfaceObject *SO, 
+                          SUMA_OVERLAYS *colp,
+                          int row, int col,
+                          float v1, float v2,
+                          int setmen, 
+                          int redisplay, float *reset);
+void SUMA_cb_SetRangeValue (void *data);
 SUMA_TABLE_FIELD * SUMA_AllocTableField(void);
 SUMA_TABLE_FIELD * SUMA_FreeTableField(SUMA_TABLE_FIELD *TF);
 SUMA_CELL_VARIETY SUMA_cellvariety (SUMA_TABLE_FIELD *TF, int n);
@@ -228,7 +275,11 @@ void SUMA_LoadCmapFile (char *filename, void *data);
 SUMA_Boolean  SUMA_Insert_Cmap_of_Dset(SUMA_DSET *dset);
 void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO);
 int SUMA_ThreshVal2ScalePos(SUMA_SurfaceObject *SO, float *val);
-void SUMA_SetScaleThr(void *data);
+void SUMA_cb_SetScaleThr(void *data);
+int SUMA_SetScaleThr_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                          float *val, int setmen, int redisplay);
+int SUMA_SetScaleThr(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                          float *val, int setmen, int redisplay);
 SUMA_Boolean SUMA_DsetColSelectList(
          SUMA_SurfaceObject *SO, int type, 
          int refresh, int bringup);

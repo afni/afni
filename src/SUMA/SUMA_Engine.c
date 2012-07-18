@@ -3035,6 +3035,14 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Err("Failed in Dsp"); break; 
                }
             }
+            
+            /* Should you decide to fix/improve this block,
+            You should call on function SUMA_SetRangeNew
+            to set the values, that function will handle
+            contralateral parallelization, but it does not
+            seem to use the ShowMode variable so might want
+            that added to SUMA_SetRangeNew_one ... 
+            Same for B_range and B_scale       ZSS July 2012 */
             if (NI_get_attribute(EngineData->ngr, "I_range")) {
                char *stmp = NULL;
                NI_GET_STR_CP(EngineData->ngr, "I_range", stmp);
@@ -3095,6 +3103,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }
             
+            /* See comment for "I_range" above before making further
+               changes here */
             if (NI_get_attribute(EngineData->ngr, "B_range")) {
                char *stmp = NULL;
                NI_GET_STR_CP(EngineData->ngr, "B_range", stmp);
@@ -3132,6 +3142,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_free(stmp); stmp = NULL;
                }
             }
+            /* See comment for "I_range" above before making further
+               changes here */
             if (NI_get_attribute(EngineData->ngr, "B_scale")) {
                char *stmp = NULL;
                NI_GET_STR_CP(EngineData->ngr, "B_scale", stmp);
@@ -3182,7 +3194,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                NI_GET_FLOAT(EngineData->ngr, "T_val", ftmp);
                SUMA_MODIFY_CELL_VALUE(SO->SurfCont->SetThrScaleTable, 0,0, ftmp);
                /* inefficient implementation, but avoids duplicate code... */
-               SUMA_SetScaleThr(EngineData->vp); 
+               SUMA_cb_SetScaleThr(EngineData->vp); 
             }
             if (NI_get_attribute(EngineData->ngr, "Dim")) {
                char stmp[50];

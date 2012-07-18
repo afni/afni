@@ -2437,6 +2437,7 @@ void SUMA_MenuArrowFieldCallback (void *CB)
    static char FuncName[]={"SUMA_MenuArrowFieldCallback"};
    SUMA_MenuCallBackData *CBp = (SUMA_MenuCallBackData *)CB;
    
+   SUMA_ENTRY;
    
    if (!CBp) {
       SUMA_S_Err("Bad setup, NULL CB"); SUMA_RETURNe;
@@ -7994,10 +7995,12 @@ void SUMA_ColPlane_NewDimFact (void *data)
    /* change the value of the dimfact */
    SO->SurfCont->curColPlane->DimFact = SO->SurfCont->ColPlaneDimFact->value; 
    if (SO->SurfCont->curColPlane->OptScl) 
-      SO->SurfCont->curColPlane->OptScl->BrightFact = SO->SurfCont->curColPlane->DimFact;
+      SO->SurfCont->curColPlane->OptScl->BrightFact = 
+                                 SO->SurfCont->curColPlane->DimFact;
       
    if (LocalHead) fprintf(SUMA_STDERR,"%s: DimFact of %s set to %f.\n", 
-         FuncName, SO->SurfCont->curColPlane->Name, SO->SurfCont->curColPlane->DimFact);
+         FuncName, SO->SurfCont->curColPlane->Name, 
+         SO->SurfCont->curColPlane->DimFact);
    
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
@@ -8013,7 +8016,8 @@ void SUMA_ColPlane_NewDimFact (void *data)
    SUMA_RETURNe;
 }
 /*!
-   \brief Function to set the color remix flag for surface SO and call a redisplay for relevant viewers 
+   \brief Function to set the color remix flag for surface SO and call 
+      a redisplay for relevant viewers 
 */
 SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO)
 {
