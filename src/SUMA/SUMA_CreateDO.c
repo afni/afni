@@ -3185,7 +3185,8 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    byte *mask=NULL;
    byte color_by_mid = 0; /* this one should be interactively set ... */
    GLboolean gl_sm=FALSE;
-   SUMA_Boolean LocalHead = NOPE, ans = YUP;
+   SUMA_Boolean ans = YUP;
+   SUMA_Boolean LocalHead = NOPE; 
    
    SUMA_ENTRY;
    
