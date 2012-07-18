@@ -90,7 +90,7 @@ cluster_floatNOMASK.o:cluster_floatNOMASK.c
       $(LLIBS) ${PTAYLORLIB}
 
 
-progs: 3dTrackID 3dProbTrackID 3dDWUncert 3dReho
+progs: 3dTrackID 3dProbTrackID 3dDWUncert 3dReHo
 
 all: ${PTAYLORLIB} progs install 
 
@@ -104,7 +104,7 @@ install:
 	@if [ -f  3dTrackID ]; then mv 3dTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dDWUncert ]; then mv 3dDWUncert ${INSTALLDIR}; fi;
-	@if [ -f  3dReho ]; then mv 3dReho ${INSTALLDIR}; fi;
+	@if [ -f  3dReHo ]; then mv 3dReHo ${INSTALLDIR}; fi;
 
 afni_install:
 	@echo Installing Binaries...
@@ -112,4 +112,4 @@ afni_install:
 	@if [ -f  3dTrackID ]; then mv 3dTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dDWUncert ]; then mv 3dDWUncert ${INSTALLDIR}; fi;
-	@if [ -f  3dReho ]; then mv 3dReho ${INSTALLDIR}; fi;
+	@if [ -f  3dReHo ]; then mv 3dReHo ${INSTALLDIR}; fi;

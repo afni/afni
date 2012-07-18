@@ -2056,12 +2056,84 @@ SUMA_SurfaceObject *SUMA_Contralateral_SO(SUMA_SurfaceObject *SO,
    SUMA_RETURN(SOC);
 }
 
+SUMA_Boolean SUMA_isContralateral_name(char *s1, char *s2) 
+{
+   static char FuncName[]={"SUMA_isContralateral_name"};
+   char *sd=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+   
+   sd = SUMA_StringDiff(s1,s2);
+   
+   if (!sd || sd[0] == '\0') SUMA_RETURN(NOPE);
+   SUMA_LHv("Diff of \n%s and \n%s is \n%s\n", s1, s2, sd);
+   
+   /* check for l or r only */
+   if (sd[0] != 'l' && sd[0] != 'L' && sd[0] != 'r' && sd[0] != 'R') {
+      /* not begginning with l or r */
+      SUMA_free(sd); SUMA_RETURN(NOPE);
+   } else if (sd[1] == '\0') { /* make sure it is only l or r */
+      SUMA_free(sd); SUMA_RETURN(YUP);
+   }
+   /* not left and not right? */
+   if (strcasecmp(sd,"left") && strcasecmp(sd,"right")) {
+      SUMA_free(sd); SUMA_RETURN(NOPE);
+   }
+   SUMA_free(sd);
+   SUMA_RETURN(YUP);
+}
+
+char *SUMA_Contralateral_file(char *f1) 
+{
+   static char FuncName[]={"SUMA_Contralateral_file"};
+   char *f1C=NULL, *ff1=NULL;
+   int ii=0;
+   THD_string_array *sar=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!f1) SUMA_RETURN(f1C);
+   
+   if (!(sar=THD_get_all_files(SUMA_FnameGet(f1, "pa", SUMAg_CF->cwd),0))){
+      SUMA_RETURN(f1C);
+   }
+   
+   ff1 = SUMA_FnameGet(f1, "F", SUMAg_CF->cwd);
+   for( ii=0 ; ii < sar->num ; ii++ ) {
+      SUMA_LHv("%s vs\n"
+               "%s\n", sar->ar[ii], ff1);
+      if (SUMA_isContralateral_name(sar->ar[ii], ff1)) {
+         if (!f1C) {
+            f1C = SUMA_copy_string(sar->ar[ii]);
+         } else {
+            /* ambiguous contralateral files names */
+            SUMA_S_Warnv("Found more than 1 contralateral candidates for %s\n"
+                         "%s and %s\n",
+                         ff1, f1C, sar->ar[ii]);
+            DESTROY_SARR(sar) ; SUMA_free(f1C); f1C = NULL;
+            SUMA_RETURN(f1C);
+         }  
+      }
+   }
+
+   DESTROY_SARR(sar) ; sar = NULL;
+   if (f1C) {
+      SUMA_LHv("%s is matched by\n%s\n",
+            f1C, f1);
+   } else {
+      SUMA_LHv("No cigar for %s\n", f1);
+   }
+   SUMA_RETURN(f1C);
+}  
+
 SUMA_DSET * SUMA_Contralateral_dset(SUMA_DSET *dset, SUMA_SurfaceObject *SO, 
                                     SUMA_SurfaceObject**SOCp)
 {
    static char FuncName[]={"SUMA_Contralateral_dset"};
    SUMA_DSET *cdset=NULL, *dd=NULL;
    DListElmt *el=NULL;
+   char *namediff=NULL;
    SUMA_SurfaceObject *SOC=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -2093,7 +2165,9 @@ SUMA_DSET * SUMA_Contralateral_dset(SUMA_DSET *dset, SUMA_SurfaceObject *SO,
       if (SUMA_isDsetRelated(dd,SOC)) {
          SUMA_LHv("Have Dset %s related to SOC\n", SDSET_LABEL(dd));
          /* Does dd relate to dset ? */
-         if (  SUMA_isSameDsetColTypes(dset, dd) ) {
+         if (  SUMA_isContralateral_name(SDSET_FILENAME(dset),
+                                         SDSET_FILENAME(dd)) &&
+               SUMA_isSameDsetColTypes(dset, dd) ) {
             if (!cdset) {
                cdset = dd;
             }else {
@@ -2109,6 +2183,82 @@ SUMA_DSET * SUMA_Contralateral_dset(SUMA_DSET *dset, SUMA_SurfaceObject *SO,
    if (SOCp) *SOCp=SOC;
    SUMA_RETURN(cdset);
 }
+
+SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
+                                          SUMA_SurfaceObject *SO, 
+                                    SUMA_SurfaceObject**SOCp)
+{
+   static char FuncName[]={"SUMA_Contralateral_overlay"};
+   SUMA_DSET *dsetC=NULL, *dset=NULL, *dd=NULL;
+   DListElmt *el=NULL;
+   SUMA_OVERLAYS *overC=NULL;
+   int OverInd = -1;
+   char *namediff=NULL;
+   SUMA_SurfaceObject *SOC=NULL;
+   static SUMA_Boolean OpenController = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!over || !over->dset_link) { 
+      SUMA_S_Errv("NULL input (%p) or NULL dset_link (%p)",
+                  over, over ? over->dset_link:NULL);
+      SUMA_RETURN(overC);
+   }
+   
+   dset = over->dset_link;
+   if (!SO) {
+      if (!(SO = 
+            SUMA_findSOp_inDOv(  SUMA_sdset_idmdom(dset), 
+                                 SUMAg_DOv, SUMAg_N_DOv))){
+         SUMA_S_Err("Can't find dset's domain parent");
+         SUMA_RETURN(overC);
+      }
+   }
+   
+   if (!(SOC = SUMA_Contralateral_SO(SO, SUMAg_DOv, SUMAg_N_DOv))) {
+      /* Nothing there, return */
+      SUMA_RETURN(overC);
+   }
+   
+   SUMA_LH("Have contralateral surface to consider\n");
+   el = dlist_head(SUMAg_CF->DsetList);
+   while (el) {
+      dd = (SUMA_DSET*)el->data;
+      if (SUMA_isDsetRelated(dd,SOC)) {
+         SUMA_LHv("Have Dset %s related to SOC\n", SDSET_LABEL(dd));
+         /* Does dd relate to dset ? */
+         if (  SUMA_isContralateral_name(SDSET_FILENAME(dset),
+                                          SDSET_FILENAME(dd)) &&
+               SUMA_isSameDsetColTypes(dset, dd) ) {
+            if (!dsetC) {
+               dsetC = dd;
+            }else {
+               SUMA_S_Warn("More than one dset matches\n"
+                           "Returning NULL");
+               SUMA_RETURN(NULL);
+            }
+         } 
+      }
+      el = dlist_next(el);
+   }
+   if (!(overC=SUMA_Fetch_OverlayPointerByDset (SOC->Overlays, 
+                     SOC->N_Overlays, dsetC, &OverInd))) {
+      SUMA_S_Err("Failed oh failed to find overlay for contralateral dset");            SUMA_RETURN(NULL);      
+   }
+   
+   if (!OpenController) {
+      if (!(SUMA_OpenCloseSurfaceCont(NULL, SOC, NULL))) {
+         SUMA_S_Err("Could not ensure controller is ready");
+         SOC = NULL; overC=NULL;
+      } else {
+         OpenController = YUP; /* no need to do this again */
+      } 
+   }
+   if (SOCp) *SOCp=SOC;
+   SUMA_RETURN(overC);
+}
+
 /*!
    \brief ans = SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
    returns a code for the kinship between two surfaces:
