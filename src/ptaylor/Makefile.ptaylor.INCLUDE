@@ -2,7 +2,7 @@
 
 PTAYLORLIB = libtracktools.a
 
-PTAYLOR_SRCS = DoTrackit.c TrackIO.c
+PTAYLOR_SRCS = DoTrackit.c TrackIO.c rsfc.c 
        
 PTAYLOR_OBJS = ${PTAYLOR_SRCS:.c=.o}
 
@@ -14,7 +14,7 @@ PTAYLOR_INCLUDE_PATH = ${IFLAGS} -I/usr/local/include \
 PTAYLOR_LINK_PATH = ${LFLAGS} -L/usr/lib -L/usr/local/lib -L../ 
 PTAYLOR_LINK_LIB = ${LLIBS} -lmri
 
-PTAYLOR_HDRS = DoTrackit.h TrackIO.h
+PTAYLOR_HDRS = DoTrackit.h TrackIO.h rsfc.h 
 
 AFNI_OBJS = ../xutil.o ../LiteClue.o
 AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o \
@@ -82,9 +82,15 @@ cluster_floatNOMASK.o:cluster_floatNOMASK.c
 		$(LFLAGS) -lgsl -lgslcblas -lm \
       $(LLIBS) ${PTAYLORLIB}
 
+3dReHo: 3dReHo.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dReHo 3dReHo.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) -lgsl -lgslcblas -lm \
+      $(LLIBS) ${PTAYLORLIB}
 
 
-progs: 3dTrackID 3dProbTrackID 3dDWUncert
+progs: 3dTrackID 3dProbTrackID 3dDWUncert 3dReho
 
 all: ${PTAYLORLIB} progs install 
 
