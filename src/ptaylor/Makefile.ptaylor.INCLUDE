@@ -104,6 +104,7 @@ install:
 	@if [ -f  3dTrackID ]; then mv 3dTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dDWUncert ]; then mv 3dDWUncert ${INSTALLDIR}; fi;
+	@if [ -f  3dReho ]; then mv 3dReho ${INSTALLDIR}; fi;
 
 afni_install:
 	@echo Installing Binaries...
@@ -111,3 +112,4 @@ afni_install:
 	@if [ -f  3dTrackID ]; then mv 3dTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dDWUncert ]; then mv 3dDWUncert ${INSTALLDIR}; fi;
+	@if [ -f  3dReho ]; then mv 3dReho ${INSTALLDIR}; fi;
