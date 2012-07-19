@@ -8613,7 +8613,7 @@ int SUMA_SelectSwitchColPlane_one(SUMA_SurfaceObject *SO,
 {
    static char FuncName[]={"SUMA_SelectSwitchColPlane_one"};
    SUMA_OVERLAYS *ColPlane=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
