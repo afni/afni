@@ -7514,15 +7514,18 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO)
    /* need a list to store new names */
    list = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init(list, NULL); /* you don't want to free the strings */
-   /* need a list to store the pointers, it is useless when SortByOrder is used, but I leave it in to keep the code simple */
+   /* need a list to store the pointers, it is useless when SortByOrder 
+      is used, but I leave it in to keep the code simple */
    listop = (DList *)SUMA_calloc(1,sizeof(DList)); 
-   dlist_init(listop, NULL); /* you don't want to free the data as it is copied from  OverlayPlanelist*/
+   dlist_init(listop, NULL); /* you don't want to free the data as it is 
+                                copied from  OverlayPlanelist*/
          
    clist = NULL;
    N_clist = -1;
    Elm_OverlayPlanelist = NULL;
    do {
-      if (!Elm_OverlayPlanelist) Elm_OverlayPlanelist = dlist_head(OverlayPlanelist);
+      if (!Elm_OverlayPlanelist) 
+         Elm_OverlayPlanelist = dlist_head(OverlayPlanelist);
       else Elm_OverlayPlanelist = Elm_OverlayPlanelist->next;
       
       OvD = (SUMA_OVERLAY_LIST_DATUM *) Elm_OverlayPlanelist->data;
@@ -7541,7 +7544,8 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO)
 
       if (SortByOrder) {
          SUMA_LH("Sorting by order");
-         /* list is already sorted, just copy the string and object structure pointers to lists */
+         /* list is already sorted, just copy the string and object 
+            structure pointers to lists */
          dlist_ins_next(list, dlist_tail(list), (void*)store);
          /* this line is redundant with SortByOrder but it don't hoyt */
          dlist_ins_next(listop, dlist_tail(listop), (void*)OvD);

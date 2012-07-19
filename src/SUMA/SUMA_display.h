@@ -246,7 +246,8 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y,
 int SUMA_OpenCloseSurfaceCont(Widget w, 
                               SUMA_SurfaceObject *SO, 
                               SUMA_SurfaceViewer *sv);
-int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv);
+int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, 
+                         SUMA_SurfaceViewer *sv);
 void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData);
@@ -414,7 +415,11 @@ void SUMA_PromptActivate_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_PromptUnmap_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_FreePromptDialogStruct(SUMA_PROMPT_DIALOG_STRUCT *prmpt);
 void  SUMA_cb_ToggleManagementColPlaneWidget(Widget w, XtPointer data, XtPointer client_data);
-void SUMA_ColPlane_NewOrder (void *data);
+void SUMA_cb_ColPlane_NewOrder (void *data);
+int SUMA_ColPlane_NewOrder     (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                               int neworder, int cb_direct);
+int SUMA_ColPlane_NewOrder_one (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                               int neworder, int cb_direct);
 void SUMA_ColPlane_NewOpacity (void *data);
 void SUMA_ColPlane_NewDimFact (void *data);
 void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_data);
@@ -426,6 +431,14 @@ void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_SurfCont_SwitchColPlane(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_CloseSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
+int SUMA_SelectSwitchColPlane(SUMA_SurfaceObject *SO, 
+                                  SUMA_LIST_WIDGET *LW, 
+                                  int ichoice, SUMA_Boolean CloseShop, 
+                                  int setmen);
+int SUMA_SelectSwitchColPlane_one(SUMA_SurfaceObject *SO, 
+                                  SUMA_LIST_WIDGET *LW, 
+                                  int ichoice, SUMA_Boolean CloseShop, 
+                                  int setmen);
 void SUMA_cb_ViewerCont_SwitchState (Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_ViewerCont_SwitchGroup (Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SelectSwitchGroup(Widget w, XtPointer data, XtPointer call_data);

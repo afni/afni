@@ -5742,7 +5742,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            1, 0, 20, 1,
                            2, SUMA_int,
                            NOPE,
-                           SUMA_ColPlane_NewOrder, (void *)SO,
+                           SUMA_cb_ColPlane_NewOrder, (void *)SO,
                            SUMA_SurfCont_ColPlaneOrder_hint, 
                            SUMA_SurfContHelp_DsetOrd,
                            SO->SurfCont->ColPlaneOrder);
@@ -7845,34 +7845,82 @@ void SUMA_DrawROI_NewValue (void *data)
    SUMA_RETURNe;
 }
 
-/*!
-   \brief Function to update the order of a colorplane 
-
-   -expects SO in data
-*/
-void SUMA_ColPlane_NewOrder (void *data)
+int SUMA_ColPlane_NewOrder(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                               int neworder, int cb_direct) 
 {
    static char FuncName[]={"SUMA_ColPlane_NewOrder"};
+   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_OVERLAYS *colpC=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO) SUMA_RETURN(0);
+   
+   if (!colp) colp = SO->SurfCont->curColPlane;
+   if (!colp) SUMA_RETURN(0);
+   if (colp != SO->SurfCont->curColPlane) {
+      SUMA_S_Err("Will need to switch current plane. Not ready for this");
+      SUMA_RETURN(0);      
+   }
+   
+   if (!SUMA_ColPlane_NewOrder_one(SO, colp, neworder, cb_direct)) {
+      SUMA_S_Err("Returning on a sad note");
+      SUMA_RETURN(0);
+   }
+   
+   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+   if (colpC && SOC) {
+      SUMA_LHv("Found contralateral equivalent to:\n"
+                   " %s and %s in\n"
+                   " %s and %s\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label),
+                   SOC->Label, CHECK_NULL_STR(colpC->Label));
+      if (SOC->SurfCont->curColPlane != colpC) {
+         SUMA_S_Err("Don't have contralateral as cur colplane.\n"
+                    "This shouls not happen under L/R yoked conditions.");
+         SUMA_RETURN(0);
+      }
+      if (!SUMA_ColPlane_NewOrder_one(SOC, colpC, 
+                                      neworder, 0)) {
+         SUMA_S_Warn("Failed in contralateralization");
+      }
+   } else {
+      SUMA_LHv("Found NO contralateral equivalent to:\n"
+                   " %s and %s in\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label));
+   }
+
+   
+   SUMA_RETURN(1);
+}
+
+int SUMA_ColPlane_NewOrder_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                               int neworder, int cb_direct) 
+{
+   static char FuncName[]={"SUMA_ColPlane_NewOrder_one"};
    char sbuf[SUMA_MAX_LABEL_LENGTH];
-   SUMA_SurfaceObject *SO=NULL;
    int Old_Order = -1, i, iMove, NetMove;
    SUMA_Boolean Shaded, Decent; 
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   SO = (SUMA_SurfaceObject *)data;
+   if (!SO) SUMA_RETURN(0);
    
-   /* make sure a new order is in order */
-   if (SO->SurfCont->curColPlane->PlaneOrder == 
-         (int)SO->SurfCont->ColPlaneOrder->value) SUMA_RETURNe;
+   if (!colp) colp = SO->SurfCont->curColPlane;
+   if (!colp) SUMA_RETURN(0);
+   if (colp != SO->SurfCont->curColPlane) {
+      SUMA_S_Err("Will need to switch current plane. Not ready for this");
+      SUMA_RETURN(0);      
+   }
    
    /* Now show the new order */
    if (LocalHead) SUMA_Print_PlaneOrder(SO, NULL);
    
 
    /* Now figure out the direction of the arrow presses */
-   NetMove = (int)SO->SurfCont->ColPlaneOrder->value - 
+   NetMove = (int)neworder - 
                   SO->SurfCont->curColPlane->PlaneOrder ; 
    
    if (LocalHead) fprintf (SUMA_STDERR,"%s:  Net move %d\n", FuncName, NetMove);
@@ -7883,7 +7931,7 @@ void SUMA_ColPlane_NewOrder (void *data)
          Old_Order = SO->SurfCont->curColPlane->PlaneOrder;
          if (!SUMA_MovePlaneUp(SO, SO->SurfCont->curColPlane->Name)) {
             SUMA_L_Err("Error in SUMA_MovePlaneUp.");
-            SUMA_RETURNe;
+            SUMA_RETURN(0);
          }
          
          if (SO->SurfCont->curColPlane->PlaneOrder == Old_Order) {
@@ -7898,7 +7946,7 @@ void SUMA_ColPlane_NewOrder (void *data)
          Old_Order = SO->SurfCont->curColPlane->PlaneOrder;
          if (!SUMA_MovePlaneDown(SO, SO->SurfCont->curColPlane->Name)) {
             SUMA_L_Err("Error in SUMA_MovePlaneDown.");
-            SUMA_RETURNe;
+            SUMA_RETURN(0);
          }
          if (SO->SurfCont->curColPlane->PlaneOrder == Old_Order) {
             SUMA_LH("Enough");
@@ -7926,7 +7974,7 @@ void SUMA_ColPlane_NewOrder (void *data)
    if (!Decent) {
       /* reset order value in widget to its last acceptable value. */
       sprintf(sbuf,"%d", SO->SurfCont->curColPlane->PlaneOrder);
-      SO->SurfCont->ColPlaneOrder->value = SO->SurfCont->curColPlane->PlaneOrder;
+      neworder = SO->SurfCont->curColPlane->PlaneOrder;
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOrder->textfield, sbuf); 
    }
    
@@ -7938,9 +7986,41 @@ void SUMA_ColPlane_NewOrder (void *data)
       SUMA_RemixRedisplay (SO);
    }
    
+   if (!cb_direct && neworder != (int)SO->SurfCont->ColPlaneOrder->value) {
+      /* force gui match */
+      sprintf(sbuf,"%d", neworder);
+      SO->SurfCont->ColPlaneOrder->value = neworder;
+      SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOrder->textfield, sbuf); 
+   }
+   
+   SUMA_RETURN(1);
+}
+
+/*!
+   \brief Function to update the order of a colorplane 
+
+   -expects SO in data
+*/
+void SUMA_cb_ColPlane_NewOrder (void *data)
+{
+   static char FuncName[]={"SUMA_cb_ColPlane_NewOrder"};
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SO = (SUMA_SurfaceObject *)data;
+   if (!SO || !SO->SurfCont || !SO->SurfCont->ColPlaneOrder) SUMA_RETURNe;
+
+      
+   /* make sure a new order is in order */
+   if (SO->SurfCont->curColPlane->PlaneOrder == 
+         (int)SO->SurfCont->ColPlaneOrder->value) SUMA_RETURNe;
+   
+   SUMA_ColPlane_NewOrder(SO, NULL, 
+                              (int)SO->SurfCont->ColPlaneOrder->value, 1);
    
    SUMA_RETURNe;
-   
 }
 
 /*!
@@ -8526,39 +8606,20 @@ void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
 
 }
 
-
-
-/*! 
-   \brief handles a selection from switch ColPlane 
-   
-   -expect SO in data
-*/
-void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
+int SUMA_SelectSwitchColPlane_one(SUMA_SurfaceObject *SO, 
+                                  SUMA_LIST_WIDGET *LW, 
+                                  int ichoice, SUMA_Boolean CloseShop, 
+                                  int setmen)
 {
-   static char FuncName[] = {"SUMA_cb_SelectSwitchColPlane"};
-   SUMA_LIST_WIDGET *LW = NULL;
-   XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
-   char *choice=NULL, *choice_trimmed=NULL;
-   SUMA_Boolean CloseShop = NOPE, Found = NOPE;
-   int ichoice = -1;
-   SUMA_OVERLAYS *ColPlane = NULL;
-   SUMA_SurfaceObject *SO = NULL;
-   SUMA_Boolean LocalHead=NOPE;
+   static char FuncName[]={"SUMA_SelectSwitchColPlane_one"};
+   SUMA_OVERLAYS *ColPlane=NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
-   SO = (SUMA_SurfaceObject *)data;
-   LW = SO->SurfCont->SwitchDsetlst;
+   if (!SO || !LW) SUMA_RETURN(0);
    
-   if (!LW) {
-      SUMA_S_Err("NULL LW!");
-      SUMA_RETURNe;
-   }
-
-
-   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
-
-   /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT 
+   /* retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT 
       structure and initialize the drawing window */
    if (LW->ALS) {
       if (LocalHead) 
@@ -8581,10 +8642,82 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    }
 
    if (CloseShop) {
-      SUMA_cb_CloseSwitchColPlane( w,  
-                        (XtPointer)SO->SurfCont->SwitchDsetlst,  call_data);
+      SUMA_cb_CloseSwitchColPlane( NULL,  
+                        (XtPointer)SO->SurfCont->SwitchDsetlst,  NULL);
    }  
    
+   SUMA_RETURN(1);
+}
+
+int SUMA_SelectSwitchColPlane(SUMA_SurfaceObject *SO, 
+                                  SUMA_LIST_WIDGET *LW, 
+                                  int ichoice, SUMA_Boolean CloseShop, 
+                                  int setmen)
+{
+   static char FuncName[]={"SUMA_SelectSwitchColPlane"};
+   SUMA_OVERLAYS *colp=NULL, *colpC=NULL;
+   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !LW) SUMA_RETURN(0);
+
+   if (!SUMA_SelectSwitchColPlane_one(SO, LW, ichoice, CloseShop, setmen)) {
+      SUMA_RETURN(0);
+   }
+   
+   /* do we have a contralateral SO and overlay? */
+   colp = SO->SurfCont->curColPlane;
+   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+   if (colpC && SOC) {
+      SUMA_LHv("Found contralateral equivalent to:\n"
+                   " %s and %s in\n"
+                   " %s and %s\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label),
+                   SOC->Label, CHECK_NULL_STR(colpC->Label));
+      if (!SOC->SurfCont->SwitchDsetlst->ALS) SUMA_RefreshDsetList (SOC);
+      if (!SUMA_SelectSwitchColPlane_one(SOC, SOC->SurfCont->SwitchDsetlst, 
+                                         ichoice, 0, 1)) {
+         SUMA_S_Warn("Failed in contralateralization");
+      }
+   }
+
+   SUMA_RETURN(1);
+}
+
+/*! 
+   \brief handles a selection from switch ColPlane 
+   
+   -expect SO in data
+   
+*/
+void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[] = {"SUMA_cb_SelectSwitchColPlane"};
+   SUMA_LIST_WIDGET *LW = NULL;
+   XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
+   SUMA_Boolean CloseShop = NOPE, Found = NOPE;
+   int ichoice = -1;
+   SUMA_OVERLAYS *ColPlane = NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   SO = (SUMA_SurfaceObject *)data;
+   LW = SO->SurfCont->SwitchDsetlst;
+   
+   if (!LW) {
+      SUMA_S_Err("NULL LW!");
+      SUMA_RETURNe;
+   }
+
+   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
+
+   if (!SUMA_SelectSwitchColPlane(SO, LW, ichoice, CloseShop, 1)) {
+      SUMA_S_Err("I guess failure was an option.");
+   }
    
    SUMA_RETURNe;
 }
@@ -8661,12 +8794,15 @@ void SUMA_cb_SelectSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
 
    ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
 
-   /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
+   /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure 
+      and initialize the drawing window */
    if (LW->ALS) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: N_clist = %d\n", FuncName, LW->ALS->N_clist); 
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: N_clist = %d\n", 
+                                             FuncName, LW->ALS->N_clist); 
       if (LW->ALS->N_clist > ichoice) {
          strn = (char *)LW->ALS->clist[ichoice];
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Retrieved group labeled %s\n", FuncName, strn);
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Retrieved group labeled %s\n", 
+                                    FuncName, strn);
          /* Now we know what group the user wants so go switch groups */
          if (!SUMA_SwitchGroups(sv, strn)) { 
             SUMA_SLP_Err("Failed to switch groups");

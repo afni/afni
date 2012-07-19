@@ -65,6 +65,10 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18, Jul , 2012 , ZSS , "afni-general" , MINOR , TYPE_NEW_PROG,
+   "Added Paul Taylor's 3dReHo to the distribution",
+   NULL
+ },
 
  { 10, Jul , 2012 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
    "Made default prefix path be ./ instead of path of input",

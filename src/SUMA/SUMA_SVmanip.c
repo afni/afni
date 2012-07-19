@@ -2453,8 +2453,10 @@ void *SUMA_FreeViewContStruct (SUMA_X_ViewCont *ViewCont)
    if (ViewCont->TopLevelShell) {
       SUMA_SL_Warn("ViewCont->TopLevelShell is not being freed");
    }
-   if (ViewCont->SwitchGrouplst) ViewCont->SwitchGrouplst = SUMA_FreeScrolledList(ViewCont->SwitchGrouplst);
-   if (ViewCont->SwitchStatelst) ViewCont->SwitchStatelst = SUMA_FreeScrolledList(ViewCont->SwitchStatelst);
+   if (ViewCont->SwitchGrouplst) 
+      ViewCont->SwitchGrouplst = SUMA_FreeScrolledList(ViewCont->SwitchGrouplst);
+   if (ViewCont->SwitchStatelst) 
+      ViewCont->SwitchStatelst = SUMA_FreeScrolledList(ViewCont->SwitchStatelst);
    if (ViewCont) free(ViewCont);
    return (NULL);
 }
