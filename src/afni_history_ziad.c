@@ -65,6 +65,20 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 19, Jul , 2012 , ZSS , "suma" , MAJOR , TYPE_NEW_OPT,
+   "Allow for L/R hemi yoking for many operations",
+   "These include:"
+   "Threshold setting. I,T,B sub-brick selection. Range \n"
+   "setting. Dset loading. Cmap changing. Dset switching.\n"
+   "Order changing."
+ },
+
+ { 19, Jul , 2012 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
+   "New variables to initialize range setting and symmetric range",
+   "See SUMA_Auto_I_Range, SUMA_Auto_B_Range, and SUMA_Sym_I_Range\n"
+   "in ~/.sumarc . If you don't see them, time to run: suma -update_env\n"
+ },
+
  { 18, Jul , 2012 , ZSS , "afni-general" , MINOR , TYPE_NEW_PROG,
    "Added Paul Taylor's 3dReHo to the distribution",
    NULL
