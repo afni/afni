@@ -353,20 +353,25 @@ Boolean SUMA_cmap_wid_handleRedisplay(XtPointer clientData)
    SO = (SUMA_SurfaceObject *)clientData;
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(NOPE); }
    
-   SUMA_LH("Making cmap_wid current");
-   if (!glXMakeCurrent( XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), 
-                        XtWindow(SO->SurfCont->cmp_ren->cmap_wid), 
-                        SO->SurfCont->cmp_ren->cmap_context)) {
-      SUMA_GL_ERRS;
-      SUMA_S_Err("Failed in glXMakeCurrent.\n \tContinuing ...");
+   if (SO->SurfCont->Open) { /* Otherwise it causes a crash on linux 
+                                 when yoking L/R stuff */
+      SUMA_LHv("Making cmap_wid current %p %p\n", 
+               SO->SurfCont->cmp_ren->cmap_wid, 
+               SO->SurfCont->cmp_ren->cmap_context);
+      if (!glXMakeCurrent( XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), 
+                           XtWindow(SO->SurfCont->cmp_ren->cmap_wid), 
+                           SO->SurfCont->cmp_ren->cmap_context)) {
+         SUMA_GL_ERRS;
+         SUMA_S_Err("Failed in glXMakeCurrent.\n \tContinuing ...");
+      }
+      SUMA_LH("Calling wid display");
+      SUMA_cmap_wid_display(SO);
+      glFinish();
+
+      /* insist on a glXMakeCurrent for surface viewer */
+      SUMA_LH("Making sv's GLXAREA current\n");
+      SUMA_SiSi_I_Insist();
    }
-   
-   SUMA_cmap_wid_display(SO);
-   glFinish();
-   
-   /* insist on a glXMakeCurrent for surface viewer */
-   SUMA_LH("Making sv's GLXAREA current\n");
-   SUMA_SiSi_I_Insist();
    
    SUMA_RETURN(YUP);
 }
@@ -874,7 +879,7 @@ int SUMA_set_threshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
    static char FuncName[]={"SUMA_set_threshold"};
    SUMA_SurfaceObject *SOC=NULL;
    SUMA_OVERLAYS *colpC=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1358,7 +1363,10 @@ int SUMA_SwitchColPlaneBrightness_one(
    SUMA_ENTRY;
    
    if (  !SO || !SO->SurfCont || !SO->SurfCont->curColPlane || 
-         !colp || ind < -1 || !colp->dset_link) { SUMA_RETURN(0); }
+         !colp || ind < -1 || !colp->dset_link) { 
+         SUMA_S_Err("NULLity");
+         SUMA_RETURN(0); 
+   }
    
    
    if (LocalHead) {
@@ -1401,7 +1409,7 @@ int SUMA_SwitchColPlaneBrightness_one(
    SUMA_UpdateCrossHairNodeLabelFieldForSO(SO);
    SUMA_UpdateNodeValField(SO);
    
-   if (!colp->OptScl->UseBrt) { SUMA_RETURN(0); } /* nothing else to do */
+   if (!colp->OptScl->UseBrt) { SUMA_RETURN(1); } /* nothing else to do */
 
    if (!SUMA_ColorizePlane (colp)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -1476,7 +1484,7 @@ int SUMA_SwitchCmap_one(SUMA_SurfaceObject *SO,
                          SUMA_COLOR_MAP *CM)
 {
    static char FuncName[]={"SUMA_SwitchCmap_one"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -5753,7 +5761,7 @@ int SUMA_SelectSwitchCmap_one( SUMA_SurfaceObject *SO, SUMA_LIST_WIDGET *LW,
    static char FuncName[]={"SUMA_SelectSwitchCmap_one"};
    SUMA_COLOR_MAP *CM = NULL;
    char *choice=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -5799,7 +5807,7 @@ int SUMA_SelectSwitchCmap( SUMA_SurfaceObject *SO, SUMA_LIST_WIDGET *LW,
    static char FuncName[]={"SUMA_SelectSwitchCmap"};
    SUMA_SurfaceObject *SOC=NULL;
    SUMA_OVERLAYS *colpC=NULL, *colp = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
