@@ -1169,7 +1169,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                /* Any matching contralateral dset and a matching surface ?*/
                inc_dset = SUMA_Contralateral_dset(in_dset, SO, &SOC);
                if (inc_dset) {
-                  SUMA_S_Notev("Found contralateral dset %s (%s)\n", 
+                  SUMA_LHv("Found contralateral dset %s (%s)\n", 
                                SDSET_LABEL(inc_dset), SDSET_FILENAME(inc_dset));
                   if (!(SUMA_AddXformParent(xf, 
                               SDSET_ID(inc_dset), SOC->LocalDomainParentID))) {

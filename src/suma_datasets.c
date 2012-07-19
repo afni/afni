@@ -12768,6 +12768,15 @@ static ENV_SPEC envlist[] = {
       "sub-brick selectors.\n",
       "SUMA_ArrowFieldSelectorTrigger",
       "200" }, 
+   {  "Use symmetric Intensity range by default (YES or NO)\n",
+      "SUMA_Sym_I_Range",
+      "YES" }, 
+   {  "Set auto Intensity range by default (YES or NO)\n",
+      "SUMA_Auto_I_Range",
+      "NO" }, 
+   {  "Set auto Brightness range by default (YES or NO)\n",
+      "SUMA_Auto_B_Range",
+      "NO" }, 
    {  NULL, NULL, NULL  }
 };
       
