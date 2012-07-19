@@ -50,6 +50,11 @@ XImage * mri_to_XImage( MCW_DC *dc , MRI_IMAGE *im )
 
 ENTRY("mri_to_XImage") ;
 
+   if( !im || !dc) {
+     fprintf(stderr,"\n*** Most ILLEGAL image input to mri_to_XImage\n") ;
+     EXIT(1) ;
+   }  
+   
    if( im->kind == MRI_rgb ) RETURN( rgb_to_XImage(dc,im) ) ;  /* 11 Feb 1999 */
 
    if( im->kind != MRI_short ){

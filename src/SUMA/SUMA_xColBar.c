@@ -874,6 +874,7 @@ int SUMA_set_threshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
    static char FuncName[]={"SUMA_set_threshold"};
    SUMA_SurfaceObject *SOC=NULL;
    SUMA_OVERLAYS *colpC=NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -884,7 +885,7 @@ int SUMA_set_threshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
     /* do we have a contralateral SO and overlay? */
    colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
    if (colpC && SOC) {
-      SUMA_S_Notev("Found contralateral equivalent to:\n"
+      SUMA_LHv("Found contralateral equivalent to:\n"
                    " %s and %s in\n"
                    " %s and %s\n",
                    SO->Label, CHECK_NULL_STR(colp->Label),
@@ -1199,7 +1200,7 @@ int SUMA_SwitchColPlaneThreshold(
    /* do we have a contralateral SO and overlay? */
    colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
    if (colpC && SOC) {
-      SUMA_S_Notev("Found contralateral equivalent to:\n"
+      SUMA_LHv("Found contralateral equivalent to:\n"
                    " %s and %s in\n"
                    " %s and %s\n",
                    SO->Label, CHECK_NULL_STR(colp->Label),
@@ -1332,7 +1333,7 @@ int SUMA_SwitchColPlaneBrightness(
    /* do we have a contralateral SO and overlay? */
    colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
    if (colpC && SOC) {
-      SUMA_S_Notev("Found contralateral equivalent to:\n"
+      SUMA_LHv("Found contralateral equivalent to:\n"
                    " %s and %s in\n"
                    " %s and %s\n",
                    SO->Label, CHECK_NULL_STR(colp->Label),
@@ -1470,6 +1471,75 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
    
    SUMA_RETURNe;
 }
+
+int SUMA_SwitchCmap_one(SUMA_SurfaceObject *SO,
+                         SUMA_COLOR_MAP *CM)
+{
+   static char FuncName[]={"SUMA_SwitchCmap_one"};
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !CM) SUMA_RETURN(0);
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, "%s:\n request to switch colormap to  (%s)\n", 
+         FuncName, CM->Name);
+   }
+   
+   if (!SUMA_SwitchColPlaneCmap(SO, CM)) {
+      SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
+   }
+   
+   /* Now you'll need to close the list widget if a choice has been made */
+   if (SUMAg_CF->X->SwitchCmapLst) {
+      if (!SUMAg_CF->X->SwitchCmapLst->isShaded) 
+         SUMA_cb_CloseSwitchCmap( NULL,  (XtPointer)SUMAg_CF->X->SwitchCmapLst,  
+                                  NULL);
+   }
+   
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
+   
+   /* update Lbl fields */
+   SUMA_UpdateNodeLblField(SO);
+   
+   SUMA_RETURN(1);
+}
+
+int SUMA_SwitchCmap(SUMA_SurfaceObject *SO,
+                    SUMA_COLOR_MAP *CM)
+{
+   static char FuncName[]={"SUMA_SwitchCmap"};
+   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_OVERLAYS *colp=NULL, *colpC=NULL;                     
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   if (!SO || !CM) SUMA_RETURN(0);
+   
+   if (!SUMA_SwitchCmap_one(SO, CM)) SUMA_RETURN(0);
+   
+   /* do we have a contralateral SO and overlay? */
+   colp = SO->SurfCont->curColPlane;
+   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+   if (colpC && SOC) {
+      SUMA_LHv("Found contralateral equivalent to:\n"
+                   " %s and %s in\n"
+                   " %s and %s\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label),
+                   SOC->Label, CHECK_NULL_STR(colpC->Label));
+      if (!SUMA_SwitchCmap_one(SOC, CM)) {
+         SUMA_S_Warn("Failed in contralateralination");
+      }
+   }
+   
+   SUMA_RETURN(1);
+}
+
 /*! 
    \brief function that handlges switching colormap from the menu widget
    \sa SUMA_cb_SelectSwitchCmap 
@@ -1489,29 +1559,8 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    SO = (SUMA_SurfaceObject *)datap->ContID;
    CM = (SUMA_COLOR_MAP *)datap->callback_data; 
    
-   if (LocalHead) {
-      fprintf(SUMA_STDERR, "%s:\n request to switch colormap to  (%s)\n", 
-         FuncName, CM->Name);
-   }
+   SUMA_SwitchCmap(SO, CM);
    
-   if (!SUMA_SwitchColPlaneCmap(SO, CM)) {
-      SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
-   }
-   
-   /* Now you'll need to close the list widget if a choice has been made */
-   if (SUMAg_CF->X->SwitchCmapLst) {
-      if (!SUMAg_CF->X->SwitchCmapLst->isShaded) 
-         SUMA_cb_CloseSwitchCmap( w,  (XtPointer)SUMAg_CF->X->SwitchCmapLst,  
-                                  call);
-   }
-   
-   #if SUMA_SEPARATE_SURF_CONTROLLERS
-      SUMA_UpdateColPlaneShellAsNeeded(SO);
-   #endif
-   
-   /* update Lbl fields */
-   SUMA_UpdateNodeLblField(SO);
-
    SUMA_RETURNe;
 }
 
@@ -2233,6 +2282,17 @@ void SUMA_RangeTableCell_EV ( Widget w , XtPointer cd ,
                if (SUMA_isVisibleSO(&(SUMAg_SVv[i]), SUMAg_DOv, curSO)) {
                   if ((SUMAg_DOv[SUMAg_SVv[i].Focus_SO_ID].OP) == curSO) {
                         SUMA_JumpIndex((char *)cv, (void *)(&(SUMAg_SVv[i])));
+                  } else {
+                     SUMAg_SVv[i].Focus_SO_ID = 
+                        SUMA_findSO_inDOv (curSO->idcode_str, 
+                                           SUMAg_DOv, SUMAg_N_DOv);
+                     if (curSO->SurfCont->TopLevelShell) {   
+                        SUMA_Init_SurfCont_SurfParam(curSO);
+                     } else {
+                        SUMA_S_Err("How did this happen?");
+                     }
+                     SUMA_JumpIndex((char *)cv, (void *)(&(SUMAg_SVv[i])));
+                     SUMA_UpdateViewerTitle(SUMAg_SVv+i);
                   }
                }
             }
@@ -3140,7 +3200,7 @@ int SUMA_SetScaleThr_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
     
    SUMA_LH("Called");
    
-   if (!SO) SUMA_RETURN(0);
+   if (!SO || !SO->SurfCont || !SO->SurfCont->SetThrScaleTable) SUMA_RETURN(0);
    if (colp && colp != SO->SurfCont->curColPlane) SUMA_RETURN(0);
    
    curSO = *(SO->SurfCont->curSOp);
@@ -3241,7 +3301,7 @@ int SUMA_SetScaleThr(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
    /* do we have a contralateral SO and overlay? */
    colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
    if (colpC && SOC) {
-      SUMA_S_Notev("Found contralateral equivalent to:\n"
+      SUMA_LHv("Found contralateral equivalent to:\n"
                    " %s and %s in\n"
                    " %s and %s\n",
                    SO->Label, CHECK_NULL_STR(colp->Label),
@@ -3671,7 +3731,7 @@ void SUMA_SetRangeValueOld (void *data)
    /* do we have a contralateral SO and overlay? */
    colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
    if (colpC && SOC) {
-      SUMA_S_Notev("Found contralateral equivalent to:\n"
+      SUMA_LHv("Found contralateral equivalent to:\n"
                    " %s and %s in\n"
                    " %s and %s\n"
                    "cell modified: n = %d\n",
@@ -5506,7 +5566,8 @@ void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call)
 /*!
    \brief opens a list selection for choosing a color map 
 */
-SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh, int bringup)
+SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh, 
+                                 int bringup)
 {
    static char FuncName[]={"SUMA_CmapSelectList"};
    SUMA_LIST_WIDGET *LW = NULL;
@@ -5686,34 +5747,20 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str)
    SUMA_RETURN(NOPE);
 }
 
-/*!
-   \brief function that handles switching colormap from the list widget 
-   \sa SUMA_cb_SwitchCmap
-*/
-void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, 
-                               XtPointer call_data)
+int SUMA_SelectSwitchCmap_one( SUMA_SurfaceObject *SO, SUMA_LIST_WIDGET *LW,
+                               int ichoice, SUMA_Boolean CloseShop, int setmen)
 {
-   static char FuncName[]={"SUMA_cb_SelectSwitchCmap"};
-   SUMA_SurfaceObject *SO = NULL;
-   SUMA_MenuCallBackData data;
-   SUMA_LIST_WIDGET *LW = NULL;
-   SUMA_Boolean CloseShop = NOPE, Found = NOPE;
-   XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
-   char *choice=NULL;
-   int ichoice = -1;
+   static char FuncName[]={"SUMA_SelectSwitchCmap_one"};
    SUMA_COLOR_MAP *CM = NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   char *choice=NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
-   SUMA_LH("Called");
-   SO = (SUMA_SurfaceObject *)client_data;
-   LW = SUMAg_CF->X->SwitchCmapLst;
+   if (!SO || !LW) SUMA_RETURN(0);
    
-   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
-
-   /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure 
-      and initialize the drawing window */
+   /*  retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure 
+   and initialize the drawing window */
    if (LW->ALS) {
       if (LocalHead) 
          fprintf (SUMA_STDERR,"%s: N_clist = %d\n", 
@@ -5736,11 +5783,77 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data,
    }
 
    if (CloseShop) {
-      SUMA_cb_CloseSwitchCmap( w,  (XtPointer)LW,  call_data);
+      SUMA_cb_CloseSwitchCmap( NULL,  (XtPointer)LW,  NULL);
    }  
    
    /* update Lbl fields */
    SUMA_UpdateNodeLblField(SO);
+   
+   
+   SUMA_RETURN(1);
+} 
+
+int SUMA_SelectSwitchCmap( SUMA_SurfaceObject *SO, SUMA_LIST_WIDGET *LW,
+                           int ichoice, SUMA_Boolean CloseShop, int setmen)
+{
+   static char FuncName[]={"SUMA_SelectSwitchCmap"};
+   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_OVERLAYS *colpC=NULL, *colp = NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !LW) SUMA_RETURN(0);
+   
+   if (!SUMA_SelectSwitchCmap_one(SO, LW, ichoice, CloseShop, setmen)) {
+      SUMA_RETURN(0);
+   }
+   
+   colp = SO->SurfCont->curColPlane;
+   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+   if (colpC && SOC) {
+      SUMA_LHv("Found contralateral equivalent to:\n"
+                   " %s and %s in\n"
+                   " %s and %s\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label),
+                   SOC->Label, CHECK_NULL_STR(colpC->Label));
+      if (!SUMA_SelectSwitchCmap_one(SOC, LW, ichoice, 0, 1)) {
+         SUMA_S_Warn("Failed in contralaterality");
+         SUMA_RETURN(0);
+      }
+   } 
+   
+   SUMA_RETURN(1);
+} 
+
+
+/*!
+   \brief function that handles switching colormap from the list widget 
+   \sa SUMA_cb_SwitchCmap
+*/
+void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, 
+                               XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SelectSwitchCmap"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_LIST_WIDGET *LW = NULL;
+   SUMA_Boolean CloseShop = NOPE;
+   XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
+   int ichoice = -1;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   SO = (SUMA_SurfaceObject *)client_data;
+   LW = SUMAg_CF->X->SwitchCmapLst;
+   
+   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
+
+   if (!SUMA_SelectSwitchCmap(SO, LW, ichoice, CloseShop, 1)) {
+      SUMA_S_Err("glitch");
+      SUMA_RETURNe;
+   }
 
    SUMA_RETURNe;
 }
