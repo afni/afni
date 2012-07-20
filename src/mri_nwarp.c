@@ -1949,22 +1949,31 @@ ENTRY("THD_interp") ;
 
 /*----------------------------------------------------------------------------*/
 /* Setup to warp images given
-     bimar    = array of DICOM (x,y,z) deltas == 3D warp displacment function
-     cmat_bim = matrix to transform indexes (ib,jb,kb) to DICOM (xb,yb,zb)
-     cmat_src = similar matrix for source dataset to be warped from
-     cmat_out = similar matrix for output dataset to be warped to
+     bimar    = array of DICOM (x,y,z) deltas
+                  = 3D warp displacment function in base image space;
+                  If bimar == NULL, then it is taken as all zero
+                  (e.g., the identity warp)
+     cmat_bim = matrix to transform indexes (ib,jb,kb) to DICOM (xb,yb,zb),
+                  in base image space
+     cmat_src = similar matrix for source dataset (to be warped from)
+     cmat_out = similar matrix for output dataset (to be warped to);
+                  for most purposes, cmat_out will either be cmat_bim
+                  (to get the source image warped to the base grid)
+                  or will be cmat_src (warp the source image on its own grid)
 
    foreach (io,jo,ko) in output dataset do {
-     (xo,yo,zo) =    [cmat_out](io,jo,ko)
-     (ib,jb,kb) = inv[cmat_bim](xo,yo,zo)
-     (xs,ys,zs) = (xo,yo,zo) + bimar interpolated at (ib,jb,kb)
-     (is,js,ks) = inv[cmat_src](xs,ys,zs)
+     (xo,yo,zo) =    [cmat_out](io,jo,ko)     -- transform indexes to coords
+     (ib,jb,kb) = inv[cmat_bim](xo,yo,zo)     -- transform coords to indexes
+     (xs,ys,zs) =  (xo,yo,zo)                 -- compute warped coords
+                 + bimar interpolated at (ib,jb,kb)
+     (is,js,ks) = inv[cmat_src](xs,ys,zs)     -- compute warped indexes
    }
 
    The output is the array of images of (is,js,ks) = indexes in the source
    dataset, for each point to interpolate to in the output dataset (io,jo,ko).
+   (N.B.: this is NOT an IndexWarp3D struct!).
    This set of images can be used, in turn, to interpolate a src grid image
-   to an out grid warped image via THD_interp_floatim().
+   to an output grid warped image via THD_interp_floatim().
 *//*--------------------------------------------------------------------------*/
 
 MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim ,
@@ -1979,53 +1988,69 @@ MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim ,
 
 ENTRY("THD_setup_nwarp") ;
 
-   if( bimar == NULL ) RETURN(NULL) ;
-
    nx = nx_out ; ny = ny_out ; nz = nz_out ; nxy = nx*ny ; nxyz = nxy*nz ;
 
-   /* space for indexes/coordinates */
+   /* space for indexes/coordinates in output space */
 
    xp = (float *)malloc(sizeof(float)*nxyz) ;
    yp = (float *)malloc(sizeof(float)*nxyz) ;
    zp = (float *)malloc(sizeof(float)*nxyz) ;
 
-   if( !MAT44_FLEQ(cmat_bim,cmat_out) ){
-     int qq,ii,jj,kk ; mat44 imat_out_to_bim ;
+     /* compute indexes of each point in output image
+        (the _out grid) in the warp space (the _bim grid) */
+
+   if( !MAT44_FLEQ(cmat_bim,cmat_out) ){ /* output & base grids not the same */
+     mat44 imat_out_to_bim ;
+
+     /* cmat_out takes (i,j,k):out to (x,y,z)
+        tmat     takes (x,y,z)     to (i,j,k):base
+        so imat_out_to_bim takes (i,j,k):out to (i,j,k):base */
 
      tmat = MAT44_INV(cmat_bim) ; imat_out_to_bim = MAT44_MUL(tmat,cmat_out) ;
 
-     /* compute indexes of each point in output image
-        (the _out grid) in the warp space (the _bim grid),
-        using the imat_out_to_bim matrix computed just above */
-
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 33333 )
+ { int qq , ii,jj,kk ;
+#pragma omp for
      for( qq=0 ; qq < nxyz ; qq++ ){
        ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
        MAT44_VEC( imat_out_to_bim , ii,jj,kk , xp[qq],yp[qq],zp[qq] ) ;
      }
+ }
+ AFNI_OMP_END ;
 
    } else {   /* case where cmat_bim and cmat_out are equal */
-     int qq,ii,jj,kk ;
-
+                       /* so (i,j,k):out == (i,j,k):base */
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 33333 )
+ { int qq , ii,jj,kk ;
+#pragma omp for
      for( qq=0 ; qq < nxyz ; qq++ ){
        ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
        xp[qq] = ii ; yp[qq] = jj ; zp[qq] = kk ;
      }
+ }
+ AFNI_OMP_END ;
 
    }
 
    /* now interpolate the warp delta volumes from the bim
       grid to the out grid, using the indexes computed just above */
 
-   wxim = mri_new_vol(nx,ny,nz,MRI_float) ;
-   THD_interp_floatim( IMARR_SUBIM(bimar,0), nxyz,xp,yp,zp,
-                                             incode, MRI_FLOAT_PTR(wxim) ) ;
+   wxim = mri_new_vol(nx,ny,nz,MRI_float) ;  /* filled with zeros */
    wyim = mri_new_vol(nx,ny,nz,MRI_float) ;
-   THD_interp_floatim( IMARR_SUBIM(bimar,1), nxyz,xp,yp,zp,
-                                             incode, MRI_FLOAT_PTR(wyim) ) ;
    wzim = mri_new_vol(nx,ny,nz,MRI_float) ;
-   THD_interp_floatim( IMARR_SUBIM(bimar,2), nxyz,xp,yp,zp,
-                                             incode, MRI_FLOAT_PTR(wzim) ) ;
-
+   if( bimar != NULL ){                      /* if actually have a warp */
+     if( IMARR_COUNT(bimar) > 0 )
+       THD_interp_floatim( IMARR_SUBIM(bimar,0), nxyz,xp,yp,zp,
+                                                 incode, MRI_FLOAT_PTR(wxim) ) ;
+     if( IMARR_COUNT(bimar) > 1 )
+       THD_interp_floatim( IMARR_SUBIM(bimar,1), nxyz,xp,yp,zp,
+                                                 incode, MRI_FLOAT_PTR(wyim) ) ;
+     if( IMARR_COUNT(bimar) > 2 )
+       THD_interp_floatim( IMARR_SUBIM(bimar,2), nxyz,xp,yp,zp,
+                                                 incode, MRI_FLOAT_PTR(wzim) ) ;
+   }
    free(zp) ; zp = MRI_FLOAT_PTR(wzim) ;
    free(yp) ; yp = MRI_FLOAT_PTR(wyim) ;
    free(xp) ; xp = MRI_FLOAT_PTR(wxim) ;
@@ -2621,9 +2646,7 @@ static void HCwarp_setup_basis( int nx , int ny , int nz , int flags )
 {
    float_pair ee ; int ii ;
 
-   if( Hwarp != NULL ){
-     IW3D_destroy(Hwarp) ; Hwarp = NULL ;
-   }
+   if( Hwarp != NULL ){ IW3D_destroy(Hwarp); Hwarp = NULL; }
 
    FREEIFNN(b0x); FREEIFNN(b1x); FREEIFNN(b2x); FREEIFNN(ccx); nbx=0;
    FREEIFNN(b0y); FREEIFNN(b1y); FREEIFNN(b2y); FREEIFNN(ccy); nby=0;
@@ -2693,9 +2716,7 @@ static void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
 {
    float_triple ee ; int ii ;
 
-   if( Hwarp != NULL ){
-     IW3D_destroy(Hwarp) ; Hwarp = NULL ;
-   }
+   if( Hwarp != NULL ){ IW3D_destroy(Hwarp); Hwarp = NULL; }
 
    FREEIFNN(b0x); FREEIFNN(b1x); FREEIFNN(b2x); FREEIFNN(ccx); nbx=0;
    FREEIFNN(b0y); FREEIFNN(b1y); FREEIFNN(b2y); FREEIFNN(ccy); nby=0;
@@ -3043,19 +3064,34 @@ double IW3D_scalar_costfun( int npar , double *dpar )
 /*----------------------------------------------------------------------------*/
 
 static MRI_IMAGE *basim  ; static int nxb,nyb,nzb,nxyzb; static float *bfar;
-static MRI_IMAGE *wbasim ; static float *wbfar, wbbar; static byte *wbmask ;
+static MRI_IMAGE *wbasim ; static float *wbfar, wbbar; static byte *wbmask=NULL ;
 static MRI_IMAGE *srcim  ; static int nxs,nys,nzs,nxyzs; static float *sfar;
-static MRI_IMAGE *wsrcim ;
-static IndexWarp3D *Awarp;
+static MRI_IMAGE *wsrcim=NULL ;
+static IndexWarp3D *Awarp=NULL;
 
 static int match_code    ;
 static int basis_code=0  ;
 static int basis_flags   ;
 
-static double basis_parmax = 0.0 ;
+static double basis_parmax = 0.0 ;  /* max warp parameter allowed */
 
 /*----------------------------------------------------------------------------*/
-/* Sets a bunch of global variables */
+
+void IW3D_cleanup_warposity(void)
+{
+   basim = wbasim = srcim = NULL ;
+   bfar  = wbfar  = sfar  = NULL ;
+
+   FREEIFNN(wbmask) ;
+   if( wsrcim != NULL ){ mri_free(wsrcim)   ; wsrcim = NULL; }
+   if( Hwarp  != NULL ){ IW3D_destroy(Hwarp); Hwarp  = NULL; }
+   if( Awarp  != NULL ){ IW3D_destroy(Awarp); Awarp  = NULL; }
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Sets a bunch of global variables, prior to iteratively improving the warp. */
 
 void IW3D_setup_for_warposity( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
                                IndexWarp3D *Iwarp,
@@ -3069,10 +3105,14 @@ ENTRY("IW3D_setup_for_warposity") ;
    if( sim == NULL ||  sim->kind != MRI_float )
      ERROR_exit("IW3D_setup_for_warposity: bad sim input") ;
 
+   /* copy info about base and source images */
+
    basim = bim; nxb = basim->nx; nyb = basim->ny; nzb = basim->nz; nxyzb = nxb*nyb*nzb;
    srcim = sim; nxs = srcim->nx; nys = srcim->ny; nzs = srcim->nz; nxyzs = nxs*nys*nzs;
 
    bfar = MRI_FLOAT_PTR(basim) ; sfar = MRI_FLOAT_PTR(srcim) ;
+
+   /* and base weight image */
 
    if( wbim != NULL ){
      int ii ;
@@ -3091,6 +3131,8 @@ ENTRY("IW3D_setup_for_warposity") ;
    } else {
      wbasim = NULL ; wbfar = NULL ; wbmask = NULL ; wbbar = 0.0f ;
    }
+
+   /* operational codes */
 
    match_code = meth_code ;
    if( INCOR_check_meth_code(meth_code) == 0 )
@@ -3111,14 +3153,18 @@ ENTRY("IW3D_setup_for_warposity") ;
    if( basis_flags < 0 )
      ERROR_exit("IW3D_setup_for_warposity: bad warp_flags input") ;
 
+   /* initial warp */
+
    if( Iwarp != NULL ){
      if( Iwarp->nx != nxs || Iwarp->ny != nys || Iwarp->nz != nzs )
        ERROR_exit("IW3D_setup_for_warposity: bad Iwarp input") ;
 
-     Awarp = Iwarp ;
+     Awarp = IW3D_copy(Iwarp,1.0f) ;
    } else {
      Awarp = IW3D_create(nxs,nys,nzs) ;  /* initialize to 0 displacements */
    }
+
+   /* warp the source image with the initial warp, onto the base image grid */
 
    EXRETURN ;
 }
