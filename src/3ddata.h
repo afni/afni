@@ -4174,7 +4174,7 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "   Try 1dplot '1D: 3 4 3 5 | 3 5 4 3'\n"                                  \
    "\n"                                                                       \
    "** TRANSPOSITION WITH \\' **\n"                                           \
-   "Finally, you can force most AFNI programs to tranpose a 1D file on\n"     \
+   "Finally, you can force most AFNI programs to transpose a 1D file on\n"     \
    "input by appending a single ' character at the end of the filename.\n"    \
    "N.B.: Since the ' character is also special to the shell, you'll\n"       \
    "      probably have to put a \\ character before it. Examples:\n"         \

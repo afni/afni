@@ -27,9 +27,10 @@ g_history = """
          - name z.max files by the p-values
          - suggest quick.alpha.vals.py command
     0.7  10 Feb, 2012: help update for HJ: -on_surface takes yes/no parameter
+    0.8  17 Jul, 2012: removed -Niter opt from SurfSmooth (let it decide)
 """
 
-g_version = '0.7 (February 10, 2012)'
+g_version = '0.8 (July 17, 2012)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -416,13 +417,17 @@ class SurfClust(object):
          inset = 'surf.noise.$iter.niml.dset'
          niter = 10
 
+      # removed -Niter option
       clist = [ \
         '# smooth to the given target FWHM\n',
         self.LV.time_str,
         'SurfSmooth -spec $spec_file -surf_A $surfA           \\\n',
         '           -input %s         \\\n' % inset,
         '           -met HEAT_07 -target_fwhm $blur           \\\n',
-        '           -Niter %d -output smooth.noise.$iter.gii\n\n' % niter ]
+        '           -blurmaster %s    \\\n' % inset,
+        '           -detrend_master                           \\\n',
+        '           -output smooth.noise.$iter.gii            \\\n',
+        '           | tee params.surf.smooth.$iter.1D\n\n' ]
 
       # add current output to optional delete list
       self.LV.rmsets.append('smooth.noise.$iter.gii')
@@ -491,6 +496,7 @@ class SurfClust(object):
       cmd  = SUBJ.comment_section_string('prep: make z-scores, etc.') + '\n'
 
       cmd += '# make zthr_list (convert p-values to z-scores)\n'        \
+             '# (2-tailed computation mirrors athresh() in SurfClust)\n'\
              'set zthr_list = ()\n'                                     \
              'foreach pthr ( $pthr_list )\n'                            \
              '   # convert from p to z (code for N(0,1) is 5)\n'        \
