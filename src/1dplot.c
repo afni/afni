@@ -108,7 +108,7 @@ void usage_1dplot(int detail)
      "            ** Coupled with '-box -noline', you can use '-x' to make\n"
      "               a scatter plot, as in graphing file A1.1D along the\n"
      "               x-axis and file A2.1D along the y-axis:\n"
-     "                 1dplot -box -nonline -x A1.1D -xlabel A1 -ylabel A2 A2.1D\n"
+     "                 1dplot -box -noline -x A1.1D -xlabel A1 -ylabel A2 A2.1D\n"
      "            ** '-x' will override -dx and -xzero; -xaxis still works\n"
      "\n"
      " -xl10 X.1D = Use log10(X.1D) as the X axis.\n"
