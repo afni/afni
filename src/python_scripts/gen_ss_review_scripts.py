@@ -507,9 +507,12 @@ g_history = """
                       (avoids issue on systems with multiple users)
                       Thanks to V Razdan and N Adleman for noting the issue.
    0.23 Jun 25, 2012: ick, fixed uninitilaized cpad1,2 (if no censoring)
+   0.24 Jul 17, 2012:
+        - add checks for volreg and uncensored X-mat
+        - probably init view from volreg
 """
 
-g_version = "gen_ss_review_scripts.py version 0.23, June 25, 2012"
+g_version = "gen_ss_review_scripts.py version 0.24, July 17, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -900,12 +903,12 @@ class MyInterface:
          print '** no xmat_ad to set xmat_uncensored from'
          return 1
 
-      copts = self.find_opt_and_params(ax.command, '-x1D_uncensored', 1)
+      copts = self.find_opt_and_params(ax.command, '-x1D_uncensored', 1, last=1)
       if len(copts) == 2:
          self.uvars.xmat_uncensored = copts[1]
          self.dsets.xmat_uncensored = BASE.afni_name(copts[1])
          if self.set_xmat_dset_from_name(self.uvars.xmat_uncensored, regress=0):
-            return 1
+            return 0  
 
          if self.cvars.verb > 2: print '-- xmat_uncensored exists = %d' \
                                        % self.dsets.xmat_uncensored.exist()
@@ -1066,11 +1069,13 @@ class MyInterface:
             print '-- already set: final_view = %s' % self.uvars.final_view
          return 0
 
-      if self.dsets.is_empty('stats_dset'):
+      if not self.dsets.is_empty('volreg_dset'):
+         view = self.dsets.volreg_dset.view
+      elif not self.dsets.is_empty('stats_dset'):
+         view = self.dsets.stats_dset.view
+      else:
          print '** no stats_dset to get final_view from'
          view = ''
-      else:
-         view = self.dsets.stats_dset.view
 
       if len(view) != 5: # maybe surface, go after volreg explicitly for now
          vv = "+orig"
@@ -1397,16 +1402,10 @@ class MyInterface:
          if self.cvars.verb > 3:
             print '-- already set: volreg_dset = %s' % self.uvars.volreg_dset
 
-      gstr = 'pb??.*.r01.volreg+%s.HEAD' % self.uvars.final_view
-      glist = glob.glob(gstr)
-
-      if len(glist) == 0:
-         gstr = 'pb*r001*volreg+%s.HEAD' % self.uvars.final_view
-         glist = glob.glob(gstr)
-
-      if len(glist) == 0:
-         gstr = 'pb*r01*volreg+%s.HEAD' % self.uvars.final_view
-         glist = glob.glob(gstr)
+      glist = self.glob_slist_per_view(                                 \
+                ['pb??.*.r01.volreg+%s.HEAD', 'pb*r001*volreg+%s.HEAD', \
+                 'pb*r01*volreg+%s.HEAD'],                              \
+                ['tlrc', 'orig'])
 
       if len(glist) >= 1:
          glist.sort()   # just to be sure
@@ -1417,6 +1416,14 @@ class MyInterface:
       print '** failed to find volreg dset, continuing...'
 
       return 0 # not failure
+
+   def glob_slist_per_view(self, slist, vlist):
+      """for each view, search for any files in slist"""
+      for v in vlist:
+         for s in slist:
+            glist = glob.glob(s % v)
+            if len(glist) > 0: return glist
+      return []
 
    def guess_sum_ideal(self):
       """set uvars.sum_ideal
@@ -2145,14 +2152,23 @@ class MyInterface:
 
       self.text_drive += txt
 
-   def find_opt_and_params(self, text, opt, nopt=0):
+   def find_opt_and_params(self, text, opt, nopt=0, last=0):
       """given some text, return the option with that text, as well as
-         the following 'nopt' parameters (truncated list if not found)"""
+         the following 'nopt' parameters (truncated list if not found)
+       
+         if last: return right-most position
+      """
       tlist = text.split()
 
       if not opt in tlist: return []
 
+      if last: tlist.reverse()
+
       tind = tlist.index(opt)
+
+      if last:
+         tlist.reverse()
+         tind = len(tlist) - 1 - tind
 
       return tlist[tind:tind+1+nopt]
 
