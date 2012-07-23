@@ -129,7 +129,7 @@ ENTRY("GA_interp_linear") ;
 #endif
 
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 9999)
+#pragma omp parallel if(npp > 7777)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -208,7 +208,7 @@ void GA_interp_cubic( MRI_IMAGE *fim ,
 ENTRY("GA_interp_cubic") ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 9999)
+#pragma omp parallel if(npp > 5555)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -396,14 +396,24 @@ ENTRY("GA_interp_varp1") ;
 /*---------------------------------------------------------------------------*/
 /* Interpolation with weighted (tapered) sinc in 3D.
    ++ Taper function ww(r) is defined to be 1 for 0 <= r <= WCUT
-       and for WCUT < r < 1 is a raised c sine dropping down to ww(r=1) = 0.
+       and for WCUT < r < 1 is a raised cosine dropping down to ww(r=1) = 0.
        This choice was made to keep the variance smoothing artifact low.
    ++ Radius of sinc window is WRAD, so that the actual taper used is
        ww(r/WRAD) where r = sqrt(di*di+dj*dj+dk*dk), and di=change in i index.
 *//*-------------------------------------------------------------------------*/
 
-#undef  WCUT
-#define WCUT 0.5f    /* cutoff point for taper */
+static float WCUT = 0.5f ;  /* cutoff point for taper */
+
+static void setup_WCUT(void)
+{
+   char *eee = getenv("AFNI_WSINC5_TAPERCUT") ; float val ;
+   WCUT = 0.5f ;
+   if( eee != NULL ){
+     val = (float)strtod(eee,NULL) ;
+     if( val >= 0.0f && val <= 0.8f ) WCUT = val ;
+   }
+   return ;
+}
 
 #undef  WRAD
 #define WRAD 5.0001f /* width of sinc interpolation (float) */
@@ -429,10 +439,6 @@ ENTRY("GA_interp_varp1") ;
 /*---------------------------------------------------------------------------*/
 #define UNROLL    /* unroll some loops */
 
-#define USE_5P 1  /* use product-weighted sinc (5p),
-                     rather than spherical weighted (5s), which is very slow */
-
-#ifndef USE_5P    /* USE_5P is off */
 /*---------------------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
 
@@ -442,20 +448,12 @@ void GA_interp_wsinc5s( MRI_IMAGE *fim ,
    static MCW_cluster *smask=NULL ; static int nmask=0 ;
    static short *di=NULL , *dj=NULL , *dk=NULL ;
 
-   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
-   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
-   float fx,fy,fz ;
-   float *far = MRI_FLOAT_PTR(fim) ;
-   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
-
-   float xw,yw,zw,rr , sum,wsum,wt ;
-   int   iq,jq,kq , qq , ddi,ddj,ddk ;
-   float xsin[1+2*IRAD] , ysin[1+2*IRAD] , zsin[1+2*IRAD] ;
-
 ENTRY("GA_interp_wsinc5s") ;
 
    /*----- first time in: build spherical mask  -----*/
    /*((((( WRAD=5 ==> mask will have 515 points )))))*/
+
+   setup_WCUT() ;
 
    if( smask == NULL ){
      smask = MCW_spheremask( 1.0f,1.0f,1.0f , WRAD ) ;
@@ -463,13 +461,23 @@ ENTRY("GA_interp_wsinc5s") ;
      di    = smask->i ;
      dj    = smask->j ;
      dk    = smask->k ;
-     if( PRINT_TRACING ){
-       char str[256]; sprintf(str,"sinc mask=%d points",nmask); STATUS(str);
-     }
+     ININFO_message("spherical wsinc5 mask = %d points",nmask) ;
    }
 
    /*----- loop over points -----*/
+ AFNI_OMP_START ;
+#pragma omp parallel if(npp > 2222)
+ {
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
+   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
+   float fx,fy,fz ;
+   float *far = MRI_FLOAT_PTR(fim) ;
+   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
+   float xw,yw,zw,rr , sum,wsum,wt ;
+   int   iq,jq,kq , qq , ddi,ddj,ddk ;
+   float xsin[1+2*IRAD] , ysin[1+2*IRAD] , zsin[1+2*IRAD] ;
 
+#pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
      yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
@@ -500,12 +508,13 @@ ENTRY("GA_interp_wsinc5s") ;
 
      vv[pp] = sum / wsum ;
    }
+ } /* end OpenMP */
+ AFNI_OMP_END ;
 
    EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
-#else /* USE_5P is on */
 
 /*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
 
@@ -514,8 +523,10 @@ void GA_interp_wsinc5p( MRI_IMAGE *fim ,
 {
 ENTRY("GA_interp_wsinc5p") ;
 
+   setup_WCUT() ;
+
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 9999)
+#pragma omp parallel if(npp > 2222)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -528,6 +539,7 @@ ENTRY("GA_interp_wsinc5p") ;
    float xsin[2*IRAD] , ysin[2*IRAD]        , zsin[2*IRAD] ;
    float wtt[2*IRAD]  , fjk[2*IRAD][2*IRAD] , fk[2*IRAD]   ;
    int   iqq[2*IRAD]  ;
+
    /*----- loop over points -----*/
 
 #pragma omp for
@@ -560,7 +572,7 @@ ENTRY("GA_interp_wsinc5p") ;
          }
 #else
          farjk = FARJK(jq,kq) ;
-#if IRAD != 5
+#if 0
          for( sum=0.0f,qq=-IRAD+1 ; qq <  IRAD ; qq+=2 ){  /* unrolled by 2 */
            iq = iqq[qq+(IRAD-1)] ; iqp = iqq[qq+IRAD] ;
            sum += farjk[iq]  * wtt[qq+(IRAD-1)]
@@ -627,23 +639,236 @@ ENTRY("GA_interp_wsinc5p") ;
 
    EXRETURN ;
 }
-#endif /* USE_5P */
 
-#undef  WCUT
+/*---------------------------------------------------------------------------*/
+#undef  WRAD
+#define WRAD 7.0001f /* width of sinc interpolation (float) */
+
+#undef  IRAD
+#define IRAD 7       /* width of sinc interpolation (int) */
+/*---------------------------------------------------------------------------*/
+/*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
+
+void GA_interp_wsinc7s( MRI_IMAGE *fim ,
+                        int npp, float *ip, float *jp, float *kp, float *vv )
+{
+   static MCW_cluster *smask=NULL ; static int nmask=0 ;
+   static short *di=NULL , *dj=NULL , *dk=NULL ;
+
+ENTRY("GA_interp_wsinc7s") ;
+
+   /*----- first time in: build spherical mask  -----*/
+
+   setup_WCUT() ;
+
+   if( smask == NULL ){
+     smask = MCW_spheremask( 1.0f,1.0f,1.0f , WRAD ) ;
+     nmask = smask->num_pt ;
+     di    = smask->i ;
+     dj    = smask->j ;
+     dk    = smask->k ;
+     ININFO_message("spherical wsinc7 mask = %d points",nmask) ;
+   }
+
+   /*----- loop over points -----*/
+ AFNI_OMP_START ;
+#pragma omp parallel if(npp > 2222)
+ {
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
+   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
+   float fx,fy,fz ;
+   float *far = MRI_FLOAT_PTR(fim) ;
+   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
+   float xw,yw,zw,rr , sum,wsum,wt ;
+   int   iq,jq,kq , qq , ddi,ddj,ddk ;
+   float xsin[1+2*IRAD] , ysin[1+2*IRAD] , zsin[1+2*IRAD] ;
+
+#pragma omp for
+   for( pp=0 ; pp < npp ; pp++ ){
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
+
+     ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
+     jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
+     kz = floorf(zz) ;  fz = zz - kz ;
+
+     /*- compute sinc at all points plus/minus 5 indexes from current locale -*/
+
+     for( qq=-IRAD ; qq <= IRAD ; qq++ ){
+       xw = fabsf(fx - qq) ; xsin[qq+IRAD] = sinc(xw) ;
+       yw = fabsf(fy - qq) ; ysin[qq+IRAD] = sinc(yw) ;
+       zw = fabsf(fz - qq) ; zsin[qq+IRAD] = sinc(zw) ;
+     }
+
+     for( wsum=sum=0.0f,qq=0 ; qq < nmask ; qq++ ){
+       ddi = di[qq] ; ddj = dj[qq] ; ddk = dk[qq] ;
+       iq = ix + ddi ; CLIP(iq,nx1) ; xw = fx - (float)ddi ;
+       jq = jy + ddj ; CLIP(jq,ny1) ; yw = fy - (float)ddj ;
+       kq = kz + ddk ; CLIP(kq,nz1) ; zw = fz - (float)ddk ;
+       rr = sqrtf(xw*xw+yw*yw+zw*zw) / WRAD ; if( rr >= 1.0f ) continue ;
+       wt = xsin[ddi+IRAD] * ysin[ddj+IRAD] * zsin[ddk+IRAD] ;
+       if( rr > WCUT ) wt *= ww(rr) ;
+       wsum += wt ; sum += FAR(iq,jq,kq) * wt ;
+     }
+
+     vv[pp] = sum / wsum ;
+   }
+ } /* end OpenMP */
+ AFNI_OMP_END ;
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
+
+void GA_interp_wsinc7p( MRI_IMAGE *fim ,
+                        int npp, float *ip, float *jp, float *kp, float *vv )
+{
+ENTRY("GA_interp_wsinc7p") ;
+
+   setup_WCUT() ;
+
+ AFNI_OMP_START ;
+#pragma omp parallel if(npp > 2222)
+ {
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
+   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
+   float fx,fy,fz ;
+   float *far = MRI_FLOAT_PTR(fim) , *farjk ;
+   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
+
+   float xw,yw,zw,rr , sum,wsum,wfac,wt ;
+   int   iq,jq,kq,iqp , qq,jj,kk , ddi,ddj,ddk ;
+   float xsin[2*IRAD] , ysin[2*IRAD]        , zsin[2*IRAD] ;
+   float wtt[2*IRAD]  , fjk[2*IRAD][2*IRAD] , fk[2*IRAD]   ;
+   int   iqq[2*IRAD]  ;
+
+   /*----- loop over points -----*/
+
+#pragma omp for
+   for( pp=0 ; pp < npp ; pp++ ){
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
+
+     ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
+     jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
+     kz = floorf(zz) ;  fz = zz - kz ;
+
+     /*- x interpolations -*/
+
+     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
+       xw  = fabsf(fx - qq) ; wt = sinc(xw) ;
+       xw /= WRAD ; if( xw > WCUT ) wt *= ww(xw) ;
+       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
+       iq = ix+qq ; CLIP(iq,nx1) ; iqq[qq+(IRAD-1)] = iq ;
+     }
+     wfac = wsum ;
+
+     for( jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
+       jq = jy+jj ; CLIP(jq,ny1) ;
+       for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
+         kq = kz+kk ; CLIP(kq,nz1) ;
+#ifndef UNROLL
+         for( sum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
+           iq = iqq[qq+(IRAD-1)] ; sum += FAR(iq,jq,kq) * wtt[qq+(IRAD-1)] ;
+         }
+#else
+         farjk = FARJK(jq,kq) ;
+#if 0
+         for( sum=0.0f,qq=-IRAD+1 ; qq <  IRAD ; qq+=2 ){  /* unrolled by 2 */
+           iq = iqq[qq+(IRAD-1)] ; iqp = iqq[qq+IRAD] ;
+           sum += farjk[iq]  * wtt[qq+(IRAD-1)]
+                 +farjk[iqp] * wtt[qq+ IRAD   ] ;
+         }
+#else
+# define FW(i) farjk[iqq[i]]*wtt[i]
+         sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+              +FW(10)+FW(11)+FW(12)+FW(13) ;
+# undef  FW
+#endif
+#endif
+         fjk[jj+(IRAD-1)][kk+(IRAD-1)] = sum ;
+       }
+     }
+
+     /*- y interpolations -*/
+
+     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
+       yw  = fabsf(fy - qq) ; wt = sinc(yw) ;
+       yw /= WRAD ; if( yw > WCUT ) wt *= ww(yw) ;
+       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
+     }
+     wfac *= wsum ;
+
+     for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
+#ifndef UNROLL
+       for( sum=0.0f,jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
+         sum += wtt[jj+(IRAD-1)]*fjk[jj+(IRAD-1)][kk+(IRAD-1)] ;
+       }
+#else
+       for( sum=0.0f,jj=-IRAD+1 ; jj <  IRAD ; jj+=2 ){  /* unrolled by 2 */
+         sum += wtt[jj+(IRAD-1)]*fjk[jj+(IRAD-1)][kk+(IRAD-1)]
+               +wtt[jj+ IRAD   ]*fjk[jj+ IRAD   ][kk+(IRAD-1)] ;
+       }
+#endif
+       fk[kk+(IRAD-1)] = sum ;
+     }
+
+     /*- z interpolation -*/
+
+     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
+       zw  = fabsf(fz - qq) ; wt = sinc(zw) ;
+       zw /= WRAD ; if( zw > WCUT ) wt *= ww(zw) ;
+       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
+     }
+     wfac *= wsum ;
+
+#ifndef UNROLL
+     for( sum=0.0f,kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
+       sum += wtt[kk+(IRAD-1)] * fk[kk+(IRAD-1)] ;
+     }
+#else
+     for( sum=0.0f,kk=-IRAD+1 ; kk <  IRAD ; kk+=2 ){  /* unrolled by 2 */
+       sum += wtt[kk+(IRAD-1)] * fk[kk+(IRAD-1)]
+             +wtt[kk+ IRAD   ] * fk[kk+ IRAD   ] ;
+     }
+#endif
+
+     vv[pp] = sum / wfac ;
+   }
+
+ } /* end OpenMP */
+ AFNI_OMP_END ;
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
 #undef  WRAD
 #undef  IRAD
 #undef  PIF
-
 /*---------------------------------------------------------------------------*/
 
 void GA_interp_wsinc5( MRI_IMAGE *fim ,
                        int npp, float *ip, float *jp, float *kp, float *vv )
 {
-#ifdef USE_5P
-   GA_interp_wsinc5p( fim,npp,ip,jp,kp,vv ) ;
-#else
-   GA_interp_wsinc5s( fim,npp,ip,jp,kp,vv ) ;
-#endif
+   char *eee = getenv("AFNI_WSINC5_SPHERICAL") ;
+   char *fff = getenv("AFNI_WSINC5_RADIUS") ;
+   if( eee == NULL || toupper(*eee) == 'N' ){
+     if( fff != NULL && *fff == '7' )
+       GA_interp_wsinc7p( fim,npp,ip,jp,kp,vv ) ;    /* cubical 7 */
+     else
+       GA_interp_wsinc5p( fim,npp,ip,jp,kp,vv ) ;    /* cubical 5 = default */
+   } else {
+     if( fff != NULL && *fff == '7' )
+       GA_interp_wsinc7s( fim,npp,ip,jp,kp,vv ) ;  /* spherical 7 */
+     else
+       GA_interp_wsinc5s( fim,npp,ip,jp,kp,vv ) ;  /* spherical 5 */
+   }
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -671,7 +896,7 @@ void GA_interp_quintic( MRI_IMAGE *fim ,
 ENTRY("GA_interp_quintic") ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 9999)
+#pragma omp parallel if(npp > 3333)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
