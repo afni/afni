@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , JUL , 2012 , RWC , "3dAllineate" , MICRO , TYPE_NEW_ENV ,
+  { 23 , JUL , 2012 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Also, change wsinc5 taper from Hanning to Hamming" ,
+   NULL } ,
+
+ { 23 , JUL , 2012 , RWC , "3dAllineate" , MICRO , TYPE_NEW_ENV ,
    "Allow 7x7x7 interpolation in wsinc5 + spherical mask" ,
    "via environment variables" } ,
 
