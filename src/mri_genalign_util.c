@@ -434,7 +434,7 @@ static void setup_WCUT(void)
 /* Note that the input to ww will always be between WCUT and 1. */
 
 #undef  ww
-#define ww(x) ( 0.5f+0.5f*cosf(PIF*((x)-WCUT)/(1.0f-WCUT)) )
+#define ww(x) ( 0.54f+0.46f*cosf(PIF*((x)-WCUT)/(1.0f-WCUT)) )
 
 /*---------------------------------------------------------------------------*/
 #define UNROLL    /* unroll some loops */
