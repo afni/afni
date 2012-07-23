@@ -171,6 +171,13 @@ ENTRY("THD_open_one_dataset") ;
       RETURN(dset) ;
    }
 
+   /*-- other cases that require new-fangled way   23 Jul 2012 [rickr] --*/
+   if( ! strncmp(pathname,"filelist:",9) ){
+      dset = THD_open_dataset(pathname) ;
+      THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+      RETURN(dset) ;
+   }
+
    fsize = THD_filesize(pathname) ;                         /* 06 Jan 2005 */
 
    /* replace fsize == -1 use with isfile variable   28 Feb 2007 [rickr] */

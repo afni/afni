@@ -69,6 +69,15 @@ ENTRY("THD_open_dataset") ;
      RETURN(dset) ;
    }
 
+   /*-- allow filelist:FILENAME to work like tcat       23 Jul 2012 [rickr] */
+   if( ! strncmp(pathname,"filelist:",9) ) {
+     dset = THD_open_tcat( pathname ) ;
+     if( ISVALID_DSET(dset) &&
+        !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+       THD_daxes_to_mat44(dset->daxes) ;
+     THD_patch_brickim(dset); RETURN(dset) ;
+   }
+
    /*-- 04 Aug 2004: allow input of a list of datasets, separated by spaces --*/
    /*  unless a count command is used inside the brackets 9 May 2007 drg*/
    /* allow use of spaces with AFNI_PATH_SPACES_OK        2 May 2012 [rickr]  */

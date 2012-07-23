@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, JUL, 2012, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "allow programs to read auto-tcat datasets using filelist:DSETS.txt",
+   "If DSETS.txt contains a list of datasets, they will be read in using\n"
+   "THD_open_tcat(), as if they were listed separated by spaces.\n\n"
+   "Added for C Connolly."
+ } ,
+
  { 20, JUL, 2012, RCR, "apsearch", MICRO, TYPE_MODIFY,
    "exclude README.* from program list",
    "Executable README files can be troublesome..."
