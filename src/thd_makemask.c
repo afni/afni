@@ -269,7 +269,8 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
 /*----------------------------------------------------------------------------*/
 extern int * UniqueInt (int *y, int ysz, int *kunq, int Sorted );
 
-int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb, int check_values) {
+int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb, int check_values)
+{
    float mfac = 0.0;
    void *vv=NULL;
 
@@ -312,7 +313,8 @@ int is_integral_sub_brick ( THD_3dim_dataset *dset, int isb, int check_values) {
    return(1);
 }
 
-int is_integral_dset ( THD_3dim_dataset *dset, int check_values) {
+int is_integral_dset ( THD_3dim_dataset *dset, int check_values)
+{
    int i=0;
 
    if(   !ISVALID_DSET(dset)  ) return(0);
@@ -422,7 +424,7 @@ the rank of the voxel value in mask_dset
 int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
                         int miv,
                         byte *cmask,
-                        char *mapname, 
+                        char *mapname,
                         int **unqp, int *N_unq)
 {
    int nvox , ii, *unq = NULL, *vals=NULL, imax=0;
@@ -437,7 +439,7 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
       fprintf(stderr,"** unqp (%p) not initialized properly to NULL", *unqp);
       return (vals) ;
    }
-   
+
    if( !ISVALID_DSET(mask_dset)    ||
        miv < 0                     ||
        miv >= DSET_NVALS(mask_dset)  ) {
@@ -925,7 +927,7 @@ ENTRY("thd_mask_from_brick");
     {
         case MRI_byte:
         {
-            if (thresh <= (float)MRI_maxbyte) { /* ZSS: Oct 2011 
+            if (thresh <= (float)MRI_maxbyte) { /* ZSS: Oct 2011
                   Without this test, a high threshold value might end up
                   equal to MRI_maxbyte when BYTEIZED below, resulting in
                   the highest voxel making it to the mask no matter how
