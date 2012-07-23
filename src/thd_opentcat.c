@@ -10,16 +10,30 @@ THD_3dim_dataset * THD_open_tcat( char *dlist )
    int ndset_in , dd , nerr , new_nvals ;
    NI_str_array *sar ;
    double angle=0.0;
+   char *dp, *dlocal = dlist;   /* local dlist, in case it is altered */
    
 ENTRY("THD_open_tcat") ;
 
-   if( dlist == NULL || *dlist == '\0' ) RETURN(NULL) ;
+   if( dlocal == NULL || *dlocal == '\0' ) RETURN(NULL) ;
 
-   if( strchr(dlist,' ') == NULL ){
-     dset_out = THD_open_dataset(dlist) ; RETURN(dset_out) ;
+   /* allow file list to be read from a file   23 Jul 2012 [rickr] */
+   if( ! strncmp(dlocal, "filelist:", 9) ) {
+      dlocal = AFNI_suck_file(dlocal+9) ;
+      if ( ! dlocal ) {
+         ERROR_message("THD_open_tcat: failed to open '%s' as filelist",
+                       dlocal+9);
+         RETURN(NULL) ;
+      }
+      /* make it look more like expected */
+      for( dd=0, dp=dlocal; dd < strlen(dlocal); dd++, dp++ )
+         if( *dp == '\n' || *dp  == '\r' ) *dp = ' ';
    }
 
-   sar = NI_decode_string_list( dlist , "~" ) ;
+   if( strchr(dlocal,' ') == NULL ){
+     dset_out = THD_open_dataset(dlocal) ; RETURN(dset_out) ;
+   }
+
+   sar = NI_decode_string_list( dlocal , "~" ) ;
    if( sar == NULL ) RETURN(NULL) ;
 
    ndset_in = sar->num ;
@@ -120,7 +134,7 @@ ENTRY("THD_open_tcat") ;
                        ADN_none ) ;
    }
 
-   dset_out->tcat_list = strdup( dlist ) ;
+   dset_out->tcat_list = strdup( dlocal ) ;
    dset_out->tcat_num  = ndset_in ;
    dset_out->tcat_len  = (int *)malloc(sizeof(int)*ndset_in) ;
    for( dd=0 ; dd < ndset_in ; dd++ ){
