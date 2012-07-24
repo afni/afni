@@ -402,7 +402,7 @@ ENTRY("GA_interp_varp1") ;
        ww(r/WRAD) where r = sqrt(di*di+dj*dj+dk*dk), and di=change in i index.
 *//*-------------------------------------------------------------------------*/
 
-static float WCUT = 0.5f ;  /* cutoff point for taper */
+static float WCUT = 0.1f ;  /* cutoff point for taper */
 
 static void setup_WCUT(void)
 {
