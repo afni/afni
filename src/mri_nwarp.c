@@ -648,7 +648,7 @@ void IW3D_interp_linear( int nxx , int nyy , int nzz ,
 *//*-------------------------------------------------------------------------*/
 
 #undef  WCUT
-#define WCUT 0.5f    /* cutoff point for taper */
+#define WCUT 0.1f    /* cutoff point for taper */
 
 #undef  WRAD
 #define WRAD 5.0001f /* width of sinc interpolation (float) */
@@ -669,7 +669,7 @@ void IW3D_interp_linear( int nxx , int nyy , int nzz ,
 /* Note that the input to wtap will always be between WCUT and 1.   */
 
 #undef  wtap
-#define wtap(x) ( 0.5f+0.5f*cosf(PIF*((x)-WCUT)/(1.0f-WCUT)) )
+#define wtap(x) ( 0.54f+0.46f*cosf(PIF*((x)-WCUT)/(1.0f-WCUT)) )
 
 #undef AW
 #undef BW
