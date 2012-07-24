@@ -2926,7 +2926,8 @@ static void HQwarp_load( float *par )  /* 81 elements in par */
 /*----------------------------------------------------------------------------*/
 /* Evaluate srcim[ Awarp(Hwarp(x)) ] into the val[] array.
    Note that Awarp is a global warp for srcim, whereas Hwarp is a local patch.
-   The val[] array contains the interpolated warped values over this patch.
+   The val[] array contains the linearly interpolated warped values over
+   this patch.
 *//*--------------------------------------------------------------------------*/
 
 static void Hwarp_apply( MRI_IMAGE *srcim , IndexWarp3D *Awarp , float *val )
@@ -3077,7 +3078,7 @@ static double basis_parmax = 0.0 ;  /* max warp parameter allowed */
 
 /*----------------------------------------------------------------------------*/
 
-void IW3D_cleanup_warposity(void)
+void IW3D_cleanup_improvement(void)
 {
    basim = wbasim = srcim = NULL ;
    bfar  = wbfar  = sfar  = NULL ;
@@ -3093,17 +3094,17 @@ void IW3D_cleanup_warposity(void)
 /*----------------------------------------------------------------------------*/
 /* Sets a bunch of global variables, prior to iteratively improving the warp. */
 
-void IW3D_setup_for_warposity( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
-                               IndexWarp3D *Iwarp,
-                               int meth_code, int warp_code, int warp_flags )
+void IW3D_setup_for_improvement( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
+                                 IndexWarp3D *Iwarp,
+                                 int meth_code, int warp_code, int warp_flags )
 {
-ENTRY("IW3D_setup_for_warposity") ;
+ENTRY("IW3D_setup_for_improvement") ;
 
    if( bim == NULL ||  bim->kind != MRI_float )
-     ERROR_exit("IW3D_setup_for_warposity: bad bim input") ;
+     ERROR_exit("IW3D_setup_for_improvement: bad bim input") ;
 
    if( sim == NULL ||  sim->kind != MRI_float )
-     ERROR_exit("IW3D_setup_for_warposity: bad sim input") ;
+     ERROR_exit("IW3D_setup_for_improvement: bad sim input") ;
 
    /* copy info about base and source images */
 
@@ -3118,7 +3119,7 @@ ENTRY("IW3D_setup_for_warposity") ;
      int ii ;
      if( wbim->kind != MRI_float ||
          wbim->nx != nxb || wbim->ny != nyb || wbim->nz != nzb )
-       ERROR_exit("IW3D_setup_for_warposity: bad wbim input") ;
+       ERROR_exit("IW3D_setup_for_improvement: bad wbim input") ;
 
      wbasim = wbim ; wbfar = MRI_FLOAT_PTR(wbasim) ;
      wbmask = (byte *)malloc(sizeof(byte)*nxyzb) ;
@@ -3126,7 +3127,7 @@ ENTRY("IW3D_setup_for_warposity") ;
        wbmask[ii] = (wbfar[ii] > 0.0f) ; if( wbmask[ii] ) wbbar += wbfar[ii] ;
      }
      if( wbbar == 0.0f )
-       ERROR_exit("IW3D_setup_for_warposity: all zero wbim input") ;
+       ERROR_exit("IW3D_setup_for_improvement: all zero wbim input") ;
      wbbar /= nxyzb ;
    } else {
      wbasim = NULL ; wbfar = NULL ; wbmask = NULL ; wbbar = 0.0f ;
@@ -3136,7 +3137,7 @@ ENTRY("IW3D_setup_for_warposity") ;
 
    match_code = meth_code ;
    if( INCOR_check_meth_code(meth_code) == 0 )
-     ERROR_exit("IW3D_setup_for_warposity: bad meth_code input") ;
+     ERROR_exit("IW3D_setup_for_improvement: bad meth_code input") ;
 
    if( warp_code == MRI_QUINTIC ){
      basis_code = MRI_QUINTIC ;
@@ -3144,24 +3145,26 @@ ENTRY("IW3D_setup_for_warposity") ;
    } else {
      if( warp_code != MRI_CUBIC )
        WARNING_message(
-         "IW3D_setup_for_warposity: bad warp_code replaced with MRI_CUBIC");
+         "IW3D_setup_for_improvement: bad warp_code replaced with MRI_CUBIC");
      basis_code = MRI_CUBIC ;
      basis_parmax = 0.021 ;       /* max displacement from 1 function (of 24) */
    }
 
    basis_flags = IW3D_munge_flags(nxs,nys,nzs,warp_flags) ;
    if( basis_flags < 0 )
-     ERROR_exit("IW3D_setup_for_warposity: bad warp_flags input") ;
+     ERROR_exit("IW3D_setup_for_improvement: bad warp_flags input") ;
 
    /* initial warp */
 
    if( Iwarp != NULL ){
-     if( Iwarp->nx != nxs || Iwarp->ny != nys || Iwarp->nz != nzs )
-       ERROR_exit("IW3D_setup_for_warposity: bad Iwarp input") ;
+     if( Iwarp->nx != nxb || Iwarp->ny != nyb || Iwarp->nz != nzb )
+       ERROR_exit("IW3D_setup_for_improvement: bad Iwarp input") ;
 
      Awarp = IW3D_copy(Iwarp,1.0f) ;
+   } else if( nxs == nxb && nys == nyb && nzs == nyb ){
+     Awarp = IW3D_create(nxb,nyb,nzb) ;  /* initialize to 0 displacements */
    } else {
-     Awarp = IW3D_create(nxs,nys,nzs) ;  /* initialize to 0 displacements */
+     ERROR_exit("IW3D_setup_for_improvement: need Iwarp input") ;
    }
 
    /* warp the source image with the initial warp, onto the base image grid */
