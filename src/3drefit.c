@@ -13,7 +13,7 @@ void Syntax(int detail)
 {
    int ii ;
 
-   printf( 
+   printf(
 "Changes some of the information inside a 3D dataset's header.\n"
         "Note that this program does NOT change the .BRIK file at all;\n"
         "the main purpose of 3drefit is to fix up errors made when\n"
@@ -291,7 +291,7 @@ void Syntax(int detail)
     "                  so you can use those to alter the auxiliary data\n"
     "                  that is copied from auxset.\n"
     "\n" ) ;
-   
+
    printf(           /* 11 Jan 2012 */
     "\n"
     "  -copytables tabset Copies labeltables AND/OR atlas point lists, if any,\n"
@@ -400,7 +400,7 @@ void SynErr(char *str)
 #define ASET_NULL 1
 #define ASET_SELF 2
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
    THD_3dim_dataset * dset = NULL, * aset = NULL , *waset = NULL;
                       int aset_code = 0    ; /* 14 Dec 1999 */
@@ -489,7 +489,7 @@ int main( int argc , char * argv[] )
    int code, acount;
 
    /*-------------------------- help me if you can? --------------------------*/
-   
+
 
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
@@ -505,8 +505,8 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
-      if(strcmp(argv[iarg],"-h") == 0 || 
-         strncmp(argv[iarg],"-help",4) == 0 ) 
+      if(strcmp(argv[iarg],"-h") == 0 ||
+         strncmp(argv[iarg],"-help",4) == 0 )
          Syntax(strlen(argv[iarg]) > 3 ? 2:1) ;
 
       /*----- -addFDR [23 Jan 2008] -----*/
@@ -685,7 +685,7 @@ int main( int argc , char * argv[] )
 
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
-      
+
       /*----- -copytables tabset [12 Jan 2012] -----*/
 
       if( strcmp(argv[iarg],"-copytables") == 0 ){
@@ -695,7 +695,7 @@ int main( int argc , char * argv[] )
          if( tabset != NULL ) SynErr("Can't have more than one -copytables option!") ;
 
          iarg++ ; copytabs = 1 ;
-         
+
          tabset = THD_open_one_dataset( argv[iarg] ) ;
          if( tabset == NULL ) SynErr("Can't open -copytables dataset!") ;
 
@@ -816,7 +816,7 @@ int main( int argc , char * argv[] )
 
          sublab[nsublab].iv = iv ;
          /* max sublabel = 64, 10/28/2011 drg */
-         MCW_strncpy( sublab[nsublab].lab , argv[++iarg] , THD_MAX_SBLABEL ) ; 
+         MCW_strncpy( sublab[nsublab].lab , argv[++iarg] , THD_MAX_SBLABEL ) ;
          nsublab++ ; new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -1371,8 +1371,8 @@ int main( int argc , char * argv[] )
       }
 
    }  /* end of loop over switches */
-   if (iarg < 2) SynErr("Too few options. See 3drefit -help.");
-   
+   if (iarg < 2) Syntax(1) ;
+
    /*-- some checks for erroneous inputs --*/
 
    if( new_stuff == 0 && atrmod == 0 ) SynErr("No options given!?") ;
@@ -1856,7 +1856,7 @@ int main( int argc , char * argv[] )
          #if 0 /* HEADNAME now has path, no need for catenation ZSS Fev 2012 */
          strcpy(new_head,DSET_DIRNAME(dset)) ;
          strcat(new_head,DSET_HEADNAME(dset)) ;
-         strcpy(new_brik,DSET_DIRNAME(dset)) ; 
+         strcpy(new_brik,DSET_DIRNAME(dset)) ;
          strcat(new_brik,DSET_BRIKNAME(dset)) ;
          #else
          strcpy(new_head,DSET_HEADNAME(dset)) ;
@@ -1924,7 +1924,7 @@ int main( int argc , char * argv[] )
           did_something++ ; /* 30 Mar 2010 */
         }
       }
-      
+
       /*-- 11 Jan 2012: copytables? --*/
 
       if( copytabs ){
@@ -1932,11 +1932,11 @@ int main( int argc , char * argv[] )
           if (!THD_copy_labeltable_atr( dset->dblk , tabset->dblk )) {
             WARNING_message("Failed to copy labletable attributes");
           }
-          did_something++ ; 
+          did_something++ ;
           VINFO("copy tabledata") ;
-        } 
+        }
       }
-      
+
 
       /*-- relabel_all? [18 Apr 2011] --*/
 
@@ -2059,7 +2059,7 @@ int main( int argc , char * argv[] )
       /* (only if -atrcopy or -atrstring)       28 Jul 2006 [rickr] */
       if ( saveatr && atrmod ){
          THD_set_dset_atr_status(0);
-/*         THD_updating_obliquity(1);*/ /* allow the possibility to update the obliquity - 
+/*         THD_updating_obliquity(1);*/ /* allow the possibility to update the obliquity -
                                             otherwise gets overwritten with cardinal matrix in
                                             THD_set_dataset_attributes() */
          /* apply attributes to header - dataxes and dblk*/
@@ -2074,7 +2074,7 @@ int main( int argc , char * argv[] )
       if( !did_something ){
         ININFO_message("Didn't make any changes for dataset %s !",argv[iarg]) ;
       } else {
-        if( write_output ) { 
+        if( write_output ) {
             ININFO_message(
                "loading and re-writing dataset %s (%s in %s storage)\n",
                   argv[iarg], dset->dblk->diskptr->header_name,
@@ -2083,8 +2083,8 @@ int main( int argc , char * argv[] )
         }
         THD_force_ok_overwrite(1);             /* 24 Sep 2007 */
         THD_set_quiet_overwrite(1);
-        THD_write_3dim_dataset( THD_filepath(argv[iarg]),NULL , 
-                                dset , write_output ) ; 
+        THD_write_3dim_dataset( THD_filepath(argv[iarg]),NULL ,
+                                dset , write_output ) ;
       }
       THD_delete_3dim_dataset( dset , False ) ;
 
