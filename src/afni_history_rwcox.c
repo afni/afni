@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , JUL , 2012 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+  { 26 , JUL , 2012 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Modify wsinc5 (again) to be more flexible" ,
+   NULL } ,
+
+ { 23 , JUL , 2012 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "Also, change wsinc5 taper from Hanning to Hamming" ,
    NULL } ,
 
