@@ -339,7 +339,6 @@ def db_cmd_align(proc, block):
     # store alignment matrix file for possible later use
     proc.a2e_mat = "%s%s_mat.aff12.1D" % (proc.anat.prefix, suffix)
 
-
     # if e2a:   update anat and tlrc to '_ss' version (intermediate, stripped)
     #           (only if skull: '-anat_has_skull no' not found in extra_opts)
     #           (not if using adwarp)
@@ -353,6 +352,7 @@ def db_cmd_align(proc, block):
             if proc.tlrcanat:
                 proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
             proc.tlrc_ss = 0
+            proc.anat_has_skull = 0     # make note that skull is gone
             istr = 'intermediate, stripped,'
         else: # just set istr
             istr = 'current'
@@ -362,6 +362,7 @@ def db_cmd_align(proc, block):
         if proc.tlrcanat:
             proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
         proc.tlrc_ss = 0        # skull-strip no longer required
+        proc.anat_has_skull = 0 # make note that skull is gone
 
         # also, set strings for header
         istr = 'aligned and stripped,'
@@ -376,9 +377,6 @@ def db_cmd_align(proc, block):
 
     # note the alignment in EPIs warp bitmap (2=a2e)
     proc.warp_epi |= WARP_EPI_ALIGN_A2E
-
-    # in any case, our current anat is not stripped
-    proc.anat_has_skull = 0
 
     return hdr + cmd
 
@@ -1285,10 +1283,10 @@ def db_cmd_volreg(proc, block):
     if proc.view == '+tlrc': aset = proc.tlrcanat
     else:                    aset = proc.anat
     if aset != None:
-       proc.anat_final = aset
+       proc.anat_final = aset.new(new_pref='anat_final.%s'%proc.subj_label)
        cmd += "# create an anat_final dataset, aligned with stats\n"    \
-              "3dcopy %s anat_final.%s\n\n"                             \
-              % (proc.anat_final.pv(), proc.subj_label)
+              "3dcopy %s %s\n\n"                                        \
+              % (aset.pv(), proc.anat_final.prefix)
 
     if do_extents: emask = proc.mask_extents.prefix
     else:          emask = ''
@@ -1802,13 +1800,10 @@ def db_mod_mask(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
         block.opts.add_opt('-mask_type', 1, ['union'], setpar=1)
         block.opts.add_opt('-mask_dilate', 1, [1], setpar=1)
+        block.opts.add_opt('-mask_rm_segsy', 1, ['yes'], setpar=1)
         block.opts.add_opt('-mask_test_overlap', 1, ['yes'], setpar=1)
 
     # check for user updates
-    uopt = user_opts.find_opt('-mask_type')
-    bopt = block.opts.find_opt('-mask_type')
-    if uopt and bopt:
-        bopt.parlist[0] = uopt.parlist[0]   # no worries, using acplist
 
     uopt = user_opts.find_opt('-mask_dilate')
     bopt = block.opts.find_opt('-mask_dilate')
@@ -1820,19 +1815,11 @@ def db_mod_mask(block, proc, user_opts):
             block.valid = 0
             return 1
 
-    uopt = user_opts.find_opt('-mask_apply')
-    bopt = block.opts.find_opt('-mask_apply')
-    if uopt:
-        if bopt: bopt.parlist = uopt.parlist
-        else: block.opts.add_opt('-mask_apply', 1, uopt.parlist, setpar=1)
-
-    # maybe we do not want cormat warnings
-    uopt = user_opts.find_opt('-mask_test_overlap')
-    if uopt:
-        bopt = block.opts.find_opt('-mask_test_overlap')
-        if bopt: bopt.parlist = uopt.parlist
-        else: block.opts.add_opt('-mask_test_overlap', 1,
-                                 uopt.parlist, setpar=1)
+    apply_uopt_to_block('-mask_apply',        user_opts, block)
+    apply_uopt_to_block('-mask_rm_segsy',     user_opts, block)
+    apply_uopt_to_block('-mask_segment_anat', user_opts, block)
+    apply_uopt_to_block('-mask_test_overlap', user_opts, block)
+    apply_uopt_to_block('-mask_type',         user_opts, block)
 
     proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
     proc.mask = proc.mask_epi   # default to referring to EPI mask
@@ -1863,12 +1850,13 @@ def mask_created(mask):
 #    - apply from -tlrc_base
 # add -mask_apply TYPE, TYPE in {epi, anat, group, extents}
 #     (this would override -regress_apply_mask)
+# if have anat_final, segment it and resample to match EPI
 def db_cmd_mask(proc, block):
     cmd = ''
     opt = block.opts.find_opt('-mask_type')
     type = opt.parlist[0]
-    if type == 'union': min = 0            # result must be greater than min
-    else:               min = 0.999
+    if type == 'union': minv = 0           # result must be greater than minv
+    else:               minv = 0.999
 
     # if we have an EPI mask, set the view here
     if proc.mask_epi.view == '': proc.mask_epi.view = proc.view
@@ -1893,7 +1881,8 @@ def db_cmd_mask(proc, block):
                     "3dMean -datum short -prefix rm.mean rm.mask*.HEAD\n"    \
                     "3dcalc -a rm.mean%s -expr 'ispositive(a-%s)' "          \
                     "-prefix %s\n\n" %                                       \
-                    (str(min), type, proc.view, str(min), proc.mask_epi.prefix)
+                    (str(minv), type, proc.view, str(minv),
+                     proc.mask_epi.prefix)
     else:  # just copy the one
         cmd = cmd + "# only 1 run, so copy this to full_mask\n"              \
                     "3dcopy rm.mask_r01%s %s\n\n"                            \
@@ -1912,7 +1901,7 @@ def db_cmd_mask(proc, block):
         if mc == None: return
         cmd = cmd + mc
 
-    # lastly, see if the user wants to choose which mask to apply
+    # see if the user wants to choose which mask to apply
     opt = block.opts.find_opt('-mask_apply')
     if opt:
         mtype = opt.parlist[0]
@@ -1926,10 +1915,62 @@ def db_cmd_mask(proc, block):
             print "** ERROR: cannot apply %s mask" % mtype
             return
 
+    cmd += mask_segment_anat(proc, block)
+
     # do not increment block index or set 'previous' block label,
     # as there are no datasets created here
 
     return cmd
+
+def mask_segment_anat(proc, block):
+    """- return a string for segmenting anat
+       - copy result current dir and resample
+       - apply any classes to roi_dict (for possible regression)
+
+       requires:
+          - anat_final
+          - ! (-mask_segment_anat == no)
+          - either requested (-mask_segment_anat) or already skull-stripped
+    """
+
+    # ----------------------------------------------------------------------
+    # make any segmentation masks
+
+    opt = block.opts.find_opt('-mask_segment_anat')
+    if not proc.anat_final or OL.opt_is_no(opt):
+        if proc.verb > 1:
+           print '-- no Segsy (either no anat_final or -mask_segment_anat no)'
+        return ''
+    if not opt and proc.anat_has_skull:
+        if proc.verb > 1:
+           print '-- no Segsy (not requested and no skull-stripped anat)'
+        return ''
+
+    # maybe we will take more classes in some option...
+    sclasses = ['GM', 'WM', 'CSF']
+    cmd  = "# ---- segment anatomy into classes %s ----\n" % '/'.join(sclasses)
+
+    cmd += "3dSeg -anat %s -mask AUTO -classes '%s'\n\n" \
+               % (proc.anat_final.pv(), ' ; '.join(sclasses))
+    cmd += '# copy resulting Classes dataset to current directory\n'
+    cmd += '3dcopy Segsy/Classes%s .\n\n' % proc.view
+
+    result = BASE.afni_name('Classes_resam%s' % proc.view)
+    cmd += '# resample to match EPI data grid\n'            \
+            '3dresample -master %s -input Classes%s \\\n'   \
+            '           -prefix %s\n\n'                     \
+               % (proc.prev_prefix_form(1, view=1), proc.view, result.prefix)
+    proc.mask_classes = result
+    
+    for sc in sclasses:
+        proc.roi_dict[sc] = 'Classes_resam%s' % proc.view
+
+    if OL.opt_is_yes(block.opts.find_opt('-mask_rm_segsy')):
+       proc.rm_list.append('Segsy')
+       proc.rm_dirs = 1
+
+    return cmd
+
 
 # if possible: make a group anatomical mask (resampled to EPI)
 #    - only if tlrc block and -volreg_tlrc_warp
@@ -2017,8 +2058,8 @@ def anat_mask_command(proc, block):
     elif proc.warp_epi & (WARP_EPI_ALIGN_A2E | WARP_EPI_ALIGN_E2A):
         anat = proc.anat
         ss = 'aligned'
-     # no longer invert e2a matrix to get ss anat, since the current
-     # anat will already be stripped
+    # no longer invert e2a matrix to get ss anat, since the current
+    # anat will already be stripped
     else: # should not happen
         print '** anat_mask_command: invalid warp_epi = %d' % proc.warp_epi
         return None
@@ -4530,8 +4571,13 @@ g_help_string = """
                  idea, since motion artifacts should play a bigger role than in
                  a task-based analysis.  
 
-                 So the typical suggestion of 0.3 for task-based analysis has
-                 been changed to 0.2 for this resting-state example.
+                 So the typical suggestion of motion censoring at 0.3 for task
+                 based analysis has been changed to 0.2 for this resting state
+                 example, and censoring of outliers has also been added.
+
+                 Outliers are typically due to motion, and may capture motion
+                 in some cases where the motion parameters do not, because
+                 motion is not generally a whole-brain-between-TRs event.
 
            Note: if regressing out regions of interest, either create the ROI
                  time series before the blur step, or remove blur from the list
@@ -4545,6 +4591,7 @@ g_help_string = """
                         -volreg_align_e2a                                   \\
                         -volreg_tlrc_warp                                   \\
                         -regress_censor_motion 0.2                          \\
+                        -regress_censor_outliers 0.1                        \\
                         -regress_bandpass 0.01 0.1                          \\
                         -regress_apply_mot_types demean deriv               \\
                         -regress_run_clustsim no                            \\
@@ -4681,6 +4728,19 @@ g_help_string = """
        These volumes are then intersected over all TRs of all runs.  The final
        mask is the set of voxels that have valid data at every TR of every run.
        Yay.
+
+    5. Classes and Classes_resam: GM, WM, CSF class masks from 3dSeg
+
+       By default, unless the user requests otherwise (-mask_segment_anat no),
+       and if anat_final is skull-stripped, then 3dSeg will be used to segment
+       the anatomy into gray matter, white matter and CSF classes.
+
+       A dataset named Classes is the result of running 3dSeg, which is then
+       resampled to match the EPI and named Classes_resam.
+
+       If the user wanted to, this dataset could be used for regression of
+       said tissue classes (or eroded versions).
+
 
     --- masking, continued...
 
@@ -6328,6 +6388,41 @@ g_help_string = """
 
             Please see '3dAutomask -help' for more information.
             See also -mask_type.
+
+        -mask_segment_anat Y/N  : choose whether to segment anatomy
+
+                e.g. -mask_segment_anat no
+                default: yes (if anat_final is skull-stripped)
+
+            This option controls whether 3dSeg is run to segment the anatomical
+            dataset.  Such a segmentation would then be resampled to match the
+            grid of the EPI data.
+
+            When this is run, 3dSeg creates the Classes dataset, which is a
+            composition mask of the GM/WM/CSF (gray matter, white matter and
+            cerebral spinal fluid) regions.  Then 3dresample is used to create
+            Classes_resam, the same mask but at the resolution of the EPI.
+
+            Such a dataset might have multiple uses, such as tissue-based
+            regression.  Note that for such a use, the ROI time series should
+            come from the volreg data, before any blur.
+
+            Please see '3dSeg -help' for more information
+            See also -mask_rm_segsy.
+
+        -mask_rm_segsy Y/N  : choose whether to delete the Segsy directory
+
+                e.g. -mask_rm_segsy no
+                default: yes
+
+            In the case of running 3dSeg to segment the anatomy, a resulting
+            Segsy directory is created.  Since the main result is a Classes
+            dataset, and to save disk space, the Segsy directory is removed
+            by default.
+
+            Use this option to preserve it.
+
+            See also -mask_segment_anat.
 
         -mask_test_overlap Y/N  : choose whether to test anat/EPI mask overlap
 
