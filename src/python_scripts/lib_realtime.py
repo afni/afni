@@ -29,6 +29,7 @@ g_RTinterface = None    # global reference to main class
 g_magic_hi    = [0xab, 0xcd, 0xef, 0xab]
 g_magic_bye   = [0xde, 0xad, 0xde, 0xad]
 g_magic_len   = 4
+g_start_time  = 0       # time for starting a new run
 
 g_SER         = None    # for serial module, only if it is needed
 
@@ -39,6 +40,7 @@ class RTInterface:
 
       # general variables
       self.show_data       = 0                  # display data in terminal
+      self.show_times      = 0                  # display run times for data
       self.swap            = 0                  # byte-swap binary numbers
       self.verb            = verb
 
@@ -263,6 +265,7 @@ class RTInterface:
       """wait for a talk request from the AFNI real-time plugin
 
          client should send magic_hi string"""
+      global g_start_time
 
       self.data_sock, self.data_address = self.server_sock.accept()
 
@@ -282,15 +285,27 @@ class RTInterface:
       self.nconnects += 1       # we have a connection
 
       if self.verb>2: print '-- valid socket for run %d' % self.nconnects
+      g_start_time = time.time()        # call this the beginning of run
 
       return 0
+
+   def display_run_time(self, tr=-1):
+      """display time offset from beginning of current run"""
+      global g_start_time
+
+      if tr < 0: tr = len(self.motion[0])-1
+      offtime = time.time() - g_start_time
+      tstr = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+      print '-- comm time for TR %d @ %s (offset %.3f)' % (tr, tstr, offtime)
 
    def display_TR_data(self, tr=-1):
       """display motion and any extras for the given TR (last if not set)"""
 
-      if tr < 0: tr = len(motion[0])-1
+      if tr < 0: tr = len(self.motion[0])-1
 
-      if self.verb > 3: print '-- displaying data for TR %d' % tr
+      if self.verb > 3:
+         print '-- displaying data for TR %d' % tr
 
       mprefix = "++ recv motion:     "
       if self.version==1:   eprefix = "++ recv %d extras:   "%self.nextra
@@ -360,6 +375,7 @@ class RTInterface:
          for ind in range(self.nextra): self.extras[ind].append(values[ind])
 
       # possibly display TR data
+      if self.show_times or self.verb > 2: self.display_run_time(self.nread)
       if self.show_data or self.verb > 2: self.display_TR_data(self.nread)
 
       self.nread += 1

@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, JUL, 2012, RCR, "3dttest++", MINOR, TYPE_BUG_FIX,
+   "K text columns (after label) would result in K lost float columns",
+   "Thanks to Phoebe of Harvard for noting the problem."
+ } ,
+
+ { 26, JUL, 2012, RCR, "realtime_receiver.py", MINOR, TYPE_NEW_OPT,
+   "added -show_comm_times option to show communication times",
+   "Added for J Evans (and to get it off an ancient todo list)."
+ } ,
+
  { 23, JUL, 2012, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "allow programs to read auto-tcat datasets using filelist:DSETS.txt",
    "If DSETS.txt contains a list of datasets, they will be read in using\n"
