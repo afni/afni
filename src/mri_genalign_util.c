@@ -393,36 +393,65 @@ ENTRY("GA_interp_varp1") ;
    EXRETURN ;
 }
 
-/*---------------------------------------------------------------------------*/
+/*============================================================================*/
 /* Interpolation with weighted (tapered) sinc in 3D.
-   ++ Taper function ww(r) is defined to be 1 for 0 <= r <= WCUT
-       and for WCUT < r < 1 is a raised cosine dropping down to ww(r=1) = 0.
-       This choice was made to keep the variance smoothing artifact low.
-   ++ Radius of sinc window is WRAD, so that the actual taper used is
-       ww(r/WRAD) where r = sqrt(di*di+dj*dj+dk*dk), and di=change in i index.
-*//*-------------------------------------------------------------------------*/
+   Funcion GA_interp_wsinc5s() uses a spherical mask (really slow).
+   Funcion GA_interp_wsinc5p() uses a cubical mask (pretty slow).
+   Function setup_wsinc5() allows control via environment variables (once):
+     AFNI_WSINC5_TAPERCUT  = between 0 and 0.8, sets start point for tapering
+                             (0 = most tapering, 0.8 = least tapering)
+     AFNI_WSINC5_RADIUS    = integer from 3 to 21 (bigger = slower)
+     AFNI_WSINC5_TAPERFUN  = 'H' for Hamming (2 terms); otherwise, uses 3 terms
+     AFNI_WSINC5_SPHERICAL = 'Y' for spherical mask ; otherwise uses cubical
+*//*--------------------------------------------------------------------------*/
 
-static float WCUT = 0.1f ;  /* cutoff point for taper */
+#undef  PIF
+#define PIF 3.1415927f /* PI in float */
 
-static void setup_WCUT(void)
+static float WCUT  = 0.0f ;    /* cutoff point for taper function */
+static float WCUTI = 1.00f ;   /* = 1.0/(1.0-WCUT) */
+static int   IRAD  = 5 ;       /* radius of sinc window */
+static int   IRAD1 = 4 ;       /* IRAD - 1 */
+static float WRAD  = 5.001f ;  /* float form of IRAD (+ epsilon) */
+static int   WFUN  = 0 ;       /* window chooser: 0 = M3(x) ; 1 = HW(x) */
+static int   WSHAP = 0 ;       /* 0 = cubical ; 1 = spherical */
+
+#define IRAD_MAX 21            /* largest IRAD allowed */
+
+static void setup_wsinc5(void)
 {
-   char *eee = getenv("AFNI_WSINC5_TAPERCUT") ; float val ;
-   WCUT = 0.5f ;
+   char *eee ; float val ;
+
+   eee = getenv("AFNI_WSINC5_TAPERCUT") ;
+   WCUT = 0.0f ;
    if( eee != NULL ){
      val = (float)strtod(eee,NULL) ;
      if( val >= 0.0f && val <= 0.8f ) WCUT = val ;
    }
+   WCUTI = 1.0f / (1.0f - WCUT) ;
+
+   eee = getenv("AFNI_WSINC5_RADIUS") ;
+   IRAD = 5 ;
+   if( eee != NULL ){
+     val = (float)strtod(eee,NULL) ;
+     if( val >= 3.0f && val <= (IRAD_MAX+0.9f) ) IRAD = (int)val ;
+   }
+   WRAD = 0.001f + (float)IRAD ; IRAD1 = IRAD - 1 ;
+
+   eee = getenv("AFNI_WSINC5_TAPERFUN") ;
+   WFUN = (eee != NULL && toupper(*eee) == 'H' ) ;
+
+   eee = getenv("AFNI_WSINC5_SPHERICAL") ;
+   WSHAP = (eee != NULL && toupper(*eee) == 'Y' ) ;
+
+   INFO_message("wsinc5 interpolation setup:") ;
+   ININFO_message("  taper function     = %s",(WFUN)?"Hamming":"Min sidelobe 3 term");
+   ININFO_message("  taper cut fraction = %.3f",WCUT) ;
+   ININFO_message("  window radius      = %d voxels",IRAD) ;
+   ININFO_message("  window shape       = %s",(WSHAP)?"Spherical":"Cubical") ;
+
    return ;
 }
-
-#undef  WRAD
-#define WRAD 5.0001f /* width of sinc interpolation (float) */
-
-#undef  IRAD
-#define IRAD 5       /* width of sinc interpolation (int) */
-
-#undef  PIF
-#define PIF 3.1415927f /* PI in float */
 
 /* sinc function = sin(PI*x)/(PI*x) [N.B.: x will always be >= 0] */
 
@@ -430,17 +459,27 @@ static void setup_WCUT(void)
 #define sinc(x) ( ((x)>0.01f) ? sinf(PIF*(x))/(PIF*(x))     \
                               : 1.0f - 1.6449341f*(x)*(x) )
 
+/* HW(x) = Hamming Window = minimum sidelobe 2 term window */
+
+#undef  HW
+#define HW(x) (0.53836f+0.46164f*cosf(PIF*(x)))
+
+/* M3(x) = minimum sidelobe 3 term window (has no catchy name, alas) */
+
+#undef  M3
+#define M3(x) (0.4243801f+0.4973406f*cosf(PIF*(x))+0.0782793f*cosf(PIF*(x)*2.0f))
+
 /* Weight (taper) function, declining from ww(WCUT)=1 to ww(1)=0 */
 /* Note that the input to ww will always be between WCUT and 1. */
 
 #undef  ww
-#define ww(x) ( 0.54f+0.46f*cosf(PIF*((x)-WCUT)/(1.0f-WCUT)) )
+#define ww(x) ( (WFUN) ?  HW( ((x)-WCUT)*WCUTI ) : M3( ((x)-WCUT)*WCUTI ) )
 
 /*---------------------------------------------------------------------------*/
 #define UNROLL    /* unroll some loops */
 
 /*---------------------------------------------------------------------------*/
-/*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
+/*! Spherical windowed sinc interpolation (really slow). */
 
 void GA_interp_wsinc5s( MRI_IMAGE *fim ,
                         int npp, float *ip, float *jp, float *kp, float *vv )
@@ -451,9 +490,6 @@ void GA_interp_wsinc5s( MRI_IMAGE *fim ,
 ENTRY("GA_interp_wsinc5s") ;
 
    /*----- first time in: build spherical mask  -----*/
-   /*((((( WRAD=5 ==> mask will have 515 points )))))*/
-
-   setup_WCUT() ;
 
    if( smask == NULL ){
      smask = MCW_spheremask( 1.0f,1.0f,1.0f , WRAD ) ;
@@ -461,7 +497,7 @@ ENTRY("GA_interp_wsinc5s") ;
      di    = smask->i ;
      dj    = smask->j ;
      dk    = smask->k ;
-     ININFO_message("spherical wsinc5 mask = %d points",nmask) ;
+     ININFO_message("  wsinc5 SPHERE(%d) mask has %d points",IRAD,nmask) ;
    }
 
    /*----- loop over points -----*/
@@ -475,7 +511,7 @@ ENTRY("GA_interp_wsinc5s") ;
    int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
    float xw,yw,zw,rr , sum,wsum,wt ;
    int   iq,jq,kq , qq , ddi,ddj,ddk ;
-   float xsin[1+2*IRAD] , ysin[1+2*IRAD] , zsin[1+2*IRAD] ;
+   float xsin[1+2*IRAD_MAX] , ysin[1+2*IRAD_MAX] , zsin[1+2*IRAD_MAX] ;
 
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
@@ -490,9 +526,9 @@ ENTRY("GA_interp_wsinc5s") ;
      /*- compute sinc at all points plus/minus 5 indexes from current locale -*/
 
      for( qq=-IRAD ; qq <= IRAD ; qq++ ){
-       xw = fabsf(fx - qq) ; xsin[qq+IRAD] = sinc(xw) ;
-       yw = fabsf(fy - qq) ; ysin[qq+IRAD] = sinc(yw) ;
-       zw = fabsf(fz - qq) ; zsin[qq+IRAD] = sinc(zw) ;
+       xw = fabsf(fx-qq) ; xsin[qq+IRAD] = sinc(xw) ;
+       yw = fabsf(fy-qq) ; ysin[qq+IRAD] = sinc(yw) ;
+       zw = fabsf(fz-qq) ; zsin[qq+IRAD] = sinc(zw) ;
      }
 
      for( wsum=sum=0.0f,qq=0 ; qq < nmask ; qq++ ){
@@ -515,15 +551,19 @@ ENTRY("GA_interp_wsinc5s") ;
 }
 
 /*---------------------------------------------------------------------------*/
-
-/*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
+/*! Cubical (tensor product) windowed sinc interpolation (pretty slow). */
 
 void GA_interp_wsinc5p( MRI_IMAGE *fim ,
                         int npp, float *ip, float *jp, float *kp, float *vv )
 {
+  static int first=1 ;
+
 ENTRY("GA_interp_wsinc5p") ;
 
-   setup_WCUT() ;
+ if( first ){
+   ININFO_message("  wsinc5 CUBE(%d) mask has %d points",IRAD,8*IRAD*IRAD*IRAD) ;
+   first = 0 ;
+ }
 
  AFNI_OMP_START ;
 #pragma omp parallel if(npp > 2222)
@@ -536,9 +576,9 @@ ENTRY("GA_interp_wsinc5p") ;
 
    float xw,yw,zw,rr , sum,wsum,wfac,wt ;
    int   iq,jq,kq,iqp , qq,jj,kk , ddi,ddj,ddk ;
-   float xsin[2*IRAD] , ysin[2*IRAD]        , zsin[2*IRAD] ;
-   float wtt[2*IRAD]  , fjk[2*IRAD][2*IRAD] , fk[2*IRAD]   ;
-   int   iqq[2*IRAD]  ;
+   float xsin[2*IRAD_MAX] , ysin[2*IRAD_MAX]            , zsin[2*IRAD_MAX] ;
+   float wtt[2*IRAD_MAX]  , fjk[2*IRAD_MAX][2*IRAD_MAX] , fk[2*IRAD_MAX]   ;
+   int   iqq[2*IRAD_MAX]  ;
 
    /*----- loop over points -----*/
 
@@ -554,80 +594,200 @@ ENTRY("GA_interp_wsinc5p") ;
 
      /*- x interpolations -*/
 
-     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
-       xw  = fabsf(fx - qq) ; wt = sinc(xw) ;
+     for( wsum=0.0f,qq=-IRAD1 ; qq <= IRAD ; qq++ ){  /* setup weights */
+       xw  = fabsf(fx-qq) ; wt = sinc(xw) ;
        xw /= WRAD ; if( xw > WCUT ) wt *= ww(xw) ;
-       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
-       iq = ix+qq ; CLIP(iq,nx1) ; iqq[qq+(IRAD-1)] = iq ;
+       wtt[qq+IRAD1] = wt ; wsum += wt ;
+       iq = ix+qq ; CLIP(iq,nx1) ; iqq[qq+IRAD1] = iq ;
      }
      wfac = wsum ;
 
-     for( jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
+     for( jj=-IRAD1 ; jj <= IRAD ; jj++ ){
        jq = jy+jj ; CLIP(jq,ny1) ;
-       for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
+       for( kk=-IRAD1 ; kk <= IRAD ; kk++ ){
          kq = kz+kk ; CLIP(kq,nz1) ;
 #ifndef UNROLL
-         for( sum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
-           iq = iqq[qq+(IRAD-1)] ; sum += FAR(iq,jq,kq) * wtt[qq+(IRAD-1)] ;
-         }
-#else
-         farjk = FARJK(jq,kq) ;
-#if 0
-         for( sum=0.0f,qq=-IRAD+1 ; qq <  IRAD ; qq+=2 ){  /* unrolled by 2 */
-           iq = iqq[qq+(IRAD-1)] ; iqp = iqq[qq+IRAD] ;
-           sum += farjk[iq]  * wtt[qq+(IRAD-1)]
-                 +farjk[iqp] * wtt[qq+ IRAD   ] ;
+         for( sum=0.0f,qq=-IRAD1 ; qq <= IRAD ; qq++ ){
+           iq = iqq[qq+IRAD1] ; sum += FAR(iq,jq,kq) * wtt[qq+IRAD1] ;
          }
 #else
 # define FW(i) farjk[iqq[i]]*wtt[i]
-         sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9) ;
+         farjk = FARJK(jq,kq) ;
+         switch( IRAD ){
+
+           default:
+             for( sum=0.0f,qq=-IRAD1 ; qq <  IRAD ; qq+=2 ){  /* unrolled by 2 */
+               iq = iqq[qq+IRAD1] ; iqp = iqq[qq+IRAD] ;
+               sum += farjk[iq]  * wtt[qq+IRAD1]
+                     +farjk[iqp] * wtt[qq+IRAD ] ;
+             }
+           break ;
+
+           case 3:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5) ;
+           break ;
+
+           case 4:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7) ;
+           break ;
+
+           case 5:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9) ;
+           break ;
+
+           case 6:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11) ;
+           break ;
+
+           case 7:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13) ;
+           break ;
+
+           case 8:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15) ;
+           break ;
+
+           case 9:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17) ;
+           break ;
+
+           case 10:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19) ;
+           break ;
+
+           case 11:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21) ;
+           break ;
+
+           case 12:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23) ;
+           break ;
+
+           case 13:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25) ;
+           break ;
+
+           case 14:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25)
+                  +FW(26)+FW(27) ;
+           break ;
+
+           case 15:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25)
+                  +FW(26)+FW(27)+FW(28)+FW(29) ;
+           break ;
+
+           case 16:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25)
+                  +FW(26)+FW(27)+FW(28)+FW(29)+FW(30)+FW(31) ;
+           break ;
+
+           case 17:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25)
+                  +FW(26)+FW(27)+FW(28)+FW(29)+FW(30)+FW(31)+FW(32)+FW(33) ;
+           break ;
+
+           case 18:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25)
+                  +FW(26)+FW(27)+FW(28)+FW(29)+FW(30)+FW(31)+FW(32)+FW(33)
+                  +FW(34)+FW(35) ;
+           break ;
+
+           case 19:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25)
+                  +FW(26)+FW(27)+FW(28)+FW(29)+FW(30)+FW(31)+FW(32)+FW(33)
+                  +FW(34)+FW(35)+FW(36)+FW(37) ;
+           break ;
+
+           case 20:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25)
+                  +FW(26)+FW(27)+FW(28)+FW(29)+FW(30)+FW(31)+FW(32)+FW(33)
+                  +FW(34)+FW(35)+FW(36)+FW(37)+FW(38)+FW(39)+FW(40) ;
+           break ;
+
+           case 21:
+             sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
+                  +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
+                  +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25)
+                  +FW(26)+FW(27)+FW(28)+FW(29)+FW(30)+FW(31)+FW(32)+FW(33)
+                  +FW(34)+FW(35)+FW(36)+FW(37)+FW(38)+FW(39)+FW(40)+FW(41) ;
+           break ;
+
+         } /* end of switch on IRAD */
+
 # undef  FW
-#endif
-#endif
-         fjk[jj+(IRAD-1)][kk+(IRAD-1)] = sum ;
+#endif /* UNROLL */
+
+         fjk[jj+IRAD1][kk+IRAD1] = sum ;
        }
      }
 
      /*- y interpolations -*/
 
-     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
+     for( wsum=0.0f,qq=-IRAD1 ; qq <= IRAD ; qq++ ){
        yw  = fabsf(fy - qq) ; wt = sinc(yw) ;
        yw /= WRAD ; if( yw > WCUT ) wt *= ww(yw) ;
-       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
+       wtt[qq+IRAD1] = wt ; wsum += wt ;
      }
      wfac *= wsum ;
 
-     for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
+     for( kk=-IRAD1 ; kk <= IRAD ; kk++ ){
 #ifndef UNROLL
-       for( sum=0.0f,jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
-         sum += wtt[jj+(IRAD-1)]*fjk[jj+(IRAD-1)][kk+(IRAD-1)] ;
+       for( sum=0.0f,jj=-IRAD1 ; jj <= IRAD ; jj++ ){
+         sum += wtt[jj+IRAD1]*fjk[jj+IRAD1][kk+IRAD1] ;
        }
 #else
-       for( sum=0.0f,jj=-IRAD+1 ; jj <  IRAD ; jj+=2 ){  /* unrolled by 2 */
-         sum += wtt[jj+(IRAD-1)]*fjk[jj+(IRAD-1)][kk+(IRAD-1)]
-               +wtt[jj+ IRAD   ]*fjk[jj+ IRAD   ][kk+(IRAD-1)] ;
+       for( sum=0.0f,jj=-IRAD1 ; jj <  IRAD ; jj+=2 ){  /* unrolled by 2 */
+         sum += wtt[jj+IRAD1]*fjk[jj+IRAD1][kk+IRAD1]
+               +wtt[jj+IRAD ]*fjk[jj+IRAD ][kk+IRAD1] ;
        }
 #endif
-       fk[kk+(IRAD-1)] = sum ;
+       fk[kk+IRAD1] = sum ;
      }
 
      /*- z interpolation -*/
 
-     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
+     for( wsum=0.0f,qq=-IRAD1 ; qq <= IRAD ; qq++ ){
        zw  = fabsf(fz - qq) ; wt = sinc(zw) ;
        zw /= WRAD ; if( zw > WCUT ) wt *= ww(zw) ;
-       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
+       wtt[qq+IRAD1] = wt ; wsum += wt ;
      }
      wfac *= wsum ;
 
 #ifndef UNROLL
-     for( sum=0.0f,kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
-       sum += wtt[kk+(IRAD-1)] * fk[kk+(IRAD-1)] ;
+     for( sum=0.0f,kk=-IRAD1 ; kk <= IRAD ; kk++ ){
+       sum += wtt[kk+IRAD1] * fk[kk+IRAD1] ;
      }
 #else
-     for( sum=0.0f,kk=-IRAD+1 ; kk <  IRAD ; kk+=2 ){  /* unrolled by 2 */
-       sum += wtt[kk+(IRAD-1)] * fk[kk+(IRAD-1)]
-             +wtt[kk+ IRAD   ] * fk[kk+ IRAD   ] ;
+     for( sum=0.0f,kk=-IRAD1 ; kk <  IRAD ; kk+=2 ){  /* unrolled by 2 */
+       sum += wtt[kk+IRAD1] * fk[kk+IRAD1]
+             +wtt[kk+IRAD ] * fk[kk+IRAD ] ;
      }
 #endif
 
@@ -641,237 +801,23 @@ ENTRY("GA_interp_wsinc5p") ;
 }
 
 /*---------------------------------------------------------------------------*/
-#undef  WRAD
-#define WRAD 7.0001f /* width of sinc interpolation (float) */
-
-#undef  IRAD
-#define IRAD 7       /* width of sinc interpolation (int) */
-/*---------------------------------------------------------------------------*/
-/*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
-
-void GA_interp_wsinc7s( MRI_IMAGE *fim ,
-                        int npp, float *ip, float *jp, float *kp, float *vv )
-{
-   static MCW_cluster *smask=NULL ; static int nmask=0 ;
-   static short *di=NULL , *dj=NULL , *dk=NULL ;
-
-ENTRY("GA_interp_wsinc7s") ;
-
-   /*----- first time in: build spherical mask  -----*/
-
-   setup_WCUT() ;
-
-   if( smask == NULL ){
-     smask = MCW_spheremask( 1.0f,1.0f,1.0f , WRAD ) ;
-     nmask = smask->num_pt ;
-     di    = smask->i ;
-     dj    = smask->j ;
-     dk    = smask->k ;
-     ININFO_message("spherical wsinc7 mask = %d points",nmask) ;
-   }
-
-   /*----- loop over points -----*/
- AFNI_OMP_START ;
-#pragma omp parallel if(npp > 2222)
- {
-   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
-   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
-   float fx,fy,fz ;
-   float *far = MRI_FLOAT_PTR(fim) ;
-   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
-   float xw,yw,zw,rr , sum,wsum,wt ;
-   int   iq,jq,kq , qq , ddi,ddj,ddk ;
-   float xsin[1+2*IRAD] , ysin[1+2*IRAD] , zsin[1+2*IRAD] ;
-
-#pragma omp for
-   for( pp=0 ; pp < npp ; pp++ ){
-     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
-     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
-     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
-
-     ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
-     jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
-     kz = floorf(zz) ;  fz = zz - kz ;
-
-     /*- compute sinc at all points plus/minus 5 indexes from current locale -*/
-
-     for( qq=-IRAD ; qq <= IRAD ; qq++ ){
-       xw = fabsf(fx - qq) ; xsin[qq+IRAD] = sinc(xw) ;
-       yw = fabsf(fy - qq) ; ysin[qq+IRAD] = sinc(yw) ;
-       zw = fabsf(fz - qq) ; zsin[qq+IRAD] = sinc(zw) ;
-     }
-
-     for( wsum=sum=0.0f,qq=0 ; qq < nmask ; qq++ ){
-       ddi = di[qq] ; ddj = dj[qq] ; ddk = dk[qq] ;
-       iq = ix + ddi ; CLIP(iq,nx1) ; xw = fx - (float)ddi ;
-       jq = jy + ddj ; CLIP(jq,ny1) ; yw = fy - (float)ddj ;
-       kq = kz + ddk ; CLIP(kq,nz1) ; zw = fz - (float)ddk ;
-       rr = sqrtf(xw*xw+yw*yw+zw*zw) / WRAD ; if( rr >= 1.0f ) continue ;
-       wt = xsin[ddi+IRAD] * ysin[ddj+IRAD] * zsin[ddk+IRAD] ;
-       if( rr > WCUT ) wt *= ww(rr) ;
-       wsum += wt ; sum += FAR(iq,jq,kq) * wt ;
-     }
-
-     vv[pp] = sum / wsum ;
-   }
- } /* end OpenMP */
- AFNI_OMP_END ;
-
-   EXRETURN ;
-}
-
-/*---------------------------------------------------------------------------*/
-/*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
-
-void GA_interp_wsinc7p( MRI_IMAGE *fim ,
-                        int npp, float *ip, float *jp, float *kp, float *vv )
-{
-ENTRY("GA_interp_wsinc7p") ;
-
-   setup_WCUT() ;
-
- AFNI_OMP_START ;
-#pragma omp parallel if(npp > 2222)
- {
-   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
-   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
-   float fx,fy,fz ;
-   float *far = MRI_FLOAT_PTR(fim) , *farjk ;
-   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
-
-   float xw,yw,zw,rr , sum,wsum,wfac,wt ;
-   int   iq,jq,kq,iqp , qq,jj,kk , ddi,ddj,ddk ;
-   float xsin[2*IRAD] , ysin[2*IRAD]        , zsin[2*IRAD] ;
-   float wtt[2*IRAD]  , fjk[2*IRAD][2*IRAD] , fk[2*IRAD]   ;
-   int   iqq[2*IRAD]  ;
-
-   /*----- loop over points -----*/
-
-#pragma omp for
-   for( pp=0 ; pp < npp ; pp++ ){
-     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
-     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
-     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
-
-     ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
-     jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
-     kz = floorf(zz) ;  fz = zz - kz ;
-
-     /*- x interpolations -*/
-
-     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
-       xw  = fabsf(fx - qq) ; wt = sinc(xw) ;
-       xw /= WRAD ; if( xw > WCUT ) wt *= ww(xw) ;
-       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
-       iq = ix+qq ; CLIP(iq,nx1) ; iqq[qq+(IRAD-1)] = iq ;
-     }
-     wfac = wsum ;
-
-     for( jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
-       jq = jy+jj ; CLIP(jq,ny1) ;
-       for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
-         kq = kz+kk ; CLIP(kq,nz1) ;
-#ifndef UNROLL
-         for( sum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
-           iq = iqq[qq+(IRAD-1)] ; sum += FAR(iq,jq,kq) * wtt[qq+(IRAD-1)] ;
-         }
-#else
-         farjk = FARJK(jq,kq) ;
-#if 0
-         for( sum=0.0f,qq=-IRAD+1 ; qq <  IRAD ; qq+=2 ){  /* unrolled by 2 */
-           iq = iqq[qq+(IRAD-1)] ; iqp = iqq[qq+IRAD] ;
-           sum += farjk[iq]  * wtt[qq+(IRAD-1)]
-                 +farjk[iqp] * wtt[qq+ IRAD   ] ;
-         }
-#else
-# define FW(i) farjk[iqq[i]]*wtt[i]
-         sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
-              +FW(10)+FW(11)+FW(12)+FW(13) ;
-# undef  FW
-#endif
-#endif
-         fjk[jj+(IRAD-1)][kk+(IRAD-1)] = sum ;
-       }
-     }
-
-     /*- y interpolations -*/
-
-     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
-       yw  = fabsf(fy - qq) ; wt = sinc(yw) ;
-       yw /= WRAD ; if( yw > WCUT ) wt *= ww(yw) ;
-       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
-     }
-     wfac *= wsum ;
-
-     for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
-#ifndef UNROLL
-       for( sum=0.0f,jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
-         sum += wtt[jj+(IRAD-1)]*fjk[jj+(IRAD-1)][kk+(IRAD-1)] ;
-       }
-#else
-       for( sum=0.0f,jj=-IRAD+1 ; jj <  IRAD ; jj+=2 ){  /* unrolled by 2 */
-         sum += wtt[jj+(IRAD-1)]*fjk[jj+(IRAD-1)][kk+(IRAD-1)]
-               +wtt[jj+ IRAD   ]*fjk[jj+ IRAD   ][kk+(IRAD-1)] ;
-       }
-#endif
-       fk[kk+(IRAD-1)] = sum ;
-     }
-
-     /*- z interpolation -*/
-
-     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
-       zw  = fabsf(fz - qq) ; wt = sinc(zw) ;
-       zw /= WRAD ; if( zw > WCUT ) wt *= ww(zw) ;
-       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
-     }
-     wfac *= wsum ;
-
-#ifndef UNROLL
-     for( sum=0.0f,kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
-       sum += wtt[kk+(IRAD-1)] * fk[kk+(IRAD-1)] ;
-     }
-#else
-     for( sum=0.0f,kk=-IRAD+1 ; kk <  IRAD ; kk+=2 ){  /* unrolled by 2 */
-       sum += wtt[kk+(IRAD-1)] * fk[kk+(IRAD-1)]
-             +wtt[kk+ IRAD   ] * fk[kk+ IRAD   ] ;
-     }
-#endif
-
-     vv[pp] = sum / wfac ;
-   }
-
- } /* end OpenMP */
- AFNI_OMP_END ;
-
-   EXRETURN ;
-}
-
-/*---------------------------------------------------------------------------*/
-#undef  WRAD
-#undef  IRAD
-#undef  PIF
-/*---------------------------------------------------------------------------*/
+/* Master function for windowed sinc interpolation. */
 
 void GA_interp_wsinc5( MRI_IMAGE *fim ,
                        int npp, float *ip, float *jp, float *kp, float *vv )
 {
-   char *eee = getenv("AFNI_WSINC5_SPHERICAL") ;
-   char *fff = getenv("AFNI_WSINC5_RADIUS") ;
-   if( eee == NULL || toupper(*eee) == 'N' ){
-     if( fff != NULL && *fff == '7' )
-       GA_interp_wsinc7p( fim,npp,ip,jp,kp,vv ) ;    /* cubical 7 */
-     else
-       GA_interp_wsinc5p( fim,npp,ip,jp,kp,vv ) ;    /* cubical 5 = default */
-   } else {
-     if( fff != NULL && *fff == '7' )
-       GA_interp_wsinc7s( fim,npp,ip,jp,kp,vv ) ;  /* spherical 7 */
-     else
-       GA_interp_wsinc5s( fim,npp,ip,jp,kp,vv ) ;  /* spherical 5 */
-   }
-   return ;
+ENTRY("GA_interp_wsinc5") ;
+   static int first = 1 ;
+
+   if( first ){ setup_wsinc5() ; first = 0 ; }
+
+   if( WSHAP ) GA_interp_wsinc5s( fim,npp,ip,jp,kp,vv ) ; /* spherical */
+   else        GA_interp_wsinc5p( fim,npp,ip,jp,kp,vv ) ; /* spherical */
+
+   EXRETURN ;
 }
 
-/*---------------------------------------------------------------------------*/
+/*===========================================================================*/
 /* define quintic interpolation polynomials (Lagrange) */
 
 #undef  Q_M2
