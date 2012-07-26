@@ -1459,7 +1459,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Sometimes you've got to let go to see if there was anything worth holding onto" ,
      "Remember me and smile, for it's better to forget than remember me and cry"      ,
      "So now I say goodbye, but I feel sure we will meet again sometime"              ,
-     "If you're anything like me, you're both smart and incredibly good looking"
+     "If you're anything like me, you're both smart and incredibly good looking"      ,
+     "In battle we may yet meet again, though all the hosts of Mordor stand between"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
