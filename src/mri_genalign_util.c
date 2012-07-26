@@ -445,10 +445,10 @@ static void setup_wsinc5(void)
    WSHAP = (eee != NULL && toupper(*eee) == 'Y' ) ;
 
    INFO_message("wsinc5 interpolation setup:") ;
-   ININFO_message("  taper function     = %s",(WFUN)?"Hamming":"Min sidelobe 3 term");
-   ININFO_message("  taper cut fraction = %.3f",WCUT) ;
-   ININFO_message("  window radius      = %d voxels",IRAD) ;
-   ININFO_message("  window shape       = %s",(WSHAP)?"Spherical":"Cubical") ;
+   ININFO_message("  taper function  = %s",(WFUN)?"Hamming":"Min sidelobe 3 term");
+   ININFO_message("  taper cut point = %.3f",WCUT) ;
+   ININFO_message("  window radius   = %d voxels",IRAD) ;
+   ININFO_message("  window shape    = %s",(WSHAP)?"Spherical":"Cubical") ;
 
    return ;
 }
@@ -686,12 +686,14 @@ ENTRY("GA_interp_wsinc5p") ;
                   +FW(26)+FW(27) ;
            break ;
 
+#if 0
            case 15:
              sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
                   +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
                   +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25)
                   +FW(26)+FW(27)+FW(28)+FW(29) ;
            break ;
+#endif
 
            case 16:
              sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
