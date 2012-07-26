@@ -369,6 +369,8 @@ def read_options(argv, oplist, verb = -1):
 def opt_is_yes(opt):
     """return 1 if and only if option has yes/Yes/YES for oplist[0]"""
 
+    if opt == None: return 0
+
     rv = 0
     try:
         val = opt.parlist[0]
@@ -380,6 +382,8 @@ def opt_is_yes(opt):
 def opt_is_no(opt):
     """return 1 if and only if option has no/No/NO for oplist[0]"""
 
+    if opt == None: return 0
+
     rv = 0
     try:
         val = opt.parlist[0]
@@ -390,6 +394,8 @@ def opt_is_no(opt):
 
 def opt_is_val(opt, optval):
     """return 1 if and only if opt.oplist[0] == optval"""
+
+    if opt == None: return 0
 
     rv = 0
     try:

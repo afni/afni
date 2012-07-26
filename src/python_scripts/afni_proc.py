@@ -345,12 +345,15 @@ g_history = """
     3.25 Jul 10, 2012: let user know whether 3dClustSim will be run
     3.26 Jul 11, 2012: fill gaps and holes in anatomical masks
                        (now requires AFNI from 7 May, 2012)
+    3.27 Jul 26, 2012: now requires AFNI from 8 May, 2012
+        - added -mask_segment_anat and -mask_rm_segsy
+        - if anat is stripped, create segmented anat unless user says not to
 """
 
-g_version = "version 3.26, July 11, 2012"
+g_version = "version 3.27, July 26, 2012"
 
 # version of AFNI required for script execution
-g_requires_afni = "7 May 2012"
+g_requires_afni = "8 May 2012"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -442,6 +445,8 @@ class SubjProcSream:
         self.align_epre = 'ext_align_epi' # copied align epi base prefix
         self.rm_rm      = 1             # remove rm.* files (user option)
         self.have_rm    = 0             # have rm.* files (such files exist)
+        self.rm_dirs    = 0             # do we have dirs to remove?
+        self.rm_list    = ['rm.*']      # array of items to nuke
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
         self.made_ssr_scr = 0           # did we make subj review scripts
         self.ssr_basic    = '@ss_review_basic' # basic review script
@@ -471,6 +476,11 @@ class SubjProcSream:
         self.mask_anat  = None          # mask dataset (from subject anat)
         self.mask_group = None          # mask dataset (from tlrc base)
         self.mask_extents = None        # mask dataset (of EPI extents)
+        self.mask_classes = None        # Segsy result at EPI resolution
+
+        # options for tissue based time series
+        self.roi_dict   = {}            # dictionary of ROI vs afni_name
+
         self.censor_file  = ''          # for use as '-censor FILE' in 3dD
         self.censor_count = 0           # count times censoring
         self.censor_extern = ''         # from -regress_censor_extern
@@ -733,6 +743,12 @@ class SubjProcSream:
                         helpstr="select mask to apply in regression")
         self.valid_opts.add_opt('-mask_dilate', 1, [],
                         helpstr="dilation to be applied in automask")
+        self.valid_opts.add_opt('-mask_rm_segsy', 1, [],
+                        acplist=['yes', 'no'],
+                        helpstr="remove Segsy directory (yes/no)")
+        self.valid_opts.add_opt('-mask_segment_anat', 1, [],
+                        acplist=['yes', 'no'],
+                        helpstr="automatic segmentation using 3dSeg (yes/no)")
         self.valid_opts.add_opt('-mask_test_overlap', 1, [],
                         acplist=['yes','no'],
                         helpstr='test anat/EPI mask overlap (yes/no)')
@@ -1707,9 +1723,13 @@ class SubjProcSream:
         str = '# %s\n\n' % block_header('auto block: finalize')
         self.fp.write(str)
 
-        if self.rm_rm and self.have_rm:
-            self.fp.write('# remove temporary rm.* files\n'
-                          '\\rm -f rm.*\n\n')
+        if self.rm_rm and self.have_rm and len(self.rm_list) > 0:
+            if self.rm_dirs: ropt = 'r'
+            else:            ropt = ''
+            # make a list of things to delete, starting with rm.*
+            delstr = ' '.join(self.rm_list)
+            self.fp.write('# remove temporary files\n'
+                          '\\rm -f%s %s\n\n' % (ropt, delstr))
 
         # move or remove pre-processing files
         if self.user_opts.find_opt('-move_preproc_files'):
