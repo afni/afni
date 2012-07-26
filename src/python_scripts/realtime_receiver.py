@@ -97,6 +97,7 @@ realtime_receiver.py - program to receive and display real-time plugin data
    other options
       -data_choice CHOICE       : pick which data to send as feedback
       -serial_port PORT         : specify serial port file for feedback data
+      -show_comm_times          : display communication times
       -show_data yes/no         : display incoming data in terminal window
       -show_demo_data           : display feedback data in terminal window
       -show_demo_gui            : demonstrate a feedback GUI
@@ -115,9 +116,10 @@ g_history = """
    0.1  Jul 16, 2009 : includes optional serial connection
    0.2  Aug 04, 2009 : added basic demo interface and itemized exception traps
    0.3  Sep 08, 2009 : bind to open host (so /etc/hosts entry is not required)
+   0.4  Jul 26, 2012 : added -show_comm_times
 """
 
-g_version = "realtime_receiver.py version 0.3, Sep 8, 2009"
+g_version = "realtime_receiver.py version 0.4, July 26, 2012"
 
 g_RTinterface = None      # global reference to main class (for signal handler)
 
@@ -174,6 +176,8 @@ class ReceiverInterface:
       valid_opts.add_opt('-show_data', 1, [],
                       acplist=['no', 'yes'],
                       helpstr='whether to display received data in terminal')
+      valid_opts.add_opt('-show_comm_times', 0, [],
+                      helpstr='display communication times')
 
       # demo options
       valid_opts.add_opt('-show_demo_data', 1, [],
@@ -187,10 +191,6 @@ class ReceiverInterface:
                       helpstr='byte-swap numerical reads')
       valid_opts.add_opt('-tcp_port', 1, [],
                       helpstr='TCP port for incoming connections')
-
-      # todo
-      valid_opts.add_opt('-show_comm_times', 0, [],
-                      helpstr='display communication times')
 
       return valid_opts
 
@@ -265,6 +265,7 @@ class ReceiverInterface:
          if val == 'no': self.RTI.show_data = 0
          else:           self.RTI.show_data = 1
 
+      if uopts.find_opt('-show_comm_times'): self.RTI.show_times = 1
       if uopts.find_opt('-swap'): self.RTI.swap = 1
 
       val, err = uopts.get_type_opt(int, '-tcp_port')

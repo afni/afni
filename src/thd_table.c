@@ -465,7 +465,10 @@ ENTRY("THD_mixed_table_read") ;
      } else {
        for( jj=2 ; jj <= niv ; jj++ ){
          ii = ivlist[jj] ;
-         if( nel->vec_typ[ii] == NI_FLOAT ){
+         /* vec_typ[ii] here would likely mean that K final columns would be
+            lost in the case of K text columns (after label)
+            --> issue noted by Phoebe from Harvard       26 Jul 2012 [rickr] */
+         if( nel->vec_typ[jj-1] == NI_FLOAT ){
            if( ii < sar->num ){
              val = (float)strtod( sar->str[ii] , &qpt ) ;
              if( *qpt != '\0' )
