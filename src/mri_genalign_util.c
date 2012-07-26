@@ -615,13 +615,16 @@ ENTRY("GA_interp_wsinc5p") ;
          farjk = FARJK(jq,kq) ;
          switch( IRAD ){
 
-           default:
-             for( sum=0.0f,qq=-IRAD1 ; qq <  IRAD ; qq+=2 ){  /* unrolled by 2 */
+           default:                                    /* not actually needed */
+             for( sum=0.0f,qq=-IRAD1 ; qq <  IRAD ; qq+=2 ){ /* unrolled by 2 */
                iq = iqq[qq+IRAD1] ; iqp = iqq[qq+IRAD] ;
                sum += farjk[iq]  * wtt[qq+IRAD1]
                      +farjk[iqp] * wtt[qq+IRAD ] ;
              }
            break ;
+
+                       /* all possible cases from 3..21 are manually unrolled */
+                                             /* adding up FW(0)..FW(2*IRAD-1) */
 
            case 3:
              sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5) ;
@@ -686,14 +689,12 @@ ENTRY("GA_interp_wsinc5p") ;
                   +FW(26)+FW(27) ;
            break ;
 
-#if 0
            case 15:
              sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
                   +FW(10)+FW(11)+FW(12)+FW(13)+FW(14)+FW(15)+FW(16)+FW(17)
                   +FW(18)+FW(19)+FW(20)+FW(21)+FW(22)+FW(23)+FW(24)+FW(25)
                   +FW(26)+FW(27)+FW(28)+FW(29) ;
            break ;
-#endif
 
            case 16:
              sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9)
