@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, JUL, 2012, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -mask_segment_anat and -mask_rm_segsy",
+   "If anat is stripped, create segmented anat unless user says not to."
+ } ,
+
  { 26, JUL, 2012, RCR, "3dttest++", MINOR, TYPE_BUG_FIX,
    "K text columns (after label) would result in K lost float columns",
    "Thanks to Phoebe of Harvard for noting the problem."
