@@ -3168,6 +3168,15 @@ most of the time is spent decoding the text in the file into numbers
 and then writing them back out -- you'll probably see a speedup of
 about 1.2-1.4 instead -- not trivial, but not exhilarating.
 
+------------------------
+Variables: AFNI_WSINC5_*
+------------------------
+These variables affect the way the '3dAllineate -final wsinc5' windowed
+since interpolation option works.  See the output of the command
+  3dAllineate -HELP
+for the details.  You can control the width of the sinc window, the
+tapering function, and a couple of other useless options.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
