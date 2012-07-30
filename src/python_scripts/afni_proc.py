@@ -348,9 +348,10 @@ g_history = """
     3.27 Jul 26, 2012: now requires AFNI from 8 May, 2012
         - added -mask_segment_anat and -mask_rm_segsy
         - if anat is stripped, create segmented anat unless user says not to
+    3.28 Jul 30, 2012: if surf analysis, create run_suma script
 """
 
-g_version = "version 3.27, July 26, 2012"
+g_version = "version 3.28, July 30, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 May 2012"
@@ -502,6 +503,7 @@ class SubjProcSream:
         self.surf_A     = 'smoothwm'
         self.surf_B     = 'pial'
         self.surf_blur_fwhm = 8.0       # target FWHM (from -blur_size)
+        self.suma_cmd_file = 'run_suma' # script to contain suma command
 
         # computed surf variables
         self.surf_sv       = None       # either surf_anat or aligned version
@@ -512,6 +514,7 @@ class SubjProcSream:
         self.surf_spec_var = ''         # variable to use for spec file
                                         # (because of lh, rh)
         self.surf_spec_var_iter = ''    # iteration variable (e.g. hemi)
+        self.surf_spec_base = ''        # basename of first spec
         self.surf_svi_ref  = ''         # iter var reference (e.g. ${hemi})
         self.surf_hemilist = ''         # e.g. ['lh', 'rh']
 
