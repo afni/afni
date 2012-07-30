@@ -268,6 +268,19 @@ examples (very basic for now):
 
         See also -seed.
 
+   17. Display min, mean, max, stdev of 1D file.
+
+        1d_tool.py -show_mmms -infile data.1D
+
+       To be more detailed, get stats for each of x, y, and z directional
+       blur estimates for all subjects.  Cat(enate) all of the subject files
+       and pipe that to 1d_tool.py with infile - (meaning stdin).
+
+        cat subject_results/group.*/sub*/*.results/blur.errts.1D \\
+                | 1d_tool.py -show_mmms -infile -
+
+
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -500,6 +513,7 @@ general options:
    -show_indices_interest       : display column indices for regs of interest
    -show_max_displace           : display max displacement (from motion params)
                                   - the maximum pairwise distance (enorm)
+   -show_mmms                   : display min, mean, max, stdev of columns
    -show_rows_cols              : display the number of rows and columns
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
@@ -634,9 +648,10 @@ g_history = """
    1.06 May  7, 2012
         - added weighted_enorm method for -collapse_cols
         - added corresponding -weight_vec option
+   1.07 Jul 30, 2012 - added -show_mmms
 """
 
-g_version = "1d_tool.py version 1.06, May 7, 2012"
+g_version = "1d_tool.py version 1.07, July 30, 2012"
 
 
 class A1DInterface:
@@ -686,6 +701,7 @@ class A1DInterface:
                                         # (base, motion, regs of interest)
       self.show_label_ord  = 0          # show the label ordering
       self.show_labels     = 0          # show the labels
+      self.show_mmms       = 0          # show min, mean, max, stdev
       self.show_rows_cols  = 0          # show the number of rows and columns
                                 
 
@@ -892,6 +908,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_max_displace', 0, [], 
                       helpstr='display maximum displacements over TRs')
+
+      self.valid_opts.add_opt('-show_mmms', 0, [], 
+                      helpstr='display min, mean, max, stdev, per column')
 
       self.valid_opts.add_opt('-show_rows_cols', 0, [], 
                       helpstr='display the number of rows and columns')
@@ -1177,6 +1196,9 @@ class A1DInterface:
          elif opt.name == '-show_max_displace':
             self.show_displace = 3
 
+         elif opt.name == '-show_mmms':
+            self.show_mmms = 1
+
          elif opt.name == '-show_rows_cols':
             self.show_rows_cols = 1
 
@@ -1359,6 +1381,9 @@ class A1DInterface:
 
       if self.show_displace:
          print self.adata.get_max_displacement_str(verb=self.verb)
+
+      if self.show_mmms:
+         self.adata.show_min_mean_max_stdev(verb=self.verb)
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 

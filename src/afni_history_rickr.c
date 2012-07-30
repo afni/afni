@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, JUL, 2012, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "if surface analysis, create run_suma script",
+   NULL
+ } ,
+
+ { 30, JUL, 2012, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -show_mmms",
+   "Display min, mean, max, stdev of each column."
+ } ,
+
  { 26, JUL, 2012, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -mask_segment_anat and -mask_rm_segsy",
    "If anat is stripped, create segmented anat unless user says not to."

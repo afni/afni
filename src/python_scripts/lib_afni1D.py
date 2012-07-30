@@ -1439,6 +1439,19 @@ class Afni1D:
       if mesg: return "%s %s" % (mesg, rstr)
       else: return rstr
 
+   def show_min_mean_max_stdev(self, col=-1, verb=1):
+      """show min, mean, max, stdev for each column (unless col specified)"""
+
+      if verb: print "file %s (len %d)" % (self.fname, self.nt)
+      for cind, col in enumerate(self.mat):
+         if verb:
+            ps = "    col %d: " % cind
+            form = "min = %7.3f, mean = %7.3f, max = %7.3f, stdev = %7.3f"
+         else:
+            ps = ''
+            form = "%7.3f %7.3f %7.3f %7.3f"
+         print ps + form % UTIL.min_mean_max_stdev(col)
+
    def get_indices_str(self, ind_types):
       """return an index list (sub-brick selector form) for the
          following groups:
