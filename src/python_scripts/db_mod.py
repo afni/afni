@@ -1373,6 +1373,9 @@ def db_mod_surf(block, proc, user_opts):
           print '** error: failed to make spec var from %s' % snames[0]
           return None
 
+       # note basename of first spec file for later use
+       proc.surf_spec_base = snames[0]
+
     opt = user_opts.find_opt('-surf_anat_aligned')
     if opt: proc.surf_anat_aligned = opt.parlist[0]
        
@@ -1499,8 +1502,34 @@ def db_cmd_surf(proc, block):
 
     cmd += cmd_vol2surf(proc, block)
 
+    # add a command script for running suma
+    if proc.suma_cmd_file: cmd += write_suma_script(proc, block)
+
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
+
+def write_suma_script(proc, block):
+    """make a convenience script for running suma, since we know inputs"""
+    if not proc.suma_cmd_file: return
+    if not proc.surf_sv: return
+    if len(proc.surf_spec_base) < 1: return
+
+    # set variables for spec and sv directories
+
+    if proc.surf_spd_var: specd = '$%s/' % proc.surf_spd_var
+    else:                 specd = ''
+
+    if proc.surf_svd_var: svd = '$%s/' % proc.surf_svd_var
+    else:                 svd = ''
+
+    cmd = '# make local script for running suma, and make it executable\n' \
+          'echo suma -spec %s%s \\\n'                   \
+          '          -sv %s%s > %s\n'                   \
+          'chmod 755 %s\n\n'                            \
+          % (specd, proc.surf_spec_base[0], svd,
+             proc.surf_sv.pv(), proc.suma_cmd_file, proc.suma_cmd_file)
 
     return cmd
 
@@ -1563,8 +1592,9 @@ def cmd_surf_align(proc):
           '                        -surf_anat $%s/%s \\\n'                    \
           '                        -wd%s \\\n'                                \
           '                        -atlas_followers -overwrite_resp S\\\n'    \
-          '                        -prefix ${subj}_SurfVol_Alnd_Exp \n\n'     \
-        % (proc.anat_final.pv(), proc.surf_svd_var, proc.surf_sv.pv(), sstr)
+          '                        -prefix %s \n\n'                           \
+        % (proc.anat_final.pv(), proc.surf_svd_var, proc.surf_sv.pv(), sstr,
+           newsv.prefix)
 
     # and apply the new surf_sv, along with directories
     update_surf_sv(proc, newsv)
