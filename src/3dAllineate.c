@@ -1350,7 +1350,7 @@ int main( int argc , char *argv[] )
               " * The purpose of lpc+ is to avoid situations where the pure lpc cost\n"
               "   goes wild; this especially happens if '-source_automask' isn't used.\n"
               "   ++ Even with lpc+, you should use '-source_automask+2' (say) to be safe.\n"
-              " * You can later the weighting of the extra functionals by giving the\n"
+              " * You can alter the weighting of the extra functionals by giving the\n"
               "   option in the form (for example)\n"
               "     '-lpc+hel*0.5+nmi*0+mi*0+crA*1.0+ov*0.5'\n"
               " * The quotes are needed to prevent the shell from wild-card expanding\n"
