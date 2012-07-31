@@ -185,7 +185,24 @@ ENTRY("THD_dblkatr_from_niml") ;
                   int nch , nstr=nel->vec_len , istr , lll=0 ;
                   for( istr=0 ; istr < nstr ; istr++) lll += strlen(sar[istr]);
                   str = malloc(lll+4) ; *str = '\0' ;
-                  for( istr=0 ; istr < nstr ; istr++ ) strcat(str,sar[istr]);
+
+               /* for( istr=0 ; istr < nstr ; istr++ ) strcat(str,sar[istr]); */
+
+                  /* The loop of strcat() is very slow in the case of a long
+                     history element, O(n^2), so replace with something linear.
+                     Javier complained that afni took forever to start.  One 
+                     NIfTI dset with 8 MB history took ~8 seconds in loop.
+                                                        31 Jul 2012 [rickr] */
+                  {  char * cp, * sp = str; int slen;
+                     for( istr=0; istr < nstr; istr++ ) {
+                        cp = sar[istr];
+                        slen = strlen(cp);
+                        memcpy(sp, cp, slen*sizeof(char));
+                        sp += slen;
+                     }
+                     *sp = '\0';
+                  }
+
                   nch = strlen(str) ;
                   THD_unzblock( nch+1 , str ) ;  /* re-insert NULs */
                   THD_set_char_atr( blk , rhs , nch+1 , str ) ;
