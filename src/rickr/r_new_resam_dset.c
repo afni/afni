@@ -219,6 +219,10 @@ THD_3dim_dataset * r_new_resam_dset
     dout->dblk->diskptr->storage_mode = STORAGE_BY_BRICK;
     /* end move */
 
+    /* set ijk to dicom matrix, and make cardinal    31 Jul 2012 [rickr] */
+    THD_daxes_to_mat44(dout->daxes);
+    THD_make_cardinal(dout);
+
     if ( get_data && r_fill_resampled_data_brick( dout, resam ) )
     {
         THD_delete_3dim_dataset( dout, FALSE );
