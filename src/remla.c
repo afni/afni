@@ -512,7 +512,10 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
    MTYPE **rc , *rii , alam ;
    int ii , jj , bmax , jbot , itt,jtt ;
 
-   if( nt < 2 ) return NULL ;
+   if( nt < 2 ){
+     if( verb ) ERROR_message("rcmat_arma11: nt=%d < 2",nt) ;
+     return NULL ;
+   }
 
    rcm = rcmat_init( nt ) ;  /* create sparse matrix struct */
    len = rcm->len ;
@@ -619,7 +622,7 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
 
    ii = rcmat_choleski( rcm ) ;
    if( ii != 0 ){
-     if( verb > 1 )
+     if( verb )
        ERROR_message("rcmat_choleski fails with code=%d: rho=%f lam=%f",ii,rho,lam) ;
      rcmat_destroy(rcm); return NULL;
    }
@@ -642,7 +645,7 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    ii = matrix_qrr( *W , D ) ;
    matrix_destroy(W) ; free((void *)W) ;
    if( D->rows <= 0 ){
-     if( verb > 1 )
+     if( verb )
        ERROR_message("matrix_qrr fails?! a=%.3f lam=%.3f",rho,lam) ;
      matrix_destroy(D) ; free((void *)D) ; rcmat_destroy(rcm) ; return NULL ;
    } else if( ii > 0 ){
@@ -977,9 +980,17 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    float avglen=0.0f ;
    double spcut ;
 
-   if( X == NULL ) return rrcol ;              /* bad */
+   if( X == NULL ){  /* super stoopid */
+     ERROR_message("REML_setup_all: input matrix is NULL") ;
+     return rrcol ;
+   }
 
-   nt = X->rows ; if( nt < 9 ) return rrcol ;  /* bad */
+   nt = X->rows ;
+   if( nt < 9 ){     /* medium stoopid */
+     ERROR_message(
+       "REML_setup_all: number of time points %d is less than 9 -- not allowed!",nt) ;
+     return rrcol ;
+   }
 
    /* set grid in a and b parameters */
 
