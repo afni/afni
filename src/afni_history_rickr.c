@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, JUL, 2012, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "speed up reading NIfTI files with long histories (THD_dblkatr_from_niml)",
+   "Thanks to J Gonzalez for noting the problem."
+ } ,
+
  { 31, JUL, 2012, RCR, "3dresample", MINOR, TYPE_BUG_FIX,
    "update IJK_TO_DICOM and _REAL at end of resample library function",
    "Thanks to I Schwabacher for noting the IJK_TO_DICOM discrepancy."
