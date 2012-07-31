@@ -1967,14 +1967,13 @@ def mask_segment_anat(proc, block):
     # make any segmentation masks
 
     opt = block.opts.find_opt('-mask_segment_anat')
-    if not proc.anat_final or OL.opt_is_no(opt):
+    if not OL.opt_is_yes(opt): return ''        # default is now no
+
+    if not proc.anat_final:
         if proc.verb > 1:
            print '-- no Segsy (either no anat_final or -mask_segment_anat no)'
         return ''
-    if not opt and proc.anat_has_skull:
-        if proc.verb > 1:
-           print '-- no Segsy (not requested and no skull-stripped anat)'
-        return ''
+    # and proc.anat_has_skull:
 
     # maybe we will take more classes in some option...
     sclasses = ['GM', 'WM', 'CSF']
@@ -6421,8 +6420,8 @@ g_help_string = """
 
         -mask_segment_anat Y/N  : choose whether to segment anatomy
 
-                e.g. -mask_segment_anat no
-                default: yes (if anat_final is skull-stripped)
+                e.g. -mask_segment_anat yes
+                default: no (if anat_final is skull-stripped)
 
             This option controls whether 3dSeg is run to segment the anatomical
             dataset.  Such a segmentation would then be resampled to match the
