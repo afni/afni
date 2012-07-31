@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, JUL, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "have -mask_segment_anat default to no (libgsl is not quite so common)",
+   NULL
+ } ,
+
  { 31, JUL, 2012, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "speed up reading NIfTI files with long histories (THD_dblkatr_from_niml)",
    "Thanks to J Gonzalez for noting the problem."

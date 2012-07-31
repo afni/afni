@@ -349,9 +349,10 @@ g_history = """
         - added -mask_segment_anat and -mask_rm_segsy
         - if anat is stripped, create segmented anat unless user says not to
     3.28 Jul 30, 2012: if surf analysis, create run_suma script
+    3.29 Jul 31, 2012: have -mask_segment_anat default to no
 """
 
-g_version = "version 3.28, July 30, 2012"
+g_version = "version 3.29, July 31, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 May 2012"
