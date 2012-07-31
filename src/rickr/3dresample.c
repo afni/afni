@@ -220,8 +220,6 @@ int init_options ( options_t * opts, int argc, char * argv [] )
                 fprintf( stderr, "invalid master dataset <%s>\n", argv[ac] );
                 return FAIL;
             }
-            /* forget any obliqueness     21 Oct, 2011 [rickr] */
-            THD_make_cardinal(opts->mset);
         }
         else if ( ! strncmp(argv[ac], "-zeropad", 5) )  /* zeropad */
         {
@@ -276,9 +274,6 @@ int init_options ( options_t * opts, int argc, char * argv [] )
                 fprintf( stderr, "invalid input dataset <%s>\n", argv[ac] );
                 return FAIL;
             }
-            /* forget any obliqueness     21 Oct, 2011 [rickr] */
-            THD_make_cardinal(opts->dset);
-
         }
         else     /* invalid option */
         {
