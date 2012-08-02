@@ -1060,7 +1060,7 @@ void gather_stats_NN1( int ipthr , float *fim , byte *bfim , int *mtab , int ith
 
   thr = zthr[ipthr] ;
   for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
-  siz = find_largest_cluster_NN1( bfim , ithr ) ;  /* find_cluster is a function pointer */
+  siz = find_largest_cluster_NN1( bfim , ithr ) ;
   if( siz > max_cluster_size ) siz = max_cluster_size ;
   mtab[siz]++ ;
 
@@ -1076,7 +1076,7 @@ void gather_stats_NN2( int ipthr , float *fim , byte *bfim , int *mtab , int ith
 
   thr = zthr[ipthr] ;
   for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
-  siz = find_largest_cluster_NN2( bfim , ithr ) ;  /* find_cluster is a function pointer */
+  siz = find_largest_cluster_NN2( bfim , ithr ) ;
   if( siz > max_cluster_size ) siz = max_cluster_size ;
   mtab[siz]++ ;
 
@@ -1092,7 +1092,7 @@ void gather_stats_NN3( int ipthr , float *fim , byte *bfim , int *mtab , int ith
 
   thr = zthr[ipthr] ;
   for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
-  siz = find_largest_cluster_NN3( bfim , ithr ) ;  /* find_cluster is a function pointer */
+  siz = find_largest_cluster_NN3( bfim , ithr ) ;
   if( siz > max_cluster_size ) siz = max_cluster_size ;
   mtab[siz]++ ;
 
