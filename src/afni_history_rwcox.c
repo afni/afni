@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , JUL , 2012 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+  { 3 , AUG , 2012 , RWC , "2perm" , MICRO , TYPE_NEW_PROG ,
+   "For generating 2 random subsets of a sequence of integers" ,
+   NULL } ,
+
+ { 26 , JUL , 2012 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "Modify wsinc5 (again) to be more flexible" ,
    NULL } ,
 
