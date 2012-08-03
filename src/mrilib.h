@@ -1438,6 +1438,8 @@ typedef struct { int nar ; int *ar ; } intvec ;
         free(iv); (iv) = NULL;                 \
   } } while(0)
 
+typedef struct { int nvec ; intvec *ivar ; } intvecvec ;
+
 #define MAKE_intvec(iv,n)                           \
   do{ (iv) = (intvec *)malloc(sizeof(intvec)) ;     \
       (iv)->nar = (n) ;                             \
