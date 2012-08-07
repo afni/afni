@@ -3527,6 +3527,22 @@ The default template space is assumed to be TLRC. This is used for coordinate
 input to whereami, the whereami GUI and for TLRC view datasets without a
 template space explicitly set in the dataset header.
 
+--------------------------------
+Variable: AFNI_NIFTI_VIEW
+--------------------------------
+The default view extension used for output when creating AFNI format datasets
+from NIFTI datasets.This variable is only applicable for sform and qform codes
+that do not have clearly defined views (sform/qform code = 2). See also
+AFNI_DEFAULT_STD_SPACE and AFNI_NIFTI_PRIORITY
+
+--------------------------------
+Variable: AFNI_NIFTI_PRIORITY
+--------------------------------
+Sets preference for NIFTI files to use sform or qform codes and matrices to
+determine space, origin and orientation. Set to 'S' or 'Q' for sform or qform
+respectively. If not set, NIFTI files are read using the non-zero form code or
+the qform code if both are set.
+
 -------------------------------------------
 Variable: AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS
 -------------------------------------------
