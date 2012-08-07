@@ -5,6 +5,8 @@
 #endif
 #include "nifti1_io.h"   /** will include nifti1.h **/
 static void NIFTI_code_to_space(int code,THD_3dim_dataset *dset);
+static int NIFTI_code_to_view(int code);
+static int NIFTI_default_view();
 extern char *THD_get_space(THD_3dim_dataset *dset);
 
 /*******************************************************************/
@@ -16,7 +18,7 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    THD_3dim_dataset *dset=NULL ;
    nifti_image *nim ;
    int ntt , nbuc , nvals ;
-   int use_qform = 0 , use_sform = 0 ;
+   int use_qform = 0 , use_sform = 0, form_code = 0 ;
    int statcode = 0 , datum , iview , ibr ;
    int scale_data = 0 ;  /* flag based on scl_slope and inter  20 Jun 2008 */
    int xform_data = 0;
@@ -223,6 +225,8 @@ ENTRY("THD_open_nifti") ;
 
      float orgx, orgy, orgz ;
 
+     form_code = nim->qform_code;
+
      /* determine orientation from the qto_xyz matrix,
       which transforms (i,j,k) voxel indexes to (x,y,z) LPI coordinates */
 
@@ -252,11 +256,7 @@ ENTRY("THD_open_nifti") ;
 
      orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
 
-     iview = ((nim->qform_code == NIFTI_XFORM_TALAIRACH ) ||
-              (nim->qform_code == NIFTI_XFORM_MNI_152 )  ||
-              (nim->qform_code == NIFTI_XFORM_ALIGNED_ANAT))
-             ? VIEW_TALAIRACH_TYPE : VIEW_ORIGINAL_TYPE ;
-
+     iview = NIFTI_code_to_view(nim->qform_code);
 
      /* load the offsets and the grid spacings */
 
@@ -309,6 +309,8 @@ ENTRY("THD_open_nifti") ;
      float orgx, orgy, orgz ;
      float fig_merit, ang_merit ;
 
+     form_code = nim->sform_code;
+
      /* convert sform to nifti orientation codes */
 
      nifti_mat44_to_orientation(nim->sto_xyz, &oritmp[0], &oritmp[1], &oritmp[2] ) ;
@@ -320,11 +322,7 @@ ENTRY("THD_open_nifti") ;
                           orimap[oritmp[2]] ) ;
 
      /* assume original view if there's no talairach id present */
-
-     iview = ((nim->sform_code == NIFTI_XFORM_TALAIRACH ) ||
-              (nim->sform_code == NIFTI_XFORM_MNI_152 )   ||
-              (nim->sform_code == NIFTI_XFORM_ALIGNED_ANAT))
-             ? VIEW_TALAIRACH_TYPE : VIEW_ORIGINAL_TYPE ;
+     iview = NIFTI_code_to_view(nim->sform_code);
 
      /* load the offsets and the grid spacings */
 
@@ -448,7 +446,7 @@ ENTRY("THD_open_nifti") ;
                         (ORIENT_sign[orixyz.ijk[1]]=='+') ? dytmp : -dytmp ,
                         (ORIENT_sign[orixyz.ijk[2]]=='+') ? dztmp : -dztmp ) ;
 
-     iview = VIEW_ORIGINAL_TYPE ;
+     iview = NIFTI_default_view();
 
      /* set origin to 0,0,0   */
 
@@ -468,9 +466,6 @@ ENTRY("THD_open_nifti") ;
    dset = EDIT_empty_copy(NULL) ;
    /* copy transformation matrix to dataset structure */
    dset->daxes->ijk_to_dicom_real = ijk_to_dicom44;
-
-   /* set atlas space based on NIFTI sform code */
-   NIFTI_code_to_space(nim->sform_code,dset);
 
    ppp  = THD_trailname(pathname,0) ;               /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
@@ -619,6 +614,10 @@ ENTRY("THD_open_nifti") ;
      } /* end of slice timing stuff */
 
    } /* end of 3D+time dataset stuff */
+
+
+   /* set atlas space based on NIFTI s/qform code */
+   NIFTI_code_to_space(form_code,dset);
 
    /* add statistics, if present */
 
@@ -892,7 +891,6 @@ ENTRY("THD_load_nifti") ;
 /* set atlas space based on NIFTI sform code */
 static void NIFTI_code_to_space(int code,THD_3dim_dataset *dset)
 {
-   
     switch(code) {
         case NIFTI_XFORM_TALAIRACH:
             MCW_strncpy(dset->atlas_space, "TLRC", THD_MAX_NAME);
@@ -903,5 +901,51 @@ static void NIFTI_code_to_space(int code,THD_3dim_dataset *dset)
         default:
             THD_get_space(dset);
     }
+}
 
+/* return dataset view code based on NIFTI sform/qform code */
+/* code for +tlrc, +orig */
+static int NIFTI_code_to_view(int code)
+{
+   int iview;
+
+   ENTRY("NIFTI_code_to_view");
+   /* only two standard templates now defined */
+   switch(code) {
+       case NIFTI_XFORM_TALAIRACH:       /* TLRC space -> tlrc view */
+           iview = VIEW_TALAIRACH_TYPE;
+           break;
+       case NIFTI_XFORM_MNI_152:         /* MNI space -> tlrc 'view' */
+           iview = VIEW_TALAIRACH_TYPE;
+           break;
+       case NIFTI_XFORM_SCANNER_ANAT:    /* no code set or scanner -> orig 'view' */
+       case NIFTI_XFORM_UNKNOWN:
+           iview = VIEW_ORIGINAL_TYPE;
+           break;
+       case NIFTI_XFORM_ALIGNED_ANAT:    /* aligned to something... */
+       default:                          /* or something else we don't know about yet (higher form codes)*/
+           iview = NIFTI_default_view();
+   }
+   RETURN(iview);
+}
+
+/* get default view from environment variable */
+static int NIFTI_default_view()
+{
+  char *ppp;
+  int iview = VIEW_TALAIRACH_TYPE; /* default view if not otherwise set */
+
+  ENTRY("NIFTI_default_view");
+  ppp = my_getenv("AFNI_NIFTI_VIEW");
+  if(ppp){
+     if(strcasecmp(ppp, "TLRC")==0)
+        iview = VIEW_TALAIRACH_TYPE;
+     else if (strcasecmp(ppp,"ORIG")==0) {
+           iview = VIEW_ORIGINAL_TYPE;
+     }
+     else if (strcasecmp(ppp,"ACPC")==0) {
+           iview = VIEW_ACPCALIGNED_TYPE;
+     }
+  }
+  RETURN(iview);
 }

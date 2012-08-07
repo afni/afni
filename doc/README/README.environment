@@ -3532,8 +3532,8 @@ Variable: AFNI_NIFTI_VIEW
 --------------------------------
 The default view extension used for output when creating AFNI format datasets
 from NIFTI datasets.This variable is only applicable for sform and qform codes
-that do not have clearly defined views (sform/qform code = 2). See also
-AFNI_DEFAULT_STD_SPACE and AFNI_NIFTI_PRIORITY
+that do not have clearly defined views (sform/qform code = 2). Set to "tlrc"
+or "orig". See also AFNI_DEFAULT_STD_SPACE and AFNI_NIFTI_PRIORITY.
 
 --------------------------------
 Variable: AFNI_NIFTI_PRIORITY

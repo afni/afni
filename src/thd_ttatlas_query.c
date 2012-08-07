@@ -1933,9 +1933,10 @@ char * TT_whereami_default_spc_name (void)
       } else if (strncasecmp(eee, "MNI", 3) == 0) {
          return (eee);
       } else {
-         WARNING_message(  "Bad value for AFNI_DEFAULT_STD_SPACE\n"
+/*         WARNING_message(  "Bad value for AFNI_DEFAULT_STD_SPACE\n"
                            "%s is unrecognized. Assuming TLRC\n", eee);
-         return ("TLRC");
+*/
+         return (eee);
       }
    } else {
       /* no env, return default */
