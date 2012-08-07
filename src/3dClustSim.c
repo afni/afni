@@ -335,7 +335,7 @@ void display_help_menu()
    "* Generally speaking, C(p,alpha) gets smaller as p gets smaller and C(p,alpha)\n"
    "  gets smaller as alpha gets larger.  As a result, in a small mask with small p\n"
    "  and large alpha, C(p,alpha) might shrink below 1.  But clusters of size C\n"
-   "  less than don't make any sense!\n"
+   "  less than 1 don't make any sense!\n"
    "\n"
    "* For example, suppose that for p=0.0005 that only 6%% of the simulations\n"
    "  have ANY above-threshold voxels inside the ROI mask.  In that case,\n"
