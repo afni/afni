@@ -2270,6 +2270,10 @@ static int FUNC_ival_thr[] = { FIMTHR, 1,1,1,1,1,1,1,1,1,1, 0 } ; /* index of th
 #define FUNC_IS_STAT(ftyp)   ((ftyp) >= FIRST_STAT_TYPE && (ftyp) <= LAST_STAT_TYPE)
 #define FUNC_HAVE_PVAL       FUNC_IS_STAT
 
+#define STAT_SIDES(fcod)     \
+ ( !FUNC_IS_STAT(fcod) ? 0   \
+  : ((fcod)==FUNC_COR_TYPE || (fcod)==FUNC_TT_TYPE || (fcod)==FUNC_ZT_TYPE) ? 2 : 1 )
+
 /******* dimension of auxiliary array for functional statistics *******/
 
 #define MAX_STAT_AUX 64
@@ -4992,6 +4996,9 @@ extern int THD_filename_pure( char * ) ; /* 28 Feb 2001 */
 extern int THD_freemegabytes( char * ) ; /* 28 Mar 2005 */
 extern int THD_character_ok( char ) ;    /* 04 Feb 2010 */
 extern int THD_filename_fix( char * ) ;  /* 04 Feb 2010 */
+
+#undef  HAS_WILDCARD                     /* 19 Jun 2012 */
+#define HAS_WILDCARD(sss) ( strchr((sss),'*') != NULL || strchr((sss),'?') != NULL )
 
 extern THD_warp * AFNI_make_voxwarp( THD_warp * , THD_3dim_dataset * ,
                                                   THD_3dim_dataset *  ) ;
