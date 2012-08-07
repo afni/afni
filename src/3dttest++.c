@@ -19,9 +19,6 @@ double GIC_student_t2z( double tt , double dof ) ;
 
 void TT_matrix_setup( int kout ) ;  /* 30 Jul 2010 */
 
-#undef  HAS_WILDCARD                /* 19 Jun 2012 */
-#define HAS_WILDCARD(sss) ( strchr((sss),'*') != NULL || strchr((sss),'?') != NULL )
-
 #undef MEMORY_CHECK
 #ifdef USING_MCW_MALLOC
 # define MEMORY_CHECK                                            \
