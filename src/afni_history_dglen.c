@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 06 , AUG, 2012 , DRG , "NIFTI reading" , 
+    MINOR , TYPE_NEW_ENV, 
+    "Handling view equivalents for NIFTI",
+    "AFNI_NIFTI_VIEW sets default view for AFNI datasets marked as\n"
+    "'aligned' (sform_code or qform_code = 2). This variable should\n"
+    "be set to 'TLRC', 'ORIG' or 'ACPC'."
+} ,
+
 { 28 , JUN, 2012 , DRG , "Draw Dataset plugin" , 
     MINOR , TYPE_BUG_FIX, 
     "Resampling of atlas regions to lower resolution undercounted",
