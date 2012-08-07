@@ -1908,6 +1908,8 @@ STATUS("process matrix") ;
    ddof  = ntime - nrego ;
    if( ddof < 1 )             /* should not happen! */
      ERROR_exit("matrix has more columns than rows!") ;
+   if( ntime < 9 )
+     ERROR_exit("matrix has %d rows, but minimum allowed is 9 :-(",ntime) ;
 
    cgl = NI_get_attribute( nelmat , "CommandLine" ) ;
    if( cgl != NULL ) commandline = strdup(cgl) ;
