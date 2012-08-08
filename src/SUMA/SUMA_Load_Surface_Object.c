@@ -488,9 +488,11 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO,
 SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_PrepSO_GeomProp_GL"};
+   static int iwarn=0;
    int k, ND, id;
    SUMA_SURF_NORM SN;
    byte *PatchNodeMask=NULL;
+   SUMA_SurfaceViewer *sv=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -619,7 +621,18 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    } 
    #endif
     
-   
+   /* check for too small a surface */
+   if (SO->MaxCentDist < 10.0 && !iwarn) {
+      if (!(sv = SUMA_BestViewerForSO(SO))) sv = SUMAg_SVv;
+      if (sv->GVS[sv->StdView].DimSclFac < 5 && !iwarn) {
+         ++iwarn;
+         SUMA_SLP_Warn(
+               "Surface size is quite small, rendering errors might occur.\n"
+               "If your coordinate units are in cm, set SUMA_NodeCoordsUnits \n"
+               "In your ~/.sumarc to 'cm' instead of the default 'mm'\n"
+            "If you do not have a '~/.sumarc', just run 'suma -update_env'\n");
+      }
+   }
    /* Calculate SurfaceNormals */
    if (SO->NodeNormList && SO->FaceNormList) {
       SUMA_LH("Node normals already computed, skipping...");

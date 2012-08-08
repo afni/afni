@@ -308,6 +308,14 @@ ConvexHull: SUMA_ConvexHull.c
 		-I../3DEdge/src -l3DEdge -I../avovk ${SUMALIBLIST} \
 		-lsegtools ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB} -lgsl -lgslcblas
 
+3dGenFeatureDist: SUMA_3dGenFeatureDist.c libSUMA.a
+	$(RM) $@
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+		${AFNI_OBJS} SUMA_3dGenFeatureDist.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
+		-I../3DEdge/src -l3DEdge -I../avovk ${SUMALIBLIST} \
+		-lsegtools ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB} -lgsl -lgslcblas
+
 3dSeg: SUMA_3dSeg.c libSUMA.a
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} $(OMPFLAG) ${WARNOPT} -o $@ $(AFWARPOBJS) \
