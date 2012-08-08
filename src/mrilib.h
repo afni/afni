@@ -59,7 +59,6 @@ extern float MRILIB_slicespacing ;
 extern int MRILIB_DomainMaxNodeIndex ;         /* 32 Dec 2007 */
 
 extern int   assume_dicom_mosaic ;   /* mri_read_dicom.c  13 Mar 2006 [rickr] */
-extern int   use_last_elem;          /* mri_read_dicom.c  10 Apr 2009 [rickr] */
 extern int   use_new_mosaic_code;    /* mri_process_siemens.c 23 Dec 2010 [r] */
 
 /* siemens slice timing info from mri_read.c         13 Apr 2011 [rickr] */

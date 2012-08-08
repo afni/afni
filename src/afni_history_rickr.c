@@ -49,12 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, AUG, 2012, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added -use_slice_loc; fixed app of use_last_elem in mri_read_dicom",
+   "g_info.use_last_elem has usurped the lone global"
+ } ,
+
  {  8, AUG, 2012, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "do not update tlrc anat with strip if passed in",
    NULL
  } ,
 
- {  8, AUG, 2012, RCR, "slow_surf_clustsim.py", MINOR, TYPE_BUG_FIX,
+ {  8, AUG, 2012, RCR, "slow_surf_clustsim.py", MICRO, TYPE_BUG_FIX,
    "currently need to pass -sv even for -on_surface; get rid of this later",
    NULL
  } ,
