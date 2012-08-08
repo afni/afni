@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 8, Aug , 2012 , ZSS , "suma" , MINOR , TYPE_MODIFY,
+   "Improved handling of coords in 'cm' units and better axis text layout",
+   "Surfaces with coords in cm were poorly displayed and without warning.\n"
+   "Now you are urged to make use of the SUMA_NodeCoordsUnits env . \n"
+   "Axis text labels were also improved to reduce clobbering."
+ },
+
  { 19, Jul , 2012 , ZSS , "suma" , MAJOR , TYPE_NEW_OPT,
    "Allow for L/R hemi yoking for many operations",
    "These include:"

@@ -2275,6 +2275,9 @@ typedef struct {
    float aMinDims;      /*!< The maximum across all dimensions*/
    float aMaxDims;      /*!< The minimum across all dimensions*/
    
+   float MaxCentDist;   /* Maximal node distance from center */
+   int MaxCentDistNode; /* Node which has maximal node distance from center */
+   
    int N_patchNode; /*!<   Number of nodes used in the mesh. 
                            For patches, this number is < SO->N_Node */
    byte *patchNodeMask; /*!< if not NULL, then if patchNodeMask[i] then
@@ -2939,8 +2942,8 @@ typedef enum { SUMA_NO_SORT, SUMA_BY_PLANE_DISTANCE, SUMA_BY_SEGMENT_DISTANCE, S
 typedef enum { SUMA_LOWER_LEFT_SCREEN, SUMA_UPPER_LEFT_SCREEN, SUMA_UPPER_RIGHT_SCREEN, SUMA_LOWER_RIGHT_SCREEN } SUMA_SCREEN_CORNERS;
 typedef struct {
    double world_length;
-   double screen_length_x;
-   double screen_length_y;
+   double ScreenProj[3];
+   double ScreenProj_xy_length;
    double P1[3];
    double P2[3];
    int SegIndex;
