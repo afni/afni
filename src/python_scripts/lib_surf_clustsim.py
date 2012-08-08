@@ -28,9 +28,11 @@ g_history = """
          - suggest quick.alpha.vals.py command
     0.7  10 Feb, 2012: help update for HJ: -on_surface takes yes/no parameter
     0.8  17 Jul, 2012: removed -Niter opt from SurfSmooth (let it decide)
+    0.9  08 Aug, 2012: pass along surf vol even for on_surface
+                       (plan to remove this later)
 """
 
-g_version = '0.8 (July 17, 2012)'
+g_version = '0.9 (August 8, 2012)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -565,7 +567,12 @@ class SurfClust(object):
 
       # surf_vol and vol_mask might use top_dir
       if self.LV.is_trivial_dir('top_dir'):
-         if self.cvars.val('on_surface') != 'yes': self.LV.svol  = U.surf_vol
+         # if self.cvars.val('on_surface') != 'yes': self.LV.svol  = U.surf_vol
+         #
+         # rcr - fix this, surf_vol should not be needed if only on surface
+         #       (for getting the node count, avoid SurfMeasures or any other
+         #       program that uses -sv)
+         self.LV.svol  = U.surf_vol
          self.LV.vmask = U.vol_mask
          self.LV.spec  = U.spec_file
       else:

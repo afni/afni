@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, AUG, 2012, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "do not update tlrc anat with strip if passed in",
+   NULL
+ } ,
+
+ {  8, AUG, 2012, RCR, "slow_surf_clustsim.py", MINOR, TYPE_BUG_FIX,
+   "currently need to pass -sv even for -on_surface; get rid of this later",
+   NULL
+ } ,
+
  { 31, JUL, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "have -mask_segment_anat default to no (libgsl is not quite so common)",
    NULL

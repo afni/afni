@@ -350,7 +350,8 @@ def db_cmd_align(proc, block):
             suffix = '_strip'
             proc.anat.prefix = "%s%s" % (proc.anat.prefix, suffix)
             if proc.tlrcanat:
-                proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
+                if not proc.tlrcanat.exist():
+                   proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
             proc.tlrc_ss = 0
             proc.anat_has_skull = 0     # make note that skull is gone
             istr = 'intermediate, stripped,'
@@ -360,7 +361,8 @@ def db_cmd_align(proc, block):
     else: # a2e
         proc.anat.prefix = "%s%s" % (proc.anat.prefix, suffix)
         if proc.tlrcanat:
-            proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
+            if not proc.tlrcanat.exist():
+               proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
         proc.tlrc_ss = 0        # skull-strip no longer required
         proc.anat_has_skull = 0 # make note that skull is gone
 
@@ -5245,6 +5247,13 @@ g_help_string = """
         -ver                    : show the version number
 
         ------------ general execution and setup options ------------
+
+        -anat_has_skull yes/no  : specify whether the anatomy has a skull
+
+                e.g. -anat_has_skull no
+
+            Use this option to block any skull-stripping operations, likely either
+            in the align or tlrc processing blocks.
 
         -ask_me                 : ask the user about the basic options to apply
 
