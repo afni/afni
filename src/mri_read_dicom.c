@@ -78,7 +78,6 @@ static void RWC_set_endianosity(void)
 /*---------------------------------------------------------------------------*/
 /* global set via 'to3d -assume_dicom_mosaic'            13 Mar 2006 [rickr] */
 int assume_dicom_mosaic = 0;   /* (case of 1 is equivalent to Rich's change) */
-int use_last_elem = 0;         /* when filling epos list 10 Apr 2009 [rickr] */
 
 #undef  SINT
 #undef  SFLT
@@ -135,6 +134,7 @@ ENTRY("mri_read_dicom") ;
    if( str_sexinfo != NULL ){ free(str_sexinfo); str_sexinfo=NULL; }
 
    /* clear image-based globals */
+
    if( ! g_info.init ) init_dicom_globals(&g_info);
 
    if( !mri_possibly_dicom(fname) ){                /* 07 May 2003 */
@@ -670,6 +670,11 @@ ENTRY("mri_read_dicom") ;
    if( epos[E_ID_ACQUISITION_TIME] != NULL ){
      ddd = strstr(epos[E_ID_ACQUISITION_TIME],"//") ;
      if( ddd != NULL ) sscanf( ddd+2 , "%f" , &g_image_info.acq_time);
+   }
+
+   if( epos[E_SLICE_LOCATION] != NULL ){
+     ddd = strstr(epos[E_SLICE_LOCATION],"//") ;
+     if( ddd != NULL ) sscanf( ddd+2 , "%f" , &g_image_info.slice_loc);
    }
 
    /* add mosaic info to g_image_info */
@@ -1578,11 +1583,11 @@ static int get_posns_from_elist(char *plist[], char *elist[], char *text,
 
    ENTRY("get_posns_from_elist");
 
-   if( check_env && !use_last_elem ) {
+   if( check_env && !g_info.use_last_elem ) {
         check_env = 0;
         cp = getenv("AFNI_DICOM_USE_LAST_ELEMENT") ;
         if( cp && (*cp == 'Y' || *cp == 'y') ) {
-           use_last_elem = 1 ;
+           g_info.use_last_elem = 1 ;
            fprintf(stderr,"-- will search for last Dicom elements...\n");
         }
    }
@@ -1599,7 +1604,7 @@ static int get_posns_from_elist(char *plist[], char *elist[], char *text,
          else          fprintf(stderr,"-- DICOM field %s not set\n",elist[ee]);
       }
 
-      if( use_last_elem && plist[ee] ) {
+      if( g_info.use_last_elem && plist[ee] ) {
          while( (cp = strstr(plist[ee]+1, etemp)) != NULL ) {
             plist[ee] = cp ;
             if(g_info.verb>4) fprintf(stderr,".. updating %s...\n",elist[ee]);
@@ -2464,7 +2469,10 @@ static int init_dicom_globals(dicom_globals_t * info)
    else info->verb     = 1;
    info->rescale       = AFNI_yesenv("AFNI_DICOM_RESCALE");
    info->window        = AFNI_yesenv("AFNI_DICOM_WINDOW");
-   info->use_last_elem = AFNI_yesenv("AFNI_DICOM_USE_LAST_ELEMENT");
+
+   /* replace lone global with that in g_info struct  8 Aug 2012 [rickr] */
+   /* multiple ways to set: to3d/Dimon -use_last_elem, or env var        */
+   if( AFNI_yesenv("AFNI_DICOM_USE_LAST_ELEMENT") ) info->use_last_elem = 1;
 
    info->init = 1;
 

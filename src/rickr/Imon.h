@@ -49,6 +49,7 @@ typedef struct                      /* stuff extracted from GE I.* image */
     int   index;                    /* image counter                   */
     int   im_index;                 /* image index, if one exists      */
     float atime;                    /* acquisition time, if found      */
+    float slice_loc;                /* slice location, if found        */
     float dx,dy,dz, zoff, tr,te;    /* various dimensions              */
                                     /* dxyz in mm, tr in seconds       */
     char  orients[8];               /* orientation string              */
@@ -127,6 +128,7 @@ typedef struct  /* user options */
     int              no_wait;       /* never wait for more data         */
     int              use_dicom;     /* flag for dicom (not GE) images   */
     int              use_last_elem; /* use last element in DICOM images */
+    int              use_slice_loc; /* use Slice Loc for zoff           */
     int              show_sorted_list; /* display sorted list and quit  */
 
     /* GERT_Reco options */

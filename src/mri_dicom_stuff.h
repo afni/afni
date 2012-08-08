@@ -62,6 +62,7 @@ extern oblique_info obl_info;
 typedef struct {
    int     study, series, image, image_index; /* DICOM image values  */
    float   acq_time;                    /* acquisition time, if set  */
+   float   slice_loc;                   /* 0020 1041 REL Slice Loc   */
    int     is_obl, is_mosaic;           /* oblique flag, mosaic flag */
    int     mos_nslice, mos_nx, mos_ny;  /* mosaic dimensions         */
 } dicom_image_globals_t;
