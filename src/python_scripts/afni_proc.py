@@ -350,9 +350,10 @@ g_history = """
         - if anat is stripped, create segmented anat unless user says not to
     3.28 Jul 30, 2012: if surf analysis, create run_suma script
     3.29 Jul 31, 2012: have -mask_segment_anat default to no
+    3.30 Aug 08, 2012: do not update tlrc anat with strip if passed in
 """
 
-g_version = "version 3.29, July 31, 2012"
+g_version = "version 3.30, August 8, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 May 2012"
