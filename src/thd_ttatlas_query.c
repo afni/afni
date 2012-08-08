@@ -4712,15 +4712,21 @@ void web_prog_help(char *prog)
    
    if (!prog) return;
    
-   if (!(progname = THD_find_executable(prog))) {
-      ERROR_message("Could not find executable %s.\n",
-                     prog);
-      return;
+   if (!strcmp(prog,"ALL")) {
+      snprintf(weblink,1020*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+               "all-of-them");
+   } else {
+      if (!(progname = THD_find_executable(prog))) {
+         ERROR_message("Could not find executable %s.\n",
+                        prog);
+         return;
+      }
+
+      snprintf(weblink,1020*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+               THD_trailname(progname,0));
    }
-   
-   snprintf(weblink,1020*sizeof(char),
-            "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
-            THD_trailname(progname,0));
    
    if (!(view_web_link(weblink,NULL))) {
       ERROR_message("Failed to web view %s\n", weblink);

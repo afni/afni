@@ -553,6 +553,25 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
+   \brief calculates the farthest point on a surface from its center.
+   max(dist(node_i,center));
+*/
+#define SUMA_SO_MAX_DIST(SO, d, n){ \
+   int m_i, m_i3; \
+   float m_dx, m_dy, m_dz; double m_dm, m_d; \
+   d = 0.0; m_dm=0.0; n = -1;\
+   for (m_i=0; m_i<SO->N_Node; ++m_i) {   \
+      m_i3 = 3 * m_i;  \
+      m_dx = SO->NodeList[m_i3  ] - SO->Center[0];   \
+      m_dy = SO->NodeList[m_i3+1] - SO->Center[1];   \
+      m_dz = SO->NodeList[m_i3+2] - SO->Center[2];   \
+      m_d = (m_dx * m_dx) + (m_dy * m_dy) + (m_dz * m_dz);  \
+      if (m_d > m_dm) { m_dm = m_d; n = m_i; }  \
+   }  \
+   if (n > -1) d = (float)sqrt(m_dm); \
+}
+
+/*!
    A macro to recalculate a surface object's normals 
 */
 #define SUMA_RECOMPUTE_NORMALS(SO){ \

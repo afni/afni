@@ -1019,7 +1019,7 @@ int main( int argc , char *argv[] )
    int nvals_AAA_max=0 , nvals_BBB_max=0 , nvals_max=0 ;
    float **seedvec_AAA=NULL , **dotprod_AAA=NULL ;
    float **seedvec_BBB=NULL , **dotprod_BBB=NULL ;
-   int ctim,btim,atim , do_shm=2 , nsend=0 , shm_active=0 ;
+   int ctim=0,btim=0,atim=0 , do_shm=2 , nsend=0 , shm_active=0 ;
    char label_AAA[MAX_LABEL_SIZE]="AAA" , label_BBB[MAX_LABEL_SIZE]="BBB" ;
    char *qlab_AAA=NULL , *qlab_BBB=NULL ;
    int   lset_AAA=0    ,  lset_BBB=0 ;
@@ -1042,7 +1042,7 @@ int main( int argc , char *argv[] )
    char *bfile=NULL , *bprefix=NULL ;
    FILE *bfp=NULL ;
    int   blist_type=0, blist_num=0, blist_index=0 ; /* 01 Aug 2012 -- batch list */
-   int   *blist ;
+   int  *blist=NULL;
    char *blist_prefix=NULL ;
    GICOR_setup *giset=NULL ;
 
