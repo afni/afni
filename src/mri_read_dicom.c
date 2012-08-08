@@ -1583,13 +1583,10 @@ static int get_posns_from_elist(char *plist[], char *elist[], char *text,
 
    ENTRY("get_posns_from_elist");
 
-   if( check_env && !g_info.use_last_elem ) {
-        check_env = 0;
-        cp = getenv("AFNI_DICOM_USE_LAST_ELEMENT") ;
-        if( cp && (*cp == 'Y' || *cp == 'y') ) {
-           g_info.use_last_elem = 1 ;
-           fprintf(stderr,"-- will search for last Dicom elements...\n");
-        }
+   if( check_env ) {
+      check_env = 0;
+      if ( my_getenv("AFNI_DICOM_USE_LAST_ELEMENT") )
+         g_info.use_last_elem = AFNI_yesenv("AFNI_DICOM_USE_LAST_ELEMENT");
    }
 
    for( ee=0 ; ee < nume ; ee++ ) {
@@ -2472,7 +2469,9 @@ static int init_dicom_globals(dicom_globals_t * info)
 
    /* replace lone global with that in g_info struct  8 Aug 2012 [rickr] */
    /* multiple ways to set: to3d/Dimon -use_last_elem, or env var        */
-   if( AFNI_yesenv("AFNI_DICOM_USE_LAST_ELEMENT") ) info->use_last_elem = 1;
+   /* (if set in env, let it override)                                   */
+   if( my_getenv("AFNI_DICOM_USE_LAST_ELEMENT") )
+      info->use_last_elem = AFNI_yesenv("AFNI_DICOM_USE_LAST_ELEMENT");
 
    info->init = 1;
 
