@@ -91,6 +91,9 @@ static char * g_history[] =
     "      - added -num_chan for J Evans\n"
     "      - added -max_quiet_trs for V Roopchansingh\n"
     "      - default is to sleep 1.1*TR\n"
+    " 3.12 Aug  8, 2012 [rickr]\n",
+    "      - added -use_slice_loc\n"
+    "      - fixed application of use_last_elem in library\n"
     "----------------------------------------------------------------------\n"
 };
 
@@ -1959,8 +1962,6 @@ int compare_finfo( const void * v0, const void * v1 )
         else if( h0->atime > h1->atime ) { g_sort_type |= 4; return dir; }
     }
 
-    /* check the image index fields, this is where dir can be changed */
-
     /* 0054 1330: IMAGE INDEX */
     if     ( h0->im_index < h1->im_index ) { g_sort_type |= 8; return -dir; }
     else if( h0->im_index > h1->im_index ) { g_sort_type |= 8; return dir; }
@@ -2464,6 +2465,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             p->opts.use_last_elem = 1;
             g_info.use_last_elem = 1;        /* for external function */
         }
+        else if ( ! strncmp( argv[ac], "-use_slice_loc", 12 ) )
+        {
+            p->opts.use_slice_loc = 1;
+        }
         else if ( ! strncmp( argv[ac], "-zorder", 6 ) )
         {
             if ( ++ac >= argc )
@@ -2838,7 +2843,16 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     fp->geh.dx    = im->dx;
     fp->geh.dy    = im->dy;
     fp->geh.dz    = im->dz;
-    fp->geh.zoff  = g_image_posn[2];
+    fp->geh.zoff = g_image_posn[2];
+    fp->geh.slice_loc = g_image_info.slice_loc;
+    /* maybe the slice location is desired, instead   7 Aug 2012 [rickr] */
+    /* (leave option of replacing zoff with slice_loc)                   */
+    if ( gP.opts.use_slice_loc ) {
+       if ( gP.opts.debug > 1 )
+          fprintf(stderr,"++ applying slice loc %.4f over image_posn %.4f\n",
+                  fp->geh.slice_loc, fp->geh.zoff);
+       fp->geh.zoff = fp->geh.slice_loc;
+    }
 
     /* get some stuff from mrilib */
     fp->geh.tr = MRILIB_tr;
@@ -3288,6 +3302,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   quit, no_wait      = %d, %d\n"
             "   use_dicom          = %d\n"
             "   use_last_elem      = %d\n"
+            "   use_slice_loc      = %d\n"
             "   show_sorted_list   = %d\n"
             "   gert_reco          = %d\n"
             "   gert_filename      = %s\n"
@@ -3320,7 +3335,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->max_quiet_trs, opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
             opt->debug, opt->quit, opt->no_wait, opt->use_dicom,
-            opt->use_last_elem, opt->show_sorted_list, opt->gert_reco,
+            opt->use_last_elem, opt->use_slice_loc,
+            opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix),
             opt->gert_nz, opt->gert_format, opt->gert_exec, opt->gert_quiterr,
@@ -3463,11 +3479,13 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
             "    index       = %d\n"
             "    im_index    = %d\n"
             "    atime       = %f\n"
+            "    slice_loc   = %f\n"
             "    (dx,dy,dz)  = (%g,%g,%g)\n"
             "    zoff        = %g\n"
             "    (tr,te)     = (%g,%g)\n"
             "    orients     = %-8s\n",
-            I, I->good, I->nx, I->ny, I->uv17, I->index, I->im_index, I->atime,
+            I, I->good, I->nx, I->ny, I->uv17, I->index, I->im_index,
+            I->atime, I->slice_loc,
             I->dx, I->dy, I->dz, I->zoff, I->tr, I->te,
             CHECK_NULL_STR(I->orients)
           );
@@ -3620,7 +3638,7 @@ static int usage ( char * prog, int level )
       "      See -sort_by_acq_time in help output for details.\n"
       "\n"
       "    %s -infile_pattern 'data/*.dcm' -GERT_Reco -quit \\\n"
-      "          -use_last_elem -dicom_org -sort_by_acq_time\n"
+      "          -use_last_elem -use_slice_loc -dicom_org -sort_by_acq_time\n"
       "\n"
       "  B2. Simple examples for NIH scanners (GE or Siemens).\n"
       "\n"
@@ -4293,6 +4311,13 @@ static int usage ( char * prog, int level )
           "\n"
           "        Use the option to search for the last occurrence of each\n"
           "        element, not necessarily the first.\n"
+          "\n"
+          "    -use_slice_loc     : use REL Slice Loc for z offset\n"
+          "\n"
+          "        REL Slice Location, 0020 1041, is sometimes used for the\n"
+          "        z offset, rather than Image Position.\n"
+          "        \n"
+          "        Use this option to set slice offsets according to SLoc.\n"
           "\n"
           "    -version           : show the version information\n"
           "\n",
