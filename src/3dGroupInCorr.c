@@ -4306,6 +4306,7 @@ int GRINCOR_output_dataset( GICOR_setup *giset, NI_element *nel, char *pref )
 {
    float *nelar , *dsdar ;
    int nvec,nn,vv , vmul ; float thr ;
+   static int ncall=0 ;
 
    if( nel == NULL || nel->vec_num < 2 ) return(-1) ;
 
@@ -4336,7 +4337,9 @@ int GRINCOR_output_dataset( GICOR_setup *giset, NI_element *nel, char *pref )
      EDIT_dset_items( giset->dset , ADN_prefix,pref , ADN_none ) ;
 
    giset->dset->dblk->diskptr->allow_directwrite = 1 ;
-   DSET_write(giset->dset) ;
-   if( verb ) WROTE_DSET(giset->dset) ;
+   DSET_write(giset->dset) ; ncall++ ;
+   if( verb )
+     INFO_message("Output dataset #%d %s",ncall,DSET_BRIKNAME(giset->dset)) ;
+
    return ((int)DSET_TOTALBYTES(giset->dset));
 }

@@ -192,7 +192,7 @@ void get_options( int argc , char **argv )
     if( didex ) MCW_free_expand(nexp,fexp) ;
   }
 
-  if( ndset == 0 ) ERROR_exit("No input datasets?!") ;
+  if( ndset == 0 && !do_final ) ERROR_exit("No input datasets?!") ;
 
   if( prefix == NULL ){
     prefix = "ClustCount" ;
@@ -557,7 +557,8 @@ int main( int argc , char **argv )
      } /* end of loop over sub-bricks */
 
      if( verb && nds > 0 )
-       fprintf(stderr,"%d / %d sub-bricks processed\n",nds,DSET_NVALS(dset)) ;
+       fprintf(stderr,"%d / %d sub-bricks processed -- %d total now\n",
+               nds,DSET_NVALS(dset),niter) ;
      else if( verb && nds == 0 )
        fprintf(stderr," -- 0 sub-bricks processed\n") ;
 
@@ -569,7 +570,7 @@ int main( int argc , char **argv )
 
  } /* end of processing the inputs */
 
-  if( niter == 0 )
+  if( niter == 0 && !do_final )
     ERROR_exit("No data was processed :-(") ;
 
   if( verb && ndset > 1 && niter > 1 )
@@ -600,8 +601,8 @@ int main( int argc , char **argv )
     if( nelnum < 3*npthr ) NELERR("number") ;
     for( nnn=1 ; nnn <= 3 ; nnn++ ){
       vel[nnn] = (int **)malloc(sizeof(int *)*npthr) ;
-      for( ii=0 ; ii < npthr ; ii++ ){
-        jj = (nnn-1)*npthr + ii ;
+      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+        jj = (nnn-1)*npthr + ipthr ;
         if( neldat->vec_typ[jj] != NI_INT ) NELERR("datum") ;
         vel[nnn][ipthr] = (int *)neldat->vec[jj] ;
       }
@@ -617,7 +618,7 @@ int main( int argc , char **argv )
       for( ii=0 ; ii < nelmax ; ii++ ){
         max_table[1][ipthr][ii] += vel[1][ipthr][ii] ;
         max_table[2][ipthr][ii] += vel[2][ipthr][ii] ;
-        max_table[2][ipthr][ii] += vel[2][ipthr][ii] ;
+        max_table[3][ipthr][ii] += vel[3][ipthr][ii] ;
       }
     }
 
@@ -632,8 +633,9 @@ NelDone:
 
   /*---------- save counting data to file ----------*/
 
-  {
-    int itop=0 , ii ;
+  if( niter > 0 ){
+    int itop=0 , ii ; char buf[128] ;
+
     for( ii=max_cluster_size ; ii > 0 && itop == 0 ; ii-- ){
       for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
         if( max_table[1][ipthr][ii] > 0 ||
@@ -648,6 +650,9 @@ NelDone:
       for( ii=0 ; ii < npthr ; ii++ ){
         NI_add_column( neldat , NI_INT , max_table[nnn][ipthr] ) ;
     }}
+
+    sprintf(buf,"%d",niter) ;
+    NI_set_attribute( neldat , "niter" , buf ) ;
 
     NI_write_element_tofile( fnam , neldat , NI_TEXT_MODE ) ;
 
