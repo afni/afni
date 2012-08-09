@@ -91,7 +91,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
            1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch 1dBport   \
-           3dNormalityTest 3dmask_tool FIRdesign help_format 2perm              \
+           3dNormalityTest 3dmask_tool FIRdesign help_format 2perm 3dClustCount \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -124,7 +124,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase     \
                   3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat 3dPolyfit        \
                   3dNwarpApply 1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo    \
-                  apsearch 3dNormalityTest 3dmask_tool 2perm                        \
+                  apsearch 3dNormalityTest 3dmask_tool 2perm 3dClustCount           \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -1071,10 +1071,6 @@ waver:waver.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dnewid 3dnewid.o $(LFLAGS) $(LLIBS)
 
-3dClustCount:3dClustCount.o
-	$(RM) $@
-	$(CC) -o 3dClustCount 3dClustCount.o $(LFLAGS) $(LLIBS)
-
 DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
 	$(RM) $@
 	$(CC) -o DTIStudioFibertoSegments DTIStudioFibertoSegments.o $(LFLAGS) $(LLIBS)
@@ -1430,11 +1426,12 @@ afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o 1dcat 1dcat.o $(LFLAGS) $(LLIBS)
 
-2perm.o:2perm.c
-	$(CCFAST) -c 2perm.c $(INFLAGS)
-
 2perm:2perm.o
 	$(CC) -o 2perm 2perm.o $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+3dClustCount:3dClustCount.o
+	$(RM) $@
+	$(CC) -o 3dClustCount 3dClustCount.o $(LFLAGS) $(LLIBS)
 
 1dMarry:1dMarry.o
 	$(RM) $@
