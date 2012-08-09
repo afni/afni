@@ -110,6 +110,7 @@ SEG_OPTS *SegOpt_Struct()
    Opt->aset_name = NULL;
    Opt->mset_name = NULL;
    Opt->sig_name = NULL;
+   Opt->samp_name = NULL;
    Opt->gold_name = NULL;
    Opt->gold_bias_name = NULL;
    Opt->this_pset_name = NULL;

@@ -23,6 +23,7 @@ typedef struct {
    char *aset_name;
    char *mset_name;
    char *sig_name;
+   char *samp_name;
    char *gold_name;
    char *gold_bias_name;
    char *this_pset_name;
@@ -41,6 +42,7 @@ typedef struct {
    THD_3dim_dataset *aset;
    THD_3dim_dataset *mset;
    THD_3dim_dataset *sig;
+   THD_3dim_dataset *samp;
    THD_3dim_dataset *pset;
    THD_3dim_dataset *cset;
    THD_3dim_dataset *fset;
