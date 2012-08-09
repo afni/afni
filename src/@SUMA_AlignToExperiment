@@ -273,12 +273,14 @@ PARSE_COMMAND:
          endif
          
          set folpath = `ParseName -out AbsPath $SA_in`
-         echo $folpath
+         #echo $folpath
          set followers = ()
          if ( -d $folpath ) then
             cd $folpath
             # avoid wildcards (maybe we should make an afni_glob program?)
-            set follcand = (`find . -maxdepth 1 -name '*.nii'`)
+            set follcand = (`find . -maxdepth 1 -name '*.nii'` \
+                            `find . -maxdepth 1 -name '*.nii.gz'`)
+            #echo $follcand
             set followers = ()
             if ($#follcand > 0) then
                foreach foll ($follcand)
@@ -675,19 +677,19 @@ REGISTER:
                -twodup -zpad 8 -rotcom \
                -verbose -base $ExpAnat \
                -1Dmatrix_save  ${VolRegPrefix}.A2E.1D \
-               -prefix $VolRegPrefix \
+               -prefix ./$VolRegPrefix \
                -cubic   \
                $SurfAnatPath/$SurfAnat
-      if ( ! ( -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || \
-               -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || \
-               -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z || \
-               -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.bz2)) then
-         echo "Failed to find $SurfAnatPath/$VolRegPrefix$SurfAnatView"
+      if ( ! ( -f $VolRegPrefix$SurfAnatView.BRIK || \
+               -f $VolRegPrefix$SurfAnatView.BRIK.gz || \
+               -f $VolRegPrefix$SurfAnatView.BRIK.Z || \
+               -f $VolRegPrefix$SurfAnatView.BRIK.bz2)) then
+         echo "Failed to find $VolRegPrefix$SurfAnatView"
          goto NO_VOLREG
       endif
       #differing views?
-      mv $SurfAnatPath/$VolRegPrefix* ./
-      if ("$SurfAnatView" != "$ExpAnatView") then
+      #mv $SurfAnatPath/$VolRegPrefix* ./
+      if ("$ExpAnatView" !~ "" && "$SurfAnatView" != "$ExpAnatView") then
          echo "Changing view from $SurfAnatView to $ExpAnatView."
          if ($okchangeview == 0) then
             echo "Note that only rigid-body registration was used here."
