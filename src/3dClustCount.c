@@ -82,6 +82,13 @@ void display_help_menu()
    "               'sss.clustcount.niml'.  If this file already exists, then\n"
    "               the results from the current run will be summed into the\n"
    "               existing results, and the file then re-written.\n"
+#if 0
+   "\n"
+   " -addin aaa  = Also add in the results from file 'aaa.clustcount.niml'\n"
+   "               to the cumulating counts.  This option lets you run\n"
+   "               multiple 3dClustCount jobs in parallel scripts, then\n"
+   "               merge the results.\n"
+#endif
    "\n"
    " -final      = If this option is given, then the results will be output\n"
    "               in a format like that used from 3dClustSim -- as 1D and\n"
