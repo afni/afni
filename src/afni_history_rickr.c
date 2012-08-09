@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, AUG, 2012, RCR, "afni_general", MICRO, TYPE_BUG_FIX,
+   "definition after ENTRY in mri_genalign_util.c",
+   NULL
+ } ,
+
  {  8, AUG, 2012, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added -use_slice_loc; fixed app of use_last_elem in mri_read_dicom",
    "g_info.use_last_elem has usurped the lone global"
