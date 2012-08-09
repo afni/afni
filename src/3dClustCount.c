@@ -138,7 +138,7 @@ void display_help_menu()
    "      3dClustCount -prefix ABcount 'QQ*.HEAD[1]'\n"
    "      \\rm -f QQ*\n"
    "    end\n"
-   "    3dClustCount -final ABcount\n"
+   "    3dClustCount -final -prefix ABcount\n"
    "    \\rm -f ABscat*\n"
    "\n"
    "--------------------------------\n"
