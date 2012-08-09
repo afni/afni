@@ -809,8 +809,8 @@ ENTRY("GA_interp_wsinc5p") ;
 void GA_interp_wsinc5( MRI_IMAGE *fim ,
                        int npp, float *ip, float *jp, float *kp, float *vv )
 {
-ENTRY("GA_interp_wsinc5") ;
    static int first = 1 ;
+ENTRY("GA_interp_wsinc5") ;
 
    if( first ){ setup_wsinc5() ; first = 0 ; }
 
