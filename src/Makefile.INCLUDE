@@ -1071,6 +1071,10 @@ waver:waver.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dnewid 3dnewid.o $(LFLAGS) $(LLIBS)
 
+3dClustCount:3dClustCount.o
+	$(RM) $@
+	$(CC) -o 3dClustCount 3dClustCount.o $(LFLAGS) $(LLIBS)
+
 DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
 	$(RM) $@
 	$(CC) -o DTIStudioFibertoSegments DTIStudioFibertoSegments.o $(LFLAGS) $(LLIBS)
