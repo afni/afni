@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, AUG, 2012, RCR, "afni_restproc.py", MINOR, TYPE_GENERAL,
+   "Updates from Rayus.",
+   "Fixed bugs with -outcensor and -snr.\n"
+   "Added -bpassregs and -keepuncensored\n."
+   "Use variable detrending for -tsnr."
+ } ,
+
  {  9, AUG, 2012, RCR, "afni_general", MICRO, TYPE_BUG_FIX,
    "definition after ENTRY in mri_genalign_util.c",
    NULL
