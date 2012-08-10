@@ -155,6 +155,9 @@ Optional Options:
 				points. Default is 2.
 		-censorunion	:Censor the union of fraclimit and motlimit or
 				FD and DVARS, instead of the intersection.
+		-keepuncensored :Keep a copy of the uncensored timeseries. It
+				will be called 
+				[prefix].cleanEPI.uncensored+[view]
 
 	Normalization Options:
 		-localnorm	:Normalize based on voxelwise mean
@@ -183,6 +186,7 @@ Optional Options:
 		-bandpass 	:Do bandpass filtering with LHz < f < HHz. 
 				Default is 0.009 and 0.08.
 		-setbands L H	:Set L and H for bandpass filtering
+		-bpassregs	:Also bandpass filter the regressors.
 		-exec [on]/off	:Execute the commands. Turn this off and use 
 				-script to get things setup without running 
 				anything.
@@ -248,7 +252,7 @@ Processing is done in the following steps:
 		computed if requested.  It is taken to be  
 		mean(pEPI) / stdev(det(pEPI)) where pEPI is the processed EPI 
 		(despiked, aligned, tshifted, catenated) and det represents 
-		detrending with polynomial order 4.
+		detrending with polynomial order polort.
 	SNR:
 		If you have collected a scan with the RF turned off (used to
 		estimate the varience of the noise) the SNR can be computed
@@ -332,7 +336,8 @@ Processing is done in the following steps:
 		no competing polynomial terms during the regression step.
 	Bandpass Filtering:
 		If bandpass filtering is selected, it is applied to the EPI 
-		data here instead of after regression.
+		data here after regression. This is also where the regressors 
+		are bandpass filtered if -bpassregs was selected.
 	Regression:
 		The regressors of noninterest (RVT,WM,Vent,Motion,other
 		arbitrary regressors) are taken out of the epi timeseries using
@@ -472,7 +477,7 @@ Original version by Rayus Kuplicki.
 University of Tulsa
 Laureate Institute for Brain Research
 Report problems or feature requests to rkuplicki@laureateinstitute.org.
-5-4-12
+8-10-12
 """
 	
 change_string = """
@@ -486,6 +491,16 @@ fixed -dreg so now the derivatives of the regressors are computed and used
 if -smoothfirst is chosen, smoothing now takes place before computing regressors
 removed import subprocess
 fixed placement of comment about copying results
+
+8-10-12
+fixed a bug with -outcensor where neighbors of timepoints flagged for excessive
+	motion were not also being flagged for censoring
+fixed a bug with -snr where the computed snr map was not copied to the result
+	directory
+added -bpassregs
+added -keepuncensored
+-tsnr now detrends with polynomial order polort instead of 4
+
 """
 class RestInterface:
    """Rest Processing Interface Class"""
@@ -541,12 +556,14 @@ class RestInterface:
       self.bandpass = False
       self.bandl = "0.009"
       self.bandh = "0.08"
+      self.bpassregs = False
       self.localnorm = False
       self.globalnorm = False
       self.modenorm = False
       self.normval = "1000"
       self.noise = None
       self.channels = None
+      self.keepuncensored = False
 
 
    def init_options(self):
@@ -601,8 +618,10 @@ class RestInterface:
       self.valid_opts.add_opt('-scensorleft', 1, [], req=0, helpstr='num points to mask left for strict motion')
       self.valid_opts.add_opt('-scensorright', 1, [], req=0, helpstr='num of points to mask right for strict motion')
       self.valid_opts.add_opt('-censorunion', 0, [], req=0, helpstr='censor union of FD and DVARS')
+      self.valid_opts.add_opt('-keepuncensored', 0, [], req=0, helpstr='keep a copy of the uncensored timeseries')
       self.valid_opts.add_opt('-smoothfirst', 0, [], req=0, helpstr='smooth before regression')
       self.valid_opts.add_opt('-bandpass', 0, [], req=0, helpstr='do bandpass filtering')
+      self.valid_opts.add_opt('-bpassregs', 0, [], req=0, helpstr='do bandpass filtering on regressors')
       self.valid_opts.add_opt('-setbands', 2, [], req=0, helpstr='set bandpass cutoffs')
       self.valid_opts.add_opt('-includebrain', 0, [], req=0, helpstr = 'include whole brain regressor')
       self.valid_opts.add_opt('-localnorm', 0, [], req=0, helpstr = 'normalize epi based on local mean')
@@ -801,6 +820,8 @@ class RestInterface:
             self.regmasks.append(val)
          elif opt.name == '-bandpass':
             self.bandpass = True
+         elif opt.name == '-bpassregs':
+            self.bpassregs = True
          elif opt.name == '-setbands':
             val,err = uopts.get_string_list("", opt=opt)
             if err: return 1
@@ -840,6 +861,8 @@ class RestInterface:
             self.scensorright = val
          elif opt.name == '-censorunion':
             self.censorunion = True
+         elif opt.name == '-keepuncensored':
+            self.keepuncensored = True
          elif opt.name == '-dreg':
             self.dreg = True
          
@@ -868,6 +891,9 @@ class RestInterface:
          sys.exit(1)
       if self.smoothfirst and not self.smoothepi:
          print "ERROR: -smoothfirst and -nosmooth don't make sense together"
+         sys.exit(1)
+      if self.bpassregs and not self.bandpass:
+         print "ERROR: -bpassregs selected without -bandpass"
          sys.exit(1)
       if not self.align and (self.outcensor or self.dvarscensor):
          print "ERROR: -align off is not compatible with -outcensor or -dvarscensor"
@@ -1120,6 +1146,9 @@ class RestInterface:
          return ["mask.WM.resample.erode%s" % asegs, self.wmsize]
    
    def resample_regmasks(self, curEPI, curREGMASKS):
+      if len(filter(None, curREGMASKS)) == 0:
+         #if there's nothing to do, return
+         return curREGMASKS
       self.info("Resample regressor masks")
       for i in range(len(curREGMASKS)):
          if isinstance(curREGMASKS[i], list):
@@ -1232,6 +1261,9 @@ class RestInterface:
       return "%s.backdif%s" % (epip, epis)
 
    def detrend_all(self, regs):
+      if len(filter(None, regs)) == 0 or self.polort == "0":
+         #if there's nothing to do, return
+         return
       #detrend all regressors, including those supplied by the user
       self.info("Detrend regressors")
       for i in range(len(regs)):
@@ -1353,10 +1385,10 @@ class RestInterface:
 
       #combine the two censor files
       #if either file contains a 0 at a point, censor it -> union of bad time points
-      cmd = "1deval -a %s -b motion_censor.1D -expr \'and(a, b)\' > outCensorUnion.1D" % (curOUTCEN)
+      cmd = "1deval -a %s -b %s -expr \'and(a, b)\' > outCensorUnion.1D" % (curOUTCEN, curMOTCEN)
       self.write_execute(cmd)
       #if both files contains 0's at a point, censor it -> intersection of bad time points
-      cmd = "1deval -a %s -b motion_censor.1D -expr \'or(a, b)\' > outCensorIntersection.1D" % (curOUTCEN)
+      cmd = "1deval -a %s -b %s -expr \'or(a, b)\' > outCensorIntersection.1D" % (curOUTCEN, curMOTCEN)
       self.write_execute(cmd)
       if self.censorunion:
          return "outCensorUnion.1D"
@@ -1501,14 +1533,14 @@ class RestInterface:
 
    def compute_tsnr(self, curEPI):
       #compute the tSNR of curEPI as mean(curEPI) / stdev(det(curEPI)) where det(curEPI) is curEPI detrended with
-      #polynomial order 4
+      #polynomial order polort
       if not self.tsnr:
          return None
       self.info("Compute TSNR")
       epip,epis=remove_suffix(curEPI)
       cmd = "3dTstat -mean -prefix %s.mean %s" % (epip, curEPI)
       self.write_execute(cmd)
-      cmd = "3dDetrend -prefix %s.det -polort 4 %s" % (epip, curEPI)
+      cmd = "3dDetrend -prefix %s.det -polort %s %s" % (epip, self.polort, curEPI)
       self.write_execute(cmd)
       cmd = "3dTstat -stdev -prefix %s.det.stdev %s" % (epip, epip + ".det" + epis)
       self.write_execute(cmd)
@@ -1517,15 +1549,49 @@ class RestInterface:
       self.write_execute(cmd)
       return epip + ".tsnr" + epis
 
-   def bpass(self, curEPI):
+   def bpass(self, curEPI, regs):
       #do bandpass filtering
       if not self.bandpass:
          return curEPI
-      self.info("Do bandpass filtering")
+      if self.bpassregs:
+         self.bpass_all_regs(regs)
+      self.info("Bandpass filter EPI")
       epip,epis = remove_suffix(curEPI)
-      cmd = "3dBandpass -nodetrend -prefix %s.bpass %s %s %s" % (epip, self.bandl, self.bandh, curEPI)
+      return self.bpass_4d(curEPI)
+
+   def bpass_all_regs(self, regs):
+      if len(filter(None, regs)) == 0:
+         #if there's nothing to do, return
+         return
+      #bandpass filter all regressors, including those supplied by the user
+      self.info("Bandpass filter regressors")
+      for i in range(len(regs)):
+         if regs[i] == None:
+            continue
+         elif regs[i][-3:] == ".1D":
+            regs[i] = self.bpass_1d(regs[i])
+         elif regs[i][-5:] == "+orig" or regs[i][-5:] == "+tlrc" or regs[i][-5:] == "+lcpc":
+            regs[i] = self.bpass_4d(regs[i])
+         else:
+            print "ERROR: %s is not a .1D or a .BRIK file" % regs[i]
+
+   def bpass_1d(self, cur1D):
+      if cur1D == None:
+         return None
+      cur1Dp = split_1D(cur1D)
+      next1D = cur1Dp + ".bpass.1D"
+      cmd = "1dBandpass -nodetrend %s %s %s > %s" % (self.bandl, self.bandh, cur1D, next1D)
       self.write_execute(cmd)
-      return "%s.bpass%s" % (epip, epis)
+      return next1D
+
+   def bpass_4d(self, cur4D):
+      if cur4D == None:
+         return None
+      cur4Dp,cur4Ds = remove_suffix(cur4D)
+      next4D = cur4Dp + ".bpass" + cur4Ds
+      cmd = "3dBandpass -nodetrend -prefix %s.bpass %s %s %s" % (cur4Dp, self.bandl, self.bandh, cur4D)
+      self.write_execute(cmd)
+      return next4D
 
    def set_polort(self, curEPI):
       #only set self.polort if it is -1 (not set by the user)
@@ -1641,7 +1707,7 @@ class RestInterface:
       self.detrend_all(self.regressors)
 
       #do bandpass filtering
-      curEPI = self.bpass(curEPI)
+      curEPI = self.bpass(curEPI, self.regressors)
 
       #do regression
       curEPI = self.regress(curEPI, self.regressors)
@@ -1650,6 +1716,8 @@ class RestInterface:
       #compute SNR
       if self.noise != None:
          SNR = self.compute_snr(origEPI, curNOISE, self.channels, epiXFORM, curEPI)
+      else:
+         SNR = None
       #create censor file
       if self.dvarscensor:
          curCENSOR = self.create_power_censor(cattedMOTION, curEPI, maskBRAIN)
@@ -1658,15 +1726,21 @@ class RestInterface:
       else:
          curCENSOR = None
 
-      #remove censored trs
-      epip,epis=remove_suffix(curEPI)
-      curEPI = self.write_apply_censor(curEPI, curCENSOR, "%s.censor" % epip)
       #smooth results
       if self.smoothepi and not self.smoothfirst:
          if self.smoothtogether:
             curEPI = self.smooth(curEPI, maskBRAIN)
          else:
             curEPI = self.smooth(curEPI, maskBLUR)
+
+      #remove censored trs
+      epip,epis=remove_suffix(curEPI)
+      if self.keepuncensored:
+         curEPIUNC = curEPI
+      else:
+         curEPIUNC = None
+      curEPI = self.write_apply_censor(curEPI, curCENSOR, "%s.censor" % epip)
+
       #compute corr map
       curMC,curMCGT,curHIST = self.compute_corrmap(curEPI, maskGM)
       #copy and name results
@@ -1681,11 +1755,13 @@ class RestInterface:
       
       self.copy_result_1D(curCENSOR, "../%s.censor.1D" % self.prefix)
       self.copy_result_BRIK(curEPI, "../%s.cleanEPI" % (self.prefix), curANATT, "quintic")
+      self.copy_result_BRIK(curEPIUNC, "../%s.cleanEPI.uncensored" % (self.prefix), curANATT, "quintic")
       self.copy_result_BRIK(maskVENT, "../%s.mask.vent" % (self.prefix), curANATT, "NN")
       self.copy_result_BRIK(maskWM, "../%s.mask.wm" % (self.prefix), curANATT, "NN")
       self.copy_result_BRIK(maskGM, "../%s.mask.gm" % (self.prefix), curANATT, "NN")
       self.copy_result_BRIK(maskBRAIN, "../%s.mask.brain" % (self.prefix), curANATT, "NN")
       self.copy_result_BRIK(curTSNR, "../%s.tsnr" % (self.prefix), curANATT, "NN")
+      self.copy_result_BRIK(SNR, "../%s.snr" % (self.prefix), curANATT, "NN")
       self.copy_result_BRIK(curMC, "../%s.meancorr" % (self.prefix), curANATT, "NN")
       self.copy_result_BRIK(curMCGT, "../%s.meancorrGT" % (self.prefix), curANATT, "NN")
       self.copy_result_BRIK(curHIST, "../%s.CorHist" % (self.prefix), curANATT, "NN")
