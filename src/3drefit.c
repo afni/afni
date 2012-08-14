@@ -1809,7 +1809,11 @@ int main( int argc , char *argv[] )
       }
 
       if( new_type ){
-         if( nvals > 1 && dset->taxis != NULL ){
+#if 0
+/* removed these tests where nvals is used as number of values per sub-brick
+   instead of number of sub-bricks. Apparently from another era, these are
+   limited to a value of 1 or 2 in 3ddata.h for each data type */
+/*          if( nvals > 1 && dset->taxis != NULL ){
             ERROR_message("Can't change 3D+time dataset to new type:\n"
                           " *    new type has more than one value per voxel!\n") ;
          } else if( dset->taxis == NULL && nvals != dset->dblk->nvals &&
@@ -1819,6 +1823,8 @@ int main( int argc , char *argv[] )
             ERROR_message("Can't change dataset to new type:\n"
                           " *     mismatch in number of sub-bricks!\n") ;
          } else {
+ */
+#endif
             VINFO("changing dataset 'type' marker") ;
             dset->type      = dtype ;
             dset->func_type = ftype ;
@@ -1829,7 +1835,7 @@ int main( int argc , char *argv[] )
             }
 
             did_something++ ; /* set either way   17 Nov 2011 [rickr, dglen] */
-         }
+/*         }*/
       }
 
       if( new_stataux ){
