@@ -198,6 +198,9 @@ void whereami_usage(ATLAS_LIST *atlas_alist, int detail)
 "                     value set by the environment variable \n"
 "                     AFNI_WHEREAMI_MAX_SEARCH_RAD,\n"
 "                     which is now set to %f .\n" 
+" -min_prob MIN_PROB: set minimum probability to consider in probabilistic\n"
+"             atlas output. This option will overrid the value set by the\n"
+"             environment variable AFNI_WHEREAMI_PROB_MIN (default is 1E-10)\n"
 " NOTE: You can turn off some of the whining by setting the environment \n"
 "       variable  AFNI_WHEREAMI_NO_WARN\n"            
 " -debug DEBUG: Debug flag\n"
@@ -474,7 +477,8 @@ int main(int argc, char **argv)
    ATLAS_LIST *atlas_alist=NULL, *atlas_list=NULL, *atlas_rlist=NULL;
    byte b1;
    int LocalHead = wami_lh();
-   
+   float minprob;
+
    mainENTRY("whereami main"); machdep(); AFNI_logger("whereami",argc,argv);
    
    b1 = 0;
@@ -745,6 +749,25 @@ int main(int argc, char **argv)
             ++iarg;
             continue;             
          } 
+
+         if (strcmp(argv[iarg],"-min_prob") == 0) {
+            ++iarg;
+            if (iarg >= argc) {
+               fprintf(stderr,
+                        "** Error: Need parameter after -min_prob\n"); 
+               return(1);
+            }
+            minprob = atof(argv[iarg]);
+            if (minprob <= 0.0 || minprob > 1.0) {
+               fprintf(stderr,
+               "** Error: -min_prob parameter must be greater than 0.0 and less than or equal to 1.0\n"); 
+               return(1);
+            }
+            set_wami_minprob(minprob);
+            ++iarg;
+            continue;             
+         } 
+
          if (strcmp(argv[iarg],"-dbg") == 0 || 
              strcmp(argv[iarg],"-debug") == 0 ||
              strcmp(argv[iarg],"-verb") == 0) {
@@ -1083,42 +1106,6 @@ int main(int argc, char **argv)
        else { fprintf(stderr,"** Error: Should not happen!\n"); return(1); } 
       }
    }
-
-#if 0
-/* now moved functionality to thd_ttatlas_query */
-   if (srcspace && !strcmp(srcspace,"paxinos_rat_2007@Elsevier")) { 
-      /* for testing purposes. */
-      size_t nread;
-      char wamiqurl[512], *page=NULL, *sss=NULL;
-      char upath[]={"http://mrqlan.dyndns.org/bnapi/models/whereami.xml?"};
-
-      sprintf(wamiqurl,"%sspace=paxinos_rat_2007&x=%f&y=%f&z=%f&scope=full",
-            upath, xi, yi, zi);
-      fprintf(stdout,"Trying to open:\n%s\n", wamiqurl);
-
-      #ifdef USE_CURL
-         /* fprintf(stderr,"Using curl to read:\n%s\n", wamiqurl); */
-         nread = CURL_read_URL_http( wamiqurl , &page );
-      #else
-         /* fprintf(stderr,"Using read_URL to read:\n%s\n", wamiqurl); */
-         set_HTTP_11(1);
-         nread = read_URL_http( wamiqurl , 4448 , &page );
-      #endif
-      
-      if (page) {
-         /* Show page */
-         fprintf(stdout,"Page Content(%zu):\n%s\n\n", 
-                  nread, page);
-         if ((sss = whereami_XML_get(page, "bn_uri"))) {
-            fprintf(stdout, "open %s\n", sss); 
-            whereami_browser(sss); 
-            free(sss);
-         }
-         free(page); page = NULL;
-      }
-      exit(0);
-   } 
-#endif
 
    atlas_alist = get_G_atlas_list(); /* get the whole atlas list */
    if (N_atlas_names == 0) {

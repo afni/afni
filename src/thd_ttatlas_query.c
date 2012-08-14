@@ -41,6 +41,10 @@ static char wami_url[MAX_URL];
 
 /* global web browser is used here, not sure where else to put it...      */
 char *GLOBAL_browser = NULL ;   /* 30 Dec 2005, moved 22 Feb 2012 [rickr] */
+ 
+#define TINY_NUMBER 1E-10
+/* minimum probability (0.0-1.0) to consider with probabilistic atlases */
+static float wami_min_prob = -1.0;
 
 THD_string_array *recreate_working_atlas_name_list(void) {
    if (working_atlas_name_list) DESTROY_SARR(working_atlas_name_list);
@@ -5013,6 +5017,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
    THD_3dim_dataset * maskset = NULL;
    char madeupname[500], madeuplabel[40];
    ATLAS *atlas=NULL;
+   float fval;
 
    ENTRY("Atlas_Region_Mask");
 
@@ -5153,7 +5158,10 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
               if (ba) {
                  have_brik = 1;
                  for (ii=0; ii< nxyz; ++ii) {
-                    if (ba[ii]) bmask[ii] = ba[ii];
+                    fval = (float) ba[ii];
+                    if(fval>1.0) fval = fval / Get_PMap_Factor(); /* if >1.0, must be old pmap atlases*/
+                    if(fval<get_wami_minprob()) fval = 0.0; /* check against minimum probability */
+                    if (fval>0.0) bmask[ii] = ba[ii];
                  }
               }
               break;
@@ -5162,7 +5170,10 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
               if (bba) {
                  have_brik = 1;
                  for (ii=0; ii< nxyz; ++ii) {
-                    if (bba[ii]) bmask[ii] = bba[ii];
+                    fval = (float) bba[ii];
+                    if(fval>1.0) fval = fval / Get_PMap_Factor(); /* if >1.0, must be old pmap atlases*/
+                    if(fval<get_wami_minprob()) fval = 0.0; /* check against minimum probability */
+                    if (fval>0.0) bmask[ii] = bba[ii];
                  }
               }
               break;
@@ -5171,7 +5182,9 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
               if (fba) {
                  have_brik = 1;
                  for (ii=0; ii< nxyz; ++ii) {
-                    if (fba[ii]>0.0) bmask[ii] = 1;
+                    fval = (float) fba[ii];
+                    if(fval<get_wami_minprob()) fval = 0.0; /* check against minimum probability */
+                    if (fval>0.0) bmask[ii] = 1;
                  }
               }
               break;
@@ -7454,7 +7467,11 @@ int whereami_in_atlas(  char *aname,
                            sb, atlas->dset_name, fval);
          if( fval != 0.0 ){
             if(fval>1.0) fval = fval / Get_PMap_Factor(); /* if >1.0, must be old pmap atlases*/
+            if(fval<get_wami_minprob()) fval = 0.0; /* check against minimum probability */
+         }
 
+         /* check again with adjusted probability */
+         if( fval != 0.0 ){ 
             if( atlas->adh->adset->dblk->brick_lab == NULL || 
                 atlas->adh->adset->dblk->brick_lab[sb] == NULL) {
                if (LocalHead)  fprintf(stderr,"  ++ No Label!\n");
@@ -8797,8 +8814,12 @@ elsevier_query(float xx, float yy, float zz, ATLAS *atlas)
      #else
         /* fprintf(stderr,"Using read_URL to read:\n%s\n", wamiqurl); */
         set_HTTP_11(1);
-        nread = read_URL_http( wamiqurl , 4448 , &page );
+        nread = read_URL_http( wamiqurl , 15000 , &page );
+/*         nread = read_URL_http( wamiqurl , 4448 , &page );*/
+
      #endif
+     if(wami_verb() && page==NULL)
+        fprintf(stdout,"***************No response from Elsevier\n");
      return(page);
 
 }
@@ -9075,3 +9096,21 @@ void set_AFNI_wami_output_mode(int webflag)
       AFNI_setenv("AFNI_WEBBY_WAMI=NO");
 }
 
+
+/* set minimum probabilty to use in probabilistic atlases */
+void set_wami_minprob(float val)
+{
+   if((val>0) && (val<=1.0))
+      wami_min_prob = val;
+}
+
+/* get minimum probability to use in probabilistic atlases */
+float get_wami_minprob()
+{
+   if(wami_min_prob>0)
+      return(wami_min_prob);
+   /* set wami_min_prob to environment value if it exists, otherwise tiny number */
+   wami_min_prob = (float) AFNI_numenv_def("AFNI_WHEREAMI_PROB_MIN", TINY_NUMBER);
+   if(wami_min_prob<=0)
+      wami_min_prob = TINY_NUMBER;
+}
