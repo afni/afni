@@ -49,10 +49,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, AUG, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "match default class order for 3dSeg; copy labeltable into resampled dset",
+   NULL
+ } ,
+
  { 10, AUG, 2012, RCR, "afni_restproc.py", MINOR, TYPE_GENERAL,
    "Updates from Rayus.",
    "Fixed bugs with -outcensor and -snr.\n"
-   "Added -bpassregs and -keepuncensored\n."
+   "Added -bpassregs and -keepuncensored.\n"
    "Use variable detrending for -tsnr."
  } ,
 

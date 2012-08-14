@@ -351,9 +351,12 @@ g_history = """
     3.28 Jul 30, 2012: if surf analysis, create run_suma script
     3.29 Jul 31, 2012: have -mask_segment_anat default to no
     3.30 Aug 08, 2012: do not update tlrc anat with strip if passed in
+    3.31 Aug 14, 2012:
+        - match default class order for 3dSeg
+        - copy labeltable into resampled dataset
 """
 
-g_version = "version 3.30, August 8, 2012"
+g_version = "version 3.31, August 14, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 May 2012"

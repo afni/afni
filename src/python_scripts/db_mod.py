@@ -1978,7 +1978,7 @@ def mask_segment_anat(proc, block):
     # and proc.anat_has_skull:
 
     # maybe we will take more classes in some option...
-    sclasses = ['GM', 'WM', 'CSF']
+    sclasses = ['CSF', 'GM', 'WM']
     cmd  = "# ---- segment anatomy into classes %s ----\n" % '/'.join(sclasses)
 
     cmd += "3dSeg -anat %s -mask AUTO -classes '%s'\n\n" \
@@ -1991,6 +1991,10 @@ def mask_segment_anat(proc, block):
             '3dresample -master %s -input Classes%s \\\n'   \
             '           -prefix %s\n\n'                     \
                % (proc.prev_prefix_form(1, view=1), proc.view, result.prefix)
+
+    cmd += '# and copy labeltable\n' \
+            '3drefit -copytables Classes%s %s\n\n' % (proc.view, result.pv())
+
     proc.mask_classes = result
     
     for sc in sclasses:
