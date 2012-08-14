@@ -479,7 +479,10 @@ char * get_wami_webpage(void);
 void open_wami_webpage(void);
 int AFNI_wami_output_mode(void);
 void set_AFNI_wami_output_mode(int webflag);
-
+size_t CURL_read_URL_http ( char *url, char **data);
+void set_wami_minprob(float val);
+float get_wami_minprob(void);
+float Get_PMap_Factor(void);
 
 /* Transforms for going from one space to another */
 #if 0
