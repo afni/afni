@@ -185,7 +185,10 @@ change the orientation of the variable display within AFNI.
 Variable: AFNI_PLUGINPATH
 -------------------------
 This variable should be the directory in which AFNI should search
-for plugins, executable files, atlases, templates and atlas definition files. See the atlas environment variable section below for more details.  If there is more than one appropriate directory, they can be separated by colons, as in
+for plugins, executable files, atlases, templates and atlas definition files.
+See the atlas environment variable section below for more details.
+If there is more than one appropriate directory, they can be separated
+by colons, as in
 
    setenv AFNI_PLUGINPATH /directory/one:/directory/two
 
@@ -194,7 +197,9 @@ instead.  This will waste time, since most directories in the PATH
 will not have plugins.  On some systems, using the PATH has been
 known to cause problems when AFNI starts.  I believe this is due to
 bugs in the system library routines (e.g., dlopen) used to manage
-dynamically loaded shared objects. Take care to remove any slow or non-existent directories from the PATH because these problems will cause searches to fail or become excessively slow.
+dynamically loaded shared objects. Take care to remove any slow or
+non-existent directories from the PATH because these problems will cause
+searches to fail or become excessively slow.
 
 ------------------------
 Variable: AFNI_NOPLUGINS
@@ -3250,12 +3255,6 @@ to the file based on the given prefix, rather than to an automatic 1D file.
 This allows writing surface files to NIfTI format, for example.
 
 -----------------------------------
-Variable: AFNI_WAMI_DEBUG
------------------------------------
-This integer sets the debugging level in whereami routines.
-Currently used values range from 0 to 3.
-
------------------------------------
 Variable: AFNI_PATH_SPACES_OK
 -----------------------------------
 If this variable is set to YES, dataset names with spaces in them will go
@@ -3492,7 +3491,8 @@ Variable: AFNI_WAMI_DEBUG
 -------------------------
 This variable controls the output of detailed messages about various tasks
 involved in loading atlases, transformations and composing query results.
-By default, this information is not shown.
+By default, this information is not shown. This integer sets the debugging
+level in whereami routines. Currently used values range from 0 to 3.
 
 ------------------------------
 Variable: AFNI_TTATLAS_DATASET
@@ -3519,6 +3519,11 @@ the whereami results.
 Variable: AFNI_WHEREAMI_MAX_SEARCH_RAD (editable)
 -------------------------------
 By default, whereami searches a radius of 7.5 mm. Set a radius up to 9.5 mm.
+
+-------------------------------
+Variable: AFNI_WHEREAMI_PROB_MIN
+-------------------------------
+Minimum probability AFNI considers in probabilistic atlases
 
 --------------------------------
 Variable: AFNI_DEFAULT_STD_SPACE
