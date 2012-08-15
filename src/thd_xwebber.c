@@ -59,7 +59,7 @@ ENTRY("anchorCB") ;
       if( first == 1 ){ webb = GetAfniWebBrowser() ; first = 2 ; }
       if( webb != NULL ){
         char *cmd = (char *)malloc( strlen(webb) + strlen(cbs->href) + 32 ) ;
-        sprintf( cmd , "%s %s &" , webb , cbs->href ) ;
+        sprintf( cmd , "%s '%s' &" , webb , cbs->href ) ;
         system( cmd ) ; free( cmd ) ;
       } else if( first == 2 ){
           INFO_message("No command line Web browser program found in your path.") ;
