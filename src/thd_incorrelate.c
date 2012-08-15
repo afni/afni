@@ -652,9 +652,12 @@ static void INCOR_addto_incomplete_pearson( int n, float *x, float *y,
    } else {
      double xx , yy , ww ;
      for( ii=0 ; ii < n ; ii++ ){
-       xx = (double)x[ii] ; yy = (double)y[ii] ; ww = (double)w[ii] ;
-       sx += xx*ww ; sxx += xx*xx*ww ;
-       sy += yy*ww ; syy += yy*yy*ww ; sxy += xx*yy*ww ; sw += ww ;
+       ww = (double)w[ii] ;
+       if( ww > 0.0 ){
+         xx = (double)x[ii] ; yy = (double)y[ii] ;
+         sx += xx*ww ; sxx += xx*xx*ww ;
+         sy += yy*ww ; syy += yy*yy*ww ; sxy += xx*yy*ww ; sw += ww ;
+       }
      }
    }
 
