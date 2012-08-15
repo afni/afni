@@ -4768,7 +4768,7 @@ int view_web_link(char *link, char *browser)
    if (!browser) browser = GetAfniWebBrowser();
    
    if (!browser) {
-      ERROR_message("No Web browese defined.\n"
+      ERROR_message("No Web browse defined.\n"
               "Set AFNI_WEB_BROWSER in your .afnirc for this option to work.\n");
       return(0);
    }
@@ -9010,12 +9010,55 @@ int whereami_browser(char *url)
       icall = 1;
    }
    if (!GLOBAL_browser) return(0);
-   
+
    sprintf(cmd ,
           "%s '%s' &" ,
           GLOBAL_browser, url ) ;
+   if(wami_verb())
+      printf("system command to send to browser is:\n%s\n",cmd);
    
    return(system(cmd));
+}
+
+/* return copy of input url with special characters escaped */
+char *
+cleanup_url(char *url)
+{
+   int i, bad_count=0;
+   char *clean_url = NULL;
+   char *clean_ptr;
+
+   if(url==NULL) return(NULL);
+
+   for(i=0;i<strlen(url);i++){
+      if(url[i]=='&'){
+         bad_count++;
+      }
+      if(url[i]==';'){
+         bad_count++;
+      }
+   }
+   if(bad_count==0){
+      NI_strncpy(clean_url, url, strlen(url));
+      return(clean_url);
+   }
+   clean_url = (char *)calloc(strlen(url)+bad_count, sizeof(char));
+   clean_ptr = clean_url;
+   for(i=0;i<strlen(url);i++){
+      if(url[i]=='&'){
+         *clean_ptr++ = '\\';
+         *clean_ptr++ = '&';
+      }
+      if(url[i]==';'){
+         *clean_ptr++ = '\\';
+         *clean_ptr++ = ';';
+      }
+      else{
+         *clean_ptr++ = url[i];
+      }
+   }
+   *clean_ptr = '\0'; 
+   return(clean_url);  
 }
 
 /* set static variable to show something was found/not found on a web atlas */
@@ -9045,11 +9088,15 @@ int get_wami_web_reqtype()
 /* set current webpage for whereami web request if needed */
 void set_wami_webpage(char *url)
 {
+/*   char *tempurl;*/
+
    if(url==NULL){
       wami_url[0] = '\0';
    }
    else {
+/*      tempurl = cleanup_url(url);*/
       strcpy(wami_url, url);
+/*      free(tempurl);*/
    }
 }
 

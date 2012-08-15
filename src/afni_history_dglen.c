@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 15 , AUG, 2012 , DRG , "whereami web" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Web-based atlases would not open webpage with ampersands, punctuation",
+} ,
 { 14 , AUG, 2012 , DRG , "whereami minimum probability" , 
     MINOR , TYPE_NEW_OPT, 
     "Minimum probability option to consider for probabilistic atlases",
