@@ -1245,7 +1245,6 @@ void print_space_list(ATLAS_SPACE_LIST *xsl)
          INFO_message("NULL Space list pointer, showing global list\n");
       xsl = get_G_space_list();
    }
-   INFO_message("Space list pointer %p\n", xsl);
    if(wami_verb() > 1)
       INFO_message("Space list has %d spaces\n",xsl->nspaces);
    INFO_message("----- List of available spaces: -------");
