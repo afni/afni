@@ -841,6 +841,8 @@ class SubjectList(object):
       if hpad < 0 or tpad < 0:
          print '** set_ids_from_dsets: will not apply negative padding'
          return 1
+
+      # try filenames without paths, first
       dlist = [s.dset.split('/')[-1] for s in self.subjects]
       if UTIL.vals_are_constant(dlist):
          print '** constant dataset names (%s)' % dlist[0]
@@ -864,6 +866,7 @@ class SubjectList(object):
 
       if not UTIL.vals_are_unique(slist):
          print '** cannot set IDs from dsets, labels not unique: %s' % slist
+         print '-- labels come from dsets: %s' % dlist
          return 1
 
       for ind, subj in enumerate(self.subjects):
