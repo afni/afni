@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, AUG, 2012, RCR, "gen_group_command.py", MICRO, TYPE_MODIFY,
+   "show datasets names when a 'labels not unique' error occurs",
+   NULL
+ } ,
+
  { 14, AUG, 2012, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "match default class order for 3dSeg; copy labeltable into resampled dset",
    NULL
