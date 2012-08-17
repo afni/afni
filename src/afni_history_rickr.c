@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, AUG, 2012, RCR, "3dGroupInCorr", MICRO, TYPE_BUG_FIX,
+   "pass 'batch mode' var to SUMA_init_GISET_setup to preserve dset",
+   NULL
+ } ,
+
  { 16, AUG, 2012, RCR, "gen_group_command.py", MICRO, TYPE_MODIFY,
    "show datasets names when a 'labels not unique' error occurs",
    NULL

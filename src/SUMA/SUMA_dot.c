@@ -1277,7 +1277,7 @@ SUMA_Boolean SUMA_GICOR_setup_func( NI_stream nsg , NI_element *nel )
      memset(giset,0, sizeof(GICOR_setup)) ;
    }
    
-   if (!SUMA_init_GISET_setup(nsg, nel, giset)) SUMA_GIQUIT;
+   if (!SUMA_init_GISET_setup(nsg, nel, giset, 0)) SUMA_GIQUIT;
    
    /* Now find surfaces that can be the domain */
    if (!SUMA_GICOR_Surfaces(giset, SOv)) {

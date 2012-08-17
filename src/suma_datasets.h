@@ -1759,7 +1759,8 @@ int afni_write_gifti_surf( NI_group *aSO, char * fname,
 
 
 /******** END functions for surface structure  ******************** */
-int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset);
+int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset,
+                          int bmode);   /* 17 Aug 2012 [rickr] */
 int SUMA_PopulateDsetsFromGICORnel(NI_element *nel, GICOR_setup *giset, 
                                    SUMA_DSET **sdsetv);
 #endif
