@@ -2815,7 +2815,7 @@ int main( int argc , char *argv[] )
          ERROR_exit("Can't setup batch mode dataset for some reason :-(") ;
      } else {
       giset = (GICOR_setup*)calloc(1,sizeof(GICOR_setup)) ;
-      if (!SUMA_init_GISET_setup(NULL , nelcmd, giset)) {
+      if (!SUMA_init_GISET_setup(NULL , nelcmd, giset, 1)) {
          ERROR_exit("Failed to setup batch mode dataset for some reason >:-(") ;
       }
      }
