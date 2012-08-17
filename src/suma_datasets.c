@@ -16269,8 +16269,10 @@ char *SUMA_AfniSurfaceObject_Info(NI_group *aSO,
 
 /************************ BEGIN GICOR functions  ******************** */
 
-/* A function to initialize the setup structure for GroupInCorr */
-int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset)
+/* A function to initialize the setup structure for GroupInCorr     */
+/* bmode: a flag for batch mode to save dset    17 Aug 2012 [rickr] */
+int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset,
+                          int bmode)
 {
    static char FuncName[]={"SUMA_init_GISET_setup"};
    char *atr=NULL , *pre=NULL, *s=NULL, sbuf[256];
@@ -16312,7 +16314,10 @@ int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset)
          SUMA_RETURN(NOPE) ;
       }
       giset->nvox = DSET_NVOX(tdset) ;
-      DSET_delete(tdset); tdset=NULL; SUMA_free(pre); pre=NULL;
+      /* if batch mode, store dataset           17 Aug 2012 [rickr] */
+      if( bmode ) giset->dset = tdset;
+      else { DSET_delete(tdset); tdset=NULL; }
+      SUMA_free(pre); pre=NULL;
       
    if( giset->nvox < 2 )    SUMA_RETURN(NOPE);
 
