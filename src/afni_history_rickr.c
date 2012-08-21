@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, AUG, 2012, RCR, "slow_surf_clustsim.py", MICRO, TYPE_NEW_OPT,
+   "added 'sigma' uvar, for passing to SurfSmooth",
+   NULL
+ } ,
+
  { 17, AUG, 2012, RCR, "3dGroupInCorr", MICRO, TYPE_BUG_FIX,
    "pass 'batch mode' var to SUMA_init_GISET_setup to preserve dset",
    NULL

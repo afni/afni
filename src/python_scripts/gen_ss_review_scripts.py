@@ -2143,7 +2143,7 @@ class MyInterface:
              'echo ""\n\n\n' % (colorstr, olimit, mlimit)
 
       self.commands_drive += \
-         '1dplot -wintitle "motion, outliers" -ynames OFrac Mot \\\n' \
+         '1dplot -wintitle "motion, outliers" -ynames Mot OFrac \\\n' \
          '       -sepscl %s%s %s &\n' % (cstr, efile, ofile)
       self.commands_drive += '1dplot -one %s%s "1D: %d@%g" &\n' \
                              % (cstr, ofile, nt, olimit)

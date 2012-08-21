@@ -233,7 +233,7 @@ class MyInterface:
 
          elif opt.name == '-on_surface':
             val, err = uopts.get_string_list('', opt=opt)
-            if val != None and err: return -1
+            if val == None or err: return -1
             if self.cvars.set_var_with_defs(opt.name[1:],val,CLUST.g_ctrl_defs,
                         as_type=1, oname='cvars', verb=self.verb) < 0:
                errs += 1
@@ -242,7 +242,7 @@ class MyInterface:
          # cvar requires at least 2 parameters, name and value
          elif opt.name == '-cvar':
             val, err = uopts.get_string_list('', opt=opt)
-            if val != None and err: return -1
+            if val == None or err: return -1
             # go after verb, in particular
             if val[0] == 'verb':
                try: self.verb = int(val[1])
@@ -259,7 +259,7 @@ class MyInterface:
          # uvar requires at least 2 parameters, name and value
          elif opt.name == '-uvar':
             val, err = uopts.get_string_list('', opt=opt)
-            if val != None and err: return -1
+            if val == None or err: return -1
             # and set it from the form name = [value_list]
             if SUBJ.set_var_str_from_def('uvars', val[0], val[1:], self.uvars,
                         CLUST.g_user_defs, verb=self.verb) < 0:
