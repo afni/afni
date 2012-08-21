@@ -30,9 +30,10 @@ g_history = """
     0.8  17 Jul, 2012: removed -Niter opt from SurfSmooth (let it decide)
     0.9  08 Aug, 2012: pass along surf vol even for on_surface
                        (plan to remove this later)
+    0.10 21 Aug, 2012: added 'sigma' uvar, for SurfSmooth
 """
 
-g_version = '0.9 (August 8, 2012)'
+g_version = '0.10 (August 21, 2012)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -74,7 +75,8 @@ g_user_defs.itersize       = 10         # iteration block size (speed-up)
 
 g_user_defs.pthr_list      = [ 0.1, 0.05, 0.02, 0.01 ]
 g_user_defs.blur           = 4.0
-g_user_defs.rmm            = -1
+g_user_defs.rmm            = -1.0
+g_user_defs.sigma          = -1.0  # if > 0, apply in SurfSmooth
 
 g_user_defs.surfA          = 'smoothwm'
 g_user_defs.surfB          = 'pial'
@@ -419,13 +421,17 @@ class SurfClust(object):
          inset = 'surf.noise.$iter.niml.dset'
          niter = 10
 
+      if self.uvars.val('sigma') > 0:
+         sigopt = '-sigma %g' % self.uvars.val('sigma')
+      else: sigopt = '  '
+
       # removed -Niter option
       clist = [ \
         '# smooth to the given target FWHM\n',
         self.LV.time_str,
         'SurfSmooth -spec $spec_file -surf_A $surfA           \\\n',
         '           -input %s         \\\n' % inset,
-        '           -met HEAT_07 -target_fwhm $blur           \\\n',
+        '           -met HEAT_07 -target_fwhm $blur %s        \\\n' % sigopt,
         '           -blurmaster %s    \\\n' % inset,
         '           -detrend_master                           \\\n',
         '           -output smooth.noise.$iter.gii            \\\n',
