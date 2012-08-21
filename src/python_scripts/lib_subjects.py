@@ -537,7 +537,7 @@ def set_var_str_from_def(obj, name, vlist, vars, defs,
       try: vv = dtype(val)
       except:
          print '** SVSFD %s.%s, cannot convert value %s to %s' \
-               (obj, name, val, dtype)
+               % (obj, name, val, dtype)
          return -1
    elif dtype == list: val = vlist
    else: 
