@@ -2637,7 +2637,7 @@ ENTRY("NwarpCalcRPN") ;
 #define NWARP_NOYDIS_FLAG  2
 #define NWARP_NOZDIS_FLAG  4
 
-#define NWARP_NUTHIN_FLAG (NWARP_NOXDIS_FLAG | NWARP_NOYDIS_FLAG | NWARP_NOZDIS_FLAG)
+#define NWARP_NODISP_FLAG (NWARP_NOXDIS_FLAG | NWARP_NOYDIS_FLAG | NWARP_NOZDIS_FLAG)
 
 #define NWARP_NOXDEP_FLAG  8  /* no functional dependence of displacment on X? */
 #define NWARP_NOYDEP_FLAG 16
@@ -2710,7 +2710,7 @@ static int IW3D_munge_flags( int nx , int ny , int nz , int flags )
 
    /* set flags to -1 (indicating error) if nothing is left */
 
-   if( (flags & NWARP_NUTHIN_FLAG) == NWARP_NUTHIN_FLAG ) flags = -1 ;
+   if( (flags & NWARP_NODISP_FLAG) == NWARP_NODISP_FLAG ) flags = -1 ;
 
    return flags ;
 }
@@ -2759,7 +2759,7 @@ static INLINE float_triple HQwarp_eval_basis( float x )
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Setup cubic basis arrays */
+/*! Setup cubic basis arrays for each dimension */
 
 static void HCwarp_setup_basis( int nx , int ny , int nz , int flags )
 {
@@ -2792,19 +2792,20 @@ static void HCwarp_setup_basis( int nx , int ny , int nz , int flags )
    ccz = (float *)malloc(sizeof(float)*nbz) ;
 
    /* if not going to use all 3D displacements,
-      create map from active set of parameters to total set of parameters */
+      create map from active set of parameters to total set of parameters:
+        Hparmap[j] = index into list 0..23 of the 'true' parameter location */
 
-   if( (Hflags & NWARP_NUTHIN_FLAG) != 0 ){
+   if( (Hflags & NWARP_NODISP_FLAG) != 0 ){
      int pm = 0 ;
      Hparmap = (int *)malloc(sizeof(int)*24) ;
      if( !(Hflags & NWARP_NOXDIS_FLAG) ){
-       for( ii=0 ; ii < 8 ; ii++ ) Hparmap[pm++] = ii ;
+       for( ii=0 ; ii < 8 ; ii++ ) Hparmap[pm++] = ii ;     /* x params */
      }
      if( !(Hflags & NWARP_NOYDIS_FLAG) ){
-       for( ii=0 ; ii < 8 ; ii++ ) Hparmap[pm++] = ii+8 ;
+       for( ii=0 ; ii < 8 ; ii++ ) Hparmap[pm++] = ii+8 ;   /* y params */
      }
      if( !(Hflags & NWARP_NOYDIS_FLAG) ){
-       for( ii=0 ; ii < 8 ; ii++ ) Hparmap[pm++] = ii+16 ;
+       for( ii=0 ; ii < 8 ; ii++ ) Hparmap[pm++] = ii+16 ;  /* z params */
      }
      Hnparmap = pm ;
      if( Hnparmap == 24 ){ free(Hparmap) ; Hparmap = NULL ; }
@@ -2812,18 +2813,23 @@ static void HCwarp_setup_basis( int nx , int ny , int nz , int flags )
      Hnparmap = 24 ; Hparmap = NULL ;
    }
 
+   /* arrays for x direction */
+
    if( Hflags & NWARP_NOXDEP_FLAG ){
      dxi = delx = 0.0f ;
      for( ii=0 ; ii < nbx ; ii++ ){
        ccx[ii] = 0.0f ; b0x[ii] = 1.0f ; b1x[ii] = 0.0f ;
      }
    } else {
-     dxi = 0.5f*(nbx-1.0f) ; delx = 1.0f/dxi ;
+     dxi = 0.5f*(nbx-1.0f) ; delx = 1.0f/dxi ;  /* dxi = half-width of patch */
      for( ii=0 ; ii < nbx ; ii++ ){
        ccx[ii] = -1.0 + ii*delx ; ee = HCwarp_eval_basis(ccx[ii]) ;
        b0x[ii] = ee.a ; b1x[ii] = ee.b ;
      }
    }
+
+   /* arrays for y direction */
+
    if( Hflags & NWARP_NOYDEP_FLAG ){
      dyi = dely = 0.0f ;
      for( ii=0 ; ii < nby ; ii++ ){
@@ -2836,6 +2842,9 @@ static void HCwarp_setup_basis( int nx , int ny , int nz , int flags )
        b0y[ii] = ee.a ; b1y[ii] = ee.b ;
      }
    }
+
+   /* arrays for z direction */
+
    if( Hflags & NWARP_NOZDEP_FLAG ){
      dzi = delz = 0.0f ;
      for( ii=0 ; ii < nbz ; ii++ ){
@@ -2849,13 +2858,16 @@ static void HCwarp_setup_basis( int nx , int ny , int nz , int flags )
      }
    }
 
+   /* create empty warp, to be populated in HCwarp_load,
+      given these basis function arrays and the parameters */
+
    Hwarp = IW3D_create(nbx,nby,nbz) ;
 
    return ;
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Setup quintic basis arrays */
+/*! Setup quintic basis arrays: like HCwarp_setup_basis(), but bigger */
 
 static void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
 {
@@ -2866,6 +2878,7 @@ static void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
    FREEIFNN(b0x); FREEIFNN(b1x); FREEIFNN(b2x); FREEIFNN(ccx); nbx=0;
    FREEIFNN(b0y); FREEIFNN(b1y); FREEIFNN(b2y); FREEIFNN(ccy); nby=0;
    FREEIFNN(b0z); FREEIFNN(b1z); FREEIFNN(b2z); FREEIFNN(ccz); nbz=0;
+   FREEIFNN(Hparmap) ;
 
    Hflags = IW3D_munge_flags(nx,ny,nz,flags) ; if( Hflags < 0 ) return ;
 
@@ -2885,7 +2898,7 @@ static void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
    b2z = (float *)malloc(sizeof(float)*nbz) ;
    ccz = (float *)malloc(sizeof(float)*nbz) ;
 
-   if( (Hflags & NWARP_NUTHIN_FLAG) != 0 ){
+   if( (Hflags & NWARP_NODISP_FLAG) != 0 ){
      int pm = 0 ;
      Hparmap = (int *)malloc(sizeof(int)*81) ;
      if( !(Hflags & NWARP_NOXDIS_FLAG) ){
@@ -2915,6 +2928,7 @@ static void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
        b0x[ii] = ee.a ; b1x[ii] = ee.b ; b2x[ii] = ee.c ;
      }
    }
+
    if( Hflags & NWARP_NOYDEP_FLAG ){
      dyi = dely = 0.0f ;
      for( ii=0 ; ii < nby ; ii++ ){
@@ -2927,6 +2941,7 @@ static void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
        b0y[ii] = ee.a ; b1y[ii] = ee.b ; b2y[ii] = ee.c ;
      }
    }
+
    if( Hflags & NWARP_NOZDEP_FLAG ){
      dzi = delz = 0.0f ;
      for( ii=0 ; ii < nbz ; ii++ ){
@@ -2946,34 +2961,35 @@ static void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Load the Hwarp[] arrays, given a set of 24 = 2x2x2x3 cubic parameters */
+/*! Load the Hwarp[] arrays, given a set of 24 = 2x2x2x3 cubic parameters:
+    2 for each direction (the cubic basis functions), and then 3 directions */
 
 static void HCwarp_load( float *par )  /* 24 elements in par */
 {
    int nxy,nxyz , dox,doy,doz ; float *xx,*yy,*zz ;
 
-   if( Hwarp == NULL || par == NULL ) return ;
+   if( Hwarp == NULL || par == NULL ) return ;         /* bad inputs */
 
-   xx = Hwarp->xd ; yy = Hwarp->yd ; zz = Hwarp->zd ;
+   xx = Hwarp->xd ; yy = Hwarp->yd ; zz = Hwarp->zd ;  /* arrays to fill */
 
    nxy = nbx*nby ; nxyz = nxy*nbz ;
 
-   dox = !(Hflags & NWARP_NOXDIS_FLAG) ;
-   doy = !(Hflags & NWARP_NOYDIS_FLAG) ;
-   doz = !(Hflags & NWARP_NOZDIS_FLAG) ;
+   dox = !(Hflags & NWARP_NOXDIS_FLAG) ;  /* do the x direction? */
+   doy = !(Hflags & NWARP_NOYDIS_FLAG) ;  /* y? */
+   doz = !(Hflags & NWARP_NOZDIS_FLAG) ;  /* z? */
 
-   if( !dox ) AAmemset( xx , 0 , sizeof(float)*nxyz ) ;
+   if( !dox ) AAmemset( xx , 0 , sizeof(float)*nxyz ) ;  /* no x => zero fill */
    if( !doy ) AAmemset( yy , 0 , sizeof(float)*nxyz ) ;
    if( !doz ) AAmemset( zz , 0 , sizeof(float)*nxyz ) ;
 
    AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 1111 )
+#pragma omp parallel if( nxyz > 666 )
    { int ii,jj,kk,qq ; float *xpar=par , *ypar=par+8 , *zpar=par+16 ;
      float b0zb0yb0x,b1zb0yb0x, b0zb1yb0x,b1zb1yb0x,
            b0zb0yb1x,b1zb0yb1x, b0zb1yb1x,b1zb1yb1x ;
 #pragma omp for
-     for( qq=0 ; qq < nxyz ; qq++ ){
-       ii = qq % nbx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nbx ;
+     for( qq=0 ; qq < nxyz ; qq++ ){          /* parallel-ized loop over grid */
+       ii = qq % nbx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nbx ; /* 3D indexes */
 
        /* calculate all 8=2x2x2 tensor products of basis functions */
 
@@ -3004,7 +3020,8 @@ static void HCwarp_load( float *par )  /* 24 elements in par */
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Load the Hwarp[] array, given a set of 81 = 3x3x3x3 quintic parameters */
+/*! Load the Hwarp[] array, given a set of 81 = 3x3x3x3 quintic parameters:
+    3 for each direction (the quintic basis functions), and then 3 directions */
 
 static void HQwarp_load( float *par )  /* 81 elements in par */
 {
@@ -3114,10 +3131,10 @@ static void Hwarp_apply( float *val )
    nAx1 = nAx-1      ; nAy1 = nAy-1      ; nAz1 = nAz-1      ;
    nAxh = nAx-0.501f ; nAyh = nAy-0.501f ; nAzh = nAz-0.501f ;
 
-   sar = MRI_FLOAT_PTR(Hsrcim) ;
+   sar = MRI_FLOAT_PTR(Hsrcim) ;  /* source image array */
 
 AFNI_OMP_START ;
-#pragma omp parallel if( nbxyz > 1111 )
+#pragma omp parallel if( nbxyz > 666 )
  { int ii,jj,kk , qq ;
    float xq,yq,zq ;
    float fx,fy,fz , ix,jy,kz ;
@@ -3135,7 +3152,7 @@ AFNI_OMP_START ;
           xd = Hibot + ii + hxd[qq]
         because the Hwarp output index warp location is computed as
           Hwarp_x(x,y,z) = x + hxd
-        and we have to add Hibot in to get a global index */
+        and we also have to add in Hibot to get a global index for use in Haawarp */
 
      xq = Hibot + ii + hxd[qq] ; if( xq < -0.499f ) xq = -0.499f; else if( xq > nAxh ) xq = nAxh;
      yq = Hjbot + jj + hyd[qq] ; if( yq < -0.499f ) yq = -0.499f; else if( yq > nAyh ) yq = nAyh;
@@ -3176,9 +3193,9 @@ AFNI_OMP_START ;
      yq = wt_00 * g_k00 + fz * g_kp1 + Hjbot + hyd[qq] ; /* displacments */
      zq = wt_00 * h_k00 + fz * h_kp1 + Hkbot + hzd[qq] ;
 
-     /** above, since Awarp_x[x,y,z] = x + Axd, then
+     /** ABOVE: since Awarp_x[x,y,z] = x + Axd, then
            Awarp_x[ Hwarp(x,y,z) ] = Hwarp_x(x,y,z) + Axd
-                                   = Hibot + xd + Axd
+                                   = Hibot + hxd + Axd
          so the above formula for xq includes not just the interpolated
          values from Axd (the first 2 terms) but the Hwarp stuff again, also */
 
@@ -3223,13 +3240,14 @@ double IW3D_scalar_costfun( int npar , double *dpar )
    } else {
      for( ii=0 ; ii < Hnpar ; ii++ ) Hpar[ii] = (float)dpar[ii] ;
    }
-   Hloader(Hpar) ;
 
-   /* compute warped image over the patch */
+   Hloader(Hpar) ;  /* loads Hwarp */
 
-   Hwarp_apply( Hwval ) ;
+   /* compute warped image over the patch, into Hwval array */
 
-   /* compute the cost function */
+   Hwarp_apply(Hwval) ;
+
+   /* compute the rest of the cost function */
 
    cost = (double)INCOR_evaluate( Hincor , Hnval ,
                                   (Hbval != NULL ) ? Hbval : MRI_FLOAT_PTR(Hbasim),
@@ -3240,6 +3258,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Delete various workspaces */
 
 void IW3D_cleanup_improvement(void)
 {
@@ -3263,7 +3282,8 @@ void IW3D_cleanup_improvement(void)
 }
 
 /*----------------------------------------------------------------------------*/
-/* Sets a bunch of global variables, prior to iteratively improving the warp. */
+/* Sets a bunch of global workspace variables, prior to
+   iteratively improving the warp with function IW3D_improve_warp() */
 
 void IW3D_setup_for_improvement( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
                                  IndexWarp3D *Iwarp,
@@ -3292,7 +3312,7 @@ ENTRY("IW3D_setup_for_improvement") ;
    Hbasim = mri_to_float(bim) ;
    Hsrcim = mri_to_float(sim);
 
-   /*-- and base weight image --*/
+   /*-- and copy or create base weight image --*/
 
    if( wbim != NULL ){               /*-- user supplied weight --*/
 
@@ -3310,7 +3330,7 @@ ENTRY("IW3D_setup_for_improvement") ;
      }
      if( Hwbar == 0.0f || nwb == 0 )
        ERROR_exit("IW3D_setup_for_improvement: all zero wbim input") ;
-     Hwbar /= nwb ;
+     Hwbar /= nwb ;  /* average value of all nonzero weights */
 
    } else {                          /*-- make weight up from nowhere --*/
 
@@ -3324,7 +3344,7 @@ ENTRY("IW3D_setup_for_improvement") ;
 
    }
 
-   /*-- operational codes --*/
+   /*-- set operating codes --*/
 
    Hmatch_code = meth_code ;
    if( INCOR_check_meth_code(meth_code) == 0 )
@@ -3334,34 +3354,35 @@ ENTRY("IW3D_setup_for_improvement") ;
    if( Hflags < 0 )
      ERROR_exit("IW3D_setup_for_improvement: bad warp_flags input") ;
 
-   /*-- initial warp --*/
+   /*-- copy/create initial warp, and warp the source image --*/
 
    if( Iwarp != NULL ){
      if( Iwarp->nx != Hnx || Iwarp->ny != Hny || Iwarp->nz != Hnz )
        ERROR_exit("IW3D_setup_for_improvement: bad Iwarp input") ;
 
      Haawarp = IW3D_copy(Iwarp,1.0f) ;     /* copy it */
+     Haasrcim = IW3D_warp_floatim( Haawarp, Hsrcim, MRI_LINEAR ) ;
    } else {
      Haawarp = IW3D_create(Hnx,Hny,Hnz) ;  /* initialize to 0 displacements */
+     Haasrcim = mri_to_float(Hsrcim) ;     /* 'warped' source image */
    }
-
-   /* warp the source image with the initial warp, onto the base image grid */
-
-   Haasrcim = IW3D_warp_floatim( Haawarp, Hsrcim, MRI_LINEAR ) ;
 
    EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Given a global warp Haawarp, improve it locally over a rectangular patch. */
+/* Given a global warp Haawarp, improve it locally over a rectangular patch.
+   Also, keep up-to-date the copy of the warped source image Haasrcim.        */
 
 static int IW3D_improve_warp( int warp_code ,
                               int ibot, int itop,
                               int jbot, int jtop, int kbot, int ktop )
 {
    MRI_IMAGE *warpim ;
-   int nxh,nyh,nzh , ii,jj,kk,nwb ;
-   float *wbfar , wbar ;
+   int nxh,nyh,nzh , ii,jj,kk , iter,pp ;
+   float *wbfar , wsum ;
+   double cost , *parvec, *xbot,*xtop ;
+   float *sar , *Axd,*Ayd,*Azd , *hxd,*hyd,*hzd ;
 
 ENTRY("IW3D_improve_warp") ;
 
@@ -3383,12 +3404,12 @@ ENTRY("IW3D_improve_warp") ;
 
    Hnval = nxh*nyh*nzh ;
 
-   wbfar = MRI_FLOAT_PTR(Hwtim) ; wbar  = 0.0f ; nwb = 0 ;
+   wbfar = MRI_FLOAT_PTR(Hwtim) ; wsum = 0.0f ;
    for( kk=kbot ; kk <= ktop ; kk++ )
      for( jj=jbot ; jj <= jtop ; jj++ )
        for( ii=ibot ; ii <= itop ; ii++ )
-         wbar += wbfar[ii+jj*Hnx+kk*Hnxy] ;
-   if( wbar < 0.05f*Hnval*Hwbar ) RETURN(0) ;   /* too light for us */
+         wsum += wbfar[ii+jj*Hnx+kk*Hnxy] ;
+   if( wsum < 0.15f*Hnval*Hwbar ) RETURN(0) ;   /* too light for us */
 
    /*-- setup the basis functions for Hwarping --*/
 
@@ -3438,26 +3459,56 @@ ENTRY("IW3D_improve_warp") ;
            Hbval[pp] =   bar[ii+jj*Hnx+kk*Hnxy] ;
            wbfar[ii+jj*Hnx+kk*Hnxy] = 0.0f ;       /* 0 out temp weight */
      }}}
+
+     /* initialize the 'correlation' from the data that won't
+        be changing (i.e., data from outside the local patch) */
+
      INCOR_addto( Hincor , Hnxyz ,
                   MRI_FLOAT_PTR(Hbasim) , MRI_FLOAT_PTR(Haasrcim) , wbfar ) ;
      mri_free(wtt) ;
    }
 
-   RETURN(0) ;
+   /* optimization of warp parameters */
+
+   parvec = (double *)malloc(sizeof(double)*Hnparmap) ;
+   xbot   = (double *)malloc(sizeof(double)*Hnparmap) ;
+   xtop   = (double *)malloc(sizeof(double)*Hnparmap) ;
+   for( ii=0 ; ii < Hnparmap ; ii++ ){
+     parvec[ii] = 0.0 ;
+     xbot[ii]   = -Hbasis_parmax ;
+     xtop[ii]   =  Hbasis_parmax ;
+   }
+
+   iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 7 ,
+                             0.1,0.02 , 7*Hnparmap+11 , IW3D_scalar_costfun ) ;
+
+   free(xtop) ; free(xbot) ;
+
+   if( iter <= 0 ){ free(parvec); RETURN(0); }  /* something bad happened */
+
+   /* load optimized warped image and warp into their patches */
+
+   cost = IW3D_scalar_costfun( Hnparmap , parvec ) ;
+
+ININFO_message("patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d",
+               ibot,itop , jbot,jtop , kbot,ktop , cost , iter ) ;
+
+   /* Hwarp gets loaded into Haawarp and Hwval into Haasrcim */
+
+   sar = MRI_FLOAT_PTR(Haasrcim) ;
+   Axd = Haawarp->xd; Ayd = Haawarp->yd; Azd = Haawarp->zd; /* Haawarp */
+   hxd = Hwarp->xd  ; hyd = Hwarp->yd  ; hzd = Hwarp->zd  ; /* Hwarp delta */
+
+   for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){
+     for( jj=jbot ; jj <= jtop ; jj++ ){
+       for( ii=ibot ; ii <= itop ; ii++,pp++ ){
+         sar[ii+jj*Hnx+kk*Hnxy] = Hwval[pp] ;
+         Axd[ii+jj*Hnx+kk*Hnxy] = hxd[pp] ;
+         Ayd[ii+jj*Hnx+kk*Hnxy] = hyd[pp] ;
+         Azd[ii+jj*Hnx+kk*Hnxy] = hzd[pp] ;
+   }}}
+
+   /* ZOMG -- let's vamoose */
+
+   free(parvec) ; RETURN(iter) ;
 }
-
-#if 0
-/*---------------------------------------------------------------------------*/
-/*! Similar to powell_newuoa(), but with constraints on the variables,
-    and (if nrand > 0) a random search for the starting vector (the initial
-    vector on input in x[] is also tested to see if it is 'best' for starting).
-    Note the units on rstart and rend are relative (between 0 and 1).
-
-    Also see the newer powell_newuoa_constrained(), which has more options!
------------------------------------------------------------------------------*/
-
-int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
-                       int nrand ,
-                       double rstart , double rend ,
-                       int maxcall , double (*ufunc)(int,double *) )
-#endif

@@ -182,6 +182,7 @@ static mday holiday[] = {
    {JAN, 9,"Richard Nixon's birthday"                                } ,
    {JAN,10,"Donald Knuth's birthday"                                 } ,
    {JAN,10,"Caesar crosses the Rubicon"                              } ,
+   {JAN,10,"Anniversaire du Marechal Ney"                            } ,
    {JAN,11,"Alexander Hamilton's birthday"                           } ,
    {JAN,11,"Chad Independence Day"                                   } ,
    {JAN,13,"Anniversary of Zola's J'Accuse"                          } ,
