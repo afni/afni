@@ -36,11 +36,11 @@ MRI_IMAGE * AFNI_dataset_slice( THD_3dim_dataset *dset ,
                                 int ival , int resam_mode )
 {
    MRI_IMAGE *newim ;
-   void *sar , *bar ;
+   void *sar , *bar=NULL ;
    int nxx,nyy,nzz , do_vedit ;
    MRI_TYPE typ ;
    THD_dataxes *daxes ;
-   THD_3dim_dataset *parent_dset ;
+   THD_3dim_dataset *parent_dset=NULL ;
    THD_warp parent_to_child_warp ;
 
 ENTRY("AFNI_dataset_slice") ;
@@ -218,7 +218,12 @@ STATUS("scaling slice to floats") ;
 
    /*-------------------- must warp from parent dataset ---------------------*/
 
-   if( dset->warp != NULL ){
+   if( 0 && do_vedit ){          /* 23 Aug 2012 - volume edit ==> must self-warp */
+STATUS("volume edit ==> self-warping with IDENTITY") ;
+     parent_dset = dset ;
+     parent_to_child_warp = IDENTITY_WARP ;
+     if( dset->vox_warp != NULL ) dset->vox_warp->type = ILLEGAL_TYPE ;
+   } else if( dset->warp != NULL ){
 STATUS("setting parent_to_child_warp to stored warp") ;
       parent_to_child_warp = *(dset->warp) ;
    } else {
@@ -226,9 +231,10 @@ STATUS("setting parent_to_child_warp to identity") ;
       parent_to_child_warp = IDENTITY_WARP ;  /* no warp ==> use identity */
    }
 
-   if( dset->warp_parent != NULL &&
-       (dset->dblk->diskptr->storage_mode == STORAGE_BY_BRICK ||
-        dset->dblk->diskptr->storage_mode == STORAGE_UNDEFINED  ) ){
+   if( parent_dset == NULL ){
+     if( dset->warp_parent != NULL &&
+         (dset->dblk->diskptr->storage_mode == STORAGE_BY_BRICK ||
+          dset->dblk->diskptr->storage_mode == STORAGE_UNDEFINED  ) ){
 if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"setting parent_dset to stored warp_parent=%p  this dset=%p",
@@ -237,19 +243,20 @@ if(PRINT_TRACING)
           DSET_BRICKNAME(dset->warp_parent) , DSET_BRICKNAME(dset) ) ;
   STATUS(str) ; }
 
-      parent_dset = dset->warp_parent ;
-      DSET_load(parent_dset) ;          /* 17 Oct 2006 */
-   } else {
+        parent_dset = dset->warp_parent ;
+        DSET_load(parent_dset) ;          /* 17 Oct 2006 */
+     } else {
 STATUS("setting parent_dset to self") ;
-      parent_dset = dset ;                    /* self-parenting */
+        parent_dset = dset ;                    /* self-parenting */
 
-      if( dset->self_warp != NULL ){
+        if( dset->self_warp != NULL ){
 STATUS("setting parent_to_child_warp to self_warp") ;
-        parent_to_child_warp = *(dset->self_warp) ;  /* 26 Aug 2002 */
-      } else {
+          parent_to_child_warp = *(dset->self_warp) ;  /* 26 Aug 2002 */
+        } else {
 STATUS("setting parent_to_child_warp to IDENTITY_WARP") ;
-        parent_to_child_warp = IDENTITY_WARP ;  /* use identity warp */
-      }
+          parent_to_child_warp = IDENTITY_WARP ;  /* use identity warp */
+        }
+     }
    }
 
    /*----- make the voxel-to-voxel warp, if needed -----*/
@@ -270,25 +277,24 @@ STATUS("copying new voxwarp into dataset") ;
       }
    }
 
-   if( DSET_ARRAY(parent_dset,ival) == NULL ){  /* reload from disk */
-      Boolean good ;
-      good = THD_load_datablock( parent_dset->dblk ) ;
-      if( ! good ){
-STATUS("couldn't load parent dataset!") ;
-         mri_free(newim) ;
-         RETURN(NULL) ;  /* couldn't load data --> return nothing */
-      }
-   }
-
    /* 05 Sep 2006: substitution of volume edited brick, if available */
 
    if( parent_dset == dset && do_vedit ){
 STATUS("substituting vedim in dset") ;
      bar = mri_data_pointer(dset->dblk->vedim) ;
-     if( bar == NULL ){
-       ERROR_message("vedim array is NULL!?"); bar = DSET_ARRAY(dset,ival);
+     if( bar == NULL ) ERROR_message("vedim array is NULL!?") ;
+   }
+
+   if( bar == NULL ){
+     if( DSET_ARRAY(parent_dset,ival) == NULL ){  /* reload from disk */
+        Boolean good ;
+        good = THD_load_datablock( parent_dset->dblk ) ;
+        if( ! good ){
+STATUS("couldn't load parent dataset!") ;
+           mri_free(newim) ;
+           RETURN(NULL) ;  /* couldn't load data --> return nothing */
+        }
      }
-   } else {
 STATUS("setting brick from which to extract data") ;
      bar = DSET_ARRAY(parent_dset,ival) ;  /* default brick to use */
    }
