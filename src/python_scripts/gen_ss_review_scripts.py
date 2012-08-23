@@ -72,6 +72,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       tcat_dset            pb00.FT.r01.tcat+orig.HEAD
       outlier_dset         outcount_rall.1D
       enorm_dset           motion_FT_enorm.1D
+      censor_dset          motion_FT_censor.1D
       motion_dset          dfile_rall.1D
       volreg_dset          pb02.FT.r01.volreg+tlrc.HEAD
       xmat_regress         X.xmat.1D
@@ -409,6 +410,7 @@ g_eg_uvar.rm_trs          = 2
 g_eg_uvar.num_stim        = 2
 g_eg_uvar.tcat_dset       = 'pb00.FT.r01.tcat+orig.HEAD'
 g_eg_uvar.enorm_dset      = 'motion_FT_enorm.1D'
+g_eg_uvar.censor_dset     = 'motion_FT_censor.1D'
 g_eg_uvar.motion_dset     = 'dfile_rall.1D'
 g_eg_uvar.outlier_dset    = 'outcount_rall.1D'
 g_eg_uvar.mot_limit       = 0.3
@@ -429,6 +431,7 @@ g_uvar_dict = {
  'rm_trs'           :'set number of TRs removed per run',
  'num_stim'         :'set number of main stimulus classes',
  'tcat_dset'        :'set first tcat dataset',
+ 'censor_dset'      :'set motion_censor file',
  'enorm_dset'       :'set motion_enorm file',
  'motion_dset'      :'set motion parameter file',
  'outlier_dset'     :'set outcount_rall file',
@@ -510,9 +513,10 @@ g_history = """
    0.24 Jul 17, 2012:
         - add checks for volreg and uncensored X-mat
         - probably init view from volreg
+   0.25 Aug 23, 2012: allow passing of -censor_dset
 """
 
-g_version = "gen_ss_review_scripts.py version 0.24, July 17, 2012"
+g_version = "gen_ss_review_scripts.py version 0.25, August 23, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -1545,36 +1549,51 @@ class MyInterface:
             - warn if no mot/cen limit (and set to defaults)
       """
 
-      # check for -censor option in 3dD command
-      ax = self.dsets.val('xmat_ad')
-      if ax == None:
-         if self.cvars.verb: print '** no xmat_ad to check censoring with'
-         return 1
-
       # if empty, init the limits
       if self.uvars.is_empty('mot_limit'): self.uvars.mot_limit = 0.3
       if self.uvars.is_empty('out_limit'): self.uvars.out_limit = 0.1
 
-      opt = '-censor'
-      ax = self.dsets.xmat_ad
-      copts = self.find_opt_and_params(ax.command, opt, 1)
-      if len(copts) != 2: # no censoring
-         if self.cvars.verb > 1: print '-- no censoring...'
-      else:
-         cset = copts[1]
-         if not os.path.isfile(cset):
-            print '** warning: have censoring in X-matrix, but no censor file'
+      # check if censor dset already set
+      if self.dsets.is_not_empty('censor_dset'):
+         if self.cvars.verb > 3:
+            print '-- already set: censor_dset = %s' \
+                  % self.dsets.censor_dset.prefix
+         return 0
+
+      # if we don't have one, try to figure it out
+      if self.uvars.is_empty('censor_dset'):
+         # check for -censor option in 3dD command
+         ax = self.dsets.val('xmat_ad')
+         if ax == None:
+            if self.cvars.verb: print '** no xmat_ad to check censoring with'
+            return 1
+
+         opt = '-censor'
+         ax = self.dsets.xmat_ad
+         copts = self.find_opt_and_params(ax.command, opt, 1)
+
+         if len(copts) != 2: # no censoring
+            if self.cvars.verb > 1: print '-- no censoring...'
             return 0
-         self.uvars.censor_dset = cset
-         self.dsets.censor_dset = BASE.afni_name(cset)
-         if self.cvars.verb > 1:
-            print '-- setting censor_dset = %s' % cset
-         
-         # we should have some limit option
-         if self.uvars.is_empty('mot_limit') and \
-            self.uvars.is_empty('out_limit'):
-            print '** have censor file %s, but no passed -mot/out_limit' \
-                  % copts[1]
+
+         cset = copts[1]
+      else: # we have a dset
+         cset = self.uvars.censor_dset
+
+      # now apply
+      if not os.path.isfile(cset):
+         print '** warning: have censoring in X-matrix, but no censor file'
+         return 0
+      self.uvars.censor_dset = cset
+      self.dsets.censor_dset = BASE.afni_name(cset)
+      if self.cvars.verb > 1:
+         print '-- setting censor_dset = %s' % cset
+      
+      # we should have some limit option
+      if self.uvars.is_empty('mot_limit') and \
+         self.uvars.is_empty('out_limit'):
+         print '** have censor file %s, but no passed -mot/out_limit' \
+               % copts[1]
 
       return 0
 

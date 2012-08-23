@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, AUG, 2012, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
+   "can pass -censor_dset",
+   NULL
+ } ,
+
  { 21, AUG, 2012, RCR, "slow_surf_clustsim.py", MICRO, TYPE_NEW_OPT,
    "added 'sigma' uvar, for passing to SurfSmooth",
    NULL
