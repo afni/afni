@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, AUG, 2012, RCR, "column_cat", MAJOR, TYPE_NEW_PROG,
+   "like 'cat', except horizontally (see recent Unix command, 'paste')",
+   NULL
+ } ,
+
  { 23, AUG, 2012, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
    "can pass -censor_dset",
    NULL

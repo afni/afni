@@ -92,7 +92,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
            1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch 1dBport   \
            3dNormalityTest 3dmask_tool FIRdesign help_format 2perm 3dClustCount \
-           $(EXTRAS)
+           column_cat $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -158,7 +158,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
                3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim           \
-               3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat
+               3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat \
+               column_cat
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -2367,6 +2368,11 @@ gtest:
 3dmask_tool: 3dmask_tool.o libmri.a
 	$(RM) $@
 	$(CC) -o 3dmask_tool 3dmask_tool.o $(LFLAGS) $(LLIBS)
+
+column_cat: rickr/column_cat.c
+	$(RM) $@
+	$(CC) -o column_cat rickr/column_cat.c
+
 
 #######
 # rendering library
