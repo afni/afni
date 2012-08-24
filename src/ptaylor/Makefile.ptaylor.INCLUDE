@@ -89,8 +89,15 @@ cluster_floatNOMASK.o:cluster_floatNOMASK.c
 		$(LFLAGS) -lgsl -lgslcblas -lm \
       $(LLIBS) ${PTAYLORLIB}
 
+3dRSFC: 3dRSFC.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dRSFC 3dRSFC.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) -lgsl -lgslcblas -lm \
+      $(LLIBS) ${PTAYLORLIB}
 
-progs: 3dTrackID 3dProbTrackID 3dDWUncert 3dReHo
+
+progs: 3dTrackID 3dProbTrackID 3dDWUncert 3dReHo 3dRSFC
 
 all: ${PTAYLORLIB} progs install 
 
@@ -105,6 +112,7 @@ install:
 	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dDWUncert ]; then mv 3dDWUncert ${INSTALLDIR}; fi;
 	@if [ -f  3dReHo ]; then mv 3dReHo ${INSTALLDIR}; fi;
+	@if [ -f  3dRSFC ]; then mv 3dRSFC ${INSTALLDIR}; fi;
 
 afni_install:
 	@echo Installing Binaries...
@@ -113,3 +121,4 @@ afni_install:
 	@if [ -f  3dProbTrackID ]; then mv 3dProbTrackID ${INSTALLDIR}; fi;
 	@if [ -f  3dDWUncert ]; then mv 3dDWUncert ${INSTALLDIR}; fi;
 	@if [ -f  3dReHo ]; then mv 3dReHo ${INSTALLDIR}; fi;
+	@if [ -f  3dRSFC ]; then mv 3dRSFC ${INSTALLDIR}; fi;
