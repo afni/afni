@@ -557,7 +557,7 @@ int main( int argc , char **argv )
  /* in 3dClustSim, the corresponding {...} code is inside OpenMP */
  {
    int ipthr, **mt[4] , nnn , ids,nds,ival , statcode , ii ;
-   MRI_IMAGE *fim ; float *far, *stataux , thr ; byte *bfar ;
+   MRI_IMAGE *fim = NULL; float *far, *stataux , thr ; byte *bfar ;
    THD_3dim_dataset *dset ;
 
    nall = DALL ;
