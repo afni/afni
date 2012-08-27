@@ -313,7 +313,12 @@ void Syntax(int detail)
     "                 ** Strings in the 'xx' file are separated by\n"
     "                    whitespace (blanks, tabs, new lines).\n"
     "\n" ) ;
-
+   
+   printf(
+    "  -sublabel_prefix PP: Prefix each sub-brick's label with PP\n"
+    "  -sublabel_suffix SS: Suffix each sub-brick's label with SS\n" 
+    "\n" ) ;
+    
    printf(
     "The options below allow you to attach auxiliary data to sub-bricks\n"
     "in the dataset.  Each option may be used more than once so that\n"
@@ -474,7 +479,7 @@ int main( int argc , char *argv[] )
    float center_base[3];
    int Do_volreg_mat = 0, Do_center_old = 0, Do_center_base = 0,
        volreg_matind = 0, icnt = 0;
-   char *lcpt=NULL;
+   char *lcpt=NULL, *subsuff=NULL, *subpref=NULL;
 
    int   num_atrcopy = 0 ;    /* 03 Aug 2005 */
    ATR_any **atrcopy = NULL ;
@@ -801,6 +806,26 @@ int main( int argc , char *argv[] )
         new_stuff++ ; iarg++ ; continue ;
       }
 
+      /*----- -sublabel_prefix -----*/
+      
+      if( strcmp(argv[iarg],"-sublabel_prefix") == 0 ){   /* 15 Aug 2012 */
+        char *str ;
+        if( ++iarg >= argc ) SynErr("Need argument after -sublabel_prefix") ;
+        subpref = argv[iarg];
+        
+        new_stuff++ ; iarg++ ; continue ;
+      }
+      
+      /*----- -sublabel_suffix -----*/
+      
+      if( strcmp(argv[iarg],"-sublabel_suffix") == 0 ){   /* 15 Aug 2012 */
+        char *str ;
+        if( ++iarg >= argc ) SynErr("Need argument after -sublabel_suffix") ;
+        subsuff = argv[iarg] ;
+        
+        new_stuff++ ; iarg++ ; continue ;
+      }
+      
       /*----- -sublabel option -----*/
 
       if( strncmp(argv[iarg],"-sublabel",7) == 0 ){
@@ -1973,6 +1998,34 @@ int main( int argc , char *argv[] )
          }
       }
 
+      /* add suffix to labels? */
+      if (subsuff) {
+         char *olab=NULL, *sss=NULL;
+         for( ii=0 ; ii < DSET_NVALS(dset) ; ii++ ){
+            olab = DSET_BRICK_LABEL(dset,ii); if (!olab) { olab = ""; }
+            sss = (char *)calloc(strlen(olab)+strlen(subsuff)+1, sizeof(char));
+            sprintf(sss,"%s%s", olab, subsuff);
+            EDIT_BRICK_LABEL( dset , ii , sss ) ;
+            free(sss);
+            did_something++ ;
+         }
+         VINFO("sublabel_suffix") ;
+      }
+      
+      /* add prefix to labels? */
+      if (subpref) {
+         char *olab=NULL, *sss=NULL;
+         for( ii=0 ; ii < DSET_NVALS(dset) ; ii++ ){
+            olab = DSET_BRICK_LABEL(dset,ii); if (!olab) { olab = ""; }
+            sss = (char *)calloc(strlen(olab)+strlen(subpref)+1, sizeof(char));
+            sprintf(sss,"%s%s", subpref, olab);
+            EDIT_BRICK_LABEL( dset , ii , sss ) ;
+            free(sss);
+            did_something++ ;
+         }
+         VINFO("sublabel_prefix") ;
+      }
+      
       if( nsubkeyword > 0 ){
          int code ;
          for( ii=0 ; ii < nsubkeyword ; ii++ ){

@@ -23,10 +23,15 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (
 DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni, 
                            int dothisnode, SUMA_SURFCLUST_OPTIONS *Opt, 
                            float *NodeArea);
-SUMA_Boolean SUMA_Show_SurfClust_list(DList *list, FILE *Out, int detail, char *params) ;
-char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params) ;
-SUMA_DSET *SUMA_MaskDsetByClustList(SUMA_DSET *idset, SUMA_SurfaceObject *SO, DList *list, SUMA_Boolean FullList, char *leName); 
-SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(SUMA_SurfaceObject *SO, DList *list, SUMA_Boolean FullList, char *leName) ;
+SUMA_Boolean SUMA_Show_SurfClust_list(DList *list, FILE *Out, int detail, 
+                                      char *params, char *opts) ;
+char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, 
+                                       char *params, char *opts) ;
+SUMA_DSET *SUMA_MaskDsetByClustList(SUMA_DSET *idset, SUMA_SurfaceObject *SO, 
+                     DList *list, SUMA_Boolean FullList, char *leName); 
+SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(SUMA_SurfaceObject *SO, 
+                     DList *list, SUMA_Boolean FullList, char *leName);
+byte * SUMA_ClustList2Mask(DList *list, int NodeMax);
 int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int UseSurfDist);
 SUMA_Boolean SUMA_Sort_ClustersList (DList *list, SUMA_SURF_CLUST_SORT_MODES SortMode);
 SUMA_DSET *SUMA_CalculateLocalStats(
@@ -50,7 +55,12 @@ double SUMA_GetFWHM_MinArea(void);
 void SUMA_SetFWHM_MinArea(double);
 int SUMA_SurfClust_Get_Method(void) ;
 void SUMA_SurfClust_Set_Method(int m);
-
-
+SUMA_SURFCLUST_OPTIONS *SUMA_free_SurfClust_Opt(SUMA_SURFCLUST_OPTIONS *Opt);
+SUMA_SURFCLUST_OPTIONS *SUMA_create_SurfClust_Opt(char *forwhom);
+char *SUMA_ClustCommandLineFromOpt(char *pname, SUMA_SurfaceObject *SO,
+                           SUMA_SURFCLUST_OPTIONS *Opt,  char *filler); 
+int SUMA_NodeClustNumber(SUMA_OVERLAYS *Sover, int node, 
+                         SUMA_SurfaceObject *SO, 
+                         SUMA_CLUST_DATUM **cdp);
 
 #endif

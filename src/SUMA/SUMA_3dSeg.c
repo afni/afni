@@ -58,7 +58,7 @@ NULL
 "-classes 'CLASS_STRING': CLASS_STRING is a semicolon delimited\n"
 "                         string of class labels. At the moment\n"
 "                         CLASS_STRING can only be 'CSF; GM; WM'", 
-"'CSF; GM; WM'"
+"CSF; GM; WM"
       },
    {  
 "-Bmrf",
@@ -212,7 +212,7 @@ SEG_OPTS *Seg_Default(char *argv[], int argc)
    Opt->mset = NULL;
    Opt->gset = NULL;
    Opt->sig = NULL;
-   Opt->ndist = NULL;
+   Opt->FDV = NULL;
    Opt->pset = NULL;
    Opt->cset = NULL;
    Opt->gold = NULL;
@@ -249,6 +249,7 @@ SEG_OPTS *Seg_Default(char *argv[], int argc)
    Opt->DO_p = TRUE;
    Opt->DO_c = TRUE;
    Opt->DO_r = FALSE;
+   Opt->Writepcg_G_au = FALSE;
    Opt->group_classes = NULL;
    Opt->group_keys = NULL;
    Opt->fitmeth = SEG_LSQFIT;

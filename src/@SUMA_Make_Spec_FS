@@ -61,8 +61,9 @@ L_INIT_VARS:
     set endstr = "$prog_name ... finished"
     set debug     = 0
     set ldlist = (141 60)
-    set fsdsets = (.thickness.gii.dset)
-
+    #set fsdsets = (thickness.gii.dset)
+    set fsdsets = (thickness curv sulc) 
+    
     set surf_attribs = (smoothwm      \
          pial         \
          inflated      \
@@ -583,11 +584,13 @@ L_CONVERT_SURFACES:
    #and the thickness data
    cd $surf_dir
    foreach hand ( lh rh )
-      if ( -f ${hand}.thickness ) then
-         mris_convert -c ${hand}.thickness ${hand}.white ${hand}.thickness.gii
-         mv    ${hand}.thickness.gii   \
-               $start_dir/$suma_dir/${hand}.thickness.gii.dset
+      foreach tp ($fsdsets)
+      if ( -f ${hand}.${tp} ) then
+         mris_convert -c ${hand}.${tp} ${hand}.white ${hand}.${tp}.gii
+         mv    ${hand}.${tp}.gii   \
+               $start_dir/$suma_dir/${hand}.${tp}.gii.dset
       endif
+      end
    end
    cd $start_dir
    
@@ -977,8 +980,8 @@ L_ICO:
          set dm = ()
          if ($#fsdsets > 0) then
             foreach fsd ($fsdsets)
-               if ( -f ${hem}${fsd} ) then
-                  set dm = ($dm "-dset_map" ${hem}${fsd})
+               if ( -f ${hem}.${fsd}.gii.dset ) then
+                  set dm = ($dm "-dset_map" ${hem}.${fsd}.gii.dset)
                endif
             end
          endif

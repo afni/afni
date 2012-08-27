@@ -65,16 +65,25 @@ double * SUMA_dPercRange ( double *V, double *Vsort, int N_V,
 SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 ( float **Fiducials, int Nfid, byte rgba,
                                        int *Nint, SUMA_Boolean SkipLast, 
                                        char *Name);
-SUMA_OVERLAYS * SUMA_CreateOverlayPointer (const char *Name, SUMA_DSET *dset, char *owner_id, SUMA_OVERLAYS *Recycle);
+SUMA_OVERLAYS * SUMA_CreateOverlayPointer (const char *Name, SUMA_DSET *dset,
+                                       char *owner_id, SUMA_OVERLAYS *Recycle);
 SUMA_Boolean SUMA_FreeOverlayPointerRecyclables (SUMA_OVERLAYS * Sover);
 void SUMA_KillOverlayContours(SUMA_OVERLAYS * Sover);
 SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover);
-SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv, GLfloat *glcolar);
-SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset (SUMA_OVERLAYS **Overlays, int N_Overlays, SUMA_DSET *dset, int * OverInd);
-SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overlays, const char * Name, int * OverInd);
-SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overlays, int detail);
-char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, int detail); 
-SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *ShowOvelays, int N_ShowOverlays, GLfloat *glcolar, int N_Node, SUMA_Boolean *isColored, SUMA_Boolean FILL);
+SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, 
+                                    SUMA_SurfaceViewer *sv, GLfloat *glcolar);
+SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset (SUMA_OVERLAYS **Overlays, 
+                              int N_Overlays, SUMA_DSET *dset, int * OverInd);
+SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, 
+                              int N_Overlays, const char * Name, int * OverInd);
+SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, 
+                              int N_Overlays, int detail);
+char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, 
+                              int detail); 
+SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, 
+                               int *ShowOvelays, int N_ShowOverlays, 
+                               GLfloat *glcolar, int N_Node, 
+                               SUMA_Boolean *isColored, SUMA_Boolean FILL);
 SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, 
                                           SUMA_OVERLAY_PLANE_DATA *sopd, 
@@ -139,9 +148,11 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
                                         SUMA_COLOR_SCALED_VECT * SV);
 SUMA_AFNI_COLORS *SUMA_Build_Color_maps(void);
 char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail);
-SUMA_Boolean SUMA_ShowScaleToMapOpt(SUMA_SCALE_TO_MAP_OPT *OptScl, FILE *Out, int detail);
+SUMA_Boolean SUMA_ShowScaleToMapOpt(SUMA_SCALE_TO_MAP_OPT *OptScl, FILE *Out, 
+                                    int detail);
 SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetList);
 SUMA_COLOR_MAP *SUMA_CmapOfPlane (SUMA_OVERLAYS *Sover );
+SUMA_SurfaceObject *SUMA_SO_of_ColPlane(SUMA_OVERLAYS *Sover);
 SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, float *NewBias, SUMA_WIDGET_INDEX_COORDBIAS BiasDim);
 SUMA_Boolean SUMA_SetCoordBias(SUMA_OVERLAYS *ovr, float *NewBias, SUMA_WIDGET_INDEX_COORDBIAS BiasDim);
 SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr);
@@ -196,8 +207,6 @@ SUMA_Boolean SUMA_DestroyCmapHash(SUMA_COLOR_MAP *CM);
 SUMA_Boolean SUMA_CreateCmapHash(SUMA_COLOR_MAP *CM);
 NI_group *SUMA_CmapToNICmap(SUMA_COLOR_MAP *CM);
 SUMA_COLOR_MAP *SUMA_NICmapToCmap(NI_group *ngr);
-
-
 
 
 
