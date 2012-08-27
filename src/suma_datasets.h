@@ -1714,9 +1714,12 @@ int SUMA_GetNodeIndex_FromNodeRow_eng(SUMA_DSET *dset, int row, int N_Node);
 double SUMA_GetDsetNodeValInCol2(SUMA_DSET *dset, int ind, 
                                  int node, int N_Node);
 NI_str_array *SUMA_free_NI_str_array(NI_str_array *nisa);
+NI_str_array *SUMA_NI_str_array(NI_str_array *clss, char *what, char *action); 
+int SUMA_NI_str_array_find( char *targ , NI_str_array *sar , 
+                            int partial, int ci);
 NI_str_array *SUMA_comp_str_2_NI_str_ar(char *s, char *sep);
+void SUMA_Show_NI_str_ar(NI_str_array *nisa, FILE *out);
 char *SUMA_NI_str_ar_2_comp_str (NI_str_array *nisa, char *sep);
-NI_str_array *SUMA_free_NI_str_array(NI_str_array *nisa);
 char *SUMA_Get_Sub_String(char *cs, char *sep, int ii);
 int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, 
                               char *sep, int insert_mode);

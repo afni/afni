@@ -351,6 +351,43 @@
 #define SUMA_knegBOUND  32
 #define SUMA_K_HOLE     48
 
+
+SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, 
+                     float *range, char *label, int ignoreout);
+SUMA_HIST *SUMA_Free_hist(SUMA_HIST *hh);
+void SUMA_Show_hist(SUMA_HIST *hh, int norm, FILE *out);
+void SUMA_Show_dist(SUMA_FEAT_DIST *FD, FILE *out);
+void SUMA_Show_dists(SUMA_FEAT_DISTS *FDV, FILE *out, int level);
+char *SUMA_dist_info(SUMA_FEAT_DIST *FD, int level);
+char *SUMA_dists_info(SUMA_FEAT_DISTS *FDV, int level);
+float SUMA_hist_freq(SUMA_HIST *hh, float vv);
+char *SUMA_hist_variable(SUMA_HIST *hh);
+char *SUMA_hist_conditional(SUMA_HIST *hh);
+char *SUMA_dist_variable(SUMA_FEAT_DIST *hh);
+char *SUMA_dist_conditional(SUMA_FEAT_DIST *hh);
+char *SUMA_label_variable(char *label, char c);
+char *SUMA_label_conditional(char *label, char c);
+NI_str_array * SUMA_dists_featureset(SUMA_FEAT_DISTS *FDV);
+NI_str_array * SUMA_dists_classset(SUMA_FEAT_DISTS *FDV);
+char *SUMA_hist_fname(char *proot, char *variable, char *conditional);
+SUMA_FEAT_DIST *SUMA_find_feature_dist(SUMA_FEAT_DISTS *FDV, 
+                                       char *label, char *feature, char *class,
+                                       int *ifind);
+SUMA_FEAT_DISTS *SUMA_grow_feature_dists(SUMA_FEAT_DISTS *FDV);
+SUMA_FEAT_DIST *SUMA_free_dist(SUMA_FEAT_DIST *FD);
+SUMA_FEAT_DISTS *SUMA_free_dists(SUMA_FEAT_DISTS *FDV);
+SUMA_FEAT_DISTS *SUMA_add_feature_dist(SUMA_FEAT_DISTS *FDV, 
+                                       SUMA_FEAT_DIST **FDp,
+                                       int append);
+SUMA_FEAT_DIST *SUMA_hist_To_dist(SUMA_HIST **hhp, char *thislabel);
+SUMA_FEAT_DISTS *SUMA_TRAIN_DISTS_To_dists(SUMA_FEAT_DISTS *FDV, 
+                                           NI_element *ndist);
+SUMA_FEAT_DISTS *SUMA_get_all_dists(char *where);
+NI_group *SUMA_hist_To_NIhist(SUMA_HIST *hh);
+SUMA_HIST *SUMA_NIhist_To_hist(NI_group *ngr);
+int SUMA_write_hist(SUMA_HIST *hh, char *name);
+SUMA_HIST *SUMA_read_hist(char *name);
+
 int SUMA_Seg_Write_Dset(char *proot, char *prefi, THD_3dim_dataset *dset, 
                         int iter, char *hh);
 int SUMA_KeyofLabel_Dtable(Dtable *vl_dtable, char *label);
@@ -547,5 +584,5 @@ int SUMA_Split_Classes(char **Glbls, int N_Glbls, int *Gkeys, int *Split,
                        SEG_OPTS *Opt);
 int SUMA_SetDsetLabeltable(THD_3dim_dataset *dset, char **labels, 
                            int N_labels, int *keys);
-                     
+                           
 #endif

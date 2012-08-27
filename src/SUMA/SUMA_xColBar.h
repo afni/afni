@@ -250,10 +250,30 @@ int SUMA_SetRangeValueNew_one(SUMA_SurfaceObject *SO,
                           int setmen, 
                           int redisplay, float *reset);
 void SUMA_cb_SetRangeValue (void *data);
+int SUMA_SetClustValue(SUMA_SurfaceObject *SO, 
+                          SUMA_OVERLAYS *colp,
+                          int row, int col,
+                          float v1, float v2,
+                          int setmen, 
+                          int redisplay, float *reset);
+int SUMA_SetClustValue_one(SUMA_SurfaceObject *SO, 
+                          SUMA_OVERLAYS *colp,
+                          int row, int col,
+                          float v1, float v2,
+                          int setmen, 
+                          int redisplay, float *reset);
+void SUMA_cb_SetClustValue (void *data);
+SUMA_Boolean SUMA_SetClustTableTit_one (SUMA_SurfaceObject *SO, 
+                        SUMA_OVERLAYS *colp, int i, int j, int Button); 
+SUMA_Boolean SUMA_SetClustTableTit (SUMA_SurfaceObject *SO, 
+                        SUMA_OVERLAYS *colp, int i, int j, int Button);
+void SUMA_SetClustTableTit_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch ); 
 SUMA_TABLE_FIELD * SUMA_AllocTableField(void);
 SUMA_TABLE_FIELD * SUMA_FreeTableField(SUMA_TABLE_FIELD *TF);
 SUMA_CELL_VARIETY SUMA_cellvariety (SUMA_TABLE_FIELD *TF, int n);
 SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what);
+SUMA_Boolean SUMA_InitClustTable(SUMA_SurfaceObject *SO);
 void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_UpdateCrossHairNodeLabelField(SUMA_SurfaceViewer *sv);
@@ -705,6 +725,31 @@ SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_SurfaceObject *SO, char *str);
    "larger than Maximum (max):\n"  \
    "  if v > max then v = max "
 
+#define SUMA_SurfContHelp_SetClustTbl_r0 \
+   "Used for setting the clustering parameters."  
+
+#define SUMA_SurfContHelp_SetClustTbl_r1 \
+   "Clusterizing.\n" \
+   "\n"   \
+   "Left click toggles clusterizing ON/OFF"   
+   
+#define SUMA_SurfContHelp_SetClustTbl_c1 \
+   "Minimum distance between nodes.\n" \
+   "Nodes closer than the minimum distance are in\n"\
+   "same cluster. If you want to distance to be in\n"\
+   "number of edges (N) separating nodes, set the minimum\n"\
+   "distance to -N. This parameter is the same as -rmm in\n"\
+   "the program SurfClust"
+
+#define SUMA_SurfContHelp_SetClustTbl_c2 \
+   "Minimum cluster area\n" \
+   "A cluster whose area is less than the specified minimum\n"\
+   "will not be displayed. Instead of areas, you can specify\n"\
+   "that clusters less than K nodes be masked by setting\n"\
+   "the Minimum cluster area to -K\n"  \
+   "This parameter covers options -amm2 and -n in\n"\
+   "the program SurfClust"
+   
 #define SUMA_SurfContHelp_Col \
    "Switch between color mapping modes.\n"   \
    "Int: Interpolate linearly between\n"   \

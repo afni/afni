@@ -553,6 +553,7 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
       }
    }
    #ifdef DO_SCALE_RANGE
+   SUMA_LH("In scale range");
    { float tmpfact;
    /* Now do some scaling */
    tmpfact = (SO->aMaxDims - SO->aMinDims)/100;
@@ -583,6 +584,7 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    #endif
    #ifdef DO_SCALE
    /* Now do some scaling */
+   SUMA_LH("In scale section");
    if ((SO->aMaxDims - SO->aMinDims) > SUMA_TESSCON_DIFF_FLAG) {
       fprintf (stdout,  "\n"
                         "\n"
@@ -620,19 +622,24 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
       SO->aMaxDims /= SUMA_TESSCON_TO_MM;
    } 
    #endif
-    
+   
+   SUMA_LHv("Checking too small a surface: %f\n", SO->MaxCentDist);
    /* check for too small a surface */
    if (SO->MaxCentDist < 10.0 && !iwarn) {
       if (!(sv = SUMA_BestViewerForSO(SO))) sv = SUMAg_SVv;
-      if (sv->GVS[sv->StdView].DimSclFac < 5 && !iwarn) {
-         ++iwarn;
-         SUMA_SLP_Warn(
+      if (sv) { /* This can be null when surfaces are created on the fly,
+                   No need to warn in that case though.*/
+         if (sv->GVS[sv->StdView].DimSclFac < 5 && !iwarn) {
+            ++iwarn;
+            SUMA_SLP_Warn(
                "Surface size is quite small, rendering errors might occur.\n"
                "If your coordinate units are in cm, set SUMA_NodeCoordsUnits \n"
                "In your ~/.sumarc to 'cm' instead of the default 'mm'\n"
             "If you do not have a '~/.sumarc', just run 'suma -update_env'\n");
+         }
       }
    }
+   SUMA_LH("Computing normals");
    /* Calculate SurfaceNormals */
    if (SO->NodeNormList && SO->FaceNormList) {
       SUMA_LH("Node normals already computed, skipping...");
@@ -3374,6 +3381,14 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov,
       }
       #endif
 
+      /* Store it into dov, if not there already */
+      if (SUMA_whichDO(SO->idcode_str, dov, *N_dov) < 0) {
+         if (!SUMA_AddDO(dov, N_dov, (void *)SO,  SO_type, SUMA_WORLD)) {
+            fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+      }
+      
       /* create the surface controller */
       if (!SO->SurfCont) {
          SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str);
@@ -3439,13 +3454,6 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov,
       /*turn on the viewing for the axis */
       SO->ShowMeshAxis = NOPE;
 
-      /* Store it into dov, if not there already */
-      if (SUMA_whichDO(SO->idcode_str, dov, *N_dov) < 0) {
-         if (!SUMA_AddDO(dov, N_dov, (void *)SO,  SO_type, SUMA_WORLD)) {
-            fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
-            SUMA_RETURN(NOPE);
-         }
-      }
 
    }
    SUMA_RETURN(YUP);

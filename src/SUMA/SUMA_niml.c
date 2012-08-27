@@ -681,8 +681,9 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                  "%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", 
                  FuncName,
                  nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
+         /* SUMA_ShowNel(nel); */
       }
-
+      
       /*--- stream closer ---*/
       if( strcmp(nel->name,"CloseKillStream") == 0) { /* CloseKillStream */
          if (LocalHead) 
@@ -1589,7 +1590,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                      } else { 
                         I_C = nodeid; /* node index is set by AFNI */
                         XYZ = SUMA_XYZmap_XYZ ( nel->vec[0], SO, 
-                                                SUMAg_DOv, SUMAg_N_DOv, &I_C);
+                                                SUMAg_DOv, SUMAg_N_DOv, &I_C, 1);
                         if (!XYZ) {
                            XBell (svi->X->DPY, 50);             
                            SUMA_SL_Warn("XYZ could not be determined\n"
@@ -1604,7 +1605,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                         SUMA_XYZmap_XYZ set the node index*/
                      I_C = -1;
                      XYZ = SUMA_XYZmap_XYZ ( nel->vec[0], SO, 
-                                             SUMAg_DOv, SUMAg_N_DOv, &I_C);
+                                             SUMAg_DOv, SUMAg_N_DOv, &I_C, 0);
 
                      if (XYZ == NULL || I_C < 0) {
                         SUMA_SL_Warn("AFNI cross hair too\n"
@@ -2132,7 +2133,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
 
    SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
    I_C = SO->SelectedNode;
-   XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c, SO, SUMAg_DOv, SUMAg_N_DOv, &I_C);
+   XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c, SO, SUMAg_DOv, SUMAg_N_DOv, &I_C, 0);
    
    if (XYZmap == NULL){
       fprintf( SUMA_STDERR,

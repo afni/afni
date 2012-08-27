@@ -2009,6 +2009,7 @@ SUMA_SurfaceObject *SUMA_Contralateral_SO(SUMA_SurfaceObject *SO,
    SUMA_SurfaceObject *SOC=NULL;
    int findside = SUMA_SIDE_ERROR;
    int i;
+   static int iwarn=0;
    
    SUMA_ENTRY;
 
@@ -2023,11 +2024,15 @@ SUMA_SurfaceObject *SUMA_Contralateral_SO(SUMA_SurfaceObject *SO,
    
    if (SO->Side != SUMA_LEFT && SO->Side != SUMA_RIGHT) {
       if (SO->Side < SUMA_LR) {
-         SUMA_S_Warn("Surface sides are not clearly defined. "
+         if (!iwarn) {
+            SUMA_S_Warn("Surface sides are not clearly defined. "
                      "If this is in error, consider adding \n"
                      "Hemisphere = R  (or L or B) in the spec file\n"
                      "to make sure surfaces sides are correctly "
-                     "labeled.\n");   
+                     "labeled.\n"
+                     "Similar warnings will be muted\n");   
+            ++iwarn;
+         }
       }
       SUMA_RETURN(SOC);
    }

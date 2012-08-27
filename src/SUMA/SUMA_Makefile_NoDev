@@ -316,6 +316,11 @@ ConvexHull: SUMA_ConvexHull.c
 		-I../3DEdge/src -l3DEdge -I../avovk ${SUMALIBLIST} \
 		-lsegtools ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB} -lgsl -lgslcblas
 
+niprobe: SUMA_niprobe.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_niprobe.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
 3dSeg: SUMA_3dSeg.c libSUMA.a
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} $(OMPFLAG) ${WARNOPT} -o $@ $(AFWARPOBJS) \

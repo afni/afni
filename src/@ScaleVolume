@@ -15,7 +15,7 @@ PARSE:
    set maskopt = ""
    set scale = range
    if ("$1" == '') goto HELP
-
+   set ss = 'SV.'
    while ($cnt <= $Narg)
       set donext = 1;
       
@@ -30,26 +30,31 @@ PARSE:
       if ($donext && "$argv[$cnt]" == "-scale_by_mean") then
          set pLoc = $cnt 
          set scale = 'mean'
+         set ss = 'mea.'
          set donext = 0     
       endif
       if ($donext && "$argv[$cnt]" == "-scale_by_median") then
          set pLoc = $cnt 
          set scale = 'median'
+         set ss = 'med.'
          set donext = 0     
       endif
       if ($donext && "$argv[$cnt]" == "-norm") then
          set pLoc = $cnt 
          set scale = 'norm'
+         set ss = 'tz.'
          set donext = 0     
       endif
       if ($donext && "$argv[$cnt]" == "-feat_norm") then
          set pLoc = $cnt 
          set scale = 'feat_norm'
+         set ss = 'r.'
          set donext = 0     
       endif
       if ($donext && "$argv[$cnt]" == "-feat_znorm") then
          set pLoc = $cnt 
          set scale = 'feat_znorm'
+         set ss = 'z.'
          set donext = 0     
       endif
       
@@ -80,7 +85,7 @@ PARSE:
             @ cnt ++
             set min = "$argv[$cnt]"
             if ($cnt == $Narg) then
-               echo "Need 2 values between 0 and 100 after -val_clip"
+               echo "Need min and max after -val_clip"
                goto END
             endif
             @ cnt ++
@@ -169,6 +174,8 @@ else
 endif
 
 DOIT:
+   set vvv = `@parse_afni_name $invol`
+   set vvv = $vvv[3]
    set nvals = `3dnvals -all $invol`
    if ($nvals[4] > 1) then
       echo "Not ready to deal with multiple sub-bricks"
@@ -181,7 +188,7 @@ DOIT:
 
    #In one step
    3dcalc   -a $invol -prefix $opref  \
-            -expr "step(a) * \
+            -expr "bool(a) * \
                    ( \
                      ( ($v0 * (1-step(a-$v0)) + \
                         $v1 * (  step(a-$v1)) + \
@@ -193,18 +200,21 @@ DOIT:
 
    #Two steps would be
    3dcalc   -a $invol -prefix sss  \
-            -expr "step(a) * \
+            -expr "bool(a) * \
                    ( $v0 * (step($v0-a)) + \
                      $v1 * (step(a-$v1)) + \
                      step(a-$v0)*step($v1-a)*a )"  
    3dcalc   -a sss+orig  \
-            -expr "step(a) * \
+            -expr "bool(a) * \
                    ( (a - $v0)/($v1-$v0)*($max-$min)+$min )"   \
             -overwrite -prefix sss
-
+   3drefit -sublabel_prefix $ss $opref$vvv
+   3dNotes -h "`basename $0` $*" $opref$vvv
    goto END
 
 DOIT_FEAT_NORM:
+   set vvv = `@parse_afni_name $invol`
+   set vvv = $vvv[3]
    set nvals = `3dinfo -nv $invol`
    set v0 = 1
    set v1 = 99
@@ -214,14 +224,18 @@ DOIT_FEAT_NORM:
       set op = `printf %03d $sb`
       set rng = `3dBrickStat ${maskopt} -non-zero -min -max $invol"[$sb]"`
       3dcalc   -a $invol"[$sb]" \
-               -expr "step(a)*((a-$rng[1])/($rng[2]-$rng[1])*($v1-$v0)+$v0)"  \
+               -expr "bool(a)*((a-$rng[1])/($rng[2]-$rng[1])*($v1-$v0)+$v0)"  \
                -prefix ${nid}.${op}
    end
    3dTcat -prefix $opref ${nid}.???+????.HEAD
    \rm -f ${nid}.???+????.*
+   3drefit -sublabel_prefix $ss $opref$vvv
+   3dNotes -h "`basename $0` $*" $opref$vvv
    goto END
 
 DOIT_FEAT_ZNORM:
+   set vvv = `@parse_afni_name $invol`
+   set vvv = $vvv[3]
    set nvals = `3dinfo -nv $invol`
    set v0 = 1
    set v1 = 99
@@ -231,11 +245,13 @@ DOIT_FEAT_ZNORM:
       set op = `printf %03d $sb`
       set rng = `3dBrickStat ${maskopt} -non-zero -mean -var $invol"[$sb]"`
       3dcalc   -a $invol"[$sb]" \
-               -expr "step(a)*((a-$rng[1])/(sqrt($rng[2])))"  \
+               -expr "bool(a)*((a-$rng[1])/(sqrt($rng[2])))"  \
                -prefix ${nid}.${op}
    end
    3dTcat -prefix $opref ${nid}.???+????.HEAD
    \rm -f ${nid}.???+????.*
+   3drefit -sublabel_prefix $ss $opref$vvv
+   3dNotes -h "`basename $0` $*" $opref$vvv
    goto END
    
    
@@ -247,10 +263,13 @@ DOIT_NORM:
    3dcalc -a $invol -b ___ts$vvv"[0]" -c ___ts$vvv"[1]" \
             -expr '(a-b)/c' -prefix $opref
    rm -f ___ts$vvv.*
-   
+   3drefit -sublabel_prefix $ss $opref$vvv
+   3dNotes -h "`basename $0` $*" $opref$vvv
    goto END
    
 DOIT_DIV:
+   set vvv = `@parse_afni_name $invol`
+   set vvv = $vvv[3]
    set nvals = `3dnvals -all $invol`
    set cnt = 0
    rm -f scl.$opref.1D >& /dev/null &
@@ -280,7 +299,8 @@ DOIT_DIV:
    3dcalc   -a $invol -prefix $opref  \
             -b scl.$opref.1D   \
             -expr "bool(b)*a/b"
-   
+   3drefit -sublabel_prefix $ss $opref$vvv
+   3dNotes -h "`basename $0` $*" $opref$vvv
    goto END
    
 HELP:
@@ -300,21 +320,27 @@ HELP:
    echo "-perc_clip P0 P1: Set lowest P0 percentile to Min "
    echo "                  and highest P1 percentile to Max"
    echo "                  Default P0 = $p0 and P1 = $p1"
+   echo "Output sub-brick labels are prefixed with SV."
    echo ""
    echo "At the moment, Method 1 only operates on volumes with one sub-brick"
    echo ""
    echo "Method 2:"
    echo "-scale_by_mean: Divide each sub-brick by mean of non-zero voxels"
+   echo "Output sub-brick labels are prefixed with mea."
    echo "-scale_by_median: Divide each sub-brick by median of non-zero voxels"
+   echo "Output sub-brick labels are prefixed with med."
    echo ""
    echo "Method 3:"
    echo "-norm: For each time series T, Tnorm= (T-mean(T))/stdev(T)"
+   echo "Output sub-brick labels are prefixed with tz."
    echo ""
    echo "Method 4:"
 echo "-feat_norm: For each sub-brick B, Bnorm= (B-min(B))/(max(B)-min(B))*99+1"
+   echo "Output sub-brick labels are prefixed with r."
    echo ""
    echo "Method 5:"
    echo "-feat_znorm: For each sub-brick B, Bnorm= (B-mean(B))/stdev(B)"
+   echo "Output sub-brick labels are prefixed with z."
    echo ""
    @global_parse -gopts_help
    goto END

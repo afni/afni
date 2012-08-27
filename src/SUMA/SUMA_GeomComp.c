@@ -1777,8 +1777,8 @@ SUMA_Boolean SUMA_getoffsets2 (  int n, SUMA_SurfaceObject *SO,
    
    SUMA_ENTRY;
    
-   if (!OffS) {
-      SUMA_SL_Err("NULL OffS");
+   if (!OffS || !SO->FN) {
+      SUMA_SL_Err("NULL OffS, or NULL SO->FN");
       SUMA_RETURN(NOPE);
    }
    

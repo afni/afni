@@ -207,6 +207,8 @@ int dlist_ins_prev(DList *list, DListElmt *element, const void *data);
 
 int dlist_remove(DList *list, DListElmt *element, void **data);
 
+void *dlist_ith_elmt_data(DList *list, int index);
+
 #define dlist_size(list) ((list)->size)
 
 #define dlist_head(list) ((list)->head)

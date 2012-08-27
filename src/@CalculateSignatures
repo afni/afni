@@ -211,6 +211,12 @@ SCALE:
                3dcalc -overwrite -a ${inpref}.us.MAD+orig \
                                  -b ${inpref}.us.mean+orig'[$]' \
                         -expr '(step(b)*a/b)' -prefix $ttt
+            else if ($lstat =~ mea*) then
+               set mm = `3dinfo -nvi ${sss}+orig`
+               @ mm --
+               3dcalc -overwrite -a ${sss}+orig"[0-$mm]" \
+                        -b ${inpref}.us.mean+orig'[$]' \
+                        -expr '(step(b)*a/b)' -prefix $ttt
             else
                #Just copy for ease on other scripts, nothing to do
                3dcopy $sss+orig $ttt
@@ -259,6 +265,8 @@ SCALE:
       endif
    endif
    
+   3drefit -sublabel_suffix .sc${Scale} ${inpref}.sc${Scale}.${sigset}+orig
+   
    if ("$extrascl" == '-feat_znorm') then
       if ( ! -f ${inpref}.sc${Scale}z.${sigset}+orig.HEAD) then
          @ScaleVolume   -feat_znorm    \
@@ -268,6 +276,62 @@ SCALE:
          echo "Reusing ${inpref}.sc${Scale}z.${sigset}+orig.HEAD"
       endif
    endif
+   
+   #Add XYZ features
+   if ( "$Mname" != "") then
+      #The matrix coming from @auto_tlrc is such that M Xt = Xo
+      #I want Xt = Mt Xo, so Mt = inv(M)
+      #So, Xt = Mt Xo and Xz = Mz Mt Xo
+      #Mz is obtained from @CreateMz, which creates Mnorm.1D
+      #
+      #Mall = Mz Mt, which is computed next
+      # Mz is manually inserted here from the output of @CreateMz
+      # with something like: set ll = ( `cat_matvec Mnorm.1D`)
+      #                      set ll = ( `echo $ll | sed 's/ /,/g'` )
+      # and put the content of $ll in MATRIX() below
+      set Mall = (`cat_matvec $Mname -I   'MATRIX(0.024764,0,0,0.012501,0,0.020628,0,-0.379561,0,0,0.0231,-0.006564)'`)
+      
+      #Now I will use 3dcalc to compute Xz = Mall Xo, one coord at a time 
+      #
+      set M = ($Mall) #notation convenience
+      3dcalc -RAI -overwrite -a ${inpref}+orig \
+             -expr "step(a)*(x*$M[1] + y*$M[2] + z*$M[3] + $M[4])"   \
+             -prefix ${inpref}.Xz
+      3drefit -sublabel 0 Xz ${inpref}.Xz+orig
+      
+      3dcalc -RAI -overwrite -a ${inpref}+orig \
+             -expr "step(a)*(x*$M[5] + y*$M[6] + z*$M[7] + $M[8])"   \
+             -prefix ${inpref}.Yz
+      3drefit -sublabel 0 Yz ${inpref}.Yz+orig
+      
+      3dcalc -RAI -overwrite -a ${inpref}+orig \
+             -expr "step(a)*(x*$M[9] + y*$M[10] + z*$M[11] + $M[12])"   \
+             -prefix ${inpref}.Zz
+      3drefit -sublabel 0 Zz ${inpref}.Zz+orig
+      
+      foreach gg (${inpref}.sc${Scale}.${sigset}+orig.HEAD  \
+                  ${inpref}.sc${Scale}z.${sigset}+orig.HEAD )
+         if ( -f $gg ) then
+            set ok = (`3dinfo -label $gg | grep -w Xz | grep -w Yz | grep -w Zz`)
+            if ($status == 0) then
+             echo "It looks like $gg has Xz Yz and Zz in it, not adding anything"
+            else
+               3dTcat -glueto  $gg \
+                         ${inpref}.Xz+orig   \
+                         ${inpref}.Yz+orig   \
+                         ${inpref}.Zz+orig   
+            endif
+         endif
+      end
+   endif
+   
+   #make sure we have the history note
+   foreach gg (${inpref}.sc${Scale}.${sigset}+orig.HEAD  \
+                  ${inpref}.sc${Scale}z.${sigset}+orig.HEAD )
+      if ( -f $gg ) then
+         3dNotes -h "`basename $0` $*" $ttt+orig
+      endif
+   end
    
    cd $stdir      
 goto END
@@ -292,6 +356,7 @@ set ScaleVal = 0
 set max_vox = 0
 set prepend_anat = 0
 set extrascl = ''
+set Mname = ''
 
 if ("$1" == '') goto HELP
 while ($cnt <= $Narg)
@@ -356,6 +421,21 @@ while ($cnt <= $Narg)
       set donext = 0   
    endif
 
+
+   if ($donext && "$argv[$cnt]" == "-TT_Xform") then
+      if ($cnt == $Narg) then
+         echo "Need Affine xform in 1D file after -TT_Xform"
+         goto END
+      else 
+         @ cnt ++
+         set Mname = $argv[$cnt]
+         if ( ! -f $Mname) then
+            echo "File $Mname not found"
+            goto END
+         endif
+         set donext = 0   
+      endif
+   endif
 
    if ($donext && "$argv[$cnt]" == "-scale_by_dset_median") then
       if ($cnt == $Narg) then
@@ -562,6 +642,18 @@ HELP:
    echo "       Scale the MAD stats by the last mean feature. (scale 7)"
    echo "   -Mscl: Like spnorm2, BUT the mean is not removed from median stats"
    echo "       before scaling, AND mean stats are also subject to MAD scaling."
+   echo "   -TT_Xform XMAT.1D: You can also create X Y Z coordinate features"
+   echo "                      that are Z normalized. To do so you need to "
+   echo "                      provide an affine transform that can be used"
+   echo "                      to go between original and standard space."
+   echo "                      The XMAT.1D expected here is the one generated"
+   echo "                      by @auto_tlrc, but it can come from other sources"
+   echo "                      as long as the following relationship holds:"
+   echo "                          Xo = Mt Xt, where Xo and Xt are 4x1 "
+   echo "                      coordinate vectors in original, and standard"
+   echo "                      space, respectively."
+   echo "               Note:  The transform need not be exact for these "
+   echo "                      features to be of use." 
    echo ""
    echo "Extra Scaling:"
    echo "   -feat_znorm: After you're done applying the scaling options, "
