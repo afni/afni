@@ -7545,13 +7545,15 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    static GLdouble radsph, fac;
    static GLfloat gapch, radch;
    GLboolean gl_dt;
-   float origwidth = 0.0, off[3]={0.0, 0.0, 0.0};
+   float origwidth = 0.0, off[3]={0.0, 0.0, 0.0}, *xyz=NULL;
    int scl = 0;
    SUMA_CrossHair* Ch = sv->Ch;
+   SUMA_CLUST_DATUM *cd = NULL;
    SUMA_SurfaceObject *SO=NULL;
    
    SUMA_ENTRY;
-   if (sv->Focus_SO_ID) {
+   
+   if (sv->Focus_SO_ID >= 0) {
       SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
    }else SO=NULL;
    
@@ -7662,6 +7664,23 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
       glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
    }
    
+   if (SO && SO->SurfCont &&
+       SUMA_NodeClustNumber(SO->SurfCont->curColPlane, Ch->NodeID,
+                            SO, &cd)) { 
+            /* Mark node with maximum value in cluster where you just
+               clicked, if possible. The Dale Stephens Option */
+      
+      if (cd->maxnode >=0) {
+         xyz = SO->NodeList+SO->NodeDim*cd->maxnode;
+         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->sphcolCmax); 
+         glTranslatef (xyz[0], xyz[1],xyz[2]);
+         gluSphere(Ch->sphobjCmax, radsph, 4, 4);
+         glTranslatef (-xyz[0], -xyz[1],-xyz[2]);
+                           /*turn off emissivity for axis*/
+         glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
+      }
+   }
+   
    glLineWidth(origwidth);
    
    /* DEPTH_TEST is on for this function, turn it off
@@ -7733,6 +7752,17 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
    
    Ch->SurfaceID = -1;
    Ch->NodeID = -1;
+   
+   Ch->sphobjCmax = gluNewQuadric();
+   Ch->sphcolCmax[0] = 0.0; Ch->sphcolCmax[1] = 0.0; 
+   Ch->sphcolCmax[2] = 0.0; Ch->sphcolCmax[3] = 0.0;
+   #ifdef SUMA_SOLID_LOCAL
+      gluQuadricDrawStyle (Ch->sphobjCmax, GLU_FILL); 
+      gluQuadricNormals (Ch->sphobjCmax , GLU_SMOOTH);
+   #else
+      gluQuadricDrawStyle (Ch->sphobjCmax, GLU_LINE);
+      gluQuadricNormals (Ch->sphobjCmax , GLU_NONE);
+   #endif
    SUMA_RETURN (Ch);
 }
 
@@ -7744,6 +7774,7 @@ void SUMA_Free_CrossHair (SUMA_CrossHair *Ch)
    SUMA_ENTRY;
 
    if (Ch->sphobj) gluDeleteQuadric(Ch->sphobj);
+   if (Ch->sphobjCmax) gluDeleteQuadric(Ch->sphobjCmax);
    if (Ch) SUMA_free(Ch);
    SUMA_RETURNe;
 }
@@ -8430,6 +8461,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       }
       SUMA_free(SO->NodeNIDOObjects);
    }
+   
+   if (SO->NodeAreas) SUMA_free(SO->NodeAreas); 
    if (SO) SUMA_free(SO);
    
    if (LocalHead) fprintf (stdout, "Done\n");
@@ -8842,6 +8875,21 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          SS = SUMA_StringAppend (SS,stmp);
       }
 
+      if (SO->NodeAreas == NULL) {
+         sprintf (stmp,"NodeAreas is NULL\n\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
+         sprintf (stmp, "NodeAreas (showing %d out of %d elements):\n",
+                        MaxShow, SO->N_Node);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow; ++i)   {
+               sprintf (stmp, "\t%.3f\n", SO->NodeAreas[i]);
+               SS = SUMA_StringAppend (SS,stmp);
+         }
+         sprintf (stmp, "\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      }
 
       if (SO->FaceSetList == NULL) {
          sprintf (stmp,"FaceSetList is NULL\n\n");
@@ -9705,6 +9753,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].CommonNodeObject = NULL;
       SO[i].NodeObjects = NULL;
       SO[i].NodeNIDOObjects = NULL;
+      SO[i].NodeAreas = NULL;
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

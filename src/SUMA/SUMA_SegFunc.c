@@ -22,6 +22,569 @@ static int VoxDbg3[3];
 static int VoxDbg = -1;
 static FILE *VoxDbgOut=NULL;
 
+char *SUMA_hist_variable(SUMA_HIST *hh) 
+{
+   if (!hh || !hh->label) return(NULL);
+   
+   return(SUMA_label_variable(hh->label, 'h'));
+}
+char *SUMA_dist_variable(SUMA_FEAT_DIST *hh) 
+{
+   if (!hh || !hh->label) return(NULL);
+   
+   return(SUMA_label_variable(hh->label, 'd'));
+}
+char *SUMA_hist_conditional(SUMA_HIST *hh) 
+{
+   if (!hh || !hh->label) return(NULL);
+   
+   return(SUMA_label_conditional(hh->label, 'h'));
+}
+char *SUMA_dist_conditional(SUMA_FEAT_DIST *hh) 
+{
+   if (!hh || !hh->label) return(NULL);
+   
+   return(SUMA_label_conditional(hh->label, 'd'));
+}
+
+/* 
+   infer class from label, this is particular to the way you label these dudes
+   Do NOT free what is returned
+*/
+char *SUMA_label_variable(char *label, char c) 
+{
+   static char feats[10][256];
+   static int ii=0;
+   int j,k;
+   if (!label) return(NULL);
+   if (label[0]!=c || label[1]!='(') return(NULL);
+   ++ii; if (ii>9) ii = 0;
+   feats[ii][0]='\0'; feats[ii][255]='\0';
+   j=2; k=0;
+   while (label[j]!='\0' && label[j]!='|' && label[j]!=')' && k<255) 
+   {
+      feats[ii][k]=label[j]; ++k; ++j;
+   }
+   feats[ii][k]='\0';
+   return(feats[ii]);
+}
+
+/* 
+   infer class from label, this is particular to the way you label these dudes
+   Do NOT free what is returned
+*/
+char *SUMA_label_conditional(char *label, char c) 
+{
+   static char cls[10][256];
+   static int ii=0;
+   int j,k;
+   if (!label) return(NULL);
+   if (label[0]!=c || label[1]!='(') return(NULL);
+   ++ii; if (ii>9) ii = 0;
+   cls[ii][0]='\0'; cls[ii][255]='\0';
+   j=2; k=0;
+   while (label[j]!='\0' && label[j]!='|' && label[j]!=')') 
+   {
+      ++j;
+   }
+   if (label[j]!='\0') {
+      ++j;
+      while (label[j]!='\0' && label[j]!=')' && k<255) 
+      {
+         cls[ii][k]=label[j]; ++k; ++j;
+      }
+      cls[ii][k]='\0';
+   }
+   return(cls[ii]);
+}
+
+/*
+   return histogram filename for a certain variable and conditional
+*/
+char *SUMA_hist_fname(char *proot, char *variable, char *conditional)
+{
+   static char cls[10][256];
+   static int ii=0;
+   int j,k;
+   
+   if (!proot || !variable) return(NULL);
+   ++ii; if (ii>9) ii = 0;
+   cls[ii][0]='\0'; cls[ii][255]='\0';
+   snprintf(cls[ii], 255, "%s/h.%s-G-%s",
+               proot, variable, conditional);
+               
+   return(cls[ii]);
+}
+
+SUMA_FEAT_DIST *SUMA_find_feature_dist(SUMA_FEAT_DISTS *FDV, 
+                                       char *label, char *feature, char *class,
+                                       int *ifind)
+{
+   static char FuncName[]={"SUMA_find_feature_dist"};
+   int ff=-1;
+   char sbuf[256]={""}, *skey=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!FDV || (!label && !feature) || FDV->N_FD < 1) SUMA_RETURN(NULL);
+   if (ifind) *ifind = -1;
+   
+   if (label) {
+      if (feature || class) {
+         SUMA_S_Err("Can't use label with feature or class");
+         SUMA_RETURN(NULL);
+      }
+      skey = label; 
+   } else {
+      if (class) 
+         snprintf(sbuf, 255, "d(%s|%s)",feature, class);
+      else
+         snprintf(sbuf, 255, "d(%s)",feature);
+      skey = sbuf;
+   }
+   ff = 0;
+   while (ff < FDV->N_FD) {
+      /* SUMA_LHv("%d: skey=%s, label=%s\n", ff, skey, FDV->FD[ff]->label);*/
+      if (!strcmp(skey, FDV->FD[ff]->label)) {
+         if (ifind) *ifind = ff;
+         SUMA_RETURN(FDV->FD[ff]);
+      }
+      ++ff; 
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+NI_str_array * SUMA_dists_featureset(SUMA_FEAT_DISTS *FDV)
+{
+   static char FuncName[]={"SUMA_dists_featureset"};
+   NI_str_array *sar=NULL;
+   int i=0;
+   
+   SUMA_ENTRY;
+   
+   if (!FDV) SUMA_RETURN(sar);
+   
+   for (i=0; i<FDV->N_FD; ++i) {
+      sar = SUMA_NI_str_array(sar, SUMA_dist_variable(FDV->FD[i]), "A");
+   } 
+   
+   SUMA_RETURN(sar);
+}
+
+NI_str_array * SUMA_dists_classset(SUMA_FEAT_DISTS *FDV)
+{
+   static char FuncName[]={"SUMA_dists_classset"};
+   NI_str_array *sar=NULL;
+   int i=0;
+   
+   SUMA_ENTRY;
+   
+   if (!FDV) SUMA_RETURN(sar);
+   
+   for (i=0; i<FDV->N_FD; ++i) {
+      sar = SUMA_NI_str_array(sar, SUMA_dist_conditional(FDV->FD[i]), "A");
+   } 
+   
+   SUMA_RETURN(sar);
+}
+
+SUMA_FEAT_DISTS *SUMA_grow_feature_dists(SUMA_FEAT_DISTS *FDV)
+{
+   static char FuncName[]={"SUMA_grow_feature_dists"};
+   
+   SUMA_ENTRY;
+   
+   if (!FDV) {
+      FDV = (SUMA_FEAT_DISTS *)SUMA_calloc(1, sizeof(SUMA_FEAT_DISTS));
+      FDV->N_FD = 0;
+   }
+   FDV->N_alloc += 50;
+   FDV->FD = (SUMA_FEAT_DIST **)SUMA_realloc(FDV->FD, FDV->N_alloc* 
+                                                      sizeof(SUMA_FEAT_DIST*));
+   
+   SUMA_RETURN(FDV);
+}
+
+SUMA_FEAT_DIST *SUMA_free_dist(SUMA_FEAT_DIST *FD) 
+{
+   static char FuncName[]={"SUMA_free_dist"};
+   
+   SUMA_ENTRY;
+   
+   if (FD) {
+      if (FD->label) SUMA_free(FD->label); FD->label = NULL;
+      if (FD->hh) FD->hh = SUMA_Free_hist(FD->hh);
+      SUMA_free(FD);
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+SUMA_FEAT_DISTS *SUMA_free_dists(SUMA_FEAT_DISTS *FDV) 
+{
+   static char FuncName[]={"SUMA_free_dists"};
+   int i=0;
+   
+   SUMA_ENTRY;
+   
+   if (!FDV) SUMA_RETURN(NULL);
+   for (i=0; i<FDV->N_FD; ++i) {
+      if (FDV->FD[i]) FDV->FD[i] = SUMA_free_dist(FDV->FD[i]);
+   }
+   if (FDV->FD) SUMA_free(FDV->FD);
+   
+   SUMA_free(FDV);
+   
+   SUMA_RETURN(NULL);
+}
+
+SUMA_FEAT_DISTS *SUMA_add_feature_dist(SUMA_FEAT_DISTS *FDV, 
+                                       SUMA_FEAT_DIST **FDp,
+                                       int append)
+{
+   static char FuncName[]={"SUMA_add_feature_dist"};
+   int ff=-1;
+   char sbuf[256]={""};
+   SUMA_FEAT_DIST *FD=NULL, *FDo=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!FDp) SUMA_RETURN(FDV);
+   if (!(FD = *FDp)) {
+      SUMA_RETURN(FDV);
+   }
+   
+   if (!FD->label) {
+      SUMA_S_Err("Failed to add FD, no label");
+      SUMA_RETURN(FDV);
+   }
+   if (!FDV || FDV->N_FD>=FDV->N_alloc-1) {
+      FDV = SUMA_grow_feature_dists(FDV);
+   } 
+   if (append) { /* no replacing */
+      FDV->FD[FDV->N_FD] = FD;
+      FDV->N_FD += 1;
+   } else {
+      FDo = SUMA_find_feature_dist(FDV, FD->label, NULL, NULL, &ff);
+      if (!FDo) {
+         FDV->FD[FDV->N_FD] = FD;
+         FDV->N_FD += 1;
+      } else {
+         FDo = SUMA_free_dist(FDo);
+         FDV->FD[ff]=FD;
+      }
+   }
+   *FDp = NULL; /* to keep user from freeing by mistake */
+   
+   SUMA_RETURN(FDV);
+}
+
+SUMA_FEAT_DIST *SUMA_hist_To_dist(SUMA_HIST **hhp, char *thislabel)
+{
+   static char FuncName[]={"SUMA_hist_To_dist"};
+   SUMA_FEAT_DIST *FD=NULL;
+   SUMA_HIST *hh=NULL;
+   char *var=NULL, *cond=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!hhp) SUMA_RETURN(FD);
+   hh = *hhp;
+   if (!hh->label && !thislabel) {
+      SUMA_S_Err("No histogram label");
+      SUMA_RETURN(FD);
+   }
+   FD = (SUMA_FEAT_DIST *) SUMA_calloc(1,sizeof(SUMA_FEAT_DIST));
+   FD->tp = SUMA_FEAT_NP;
+   FD->hh = hh; *hhp = NULL;
+   if (thislabel) FD->label = SUMA_copy_string(thislabel);
+   else {
+      var = SUMA_hist_variable(FD->hh);
+      cond = SUMA_hist_conditional(FD->hh);
+      if (!cond || cond[0]=='\0') {
+         FD->label = SUMA_append_replace_string("d(",")",var,0);
+      } else {
+         FD->label = SUMA_append_replace_string("d(","|",var,0);
+         FD->label = SUMA_append_replace_string(FD->label,")",cond,1);
+      }
+   }
+   
+   SUMA_RETURN(FD);
+}
+
+SUMA_FEAT_DISTS *SUMA_TRAIN_DISTS_To_dists(SUMA_FEAT_DISTS *FDV, 
+                                           NI_element *ndist)
+{
+   static char FuncName[]={"SUMA_TRAIN_DISTS_To_dists"};
+   SUMA_FEAT_DIST *FD = NULL;
+   char **clsv=NULL, **featv=NULL;
+   float *shapev=NULL, *ratev=NULL;
+   int i = 0;
+   char *atr=NULL, atname[256]={""};
+   NI_str_array *atrs=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!ndist) {
+      SUMA_S_Err("NULL ndist");
+      SUMA_RETURN(FDV);
+   }
+   if (strcmp(ndist->name,"TRAIN_DISTS")) {
+      SUMA_S_Errv("nel %s is no good here sir.\n", ndist->name);
+      SUMA_RETURN(FDV);
+   }
+   if (!(atr=NI_get_attribute(ndist,"Dist")) ||
+       strcmp(atr, "gamma")) {
+      SUMA_S_Err("Dunno what to do with this element");
+      SUMA_RETURN(FDV);
+   } else { /* have gamma */
+      featv = (char **)ndist->vec[0];
+      clsv  = (char **)ndist->vec[1]; 
+      shapev= (float *)ndist->vec[2];
+      ratev = (float *)ndist->vec[3];
+      for (i=0; i<ndist->vec_len; ++i) {
+         sprintf(atname,"%s_Scale+Shift", featv[i]);
+         
+         if (!(atr = NI_get_attribute(ndist, atname))) {
+            SUMA_S_Errv("Failed to find attribute %s\n", atname);
+            RETURN(FDV);
+         }
+         if (!(atrs = NI_decode_string_list(atr,",")) || atrs->num != 2) {
+            SUMA_S_Errv("Failed to find shift+scale on %s\n",atname);
+            RETURN(FDV); 
+         }
+         FD = (SUMA_FEAT_DIST *) SUMA_calloc(1,sizeof(SUMA_FEAT_DIST));
+         FD->label = SUMA_append_replace_string("d(","|",featv[i],0);
+         FD->label = SUMA_append_replace_string(FD->label,")",clsv[i],1);
+         FD->tp = SUMA_FEAT_GAMMA;
+         FD->scpar[0] = strtod(atrs->str[0], NULL);
+         FD->scpar[1] = strtod(atrs->str[1], NULL);
+         FD->par[0] = (double)shapev[i];
+         FD->par[1] = (double)ratev[i];
+         
+         FDV = SUMA_add_feature_dist(FDV, &FD, 0);
+      }
+   }     
+   
+   SUMA_RETURN(FDV);
+}
+
+SUMA_FEAT_DISTS *SUMA_get_all_dists(char *where) 
+{
+   static char FuncName[]={"SUMA_get_all_dists"};
+   int nfile ; 
+   char **flist=NULL;
+   char *wilds[]={"*.niml.hist", "*.niml.td", NULL}, 
+         *wild=NULL, *allwild=NULL;
+   int i;
+   NI_element *nel=NULL;
+   SUMA_FEAT_DISTS *FDV=NULL;
+   SUMA_FEAT_DIST *FD=NULL;
+   SUMA_HIST *hh=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!where) SUMA_RETURN(NULL);
+   
+   if (THD_is_directory(where)) {
+      i = 0;
+      while (wilds[i] != NULL) {
+         wild = SUMA_append_replace_string(where,wilds[i],"/",0);
+         allwild = SUMA_append_replace_string(allwild,wild, " ",1);
+         SUMA_free(wild); wild = NULL;
+         ++i;
+      }
+   } else {
+      allwild = SUMA_copy_string(where);
+   }
+   if (!allwild) { SUMA_S_Err("No wildness"); SUMA_RETURN(NULL); }
+    
+   MCW_wildcards( allwild , &nfile , &flist ) ;
+   if (nfile <=0) {
+      SUMA_S_Errv("No training material under %s \n%s\n", where, allwild);
+   } else {
+      for (i=0; i<nfile; ++i) {
+         if (SUMA_isExtension(flist[i],"niml.td")) {
+            SUMA_LHv("Adding TRAIN_DISTS %s\n", flist[i]);
+            nel = (NI_element*) Seg_NI_read_file(flist[i]);
+            if( !nel || strcmp(nel->name,"TRAIN_DISTS")){
+              SUMA_S_Warnv("can't open  %s, or bad type. Ignoring\n",
+                            flist[i]) ;
+            } else {
+               FDV = SUMA_TRAIN_DISTS_To_dists(FDV, nel);
+            }
+            if (nel) NI_free_element(nel); nel = NULL;
+         } else if (SUMA_isExtension(flist[i],"niml.hist")) {
+            SUMA_LHv("Adding hist %s\n", flist[i]);
+            hh = SUMA_read_hist(flist[i]);
+            FD = SUMA_hist_To_dist(&hh,NULL);
+            FDV = SUMA_add_feature_dist(FDV, &FD, 0);
+         } else {
+            SUMA_LHv("Unknow extension for %s, ignoring it.\n",
+                  flist[i]);
+         }
+      }
+   }
+   MCW_free_wildcards( nfile , flist ) ;   
+   if (allwild) { SUMA_free(allwild); allwild = NULL;}
+   
+   if (LocalHead) {
+      SUMA_Show_dists(FDV, NULL, 1);
+   }
+   SUMA_RETURN(FDV);
+}
+  
+NI_group *SUMA_hist_To_NIhist(SUMA_HIST *hh) 
+{
+   static char FuncName[]={"SUMA_hist_To_NIhist"};
+   NI_group *ngr=NULL;
+   NI_element *nel=NULL;
+   char *feat=NULL, *class=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!hh) SUMA_RETURN(ngr);
+   
+   
+   ngr = NI_new_group_element();
+   NI_rename_group(ngr, hh->label?hh->label:"MrEd");
+   #if 0 /* don't add this junk unless necessary */
+   if ((feat = SUMA_hist_variable(hh))) {
+      NI_set_attribute(ngr,"feature", feat);
+   }
+   if ((class = SUMA_hist_conditional(hh))) {
+      NI_set_attribute(ngr,"class", class);
+   }
+   #endif
+   nel = NI_new_data_element("histogram", hh->K);
+   NI_add_to_group(ngr, nel);
+   NI_SET_FLOAT(nel,"window",hh->W);
+   NI_SET_FLOAT(nel,"min", hh->min);
+   NI_SET_FLOAT(nel,"max", hh->max);
+   NI_SET_INT(nel,"N_samp", hh->n);
+   NI_add_column(nel, NI_FLOAT, hh->b);
+   NI_add_column(nel, NI_INT, hh->c);
+   NI_add_column(nel, NI_FLOAT, hh->cn);
+   
+   SUMA_RETURN(ngr);   
+}
+
+SUMA_HIST *SUMA_NIhist_To_hist(NI_group *ngr)
+{
+   static char FuncName[]={"SUMA_NIhist_To_hist"};
+   NI_element *nel=NULL;
+   SUMA_HIST *hh=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!ngr) SUMA_RETURN(hh);
+   nel = SUMA_FindNgrNamedElement(ngr,"histogram");
+   if (!nel) SUMA_RETURN(hh);
+   
+   hh = (SUMA_HIST *)SUMA_calloc(1,sizeof(SUMA_HIST));
+   hh->label = SUMA_copy_string(ngr->name);
+   hh->K = nel->vec_len;
+   NI_GET_FLOAT(nel,"window",hh->W);
+   NI_GET_FLOAT(nel,"min", hh->min);
+   NI_GET_FLOAT(nel,"max", hh->max);
+   NI_GET_INT(nel,"N_samp", hh->n);
+   hh->b = (float *)SUMA_calloc(hh->K,sizeof(float));
+   hh->c = (int *)SUMA_calloc(hh->K,sizeof(int));
+   hh->cn = (float *)SUMA_calloc(hh->K,sizeof(float));
+   memcpy(hh->b, nel->vec[0], sizeof(float)*hh->K);
+   memcpy(hh->c, nel->vec[1], sizeof(int)*hh->K);
+   memcpy(hh->cn, nel->vec[2], sizeof(float)*hh->K);
+   
+   SUMA_RETURN(hh);
+}
+
+int SUMA_write_hist(SUMA_HIST *hh, char *name)
+{
+   static char FuncName[]={"SUMA_write_hist"};
+   char *ff=NULL;
+   NI_stream m_ns = NULL;  
+   NI_group *ngr = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!hh) SUMA_RETURN(NOPE);
+   if (!(ngr = SUMA_hist_To_NIhist(hh))) {
+      SUMA_S_Err("Failed to go NII");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!name) name = ngr->name;
+   
+   ff = SUMA_Extension(name, ".niml.hist", NOPE);
+   ff = SUMA_append_replace_string("file:",ff,"",2);
+   
+   m_ns = NI_stream_open( ff , "w" ) ;   
+   if( m_ns == NULL ) {    
+      SUMA_S_Errv ("Failed to open stream %s\n", ff);  
+      SUMA_free(ff); ff=NULL;
+      SUMA_RETURN(NOPE);
+   } else { 
+      /* write out the element */   
+      if (NI_write_element( m_ns , ngr , 
+                            NI_TEXT_MODE ) < 0) { 
+         SUMA_S_Err ("Failed to write element");  
+         SUMA_free(ff); ff=NULL;
+         NI_free_element(ngr); ngr=NULL; 
+         NI_stream_close( m_ns ) ; m_ns = NULL;
+         SUMA_RETURN(NOPE);
+      }  
+   }  
+   
+   if (ff) SUMA_free(ff); ff = NULL;
+   /* close the stream */  
+   NI_stream_close( m_ns ) ; m_ns = NULL;
+   if (ngr) NI_free_element(ngr); ngr=NULL; 
+   SUMA_RETURN(YUP);
+}
+
+SUMA_HIST *SUMA_read_hist(char *name) 
+{
+   
+   static char FuncName[]={"SUMA_read_hist"};
+   char *ff=NULL;
+   NI_stream m_ns = NULL;  
+   NI_group *ngr = NULL;
+   SUMA_HIST *hh = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!name) SUMA_RETURN(hh);
+   ff = SUMA_Extension(name, ".niml.hist", NOPE);
+   ff = SUMA_append_replace_string("file:",ff,"",2);
+   
+   m_ns = NI_stream_open( ff , "r" ) ; 
+   if( m_ns == NULL ) {    
+      SUMA_S_Errv ("Failed to open stream %s for reading\n", ff);  
+      SUMA_free(ff); ff=NULL;
+      SUMA_RETURN(hh);
+   } else { 
+      /* read out the element */   
+      if (!(ngr = NI_read_element( m_ns , 1 ))) { 
+         SUMA_S_Err ("Failed to read element");  
+         SUMA_free(ff); ff=NULL;
+         NI_stream_close( m_ns ) ; m_ns = NULL;
+         SUMA_RETURN(hh);
+      }  
+   }  
+   /* close the stream */  
+   NI_stream_close( m_ns ) ; m_ns = NULL;
+   if (!(hh = SUMA_NIhist_To_hist(ngr))) {
+      SUMA_S_Err("Failed to get hist from NI");
+   }
+   if (ff) SUMA_free(ff); ff = NULL;
+   if (ngr) NI_free_element(ngr); ngr=NULL;  
+   SUMA_RETURN(hh);
+}
+
+
 void SUMA_set_SegFunc_debug(int dbg, int vdbg, int *vdbg3, FILE *out) {
    debug = dbg;
    VoxDbg = vdbg;
@@ -150,7 +713,8 @@ void SUMA_ShowClssKeys(char **str, int num, int *keys)
    SUMA_RETURNe;
 }
 
-int get_train_pdist(SEG_OPTS *Opt, char *feat, char *cls, 
+#if 0
+int get_train_pdist_old(SEG_OPTS *Opt, char *feat, char *cls, 
                      double *par, double *scpar) 
 {
    char **clsv=NULL, **featv=NULL;
@@ -159,7 +723,7 @@ int get_train_pdist(SEG_OPTS *Opt, char *feat, char *cls,
    char *atr=NULL, atname[256]={""};
    NI_str_array *atrs=NULL;
    
-   ENTRY("get_train_pdist");
+   ENTRY("get_train_pdist_old");
    
    if (!Opt->ndist) RETURN(0);
    featv = (char **)Opt->ndist->vec[0];
@@ -193,7 +757,7 @@ int get_train_pdist(SEG_OPTS *Opt, char *feat, char *cls,
    
    RETURN(0);
 }
-
+#endif
 
 double pdfgam(double x,double ash, double brt) 
 {
@@ -209,23 +773,25 @@ double pdfgam(double x,double ash, double brt)
 #define PDFGAM(x,ash,brt) exp((ash*log(brt) - lgamma(ash) + (ash-1)*log(x) - brt*x)) 
 
 /*!
-   Estimate the probability of feature amplitude given its feature and  class
+   Estimate the probability of a particular feature's amplitude given a  class
 */
 int p_a_GIV_cvfu(SEG_OPTS *Opt, char *feat, char *cls, 
                   THD_3dim_dataset *pout) 
 {
-   double par[10], npar = 0, scpar[2];
-   char fpref[256+IDCODE_LEN+32]={""};
+   static char FuncName[]={"p_a_GIV_cvfu"};
+   static int icomp_note = 0, ifound_note = 0;
+   char fpref[256+IDCODE_LEN+32]={""}, bl[256]={""};
    char fsave[256+IDCODE_LEN+32]={""};
    THD_3dim_dataset *pload=NULL;
    short *a=NULL, *p=NULL;
    int ia = 0, i=0;
    float af=0.0; 
    double dp=0.0, da=0.0, hbw = 0.0, pfhbw, pf=0.0;
+   SUMA_FEAT_DIST *FD = NULL;
    
-   ENTRY("p_a_GIV_cvfu"); 
+   SUMA_ENTRY; 
    
-   if (!pout || DSET_BRICK_TYPE(pout,0) != MRI_short) RETURN(0);
+   if (!pout || DSET_BRICK_TYPE(pout,0) != MRI_short) SUMA_RETURN(0);
    
    /* form the temp filename */
    if (Opt->UseTmp) {
@@ -234,110 +800,154 @@ int p_a_GIV_cvfu(SEG_OPTS *Opt, char *feat, char *cls,
       sprintf(fsave, "%s+orig.HEAD", fpref);
    }
    if (Opt->UseTmp && (pload = THD_open_dataset( fsave ))) {
-      if (Opt->debug > 1) INFO_message("Found %s", fsave);
-      if (DSET_BRICK_TYPE(pload,0) != MRI_short) RETURN(0);
+      if (Opt->debug > 1) {
+         if (Opt->debug > 2 || !ifound_note) {
+            SUMA_S_Notev("Found %s %s\n", 
+               fsave, Opt->debug <= 2 ? "(further message will be muted)":""); 
+            ++ifound_note;
+         }
+      }
+      if (DSET_BRICK_TYPE(pload,0) != MRI_short) SUMA_RETURN(0);
       DSET_mallocize(pload)   ; DSET_load(pload);
       /* swap column and factor */
       SWAP_COL(pload, pout,0)
       /* erase pload and get out */
       DSET_delete(pload);
-      RETURN(1);
+      SUMA_RETURN(1);
    } else {
-      if (Opt->debug > 1) INFO_message("Must compute %s, %s", feat, cls);
+      if (Opt->debug > 1) {
+         if (Opt->debug > 2 || !icomp_note) {
+            SUMA_S_Notev("Must compute %s, %s %s\n",
+              feat, cls, Opt->debug <= 2 ? "(further message will be muted)":"");
+            ++icomp_note;
+         }
+      }
       SB_LABEL(Opt->sig,feat, ia);
       if (ia<0) {
-         ERROR_message("Failed to find %s", feat); RETURN(0);
+         SUMA_S_Errv("Failed to find %s", feat); SUMA_RETURN(0);
       }
-      if (get_train_pdist(Opt, feat, cls, par, scpar)!=2) {
-         ERROR_message("Failed to get gamma params for %s, %s", feat, cls); 
-         RETURN(0);
-      }
-      
       a = (short *)DSET_ARRAY(Opt->sig, ia);
       af = DSET_BRICK_FACTOR(Opt->sig, ia);
       if (!af) af = 1;
       
       p = (short *)DSET_ARRAY(pout, 0);
       pf = 32767.0; /* max p is 1, so stick with this */
-      /* Now compute probs */
-      af = af * scpar[0];
-      hbw = Opt->binwidth / 2.0;
-      pfhbw = pf * hbw ;
-      for (i=0; i<DSET_NVOX(Opt->sig); ++i) {
-         if (IN_MASK(Opt->cmask,i)) {
-            da = (double)((a[i]*af)+scpar[1]);
-            #if 0
-            /* gold standard see area.gam*/
-            dp = ( gamma_t2p( da-hbw, par[0] , par[1] ) -
-                   gamma_t2p( da+hbw , par[0] , par[1] ) ) * pf;
-            #else
-            dp = (PDFGAM((da-hbw), par[0], par[1]) + 
-                  PDFGAM((da+hbw), par[0], par[1]) ) *  pfhbw; 
-            #endif
-            if (i == Opt->VoxDbg) {
-               fprintf(Opt->VoxDbgOut,"      a = %d, a_sc = %f\n"
-                                     "p(a|c=%s,f=%s)=%f\n",
-                                     a[i], da, cls, feat, dp/pf);
-            }
-         } else {
-            if (i == Opt->VoxDbg) fprintf(Opt->VoxDbgOut," Vox Masked\n");
-            dp = 0.0;
-         }
-         p[i] = (short)dp;
+      
+      if (!(FD = SUMA_find_feature_dist(Opt->FDV, NULL, feat, cls, NULL))) {
+         SUMA_S_Errv("Failed to find dist struct for %s %s\n", 
+                        feat, cls);
+         SUMA_RETURN(0);
       }
-
+      switch(FD->tp){
+         case SUMA_FEAT_GAMMA:
+            /* compute probs */
+            af = af * FD->scpar[0];
+            hbw = Opt->binwidth / 2.0;
+            pfhbw = pf * hbw ;
+            for (i=0; i<DSET_NVOX(Opt->sig); ++i) {
+               if (IN_MASK(Opt->cmask,i)) {
+                  da = (double)((a[i]*af)+FD->scpar[1]);
+                  #if 0
+                  /* gold standard see area.gam*/
+                  dp = ( gamma_t2p( da-hbw, FD->par[0] , FD->par[1] ) -
+                         gamma_t2p( da+hbw, FD->par[0] , FD->par[1] ) ) * pf;
+                  #else
+                  dp = (PDFGAM((da-hbw), FD->par[0], FD->par[1]) + 
+                        PDFGAM((da+hbw), FD->par[0], FD->par[1]) ) *  pfhbw; 
+                  #endif
+                  if (i == Opt->VoxDbg) {
+                     fprintf(Opt->VoxDbgOut,"      a = %d, a_sc = %f\n"
+                                           "p(a(%s)=%f|c=%s)=%f\n",
+                                           a[i], da, feat, a[i]*af, cls, dp/pf);
+                  }
+               } else {
+                  if (i == Opt->VoxDbg) fprintf(Opt->VoxDbgOut," Vox Masked\n");
+                  dp = 0.0;
+               }
+               p[i] = (short)dp;
+            }
+            break;
+         case SUMA_FEAT_NP:
+            /* get prob from histogram */
+            for (i=0; i<DSET_NVOX(Opt->sig); ++i) {
+               if (IN_MASK(Opt->cmask,i)) {
+                  p[i] = (short)(SUMA_hist_freq(FD->hh, (a[i]*af))*pf);
+                  if (i == Opt->VoxDbg) {
+                     fprintf(Opt->VoxDbgOut, "h(a(%s)=%f|c=%s)=%f\n",
+                                           feat, a[i]*af, cls, (float)p[i]/pf);
+                  }
+               } else {
+                  if (i == Opt->VoxDbg) fprintf(Opt->VoxDbgOut," Vox Masked\n");
+                  p[i] = 0;
+               }
+            }
+            break;
+         default:
+            SUMA_S_Errv(
+               "Don't much about dist type %d, but I do know that I love you.\n",
+               FD->tp);
+            break;
+      }
+      
       EDIT_BRICK_FACTOR(pout,0,1.0/pf);
       if (Opt->UseTmp) {
          if (Opt->debug > 1) INFO_message("Writing %s", fsave);
          UNIQ_idcode_fill(DSET_IDCODE_STR(pout));/* new id */
          EDIT_dset_items( pout, ADN_prefix, fpref, ADN_none );
+         sprintf(bl, "p(a(%s)|c=%s)",feat, cls);
+         EDIT_BRICK_LABEL(pout,0,bl);
          DSET_quiet_overwrite(pout) ;
       }
-      RETURN(1);   
+      SUMA_RETURN(1);   
    }            
    
-   RETURN(0);
+   SUMA_RETURN(0);
 }
 
 /*!
-Estimate the probability of a class, given a feature
+Estimate the probability of a class, given a particular feature
 */
 int p_cv_GIV_afu (SEG_OPTS *Opt, char *feat, 
-                  char *cls, double *d) {
+                  char *cls, double *d) 
+{
+   static char FuncName[]={"p_cv_GIV_afu"};
    static THD_3dim_dataset *pb=NULL;
    static double *dd=NULL;
    static long long init=0;
-   int i,j;
+   int i,j, ifeat = -1;
    short *a=NULL;
-   float af =0.0;
+   float af =0.0, pf = 0.0;
    double bb=0.0;
    
-   ENTRY("p_cv_GIV_afu");
+   SUMA_ENTRY;
    
    if (cls==NULL) { 
       if (!init) {/* init */
-         if (pb) { ERROR_message("Non null pb"); RETURN(0); }
+         if (pb) { ERROR_message("Non null pb"); SUMA_RETURN(0); }
          NEW_SHORTY(Opt->sig,1,"p_cv_GIV_afu",pb);
-         if (!pb) RETURN(0);
+         if (!pb) SUMA_RETURN(0);
          dd = (double *)calloc(DSET_NVOX(Opt->sig), sizeof(double));
-         if (!dd) RETURN(0);
+         if (!dd) SUMA_RETURN(0);
          init = 1;
       } else { /* clean */
          DSET_delete(pb); pb=NULL; 
          free(dd); dd=NULL; init=0;
       }
-      RETURN(1);
+      SUMA_RETURN(1);
    }
    
-   if (!pb || init==0) { ERROR_message("Not initialized"); RETURN(0); }
-   if (!d) { ERROR_message("NULL d"); RETURN(0); }
-   
+   if (!pb || init==0) { ERROR_message("Not initialized"); SUMA_RETURN(0); }
+   if (!d) { ERROR_message("NULL d"); SUMA_RETURN(0); }
+   SB_LABEL(Opt->sig,feat, ifeat); 
+   if (ifeat < 0) {
+      SUMA_S_Errv("Failed to find %s", feat); SUMA_RETURN(0);
+   }
    memset(d, 0, DSET_NVOX(Opt->sig)*sizeof(double));
    for (i=0; i<Opt->clss->num;++i) {
-      if (Opt->debug > 1) 
-         INFO_message(" Calling p_a_GIV_cvfu %d/%d\n", i,Opt->clss->num); 
+      if (Opt->debug > 2) 
+         SUMA_S_Notev(" Calling p_a_GIV_cvfu %d/%d\n", i,Opt->clss->num); 
       if (!(p_a_GIV_cvfu(Opt, feat, Opt->clss->str[i],pb))) {
-         ERROR_message("Failed in p_a_GIV_cvfu"); RETURN(0);
+         SUMA_S_Err("Failed in p_a_GIV_cvfu"); SUMA_RETURN(0);
       }
       a = (short *)DSET_ARRAY(pb,0);
       af = DSET_BRICK_FACTOR(pb,0); if (af==0.0) af=1.0;
@@ -366,8 +976,9 @@ int p_cv_GIV_afu (SEG_OPTS *Opt, char *feat,
       if (IN_MASK(Opt->cmask, j)) {
          d[j] = dd[j]/d[j]; 
          if (j == Opt->VoxDbg) {
-            fprintf(Opt->VoxDbgOut,"   p(c=%s|a,f=%s)=%f\n",
-                                  cls, feat, d[j]);
+            fprintf(Opt->VoxDbgOut,"   p(c=%s|a(%s)=%f)=%f\n",
+                                  cls, feat, THD_get_voxel(Opt->sig, j, ifeat), 
+                                  d[j]);
          }
          if (isnan(d[j])) d[j] = 0.0;
       } else {
@@ -380,13 +991,14 @@ int p_cv_GIV_afu (SEG_OPTS *Opt, char *feat,
       FILE *fout=NULL;
       sprintf(ff,"p_cv_GIV_afu.%lld.1D",init);
       fout = fopen(ff,"w");
-      INFO_message("Writing %s", ff);
+      SUMA_S_Notev("Writing %s", ff);
       for (j=0; j<DSET_NVOX(Opt->sig); ++j) 
          fprintf(fout,"%f\n",d[j]);
       fclose(fout);
    }
+   
    ++init;
-   RETURN(1);
+   SUMA_RETURN(1);
 }
 
 /*!
@@ -394,42 +1006,71 @@ int p_cv_GIV_afu (SEG_OPTS *Opt, char *feat,
 */
 int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr) 
 {
-   double pf;
+   static char FuncName[]={"p_cv_GIV_A"};
+   char fpref[256]={""};
+   double pf= 32767.0; /* max p is 1, so stick with this */
    static double *d=NULL;
    static int init=0;
    int i, j;
+   short *a=NULL;
+   static THD_3dim_dataset *pcgrec=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
-   ENTRY("p_cv_GIV_A");      
+   SUMA_ENTRY;      
 
    
    if (cls==NULL) { 
       if (!init) {/* init */
-         if (d) { ERROR_message("Non null d"); RETURN(0); }
+         SUMA_LH("Initialization");
+         if (d) { ERROR_message("Non null d"); SUMA_RETURN(0); }
          d = (double *)calloc(DSET_NVOX(Opt->sig), sizeof(double));
-         if (!d) RETURN(0);
-         if (!p_cv_GIV_afu (Opt, NULL, NULL, d) ) RETURN(0);
+         if (!d) SUMA_RETURN(0);
+         if (!p_cv_GIV_afu (Opt, NULL, NULL, d) ) SUMA_RETURN(0);
+         if (Opt->Writepcg_G_au) {
+            NEW_SHORTY(Opt->sig, Opt->feats->num,"p_cv_GIV_A_debug",pcgrec);
+            if (!pcgrec) SUMA_RETURN(0);
+         }
          init = 1;
       } else { /* clean */
-         if (!p_cv_GIV_afu (Opt, NULL, NULL, d) ) RETURN(0);
+         SUMA_LH("Cleanup");
+         if (!p_cv_GIV_afu (Opt, NULL, NULL, d) ) SUMA_RETURN(0);
+         if (pcgrec) DSET_delete(pcgrec); pcgrec=NULL; 
          free(d); d=NULL; 
          init=0;
       }
-      RETURN(1);
+      SUMA_RETURN(1);
    }
    
-   if (!dr) RETURN(0);
-   if (init!=1) { ERROR_message("Not initialized"); RETURN(0); }
-   
+   if (!dr) SUMA_RETURN(0);
+   if (init!=1) { ERROR_message("Not initialized"); SUMA_RETURN(0); }
+   if (Opt->Writepcg_G_au && !pcgrec) {
+      SUMA_S_Err("Want Writepcg_G_au, but no pcgrec. Bad init.");
+      SUMA_RETURN(0);
+   }
    memset(dr, 0, DSET_NVOX(Opt->sig)*sizeof(double));
    
+   SUMA_LH("Looping over features");
    for (i=0; i<Opt->feats->num; ++i) {
       if (Opt->debug > 1)  
          INFO_message("Calling p_cv_GIV_afu %d/%d", i,Opt->feats->num);
       if (!(p_cv_GIV_afu(Opt, Opt->feats->str[i], cls, d))) {
-         ERROR_message("Failed in p_cv_GIV_afu"); RETURN(0);
+         ERROR_message("Failed in p_cv_GIV_afu"); SUMA_RETURN(0);
       }
+      
+      if (Opt->Writepcg_G_au) {
+         /* stick the results in pcgrec and write it out */
+         a = (short *)DSET_ARRAY(pcgrec,i);
+         for (j=0; j<DSET_NVOX(Opt->sig); ++j) {
+            a[j] = (short)(pf*(d[j]+MINP));
+         }
+         EDIT_BRICK_FACTOR(pcgrec, i,1.0/pf);
+         sprintf(fpref, "p(c=%s|a(%s))", cls, Opt->feats->str[i]);
+         EDIT_BRICK_LABEL(pcgrec,i,fpref);
+      }
+   
       for (j=0; j<DSET_NVOX(Opt->sig); ++j) {
          if (IN_MASK(Opt->cmask, j)) {
+            #if 0
             if (1) {
                if (d[j] > MINP) dr[j] = dr[j] + log(d[j]);
                else dr[j] = dr[j] + log(MINP); 
@@ -438,12 +1079,24 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
             } else {
                 dr[j] = dr[j] + log(d[j]);
             }
+            #else
+               /* better just add MINP to all probs Aug. 2012*/
+               d[j] += MINP; if (d[j]>1.0) d[j] = 1.0;
+               dr[j] = dr[j] + log(d[j]);
+            #endif
          } else {
             dr[j] = 0.0;
          }
       }
    }
-          
+   
+   if (Opt->Writepcg_G_au) {
+      UNIQ_idcode_fill(DSET_IDCODE_STR(pcgrec));/* new id */
+      sprintf(fpref,"%s.p_c%s_G_each_feature", Opt->prefix, cls);
+      EDIT_dset_items( pcgrec, ADN_prefix, fpref, ADN_none );
+      DSET_quiet_overwrite(pcgrec) ;
+   }
+   
    if (!Opt->logp) {
       /* undo log and return */
       for (j=0; j<DSET_NVOX(Opt->sig); ++j) {
@@ -456,7 +1109,7 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
                             Opt->logp ? "LOG" : "", 
                             cls, dr[Opt->VoxDbg]);
    }
-   RETURN(1);
+   SUMA_RETURN(1);
 }
 
 int normalize_p(SEG_OPTS *Opt, THD_3dim_dataset *pout) {
@@ -4610,6 +5263,314 @@ int SUMA_AddOther(  NI_str_array *clss, int **keysp,
       
    SUMA_RETURN(1);      
 }
+
+/*!
+   \brief Create histogram from n data values in v
+   \param v (float *) vector of values
+   \param n (int) number of values in v
+   \param Ku (int) if > 0 set the number of bins
+   \param Wu (float) if > 0 set the bin width 
+               (Ku and Wu are mutually exclusive, Ku takes precedence)
+   \param range (float *) if !NULL set min = range[0], max = range[1]
+   \param label (char *) what you think it is
+   \param ignoreout (int ) if == 0 then values < min are set in bottom bin
+                                   and  values > max are set in top bin
+                              == 1 then values < min or > max are ignored
+*/
+
+SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, float *range, 
+                     char *label, int ignoreout) 
+{
+   static char FuncName[]={"SUMA_hist"};
+   int i=0, minloc, maxloc, ib=0;
+   float min=0.0, max=0.0;
+   SUMA_HIST *hh=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!v) SUMA_RETURN(hh);
+   if (n < 10) {
+      SUMA_S_Errv("A hist with n = %d samples!!!\n", n);
+      SUMA_RETURN(hh); 
+   }
+   if (!range) {
+      SUMA_MIN_MAX_VEC(v,n,min, max, minloc, maxloc);
+      if (min == max) {
+         SUMA_S_Errv("Single value of %f in samples. No good.\n", min);
+         SUMA_RETURN(hh); 
+      }
+   } else {
+      min = range[0]; max = range[1];
+   }
+      
+   hh = (SUMA_HIST *)SUMA_calloc(1, sizeof(SUMA_HIST));
+   hh->max = max;
+   hh->min = min;
+   hh->n = n;
+   if (label) hh->label = SUMA_copy_string(label);
+   
+   if (Ku > 0) { /* use sets number of bins */
+      hh->K = Ku;
+      hh->W = (max-min)/(float)hh->K;
+   } else if (Wu > 0.0) {
+      hh->W = Wu;
+      hh->K = (int)ceil((max-min)/hh->W);
+   } else {
+      hh->K = sqrt(n);
+      hh->W = (max-min)/(float)hh->K;
+   }
+   
+   SUMA_LHv("Window %f, Bins %d, min %f max %f\n",
+            hh->W, hh->K , min, max);
+   /* initialize */
+   hh->b = (float *)SUMA_calloc(hh->K, sizeof(float));
+   hh->c = (int *)SUMA_calloc(hh->K, sizeof(int));
+   hh->cn = (float *)SUMA_calloc(hh->K, sizeof(float));
+   
+   /* fill it */
+   if (ignoreout) {
+      for (i=0; i<n;++i) {
+         if (v[i]>=min && v[i]<=max) {
+            ib = (int)((v[i]-min)/hh->W); if (ib==hh->K) ib = hh->K-1;
+            ++hh->c[ib];
+         }
+      }
+   } else {
+      for (i=0; i<n;++i) {
+         ib = (int)((v[i]-min)/hh->W);
+         if (ib==hh->K) ib = hh->K-1;
+         else if (ib < 0) ib = 0;
+         ++hh->c[ib];
+      }
+   }
+   
+   /* for convenience */
+   for (i=0; i<hh->K;++i) {
+      hh->b[i] = hh->min+(i+0.5)*hh->W;
+      hh->cn[i] = (float)hh->c[i]/(float)n;
+   }
+   
+   SUMA_RETURN(hh);
+}
+
+float SUMA_hist_freq(SUMA_HIST *hh, float vv)
+{
+   float a = 0.0;
+   int i0;
+   if (!hh) return(-1.0);
+   if (vv<hh->b[0]) return(hh->cn[0]);
+   if (vv>hh->b[hh->K-1]) return(hh->cn[hh->K-1]);
+   a = ((vv-hh->b[0])/hh->W);
+   i0 = (int)a; a = a-i0;
+   return(a*hh->cn[i0+1]+(1.0-a)*hh->cn[i0]);
+}
+
+SUMA_HIST *SUMA_Free_hist(SUMA_HIST *hh)
+{
+   static char FuncName[]={"SUMA_free_hist"};
+   SUMA_ENTRY;
+   if (hh) {
+      if (hh->b) SUMA_free(hh->b);
+      if (hh->c) SUMA_free(hh->c);
+      if (hh->cn) SUMA_free(hh->cn);
+      if (hh->label) SUMA_free(hh->label);
+      SUMA_free(hh); hh=NULL;
+   }
+   SUMA_RETURN(NULL);
+}
+
+char *SUMA_hist_info(SUMA_HIST *hh, int norm, int level)
+{
+   static char FuncName[]={"SUMA_hist_info"};
+   int i, mx, nc;
+   float gscl=0.0;
+   SUMA_STRING *SS=NULL;
+   char *sss=NULL, *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   
+   if (!hh) SS = SUMA_StringAppend(SS,"NULL hh");
+   else {
+      mx = 0;
+      for (i=0; i<hh->K; ++i) {
+         if (hh->c[i]>mx) mx = hh->c[i];
+      }
+      if (mx > 50) {
+         gscl = mx/50.0;
+         mx = 50;
+      } else gscl = 1.0;
+      
+      sss = (char *)SUMA_calloc(mx+2, sizeof(char));
+      for (i=0; i<mx; ++i) sss[i]='*'; sss[i]='\0';
+      
+      SS = SUMA_StringAppend_va(SS,"Histog %s, %d bins of width %f,"
+                                   "N_samp. = %d, range = [%f,%f]\n",
+                                    hh->label?hh->label:"NO LABEL",
+                                    hh->K, hh->W, 
+                                    hh->n, hh->min, hh->max);
+      SS = SUMA_StringAppend_va(SS,"Freq at mid range %f is: %f\n",
+               (hh->min+hh->max)/2.0, SUMA_hist_freq(hh,(hh->min+hh->max)/2.0));
+      for (i=0; i<hh->K; ++i) {
+         if (norm) {
+            SS = SUMA_StringAppend_va(SS,"   %.5f, %.5f:", hh->b[i], hh->cn[i]);
+         } else {
+            SS = SUMA_StringAppend_va(SS,"   %.5f, %8d:", hh->b[i], hh->c[i]);
+         }
+         nc = (int)((float)hh->c[i]/gscl+0.5);
+         sss[nc]='\0';
+         SS = SUMA_StringAppend_va(SS,"%s\n", sss); 
+         sss[nc]='*';  
+      }
+      SUMA_free(sss); sss=NULL;
+   } 
+   
+   SUMA_SS2S(SS, s);
+   SUMA_RETURN(s);
+}
+
+char *SUMA_dist_info(SUMA_FEAT_DIST *FD, int level)
+{
+   static char FuncName[]={"SUMA_dist_info"};
+   int i, mx, nc;
+   float gscl=0.0;
+   SUMA_STRING *SS=NULL;
+   char *sss=NULL, *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   
+   if (!FD) SS = SUMA_StringAppend(SS,"NULL dist struct!");
+   else {
+      SS = SUMA_StringAppend_va(SS, "Distribution %s\n", FD->label);
+      switch (FD->tp) {
+         case SUMA_FEAT_GAMMA:
+            SS = SUMA_StringAppend_va(SS, "type gamma (shape %f, rate %f)\n"
+                                          "feature scale %f, shift %f\n", 
+                                          FD->par[0], FD->par[1],
+                                          FD->scpar[0], FD->scpar[1]);
+            if (FD->hh) {
+               sss = SUMA_hist_info(FD->hh, 1, 1);
+               SS = SUMA_StringAppend_va(SS, "histogram:\n%s\n", sss);
+               SUMA_free(sss); sss = NULL;
+            }
+            break;
+         case SUMA_FEAT_NP:
+            SS = SUMA_StringAppend(SS, "type non-parametric\n");
+            if (FD->hh) {
+               sss = SUMA_hist_info(FD->hh, 1, 1);
+               SS = SUMA_StringAppend_va(SS, "%s\n", sss);
+               SUMA_free(sss); sss = NULL;
+            } else {
+               SS = SUMA_StringAppend(SS,"NULL histogram!\n");
+            }
+            break;
+         default:
+            SS = SUMA_StringAppend_va(SS,"Not ready for type %d\n", FD->tp);
+            break;
+      }
+   } 
+   
+   SUMA_SS2S(SS, s);
+   
+   SUMA_RETURN(s);
+}
+
+char *SUMA_dists_info(SUMA_FEAT_DISTS *FDV, int level)
+{
+   static char FuncName[]={"SUMA_dists_info"};
+   int i, mx, nc;
+   float gscl=0.0;
+   SUMA_STRING *SS=NULL;
+   char *sss=NULL, *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   
+   if (!FDV) SS = SUMA_StringAppend(SS,"NULL dist struct!");
+   else {
+      SS = SUMA_StringAppend_va(SS, "%d distributions in FDV.\n", FDV->N_FD);
+      for (i=0; i<FDV->N_FD; ++i) {
+         SS = SUMA_StringAppend_va(SS, "  Distribution %d/%d for %s\n", 
+                                       i, FDV->N_FD, FDV->FD[i]->label);
+         if (level) {
+            sss = SUMA_dist_info(FDV->FD[i],level);
+            SS = SUMA_StringAppend_va(SS, "%s\n", sss);
+            SUMA_free(sss); sss = NULL;
+         }  
+      }
+   }
+   
+   SUMA_SS2S(SS, s);
+   
+   SUMA_RETURN(s);
+}
+
+void SUMA_Show_hist(SUMA_HIST *hh, int norm, FILE *out) 
+{
+   static char FuncName[]={"SUMA_Show_hist"};
+   int i, mx, nc;
+   float gscl=0.0;
+   char  *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!out) out = SUMA_STDOUT;
+   
+   s = SUMA_hist_info(hh, norm, 1);
+   
+   fprintf(out, "%s\n", s);
+   
+   SUMA_free(s); s = NULL;
+
+   SUMA_RETURNe;
+}
+
+void SUMA_Show_dist(SUMA_FEAT_DIST *FD, FILE *out) 
+{
+   static char FuncName[]={"SUMA_Show_dist"};
+   int i, mx, nc;
+   float gscl=0.0;
+   char  *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!out) out = SUMA_STDOUT;
+   
+   s = SUMA_dist_info(FD, 1);
+   
+   fprintf(out, "%s\n", s);
+   
+   SUMA_free(s); s = NULL;
+
+   SUMA_RETURNe;
+}
+
+void SUMA_Show_dists(SUMA_FEAT_DISTS *FDV, FILE *out, int level) 
+{
+   static char FuncName[]={"SUMA_Show_dists"};
+   int i, mx, nc;
+   float gscl=0.0;
+   char  *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!out) out = SUMA_STDOUT;
+   
+   s = SUMA_dists_info(FDV, level);
+   
+   fprintf(out, "%s\n", s);
+   
+   SUMA_free(s); s = NULL;
+
+   SUMA_RETURNe;
+}
+
+
 
 /*!
    Initialize all voxels in a dset.

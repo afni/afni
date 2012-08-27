@@ -14,6 +14,9 @@ void usage_SurfExtrema (SUMA_GENERIC_ARGV_PARSE *ps)
       "   threshold.\n"
       "   By default, the program searches for maxima.\n"
       "\n"
+      " -input DSET = Dset in which Extrema are to be identified.\n"
+      "               If you do not specify one, the program use the surface's\n"
+      "               convexity dataset.\n"
       " -hood R     = Neighborhood of node n consists of nodes within R \n"
       " -nbhd_rad R = distance from n as measured by the shortest \n"
       "               distance along the mesh.\n"
@@ -281,16 +284,6 @@ int main (int argc,char *argv[])
                                   NULL, ".ext", exists);
                                   
    if (Opt->debug > 2) LocalHead = YUP;
-   if (Opt->ps->N_dsetname != 1) {
-      SUMA_S_Errv("Need one and only one dset please."
-                  "Have %d on command line.\n", Opt->ps->N_dsetname);
-      exit(1);
-   }
-   if (!(din = SUMA_LoadDset_s (Opt->ps->dsetname[0], &iform, 0))) {
-      SUMA_S_Errv("Failed to load dset named %s\n", Opt->ps->dsetname[0]);
-      exit(1);
-   }
-   
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
@@ -328,7 +321,34 @@ int main (int argc,char *argv[])
          SUMA_S_Err("Failed loading mask");
          exit(1);
    }
-
+   
+   if (Opt->ps->N_dsetname != 1 && Opt->ps->N_dsetname != 0) {
+      SUMA_S_Errv("Need one and only one dset please."
+                  "Have %d on command line.\n", Opt->ps->N_dsetname);
+      exit(1);
+   }
+   
+   if (Opt->ps->N_dsetname) {
+      if (!(din = SUMA_LoadDset_s (Opt->ps->dsetname[0], &iform, 0))) {
+         SUMA_S_Errv("Failed to load dset named %s\n", Opt->ps->dsetname[0]);
+         exit(1);
+      }
+   } else {
+      SUMA_S_Note("No input datasets, will use surface convexity as input.");
+      /* Use convexity as input dataset*/
+      if (!SUMA_SurfaceMetrics(SO, "Convexity", NULL)) {
+         SUMA_S_Errv("Failed to compute convexity for %s\n",
+                     SO->Label);
+         exit(1);
+      }
+      if (!(din = (SUMA_DSET *)SUMA_GetCx(SO->idcode_str, 
+                                          SUMAg_CF->DsetList, 1))) {
+         SUMA_S_Errv("Could not get convexity dset for surface %s\n",
+                     SO->Label);
+         exit(1);
+      }
+   }
+   
    if (!(dout = SUMA_DsetAvgGradient(SO, NULL, din, Opt->nmask, 
                                      0, Opt->b1))) {
       SUMA_S_Err("Failed in SUMA_DsetAvgGradient");
@@ -337,6 +357,7 @@ int main (int argc,char *argv[])
    /* write it out */
    s = SUMA_OutputDsetFileStatus(Opt->out_prefix, NULL, &oform, 
                                     NULL, ".grd", &exists); 
+   SUMA_AddNgrHist(dout->ngr, FuncName, argc, argv);
    ooo = SUMA_WriteDset_s(s, dout, oform, 
                            THD_ok_overwrite(), 0);
    SUMA_free(ooo); ooo=NULL; SUMA_free(s); s = NULL;
@@ -350,6 +371,7 @@ int main (int argc,char *argv[])
    /* write it out */
    s = SUMA_OutputDsetFileStatus(Opt->out_prefix, NULL, &oform, 
                                     NULL, ".ext", &exists); 
+   SUMA_AddNgrHist(doute->ngr, FuncName, argc, argv);
    ooo = SUMA_WriteDset_s(s, doute, oform, 
                            THD_ok_overwrite(), 0);
    SUMA_free(ooo); ooo=NULL; SUMA_free(s); s = NULL;

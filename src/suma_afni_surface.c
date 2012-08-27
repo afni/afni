@@ -153,6 +153,7 @@ void SUMA_FindNgrNamedElementRec(NI_group *ngr,
 
    SUMA_RETURNe;
 }
+
 NI_element *SUMA_FindNgrNamedElement(NI_group *ngr, char *elname)
 {
    static char FuncName[]={"SUMA_FindNgrNamedElement"};

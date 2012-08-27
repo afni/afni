@@ -17,13 +17,44 @@ typedef struct {
    char **pname;
 } SUMA_CLASS_STAT;
   
+typedef struct {
+   float *b; /* bin center */
+   int *c;  /* count in bin */
+   float *cn;  /* count in bin / n */
+   int K;   /* number of bins */
+   float W; /* bin width */
+   int n; /* number of samples */
+   float min; /* min sample value */
+   float max; /* max sample value */
+   char *label; /* a string descriptor */
+} SUMA_HIST;
+
+typedef enum { SUMA_FEAT_NOT_SET=-1, 
+               SUMA_FEAT_GAMMA=0, SUMA_FEAT_NP, 
+               SUMA_FEAT_N_DIST_TYPE } SUMA_FEAT_DIST_TYPE;
+ 
+typedef struct {
+   char *label;
+   SUMA_FEAT_DIST_TYPE tp;
+   double scpar[5];
+   double par[5];
+   SUMA_HIST *hh;
+} SUMA_FEAT_DIST;
+
+typedef struct {
+  SUMA_FEAT_DIST **FD;
+  int N_FD;
+  int N_alloc;
+} SUMA_FEAT_DISTS;
 
 typedef struct {
    void (*helpfunc)(int);
    char *aset_name;
    char *mset_name;
    char *sig_name;
+   NI_str_array *sig_names;
    char *samp_name;
+   NI_str_array *samp_names;
    char *gold_name;
    char *gold_bias_name;
    char *this_pset_name;
@@ -63,7 +94,7 @@ typedef struct {
    char *Bsetname;
    THD_3dim_dataset *pstCgALL;
    char *pstCgALLname;
-   NI_element *ndist;
+   SUMA_FEAT_DISTS *FDV;
    int debug;
    int idbg, jdbg, kdbg;
    float binwidth;
@@ -101,6 +132,7 @@ typedef struct {
    byte DO_c;
    byte DO_x;
    byte DO_r;
+   byte Writepcg_G_au;
    
    int fitmeth;
    int N_enhance_cset_init;
@@ -123,6 +155,8 @@ typedef struct {
    int *Split;
    
    BLUR_METH blur_meth;
+   
+   char *ShowThisDist;
 } SEG_OPTS;
 
 void GenPriors_usage(int) ;

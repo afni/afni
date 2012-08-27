@@ -772,3 +772,16 @@ return 0;
 
 }
 
+void *dlist_ith_elmt_data(DList *list, int index)
+{
+   int cnt=0;
+   DListElmt *element;
+   
+   if (!list || index < 0 || index > list->size-1) return(NULL);
+
+   element = list->head;
+   while (index > cnt) {
+      element = element->next; ++cnt;
+   }
+   return(dlist_data(element));
+}

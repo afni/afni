@@ -2336,7 +2336,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMA_LH("Sending cross hair nel: SUMA_crosshair_xyz") ;
             nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
                                     nel , NI_TEXT_MODE ) ;
-            /* SUMA_nel_stdout (nel);*/
+            /* SUMA_nel_stdout (nel); */
       
             if( nn < 0 ){
                SUMA_S_Err("NI_write_element failed");
@@ -3079,6 +3079,30 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                   SUMA_free(stmp); stmp = NULL;
                }
+            }
+            
+            if (NI_get_attribute(EngineData->ngr, "Clust_Opt")) {
+               SUMA_S_Warn("Not ready, just example code...");
+               /* pretend you got new values in Clust_opt string ...*/
+               SO->SurfCont->curColPlane->OptScl->ClustOpt->DistLim = -1;
+               SO->SurfCont->curColPlane->OptScl->ClustOpt->AreaLim = 1.0;
+               /* update table */
+               SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetClustTable, 1, 1, 
+                          SO->SurfCont->curColPlane->OptScl->ClustOpt->DistLim);
+               SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetClustTable, 1, 1, 
+                          SO->SurfCont->curColPlane->OptScl->ClustOpt->AreaLim);
+               SO->SurfCont->curColPlane->OptScl->RecomputeClust = 1;
+               if (SO->SurfCont->curColPlane->ShowMode > 0 &&
+                         SO->SurfCont->curColPlane->ShowMode < 
+                                             SW_SurfCont_DsetViewXXX ) {
+                  if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
+                     SUMA_SLP_Err("Failed to colorize plane.\n"); 
+                  } else {
+                     SUMA_RemixRedisplay(SO);
+                     SUMA_UpdateNodeValField(SO);
+                     SUMA_UpdateNodeLblField(SO);
+                  }
+               } 
             }
             
             if (NI_get_attribute(EngineData->ngr, "shw_0")) {
@@ -4766,13 +4790,13 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
             /* go from XYZ to XYZmap on current surface 
                then from XYZmap to XYZ on new surface */
             I_C = -1;
-            XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c, SO_prec, dov, N_dov, &I_C);
+            XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c, SO_prec, dov, N_dov, &I_C, 1);
             if (XYZmap == NULL) {
                fprintf( SUMA_STDERR, 
                         "Error %s: Failed in SUMA_XYZ_XYZmap\n", 
                         FuncName); 
             }else {
-               XYZ = SUMA_XYZmap_XYZ (XYZmap, SO_nxt, dov, N_dov, &I_C);
+               XYZ = SUMA_XYZmap_XYZ (XYZmap, SO_nxt, dov, N_dov, &I_C, 1);
                if (XYZ == NULL) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_XYZmap_XYZ\n", 
@@ -5070,51 +5094,68 @@ int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 
 /*! 
    transform current XYZ to XYZmap 
-   The XYZ on an auxilliary surface are of no relevance to the volume. They must be transformed
-   to mappable XYZ (in mm, RAI, in alignment with the Parent Volume)   
-   XYZmap = SUMA_XYZ_XYZmap (XYZ, SO, dov, N_dov, I_C);
+   The XYZ on an auxilliary surface are of no relevance to the volume. 
+   They must be transformed to mappable XYZ (in mm, RAI, in alignment 
+   with the Parent Volume)   
+   XYZmap = SUMA_XYZ_XYZmap (XYZ, SO, dov, N_dov, I_C, LDP_only);
 
    \param XYZ (float *) XYZ triplet in SO's native coordinate space
    \param SO (SUMA_SurfaceObject *SO) obvious, ain't it
    \param dov (SUMA_DO*) vector containing all displayable objects
    \param N_dov (int) number of elements in dov
-   \param I_C (int *) (pre allocated) pointer to the index of the closest (or representative) node 
-                       in SO to the XYZ location. If you do not have it, make sure *I_C = -1. If you
-                       do so, the function will search for nodes contained in a box mm wide
-                       and centered on XYZ. If nodes are found in the box the I_C is set to the
-                       index of the closest node and XYZmap contains the coordinates of I_C in the 
-                       SO->LocalDomainParentID surface.
+   \param I_C (int *) (pre allocated) pointer to the index of the closest 
+               (or representative) node in SO to the XYZ location. 
+               If you do not have it, make sure *I_C = -1. 
+               If you do so, the function will search for nodes contained in 
+               a box mm wide and centered on XYZ. 
+               If nodes are found in the box the I_C is set to the
+               index of the closest node and XYZmap contains the coordinates 
+               of I_C in the SO->LocalDomainParentID surface.
+   \param LDP_only (int) if 1, then XYZmap is only the same as XYZ when SO
+                               is itself the LDP. 
+                         if 0, XYZmap = XYZ is SO is LDP, or if SO is 
+                               anatomically correct.
    \ret XYZmap (float *) Mappable XYZ coordinates. NULL in case of trouble.
 
 */
 
-float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov, int *I_C)
+float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, 
+                         SUMA_DO* dov, int N_dov, int *I_C, int LDP_only)
 {/* SUMA_XYZ_XYZmap */
    static char FuncName[]={"SUMA_XYZ_XYZmap"};
    float *XYZmap;
    int iclosest, id, ND;
    SUMA_SurfaceObject *SOmap;
    int SOmapID;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
 
    /* allocate for return */
    XYZmap = (float *)SUMA_calloc (3, sizeof(float));
    if (XYZmap == NULL) {
-      fprintf(SUMA_STDERR,"Error %s: Could not allocate for XYZmap.\n", FuncName);
+      fprintf(SUMA_STDERR,
+               "Error %s: Could not allocate for XYZmap.\n", FuncName);
       SUMA_RETURN (NULL);
    } 
    
    /* if surface is a local domain parent, do the obivious */
    if (SUMA_isLocalDomainParent(SO)){
-      /*fprintf(SUMA_STDERR,"%s: Surface is a local domain parent. XYZmap = XYZ.\n", FuncName); */
+      /*SUMA_LH("Surface is a local domain parent. XYZmap = XYZ.\n"); */
       SUMA_COPY_VEC (XYZ, XYZmap, 3, float, float);
       SUMA_RETURN (XYZmap);   
    }
-   /* if surface is not a  local domain parent , do the deed */
+   
+   if (!LDP_only && SO->AnatCorrect){ /* Aug. 22 2012 */
+      /*SUMA_LH("Surface is anatomocally correct. XYZmap = XYZ.\n"); */
+      SUMA_COPY_VEC (XYZ, XYZmap, 3, float, float);
+      SUMA_RETURN (XYZmap);   
+   }
+   
+   /* if surface is not a local domain parent and not anatomically correct, 
+   do the deed */
    if (!SUMA_ismappable(SO)){
-      fprintf(SUMA_STDERR,"%s: Surface is NOT mappable, returning NULL.\n", FuncName);
+      SUMA_S_Warn("Surface is NOT mappable, returning NULL.");
       SUMA_free(XYZmap);
       SUMA_RETURN (NULL);
    }
@@ -5132,7 +5173,8 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
             /* set the search box dimensions */
             Bd[0] = Bd[1] = Bd[2] = SUMA_XYZ_XFORM_BOXDIM_MM;
             IB = SUMA_isinbox (SO->NodeList, SO->N_Node, XYZ, Bd,  YUP);
-            fprintf (SUMA_STDOUT,"%s: %d nodes (out of %d) found in box\n",FuncName, IB.nIsIn, SO->N_Node);
+            SUMA_S_Notev("%d nodes (out of %d) found in box\n",
+                         IB.nIsIn, SO->N_Node);
 
             if (IB.nIsIn) { /* found some, find the closest node */
                /* locate the closest node and store it's id in EngineData*/
@@ -5147,7 +5189,9 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
                }
 
             } else { /* no node is close enough */
-               fprintf (SUMA_STDERR,"%s: No node was close enough to XYZ, no linkage possible\n", FuncName);
+               SUMA_S_Errv("No node was close enough to XYZ=[%f %f %f],"
+                           " no linkage possible\n",
+                           XYZ[0], XYZ[1], XYZ[2]);
                SUMA_free(XYZmap);
                SUMA_RETURN (NULL);
             }
@@ -5158,11 +5202,11 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
       iclosest = *I_C;
    }
    
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Node identified for linking purposes is %d\n", FuncName, *I_C);
+   SUMA_LHv("Node identified for linking purposes is %d\n", *I_C);
    /* find the SO that is the Mappable cahuna */
    SOmapID = SUMA_findSO_inDOv(SO->LocalDomainParentID, dov, N_dov);
    if (SOmapID < 0) {
-      fprintf (SUMA_STDERR,"%s: Failed in SUMA_findSO_inDOv This should not happen.\n", FuncName);
+      SUMA_S_Err("Failed in SUMA_findSO_inDOv This should not happen.");
       SUMA_free(XYZmap);
       SUMA_RETURN (NULL);
    }
@@ -5182,24 +5226,30 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 /*! 
    transform  XYZmap to XYZ on current surface
    
-   XYZ = SUMA_XYZmap_XYZ (XYZmap, SO, dov, N_dov, I_C);
+   XYZ = SUMA_XYZmap_XYZ (XYZmap, SO, dov, N_dov, I_C, LDP_only);
 
    \param XYZmap (float *) XYZmap triplet in SO's MapRef coordinate space
    \param SO (SUMA_SurfaceObject *SO) obvious, ain't it
    \param dov (SUMA_DO*) vector containing all displayable objects
    \param N_dov (int) number of elements in dov
-   \param I_C (int *) (pre allocated) pointer to the index of the closest (or representative) node 
-                       in SO's MapRef to the XYZmap location. If you do not have it, make sure *I_C = -1. If you
-                       do so, the function will search for nodes contained in a box mm wide
-                       and centered on XYZmap. If nodes are found in the box the I_C is set to the
-                       index of the closest node and XYZ contains the coordinates of I_C in the 
-                       SO surface.
-   \ret XYZ (float *) Equivalent of XYZmap on the auxilliary surface SO. NULL in case of trouble.
+   \param I_C (int *) (pre allocated) pointer to the index of the closest 
+                  (or representative) node in SO's MapRef to the XYZmap location. 
+                  If you do not have it, make sure *I_C = -1. 
+                  If you do so, the function will search for nodes contained in 
+                  a box mm wide and centered on XYZmap. 
+                  If nodes are found in the box the I_C is set to the index of 
+                  the closest node and XYZ contains the coordinates of I_C in the
+                  SO surface.
+   \param LDP_only (int) if 1, XYZmap is set to XYZ only if SO is the LDP
+                            0, XYZmap is set to XYZ is SO is LDP or AnatCorrect 
+   \ret XYZ (float *) Equivalent of XYZmap on the auxilliary surface SO. 
+                      NULL in case of trouble.
 
    \sa SUMA_XYZ_XYZmap
 */
 
-float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov, int *I_C)
+float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, 
+                         int N_dov, int *I_C, int LDP_only)
 {/* SUMA_XYZmap_XYZ */
    static char FuncName[]={"SUMA_XYZmap_XYZ"};
    float *XYZ;
@@ -5226,7 +5276,13 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 
    /* if surface is a local domain parent, do the obivious */
    if (SUMA_isLocalDomainParent(SO)){
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: Surface is a local domain parent. XYZ = XYZmap.\n", FuncName);
+      SUMA_LH("Surface is a local domain parent. XYZ = XYZmap.\n");
+      SUMA_COPY_VEC (XYZmap, XYZ, 3, float, float);
+      SOmap = SO;
+      /* do not return yet, must fix the node id too */
+   } else if (!LDP_only && SO->AnatCorrect) {
+      /* surface is anatomicall correct, use it */
+      SUMA_LH("Surface is anatomically correct. XYZ = XYZmap.\n");
       SUMA_COPY_VEC (XYZmap, XYZ, 3, float, float);
       SOmap = SO;
       /* do not return yet, must fix the node id too */
@@ -5235,7 +5291,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
       /* find the SO that is the Mappable cahuna */
       SOmapID = SUMA_findSO_inDOv(SO->LocalDomainParentID, dov, N_dov);
       if (SOmapID < 0) {
-         fprintf (SUMA_STDERR,"%s: Failed in SUMA_findSO_inDOv This should not happen.\n", FuncName);
+         SUMA_S_Err("Failed in SUMA_findSO_inDOv This should not happen.");
          SUMA_free(XYZ);
          SUMA_RETURN (NULL);
       }
@@ -5252,7 +5308,8 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
             /* set the search box dimensions */
             Bd[0] = Bd[1] = Bd[2] = SUMA_XYZ_XFORM_BOXDIM_MM;
             IB = SUMA_isinbox (SOmap->NodeList, SOmap->N_Node, XYZmap, Bd,  YUP);
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: %d nodes (out of %d) found in box\n",FuncName, IB.nIsIn, SOmap->N_Node);
+            SUMA_LHv("%d nodes (out of %d) found in box\n",
+                     IB.nIsIn, SOmap->N_Node);
 
             if (IB.nIsIn) { /* found some, find the closest node */
                /* locate the closest node and store it's id in EngineData*/
@@ -5267,13 +5324,15 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
                }
 
             } else { /* no node is close enough */
-               if (SO->AnatCorrect == NOPE && SO != SOmap) { /* used to be if (SO != SOmap) only */
+               if (SO->AnatCorrect == NOPE && SO != SOmap) { 
+                              /* used to be if (SO != SOmap) only */
                   SUMA_SL_Warn(  "No node was close enough\n"
                                  "to XYZmap, no linkage possible."   );
                   SUMA_free(XYZ);
                   SUMA_RETURN (NULL);
                } else {
-                  /* comes from inherrently mappable stuff, makes sense to leave XYZ */
+                  /* comes from inherrently mappable stuff, makes sense to 
+                     leave XYZ */
                   SUMA_SL_Warn(  "No node was close enough\n"
                                  "to XYZmap, linking by coordinate."   );
                   SUMA_COPY_VEC (XYZmap, XYZ, 3, float, float);
@@ -5286,7 +5345,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
    } else { 
       iclosest = *I_C;
    }
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Node identified for linking purposes is %d\n", FuncName, *I_C);
+   SUMA_LHv("Node identified for linking purposes is %d\n", *I_C);
    ND = SO->NodeDim;
    id = ND * iclosest;
    XYZ[0]=SO->NodeList[id];
@@ -5299,8 +5358,8 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 
 /*! 
    Prec_ID = SUMA_MapRefRelative (Cur_ID, Prec_List, N_Prec_List, dov);
-   Returns the ID (index into dov) of the surface object in Prec_List that is related 
-   (via MapRef) to the surface object Cur_ID.
+   Returns the ID (index into dov) of the surface object in Prec_List that 
+   is related (via MapRef) to the surface object Cur_ID.
    This means that SOcur.LocalDomainParentID = SOprec.MapRef_icode_str or SOprec.idcode_str
 
    \param Cur_ID (int) index into dov of the current surface object

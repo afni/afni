@@ -10,9 +10,8 @@ void usage_SUMA_SurfClust (int detail)
       s = SUMA_help_basics();
       printf ( 
 "\nUsage: A program to perform clustering analysis surfaces.\n"
-"  SurfClust <-spec SpecFile> \n"/* [<-sv sv_name>] */
-"            <-surf_A insurf> \n"
-"            <-input inData.1D dcol_index> \n"
+"  SurfClust <[-spec SpecFile -surf_A insurf] [-i insurf]> \n"
+"            <-input inData.dset dcol_index> \n"
 "            <-rmm rad>\n"
 "            [-amm2 minarea]\n"
 "            [-n minnodes]\n"
@@ -26,9 +25,13 @@ void usage_SUMA_SurfClust (int detail)
 "  version of the input dataset.\n"
 "\n"
 "  Mandatory parameters:\n"
+"    Surface Input can be done with:\n"
 "     -spec SpecFile: The surface spec file.\n"
 "     -surf_A insurf: The input surface name.\n"
-"     -input inData.1D dcol_index: The input 1D dataset\n"
+"    or with:\n"
+"     -i insurf: With insurf being the full name of the surface.\n"
+"\n"
+"     -input inData.dset dcol_index: The input dataset\n"
 "                                  and the index of the\n"
 "                                  datacolumn to use\n"
 "                                  (index 0 for 1st column).\n"
@@ -102,6 +105,7 @@ void usage_SUMA_SurfClust (int detail)
 "               Finding the central node is a \n"
 "               relatively slow operation. Use\n"
 "               this option to skip it.\n"
+"     -cent: Do find the central nodes (default)\n"
 "\n"
 "  The cluster table output:\n"
 "  A table where ach row shows results from one cluster.\n"
@@ -156,7 +160,8 @@ work well for small clusters, a catastrophy for large clusters.
                SUMA_free(Opt->out_name); 
                SUMA_free(Opt);
 */
-SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
+SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc,
+                              SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_SurfClust_ParseInput"}; 
    SUMA_SURFCLUST_OPTIONS *Opt=NULL;
@@ -167,32 +172,9 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 
    SUMA_ENTRY;
    
-   Opt = (SUMA_SURFCLUST_OPTIONS *)SUMA_malloc(sizeof(SUMA_SURFCLUST_OPTIONS));
-   
+   Opt = SUMA_create_SurfClust_Opt("SurfClust");
    kar = 1;
-   Opt->spec_file = NULL;
-   Opt->out_prefix = NULL;
-   Opt->oform = SUMA_ASCII_NIML;
-   Opt->sv_name = NULL;
-   Opt->N_surf = -1;
-   Opt->DistLim = -1.5;
-   Opt->AreaLim = -1.0;
-   Opt->NodeLim = -1;
-   Opt->in_name = NULL;
-   Opt->nodecol = -1;
-   Opt->labelcol = -1;
-   Opt->OutROI = NOPE;
-   Opt->OutClustDset = NOPE;
-   Opt->FullROIList = NOPE;
-   Opt->WriteFile = NOPE;
-   Opt->DoThreshold = 0;
-   Opt->Thresh = 0.0;
-   Opt->tind = 0;
-   Opt->prepend_node_index = NOPE;
-   Opt->update = 0;
-   Opt->SortMode = SUMA_SORT_CLUST_NOT_SET;
-   Opt->DoCentrality = 1;
-   for (i=0; i<SURFCLUST_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
+   
    outname = NULL;
    BuildMethod = SUMA_OFFSETS2_NO_REC;
 	brk = NOPE;
@@ -210,6 +192,11 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-cent") == 0)) {
+         Opt->DoCentrality = 1;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-O2") == 0)) {
          BuildMethod = SUMA_OFFSETS2;
          brk = YUP;
@@ -223,26 +210,6 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
          BuildMethod = SUMA_OFFSETS_LL;
          brk = YUP;
       }
-      
-      if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
-				exit (1);
-			}
-			Opt->spec_file = argv[kar];
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -sv \n");
-				exit (1);
-			}
-			Opt->sv_name = argv[kar];
-			brk = YUP;
-		}
       
        
       if (!brk && (strcmp(argv[kar], "-update") == 0)) {
@@ -273,6 +240,27 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
          brk = YUP;
 		}
             
+#if 0
+      if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
+				exit (1);
+			}
+			Opt->spec_file = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -sv \n");
+				exit (1);
+			}
+			Opt->sv_name = argv[kar];
+			brk = YUP;
+		}
+      
       if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
 			if (kar + 1>= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
@@ -292,6 +280,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
          Opt->N_surf = ind+1;
          brk = YUP;
 		}
+#endif
       
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
@@ -400,7 +389,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 			brk = YUP;
       }
       
-      if (!brk) {
+      if (!brk && !ps->arg_checked[kar]) {
 			SUMA_S_Errv("Option %s not understood.\n"
                   "Try -help for usage\n", argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
@@ -446,20 +435,21 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"SurfClust"}; 
-	int kar, SO_read, *ni=NULL, N_ni, cnt, i, *nip=NULL;
+	int kar, SO_read, *ni=NULL, N_ni, cnt, i, *nip=NULL, N_Spec = 0;
    float *data_old = NULL, *far = NULL, *nv=NULL, *nt = NULL;
    void *SO_name = NULL;
    SUMA_SurfaceObject *SO = NULL, *SOnew = NULL;
    MRI_IMAGE *im = NULL;
    SUMA_DSET_FORMAT iform;
    SUMA_SURFCLUST_OPTIONS *Opt;  
-	SUMA_SurfSpecFile Spec; 
+	SUMA_SurfSpecFile *Spec=NULL; 
    DList *list = NULL;
    SUMA_DSET *dset = NULL;
    float *NodeArea = NULL;
    FILE *clustout=NULL;
    char *ClustOutName = NULL, *params=NULL, stmp[200];
    char sapa[32]={""}, sapd[32]={""}, sapn[32]={""}, sap[100]={""};
+   SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -469,7 +459,8 @@ int main (int argc,char *argv[])
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    
-   Opt = SUMA_SurfClust_ParseInput (argv, argc);
+   ps = SUMA_Parse_IO_Args(argc, argv, "-spec;-i;-t;-sv;-s;");
+   Opt = SUMA_SurfClust_ParseInput (argv, argc, ps);
    if (argc < 6)
        {
          SUMA_S_Err("Too few options");
@@ -508,37 +499,32 @@ int main (int argc,char *argv[])
       }
    }
 
-   /* read  surfaces */
-   if (!SUMA_AllocSpecFields(&Spec)) {
-      SUMA_S_Err("Failed to allocate Spec Fields");
+   Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
+   if (N_Spec == 0) {
+      SUMA_S_Err("No surfaces found.");
       exit(1);
    }
-   if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
-		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
-		exit(1);
-	}
-   SO_read = SUMA_spec_select_surfs(
-                  &Spec, Opt->surf_names, 
-                  SURFCLUST_MAX_SURF, 0);
-   if ( SO_read != Opt->N_surf )
-   {
-	   if (SO_read >=0 )
-         fprintf( SUMA_STDERR,
-                  "Error %s:\nFound %d surfaces, expected %d.\n", 
-                  FuncName,  SO_read, Opt->N_surf);
+   if (N_Spec != 1) {
+      SUMA_S_Err("Multiple spec at input.");
       exit(1);
    }
-   /* now read into SUMAg_DOv */
-   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, 
-                           Opt->sv_name, 0, SUMAg_CF->DsetList) ) {
-	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
+   if (Spec->N_Surfs != 1) {
+      SUMA_S_Err("1 and only 1 surface expected at input");
       exit(1);
-   }
-   
-   if (!(SO = SUMA_find_named_SOp_inDOv(  Opt->surf_names[0], 
-                                          SUMAg_DOv, SUMAg_N_DOv))) {
-      SUMA_S_Errv("Failed to find surface %s\n", Opt->surf_names[0]);
-      exit(1);                   
+   } 
+   SUMA_LH("Loading surface...");
+   SO = SUMA_Load_Spec_Surf(Spec, 0, ps->sv[0], 0);
+   if (!SO) {
+         fprintf (SUMA_STDERR,"Error %s:\n"
+                              "Failed to find surface\n"
+                              "in spec file. \n",
+                              FuncName );
+         exit(1);
+      
+   }   
+   if (!SUMA_SurfaceMetrics(SO, "EdgeList", NULL)) {
+      SUMA_S_Err("Failed to compute edgelist");
+      exit(1);
    }
    NodeArea = SUMA_CalculateNodeAreas(SO, NULL);
    if (!NodeArea) {
@@ -643,9 +629,9 @@ int main (int argc,char *argv[])
                   FuncName, ClustOutName);
          exit(1);
       }
-      SUMA_Show_SurfClust_list(list, clustout, 0, params);
+      SUMA_Show_SurfClust_list(list, clustout, 0, params, NULL);
       fclose(clustout);clustout = NULL;  
-   }  else SUMA_Show_SurfClust_list(list, NULL, 0, params);
+   }  else SUMA_Show_SurfClust_list(list, NULL, 0, params, NULL);
    
    if (!list->size) {
       /* nothing left to do, quit */
@@ -710,16 +696,14 @@ int main (int argc,char *argv[])
       if (Clustprefix) SUMA_free(Clustprefix); Clustprefix = NULL; 
    }
    
-   if (!SUMA_FreeSpecFields(&Spec)) {
-      SUMA_S_Err("Failed to free Spec fields");
-   }
    if (ClustOutName) SUMA_free(ClustOutName); ClustOutName = NULL;
    if (list) dlist_destroy(list); SUMA_free(list); list = NULL;
    if (ni) SUMA_free(ni); ni = NULL;
    if (nv) SUMA_free(nv); nv = NULL;
    if (nt) SUMA_free(nt); nt = NULL;
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
-   if (Opt) SUMA_free(Opt);
+   if (Opt) SUMA_free_SurfClust_Opt(Opt);
+   if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (dset) SUMA_FreeDset((void *)dset); dset = NULL;
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Err("DO Cleanup Failed!");

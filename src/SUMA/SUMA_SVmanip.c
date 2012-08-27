@@ -2512,6 +2512,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->ShowZero_tb = NULL;
    SurfCont->SwitchDsetlst = NULL;
    SurfCont->ColPlaneLabelTable = SUMA_AllocTableField();;
+   SurfCont->SetClustTable = SUMA_AllocTableField();
    SurfCont->curColPlane = NULL;
    {
       char *eee = getenv("SUMA_ShowOneOnly");
@@ -2583,6 +2584,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->Brt_tb = NULL;
    SurfCont->IntRangeLocked = 0;
    SurfCont->BrtRangeLocked = 0;
+   SurfCont->rcclust = NULL;
    
 
   return (SurfCont);
@@ -2617,6 +2619,7 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    if (SurfCont->LabelTable) SUMA_FreeTableField (SurfCont->LabelTable); 
    if (SurfCont->ColPlaneLabelTable) 
       SUMA_FreeTableField (SurfCont->ColPlaneLabelTable); 
+   if (SurfCont->SetClustTable) SUMA_FreeTableField (SurfCont->SetClustTable);
    if (SurfCont->SwitchDsetlst) SUMA_FreeScrolledList (SurfCont->SwitchDsetlst);
    if (SurfCont->SurfInfo_TextShell) { 
       SUMA_SL_Warn("SurfCont->SurfInfo_TextShell is not being freed") };
