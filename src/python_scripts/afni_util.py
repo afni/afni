@@ -26,7 +26,7 @@ def change_path_basename(orig, prefix, suffix):
     return "%s/%s%s" % (head, prefix, suffix)
 
 # write text to a file
-def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n', exe=0):
+def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\\\n', exe=0):
     """write the given text to the given file
           fname   : file name to write (or append) to
           text    : text to write
@@ -42,7 +42,7 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n', exe=0):
         print "** WTTF: missing text or filename"
         return 1
 
-    if wrap: text = add_line_wrappers(text, warpstr)
+    if wrap: text = add_line_wrappers(text, wrapstr)
     
     if fname == 'stdout':   fp = sys.stdout
     elif fname == 'stderr': fp = sys.stderr

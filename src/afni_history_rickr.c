@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, AUG, 2012, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+   "display -show_mmms output to 4 places",
+   NULL
+ } ,
+
  { 24, AUG, 2012, RCR, "column_cat", MAJOR, TYPE_NEW_PROG,
    "like 'cat', except horizontally (see recent Unix command, 'paste')",
    NULL

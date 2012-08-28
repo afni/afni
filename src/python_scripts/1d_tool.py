@@ -649,9 +649,10 @@ g_history = """
         - added weighted_enorm method for -collapse_cols
         - added corresponding -weight_vec option
    1.07 Jul 30, 2012 - added -show_mmms
+   1.08 Jul 30, 2012 - display -show_mmms output to 4 decimal places
 """
 
-g_version = "1d_tool.py version 1.07, July 30, 2012"
+g_version = "1d_tool.py version 1.08, August 28, 2012"
 
 
 class A1DInterface:
