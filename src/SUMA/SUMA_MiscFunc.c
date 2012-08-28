@@ -2644,7 +2644,7 @@ char *SUMA_StringDiff(char *s1, char *s2)
    ns2 = strlen(s2);
    if (ns1 < ns2) {
       sd = s1; ns = ns1;
-      s1 = s1;
+      s1 = s2;
       s2 = sd; sd = NULL;
       ns1 = ns2;
       ns2 = ns; ns = 0;

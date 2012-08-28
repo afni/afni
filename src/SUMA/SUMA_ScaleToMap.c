@@ -756,17 +756,23 @@ int main (int argc,char *argv[])
       
          if (Sgn) {
             if (Sgn != CM->Sgn) {
-               SUMA_S_Warn ("Mixing positive maps (all fractions > 0) with -anr option\nor vice versa. That is allowed but know what you're doing.\n");
+               SUMA_S_Warn ("Mixing positive maps (all fractions > 0) "
+                            "with -anr option\n"
+                            "or vice versa. That is allowed but know what"
+                            " you're doing.\n");
             }
          }
          if (!SUMA_ScaleToMap_alaAFNI (V, N_V, arange, CM, OptScl, SV)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap_alaAFNI.\n", FuncName);
+            fprintf (SUMA_STDERR,
+               "Error %s: Failed in SUMA_ScaleToMap_alaAFNI.\n", FuncName);
             exit(1);
          }
       } else {
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_ScaleToMap\n", FuncName);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s: Calling SUMA_ScaleToMap\n", FuncName);
          if (!SUMA_ScaleToMap (V, N_V, Vmin, Vmax, CM, OptScl, SV)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
             exit(1);
          }
       }
@@ -775,19 +781,23 @@ int main (int argc,char *argv[])
    if (NoMaskCol) {
       for (k=0; k < N_V; ++k) {
          k3 = 3*k;
-         if (!SV->isMasked[k]) fprintf (SUMA_STDOUT, "%d %f %f %f\n", iV[k], SV->cV[k3  ], SV->cV[k3+1], SV->cV[k3+2]);
+         if (!SV->isMasked[k]) 
+            fprintf (SUMA_STDOUT, "%d %f %f %f\n", 
+                     iV[k], SV->cV[k3  ], SV->cV[k3+1], SV->cV[k3+2]);
       }
    } else {
       for (k=0; k < N_V; ++k) {
          k3 = 3*k;
-         fprintf (SUMA_STDOUT, "%d %f %f %f\n", iV[k], SV->cV[k3  ], SV->cV[k3+1], SV->cV[k3+2]);
+         fprintf (SUMA_STDOUT, "%d %f %f %f\n", 
+                  iV[k], SV->cV[k3  ], SV->cV[k3+1], SV->cV[k3+2]);
       }
    }
    
    /* freeing time */
    if (V) SUMA_free(V);
    if (iV) SUMA_free(iV);
-   if (!FromAFNI && freecm) if (CM) SUMA_Free_ColorMap (CM); /* only free CM if it was a pointer copy from a map in SAC */
+   if (!FromAFNI && freecm) if (CM) SUMA_Free_ColorMap (CM); /* only free CM if 
+                                       it was a pointer copy from a map in SAC */
    if (OptScl) SUMA_free(OptScl);
    if (SV) SUMA_Free_ColorScaledVect (SV);
    #if 0

@@ -156,6 +156,8 @@ SEG_OPTS *free_SegOpts(SEG_OPTS *Opt) {
       Opt->samp_names = SUMA_free_NI_str_array(Opt->samp_names);
    if (Opt->sig_names) 
       Opt->sig_names = SUMA_free_NI_str_array(Opt->sig_names);
+   if (Opt->sig_name) SUMA_free(Opt->sig_name);
+   
    Opt->FDV = SUMA_free_dists(Opt->FDV);
    
    free(Opt); Opt = NULL;
@@ -387,7 +389,7 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 		  		fprintf (stderr, "need argument after -sig \n");
 				exit (1);
 			}
-			Opt->sig_name = argv[kar];
+			Opt->sig_name = SUMA_copy_string(argv[kar]);
          brk = 1;
 		}
       

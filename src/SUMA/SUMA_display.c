@@ -4609,7 +4609,7 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    
    SUMA_ENTRY;
    
-   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane) SUMA_RETURN(0);
+   if (!SO || !SO->SurfCont) SUMA_RETURN(0);
    
    if (SO->SurfCont->TopLevelShell) SUMA_RETURN(1); /* nothing to do */
    
@@ -6293,6 +6293,11 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
    
    SUMA_LH("Called");
    
+   if (!SO || !SO->SurfCont) {
+      SUMA_S_Err("NULL input, what gives?");
+      SUMA_RETURN(NOPE);
+   }
+   
    if (!SO->SurfCont->ColPlane_fr) {
       /* just set the curColPlane before returning ZSS  March 25 08*/
       if (ColPlane) SO->SurfCont->curColPlane = ColPlane;
@@ -7566,20 +7571,27 @@ SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i)
 {
    static char FuncName[]={"SUMA_Set_Menu_Widget"};
    char stmp[64]={""};
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    if (i<1) { SUMA_S_Err("i must be >=1"); SUMA_RETURN(NOPE);   }
    if (!men) { SUMA_S_Err("NULL widget struct"); SUMA_RETURN(NOPE); }
    if(men->menu_type == SUMA_XmArrowFieldMenu) {
-      if (!men->af) {
+      if (!men->af || !men->af->textfield) {
          SUMA_S_Err("Null AF for arrow field menu!");  SUMA_RETURN(NOPE);
       }
       sprintf(stmp,"%d", i-1);
+      SUMA_LHv("Arrows: stmp=%s, textfield=%p\n", stmp, men->af->textfield);
       XtVaSetValues( men->af->textfield, XmNvalue, stmp, NULL); 
    } else {
-      if (!men->mw || !men->mw[i]) {
-         SUMA_S_Err("Null menu widgets for menu!");  SUMA_RETURN(NOPE);
+      SUMA_LHv("Non arrows, %p, men->N_mw %d, i=%d\n", men->mw, men->N_mw, i);
+      if (!men->mw || i>=men->N_mw || !men->mw[i]) {
+         /* you can get here with i>=men->N_mw if controller has not been 
+           open yet, so return without complaints. */
+         /* SUMA_S_Err("Null menu widgets or bad index for menu!");  
+         SUMA_RETURN(NOPE); */
+         SUMA_RETURN(YUP);
       } 
       XtVaSetValues(  men->mw[0], XmNmenuHistory ,  men->mw[i], NULL);
    } 
