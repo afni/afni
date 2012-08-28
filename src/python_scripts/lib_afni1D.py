@@ -1446,10 +1446,10 @@ class Afni1D:
       for cind, col in enumerate(self.mat):
          if verb:
             ps = "    col %d: " % cind
-            form = "min = %7.3f, mean = %7.3f, max = %7.3f, stdev = %7.3f"
+            form = "min = %7.4f, mean = %7.4f, max = %7.4f, stdev = %7.4f"
          else:
             ps = ''
-            form = "%7.3f %7.3f %7.3f %7.3f"
+            form = "%7.4f %7.4f %7.4f %7.4f"
          print ps + form % UTIL.min_mean_max_stdev(col)
 
    def get_indices_str(self, ind_types):
