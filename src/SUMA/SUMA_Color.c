@@ -2818,6 +2818,13 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                   "     Last node now: %d\n",
                   Sover->N_NodeDef,
                   Sover->NodeDef[Sover->N_NodeDef-1]);
+      } else { /* we have no clusters that make it, mow 'em down */
+         for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+            if (!SV->isMasked[i]) {
+               SV->isMasked[i] = 1;
+            }
+         }
+         Sover->N_NodeDef = 0;
       }
    } else {
       SUMA_LH("No clustering wanted");
@@ -8199,6 +8206,9 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                SUMA_SLP_Err("Failed to remove coord bias");
                SUMA_RETURN(NOPE);
             }
+            /* have clusterize? Recompute */
+            if (colplanepre->OptScl->Clusterize) 
+               colplanepre->OptScl->RecomputeClust = 1;         
             OKdup = 1;
          } else { /* dset is considered new */
             colplanepre = NULL;
@@ -8233,32 +8243,77 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
          }
       } 
 
-
-      /* set the opacity, index column and the range */
-      NewColPlane->GlobalOpacity = YUP;
-      NewColPlane->ShowMode = SW_SurfCont_DsetViewCol;
-      if (!colplanepre) {/* only set this default if first time creating plane*/
-         NewColPlane->OptScl->BrightFact = 0.8;
-      }
-      NewColPlane->OptScl->find = 0;
-      NewColPlane->OptScl->tind = 0;
-      NewColPlane->OptScl->bind = 0;
-      SUMA_GetDsetColRange(dset, 0, NewColPlane->OptScl->IntRange, loc);
-      if (NewColPlane->SymIrange) {
-         NewColPlane->OptScl->IntRange[0] = 
-            -fabs(SUMA_MAX_PAIR( NewColPlane->OptScl->IntRange[0],
-                                 NewColPlane->OptScl->IntRange[1]));
-         NewColPlane->OptScl->IntRange[1] = -NewColPlane->OptScl->IntRange[0];
-      }
-      
-      /* stick a colormap onto that plane ? */
-      dsetcmap = NI_get_attribute(dset->ngr,"SRT_use_this_cmap");
-      if (dsetcmap) {
-         SUMA_STRING_REPLACE(NewColPlane->cmapname, dsetcmap);
+      /* Match the old settings? */
+      if (colplanepre == NewColPlane) { /* old col plane found for this dset*/
+         /* Don't change settings. Before Aug 2012, it would reset as below */
+      } else if (SUMA_PreserveOverlaySettings(SO->SurfCont->curColPlane,
+                                             NewColPlane)) {
+                        /* attempt to preserve current situation */
+         SUMA_OVERLAYS *settingPlane = NULL;
+         settingPlane = SO->SurfCont->curColPlane;
+         NewColPlane->GlobalOpacity = settingPlane->GlobalOpacity;
+         NewColPlane->ShowMode = settingPlane->ShowMode;
+         NewColPlane->OptScl->BrightFact = settingPlane->OptScl->BrightFact;
+         NewColPlane->OptScl->find = settingPlane->OptScl->find;
+         NewColPlane->OptScl->tind = settingPlane->OptScl->tind;
+         NewColPlane->OptScl->bind = settingPlane->OptScl->bind;
+         NewColPlane->OptScl->UseThr = settingPlane->OptScl->UseThr;
+         NewColPlane->OptScl->UseBrt = settingPlane->OptScl->UseBrt;
+         NewColPlane->OptScl->ThrMode = settingPlane->OptScl->ThrMode;
+         NewColPlane->OptScl->ThreshRange[0] = 
+                                       settingPlane->OptScl->ThreshRange[0];
+         NewColPlane->OptScl->ThreshRange[1] = 
+                                       settingPlane->OptScl->ThreshRange[1];
+         NewColPlane->OptScl->BrightRange[0] = 
+                                       settingPlane->OptScl->BrightRange[0];
+         NewColPlane->OptScl->BrightRange[1] = 
+                                       settingPlane->OptScl->BrightRange[1];
+         NewColPlane->OptScl->BrightMap[0] = 
+                                       settingPlane->OptScl->BrightMap[0];
+         NewColPlane->OptScl->BrightMap[1] = 
+                                       settingPlane->OptScl->BrightMap[1];
+         NewColPlane->SymIrange = settingPlane->SymIrange;
+         NewColPlane->OptScl->IntRange[0] = settingPlane->OptScl->IntRange[0];
+         NewColPlane->OptScl->IntRange[1] = settingPlane->OptScl->IntRange[1];
+         dsetcmap = NI_get_attribute(dset->ngr,"SRT_use_this_cmap");
+         if (dsetcmap) {
+            SUMA_STRING_REPLACE(NewColPlane->cmapname, dsetcmap);
+         } else {
+            SUMA_STRING_REPLACE(NewColPlane->cmapname, settingPlane->cmapname);
+         }         
+         NewColPlane->OptScl->Clusterize = settingPlane->OptScl->Clusterize;
+         NewColPlane->OptScl->ClustOpt->AreaLim = 
+            settingPlane->OptScl->ClustOpt->AreaLim;
+         NewColPlane->OptScl->ClustOpt->DistLim = 
+            settingPlane->OptScl->ClustOpt->DistLim;
       } else {
-         /* don't worry, there's a default one */
-      }
+         /* set the opacity, index column and the range */
+         NewColPlane->GlobalOpacity = YUP;
+         NewColPlane->ShowMode = SW_SurfCont_DsetViewCol;
+         if (!colplanepre) {/* only set this if first time creating plane*/
+            NewColPlane->OptScl->BrightFact = 0.8;
+         }
+         NewColPlane->OptScl->find = 0;
+         NewColPlane->OptScl->tind = 0;
+         NewColPlane->OptScl->bind = 0;
+         SUMA_GetDsetColRange(dset, 0, NewColPlane->OptScl->IntRange, loc);
+         if (NewColPlane->SymIrange) {
+            NewColPlane->OptScl->IntRange[0] = 
+               -fabs(SUMA_MAX_PAIR( NewColPlane->OptScl->IntRange[0],
+                                    NewColPlane->OptScl->IntRange[1]));
+            NewColPlane->OptScl->IntRange[1] = -NewColPlane->OptScl->IntRange[0];
+         }
 
+         /* stick a colormap onto that plane ? */
+         dsetcmap = NI_get_attribute(dset->ngr,"SRT_use_this_cmap");
+         if (dsetcmap) {
+            SUMA_STRING_REPLACE(NewColPlane->cmapname, dsetcmap);
+         } else {
+            /* don't worry, there's a default one */
+         }
+      }
+      if (NewColPlane->OptScl->Clusterize) 
+         NewColPlane->OptScl->RecomputeClust = 1;
       /* colorize the plane */
       SUMA_ColorizePlane(NewColPlane);
 
@@ -8410,6 +8465,30 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
    SUMA_RETURNe;
 }
 
+/*!
+   Decide whether or not to keep Rick Reynolds happy and preserve
+   the overlay settings for a newly loaded dset
+*/
+SUMA_Boolean SUMA_PreserveOverlaySettings(SUMA_OVERLAYS *colplanepre, 
+                                   SUMA_OVERLAYS *NewColPlane)
+{
+   static char FuncName[]={"SUMA_PreserveOverlaySettings"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!colplanepre || !NewColPlane) SUMA_RETURN(NOPE);
+   if (colplanepre == NewColPlane) SUMA_RETURN(YUP); /* happens in reload */
+   
+   if (!colplanepre->dset_link || !NewColPlane->dset_link) SUMA_RETURN(NOPE);
+   
+      
+   /* Now check the sub-brick types. They should all match */
+   if (SUMA_isSameDsetColTypes(NewColPlane->dset_link, colplanepre->dset_link)) 
+         SUMA_RETURN(YUP);
+   
+   SUMA_RETURN(NOPE);
+}
 
 /*** AFNI setup functions taken and trimmed from afni_setup.c
 Reason for duplicating the functions is the complicated dependencies 

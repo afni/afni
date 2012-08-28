@@ -51,7 +51,7 @@ typedef struct {
    void (*helpfunc)(int);
    char *aset_name;
    char *mset_name;
-   char *sig_name;
+   char *sig_name;            
    NI_str_array *sig_names;
    char *samp_name;
    NI_str_array *samp_names;

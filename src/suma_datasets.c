@@ -806,10 +806,11 @@ int SUMA_FindDsetColLabeled(SUMA_DSET *dset, char *label)
 */
 char **SUMA_AllDsetColLabels(SUMA_DSET *dset)
 {
+   static char FuncName[]={"SUMA_AllDsetColLabels"};   
    char ** AllLabels=NULL;
    int ii;
    
-   if (!dset) SUMA_RETURN(NULL);
+   if (!dset) return(NULL);
    
    AllLabels = (char **)SUMA_calloc(SDSET_VECNUM(dset)+1,sizeof(char*));
    
@@ -823,6 +824,7 @@ char **SUMA_AllDsetColLabels(SUMA_DSET *dset)
 
 char **SUMA_FreeAllDsetColLabels(char **AllLabels)
 {
+   static char FuncName[]={"SUMA_FreeAllDsetColLabels"}; 
    int ii=0;
    
    if (!AllLabels) return(NULL);
@@ -8729,7 +8731,8 @@ SUMA_Boolean SUMA_isSameDsetColTypes(SUMA_DSET *dset1, SUMA_DSET *dset2)
       SUMA_SL_Err("NULL Dsets");
       SUMA_RETURN(NOPE);
    }
-   
+   SUMA_LHv("Checking sb numbers %d vs %d\n", 
+         SDSET_VECNUM(dset1), SDSET_VECNUM(dset2));
    if (SDSET_VECNUM(dset1) != SDSET_VECNUM(dset2)) {
       SUMA_RETURN(NOPE);
    }
@@ -8744,6 +8747,8 @@ SUMA_Boolean SUMA_isSameDsetColTypes(SUMA_DSET *dset1, SUMA_DSET *dset2)
    }
    
    if (cnm1 && cnm2) {
+      SUMA_LHv("Types a la SUMA\n%s\nvs.\n%s\n",
+         cnm1,cnm2); 
       if (strcmp(cnm1,cnm2)) {/* wholesale comparison */
          SUMA_RETURN(NOPE);
       } else {

@@ -1225,13 +1225,19 @@ typedef struct{
    int Ni;   /*!< Number of rows = Number of elements PER COLUMN (1st dim)*/
    int Nj;   /*!< Number of columns = Number of elements PER ROW (2nd dim)*/
    int *cwidth; /*!< charcter spaces to save for widget per column */
+   byte *but_flag; /*!< Flags to indicate button status of a cell. That is 
+                        to allow the highjacking of text fields to make them
+                        toggle buttons. This should normally be used for column 
+                        and row titles only. But you never know */
    float *num_value;   /*!< current value at each cell (for numeric cells)*/
    char **str_value;   /*!< current string at each cell (for string cells) */
    SUMA_Boolean editable;
    SUMA_VARTYPE type; /*!< SUMA_int or SUMA_float or SUMA_string */
-   void (*NewValueCallback)(void *data); /*!< callback to make when a new value is set */
+   void (*NewValueCallback)(void *data); /*!< callback to make when 
+                                              a new value is set */
    void *NewValueCallbackData;
-   void (*TitLabelEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd); 
+   void (*TitLabelEVHandler)( Widget w , XtPointer cd , XEvent *ev , 
+                              Boolean *ctd); 
    void *TitLabelEVHandlerData; 
    void (*CellEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd); 
    void *CellEVHandlerData;

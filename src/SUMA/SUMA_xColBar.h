@@ -269,6 +269,8 @@ SUMA_Boolean SUMA_SetClustTableTit (SUMA_SurfaceObject *SO,
                         SUMA_OVERLAYS *colp, int i, int j, int Button);
 void SUMA_SetClustTableTit_EV ( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch ); 
+SUMA_Boolean SUMA_SetTableTitleButton1(SUMA_TABLE_FIELD *TF, int i, int j, 
+                                       byte flag);
 SUMA_TABLE_FIELD * SUMA_AllocTableField(void);
 SUMA_TABLE_FIELD * SUMA_FreeTableField(SUMA_TABLE_FIELD *TF);
 SUMA_CELL_VARIETY SUMA_cellvariety (SUMA_TABLE_FIELD *TF, int n);

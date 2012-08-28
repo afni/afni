@@ -1055,7 +1055,7 @@ int SUMA_SwitchColPlaneIntensity_one (
    }
    colp->OptScl->find = ind;
    if (setmen && colp == SO->SurfCont->curColPlane ) {
-      SUMA_LH("Setting values");
+      SUMA_LHv("Setting menu values, %d\n", colp->OptScl->find+1);
       SUMA_Set_Menu_Widget(SO->SurfCont->SwitchIntMenu, colp->OptScl->find+1);
    }
    
@@ -1073,6 +1073,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                                  ":Inten",   ":F-stat",  /* 3dANOVA */
                                  ":Diff",    ":t-stat",  /* 3dANOVA */
                                  ":b",       ":t",       /* 3dMEMA */
+                                 "_mean",    "_Zscr",    /* GICOR */
+                                 "_meanNC",    "_ZscrNC",    /* GICOR */
                                  NULL, NULL }; /* leave always at the bottom*/
          SUMA_LHv("Looking for decent match for %s\n", lab);
          if (lab) {
@@ -1081,6 +1083,7 @@ int SUMA_SwitchColPlaneIntensity_one (
                if (STRING_HAS_SUFFIX(lab,ext)) {
                   lab[strlen(lab)-strlen(ext)]='\0';
                   lab2 = SUMA_append_string(lab,exta[ipair*2+1]);
+                  SUMA_LHv("  Looking for %s\n", lab2);
                   if ((ind2 = SUMA_FindDsetColLabeled(dset, lab2)) >= 0) {
                      SUMA_LHv("Sub-brick %s%s has %s go with it.\n",
                                  lab, ext, lab2);
@@ -1100,6 +1103,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                         }
                      }
                   } SUMA_free(lab2); lab2=NULL;
+                  /* put lab back together */
+                  lab[strlen(lab)]=ext[0];
                }
                ++ipair;
             }
@@ -1152,7 +1157,7 @@ int SUMA_SwitchColPlaneIntensity_one (
    SUMA_InitRangeTable(SO, 0) ;
    SUMA_UpdateCrossHairNodeLabelFieldForSO(SO);
 
-   if (colp->ShowMode < 0) { SUMA_RETURN(0); } /* nothing else to do */
+   if (colp->ShowMode < 0) { SUMA_RETURN(1); } /* nothing else to do */
    
    
    if (!SUMA_ColorizePlane (colp)) {
@@ -1188,6 +1193,10 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
    SO = (SUMA_SurfaceObject *)datap->ContID;
    imenu = (INT_CAST)datap->callback_data; 
    
+   if (imenu-1 == SO->SurfCont->curColPlane->OptScl->find) {
+      SUMA_RETURNe; /* nothing to be done */
+   }
+
    SUMA_SwitchColPlaneIntensity(SO, SO->SurfCont->curColPlane, imenu -1, 0);
    
    SUMA_RETURNe;
@@ -1290,7 +1299,7 @@ int SUMA_SwitchColPlaneThreshold_one(
    SUMA_UpdateCrossHairNodeLabelFieldForSO(SO);
    SUMA_UpdateNodeValField(SO);
    
-   if (!colp->OptScl->UseThr) { SUMA_RETURN(0); } /* nothing else to do */
+   if (!colp->OptScl->UseThr) { SUMA_RETURN(1); } /* nothing else to do */
 
    if (!SUMA_ColorizePlane (colp)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -1323,6 +1332,10 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SO = (SUMA_SurfaceObject *)datap->ContID;
    imenu = (INT_CAST)datap->callback_data; 
    
+   if (imenu-1 == SO->SurfCont->curColPlane->OptScl->tind) {
+      SUMA_RETURNe; /* nothing to be done */
+   }
+
    SUMA_SwitchColPlaneThreshold(SO, SO->SurfCont->curColPlane, imenu -1, 0);
    SUMA_RETURNe;
 }
@@ -1347,6 +1360,11 @@ int SUMA_SwitchColPlaneBrightness(
       fprintf(SUMA_STDERR, 
          "%s:\n request to switch brightness to col. %d\n", FuncName, ind);
    }
+   
+   if (ind == colp->OptScl->bind) {
+      SUMA_RETURN(0); /* nothing to be done */
+   }
+   
    if (!SUMA_SwitchColPlaneBrightness_one(SO, colp, ind, setmen)) {
       SUMA_S_Err("Failed in _one");
       SUMA_RETURN(0);
@@ -1388,8 +1406,10 @@ int SUMA_SwitchColPlaneBrightness_one(
    
    if (LocalHead) {
       fprintf(SUMA_STDERR, 
-         "%s:\n request to switch brightness to col. %d\n", FuncName, ind);
+         "%s:\n request to switch brightness to col. %d, currently %d\n", 
+            FuncName, ind, colp->OptScl->bind);
    }
+
    if (ind < 0) {
       /* turn brightness off */
       XmToggleButtonSetState (SO->SurfCont->Brt_tb, NOPE, YUP);
@@ -1460,7 +1480,9 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
    SO = (SUMA_SurfaceObject *)datap->ContID;
    imenu = (INT_CAST)datap->callback_data; 
    
-       
+   if (imenu-1 == SO->SurfCont->curColPlane->OptScl->bind) {
+      SUMA_RETURNe; /* nothing to be done */
+   }
    SUMA_SwitchColPlaneBrightness(SO, SO->SurfCont->curColPlane, imenu -1, 0);
    
    #if 0 /* Obsolete, now all handled in SUMA_SwitchColPlaneBrightness above*/
@@ -2489,8 +2511,9 @@ SUMA_Boolean SUMA_SetClustTableTit_one (SUMA_SurfaceObject *SO,
       switch (i) {
          case 1:
             if (Button == Button1) { /* toggle lock */
-               colp->OptScl->Clusterize = !colp->OptScl->Clusterize;
+               TF->but_flag[j*TF->Ni+i] = !TF->but_flag[j*TF->Ni+i];
                MCW_invert_widget(TF->cells[j*TF->Ni+i]);
+               colp->OptScl->Clusterize = TF->but_flag[j*TF->Ni+i];
                colp->OptScl->RecomputeClust = YUP;
                SUMA_ColorizePlane(colp);
                SUMA_RemixRedisplay(SO);
@@ -2520,6 +2543,27 @@ SUMA_Boolean SUMA_SetClustTableTit_one (SUMA_SurfaceObject *SO,
 
    SUMA_RETURN(YUP);
 }   
+
+/* Set the button flag for a table cell (usually for titles only),
+based on flag. Inverts widget if need be. */
+SUMA_Boolean SUMA_SetTableTitleButton1(SUMA_TABLE_FIELD *TF, int i, int j, 
+                                       byte flag)
+{
+   static char FuncName[]={"SUMA_SetTableTitleButton1"};
+   
+   SUMA_ENTRY;
+   
+   if (!TF) SUMA_RETURN(NOPE);
+   
+   if (flag == TF->but_flag[j*TF->Ni+i]) {
+      /* Nothing to do, return*/
+   } else {
+      TF->but_flag[j*TF->Ni+i] = !TF->but_flag[j*TF->Ni+i];
+               MCW_invert_widget(TF->cells[j*TF->Ni+i]);
+   }
+   
+   SUMA_RETURN(YUP);   
+}
 
 SUMA_Boolean SUMA_SetClustTableTit (SUMA_SurfaceObject *SO, 
                         SUMA_OVERLAYS *colp, int i, int j, int Button) 
@@ -2651,8 +2695,10 @@ SUMA_TABLE_FIELD * SUMA_FreeTableField(SUMA_TABLE_FIELD *TF)
    if (TF->cells) SUMA_free(TF->cells);
    if (TF->cwidth) SUMA_free(TF->cwidth);
    if (TF->num_value) SUMA_free(TF->num_value);
+   if (TF->but_flag) SUMA_free(TF->but_flag);
    if (TF->str_value) { 
-      for (i=0; i<TF->Nj*TF->Ni; ++i) if (TF->str_value[i]) SUMA_free(TF->str_value[i]); 
+      for (i=0; i<TF->Nj*TF->Ni; ++i) 
+         if (TF->str_value[i]) SUMA_free(TF->str_value[i]); 
       SUMA_free(TF->str_value);
    }
    SUMA_free(TF);
@@ -2853,6 +2899,7 @@ void SUMA_CreateTable(  Widget parent,
    if(col_tit) TF->HasColTit = YUP; else TF->HasColTit = NOPE;
    if(row_tit) TF->HasRowTit = YUP; else TF->HasRowTit = NOPE;
    TF->cells = (Widget *)SUMA_calloc(TF->Ni*TF->Nj,sizeof(Widget));
+   TF->but_flag = (byte *)SUMA_calloc(TF->Ni*TF->Nj,sizeof(byte));
    if (!TF->cells) {  SUMA_SL_Crit("Failed to allocate"); SUMA_RETURNe; }
    TF->NewValueCallback = NewValueCallback;
    TF->NewValueCallbackData = cb_data;
@@ -5178,11 +5225,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset,
                               SO->SurfCont->SetClustTable);
             }
             
-            if (SO->SurfCont->curColPlane->OptScl &&
-                SO->SurfCont->curColPlane->OptScl->Clusterize) {
-                  SUMA_LH( "Should be highlighting 'Clust', "
-                           "but it is not working");
-                  MCW_invert_widget(SO->SurfCont->SetClustTable->cells[1]);
+            if (SO->SurfCont->curColPlane->OptScl) {
+                SUMA_SetTableTitleButton1(SO->SurfCont->SetClustTable, 1,0,                                       SO->SurfCont->curColPlane->OptScl->Clusterize);
             }
          }
          SUMA_LH("Managerial");
@@ -5362,7 +5406,8 @@ SUMA_Boolean SUMA_InitClustTable(SUMA_SurfaceObject *SO)
    
    SUMA_INSERT_CELL_VALUE(TFs, 1, 1, OptScl->ClustOpt->DistLim);
    SUMA_INSERT_CELL_VALUE(TFs, 1, 2, OptScl->ClustOpt->AreaLim);
-
+   SUMA_SetTableTitleButton1(TFs, 1,0, OptScl->Clusterize);
+   
    if (ColorizeBaby) {
       if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");

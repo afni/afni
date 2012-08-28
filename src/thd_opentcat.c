@@ -7,7 +7,7 @@
 THD_3dim_dataset * THD_open_tcat( char *dlist )
 {
    THD_3dim_dataset *dset_out , **dset_in ;
-   int ndset_in , dd , nerr , new_nvals ;
+   int ndset_in , dd , nerr , new_nvals, sb=0 ;
    NI_str_array *sar ;
    double angle=0.0;
    char *dp, *dlocal = dlist;   /* local dlist, in case it is altered */
@@ -95,6 +95,27 @@ ENTRY("THD_open_tcat") ;
      RETURN(NULL) ;
    }
 
+   /*-- Check for type problems                    ZSS: Aug 27 2012 --*/
+   for (nerr=0,dd=0; dd < ndset_in ; dd++) {
+      for (sb=0; sb < DSET_NVALS(dset_in[dd]); ++sb) {
+         if ( DSET_BRICK_TYPE(dset_in[0],0) != 
+              DSET_BRICK_TYPE(dset_in[dd],sb) ) {
+            ++nerr;    
+         }
+      }
+   }
+   if (nerr > 0) { /* don't die, just complain */
+      WARNING_message(
+      "Command-line catenated dataset has %d sub-bricks that differ \n"
+      "  in data type from the first sub-brick of the first set.\n"
+      "  Mme Irma sees potential for grief if you go down that path. \n"
+      "  Use 3dinfo -datum on each input to understand why this is happening.\n"
+      "  You can use 3dcalc's -datum option to rewrite the dataset with \n"
+      "  all sub-bricks set to the same type then start over.\n\n",
+            nerr);
+      nerr=0;
+   }
+   
    /*-- OK, start making new dataset --*/
 
    new_nvals = 0 ;
@@ -190,6 +211,8 @@ ENTRY("THD_load_tcat") ;
                               DSET_BRICK_TYPE(dset_in,iv), DSET_ARRAY(dset_in,iv) );
        mri_fix_data_pointer( NULL , DSET_BRICK(dset_in,iv) ) ;
        EDIT_BRICK_FACTOR( dset_out , ivout , DSET_BRICK_FACTOR(dset_in,iv) ) ;
+       EDIT_BRICK_LABEL(dset_out, ivout, 
+                        DSET_BRICK_LABEL(dset_in, iv)); /* ZSS Aug. 27 2012 */
        ivout++ ;
      }
      DSET_delete(dset_in) ;
