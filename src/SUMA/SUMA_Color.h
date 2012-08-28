@@ -108,6 +108,8 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                               int LaunchDisplay,
                               SUMA_OVERLAYS **used_over);
 void SUMA_LoadColorPlaneFile (char *filename, void *data);
+SUMA_Boolean SUMA_PreserveOverlaySettings(SUMA_OVERLAYS *colplanepre, 
+                                   SUMA_OVERLAYS *NewColPlane);
 SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO); 
 void SUMA_RefreshDsetList (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov);

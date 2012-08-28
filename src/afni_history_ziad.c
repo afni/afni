@@ -65,6 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 27, Aug , 2012 , ZSS , "afni-general" , MICRO , TYPE_MODIFY,
+   "Modifed THD_load_tcat() to include subbrick labels in auto catenation",
+   "Also, started checking for datatype mixing and issuing warning when needed."
+ },
+
+ { 24, Aug , 2012 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Fixed SUMA<-->AFNI cross hair linkage with multiple anat. correct surfaces",
+   "It used to be that a coordinate always got attached to the Local Domain\n"
+   "Parent surface. Even if you clicked closest to a node on the Pial surface\n"
+   "SUMA would jump to the correspoding node on the smoothwm surface. This was\n"
+   "way uncool."
+ },
+
  { 24, Aug , 2012 , ZSS , "@ScaleVolume" , MICRO , TYPE_BUG_FIX,
    "step(a) was used instead of bool(a) for masking operations",
    "This caused zeros in the output where input values were negative.\n"

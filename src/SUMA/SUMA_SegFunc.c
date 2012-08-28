@@ -940,7 +940,7 @@ int p_cv_GIV_afu (SEG_OPTS *Opt, char *feat,
    if (!d) { ERROR_message("NULL d"); SUMA_RETURN(0); }
    SB_LABEL(Opt->sig,feat, ifeat); 
    if (ifeat < 0) {
-      SUMA_S_Errv("Failed to find %s", feat); SUMA_RETURN(0);
+      SUMA_S_Errv("Failed to find feature %s\n", feat); SUMA_RETURN(0);
    }
    memset(d, 0, DSET_NVOX(Opt->sig)*sizeof(double));
    for (i=0; i<Opt->clss->num;++i) {
@@ -2515,9 +2515,12 @@ int SUMA_VolumeLSBlurInMask(THD_3dim_dataset *aset,
    MCW_cluster *nbhd=NULL ;
    float *fa=NULL;
    MRI_IMAGE *imin=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   SUMA_S_Warn("This function should not be used");
+   SUMA_RETURN(0);
    
    if( FWHM < 0.0f ){ dx = dy = dz = 1.0f ; FWHM = -FWHM ; }
    else         { dx = fabsf(DSET_DX(aset)) ;
@@ -5023,7 +5026,7 @@ int SUMA_ShortizeProbDset(THD_3dim_dataset **csetp,
    byte *bb=NULL, shortize=0;
    short *gb=NULL, *C=NULL; 
    int ijk=0, k;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -5109,7 +5112,7 @@ int SUMA_FlattenProb(THD_3dim_dataset *pC,
    int i, k, nbrick=DSET_NVALS(pC);
    double ss, pp;
    float fpC[nbrick];
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -5195,7 +5198,7 @@ int SUMA_AddOther(  NI_str_array *clss, int **keysp,
    int *keys=*keysp;
    short *cc=NULL;
    float fpG;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

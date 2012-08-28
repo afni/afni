@@ -2069,9 +2069,10 @@ SUMA_Boolean SUMA_isContralateral_name(char *s1, char *s2)
    SUMA_ENTRY;
    
    sd = SUMA_StringDiff(s1,s2);
+   SUMA_LHv("Diff of \n%s and \n%s is \n%s\n", 
+            CHECK_NULL_STR(s1), CHECK_NULL_STR(s2), CHECK_NULL_STR(sd));
    
    if (!sd || sd[0] == '\0') SUMA_RETURN(NOPE);
-   SUMA_LHv("Diff of \n%s and \n%s is \n%s\n", s1, s2, sd);
    
    /* check for l or r only */
    if (sd[0] != 'l' && sd[0] != 'L' && sd[0] != 'r' && sd[0] != 'R') {
@@ -2080,9 +2081,16 @@ SUMA_Boolean SUMA_isContralateral_name(char *s1, char *s2)
    } else if (sd[1] == '\0') { /* make sure it is only l or r */
       SUMA_free(sd); SUMA_RETURN(YUP);
    }
-   /* not left and not right? */
-   if (strcasecmp(sd,"left") && strcasecmp(sd,"right")) {
-      SUMA_free(sd); SUMA_RETURN(NOPE);
+   if (strstr(s1,"GRP_ICORR") && strstr(s2,"GRP_ICORR")) {
+      /* special treatment */
+      if (strncasecmp(sd,"left",4) && strncasecmp(sd,"right",5)) {
+         SUMA_free(sd); SUMA_RETURN(NOPE);
+      }  
+   } else {
+      /* not left and not right? */
+      if (strcasecmp(sd,"left") && strcasecmp(sd,"right")) {
+         SUMA_free(sd); SUMA_RETURN(NOPE);
+      }
    }
    SUMA_free(sd);
    SUMA_RETURN(YUP);
@@ -2231,7 +2239,8 @@ SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
    while (el) {
       dd = (SUMA_DSET*)el->data;
       if (SUMA_isDsetRelated(dd,SOC)) {
-         SUMA_LHv("Have Dset %s related to SOC\n", SDSET_LABEL(dd));
+         SUMA_LHv("Have Dset %s (filename %s) related to SOC\n", 
+                  SDSET_LABEL(dd), SDSET_FILENAME(dd));
          /* Does dd relate to dset ? */
          if (  SUMA_isContralateral_name(SDSET_FILENAME(dset),
                                           SDSET_FILENAME(dd)) &&
@@ -2246,6 +2255,10 @@ SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
          } 
       }
       el = dlist_next(el);
+   }
+   if (!dsetC) {
+      /* Nothingness, return */
+      SUMA_RETURN(overC);
    }
    if (!(overC=SUMA_Fetch_OverlayPointerByDset (SOC->Overlays, 
                      SOC->N_Overlays, dsetC, &OverInd))) {

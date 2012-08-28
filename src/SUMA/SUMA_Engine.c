@@ -5127,7 +5127,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO,
    int iclosest, id, ND;
    SUMA_SurfaceObject *SOmap;
    int SOmapID;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 

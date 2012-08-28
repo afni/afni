@@ -489,7 +489,12 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 		  		fprintf (stderr, "need argument after -sig \n");
 				exit (1);
 			}
-			Opt->sig_name = argv[kar];
+			while (kar < argc && argv[kar][0] != '-') { 
+            Opt->sig_name = 
+               SUMA_append_replace_string(Opt->sig_name, argv[kar], " ", 1);
+            ++kar;
+         }
+         if (kar < argc && argv[kar][0] == '-') --kar; /* unwind */
          brk = 1;
 		}
       
@@ -1049,7 +1054,7 @@ int main(int argc, char **argv)
    }
    
 
-
+   
    if (!Opt->clss) { /* get all classes from training */
       Opt->clss = allclss; allclss = NULL;
    } else {
@@ -1091,8 +1096,15 @@ int main(int argc, char **argv)
       #endif
    }
    
-   if (!Opt->feats) { /* get all features from training */
-      Opt->feats =  allfeats; allfeats = NULL;
+   if (!Opt->feats) { /* get all features from input signatures */
+      for (i=0; i<DSET_NVALS(Opt->sig); ++i) {
+         Opt->feats = SUMA_NI_str_array(Opt->feats, 
+                                        DSET_BRICK_LABEL(Opt->sig,i),"A");
+      }
+   } 
+   if (!Opt->feats) { /* Should not happen here */
+      SUMA_S_Err("No features by this point?!?");
+      exit(1);
    } else {
       nisa = NULL;
       for (j=0; j<Opt->feats->num; ++j) {
