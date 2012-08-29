@@ -65,6 +65,14 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 29, Aug , 2012 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
+   "AFNI build was failing on machines where DONT_USE_MCW_MALLOC was defined",
+   "The cause of failure was a missing #define NI_calloc() when \n"
+   " DONT_USE_MCW_MALLOC is defined. The one line needed is now in niml.h.\n"
+   "Builds likely affected are solaris and macosx_10.7_Intel_64\n"
+   "Affected build dates from about Aug. 24th  to Aug. 29th.\n"
+ },
+
  { 29, Aug , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Allowing yoking of intensity to node selection.",
    "Ctrl+Button-3 would select a node and switch intensity sub-brick\n"
