@@ -533,6 +533,7 @@ typedef struct { int nar ; float  *ar ; } NI_floatvec ;
 #undef NIML_OLD_MALLOC
 #if (defined(NIML_OLD_MALLOC) || defined(DONT_USE_MCW_MALLOC)) && !defined(__cplusplus) && !defined(c_plusplus)
 #define NI_malloc(typ,a) (typ*) old_NI_malloc((a))
+#define NI_calloc(a,b) old_NI_malloc((a)*(b))
 #define NI_realloc(a,typ,b)  (typ*) old_NI_realloc((a),(b))
 
   extern void * old_NI_malloc( size_t ) ;
