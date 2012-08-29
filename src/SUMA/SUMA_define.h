@@ -2981,6 +2981,8 @@ typedef struct {
    SUMA_PARSED_NAME *autorecord; /*!< Autorecord prefix */
    
    DList *SaveList; /*!< List of objects set to be saved when user chooses to */
+   
+   SUMA_Boolean YokeIntToNode;
 } SUMA_CommonFields;
 
 

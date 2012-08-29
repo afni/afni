@@ -65,6 +65,31 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 29, Aug , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Allowing yoking of intensity to node selection.",
+   "Ctrl+Button-3 would select a node and switch intensity sub-brick\n"
+   "to that node's index * K. This is only done if the dataset currently\n"
+   "viewed has as K times as many sub-bricks as the surface has nodes.\n"
+   "K being an integer, naturally.\n Nick Oosterhoff instigated this business\n"
+ },
+
+ { 28, Aug , 2012 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Fixed interaction with L/R yoking asynchrony.",
+   "Problems included interaction with clustering setting and with\n"
+   "Intensity/Threshold/Brightness selectors."
+ },
+
+ { 28, Aug , 2012 , ZSS , "suma" , MICRO , TYPE_NEW_OPT,
+   "Preserved controller settings for newly loaded or reloaded dsets",
+   "The preserved settings include clustering options."
+ },
+
+ { 28, Aug , 2012 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Fixed some L/R yoking problems and a crash source in drive mode.",
+   "The crash was caused when calling SUMA_Set_Menu_Widget() on a controller\n"
+   "not fully realized.\n"
+ },
+
  { 27, Aug , 2012 , ZSS , "afni-general" , MICRO , TYPE_MODIFY,
    "Modifed THD_load_tcat() to include subbrick labels in auto catenation",
    "Also, started checking for datatype mixing and issuing warning when needed."
