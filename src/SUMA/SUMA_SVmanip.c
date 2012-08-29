@@ -2264,6 +2264,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->autorecord = SUMA_SetAutoRecord(getenv("SUMA_AutoRecordPrefix"));
 
    cf->SaveList = NULL;
+   
+   cf->YokeIntToNode = 0;
    return (cf);
 
 }

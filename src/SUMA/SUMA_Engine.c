@@ -1954,6 +1954,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                break;
             }
+            /* Nick's options. Jump to the sub-brick index corresponding 
+               to node */
+            if (SUMAg_CF->YokeIntToNode   &&
+                !(SDSET_VECNUM(SO->SurfCont->curColPlane->dset_link) % 
+                                                               SO->N_Node)) {
+               itmp = SDSET_VECNUM(SO->SurfCont->curColPlane->dset_link) / 
+                                                               SO->N_Node;
+               if (!SUMA_SwitchColPlaneIntensity(SO, SO->SurfCont->curColPlane,
+                                                 EngineData->i*itmp, 1)) {
+                  SUMA_S_Err("Failed to yoke intensity to node index");
+               }
+            }
+            SUMAg_CF->YokeIntToNode = 0;
             
             /* NB: I find it strange that there is this block here
                followed by a similar one in SUMA_UpdateNodeField

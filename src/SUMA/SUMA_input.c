@@ -4474,23 +4474,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMAg_CF->HoldClickCallbacks = 1;
                }
                
-               #if 0
-               /* are we in ROI drawing mode ? */
-               if (  Bev.state & ShiftMask && 
-                     SUMAg_CF->ROI_mode && sv->Focus_SO_ID >= 0) {
-                  /* ROI drawing mode */
-                  ROI_mode = YUP;     
-               }else {
-                  ROI_mode = NOPE;
-               }
-               #endif
                /* are we in ROI drawing mode ? */
                if (  SUMAg_CF->ROI_mode 
                      && sv->Focus_SO_ID >= 0 && !(Bev.state & ShiftMask)) {
                   /* ROI drawing mode */
                   ROI_mode = YUP;     
-               }else {
+               } else {
                   ROI_mode = NOPE;
+                  
+               }
+               if (!(Kev.state & ShiftMask) && (Kev.state & ControlMask)) {
+                  SUMA_LH("Yoking intensity to node selection");
+                  SUMAg_CF->YokeIntToNode = 1;
+               } else {
+                  SUMA_LH("Holding back callbacks");
+                  SUMAg_CF->YokeIntToNode = 0;
                }
                
                if (!DoubleClick) {
@@ -4976,7 +4974,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      SUMA_RETURNe;
                   }
                }  
-                  
+               
+               if (!(Kev.state & ShiftMask) && (Kev.state & ControlMask) ) {
+                  SUMA_LH("Yoking intensity to node selection");
+                  SUMAg_CF->YokeIntToNode = 1;
+               } else {
+                  SUMA_LH("Holding back callbacks");
+                  SUMAg_CF->YokeIntToNode = 0;
+               }   
                   
                ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
                if (ii == 0) { /* no surfaces, break */
