@@ -1649,7 +1649,7 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     ESCAPE: close the surface viewer window.\n");
    SS = SUMA_StringAppend (SS, 
-      "     Shft+ESCAPE: close all surface viewer windows.\n\n");
+      "     Shift+ESCAPE: close all surface viewer windows.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     Mouse Controls:\n");
    SS = SUMA_StringAppend (SS, 
@@ -1673,22 +1673,29 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     Button 2-Motion: translation\n"); 
    SS = SUMA_StringAppend (SS, 
-      "     Button 1+2-Motion OR \n"
-      "      Shift+Button2-Motion: \n"
+      "     Button 1+2-Motion    OR \n"
+      "     Shift+Button2-Motion: \n"
       "          Zoom in/out\n");
    SS = SUMA_StringAppend (SS, 
       "     Button 3-Press: Node picking \n"
       "                     Initiates a path to new node in DrawROI mode.\n"
-      "                     No calls in Dot xform mode, or GroupInCorr\n" );
-   SS = SUMA_StringAppend (SS, 
-      "     shft+ctrl+Button 3-Press: Pick and initiate call in Dot xform\n"
-      "                               mode, or to GroupInCorr\n"
-      );
+      "                     No calls in Dot xform mode, or GroupInCorr\n" 
+      "     Shift+Button 3-Press: Same as without shift, except does not draw\n"
+      "                           in DrawROI mode.\n"
+      "     Ctrl+Button 3-Press: Yoke intensity selection to index of \n"
+      "                          selected node*K. This is only possible if\n"
+      "                          the currently visualized dataset has K times \n"
+      "                          many sub-bricks as the surface has nodes. \n"
+      "                          K is an integer.\n"
+      "     Shift+Ctrl+Button 3-Press: Pick and initiate call in Dot xform\n"
+      "                               mode, or to GroupInCorr\n");
    SS = SUMA_StringAppend (SS, 
       "     Button 3-Motion: continuous picking\n"
       "                      No calls for dot product (InstaCorr)\n"
       "                           or GroupInCorr, while dragging.\n" 
-      "     shft+ctrl+Button 3-Motion: Continuous picking and calls \n"
+      "     Ctrl+Button 3-Motion: continous yoking of intensity selection to\n"
+      "                           selected node*K.\n" 
+      "     Shift+Ctrl+Button 3-Motion: Continuous picking and calls \n"
       "                                for dot product (InstaCorr)\n"
       "                               or GroupInCorr, while dragging.\n"
       ); 
