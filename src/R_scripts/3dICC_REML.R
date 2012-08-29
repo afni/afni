@@ -73,7 +73,7 @@ fNames <- colnames(Model)[which(colnames(Model) != "InputFile")]
 ModelForm <- paste("Beta~(1|",fNames[1],")")
 #if (nFact == 2 ) ModelForm <- paste(ModelForm,"+","(1|",fNames[2],")")
 #if (nFact == 3 ) ModelForm <- paste(ModelForm,"+","(1|",fNames[2],")","+(1|",fNames[3],")")
-for(ii in 2:nFact) ModelForm <- paste(ModelForm,"+(1|",fNames[ii],")")
+if(nFact>1) for(ii in 2:nFact) ModelForm <- paste(ModelForm,"+(1|",fNames[ii],")")
 ModelForm <- as.formula(ModelForm)
 
 # Read in the 1st input file so that we have the dimension information
@@ -82,7 +82,7 @@ dimx <- Data$dim[1]
 dimy <- Data$dim[2]
 dimz <- Data$dim[3]
 
-if (!is.na(mask)) Mask <- read.AFNI(mask)$brk
+if(!is.na(mask)) Mask <- read.AFNI(mask)$brk
 
 if (length(grep('tlrc', Model[1, "InputFile"]))==1) outView <- "tlrc"
 if (length(grep('orig', Model[1, "InputFile"]))==1) outView <- "orig"
