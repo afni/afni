@@ -116,6 +116,7 @@ static char shelp_GenPriors[] = {
 "   -vox_debug I J K: where I, J, K are the 3D voxel indices \n"
 "                     (not RAI coordinates in mm)\n"
 "   -vox_debug_file DBG_OUTPUT_FILE: File in which debug information is output\n"
+"                                    use '-' for stdout, '+' for stderr.\n"
 "   -uid UID : User identifier string. It is used to generate names for\n"
 "              temporary files to speed up the process. \n"
 "              You must use different UID for different subjects otherwise\n"
@@ -210,7 +211,7 @@ SEG_OPTS *GenPriors_Default(char *argv[], int argc)
    Opt->UseTmp = 1; 
    Opt->logp = 1;
    Opt->VoxDbg = -1;
-   Opt->VoxDbgOut = stdout;
+   Opt->VoxDbgOut = NULL;
    Opt->rescale_p = 1;
    Opt->openmp = 0;
    Opt->labeltable_name = NULL;
@@ -407,7 +408,13 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 		  		fprintf (stderr, "need filename after -vox_debug_file \n");
 				exit (1);
 			}
-			Opt->VoxDbgOut = fopen(argv[kar],"w");
+			if (!strcmp(argv[kar],"-")) {
+            Opt->VoxDbgOut = stdout;
+         } else if (!strcmp(argv[kar],"+")) {
+            Opt->VoxDbgOut = stderr;
+         } else {
+            Opt->VoxDbgOut = fopen(argv[kar],"w");
+         }
          brk = 1;
 		}      
       
@@ -983,6 +990,11 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    if (!Opt->xrefix) Opt->xrefix = strdup("./GenPriorsOut.x");
    if (!Opt->crefix) Opt->crefix = strdup("./GenPriorsOut.c");
    if (Opt->uid[0]=='\0') UNIQ_idcode_fill(Opt->uid);
+   if (Opt->VoxDbg > -1 && !Opt->VoxDbgOut) {
+      char stmp[256];
+      sprintf(stmp,"%d.GP.dbg", Opt->VoxDbg);
+      Opt->VoxDbgOut = fopen(stmp,"w");
+   }
 
    RETURN(Opt);
 }
