@@ -198,7 +198,7 @@ SEG_OPTS *GenFeatureDist_Default(char *argv[], int argc)
    Opt->UseTmp = 1; 
    Opt->logp = 1;
    Opt->VoxDbg = -1;
-   Opt->VoxDbgOut = stdout;
+   Opt->VoxDbgOut = NULL;
    Opt->rescale_p = 1;
    Opt->openmp = 0;
    Opt->labeltable_name = NULL;
@@ -400,7 +400,13 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 		  		fprintf (stderr, "need filename after -vox_debug_file \n");
 				exit (1);
 			}
-			Opt->VoxDbgOut = fopen(argv[kar],"w");
+			if (!strcmp(argv[kar],"-")) {
+            Opt->VoxDbgOut = stdout;
+         } else if (!strcmp(argv[kar],"+")) {
+            Opt->VoxDbgOut = stderr;
+         } else {
+            Opt->VoxDbgOut = fopen(argv[kar],"w");
+         }
          brk = 1;
 		}      
       
@@ -606,7 +612,11 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    if (!Opt->xrefix) Opt->xrefix = strdup("./GenFeatureDistOut.x");
    if (!Opt->crefix) Opt->crefix = strdup("./GenFeatureDistOut.c");
    if (Opt->uid[0]=='\0') UNIQ_idcode_fill(Opt->uid);
-
+   if (Opt->VoxDbg > -1 && !Opt->VoxDbgOut) {
+      char stmp[256];
+      sprintf(stmp,"%d.GFD.dbg", Opt->VoxDbg);
+      Opt->VoxDbgOut = fopen(stmp,"w");
+   }
    SUMA_RETURN(Opt);
 }
 

@@ -307,7 +307,14 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 		  		fprintf (stderr, "need filename after -vox_debug_file \n");
 				exit (1);
 			}
-			Opt->VoxDbgOut = fopen(argv[kar],"w");
+			if (!strcmp(argv[kar],"-")) {
+            Opt->VoxDbgOut = stdout;
+         } else if (!strcmp(argv[kar],"+")) {
+            Opt->VoxDbgOut = stderr;
+         } else {
+            Opt->VoxDbgOut = fopen(argv[kar],"w");
+         }
+         
          brk = 1;
 		}      
       
@@ -859,6 +866,11 @@ SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    if (!Opt->xrefix) Opt->xrefix = strdup("./GenPriorsOut.x");
    if (!Opt->crefix) Opt->crefix = strdup("./GenPriorsOut.c");
    if (Opt->uid[0]=='\0') UNIQ_idcode_fill(Opt->uid);
+   if (Opt->VoxDbg > -1 && !Opt->VoxDbgOut) {
+      char stmp[256];
+      sprintf(stmp,"%d.dbg", Opt->VoxDbg);
+      Opt->VoxDbgOut = fopen(stmp,"w");
+   }
 
    RETURN(Opt);
 }

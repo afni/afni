@@ -15508,7 +15508,7 @@ NI_str_array *SUMA_NI_str_array(NI_str_array *clss, char *what, char *action)
    
    if (!what || !action) SUMA_RETURN(clss);
    if (!clss) {
-      clss = (NI_str_array *)NI_calloc(1,sizeof(NI_str_array ));
+      clss = (NI_str_array *)NI_calloc(1,sizeof(NI_str_array));
       clss->num = 0;
       clss->str = NULL;
    }
