@@ -314,8 +314,9 @@ runAna <- function(inData, dataframe, ModelForm, myRand, myStuff, tag) {
 
 		if (myStuff[[4]] > 0) {
 		   for (n in 1:myStuff[[4]]) { 
-		   con <- contrast(fm, myStuff[[5]][[n]][[1]], myStuff[[5]][[n]][[2]], type="average") 
-		   Stat[(myStuff[[2]]+2*n-1):(myStuff[[2]]+2*n)] <- c(con$Contrast, con$testStat)
+		   tag <- 0
+                   try(con <- contrast(fm, myStuff[[5]][[n]][[1]], myStuff[[5]][[n]][[2]], type="average"), tag<-1) 
+		   if(tag==0) Stat[(myStuff[[2]]+2*n-1):(myStuff[[2]]+2*n)] <- c(con$Contrast, con$testStat)
 	   }
 		}
 		if (myStuff[[6]] > 0) {
