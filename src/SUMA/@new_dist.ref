@@ -28,7 +28,7 @@ if ("$package" == "") then
       endif
       set jpega = 1
       set lpng = 1
-   else if ( "${thishost}" =~ airmog* ) then
+   else if ( "${thishost}" =~ airmog* || "${thishost}" =~ saruman* ) then
    	set bitset = 64
 	set b64 = '_64'
 	set package = macosx_10.7_Intel${b64}
@@ -196,7 +196,7 @@ else
 endif
 
 #gcc path
-if ("${thishost}" =~ airmog* ) then
+if ("${thishost}" =~ airmog* || "${thishost}" =~ saruman* ) then
 	sed 's:/usr/local/bin/gcc:/usr/bin/gcc:g' Makefile > ___mm
 	mv ___mm Makefile
 endif	
