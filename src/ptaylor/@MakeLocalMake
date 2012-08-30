@@ -53,13 +53,13 @@ if ( ! -f $mo) then
 endif
 
 #append the install dir and extra include
-set grepres = `\grep -nw '^ *INSTALLDIR' $tmp`
+set grepres = `\grep -n '^ *INSTALLDIR' $tmp`
 if ( "$grepres" == "") then 
    echo "Could not find INSTALLDIR"
    echo "Weird"
    goto END
 endif
-set idir = `\grep -w '^ *INSTALLDIR' Makefile | \
+set idir = `\grep  '^ *INSTALLDIR' Makefile | \
                cut -f 2 -d '=' | sed 's/^ *//g'`
 if ("${idir}" =~ /* || "${idir}" =~ '~*') then
    echo "Got full path ('${idir}'), good"
