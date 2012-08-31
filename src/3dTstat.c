@@ -61,8 +61,9 @@
 
 #define METH_ZCOUNT       34
 #define METH_NZMEDIAN     35   /* RCR 27 Jun 2012 */
+#define METH_SIGNED_ABSMAX 36  /* RCR 31 Aug 2012 */
 
-#define MAX_NUM_OF_METHS  36
+#define MAX_NUM_OF_METHS  37
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 4
@@ -89,7 +90,8 @@ static char *meth_names[] = {
    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
    "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
-   "CVarInv"       , "CvarInv (NOD)", "ZeroCount"
+   "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
+   "Signed Absmax"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -142,6 +144,7 @@ void usage_3dTstat(int detail)
  " -min       = compute minimum of input voxels [undetrended]\n"
  " -max       = compute maximum of input voxels [undetrended]\n"
  " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
+ " -signed_absmax = (signed) value with absolute maximum [undetrended]\n"
  " -argmin    = index of minimum of input voxels [undetrended]\n"
  " -argmin1   = index + 1 of minimum of input voxels [undetrended]\n"
  " -argmax    = index of maximum of input voxels [undetrended]\n"
@@ -414,6 +417,12 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-absmax") == 0 ){
          meth[nmeths++] = METH_ABSMAX ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-signed_absmax") == 0 ){
+         meth[nmeths++] = METH_SIGNED_ABSMAX ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -989,6 +998,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       case METH_OFFSET:
       case METH_DURATION:
       case METH_ABSMAX:
+      case METH_SIGNED_ABSMAX:
       case METH_ARGMAX:
       case METH_ARGMAX1:
       case METH_ARGABSMAX:
@@ -997,7 +1007,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       case METH_CENTDURATION:
       case METH_CENTROID:{
          register int ii, outdex=0 ;
-         register float vm=ts[0] ;
+         register float vm=ts[0];
          if ( (meth[meth_index] == METH_ABSMAX) ||
                (meth[meth_index] == METH_ARGABSMAX) ||
                (meth[meth_index] == METH_ARGABSMAX1)  ) {
@@ -1005,6 +1015,16 @@ static void STATS_tsfunc( double tzero, double tdelta ,
            for( ii=1 ; ii < npts ; ii++ ) {
              if( fabs(ts[ii]) > vm ) {
                vm = fabs(ts[ii]) ;
+               outdex = ii ;
+             }
+           }
+         } else if ( meth[meth_index] == METH_SIGNED_ABSMAX ) {
+           /* for P Hamilton    31 Aug 2012 [rickr] */
+           register float avm=fabs(vm);
+           for( ii=1 ; ii < npts ; ii++ ) {
+             if( fabs(ts[ii]) > avm ) {
+               vm = ts[ii] ;
+               avm = fabs(vm) ;
                outdex = ii ;
              }
            }
@@ -1019,6 +1039,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
        switch( meth[meth_index] ){
             default:
             case METH_ABSMAX:
+            case METH_SIGNED_ABSMAX:
             case METH_MAX:
                val[out_index] = vm ;
             break;
