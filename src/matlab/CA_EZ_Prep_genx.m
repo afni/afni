@@ -252,9 +252,10 @@ end
       fprintf(fidc, '<ATLAS_POINT\n');
       fprintf(fidc, '  data_type="atlas_point"\n');
       fprintf(fidc, '  STRUCT="%s"\n',deblank(MapMPM(i).name));
-% Note intensity value is GV+1 now, not GV as it has been in the past!
-      fprintf(fidc, '  VAL="%d"\n',MapMPM(i).GV+1);
-      fprintf(fidc, '  OKEY="%d"\n',MapMPM(i).GV+1);
+% Note intensity value is back to GV as it had been in the past!
+%  scaleslope factor in NIFTI dataset is used and needs to be rounded off properly
+      fprintf(fidc, '  VAL="%d"\n',MapMPM(i).GV);
+      fprintf(fidc, '  OKEY="%d"\n',MapMPM(i).GV);
       fprintf(fidc, '  GYoAR="0"\n');
       fprintf(fidc, '  COG="0.0 0.0 0.0"\n');
       fprintf(fidc, '  />\n\n');
