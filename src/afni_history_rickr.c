@@ -51,7 +51,7 @@ afni_history_struct rickr_history[] = {
 
  { 31, AUG, 2012, RCR, "3dTstat", MINOR, TYPE_NEW_OPT,
    "added option -signed_absmax",
-   "Requested by P \"AFNI Padawan Learner\" Hamilton."
+   "Requested by P Hamilton."
  } ,
 
  { 30, AUG, 2012, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
