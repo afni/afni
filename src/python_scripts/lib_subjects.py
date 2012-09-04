@@ -1035,8 +1035,9 @@ class SubjectList(object):
          sfunc = self.make_anova3_t5_set_list
 
       # command and first set of subject files
-      cmd += '3dANOVA3 -type %d \\\n' \
-             '%s' % (atype, sfunc(bsubs, subjlists, factors, indent))
+      cstr = sfunc(bsubs, subjlists, factors, indent)
+      if cstr == None: return None
+      cmd += '3dANOVA3 -type %d \\\n' '%s' % (atype, cstr)
 
       if len(options) > 0: cmd += '%*s%s \\\n' % (indent,'', ' '.join(options))
       else:     # add some basic options
@@ -1424,7 +1425,7 @@ class SubjectList(object):
       for ilist, slist in enumerate(subjlists):
          if len(slist.subjects) != slen0:
             print '** subject list %d length differs from SL 1 (%d != %d)\n'\
-                  (ilist+1, len(slist.subjects), slen0)
+                  % (ilist+1, len(slist.subjects), slen0)
             errs += 1
          sdir = slist.common_dname
 
