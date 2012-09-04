@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 4, SEP, 2012, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added option -regress_ROI",
+   "This allows for tissue-based regression, with ROI averages from any of:\n"
+   "     brain (from full_mask), GM, WM and CSF (from Classes_resam)\n"
+   "The 'mask' block is required for all ROIs, and option -mask_segment_anat\n"
+   "is required for the latter 3."
+ } ,
+
  { 4, SEP, 2012, RCR, "gen_group_command.py", MICRO, TYPE_BUG_FIX,
    "fixed error message in case of different group sizes",
    "Error pointed out by Priyank."

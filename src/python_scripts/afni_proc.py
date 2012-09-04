@@ -354,9 +354,10 @@ g_history = """
     3.31 Aug 14, 2012:
         - match default class order for 3dSeg
         - copy labeltable into resampled dataset
+    3.32 Sep 04, 2012: added -regress_ROI, for tissue-based regression
 """
 
-g_version = "version 3.31, August 14, 2012"
+g_version = "version 3.32, September 4, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 May 2012"
@@ -412,7 +413,8 @@ class SubjProcSream:
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
-
+        self.volreg_prefix = ''         # prefix for volreg dataset ($run)
+                                        #   (using $subj and $run)
         self.mot_labs   = []            # labels for motion params
         # motion parameter file (across all runs)
         self.mot_file   = 'dfile_rall.1D' # either mot_default or mot_extern
@@ -805,9 +807,6 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_skip_first_outliers', 1, [],
                         helpstr="ignore outliers in first few TRs of each run")
 
-        self.valid_opts.add_opt('-regress_cormat_warnigns', 1, [],
-                        acplist=['yes','no'],
-                        helpstr="show cormat warnings from X-matrix (def: yes)")
         self.valid_opts.add_opt('-regress_fout', 1, [],
                         acplist=['yes','no'],
                         helpstr="output individual F-stats? (def: yes)")
@@ -882,6 +881,8 @@ class SubjProcSream:
                         helpstr='additional options directly to 3dREMLfit')
         self.valid_opts.add_opt('-regress_reml_exec', 0, [],
                         helpstr="execute 3dREMLfit command script")
+        self.valid_opts.add_opt('-regress_ROI', -1, [],
+                        helpstr="regress out known ROIs")
         self.valid_opts.add_opt('-regress_RONI', -1, [],
                         helpstr="1-based list of regressors of no interest")
 
