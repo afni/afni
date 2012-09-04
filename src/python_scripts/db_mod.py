@@ -1,8 +1,8 @@
 #!/usr/bin/env python
+import sys
 
 # whine about execution as a main program
 if __name__ == '__main__':
-   import sys
    print '** %s: not a main program' % sys.argv[0].split('/')[-1]
    sys.exit(1)
 
@@ -1067,6 +1067,7 @@ def db_cmd_volreg(proc, block):
     if block.opts.find_opt('-volreg_no_extent_mask'): do_extents = 0
 
     cur_prefix = proc.prefix_form_run(block)
+    proc.volreg_prefix = cur_prefix
     cstr   = '' # appended to comment string
     if dowarp or doe2a:
         # verify that we have someplace to warp to
@@ -1854,6 +1855,8 @@ def db_mod_mask(block, proc, user_opts):
     apply_uopt_to_block('-mask_type',         user_opts, block)
 
     proc.mask_epi = BASE.afni_name('full_mask%s$subj' % proc.sep_char)
+    # we have an EPI mask, add it to the roi_dict for optional regress_ROI
+    proc.roi_dict['brain'] = proc.mask_epi
     proc.mask = proc.mask_epi   # default to referring to EPI mask
 
     block.valid = 1
@@ -1992,13 +1995,13 @@ def mask_segment_anat(proc, block):
             '           -prefix %s\n\n'                     \
                % (proc.prev_prefix_form(1, view=1), proc.view, result.prefix)
 
-    cmd += '# and copy labeltable\n' \
+    cmd += '# and copy label table\n' \
             '3drefit -copytables Classes%s %s\n\n' % (proc.view, result.pv())
 
     proc.mask_classes = result
     
     for sc in sclasses:
-        proc.roi_dict[sc] = 'Classes_resam%s' % proc.view
+       proc.roi_dict[sc] = BASE.afni_name('Classes_resam%s' % proc.view)
 
     if OL.opt_is_yes(block.opts.find_opt('-mask_rm_segsy')):
        proc.rm_list.append('Segsy')
@@ -2337,6 +2340,8 @@ def db_mod_regress(block, proc, user_opts):
                   uopt.parlist
             errs += 1
 
+    apply_uopt_to_block('-regress_ROI', user_opts, block)  # 04 Sept 2012
+
     # times is one file per class
     uopt = user_opts.find_opt('-regress_stim_times')
     bopt = block.opts.find_opt('-regress_stim_times')
@@ -2669,12 +2674,7 @@ def db_mod_regress(block, proc, user_opts):
         else:    block.opts.add_opt(oname, 1, uopt.parlist, setpar=1)
 
     # maybe do bandpass filtering in the regression
-    oname = '-regress_bandpass'
-    uopt = user_opts.find_opt(oname)
-    bopt = block.opts.find_opt(oname)
-    if uopt:
-        if bopt: bopt.parlist = uopt.parlist
-        else:    block.opts.add_opt(oname, 1, uopt.parlist, setpar=1)
+    apply_uopt_to_block('-regress_bandpass', user_opts, block)
 
     # prepare to return
     if errs > 0:
@@ -2788,6 +2788,13 @@ def db_cmd_regress(proc, block):
     # bandpass?
     if block.opts.find_opt('-regress_bandpass'):
         err, newcmd = db_cmd_regress_bandpass(proc, block)
+        if err: return
+        if newcmd: cmd = cmd + newcmd
+
+    # ----------------------------------------
+    # gmean?  change to generic -regress_RONI
+    if block.opts.find_opt('-regress_ROI'):
+        err, newcmd = db_cmd_regress_ROI(proc, block)
         if err: return
         if newcmd: cmd = cmd + newcmd
 
@@ -3060,6 +3067,13 @@ def db_cmd_regress(proc, block):
 
     # done creating 3dDeconvolve command c3d, add to cmd string
     cmd += c3d
+
+    # maybe user just wants a 3dDeconvolve command script
+    if 0:
+       cfile = 'command.3dd.txt'
+       header = '#!/bin/tcsh\n\nset subj = %s\n\n' % proc.subj_id
+       UTIL.write_text_to_file(cfile, header+c3d, wrap=1, exe=1)
+       print '++ writing separate 3dDeconvolve script %s ...' % cfile
 
     # if 3dDeconvolve fails, terminate the script
     # (rcr - maybe just skip this in case of surfaces)
@@ -3504,6 +3518,64 @@ def db_cmd_regress_sfiles2times(proc, block):
     if proc.verb > 0: print '++ new stim list: %s' % proc.stims
 
     return cmd
+
+def db_cmd_regress_ROI(proc, block):
+    """remove any regressors of no interest
+
+        ** use orts for now, but change to simple regressors
+        ** just do global signal for now
+
+       return an error code (0=success) and command string
+    """
+
+    # maybe we shouldn't be here
+    oname = '-regress_ROI'
+    opt = block.opts.find_opt(oname)
+    if not opt: return 0, ''
+    rois = opt.parlist
+    if len(rois) == 0:
+       print '** have -regress_ROI but no ROIs provided'
+       return 1, ''
+
+    # report errors for any unknown ROIs (not in roi_dict)
+    keystr = ', '.join(proc.roi_dict.keys())
+    nerrs = 0
+    for roi in rois:
+        if not proc.roi_dict.has_key(roi):
+            if   roi == 'brain': estr='EPI automask requires mask block'
+            elif roi == 'GM'   : estr='gray matter requires -mask_segment_anat'
+            elif roi == 'WM'   : estr='white matter requires -mask_segment_anat'
+            elif roi == 'CSF'  : estr='requires -mask_segment_anat'
+            else               : estr = 'not a known ROI'
+            print "** ROI '%s' : %s" % (roi, estr)
+            nerrs += 1
+    if nerrs:
+        if keystr == '': keystr = 'NONE'
+        print '-- currently known ROIs include: %s' % keystr
+        return 1, ''
+
+    if len(rois) > 1:
+          cmd = '# create %d ROI regressors: %s\n' % (len(rois), keystr)
+    else: cmd = '# create ROI regressor: %s\n' % keystr
+
+    cmd += 'foreach run ( $runs )\n'
+    for roi in rois:
+        mset = proc.roi_dict[roi]
+        # maybe we need a label table value selector
+        if roi in ['GM', 'WM', 'CSF']: substr = '"<%s>"' % roi
+        else:                          substr = ''
+        cmd += '    3dmaskave -quiet -mask %s%s %s%s > rm.ROI.%s.r$run.1D\n' \
+               % (mset.pv(), substr, proc.volreg_prefix, proc.view, roi)
+    cmd += 'end\n'
+
+    for roi in rois:
+        rname = 'ROI.%s' % roi
+        rfile = '%s_rall.1D' % rname
+        cmd += 'cat rm.%s.r*.1D > %s\n' % (rname, rfile)
+        proc.regress_orts.append([rfile, rname])
+    cmd += '\n'
+
+    return 0, cmd
 
 def db_cmd_regress_bandpass(proc, block):
     """apply bandpass filtering in 3dDeconvolve
@@ -4631,6 +4703,37 @@ g_help_string = """
                         -regress_apply_mot_types demean deriv               \\
                         -regress_run_clustsim no                            \\
                         -regress_est_blur_errts
+
+       10. Resting state analysis, with tissue-based regressors.
+
+           Like example #9, but also regress global mean, white mater and
+           CSF averages.  The GM regressor comes from the full_mask dataset,
+           while WM and CSF signals come from Classes, created by 3dSeg via
+           the -mask_segment_anat option.
+
+           So the GM regressor (called 'brain' for its mask) only requires the
+           mask processing block, while WM, CSF (and optionally GM) require
+           the additional -mask_segment_anat option.
+
+           To specify tissue-based regressors, use -regress_ROI with known
+           mask classes (currently brain, GM, WM,CSF).
+                
+                afni_proc.py -subj_id subj123                               \\
+                        -dsets epi_run1+orig.HEAD                           \\
+                        -copy_anat anat+orig                                \\
+                        -blocks despike align tlrc volreg blur mask regress \\
+                        -tcat_remove_first_trs 3                            \\
+                        -volreg_align_e2a                                   \\
+                        -volreg_tlrc_warp                                   \\
+                        -mask_segment_anat yes                              \\
+                        -regress_censor_motion 0.2                          \\
+                        -regress_censor_outliers 0.1                        \\
+                        -regress_bandpass 0.01 0.1                          \\
+                        -regress_apply_mot_types demean deriv               \\
+                        -regress_ROI brain WM CSF                           \\
+                        -regress_run_clustsim no                            \\
+                        -regress_est_blur_errts
+
 
     --------------------------------------------------
     -ask_me EXAMPLES:
@@ -7196,6 +7299,26 @@ g_help_string = """
             3dREMLfit command script, apply -regress_3dD_stop.
 
             See also -regress_3dD_stop.
+
+        -regress_ROI R1 R2 ... : specify a list of mask averages to regress out
+
+                e.g. -regress_RONI brain WM CSF
+
+            Use this option to regress out one more more tissue-based ROI
+            averages.  Currently known ROIs include:
+
+                name    description     source dataset    creation program
+                -----   --------------  --------------    ----------------
+                brain   EPI brain mask  full_mask         3dAutomask
+                CSF     CSF             Classes_resam     3dSeg
+                GM      gray matter     Classes_resam     3dSeg
+                WM      white matter    Classes_resam     3dSeg
+
+            Note: use of this option requires the 'mask' processing block
+            Note: use of CSF, GM, or WM additionally require -mask_segment_anat
+
+            See also -mask_segment_anat.
+            Please see '3dSeg -help' for motion information on the masks.
 
         -regress_RONI IND1 ...  : specify a list of regressors of no interest
 
