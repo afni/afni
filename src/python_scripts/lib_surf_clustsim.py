@@ -444,6 +444,7 @@ class SurfClust(object):
 
    def script_do_3dv2s(self, indent=3):
       istr = ' '*indent
+      vv = self.LV.svset.view
 
       clist = [ '# map noise voxels to surface domain\n',
                 self.LV.time_str,
@@ -451,7 +452,7 @@ class SurfClust(object):
                 '           -surf_A $surfA                         \\\n',
                 '           -surf_B $surfB                         \\\n',
                 '           -sv $surf_vol                          \\\n',
-                '           -grid_parent vol.noise.$iter+orig      \\\n',
+                '           -grid_parent vol.noise.$iter%s      \\\n' % vv,
                 '           -map_func $map_func                    \\\n',
                 '           -f_steps $nsteps                       \\\n',
                 '           -f_index nodes                         \\\n',
@@ -579,10 +580,12 @@ class SurfClust(object):
          #       (for getting the node count, avoid SurfMeasures or any other
          #       program that uses -sv)
          self.LV.svol  = U.surf_vol
+         self.LV.svset = BASE.afni_name(self.LV.svol)
          self.LV.vmask = U.vol_mask
          self.LV.spec  = U.spec_file
       else:
          self.LV.svol  = '$top_dir/%s' % self.LV.short_names[0][0]
+         self.LV.svset = BASE.afni_name(self.LV.svol)
          self.LV.spec  = '$top_dir/%s' % self.LV.short_names[0][1]
          if self.cvars.val('on_surface') != 'yes':
             self.LV.vmask = '$top_dir/%s' % self.LV.short_names[0][2]
