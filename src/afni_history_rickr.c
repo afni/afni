@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 4, SEP, 2012, RCR, "gen_group_command.py", MICRO, TYPE_BUG_FIX,
+   "fixed error message in case of different group sizes",
+   "Error pointed out by Priyank."
+ } ,
+
  { 31, AUG, 2012, RCR, "3dTstat", MINOR, TYPE_NEW_OPT,
    "added option -signed_absmax",
    "Requested by P Hamilton."

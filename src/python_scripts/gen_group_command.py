@@ -27,6 +27,10 @@ gen_group_command.py    - generate group commands: 3dttest++, 3dMEMA,
 
    If -write_script is not given, the command is written to stdout.
 
+   ** NOTE: this program expects one dataset per subject.  Single condition
+            volumes are accessed using sub-brick selectors via -subs_betas 
+            and possbily -subs_tstats.
+
 ------------------------------------------
 examples (by program)
 
@@ -362,7 +366,11 @@ required parameters:
                         -type 5: group x condition x subject
 
    -dsets   datasets ...     : list of datasets
-                                  (this option can be used more than once)
+
+        Each use of this option essentially describes one group of subjects.
+        All volumes for a given subject should be in a single dataset.
+
+        This option can be used multiple times, once per group.
 
 other options:
 
@@ -507,9 +515,10 @@ g_history = """
         - added commands 3dANOVA2 and 3dANOVA3
         - added -factors for 3dANOVA3 -type 4
    0.7  Jun 25, 2012    - added help for -factors and 3dANOVA3 -type 4 examples
+   0.8  Sep 04, 2012    - fixed error message
 """
 
-g_version = "gen_group_command.py version 0.7, June 25, 2011"
+g_version = "gen_group_command.py version 0.8, September 4, 2012"
 
 
 class CmdInterface:
