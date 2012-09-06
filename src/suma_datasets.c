@@ -10936,7 +10936,7 @@ NI_group *SUMA_NI_Cmap_of_Dset(SUMA_DSET *dset)
             }
             break ;
          case NI_ELEMENT_TYPE:
-            nel = (NI_element *)ngr->part[ip] ;
+            nel = (NI_element *)dset->ngr->part[ip] ;
             break;
          default:
             SUMA_SL_Err("Don't know what to make of this group element\n"
