@@ -2051,7 +2051,7 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
    if (argtc > 0) {
       if (!SUMA_DriveSuma_ParseCommon(ngr, argtc, argt)) {
          SUMA_S_Err("Failed to parse common options.\n");
-         NI_free(ngr); ngr = NULL;
+         NI_free_element(ngr); ngr = NULL;
          SUMA_RETURN(ngr);
       }
    }
@@ -2069,7 +2069,7 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
                   "Option %s not understood or not valid for command %s.\n"
                   " Try -help for usage\n",
                FuncName, argt[kar], NI_get_attribute(ngr, "Command"));
-			NI_free(ngr); ngr = NULL;
+			NI_free_element(ngr); ngr = NULL;
          SUMA_RETURN(ngr);
 		} else {	
 			brk = NOPE;

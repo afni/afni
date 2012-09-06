@@ -369,7 +369,9 @@ char *SUMA_label_variable(char *label, char c);
 char *SUMA_label_conditional(char *label, char c);
 NI_str_array * SUMA_dists_featureset(SUMA_FEAT_DISTS *FDV);
 NI_str_array * SUMA_dists_classset(SUMA_FEAT_DISTS *FDV);
-char *SUMA_hist_fname(char *proot, char *variable, char *conditional);
+char *SUMA_hist_fname(char *proot, char *variable, char *conditional, 
+                      int withext);
+char *SUMA_corrmat_fname(char *proot, char *conditional, int withext);
 SUMA_FEAT_DIST *SUMA_find_feature_dist(SUMA_FEAT_DISTS *FDV, 
                                        char *label, char *feature, char *class,
                                        int *ifind);

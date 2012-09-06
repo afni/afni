@@ -2668,6 +2668,73 @@ char *SUMA_StringDiff(char *s1, char *s2)
    RETURN(sd);
 } 
 
+/*!
+   Return a string that contains matching
+   characters between s1 and s2
+   s1 and s2 are switched in the function so that
+   s1 is always the longest of the two
+   firstdiff: if 1, then stop at the firt difference
+   filler : if filler != '\0' then fill differing spots with 'filler'
+            Otherwise differing characters are dropped from the output.
+*/
+char *SUMA_StringMatch(char *s1, char *s2, int firstdiff, char filler) 
+{
+   static char FuncName[]={"SUMA_StringMatch"};
+   char *sm=NULL;
+   int ns1=0, ns2=0, ns=0, i;
+   SUMA_Boolean LocalHead = NOPE;
+  
+   SUMA_ENTRY;
+    
+   SUMA_LHv("Will match on %p and %p\n", s1, s2);
+   if (!s1 && !s2) {
+      SUMA_RETURN(sm);
+   }
+   if (!s1 && s2) {
+      SUMA_RETURN(sm);
+   }
+   if (s1 && !s2) {
+      SUMA_RETURN(sm);
+   }
+   ns1 = strlen(s1);
+   ns2 = strlen(s2);
+   if (ns1 < ns2) {
+      sm = s1; ns = ns1;
+      s1 = s2;
+      s2 = sm; sm = NULL;
+      ns1 = ns2;
+      ns2 = ns; ns = 0;
+   }
+   
+   /* OK, have s1, and s2, and s1 is the longest */
+   sm = (char *)calloc(ns1+1, sizeof(char));
+   ns = 0;
+   for (i=0; i < ns2; ++i) {
+      if (s1[i] != s2[i]) {
+         if (firstdiff) {
+            sm[ns] = '\0'; 
+            RETURN(sm);
+         } else {
+            if (filler != '\0') {
+               sm[ns] = filler; ++ns;
+            }
+         }
+      } else {
+         sm[ns]=s1[i];++ns;
+      }
+   }
+   if (filler != '\0') {
+      for (i=ns2; i < ns1; ++i) {
+         sm[ns]=filler;++ns;
+      }
+   }
+   sm[ns]='\0';
+   
+   SUMA_LHv("Match of %s and %s (firstdiff=%d, filler=%c) is\n%s\n",
+               s1, s2, firstdiff, filler, sm);
+   RETURN(sm);
+} 
+
 
 /*!
    \brief case insensitive version of SUMA_iswordin 

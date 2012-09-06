@@ -149,14 +149,14 @@ plot.1D.demo.str <- function(demo=0) {
                col.nozeros=TRUE, 
                col.grp=c(rep(1,2), rep(2,1)), 
                col.ystack=FALSE, grp.label=c('CSF', 'GM'),
-               oneplot=TRUE,
+               plotmode=1,
                prefix = 't3.jpg', verb = 1)"
    }else if (demo==4) {
       s <- "plot.1D( dmat = plot.1D.testmat(100, 3), 
                col.nozeros=TRUE, 
                col.grp=c(rep(1,2), rep(2,1)), 
                col.ystack=FALSE, grp.label=c('CSF', 'GM'),
-               oneplot=TRUE, leg.show = TRUE,
+               plotmode=1, leg.show = TRUE,
                prefix = 't4.jpg', verb = 1)"
    }else {
       err.AFNI("No such demo")
@@ -319,6 +319,7 @@ plot.1D.optlist <- function(...) {
             col.grp = NULL, col.ystack=FALSE, col.nozeros=FALSE, 
             col.name=NULL, col.name.show=FALSE, 
             col.name.x=NULL, col.name.y=NULL,
+            row.name=NULL,
             col.color = NULL, col.plot.char=NULL,
             col.plot.type ='l', col.line.type = 1, col.line.width=3,
             col.mean.line=FALSE,
@@ -326,7 +327,7 @@ plot.1D.optlist <- function(...) {
             ttl.main=NULL, ttl.main.fontsize = 10,
             ttl.sub=NULL, ttl.sub.fontsize = 10,
             prefix = NULL, showval=FALSE, save.Rdat=FALSE,
-            nodisp = FALSE, oneplot = FALSE, boxtype = 'n', multi.ncol=2,
+            nodisp = FALSE, plotmode = 2, boxtype = 'n', multi.ncol=2,
             NAval = 0, NANval = 0,
             colorset = seq(1,20),
             xax.lim=NULL, xax.step = NULL, xax.label=NULL, xax.tic.text = NULL, 
@@ -418,8 +419,8 @@ plot.1D.optlist <- function(...) {
                ll$multi.ncol <- 1
             if (!is.null(ll$col.ystack) && is.na(ll$col.ystack)) 
                ll$col.ystack <- TRUE
-            if (!is.null(ll$oneplot) && is.na(ll$oneplot)) 
-               ll$oneplot <- TRUE
+            if (!is.null(ll$plotmode) && is.na(ll$plotmode)) 
+               ll$plotmode <- 1
             if (!is.null(ll$col.text.lym) && is.na(ll$col.text.lym)) 
                ll$col.text.lym <- 'COL.NAME'
             if (!is.null(ll$col.text.rym) && is.na(ll$col.text.rym)) 
@@ -427,7 +428,7 @@ plot.1D.optlist <- function(...) {
          }
       } else { #Try information from dmat's attributes
         if (!is.null(nm <- attr(ll$dmat,"name"))) {
-           if (attr(ll$dmat,"name") == '3dhistog') {
+           if (attr(ll$dmat,"name") == '3dhistog' ) {
               if (dim(ll$dmat)[2] == 3) { 
                   #Don't go here if users send in a partial file
                   #like hist.1D[1,2]
@@ -439,7 +440,38 @@ plot.1D.optlist <- function(...) {
                      ll$xax.label <- colnames(ll$dmat)[1]
               }
            }
-        }   
+        }
+        if (!is.null(nm <- attr(ll$dmat,"name"))) {
+           if (attr(ll$dmat,"name") == 'seg_histogram' ) {
+              if (dim(ll$dmat)[2] == 3) { 
+                  #Don't go here if users send in a partial file
+                  #like hist.1D[1,2]
+                 if (!is.null(ll$dmat.xval) && is.na(ll$dmat.xval)) 
+                     ll$dmat.xval <- ll$dmat[,1]
+                 if (!is.null(ll$dmat.colsel) && is.na(ll$dmat.colsel)) 
+                     ll$dmat.colsel <- c(3) #Don't bother with non-normalized
+                 if (!is.null(ll$xax.label) && is.na(ll$xax.label)) 
+                    if (!is.null(attr(ll$dmat,"xlabel"))) {
+                        ll$xax.label <- attr(ll$dmat,"xlabel")
+                    } else {
+                       ll$xax.label <- colnames(ll$dmat)[1]
+                    }
+              }
+           }
+        } 
+        if (!is.null(nm <- attr(ll$dmat,"name"))) {
+           if (attr(ll$dmat,"name") == '3ddot' ||
+               length(grep('CorrMat',attr(ll$dmat,"name"))) ) {
+              if (dim(ll$dmat)[2] == dim(ll$dmat)[1] ) { 
+                 if (!is.null(ll$plotmode) && is.na(ll$plotmode)) 
+                    ll$plotmode <- 3
+                 if (!is.null(ll$row.name) && is.na(ll$row.name))
+                    ll$row.name <- colnames(ll$dmat)
+              }
+           }
+        }
+         
+           
       }
       #Now, apply all defaults for what remains uninitialized
       for (i in 1:length(ll)) 
@@ -714,6 +746,10 @@ plot.1D.eng <- function (P) {
       P$col.name <- colnames(P$dmat)
    }
    
+   if (is.null(P$row.name)) {
+      P$row.name <- rownames(P$dmat)
+   }
+   
    if (P$col.name.show && is.null(P$col.name)) {
       err.AFNI("Want to show col.name but cannot find column names")
       return(0);
@@ -805,17 +841,17 @@ plot.1D.eng <- function (P) {
    }
    
    #Check if possible to do multi graph
-   if (!P$oneplot && length(P$dmat.colsel) > 10) {
+   if (P$plotmode == 2 && length(P$dmat.colsel) > 10) {
       warn.AFNI(paste("Too many columns for multi plots.\n",
                "Maximum allowed is 10, have ",length(P$dmat.colsel),"\n",
-               "Reverting to one plot mode"));
-      P$oneplot <- TRUE
+               "Reverting to one plot mode. Consider matrix mode."));
+      P$plotmode <- 1
    }
    
    #Also, multiplot does not behave well, meaning it does not call the 
-   #panel function if it is plotting just one colum, so force oneplot
+   #panel function if it is plotting just one colum, so force plotmode
    #for single column selections
-   if (length(P$dmat.colsel)==1) P$oneplot <- TRUE
+   if (length(P$dmat.colsel)==1) P$plotmode <- 1
    
    #Set Offset flag
    if (!is.null(P$col.ystack)) {
@@ -835,7 +871,7 @@ plot.1D.eng <- function (P) {
    }
 
    #Make sure col.ystack is allowed
-   if (!P$oneplot || length(P$dmat.colsel) == 1) {
+   if (P$plotmode != 1 || length(P$dmat.colsel) == 1) {
       if (P$col.ystack[1]) {
          note.AFNI("Stacking ignored, either multiplot or single column", 
                      callstr='');
@@ -914,7 +950,7 @@ plot.1D.eng <- function (P) {
       }
    }
    
-   if (P$oneplot) {
+   if (P$plotmode == 1) {
       if (P$verb) note.AFNI("Singleplotmode");
       tp = 'single'
       par(bty=P$boxtype)
@@ -1045,7 +1081,25 @@ plot.1D.eng <- function (P) {
                las=2, adj=0)
          par(ps = opar$ps)
       }
-   } else {
+   } else if (P$plotmode == 3) { # An image 
+      if (P$verb) note.AFNI("Matrix Mode");
+      if (is.null(P$col.name)) 
+         multinames <- paste('Series', P$dmat.colsel-1, sep='')       
+      else multinames <- P$col.name[P$dmat.colsel]
+      if (!is.null(P$row.name)) {
+         multirownames <- P$row.name 
+      } else multirownames <- paste('Row', P$dmat.colsel-1, sep='')    
+      
+      set.plot.1D.global.P(P)
+      colnames(P$mat2plt) <- multinames
+      rownames(P$mat2plt) <- multirownames
+      #Someday should compute margin width as a function of 
+      #row and col name lengths. For now, using oma which is
+      #in unit of lines. See also omi and omd
+      matrix.AFNI.show(P$mat2plt);
+      thisplot <- dev.cur()
+      P <- get.plot.1D.global.P()
+   } else if (P$plotmode == 2){
       if (P$verb) note.AFNI("Multiplotmode");
       tp = 'multiple'
       
@@ -1067,8 +1121,7 @@ plot.1D.eng <- function (P) {
          pch=P$col.plot.char[P$dmat.colsel]) 
       thisplot <- dev.cur()
       P <- get.plot.1D.global.P()
-   }
-   
+   }    
    if (P$grid.show) {
       grid()
    }
@@ -1207,7 +1260,7 @@ make.col.map <- function (fids=NULL, ncols=32, hex=FALSE) {
          }
       }
       #browser()
-      m[,j] <- r[1:ncols]
+      m[,j] <- r[ncols:1]
    }
    if (hex) m <- rgb(m)
    return(m)
@@ -1225,6 +1278,7 @@ matrix.AFNI.show <- function(x, ...){
      tt <- NULL
      xt <- NULL
      yt <- NULL
+     oma <- NULL
   # check for additional function arguments
   if( length(list(...)) ){
     Lst <- list(...)
@@ -1271,8 +1325,8 @@ matrix.AFNI.show <- function(x, ...){
          }
       }
     }
-    
   }
+  
 # check for null values
 if( is.null(xLabels) ){
    xLabels <- c(1:ncol(x))
@@ -1284,9 +1338,9 @@ if( is.null(yLabels) ){
 layout(matrix(data=c(1,2), nrow=1, ncol=2), widths=c(4,1), heights=c(1,1))
 
  # Red and green range from 0 to 1 while Blue ranges from 1 to 0
- ColorRamp <- rgb( seq(0,1,length=256),  # Red
-                   seq(0,1,length=256),  # Green
-                   seq(1,0,length=256))  # Blue
+ #ColorRamp <- rgb( seq(0,1,length=256),  # Red
+ #                  seq(0,1,length=256),  # Green
+ #                  seq(1,0,length=256))  # Blue
  ColorRamp <- make.col.map(ncols=256,hex=TRUE)
  ColorLevels <- seq(min, max, length=length(ColorRamp))
 
@@ -1297,6 +1351,12 @@ layout(matrix(data=c(1,2), nrow=1, ncol=2), widths=c(4,1), heights=c(1,1))
 
  # Data Map
  par(mar = c(3,5,2.5,2))
+   
+ #Adjust margins to accommodate width of strings
+   wwwc <- max(c(strwidth(colnames(x), 'inches')-0.8,0))
+   wwwr <- max(c(strwidth(rownames(x), 'inches')-1.2,0))
+   par(omi = c(wwwc, wwwr,0,0))
+   
  image(1:length(xLabels), 1:length(yLabels), t(x), col=ColorRamp, xlab="",
  ylab="", axes=FALSE, zlim=c(min,max))
  if( !is.null(title) ){

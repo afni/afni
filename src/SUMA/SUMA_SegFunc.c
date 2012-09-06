@@ -101,7 +101,8 @@ char *SUMA_label_conditional(char *label, char c)
 /*
    return histogram filename for a certain variable and conditional
 */
-char *SUMA_hist_fname(char *proot, char *variable, char *conditional)
+char *SUMA_hist_fname(char *proot, char *variable, char *conditional, 
+                      int withext)
 {
    static char cls[10][256];
    static int ii=0;
@@ -112,7 +113,26 @@ char *SUMA_hist_fname(char *proot, char *variable, char *conditional)
    cls[ii][0]='\0'; cls[ii][255]='\0';
    snprintf(cls[ii], 255, "%s/h.%s-G-%s",
                proot, variable, conditional);
-               
+   if (withext) {
+      strncat(cls[ii],".niml.hist", 255);
+   }            
+   return(cls[ii]);
+}
+
+char *SUMA_corrmat_fname(char *proot, char *conditional, int withext)
+{
+   static char cls[10][256];
+   static int ii=0;
+   int j,k;
+   
+   if (!proot) return(NULL);
+   ++ii; if (ii>9) ii = 0;
+   cls[ii][0]='\0'; cls[ii][255]='\0';
+   snprintf(cls[ii], 255, "%s/C.%s",
+               proot, conditional);
+   if (withext) {
+      strncat(cls[ii],".niml.cormat", 255);
+   }             
    return(cls[ii]);
 }
 
@@ -459,7 +479,7 @@ NI_group *SUMA_hist_To_NIhist(SUMA_HIST *hh)
       NI_set_attribute(ngr,"class", class);
    }
    #endif
-   nel = NI_new_data_element("histogram", hh->K);
+   nel = NI_new_data_element("seg_histogram", hh->K);
    NI_add_to_group(ngr, nel);
    NI_SET_FLOAT(nel,"window",hh->W);
    NI_SET_FLOAT(nel,"min", hh->min);
@@ -468,7 +488,9 @@ NI_group *SUMA_hist_To_NIhist(SUMA_HIST *hh)
    NI_add_column(nel, NI_FLOAT, hh->b);
    NI_add_column(nel, NI_INT, hh->c);
    NI_add_column(nel, NI_FLOAT, hh->cn);
-   
+      /* forgive the redundancy, need it to facilitate plot in R
+         without much group handling */
+   NI_set_attribute(nel, "xlabel", hh->label?hh->label:"MrEd");
    SUMA_RETURN(ngr);   
 }
 
@@ -481,7 +503,11 @@ SUMA_HIST *SUMA_NIhist_To_hist(NI_group *ngr)
    SUMA_ENTRY;
    
    if (!ngr) SUMA_RETURN(hh);
-   nel = SUMA_FindNgrNamedElement(ngr,"histogram");
+   nel = SUMA_FindNgrNamedElement(ngr,"seg_histogram");
+   if (!nel) {
+      /* try the old name */
+      nel = SUMA_FindNgrNamedElement(ngr,"histogram");
+   }
    if (!nel) SUMA_RETURN(hh);
    
    hh = (SUMA_HIST *)SUMA_calloc(1,sizeof(SUMA_HIST));
@@ -976,7 +1002,7 @@ int p_cv_GIV_afu (SEG_OPTS *Opt, char *feat,
       if (IN_MASK(Opt->cmask, j)) {
          d[j] = dd[j]/d[j]; 
          if (j == Opt->VoxDbg) {
-            fprintf(Opt->VoxDbgOut,"   p(c=%s|a(%s)=%f)=%f\n",
+            fprintf(Opt->VoxDbgOut,"   p(c=%s|%s=%f)=%f\n",
                                   cls, feat, THD_get_voxel(Opt->sig, j, ifeat), 
                                   d[j]);
          }
@@ -1009,9 +1035,9 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
    static char FuncName[]={"p_cv_GIV_A"};
    char fpref[256]={""};
    double pf= 32767.0; /* max p is 1, so stick with this */
-   static double *d=NULL;
+   static double *d=NULL, ddd=0.0, wfeat;
    static int init=0;
-   int i, j;
+   int i, j, icls;
    short *a=NULL;
    static THD_3dim_dataset *pcgrec=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -1048,9 +1074,14 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
       SUMA_RETURN(0);
    }
    memset(dr, 0, DSET_NVOX(Opt->sig)*sizeof(double));
-   
+   if ((icls = SUMA_NI_str_array_find(cls, Opt->clss, 0, 0)) < 0) {
+      SUMA_S_Errv("Failed to find class %s !!!\n", cls);
+      SUMA_RETURN(0);
+   } 
    SUMA_LH("Looping over features");
    for (i=0; i<Opt->feats->num; ++i) {
+      if (Opt->feat_exp) wfeat = Opt->feat_exp[icls][i];
+      else wfeat= 0.0;
       if (Opt->debug > 1)  
          INFO_message("Calling p_cv_GIV_afu %d/%d", i,Opt->feats->num);
       if (!(p_cv_GIV_afu(Opt, Opt->feats->str[i], cls, d))) {
@@ -1061,7 +1092,10 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
          /* stick the results in pcgrec and write it out */
          a = (short *)DSET_ARRAY(pcgrec,i);
          for (j=0; j<DSET_NVOX(Opt->sig); ++j) {
-            a[j] = (short)(pf*(d[j]+MINP));
+            ddd = d[j]+MINP;
+            if (wfeat > 0) ddd = pow(ddd,wfeat);
+            if (ddd>1.0) a[j]=(short)pf;
+            else a[j] = (short)(pf*(ddd));
          }
          EDIT_BRICK_FACTOR(pcgrec, i,1.0/pf);
          sprintf(fpref, "p(c=%s|a(%s))", cls, Opt->feats->str[i]);
@@ -1082,7 +1116,8 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
             #else
                /* better just add MINP to all probs Aug. 2012*/
                d[j] += MINP; if (d[j]>1.0) d[j] = 1.0;
-               dr[j] = dr[j] + log(d[j]);
+               if (wfeat>0) dr[j] = dr[j] + wfeat*log(d[j]);
+               else dr[j] = dr[j] + log(d[j]);
             #endif
          } else {
             dr[j] = 0.0;

@@ -707,7 +707,7 @@ void SUMA_dot_product_CB( void *params)
       This way I'll know if this function 
       is being called repeatedly by mistake*/
    if (nelts) {
-      NI_remove_from_group(ngr, nelts); NI_free(nelts); nelts = NULL;
+      NI_remove_from_group(ngr, nelts); NI_free_element(nelts); nelts = NULL;
    }
    
    

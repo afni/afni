@@ -806,12 +806,12 @@ int main(int argc, char **argv)
       DSET_delete(Opt->samp); Opt->samp=NULL;
    } /* loop across all subjects */
    
+   /* Compute histograms && save them*/
    hh = (SUMA_HIST ***)SUMA_calloc(Opt->feats->num, sizeof(SUMA_HIST **));
    for (i=0; i<Opt->feats->num; ++i) {
       hh[i] = (SUMA_HIST **)SUMA_calloc(Opt->clss->num, sizeof(SUMA_HIST *));
    }
-   
-   /* Compute histograms && save them*/
+  
    SUMA_S_Note("Computing histograms");
    for (j=0; j<Opt->clss->num; ++j) {
       if (N_ffv[0][j] < 10) {
@@ -829,18 +829,71 @@ int main(int argc, char **argv)
                         Opt->feats->str[i], Opt->clss->str[j])
          } else {
             if (Opt->debug > 1) SUMA_Show_hist(hh[i][j], 1, NULL);
-            /* save it */
+            /* save the histogram */
             if (!SUMA_write_hist(hh[i][j],
                      SUMA_hist_fname(Opt->proot, 
-                                    Opt->feats->str[i], Opt->clss->str[j]))) {
+                                    Opt->feats->str[i], Opt->clss->str[j], 0))) {
                SUMA_S_Errv("Failed to write histog to %s\n", sbuf);
             } 
          }
       }
    }
    
-   /* save the histograms */
+   SUMA_S_Note("Computing Correlation matrices");
+   /* L2 normalize all of ffv */
+   for (j=0; j<Opt->clss->num; ++j) {
+      for (i=0; i<Opt->feats->num; ++i) {
+         THD_normalize(N_ffv[i][j], ffv[i][j]);
+      }
+   }
    
+   {
+      NI_element **CC=NULL;
+      float *fm=NULL, *fn=NULL;
+      NI_element *nel = NULL;
+      int n, m, suc;
+      
+   /* Compute the correlation matrices for each class */
+   CC = (NI_element **) SUMA_calloc(Opt->clss->num, sizeof(NI_element *));
+   
+   for(j=0; j<Opt->clss->num; ++j) {
+      sprintf(sbuf, "CorrMat(%s)", Opt->clss->str[j]);
+      CC[j] = NI_new_data_element(sbuf, Opt->feats->num);
+      NI_set_attribute(CC[j],"Measure","correlation");
+      atr = SUMA_NI_str_ar_2_comp_str(Opt->feats, " ; ");
+      NI_set_attribute(CC[j],"ColumnLabels", atr);SUMA_free(atr); atr = NULL;
+      atr = SUMA_HistString (FuncName, argc, argv, NULL);
+      NI_set_attribute(CC[j],"ComandLine", atr);SUMA_free(atr); atr = NULL;
+      for (i=0; i<Opt->feats->num; ++i) {
+         NI_add_column_stride ( CC[j], NI_FLOAT, NULL, 1 );
+      }
+      for (m=0; m<Opt->feats->num; ++m) {
+         fm = (float*)CC[j]->vec[m];
+         for (n=0; n<m; ++n) fm[n] = 0.0; /* will fill later */
+         fm[m]=1.0;
+         for (n=m+1; n<Opt->feats->num; ++n) {
+            if (N_ffv[m][j]!=N_ffv[n][j]) {
+               SUMA_S_Errv("Sanity check failed, %d != %d\n",
+                              N_ffv[m][j], N_ffv[n][j]);
+            }
+            SUMA_DOTP_VEC(ffv[m][j], ffv[n][j], fm[n], N_ffv[m][j], 
+                          float, float);
+         }
+      }
+      /* Now fill the remainder */
+      for (m=0; m<Opt->feats->num; ++m) {
+         fm = (float*)CC[j]->vec[m];
+         for (n=0; n<m; ++n) {
+            fn = (float*)CC[j]->vec[n];
+            fm[n] = fn[m];
+         }
+      }
+      snprintf(sbuf, 510, "file:%s.niml.cormat", 
+               SUMA_corrmat_fname(Opt->proot, Opt->clss->str[j], 0));
+      NEL_WRITE_TXH(CC[j], sbuf, suc);
+   }
+   
+   }
    /* free everything */
    if (ffv) {
       for (i=0; i<Opt->feats->num; ++i) {
