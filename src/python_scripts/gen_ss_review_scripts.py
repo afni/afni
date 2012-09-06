@@ -514,9 +514,10 @@ g_history = """
         - add checks for volreg and uncensored X-mat
         - probably init view from volreg
    0.25 Aug 23, 2012: allow passing of -censor_dset
+   0.26 Sep 06, 2012: print missing xmat message w/out debug as it is fatal
 """
 
-g_version = "gen_ss_review_scripts.py version 0.25, August 23, 2012"
+g_version = "gen_ss_review_scripts.py version 0.26, September 6, 2012"
 
 g_todo_str = """
    - figure out template_space
@@ -822,7 +823,8 @@ class MyInterface:
       if len(xfiles) == 0: xfiles = glob.glob('X*.1D')
       if len(xfiles) == 0: xfiles = glob.glob('*.xmat.1D')
       if len(xfiles) == 0:
-         if verb > 1: print '** failed to match any x-matrix files'
+         # error is fatal so print message
+         print '** failed to match any x-matrix files'
          return 1
 
       # we have some list now, start looking through them
