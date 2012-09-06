@@ -118,7 +118,11 @@ SEG_OPTS *SegOpt_Struct()
 }
 
 SEG_OPTS *free_SegOpts(SEG_OPTS *Opt) {
-   if (!Opt) return(NULL);
+   static char FuncName[]={"free_SegOpts"};
+   
+   SUMA_ENTRY;
+   
+   if (!Opt) SUMA_RETURN(NULL);
    if (Opt->gold) DSET_delete(Opt->gold); Opt->gold = NULL;
    if (Opt->gold_bias) DSET_delete(Opt->gold_bias); Opt->gold_bias = NULL;
    if (Opt->aset) DSET_delete(Opt->aset); Opt->aset = NULL;
@@ -133,6 +137,15 @@ SEG_OPTS *free_SegOpts(SEG_OPTS *Opt) {
    if (Opt->priCgL)  DSET_delete(Opt->priCgL); Opt->priCgL = NULL;
    if (Opt->priCgALL)  DSET_delete(Opt->priCgALL); Opt->priCgALL = NULL;
    if (Opt->feats) NI_delete_str_array(Opt->feats);Opt->feats = NULL;
+   if (Opt->featsfam) NI_delete_str_array(Opt->featsfam);Opt->featsfam = NULL;
+   if (Opt->feat_exp) {
+      if (!Opt->clss) {
+         SUMA_S_Err("This should not happen!");
+      } else {
+         SUMA_free2D((char**)Opt->feat_exp, Opt->clss->num);
+      }
+      Opt->feat_exp = NULL;
+   }
    if (Opt->clss)  NI_delete_str_array(Opt->clss );Opt->clss = NULL;
    if (Opt->keys) free(Opt->keys); Opt->keys = NULL;
    if (Opt->mixfrac) free(Opt->mixfrac);Opt->mixfrac = NULL;
@@ -161,7 +174,7 @@ SEG_OPTS *free_SegOpts(SEG_OPTS *Opt) {
    Opt->FDV = SUMA_free_dists(Opt->FDV);
    
    free(Opt); Opt = NULL;
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 
@@ -964,24 +977,29 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
 }
 
 void *Seg_NI_read_file(char *fname) {
+   static char FuncName[]={"Seg_NI_read_file"};
    char *niname = NULL;
    NI_stream ns = NULL;
    void *nel=NULL;
    
-   ENTRY("Seg_NI_read_file");
+   SUMA_ENTRY;
    
-   niname = (char *)malloc(sizeof(char)*(strlen(fname)+10));
+   niname = (char *)SUMA_malloc(sizeof(char)*(strlen(fname)+10));
    
    sprintf(niname,"file:%s",fname);
    
-   ns = NI_stream_open(niname, "r");
+   if (!(ns = NI_stream_open(niname, "r"))) {
+      SUMA_S_Errv("Failed to open steam %s\n", niname);
+      SUMA_free(niname); 
+      SUMA_RETURN(nel);
+   }
 
    nel = NI_read_element(ns,1);
    
    NI_stream_close( ns ) ; ns = NULL;
-   free(niname);
+   SUMA_free(niname);
    
-   RETURN(nel);
+   SUMA_RETURN(nel);
 }
 
 int SUMA_ShortizeDset(THD_3dim_dataset **dsetp, float thisfac) {

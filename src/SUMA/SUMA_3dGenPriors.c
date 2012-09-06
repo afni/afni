@@ -155,6 +155,8 @@ static char shelp_GenPriors[] = {
 "                            features in the training data.\n"
 "                            Note that partial matching is used to resolve\n"
 "                            which features to keep from training set.\n"
+"  -featgroups 'G1 G2 G3 ...': TO BE WRITTEN\n"
+"                            Example: -featgroups 'MEDI MAD. P2S'\n"
 "  -ShowThisDist DIST: Show information obtained from the training data about\n"
 "                      the distribution of DIST. For example: -\n"
 "                       -ShowThisDist 'd(mean.20_mm|PER02)'\n"
@@ -206,6 +208,7 @@ SEG_OPTS *GenPriors_Default(char *argv[], int argc)
                             between Reference and Approximation was good. 
                             0.1 is too coarse, 0.001 is overkill*/ 
    Opt->feats=Opt->clss=NULL;
+   Opt->feat_exp=NULL; Opt->featexpmeth=0; Opt->featsfam=NULL;
    Opt->keys = NULL;
    Opt->mixfrac=NULL;
    Opt->UseTmp = 1; 
@@ -249,6 +252,12 @@ int GenPriors_CheckOpts(SEG_OPTS *Opt)
    
    if (Opt->group_keys && !Opt->group_classes) {
       ERROR_message("Keys but no classes");
+      RETURN(0);
+   }
+   
+   if (Opt->featexpmeth == 1 && !Opt->featsfam) {
+      ERROR_message( "Feature exponentition by feature groups"
+                     "but not groups given.");
       RETURN(0);
    }
    RETURN(1);
@@ -832,6 +841,31 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-featgroups") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -featgroups \n");
+				exit (1);
+			}
+			Opt->featsfam = NI_strict_decode_string_list(argv[kar] ,";, ");
+         brk = 1;
+		}
+      if (!brk && (strcmp(argv[kar], "-featexponent")==0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -featexponent \n");
+				exit (1);
+			}
+         if (!strncasecmp(argv[kar],"uni",3)) {
+            Opt->featexpmeth=0;
+         } else if (!strncasecmp(argv[kar],"by_featgroups", 9)) {
+            Opt->featexpmeth=1;
+         } else if (!strncasecmp(argv[kar],"by_featcorr",9)) {
+            Opt->featexpmeth=2;
+         } 
+         brk = 1;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-split_classes") == 0)) {
          NI_str_array *nstr=NULL; int ii;
          kar ++;
@@ -998,13 +1032,155 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 
    RETURN(Opt);
 }
+float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats, 
+                                     int method, char *tdist, 
+                                     NI_str_array *featsfam, float **usethis) 
+{
+   static char FuncName[]={"SUMA_ComputeFeatureExponents"};
+   int ii, jj, kk, cc;
+   int *imap=NULL;
+   float *fv=NULL;
+   NI_str_array *Cfeats=NULL;
+   NI_element *C=NULL;
+   float **feat_exp=usethis, wadj;
+   char *fname=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (method == 1 && !featsfam) {
+      SUMA_S_Err("featsfam is NULL, and method is 1");
+      SUMA_RETURN(feat_exp);
+   } 
+   
+   if (method == 2 && !tdist) {
+      SUMA_S_Err("tdist is NULL, and method is 2");
+      SUMA_RETURN(feat_exp);
+   }
+   
+   if (method ==0 && (featsfam || tdist) && LocalHead) {
+      SUMA_S_Warn("method is 0 and featsfam or tdist are not null.\n"
+                  "Latter two will be ignored.");
+   }
+   
+   if (!feat_exp) 
+      feat_exp = (float **)SUMA_allocate2D(clss->num,feats->num,sizeof(float));
+   
+   switch (method) {
+      case 0:
+         SUMA_LH("Uniform exponentiation");
+         for (cc=0; cc<clss->num; ++cc) {
+            for (ii=0; ii<feats->num; ++ii) {
+               feat_exp[cc][ii] = 1.0;
+            }
+         }
+         break;
+      case 1:
+         SUMA_LH("Family exponentiation");
+         for (cc=0; cc<clss->num; ++cc) { /* No difference across classes */
+            /* label each by an index into family of features. -1 is for other */
+            for (jj=0, kk=0; jj<feats->num; ++jj) {
+               feat_exp[cc][jj] = -1;
+               for (ii=0; ii<featsfam->num && feat_exp[cc][jj]<0; ++ii) {
+                  if (strstr(feats->str[jj],featsfam->str[ii])) {
+                     feat_exp[cc][jj] = ii;
+                  }
+               }
+               if (feat_exp[cc][jj]<0) {
+                  feat_exp[cc][jj]=featsfam->num+kk;
+                  ++kk;
+               }
+            }
+            /* Now for each family, count number of members and set exponents*/
+            for (ii=0; ii<featsfam->num; ++ii) {
+               kk=0;
+               for (jj=0; jj<feats->num; ++jj) {
+                  if (feat_exp[cc][jj] == ii) ++kk;
+               }
+               for (jj=0; kk>0 && jj<feats->num; ++jj) {
+                  if (feat_exp[cc][jj] == ii) 
+                     feat_exp[cc][jj] = 1.0/(float)kk;
+               }
+            }
+            for (jj=0; jj<feats->num; ++jj) {
+               if (feat_exp[cc][jj] >= featsfam->num) 
+                  feat_exp[cc][jj] = 1.0;
+            }
+            /* You don't need to adjust exponentiation because different 
+               classes get the same total exponentiation, however adjusting
+               make probabilities comparable across methods 0, 1, and 2 */
+            wadj=0.0;
+            for (ii=0; ii<feats->num; ++ii) wadj += feat_exp[cc][ii]; 
+            wadj = (float)feats->num/wadj;
+            for (ii=0; ii<feats->num; ++ii) feat_exp[cc][ii] *= wadj;
+         }
+         break;
+      case 2:
+         SUMA_LH("Correlation exponentiation");
+         /* First get the correlation matrix */
+         imap = (int *)SUMA_calloc(feats->num, sizeof(int));
+         for (cc=0; cc<clss->num; ++cc) {
+            fname = SUMA_corrmat_fname(tdist, clss->str[cc],1);
+            if (!(C = (NI_element*) Seg_NI_read_file(fname))) {
+               SUMA_S_Errv("Failed to read %s\n", fname);
+               if (!usethis) SUMA_free2D((char **)feat_exp, clss->num); 
+               SUMA_free(imap); imap=NULL; 
+               SUMA_RETURN(usethis); 
+            }
+            if (!(Cfeats = SUMA_comp_str_2_NI_str_ar(
+                              NI_get_attribute(C,"ColumnLabels"), " ; "))) {
+               SUMA_S_Errv("Failed to get feature labels from %s\n",fname);
+               SUMA_free(imap); imap=NULL; 
+               if (!usethis) SUMA_free2D((char **)feat_exp, clss->num); 
+               NI_free_element(C); C=NULL;
+               SUMA_RETURN(usethis);               
+            }
+            for (ii=0; ii<feats->num;++ii) {
+               imap[ii] = SUMA_NI_str_array_find(feats->str[ii], Cfeats, 0, 0);
+               if (imap[ii] < 0) {
+                  SUMA_S_Errv("Failed to find feature %s in corr. matrix %s\n"
+                              , feats->str[ii], fname);
+                  if (!usethis) SUMA_free2D((char **)feat_exp, clss->num);
+                  SUMA_free(imap); imap=NULL; SUMA_free_NI_str_array(Cfeats);
+                  NI_free_element(C); C=NULL;
+                  SUMA_RETURN(usethis);
+               }        
+            }
+            for (ii=0; ii<feats->num; ++ii) {
+               fv = (float *)C->vec[imap[ii]];
+               feat_exp[cc][ii] = 0.0;
+               for (jj=0; jj<feats->num; ++jj) {
+                  feat_exp[cc][ii] += fv[imap[jj]]*fv[imap[jj]];
+               }
+            }
+            for (ii=0; ii<feats->num; ++ii) {
+               feat_exp[cc][ii] = 1/feat_exp[cc][ii];
+            }
+            
+            /* You must adjust for different classes getting different total
+               exponentiation, adjustment is made to make probabilities
+               comparable across methods*/
+            wadj=0.0;
+            for (ii=0; ii<feats->num; ++ii) wadj += feat_exp[cc][ii]; 
+            wadj = (float)feats->num/wadj;
+            for (ii=0; ii<feats->num; ++ii) feat_exp[cc][ii] *= wadj;
+
+            SUMA_free_NI_str_array(Cfeats);
+            NI_free_element(C); C=NULL;
+         }
+         SUMA_free(imap);
+         break;
+   }
+   
+   SUMA_RETURN(feat_exp);
+}
 
 int main(int argc, char **argv)
 {
    static char FuncName[]={"3dGenPriors"};
    SEG_OPTS *Opt=NULL;
    char *atr=NULL;
-   int i=0, j=0, nfound=0;
+   int i=0, j=0, nfound=0, cc=0;
    NI_str_array *nisa = NULL, *allclss=NULL, *allfeats=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -1156,8 +1332,28 @@ int main(int argc, char **argv)
       }
       #endif
    }
+
    SUMA_S_Notev("Will be using %d features and %d classes.\n",
                    Opt->feats->num, Opt->clss->num);
+   
+   if (!(Opt->feat_exp = SUMA_ComputeFeatureExponents(Opt->clss, Opt->feats, 
+                                 Opt->featexpmeth, Opt->ndist_name, 
+                                 Opt->featsfam, NULL))){ 
+         SUMA_S_Err("Failed to compute exponents, method 1");
+         exit(1);
+   }
+   
+   
+   /* Show features and their exponents */
+   for (cc=0; cc<Opt->clss->num; ++cc) {
+      float sss=0.0;
+      for (i=0; i<Opt->feats->num; ++i) {
+         sss += Opt->feat_exp[cc][i];
+         fprintf(SUMA_STDOUT,"Class %s, feature %s, exponent %f\n", 
+                 Opt->clss->str[cc], Opt->feats->str[i], Opt->feat_exp[cc][i]);
+      }
+      fprintf(SUMA_STDOUT,"                  Exponent sum: %f\n", sss); 
+   }
    
    /* make sure we have mixfrac */
    if (!Opt->mixfrac) {
@@ -1170,6 +1366,7 @@ int main(int argc, char **argv)
       /* force one for the moment */
       ERROR_exit("Cannot handle user mixfrac yet");
    }
+   
    
    if (Opt->mset_name) {
       if (!(Opt->mset = Seg_load_dset( Opt->mset_name ))) {      

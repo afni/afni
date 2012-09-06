@@ -513,7 +513,7 @@ int main (int argc,char *argv[])
             fprintf(SUMA_STDERR,"%s", s); SUMA_free(s); s = NULL;
          }
 
-         NI_free(ngr); ngr=NULL;
+         NI_free_element(ngr); ngr=NULL;
          SUMA_Free_ColorMap(SM); SM = NULL;
          SUMA_Free_ColorMap(SM2); SM2 = NULL;
       }

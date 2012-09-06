@@ -1484,7 +1484,7 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
                         , FuncName, nmbuf2);
             }   
             NI_remove_from_group(dest->ngr, (void *)nelt); 
-            NI_free(nelt); nelt = NULL;
+            NI_free_element(nelt); nelt = NULL;
          } else {
             if (LocalHead) {
                fprintf(SUMA_STDERR,
@@ -1668,7 +1668,7 @@ SUMA_Boolean SUMA_SetUniqueValsAttr(SUMA_DSET *dset, int icol, byte replace)
       if (!replace) SUMA_RETURN(YUP);
       else {
          /* adios */
-         NI_remove_from_group(dset->ngr, nel); NI_free(nel); nel=NULL;
+         NI_remove_from_group(dset->ngr, nel); NI_free_element(nel); nel=NULL;
       }
    }
    if (nel) {
@@ -5099,7 +5099,7 @@ SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini, int warn)
          SUMA_S_Note("NIML dset with no valid node index element");
       }
       NI_remove_from_group(dset->ngr, dset->inel);
-      NI_free(dset->inel); dset->inel = NULL;
+      NI_free_element(dset->inel); dset->inel = NULL;
       /* Now add the new and proper node index element holder*/
       if (dset->dnel) {
          if (warn) {

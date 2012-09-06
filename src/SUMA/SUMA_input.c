@@ -4483,6 +4483,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   ROI_mode = NOPE;
                   
                }
+
                if (!(Kev.state & ShiftMask) && (Kev.state & ControlMask)) {
                   SUMA_LH("Yoking intensity to node selection");
                   SUMAg_CF->YokeIntToNode = 1;
@@ -4490,7 +4491,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_LH("Holding back callbacks");
                   SUMAg_CF->YokeIntToNode = 0;
                }
-               
+
                if (!DoubleClick) {
                   /* you do not want to waist time doing double calculations if 
                      the user clicks twice by mistake */

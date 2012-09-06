@@ -65,6 +65,35 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 5, Sep , 2012 , ZSS , "@CalculateSignatures" , MINOR , TYPE_NEW_OPT,
+   "Added possiblity to scale by top percentiles with -FATscl",
+   "This would produce .sc9 outputs. It looks like the scaling is\n"
+   "more promising than by MEDIAN(20) or MAD(20)."
+ },
+
+ { 5, Sep , 2012 , ZSS , "1dRplot" , MINOR , TYPE_NEW_OPT,
+   "Made program take in histograms produced by 3dGenFeatureDist",
+   "This required changes to AFNIio.R so that NIML groups are not\n"
+   "automatically sent to the distbin. Instead, the first element\n"
+   "in the ni_group is returned."
+ },
+
+ { 5, Sep , 2012 , ZSS , "3dGenFeatureDist" , MICRO , TYPE_NEW_OPT,
+   "Program now creates the feature correlation matrix per class.",
+   "Both histograms and correlation matrices are stored in NIML\n"
+   "format under a directory named by the user."
+ },
+
+ { 4, Sep , 2012 , ZSS , "3ddot" , MINOR , TYPE_NEW_OPT,
+   "Made program output niml 1D format, makes it easy to plot with 1dRplot",
+   NULL
+ },
+
+ { 30, Aug , 2012 , ZSS , "3ddot" , MINOR , TYPE_NEW_OPT,
+   "Made program create corr. matrix as opposed to just one pair of sub-bricks",
+   "Output is also beautified with option -show_labels\n"
+ },
+
  { 29, Aug , 2012 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
    "AFNI build was failing on machines where DONT_USE_MCW_MALLOC was defined",
    "The cause of failure was a missing #define NI_calloc() when \n"

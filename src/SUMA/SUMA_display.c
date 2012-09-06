@@ -868,12 +868,12 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          /* Now free SDO and reload from disk */
          SUMA_free_SegmentDO(SDO);
          SDO = SUMA_niSDO2SDO(ngr);
-         NI_free(ngr); ngr = NULL;
+         NI_free_element(ngr); ngr = NULL;
          /* now repeat xformation and see what you get */
          ngr = SUMA_SDO2niSDO(SDO);
          NEL_WRITE_TX(ngr, "file:mess2.niml.SDO", suc);
          SUMA_S_Note("Wrote mess2 to disk");
-         NI_free(ngr); ngr = NULL;
+         NI_free_element(ngr); ngr = NULL;
          VDO = (void *)SDO;
       }
    }
@@ -7584,6 +7584,7 @@ SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i)
       sprintf(stmp,"%d", i-1);
       SUMA_LHv("Arrows: stmp=%s, textfield=%p\n", stmp, men->af->textfield);
       XtVaSetValues( men->af->textfield, XmNvalue, stmp, NULL); 
+      men->af->value = i-1;
    } else {
       SUMA_LHv("Non arrows, %p, men->N_mw %d, i=%d\n", men->mw, men->N_mw, i);
       if (!men->mw || i>=men->N_mw || !men->mw[i]) {

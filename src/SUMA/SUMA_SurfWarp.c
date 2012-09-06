@@ -350,7 +350,7 @@ SUMA_Boolean Perturbations(   MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve,
          ps->cs->talk_suma = NOPE;
       }
       SUMA_free_SegmentDO(sdo); sdo = NULL;
-      NI_free(ngr); ngr = NULL; 
+      NI_free_element(ngr); ngr = NULL; 
       /* again for direction 2 */
       sdo = SUMA_Perturbation2SDO(opt->ControlCurve, Perturb_Vec, "PV1", 1, 5.0);
       /* change that thing to NIML */
@@ -366,7 +366,7 @@ SUMA_Boolean Perturbations(   MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve,
          ps->cs->talk_suma = NOPE;
       }
       SUMA_free_SegmentDO(sdo); sdo = NULL;
-      NI_free(ngr); ngr = NULL; 
+      NI_free_element(ngr); ngr = NULL; 
       if (  opt->pause > 1) {
             SUMA_PAUSE_PROMPT("Pausing after perturbation directions\nDo something to proceed.\n");
       }
@@ -831,7 +831,7 @@ double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX , SUMA_GENERIC_ARGV_PARSE *
          }
          
          /* SUMA_free_SegmentDO(sdo); sdo = NULL;
-         NI_free(ngr); ngr = NULL; 
+         NI_free_element(ngr); ngr = NULL; 
          if (  opt->pause > 1) {
                SUMA_PAUSE_PROMPT("Pausing after Sm trial\nDo something to proceed.\n");
          }*/
@@ -1101,7 +1101,7 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
          ps->cs->talk_suma = NOPE;
       }
       SUMA_free_SegmentDO(sdo); sdo = NULL;
-      NI_free(ngr); ngr = NULL; 
+      NI_free_element(ngr); ngr = NULL; 
    }
 
    if(LocalHead){
