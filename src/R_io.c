@@ -87,7 +87,7 @@ SEXP R_THD_load_dset(SEXP Sfname, SEXP Opts)
       }
    }
    
-   NI_free(ngr); 
+   NI_free_element(ngr); 
    
    /* form one long array of data */
    PROTECT(brik = NEW_NUMERIC(DSET_NVOX(dset)*DSET_NVALS(dset)));
