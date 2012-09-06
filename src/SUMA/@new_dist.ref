@@ -118,7 +118,9 @@ endif
 
 #if not set yet, use motif
 if ($lesstifing == 0) set lesstifing = -1
-if ($openmp == 0) set openmp = -1
+#You should only use -1 and or 1 depending on what is in the Makefile for a machine
+#Do not set openmp=-1 or 1 with no regard for the makefile for the machine
+#if ($openmp == 0) set openmp = -1
 
 VARS:
 set tDdir = $tdir.$Date
