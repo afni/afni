@@ -220,7 +220,9 @@ REGISTER_EPI_REFS:
    
 REGISTER_TS:
    cd $rdir
-   set vref = ''
+      if ($noVR == 1) then
+         set vrsets = (???.??+orig.HEAD)
+      else
    foreach s (???.??+orig.HEAD)
       set sp = `@GetAfniPrefix $s`
       if ( ! -f ${sp}.vr+orig.HEAD) then
@@ -235,6 +237,8 @@ REGISTER_TS:
          echo "Reusing ${sp}.vr"
       endif
    end
+         set vrsets = (???.??.vr+orig.HEAD)
+      endif
    cd $idir
 
 ALIGN_EXPANAT_TO_EPI:
@@ -276,7 +280,7 @@ ALIGN_SURFVOL_TO_EXPANAT:
 SET_POLORT:
    cd $rdir
    set nts_max = 0
-   foreach s (???.??.vr+orig.HEAD)
+   foreach s ($vrsets)
       set kk = `3dnvals $s`
       if ($kk > $nts_max) set nts_max = $kk
    end
@@ -286,18 +290,24 @@ SET_POLORT:
 
 DETREND:
    cd $rdir
-   foreach s (???.??.vr+orig.HEAD)
+   foreach s ($vrsets)
       set p = `@GetAfniPrefix $s`
-      set p = $p:r
+      if ($noVR == 0) set p = $p:r
       if ( ! -f ${p}.b01+orig.HEAD ) then
          echo "Detrending $s to create ${p}.b01"
+         if ($noVR == 1) then
+            set vopt = ''
+         else
+            set vopt = "-vector ${p}.vr.1D"
+         endif
          3dDetrend   -polort $polort    \
-                     -vector ${p}.vr.1D \
+                     $vopt \
                      -prefix ${p}.b01  \
                      $s
       else
          echo "Reusing existing detrended version ${p}.b01+orig.HEAD"
       endif
+      
       set nvr = 0
       if ( -f ${p}.vr.1D ) set nvr = `3dinfo -nv ${p}.vr.1D` 
       set ort_adjust = `ccalc -form int -eval "$polort+$nvr"`
@@ -706,6 +716,7 @@ PARSE:
    
    #continue parsing for new options
    set Narg = $#
+   set noVR = 0
    set ec = 'ZZ'
    set rdir = ''
    set TR = ''
@@ -765,6 +776,11 @@ PARSE:
       if ("$argv[$cnt]" == "-install_demo") then
          set install_demo = 1
          goto DEMO
+      endif
+      
+      if ("$argv[$cnt]" == "-no_volreg") then
+         set noVR = 1
+         goto NEXT
       endif
       
       if ( "$argv[$cnt]" == "-gm") then
@@ -1573,6 +1589,8 @@ echo "                which still shows anatomical contrast. This volume is"
 echo "                first registered to EpiRef, then its registered version"
 echo "                is used as a targe for registering AVol. If not set, "
 echo "                EpiAnatRef is set to be EpiRef."
+echo " -noVR: Skip time series volume registration step. There will be no"
+echo "                regression of motion estimates with this option"
 echo " -anat_vol AVol: T1 volume acquired during the same session as the"
 echo "                 retinotopic scans. This volume is assumed to need"
 echo "                 registration to EpiRef volume. The registration"
