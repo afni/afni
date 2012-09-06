@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, SEP, 2012, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "print missing xmat error w/out debug, as it is fatal",
+   NULL
+ } ,
+
  { 6, SEP, 2012, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
    "apply global opt -pad_to_node when going through AFNI format in thd_niml.c",
    NULL
