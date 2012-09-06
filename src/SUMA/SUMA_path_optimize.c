@@ -641,7 +641,7 @@ int SUMA_Optimize_Path(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
             ps->cs->talk_suma = NOPE;
          }
          SUMA_free_SegmentDO(sdo); sdo = NULL;
-         NI_free(ngr); ngr = NULL; 
+         NI_free_element(ngr); ngr = NULL; 
          if ((!opt->iter_count && opt->pause) || opt->pause > 1) {
             SUMA_PAUSE_PROMPT("Initial surface in your face\nDo something to proceed.\n");
          }

@@ -342,7 +342,7 @@ get.SampleSet <- function (lvols, samples_frac=NULL,
       }
    }
    
-   plot.1D(dmat = mm, oneplot=TRUE, col.ystack=FALSE, 
+   plot.1D(dmat = mm, oneplot=1, col.ystack=FALSE, 
                col.grp=groupofKey.labeltable(lsamp$class.set, lsamp$labeltable), 
                grp.label=lsamp$labeltable$grp.label, 
                prefix =sprintf('%s.jpg',prefix), ttl.main=prefix,

@@ -1956,6 +1956,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             /* Nick's options. Jump to the sub-brick index corresponding 
                to node */
+            SUMA_LHv("Have %d, %d and %d\n",
+               SUMAg_CF->YokeIntToNode,
+               SDSET_VECNUM(SO->SurfCont->curColPlane->dset_link),
+               SO->N_Node);
             if (SUMAg_CF->YokeIntToNode   &&
                 !(SDSET_VECNUM(SO->SurfCont->curColPlane->dset_link) % 
                                                                SO->N_Node)) {

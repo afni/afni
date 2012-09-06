@@ -1446,6 +1446,14 @@ r.NI_read_str_element <- function (ff, HeadOnly = TRUE) {
       return(NULL)
    }
    
+   #If you have a group, jump to next element.
+   shead <- ff[strv[1]:stpv[1]]
+   if (length(grep('ni_form[[:space:]]*=[[:space:]]*\"ni_group\"', shead))
+      && stpv[1]+1<length(ff)) {
+      #try again
+      return(r.NI_read_str_element(ff[stpv[1]+1:length(ff)], HeadOnly))
+   }
+   
    #Get only the first element, for now
    for (i in 1:1) {
       shead <- ff[strv[i]:stpv[i]]
@@ -1537,7 +1545,7 @@ is.NI.file <- function (fname, asc=TRUE, hs=TRUE) {
 
 apply.AFNI.matrix.header <- function (fname, mat, 
                               brsel=NULL, rosel=NULL,rasel=NULL, 
-                              nheadmax = 10) {
+                              nheadmax = 10, checkNI=TRUE) {
    attr(mat,'name') <- 'noname'
    attr(mat,'FileName') <- fname
    
@@ -1548,7 +1556,7 @@ apply.AFNI.matrix.header <- function (fname, mat,
    }
   
    #Does this look 1D nimly?
-   if (!is.NI.file(fnp$file, asc=TRUE, hs=TRUE)) {
+   if (checkNI && !is.NI.file(fnp$file, asc=TRUE, hs=TRUE)) {
       return(mat)
    }
    
@@ -1584,9 +1592,15 @@ apply.AFNI.matrix.header <- function (fname, mat,
          attr(mat, 'TR') <- as.double(TR)
       }
    } else if (nel$name == 'DICE') {
-   } else if (nel$name == '3dhistog') {
+   } else if (nel$name == '3dhistog' || nel$name == 'seg_histogram') {
       if (!is.null(bw <- r.NI_get_attribute(nel, 'BinWidth'))){
          attr(mat, 'BinWidth') <- as.double(bw)
+      }
+      if (!is.null(bw <- r.NI_get_attribute(nel, 'window'))){
+         attr(mat, 'BinWidth') <- as.double(bw)
+      }
+      if (!is.null(bw <- r.NI_get_attribute(nel, 'xlabel'))){
+         attr(mat, 'xlabel') <- bw
       }
    } else {
       if (0) { #No need to whine 
@@ -1815,7 +1829,7 @@ R_EXPR: An R expression, "R: rep(seq(1,3),2)"
 read.AFNI.matrix <- function (fname, 
                               usercolnames=NULL, 
                               userrownames=NULL,
-                              verb = 0) {
+                              checkNI = TRUE, verb = 0) {
    if (length(fname)>1) {
       err.AFNI(paste("Cannot handle more than one name.\nHave ",
                      paste(fname,collapse=' '), sep=''))
@@ -1859,7 +1873,20 @@ read.AFNI.matrix <- function (fname,
    } else {
       #str(fname)
       #fname$file
-      brk <- read.table(fname$file, colClasses='character');
+      brk <- NULL
+      brk <- tryCatch({read.table(fname$file, colClasses='character')}, 
+                      error=function(a){})
+      if (is.null(brk)) { #try as niml, just in case 
+         warn.AFNI(paste("Attempting read as NIML."), callstr='');
+         fff <- r.NI_read_element(fname$file, FALSE)
+         if (!is.null(fff$dat)) {
+            brk <- as.data.frame(fff$dat, stringsAsFactors=FALSE)
+            checkNI = FALSE;
+         } else {
+            err.AFNI(paste("Failed to read matrix from ", fname$file,".\n"));
+            return(NULL);
+         }
+      }
    }
    if ( tolower(brk$V1[1]) == 'name' || 
         tolower(brk$V1[1]) == 'subj' ||
@@ -1992,7 +2019,7 @@ read.AFNI.matrix <- function (fname,
    
    covMatrix <- apply.AFNI.matrix.header(fnameattr, covMatrix, 
                             brsel=sbsel, rosel=rosel, 
-                            rasel=rasel)
+                            rasel=rasel,checkNI = checkNI)
 
    return(covMatrix)
 }   

@@ -1851,11 +1851,11 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_NIML (char *Name)
       iselement = YUP; 
       SUMA_S_Err("Bad format");
       if (FullName) SUMA_free(FullName); FullName = NULL;
-      NI_free(nini); SUMA_RETURN(SM);
+      NI_free_element(nini); SUMA_RETURN(SM);
    } else {
       fprintf(SUMA_STDERR, "Note %s: %s has no element and no group. \n",
                             FuncName, Name);
-      NI_free(nini); SUMA_RETURN(SM);
+      NI_free_element(nini); SUMA_RETURN(SM);
       if (FullName) SUMA_free(FullName); FullName = NULL;
       SUMA_RETURN(NULL);
    }
@@ -1865,7 +1865,7 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_NIML (char *Name)
    SM = SUMA_NICmapToCmap((NI_group *)nini);
 
    /* frees */
-   NI_free(nini); 
+   NI_free_element(nini); 
    if (FullName) SUMA_free(FullName); FullName = NULL;
    
    SUMA_RETURN (SM);

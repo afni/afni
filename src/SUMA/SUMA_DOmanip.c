@@ -3715,7 +3715,7 @@ void SUMA_FreeXform(void *data)
    SUMA_ENTRY;
    
    if (xf) {
-      if (xf->XformOpts) NI_free(xf->XformOpts); 
+      if (xf->XformOpts) NI_free_element(xf->XformOpts); 
       if (xf->gui) SUMA_FreeXformInterface(xf->gui);
       SUMA_free(xf);
    }

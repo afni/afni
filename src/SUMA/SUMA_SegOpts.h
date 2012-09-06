@@ -98,7 +98,9 @@ typedef struct {
    int debug;
    int idbg, jdbg, kdbg;
    float binwidth;
-   NI_str_array *feats, *clss;
+   NI_str_array *feats, *clss, *featsfam;
+   float **feat_exp;
+   int featexpmeth;
    int Other;
    int *keys;
    

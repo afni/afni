@@ -56,6 +56,19 @@ LOCALSTATS:
          echo "$odir/${inpref}.${olabel}.${oneigh} exists already"
       endif
    end
+   if ( $Scale == 9) then
+      if ( ! -f $odir/${inpref}.sc${fatScale}.perc+orig.HEAD ) then
+         echo "Running 3dLocalstat $fatScale on $involume for scaling...`date`"
+         3dLocalstat  \
+                 -nbhd "SPHERE($fatScale)" \
+                 -stat  perc:65:95:5 \
+                 -datum short -reduce_max_vox $max_vox \
+                 -prefix $odir/${inpref}.sc${fatScale}.perc \
+                 "${involume}"
+      else
+         echo "$odir/${inpref}.sc${fatScale}.perc exists already"
+      endif
+   endif
 
 REGROUP:
    cd $stdir
@@ -126,6 +139,8 @@ SCALE:
       else if ($Scale == 7) then
          #do nothing, deal with speciality below
       else if ($Scale == 8) then
+         #do nothing, deal with speciality below
+      else if ($Scale == 9) then
          #do nothing, deal with speciality below
       else if ($Scale == 0) then
          echo "Copying unscaled signatures"
@@ -248,6 +263,46 @@ SCALE:
                3dcalc -overwrite -a ${inpref}.us.MAD+orig"[0..$mm]" \
                                  -b ${inpref}.us.MAD+orig'[$]' \
                         -expr '(step(b)*a/b)' -prefix $ttt
+            else
+               #Just copy for ease on other scripts, nothing to do
+               3dcopy $sss+orig $ttt
+            endif
+            3dNotes -h "`basename $0` $*" $ttt+orig
+         else 
+            echo "Reusing $ttt"
+         endif
+         set ttal = ($ttal $ttt+orig)
+      end
+      if ( ! -f ${inpref}.sc${Scale}.${sigset}+orig.HEAD) then
+         3dTcat -prefix ${inpref}.sc${Scale}.${sigset} $ttal
+      else
+         echo "Reusing ${inpref}.sc${Scale}.${sigset}"
+      endif
+   else if ($Scale == 9) then
+      if ( ! -f ${inpref}.sc${fatScale}.perc+orig.HEAD) then
+         echo "Error: Missing scaling volume ${inpref}.sc${fatScale}.perc"
+         goto BEND
+      else
+         set sbscale = \
+            `3dinfo -label2index "perc:${fatPerc}.00"   \
+                           ${inpref}.sc${fatScale}.perc+orig`
+         if ("$sbscale" == '') then
+            echo "Could not find sub-brick 'perc:${fatPerc}.00'"
+            echo " in ${inpref}.sc${fatScale}.perc+orig"
+            goto BEND
+         endif
+      endif
+      
+      set ttal = ()
+      foreach lstat ($statvector)
+         set sss = "${inpref}.us.${lstat}"
+         set ttt = "${inpref}.sc${Scale}.${lstat}" 
+         if ( ! -f ${inpref}.sc${Scale}.${lstat}+orig.HEAD) then
+            echo "Creating $ttt"
+            if ($lstat =~ med* || $lstat =~ mean* || $lstat =~ MAD*) then
+               3dcalc -overwrite -a ${sss}+orig \
+                      -b ${inpref}.sc${fatScale}.perc+orig"[$sbscale]" \
+                      -expr '(step(b)*a/b)' -prefix $ttt
             else
                #Just copy for ease on other scripts, nothing to do
                3dcopy $sss+orig $ttt
@@ -420,6 +475,21 @@ while ($cnt <= $Narg)
       set Scale = 8
       set donext = 0   
    endif
+
+   if ($donext && "$argv[$cnt]" == "-FATscl") then
+      if ($cnt == `ccalc -i $Narg - 1`) then
+         echo "Need two parameters after -FATscl such as -FATscl 25 75"
+         goto END
+      endif
+      set Scale = 9
+      @ cnt ++
+      set fatScale = $argv[$cnt]
+      @ cnt ++
+      set fatPerc = $argv[$cnt]
+      set donext = 0   
+   endif
+
+
 
 
    if ($donext && "$argv[$cnt]" == "-TT_Xform") then
@@ -642,6 +712,9 @@ HELP:
    echo "       Scale the MAD stats by the last mean feature. (scale 7)"
    echo "   -Mscl: Like spnorm2, BUT the mean is not removed from median stats"
    echo "       before scaling, AND mean stats are also subject to MAD scaling."
+   echo "   -FATscl S P: Scale by P percentil value in sphere of radius S"
+   echo "                Crude recommendation is 25 75"
+   echo "                For now, P must be one of: 70, 75, 80, 85, 90, or 95"  
    echo "   -TT_Xform XMAT.1D: You can also create X Y Z coordinate features"
    echo "                      that are Z normalized. To do so you need to "
    echo "                      provide an affine transform that can be used"
@@ -672,6 +745,10 @@ HELP:
    echo ""
    @global_parse -gopts_help
 
+goto END
+
+BEND:
+set stat = 1
 goto END
 
 END:
