@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, SEP, 2012, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
+   "apply global opt -pad_to_node when going through AFNI format in thd_niml.c",
+   NULL
+ } ,
+
  { 4, SEP, 2012, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added option -regress_ROI",
    "This allows for tissue-based regression, with ROI averages from any of:\n"

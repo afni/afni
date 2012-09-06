@@ -36,6 +36,8 @@ static int    process_NSD_group_attrs(NI_group *, THD_3dim_dataset *);
 static int    process_NSD_index_list(NI_group *, THD_datablock *);
 static int    process_NSD_sparse_data(NI_group *, THD_3dim_dataset *);
 
+static NI_group * nsd_pad_to_node(NI_group * ngr);
+
 /* list of AFNI_dataset group attributes to copy along */
 static char * ni_surf_dset_attrs[] = {
                 "label",
@@ -1160,6 +1162,59 @@ ENTRY("THD_dset_to_ni_surf_dset");
     nsd_fill_index_list(ngr, dset);                  /* add INDEX_LIST */
     if( copy_data ) nsd_add_sparse_data(ngr, dset);  /* add SPARSE_DATA */
 
+    /* maybe pad the node list to a certain level */
+    ngr = nsd_pad_to_node(ngr);
+
+    RETURN(ngr);
+}
+
+
+/*! possibly pad to a certain node index - use SUMA functionality
+
+   return NI_group * with any update
+*/
+static NI_group * nsd_pad_to_node(NI_group * ngr)
+{
+    SUMA_DSET * sdset, * sdnew;
+    NI_group  * new_nel;
+    int         pad2node = MRILIB_DomainMaxNodeIndex;
+
+    ENTRY("nsd_pad_to_node");
+
+    if( pad2node < 0 ) RETURN(ngr);
+
+    /* so there is something to do */
+    sdset = SUMA_ngr_2_dset(ngr, 0);
+    if( !sdset ) {
+        fprintf(stderr,"** NPTN: failed SUMA_ngr_2_dset for pad2node\n");
+        RETURN(ngr);
+    }
+
+    if( pad2node == 0 ) {
+        DSET_MAX_NODE_INDEX(sdset, pad2node);
+        if( pad2node < 0 ) {
+            fprintf(stderr,"** failed to get made node index for pad2node\n");
+            RETURN(ngr);
+        }
+    }
+
+    if( pad2node <= 0 ) RETURN(ngr);
+
+    if(gni.debug > 1) fprintf(stderr,"-- applying pad2node = %d\n",pad2node);
+
+    /* make padded copy, steal pointer, free everything */
+    sdnew = SUMA_PaddedCopyofDset(sdset, pad2node);
+    if( !sdnew ) {
+        fprintf(stderr,"** NPTN: failed pad to node %d\n", pad2node);
+        RETURN(ngr);
+    }
+
+    ngr = sdnew->ngr;
+    sdnew->ngr = NULL;
+
+    SUMA_FreeDset(sdset);
+    SUMA_FreeDset(sdnew);
+
     RETURN(ngr);
 }
 
@@ -1409,7 +1464,9 @@ ENTRY("nsd_fill_index_list");
     node_list = blk->node_list;
     if( blk->nnodes <= 0 || ! blk->node_list )  /* no node list */
     {
-        if( gni.add_nodes )  /* create a default list   30 Aug 2006 [rickr] */
+        /* create a default list                       30 Aug 2006 [rickr]
+         * (either requested or in prep for pad2node)   6 Sep 2012 [rickr] */
+        if( gni.add_nodes || MRILIB_DomainMaxNodeIndex >= 0 )
         {
             if(gni.debug) fprintf(stderr,"+d creating default INDEX_LIST\n");
             new_list = (int *)malloc(nx * sizeof(int));
