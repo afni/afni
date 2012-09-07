@@ -7670,8 +7670,8 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
             /* Mark node with maximum value in cluster where you just
                clicked, if possible. The Dale Stephens Option */
       
-      if (cd->maxnode >=0) {
-         xyz = SO->NodeList+SO->NodeDim*cd->maxnode;
+      if (cd->maxabsnode >=0) {
+         xyz = SO->NodeList+SO->NodeDim*cd->maxabsnode;
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->sphcolCmax); 
          glTranslatef (xyz[0], xyz[1],xyz[2]);
          gluSphere(Ch->sphobjCmax, radsph, 4, 4);
