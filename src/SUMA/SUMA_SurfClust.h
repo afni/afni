@@ -14,9 +14,13 @@ typedef struct {
    float totalabsvalue;
    float minvalue;
    float maxvalue;
+   float minabsvalue;
+   float maxabsvalue;
    float varvalue;
    int minnode;
    int maxnode;
+   int minabsnode;
+   int maxabsnode;
    int centralnode;
    int weightedcentralnode;
    /* int rank; */  /* completely useless ... rank is inferred from order in list! */

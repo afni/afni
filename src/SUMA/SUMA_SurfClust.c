@@ -620,6 +620,15 @@ int main (int argc,char *argv[])
    /* Show the results */
    params = SUMA_HistString(FuncName, argc, argv, NULL);
    if (Opt->WriteFile) {
+      if (0) {
+         /* You can also write a NIML formatted cluster table with */
+         NI_element *nel=NULL;
+         int suc; char sbuf[512]={""};
+         nel = SUMA_SurfClust_list_2_nel(list, 0, params, NULL);
+         snprintf(sbuf, 510, "file:%s%s.niml.clstbl", Opt->out_prefix, sap);
+         NEL_WRITE_TXH(nel, sbuf, suc);
+         NI_free_element(nel); nel=NULL;
+      }
       clustout = fopen(ClustOutName, "w");
       if (!clustout) {
          fprintf (SUMA_STDERR,
