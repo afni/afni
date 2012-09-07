@@ -863,7 +863,7 @@ int main(int argc, char **argv)
       atr = SUMA_NI_str_ar_2_comp_str(Opt->feats, " ; ");
       NI_set_attribute(CC[j],"ColumnLabels", atr);SUMA_free(atr); atr = NULL;
       atr = SUMA_HistString (FuncName, argc, argv, NULL);
-      NI_set_attribute(CC[j],"ComandLine", atr);SUMA_free(atr); atr = NULL;
+      NI_set_attribute(CC[j],"CommandLine", atr);SUMA_free(atr); atr = NULL;
       for (i=0; i<Opt->feats->num; ++i) {
          NI_add_column_stride ( CC[j], NI_FLOAT, NULL, 1 );
       }

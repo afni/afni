@@ -27,6 +27,8 @@ SUMA_Boolean SUMA_Show_SurfClust_list(DList *list, FILE *Out, int detail,
                                       char *params, char *opts) ;
 char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, 
                                        char *params, char *opts) ;
+NI_element *SUMA_SurfClust_list_2_nel(DList *list, int detail, char *params, 
+                                      char *opts);
 SUMA_DSET *SUMA_MaskDsetByClustList(SUMA_DSET *idset, SUMA_SurfaceObject *SO, 
                      DList *list, SUMA_Boolean FullList, char *leName); 
 SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(SUMA_SurfaceObject *SO, 

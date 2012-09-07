@@ -128,6 +128,10 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
       Clust->totalvalue = 0.0; Clust->totalabsvalue = 0.0;  
       Clust->minvalue = ToBeAssigned[dothisnode]; Clust->minnode = dothisnode;
       Clust->maxvalue = ToBeAssigned[dothisnode]; Clust->maxnode = dothisnode; 
+      Clust->minabsvalue = SUMA_ABS(Clust->minvalue); 
+         Clust->minabsnode = Clust->minnode;
+      Clust->maxabsvalue = SUMA_ABS(Clust->maxvalue); 
+         Clust->maxabsnode = Clust->maxnode;
       Clust->varvalue = 0.0;  Clust->centralnode = 0; 
       Clust->weightedcentralnode = 0; 
       Clust->NodeList = (int *)SUMA_malloc((*N_TobeAssigned) * sizeof(int)); 
@@ -164,6 +168,14 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
    if (ToBeAssigned[dothisnode] > Clust->maxvalue) { 
       Clust->maxvalue = ToBeAssigned[dothisnode]; 
       Clust->maxnode = dothisnode; 
+   }
+   if (SUMA_ABS(ToBeAssigned[dothisnode]) < Clust->minabsvalue) { 
+      Clust->minabsvalue = SUMA_ABS(ToBeAssigned[dothisnode]); 
+      Clust->minabsnode = dothisnode; 
+   }
+   if (SUMA_ABS(ToBeAssigned[dothisnode]) > Clust->maxabsvalue) { 
+      Clust->maxabsvalue = SUMA_ABS(ToBeAssigned[dothisnode]); 
+      Clust->maxabsnode = dothisnode; 
    }
    Clust->ValueList[Clust->N_Node] = ToBeAssigned[dothisnode];
    ++Clust->N_Node;
@@ -294,6 +306,8 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
    Clust->totalabsvalue += (float)fabs((float)ToBeAssigned[dothisnode]);   \
    if (ToBeAssigned[dothisnode] < Clust->minvalue) { Clust->minvalue = ToBeAssigned[dothisnode]; Clust->minnode = dothisnode; }  \
    if (ToBeAssigned[dothisnode] > Clust->maxvalue) { Clust->maxvalue = ToBeAssigned[dothisnode]; Clust->maxnode = dothisnode; }  \
+   if (SUMA_ABS(ToBeAssigned[dothisnode]) < Clust->minabsvalue) { Clust->minabsvalue = ToBeAssigned[dothisnode]; Clust->minabsnode = dothisnode; }\
+   if (SUMA_ABS(ToBeAssigned[dothisnode]) > Clust->maxabsvalue) { Clust->maxabsvalue = ToBeAssigned[dothisnode]; Clust->maxabsnode = dothisnode; }\
    Clust->ValueList[Clust->N_Node] = ToBeAssigned[dothisnode]; \
    ++Clust->N_Node;  \
 }
@@ -351,6 +365,10 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
       Clust->totalvalue = 0.0; Clust->totalabsvalue = 0.0;  
       Clust->minvalue = ToBeAssigned[dothisnode]; Clust->minnode = dothisnode;
       Clust->maxvalue = ToBeAssigned[dothisnode]; Clust->maxnode = dothisnode; 
+      Clust->minabsvalue = SUMA_ABS(Clust->minvalue); 
+         Clust->minabsnode = Clust->minnode;
+      Clust->maxabsvalue = SUMA_ABS(Clust->maxvalue); 
+         Clust->maxabsnode = Clust->maxnode;
       Clust->varvalue = 0.0;  Clust->centralnode = 0; 
       Clust->weightedcentralnode = 0;
       Clust->NodeList = (int *)SUMA_malloc((*N_TobeAssigned) * sizeof(int)); 
@@ -1400,11 +1418,13 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params,
    DListElmt *elmt=NULL;
    SUMA_CLUST_DATUM *cd=NULL;
    char *s=NULL, *pad_str, str[20];   
-   int lc[]= { 6, 6, 9, 9, 9, 6, 6, 9, 6, 9, 6, 9, 9 };
+   int lc[]= { 6, 6, 9, 9, 9, 6, 6, 9, 6, 9, 6, 9, 9, 9, 8, 9, 8 };
    char Col[][12] = { 
       {"# Rank"}, {"num Nd"}, {"Area"}, {"Mean"}, 
       {"|Mean|"},{"Cent"}, {"W Cent"},{"Min V"}, 
-      {"Min Nd"}, {"Max V"}, {"Max Nd"} , {"Var"}, {"SEM"} };
+      {"Min Nd"}, {"Max V"}, {"Max Nd"} , {"Var"}, {"SEM"},
+      {"Min |V|"}, {"|Min| Nd"}, {"Max |V|"}, {"|Max| Nd"} };
+   
    SUMA_ENTRY;
 
    SS = SUMA_StringAppend (NULL, NULL);
@@ -1433,11 +1453,15 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params,
                                     "#Col. 9  = Maximum value\n"
                                     "#Col. 10 = Maximum node\n"
                                     "#Col. 11 = Variance\n"
-                                    "#Col. 12 = Standard error of the mean\n");
+                                    "#Col. 12 = Standard error of the mean\n"
+                                    "#Col. 13 = Minimum |value|\n"
+                                    "#Col. 14 = |Minimum| node\n"
+                                    "#Col. 15  = Maximum |value|\n"
+                                    "#Col. 16 = |Maximum| node\n");
       } 
       SS = SUMA_StringAppend_va (SS,"#Command history:\n"
                                     "#%s\n", params);
-      for (ic=0; ic<13; ++ic) {
+      for (ic=0; ic<17; ++ic) {
          if (ic == 0) sprintf(str,"%s", Col[ic]); 
          else sprintf(str,"%s", Col[ic]); 
          pad_str = SUMA_pad_string(str, ' ', lc[ic], 0);
@@ -1479,13 +1503,17 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params,
                   "   %9.3f   %6d"
                   "   %9.3f   %6d"
                   "   %9.3f   %9.3f"
+                  "   %9.3f   %8d"
+                  "   %9.3f   %8d"
                   , ic, cd->N_Node, cd->totalarea
                   , cd->totalvalue/((float)cd->N_Node)
                   , cd->totalabsvalue/((float)cd->N_Node)
                   , cd->centralnode, cd->weightedcentralnode 
                   , cd->minvalue, cd->minnode
                   , cd->maxvalue, cd->maxnode
-                  , cd->varvalue, sqrt(cd->varvalue/cd->N_Node));
+                  , cd->varvalue, sqrt(cd->varvalue/cd->N_Node)
+                  , cd->minabsvalue, cd->minabsnode
+                  , cd->maxabsvalue, cd->maxabsnode);
          if (detail > 0) {
             if (detail == 1) {
                if (cd->N_Node < 5) max = cd->N_Node; else max = 5;
@@ -1501,6 +1529,115 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params,
    SUMA_SS2S(SS,s);
    
    SUMA_RETURN (s);
+}
+
+/*! Turn SurfClust list nimly*/
+NI_element *SUMA_SurfClust_list_2_nel(DList *list, int detail, char *params, 
+                                     char *opts) 
+{
+   static char FuncName[]={"SUMA_SurfClust_list_2_nel"};
+   int i, ic;
+   DListElmt *elmt=NULL;
+   SUMA_CLUST_DATUM *cd=NULL;
+   NI_element *nel=NULL;
+   char *s=NULL;  
+   float *fv=NULL;
+   int *iv=NULL; 
+   int tlc[]= { NI_INT, NI_INT, NI_FLOAT, NI_FLOAT, 
+                NI_FLOAT, NI_INT, NI_INT, NI_FLOAT, 
+                NI_INT, NI_FLOAT, NI_INT, NI_FLOAT, NI_FLOAT, 
+                NI_FLOAT, NI_INT, NI_FLOAT, NI_INT };
+   char Col[][12] = { 
+      {"Rank"}, {"num Nd"}, {"Area"}, {"Mean"}, 
+      {"|Mean|"},{"Cent"}, {"W Cent"},{"Min V"}, 
+      {"Min Nd"}, {"Max V"}, {"Max Nd"} , {"Var"}, {"SEM"},
+      {"Min |V|"}, {"|Min| Nd"}, {"Max |V|"}, {"|Max| Nd"} };
+   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   
+   if (!list) {
+      SUMA_RETURN(nel);  
+   }
+   
+   nel = NI_new_data_element("SurfClust",list->size);
+   s = SUMA_copy_string(Col[0]);
+   for (i=1;i<17;++i) {
+      s = SUMA_append_replace_string(s,Col[i],";",1);
+   }
+   NI_set_attribute(nel,"ColumnLabels",s);
+   NI_set_attribute(nel,"CommandLine",params);
+
+   
+   for (i=0;i<17;++i) {
+      NI_add_column(nel, tlc[i], NULL);
+      elmt = NULL; 
+      ic = 0; 
+      do {
+         if (!elmt) elmt = dlist_head(list); else elmt = elmt->next;
+         if (!elmt)  {
+            SUMA_S_Warnv(" cluster %d element is NULL!\n", ic);
+         } else {
+            switch(tlc[i]) {
+               case NI_FLOAT:
+                  fv = (float*)nel->vec[i];
+                  break;
+               case NI_INT:
+                  iv = (int*)nel->vec[i];
+                  break;
+               default:
+                  SUMA_S_Errv("Not ready for type %d, col %d\n", tlc[i], i);
+                  break;
+            }
+            cd = (SUMA_CLUST_DATUM *)elmt->data;
+            switch(i) {
+               case 0:
+                  iv[ic] = ic+1; break;
+               case 1:
+                  iv[ic] = cd->N_Node; break;
+               case 2:
+                  fv[ic] = cd->totalarea; break;
+               case 3:
+                  fv[ic] = cd->totalvalue/((float)cd->N_Node); break;
+               case 4:  
+                  fv[ic] = cd->totalabsvalue/((float)cd->N_Node); break;
+               case 5:  
+                  iv[ic] = cd->centralnode; break;
+               case 6:  
+                  iv[ic] = cd->weightedcentralnode; break;
+               case 7:  
+                  fv[ic] = cd->minvalue; break;
+               case 8:  
+                  iv[ic] = cd->minnode; break;
+               case 9:  
+                  fv[ic] = cd->maxvalue; break;
+               case 10:  
+                  iv[ic] = cd->maxnode; break;
+               case 11:
+                  fv[ic] = cd->varvalue; break;
+               case 12: 
+                  fv[ic] = sqrt(cd->varvalue/cd->N_Node); break;
+               case 13:
+                  fv[ic] = cd->minabsvalue; break;
+               case 14:
+                  iv[ic] = cd->minabsnode; break;
+               case 15:
+                  fv[ic] = cd->maxabsvalue; break;
+               case 16:
+                  iv[ic] = cd->maxabsnode; break;
+               default:
+                  SUMA_S_Errv("Not ready for column %d\n", i);
+                  break;
+            }
+         }
+         ++ic; 
+      } while (elmt != dlist_tail(list));
+   }
+   
+   if (LocalHead) SUMA_ShowNel(nel);
+   SUMA_RETURN (nel);
 }
 
 byte *SUMA_ClustList2Mask(DList *list, int NodeMax)
