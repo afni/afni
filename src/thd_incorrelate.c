@@ -664,6 +664,11 @@ static void INCOR_addto_incomplete_pearson( int n, float *x, float *y,
    inpear->npt += n ;
    inpear->sx   = sx ; inpear->sxx = sxx ;
    inpear->sy   = sy ; inpear->syy = syy ; inpear->sxy = sxy ; inpear->sw = sw ;
+
+if(PRINT_TRACING){
+  char str[256]; sprintf(str,"incomplete pearson sw=%g",sw); STATUS(str);
+}
+
    return ;
 }
 
@@ -702,6 +707,10 @@ static float INCOR_incomplete_pearson( INCOR_pearson *inpear )
    xv = inpear->sxx - inpear->sx * inpear->sx * swi ;
    yv = inpear->syy - inpear->sy * inpear->sy * swi ;
    xy = inpear->sxy - inpear->sx * inpear->sy * swi ;
+
+if(PRINT_TRACING){
+  char str[256]; sprintf(str,"incomplete pearson xy=%g xv=%g yv=%g",xy,xv,yv); STATUS(str);
+}
 
    if( xv <= 0.0 || yv <= 0.0 ) return 0.0f ;
    return (float)(xy/sqrt(xv*yv)) ;
