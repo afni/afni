@@ -15769,15 +15769,18 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
    } else if (!insertmode) { /* REPLACE! in middle */
       if (nisa->str[col]) NI_free(nisa->str[col]); nisa->str[col] = NULL;
       if (lbl) {
-         nisa->str[col] = (char*)NI_malloc(char, (strlen(lbl)+1)*sizeof(char));
+         /*LocalHead = YUP;*/
+         nisa->str[col] = (char*)NI_malloc(char, (strlen(lbl)+10)*sizeof(char));
          strcpy( nisa->str[col],  lbl ); 
          if (LocalHead) 
             fprintf( SUMA_STDERR,
-                     "%s: replaced %s at location %d\n", FuncName, lbl, col);
+                     "%s: replaced %s at location %d (%d)\n", FuncName, lbl, col, nisa->num);
          ns = SUMA_NI_str_ar_2_comp_str(nisa, sep);
-         if (LocalHead) 
+         if (LocalHead)
             fprintf(SUMA_STDERR,"%s: final string is %s\n", FuncName, ns);
-         SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns); 
+         SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns);
+         /*SUMA_DUMP_TRACE("Troubling"); MCHECK;
+         LocalHead = NOPE;*/
       }
    } else { /* insert in middle */
       int n2;

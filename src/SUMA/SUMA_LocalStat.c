@@ -306,8 +306,8 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
    Clust->totalabsvalue += (float)fabs((float)ToBeAssigned[dothisnode]);   \
    if (ToBeAssigned[dothisnode] < Clust->minvalue) { Clust->minvalue = ToBeAssigned[dothisnode]; Clust->minnode = dothisnode; }  \
    if (ToBeAssigned[dothisnode] > Clust->maxvalue) { Clust->maxvalue = ToBeAssigned[dothisnode]; Clust->maxnode = dothisnode; }  \
-   if (SUMA_ABS(ToBeAssigned[dothisnode]) < Clust->minabsvalue) { Clust->minabsvalue = ToBeAssigned[dothisnode]; Clust->minabsnode = dothisnode; }\
-   if (SUMA_ABS(ToBeAssigned[dothisnode]) > Clust->maxabsvalue) { Clust->maxabsvalue = ToBeAssigned[dothisnode]; Clust->maxabsnode = dothisnode; }\
+   if (SUMA_ABS(ToBeAssigned[dothisnode]) < Clust->minabsvalue) { Clust->minabsvalue = SUMA_ABS(ToBeAssigned[dothisnode]); Clust->minabsnode = dothisnode; }\
+   if (SUMA_ABS(ToBeAssigned[dothisnode]) > Clust->maxabsvalue) { Clust->maxabsvalue = SUMA_ABS(ToBeAssigned[dothisnode]); Clust->maxabsnode = dothisnode; }\
    Clust->ValueList[Clust->N_Node] = ToBeAssigned[dothisnode]; \
    ++Clust->N_Node;  \
 }

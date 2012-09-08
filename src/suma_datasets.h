@@ -1214,7 +1214,6 @@ If ind is NULL, then the index will be the line number.
 }
 /*!
    replace a string positioned in column col, row row in NI_element * nel.
-   str is a copy of the pointer to that string and must not be freed
 */
 #define SUMA_NEL_REPLACE_STRING(nel, row, col, str) {\
    char **m_rc;   \
@@ -1222,7 +1221,7 @@ If ind is NULL, then the index will be the line number.
    if (m_rc[(row)]) NI_free(m_rc[(row)]); \
    m_rc[(row)] = NULL;\
    if (str) { \
-      m_rc[(row)] = (char*)NI_malloc(char, (strlen((str))+1)*sizeof(char));\
+      m_rc[(row)] = (char*)NI_malloc(char, (strlen((str))+10)*sizeof(char));\
       strcpy( m_rc[(row)], str );   \
    }  \
 }
