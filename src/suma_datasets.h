@@ -1214,6 +1214,16 @@ If ind is NULL, then the index will be the line number.
 }
 /*!
    replace a string positioned in column col, row row in NI_element * nel.
+   
+   This macro, when called from SUMA_AddColAtt_CompString ends up reporting
+   a NI_malloc post corruption, at least when starting the dot-product 
+   demo script "tcsh @bugy" under directory
+      /Volumes/Data/ziad/SUMA_test_dirs/suma/srf
+   I can't figure out how m_rc[(row)] is getting corrupted. For now, 
+   allocating for 10 chars more gets rid of the problem.
+   Set +10 to +1 if you want to reproduce the problem.
+   Search for comment tagged: TAG09102012 to find calling 
+   culprit. 
 */
 #define SUMA_NEL_REPLACE_STRING(nel, row, col, str) {\
    char **m_rc;   \
@@ -1661,6 +1671,7 @@ char *SUMA_OutputDsetFileStatus(char *prefix, char *inname,
                             char *pre, char *app, int *exists);
 char *SUMA_FnameGet(char *Fname, char *sel, char *cwd);
 int SUMA_NumStringUnits (char *s, int marktip); 
+int SUMA_strtod(char *n, double *valp);
 int SUMA_StringToNum (char *s, void *vv, int N, int p);
 int SUMA_StringToNumSide (char *s, void *vv, int N, int p, int *sd);
 int SUMA_isNumString (char *s, void *p);

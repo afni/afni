@@ -745,7 +745,7 @@ SUMA_DSET *SUMA_DotDetrendDset(  SUMA_DSET *in_dset,
       SUMA_RETURN(NULL);  
    }
      
-  
+   SUMA_LH("Bandpass/detrending phase");  
    /* detrend */
    nnort = THD_bandpass_vectors (SDSET_VECNUM(in_dset), SDSET_VECLEN(in_dset), 
                                  fvec, (float)TR, fbot, ftop, qdet, nref, 
@@ -761,9 +761,11 @@ SUMA_DSET *SUMA_DotDetrendDset(  SUMA_DSET *in_dset,
       THD_normalize( SDSET_VECNUM(in_dset) , fvec[i] ) ;
    }
    
+   SUMA_LH("About to form output dset");
    /* make a copy of the input dset */
    o_dset = SUMA_MaskedCopyofDset(in_dset, NULL, NULL, 1, 0);
    
+   SUMA_LH("Now filling with output");
    /* Now fill it with fvec*/
    if (!SUMA_VecArray2Dset((void **)fvec, 
                             o_dset, 

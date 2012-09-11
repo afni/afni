@@ -9849,7 +9849,8 @@ int SUMA_ReadNumStdin (float *fv, int nv)
    }
    
    if (i == SUMA_MAX_STRING_LENGTH-1) {
-      fprintf(SUMA_STDERR,"Error %s: No more than %d characters are allowed on stdin.\n", FuncName, SUMA_MAX_STRING_LENGTH-1);
+      SUMA_S_Errv("No more than %d characters are allowed on stdin.\n", 
+                  SUMA_MAX_STRING_LENGTH-1);
       fflush(stdin);
       SUMA_RETURN(-1);
    }
@@ -9864,8 +9865,9 @@ int SUMA_ReadNumStdin (float *fv, int nv)
    nvr = 0;
    eos = NOPE;
    while (nvr < nv && !eos) {
+      errno = 0;
       fv[nvr] = strtod(strtp, &endp);
-      if (LocalHead) fprintf (SUMA_STDERR, "Local Debug %s: ERANGE: %d, EDOM %d, errno %d\n", FuncName, ERANGE, EDOM, errno); 
+      SUMA_LHv("ERANGE: %d, EDOM %d, errno %d\n", ERANGE, EDOM, errno);
       
       if (endp == strtp) { 
          eos = YUP;
@@ -9876,7 +9878,7 @@ int SUMA_ReadNumStdin (float *fv, int nv)
    }
    
    if (eos && nvr < nv) {
-      fprintf (SUMA_STDERR, "Warning %s: Expected to read %d elements, read only %d.\n", FuncName, nv, nvr);
+      SUMA_S_Warnv("Expected to read %d elements, read only %d.\n", nv, nvr);
    }
    
    SUMA_RETURN(nvr);

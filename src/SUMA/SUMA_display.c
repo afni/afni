@@ -7707,10 +7707,11 @@ void SUMA_leave_EV( Widget w , XtPointer client_data ,
    
    SUMA_ENTRY;
 
+   SUMA_LH("Called");
    AF = (SUMA_ARROW_TEXT_FIELD *)client_data ;
    if( lev->type != LeaveNotify || !AF->modified ) SUMA_RETURNe; 
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Leave notification.\n", FuncName);
+   SUMA_LH("Leave notification");
    SUMA_ATF_cb_label_change( AF->textfield , (XtPointer) AF , NULL ) ;
    
    SUMA_RETURNe;
@@ -7720,7 +7721,8 @@ void SUMA_leave_EV( Widget w , XtPointer client_data ,
    \brief This function is called when the label field is activated by the user
    
 */
-void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_data)
+void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, 
+                               XtPointer call_data)
 {
    static char FuncName[]={"SUMA_ATF_cb_label_change"};
    SUMA_ARROW_TEXT_FIELD *AF=NULL;
@@ -7730,7 +7732,7 @@ void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_d
 
    /* make call to NewValue callback */
    AF = (SUMA_ARROW_TEXT_FIELD *)client_data;
-   
+   SUMA_LHv("Type %d (%d int, %d float\n", AF->type, SUMA_int, SUMA_float);
    if (AF->type == SUMA_int || AF->type == SUMA_float) SUMA_ATF_SetValue (AF);
    
    if (!AF->NewValueCallbackData) {
@@ -8319,7 +8321,7 @@ void SUMA_ATF_SetString (SUMA_ARROW_TEXT_FIELD * AF)
 void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF)
 {
    static char FuncName[]={"SUMA_ATF_SetValue"};
-   float val;
+   double val;
    void *n = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -8333,13 +8335,13 @@ void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF)
       Hmmmm, maybe you do, maybe you do. Must abide by 
       upper case message. Must have crashed somwhere */
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Read %s\n", FuncName, (char *)n);
+   SUMA_LHv("Read %s\n", (char *)n);
    
-   val = strtod ((char *)n, NULL);
-   if (errno) {
+   if (!SUMA_strtod((char*)n, &val)){
       /* bad syntax, reset value*/
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Bad syntax.\n", FuncName);
-      SUMA_RegisterMessage (SUMAg_CF->MessageList, "Bad value in text field", FuncName, SMT_Error, SMA_Log);
+      SUMA_LHv("Bad syntax, got %f.\n", val);
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+            "Bad value in text field", FuncName, SMT_Error, SMA_Log);
       SUMA_ATF_SetString (AF);
    }else { 
       if (AF->type == SUMA_int) {
