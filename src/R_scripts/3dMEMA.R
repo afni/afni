@@ -518,8 +518,8 @@ reference.MEMA <- function ()
 "#######################################################################
 Please consider citing the following if this program is useful for you:
 
-   Chen et al., FMRI Group Analysis Combining Effect Estimates
-   and Their Variances. NeuroImage. NeuroImage 60, 747-765.
+   Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
+   and Their Variances. NeuroImage. NeuroImage 60: 747-765.
    
    http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
    
@@ -542,8 +542,8 @@ Usage:
  desirable. Version 0.1.15 (Sept 10, 2012). If you want to cite the analysis
  approach, use the following at this moment:
 
- Chen et al., FMRI Group Analysis Combining Effect Estimates
- and Their Variances. NeuroImage. NeuroImage 60, 747-765.
+ Chen et al., 2012.FMRI Group Analysis Combining Effect Estimates
+ and Their Variances. NeuroImage. NeuroImage 60: 747-765.
  
  The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
  or linear combination (GLT) of multiple conditions. It can be used to analyze
@@ -557,9 +557,12 @@ Usage:
  effects in the model should be considered. 
  
  Basically, 3dMEMA can run one-sample, two-sample, and all types of BETWEEN-SUBJECTS
- ANOVA and ANCOVA. Paired-test can be performed through feeding the contrast of 
- the two conditons as input. Within-subject variables currently cannot be modeled. 
- See more details at
+ ANOVA and ANCOVA. Within-subject variables mostly cannot be modeled, but there are 
+ a few exceptions. For instance, paired-test can be performed through feeding the 
+ contrast of the two conditons as input. Multi-way ANOVA can be analyzed under the
+ following two scnearios: 1) all factors have only two levels (e.g., 2 X 2 repeated-
+ measures ANOVA) can be analyzed; or 1) there is only one within-subject (or 
+ repeated-measures) factor and it contains two levels only. See more details at
  
  http://afni.nimh.nih.gov/sscc/gangc/MEMA.html'
    
