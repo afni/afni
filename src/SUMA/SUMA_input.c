@@ -1179,7 +1179,6 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                }  else {
                   SUMA_S_Note("No contralateral dset ");
                }
-               
                /* Initialize dot product options. You'll have to redo this
                   unfortunately below... */
                if (!(SUMA_is_TimeSeries_dset(in_dset, &TR))) {
