@@ -1752,7 +1752,6 @@ int SUMA_AddDsetColAttr (  SUMA_DSET *dset, char *col_label,
    } 
    /* set the attribute string */   
    switch (ctp) {
-      
       default:
          attrstr = SUMA_copy_string("none");
          break;  
@@ -1780,12 +1779,11 @@ int SUMA_AddDsetColAttr (  SUMA_DSET *dset, char *col_label,
    SUMA_AddColAtt_CompString( nelb, col_index, attrstr, 
                               SUMA_NI_CSS, insert_mode); 
             /* See confusing note following AFNI_NI_CSS in SUMA_DataSets.h */
-   
    if (attrstr) SUMA_free(attrstr); attrstr = NULL;
-
    
    SUMA_RETURN(1);   
 }
+
 /*!
    \brief a special version of SUMA_AddDsetColAttr for node index column
 */
@@ -2415,7 +2413,7 @@ char * SUMA_GetDsetColStringAttr( SUMA_DSET *dset, int col_index,
 char * SUMA_GetNgrColStringAttr( NI_group *ngr, int col_index, 
                                  char *attrname)
 {
-   static char FuncName[]={"SUMA_GetDsetColStringAttr"};
+   static char FuncName[]={"SUMA_GetNgrColStringAttr"};
    char *rs = NULL;
    NI_element *nelb = NULL;
    SUMA_ENTRY;
@@ -2616,10 +2614,13 @@ int SUMA_InsertDsetNelCol ( SUMA_DSET *dset, char *col_label,
    or replace. You'll need to find a solution for inserts before 
    allowing column insertion.  
    That is now fixed, Oct 07 */
+   SUMA_LH("Before SUMA_AddGenDsetColAttr"); 
    SUMA_AddGenDsetColAttr (dset, ctp, col, stride, icol, 1);
    /* add the attributes of that column */
+   SUMA_LH("Before SUMA_AddDsetColAttr"); 
    SUMA_AddDsetColAttr (dset, col_label, ctp, col_attr, icol, 1);
-   
+   SUMA_LH("Before Returning"); 
+
    SUMA_RETURN(1);
 }
 
@@ -3407,6 +3408,7 @@ SUMA_DSET * SUMA_MaskedCopyofDset(  SUMA_DSET *odset,
             SUMA_FreeDset((void*)ndset); ndset = NULL;
             SUMA_RETURN(ndset);
          } 
+         SUMA_LH("Insertion finished");
          if (lblcp) SUMA_free(lblcp); lblcp = NULL;
          /* Adding other columnar attributes */
          SUMA_COPY_DSET_COL_ATTRIBUTES(odset, ndset, 
@@ -14158,7 +14160,7 @@ int SUMA_CleanNumString (char *s, void *p)
    
    SUMA_ENTRY;
    
-   if (!s) SUMA_RETURN(1); 
+   if (!s) SUMA_RETURN(1);
    
    #if INT_MAX < LONG_MAX
       N = (int)(long int)p;
@@ -14192,8 +14194,11 @@ int SUMA_CleanNumString (char *s, void *p)
    nd = 0;
    eos = 0;
    while (!eos) {
+      errno=0;
       d = strtod(strtp, &endp);
-      if (LocalHead) fprintf (stderr, "%s: value %f, ERANGE: %d, EDOM %d, errno %d\n", FuncName, d, ERANGE, EDOM, errno); 
+      /* See SUMA_strtod() for an example on exception handling for strtod */
+      SUMA_LHv("value %f, ERANGE: %d, EDOM %d, errno %d\n", 
+               d, ERANGE, EDOM, errno); 
       
 
       if (endp == strtp && *endp=='\0') { 
@@ -14406,6 +14411,32 @@ int SUMA_NumStringUnits (char *s, int marktip)
    SUMA_RETURN(unt);
 }
 
+int SUMA_strtod(char *n, double *valp)
+{
+   static char FuncName[]={"SUMA_strtod"};
+   char *stp=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (!n || !valp) SUMA_RETURN(0);
+   
+   errno = 0;
+   *valp = strtod (n, &stp);
+   
+   SUMA_LHv("s=%s, stp=%s, val=%f, \n"
+            "errno=%d, HUGE_VAL=%g,%Lg,%g, EINVAL=%d,ERANGE=%d\n",
+            (char *)n, CHECK_NULL_STR(stp), *valp, errno,
+            HUGE_VAL, HUGE_VALL, HUGE_VALF, EINVAL, ERANGE);
+   
+   if ((errno == ERANGE &&(*valp == LONG_MAX || *valp == LONG_MIN))
+         || (errno != 0 && *valp == 0) ||
+         stp == n /* nothing numeric was read */) {
+      SUMA_RETURN(0);
+   }
+   
+   /* all is well */
+   SUMA_RETURN(1);
+}
+
 /*!
    \brief function that parses a string of numbers into a float vector
    
@@ -14466,11 +14497,10 @@ int SUMA_StringToNum (char *s, void *vv, int N, int prec)
    nd = 0;
    eos = 0;
    while (!eos) {
+      errno = 0;
       d = strtod(strtp, &endp);
-      if (LocalHead) 
-         fprintf (stderr, "%s: %dth value %f, ERANGE: %d, EDOM %d, errno %d\n", 
-                           FuncName, nd, d, ERANGE, EDOM, errno); 
-      
+      /* See SUMA_strtod() for an example on exception handling for strtod */
+    
       if (endp == strtp && *endp=='\0') { 
          eos = 1;
       } else {
@@ -15561,7 +15591,7 @@ int SUMA_NI_str_array_find( char *targ , NI_str_array *sar , int partial, int ci
             if( strstr(sar->str[ii], targ) == NULL ) SUMA_RETURN(ii) ;
       } else {
          for( ii=0 ; ii < sar->num ; ii++ )
-            if( strcasestr(sar->str[ii], targ) == NULL ) SUMA_RETURN(ii) ;
+            if( !strcasestr(sar->str[ii], targ) ) SUMA_RETURN(ii) ;
       }
    }
    SUMA_RETURN(-1) ;
@@ -15707,7 +15737,10 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
    }
    #endif
    num_string_components = SUMA_NI_get_num_strings(cs, sep);
-   
+   SUMA_LHv("num_string_components=%d in cs=%s (sep=%s), col=%d, lbl=%s,"
+            "insertmode=%d\n",
+            num_string_components, cs, sep, col, lbl, insertmode);
+    
    if (num_string_components < 0 || col != num_string_components) {
       nisa = SUMA_comp_str_2_NI_str_ar(cs, sep);
       if (!nisa) { 
@@ -15726,8 +15759,8 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
    
    if (col == num_string_components) { /* add at the end */
       if (LocalHead) 
-         fprintf(SUMA_STDERR,"%s: append %s to end of string\n", 
-                  FuncName, lbl);
+         fprintf(SUMA_STDERR,"%s: append %s to end of string, memcheck: %s\n", 
+                  FuncName, lbl, NI_malloc_status());
       #if 0 /* this gets real slow when adding column after column for 
                dsets with a very large number of columns */
       ns = SUMA_append_replace_string(cs, lbl, sep, 0);
@@ -15741,6 +15774,8 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
       if (sep) n1 = strlen(sep); else n1 = 0; 
       if (lbl) n2 = strlen(lbl); else n2 = 0;
       nalloc = SUMA_NI_get_int(nel,"alloc_max");
+      SUMA_LHv("nalloc now %d versus %d with cs=%s and lbl=%s\n", 
+               nalloc, n0+n1+n2+1, CHECK_NULL_STR(cs), CHECK_NULL_STR(lbl));
       if (nalloc < (n0+n1+n2+1)) { /* and a little faster July 2012 
                                     still need to go faster, but 
                                     bottle neck may be elsewhere */
@@ -15749,38 +15784,46 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
                   nalloc*sizeof(char));
          SUMA_NI_set_int(nel,"alloc_max", nalloc);
       }
-      i = 0; while(sep[i]) { cs[n0++] = sep[i]; ++i; }            
+
+      if (!SUMA_isExtension(cs, sep)) {
+         i = 0; while(sep[i]) { cs[n0++] = sep[i]; ++i; }            
+      }
       if (n2) {
          i = 0; while(lbl[i]) { cs[n0++] = lbl[i]; ++i; }
       }
       cs[n0] = '\0';
-      rc = (char **)(nel->vec[0]);
+      if (!(rc = (char **)(nel->vec[0]))) {
+         SUMA_S_Err("Unexpected null nel->vec[0]");
+         SUMA_RETURN(NOPE); 
+      }
       rc[0] = cs; 
       
       if (0) {
          SUMA_LHv("cs (%d strings) now: %s\n", 
-                              SUMA_NI_get_num_strings(cs, sep), cs);
+                     SUMA_NI_get_num_strings(cs, sep), cs);
       } else {
-         SUMA_LHv("cs (%d strings)\n", 
-                              SUMA_NI_get_num_strings(cs, sep));
+         SUMA_LHv("cs (%d strings), memcheck:%s\n", 
+                     SUMA_NI_get_num_strings(cs, sep), NI_malloc_status());
       }
       }
       #endif
    } else if (!insertmode) { /* REPLACE! in middle */
       if (nisa->str[col]) NI_free(nisa->str[col]); nisa->str[col] = NULL;
       if (lbl) {
-         /*LocalHead = YUP;*/
-         nisa->str[col] = (char*)NI_malloc(char, (strlen(lbl)+10)*sizeof(char));
+         nisa->str[col] = (char*)NI_malloc(char, (strlen(lbl)+1)*sizeof(char));
          strcpy( nisa->str[col],  lbl ); 
          if (LocalHead) 
             fprintf( SUMA_STDERR,
-                     "%s: replaced %s at location %d (%d)\n", FuncName, lbl, col, nisa->num);
+                     "%s: replaced %s at location %d (%d)\n", 
+                     FuncName, lbl, col, nisa->num);
          ns = SUMA_NI_str_ar_2_comp_str(nisa, sep);
          if (LocalHead)
             fprintf(SUMA_STDERR,"%s: final string is %s\n", FuncName, ns);
+         /* This next macro is causing a post-malloc corruption that I cannot
+         trace. Adding +10 instead of +1 to the NI_malloc in the macro seems
+         to solve the problem.  TAG09102012    ZSS , Sept 10 2012 */  
          SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns);
-         /*SUMA_DUMP_TRACE("Troubling"); MCHECK;
-         LocalHead = NOPE;*/
+         /* SUMA_DUMP_TRACE(NI_malloc_status()); */
       }
    } else { /* insert in middle */
       int n2;

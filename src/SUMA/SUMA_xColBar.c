@@ -2726,8 +2726,10 @@ void  SUMA_SetCellEditMode(SUMA_TABLE_FIELD *TF, int i, int j, int Mode)
    n = j * TF->Ni + i;
    
    /* remove calls anyway */
-   XtRemoveCallback (TF->cells[n], XmNactivateCallback, SUMA_TableF_cb_label_change, (XtPointer)TF);
-   XtRemoveCallback (TF->cells[n], XmNmodifyVerifyCallback, SUMA_TableF_cb_label_Modify, (XtPointer)TF);
+   XtRemoveCallback (TF->cells[n], XmNactivateCallback, 
+                     SUMA_TableF_cb_label_change, (XtPointer)TF);
+   XtRemoveCallback (TF->cells[n], XmNmodifyVerifyCallback, 
+                     SUMA_TableF_cb_label_Modify, (XtPointer)TF);
    /* remove event handlers */
    XtRemoveEventHandler( TF->cells[n] ,        
                          LeaveWindowMask ,  
@@ -2751,8 +2753,10 @@ void  SUMA_SetCellEditMode(SUMA_TABLE_FIELD *TF, int i, int j, int Mode)
                        XmNcursorPositionVisible, True, 
                        NULL);
          
-         XtAddCallback (TF->cells[n], XmNactivateCallback, SUMA_TableF_cb_label_change, (XtPointer)TF);
-         XtAddCallback (TF->cells[n], XmNmodifyVerifyCallback, SUMA_TableF_cb_label_Modify, (XtPointer)TF);
+         XtAddCallback (TF->cells[n], XmNactivateCallback, 
+                        SUMA_TableF_cb_label_change, (XtPointer)TF);
+         XtAddCallback (TF->cells[n], XmNmodifyVerifyCallback, 
+                        SUMA_TableF_cb_label_Modify, (XtPointer)TF);
          /* add event handler to notify when widget was left */
          XtInsertEventHandler( TF->cells[n] ,        /* notify when */
                                   LeaveWindowMask ,  /* pointer leaves */
@@ -4672,7 +4676,8 @@ void SUMA_TableF_SetString (SUMA_TABLE_FIELD * TF)
    All it does is set TF->cell_modified to the 1D index of that cell
 
 */
-void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer call_data)
+void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data, 
+                                  XtPointer call_data)
 {
    static char FuncName[]={"SUMA_TableF_cb_label_Modify"};
    SUMA_TABLE_FIELD *TF=NULL;
