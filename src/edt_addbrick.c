@@ -143,7 +143,7 @@ void EDIT_add_brick( THD_3dim_dataset *dset, int typ , float fac , void *br )
 /*!
    Turn float arrays into sub-bricks of a preset type
          (based on code in 3dMean)
-   
+
    dset (THD_3dim_dataset *) new dset to which arrays will be added
    far (float **) each far[i] is to become one sub-brick in dset
    nval (int) the number of arrays in far
@@ -157,29 +157,29 @@ void EDIT_add_brick( THD_3dim_dataset *dset, int typ , float fac , void *br )
    verb (int) loquaciousness
    returns 1 if all is well
            0 all hell broke loose
-   
+
 */
-int EDIT_add_bricks_from_far(THD_3dim_dataset *dset, 
+int EDIT_add_bricks_from_far(THD_3dim_dataset *dset,
                     float **far, int nval,
-                    int otype, char scaleopt, 
-                    int verb) 
+                    int otype, char scaleopt,
+                    int verb)
 {
    int ii=0, kk=0, nxyz;
-   
+
    ENTRY("EDIT_add_bricks_from_far");
-   
+
    if (scaleopt != 'A' && scaleopt != 'F' && scaleopt != 'G' && scaleopt != 'N'){
       ERROR_message("Bad scaleopt value of %c", scaleopt);
       RETURN(0);
    }
-   
+
    if (!dset) {
       ERROR_message("NULL input");
       RETURN(0);
    }
-   
+
    nxyz = DSET_NVOX(dset);
-   
+
    switch( otype ){
 
       default:
@@ -218,7 +218,7 @@ int EDIT_add_bricks_from_far(THD_3dim_dataset *dset,
 
          for (kk = 0 ; kk < nval ; kk ++ ) {
 
-            if( scaleopt != 'G' && scaleopt != 'N'){  
+            if( scaleopt != 'G' && scaleopt != 'N'){
                            /* compute max value in this sub-brick */
                gtop = MCW_vol_amax( nxyz , 1 , 1 , MRI_float, far[kk] ) ;
                if( gtop == 0.0 )
@@ -232,7 +232,7 @@ int EDIT_add_bricks_from_far(THD_3dim_dataset *dset,
 
             } else if( scaleopt == 'A' ){  /* only if needed */
 
-               fimfac = (  gtop > MRI_TYPE_maxval[otype] || 
+               fimfac = (  gtop > MRI_TYPE_maxval[otype] ||
                            (gtop > 0.0 && gtop < 1.0)       )
                         ? MRI_TYPE_maxval[otype]/ gtop : 0.0 ;
 
@@ -252,7 +252,7 @@ int EDIT_add_bricks_from_far(THD_3dim_dataset *dset,
                ERROR_message("Should not see this one");
                RETURN(0);
             }
-            
+
 
             if( verb ){
                if( fimfac != 0.0 )
@@ -262,9 +262,9 @@ int EDIT_add_bricks_from_far(THD_3dim_dataset *dset,
             }
 
             dfim[kk] = (void *) malloc( mri_datum_size(otype) * nxyz ) ;
-            if( dfim[kk] == NULL ){ 
+            if( dfim[kk] == NULL ){
                ERROR_message("malloc fails at output\n");
-               exit(1); 
+               exit(1);
             }
 
             EDIT_coerce_scale_type( nxyz , fimfac ,
@@ -277,7 +277,7 @@ int EDIT_add_bricks_from_far(THD_3dim_dataset *dset,
             EDIT_substitute_brick(dset, kk, otype, dfim[kk] );
 
             DSET_BRICK_FACTOR(dset,kk) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
-            
+
             dfim[kk]=NULL;
           }
           free(dfim); dfim = NULL;
@@ -285,8 +285,6 @@ int EDIT_add_bricks_from_far(THD_3dim_dataset *dset,
       break ;
    }
 
-   
+
    RETURN(1);
 }
-
-                                      
