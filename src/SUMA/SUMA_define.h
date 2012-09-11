@@ -1280,7 +1280,7 @@ typedef struct {
    int Open; /*!< Flag indicating that controller is open 
                   This was introduced to help deal with crashes on 
                   OS X 10.5 and 10.6*/
-   Widget TopLevelShell;/*!< Top level shell for a Surface's controller */
+   Widget TLS;/*!< Top level shell for a Surface's controller */
    Widget PosRef; /*!< reference position widget */
    Widget Mainform; /*!< main form, child of TopLevelShell */
    Widget SurfInfo_pb; /*!< More info push button */
@@ -1316,12 +1316,16 @@ typedef struct {
    Widget SymIrange_tb; /*!< Symmetric intensity range */
    Widget AbsThresh_tb; /*!< absolute threshold */
    Widget ShowZero_tb; /*!< Show zero values */
-   SUMA_LIST_WIDGET *SwitchDsetlst; /*!< a structure containing widgets and options for the switch color plane list */
+   SUMA_LIST_WIDGET *SwitchDsetlst; /*!< a structure containing widgets and 
+                                    options for the switch color plane list */
    SUMA_TABLE_FIELD *ColPlaneLabelTable; 
-   SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */
-   SUMA_Boolean ShowCurForeOnly; /*!< Show current plane only out of the entire stack */
+   SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color 
+                                    plane */
+   SUMA_Boolean ShowCurForeOnly; /*!< Show current plane only out of the entire 
+                                    stack */
    SUMA_Boolean GraphHidden; /*!< Graph update even in ShowCurForeOnly */
-   void **curSOp; /*!< a copy of the pointer to the surface object for which the controller is open */
+   void **curSOp; /*!< a copy of the pointer to the surface object for which the 
+                     controller is open */
    SUMA_CMAP_RENDER_AREA *cmp_ren;   /* data for cmap rendering zone */
    Widget thr_sc;   /*! scale for threshold data */
    Widget brt_sc;   /*! scale for brightness data */
@@ -1390,7 +1394,8 @@ typedef struct {
    Widget AppShell; /*!< AppShell widget for Suma's controller */
    Widget quit_pb; /*!< quit push button */
    SUMA_Boolean quit_first;   /*!< flag indicating first press of done button */
-   SUMA_rb_group *Lock_rbg; /*!< pointer to structure contining N radio button groups */
+   SUMA_rb_group *Lock_rbg; /*!< pointer to structure contining N radio 
+                                 button groups */
    Widget *LockView_tbg;   /*!< vector of toggleview buttons */
    Widget LockAllView_tb;  /*!< widget of toggleAllview button */
    SUMA_CREATE_TEXT_SHELL_STRUCT *SumaInfo_TextShell;
@@ -1517,6 +1522,12 @@ typedef struct {
    SUMA_PROMPT_DIALOG_STRUCT *ClipObj_prmpt; /*!< structure for clip obj dialg */
    
    XmFontList TableTextFontList; /*! Font list for table's text fields */
+   
+   SUMA_Boolean UseSameSurfCont; /* Use one surface controller for all surfs? */
+   SUMA_Boolean SameSurfContOpen;
+   Widget CommonSurfContTLW; /* If not null, then surface controller will
+                                   all be sharing this top level widget */
+   Widget TopSurfContWidget;
 }SUMA_X_AllView;
 
 /*! structure defining a cross hair */
