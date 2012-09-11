@@ -3975,7 +3975,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                         "Please report error to author.");
             SUMA_RETURN(Ret);
          }
-         if (!SO->SurfCont->TopLevelShell) { /* better have a controller 
+         if (!SUMA_SURFCONT_CREATED(SO)) { /* better have a controller 
                                                 before going crazy */
             if (0) { /* this option or the next behave in the same way */
                if (!SUMA_viewSurfaceCont(NULL, SO, sv)) {
@@ -4830,7 +4830,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
          }
          
          /* if the surface controller is open, update it */
-         if (SO_nxt->SurfCont->TopLevelShell)   { 
+         if (SUMA_SURFCONT_CREATED(SO_nxt))   { 
             SUMA_Init_SurfCont_SurfParam(SO_nxt);
          }
 
@@ -4860,7 +4860,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    /* Now update the cross hair info if needed for the surface in focus */
    if (sv->Ch->SurfaceID >= 0)   { 
       SUMA_SurfaceObject *SOtmp=(SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP);
-      if (SOtmp->SurfCont->TopLevelShell) {
+      if (SUMA_SURFCONT_CREATED(SOtmp)) {
          SUMA_Init_SurfCont_CrossHair(SOtmp);
       }
    }

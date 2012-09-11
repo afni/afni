@@ -214,6 +214,9 @@ sets the select color of the widget to its foreground color */
    }  \
 }
 
+#define SUMA_SURFCONT_CREATED(SO) ( (SO && SO->SurfCont && \
+                                     SO->SurfCont->TLS) ? 1:0 ) 
+
 String *SUMA_get_fallbackResources ();         
 void SUMA_CullOption(SUMA_SurfaceViewer *, const char *action);
 Boolean SUMA_handleRedisplay (XtPointer w);
