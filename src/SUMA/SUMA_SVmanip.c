@@ -2062,6 +2062,35 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->Clip_prmpt = NULL;
    cf->X->ClipObj_prmpt = NULL;
    cf->X->TableTextFontList = NULL;   
+   cf->X->CommonSurfContTLW = NULL;
+   cf->X->TopSurfContWidget = NULL;
+   cf->X->SameSurfContOpen = 0;
+   {
+      char *eee = getenv("SUMA_SameSurfCont");
+      if (eee) {
+         if (strcmp(eee,"NO") == 0) cf->X->UseSameSurfCont = NOPE;
+         else if (strcmp(eee,"YES") == 0) cf->X->UseSameSurfCont = YUP;
+         else {
+            fprintf (SUMA_STDERR,   
+                     "Warning %s:\n"
+                     "Bad value for environment variable UseSameSurfCont\n"
+                     "Assuming default of NOPE", FuncName);
+            cf->X->UseSameSurfCont = NOPE;
+         }
+      } else cf->X->UseSameSurfCont = NOPE;
+      if (cf->X->UseSameSurfCont) {
+         SUMA_S_Warn("Using the same surface controller is NOT ready for prime"
+                     "time. In particular, I don't handle 'closing' of"
+                     "controller properly. Macro SUMA_SURFCONT_CREATED() needs"
+                     "some more thought, perhaps. Annoying pointer focus theft"
+                     "When I raise the surface controller as I switch between"
+                     "hemis. Search for Raising Arizona in the code to locate"
+                     "attempts at fixing this."
+                     "Eventually, switch the default value to YES"
+                     "Also, turn off yoking then check for proper preservation"
+                     "of values separately set for each surface's controller.");
+      }
+   } 
    {
       char *eee = getenv("SUMA_NumForeSmoothing");
       if (eee) {
@@ -2489,7 +2518,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->DsetMap_fr = NULL;
    SurfCont->ColPlane_fr = NULL;
    SurfCont->Xhair_fr = NULL;
-   SurfCont->TopLevelShell = NULL;
+   SurfCont->TLS = NULL;
    SurfCont->SurfInfo_pb = NULL;
    SurfCont->SurfInfo_label = NULL;
    SurfCont->SurfInfo_TextShell = NULL;

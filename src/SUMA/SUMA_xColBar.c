@@ -2333,7 +2333,7 @@ void SUMA_RangeTableCell_EV ( Widget w , XtPointer cd ,
                      SUMAg_SVv[i].Focus_SO_ID = 
                         SUMA_findSO_inDOv (curSO->idcode_str, 
                                            SUMAg_DOv, SUMAg_N_DOv);
-                     if (curSO->SurfCont->TopLevelShell) {   
+                     if (SUMA_SURFCONT_CREATED(curSO)) {   
                         SUMA_Init_SurfCont_SurfParam(curSO);
                      } else {
                         SUMA_S_Err("How did this happen?");
@@ -3440,7 +3440,7 @@ int SUMA_SetScaleThr_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
    static char FuncName[]={"SUMA_SetScaleThr_one"};
    SUMA_SurfaceObject *curSO = NULL;
    SUMA_TABLE_FIELD *TF=NULL;
-   int cv=0, cell_mod=-1;
+   int cv=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -3479,29 +3479,29 @@ int SUMA_SetScaleThr_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
       fprintf(SUMA_STDERR,
               "%s:\nChecksums, new value is %f, cv to be set to %d\n"
               "val now %f\n", 
-              FuncName, TF->num_value[TF->cell_modified], cv, *val);   
+              FuncName, TF->num_value[0], cv, *val);   
 
-   cell_mod = TF->cell_modified; /* TF->cell_modifed might get reset
-                                    in macro below */
+   /* TF->cell_modifed is not good when the call is made
+   as a result of LR controller yoking. So don't bother using it.
+   We only have one cell to be modified anyway. ZSS Sept 11 2012 */
+   
    /* check on value */
-   if (TF->num_value[cell_mod] != *val) { 
+   if (TF->num_value[0] != *val) { 
       /* a change in value (plateau effect) */
-      TF->num_value[cell_mod] = *val;
+      TF->num_value[0] = *val;
       if (!setmen) setmen = 1;
    }
    
    if (setmen) {
-      SUMA_INSERT_CELL_VALUE(TF, 0, 0, TF->num_value[cell_mod]);
-      /* WARNING: TF->cell_modified reset to -1 in previous macro */
+      SUMA_INSERT_CELL_VALUE(TF, 0, 0, *val);
    }
    
    if (LocalHead) 
       fprintf( SUMA_STDERR,
                "%s:\nSet thresholdiation, new value is %f\n", 
-               FuncName, TF->num_value[cell_mod]);
+               FuncName, *val);
    /* if value OK, set threshold bar*/
-   SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = 
-                                 TF->num_value[cell_mod];
+   SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = *val;
    XtVaSetValues(SO->SurfCont->thr_sc,  
             XmNvalue, cv, 
             NULL);   
@@ -5693,7 +5693,7 @@ SUMA_Boolean SUMA_DsetColSelectList(
             LW = SUMA_AllocateScrolledList   (  
                   "Switch Intensity", SUMA_LSP_BROWSE,
                   NOPE,          NOPE,
-                  SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+                  SO->SurfCont->TLS, SWP_POINTER_OFF,
                   150,
                   SUMA_cb_SelectSwitchInt, (void *)SO,
                   SUMA_cb_SelectSwitchInt, (void *)SO,
@@ -5718,7 +5718,7 @@ SUMA_Boolean SUMA_DsetColSelectList(
             LW = SUMA_AllocateScrolledList   (  
                   "Switch Threshold", SUMA_LSP_BROWSE,
                   NOPE,          NOPE,
-                  SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+                  SO->SurfCont->TLS, SWP_POINTER_OFF,
                   150,
                   SUMA_cb_SelectSwitchThr, (void *)SO,
                   SUMA_cb_SelectSwitchThr, (void *)SO,
@@ -5743,7 +5743,7 @@ SUMA_Boolean SUMA_DsetColSelectList(
             LW = SUMA_AllocateScrolledList   (  
                   "Switch Brightness", SUMA_LSP_BROWSE,
                   NOPE,          NOPE,
-                  SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+                  SO->SurfCont->TLS, SWP_POINTER_OFF,
                   150, 
                   SUMA_cb_SelectSwitchBrt, (void *)SO,
                   SUMA_cb_SelectSwitchBrt, (void *)SO,
@@ -6138,7 +6138,7 @@ SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh,
       LW = SUMA_AllocateScrolledList   (  
             "Switch Cmap", SUMA_LSP_BROWSE,
             NOPE,          NOPE,
-            SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+            SO->SurfCont->TLS, SWP_POINTER_OFF,
             125,
             SUMA_cb_SelectSwitchCmap, (void *)SO,
             SUMA_cb_SelectSwitchCmap, (void *)SO,
@@ -8159,7 +8159,7 @@ void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data)
       fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
    }
    SUMA_RegisterEngineListCommand (  list, ED,
-                                     SEF_ip, (void *)SO->SurfCont->TopLevelShell,
+                                     SEF_ip, (void *)SO->SurfCont->TLS,
                                      SES_Suma, NULL, NOPE,
                                      SEI_In, NextElm);
    if (!SUMA_Engine (&list)) {

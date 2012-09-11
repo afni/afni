@@ -4383,7 +4383,7 @@ void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData)
       SUMA_RETURNe;
    }
 
-   if (!SO->SurfCont->TopLevelShell) {
+   if (!SUMA_SURFCONT_CREATED(SO)) {
       /* Before you open the surface info widget, you'll need to open
       the surface controller to initialize the Surface Controller first */
       SUMA_cb_createSurfaceCont( w, (XtPointer)SO, callData);
@@ -4611,7 +4611,7 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    
    if (!SO || !SO->SurfCont) SUMA_RETURN(0);
    
-   if (SO->SurfCont->TopLevelShell) SUMA_RETURN(1); /* nothing to do */
+   if (SUMA_SURFCONT_CREATED(SO)) SUMA_RETURN(1); /* nothing to do */
    
    if (w) {
       SUMA_LH("nism");
@@ -4661,7 +4661,7 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
    }
    SUMA_LHv("Working surface %s,\n sv %p,\n w  %p\n", SO->Label, w, sv);
       
-   if (!SO->SurfCont->TopLevelShell) {
+   if (!SUMA_SURFCONT_CREATED(SO)) {
       if (LocalHead) 
          SUMA_LH("Calling SUMA_cb_createSurfaceCont.");
       if (w) SUMA_cb_createSurfaceCont( w, (XtPointer)SO, NULL);
@@ -4675,20 +4675,20 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
                         "%s: Controller already created, Raising it.\n", 
                         FuncName);
             XMapRaised( SUMAg_CF->X->DPY_controller1, 
-                        XtWindow(SO->SurfCont->TopLevelShell));
+                        XtWindow(SO->SurfCont->TLS));
             break;
          case SUMA_UNREALIZE:
             if (LocalHead) 
                fprintf (SUMA_STDERR,
                         "%s: Controller already created, realizing it.\n", 
                         FuncName);
-            XtRealizeWidget( SO->SurfCont->TopLevelShell);
+            XtRealizeWidget( SO->SurfCont->TLS);
             XSync(SUMAg_CF->X->DPY_controller1, 0);
             /* now do Raise, so that we can see the damned thing if it 
                behind other windows, and hope it does not crash*/
             SUMA_LH("Rise and do not crash");
             XMapRaised( SUMAg_CF->X->DPY_controller1, 
-                        XtWindow(SO->SurfCont->TopLevelShell)); 
+                        XtWindow(SO->SurfCont->TLS)); 
 
             break;
          default:
@@ -4699,7 +4699,8 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
 
    }
    SO->SurfCont->Open = 1;
-   
+   if (SUMAg_CF->X->UseSameSurfCont) SUMAg_CF->X->SameSurfContOpen=1;
+
    SUMA_LH("Init SurfParam");
    SUMA_Init_SurfCont_SurfParam(SO);
    SUMA_LH("Init CrossHair");
@@ -4710,7 +4711,7 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
    SUMA_LH("Init Position");
    if (SO->SurfCont->PosRef != sv->X->TOPLEVEL) {
       SO->SurfCont->PosRef = sv->X->TOPLEVEL;
-      SUMA_PositionWindowRelative ( SO->SurfCont->TopLevelShell, 
+      SUMA_PositionWindowRelative ( SO->SurfCont->TLS, 
                                     SO->SurfCont->PosRef, SWP_TOP_RIGHT);   
    }
    
@@ -5360,7 +5361,8 @@ Widget SUMA_CloseBhelp_Frame( Widget parent,
 */
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 {
-   Widget tl, pb, form, DispFrame, SurfFrame, rc_left, rc_right, rc_mamma;
+   Widget tl, pb, form, DispFrame, SurfFrame, 
+          rc_left, rc_right, rc_mamma, tls=NULL;
    Display *dpy;
    SUMA_SurfaceObject *SO;
    char *slabel, *lbl30, *sss=NULL;
@@ -5373,12 +5375,13 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SO = (SUMA_SurfaceObject *)data;
    *(SO->SurfCont->curSOp) = (void *)SO;
    
-   if (SO->SurfCont->TopLevelShell) {
+   if (SO->SurfCont->TLS) {
       fprintf (SUMA_STDERR,
                "Error %s: SO->SurfCont->TopLevelShell!=NULL.\n"
                "Should not be here.\n", FuncName);
       SUMA_RETURNe;
    }
+   
    tl = SUMA_GetTopShell(w); /* top level widget */
    dpy = XtDisplay(tl);
    
@@ -5401,46 +5404,61 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       sss = "font8";
    }
 
-   #if SUMA_CONTROLLER_AS_DIALOG /* xmDialogShellWidgetClass, 
-                                    topLevelShellWidgetClass*/
    SUMA_LH("Creating dialog shell.");
+   if (!SUMAg_CF->X->UseSameSurfCont || 
+       !SUMAg_CF->X->CommonSurfContTLW) { /* need a new one */
+      #if SUMA_CONTROLLER_AS_DIALOG /* xmDialogShellWidgetClass, 
+                                       topLevelShellWidgetClass*/
+      tls = XtVaCreatePopupShell (sss,
+         XmNtitle, slabel,
+         xmDialogShellWidgetClass, tl,
+         XmNallowShellResize, True, /* let code resize shell */
+         XmNdeleteResponse, XmDO_NOTHING,
+         NULL);    
+      #else
+      SUMA_LH("Creating toplevel shell.");
+      /** Feb 03/03:    I was using XtVaCreatePopupShell to create a 
+                        topLevelShellWidgetClass. 
+                        XtVaCreatePopupShell is used to create dialog 
+                        shells not toplevel or appshells. 
+                        Of course, it made no difference! */
+      tls = XtVaAppCreateShell (sss, "Suma",
+         topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,
+         XmNtitle, slabel,
+         XmNdeleteResponse, XmDO_NOTHING,
+         NULL);   
+      #endif
+
+      /* allow for code to resize the shell */
+      XtVaSetValues (tls, 
+            XmNresizePolicy , XmRESIZE_NONE , 
+            XmNallowShellResize , True ,       /* let code resize shell */
+            NULL);
+
+      /* handle the close button from window manager */
+      XmAddWMProtocolCallback(/* make "Close" window menu work */
+         tls,
+         XmInternAtom( dpy , "WM_DELETE_WINDOW" , False ) ,
+         SUMA_cb_closeSurfaceCont, (XtPointer) SO) ;
+      
+      if (SUMAg_CF->X->UseSameSurfCont) SUMAg_CF->X->CommonSurfContTLW = tls;
+   }
    
-   SO->SurfCont->TopLevelShell = XtVaCreatePopupShell (sss,
-      XmNtitle, slabel,
-      xmDialogShellWidgetClass, tl,
-      XmNallowShellResize, True, /* let code resize shell */
-      XmNdeleteResponse, XmDO_NOTHING,
-      NULL);    
-   #else
-   SUMA_LH("Creating toplevel shell.");
-   /** Feb 03/03:    I was using XtVaCreatePopupShell to create a 
-                     topLevelShellWidgetClass. 
-                     XtVaCreatePopupShell is used to create dialog 
-                     shells not toplevel or appshells. 
-                     Of course, it made no difference! */
-   SO->SurfCont->TopLevelShell = XtVaAppCreateShell (sss, "Suma",
-      topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,
-      XmNtitle, slabel,
-      XmNdeleteResponse, XmDO_NOTHING,
-      NULL);   
-   #endif
+   if (SUMAg_CF->X->UseSameSurfCont) {
+      SO->SurfCont->TLS = SUMAg_CF->X->CommonSurfContTLW;
+   } else {
+      SO->SurfCont->TLS = tls;
+   }
    
-   /* allow for code to resize the shell */
-   XtVaSetValues (SO->SurfCont->TopLevelShell, 
-         XmNresizePolicy , XmRESIZE_NONE , 
-         XmNallowShellResize , True ,       /* let code resize shell */
-         NULL);
-    
-   /* handle the close button from window manager */
-   XmAddWMProtocolCallback(/* make "Close" window menu work */
-      SO->SurfCont->TopLevelShell,
-      XmInternAtom( dpy , "WM_DELETE_WINDOW" , False ) ,
-      SUMA_cb_closeSurfaceCont, (XtPointer) SO) ;
+   if (!SO->SurfCont->TLS) {
+      SUMA_S_Err("Bad logic");
+      SUMA_RETURNe;
+   }
    
    SUMA_LH("Widgets...");
    /* create a form widget, manage it at the end ...*/
    SO->SurfCont->Mainform = XtVaCreateWidget ("dialog", 
-      xmFormWidgetClass, SO->SurfCont->TopLevelShell,
+      xmFormWidgetClass, SO->SurfCont->TLS,
       XmNborderWidth , 0 ,
       XmNmarginHeight , SUMA_MARGIN ,
       XmNmarginWidth  , SUMA_MARGIN ,
@@ -5836,7 +5854,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             SUMA_AllocateScrolledList ("Switch Dset", 
                      SUMA_LSP_SINGLE, 
                      NOPE, NOPE, /* duplicate deletion, no sorting */ 
-                     SO->SurfCont->TopLevelShell, SWP_POINTER,
+                     SO->SurfCont->TLS, SWP_POINTER,
                      125,
                      SUMA_cb_SelectSwitchColPlane, (void *)SO,
                      SUMA_cb_SelectSwitchColPlane, (void *)SO,
@@ -5964,16 +5982,20 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, 
    you should do the popping after all the widgets have been created.
    Otherwise, the window does not size itself correctly when open */
-   XtPopup(SO->SurfCont->TopLevelShell, XtGrabNone);
+   XtPopup(SO->SurfCont->TLS, XtGrabNone);
    #endif
    
    /* realize the widget */
-   XtRealizeWidget (SO->SurfCont->TopLevelShell);
+   XtRealizeWidget (SO->SurfCont->TLS);
    
    SUMA_free (slabel);
 
    /* Mark as open */
    SO->SurfCont->Open = 1;
+   if (SUMAg_CF->X->UseSameSurfCont) {
+      SUMAg_CF->X->TopSurfContWidget = SO->SurfCont->Mainform;
+      SUMAg_CF->X->SameSurfContOpen= 1;
+   }
    SUMA_LHv("Marked %s's controller as open.\n", SO->Label);
    
    /* initialize the left side 
@@ -6034,13 +6056,15 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_closeSurfaceCont"};
    SUMA_SurfaceObject *SO;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)data;
     
-   if (!SO->SurfCont->TopLevelShell || !SO->SurfCont->Open) SUMA_RETURNe;
+   if (!SO->SurfCont->TLS || !SO->SurfCont->Open ||
+       (SUMAg_CF->X->UseSameSurfCont && !SUMAg_CF->X->SameSurfContOpen) )
+      SUMA_RETURNe;
 
    switch (SUMA_GL_CLOSE_MODE)   {/* No open GL drawables in this widget*/
       case SUMA_WITHDRAW:
@@ -6048,21 +6072,23 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             fprintf (SUMA_STDERR,
                      "%s: Withdrawing Surface Controller...\n", FuncName);
          XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
-            XtWindow(SO->SurfCont->TopLevelShell),
-            XScreenNumberOfScreen(XtScreen(SO->SurfCont->TopLevelShell)));
+            XtWindow(SO->SurfCont->TLS),
+            XScreenNumberOfScreen(XtScreen(SO->SurfCont->TLS)));
          break;
       case SUMA_DESTROY: 
          if (LocalHead) 
             fprintf (SUMA_STDERR,
                      "%s: Destroying Surface Controller...\n", FuncName);
-         XtDestroyWidget(SO->SurfCont->TopLevelShell);
-         SO->SurfCont->TopLevelShell = NULL;
+         if (!SUMAg_CF->X->CommonSurfContTLW) { /* not in common mode */
+               XtDestroyWidget(SO->SurfCont->TLS);
+         }
+         SO->SurfCont->TLS = NULL;
          break;
       case SUMA_UNREALIZE:
          if (LocalHead) 
             fprintf (SUMA_STDERR,
                      "%s: Unrealizing Surface Controller...\n", FuncName);
-         XtUnrealizeWidget(SO->SurfCont->TopLevelShell);
+         XtUnrealizeWidget(SO->SurfCont->TLS);
          break;
       default: 
          SUMA_S_Err("Not set up to deal with this closure mode");
@@ -6071,7 +6097,7 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    }
 
    SO->SurfCont->Open = 0;
-    
+   if (SUMAg_CF->X->UseSameSurfCont) SUMAg_CF->X->SameSurfContOpen=0;
    SUMA_RETURNe;
 
 }
@@ -6088,7 +6114,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
    XmString string;
    SUMA_SurfaceObject *oSO;
    SUMA_Boolean SameSurface = NOPE;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    oSO = *(SO->SurfCont->curSOp);
@@ -6101,7 +6127,10 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
    /* set the new current surface pointer */
    *(SO->SurfCont->curSOp) = (void *)SO;
    
-   if (!SameSurface) {
+   if (!SameSurface || 
+       ( SUMAg_CF->X->UseSameSurfCont &&
+         SO->SurfCont->Mainform != SUMAg_CF->X->TopSurfContWidget)) {
+      SUMAg_CF->X->TopSurfContWidget = SO->SurfCont->Mainform;
       /* initialize the title of the window */
       slabel = (char *)SUMA_malloc (sizeof(char) * (strlen(SO->Label) + 100));
       if (strlen(SO->Label) > 40) {
@@ -6115,7 +6144,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
          sprintf(slabel,"[%s] Surface Controller", SO->Label);
       }
       SUMA_LH("Setting title");
-      XtVaSetValues(SO->SurfCont->TopLevelShell, XtNtitle, slabel, NULL);
+      XtVaSetValues(SO->SurfCont->TLS, XtNtitle, slabel, NULL);
 
       /* initialize the string before the more button */
          /*put a label containing the surface name, number of nodes 
@@ -6177,12 +6206,31 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
                if (strcmp(Name, XtName(w[i])) == 0) {
                   SUMA_LH("Match!");
                   XtVaSetValues(  w[0], XmNmenuHistory , w[i] , NULL ) ;  
-                  SUMA_RETURN(YUP);
+                  goto RAISE;
               }
             }
          }
          ++i;
       }
+      
+      RAISE:
+      if (SUMAg_CF->X->UseSameSurfCont) { /* works, but grabs focus. 
+                  Can be annoying when going across hemis*/
+         SUMA_LH("Raising Arizona");
+         
+         XRaiseWindow (SUMAg_CF->X->DPY_controller1, 
+                    XtWindow(SO->SurfCont->Mainform));
+         /* first feeble attempt to keep input focus where it
+         belongs... Does not quite work. Needs further consideration.
+         I tried adding this at the very end of call 
+         in SUMA_MarkLineSurfaceIntersect but it did not do much.
+         */
+         XRaiseWindow (SUMAg_CF->X->DPY_controller1, 
+                    XtWindow(SUMAg_SVv[0].X->GLXAREA));
+         XSetInputFocus(SUMAg_CF->X->DPY_controller1, 
+                        PointerRoot, RevertToPointerRoot, CurrentTime);
+      } 
+      
    } 
    
    /* do even if this is the old surface */ 
@@ -8223,7 +8271,7 @@ int SUMA_ColPlaneShowOneFore_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state)
    SUMA_ENTRY;
 
    if (!SO->SurfCont) SUMA_RETURN(0);
-   if (!SO->SurfCont->TopLevelShell) SUMA_RETURN(0);
+   if (!SUMA_SURFCONT_CREATED(SO)) SUMA_RETURN(0);
    
    SO->SurfCont->ShowCurForeOnly = state;
    XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOneFore_tb, 
@@ -12569,7 +12617,7 @@ void  SUMA_cb_ToggleManagementColPlaneWidget(Widget w, XtPointer data,
       
       SUMA_LHv("Map.R: ColPlane_fr, ncall = %d\n", ncall);
       XMapRaised (XtDisplay(SO->SurfCont->ColPlane_fr), 
-                  XtWindow(SO->SurfCont->TopLevelShell));
+                  XtWindow(SO->SurfCont->TLS));
    }
    
    ncall *= -1;
