@@ -1017,11 +1017,34 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
          
      case SUMA_BRAIN_VOYAGER:
-         if (!SUMA_BrainVoyager_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
-            fprintf (SUMA_STDERR,
-                     "Error %s: Failed in SUMA_BrainVoyager_Read.\n", 
-                     FuncName);
-            SUMA_RETURN(NULL);
+         if (0 && SUMA_GuessSurfFormatFromExtension((char *)SO_FileName_vp,     
+                                                         NULL)==SUMA_GIFTI) {
+            /* Allowing for cases where BrainVoyager.gii surfaces are in the same
+            coordinate system as their native format and so will require
+            the VolPar transform below. I did not think this should happen
+            with GIFTI. The surface coords should correspond directly to those
+            of the NIFTI volume 
+            Exception added for Adam Greenberg, surfaces are not well 
+            centered in the viewer. This will need fixing is this condition
+            is to be allowed. Problem is that it appears BV's gifti surfaces
+            might still be in their native coord system, not as set by
+            the transform matrix in the gii file */
+            SUMA_S_Warn("This should not be used regularly.\n"
+                        "Surfaces will not display in the proper place\n"
+                        "in SUMA.\n");
+            if (!SUMA_GIFTI_Read ((char *)SO_FileName_vp, SO, 1)) {
+               fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_GIFTI_Read.\n", FuncName);
+               SUMA_RETURN(NULL);
+            }
+            SO->FileType = SUMA_BRAIN_VOYAGER;
+         } else {
+            if (!SUMA_BrainVoyager_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
+               fprintf (SUMA_STDERR,
+                        "Error %s: Failed in SUMA_BrainVoyager_Read.\n", 
+                        FuncName);
+               SUMA_RETURN(NULL);
+            }
          }
          SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
          
