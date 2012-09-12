@@ -1425,6 +1425,7 @@ void AFNI_sigfunc_alrm(int sig)
      "I will not say 'do not weep', for not all tears are an evil"   ,
      "Calo anor na ven -- May the sun shine upon your road"          ,
      "Little by little, one travels far"                             ,
+     "Beyond all hope, set free to light"                            ,
      "Divide By Cucumber Error; Please Reinstall Universe and Reboot",
      "Out of Cheese Error; Please Install Wensleydale and Try Again" ,
      "Out of Cheese Error; Please Install Stilton and Try Again"     ,
