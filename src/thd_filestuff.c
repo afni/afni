@@ -35,15 +35,33 @@ int THD_is_ondisk( char *pathname )  /* 19 Dec 2002 */
 /*-----------------------------------------------------------*/
 /*! Determine if a prefix is that of a dset on disk. */
 
-int THD_is_prefix_ondisk( char *pathname )  
+int THD_is_prefix_ondisk( char *pathname, int stripsels)  
 {
-   int ii ;
-
-   if (THD_is_directory(pathname)) return(0);
-   if (THD_is_ondisk(pathname)) return (1);
-   ii = THD_is_dataset(THD_filepath(pathname), THD_trailname(pathname,0), -1);
-   if (ii ==-1) return(0);
-   else return(1);
+   int ii, open1, open2, open3, open4;
+   char *ppp=pathname;
+   
+   if (!pathname) return(0);
+   
+   if (stripsels) {
+      ppp = strdup(pathname);
+      open1 = open2 = open3 = open4 = 0;
+      for (ii=strlen(ppp)-1; ii>=0; --ii) {
+              if (ppp[ii] == ']' && !open1) open1=1;
+         else if (ppp[ii] == '[' &&  open1) ppp[ii] = '\0';
+         else if (ppp[ii] == '>' && !open2) open2=1;
+         else if (ppp[ii] == '<' &&  open2) ppp[ii] = '\0';
+         else if (ppp[ii] == '}' && !open3) open3=1;
+         else if (ppp[ii] == '{' &&  open3) ppp[ii] = '\0';
+         else if (ppp[ii] == '#' && !open4) open4=1;
+         else if (ppp[ii] == '#' &&  open4) ppp[ii] = '\0';
+      }
+   }
+    
+   if (THD_is_directory(ppp)) { if (ppp!=pathname) free(ppp); return(0); }
+   if (THD_is_ondisk(ppp)) { if (ppp!=pathname) free(ppp); return (1); }
+   ii = THD_is_dataset(THD_filepath(ppp), THD_trailname(ppp,0), -1);
+   if (ii ==-1) { if (ppp!=pathname) free(ppp); return(0); }
+   else { if (ppp!=pathname) free(ppp); return(1); }
 }
 
 /*-----------------------------------------------------------*/
@@ -457,7 +475,7 @@ char * THD_filepath( char *fname )
    long lend=0;
    
    ++icall; if (icall > 9) icall = 0;
-   pname[icall][0]='.'; pname[icall][1]='/';
+   pname[icall][0]='.'; pname[icall][1]='/'; pname[icall][2]='\0';
    
    if (!fname) return(pname[icall]);
    
@@ -479,14 +497,13 @@ char * THD_filepath( char *fname )
       ERROR_message("Path name too long. Returning './'");
       return(pname[icall]);
    }
-   
+  
    strncpy(pname[icall], fname, lend);
    pname[icall][lend]='\0';
    if (pname[icall][lend-1] != '/') {
       pname[icall][lend-1] = '/';
       pname[icall][lend] = '\0';
    }
-      
    return(pname[icall]);
 }  
 

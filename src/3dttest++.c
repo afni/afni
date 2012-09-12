@@ -750,7 +750,7 @@ int is_possible_filename( char * fname )
 
     mode = storage_mode_from_filename(fname);
 
-    if ( THD_is_ondisk(fname) &&
+    if ( THD_is_prefix_ondisk(fname, 1) &&
          (mode > STORAGE_UNDEFINED || mode <=LAST_STORAGE_MODE ) &&
          !THD_is_directory(fname) ) return(1);
 
@@ -930,7 +930,7 @@ int main( int argc , char *argv[] )
      /*----- the various flavours of '-set' -----*/
 
      if( strncmp(argv[nopt],"-set",4) == 0 ){
-       char cc=argv[nopt][4] , *onam=argv[nopt] , *cpt ;
+       char cc=argv[nopt][4] , *onam=argv[nopt] , *cpt, *labcheck;
        int nds=0 , ids , nv=0 ; char **nams=NULL , **labs=NULL , *snam=NULL ;
        THD_3dim_dataset *qset , **dset=NULL ;
 
@@ -1008,16 +1008,17 @@ int main( int argc , char *argv[] )
            labs = (char **)realloc(labs,sizeof(char *)*nds) ;
            dset = (THD_3dim_dataset **)realloc(dset,sizeof(THD_3dim_dataset *)*nds) ;
            nams[nds-1] = strdup(argv[nopt+1]) ; dset[nds-1] = qset ;
+           labcheck = argv[nopt];
            labs[nds-1] = strdup(argv[nopt]  ) ; LTRUNC(labs[nds-1]) ;
            /* check syntax */
            if (!iwarn &&
-               (is_possible_filename( labs[nds-1] ) )) {
+               (is_possible_filename( labcheck ) )) {
               WARNING_message(
-               "Label %s appears to be a file on disk\n"
+               "Label %s (%s) appears to be a file on disk.\n"
                "  Perhaps your command line syntax for %s is incorrect.\n"
-               "  Look for 'SHORT FORM' and 'LONG FORM' in the output of %s -help\n"
-               "  Any following similar warnings will be muted.\n"
-               ,labs[nds-1], onam, argv[0]) ;
+               "  Look for 'SHORT FORM' and 'LONG FORM' in output of %s -help\n"
+               "  Similar warnings will be muted.\n"
+               ,labcheck, labs[nds-1], onam, argv[0]) ;
               ++iwarn;
            }
          }

@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/bin/tcsh -f
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 set stat = 0
 set stdir = $PWD
@@ -34,6 +34,11 @@ LOCALSTATS:
    if ( ! -f $odir/${inpref}+orig.HEAD) then
       3dcalc -a "${involume}" -expr 'a' -datum short -prefix $odir/${inpref}+orig
    endif
+   if ( "$Mname" != "" && ! -f $odir/${inpref}.Xat.1D) then
+      cp -p $Mname $odir/${inpref}.Xat.1D
+      set Mname = ${inpref}.Xat.1D
+   endif
+   
    foreach neigh ($localvector)
       set oneigh = `printf '%02d' $neigh`
       set sublopt = ''
@@ -349,20 +354,33 @@ SCALE:
       #Now I will use 3dcalc to compute Xz = Mall Xo, one coord at a time 
       #
       set M = ($Mall) #notation convenience
-      3dcalc -RAI -overwrite -a ${inpref}+orig \
-             -expr "step(a)*(x*$M[1] + y*$M[2] + z*$M[3] + $M[4])"   \
-             -prefix ${inpref}.Xz
-      3drefit -sublabel 0 Xz ${inpref}.Xz+orig
+      if (! -f ${inpref}.Xz+orig.HEAD) then
+         3dcalc -RAI -overwrite -a ${inpref}+orig \
+                -expr "step(a)*(x*$M[1] + y*$M[2] + z*$M[3] + $M[4])"   \
+                -prefix ${inpref}.Xz
+         3drefit -sublabel 0 Xz ${inpref}.Xz+orig
+      else 
+         echo "Reusing ${inpref}.Xz+orig.HEAD"
+      endif       
       
-      3dcalc -RAI -overwrite -a ${inpref}+orig \
-             -expr "step(a)*(x*$M[5] + y*$M[6] + z*$M[7] + $M[8])"   \
-             -prefix ${inpref}.Yz
-      3drefit -sublabel 0 Yz ${inpref}.Yz+orig
+      if (! -f ${inpref}.Yz+orig.HEAD) then
+         3dcalc -RAI -overwrite -a ${inpref}+orig \
+                -expr "step(a)*(x*$M[5] + y*$M[6] + z*$M[7] + $M[8])"   \
+                -prefix ${inpref}.Yz
+         3drefit -sublabel 0 Yz ${inpref}.Yz+orig
+      else 
+         echo "Reusing ${inpref}.Yz+orig.HEAD"
+      endif       
       
-      3dcalc -RAI -overwrite -a ${inpref}+orig \
-             -expr "step(a)*(x*$M[9] + y*$M[10] + z*$M[11] + $M[12])"   \
-             -prefix ${inpref}.Zz
-      3drefit -sublabel 0 Zz ${inpref}.Zz+orig
+     
+      if (! -f ${inpref}.Zz+orig.HEAD) then
+         3dcalc -RAI -overwrite -a ${inpref}+orig \
+                -expr "step(a)*(x*$M[9] + y*$M[10] + z*$M[11] + $M[12])"   \
+                -prefix ${inpref}.Zz
+         3drefit -sublabel 0 Zz ${inpref}.Zz+orig
+      else 
+         echo "Reusing ${inpref}.Zz+orig.HEAD"
+      endif 
       
       foreach gg (${inpref}.sc${Scale}.${sigset}+orig.HEAD  \
                   ${inpref}.sc${Scale}z.${sigset}+orig.HEAD )
@@ -384,7 +402,7 @@ SCALE:
    foreach gg (${inpref}.sc${Scale}.${sigset}+orig.HEAD  \
                   ${inpref}.sc${Scale}z.${sigset}+orig.HEAD )
       if ( -f $gg ) then
-         3dNotes -h "`basename $0` $*" $ttt+orig
+         3dNotes -h "`basename $0` $*" $gg
       endif
    end
    
@@ -484,8 +502,20 @@ while ($cnt <= $Narg)
       set Scale = 9
       @ cnt ++
       set fatScale = $argv[$cnt]
+         #Sanity check, scale limits can be increased if needed
+      if ($fatScale > 110 || $fatScale < 5) then
+         echo "Looks like you -FATscl paramater 1 is bad."
+         echo "Acceptable values should be <110 or >5, have $fatScale"
+         goto END
+      endif
       @ cnt ++
       set fatPerc = $argv[$cnt]
+         #Sanity check, scale limits can be increased if needed
+      if ($fatPerc > 100 || $fatPerc < 5) then
+         echo "Looks like you -FATscl paramater 2 is bad."
+         echo "Acceptable values should be <110 or >5, have $fatPerc "
+         goto END
+      endif
       set donext = 0   
    endif
 
