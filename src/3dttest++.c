@@ -1017,7 +1017,7 @@ int main( int argc , char *argv[] )
                "  Perhaps your command line syntax for %s is incorrect.\n"
                "  Look for 'SHORT FORM' and 'LONG FORM' in the output of %s -help\n"
                "  Any following similar warnings will be muted.\n"
-               ,labs[nds-1], nams[nds-1], onam, argv[0]) ;
+               ,labs[nds-1], onam, argv[0]) ;
               ++iwarn;
            }
          }
