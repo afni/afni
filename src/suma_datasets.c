@@ -14422,10 +14422,13 @@ int SUMA_strtod(char *n, double *valp)
    errno = 0;
    *valp = strtod (n, &stp);
    
+   #if 0
+      /* Not all constants below are standard */
    SUMA_LHv("s=%s, stp=%s, val=%f, \n"
             "errno=%d, HUGE_VAL=%g,%Lg,%g, EINVAL=%d,ERANGE=%d\n",
             (char *)n, CHECK_NULL_STR(stp), *valp, errno,
             HUGE_VAL, HUGE_VALL, HUGE_VALF, EINVAL, ERANGE);
+   #endif
    
    if ((errno == ERANGE &&(*valp == LONG_MAX || *valp == LONG_MIN))
          || (errno != 0 && *valp == 0) ||
