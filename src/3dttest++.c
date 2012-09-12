@@ -1011,10 +1011,9 @@ int main( int argc , char *argv[] )
            labs[nds-1] = strdup(argv[nopt]  ) ; LTRUNC(labs[nds-1]) ;
            /* check syntax */
            if (!iwarn &&
-               (is_possible_filename( nams[nds-1] ) ||
-                is_possible_filename( labs[nds-1] ) )) {
+               (is_possible_filename( labs[nds-1] ) )) {
               WARNING_message(
-               "Label %s or name %s appear to be a file on disk\n"
+               "Label %s appears to be a file on disk\n"
                "  Perhaps your command line syntax for %s is incorrect.\n"
                "  Look for 'SHORT FORM' and 'LONG FORM' in the output of %s -help\n"
                "  Any following similar warnings will be muted.\n"
