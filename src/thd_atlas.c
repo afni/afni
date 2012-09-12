@@ -2479,11 +2479,11 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
 
    if ((s=NI_get_attribute(nel, "dset_name"))) {
       atlas->dset_name = NULL;
-      if (!THD_is_prefix_ondisk(s) && 
+      if (!THD_is_prefix_ondisk(s, 0) && 
           parentdir && !THD_filehaspath(s)) {
          char *ss=(char *)calloc(strlen(parentdir)+strlen(s)+2,sizeof(char*));
          sprintf(ss,"%s/%s",parentdir,s);
-         if (THD_is_prefix_ondisk(ss)) 
+         if (THD_is_prefix_ondisk(ss, 0)) 
             atlas->dset_name = nifti_strdup(ss); 
          free(ss); ss=NULL;
       } 
