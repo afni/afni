@@ -750,8 +750,9 @@ int is_possible_filename( char * fname )
 
     mode = storage_mode_from_filename(fname);
 
-    if (THD_is_ondisk(fname) &&
-         (mode > STORAGE_UNDEFINED || mode <=LAST_STORAGE_MODE )) return(1);
+    if ( THD_is_ondisk(fname) &&
+         (mode > STORAGE_UNDEFINED || mode <=LAST_STORAGE_MODE ) &&
+         !THD_is_directory(fname) ) return(1);
 
     return(0);
 }
