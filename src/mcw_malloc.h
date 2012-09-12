@@ -12,6 +12,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #ifdef __BUILDING_QUICKLOOK_PLUGIN__
   #include "IntrinsicQuickLook.h"
