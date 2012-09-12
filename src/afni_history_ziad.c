@@ -65,6 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 12, Sep , 2012 , ZSS , "3dttest++" , MICRO , TYPE_BUG_FIX,
+   "Fixed incorrect warning in 3dttest++ about labels and filenames",
+   "The warning is intented to be sure users don't mess up the\n"
+   "-setA option when using the long form. The warning message\n"
+   "was being triggered incorrectly, this should no longer be the case.\n"
+   "Warning did not affect results."
+ },
+
+ { 12, Sep , 2012 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
+   "Stupid null character termination missing in THD_filepath()",
+   NULL
+ },
+
  { 11, Sep , 2012 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Fixed potential corruption in macro SUMA_NEL_REPLACE_STRING",
    "Not sure to make of this problem, but bad reads/writes\n"
