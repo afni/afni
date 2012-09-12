@@ -320,12 +320,12 @@ SCALE:
       end
       if ( ! -f ${inpref}.sc${Scale}.${sigset}+orig.HEAD) then
          3dTcat -prefix ${inpref}.sc${Scale}.${sigset} $ttal
+         3drefit -sublabel_suffix .sc${Scale} ${inpref}.sc${Scale}.${sigset}+orig
       else
          echo "Reusing ${inpref}.sc${Scale}.${sigset}"
       endif
    endif
    
-   3drefit -sublabel_suffix .sc${Scale} ${inpref}.sc${Scale}.${sigset}+orig
    
    if ("$extrascl" == '-feat_znorm') then
       if ( ! -f ${inpref}.sc${Scale}z.${sigset}+orig.HEAD) then
