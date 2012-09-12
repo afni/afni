@@ -280,14 +280,27 @@ if ("$user_bin" != "") then
 else
    set usebin = ${PWD:h}/abin
 endif
+
 set ll = "s:INSTALLDIR\( \)*=\(.\)*:INSTALLDIR = ${usebin}:"
-sed "$ll" Makefile | sed 's/-DDONT_USE_MCW_MALLOC//' > ___mm
+sed "$ll" Makefile > ___mm
 mv ___mm  Makefile
 
 #append extra compile options if needed
 if ($extraCCopts !~ "") then
    set ll = "s:CEXTRA\( \)*=:CEXTRA = ${extraCCopts} :"
-   sed "$ll" Makefile | sed 's/-DDONT_USE_MCW_MALLOC//' > ___mm
+   sed "$ll" Makefile > ___mm
+   mv ___mm  Makefile
+endif
+
+if ($mcwmalloc == 1) then
+   #Make sure it is there
+   set ll = "s:CEXTRA\( \)*=\(.\)*:CEXTRA = -DUSE_TRACING  -UDONT_USE_MCW_MALLOC:"
+   sed "$ll" Makefile | sed 's/-DDONT_USE_MCW_MALLOC//g'> ___mm
+   mv ___mm  Makefile
+else if ($mcwmalloc == -1) then
+   #Make sure it is not there
+   set ll = "s:CEXTRA\( \)*=\(.\)*:CEXTRA = -DDONT_USE_MCW_MALLOC:"
+   sed "$ll" Makefile | sed 's/-UDONT_USE_MCW_MALLOC//g' > ___mm
    mv ___mm  Makefile
 endif
 
