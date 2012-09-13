@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, SEP, 2012, RCR, "afni_util", MINOR, TYPE_ENHANCE,
+   "can call list functions via -listfunc (to avoid input formatting)",
+   "Also, use -join after the LISTFUNC to remove list format on output, e.g.\n"
+   "\ncd AFNI_data6\n"
+   "afni_util.py -listfunc list_minus_glob_form -join group_results/OLSQ*.HEAD"
+ } ,
+
  { 6, SEP, 2012, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "if varying facs/types on NIfTI write, write floats instead of failing",
    NULL
