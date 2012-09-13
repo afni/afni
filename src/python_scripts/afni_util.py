@@ -2108,6 +2108,28 @@ def demean(vec, ibot=-1, itop=-1):
     return 0
 
 # ----------------------------------------------------------------------
+# vector manipulation functions
+# ----------------------------------------------------------------------
+
+def scale_vec(scale, vec):
+   return [v*scale for v in vec]
+
+def lin_vec_combo(s1, vec1, s2, vec2):
+   """return s1*[vec1] + s2*[vec2]
+      note: vec2 can be None"""
+
+   if vec2 == None:
+      return [s1*vec1[i] for i in range(len(vec1))]
+
+   l1 = len(vec1)
+   l2 = len(vec2)
+   if l1 != l2:
+      print '** LVC: vectors have different lengths (%d, %d)' % (l1, l2)
+      return []
+
+   return [s1*vec1[i]+s2*vec2[i] for i in range(l1)]
+
+# ----------------------------------------------------------------------
 # statistical routines - stdev, variance, ttest
 # ----------------------------------------------------------------------
 
@@ -2619,9 +2641,23 @@ def test_tent_vecs(val, freq, length):
     return correlation_p(a,b)
 
 def main():
-   if len(sys.argv) > 2:
-      if sys.argv[1] == '-eval':
-         print eval(' '.join(sys.argv[2:]))
+   argv = sys.argv
+   if len(argv) > 2:
+      if argv[1] == '-eval':
+         print eval(' '.join(argv[2:]))
+         return 0
+      elif argv[1] == '-listfunc':
+         do_join = 0
+         argbase = 3
+         if len(argv) < argbase :
+            print '** -listfunc usage requires at least 3 args'
+            return 1
+         if argv[argbase] == '-join':
+            do_join = 1
+            argbase += 1
+         func = eval(argv[2])
+         if do_join: print ' '.join(func(argv[argbase:]))
+         else:       func(argv[argbase:])
          return 0
 
    print 'afni_util.py: not intended as a main program'
