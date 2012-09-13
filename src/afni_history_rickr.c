@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, SEP, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "download and run the current version on the web site",
+   "Good idea, Bob."
+ } ,
+
  { 13, SEP, 2012, RCR, "afni_util", MINOR, TYPE_ENHANCE,
    "can call list functions via -listfunc (to avoid input formatting)",
    "Also, use -join after the LISTFUNC to remove list format on output, e.g.\n"
