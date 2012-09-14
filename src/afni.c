@@ -1438,6 +1438,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Ta ta, and may an elephant caress you gently with his toes"    ,
      "The Square Root of -1 said to Pi, 'Be Rational'"               ,
      "Pi told the Square Root of -1 to 'Get Real'"                   ,
+     "And the world begins to tremble"                               ,
      "By Grapthar's Hammer, you SHALL be avenged"                    ,
      "We live to tell the tale"                                      ,
      "Are we there yet?"                                             ,
