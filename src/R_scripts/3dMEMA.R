@@ -2206,7 +2206,7 @@ tTop <- 100   # upper bound for t-statistic
       # 2nd minus 1st: keep consistent with 3dttset and the two-sample types 2 and 4
 #      contrBList <- mapply("-", lop$bList[[2]], lop$bList[[1]], SIMPLIFY = FALSE)
 #      contrVarList <- mapply("+", lop$varList[[1]], lop$varList[[2]], 
-                              SIMPLIFY = FALSE)
+#                              SIMPLIFY = FALSE)
       
       # if one of the 2 conditions has 0 t-value, force the contrast beta ZERO here
       # even if the other beta is nonzerio since it's not worth considering a contrast for this voxel      
