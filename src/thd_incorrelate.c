@@ -534,10 +534,10 @@ float_quad INCOR_helmicra( INCOR_2Dhist *tdh )
 
 /*----------------------------------------------------------------------------*/
 
-static double hpow = 0.33333333333 ;
+static double hpow = 0.3333333333321 ;
 void INCOR_set_2Dhist_hpower( double hh )
 {
-  hpow = (hh > 0.0 && hh < 1.0) ? hh : 0.33333333333 ;
+  hpow = (hh > 0.0 && hh < 1.0) ? hh : 0.3333333333321 ;
 }
 
 static int nhbin = 0 ;
@@ -547,8 +547,8 @@ int INCOR_2Dhist_compute_nbin( int ndata )
 {
    int nbin ;
 
-   nbin = (nhbin > 2) ? nhbin : (int)pow((double)ndata,hpow) ;
-   if( nbin > 255 ) nbin = 255 ; else if( nbin < 3 ) nbin = 3 ;
+   nbin = (nhbin > 4) ? nhbin : (int)rint(pow((double)ndata,hpow)) ;
+   if( nbin > 255 ) nbin = 255 ; else if( nbin < 5 ) nbin = 5 ;
    return nbin ;
 }
 
@@ -726,13 +726,14 @@ if(PRINT_TRACING){
 int INCOR_check_meth_code( int meth )
 {
   switch( meth ){
-     case GA_MATCH_PEARSON_SCALAR:
+     case GA_MATCH_PEARSON_SCALAR:    return 1 ;
+
      case GA_MATCH_MUTINFO_SCALAR:
      case GA_MATCH_CORRATIO_SCALAR:
      case GA_MATCH_NORMUTIN_SCALAR:
      case GA_MATCH_HELLINGER_SCALAR:
      case GA_MATCH_CRAT_SADD_SCALAR:
-     case GA_MATCH_CRAT_USYM_SCALAR:  return 1 ;
+     case GA_MATCH_CRAT_USYM_SCALAR:  return 2 ;  /* uses 2Dhist */
   }
 
   return 0 ;
@@ -792,7 +793,7 @@ ENTRY("INCOR_create") ;
        float xbot,xtop, ybot,ytop, xcbot,xctop, ycbot,yctop;
        nbin = (mpar == NULL) ? 0 : (int)mpar->ar[0] ;
        if( nbin < 0 ) nbin = INCOR_2Dhist_compute_nbin(-nbin) ;
-       if( nbin > 0 && mpar != NULL && mpar->nar > 9 ){
+       if( nbin > 0 && mpar != NULL && mpar->nar > 8 ){
          xbot  = mpar->ar[1] ; xtop  = mpar->ar[2] ;
          ybot  = mpar->ar[3] ; ytop  = mpar->ar[4] ;
          xcbot = mpar->ar[5] ; xctop = mpar->ar[6] ;
