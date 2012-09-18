@@ -13,11 +13,13 @@ if ( ! -d $1 ) then
    exit 1
 endif
 
+echo "Coping meica.py to $1"
 cp -p meica.py $1
 if ($status) then
    echo "Failed to write meica.py into $1"
    exit 1
 endif
+echo "Copying meica.libs to $1"
 cp -rp meica.libs $1
 if ($status) then
    echo "Failed to write meica.libs into $1"
