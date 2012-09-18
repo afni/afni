@@ -193,6 +193,10 @@ int main( int argc , char *argv[] )
      printf("Usage: 3dQwarp base source\n") ; exit(0) ;
    }
 
+#ifdef USE_OMP
+   omp_set_nested(0) ;
+#endif
+
    mainENTRY("3dQwarp") ;
 
    bset = THD_open_dataset(argv[1]) ; if( bset == NULL ) ERROR_exit("Can't open bset") ;
@@ -223,8 +227,12 @@ int main( int argc , char *argv[] )
 
 #if 0
    oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , GA_MATCH_PEARSON_SCALAR , 0 ) ;
-#else
+#elif 0
    oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , GA_MATCH_HELLINGER_SCALAR , 0 ) ;
+#elif 0
+   oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , GA_MATCH_KULLBACK_SCALAR , 0 ) ;
+#else
+   oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , GA_MATCH_NORMUTIN_SCALAR , 0 ) ;
 #endif
 
    if( oim == NULL ) ERROR_exit("s2bim fails") ;

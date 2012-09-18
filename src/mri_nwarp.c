@@ -1223,7 +1223,7 @@ ENTRY("IW3D_2pow") ;
 
 static float inewtfac = 0.5f ;
 
-static IndexWarp3D * IW3D_invert_newt( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
+IndexWarp3D * IW3D_invert_newt( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
 {
    int nx,ny,nz,nxy,nxyz , nall , pp,qtop ;
    float *xda,*yda,*zda , *xq,*yq,*zq,*xr,*yr,*zr , *xdc,*ydc,*zdc , *xdb,*ydb,*zdb ;
@@ -1452,7 +1452,7 @@ static float sstepfac = 0.5f ;
 static float sstepfac_MAX = 0.456789f ;
 static float sstepfac_MIN = 0.234567f ;
 
-static IndexWarp3D * IW3D_sqrtinv_step( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
+IndexWarp3D * IW3D_sqrtinv_step( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
 {
    int nx,ny,nz,nxy,nxyz , nall , pp,qtop ;
    float *xda,*yda,*zda , *xq,*yq,*zq,*xr,*yr,*zr , *xdc,*ydc,*zdc , *xdb,*ydb,*zdb ;
@@ -2705,7 +2705,7 @@ static int Hverb = 1 ;
 /*----------------------------------------------------------------------------*/
 /* Make the displacement flags coherent.  If impossible, return -1. */
 
-static int IW3D_munge_flags( int nx , int ny , int nz , int flags )
+int IW3D_munge_flags( int nx , int ny , int nz , int flags )
 {
    if( nx < 1 || ny < 1 || nz < 1 ) return -1 ;     /* bad bad bad */
 
@@ -2796,7 +2796,7 @@ static INLINE float_triple HQwarp_eval_basis( float x )
 /*----------------------------------------------------------------------------*/
 /* Setup cubic basis arrays for each dimension */
 
-static void HCwarp_setup_basis( int nx , int ny , int nz , int flags )
+void HCwarp_setup_basis( int nx , int ny , int nz , int flags )
 {
    float_pair ee ; int ii ; float ca,cb ;
 
@@ -2908,7 +2908,7 @@ ENTRY("HCwarp_setup_basis") ;
 /*----------------------------------------------------------------------------*/
 /*! Setup quintic basis arrays: like HCwarp_setup_basis(), but bigger */
 
-static void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
+void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
 {
    float_triple ee ; int ii ; float ca,cb ;
 
@@ -3007,7 +3007,7 @@ ENTRY("HQwarp_setup_basis") ;
 /*! Load the Hwarp[] arrays, given a set of 24 = 2x2x2x3 cubic parameters:
     2 for each direction (the cubic basis functions), and then 3 directions */
 
-static void HCwarp_load( float *par )  /* 24 elements in par */
+void HCwarp_load( float *par )  /* 24 elements in par */
 {
    int nxy,nxyz , dox,doy,doz ; float *xx,*yy,*zz ;
 
@@ -3027,8 +3027,10 @@ ENTRY("HCwarp_load") ;
    if( !doy ) AAmemset( yy , 0 , sizeof(float)*nxyz ) ;
    if( !doz ) AAmemset( zz , 0 , sizeof(float)*nxyz ) ;
 
+   /* AFNI_do_nothing() ; fprintf(stderr,"a") ; */
+
    AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 666 )
+#pragma omp parallel
    { int ii,jj,kk,qq ; float *xpar=par , *ypar=par+8 , *zpar=par+16 ;
      float b0zb0yb0x,b1zb0yb0x, b0zb1yb0x,b1zb1yb0x,
            b0zb0yb1x,b1zb0yb1x, b0zb1yb1x,b1zb1yb1x ;
@@ -3061,6 +3063,7 @@ ENTRY("HCwarp_load") ;
    }
    AFNI_OMP_END ;
 
+   /* AFNI_do_nothing() ; fprintf(stderr,"A") ; */
    EXRETURN ;
 }
 
@@ -3068,7 +3071,7 @@ ENTRY("HCwarp_load") ;
 /*! Load the Hwarp[] array, given a set of 81 = 3x3x3x3 quintic parameters:
     3 for each direction (the quintic basis functions), and then 3 directions */
 
-static void HQwarp_load( float *par )  /* 81 elements in par */
+void HQwarp_load( float *par )  /* 81 elements in par */
 {
    int nxy,nxyz , dox,doy,doz ; float *xx,*yy,*zz ;
 
@@ -3163,7 +3166,7 @@ ENTRY("HQwarp_load") ;
    Also evaluate Haawarp[Hwarp(x)] into AHwarp for future utility.
 *//*--------------------------------------------------------------------------*/
 
-static void Hwarp_apply( float *val )
+void Hwarp_apply( float *val )
 {
    int   nbxy,nbxyz , nAx,nAy,nAz , nAx1,nAy1,nAz1 , nAxy ;
    float nAxh,nAyh,nAzh ;
@@ -3192,6 +3195,8 @@ ENTRY("Hwarp_apply") ;
    qdb = (int)log10f(nbxyz) ; qdb = (int)powf(10.0f,(float)qdb) ; if( qdb > 10 ) qdb /= 10 ;
    fprintf(stderr,"nbxyz=%d  qdb=%d\n",nbxyz,qdb) ;
 #endif
+
+   /* AFNI_do_nothing() ; fprintf(stderr,"b") ; */
 
 AFNI_OMP_START ;
 #pragma omp parallel if( nbxyz > 666 )
@@ -3311,6 +3316,8 @@ AFNI_OMP_START ;
    }
  }
 AFNI_OMP_END ;
+
+   /* AFNI_do_nothing() ; fprintf(stderr,"B") ; */
 
    EXRETURN ;
 }
@@ -3537,9 +3544,8 @@ ENTRY("IW3D_setup_for_improvement") ;
 /* Given a global warp Haawarp, improve it locally over a rectangular patch.
    Also, keep up-to-date the copy of the warped source image Haasrcim.        */
 
-static int IW3D_improve_warp( int warp_code ,
-                              int ibot, int itop,
-                              int jbot, int jtop, int kbot, int ktop )
+int IW3D_improve_warp( int warp_code ,
+                       int ibot, int itop, int jbot, int jtop, int kbot, int ktop )
 {
    MRI_IMAGE *warpim ;
    int nxh,nyh,nzh , ii,jj,kk , iter,qq,pp , nwb ;
