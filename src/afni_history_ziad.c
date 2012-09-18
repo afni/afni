@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18, Sep , 2012 , ZSS , "afni-general" , MINOR , TYPE_NEW_PROG,
+   "Checked in Prantik Kundu's MEICA tools.",
+   "Try meica.py -help, also try @Install_MEICA_Demo"
+ },
+
+ { 13, Sep , 2012 , ZSS , "3dhistog" , MINOR , TYPE_NEW_OPT,
+   "Added -pdf to 3dhistog to make area = 1",
+   NULL
+ },
+
  { 12, Sep , 2012 , ZSS , "3dttest++" , MICRO , TYPE_BUG_FIX,
    "Fixed incorrect warning in 3dttest++ about labels and filenames",
    "The warning is intented to be sure users don't mess up the\n"
