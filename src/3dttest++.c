@@ -1031,7 +1031,7 @@ int main( int argc , char *argv[] )
 
        for( nbad=0,ids=1 ; ids < nds ; ids++ ){
          if( DSET_NVOX(dset[ids]) != DSET_NVOX(dset[0]) ){
-           ERROR_message("Option %s: dataset '%s' does match first one in size",
+           ERROR_message("Option %s: dataset '%s' does not match first one in size",
                          onam,nams[ids]) ; nbad++ ;
          }
        }
