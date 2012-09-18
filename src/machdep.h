@@ -428,4 +428,6 @@ extern char * GetAfniWebBrowser(void);
 extern char * GetAfniTextEditor(void);
 extern char *SOLARIS_strcasestr(const char *s1, const char *s2);
 
+extern void AFNI_do_nothing(void) ;
+
 #endif /* _MCW_MACHDEP_ */
