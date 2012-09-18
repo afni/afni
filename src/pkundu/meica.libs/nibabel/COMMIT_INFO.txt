@@ -1,0 +1,4 @@
+[commit hash]
+archive_subst_hash = $Format:%h$
+install_hash = 
+
