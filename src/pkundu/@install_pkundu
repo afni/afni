@@ -1,0 +1,27 @@
+#!/bin/tcsh -f
+
+if ("$1" == '' || "$1" =~ "-h*") then
+   echo "Usage: `basename $0` <INSTALL_DIR>"
+   echo "Script to install Prantik Kundu's tools into the executables directory" 
+   echo ""
+   exit 0
+endif
+
+
+if ( ! -d $1 ) then
+   echo "Directory $1 does not exist"
+   exit 1
+endif
+
+cp -p meica.py $1
+if ($status) then
+   echo "Failed to write meica.py into $1"
+   exit 1
+endif
+cp -rp meica.libs $1
+if ($status) then
+   echo "Failed to write meica.libs into $1"
+   exit 1
+endif
+
+exit 0
