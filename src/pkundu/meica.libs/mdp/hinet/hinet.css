@@ -1,0 +1,68 @@
+/*
+CSS for hinet representation.
+
+Warning: In nested tables the top table css overwrites the nested css if
+   they are specified like 'table.flow td' (i.e. all td's below this table).
+   So be careful about hiding/overriding nested td's.
+
+The tables "nodestruct" are used to separate the dimension values from 
+the actual node text.
+*/
+
+table.flow {
+    border-collapse: separate;
+    padding: 3px;
+    border: 3px double;
+    border-color: #003399;
+}
+
+table.flow table {
+    width: 100%;
+    padding: 0 3px;
+    border-color: #003399; 
+}
+
+table.flow td {
+    padding: 1px;
+    border-style: none;
+}
+
+table.layer {
+    border-collapse: separate;
+    border: 2px dashed;
+}
+
+table.flownode {
+    border-collapse: separate;
+    border: 1px dotted;
+}
+
+table.nodestruct {
+    border-style: none;
+}
+
+table.node {
+    border-collapse: separate;
+    border: 1px solid;
+    border-spacing: 2px;
+}
+
+td.nodename {
+    font-size: normal;
+    text-align: center;
+}
+
+td.nodeparams {
+    font-size: xx-small;
+    text-align: left;
+}
+
+td.dim {
+    font-size: xx-small;
+    text-align: center;
+    color: #008ADC;
+}
+
+span.memorycolor {
+    color: #CCBB77;
+}
