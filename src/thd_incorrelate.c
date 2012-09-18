@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 typedef struct {
   int meth ;
 } INCOR_generic ;
@@ -43,7 +47,7 @@ typedef struct {
 
 /*--------------------------------------------------------------------------*/
 
-static float_pair INCOR_clipate( int nval , float *xar )
+float_pair INCOR_clipate( int nval , float *xar )
 {
    MRI_IMAGE *qim; float cbot,ctop, mmm , *qar; float_pair rr; int ii,nq;
 
@@ -116,7 +120,7 @@ ENTRY("INCOR_2Dhist_minmax") ;
       - xc   = marginal histogram of x[], for xc[0..nbin]   (nbp points in)
       - yc   = marginal histogram of y[], for yc[0..nbin]   (each direction)
       - xyc  = joint histogram of (x[],y[]), for XYC(0..nbin,0..nbin)
-      - The histograms are normalized (by 1/nww) to have sum==1
+      - The histograms can be later normalized (by 1/nww) to have sum==1
       - Histogram can be retrieved by retrieve_2Dhist() and can be
         erased by clear_2Dhist()
       - Default number of equal-spaced bins in each direction is n^(1/3)
@@ -126,8 +130,7 @@ ENTRY("INCOR_2Dhist_minmax") ;
         used in the histogram; mutatis mutandum for y[]
 *//*------------------------------------------------------------------------*/
 
-static void INCOR_addto_2Dhist( INCOR_2Dhist *tdh , int n ,
-                                float *x , float *y , float *w )
+void INCOR_addto_2Dhist( INCOR_2Dhist *tdh , int n , float *x , float *y , float *w )
 {
    register int ii ;
    byte *good ; int ngood , xyclip ;
@@ -135,6 +138,12 @@ static void INCOR_addto_2Dhist( INCOR_2Dhist *tdh , int n ,
    float xcbot,xctop , ycbot,yctop ;
    int nbin,nbp,nbm ;
    float *xc , *yc , *xyc ; float nww ;
+#ifdef USE_OMP
+   int use_omp , nthr ;
+#else
+#  define use_omp 0
+#  define nthr    1
+#endif
 
 ENTRY("INCOR_addto_2Dhist") ;
 
@@ -196,65 +205,192 @@ ENTRY("INCOR_addto_2Dhist") ;
    }
    if( ngood == 0 ){ free(good) ; EXRETURN ; }
 
-   /*--------------- make the 2D and 1D histograms ---------------*/
+   /*--------------- add to the 2D and 1D histograms ---------------*/
 
    xyclip = (xxbot < xcbot) && (xcbot < xctop) && (xctop < xxtop) &&
             (yybot < ycbot) && (ycbot < yctop) && (yctop < yytop) ;
 
-   if( !xyclip ){  /*------------ equal size bins ------------*/
-     float xb,xi , yb,yi , xx,yy , x1,y1 , ww ;
-     register int jj,kk ;
+#ifdef USE_OMP
+   nthr    = omp_get_max_threads() ;
+   use_omp = (ngood > 2222) && (nthr > 1) ;
+#endif
 
-     xb = xxbot ; xi = nbm/(xxtop-xxbot) ;
-     yb = yybot ; yi = nbm/(yytop-yybot) ;
-     for( ii=0 ; ii < n ; ii++ ){
-       if( !good[ii] ) continue ;
-       xx = (x[ii]-xb)*xi ;
-       jj = (int)xx ; xx = xx - jj ; x1 = 1.0f-xx ;
-       yy = (y[ii]-yb)*yi ;
-       kk = (int)yy ; yy = yy - kk ; y1 = 1.0f-yy ;
-       ww = WW(ii) ; nww += ww ;
+   if( !use_omp ){  /*** serial code ***/
 
-       xc[jj] += (x1*ww); xc[jj+1] += (xx*ww);
-       yc[kk] += (y1*ww); yc[kk+1] += (yy*ww);
+     AFNI_do_nothing() ; fprintf(stderr,"h") ;
 
-       XYC(jj  ,kk  ) += x1*(y1*ww) ;
-       XYC(jj+1,kk  ) += xx*(y1*ww) ;
-       XYC(jj  ,kk+1) += x1*(yy*ww) ;
-       XYC(jj+1,kk+1) += xx*(yy*ww) ;
+     if( !xyclip ){  /*------------ equal size bins ------------*/
+
+       float xb,xi , yb,yi , xx,yy , x1,y1 , ww ;
+       register int jj,kk ;
+
+       xb = xxbot ; xi = nbm/(xxtop-xxbot) ;
+       yb = yybot ; yi = nbm/(yytop-yybot) ;
+       for( ii=0 ; ii < n ; ii++ ){
+         if( !good[ii] ) continue ;
+         xx = (x[ii]-xb)*xi ;
+         jj = (int)xx ; xx = xx - jj ; x1 = 1.0f-xx ;
+         yy = (y[ii]-yb)*yi ;
+         kk = (int)yy ; yy = yy - kk ; y1 = 1.0f-yy ;
+         ww = WW(ii) ; nww += ww ;
+
+         xc[jj] += (x1*ww); xc[jj+1] += (xx*ww);
+         yc[kk] += (y1*ww); yc[kk+1] += (yy*ww);
+
+         XYC(jj  ,kk  ) += x1*(y1*ww) ;
+         XYC(jj+1,kk  ) += xx*(y1*ww) ;
+         XYC(jj  ,kk+1) += x1*(yy*ww) ;
+         XYC(jj+1,kk+1) += xx*(yy*ww) ;
+       }
+
+     } else if( xyclip ){  /*------------ mostly equal bins ----------------*/
+
+       register int jj,kk ;
+       float xbc=xcbot , xtc=xctop , ybc=ycbot , ytc=yctop ;
+       float xi,yi , xx,yy , x1,y1 , ww ;
+
+       xi = (nbin-2.000001f)/(xtc-xbc) ;
+       yi = (nbin-2.000001f)/(ytc-ybc) ;
+       for( ii=0 ; ii < n ; ii++ ){
+         if( !good[ii] ) continue ;
+         xx = x[ii] ;
+              if( xx < xbc ){ jj = 0   ; xx = 0.0f ; }
+         else if( xx > xtc ){ jj = nbm ; xx = 1.0f ; }
+         else               { xx = 1.0f+(xx-xbc)*xi; jj = (int)xx; xx = xx - jj; }
+         yy = y[ii] ;
+              if( yy < ybc ){ kk = 0   ; yy = 0.0f ; }
+         else if( yy > ytc ){ kk = nbm ; yy = 1.0f ; }
+         else               { yy = 1.0f+(yy-ybc)*yi; kk = (int)yy; yy = yy - kk; }
+
+         x1 = 1.0f-xx ; y1 = 1.0f-yy ; ww = WW(ii) ; nww += ww ;
+
+         xc[jj] += (x1*ww); xc[jj+1] += (xx*ww);
+         yc[kk] += (y1*ww); yc[kk+1] += (yy*ww);
+
+         XYC(jj  ,kk  ) += x1*(y1*ww) ;
+         XYC(jj+1,kk  ) += xx*(y1*ww) ;
+         XYC(jj  ,kk+1) += x1*(yy*ww) ;
+         XYC(jj+1,kk+1) += xx*(yy*ww) ;
+       }
+
+     } /* end of clipped code */
+
+   } else {  /*** parallelized using OpenMP ***/
+
+     float **xccar , **yccar , **xyccar , *nwwar ; int nbpq=nbp*nbp,itt ;
+
+     xccar  = (float **)calloc(sizeof(float *),nthr) ;  /* arrays for   */
+     yccar  = (float **)calloc(sizeof(float *),nthr) ;  /* accumulation */
+     xyccar = (float **)calloc(sizeof(float *),nthr) ;  /* in separate  */
+     nwwar  = (float * )calloc(sizeof(float)  ,nthr) ;  /* threads      */
+
+     for( itt=0 ; itt < nthr ; itt++ ){
+       xccar [itt] = (float *)calloc(sizeof(float),nbp ) ;
+       yccar [itt] = (float *)calloc(sizeof(float),nbp ) ;
+       xyccar[itt] = (float *)calloc(sizeof(float),nbpq) ;
      }
 
-   } else if( xyclip ){  /*------------ mostly equal bins ----------------*/
+     AFNI_do_nothing() ; fprintf(stderr,"H") ;
 
-     register int jj,kk ;
-     float xbc=xcbot , xtc=xctop , ybc=ycbot , ytc=yctop ;
-     float xi,yi , xx,yy , x1,y1 , ww ;
+#undef  XYCC
+#define XYCC(p,q) xycc[(p)+(q)*nbp]
 
-     xi = (nbin-2.000001f)/(xtc-xbc) ;
-     yi = (nbin-2.000001f)/(ytc-ybc) ;
-     for( ii=0 ; ii < n ; ii++ ){
-       if( !good[ii] ) continue ;
-       xx = x[ii] ;
-            if( xx < xbc ){ jj = 0   ; xx = 0.0f ; }
-       else if( xx > xtc ){ jj = nbm ; xx = 1.0f ; }
-       else               { xx = 1.0f+(xx-xbc)*xi; jj = (int)xx; xx = xx - jj; }
-       yy = y[ii] ;
-            if( yy < ybc ){ kk = 0   ; yy = 0.0f ; }
-       else if( yy > ytc ){ kk = nbm ; yy = 1.0f ; }
-       else               { yy = 1.0f+(yy-ybc)*yi; kk = (int)yy; yy = yy - kk; }
+     if( !xyclip ){  /*------------ equal size bins ------------*/
 
-       x1 = 1.0f-xx ; y1 = 1.0f-yy ; ww = WW(ii) ; nww += ww ;
+ AFNI_OMP_START ;
+#pragma omp parallel  /*** start of parallel code ***/
+ {
+       float *xcc, *ycc , *xycc ;
+       float xb,xi , yb,yi , xx,yy , x1,y1 , ww ;
+       int ii,jj,kk , ithr ;
 
-       xc[jj] += (x1*ww); xc[jj+1] += (xx*ww);
-       yc[kk] += (y1*ww); yc[kk+1] += (yy*ww);
+       ithr = omp_get_thread_num() ;
+#pragma omp barrier
+       fprintf(stderr,"%d",ithr) ;
+       xcc = xccar[ithr] ; ycc = yccar[ithr] ; xycc = xyccar[ithr] ;
+       xb = xxbot ; xi = nbm/(xxtop-xxbot) ;
+       yb = yybot ; yi = nbm/(yytop-yybot) ;
+#pragma omp for
+       for( ii=0 ; ii < n ; ii++ ){
+         if( !good[ii] ) continue ;
+         xx = (x[ii]-xb)*xi ;
+         jj = (int)xx ; xx = xx-jj ; x1 = 1.0f-xx ;
+         yy = (y[ii]-yb)*yi ;
+         kk = (int)yy ; yy = yy-kk ; y1 = 1.0f-yy ;
+         ww = WW(ii) ; nwwar[ithr] += ww ;
 
-       XYC(jj  ,kk  ) += x1*(y1*ww) ;
-       XYC(jj+1,kk  ) += xx*(y1*ww) ;
-       XYC(jj  ,kk+1) += x1*(yy*ww) ;
-       XYC(jj+1,kk+1) += xx*(yy*ww) ;
+         xcc[jj] += (x1*ww); xcc[jj+1] += (xx*ww);
+         ycc[kk] += (y1*ww); ycc[kk+1] += (yy*ww);
+
+         XYCC(jj  ,kk  ) += x1*(y1*ww) ;
+         XYCC(jj+1,kk  ) += xx*(y1*ww) ;
+         XYCC(jj  ,kk+1) += x1*(yy*ww) ;
+         XYCC(jj+1,kk+1) += xx*(yy*ww) ;
+       }
+ }  /*** end of parallel code ***/
+ AFNI_OMP_END ;
+
+     } else if( xyclip ){  /*------------ mostly equal bins ----------------*/
+
+ AFNI_OMP_START ;
+#pragma omp parallel  /*** start of parallel code ***/
+ {
+       float *xcc, *ycc , *xycc ;
+       int ii,jj,kk , ithr ;
+       float xbc=xcbot , xtc=xctop , ybc=ycbot , ytc=yctop ;
+       float xi,yi , xx,yy , x1,y1 , ww ;
+
+       ithr = omp_get_thread_num() ;
+       fprintf(stderr,"%d",ithr) ;
+#pragma omp barrier
+       fprintf(stderr,":") ;
+       xcc = xccar[ithr] ; ycc = yccar[ithr] ; xycc = xyccar[ithr] ;
+       xi = (nbin-2.000001f)/(xtc-xbc) ;
+       yi = (nbin-2.000001f)/(ytc-ybc) ;
+#pragma omp for
+       for( ii=0 ; ii < n ; ii++ ){
+         if( !good[ii] ) continue ;
+         xx = x[ii] ;
+              if( xx < xbc ){ jj = 0   ; xx = 0.0f ; }
+         else if( xx > xtc ){ jj = nbm ; xx = 1.0f ; }
+         else               { xx = 1.0f+(xx-xbc)*xi; jj = (int)xx; xx = xx-jj; }
+         yy = y[ii] ;
+              if( yy < ybc ){ kk = 0   ; yy = 0.0f ; }
+         else if( yy > ytc ){ kk = nbm ; yy = 1.0f ; }
+         else               { yy = 1.0f+(yy-ybc)*yi; kk = (int)yy; yy = yy-kk; }
+
+         x1 = 1.0f-xx ; y1 = 1.0f-yy ; ww = WW(ii) ; nwwar[ithr] += ww ;
+
+         xcc[jj] += (x1*ww); xcc[jj+1] += (xx*ww);
+         ycc[kk] += (y1*ww); ycc[kk+1] += (yy*ww);
+
+         XYCC(jj  ,kk  ) += x1*(y1*ww) ;
+         XYCC(jj+1,kk  ) += xx*(y1*ww) ;
+         XYCC(jj  ,kk+1) += x1*(yy*ww) ;
+         XYCC(jj+1,kk+1) += xx*(yy*ww) ;
+       }
+#pragma omp barrier
+       fprintf(stderr,"%d",ithr) ;
+ }  /*** end of parallel code ***/
+ AFNI_OMP_END ;
+
+     }  /*-- end of mostly equal bins --*/
+
+     /* now merge the parallel thread results */
+
+     for( itt=0 ; itt < nthr ; itt++ ){
+       if( nwwar[itt] > 0.0f ){
+         nww += nwwar[itt] ;
+         for( ii=0 ; ii < nbp ; ii++ ){ xc[ii] += xccar[itt][ii]; yc[ii] += yccar[itt][ii]; }
+         for( ii=0 ; ii < nbpq ; ii++ ){ xyc[ii] += xyccar[itt][ii] ; }
+       }
+       free(xccar [itt]) ; free(yccar [itt]) ; free(xyccar[itt]) ;
      }
+     free(xccar) ; free(yccar) ; free(xyccar) ; free(nwwar) ;
 
-   }
+   } /* end of using OpenMP */
+
+   AFNI_do_nothing() ; fprintf(stderr,".") ;
 
    tdh->nww = nww ;
    free(good) ; EXRETURN ;
@@ -554,11 +690,11 @@ int INCOR_2Dhist_compute_nbin( int ndata )
 
 /*----------------------------------------------------------------------------*/
 
-static INCOR_2Dhist * INCOR_create_2Dhist( int nbin ,
-                                           float xbot , float xtop ,
-                                           float ybot , float ytop ,
-                                           float xcbot, float xctop,
-                                           float ycbot, float yctop  )
+INCOR_2Dhist * INCOR_create_2Dhist( int nbin ,
+                                    float xbot , float xtop ,
+                                    float ybot , float ytop ,
+                                    float xcbot, float xctop,
+                                    float ycbot, float yctop  )
 {
    INCOR_2Dhist *tdh ; int nbp ;
 
@@ -586,7 +722,7 @@ ENTRY("INCOR_create_2Dhist") ;
 
 /*----------------------------------------------------------------------------*/
 
-static void INCOR_destroy_2Dhist( INCOR_2Dhist *tin )
+void INCOR_destroy_2Dhist( INCOR_2Dhist *tin )
 {
    if( tin == NULL ) return ;
    if( tin->xc  != NULL ) free(tin->xc) ;
@@ -598,7 +734,7 @@ static void INCOR_destroy_2Dhist( INCOR_2Dhist *tin )
 
 /*----------------------------------------------------------------------------*/
 
-static void INCOR_copyover_2Dhist( INCOR_2Dhist *tin , INCOR_2Dhist *tout )
+void INCOR_copyover_2Dhist( INCOR_2Dhist *tin , INCOR_2Dhist *tout )
 {
    int nbp ;
 
@@ -632,7 +768,7 @@ ENTRY("INCOR_copyover_2Dhist") ;
 
 /*----------------------------------------------------------------------------*/
 
-static void INCOR_addto_incomplete_pearson( int n, float *x, float *y,
+void INCOR_addto_incomplete_pearson( int n, float *x, float *y,
                                             float *w, INCOR_pearson *inpear )
 {
    int ii ; double sx,sxx , sy,syy,sxy , sw ;
@@ -674,14 +810,14 @@ if(PRINT_TRACING){
 
 /*----------------------------------------------------------------------------*/
 
-static void INCOR_destroy_incomplete_pearson( INCOR_pearson *inpear )
+void INCOR_destroy_incomplete_pearson( INCOR_pearson *inpear )
 {
    if( inpear != NULL ) free((void *)inpear) ;
 }
 
 /*----------------------------------------------------------------------------*/
 
-static INCOR_pearson * INCOR_create_incomplete_pearson(void)
+INCOR_pearson * INCOR_create_incomplete_pearson(void)
 {
    INCOR_pearson *inpear ;
 
@@ -696,7 +832,7 @@ static INCOR_pearson * INCOR_create_incomplete_pearson(void)
 
 /*----------------------------------------------------------------------------*/
 
-static float INCOR_incomplete_pearson( INCOR_pearson *inpear )
+float INCOR_incomplete_pearson( INCOR_pearson *inpear )
 {
    double xv , yv , xy , swi ;
 

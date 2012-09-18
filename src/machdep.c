@@ -232,3 +232,9 @@ char *SOLARIS_strcasestr(const char *s1, const char *s2)
    if (so) return((char*)s1+off);
    return(NULL);
 }
+
+/*---------------------------------------------------------------------------*/
+
+void AFNI_do_nothing(void){ return ; }
+
+/*---------------------------------------------------------------------------*/
