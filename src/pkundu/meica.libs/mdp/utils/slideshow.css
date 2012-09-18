@@ -1,0 +1,42 @@
+/*
+CSS for the slideshow control table.
+*/
+
+div.slideshow {
+    text-align: center;
+}
+
+table.slideshow, table.slideshow td, table.slideshow th {
+    border-collapse: collapse;
+    padding: 1px 2px 1px 2px;
+    font-size: small;
+    border: 1px solid;
+}
+
+table.slideshow {
+    border: 2px solid;
+    margin: 0 auto;
+}
+
+table.slideshow td {
+    text-align: center;
+}
+
+span.inactive_section {
+    color: #0000FF;
+    cursor: pointer;
+}
+
+span.inactive_section:hover {
+    color: #6666FF;
+}
+
+span.active_section {
+    color: #0000FF;
+    background-color: #BBDDFF;
+    cursor: pointer;
+}
+
+span.active_section:hover {
+    color: #6666FF;
+}
