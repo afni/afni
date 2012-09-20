@@ -273,8 +273,10 @@ plot.1D.save <- function (prefix='plot.pdf', dev=NULL) {
    }
    return(1)
 }
+
 plot.1D.puttitle <- function (P) {   
-   if (!is.null(P$ttl.main) || !is.null(P$ttl.sub)) {
+   if (!(is.null(P$ttl.main) || P$ttl.main == 'NONE') || 
+       !(is.null(P$ttl.sub) || P$ttl.sub == 'NONE')) {
       opar <- par();
       par(font.main = P$ttl.main.fontsize)
       par(font.sub = P$ttl.sub.fontsize) 
@@ -954,6 +956,9 @@ plot.1D.eng <- function (P) {
       if (P$verb) note.AFNI("Singleplotmode");
       tp = 'single'
       par(bty=P$boxtype)
+      #You can control the margins here if you like someday with:
+      #   par(omi = c(Bot, Left, Top, Right))
+      #   but you cannot use it to autocrop
       matplot(x=P$dmat.xval, P$mat2plt,             
            col = P$col.color[P$dmat.colsel], main = '',
            xlim=P$xax.lim[1:2], ylim=P$yax.lim[1:2], 
@@ -982,6 +987,7 @@ plot.1D.eng <- function (P) {
           
          #browser()
       }
+
       if (!is.null(P$xax.step) && is.null(P$xax.tic.text)) {
          axis(1,seq(from=P$xax.lim[1],to=P$xax.lim[2],by=P$xax.step));
       }

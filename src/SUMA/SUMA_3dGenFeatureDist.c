@@ -625,11 +625,26 @@ int main(int argc, char **argv)
    static char FuncName[]={"3dGenFeatureDist"};
    SEG_OPTS *Opt=NULL;
    char *atr=NULL, sbuf[512];
-   int i, j, k, n, *ifeat=NULL, key, **N_alloc=NULL, **N_ffv=NULL;
-   float fsf=0.0, fsb=0.0, ***ffv=NULL, hrange[2]={-3.0, 3.0}, bwidth=0.05;
+   int  cc, /* class counter */
+        kk, /* key counter */
+        aa, /* feature counter */
+        nn, /* sub-brick index */
+        vv, /* voxel index */
+        ss, /* subjects counter */
+        iii, /* dummy counter */
+        *ifeat=NULL, key, 
+        **N_alloc_FCset=NULL, /* Number of values allocated for each 
+                                 vector in FCset */
+        **N_FCset=NULL, /* Number of filled values for each vector in FCset */ 
+        N_ffalloc=0, N_ff, isneg=0;
+   float fsf=0.0, fsb=0.0, 
+         ***FCset=NULL, /* Table holding samples for each feature/class combo */ 
+         hrange[2]={-3.0, 3.0}, bwidth=0.05,
+         *ff=NULL;
    short *sf=NULL, *sb=NULL;
-   SUMA_HIST ***hh=NULL;
-   
+   byte **masks=NULL;
+   SUMA_HIST ***hh=NULL, **hf=NULL;
+   double ff_m, ff_s;   
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_STANDALONE_INIT;
@@ -648,7 +663,6 @@ int main(int argc, char **argv)
    if (Opt->labeltable_name) {
       Dtable *vl_dtable=NULL;
       char *labeltable_str=NULL;
-      int kk=0;
       
       /* read the table */
       if (!(labeltable_str = AFNI_suck_file( Opt->labeltable_name))) {
@@ -658,25 +672,25 @@ int main(int argc, char **argv)
          ERROR_exit("Could not parse labeltable");
       }
       /* make sure all classes are in the labeltable */
-      for (i=0; i<Opt->clss->num; ++i) {
-         if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){
+      for (cc=0; cc<Opt->clss->num; ++cc) {
+         if ((key = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[cc]))<0){
             ERROR_exit("Key not found in %s for %s ", 
-                        Opt->labeltable_name, Opt->clss->str[i]);
+                        Opt->labeltable_name, Opt->clss->str[cc]);
          }
          if (Opt->keys) {
-            if (Opt->keys[i]!=kk) {
-               ERROR_exit("Key mismatch %d %d", Opt->keys[i], kk);
+            if (Opt->keys[cc]!=key) {
+               ERROR_exit("Key mismatch %d %d", Opt->keys[cc], key);
             }
          }   
       }   
       if (!Opt->keys) { /* get them from table */
          Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
-         for (i=0; i<Opt->clss->num; ++i) {
-            if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){
+         for (cc=0; cc<Opt->clss->num; ++cc) {
+            if ((key = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[cc]))<0){
                ERROR_exit("(should noy happen) Key not found in %s for %s ", 
-                           Opt->labeltable_name, Opt->clss->str[i]);
+                           Opt->labeltable_name, Opt->clss->str[cc]);
             }
-            Opt->keys[i] = kk;
+            Opt->keys[cc] = key;
          }
       }
       destroy_Dtable(vl_dtable); vl_dtable=NULL;
@@ -686,8 +700,8 @@ int main(int argc, char **argv)
       /* add default keys */
       SUMA_S_Note("Keys not available, assuming defaults");
       Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
-      for (i=0; i<Opt->clss->num; ++i) {
-         Opt->keys[i] = i+1;
+      for (cc=0; cc<Opt->clss->num; ++cc) {
+         Opt->keys[cc] = cc+1;
       }
    }
    
@@ -695,31 +709,25 @@ int main(int argc, char **argv)
    SUMA_ShowClssKeys(Opt->clss->str, Opt->clss->num, Opt->keys);
    /* For each feature, each class, collect the values */
    SUMA_S_Notev("Collecting data from %d subjects\n", Opt->sig_names->num);
-   for (j=0; j<Opt->sig_names->num; ++j) { /* for each subject */
+   
+
+   for (ss=0; ss<Opt->sig_names->num; ++ss) { /* for each subject */
       /* load the input data */   
-      if (!(Opt->sig = Seg_load_dset( Opt->sig_names->str[j] ))) {      
+      if (!(Opt->sig = Seg_load_dset( Opt->sig_names->str[ss] ))) {      
          exit(1);
       }
       if (Opt->debug > 1) {
          SUMA_S_Notev("Have %d sub-bricks in signatures of dude %d\n",
-                   DSET_NVALS(Opt->sig), j);
+                   DSET_NVALS(Opt->sig), ss);
       }
       
-      if (!(Opt->samp = Seg_load_dset( Opt->samp_names->str[j] ))) {      
-         exit(1);
-      }
-      if (Opt->debug > 1) {
-         SUMA_S_Notev("Have %d sub-bricks in samples of dude %d\n", 
-                     DSET_NVALS(Opt->samp), j);
-      }
-      
-      if (j == 0) { /* some setup based on initial grid */
+      if (ss == 0) { /* some setup based on initial grid */
          if (!Opt->feats) { /* create features from signature */
             char *allfeats=NULL;
-            for (i=0; i<DSET_NVALS(Opt->sig); ++i) {
+            for (nn=0; nn<DSET_NVALS(Opt->sig); ++nn) {
                allfeats = 
                   SUMA_append_replace_string(allfeats,
-                                          DSET_BRICK_LABEL(Opt->sig,i),";", 1);
+                                          DSET_BRICK_LABEL(Opt->sig,nn),";", 1);
             }
             Opt->feats = NI_strict_decode_string_list(allfeats,";, ");
             SUMA_free(allfeats); allfeats=NULL;
@@ -727,6 +735,20 @@ int main(int argc, char **argv)
 
          SUMA_S_Notev("Have to work with %d classes, %d features\n",
                       Opt->clss->num, Opt->feats->num);
+
+         SUMA_S_Note("Initializing storage");
+         /* Receptacles for all observations for each feature 
+            and class combination */
+         FCset = (float ***)SUMA_calloc(Opt->feats->num, sizeof(float **));
+         N_FCset = (int **)SUMA_calloc(Opt->feats->num, sizeof(int *));
+         N_alloc_FCset = (int **)SUMA_calloc(Opt->feats->num, sizeof(int *));
+         ifeat = (int *)SUMA_calloc(Opt->feats->num, sizeof(int));
+         for (aa=0; aa<Opt->feats->num; ++aa) {
+            FCset[aa] = (float **)calloc(Opt->clss->num, sizeof(float *));
+            N_FCset[aa] = (int *)SUMA_calloc(Opt->clss->num, sizeof(int));
+            N_alloc_FCset[aa] = (int *)SUMA_calloc(Opt->clss->num, sizeof(int));
+         }
+         masks = (byte **)SUMA_calloc(Opt->sig_names->num, sizeof (byte *));
 
          /* Fix VoxDbg */
          if (Opt->VoxDbg >= 0) {
@@ -740,63 +762,75 @@ int main(int argc, char **argv)
          }
       }
       
-      /* collect all observations for each feature and class combination */
-      ffv = (float ***)SUMA_calloc(Opt->feats->num, sizeof(float **));
-      N_ffv = (int **)SUMA_calloc(Opt->feats->num, sizeof(int *));
-      N_alloc = (int **)SUMA_calloc(Opt->feats->num, sizeof(int *));
-      ifeat = (int *)SUMA_calloc(Opt->feats->num, sizeof(int));
-      for (i=0; i<Opt->feats->num; ++i) {
-         ffv[i] = (float **)calloc(Opt->clss->num, sizeof(float *));
-         N_ffv[i] = (int *)SUMA_calloc(Opt->clss->num, sizeof(int));
-         N_alloc[i] = (int *)SUMA_calloc(Opt->clss->num, sizeof(int));
-      }
+      /* allocate for mask which will be non-zero whenever a voxel is in at least         1 mask. It will have the 1st assignment */
+      masks[ss] = (byte *)SUMA_calloc(DSET_NVOX(Opt->sig), sizeof(byte));
       
       /* create mapping between feature names and sub-briks */
-      for (i=0; i<Opt->feats->num; ++i) {
-         ifeat[i] = 0;
-         while (ifeat[i] < DSET_NVALS(Opt->sig) &&
-            strcmp(DSET_BRICK_LABEL(Opt->sig,ifeat[i]),
-                   Opt->feats->str[i])) ++ifeat[i];
-         if (ifeat[i] >= DSET_NVALS(Opt->sig)) ifeat[i]=-1;
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         ifeat[aa] = 0;
+         while (ifeat[aa] < DSET_NVALS(Opt->sig) &&
+            strcmp(DSET_BRICK_LABEL(Opt->sig,ifeat[aa]),
+                   Opt->feats->str[aa])) ++ifeat[aa];
+         if (ifeat[aa] >= DSET_NVALS(Opt->sig)) ifeat[aa]=-1;
          if (Opt->debug > 1) {
             SUMA_S_Notev("Have feature %s in sub-brick %d\n",
-                      Opt->feats->str[i], ifeat[i]);
+                      Opt->feats->str[aa], ifeat[aa]);
          }
       }
       
+      SUMA_S_Notev("Loading sample classes for subject %d\n", ss);
+      if (!(Opt->samp = Seg_load_dset( Opt->samp_names->str[ss] ))) {      
+         exit(1);
+      }
+      if (Opt->debug > 1) {
+         SUMA_S_Notev("Have %d sub-bricks in samples of dude %d\n", 
+                     DSET_NVALS(Opt->samp), ss);
+      }
       
       /* Now collect features for each class */
-      for (j=0; j<Opt->clss->num; ++j) {
+      SUMA_S_Note("Collecting features for each class");
+      for (cc=0; cc<Opt->clss->num; ++cc) {
          if (Opt->debug > 1) {
-            SUMA_S_Notev("Working class %s\n", Opt->clss->str[j]);
+            SUMA_S_Notev("Working class %s\n", Opt->clss->str[cc]);
          }
-         key = Opt->keys[j];
-         for (k=0; k<DSET_NVALS(Opt->samp); ++k) {
+         key = Opt->keys[cc];
+         for (nn=0; nn<DSET_NVALS(Opt->samp); ++nn) {
             if (Opt->debug > 2) {
                SUMA_S_Notev("Looking for key %d for class %s in sb %d\n",
-                  key, Opt->clss->str[j], k);
+                  key, Opt->clss->str[cc], nn);
             }
-            sb = (short *)DSET_ARRAY(Opt->samp,k);
-            fsb = DSET_BRICK_FACTOR(Opt->samp,k);
+            sb = (short *)DSET_ARRAY(Opt->samp,nn);
+            fsb = DSET_BRICK_FACTOR(Opt->samp,nn);
             if (fsb == 0.0) fsb = 1.0;
             if (fsb != 1.0) {
                SUMA_S_Err("Non-integral dset, possibly.");
                exit(1);
             }
-            for (n=0; n<DSET_NVOX(Opt->samp); ++n) {
-               if (sb[n] == key) {
-                  for (i=0; i<Opt->feats->num; ++i) {
-                     if (ifeat[i]>-1) {
-                        if (N_alloc[i][j] <= N_ffv[i][j]) {
-                           N_alloc[i][j] += 10000;
-                           ffv[i][j] = (float*)SUMA_realloc(ffv[i][j],
-                                                 N_alloc[i][j]*sizeof(float));
+            for (vv=0; vv<DSET_NVOX(Opt->samp); ++vv) {
+               if (sb[vv] == key) {
+                  for (aa=0; aa<Opt->feats->num; ++aa) {
+                     if (ifeat[aa]>-1) {
+                        if (N_alloc_FCset[aa][cc] <= N_FCset[aa][cc]) {
+                           N_alloc_FCset[aa][cc] += 10000;
+                           FCset[aa][cc] = 
+                              (float*)SUMA_realloc(FCset[aa][cc],
+                                           N_alloc_FCset[aa][cc]*sizeof(float));
                         }
-                        sf = (short *)DSET_ARRAY(Opt->sig, ifeat[i]);
-                        fsf = DSET_BRICK_FACTOR(Opt->sig,ifeat[i]);
+                        sf = (short *)DSET_ARRAY(Opt->sig, ifeat[aa]);
+                        fsf = DSET_BRICK_FACTOR(Opt->sig,ifeat[aa]);
                         if (fsf == 0.0) fsf = 1.0;
-                        ffv[i][j][N_ffv[i][j]] = sf[n]*fsf; ++N_ffv[i][j];
-                     }
+                        FCset[aa][cc][N_FCset[aa][cc]] = sf[vv]*fsf; 
+                        ++N_FCset[aa][cc];
+                        if (!masks[ss][vv]) {
+                           masks[ss][vv] = (short)key; /* fcfs */
+                                       /* in case we exceed short range */
+                           if (masks[ss][vv]) masks[ss][vv] = 1; 
+                        }
+                     } else {
+                        SUMA_S_Warnv("Feature %s not found in subject %d\n",
+                                 Opt->feats->str[aa], ss);
+                        
+                     }  
                   }
                }  
             }
@@ -806,33 +840,117 @@ int main(int argc, char **argv)
       DSET_delete(Opt->samp); Opt->samp=NULL;
    } /* loop across all subjects */
    
-   /* Compute histograms && save them*/
+   /* compute histograms of features across all classes and save them */
+   hf = (SUMA_HIST **)SUMA_calloc(Opt->feats->num, sizeof(SUMA_HIST *));
+   SUMA_S_Note("Computing histograms of features across all classes");
+   ff = NULL; N_ffalloc = 0;
+   for (aa=0; aa<Opt->feats->num; ++aa) {
+      N_ff=0;
+      for (cc=0; cc<Opt->clss->num; ++cc) {
+         N_ff += N_FCset[aa][cc]; /* more than I need because same voxel 
+                                     can belong to multiple classes, but just 
+                                     to be safe */
+      }
+      if (N_ffalloc < N_ff) {
+         N_ffalloc = N_ff;
+         if (ff) SUMA_free(ff); ff=NULL;
+         if (!(ff = (float*)SUMA_calloc(N_ff, sizeof(float)))) {
+            SUMA_S_Crit("Failed to allocate");
+            exit(1);
+         }
+      } 
+      N_ff=0; isneg = 0; ff_m=0.0;
+      for (ss=0; ss<Opt->sig_names->num; ++ss) { /* Once again, unfortunately  */
+         /* load the input data */   
+         if (!(Opt->sig = Seg_load_dset( Opt->sig_names->str[ss] ))) {      
+            exit(1);
+         }
+         if (Opt->debug > 1) {
+            SUMA_S_Notev("Have %d sub-bricks in signatures of dude %d\n",
+                      DSET_NVALS(Opt->sig), ss);
+         }
+         if (ifeat[aa]>-1) {
+            sb = (short *)DSET_ARRAY(Opt->sig,ifeat[aa]);
+            fsb = DSET_BRICK_FACTOR(Opt->sig,ifeat[aa]);
+            if (fsb == 0.0) fsb = 1.0;
+            for (vv=0; vv<DSET_NVOX(Opt->sig); ++vv) {
+               if (masks[ss][vv]) {
+                  ff[N_ff] = sb[vv]*fsb;
+                  if (ff[N_ff] < 0) ++isneg;
+                  ff_m += ff[N_ff];
+                  ++N_ff;
+               }
+            }
+         }
+         DSET_delete(Opt->sig); Opt->sig=NULL;
+      }
+      ff_m /= N_ff; ff_s=0.0;
+      for (iii=0; iii<N_ff; ++iii) {
+          ff_s += SUMA_POW2(ff[iii]-ff_m);
+      }
+      ff_s = sqrt(ff_s/N_ff);
+      SUMA_S_Notev("Feature %s: mean %f, std %f\n", Opt->feats->str[aa], ff_m, ff_s);
+      sprintf(sbuf, "h(%s)",Opt->feats->str[aa]);
+      if ((float)isneg/(float)N_ff*100.0 > 1.0) {
+         hrange[0] =  ff_m-3/ff_s;
+         hrange[1] =  ff_m+3/ff_s;
+      } else {
+         hrange[0] =  0;
+         hrange[1] =  6.0/ff_s;
+      }
+      if (!(hf[aa] = SUMA_hist(ff, N_ff, 0, bwidth, hrange, sbuf, 1))) {
+         SUMA_S_Errv("Failed to generate histogram for %s. \n"
+                     "This will cause trouble at classification.\n",
+                     Opt->feats->str[aa])
+      } else {
+         if ((float)hf[aa]->N_ignored/(float)hf[aa]->n > 0.05) {
+            SUMA_S_Warnv("For histogram %s, %.2f%% of the samples were\n"
+                         "ignored for being outside the range [%f %f]\n",
+                   Opt->feats->str[aa],
+                   100*(float)hf[aa]->N_ignored/(float)hf[aa]->n, 
+                   hf[aa]->min, hf[aa]->max);
+         }
+         if (Opt->debug > 1) SUMA_Show_hist(hf[aa], 1, NULL);
+         /* save the histogram */
+         if (!SUMA_write_hist(hf[aa],
+                  SUMA_hist_fname(Opt->proot, 
+                                  Opt->feats->str[aa], NULL, 0))) {
+            SUMA_S_Errv("Failed to write histog to %s\n", sbuf);
+         } 
+      }
+   }  
+   if (ff) SUMA_free(ff); ff = NULL;
+   
+   
+   /* Compute histograms of features per class && save them*/
    hh = (SUMA_HIST ***)SUMA_calloc(Opt->feats->num, sizeof(SUMA_HIST **));
-   for (i=0; i<Opt->feats->num; ++i) {
-      hh[i] = (SUMA_HIST **)SUMA_calloc(Opt->clss->num, sizeof(SUMA_HIST *));
+   for (aa=0; aa<Opt->feats->num; ++aa) {
+      hh[aa] = (SUMA_HIST **)SUMA_calloc(Opt->clss->num, sizeof(SUMA_HIST *));
    }
-  
-   SUMA_S_Note("Computing histograms");
-   for (j=0; j<Opt->clss->num; ++j) {
-      if (N_ffv[0][j] < 10) {
+
+   SUMA_S_Note("Computing histograms of features per class");
+   for (cc=0; cc<Opt->clss->num; ++cc) {
+      if (N_FCset[0][cc] < 10) {
          SUMA_S_Errv("Requested class %s (%d) has just %d samples.\n"
                      "Not enough to grease your pan.\n",
-                     Opt->clss->str[j], Opt->keys[j], N_ffv[0][j]);
+                     Opt->clss->str[cc], Opt->keys[cc], N_FCset[0][cc]);
          exit(1);
       }
-      for (i=0; i<Opt->feats->num; ++i) {
-         sprintf(sbuf, "h(%s|%s)",Opt->feats->str[i], Opt->clss->str[j]);
-         if (!(hh[i][j] = SUMA_hist(ffv[i][j], N_ffv[i][j], 0, bwidth, 
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         sprintf(sbuf, "h(%s|%s)",Opt->feats->str[aa], Opt->clss->str[cc]);
+         hrange[0] = hf[aa]->min; hrange[1] = hf[aa]->max; 
+         if (!(hh[aa][cc] = SUMA_hist(FCset[aa][cc], N_FCset[aa][cc], 
+                                    hf[aa]->K, hf[aa]->W, 
                                     hrange, sbuf, 1))) {
             SUMA_S_Errv("Failed to generate histogram for %s|%s. \n"
                         "This will cause trouble at classification.\n",
-                        Opt->feats->str[i], Opt->clss->str[j])
+                        Opt->feats->str[aa], Opt->clss->str[cc])
          } else {
-            if (Opt->debug > 1) SUMA_Show_hist(hh[i][j], 1, NULL);
+            if (Opt->debug > 1) SUMA_Show_hist(hh[aa][cc], 1, NULL);
             /* save the histogram */
-            if (!SUMA_write_hist(hh[i][j],
+            if (!SUMA_write_hist(hh[aa][cc],
                      SUMA_hist_fname(Opt->proot, 
-                                    Opt->feats->str[i], Opt->clss->str[j], 0))) {
+                              Opt->feats->str[aa], Opt->clss->str[cc], 0))) {
                SUMA_S_Errv("Failed to write histog to %s\n", sbuf);
             } 
          }
@@ -840,10 +958,10 @@ int main(int argc, char **argv)
    }
    
    SUMA_S_Note("Computing Correlation matrices");
-   /* L2 normalize all of ffv */
-   for (j=0; j<Opt->clss->num; ++j) {
-      for (i=0; i<Opt->feats->num; ++i) {
-         THD_normalize(N_ffv[i][j], ffv[i][j]);
+   /* L2 normalize all of FCset */
+   for (cc=0; cc<Opt->clss->num; ++cc) {
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         THD_normalize(N_FCset[aa][cc], FCset[aa][cc]);
       }
    }
    
@@ -851,87 +969,102 @@ int main(int argc, char **argv)
       NI_element **CC=NULL;
       float *fm=NULL, *fn=NULL;
       NI_element *nel = NULL;
-      int n, m, suc;
+      int suc;
       
    /* Compute the correlation matrices for each class */
    CC = (NI_element **) SUMA_calloc(Opt->clss->num, sizeof(NI_element *));
    
-   for(j=0; j<Opt->clss->num; ++j) {
-      sprintf(sbuf, "CorrMat(%s)", Opt->clss->str[j]);
-      CC[j] = NI_new_data_element(sbuf, Opt->feats->num);
-      NI_set_attribute(CC[j],"Measure","correlation");
+   for(cc=0; cc<Opt->clss->num; ++cc) {
+      sprintf(sbuf, "CorrMat(%s)", Opt->clss->str[cc]);
+      CC[cc] = NI_new_data_element(sbuf, Opt->feats->num);
+      NI_set_attribute(CC[cc],"Measure","correlation");
       atr = SUMA_NI_str_ar_2_comp_str(Opt->feats, " ; ");
-      NI_set_attribute(CC[j],"ColumnLabels", atr);SUMA_free(atr); atr = NULL;
+      NI_set_attribute(CC[cc],"ColumnLabels", atr);SUMA_free(atr); atr = NULL;
       atr = SUMA_HistString (FuncName, argc, argv, NULL);
-      NI_set_attribute(CC[j],"CommandLine", atr);SUMA_free(atr); atr = NULL;
-      for (i=0; i<Opt->feats->num; ++i) {
-         NI_add_column_stride ( CC[j], NI_FLOAT, NULL, 1 );
+      NI_set_attribute(CC[cc],"CommandLine", atr);SUMA_free(atr); atr = NULL;
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         NI_add_column_stride ( CC[cc], NI_FLOAT, NULL, 1 );
       }
-      for (m=0; m<Opt->feats->num; ++m) {
-         fm = (float*)CC[j]->vec[m];
-         for (n=0; n<m; ++n) fm[n] = 0.0; /* will fill later */
-         fm[m]=1.0;
-         for (n=m+1; n<Opt->feats->num; ++n) {
-            if (N_ffv[m][j]!=N_ffv[n][j]) {
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         fm = (float*)CC[cc]->vec[aa];
+         for (iii=0; iii<aa; ++iii) fm[iii] = 0.0; /* will fill later */
+         fm[aa]=1.0;
+         for (iii=aa+1; iii<Opt->feats->num; ++iii) {
+            if (N_FCset[aa][cc]!=N_FCset[iii][cc]) {
                SUMA_S_Errv("Sanity check failed, %d != %d\n",
-                              N_ffv[m][j], N_ffv[n][j]);
+                              N_FCset[aa][cc], N_FCset[iii][cc]);
             }
-            SUMA_DOTP_VEC(ffv[m][j], ffv[n][j], fm[n], N_ffv[m][j], 
+            SUMA_DOTP_VEC(FCset[aa][cc], FCset[iii][cc], 
+                          fm[iii], N_FCset[aa][cc], 
                           float, float);
          }
       }
       /* Now fill the remainder */
-      for (m=0; m<Opt->feats->num; ++m) {
-         fm = (float*)CC[j]->vec[m];
-         for (n=0; n<m; ++n) {
-            fn = (float*)CC[j]->vec[n];
-            fm[n] = fn[m];
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         fm = (float*)CC[cc]->vec[aa];
+         for (iii=0; iii<aa; ++iii) {
+            fn = (float*)CC[cc]->vec[iii];
+            fm[iii] = fn[aa];
          }
       }
       snprintf(sbuf, 510, "file:%s.niml.cormat", 
-               SUMA_corrmat_fname(Opt->proot, Opt->clss->str[j], 0));
-      NEL_WRITE_TXH(CC[j], sbuf, suc);
+               SUMA_corrmat_fname(Opt->proot, Opt->clss->str[cc], 0));
+      NEL_WRITE_TXH(CC[cc], sbuf, suc);
    }
    
    }
    /* free everything */
-   if (ffv) {
-      for (i=0; i<Opt->feats->num; ++i) {
-         for (j=0; j<Opt->clss->num; ++j) {
-            if (ffv[i][j]) SUMA_free(ffv[i][j]);
+   if (FCset) {
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         for (cc=0; cc<Opt->clss->num; ++cc) {
+            if (FCset[aa][cc]) SUMA_free(FCset[aa][cc]);
          }
-         SUMA_free(ffv[i]); 
+         SUMA_free(FCset[aa]); 
       }
-      SUMA_free(ffv); ffv=NULL;
+      SUMA_free(FCset); FCset=NULL;
    }
-   if (N_ffv) {
-      for (i=0; i<Opt->feats->num; ++i) {
-         SUMA_free(N_ffv[i]);
+   if (N_FCset) {
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         SUMA_free(N_FCset[aa]);
       }
-      SUMA_free(N_ffv); N_ffv=NULL;
+      SUMA_free(N_FCset); N_FCset=NULL;
    }
-   if (N_alloc) {
-      for (i=0; i<Opt->feats->num; ++i) {
-         SUMA_free(N_alloc[i]);
+   if (N_alloc_FCset) {
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         SUMA_free(N_alloc_FCset[aa]);
       }
-      SUMA_free(N_alloc); N_alloc=NULL;
+      SUMA_free(N_alloc_FCset); N_alloc_FCset=NULL;
    }
    if (ifeat) SUMA_free(ifeat); ifeat=NULL;
    
    if (hh) {
-      for (i=0; i<Opt->feats->num; ++i) {
-         for (j=0; j<Opt->clss->num; ++j) {
-            if (hh[i][j]) hh[i][j] = SUMA_Free_hist(hh[i][j]);
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         for (cc=0; cc<Opt->clss->num; ++cc) {
+            if (hh[aa][cc]) hh[aa][cc] = SUMA_Free_hist(hh[aa][cc]);
          }
-         SUMA_free(hh[i]);
+         SUMA_free(hh[aa]);
       }
       SUMA_free(hh); hh=NULL;
+   }
+   
+   if (hf) {
+      for (aa=0; aa<Opt->feats->num; ++aa) {
+         if (hf[aa]) hf[aa] = SUMA_Free_hist(hf[aa]);
+      }
+      SUMA_free(hf); hf=NULL;
+   }
+   
+   if (masks) {
+      for (ss=0; ss<Opt->sig_names->num; ++ss) {
+         if (masks[ss]) SUMA_free(masks[ss]);
+      }
+      masks[ss]=NULL;
    }
    
    SUMA_S_Crit("Die here\n"); exit(1);
 
    /*
-         sprintf(sbuf,"g(%s|%s)",Opt->feats->str[i], Opt->clss->str[j]);
+         sprintf(sbuf,"g(%s|%s)",Opt->feats->str[aa], Opt->clss->str[cc]);
    */
 
 
@@ -956,8 +1089,8 @@ int main(int argc, char **argv)
    
    if (Opt->VoxDbg >= 0) {
       fprintf(Opt->VoxDbgOut, "Command:");
-      for (i=0; i<argc; ++i) {
-         fprintf(Opt->VoxDbgOut, "%s ", argv[i]);
+      for (iii=0; iii<argc; ++iii) {
+         fprintf(Opt->VoxDbgOut, "%s ", argv[iii]);
       }
       fprintf(Opt->VoxDbgOut, "\nDebug info for voxel %d\n", Opt->VoxDbg);
    }

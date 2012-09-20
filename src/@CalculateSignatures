@@ -328,8 +328,16 @@ SCALE:
    
    
    if ("$extrascl" == '-feat_znorm') then
+      if ( $featmask == '' ) then
+         if ( ! -f ${inpref}.am+orig.HEAD) then
+            3dAutomask -prefix ${inpref}.am ${inpref}+orig
+         else
+            echo "Reusing ${inpref}.am+orig.HEAD"
+         endif
+         set featmask = ${inpref}.am+orig
+      endif
       if ( ! -f ${inpref}.sc${Scale}z.${sigset}+orig.HEAD) then
-         @ScaleVolume   -feat_znorm    \
+         @ScaleVolume   -feat_znorm  -mask $featmask \
                         -prefix  ${inpref}.sc${Scale}z.${sigset} \
                         -input ${inpref}.sc${Scale}.${sigset}+orig
       else
@@ -430,7 +438,7 @@ set max_vox = 0
 set prepend_anat = 0
 set extrascl = ''
 set Mname = ''
-
+set featmask = ''
 if ("$1" == '') goto HELP
 while ($cnt <= $Narg)
    set donext = 1
@@ -600,6 +608,20 @@ while ($cnt <= $Narg)
       endif
    endif
 
+   if ($donext && "$argv[$cnt]" == "-feat_znorm_mask") then
+      if ($cnt == $Narg) then
+         echo "Need mask volume after -feat_znorm_mask"
+         goto END
+      else
+         @ cnt ++
+         set localopen = 0
+         set statopen = 0
+         set featmask = $argv[$cnt]
+         set donext = 0   
+         #@ cnt ++
+         #echo "FEAT MASK SET" $cnt $argv[$cnt]
+      endif
+   endif
 
    if ($donext && "$argv[$cnt]" == "-input") then
       if ($cnt == $Narg) then
@@ -762,6 +784,8 @@ HELP:
    echo "   -feat_znorm: After you're done applying the scaling options, "
    echo "            normalize the entire feature vector using "
    echo "            @ScaleVolume -feat_znorm"
+   echo "   -feat_znorm_mask FSCMASK: Mask volume used for -feat_znorm"
+   echo "                        If nothing is specified, 3dAutomask is used"
    echo ""
    echo "Example:"
    set ss = 12
