@@ -1,0 +1,59 @@
+#!/bin/tcsh
+
+if ( $#argv < 1 || "$1" == "-help" ) then
+  echo "Usage: Caddr [-go] <dir>"
+  echo "Add recursively content of current directory."
+  echo "By default you see what the script would be doing."
+  echo "No checking in is done unless you use -go"
+  echo "Example:"
+  echo "Caddr ."
+  echo "Caddr -go ."
+  echo ""
+  exit 0
+endif
+
+set din = ''
+set go = 0
+if ("$1" == "-go") then
+   set go = 1
+   set din = $2
+else
+   set din = $1
+endif
+
+if ($din == '') then
+   echo "No input directory"
+   goto BEND
+endif
+
+if ( ! -d $din) then
+   echo "No directory $din found"
+   goto BEND
+endif
+
+#First add directories
+set ddl = (`find $din -type d \! -name CVS `)
+foreach dd ($ddl) 
+   cd $dd
+   set pp = $dd:h
+   set dn = $dd:t
+   set allthings = (`find . -maxdepth 1 \! -name CVS \! -name . -exec basename '{}' \;`)
+   echo "      from $dd :"
+   echo "Cadd $allthings" 
+   if ($go == 1) then
+      foreach ff ($allthings)
+         Cadd $ff
+      end
+   endif
+   echo ""
+   cd -
+end
+
+goto END
+
+BEND:
+   echo "Exiting in error"
+   exit 1
+   
+END:
+exit 0
