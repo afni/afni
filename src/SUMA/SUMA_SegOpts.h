@@ -27,6 +27,10 @@ typedef struct {
    float min; /* min sample value */
    float max; /* max sample value */
    char *label; /* a string descriptor */
+   int N_ignored; /* Number of samples out of n that
+                     were outside the range and were ignored
+                     during histogram build. Normally, values
+                     outside range would be assigned to end bins*/
 } SUMA_HIST;
 
 typedef enum { SUMA_FEAT_NOT_SET=-1, 
