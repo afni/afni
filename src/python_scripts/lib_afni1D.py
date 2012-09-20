@@ -142,6 +142,19 @@ class Afni1D:
          return 0
       return 1
 
+   # --- begin: mathematical manipulations ---
+
+   def transpose(self):
+      """transpose the matrix and swap nrows and ncols"""
+      if self.verb > 3: print '-- Afni1D transpose...'
+      if not self.ready:
+         print "** matrix '%s' is not ready for transposing" % self.name
+         return
+      self.mat  = [[row[i] for row in self.mat] for i in range(self.nt)]
+      newnt     = self.nvec
+      self.nvec = self.nt
+      self.nt   = newnt
+
    def demean(self):
       """demean each vector per run (mean of each run will be zero)
 
@@ -313,6 +326,59 @@ class Afni1D:
       del(self.mat)
       self.mat = [mat]
       return 0
+
+   def mat_times_vec(self, vec):
+      """modify matrix as self.mat * vec"""
+      lv = len(vec)
+      if lv == 0 or self.nt == 0 or self.nvec == 0:
+         if self.verb > 1: print '** have mat_times_vec with empty inputs'
+         return
+
+      for col, mvec in enumerate(self.mat):
+         val = vec[col]
+         for ind in range(self.nt):
+            mvec[ind] *= val
+
+   def unitize(self):
+      """make every vector unit length"""
+
+      for ind, vec in enumerate(self.mat):
+         vlen = UTIL.L2_norm(vec)
+         self.mat[ind] = UTIL.lin_vec_sum(1.0/vlen, vec, 0, None)
+
+   def project_out_vec(self, vec=None):
+      """project a vector out of the matrix vectors, if None, use mean
+
+         for each vector y, subtract <vT,y>/<vT.v> * v
+
+         return 0 on success, else 1
+      """
+      if vec == None: vec = self.get_mean_vec()
+      if len(vec) != self.nt:
+         print '** project_out_vec: bad length %d != %d' % (len(vec), self.nt)
+         return 1
+
+      vlen = UTIL.L2_norm(vec)
+      if vlen == 0: # then nothing to do
+         if self.verb > 0: print '-- project_out_vec: empty vector to remove'
+         return 0
+      vunit = UTIL.lin_vec_sum(1.0/vlen, vec, 0, None)
+
+      self.mat = [UTIL.proj_out_vec(mv, vunit, unit_v2=1) for mv in self.mat]
+
+   # --- end: mathematical manipulations ---
+
+   # --- these functions return some aspect of the matrix ---
+
+   def get_mean_vec(self):
+      """return a single vector as the mean of all matrix vectors"""
+      v = [0] * self.nt
+      if self.nt == 0: return []
+      for ind in range(self.nt):
+         v[ind] = UTIL.loc_sum([self.mat[i][ind] for i in range(self.nvec)])
+      return UTIL.lin_vec_sum(1.0/self.nt, v, 0, None)
+
+   # --- end: functions returning some aspect of the matrix ---
 
    def copy(self):
       """return a complete (deep)copy of the current object"""
@@ -774,17 +840,6 @@ class Afni1D:
       self.cormat_ready = 0
 
       return 0
-
-   def transpose(self):
-      """transpose the matrix and swap nrows and ncols"""
-      if self.verb > 3: print '-- Afni1D transpose...'
-      if not self.ready:
-         print "** matrix '%s' is not ready for transposing" % self.name
-         return
-      self.mat  = [[row[i] for row in self.mat] for i in range(self.nt)]
-      newnt     = self.nvec
-      self.nvec = self.nt
-      self.nt   = newnt
 
    def simplecopy(self):
       return Afni1D(from_mat=1, matrix=self.mat, verb=self.verb)

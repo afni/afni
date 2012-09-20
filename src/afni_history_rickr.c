@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, SEP, 2012, RCR, "3dClustSim", MICRO, TYPE_GENERAL,
+   "added a note to the help about computing blur estimates",
+   "Requested by J Weisberg."
+ } ,
+
+ { 20, SEP, 2012, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "added some projection function to python libraries",
+   NULL
+ } ,
+
  { 13, SEP, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "download and run the current version on the web site",
    "Good idea, Bob."
