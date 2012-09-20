@@ -111,8 +111,13 @@ char *SUMA_hist_fname(char *proot, char *variable, char *conditional,
    if (!proot || !variable) return(NULL);
    ++ii; if (ii>9) ii = 0;
    cls[ii][0]='\0'; cls[ii][255]='\0';
-   snprintf(cls[ii], 255, "%s/h.%s-G-%s",
+   if (conditional) {
+      snprintf(cls[ii], 255, "%s/h.%s-G-%s",
                proot, variable, conditional);
+   } else {
+      snprintf(cls[ii], 255, "%s/h.%s",
+               proot, variable);
+   }  
    if (withext) {
       strncat(cls[ii],".niml.hist", 255);
    }            
@@ -125,7 +130,7 @@ char *SUMA_corrmat_fname(char *proot, char *conditional, int withext)
    static int ii=0;
    int j,k;
    
-   if (!proot) return(NULL);
+   if (!proot || !conditional) return(NULL);
    ++ii; if (ii>9) ii = 0;
    cls[ii][0]='\0'; cls[ii][255]='\0';
    snprintf(cls[ii], 255, "%s/C.%s",
@@ -485,6 +490,7 @@ NI_group *SUMA_hist_To_NIhist(SUMA_HIST *hh)
    NI_SET_FLOAT(nel,"min", hh->min);
    NI_SET_FLOAT(nel,"max", hh->max);
    NI_SET_INT(nel,"N_samp", hh->n);
+   NI_SET_INT(nel,"N_ignored", hh->N_ignored);
    NI_add_column(nel, NI_FLOAT, hh->b);
    NI_add_column(nel, NI_INT, hh->c);
    NI_add_column(nel, NI_FLOAT, hh->cn);
@@ -517,6 +523,7 @@ SUMA_HIST *SUMA_NIhist_To_hist(NI_group *ngr)
    NI_GET_FLOAT(nel,"min", hh->min);
    NI_GET_FLOAT(nel,"max", hh->max);
    NI_GET_INT(nel,"N_samp", hh->n);
+   NI_GET_INT(nel,"N_ignored", hh->N_ignored);
    hh->b = (float *)SUMA_calloc(hh->K,sizeof(float));
    hh->c = (int *)SUMA_calloc(hh->K,sizeof(int));
    hh->cn = (float *)SUMA_calloc(hh->K,sizeof(float));
@@ -5367,17 +5374,20 @@ SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, float *range,
    hh->cn = (float *)SUMA_calloc(hh->K, sizeof(float));
    
    /* fill it */
+   hh->N_ignored = 0;
    if (ignoreout) {
       for (i=0; i<n;++i) {
          if (v[i]>=min && v[i]<=max) {
             ib = (int)((v[i]-min)/hh->W); if (ib==hh->K) ib = hh->K-1;
             ++hh->c[ib];
+         } else {
+            ++hh->N_ignored;
          }
       }
    } else {
       for (i=0; i<n;++i) {
          ib = (int)((v[i]-min)/hh->W);
-         if (ib==hh->K) ib = hh->K-1;
+         if (ib>=hh->K) ib = hh->K-1;
          else if (ib < 0) ib = 0;
          ++hh->c[ib];
       }
@@ -5425,9 +5435,10 @@ char *SUMA_hist_info(SUMA_HIST *hh, int norm, int level)
    float gscl=0.0;
    SUMA_STRING *SS=NULL;
    char *sss=NULL, *s=NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
-   
+      
    SS = SUMA_StringAppend(NULL, NULL);
    
    if (!hh) SS = SUMA_StringAppend(SS,"NULL hh");
@@ -5445,10 +5456,11 @@ char *SUMA_hist_info(SUMA_HIST *hh, int norm, int level)
       for (i=0; i<mx; ++i) sss[i]='*'; sss[i]='\0';
       
       SS = SUMA_StringAppend_va(SS,"Histog %s, %d bins of width %f,"
-                                   "N_samp. = %d, range = [%f,%f]\n",
+                              "N_samp. = %d, N_ignored = %d, range = [%f,%f]\n",
                                     hh->label?hh->label:"NO LABEL",
                                     hh->K, hh->W, 
-                                    hh->n, hh->min, hh->max);
+                                    hh->n, hh->N_ignored, hh->min, hh->max);
+      SUMA_LH("About to freq at midrange");
       SS = SUMA_StringAppend_va(SS,"Freq at mid range %f is: %f\n",
                (hh->min+hh->max)/2.0, SUMA_hist_freq(hh,(hh->min+hh->max)/2.0));
       for (i=0; i<hh->K; ++i) {

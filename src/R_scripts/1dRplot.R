@@ -362,7 +362,8 @@ read.1dRplot.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-title' = apl(n = c(1, Inf), d = NULL,  h = paste(
-   "-title TITLE: Graph title\n"
+   "-title TITLE: Graph title. File name is used by default.\n",
+   "              Use NONE to be sure no title is used.\n"
                      ) ),
             
       '-grp.label' = apl(n = c(1,Inf), d = NULL, h = paste(

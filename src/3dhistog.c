@@ -64,6 +64,8 @@ static short * HI_roi_unq = NULL; /* ZSS March 2011 */
 static int     HI_N_roi_unq = 0;
 static THD_3dim_dataset *HI_roi=NULL;
 
+static int     HI_pdf = 0;        /* ZSS Sept 2012 */
+
 static int integral_dset(THD_3dim_dataset *dset, int iv_bot, int iv_top);
 static int minmax_dset(THD_3dim_dataset *dset, float *dmin, float *dmax,
                        int iv_bot, int iv_top);
@@ -88,6 +90,79 @@ int HI_keep(float x)  /* check if value x is in the omitted list */
 
 /*---------------------------------------------------------------------------------*/
 
+void usage_3dhistog(int detail) {
+         printf(
+"Compute histogram of 3D Dataset\n"
+"Usage: 3dhistog [editing options] [histogram options] dataset\n"
+"\n"
+"The editing options are the same as in 3dmerge\n"
+" (i.e., the options starting with '-1').\n"
+"\n"
+"The histogram options are:\n"
+"  -nbin #   Means to use '#' bins [default=100]\n"
+"            Special Case: for short or byte dataset bricks,\n"
+"                          set '#' to zero to have the number\n"
+"                          of bins set by the brick range.\n"
+"  -dind i   Means to take data from sub-brick #i, rather than #0\n"
+"  -omit x   Means to omit the value 'x' from the count;\n"
+"              -omit can be used more than once to skip multiple values.\n"
+"  -mask m   Means to use dataset 'm' to determine which voxels to use\n"
+"  -roi_mask r Means to create a histogram for each non-zero value in \n"
+"              dataset 'r'. If -mask option is also used, dataset 'r' is \n"
+"              masked by 'm' before creating the histograms.\n"
+"  -doall    Means to include all sub-bricks in the calculation;\n"
+"              otherwise, only sub-brick #0 (or that from -dind) is used.\n"
+"  -notitle  Means to leave the title line off the output.\n"
+"  -log10    Output log10() of the counts, instead of the count values.\n"
+"            This option cannot be used with -pdf or with -prefix\n"
+"  -pdf      Output the counts divided by the number of samples.\n"
+"            This option is only valid with -prefix\n"
+"  -min x    Means specify minimum (inclusive) of histogram.\n"
+"  -max x    Means specify maximum (inclusive) of histogram.\n"
+"  Output options for integer and floating point data\n"
+"  By default, the program will determine if the data is integer or float\n"
+"   even if the data is stored as shorts with a scale factor.\n"
+"   Integer data will be binned by default to be 100 or the maximum number of\n"
+"   integers in the range, whichever is less. For example, data with the range\n"
+"   (0..20) gives 21 bins for each integer, and non-integral bin boundaries\n"
+"   will be raised to the next integer (2.3 will be changed to 3, for instance).\n"
+"   If the number of bins is higher than the number of integers in the range,\n"
+"   the bins will be labeled with floating point values, and multiple bins\n"
+"   may be zero between the integer values\n"
+"   Float data will be binned by default to 100 bins with absolute limits for\n"
+"   the min and max if these are specified as inclusive. For example,\n"
+"   float data ranging from (0.0 to 20.0) will be binned into bins that\n"
+"   are 0.2 large  (0..0.199999, 0.2..0.399999,...,19.8..20.0)\n"
+"   To have bins divided at 1.0 instead, specify the number of bins as 20\n"
+"   Bin 0 is 0..0.9999, Bin 1 is 1.0 to 1.9999, ..., Bin 20 is 19 to 20.0000\n"
+"   giving a slight bias to the last bin\n"
+"  -int      Treat data and output as integers\n"
+"  -float    Treat data and output as floats\n"
+"  -unq U.1D Writes out the sorted unique values to file U.1D.\n"
+"            This option is not allowed for float data\n"
+"            If you have a problem with this, write\n"
+"            Ziad S. Saad (saadz@mail.nih.gov)\n"
+"  -prefix HOUT: Write a copy of the histogram into file HOUT.1D\n"
+"                you can plot the file with:\n"
+"             1dplot -sepscl -x HOUT.1D'[0]' HOUT.1D'[1,2]' \n"
+"        or   \n"
+"             1dRplot -input HOUT.1D\n"
+"\n"
+"Without -prefix, the histogram is written to stdout.  \n"
+"Use redirection '>' if you want to save it to a file.\n"
+"The format is a title line, then three numbers printed per line:\n"
+"  bottom-of-interval  count-in-interval  cumulative-count\n"
+"\n"
+"-- by RW Cox (V Roopchansingh added the -mask option)\n"
+         ) ;
+
+      if (detail) printf("\n" MASTER_SHORTHELP_STRING ) ;
+
+      PRINT_COMPILE_DATE ; 
+
+   return;
+}
+
 int main( int argc , char * argv[] )
 {
    int iarg, i_roi_unq;
@@ -109,76 +184,11 @@ int main( int argc , char * argv[] )
    FILE *fout = NULL;
    int n_unq=0;
 
-   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ){
-      printf(
-   "Compute histogram of 3D Dataset\n"
-   "Usage: 3dhistog [editing options] [histogram options] dataset\n"
-   "\n"
-   "The editing options are the same as in 3dmerge\n"
-   " (i.e., the options starting with '-1').\n"
-   "\n"
-   "The histogram options are:\n"
-   "  -nbin #   Means to use '#' bins [default=100]\n"
-   "            Special Case: for short or byte dataset bricks,\n"
-   "                          set '#' to zero to have the number\n"
-   "                          of bins set by the brick range.\n"
-   "  -dind i   Means to take data from sub-brick #i, rather than #0\n"
-   "  -omit x   Means to omit the value 'x' from the count;\n"
-   "              -omit can be used more than once to skip multiple values.\n"
-   "  -mask m   Means to use dataset 'm' to determine which voxels to use\n"
-   "  -roi_mask r Means to create a histogram for each non-zero value in \n"
-   "              dataset 'r'. If -mask option is also used, dataset 'r' is \n"
-   "              masked by 'm' before creating the histograms.\n"
-   "  -doall    Means to include all sub-bricks in the calculation;\n"
-   "              otherwise, only sub-brick #0 (or that from -dind) is used.\n"
-   "  -notitle  Means to leave the title line off the output.\n"
-   "  -log10    Output log10() of the counts, instead of the count values.\n"
-   "  -min x    Means specify minimum (inclusive) of histogram.\n"
-   "  -max x    Means specify maximum (inclusive) of histogram.\n"
-   "  Output options for integer and floating point data\n"
-   "  By default, the program will determine if the data is integer or float\n"
-   "   even if the data is stored as shorts with a scale factor.\n"
-   "   Integer data will be binned by default to be 100 or the maximum number of\n"
-   "   integers in the range, whichever is less. For example, data with the range\n"
-   "   (0..20) gives 21 bins for each integer, and non-integral bin boundaries\n"
-   "   will be raised to the next integer (2.3 will be changed to 3, for instance).\n"
-   "   If the number of bins is higher than the number of integers in the range,\n"
-   "   the bins will be labeled with floating point values, and multiple bins\n"
-   "   may be zero between the integer values\n"
-   "   Float data will be binned by default to 100 bins with absolute limits for\n"
-   "   the min and max if these are specified as inclusive. For example,\n"
-   "   float data ranging from (0.0 to 20.0) will be binned into bins that\n"
-   "   are 0.2 large  (0..0.199999, 0.2..0.399999,...,19.8..20.0)\n"
-   "   To have bins divided at 1.0 instead, specify the number of bins as 20\n"
-   "   Bin 0 is 0..0.9999, Bin 1 is 1.0 to 1.9999, ..., Bin 20 is 19 to 20.0000\n"
-   "   giving a slight bias to the last bin\n"
-   "  -int      Treat data and output as integers\n"
-   "  -float    Treat data and output as floats\n"
-   "  -unq U.1D Writes out the sorted unique values to file U.1D.\n"
-   "            This option is not allowed for float data\n"
-   "            If you have a problem with this, write\n"
-   "            Ziad S. Saad (saadz@mail.nih.gov)\n"
-   "  -prefix HOUT: Write a copy of the histogram into file HOUT.1D\n"
-   "                you can plot the file with:\n"
-   "             1dplot -sepscl -x HOUT.1D'[0]' HOUT.1D'[1,2]' \n"
-   "        or   \n"
-   "             1dRplot -input HOUT.1D\n"
-   "\n"
-   "Without -prefix, the histogram is written to stdout.  \n"
-   "Use redirection '>' if you want to save it to a file.\n"
-   "The format is a title line, then three numbers printed per line:\n"
-   "  bottom-of-interval  count-in-interval  cumulative-count\n"
-   "\n"
-   "-- by RW Cox (V Roopchansingh added the -mask option)\n"
-         ) ;
-
-      printf("\n" MASTER_SHORTHELP_STRING ) ;
-
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
 
    mainENTRY("3dhistog") ; machdep() ; AFNI_logger("3dhistog",argc,argv) ;
    PRINT_VERSION("3dhistog") ;
+
+   if(argc == 1){ usage_3dhistog(1); exit(0); } /* Bob's help shortcut */
 
    HI_read_opts( argc , argv ) ;
    nopt = HI_nopt ;
@@ -454,7 +464,6 @@ int main( int argc , char * argv[] )
 
       if (!HI_ni) {
          cumfbin = 0;
-
          if( HI_log ){
            if( ! HI_notit )
              printf ("%12s %13s %13s\n",
@@ -492,6 +501,12 @@ int main( int argc , char * argv[] )
          float *bb =(float* )calloc(nbin,sizeof(float) );
          double *cf=(double*)calloc(nbin,sizeof(double));
          double *bd=(double*)calloc(nbin,sizeof(double));
+         
+         if (HI_log) {
+            ERROR_message("Option -log10 not available with -prefix");
+            exit(1);
+         }
+         
          cumfbin = 0 ;
          for( kk=0 ; kk < nbin ; kk++ ){
           cumfbin += fbin[kk];
@@ -499,16 +514,23 @@ int main( int argc , char * argv[] )
           bd[kk] = (double)fbin[kk];
           bb[kk] = CEIL_CHECK(fbot+kk*df);
          }
+         if (HI_pdf) {
+            for( kk=0 ; kk < nbin ; kk++ ){
+               bd[kk] /= cf[nbin-1];
+               cf[kk] /= cf[nbin-1];
+            }
+         }
          hni = NI_new_data_element("3dhistog", nbin);
          NI_add_column(hni, NI_FLOAT , bb);
          NI_add_column(hni, NI_DOUBLE, bd);
          NI_add_column(hni, NI_DOUBLE, cf);
-         if (HI_log)
-            NI_set_attribute(hni, "ColumnLabels",
-                        "Magnitude ; Log_Freq ; Log_Cum_Freq");
-         else
+         
+              if (!HI_log && !HI_pdf)
             NI_set_attribute(hni, "ColumnLabels",
                         "Magnitude ; Freq ; Cum_Freq");
+         else if (!HI_log && HI_pdf)
+            NI_set_attribute(hni, "ColumnLabels",
+                        "Magnitude ; PDF ; CDF");
          sprintf(sstr,"%f",df);
          NI_set_attribute(hni, "BinWidth", sstr);
 
@@ -556,7 +578,12 @@ void HI_read_opts( int argc , char * argv[] )
    HI_datatype = HI_UNKNOWN;
 
    while( nopt < argc && argv[nopt][0] == '-' ){
-
+      
+      if( strcmp(argv[nopt],"-help") == 0 || strcmp(argv[nopt],"-h") == 0){
+        usage_3dhistog(strlen(argv[nopt])>3 ? 2:1);
+        exit(0);
+      }
+      
       /**** check for editing options ****/
 
       ival = EDIT_check_argv( argc , argv , nopt , &HI_edopt ) ;
@@ -614,6 +641,11 @@ void HI_read_opts( int argc , char * argv[] )
          nopt++ ;
          if( nopt >= argc ) HI_syntax("need argument after -prefix!") ;
          HI_ni = argv[nopt] ;
+         nopt++ ; continue ;
+      }
+
+      if( strncmp(argv[nopt],"-pdf",6) == 0 ){
+         HI_pdf = 1 ;
          nopt++ ; continue ;
       }
       /* ----- -mask ----- */
@@ -704,6 +736,7 @@ void HI_read_opts( int argc , char * argv[] )
       /**** unknown switch ****/
 
       fprintf(stderr,"*** unrecognized option %s\a\n",argv[nopt]) ;
+      suggest_best_prog_option(argv[0], argv[nopt]);
       exit(-1) ;
 
    }  /* end of loop over options */
@@ -711,7 +744,27 @@ void HI_read_opts( int argc , char * argv[] )
 #ifdef HIDEBUG
 printf("*** finished with options\n") ;
 #endif
+   
+   if( argc < 2 ){
+      ERROR_message("Too few options, try -help for details");
+      exit(1);
+   }
+   
+   if (HI_log && HI_pdf) {
+      ERROR_message("Option -log10 not available with -pdf");
+      exit(1);
+   }
 
+   if (HI_log && HI_ni) {
+      ERROR_message("Option -log10 not available with -prefix");
+      exit(1);
+   }
+   
+   if (HI_pdf && !HI_ni) {
+      ERROR_message("Option -pdf needs -prefix");
+      exit(1);
+   }
+   
    if( HI_doall ){
      if( HI_dind >= 0 ){
        fprintf(stderr,"** WARNING: -dind ignored with -doall!\n") ;
