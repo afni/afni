@@ -132,13 +132,13 @@ ENTRY("INCOR_2Dhist_minmax") ;
 
 void INCOR_addto_2Dhist( INCOR_2Dhist *tdh , int n , float *x , float *y , float *w )
 {
-   register int ii ;
+   int ii ;
    byte *good ; int ngood , xyclip ;
    float xxbot,xxtop , yybot,yytop ;
    float xcbot,xctop , ycbot,yctop ;
    int nbin,nbp,nbm ;
    float *xc , *yc , *xyc ; float nww ;
-#ifdef USE_OMP
+#if 0
    int use_omp , nthr ;
 #else
 #  define use_omp 0
@@ -154,7 +154,7 @@ ENTRY("INCOR_addto_2Dhist") ;
 
    /* get the min..max range for x and y data? */
 
-   good = (byte *)calloc(sizeof(byte),n) ;
+   good = (byte *)calloc(sizeof(byte),n+4) ;
    for( ngood=ii=0 ; ii < n ; ii++ ){
      if( GOODVAL(x[ii]) && GOODVAL(y[ii]) && (WW(ii) > 0.0f) ){
        good[ii] = 1 ; ngood++ ;
@@ -210,19 +210,19 @@ ENTRY("INCOR_addto_2Dhist") ;
    xyclip = (xxbot < xcbot) && (xcbot < xctop) && (xctop < xxtop) &&
             (yybot < ycbot) && (ycbot < yctop) && (yctop < yytop) ;
 
-#ifdef USE_OMP
+#ifndef nthr
    nthr    = omp_get_max_threads() ;
-   use_omp = (ngood > 2222) && (nthr > 1) ;
+   use_omp = (nthr > 1) ;
 #endif
 
    if( !use_omp ){  /*** serial code ***/
 
-     AFNI_do_nothing() ; fprintf(stderr,"h") ;
+     /* AFNI_do_nothing() ; fprintf(stderr,"h") ; */
 
      if( !xyclip ){  /*------------ equal size bins ------------*/
 
        float xb,xi , yb,yi , xx,yy , x1,y1 , ww ;
-       register int jj,kk ;
+       int jj,kk ;
 
        xb = xxbot ; xi = nbm/(xxtop-xxbot) ;
        yb = yybot ; yi = nbm/(yytop-yybot) ;
@@ -233,6 +233,8 @@ ENTRY("INCOR_addto_2Dhist") ;
          yy = (y[ii]-yb)*yi ;
          kk = (int)yy ; yy = yy - kk ; y1 = 1.0f-yy ;
          ww = WW(ii) ; nww += ww ;
+
+         if( jj < 0 || kk < 0 || jj >= nbin || kk >= nbin ) continue ;
 
          xc[jj] += (x1*ww); xc[jj+1] += (xx*ww);
          yc[kk] += (y1*ww); yc[kk+1] += (yy*ww);
@@ -245,9 +247,11 @@ ENTRY("INCOR_addto_2Dhist") ;
 
      } else if( xyclip ){  /*------------ mostly equal bins ----------------*/
 
-       register int jj,kk ;
+       int jj,kk ;
        float xbc=xcbot , xtc=xctop , ybc=ycbot , ytc=yctop ;
        float xi,yi , xx,yy , x1,y1 , ww ;
+
+       AFNI_do_nothing() ; fprintf(stderr,"c") ;
 
        xi = (nbin-2.000001f)/(xtc-xbc) ;
        yi = (nbin-2.000001f)/(ytc-ybc) ;
@@ -262,6 +266,8 @@ ENTRY("INCOR_addto_2Dhist") ;
          else if( yy > ytc ){ kk = nbm ; yy = 1.0f ; }
          else               { yy = 1.0f+(yy-ybc)*yi; kk = (int)yy; yy = yy - kk; }
 
+         if( jj < 0 || kk < 0 || jj >= nbin || kk >= nbin ) continue ;
+
          x1 = 1.0f-xx ; y1 = 1.0f-yy ; ww = WW(ii) ; nww += ww ;
 
          xc[jj] += (x1*ww); xc[jj+1] += (xx*ww);
@@ -272,6 +278,8 @@ ENTRY("INCOR_addto_2Dhist") ;
          XYC(jj  ,kk+1) += x1*(yy*ww) ;
          XYC(jj+1,kk+1) += xx*(yy*ww) ;
        }
+
+       AFNI_do_nothing() ; fprintf(stderr,".") ;
 
      } /* end of clipped code */
 
@@ -297,6 +305,8 @@ ENTRY("INCOR_addto_2Dhist") ;
 
      if( !xyclip ){  /*------------ equal size bins ------------*/
 
+     AFNI_do_nothing() ; fprintf(stderr,"y") ;
+
  AFNI_OMP_START ;
 #pragma omp parallel  /*** start of parallel code ***/
  {
@@ -319,6 +329,8 @@ ENTRY("INCOR_addto_2Dhist") ;
          kk = (int)yy ; yy = yy-kk ; y1 = 1.0f-yy ;
          ww = WW(ii) ; nwwar[ithr] += ww ;
 
+         if( jj < 0 || kk < 0 || jj >= nbin || kk >= nbin ) continue ;
+
          xcc[jj] += (x1*ww); xcc[jj+1] += (xx*ww);
          ycc[kk] += (y1*ww); ycc[kk+1] += (yy*ww);
 
@@ -331,6 +343,8 @@ ENTRY("INCOR_addto_2Dhist") ;
  AFNI_OMP_END ;
 
      } else if( xyclip ){  /*------------ mostly equal bins ----------------*/
+
+     AFNI_do_nothing() ; fprintf(stderr,"x") ;
 
  AFNI_OMP_START ;
 #pragma omp parallel  /*** start of parallel code ***/
@@ -358,6 +372,8 @@ ENTRY("INCOR_addto_2Dhist") ;
               if( yy < ybc ){ kk = 0   ; yy = 0.0f ; }
          else if( yy > ytc ){ kk = nbm ; yy = 1.0f ; }
          else               { yy = 1.0f+(yy-ybc)*yi; kk = (int)yy; yy = yy-kk; }
+
+         if( jj < 0 || kk < 0 || jj >= nbin || kk >= nbin ) continue ;
 
          x1 = 1.0f-xx ; y1 = 1.0f-yy ; ww = WW(ii) ; nwwar[ithr] += ww ;
 
@@ -390,7 +406,7 @@ ENTRY("INCOR_addto_2Dhist") ;
 
    } /* end of using OpenMP */
 
-   AFNI_do_nothing() ; fprintf(stderr,".") ;
+   /* AFNI_do_nothing() ; fprintf(stderr,".") ; */
 
    tdh->nww = nww ;
    free(good) ; EXRETURN ;
@@ -405,7 +421,7 @@ void INCOR_normalize_2Dhist( INCOR_2Dhist *tdh )
    if( tdh == NULL ) return ;
    nww = tdh->nww; xc = tdh->xc; yc = tdh->yc; xyc = tdh->xyc; nbp = tdh->nbin+1;
    if( nww > 0.0f && nww != 1.0f && xyc != NULL && xc != NULL && yc != NULL ){
-     register float ni ; register int nbq , ii ;
+     float ni ; int nbq , ii ;
      ni = 1.0f / nww ;
      for( ii=0 ; ii < nbp ; ii++ ){ xc[ii]  *= ni; yc[ii] *= ni; }
      nbq = nbp*nbp ;
@@ -420,8 +436,8 @@ void INCOR_normalize_2Dhist( INCOR_2Dhist *tdh )
 
 float INCOR_mutual_info( INCOR_2Dhist *tdh )
 {
-   register int ii,jj ;
-   register float val ;
+   int ii,jj ;
+   float val ;
    float nww , *xc, *yc, *xyc ; int nbp ;
 
    if( tdh == NULL ) return 0.0f ;
@@ -451,8 +467,8 @@ float INCOR_mutual_info( INCOR_2Dhist *tdh )
 
 float INCOR_norm_mutinf( INCOR_2Dhist *tdh )
 {
-   register int ii,jj ;
-   register float numer , denom ;
+   int ii,jj ;
+   float numer , denom ;
    float nww , *xc, *yc, *xyc ; int nbp ;
 
    if( tdh == NULL ) return 0.0f ;
@@ -483,8 +499,8 @@ float INCOR_norm_mutinf( INCOR_2Dhist *tdh )
 
 float INCOR_corr_ratio( INCOR_2Dhist *tdh , int crmode )
 {
-   register int ii,jj ;
-   register float vv,mm ;
+   int ii,jj ;
+   float vv,mm ;
    float    val , cyvar , uyvar , yrat,xrat ;
    float nww , *xc, *yc, *xyc ; int nbp ;
 
@@ -549,8 +565,8 @@ float INCOR_corr_ratio( INCOR_2Dhist *tdh , int crmode )
 
 float INCOR_hellinger( INCOR_2Dhist *tdh )
 {
-   register int ii,jj ;
-   register float val , pq ;
+   int ii,jj ;
+   float val , pq ;
    float nww , *xc, *yc, *xyc ; int nbp ;
 
    if( tdh == NULL ) return 0.0f ;
@@ -592,8 +608,8 @@ float INCOR_hellinger( INCOR_2Dhist *tdh )
 
 float_quad INCOR_helmicra( INCOR_2Dhist *tdh )
 {
-   register int ii,jj ;
-   register float hel , pq , vv,uu ;
+   int ii,jj ;
+   float hel , pq , vv,uu ;
    float    val , cyvar , uyvar , yrat,xrat ;
    float_quad hmc = {0.0f,0.0f,0.0f,0.f} ;
    float nww , *xc, *yc, *xyc ; int nbp ;

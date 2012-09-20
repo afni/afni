@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 3 , AUG , 2012 , RWC , "2perm" , MICRO , TYPE_NEW_PROG ,
+  { 19 , SEP , 2012 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
+   "Add -scale option for the Person from Kolkata" ,
+   NULL } ,
+
+ { 3 , AUG , 2012 , RWC , "2perm" , MICRO , TYPE_NEW_PROG ,
    "For generating 2 random subsets of a sequence of integers" ,
    NULL } ,
 
