@@ -1033,6 +1033,9 @@ int main( int argc , char *argv[] )
    float **dtar=NULL ;
    int no_ttest = 0 ;  /* 02 Nov 2010 */
 
+   NI_element *sclnel=NULL ;         /* scale factors [19 Sep 2012] */
+   float *scl_AAA=NULL , *scl_BBB=NULL ;
+
    int do_sendall=0 , nsaar=0 ; /* 22 Jan 2011 */
    char *bricklabels=NULL ;
    float **saar=NULL ;
@@ -1549,7 +1552,29 @@ int main( int argc , char *argv[] )
       "graph can be amusing and even useful.\n"
       " --  If you don't know how to use this feature in Clusterize, then learn!\n"
 
-     , get_np_help()) ;
+     , get_np_help() ) ;
+
+      printf(
+      "\n"
+      "---------------*** Dataset-Level Scale Factors [Sep 2012] ***---------------\n"
+      "\n"
+      " -scale sf = Read file 'sf' that contains a scale factor value for each dataset\n"
+      "             The file format is essentially the same as that for covariates:\n"
+      "             * first line contains labels (which are ignored)\n"
+      "             * each later line contains a dataset identifying label and a number\n"
+      "     FIRST LINE  -->  subject factor\n"
+      "     LATER LINES -->  Elvis   42.1\n"
+      "                      Fred    37.2\n"
+      "                      Ethel   2.71828\n"
+      "                      Lucy    3.14159\n"
+      "             * The arctanh(correlation) values from dataset Elvis will be\n"
+      "               multiplied by 42.1 before being put into the t-test analysis.\n"
+      "             * All values reported and computed by 3dGroupInCorr will reflect\n"
+      "               this scaling (e.g., the results from '-sendall').\n"
+      "             * This option is for the international man of mystery, PK.\n"
+      "               -- And just for PK, if you use this option in the form '-SCALE',\n"
+      "                  then each value X in the 'sf' file is replaced by sqrt(X-3).\n"
+      ) ;
 
      printf(
      "\n"
@@ -1957,6 +1982,43 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-scale") == 0 ){  /* 19 Sep 2012 */
+       float *sff ; int nbad , mscl , dosqrt=(strcmp(argv[nopt],"-SCALE")==0) ;
+       if( ++nopt >= argc ) ERROR_exit("GIC: need 1 argument after option '%s'",argv[nopt-1]);
+       if( sclnel != NULL ) ERROR_exit("GIC: can't use -scale twice!") ;
+       sclnel = THD_simple_table_read( argv[nopt] ) ;
+       if( sclnel == NULL ){
+         ERROR_message("GIC: Can't read table from -scale file '%s'",argv[nopt]) ;
+         ERROR_message("GIC: Try re-running this program with the extra option -DAFNI_DEBUG_TABLE=YES") ;
+         ERROR_exit(   "GIC: Can't continue after the above error :-(") ;
+       }
+       mscl = sclnel->vec_num - 1 ;
+       if( mscl < 1 )
+         ERROR_exit("GIC: Need at least 2 columns in -scale file!") ;
+       else if( mscl > 1 )
+         WARNING_message(
+           "GIC: -scale file: %d numeric columns ==> ignoring all but first one!", mscl ) ;
+       if( dosqrt )
+         INFO_message("GIC: -SCALE implies using sqrt(X-3)") ;
+       sff = (float *)sclnel->vec[1] ;
+       for( nbad=kk=0 ; kk < sclnel->vec_len ; kk++ ){  /* check for errors */
+         if( dosqrt ){
+           if( sff[kk] >= 3.0f ){
+             sff[kk] = sqrtf(sff[kk]-3.0f) ;
+           } else {
+             WARNING_message("GIC: -SCALE factor in row %d is %g < 3 -- which is bad",
+                             kk+2,sff[kk]) ; nbad++ ; sff[kk] = 0.0f ;
+           }
+         } else {
+           if( sff[kk] == 0.0f ){
+             WARNING_message("GIC: scale factor in row %d is zero :-(",kk+2) ; nbad++ ;
+           }
+         }
+       }
+       if( nbad == sclnel->vec_len ) ERROR_exit("GIC: Cannot continue :-(") ;
+       nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-labelA") == 0 || strcasecmp(argv[nopt],"-labA") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("GIC: need 1 argument after option '%s'",argv[nopt-1]);
        if( argv[nopt][0] != '\0' ){
@@ -2221,6 +2283,56 @@ int main( int argc , char *argv[] )
      WARNING_message("GIC: -useB was given, but -setB wasn't given!") ;
    }
 #endif
+
+   /*---------- Process scale element into arrays [19 Sep 2012] ----------*/
+
+   if( sclnel != NULL ){
+     int nbad=0 ; float *sff=(float *)sclnel->vec[1] ;
+
+     if( shd_AAA->dslab == NULL ){
+       ERROR_message("GIC: Can't use -scale, since setA doesn't have dataset labels!") ;
+       nbad++ ;
+     if( shd_BBB != NULL && shd_BBB->dslab == NULL && ttest_opcode != 2 )
+       ERROR_message("GIC: Can't use -scale, since setB doesn't have dataset labels!") ;
+       nbad++ ;
+     }
+
+     if( nbad ) ERROR_exit("GIC: Can't continue after such simple misteaks :-(") ;
+     if( verb ) INFO_message("GIC: Setting up scale factors for datasets") ;
+
+     scl_AAA = (float *)calloc(sizeof(float),shd_AAA->ndset) ;
+     for( kk=0 ; kk < shd_AAA->ndset ; kk++ ){  /* loop over datasets */
+       ii = string_search( shd_AAA->dslab[kk] , /* find which scale factor */
+                           sclnel->vec_len , (char **)sclnel->vec[0] ) ;
+       if( ii < 0 ){
+         ERROR_message("GIC: Can't find setA dataset label '%s' in -scale file" ,
+                       shd_AAA->dslab[kk] ) ;
+         nbad++ ;
+       } else {                   /* ii-th row of scale factors == kk-th dataset */
+         scl_AAA[kk] = sff[ii] ;
+       }
+     }
+
+     if( shd_BBB != NULL ){
+       if( ttest_opcode != 2 ){                   /* un-paired case */
+         scl_BBB = (float *)calloc(sizeof(float),shd_BBB->ndset) ;
+         for( kk=0 ; kk < shd_BBB->ndset ; kk++ ){
+           ii = string_search( shd_BBB->dslab[kk] ,
+                               sclnel->vec_len , (char **)sclnel->vec[0] ) ;
+           if( ii < 0 ){
+             ERROR_message("GIC: Can't find setB dataset label '%s' in -scale file" ,
+                           shd_BBB->dslab[kk] ) ;
+             nbad++ ;
+           } else {
+             scl_BBB[kk] = sff[ii] ;
+           }
+         }
+       }
+     } else {  /* paired case */
+       scl_BBB = scl_AAA ;
+     }
+
+   } /* end of scale setup */
 
    /*---------- Process covariates into matrices [23 May 2010] ----------*/
 
@@ -3333,8 +3445,8 @@ BatchFinalize:
      /** boomerang message **/
      {
        char *boomerang = NI_get_attribute(nelcmd,"boomerang_msg");
-       if (nelset && boomerang)
-          NI_set_attribute(nelset, "boomerang_msg", boomerang);
+       if( nelset && boomerang )
+         NI_set_attribute(nelset, "boomerang_msg", boomerang);
      }
 
      /**--- throw away the message from AFNI ---**/
@@ -3356,6 +3468,23 @@ BatchFinalize:
      if( shd_BBB != NULL ){
        if( verb > 3 ) ININFO_message("GIC:  start correlation-izing for %s",label_BBB) ;
        GRINCOR_many_dotprod( shd_BBB , seedvec_BBB , dotprod_BBB ) ;
+     }
+
+     /* step 2a: scale results? [19 Sep 2012] */
+
+     if( scl_AAA != NULL ){
+       float *vv , ff ;
+       for( kk=0 ; kk < ndset_AAA ; kk++ ){
+         vv = dotprod_AAA[kk] ; ff = scl_AAA[kk] ;
+         for( ii=0 ; ii < nvec ; ii++ ) vv[ii] *= ff ;
+       }
+     }
+     if( scl_BBB != NULL ){
+       float *vv , ff ;
+       for( kk=0 ; kk < ndset_BBB ; kk++ ){
+         vv = dotprod_BBB[kk] ; ff = scl_BBB[kk] ;
+         for( ii=0 ; ii < nvec ; ii++ ) vv[ii] *= ff ;
+       }
      }
 
 #if 0

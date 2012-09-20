@@ -1,12 +1,12 @@
 #include "mrilib.h"
-#include "r_new_resam_dset.h"
 
 #ifdef USE_OMP
-#include <omp.h>
+# include <omp.h>
+#endif
+
 #include "mri_genalign.c"
 #include "mri_genalign_util.c"
 #include "mri_nwarp.c"
-#endif
 
 static int auto_weight    = 2 ;
 static float auto_wclip   = 0.0f ;
@@ -188,19 +188,51 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *bset , *sset , *oset ;
    MRI_IMAGE *bim , *wbim , *sim , *oim ;
+   char *prefix = "Qwarp" ; int nopt ;
+   int meth = GA_MATCH_PEARSON_SCALAR ;
+   /* int meth = GA_MATCH_HELLINGER_SCALAR ; */
+   /* int meth = GA_MATCH_KULLBACK_SCALAR ; */
+   /* int meth = GA_MATCH_NORMUTIN_SCALAR ; */
 
-   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
-     printf("Usage: 3dQwarp base source\n") ; exit(0) ;
+   if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
+     printf("Usage: 3dQwarp [-prefix] base source\n") ; exit(0) ;
    }
 
 #ifdef USE_OMP
    omp_set_nested(0) ;
+#else
+   enable_mcw_malloc() ;
 #endif
 
    mainENTRY("3dQwarp") ;
 
-   bset = THD_open_dataset(argv[1]) ; if( bset == NULL ) ERROR_exit("Can't open bset") ;
-   sset = THD_open_dataset(argv[2]) ; if( sset == NULL ) ERROR_exit("Can't open sset") ;
+   nopt = 1 ;
+   while( nopt < argc && argv[nopt][0] == '-' ){
+
+     if( strcasecmp(argv[nopt],"-prefix") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need arg after -prefix") ;
+       prefix = strdup(argv[nopt]) ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-hel") == 0 ){
+       meth = GA_MATCH_HELLINGER_SCALAR ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-mi") == 0 ){
+       meth = GA_MATCH_KULLBACK_SCALAR ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-nmi") == 0 ){
+       meth = GA_MATCH_NORMUTIN_SCALAR ; nopt++ ; continue ;
+     }
+
+     ERROR_exit("Bogus option '%s'",argv[nopt]) ;
+   }
+
+   if( nopt+1 >= argc ) ERROR_exit("need 2 args for base and source") ;
+
+   bset = THD_open_dataset(argv[nopt++]) ; if( bset == NULL ) ERROR_exit("Can't open bset") ;
+   sset = THD_open_dataset(argv[nopt++]) ; if( sset == NULL ) ERROR_exit("Can't open sset") ;
    if( !EQUIV_GRIDS(bset,sset) ) ERROR_exit("Grid mismatch") ;
 
    DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
@@ -210,36 +242,31 @@ int main( int argc , char *argv[] )
    sim = THD_extract_float_brick(0,sset) ; DSET_unload(sset) ;
 
 #if 1
-   qset = EDIT_empty_copy(bset) ;
-   EDIT_dset_items( qset ,
-                      ADN_prefix    , "QwarpSAVE" ,
-                      ADN_nvals     , 1 ,
-                      ADN_ntt       , 0 ,
-                      ADN_datum_all , MRI_float ,
-                    ADN_none ) ;
-   EDIT_BRICK_FACTOR(qset,0,0.0) ;
-   iterfun = Qsaver ;
+   { char ppp[256] ;
+     sprintf(ppp,"%s_SAVE",prefix) ;
+     qset = EDIT_empty_copy(bset) ;
+     EDIT_dset_items( qset ,
+                        ADN_prefix    , ppp ,
+                        ADN_nvals     , 1 ,
+                        ADN_ntt       , 0 ,
+                        ADN_datum_all , MRI_float ,
+                      ADN_none ) ;
+     EDIT_BRICK_FACTOR(qset,0,0.0) ;
+     iterfun = Qsaver ;
+   }
 #endif
 
    wbim = mri_weightize(bim,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
 
    Hblur = 3.45678f ;
 
-#if 0
-   oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , GA_MATCH_PEARSON_SCALAR , 0 ) ;
-#elif 0
-   oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , GA_MATCH_HELLINGER_SCALAR , 0 ) ;
-#elif 0
-   oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , GA_MATCH_KULLBACK_SCALAR , 0 ) ;
-#else
-   oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , GA_MATCH_NORMUTIN_SCALAR , 0 ) ;
-#endif
+   oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
 
    if( oim == NULL ) ERROR_exit("s2bim fails") ;
 
    oset = EDIT_empty_copy(bset) ;
    EDIT_dset_items( oset ,
-                      ADN_prefix    , "Qwarp" ,
+                      ADN_prefix    , prefix ,
                       ADN_nvals     , 1 ,
                       ADN_ntt       , 0 ,
                       ADN_datum_all , MRI_float ,
@@ -249,7 +276,6 @@ int main( int argc , char *argv[] )
    DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
 
    if( qset != NULL ){
-     INFO_message("saving QwarpSAVE dataset with %d sub-bricks",DSET_NVALS(qset)) ;
      EDIT_dset_items( qset , ADN_ntt , DSET_NVALS(qset) , ADN_none ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ;
    }

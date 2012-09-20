@@ -1,10 +1,11 @@
 #include "mrilib.h"
 #include "r_new_resam_dset.h"
-#include "thd_incorrelate.c"
 
 #ifdef USE_OMP
 #include <omp.h>
 #endif
+
+#include "thd_incorrelate.c"
 
 /*---------------------------------------------------------------------------*/
 
@@ -367,7 +368,7 @@ ENTRY("IW3D_from_dataset") ;
      DSET_unload(dset) ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 33333 )
+#pragma omp parallel if( nxyz > 11111 )
  { int ii ;
 #pragma omp for
      for( ii=0 ; ii < nxyz ; ii++ ){  /* convert mm to index displacements */
@@ -427,7 +428,7 @@ ENTRY("IW3D_to_dataset") ;
    hva = AA->hv ; hfac = MAT44_DET(cmat) ; hfac = fabsf(hfac) ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 33333 )
+#pragma omp parallel if( nxyz > 11111 )
  { int ii ;
 #pragma omp for
    for( ii=0 ; ii < nxyz ; ii++ ){
@@ -521,7 +522,7 @@ float_pair IW3D_load_hexvol( IndexWarp3D *AA )
    if( hva == NULL ) hva = AA->hv = (float *)calloc(nxyz,sizeof(float)) ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 33333 )
+#pragma omp parallel if( nxyz > 11111 )
  { float_triple x0,x1,x2,x3,x4,x5,x6,x7 ;
    int ii,jj,kk , ip,jp,kp , ijk , qq ;
 #pragma omp for
@@ -571,7 +572,7 @@ void IW3D_interp_linear( int nxx , int nyy , int nzz ,
                          float *uar , float *var , float *war     )
 {
  AFNI_OMP_START ;
-#pragma omp parallel if( npp > 3333 )
+#pragma omp parallel if( npp > 1111 )
  {
    int nx=nxx, ny=nyy, nz=nzz, nxy=nx*ny, pp, nx1=nx-1,ny1=ny-1,nz1=nz-1 ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -687,7 +688,7 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
                          float *uar , float *var , float *war     )
 {
  AFNI_OMP_START ;
-#pragma omp parallel if( npp > 3333 )
+#pragma omp parallel if( npp > 1111 )
  {
    int nx=nxx , ny=nyy , nz=nzz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -822,7 +823,7 @@ void IW3D_interp_quintic( int nxx , int nyy , int nzz ,
                           float *uar , float *var , float *war     )
 {
  AFNI_OMP_START ;
-#pragma omp parallel if( npp > 3333 )
+#pragma omp parallel if( npp > 1111 )
  {
    int nx=nxx , ny=nyy , nz=nzz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -1093,7 +1094,7 @@ ENTRY("IW3D_compose") ;
      qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1115,7 +1116,7 @@ ENTRY("IW3D_compose") ;
         index displacment from each original position: A(x) + B(x+A(x)) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1173,7 +1174,7 @@ ENTRY("IW3D_2pow") ;
        qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
        for( qq=pp ; qq < qtop ; qq++ ){
@@ -1196,7 +1197,7 @@ ENTRY("IW3D_2pow") ;
            index displacment from each original position: B(x) + B(x+B(x)) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq ;
 #pragma omp for
         for( qq=pp ; qq < qtop ; qq++ ){
@@ -1267,7 +1268,7 @@ ENTRY("IW3D_invert_newt") ;
      /* Compute [xq,yq,zq] = x+b(x) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1288,7 +1289,7 @@ ENTRY("IW3D_invert_newt") ;
      /* Compute [xr,yr,zr] = x - b(x) - a(x+b(x)) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1311,7 +1312,7 @@ ENTRY("IW3D_invert_newt") ;
      if( inewtfac <= 0.0f ){
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
        for( qq=pp ; qq < qtop ; qq++ ){
@@ -1326,7 +1327,7 @@ ENTRY("IW3D_invert_newt") ;
      } else {
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
    register float nf , nf1 ;
    nf = inewtfac ; nf1 = 1.0f - nf ;
@@ -1493,7 +1494,7 @@ ENTRY("IW3D_sqrtinv_step") ;
      /* Compute [xq,yq,zq] = B(x) = x+b(x) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1514,7 +1515,7 @@ ENTRY("IW3D_sqrtinv_step") ;
      /* Compute [xr,yr,zr] = B(B(x)) = B(x) + b(B(x)) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1535,7 +1536,7 @@ ENTRY("IW3D_sqrtinv_step") ;
                            = 1.5*x - 0.5*( B(B(x)) + a(B(B(x))) ) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1559,7 +1560,7 @@ ENTRY("IW3D_sqrtinv_step") ;
      if( sstepfac <= 0.0f ){
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
        for( qq=pp ; qq < qtop ; qq++ ){
@@ -1574,7 +1575,7 @@ ENTRY("IW3D_sqrtinv_step") ;
      } else {
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
    register float sf , sf1 ;
    sf = sstepfac ; sf1 = 1.0f - sf ;
@@ -1779,7 +1780,7 @@ ENTRY("IW3D_from_poly") ;
      /* input coords are indexes */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1796,7 +1797,7 @@ ENTRY("IW3D_from_poly") ;
      /* subtract off base indexes to make the result just be displacments */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 33333 )
+#pragma omp parallel if( qtop-pp > 11111 )
  { int qq ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -2099,7 +2100,7 @@ ENTRY("THD_setup_nwarp") ;
      tmat = MAT44_INV(cmat_bim) ; imat_out_to_bim = MAT44_MUL(tmat,cmat_out) ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 33333 )
+#pragma omp parallel if( nxyz > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=0 ; qq < nxyz ; qq++ ){
@@ -2112,7 +2113,7 @@ ENTRY("THD_setup_nwarp") ;
    } else {   /* case where cmat_bim and cmat_out are equal */
                        /* so (i,j,k):out == (i,j,k):base */
  AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 33333 )
+#pragma omp parallel if( nxyz > 11111 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=0 ; qq < nxyz ; qq++ ){
@@ -3060,7 +3061,7 @@ ENTRY("HCwarp_load") ;
                    + b1zb1yb0x*zpar[3] + b0zb0yb1x*zpar[4] + b1zb0yb1x*zpar[5]
                    + b0zb1yb1x*zpar[6] + b1zb1yb1x*zpar[7]                     ) ;
      }
-   }
+   }  /* end of parallel stuff */
    AFNI_OMP_END ;
 
    /* AFNI_do_nothing() ; fprintf(stderr,"A") ; */
@@ -3092,7 +3093,7 @@ ENTRY("HQwarp_load") ;
    if( !doz ) AAmemset( zz , 0 , sizeof(float)*nxyz ) ;
 
    AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 666 )
+#pragma omp parallel
    { int ii,jj,kk,qq ; float *xpar=par , *ypar=par+27 , *zpar=par+54 ;
      float b0zb0yb0x,b1zb0yb0x, b2zb0yb0x,b0zb1yb0x, b1zb1yb0x,b2zb1yb0x,
            b0zb2yb0x,b1zb2yb0x, b2zb2yb0x,b0zb0yb1x, b1zb0yb1x,b2zb0yb1x,
@@ -3151,7 +3152,7 @@ ENTRY("HQwarp_load") ;
          + b0zb1yb2x*zpar[21] + b1zb1yb2x*zpar[22] + b2zb1yb2x*zpar[23]
          + b0zb2yb2x*zpar[24] + b1zb2yb2x*zpar[25] + b2zb2yb2x*zpar[26] ) ;
      }
-   }
+   } /* end of parallel stuff */
    AFNI_OMP_END ;
 
    EXRETURN ;
@@ -3198,8 +3199,14 @@ ENTRY("Hwarp_apply") ;
 
    /* AFNI_do_nothing() ; fprintf(stderr,"b") ; */
 
+#undef  IJK
+#define IJK(i,j,k) ((i)+(j)*nAx+(k)*nAxy)
+
+#undef  XINT
+#define XINT(aaa,j,k) wt_00*aaa[IJK(ix_00,j,k)]+wt_p1*aaa[IJK(ix_p1,j,k)]
+
 AFNI_OMP_START ;
-#pragma omp parallel if( nbxyz > 666 )
+#pragma omp parallel
  { int ii,jj,kk , qq , need_val ;
    float xq,yq,zq ;
    float fx,fy,fz , ix,jy,kz ;
@@ -3208,12 +3215,6 @@ AFNI_OMP_START ;
    float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
    float g_j00_k00, g_jp1_k00, g_j00_kp1, g_jp1_kp1, g_k00, g_kp1 ;
    float h_j00_k00, h_jp1_k00, h_j00_kp1, h_jp1_kp1, h_k00, h_kp1 ;
-
-#undef  IJK
-#define IJK(i,j,k) ((i)+(j)*nAx+(k)*nAxy)
-
-#undef  XINT
-#define XINT(aaa,j,k) wt_00*aaa[IJK(ix_00,j,k)]+wt_p1*aaa[IJK(ix_p1,j,k)]
 
 #pragma omp for
    for( qq=0 ; qq < nbxyz ; qq++ ){            /* for each voxel in the patch */
@@ -3314,7 +3315,7 @@ AFNI_OMP_START ;
 #endif
 
    }
- }
+ } /* end of parallel stuff */
 AFNI_OMP_END ;
 
    /* AFNI_do_nothing() ; fprintf(stderr,"B") ; */
@@ -3494,7 +3495,7 @@ ENTRY("IW3D_setup_for_improvement") ;
      float_quad xyc , xym ;
      bar = MRI_FLOAT_PTR(Hbasim) ; sar = MRI_FLOAT_PTR(Hsrcim) ;
      if( nmask == Hnxyz ){
-       xar = bar ; yar = sar ;
+       xar = bar ; yar = sar ; kk = Hnxyz ;
      } else {
        xar = (float *)malloc(sizeof(float)*nmask) ;
        yar = (float *)malloc(sizeof(float)*nmask) ;
@@ -3749,10 +3750,14 @@ ENTRY("IW3D_warp_omatic") ;
    }
 
    Hforce = 1 ;
+#if 1
    iter  = IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt, jbbb,jttt, kbbb,kttt ) ; /* top level */
    ITEROUT(0,ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
+#endif
+#if 0
    iter  = IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt, jbbb,jttt, kbbb,kttt ) ;
    ITEROUT(0,ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
+#endif
    Hforce = 0 ;
 
    eee = getenv("AFNI_WARPOMATIC_LEVMAX") ;
@@ -3806,7 +3811,11 @@ ENTRY("IW3D_warp_omatic") ;
            jtop = jbot+ywid-1; if( jtop >= jttt ){ jtop = jttt; jbot = jtop+1-ywid; jdon=1; }
            for( idon=0,ibot=ibbb ; !idon ; ibot += diii ){
              itop = ibot+xwid-1; if( itop >= ittt ){ itop = ittt; ibot = itop+1-xwid; idon=1; }
+#if 1
              iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+#else
+             iter = IW3D_improve_warp( MRI_QUINTIC, ibot,itop , jbot,jtop , kbot,ktop ) ;
+#endif
            }
          }
        }
