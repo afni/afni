@@ -2016,9 +2016,13 @@ def sumsq(vals):
    return ssq
 
 def euclidean_norm(vals):
+   """name is toooooo long"""
 
    if len(vals) < 1: return 0.0
-   return math.sqrt(loc_sum([v*v for v in vals]))
+   return math.sqrt(sumsq(vals))
+
+def L2_norm(vals):
+   return euclidean_norm(vals)
 
 def weighted_enorm(vals, weights):
 
@@ -2074,6 +2078,10 @@ def mean(vec, ibot=-1, itop=-1):
 
     return tot/(itop-ibot+1)
 
+# ----------------------------------------------------------------------
+# vector manipulation functions
+# ----------------------------------------------------------------------
+
 # almost identical to mean, but subtract the mean instead of returning it
 def demean(vec, ibot=-1, itop=-1):
     """demean the vector (in place), from index ibot to index itop
@@ -2107,14 +2115,7 @@ def demean(vec, ibot=-1, itop=-1):
 
     return 0
 
-# ----------------------------------------------------------------------
-# vector manipulation functions
-# ----------------------------------------------------------------------
-
-def scale_vec(scale, vec):
-   return [v*scale for v in vec]
-
-def lin_vec_combo(s1, vec1, s2, vec2):
+def lin_vec_sum(s1, vec1, s2, vec2):
    """return s1*[vec1] + s2*[vec2]
       note: vec2 can be None"""
 
@@ -2128,6 +2129,34 @@ def lin_vec_combo(s1, vec1, s2, vec2):
       return []
 
    return [s1*vec1[i]+s2*vec2[i] for i in range(l1)]
+
+def proj_onto_vec(v1, v2, unit_v2=0):
+   """return vector v1 projected onto v2
+
+      unit_v2: flag denoting whether v2 is a unit vector
+
+      return <v1,v2>/<v2,v2> * v2"""
+
+   if unit_v2: scalar = dotprod(v1,v2)
+   else:
+      len2 = L2_norm(v2,v2)
+      if len2 == 0:
+         print '** cannot project onto <0> vector'
+         return []
+      scalar = dotprod(v1,v2) * 1.0 / len2
+
+   return lin_vec_sum(scalar, v2, 0, None)
+
+def proj_out_vec(v1, v2, unit_v2=0):
+   """return vector v1 with v2 projected out
+      (return the component of v1 that is orthogonal to v2)
+
+      unit_v2: flag denoting whether v2 is a unit vector
+
+      return v1 - (v1 projected onto v2)
+   """
+
+   return lin_vec_sum(1, v1, -1, proj_onto_vec(v1, v2, unit_v2))
 
 # ----------------------------------------------------------------------
 # statistical routines - stdev, variance, ttest
@@ -2249,29 +2278,26 @@ def variance(data):
     if val < 0.0 : return 0.0
     return val
 
-def r(vA, vB, sample=0):
+def r(vA, vB):
     """return Pearson's correlation coefficient
-       if sample, divide by length-1, not length
 
-       for demeaned and unit length vectors, r = dot product / length
+       for demeaned and unit vectors, r = dot product
+
+       note: correlation_p should be faster
     """
-    length = len(vA)
-    if len(vB) != length:
-        print '** correlation_pearson: vectors have different lengths'
+    if len(vB) != len(vA):
+        print '** r (correlation): vectors have different lengths'
         return 0.0
-    if length < 2: return 0.0
     ma = mean(vA)
     mb = mean(vB)
     dA = [v-ma for v in vA]
     dB = [v-mb for v in vB]
-    sA = stdev(dA)
-    sB = stdev(dB)
+    sA = L2_norm(dA)
+    sB = L2_norm(dB)
     dA = [v/sA for v in dA]
     dB = [v/sB for v in dB]
 
-    if sample: length -= 1
-
-    return dotprod(dA,dB)/length
+    return dotprod(dA,dB)
 
 def eta2(vA, vB):
     """return eta^2 (eta squared - Cohen, NeuroImage 2008
@@ -2288,7 +2314,7 @@ def eta2(vA, vB):
 
     length = len(vA)
     if len(vB) != length:
-        print '** correlation_pearson: vectors have different lengths'
+        print '** eta2: vectors have different lengths'
         return 0.0
     if length < 1: return 0.0
 
@@ -2311,8 +2337,9 @@ def eta2(vA, vB):
         return 0.0
     return 1.0 - num/denom
 
-def correlation_p(vA, vB):
+def correlation_p(vA, vB, demean=1):
     """return the Pearson correlation between the 2 vectors
+       (allow no demean for speed)
     """
 
     length = len(vA)
@@ -2322,17 +2349,20 @@ def correlation_p(vA, vB):
 
     if length < 2: return 0.0
 
-    ma = mean(vA)
-    mb = mean(vB)
-
-    dA = [v-ma for v in vA]
-    dB = [v-mb for v in vB]
+    if demean:
+       ma = mean(vA)
+       mb = mean(vB)
+       dA = [v-ma for v in vA]
+       dB = [v-mb for v in vB]
+    else:
+       dA = vA
+       dB = vB
 
     sAB = dotprod(dA, dB)
     ssA = sumsq(dA)
     ssB = sumsq(dB)
 
-    del(dA); del(dB)
+    if demean: del(dA); del(dB)
 
     if ssA <= 0.0 or ssB <= 0.0: return 0.0
     else:                        return sAB/math.sqrt(ssA*ssB)
