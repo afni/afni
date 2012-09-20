@@ -621,7 +621,8 @@ class Afni1D:
       total = self.mat[0].count(0)              # start with censor count
       if invert: total = self.nt - total
 
-      print 'total number of censored TRs = %d' % total
+      if self.verb: print 'total number of censored TRs = %d' % total
+      else:         print total
 
       return 0
 
