@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, SEP, 2012, RCR, "3dNLfim", MICRO, TYPE_GENERAL,
+   "added ConvDiffGam to help",
+   NULL
+ } ,
+
  { 20, SEP, 2012, RCR, "3dClustSim", MICRO, TYPE_GENERAL,
    "added a note to the help about computing blur estimates",
    "Requested by J Weisberg."
