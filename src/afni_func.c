@@ -1769,6 +1769,8 @@ ENTRY("AFNI_ttatlas_overlay") ;
    /* setup and sanity checks */
 
    /* make sure we are actually drawing something */
+  if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
+      printf("Starting AFNI_ttatlas_overlay\n");
 
    STATUS("checking if Atlas Colors is on") ;
    ttp = TTRR_get_params() ; if( ttp == NULL )            RETURN(NULL) ;
@@ -1786,8 +1788,14 @@ ENTRY("AFNI_ttatlas_overlay") ;
           DSET_unload(atlas_ovdset);
        atlas_ovdset = r_new_resam_dset ( dseTT, im3d->anat_now,  0, 0, 0, NULL,
                                        MRI_NN, NULL, 1, 0);
+  if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
+      printf("First time loading atlas dset\n");
 /*       DSET_unload(dseTT);*/
-       if(!atlas_ovdset) RETURN(NULL);
+       if(!atlas_ovdset) {
+         if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
+            printf("Could not load atlas dset\n");
+         RETURN(NULL);
+       }
    }
 
    if( DSET_NVOX(atlas_ovdset) != DSET_NVOX(im3d->anat_now) ){
@@ -1877,13 +1885,20 @@ ENTRY("AFNI_ttatlas_overlay") ;
    if(PRINT_TRACING)
       { char str[256]; sprintf(str,"Atlas overlaid %d pixels",nov); STATUS(str); }
 
-   if(fov == NULL)   /* if there was no overlay, return what we have */
+   if(fov == NULL) {  /* if there was no overlay, return what we have */
+      if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
+         printf("No overlay, that's okay\n");
       RETURN(ovim);
+   }
 
    STATUS("re-using old overlay for Atlas") ;
+   if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
+      printf("re-using old overlay for atlas\n");
    fovim = fov ;                                      /* old overlay */
    fovar = MRI_SHORT_PTR(ovim) ;
    if( fovim->nvox != b0im->nvox ){                    /* shouldn't happen!  */
+        if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
+            printf("freeing ovim at early return\n");
          mri_free(ovim); RETURN(NULL) ;
    }
    nov = 0;
@@ -1895,9 +1910,15 @@ ENTRY("AFNI_ttatlas_overlay") ;
          nov++;
       }
    }
-
+   if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
+       printf("freeing b0im at normal return\n");
    mri_free(b0im);
+
+   if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
+       printf("freeing ovim at normal return\n");
    mri_free(ovim);
+   if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
+       printf("leaving AFNI_ttatlas_overlay\n");
    RETURN(fovim);
 }
 
