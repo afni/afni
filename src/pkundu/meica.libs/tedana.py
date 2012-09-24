@@ -25,8 +25,8 @@ from optparse import OptionParser
 import numpy as np
 import nibabel as nib
 from sys import stdout
-import pdb
-#import ipdb
+#import pdb
+import ipdb
 
 F_MAX=500
 Z_MAX = 8
@@ -303,8 +303,8 @@ def fitmodels(betas,t2s,mu,mask,tes,cc=-1,sig=None,fout=None,pow=2.):
 		wts = Bz.mean(axis=0)*sfacs[i]
 		
 		
-		#wts=np.abs(wts)
-		wts[wts<0]=0
+		wts=np.abs(wts)
+		#wts[wts<0]=0
 		wts[wts>Z_MAX]=Z_MAX
 		wts = np.power(wts,pow)
 		F_R2[F_R2>F_MAX]=F_MAX
@@ -350,11 +350,21 @@ def selcomps(comptable,hifm=True):
 	fmin,fmid,fmax = getfbounds(ne)
 	ctb = comptable[comptable[:,1].argsort()[::-1],:]
 
-	acc = list(ctb[andb([(ctb[:,3]*100)<10,ctb[:,1]>100])==2,0])
-	#acc = list(ctb[ctb[:,1]>100,0])
+	accvprez = ctb[ctb[:,1]>100,3:5].sum(axis=1)
+	accvprez = (accvprez-accvprez.mean())/accvprez.std()
+	accrprez = ctb[ctb[:,1]>100,2]
+	accrprez = (accrprez-accrprez.mean())/accrprez.std()
+	accspre = np.array(accvprez+accrprez>3,dtype=np.int)+np.array(ctb[ctb[:,1]>100,3:5].sum(axis=1)>5,dtype=np.int)
+	
+	print accvprez,accrprez
+
+	acc = list(ctb[ctb[:,1]>100,0][accspre<2])
 	rej = list(ctb[ctb[:,2]>fmid,0])
 	mid = list(set(range(ctb.shape[0]))-set(acc)-set(rej))
 	
+	if len(acc) <= 15 and ctb[1,1]<150: lowq=1
+	else: lowq=0
+		
 	ctbm = comptable[mid]
 	ctbm = ctbm[ctbm[:,1].argsort()[::-1],:]
 	rej+=list(ctbm[getelbow(ctbm[:,1])-1:,0])
@@ -363,10 +373,15 @@ def selcomps(comptable,hifm=True):
 	betasm = fmask(betas,mask)
 	vars = (betasm.reshape(np.prod(betasm.shape[0:2]),betasm.shape[2])**2).sum(0)
 	varpers  = vars/vars.sum()
-	midrhothr = comptable[acc,2].mean()+3*comptable[acc,2].std()
 	midvarthr = vars[acc].mean()
+	if lowq==0: midrhothr = comptable[acc,2].mean()+3*comptable[acc,2].std()
+	if lowq==1: midrhothr = min(comptable[:,2].mean(),fmid,comptable[getelbow(comptable[:,2][::-1])-1,1])
 
-	acc+=list(np.array(mid)[andb([comptable[mid,2]<midrhothr,vars[mid]<midvarthr])==2])
+	#import ipdb
+	#ipdb.set_trace()
+
+	addacc = np.array(mid)[andb([comptable[mid,2]<midrhothr,vars[mid]<midvarthr])==2]
+	if len(addacc)!=0: acc+=list(addacc)
 	mid = list(set(range(ctb.shape[0]))-set(acc)-set(rej))
 	
 	np.savetxt('accepted.txt',acc,fmt='%d',delimiter=',')
@@ -471,7 +486,8 @@ def tedpca(ste=0):
 		print "-Computing PCA of optimally combined multi-echo data"
 		OCcatd = optcom(catd,t2s,tes,mask)
 		d = np.float64(fmask(OCcatd,mask))
-		eim = mask
+		eim = eimask(d[:,np.newaxis,:])
+		d = d[np.array(np.squeeze(eim),dtype=int)]
 	elif len(ste) == 1 and ste[0]==0:
 		print "-Computing PCA of spatially concatenated multi-echo data"
 		ste = np.arange(ne)
@@ -494,6 +510,9 @@ def tedpca(ste=0):
 	#import scipy.io
 	#scipy.io.savemat('dz.mat',{'dz':dz})
 	
+	#import ipdb
+	#ipdb.set_trace()
+	
 	u,s,v = np.linalg.svd(dz,full_matrices=0)
 	sp = s/s.sum()
 	eigelb = sp[getelbow(sp)]
@@ -503,13 +522,19 @@ def tedpca(ste=0):
 	spdmin = spdif.min()
 	spdthr = np.mean([spdifh.max(),spdmin])
 	spmin = sp[(spdif.shape[0]/2)+(np.arange(spdifh.shape[0])[spdifh>=spdthr][0])+1]
-
+	spcum = []
+	spcumv = 0
+	for sss in sp:
+		spcumv+=sss
+		spcum.append(spcumv)
+	spcum = np.array(spcum)
+		
 	#Compute K and Rho for PCA comps
 	eimum = np.array(np.squeeze(unmask(np.array(eim,dtype=np.int).prod(1),mask)),dtype=np.bool)
 	betasv = get_coeffs(catim.get_data()-catim.get_data().mean(-1)[:,:,:,np.newaxis],np.tile(eimum,(1,1,Ne)),v.T)
 	betasv = cat2echos(betasv,Ne)
+	
 	ctb = fitmodels(betasv,t2s,mu,eimum,tes,sig=sig,fout=None,pow=2)
-
 	ctb = np.vstack([ctb.T[0:3],sp]).T
 	
 	np.savetxt('comp_table_pca.txt',ctb[ctb[:,1].argsort(),:][::-1])
@@ -519,8 +544,22 @@ def tedpca(ste=0):
 	fmin,fmid,fmax = getfbounds(ne)
 	kappa_thr = np.average(sorted([fmin,kappas[getelbow(kappas)]/2,fmid]),weights=[kdaw,1,1])
 	rho_thr = np.average(sorted([fmin,rhos[getelbow(rhos)]/2,fmid]),weights=[rdaw,1,1])
-	
-	pcscore = (np.array(ctb[:,1]>kappa_thr,dtype=np.int)+np.array(ctb[:,2]>rho_thr,dtype=np.int)+np.array(ctb[:,3]>eigelb,dtype=np.int))*np.array(ctb[:,3]>spmin,dtype=np.int)*np.array(ctb[:,1]!=F_MAX,dtype=np.int)*np.array(ctb[:,2]!=F_MAX,dtype=np.int) 
+	if int(kdaw)==-1:
+		kappas_lim = kappas[andb([kappas<fmid,kappas>fmin])==2]
+		#kappas_lim = kappas[andb([kappas<kappas[getelbow(kappas)],kappas>fmin])==2]
+		kappa_thr = kappas_lim[getelbow(kappas_lim)]
+		rhos_lim = rhos[andb([rhos<fmid,rhos>fmin])==2]
+		rho_thr = rhos_lim[getelbow(rhos_lim)]
+		options.stabilize=True
+	if int(kdaw)!=-1 and int(rdaw)==-1:
+		rhos_lim = rhos[andb([rhos<fmid,rhos>fmin])==2]
+		rho_thr = rhos_lim[getelbow(rhos_lim)]
+	#import ipdb
+	#ipdb.set_trace()
+	if options.stabilize:
+		pcscore = (np.array(ctb[:,1]>kappa_thr,dtype=np.int)+np.array(ctb[:,2]>rho_thr,dtype=np.int)+np.array(ctb[:,3]>eigelb,dtype=np.int))*np.array(ctb[:,3]>spmin,dtype=np.int)*np.array(spcum<0.95,dtype=np.int)*np.array(ctb[:,2]>fmin,dtype=np.int)*np.array(ctb[:,1]>fmin,dtype=np.int)*np.array(ctb[:,1]!=F_MAX,dtype=np.int)*np.array(ctb[:,2]!=F_MAX,dtype=np.int) 
+	else:
+		pcscore = (np.array(ctb[:,1]>kappa_thr,dtype=np.int)+np.array(ctb[:,2]>rho_thr,dtype=np.int)+np.array(ctb[:,3]>eigelb,dtype=np.int))*np.array(ctb[:,3]>spmin,dtype=np.int)*np.array(ctb[:,1]!=F_MAX,dtype=np.int)*np.array(ctb[:,2]!=F_MAX,dtype=np.int)
 	pcsel = pcscore > 0 
 	pcrej = np.array(pcscore==0,dtype=np.int)*np.array(ctb[:,3]>spmin,dtype=np.int) > 0
 	dd = u.dot(np.diag(s*np.array(pcsel,dtype=np.int))).dot(v)
@@ -539,7 +578,7 @@ def tedica(dd,cost):
 	Output is comptable, mmix, smaps from ICA, and betas from fitting catd to mmix
 	"""
 	#Do ICA
-	climit = float("1e-%s" % options.conv)
+	climit = float("%s" % options.conv)
 	#icanode = mdp.nodes.FastICANode(white_comp=nc, white_parm={'svd':True},approach='symm', g=cost, fine_g=options.finalcost, limit=climit, verbose=True)
 	icanode = mdp.nodes.FastICANode(white_comp=nc,approach='symm', g=cost, fine_g=options.finalcost, primary_limit=climit*100, limit=climit, verbose=True)
 	icanode.train(dd)
@@ -594,7 +633,8 @@ def writefeats(cbetas,comptable,mmix,suffix=''):
 	niwrite(cbetas[:,:,:,:],aff,'_'.join(['betas',suffix])+'.nii')
 	niwrite(cbetas[:,:,:,acc],aff,'_'.join(['betas_hik',suffix])+'.nii')
 	#Compute features (dS/S)
-	edm = fmask(catd[:,:,:,options.e2d-1,:],mask)
+	if options.e2d==None: e2d=np.floor(ne/2)+1
+	edm = fmask(catd[:,:,:,e2d-1,:],mask)
 	edms = edm/edm.std(-1)[:,np.newaxis]
 	edms[edm<1]=0
 	hik,noise = split_ts(unmask(edms,mask),comptable,mmix)
@@ -658,9 +698,10 @@ if __name__=='__main__':
 	parser.add_option('',"--multicost",dest='multicost',help="Repeat ME-ICA with mult. initial costs and average. ex: --multicost pow3,gaus,skew",default="")
 	parser.add_option('',"--initcost",dest='initcost',help="Initial cost func. for ICA: pow3,tanh(default),gaus,skew",default='tanh')
 	parser.add_option('',"--finalcost",dest='finalcost',help="Final cost func, same opts. as initial",default='tanh')	
-	parser.add_option('',"--conv",dest='conv',help="Convergence limit, 10e-X. Default 10e-5",default='5')
-	parser.add_option('',"--kdaw",dest='kdaw',help="Dimensionality augmentation weight (Kappa). Positive number, default 0.",default=0.)
-	parser.add_option('',"--rdaw",dest='rdaw',help="Dimensionality augmentation weight (Rho). Positive number, default 0.",default=0.)
+	parser.add_option('',"--stabilize",dest='stabilize',action='store_true',help="Stabilize convergence by reducing dimensionality, for low quality data",default=False)	
+	parser.add_option('',"--conv",dest='conv',help="Convergence limit. Default 1e-5",default='1e-5')
+	parser.add_option('',"--kdaw",dest='kdaw',help="Dimensionality augmentation weight (Kappa). Default 0. -1 for low-dimensional ICA",default=0.)
+	parser.add_option('',"--rdaw",dest='rdaw',help="Dimensionality augmentation weight (Rho). Default 0. -1 for low-dimensional ICA",default=0.)
 	parser.add_option('',"--simpel",dest='simpel',help="Kappa/Rho threshold from simple elbow detection. Good for low tSNR.",action='store_true',default=False)
 	parser.add_option('',"--slign",dest='slign',help="Slices to ignore. 0-indexed. ex: --slign=0,1,2. Default none.",default=None)
 	parser.add_option('',"--OC",dest='OC',help="Output optimally combined time series and features",action="store_true",default=False)
@@ -693,8 +734,8 @@ if __name__=='__main__':
 	sig  = catd.std(axis=-1)
 	if options.fout: options.fout = aff
 	else: options.fout=None
-	if options.e2d == None: options.e2d = np.floor(ne/2)+1
-	else: options.e2d = int(options.e2d)
+	#if options.e2d == None: options.e2d = np.floor(ne/2)+1
+	#else: options.e2d = int(options.e2d)
 	kdaw = float(options.kdaw)
 	rdaw = float(options.rdaw)
 	if options.label!=None: dirname='%s' % '.'.join(['TED',options.label])
@@ -760,10 +801,12 @@ if __name__=='__main__':
 	print "++ Writing component table"
 	writect(comptable,'comp_table.txt')
 	
-	print "++ Writing Kappa-filtered TE#%i timeseries" % (options.e2d)
-	write_split_ts(catd[:,:,:,options.e2d-1,:],comptable,mmix,'e%i' % options.e2d)
-	print "++ Writing high-Kappa TE#%i  features" % (options.e2d)
-	writefeats(betas[:,:,:,options.e2d-1,:],comptable,mmix,'e%i' % options.e2d)
+	if options.e2d!=None:
+		options.e2d=int(options.e2d)
+		print "++ Writing Kappa-filtered TE#%i timeseries" % (options.e2d)
+		write_split_ts(catd[:,:,:,options.e2d-1,:],comptable,mmix,'e%i' % options.e2d)
+		print "++ Writing high-Kappa TE#%i  features" % (options.e2d)
+		writefeats(betas[:,:,:,options.e2d-1,:],comptable,mmix,'e%i' % options.e2d)
 	
 	if options.OC == True:
 		print "++ Writing optimally combined time series"

@@ -1,3 +1,3 @@
 cp -p meica.py ~/abin
 cp -rp meica.libs ~/abin
-
+cp -p README.install ~/abin
