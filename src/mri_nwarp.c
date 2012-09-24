@@ -21,7 +21,7 @@
 static int verb_nww=0 ;
 void NwarpCalcRPN_verb(int i){ verb_nww = i; }
 
-#define NGMIN 21             /* minimum num grid points in a given direction */
+#define NGMIN 15             /* minimum num grid points in a given direction */
 
 /*---------------------------------------------------------------------------*/
 /* Creation ex nihilo! */
@@ -2685,6 +2685,7 @@ static MRI_IMAGE   *Hsrcim      = NULL ; /* source image to warp (global) */
 static MRI_IMAGE   *Hsrcim_blur = NULL ;
 static float        Hblur       = 0.0f ;
 static int          Hforce      = 0    ;
+static float        Hfactor     = 0.44f;
 static IndexWarp3D *Haawarp     = NULL ; /* initial warp we are modifying (global) */
 static void        *Hincor      = NULL ; /* INCOR 'correlation' struct */
 static MRI_IMAGE   *Haasrcim    = NULL ; /* warped source image (global) */
@@ -3028,7 +3029,7 @@ ENTRY("HCwarp_load") ;
    if( !doy ) AAmemset( yy , 0 , sizeof(float)*nxyz ) ;
    if( !doz ) AAmemset( zz , 0 , sizeof(float)*nxyz ) ;
 
-   /* AFNI_do_nothing() ; fprintf(stderr,"a") ; */
+   AFNI_do_nothing() ; /* fprintf(stderr,"a") ; */
 
    AFNI_OMP_START ;
 #pragma omp parallel
@@ -3064,7 +3065,7 @@ ENTRY("HCwarp_load") ;
    }  /* end of parallel stuff */
    AFNI_OMP_END ;
 
-   /* AFNI_do_nothing() ; fprintf(stderr,"A") ; */
+   AFNI_do_nothing() ; /* fprintf(stderr,"A") ; */
    EXRETURN ;
 }
 
@@ -3197,7 +3198,7 @@ ENTRY("Hwarp_apply") ;
    fprintf(stderr,"nbxyz=%d  qdb=%d\n",nbxyz,qdb) ;
 #endif
 
-   /* AFNI_do_nothing() ; fprintf(stderr,"b") ; */
+   AFNI_do_nothing() ; /* fprintf(stderr,"b") ; */
 
 #undef  IJK
 #define IJK(i,j,k) ((i)+(j)*nAx+(k)*nAxy)
@@ -3318,7 +3319,7 @@ AFNI_OMP_START ;
  } /* end of parallel stuff */
 AFNI_OMP_END ;
 
-   /* AFNI_do_nothing() ; fprintf(stderr,"B") ; */
+   AFNI_do_nothing() ; /* fprintf(stderr,"B") ; */
 
    EXRETURN ;
 }
@@ -3503,6 +3504,7 @@ ENTRY("IW3D_setup_for_improvement") ;
          if( Hbmask[jj] ){ xar[kk] = bar[jj] ; yar[kk++] = sar[jj] ; }
        }
      }
+     INCOR_setup_good(Hnxyz) ;
      xym = INCOR_2Dhist_minmax( kk , xar , yar ) ;
      xyc = INCOR_2Dhist_xyclip( kk , xar , yar ) ;
      if( xar != bar ){ free(xar) ; free(yar) ; }
@@ -3596,7 +3598,7 @@ ENTRY("IW3D_improve_warp") ;
      default:
      case MRI_CUBIC:
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
-       Hbasis_parmax = 0.021*0.444 ;      /* max displacement from 1 function */
+       Hbasis_parmax = 0.021*Hfactor ;    /* max displacement from 1 function */
        Hnpar         = 24 ;                /* number of params for local warp */
        Hloader       = HCwarp_load ;   /* func to make local warp from params */
        prad          = 0.2 ;                         /* NEWUOA initial radius */
@@ -3605,7 +3607,7 @@ ENTRY("IW3D_improve_warp") ;
 
      case MRI_QUINTIC:
        Hbasis_code   = MRI_QUINTIC ;                 /* 5th order polynomials */
-       Hbasis_parmax = 0.007*0.444 ;
+       Hbasis_parmax = 0.007*Hfactor ;
        Hnpar         = 81 ;
        Hloader       = HQwarp_load ;
        prad          = 0.1 ;
@@ -3671,7 +3673,7 @@ ENTRY("IW3D_improve_warp") ;
    powell_set_mfac( 1.1f , 3.0f ) ;
    need_AH = 0 ;
    iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 7 ,
-                             prad,0.1*prad , 9*Hnparmap+17 , IW3D_scalar_costfun ) ;
+                             prad,0.1*prad , 9*Hnparmap+169 , IW3D_scalar_costfun ) ;
 
    free(xtop) ; free(xbot) ;
 
@@ -3749,16 +3751,20 @@ ENTRY("IW3D_warp_omatic") ;
      ININFO_message("        autobbox = %d..%d %d..%d %d..%d",imin,imax,jmin,jmax,kmin,kmax) ;
    }
 
-   Hforce = 1 ;
+   Hforce = 1 ; Hfactor = 1.0f ;
 #if 1
    iter  = IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt, jbbb,jttt, kbbb,kttt ) ; /* top level */
    ITEROUT(0,ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
 #endif
-#if 0
+#if 1
+   iter  = IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt, jbbb,jttt, kbbb,kttt ) ; /* top level */
+   ITEROUT(0,ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
+#endif
+#if 1
    iter  = IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt, jbbb,jttt, kbbb,kttt ) ;
    ITEROUT(0,ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
 #endif
-   Hforce = 0 ;
+   Hforce = 0 ; Hfactor = 0.456f ;
 
    eee = getenv("AFNI_WARPOMATIC_LEVMAX") ;
    if( eee != NULL && isdigit(eee[0]) ) levmax = (int)strtod(eee,NULL) ;
