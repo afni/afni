@@ -235,6 +235,11 @@ char *SOLARIS_strcasestr(const char *s1, const char *s2)
 
 /*---------------------------------------------------------------------------*/
 
-void AFNI_do_nothing(void){ return ; }
+void AFNI_do_nothing(void){
+  static int fdn=-666 ;
+  if( fdn == -666 ) fdn = open("/dev/null",O_WRONLY) ;
+  if( fdn >= 0 ) write(fdn," ",1) ;
+  return ;
+}
 
 /*---------------------------------------------------------------------------*/

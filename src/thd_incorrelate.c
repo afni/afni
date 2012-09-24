@@ -110,6 +110,23 @@ ENTRY("INCOR_2Dhist_minmax") ;
 }
 
 /*--------------------------------------------------------------------------*/
+
+static byte *good=NULL ;
+static int  agood=0 ;
+
+void INCOR_setup_good( int ng )
+{
+   if( ng <= 0 ){
+     if( good != NULL ){ free(good); good = NULL; }
+     agood = 0 ;
+   } else if( ng > agood ){
+     good = realloc( good , sizeof(byte)*ng ) ; agood = ng ;
+   }
+   if( agood > 0 && good != NULL ) AAmemset(good,0,sizeof(byte)*agood) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Load 2D histogram of x[0..n-1] and y[0..n-1], each point optionally
     weighted by w[0..n-1] (weights are all 1 if w==NULL).
     Used in the histogram-based measures of dependence between x[] and y[i].
@@ -132,8 +149,7 @@ ENTRY("INCOR_2Dhist_minmax") ;
 
 void INCOR_addto_2Dhist( INCOR_2Dhist *tdh , int n , float *x , float *y , float *w )
 {
-   int ii ;
-   byte *good ; int ngood , xyclip ;
+   int ii , ngood , xyclip ;
    float xxbot,xxtop , yybot,yytop ;
    float xcbot,xctop , ycbot,yctop ;
    int nbin,nbp,nbm ;
@@ -154,7 +170,7 @@ ENTRY("INCOR_addto_2Dhist") ;
 
    /* get the min..max range for x and y data? */
 
-   good = (byte *)calloc(sizeof(byte),n+4) ;
+   INCOR_setup_good(n+4) ;
    for( ngood=ii=0 ; ii < n ; ii++ ){
      if( GOODVAL(x[ii]) && GOODVAL(y[ii]) && (WW(ii) > 0.0f) ){
        good[ii] = 1 ; ngood++ ;
@@ -176,7 +192,7 @@ ENTRY("INCOR_addto_2Dhist") ;
          else if( x[ii] < xxbot ) xxbot = x[ii] ;
        }
      }
-     if( xxbot >= xxtop ){ free(good); EXRETURN; }
+     if( xxbot >= xxtop ) EXRETURN ;
 
      yybot = WAY_BIG ; yytop = -WAY_BIG ;
      for( ii=0 ; ii < n ; ii++ ){
@@ -185,7 +201,7 @@ ENTRY("INCOR_addto_2Dhist") ;
          else if( y[ii] < yybot ) yybot = y[ii] ;
        }
      }
-     if( yybot >= yytop ){ free(good); EXRETURN; }
+     if( yybot >= yytop ) EXRETURN ;
 
      tdh->xxbot = xxbot ; tdh->xxtop = xxtop ;
      tdh->yybot = yybot ; tdh->yytop = yytop ;
@@ -203,7 +219,7 @@ ENTRY("INCOR_addto_2Dhist") ;
        good[ii] = 1 ; ngood++ ;
      }
    }
-   if( ngood == 0 ){ free(good) ; EXRETURN ; }
+   if( ngood == 0 ) EXRETURN ;
 
    /*--------------- add to the 2D and 1D histograms ---------------*/
 
@@ -251,7 +267,7 @@ ENTRY("INCOR_addto_2Dhist") ;
        float xbc=xcbot , xtc=xctop , ybc=ycbot , ytc=yctop ;
        float xi,yi , xx,yy , x1,y1 , ww ;
 
-       AFNI_do_nothing() ; fprintf(stderr,"c") ;
+       AFNI_do_nothing() ; /* fprintf(stderr,"c") ; */
 
        xi = (nbin-2.000001f)/(xtc-xbc) ;
        yi = (nbin-2.000001f)/(ytc-ybc) ;
@@ -279,7 +295,7 @@ ENTRY("INCOR_addto_2Dhist") ;
          XYC(jj+1,kk+1) += xx*(yy*ww) ;
        }
 
-       AFNI_do_nothing() ; fprintf(stderr,".") ;
+       AFNI_do_nothing() ; /* fprintf(stderr,".") ; */
 
      } /* end of clipped code */
 
@@ -409,7 +425,7 @@ ENTRY("INCOR_addto_2Dhist") ;
    /* AFNI_do_nothing() ; fprintf(stderr,".") ; */
 
    tdh->nww = nww ;
-   free(good) ; EXRETURN ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
