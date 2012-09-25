@@ -355,9 +355,13 @@ g_history = """
         - match default class order for 3dSeg
         - copy labeltable into resampled dataset
     3.32 Sep 04, 2012: added -regress_ROI, for tissue-based regression
+    3.33 Sep 25, 2012: fixed 2 REML problems
+        - if 3dD_stop and reml_exec, use errts_REML for blur estimation
+          (thanks to P Molfese for noting the problem)
+        - apply compute_fitts for non-reml case
 """
 
-g_version = "version 3.32, September 4, 2012"
+g_version = "version 3.33, September 25, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 May 2012"

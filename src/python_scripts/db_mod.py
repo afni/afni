@@ -2504,7 +2504,7 @@ def db_mod_regress(block, proc, user_opts):
     uopt = user_opts.find_opt('-regress_errts_prefix')
     bopt = block.opts.find_opt('-regress_errts_prefix')
     if uopt and bopt:
-        bopt.parlist = [uopt.parlist[0] + '.$subj']    # add $subj to prefix
+        bopt.parlist = [uopt.parlist[0] + '.${subj}']    # add $subj to prefix
 
     # check for fitts prefix
     uopt = user_opts.find_opt('-regress_fitts_prefix')
@@ -2997,7 +2997,7 @@ def db_cmd_regress(proc, block):
     # if there is no errts prefix, but the user wants to measure blur, add one
     # (or if there are no normal regressors)
     if nregs == 0 or (not opt.parlist and (bluropt or tsnropt)):
-        opt.parlist = ['errts.$subj%s' % suff]
+        opt.parlist = ['errts.${subj}%s' % suff]
 
     errts_pre = ''
     if not opt or not opt.parlist: errts = ''
@@ -3115,6 +3115,10 @@ def db_cmd_regress(proc, block):
         if not rcmd: return
         cmd = cmd + rcmd + '\n\n'
 
+    # if REML, -x1D_stop and errts_pre, append _REML to errts_pre
+    if block.opts.find_opt('-regress_reml_exec') and \
+        stop_opt and errts_pre: errts_pre = errts_pre + '_REML'
+
     # create all_runs dataset
     all_runs = 'all_runs%s$subj%s' % (proc.sep_char, suff)
     cmd = cmd + "# create an all_runs dataset to match the fitts, errts, etc.\n"
@@ -3132,22 +3136,24 @@ def db_cmd_regress(proc, block):
        else: print '-- no errts, will not compute final TSNR'
 
     # possibly create computed fitts dataset
-    if compute_fitts and \
-      (stop_opt or block.opts.find_opt('-regress_reml_exec')):
+    if compute_fitts:
         fstr = feh_str
-        # create if no -x1D_stop
-        if stop_opt == '':
+        if stop_opt == '': # create if no -x1D_stop
             fstr += "%s# create fitts dataset from all_runs and errts\n" % istr
             fstr += "%s3dcalc -a %s%s -b %s%s -expr a-b \\\n"            \
                     "%s       -prefix %s%s\n"                            \
                     % (istr, all_runs, vstr, errts_pre, vstr,
                        istr, fitts_pre, suff)
+        elif not block.opts.find_opt('-regress_reml_exec'):
+            print '** cannot compute fitts, have 3dD_stop but no reml_exec'
+            return
+
         # if reml_exec, make one for the REML fitts, too
         if block.opts.find_opt('-regress_reml_exec'):
             if stop_opt: fstr += '\n'
             fstr += "%s# create fitts from REML errts\n" % istr
-            fstr += "%s3dcalc -a %s%s -b %s\_REML%s -expr a-b \\\n" \
-                    "%s       -prefix %s\_REML%s\n"                 \
+            fstr += "%s3dcalc -a %s%s -b %s%s -expr a-b \\\n" \
+                    "%s       -prefix %s\_REML%s\n"                \
                     % (istr, all_runs, vstr, errts_pre, vstr,
                        istr, fitts_pre, suff)
         cmd = cmd + fstr + feh_end + '\n'
@@ -3352,7 +3358,7 @@ def db_cmd_blur_est(proc, block):
 
     opt = block.opts.find_opt('-regress_errts_prefix')
     if opt and opt.parlist: errts_pre = opt.parlist[0]
-    else:   errts_pre = 'errts.$subj'
+    else:   errts_pre = 'errts.${subj}'
 
     if eopt and not sopt: # want errts, but 3dD was not executed
         bstr = blur_est_loop_str(proc, '%s%s' % (errts_pre, proc.view), 
@@ -3361,7 +3367,7 @@ def db_cmd_blur_est(proc, block):
         cmd = cmd + bstr
     if eopt and ropt: # want errts and reml was executed
         # cannot use ${}, so escape the '_'
-        bstr = blur_est_loop_str(proc, '%s\_REML%s' % (errts_pre, proc.view), 
+        bstr = blur_est_loop_str(proc, '%s_REML%s' % (errts_pre, proc.view), 
                     mask_dset, 'err_reml', blur_file)
         if not bstr: return
         cmd = cmd + bstr
@@ -3445,12 +3451,13 @@ def blur_est_loop_str(proc, dname, mname, label, outfile):
         outfile  : final output filename
     """
     dset  = BASE.afni_name(dname)
-    input = dset.shortinput()
+    inset = dset.shortinput()
+    inset = dname
     mset  = BASE.afni_name(mname)
     mask  = mset.shortinput()
     tmpfile = 'blur.%s.1D' % label
 
-    if not input:
+    if not inset:
         print "** failed to get blur_est input name from '%s'" % dname
         return ''
     if not mask:
@@ -3467,7 +3474,7 @@ def blur_est_loop_str(proc, dname, mname, label, outfile):
         '    @ b1 += $reps  # last index for current run\n'     \
         '    3dFWHMx -detrend -mask %s \\\n'                    \
         '        %s"[$b0..$b1]" >> %s\n'                        \
-        % (mask, input, tmpfile)
+        % (mask, inset, tmpfile)
 
     cmd = cmd +                                                 \
         '    @ b0 += $reps  # first index for next run\n'       \
@@ -4471,8 +4478,9 @@ g_help_string = """
                         -ricor_regs sb23/RICOR/r*.slibase.1D    \\
                         -volreg_align_e2a                       \\
                         -volreg_tlrc_warp                       \\
+                        -blur_size 6                            \\
                         -regress_motion_per_run                 \\
-                        -regress_censor_motion 0.3              \\
+                        -regress_censor_motion 0.2              \\
                         -regress_bandpass 0.01 0.1              \\
                         -regress_apply_mot_types demean deriv   \\
                         -regress_run_clustsim no                \\
@@ -7143,10 +7151,10 @@ g_help_string = """
             other than dfile_rall.1D (the default generated in the volreg
             block).
 
-            If the motion parameter file is in an external directory, the
-            user should copy it via the -copy_files option.
+            Note: such files no longer need to be copied via -copy_files.
 
-            See also -copy_files.
+            If the motion file is in a remote directory, include the path,
+            e.g. -regress_motion_file ../subject17/data/motion.1D .
 
         -regress_no_fitts       : do not supply -fitts to 3dDeconvolve
 
