@@ -928,6 +928,7 @@ L_HELP_END:
     echo "                              Allowed STYLE values are : "
     echo "                              1 for L R LR style (default)"
     echo "                              2 for LEFT RIGHT LR style"
+    echo "                              3 for A B AB (don't ask)"
     echo ""
     echo ""
     echo "  notes:"
