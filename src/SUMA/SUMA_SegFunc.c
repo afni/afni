@@ -5355,7 +5355,7 @@ SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, float *range,
    hh->n = n;
    if (label) hh->label = SUMA_copy_string(label);
    
-   if (Ku > 0) { /* use sets number of bins */
+   if (Ku > 0) { /* user sets number of bins */
       hh->K = Ku;
       hh->W = (max-min)/(float)hh->K;
    } else if (Wu > 0.0) {

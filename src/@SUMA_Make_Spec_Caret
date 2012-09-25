@@ -166,7 +166,9 @@ L_PARSE_COMMAND:
          set sides_labels = (L R LR)
       else if ($sides_labels_style == 2) then
          set sides_labels = (LEFT RIGHT LR)
-      else
+      else if ($sides_labels_style == 3) then
+         set sides_labels = (A B AB)
+      else 
 		    set endstr = "failure: STYLE of $sides_labels_style not understood"
 		    goto L_BAD_END
 		endif
@@ -240,14 +242,23 @@ L_VERIFY_PROGRAMS:
     set caret_convert = ""
     set caret_command = ""
     set failed_pgms = 0
-    foreach test_command ( afni suma caret_file_convert caret_command)
+    set mandatory_progs = ( afni suma )
+    (which caret_command) >& /dev/null
+    if ( $status ) then
+      #old caret might be installed
+      set mandatory_progs = ($mandatory_progs caret_file_convert)
+    else
+      #new caret, use caret_command
+      set mandatory_progs = ($mandatory_progs caret_command)
+    endif
+    
+    foreach test_command ( $mandatory_progs)
 
 	(which $test_command) >& /dev/null
 
 	if ( $status ) then
 	    echo "Warning: program not found in path: $test_command"
-	    #these programs are not necessary
-		 #@ failed_pgms ++
+		 @ failed_pgms ++
 	else
       if ("$test_command" == "caret_file_convert") then
          set caret_convert = "$test_command"
@@ -793,8 +804,9 @@ L_CREATE_SPEC:
           #if binary format and have caret_file_convert, do the dance
           set isbin = `file $surf | grep ' data'`
           set isbintopo = `file $list_topo_cur[$cnt] | grep ' data'`
-          if ("$isbin" != '' || "$isbintopo" != '') then
-            echo "Surface file $surf is in binary format."
+          #Run either way, that file test fails for ASCII gifti files
+          if (1 || "$isbin" != '' || "$isbintopo" != '') then
+            echo "Surface file $surf is in binary or not coord/topo format."
             if ($caret_convert != "") then
                echo "Running caret_file_convert -text $surf ..."
                caret_file_convert -text $surf $list_topo_cur[$cnt]
