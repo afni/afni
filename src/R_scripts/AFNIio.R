@@ -1877,7 +1877,7 @@ read.AFNI.matrix <- function (fname,
       brk <- tryCatch({read.table(fname$file, colClasses='character')}, 
                       error=function(a){})
       if (is.null(brk)) { #try as niml, just in case 
-         warn.AFNI(paste("Attempting read as NIML."), callstr='');
+         if (verb) note.AFNI(paste("Attempting read as NIML."), callstr='');
          fff <- r.NI_read_element(fname$file, FALSE)
          if (!is.null(fff$dat)) {
             brk <- as.data.frame(fff$dat, stringsAsFactors=FALSE)

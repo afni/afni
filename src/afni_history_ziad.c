@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 22, Sep , 2012 , ZSS , "@SUMA_Make_Spec_Caret" , MICRO , TYPE_MODIFY,
+   "Updated script to work with current Caret release",
+   NULL
+ },
+
+ { 22, Sep , 2012 , ZSS , "3dkmeans" , MICRO , TYPE_BUG_FIX,
+   "Fixed default prefix which was overwriting input.",
+   "Also added default selection when input has single value"
+ },
+
+ { 21, Sep , 2012 , ZSS , "afni-general" , MICRO , TYPE_MODIFY,
+   "pkundu update",
+   NULL
+ },
+
+
  { 18, Sep , 2012 , ZSS , "afni-general" , MINOR , TYPE_NEW_PROG,
    "Checked in Prantik Kundu's MEICA tools.",
    "Try meica.py -help, also try @Install_MEICA_Demo"

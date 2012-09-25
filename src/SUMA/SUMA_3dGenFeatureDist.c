@@ -639,7 +639,7 @@ int main(int argc, char **argv)
         N_ffalloc=0, N_ff, isneg=0;
    float fsf=0.0, fsb=0.0, 
          ***FCset=NULL, /* Table holding samples for each feature/class combo */ 
-         hrange[2]={-3.0, 3.0}, bwidth=0.05,
+         hrange[2]={-3.0, 3.0}, bwidth1=0.05, bwidth=0.0,
          *ff=NULL;
    short *sf=NULL, *sb=NULL;
    byte **masks=NULL;
@@ -889,14 +889,17 @@ int main(int argc, char **argv)
           ff_s += SUMA_POW2(ff[iii]-ff_m);
       }
       ff_s = sqrt(ff_s/N_ff);
-      SUMA_S_Notev("Feature %s: mean %f, std %f\n", Opt->feats->str[aa], ff_m, ff_s);
+      SUMA_S_Notev("Feature %s: mean %f, std %f\n", 
+                        Opt->feats->str[aa], ff_m, ff_s);
       sprintf(sbuf, "h(%s)",Opt->feats->str[aa]);
       if ((float)isneg/(float)N_ff*100.0 > 1.0) {
-         hrange[0] =  ff_m-3/ff_s;
-         hrange[1] =  ff_m+3/ff_s;
+         hrange[0] =  ff_m-3*ff_s;
+         hrange[1] =  ff_m+3*ff_s;
+         bwidth = bwidth1*ff_s;
       } else {
          hrange[0] =  0;
-         hrange[1] =  6.0/ff_s;
+         hrange[1] =  6.0*ff_s/2.0;
+         bwidth = bwidth1*ff_s/2.0;
       }
       if (!(hf[aa] = SUMA_hist(ff, N_ff, 0, bwidth, hrange, sbuf, 1))) {
          SUMA_S_Errv("Failed to generate histogram for %s. \n"
