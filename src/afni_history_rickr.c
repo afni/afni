@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, SEP, 2012, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "use errts_REML to compute blur if 3dD_stop; apply compute_fitts if no reml",
+   "Thanks to P Molfese for noting the problem."
+ } ,
+
  { 21, SEP, 2012, RCR, "3dNLfim", MICRO, TYPE_GENERAL,
    "added ConvDiffGam to help",
    NULL
