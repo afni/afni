@@ -26,7 +26,7 @@ import numpy as np
 import nibabel as nib
 from sys import stdout
 #import pdb
-import ipdb
+#import ipdb
 
 F_MAX=500
 Z_MAX = 8
