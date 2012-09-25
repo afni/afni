@@ -152,7 +152,7 @@ static char shelp_GenPriors[] = {
 "  -classes 'C1 C2 C3': Classify into these classes only. Alternative is\n"
 "                       to classify from all the classes in the training data\n"
 "  -features 'F1 F2 F3 ...': Use these features only. Otherwise use all \n"
-"                            features in the training data.\n"
+"                            features in the signature file will be used.\n"
 "                            Note that partial matching is used to resolve\n"
 "                            which features to keep from training set.\n"
 "  -featgroups 'G1 G2 G3 ...': TO BE WRITTEN\n"

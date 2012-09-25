@@ -670,7 +670,7 @@ plot.1D.eng <- function (P) {
      
    #Set plot characters
    if(is.null(P$col.plot.char)) {
-      P$col.plot.char <- 19+P$col.color
+      P$col.plot.char <- 20+(P$col.color%%6)
    } else if (length(P$col.plot.char) != ncol(P$dmat)) {
       if (length(P$col.plot.char) == 1) {
          if (P$col.plot.char == -1) {
