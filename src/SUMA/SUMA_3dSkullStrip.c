@@ -1689,7 +1689,7 @@ int main (int argc,char *argv[])
       SUMA_S_Err("Failed to load/prep volume");
       exit(1);
    } else {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Got me a volume of %f mm3\n", FuncName, vol);
+      SUMA_LHv("Got me a volume of %f mm3\n", vol);
    }
    
    /* create the ico, might need coords for bias correction below*/
