@@ -37,13 +37,22 @@ else
     set help = 0
 endif
 
-set testing = 0
-set use_curl = 0
-set do_recur = 1        # download a new version of @uab, first
+set testing     = 0
+set use_curl    = 0
+set do_apsearch = 1     # run apserach -update_all_afni_help
+set do_recur    = 1     # download a new version of @uab, first
 
 set ac = 1
 while ( $ac <= $#argv )
-    if ( "$argv[$ac]" == "-bindir" ) then
+    if ( "$argv[$ac]" == "-apsearch" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-apsearch'"
+            exit 1
+        endif
+        set resp = `echo $argv[$ac] | cut -b1`
+        if ( $resp == 'N' || $resp == 'n' ) set do_apsearch = 0
+    else if ( "$argv[$ac]" == "-bindir" ) then
         @ ac ++
         if ( $ac > $#argv ) then
             echo "** missing parameter for option '-bindir'"
@@ -92,6 +101,7 @@ if ( $help ) then
     echo ""
     echo "    -help                 : show this help"
     echo ""
+    echo "    -apsearch yes/no      : specify getting apsearch updates"
     echo "    -bindir ABIN          : set AFNI binary directory to ABIN"
     echo "    -curl                 : default to curl instead of wget"
     echo "    -defaults             : install current package into abin"
@@ -108,6 +118,9 @@ if ( $help ) then
     echo ""
     echo "        If -bindir or -package cannot be determined, it must be"
     echo "        supplied by the user."
+    echo ""
+    echo "        26 Sep 2012 : -update_apsearch is applied by default"
+    echo "                      (if installed afni is in PATH)"
     echo ""
     echo "    -no_recur             : do not download and run new @uab script"
     echo "    -package PACKAGE      : install distribution package PACKAGE"
@@ -284,10 +297,47 @@ cd $tmp_dir
 # download to a temp name, though
 if ( $do_recur ) then
    set temp_prog = tmp.$prog         # temp name to run with
+   set retry = 0                     # use multiple attempts to get this
 
-   set get_package = http://afni.nimh.nih.gov/pub/dist/bin/$package/$prog
-   echo "++ downloading test file $package/$prog ..."
+   set bin_root = http://afni.nimh.nih.gov/pub/dist/bin
+   set get_package = $bin_root/$package/$prog
+   echo "++ getting install prog $package/$prog ..."
    $get_prog $get_package
+
+   # ----- might not exist: try twice and skip if fail       26 Sep 2012
+
+   if ( $status ) then
+      set retry = 1
+   else
+      grep 'not found on this server' $prog > /dev/null
+      if ( ! $status ) then
+         set retry = 1
+         \rm -f $prog
+      endif
+   endif
+
+   if ( $retry ) then
+      set retry = 0
+      set ppp = linux_openmp_64
+      echo "** failed, trying $ppp/$prog ..."
+      $get_prog $bin_root/$ppp/$prog
+      if ( $status ) then
+         set retry = 1
+      else
+         grep 'not found on this server' $prog > /dev/null
+         if ( ! $status ) then
+            set retry = 1
+            \rm -f $prog
+         endif
+      endif
+
+      if ( $retry ) then
+         echo "** failed again, skipping check for new installer"
+         goto SKIP_RECUR
+      endif
+   endif
+
+   # ----- okay, we have a new installer to check on
 
    # see if there are any changes to apply
    cmp -s $prog ../$prog
@@ -312,7 +362,10 @@ if ( $do_recur ) then
    else
       echo "-- $prog is current, continuing with this version..."
    endif
+else
+   echo "-- skipping update of $prog"
 endif
+SKIP_RECUR:
 
 # ----------------------------------------------------------------------
 # just download single afni binary and compare
@@ -394,6 +447,7 @@ endif
 
 # abin may have sub-directories         17 Oct 2011 [rickr]
 
+# actually install the new binaries
 if ( $use_rsync ) then
    echo "++ synching new binaries..."
    rsync -a $package/ ../
@@ -410,7 +464,14 @@ else
    endif
 endif
 
-# and nuke any leftovers
+# and possibly run apsearch
+if ( $do_apsearch && $cur_afni == $abin ) then
+   set cmd = "apsearch -update_all_afni_help"
+   echo "++ running $cmd ..."
+   $cmd
+endif
+
+# finally nuke any leftovers
 cd ..
 \rm -fr $tmp_dir
 
