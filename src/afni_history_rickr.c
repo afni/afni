@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, SEP, 2012, RCR, "@update_afni_binaries", MINOR, TYPE_NEW_OPT,
+   "added -apsearch; verify download for recursive step",
+   NULL
+ } ,
+
  { 26, SEP, 2012, RCR, "nifti_tool", MINOR, TYPE_BUG_FIX,
    "changed ana originator field from char to short",
    NULL
