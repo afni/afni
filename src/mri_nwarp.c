@@ -3764,7 +3764,7 @@ ENTRY("IW3D_warp_omatic") ;
    iter  = IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt, jbbb,jttt, kbbb,kttt ) ;
    ITEROUT(0,ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
 #endif
-   Hforce = 0 ; Hfactor = 0.456f ;
+   Hforce = 0 ; Hfactor = 0.888f ;
 
    eee = getenv("AFNI_WARPOMATIC_LEVMAX") ;
    if( eee != NULL && isdigit(eee[0]) ) levmax = (int)strtod(eee,NULL) ;

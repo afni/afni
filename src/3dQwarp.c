@@ -11,7 +11,7 @@
 static int auto_weight    = 2 ;
 static float auto_wclip   = 0.0f ;
 static float auto_wpow    = 1.0f ;
-static int auto_dilation  = 5 ;
+static int auto_dilation  = 9 ;
 static float wt_medsmooth = 2.25f ;
 static float wt_gausmooth = 4.50f ;
 
