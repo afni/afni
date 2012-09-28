@@ -12,10 +12,9 @@
 # error messages will be stored)
 
 #system("rm -f .RData")
-#source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
+source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
 #source(file.path(Sys.getenv("LME"), "AFNIio.R"))
-source(file.path('~/abin', "AFNIio.R"))
-#libLoad("nlme")
+#source(file.path('~/abin', "AFNIio.R"))
 #libLoad("contrast")
 libLoad("afex")
 
