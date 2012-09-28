@@ -1,0 +1,226 @@
+#!/bin/tcsh -f
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+set stat = 0
+set stdir = $PWD
+
+goto PARSE
+RET_PARSE:
+
+COPY_DATA:
+      if ( ! -f $odir/mask+orig.HEAD ||   \
+           ! -f $odir/T1+orig.HEAD ||  \
+           ! -f $odir/PD+orig.HEAD   ) then
+   3dcalc -overwrite -datum short -a $T1 -expr 'a' -prefix $odir/T1
+   3dcalc -overwrite -datum short -a $PD -expr 'a' -prefix $odir/PD
+   if ($imask != '') then
+      3dcalc -overwrite -datum byte -a $imask -expr 'a' -prefix $odir/mask
+   else
+      3dmerge -1blur_fwhm 25 -prefix $odir/PDsm $odir/PD+orig
+      3dAutomask -prefix $odir/mask $odir/PDsm+orig
+      \rm -f $odir/PDsm+orig.* 
+   endif
+      else
+         echo "Reusing input data"
+      endif
+   
+STATIT:
+   cd $odir
+      if ( ! -f PD.ls+orig.HEAD ) then
+   3dLocalstat -nbhd "SPHERE(25)" -stat perc:65:95:5 \
+            -datum short -reduce_max_vox 5 \
+            -prefix PD.ls PD+orig.
+      else
+         echo "Reusing PD.ls"
+      endif
+   cd $idir
+   
+SCALEIT:
+   cd $odir
+   set med = `3dBrickStat -median -mask mask+orig T1+orig.`
+   3dcalc   -a T1+orig. -b PD.ls+orig'[perc:75.00]' \
+            -c mask+orig -datum short -overwrite \
+            -expr "step(c)*a/b*$med[2]" \
+            -prefix T1.uni+orig.
+   cd $idir
+   goto END
+
+PARSE:
+set Narg = $#
+set cnt = 1
+set starttime=`date`
+set cleanafter = 1
+set odir = ""
+set olabel = 'loc_st'
+set sigset = 'sigset'
+set suff = 'nosuf'
+set imask = ''
+set idir = $PWD
+if ("$1" == '') goto HELP
+while ($cnt <= $Narg)
+   set donext = 1
+
+   if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+      goto HELP
+   endif
+   
+   if ($donext && ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo")) then
+      set echo
+      set donext = 0   
+   endif
+
+
+   if ($donext && "$argv[$cnt]" == "-odir") then
+      if ($cnt == $Narg) then
+         echo "Need directory after -odir"
+         goto END
+      else
+         @ cnt ++
+         set odir = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+
+
+   if ($donext && "$argv[$cnt]" == "-suffix") then
+      if ($cnt == $Narg) then
+         echo "Need a output suffix after -suffix"
+         goto END
+      else
+         @ cnt ++
+         set suff = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-mask") then
+      if ($cnt == $Narg) then
+         echo "Need a dataset suffix after -mask"
+         goto END
+      else
+         @ cnt ++
+         set imask = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-T1") then
+      if ($cnt == $Narg) then
+         echo "Need a dataset suffix after -T1"
+         goto END
+      else
+         @ cnt ++
+         set T1 = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-PD") then
+      if ($cnt == $Narg) then
+         echo "Need a dataset suffix after -PD"
+         goto END
+      else
+         @ cnt ++
+         set PD = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+   
+  if ($donext) then
+      if ($inputopen == 1) then
+         set fwildvec = ($fwildvec $argv[$cnt])
+         @ cnt ++
+      endif
+      if ($exfeatopen == 1) then
+         set exfeatvec = ($exfeatvec $argv[$cnt])
+         @ cnt ++
+      endif
+      if ($exclsopen == 1) then
+         set exclssvec = ($exclssvec $argv[$cnt])
+         @ cnt ++
+      endif
+      if ($inputopen == 0 && $exclsopen == 0 && $exfeatopen == 0) then
+         echo "Parameter $argv[$cnt] not understood"
+         apsearch -popt `basename $0` -word $argv[$cnt]
+         goto END
+      endif
+   else 
+      @ cnt ++
+   endif 
+
+end
+
+
+#output directory
+if ("$odir" == '') then
+   set odir = "T1scale"
+endif
+if (! -d $odir) mkdir -p $odir
+if (! -d $odir) then
+   echo "Failed to create $odir"
+   goto BEND
+endif
+cd $odir
+set odir = $PWD
+cd -
+         
+
+goto RET_PARSE
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <-T1 T1vol> <-PD PDvol> "
+   echo " "
+   echo "Scales T1 by PD to reduce shading artifacts"
+   echo "   -T1 T1vol: The T1 volume"
+   echo "   -PD PDvol: The PD volume"
+   echo "          (Psst, if you have no PD volume, put the T1 here too.)"
+   echo "   -mask MVOL: Region to exclude"
+   echo "         If not specified, will use 3dAutomask on fattened PDvol."
+   echo "   -odir ODIR: Directory where output gets dumped. "
+   echo "              Default is T1scale/ "
+   echo "              ODIR will contain multiple volumes with the one"
+   echo "              of most interest being T1.uni+orig" 
+   echo ""
+   echo "         Script will reuse existing intermediate volumes"
+   echo ""
+   @global_parse -gopts_help
+   goto END
+   echo "-fdir DIR: output directory of 3dGenFeatDists"
+   echo "-fwild WILD1 [WILD2 ...]: Wildcards used to select feature histograms"
+   echo "                          under DIR."
+   echo "                          Histograms picked would be those named:"
+   echo '                          h.*WILD1.niml.hist and h.*WILD1-G-*.niml.hist'
+   echo "-suffix SUFF: Output suffix, added to output images. Default nosuff"
+   echo "-exfeat FEAT1 [FEAT2 ...]: Exclude following features. String matching"
+   echo "                            is partial"
+   echo "-exclass CLSS1 [CLSS2 ...]: Exclude following classes. String matching "
+   echo "                             is partial"
+   echo "-odir DIR: Output directory, default is DIR"
+   echo "-echo: Set echo"
+   echo "-help: this message" 
+   echo ""
+   echo " See also @FeatureHists "
+   echo ""
+   echo "Example:"
+   echo "@ExamineGenFeatDists    -fwild sc9 Xz Yz Zz FA.MAD07 MD \"
+   echo "                        -fdir GenFeatDist.sc9 \"
+   echo "                        -exfeat mean z.FA. z.MD \"
+   echo "                        -exclass air \"
+   echo "                        -odir GenFeatDist.sc9"
+   echo ""
+   goto END
+
+goto END
+
+BEND:
+set stat = 1
+goto END
+
+END:
+cd $idir
+exit $stat
+
+
+
+
