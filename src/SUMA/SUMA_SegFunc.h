@@ -121,10 +121,10 @@
                     ADN_nvals, nsb, \
                     ADN_ntt, nsb, \
                     ADN_malloc_type , DATABLOCK_MEM_MALLOC ,   \
-                    ADN_view_type   , VIEW_ORIGINAL_TYPE ,  \
                     ADN_type        , HEAD_ANAT_TYPE ,   \
                     ADN_func_type   , ANAT_BUCK_TYPE ,   \
                     ADN_none ) ; \
+               /* ADN_view_type   , VIEW_ORIGINAL_TYPE ,  ZSS Sep 28 2012 */   \
    for(m_i=0;m_i<nsb;++m_i) EDIT_substitute_brick( pb, m_i, MRI_short, NULL ) ; \
    tross_Copy_History( par , pb ) ; \
 }
