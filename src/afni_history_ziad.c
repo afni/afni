@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 28, Sep , 2012 , ZSS , "@auto_tlrc" , MINOR , TYPE_NEW_OPT,
+   "Enabled automatic centering via -init_xform",
+   "You can use -init_xform AUTO_CENTER or -init_xform CENTER\n"
+   "to perform center alignment during registration."
+ },
+
+ { 28, Sep , 2012 , ZSS , "map_TrackID" , MAJOR , TYPE_NEW_PROG,
+   "New program by Paul Taylor to warp tracks by an affine transform",
+   NULL
+ },
+
+ { 28, Sep , 2012 , ZSS , "3dTrackID" , MICRO , TYPE_NEW_OPT,
+   "Option -rec_orig to record dataset origin in tractography output",
+   NULL
+ },
+
  { 22, Sep , 2012 , ZSS , "@SUMA_Make_Spec_Caret" , MICRO , TYPE_MODIFY,
    "Updated script to work with current Caret release",
    NULL

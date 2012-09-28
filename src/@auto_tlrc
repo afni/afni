@@ -388,12 +388,38 @@ PARSE:
       set anat_in = $anat_in2
       set prs_in = `@parse_afni_name "$anat_in"`
    endif 
-
+   
+   set preWopt = ''
+   if ($prexform == "AUTO_CENTER" || $prexform == "CENTER" ) then
+      #Check for center differences and act on it
+      set dist_cent = `@Center_Distance -dset ${ref_in} ${anat_in}`
+      set needcen = `ccalc -form int -eval "step($dist_cent - 40)"`
+      if ($needcen == 1 || $prexform == "CENTER") then
+         echo ""
+         echo "Performing center alignment with @Align_Centers"
+         echo ""
+         @Align_Centers -base ${ref_in} -1Dmat_only \
+                        -dset ${anat_in} 
+         set pp = `@GetAfniPrefix ${anat_in}`
+         set prexform = (`ls ${pp}_shft.1D`)
+         1dmatcalc "&read4x4Xform($prexform) &write(stdout:)" > ${pp}_44.1D
+         mv ${pp}_44.1D $prexform
+         3drename ${pp}_shft ${tmppref}_${pp}_shft
+         if ( ! -f $prexform ) then
+            echo "Failed to create AUTO_CENTER xform"
+            goto BEND
+         endif
+         set preWopt = "-gridset ${tmppref}_${pp}_shft*.HEAD -NN "
+      else
+         echo "Center distance of $dist_cent mm no auto_center needed "   
+      endif 
+   endif
+   
    #Apply pre-transform if need be
    set nopre_anat_in = $anat_in
    if ($prexform != '') then
       3dWarp   -overwrite -matvec_out2in $prexform \
-               -prefix pre.${prs_in[2]} ${anat_in}
+               -prefix pre.${prs_in[2]} $preWopt ${anat_in}
       #This operation is the same as
       #  cat_matvec $prexform -ONELINE > d1.$prexform
       #  3dAllineate -1Dmatrix_apply d1.$prexform \
@@ -578,14 +604,17 @@ AUTO_TLRC_MODE:
       echo "Dataset centers are $dist_cent mm"
       echo "apart. If registration fails, or if"
       echo "parts of the original anatomy gets"
-      echo "cropped, try recentering all the "
-      echo "input data using this command:"
-      echo "@Align_Centers -base ${ref_in} \\"
-      echo "               -dset ${anat_in} \\"
-      echo "               -child ${anat_path}/*.HEAD"
-      echo ""
-      echo "Then rerun `basename $0` using the _shft"
-      echo "version of your datasets."
+      echo "cropped, try adding option "
+      echo "   -init_xform AUTO_CENTER "
+      echo "to your @auto_tlrc command."
+      #echo "cropped, try recentering all the "
+      #echo "input data using this command:"
+      #echo "@Align_Centers -base ${ref_in} \\"
+      #echo "               -dset ${anat_in} \\"
+      #echo "               -child ${anat_path}/*.HEAD"
+      #echo ""
+      #echo "Then rerun `basename $0` using the _shft"
+      #echo "version of your datasets."
       echo ""
       echo "*********************************"
       echo ""
@@ -744,6 +773,7 @@ AUTO_TLRC_MODE:
 
       echo "$res"
       set rms_i = `echo "$res" | cut -d ' ' -f3`
+      echo $rms_i
       set rms_f = `echo "$res" | cut -d ' ' -f4`
       set rms_diff_pos = `ccalc -eval "step($rms_f - $rms_i)" | cut -d '.' -f1`
       set rms_ratio = `ccalc -form int -eval "($rms_i - $rms_f) / $rms_i * 100"`
@@ -1207,6 +1237,7 @@ CLEANUP:
 \rm -f ${tmppref}_MP* >& /dev/null
 \rm -f ${tmppref}*upad*.????*  >& /dev/null
 \rm -f ${tmppref}*warp_grid*.????*  >& /dev/null
+\rm -f ${tmppref}*_shft*.????*  >& /dev/null
 
 goto $Ret_Clean
 
@@ -1422,6 +1453,12 @@ echo ""
 echo "                    See cat_matvec -help for more details on extracting"
 echo "                    appropriate affine transforms from dataset headers."
 echo ""
+echo "          Note: You can also use -init_xform AUTO_CENTER to automatically"
+echo "                run @Align_Centers if the centers are off by more than "
+echo "                40 mm. "
+echo "                You can force centering with -init_xform CENTER"
+echo "                regardless of the center distance between volumes"
+echo ""  
 echo "      -out_space spacename: Set output to a particular space"
 echo "                       Usually, output space is determined by the space"
 echo "                       of the input template and does not need to set"
