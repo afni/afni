@@ -20,14 +20,14 @@ void usage_TrackID(int detail)
 {
 	printf(
 "\n"
-"  FACTID code, from Taylor, Cho, Lin and Biswal (some year!)\n"
+"  FACTID code, from Taylor, Cho, Lin and Biswal (2012)\n"
 "  \n"
 "  USAGE: read in data from 3dDWItoDT results; use L1 and V1 for actual\n"
 "    algorithm, and include MD and FA for stats\n"
 "  \n"
 "  COMMAND: 3dTrackID -mask1 FILE -mask2 FILE -input [base of FA/MD/etc.] \\\n"
 "           -logic AND|OR|ALL  -prefix NAME {-algopt FILE} {\\}\n"
-"           {-verb VERB  -tract_out_mode MODE}\n"
+"           {-verb VERB  -tract_out_mode MODE  -rec_orig}\n"
 "  \n\n"
 "  + OUTPUTS (named using prefix):  \n"
 "    1) TRK file, Trackvis-readable file of tracts\n"
@@ -72,6 +72,14 @@ void usage_TrackID(int detail)
 "                           meeting minimum length criterion.\n"
 "                           For now, you still have to specify a mask even if\n"
 "                           you use ALL (complain to Paul Taylor about this).\n"
+"    -rec_orig :Record dataset origin in the header of the *.trk file. \n"
+"               As of Sept. 2012, TrackVis doesn't use this info so it wasn't\n"
+"               included, but if you might want to map your *.trk file later,\n"
+"               then use the switch as the datasets's Origin is necessary\n"
+"               info for the mapping (the default image in TrackVis might not\n"
+"               pop up in the center of the viewing window, though, just be\n"
+"               aware).  NB: including the origin might become default at\n"
+"               some point in time.\n"
 "    -write_opts :Write out all the option values into PREFIX.niml.opts.\n" 
 "    -verb VERB :Verbosity level, default is 0.\n"
 "    -tract_out_mode MODE :Type of output format. Choose from:\n"
@@ -94,7 +102,9 @@ void usage_TrackID(int detail)
 "         -logic AND\n"
 "  \n\n"
 "  If you use this program, please reference:\n"
-"    Taylor, Cho, Lin and Biswal (2012)\n"
+"    Taylor PA, Cho K-H, Lin C-P, Biswal BB (2012) Improving DTI\n"
+"    Tractography by including Diagonal Tract Propagation. PLoS ONE\n"
+"    7(9): e43415. \n"
 "   \n" );
 	return;
 }
@@ -197,6 +207,8 @@ int main(int argc, char *argv[]) {
   	// for testing names...
 	char *postfix[4]={"+orig.HEAD\0",".nii.gz\0",".nii\0","+tlrc.HEAD\0"};
   	int FOUND =-1;
+	int RECORD_ORIG = 0; 
+	float Orig[3] = {0.0,0.0,0.0};
 
 	mainENTRY("3dTrackID"); machdep(); 
   
@@ -206,7 +218,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 
-	INFO_message("version: THETA");
+	INFO_message("version: KAPPA");
 
 	/** scan args **/
 	if (argc == 1) { usage_TrackID(1); exit(0); }
@@ -227,6 +239,11 @@ int main(int argc, char *argv[]) {
 
 		if( strcmp(argv[iarg],"-write_opts") == 0) {
 			dump_opts=1;
+			iarg++ ; continue ;
+		}
+    
+		if( strcmp(argv[iarg],"-rec_orig") == 0) {
+			RECORD_ORIG=1;
 			iarg++ ; continue ;
 		}
     
@@ -298,7 +315,9 @@ int main(int argc, char *argv[]) {
 			Dim[2] = DSET_NZ(insetFA); 
 			Ledge[0] = fabs(DSET_DX(insetFA)); Ledge[1] = fabs(DSET_DY(insetFA)); 
 			Ledge[2] = fabs(DSET_DZ(insetFA)); 
-		
+			Orig[0] = DSET_XORG(insetFA); Orig[1] = DSET_YORG(insetFA);
+			Orig[2] = DSET_ZORG(insetFA);
+
 			// check tot num vox match (as proxy for dims...)
 			if( (Nvox != nmask1) || (Nvox != nmask2) )
 				ERROR_exit("Input dataset does not match both mask volumes!");
@@ -421,6 +440,12 @@ int main(int argc, char *argv[]) {
 	// convert to cos of rad value for comparisons, instead of using acos()
 	MaxAng = cos(CONV*MaxAngDeg); 
 	 
+	// switch to add header-- option for now, added Sept. 2012
+	// for use with map_TrackID to map tracks to different space
+	if(RECORD_ORIG) {
+		for( i=0 ; i<3 ; i++)
+			header1.origin[i] = Orig[i];
+	}
 	 
 	// at some point, we will have to convert indices into
 	// pseudo-locations; being forced into this choice means that

@@ -354,6 +354,12 @@
 
 SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, 
                      float *range, char *label, int ignoreout);
+SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range, 
+                     char *label, int ignoreout, 
+                     float oscfrqthr, char *methods);
+int SUMA_hist_smooth( SUMA_HIST *hh, int N_iter ); 
+float SUMA_hist_oscillation( SUMA_HIST *hh, 
+                             float minmaxfrac, float oscfracthr);
 SUMA_HIST *SUMA_Free_hist(SUMA_HIST *hh);
 void SUMA_Show_hist(SUMA_HIST *hh, int norm, FILE *out);
 void SUMA_Show_dist(SUMA_FEAT_DIST *FD, FILE *out);
