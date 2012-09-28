@@ -896,15 +896,20 @@ int main(int argc, char **argv)
          hrange[0] =  ff_m-3*ff_s;
          hrange[1] =  ff_m+3*ff_s;
          bwidth = bwidth1*ff_s;
+      } else if (ff_m-3*ff_s > 0) {
+         hrange[0] =  ff_m-3*ff_s;
+         hrange[1] =  ff_m+3*ff_s;
+         bwidth = bwidth1*ff_s;
       } else {
          hrange[0] =  0;
          hrange[1] =  6.0*ff_s/2.0;
          bwidth = bwidth1*ff_s/2.0;
       }
-      if (!(hf[aa] = SUMA_hist(ff, N_ff, 0, bwidth, hrange, sbuf, 1))) {
+      if (!(hf[aa] = SUMA_hist_opt(ff, N_ff, 0, bwidth, hrange, sbuf, 1, 
+                                    0.1, "Range|OsciBinWidth"))) {
          SUMA_S_Errv("Failed to generate histogram for %s. \n"
                      "This will cause trouble at classification.\n",
-                     Opt->feats->str[aa])
+                     Opt->feats->str[aa]);
       } else {
          if ((float)hf[aa]->N_ignored/(float)hf[aa]->n > 0.05) {
             SUMA_S_Warnv("For histogram %s, %.2f%% of the samples were\n"
@@ -942,9 +947,13 @@ int main(int argc, char **argv)
       for (aa=0; aa<Opt->feats->num; ++aa) {
          sprintf(sbuf, "h(%s|%s)",Opt->feats->str[aa], Opt->clss->str[cc]);
          hrange[0] = hf[aa]->min; hrange[1] = hf[aa]->max; 
-         if (!(hh[aa][cc] = SUMA_hist(FCset[aa][cc], N_FCset[aa][cc], 
+         /* Do not optimize hist range and binwidth anymore, 
+            but allow smoothing. THis is needed when a particular 
+            class has very few samples */
+         if (!(hh[aa][cc] = SUMA_hist_opt(FCset[aa][cc], N_FCset[aa][cc], 
                                     hf[aa]->K, hf[aa]->W, 
-                                    hrange, sbuf, 1))) {
+                                    hrange, sbuf, 1,
+                                    0.1, "OsciSmooth"))) {
             SUMA_S_Errv("Failed to generate histogram for %s|%s. \n"
                         "This will cause trouble at classification.\n",
                         Opt->feats->str[aa], Opt->clss->str[cc])
@@ -1064,58 +1073,9 @@ int main(int argc, char **argv)
       masks[ss]=NULL;
    }
    
-   SUMA_S_Crit("Die here\n"); exit(1);
-
-   /*
-         sprintf(sbuf,"g(%s|%s)",Opt->feats->str[aa], Opt->clss->str[cc]);
-   */
-
-
-   if (Opt->group_classes) { /* just a check */
-      if (!SUMA_Regroup_classes (Opt, 
-                     Opt->clss->str, Opt->clss->num, Opt->keys,
-                     Opt->group_classes->str, 
-                     Opt->group_classes->num, NULL,
-                     NULL, NULL, NULL, 
-                     NULL, NULL)) {
-         ERROR_exit("Failed to determine mapping");
-      }
-   }
-   
-   
-   if (Opt->sig) {
-      Opt->cmask = MaskSetup(Opt, Opt->sig, 
-                &(Opt->mset), &(Opt->cmask), Opt->dimcmask, 
-                Opt->mask_bot, Opt->mask_top, &(Opt->cmask_count));
-   }
-   
-   
-   if (Opt->VoxDbg >= 0) {
-      fprintf(Opt->VoxDbgOut, "Command:");
-      for (iii=0; iii<argc; ++iii) {
-         fprintf(Opt->VoxDbgOut, "%s ", argv[iii]);
-      }
-      fprintf(Opt->VoxDbgOut, "\nDebug info for voxel %d\n", Opt->VoxDbg);
-   }
-   
-   /* An inportant sanity check */
-   if (Opt->pset && Opt->clss->num != DSET_NVALS(Opt->pset)) {
-      ERROR_exit( "Number of classes %d does not "
-                  "match number of pset subricks %d\n",
-                  Opt->clss->num , DSET_NVALS(Opt->pset));
-   }
-   
-   if (!GenFeatureDist(Opt)) {
-      ERROR_exit("Failed in GenFeatureDist");
-   }
-   
-   /* write output */
-   if (Opt->pset && !Opt->this_pset_name) {
-      DSET_write(Opt->pset);
-   }
-   if (Opt->cset && !Opt->this_cset_name) {
-      DSET_write(Opt->cset);
-   }
+   SUMA_S_Notev("Consider running this script to examine the distributions:\n"
+                "   @ExamineGenFeatDists -fdir %s -odir %s\n",
+                Opt->proot, Opt->proot);
    
    /* all done, free */
    Opt = free_SegOpts(Opt);

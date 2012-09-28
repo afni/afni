@@ -5398,9 +5398,248 @@ SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, float *range,
       hh->b[i] = hh->min+(i+0.5)*hh->W;
       hh->cn[i] = (float)hh->c[i]/(float)n;
    }
+      
+   SUMA_RETURN(hh);
+}
+
+SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range, 
+                     char *label, int ignoreout, 
+                     float oscfreqthr, char *methods) 
+{
+   static char FuncName[]={"SUMA_hist_opt"};
+   int i=0, minloc, maxloc, ib=0, N_iter=0, N_itermax=10;
+   float min=0.0, max=0.0, orange[2]={0.0, 0.0}, mxcn=0.0, osfrac=0.0;
+   float minmaxfrac=0.0, oscfracthr=0.0;
+   SUMA_HIST *hh=NULL, *hhn=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   hh = SUMA_hist(v,n,Ku,Wu,range,label,ignoreout);
+   if (!hh) SUMA_RETURN(hh);
+   if (!methods) {
+      methods = "Range|OsciBinWidth";
+   }
+   
+   if (strstr(methods, "Range")) {
+      Ku = 0; /* if set by user, should be loosened because we're controlling
+                 range and binwidth here */
+      /* try tightening the range */
+      if ((float)hh->N_ignored/(float)hh->n > 0.01) {
+         SUMA_LHv("For histogram %s, %.2f%% of the samples were\n"
+                      "ignored for being outside the range [%f %f]\n"
+                      "Trying range tightening\n",
+                hh->label,
+                100*(float)hh->N_ignored/(float)hh->n, 
+                hh->min, hh->max);
+         /* try to shrink the range and repeat */
+         for (i=0, mxcn=0.0; i<hh->K; ++i) {
+            if (hh->cn[i]>mxcn) mxcn = hh->cn[i];
+         }
+         i = 0; 
+         while (i < hh->K && hh->cn[i]/mxcn < 0.001) ++i;
+         orange[0] = hh->b[i]-0.5*hh->W;
+         i = hh->K-1;
+         while (i > 0 && hh->cn[i]/mxcn < 0.001) --i;
+         orange[1] = hh->b[i]+0.5*hh->W;
+         if (orange[0] != hh->min || orange[1] != hh->max) {
+            /* retry with new range */
+            SUMA_LHv("Retrying with n=%d, Ku=%d, Wu=%f, orange=[%f %f]\n",
+                     n, Ku, Wu, orange[0], orange[1]);
+            if ((hhn = SUMA_hist(v,n,Ku,Wu,orange,label,ignoreout))) {
+               SUMA_Free_hist(hh); hh=hhn; hhn=NULL;
+            } else {
+               SUMA_S_Err("Unexpected error, returning with what I have");
+               SUMA_RETURN(hh);
+            }
+         } 
+      } 
+
+      /* Still no good, range has to increase */
+      N_iter = 0; N_itermax = 25;
+      while (((float)hh->N_ignored/(float)hh->n > 0.01) && N_iter <= N_itermax) {
+         if (N_iter < N_itermax) {
+            SUMA_LHv("For histogram %s, %.2f%% of the samples were\n"
+                         "ignored for being outside the range [%f %f]\n"
+                         "Attempting range expansion, iteration %d\n",
+                   hh->label,
+                   100*(float)hh->N_ignored/(float)hh->n, 
+                   hh->min, hh->max, N_iter);
+            /* try to increase the range the range and repeat */
+            for (i=0, mxcn=0.0; i<hh->K; ++i) {
+               if (hh->cn[i]>mxcn) mxcn = hh->cn[i];
+            }
+            if (hh->cn[hh->K-1] > hh->cn[0]) orange[1] += hh->K/20.0*hh->W;
+            else if (hh->cn[hh->K-1] < hh->cn[0]) orange[0] -= hh->K/20.0*hh->W;
+            else {
+               orange[0] -= hh->K/20.0*hh->W;
+               orange[1] += hh->K/20.0*hh->W;
+            }
+            if (orange[0] != hh->min || orange[1] != hh->max) {
+               /* retry with new range */
+               SUMA_LHv("Retry with Ku=%d, Wu=%f, orange=[%f %f], iter %d\n",
+                        Ku, Wu, orange[0], orange[1], N_iter);
+               if ((hhn = SUMA_hist(v,n,0,Wu,orange,label,ignoreout))) {
+                  SUMA_Free_hist(hh); hh=hhn; hhn=NULL;
+               } else {
+                  SUMA_S_Err("Unexpected error, returning with what I have");
+                  SUMA_RETURN(hh);
+               }
+            }
+         } else {
+            SUMA_S_Warnv("For histogram %s, %.2f%% of the samples were\n"
+                         "ignored for being outside the range [%f %f]\n"
+                         "Range expansion halted after %d iterations\n",
+                   hh->label,
+                   100*(float)hh->N_ignored/(float)hh->n, 
+                   hh->min, hh->max, N_itermax);
+         }
+         ++N_iter; 
+      }
+   }
+   
+   /* bin oscillations? */
+   if (oscfreqthr >= 0.0 && strstr(methods,"Osci")) {
+      if (oscfreqthr == 0.0f) oscfreqthr = 0.3;
+      N_iter = 0; N_itermax = 10;
+      while ((osfrac = SUMA_hist_oscillation(hh, minmaxfrac, oscfracthr)) 
+                        > oscfreqthr &&
+             N_iter <= N_itermax) {
+         if (N_iter < N_itermax) {
+            if (strstr(methods,"OsciSmooth")) { /* by smoothing */
+            SUMA_LHv("Histogram %s oscifraq = %f, needs smoothing, "
+                         "iter %d\n",
+                        hh->label, osfrac, N_iter);
+            SUMA_hist_smooth(hh,1);
+            } else if (strstr(methods,"OsciBinWidth")){
+               SUMA_LHv("Histogram %s oscifraq = %f needs bin adjustment,"
+                            " iter %d\n",
+                            hh->label,osfrac,  N_iter);
+               Wu = hh->W*1.1; orange[0] = hh->min; orange[1] = hh->max;
+               /* retry with new width */
+               SUMA_LHv("Retry with Ku=%d, Wu=%f, orange=[%f %f], iter %d\n",
+                        Ku, Wu, orange[0], orange[1], N_iter);
+               if ((hhn = SUMA_hist(v,n,0,Wu,orange,label,ignoreout))) {
+                  SUMA_Free_hist(hh); hh=hhn; hhn=NULL;
+               } else {
+                  SUMA_S_Err("Unexpected error, returning with what I have");
+                  SUMA_RETURN(hh);
+               }
+            } else {
+               SUMA_S_Errv("Bad Osci option in %s\n", methods);
+               SUMA_RETURN(hh);
+            }
+         } else {
+            SUMA_S_Warnv("Histogram %s oscifraq = %f still needs fixing"
+                         " but iterations are exhasuted at %d\n",
+                         hh->label,osfrac,  N_itermax); 
+         }
+         ++N_iter;
+      }
+   }
+   /* you probably want to consider the range again, perhaps loop back
+      We'll see if that will be needed.*/
    
    SUMA_RETURN(hh);
 }
+
+int SUMA_hist_smooth( SUMA_HIST *hh, int N_iter ) 
+{
+   static char FuncName[]={"SUMA_hist_smooth"};
+   float *fbuf=NULL, *fbufn=NULL;
+   int i, iter=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!hh) SUMA_RETURN(NOPE);
+   
+   if (N_iter == 0) N_iter = 1;
+   
+   iter = 0;
+   while (iter < N_iter) {
+      if (!fbuf) fbuf = (float *)SUMA_calloc(hh->K, sizeof(float));
+      if (!fbufn) fbufn = (float *)SUMA_calloc(hh->K, sizeof(float)); 
+
+      fbuf[0] = (hh->c[0]+hh->c[1])/2.0;
+      fbuf[hh->K-1] = (hh->c[hh->K-1]+hh->c[hh->K-2])/2.0;
+      fbufn[0] = (hh->cn[0]+hh->cn[1])/2.0;
+      fbufn[hh->K-1] = (hh->cn[hh->K-1]+hh->cn[hh->K-2])/2.0;
+      if (fbuf[0] > fbuf[hh->K-1]) {
+         hh->min = fbuf[hh->K-1]; hh->max = fbuf[0];
+      } else {
+         hh->max = fbuf[hh->K-1]; hh->min = fbuf[0];
+      }
+      for (i=1; i<hh->K-1; ++i) {
+         fbuf[i] = (hh->c[i-1]+hh->c[i]+hh->c[i+1])/3.0;
+         fbufn[i] = (hh->cn[i-1]+hh->cn[i]+hh->cn[i+1])/3.0;
+         if (fbuf[i]>hh->max) hh->max = fbuf[i];
+         else if (fbuf[i]<hh->min) hh->min = fbuf[i];
+      }
+      memcpy(hh->cn, fbufn, hh->K*sizeof(float));
+      memcpy(hh->c, fbuf, hh->K*sizeof(float));
+      ++iter;
+   }
+   if (fbuf) SUMA_free(fbuf); fbuf=NULL;
+   if (fbufn) SUMA_free(fbufn); fbufn=NULL;
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   Look for oscillation (bad bin width) in histogram
+   
+   minmaxfrac : Do not look for oscillation if a bin frequency is 
+                is less than minmaxfrac*max_frequency(histogram)
+                Set to 0.0 to get default of 0.001
+   oscfracthr : Do not consider a bin to exhibit oscillation if
+                the average of the absolute differences at that location
+                divided by the bin's frequency is less than oscfracthr
+                Set to 0.0 to get default of 0.3
+   Returns the fraction of bins exhibiting oscillation from the total
+   number of candidate bins (those exceeding minmaxfrac)
+*/
+float SUMA_hist_oscillation( SUMA_HIST *hh, 
+                             float minmaxfrac, float oscfracthr)
+{
+   static char FuncName[]={"SUMA_hist_oscillation"};
+   int iosc=0,mxosc,i=0;
+   double db, df, oscfrac, mx=0.0, oscfreq=0.0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (minmaxfrac==0.0f) minmaxfrac = 0.001;
+   if (oscfracthr==0.0f) oscfracthr = 0.3;
+   
+   mx = 0.0;
+   for (i=0; i<hh->K-1;++i) {
+      if (mx < hh->cn[i]) mx = hh->cn[i];
+   }
+   if (mx == 0.0f) SUMA_RETURN(YUP);
+   
+   iosc=0; mxosc=0;
+   for (i=1; i<hh->K-1;++i) {
+      if (hh->cn[i]/mx > minmaxfrac) {
+         ++mxosc;
+         db = hh->cn[i] - hh->cn[i-1];
+         df = hh->cn[i] - hh->cn[i+1];
+         oscfrac = (SUMA_ABS(db)+SUMA_ABS(df))/(2*hh->cn[i]);
+         if (db*df > 0 && oscfrac > oscfracthr) {
+            SUMA_LHv("Oscfrac at bin %d of %f = %f\n", 
+                         i, hh->cn[i], oscfrac);
+            ++iosc;
+         }
+      }
+   }
+   oscfreq = 0;
+   if (mxosc) oscfreq = (float)iosc/mxosc; 
+   SUMA_LHv("Osci frac of histogram %s is %f\n", 
+                  hh->label, oscfreq);
+   
+   SUMA_RETURN(oscfreq);
+}
+
 
 float SUMA_hist_freq(SUMA_HIST *hh, float vv)
 {
@@ -5416,7 +5655,7 @@ float SUMA_hist_freq(SUMA_HIST *hh, float vv)
 
 SUMA_HIST *SUMA_Free_hist(SUMA_HIST *hh)
 {
-   static char FuncName[]={"SUMA_free_hist"};
+   static char FuncName[]={"SUMA_Free_hist"};
    SUMA_ENTRY;
    if (hh) {
       if (hh->b) SUMA_free(hh->b);
