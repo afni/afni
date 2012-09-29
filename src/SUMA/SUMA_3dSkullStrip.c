@@ -1114,7 +1114,8 @@ int main (int argc,char *argv[])
    int ii,jj,kk,ll,ijk , nx,ny,nz , nn, nint = 0 , nseg;
    void *SO_name=NULL, *SO_name_hull=NULL, *SO_name_bhull = NULL, 
          *SO_name_iskull = NULL, *SO_name_oskull = NULL;
-   float vol, *isin_float=NULL, pint, *dsmooth = NULL, XYZrai_shift[3];
+   float min=0.0, max=0.0, vol, 
+         *isin_float=NULL, pint, *dsmooth = NULL, XYZrai_shift[3];
    SUMA_SurfaceObject *SO = NULL, *SOhull=NULL;
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
    char  stmp[200], stmphull[200], *hullprefix=NULL, 
@@ -1231,13 +1232,24 @@ int main (int argc,char *argv[])
          THD_volDXYZscale(Opt->iset->daxes, Opt->xyz_scale, 0);
          Opt->specie = MONKEY;   /* now pretend it is a monkey! */
       }
+      
+      /* If range is too small, complain */
+      if (!THD_subbrick_minmax(Opt->iset, 0,  1, &min, &max)) {
+         SUMA_S_Err("Failed to get min max of input");
+         exit(1);
+      }
+      if (max < 50) {
+         SUMA_S_Warnv("Input dataset has a very low value range.\n"
+                    "If stripping fails, try scaling it by 1000\n"
+                    "with:\n  3dcalc -a %s -expr 'a*1000' -prefix PPP\n"
+                    "and try stripping again with new volume.\n", Opt->in_name);
+      }
       /*--- get median brick --*/
       imin = THD_median_brick( Opt->iset ) ;
       if( imin == NULL ){
         fprintf(stderr,"**ERROR: can't load dataset %s\n",Opt->in_name) ;
         exit(1);
       }
-      
       mri_speciebusiness(Opt->specie);
       if (Opt->SpatNormDxyz) {
          if (Opt->debug) SUMA_S_Note("Overriding default resampling");

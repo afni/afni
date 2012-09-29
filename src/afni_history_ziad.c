@@ -65,14 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 28, Sep , 2012 , ZSS , "@T1scale" , MINOR , TYPE_NEW_PROG,
+   "A mini script to scale T1s by PD volumes",
+   "Script uses method borrowed from @CalculateSignatures\n"
+   "to reduce bias field in T1 using a PD volume. Script also\n"
+   "works well without PD."
+ },
+
  { 28, Sep , 2012 , ZSS , "@auto_tlrc" , MINOR , TYPE_NEW_OPT,
    "Enabled automatic centering via -init_xform",
    "You can use -init_xform AUTO_CENTER or -init_xform CENTER\n"
    "to perform center alignment during registration."
  },
 
- { 28, Sep , 2012 , ZSS , "map_TrackID" , MAJOR , TYPE_NEW_PROG,
-   "New program by Paul Taylor to warp tracks by an affine transform",
+ { 28, Sep , 2012 , ZSS , "afni-general" , MINOR , TYPE_NEW_PROG,
+   "Added Paul Taylor's map_TrackID to warp tracks by an affine transform",
    NULL
  },
 
