@@ -37,7 +37,7 @@ STATIT:
    
 SCALEIT:
    cd $odir
-   set med = `3dBrickStat -median -mask mask+orig T1+orig.`
+   set med = `3dBrickStat -non-zero -median -mask mask+orig T1+orig.`
    3dcalc   -a T1+orig. -b PD.ls+orig'[perc:75.00]' \
             -c mask+orig -datum short -overwrite \
             -expr "step(c)*a/b*$med[2]" \
@@ -56,6 +56,8 @@ set sigset = 'sigset'
 set suff = 'nosuf'
 set imask = ''
 set idir = $PWD
+set T1 = ''
+set PD = ''
 if ("$1" == '') goto HELP
 while ($cnt <= $Narg)
    set donext = 1
@@ -164,6 +166,17 @@ cd $odir
 set odir = $PWD
 cd -
          
+if ($T1 == '') then
+   echo "No T1 volume"
+   goto BEND
+endif
+
+if ($PD == '') then
+   set PD = $T1
+   echo "Setting PD to be same as T1"
+endif
+
+
 
 goto RET_PARSE
 
@@ -171,7 +184,9 @@ HELP:
    echo ""
    echo "Usage: `basename $0` <-T1 T1vol> <-PD PDvol> "
    echo " "
-   echo "Scales T1 by PD to reduce shading artifacts"
+   echo "Fix bias field shading in T1 by scaling it with PD image."
+   echo "You can also get a decent result even without the PD volume"
+   echo ""
    echo "   -T1 T1vol: The T1 volume"
    echo "   -PD PDvol: The PD volume"
    echo "          (Psst, if you have no PD volume, put the T1 here too.)"
@@ -184,31 +199,10 @@ HELP:
    echo ""
    echo "         Script will reuse existing intermediate volumes"
    echo ""
+   echo "   -echo: Set echo"
+   echo "   -help: this message" 
+   echo ""
    @global_parse -gopts_help
-   goto END
-   echo "-fdir DIR: output directory of 3dGenFeatDists"
-   echo "-fwild WILD1 [WILD2 ...]: Wildcards used to select feature histograms"
-   echo "                          under DIR."
-   echo "                          Histograms picked would be those named:"
-   echo '                          h.*WILD1.niml.hist and h.*WILD1-G-*.niml.hist'
-   echo "-suffix SUFF: Output suffix, added to output images. Default nosuff"
-   echo "-exfeat FEAT1 [FEAT2 ...]: Exclude following features. String matching"
-   echo "                            is partial"
-   echo "-exclass CLSS1 [CLSS2 ...]: Exclude following classes. String matching "
-   echo "                             is partial"
-   echo "-odir DIR: Output directory, default is DIR"
-   echo "-echo: Set echo"
-   echo "-help: this message" 
-   echo ""
-   echo " See also @FeatureHists "
-   echo ""
-   echo "Example:"
-   echo "@ExamineGenFeatDists    -fwild sc9 Xz Yz Zz FA.MAD07 MD \"
-   echo "                        -fdir GenFeatDist.sc9 \"
-   echo "                        -exfeat mean z.FA. z.MD \"
-   echo "                        -exclass air \"
-   echo "                        -odir GenFeatDist.sc9"
-   echo ""
    goto END
 
 goto END

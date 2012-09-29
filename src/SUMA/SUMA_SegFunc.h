@@ -113,6 +113,19 @@
    }  \
 }
 
+#define NEW_SHORTYV(par,nsb,nm,pb,view){  \
+   NEW_SHORTY(par,nsb,nm,pb); \
+   if (view) {\
+            if (!strstr(view,"orig")) \
+         EDIT_dset_items( pb ,ADN_view_type , VIEW_ORIGINAL_TYPE ,ADN_none ) ; \
+      else  if (!strstr(view,"acpc")) \
+         EDIT_dset_items( pb ,ADN_view_type, VIEW_ACPCALIGNED_TYPE ,ADN_none ); \
+      else  if (!strstr(view,"tlrc")) \
+         EDIT_dset_items( pb ,ADN_view_type, VIEW_TALAIRACH_TYPE ,ADN_none ) ; \
+      else SUMA_S_Errv("In NEW_SHORTYV; View of %s is rubbish", view);   \
+   }  \
+}
+
 #define NEW_SHORTY(par,nsb,nm,pb){  \
    int m_i;   \
    pb = EDIT_empty_copy(par); \
@@ -367,6 +380,7 @@ void SUMA_Show_dists(SUMA_FEAT_DISTS *FDV, FILE *out, int level);
 char *SUMA_dist_info(SUMA_FEAT_DIST *FD, int level);
 char *SUMA_dists_info(SUMA_FEAT_DISTS *FDV, int level);
 float SUMA_hist_freq(SUMA_HIST *hh, float vv);
+float SUMA_hist_perc_freq(SUMA_HIST *nn, float perc, int norm, int *iperc);
 char *SUMA_hist_variable(SUMA_HIST *hh);
 char *SUMA_hist_conditional(SUMA_HIST *hh);
 char *SUMA_dist_variable(SUMA_FEAT_DIST *hh);
