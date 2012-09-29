@@ -732,10 +732,10 @@ HELP:
    echo "Calculate a set of local statisctics to form a signature (feature) set."
    echo "-input DSET: input dset"
    echo "-stat STAT: Type of localstat to compute. See 3dLocalstat -help"
-   echo "            e.g. -stat mean median MAD P2skew kurt
+   echo "            e.g. -stat mean median MAD P2skew kurt"
    echo "-local R: Radius of sphere which envelopes voxels for which STAT "
    echo "          STAT is derived."
-   echo "            e.g. -local 1 2 3 4 6 8 10 13 16 19 
+   echo "            e.g. -local 1 2 3 4 6 8 10 13 16 19 "
    echo "-mask MASK: Mask volume restricting computation region"
    echo "-odir DIR: Output directory"
    echo "-prepend_anat: Add copy of DSET in feature vector. DSET is considered"

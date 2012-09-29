@@ -1056,19 +1056,25 @@ int SUMA_ShortizeDset(THD_3dim_dataset **dsetp, float thisfac) {
    SUMA_RETURN(1);
 }
    
-THD_3dim_dataset *Seg_load_dset( char *set_name ) {
+THD_3dim_dataset *Seg_load_dset( char *set_name  ) {
+   return(Seg_load_dset_eng(set_name, NULL));
+}
+
+THD_3dim_dataset *Seg_load_dset_eng( char *set_name, char *view ) 
+{
+   static char FuncName[]={"Seg_load_dset_eng"};
    THD_3dim_dataset *dset=NULL, *sdset=NULL;
    int i=0;
    byte make_cp=0;
    int verb=0;
    char sprefix[THD_MAX_PREFIX+10];
    
-   ENTRY("Seg_load_dset");
+   SUMA_ENTRY;
    
    dset = THD_open_dataset( set_name );
    if( !ISVALID_DSET(dset) ){
      fprintf(stderr,"**ERROR: can't open dataset %s\n",set_name) ;
-     RETURN(NULL);
+     SUMA_RETURN(NULL);
    }
    
    DSET_mallocize(dset)   ; DSET_load(dset);
@@ -1084,11 +1090,24 @@ THD_3dim_dataset *Seg_load_dset( char *set_name ) {
    
    if (make_cp) {
       if (!SUMA_ShortizeDset(&dset, -1.0)) {
-         ERROR_exit("**ERROR: Failed to shortize");
+         SUMA_S_Err("**ERROR: Failed to shortize");
+         SUMA_RETURN(NULL);
       }
    }
    
-   RETURN(dset);
+   if (view) {
+      if (view) {
+               if (!strstr(view,"orig")) 
+            EDIT_dset_items(dset,ADN_view_type, VIEW_ORIGINAL_TYPE, ADN_none); 
+         else  if (!strstr(view,"acpc")) 
+            EDIT_dset_items(dset,ADN_view_type, VIEW_ACPCALIGNED_TYPE, ADN_none);
+         else  if (!strstr(view,"tlrc")) 
+            EDIT_dset_items(dset ,ADN_view_type, VIEW_TALAIRACH_TYPE, ADN_none);
+         else SUMA_S_Errv("View of %s is rubbish", view);
+      }
+   }
+   
+   SUMA_RETURN(dset);
 }
 
 int Seg_ClssAndKeys_from_dset(THD_3dim_dataset *dset, 

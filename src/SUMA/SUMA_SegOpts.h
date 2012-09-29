@@ -31,6 +31,7 @@ typedef struct {
                      were outside the range and were ignored
                      during histogram build. Normally, values
                      outside range would be assigned to end bins*/
+   int *isrt; /* bin index for sorting cn from min to max */
 } SUMA_HIST;
 
 typedef enum { SUMA_FEAT_NOT_SET=-1, 
@@ -172,6 +173,7 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
                 THD_3dim_dataset **msetp, byte **cmaskp, int dimcmask, 
                 float mask_bot, float mask_top, int *mcount); 
 THD_3dim_dataset *Seg_load_dset( char *set_name );
+THD_3dim_dataset *Seg_load_dset_eng( char *set_name, char *view );
 SEG_OPTS *SegOpt_Struct(void );
 void *Seg_NI_read_file(char *fname);
 SEG_OPTS *free_SegOpts(SEG_OPTS *);
