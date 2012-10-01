@@ -2825,10 +2825,12 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_stim_times')
     if not opt.parlist or len(opt.parlist) == 0:
         # then any original stims are as 1D, whether converting or not
-        if not valid_file_types(proc, proc.stims_orig, 1): return
+        if not valid_file_types(proc, proc.stims_orig, 1,
+                                stypes=stim_types): return
     else:
         # local/global question just answered above
-        if not valid_file_types(proc,proc.stims_orig,verify_times_type): return
+        if not valid_file_types(proc,proc.stims_orig,verify_times_type,
+                                stypes=stim_types): return
 
     # and check any extras against 1D only
     if not valid_file_types(proc, proc.extra_stims_orig, 1): return
@@ -2908,7 +2910,8 @@ def db_cmd_regress(proc, block):
     else:
         Liresp = []
         for index in range(len(labels)):
-            if not UTIL.basis_has_known_response(basis[index]):
+            if not UTIL.basis_has_known_response(basis[index]) and \
+               not stim_types[index] == 'file':
                 Liresp.append("    -iresp %d %s_%s.$subj" % \
                               (index+1, opt.parlist[0], labels[index]))
 
@@ -2920,7 +2923,13 @@ def db_cmd_regress(proc, block):
         # rcr - allow -stim_times_AM/IM here?  make user choose one?
         #       (so mabye -stim_times can be set from proc.stim_times_opt)
         if sfiles:  # then -stim_file and no basis function
-            O3dd.append("    -stim_file %d %s" % (ind+1,proc.stims[ind]))
+            O3dd.append("    -stim_file %d %s" % (ind+1, proc.stims[ind]))
+        elif stim_types[ind] == 'file':
+            O3dd.append("    -stim_file %d %s" % (ind+1, proc.stims[ind]))
+            if basis[ind] != 'NONE':
+               ss = os.path.basename(proc.stims[ind])
+               print "** ignoring basis #%d, %s, for -stim_type 'file' = %s" \
+                     % (ind+1, basis[ind], ss)
         else:
             if stim_types[ind] == 'times': st_suf = ''
             else:                          st_suf = '_%s' % stim_types[ind]
@@ -3976,6 +3985,8 @@ def married_types_match(proc, stims, stypes, bases):
         stype = stypes[ind]
         basis = bases[ind]
 
+        if stype == 'file': continue
+
         adata = LD.AfniData(fname)
         if adata == None:
             print "** MTM: failed to load stim timing file '%s'" % fname
@@ -4008,7 +4019,7 @@ def married_types_match(proc, stims, stypes, bases):
 
     return ok_all
 
-def valid_file_types(proc, stims, file_type):
+def valid_file_types(proc, stims, file_type, stypes=[]):
     """verify that the files are valid as 1D, local or global times
 
          1 : 1D
@@ -4031,7 +4042,11 @@ def valid_file_types(proc, stims, file_type):
 
     ok_all = 1  # assume good, and look for failure
 
-    for fname in stims:
+    for findex in range(len(stims)):
+        fname = stims[findex]
+        ftype = file_type
+        if stypes and stypes[findex] == 'file': ftype = 1
+
         adata = LD.AfniData(fname, verb=proc.verb)
         if adata == None:
             print "** failed to load stim timing file '%s'" % fname
@@ -4046,20 +4061,20 @@ def valid_file_types(proc, stims, file_type):
             print '-- have married file %s' % fname
 
         ok = 0  # prudent
-        if   file_type == 1: # check 1D, just compare against total reps
+        if   ftype == 1: # check 1D, just compare against total reps
             ok = adata.looks_like_1D(run_lens=proc.reps_all, verb=0)
             if ok: adata.file_type_warnings_1D(run_lens=proc.reps_all)
-        elif file_type == 2: # check local
+        elif ftype == 2: # check local
             ok = adata.looks_like_local_times(run_lens=proc.reps_all,
                                                 tr=proc.tr, verb=0)
             if ok: adata.file_type_warnings_local(run_lens=proc.reps_all,
                                                 tr=proc.tr)
-        elif file_type == 3: # check global
+        elif ftype == 3: # check global
             ok = adata.looks_like_global_times(run_lens=proc.reps_all,
                                                 tr=proc.tr, verb=0)
             if ok: adata.file_type_warnings_global(run_lens=proc.reps_all,
                                                 tr=proc.tr)
-        elif file_type == 10: # check both local and global
+        elif ftype == 10: # check both local and global
             # first test as global (a file that looks like global or local
             # should be treated as global)
             ok = adata.looks_like_global_times(run_lens=proc.reps_all,
@@ -4073,7 +4088,7 @@ def valid_file_types(proc, stims, file_type):
                 if ok: adata.file_type_warnings_local(run_lens=proc.reps_all,
                                                     tr=proc.tr)
         else: # error
-            print '** valid_file_types: bad type %d' % file_type
+            print '** valid_file_types: bad type %d' % ftype
             return 0
 
         # if empty, warn user (3dD will fail)
@@ -4090,14 +4105,14 @@ def valid_file_types(proc, stims, file_type):
         ok_all = 0
 
         # if ft=10, report local errors only
-        if file_type == 10: file_type = 2
+        if ftype == 10: ftype = 2
 
-        if file_type == 1:
+        if ftype == 1:
             adata.looks_like_1D(run_lens=proc.reps_all, verb=3)
-        elif file_type == 2:
+        elif ftype == 2:
             adata.looks_like_local_times(run_lens=proc.reps_all, tr=proc.tr,
                                          verb=3)
-        elif file_type == 3: # check global
+        elif ftype == 3: # check global
             adata.looks_like_global_times(run_lens=proc.reps_all, tr=proc.tr,
                                          verb=3)
         print '------------------------------------------------------------'
@@ -6749,6 +6764,10 @@ g_help_string = """
          ** Note that use of dmBLOCK requires -stim_times_AM1 (or AM2).  So
             consider option -regress_stim_types.
 
+         ** If using -regress_stim_types 'file' for a particular regressor,
+            the basis function will be ignored.  In such a case, it is safest
+            to use 'NONE' for the corresponding basis function.
+
             Please see '3dDeconvolve -help' for more information, or the link:
                 http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_basis_normall, -regress_stim_times,
@@ -7481,16 +7500,18 @@ g_help_string = """
             See also -regress_stim_files, -regress_use_stim_files,
                      -tshift_align_to.
 
-        -regress_stim_types TYPE1 TYPE2 ... : specify list of stim times types
+        -regress_stim_types TYPE1 TYPE2 ... : specify list of stim types
 
-                e.g. -regress_stim_types times times AM2 AM2 times AM1
+                e.g. -regress_stim_types times times AM2 AM2 times AM1 file
                 e.g. -regress_stim_types AM2
                 default: times
 
             If amplitude, duration or individual modulation is desired with
             any of the stimulus timing files provided via -regress_stim_files,
             then this option should be used to specify one (if all of the types
-            are the same) or a list of stimulus timing types.
+            are the same) or a list of stimulus timing types.  One can also use
+            the type 'file' for the case of -stim_file, where the input is a 1D
+            regressor instead of stimulus times.
 
             The types should be (possibly repeated) elements of the set:
             {times, AM1, AM2, IM}, where they indicate:
@@ -7506,6 +7527,9 @@ g_help_string = """
 
                 IM:     NO married parameters, but get beta for each stim
                         ==> use -stim_times_IM in 3dDeconvolve command
+
+                file:   a 1D regressor, not a stimulus timing file
+                        ==> use -stim_file in 3dDeconvolve command
             
             Please see '3dDeconvolve -help' for more information.
             See also -regress_stim_times.
