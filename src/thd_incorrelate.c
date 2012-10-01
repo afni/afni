@@ -734,7 +734,7 @@ ENTRY("INCOR_create_2Dhist") ;
 
    if( nbin < 3 ) nbin = 3 ;
 
-   tdh = (INCOR_2Dhist *)malloc(sizeof(INCOR_2Dhist)) ;
+   tdh = (INCOR_2Dhist *)calloc(1,sizeof(INCOR_2Dhist)) ;
 
    tdh->meth  = 0 ;  /* undefined as yet */
    tdh->nbin  = nbin ;
@@ -853,7 +853,7 @@ INCOR_pearson * INCOR_create_incomplete_pearson(void)
 {
    INCOR_pearson *inpear ;
 
-   inpear = (INCOR_pearson *)malloc(sizeof(INCOR_pearson)) ;
+   inpear = (INCOR_pearson *)calloc(1,sizeof(INCOR_pearson)) ;
    inpear->sx  = 0.0 ; inpear->sxx = 0.0 ;
    inpear->sy  = 0.0 ; inpear->syy = 0.0 ;
    inpear->sxy = 0.0 ; inpear->sw  = 0.0 ; inpear->npt = 0 ;
