@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, OCT, 2012, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "added 'file' to list of -stim_types parameters",
+   "The 'file' type would imply -stim_file in 3dDeconvolve, not timing."
+ } ,
+
  { 26, SEP, 2012, RCR, "@update_afni_binaries", MINOR, TYPE_NEW_OPT,
    "added -apsearch; verify download for recursive step",
    NULL

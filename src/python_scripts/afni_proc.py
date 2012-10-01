@@ -359,9 +359,10 @@ g_history = """
         - if 3dD_stop and reml_exec, use errts_REML for blur estimation
           (thanks to P Molfese for noting the problem)
         - apply compute_fitts for non-reml case
+    3.34 Oct 01, 2012: added 'file' type for -regress_stim_types
 """
 
-g_version = "version 3.33, September 25, 2012"
+g_version = "version 3.34, October 1, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 May 2012"
@@ -827,7 +828,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_stim_times_offset', 1, [],
                         helpstr="add offset when converting to timing")
         self.valid_opts.add_opt('-regress_stim_types', -1, [],
-                        acplist=['times', 'AM1', 'AM2', 'IM'],
+                        acplist=['times', 'AM1', 'AM2', 'IM', 'file'],
                         helpstr="specify times/AM1/AM2/IM for each stim class")
         self.valid_opts.add_opt('-regress_use_stim_files', 0, [],
                         helpstr="do not convert stim_files to timing")
