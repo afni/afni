@@ -3033,9 +3033,10 @@ ENTRY("HCwarp_load") ;
 
    AFNI_OMP_START ;
 #pragma omp parallel
-   { int ii,jj,kk,qq ; float *xpar=par , *ypar=par+8 , *zpar=par+16 ;
+   { int ii,jj,kk,qq ; float *xpar, *ypar, *zpar ;
      float b0zb0yb0x,b1zb0yb0x, b0zb1yb0x,b1zb1yb0x,
            b0zb0yb1x,b1zb0yb1x, b0zb1yb1x,b1zb1yb1x ;
+     xpar = par ; ypar = par+8 ; zpar = par+16 ;
 #pragma omp for
      for( qq=0 ; qq < nxyz ; qq++ ){          /* parallel-ized loop over grid */
        ii = qq % nbx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nbx ; /* 3D indexes */
@@ -3061,7 +3062,7 @@ ENTRY("HCwarp_load") ;
                   (  b0zb0yb0x*zpar[0] + b1zb0yb0x*zpar[1] + b0zb1yb0x*zpar[2]
                    + b1zb1yb0x*zpar[3] + b0zb0yb1x*zpar[4] + b1zb0yb1x*zpar[5]
                    + b0zb1yb1x*zpar[6] + b1zb1yb1x*zpar[7]                     ) ;
-     }
+     } /* end of for loop */
    }  /* end of parallel stuff */
    AFNI_OMP_END ;
 
@@ -3152,7 +3153,7 @@ ENTRY("HQwarp_load") ;
          + b0zb0yb2x*zpar[18] + b1zb0yb2x*zpar[19] + b2zb0yb2x*zpar[20]
          + b0zb1yb2x*zpar[21] + b1zb1yb2x*zpar[22] + b2zb1yb2x*zpar[23]
          + b0zb2yb2x*zpar[24] + b1zb2yb2x*zpar[25] + b2zb2yb2x*zpar[26] ) ;
-     }
+     } /* end of for loop */
    } /* end of parallel stuff */
    AFNI_OMP_END ;
 
@@ -3315,7 +3316,7 @@ AFNI_OMP_START ;
 { if( qq%qdb==0 ) fprintf(stderr,"qq=%d => val=%g\n",qq,val[qq]) ; }
 #endif
 
-   }
+   } /* end of for loop */
  } /* end of parallel stuff */
 AFNI_OMP_END ;
 
