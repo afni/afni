@@ -256,6 +256,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                                     QLIB.valid_as_filepath)
       elif obj == self.gvars.Line_apply_basis:
          self.update_basis_function(obj.text())
+      elif obj == self.gvars.Line_apply_stype:
+         self.update_stim_type(obj.text())
 
       elif obj == self.gvars.Line_tcat_nfirst:
          self.update_textLine_check(obj, obj.text(), 'tcat_nfirst',
@@ -972,7 +974,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       nlabel.setStatusTip("initialization for all stim files")
       layout.addWidget(nlabel)
 
-      blist = ['GAM', 'BLOCK(5,1)', 'BLOCK(5)', 'TENT(0,15,6)', 'SPMG2']
+      blist = USUBJ.g_def_stim_basis_list
       blist = ['basis: %s'%basis for basis in blist]
       pbut = QLIB.create_menu_button(bwidget, "choose", blist,
                 call_back=self.CB_gbox_PushB)
@@ -985,6 +987,35 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.connect(self.gvars.Line_apply_basis,
                    QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
       layout.addWidget(self.gvars.Line_apply_basis)
+
+      layout.setMargin(g_spacing)
+      layout.setSpacing(g_spacing)
+      bwidget.setLayout(layout)
+      mainlayout.addWidget(bwidget)
+
+      # --------------------------------------------------
+      # add a new line for setting file types:
+      # Label  PushButton.Menu   LineEdit
+      bwidget = QtGui.QWidget()
+      layout = QtGui.QHBoxLayout()
+
+      nlabel = QtGui.QLabel("init file types:")
+      nlabel.setStatusTip("initialization for all stim files")
+      layout.addWidget(nlabel)
+
+      blist = USUBJ.g_def_stim_types_list
+      blist = ['stype: %s'%tt for tt in blist]
+      pbut = QLIB.create_menu_button(bwidget, "choose", blist,
+                call_back=self.CB_gbox_PushB)
+      layout.addWidget(pbut)
+
+      self.gvars.Line_apply_stype = QtGui.QLineEdit()
+      if len(self.svars.stim_type) > 0: stype = self.svars.stim_type[0]
+      else:                             stype = ''
+      self.gvars.Line_apply_stype.setText(stype)
+      self.connect(self.gvars.Line_apply_stype,
+                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
+      layout.addWidget(self.gvars.Line_apply_stype)
 
       layout.setMargin(g_spacing)
       layout.setSpacing(g_spacing)
@@ -1289,12 +1320,12 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          - only update stim array on directory scan and 'update AP command'
          - 3 columns: index, label, filename
       """
-      col_heads = ['index', 'label', 'basis func', 'stim timing file']
+      col_heads = ['index', 'label', 'basis', 'type', 'stim (timing) file']
       nrows = len(self.svars.stim)              # one row per stim file
       ncols = len(col_heads)
 
       table = QtGui.QTableWidget(nrows, ncols)
-      table.stretch_cols = [3]                  # columns that should stretch
+      table.stretch_cols = [4]                  # columns that should stretch
 
       table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
       table.setHorizontalHeaderLabels(col_heads)
@@ -1382,10 +1413,27 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif nbases == 1:
          bases = [self.svars.stim_basis[0] for i in range(nrows)]
       elif nbases != nrows:
-         print '** len(stim_basis) == %d, but have %d stim' % (nbases, nrows)
-         bases = [self.svars.stim_basis[0] for i in range(nrows)]
+         tt = '** len(stim_basis) == %d, but have %d stim\n\n' \
+              '   clearning list, please fill...' % (nbases, nrows)
+         update_AP_warn_window(tt)
+         bases = ['' for i in range(nrows)]
       else:
          bases = self.svars.stim_basis
+
+      # ------------------------------------------------------------
+      # make stim_type list
+      ntypes = len(self.svars.stim_type)
+      if ntypes == 0:
+         stypes = ['times' for i in range(nrows)]
+      elif ntypes == 1:
+         stypes = [self.svars.stim_type[0] for i in range(nrows)]
+      elif ntypes != nrows:
+         tt = '** len(stim_type) == %d, but have %d stim\n\n' \
+              '   clearning list, please fill...' % (ntypes, nrows)
+         update_AP_warn_window(tt)
+         stypes = ['' for i in range(nrows)]
+      else:
+         stypes = self.svars.stim_type
 
       # ------------------------------------------------------------
       # now fill table with index, label and filename (short_names)
@@ -1399,12 +1447,14 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
          labItem = QtGui.QTableWidgetItem(lablist[ind])
          basisItem = QtGui.QTableWidgetItem(bases[ind])
+         typeItem = QtGui.QTableWidgetItem(stypes[ind])
          nameItem = QtGui.QTableWidgetItem(dset)
          table.insertRow(ind)           # insert at end
          table.setItem(ind, 0, indItem)
          table.setItem(ind, 1, labItem)
          table.setItem(ind, 2, basisItem)
-         table.setItem(ind, 3, nameItem)
+         table.setItem(ind, 3, typeItem)
+         table.setItem(ind, 4, nameItem)
 
       table.resizeRowsToContents()
       table.setAlternatingRowColors(True)
@@ -1419,7 +1469,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # if we have a stim index, default to using it for sorting
       table.setSortingEnabled(True)
       if haveinds: table.sortItems(0)
-      else:        table.sortItems(2)
+      else:        table.sortItems(4)
 
       # ------------------------------------------------------------
       # and fill in Label_stim_ndsets, stim_dir, and stim_wildcard (form)
@@ -1575,6 +1625,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             self.set_svar('stim', [str(name) for name in fnames])
             self.set_svar('stim_label', [])
             self.set_svar('stim_basis', [])
+            self.set_svar('stim_type', [])
             self.stim_list_to_table(make_labs=1)
 
       elif text == 'clear stim':
@@ -1583,6 +1634,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       elif text[0:7] == 'basis: ':
          self.update_basis_function(text[7:])
+
+      elif text[0:7] == 'stype: ':
+         self.update_stim_type(text[7:])
 
       # expected
       elif text[0:9] == 'vr base: ':
@@ -1713,6 +1767,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
    def update_basis_function(self, basis):
       if len(basis) > 0 and not self.basis_func_is_current(basis):
+         self.update_stim_from_table() # apply any updates to variables
          if self.verb > 1: print '++ applying basis function %s' % basis
          self.gvars.Line_apply_basis.setText(basis)
          nstim = len(self.svars.stim)
@@ -1736,6 +1791,36 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # finally, check the entries
       for sbasis in self.svars.stim_basis:
          if basis != sbasis: return 0
+
+      # they seem to match
+      return 1
+
+   def update_stim_type(self, stype):
+      if len(stype) > 0 and not self.stim_type_is_current(stype):
+         self.update_stim_from_table() # apply any updates to variables
+         if self.verb > 1: print '++ applying stim_type %s' % stype
+         self.gvars.Line_apply_stype.setText(stype)
+         nstim = len(self.svars.stim)
+         self.set_svar('stim_type',[stype for i in range(nstim)])
+         self.stim_list_to_table()
+
+   def stim_type_is_current(self, stype):
+      """check a few things:
+           - stim_type must have length 1 or len(stim)
+           - each entry must match 'stype'"""
+      nstim = len(self.svars.stim)
+      ntypes = len(self.svars.stim_type)
+
+      if ntypes == 0:   # empty is special, since we cannot access entries
+         if nstim == 0: return 1
+         else:          return 0
+
+      # next check for matching lengths (or unit)
+      if ntypes > 1 and ntypes != nstim: return 0
+
+      # finally, check the entries
+      for stim_type in self.svars.stim_type:
+         if stim_type != stype: return 0
 
       # they seem to match
       return 1
@@ -1971,64 +2056,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          note: this may depend on analysis type (surf? rest?)
       """
 
-      vobj = self.svars
-      xobj = USUBJ.g_sdef_strs
-      skiplist = USUBJ.g_svars_not_opt
-
-      rlist = []
-
-      # start with options (things not in skiplist)
-      clist = vobj.changed_attrs(xobj)
-      acount = 0
-      if len(clist) > 0:
-         for attr in clist:
-            if attr in skiplist: continue
-            acount += 1
-            if vobj.get_type(attr) == list:
-               # show list if short enough
-               lstr = ' '.join(vobj.val(attr))
-               if len(lstr)>52: lstr='[list of %d elements]'%vobj.val_len(attr)
-               rlist.append('  %-20s : %s' % (attr,lstr))
-            else: rlist.append('  %-20s : %s' % (attr, vobj.val(attr)))
-         if acount > 0:
-            rlist.insert(0, 'options changed from defaults (%d):\n' % acount)
-            rlist.append('')
-         else:
-            rlist.insert(0, 'options: using all defaults\n')
-
-      # now go after ONLY skiplist attrs (these are not as options)
-      clist = vobj.changed_attrs(xobj)
-      acount = 0
-      nlist = []
-      if len(clist) > 0:
-         for attr in clist:
-            if attr not in skiplist: continue
-            if attr == 'name': continue
-            acount += 1
-            if vobj.get_type(attr) == list:
-               # show list if short enough
-               lstr = ' '.join(vobj.val(attr))
-               if len(lstr)>52: lstr='[list of %d elements]'%vobj.val_len(attr)
-               nlist.append('  %-20s : %s' % (attr,lstr))
-            else: nlist.append('  %-20s : %s' % (attr, vobj.val(attr)))
-         if acount > 0:
-            nlist.insert(0, 'applied subject variables (%d):\n' % acount)
-         else:
-            nlist.insert(0, '** no subject variables set?\n')
-         nlist.append('')
-         rlist.extend(nlist)
-
-      if len(rlist) == 0: return '** using all defaults'
-      clist = vobj.deleted_attrs(xobj)
-      if len(clist) > 0:
-         rlist.append('deleted vars (%d):\n' % len(clist)) 
-         for attr in clist:
-            rlist.append('  %s' % attr)
-         rlist.append('')
-
-      if len(rlist) == 0: return '** using all defaults'
-
-      return '\n'.join(rlist)
+      return self.svars.changed_attrs_str(USUBJ.g_sdef_strs,
+                        skiplist=USUBJ.g_svars_not_opt, showskip=1)
 
    def update_applied_vars_window(self, win=None, text='', title='', fname=''):
       """default window is Text_AP_result
@@ -2126,8 +2155,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if self.set_sdir:
          # subj dir should read: subject_results/group.gA/subj.SUBJ
          sdir =  USUBJ.get_def_subj_path(gid=self.svars.gid, sid=self.svars.sid)
-         print '-- setting subj_dir to %s' % sdir
-         self.set_cvar('subj_dir', sdir)
+         if sdir != self.cvars.val('subj_dir'):
+            if self.verb: print '-- setting subj_dir to %s' % sdir
+            self.set_cvar('subj_dir', sdir)
 
       return 0
 
@@ -2210,15 +2240,20 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       return 0
 
    def update_stim_from_table(self):
+      """have 5 columns: index, label, basis, type, file
+
+         note: index is used only as a sorting option
+      """
 
       # --------------------------------------------------
       # stim table
       dir = str(self.gvars.Label_stim_dir.text())
       table = self.gvars.Table_stim             # convenience
       nrows = table.rowCount()
-      llist = []
-      blist = []
-      dlist = []
+      llist = []        # labels
+      blist = []        # bases
+      tlist = []        # types
+      dlist = []        # dsets (files)
       for row in range(nrows):
          # get label, basis, stim file
          item = table.item(row, 1)
@@ -2228,12 +2263,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          blist.append(str(item.text()))
 
          item = table.item(row, 3)
+         tlist.append(str(item.text()))
+
+         item = table.item(row, 4)
          dset = str(item.text())
          if dir and dir != '.': pre = '%s/' % dir
          else:                  pre = ''
          dlist.append('%s%s' % (pre, dset))
       self.svars.stim_label = llist
       self.svars.stim_basis = blist
+      self.svars.stim_type  = tlist
       self.svars.stim = dlist 
 
       return 0
@@ -2566,6 +2605,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                                   obj.setChecked(var=='yes')
       elif svar == 'label':       self.stim_list_to_table()
       elif svar == 'basis':       self.stim_list_to_table()
+      elif svar == 'stim_type':   self.stim_list_to_table()
 
       elif svar == 'tcat_nfirst': 
                                    obj = self.gvars.Line_tcat_nfirst

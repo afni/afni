@@ -99,7 +99,11 @@ files would be taken as more -stim inputs.
 
 In any case, passing variables this way is mostly available for my own
 evil purposes.  This is supposed to be a GUI after all...
+
 ----------------------------------------------------------------------
+"""
+
+g_help_trailer = """
 
 - R Reynolds  Feb, 2011
 ===========================================================================
@@ -163,6 +167,8 @@ def process_options(valid_opts, argv):
    # check for terminal options before processing the rest
    if '-help' in sys.argv:
       print g_command_help
+      valid_opts.show('', 1, show_count=0)
+      print g_help_trailer
       return 1, None, None, None
 
    if '-help_gui' in sys.argv:
@@ -234,7 +240,7 @@ def process_options(valid_opts, argv):
    errs = 0
    for opt in uopts.olist:
       # skip -verb and any terminal option (though they should not be here)
-      if   opt.name == '-help':              continue
+      if   opt.name == '-help':            continue
       elif opt.name == '-help_gui':        continue
       elif opt.name == '-hist':            continue
       elif opt.name == '-show_valid_opts': continue
@@ -245,7 +251,7 @@ def process_options(valid_opts, argv):
 
       # and skip any post-setup options ...
       elif opt.name == '-print_ap_command':continue
-      elif opt.name == '-save_ap_command':continue
+      elif opt.name == '-save_ap_command': continue
       elif opt.name == '-exec_ap_command': continue
       elif opt.name == '-exec_proc_script':continue
 
