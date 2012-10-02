@@ -46,6 +46,8 @@ void machdep()
    be_quiet = AFNI_yesenv("AFNI_QUIET_STARTUP") ;  /* 08 Dec 2010 */
 
    if( AFNI_yesenv("AFNI_USE_FGETS") ) afni_fgets_setskip(1) ; /* 21 Dec 2011 */
+
+   AFNI_do_nothing() ; /* 02 Oct 2012 */
    return ;
 }
 
