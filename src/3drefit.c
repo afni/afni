@@ -1087,8 +1087,8 @@ int main( int argc , char *argv[] )
          continue ;  /* go to next arg */
       }
 
-      if( strcmp(argv[iarg],"-vr_cen_old") == 0) {
-         if (iarg+3 >= argc) SynErr("need 3 arguments after -vr_cen_old");
+      if( strcmp(argv[iarg],"-vr_center_old") == 0) {
+         if (iarg+3 >= argc) SynErr("need 3 arguments after -vr_center_old");
          ++iarg;
          center_old[0] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
          center_old[1] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
@@ -1098,8 +1098,8 @@ int main( int argc , char *argv[] )
          continue ;  /* go to next arg */
       }
 
-      if( strcmp(argv[iarg],"-vr_cen_base") == 0) {
-         if (iarg+3 >= argc) SynErr("need 3 arguments after -vr_cen_base");
+      if( strcmp(argv[iarg],"-vr_center_base") == 0) {
+         if (iarg+3 >= argc) SynErr("need 3 arguments after -vr_center_base");
          ++iarg;
          center_base[0] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
          center_base[1] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') SynErr("Bad syntax in list of numbers!");
