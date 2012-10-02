@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, OCT, 2012, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "added stim_type column to stim table",
+   "This corresponds to the afni_proc.py option -regress_stim_types."
+ } ,
+
+ {  2, OCT, 2012, RCR, "model_conv_diffgamma", MICRO, TYPE_GENERAL,
+   "small help update",
+   NULL
+ } ,
+
  {  1, OCT, 2012, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "added 'file' to list of -stim_types parameters",
    "The 'file' type would imply -stim_file in 3dDeconvolve, not timing."
