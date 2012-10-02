@@ -1602,7 +1602,11 @@ def first_last_match_strs(slist):
    if hmatch+tmatch > maxlen:           # weird, but constructable
       tmatch = maxlen - hmatch          # so shrink to fit
 
-   return slist[0][0:hmatch], slist[0][-tmatch:]
+   # list[-0:] is not empty but is the whole list
+   if tmatch > 0: tstr = slist[0][-tmatch:]
+   else:          tstr = ''
+
+   return slist[0][0:hmatch], tstr
 
 def glob_form_from_list(slist):
    """given a list of strings, return a glob form
@@ -1613,7 +1617,11 @@ def glob_form_from_list(slist):
       Somewhat opposite list_minus_glob_form().
    """
 
+   if len(slist) == 0: return ''
+   if vals_are_constant(slist): return slist[0]
+
    first, last = first_last_match_strs(slist)
+   if not first and not last: return '' # failure
    globstr = '%s*%s' % (first,last)
 
    return globstr
@@ -1674,7 +1682,7 @@ def list_minus_glob_form(slist, hpad=0, tpad=0):
 
    if hpad < 0 or tpad < 0:
       print '** list_minus_glob_form: hpad/tpad must be non-negative'
-      return []
+      hpad = 0 ; tpad = 0
 
    # get head, tail and note lengths
    head, tail = first_last_match_strs(slist)
@@ -1795,6 +1803,7 @@ def parse_as_stim_list(flist):
 
    # if suffix contains an extension, make the suffix into the extension
    dot = suffix.find('.')
+   if dot < 0: dot = 0
 
    # strip prefix, suffix: might include part of 'suffix' in label
    inner_list = list_minus_glob_form(flist, tpad=dot)
@@ -2045,6 +2054,7 @@ def dotprod(v1,v2):
 
 def maxabs(vals):
    """convenience function for the maximum of the absolute values"""
+   if len(vals) == 0: return 0
    return max([abs(v) for v in vals])
 
 def ndigits_lod(num, base=10):

@@ -68,9 +68,11 @@ class OptionList:
         """sort command option list by name"""
         self.olist.sort(cmp=compare_comopts)
 
-    def show(self, mesg = '', verb = 0):
+    def show(self, mesg = '', verb = 0, show_count=-1):
         if verb or mesg != '': print "%sOptionList: %s (len %d)" % \
                                       (mesg, self.label, len(self.olist))
+        # allow override of class
+        if show_count < 0: show_count = self.show_count
         for index in range(len(self.olist)):
             # possibly add short help string
             if verb and self.olist[index].helpstr :
@@ -79,7 +81,7 @@ class OptionList:
                 hs = '  args found = %2d' % self.olist[index].n_found
             else :
                 hs = ''
-            if self.show_count:
+            if show_count:
                print "opt %02d: %-24s%s" % (index, self.olist[index].name, hs)
             else: 
                print "    %-24s%s" % (self.olist[index].name, hs)

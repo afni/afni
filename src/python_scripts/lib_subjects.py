@@ -331,6 +331,74 @@ class VarsObject(object):
 
       return retlist
 
+   def changed_attrs_str(self, checkobj, skiplist=[], showskip=1):
+      """return a string that lists differences between self and vobj
+
+         do not report those in skiplist
+
+         for each changed_attrs()
+            if in skiplist: continue
+            else list
+         for each changed in skiplist (and not 'name')
+            list
+
+         return a printable string
+      """
+      rlist = []
+
+      # start with options (things not in skiplist)
+      clist = self.changed_attrs(checkobj)
+      acount = 0
+      if len(clist) > 0:
+         for attr in clist:
+            if attr in skiplist: continue
+            acount += 1
+            if self.get_type(attr) == list:
+               # show list if short enough
+               lstr = ' '.join(self.val(attr))
+               if len(lstr)>52: lstr='[list of %d elements]'%self.val_len(attr)
+               rlist.append('  %-20s : %s' % (attr,lstr))
+            else: rlist.append('  %-20s : %s' % (attr, self.val(attr)))
+         if acount > 0:
+            rlist.insert(0, 'options changed from defaults (%d):\n' % acount)
+            rlist.append('')
+         else:
+            rlist.insert(0, 'options: using all defaults\n')
+
+      # now go after ONLY skiplist attrs (these are not as options)
+      clist = self.changed_attrs(checkobj)
+      acount = 0
+      nlist = []
+      if showskip and len(clist) > 0:
+         for attr in clist:
+            if attr not in skiplist: continue
+            if attr == 'name': continue
+            acount += 1
+            if self.get_type(attr) == list:
+               # show list if short enough
+               lstr = ' '.join(self.val(attr))
+               if len(lstr)>52: lstr='[list of %d elements]'%self.val_len(attr)
+               nlist.append('  %-20s : %s' % (attr,lstr))
+            else: nlist.append('  %-20s : %s' % (attr, self.val(attr)))
+         if acount > 0:
+            nlist.insert(0, 'applied subject variables (%d):\n' % acount)
+         else:
+            nlist.insert(0, '** no subject variables set?\n')
+         nlist.append('')
+         rlist.extend(nlist)
+
+      if len(rlist) == 0: return '** using all defaults'
+      clist = self.deleted_attrs(checkobj)
+      if len(clist) > 0:
+         rlist.append('deleted vars (%d):\n' % len(clist))
+         for attr in clist:
+            rlist.append('  %s' % attr)
+         rlist.append('')
+
+      if len(rlist) == 0: return '** using all defaults'
+
+      return '\n'.join(rlist)
+
    def valid_atr_type(self, atr='noname', atype=None, alevel=0, exists=0):
       """check for the existence and type of the given variable 'atr'
 
