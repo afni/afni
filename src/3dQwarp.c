@@ -200,7 +200,7 @@ int main( int argc , char *argv[] )
 
 #ifdef USE_OMP
    omp_set_nested(0) ;
-   if( omp_get_max_threads() <= 2 ) enable_mcw_malloc() ;
+   if( omp_get_max_threads() <= 1 ) enable_mcw_malloc() ;
 #else
    enable_mcw_malloc() ;
 #endif
