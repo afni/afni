@@ -131,9 +131,10 @@ g_mst_history = """
          - added -show_valid_opts
     1.4  Sep 17, 2008: added -labels option
     1.5  Nov 18, 2010: fix for '*' in max one stim per run case
+    1.6  Oct 03, 2012: some options do not allow dashed parameters
 """
 
-g_mst_version = "version 1.5, Nov 18, 2010"
+g_mst_version = "version 1.6, October 3, 2012"
 
 def get_opts():
     global g_help_string
@@ -149,7 +150,7 @@ def get_opts():
 
     okopts.add_opt('-amplitudes', 0, [],        \
                    helpstr='output is in -stim_times_AM1 format')
-    okopts.add_opt('-files', -1, [], req=1,     \
+    okopts.add_opt('-files', -1, [], req=1, okdash=0,
                    helpstr='set the list of input files')
     okopts.add_opt('-prefix', 1, [], req=1,     \
                    helpstr='specify the prefix for output files')
@@ -161,7 +162,7 @@ def get_opts():
                    helpstr='set the number of runs')
     okopts.add_opt('-offset', 1, [],    \
                    helpstr='specify offset to add to all output times')
-    okopts.add_opt('-labels', -1, [],   \
+    okopts.add_opt('-labels', -1, [], okdash=0,
                    helpstr='add these labels to the file names')
     okopts.add_opt('-verb', 1, [],      \
                    helpstr='set the verbosity level')

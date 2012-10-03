@@ -32,6 +32,10 @@ if __name__ == '__main__':
 #   01 Dec 2008 [rickr]:
 #     - added 'opt' param to get_string_opt and get_string_list
 #     - initialized more parameters (to get_*) to make them optional
+#
+#   03 Oct 2012 [rickr]:
+#     - add okdash parameter to option instances, to denote whether any
+#       parameters may have dashes
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -46,7 +50,7 @@ class OptionList:
         self.verb     = 1       # display option count in show()
 
     def add_opt(self, name, npar, deflist, acplist=[], req=0, setpar=0,  \
-                helpstr = ""):
+                helpstr = "", okdash=1):
         """add an option to the current OptionList
 
                 name    : option name, to be provided on command line
@@ -57,10 +61,12 @@ class OptionList:
                 acplist : list of acceptable values
                 req     : flag: is this required?
                 setpar  : flag: set option parlist from deflist
+                okdash  : flag: if set, params are allowed to start with '-'
         """
         
         com = afni_base.comopt(name, npar, deflist, acplist, helpstr)
         com.required = req
+        com.okdash = okdash
         if setpar: com.parlist = com.deflist
         self.olist.append(com)
 
@@ -321,6 +327,16 @@ def read_options(argv, oplist, verb = -1):
                 print "** error: arg #%d (%s) requires %d params, found %d" % \
                       (ac-1, newopt.name, nreq, len(parlist))
                 return None
+
+            # we have a full parlist, possibly check for dashes now
+            if not com.okdash:
+               for par in parlist:
+                  if not par: continue  # check for empty param?  too anal?
+                  if par[0] == '-':
+                     print '** option %s has illegal dashed parameter: %s' \
+                           % (newopt.name, par)
+                     print '   --> maybe parameter is a mis-typed option?'
+                     return None
 
             # success!  insert the remaining list
             newopt.parlist = parlist

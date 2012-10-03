@@ -743,9 +743,11 @@ g_history = """
         3. rename AfniMarriedTiming back to AfniTiming (but now married)
    2.01 Oct 28, 2011 - allow use of -show_isi_stats w/o stim duration
    2.02 Oct 31, 2011 - added -show_tr_stats and -warn_tr_stats options
+   2.03 Oct 03, 2012 - some options do not allow dashed parameters
 """
 
-g_version = "timing_tool.py version 2.02, Oct 31, 2011"
+g_version = "timing_tool.py version 2.03, Oct 3, 2012"
+
 
 
 class ATInterface:
@@ -991,13 +993,13 @@ class ATInterface:
                          helpstr='provide a stimulus duration for main timing')
 
       # action options - multi
-      self.valid_opts.add_opt('-multi_timing', -1, [], 
+      self.valid_opts.add_opt('-multi_timing', -1, [], okdash=0,
                          helpstr='load the given list of timing files')
       self.valid_opts.add_opt('-multi_show_isi_stats', 0, [], 
                          helpstr='show ISI stats for load_multi_timing objs')
       self.valid_opts.add_opt('-multi_show_timing_ele', 0, [], 
                          helpstr='display info about the multi timing elements')
-      self.valid_opts.add_opt('-multi_stim_dur', -1, [], 
+      self.valid_opts.add_opt('-multi_stim_dur', -1, [], okdash=0,
                          helpstr='provide stimulus durations for timing list')
       self.valid_opts.add_opt('-multi_timing_to_events', 1, [], 
                          helpstr='convert stim_times event file')
@@ -1014,7 +1016,7 @@ class ATInterface:
                          helpstr='set number of decimal places for printing')
       self.valid_opts.add_opt('-per_run', 0, [], 
                          helpstr='perform operations per run')
-      self.valid_opts.add_opt('-run_len', -1, [], 
+      self.valid_opts.add_opt('-run_len', -1, [], okdash=0,
                          helpstr='specify the lengths of each run (seconds)')
       self.valid_opts.add_opt('-show_tr_stats', 0, [], 
                          helpstr='show fractional TR stats timing files')

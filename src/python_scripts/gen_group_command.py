@@ -516,9 +516,10 @@ g_history = """
         - added -factors for 3dANOVA3 -type 4
    0.7  Jun 25, 2012    - added help for -factors and 3dANOVA3 -type 4 examples
    0.8  Sep 04, 2012    - fixed error message
+   0.9  Oct 03, 2012    - some options do not allow dashed parameters
 """
 
-g_version = "gen_group_command.py version 0.8, September 4, 2012"
+g_version = "gen_group_command.py version 0.9, October 3, 2012"
 
 
 class CmdInterface:
@@ -596,7 +597,7 @@ class CmdInterface:
       # required parameters
       self.valid_opts.add_opt('-command', 1, [], 
                       helpstr='specify the program used in the output command')
-      self.valid_opts.add_opt('-dsets', -1, [], 
+      self.valid_opts.add_opt('-dsets', -1, [], okdash=0,
                       helpstr='specify a list of input datasets')
 
       # other options
@@ -604,25 +605,25 @@ class CmdInterface:
                       helpstr='apply 3dttest++ test as set A minus set B')
       self.valid_opts.add_opt('-BminusA', 0, [], 
                       helpstr='apply 3dttest++ test as set B minus set A')
-      self.valid_opts.add_opt('-dset_index0_list', -1, [], 
+      self.valid_opts.add_opt('-dset_index0_list', -1, [], okdash=0,
                       helpstr='restrict dsets to 0-based index list')
-      self.valid_opts.add_opt('-dset_index1_list', -1, [], 
+      self.valid_opts.add_opt('-dset_index1_list', -1, [], okdash=0,
                       helpstr='restrict dsets to 1-based index list')
-      self.valid_opts.add_opt('-factors', -1, [], 
+      self.valid_opts.add_opt('-factors', -1, [], okdash=0,
                       helpstr='num factors, per condition (probably 2 ints)')
       self.valid_opts.add_opt('-options', -1, [], 
                       helpstr='specify options to pass to the command')
       self.valid_opts.add_opt('-prefix', 1, [], 
                       helpstr='specify output prefix for the command')
-      self.valid_opts.add_opt('-set_labels', -1, [], 
+      self.valid_opts.add_opt('-set_labels', -1, [], okdash=0,
                       helpstr='list of labels for each set of subjects')
       self.valid_opts.add_opt('-subj_prefix', 1, [], 
                       helpstr='specify prefix for each subject ID')
       self.valid_opts.add_opt('-subj_suffix', 1, [], 
                       helpstr='specify suffix for each subject ID')
-      self.valid_opts.add_opt('-subs_betas', -1, [], 
+      self.valid_opts.add_opt('-subs_betas', -1, [], okdash=0,
                       helpstr='beta weight sub-bricks, one per subject list')
-      self.valid_opts.add_opt('-subs_tstats', -1, [], 
+      self.valid_opts.add_opt('-subs_tstats', -1, [], okdash=0,
                       helpstr='t-stat sub-bricks, one per subject list')
       self.valid_opts.add_opt('-type', 1, [], 
                       helpstr='specify the test type (e.g. paired)')

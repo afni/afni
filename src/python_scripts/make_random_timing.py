@@ -690,9 +690,10 @@ g_history = """
     1.5  Apr 08, 2012: -ordered_stimuli can now use labels
     1.6  May 01, 2012: -ordered_stimuli now works with -max_consec
          - requested by Liat
+    1.7  Oct 03, 2012: some options do not allow dashed parameters
 """
 
-g_version = "version 1.6, May 1, 2012"
+g_version = "version 1.7, Oct 3, 2012"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -773,11 +774,11 @@ class RandTiming:
         self.valid_opts.add_opt('-prefix', 1, [], req=1,
                         helpstr='prefix for output stimulus timing files')
 
-        self.valid_opts.add_opt('-num_reps', -1, [], req=1,
+        self.valid_opts.add_opt('-num_reps', -1, [], req=1, okdash=0,
                         helpstr='number of stimulus reps per run, per class')
-        self.valid_opts.add_opt('-run_time', -1, [], req=1,
+        self.valid_opts.add_opt('-run_time', -1, [], req=1, okdash=0,
                         helpstr='total length of each run, in seconds')
-        self.valid_opts.add_opt('-stim_dur', -1, [], req=1,
+        self.valid_opts.add_opt('-stim_dur', -1, [], req=1, okdash=0,
                         helpstr='length of each stimulus, in seconds')
 
         # optional arguments
@@ -785,7 +786,7 @@ class RandTiming:
                         helpstr='distribute stim reps across all runs')
         self.valid_opts.add_opt('-make_3dd_contrasts', 0, [],
                         helpstr='add contrasts pairs to 3dDeconvolve script')
-        self.valid_opts.add_opt('-max_consec', -1, [],
+        self.valid_opts.add_opt('-max_consec', -1, [], okdash=0,
                         helpstr='max consecutive occurances of each stim type')
         self.valid_opts.add_opt('-max_rest', 1, [],
                         helpstr='maximum rest time after each stimulus')
@@ -793,7 +794,7 @@ class RandTiming:
                         helpstr='minimum rest time after each stimulus')
         self.valid_opts.add_opt('-offset', 1, [],
                         helpstr='offset to add to every stimulus time')
-        self.valid_opts.add_opt('-ordered_stimuli', -1, [],
+        self.valid_opts.add_opt('-ordered_stimuli', -1, [], okdash=0,
                         helpstr='require these stimuli to be so ordered')
         self.valid_opts.add_opt('-pre_stim_rest', 1, [],
                         helpstr='time before first stimulus, in seconds')
@@ -805,7 +806,7 @@ class RandTiming:
                         helpstr='seed for random number generation (integer)')
         self.valid_opts.add_opt('-show_timing_stats', 0, [],
                         helpstr='show statistics for inter-stimulus intervals')
-        self.valid_opts.add_opt('-stim_labels', -1, [],
+        self.valid_opts.add_opt('-stim_labels', -1, [], okdash=0,
                         helpstr='specify stimulus labels for filenames')
         self.valid_opts.add_opt('-t_digits', 1, [],
                         helpstr='digits after decimal, for printing times')
