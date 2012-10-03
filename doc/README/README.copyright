@@ -22,8 +22,9 @@
   right use this software.
 
   The MCW-copyrighted part of this software is released to the public under
-  the GNU General Public License, Version 2.  A copy of this License is
-  appended.  The final reference copy of the software that was fully derived
+  the GNU General Public License, Version 2 (or any later edition).
+  A copy of this License (version 2, that is) is appended.
+  The final reference copy of the software that was fully derived
   from MCW is in the tar/gzip archive file afni98_lastmcw.tgz.  (This does
   NOT mean that later code is not copyrighted by MCW - that depends on the
   source file involved.  It simply means that some code developed later comes
