@@ -411,7 +411,8 @@ PARSE:
          endif
          set preWopt = "-gridset ${tmppref}_${pp}_shft*.HEAD -NN "
       else
-         echo "Center distance of $dist_cent mm no auto_center needed "   
+         echo "Center distance of $dist_cent mm no auto_center needed "
+         set prexform = ''
       endif 
    endif
    
