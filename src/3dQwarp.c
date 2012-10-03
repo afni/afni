@@ -188,7 +188,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *bset , *sset , *oset ;
    MRI_IMAGE *bim , *wbim , *sim , *oim ;
-   char *prefix = "Qwarp" ; int nopt ;
+   char *prefix = "Qwarp" ; int nopt , duplo=0 ;
    int meth = GA_MATCH_PEARSON_SCALAR ;
    /* int meth = GA_MATCH_HELLINGER_SCALAR ; */
    /* int meth = GA_MATCH_KULLBACK_SCALAR ; */
@@ -227,6 +227,10 @@ int main( int argc , char *argv[] )
        meth = GA_MATCH_NORMUTIN_SCALAR ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-duplo") == 0 ){
+       duplo = 1 ; nopt++ ; continue ;
+     }
+
      ERROR_exit("Bogus option '%s'",argv[nopt]) ;
    }
 
@@ -242,7 +246,7 @@ int main( int argc , char *argv[] )
    DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ;
    sim = THD_extract_float_brick(0,sset) ; DSET_unload(sset) ;
 
-#if 1
+#if 0
    { char ppp[256] ;
      sprintf(ppp,"%s_SAVE",prefix) ;
      qset = EDIT_empty_copy(bset) ;
@@ -261,7 +265,10 @@ int main( int argc , char *argv[] )
 
    Hblur = 3.45678f ;
 
-   oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
+   if( duplo )
+     oim = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
+   else
+     oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
 
    if( oim == NULL ) ERROR_exit("s2bim fails") ;
 
