@@ -650,9 +650,10 @@ g_history = """
         - added corresponding -weight_vec option
    1.07 Jul 30, 2012 - added -show_mmms
    1.08 Jul 30, 2012 - display -show_mmms output to 4 decimal places
+   1.09 Oct  3, 2012 - some options do not allow dashed parameters
 """
 
-g_version = "1d_tool.py version 1.08, August 28, 2012"
+g_version = "1d_tool.py version 1.09, October 3, 2012"
 
 
 class A1DInterface:
@@ -880,7 +881,7 @@ class A1DInterface:
       self.valid_opts.add_opt('-set_nruns', 1, [], 
                       helpstr='specify the number of runs in the input')
 
-      self.valid_opts.add_opt('-set_run_lengths', -1, [], 
+      self.valid_opts.add_opt('-set_run_lengths', -1, [], okdash=0,
                       helpstr='specify the lengths of all runs')
 
       self.valid_opts.add_opt('-set_tr', 1, [], 
