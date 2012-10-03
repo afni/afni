@@ -134,14 +134,15 @@ g_history = """
          - added regress_bandpass and regress_motion_deriv fields
     0.31 May 25, 2012 : show modified options and subject defaults
     0.32 Oct  2, 2012 : added stim_type column to stim table
+         - also, split analysis var into anal_domain and anal_type
 """
 
-g_version = '0.32 (October 2, 2012)'
+g_version = '0.32 (October 3, 2012)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
-g_def_anal_types  = ['volume:task', 'volume:rest',
-                     'surface:task', 'surface:rest']
+g_def_anal_domains = ['volume', 'surface']
+g_def_anal_types   = ['task', 'rest']
 g_def_blocks      = ['tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 g_def_blocks_anat = ['tshift', 'align', 'tlrc', 'volreg', 'blur', 'mask',
                      'scale', 'regress']
@@ -177,7 +178,8 @@ g_res_defs.output_proc   = ''           # output from running proc script
 # ----------------------------------------------------------------------
 # a global definition of subject defaults for single subject analysis
 g_subj_defs = SUBJ.VarsObject("Single Subject Dialog defaults")
-g_subj_defs.analysis      = 'volume:task' # see g_def_anal_types
+g_subj_defs.anal_domain   = 'volume'    # see g_def_anal_domains
+g_subj_defs.anal_type     = 'task'      # see g_def_anal_types
 g_subj_defs.blocks        = []
 g_subj_defs.sid           = ''          # subject ID    (no spaces - required)
 g_subj_defs.gid           = ''          # group ID      (no spaces)
@@ -289,16 +291,16 @@ g_svars_not_opt = [
 #         - under subj ID / group ID, add read-only analysis type string
 #         - under extra regress options, add bandpass and regress_motion_deriv
 g_rest_defs = SUBJ.VarsObject("resting state defaults")
-g_rest_defs.analysis      = 'volume:rest'       # see g_def_anal_types
+g_rest_defs.anal_type     = 'rest'              # see g_def_anal_types
 g_rest_defs.blocks        = ['despike', 'tshift', 'align', 'tlrc', 'volreg',
                              'blur', 'mask', 'regress']
 g_rest_defs.regress_bandpass  = [0.01, 0.1]     # -regress_bandpass
 g_rest_defs.regress_mot_deriv = 'yes'           # -regress motion derivatives
+g_rest_defs.motion_limit  = 0.2                 # from 0.3
 g_rest_defs.run_clustsim  = 'no'
 g_rest_defs.stim          = []                  # no stim or labels
 g_rest_defs.gltsym        = []                  # no GLTs
 
-# rcr - add g_task_defs (to distinguish task/rest analysis)
 # rcr - add g_vol_defs and g_surf_defs (to distinguish volume/surface analysis)
 
 
@@ -565,7 +567,7 @@ class AP_Subject(object):
          cmd += '%s-regress_make_ideal_sum sum_ideal.1D \\\n' % self.LV.istr
 
       # skip epits if rest
-      if self.svars.val('analysis') == 'volume:task':
+      if self.svars.val('anal_type') == 'task':
          cmd += '%s-regress_est_blur_epits \\\n' % self.LV.istr
       cmd += '%s-regress_est_blur_errts \\\n' % self.LV.istr
 
@@ -947,13 +949,15 @@ class AP_Subject(object):
          if not aset.view == '+orig':
             self.errors.append('** get_tlrc: requires orig version dset\n')
             return ''
-         # now check that tlrc view exists
+
+         # check that tlrc view dset exists
          tset = aset.new(new_view='+tlrc')
-         if not aset.exist():
-            self.errors.append('** get_tlrc: tlrc version not found\n')
+         if not tset.exist():
+            err = '** get_tlrc: tlrc version %s not found\n' % tset.ppv()
+            self.errors.append(err)
             return ''
-         # check WARP_DATA attribute
-         # len 30 -> @auto_tlrc, 360 -> manual
+
+         # check WARP_DATA attribute (len 30 -> @auto_tlrc, 360 -> manual)
          wd = BASE.read_attribute(tset.ppv(), 'WARP_DATA')
          if not wd:
             err  = '** failed to read WARP_DATA attr from %s\n' % tset.ppv()
