@@ -33,6 +33,15 @@ function [err,XYZdic] = AFNI_Index2XYZcontinuous (Indx, Info, CoordCode)
 %   AFNI_XYZcontinuous2Index
 %   Test_AFNI_XYZcontinuous2Index
 %
+% You can also go from index to XYZ using the header field IJK_TO_DICOM_REAL 
+%  For instance, say you have voxel indices 12, 2, 4 (matlab indexing 13, 3, 5)
+%  to go from AFNI index to AFNI DICOM RAI you can do:
+%     M = [reshape(Info.IJK_TO_DICOM_REAL, 4, 3)' ; 0 0 0 1]; 
+%     I = [12 2 4 1]';
+%     X = M*I;
+%     To go from AFNI DICOM RAI to AFNI indices:
+%     I = inv(M)*X;
+%
 %     Author : Ziad Saad
 %     Date : Tue Sep 5 21:48:06 PDT 2000           Latest Modification: Feb 18 04
 %     LBC/NIMH/ National Institutes of Health, Bethesda Maryland

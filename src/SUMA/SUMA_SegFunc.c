@@ -1055,7 +1055,7 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
    if (cls==NULL) { 
       if (!init) {/* init */
          SUMA_LH("Initialization");
-         if (d) { ERROR_message("Non null d"); SUMA_RETURN(0); }
+         if (d) { SUMA_S_Err("Non null d"); SUMA_RETURN(0); }
          d = (double *)calloc(DSET_NVOX(Opt->sig), sizeof(double));
          if (!d) SUMA_RETURN(0);
          if (!p_cv_GIV_afu (Opt, NULL, NULL, d) ) SUMA_RETURN(0);
@@ -1075,7 +1075,7 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
    }
    
    if (!dr) SUMA_RETURN(0);
-   if (init!=1) { ERROR_message("Not initialized"); SUMA_RETURN(0); }
+   if (init!=1) { SUMA_S_Err("Not initialized"); SUMA_RETURN(0); }
    if (Opt->Writepcg_G_au && !pcgrec) {
       SUMA_S_Err("Want Writepcg_G_au, but no pcgrec. Bad init.");
       SUMA_RETURN(0);
@@ -1090,9 +1090,9 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
       if (Opt->feat_exp) wfeat = Opt->feat_exp[icls][i];
       else wfeat= 0.0;
       if (Opt->debug > 1)  
-         INFO_message("Calling p_cv_GIV_afu %d/%d", i,Opt->feats->num);
+         SUMA_S_Notev("Calling p_cv_GIV_afu %d/%d\n", i,Opt->feats->num);
       if (!(p_cv_GIV_afu(Opt, Opt->feats->str[i], cls, d))) {
-         ERROR_message("Failed in p_cv_GIV_afu"); SUMA_RETURN(0);
+         SUMA_S_Err("Failed in p_cv_GIV_afu"); SUMA_RETURN(0);
       }
       
       if (Opt->Writepcg_G_au) {
@@ -1122,7 +1122,11 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
             }
             #else
                /* better just add MINP to all probs Aug. 2012*/
-               d[j] += MINP; if (d[j]>1.0) d[j] = 1.0;
+               d[j] += MINP; 
+               if (d[j]>1.0) d[j] = 1.0; /* This is not proper,
+                                             proper scaling should be done
+                                             once all d[j] are computed across
+                                             classes */
                if (wfeat>0) dr[j] = dr[j] + wfeat*log(d[j]);
                else dr[j] = dr[j] + log(d[j]);
             #endif
@@ -1242,7 +1246,9 @@ int set_p_floor(THD_3dim_dataset *pset, float pfl, byte *cmask)
 /*!
    Estimate the probability of each class, given all features 
 */
-THD_3dim_dataset *p_C_GIV_A (SEG_OPTS *Opt) {
+THD_3dim_dataset *p_C_GIV_A (SEG_OPTS *Opt) 
+{
+   static char FuncName[]={"p_C_GIV_A"};
    char bl[256]={""};
    int i,j, ii;
    double *d=NULL;
@@ -1250,14 +1256,14 @@ THD_3dim_dataset *p_C_GIV_A (SEG_OPTS *Opt) {
    short *p=NULL;
    float pf=0.0;
    
-   ENTRY("p_C_GIV_A");
+   SUMA_ENTRY;
    
    /* init */
    d = (double *)calloc(DSET_NVOX(Opt->sig), sizeof(double));
-   if (!d) RETURN(NULL);
-   if (!p_cv_GIV_A (Opt, NULL, d)) RETURN(NULL);
+   if (!d) SUMA_RETURN(NULL);
+   if (!p_cv_GIV_A (Opt, NULL, d)) SUMA_RETURN(NULL);
    NEW_SHORTY(Opt->sig, Opt->clss->num, Opt->prefix, pout);
-   if (!pout) RETURN(NULL);
+   if (!pout) SUMA_RETURN(NULL);
    if( !THD_ok_overwrite() && THD_is_file( DSET_HEADNAME(pout) ) ){
       ERROR_exit("Output file %s already exists -- cannot continue!\n",
                   DSET_HEADNAME(pout) ) ;
@@ -1266,9 +1272,9 @@ THD_3dim_dataset *p_C_GIV_A (SEG_OPTS *Opt) {
    /* process */
    for (i=0; i<Opt->clss->num; ++i) {
       if (Opt->debug > -1000)  
-         INFO_message("Calling p_cv_GIV_A %d/%d", i,Opt->clss->num);
+         SUMA_S_Notev("Calling p_cv_GIV_A %d/%d\n", i,Opt->clss->num);
       if (!(p_cv_GIV_A (Opt, Opt->clss->str[i],d))) {
-         ERROR_message("Failed in p_cv_GIV_A"); RETURN(NULL);
+         SUMA_S_Err("Failed in p_cv_GIV_A"); SUMA_RETURN(NULL);
       }
 
       /* and store in output */
@@ -1305,11 +1311,11 @@ THD_3dim_dataset *p_C_GIV_A (SEG_OPTS *Opt) {
    
    /* clean */
    if (!p_cv_GIV_A (Opt, NULL, d)) {
-      ERROR_message("Failed in p_cv_GIV_A cleanup but will proceed");
+      SUMA_S_Err("Failed in p_cv_GIV_A cleanup but will proceed");
    }
    free(d); d= NULL;
    
-   RETURN(pout);
+   SUMA_RETURN(pout);
 }
 
 int SUMA_LabelToGroupedIndex(char *cls_str, char **group_lbls, int N_group_lbls)
@@ -2317,7 +2323,7 @@ int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill,
          #if 0
             if (holeat[h] == 1007828) {
                SUMA_S_Notev("Vox %d, iter %d, nhit=%d, hitsum=%d\n"
-                            "iRay da=[%d %d], ta=[%f %f]",
+                            "iRay da=[%d %d], ta=[%f %f]\n",
                      holeat[h], iter, nhits[holeat[h]], hitcode, 
                      da[0], da[1], ta[0], ta[1]);
             }
@@ -5307,6 +5313,46 @@ int SUMA_AddOther(  NI_str_array *clss, int **keysp,
    }
       
    SUMA_RETURN(1);      
+}
+
+/*!
+   A convenience function for SUMA_hist to build a histogram
+   for a sub-brick based on a pre-existing histogram
+*/
+SUMA_HIST *SUMA_dset_hist(THD_3dim_dataset *dset, int ia, 
+                          byte *cmask, char *label,
+                          SUMA_HIST *href)
+{
+   static char FuncName[]={"SUMA_dset_hist"};
+   int i = 0, N_k = 0;
+   float orange[2]={0.0, 0.0}, *fv=NULL;
+   SUMA_HIST *hh=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || ia < 0 || ia >= DSET_NVALS(dset)) SUMA_RETURN(hh);
+   if (!(fv = THD_extract_to_float(ia, dset))) {
+      SUMA_S_Errv("Failed to extract sub-brick %d\n", ia);
+      SUMA_RETURN(hh);
+   }
+   if (cmask) {
+      N_k = 0;
+      for (i=0; i<DSET_NVOX(dset); ++i) {
+         if (cmask[i]) { fv[N_k] = fv[i]; ++N_k; }
+      }
+   } else {
+      N_k = DSET_NVOX(dset);
+   }
+   if (!label) label = "unloved";
+   
+   if (href) {
+      orange[0] = href->min; orange[1] = href->max;
+      hh = SUMA_hist(fv, N_k, href->K, href->W, orange, "lll", 0); 
+   } else {
+      hh = SUMA_hist(fv, N_k, 0, 0, NULL, "lll",0);
+   }
+   free(fv); fv = NULL;
+   SUMA_RETURN(hh);
 }
 
 /*!

@@ -58,6 +58,12 @@ typedef double             r64;
 
 /* Typedef Booleen
  */
+#ifdef False
+   #undef False
+#endif
+#ifdef True
+   #undef True
+#endif
 typedef enum {
   False = 0,
   True = 1
