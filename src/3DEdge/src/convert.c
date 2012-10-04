@@ -3,10 +3,11 @@
  *
  * $Id$
  *
- * Copyright©INRIA 1999
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * June, 9 1998
@@ -34,6 +35,7 @@ void ConvertBuffer( void *bufferIn,
   register s8 *s8buf;
   register u16 *u16buf;
   register s16 *s16buf;
+  register u32 *u32buf;
   register s32 *s32buf;
   register r32 *r32buf;
   register r64 *r64buf;
@@ -181,6 +183,12 @@ void ConvertBuffer( void *bufferIn,
     u16buf = (u16*)bufferOut;
     min = 0; max = 65535;
     switch( typeIn ) {
+    case UCHAR :
+      u8buf = (u8*)bufferIn;
+      for (i=bufferLength; i>0; i--, u8buf++, u16buf++ ) {
+	*u16buf = (u16)*u8buf;
+      }
+      break;
     case USHORT :
       if ( bufferOut == bufferIn ) return;
       (void)memcpy( bufferOut, bufferIn, bufferLength * sizeof(u16) );
@@ -232,6 +240,46 @@ void ConvertBuffer( void *bufferIn,
       r64buf = (r64*)bufferIn;
       for (i=bufferLength; i>0; i--, s32buf++, r64buf++ ) {
 	*s32buf = (int)(*r64buf);
+      }
+      break;
+    default :
+      fprintf( stderr, " Error in %s: such conversion not yet implemented.\n",
+	       proc );
+      return;
+    }
+    break; /* end case typeOut = INT */
+
+
+
+
+
+    
+  case UINT :
+    u32buf = (u32*)bufferOut;
+    switch( typeIn ) {
+    case UINT :
+      if ( bufferOut == bufferIn ) return;
+      (void)memcpy( bufferOut, bufferIn, bufferLength * sizeof(u32) );
+      break;
+    case INT :
+      s32buf = (s32*)bufferIn;
+      for (i=bufferLength; i>0; i--, u32buf++, s32buf++ ) {
+	if ( *s32buf <= 0 ) *u32buf = (int)0;
+	else *u32buf = *s32buf;
+      }
+      break;
+    case FLOAT :
+      r32buf = (r32*)bufferIn;
+      for (i=bufferLength; i>0; i--, s32buf++, r32buf++ ) {
+	if ( *r32buf <= 0.0 ) *s32buf = (int)0;
+	else *u32buf = (int)(*r32buf + 0.5);
+      }
+      break;
+    case DOUBLE :
+      r64buf = (r64*)bufferIn;
+      for (i=bufferLength; i>0; i--, s32buf++, r64buf++ ) {
+	if ( *r64buf <= 0.0 ) *s32buf = (int)0;
+	else *u32buf = (int)(*r64buf + 0.5);
       }
       break;
     default :
@@ -306,31 +354,31 @@ void ConvertBuffer( void *bufferIn,
     case UCHAR :
       u8buf = (u8*)bufferIn;
       for (i=bufferLength; i>0; i--, r64buf++, u8buf++ ) {
-	*r64buf = (float)(*u8buf);
+	*r64buf = (double)(*u8buf);
       }
       break;
     case SCHAR :
       s8buf = (s8*)bufferIn;
       for (i=bufferLength; i>0; i--, r64buf++, s8buf++ ) {
-	*r64buf = (float)(*s8buf);
+	*r64buf = (double)(*s8buf);
       }
       break;
     case USHORT :
       u16buf = (u16*)bufferIn;
       for (i=bufferLength; i>0; i--, r64buf++, u16buf++ ) {
-	*r64buf = (float)(*u16buf);
+	*r64buf = (double)(*u16buf);
       }
       break;
     case SSHORT :
       s16buf = (s16*)bufferIn;
       for (i=bufferLength; i>0; i--, r64buf++, s16buf++ ) {
-	*r64buf = (float)(*s16buf);
+	*r64buf = (double)(*s16buf);
       }
       break;
     case INT :
       s32buf = (s32*)bufferIn;
       for (i=bufferLength; i>0; i--, r64buf++, s32buf++ ) {
-	*r64buf = (float)(*s32buf);
+	*r64buf = (double)(*s32buf);
       }
       break;
     case FLOAT :

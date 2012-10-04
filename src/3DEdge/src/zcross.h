@@ -3,19 +3,17 @@
  *
  * $Id$
  *
- * Copyright©INRIA 2000
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * DESCRIPTION: 
  *
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
- * http://www.inria.fr/epidaure/personnel/malandain/
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * Tue Nov 28 10:06:22 MET 2000
- *
- * Copyright Gregoire Malandain, INRIA
  *
  * ADDITIONS, CHANGES
  *
@@ -28,9 +26,9 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include <stdio.h>
+
 #include <typedefs.h>
-#include <recbuffer.h>
+
 
 
 extern void ZeroCrossings_verbose ( );

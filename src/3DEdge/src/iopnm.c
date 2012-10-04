@@ -3,10 +3,11 @@
  *
  * $Id$
  *
- * Copyright©INRIA 1999
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * July, 6 1999
@@ -23,6 +24,8 @@
 static int _VERBOSE_ = 1;
 
 typedef enum {
+  Ptwo=2,
+  Pthree=3,
   Pfive=5,
   Psix=6
 } typeP;
@@ -38,27 +41,47 @@ static int _MaxGreyValueIs255_ = 0;
 
 
 static int _convertVectBufferTo3DBuffer( unsigned char *buf,
-					 int dimx, int dimy )
+					 int dimx, int dimy, int b )
 {
   char *proc="_convertVectBufferTo3DBuffer";
   unsigned char *tmp = (unsigned char *)NULL;
   int x, y, s=dimx*dimy;
 
   if ( s <= 0 ) return( 0 );
-  tmp = (unsigned char *)malloc( s * 3 * sizeof(unsigned char) );
+  tmp = (unsigned char *)malloc( s * 3 * b * sizeof(unsigned char) );
   if ( tmp == (unsigned char *)NULL ) {
     if ( _VERBOSE_ ) 
       fprintf( stderr, "%s: error in allocating auxiliary buffer\n", proc );
     return( 0 );
   }
 
-  (void)memcpy( (void*)tmp, (void*)buf, s * 3 );
+  (void)memcpy( (void*)tmp, (void*)buf, s * b * 3 );
   
-  for ( y = 0; y < dimy; y++ )
-  for ( x = 0; x < dimx; x++ ) {
-    buf[       y*dimx + x ] = tmp [ 3*(y*dimx + x) ];
-    buf[ s +   y*dimx + x ] = tmp [ 3*(y*dimx + x) + 1];
-    buf[ 2*s + y*dimx + x ] = tmp [ 3*(y*dimx + x) + 2];
+  switch ( b ) {
+  case 1 :
+    {
+      unsigned char *ttmp = tmp;
+      unsigned char *tbuf = buf;
+      for ( y = 0; y < dimy; y++ )
+      for ( x = 0; x < dimx; x++ ) {
+	tbuf[       y*dimx + x ] = ttmp [ 3*(y*dimx + x) ];
+	tbuf[ s +   y*dimx + x ] = ttmp [ 3*(y*dimx + x) + 1];
+	tbuf[ 2*s + y*dimx + x ] = ttmp [ 3*(y*dimx + x) + 2];
+      }
+    }
+    break;
+  case 2 :
+    {
+      unsigned short int *ttmp = (unsigned short int *)tmp;
+      unsigned short int *tbuf = (unsigned short int *)buf;
+      for ( y = 0; y < dimy; y++ )
+      for ( x = 0; x < dimx; x++ ) {
+	tbuf[       y*dimx + x ] = ttmp [ 3*(y*dimx + x) ];
+	tbuf[ s +   y*dimx + x ] = ttmp [ 3*(y*dimx + x) + 1];
+	tbuf[ 2*s + y*dimx + x ] = ttmp [ 3*(y*dimx + x) + 2];
+      }
+    }
+    break;
   }
   
   free( tmp );
@@ -70,29 +93,49 @@ static int _convertVectBufferTo3DBuffer( unsigned char *buf,
 
 
 static int _convert3DBufferToVectBuffer( unsigned char *buf,
-					 int dimx, int dimy )
+					 int dimx, int dimy, int b )
 {
   char *proc="_convert3DBufferToVectBuffer";
   unsigned char *tmp = (unsigned char *)NULL;
   int x, y, s=dimx*dimy;
 
   if ( s <= 0 ) return( 0 );
-  tmp = (unsigned char *)malloc( s * 3 * sizeof(unsigned char) );
+  tmp = (unsigned char *)malloc( s * 3 * b * sizeof(unsigned char) );
   if ( tmp == (unsigned char *)NULL ) {
     if ( _VERBOSE_ ) 
       fprintf( stderr, "%s: error in allocating auxiliary buffer\n", proc );
     return( 0 );
   }
 
-  (void)memcpy( (void*)tmp, (void*)buf, s * 3 );
+  (void)memcpy( (void*)tmp, (void*)buf, s * b * 3 );
   
-  for ( y = 0; y < dimy; y++ )
-  for ( x = 0; x < dimx; x++ ) {
-    buf[ 3*(y*dimx + x)    ] = tmp [       y*dimx + x ];
-    buf[ 3*(y*dimx + x) + 1] = tmp [ s +   y*dimx + x ];
-    buf[ 3*(y*dimx + x) + 2] = tmp [ 2*s + y*dimx + x ];
+  switch ( b ) {
+  case 1 :
+    {
+      unsigned char *ttmp = tmp;
+      unsigned char *tbuf = buf;
+      for ( y = 0; y < dimy; y++ )
+      for ( x = 0; x < dimx; x++ ) {
+	tbuf[ 3*(y*dimx + x)    ] = ttmp [       y*dimx + x ];
+	tbuf[ 3*(y*dimx + x) + 1] = ttmp [ s +   y*dimx + x ];
+	tbuf[ 3*(y*dimx + x) + 2] = ttmp [ 2*s + y*dimx + x ];
+      }
+    }
+    break;
+  case 2 :
+    {
+      unsigned short int *ttmp = (unsigned short int *)tmp;
+      unsigned short int *tbuf = (unsigned short int *)buf;
+      for ( y = 0; y < dimy; y++ )
+      for ( x = 0; x < dimx; x++ ) {
+	tbuf[ 3*(y*dimx + x)    ] = ttmp [       y*dimx + x ];
+	tbuf[ 3*(y*dimx + x) + 1] = ttmp [ s +   y*dimx + x ];
+	tbuf[ 3*(y*dimx + x) + 2] = ttmp [ 2*s + y*dimx + x ];
+      }
+    }
+    break;
   }
-  
+
   free( tmp );
   return( 1 );
 
@@ -102,17 +145,37 @@ static int _convert3DBufferToVectBuffer( unsigned char *buf,
 
 static int _convertGreyBufferToVectBuffer( unsigned char *theBuf,
 					   unsigned char *resBuf,
-					   int dimx, int dimy )
+					   int dimx, int dimy, int b )
 {
   int x, y, s=dimx*dimy;
 
   if ( s <= 0 ) return( 0 );
-  
-  for ( y = 0; y < dimy; y++ )
-  for ( x = 0; x < dimx; x++ ) {
-    resBuf[ 3*(y*dimx + x)    ] = theBuf [ y*dimx + x ];
-    resBuf[ 3*(y*dimx + x) + 1] = theBuf [ y*dimx + x ];
-    resBuf[ 3*(y*dimx + x) + 2] = theBuf [ y*dimx + x ];
+
+  switch ( b ) {
+  case 1 :
+    {
+      unsigned char *res = resBuf;
+      unsigned char *the = theBuf;
+      for ( y = 0; y < dimy; y++ )
+      for ( x = 0; x < dimx; x++ ) {
+	res[ 3*(y*dimx + x)    ] = the [ y*dimx + x ];
+	res[ 3*(y*dimx + x) + 1] = the [ y*dimx + x ];
+	res[ 3*(y*dimx + x) + 2] = the [ y*dimx + x ];
+      }
+    }
+    break;
+  case 2 :
+    {
+      unsigned short int *res = (unsigned short int *)resBuf;
+      unsigned short int *the = (unsigned short int *)theBuf;
+      for ( y = 0; y < dimy; y++ )
+      for ( x = 0; x < dimx; x++ ) {
+	res[ 3*(y*dimx + x)    ] = the [ y*dimx + x ];
+	res[ 3*(y*dimx + x) + 1] = the [ y*dimx + x ];
+	res[ 3*(y*dimx + x) + 2] = the [ y*dimx + x ];
+      }
+    }
+    break;
   }
   
   return( 1 );
@@ -139,7 +202,7 @@ static int _convertGreyBufferToVectBuffer( unsigned char *theBuf,
 
 
 void *_readPnmImage( char *name, 
-		   int *dimx, int *dimy, int *dimz )
+		   int *dimx, int *dimy, int *dimz, int *bytes )
 {
   char *proc="_readPnmImage";
   char string[256];
@@ -152,7 +215,10 @@ void *_readPnmImage( char *name,
   typeP P;
   int sizeOfBuffer;
 
+  int n;
+
   *dimx = *dimy = *dimz = 0;
+  *bytes = 0;
 
   f = fopen( name, "r" );
   if ( f == (FILE*)NULL ) {
@@ -169,7 +235,13 @@ void *_readPnmImage( char *name,
     return( (void*)NULL );
   }
 
-  if ( strncmp( string, "P5", 2 ) == 0 ) {
+  if ( strncmp( string, "P2", 2 ) == 0 ) {
+    P = Ptwo;
+  }
+  else if ( strncmp( string, "P3", 2 ) == 0 ) {
+    P = Pthree;
+  }
+  else if ( strncmp( string, "P5", 2 ) == 0 ) {
     P = Pfive;
   }
   else if ( strncmp( string, "P6", 2 ) == 0 ) {
@@ -241,20 +313,24 @@ void *_readPnmImage( char *name,
   } while (  maxIsRead == 0 );
   
 
-  /* here it is assumed that we read unsigned char
-   */
   sizeOfBuffer = x * y;
   switch( P ) {
+  case Pthree :
   case Psix :
     z = 3;
     sizeOfBuffer *= 3;
     break;
+  case Ptwo :
   case Pfive :
     z = 1;
     break;
   default :
     break;
   }
+
+  /* unsigned char or unsigned short ?
+   */
+  if ( max > 255 ) sizeOfBuffer *= 2;
 
   buf = (void*)malloc( sizeOfBuffer * sizeof( unsigned char ) );
   if ( buf == (void*)NULL ) {
@@ -263,19 +339,73 @@ void *_readPnmImage( char *name,
     fclose( f );
     return( (void*)NULL );
   }
-  
-  if ( fread( buf, sizeof( unsigned char ), sizeOfBuffer, f ) != sizeOfBuffer ) {
-    if ( _VERBOSE_ ) 
-      fprintf( stderr, "%s: error in reading data in %s\n", proc, name );
-    fclose( f );
-    free( buf );
-    return( (void*)NULL );
+
+  if ( max > 255 ) *bytes = 2;
+  else *bytes = 1;
+
+  switch ( P ) {
+  case Pfive :
+  case Psix :
+
+    if ( fread( buf, sizeof( unsigned char ), sizeOfBuffer, f ) != sizeOfBuffer ) {
+      if ( _VERBOSE_ ) 
+	fprintf( stderr, "%s: error in reading data in %s\n", proc, name );
+      fclose( f );
+      free( buf );
+      return( (void*)NULL );
+    }
+
+    break;
+
+  case Ptwo :
+  case Pthree :
+
+    n = 0;
+    
+
+    switch( *bytes ) {
+    case 1 :
+      {
+	unsigned char *tbuf = (unsigned char *)buf;
+	int val;
+	
+	while ( n < x*y ) {
+	  if ( fscanf( f, "%d", &val ) != 1 ) {
+	    fprintf( stderr, "%s: error in reading value #%d/%d in %s\n", proc, n+1, x*y, name );
+	    fclose( f );
+	    return( (void*)NULL );
+	  }
+	  tbuf[n] = val;
+	  n ++;
+	}
+      }
+      break;
+    case 2 :
+      {
+	unsigned short int *tbuf = (unsigned short int *)buf;
+	int val;
+	
+	while ( n < x*y ) {
+	  if ( fscanf( f, "%d", &val ) != 1 ) {
+	    fprintf( stderr, "%s: error in reading value #%d/%d in %s\n", proc, n+1, x*y, name );
+	    fclose( f );
+	    return( (void*)NULL );
+	  }
+	  tbuf[n] = val;
+	  n ++;
+	}
+      }
+      break;
+    }
+
   }
+
   fclose( f );
     
   switch( P ) {
+  case Pthree :
   case Psix :
-    if ( _convertVectBufferTo3DBuffer( buf, x, y ) != 1 ) {
+    if ( _convertVectBufferTo3DBuffer( buf, x, y, *bytes ) != 1 ) {
       if ( _VERBOSE_ ) 
 	fprintf( stderr, "%s: can not convert data in %s\n", proc, name );
       free( buf );
@@ -289,6 +419,10 @@ void *_readPnmImage( char *name,
   *dimx = x;
   *dimy = y;
   *dimz = z;
+
+  if ( max > 255 ) *bytes = 2;
+  else *bytes = 1;
+
   return( buf );
 }
 
@@ -310,12 +444,11 @@ void *_readPnmImage( char *name,
 
 
 void _writePnmImage( char *name, 
-		     int x, int y, int z, void *buf )
+		     int x, int y, int z, int b, void *buf )
 {
   char *proc="_writePnmImage";
-  unsigned char *theBuf = (unsigned char *)buf;
   unsigned char *bufToWrite = (unsigned char *)buf;
-  int max, i;
+  int max=0, i;
   FILE *f, *fopen();
   int sizeOfBuffer = x * y * z;
   int localz = z;
@@ -330,18 +463,18 @@ void _writePnmImage( char *name,
   case 1 :
     if ( _WriteGreyImagesAsColorOnes_ != 0 ) {
       bufToWrite = (unsigned char *)NULL;
-      bufToWrite = (unsigned char *)malloc(  x * y * 3 * sizeof(unsigned char) );
+      bufToWrite = (unsigned char *)malloc(  x * y * 3 * b * sizeof(unsigned char) );
       if ( bufToWrite == (unsigned char *)NULL ) {
 	if ( _VERBOSE_ ) 
 	  fprintf( stderr, "%s: error in allocating auxiliary buffer\n", proc );
 	return;
       }
-      _convertGreyBufferToVectBuffer( buf, bufToWrite, x, y );
+      _convertGreyBufferToVectBuffer( buf, bufToWrite, x, y, b );
       localz = 3;
     }
     break;
   case 3 :
-    if ( _convert3DBufferToVectBuffer( buf, x, y ) != 1 ) {
+    if ( _convert3DBufferToVectBuffer( buf, x, y, b ) != 1 ) {
       if ( _VERBOSE_ ) 
 	fprintf( stderr, "%s: can not convert data\n", proc );
       return;
@@ -353,13 +486,34 @@ void _writePnmImage( char *name,
     return;
   }
     
+
+  switch( b ) {
+  case 1 :
+    {
+      unsigned char *tbuf = (unsigned char*)buf;
+      max = tbuf[0];
+      for ( i=1; i<sizeOfBuffer; i++ )
+	if ( max < tbuf[i] ) max = tbuf[i];
+    }
+    break;
+  case 2 :
+    {
+      unsigned short int *tbuf = (unsigned short int*)buf;
+      max = tbuf[0];
+      for ( i=1; i<sizeOfBuffer; i++ )
+	if ( max < tbuf[i] ) max = tbuf[i];
+    }
+    break;
+  }
   
-  if ( _MaxGreyValueIs255_ == 0 ) {
-    max = theBuf[0];
-    for ( i=1; i<sizeOfBuffer; i++ )
-      if ( max < theBuf[i] ) max = theBuf[i];
-  } else {
-    max = 255;
+  if ( _MaxGreyValueIs255_ != 0 ) {
+    if ( max < 255 ) {
+      if ( b == 1 ) max = 255;
+      else max = 256;
+    }
+    else {
+      max = 65535;
+    }
   }
 
   f = fopen( name, "w" );

@@ -3,11 +3,11 @@
  *
  * $Id$
  *
- * Copyright©INRIA 1999
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
- * http://www.inria.fr/epidaure/personnel/malandain/
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * July, 6 1999
@@ -29,16 +29,17 @@ extern "C" {
 
 #include <stdlib.h>
 #include <stdio.h>
+
 #include <fcntl.h> /* open, close */
 #include <sys/stat.h> /* open, close */
 #include <sys/types.h> /* open, close */
 #include <string.h>
 
 
-extern void *_readPnmImage( char *name, int *dimx, int *dimy, int *dimz );
+extern void *_readPnmImage( char *name, int *dimx, int *dimy, int *dimz, int *bytes );
 
 
-extern void _writePnmImage( char *name, int x, int y, int z, void *buf );
+extern void _writePnmImage( char *name, int x, int y, int z, int b, void *buf );
 
 
 extern void IoPnm_verbose ( );

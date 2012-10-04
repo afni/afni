@@ -3,20 +3,18 @@
  *
  * $Id$
  *
- * Copyright©INRIA 1999
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * DESCRIPTION: 
  *
  *
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
- * http://www.inria.fr/epidaure/personnel/malandain/
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * June, 9 1998
- *
- * Copyright Gregoire Malandain, INRIA
  *
  * ADDITIONS, CHANGES
  *
@@ -31,10 +29,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <typedefs.h>
-#include <convert.h>
 #include <recline.h>
 
 
