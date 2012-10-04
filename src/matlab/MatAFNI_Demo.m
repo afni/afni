@@ -75,6 +75,9 @@ clear all
 		[err, Vv, Info, ErrMessage] = BrikLoad (BrikName, Opt); 
 	%figure out the AFNI 1D index of the voxel
 		[err, Indx] = AfniXYZ2AfniIndex (Vox_Ind, Info.DATASET_DIMENSIONS(1), Info.DATASET_DIMENSIONS(2));
+   %
+   %See also functions: AFNI_Index2XYZcontinuous, and AFNI_XYZcontinuous2Index
+   %
 	%plot it. Remember that indexing in matlab is always augmented by 1 relative to AFNI's 
  		figure(1); subplot (212);
 		plot (Vv(Indx+1,:));

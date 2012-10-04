@@ -370,6 +370,8 @@ SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu,
 SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range, 
                      char *label, int ignoreout, 
                      float oscfrqthr, char *methods);
+SUMA_HIST *SUMA_dset_hist(THD_3dim_dataset *dset, int ia, 
+                          byte *cmask, char *label, SUMA_HIST *href);
 int SUMA_hist_smooth( SUMA_HIST *hh, int N_iter ); 
 float SUMA_hist_oscillation( SUMA_HIST *hh, 
                              float minmaxfrac, float oscfracthr);
