@@ -3983,7 +3983,7 @@ ENTRY("IW3D_warp_s2bim") ;
 
 MRI_IMAGE * mri_duplo_down_3D( MRI_IMAGE *fim )
 {
-   MRI_IMAGE *gim ;
+   MRI_IMAGE *gim = NULL;
    float *far , *gar ;
    int nxf,nyf,nzf , nxg,nyg,nzg , nxyf,nxyg , ii,jj,kk ;
 
