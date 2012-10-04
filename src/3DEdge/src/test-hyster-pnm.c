@@ -3,7 +3,8 @@
  *
  * $Id$
  *
- * Copyright©INRIA 1999
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * DESCRIPTION: 
  *
@@ -11,12 +12,10 @@
  *
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * Thu Oct  7 22:56:37 MET DST 1999
- *
- * Copyright Gregoire Malandain, INRIA
  *
  * ADDITIONS, CHANGES
  *
@@ -75,6 +74,8 @@ int main( int argc, char* argv[] )
   void *bufferIn = (void*)NULL;
   void *bufferOut = (void*)NULL;
   int bufferDims[3] = {0,0,0};
+  int nbytes;
+  bufferType TYPE = UCHAR;
   double low = 1.0;
   double high = 1.0;
   int size = 1;
@@ -147,8 +148,9 @@ int main( int argc, char* argv[] )
   }
 
   
-  bufferIn = _readPnmImage( nameImageIn, &bufferDims[0], &bufferDims[1], &bufferDims[2] );
-  
+  bufferIn = _readPnmImage( nameImageIn, &bufferDims[0], &bufferDims[1], &bufferDims[2], &nbytes );
+  if ( nbytes == 2 ) TYPE = USHORT;
+
   bufferOut = (void*)malloc( bufferDims[0] * bufferDims[1] * bufferDims[2] * sizeof(unsigned char) );
 
 
@@ -161,7 +163,7 @@ int main( int argc, char* argv[] )
    *                            -> Connexe_SetMaximumNumberOfComponents
    */
   Connexe_SetMinimumSizeOfComponents( size );
-  if ( HysteresisThresholding( bufferIn, UCHAR,
+  if ( HysteresisThresholding( bufferIn, TYPE,
 			       bufferOut, UCHAR,
 			       bufferDims,
 			       low, high ) < 0 ) {
@@ -175,6 +177,6 @@ int main( int argc, char* argv[] )
   */
 
 
-  _writePnmImage( nameImageOut, bufferDims[0], bufferDims[1], bufferDims[2], bufferOut );
+  _writePnmImage( nameImageOut, bufferDims[0], bufferDims[1], bufferDims[2], 1, bufferOut );
   
 }

@@ -3,18 +3,17 @@
  *
  * $Id$
  *
- * Copyright©INRIA 1999
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * DESCRIPTION: 
  *
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * June, 9 1998
- *
- * Copyright Gregoire Malandain, INRIA
  *
  * ADDITIONS, CHANGES
  *
@@ -22,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <fcntl.h> /* open, close */
 #include <sys/stat.h> /* open, close */
 #include <sys/types.h> /* open, close */
@@ -281,7 +281,6 @@ int main( int argc, char* argv[] )
   }
   close( fd );
 
-   
   /*
    *
    */
