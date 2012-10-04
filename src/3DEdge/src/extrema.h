@@ -3,23 +3,22 @@
  *
  * $Id$
  *
- * Copyright©INRIA 1998
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * DESCRIPTION: 
  *
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
- * http://www.inria.fr/epidaure/personnel/malandain/
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * June, 9 1998
  *
- * Copyright Gregoire Malandain, INRIA
- *
  * ADDITIONS, CHANGES
  *
  */
+
 
 #ifndef _extrema_h_
 #define _extrema_h_
@@ -32,9 +31,9 @@ extern "C" {
 #include <stdlib.h>
 #include <math.h>
 
-#include "typedefs.h"
-#include "recbuffer.h"
-#include "zcross.h"
+#include <typedefs.h>
+#include <recbuffer.h>
+#include <zcross.h>
 
 /* 2D Edge extraction by suppression of the non-maxima of the gradient.
  *

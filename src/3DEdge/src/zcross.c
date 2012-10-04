@@ -3,23 +3,28 @@
  *
  * $Id$
  *
- * Copyright©INRIA 2000
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * DESCRIPTION: 
  *
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * Tue Nov 28 10:00:36 MET 2000
- *
- * Copyright Gregoire Malandain, INRIA
  *
  * ADDITIONS, CHANGES
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#include <convert.h>
+#include <recbuffer.h>
 #include <zcross.h>
 
 static int _VERBOSE_ = 0;

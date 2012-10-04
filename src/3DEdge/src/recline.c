@@ -3,7 +3,8 @@
  *
  * $Id$
  *
- * Copyright©INRIA 1999
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * DESCRIPTION: 
  *
@@ -12,16 +13,22 @@
  *
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * June, 9 1998
  *
- * Copyright Gregoire Malandain, INRIA
- *
  * ADDITIONS, CHANGES
  *
  */
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+
 
 #include <recline.h>
 
@@ -30,32 +37,44 @@ static int _VERBOSE_ = 0;
 #define EXIT_ON_FAILURE 0
 #define EXIT_ON_SUCCESS 1
 
-/*--- denominateur       ---*/
-static double sd1 = 0.0, sd2 = 0.0, sd3 = 0.0, sd4 = 0.0;
-/*--- numerateur positif ---*/
-static double sp0 = 0.0, sp1 = 0.0, sp2 = 0.0, sp3 = 0.0;
-/*--- numerateur negatif ---*/
-static double sn0 = 0.0, sn1 = 0.0, sn2 = 0.0, sn3 = 0.0, sn4 = 0.0;
-/*--- type de filtre en cours ---*/
-static recursiveFilterType static_type_filter = UNKNOWN_FILTER;
-static derivativeOrder static_derivative = NODERIVATIVE;
 
-void InitRecursiveCoefficients( double x, 
-				recursiveFilterType type_filter, 
-				derivativeOrder derivative )
+
+void printRecursiveCoefficients( RFcoefficientType *RFC )
+{
+  printf( "denominator:\n" );
+  printf( "%f %f %f %f\n", RFC->sd1, RFC->sd2, RFC->sd3, RFC->sd4 );
+  printf( "positive numerator:\n" );
+  printf( "%f %f %f %f\n", RFC->sp0, RFC->sp1, RFC->sp2, RFC->sp3 );
+  printf( "negative numerator:\n" );
+  printf( "%f %f %f %f %f\n", RFC->sn0, RFC->sn1, RFC->sn2, RFC->sn3, RFC->sn4 );
+  printf( "\n" );
+}
+
+
+RFcoefficientType * InitRecursiveCoefficients( double x, 
+					       recursiveFilterType type_filter, 
+					       derivativeOrder derivative )
 {
   char *proc="InitRecursiveCoefficients";
   double ex, k1, k2;
   double a0, a1, c0, c1, omega0, omega1, b0, b1;
   double cos0, sin0, cos1, sin1;
   double sumA=0.0, sumC=0.0, aux;
+
+  RFcoefficientType *RFC = NULL;
+  RFC = (RFcoefficientType *)malloc( sizeof(RFcoefficientType) );
+  if ( RFC == NULL ) {
+    if ( _VERBOSE_ != 0 ) 
+      fprintf( stderr, "%s: allocation failed\n", proc );
+    return( NULL );
+  }
   
-  sd1 = sd2 = sd3 = sd4 = 0.0;
-  sp0 = sp1 = sp2 = sp3 = 0.0;
-  sn0 = sn1 = sn2 = sn3 = sn4 = 0.0;
+  RFC->sd1 = RFC->sd2 = RFC->sd3 = RFC->sd4 = 0.0;
+  RFC->sp0 = RFC->sp1 = RFC->sp2 = RFC->sp3 = 0.0;
+  RFC->sn0 = RFC->sn1 = RFC->sn2 = RFC->sn3 = RFC->sn4 = 0.0;
   
-  static_type_filter = UNKNOWN_FILTER;
-  static_derivative  = NODERIVATIVE;
+  RFC->type_filter = UNKNOWN_FILTER;
+  RFC->derivative  = NODERIVATIVE;
   
   ex = k1 = k2 = 0.0;
   a0 = a1 = c0 = c1 = 0.0;
@@ -67,13 +86,122 @@ void InitRecursiveCoefficients( double x,
   
   switch ( type_filter ) {
 
+  case GAUSSIAN_FIDRICH :
+    
+    if ( x < 0.1 ) {
+      if ( _VERBOSE_ != 0 ) {
+	fprintf( stderr, "%s: improper value of coefficient (should be >= 0.1).\n", proc );
+      }
+      free( RFC );
+      return( NULL );
+    }
+
+    switch ( derivative ) {
+    default :
+      if ( _VERBOSE_ != 0 ) {
+	fprintf( stderr, "%s: improper value of derivative order.\n", proc );
+      }
+      free( RFC );
+      return( NULL );
+    case DERIVATIVE_0 :
+      a0 =  0.6570033214 / x;
+      a1 =  1.978946687  / x;
+      c0 = -0.2580640608 / x;
+      c1 = -0.2391206463 / x;
+      omega0 = 0.6512453378;
+      omega1 = 2.05339943;
+      b0 = 1.906154352;
+      b1 = 1.881305409;
+      break;
+    case DERIVATIVE_1 :
+    case DERIVATIVE_1_CONTOURS :
+      a0 = -0.1726729496 / x;
+      a1 = -2.003565572  / x;
+      c0 =  0.1726730777 / x;
+      c1 =  0.4440126835 / x;
+      b0 = 1.560644213;
+      b1 = 1.594202256;
+      omega0 = 0.6995461735;
+      omega1 = 2.144671764;
+      break;
+    case DERIVATIVE_2 :
+      a0 = -0.7241334169 / x;
+      a1 =  1.688628765  / x;
+      c0 =  0.3251949838 / x;
+      c1 = -0.7211796018 / x;
+      b0 = 1.294951143;
+      b1 = 1.427007123;
+      omega0 = 0.7789803775;
+      omega1 = 2.233566862;
+      break;
+    case DERIVATIVE_3 :
+      a0 =  1.285774106  / x;
+      a1 = -0.2896378408 / x;
+      c0 = -1.28577129   / x;
+      c1 =  0.26249833   / x;
+      b0 = 1.01162886;
+      b1 = 1.273344739;
+      omega0 = 0.9474270928;
+      omega1 = 2.337607006;
+      break;
+    }
+    
+    omega0 /= x;   sin0 = sin( omega0 );   cos0 = cos( omega0 ); 
+    omega1 /= x;   sin1 = sin( omega1 );   cos1 = cos( omega1 ); 
+    b0 /= x;
+    b1 /= x;
+
+    RFC->sp0  = a0 + c0;
+    RFC->sp1  = exp( -b1 ) * (c1 * sin1 - (c0 + 2 * a0) * cos1);
+    RFC->sp1 += exp( -b0 ) * (a1 * sin0 - (2 * c0 + a0) * cos0);
+    RFC->sp2  = 2.0 * exp( -b0 - b1 ) 
+      * ((a0 + c0) * cos1 * cos0 - cos1 * a1 * sin0 - cos0 * c1 * sin1);
+    RFC->sp2 += c0 * exp( -2.0 * b0 ) + a0 * exp( -2.0 * b1 );
+    RFC->sp3  = exp( -b1 - 2.0 * b0 ) * (c1 * sin1 - c0 * cos1);
+    RFC->sp3 += exp( -b0 - 2.0 * b1 ) * (a1 * sin0 - a0 * cos0);
+    
+    RFC->sd1  = -2.0 * exp( -b1 ) * cos1 - 2.0 * exp( -b0 ) * cos0;
+    RFC->sd2  = 4.0 * cos1 * cos0 * exp( -b0 - b1 ) 
+      + exp( -2.0 * b1 ) + exp( -2.0 * b0 );
+    RFC->sd3 = -2.0 * cos0 * exp( -b0 - 2.0 * b1 ) 
+      - 2.0 * cos1 * exp( -b1 - 2.0 * b0 );
+    RFC->sd4 = exp( -2.0 * b0 - 2.0 * b1 );
+    
+    switch ( derivative ) {
+    default :
+      if ( _VERBOSE_ != 0 ) {
+	fprintf( stderr, "%s: improper value of derivative order.\n", proc );
+      }
+      free( RFC );
+      return( NULL );
+    case DERIVATIVE_0 :
+    case DERIVATIVE_2 :
+      RFC->sn1 =   RFC->sp1 - RFC->sd1 * RFC->sp0;
+      RFC->sn2 =   RFC->sp2 - RFC->sd2 * RFC->sp0;
+      RFC->sn3 =   RFC->sp3 - RFC->sd3 * RFC->sp0;
+      RFC->sn4 = - RFC->sd4 * RFC->sp0;
+      break;
+    case DERIVATIVE_1 :
+    case DERIVATIVE_1_CONTOURS :
+    case DERIVATIVE_3 :
+      RFC->sn1 = - RFC->sp1 + RFC->sd1 * RFC->sp0;
+      RFC->sn2 = - RFC->sp2 + RFC->sd2 * RFC->sp0;
+      RFC->sn3 = - RFC->sp3 + RFC->sd3 * RFC->sp0;
+      RFC->sn4 =   RFC->sd4 * RFC->sp0;
+    }
+    
+    RFC->type_filter = type_filter;
+    RFC->derivative  = derivative;
+    break;
+    
   case GAUSSIAN_DERICHE :
     
     if ( x < 0.1 ) {
       if ( _VERBOSE_ != 0 ) {
 	fprintf( stderr, "%s: improper value of coefficient (should be >= 0.1).\n", proc );
       }
-      return;
+      free( RFC );
+      return( NULL );
     }
 
     switch ( derivative ) {
@@ -161,30 +289,44 @@ void InitRecursiveCoefficients( double x,
       break;
     case DERIVATIVE_2 :
       aux   = 12.0 * cos0 * exp( 3.0 * b0 ) - 3.0 * exp( 2.0 * b0 );
-      aux  += 8.0 * cos0 * cos0 * cos0 * exp( 3.0 * b0 ) - 12.0 * cos0 * cos0 * exp( 4.0 * b0 );
+      aux  += 8.0 * cos0 * cos0 * cos0 * exp( 3.0 * b0 ) 
+	- 12.0 * cos0 * cos0 * exp( 4.0 * b0 );
       aux  -= 3.0 * exp( 4.0 * b0 );
-      aux  += 6.0 * cos0 * exp( 5.0 * b0 ) -  exp( 6.0 * b0 ) + 6.0 * cos0 * exp( b0 );
+      aux  += 6.0 * cos0 * exp( 5.0 * b0 ) -  exp( 6.0 * b0 ) 
+	+ 6.0 * cos0 * exp( b0 );
       aux  -= ( 1.0 + 12.0 * cos0 * cos0 * exp( 2.0 * b0 ) );
-      sumA  = 4.0 * a0 * sin0 * exp( 3.0 * b0 ) + a1 * cos0 * cos0 * exp( 4.0 * b0 );
-      sumA -= ( 4.0 * a0 * sin0 * exp( b0 ) + 6.0 * a1 * cos0 * cos0 * exp( 2.0 * b0 ) );
-      sumA += 2.0 * a1 * cos0 * cos0 * cos0 * exp( b0 ) - 2.0 * a1 * cos0 * exp( b0 );
-      sumA += 2.0 * a1 * cos0 * cos0 * cos0 * exp( 3.0 * b0 ) - 2.0 * a1 * cos0 * exp( 3.0 * b0 );
+      sumA  = 4.0 * a0 * sin0 * exp( 3.0 * b0 ) 
+	+ a1 * cos0 * cos0 * exp( 4.0 * b0 );
+      sumA -= ( 4.0 * a0 * sin0 * exp( b0 ) 
+		+ 6.0 * a1 * cos0 * cos0 * exp( 2.0 * b0 ) );
+      sumA += 2.0 * a1 * cos0 * cos0 * cos0 * exp( b0 ) 
+	- 2.0 * a1 * cos0 * exp( b0 );
+      sumA += 2.0 * a1 * cos0 * cos0 * cos0 * exp( 3.0 * b0 ) 
+	- 2.0 * a1 * cos0 * exp( 3.0 * b0 );
       sumA += a1 * cos0 * cos0 - a1 * exp( 4.0 * b0 );
-      sumA += 2.0 * a0 * sin0 * cos0 * cos0 * exp( b0 ) - 2.0 * a0 * sin0 * cos0 * cos0 * exp( 3.0 * b0 );
+      sumA += 2.0 * a0 * sin0 * cos0 * cos0 * exp( b0 ) 
+	- 2.0 * a0 * sin0 * cos0 * cos0 * exp( 3.0 * b0 );
       sumA -= ( a0 * sin0 * cos0 * exp( 4.0 * b0 ) + a1 );
       sumA += 6.0 * a1 * exp( 2.0 * b0 ) + a0 * cos0 * sin0;
       sumA *= 2.0 * exp( b0 ) / ( aux * sin0 );
       aux   = 12.0 * cos1 * exp( 3.0 * b1 ) - 3.0 * exp( 2.0 * b1 );
-      aux  += 8.0 * cos1 * cos1 * cos1 * exp( 3.0 * b1 ) - 12.0 * cos1 * cos1 * exp( 4.0 * b1 );
+      aux  += 8.0 * cos1 * cos1 * cos1 * exp( 3.0 * b1 ) 
+	- 12.0 * cos1 * cos1 * exp( 4.0 * b1 );
       aux  -= 3.0 * exp( 4.0 * b1 );
-      aux  += 6.0 * cos1 * exp( 5.0 * b1 ) -  exp( 6.0 * b1 ) + 6.0 * cos1 * exp( b1 );
+      aux  += 6.0 * cos1 * exp( 5.0 * b1 ) -  exp( 6.0 * b1 ) 
+	+ 6.0 * cos1 * exp( b1 );
       aux  -= ( 1.0 + 12.0 * cos1 * cos1 * exp( 2.0 * b1 ) );
-      sumC  = 4.0 * c0 * sin1 * exp( 3.0 * b1 ) + c1 * cos1 * cos1 * exp( 4.0 * b1 );
-      sumC -= ( 4.0 * c0 * sin1 * exp( b1 ) + 6.0 * c1 * cos1 * cos1 * exp( 2.0 * b1 ) );
-      sumC += 2.0 * c1 * cos1 * cos1 * cos1 * exp( b1 ) - 2.0 * c1 * cos1 * exp( b1 );
-      sumC += 2.0 * c1 * cos1 * cos1 * cos1 * exp( 3.0 * b1 ) - 2.0 * c1 * cos1 * exp( 3.0 * b1 );
+      sumC  = 4.0 * c0 * sin1 * exp( 3.0 * b1 ) 
+	+ c1 * cos1 * cos1 * exp( 4.0 * b1 );
+      sumC -= ( 4.0 * c0 * sin1 * exp( b1 ) 
+		+ 6.0 * c1 * cos1 * cos1 * exp( 2.0 * b1 ) );
+      sumC += 2.0 * c1 * cos1 * cos1 * cos1 * exp( b1 ) 
+	- 2.0 * c1 * cos1 * exp( b1 );
+      sumC += 2.0 * c1 * cos1 * cos1 * cos1 * exp( 3.0 * b1 ) 
+	- 2.0 * c1 * cos1 * exp( 3.0 * b1 );
       sumC += c1 * cos1 * cos1 - c1 * exp( 4.0 * b1 );
-      sumC += 2.0 * c0 * sin1 * cos1 * cos1 * exp( b1 ) - 2.0 * c0 * sin1 * cos1 * cos1 * exp( 3.0 * b1 );
+      sumC += 2.0 * c0 * sin1 * cos1 * cos1 * exp( b1 ) 
+	- 2.0 * c0 * sin1 * cos1 * cos1 * exp( 3.0 * b1 );
       sumC -= ( c0 * sin1 * cos1 * exp( 4.0 * b1 ) + c1 );
       sumC += 6.0 * c1 * exp( 2.0 * b1 ) + c0 * cos1 * sin1;
       sumC *= 2.0 * exp( b1 ) / ( aux * sin1 );
@@ -198,39 +340,42 @@ void InitRecursiveCoefficients( double x,
     c1 /= ( sumA + sumC );
     
     /*--- coefficients du calcul recursif ---*/
-    sp0  = a0 + c0;
-    sp1  = exp( -b1 ) * (c1 * sin1 - (c0 + 2 * a0) * cos1);
-    sp1 += exp( -b0 ) * (a1 * sin0 - (2 * c0 + a0) * cos0);
-    sp2  = 2.0 * exp( -b0 - b1 ) * ((a0 + c0) * cos1 * cos0 - cos1 * a1 * sin0 - cos0 * c1 * sin1);
-    sp2 += c0 * exp( -2.0 * b0 ) + a0 * exp( -2.0 * b1 );
-    sp3  = exp( -b1 - 2.0 * b0 ) * (c1 * sin1 - c0 * cos1);
-    sp3 += exp( -b0 - 2.0 * b1 ) * (a1 * sin0 - a0 * cos0);
+    RFC->sp0  = a0 + c0;
+    RFC->sp1  = exp( -b1 ) * (c1 * sin1 - (c0 + 2 * a0) * cos1);
+    RFC->sp1 += exp( -b0 ) * (a1 * sin0 - (2 * c0 + a0) * cos0);
+    RFC->sp2  = 2.0 * exp( -b0 - b1 ) 
+      * ((a0 + c0) * cos1 * cos0 - cos1 * a1 * sin0 - cos0 * c1 * sin1);
+    RFC->sp2 += c0 * exp( -2.0 * b0 ) + a0 * exp( -2.0 * b1 );
+    RFC->sp3  = exp( -b1 - 2.0 * b0 ) * (c1 * sin1 - c0 * cos1);
+    RFC->sp3 += exp( -b0 - 2.0 * b1 ) * (a1 * sin0 - a0 * cos0);
     
-    sd1  = -2.0 * exp( -b1 ) * cos1 - 2.0 * exp( -b0 ) * cos0;
-    sd2  = 4.0 * cos1 * cos0 * exp( -b0 - b1 ) + exp( -2.0 * b1 ) + exp( -2.0 * b0 );
-    sd3 = -2.0 * cos0 * exp( -b0 - 2.0 * b1 ) - 2.0 * cos1 * exp( -b1 - 2.0 * b0 );
-    sd4 = exp( -2.0 * b0 - 2.0 * b1 );
+    RFC->sd1  = -2.0 * exp( -b1 ) * cos1 - 2.0 * exp( -b0 ) * cos0;
+    RFC->sd2  = 4.0 * cos1 * cos0 * exp( -b0 - b1 ) 
+      + exp( -2.0 * b1 ) + exp( -2.0 * b0 );
+    RFC->sd3 = -2.0 * cos0 * exp( -b0 - 2.0 * b1 ) 
+      - 2.0 * cos1 * exp( -b1 - 2.0 * b0 );
+    RFC->sd4 = exp( -2.0 * b0 - 2.0 * b1 );
     
     switch ( derivative ) {
     default :
     case DERIVATIVE_0 :
     case DERIVATIVE_2 :
-      sn1 = sp1 - sd1 * sp0;
-      sn2 = sp2 - sd2 * sp0;
-      sn3 = sp3 - sd3 * sp0;
-      sn4 = -sd4 * sp0;
+      RFC->sn1 =   RFC->sp1 - RFC->sd1 * RFC->sp0;
+      RFC->sn2 =   RFC->sp2 - RFC->sd2 * RFC->sp0;
+      RFC->sn3 =   RFC->sp3 - RFC->sd3 * RFC->sp0;
+      RFC->sn4 = - RFC->sd4 * RFC->sp0;
       break;
     case DERIVATIVE_1 :
     case DERIVATIVE_1_CONTOURS :
     case DERIVATIVE_3 :
-      sn1 = - sp1 + sd1 * sp0;
-      sn2 = - sp2 + sd2 * sp0;
-      sn3 = - sp3 + sd3 * sp0;
-      sn4 = sd4 * sp0;
+      RFC->sn1 = - RFC->sp1 + RFC->sd1 * RFC->sp0;
+      RFC->sn2 = - RFC->sp2 + RFC->sd2 * RFC->sp0;
+      RFC->sn3 = - RFC->sp3 + RFC->sd3 * RFC->sp0;
+      RFC->sn4 =   RFC->sd4 * RFC->sp0;
     }
     
-    static_type_filter = type_filter;
-    static_derivative  = derivative;
+    RFC->type_filter = type_filter;
+    RFC->derivative  = derivative;
     break;
 
 
@@ -246,7 +391,8 @@ void InitRecursiveCoefficients( double x,
       if ( _VERBOSE_ != 0 ) {
 	fprintf( stderr, "%s: improper value of coefficient (should be >= 0.1 and <= 1.9).\n", proc );
       }
-      return;
+      free( RFC );
+      return( NULL );
     }
     ex = exp( (-x) );
     
@@ -257,35 +403,35 @@ void InitRecursiveCoefficients( double x,
       }
       derivative = DERIVATIVE_0;
     case DERIVATIVE_0 :
-      sp0 = (1.0 - ex) * (1.0 - ex) / (1.0 + 2.0 * x * ex - ex * ex);
-      sp1 = sp0 * (x - 1.0) * ex;
-      sn1 = sp0 * (x + 1.0) * ex;
-      sn2 = (- sp0) * ex * ex;
-      sd1 = (- 2.0) * ex;
-      sd2 = ex * ex;
+      RFC->sp0 = (1.0 - ex) * (1.0 - ex) / (1.0 + 2.0 * x * ex - ex * ex);
+      RFC->sp1 = RFC->sp0 * (x - 1.0) * ex;
+      RFC->sn1 = RFC->sp0 * (x + 1.0) * ex;
+      RFC->sn2 = (- RFC->sp0) * ex * ex;
+      RFC->sd1 = (- 2.0) * ex;
+      RFC->sd2 = ex * ex;
       break;
     case DERIVATIVE_1 :
-      sp1 = - (1.0 - ex) * (1.0 - ex) * (1.0 - ex) / (2.0 * (1.0 + ex));
-      sn1 = (- sp1);
-      sd1 = (- 2.0) * ex;
-      sd2 = ex * ex;	    
+      RFC->sp1 = - (1.0 - ex) * (1.0 - ex) * (1.0 - ex) / (2.0 * (1.0 + ex));
+      RFC->sn1 = (- RFC->sp1);
+      RFC->sd1 = (- 2.0) * ex;
+      RFC->sd2 = ex * ex;	    
       break;
     case DERIVATIVE_1_CONTOURS :
-      sp1 = - (1.0 - ex) * (1.0 - ex);
-      sn1 = (- sp1);
-      sd1 = (- 2.0) * ex;
-      sd2 = ex * ex;	    
+      RFC->sp1 = - (1.0 - ex) * (1.0 - ex);
+      RFC->sn1 = (- RFC->sp1);
+      RFC->sd1 = (- 2.0) * ex;
+      RFC->sd2 = ex * ex;	    
       break;
     case DERIVATIVE_2 :
       k1 = (- 2.0) * (1.0 - ex) * (1.0 - ex) * (1.0 - ex);
       k1 /= (1.0 + ex) * (1.0 + ex) * (1.0 + ex);
       k2 = (1.0 - ex * ex) / (2.0 * ex);
-      sp0 = k1;
-      sp1 = (- k1) * (1.0 + k2) * ex;
-      sn1 = k1 * (1.0 - k2) * ex;
-      sn2 = (- k1) * ex * ex;
-      sd1 = (- 2.0) * ex;
-      sd2 = ex * ex;
+      RFC->sp0 = k1;
+      RFC->sp1 = (- k1) * (1.0 + k2) * ex;
+      RFC->sn1 = k1 * (1.0 - k2) * ex;
+      RFC->sn2 = (- k1) * ex * ex;
+      RFC->sd1 = (- 2.0) * ex;
+      RFC->sd2 = ex * ex;
       break;
     case DERIVATIVE_3 :
       k1 = (1.0 + x) * ex + (x - 1.0);
@@ -293,19 +439,24 @@ void InitRecursiveCoefficients( double x,
       k1 *= (1.0 - ex) * (1.0 - ex) * (1.0 - ex) * (1.0 - ex);
       k1 /= 2.0 * x * x * ex * ex;
       k1 /= ex + 1.0;
-      sp0 = k1 * x * (k2 + 1.0);
-      sp1 = (- k1) * x * (1.0 + k2 + k2*x) * ex;
-      sn0 = (- sp0);
-      sn1 = (- sp1);
-      sd1 = (- 2.0) * ex;
-      sd2 = ex * ex;
+      RFC->sp0 = k1 * x * (k2 + 1.0);
+      RFC->sp1 = (- k1) * x * (1.0 + k2 + k2*x) * ex;
+      RFC->sn0 = (- RFC->sp0);
+      RFC->sn1 = (- RFC->sp1);
+      RFC->sd1 = (- 2.0) * ex;
+      RFC->sd2 = ex * ex;
     }
-    static_type_filter = type_filter;
-    static_derivative  = derivative;
+    RFC->type_filter = type_filter;
+    RFC->derivative  = derivative;
   }
+
+  return( RFC );
 }
 
-int RecursiveFilter1D( double *in, 
+
+
+int RecursiveFilter1D( RFcoefficientType *RFC,
+		       double *in, 
 		       double *out, 
 		       double *work1, 
 		       double *work2, 
@@ -319,12 +470,12 @@ int RecursiveFilter1D( double *in,
   register double *w0, *w1, *w2, *w3, *w4;
   register double *d0, *d1, *d2, *d3, *d4;
 
-  if ( static_type_filter == UNKNOWN_FILTER ) {
+  if ( RFC->type_filter == UNKNOWN_FILTER ) {
     if ( _VERBOSE_ != 0 )
       fprintf( stderr, "%s: unknown type of recursive filter.\n", proc );
     return( EXIT_ON_FAILURE );
   }
-  if ( static_derivative == NODERIVATIVE ) {
+  if ( RFC->derivative == NODERIVATIVE ) {
     if ( _VERBOSE_ != 0 )
       fprintf( stderr, "%s: unknown type of derivative.\n", proc );
     return( EXIT_ON_FAILURE );
@@ -334,12 +485,17 @@ int RecursiveFilter1D( double *in,
   rp0 = rp1 = rp2 = rp3 = 0.0;
   rn0 = rn1 = rn2 = rn3 = rn4 = 0.0;
   
-  switch( static_type_filter ) {
+  switch( RFC->type_filter ) {
+  default :
+    if ( _VERBOSE_ != 0 )
+      fprintf( stderr, "%s: unknown type of recursive filter.\n", proc );
+    return( EXIT_ON_FAILURE );
+  case GAUSSIAN_FIDRICH :
   case GAUSSIAN_DERICHE :
     /*--- filtrage generique d'ordre 4 ---*/
-    rp0 = sp0;   rp1 = sp1;   rp2 = sp2;   rp3 = sp3;
-    rd1 = sd1;   rd2 = sd2;   rd3 = sd3;   rd4 = sd4;
-    rn1 = sn1;   rn2 = sn2;   rn3 = sn3;   rn4 = sn4;
+    rp0 = RFC->sp0;   rp1 = RFC->sp1;   rp2 = RFC->sp2;   rp3 = RFC->sp3;
+    rd1 = RFC->sd1;   rd2 = RFC->sd2;   rd3 = RFC->sd3;   rd4 = RFC->sd4;
+    rn1 = RFC->sn1;   rn2 = RFC->sn2;   rn3 = RFC->sn3;   rn4 = RFC->sn4;
     
     /* on positionne les pointeurs 
      */
@@ -379,17 +535,16 @@ int RecursiveFilter1D( double *in,
     
     break;
 
-  default :
   case ALPHA_DERICHE :
-   
-    switch( static_derivative ) {
+    
+    switch( RFC->derivative ) {
     default :
     case DERIVATIVE_0 :
     case DERIVATIVE_2 :
 
-      rp0 = sp0;   rp1 = sp1;
-      rd1 = sd1;   rd2 = sd2;
-      rn1 = sn1;   rn2 = sn2;
+      rp0 = RFC->sp0;   rp1 = RFC->sp1;
+      rd1 = RFC->sd1;   rd2 = RFC->sd2;
+      rn1 = RFC->sn1;   rn2 = RFC->sn2;
       
       /* on positionne les pointeurs 
        */
@@ -421,9 +576,9 @@ int RecursiveFilter1D( double *in,
       
     case DERIVATIVE_1 :
     case DERIVATIVE_1_CONTOURS :
-      rp1 = sp1;
-      rn1 = sn1;
-      rd1 = sd1;   rd2 = sd2;
+      rp1 = RFC->sp1;
+      rn1 = RFC->sn1;
+      rd1 = RFC->sd1;   rd2 = RFC->sd2;
       
       /* on positionne les pointeurs 
        */
@@ -454,9 +609,9 @@ int RecursiveFilter1D( double *in,
       break;
 
     case DERIVATIVE_3 :
-      rp0 = sp0;   rp1 = sp1;
-      rd1 = sd1;   rd2 = sd2;
-      rn0 = sn0;   rn1 = sn1;
+      rp0 = RFC->sp0;   rp1 = RFC->sp1;
+      rd1 = RFC->sd1;   rd2 = RFC->sd2;
+      rn0 = RFC->sn0;   rn1 = RFC->sn1;
       
       w2 = work1;   w1 = w2+1;   w0 = w1+1;
       d1 = in+1;   d0 = d1+1;

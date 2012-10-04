@@ -3,20 +3,19 @@
  *
  * $Id$
  *
- * Copyright©INRIA 1998
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
  *
  * DESCRIPTION: 
  *
  * Recursive filtering of a line (a 1D array)
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
- * http://www.inria.fr/epidaure/personnel/malandain/
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * June, 9 1998
  *
- * Copyright Gregoire Malandain, INRIA
  *
  * ADDITIONS, CHANGES
  *
@@ -33,8 +32,6 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include <stdio.h>
-#include <math.h>
 
 /* The different recursive filter's types.
  *
@@ -76,7 +73,8 @@ extern "C" {
 typedef enum {
   UNKNOWN_FILTER = 0 /* unknown filter type */,
   ALPHA_DERICHE = 1 /* Deriche's filter (exponential (- alpha |X|)) */,
-  GAUSSIAN_DERICHE = 2 /* gaussian approximation (Deriche's coefficients) */
+  GAUSSIAN_DERICHE = 2 /* gaussian approximation (Deriche's coefficients) */,
+  GAUSSIAN_FIDRICH = 3 /* gaussian approximation (Fidrich's coefficients) */,
 } recursiveFilterType;
 
 
@@ -123,6 +121,30 @@ typedef enum {
 
 
 
+typedef struct {
+  /*--- denominateur       ---*/
+  double sd1;
+  double sd2;
+  double sd3;
+  double sd4;
+  /*--- numerateur positif ---*/
+  double sp0;
+  double sp1;
+  double sp2;
+  double sp3;
+  /*--- numerateur negatif ---*/
+  double sn0;
+  double sn1;
+  double sn2;
+  double sn3;
+  double sn4;
+  /*--- type de filtre en cours ---*/
+  recursiveFilterType type_filter;
+  derivativeOrder derivative;
+} RFcoefficientType;
+
+
+
 /* Initialization of coefficients for recursive filtering.
  *
  * PARAMETERS:
@@ -141,7 +163,7 @@ typedef enum {
  *
  * - derivativeOrder
  */
-extern void InitRecursiveCoefficients( double x, /* coefficient's value */
+extern RFcoefficientType * InitRecursiveCoefficients( double x, /* coefficient's value */
 				       recursiveFilterType filterType, /* filter's type */
 				       derivativeOrder derivative /* derivative's order */ );
 
@@ -164,7 +186,8 @@ extern void InitRecursiveCoefficients( double x, /* coefficient's value */
  *
  * - 1 if successful
  */
-extern int RecursiveFilter1D( double *in, /* input line */ 
+extern int RecursiveFilter1D( RFcoefficientType *RFC,
+			      double *in, /* input line */ 
 			      double *out, /* output line */
 			      double *work1, /* first work array */
 			      double *work2, /* second work array, 

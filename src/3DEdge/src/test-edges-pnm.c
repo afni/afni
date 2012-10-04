@@ -3,19 +3,19 @@
  *
  * $Id$
  *
- * Copyright©INRIA 1999
+ * LICENSE:
+ * GPL v3.0 (see gpl-3.0.txt for details)
+ *
  * DESCRIPTION: 
  *
  * Input must be of PBM/PGM/PPM raw format, output will be the same.
  *
  *
  * AUTHOR:
- * Gregoire Malandain (greg@sophia.inria.fr)
+ * Gregoire Malandain (gregoire.malandain@inria.fr)
  * 
  * CREATION DATE: 
  * June, 9 1998
- *
- * Copyright Gregoire Malandain, INRIA
  *
  * ADDITIONS, CHANGES
  *
@@ -28,6 +28,7 @@
 #include <iopnm.h>
 #include <extrema.h>
 #include <zcross.h>
+#include <recbuffer.h>
 
 
 typedef enum {
@@ -42,7 +43,9 @@ typedef enum {
 
 
 static char program[256];
-static char *usage = "image-in image-out [-a %f] [-s %f] [-v] [-help]";
+static char *usage = "image-in image-out [-a %f] [-s %f] [-neg|-pos]\n\
+ [-gradient|-laplacian|-gradient-laplacian|-hessian|-gradient-hessian]\n\
+ [-v|-nv] [-help]";
 static char *details ="\n\
 Edge detection\n\
 --------------\n\
@@ -54,7 +57,7 @@ of the gradient.\n\
 \t               of the gaussian\n\
 \t -v | -verbose\n\
 \t -nv | -no-verbose\n\
-\t -h | -help : print this message";
+\t -h | -help : print this message\n";
 
 static void ErrorMessage( char *str, int flag )
 {
@@ -80,6 +83,8 @@ int main( int argc, char* argv[] )
   void *bufferIn = (void*)NULL;
   void *bufferOut = (void*)NULL;
   int bufferDims[3] = {0,0,0};
+  int nbytes;
+  bufferType TYPE = UCHAR;
   int borderLengths[3] = {10,10,10};
   float filterCoefs[3] = {1.0, 1.0, 1.0};
   float c = 1.0;
@@ -154,6 +159,16 @@ int main( int argc, char* argv[] )
 	filterType = GAUSSIAN_DERICHE;
       }
 
+      else if ( (strcmp ( argv[i], "-msigma" ) == 0) || 
+		(strcmp ( argv[i], "-ms" ) == 0) ) {
+	i += 1;
+	if ( i >= argc)    ErrorMessage( "parsing -msigma...\n", 0 );
+	status = sscanf( argv[i], "%f", &c );
+	if ( status <= 0 ) ErrorMessage( "parsing -msigma...\n", 0 );
+	filterCoefs[0] = filterCoefs[1] = filterCoefs[2] = c;
+	filterType = GAUSSIAN_FIDRICH;
+      }
+
       else {
 	sprintf( nameImageIn, "unknown option %s\n", argv[i] );
 	ErrorMessage( nameImageIn, 0);
@@ -177,9 +192,9 @@ int main( int argc, char* argv[] )
 
 
 
-  bufferIn = _readPnmImage( nameImageIn, &bufferDims[0], &bufferDims[1], &bufferDims[2] );
-  
-  bufferOut = (void*)malloc( bufferDims[0] * bufferDims[1] * bufferDims[2] * sizeof(unsigned char) );
+  bufferIn = _readPnmImage( nameImageIn, &bufferDims[0], &bufferDims[1], &bufferDims[2], &nbytes );
+  if ( nbytes == 2 ) TYPE = USHORT;
+  bufferOut = (void*)malloc( bufferDims[0] * bufferDims[1] * bufferDims[2] * nbytes * sizeof(unsigned char) );
 
 
   fprintf( stderr, "%s: processing with coefficient = %f\n", argv[0], filterCoefs[0] );
@@ -189,8 +204,8 @@ int main( int argc, char* argv[] )
   switch( typeOutput ) {
   default :
   case _GRADIENT_EXTREMA_ :
-    if ( Extract_Gradient_Maxima_2D( bufferIn, UCHAR,
-				     bufferOut, UCHAR,
+    if ( Extract_Gradient_Maxima_2D( bufferIn, TYPE,
+				     bufferOut, TYPE,
 				     bufferDims,
 				     borderLengths,
 				     filterCoefs,
@@ -200,7 +215,7 @@ int main( int argc, char* argv[] )
     }
     break;
   case _GRADIENT_MODULUS_ :
-    if ( GradientModulus( bufferIn, UCHAR, bufferOut, UCHAR,
+    if ( GradientModulus( bufferIn, TYPE, bufferOut, TYPE,
 			  bufferDims, borderLengths, filterCoefs,
 			  filterType ) == 0 ) {
       fprintf( stderr, " processing failed.\n" );
@@ -208,8 +223,8 @@ int main( int argc, char* argv[] )
     }
     break;
   case _LAPLACIAN_ :
-    if ( Laplacian( bufferIn, UCHAR,
-		       bufferOut, UCHAR,
+    if ( Laplacian( bufferIn, TYPE,
+		       bufferOut, TYPE,
 		       bufferDims,
 		       borderLengths,
 		       filterCoefs,
@@ -219,8 +234,8 @@ int main( int argc, char* argv[] )
     }
     break;
   case _GRADIENT_LAPLACIAN_ :
-    if ( Gradient_On_Laplacian_ZeroCrossings_2D( bufferIn, UCHAR,
-		       bufferOut, UCHAR,
+    if ( Gradient_On_Laplacian_ZeroCrossings_2D( bufferIn, TYPE,
+		       bufferOut, TYPE,
 		       bufferDims,
 		       borderLengths,
 		       filterCoefs,
@@ -230,8 +245,8 @@ int main( int argc, char* argv[] )
     }
     break;
   case _HESSIAN_ :
-    if ( GradientHessianGradient( bufferIn, UCHAR,
-		       bufferOut, UCHAR,
+    if ( GradientHessianGradient( bufferIn, TYPE,
+		       bufferOut, TYPE,
 		       bufferDims,
 		       borderLengths,
 		       filterCoefs,
@@ -241,8 +256,8 @@ int main( int argc, char* argv[] )
     }
     break;
   case _GRADIENT_HESSIAN_ :
-    if ( Gradient_On_GradientHessianGradient_ZeroCrossings_2D( bufferIn, UCHAR,
-		       bufferOut, UCHAR,
+    if ( Gradient_On_GradientHessianGradient_ZeroCrossings_2D( bufferIn, TYPE,
+		       bufferOut, TYPE,
 		       bufferDims,
 		       borderLengths,
 		       filterCoefs,
@@ -253,6 +268,6 @@ int main( int argc, char* argv[] )
     break;
   }
 
-  _writePnmImage( nameImageOut, bufferDims[0], bufferDims[1], bufferDims[2], bufferOut );
+  _writePnmImage( nameImageOut, bufferDims[0], bufferDims[1], bufferDims[2], nbytes, bufferOut );
   
 }
