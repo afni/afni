@@ -17,6 +17,8 @@
   bandpass part; the spectrum of this second time series is used to
   calculate the fALFF denominator.
 
+  Sept. 2012:  improving some memory stuff
+
 */
 
 
@@ -258,7 +260,7 @@ int main( int argc , char * argv[] )
 	
    mainENTRY("3dRSFC"); machdep();
    AFNI_logger("3dRSFC",argc,argv);
-   PRINT_VERSION("3dRSFC (from 3dBandpass by RW Cox): version ETA"); 
+   PRINT_VERSION("3dRSFC (from 3dBandpass by RW Cox): version THETA"); 
 	AUTHOR("PA Taylor");
 	
    nosat =  AFNI_yesenv("AFNI_SKIP_SATCHECK") ;
@@ -934,6 +936,16 @@ int main( int argc , char * argv[] )
 	DSET_delete(outsetRSFA);
 	DSET_delete(outsetmRSFA);
 	DSET_delete(outsetfRSFA);
+
+	free(inset);
+	free(outsetALL);
+	free(outset);
+	free(outsetALFF);
+	free(outsetmALFF);
+	free(outsetfALFF);
+	free(outsetRSFA);
+	free(outsetmRSFA);
+	free(outsetfRSFA);
 
 	free(rsfa);
 	free(mrsfa);

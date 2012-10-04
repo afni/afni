@@ -1,6 +1,8 @@
 /* 
    Probabilistic tracking,  first draft at AFNIfication, March 2012.
-   using FACTID code, from Taylor, Kuan-Hung, Lin and Biswal (some year!)
+   using FACTID code, from Taylor, Kuan-Hung, Lin and Biswal (2012)
+
+	Sept 2012: fixing some memory stuff
 */
 
 
@@ -205,7 +207,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
   
-	INFO_message("version: LAMBDA");
+	INFO_message("version: MU");
 
 	// scan args 
 	if (argc == 1) { usage_ProbTrackID(1); exit(0); }
@@ -977,6 +979,8 @@ int main(int argc, char *argv[]) {
 			tross_Make_History("3dProbTrackID", argc, argv, networkMAPS);
 			THD_write_3dim_dataset(NULL, NULL, networkMAPS, True);
 			DSET_delete(networkMAPS); 
+			for( i=0 ; i<NROI[hh]+1 ; i++) // free all
+				free(temp_arr[i]);
 			free(temp_arr);
       
 		}
@@ -1031,10 +1035,14 @@ int main(int argc, char *argv[]) {
 	free(insetL1);
 	free(insetFA);
 	free(insetUC);
-  
+  	free(insetMD);
+	free(mset1);
+	free(networkMAPS);
+
 	for( i=0 ; i<2*ArrMax ; i++) 
 		free(Ttot[i]);
 	free(Ttot);
+
 	for( i=0 ; i<ArrMax ; i++) {
 		free(Tforw[i]);
 		free(Tback[i]);
@@ -1045,6 +1053,7 @@ int main(int argc, char *argv[]) {
 	free(Tback);
 	free(flTforw);
 	free(flTback);
+
 	for( i=0 ; i<Nseed ; i++) 
 		free(LocSeed[i]);
 	free(LocSeed);
@@ -1094,13 +1103,22 @@ int main(int argc, char *argv[]) {
 	for( i=0 ; i<N_nets ; i++) {
 		free(Prob_grid[i]);
 		free(Param_grid[i]);
+		free(prefix_netmap[i]); // free
 	}
 	free(Prob_grid);
 	free(Param_grid);
-    
+	free(prefix_netmap);
+
 	free(temp_list);
 	free(list_rois);
   
+
+	free(NROI);
+	gsl_rng_free(r); // free also
+
+
+
+
 	return 0;
 }
 
