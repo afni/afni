@@ -7,6 +7,7 @@
 	described in paper: <<Regional homogeneity approach to fMRI data
 	analysis>> by Zang, Jiang, Lu, He, and Tiana (2004, NeuroImage).
 
+	+ updated, Sept. 2012: just memory freeing stuff.
 */
 
 
@@ -116,7 +117,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 
-	// INFO_message("version: ZETA");
+	// INFO_message("version: ETA");
 	
 	/** scan args **/
 	if (argc == 1) { usage_ReHo(1); exit(0); }
@@ -363,12 +364,12 @@ int main(int argc, char *argv[]) {
 	// ************************************************************
 	// ************************************************************
 
+
 	DSET_delete(insetTIME);
 	DSET_delete(inset0);
 	DSET_delete(outsetREHO);
 	free(KW); 
 	free(chisq);
-	free(Dim);
 	free(here);
 	
 	free(sorted);
@@ -393,6 +394,16 @@ int main(int argc, char *argv[]) {
 	free(mskd);
 	free(Nties);
 	free(ndof);
+
+	free(Dim); // need to free last because it's used for other arrays...
+	gsl_vector_free(Y); // need to free these.
+	gsl_permutation_free(P);
+	free(insetTIME);
+	free(inset0);
+	free(outsetREHO);
+	free(prefix);
+
+
 
 	return 0;
 }
