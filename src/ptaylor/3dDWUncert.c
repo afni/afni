@@ -3,6 +3,9 @@
 	
 	This program estimates uncertainty of relevant DTI parameters using
 	jackknife resampling 
+
+	Sept. 2012: fixed some memory stuff.
+
 */
 
 #include <stdio.h>
@@ -219,7 +222,7 @@ int main(int argc, char *argv[]) {
 	//                    load AFNI stuff
 	// ****************************************************************
 	// ****************************************************************
-	INFO_message("version: ETA");
+	INFO_message("version: THETA");
 	
 	if (argc == 1) { usage_DWUncert(1); exit(0); }
 	
@@ -923,7 +926,6 @@ int main(int argc, char *argv[]) {
 	tross_Make_History("3dDWUncert", argc, argv, UNC_OUT);
 	THD_write_3dim_dataset(NULL, NULL, UNC_OUT, True);
 	DSET_delete(UNC_OUT); 
-	free(OUT);
   
 	
 	// ************************************************************
@@ -981,6 +983,7 @@ int main(int argc, char *argv[]) {
 	
 	for( i=0; i<M ; i++)
 		free(grads_dyad[i]);
+	free(grads_dyad); // free
 
 	free(delE1e1);
 	free(delE1e3);
@@ -1006,6 +1009,14 @@ int main(int argc, char *argv[]) {
 	free(insetFA);
 	free(dwset1);
   
+	for( i=0; i<6 ; i++) // free all
+		free(OUT[i]);
+	free(OUT);
+	gsl_rng_free(r);
+
+
+
+
 	return 0;
 }
 

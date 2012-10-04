@@ -1,7 +1,10 @@
 /* 
-   FACTID code, from Taylor, Kuan-Hung, Lin and Biswal (some year!)
+   FACTID code, from Taylor, Kuan-Hung, Lin and Biswal (2012)
    
    first draft at AFNIfication, March 2012.
+
+	updated version (switch for output *.trk file origin info; 
+	                 memory stuff), Sept. 2012
 */
 
 
@@ -1037,6 +1040,12 @@ int main(int argc, char *argv[]) {
 	for( i=0 ; i<Dim[0] ; i++) 
 		free(INDEX[i]);
 	free(INDEX);
+
+	free(temp_arr); // need to free
+	for( i=0 ; i<2*ArrMax ; i++) 
+		free(Ttot[i]);
+	free(Ttot);
+
 
 	return 0;
 }
