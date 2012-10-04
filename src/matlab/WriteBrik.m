@@ -60,6 +60,16 @@ function [err, ErrMessage, Info] = WriteBrik (M, Info, Opt)
 %      is set to 0 (no scaling).
 %      .OverWrite: if 'y' then overwrite existing dataset. 
 %                  Default is to not overwrite.
+%      .AdjustHeader: if 'y', then reset some header fields that conflict
+%                     with M. This option is 'y' by default. 
+%                     To find out what was done to the header, you can 
+%                     compare the returned info structure to the one
+%                     passed to the function.
+%                     With this option you can now do the following:
+%                [e,v,i] = BrikLoad('SOMETHING+orig');
+%                vout = rand(size(v,1), size(v,2), size(v,3), 20);
+%                Opt.Prefix = 'test';
+%                [e,e, io] = WriteBrik(vout, i, Opt);    
 %Output Parameters:
 %   err : 0 No Problem
 %       : 1 Mucho Problems
@@ -105,6 +115,7 @@ if (nargin < 3),
 end
 
 %first check on Prefix
+if (~isfield(Opt, 'AdjustHeader')) Opt.AdjustHeader = 'y'; end
 if (isfield(Opt,'prefix')), Opt.Prefix = Opt.prefix; end %comes from New_HEAD
 if (isfield(Opt,'scale')), Opt.Scale =  Opt.scale; end %comes from New_HEAD
 if (isfield(Opt,'overwrite')), Opt.OverWrite =  Opt.overwrite; end 
@@ -278,6 +289,30 @@ end
       isVect = 0;
    end
 
+   if (Opt.AdjustHeader == 'y'),
+      if (isfield(Info,'BRICK_STATS')), 
+         Info = rmfield(Info,'BRICK_STATS');  end
+      if (isfield(Info,'BRICK_FLOAT_FACS')), 
+         Info = rmfield(Info,'BRICK_FLOAT_FACS');  end
+      if (isfield(Info,'DATASET_DIMENSIONS')), 
+         Info = rmfield(Info,'DATASET_DIMENSIONS');  end
+      if (isfield(Info,'DATASET_RANK')), 
+         if (Info.DATASET_RANK(2) ~= N(4)),
+            Info = rmfield(Info,'DATASET_RANK'); 
+            Info = rmfield(Info,'TAXIS_NUMS');
+            Info = rmfield(Info,'TAXIS_FLOATS');
+            Info = rmfield(Info,'TAXIS_OFFSETS');
+         end
+      end
+      if (isfield(Info,'IDCODE_STRING')), 
+         Info = rmfield(Info,'IDCODE_STRING');  end
+      if (isfield(Info,'BRICK_TYPES')),
+         if (length(Info.BRICK_TYPES) ~= N(4) & length(Info.BRICK_TYPES) >= 1),
+            Info.BRICK_TYPES = Info.BRICK_TYPES(1)*ones(1,N(4));
+         end
+      end
+   end
+   
    if (isfield(Info, 'DATASET_DIMENSIONS') & length(Info.DATASET_DIMENSIONS) < 3 & length(Info.DATASET_DIMENSIONS) > 0),
       err = 1; ErrMessage = sprintf('Error %s: If you specify DATASET_DIMENSIONS it must be a vector of three elements', FuncName); errordlg(ErrMessage); return;
    end
@@ -325,8 +360,8 @@ end
 %end
 
    %Delete the Brick_Stats, let afni take care of them
-   if (isfield(Info,'BRICK_STATS')), rmfield(Info,'BRICK_STATS');  end
-   if (isfield(Info,'BRICK_FLOAT_FACS')), rmfield(Info,'BRICK_FLOAT_FACS');  end
+   if (isfield(Info,'BRICK_STATS')), Info = rmfield(Info,'BRICK_STATS');  end
+   if (isfield(Info,'BRICK_FLOAT_FACS')), Info = rmfield(Info,'BRICK_FLOAT_FACS');  end
    
 %figure out the ouput format
 if (~isfield(Info, 'BRICK_TYPES') | isempty(Info.BRICK_TYPES)),
