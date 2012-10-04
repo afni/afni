@@ -1,0 +1,101 @@
+.TH pgm 5 "12 November 1991"
+.SH NAME
+pgm - portable graymap file format
+.SH DESCRIPTION
+The portable graymap format is a lowest common denominator grayscale
+file format.
+.IX "PGM file format"
+The definition is as follows:
+.IP - 2
+A "magic number" for identifying the file type.
+A pgm file's magic number is the two characters "P5".
+.IX "magic numbers"
+.IP - 2
+Whitespace (blanks, TABs, CRs, LFs).
+.IP - 2
+A width, formatted as ASCII characters in decimal.
+.IP - 2
+Whitespace.
+.IP - 2
+A height, again in ASCII decimal.
+.IP - 2
+Whitespace.
+.IP - 2
+The maximum gray value (Maxval), again in ASCII decimal.  Must be less
+than 65536.
+.IP - 2
+Newline or other single whitespace character.
+.IP - 2
+A raster of Width * Height gray values, proceeding through the image
+in normal English reading order.  Each gray value is a number from 0
+through Maxval, with 0 being black and Maxval being white.  Each gray
+value is represented in pure binary by either 1 or 2 bytes.  If the
+Maxval is less than 256, it is 1 byte.  Otherwise, it is 2 bytes.  The
+most significant byte is first.
+.IP - 2
+Characters from a "#" to the next end-of-line, before the maxval line,
+are comments and are ignored.
+.PP
+Note that you can use
+.B pnmdepth
+To convert between a the format with 1 byte per gray value and the one
+with 2 bytes per gray value.
+.PP
+There is actually another version of the PGM format that is fairly rare:
+"plain" PGM format.  The format above, which generally considered the 
+normal one, is known as the "raw" PGM format.  See 
+.BR pbm (5)
+for some commentary on how plain and raw formats relate to one another.
+.PP
+The difference in the plain format is:
+.IP - 2
+The magic number is P2 instead of P5.
+.IP - 2
+Each pixel in the raster is represented as an ASCII decimal number 
+(of arbitrary size).
+.IP - 2
+Each pixel in the raster has white space before and after it.  There must
+be at least one character of white space between any two pixels, but there
+is no maximum.
+.IP - 2
+No line should be longer than 70 characters.
+.PP
+Here is an example of a small graymap in this format:
+.nf
+P2
+# feep.pgm
+24 7
+15
+0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+0  3  3  3  3  0  0  7  7  7  7  0  0 11 11 11 11  0  0 15 15 15 15  0
+0  3  0  0  0  0  0  7  0  0  0  0  0 11  0  0  0  0  0 15  0  0 15  0
+0  3  3  3  0  0  0  7  7  7  0  0  0 11 11 11  0  0  0 15 15 15 15  0
+0  3  0  0  0  0  0  7  0  0  0  0  0 11  0  0  0  0  0 15  0  0  0  0
+0  3  0  0  0  0  0  7  7  7  7  0  0 11 11 11 11  0  0 15  0  0  0  0
+0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+.fi
+.PP
+Programs that read this format should be as lenient as possible,
+accepting anything that looks remotely like a graymap.
+
+.SH COMPATIBILITY
+
+Before April 2000, a raw format PBM file could not have a maxval greater
+than 255.  Hence, it could not have more than one byte per sample.  Old
+programs may depend on this.
+
+.SH "SEE ALSO"
+fitstopgm(1), fstopgm(1), hipstopgm(1), lispmtopgm(1), psidtopgm(1),
+rawtopgm(1),
+pgmbentley(1), pgmcrater(1), pgmedge(1), pgmenhance(1), pgmhist(1), pgmnorm(1),
+pgmoil(1), pgmramp(1), pgmtexture(1),
+pgmtofits(1), pgmtofs(1), pgmtolispm(1), pgmtopbm(1),
+pnm(5), pbm(5), ppm(5)
+.SH AUTHOR
+Copyright (C) 1989, 1991 by Jef Poskanzer.
+.\" Permission to use, copy, modify, and distribute this software and its
+.\" documentation for any purpose and without fee is hereby granted, provided
+.\" that the above copyright notice appear in all copies and that both that
+.\" copyright notice and this permission notice appear in supporting
+.\" documentation.  This software is provided "as is" without express or
+.\" implied warranty.
