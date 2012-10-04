@@ -2156,7 +2156,7 @@ extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ;
 
 #undef  VECTORME
 #define VECTORME(inpp,outp)                                                   \
- do{ int vv ; MRI_IMARR *qimar=NULL ; MRI_IMAGE *fim ;                        \
+ do{ int vv ; MRI_IMARR *qimar=NULL ; MRI_IMAGE *fim = NULL;                  \
      (outp) = NULL ;                                                          \
      switch( (inpp)->kind ){                                                  \
        default:                                             break ;           \
