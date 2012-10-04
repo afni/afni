@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 4, Oct , 2012 , ZSS , "MapIcosahedron" , MICRO , TYPE_BUG_FIX,
+   "Dset Mapping failed on sparse datasets, at times. ",
+   NULL
+ },
+
+ { 4, Oct , 2012 , ZSS , "3dedge3" , MICRO , TYPE_MODIFY,
+   "Updated 3DEdge library to GPL version: 2012-02-22",
+   NULL
+ },
+
+ { 4, Oct , 2012 , ZSS , "afni-matlab" , MINOR , TYPE_NEW_OPT,
+   "Minor tweaks to WriteBrik and BrikInfo",
+   "WriteBrik can automatically set some header fields (AdjustHeader option)\n"
+   "BrikInfo now loads IJK_TO_DICOM_REAL"
+ },
+
  { 28, Sep , 2012 , ZSS , "@T1scale" , MINOR , TYPE_NEW_PROG,
    "A mini script to scale T1s by PD volumes",
    "Script uses method borrowed from @CalculateSignatures\n"

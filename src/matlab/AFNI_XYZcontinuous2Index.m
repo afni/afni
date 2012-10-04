@@ -50,6 +50,9 @@ function [err,Indx] = AFNI_XYZcontinuous2Index (XYZmm, Info, CoordCode, IndexDim
 %   AFNI_Index2XYZcontinuous
 %   Test_AFNI_Index2XYZcontinuous
 %   
+%   and usage of  IJK_TO_DICOM_REAL illustrated in help for 
+%   function AFNI_Index2XYZcontinuous
+%
 %
 %     Author : Ziad Saad
 %     Date : Thu Sep 7 16:50:38 PDT 2000        Latest Modification: Feb 18 04

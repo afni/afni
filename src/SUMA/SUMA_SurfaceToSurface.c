@@ -887,8 +887,10 @@ SUMA_DSET *SUMA_morphDsetToStd (SUMA_DSET *dset, SUMA_M2M_STRUCT *M2M,
          SUMA_RETURN(ndset);
       }  
       /* stick fout in output */
-      SUMA_LHv("Sticking column %d in dset (fout[0]=%f)\n", i, fout[0]);
-      if (!SUMA_Vec2DsetCol (ndset, i, (void *)fout, SUMA_float, 0, bfull)) {
+      SUMA_LHv("Sticking column %d in dset (fout[0]=%f, %d values expected)\n", 
+               i, fout[0], SDSET_VECLEN(ndset));
+               /* Do not use bfull in call below. bfull is for orignal array */
+      if (!SUMA_Vec2DsetCol (ndset, i, (void *)fout, SUMA_float, 0, NULL)) { 
          SUMA_S_Err("Failed to store output");
          SUMA_free(fin); fin = NULL; SUMA_free(fout); fout = NULL; 
          if (bfull) SUMA_free(bfull); bfull=NULL;

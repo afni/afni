@@ -1175,6 +1175,79 @@ float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats,
    SUMA_RETURN(feat_exp);
 }
 
+
+int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)   
+{
+   static char FuncName[]={"SUMA_3dGP_CompareDists"};
+   int ia = 0, i=0;
+   SUMA_HIST *hhn = NULL;
+   char sbuf[512];
+   SUMA_FEAT_DIST *FD=NULL;
+   FILE *fout=NULL, *scrout=NULL;
+
+   SUMA_ENTRY;
+   
+   sprintf(sbuf,"@GP.%s.dists", Opt->uid);
+   if (!scrout) scrout = fopen(sbuf,"w");
+   fprintf(scrout,"#!/bin/tcsh -f\n"
+                  "set alljpg = ()\n");
+
+   for (i=0; i<Opt->feats->num; ++i) {
+      if (!(FD = SUMA_find_feature_dist(Opt->FDV, NULL, Opt->feats->str[i], 
+                                        NULL, NULL))) {
+         SUMA_S_Errv("Failed to find dist struct for %s\n", 
+                      Opt->feats->str[i]);
+         SUMA_RETURN(0);
+      }
+
+      switch(FD->tp){
+         case SUMA_FEAT_NP:
+            /* Create histogram using parameters from training  */
+            SB_LABEL(Opt->sig, Opt->feats->str[i], ia);
+            if (ia<0) {
+               SUMA_S_Errv("Failed to find %s", Opt->feats->str[i]); 
+               SUMA_RETURN(0);
+            }
+            sprintf(sbuf, "h(%s)",Opt->feats->str[i]);
+            if ((hhn = SUMA_dset_hist(Opt->sig, ia, Opt->cmask, sbuf, FD->hh))) {
+               SUMA_S_Notev("Got %s\n", sbuf);
+               sprintf(sbuf, "h.%s_%s.1D", 
+                     Opt->uid[0] != '\0' ? Opt->uid:"test", Opt->feats->str[i]);
+               fout = fopen(sbuf,"w");
+               for (ia=0; ia<FD->hh->K; ++ia) {
+                  fprintf(fout, "%f %f %f\n",
+                           FD->hh->b[ia], hhn->cn[ia], FD->hh->cn[ia]);
+               }
+               fclose(fout); fout=NULL;
+               SUMA_Free_hist(hhn); hhn = NULL;
+               sprintf(sbuf, "h.%s_%s", 
+                     Opt->uid[0] != '\0' ? Opt->uid:"test", Opt->feats->str[i]);
+               fprintf(scrout,"\n"
+                     "1dRplot -x %s.1D'[0]' -input %s.1D'[1,2]' \\\n"
+                  "        -col.color 1 2 -one -col.name '%s Training' \\\n"
+                     "        -xax.label %s -title NONE  \\\n"
+                     "        -col.name.show -leg.show -save %s.jpg  \n"
+                     "set alljpg = ($alljpg %s.jpg)\n",
+                        sbuf, sbuf,  Opt->uid[0] != '\0' ? Opt->uid:"test",
+                        Opt->feats->str[i],
+                        sbuf, sbuf);
+            } else {
+               SUMA_S_Err("Failed");
+            }
+            break;
+         default:
+            SUMA_S_Notev("No comparisons for feature %s\n", Opt->feats->str[i]);              break;
+      }
+   }
+   sprintf(sbuf, "h.%s", Opt->uid[0] != '\0' ? Opt->uid:"test");
+   fprintf(scrout,"\n"
+            "imcat -crop 0 0 100 0 -nx 4 -prefix %s.ALL.jpg $alljpg\n",
+            sbuf);
+   if (scrout) fclose(scrout); scrout=NULL;
+   
+   SUMA_RETURN(YUP);
+}
+
 int main(int argc, char **argv)
 {
    static char FuncName[]={"3dGenPriors"};
@@ -1220,6 +1293,7 @@ int main(int argc, char **argv)
       }
       exit(0); 
    }
+   
    /* load the input data */   
    if (Opt->sig_name && !(Opt->sig = Seg_load_dset( Opt->sig_name ))) {      
       exit(1);
@@ -1335,6 +1409,10 @@ int main(int argc, char **argv)
 
    SUMA_S_Notev("Will be using %d features and %d classes.\n",
                    Opt->feats->num, Opt->clss->num);
+   
+   /* Compare distributions from this set to those from training */
+   SUMA_3dGP_CompareDists(Opt);
+
    
    if (!(Opt->feat_exp = SUMA_ComputeFeatureExponents(Opt->clss, Opt->feats, 
                                  Opt->featexpmeth, Opt->ndist_name, 
