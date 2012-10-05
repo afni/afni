@@ -279,7 +279,15 @@ examples (very basic for now):
         cat subject_results/group.*/sub*/*.results/blur.errts.1D \\
                 | 1d_tool.py -show_mmms -infile -
 
+   18. Just output censor count for default method.
 
+       This will output nothing but the number of TRs that would be censored,
+       akin to using -censor_motion.
+
+        1d_tool.py -infile dfile_rall.1D -set_nruns 3 -quick_censor_count 0.3
+
+        1d_tool.py -infile dfile_rall.1D -set_run_lengths 100 80 120 \
+                   -quick_censor_count 0.3
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -483,6 +491,31 @@ general options:
         -looks_like_local_times and -looks_like_global_times.
 
    -overwrite                   : allow overwriting of any output dataset
+
+   -pad_into_many_runs RUN NRUNS : pad as current run of num_runs
+
+        e.g. -pad_into_many_runs 2 7
+
+        This option is used to create a longer time series dataset where the
+        input is consider one particular run out of many.  The output is
+        padded with zero for all run TRs before and after this run.
+
+        Given the example, there would be 1 run of zeros, then the input would
+        be treated as run 2, and there would be 5 more runs of zeros.
+
+   -quick_censor_count LIMIT    : output # TRs that would be censored
+
+        e.g. -quick_censor_count 0.3
+
+        This is akin to -censor_motion, but it only outputs the number of TRs
+        that would be censored.  It does not actually create a censor file.
+
+        This option essentially replaces these:
+
+           -derivative -demean -collapse_cols euclidean_norm
+           -censor_prev_TR -verb 0 -show_censor_count 
+           -moderate_mask 0 LIMIT
+
    -reverse                     : reverse data over time
    -randomize_trs               : randomize the data over time
    -seed SEED                   : set random number seed (integer)
@@ -651,9 +684,10 @@ g_history = """
    1.07 Jul 30, 2012 - added -show_mmms
    1.08 Jul 30, 2012 - display -show_mmms output to 4 decimal places
    1.09 Oct  3, 2012 - some options do not allow dashed parameters
+   1.10 Oct  5, 2012 - added option -quick_censor_count
 """
 
-g_version = "1d_tool.py version 1.09, October 3, 2012"
+g_version = "1d_tool.py version 1.10, October 5, 2012"
 
 
 class A1DInterface:
@@ -862,6 +896,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-pad_into_many_runs', 2, [], 
                       helpstr='make data run #k of N runs (pad with 0)')
+
+      self.valid_opts.add_opt('-quick_censor_count', 1, [], 
+                      helpstr='show #TRs that would be censored at LIMIT')
 
       self.valid_opts.add_opt('-randomize_trs', 0, [], 
                       helpstr='randomize the data over time (fixed per TR)')
@@ -1152,6 +1189,43 @@ class A1DInterface:
                               len_name='-pad_into_many_runs', opt=opt)
             if err: return 1
             self.pad_to_runs = vals
+
+         elif opt.name == '-quick_censor_count':
+            val, err = uopts.get_string_list('', opt=opt)
+            if err: return 1
+            try: limit = float(val[0])
+            except:
+               print "** -censor_motion: bad limit '%s'" % val[0]
+               return 1
+            if limit < 0:
+               print "** -quick_censor_count: LIMIT must be > 0, have %g"%limit
+               return 1
+            # check for redundant options
+            errors = 0
+            olist = ['-derivative', '-demean', '-collapse_cols', '-verb',
+                     '-extreme_mask', 'moderate_mask', '-show_censor_count']
+            for oname in olist:
+               if uopts.find_opt(oname):
+                  print "** option %s is redundant with -quick_censor_count" \
+                        % oname
+                  errors += 1
+            olist = ['-censor_motion', '-write_censor']
+            for oname in olist:
+               if uopts.find_opt(oname):
+                  print "** option %s is not allowed with -quick_censor_count" \
+                        % oname
+                  errors += 1
+            if errors: return 1
+            # set implied options
+            self.censor_prev_TR  = 1
+            self.derivative      = 1
+            self.demean          = 1
+            self.collapse_method = 'euclidean_norm'
+            self.set_moderates   = 1
+            self.extreme_min     = 0
+            self.extreme_max     = limit
+            self.verb            = 0
+            self.show_censor_count = 1
 
          elif opt.name == '-randomize_trs':
             self.rand_trs = 1
