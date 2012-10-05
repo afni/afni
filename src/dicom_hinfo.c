@@ -3,7 +3,7 @@
 int main(int argc, char **argv)
 {
    char *str ;
-   int ii, iarg=1 , dolast=0 ;
+   int ii, iarg=1 , nposn=-1 ;  /* default name position is first */
    int ntag=0 ; char **tag=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -25,6 +25,8 @@ int main(int argc, char **argv)
             "\n"
             " -namelast      = Put the filename last on each output line,\n"
             " *OR* -last       instead of first.\n"
+            "\n"
+            " -no_name       = Omit any filename output.\n"
             "\n"
             "* The purpose of this program is to be used in scripts to figure out\n"
             "  which DICOM files to process for various purposes -- see Example #2.\n"
@@ -166,7 +168,11 @@ int main(int argc, char **argv)
    while( argv[iarg][0] == '-' ){
 
      if( strcasecmp(argv[iarg],"-last") == 0 || strcasecmp(argv[iarg],"-namelast") == 0 ){
-       dolast = 1 ; iarg++ ; continue ;
+       nposn = 1 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-no_name") == 0 ){
+       nposn = 0 ; iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-tag") == 0 ){
@@ -196,7 +202,7 @@ int main(int argc, char **argv)
      WARNING_message("No tags given -- just echoing names of DICOM files") ;
 
    for( ii=iarg ; ii < argc ; ii++ ){
-     str = mri_dicom_hdrinfo( argv[ii] , ntag , tag , dolast ) ;
+     str = mri_dicom_hdrinfo( argv[ii] , ntag , tag , nposn ) ;
      if( str == NULL ) continue ;
      printf("%s\n",str) ;
      free(str) ;
