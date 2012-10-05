@@ -2482,8 +2482,10 @@ static int init_dicom_globals(dicom_globals_t * info)
 
 /*----------------------------------------------------------------------------*/
 /* Get some header info from a DICOM file [15 Nov 2011 - RWCox] */
-
-char * mri_dicom_hdrinfo( char *fname , int natt , char **att , int dolast )
+/* 
+ * nposn = name position (was dolast): -1 = first, 0 = skip, 1 = last
+ *                                                 5 Oct 2012 [rickr] */
+char * mri_dicom_hdrinfo( char *fname , int natt , char **att , int nposn )
 {
    char *strout=NULL , *ppp , **epos , *ddd , sss[256] ;
    int aa ;
@@ -2513,7 +2515,7 @@ ENTRY("mri_dicom_hdrinfo") ;
 
    /*-- initialize output --*/
 
-   if( !dolast || natt <= 0 ) strout = THD_zzprintf(strout,"%s",fname) ;
+   if( nposn == -1 || natt <= 0 ) strout = THD_zzprintf(strout,"%s",fname) ;
 
    /*-- simple case, probably never used --*/
 
@@ -2532,10 +2534,12 @@ ENTRY("mri_dicom_hdrinfo") ;
        ddd = strstr(epos[aa],"//") ;
        if( ddd != NULL ) sscanf(ddd+2,"%254s",sss) ;
      }
-     if( dolast && aa == 0 ) strout = THD_zzprintf(strout,"%s" ,sss) ;
-     else                    strout = THD_zzprintf(strout," %s",sss) ;
+
+     /* if name is first or after first output, add a space */
+     if( nposn != -1 && aa == 0 ) strout = THD_zzprintf(strout,"%s" ,sss) ;
+     else                         strout = THD_zzprintf(strout," %s",sss) ;
    }
-   if( dolast ) strout = THD_zzprintf(strout," %s",fname) ;
+   if( nposn == 1 ) strout = THD_zzprintf(strout," %s",fname) ;
 
    free(epos) ; free(ppp) ; RETURN(strout) ;
 }

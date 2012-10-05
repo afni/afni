@@ -877,7 +877,7 @@ extern int         mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
 extern int         mri_siemens_slice_times( int *, int *, float ** );
 extern int         mri_sst_get_verb( void );
 extern int         mri_sst_set_verb( int );
-extern char *      mri_dicom_hdrinfo( char *fname, int natt, char **att , int dolast ) ;
+extern char *      mri_dicom_hdrinfo( char *fname, int natt, char **att , int nposn ) ;
 
 /*! Set the data pointer in an MRI_IMAGE to NULL. */
 
