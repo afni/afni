@@ -2156,33 +2156,33 @@ extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ;
 
 #undef  VECTORME
 #define VECTORME(inpp,outp)                                                   \
- do{ int vv ; MRI_IMARR *qimar=NULL ; MRI_IMAGE *fim = NULL;                  \
+ do{ int vv ; MRI_IMARR *qxmpq=NULL; MRI_IMAGE *qxm=NULL;                     \
      (outp) = NULL ;                                                          \
      switch( (inpp)->kind ){                                                  \
        default:                                             break ;           \
-       case MRI_fvect:   qimar = mri_fvect_to_imarr(inpp) ; break ;           \
-       case MRI_rgb:     qimar = mri_rgb_to_3float (inpp) ; break ;           \
-       case MRI_complex: qimar = mri_complex_to_pair(inpp); break ;           \
+       case MRI_fvect:   qxmpq = mri_fvect_to_imarr(inpp) ; break ;           \
+       case MRI_rgb:     qxmpq = mri_rgb_to_3float (inpp) ; break ;           \
+       case MRI_complex: qxmpq = mri_complex_to_pair(inpp); break ;           \
      }                                                                        \
-     if( qimar == NULL ) break ;                                              \
-     for( vv=0 ; vv < IMARR_COUNT(qimar) ; vv++ ){                            \
-       CALLME( IMARR_SUBIM(qimar,vv) , fim ) ;                                \
-       mri_free(IMARR_SUBIM(qimar,vv)) ;                                      \
-       IMARR_SUBIM(qimar,vv) = fim ;                                          \
+     if( qxmpq == NULL ) break ;                                              \
+     for( vv=0 ; vv < IMARR_COUNT(qxmpq) ; vv++ ){                            \
+       CALLME( IMARR_SUBIM(qxmpq,vv) , qxm ) ;                                \
+       mri_free(IMARR_SUBIM(qxmpq,vv)) ;                                      \
+       IMARR_SUBIM(qxmpq,vv) = qxm ;                                          \
      }                                                                        \
      switch( (inpp)->kind ){                                                  \
        default:          break ;                                              \
-       case MRI_fvect:   (outp) = mri_imarr_to_fvect(qimar) ;                 \
+       case MRI_fvect:   (outp) = mri_imarr_to_fvect(qxmpq) ;                 \
                          break ;                                              \
-       case MRI_rgb:     (outp) = mri_3to_rgb(IMARR_SUBIM(qimar,0),           \
-                                              IMARR_SUBIM(qimar,1),           \
-                                              IMARR_SUBIM(qimar,2) ) ;        \
+       case MRI_rgb:     (outp) = mri_3to_rgb(IMARR_SUBIM(qxmpq,0),           \
+                                              IMARR_SUBIM(qxmpq,1),           \
+                                              IMARR_SUBIM(qxmpq,2) ) ;        \
                          break ;                                              \
-       case MRI_complex: (outp) = mri_pair_to_complex(IMARR_SUBIM(qimar,0),   \
-                                                      IMARR_SUBIM(qimar,1) ); \
+       case MRI_complex: (outp) = mri_pair_to_complex(IMARR_SUBIM(qxmpq,0),   \
+                                                      IMARR_SUBIM(qxmpq,1) ); \
                          break ;                                              \
      }                                                                        \
-     DESTROY_IMARR(qimar) ;                                                   \
+     DESTROY_IMARR(qxmpq) ;                                                   \
    } while(0)
 /*----------------------------------------------------------------------------*/
 
