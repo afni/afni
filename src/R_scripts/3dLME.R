@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 1.0.4,  June 3, 2009
+#Version 1.0.5,  Oct 5, 2012
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -245,7 +245,10 @@ if (tag == 0)  {
 if (NoConst) FArr <- 1:NoF else FArr <- 2:(NoF+1)
 
 # Number of sub-bricks
-NoBrick <- NoF + 2*ncontr + 2*nCov
+#NoBrick <- NoF + 2*ncontr + 2*nCov
+nCovBrick <- length(grep(Cov, dimnames(summary(fm)$tTable)[[1]]))
+NoBrick <- NoF + 2*ncontr + 2*nCovBrick
+
 if (NoConst) {
    if (as.numeric(ranEff[[1]][1])) NoCoef <- length(fm$coefficients$fixed) else {
 	   NoCoef <- length(fm$coefficients)
@@ -253,8 +256,9 @@ if (NoConst) {
 	NoBrick <- NoBrick + 2*NoCoef	
 }	else NoCoef <- NA
 # to avoid the ambiguity with the case of no intercept	
-BrickCnt <- NoBrick - 2*ncontr - 2*nCov  
-
+#BrickCnt <- NoBrick - 2*ncontr - 2*nCov  
+BrickCnt <- NoBrick - 2*ncontr - 2*nCovBrick
+ 
 #Modeln <- groupedData(Beta ~ session | Subj, data = Model)
 
 # Initialization
@@ -270,8 +274,8 @@ myRand <- vector("list", 6)
 myRand[[1]]<-ranEff[[1]]; myRand[[2]]<-ranEff[[2]]; myRand[[3]]<-CorStr; myRand[[4]]<-CorForm; myRand[[5]]<-VarStr; myRand[[6]]<-VarForm
 myStuff <- vector("list", 10)
 myStuff[[1]]<-NoBrick; myStuff[[2]]<-BrickCnt; myStuff[[3]]<-NoCoef; myStuff[[4]]<-ncontr
-myStuff[[5]]<-clist; myStuff[[6]]<-nCov; myStuff[[7]]<-Ftype; myStuff[[8]]<-FArr; myStuff[[9]]<-NoF
-myStuff[[10]]<-NoConst; myStuff[[11]]<-Cov
+myStuff[[5]]<-clist; myStuff[[6]]<-nCovBrick; myStuff[[7]]<-Ftype; myStuff[[8]]<-FArr; myStuff[[9]]<-NoF
+myStuff[[10]]<-NoConst; myStuff[[11]]<-grep(Cov, dimnames(summary(fm)$tTable)[[1]])
 
 runAna <- function(inData, dataframe, ModelForm, myRand, myStuff, tag) {
 	Stat <- vector(mode="numeric", length=myStuff[[1]])
@@ -361,9 +365,11 @@ for (n in 1:ncontr) {
 }
 }
 if (nCov > 0) {
-for (n in 1:nCov) {
-   MyLabel <- append(MyLabel, Cov[n])
-	MyLabel <- append(MyLabel, paste(Cov[n], "t"))
+for (n in 1:nCovBrick) {
+   #MyLabel <- append(MyLabel, Cov[n])
+   MyLabel <- append(MyLabel, dimnames(summary(fm)$tTable)[[1]][myStuff[[11]][n]])
+	#MyLabel <- append(MyLabel, paste(Cov[n], "t"))
+   MyLabel <- append(MyLabel, paste(dimnames(summary(fm)$tTable)[[1]][myStuff[[11]][n]], "t"))
 }
 }
 
@@ -392,8 +398,8 @@ if (NoConst) {
 
 if (ncontr > 0) for (n in 1:ncontr) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*n-1, " fitt ", contrDF[n])
 if (nCov > 0) {
-   if (as.numeric(ranEff[[1]][1])) for (n in 1:nCov) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*ncontr+2*n-1, " fitt ",
-	   summary(fm)$tTable[Cov[n], "DF"]) else
+   if (as.numeric(ranEff[[1]][1])) for (n in 1:nCovBrick) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*ncontr+2*n-1, " fitt ",
+	   summary(fm)$tTable[myStuff[[11]][n], "DF"]) else
 	   for (n in 1:nCov) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*ncontr+2*n-2, " fitt ", glsDF)
 }
 statpar <- paste(statpar, " -view tlrc -addFDR -newid ", OutFile)
