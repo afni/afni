@@ -1451,6 +1451,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Ever returning spring, trinity sure to me you bring"           ,
      "What a long strange trip it's been"                            ,
      "Sometime the light shines on me, other times I can barely see" ,
+     "Tomorrow we feast with us at home"                             ,
 
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
