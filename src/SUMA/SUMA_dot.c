@@ -977,6 +977,10 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
             } 
          }
          break;
+      case SUMA_complex:
+         SUMA_S_Err("No support for complex type here");
+         SUMA_RETURN(NOPE);
+         break;
       default:
          SUMA_S_Err("What kind of numeric type is this?");
          SUMA_RETURN(NOPE);

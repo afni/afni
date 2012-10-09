@@ -1,5 +1,48 @@
 #include "mrilib.h"
 
+void usage_3dDFT(int detail) {
+   printf(
+"Usage: 3dDFT [options] dataset\n"
+"       where 'dataset' is complex- or float-valued.\n"
+" * Carries out the DFT along the time axis.\n"
+" * To do the DFT along the spatial axes, use program 3dFFT.\n"
+" * The input dataset can be complex-valued or float-valued.\n"
+"   If it is any other data type, it will be converted to floats\n"
+"   before processing.\n"
+"\n"
+"OPTIONS:\n"
+"--------\n"
+" -abs     == output float dataset = abs(DFT)\n"
+"            * Otherwise, the output file is complex-valued.\n"
+"              You can then use 3dcalc to extract the real part, the\n"
+"              imaginary part, the phase, etc.; see its '-cx2r' option:\n"
+"                3dcalc  -cx2r REAL -a cxset+orig-expr a -prefix rset+orig\n"
+"            * Please note that if you view a complex dataset in AFNI,\n"
+"              the default operation is that you are looking at the\n"
+"              absolute value of the dataset.\n"
+"             ++ You can control the way a complex IMAGE appears via\n"
+"                the 'Disp' control panel (ABS, PHASE, REAL, IMAGE).\n"
+"             ++ You can control the way a complex TIME SERIES graph appears\n"
+"                via environment variable AFNI_GRAPH_CX2R (in 'EditEnv').\n"
+"\n"
+" -nfft N  == use 'N' for DFT length (must be >= #time points)\n"
+"\n"
+" -detrend == least-squares remove linear drift before DFT\n"
+"              [for more intricate detrending, use 3dDetrend first]\n"
+"\n"
+" -taper f == taper 'f' fraction of data at ends (0 <= f <= 1).\n"
+"              [Hamming 'raised cosine' taper of f/2 of the ]\n"
+"              [data length at each end; default is no taper]\n"
+"              [cf. 3dPeriodogam -help for tapering details!]\n"
+"\n"
+" -inverse == Do the inverse DFT:\n"
+"               SUM{ data[j] * exp(+2*PI*i*j/nfft) } * 1/nfft\n"
+"             instead of the forward transform\n"
+"               SUM{ data[j] * exp(-2*PI*i*j/nfft) }\n"
+           ) ;
+     PRINT_COMPILE_DATE ; return;
+}
+
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *dset1,*dset2=NULL, *oset ;
@@ -10,48 +53,7 @@ int main( int argc , char * argv[] )
    int iarg=1 , doabs=0, ii, jj, kk, ll, nvox, nvals=1 , isreal=0 ;
    int nx, ny, nz, nfft=0 , detrend=0 , sgn=-1 ;
    float *xtap=NULL , ftap=0.0f ;  /* 27 Nov 2007 */
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 3dDFT [options] dataset\n"
-            "       where 'dataset' is complex- or float-valued.\n"
-            " * Carries out the DFT along the time axis.\n"
-            " * To do the DFT along the spatial axes, use program 3dFFT.\n"
-            " * The input dataset can be complex-valued or float-valued.\n"
-            "   If it is any other data type, it will be converted to floats\n"
-            "   before processing.\n"
-            "\n"
-            "OPTIONS:\n"
-            "--------\n"
-            " -abs     == output float dataset = abs(DFT)\n"
-            "            * Otherwise, the output file is complex-valued.\n"
-            "              You can then use 3dcalc to extract the real part, the\n"
-            "              imaginary part, the phase, etc.; see its '-cx2r' option:\n"
-            "                3dcalc -a cxset+orig -cx2r REAL -expr a -prefix rset+orig\n"
-            "            * Please note that if you view a complex dataset in AFNI,\n"
-            "              the default operation is that you are looking at the\n"
-            "              absolute value of the dataset.\n"
-            "             ++ You can control the way a complex IMAGE appears via\n"
-            "                the 'Disp' control panel (ABS, PHASE, REAL, IMAGE).\n"
-            "             ++ You can control the way a complex TIME SERIES graph appears\n"
-            "                via environment variable AFNI_GRAPH_CX2R (in 'EditEnv').\n"
-            "\n"
-            " -nfft N  == use 'N' for DFT length (must be >= #time points)\n"
-            "\n"
-            " -detrend == least-squares remove linear drift before DFT\n"
-            "              [for more intricate detrending, use 3dDetrend first]\n"
-            "\n"
-            " -taper f == taper 'f' fraction of data at ends (0 <= f <= 1).\n"
-            "              [Hamming 'raised cosine' taper of f/2 of the ]\n"
-            "              [data length at each end; default is no taper]\n"
-            "              [cf. 3dPeriodogam -help for tapering details!]\n"
-            "\n"
-            " -inverse == Do the inverse DFT:\n"
-            "               SUM{ data[j] * exp(+2*PI*i*j/nfft) } * 1/nfft\n"
-            "             instead of the forward transform\n"
-            "               SUM{ data[j] * exp(-2*PI*i*j/nfft) }\n"
-           ) ;
-     PRINT_COMPILE_DATE ; exit(0) ;
-   }
+     
 
    mainENTRY("3dDFT main"); machdep(); AFNI_logger("3dDFT",argc,argv);
    AUTHOR("Kevin Murphy & Zhark the Transformer") ;
@@ -63,8 +65,14 @@ int main( int argc , char * argv[] )
 
 #define GOOD_TYPE(tt) ((tt)==MRI_complex || (tt)==MRI_float || (tt)==MRI_short)
 
-   while( iarg < argc && argv[iarg][0] == '-' ){
+   if(argc == 1){ usage_3dDFT(1); exit(0); } /* Bob's help shortcut */   
 
+   while( iarg < argc && argv[iarg][0] == '-' ){
+      if (!strcmp(argv[iarg], "-help") || !strcmp(argv[iarg], "-h")) {
+         usage_3dDFT(strlen(argv[iarg]) > 3 ? 2:1);
+         exit(0);
+      }
+      
       if( strcmp(argv[iarg],"-inverse") == 0 ){  /* 15 Apr 2011 */
         sgn = 1 ; csfft_scale_inverse(1) ; iarg++ ; continue ;
       }
@@ -107,7 +115,12 @@ int main( int argc , char * argv[] )
         iarg++ ; continue ;
       }
 
-      ERROR_exit("ILLEGAL option: %s\n",argv[iarg]) ;
+      ERROR_message("ILLEGAL option: %s\n",argv[iarg]) ;
+      suggest_best_prog_option(argv[0], argv[iarg]); exit(1);
+   }
+   
+   if( argc < 2) {
+      ERROR_exit("Too few options, see -help for details");
    }
 
    if( iarg >= argc )
@@ -181,7 +194,7 @@ int main( int argc , char * argv[] )
      ERROR_exit("Output file %s exists -- will not overwrite!",
                  DSET_HEADNAME(oset) ) ;
 #else
-   if( THD_deconflict_prefix(oset) > 0 )
+   if( !THD_ok_overwrite() && THD_deconflict_prefix(oset) > 0 )
      WARNING_message("Filename conflict: changing '%s' to '%s'",
                      prefix , DSET_PREFIX(oset) ) ;
 #endif

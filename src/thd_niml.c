@@ -25,7 +25,7 @@ static int    nsd_are_sorted_ints(int *, int);
 static int    loc_append_vals(char **, int *, char *, float, float, int, int);
 static char * my_strndup(char *, int);
 static int    nsd_add_colms_range(NI_group *, THD_3dim_dataset *);
-static int    nsd_add_colms_type(int, NI_group *);
+static int    nsd_add_colms_type(int, int ctp, NI_group *);
 static int    nsd_add_sparse_data(NI_group *, THD_3dim_dataset *);
 static int    nsd_add_str_atr_to_group(char*, char*, THD_datablock*, NI_group*);
 static int    nsd_add_atr_to_group(char*, char*, THD_datablock*, NI_group*);
@@ -53,20 +53,39 @@ static char * ni_surf_dset_attrs[] = {
                 if(data[ii]<min){ min=data[ii]; minp=ii; }              \
                 else if(data[ii]>max){ max=data[ii]; maxp=ii; }         \
         } while (0)
+        
+#define NOTYPE_GETC_MIN_MAX_POSN(data,len,min,minp,max,maxp,phase)      \
+        do { int ii; double dd;                                         \
+             if (phase)  min=max=CARG(data[0]);                         \
+             else   min=max=CABS(data[0]);                              \
+             minp=maxp=0;                                               \
+             for(ii = 1; ii < len; ii++){                               \
+                if (phase)  dd=CARG(data[ii]);                          \
+                else   dd=CABS(data[ii]);                               \
+                if(dd<min){ min=dd; minp=ii; }                          \
+                else if(dd>max){ max=dd; maxp=ii; }                     \
+             }                                                          \
+        } while (0)
 
 /* do not assume the dataset is of type MRI_float   4 Aug 2006 [rickr] */
 static int get_blk_min_max_posn(THD_datablock * blk, int ind, int len,
                      float * fmin, int * imin, float * fmax, int * imax)
 {
     float ffac = DBLK_BRICK_FACTOR(blk,ind);
-
+    static int iwarn = 0;
+    
 ENTRY("get_blk_min_max_posn");
 
     if( ffac == 0.0 ) ffac = 1.0;
 
     switch(DBLK_BRICK_TYPE(blk, ind)){
         default:{
-            fprintf(stderr,"** GBMMP, bad dtype\n");
+            if (!iwarn) {
+               fprintf(stderr,"** GBMMP, bad or unsupported dtype %d\n"
+                              "Similar warnings will be muted.\n",
+                     DBLK_BRICK_TYPE(blk, ind));
+               ++iwarn;
+            }
             *fmin = *fmax = 0.0;  *imin = *imax = 0;
             break;
         }
@@ -116,6 +135,16 @@ ENTRY("get_blk_min_max_posn");
             double   min, max;
             int      minp, maxp;
             NOTYPE_GET_MIN_MAX_POSN(data,len,min,minp,max,maxp);
+            *fmin = min*ffac;  *fmax = max*ffac;
+            *imin = minp;  *imax = maxp;
+            break;
+        }
+        case MRI_complex:
+        {
+            complex * data = DBLK_ARRAY(blk,ind);
+            double   min, max;
+            int      minp, maxp;
+            NOTYPE_GETC_MIN_MAX_POSN(data,len,min,minp,max,maxp,0);
             *fmin = min*ffac;  *fmax = max*ffac;
             *imin = minp;  *imax = maxp;
             break;
@@ -768,7 +797,7 @@ static int process_NSD_sparse_data(NI_group * ngr, THD_3dim_dataset * dset )
     void         ** elist = NULL;
     float           tr;
     char          * rhs;
-    int             ind;
+    int             ind, ncomp, tpafni;
 
 ENTRY("process_NSD_sparse_data");
 
@@ -830,8 +859,15 @@ ENTRY("process_NSD_sparse_data");
         if(gni.debug > 1) fprintf(stderr,"-d length of nodes and data match\n");
     }
 
+    /* COMPLEX is OK, if all sub-bricks are of the same type */
+    for( ncomp = 0, ind = 0; ind < nel->vec_num; ind++ ) {
+      if (nel->vec_typ[ind] == NI_COMPLEX) ++ncomp;
+    }
+    if (ncomp == nel->vec_num) tpafni = MRI_complex;
+    else tpafni = MRI_float;
+    
     /* node index list is now in INDEX_LIST attribute  29 Aug 2006 [rickr] */
-    for( ind = 0; ind < nel->vec_num; ind++ )
+    for( ind = 0; tpafni == MRI_float && ind < nel->vec_num; ind++ )
         if( nel->vec_typ[ind] != NI_FLOAT &&
             nel->vec_typ[ind] != NI_INT )
         {
@@ -844,11 +880,13 @@ ENTRY("process_NSD_sparse_data");
     nxyz.ijk[0] = nel->vec_len;   nxyz.ijk[1] = nxyz.ijk[2] = 1;
 
     if(gni.debug > 1)
-        fprintf(stderr,"+d setting datum, nxyz, nx to float, %d, %d\n",
+        fprintf(stderr,
+                "+d setting datum, nxyz, nx to %s, %d, %d\n",
+                tpafni == MRI_float ? "float":"complex" ,
                 nel->vec_len, nel->vec_num);
 
     EDIT_dset_items(dset,
-                        ADN_datum_all,  MRI_float,
+                        ADN_datum_all,  tpafni,
                         ADN_nxyz,       nxyz,
                         ADN_nvals,      nel->vec_num,
                      ADN_none );
@@ -991,16 +1029,17 @@ ENTRY("process_NSD_group_attrs");
  *  (adding it to the dataset block)
  *
  *  - Return value is the number of sub-bricks found.
- *  - Data must be of type float.
+ *  - Data must be of type float or complex.
  *  - Free NIML data as it is applied.
  *------------------------------------------------------------------------*/
 int THD_add_sparse_data(THD_3dim_dataset * dset, NI_group * ngr )
 {
     THD_datablock  * blk;
     NI_element     * nel = NULL;
-    float          * data;
+    float          * data = NULL;
+    complex        * cdata = NULL;
     void          ** elist = NULL;
-    int              nvals, ind, mind, sub, swap, len;
+    int              nvals, ind, mind, sub, swap, len, tpo;
     int            * mlist = NULL;  /* master list */
 
 ENTRY("THD_add_sparse_data");
@@ -1045,9 +1084,11 @@ ENTRY("THD_add_sparse_data");
     {
         mind = mlist ? mlist[ind] : ind;  /* maybe use master index */
         if( nel->vec_typ[mind] != NI_FLOAT &&
-            nel->vec_typ[mind] != NI_INT )
+            nel->vec_typ[mind] != NI_INT   &&
+            nel->vec_typ[mind] != NI_COMPLEX)
         {
-            if(gni.debug) fprintf(stderr,"** TASD: vec[%d] not float\n",mind);
+            if(gni.debug) 
+               fprintf(stderr,"** TASD: vec[%d] not float or complex\n",mind);
             RETURN(0);
         }
         else if( ! nel->vec[mind] )
@@ -1057,18 +1098,34 @@ ENTRY("THD_add_sparse_data");
         }
     }
 
+    /* check for output type */
+    tpo = DBLK_BRICK_TYPE(blk,0);
+    if (tpo != MRI_float && tpo != MRI_complex) {
+      fprintf(stderr,"** TASD: brick not float or complex\n");
+      RETURN(0);
+    }
+    
     /* check for necessary swapping */
     swap = (blk->diskptr->byte_order != mri_short_order());
     if(gni.debug>1 && swap) fprintf(stderr,"+d will byte_swap data\n");
     len = nel->vec_len;
-
+    
+    if( swap && tpo == MRI_complex) {
+      fprintf(stderr,"**ASD No swapping implemented for complex data\n");
+      RETURN(0);
+    }
+     
     /*-- we seem to have all of the data, now copy it --*/
     sub = 0;
     for( ind = 0; ind < nvals; ind++ )
     {
         mind = mlist ? mlist[ind] : ind;  /* maybe use master index */
-        data = (float *)XtMalloc(len * sizeof(float));
-        if(!data){
+        if (tpo==MRI_float) {
+         data = (float *)XtMalloc(len * sizeof(float));
+        } else {
+         cdata = (complex *)XtMalloc(len * sizeof(complex));
+        }
+        if(!data && !cdata){
            fprintf(stderr,"**ASD alloc fail: %d bytes\n",len);
            RETURN(0);
         }
@@ -1086,11 +1143,14 @@ ENTRY("THD_add_sparse_data");
            if( swap ) nifti_swap_4bytes(len, idata);
            for(ii=0; ii<len; ++ii) data[ii] = (float)idata[ii];
            XtFree((char*)idata); idata=NULL;
+        } else if( nel->vec_typ[mind] == NI_COMPLEX ) {
+           memcpy(cdata, nel->vec[mind], len * sizeof(complex));
         } else {
            fprintf(stderr,"**ASD should never have been here.\n");
            RETURN(0);
         }
-        mri_fix_data_pointer(data, DBLK_BRICK(blk,sub));
+        if (tpo == MRI_float) mri_fix_data_pointer(data, DBLK_BRICK(blk,sub));
+        else mri_fix_data_pointer(cdata, DBLK_BRICK(blk,sub));
         sub++;
 
         /* we can only nuke the old stuff if we know we're done with it */
@@ -1146,7 +1206,7 @@ ENTRY("THD_dset_to_ni_surf_dset");
 
     nsd_add_str_atr_to_group("BRICK_LABS", "COLMS_LABS", blk, ngr);
     nsd_add_colms_range(ngr, dset);
-    nsd_add_colms_type(blk->nvals, ngr);
+    nsd_add_colms_type(blk->nvals, DBLK_BRICK_TYPE(blk,0), ngr);
     nsd_add_str_atr_to_group("BRICK_STATSYM", "COLMS_STATSYM", blk, ngr);
     nsd_add_str_atr_to_group("HISTORY_NOTE", NULL, blk, ngr);
     
@@ -1223,30 +1283,36 @@ static NI_group * nsd_pad_to_node(NI_group * ngr)
 
    return 0 on success
 */
-static int nsd_add_colms_type(int nvals, NI_group * ngr)
+static int nsd_add_colms_type(int nvals, int tp, NI_group * ngr)
 {
     NI_element * nel;
     char       * str, * slist[1];  /* add_column requires a list of strings */
     int          c, plen;
-
+    char       * tps;
+    
 ENTRY("nsd_add_colms_type");
 
     /* check usage */
     if( nvals <= 0 || !ngr ) RETURN(1);
 
     /* create a new string: "Generic_Float;Generic_Float;..." */
-
+    if (tp == MRI_complex) tps = "Generic_Complex;";
+    else tps = "Generic_Float;";
+    
     /* rcr - update this with more types (that agree with SUMA) */
 
-    plen = 14*nvals + 1;
+    plen = (strlen(tps)+1)*nvals + 1;
     str = (char *)malloc(plen * sizeof(char));
 
     /* insert first string */
-    strcpy(str, "Generic_Float");
+    strcpy(str, tps);
 
     /* and then the rest */
     for( c = 1; c < nvals; c++ )
-        strcat(str, ";Generic_Float");
+        strcat(str, tps);
+        
+    /* remove last ; */
+    str[strlen(str)-1] = '\0';
 
     /* now add it to the group */
     slist[0] = str;
@@ -1514,7 +1580,7 @@ ENTRY("nsd_fill_index_list");
 /*------------------------------------------------------------------------*/
 /*! Add SPARSE_DATA from the AFNI dset to the NIML group.
  *
- *  If the datum is not float, convert it.
+ *  If the datum is not float or complex, convert it.
  * -----------------------------------------------------------------------*/
 static int nsd_add_sparse_data(NI_group * ngr, THD_3dim_dataset * dset)
 {
@@ -1533,7 +1599,8 @@ ENTRY("nsd_add_sparse_data");
     /* check whether we have all floats, of not prepare for conversion */
     /*                                              4 Aug 2006 [rickr] */
     for( ind = 0; ind < blk->nvals; ind++ )
-        if( DBLK_BRICK_TYPE(blk, ind) != MRI_float ) /* then allocate floats */
+        if( DBLK_BRICK_TYPE(blk, ind) != MRI_float &&
+            DBLK_BRICK_TYPE(blk, ind) != MRI_complex) /* then allocate floats */
         {
             if( ! gni.to_float ){
                 fprintf(stderr,"** dset has non-floats and AFNI_NSD_TO_FLOAT\n"
@@ -1562,7 +1629,15 @@ ENTRY("nsd_add_sparse_data");
     for( ind = 0; ind < blk->nvals; ind++ )
     {
         float fac;
-        if( DBLK_BRICK_TYPE(blk, ind) != MRI_float )
+        if( DBLK_BRICK_TYPE(blk, ind) == MRI_float )
+        {
+            NI_add_column(nel, NI_FLOAT, DBLK_ARRAY(blk, ind)); /* use dblk */
+        }
+        else if( DBLK_BRICK_TYPE(blk, ind) == MRI_complex )
+        {
+            NI_add_column(nel, NI_COMPLEX, DBLK_ARRAY(blk, ind)); /* use dblk */
+        }
+        else 
         {
             EDIT_convert_dtype(nx, DBLK_BRICK_TYPE(blk,ind),DBLK_ARRAY(blk,ind),
                                    MRI_float, fdata, 0);
@@ -1572,7 +1647,6 @@ ENTRY("nsd_add_sparse_data");
 
             NI_add_column(nel, NI_FLOAT, fdata);  /* and add to element */
         }
-        else NI_add_column(nel, NI_FLOAT, DBLK_ARRAY(blk, ind)); /* use dblk */
     }
 
     if( fdata ) free(fdata);  /* fly! (thud) be free! (thud) */
@@ -1717,11 +1791,12 @@ ENTRY("NI_get_byte_order");
 /* return the corresponding NI_type, and -1 on failure (since 0 is used) */
 int dtype_nifti_to_niml(int dtype) {
     switch(dtype) {
-        case NIFTI_TYPE_INT16:   { return NI_SHORT;     }
-        case NIFTI_TYPE_INT32:   { return NI_INT;       }
-        case NIFTI_TYPE_FLOAT32: { return NI_FLOAT32;   }
-        case NIFTI_TYPE_FLOAT64: { return NI_FLOAT64;   }
-        case NIFTI_TYPE_INT8:    { return NI_BYTE;      }
+        case NIFTI_TYPE_INT16:    { return NI_SHORT;     }
+        case NIFTI_TYPE_INT32:    { return NI_INT;       }
+        case NIFTI_TYPE_FLOAT32:  { return NI_FLOAT32;   }
+        case NIFTI_TYPE_FLOAT64:  { return NI_FLOAT64;   }
+        case NIFTI_TYPE_INT8:     { return NI_BYTE;      }
+        case NIFTI_TYPE_COMPLEX64:{ return NI_COMPLEX;   }
     }
 
     return -1;
@@ -1730,11 +1805,12 @@ int dtype_nifti_to_niml(int dtype) {
 /* return the corresponding NIFTI_type, and DT_UNKNOWN on failure */
 int dtype_niml_to_nifti(int dtype) {
     switch(dtype) {
-        case NI_SHORT:  { return NIFTI_TYPE_INT16;   }
-        case NI_INT:    { return NIFTI_TYPE_INT32;   }
-        case NI_FLOAT32:{ return NIFTI_TYPE_FLOAT32; }
-        case NI_FLOAT64:{ return NIFTI_TYPE_FLOAT64; }
-        case NI_BYTE:   { return NIFTI_TYPE_INT8;    }
+        case NI_SHORT:  { return NIFTI_TYPE_INT16;    }
+        case NI_INT:    { return NIFTI_TYPE_INT32;    }
+        case NI_FLOAT32:{ return NIFTI_TYPE_FLOAT32;  }
+        case NI_FLOAT64:{ return NIFTI_TYPE_FLOAT64;  }
+        case NI_BYTE:   { return NIFTI_TYPE_INT8;     }
+        case NI_COMPLEX:{ return NIFTI_TYPE_COMPLEX64;}
     }
 
     return 0;   /* some #define seems to get in the way of DT_UNKNOWN */

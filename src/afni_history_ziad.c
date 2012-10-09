@@ -65,6 +65,28 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 9, Oct , 2012 , ZSS , "3dcalc" , MICRO , TYPE_MODIFY,
+   "Clarify help for -cx2r, and allowing -help in mid command.",
+   NULL
+ },
+
+ { 9, Oct , 2012 , ZSS , "3dDFT" , MINOR , TYPE_NEW_OPT,
+   "Allow handling of complex surface-based data",
+   "Earlier versions could not output complex data for surface-based datasets.\n"
+   "Minor changes to the help output to fix order of -cx2r option and\n"
+   "allow option suggesting."
+ },
+
+ { 9, Oct , 2012 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT,
+   "Allow input of surface-based complex time series.",
+   "SUMA will report and graph the magnitude of complex data\n"
+   "Other transformations can be added when needed.\n"
+   "Surface data I/O were modified to allow handling\n"
+   "of complex-typed data including functions in thd_niml.c, and thd_gifti.c\n"
+   "Programs like 3dDFT and 3dcalc can read/write complex surface-\n"
+   "based datasets."
+ },
+
  { 4, Oct , 2012 , ZSS , "MapIcosahedron" , MICRO , TYPE_BUG_FIX,
    "Dset Mapping failed on sparse datasets, at times. ",
    NULL

@@ -315,6 +315,7 @@ typedef enum {
    SUMA_NODE_STRING,   /*!< Generic String */
    SUMA_NODE_SHORT,      /*!< Generic short */
    SUMA_NODE_DOUBLE,     /*!< Generic double */
+   SUMA_NODE_COMPLEX,     /*!< Generic complex */
    SUMA_NODE_XCORR,      /*!< Cross Correlation Coefficient */
    SUMA_NODE_ZSCORE,      /*!< Zscore */
    SUMA_NODE_VFR,       /* Visual Field Ration */

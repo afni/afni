@@ -1327,13 +1327,14 @@ static int nsd_add_gifti_colms_type(NI_group * ngr, gifti_image * gim)
 static char * nifti2suma_typestring(int niftitype)
 {
     switch(niftitype) {
-        case DT_NONE:            return "Col_Type_Undefined";
-        case NIFTI_TYPE_INT8:    return "Generic_Byte";
-        case NIFTI_TYPE_INT16:   return "Generic_Short";
-        case NIFTI_TYPE_INT32:   return "Generic_Int";
-        case NIFTI_TYPE_UINT32:  return "Generic_Int"; /* pretend, 5 Mar 2010 */
-        case NIFTI_TYPE_FLOAT32: return "Generic_Float";
-        case NIFTI_TYPE_FLOAT64: return "Generic_Double";
+        case DT_NONE:              return "Col_Type_Undefined";
+        case NIFTI_TYPE_INT8:      return "Generic_Byte";
+        case NIFTI_TYPE_INT16:     return "Generic_Short";
+        case NIFTI_TYPE_INT32:     return "Generic_Int";
+        case NIFTI_TYPE_UINT32:    return "Generic_Int";/* pretend, 5 Mar 2010 */
+        case NIFTI_TYPE_FLOAT32:   return "Generic_Float";
+        case NIFTI_TYPE_COMPLEX64: return "Generic_Complex";
+        case NIFTI_TYPE_FLOAT64:   return "Generic_Double";
     }
 
     return NULL;  /* bad idea? */
@@ -1391,6 +1392,19 @@ static int nsd_add_gifti_colms_range(NI_group * ngr, gifti_image * gim)
              for(eye = 1; eye < len; eye++)                             \
                 if(data[eye]<min){ min=data[eye]; minp=eye; }           \
                 else if(data[eye]>max){ max=data[eye]; maxp=eye; }      \
+        } while (0)
+#undef NOTYPE_GETC_MIN_MAX_POSN
+#define NOTYPE_GETC_MIN_MAX_POSN(data,len,min,minp,max,maxp,phase)      \
+        do { int ii; double dd;                                         \
+             if (phase)  min=max=CARG(data[0]);                         \
+             else   min=max=CABS(data[0]);                              \
+             minp=maxp=0;                                               \
+             for(ii = 1; ii < len; ii++){                               \
+                if (phase)  dd=CARG(data[ii]);                          \
+                else   dd=CABS(data[ii]);                               \
+                if(dd<min){ min=dd; minp=ii; }                          \
+                else if(dd>max){ max=dd; maxp=ii; }                     \
+             }                                                          \
         } while (0)
 
 /* get min and max values (as float), along with their indices
@@ -1473,6 +1487,14 @@ static int nifti_get_min_max_posn(void * vdata, int nitype, int len,
             double   min, max;
             NOTYPE_GET_MIN_MAX_POSN(data, len, min, minp, max, maxp);
             *dmin = min;  *dmax = max;
+            *imin = minp; *imax = maxp;
+            break;
+        }
+        case NIFTI_TYPE_COMPLEX64: {
+            complex * data = (complex *)vdata;
+            double   min, max;
+            NOTYPE_GETC_MIN_MAX_POSN(data, len, min, minp, max, maxp, 0);
+            *dmin = (double)min;  *dmax = (double)max;
             *imin = minp; *imax = maxp;
             break;
         }
