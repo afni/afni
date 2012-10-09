@@ -1855,6 +1855,10 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
          NI_set_attribute ( nel, Attr, NULL);
          break;
          
+      case SUMA_NODE_COMPLEX:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;
+         
       case SUMA_NODE_INDEX:
          /* form the string of attributes for this column */
          NI_set_attribute ( nel, Attr, NULL);
@@ -2080,6 +2084,7 @@ int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
    float amin = 0.0, amax = 0.0, *fv;
    int aminloc = -1, amaxloc = -1, *iv;
    byte *bv;
+   complex *cv = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2124,6 +2129,13 @@ int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
          case SUMA_string:
             Name[0] = '\0';
             break;
+         case SUMA_complex:
+            cv = (complex *)col;
+            SUMA_MIN_MAX_CVEC_STRIDE(cv ,SDSET_VECFILLED(dset), amin, amax, 
+                                    aminloc, amaxloc, stride, 0);
+            snprintf(Name, 500*sizeof(char),"%d %d %d %d", 
+                           (int)amin, (int)amax, aminloc, amaxloc);
+            break;
          default:
             fprintf (stderr,"Error %s: Bad column type.\n", FuncName);
             SUMA_RETURN(0);
@@ -2151,6 +2163,7 @@ int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col,
    static char stmp[500], Name[500];
    float amin = 0.0, amax = 0.0, *fv;
    int aminloc = -1, amaxloc = -1, *iv;
+   complex *cv = NULL;
    byte *bv;
 
    SUMA_ENTRY;
@@ -2196,6 +2209,13 @@ int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col,
             break;
          case SUMA_string:
             stmp[0] = '\0';
+            break;
+         case SUMA_complex:
+            cv = (complex *)col;
+            SUMA_MIN_MAX_CVEC_STRIDE(cv ,nel->vec_filled, amin, amax, 
+                                    aminloc, amaxloc, stride, 0);
+            snprintf(stmp, 500*sizeof(char),"%d %d %d %d", 
+                           (int)amin, (int)amax, aminloc, amaxloc);
             break;
          default:
             fprintf (stderr,"Error %s: Bad column type.\n", FuncName);
@@ -2256,7 +2276,8 @@ char * SUMA_CreateDsetColRangeCompString( SUMA_DSET *dset, int col_index,
    char *stmp=NULL;
    float *fv=NULL;
    double *dv = NULL, amin = 0.0, amax = 0.0;
-   int aminloc = -1, amaxloc = -1, *iv;
+   complex *cv = NULL;
+   int aminloc = -1, amaxloc = -1, *iv, kk;
    byte *bv;
    NI_element *nelb = NULL;
    void *col=NULL;
@@ -2320,6 +2341,13 @@ char * SUMA_CreateDsetColRangeCompString( SUMA_DSET *dset, int col_index,
          case SUMA_string:
             snprintf(Name, 500*sizeof(char),
                            "0 0 -1 -1");
+            break;
+         case SUMA_complex:
+            cv = (complex *)col;
+            SUMA_MIN_MAX_CVEC_STRIDE(cv ,SDSET_VECFILLED(dset), amin, amax, 
+                                    aminloc, amaxloc, 1, 0);
+            snprintf(Name, 500*sizeof(char),
+                           "%f %f %d %d", amin, amax, aminloc, amaxloc);
             break;
          default:
             fprintf (stderr,"Error %s: Bad column type.\n", FuncName);
@@ -2596,6 +2624,10 @@ int SUMA_InsertDsetNelCol ( SUMA_DSET *dset, char *col_label,
          NI_insert_column_stride (  dset->dnel, NI_STRING, 
                                     (char **)col, stride, icol );
          break;
+      case SUMA_complex:
+         NI_insert_column_stride (  dset->dnel, NI_COMPLEX, 
+                                    (complex *)col, stride, icol );
+         break;
       default:
          fprintf (stderr,"Error %s: Bad column type.\n", FuncName);
          SUMA_RETURN(0);
@@ -2688,7 +2720,8 @@ int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label,
    
    SUMA_LH("Checking Type");
    
-   switch (SUMA_ColType2TypeCast(ctp)) { /* overkill, all we use is int here, but keeping the code anyway ...*/
+   switch (SUMA_ColType2TypeCast(ctp)) { /* overkill, all we use is int here, 
+                                            but keeping the code anyway ...*/
       case SUMA_int:
          NI_add_column_stride ( dset->inel, NI_INT, col, stride);
          break;
@@ -2703,6 +2736,9 @@ int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label,
          break;
       case SUMA_string:
          NI_add_column_stride ( dset->inel, NI_STRING, col, stride );
+         break;
+      case SUMA_complex:
+         NI_add_column_stride ( dset->inel, NI_COMPLEX, col, stride );
          break;
       default:
          fprintf (stderr,"Error %s: Bad column type.\n", FuncName);
@@ -2756,7 +2792,8 @@ int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label,
    then pass NULL for col
 */
 
-int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *col, 
+int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, 
+                     void *col, 
                      void *col_attr, int stride)
 {
    static char FuncName[]={"SUMA_AddNelCol"};
@@ -2787,6 +2824,9 @@ int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
          break;
       case SUMA_string:
          NI_add_column_stride ( nel, NI_STRING, (char **)col, stride );
+         break;
+      case SUMA_complex:
+         NI_add_column_stride ( nel, NI_COMPLEX, (complex *)col, stride );
          break;
       default:
          fprintf (stderr,"Error %s: Bad column type.\n", FuncName);
@@ -3533,7 +3573,8 @@ void *SUMA_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col, byte *rowmask,
    vec_filled must be set BEFORE YOU CALL THIS FUNCTION
    New version of SUMA_FillNelCol
 */
-int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, void *col, 
+int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label, 
+                     SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride) 
 {  
    static char FuncName[]={"SUMA_FillDsetNelCol"};
@@ -3543,7 +3584,8 @@ int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
    SUMA_ENTRY;
    
    if (ctp == SUMA_NODE_INDEX) {
-      SUMA_RETURN(SUMA_FillDsetNelNodeIndexCol (dset, col_label, ctp, col, col_attr, stride));
+      SUMA_RETURN(SUMA_FillDsetNelNodeIndexCol (dset, col_label, ctp, 
+                                                col, col_attr, stride));
    }
    
    /* find the index into vec of the column of type ctp,
@@ -3565,16 +3607,24 @@ int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
          NI_fill_column_stride ( dset->dnel, NI_INT, (int *)col, icol, stride);
          break;
       case SUMA_float:
-         NI_fill_column_stride ( dset->dnel, NI_FLOAT, (float *)col, icol, stride );      
+         NI_fill_column_stride ( dset->dnel, NI_FLOAT, (float *)col, 
+                                 icol, stride );      
          break;
       case SUMA_byte:
-         NI_fill_column_stride ( dset->dnel, NI_BYTE, (byte *)col, icol, stride );      
+         NI_fill_column_stride ( dset->dnel, NI_BYTE, (byte *)col, 
+                                 icol, stride );      
          break;
       case SUMA_string:
-         NI_fill_column_stride ( dset->dnel, NI_STRING, (char **)col, icol, stride );
+         NI_fill_column_stride ( dset->dnel, NI_STRING, (char **)col, 
+                                 icol, stride );
          break;
       case SUMA_double:
-         NI_fill_column_stride ( dset->dnel, NI_DOUBLE, (double *)col, icol, stride );
+         NI_fill_column_stride ( dset->dnel, NI_DOUBLE, (double *)col, 
+                                 icol, stride );
+         break;
+      case SUMA_complex:
+         NI_fill_column_stride ( dset->dnel, NI_COMPLEX, (complex *)col, 
+                                 icol, stride );
          break;
       default:
          fprintf  (stderr,"Error %s: Bad column type.\n", FuncName);
@@ -3606,8 +3656,9 @@ int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
    
    SUMA_RETURN(1);
 }
-int SUMA_FillDsetNelNodeIndexCol (SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, void *col, 
-                     void *col_attr, int stride) 
+int SUMA_FillDsetNelNodeIndexCol (SUMA_DSET *dset, char *col_label, 
+                                  SUMA_COL_TYPE ctp, void *col, 
+                                  void *col_attr, int stride) 
 {  
    static char FuncName[]={"SUMA_FillDsetNelNodeIndexCol"};
    int is_sorted, *iv=NULL;
@@ -3643,6 +3694,9 @@ int SUMA_FillDsetNelNodeIndexCol (SUMA_DSET *dset, char *col_label, SUMA_COL_TYP
          break;
       case SUMA_double:
          NI_fill_column_stride ( dset->inel, NI_DOUBLE, col, 0, stride );
+         break;
+      case SUMA_complex:
+         NI_fill_column_stride ( dset->inel, NI_COMPLEX, col, 0, stride );
          break;
       default:
          fprintf  (stderr,"Error %s: Bad column type.\n", FuncName);
@@ -3680,7 +3734,8 @@ int SUMA_FillDsetNelNodeIndexCol (SUMA_DSET *dset, char *col_label, SUMA_COL_TYP
    up to vec_filled.
    vec_filled must be set BEFORE YOU CALL THIS FUNCTION
 */
-int SUMA_FillNelCol (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *col, 
+int SUMA_FillNelCol (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, 
+                     void *col, 
                      void *col_attr, int stride) 
 {  
    static char FuncName[]={"SUMA_FillNelCol"};
@@ -3720,6 +3775,9 @@ int SUMA_FillNelCol (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
          break;
       case SUMA_double:
          NI_fill_column_stride ( nel, NI_DOUBLE, (double *)col, icol, stride );
+         break;
+      case SUMA_complex:
+         NI_fill_column_stride ( nel, NI_COMPLEX, (complex *)col, icol, stride );
          break;
       default:
          fprintf  (stderr,"Error %s: Bad column type.\n", FuncName);
@@ -3845,6 +3903,7 @@ SUMA_COL_TYPE SUMA_VarType2ColType (char *vt)
    if (strstr(vt,"byte")) SUMA_RETURN(SUMA_NODE_BYTE);
    if (strstr(vt,"double")) SUMA_RETURN(SUMA_NODE_DOUBLE);
    if (strstr(vt,"short")) SUMA_RETURN(SUMA_NODE_SHORT);
+   if (strstr(vt,"complex")) SUMA_RETURN(SUMA_NODE_COMPLEX);
    
    SUMA_RETURN(SUMA_ERROR_COL_TYPE);
 }
@@ -3889,6 +3948,9 @@ SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp)
          break;
       case SUMA_NODE_DOUBLE:
          SUMA_RETURN(SUMA_double);          
+         break;
+      case SUMA_NODE_COMPLEX:
+         SUMA_RETURN(SUMA_complex);          
          break;
       case SUMA_NODE_SLABEL:
       case SUMA_NODE_STRING:
@@ -4155,6 +4217,9 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_NODE_STRING:
          SUMA_RETURN("Generic_String");
          break;
+      case SUMA_NODE_COMPLEX:
+         SUMA_RETURN("Generic_Complex");
+         break;
       case SUMA_NODE_CX:
          SUMA_RETURN("Convexity");
          break;
@@ -4225,6 +4290,7 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"Generic_String")) SUMA_RETURN (SUMA_NODE_STRING);
    if (!strcmp(Name,"Generic_Byte")) SUMA_RETURN (SUMA_NODE_BYTE);
    if (!strcmp(Name,"Generic_Double")) SUMA_RETURN (SUMA_NODE_DOUBLE);
+   if (!strcmp(Name,"Generic_Complex")) SUMA_RETURN (SUMA_NODE_COMPLEX);
    if (!strcmp(Name,"Convexity")) SUMA_RETURN (SUMA_NODE_CX);
    if (!strcmp(Name,"Cross_Corr_Coeff")) SUMA_RETURN (SUMA_NODE_XCORR);
    if (!strcmp(Name,"Z_score")) SUMA_RETURN (SUMA_NODE_ZSCORE);
@@ -5488,7 +5554,8 @@ int SUMA_DeleteDsetPointer (SUMA_DSET **dsetp, DList *DsetList)
    SUMA_RETURN(1);
 }
 
-char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow, char *title)
+char *SUMA_ShowMeSome ( void *dt, SUMA_VARTYPE tp, int N_dt, 
+                        int mxshow, char *title)
 {
    static char FuncName[]={"SUMA_ShowMeSome"};
    int i, imx, firsthalf, secondhalf;
@@ -5500,7 +5567,7 @@ char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow, char *ti
    char *s=NULL;
    complex *dtc = NULL;
    SUMA_STRING *SS=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -5517,51 +5584,81 @@ char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow, char *ti
    
    firsthalf = mxshow / 2;
    secondhalf = mxshow - firsthalf;
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: tp=%d, SUMA_double=%d, SUMA_float=%d, SUMA_int=%d, SUMA_byte=%d, SUMA_short=%d\n", 
-                           FuncName, tp, SUMA_double, SUMA_float, SUMA_int, SUMA_byte, SUMA_short);
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,
+               "%s: tp=%d, SUMA_complex = %d, SUMA_double=%d, SUMA_float=%d, "
+               "SUMA_int=%d, SUMA_byte=%d, SUMA_short=%d\n", 
+               FuncName, tp, SUMA_complex, SUMA_double, SUMA_float, 
+               SUMA_int, SUMA_byte, SUMA_short);
    if (mxshow) {
       switch (tp) {
          case SUMA_double:
             dtd = (double*)dt;
-            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%lf, ", dtd[i]);
+            for (i=0; i < firsthalf; ++i) 
+                  SS = SUMA_StringAppend_va(SS, "%lf, ", dtd[i]);
             if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
-            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "%lf, ", dtd[i]); }
+            if (secondhalf > 1) { 
+               for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) 
+                     SS = SUMA_StringAppend_va(SS, "%lf, ", dtd[i]); 
+            }
             SS = SUMA_StringAppend_va(SS, "%lf", dtd[N_dt-1]);
             break;
          case SUMA_float:
             dtf = (float*)dt;
-            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%f, ", dtf[i]);
+            for (i=0; i < firsthalf; ++i) 
+               SS = SUMA_StringAppend_va(SS, "%f, ", dtf[i]);
             if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
-            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "%f, ", dtf[i]); }
+            if (secondhalf > 1) { 
+               for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) 
+                  SS = SUMA_StringAppend_va(SS, "%f, ", dtf[i]); 
+            }
             SS = SUMA_StringAppend_va(SS, "%f", dtf[N_dt-1]);
             break;
          case SUMA_int:
             dti = (int*)dt;
-            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dti[i]);
+            for (i=0; i < firsthalf; ++i) 
+               SS = SUMA_StringAppend_va(SS, "%d, ", dti[i]);
             if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
-            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dti[i]); }
+            if (secondhalf > 1) { 
+               for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) 
+                  SS = SUMA_StringAppend_va(SS, "%d, ", dti[i]); 
+            }
             SS = SUMA_StringAppend_va(SS, "%d", dti[N_dt-1]);
             break;
          case SUMA_byte:
             dtb = (byte*)dt;
-            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dtb[i]);
+            for (i=0; i < firsthalf; ++i) 
+               SS = SUMA_StringAppend_va(SS, "%d, ", dtb[i]);
             if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
-            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dtb[i]); }
+            if (secondhalf > 1) { 
+               for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) 
+                  SS = SUMA_StringAppend_va(SS, "%d, ", dtb[i]); 
+            }
             SS = SUMA_StringAppend_va(SS, "%d", dtb[N_dt-1]);
             break;
          case SUMA_string:
             dts = (char **)dt;
-            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%s, ", dts[i]);
+            for (i=0; i < firsthalf; ++i) 
+               SS = SUMA_StringAppend_va(SS, "%s, ", dts[i]);
             if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
-            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "%s, ", dts[i]); }
+            if (secondhalf > 1) { 
+               for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) 
+                  SS = SUMA_StringAppend_va(SS, "%s, ", dts[i]); 
+            }
             SS = SUMA_StringAppend_va(SS, "%s", dts[N_dt-1]);
             break;
          case SUMA_complex:
             dtc = (complex *)dt; 
-            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "(%f %+fi), ", dtc[i].r, dtc[i].i);
+            for (i=0; i < firsthalf; ++i) 
+               SS = SUMA_StringAppend_va(SS, "(%f %+fi), ", dtc[i].r, dtc[i].i);
             if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
-            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "(%f %+fi), ", dtc[i].r, dtc[i].i); }
-            SS = SUMA_StringAppend_va(SS, "(%f %+fi)", dtc[N_dt-1].r, dtc[N_dt-1].i);
+            if (secondhalf > 1) { 
+               for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) 
+                  SS = SUMA_StringAppend_va(SS, "(%f %+fi), ", 
+                                                dtc[i].r, dtc[i].i); 
+            }
+            SS = SUMA_StringAppend_va( SS, "(%f %+fi)", 
+                                       dtc[N_dt-1].r, dtc[N_dt-1].i);
             break;
          default:
             SS = SUMA_StringAppend_va(SS, "Type not supported.");
@@ -6082,7 +6179,8 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    returns indexmap, such that indexmap[node] = row which means that
    data for node 'node' is in row 'row' of the dset
    if indexmap[node] = -1 then the node does not exist in the dset
-   indexmap is as large as the MAX(largest index in the node list in dset , maxind, SDSET_VECLEN(dset))
+   indexmap is as large as the MAX(largest index in the node list in dset , 
+                                   maxind, SDSET_VECLEN(dset))
    free indexmap with SUMA_free
 */
 int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset, int maxind, 
@@ -6148,6 +6246,7 @@ double SUMA_GetValInCol2(NI_element *nel, int ind, int ival)
    float *fv=NULL;
    int *iv = NULL;
    char **cv = NULL;
+   complex *cmv = NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -6185,6 +6284,10 @@ double SUMA_GetValInCol2(NI_element *nel, int ind, int ival)
          dv = (double *)nel->vec[ind];
          dval = (double)dv[ival];
          break;
+      case SUMA_complex: /* Should be a flag for what to return here, someday*/
+         cmv = (complex *)nel->vec[ind];
+         dval = (double)CABS(cmv[ival]);
+         break;
       default:
          SUMA_SL_Err("This type is not supported.\n");
          SUMA_RETURN(0.0);
@@ -6211,6 +6314,7 @@ char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval)
    float *fv=NULL;
    int *iv = NULL;
    char  *str=NULL, **cv = NULL;
+   complex *cmv=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -6260,6 +6364,12 @@ char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval)
          cv = (char **)nel->vec[ind];
          *dval = 0.0;
          str = SUMA_copy_string((char*)cv[ival]);
+         break;
+      case SUMA_complex:
+         str = (char *)SUMA_malloc(100*sizeof(char));
+         cmv = (complex *)nel->vec[ind];
+         *dval = CABS(cmv[ival]);
+         sprintf(str,"%f i%f",cmv[ival].r, cmv[ival].i);
          break;
       default:
          SUMA_SL_Err("This type is not supported yet.\n");
@@ -6459,6 +6569,10 @@ void **SUMA_Dset2VecArray(SUMA_DSET *dset,
    }
    if (!ind) {
       nind = SDSET_VECNUM(dset);
+   }
+   if ( tp == SUMA_complex) {
+      SUMA_S_Err("No support for complex types yet");
+      SUMA_RETURN(resv);
    }
    if ( tp != SUMA_float &&
         tp != SUMA_double &&
@@ -6797,6 +6911,10 @@ SUMA_DSET *SUMA_VecArray2Dset(void **resv,
    if (!ind) {
       nind = SDSET_VECNUM(dset);
    }
+   if (tp == SUMA_complex) {
+      SUMA_S_Err("Complex type not supported");
+      SUMA_RETURN(dset); 
+   }
    if ( tp != SUMA_float &&
         tp != SUMA_double &&
         tp != SUMA_int &&
@@ -7080,6 +7198,7 @@ double SUMA_GetDsetValInCol2(SUMA_DSET *dset, int ind, int ival)
    float *fv=NULL;
    int *iv = NULL;
    char **cv = NULL;
+   complex *cmv=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -7120,6 +7239,10 @@ double SUMA_GetDsetValInCol2(SUMA_DSET *dset, int ind, int ival)
          dv = (double *)dset->dnel->vec[ind];
          dval = (double)dv[ival];
          break;
+      case SUMA_complex:
+         cmv = (complex *)dset->dnel->vec[ind];
+         dval = CABS(cmv[ival]);
+         break;
       default:
          SUMA_SL_Err("This type is not supported.\n");
          SUMA_RETURN(0.0);
@@ -7146,6 +7269,7 @@ char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval)
    float *fv=NULL;
    int *iv = NULL;
    char  *str=NULL, **cv = NULL;
+   complex *cmv=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -7207,6 +7331,12 @@ char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval)
          cv = (char **)dset->dnel->vec[ind];
          *dval = 0.0;
          str = SUMA_copy_string((char*)cv[ival]);
+         break;
+      case SUMA_complex:
+         str = (char *)SUMA_malloc(100*sizeof(char));
+         cmv = (complex *)dset->dnel->vec[ind];
+         sprintf(str,"%f i%f",cmv[ival].r, cmv[ival].i);
+         *dval = CABS(cmv[ival]);
          break;
       default:
          SUMA_SL_Err("This type is not supported yet.\n");
@@ -8443,6 +8573,7 @@ float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly)
    float *V=NULL, *fv = NULL;
    byte *bv=NULL;
    double *dv=NULL;
+   complex *cmv=NULL;
    SUMA_COL_TYPE ctp;
    SUMA_VARTYPE vtp;
    SUMA_Boolean LocalHead = NOPE;
@@ -8483,6 +8614,10 @@ float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly)
       case SUMA_double:
          dv = (double *)dset->dnel->vec[ind];
          for (i=0; i<N_read; ++i) V[i] = (float)dv[i];
+         break;
+      case SUMA_complex:
+         cmv = (complex *)dset->dnel->vec[ind];
+         for (i=0; i<N_read; ++i) V[i] = (float)CABS(cmv[i]);
          break;
       default:
          SUMA_SL_Err("This type is not supported.\n");
@@ -8548,6 +8683,7 @@ double * SUMA_DsetCol2Double (SUMA_DSET *dset, int ind, int FilledOnly)
    float *fv = NULL;
    double *dv=NULL;
    byte *bv=NULL;
+   complex *cv=NULL;
    SUMA_COL_TYPE ctp;
    SUMA_VARTYPE vtp;
    SUMA_Boolean LocalHead = NOPE;
@@ -8588,6 +8724,10 @@ double * SUMA_DsetCol2Double (SUMA_DSET *dset, int ind, int FilledOnly)
       case SUMA_double:
          dv = (double *)dset->dnel->vec[ind];
          for (i=0; i<N_read; ++i) V[i] = (float)dv[i];
+         break;
+      case SUMA_complex:
+         cv = (complex *)dset->dnel->vec[ind];
+         for (i=0; i<N_read; ++i) V[i] = (float)CABS(cv[i]);
          break;
       default:
          SUMA_SL_Err("This type is not supported.\n");
@@ -8702,6 +8842,9 @@ SUMA_COL_TYPE SUMA_TypeOfDsetColNumb(SUMA_DSET *dset, int ind)
                break;
             case SUMA_short:
                ctp = SUMA_NODE_SHORT;
+               break;
+            case SUMA_complex:
+               ctp = SUMA_NODE_COMPLEX;
                break;
             default:
                SUMA_SL_Err("AFNI column type not supported at the moment.\n");
@@ -8929,7 +9072,8 @@ SUMA_COL_TYPE SUMA_TypeOfColNumb(NI_element *nel, int ind)
    
    SUMA_ENTRY;
    
-   /* SUMA_SL_Warn("Obsolete, use new version."); still needed to convert old format to new one */
+   /* SUMA_SL_Warn("Obsolete, use new version."); 
+         still needed to convert old format to new one */
    
    if (!nel) {  
       SUMA_SL_Err("NULL NI element");
@@ -8969,6 +9113,9 @@ SUMA_COL_TYPE SUMA_TypeOfColNumb(NI_element *nel, int ind)
                break;
             case SUMA_short:
                ctp = SUMA_NODE_SHORT;
+               break;
+            case SUMA_complex:
+               ctp = SUMA_NODE_COMPLEX;
                break;
             default:
                SUMA_SL_Err("AFNI column type not supported at the moment.\n");
@@ -9917,6 +10064,10 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
                SUMA_LH("String");
                NI_add_column_stride ( dnel, NI_STRING, NULL, 1 );
                break;
+            case SUMA_complex:
+               SUMA_LH("Complex");
+               NI_add_column_stride ( dnel, NI_COMPLEX, NULL, 1 );
+               break;
             default:
                fprintf (stderr,"Error %s: Bad column type.\n", FuncName);
                NI_free_element(ngr);
@@ -9960,6 +10111,9 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
                break;
             case SUMA_string:
                NI_add_column_stride ( inel, NI_STRING, NULL, 1 );
+               break;
+            case SUMA_complex:
+               NI_add_column_stride ( inel, NI_COMPLEX, NULL, 1 );
                break;
             default:
                fprintf (stderr,"Error %s: Bad column type.\n", FuncName);
@@ -15900,7 +16054,8 @@ void SUMA_swap_2(void *ppp)
                         MSB_FIRST
                         LSB_FIRST
 */
-void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start, int end, int *nvals_read)
+void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, 
+                      int start, int end, int *nvals_read)
 {
    static char FuncName[]={"SUMA_BinarySuck"};
    int bs, End, chnk, read_n, N_alloc, ex;
@@ -15913,7 +16068,9 @@ void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start
    *nvals_read = 0;
    ans = NULL;
 
-   if (!SUMA_filexists(fname)) { SUMA_SL_Err("File not found or could not be read"); goto CLEAN_EXIT; }
+   if (!SUMA_filexists(fname)) { 
+      SUMA_SL_Err("File not found or could not be read"); goto CLEAN_EXIT; 
+   }
    if (start < 0) { SUMA_SL_Err("Neg start val!"); goto CLEAN_EXIT; }
 
    /* byte swapping? */
@@ -15942,7 +16099,9 @@ void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start
    /* now start reading until you reach eof or end byte */
    if (read_n >= 0)  N_alloc = read_n;
    else N_alloc = ( THD_filesize( fname ) - start) / (unsigned long)chnk;
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Expecting to read %d values\n", FuncName, N_alloc);
+   if (LocalHead) 
+      fprintf(SUMA_STDERR,"%s: Expecting to read %d values\n", 
+                           FuncName, N_alloc);
    
    ex = 0;
    switch (data_type) {
@@ -15952,7 +16111,10 @@ void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start
             if (!vec) { SUMA_SL_Err("Failed to allocate"); goto CLEAN_EXIT;  }
             SUMA_LH("Reading floats");
             ex = fread((void*)vec, chnk, N_alloc, fp);
-            if (ex != N_alloc) { SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); goto CLEAN_EXIT; }
+            if (ex != N_alloc) { 
+               SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); 
+               goto CLEAN_EXIT; 
+            }
             if (bs) { SUMA_LH("swapping");  SUMA_SWAP_VEC(vec,N_alloc,chnk); }
             ans = (void*)vec;
          }
@@ -15963,7 +16125,10 @@ void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start
             if (!vec) { SUMA_SL_Err("Failed to allocate"); goto CLEAN_EXIT;  }
             SUMA_LH("Reading ints");
             ex = fread((void*)vec, chnk, N_alloc, fp);
-            if (ex != N_alloc) { SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); goto CLEAN_EXIT; }
+            if (ex != N_alloc) { 
+               SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); 
+               goto CLEAN_EXIT; 
+            }
             if (bs) { SUMA_LH("swapping");  SUMA_SWAP_VEC(vec,N_alloc,chnk); }
             ans = (void*)vec;
          }
@@ -15974,8 +16139,11 @@ void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start
             if (!vec) { SUMA_SL_Err("Failed to allocate"); goto CLEAN_EXIT;  }
             SUMA_LH("Reading bytes");
             ex = fread((void*)vec, chnk, N_alloc, fp);
-            if (ex != N_alloc) { SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); goto CLEAN_EXIT; }
-            if (bs) { SUMA_LH("swapping 1 byte numbers!? Nothing to do loco!");  }
+            if (ex != N_alloc) { 
+               SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); 
+               goto CLEAN_EXIT; 
+            }
+            if (bs) { SUMA_LH("swapping 1 byte numbers!?");  }
             ans = (void*)vec;
          }
          break;
@@ -15985,10 +16153,16 @@ void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start
             if (!vec) { SUMA_SL_Err("Failed to allocate"); goto CLEAN_EXIT;  }
             SUMA_LH("Reading shorts");
             ex = fread((void*)vec, chnk, N_alloc, fp);
-            if (ex != N_alloc) { SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); goto CLEAN_EXIT; }
+            if (ex != N_alloc) { 
+               SUMA_SL_Err("Failed to read all data!"); 
+               SUMA_free(vec); goto CLEAN_EXIT; 
+            }
             if (bs) { SUMA_LH("swapping");  SUMA_SWAP_VEC(vec,N_alloc,chnk); }
             ans = (void*)vec;
          }
+         break;
+      case SUMA_complex:
+         SUMA_SL_Err("Complex data type not supported");
          break;
       default:
          SUMA_SL_Err("data type not supported");
@@ -16099,8 +16273,10 @@ void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp)
          if (nread == nalloc) {
             nalloc += Chunk; ++nrealloc;
             d = (double*)SUMA_realloc(d, nalloc*sizeof(double));
-            if (!d) { SUMA_SL_Crit("Failed to allocate"); if (d) SUMA_free(d); d = NULL; SUMA_RETURN(NULL); }
-            if (!(nrealloc % 10)) { SUMA_SL_Warn("Too much reallocation, improper use of function?"); }
+            if (!d) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL); }
+            if (!(nrealloc % 10)) { 
+               SUMA_SL_Warn("Too much reallocation, improper use of function?");
+            }
          }
          d[nread] = db;
          ++(nread);

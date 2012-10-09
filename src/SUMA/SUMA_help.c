@@ -1154,6 +1154,7 @@ static char PlotCommonHelp[]={
       "        A graphing window can be opened for each\n"
       "        dataset, and all graphs will update unless\n"
       "        '1 Only' is set in Surface Controller.\n"
+      "        For complex data its magnitude is plotted instead.\n"
       "        Use 'ctrl+h' in graph window for more help.\n" };
 
 char * SUMA_help_Plot_message_Info(void)

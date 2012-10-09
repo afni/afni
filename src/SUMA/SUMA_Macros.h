@@ -1212,6 +1212,28 @@ Bruce Kimball, Paul Embree and Bruce Kimble
       else { if (a[m_I] < amin) { amin = a[m_I]; aminloc = m_I; } }    \
    } \
 }
+#define SUMA_MIN_MAX_CVEC(a,nel, amin, amax, aminloc, amaxloc, phase) { \
+   int m_I; \
+   double m_abs; \
+   amaxloc = 0; \
+   aminloc = 0; \
+   if (phase) {   \
+      amax = CARG(a[0]); \
+      amin = CARG(a[0]); \
+   }  else {   \
+      amax = CABS(a[0]); \
+      amin = CABS(a[0]); \
+   }  \
+   for (m_I = 1; m_I < nel; m_I++) { \
+      if (phase) {   \
+         m_abs = CARG((a[m_I])); \
+      } else {   \
+         m_abs = CABS((a[m_I])); \
+      }\
+      if (m_abs > amax) { amax = m_abs; amaxloc = m_I; }    \
+      else { if (m_abs < amin) { amin = m_abs; aminloc = m_I; } }    \
+   } \
+}
 
 #define SUMA_MIN_MAX_VEC_STRIDE(a,nel, amin, amax, aminloc, amaxloc, stride) { \
    int m_I; \
@@ -1222,6 +1244,30 @@ Bruce Kimball, Paul Embree and Bruce Kimble
    for (m_I = stride; m_I < nel; m_I = m_I+stride) { \
       if (a[m_I] > amax) { amax = a[m_I]; amaxloc = m_I; }    \
       else { if (a[m_I] < amin) { amin = a[m_I]; aminloc = m_I; } }    \
+   } \
+}
+
+#define SUMA_MIN_MAX_CVEC_STRIDE(a,nel, amin, amax, aminloc, amaxloc, stride, phase) { \
+   int m_I; \
+   double m_abs; \
+   complex m_c; \
+   amaxloc = 0; \
+   aminloc = 0; \
+   if (phase) {   \
+      amax = CARG(a[0]); \
+      amin = CARG(a[0]); \
+   }  else {   \
+      amax = CABS(a[0]); \
+      amin = CABS(a[0]); \
+   }  \
+   for (m_I = stride; m_I < nel; m_I = m_I+stride) { \
+      if (phase) {   \
+         m_abs = CARG((a[m_I])); \
+      } else {   \
+         m_abs = CABS((a[m_I])); \
+      }\
+      if ( m_abs > amax) { amax = m_abs; amaxloc = m_I; }    \
+      else { if (m_abs < amin) { amin = m_abs; aminloc = m_I; } }    \
    } \
 }
 
