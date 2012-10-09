@@ -245,6 +245,13 @@ void CALC_read_opts( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-trace",5) == 0 ){ DBG_trace=1; nopt++; continue; }
       if( strncmp(argv[nopt],"-TRACE",5) == 0 ){ DBG_trace=2; nopt++; continue; }
 #endif
+      
+      /**** -help ****/
+      if (!strcmp(argv[nopt], "-help") || !strcmp(argv[nopt], "-h")) {
+         CALC_Syntax();
+         exit(0);
+      }
+      
       /**** -dicom, -RAI, -LPI, -SPM [18 May 2005] ****/
 
       if( strcasecmp(argv[nopt],"-dicom") == 0 || strcasecmp(argv[nopt],"-rai") == 0 ){
@@ -1216,6 +1223,16 @@ void CALC_Syntax(void)
     "                * Multiple '-cx2r' options can be given:                \n"
     "                    when a complex dataset is given on the command line,\n"
     "                    the most recent previous method will govern.        \n"
+    "                    This also means that for -cx2r to affect a variable \n"
+    "                    it must precede it. For example, to compute the     \n"
+    "                    phase of data in 'a' you should use                 \n"
+    "                 3dcalc -cx2r PHASE -a dft.lh.TS.niml.dset -expr 'a'    \n"
+    "                    However, the -cx2r option will have no effect in    \n"
+    "                 3dcalc -a dft.lh.TS.niml.dset -cx2r PHASE -expr 'a'    \n"
+    "                    which will produce the default ABS of 'a'           \n"
+    "                    The -cx2r option in the latter example only applies \n"
+    "                    to variables that will be defined after it.         \n"
+    "                    When in doubt, check your output.                   \n"
     "                * If a complex dataset is used in a differential        \n"
     "                    subscript, then the most recent previous -cx2r      \n"
     "                    method applies to the extraction; for example       \n"
@@ -1526,7 +1543,7 @@ void CALC_Syntax(void)
     "   it works - somewhat slowly - but hey, computers are fast these days.)\n"
    ) ;
 
-   PRINT_COMPILE_DATE ; exit(0) ;
+   PRINT_COMPILE_DATE ; 
 }
 
 /*------------------------------------------------------------------*/
@@ -1552,13 +1569,14 @@ int main( int argc , char *argv[] )
 
    /*** read input options ***/
 
-   if( argc < 2 || strncasecmp(argv[1],"-help",4) == 0 ) CALC_Syntax() ;
-
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    mainENTRY("3dcalc main"); machdep() ;
    PRINT_VERSION("3dcalc") ; AUTHOR("A cast of thousands") ;
    THD_check_AFNI_version("3dcalc") ;
+   
+   if(argc == 1){ CALC_Syntax(); exit(0); } /* Bob's help shortcut */   
+   
    set_obliquity_report(0); /* silence obliquity */
    
    { int new_argc ; char ** new_argv ;
@@ -1573,6 +1591,8 @@ int main( int argc , char *argv[] )
    if( AFNI_yesenv("AFNI_FLOATIZE") ) CALC_datum = MRI_float ;
 
    CALC_read_opts( argc , argv ) ;
+   
+   if( argc < 2) ERROR_message("Too few options, use -help for details");
 
    /*** make output dataset ***/
 
