@@ -1243,7 +1243,8 @@ int main( int argc , char *argv[] )
    if( twosam ){
      snam_PPP = (BminusA) ? snam_BBB : snam_AAA ;
      snam_MMM = (BminusA) ? snam_AAA : snam_BBB ;
-     INFO_message("2-sample test: results are %s - %s",snam_PPP,snam_MMM) ;
+     INFO_message("%s test: results are %s - %s",
+                  ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
    }
 
    /*----- convert each input set of datasets to a vectim -----*/
@@ -1727,8 +1728,9 @@ int main( int argc , char *argv[] )
    else
      WARNING_message("Failed to add FDR curves to dataset?!") ;
 
-   if( twosam )
-     ININFO_message("2-sample test: results are %s - %s",snam_PPP,snam_MMM) ;
+   if( twosam ) 
+     ININFO_message("%s test: results are %s - %s",
+                    ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
 
    DSET_write(outset) ; WROTE_DSET(outset) ;
 
