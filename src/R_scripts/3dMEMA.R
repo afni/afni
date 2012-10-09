@@ -616,6 +616,7 @@ interest till Memorial Day next year:
             -n_nonzero 18   \\
             -HKtest         \\
             -model_outliers \\
+            -unequal_variance \\
             -residual_Z     \\
             -covariates CovFile.txt \\
             -covariates_center age = 25 13 weight = 100 150  \\
