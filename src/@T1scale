@@ -35,15 +35,38 @@ STATIT:
       endif
    cd $idir
    
-SCALEIT:
+NEWMASK:
    cd $odir
    set med = `3dBrickStat -non-zero -median -mask mask+orig T1+orig.`
-   3dcalc   -a T1+orig. -b PD.ls+orig'[perc:75.00]' \
-            -c mask+orig -datum short -overwrite \
-            -expr "step(c)*a/b*$med[2]" \
-            -prefix T1.uni+orig.
+   if ($menh != '') then
+      3dcalc   -a T1+orig. -b PD.ls+orig'[perc:75.00]' \
+               -datum short -overwrite \
+               -expr "$med[2]/b*step(b)" \
+               -prefix enhancement+orig.
+      3dcalc -a enhancement+orig. -expr "(1-step(a-$menh))" -prefix maskenh
+      3dinfill -input maskenh+orig -overwrite -prefix maskenh
+   endif
    cd $idir
-   goto END
+      
+SCALEIT:
+   cd $odir
+   set mm = mask+orig.HEAD
+   if ( -f maskenh+orig.HEAD) set mm = maskenh+orig.HEAD
+   3dcalc   -a T1+orig. -b PD.ls+orig'[perc:75.00]' \
+               -c $mm -datum short -overwrite \
+               -expr "step(c)*a/b*$med[2]" \
+               -prefix T1.uni+orig.
+   
+   cd $idir
+
+HISTORY:
+   cd $odir
+   foreach ff (*.HEAD)
+      3dNotes -h "`basename $0` $argv" $ff
+   end
+   cd $idir
+   
+goto END
 
 PARSE:
 set Narg = $#
@@ -58,6 +81,8 @@ set imask = ''
 set idir = $PWD
 set T1 = ''
 set PD = ''
+set menh = ''
+
 if ("$1" == '') goto HELP
 while ($cnt <= $Narg)
    set donext = 1
@@ -105,6 +130,17 @@ while ($cnt <= $Narg)
          set donext = 0   
       endif
    endif
+
+   if ($donext && "$argv[$cnt]" == "-maxenh") then
+      if ($cnt == $Narg) then
+         echo "Need a value suffix after -maxenh"
+         goto END
+      else
+         @ cnt ++
+         set menh = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
    
    if ($donext && "$argv[$cnt]" == "-T1") then
       if ($cnt == $Narg) then
@@ -129,19 +165,7 @@ while ($cnt <= $Narg)
    endif
    
   if ($donext) then
-      if ($inputopen == 1) then
-         set fwildvec = ($fwildvec $argv[$cnt])
-         @ cnt ++
-      endif
-      if ($exfeatopen == 1) then
-         set exfeatvec = ($exfeatvec $argv[$cnt])
-         @ cnt ++
-      endif
-      if ($exclsopen == 1) then
-         set exclssvec = ($exclssvec $argv[$cnt])
-         @ cnt ++
-      endif
-      if ($inputopen == 0 && $exclsopen == 0 && $exfeatopen == 0) then
+      if (1) then
          echo "Parameter $argv[$cnt] not understood"
          apsearch -popt `basename $0` -word $argv[$cnt]
          goto END
