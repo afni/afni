@@ -383,6 +383,7 @@ if (detail > 1) {
 "                         by BS1 factor for BR1 or higher, and linearly \n"
 "                         interpolate scaling for BR0 < values < BR1\n" 
 "       -Dim DIM: Set the dimming factor.\n"
+"       -Opa OPA: Set the opacity factor.\n"
 "       -setSUMAenv \"'ENVname=ENVvalue'\": Set an ENV in SUMA. Note that\n"
 "                      most SUMA env need to be set at SUMA's launch time. \n"
 "                      Setting the env from DriveSuma may not achieve what \n" 
@@ -1006,6 +1007,20 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "Dim", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && ( (strcmp(argt[kar], "-Opa") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a value after -Opa \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         NI_set_attribute(ngr, "Opa", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
