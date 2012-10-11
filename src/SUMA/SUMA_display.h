@@ -423,11 +423,24 @@ int SUMA_ColPlane_NewOrder     (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
                                int neworder, int cb_direct);
 int SUMA_ColPlane_NewOrder_one (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
                                int neworder, int cb_direct);
-void SUMA_ColPlane_NewOpacity (void *data);
-void SUMA_ColPlane_NewDimFact (void *data);
+void SUMA_cb_ColPlane_NewOpacity (void *data);
+int SUMA_ColPlane_NewOpacity     (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                                 float newopa, int cb_direct);
+int SUMA_ColPlane_NewOpacity_one (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                                 float newopa, int cb_direct);
+void SUMA_cb_ColPlane_NewDimFact (void *data);
+int SUMA_ColPlane_NewDimFact     (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                                 float newdimfact, int cb_direct);
+int SUMA_ColPlane_NewDimFact_one (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                                 float newdimfact, int cb_direct);
+
 void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_data);
-void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data, XtPointer client_data);
-int SUMA_ColPlaneShowOneFore_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state);
+void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data, 
+                                          XtPointer client_data);
+int SUMA_ColPlaneShowOneFore_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state, 
+                                  int direct);
+int SUMA_ColPlaneShowOneFore_Set_one (SUMA_SurfaceObject *SO, SUMA_Boolean state,
+                                      int direct);
 void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_ColPlane_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data);

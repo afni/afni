@@ -65,6 +65,26 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 10, Oct , 2012 , ZSS , "DriveSuma" , MICRO , TYPE_NEW_OPT,
+   "Added -Opa to control opacity",
+   NULL
+ },
+
+ { 10, Oct , 2012 , ZSS , "suma" , MICRO , TYPE_NEW_OPT,
+   "Added yoking of 1_only, Dim, and Opacity controls",
+   NULL
+ },
+
+ { 10, Oct , 2012 , ZSS , "@RetinoProc" , MICRO , TYPE_NEW_OPT,
+   "Option -AEA_opts for passing arguments to align_epi_anat.py",
+   NULL
+ },
+
+ { 9, Oct , 2012 , ZSS , "3dttest++" , MICRO , TYPE_MODIFY,
+   "Micro modification of verbose output to flag paired from unpaired tests",
+   NULL
+ },
+
  { 9, Oct , 2012 , ZSS , "3dcalc" , MICRO , TYPE_MODIFY,
    "Clarify help for -cx2r, and allowing -help in mid command.",
    NULL

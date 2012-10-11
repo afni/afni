@@ -302,7 +302,7 @@ ConvexHull: SUMA_ConvexHull.c
 
 3dGenPriors: SUMA_3dGenPriors.c libSUMA.a
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED  ${CCOPT} $(OMPFLAG) ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_3dGenPriors.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
 		-I../3DEdge/src -l3DEdge -I../avovk ${SUMALIBLIST} \

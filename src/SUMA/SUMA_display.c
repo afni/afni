@@ -5769,7 +5769,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            1, 0.0, 1.0, 0.1,
                            3, SUMA_float,
                            NOPE,
-                           SUMA_ColPlane_NewOpacity, (void *)SO,
+                           SUMA_cb_ColPlane_NewOpacity, (void *)SO,
                            SUMA_SurfCont_ColPlaneOpacity_hint,
                            SUMA_SurfContHelp_DsetOpa,
                            SO->SurfCont->ColPlaneOpacity);
@@ -5788,7 +5788,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            1, 0.1, 1, 0.1,
                            3, SUMA_float,
                            YUP,
-                           SUMA_ColPlane_NewDimFact, (void *)SO, 
+                           SUMA_cb_ColPlane_NewDimFact, (void *)SO, 
                            SUMA_SurfCont_ColPlaneDim_hint, 
                            SUMA_SurfContHelp_DsetDim,
                            SO->SurfCont->ColPlaneDimFact);
@@ -7941,7 +7941,7 @@ int SUMA_ColPlane_NewOrder(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
                    SOC->Label, CHECK_NULL_STR(colpC->Label));
       if (SOC->SurfCont->curColPlane != colpC) {
          SUMA_S_Err("Don't have contralateral as cur colplane.\n"
-                    "This shouls not happen under L/R yoked conditions.");
+                    "This should not happen under L/R yoked conditions.");
          SUMA_RETURN(0);
       }
       if (!SUMA_ColPlane_NewOrder_one(SOC, colpC, 
@@ -8086,34 +8086,120 @@ void SUMA_cb_ColPlane_NewOrder (void *data)
    SUMA_RETURNe;
 }
 
+
 /*!
    \brief Function to update the opacity of a colorplane 
    
    -expects SO in data
 */
-void SUMA_ColPlane_NewOpacity (void *data)
+void SUMA_cb_ColPlane_NewOpacity(void *data)
+{
+   static char FuncName[]={"SUMA_cb_ColPlane_NewOpacity"};
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SO = (SUMA_SurfaceObject *)data;
+   if (!SO || !SO->SurfCont || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+   
+   if (SO->SurfCont->ColPlaneOpacity->value == 
+       SO->SurfCont->curColPlane->GlobalOpacity) SUMA_RETURNe;
+   
+   SUMA_ColPlane_NewOpacity(SO, NULL, SO->SurfCont->ColPlaneOpacity->value, 1);
+   
+   SUMA_RETURNe;
+}
+
+int SUMA_ColPlane_NewOpacity (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+                               float newopacity, int cb_direct )
 {
    static char FuncName[]={"SUMA_ColPlane_NewOpacity"};
-   SUMA_SurfaceObject *SO=NULL;
+   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_OVERLAYS *colpC=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    SUMA_LH("Called");
    
-   SO = (SUMA_SurfaceObject *)data;
+   if (!SO || !SO->SurfCont) SUMA_RETURN(0);
+   
+   if (!colp) colp = SO->SurfCont->curColPlane;
+   if (!colp) SUMA_RETURN(0);
+   if (colp != SO->SurfCont->curColPlane) {
+      SUMA_S_Err( "Will need to switch to current plane first. "
+                  "Not ready for this");
+      SUMA_RETURN(0);      
+   }
+   
+   if (!SUMA_ColPlane_NewOpacity_one(SO, colp, newopacity, cb_direct)) {
+      SUMA_S_Err("Returning on a sad note");
+      SUMA_RETURN(0);
+   }
+   
+   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+   if (colpC && SOC) {
+      SUMA_LHv("Found contralateral equivalent to:\n"
+                   " %s and %s in\n"
+                   " %s and %s\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label),
+                   SOC->Label, CHECK_NULL_STR(colpC->Label));
+      if (SOC->SurfCont->curColPlane != colpC) {
+         SUMA_S_Err("Don't have contralateral as cur colplane.\n"
+                    "This should not happen under L/R yoked conditions.");
+         SUMA_RETURN(0);
+      }
+      if (!SUMA_ColPlane_NewOpacity_one(SOC, colpC, 
+                                      newopacity, 0)) {
+         SUMA_S_Warn("Failed in contralateralization");
+      }
+   } else {
+      SUMA_LHv("Found NO contralateral equivalent to:\n"
+                   " %s and %s in\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label));
+   }
+   
+   SUMA_RETURN(1);
+}
 
+int SUMA_ColPlane_NewOpacity_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+                                 float newopacity, int cb_direct) 
+{
+   static char FuncName[]={"SUMA_ColPlane_NewOpacity_one"};
+   char sbuf[SUMA_MAX_LABEL_LENGTH];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !SO->SurfCont) SUMA_RETURN(0);
+   
+   if (!colp) colp = SO->SurfCont->curColPlane;
+   if (!colp) SUMA_RETURN(0);
+   if (colp != SO->SurfCont->curColPlane) {
+      SUMA_S_Err("Will need to switch current plane. Not ready for this");
+      SUMA_RETURN(0);      
+   }
+   
    /* change the value of the global opacity */
-   SO->SurfCont->curColPlane->GlobalOpacity = SO->SurfCont->ColPlaneOpacity->value;   
+   SO->SurfCont->curColPlane->GlobalOpacity = newopacity;   
    if (LocalHead) fprintf(SUMA_STDERR,"%s: GlobalOpacity of %s set to %f.\n", 
-         FuncName, SO->SurfCont->curColPlane->Name, SO->SurfCont->curColPlane->GlobalOpacity);
+         FuncName, SO->SurfCont->curColPlane->Name, 
+         SO->SurfCont->curColPlane->GlobalOpacity);
    
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
    /* a good remix and redisplay */
    SUMA_RemixRedisplay (SO);
    
-   SUMA_RETURNe;
+   if (!cb_direct && newopacity != SO->SurfCont->ColPlaneOpacity->value) {
+      /* force gui match */
+      sprintf(sbuf,"%.2f", newopacity);
+      SO->SurfCont->ColPlaneOpacity->value = newopacity;
+      SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOpacity->textfield, sbuf); 
+   }
+   
+   SUMA_RETURN(1);
 }
 
 /*!
@@ -8122,9 +8208,9 @@ void SUMA_ColPlane_NewOpacity (void *data)
    for explicitly colored planes 
    -expects SO in data
 */
-void SUMA_ColPlane_NewDimFact (void *data)
+void SUMA_cb_ColPlane_NewDimFact (void *data)
 {
-   static char FuncName[]={"SUMA_ColPlane_NewDimFact"};
+   static char FuncName[]={"SUMA_cb_ColPlane_NewDimFact"};
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -8133,10 +8219,90 @@ void SUMA_ColPlane_NewDimFact (void *data)
    SUMA_LH("Called");
    
    SO = (SUMA_SurfaceObject *)data;
-   if (!SO->SurfCont || !SO->SurfCont->curColPlane ) SUMA_RETURNe;
+   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane ) SUMA_RETURNe;
    
+   if (SO->SurfCont->curColPlane->DimFact == 
+       SO->SurfCont->ColPlaneDimFact->value) SUMA_RETURNe;
+   
+   SUMA_ColPlane_NewDimFact(SO, SO->SurfCont->curColPlane, 
+                            SO->SurfCont->ColPlaneDimFact->value, 1);
+   SUMA_RETURNe;                            
+}
+
+int SUMA_ColPlane_NewDimFact (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+                              float newdimfact, int cb_direct)
+{
+   static char FuncName[]={"SUMA_ColPlane_NewDimFact"};
+   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_OVERLAYS *colpC=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   if (!SO || !SO->SurfCont) SUMA_RETURN(0);
+   
+   if (!colp) colp = SO->SurfCont->curColPlane;
+   if (!colp) SUMA_RETURN(0);
+   if (colp != SO->SurfCont->curColPlane) {
+      SUMA_S_Err( "Will need to switch to current plane first. "
+                  "Not ready for this");
+      SUMA_RETURN(0);      
+   }
+   
+   if (!SUMA_ColPlane_NewDimFact_one(SO, colp, newdimfact, cb_direct)) {
+      SUMA_S_Err("Non son pagliaccio");
+      SUMA_RETURN(0);
+   }
+   
+   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+   if (colpC && SOC) {
+      SUMA_LHv("Found contralateral equivalent to:\n"
+                   " %s and %s in\n"
+                   " %s and %s\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label),
+                   SOC->Label, CHECK_NULL_STR(colpC->Label));
+      if (SOC->SurfCont->curColPlane != colpC) {
+         SUMA_S_Err("Don't have contralateral as cur colplane.\n"
+                    "This should not happen under L/R yoked conditions.");
+         SUMA_RETURN(0);
+      }
+      if (!SUMA_ColPlane_NewDimFact_one(SOC, colpC, 
+                                        newdimfact, 0)) {
+         SUMA_S_Warn("Failed in contralateralization");
+      }
+   } else {
+      SUMA_LHv("Found NO contralateral equivalent to:\n"
+                   " %s and %s in\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label));
+   }
+   
+   SUMA_RETURN(1);
+}
+
+int SUMA_ColPlane_NewDimFact_one (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+                                  float newdimfact, int cb_direct)
+{
+   static char FuncName[]={"SUMA_ColPlane_NewDimFact_one"};
+   char sbuf[SUMA_MAX_LABEL_LENGTH];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   if (!SO || !SO->SurfCont) SUMA_RETURN(0);
+      
+   if (!colp) colp = SO->SurfCont->curColPlane;
+   if (!colp) SUMA_RETURN(0);
+   if (colp != SO->SurfCont->curColPlane) {
+      SUMA_S_Err("Will need to switch current plane. Not ready for this");
+      SUMA_RETURN(0);      
+   }
+
    /* change the value of the dimfact */
-   SO->SurfCont->curColPlane->DimFact = SO->SurfCont->ColPlaneDimFact->value; 
+   SO->SurfCont->curColPlane->DimFact = newdimfact; 
    if (SO->SurfCont->curColPlane->OptScl) 
       SO->SurfCont->curColPlane->OptScl->BrightFact = 
                                  SO->SurfCont->curColPlane->DimFact;
@@ -8156,8 +8322,16 @@ void SUMA_ColPlane_NewDimFact (void *data)
    /* update color label */
    SUMA_UpdateNodeLblField(SO);
    
-   SUMA_RETURNe;
+   if (!cb_direct && newdimfact != SO->SurfCont->ColPlaneDimFact->value) {
+      /* force gui match */
+      sprintf(sbuf,"%.2f", newdimfact);
+      SO->SurfCont->ColPlaneDimFact->value = newdimfact;
+      SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield, sbuf); 
+   }
+  
+   SUMA_RETURN(1);
 }
+
 /*!
    \brief Function to set the color remix flag for surface SO and call 
       a redisplay for relevant viewers 
@@ -8253,25 +8427,23 @@ void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data, XtPointer cl
    
    if (!SO->SurfCont->curColPlane) SUMA_RETURNe;
 
-   SO->SurfCont->ShowCurForeOnly = 
-      XmToggleButtonGetState (SO->SurfCont->ColPlaneShowOneFore_tb);
-   
-   SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
-
-   SUMA_RemixRedisplay(SO);
-   SUMA_UpdateNodeLblField(SO);
-   
+   SUMA_ColPlaneShowOneFore_Set(SO,
+               XmToggleButtonGetState (SO->SurfCont->ColPlaneShowOneFore_tb), 1);
+      
    SUMA_RETURNe;
 }
 
-int SUMA_ColPlaneShowOneFore_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state) 
+int SUMA_ColPlaneShowOneFore_Set_one ( SUMA_SurfaceObject *SO, 
+                                       SUMA_Boolean state, int cb_direct)
 {
-   static char FuncName[]={"SUMA_ColPlaneShowOneFore_Set"};
+   static char FuncName[]={"SUMA_ColPlaneShowOneFore_Set_one"};
    
    SUMA_ENTRY;
 
    if (!SO->SurfCont) SUMA_RETURN(0);
    if (!SUMA_SURFCONT_CREATED(SO)) SUMA_RETURN(0);
+   
+   if (SO->SurfCont->ShowCurForeOnly == state) SUMA_RETURN(1);
    
    SO->SurfCont->ShowCurForeOnly = state;
    XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOneFore_tb, 
@@ -8283,8 +8455,53 @@ int SUMA_ColPlaneShowOneFore_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state)
    SUMA_UpdateNodeLblField(SO);
    
    SUMA_RETURN(1);
-   
 }
+
+int SUMA_ColPlaneShowOneFore_Set ( SUMA_SurfaceObject *SO, 
+                                   SUMA_Boolean state, int cb_direct)
+{
+   static char FuncName[]={"SUMA_ColPlaneShowOneFore_Set"};
+   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_OVERLAYS *colpC=NULL, *colp=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO->SurfCont) SUMA_RETURN(0);
+   if (!SUMA_SURFCONT_CREATED(SO)) SUMA_RETURN(0);
+   
+   if (!SUMA_ColPlaneShowOneFore_Set_one (SO, state, cb_direct)) {
+      SUMA_S_Err("Returning on an angry note");
+      SUMA_RETURN(0);
+   }
+   
+   colp = SO->SurfCont->curColPlane;
+   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+   if (colpC && SOC) {
+      SUMA_LHv("Found contralateral equivalent to:\n"
+                   " %s and %s in\n"
+                   " %s and %s\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label),
+                   SOC->Label, CHECK_NULL_STR(colpC->Label));
+      if (SOC->SurfCont->curColPlane != colpC) {
+         SUMA_S_Err("Don't have contralateral as cur colplane.\n"
+                    "This should not happen under L/R yoked conditions.");
+         SUMA_RETURN(0);
+      }
+      if (!SUMA_ColPlaneShowOneFore_Set_one (SOC, state, 0)) {
+         SUMA_S_Err("Returning on an cranky note");
+         SUMA_RETURN(0);
+      }
+   } else {
+      SUMA_LHv("Found NO contralateral equivalent to:\n"
+                   " %s and %s in\n",
+                   SO->Label, CHECK_NULL_STR(colp->Label));
+   }
+   
+   SUMA_RETURN(1);
+}
+
+
 /*!
  \brief Function based on arrow_time.c program from Motif Programing Manual
  
