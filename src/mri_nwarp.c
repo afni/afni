@@ -42,6 +42,8 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
    AA->yd = (float *)calloc(nx*ny*nz,sizeof(float)) ;
    AA->zd = (float *)calloc(nx*ny*nz,sizeof(float)) ;
    AA->hv = NULL ;  /* to be filled in later, maybe */
+   AA->je = NULL ;  /* to be filled in later, maybe */
+   AA->se = NULL ;  /* to be filled in later, maybe */
    LOAD_DIAG_MAT44(AA->cmat,1.0f,1.0f,1.0f) ;
    LOAD_DIAG_MAT44(AA->imat,1.0f,1.0f,1.0f) ;
    AA->geomstring = NULL ;
@@ -56,7 +58,8 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
 void IW3D_destroy( IndexWarp3D *AA )
 {
    if( AA != NULL ){
-     FREEIFNN(AA->xd); FREEIFNN(AA->yd); FREEIFNN(AA->zd); FREEIFNN(AA->hv);
+     FREEIFNN(AA->xd); FREEIFNN(AA->yd); FREEIFNN(AA->zd);
+     FREEIFNN(AA->hv); FREEIFNN(AA->je); FREEIFNN(AA->se);
      FREEIFNN(AA->geomstring) ;
      free(AA);
    }
@@ -409,6 +412,33 @@ void IW3D_7smooth( IndexWarp3D *AA )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Make the geometry of a warp match that of a dataset. */
+
+void IW3D_adopt_dataset( IndexWarp3D *AA , THD_3dim_dataset *dset )
+{
+   mat44 cmat , imat ; char *gstr ;
+
+   if( AA == NULL || !ISVALID_DSET(dset) ) return ;
+
+   if( DSET_NX(dset) != AA->nx || DSET_NY(dset) != AA->ny || DSET_NZ(dset) != AA->nz ){
+     ERROR_message("IW3D_adopt_dataset: grid mismatch") ; return ;
+   }
+
+   if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )
+     THD_daxes_to_mat44(dset->daxes) ;
+
+   cmat = dset->daxes->ijk_to_dicom ;  /* takes ijk to xyz */
+   imat = MAT44_INV(cmat) ;            /* takes xyz to ijk */
+
+   AA->cmat = cmat ; AA->imat = imat ;
+   gstr = EDIT_get_geometry_string(dset) ;
+   if( gstr != NULL ) AA->geomstring = strdup(gstr) ;
+   AA->view = dset->view_type ;
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Convert a 3D dataset of displacments in mm to an index warp. */
 
 IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty )
@@ -474,7 +504,7 @@ ENTRY("IW3D_from_dataset") ;
 THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix )
 {
    THD_3dim_dataset *dset ;
-   float *xar,*yar,*zar,*har , *xda,*yda,*zda,*hva , hfac ;
+   float *xar,*yar,*zar,*har,*jar,*sar , *xda,*yda,*zda,*hva,*jea,*sea , hfac ;
    mat44 cmat ;
    int ii , nxyz ;
 
@@ -491,7 +521,7 @@ ENTRY("IW3D_to_dataset") ;
    dset = EDIT_geometry_constructor( AA->geomstring , prefix ) ;
 
    EDIT_dset_items( dset ,
-                      ADN_nvals     , 4         ,
+                      ADN_nvals     , 6         ,
                       ADN_datum_all , MRI_float ,
                       ADN_view_type , AA->view  ,
                     NULL ) ;
@@ -499,6 +529,8 @@ ENTRY("IW3D_to_dataset") ;
    EDIT_BRICK_LABEL( dset , 1 , "y_delta" ) ;
    EDIT_BRICK_LABEL( dset , 2 , "z_delta" ) ;
    EDIT_BRICK_LABEL( dset , 3 , "hexvol"  ) ;
+   EDIT_BRICK_LABEL( dset , 4 , "BulkEn"  ) ;
+   EDIT_BRICK_LABEL( dset , 5 , "ShearEn" ) ;
 
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
    nxyz = AA->nx * AA->ny * AA->nz ;
@@ -508,9 +540,13 @@ ENTRY("IW3D_to_dataset") ;
    yar = (float *)malloc(sizeof(float)*nxyz) ;
    zar = (float *)malloc(sizeof(float)*nxyz) ;
    har = (float *)malloc(sizeof(float)*nxyz) ;
+   jar = (float *)malloc(sizeof(float)*nxyz) ;
+   sar = (float *)malloc(sizeof(float)*nxyz) ;
 
    if( AA->hv == NULL ) (void)IW3D_load_hexvol(AA) ;
+   if( AA->je == NULL || AA->se == NULL ) (void)IW3D_load_energy(AA) ;
    hva = AA->hv ; hfac = MAT44_DET(cmat) ; hfac = fabsf(hfac) ;
+   jea = AA->je ; sea  = AA->se ;
 
  AFNI_OMP_START ;
 #pragma omp parallel if( nxyz > 11111 )
@@ -518,7 +554,7 @@ ENTRY("IW3D_to_dataset") ;
 #pragma omp for
    for( ii=0 ; ii < nxyz ; ii++ ){
      MAT33_VEC( cmat , xda[ii],yda[ii],zda[ii] , xar[ii],yar[ii],zar[ii] ) ;
-     har[ii] = hfac * hva[ii] ;
+     har[ii] = hfac * hva[ii] ; jar[ii] = jea[ii] ; sar[ii] = sea[ii] ;
    }
  }
  AFNI_OMP_END ;
@@ -527,8 +563,199 @@ ENTRY("IW3D_to_dataset") ;
    EDIT_substitute_brick( dset , 1 , MRI_float , yar ) ;
    EDIT_substitute_brick( dset , 2 , MRI_float , zar ) ;
    EDIT_substitute_brick( dset , 3 , MRI_float , har ) ;
+   EDIT_substitute_brick( dset , 4 , MRI_float , jar ) ;
+   EDIT_substitute_brick( dset , 5 , MRI_float , sar ) ;
 
    RETURN(dset) ;
+}
+
+#if 0
+/*---------------------------------------------------------------------------*/
+/* Return the 3 eigenvalue of a 3x3 symmetric matrix.
+     - Input matrix is [  a[0] a[1] a[2] ]
+                       [  a[1] a[3] a[4] ]
+                       [  a[2] a[4] a[5] ]
+     - Method is direct solution of cubic characteristic equation
+     - Output eigenvalues are not sorted
+-----------------------------------------------------------------------------*/
+
+static INLINE double_triple eigval_sym3x3( double *a )
+{
+   double aa,bb,cc,dd,ee,ff ;
+   double a1,a2,a3 , qq,rr, qs,th ;
+   double aba,abb,abc,abd,abe,abf , ann,anni ;
+   double_triple eee={0.0,0.0,0.0} ;
+
+   if( a == NULL ) return eee ;
+
+   /*----- unload matrix into local variables -----*/
+
+   aa = a[0] ; bb = a[1] ; cc = a[2] ;  /* matrix is [ aa bb cc ]  */
+   dd = a[3] ; ee = a[4] ; ff = a[5] ;  /*           [ bb dd ee ]  */
+                                        /*           [ cc ee ff ]  */
+   aba = fabs(aa) ; abb = fabs(bb) ; abc = fabs(cc) ;
+   abd = fabs(dd) ; abe = fabs(ee) ; abf = fabs(ff) ;
+   ann = aba+abb+abc+abd+abe+abf   ;                 /* matrix 'norm' */
+
+   if( ann == 0.0 ) return eee ; /* matrix is all zero! */
+
+   /*----- check for matrix that is essentially diagonal -----*/
+
+#undef  EPS
+#define EPS  1.e-8
+
+   if( abb+abc+abe == 0.0 ||
+       ( EPS*aba > (abb+abc) && EPS*abd > (abb+abe) && EPS*abf > (abc+abe) ) ){
+
+     eee.a = aa ; eee.b = dd ; eee.c = ff ; return eee ;
+   }
+
+   /*-- Scale matrix so abs sum is 1; unscale e[i] on output --*/
+
+   anni = 1.0 / ann ;                      /* ann != 0, from above */
+   aa *= anni ; bb *= anni ; cc *= anni ;
+   dd *= anni ; ee *= anni ; ff *= anni ;
+
+   /*----- not diagonal ==> must solve cubic polynomial for eigenvalues -----*/
+   /*      the cubic polynomial is x**3 + a1*x**2 + a2*x + a3 = 0            */
+
+   a1 = -(aa+dd+ff) ;
+   a2 =  (aa*ff+aa*dd+dd*ff - bb*bb-cc*cc-ee*ee) ;
+   a3 =  ( aa*(ee*ee-dd*ff) + bb*(bb*ff-cc*ee) + cc*(cc*dd-bb*ee) ) ;
+
+   /*-- Rewrite classical formula for qq as a sum of squares --*/
+   /*-- [to ensure that it will not be negative by roundoff] --*/
+#if 0
+   qq = (a1*a1 - 3.0*a2) / 9.0 ;  /* classical formula */
+#else
+   qq = (  0.5 * ( SQR(dd-aa) + SQR(ff-aa) + SQR(ff-dd) )
+         + 3.0 * ( bb*bb      + cc*cc      + ee*ee      ) ) / 9.0 ;
+#endif
+   rr = (2.0*a1*a1*a1 - 9.0*a1*a2 + 27.0*a3) / 54.0 ;
+
+   if( qq <= 0.0 ){       /*** This should never happen!!! ***/
+     qs = qq = rr = 0.0 ;
+   } else {
+     qs = sqrt(qq) ; rr = rr / (qs*qq) ; qs *= 2.0 ;
+     if( rr < -1.0 ) rr = -1.0 ; else if( rr > 1.0 ) rr = 1.0 ;
+   }
+   th = acos(rr) ; a1 /= 3.0 ;
+
+   eee.a = -ann * ( qs * cos(  th        /3.0 ) + a1 ) ;
+   eee.b = -ann * ( qs * cos( (th+2.0*PI)/3.0 ) + a1 ) ;
+   eee.c = -ann * ( qs * cos( (th+4.0*PI)/3.0 ) + a1 ) ;
+
+   return eee ;
+}
+#endif
+
+/*----------------------------------------------------------------------------*/
+
+#undef  DA
+#undef  DB
+#undef  DC
+#define DA(p,q) (p.a-q.a)
+#define DB(p,q) (p.b-q.b)
+#define DC(p,q) (p.c-q.c)
+
+#undef  TRIPROD
+#define TRIPROD(ax,ay,az,bx,by,bz,cx,cy,cz) ( (ax)*((by)*(cz)-(bz)*(cy)) \
+                                             +(bx)*((cy)*(az)-(cz)*(ay)) \
+                                             +(cx)*((ay)*(bz)-(az)*(by))  )
+
+#undef  IJK
+#define IJK(i,j,k) ((i)+(j)*nx+(k)*nxy)
+
+#undef  C2F
+#define C2F(p,q,r,xx) ( (xx).a = (p) , (xx).b = (q) , (xx).c = (r) )
+
+#undef  D2F
+#define D2F(pqr,xx)   ( (xx).a+=xda[pqr], (xx).b+=yda[pqr], (xx).c+=zda[pqr] )
+
+#undef  E2F
+#define E2F(pqr,xx)   ( (xx).a =xda[pqr], (xx).b =yda[pqr], (xx).c =zda[pqr] )
+
+/*----------------------------------------------------------------------------*/
+/* Compute the bulk and shear energies from DISPLACEMENTS at corners. */
+
+static INLINE float_pair hexahedron_energy( float_triple d000 , float_triple d100 ,
+                                            float_triple d010 , float_triple d110 ,
+                                            float_triple d001 , float_triple d101 ,
+                                            float_triple d011 , float_triple d111  )
+{
+   float fxx,fxy,fxz, fyx,fyy,fyz, fzx,fzy,fzz ;
+   float II , JJ , jcb ;
+   float_pair en ;
+
+   fxx = ( DA(d100,d000) + DA(d111,d011) ) * 0.5f + 1.0f ;
+   fxy = ( DB(d100,d000) + DB(d111,d011) ) * 0.5f ;
+   fxz = ( DC(d100,d000) + DC(d111,d011) ) * 0.5f ;
+
+   fyx = ( DA(d010,d000) + DA(d111,d101) ) * 0.5f ;
+   fyy = ( DB(d010,d000) + DB(d111,d101) ) * 0.5f + 1.0f ;
+   fyz = ( DC(d010,d000) + DC(d111,d101) ) * 0.5f ;
+
+   fzx = ( DA(d001,d000) + DA(d111,d110) ) * 0.5f ;
+   fzy = ( DB(d001,d000) + DB(d111,d110) ) * 0.5f ;
+   fzz = ( DC(d001,d000) + DC(d111,d110) ) * 0.5f + 1.0f ;
+
+   JJ = TRIPROD( fxx,fxy,fxz, fyx,fyy,fyz, fzx,fzy,fzz ) ;
+   if( JJ < 0.1f ) JJ = 0.1f ; else if( JJ > 10.0f ) JJ = 10.0f ;
+   jcb = cbrt(JJ*JJ) ;
+   II = (  fxx*fxx + fyy*fyy + fzz*fzz
+         + fxy*fxy + fyx*fyx + fxz*fxz
+         + fzx*fzx + fyz*fyz + fzy*fzy ) / jcb - 3.0f ;
+   if( II < 0.0f ) II = 0.0f ;
+
+   jcb = (JJ-1.0f/JJ) ; en.a = 0.444f*jcb*jcb ; en.b = II ;
+   return en ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+float_pair IW3D_load_energy( IndexWarp3D *AA )
+{
+   float_pair enout = {0.0f,0.0f} ;
+   float *xda, *yda , *zda , *jea,*sea , jetop,setop ;
+   int nx,ny,nz , nxy,nxyz , ii ;
+
+   if( AA == NULL ) return enout ;
+
+   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+
+   jea = AA->je; if( jea == NULL ) jea = AA->je = (float *)calloc(nxyz,sizeof(float));
+   sea = AA->se; if( sea == NULL ) sea = AA->se = (float *)calloc(nxyz,sizeof(float));
+
+ AFNI_OMP_START ;
+#pragma omp parallel
+ { float_triple x0,x1,x2,x3,x4,x5,x6,x7 ; float_pair en ;
+   int ii,jj,kk , ip,jp,kp , ijk , qq ;
+#pragma omp for
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+     ip = ii+1 ; jp = jj+1 ; kp = kk+1 ;
+     if( ip == nx ) ip-- ; if( jp == ny ) jp-- ; if( kp == nz ) kp-- ;
+     ijk = IJK(ip,jj,kk) ; E2F(ijk,x1) ;
+     ijk = IJK(ii,jp,kk) ; E2F(ijk,x2) ;
+     ijk = IJK(ip,jp,kk) ; E2F(ijk,x3) ;
+     ijk = IJK(ii,jj,kp) ; E2F(ijk,x4) ;
+     ijk = IJK(ip,jj,kp) ; E2F(ijk,x5) ;
+     ijk = IJK(ii,jp,kp) ; E2F(ijk,x6) ;
+     ijk = IJK(ip,jp,kp) ; E2F(ijk,x7) ;
+     ijk = qq            ; E2F(ijk,x0) ;
+     en  = hexahedron_energy(x0,x1,x2,x3,x4,x5,x6,x7); jea[qq] = en.a; sea[qq] = en.b;
+   }
+ }
+ AFNI_OMP_END ;
+
+  jetop = jea[0] ; setop = sea[0] ;
+  for( ii=1 ; ii < nxyz ; ii++ ){
+    if( jea[ii] > jetop ) jetop = jea[ii] ;
+    if( sea[ii] > setop ) setop = sea[ii] ;
+  }
+  enout.a = jetop ; enout.b = setop ; return enout ;
 }
 
 #ifndef HAVE_HEXVOL
@@ -540,17 +767,6 @@ ENTRY("IW3D_to_dataset") ;
        |    |  and the top plane is similar (add 4 to each index),
        0 -- 1  with point #(i+4) 'above' point #i.
 *//*--------------------------------------------------------------------------*/
-
-#undef  TRIPROD
-#define TRIPROD(ax,ay,az,bx,by,bz,cx,cy,cz) ( (ax)*((by)*(cz)-(bz)*(cy)) \
-                                             +(bx)*((cy)*(az)-(cz)*(ay)) \
-                                             +(cx)*((ay)*(bz)-(az)*(by))  )
-#undef  DA
-#undef  DB
-#undef  DC
-#define DA(p,q) (p.a-q.a)
-#define DB(p,q) (p.b-q.b)
-#define DC(p,q) (p.c-q.c)
 
 static INLINE float hexahedron_volume( float_triple x0 , float_triple x1 ,
                                        float_triple x2 , float_triple x3 ,
@@ -573,23 +789,15 @@ static INLINE float hexahedron_volume( float_triple x0 , float_triple x1 ,
    vol += TRIPROD(xa,ya,za,xb,yb,zb,xc,yc,zc) ;
    return (0.08333333f*vol) ;
 }
+#endif /* HAVE_HEXVOL */
+
 #undef TRIPROD
 #undef DA
 #undef DB
 #undef DC
-#endif /* HAVE_HEXVOL */
 
 /*---------------------------------------------------------------------------*/
 /* Load the volumes of each hexahedral element in the displaced grid. */
-
-#undef  IJK
-#define IJK(i,j,k) ((i)+(j)*nx+(k)*nxy)
-
-#undef  C2F
-#define C2F(p,q,r,xx) ( (xx).a = (p) , (xx).b = (q) , (xx).c = (r) )
-
-#undef  D2F
-#define D2F(pqr,xx)   ( (xx).a+=xda[pqr], (xx).b+=yda[pqr], (xx).c+=zda[pqr] )
 
 float_pair IW3D_load_hexvol( IndexWarp3D *AA )
 {
@@ -639,7 +847,7 @@ float_pair IW3D_load_hexvol( IndexWarp3D *AA )
 }
 
 /*---------------------------------------------------------------------------*/
-
+#if 0
 void IW3D_load_hexvol_box( IndexWarp3D *AA ,
                            int ibot,int itop, int jbot,int jtop, int kbot,int ktop )
 {
@@ -686,6 +894,7 @@ void IW3D_load_hexvol_box( IndexWarp3D *AA ,
 
  return ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 /* The following functions are for interpolating all 3 components of an index
@@ -3463,35 +3672,41 @@ AFNI_OMP_END ;
 
 /*----------------------------------------------------------------------------*/
 
-static float Hpen_cut = 3.0f ;
-static float Hpen_fac = 0.1f ;
-static float Hpen_pow = 4.0f ;
-static float Hpen_mxx = 0.0f ;
-static int   Hpen_use = 0 ;
+static double Hpen_cut = 1.0 ;
+static double Hpen_fac = 0.0001 ;
+static double Hpen_pow = 4.0 ;
+static double Hpen_qow = 0.25 ;
+static double Hpen_sum = 0.0 ;
+static int    Hpen_num = 0 ;
+static int    Hpen_use = 0 ;
 
-#undef  Hpenfunc
-#define Hpenfunc(mx) ( ((mx) <= Hpen_cut) \
-                      ? 0.0f : powf(Hpen_fac*((mx)-Hpen_cut),Hpen_pow) )
-
-void HPEN_init(void)
+static double HPEN_addup( int njs , float *je , float *se )
 {
-   float_pair bt ; float h1 ;
-
-   if( Hpen_fac <= 0.0f ) return ;
-
-   bt = IW3D_load_hexvol(Haawarp) ;
-   h1 = 1.0f / bt.a ; Hpen_mxx = MAX(h1,bt.b) ;
+   int ii ; double ev , esum=0.0 ;
+   for( ii=0 ; ii < njs ; ii++ ){
+     ev = je[ii]-Hpen_cut ; if( ev > 0.0 ) esum += pow(ev,Hpen_pow) ;
+     ev = se[ii]-Hpen_cut ; if( ev > 0.0 ) esum += pow(ev,Hpen_pow) ;
+   }
+   return esum ;
 }
 
-float HPEN_penalty(void)
+void HPEN_init( int njs , float *je , float *se )
 {
-   float_pair bt ; float h1,h2 ;
+   if( njs == 0 || je == NULL || se == NULL ){
+     Hpen_num = 0   ; Hpen_sum = 0.0 ;
+   } else {
+     Hpen_num += njs ; Hpen_sum += HPEN_addup( njs , je , se ) ;
+   }
+   return ;
+}
 
-   if( Hpen_fac <= 0.0f ) return 0.0f ;
-
-   bt = IW3D_load_hexvol(AHwarp) ;
-   h1 = 1.0f / bt.a ; h2 = MAX(h1,bt.b) ; h2 = MAX(Hpen_mxx,h2) ;
-   return Hpenfunc(h2) ;
+double HPEN_penalty(void)
+{
+   double hsum ;
+   (void)IW3D_load_energy(AHwarp) ;
+   hsum = Hpen_sum + HPEN_addup( AHwarp->nx*AHwarp->ny*AHwarp->nz , AHwarp->je , AHwarp->se ) ;
+   hsum = Hpen_fac * pow( hsum , Hpen_qow ) ;
+   return hsum ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -3538,7 +3753,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
                                   (Haawt != NULL ) ? Haawt : MRI_FLOAT_PTR(Hwtim) ) ;
    if( Hnegate ) cost = -cost ;
 
-   if( Hpen_use && Hpen_fac > 0.0f ) cost += HPEN_penalty() ;
+   if( Hpen_use ) cost += HPEN_penalty() ;
 
    return cost ;
 }
@@ -3660,10 +3875,11 @@ ENTRY("IW3D_setup_for_improvement") ;
      case GA_MATCH_CRAT_SADD_SCALAR:
      case GA_MATCH_CORRATIO_SCALAR:
      case GA_MATCH_KULLBACK_SCALAR:
+     case GA_MATCH_PEARCLP_SCALAR:
      case GA_MATCH_PEARSON_SCALAR:      Hnegate = 1 ; break ;
    }
 
-   if( iii == 2 ){  /* uses 2Dhist functions, so setup some parameters */
+   if( iii == 2 || iii == 3 ){  /* uses 2Dhist functions, so setup some parameters */
      float *xar,*yar , *bar,*sar ; int jj,kk ;
      float_quad xyc , xym ;
      bar = MRI_FLOAT_PTR(Hbasim) ; sar = MRI_FLOAT_PTR(Hsrcim) ;
@@ -3676,22 +3892,41 @@ ENTRY("IW3D_setup_for_improvement") ;
          if( Hbmask[jj] ){ xar[kk] = bar[jj] ; yar[kk++] = sar[jj] ; }
        }
      }
-     INCOR_setup_good(Hnxyz) ;
      xym = INCOR_2Dhist_minmax( kk , xar , yar ) ;
      xyc = INCOR_2Dhist_xyclip( kk , xar , yar ) ;
      if( xar != bar ){ free(xar) ; free(yar) ; }
      MAKE_floatvec(Hmpar,9) ;
-     Hmpar->ar[0] = (float)INCOR_2Dhist_compute_nbin(nmask) ;
-     Hmpar->ar[1] = xym.a ; Hmpar->ar[2] = xym.b ;  /* xbot  xtop  */
-     Hmpar->ar[3] = xym.c ; Hmpar->ar[4] = xym.d ;  /* ybot  ytop  */
-     Hmpar->ar[5] = xyc.a ; Hmpar->ar[6] = xyc.b ;  /* xcbot xctop */
-     Hmpar->ar[7] = xyc.c ; Hmpar->ar[8] = xyc.d ;  /* ycbot yctop */
-     if( Hverb ){
-       ININFO_message("   2Dhist: nbin=%d",(int)Hmpar->ar[0]) ;
-       ININFO_message("           xbot=%g xcbot=%g xctop=%g xtop=%g",
-                      Hmpar->ar[1], Hmpar->ar[5], Hmpar->ar[6], Hmpar->ar[2] ) ;
-       ININFO_message("           ybot=%g ycbot=%g yctop=%g ytop=%g",
-                      Hmpar->ar[3], Hmpar->ar[7], Hmpar->ar[8], Hmpar->ar[4] ) ;
+     if( iii == 2 ){
+       INCOR_setup_good(Hnxyz) ;
+       Hmpar->ar[0] = (float)INCOR_2Dhist_compute_nbin(nmask) ;
+       Hmpar->ar[1] = xym.a ; Hmpar->ar[2] = xym.b ;  /* xbot  xtop  */
+       Hmpar->ar[3] = xym.c ; Hmpar->ar[4] = xym.d ;  /* ybot  ytop  */
+       Hmpar->ar[5] = xyc.a ; Hmpar->ar[6] = xyc.b ;  /* xcbot xctop */
+       Hmpar->ar[7] = xyc.c ; Hmpar->ar[8] = xyc.d ;  /* ycbot yctop */
+       if( Hverb ){
+         ININFO_message("   2Dhist: nbin=%d",(int)Hmpar->ar[0]) ;
+         ININFO_message("           xbot=%g xcbot=%g xctop=%g xtop=%g",
+                        Hmpar->ar[1], Hmpar->ar[5], Hmpar->ar[6], Hmpar->ar[2] ) ;
+         ININFO_message("           ybot=%g ycbot=%g yctop=%g ytop=%g",
+                        Hmpar->ar[3], Hmpar->ar[7], Hmpar->ar[8], Hmpar->ar[4] ) ;
+       }
+     } else if( iii == 3 ){
+       float d1 , d2 , dif ;
+       d2 = 0.05f*(xyc.b-xyc.a) ; /* 5% of x clip range */
+       d1 = 0.5f*(xyc.a-xym.a) ;  /* half of x clip bot to x min */
+                                 dif = MIN(d1,d2) ; Hmpar->ar[1] = xyc.a-dif ; /* xdbot */
+       d1 = 0.5f*(xym.b-xyc.b) ; dif = MIN(d1,d2) ; Hmpar->ar[2] = xyc.b+dif ; /* xdtop */
+       d2 = 0.05f*(xyc.d-xyc.c) ;
+       d1 = 0.5f*(xyc.c-xym.c) ; dif = MIN(d1,d2) ; Hmpar->ar[3] = xyc.c-dif ; /* ydbot */
+       d1 = 0.5f*(xym.d-xyc.d) ; dif = MIN(d1,d2) ; Hmpar->ar[4] = xyc.d+dif ; /* ydtop */
+       Hmpar->ar[5] = xyc.a ; Hmpar->ar[6] = xyc.b ;                     /* xcbot xctop */
+       Hmpar->ar[7] = xyc.c ; Hmpar->ar[8] = xyc.d ;                     /* ycbot yctop */
+       if( Hverb ){
+         ININFO_message("  PEARCLP: xdbot=%g xcbot=%g xctop=%g xdtop=%g",
+                        Hmpar->ar[1], Hmpar->ar[5], Hmpar->ar[6], Hmpar->ar[2] ) ;
+         ININFO_message("           ydbot=%g ycbot=%g yctop=%g ydtop=%g",
+                        Hmpar->ar[3], Hmpar->ar[7], Hmpar->ar[8], Hmpar->ar[4] ) ;
+       }
      }
    }
 
@@ -3727,7 +3962,7 @@ int IW3D_improve_warp( int warp_code ,
    float *wbfar , wsum ; double prad ;
    double *parvec, *xbot,*xtop ;
    float *sar , *Axd,*Ayd,*Azd , *bxd,*byd,*bzd ;
-   float_pair bt ;
+   float_pair bt , ht ;
 
 ENTRY("IW3D_improve_warp") ;
 
@@ -3801,6 +4036,9 @@ ENTRY("IW3D_improve_warp") ;
 
    FREEIFNN(Haawt) ; FREEIFNN(Hbval) ;
 
+   need_AH = Hpen_use ;
+   if( Hpen_use ) HPEN_init(0,NULL,NULL) ;
+
    if( Hnval < Hnxyz ){                /* initialize correlation from   */
      MRI_IMAGE *wtt=mri_copy(Hwtim) ;  /* non-changing part of Haasrcim */
      float *bar=MRI_FLOAT_PTR(Hbasim) ;
@@ -3829,6 +4067,19 @@ ENTRY("IW3D_improve_warp") ;
 
      INCOR_addto( Hincor , Hnxyz ,
                   MRI_FLOAT_PTR(Hbasim) , MRI_FLOAT_PTR(Haasrcim) , wbfar ) ;
+
+     /* also init penalty, if needed */
+
+     if( Hpen_use ){
+       float *je , *se ;
+       (void)IW3D_load_energy(Haawarp) ; je = Haawarp->je ; se = Haawarp->se ;
+       for( kk=kbot ; kk <= ktop ; kk++ )
+        for( jj=jbot ; jj <= jtop ; jj++ )
+         for( ii=ibot ; ii <= itop ; ii++ )
+          je[ii+jj*Hnx+kk*Hnxy] = se[ii+jj*Hnx+kk*Hnxy] = 1.0f ;
+       HPEN_init(Hnxyz,je,se) ;
+     }
+
      mri_free(wtt) ;
    }
 
@@ -3844,10 +4095,13 @@ ENTRY("IW3D_improve_warp") ;
    }
 
    powell_set_mfac( 1.1f , 3.0f ) ;
-   need_AH = (Hpen_use && Hpen_fac > 0.0f) ;
-   if( need_AH ) HPEN_init() ;
+
+   /***** HERE is the actual optimization! *****/
+
    iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 7 ,
                              prad,0.1*prad , 9*Hnparmap+169 , IW3D_scalar_costfun ) ;
+
+   /***** cleanup and exit phase ***/
 
    free(xtop) ; free(xbot) ;
 
@@ -3874,16 +4128,18 @@ ENTRY("IW3D_improve_warp") ;
          Azd[qq] = bzd[pp] ;
    }}}
 
-   bt = IW3D_load_hexvol(Haawarp) ;
-   if( !Hpen_use ){
-     float h1=1.0f/bt.a , h2=MAX(h1,bt.b) ; Hpen_use = (h2 > Hpen_cut) ;
+   bt = IW3D_load_energy(Haawarp) ;
+   if( !Hpen_use && Hpen_fac > 0.0f ){
+     Hpen_use = (bt.a > Hpen_cut) || (bt.b > Hpen_cut) ;
    }
-   if( Hverb )
+   if( Hverb ){
+     ht = IW3D_load_hexvol(Haawarp) ;
      ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : hexvol=%.3f..%.3f%s",
+       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : hexvol=%.3f..%.3f energy=%.3f:%.3f %s",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
-                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , bt.a,bt.b ,
+                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , ht.a,ht.b , bt.a,bt.b ,
                            Hpen_use ? "*" : "\0" ) ;
+   }
 
    /* ZOMG -- let's vamoose */
 
@@ -4045,11 +4301,12 @@ ENTRY("IW3D_warp_omatic") ;
 
 /*----------------------------------------------------------------------------*/
 
-MRI_IMAGE * IW3D_warp_s2bim( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_IMAGE *sim,
-                             int interp_code , int meth_code , int warp_flags  )
+Image_plus_Warp * IW3D_warp_s2bim( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_IMAGE *sim,
+                                   int interp_code , int meth_code , int warp_flags  )
 {
    IndexWarp3D *Swarp ;
    MRI_IMAGE *outim ;
+   Image_plus_Warp *imww ;
 
 ENTRY("IW3D_warp_s2bim") ;
 
@@ -4060,9 +4317,11 @@ ENTRY("IW3D_warp_s2bim") ;
 
    outim = IW3D_warp_floatim( Swarp, sim , interp_code ) ;
 
-   IW3D_destroy( Swarp ) ;
+   imww       = (Image_plus_Warp *)malloc(sizeof(Image_plus_Warp)) ;
+   imww->im   = outim ;
+   imww->warp = Swarp ;
 
-   RETURN(outim) ;
+   RETURN(imww) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -4107,13 +4366,14 @@ MRI_IMAGE * mri_duplo_down_3D( MRI_IMAGE *fim )
 
 /*----------------------------------------------------------------------------*/
 
-MRI_IMAGE * IW3D_warp_s2bim_duplo( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_IMAGE *sim,
-                                   int interp_code , int meth_code , int warp_flags  )
+Image_plus_Warp * IW3D_warp_s2bim_duplo( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_IMAGE *sim,
+                                         int interp_code , int meth_code , int warp_flags  )
 {
    IndexWarp3D *Swarp , *Dwarp ;
    MRI_IMAGE *outim ;
    MRI_IMAGE *bimd , *wbimd , *simd ;
    int nx,ny,nz ;
+   Image_plus_Warp *imww ;
 
 ENTRY("IW3D_warp_s2bim_duplo") ;
 
@@ -4139,7 +4399,9 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
 
    outim = IW3D_warp_floatim( Swarp, sim , interp_code ) ;
 
-   IW3D_destroy(Swarp) ;
+   imww       = (Image_plus_Warp *)malloc(sizeof(Image_plus_Warp)) ;
+   imww->im   = outim ;
+   imww->warp = Swarp ;
 
-   RETURN(outim) ;
+   RETURN(imww) ;
 }

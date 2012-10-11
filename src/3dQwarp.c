@@ -188,7 +188,8 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *bset , *sset , *oset ;
    MRI_IMAGE *bim , *wbim , *sim , *oim ;
-   char *prefix = "Qwarp" ; int nopt , duplo=0 ;
+   IndexWarp3D *oww ; Image_plus_Warp *oiw ;
+   char *prefix = "Qwarp" , ppp[256] ; int nopt , duplo=0 ;
    int meth = GA_MATCH_PEARSON_SCALAR ;
    /* int meth = GA_MATCH_HELLINGER_SCALAR ; */
    /* int meth = GA_MATCH_KULLBACK_SCALAR ; */
@@ -227,6 +228,10 @@ int main( int argc , char *argv[] )
        meth = GA_MATCH_NORMUTIN_SCALAR ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-pcl") == 0 ){
+       meth = GA_MATCH_PEARCLP_SCALAR ; nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-duplo") == 0 ){
        duplo = 1 ; nopt++ ; continue ;
      }
@@ -247,18 +252,16 @@ int main( int argc , char *argv[] )
    sim = THD_extract_float_brick(0,sset) ; DSET_unload(sset) ;
 
 #if 0
-   { char ppp[256] ;
-     sprintf(ppp,"%s_SAVE",prefix) ;
-     qset = EDIT_empty_copy(bset) ;
-     EDIT_dset_items( qset ,
-                        ADN_prefix    , ppp ,
-                        ADN_nvals     , 1 ,
-                        ADN_ntt       , 0 ,
-                        ADN_datum_all , MRI_float ,
-                      ADN_none ) ;
-     EDIT_BRICK_FACTOR(qset,0,0.0) ;
-     iterfun = Qsaver ;
-   }
+   sprintf(ppp,"%s_SAVE",prefix) ;
+   qset = EDIT_empty_copy(bset) ;
+   EDIT_dset_items( qset ,
+                      ADN_prefix    , ppp ,
+                      ADN_nvals     , 1 ,
+                      ADN_ntt       , 0 ,
+                      ADN_datum_all , MRI_float ,
+                    ADN_none ) ;
+   EDIT_BRICK_FACTOR(qset,0,0.0) ;
+   iterfun = Qsaver ;
 #endif
 
    wbim = mri_weightize(bim,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
@@ -266,11 +269,13 @@ int main( int argc , char *argv[] )
    Hblur = 3.45678f ;
 
    if( duplo )
-     oim = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
+     oiw = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
    else
-     oim = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
+     oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
 
-   if( oim == NULL ) ERROR_exit("s2bim fails") ;
+   if( oiw == NULL ) ERROR_exit("s2bim fails") ;
+
+   oim = oiw->im ; oww = oiw->warp ;
 
    oset = EDIT_empty_copy(bset) ;
    EDIT_dset_items( oset ,
@@ -285,7 +290,13 @@ int main( int argc , char *argv[] )
 
    if( qset != NULL ){
      EDIT_dset_items( qset , ADN_ntt , DSET_NVALS(qset) , ADN_none ) ;
-     DSET_write(qset) ; WROTE_DSET(qset) ;
+     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
+
+   IW3D_adopt_dataset( oww , bset ) ;
+   sprintf(ppp,"%s_WARP",prefix) ;
+   qset = IW3D_to_dataset( oww , ppp ) ;
+   DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+
    exit(0) ;
 }
