@@ -17,7 +17,7 @@ int  suck_file( char *fname , char **fbuf ) ;
 
 int main( int argc , char * argv[] )
 {
-   int nbuf , ntarg , ii,jj, nfind , ff ;
+   int nbuf , ntarg , ii,jj, nfind , ff , quiet = 0;
    char *fbuf , *targ ;
    char *jstr=strdup("AFNI-rules-") ; int njstr=strlen(jstr) ;
 
@@ -47,7 +47,11 @@ int main( int argc , char * argv[] )
          
          newchar = argv[ac][0];
       }
-
+      
+      if ( strcmp(argv[ac], "-quiet") == 0) {
+         quiet++;
+      }
+      
       if( strcmp(argv[ac], "-new_string") == 0 ){
          ac++;
          if( ac >= argc ){
@@ -144,7 +148,8 @@ int main( int argc , char * argv[] )
 
       if( nfind > 0 ){
          FILE *fp ;
-         fprintf(stderr,"++ Found %d copies of target %s in file %s\n",
+         if (quiet < 2) 
+            fprintf(stderr,"++ Found %d copies of target %s in file %s\n",
                  nfind,targ,fname[ff] ) ;
          fp = fopen( fname[ff] , "wb" ) ;
          if( fp == NULL ){
@@ -153,7 +158,8 @@ int main( int argc , char * argv[] )
          }
          fwrite( fbuf , 1 , nbuf , fp ) ; fclose(fp) ;
       } else {
-         fprintf(stderr,"++ Found no copies of target %s in file %s\n",
+         if (!quiet) 
+            fprintf(stderr,"++ Found no copies of target %s in file %s\n",
                  targ , fname[ff] ) ;
       }
 
@@ -219,6 +225,9 @@ void help_n_exit( void )
           "      If this option is given, strblast will parse TARGETSTRING\n"
           "      replacing any escaped characters with their encoded ASCII\n"
           "      values.\n"
+          "\n"
+          "  -quiet : Do not report files with no strings found.\n"
+          "           use -quiet -quiet to avoid any reporting.\n"
           "\n"
           "Examples:\n"
           "  strings I.001 | more # see if Subject Name is present\n"

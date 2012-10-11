@@ -46,7 +46,7 @@ USAGE:
 	echo "example: `basename $0` 'AAzst1r*+orig'"
 	echo "returns : +orig"
 	echo ""
-   echo "See also @GetDsetSpace"
+   echo "See also 3dinfo -space"
    echo ""
 	echo "Ziad Saad (saadz@mail.nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
    echo ""
