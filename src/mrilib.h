@@ -1773,6 +1773,8 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 
 #define GA_MATCH_NCDZLIB           14  /* very experimental */
 
+#define GA_MATCH_PEARCLP_SCALAR    15
+
 #define GA_MATCH_METHNUM_SCALAR    14  /* Largest value in sequence above */
 
  /* methods for smoothing images */
@@ -2199,7 +2201,7 @@ extern int mri_principal_vectors( MRI_IMARR *imar, int nvec, float *sval, float 
 
 typedef struct {
   int    nx ,  ny ,  nz ;
-  float *xd , *yd , *zd , *hv ;
+  float *xd , *yd , *zd , *hv , *je , *se ;
   mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
   char *geomstring ;
   int view ;
@@ -2209,6 +2211,11 @@ typedef struct {
   int nwarp ;
   IndexWarp3D **warp ;
 } IndexWarp3DArray ;
+
+typedef struct {
+  MRI_IMAGE *im ;
+  IndexWarp3D *warp ;
+} Image_plus_Warp ;
 
 extern IndexWarp3D * IW3D_create( int nx , int ny , int nz ) ;
 extern void IW3D_destroy( IndexWarp3D *AA ) ;
@@ -2222,6 +2229,7 @@ extern void IW3D_scale( IndexWarp3D *AA , float fac ) ;
 extern IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty ) ;
 extern THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix ) ;
 extern float_pair IW3D_load_hexvol( IndexWarp3D *AA ) ;
+extern float_pair IW3D_load_energy( IndexWarp3D *AA ) ;
 extern IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB     , int icode ) ;
 extern IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
 extern IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;

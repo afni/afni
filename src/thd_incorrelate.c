@@ -16,6 +16,14 @@ typedef struct {
 
 typedef struct {
   int meth ;
+  int npt ;
+  double sx , sxx , sy , syy , sxy , sw ;
+  double xcbot , xctop , ycbot , yctop ;
+  double xdbot , xdtop , ydbot , ydtop ;
+} INCOR_pearclp ;
+
+typedef struct {
+  int meth ;
   int nbin ;
   float *xc , *yc , *xyc , nww ;
   float xxbot , xxtop , yybot , yytop ;
@@ -416,7 +424,7 @@ ENTRY("INCOR_addto_2Dhist") ;
          for( ii=0 ; ii < nbp ; ii++ ){ xc[ii] += xccar[itt][ii]; yc[ii] += yccar[itt][ii]; }
          for( ii=0 ; ii < nbpq ; ii++ ){ xyc[ii] += xyccar[itt][ii] ; }
        }
-       free(xccar [itt]) ; free(yccar [itt]) ; free(xyccar[itt]) ;
+       free(xccar[itt]) ; free(yccar[itt]) ; free(xyccar[itt]) ;
      }
      free(xccar) ; free(yccar) ; free(xyccar) ; free(nwwar) ;
 
@@ -799,6 +807,7 @@ ENTRY("INCOR_copyover_2Dhist") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 void INCOR_addto_incomplete_pearson( int n, float *x, float *y,
                                             float *w, INCOR_pearson *inpear )
@@ -832,10 +841,6 @@ void INCOR_addto_incomplete_pearson( int n, float *x, float *y,
    inpear->npt += n ;
    inpear->sx   = sx ; inpear->sxx = sxx ;
    inpear->sy   = sy ; inpear->syy = syy ; inpear->sxy = sxy ; inpear->sw = sw ;
-
-if(PRINT_TRACING){
-  char str[256]; sprintf(str,"incomplete pearson sw=%g",sw); STATUS(str);
-}
 
    return ;
 }
@@ -876,9 +881,103 @@ float INCOR_incomplete_pearson( INCOR_pearson *inpear )
    yv = inpear->syy - inpear->sy * inpear->sy * swi ;
    xy = inpear->sxy - inpear->sx * inpear->sy * swi ;
 
-if(PRINT_TRACING){
-  char str[256]; sprintf(str,"incomplete pearson xy=%g xv=%g yv=%g",xy,xv,yv); STATUS(str);
+   if( xv <= 0.0 || yv <= 0.0 ) return 0.0f ;
+   return (float)(xy/sqrt(xv*yv)) ;
 }
+
+/*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+
+void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
+                                            float *w, INCOR_pearclp *inpear )
+{
+   int ii ; double sx,sxx , sy,syy,sxy , sw ;
+   double xcb,xct , ycb,yct ;
+   double xdb,xdt , ydb,ydt ;
+
+   if( n <= 0 || x == NULL || y == NULL || inpear == NULL ) return ;
+
+   sx = inpear->sx ; sxx = inpear->sxx ;
+   sy = inpear->sy ; syy = inpear->syy ; sxy = inpear->sxy ; sw = inpear->sw ;
+
+   xcb = inpear->xcbot ; xct = inpear->xctop ;
+   ycb = inpear->ycbot ; yct = inpear->yctop ;
+   xdb = inpear->xdbot ; xdt = inpear->xdtop ;
+   ydb = inpear->ydbot ; ydt = inpear->ydtop ;
+
+   if( w == NULL ){
+     double xx , yy , ww ; int cl ;
+     for( ii=0 ; ii < n ; ii++ ){
+       cl = 1 ;
+       xx = (double)x[ii] ;
+       if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++;}
+       yy = (double)y[ii] ;
+       if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++;}
+       ww = 1.0 / cl ;
+       sx += xx ; sxx += xx*xx ; sy += yy ; syy += yy*yy ; sxy += xx*yy ; sw += ww ;
+     }
+   } else {
+     double xx , yy , ww ; int cl ;
+     for( ii=0 ; ii < n ; ii++ ){
+       ww = (double)w[ii] ;
+       if( ww > 0.0 ){
+         cl = 1 ;
+         xx = (double)x[ii] ;
+         if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++;}
+         yy = (double)y[ii] ;
+         if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++;}
+         ww /= cl ;
+         sx += xx*ww ; sxx += xx*xx*ww ;
+         sy += yy*ww ; syy += yy*yy*ww ; sxy += xx*yy*ww ; sw += ww ;
+       }
+     }
+   }
+
+   inpear->npt += n ;
+   inpear->sx   = sx ; inpear->sxx = sxx ;
+   inpear->sy   = sy ; inpear->syy = syy ; inpear->sxy = sxy ; inpear->sw = sw ;
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void INCOR_destroy_incomplete_pearclp( INCOR_pearclp *inpear )
+{
+   if( inpear != NULL ) free((void *)inpear) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+INCOR_pearclp * INCOR_create_incomplete_pearclp(void)
+{
+   INCOR_pearclp *inpear ;
+
+   inpear = (INCOR_pearclp *)calloc(1,sizeof(INCOR_pearclp)) ;
+   inpear->sx  = 0.0 ; inpear->sxx = 0.0 ;
+   inpear->sy  = 0.0 ; inpear->syy = 0.0 ;
+   inpear->sxy = 0.0 ; inpear->sw  = 0.0 ; inpear->npt = 0 ;
+
+   inpear->xcbot = inpear->xctop = inpear->ycbot = inpear->yctop = 0.0 ;
+   inpear->xdbot = inpear->xdtop = inpear->ydbot = inpear->ydtop = 0.0 ;
+
+   inpear->meth = GA_MATCH_PEARCLP_SCALAR ;
+   return inpear ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+float INCOR_incomplete_pearclp( INCOR_pearclp *inpear )
+{
+   double xv , yv , xy , swi ;
+
+   if( inpear->sw <= 0.0 ) return 0.0f ;
+
+   swi = 1.0 / inpear->sw ;
+
+   xv = inpear->sxx - inpear->sx * inpear->sx * swi ;
+   yv = inpear->syy - inpear->sy * inpear->sy * swi ;
+   xy = inpear->sxy - inpear->sx * inpear->sy * swi ;
 
    if( xv <= 0.0 || yv <= 0.0 ) return 0.0f ;
    return (float)(xy/sqrt(xv*yv)) ;
@@ -895,6 +994,8 @@ int INCOR_check_meth_code( int meth )
 {
   switch( meth ){
      case GA_MATCH_PEARSON_SCALAR:    return 1 ;
+
+     case GA_MATCH_PEARCLP_SCALAR:    return 3 ;
 
      case GA_MATCH_MUTINFO_SCALAR:
      case GA_MATCH_CORRATIO_SCALAR:
@@ -950,6 +1051,18 @@ ENTRY("INCOR_create") ;
        vinc = (void *)INCOR_create_incomplete_pearson() ;
      break ;
 
+     case GA_MATCH_PEARCLP_SCALAR:{
+       INCOR_pearclp *pc ;
+       pc = INCOR_create_incomplete_pearclp() ; vinc = (void *)pc ;
+       if( mpar != NULL && mpar->nar > 8 ){
+         pc->xdbot = mpar->ar[1] ; pc->xdtop = mpar->ar[2] ;
+         pc->ydbot = mpar->ar[3] ; pc->ydtop = mpar->ar[4] ;
+         pc->xcbot = mpar->ar[5] ; pc->xctop = mpar->ar[6] ;
+         pc->ycbot = mpar->ar[7] ; pc->yctop = mpar->ar[8] ;
+       }
+     }
+     break ;
+
      case GA_MATCH_MUTINFO_SCALAR:     /* methods that use 2D histograms */
      case GA_MATCH_CORRATIO_SCALAR:
      case GA_MATCH_NORMUTIN_SCALAR:
@@ -997,6 +1110,10 @@ ENTRY("INCOR_destroy") ;
        INCOR_destroy_incomplete_pearson(vp) ;
      break ;
 
+     case GA_MATCH_PEARCLP_SCALAR:
+       INCOR_destroy_incomplete_pearclp(vp) ;
+     break ;
+
      case GA_MATCH_MUTINFO_SCALAR:
      case GA_MATCH_CORRATIO_SCALAR:
      case GA_MATCH_NORMUTIN_SCALAR:
@@ -1040,6 +1157,19 @@ ENTRY("INCOR_copyover") ;
        }
      break ;
 
+     case GA_MATCH_PEARCLP_SCALAR:
+       if( vin != NULL ){
+         AAmemcpy( vout , vin , sizeof(INCOR_pearclp) ) ;
+       } else {
+         INCOR_pearclp *vp = (INCOR_pearclp *)vout ;
+         vp->sx  = 0.0 ; vp->sxx = 0.0 ;
+         vp->sy  = 0.0 ; vp->syy = 0.0 ;
+         vp->sxy = 0.0 ; vp->sw  = 0.0 ; vp->npt = 0 ;
+         vp->xcbot = vp->xctop = vp->ycbot = vp->yctop = 0.0 ;
+         vp->xdbot = vp->xdtop = vp->ydbot = vp->ydtop = 0.0 ;
+       }
+     break ;
+
      case GA_MATCH_MUTINFO_SCALAR:
      case GA_MATCH_CORRATIO_SCALAR:
      case GA_MATCH_NORMUTIN_SCALAR:
@@ -1075,6 +1205,10 @@ ENTRY("INCOR_addto") ;
 
      case GA_MATCH_PEARSON_SCALAR:
        INCOR_addto_incomplete_pearson( n , x , y , w , vin ) ;
+     break ;
+
+     case GA_MATCH_PEARCLP_SCALAR:
+       INCOR_addto_incomplete_pearclp( n , x , y , w , vin ) ;
      break ;
 
      case GA_MATCH_MUTINFO_SCALAR:
@@ -1114,6 +1248,7 @@ ENTRY("INCOR_evaluate") ;
 
    switch( INCOR_methcode(vtmp) ){
      case GA_MATCH_PEARSON_SCALAR:   val = INCOR_incomplete_pearson(vtmp); break;
+     case GA_MATCH_PEARCLP_SCALAR:   val = INCOR_incomplete_pearclp(vtmp); break;
      case GA_MATCH_MUTINFO_SCALAR:   val = INCOR_mutual_info(vtmp) ;       break;
      case GA_MATCH_NORMUTIN_SCALAR:  val = INCOR_norm_mutinf(vtmp) ;       break;
      case GA_MATCH_HELLINGER_SCALAR: val = INCOR_hellinger(vtmp) ;         break;
