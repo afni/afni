@@ -113,6 +113,7 @@ SEG_OPTS *SegOpt_Struct()
    Opt->blur_meth = SEG_BFT;
    
    Opt->ShowThisDist = NULL;
+   Opt->fast = 0;
    
    RETURN(Opt);
 }

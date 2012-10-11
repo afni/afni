@@ -164,6 +164,7 @@ typedef struct {
    BLUR_METH blur_meth;
    
    char *ShowThisDist;
+   int fast; /* if 1, use faster - I hope - version of p_C_GIV_A */
 } SEG_OPTS;
 
 void GenPriors_usage(int) ;

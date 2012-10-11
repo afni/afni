@@ -364,6 +364,20 @@
 #define SUMA_knegBOUND  32
 #define SUMA_K_HOLE     48
 
+/* A macro for SUMA_hist_freq(), requires 
+int m_i0;
+float m_a;
+If you change this macro, be sure to reflect
+the changes in function SUMA_hist_freq()
+*/
+#define SUMA_HIST_FREQ(hh, val, fr) {  \
+   m_a = ((val-hh->b[0])/hh->W);   \
+   m_i0 = (int)m_a;   \
+   if (m_i0<0) { fr = hh->cn[0]; } \
+   else if (m_i0>=hh->K) { fr = hh->cn[hh->K-1]; } \
+   else { m_a = m_a-m_i0; fr = m_a*hh->cn[m_i0+1]+(1.0-m_a)*hh->cn[m_i0]; }  \
+}
+
 
 SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, 
                      float *range, char *label, int ignoreout);
@@ -431,6 +445,7 @@ int normalize_p(SEG_OPTS *Opt, THD_3dim_dataset *pout);
 int is_shorty(THD_3dim_dataset *pset);
 int set_p_floor(THD_3dim_dataset *pset, float pfl, byte *cmask);
 THD_3dim_dataset *p_C_GIV_A (SEG_OPTS *Opt);
+THD_3dim_dataset *p_C_GIV_A_omp (SEG_OPTS *Opt);
 int SUMA_LabelToGroupedIndex(char *cls_str, char **group_clss_lbls, int N_lbls);
 int SUMA_LabelToGroupedKey(char *cls_str, char **group_clss_lbls, int N_lbls, 
                            int *group_keys);

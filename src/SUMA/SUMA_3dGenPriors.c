@@ -1,33 +1,53 @@
 #define MAIN
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #include "SUMA_suma.h"
 #include "thd_segtools_fNM.h"
 #include "SUMA_SegOpts.h"
 #include "SUMA_SegFunc.h"
 #include "matrix.h"
 
+#ifdef USE_OMP
+#include "mri_blur3d_variable.c"
+#include "SUMA_SegFunc.c"
+#endif
+
+
 static int vn=0 ;
 
-static void vstep_print(void)
-{
-   static char xx[10] = "0123456789" ;
-   fprintf(stderr , "%c" , xx[vn%10] ) ;
-   if( vn%10 == 9) fprintf(stderr,".") ;
-   vn++ ;
-}
 
 
 int GenPriors(SEG_OPTS *Opt) 
 {
+   static char FuncName[]={"GenPriors"};
    
-   ENTRY("GenPriors");
+   SUMA_ENTRY;
    
-   
+
    /* get the probability maps */
    if (!Opt->pset && Opt->DO_p) {
-      if (!(Opt->pset = p_C_GIV_A(Opt))) {
-         ERROR_message("Failed miserably");
-         RETURN(0);
+      if (Opt->fast) {
+         SUMA_S_Warn("Running in fast mode");
+#ifdef USE_OMP
+#pragma omp parallel
+ {
+  if( omp_get_thread_num() == 0 )
+    INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
+}
+#endif
+         if (!(Opt->pset = p_C_GIV_A_omp(Opt))) {
+            ERROR_message("Failed miserably in omp version");
+            SUMA_RETURN(0);
+         }
+      } else {
+         SUMA_S_Warn("Running in slow mode");
+         if (!(Opt->pset = p_C_GIV_A(Opt))) {
+            ERROR_message("Failed miserably");
+            SUMA_RETURN(0);
+         }
       }
    }
       
@@ -37,7 +57,7 @@ int GenPriors(SEG_OPTS *Opt)
                            Opt->clss->str, Opt->clss->num, Opt->keys, 
                            Opt->cmask, &Opt->cset))) {
          ERROR_message("Failed aimlessly");
-         RETURN(0);
+         SUMA_RETURN(0);
       }
       EDIT_dset_items(Opt->cset, ADN_prefix, Opt->crefix, ADN_none);
       if( !THD_ok_overwrite() && THD_is_file( DSET_HEADNAME(Opt->cset) ) ){
@@ -60,13 +80,13 @@ int GenPriors(SEG_OPTS *Opt)
                      &gpset, 
                      &gcset) ) {
          ERROR_message("Failed to regroup");
-         RETURN(0);
+         SUMA_RETURN(0);
       }
       DSET_write(gpset);
       DSET_write(gcset);
    }
           
-   RETURN(1);
+   SUMA_RETURN(1);
 }
 static char shelp_GenPriors[] = {
 "3dGenPriors produces classification priors based on voxel signatures.\n"
@@ -161,6 +181,9 @@ static char shelp_GenPriors[] = {
 "                      the distribution of DIST. For example: -\n"
 "                       -ShowThisDist 'd(mean.20_mm|PER02)'\n"
 "                      Set DIST to ALL to see them all.\n"
+"  -fast: Use OpenMPized routines (default). \n"
+"         Considerably faster than alternative.\n"
+"  -slow: Not -fast.\n"
 "\n"
 };
 
@@ -173,6 +196,7 @@ void GenPriors_usage(int detail)
    
    
    printf( "%s", shelp_GenPriors );
+   PRINT_AFNI_OMP_USAGE("3dGenPriors",NULL);
    EXRETURN;
 }
 
@@ -235,7 +259,7 @@ SEG_OPTS *GenPriors_Default(char *argv[], int argc)
    Opt->proot = "GenPriors";
    Opt->cs = NULL;
    Opt->Gcs = NULL;
-   
+   Opt->fast = 1;
    Opt->ShowThisDist = NULL;
    
    RETURN(Opt);
@@ -304,6 +328,16 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->debug = atoi(argv[kar]);
          brk = 1;
 		}      
+      
+      if (!brk && (strcmp(argv[kar], "-fast") == 0)) {
+         Opt->fast = 1;
+         brk = 1;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-slow") == 0)) {
+         Opt->fast = 0;
+         brk = 1;
+      }
       
       if (!brk && (strcmp(argv[kar], "-save_extra") == 0)) {
          kar ++;
@@ -1029,6 +1063,11 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
       sprintf(stmp,"%d.GP.dbg", Opt->VoxDbg);
       Opt->VoxDbgOut = fopen(stmp,"w");
    }
+   if (Opt->fast && Opt->logp) {
+      SUMA_S_Warn("Cannot do logp with fast yet, reverting to p");
+      Opt->logp=0;
+   }
+   
 
    RETURN(Opt);
 }
@@ -1184,10 +1223,12 @@ int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
    char sbuf[512];
    SUMA_FEAT_DIST *FD=NULL;
    FILE *fout=NULL, *scrout=NULL;
-
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
    sprintf(sbuf,"@GP.%s.dists", Opt->uid);
+   SUMA_S_Notev("See script %s for comparisons of input features to those of the training set.\n",
+               sbuf);
    if (!scrout) scrout = fopen(sbuf,"w");
    fprintf(scrout,"#!/bin/tcsh -f\n"
                   "set alljpg = ()\n");
@@ -1210,7 +1251,7 @@ int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
             }
             sprintf(sbuf, "h(%s)",Opt->feats->str[i]);
             if ((hhn = SUMA_dset_hist(Opt->sig, ia, Opt->cmask, sbuf, FD->hh))) {
-               SUMA_S_Notev("Got %s\n", sbuf);
+               SUMA_LHv("Got %s\n", sbuf);
                sprintf(sbuf, "h.%s_%s.1D", 
                      Opt->uid[0] != '\0' ? Opt->uid:"test", Opt->feats->str[i]);
                fout = fopen(sbuf,"w");
@@ -1244,7 +1285,6 @@ int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
             "imcat -crop 0 0 100 0 -nx 4 -prefix %s.ALL.jpg $alljpg\n",
             sbuf);
    if (scrout) fclose(scrout); scrout=NULL;
-   
    SUMA_RETURN(YUP);
 }
 

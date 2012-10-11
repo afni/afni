@@ -32,7 +32,8 @@ AUTOVAR:
    set sdir = $PWD
    cd $idir
    set A2E_opt = ''
-
+   set AEA_opt = ''
+   
 COPY_SURF_EPI_RUNS:
 if ($SurfInput == 1) then
    echo "Input time series are already on surface"
@@ -256,8 +257,8 @@ ALIGN_EXPANAT_TO_EPI:
       align_epi_anat.py    -anat AVol+orig   \
                         -epi  EpiAnatRef+orig   \
                         -AddEdge -anat2epi \
-                        -epi_base 0 \
-                        -suffix RetinoProc
+                        -epi_base 0 ${AEA_opt} \
+                        -suffix RetinoProc 
       3drename *RetinoProc*HEAD AVol@Epi
    else
       echo "AVol@Epi already present"
@@ -1289,6 +1290,18 @@ PARSE:
             goto NEXT	
          endif	
       endif
+
+      if ( "$argv[$cnt]" == "-AEA_opts") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need argument after -AEA_opts"
+            goto END
+			else
+            @ cnt ++
+            set AEA_opt = $argv[$cnt]
+            goto NEXT	
+         endif	
+      endif
       
       if ( \
             ("$argv[$cnt]" == "-ccw" )  || \
@@ -1662,6 +1675,15 @@ echo "                       -A2E_opts '-strip_skull surf_anat' since SVol"
 echo "                       usually has a skull, but AVol@Epi does not."
 echo "                       This could help with the alignment in certain"
 echo "                       difficult cases"
+echo "           For details on these options see @SUMA_AlignToExperiment -help"
+echo " -AEA_opts 'AEA_OPTS': Pass options AEA_OPTS to align_epi_anat.py, which "
+echo "                       is the tool used to align T1 anat to EPI."
+echo "                       For example if 3dSkullStrip is failing to "
+echo "                       strip the epi and you can add:"
+echo "                       -AEA_opts '-epi_strip 3dAutomask' "
+echo "                       or perhaps:"
+echo "                       -AEA_opts '-epi_strip 3dAutomask -partial_coverage'"
+echo "           For details on these options see align_epi_anat.py -help"
 echo " -fetch_demo: Get the demo archive, do not install it. "
 echo "              (see Sample Data below)"
 echo " -install_demo: Get it, install it, and start processing the 1st example"

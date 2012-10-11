@@ -575,7 +575,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             if (!sv) sv = &(SUMAg_SVv[0]);
             SO = (SUMA_SurfaceObject *)EngineData->vp;
-            if (!SUMA_ColPlaneShowOneFore_Set (SO, YUP)) {
+            if (!SUMA_ColPlaneShowOneFore_Set (SO, YUP, 
+                                 EngineData->Src == SES_SumaWidget)) {
                SUMA_S_Err("Failed to set one only");
                break;  
             }
@@ -3240,14 +3241,30 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "Dim")) {
                char stmp[50];
                NI_GET_FLOAT(EngineData->ngr, "Dim", ftmp);
+               #if 0 /* should be handled in new call format below */
                if (SO->SurfCont && SO->SurfCont->ColPlaneDimFact) {
                   SO->SurfCont->ColPlaneDimFact->value = ftmp;
                   sprintf(stmp,"%.1f", ftmp);
                   SUMA_SET_TEXT_FIELD( SO->SurfCont->ColPlaneDimFact->textfield, 
                                        stmp); 
                }
+               #endif
+               SUMA_ColPlane_NewDimFact(SO, NULL, ftmp, 0);
+            }
+            if (NI_get_attribute(EngineData->ngr, "Opa")) {
+               char stmp[50];
+               NI_GET_FLOAT(EngineData->ngr, "Opa", ftmp);
+               
+               #if 0 /* should be handled in new call format below */
+               if (SO->SurfCont && SO->SurfCont->ColPlaneOpacity) {
+                  SO->SurfCont->ColPlaneOpacity->value = ftmp;
+                  sprintf(stmp,"%.1f", ftmp);
+                  SUMA_SET_TEXT_FIELD( SO->SurfCont->ColPlaneOpacity->textfield, 
+                                       stmp); 
+               }
+               #endif
                /* inefficient implementation, but avoids duplicate code... */
-               SUMA_ColPlane_NewDimFact((void*)SO);
+               SUMA_ColPlane_NewOpacity(SO, NULL, ftmp, 0);
             }
             if (NI_get_attribute(EngineData->ngr, "view_dset")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_dset", "y")) {
@@ -3338,6 +3355,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                           problem... */
                SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
             }
+            
             if (NI_get_attribute(EngineData->ngr, "1_only")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "1_only", "y")) {
                   itmp = YUP;
@@ -3348,7 +3366,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               NI_get_attribute(EngineData->ngr, "1_only"));
                   itmp = YUP;
                }
-               if (!SUMA_ColPlaneShowOneFore_Set (SO, itmp)) {
+               if (!SUMA_ColPlaneShowOneFore_Set(SO, itmp, 0)) {
                   SUMA_S_Err("Failed to set one only");
                   break;  
                }

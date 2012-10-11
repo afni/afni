@@ -1258,6 +1258,7 @@ THD_3dim_dataset *p_C_GIV_A (SEG_OPTS *Opt)
    
    SUMA_ENTRY;
    
+   
    /* init */
    d = (double *)calloc(DSET_NVOX(Opt->sig), sizeof(double));
    if (!d) SUMA_RETURN(NULL);
@@ -1314,6 +1315,184 @@ THD_3dim_dataset *p_C_GIV_A (SEG_OPTS *Opt)
       SUMA_S_Err("Failed in p_cv_GIV_A cleanup but will proceed");
    }
    free(d); d= NULL;
+   
+   SUMA_RETURN(pout);
+}
+
+/*!
+   Estimate the probability of each class, given all features, faster 
+*/
+THD_3dim_dataset *p_C_GIV_A_omp (SEG_OPTS *Opt) 
+{
+   static char FuncName[]={"p_C_GIV_A_omp"};
+   char bl[256]={""};
+   int N_ijk=0, N_f=0, N_c=0, *iff=NULL, ia, ff, cc;
+   THD_3dim_dataset *pout=NULL;
+   float *afv=NULL, pf = 32767.0f;
+   SUMA_FEAT_DIST **FDv=NULL, *FD=NULL;
+   int *imask=NULL, N_imask=0, ijk;
+   float minp;
+   
+   SUMA_ENTRY;
+   
+   if (Opt->rescale_p && Opt->logp) {
+      SUMA_S_Err("Not ready to handle both Opt->rescale_p && Opt->logp");
+      SUMA_RETURN(NULL);
+   }
+   
+   /* init convenience vars */
+   N_ijk=DSET_NVOX(Opt->sig); 
+   N_f=Opt->feats->num;
+   N_c=Opt->clss->num;
+   
+   /* Get your self a nicely sorted array of distributions */
+   FDv = (SUMA_FEAT_DIST **)SUMA_calloc(Opt->feats->num*Opt->clss->num,
+                                        sizeof(SUMA_FEAT_DIST *));
+   for (ff=0; ff<N_f; ++ff) {
+      for (cc=0; cc<N_c; ++cc) {
+         if (!(FD = SUMA_find_feature_dist(Opt->FDV, NULL, 
+                        Opt->feats->str[ff], Opt->clss->str[cc], NULL)) ) {
+            SUMA_S_Errv("Failed to find dist struct for %s %s\n", 
+                        Opt->feats->str[ff], Opt->clss->str[cc]);
+            SUMA_free(FDv);
+            SUMA_RETURN(NULL);
+         }
+         if (FD->tp != SUMA_FEAT_NP) {
+            SUMA_S_Warnv("Dist for %s %s is not NP.\n"
+                         "Will revert to old function",
+                         Opt->feats->str[ff], Opt->clss->str[cc]);
+            SUMA_free(FDv);
+            SUMA_RETURN(p_C_GIV_A(Opt));
+         }
+         FDv[ff*N_c+cc] = FD; FD=NULL;
+      }
+   }
+   /* and the indices of sub-bricks corresponding to the classes */
+   iff = (int *)SUMA_calloc(Opt->feats->num, sizeof(int));
+   afv = (float *)SUMA_calloc(Opt->feats->num, sizeof(float));
+   for (ff=0; ff<N_f; ++ff) {
+      SB_LABEL(Opt->sig,Opt->feats->str[ff], ia);
+      if (ia<0) {
+         SUMA_S_Errv("Failed to find %s", Opt->feats->str[ff]); 
+         SUMA_free(FDv); SUMA_free(afv); SUMA_free(iff);
+         SUMA_RETURN(NULL);
+      }
+      iff[ff]=ia;
+      afv[ff] = DSET_BRICK_FACTOR(Opt->sig, ia);
+      if (!afv[ff]) afv[ff] = 1.0;
+   }   
+   
+   /* and a mask indexing array to balance cpu loads */
+   for (ijk=0,N_imask=0; ijk<N_ijk; ++ijk) { 
+      if (IN_MASK(Opt->cmask,ijk)) ++N_imask; 
+   }
+   imask = (int *)SUMA_calloc(N_imask, sizeof(int));
+   for (ijk=0,N_imask=0; ijk<N_ijk; ++ijk) {
+      if (IN_MASK(Opt->cmask,ijk)) { 
+         imask[N_imask++]=ijk;
+      }
+   }
+   /* init output volumes*/
+   NEW_SHORTY(Opt->sig, Opt->clss->num, Opt->prefix, pout);
+   if (!pout) SUMA_RETURN(NULL);
+   if( !THD_ok_overwrite() && THD_is_file( DSET_HEADNAME(pout) ) ){
+      ERROR_exit("Output file %s already exists -- cannot continue!\n",
+                  DSET_HEADNAME(pout) ) ;
+   }
+   
+   minp = 1.0/(float)N_c; /* instead of constant MINP */
+   
+AFNI_OMP_START ;
+#pragma omp parallel if( N_imask > 10000 ) 
+{ /* OMP start */
+   int   ijk, cc, ff, iii, m_i0;
+   double *pvGa=NULL, *P = NULL, *pp=NULL, d=0.0, A2, ps;
+   float a, m_a;
+   short *bb=NULL; 
+   
+#pragma omp critical (MALLOC) 
+   {
+      pvGa = (double *)calloc(N_c*N_f, sizeof(double));
+      P = (double *)calloc(N_c, sizeof (double));
+   }
+#pragma omp for
+   for (iii=0; iii < N_imask; ++iii) { /* voxel loop */
+      ijk = imask[iii];
+      { /* mask cond. */
+         for (ff=0; ff<N_f; ++ff) { /* feature loop */
+            A2 = 0.0;
+            pp = pvGa+ff*N_c;
+            bb = (short *)DSET_ARRAY(Opt->sig, iff[ff]);        
+            a = afv[ff]*bb[ijk];
+            for (cc=0; cc<N_c; ++cc) { /* class loop */
+               #if 0
+                  d = SUMA_hist_freq((FDv[ff*N_c+cc])->hh, a); */
+               #else
+                  /* shaves off a few seconds relative to SUMA_hist_freq()*/
+                  SUMA_HIST_FREQ((FDv[ff*N_c+cc])->hh, a, d);
+               #endif
+               pp[cc] = Opt->mixfrac[cc]*d;
+               A2 += pp[cc];
+            } /* class loop */
+            for (cc=0; cc<N_c; ++cc) { pp[cc] /= A2; } /* unit sum */
+         } /* feature loop */
+         /* Compute P(class|all features) */
+         for (cc=0; cc<N_c; ++cc) { /* class loop 2 */
+            for (ff=0, P[cc]=0.0; ff<N_f; ++ ff) {
+               if (Opt->feat_exp) {  /* feature loop 2 */
+                  P[cc] += (Opt->feat_exp[cc][ff]*log(pvGa[ff*N_c+cc]+minp));
+               } else {
+                  P[cc] += (log(pvGa[ff*N_c+cc]+minp));
+               }
+            } /* feature loop 2 */
+         } /* class loop 2 */
+         /* take exp of P and scale so that all probs sum to 1. 
+            There may be precision problems here, consider
+            summing of log(p)s */
+         for (cc=0, ps = 0.0; cc<N_c; ++cc) { /* class loop 3 */
+            P[cc] = exp(P[cc]); ps += P[cc]; 
+         } /* class loop 3 */
+         for (cc=0; cc<N_c; ++cc) { /* class loop 4 */
+            if (Opt->rescale_p) P[cc] /= ps;
+            /* store in output */
+            bb = (short *)DSET_ARRAY(pout, cc);
+            if (!Opt->logp) {
+               bb[ijk] = (short)(P[cc]*pf);
+            } else {
+               /* SUMA_S_Err("Not ready to write out logp, sticking with p"); */
+               bb[ijk] = (short)(P[cc]*pf);
+            }
+         } /* class loop 4 */
+      } /* mask cond. */
+   } /* voxel loop */
+
+#pragma omp critical (FREE)
+{
+   if (pvGa) free(pvGa); pvGa = NULL;
+   if (P) free(P); P = NULL;
+}
+ 
+} /* OMP end */
+AFNI_OMP_END ;
+
+   /* fix up output set */
+   for (cc=0; cc<N_c; ++cc) {
+      if (!Opt->logp) {
+         EDIT_BRICK_FACTOR(pout,cc,1.0/pf);
+         sprintf(bl, "%c(c=%s|A)",Opt->rescale_p ? 'P':'p', Opt->clss->str[cc]);
+      } else {
+         SUMA_S_Warn("Not ready to write out logp, sticking with p");
+         sprintf(bl, "%c(c=%s|A)",Opt->rescale_p ? 'P':'p',Opt->clss->str[cc]);
+      }
+      EDIT_BRICK_LABEL(pout,cc,bl);
+   }
+
+   /* clean */
+
+   if (FDv) SUMA_free(FDv); FDv = NULL;
+   if (afv) SUMA_free(afv); afv = NULL;
+   if (iff) SUMA_free(iff); iff = NULL;
+   if (imask) SUMA_free(imask); imask = NULL;
    
    SUMA_RETURN(pout);
 }
@@ -5684,6 +5863,9 @@ float SUMA_hist_oscillation( SUMA_HIST *hh,
 }
 
 
+/*
+   If you change this function, be sure to reflect
+   changes in SUMA_HIST_FREQ macro */
 float SUMA_hist_freq(SUMA_HIST *hh, float vv)
 {
    float a = 0.0;
@@ -5695,6 +5877,7 @@ float SUMA_hist_freq(SUMA_HIST *hh, float vv)
    i0 = (int)a; a = a-i0;
    return(a*hh->cn[i0+1]+(1.0-a)*hh->cn[i0]);
 }
+
 
 SUMA_HIST *SUMA_Free_hist(SUMA_HIST *hh)
 {
