@@ -4713,19 +4713,19 @@ g_help_string = """
                  time series before the blur step, or remove blur from the list
                  of blocks (and apply any desired blur after the regression).
 
-                afni_proc.py -subj_id subj123                               \\
-                        -dsets epi_run1+orig.HEAD                           \\
-                        -copy_anat anat+orig                                \\
-                        -blocks despike align tlrc volreg blur mask regress \\
-                        -tcat_remove_first_trs 3                            \\
-                        -volreg_align_e2a                                   \\
-                        -volreg_tlrc_warp                                   \\
-                        -regress_censor_motion 0.2                          \\
-                        -regress_censor_outliers 0.1                        \\
-                        -regress_bandpass 0.01 0.1                          \\
-                        -regress_apply_mot_types demean deriv               \\
-                        -regress_run_clustsim no                            \\
-                        -regress_est_blur_errts
+                afni_proc.py -subj_id subj123                                \\
+                  -dsets epi_run1+orig.HEAD                                  \\
+                  -copy_anat anat+orig                                       \\
+                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -tcat_remove_first_trs 3                                   \\
+                  -volreg_align_e2a                                          \\
+                  -volreg_tlrc_warp                                          \\
+                  -regress_censor_motion 0.2                                 \\
+                  -regress_censor_outliers 0.1                               \\
+                  -regress_bandpass 0.01 0.1                                 \\
+                  -regress_apply_mot_types demean deriv                      \\
+                  -regress_run_clustsim no                                   \\
+                  -regress_est_blur_errts
 
        10. Resting state analysis, with tissue-based regressors.
 
