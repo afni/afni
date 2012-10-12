@@ -1298,7 +1298,7 @@ PARSE:
             goto END
 			else
             @ cnt ++
-            set AEA_opt = $argv[$cnt]
+            set AEA_opt = "$argv[$cnt]"
             goto NEXT	
          endif	
       endif

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, OCT, 2012, RCR, "@RetinoProc", MICRO, TYPE_BUG_FIX,
+   "set AEA_opt in quotes, as it might be a list",
+   NULL
+ } ,
+
  {  5, OCT, 2012, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added option -quick_censor_count",
    NULL
