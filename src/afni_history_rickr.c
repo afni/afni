@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, OCT, 2012, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "included tshift block in example #9 - resting state analysis",
+   "Thanks to D Drake for reminding me."
+ } ,
+
+ { 12, OCT, 2012, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "added byte-swapping for complex numbers in thd_niml.c",
+   NULL
+ } ,
+
  { 12, OCT, 2012, RCR, "@RetinoProc", MICRO, TYPE_BUG_FIX,
    "set AEA_opt in quotes, as it might be a list",
    NULL

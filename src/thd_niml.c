@@ -1110,11 +1110,6 @@ ENTRY("THD_add_sparse_data");
     if(gni.debug>1 && swap) fprintf(stderr,"+d will byte_swap data\n");
     len = nel->vec_len;
     
-    if( swap && tpo == MRI_complex) {
-      fprintf(stderr,"**ASD No swapping implemented for complex data\n");
-      RETURN(0);
-    }
-     
     /*-- we seem to have all of the data, now copy it --*/
     sub = 0;
     for( ind = 0; ind < nvals; ind++ )
@@ -1126,7 +1121,7 @@ ENTRY("THD_add_sparse_data");
          cdata = (complex *)XtMalloc(len * sizeof(complex));
         }
         if(!data && !cdata){
-           fprintf(stderr,"**ASD alloc fail: %d bytes\n",len);
+           fprintf(stderr,"**ASD alloc fail: %d values\n",len);
            RETURN(0);
         }
         if( nel->vec_typ[mind] == NI_FLOAT ) {
@@ -1145,6 +1140,8 @@ ENTRY("THD_add_sparse_data");
            XtFree((char*)idata); idata=NULL;
         } else if( nel->vec_typ[mind] == NI_COMPLEX ) {
            memcpy(cdata, nel->vec[mind], len * sizeof(complex));
+           /* in AFNI, complex is a float pair struct */
+           if( swap ) nifti_swap_Nbytes(2*len, sizeof(complex)/2, data);
         } else {
            fprintf(stderr,"**ASD should never have been here.\n");
            RETURN(0);
