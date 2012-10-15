@@ -7,22 +7,39 @@ if ("$1" == '' || "$1" =~ "-h*") then
    exit 0
 endif
 
+set idir = $1
 
-if ( ! -d $1 ) then
-   echo "Directory $1 does not exist"
+if ("${idir}" =~ /* || "${idir}" =~ '~*') then
+   echo "Have full path ('${idir}'), good"
+else
+   echo "Have relative path, turn to full"
+   set hdir = $PWD
+   cd ../
+   if ( ! -d ${idir}) then
+      echo "Directory ${idir} does not exist under $PWD"
+      cd -
+      exit 1
+   endif
+   cd ${idir}
+   set idir = $PWD
+   cd $hdir
+endif
+
+if ( ! -d ${idir} ) then
+   echo "Directory ${idir} does not exist"
    exit 1
 endif
 
-echo "Coping meica.py to $1"
-cp -p meica.py $1
+echo "Coping meica.py to ${idir}"
+cp -p meica.py ${idir}
 if ($status) then
-   echo "Failed to write meica.py into $1"
+   echo "Failed to write meica.py into ${idir}"
    exit 1
 endif
-echo "Copying meica.libs to $1"
-cp -rp meica.libs $1
+echo "Copying meica.libs to ${idir}"
+cp -rp meica.libs ${idir}
 if ($status) then
-   echo "Failed to write meica.libs into $1"
+   echo "Failed to write meica.libs into ${idir}"
    exit 1
 endif
 
