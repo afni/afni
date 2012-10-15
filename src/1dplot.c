@@ -333,7 +333,10 @@ void usage_1dplot(int detail)
      "                   * This is a file of 1s and 0s, indicating which     \n"
      "                     time points are to be un-marked (1) and which are \n"
      "                     to be marked (0).                                 \n"
+     "                   * Please note that only one '-censor' option can be \n"
+     "                     used, for compatibility with 3dDeconvolve.        \n"
      "                   * The option below may be simpler to use!           \n"
+     "                     (And can be used multiple times.)                 \n"
      "\n"
      " -CENSORTR clist   = clist is a list of strings that specify time indexes\n"
      "                     to be marked in the graph(s).  Each string is of  \n"
@@ -860,6 +863,8 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg], "-censor") == 0 ){
        MRI_IMAGE *cim ;
        if( ++iarg >= argc ) ERROR_exit("need argument after option %s",argv[iarg-1]) ;
+       if( censor_array != NULL )
+         WARNING_message("second -censor option replaces the first one!") ;
        cim = mri_read_1D(argv[iarg]) ;
        if( cim == NULL ) ERROR_exit("can't read -censor file '%s'",argv[iarg]) ;
        censor_array = MRI_FLOAT_PTR(cim) ;
@@ -1111,8 +1116,11 @@ int main( int argc , char *argv[] )
               int_triple rab ;
               abc_CENSOR = (int_triple *)realloc( abc_CENSOR ,
                                                   sizeof(int_triple)*(num_CENSOR+nblk) );
+              rgb_CENSOR = (int_triple *)realloc( rgb_CENSOR ,
+                                                  sizeof(int_triple)*(num_CENSOR+nblk) );
               for( rr=1 ; rr <= nblk ; rr++ ){
-                rab.i = rr; rab.j = aa; rab.k = bb; abc_CENSOR[num_CENSOR++] = rab;
+                rab.i = rr; rab.j = aa; rab.k = bb; abc_CENSOR[num_CENSOR] = rab;
+                rgb_CENSOR[num_CENSOR++] = rgb_CENSOR[ic] ;
               }
               continue ;  /* skip to next one */
             }

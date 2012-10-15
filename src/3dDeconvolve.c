@@ -936,6 +936,7 @@ void display_help_menu(int detail)
     "                   * This is a file of 1s and 0s, indicating which     \n"
     "                     time points are to be included (1) and which are  \n"
     "                     to be excluded (0).                               \n"
+    "                   * Option '-censor' can only be used once!           \n"
     "                   * The option below may be simpler to use!           \n"
     "[-CENSORTR clist]    clist = list of strings that specify time indexes \n"
     "                       to be removed from the analysis.  Each string is\n"
@@ -2261,6 +2262,8 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -censor ");
+        if( option_data->censor_filename != NULL )
+          WARNING_message("second -censor option replacing first one!") ;
         option_data->censor_filename =
           malloc (sizeof(char)*ALEN(nopt));
         MTEST (option_data->censor_filename);
