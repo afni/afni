@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 1.0.5,  Oct 5, 2012
+#Version 1.0.6,  Oct 15, 2012
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -12,10 +12,15 @@
 # error messages will be stored)
 
 system("rm -f .RData")
-source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
-#source(file.path(Sys.getenv("LME"), "AFNIio.R"))
-libLoad("nlme")
-libLoad("contrast")
+first.in.path <- function(file) {
+   ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
+   ff<-ff[lapply(ff,file.exists)==TRUE];
+   #cat('Using ', ff[1],'\n');
+   return(gsub('//','/',ff[1], fixed=TRUE)) 
+}
+source(first.in.path('AFNIio.R'))
+require("nlme")
+require("contrast")
 
 comArgs <- commandArgs()
 if(length(comArgs)<6) modFile <- "model.txt" else
@@ -81,7 +86,7 @@ if (nRand>1) {
 # Line 7: Variance structure for modeling dependence among within-subject errors
 VarStr <- unlist(strsplit(unlist(scan(file=modFile, what= list(""), skip=6, 
    strip.white=TRUE, nline=1)), "\\:"))[2]
-# 0 - nothing; 1 - different variances across groups
+# 0 - nothing; 1 - different varis21699ances across groups
 VarTmp <- strsplit(unlist(scan(file=modFile, what= list(""), skip=6, 
    strip.white=TRUE, nline=1)), "\\:|~")
 VarStr <- unlist(VarTmp)[2]
@@ -246,7 +251,8 @@ if (NoConst) FArr <- 1:NoF else FArr <- 2:(NoF+1)
 
 # Number of sub-bricks
 #NoBrick <- NoF + 2*ncontr + 2*nCov
-nCovBrick <- length(grep(Cov, dimnames(summary(fm)$tTable)[[1]]))
+#nCovBrick <- length(grep(Cov, dimnames(summary(fm)$tTable)[[1]]))
+nCovBrick <- sum(!is.na(grep(Cov, dimnames(summary(fm)$tTable)[[1]])))
 NoBrick <- NoF + 2*ncontr + 2*nCovBrick
 
 if (NoConst) {
