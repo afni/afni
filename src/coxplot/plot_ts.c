@@ -268,7 +268,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
    if( nnaxx >= 0 ){
-     nnax = nnaxx ; nnaxx = -1 ;
+     nnax = nnaxx ;
      mmax = mmaxx ;
      xbot = xxbot ;
      xtop = xxtop ;
@@ -332,7 +332,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
    if( nnayy >= 0 ){
-     nnay = nnayy ; nnayy = -1 ;
+     nnay = nnayy ;
      mmay = mmayy ;
      ybot = yybot ;
      ytop = yytop ;
@@ -357,25 +357,29 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       nnay = 1 ; mmay = 10 ;
    }
 
-   for( jj=0 ; jj < ny ; jj++ ){
-      pbot = p10(ylo[jj]) ; ptop = p10(yhi[jj]) ; if( ptop < pbot ) ptop = pbot ;
-      if( ptop != 0.0 && ypush > 0 ){
-         np = (yhi[jj]-ylo[jj]) / ptop ;
-         switch( np ){
-            case 1:  ptop *= 0.1  ; break ;
-            case 2:  ptop *= 0.2  ; break ;
-            case 3:  ptop *= 0.25 ; break ;
-            case 4:
-            case 5:  ptop *= 0.5  ; break ;
-         }
-         ylo[jj] = floor( ylo[jj]/ptop ) * ptop ;
-         yhi[jj] =  ceil( yhi[jj]/ptop ) * ptop ;
-      } else if( ypush == 0 ){
-        float dif=(yhi[jj]-ylo[jj])*0.005f ;
-        ylo[jj] -= dif ; yhi[jj] += dif ;
-      }
+   if( nnayy < 0 ){
+     for( jj=0 ; jj < ny ; jj++ ){
+        pbot = p10(ylo[jj]) ; ptop = p10(yhi[jj]) ; if( ptop < pbot ) ptop = pbot ;
+        if( ptop != 0.0 && ypush > 0 ){
+           np = (yhi[jj]-ylo[jj]) / ptop ;
+           switch( np ){
+              case 1:  ptop *= 0.1  ; break ;
+              case 2:  ptop *= 0.2  ; break ;
+              case 3:  ptop *= 0.25 ; break ;
+              case 4:
+              case 5:  ptop *= 0.5  ; break ;
+           }
+           ylo[jj] = floor( ylo[jj]/ptop ) * ptop ;
+           yhi[jj] =  ceil( yhi[jj]/ptop ) * ptop ;
+        } else if( ypush == 0 ){
+          float dif=(yhi[jj]-ylo[jj])*0.005f ;
+          ylo[jj] -= dif ; yhi[jj] += dif ;
+        }
+     }
    }
 
+   nnaxx = nnayy = -1 ;
+  
    /*-- setup to plot --*/
 
    create_memplot_surely( "tsplot" , 1.3 ) ;
@@ -948,7 +952,7 @@ MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
 
    pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
    if( nnaxx >= 0 ){
-     nnax = nnaxx ; nnaxx = -1 ;
+     nnax = nnaxx ;
      mmax = mmaxx ;
      xbot = xxbot ;
      xtop = xxtop ;
@@ -989,7 +993,7 @@ MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
 
    pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
    if( nnayy >= 0 ){
-     nnay = nnayy ; nnayy = -1 ;
+     nnay = nnayy ;
      mmay = mmayy ;
      ybot = yybot ;
      ytop = yytop ;
@@ -1013,22 +1017,26 @@ MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
       nnay = 1 ; mmay = 10 ;
    }
 
-   pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 && ypush > 0 ){
-     np = (ytop-ybot) / ptop ;
-     switch( np ){
-       case 1:  ptop *= 0.1  ; break ;
-       case 2:  ptop *= 0.2  ; break ;
-       case 3:  ptop *= 0.25 ; break ;
-       case 4:
-       case 5:  ptop *= 0.5  ; break ;
+   if( nnayy < 0 ){
+     pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
+     if( ptop != 0.0 && ypush > 0 ){
+       np = (ytop-ybot) / ptop ;
+       switch( np ){
+         case 1:  ptop *= 0.1  ; break ;
+         case 2:  ptop *= 0.2  ; break ;
+         case 3:  ptop *= 0.25 ; break ;
+         case 4:
+         case 5:  ptop *= 0.5  ; break ;
+       }
+       ybot = floor( ybot/ptop ) * ptop ;
+       ytop =  ceil( ytop/ptop ) * ptop ;
+     } else if( ypush == 0 ){
+       float dif=(ytop-ybot)*0.005f ;
+       ybot -= dif ; ytop += dif ;
      }
-     ybot = floor( ybot/ptop ) * ptop ;
-     ytop =  ceil( ytop/ptop ) * ptop ;
-   } else if( ypush == 0 ){
-     float dif=(ytop-ybot)*0.005f ;
-     ybot -= dif ; ytop += dif ;
    }
+
+   nnaxx = nnayy = -1 ;
 
    /*-- setup to plot --*/
 
