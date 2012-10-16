@@ -381,6 +381,16 @@ void usage_1dplot(int detail)
      "                          [the 1D files from separate runs into one ]\n"
      "                          [long file for plotting with this program.]\n"
      "\n"
+     "Another fun fun example:\n"
+     "\n"
+     "  1dplot -censor_RGB #ffa -CENSORTR '0-99'           \\\n"
+     "         `1deval -1D: -num 61 -dx 0.3 -expr 'J0(x)'`\n"
+     "\n"
+     "which illustrates the use of 'censoring' to mark the entire graph\n"
+     "background in pale yellow '#ffa', and also illustrates the use\n"
+     "of the '-1D:' option in 1deval to produce output that can be\n"
+     "used directly on the command line, via the backquote `...` operator.\n"
+     "\n"
    ) ;
 
    PRINT_COMPILE_DATE ;
