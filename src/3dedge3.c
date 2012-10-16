@@ -73,7 +73,8 @@ int main( int argc , char * argv[] )
       }
       if( strcmp(argv[nopt],"-input") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"** ERROR: need an argument after -input!\n"); exit(1);
+            fprintf(stderr,"** ERROR: need an argument after -input!\n"); 
+            exit(1);
          }
          insetname = argv[nopt] ;
          nopt++ ; continue ;
@@ -85,7 +86,8 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-datum") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"** ERROR: need an argument after -datum!\n"); exit(1);
+            fprintf(stderr,"** ERROR: need an argument after -datum!\n"); 
+            exit(1);
          }
          if( strcmp(argv[nopt],"short") == 0 ){
             datum = MRI_short ;
@@ -94,7 +96,8 @@ int main( int argc , char * argv[] )
          } else if( strcmp(argv[nopt],"byte") == 0 ){
             datum = MRI_byte ;
          } else {
-            fprintf(stderr,"** ERROR -datum of type '%s' not supported in 3dedge3!\n",
+            fprintf(stderr,
+                  "** ERROR -datum of type '%s' not supported in 3dedge3!\n",
                     argv[nopt] ) ;
             exit(1) ;
          }
@@ -144,9 +147,11 @@ int main( int argc , char * argv[] )
          nz   = DSET_NZ(inset) ; nxyz= nx*ny*nz;
          nval = DSET_NVALS(inset) ;
 
-         sum = (float **) malloc( sizeof(float *)*nval ) ;    /* array of sub-bricks */
+         sum = (float **) malloc( sizeof(float *)*nval ) ;    
+                                          /* array of sub-bricks */
          for( kk=0 ; kk < nval ; kk++ ){
-           sum[kk] = (float *) malloc(sizeof(float)*nxyz) ;  /* kk-th sub-brick */ 
+           sum[kk] = (float *) malloc(sizeof(float)*nxyz) ;  
+                                             /* kk-th sub-brick */ 
          }
 
          outset = EDIT_empty_copy( inset ) ;
@@ -178,7 +183,7 @@ int main( int argc , char * argv[] )
       if( verb ) fprintf(stderr,"  ++ read in dataset %s\n",insetname) ;
 
       /*-- Edge detect each sub-brik --*/
-
+      
       indims[0] = DSET_NX(inset);
       indims[1] = DSET_NY(inset);
       indims[2] = DSET_NZ(inset);
@@ -224,9 +229,12 @@ int main( int argc , char * argv[] )
                short *pp = (short *) DSET_ARRAY(inset,kk) ;
                float fac = DSET_BRICK_FACTOR(inset,kk)  ;
                
-               if( fac ) {
-                  for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
+               if( fac && verb) {
+                  INFO_message(
+                     "Ignoring brick factor of %f for Gradient Extraction", 
+                                 fac);
                }
+               if (verb) INFO_message("Going to Extract_Gradient_Maxima_3D\n");
                if ( Extract_Gradient_Maxima_3D( (void *)pp, USHORT,
 				               sum[kk], FLOAT,
 				               indims,
@@ -243,8 +251,10 @@ int main( int argc , char * argv[] )
                byte *pp = (byte *) DSET_ARRAY(inset,kk) ;
                float fac = DSET_BRICK_FACTOR(inset,kk)  ;
                
-               if( fac ) {
-                  for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
+               if( fac && verb) {
+                  INFO_message(
+                     "Ignoring brick factor of %f for Gradient Extraction", 
+                                 fac);
                }
                if ( Extract_Gradient_Maxima_3D( (void *)pp, UCHAR,
 				               sum[kk], FLOAT,

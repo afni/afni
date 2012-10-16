@@ -354,7 +354,9 @@ SUMA_VTI * SUMA_FreeVTI(SUMA_VTI *vti)
    \param vti (SUMA_VTI *) properly initialized Voxel Triangle                                               Intersection structure
    \return vti (SUMA_VTI *) filled up VTI structure.
    - Closely based on section in function SUMA_SurfGridIntersect
-   If you find bugs here, fix them there too. 
+   If you find bugs here, fix them there too.
+   
+   Significant bug fixes Oct. 2012  
 */
 
 SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(   
@@ -436,7 +438,10 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(
    N_realloc = 0;
    voxelsijk = (int *)SUMA_malloc(sizeof(int)*N_alloc*3);
    if (!voxelsijk) { SUMA_SL_Crit("Failed to Allocate!"); SUMA_RETURN(NULL);  }   
+   /* ZSS Oct 2012, see similar comment in SUMA_SurfGridIntersect 
    dxyz[0] = VolPar->dx; dxyz[1] = VolPar->dy; dxyz[2] = VolPar->dz;
+   */
+   dxyz[0] = dxyz[1] = dxyz[2] = 1.0; /* Now we're in ijk coordinate system */
    for (ti=0; ti<N_TriIndex; ++ti) {
       nf = TriIndex[ti];
       n1 = SO->FaceSetList[SO->FaceSetDim*nf]; 
@@ -1062,9 +1067,12 @@ int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES 
       fprintf(SUMA_STDERR,"%s:[%d] %d %d %d\n", FuncName, ijk, i, j, k);      
    }
    */
-   if (i >= ni || i < 0) { SUMA_SL_Err("Voxel out of bounds along i direction"); SUMA_RETURN(N_n); }
-   if (j >= nj || j < 0) { SUMA_SL_Err("Voxel out of bounds along j direction"); SUMA_RETURN(N_n); }
-   if (k >= nk || k < 0) { SUMA_SL_Err("Voxel out of bounds along k direction"); SUMA_RETURN(N_n); }
+   if (i >= ni || i < 0) { 
+      SUMA_SL_Err("Voxel out of bounds along i direction"); SUMA_RETURN(N_n); }
+   if (j >= nj || j < 0) { 
+      SUMA_SL_Err("Voxel out of bounds along j direction"); SUMA_RETURN(N_n); }
+   if (k >= nk || k < 0) { 
+      SUMA_SL_Err("Voxel out of bounds along k direction"); SUMA_RETURN(N_n); }
   
    /* start with the face neighbors */
    if (i-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j, k, ni, nij); ++N_n; }
@@ -1082,30 +1090,50 @@ int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES 
    if ( ntype < SUMA_VOX_NEIGHB_EDGE) { SUMA_RETURN(N_n); }
    
    /* add edge neighbors */
-   if (i-1 >= 0 && j-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j-1, k, ni, nij); ++N_n; }
-   if (i-1 >= 0 && j+1 < nj) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j+1, k, ni, nij); ++N_n; }
-   if (i-1 >= 0 && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j, k-1, ni, nij); ++N_n; }
-   if (i-1 >= 0 && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j, k+1, ni, nij); ++N_n; }
-   if (j-1 >= 0 && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i, j-1, k-1, ni, nij); ++N_n; } 
-   if (j-1 >= 0 && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i, j-1, k+1, ni, nij); ++N_n; } 
-   if (i+1 < ni && j-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j-1, k, ni, nij); ++N_n; }
-   if (i+1 < ni && j+1 < nj) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j+1, k, ni, nij); ++N_n; }
-   if (i+1 < ni && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j, k-1, ni, nij); ++N_n; }
-   if (i+1 < ni && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j, k+1, ni, nij); ++N_n; }
-   if (j+1 < nj && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i, j+1, k-1, ni, nij); ++N_n; } 
-   if (j+1 < nj && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i, j+1, k+1, ni, nij); ++N_n; } 
+   if (i-1 >= 0 && j-1 >= 0) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i-1, j-1, k, ni, nij); ++N_n; }
+   if (i-1 >= 0 && j+1 < nj) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i-1, j+1, k, ni, nij); ++N_n; }
+   if (i-1 >= 0 && k-1 >= 0) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i-1, j, k-1, ni, nij); ++N_n; }
+   if (i-1 >= 0 && k+1 < nk) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i-1, j, k+1, ni, nij); ++N_n; }
+   if (j-1 >= 0 && k-1 >= 0) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i, j-1, k-1, ni, nij); ++N_n; } 
+   if (j-1 >= 0 && k+1 < nk) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i, j-1, k+1, ni, nij); ++N_n; } 
+   if (i+1 < ni && j-1 >= 0) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i+1, j-1, k, ni, nij); ++N_n; }
+   if (i+1 < ni && j+1 < nj) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i+1, j+1, k, ni, nij); ++N_n; }
+   if (i+1 < ni && k-1 >= 0) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i+1, j, k-1, ni, nij); ++N_n; }
+   if (i+1 < ni && k+1 < nk) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i+1, j, k+1, ni, nij); ++N_n; }
+   if (j+1 < nj && k-1 >= 0) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i, j+1, k-1, ni, nij); ++N_n; } 
+   if (j+1 < nj && k+1 < nk) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i, j+1, k+1, ni, nij); ++N_n; } 
    
    if ( ntype < SUMA_VOX_NEIGHB_CORNER) { SUMA_RETURN(N_n); }
    
    /* add corner neighbors */
-   if (i-1 >= 0 && j-1 >= 0 && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j-1, k-1, ni, nij); ++N_n; }
-   if (i-1 >= 0 && j-1 >= 0 && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j-1, k+1, ni, nij); ++N_n; }
-   if (i-1 >= 0 && j+1 < nj && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j+1, k-1, ni, nij); ++N_n; }
-   if (i-1 >= 0 && j+1 < nj && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i-1, j+1, k+1, ni, nij); ++N_n; }
-   if (i+1 < ni && j-1 >= 0 && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j-1, k-1, ni, nij); ++N_n; }
-   if (i+1 < ni && j-1 >= 0 && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j-1, k+1, ni, nij); ++N_n; }
-   if (i+1 < ni && j+1 < nj && k-1 >= 0) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j+1, k-1, ni, nij); ++N_n; }
-   if (i+1 < ni && j+1 < nj && k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j+1, k+1, ni, nij); ++N_n; }
+   if (i-1 >= 0 && j-1 >= 0 && k-1 >= 0) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i-1, j-1, k-1, ni, nij); ++N_n; }
+   if (i-1 >= 0 && j-1 >= 0 && k+1 < nk) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i-1, j-1, k+1, ni, nij); ++N_n; }
+   if (i-1 >= 0 && j+1 < nj && k-1 >= 0) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i-1, j+1, k-1, ni, nij); ++N_n; }
+   if (i-1 >= 0 && j+1 < nj && k+1 < nk) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i-1, j+1, k+1, ni, nij); ++N_n; }
+   if (i+1 < ni && j-1 >= 0 && k-1 >= 0) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i+1, j-1, k-1, ni, nij); ++N_n; }
+   if (i+1 < ni && j-1 >= 0 && k+1 < nk) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i+1, j-1, k+1, ni, nij); ++N_n; }
+   if (i+1 < ni && j+1 < nj && k-1 >= 0) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i+1, j+1, k-1, ni, nij); ++N_n; }
+   if (i+1 < ni && j+1 < nj && k+1 < nk) { 
+      nl[N_n] = SUMA_3D_2_1D_index(i+1, j+1, k+1, ni, nij); ++N_n; }
 
    
    SUMA_RETURN(N_n);
@@ -1240,7 +1268,8 @@ byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj,
    }
    
    if (visited) SUMA_free(visited); visited = NULL;
-   if (candlist) { dlist_destroy(candlist); SUMA_free(candlist); candlist  = NULL; }
+   if (candlist) { dlist_destroy(candlist); 
+                   SUMA_free(candlist); candlist  = NULL; }
 
    
    SUMA_RETURN(isin);
