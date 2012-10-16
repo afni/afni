@@ -1,0 +1,208 @@
+#!/bin/tcsh -f
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+set stat = 0
+set stdir = $PWD
+
+goto PARSE
+RET_PARSE:
+
+COPY_DATA:
+      if ( ! -f $odir/T1+orig.HEAD  ) then
+   3dcalc ${overW} -datum short -a $T1 -expr 'a' -prefix $odir/T1
+         set afh = ($afh T1+orig.HEAD)
+      else
+         echo "Reusing T1+orig.HEAD"
+      endif
+      
+HULLMASK:
+   cd $odir
+   if ( "$menh" != "0.0" && ! -f T1.hull.mask.m+orig.HEAD) then
+      #Get enough voxels for 1 liter of goods
+      set vv = `3dinfo -voxvol T1+orig`
+      if ( ! -f T1.niml.hist ) then
+         3dHist -input T1+orig -prefix T1
+      else
+         echo "Reusing T1.niml.hist"
+      endif 
+      set rcdfval = `ccalc "$menh*1e6/$vv"`
+      set thout = (`3dHist -thishist T1.niml.hist -val_at rcdf $rcdfval`)
+      set thout = $thout[2]    
+      ConvexHull -isocmask "-a T1+orig -expr step(a-$thout)" \
+                 -input T1+orig. -o_gii T1.hull
+      3dSurfMask  -sv T1+orig. -fill_method fast -no_dist \
+                  -i T1.hull.gii -prefix T1.hull.mask ${overW}
+       set afh = ($afh T1.hull.mask.m+orig.HEAD)
+   else
+      if ( "$menh" != "0.0" ) echo "Reusing T1.hull.mask.m+orig"
+   endif
+   cd $idir
+      
+AUTOMASK:
+   cd $odir
+   if ($automask != 0) then
+      if ( ! -f T1.amask+orig.HEAD ) then
+         3dAutomask -prefix T1.amask T1+orig
+         set afh = ($afh T1.amask+orig.HEAD)
+      else
+         echo "Reusing T1.amask+orig.HEAD"
+      endif
+   endif
+   cd $idir
+   
+HISTORY:
+   cd $odir
+   foreach ff ($afh)
+      3dNotes -h "`basename $0` $argv" $ff
+   end
+   cd $idir
+   
+goto END
+
+PARSE:
+set Narg = $#
+set cnt = 1
+set starttime=`date`
+set cleanafter = 1
+set odir = ""
+set idir = $PWD
+set T1 = ''
+set menh = 1.0
+set automask = 0
+set unmasked_output = 0
+set overW = ''
+set afh = ()
+if ("$1" == '') goto HELP
+while ($cnt <= $Narg)
+   set donext = 1
+
+   if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+      goto HELP
+   endif
+   
+   if ($donext && ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo")) then
+      set echo
+      set donext = 0   
+   endif
+
+
+   if ($donext && "$argv[$cnt]" == "-odir") then
+      if ($cnt == $Narg) then
+         echo "Need directory after -odir"
+         goto END
+      else
+         @ cnt ++
+         set odir = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+
+   
+   if ($donext && "$argv[$cnt]" == "-hullmask") then
+      if ($cnt == $Narg) then
+         echo "Need a value after -hullmask (1.0 is good)"
+         goto END
+      else
+         @ cnt ++
+         set menh = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+
+   
+   if ($donext && "$argv[$cnt]" == "-T1") then
+      if ($cnt == $Narg) then
+         echo "Need a dataset suffix after -T1"
+         goto END
+      else
+         @ cnt ++
+         set T1 = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+   
+   if ($donext && "$argv[$cnt]" == "-automask") then
+      set automask = 1
+      set donext = 0   
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-overwrite") then
+      set overW = '-overwrite'
+      set donext = 0   
+   endif
+   
+  if ($donext) then
+      if (1) then
+         echo "Parameter $argv[$cnt] not understood"
+         apsearch -popt `basename $0` -word $argv[$cnt]
+         goto END
+      endif
+   else 
+      @ cnt ++
+   endif 
+
+end
+
+
+#output directory
+if ("$odir" == '') then
+   set odir = "T1mask"
+endif
+if (! -d $odir) mkdir -p $odir
+if (! -d $odir) then
+   echo "Failed to create $odir"
+   goto BEND
+endif
+cd $odir
+set odir = $PWD
+cd -
+         
+if ($T1 == '') then
+   echo "No T1 volume"
+   goto BEND
+endif
+
+
+
+goto RET_PARSE
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <-T1 T1vol> <-PD PDvol> "
+   echo " "
+   echo "Fix bias field shading in T1 by scaling it with PD image."
+   echo "You can also get a decent result even without the PD volume"
+   echo ""
+   echo "   -T1 T1vol: The T1 volume"
+   echo "   -odir ODIR: Directory where output gets dumped. "
+   echo "              Default is T1mask/ "
+   echo "              ODIR will contain multiple volumes with the one"
+   echo "              of most interest being T1.hull.mask.m+orig" 
+   echo "              You can set ODIR to ./"
+   echo "         Script will reuse existing intermediate volumes"
+   echo ""
+   echo "   -hullmask VOL: Create mask using the convex hull of the brightest."
+   echo "                  VOL liters worth of voxels. 1.0 is the default"
+   echo "                  Output is T1.hull.mask.m+orig"
+   echo "   -automask: Also compute automask"
+   echo "                  Output is T1.amask+orig"
+   echo ""
+   echo "   -echo: Set echo"
+   echo "   -help: this message" 
+   echo ""
+   @global_parse -gopts_help
+   goto END
+
+goto END
+
+BEND:
+set stat = 1
+goto END
+
+END:
+cd $idir
+exit $stat
+
+
+
+
