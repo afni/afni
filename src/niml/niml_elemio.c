@@ -928,7 +928,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 {
    char *wbuf , *att=NULL , *qtt , *btt ;
    int  nwbuf , ii,jj,row,col , tt=NI_element_type(nini) , ntot=0,nout ;
-   int  att_len , kk ;
+   int  att_len , kk , otmode=tmode ;
 
    char *bbuf , *cbuf ;  /* base64 stuff */
    int   bb=0 ,  cc=0 ;
@@ -1107,7 +1107,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qgr->outmode = outmode ;
           }
         }
-        nout = NI_write_element( ns , ngr->part[ii] , tmode ) ; ADDOUT("s") ;
+        nout = NI_write_element( ns , ngr->part[ii] , otmode ) ; ADDOUT("s") ;
       }
 
       /*- group trailer -*/
