@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 16 , OCT, 2012 , DRG , "afni show atlas colors" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Fixed bug that would crash afni if paned color and show atlas colors",
+} ,
 { 15 , AUG, 2012 , DRG , "whereami web" , 
     MICRO , TYPE_BUG_FIX, 
     "Web-based atlases would not open webpage with ampersands, punctuation",
