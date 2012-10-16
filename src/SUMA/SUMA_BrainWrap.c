@@ -1583,6 +1583,7 @@ int SUMA_StretchToFitLeCerveau (
 }
 
 #define MSK_DBG 0
+#define VOX_DBG 0
 #define Meth1   /* SLOW METHOD, undefine it to have an even slower method! */
 /*!
    \brief First pass at finding voxels inside a surface. Slow baby, slow.
@@ -1771,6 +1772,8 @@ short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO,
    If you find bugs here, fix them there too. 
    
    \sa SUMA_SurfaceIntersectionVolume
+   
+   Significant bug fixes Oct 2012
 */
 short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU, 
                                SUMA_VOLPAR *VolPar, int *N_inp, 
@@ -1780,12 +1783,13 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
    short *isin=NULL;
    byte *ijkmask=NULL, *inmask = NULL, *ijkout = NULL;
    float *p1, *p2, *p3, min_v[3], max_v[3], p[3], dist;
-   float MaxDims[3], MinDims[3], SOCenter[3], dxyz[3];
+   float MaxDims[3], MinDims[3], SOCenter[3], dxyz[3], dot;
    int nn, nijk, nx, ny, nz, nxy, nxyz, nf, n1, n2, n3, nn3, 
        *voxelsijk=NULL, N_alloc, en;
    int N_inbox, nt, nt3, ijkseed = -1, N_in, N_realloc, isincand;
    byte *fillmaskvec=NULL;
    float *NodeIJKlist=NULL;
+   int voxdbg = 101444, dbgnode[]={106, 500, 247}, InAirSpace=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1810,6 +1814,17 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
       }
    } else {
       NodeIJKlist = NodeIJKlistU;
+   #if VOX_DBG
+      for (nijk=0; nijk<3; ++nijk) {
+         nn = dbgnode[nijk];
+         SUMA_S_Notev("User Node %d:\n"
+                   "   XYZ: %f %f %f\n",
+                   nn, 
+                        NodeIJKlist[3*nn  ], 
+                        NodeIJKlist[3*nn+1], 
+                        NodeIJKlist[3*nn+2]);
+      }             
+   #endif
       for (nn=0; nn<SO->N_Node ; ++nn) { /* check */
          if (NodeIJKlist[3*nn  ] < 0 || NodeIJKlist[3*nn  ]>= nx ||
              NodeIJKlist[3*nn+1] < 0 || NodeIJKlist[3*nn+1]>= ny || 
@@ -1831,6 +1846,17 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
       SUMA_RETURN(NULL);
    }
    
+   #if VOX_DBG
+      for (nijk=0; nijk<3; ++nijk) {
+         nn = dbgnode[nn];
+         SUMA_S_Notev("Node %d:\n"
+                   "   XYZ: %f %f %f\n",
+                   nn, 
+                        NodeIJKlist[3*nn  ], 
+                        NodeIJKlist[3*nn+1], 
+                        NodeIJKlist[3*nn+2]);
+      }             
+   #endif
    /* mark the node voxels */
    for (nn=0; nn<SO->N_Node; ++nn) {
       /* find the ijk of each node: */
@@ -1849,7 +1875,12 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
    N_realloc = 0;
    voxelsijk = (int *)SUMA_malloc(sizeof(int)*N_alloc*3);
    if (!voxelsijk) { SUMA_SL_Crit("Failed to Allocate!"); SUMA_RETURN(NULL);  }   
-   dxyz[0] = VolPar->dx; dxyz[1] = VolPar->dy; dxyz[2] = VolPar->dz;
+   /* ZSS Pre Oct 2012:
+      The dxyz were not being modified to reflect the changing of coordinates
+      from XYZ mm to ijk !
+      dxyz[0] = VolPar->dx; dxyz[1] = VolPar->dy; dxyz[2] = VolPar->dz;
+   */ 
+   dxyz[0] = 1.0; dxyz[1] = 1.0; dxyz[2] = 1.0;
    for (nf=0; nf<SO->N_FaceSet; ++nf) {
       n1 = SO->FaceSetList[SO->FaceSetDim*nf]; 
       n2 = SO->FaceSetList[SO->FaceSetDim*nf+1]; 
@@ -1859,7 +1890,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
       p2 = &(NodeIJKlist[3*n2]); 
       p3 = &(NodeIJKlist[3*n3]); 
       SUMA_TRIANGLE_BOUNDING_BOX(p1, p2, p3, min_v, max_v);
-      #if 0
+      #if VOX_DBG
          if (LocalHead && nf == 5 ) {
             FILE *fout = NULL;
             int i;
@@ -1915,8 +1946,8 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
             isincand = 0;
             nijk = SUMA_3D_2_1D_index(voxelsijk[nt3], voxelsijk[nt3+1], 
                                        voxelsijk[nt3+2], nx , nxy);  
-            #if 0
-               if (nijk == 6567) {
+            #if VOX_DBG
+               if (nijk == voxdbg) {
                   fprintf(SUMA_STDERR,
                           "%s: %d examined, cand %d initial isin[%d] = %d\n", 
                           FuncName, nijk,  isincand, nijk, isin[nijk]);
@@ -1932,31 +1963,41 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
                p[0] = (float)voxelsijk[nt3]; 
                p[1] = (float)voxelsijk[nt3+1]; 
                p[2] = (float)voxelsijk[nt3+2]; 
+               
+               /* See also SUMA_DIST_FROM_PLANE2 */
                SUMA_DIST_FROM_PLANE(p1, p2, p3, p, dist);
                
-               if (dist) {
-                  if (SUMA_IS_NEG(VolPar->Hand * dist)) 
-                     isincand = SUMA_IN_TRIBOX_INSIDE;  
-                        /* ZSS Added handedness factor. who would have thought? 
-                               Be damned 3D coord systems! */
-                  else isincand = SUMA_IN_TRIBOX_OUTSIDE; 
-               }
-               #if 0               
-                  if (nijk == 6567) {
+
+               if (dist) { 
+                  if ( SUMA_IS_NEG(VolPar->Hand * dist) ) {
+                     /* don't label it, just box the outside,
+                      SUMA_isVoxelIntersect_Triangle should catch the good ones*/
+                  } else {
+                     isincand = SUMA_IN_TRIBOX_OUTSIDE; 
+                  }
+               } 
+               
+               #if VOX_DBG               
+                  if (nijk == voxdbg) {
                      fprintf( SUMA_STDERR,
-                              "    after dist check cand = %d\n", isincand);
+                              "    after dist (%f to tri #%d nodes %d %d %d) \n"
+                              "    hand (%d) inairspace=%d, dot=%f \n"
+                              "    check cand = %d\n", 
+                                 dist, nf, n1, n2, n3, 
+                                 VolPar->Hand, InAirSpace, dot, 
+                                 isincand);
                      SUMA_Set_VoxIntersDbg(1);
                   }
                #endif              
                if (1) { /* does this triangle actually intersect this voxel ?*/
                   if (SUMA_isVoxelIntersect_Triangle (p, dxyz, p1, p2, p3)) {
-                     if (isincand == SUMA_IN_TRIBOX_INSIDE) 
+                     if (dist < 0) 
                           isincand = SUMA_INTERSECTS_TRIANGLE_INSIDE;
                      else isincand = SUMA_INTERSECTS_TRIANGLE_OUTSIDE;
                   } 
                }
-               #if 0               
-                  if (nijk == 6567) {
+               #if VOX_DBG               
+                  if (nijk == voxdbg) {
                      SUMA_Set_VoxIntersDbg(0);
                      fprintf(SUMA_STDERR,
                              "    after intersection cand = %d\n", isincand);
@@ -1967,8 +2008,8 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
                   if (!isin[nijk]) { ++(*N_inp);   } /* a new baby */
                   isin[nijk] = isincand;
                }
-               #if 0               
-                  if (nijk == 6567) {
+               #if VOX_DBG               
+                  if (nijk == voxdbg) {
                      fprintf(SUMA_STDERR,
                              "    final isin[%d] = %d\n", nijk, isin[nijk]);
                   } 
@@ -2230,8 +2271,8 @@ short *SUMA_FindVoxelsInSurface (
       if (fdb) {
          fprintf(fdb, "Begin NodeList and copy\n");
          for (i=0; i<SO->N_Node; ++i) {
-            fprintf(fdb, "%f %f %f\n%f %f %f\n\n",
-                     SO->NodeList[3*i  ], SO->NodeList[3*i+1],
+            fprintf(fdb, "Node %d pre: %f %f %f\n%f %f %f\n\n",
+                     i, SO->NodeList[3*i  ], SO->NodeList[3*i+1],
                      SO->NodeList[3*i+2], 
                      tmpXYZ[3*i  ], tmpXYZ[3*i+1], tmpXYZ[3*i+2]);
          }
@@ -2250,8 +2291,8 @@ short *SUMA_FindVoxelsInSurface (
       if (fdb) {
          fprintf(fdb, "Begin SUMA_vec_dicomm_to_3dfind\n");
          for (i=0; i<SO->N_Node; ++i) {
-            fprintf(fdb, "%f %f %f\n%f %f %f\n\n",
-                     SO->NodeList[3*i  ], SO->NodeList[3*i+1],
+            fprintf(fdb, "Node %d post: %f %f %f\n%f %f %f\n\n",
+                     i, SO->NodeList[3*i  ], SO->NodeList[3*i+1],
                      SO->NodeList[3*i+2], 
                      tmpXYZ[3*i  ], tmpXYZ[3*i+1], tmpXYZ[3*i+2]);
          }

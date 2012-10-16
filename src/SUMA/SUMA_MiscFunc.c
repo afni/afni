@@ -5801,6 +5801,7 @@ void SUMA_Set_VoxIntersDbg(int v)
    \param dxyz (float *): dimensions of voxel
    \param en (int): corner of voxel (0 -- 7)
    \param P0 (float *): corner coords (set by macro)
+   See labbook NIH-6 pp 201 for a recent diagram of edge and corner numbers 
 */
 #define SUMA_CORNER_OF_VOXEL(center, dxyz, cn, P){\
    switch(cn) {   \
@@ -5844,6 +5845,7 @@ void SUMA_Set_VoxIntersDbg(int v)
    \param en (int): edge of voxel (0 -- 11)
    \param P0 (float *): first point forming edge (set by macro)
    \param P1 (float *): second point forming edge (set by macro)
+   See labbook NIH-6 pp 201 for a recent diagram of edge and corner numbers 
 */
 #define SUMA_EDGE_OF_VOXEL(center, dxyz, en, P0, P1){ \
    switch(en) {   \
@@ -5928,7 +5930,9 @@ SUMA_Boolean SUMA_isVoxelIntersect_Triangle
                                         iP, NULL, NULL)) {
          #if 0 
             if (VoxIntersDbg) 
-               fprintf(SUMA_STDERR, "%s: intersection detected.\n", FuncName);
+               fprintf(SUMA_STDERR, 
+                       "%s: intersection detected (dxyz [%f %f %f], edge %d\n", 
+                           FuncName, dxyz[0], dxyz[1], dxyz[2], i);
          #endif
          /* intersects, make sure intersection is between P0 and P1 */
          if (SUMA_IS_POINT_IN_SEGMENT(iP, P0, P1)) {

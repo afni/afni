@@ -376,6 +376,21 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    Dist = m_Eq[0] * P[0] + m_Eq[1] * P[1] + m_Eq[2] * P[2] + m_Eq[3] ;   \
 }
 
+#define SUMA_DIST_FROM_PLANE2(P1, P2, P3, P, Dist, InAirSpace, dot){  \
+   static float m_Eq[4], m_P2[3], m_U[3], m_Un;   \
+   SUMA_Plane_Equation ( P1, P2, P3, m_Eq); \
+   Dist = m_Eq[0] * P[0] + m_Eq[1] * P[1] + m_Eq[2] * P[2] + m_Eq[3] ;   \
+   m_P2[0] = m_Eq[0]+P[0]; m_P2[1] = m_Eq[1]+P[1]; m_P2[2] = m_Eq[2]+P[2]; \
+   InAirSpace = SUMA_MT_isIntersect_Triangle (\
+                     P, m_P2, P1, P2, P3, NULL, NULL, NULL);\
+   m_P2[0]=(P1[0]+P2[0]+P3[0])/3.0; \
+   m_P2[1]=(P1[1]+P2[1]+P3[1])/3.0; \
+   m_P2[2]=(P1[2]+P2[2]+P3[2])/3.0; \
+   SUMA_UNIT_VEC(m_P2, P, m_U, m_Un); \
+   SUMA_NORM(m_Un, m_Eq); \
+   dot = m_Eq[0]*m_U[0]/m_Un + m_Eq[1]*m_U[1]/m_Un + m_Eq[2]*m_U[2]/m_Un;\
+}
+
 /*!
    Equation of a plane given its normal and a point
    See also SUMA_Plane_Equation

@@ -900,8 +900,9 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
    THD_3dim_dataset *mset = NULL;
    float *fa=NULL;
    MRI_IMAGE *imin=NULL;
-
+   SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_ENTRY;
    /* ------------- Mask business -----------------*/
    
    if (cmaskp) cmask = *cmaskp;
@@ -920,7 +921,7 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
       *mcount = THD_countmask( DSET_NVOX(mset) , mmm ) ;
       if( *mcount <= 0 ) {
          ERROR_message("No voxels in the mask!\n") ;
-         return(NULL);
+         SUMA_RETURN(NULL);
       }
       if( Opt->debug ) INFO_message("%d voxels in the mask\n",*mcount) ;
       DSET_delete(mset); *msetp=NULL;
@@ -936,7 +937,7 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
          *mcount = THD_countmask( DSET_NVOX(aset) , mmm ) ;
          if( *mcount <= 0 ) {
             ERROR_message("No voxels in the mask+cmask!\n") ;
-            return(NULL);
+            SUMA_RETURN(NULL);
          }
          if( Opt->debug ) 
             INFO_message("%d voxels in the mask+cmask\n",*mcount) ;
@@ -945,7 +946,7 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
          *mcount = THD_countmask( DSET_NVOX(aset) , mmm ) ;
          if( *mcount <= 0 ) {
             ERROR_message("No voxels in the cmask!\n") ;
-            return(NULL);
+            SUMA_RETURN(NULL);
          }
          if( Opt->debug ) INFO_message("%d voxels in the cmask\n",*mcount) ;
       }
@@ -961,7 +962,7 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
       }
    }
    if (Fixit) {
-      SUMA_S_Note("Have to merge mask with anat");
+      SUMA_LH("Have to merge mask with anat");
       if (!mmm) {
          mmm = (byte *)malloc(DSET_NVOX(aset)*sizeof(byte));
          memset(mmm, 1, sizeof(byte)*DSET_NVOX(aset));
@@ -974,7 +975,7 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
       }
    }
    mri_free(imin); imin = NULL; fa = NULL;
-   return(mmm);         
+   SUMA_RETURN(mmm);         
 }
 
 void *Seg_NI_read_file(char *fname) {
