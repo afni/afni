@@ -79,14 +79,15 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # ------------------------------------------------------------
       # finish level 2 and then level 1
-      mainlayout.addWidget(self.gvars.gbox_general)
+      mainlayout.addWidget(self.gvars.Widget_ID)
       mainlayout.addWidget(self.gvars.m2_scroll)
 
       # ------------------------------
       # save this for last to ensure it is all visible
       self.gvars.m2_scroll.setWidget(self.gvars.m2_gbox_inputs)
 
-      self.gvars.Wcentral.setMinimumSize(150, 200)
+      self.gvars.Wcentral.setMinimumSize(200, 300)
+      self.gvars.Wcentral.resize(400, 800)
       self.gvars.Wcentral.setLayout(mainlayout)
       self.setCentralWidget(self.gvars.Wcentral)
 
@@ -153,7 +154,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                   ...
       """
 
-      self.make_l2_group_box()  # for general subject info
+      self.make_subj_group_line()  # sid/gid
 
       self.gvars.m2_scroll = QtGui.QScrollArea()
       self.gvars.m2_scroll.setWidgetResizable(True)
@@ -169,8 +170,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.m2_gbox_inputs = gbox
 
    def update_all_gbox_styles(self):
-      for gbox in [ self.gvars.gbox_general, self.gvars.gbox_anat,
-                    self.gvars.gbox_epi,     self.gvars.gbox_stim ]:
+      for gbox in [ self.gvars.gbox_anat, self.gvars.gbox_epi,
+                    self.gvars.gbox_stim ]:
          self.update_gbox_style(gbox)
 
    def update_gbox_style(self, gbox):
@@ -196,15 +197,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       return gbox
 
-   def make_l2_group_box(self):
-      """create a group box with a VBox layout:
-            HBox: Label(sid) LineEdit()  Label(gid) LineEdit()
+   def make_subj_group_line(self):
+      """add a single line at the top level for subject and group IDs
 
-         for controlling sujbect vars: sid, gid
+         create Widget_ID to add to top level
+
+         for controlling vars sid, gid
       """
-      gbox = self.get_styled_group_box("general subject info")
-
-      mainlayout = QtGui.QVBoxLayout()
 
       # --------------------------------------------------
       # Widget/HBox: subject and group ID fields
@@ -212,14 +211,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout = QtGui.QHBoxLayout()
 
       # add subject ID stuff, init with sid
-      label = QtGui.QLabel("subject ID")
+      label = QLIB.make_label("subject ID", 
+                        tip='identifier to use in file and directory names')
       self.gvars.Line_sid = QtGui.QLineEdit()
       self.gvars.Line_sid.setText(self.svars.sid)
       layout.addWidget(label)
       layout.addWidget(self.gvars.Line_sid)
 
       # add group ID stuff, init with sid
-      label = QtGui.QLabel("group ID")
+      label = QLIB.make_label("group ID",
+                        tip='identifier to use in file and directory names')
       self.gvars.Line_gid = QtGui.QLineEdit()
       self.gvars.Line_gid.setText(self.svars.gid)
       layout.addWidget(label)
@@ -234,13 +235,132 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                    self.CB_line_text)
 
       # and set layout
+      layout.setMargin(g_spacing)
       bwidget.setLayout(layout)
-      mainlayout.addWidget(bwidget)
 
       # --------------------------------------------------
       # and put main widgets into main VBox layout
-      gbox.setLayout(mainlayout)
-      self.gvars.gbox_general = gbox
+      self.gvars.Widget_ID = bwidget
+
+      return
+
+   def make_basic_gbox(self, title):
+      """make gbox with vars of frame and frame_layout
+         - to be called at top of group_box_XXX
+      """
+              
+      gbox = self.get_styled_group_box(title)
+
+      # put frame inside gbox, which we can hide via toggled button
+      frame = QtGui.QFrame(gbox)
+      frame.setFrameShape(QtGui.QFrame.NoFrame)
+      gbox.frame = frame
+      self.init_gbox_viewable(gbox, True)       # default to viewable
+      # gbox.toggled.connect(self.gbox_toggle_frame)
+      self.connect(gbox, QtCore.SIGNAL('clicked()'), self.gbox_clicked)
+
+      layout = QtGui.QVBoxLayout(frame)
+
+      gbox.frame_layout = layout
+
+      return gbox
+
+   def set_basic_gbox_layout(self, gbox):
+      """set layouts for basic gbox
+         - to be called at bottom of group_box_XXX
+         - matches make_basic_gbox
+      """
+
+      glayout = QtGui.QVBoxLayout(gbox)
+
+      gbox.frame_layout.setMargin(g_spacing)
+      gbox.frame_layout.setSpacing(g_glayout_spacing)
+      gbox.frame.setLayout(gbox.frame_layout)
+      glayout.addWidget(gbox.frame)
+      glayout.setSpacing(g_spacing)
+      glayout.setMargin(g_glayout_spacing)
+      gbox.setLayout(glayout)
+
+   def group_box_analysis(self):
+      """create a group box with a VBox layout:
+            HBox: Label(anal type) Chooser() Label(domain) Chooser() but(Apply)
+                  Label(process blocks) LineEdit()
+
+         for controlling sujbect vars: anal_type, anal_domain
+                                       blocks
+
+          ** no longer a group box
+             -> just leave a line for subj/group
+             -> move general analysis info down to input data and options
+      """
+
+      # make gbox with frame layout
+      gbox = self.make_basic_gbox("analysis initialization")
+      self.init_gbox_viewable(gbox, False)      # default to hidden
+      flayout = gbox.frame_layout
+
+      # --------------------------------------------------
+      # analysis type HBox for type and domain
+
+      bwidget = QtGui.QWidget()
+      layout = QtGui.QHBoxLayout()
+
+      # add analysis type
+      label = QLIB.make_label("type",
+                tip='analysis type to perfom: task or resting state')
+      pbut = QLIB.create_menu_button(bwidget, self.svars.anal_type,
+                USUBJ.g_def_anal_types, call_back=self.CB_gbox_PushB)
+      self.gvars.PushB_anal_type = pbut
+      layout.addWidget(label)
+      layout.addWidget(pbut)
+
+      # add analysis domain
+      layout.addStretch()
+      label = QLIB.make_label("domain",
+                tip='data domain for analysis')
+      pbut = QLIB.create_menu_button(bwidget, self.svars.anal_domain,
+                USUBJ.g_def_anal_domains, call_back=self.CB_gbox_PushB)
+      self.gvars.PushB_anal_domain = pbut
+      layout.addWidget(label)
+      layout.addWidget(pbut)
+
+      # add Apply button
+      layout.addStretch()
+      pb = QLIB.make_button("APPLY",
+                tip="set defaults that differ across types and domains",
+                cb=self.CB_gbox_PushB)
+      pb.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
+      layout.addWidget(pb)
+      self.gvars.PushB_anal_apply = pb
+
+      # add help button
+      layout.addStretch()
+      pb = QLIB.make_button("help",
+                tip="analysis initialization: type and data domain",
+                cb=self.CB_gbox_PushB)
+      pb.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MessageBoxQuestion))
+      layout.addWidget(pb)
+      self.gvars.PushB_anal_help = pb
+
+      bwidget.setLayout(layout)
+
+      # and finally, add current widget to frame layout
+      flayout.addWidget(bwidget)
+
+      # --------------------------------------------------
+      # processing blocks HBox
+      bwidget = QLIB.create_label_lineedit_widget('processing blocks',
+                        ltip='list of processing blocks in analysis',
+                        etext=' '.join(self.svars.val('blocks')),
+                        ecb=self.CB_line_text)
+      self.gvars.Line_blocks = bwidget.LineEdit
+      flayout.addWidget(bwidget)
+
+      # --------------------------------------------------
+      # and put main widgets into main VBox layout
+      self.set_basic_gbox_layout(gbox)
+
+      return gbox
 
    def CB_line_text(self):
       """call-back for text updates in the level 3 gbox"""
@@ -251,6 +371,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif obj == self.gvars.Line_gid:
          self.update_textLine_check(obj, obj.text(), 'gid', 'group ID',
                                     QLIB.valid_as_identifier)
+      elif obj == self.gvars.Line_blocks:
+         self.set_blocks(str(obj.text()))
       elif obj == self.gvars.Line_anat:
          self.update_textLine_check(obj, obj.text(), 'anat', 'anatomical dset',
                                     QLIB.valid_as_filepath)
@@ -324,6 +446,23 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       else: print '** CB_line_text: unknown sender'
 
+   def set_blocks(self, bstring):
+      blist = bstring.split()
+      if UTIL.lists_are_same(blist, self.svars.blocks): return
+
+      if len(blist) == 0: return self.apply_svar_in_gui('blocks')
+
+      # something to do
+      errstr = ''
+      for block in blist:
+         if not block in USUBJ.g_def_blocks_all:
+            errstr += "** invalid processing block: %s\n" % block
+      if errstr != '':
+         QLIB.guiError('Error', errstr+'\nresetting to previous blocks...',self)
+         return self.apply_svar_in_gui('blocks')
+
+      self.set_svar('blocks', blist)
+
    def set_bandpass(self, bstring):
       flist = UTIL.string_to_float_list(bstring)
       if bstring == None:
@@ -355,6 +494,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
    def make_l3_group_boxes(self):
       """create anat, EPI, stim, etc. group boxes, and add to m2_vlayout"""
 
+      self.gvars.gbox_analysis = self.group_box_analysis()
       self.gvars.gbox_anat = self.group_box_anat()
       self.gvars.gbox_epi  = self.group_box_epi()
       self.gvars.gbox_stim = self.group_box_stim()
@@ -364,6 +504,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.gbox_align    = self.group_box_align()
       self.gvars.gbox_tlrc     = self.group_box_tlrc()
 
+      self.gvars.m2_vlayout.addWidget(self.gvars.gbox_analysis)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_anat)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_epi)
       self.gvars.m2_vlayout.addWidget(self.gvars.gbox_stim)
@@ -565,15 +706,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       lineno += 1
 
       # regress bandpass (entry takes 2 values)
-      label = QtGui.QLabel("bandpass in regression (2 floats)")
-      label.setStatusTip("give bottom/top bandpass frequencies (e.g. 0.01 0.1)")
-      self.gvars.Line_regress_bandpass = QtGui.QLineEdit()
-      val = self.svars.val('regress_bandpass')
+      label = QLIB.make_label("bandpass in regression (2 floats)",
+                tip="give bottom/top bandpass frequencies (e.g. 0.01 0.1)")
       if self.svars.val_len('regress_bandpass') == 2:
-         bpstr = ' '.join(self.svars.val('regress_bandpass'))
-         self.gvars.Line_regress_bandpass.setText(bpstr)
-      self.connect(self.gvars.Line_regress_bandpass,
-                   QtCore.SIGNAL('editingFinished()'), self.CB_line_text)
+         bptext = ' '.join(self.svars.val('regress_bandpass'))
+      else: bptext = ''
+      self.gvars.Line_regress_bandpass = \
+              QLIB.make_line(bptext, cb=self.CB_line_text)
 
       layout.addWidget(label, lineno, 0)
       layout.addWidget(self.gvars.Line_regress_bandpass, lineno, 1)
@@ -610,7 +749,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # checkbox : compute_fitts
       cbox = QtGui.QCheckBox("compute fitts dataset")
-      cbox.setStatusTip("save RAM in 3dD, compute fitts = all_runs - errts")
+      cbox.setStatusTip("save RAM in 3dD by computing fitts afterwards")
       cbox.setChecked(self.svars.compute_fitts=='yes')
       # cbox.clicked.connect(self.CB_checkbox)
       self.connect(cbox, QtCore.SIGNAL('clicked()'), self.CB_checkbox)
@@ -733,15 +872,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       layout = QtGui.QVBoxLayout(frame) # now a child of frame
 
       # create an HBox Widget with 2 buttons
-      labels = ['browse anat', 'clear anat', 'help: anat']
+      labels = ['browse anat', 'clear anat', 'help']
       tips = ['browse file system for anatomical dataset',
               'clear anatomical dataset entry',
               'display help for this section' ]
       bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
-                                               tips=tips)
-      gbox.blist = bwidget.blist
-      gbox.blist[2].setIcon(self.style().standardIcon(
-                QtGui.QStyle.SP_MessageBoxQuestion))
+                                         tips=tips, hind=2, style=self.style())
+      gbox.bdict = bwidget.bdict
       layout.addWidget(bwidget)
 
       # create the anat file browsing dialog
@@ -817,15 +954,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # create an HBox Widget with 2 buttons
-      labels = ['browse EPI', 'clear EPI', 'help: EPI']
+      labels = ['browse EPI', 'clear EPI', 'help']
       tips = ['browse file system for EPI datasets',
               'clear EPI dataset entries',
               'display help for this section' ]
       bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
-                                               tips=tips)
-      gbox.blist = bwidget.blist
-      gbox.blist[2].setIcon(self.style().standardIcon(
-                            QtGui.QStyle.SP_MessageBoxQuestion))
+                                         tips=tips, hind=2, style=self.style())
+      gbox.bdict = bwidget.bdict
       mainlayout.addWidget(bwidget)
 
       # --------------------------------------------------
@@ -909,15 +1044,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # create an HBox Widget with 2 buttons
-      labels = ['browse stim', 'clear stim', 'help: stim']
+      labels = ['browse stim', 'clear stim', 'help']
       tips = ['browse file system for stimulus timing files',
               'clear stim file entries',
               'display help for this section' ]
       bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
-                                               tips=tips)
-      gbox.blist = bwidget.blist
-      gbox.blist[2].setIcon(self.style().standardIcon(
-                QtGui.QStyle.SP_MessageBoxQuestion))
+                                         tips=tips, hind=2, style=self.style())
+      gbox.bdict = bwidget.bdict
       mainlayout.addWidget(bwidget)
 
       # --------------------------------------------------
@@ -1066,25 +1199,24 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # --------------------------------------------------
       # create an HBox Widget with 3 action buttons
-      labels = ['insert glt row', 'init with glt examples']
+      labels = ['insert glt row', 'init with examples']
       tips = ['append a blank row to the table',
               'initialize table with GLTs from stim labels' ]
       bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
-                                               tips=tips)
-      gbox.blist = bwidget.blist
+                                               tips=tips, style=self.style())
+      gbox.bdict = bwidget.bdict
       mainlayout.addWidget(bwidget)
 
       # --------------------------------------------------
       # create an HBox Widget with 2 buttons
-      labels = ['resize glt table', 'clear glt table', 'help: gltsym']
+      labels = ['resize glt table', 'clear glt table', 'help']
       tips = ['delete any blank rows from table',
               'clear all entries from table',
               'display help for this section' ]
       bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
-                                               tips=tips)
-      gbox.blist.extend(bwidget.blist)
-      icon = self.style().standardIcon(QtGui.QStyle.SP_MessageBoxQuestion)
-      gbox.blist[4].setIcon(icon)
+                                         tips=tips, hind=2, style=self.style())
+      for key in bwidget.bdict.keys():  # copy additional keys
+         gbox.bdict[key] = bwidget.bdict[key]
       mainlayout.addWidget(bwidget)
 
       ##### should we use a grid instead?
@@ -1570,6 +1702,26 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.CW.show()
       self.gvars.CW.raise_()
 
+   def apply_PushB_action(self, sender, vname):
+      """if sender is an action in PushB_VNAME.act_dict, apply
+            svars.vname = applied key
+            set new text in button
+
+         return 1 if applied, -1 if canceled, and 0 otherwise
+      """
+      pbobj = self.gvars.val('PushB_%s' % vname)
+      if pbobj == None: return 0
+
+      for key in pbobj.act_dict.keys():
+         act = pbobj.act_dict[key]
+         if sender == act:      # found!
+            if key == 'CANCEL': return -1
+            self.svars.set_var(vname, key)
+            pbobj.setText(key)
+            return 1
+
+      return 0
+
    def CB_gbox_PushB(self):
       """these buttons are associated with anat/EPI/stim file group boxes
          - the sender (button) text must be unique"""
@@ -1581,8 +1733,22 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          print '** CB_gbox_PushB: no text'
          return
 
+      # analysis init: help and APPLY
+      if self.apply_PushB_action(sender, 'anal_type'): return
+      elif self.apply_PushB_action(sender, 'anal_domain'): return
+
+      elif sender == self.gvars.PushB_anal_help:
+         
+         cstr = USUBJ.g_rdef_strs.changed_attrs_str(USUBJ.g_sdef_strs,
+                           skiplist='name', showskip=0, showdel=0)
+         hstr  = "%s\n\nAnalysis type 'rest': %s" % (g_help_init, cstr)
+         self.update_help_window(hstr, title='analysis initialization')
+
+      elif sender == self.gvars.PushB_anal_apply:
+         self.init_analysis_defaults() # apply anal_type and anal_domain
+
       # anat
-      if text == 'help: anat':
+      elif sender == self.gvars.gbox_anat.bdict['help']:
          self.update_help_window(g_help_anat, title='anatomical datasets')
 
       elif text == 'browse anat':
@@ -1597,7 +1763,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          self.set_svar('anat','')
 
       # EPI
-      elif text == 'help: EPI':
+      # elif text == 'help: EPI':
+      elif sender == self.gvars.gbox_epi.bdict['help']:
          self.update_help_window(g_help_epi, title='EPI datasets')
 
       elif text == 'browse EPI':
@@ -1613,7 +1780,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             self.epi_list_to_table()
 
       # stim
-      elif text == 'help: stim':
+      elif sender == self.gvars.gbox_stim.bdict['help']:
          self.update_help_window(g_help_stim, title='stim times files')
 
       elif text == 'browse stim':
@@ -1652,7 +1819,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          table.insertRow(nrows)
          self.resize_table(table, self.gvars.Label_gltsym_len)
 
-      elif text == 'init with glt examples':
+      elif text == 'init with examples':
 
          # get labels to apply
          if self.update_stim_from_table(): return
@@ -1664,7 +1831,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          self.gltsym_list_to_table(gltsym, gltlabs)
          self.resize_table(self.gvars.Table_gltsym, self.gvars.Label_gltsym_len)
 
-      elif text == 'help: gltsym':
+      # elif text == 'help: gltsym':
+      elif sender == self.gvars.gbox_gltsym.bdict['help']:
          self.update_help_window(g_help_gltsym, title='symbolic GLTs')
 
       elif text == 'resize glt table':
@@ -2317,6 +2485,21 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       return 0
 
+   def init_analysis_defaults(self):
+      """initialize the svar default based on anal_type and anal_domain
+      """
+      atype = self.svars.val('anal_type')
+      adomain = self.svars.val('anal_domain')
+
+      if atype == 'rest': cobj = USUBJ.g_rdef_strs
+      else:               cobj = USUBJ.g_tdef_strs
+      changestr = cobj.changed_attrs_str(self.svars, skiplist='name',
+                                         showskip=0, showdel=0)
+      self.apply_svars(cobj)
+
+      title = "Applied Variables: to type '%s', domain '%s'" % (atype, adomain)
+      self.update_applied_vars_window(title=title, text=changestr)
+
    def cb_exec_ap_command(self):
       """execute afni_proc.py command script"""
       self.exec_ap_command()
@@ -2413,7 +2596,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       obj = self.sender()
 
       if obj == self.gvars.act_view_vars:
-         self.update_applied_vars_window()
+         self.update_applied_vars_window(title="Applied Variables")
 
       if obj == self.gvars.act_view_ap_cmd:
          self.show_static_file('file_ap', 'afni_proc.py script')
@@ -2563,6 +2746,20 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       self.gvars.act_exec_ap.setEnabled(False)
       self.gvars.act_exec_proc.setEnabled(False)
 
+   def set_PushB_from_svar(self, vname):
+      """set PushB_vname text from corresponding svars val"""
+      pb = self.gvars.val('PushB_%s' % vname)
+      btext = self.svars.val(vname)
+
+      if not pb:
+         print '** invalid PushB %s for text %s' % (vname, text)
+         return
+      if not btext:
+         print '** invalid svar %s for PushB' % vname
+         return
+      
+      pb.setText(btext)
+
    def apply_svars(self, svars=None):
       """apply to the svars object and to the gui
 
@@ -2586,7 +2783,11 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       rv = 1
       if   svar == 'uber_dir':             rv = 0       # todo
-      elif svar == 'blocks':               rv = 0       # todo
+      elif svar == 'anal_type':   self.set_PushB_from_svar('anal_type')
+      elif svar == 'anal_domain': self.set_PushB_from_svar('anal_domain')
+      elif svar == 'blocks':
+                                  bstr = ' '.join(self.svars.val('blocks'))
+                                  self.gvars.Line_blocks.setText(bstr)
       elif svar == 'sid':         self.gvars.Line_sid.setText(self.svars.sid)
       elif svar == 'gid':         self.gvars.Line_gid.setText(self.svars.gid)
       elif svar == 'anat':        self.gvars.Line_anat.setText(self.svars.anat)
@@ -2714,6 +2915,25 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 # ===========================================================================
 # help strings
 
+g_help_init = """
+Analysis initialization:
+
+   goals:
+
+      1. specify analysis type
+      2. specify data domain
+      3. specify main processing blocks
+
+   description:
+
+      Specifying the analysis type and data domain allows for more appropriate
+      initialization of processing defaults.
+
+      There is direct effect on variables when changing the type unless the
+      APPLY button is then pressed, at which point all relevant defaults are
+      changed.
+"""
+
 g_help_anat = """
 Specifying the anatomical dataset:
 
@@ -2823,6 +3043,7 @@ Specifying the stimulus timing files:
       2. decide whether to use the 'wildcard form' in the afni_proc.py
          command (rather than listing individual files)
       3. choose a basis function (possibly for each timing file)
+      4. possibly alter the stim types
   
    description:
 
@@ -2843,9 +3064,17 @@ Specifying the stimulus timing files:
       They can all be set at once via 'init basis funcs', or they can be
       modified individually in the table.
 
+      A stimulus type will applied to each file.  They can be initialzed at
+      once via 'init file types', or they can be modified individually in the
+      table.  The stimulus file types are shown in the 'choose' menu and
+      correspond to those in afni_proc.py.
+
+      Most types are for timing files, while 'file' is for a simple regressor.
+
    ** Note: no stimulus should be given during the pre-steady state TRs.
             The stimulus times should match times after the pre-SS TRs that
             are removed from the EPI data.
+            Similarly, 'file' types should be of length #TRs minus all #pre-SS.
 
    typical use in processing:
 
@@ -2853,6 +3082,17 @@ Specifying the stimulus timing files:
          interest to be used in the regress processing block (by 3dDeconvolve).
       2. if the basis functions are fixed shapes (e.g. GAM/BLOCK), generate
          'ideal' curves per stimulus class (from the X-matrix columns)
+      3. the 'type' entries control the -stim_times* or -stim_file options in
+         the 3dDeconvolve command:
+
+            times       : -stim_times
+            AM1         : -stim_times_AM1
+            AM2         : -stim_times_AM2
+            IM          : -stim_times_IM
+            file        : -stim_file
+
+         See the '-regress_stim_types' option from afni_proc.py or the given
+         options from 3dDeconvolve for more details.
 
    file naming habits:
 

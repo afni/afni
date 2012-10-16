@@ -97,21 +97,32 @@ class VarsObject(object):
       """return a copy of this class item by creating a new instance
          and copying all simple attributes
 
-         if as_strings: copy any simple type (int, float) as string
+         if as_strings: copy any simple type (int, float) or depth 1 list
+         as string
       """
 
       dupe = VarsObject()
       for atr in self.attributes():
-         if as_strings:
-            val = getattr(self, atr)
-            if type(val) == int or type(val) == float:
-               setattr(dupe, atr, '%s'%val)
-               continue
-         # if wasn't converted from int or float, just copy
-         setattr(dupe, atr, self.valcopy(atr))
+         if as_strings: val = self.copy_2_str(getattr(self, atr))
+         else:          val = self.valcopy(atr)
+         setattr(dupe, atr, val)
+
       if name: dupe.name = name
 
       return dupe
+
+   def copy_2_str(self, value):
+      """copy value as a string, using recursion for lists    16 Oct 2012
+
+         if int or float, return string version
+         else if list, return string list from recursive calls
+         else, return value
+      """
+      tv = type(value)
+      if   tv == int:   return '%s' % value
+      elif tv == float: return '%s' % value
+      elif tv == list:  return [self.copy_2_str(lv) for lv in value]
+      else:             return value
 
    def merge(self, v2, typedef=None, verb=1):
       """merge in attributes from v2
@@ -331,7 +342,7 @@ class VarsObject(object):
 
       return retlist
 
-   def changed_attrs_str(self, checkobj, skiplist=[], showskip=1):
+   def changed_attrs_str(self, checkobj, skiplist=[], showskip=1, showdel=1):
       """return a string that lists differences between self and vobj
 
          do not report those in skiplist
@@ -366,10 +377,9 @@ class VarsObject(object):
             rlist.insert(0, 'options: using all defaults\n')
 
       # now go after ONLY skiplist attrs (these are not as options)
-      clist = self.changed_attrs(checkobj)
       acount = 0
       nlist = []
-      if showskip and len(clist) > 0:
+      if showskip and len(skiplist) > 0 and len(clist) > 0:
          for attr in clist:
             if attr not in skiplist: continue
             if attr == 'name': continue
@@ -387,13 +397,13 @@ class VarsObject(object):
          nlist.append('')
          rlist.extend(nlist)
 
-      if len(rlist) == 0: return '** using all defaults'
-      clist = self.deleted_attrs(checkobj)
-      if len(clist) > 0:
-         rlist.append('deleted vars (%d):\n' % len(clist))
-         for attr in clist:
-            rlist.append('  %s' % attr)
-         rlist.append('')
+      if showdel:
+         clist = self.deleted_attrs(checkobj)
+         if len(clist) > 0:
+            rlist.append('deleted vars (%d):\n' % len(clist))
+            for attr in clist:
+               rlist.append('  %s' % attr)
+            rlist.append('')
 
       if len(rlist) == 0: return '** using all defaults'
 
@@ -563,7 +573,7 @@ def subj_compare(subj0, subj1):
    if cval != 0: return subj0._order*cval
    return subj0._order*cmp(subj0.sid, subj1.sid)
 
-def set_var_str_from_def(obj, name, vlist, vars, defs,
+def set_var_str_from_def(obj, name, vlist, vobj, defs,
                          verb=1, csort=1, spec=None):
    """try to set name = value based on vlist
         (just set as string)
@@ -613,7 +623,7 @@ def set_var_str_from_def(obj, name, vlist, vars, defs,
       return -1
 
    # actually set the value
-   rv = vars.set_var(name, val)
+   rv = vobj.set_var(name, val)
    if verb > 1:
       if rv: print '++ %s: updating %s to %s %s' % (obj, name, val, type(val))
       else:  print '++ %s: no update for %s to %s' % (obj, name, val)
@@ -627,7 +637,7 @@ def set_var_str_from_def(obj, name, vlist, vars, defs,
 
    # this function must be passed, since it will vary per library
 
-   if spec != None: spec(name, vars, check_sort=csort)
+   if spec != None: spec(name, vobj, check_sort=csort)
 
    return rv
 

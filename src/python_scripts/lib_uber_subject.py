@@ -135,14 +135,20 @@ g_history = """
     0.31 May 25, 2012 : show modified options and subject defaults
     0.32 Oct  2, 2012 : added stim_type column to stim table
          - also, split analysis var into anal_domain and anal_type
+    0.33 Oct 16, 2012 : use new anal_type for init of defaults
+         - have 'rest' defaults to differ from 'task' (no 'surface' yet)
+         - GUI: added analysis type and domain, and block list
 """
 
-g_version = '0.32 (October 3, 2012)'
+g_version = '0.33 (October 16, 2012)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
 g_def_anal_domains = ['volume', 'surface']
 g_def_anal_types   = ['task', 'rest']
+                    # add 'ricor'?
+g_def_blocks_all  = ['despike', 'tshift', 'align', 'tlrc', 'volreg', 'surf',
+                     'blur', 'mask', 'scale', 'regress']
 g_def_blocks      = ['tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 g_def_blocks_anat = ['tshift', 'align', 'tlrc', 'volreg', 'blur', 'mask',
                      'scale', 'regress']
@@ -180,7 +186,7 @@ g_res_defs.output_proc   = ''           # output from running proc script
 g_subj_defs = SUBJ.VarsObject("Single Subject Dialog defaults")
 g_subj_defs.anal_domain   = 'volume'    # see g_def_anal_domains
 g_subj_defs.anal_type     = 'task'      # see g_def_anal_types
-g_subj_defs.blocks        = []
+g_subj_defs.blocks        = g_def_blocks_anat
 g_subj_defs.sid           = ''          # subject ID    (no spaces - required)
 g_subj_defs.gid           = ''          # group ID      (no spaces)
 g_subj_defs.anat          = ''          # anat dset name (probably .HEAD)
@@ -227,6 +233,8 @@ g_subj_defs.regress_bandpass = []       # for -regress_bandpass
 g_subj_defs.regress_mot_deriv= 'no'     # include motion derivative?
 
 g_svar_dict = {
+   'anal_type'          : 'set analysis type (task/rest)',
+   'anal_domain'        : 'set data domain (volume/rest)',
    'blocks'             : 'set list of processing blocks to apply',
    'sid'                : 'set subject ID',
    'gid'                : 'set group ID',
@@ -280,16 +288,6 @@ g_svars_not_opt = [
 
 # ----------------------------------------------------------------------
 # subj defaults for resting state analysis
-# ## GUI: add 'analysis type options' group box
-#         - analysis type / "chooser" (task-based, resting, surface) / INIT
-#            - user can choose type, and initialize based on those defaults
-#               - lib: must have union of options of each analysis type
-#            - user can apply basic options here
-#               - should display window stating affected options
-#         - add FULL-GUI-reset based on task
-#         - add blocks list
-#         - under subj ID / group ID, add read-only analysis type string
-#         - under extra regress options, add bandpass and regress_motion_deriv
 g_rest_defs = SUBJ.VarsObject("resting state defaults")
 g_rest_defs.anal_type     = 'rest'              # see g_def_anal_types
 g_rest_defs.blocks        = ['despike', 'tshift', 'align', 'tlrc', 'volreg',
@@ -298,15 +296,26 @@ g_rest_defs.regress_bandpass  = [0.01, 0.1]     # -regress_bandpass
 g_rest_defs.regress_mot_deriv = 'yes'           # -regress motion derivatives
 g_rest_defs.motion_limit  = 0.2                 # from 0.3
 g_rest_defs.run_clustsim  = 'no'
-g_rest_defs.stim          = []                  # no stim or labels
-g_rest_defs.gltsym        = []                  # no GLTs
 
-# rcr - add g_vol_defs and g_surf_defs (to distinguish volume/surface analysis)
+# ----------------------------------------------------------------------
+# subj defaults for task analysis (as opposed to rest)
+# NOTE: elements should match g_rest_defs
+g_task_defs = SUBJ.VarsObject("task analysis defaults")
+g_task_defs.anal_type     = 'task'              # see g_def_anal_types
+g_task_defs.blocks        = g_def_blocks_anat
+g_task_defs.regress_bandpass  = []              # -regress_bandpass
+g_task_defs.regress_mot_deriv = 'no'            # -regress motion derivatives
+g_task_defs.motion_limit  = 0.3                 # from 0.3
+g_task_defs.run_clustsim  = 'yes'
+
+# rcr - add g_surf_defs (to distinguish volume/surface analysis)
 
 
-# string versions of subject variables, to be used by GUI
+# string versions of variable defaults, to be used by GUI
 g_cdef_strs = g_ctrl_defs.copy(as_strings=1)
 g_sdef_strs = g_subj_defs.copy(as_strings=1)
+g_rdef_strs = g_rest_defs.copy(as_strings=1)
+g_tdef_strs = g_task_defs.copy(as_strings=1)
 
 # note: short vars (e.g. with epi)
 #   use_dirs      - should we set any directory at all
@@ -336,6 +345,9 @@ class AP_Subject(object):
    def __init__(self, svars=None, cvars=None):
 
 
+      self.errors = []                  # list of error strings
+      self.warnings = []                # list of warning strings
+
       # LV: variables local to this interface, not passed
       self.LV = SUBJ.VarsObject("local AP_Subject vars")
       self.LV.indent = 8                # default indent for AP options
@@ -351,6 +363,8 @@ class AP_Subject(object):
       self.svars.merge(svars, typedef=g_subj_defs) # include those passed
 
       self.rvars = g_res_defs.copy()    # init result vars
+
+      self.check_analysis_type()        # anal_type/domain
 
       self.set_blocks()                 # choose processing blocks
 
@@ -369,8 +383,7 @@ class AP_Subject(object):
             - if there are errors, ap_command might not be filled
       """
 
-      self.errors = []                  # list of error strings
-      self.warnings = []                # list of warning strings
+      if len(self.errors) > 0: return   # if any errors already, quit
 
       # first assign directories
       self.ap_command  = self.script_init()
@@ -750,14 +763,8 @@ class AP_Subject(object):
          - if wildcard is requested, check that the actual wildcard glob
               matches the list of stim names (else warning)
       """
-      if not self.svars.stim:
-         if len(self.svars.regress_bandpass) != 2:
-            ww = '** warnings: no stim timing files given (resting state?)'
-            self.warnings.append('%s\n' % ww)
-         return ''
-      if len(self.svars.stim) == 0:
-         self.errors.append('** error: no stim timing files given\n')
-         return ''
+
+      if len(self.svars.stim) == 0: return ''
 
       # if wildcard, input files must exist, and expansion must match list
       if self.svars.stim_wildcard == 'yes':
@@ -1082,8 +1089,43 @@ class AP_Subject(object):
       if dir and dir != '.': return 1
       return 0
 
+   def check_analysis_type(self):
+      """do any basis analysis type/domain checks"""
+
+      if self.svars.anal_type == 'task':
+         if not self.svars.stim and self.svars.val_len('regress_bandpass') != 2:
+            ww = '** warning: no stim timing files given (resting state?)'
+            self.warnings.append('%s\n' % ww)
+
+      if self.svars.anal_domain == 'surface':
+         ee = "** uber_subject.py not yet ready for surface analysis\n"
+         self.errors.append(ee)
+
+      return ''
+
    def set_blocks(self):
-      if len(self.svars.blocks) > 0: return     # use what is given
+      """trust what is set upon entry, but if no anat, clear those blocks"""
+
+      # if we have blocks, check for anat consistency
+
+      if len(self.svars.blocks) > 0:
+         blocks = self.svars.blocks
+         if self.svars.anat:
+            if self.svars.get_tlrc == 'yes':
+               if 'tlrc' in blocks: blocks.remove('tlrc')
+         else:
+            if 'align' in blocks: blocks.remove('align')
+            if 'tlrc'  in blocks: blocks.remove('tlrc')
+
+         # check that we recognize the blocks
+         for bname in blocks:
+            if bname not in g_def_blocks_all:
+               estr = "** unknown processing 'block': %s" % bname
+               self.errors.append(estr)
+
+         return     # use basically what is given
+
+      # no blocks, init based on anat (might never get here anymore)
 
       if self.svars.anat:
          blocks = default_block_order(anat=1)
@@ -1386,30 +1428,30 @@ def update_cvars_from_special(name, cvars, check_sort=0):
    """nothing special to do here yet"""
    return 0
 
-def set_vstr_from_def(obj, name, vlist, vars, verb=1, spec=0, csort=1):
-   """try to set name = value based on vlist
+def set_vstr_from_def(oname, vname, vlist, vobj, verb=1, spec=0, csort=1):
+   """try to set vname = value based on vlist
         (just set as string)
-      if name is not known by the defaults, return failure
+      if vname is not known by the defaults, return failure
 
       if spec: update_vars_from_special(csort)
 
       return 1 on change, 0 on unchanged, -1 on error
    """
 
-   if obj == 'svars':
+   if oname == 'svars':
       defs = g_subj_defs
       sfunc = update_svars_from_special
-   elif obj == 'cvars':
+   elif oname == 'cvars':
       defs = g_ctrl_defs
       sfunc = update_cvars_from_special
    else:
-      print '** set_vstr_from_def: invalid obj name: %s' % obj
+      print '** set_vstr_from_def: invalid obj name: %s' % oname
       return -1
 
-   return SUBJ.set_var_str_from_def(obj, name, vlist, vars, defs=defs,
+   return SUBJ.set_var_str_from_def(oname, vname, vlist, vobj, defs=defs,
                                     verb=verb, csort=csort, spec=sfunc)
 
-def update_svars_from_special(name, svars, check_sort=0):
+def update_svars_from_special(vname, svars, check_sort=0):
    """in special cases, a special svar might need updates, and might suggest
       making other updates
 
@@ -1424,11 +1466,11 @@ def update_svars_from_special(name, svars, check_sort=0):
    """
 
    # quick check for field to work with
-   if not name in ['epi', 'stim'] : return 0
+   if not vname in ['epi', 'stim'] : return 0
 
    changes = 0
 
-   if name == 'epi':
+   if vname == 'epi':
       fnames = svars.epi
       nf = len(fnames)
       if nf < 2: return 0       # nothing to do
@@ -1447,10 +1489,10 @@ def update_svars_from_special(name, svars, check_sort=0):
             # attach index and name in 2-D array, sort, extract names
             vlist = [[indlist[ind], fnames[ind]] for ind in range(nf)]
             vlist.sort()
-            svars.set_var(name, [val[1] for val in vlist])
+            svars.set_var(vname, [val[1] for val in vlist])
             changes += 1
 
-   elif name == 'stim':
+   elif vname == 'stim':
       fnames = svars.stim
       nf = len(fnames)
       if nf < 2: return 0               # nothing to do
@@ -1475,7 +1517,7 @@ def update_svars_from_special(name, svars, check_sort=0):
             # attach index and name in 2-D array, sort, extract names
             vlist = [[indlist[ind], fnames[ind]] for ind in range(nf)]
             vlist.sort()
-            svars.set_var(name, [val[1] for val in vlist])
+            svars.set_var(vname, [val[1] for val in vlist])
             changes += 1
 
       # apply labels unless some already exist
@@ -1516,10 +1558,8 @@ helpstr_todo = """
 ---------------------------------------------------------------------------
                         todo list:  
 
-- choose block list
-- init from analysis type (vol/surf-task/rest)
-   - help for what this means
-- write help for stim types
+- add rest group box: RONI options?  ricor inputs and options
+- add surface group box: surf anat, spec files
 - change print statements to LOG statements
    - optionally store to pass up to GUI (maybe start applying APSubj.status)
    - GUI could process (display as html?) and clear log
@@ -1530,12 +1570,7 @@ helpstr_todo = """
 - does tcsh exist?
 - make UberInterface class in uber_subject.py?
 - more verb output
-- group box : choose blocks?
-   - display 2 methods, method 1 is grayed when 2 is not empty
-   1. list of toggle boxes showing all standard blocks (what about copy_anat?)
-   2. text edit field to simply type list of blocks
 
-- allow stim_file regressors and labels
 - note usubj version in parameter file (warn user of version differences)
 - add range error checking for many variables?
   (types are done when converting from str)
