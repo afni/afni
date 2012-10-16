@@ -36,7 +36,7 @@ void usage_3dSurfMask (SUMA_GENERIC_ARGV_PARSE *ps)
    "  location relative to the surface.\n"
    "  Voxels in the first volume (named PREFIX.m) label voxel positions \n"
    "  relative to the surface. With -fill_method set to FAST, you get a \n"
-   "  a crude mask with voxel values set to the following:\n"
+   "  a CRUDE mask with voxel values set to the following:\n"
    "     0: Voxel outside surface\n"
    "     1: Voxel just outside the surface. This means the voxel\n"
    "        center is outside the surface but inside the \n"
@@ -88,6 +88,8 @@ void usage_3dSurfMask (SUMA_GENERIC_ARGV_PARSE *ps)
    "                        is reversed.\n"
    "     -fill_method METH: METH can take two values; SLOW, and FAST[default].\n"
    "                        FAST can produce holes under certain conditions.\n"
+   "     -no_dist: Do not compute the distances, just the mask from the first \n"
+   "               step.\n"
    "\n"
    " Example: (tcsh syntax)\n"
    "  1- Find distance of voxels around and inside of toy surface:\n"
@@ -138,6 +140,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
    Opt->obj_type = 1; /* nuanced integer values in output */
    Opt->b1 = 0;
    Opt->b2 = 0;
+   Opt->MaskMode = 0;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -186,6 +189,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
          
          brk = YUP;
       }
+      
       if (!brk && (strcmp(argv[kar], "-grid_parent") == 0))
       {
          if (kar+1 >= argc)
@@ -210,6 +214,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-no_dist") == 0))
+      {
+         Opt->MaskMode = 1;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-flip_orientation") == 0))
       {
          Opt->b1 = 1;
@@ -228,7 +238,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
          brk = YUP;
       }
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error 3dSurfMask:\nOption %s not understood. Try -help for usage\n", argv[kar]);
+			fprintf (SUMA_STDERR,
+                  "Error 3dSurfMask: Option %s not understood\n", argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -274,7 +286,8 @@ int main (int argc,char *argv[])
    
    /* check on inputs */
    if (ps->s_N_surfnames + ps->i_N_surfnames + ps->t_N_surfnames != 1) {
-      SUMA_S_Err("Multiple surface specifications used. Only one surface allowed.");
+      SUMA_S_Err("Multiple surface specifications used. "
+                 "Only one surface allowed.");
       exit(1);
    }
 
@@ -407,16 +420,17 @@ int main (int argc,char *argv[])
       SUMA_free(isin_float); isin_float = NULL;
    }
 
-   
-   dsetd = SUMA_VoxelToSurfDistances(SO, dset, NULL, isin, Opt->b2 ? 2:0);
-   tross_Make_History( FuncName , argc,argv , dsetd ) ;
-   OptDs->prefix = SUMA_append_string(NewName.FileName, ".d");
-   EDIT_dset_items( dsetd ,
-                    ADN_prefix    , OptDs->prefix ,
-                    ADN_directory_name , OptDs->prefix_path,
-                    ADN_none);
-   DSET_write(dsetd);
-                    
+   if (!Opt->MaskMode) {
+      SUMA_S_Note("Voxelizing...");
+      dsetd = SUMA_VoxelToSurfDistances(SO, dset, NULL, isin, Opt->b2 ? 2:0);
+      tross_Make_History( FuncName , argc,argv , dsetd ) ;
+      OptDs->prefix = SUMA_append_string(NewName.FileName, ".d");
+      EDIT_dset_items( dsetd ,
+                       ADN_prefix    , OptDs->prefix ,
+                       ADN_directory_name , OptDs->prefix_path,
+                       ADN_none);
+      DSET_write(dsetd);
+   }                 
    if (vpname) SUMA_free(vpname); vpname = NULL;
    if (dset) { DSET_delete(dset); dset = NULL; }
    if (dsetd) { DSET_delete(dsetd); dsetd = NULL; }

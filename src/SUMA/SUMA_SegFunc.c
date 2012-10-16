@@ -5497,10 +5497,13 @@ int SUMA_AddOther(  NI_str_array *clss, int **keysp,
 /*!
    A convenience function for SUMA_hist to build a histogram
    for a sub-brick based on a pre-existing histogram
+   oscifreq and optmethods are only used if href is NULL
+   and if optmethods is not == "NONE"
 */
 SUMA_HIST *SUMA_dset_hist(THD_3dim_dataset *dset, int ia, 
                           byte *cmask, char *label,
-                          SUMA_HIST *href)
+                          SUMA_HIST *href, int ignoreout,
+                          float oscifreq, char *optmethods )
 {
    static char FuncName[]={"SUMA_dset_hist"};
    int i = 0, N_k = 0;
@@ -5526,9 +5529,14 @@ SUMA_HIST *SUMA_dset_hist(THD_3dim_dataset *dset, int ia,
    
    if (href) {
       orange[0] = href->min; orange[1] = href->max;
-      hh = SUMA_hist(fv, N_k, href->K, href->W, orange, "lll", 0); 
+      hh = SUMA_hist(fv, N_k, href->K, href->W, orange, "lll", ignoreout); 
    } else {
-      hh = SUMA_hist(fv, N_k, 0, 0, NULL, "lll",0);
+      if (optmethods && !strcasecmp(optmethods,"NONE")) {
+         hh = SUMA_hist(fv, N_k, 0, 0, NULL, "lll",ignoreout);
+      } else {
+         hh = SUMA_hist_opt(fv, N_k, 0, 0, NULL, "lll",ignoreout,
+                          oscifreq, optmethods);
+      }
    }
    free(fv); fv = NULL;
    SUMA_RETURN(hh);
@@ -5564,7 +5572,7 @@ SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, float *range,
       SUMA_S_Errv("A hist with n = %d samples!!!\n", n);
       SUMA_RETURN(hh); 
    }
-   if (!range) {
+   if (!range || (range[0]==0.0 && range[1] == 0.0)) {
       SUMA_MIN_MAX_VEC(v,n,min, max, minloc, maxloc);
       if (min == max) {
          SUMA_S_Errv("Single value of %f in samples. No good.\n", min);
@@ -5579,7 +5587,9 @@ SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, float *range,
    hh->min = min;
    hh->n = n;
    if (label) hh->label = SUMA_copy_string(label);
-   
+   SUMA_LHv("User opts: %d, %f, range [%f %f]\n",
+               Ku, Wu, 
+               range?range[0]:-1111, range?range[1]:-1111);
    if (Ku > 0) { /* user sets number of bins */
       hh->K = Ku;
       hh->W = (max-min)/(float)hh->K;
@@ -5632,11 +5642,11 @@ SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range,
                      float oscfreqthr, char *methods) 
 {
    static char FuncName[]={"SUMA_hist_opt"};
-   int i=0, minloc, maxloc, ib=0, N_iter=0, N_itermax=10;
+   int i=0, minloc, maxloc, ib=0, N_iter=0, N_itermax=10, N_osci=0;
    float min=0.0, max=0.0, orange[2]={0.0, 0.0}, mxcn=0.0, osfrac=0.0;
    float minmaxfrac=0.0, oscfracthr=0.0;
    SUMA_HIST *hh=NULL, *hhn=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -5650,20 +5660,19 @@ SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range,
       Ku = 0; /* if set by user, should be loosened because we're controlling
                  range and binwidth here */
       /* try tightening the range */
-      if ((float)hh->N_ignored/(float)hh->n > 0.01) {
-         SUMA_LHv("For histogram %s, %.2f%% of the samples were\n"
-                      "ignored for being outside the range [%f %f]\n"
-                      "Trying range tightening\n",
+      if (1) {
+         mxcn = SUMA_hist_perc_freq(hh, 50, 1, NULL, 0.01);
+         SUMA_LHv("Trying range tightening for hist %s\n"
+                  "Nig/n=%f, min=%f, max=%f, mxcn=%f\n",
                 hh->label,
                 100*(float)hh->N_ignored/(float)hh->n, 
-                hh->min, hh->max);
+                hh->min, hh->max, mxcn);
          /* try to shrink the range and repeat */
-         mxcn = SUMA_hist_perc_freq(hh, 50, 1, NULL);
          i = 0; 
-         while (i < hh->K && hh->cn[i]/mxcn < 0.001) ++i;
+         while (i < hh->K && (hh->cn[i]/mxcn < 0.001)) ++i;
          orange[0] = hh->b[i]-0.5*hh->W;
          i = hh->K-1;
-         while (i > 0 && hh->cn[i]/mxcn < 0.001) --i;
+         while (i > 0 && (hh->cn[i]/mxcn < 0.001)) --i;
          orange[1] = hh->b[i]+0.5*hh->W;
          if (orange[0] != hh->min || orange[1] != hh->max) {
             /* retry with new range */
@@ -5689,7 +5698,7 @@ SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range,
                    100*(float)hh->N_ignored/(float)hh->n, 
                    hh->min, hh->max, N_iter);
             /* try to increase the range the range and repeat */
-            mxcn = SUMA_hist_perc_freq(hh, 50, 1, NULL);
+            mxcn = SUMA_hist_perc_freq(hh, 50, 1, NULL, 0.01);
             if (hh->cn[hh->K-1] > hh->cn[0]) orange[1] += hh->K/20.0*hh->W;
             else if (hh->cn[hh->K-1] < hh->cn[0]) orange[0] -= hh->K/20.0*hh->W;
             else {
@@ -5722,20 +5731,23 @@ SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range,
    /* bin oscillations? */
    if (oscfreqthr >= 0.0 && strstr(methods,"Osci")) {
       if (oscfreqthr == 0.0f) oscfreqthr = 0.3;
-      N_iter = 0; N_itermax = 10;
-      while ((osfrac = SUMA_hist_oscillation(hh, minmaxfrac, oscfracthr)) 
-                        > oscfreqthr &&
+      N_iter = 0; N_itermax = 50;
+      
+      while (((osfrac = SUMA_hist_oscillation(hh, minmaxfrac, 
+                                             oscfracthr, &N_osci)) 
+                        > oscfreqthr ||
+               N_osci > 5 ) &&
              N_iter <= N_itermax) {
          if (N_iter < N_itermax) {
             if (strstr(methods,"OsciSmooth")) { /* by smoothing */
-            SUMA_LHv("Histogram %s oscifraq = %f, needs smoothing, "
-                         "iter %d\n",
-                        hh->label, osfrac, N_iter);
-            SUMA_hist_smooth(hh,1);
+               SUMA_LHv("Histogram %s oscifraq = %f, N_osci=%d, "
+                        "needs smoothing, iter %d\n",
+                     hh->label, osfrac, N_osci, N_iter);
+               SUMA_hist_smooth(hh,1);
             } else if (strstr(methods,"OsciBinWidth")){
-               SUMA_LHv("Histogram %s oscifraq = %f needs bin adjustment,"
-                            " iter %d\n",
-                            hh->label,osfrac,  N_iter);
+               SUMA_LHv("Histogram %s oscifraq = %f, N_osci=%d, "
+                        "needs bin adjustment, iter %d\n",
+                        hh->label,osfrac,  N_osci, N_iter);
                Wu = hh->W*1.1; orange[0] = hh->min; orange[1] = hh->max;
                /* retry with new width */
                SUMA_LHv("Retry with Ku=%d, Wu=%f, orange=[%f %f], iter %d\n",
@@ -5814,18 +5826,19 @@ int SUMA_hist_smooth( SUMA_HIST *hh, int N_iter )
 /*!
    Look for oscillation (bad bin width) in histogram
    
-   minmaxfrac : Do not look for oscillation if a bin frequency is 
-                is less than minmaxfrac*max_frequency(histogram)
+   minfreq : Do not look for oscillation if a bin frequency is 
+                is less than minfreq
                 Set to 0.0 to get default of 0.001
    oscfracthr : Do not consider a bin to exhibit oscillation if
                 the average of the absolute differences at that location
                 divided by the bin's frequency is less than oscfracthr
-                Set to 0.0 to get default of 0.3
+                Set to 0.0 to get default of 0.05
    Returns the fraction of bins exhibiting oscillation from the total
-   number of candidate bins (those exceeding minmaxfrac)
+   number of candidate bins (those exceeding minfreq).
+   If N_osci is not null, return the actual count of oscillations
 */
 float SUMA_hist_oscillation( SUMA_HIST *hh, 
-                             float minmaxfrac, float oscfracthr)
+                             float minfreq, float oscfracthr, int *N_osci)
 {
    static char FuncName[]={"SUMA_hist_oscillation"};
    int iosc=0,mxosc,i=0;
@@ -5834,15 +5847,15 @@ float SUMA_hist_oscillation( SUMA_HIST *hh,
    
    SUMA_ENTRY;
    
-   if (minmaxfrac==0.0f) minmaxfrac = 0.001;
-   if (oscfracthr==0.0f) oscfracthr = 0.3;
+   if (minfreq==0.0f) minfreq = 0.001;
+   if (oscfracthr==0.0f) oscfracthr = 0.05;
    
-   mx = SUMA_hist_perc_freq(hh,50,1,NULL);
+   mx = SUMA_hist_perc_freq(hh,50,1,NULL, 0.01);
    if (mx == 0.0f) SUMA_RETURN(YUP);
-   
+
    iosc=0; mxosc=0;
    for (i=1; i<hh->K-1;++i) {
-      if (hh->cn[i]/mx > minmaxfrac) {
+      if (hh->cn[i] > minfreq) {
          ++mxosc;
          db = hh->cn[i] - hh->cn[i-1];
          df = hh->cn[i] - hh->cn[i+1];
@@ -5854,10 +5867,12 @@ float SUMA_hist_oscillation( SUMA_HIST *hh,
          }
       }
    }
+   
+   if (N_osci) *N_osci = iosc;
    oscfreq = 0;
    if (mxosc) oscfreq = (float)iosc/mxosc; 
-   SUMA_LHv("Osci frac of histogram %s is %f\n", 
-                  hh->label, oscfreq);
+   SUMA_LHv("Osci frac of histogram %s is %f (%d oscis)\n", 
+                  hh->label, oscfreq, iosc);
    
    SUMA_RETURN(oscfreq);
 }
@@ -5878,6 +5893,52 @@ float SUMA_hist_freq(SUMA_HIST *hh, float vv)
    return(a*hh->cn[i0+1]+(1.0-a)*hh->cn[i0]);
 }
 
+double SUMA_hist_value(SUMA_HIST *hh, double vv, char *what)
+{
+   double a = 0.0, val=0.0;
+   int i0, ii=0;
+   
+   if (!hh) return(-1.0);
+   if (vv<hh->b[0]) return(hh->cn[0]);
+   if (vv>hh->b[hh->K-1]) return(hh->cn[hh->K-1]);
+   a = ((vv-hh->b[0])/hh->W);
+   i0 = (int)a; a = a-i0;
+   val = 0.0;
+   if (!what || !strcmp(what,"freq")) { /* return the frequency */
+      val = a*hh->cn[i0+1]+(1.0-a)*hh->cn[i0];
+   } else if (!strcmp(what,"count")) { /* return the count */
+      val = a*hh->c[i0+1]+(1.0-a)*hh->c[i0];
+   } else if (!strcmp(what,"bin")) { /* return the location on bin axis */
+      val = i0+a;
+   } else if ( !strcmp(what,"cdf") || 
+               !strcmp(what,"ncdf")) { /* return the cdf */
+      if (what[0] == 'n') { /* normalized */
+         for (ii=0; ii<=i0; ++ii) {
+            val += hh->cn[ii]; 
+         }
+         val += a*hh->cn[i0+1];
+      } else { /* count */
+         for (ii=0; ii<=i0; ++ii) {
+            val += hh->c[ii]; 
+         }
+         val += a*hh->c[i0+1];
+      }
+   } else if (!strcmp(what,"rcdf") || 
+              !strcmp(what,"nrcdf")) { /* return the reverse cdf */
+      if (what[0] == 'n') { /* normalized */
+         for (ii=hh->K-1; ii>i0; --ii) {
+            val += hh->cn[ii]; 
+         }
+         val += (1.0-a)*hh->cn[i0];
+      } else { /* count */
+         for (ii=hh->K-1; ii>i0; --ii) {
+            val += hh->c[ii]; 
+         }
+         val += (1.0-a)*hh->c[i0];
+      }
+   }
+   return(val);
+}
 
 SUMA_HIST *SUMA_Free_hist(SUMA_HIST *hh)
 {
@@ -5897,11 +5958,12 @@ SUMA_HIST *SUMA_Free_hist(SUMA_HIST *hh)
 /* 
    Sorts the histogram frequencies and returns the desired percentile
 */
-float SUMA_hist_perc_freq(SUMA_HIST *hh, float perc, int norm, int *iperc)
+float SUMA_hist_perc_freq(SUMA_HIST *hh, float perc, int norm, int *iperc, 
+                          float minperc)
 {
    static char FuncName[]={"SUMA_hist_perc_freq"};
    float ff = -1.0, *vvv=NULL;
-   int ides=-1;
+   int ides=-1, ioff=0;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -5921,8 +5983,13 @@ float SUMA_hist_perc_freq(SUMA_HIST *hh, float perc, int norm, int *iperc)
       SUMA_free(vvv); vvv=NULL;
    }
    
+   if (minperc > 0.0) {
+      ioff=0;
+      if (norm) minperc *= hh->n;
+      while (ioff < hh->K && hh->isrt[ioff] < minperc) ++ioff; 
+   }
    /* get the percentile */
-   ides = SUMA_ROUND(perc/100.0*hh->K) - 1;
+   ides = ioff+SUMA_ROUND(perc/100.0*(hh->K-ioff)) - 1;
    if (ides < 0) ides = 0;
    else if (ides > hh->K-1) ides = hh->K-1;
    
@@ -5931,6 +5998,45 @@ float SUMA_hist_perc_freq(SUMA_HIST *hh, float perc, int norm, int *iperc)
    else ff = hh->cn[hh->isrt[ides]];
    
    SUMA_RETURN(ff);    
+}
+
+/* Return the value at which you exceed a certain count.
+   if from_top == 1 then start counting (reverse cdf) from the right
+   else count from the left (cdf)
+*/
+double SUMA_val_at_count(SUMA_HIST *hh, double count, int norm, int from_top) 
+{ 
+   static char FuncName[]={"SUMA_val_at_count"};
+   int ii=0;
+   double val=0.0;
+   double vacc, ith;
+   
+   SUMA_ENTRY;
+   
+   if (!hh) SUMA_RETURN(val);
+   if (norm) count *= hh->n;
+   
+   if (from_top) {
+      ii=hh->K-1; vacc=0.0; 
+      while(ii >=0 && vacc < count) { vacc += hh->c[ii]; --ii; }          
+      if (ii==hh->K-1 || ii==0) {
+         val = hh->b[ii];
+      } else {
+         ith = (vacc-count)/hh->c[ii+1];
+         val = -ith*hh->W+hh->b[ii+1];
+      }
+   } else {
+      ii=0; vacc=0.0; 
+      while(ii < hh->K && vacc < count) { vacc += hh->c[ii]; ++ii; }          
+      if (ii==hh->K-1 || ii==0) {
+         val = hh->b[ii];
+      } else {
+         ith = (vacc-count)/hh->c[ii-1];
+         val = -ith*hh->W+hh->b[ii-1];
+      }
+   }
+   
+   SUMA_RETURN(val);
 }
 
 char *SUMA_hist_info(SUMA_HIST *hh, int norm, int level)

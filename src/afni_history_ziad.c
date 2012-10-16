@@ -65,6 +65,46 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 16, Oct , 2012 , ZSS , "3dSurfMask" , MICRO , TYPE_NEW_OPT,
+   "Option -no_dist to avoid length distance computations.",
+   "Also, the fast method was improved per the comment below."
+ },
+
+ { 16, Oct , 2012 , ZSS , "suma-general" , MINOR , TYPE_BUG_FIX,
+   "Fixed functions that generate volume masks from surfaces",
+   "There was a bug in SUMA_FindVoxelsInSurface() and SUMA_SurfGridIntersect()\n"
+   "which made for ugly masks in the fast mode. This is no longer the case,\n"
+   "SUMA_FindVoxelsInSurface() is about as good as its sister function\n"
+   "SUMA_FindVoxelsInSurface_SLOW(), but considerably faster.\n"
+   "This bug fix might affect some 3dSkullStrip and 3dSurfMask results. The \n"
+   "more voxel sizes differ from 1x1x1, the more noticeable the difference \n"
+   "might be."
+ },
+
+ { 15, Oct , 2012 , ZSS , "@T1scale" , MINOR , TYPE_NEW_OPT,
+   "A better masking option using -brainhull",
+   "The option seems pretty good at creating brain mask from pretty \n"
+   "lousy data.\n"
+ },
+
+ { 13, Oct , 2012 , ZSS , "3dHist" , MINOR , TYPE_NEW_PROG,
+   "Computes histograms using functions from the segmentation routines",
+   "The program uses heuristics to automatically select histogram \n"
+   "parameters, and it allows histogram queries.\n"
+   "It had to be separate from 3dhistog because it uses libSUMA.a and because\n"
+   "the latter's interface was getting too complicated."
+ },
+
+ { 13, Oct , 2012 , ZSS , "3dinfo" , MICRO , TYPE_NEW_OPT,
+   "-voxvol returns a voxel's volume in mm cubed",
+   NULL
+ },
+
+ { 12, Oct , 2012 , ZSS , "3dedge3" , MINOR , TYPE_BUG_FIX,
+   "Fixed scaling problem for short/byte data.",
+   NULL
+ },
+
  { 10, Oct , 2012 , ZSS , "DriveSuma" , MICRO , TYPE_NEW_OPT,
    "Added -Opa to control opacity",
    NULL

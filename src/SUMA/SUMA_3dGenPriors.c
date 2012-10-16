@@ -1227,7 +1227,8 @@ int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
    SUMA_ENTRY;
    
    sprintf(sbuf,"@GP.%s.dists", Opt->uid);
-   SUMA_S_Notev("See script %s for comparisons of input features to those of the training set.\n",
+   SUMA_S_Notev("See script %s for comparisons of input "
+                "features to those of the training set.\n",
                sbuf);
    if (!scrout) scrout = fopen(sbuf,"w");
    fprintf(scrout,"#!/bin/tcsh -f\n"
@@ -1250,7 +1251,8 @@ int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
                SUMA_RETURN(0);
             }
             sprintf(sbuf, "h(%s)",Opt->feats->str[i]);
-            if ((hhn = SUMA_dset_hist(Opt->sig, ia, Opt->cmask, sbuf, FD->hh))) {
+            if ((hhn = SUMA_dset_hist(Opt->sig, ia, 
+                                       Opt->cmask, sbuf, FD->hh, 0, 0, NULL))) {
                SUMA_LHv("Got %s\n", sbuf);
                sprintf(sbuf, "h.%s_%s.1D", 
                      Opt->uid[0] != '\0' ? Opt->uid:"test", Opt->feats->str[i]);

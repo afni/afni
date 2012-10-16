@@ -8,7 +8,7 @@ goto PARSE
 RET_PARSE:
 
 COPY_DATA:
-      if ( ! -f $odir/mask+orig.HEAD ||   \
+      if ( ! -f $odir/amask+orig.HEAD ||   \
            ! -f $odir/T1+orig.HEAD ||  \
            ! -f $odir/PD+orig.HEAD   ) then
    3dcalc -overwrite -datum short -a $T1 -expr 'a' -prefix $odir/T1
@@ -17,7 +17,7 @@ COPY_DATA:
       3dcalc -overwrite -datum byte -a $imask -expr 'a' -prefix $odir/mask
    else
       3dmerge -1blur_fwhm 25 -prefix $odir/PDsm $odir/PD+orig
-      3dAutomask -prefix $odir/mask $odir/PDsm+orig
+      3dAutomask -prefix $odir/amask $odir/PDsm+orig
       \rm -f $odir/PDsm+orig.* 
    endif
       else
@@ -37,25 +37,47 @@ STATIT:
    
 NEWMASK:
    cd $odir
-   set med = `3dBrickStat -non-zero -median -mask mask+orig T1+orig.`
-   if ($menh != '') then
-      3dcalc   -a T1+orig. -b PD.ls+orig'[perc:75.00]' \
-               -datum short -overwrite \
-               -expr "$med[2]/b*step(b)" \
-               -prefix enhancement+orig.
-      3dcalc -a enhancement+orig. -expr "(1-step(a-$menh))" -prefix maskenh
-      3dinfill -input maskenh+orig -overwrite -prefix maskenh
+   if ( "$menh" != "0.0" && ! -f T1.hull.mask.m+orig.HEAD) then
+      #Get enough voxels for 1 liter of goods
+      set vv = `3dinfo -voxvol T1+orig`
+      if ( ! -f T1.niml.hist ) then
+         3dHist -input T1+orig -prefix T1
+      else
+         echo "Reusing T1.niml.hist"
+      endif 
+      set rcdfval = `ccalc "$menh*1e6/$vv"`
+      set thout = (`3dHist -thishist T1.niml.hist -val_at rcdf $rcdfval`)
+      set thout = $thout[2]    
+      ConvexHull -isocmask "-a T1+orig -expr step(a-$thout)" \
+                 -input T1+orig. -o_gii T1.hull
+      3dSurfMask  -sv T1+orig. -fill_method fast -no_dist \
+                  -i T1.hull.gii -prefix T1.hull.mask -overwrite
+   else
+      if ( "$menh" != "0.0" ) echo "Reusing T1.hull.mask.m+orig.HEAD+orig"
    endif
    cd $idir
       
 SCALEIT:
    cd $odir
-   set mm = mask+orig.HEAD
-   if ( -f maskenh+orig.HEAD) set mm = maskenh+orig.HEAD
+   set med = `3dBrickStat -non-zero -median -mask amask+orig T1+orig.`
+   if ("$menh" == 0.0) then
+      set mm = amask+orig.HEAD
+      set meq = 'step(c)'
+   else 
+      set mm = T1.hull.mask.m+orig.HEAD
+      set meq = 'step(c-1)'
+   endif
+   if ($unmasked_output == 1) set meq = '1'
+   
    3dcalc   -a T1+orig. -b PD.ls+orig'[perc:75.00]' \
                -c $mm -datum short -overwrite \
-               -expr "step(c)*a/b*$med[2]" \
+               -expr "$meq*a/b*$med[2]" \
                -prefix T1.uni+orig.
+   
+   #One could also do the regular division by the PD (if there is a real
+   #PD volume. The you can detect the bad apples by looking for those voxels 
+   #who have markedly changed their ranking in the output compared to the input.
+   #Bad apples would be zeroed out.
    
    cd $idir
 
@@ -81,7 +103,8 @@ set imask = ''
 set idir = $PWD
 set T1 = ''
 set PD = ''
-set menh = ''
+set menh = 0.0
+set unmasked_output = 0
 
 if ("$1" == '') goto HELP
 while ($cnt <= $Narg)
@@ -131,15 +154,20 @@ while ($cnt <= $Narg)
       endif
    endif
 
-   if ($donext && "$argv[$cnt]" == "-maxenh") then
+   if ($donext && "$argv[$cnt]" == "-hullmask") then
       if ($cnt == $Narg) then
-         echo "Need a value suffix after -maxenh"
+         echo "Need a value after -hullmask (1.0 is good)"
          goto END
       else
          @ cnt ++
          set menh = "$argv[$cnt]"
          set donext = 0   
       endif
+   endif
+
+   if ($donext && ("$argv[$cnt]" == "-unmasked_uni")) then
+      set unmasked_output = 1
+      set donext = 0   
    endif
    
    if ($donext && "$argv[$cnt]" == "-T1") then
@@ -222,6 +250,11 @@ HELP:
    echo "              of most interest being T1.uni+orig" 
    echo ""
    echo "         Script will reuse existing intermediate volumes"
+   echo ""
+   echo "   -hullmask VOL: Mask output using the convex hull of the brightest."
+   echo "                  VOL liters worth of voxels. 1.0 is good start"
+   echo "   -unmasked_uni: Do not apply masking to uniformized volume"
+   echo "                  Masks are computed nonetheless"
    echo ""
    echo "   -echo: Set echo"
    echo "   -help: this message" 

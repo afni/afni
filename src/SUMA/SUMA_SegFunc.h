@@ -385,10 +385,11 @@ SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range,
                      char *label, int ignoreout, 
                      float oscfrqthr, char *methods);
 SUMA_HIST *SUMA_dset_hist(THD_3dim_dataset *dset, int ia, 
-                          byte *cmask, char *label, SUMA_HIST *href);
+                          byte *cmask, char *label, SUMA_HIST *href,
+                          int ignoreout, float oscifreq, char *methods);
 int SUMA_hist_smooth( SUMA_HIST *hh, int N_iter ); 
 float SUMA_hist_oscillation( SUMA_HIST *hh, 
-                             float minmaxfrac, float oscfracthr);
+                             float minmaxfrac, float oscfracthr, int *N_osci);
 SUMA_HIST *SUMA_Free_hist(SUMA_HIST *hh);
 void SUMA_Show_hist(SUMA_HIST *hh, int norm, FILE *out);
 void SUMA_Show_dist(SUMA_FEAT_DIST *FD, FILE *out);
@@ -396,7 +397,10 @@ void SUMA_Show_dists(SUMA_FEAT_DISTS *FDV, FILE *out, int level);
 char *SUMA_dist_info(SUMA_FEAT_DIST *FD, int level);
 char *SUMA_dists_info(SUMA_FEAT_DISTS *FDV, int level);
 float SUMA_hist_freq(SUMA_HIST *hh, float vv);
-float SUMA_hist_perc_freq(SUMA_HIST *nn, float perc, int norm, int *iperc);
+double SUMA_hist_value(SUMA_HIST *hh, double vv, char *what);
+float SUMA_hist_perc_freq(SUMA_HIST *nn, float perc, int norm, int *iperc, 
+                          float minfreq);
+double SUMA_val_at_count(SUMA_HIST *hh, double count, int norm, int from_top);
 char *SUMA_hist_variable(SUMA_HIST *hh);
 char *SUMA_hist_conditional(SUMA_HIST *hh);
 char *SUMA_dist_variable(SUMA_FEAT_DIST *hh);

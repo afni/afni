@@ -61,6 +61,7 @@ void Syntax(void)
 "   -adj: Voxel size along j direction (abs(dj))\n"
 "   -adk: Voxel size along k direction (abs(dk))\n"
 "   -ad3: same as -adi -adj -adk\n"
+"   -voxvol: Voxel volume in cubic millimeters\n"
 "   -oi: Volume origin along the i direction\n"
 "   -oj: Volume origin along the j direction\n"
 "   -ok: Volume origin along the k direction\n"
@@ -201,6 +202,7 @@ typedef enum {
    HISTORY, ORIENT,
    SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER, 
    SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, ID, SMODE,
+   VOXVOL,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
@@ -222,6 +224,7 @@ char Field_Names[][32]={
    {"=grid?"}, {"=dim?"}, {"=delt?"}, {"=ornt?"}, {"=cent?"},
    {"=obl?"}, {"sDval"}, {"Dval"}, {"=dim_delta_orient_center_obl"}, 
    {"id"}, {"smode"}, 
+   {"voxvol"},
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
 
 char *PrintForm(INFO_FIELDS sing , int namelen, byte ForHead)
@@ -368,6 +371,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = ADJ; 
          sing[N_sing++] = ADK; iarg++; 
          continue;
+      } else if( strcasecmp(argv[iarg],"-voxvol") == 0) {
+         sing[N_sing++] = VOXVOL; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-oi") == 0) {
          sing[N_sing++] = OI; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-oj") == 0) {
@@ -754,6 +759,10 @@ int main( int argc , char *argv[] )
             break;
          case ADK:
             fprintf(stdout,"%f", fabs(DSET_DZ(dset)));
+            break;
+         case VOXVOL:
+            fprintf(stdout,"%f", fabs(DSET_DX(dset))*
+                                 fabs(DSET_DY(dset))*fabs(DSET_DZ(dset)));
             break;
          case LTABLE:
             {

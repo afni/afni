@@ -165,6 +165,7 @@ typedef struct {
    
    char *ShowThisDist;
    int fast; /* if 1, use faster - I hope - version of p_C_GIV_A */
+   float range[2];
 } SEG_OPTS;
 
 void GenPriors_usage(int) ;
