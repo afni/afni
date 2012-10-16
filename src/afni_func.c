@@ -1760,7 +1760,7 @@ MRI_IMAGE * AFNI_ttatlas_overlay( Three_D_View *im3d ,
    byte *b0=NULL , *brik,  *ovc  ;
    short *s0=NULL, *ovar, *val, *fovar ;
    float *f0=NULL;
-   MRI_IMAGE *ovim=NULL , *b0im, *fovim=NULL;
+   MRI_IMAGE *ovim=NULL, *b0im=NULL, *fovim=NULL, *b1im=NULL;
    int gwin , fwin , nreg , ii,jj , nov ;
    int at_sbi, fim_type, at_vox, at_nsb;
 
@@ -1817,6 +1817,8 @@ ENTRY("AFNI_ttatlas_overlay") ;
    ovim = mri_new_conforming( b0im , MRI_short ) ;   /* new overlay */
    ovar = MRI_SHORT_PTR(ovim) ;
    memset( ovar , 0 , ovim->nvox * sizeof(short) ) ;
+   /* only needed b0im to get resampled grid */
+   mri_free(b0im);
 
    /* fwin => function 'wins' over Atlas - overlay image gets priority */
    /* gwin => gyral Atlas brick 'wins' over 'area' Atlas brick - */
@@ -1833,22 +1835,22 @@ ENTRY("AFNI_ttatlas_overlay") ;
    at_nsb = DSET_NVALS(atlas_ovdset);
    nov = 0;
    for( at_sbi=0; at_sbi < at_nsb; at_sbi++) {
-      b0im = AFNI_slice_flip( n,at_sbi,RESAM_NN_TYPE,ax_1,ax_2,ax_3,
+      b1im = AFNI_slice_flip( n,at_sbi,RESAM_NN_TYPE,ax_1,ax_2,ax_3,
                              atlas_ovdset);
-      if( b0im == NULL )
+      if( b1im == NULL )
          RETURN(NULL) ;
-      fim_type = b0im->kind ;
+      fim_type = b1im->kind ;
       switch( fim_type ){
          default:
             RETURN(NULL) ;
          case MRI_byte:
-            b0 = MRI_BYTE_PTR(b0im);
+            b0 = MRI_BYTE_PTR(b1im);
          break ;
          case MRI_short:
-            s0 = MRI_SHORT_PTR(b0im);
+            s0 = MRI_SHORT_PTR(b1im);
          break ;
          case MRI_float:
-            f0 = MRI_FLOAT_PTR(b0im);
+            f0 = MRI_FLOAT_PTR(b1im);
          break ;
       }
 
@@ -1879,7 +1881,7 @@ ENTRY("AFNI_ttatlas_overlay") ;
          }
 
       }
-      mri_free(b0im) ;
+      mri_free(b1im) ;
    }
 
    if(PRINT_TRACING)
@@ -1895,8 +1897,8 @@ ENTRY("AFNI_ttatlas_overlay") ;
    if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
       printf("re-using old overlay for atlas\n");
    fovim = fov ;                                      /* old overlay */
-   fovar = MRI_SHORT_PTR(ovim) ;
-   if( fovim->nvox != b0im->nvox ){                    /* shouldn't happen!  */
+   fovar = MRI_SHORT_PTR(fovim) ;
+   if( fovim->nvox != ovim->nvox ){                    /* shouldn't happen!  */
         if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
             printf("freeing ovim at early return\n");
          mri_free(ovim); RETURN(NULL) ;
@@ -1910,9 +1912,6 @@ ENTRY("AFNI_ttatlas_overlay") ;
          nov++;
       }
    }
-   if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
-       printf("freeing b0im at normal return\n");
-   mri_free(b0im);
 
    if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
        printf("freeing ovim at normal return\n");
