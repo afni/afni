@@ -236,8 +236,41 @@ def process_options(valid_opts, argv):
    use_gui = 1 # assume GUI unless we hear otherwise
    svar_keys = USUBJ.g_svar_dict.keys()
 
-   # first process all setup options
    errs = 0
+
+   # ------------------------------------------------------------
+   # first process all setup options (e.g. -anal_type/domain)
+   # - since they might go via -svar, we must search
+   for opt in uopts.olist:
+      # just check for 'rest' here
+      if opt.name == '-anal_type':
+         val, err = uopts.get_string_opt('', opt=opt)
+         if val == None or err: return -1, None, None, None
+         if val == 'rest':
+            if verb > 1: print '-- init from rest defaults'
+            svars.merge(USUBJ.g_rdef_strs)
+      elif opt.name == '-anal_domain':
+         val, err = uopts.get_string_opt('', opt=opt)
+         if val == None or err: return -1, None, None, None
+         if val == 'surface':
+            print '** uber_subject.py: not ready for surface analysis'
+            return -1, None, None, None
+
+      elif opt.name == '-svar':
+         val, err = uopts.get_string_list('', opt=opt)
+         if val == None or err: return -1, None, None, None
+         if val[0] == '-anal_type':
+            if val[1] == 'rest':
+               if verb > 1: print '-- init from rest defaults'
+               svars.merge(USUBJ.g_rdef_strs)
+         elif val[0] == '-anal_domain':
+            if val[1] == 'surface':
+               print '** uber_subject.py: not ready for surface analysis'
+               return -1, None, None, None
+
+   # done with analysis init options
+   # ------------------------------------------------------------
+
    for opt in uopts.olist:
       # skip -verb and any terminal option (though they should not be here)
       if   opt.name == '-help':            continue
@@ -248,6 +281,10 @@ def process_options(valid_opts, argv):
       elif opt.name == '-ver':             continue
 
       elif opt.name == '-verb':            continue
+
+      # and skip any pre-setup options ...
+      elif opt.name == '-anal_type':       continue
+      elif opt.name == '-anal_domain':     continue
 
       # and skip any post-setup options ...
       elif opt.name == '-print_ap_command':continue
@@ -319,6 +356,14 @@ def process_options(valid_opts, argv):
          subj = run_ap_command(svars, cvars)
          if subj != None and uopts.find_opt('-exec_proc_script'):
             subj.exec_proc_script()
+
+   if verb > 2: # show applied subject variables
+      changestr = cvars.changed_attrs_str(USUBJ.g_cdef_strs, skiplist='name',
+                                         showskip=0, showdel=0)
+      print '++ applied control variables: %s\n' % changestr
+      changestr = svars.changed_attrs_str(USUBJ.g_sdef_strs, skiplist='name',
+                                         showskip=0, showdel=0)
+      print '++ applied subject variables: %s\n' % changestr
 
    if errs:    return -1, None, None, None
    if use_gui: return  0, svars, cvars, guiopts

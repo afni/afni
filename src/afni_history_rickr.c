@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, OCT, 2012, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "added analysis type and processing block list",
+   NULL
+ } ,
+
  { 12, OCT, 2012, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "included tshift block in example #9 - resting state analysis",
    "Thanks to D Drake for reminding me."
