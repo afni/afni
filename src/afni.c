@@ -4303,6 +4303,30 @@ if(PRINT_TRACING)
           }
           break ;
 
+          case 'j':{        /* jump to cluster peak -- for Dale [17 Oct 2012] */
+            int ic ; float px,py,pz , xx,yy,zz ;
+            AFNI_clu_widgets *cwid = im3d->vwid->func->cwid ;
+            mri_cluster_detail *cld = im3d->vwid->func->clu_det ;
+            if( cwid == NULL || cld == NULL ){ BEEPIT ; break ; }
+            ic = AFNI_clus_find_xyz( im3d ,
+                                     im3d->vinfo->xi , im3d->vinfo->yj , im3d->vinfo->zk ) ;
+            if( ic < 0 ){ BEEPIT ; break ; }
+            AFNI_clus_action_CB( cwid->clu_jump_pb[ic] , (XtPointer)im3d , NULL ) ;
+          }
+          break ;
+
+          case 'f':{       /* flash cluster [17 Oct 2012] */
+            int ic ; float px,py,pz , xx,yy,zz ;
+            AFNI_clu_widgets *cwid = im3d->vwid->func->cwid ;
+            mri_cluster_detail *cld = im3d->vwid->func->clu_det ;
+            if( cwid == NULL || cld == NULL ){ BEEPIT ; break ; }
+            ic = AFNI_clus_find_xyz( im3d ,
+                                     im3d->vinfo->xi , im3d->vinfo->yj , im3d->vinfo->zk ) ;
+            if( ic < 0 ){ BEEPIT ; break ; }
+            AFNI_clus_action_CB( cwid->clu_flsh_pb[ic] , (XtPointer)im3d , NULL ) ;
+          }
+          break ;
+
         }
 
 #else /* OLD OLD OLD */
@@ -5819,6 +5843,9 @@ static char * AFNI_image_help =
  "Shift+keyboard arrow keys = pan crop region around\n"
  "Ctrl+keyboard arrow keys  = expand/shrink crop region\n"
  "Shift+Home = center crop region on current crosshairs\n"
+ "--- THESE NEXT KEYSTROKES OPERATE WITH CLUSTERIZE ---\n"
+ "j = Jump to current cluster's peak (or cmass)\n"
+ "f = Flash current cluster\n"
 ;
 
 static char * AFNI_arrowpad_help =
