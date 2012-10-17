@@ -361,9 +361,10 @@ g_history = """
         - apply compute_fitts for non-reml case
     3.34 Oct 01, 2012: added 'file' type for -regress_stim_types
     3.35 Oct 03, 2012: make dashed parameters illegal for many options
+    3.36 Oct 17, 2012: remove unneeded -set_tr from 1d_tool.py -censor_motion
 """
 
-g_version = "version 3.35, October 3, 2012"
+g_version = "version 3.36, October 17, 2012"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 May 2012"
