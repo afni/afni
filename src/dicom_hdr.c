@@ -3,7 +3,7 @@
 int main(int argc, char **argv)
 {
    char *ppp=NULL , *sin ;
-   int ii, iarg=1 , do_sin=0 , do_printf=0 , do_mul=0 ;
+   int ii, iarg=1 , do_sin=0 , do_printf=0 , do_mul=0 , do_length=1 ;
    int do_stimes=0, do_stimes_verb=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -24,6 +24,7 @@ int main(int argc, char **argv)
             " -printf  = Use 'printf' directly, instead of an intermediate string.\n"
 #endif
             "\n"
+            " -no_length        = Skip lengths and offsets (helps diffs).\n"
             " -slice_times      = Show slice times from Siemens mosaic images.\n"
             " -slice_times_verb = Same, but be more verbose about it.\n"
             "\n"
@@ -76,6 +77,10 @@ int main(int argc, char **argv)
        do_printf++ ; iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-no_length") == 0 ){  /* 17 Oct 2012 [rickr] */
+       do_length = 0 ; iarg++ ; continue ;
+     }
+
      if( strncmp(argv[iarg],"-mulfram",4) == 0 ){  /* 05 May 2008 */
        mri_dicom_noname(1) ; do_mul++ ; iarg++ ; continue ;
      }
@@ -108,6 +113,7 @@ int main(int argc, char **argv)
    }
 
    mri_dicom_header_use_printf(do_printf) ;  /* 02 May 2008 */
+   mri_dicom_header_show_size_offset(do_length) ; /* 17 Oct 2012 [rickr] */
    if( do_stimes_verb ) mri_sst_set_verb(1+do_stimes_verb); /* 02 May 2011 */
 
    for( ii=iarg ; ii < argc ; ii++ ){
