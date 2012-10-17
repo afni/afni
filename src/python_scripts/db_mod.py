@@ -3847,10 +3847,11 @@ def db_cmd_regress_censor_motion(proc, block):
         cmd = cmd + '1d_tool.py -infile %s -set_nruns %d \\\n'       \
                     % (proc.mot_file, proc.runs)
 
-    cmd = cmd + '    -set_tr %g -show_censor_count %s\\\n'      \
+    # remove useless -set_tr option  17 Oct 2012
+    cmd = cmd + '    -show_censor_count %s\\\n'                 \
                 '%s'                                            \
                 '    -censor_motion %g %s\n\n'                  \
-                % (proc.tr, prev_str, cfstr, limit, mot_prefix)
+                % (prev_str, cfstr, limit, mot_prefix)
 
     proc.mot_cen_lim = limit
 
