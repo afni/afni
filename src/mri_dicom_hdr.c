@@ -159,6 +159,10 @@ int g_readpreamble = FALSE;                /* 18 May 2006 [rickr] */
 static int just_do_printf = 0 ;  /* 02 May 2008 */
 void mri_dicom_header_use_printf( int i ){ just_do_printf = i; }
 
+/* in order to run diffs, be able to skip sizes and offsets */
+static int show_size_n_offset = 0 ;  /* 17 Oct 2012 [rickr] */
+void mri_dicom_header_show_size_offset( int i ){ show_size_n_offset = i; }
+
 static char *pbuf = NULL ;  /* output string buffer */
 static int  npbuf = 0 ;     /* number of bytes allocated in pbuf */
 static int  lpbuf = 0 ;     /* number of bytes used in pbuf */
@@ -2443,15 +2447,19 @@ STATUS("looping over groupItem") ;
 	    (void) LST_Position(&groupItem->elementList, (void *)elementItem);
 	while (elementItem != NULL) {
 #ifdef MACOS
-	    (void) RWC_printf("%04x %04x %8ld [%-8lu] ",
+	    (void) RWC_printf("%04x %04x ",
 			  DCM_TAG_GROUP(elementItem->element.tag),
-			  DCM_TAG_ELEMENT(elementItem->element.tag),
+			  DCM_TAG_ELEMENT(elementItem->element.tag) );
+            if (show_size_n_offset)
+               (void) RWC_printf("%8ld [%-8lu] ",
 			  elementItem->element.length ,
                           (unsigned long) elementItem->element.data_offset );
 #else
-	    (void) RWC_printf("%04x %04x %8d [%-8lu] ",
+	    (void) RWC_printf("%04x %04x ",
 			  DCM_TAG_GROUP(elementItem->element.tag),
-			  DCM_TAG_ELEMENT(elementItem->element.tag),
+			  DCM_TAG_ELEMENT(elementItem->element.tag) );
+            if (show_size_n_offset)
+               (void) RWC_printf("%8d [%-8lu] ",
 			  elementItem->element.length ,
                           (unsigned long) elementItem->element.data_offset );
 #endif
