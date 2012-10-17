@@ -291,7 +291,6 @@ static void AFNI_clus_make_widgets( Three_D_View *, int ) ;
 static void AFNI_clus_done_CB  ( Widget,XtPointer,XtPointer ) ;
 
 static void AFNI_clus_av_CB( MCW_arrowval * , XtPointer ) ;
-static void AFNI_clus_action_CB( Widget,XtPointer,XtPointer ) ;
 
 /*---------------------------------------------------------------------------*/
 
@@ -1048,7 +1047,7 @@ static void AFNI_cluster_widgkill( Three_D_View *im3d )
 /*---------------------------------------------------------------------------*/
 /* Get the cluster index of the DICOM coords, if it exists. */
 
-static int AFNI_clus_find_xyz( Three_D_View *im3d , float x,float y,float z )
+int AFNI_clus_find_xyz( Three_D_View *im3d , float x,float y,float z )
 {
    float xf,yf,zf ; int xi,yi,zi , ii,jj,npt,nclu ;
    MCW_cluster_array *clar ; MCW_cluster *cl ;
@@ -1379,7 +1378,7 @@ ENTRY("AFNI_clus_finalize_scat1D_CB") ;
 /*---------------------------------------------------------------------------*/
 /* Callback for all pushbuttons (except 'Done') on the report window. */
 
-static void AFNI_clus_action_CB( Widget w , XtPointer cd , XtPointer cbs )
+void AFNI_clus_action_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    AFNI_clu_widgets *cwid ;

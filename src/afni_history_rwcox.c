@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 15 , OCT , 2012 , RWC , "1dplot" , MICRO , TYPE_BUG_FIX ,
+  { 17 , OCT , 2012 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Add 'j' and 'f' keystrokes for image viewers" ,
+   "Like 'Jump' and 'Flash' in the Clusterize Rpt windows, for the cluster\n"
+   "in which the crosshairs currently reside." } ,
+
+ { 15 , OCT , 2012 , RWC , "1dplot" , MICRO , TYPE_BUG_FIX ,
    "Fixed bug with -CENSORTR run wildcards and coloring" ,
    NULL } ,
 
