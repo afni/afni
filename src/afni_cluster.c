@@ -1636,7 +1636,8 @@ ENTRY("AFNI_clus_action_CB") ;
          case CMASS_MODE: xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm; break;
        }
        MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
-       AFNI_jumpto_dicom( im3d , px,py,pz ) ;
+       if( 666 == (int)cbs ) AFNI_creepto_dicom( im3d , px,py,pz ) ;
+       else                  AFNI_jumpto_dicom ( im3d , px,py,pz ) ;
        EXRETURN ;
 
      /*----------- Process the cluster data -----------*/
