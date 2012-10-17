@@ -314,7 +314,7 @@ ENTRY("TTRR_setup_widgets") ;
    /**** a couple of buttons to control operational settings ****/
 
    ttc->meth_av = new_MCW_optmenu( toprc , "Method" ,
-                                   0 , NMETHOD-1 , NMETHOD-1 , 0 ,
+                                   0 , NMETHOD-1 , 1 , 0 ,
                                    NULL,NULL ,
                                    MCW_av_substring_CB, METHOD_strings ) ;
 
