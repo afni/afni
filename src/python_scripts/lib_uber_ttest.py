@@ -24,9 +24,10 @@ g_history = """
          - added ability to copy other table
          - both -print_script or -save_script imply -no_gui
          - added help
+    1.1  18 Oct, 2012: minor updates to match library changes
 """
 
-g_version = '1.0 (February 14, 2012)'
+g_version = '1.1 (October 18, 2012)'
 
 # ----------------------------------------------------------------------
 # global definitions

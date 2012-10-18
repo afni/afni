@@ -369,13 +369,13 @@ class MainWindow(QtGui.QMainWindow):
                 'delete all table entries', 'display help for this section']
       bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
                                                tips=tips)
-      bwidget.blist[2].setIcon(self.style().standardIcon(
+      bwidget.bdict['help'].setIcon(self.style().standardIcon(
                             QtGui.QStyle.SP_MessageBoxQuestion))
       # assign buttons to main variables
-      gbox.PB_get   = bwidget.blist[0]
-      gbox.PB_copy  = bwidget.blist[1]
-      gbox.PB_clear = bwidget.blist[2]
-      gbox.PB_help  = bwidget.blist[3]
+      gbox.PB_get   = bwidget.bdict['get subj dsets']
+      gbox.PB_copy  = bwidget.bdict['copy other table']
+      gbox.PB_clear = bwidget.bdict['clear']
+      gbox.PB_help  = bwidget.bdict['help']
 
       # create a DatasetTableWidget with those buttons
       dtw = QLIB.DatasetTableWidget(gbox, button_widgets=[bwidget],
