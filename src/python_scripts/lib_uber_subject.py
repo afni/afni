@@ -734,6 +734,7 @@ class AP_Subject(object):
       if len(self.svars.stim) == 0: return '' # if stim are cleared, skip
 
       if UTIL.vals_are_constant(self.svars.stim_type):
+         if self.svars.stim_type[0] == 'times': return ''
          return "%s-regress_stim_types %s \\\n"  \
                    % (self.LV.istr, self.svars.stim_type[0])
 
