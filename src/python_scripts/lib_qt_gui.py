@@ -223,7 +223,8 @@ def static_TextWindow(fname='', text='', title='', parent=None):
 def create_button_list_widget(labels, tips=None, cb=None, dir=0, hstr=0,
                               hind=-1, style=None):
    """create a layout of buttons within a QWidget
-        - buttons will be stored as 'blist' within the returned QWidget
+        - buttons will be stored as 'bdict' within the returned QWidget
+           - bdict[label] = button
         - if tips is set (length should match), setStatusTip
         - if cb is set, connect all call-backs to it
         - if dir = 1, layout direction is vertical, else horizontal
@@ -1414,7 +1415,7 @@ class button_list_widget(object):
 
       self.mainw = QtGui.QWidget(parent)                # main widget
       self.name = 'QWidget with button list'
-      self.blist = []                                   # button list
+      self.bdict = {}                                   # button dictionary
 
       if ltype == 0: layout = QtGui.QVBoxLayout(self.mainw)
       else:          layout = QtGui.QHBoxLayout(self.mainw)
@@ -1423,13 +1424,16 @@ class button_list_widget(object):
          b = QtGui.QPushButton(self.mainw)
          b.setText(label)
          if cb: b.connect(b, QtCore.SIGNAL("clicked()"), cb)
-         self.blist.append(b)
+         self.bdict[label] = b
          layout.addWidget(b)
 
    def get_button_text(self, index=-1, button=None):
       """return text for button
             index  : if apppropriate, return text for this button index
             button : else, locate this button and return text
+
+        rcr - fix this, no blist, probably just
+              return button.text().toAscii().data()
 
         if no button is found, return 'NO_SUCH_BUTTON'"""
 

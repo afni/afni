@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, OCT, 2012, RCR, "uber_ttest.py", MINOR, TYPE_BUG_FIX,
+   "small updates to correspond with library changes",
+   NULL
+ } ,
+
  { 17, OCT, 2012, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "removed unneeded -set_tr from 1d_tool.py -censor_motion",
    NULL

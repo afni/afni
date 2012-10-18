@@ -223,14 +223,23 @@ def uniq_list_as_dsets(dsets, whine=0):
 
     if not dsets or len(dsets) < 2: return 1
 
+    if type(dsets[0]) == str:
+       anlist = [BASE.afni_name(dset) for dset in dsets]
+    elif isinstance(dsets[0], BASE.afni_name):
+       anlist = dsets
+    else:
+       print '** ULAD: invalid type for dset list, have value %s' % dsets[0]
+       return 0
+
+    plist = [an.prefix for an in anlist]
+    plist.sort()
+
     # iterate over dsets, searching for matches
     uniq = 1
-    for i1 in range(len(dsets)):
-        for i2 in range(i1+1, len(dsets)):
-            if dsets[i1].prefix == dsets[i2].prefix:
-                uniq = 0
-                break
-        if not uniq: break
+    for ind in range(len(plist)-1):
+       if anlist[ind].prefix == anlist[ind+1].prefix:
+          uniq = 0
+          break
 
     if not uniq and whine:
         print                                                               \
@@ -242,7 +251,7 @@ def uniq_list_as_dsets(dsets, whine=0):
           "            e.g.  bad use:    ED_r*+orig*\n"                     \
           "            e.g.  good use:   ED_r*+orig.HEAD\n"                 \
           "-----------------------------------------------------------\n"   \
-          % (i1+1, i2+1, dsets[i1].pve(), dsets[i2].pve())
+          % (i1+1, i2+1, anlist[i1].pve(), anlist[i2].pve())
 
     return uniq
 
@@ -1967,6 +1976,9 @@ def flist_to_table_pieces(flist):
 def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
    """return a list of subject IDs corresponding to the datasets
 
+      Make sure we have afni_name objects to take the prefix from.
+      If simple strings, turn into afni_names.
+
       Try list_minus_glob_form on the datasets.  If that fails, try
       on the directories.
 
@@ -1981,9 +1993,19 @@ def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
 
    if len(dsets) == 0: return None
 
-   dlist = [dset.split('/')[-1] for dset in dsets]
+   # be more aggressive, use dataset prefix names
+   # dlist = [dset.split('/')[-1] for dset in dsets]
+   if type(dsets[0]) == str: 
+      nlist = [BASE.afni_name(dset) for dset in dsets]
+   elif isinstance(dsets[0], BASE.afni_name):
+      nlist = dsets
+   else:
+      print '** GIFD: invalid type for dset list, have value %s' % dsets[0]
+      return None
 
-   # if nothing to come from file tail, try the complete path names
+   dlist = [dname.prefix for dname in nlist]
+
+   # if nothing to come from file prefixes, try the complete path names
    if vals_are_constant(dlist): dlist = dsets
 
    slist = list_minus_glob_form(dlist, hpad, tpad)
