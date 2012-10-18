@@ -165,6 +165,8 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
 static THD_3dim_dataset *qset = NULL ;
 
+#undef USE_SAVER
+#ifdef USE_SAVER
 void Qsaver(char *lab, MRI_IMAGE *im)
 {
    static int first=1 ;
@@ -181,6 +183,7 @@ void Qsaver(char *lab, MRI_IMAGE *im)
 
    mri_clear_data_pointer(im) ; return ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -190,13 +193,40 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *bim , *wbim , *sim , *oim ;
    IndexWarp3D *oww ; Image_plus_Warp *oiw ;
    char *prefix = "Qwarp" , ppp[256] ; int nopt , duplo=0 ;
-   int meth = GA_MATCH_PEARSON_SCALAR ;
-   /* int meth = GA_MATCH_HELLINGER_SCALAR ; */
-   /* int meth = GA_MATCH_KULLBACK_SCALAR ; */
-   /* int meth = GA_MATCH_NORMUTIN_SCALAR ; */
+   int meth = GA_MATCH_PEARCLP_SCALAR ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
-     printf("Usage: 3dQwarp [-prefix] base source\n") ; exit(0) ;
+     printf("Usage: 3dQwarp [OPTIONS] base_dataset source_dataset\n") ;
+     printf(
+       "\n"
+       "* Computes a warped version of source_dataset to match base_dataset\n"
+       "* Inputs must be on the same grid!\n"
+       "* Inputs should be reasonably well aligned already\n"
+       "  (e.g., as from an affine warping via 3dAllineate).\n"
+       "* Outputs are the warped dataset and the warp that did it.\n"
+       "* Matching by default is the 'clipped Pearson' method, and\n"
+       "  can be changed to 'pure Pearson' with the '-pear' option.\n"
+       "\n"
+       "OPTIONS\n"
+       "-------\n"
+       " -prefix ppp  = Sets the prefix for the output datasets.\n"
+       " -pear        = Use Pearson correlation for matching.\n"
+       " -duplo       = Starts registration with a scaled-down-by-2 copy\n"
+       "                of the inputs, then continues from there.\n"
+       " -nopenalty   = Don't use a penalty on the cost function;\n"
+       "                the purpose of the penalty is to reduce\n"
+       "                grid distortions.\n"
+       "\n"
+       "METHOD\n"
+       "------\n"
+       "Incremental warping with cubic basic functions, first over the\n"
+       "whole volume, then over steadily shrinking patches.\n"
+       "\n"
+       "*** This program is experimental and subject to drastic change! ***\n"
+       "--- AUTHOR = RWCox -- October 2012 Anno Domini ---\n"
+     ) ;
+     PRINT_AFNI_OMP_USAGE("3dQwarp",NULL) ;
+     exit(0) ;
    }
 
 #ifdef USE_OMP
@@ -211,11 +241,16 @@ int main( int argc , char *argv[] )
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
+     if( strcasecmp(argv[nopt],"-nopenalty") == 0 ){
+       Hpen_fac = 0.0f ; nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-prefix") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need arg after -prefix") ;
        prefix = strdup(argv[nopt]) ; nopt++ ; continue ;
      }
 
+#if 0
      if( strcasecmp(argv[nopt],"-hel") == 0 ){
        meth = GA_MATCH_HELLINGER_SCALAR ; nopt++ ; continue ;
      }
@@ -227,9 +262,14 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-nmi") == 0 ){
        meth = GA_MATCH_NORMUTIN_SCALAR ; nopt++ ; continue ;
      }
+#endif
 
      if( strcasecmp(argv[nopt],"-pcl") == 0 ){
        meth = GA_MATCH_PEARCLP_SCALAR ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-pear") == 0 ){
+       meth = GA_MATCH_PEARSON_SCALAR ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-duplo") == 0 ){
@@ -251,7 +291,7 @@ int main( int argc , char *argv[] )
    DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ;
    sim = THD_extract_float_brick(0,sset) ; DSET_unload(sset) ;
 
-#if 0
+#ifdef USE_SAVER
    sprintf(ppp,"%s_SAVE",prefix) ;
    qset = EDIT_empty_copy(bset) ;
    EDIT_dset_items( qset ,

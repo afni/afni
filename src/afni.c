@@ -9708,13 +9708,13 @@ ENTRY("AFNI_jumpto_CB") ;
 
 /*---------------------------------------------------------------------*/
 
-int AFNI_jumpto_dicom( Three_D_View *im3d , float xx, float yy, float zz )
+int AFNI_jumpto_dicom_OLD( Three_D_View *im3d , float xx, float yy, float zz )
 {
    THD_dataxes  *daxes ;
    THD_fvec3 fv ; THD_ivec3 iv ;
    int ii,jj,kk ;
 
-ENTRY("AFNI_jumpto_dicom") ;
+ENTRY("AFNI_jumpto_dicom_OLD") ;
 
    LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
 
@@ -9750,14 +9750,26 @@ ENTRY("AFNI_creepto_dicom") ;
    dzz = fabsf( (zz-zc) / DSET_DZ(im3d->anat_now) ) ;
    ndd = (int)sqrtf(dxx*dxx+dyy*dzz+dzz*dzz) ;
 
-   if( ndd < 2 ){ ii = AFNI_jumpto_dicom(im3d,xx,yy,zz) ; RETURN(ii) ; }
+   if( ndd < 2 ){ ii = AFNI_jumpto_dicom_OLD(im3d,xx,yy,zz) ; RETURN(ii) ; }
 
    dxx = (xx-xc) / ndd ; dyy = (yy-yc) / ndd ; dzz = (zz-zc) / ndd ;
 
    for( qq=ndd-1 ; qq >= 0  ; qq-- )
-     ii = AFNI_jumpto_dicom( im3d , xx-dxx*qq , yy-dyy*qq , zz-dzz*qq ) ;
+     ii = AFNI_jumpto_dicom_OLD( im3d , xx-dxx*qq , yy-dyy*qq , zz-dzz*qq ) ;
 
    RETURN(ii) ;
+}
+
+/*---------------------------------------------------------------------*/
+
+int AFNI_jumpto_dicom( Three_D_View *im3d , float xx, float yy, float zz )
+{
+   int ii ;
+   if( AFNI_yesenv("AFNI_CREEPTO") )
+     ii = AFNI_creepto_dicom(im3d,xx,yy,zz) ;
+   else 
+     ii = AFNI_jumpto_dicom_OLD(im3d,xx,yy,zz) ;
+   return ii ;
 }
 
 /*----------- the two functions below date to 19 Aug 1999 -------------*/
