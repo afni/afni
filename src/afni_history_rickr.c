@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, OCT, 2012, RCR, "file_tool", MINOR, TYPE_ENHANCE,
+   "added convenience option -test",
+   NULL
+ } ,
+
  { 18, OCT, 2012, RCR, "uber_ttest.py", MINOR, TYPE_BUG_FIX,
    "small updates to correspond with library changes",
    NULL

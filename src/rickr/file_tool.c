@@ -42,6 +42,7 @@
  *        -show_bad_backslash  show any lines with only whitespace after '\'
  *        -show_bad_char       show any non-printable characters
  *        -show_file_type      show whether UNIX, Mac or MS file type
+ *        -test                same as -show_bad_all
  *
  *     raw ascii options:
  *
@@ -128,9 +129,10 @@ static char g_history[] =
  " 3.7  August 2, 2007  - added -disp_hex, -disp_hex{1,2,4}\n"
  " 3.8  June 19, 2008   - removing printing of pointers in disp_ functions\n"
  " 3.9  Oct 27, 2010    - added -show_bad_char and -show_bad_all\n"
+ " 3.10 Oct 18, 2012    - option -test is same as -show_bad_all\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.9 (October 27, 2010)"
+#define VERSION         "3.10 (October 18, 2012)"
 
 
 /* ----------------------------------------------------------------------
@@ -276,15 +278,16 @@ scr_show_bad_bs( char * filename, param_t * p )
         if( count == cur || fdata[count] != '\n' )  /* we're okay */
             continue;
 
-        bad++;
-
         /* this line is bad, and we're looking at '\n' */
         if( !p->quiet )
         {
-            printf("bad line %4d of file %s: ", lnum, filename);
+            if( !bad ) printf("file '%s' has bad backslashes:\n", filename);
+            printf("   bad line %4d : ", lnum);
             for( cp = line_start; cp <= fdata+count; cp++)
                 putchar(*cp);
         }
+
+        bad++;
     }
 
     if(p->debug > 0) fprintf(stderr,"file %s: %d bad lines\n",filename,bad);
@@ -303,7 +306,7 @@ scr_show_bad_ch( char * filename, param_t * p )
     static char * fdata = NULL;
     static int    flen  = 0;
     char        * cp;
-    int           length, count, bad = 0;
+    int           length, count, bad = 0, bad_loc=-1;
 
     if( p->debug ) fprintf(stderr,"-- show_bad_chars: file %s ...\n",
                            filename);
@@ -319,14 +322,18 @@ scr_show_bad_ch( char * filename, param_t * p )
             if( p->debug ) {
                 if( !bad ) fprintf(stderr,"file '%s' has non-printable chars\n",
                                    filename);
-                fprintf(stderr,": %d (0x%0x)",cp[count],cp[count]);
+                if( !bad ) fputs("bad chars", stderr);
+                fprintf(stderr," : %d (0x%0x)",cp[count],0xff & cp[count]);
             }
+            if( bad_loc < 0 ) bad_loc = count;
             bad++;
         }
     }
 
     if( bad && p->debug ) putc('\n', stderr);
-    printf("%s has %d bad characters\n", filename, bad);
+    printf("%s has %d bad characters", filename, bad);
+    if ( bad ) printf(", starting at position %d\n", bad_loc);
+    else       putchar('\n');
     return 0;
 }
 
@@ -355,34 +362,39 @@ scr_show_file( char * filename, param_t * p )
     {
         if( !isprint(cp[count]) && !isspace(cp[count]) )
         {
-            if( bin == 0 ) {
+            if( ! bin ) {
                 fprintf(stderr,"file '%s' has non-printable chars\n", filename);
+                fprintf(stderr,"   bad chars start at position %d\n", count);
+                if( p->debug ) fputs("   bad chars", stderr);
                 bin = 1;
             }
-            if( p->debug ) fprintf(stderr,": %d (0x%0x)",cp[count],cp[count]);
+            if( p->debug )
+                fprintf(stderr," : %d (0x%0x)", cp[count], 0xff & cp[count]);
         }
 
         if( cp[count] != '\r' ) continue;
 
-        if( count <= length && cp[count+1] == '\n' )      /* dos type */
+        if( count < length-1 && cp[count+1] == '\n' )      /* dos type */
         {
-            if( p->debug )
+            if( p->debug ) {
+                if( bin ) fputc('\n', stderr);
                 fprintf(stderr,"found 0x0d0a char pair at offset %d\n",count);
-            if( bin )putchar('\n');
+            }
             printf("%s file type: DOS\n", filename);
             return 0;
         }
         else                                            /* mac type */
         {
-            if( p->debug )
+            if( p->debug ) {
+                if( bin ) fputc('\n', stderr);
                 fprintf(stderr,"found 0x0d char at offset %d\n",count);
-            if( bin )putchar('\n');
+            }
             printf("%s file type: MAC\n", filename);
             return 0;
         }
     }
 
-    if( bin )putchar('\n');
+    if( bin && p->debug )putchar('\n');
     printf("%s file type: UNIX\n", filename);
     return 0;
 }
@@ -1138,7 +1150,8 @@ set_params( param_t * p, int argc, char * argv[] )
             CHECK_NEXT_OPT(ac, argc, "-prefix");
             p->prefix = argv[ac];
         }
-        else if ( ! strncmp(argv[ac], "-show_bad_all", 12 ) )
+        else if ( ! strncmp(argv[ac], "-show_bad_all", 12 ) ||
+                  ! strcmp (argv[ac], "-test") )
         {
             p->script = 0xff;   /* set all show bits */
         }
