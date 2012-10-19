@@ -568,6 +568,7 @@ check.AFNI.args <- function ( ops, params = NULL, verb=0) {
             opsvec <- ops[[i]];
             if (length(pp) == 1) { #exact number 
                if (length(opsvec) !=  pp) {
+                  #browser()
                   msg <- paste( 'Expecting ',pp, ' parameters for option "',
                                  names(ops)[i], '".\n   Have ', 
                                  length(opsvec), ' parameter(s) in string "', 
@@ -724,10 +725,10 @@ parse.AFNI.args <- function ( args, params = NULL,
       for (i in 1:(length(iflg)-1)) {
          if (0) { # Why remove the -?, makes things inconsistent elsewhere
             #newnm <- strsplit(args[[iflg[i]]],'-')[[1]][2] 
-         } else {
-            newnm <- args[[iflg[i]]]
-         }
+         } else newnm <- args[[iflg[i]]]
+
          if (length(nm) && length(which(newnm == nm)) &&
+             (newnm != '-gltLabel') && (newnm != '-gltCode') &&  # 10/18/2012 GC: added this line for 3dMVM
              (!length(duplicate_okvec) || 
                length(which(iflg[i] == duplicate_okvec))) ){
             warning(paste('option ', newnm, 'already specified.\n'),
@@ -735,13 +736,13 @@ parse.AFNI.args <- function ( args, params = NULL,
             show.AFNI.args(ops)
             return(NULL); 
          }
-         nm <- append(nm, newnm)
+         #nm <- append(nm, newnm)
          
          used[iflg[i]] <- TRUE;
          istrt = iflg[i]+1;
          pp <- vector('character');
          if (istrt <= length(args) && istrt != iflg[i+1]) {
-            iend <- max(c(iflg[i+1]-1, istrt));
+            iend <- max(c(iflg[i+1]-1, istrt))
             for (ii in istrt:iend) {
                pp <- append(pp, args[[ii]]);
                used[ii] <- TRUE;
@@ -759,11 +760,17 @@ parse.AFNI.args <- function ( args, params = NULL,
             }
             pp <- strsplit(clean.args.string(pp), ' ')
          }
-         ops <- c(ops, (pp));
-         names(ops)[length(ops)] <- newnm;
+         if((newnm != '-gltLabel') && (newnm != '-gltCode')) {
+            ops <- c(ops, (pp))
+            names(ops)[length(ops)] <- newnm
+         } else if(length(which(newnm == nm))) 
+            ops[[newnm]] <- c(ops[[newnm]], pp) else {
+            ops <- c(ops, list(pp))
+            names(ops)[length(ops)] <- newnm
+         }
+         nm <- append(nm, newnm)  
       }
    }
-   
    #cleanup
    if (length(ops)) {
       for (i in 1:length(ops)) {
@@ -772,13 +779,10 @@ parse.AFNI.args <- function ( args, params = NULL,
    }
    
    #numeric changes 
-   if (length(ops)) {
-      for (i in 1:length(ops)) {
-         if (is.num.string(ops[[i]])) {
-            ops[[i]] <- as.numeric(ops[[i]]);
-         }
-      }
-   }
+   if (length(ops))
+      for (i in 1:length(ops))
+         if(!is.list(ops[[i]])) if (is.num.string(ops[[i]]))
+            ops[[i]] <- as.numeric(ops[[i]])
    
    #defaults
    pp <- c(args[used == FALSE])
