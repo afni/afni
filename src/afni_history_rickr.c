@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, OCT, 2012, RCR, "file_tool", MINOR, TYPE_ENHANCE,
+   "added test for BOM bytes (byte order mark)",
+   NULL
+ } ,
+
  { 18, OCT, 2012, RCR, "file_tool", MINOR, TYPE_ENHANCE,
    "added convenience option -test",
    NULL

@@ -161,6 +161,44 @@ static int swap_2 ( void * ptr );
 static int swap_4 ( void * ptr );
 
 /*------------------------------------------------------------
+ * see if there is a BOM (byte order mark) at the beginning of
+ * the file
+ *
+ * return index into BOM_list
+ *------------------------------------------------------------
+*/
+static char * BOM_list[] = {
+   "no BOM",
+   "UTF-32, big-endian",
+   "UTF-32, little-endian",
+   "UTF-16, big-endian",
+   "UTF-16, little-endian",
+   "UTF-8"
+};
+
+#include "nifti1.h"
+
+static int BOM_val_type(char * data, int len)
+{
+   char bom_32be[4] = { 0x00, 0x00, 0xfe, 0xff };
+   char bom_32le[4] = { 0xfe, 0xff, 0x00, 0x00 };
+   char bom_16be[2] = { 0xfe, 0xff };
+   char bom_16le[2] = { 0xff, 0xfe };
+   char bom_8[3]    = { 0xef, 0xbb, 0xbf };
+
+   if( ! data )   return 0;
+
+   if( len >= 4 && ! memcmp(data, bom_32be, 4) ) return 1;
+   if( len >= 4 && ! memcmp(data, bom_32le, 4) ) return 2;
+   if( len >= 2 && ! memcmp(data, bom_16be, 2) ) return 3;
+   if( len >= 2 && ! memcmp(data, bom_16le, 2) ) return 4;
+   if( len >= 3 && ! memcmp(data, bom_8,    3) ) return 5;
+
+   return 0;
+}
+
+
+/*------------------------------------------------------------
  *  - check that the program is used correctly
  *  - fill the param_t struct, based on user inputs
  *  - process the files (display/modify data from/in each file)
@@ -350,13 +388,17 @@ scr_show_file( char * filename, param_t * p )
     static char * fdata = NULL;
     static int    flen  = 0;
     char        * cp;
-    int           length, count, bin = 0;
+    int           length, count, bin = 0, bom;
 
     if( p->debug ) fprintf(stderr,"-- show_file_type: file %s ...\n",filename);
 
     if( (length = read_file( filename, &fdata, &flen )) < 0 ) return -1;
 
     if( p->debug ) fprintf(stderr,"file length = %d\n", length);
+
+    bom = BOM_val_type(fdata, length);
+    if( bom )
+        fprintf(stderr,"file '%s' has BOM header: %s\n",filename,BOM_list[bom]);
 
     for( cp = fdata, count = 0; count < length; count++ )
     {
@@ -398,7 +440,6 @@ scr_show_file( char * filename, param_t * p )
     printf("%s file type: UNIX\n", filename);
     return 0;
 }
-
 
 /*------------------------------------------------------------
  * process an ANALYZE file
