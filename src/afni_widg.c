@@ -867,6 +867,24 @@ STATUS("making imag->rowcol") ;
       imag->pop_mnito_pb = NULL ;
    }
 
+   /*--- Jump to cluster button in menu [19 Oct 2012] ---*/
+
+   if( im3d->type == AFNI_3DDATA_VIEW ){
+      imag->pop_jumpto_clus_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+               LABEL_ARG("Jump to (Cluster)") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( imag->pop_jumpto_clus_pb , XmNactivateCallback ,
+                     AFNI_imag_pop_CB , im3d ) ;
+      SENSITIZE(imag->pop_jumpto_clus_pb,False) ;
+   } else {
+      imag->pop_jumpto_clus_pb = NULL ;
+   }
+
    /*--- sumato button in menu ---*/
 
    if( im3d->type == AFNI_3DDATA_VIEW ){

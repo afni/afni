@@ -372,6 +372,7 @@ typedef struct {
       Widget topper , popmenu , pop_bkgd_lab ,
              pop_jumpback_pb , pop_imageonly_pb , pop_jumpto_pb , pop_talto_pb ;
       Widget pop_jumpto_ijk_pb ;
+      Widget pop_jumpto_clus_pb ;                                   /* 19 Oct 2012*/
 
       Widget crosshair_frame , crosshair_rowcol , crosshair_label ;
 
