@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Oct 15, 2012
+Version 0.0.1, Oct 19, 2012
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -62,8 +62,9 @@ Usage:
  data for a within-subject factor are better modeled with 3dLME. Cases with
  quantitative variables (covariates) that vary across the levels of a within-
  subject variable are also better handled with 3dLME. Computational cost with
- 3dMVM is very high compared to 3dttest++ or 3dANOVAx, but 3dMVM has the
- capability to correct for sphericity violations.
+ 3dMVM is very high compared to 3dttest++ or 3dANOVAx, but it has the
+ capability to correct for sphericity violations when within-subject variables
+ are involved.
  
  Two R packages need to be installed first before running 3dMVM:
  
@@ -87,13 +88,13 @@ within-subject (condition and emotion) variables:
           ...            
           -dataTable                                                                                 \\
           Subj  genotype   sex    scanner  condition   emotion   InputFile                           \\
-          s1    TT         male   scan1   face        pos       s1+tlrc\'[face_pos_beta]\'            \\
-          s1    TT         male   scan1   face        neg       s1+tlrc\'[face_neg_beta]\'            \\
-          s1    TT         male   scan1   face        neu       s1+tlrc\'[face_neu_beta]\'            \\
-          s1    TT         male   scan1   house       pos       s1+tlrc\'[house_pos_beta]\'           \\
+          s1    TT         male   scan1   face        pos       s1+tlrc\'[face_pos_beta]\'             \\
+          s1    TT         male   scan1   face        neg       s1+tlrc\'[face_neg_beta]\'             \\
+          s1    TT         male   scan1   face        neu       s1+tlrc\'[face_neu_beta]\'             \\
+          s1    TT         male   scan1   house       pos       s1+tlrc\'[house_pos_beta]\'            \\
           ...
-          s68   TN         female scan2   house       pos       s68+tlrc\'[face_pos_beta]\'           \\
-          s68   TN         female scan2   house       neg       s68+tlrc\'[face_neg_beta]\'           \\
+          s68   TN         female scan2   house       pos       s68+tlrc\'[face_pos_beta]\'            \\
+          s68   TN         female scan2   house       neg       s68+tlrc\'[face_neg_beta]\'            \\
           s68   TN         female scan2   house       neu       s68+tlrc\'[house_pos_beta]\'                    
      \n"
       

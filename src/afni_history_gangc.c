@@ -52,6 +52,13 @@ afni_history_struct gangc_history[] = {
 
   /* can copy to and change one of the examples here */
 
+  { 19 , OCT , 2012 , GC , "3dMVM" , MAJOR , TYPE_NEW_PROG ,
+    "Multivariate modeling approach to group analysis",
+         "This is an R program that performs conventional ANOVA or \n"
+    "ANCOVA-type analysis with no limit on the number of variables. \n"
+    "See more details at http://afni.nimh.nih.gov/sscc/gangc/MVM.html"
+  } ,
+
   { 29 , SEP , 2010 , GC , "1dSVAR.R" , MAJOR , TYPE_NEW_PROG ,
     "Structural vector autoregression (SVAR)",
          "This is an R program that incorporates both instantaneous and \n"
