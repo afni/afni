@@ -3975,6 +3975,22 @@ STATUS("read next file") ;
    RETURN( dset ) ;
 }
 
+/*----------------------------------------------------------------------*/
+/* Jumpto current cluster peak */
+
+void AFNI_jumpto_clus( Three_D_View *im3d )  /* 19 Oct 2012 */
+{
+  int ic ; float px,py,pz , xx,yy,zz ;
+  AFNI_clu_widgets *cwid = im3d->vwid->func->cwid ;
+  mri_cluster_detail *cld = im3d->vwid->func->clu_det ;
+  if( cwid == NULL || cld == NULL ){ BEEPIT ; return ; }
+  ic = AFNI_clus_find_xyz( im3d ,
+                           im3d->vinfo->xi , im3d->vinfo->yj , im3d->vinfo->zk ) ;
+  if( ic < 0 ){ BEEPIT ; return ; }
+  AFNI_clus_action_CB( cwid->clu_jump_pb[ic] , (XtPointer)im3d , (XtPointer)666 ) ;
+  return ;
+}
+
 /*----------------------------------------------------------------------
    respond to events that one of the MCW_imseq's sends to us
 ------------------------------------------------------------------------*/
@@ -4303,16 +4319,8 @@ if(PRINT_TRACING)
           }
           break ;
 
-          case 'j':{        /* jump to cluster peak -- for Dale [17 Oct 2012] */
-            int ic ; float px,py,pz , xx,yy,zz ;
-            AFNI_clu_widgets *cwid = im3d->vwid->func->cwid ;
-            mri_cluster_detail *cld = im3d->vwid->func->clu_det ;
-            if( cwid == NULL || cld == NULL ){ BEEPIT ; break ; }
-            ic = AFNI_clus_find_xyz( im3d ,
-                                     im3d->vinfo->xi , im3d->vinfo->yj , im3d->vinfo->zk ) ;
-            if( ic < 0 ){ BEEPIT ; break ; }
-            AFNI_clus_action_CB( cwid->clu_jump_pb[ic] , (XtPointer)im3d , (XtPointer)666 ) ;
-          }
+          case 'j':        /* jump to cluster peak -- for Dale [17 Oct 2012] */
+            AFNI_jumpto_clus(im3d) ;
           break ;
 
           case 'f':{       /* flash cluster [17 Oct 2012] */
@@ -9203,6 +9211,13 @@ ENTRY("AFNI_imag_pop_CB") ;
       }
    }
 
+   /*-- 19 Oct 2012: jump to cluster peak --*/
+
+   else if( w == im3d->vwid->imag->pop_jumpto_clus_pb &&
+            im3d->type == AFNI_3DDATA_VIEW            ){
+     AFNI_jumpto_clus(im3d) ;
+   }
+
    /*-- 06 Mar 2002: jump to a node in a surface --*/
 
    else if( w == im3d->vwid->imag->pop_sumato_pb &&
@@ -9699,6 +9714,7 @@ ENTRY("AFNI_jumpto_CB") ;
 
    THD_coorder_to_dicom( &GLOBAL_library.cord , &xx,&yy,&zz ) ;
 
+   SAVE_VPT(im3d) ;  /* save current place as old one */
    nn = AFNI_jumpto_dicom( im3d , xx,yy,zz ) ;
    if( nn < 0 ){ BEEPIT ; WARNING_message("Jumpto failed!") ; }
 
@@ -9726,7 +9742,6 @@ ENTRY("AFNI_jumpto_dicom_OLD") ;
    if( ii >= 0 && ii < daxes->nxx &&
        jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
 
-      SAVE_VPT(im3d) ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
@@ -9750,6 +9765,7 @@ ENTRY("AFNI_creepto_dicom") ;
    dzz = fabsf( (zz-zc) / DSET_DZ(im3d->anat_now) ) ;
    ndd = (int)sqrtf(dxx*dxx+dyy*dzz+dzz*dzz) ;
 
+   SAVE_VPT(im3d) ;
    if( ndd < 2 ){ ii = AFNI_jumpto_dicom_OLD(im3d,xx,yy,zz) ; RETURN(ii) ; }
 
    dxx = (xx-xc) / ndd ; dyy = (yy-yc) / ndd ; dzz = (zz-zc) / ndd ;
@@ -9765,6 +9781,7 @@ ENTRY("AFNI_creepto_dicom") ;
 int AFNI_jumpto_dicom( Three_D_View *im3d , float xx, float yy, float zz )
 {
    int ii ;
+   SAVE_VPT(im3d) ;
    if( AFNI_yesenv("AFNI_CREEPTO") )
      ii = AFNI_creepto_dicom(im3d,xx,yy,zz) ;
    else 

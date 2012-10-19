@@ -1027,6 +1027,7 @@ static void AFNI_cluster_widgize( Three_D_View *im3d , int force )
                    XtWindow (im3d->vwid->func->cwid->wtop)  ) ;
      im3d->vwid->func->cwid->is_open = 1 ;
    }
+   SENSITIZE(im3d->vwid->imag->pop_jumpto_clus_pb,True) ;
    return ;
 }
 
@@ -1041,6 +1042,7 @@ static void AFNI_cluster_widgkill( Three_D_View *im3d )
    XtUnmapWidget( im3d->vwid->func->cwid->wtop ) ;
    im3d->vwid->func->cwid->is_open = 0 ;
    DESTROY_CLARR(im3d->vwid->func->clu_list) ;
+   SENSITIZE(im3d->vwid->imag->pop_jumpto_clus_pb,False) ;
    return ;
 }
 
@@ -1318,6 +1320,7 @@ ENTRY("AFNI_clus_done_CB") ;
      cwid->hbot = cwid->htop = 0.0f ; MCW_set_bbox( cwid->histsqrt_bbox , 0 ) ;
      XtUnmapWidget(cwid->wtop) ; cwid->is_open = 0 ;
      DESTROY_CLARR(im3d->vwid->func->clu_list) ;
+     SENSITIZE(im3d->vwid->imag->pop_jumpto_clus_pb,False) ;
    }
    EXRETURN ;
 }
