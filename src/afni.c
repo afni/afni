@@ -9763,7 +9763,7 @@ ENTRY("AFNI_creepto_dicom") ;
    dxx = fabsf( (xx-xc) / DSET_DX(im3d->anat_now) ) ;
    dyy = fabsf( (yy-yc) / DSET_DY(im3d->anat_now) ) ;
    dzz = fabsf( (zz-zc) / DSET_DZ(im3d->anat_now) ) ;
-   ndd = (int)sqrtf(dxx*dxx+dyy*dzz+dzz*dzz) ;
+   ndd = (int)sqrtf(dxx*dxx+dyy*dzz+dzz*dzz) ; ndd = MIN(ndd,32) ;
 
    SAVE_VPT(im3d) ;
    if( ndd < 2 ){ ii = AFNI_jumpto_dicom_OLD(im3d,xx,yy,zz) ; RETURN(ii) ; }
