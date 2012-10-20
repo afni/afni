@@ -315,7 +315,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       lop$maskFN <- NA
 
       lop$wsVars <- NA
-      lop$qVars  <- NULL
+      lop$qVars  <- NA
       lop$qVarCenters    <- NA
       lop$num_glt <- 0
       lop$gltLabel <- NULL
@@ -399,8 +399,7 @@ process.MVM.opts <- function (lop, verb = 0) {
       errex.AFNI(c('Must of use -cio option with any input/output ',
                    'format other than BRIK'))
 
-   lop$QV <- strsplit(lop$qVars, '\\+')[[1]]
-
+   if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\+')[[1]]
 
    if(!is.null(lop$gltLabel)) {
       sq <- as.numeric(unlist(lapply(lop$gltLabel, '[', 1)))
@@ -430,7 +429,7 @@ process.MVM.opts <- function (lop, verb = 0) {
       for(ii in 1:wd) 
          lop$dataStr <- data.frame(cbind(lop$dataStr, lop$dataTable[seq(wd+ii, len, wd)]))
       names(lop$dataStr) <- lop$dataTable[1:wd]
-      for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
+      if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
    }
 
    
@@ -438,11 +437,11 @@ process.MVM.opts <- function (lop, verb = 0) {
       lop$gltList    <- vector('list', lop$num_glt)
       lop$slpList    <- vector('list', lop$num_glt)
       for (n in 1:lop$num_glt) {
-         if(any(lop$QV %in% lop$gltCode[[n]])) {
+         if(!is.na(lop$qVars)) { if(any(lop$QV %in% lop$gltCode[[n]])) {
             QVpos <- which(lop$gltCode[[n]] %in% lop$QV)
             lop$gltList[[n]]   <- gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
             lop$slpList[[n]] <- lop$gltCode[[n]][QVpos]   
-         } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
+         } } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
       }
    }
    
@@ -547,8 +546,8 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
    lop$QV <- strsplit(lop$qVars, '\\+')[[1]]
 
    # Line 8: covariates center value: NA means mean
-   lop$QVcenter <- unlist(strsplit(scanLine(modFile, lnNo=8), "\\*"))
-   #lop$QVcenter <- as.numeric(strsplit(lop$QVcenter, '\\,')[[1]])
+   lop$qVarCenters <- unlist(strsplit(scanLine(modFile, lnNo=8), "\\*"))
+   #lop$qVarCenters <- as.numeric(strsplit(lop$qVarCenters, '\\,')[[1]])
 
    # header position (hp) defined by column name InputFile
    hp <- grep("InputFile", readLines(modFile)) 
@@ -627,7 +626,7 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
 
 
 
-lop$QVcenter <- as.numeric(strsplit(lop$qVarCenters, '\\,')[[1]])
+if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(lop$qVarCenters, '\\,')[[1]])
 
 
 require("afex")
@@ -652,8 +651,8 @@ lop$dataStr$Subj <-  as.factor(lop$dataStr$Subj)
 lop$dataStr$InputFile <-  as.character(lop$dataStr$InputFile)
 
 # center on user-speficied value or mean
-if(any(!is.na(lop$QV))) if(all(is.na(lop$QVcenter))) lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F) else
-   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$QVcenter, scale=F)
+if(any(!is.na(lop$qVars))) if(all(is.na(lop$qVarCenters))) lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F) else
+   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$qVarCenters, scale=F)
 
 
 
