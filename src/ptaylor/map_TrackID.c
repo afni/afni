@@ -8,7 +8,7 @@
 	visualization purposes.  Note that the WM maps and the FA,
 	etc. maps can be transformed directly with -1Dmatrix_apply).
    
-   September 2012.
+   September 2012, part II: fixing some memory stuff.
 */
 
 
@@ -96,6 +96,17 @@ void usage_map_TrackID(int detail)
 "                       mapped. Mainly to read the header for necessary info.\n"
 "    and the following options (all are just switches):\n"
 "    -verb             :Verbose output. \n"
+"    -orig_zero        :put (0,0,0) as the origin in the output *.trk file,\n"
+"                       as opposed to having the `real' values recorded.\n"
+"                       TrackVis does not really use the origin for much,\n"
+"                       but having a nonzero-origin will cause the location\n"
+"                       of the tracks in the viewer window to be off-center,\n"
+"                       and it sets the rotation-in-space axis about the,\n"
+"                       origin with the combined effect that a nonzero-origin\n"
+"                       can be a bit more difficult to view and manipulate;\n"
+"                       however, if you might want to map the tracks again\n"
+"                       later, then you would want to have the `real' origin\n"
+"                       values recorded. (Default: off.)\n"
 "    -line_only_num    :if your 1D_MATR file is just 12 numbers in a row,\n"
 "                       like after using cat_matvec or some other program.\n"
 "                       Default is to skip the little verbiage in the first\n"
@@ -165,6 +176,7 @@ int main(int argc, char *argv[]) {
 
 	int INP_3DALLIN = 0; // switch about input/format of *.1D matr file
 	int MATR_REV = 1; // to do the inversion here (input to not do so)
+	int ZERO_ORIG_OUT = 0;
 
 	gsl_matrix *Umatr = gsl_matrix_alloc(3, 3);
 	gsl_permutation *P = gsl_permutation_alloc(3);
@@ -179,7 +191,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 
-	INFO_message("version: ZETA");
+	INFO_message("version: THETA");
 
 	// scan args 
 	if (argc == 1) { usage_map_TrackID(1); exit(0); }
@@ -212,6 +224,12 @@ int main(int argc, char *argv[]) {
 			MATR_REV=0;
 			iarg++ ; continue ;
 		}
+
+		if( strcmp(argv[iarg],"-orig_zero") == 0) {
+			ZERO_ORIG_OUT=1;
+			iarg++ ; continue ;
+		}
+
 
 		// REFERENCE DATA SET: BRIK/HEAD OR NII
 		if( strcmp(argv[iarg],"-ref") == 0 ){
@@ -378,7 +396,10 @@ int main(int argc, char *argv[]) {
 		READ_head.voxel_order[i] = ref_voxel_order[i];
 		READ_head.dim[i] = Dim[i];
 		READ_head.voxel_size[i] = Ledge[i];
-		READ_head.origin[i] = Orig[i];
+		if(ZERO_ORIG_OUT != 0) // for viewing
+			READ_head.origin[i] = Orig[i]; // so use Orig[] as value in calcs
+		else
+			READ_head.origin[i] = 0.;
 	}
 	
 	INFO_message("Old origin:\t%f, %f, %f",old_orig[0],old_orig[1],old_orig[2]);
@@ -417,11 +438,11 @@ int main(int argc, char *argv[]) {
 			for( k=0; k<3 ; k++) {
 				// REF to trackvis-like REF
 				if(TV_switch2[k])
-					READ_fl = loc_old[k]-READ_head.origin[k]
+					READ_fl = loc_old[k]-Orig[k]
 						+ READ_head.voxel_size[k]*(READ_head.dim[k]-1);
 				else //if(!TV_switch2[k])
 					READ_fl = READ_head.dim[k]*READ_head.voxel_size[k]
-						- loc_old[k] + READ_head.origin[k];
+						- loc_old[k] + Orig[k];
 				fwrite(&READ_fl,sizeof(float),1,file_out);
 			}
 			// not changing...
@@ -455,6 +476,8 @@ int main(int argc, char *argv[]) {
 	gsl_matrix_free(Umatr);
 	gsl_matrix_free(Umatr_inv);
 	gsl_permutation_free(P);
+	DSET_delete(refset);
+	free(refset);
 
 	INFO_message("Done mapping.");
 
