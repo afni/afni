@@ -53,26 +53,31 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 Usage:
 ------ 
  3dMVM is a group-analysis program that performs traditional ANOVA- and ANCOVA-
- style computations. There is no limit on the number of explanatory variable, or
- categorical or quantitative variables (factors or covariates). F-statistics for
- main effects and interactions are automatically included in the output. In
- addition, general linear tests (GLTs) can be requested via symbolic coding.
+ style computations. It does not impose any bound on the number of explanatory
+ variables, and these variables can be either orcategorical or quantitative 
+ (factors or covariates). F-statistics for main effects and interactions are 
+ automatically included in the output. In addition, general linear tests (GLTs) 
+ can be requested via symbolic coding.
  
- Unequal number of subjects across groups are allowed, but scenarios with missing
- data for a within-subject factor are better modeled with 3dLME. Cases with
- quantitative variables (covariates) that vary across the levels of a within-
- subject variable are also better handled with 3dLME. Computational cost with
- 3dMVM is very high compared to 3dttest++ or 3dANOVAx, but it has the
+ Note that unequal number of subjects across groups are allowed, but scenarios 
+ with missing data for a within-subject factor are better modeled with 3dLME. 
+ Cases with quantitative variables (covariates) that vary across the levels of 
+ a within-subject variable are also better handled with 3dLME. Computational 
+ cost with 3dMVM is very high compared to 3dttest++ or 3dANOVAx, but it has the
  capability to correct for sphericity violations when within-subject variables
  are involved.
  
- Two R packages need to be installed first before running 3dMVM:
+ In addition to R installtion, two R packages need to be acquired in R first
+ before running 3dMVM:
  
  install.packages("afex")
  install.packages("phia")
 
- See more details at 
- http://afni.nimh.nih.gov/sscc/gangc/MVM.html'
+ More details about 3dMVM can be found at 
+ http://afni.nimh.nih.gov/sscc/gangc/MVM.html
+ 
+ Thank the R community and Henrik Singmann in particular for the strong
+ technical support.'
 
    ex1 <- 
 "
@@ -100,7 +105,6 @@ within-subject (condition and emotion) variables:
       
    ex2 <-
 "Example 2 --- 
-:
 -------------------------------------------------------------------------
    3dMVM -prefix Example2 -jobs 4        \\
           -model  \"genotype*sex+age+IQ\"  \\
@@ -118,8 +122,8 @@ within-subject (condition and emotion) variables:
           s1    TT         male   24   107    neu       s1+tlrc\'[neu_beta]\'           \\
           ... 
           s63   NN         female 29   110    pos       s63+tlrc\'[pos_beta]\'          \\
-          s63   NN         female 29   110    pos       s63+tlrc\'[pos_beta]\'          \\
-          s63   NN         female 29   110    neg       s63+tlrc\'[neg_beta]\'         
+          s63   NN         female 29   110    neg       s63+tlrc\'[neg_beta]\'          \\
+          s63   NN         female 29   110    neu       s63+tlrc\'[neu_beta]\'         
      
    \n"
    
@@ -207,16 +211,17 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         and quantitative variables. The expression FORMULA with more",
    "         than one variable has to be surrounded within (single or double)",
    "         quotes. Variable names in the formula should be consistent with",
-   "         the ones used in the header of -dataTable. A+B includes the",
+   "         the ones used in the header of -dataTable. A+B represents the",
    "         additive effects of A and B, A:B is the interaction between A",
    "         and B, and A*B = A+B+A:B. The effects of within-subject",
    "         factors, if present under -wsVars are automatically assumed",
-   "         to interact with the ones specified here.\n", sep = '\n'
+   "         to interact with the ones specified here. Subject should not",
+   "         occur in the model specifiction here.\n", sep = '\n'
              ) ),
 
       '-wsVars' = apl(n=c(1,100), d=NA, h = paste(
    "-wsVars FORMULA: Provide within-subject factors only. Coding for",
-   "         additive and interaction effects is the same as in-model. The",
+   "         additive and interaction effects is the same as in -model. The",
    "         FORMULA with more than one variable has to be surrounded ",
    "         within (single or double) quotes\n", sep = '\n'
                              ) ),
@@ -267,28 +272,33 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         'Condition : 2*House -3*Face Emotion : 1*positive '",
    "         requests for a test of comparing 2 times House condition",
    "         with 3 times Face condition while Emotion is held at positive",
-   "         valence.",
+   "         valence.\n",
    "         NOTICE:",
-   "         1) The absence of a categorical variable in a coding means the",
-   "         levels of that factor are averaged (or collapsed) for the GLT.",
+   "         1) The weights for a variable do not have to add up to 0.",   
    "         2) When a quantitative variable is present, other effects are",
    "         tested at the center value of the covariate.",
    "         3) The effect for a quantitative variable can be specified with,",
    "         for example, 'Group : 1*Old Age : ', or ",
-   "         'Group : 1*Old - 1*Young Age : '\n", sep = '\n'
+   "         'Group : 1*Old - 1*Young Age : '", 
+   "         4) The absence of a categorical variable in a coding means the",
+   "         levels of that factor are averaged (or collapsed) for the GLT.",
+   "         5) The appearance of a categorial variable has to be followed",
+   "         by the linear combination of its levels. Only a quantitative",
+   "         is allowed to have a dangling coding as seen in 'Age :'\n",         
+             sep = '\n'
              ) ),
-
 
      '-dataTable' = apl(n=c(1, 10000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure with a header as the first line.",
    "         The first column is fixed with 'Subj', and the last is reserved",
-   "         for 'InputFile' Each row should contain only one input file in",
-   "         the table in a long format. The levels of a factor should contain",
-   "         at least one character. Input files can be in NIfTI or AFNI",
-   "         format with sub-brick selector with a number or label. Unequal",
-   "         number of subjects across groups is allowed, but situations",
-   "         with missing data for a within-subject factor should be handled",
-   "         with 3dLME.\n", 
+   "         for 'InputFile'. Each row should contain only one effect estimate",
+   "         in the table of long format (cf. wide format) as defined in R. The",
+   "         level labels of a factor should contain at least one character.",
+   "         Input files can be in NIfTI or AFNI format with sub-brick selector",
+   "         (square brackets [] within quotes) specified with a number of",
+   "         label. Unequal number of subjects across groups is allowed, but",
+   "         situations with missing data for a within-subject factor are better",
+   "         handled with 3dLME.\n", 
              sep = '\n'
                      ) ),
 
@@ -296,8 +306,10 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       '-show_allowed_options' = apl(n=0, h=
    "-show_allowed_options: list of allowed options\n" ),
    
-       '-cio' = apl(n=0, h = "-cio: Use AFNI's C io functions, which is default.\n"),
-       '-Rio' = apl(n=0, h = "-Rio: Use R's io functions\n")
+       '-cio' = apl(n=0, h = paste(
+   "-cio: Use AFNI's C io functions, which is default. Alternatively -Rio",
+   "         can be used.\n", sep='\n')),
+       '-Rio' = apl(n=0, h = "-Rio: Use R's io functions. The alternative is -cio.\n")
       
          )
                      
@@ -334,7 +346,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              maskFN = lop$maskFN <- ops[[i]],
              jobs   = lop$nNodes <- ops[[i]],
              model  = lop$model  <- ops[[i]],
-             wsVars = lop$withinSubjVar  <- ops[[i]],
+             wsVars = lop$wsVars  <- ops[[i]],
              qVars  = lop$qVars <- ops[[i]],
              qVarCenters = lop$qVarCenters <- ops[[i]],
              num_glt = lop$num_glt <- ops[[i]],
@@ -683,7 +695,7 @@ if (!is.na(lop$maskFN)) {
 
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's 
 # for t tests (and catch potential problems as well)
-ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
+#ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
 
 ###############################
 
