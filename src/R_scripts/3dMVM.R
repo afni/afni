@@ -67,12 +67,17 @@ Usage:
  capability to correct for sphericity violations when within-subject variables
  are involved.
  
- In addition to R installtion, two R packages need to be acquired in R first
- before running 3dMVM:
+ In addition to R installtion, the following two R packages need to be acquired
+ in R first before running 3dMVM:
  
  install.packages("afex")
  install.packages("phia")
 
+ The snow package is also needed if one wants to take advantage of parallel 
+ computing:
+ 
+ install.packages("snow")
+ 
  More details about 3dMVM can be found at 
  http://afni.nimh.nih.gov/sscc/gangc/MVM.html
  
@@ -104,7 +109,8 @@ within-subject (condition and emotion) variables:
      \n"
       
    ex2 <-
-"Example 2 --- 
+"Example 2 --- two between-subjects (genotype and sex), onewithin-subject
+(emotion) factor, plus two quantitative variables (age and IQ).
 -------------------------------------------------------------------------
    3dMVM -prefix Example2 -jobs 4        \\
           -model  \"genotype*sex+age+IQ\"  \\
