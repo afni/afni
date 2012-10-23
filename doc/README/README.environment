@@ -3261,6 +3261,13 @@ If this variable is set to YES, dataset names with spaces in them will go
 through "normal" reading routines, rather than using THD_open_tcat() to try
 to combine multiple datasets.
 
+----------------------
+Variable: AFNI_CREEPTO
+----------------------
+If set to YES, then the AFNI GUI 'Jump to (xyz)' behavior is altered to
+move the crosshairs to the chosen location incrementally, rather than
+in one big jump.  The reasons for using this feature are (a) to help
+get a feel for the transit, and (b) just plain fun.
 
 
 =============================================
