@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, OCT, 2012, RCR, "to3d", MINOR, TYPE_BUG_FIX,
+   "forgot to leave show_size_n_offset set",
+   "Thanks to J Jarcho for noticing the to3d failure."
+ } ,
+
  { 19, OCT, 2012, RCR, "file_tool", MINOR, TYPE_ENHANCE,
    "added test for BOM bytes (byte order mark)",
    NULL

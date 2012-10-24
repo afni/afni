@@ -160,7 +160,7 @@ static int just_do_printf = 0 ;  /* 02 May 2008 */
 void mri_dicom_header_use_printf( int i ){ just_do_printf = i; }
 
 /* in order to run diffs, be able to skip sizes and offsets */
-static int show_size_n_offset = 0 ;  /* 17 Oct 2012 [rickr] */
+static int show_size_n_offset = 1 ;  /* 17 Oct 2012 [rickr] */
 void mri_dicom_header_show_size_offset( int i ){ show_size_n_offset = i; }
 
 static char *pbuf = NULL ;  /* output string buffer */
