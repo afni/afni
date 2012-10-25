@@ -23,7 +23,7 @@ ExecName <- '3dMEMA'
 read.MEMA.opts.interactive <- function (verb = 0) {
    lop <- list()  #List to hold all options from user input
    lop$verb <- verb
-   lop$iometh <- 'Rlib'
+   lop$iometh <- 'clib'
    
    outFNexist <- TRUE
    while (outFNexist) {
@@ -1976,14 +1976,14 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
    Y <- inData[1: halfLen]; V <- inData[(halfLen +1): fullLen]
    #tryCatch(sum(abs(Y)>tol) >= nNonzero, error = browser())
    if(sum(abs(Y)>tol) >= nNonzero) {  # run only when there are more than 2 non-zeros in both Y and V
-   tag <- TRUE
-   if(anaType==4) try(resList <- mema(Y, V, n[1], n[2], p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE) else
-      if(length(n)==1) try(resList <- mema(Y, V, n, p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE) else
-      try(resList <- mema(Y, V, n[2], p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE)  # for the case of 2 groups with homoskedasticiy
+   resList <- NULL
+   if(anaType==4) try(resList <- mema(Y, V, n[1], n[2], p, X=xMat, resZout, lapMod, knha=KHtest), silent=TRUE) else
+      if(length(n)==1) try(resList <- mema(Y, V, n, p, X=xMat, resZout, lapMod, knha=KHtest), silent=TRUE) else
+      try(resList <- mema(Y, V, n[2], p, X=xMat, resZout, lapMod, knha=KHtest), silent=TRUE)  # for the case of 2 groups with homoskedasticiy
    
    #if(is.null(resList)) tag <- FALSE  # stop here if singularity occurs
     
-   if(tag & !is.null(resList)) {
+   if(!is.null(resList)) {
    if(nGrp==1) {
       outData[1] <- resList$b[1]  # beta of group1, intercept
       outData[2] <- resList$z[1]  # z score of group1
