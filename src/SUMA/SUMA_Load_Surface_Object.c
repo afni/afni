@@ -5444,8 +5444,13 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
             strcpy(spec->State[spec->N_Surfs], ps->i_state[i]); 
             ++spec->N_States;
          } else { 
-            sprintf(spec->State[spec->N_Surfs], "iS_%d", spec->N_States); 
-            ++spec->N_States; 
+            if (!ps->onestate) {
+               sprintf(spec->State[spec->N_Surfs], "iS_%d", spec->N_States); 
+               ++spec->N_States; 
+            } else {
+               sprintf(spec->State[spec->N_Surfs], "iS");
+               spec->N_States = 1;
+            }  
          }
          if (ps->i_group[i])  { 
             strcpy(spec->Group[spec->N_Surfs], ps->i_group[i]); 

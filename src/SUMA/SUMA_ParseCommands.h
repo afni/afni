@@ -91,6 +91,7 @@ typedef struct {
    byte accept_t;
    byte accept_s;
    byte accept_i;
+   byte onestate; /* if 1, All -i surfaces will have the same state */
    byte accept_ipar;
    byte accept_o;
    byte accept_spec;
