@@ -8,17 +8,20 @@ goto PARSE
 RET_PARSE:
 
 COPY_DATA:
-      if ( ! -f $odir/amask+orig.HEAD ||   \
+      if ( ! -f $odir/PD.amask+orig.HEAD ||   \
            ! -f $odir/T1+orig.HEAD ||  \
            ! -f $odir/PD+orig.HEAD   ) then
-   3dcalc -overwrite -datum short -a $T1 -expr 'a' -prefix $odir/T1
-   3dcalc -overwrite -datum short -a $PD -expr 'a' -prefix $odir/PD
+   3dcalc ${overW} -datum short -a $T1 -expr 'a' -prefix $odir/T1
+   3dcalc ${overW} -datum short -a $PD -expr 'a' -prefix $odir/PD
+   set afh = ($afh $odir/T1+orig.HEAD $odir/PD+orig.HEAD)
    if ($imask != '') then
-      3dcalc -overwrite -datum byte -a $imask -expr 'a' -prefix $odir/mask
+      3dcalc ${overW} -datum byte -a $imask -expr 'a' -prefix $odir/umask
+      set afh = ($afh umask+orig.HEAD)
    else
-      3dmerge -1blur_fwhm 25 -prefix $odir/PDsm $odir/PD+orig
-      3dAutomask -prefix $odir/amask $odir/PDsm+orig
+      3dmerge ${overW} -1blur_fwhm 25 -prefix $odir/PDsm $odir/PD+orig
+      3dAutomask ${overW} -prefix $odir/PD.amask $odir/PDsm+orig
       \rm -f $odir/PDsm+orig.* 
+      set afh = ($afh PD.amask+orig.HEAD)
    endif
       else
          echo "Reusing input data"
@@ -29,7 +32,8 @@ STATIT:
       if ( ! -f PD.ls+orig.HEAD ) then
    3dLocalstat -nbhd "SPHERE(25)" -stat perc:65:95:5 \
             -datum short -reduce_max_vox 5 \
-            -prefix PD.ls PD+orig.
+            ${overW} -prefix PD.ls PD+orig.
+         set afh = ($afh PD.ls+orig.HEAD)
       else
          echo "Reusing PD.ls"
       endif
@@ -38,20 +42,8 @@ STATIT:
 NEWMASK:
    cd $odir
    if ( "$menh" != "0.0" && ! -f T1.hull.mask.m+orig.HEAD) then
-      #Get enough voxels for 1 liter of goods
-      set vv = `3dinfo -voxvol T1+orig`
-      if ( ! -f T1.niml.hist ) then
-         3dHist -input T1+orig -prefix T1
-      else
-         echo "Reusing T1.niml.hist"
-      endif 
-      set rcdfval = `ccalc "$menh*1e6/$vv"`
-      set thout = (`3dHist -thishist T1.niml.hist -val_at rcdf $rcdfval`)
-      set thout = $thout[2]    
-      ConvexHull -isocmask "-a T1+orig -expr step(a-$thout)" \
-                 -input T1+orig. -o_gii T1.hull
-      3dSurfMask  -sv T1+orig. -fill_method fast -no_dist \
-                  -i T1.hull.gii -prefix T1.hull.mask -overwrite
+      @T1mask ${overW}  -odir ./ -T1 T1+orig -hullmask 0.55
+      set afh = ($afh T1.hull.mask.m+orig.HEAD)
    else
       if ( "$menh" != "0.0" ) echo "Reusing T1.hull.mask.m+orig.HEAD+orig"
    endif
@@ -59,9 +51,9 @@ NEWMASK:
       
 SCALEIT:
    cd $odir
-   set med = `3dBrickStat -non-zero -median -mask amask+orig T1+orig.`
+   set med = `3dBrickStat -non-zero -median -mask PD.amask+orig T1+orig.`
    if ("$menh" == 0.0) then
-      set mm = amask+orig.HEAD
+      set mm = PD.amask+orig.HEAD
       set meq = 'step(c)'
    else 
       set mm = T1.hull.mask.m+orig.HEAD
@@ -69,10 +61,15 @@ SCALEIT:
    endif
    if ($unmasked_output == 1) set meq = '1'
    
-   3dcalc   -a T1+orig. -b PD.ls+orig'[perc:75.00]' \
-               -c $mm -datum short -overwrite \
-               -expr "$meq*a/b*$med[2]" \
-               -prefix T1.uni+orig.
+   if ( ! -f T1.uni+orig.HEAD) then
+      3dcalc   -a T1+orig. -b PD.ls+orig'[perc:75.00]' \
+                  -c $mm -datum short ${overW} \
+                  -expr "$meq*a/b*$med[2]" \
+                  -prefix T1.uni+orig.
+      set afh = ($afh T1.uni+orig.HEAD)
+   else
+      echo "Reusing T1.uni+orig.HEAD"
+   endif
    
    #One could also do the regular division by the PD (if there is a real
    #PD volume. The you can detect the bad apples by looking for those voxels 
@@ -83,7 +80,7 @@ SCALEIT:
 
 HISTORY:
    cd $odir
-   foreach ff (*.HEAD)
+   foreach ff ($afh)
       3dNotes -h "`basename $0` $argv" $ff
    end
    cd $idir
@@ -105,6 +102,8 @@ set T1 = ''
 set PD = ''
 set menh = 0.0
 set unmasked_output = 0
+set afh = ()
+set overW = ''
 
 if ("$1" == '') goto HELP
 while ($cnt <= $Narg)
@@ -119,6 +118,11 @@ while ($cnt <= $Narg)
       set donext = 0   
    endif
 
+   if ($donext && "$argv[$cnt]" == "-overwrite") then
+      set overW = '-overwrite'
+      set donext = 0   
+   endif
+   
 
    if ($donext && "$argv[$cnt]" == "-odir") then
       if ($cnt == $Narg) then
@@ -249,12 +253,12 @@ HELP:
    echo "              ODIR will contain multiple volumes with the one"
    echo "              of most interest being T1.uni+orig" 
    echo ""
-   echo "         Script will reuse existing intermediate volumes"
+   echo "         Script will reuse existing  volumes"
    echo ""
-   echo "   -hullmask VOL: Mask output using the convex hull of the brightest."
-   echo "                  VOL liters worth of voxels. 1.0 is good start"
-   echo "   -unmasked_uni: Do not apply masking to uniformized volume"
-   echo "                  Masks are computed nonetheless"
+   #echo "   -hullmask VOL: Mask output using the convex hull of the brightest."
+   #echo "                  VOL liters worth of voxels. 1.0 is good start"
+   #echo "   -unmasked_uni: Do not apply masking to uniformized volume"
+   #echo "                  Masks are computed nonetheless"
    echo ""
    echo "   -echo: Set echo"
    echo "   -help: this message" 
