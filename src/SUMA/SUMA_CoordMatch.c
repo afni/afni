@@ -20,7 +20,7 @@ typedef struct {
 } CMO_UD; /* user data for SUMA_CoordMatch_OptimCost */
 
 static CMO_UD cmoud;
-static debug = 2;
+static int debug = 2;
 
 void SUMA_free_cmoud() {
    if (cmoud.dist) SUMA_free(cmoud.dist); cmoud.dist = NULL;
@@ -65,7 +65,7 @@ double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
                        int method, float *dist)
 {
    static char FuncName[]={"SUMA_CoordMatchEnergy"};
-   double ener;
+   double ener=0.0;
    int pp=0;
    
    SUMA_ENTRY;
@@ -248,7 +248,7 @@ int SUMA_par2mat(double *par12, double mat[4][4])
    ADD_SHIFT(par12,mat);
       
    if (debug) {
-      SHOW_MAT(mat, FuncName);
+      SHOW_MAT(mat, "par2mat");
    }
    SUMA_RETURN(1);
 }

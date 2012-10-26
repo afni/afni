@@ -4109,6 +4109,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
       }
       if (!brk && ps->accept_i) {
          char *tmp_i = NULL;
+         
          if (strcmp(argv[kar], "-i_") == 0 || strcmp(argv[kar], "-i") == 0) {
             if (kar+1 >= argc)  {
 	            SUMA_S_Err( "need argument after -i_ ");
@@ -4157,6 +4158,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             }
          } else {
             tmp_i = SUMA_copy_string(argv[kar]);
+         }
+         if (!brk && ( !strcmp(tmp_i, "-onestate") )) {
+            ps->arg_checked[kar]=1;
+            ps->onestate = 1;
+            brk = YUP;
          }
          SUMA_LHv("accept_i %d (argv[%d]=%s)\n", ps->accept_i, kar, argv[kar]);
          if (!brk && ( (strcmp(tmp_i, "-i_bv") == 0) || 
