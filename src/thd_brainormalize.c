@@ -6,6 +6,8 @@
 
 static int verb = 0 ;
 static int specie = HUMAN;
+static char bottom_cuts[64] = {""};
+
 void mri_brainormalize_verbose( int v ){ verb = v ; THD_automask_verbose(v); }
 
 
@@ -43,6 +45,15 @@ static float thd_bn_xcm = 0.0;
 static float thd_bn_ycm = 0.0;
 static float thd_bn_zcm = 0.0;
 static float thd_bn_rat = 0.0;
+
+void mri_brain_normalize_cuts(char *what) {
+   if (!what) {
+      bottom_cuts[0] = '\0';
+   }else{
+      snprintf(bottom_cuts,32,"%s",what);
+   }
+   return;
+}
 
 void mri_speciebusiness( int v ) { 
    if (v < HUMAN || v >= N_SPECIES) {
@@ -1414,6 +1425,106 @@ ENTRY("mri_brainormalize") ;
    }}}
    if( sum == 0.0 ){ mri_free(sim); RETURN(NULL); }  /* huh? */
    
+   if (bottom_cuts[0] != '\0' && specie != HUMAN) {
+      WARNING_message("Bottom cuts not set for non-humans, option ignored");
+      bottom_cuts[0] = '\0';
+   }
+   
+   if (bottom_cuts[0] != '\0') { 
+      float jdist, kstack;
+      float hBp = thd_bn_zheight; 
+      float hBa = hBp - 20;
+      float hLR = 110;
+      float hCM = 85;
+      float lA = 70;
+      float lP = 110;
+      float hP = 110;
+      float wLR = 70;
+      float T[3], CM[3], Ba[3], Bp[3], A[3], P[3], R[3], L[3];
+      
+      /* Point Locations, all coords in i,j,k units: 
+      CM: Centroid, its z coord is not reliable as it varies
+          with coverage in IS direction 
+      T: Top of the head, (x,y) same as those of centroid  
+      Ba: Bottom limit for oblique Anterior cut, the z coord
+          is hBa mm from the topmost z coord
+      Bp: Bottom limit for oblique posterior cut, the z coord
+          is hBp mm from the topmost z coord  
+      A: A very anterior point which along with Ba defines the cut 
+         line in the AI cut. Its y coord is offest by lA mm from 
+         the centroid and its z coord is hCM mm from the top
+      P: The poterior equivalent of A. 
+      L, R: Lateral points, equivalent to A, and P   
+      */
+      /* get the index coordinates for the points of interest */
+      T[0] = icm/sum; T[1] = jcm/sum; /* same as CM's */
+                      T[2] = ktop;
+      CM[0] = icm/sum; CM[1] = jcm/sum; CM[2] = kcm/sum;
+      Ba[0] = CM[0]; Ba[1] = CM[1]; Ba[2] = T[2] - hBa/dz; 
+                      if (Ba[2] < 0) Ba[2] = 0;
+      Bp[0] = CM[0]; Bp[1] = CM[1]; Bp[2] = T[2] - hBp/dz; 
+                      if (Bp[2] < 0) Bp[2] = 0;
+      A[0]  = CM[0]; A[1] = CM[1]-lA/dy; A[2] = T[2]-hCM/dz;
+                      if (A[1] < 0) A[1] = 0; if (A[2]<0) A[2] = 0;
+      P[0]  = CM[0]; P[1] = CM[1]+lP/dy; P[2] = T[2]-hCM/dz;
+                      if (P[1] >= ny) P[1] = ny-1; if (P[2]<0) P[2] = 0;
+      R[0]  = CM[0]-wLR/dx; R[1] = CM[1]; R[2] = T[2]-hLR/dz;
+                      if (R[0] < 0) R[0] = 0; if (R[2]<0) R[2] = 0;
+      L[0]  = CM[0]+wLR/dx; L[1] = CM[1]; L[2] = T[2]-hLR/dz;
+                      if (L[0] >= nx) L[0] = nx-1; if (L[2]<0) L[2] = 0;
+
+      /* Cut in AI region */
+      if (strstr(bottom_cuts,"A")) {
+         if (verb) INFO_message("AI cut");
+         for (kk=0; kk<A[2]; ++kk) {
+            for (jj=0; jj<Ba[1]*(1.0-kk/A[2]); ++jj) {
+               for (ii=0; ii<nx; ++ii) {
+                  ijk=kk*nxy+jj*nx+ii;
+                  sar[ijk] = 0;
+               }
+            }
+         }
+      }   
+      /* Cut in PI region */
+      if (strstr(bottom_cuts,"P")) {
+         if (verb) INFO_message("PI cut");
+         for (kk=0; kk<P[2]; ++kk) {
+            for (jj=Bp[1]+(P[1]-Bp[1])*kk/P[2]; jj<ny; ++jj) {
+               for (ii=0; ii<nx; ++ii) {
+                  ijk=kk*nxy+jj*nx+ii;
+                  sar[ijk] = 0;
+               }
+            }
+         }
+      }   
+
+      /* Cut in RI */
+      if (strstr(bottom_cuts,"R")) {
+         if (verb) INFO_message("RI cut");
+         for (kk=0; kk<R[2]; ++kk) {
+            for (ii=0; ii<Ba[0]*(1.0-kk/R[2]); ++ii) {
+               for (jj=0; jj<ny; ++jj) {
+                  ijk=kk*nxy+jj*nx+ii;
+                  sar[ijk] = 0;
+               }
+            }
+         }
+      }   
+
+      /* Cut in LI */
+      if (strstr(bottom_cuts,"L")) {
+         if (verb) INFO_message("LI cut");
+         for (kk=0; kk<R[2]; ++kk) {
+            for (ii=Ba[0]+(L[0]-Ba[0])*kk/R[2]; ii<nx; ++ii) {
+               for (jj=0; jj<ny; ++jj) {
+                  ijk=kk*nxy+jj*nx+ii;
+                  sar[ijk] = 0;
+               }
+            }
+         }
+      }   
+   }
+   
    ai = thd_bn_dxyz/dx ; 
    bi = icm/sum - (thd_bn_xcm-thd_bn_xorg)/dx ;
    aj = thd_bn_dxyz/dy ; 
@@ -1468,8 +1579,6 @@ ENTRY("mri_brainormalize") ;
            sv   = 1000.0f * sar[ijk] / bval ;
            sar[ijk] = SHORTIZE(sv) ;
            if (sar[ijk] < 0) {
-            /* if( verb ) fprintf(stderr,"--mri_brainormalize: Negative values! sar[%d %d %d (%d)] = %d\nBlasphemy set to 0.\n",
-                           ii, jj, kk, ijk, sar[ijk]); */
             sar[ijk] = 0;  /* ZSS April 11 06 */
            }
          }

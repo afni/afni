@@ -18,20 +18,25 @@ COPY_DATA:
 HULLMASK:
    cd $odir
    if ( "$menh" != "0.0" && ! -f T1.hull.mask.m+orig.HEAD) then
-      #Get enough voxels for 1 liter of goods
-      set vv = `3dinfo -voxvol T1+orig`
-      if ( ! -f T1.niml.hist ) then
-         3dHist -input T1+orig -prefix T1
+      if (0) then
+         #Get enough voxels for 1 liter of goods
+         set vv = `3dinfo -voxvol T1+orig`
+         if ( ! -f T1.niml.hist ) then
+            3dHist -input T1+orig -prefix T1
+         else
+            echo "Reusing T1.niml.hist"
+         endif 
+         set rcdfval = `ccalc "$menh*1e6/$vv"`
+         set thout = (`3dHist -thishist T1.niml.hist -val_at rcdf $rcdfval`)
+         set thout = $thout[2]    
+         ConvexHull -isocmask "-a T1+orig -expr step(a-$thout)" \
+                    -input T1+orig. -o_gii T1.hull
+         3dSurfMask  -sv T1+orig. -fill_method fast -no_dist \
+                     -i T1.hull.gii -prefix T1.hull.mask ${overW}
       else
-         echo "Reusing T1.niml.hist"
-      endif 
-      set rcdfval = `ccalc "$menh*1e6/$vv"`
-      set thout = (`3dHist -thishist T1.niml.hist -val_at rcdf $rcdfval`)
-      set thout = $thout[2]    
-      ConvexHull -isocmask "-a T1+orig -expr step(a-$thout)" \
-                 -input T1+orig. -o_gii T1.hull
-      3dSurfMask  -sv T1+orig. -fill_method fast -no_dist \
-                  -i T1.hull.gii -prefix T1.hull.mask ${overW}
+         3dSkullStrip -input T1+orig. -prefix T1.hull -head_at_vol 1.0
+         3drename T1.hull_head+orig T1.hull.mask.m
+      endif
        set afh = ($afh T1.hull.mask.m+orig.HEAD)
    else
       if ( "$menh" != "0.0" ) echo "Reusing T1.hull.mask.m+orig"
@@ -67,7 +72,7 @@ set cleanafter = 1
 set odir = ""
 set idir = $PWD
 set T1 = ''
-set menh = 1.0
+set menh = 0.75
 set automask = 0
 set unmasked_output = 0
 set overW = ''
@@ -100,7 +105,7 @@ while ($cnt <= $Narg)
    
    if ($donext && "$argv[$cnt]" == "-hullmask") then
       if ($cnt == $Narg) then
-         echo "Need a value after -hullmask (1.0 is good)"
+         echo "Need a value after -hullmask (0.75 is good)"
          goto END
       else
          @ cnt ++
@@ -168,9 +173,9 @@ goto RET_PARSE
 
 HELP:
    echo ""
-   echo "Usage: `basename $0` <-T1 T1vol> <-PD PDvol> "
+   echo "Usage: `basename $0` <-T1 T1vol> "
    echo " "
-   echo "Fix bias field shading in T1 by scaling it with PD image."
+   echo "Crete "
    echo "You can also get a decent result even without the PD volume"
    echo ""
    echo "   -T1 T1vol: The T1 volume"
@@ -182,9 +187,11 @@ HELP:
    echo "         Script will reuse existing intermediate volumes"
    echo ""
    echo "   -hullmask VOL: Create mask using the convex hull of the brightest."
-   echo "                  VOL liters worth of voxels. 1.0 is the default"
+   echo "                  VOL liters worth of voxels. 0.75 is the default"
+   echo "                  You might want to reduce VOL to 0.55 or 0.35 if you"
+   echo "                  have strong ghosting artifacts."
    echo "                  Output is T1.hull.mask.m+orig"
-   echo "   -automask: Also compute automask"
+   echo "   -automask: Also create a mask with 3dAutomask"
    echo "                  Output is T1.amask+orig"
    echo ""
    echo "   -echo: Set echo"
