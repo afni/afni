@@ -17,7 +17,7 @@ void usage_SUMA_BrainSkin (SUMA_GENERIC_ARGV_PARSE *ps)
    sio  = SUMA_help_IO_Args(ps);
    printf ( 
 "\n"
-" A program to create a unfolded surface that wraps the brain (skin) \n"
+" A program to create an unfolded surface that wraps the brain (skin) \n"
 " and Gyrification Indices.\n"
 "\n"
 "Usage:\n"

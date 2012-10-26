@@ -3,21 +3,6 @@
 #include "SUMA_SegOpts.h"
 #include "SUMA_SegFunc.h"
 
-static char labels[7][64]={
-                           "Out",
-                           "Out, In box",
-                           "Out, Touching",
-                           "Contains Node",
-                           "In, Touching",
-                           "In, In Box",
-                           "In" };
-static char labels_slow[3][64]={
-                           "Out",
-                           "Out, In box",
-                           "In" };
-static int keys[7]={0, 1, 2, 3, 4, 5, 6};
-static int N_labels = 7;
-static int N_labels_slow = 3;
 
 void usage_3dSurfMask (SUMA_GENERIC_ARGV_PARSE *ps)
 {
@@ -260,11 +245,10 @@ int main (int argc,char *argv[])
    int N_Spec=0;
    short *isin = NULL;
    int N_in = 0, i;
-   SUMA_FORM_AFNI_DSET_STRUCT *OptDs = NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_VOLPAR *vp = NULL;
    THD_3dim_dataset *dset = NULL, *dsetd=NULL;
-   char *vpname=NULL;
+   char *vpname=NULL, *pp=NULL;
    SUMA_FileName NewName;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -356,97 +340,53 @@ int main (int argc,char *argv[])
          exit(1);
       }
    }
-
    
-   if (!Opt->b2) {
-      isin = SUMA_FindVoxelsInSurface (SO, vp, &N_in, 1, NULL);
-   } else {
-      isin = SUMA_FindVoxelsInSurface_SLOW (SO, vp, &N_in, 0);
-   }
-   if (!isin) {
-      SUMA_S_Err("No voxels in surface");
-      exit(1);
-   }
-   OptDs = SUMA_New_FormAfniDset_Opt();
-   NewName = SUMA_StripPath(Opt->out_vol_prefix);
-   OptDs->prefix = SUMA_append_string(NewName.FileName,".m"); 
-   OptDs->prefix_path = SUMA_copy_string(NewName.Path); 
-   
-   
-   /* master dset */
-   OptDs->master = SUMA_copy_string(vpname);
-   OptDs->datum = MRI_byte;
-   OptDs->full_list = 1;
-   { float * isin_float = NULL;
-      isin_float = (float *)SUMA_malloc(sizeof(float)*vp->nx*vp->ny*vp->nz);
-      if (!isin_float) {
-         SUMA_SL_Crit("Failed to allocate");
-         exit(1);
-      }
-      
-      if (Opt->obj_type == 2) {
-         for (i=0; i<vp->nx*vp->ny*vp->nz; ++i) { 
-            if (isin[i] > 1) isin_float[i] = 1.0; 
-            else isin_float[i] = 0.0; 
-         }                               
-      } else {
-         for (i=0; i<vp->nx*vp->ny*vp->nz; ++i) isin_float[i] = (float)isin[i];
-      }
-      dset = SUMA_FormAfnidset (NULL, isin_float, vp->nx*vp->ny*vp->nz, OptDs);
-      if (!dset) {
-         SUMA_SL_Err("Failed to create output dataset!");
-      } else {
-         char **lblv = NULL;
-         if (!Opt->b2) {
-            lblv = (char **)SUMA_calloc(N_labels, sizeof(char*));
-            for (i=0; i<N_labels; ++i) lblv[i] = SUMA_copy_string(labels[i]);
-            if (!SUMA_SetDsetLabeltable(dset, lblv, N_labels, keys)) { 
-               SUMA_S_Err("Failed to add labels");
-            }
-            for (i=0; i<N_labels; ++i) SUMA_free(lblv[i]);
-         } else {
-            lblv = (char **)SUMA_calloc(N_labels_slow, sizeof(char*));
-            for (i=0; i<N_labels_slow; ++i) 
-               lblv[i] = SUMA_copy_string(labels_slow[i]);
-            if (!SUMA_SetDsetLabeltable(dset, lblv, N_labels_slow, keys)) { 
-               SUMA_S_Err("Failed to add labels");
-            }
-            for (i=0; i<N_labels_slow; ++i) SUMA_free(lblv[i]);
-         }
-         SUMA_free(lblv); lblv=NULL;   
-         tross_Make_History( FuncName , argc,argv , dset ) ;
-         DSET_write(dset) ;
-      }
-      SUMA_free(isin_float); isin_float = NULL;
-   }
+   if (!(dset = SUMA_Dset_FindVoxelsInSurface(
+                     SO, NULL, vp, vpname, Opt->out_vol_prefix, 
+                     Opt->b2, Opt->obj_type == 2 ? 1:0))) {
+      SUMA_S_Err("Failed to create output");                 
+   } 
+   NewName = SUMA_StripPath(Opt->out_vol_prefix);     
+   pp = SUMA_append_string(NewName.FileName, ".m");
+   EDIT_dset_items( dset ,
+                       ADN_prefix    , pp ,
+                       ADN_directory_name , NewName.Path,
+                       ADN_none);
+   tross_Make_History( FuncName , argc,argv , dset ) ;
+   DSET_write(dset) ;
+   SUMA_free(pp); pp=NULL;
 
    if (!Opt->MaskMode) {
       SUMA_S_Note("Voxelizing...");
       dsetd = SUMA_VoxelToSurfDistances(SO, dset, NULL, isin, Opt->b2 ? 2:0);
       tross_Make_History( FuncName , argc,argv , dsetd ) ;
-      OptDs->prefix = SUMA_append_string(NewName.FileName, ".d");
+      NewName = SUMA_StripPath(Opt->out_vol_prefix);     
+      pp = SUMA_append_string(NewName.FileName, ".d");
       EDIT_dset_items( dsetd ,
-                       ADN_prefix    , OptDs->prefix ,
-                       ADN_directory_name , OptDs->prefix_path,
+                       ADN_prefix    , pp ,
+                       ADN_directory_name , NewName.Path,
                        ADN_none);
       DSET_write(dsetd);
-   }                 
+      SUMA_free(pp); pp=NULL;
+   }     
    if (vpname) SUMA_free(vpname); vpname = NULL;
    if (dset) { DSET_delete(dset); dset = NULL; }
    if (dsetd) { DSET_delete(dsetd); dsetd = NULL; }
-   if (OptDs) { OptDs->mset = NULL; OptDs = SUMA_Free_FormAfniDset_Opt(OptDs);  }
    if (vp != SO->VolPar) SUMA_Free_VolPar(vp); vp = NULL;
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (N_Spec) {
       int k=0; 
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { 
+            SUMA_S_Err("Failed to free spec fields"); 
+         } 
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+      SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);
    
 } 
