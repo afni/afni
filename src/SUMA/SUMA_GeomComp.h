@@ -207,6 +207,9 @@ int SUMA_Taubin_Smooth_SO(  SUMA_SurfaceObject *SO,
 int SUMA_NN_Smooth_SO(   SUMA_SurfaceObject *SO, 
                          byte *mask, byte strict_mask,
                          int Niter);
+int SUMA_NN_GeomSmooth_SO(   SUMA_SurfaceObject *SO, 
+                         byte *nmask, byte strict_mask,
+                         int Niter);
 int SUMA_NN_GeomSmooth2_SO(   SUMA_SurfaceObject *SO, 
                          byte *nmask, byte strict_mask,
                          int Niter, int anchor_each,

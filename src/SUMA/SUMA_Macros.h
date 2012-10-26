@@ -283,9 +283,11 @@
       float d = 25, P2[2][3];
       
       SUMA_POINT_AT_DISTANCE(U, P1, d,  P2); 
-      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
+      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", 
+               P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
       SUMA_POINT_AT_DISTANCE_NORM(Un, P1, d,  P2);  use this macro if you have a normalized direction vector ...
-      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
+      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", 
+               P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
    }
    
 */
@@ -459,6 +461,31 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    }
 
 /*!
+   \brief Project point N onto direction u
+*/
+#define SUMA_PROJECT_ONTO_DIR(U,N,P) {\
+   static double m_Eq[4];   \
+   SUMA_S_Warn("UNTESTED");   \
+   SUMA_PLANE_NORMAL_POINT(U,N,m_Eq); /* Form plane passing through N and with dir U */ \
+   /* fr = -(m_Eq[0]xo+m_Eq[1]yo+m_Eq[2]zo+m_Eq[3]);  Intersection of line trhrough xo,yo,zo dir U */ \
+   P[0] = -m_Eq[3]*U[0]; P[1] = -m_Eq[3]*U[1]; P[2] = -m_Eq[3]*U[2]; \
+}
+
+/*!
+   \brief intersection of line with plane
+   UNTESTED
+*/
+#define SUMA_LINE_PLANE_INTERSECT(U,N,Eq,P,ispar) {\
+   double m_dot, m_fr; \
+   SUMA_S_Warn("UNTESTED-2");   \
+   dot = SUMA_MT_DOT(U,Eq);   \
+   ispar = 0;  \
+   if (dot != 0.0f) m_fr = -(Eq[0]*N[0]+Eq[1]*N[1]+Eq[2]*N[2]+Eq[3])/dot;  \
+   else ispar = 1;   \
+   P[0] = N[0]+m_fr*U[0]; P[1] = N[1]+m_fr*U[1]; P[2] = N[2]+m_fr*U[2]; \
+}
+
+/*!
    \brief Intersection of a segment with a plane
    \param p1 x y z of point 1
    \param p2 x y z of point 2
@@ -571,19 +598,20 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    \brief calculates the farthest point on a surface from its center.
    max(dist(node_i,center));
 */
-#define SUMA_SO_MAX_DIST(SO, d, n){ \
-   int m_i, m_i3; \
-   float m_dx, m_dy, m_dz; double m_dm, m_d; \
-   d = 0.0; m_dm=0.0; n = -1;\
+#define SUMA_SO_MAX_MIN_DIST(SO, DD, NN, dd, nn){ \
+   int m_i, m_i3=0; \
+   float m_dx, m_dy, m_dz; double m_Dm, m_d, m_dm; \
+   dd = 0.0; DD = 0.0; m_dm=11111111110.0; m_Dm=0.0; nn = -1; NN = -1;\
    for (m_i=0; m_i<SO->N_Node; ++m_i) {   \
-      m_i3 = 3 * m_i;  \
-      m_dx = SO->NodeList[m_i3  ] - SO->Center[0];   \
-      m_dy = SO->NodeList[m_i3+1] - SO->Center[1];   \
-      m_dz = SO->NodeList[m_i3+2] - SO->Center[2];   \
+      m_dx = SO->NodeList[m_i3++] - SO->Center[0];   \
+      m_dy = SO->NodeList[m_i3++] - SO->Center[1];   \
+      m_dz = SO->NodeList[m_i3++] - SO->Center[2];   \
       m_d = (m_dx * m_dx) + (m_dy * m_dy) + (m_dz * m_dz);  \
-      if (m_d > m_dm) { m_dm = m_d; n = m_i; }  \
+      if (m_d > m_Dm) { m_Dm = m_d; NN = m_i; }  \
+      else if (m_d < m_dm) { m_dm = m_d; nn = m_i; }  \
    }  \
-   if (n > -1) d = (float)sqrt(m_dm); \
+   if (NN > -1) DD = sqrt(m_Dm); \
+   if (nn > -1) dd = sqrt(m_dm); \
 }
 
 /*!

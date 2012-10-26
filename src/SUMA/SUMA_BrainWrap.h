@@ -3,6 +3,8 @@
 
 typedef enum { SUMA_3dSS_NO_PAUSE = 0, SUMA_3dSS_DEMO_PAUSE, SUMA_3dSS_INTERACTIVE } SUMA_3DSS_MODES;
 
+void SUMA_setBrainWrap_NodeDbg(int n);
+int  SUMA_getBrainWrap_NodeDbg(void);
 float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
                           SUMA_SurfaceObject **SOhull);
 int SUMA_Find_IminImax (float *xyz, float *dir, 
@@ -12,6 +14,17 @@ int SUMA_Find_IminImax (float *xyz, float *dir,
             float *Means, float *undershish, float *overshish, 
             int *fvecind_under, int *fvecind_over, 
             float d1, float d4, int ShishMax);
+int SUMA_Find_IminImax_2 (float *xyz, float *dir, 
+                        THD_3dim_dataset *in_vol, float **fvecp,
+                        float travstp, 
+                        float under_dist, float over_dist, 
+                        float stop_avg_thr,  int verb, 
+                        float *MinMax, float *MinMax_dist , 
+                        float *MinMax_over, float *MinMax_over_dist,
+                        float *Means, 
+                        float *undershish, float *overshish, 
+                        int *fvecind_under, int *fvecind_over
+                        );
 int SUMA_SkullMask (SUMA_SurfaceObject *SO, 
                     SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
 int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, 
@@ -21,6 +34,7 @@ short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO,
 short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, 
                                SUMA_VOLPAR *VolPar, int *N_inp, int fillhole, 
                                THD_3dim_dataset *fillholeset);
+
 short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, 
                   int *N_inpnt, int  fillhole, THD_3dim_dataset *fillholeset) ;
 int SUMA_PushToEdge(SUMA_SurfaceObject *SO, 
@@ -61,7 +75,8 @@ SUMA_Boolean SUMA_LimitCoordToVolume(float *NewCoord,
 int SUMA_DidUserQuit(void);
 EDIT_options *SUMA_BlankAfniEditOptions(void);
 void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs, int N_itermax);
-SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_dataset **poutsetp);
+SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, 
+                          THD_3dim_dataset **poutsetp);
 
 /*!
    SUMA_WRAP_BRAIN_SMOOTH(niter, bufp1, bufp2);

@@ -8426,6 +8426,7 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       SO->FN = NULL;
    }
    
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing Label\n", FuncName);
    /* freeing Label */
    if (SO->Label) SUMA_free(SO->Label);
    
@@ -8435,19 +8436,25 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    }
    SO->EL = NULL;
    
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing MF\n", FuncName);
    if (SO->MF){ 
       SUMA_Free_MemberFaceSets (SO->MF);
       SO->MF = NULL;
    }
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SurfCont\n", FuncName);
    if (SO->SurfCont) SUMA_FreeSurfContStruct(SO->SurfCont);
    
    if (SO->PermCol) SUMA_free(SO->PermCol);
    
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing VolPar\n", FuncName);
    if (SO->VolPar) SUMA_Free_VolPar(SO->VolPar); 
    
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing aSO\n", FuncName);
    if (SO->aSO) SO->aSO = SUMA_FreeAfniSurfaceObject(SO->aSO);
    
    
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, "%s: freeing CommonNodeObject\n", FuncName);
    if (SO->CommonNodeObject) 
       SUMA_Free_Displayable_Object_Vect(SO->CommonNodeObject,1);
       SO->CommonNodeObject = NULL;
@@ -8808,6 +8815,9 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       }
       sprintf (stmp,"MaxDist From Center: %.3f at node %d\n", 
                      SO->MaxCentDist, SO->MaxCentDistNode);
+      SS = SUMA_StringAppend (SS,stmp);
+      sprintf (stmp,"MinDist From Center: %.3f at node %d\n", 
+                     SO->MinCentDist, SO->MinCentDistNode);
       SS = SUMA_StringAppend (SS,stmp);
       
       sprintf (stmp,"Maximum: [%.3f\t%.3f\t%.3f]\t (aMax %.3f)\n", 
@@ -9660,6 +9670,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].aMaxDims = 0.0;                                                
       SO[i].MaxCentDist = 0.0;
       SO[i].MaxCentDistNode = -1;
+      SO[i].MinCentDist = 0.0;
+      SO[i].MinCentDistNode = -1;
       
       SO[i].ViewCenterWeight = -1;
       SO[i].RotationWeight = -1;
@@ -9793,16 +9805,19 @@ SUMA_Boolean SUMA_SetSODims(SUMA_SurfaceObject *SO)
       SUMA_MIN_VEC (SO->MinDims, 3, SO->aMinDims );
       SUMA_MAX_VEC (SO->MaxDims, 3, SO->aMaxDims);
       
-      SUMA_SO_MAX_DIST(SO, SO->MaxCentDist, SO->MaxCentDistNode);
+      SUMA_SO_MAX_MIN_DIST(SO, SO->MaxCentDist, SO->MaxCentDistNode,
+                               SO->MinCentDist, SO->MinCentDistNode);
        
    SUMA_LHv("Min:[%f %f %f]\n"
             "Max:[%f %f %f]\n"
             "aMax: %f, aMin %f\n"
-            "Max Dist To Cent: %f at %d\n",
+            "Max Dist To Cent: %f at %d\n"
+            "Min Dist To Cent: %f at %d\n",
             SO->MinDims[0], SO->MinDims[1],SO->MinDims[2],
             SO->MaxDims[0], SO->MaxDims[1],SO->MaxDims[2],
             SO->aMaxDims, SO->aMinDims,
-            SO->MaxCentDist, SO->MaxCentDistNode);
+            SO->MaxCentDist, SO->MaxCentDistNode,
+            SO->MinCentDist, SO->MinCentDistNode);
    
    SUMA_RETURN(YUP);
 }

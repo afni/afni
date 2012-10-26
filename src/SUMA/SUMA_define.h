@@ -2336,6 +2336,9 @@ typedef struct {
    
    float MaxCentDist;   /* Maximal node distance from center */
    int MaxCentDistNode; /* Node which has maximal node distance from center */
+   float MinCentDist;   /* Minimal node distance from center */
+   int MinCentDistNode; /* Node which has minimal node distance from center */
+   
    
    int N_patchNode; /*!<   Number of nodes used in the mesh. 
                            For patches, this number is < SO->N_Node */
