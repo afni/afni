@@ -462,6 +462,7 @@ PARSE_COMMAND:
    set ljpeg = 0
    set lpng = 0
    set dynxlibs = 0
+   set mcwmalloc = 0
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-echo") then
