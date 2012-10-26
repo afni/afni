@@ -183,7 +183,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @DeblankFileNames @clean_help_dir @global_parse @AfniEnv @Atlasize      \
           @Install_TSrestMovieDemo @Install_AfniRetinoDemo                        \
           @Install_PTaylor_TractDemo @Install_RSFMRI_Motion_Group_Demo            \
-          @Install_MEICA_Demo @T1scale 3dMVM 
+          @Install_MEICA_Demo @T1scale 3dMVM @T1mask 
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
@@ -2931,6 +2931,15 @@ libgts.a:
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
 	$(CP) SUMA/libgts.a ${INSTALLDIR}; \
 	$(CP) SUMA/libgts.a ./;	)
+
+libSUMAseg.a:
+	( cd SUMA ;	\
+	rm -f libSUMAseg.a	;\
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) libSUMAseg.a ;	\
+	cd ../	;	\
+	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
+	$(CP) SUMA/libSUMAseg.a ${INSTALLDIR}; \
+	$(CP) SUMA/libSUMAseg.a ./;	)
 
 libGLws.a:
 	( cd SUMA ;	\

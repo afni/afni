@@ -34,10 +34,6 @@ LOCALSTATS:
    if ( ! -f $odir/${inpref}+orig.HEAD) then
       3dcalc -a "${involume}" -expr 'a' -datum short -prefix $odir/${inpref}+orig
    endif
-   if ( "$Mname" != "" && ! -f $odir/${inpref}.Xat.1D) then
-      cp -p $Mname $odir/${inpref}.Xat.1D
-      set Mname = ${inpref}.Xat.1D
-   endif
    
    foreach neigh ($localvector)
       set oneigh = `printf '%02d' $neigh`
@@ -73,6 +69,58 @@ LOCALSTATS:
       else
          echo "$odir/${inpref}.sc${fatScale}.perc exists already"
       endif
+   endif
+   if ( "$Mname" != "" ) then
+      if ("$Mname" == "AUTO") then
+               cd $odir
+         if ( ! -f T1.uni+orig.HEAD) then
+            if ( $Scale == 9) then
+               cd $stdir
+               @T1mask -T1 $involume -hullmask 1.0 -odir $odir
+               cd $odir
+               set sbscale = \
+                  `3dinfo -label2index "perc:${fatPerc}.00"   \
+                              ${inpref}.sc${fatScale}.perc+orig`
+               if ("$sbscale" == '') then
+                  echo "Could not find sub-brick 'perc:${fatPerc}.00'"
+                  echo " in ${inpref}.sc${fatScale}.perc+orig"
+                  goto BEND
+               endif            
+               3dcalc -a T1+orig \
+                      -b ${inpref}.sc${fatScale}.perc+orig"[$sbscale]"   \
+                      -c T1.hull.mask.m+orig \
+                      -expr 'step(c-1)*step(b)*a/b'   \
+                      -prefix T1.uni
+            else
+               cd $stdir
+               @T1scale -T1 $involume -brainhull 1.0 -odir $odir
+               cd $odir
+            endif
+         else
+            echo "Reusing T1.uni+orig"
+         endif
+         if ( ! -f T1.uni.sn+tlrc.HEAD) then
+            #Run 3dSpatNorm to get rid of basal voxels, and auto_tlrc
+            3dSpatNorm  -overwrite -orig_space -prefix T1.uni.sn \
+                        -bottom_cuts ALRP T1.uni+orig
+            @auto_tlrc  -base MNI_sk_avg152T1+tlrc  -init_xform AUTO_CENTER \
+                        -no_ss -input T1.uni.sn+orig 
+            if ( ! -f MNI_sk152T1+tlrc.HEAD ) then
+               @auto_tlrc  -base MNI_sk_avg152T1+tlrc -base_copy MNI_sk152T1
+            endif
+         else
+            echo "Reusing T1.uni.sn+tlrc.HEAD"
+         endif
+         if ( ! -f T1.uni.sn.Xat.1D) then
+            echo "Failed to run @auto_tlrc"
+            goto BEND
+         endif
+         cp -p T1.uni.sn.Xat.1D ${inpref}.Xat.1D
+            cd $stdir
+      else
+         cp -p $Mname $odir/${inpref}.Xat.1D
+      endif
+      set Mname = ${inpref}.Xat.1D
    endif
 
 REGROUP:
@@ -537,7 +585,7 @@ while ($cnt <= $Narg)
       else 
          @ cnt ++
          set Mname = $argv[$cnt]
-         if ( ! -f $Mname) then
+         if ( ! -f $Mname && "$Mname" != 'AUTO') then
             echo "File $Mname not found"
             goto END
          endif

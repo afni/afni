@@ -1,39 +1,57 @@
 #include "mrilib.h"
 #include "thd_brainormalize.h"
 
+void usage_3dSpatNorm(int detail) {
+     printf(
+"Usage: 3dSpatNorm [options] dataset\n"
+"\n"
+"Options:\n"
+"  -prefix ppp = Write output dataset using 'ppp' for the prefix.\n"
+"  -orig_space = Write output dataset using the same grid as dataset.\n"
+"  -verb       = Write out progress reports\n"
+"  -monkey : Monkey business\n"
+"  -marmost: Marmoset head\n"
+"  -rat: Rat head\n"
+"  -human: Bone head (default)\n"
+"  -bottom_cuts CUTFLAGS = Make approximate cuts at the bottom to shave\n"
+"                          non brain areas. CUTFLAGS is a string of \n"
+"                          characters indicating which sides to cut.\n"
+"                          An 'A' cuts along the anterior side\n"
+"                          'P' for posterior, and 'R', 'L' for right, and\n"
+"                          left, respectively.\n"
+"                          To cut all four, use: -bottom_cuts APLR\n"
+"                    Note: -bottom_cuts only works for Human heads.\n"
+"--------------------------------------------------------------------\n"
+"* This program is obsolete, and should not be used by most people. *\n"
+"--------------------------------------------------------------------\n"
+           ) ;
+     PRINT_COMPILE_DATE ;
+}
+
 int main( int argc , char *argv[] )
 {
    MRI_IMAGE *imin, *imout , *imout_orig;
    THD_3dim_dataset *iset, *oset , *ooset;
-   char *prefix = "SpatNorm" ;
+   char *prefix = "SpatNorm", *bottom_cuts = NULL;
    int iarg , verb=0, OrigSpace = 0 , specie = HUMAN;
    float SpatNormDxyz= 0.0, iset_scaled=1.0;
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz, originRAIfv, fv2;
 
 
-   /*--- get help here or get help somewhere ---*/
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 3dSpatNorm [options] dataset\n"
-            "\n"
-            "Options:\n"
-            "  -prefix ppp = Write output dataset using 'ppp' for the prefix.\n"
-            "  -orig_space = Write output dataset using the same grid as dataset.\n"
-            "  -verb       = Write out progress reports\n"
-            "--------------------------------------------------------------------\n"
-            "* This program is obsolete, and should not be used by most people. *\n"
-            "--------------------------------------------------------------------\n"
-           ) ;
-     PRINT_COMPILE_DATE ; exit(0) ;
-   }
+   mainENTRY("3dSpatNorm main") ; machdep() ; 
+   if (argc == 1) { usage_3dSpatNorm(1); exit(0); }
 
    /*--- options ---*/
 
    iarg = 1 ;
    OrigSpace = 0;
    while( iarg < argc && argv[iarg][0] == '-' ){
-
+      if (strcmp(argv[iarg],"-h") == 0 || strcmp(argv[iarg],"-help") == 0 ) { 
+         usage_3dSpatNorm(strlen(argv[iarg]) > 3 ? 2:1);
+         exit(0); 
+      }
+      
      /* -prefix */
 
      if( strcmp(argv[iarg],"-prefix") == 0 ){
@@ -58,9 +76,20 @@ int main( int argc , char *argv[] )
        
        iarg++ ; continue ;
      }
-     
+     if( strcmp(argv[iarg],"-bottom_cuts") == 0 ){
+       if( ++iarg >= argc ){
+         fprintf(stderr,"**ERROR: -bottom_cuts requires another argument!\n") ;
+         exit(1) ;
+       }
+       bottom_cuts = argv[iarg] ;
+       
+       iarg++ ; continue ;
+     }
      if( strncmp(argv[iarg],"-verb",5) == 0 ){
        verb++ ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-human",5) == 0 ){
+       specie = HUMAN ; iarg++ ; continue ;
      }
      if( strncmp(argv[iarg],"-monkey",5) == 0 ){
        specie = MONKEY ; iarg++ ; continue ;
@@ -76,6 +105,7 @@ int main( int argc , char *argv[] )
      }
      
      fprintf(stderr,"**ERROR: %s is unknown option!\n",argv[iarg]) ;
+     suggest_best_prog_option(argv[0], argv[iarg]);
      exit(1) ;
    }
 
@@ -112,6 +142,8 @@ int main( int argc , char *argv[] )
    
    
    mri_speciebusiness(specie);
+   mri_brain_normalize_cuts(bottom_cuts);
+   
    if (SpatNormDxyz) {
       if (verb) fprintf(stderr,"Overriding default resampling\n");
       mri_brainormalize_initialize(SpatNormDxyz, SpatNormDxyz, SpatNormDxyz);
@@ -129,27 +161,38 @@ int main( int argc , char *argv[] )
       if (imin->dz < minres) zzdel = minres;
       else zzdel = imin->dz;
       if (verb) {
-         fprintf(stderr,"%s:\n Original resolution %f, %f, %f\n SpatNorm resolution %f, %f, %f\n",
-                     "3dSpatnorm", imin->dx, imin->dy, imin->dz, 
+         fprintf(stderr,
+                  "%s:\n"
+                  " Original resolution %f, %f, %f\n"
+                  " SpatNorm resolution %f, %f, %f\n",
+                  "3dSpatnorm", imin->dx, imin->dy, imin->dz, 
                      xxdel, yydel, zzdel);
       }   
       mri_brainormalize_initialize(xxdel, yydel, zzdel);
    }
    
-   mri_brainormalize_initialize(imin->dz, imin->dy, imin->dz); /* To get around the #define for voxel counts and dimensions */
+      /* To get around the #define for voxel counts and dimensions */
+   mri_brainormalize_initialize(imin->dz, imin->dy, imin->dz); 
    
    /* me needs the origin of this dset in RAI world */
-   LOAD_FVEC3(originRAIfv , iset->daxes->xxorg , iset->daxes->yyorg , iset->daxes->zzorg) ;
+   LOAD_FVEC3( originRAIfv , 
+               iset->daxes->xxorg , iset->daxes->yyorg , iset->daxes->zzorg) ;
    originRAIfv = THD_3dmm_to_dicomm( iset , originRAIfv ) ;
 
-   LOAD_FVEC3(fv2 , iset->daxes->xxorg + (iset->daxes->nxx-1)*iset->daxes->xxdel ,
-                    iset->daxes->yyorg + (iset->daxes->nyy-1)*iset->daxes->yydel ,
-                    iset->daxes->zzorg + (iset->daxes->nzz-1)*iset->daxes->zzdel  ) ;
+   LOAD_FVEC3(fv2, iset->daxes->xxorg + (iset->daxes->nxx-1)*iset->daxes->xxdel ,
+                   iset->daxes->yyorg + (iset->daxes->nyy-1)*iset->daxes->yydel ,
+                   iset->daxes->zzorg + (iset->daxes->nzz-1)*iset->daxes->zzdel);
    fv2 = THD_3dmm_to_dicomm( iset , fv2 ) ;
 
-   if( originRAIfv.xyz[0] > fv2.xyz[0] ) { float tf; tf = originRAIfv.xyz[0]; originRAIfv.xyz[0] = fv2.xyz[0]; fv2.xyz[0] = tf; } 
-   if( originRAIfv.xyz[1] > fv2.xyz[1] ) { float tf; tf = originRAIfv.xyz[1]; originRAIfv.xyz[1] = fv2.xyz[1]; fv2.xyz[1] = tf; }
-   if( originRAIfv.xyz[2] > fv2.xyz[2] ) { float tf; tf = originRAIfv.xyz[2]; originRAIfv.xyz[2] = fv2.xyz[2]; fv2.xyz[2] = tf; }
+   if( originRAIfv.xyz[0] > fv2.xyz[0] ) { 
+      float tf; tf = originRAIfv.xyz[0]; 
+                originRAIfv.xyz[0] = fv2.xyz[0];  fv2.xyz[0] = tf; } 
+   if( originRAIfv.xyz[1] > fv2.xyz[1] ) { 
+      float tf; tf = originRAIfv.xyz[1]; 
+                originRAIfv.xyz[1] = fv2.xyz[1]; fv2.xyz[1] = tf; }
+   if( originRAIfv.xyz[2] > fv2.xyz[2] ) { 
+      float tf; tf = originRAIfv.xyz[2]; 
+                originRAIfv.xyz[2] = fv2.xyz[2]; fv2.xyz[2] = tf; }
    
    if (verb) {
       fprintf(stderr,"++3dSpatNorm (ZSS): RAI origin info: %f %f %f\n", 
@@ -164,7 +207,7 @@ int main( int argc , char *argv[] )
    if( DSET_BRICK_TYPE(iset,0) == MRI_short ||
        DSET_BRICK_TYPE(iset,0) == MRI_byte    ){
 
-     imout = mri_to_short(1.0,imin) ;
+     imout = mri_to_short(0.0,imin) ; /* ZSS Oct 2012: Let function set scaling*/
      mri_free(imin) ; imin = imout ;
    }
 
@@ -189,7 +232,10 @@ int main( int argc , char *argv[] )
    if (OrigSpace) {
       if( verb ) fprintf(stderr,"++3dSpatNorm: Output in Orignal space\n") ;
       mri_free( imout ) ;
-      imout = imout_orig; imout->xo = originRAIfv.xyz[0]; imout->yo = originRAIfv.xyz[1]; imout->zo = originRAIfv.xyz[2]; 
+      imout = imout_orig; 
+      imout->xo = originRAIfv.xyz[0]; 
+      imout->yo = originRAIfv.xyz[1]; 
+      imout->zo = originRAIfv.xyz[2]; 
       imout_orig = NULL;
    } else {
       if( verb ) fprintf(stderr,"++3dSpatNorm: Output in SpatNorm space\n") ;
@@ -242,6 +288,11 @@ int main( int argc , char *argv[] )
       if (!ooset) {
          fprintf(stderr,"**ERROR: Failed to reslice!?\n"); exit(1);
       }
+      /* put prefix back, r_new_resam_dset puts dummy prefix */
+      EDIT_dset_items( ooset ,
+                       ADN_prefix      , prefix,
+                       ADN_none ) ;
+
       DSET_delete(oset); oset = ooset; ooset = NULL;
    }
 
