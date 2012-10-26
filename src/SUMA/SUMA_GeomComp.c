@@ -2100,7 +2100,8 @@ typedef struct {
    double V;
    double R;
    float *tmpList;
-} SUMA_VolDiffDataStruct; /*!< a special struct for the functions to equate the volume of two surfaces */
+} SUMA_VolDiffDataStruct; /*!< a special struct for the functions to equate the 
+                               volume of two surfaces */
 typedef struct {
    SUMA_SurfaceObject *SO;
    SUMA_SurfaceObject *SOref;
@@ -2110,7 +2111,8 @@ typedef struct {
    double A;
    double R;
    float *tmpList;
-} SUMA_AreaDiffDataStruct; /*!< a special struct for the functions to equate the area of two surfaces */
+} SUMA_AreaDiffDataStruct; /*!< a special struct for the functions to equate the 
+                                area of two surfaces */
 
 /*!
    \brief Changes the coordinates of SO's nodes so that the new average radius of the surface
@@ -2699,7 +2701,8 @@ SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObjec
 #define FROM_THIS_NODE 0
 #define TO_THIS_NODE 10
 */
-SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref ,float radius, SUMA_COMM_STRUCT *cs)
+SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, 
+                  SUMA_SurfaceObject *SOref ,float radius, SUMA_COMM_STRUCT *cs)
 {
    static char FuncName[]={"SUMA_ProjectSurfaceToSphere"};
    int i=0, j=0, cnt = 0, istrt, istp;
@@ -2738,7 +2741,9 @@ SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObj
       a = &(SO->NodeList[3*i]); SUMA_UNIT_VEC(SO->Center, a, U, Un);
       if (Un) {
          SUMA_POINT_AT_DISTANCE_NORM(U, SO->Center, ave_dist_ref, P2);
-         SO->NodeList[3*i] = P2[0][0]; SO->NodeList[3*i+1] = P2[0][1]; SO->NodeList[3*i+2] = P2[0][2];
+         SO->NodeList[3*i] = P2[0][0]; 
+         SO->NodeList[3*i+1] = P2[0][1]; 
+         SO->NodeList[3*i+2] = P2[0][2];
       } else {
             SUMA_SL_Err("Identical points!\n"
                         "No coordinates modified");
@@ -2753,15 +2758,17 @@ SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObj
                            "Check on P2: New dist =%f ?=? %f\n", 
                            FuncName, i, ave_dist_ref, cnt, dj, ave_dist_ref);
             etime_GetOffset = SUMA_etime(&start_time,1);
-            fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
-                  "Projected completion time: %f minutes\n",
-                  FuncName, radius, etime_GetOffset, i+1,
+            SUMA_S_Errv("Search to %f mm took %f seconds for %d nodes.\n"
+                        "Projected completion time: %f minutes\n",
+                  radius, etime_GetOffset, i+1,
                   etime_GetOffset * SO->N_Node / 60.0 / (i+1));
          }
       }
       if (! (i%99) && cs) {
-         if (cs && cs->Send) { /* send the first monster (it's SOref  "in SUMA" that's being modified on the fly*/
-            if (!SUMA_SendToSuma (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+         if (cs && cs->Send) { /* send the first monster 
+                  (it's SOref  "in SUMA" that's being modified on the fly*/
+            if (!SUMA_SendToSuma (SOref, cs, (void *)SO->NodeList, 
+                                  SUMA_NODE_XYZ, 1)) {
             SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
             }
          }
@@ -3922,7 +3929,7 @@ int SUMA_NN_GeomSmooth2_SO(   SUMA_SurfaceObject *SO,
 int SUMA_NN_GeomSmooth3_SO(   SUMA_SurfaceObject *SO, 
                          byte *nmask, byte strict_mask,
                          int Niter, int anchor_each,
-                              SUMA_SurfaceObject *SOe,
+                         SUMA_SurfaceObject *SOe,
                          float *altw, THD_3dim_dataset *voxelize) 
 {
    static char FuncName[]={"SUMA_NN_GeomSmooth3_SO"};
@@ -5441,7 +5448,7 @@ float *SUMA_NN_GeomSmooth3( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
    }  
    if (MaskEnforce < 2) MaskEnforce = 1;
    
-   SUMA_LHv("NN_Geom2, N_iter %d, MaskEnforce %d, nmask %p\n",
+   SUMA_LHv("NN_Geom3, N_iter %d, MaskEnforce %d, nmask %p\n",
             N_iter,  MaskEnforce, nmask);
              
    if (fout_final_user == fin_orig) {
@@ -7377,6 +7384,9 @@ SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset,
                         plane's normal. 0 for the 1st principal vector
                                         1 for the 2nd principal vector
                                         2 for the 3rd
+                                        3 for the component closest to Z axis
+                                        4 for the component closest to Y axis
+                                        5 for the component closest to X axis
    \param rotate (int): if 1 then rotate projection so that plane becomes 
                         parallel to XY plane,
                            2 for XZ plane
@@ -7388,14 +7398,15 @@ float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
    static char FuncName[]={"SUMA_Project_Coords_PCA"};
    int i, i3;
    double trace, pc_vec[9], pc_eig[3], Eq[4], pc0[3], proj[3];
-   float *xyzp=NULL, fv[3], **fm=NULL, *p1, pcf0[3];
-   SUMA_Boolean LocalHead = NOPE;
+   float *xyzp=NULL, fv[3], **fm=NULL, *p1, pcf0[3], pp[3], ddx[3], ddy[3], ddz[3], dx, dy, dz;
+   char pc_m[3];
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
 
    SUMA_LH("Xforming");
-   if (compnum < 0 || compnum > 2) {
-      SUMA_S_Errv("Bad compnum %d, range [0 2]\n", compnum);
+   if (compnum < 0 || compnum > 5) {
+      SUMA_S_Errv("Bad compnum %d, range [0 5]\n", compnum);
       SUMA_RETURN(NULL);
    }
    
@@ -7419,13 +7430,38 @@ float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
       SUMA_RETURN(xyzp); 
    }
    
+   /* relate directions to principal directions */
+   ddx[0] = 1.0; ddx[1] = 0.0; ddx[2] = 0.0;
+   ddy[0] = 0.0; ddy[1] = 1.0; ddy[2] = 0.0;
+   ddz[0] = 0.0; ddz[1] = 0.0; ddz[2] = 1.0;
+
+   pp[0] = pc_vec[0]; pp[1] = pc_vec[3]; pp[2] = pc_vec[6];
+   dx = SUMA_ABS(SUMA_MT_DOT(pp,ddx));
+   dy = SUMA_ABS(SUMA_MT_DOT(pp,ddy));
+   dz = SUMA_ABS(SUMA_MT_DOT(pp,ddz));
+        if (dx >= dy && dx >= dz) pc_m[0]='X';
+   else if (dy >= dx && dy >= dz) pc_m[0]='Y';
+   else pc_m[0]='Z';
+   
+   pp[0] = pc_vec[1]; pp[1] = pc_vec[4]; pp[2] = pc_vec[7];
+   dx = SUMA_ABS(SUMA_MT_DOT(pp,ddx));
+   dy = SUMA_ABS(SUMA_MT_DOT(pp,ddy));
+   dz = SUMA_ABS(SUMA_MT_DOT(pp,ddz));
+        if (dy >= dx && dy >= dz) pc_m[1]='Y';
+   else if (dx >= dy && dx >= dz) pc_m[1]='X';
+   else pc_m[1]='Z';
+   
+        if (pc_m[0] != 'X' && pc_m[1] != 'X') pc_m[2]='X';
+   else if (pc_m[0] != 'Y' && pc_m[1] != 'Y') pc_m[2]='Y';
+   else pc_m[2] = 'Z';
+   
    SUMA_LHv("PCA results:\n"
-            "Eig[0]=%f     pc[0]=[%f %f %f]\n"
-            "Eig[1]=%f     pc[1]=[%f %f %f]\n"
-            "Eig[2]=%f     pc[2]=[%f %f %f]\n",
-            pc_eig[0], pc_vec[0], pc_vec[3], pc_vec[6],
-            pc_eig[1], pc_vec[1], pc_vec[4], pc_vec[7],
-            pc_eig[2], pc_vec[2], pc_vec[5], pc_vec[8]);
+            "Eig[0]=%f     pc[0]=[%f %f %f] closest to %c axis\n"
+            "Eig[1]=%f     pc[1]=[%f %f %f] closest to %c axis\n"
+            "Eig[2]=%f     pc[2]=[%f %f %f] closest to %c axis\n",
+            pc_eig[0], pc_vec[0], pc_vec[3], pc_vec[6], pc_m[0],
+            pc_eig[1], pc_vec[1], pc_vec[4], pc_vec[7], pc_m[1],
+            pc_eig[2], pc_vec[2], pc_vec[5], pc_vec[8], pc_m[2]);
             
    /* need to transpose xyzp again for the remainder  */         
    {
@@ -7438,6 +7474,29 @@ float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
       }
       SUMA_free(xxx); xxx=NULL;
    }  
+   
+   if (compnum >= 3 ) {
+            if (compnum == 3) {
+         /* find direction closest to Z */
+               if (pc_m[0] == 'Z') compnum = 0;
+         else  if (pc_m[1] == 'Z') compnum = 1;
+         else  if (pc_m[2] == 'Z') compnum = 2; 
+      } else if (compnum == 4) {
+         /* find direction closest to Y */
+               if (pc_m[0] == 'Y') compnum = 0;
+         else  if (pc_m[1] == 'Y') compnum = 1;
+         else  if (pc_m[2] == 'Y') compnum = 2; 
+      } else if (compnum == 5) {
+         /* find direction closest to X */
+               if (pc_m[0] == 'X') compnum = 0;
+         else  if (pc_m[1] == 'X') compnum = 1;
+         else  if (pc_m[2] == 'X') compnum = 2;
+      } else {
+         SUMA_S_Errv("Bad value for compnum %d, setting to 0\n",
+                     compnum);
+         compnum = 0;
+      }
+   }
    
    /* Find equation of plane passing by node iref and having the PC 
       for a normal */
@@ -9824,8 +9883,7 @@ double SUMA_Mesh_Volume(SUMA_SurfaceObject *SO,
    SUMA_ENTRY;
    
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(Vol);  }
-   if (!SO->FaceNormList) { 
-      SUMA_SL_Err("NULL SO->FaceNormList"); SUMA_RETURN(Vol);  }
+   if (!SO->FaceNormList) { SUMA_RECOMPUTE_NORMALS(SO); }
    if (!SO->PolyArea) { 
       if (!SUMA_SurfaceMetrics_eng (SO, "PolyArea", 
                                     NULL, 0, SUMAg_CF->DsetList)) {
@@ -13151,11 +13209,11 @@ int SUMA_q_wrap( int npt , float * xyz , int ** ijk , int fliporient,
 #endif
    
    SUMA_ENTRY;
-   
+  
    SUMA_LHv("qprog = %s\nqopt = %s\n", qprog, qopt);
 
    if( npt < 3 || xyz == NULL || ijk == NULL ){
-      SUMA_S_Err(" bad inputs\n") ;
+      SUMA_S_Errv("bad inputs %d %p %p\n", npt, xyz, ijk) ;
       SUMA_RETURN( 0 );
    }
 

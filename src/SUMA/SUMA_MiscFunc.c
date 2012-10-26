@@ -5167,7 +5167,10 @@ int SUMA_Point_To_Triangle_Distance (float *Points, int N_points,
    for (in=0; in < N_points; ++in) {
       in3 = 3*in; P = Points+in3;
       BmP[0] = B[0]-P[0]; BmP[1] = B[1]-P[1]; BmP[2] = B[2]-P[2]; 
-      d = SUMA_DOT3(E0, BmP); e = SUMA_DOT3(E1, BmP); f = SUMA_DOT3(BmP, BmP);          det = a*c-b*b; s = b*e-c*d; t=b*d-a*e;
+      d = SUMA_DOT3(E0, BmP); 
+      e = SUMA_DOT3(E1, BmP); 
+      f = SUMA_DOT3(BmP, BmP);          
+      det = a*c-b*b; s = b*e-c*d; t=b*d-a*e;
       reg = -1;
       if (s+t <= det) {
          if (s < 0) { 
@@ -5246,7 +5249,7 @@ int SUMA_Point_To_Triangle_Distance (float *Points, int N_points,
                "I=[%f %f %f] dist2[%d]=%f, sign=%d\n", 
                reg, s, t, P[0], P[1], P[2], 
                I[0], I[1], I[2], in, dist[in], 
-               (sgn[in]==2) ? 1:-1); 
+               (sgn && sgn[in]==1) ? -1:1); 
    } /* for each point */
    ++icall;
    SUMA_RETURN(YUP);

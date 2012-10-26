@@ -9,6 +9,7 @@
 
 static int VN = 0;
 
+#if 0
 static void vstep_print(void)
 {
    static char xx[10] = "0123456789" ;
@@ -16,6 +17,7 @@ static void vstep_print(void)
    if( VN%10 == 9) fprintf(stderr,".") ;
    VN++ ;
 }
+#endif
 
 static int debug = 0;
 static int VoxDbg3[3];
@@ -6593,3 +6595,572 @@ int SUMA_CompareSegDsets(THD_3dim_dataset *base, THD_3dim_dataset *seg,
    if (ssc) SUMA_free(ssc); ssc=NULL;    
    SUMA_RETURN(0);
 }
+
+
+/* 
+   A convenience function to create convex hull 
+   from a dataset and a threshold 
+*/
+SUMA_SurfaceObject *SUMA_Dset_ConvexHull(THD_3dim_dataset *dset, int isb,
+                                        float th, byte *umask) 
+{
+   static char FuncName[]={"SUMA_Dset_ConvexHull"};
+   SUMA_SurfaceObject *SO=NULL;
+   int ii, i, j, k, npt=0, nxx, nyy, nzz, nxyz, *ijk=NULL, nf;
+   float sbf = 0.0, *xyz=NULL;
+   byte *mask=NULL;
+   THD_fvec3 fv, iv;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(SO);
+   
+   nxx = (DSET_NX(dset)); 
+   nyy = (DSET_NY(dset));
+   nzz = (DSET_NZ(dset));
+   nxyz = nxx*nyy*nzz;
+   
+   if (!umask) {
+      if (!(mask = (byte *)SUMA_malloc(nxyz*sizeof(byte)))){
+         SUMA_S_Err("Failed to allocate"); SUMA_RETURN(NULL);
+      }  
+      memset(mask, 1, nxyz*sizeof(byte));
+   } else {
+      mask = umask;
+   }
+   
+   if (th != 0.0) {
+      sbf = DSET_BRICK_FACTOR(dset, isb);
+      if (sbf == 0.0) sbf = 1.0;
+      SUMA_LHv("Threshold %f, with scaling = %f\n", th, th/sbf);
+      th /= sbf;
+      switch( DSET_BRICK_TYPE(dset,isb) ){
+         default:
+            SUMA_S_Errv("Unsupported sub-brick datum %d\n", 
+                        DSET_BRICK_TYPE(dset,isb)) ;
+            SUMA_RETURN(NULL) ;
+         case MRI_float:{
+            float *pp = (float *) DSET_ARRAY(dset,0) ;
+            for( ii=0 ; ii < nxyz ; ii++ ) { if (pp[ii] < th) mask[ii] = 0; }
+            }
+            break ;
+         case MRI_short:{
+            short *pp = (short *) DSET_ARRAY(dset,0) ;
+            for( ii=0 ; ii < nxyz ; ii++ ) { if (pp[ii] < th) mask[ii] = 0; }
+            }
+            break ;
+         case MRI_byte:{
+            byte *pp = (byte *) DSET_ARRAY(dset,0) ;
+            for( ii=0 ; ii < nxyz ; ii++ ) { if (pp[ii] < th) mask[ii] = 0; }
+            }
+            break ;
+      }      
+   }
+   
+   /* How many voxels? */
+   npt = 0;
+   for ( ii=0 ; ii < nxyz ; ii++ ) { if (mask[ii]) ++npt; }
+   
+   if (!(xyz = (float *)SUMA_malloc(3*npt*sizeof(float)))) {
+      SUMA_S_Err("Failed to allocate"); SUMA_RETURN(NULL);
+   }
+
+   ii = 0; npt = 0;
+   for(  k = 0 ; k < nzz ; k++ ) {
+      for(  j = 0 ; j < nyy ; j++ ) {
+         for(  i = 0 ; i < nxx ; i++ ) {
+            if (mask[ii++]) {
+               fv.xyz[0] = DSET_XORG(dset) + i * DSET_DX(dset);
+               fv.xyz[1] = DSET_YORG(dset) + j * DSET_DY(dset);
+               fv.xyz[2] = DSET_ZORG(dset) + k * DSET_DZ(dset);
+               /* change mm to RAI coords */
+		         iv = SUMA_THD_3dmm_to_dicomm( dset->daxes->xxorient, 
+                                             dset->daxes->yyorient, 
+                                             dset->daxes->zzorient, 
+                                             fv );
+               xyz[3*npt  ] = iv.xyz[0]; 
+               xyz[3*npt+1] = iv.xyz[1]; 
+               xyz[3*npt+2] = iv.xyz[2]; 
+               npt++;
+            }
+         }
+      }
+   }
+   if (mask != umask) SUMA_free(mask); mask = NULL;
+   SUMA_LHv("Have %d/%d voxels in mask for hull\n", npt, nxyz);
+   if (! (nf = SUMA_qhull_wrap(npt, xyz, &ijk, 1, NULL)) ) {
+      SUMA_S_Err("Failed in SUMA_qhull_wrap");
+      SUMA_free(xyz); SUMA_RETURN(NULL); 
+   }
+      
+   if (!(SO = SUMA_Patch2Surf(xyz, npt, ijk, nf, 3))) {
+      SUMA_S_Err("Failed in SUMA_Patch2Surf");
+      SUMA_free(xyz); SUMA_RETURN(NULL); 
+   }  
+   
+   SUMA_free(ijk); SUMA_free(xyz);
+   
+   SUMA_RETURN(SO);
+}
+
+/*!
+   A function to create a convex hull of the head.
+   hullvolthr is the expected hull volume in liters.
+              It is used to select a threshold to mask unwanted
+              voxels. A generous value of 1.0 works well in
+              most cases. However for datasets that have too 
+              much junk in them (lots of neck coverage, too much
+              ghosting, etc.) you need to lower that value down
+              to 0.75, or even 0.35 liters. 
+              You can set hullvolthr to 0 and let the function
+              choose a good guess at the expense of time, however
+              when the result of this function is combined with
+              SUMA_ShrinkSkullHull, the result is about the same
+              regardless of how good or bad the initial hull is.
+*/ 
+SUMA_SurfaceObject *SUMA_ExtractHead_Hull(THD_3dim_dataset *iset,
+                                     float hullvolthr, SUMA_HIST **uhh)
+{
+   static char FuncName[]={"SUMA_ExtractHead_Hull"};
+   SUMA_HIST *hh=NULL;
+   float voxvol = 0.0, volthr[12], voxthr = 0.0;
+   double hvol[12], d1[12], d2[12];
+   int iv=0, ivolsel;
+   SUMA_SurfaceObject *SOv[12], *SO=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!iset) SUMA_RETURN(SO);
+   for (iv=0; iv<12; ++iv) SOv[iv]=NULL;
+   
+   voxvol = SUMA_ABS(DSET_DX(iset)*DSET_DY(iset)*DSET_DZ(iset));
+   
+   if (!(hh = SUMA_dset_hist( iset, 0, NULL, DSET_PREFIX(iset), NULL,
+                              0, 0.0, NULL))) {
+      SUMA_S_Errv("Failed to create histogram from %s\n",
+                  DSET_PREFIX(iset));
+      SUMA_RETURN(SO);                    
+   }
+   
+   if (hullvolthr <= 0.0) {
+      for (iv=0; iv<11; ++iv) {
+         volthr[iv] = (1.0-0.9*(iv/10.0))*1.0e6; /* volume in micro liters */
+            /* get the value above which there remains volthr[iv]/voxvol 
+               voxels */
+         voxthr = SUMA_val_at_count(hh, volthr[iv]/voxvol, 0, 1);
+            /* create the convex hull */
+         SOv[iv] = SUMA_Dset_ConvexHull(iset, 0, voxthr, NULL);
+            /* What is the volume of this hull ? */
+         hvol[iv] = SUMA_Mesh_Volume(SOv[iv], NULL, -1, 0, NULL);
+         SUMA_LHv("Hull volume (thr=%f) at %f liters (count=%f) = %f\n", 
+                  voxthr, volthr[iv], volthr[iv]/voxvol, hvol[iv]);
+      }
+
+      /* look at change in volume versus change in threshold,
+        Pick the highest volume for which there is stability
+        in hull volume change with mask volume change  */
+      if (LocalHead) {
+         SUMA_S_Note("Mask Volume (in liters)");
+         for (iv=0; iv<11; ++iv) {
+            fprintf(SUMA_STDOUT,"%.3f ", 
+                     volthr[iv]/1.0e6);
+         } fprintf(SUMA_STDOUT,"\n");
+         SUMA_S_Note("Hull Volume");
+         for (iv=0; iv<11; ++iv) {
+            fprintf(SUMA_STDOUT,"%f ", 
+                     hvol[iv]);
+         } fprintf(SUMA_STDOUT,"\n");
+
+         SUMA_S_Note("Delta(Hull Volume) / (Hull Volume) * 100");
+         /* The mean and variance of this measure can tell you 
+         something about the volume you have.
+         Too variable means too much high intensity noise. Good
+         head only volumes have means close to 0 */
+         for (iv=1; iv<11; ++iv) {
+            fprintf(SUMA_STDOUT,"%f ", 
+                     200.0*(hvol[iv]-hvol[iv-1])/(hvol[iv]+hvol[iv-1]));
+         } fprintf(SUMA_STDOUT,"\n");
+      }
+      for (iv=1; iv < 11; ++iv) {
+         d1[iv-1] = (hvol[iv]-hvol[iv-1]);
+      }
+      for (iv=1; iv < 11-1; ++iv) {
+         d2[iv-1] = ((d1[iv]-d1[iv-1])/(volthr[iv]-volthr[iv-1]));
+      }
+      ivolsel = -1;
+      if (ivolsel < 0) { /* be demanding */
+         SUMA_LH("Option 1\n");
+         for (iv=0; iv < 7 && ivolsel < 0; ++iv) {
+            if (SUMA_ABS(d2[iv]) < 0.5 && 
+                SUMA_ABS(d2[iv+1]) < 0.5 && 
+                SUMA_ABS(d2[iv+2]) < 0.5) {
+               ivolsel = iv;
+            } 
+         }
+      }
+      if (ivolsel < 0) { /* try again */
+         SUMA_LH("Option 2\n");
+         for (iv=0; iv < 8 && ivolsel < 0; ++iv) {
+            if (SUMA_ABS(d2[iv]) < 0.5 && 
+                SUMA_ABS(d2[iv+1]) < 0.5 ) {
+               ivolsel = iv;
+            } 
+         }   
+      }
+      if (ivolsel < 0) { /* anything */
+         SUMA_LH("Option 3\n");
+         for (iv=0; iv < 9 && ivolsel < 0; ++iv) {
+            if (SUMA_ABS(d2[iv]) < 0.5 ) {
+               ivolsel = iv;
+            } 
+         }   
+      }
+      if (ivolsel < 0) ivolsel = 0;
+      SUMA_LHv("Selected hull at mask volume threshold of %f liters\n", 
+               volthr[ivolsel]/1.0e6);   
+      SO = SOv[ivolsel]; SOv[ivolsel]=NULL;
+      for (iv=0; iv < 11; ++iv) {
+         if (SOv[iv]) SUMA_Free_Surface_Object(SOv[iv]); SOv[iv]=NULL;
+      }   
+   } else {
+      iv = 0;
+      volthr[iv] = hullvolthr *1.0e6; /* volume in micro liters */
+      voxthr = SUMA_val_at_count(hh, volthr[iv]/voxvol, 0, 1);
+      SO = SUMA_Dset_ConvexHull(iset, 0, voxthr, NULL);
+   }
+   
+   if (uhh) {  *uhh = hh; hh = NULL; }
+   if (hh) {
+      SUMA_Free_hist(hh); hh=NULL;
+   }
+   SUMA_RETURN(SO);
+}  
+
+/*!
+   Shrink hull of skull so that the surface lies
+   on bright voxels that at least exceed the threshold. 
+   It is not attracted to the edge of the skull per se,
+   but brighter voxels outside the current surface would
+   attract the surface towards them.
+*/   
+SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO, 
+                             THD_3dim_dataset *iset, float thr) 
+{
+   static char FuncName[]={"SUMA_ShrinkSkullHull"};
+   char sbuf[256]={""};
+   byte *mask=NULL;
+   int   in=0, vxi_bot[30], vxi_top[30], iter, N_movers, 
+         ndbg=SUMA_getBrainWrap_NodeDbg(), nn,N_um;
+   float *fvec=NULL, *xyz, *dir, P2[2][3], travstep, shs_bot[30], shs_top[30];
+   float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[2], nodeval,
+         area=0.0, larea=0.0, ftr=0.0, darea=0.0;
+   SUMA_Boolean stop = NOPE;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LHv("Begin shrinkage, thr=%f\n", thr);
+   
+   travstep = SUMA_ABS(DSET_DX(iset));
+   if (travstep > SUMA_ABS(DSET_DY(iset))) travstep = SUMA_ABS(DSET_DY(iset));
+   if (travstep > SUMA_ABS(DSET_DZ(iset))) travstep = SUMA_ABS(DSET_DZ(iset));
+   if (!(mask = (byte *)SUMA_malloc(sizeof(byte)*SO->N_Node))) {
+      SUMA_S_Crit("Failed to allocate");
+      SUMA_RETURN(NOPE);
+   }
+   
+   
+   stop = NOPE;
+   N_movers = 0; iter=0;
+   while (!stop) {
+      memset(mask, 1, sizeof(byte)*SO->N_Node);
+      for (in=0; in<SO->N_Node; ++in) {
+         xyz = SO->NodeList+3*in;
+         dir = SO->NodeNormList+3*in;
+         SUMA_Find_IminImax_2(xyz, dir,
+                            iset, &fvec, travstep, 10*travstep, 2*travstep,
+                            0.5*thr, in==ndbg?1:0, 
+                            rng_bot, rdist_bot,
+                            rng_top, rdist_top,
+                            avg,
+                            shs_bot, shs_top,
+                            vxi_bot, vxi_top);
+         nodeval = shs_bot[0];
+         if (nodeval >= thr) { /* we're OK, minor adjustment */ 
+            if (nodeval < rng_top[1]) { /* higher val above, move up one step */
+               memset(P2,0,6*sizeof(float));
+               SUMA_POINT_AT_DISTANCE(dir, xyz, travstep, P2);
+               xyz[0] = P2[0][0]; xyz[1] = P2[0][1]; xyz[2] = P2[0][2];
+              
+            }  
+            mask[in] = 0; /* anchor node, outside smoothing mask*/
+         } else {
+            /* look down for better days */
+            if (nodeval < rng_bot[1]) { 
+               if (0) { /* goes down to the brightest, but that is too harsh */
+                  xyz[0] -= rdist_bot[1]*dir[0];
+                  xyz[1] -= rdist_bot[1]*dir[1];
+                  xyz[2] -= rdist_bot[1]*dir[1];
+               } else { /* Go down to the 1st voxel meeting threshold 
+                           You could add an edge condition here too, someday */
+                  nn = 0;
+                  while (nn<10 && shs_bot[nn]<thr) { ++nn; }
+                  ftr = travstep*nn;
+                  xyz[0] -= ftr*dir[0];
+                  xyz[1] -= ftr*dir[1];
+                  xyz[2] -= ftr*dir[1];                  
+               }
+            }
+            ++N_movers;
+         }
+      }
+      
+      /* Make sure no one node is an anchor holdout */
+      for (in=0; in<SO->N_Node; ++in) {
+         if (!mask[in]) {
+            N_um = 0;
+            for (nn=0; nn<SO->FN->N_Neighb[in]; ++nn) {
+               if (mask[SO->FN->FirstNeighb[in][nn]]) ++N_um;
+            }
+            if ((float)N_um/SO->FN->N_Neighb[in] > 0.75) {
+               mask[in]=1;
+               if (LocalHead && in == ndbg) {
+                  SUMA_LHv("Node %d was anchored but now released %f\n",
+                           in, (float)N_um/SO->FN->N_Neighb[in]);
+               }
+            }
+         }
+      }
+      
+      /* A quick smoothing with anchors in place */
+      SUMA_NN_GeomSmooth_SO(SO, mask, 0, 10);
+      
+      /* Are we making a difference in this world? */
+      larea=area;
+      area=SUMA_Mesh_Area(SO, NULL, -1);
+      darea = (area-larea)/area*100.0;
+      
+      /* write it out for debugging */
+      if (LocalHead) {
+         SUMA_LHv("Iteration %d, N_movers = %d, area = %f (Darea=%f)\n",
+               iter, N_movers, area, darea);
+         THD_force_ok_overwrite(1) ;
+         sprintf(sbuf,"shrink.02%d",iter);
+         SUMA_Save_Surface_Object_Wrap(sbuf, NULL, SO, 
+                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+      }
+      ++iter;
+      if (iter > 10 || SUMA_ABS(darea) < 0.05) stop = YUP;
+   }
+   
+   if (LocalHead) {
+      SUMA_LHv("End of iterations N_movers = %d, area = %f\n",
+            N_movers, SUMA_Mesh_Area(SO, NULL, -1));
+      THD_force_ok_overwrite(1) ;
+      SUMA_Save_Surface_Object_Wrap("shrink", NULL, SO, 
+                              SUMA_GIFTI, SUMA_ASCII, NULL);
+   }
+   
+   if (iter >= 10) {
+      SUMA_S_Note("Convergence criterion not reached. Check results.");
+   }
+   
+   if (mask) free(mask); mask = NULL;
+   if (fvec) free(fvec); fvec = NULL;
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   Get a good mask of the whole head.
+   hullvolthr is the expected volume of the head, it is
+   used to get an approximate threshold. 
+   
+   A value of 1.0 liters is good, but you can go down to 0.2liters
+   if the dataset has a lot of junk it (lots of extra tissue,
+   plenty of ghosting).
+   Use 0.0 for some optimization, but that should not be
+   necessary. See SUMA_ExtractHead_Hull for more info.
+   
+*/    
+SUMA_SurfaceObject *SUMA_ExtractHead(THD_3dim_dataset *iset,
+                                     float hullvolthr)
+{
+   static char FuncName[]={"SUMA_ExtractHead"};
+   SUMA_SurfaceObject *SOh = NULL, *SOi = NULL;
+   SUMA_HIST *hh=NULL;
+   float newvol = 0.0, voxvol = 0.0, sklthr = 0.0;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!iset) SUMA_RETURN(SOh);
+
+   if (!(SOh = SUMA_ExtractHead_Hull(iset,hullvolthr, &hh))) {
+      SUMA_S_Err("Failed to get HULL");
+      SUMA_RETURN(SOi);
+   }
+   if (LocalHead) {
+      SUMA_Save_Surface_Object_Wrap("hull", NULL, SOh, 
+                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+   }
+   /* compute surface center, etc. */
+   SUMA_SetSODims(SOh);
+   
+   /* Create a little icosahedron that fits inside the hull */
+   SOi = SUMA_CreateIcosahedron(0.99*SOh->MinCentDist, 20, SOh->Center, "n",1);
+   if (LocalHead) {
+      SUMA_Save_Surface_Object_Wrap("icos", NULL, SOi, 
+                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+   }
+   /* Now inflate the icosahedron to make it fit the hull */
+   if (!SUMA_NN_GeomSmooth3_SO(SOi, NULL, 0, 200, 100, SOh, NULL, NULL)) {
+      SUMA_S_Err("Failed to inflate to anchor");
+      SUMA_RETURN(SOi);
+   }
+   if (LocalHead) {
+      SUMA_Save_Surface_Object_Wrap("icosinfl", NULL, SOi, 
+                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+   }
+   /* Now drive ico mesh inwards until it hits the brightest voxels below 
+      To settle on brightest voxels threshold, compute area of icosahedron
+      and consider a thickness of 10mm
+   */
+   newvol = fabs(SUMA_Mesh_Area(SOi, NULL, -1)*10);
+   voxvol = SUMA_ABS(DSET_DX(iset)*DSET_DY(iset)*DSET_DZ(iset));
+   sklthr = SUMA_val_at_count(hh, newvol/voxvol, 0, 1);
+   SUMA_LHv("Skull threshold for contraction = %f, volume =%f liters\n", 
+            sklthr, newvol/1.0e6);
+   
+   /* for each node on the surface, if it is at the threshold or above, 
+      leave it in place, otherwise smooth, repeat*/
+   SUMA_ShrinkSkullHull(SOi, iset, sklthr);
+   
+   if (SOh) SUMA_Free_Surface_Object(SOh); SOh = NULL;
+   if (hh) SUMA_Free_hist(hh); hh = NULL;
+   SUMA_RETURN(SOi); 
+}
+
+static char labels[7][64]={
+                           "Out",
+                           "Out, In box",
+                           "Out, Touching",
+                           "Contains Node",
+                           "In, Touching",
+                           "In, In Box",
+                           "In" };
+static char labels_slow[3][64]={
+                           "Out",
+                           "Out, In box",
+                           "In" };
+static int keys[7]={0, 1, 2, 3, 4, 5, 6};
+static int N_labels = 7;
+static int N_labels_slow = 3;
+
+
+/*!
+   A convenience function to call SUMA_FindVoxelsInSurface* functions
+   meth == 1: SUMA_FindVoxelsInSurface_SLOW 
+           2: SUMA_FindVoxelsInSurface
+   maskonly == 1: 0/1 output
+               2: output reflecting relative position of voxel to surface
+   You can use only one of iset, or (vp and vpname)
+*/
+THD_3dim_dataset *SUMA_Dset_FindVoxelsInSurface(SUMA_SurfaceObject *SO, 
+                     THD_3dim_dataset *iset, 
+                     SUMA_VOLPAR *vp, char *vpname,
+                     char *prefix, int meth, int mask_only) 
+{
+   static char FuncName[]={"SUMA_Dset_FindVoxelsInSurface"};
+   THD_3dim_dataset *dset = NULL;
+   short *isin = NULL;
+   int N_in = 0, i=0;
+   float * isin_float = NULL;
+   char **lblv = NULL;
+   SUMA_FileName NewName;
+   SUMA_FORM_AFNI_DSET_STRUCT *OptDs = NULL;
+   
+   SUMA_ENTRY;
+
+   if (!SO) SUMA_RETURN(NULL);
+   if (iset && vp) {
+      SUMA_S_Err("iset and vp, no good");
+      SUMA_RETURN(NULL);
+   }
+   if (!iset && (!vp || !vpname))  {
+      SUMA_S_Err("both vp and vpname must be set if iset=NULL");
+      SUMA_RETURN(NULL);
+   }
+   if (iset) vp = SUMA_VolParFromDset(iset);
+   
+   switch (meth) {
+      default:
+         SUMA_S_Errv("Bad meth %d\n", meth);
+         SUMA_RETURN(NULL);
+      case 0:
+         isin = SUMA_FindVoxelsInSurface (SO, vp, &N_in, 1, NULL);
+         break;
+      case 1:
+         isin = SUMA_FindVoxelsInSurface_SLOW (SO, vp, &N_in, 0);
+         break;
+   }
+   if (!isin) {
+      SUMA_S_Err("No voxels in surface");
+      SUMA_RETURN(NULL);
+   }
+   
+   OptDs = SUMA_New_FormAfniDset_Opt();
+   NewName = SUMA_StripPath(prefix ? prefix:FuncName);
+   OptDs->prefix = SUMA_copy_string(NewName.FileName); 
+   OptDs->prefix_path = SUMA_copy_string(NewName.Path); 
+   if (iset) OptDs->mset = iset;
+   else OptDs->master = SUMA_copy_string(vpname);
+   OptDs->datum = MRI_byte;
+   OptDs->full_list = 1;
+    
+   isin_float = (float *)SUMA_malloc(sizeof(float)*vp->nx*vp->ny*vp->nz);
+   if (!isin_float) {
+      SUMA_SL_Crit("Failed to allocate");
+      exit(1);
+   }
+
+   if (mask_only == 1) {
+      for (i=0; i<vp->nx*vp->ny*vp->nz; ++i) { 
+         if (isin[i] > 1) isin_float[i] = 1.0; 
+         else isin_float[i] = 0.0; 
+      }                               
+   } else {
+      for (i=0; i<vp->nx*vp->ny*vp->nz; ++i) isin_float[i] = (float)isin[i];
+   }
+   dset = SUMA_FormAfnidset (NULL, isin_float, vp->nx*vp->ny*vp->nz, OptDs);
+   if (!dset) {
+      SUMA_SL_Err("Failed to create output dataset!");
+   } else if (!mask_only) {
+      if (meth == 0) {
+         lblv = (char **)SUMA_calloc(N_labels, sizeof(char*));
+         for (i=0; i<N_labels; ++i) lblv[i] = SUMA_copy_string(labels[i]);
+         if (!SUMA_SetDsetLabeltable(dset, lblv, N_labels, keys)) { 
+            SUMA_S_Err("Failed to add labels");
+         }
+         for (i=0; i<N_labels; ++i) SUMA_free(lblv[i]);
+      } else if (meth == 1) {
+         lblv = (char **)SUMA_calloc(N_labels_slow, sizeof(char*));
+         for (i=0; i<N_labels_slow; ++i) 
+            lblv[i] = SUMA_copy_string(labels_slow[i]);
+         if (!SUMA_SetDsetLabeltable(dset, lblv, N_labels_slow, keys)) { 
+            SUMA_S_Err("Failed to add labels");
+         }
+         for (i=0; i<N_labels_slow; ++i) SUMA_free(lblv[i]);
+      }
+      SUMA_free(lblv); lblv=NULL;   
+   }
+   
+   SUMA_free(isin_float); isin_float = NULL;
+   SUMA_free(isin); isin = NULL;
+   if (iset && vp) SUMA_Free_VolPar(vp); vp = NULL;
+   if (OptDs) { OptDs->mset = NULL; OptDs = SUMA_Free_FormAfniDset_Opt(OptDs);  }
+   
+   SUMA_RETURN(dset);
+}
+ 
