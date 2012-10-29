@@ -1481,7 +1481,7 @@ ENTRY("mri_float_blur2D") ;
 }
 
 /*-----------------------------------------------------------------------------*/
-/*! Blurring, applied to a 3D float image. */
+/*! Blurring, applied to a 3D float image (sig is in voxels, not mm). */
 
 MRI_IMAGE * mri_float_blur3D( float sig , MRI_IMAGE *im )
 {
