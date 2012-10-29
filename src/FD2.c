@@ -1,30 +1,19 @@
-/*      This program displays functional EPI of the form 64x64 or 128x128
+/*      This program displays functional EPI of the form 64x64 up to 512x512
         in X11 windows. Keys and subWindow are added. The ar is malloc().
-        It uses 8 or 12 bitplanes, and own solid color map.
+        It uses 8 or 12 bitplanes and own solid color map, or any RGB mode.
         Extras: image marker, continuous X,Y position.
         EPI part based on Eric C. Wong program fd_multi.c .
-        Added RGB mode, 10-14-2001 AJ.
-        Andre Jesmanowicz, 9-24-1992, Medical College of Wisconsin. */
+        Added rectangular box and time average 11-12-2002 AJ.
+        Andre Jesmanowicz, 4-03-2008, Medical College of Wisconsin. */
 
 #define CONTRAST_CHANGE_STEP 15000/* larger step => slower change AJ 11.1.96 */
 
 #define ASC_NUL '\0'
-
-#ifndef COPYRIGHT_STRING
-#define COPYRIGHT_STRING "Copyright"
-#endif
+#undef  FILL_WITH_CYAN
 
 #define MAIN
 
-#ifdef DEBUG
-# define STATUS(str) ( printf("%s\n",str) , fflush(stdout) )
-#else
-# define STATUS(str)
-#endif
-
 /***---------------- additions for use of array of MRI_IMAGE --------------***/
-
-#undef USE_TRACING  /* not for use in this old program */
 
 #include "FD2_inc.c"  /* 16 Jul 2007 -- to avoid use of mrilib */
 
@@ -32,8 +21,6 @@
 #include "pcor.h"
 
 #define INC_ALLIM 8
-
-#define MRIDEB(str) fprintf(stderr,"MRI: %s\n",str)
 
 int dim_allim = 0 ;
 
@@ -62,11 +49,6 @@ int RWC_framehide = 0 ;  /* to hide frame in image */
 int RWC_checker   = 0 ;  /* to checkerboard or not to checkerboard */
 int RWC_groupbase = 0 ;  /* to use a group baseline or not */
 int AJ_base = 0;         /* to set base to zero when group baseline is on */
-int RCR_swap = 0;        /* default is no swap, even for LINUX */
-
-/***-----------------------------------------------------------------------***/
-/*  int discard(int, XEvent*) ; */
-/***-----------------------------------------------------------------------***/
 
 /* additions for use of MCW logo */
 
@@ -95,13 +77,10 @@ int RCR_swap = 0;        /* default is no swap, even for LINUX */
 #include <sys/ioctl.h>
 
 #define IM_HEIGHT 256
+#define IM_MAX_H 512
+int     im_height = IM_HEIGHT;        // minimum image size
 #define NUM_STD_COLORS 16
-#define IM_ARR    (IM_HEIGHT*IM_HEIGHT)
-#if 0
-#define NCOLORS   208  /* default # of colors */
-#define MCOLORS   256  /* maximum # of colors: NCOLORS + NUM_STD_COLORS (16) */
-                       /*                    + MAX_EXTRA_COLORS (32) */
-#endif
+#define IM_ARR    (IM_MAX_H*IM_MAX_H) // include 512x512 images too
 #define NCOLORS   808  /* default # of colors */
 #define MCOLORS   856  /* maximum # of colors: NCOLORS + NUM_STD_COLORS (16) */
                        /*                    + MAX_EXTRA_COLORS (32) */
@@ -109,7 +88,7 @@ int RCR_swap = 0;        /* default is no swap, even for LINUX */
 #define M_SP_COL  360                 /* max degree of color spectrum */
 #define BELT_W    24                  /* reference color belt width */
 #define BELT_S    3                   /* color belt sides width */
-#define BELT_A    (BELT_W*IM_HEIGHT)
+#define BELT_A    (BELT_W*IM_MAX_H)
 #define NF_MAX    10000               /* Max # of files */
 #define STR_L     256                 /* Max length of string */
 
@@ -132,12 +111,17 @@ int RCR_swap = 0;        /* default is no swap, even for LINUX */
 #define EPY4      32
 #define EPS4      (2*EPX4*EPY4)
 
-#define OFFSET    (28*IM_HEIGHT)       /* offset to data in 145408 bytes im */
-#define H_SIZE    (OFFSET+IM_ARR)      /* 256x256 image with header */
-#define IM_SIZE   (2*H_SIZE)
+#define EPX5      512
+#define EPY5      512
+#define EPS5      (2*EPX5*EPY5)
 
-#define GX_MAX    512                  /* Horizontal size of graph window */
-#define GY_MAX    512                  /* Vertical size of graph window */
+#if 0                                 // old stuff for max size 256x256 4.03.2008
+  #define OFFSET    (28*IM_HEIGHT)       /* offset to data in 145408 bytes im */
+  #define H_SIZE    (OFFSET+IM_ARR)      // 256x256 image with header
+#endif
+
+int     gx_max =  512;                 /* Horizontal size of graph window */
+int     gy_max =  512;                 /* Vertical size of graph window */
 #define GR_DLX    3                    /* Horizontal delta to right edge */
 #define GT_DLY    21                   /* Vertical delta to top edge */
 #define GL_DLX    50                   /* Horizontal delta to left edge */
@@ -146,20 +130,6 @@ int RCR_swap = 0;        /* default is no swap, even for LINUX */
 #define GRID_NUM  8                    /* Maximum grid index */
 #define COL_NUM   5                    /* Number of colors */
 #define GRID_COEF 50.                  /* alternate for slow scannings */
-
-/***************************************************************************/
-
-#ifdef RWCOX_LINUX      /* for the smaller screen */
-
-#undef GX_MAX
-#undef GY_MAX
-#define GX_MAX  403
-#define GY_MAX  403
-
-#endif  /* RWCOX_LINUX */
-
-int RWC_GX_MAX = GX_MAX ;  /* for new option -gsize xx yy */
-int RWC_GY_MAX = GY_MAX ;
 
 /**************************************************************************/
 
@@ -192,14 +162,14 @@ struct _key {
            int    (*fun)();
            Window wid;
            short  x,y,width,height;
-  unsigned long   fore,back;
+  unsigned long   fore,back; // long is OK here AJJ
            void   (*func)();
             };
 
 struct _key *key;
 
-#define N_KEYS 18
-#define LAST_K 7    /* RWC: incremented this to put FIM key in */
+#define N_KEYS 21
+#define LAST_K 8    /* RWC: incremented this to put FIM key in */
 
 #define kROT   0
 #define kHLP   1
@@ -207,22 +177,26 @@ struct _key *key;
 #define kDIF   3
 #define kSIG   4
 #define kFFT   5
-#define kFIM   6    /* RWC: put this in as new permanent button */
-#define kNRM   7
-#define kAV1   8
-#define kAV2   9
-#define kIR1  10
-#define kIR2  11
+#define kSCA   6
+#define kFIM   7    /* RWC: put this in as new permanent button */
+#define kNRM   8
+#define kAV1   9
+#define kAV2  10
+#define kIR1  11
+#define kIR2  12
 
-#define kFI1  12   /* RWC: new buttons when FIM key is pressed */
-#define kFI2  13
-#define kFI3  14   /* the POWER KEY (named by Lloyd Estkowski) */
+#define kFI1  13   /* RWC: new buttons when FIM key is pressed */
+#define kFI2  14
+#define kFI3  15   /* the POWER KEY (named by Lloyd Estkowski) */
 
-#define kFT1  15
-#define kFT2  16
-#define kFT3  17
+#define kFT1  16
+#define kFT2  17
+#define kFT3  18
 
-int  Ims_rot(), Im_help(), Im_diff(), Ref_im1(), Ref_im2();
+#define kSC1  19
+#define kSC2  20
+
+int  Ims_rot(), Im_help(), Im_diff(), SCA_action(), Ref_im1(), Ref_im2();
 int  Im_Aver(), Im_norm(), Av_im1(), Av_im2(), Smooth_line();
 
 #define FFT_first_key kFT1
@@ -236,8 +210,15 @@ char *key_kFFT_FFT   = "FFT" ;
 char *key_kFFT_noFT  = "noFT";
 char *key_kFT1[2]    = {"edit", "end"};
 char *key_kFT2[4]    = {" FT ", "0..0", "from", " to "};
-char *key_kFT3[3]     ={"    ", "i FT", "zero"};
+char *key_kFT3[3]    = {"    ", "i FT", "zero"};
 
+#define SCA_first_key kSC1
+#define SCA_last_key  kSC2
+int   SCA_selection();
+int   SCA_pressed = 0;
+char  *key_kSCA[2]  = {"Scale", "ScEnd"};
+float SCA_ref_val = -1.;
+float SCA_ratio = 0.;
 
 #define FIM_first_key kFI1
 #define FIM_last_key  kFI3
@@ -330,8 +311,9 @@ struct _key xtkeys[N_KEYS] = { {"Rot"  , kROT, Ims_rot},
                                {"AvIm" , kAVR, Im_Aver},
                                {"Diff" , kDIF, Im_diff},
                                {"Smth" , kSIG, Smooth_line},
-                               {"FFT"  , kFFT, FFT_action} ,
-                               {"FIM"  , kFIM, FIM_action} ,
+                               {"FFT"  , kFFT, FFT_action},
+                               {"Scale", kSCA, SCA_action},
+                               {"FIM"  , kFIM, FIM_action},
                                {"Norm" , kNRM, Im_norm},
                                {"Average: from this image" , kAV1 , Av_im1},
                                {"Average: to this one.   " , kAV2 , Av_im2},
@@ -342,11 +324,13 @@ struct _key xtkeys[N_KEYS] = { {"Rot"  , kROT, Ims_rot},
                                {"PUSH BUTTON 3"  , kFI3 , FIM_selection},
                                {"edit", kFT1 , FFT_selection},
                                {" FT ", kFT2 , FFT_selection},
-                               {"    ", kFT3 , FFT_selection}
+                               {"    ", kFT3 , FFT_selection},
+                               {"Reference  image",  kSC1 , SCA_selection},
+                               {"Scale this image ", kSC2 , SCA_selection}
                              };
 
 char          *kfont, *ffc, *fbc;
-unsigned long ForeColor, BackColor, FKeyFore, FKeyBack;
+unsigned long ForeColor, BackColor, FKeyFore, FKeyBack; // long is OK here AJJ
 XColor        xcsd, xced;
 XFontStruct   *kfontinfo;
 Font          keyfont;
@@ -354,9 +338,9 @@ int           keywide[N_KEYS], minwide, keyhigh;
 GC            Fkeyigc, Fkeygc;
 int           invkey    = -1;
 int           exp_done[N_KEYS+3];   /* GWindow + subWindow +topWindow + keys */
-short   int   a_rot[H_SIZE], rot_nr = 0, rot_direct , rot_state ;
+short   int   a_rot[IM_ARR], rot_nr = 0, rot_direct , rot_state ;
 int           sub_W_x, sub_W_y, top_W_x, top_W_y;
-int           v_point_x = -20, v_point_y = 0, move_Vpointer = 0;
+int           v_point_x = -20, v_point_y = 0;
 int           diff_im = 0, Im_1, Im_2, im1_done = 0, extra_im = 0;
 int           avr_grp = 0, Av_1, Av_2, av1_done = 0, Av_length = 1;
 int           fim_dif = 0, fim_avr = 0, redraw;
@@ -373,7 +357,7 @@ char            *realloc();
 #endif
 /*---------------------------------------------------------------------------*/
 
-int             STD_colors();
+int  STD_colors();
 
 void x_events_loop();
 void Resample();
@@ -449,8 +433,8 @@ struct S_16_c Solid_color[16] = {
    {0xaeae, 0xaeae, 0xaeae}, {0x0000, 0x0000, 0x0000}    /* gray,   black   */
   };
 
-short int       color_x11[16] = { -1, -1, -1, -1, -1, -1, -1, -1,
-                                  -1, -1, -1, -1, -1, -1, -1, -1 };
+int       color_x11[16] = { -1, -1, -1, -1, -1, -1, -1, -1,
+                            -1, -1, -1, -1, -1, -1, -1, -1 };
 
 XPoint          sm_cir[12] = { {-1,-2},{ 0,-2}, { 1,-2},  /* small circle */
                                { 2,-1},{ 2, 0}, { 2, 1},
@@ -470,12 +454,12 @@ Display         *theDisp;
 int             theScreen;
 Window          rootW, theWindow, GWindow, subWindow, topWindow;
 GC              theGC, txtGC;
-unsigned long   fcol, bcol;
+unsigned long   fcol, bcol; // long is OK here AJJ
 Font            mfont;
 XFontStruct     *afinfo, *mfinfo;
 Visual          *theVisual;
 XImage          *theImage, *expImage, *theBelt, *expBelt;
-int             eWIDE, eHIGH, aWIDE, eW, eH, iWIDE, iHIGH;
+int             eWIDE, eHIGH, aWIDE, eW, eH;
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -496,18 +480,16 @@ int             Dispcells, Planes;
 int             repeat_status = 0, ncolors, YES_color = 0, INgrey[NCOLORS];
 XColor          MYcol[NCOLORS], MYgrey[NCOLORS], any_col, rgb_col;
 Colormap        CMap;
-unsigned long   plane_masks[1], pixels[MCOLORS];
+unsigned long   plane_masks[1], pixels[MCOLORS]; // long is OK here AJJ
 unsigned int    nplmsk = 0, ucolors, uucolors;
-Pixmap          pxWind ;
+Pixmap          pxWind;
 
 int             max_xlines = 0 ;
-int             use_pixmap = 1 ;
-#define GRWIND  ((use_pixmap)?((Drawable)pxWind):((Drawable)GWindow))
 
 int             spectrum = N_SPCTR; /* up to 360 degree of colors */
 int             Im_Nr = 0, N_im = 0, I_lck = 0, tmp_Nr = 0;
-int             N_lck = 0,  old_grid, old_im = -1;
-int             x_mag, ref_ar[H_SIZE], av_ar[H_SIZE], Cx, Cy;
+int             N_lck = 0,  old_im = -1;
+int             x_mag, ref_ar[IM_ARR], av_ar[IM_ARR], Cx, Cy;
 short int       imx[IM_ARR], tmp_imx[IM_ARR] ;
 short int       belt_ar[BELT_A], belt_arr[BELT_A];
 int             Mltx[MAX_WIDTH], Mlty[MAX_WIDTH];
@@ -531,7 +513,8 @@ char            **Argv = NULL;
 int     * plot[MAT_MAX][MAT_MAX] , * val[MAT_MAX][MAT_MAX] ;
 int     * LSQ_val , * LSQ_plot ;
 
-int     pmin[MAT_MAX][MAT_MAX],pmax[MAT_MAX][MAT_MAX],mat,xc,yc,mark;
+int     matx, maty, matx_0 = -1, maty_0 = -1;
+int     pmin[MAT_MAX][MAT_MAX],pmax[MAT_MAX][MAT_MAX],xc,yc,mark;
 int     xorigin[MAT_MAX][MAT_MAX],yorigin[MAT_MAX][MAT_MAX];
 int     i,j,xpoint,ypoint,npoints,iscale,gx,gy;
 int     xspace,yspace,grid_index, color_index;
@@ -539,7 +522,7 @@ char    plotbuf[10*NF_MAX],pfname[80],fnum[80];
 int     xpoint_0 = -1, ypoint_0 = -1; /* old xpoint & ypoint */
 float   grid_far[2*GRID_NUM], grid_coef = 1.;
 
-int           mytxt, idx, idy;
+int           mytxt, idX, idY;
 int           mdx1, mdy1;
 char          strp[STR_L], strF[STR_L], strT[STR_L];
 char          *color[5] = {"cyan","red","yellow","green","cornflowerblue"};
@@ -586,7 +569,7 @@ struct _undo_buf *undo_buf = NULL;
 struct _undo_buf *undo_ref = NULL; /* for reference line */
 int           act_undo = -1, ref_undo = -1;
 char          FT_name[100];
-int           im_f, phase = 0;
+int           im_f, phase = 0; 
 #define FFT_MAG .2
 float         fft_mag = FFT_MAG; /* fft amplitude magnify factor AJJ */
 float         *T_ref; /* tmp pointer of LSQ_ref[0]->ts when FFT done AJJ */
@@ -598,13 +581,72 @@ int           cancell_FT = 0;
 XImage        *Load_Any_Arr();
 XImage        *Load_Any_ind();
 XImage        *Load_Any_RGB();
-int           Load_Next_Arr();
-int           Load_Next_ind();
-int           Load_Next_RGB();
-int           AJ_StoreColors();
+void          Load_Next_Arr();
+void          Load_Next_ind();
+void          Load_Next_RGB();
+void          AJ_StoreColors();
 int           AJ_init_RGB();
-int           Make_RGB_lookup();
+void          Make_RGB_lookup();
 static int    highbit();
+void          Syntax();
+void          The_Help();
+void          init_grid();
+void          get_line_args();
+void          init_const();
+void          make_belt();
+void          load_rect_str();
+void          main_FD_EPI();
+void          redraw_graph();
+void          swap_2();
+void          swap_4();
+void          top_nr_name();
+void          FatalError();
+void          AJ_make_STDcol();
+void          colmap_init();
+void          CreateMainWindow();
+void          New_Cursor();
+void          MResize();
+void          Allow_smaller_im();
+void          HandleEvent();
+void          DrawKey();
+void          discard();
+int           save_all_images();
+void          c_swap();
+int           save_act_im();
+int           save_avr_array();
+int           get_fft_mag();
+int           read_new_im();
+int           kill_curr_im();
+void          Track_Cursor();
+void          c_squeeze();
+void          c_bright();
+void          c_rotate();
+void          Track_Vpointer();
+void          InvertKey();
+void          discard_Key();
+void          color_init();
+void          LetGoKey();
+void          color_rotate();
+void          grey_init();
+void          grey_rotate();
+void          color_swap();
+void          color_squeeze();
+void          grey_contrast();
+void          color_bright();
+void          grey_change();
+void          Allow_new_name();
+void          Cpointer_PIXWIN();
+void          CreateGraphWindow();
+void          Setup_subWindow();
+void          Setup_topWindow();
+void          Setup_keys();
+void          Allow_smaller_gr();
+void          Vpointer();
+void          Cpointer();
+void          take_file_name();
+int           dec_indx();
+void          draw_frame();
+void          erase_graph();
 
 typedef struct { unsigned short r;
                  unsigned short g;
@@ -613,13 +655,16 @@ int           AJ_PseudoColor = 1; /* as original pseudocolor max 12 bpp FD2 */
                                   /* reg. colors 0-207, 208-223 std colors, */
                                   /* 224-255 fim colors */
 AJ_rgb_str    AJ_rgb[MCOLORS];    /* local lookup RGB array */
-unsigned long AJ_RGB[MCOLORS];    /* local lookup machine color packed array */
+unsigned int  AJ_RGB[MCOLORS];    /* local lookup machine color packed array */
 int           bperpix=8, border;
 int           STD_indx[NUM_STD_COLORS + MAX_EXTRA_COLORS];
+int           Time_avr = 1;       /* for time course or frame box average */
+int           swap_bytes = 0;     // in place of macro #ifdef LINUX
 
 /****************************************************************************/
 
 /* ---------------- */
+   int
    main(argc, argv)
    int  argc;
    char *argv[];
@@ -645,8 +690,6 @@ int           STD_indx[NUM_STD_COLORS + MAX_EXTRA_COLORS];
 
 /*** ---- allocate memory for plot[][] and val[][] ---- ***/
 
-STATUS("allocating graph memory") ;
-
    m = sizeof(int) * npoints ;
 
    LSQ_plot = (int *) malloc( m ) ;
@@ -669,8 +712,6 @@ STATUS("allocating graph memory") ;
    }
 
 /* ---------- Open the display. --------- */
-
-STATUS("opening X11 display") ;
 
    if ( (theDisp=XOpenDisplay(display)) == NULL) {
      fprintf(stderr, "%s: Can't open display (are X11 windows running ?). AJ\a\n"
@@ -704,10 +745,14 @@ STATUS("opening X11 display") ;
      im_size = 32;
      x_mag = 8;  /* 32x32 pixels format */
    }
+   else if (fsize == EPS5) {
+     im_size = 512;
+     x_mag = 1;  /* 512x512 pixels format */
+   }
+//printf(" AJ fsize: %d [%d], x_mag: %d\n", fsize, EPS5, x_mag);
+   ar_size = fsize / 2 ;
 
    init_const();
-
-STATUS("computing image statistics") ;
 
    min1 =  32767;    /* find deviation fot central frame and set scale */
    max1 = -32768;
@@ -738,10 +783,8 @@ STATUS("computing image statistics") ;
    if (del1 < 1.) del1 = 1.;
    coef1 = ( (float) NC - 1.) / del1;
 
-STATUS("loading reference color belt") ;
-
-   make_belt(belt_ar, BELT_W, IM_HEIGHT);     /* make reference color belt */
-   load_rect_str(belt_ar, belt_arr, BELT_W, IM_HEIGHT,
+   make_belt(belt_ar, BELT_W, im_height);     /* make reference color belt */
+   load_rect_str(belt_ar, belt_arr, BELT_W, im_height,
                  BELT_S, 15, BELT_S, 15, 0, NC);
 
    main_FD_EPI();          /* Make image in the window and return Drawable */
@@ -760,21 +803,15 @@ STATUS("loading reference color belt") ;
 
    /* Initialize extra E.C.W. graph stuff here.  AJ */
 
-STATUS("creating graph windows") ;
    window_plane();  /* create graphic window with extra subwindows and keys */
 
-STATUS("calling redraw_graph") ;
    redraw_graph();                       /* draw frame and text in it */
-STATUS("calling DrawSubWindow") ;
    DrawSubWindow();
-STATUS("calling DrawTopWindow") ;
    DrawTopWindow();
 
-STATUS("calling Put_image(0)") ;
    Put_image(0) ;                     /* put the first image */
    XRaiseWindow(theDisp,theWindow) ;  /* bring image to top  */
 
-STATUS("begin X event loop") ;
 
    x_events_loop();                              /* Main events check loop */
 
@@ -785,6 +822,7 @@ STATUS("begin X event loop") ;
 
 
 /* -------- */
+   void
    Syntax()
 /* -------- */
 {
@@ -818,6 +856,7 @@ STATUS("begin X event loop") ;
 }
 
 /* ------------ */
+   void
    The_Help(ex)
    int ex;
 /* ------------ */
@@ -844,8 +883,11 @@ STATUS("begin X event loop") ;
   fprintf (stderr,"\n  Decrease Grid Spacing : g");
   fprintf (stderr,"\n  Toggle Grid and Colors: r");
   fprintf (stderr,"\n  Toggle Frame colors   : R");
+  fprintf (stderr,"\n  Toggle time or box avr: t");
   fprintf (stderr,"\n  Increase matrix size  : M");
   fprintf (stderr,"\n  Decrease matrix size  : m");
+  fprintf (stderr,"\n  Increase matrix y size: V");
+  fprintf (stderr,"\n  Decrease matrix y size: v");
   fprintf (stderr,"\n  Exact matrix size     : N #of_size <CR> (1 to %d only)", MAT_MAX);
   fprintf (stderr,"\n  Save minigraph in ASCII file   : press <p>");
   fprintf (stderr,"\n    [with xxx_yyy.suffix filename] press <w>");
@@ -890,6 +932,7 @@ STATUS("begin X event loop") ;
 }
 
 /* ------------------------- */
+   void
    get_line_args(argc, argv)
    int  argc;
    char *argv[];
@@ -1025,21 +1068,14 @@ STATUS("begin X event loop") ;
          nopt++; nopt++;
          continue;
       }
-
       /* allow the user to specify swapping bytes */
-      if (strncmp(argv [i], "-swap", 5) == 0) {
-         RCR_swap = 1;
-         nopt++; nopt++;
+      if (strncmp(argv [i], "-swap", 4) == 0) {
+         swap_bytes = 1;
+         nopt++;
          continue;
       }
 
 /***************************************************************************/
-
-     if( strncmp(argv[i],"-grwind",6) == 0 ){
-        use_pixmap = 0 ;
-        nopt++ ;
-        continue ;
-     }
 
      if( strncmp(argv[i],"-pcthresh",4) == 0 ){
         if( ++i >= argc ) { Syntax(); exit(1); }
@@ -1048,9 +1084,6 @@ STATUS("begin X event loop") ;
            fprintf(stderr,"-pcthresh %11.4g is illegal!\a\n",RWC_pcthresh) ;
            exit(1);
         }
-#ifdef OV_DEBUG1
-   fprintf(stderr,"-pcthresh read as %11.4g\n",RWC_pcthresh) ; fflush(stderr);
-#endif
         nopt++ ; nopt++ ;
         continue ;
      }
@@ -1068,9 +1101,6 @@ STATUS("begin X event loop") ;
            fprintf(stderr,"cannot read -ideal %s\a\n",argv[i]) ;
            exit(1);
         }
-#ifdef OV_DEBUG1
-   fprintf(stderr,"-ideal file %s read OK\n",argv[i]) ; fflush(stderr);
-#endif
         RWC_do_overfim = 1 ;
         nopt++ ; nopt++ ;
         continue ;
@@ -1090,10 +1120,10 @@ STATUS("begin X event loop") ;
            fprintf(stderr,"\n*** nothing follows -gsize!\a\n");
            exit(1) ;
         }
-        RWC_GX_MAX = strtod( argv[++i] , NULL ) ;
-        RWC_GY_MAX = strtod( argv[++i] , NULL ) ;
-        if( RWC_GX_MAX <  100 || RWC_GY_MAX <  100 ||
-	    RWC_GX_MAX > 1024 || RWC_GY_MAX > 1024   ){
+        gx_max = strtod( argv[++i] , NULL ) ;
+        gy_max = strtod( argv[++i] , NULL ) ;
+        if( gx_max <  100 || gy_max <  100 ||
+	    gx_max > 1024 || gy_max > 1024   ){
            fprintf(stderr,"\n*** illegal values following -gsize!\n");
            exit(1) ;
         }
@@ -1179,9 +1209,8 @@ STATUS("begin X event loop") ;
       exit(1) ;
    }
 
-  if ( Im_frst > N_im ) {
-      fprintf (stderr,
-               "\n!!! First_im_# in -im1 is bigger than number of images!!!\a\n");
+   if ( Im_frst > N_im ) {
+      fprintf (stderr, "\n!!! First_im_# in -im1 is bigger than number of images!!!\a\n");
       exit(1);
    }
 
@@ -1211,10 +1240,10 @@ STATUS("begin X event loop") ;
 
    /* swap based on command-line now                   27 Aug 2004 [rickr] */
 
-   if ( RCR_swap && imtemp->kind == MRI_short ) {
+   if ( swap_bytes && imtemp->kind == MRI_short ) {
      swap_2(MRI_SHORT_PTR(imtemp), imtemp->nx*imtemp->ny*2);
    }
-   else if ( RCR_swap && imtemp->kind == MRI_float ) {
+   else if ( swap_bytes && imtemp->kind == MRI_float ) {
      swap_4(MRI_FLOAT_PTR(imtemp), imtemp->nx*imtemp->ny*4);
    }
 
@@ -1230,36 +1259,31 @@ STATUS("begin X event loop") ;
 
    isize = 2 * allim[0]->nx * allim[0]->ny ;
    if ( (isize != EPS1) && (isize != EPS2)
-     && (isize != EPS3) && (isize != EPS4) ) {
+     && (isize != EPS3) && (isize != EPS4) && (isize != EPS5) ) {
       fprintf (stderr, "\n\n !!! File %s has illegal dimensions !!!\a\n", f_name[0]);
       exit(-1);
    }
 
-   im_tmp_ar = mri_new( IM_HEIGHT , IM_HEIGHT , MRI_short ) ; /* max size */
+   if ( allim[0]->ny > 256 ) im_height = 512; // new for 512 image size
+   im_tmp_ar = mri_new( im_height , im_height , MRI_short ) ; // max size
    tmp_ar    = mri_data_pointer( im_tmp_ar ) ;
 
    fsize   = isize;
    ar_size = fsize / 2 ;
 
-#ifndef DEBUG
    printf("\nReading files ") ; fflush(stdout) ;
-#endif
 
    for( i=1 ; i < N_im ; i++ ){
 
-#ifdef DEBUG
-   printf(" about to read image file %s\n",f_name[i]) ; fflush(stdout) ;
-#else
-   if( i%10 == 9 ){ printf(".") ; fflush(stdout) ; }
-#endif
+      if( i%10 == 9 ){ printf(".") ; fflush(stdout) ; }
 
       imtemp = mri_read_nsize( f_name[i] ) ;
 
       /* we already know whether to swap     26 Aug 2004 [rickr] */
-      if ( RCR_swap && imtemp->kind == MRI_short ) {
+      if ( swap_bytes && imtemp->kind == MRI_short ) {
         swap_2(MRI_SHORT_PTR(imtemp), imtemp->nx*imtemp->ny*2);
       }
-      else if ( RCR_swap && imtemp->kind == MRI_float ) {
+      else if ( swap_bytes && imtemp->kind == MRI_float ) {
         swap_4(MRI_FLOAT_PTR(imtemp), imtemp->nx*imtemp->ny*4);
       }
 
@@ -1283,14 +1307,12 @@ STATUS("begin X event loop") ;
                   f_name[i]);
          exit(1);
       } else if( isize != EPS1 && isize != EPS2
-              && isize != EPS3 && isize != EPS4 ){
+              && isize != EPS3 && isize != EPS4 && isize != EPS5 ){
          fprintf(stderr,"\n*** file %s has illegal dimensions!\a\n",f_name[i]);
          exit(1) ;
       }
    }
-#ifndef DEBUG
    printf("\n"); fflush(stdout) ;
-#endif
    if( input_conversion ){
       fprintf(stderr,
               "\n*** %d files converted to shorts on input!\n",
@@ -1313,6 +1335,7 @@ STATUS("begin X event loop") ;
 }
 
 /* ------------------------------------------- Main link from main() C */
+   void
    main_FD_EPI()
 /* ------------------------------------------------------------------- */
 {
@@ -1323,7 +1346,7 @@ STATUS("begin X event loop") ;
    uucolors = NC - 1;
    expImage = NULL;
 
-   for (i=0; i<IM_HEIGHT; i++) {   /* init MResize() lookup tables */
+   for (i=0; i<im_height; i++) {   /* init MResize() lookup tables */
       Mltx[i] = i;
       Mlty[i] = i;
    }
@@ -1331,15 +1354,6 @@ STATUS("begin X event loop") ;
    top_nr_name(allim[0]->name);
 
 /* ---------- Open the display. --------- */
-#if 0
-   if ( (theDisp=XOpenDisplay(display)) == NULL) {
-     fprintf(stderr, "%s: Can't open display (are X11 windows running ?). AJ\a\n"
-             ,ProgramName);
-     exit(1);
-   }
-#endif
-
-STATUS("creating image window") ;
 
    theScreen = DefaultScreen(theDisp);          /* Set Graphic variables */
    rootW     = RootWindow(theDisp,theScreen);
@@ -1390,7 +1404,7 @@ STATUS("creating image window") ;
 #ifdef USE_MCW
    mcw_load() ;
    for( i=0 ; i < IM_ARR ; i++ ) tmp_ar[i] = mcw_im[i] ;
-   SIZE_tmp_ar( IM_HEIGHT ) ;
+   SIZE_tmp_ar( im_height ) ;
 #else
          /* Create theImage from ar[] #1. Do NOT use here Put_image() ! AJ */
    nowim = SAR(0) ;
@@ -1401,23 +1415,9 @@ STATUS("creating image window") ;
 
    Resample(im_tmp_ar);
 
-#if 0
-   if( RWC_do_overfim ){
-      short dont_overlay ;
-      dont_overlay = fr_index ;
+   theImage = Load_Any_Arr(imx,im_height,im_height);
 
-      RWC_setup_fims( 0 ) ;  /* 0 => don't use Put_image in routine */
-#ifdef OV_DEBUG1
-   fprintf(stderr,"overlaying image #0\n") ; fflush(stderr) ;
-#endif
-      RWC_short_overlay( IM_HEIGHT,IM_HEIGHT, imx , RWC_nxim,RWC_nyim ,
-                         RWC_OVFLAG,dont_overlay , RWC_checker, RWC_imover ) ;
-   }
-#endif
-
-   theImage = Load_Any_Arr(imx,IM_HEIGHT,IM_HEIGHT);
-
-   theBelt  = Load_Any_Arr(belt_arr,BELT_W,IM_HEIGHT);
+   theBelt  = Load_Any_Arr(belt_arr,BELT_W,im_height);
 
    eWIDE = theImage->width;  eHIGH = theImage->height;
    eW = theBelt->width;      eH = theBelt->height;
@@ -1454,7 +1454,6 @@ STATUS("creating image window") ;
          FatalError("Can't open any text font!\n") ;
      }
      tfont = tfont_hopefuls[ifont] ;
-STATUS(tfont) ;
    }
    mfont=mfinfo->fid;
    XSetFont(theDisp,txtGC,mfont);
@@ -1487,7 +1486,7 @@ STATUS(tfont) ;
 #ifdef USE_MCW
    sleep(1) ;    /* show the logo for a second! */
 #endif
-         return 0;
+         return;
        }
 
          case KeyPress:
@@ -1512,7 +1511,7 @@ STATUS(tfont) ;
    void x_events_loop()
 /* ----------------------- */
 {
-   register int i, n, m;
+   register int i;
 
    for (i=LAST_K; i<N_KEYS; i++) XUnmapWindow(theDisp,  key[i].wid);
    back_to_main = 0;
@@ -1531,6 +1530,7 @@ STATUS(tfont) ;
 
 int C_count = -1;
 /* ------------------ */
+   void
    HandleEvent(event)
    XEvent *event;
 /* ------------------ */
@@ -1541,7 +1541,6 @@ int C_count = -1;
 
    case Expose: {
       XExposeEvent *e = (XExposeEvent *) event;
-STATUS("-Expose event") ;
       wind = e->window;
       if (wind == theWindow) {
          XPutImage(theDisp, theWindow, theGC, expImage,
@@ -1570,16 +1569,15 @@ STATUS("-Expose event") ;
       KeySym    ks;
       XComposeStatus status;
 
-STATUS("-KeyPress event") ;
       buf[0] = 0;
       XLookupString(key_event, buf, 128, &ks, &status);
       if (buf[0]=='q' || buf[0]=='Q'){
 #ifdef USE_MCW
-	 XRaiseWindow(theDisp,theWindow) ;
-	 Put_image(-1) ;
-	 sleep(1) ;
+         XRaiseWindow(theDisp,theWindow) ;
+         Put_image(-1) ;
+         sleep(1) ;
 #endif
-         if( use_pixmap ) XFreePixmap( theDisp , pxWind ) ;
+         XFreePixmap( theDisp , pxWind ) ;
          XCloseDisplay( theDisp ) ;
 	 exit(0);
       }
@@ -1591,7 +1589,8 @@ STATUS("-KeyPress event") ;
       }
       if ( (N_lck == 0) && (buf[0]=='N') ) {  /* init grid resol. number */
          N_lck = 1;
-         old_grid = mat;
+         matx_0 = matx;
+         maty_0 = maty;
          New_Cursor(theDisp, theWindow, XC_hand2, "red", "white");
          New_Cursor(theDisp,   GWindow, XC_hand2, "yellow", "red");
          break;
@@ -1626,15 +1625,14 @@ STATUS("-KeyPress event") ;
             break;
          }
          else if ( ks == XK_Up ) {
-            int   i, j, k, nn;
+            int   i, j, nn;
             float f0 = fft_mag, f1, f2, f3, fff = 1.1;
 
             if ( key_event->state & ShiftMask )   fff = 1.5;
             if ( key_event->state & ControlMask ) fff = 2.3;
             nn = act_undo + 1;
             act_undo += ar_size;
-	    undo_buf = AFREALL(undo_buf, struct _undo_buf,
-			      (act_undo+1)*sizeof(struct _undo_buf) ); 
+            undo_buf = realloc(undo_buf, (act_undo+1)*sizeof(struct _undo_buf));
             if ( undo_buf != NULL ) {
                for ( i=0, j=nn; i < ar_size; j++, i++) {
                   undo_buf[j].im  = Im_Nr;
@@ -1663,8 +1661,8 @@ STATUS("-KeyPress event") ;
 
             if ( RWC_ideal != NULL  && RWC_ideal->len >= npoints ) {
                ref_undo += 1;
-	       undo_ref = AFREALL(undo_ref, struct _undo_buf,
-			         (ref_undo+1)*sizeof(struct _undo_buf) ); 
+               undo_ref =
+                    realloc(undo_ref, (ref_undo+1)*sizeof(struct _undo_buf));
                if ( undo_ref != NULL ) {
                   j = ref_undo;
                   undo_ref[j].im  = Im_Nr;
@@ -1692,15 +1690,14 @@ STATUS("-KeyPress event") ;
             break;
          }
          else if ( ks == XK_Down ) {
-            int   i, j, k, nn;
+            int   i, j, nn;
             float f0 = fft_mag, f1, f2, f3, fff = 1./1.1;
 
             if ( key_event->state & ShiftMask )   fff = 1./1.5;
             if ( key_event->state & ControlMask ) fff = 1./2.3;
             nn = act_undo + 1;
             act_undo += ar_size;
-	    undo_buf = AFREALL(undo_buf, struct _undo_buf,
-		              (act_undo+1)*sizeof(struct _undo_buf) ); 
+            undo_buf = realloc(undo_buf, (act_undo+1)*sizeof(struct _undo_buf));
             if ( undo_buf != NULL ) {
                for ( i=0, j=nn; i < ar_size; j++, i++) {
                   undo_buf[j].im  = Im_Nr;
@@ -1729,8 +1726,8 @@ STATUS("-KeyPress event") ;
 
             if ( RWC_ideal != NULL  && RWC_ideal->len >= npoints ) {
                ref_undo += 1;
-	       undo_ref = AFREALL(undo_ref, struct _undo_buf,
-		              (ref_undo+1)*sizeof(struct _undo_buf) ); 
+               undo_ref =
+                  realloc(undo_ref, (ref_undo+1)*sizeof(struct _undo_buf));
                if ( undo_ref != NULL ) {
                   j = ref_undo;
                   undo_ref[j].im  = Im_Nr;
@@ -1760,7 +1757,7 @@ STATUS("-KeyPress event") ;
          }
          else if ( buf[0]=='u' ) {
             if ( ref_undo > -1 ) {
-               int   i, j, k;
+               int   j, k;
                float f0 = fft_mag, f1, f2, f3;
                if ( RWC_ideal != NULL  && RWC_ideal->len >= npoints ) {
                   j = ref_undo;
@@ -1773,8 +1770,8 @@ STATUS("-KeyPress event") ;
                   if ( f3 > 32767. ) f3 = 32767.;
                   RWC_ideal->ts[k] = f3;
                   ref_undo -= 1;
-	          undo_ref = AFREALL(undo_ref, struct _undo_buf,
-		              (ref_undo+1)*sizeof(struct _undo_buf) ); 
+                  undo_ref = 
+                     realloc(undo_ref,(ref_undo+1)*sizeof(struct _undo_buf));
                   if ( undo_ref == NULL ) {
                      ref_undo = -1;
                      fprintf(stderr, "\n*** cannot realloc undo_ref\a\n") ;
@@ -1798,8 +1795,7 @@ STATUS("-KeyPress event") ;
                }
 
                act_undo -= ar_size;
-	       undo_buf = AFREALL(undo_buf, struct _undo_buf,
-		              (act_undo+1)*sizeof(struct _undo_buf) ); 
+               undo_buf=realloc(undo_buf,(act_undo+1)*sizeof(struct _undo_buf));
 
                if ( undo_buf != NULL ) {
                   redraw_graph() ;
@@ -1818,7 +1814,7 @@ STATUS("-KeyPress event") ;
             break;
          }
          else if ( buf[0]=='U' ) {
-            int   i, j, k;
+            int   j, k;
             float f0 = fft_mag, f1, f2, f3;
             for (j=act_undo; j >= 0; j--) {
                Im_Nr = undo_buf[j].im;
@@ -1853,6 +1849,59 @@ STATUS("-KeyPress event") ;
             break;
          }
       }
+      else {    /* no FT1_pressed */
+         if ( ks == XK_Right ) {
+            int max_im, i_tmp = Im_Nr;
+            int aaa = avr_grp, ddd = diff_im;
+
+            max_im = npoints - Av_length;
+
+            if ( Im_Nr >= npoints ) {
+               if ( Im_Nr < (N_im - 1) ) Im_Nr += 1;
+            }
+            else if ( Im_Nr < max_im ) Im_Nr += 1;
+            else if ( npoints < N_im ) {
+               avr_grp = 0;
+               diff_im = 0;
+               Im_Nr = npoints;
+            }
+            if ( i_tmp != Im_Nr ) {
+               redraw =  avr_grp * 4 + (aaa - avr_grp) *2 + ddd - diff_im;
+               XClearWindow(theDisp, GWindow);
+               Put_image(Im_Nr);
+               if ( redraw ) redraw_graph();
+               DrawSubWindow();
+               DrawTopWindow();
+               discard(KeyPressMask, event);
+            }
+            break;
+         }
+         else if ( ks == XK_Left ) {
+            int min_im = 0, i_tmp = Im_Nr;
+            int aaa = avr_grp, ddd = diff_im;
+
+            if ( Im_Nr > npoints ) Im_Nr -= 1;
+            else {
+               diff_im = fim_dif;
+               avr_grp = fim_avr;
+               if(Im_Nr > min_im) Im_Nr -= 1;
+               if ( avr_grp )
+                  if ( Im_Nr > (npoints - Av_length) )
+                     Im_Nr = npoints - Av_length;
+            }
+            if ( i_tmp != Im_Nr ) {
+               redraw =  avr_grp * 4 + (aaa - avr_grp) *2 + ddd - diff_im;
+               XClearWindow(theDisp, GWindow);
+               Put_image(Im_Nr);
+               if ( redraw ) redraw_graph();
+               DrawSubWindow();
+               DrawTopWindow();
+               discard(KeyPressMask, event);
+            }
+            break;
+         }
+      }
+
 
       if ( (I_lck == 1) && (buf[0] == 13) ) { /* make image number */
          if ( tmp_Nr >= 0 ) {
@@ -1883,11 +1932,14 @@ STATUS("-KeyPress event") ;
       }
       if ( (N_lck == 1) && (buf[0] == 13) ) { /* make grid resol. number */
          if ( tmp_Nr >= 0 ) {
-            if ( tmp_Nr > 0 ) mat = min(MAT_MAX, tmp_Nr);
+            if ( tmp_Nr > 0 ) {
+               matx = min(MAT_MAX, tmp_Nr);
+               maty = min(MAT_MAX, tmp_Nr);
+            }
             New_Cursor(theDisp, theWindow, XC_left_ptr, "red", "white");
             New_Cursor(theDisp,   GWindow, XC_left_ptr, "blue", "yellow");
-            if (mat != old_grid) {
-               init_mat();
+            if ( (matx != matx_0) && (maty != maty_0) ) {
+               init_mat(0);
                redraw_graph();
             }
 	    RWC_framehide = 0 ;
@@ -2020,12 +2072,12 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
                break;
             }
 #ifdef USE_MCW
-	    case '0': {
-	       Put_image(-1) ;
-	       sleep(1) ;
-	       Put_image(Im_Nr) ;
+            case '0': {
+               Put_image(-1) ;
+               sleep(1) ;
+               Put_image(Im_Nr) ;
                discard(KeyPressMask, event);
-	       break ;
+               break ;
             }
 #endif
             case '1':   /* move to image with this number */
@@ -2041,7 +2093,8 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
                itmp = buf[0] - '1' ; if( itmp >= N_im ) itmp = N_im - 1 ;
 
-               if( itmp >= npoints ) {   /* past time course => no averaging, etc */
+               /* past time course => no averaging, etc */
+               if( itmp >= npoints ) {
                   avr_grp = 0;
                   diff_im = 0;
                }
@@ -2121,12 +2174,12 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
                int aaa = avr_grp, ddd = diff_im;
 
 #ifdef USE_MCW
-	       if( Im_Nr == 0 ){
-		  Put_image(-1) ;
-		  sleep(1) ;
-		  Put_image(0) ;
+               if( Im_Nr == 0 ){ 
+                  Put_image(-1) ; 
+                  sleep(1) ;
+                  Put_image(0) ;
                   discard(KeyPressMask, event);
-		  break ;
+                  break ; 
                }
 #endif
 
@@ -2173,7 +2226,9 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
                AJ_base = ! AJ_base;
                redraw_graph();
                DrawSubWindow(); 
-               break; } /* p used to write plot to file */ case 'w': case 'p': {
+               break;
+            } /* p used to write plot to file */
+            case 'w': case 'p': {
                int ask_file = (buf[0] == 'p') ;
 
                print_plot(ask_file);
@@ -2182,14 +2237,30 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             }
                    /* m and M keys used for adjusting matrix */
             case 'm': {
-               mat_down();
+               mat_down(0);
                discard(KeyPressMask, event);
                break;
             }
             case 'M': {
-               mat_up();
+               mat_up(0);
                discard(KeyPressMask, event);
                break;
+            }
+            case 't': {
+               Time_avr = ! Time_avr;
+               redraw_graph();
+               DrawSubWindow();
+               discard(KeyPressMask, event);
+               break;
+            }
+            case 'v': {
+               mat_down(1);
+               discard(KeyPressMask, event);
+               break;
+            }
+            case 'V': {
+               mat_up(1);
+               discard(KeyPressMask, event);
             }
                    /* g and G keys used for adjusting grid lines */
             case 'g': {
@@ -2216,7 +2287,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
                if (fr_index < -16){
                   fr_index = -1;
 #ifdef USE_MCW
-		  Put_image(-1) ;
+                  Put_image(-1) ;
 #endif
 	       }
 	       RWC_framehide = 0 ;
@@ -2258,8 +2329,6 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    case ButtonPress: {
       XButtonPressedEvent *b = (XButtonPressedEvent *) event;
       int delta = 1;
-
-STATUS("-ButtonPress event") ;
 
       wind = b->window;
       if (wind == theWindow ) {
@@ -2334,12 +2403,12 @@ STATUS("-ButtonPress event") ;
          int i, j, kx , ky;
 
          if( (b->button == Button1) && (b->x > GL_DLX) ){
-            kx = RWC_GX_MAX/mat;
-            ky = RWC_GY_MAX/mat;
-            i = (b->x - GL_DLX + kx)*mat/RWC_GX_MAX;
-            j = (b->y - GT_DLY + ky)*mat/RWC_GY_MAX;
-            xpoint += i - (mat + 2)/2;
-            ypoint += j - (mat + 2)/2;
+            kx = gx_max/matx;
+            ky = gy_max/maty;
+            i = (b->x - GL_DLX + kx)*matx/gx_max;
+            j = (b->y - GT_DLY + ky)*maty/gy_max;
+            xpoint += i - (matx + 2)/2;
+            ypoint += j - (maty + 2)/2;
             if (xpoint < 0)        xpoint += im_size;
             if (xpoint >= im_size) xpoint -= im_size;
             if (ypoint < 0)        ypoint += im_size;
@@ -2362,7 +2431,6 @@ STATUS("-ButtonPress event") ;
          if (b->button == Button1) {
             if ( (abs(b->x - v_point_x) < 5 ) &&
                  (abs(b->y - v_point_y) < 9 ) ) {
-               move_Vpointer = 1;
                Track_Vpointer();
             }
          }
@@ -2387,7 +2455,6 @@ STATUS("-ButtonPress event") ;
    case ButtonRelease: {
       XButtonReleasedEvent *b = (XButtonReleasedEvent *) event;
 
-STATUS("-ButtonRelease event") ;
       wind = b->window;
 
       if (wind == theWindow ) {
@@ -2432,8 +2499,7 @@ STATUS("-ButtonRelease event") ;
    case ConfigureNotify: {
       XConfigureEvent *conf_event = (XConfigureEvent *) event;
       int wb;
-STATUS("-ConfigureNotify event") ;
-      wb = conf_event->height*BELT_W/IM_HEIGHT;
+      wb = conf_event->height*BELT_W/im_height;
       if ( (conf_event->window == theWindow) &&
            (conf_event->height != eHIGH)) {
             MResize(&expImage, &eWIDE, &eHIGH, theImage,
@@ -2442,7 +2508,7 @@ STATUS("-ConfigureNotify event") ;
                   wb, conf_event->height);
       }
       else if ( (conf_event->window == GWindow) &&
-           ((conf_event->height != iHIGH) || (conf_event->width != iWIDE)) ) {
+           ((conf_event->height != idY) || (conf_event->width != idX)) ) {
          redo_graph_window(conf_event->width, conf_event->height);
       }
    }
@@ -2454,7 +2520,6 @@ STATUS("-ConfigureNotify event") ;
    case GravityNotify:
    case ReparentNotify:
    case UnmapNotify:
-STATUS("-Ignored event") ;
       break;
 
    default:      /* ignore unexpected events */
@@ -2464,6 +2529,7 @@ STATUS("-Ignored event") ;
 
 /* It loads color strip made by make_belt() & adds unit color stips */
 /* ------------------------------------------------------------- */
+   void
    load_rect_str(idata, ipx, x, y, i1, x1, i2, x2, amin, nshade)
    short int idata[], ipx[];
    int       x, y, i1, i2, x1, x2, amin, nshade;
@@ -2500,6 +2566,7 @@ STATUS("-Ignored event") ;
 }
 
 /* ------------------- */       /* It makes data belt (ramp of indices) */
+   void
    make_belt(id, x, y)
    short int *id;
    int       x, y;
@@ -2515,23 +2582,24 @@ STATUS("-Ignored event") ;
 }
 
 /* ------------------------------ */ /* It resizes images universally  */
+   void
    MResize(emage,eW,eH,image,w,h)    /* for 12 and 8 bit planes. */
    int     w, h, *eW, *eH;
    XImage  *image,*(*emage);
 /* ------------------------------ */
 {
-   int          lt[MAX_WIDTH];
+   int          lt[MAX_WIDTH], bp16;
    register int iy, ex, ey, iW, iH, iG, iN, w2, tmp;
    char         *ximag;
    char         *Ep, *El, *Ip, *Il, *Id;
-
-STATUS("ENTER MResize") ;
 
     iN = image->bits_per_pixel/8;    /* 1 or 2, pointer increment */
     iG = image->bytes_per_line;      /* Number of bytes in line */
     w2 = w * iN;
     iW = image->width;
     iH = image->height;
+    bp16 = (iN < 3) ? 16 : 32;
+    if ( iN == 1 ) bp16 = 8;
     if (w==iW && h==iH) {       /* very special case */
         if (*emage != image) {
             if (*emage) XDestroyImage(*emage);
@@ -2543,7 +2611,7 @@ STATUS("ENTER MResize") ;
     else {                              /* have to do some work */
 
         /* first, kill the old emage, if one exists */
-        if (*emage && *emage != image) {
+        if (*emage && (*emage != image)) {
            free((*emage)->data);  (*emage)->data = NULL;
            XDestroyImage(*emage);
         }
@@ -2553,10 +2621,9 @@ STATUS("ENTER MResize") ;
         *eW = w;  *eH = h;
         ximag = (char *) malloc(w2 * h);
 
-        *emage = XCreateImage(theDisp, theVisual, Planes, ZPixmap, 0, ximag,
-                        w, h, 32, w2);
+        *emage = XCreateImage(theDisp, theVisual, Planes, ZPixmap, 0, ximag, w, h, bp16, w2);
 
-        if (!ximag || !*emage) {
+        if (!ximag || !(*emage)) {
            fprintf(stderr,"ERROR: unable to create a %dx%d image\a\n",w,h);
            exit(1);
         }
@@ -2603,6 +2670,7 @@ STATUS("ENTER MResize") ;
 }
 
 /* ---------------------------- */
+   void
    Allow_smaller_im(argc, argv)
    int  argc;
    char *argv[];
@@ -2610,51 +2678,48 @@ STATUS("ENTER MResize") ;
 {
    XSizeHints           hints;
 
-STATUS("ENTER Allow_smaller_im") ;
-
    hints.min_height = 0;
    hints.min_width = 0;
    hints.flags = PMinSize;
 
-   hints.min_aspect.x = IM_HEIGHT + BELT_W;
-   hints.max_aspect.x = IM_HEIGHT + BELT_W;
-   hints.min_aspect.y = IM_HEIGHT;
-   hints.max_aspect.y = IM_HEIGHT;
+   hints.min_aspect.x = im_height + BELT_W;
+   hints.max_aspect.x = im_height + BELT_W;
+   hints.min_aspect.y = im_height;
+   hints.max_aspect.y = im_height;
    hints.flags |= PAspect;
 
    hints.max_height = DisplayHeight(theDisp, theScreen);
    hints.max_width = hints.max_height *
-                     (IM_HEIGHT + BELT_W)/IM_HEIGHT;
+                     (im_height + BELT_W)/im_height;
    hints.flags |= PMaxSize;
    XSetStandardProperties(theDisp, theWindow, T_name, T_name, None,
                           argv, argc, &hints);
 }
 
 /* ---------------------------------- */
+   void
    CreateMainWindow(geom, argc, argv)
    char *geom;
    int  argc;
    char *argv[];
 /* ---------------------------------- */
 {
-   XClassHint           classKRH;
+   XClassHint           class;
    XSetWindowAttributes attr;
    unsigned int         attrmask;
    XSizeHints           hints;
    int                  mask, x, y, w, h, i;
 
-STATUS("ENTER CreateMainWindow") ;
-
    x = y = w = h = 1;
    mask = XParseGeometry(geom, &x, &y, (unsigned int *)&w, (unsigned int *)&h);
 
    if (mask & HeightValue) {
-     i = IM_HEIGHT + BELT_W;
-     if ( i > MAX_WIDTH ) h = (MAX_WIDTH * IM_HEIGHT) / i;
+     i = im_height + BELT_W;
+     if ( i > MAX_WIDTH ) h = (MAX_WIDTH * im_height) / i;
      eH = eHIGH = h;
      eWIDE = eHIGH;
-     eW = eH * BELT_W / IM_HEIGHT;
-     aWIDE = eWIDE + eWIDE*BELT_W/IM_HEIGHT;
+     eW = eH * BELT_W / im_height;
+     aWIDE = eWIDE + eWIDE*BELT_W/im_height;
    }
 
    if (mask & XValue || mask & YValue) hints.flags = USPosition;
@@ -2667,13 +2732,13 @@ STATUS("ENTER CreateMainWindow") ;
    if (mask & YValue && mask & YNegative)
         y = XDisplayHeight(theDisp, theScreen)-eHIGH-abs(y);
 
-   classKRH.res_name  = "ImageX";
-   classKRH.res_class = "ImageX";
+   class.res_name  = "ImageX";
+   class.res_class = "ImageX";
 
-   hints.min_aspect.x = IM_HEIGHT + BELT_W;
-   hints.max_aspect.x = IM_HEIGHT + BELT_W;
-   hints.min_aspect.y = IM_HEIGHT;
-   hints.max_aspect.y = IM_HEIGHT;
+   hints.min_aspect.x = im_height + BELT_W;
+   hints.max_aspect.x = im_height + BELT_W;
+   hints.min_aspect.y = im_height;
+   hints.max_aspect.y = im_height;
    hints.flags |= PAspect;
 
    hints.x = x;                 hints.y = y;
@@ -2694,12 +2759,13 @@ STATUS("ENTER CreateMainWindow") ;
    if (!theWindow)
       FatalError("Can't open window (are X11 windows running ?). AJ");
 
-   XSetClassHint(theDisp, theWindow, &classKRH);
+   XSetClassHint(theDisp, theWindow, &class);
    XSetStandardProperties(theDisp, theWindow, T_name, T_name, None,
                           argv, argc, &hints);
 }
 
 /* ----------------- */ /* Set color or grey array of the Image */
+   void
    colmap_init()
 /* ----------------- */
 {
@@ -2708,6 +2774,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* -------------------- */       /* Set grey array of the Image  */
+   void
    grey_init()
 /* -------------------- */
 {
@@ -2734,12 +2801,13 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* ----------------- */ /* Set color array of the Image */
+   void
    color_init(a1,a2)    /* OK but sharp edge on green near yellow */
    int a1, a2;
 /* ----------------- */
 {
    double da, an, c, n, s, sb, cb, ak, ab;
-   register int k, i, m, r=0, g=0, b=0;
+   register int i, m, r=0, g=0, b=0;
 
    if (No_Color_init) {
       FIRST = 1;        SQUE_NR = ncolors;
@@ -2781,6 +2849,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* --------------- */
+   void
    c_rotate(k)
    int k;
 /* --------------- */
@@ -2791,6 +2860,7 @@ STATUS("ENTER CreateMainWindow") ;
 
 
 /* --------------- */
+   void
    color_rotate(k)
    int k;
 /* --------------- */
@@ -2841,6 +2911,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* --------------- */
+   void
    grey_rotate(k)
    int k;
 /* --------------- */
@@ -2891,6 +2962,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* -------- */
+   void
    c_swap()
 /* -------- */
 {
@@ -2898,6 +2970,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* --------------- */
+   void
    color_swap()
 /* --------------- */
 {
@@ -2921,6 +2994,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* ------------- */ /* Modify span or contrast */
+   void
    c_squeeze(d)
    int d;
 /* ------------- */
@@ -2930,6 +3004,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* -------------------- */      /* Modify contrast of the Image */
+   void
    grey_contrast(d_lev)
    int d_lev;
 /* -------------------- */
@@ -2950,6 +3025,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* -------------------- */ /* Modify span of colors*/
+   void
    color_squeeze(d)
    int d;
 /* -------------------- */
@@ -2985,6 +3061,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* ------------------ */ /* Modify brightness (color or B&W) */
+   void
    c_bright(d)
    int d;
 /* ------------------ */
@@ -2994,6 +3071,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* ------------------ */   /* Modify brightness of the Image  */
+   void
    grey_change(d_lev)
    int d_lev;
 /* ------------------ */
@@ -3014,6 +3092,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* ------------------ */ /* Modify brightness of the Image */
+   void
    color_bright(d)
    int d;
 /* ------------------ */
@@ -3033,6 +3112,7 @@ STATUS("ENTER CreateMainWindow") ;
 }
 
 /* -------------- */ /* It assigns index for one of standard 16 colors */
+   int
    STD_colors(cx)    /* First index is 1, last 16 (equv. to 0 - black col.). */
    int cx;
 /* -------------- */
@@ -3049,29 +3129,13 @@ STATUS("ENTER CreateMainWindow") ;
       any_col.blue  = Solid_color[cx-1].blue;
       any_col.flags = DoRed | DoGreen | DoBlue;
 
-#ifdef RWCOX_LINUX
-      if ( !XAllocColor(theDisp, CMap, &any_col) ){
-         int ii ;
-
-         fprintf(stderr,"cannot XAllocColor in STD_colors(). RWC\n") ;
-         for( ii=0 ; ii < 16 ; ii++ ){
-            if( color_x11[ii] != -1 ) break ;
-         }
-
-         if( ii == 16 ){
-            FatalError("cannot continue! RWC") ;
-         } else {
-            any_col.pixel = color_x11[ii] ;
-         }
-      }
-#else
       if ( !XAllocColor(theDisp, CMap, &any_col) )
          FatalError ("XAllocColor problem in STD_colors(). AJ");
-#endif  /* RWCOX_LINUX */
 
       return( color_x11[cx-1] = any_col.pixel );
    }
  }
+ else return 0;
 }
 
 /* ---------------------------------- */   /* Create Image from the im_arr */
@@ -3094,14 +3158,13 @@ STATUS("ENTER CreateMainWindow") ;
    int       x, y;
 /* ---------------------------------- */
 {
-   register char *ptr;
-   register int   i, j, k, iN, iE, w2;
+   register int   i, k;
    int        Width, Hight, last;
    char      *Image;
    XImage    *image;
-   byte      *a8, *i8, *m8;
+   unsigned char  *a8, *i8, *m8;
    unsigned short *a16, *i16;
-   unsigned long  *a32, *i32;
+   unsigned int   *a32, *i32;
  
    Width = x;      /* Image width  */
    Hight = y;      /* Image higth  */
@@ -3121,16 +3184,16 @@ STATUS("ENTER CreateMainWindow") ;
    k = 0;
    switch( bperpix ) {
       case 32:
-         a32 = (unsigned long *) image->data;
-         i32 = (unsigned long *) AJ_RGB;
+         a32 = (unsigned int  *) image->data;
+         i32 = (unsigned int  *) AJ_RGB;
          for (i=0; i < last; i++) {
             *a32++ =  i32[im_arr[k++]];
          }
       break ;
  
       case 24:
-         a8 = (byte *) image->data;
-         i8 = (byte *) AJ_RGB;
+         a8 = (unsigned char *) image->data;
+         i8 = (unsigned char *) AJ_RGB;
          for (i=0; i < last; i++) {
             m8 =  i8 + im_arr[k++] * 3;
             *a8++ = *m8++;
@@ -3148,8 +3211,8 @@ STATUS("ENTER CreateMainWindow") ;
       break ;
  
       case 8:
-         a8 = (byte *) image->data;
-         i8 = (byte *) AJ_RGB;
+         a8 = (unsigned char *) image->data;
+         i8 = (unsigned char *) AJ_RGB;
          for (i=0; i < last; i++) {
             *a8++ =  i8[im_arr[k++]];
          }
@@ -3165,12 +3228,10 @@ STATUS("ENTER CreateMainWindow") ;
 /* ---------------------------------- */   /* 8 and 12 bit planes work OK. */
 {
   register char *ptr;
-  register int   i, j, k, iN, iE, w2;
+  register int   i, j, k, iN, iE;
   int        Width, Hight;
   char      *Image;
   XImage    *image;
-
-STATUS("ENTER Load_index_Arr") ;
 
   Width = x;      /* Image width  */
   Hight = y;      /* Image higth  */
@@ -3202,6 +3263,7 @@ STATUS("ENTER Load_index_Arr") ;
 }
 
 /* -------------------------------------------- */
+   void
    New_Cursor(Disp, Wind, shape, fg_col, bg_col)
    Display     *Disp;
    Window       Wind;
@@ -3242,6 +3304,7 @@ STATUS("ENTER Load_index_Arr") ;
 	int	isize = *size;
 	int	fp;				/* file descriptor  */
 	struct	stat file_stat;			/* status structure */
+        ssize_t vv;
 
 	if ((fp = open(fname, O_RDONLY)) <= 0)	/* file must exist */
            return(1); 		             	/* or error = 1.   */
@@ -3253,7 +3316,7 @@ STATUS("ENTER Load_index_Arr") ;
 
 	*size =  file_stat.st_size;		/* return file size */
 
-	read(fp, arr, file_stat.st_size);	/* read whole file  */
+	vv = read(fp, arr, file_stat.st_size);	/* read whole file  */
 	close(fp);
 	return(0);                              /* no error : 0 */
 }
@@ -3275,6 +3338,7 @@ STATUS("ENTER Load_index_Arr") ;
 {
 	int	isize = *size;
 	int	fp;				/* file descriptor  */
+        ssize_t vv;
 
 	if(isize < 0)				/* size has to be real */
 	   return(2);				/* or error = 2.       */
@@ -3283,7 +3347,7 @@ STATUS("ENTER Load_index_Arr") ;
 	   return(1);				/* file must not exist */
 						/* or error = 1.       */
 
-	write(fp, arr, isize);			/* write whole file */
+	vv = write(fp, arr, isize);		/* write whole file */
 	close(fp);
 	return(0);
 }
@@ -3291,6 +3355,7 @@ STATUS("ENTER Load_index_Arr") ;
 
 /*  Directory names (if present) are skipped. and number is added in front */
 /* -------------- */
+   void
    top_nr_name(name)
    char *name;
 /* -------------- */
@@ -3325,8 +3390,6 @@ STATUS("ENTER Load_index_Arr") ;
    int ndim ;
    short * all ;
 
-STATUS("ENTER Resample") ;
-
    ndim = im->nx ;
    all  = MRI_SHORT_PTR(im) ;
 
@@ -3352,7 +3415,7 @@ STATUS("ENTER Resample") ;
       lx = 128;
       ly = 128;
    }
-   else if (ndim == EPX3){ /* 256x256 pixels => no resample  */
+   else if ( (ndim == EPX3) || (ndim == EPX5) ) { // 256x256 or 512 pixels => no resample
       a = all;
       lx = ndim * ndim ;
       for (i=0; i < lx ; i++)
@@ -3371,20 +3434,20 @@ STATUS("ENTER Resample") ;
    a = all;
 
    lx2 = lx*ly;
-   IM2 = IM_HEIGHT*IM_HEIGHT;
+   IM2 = im_height*im_height;
    k0  = ix*(2*ix-1) - 1;
    dkk = 2*ix*ix;
 
    i = ly - 1;                     /* horizontal edge with wrap around */
    ii = i*lx;
-   II = (i*ix+i1)*IM_HEIGHT + i1;
+   II = (i*ix+i1)*im_height + i1;
    for (j=0; j < lx - 1; j++) {
       ij  = ii+j;
       ijl = ij+lx;
       if ( ijl >= lx2 ) ijl -= lx2;
       IJ  = II + j*ix;
       for (k=0; k < ix; k++) {
-         IJk = IJ + k*IM_HEIGHT ;
+         IJk = IJ + k*im_height ;
          if ( IJk >= IM2 ) IJk -= IM2;
          kk = k0 - ((k * ix) << 1);
          mm = kk + dkk;
@@ -3401,18 +3464,18 @@ STATUS("ENTER Resample") ;
    j = lx - 1;
    for (i=0; i < ly - 1; i++) {       /* vertical edge with wrap around */
       ii = i*lx;
-      II = (i*ix+i1)*IM_HEIGHT;
+      II = (i*ix+i1)*im_height;
       ij  = ii+j;
       ijl = ij+lx;
       J   = j*ix + i1;
       IJ  = II + J;
       for (k=0; k < ix; k++) {
-         IJk = IJ + k*IM_HEIGHT ;
+         IJk = IJ + k*im_height ;
          kk = k0 - ((k * ix) << 1);
          mm = kk + dkk;
          for (l=0; l < ix; l++) {
             IJK = IJk;
-            if ( (J + l) >= IM_HEIGHT ) IJK = IJk - IM_HEIGHT;
+            if ( (J + l) >= im_height ) IJK = IJk - im_height;
             if ( IJK >= IM2 ) IJK -= IM2;
             tmp_imx[IJK+l]
               = imx[IJK+l] = ( a[ij]      * s[kk-l]
@@ -3427,15 +3490,15 @@ STATUS("ENTER Resample") ;
    j = lx - 1;
    ij = lx*ly - 1;
    ijl = lx - 1;
-   IJ = (i*ix+i1)*IM_HEIGHT + j*ix + i1;
+   IJ = (i*ix+i1)*im_height + j*ix + i1;
    for (k=0; k < ix; k++) {
-      IJk = IJ + k*IM_HEIGHT ;
+      IJk = IJ + k*im_height ;
       if ( IJk >= IM2 ) IJk -= IM2;
       kk = k0 - ((k * ix) << 1);
       mm = kk + dkk;
       for (l=0; l < ix; l++) {
          IJK = IJk;
-         if ( (J + l) >= IM_HEIGHT ) IJK = IJk - IM_HEIGHT;
+         if ( (J + l) >= im_height ) IJK = IJk - im_height;
          tmp_imx[IJK+l]
            = imx[IJK+l] = ( a[ij]      * s[kk-l]
                           + a[ij-lx+1] * s[kk-l+ix]
@@ -3446,14 +3509,14 @@ STATUS("ENTER Resample") ;
 
    for (i=0; i < ly - 1; i++) {        /* the rest of the field */
       ii = i*lx;
-      II = (i*ix+i1)*IM_HEIGHT + i1;
+      II = (i*ix+i1)*im_height + i1;
       for (j=0; j < lx - 1; j++) {
          ij  = ii+j;
          ijl = ij+lx;
          J   = j*ix;
          IJ  = II + J;
          for (k=0; k < ix; k++) {
-            IJk = IJ + k*IM_HEIGHT ;
+            IJk = IJ + k*im_height ;
             kk = k0 - ((k * ix) << 1);
             mm = kk + dkk;
             for (l=0; l < ix; l++) {
@@ -3474,25 +3537,23 @@ STATUS("ENTER Resample") ;
    int n;
 /* ------------ */
 {
-   register int    min2, max2, i, m;
+   register int    min2, max2, i, dd;
    register float  coef2, del2;
-   int             xtemp1, xtemp2, ytemp1, ytemp2, xmat, xm, ym, xxx;
-
-STATUS("ENTER Put_image") ;
+   int             xtemp1, xtemp2, ytemp1, ytemp2, xmat, ymat, xm, ym, xxx;
 
    if ( (n == old_im) && AJ_PseudoColor ) {
       for (i = 0; i < IM_ARR; i++) imx[i] = tmp_imx[i];
    }
-#ifdef USE_MCW
+#ifdef USE_MCW 
    else if ( n < 0 ){
       mcw_load() ;
       for( i=0 ; i < IM_ARR ; i++ ) tmp_ar[i] = mcw_im[i] ;
-      SIZE_tmp_ar( IM_HEIGHT ) ;
+      SIZE_tmp_ar( im_height ) ;
       Resample(im_tmp_ar);
       strcpy(T_name,"Medical College of Wisconsin") ;
       strcpy(G_name,"Medical College of Wisconsin") ;
       strcpy(I_name,"MCW") ;
-      Allow_new_name(Argc, Argv);
+      Allow_new_name(Argc, Argv); 
       old_im = -9999 ;
    }
 #endif
@@ -3589,67 +3650,69 @@ STATUS("ENTER Put_image") ;
 
    if( !RWC_framehide ){
 
+      if ( x_mag == 1 ) dd = 0;   /* extra correction for 64 and 128 */
+      else              dd = 1;
       xxx = max(0, x_mag/2 - 1);        /* stuff for proper pivot and frame */
       xm = x_mag - 1;
       ym = x_mag - 1;
-      xmat = x_mag * (mat - 1) + x_mag/2 + 1;
+      xmat = x_mag * (matx - 1) + x_mag/2 + 1;
+      ymat = x_mag * (maty - 1) + x_mag/2 + 1;
 
-      ytemp1 = x_mag * (ypoint + yc) + ym ;
-      if (ytemp1 < 0)          ytemp1 += IM_HEIGHT;
-      if (ytemp1 >= IM_HEIGHT) ytemp1 -= IM_HEIGHT;
+      ytemp1 = x_mag * (ypoint + yc) + ym - dd;
+      if (ytemp1 < 0)          ytemp1 += im_height;
+      if (ytemp1 >= im_height) ytemp1 -= im_height;
 
-      ytemp2 = x_mag * (ypoint + yc - mat + 1);
-      if (ytemp2 < 0)          ytemp2 += IM_HEIGHT;
-      if (ytemp2 >= IM_HEIGHT) ytemp2 -= IM_HEIGHT;
+      ytemp2 = x_mag * (ypoint + yc - maty + 1) - dd;
+      if (ytemp2 < 0)          ytemp2 += im_height;
+      if (ytemp2 >= im_height) ytemp2 -= im_height;
 
       for (i=0; i < xmat + xxx; i++) {
-        xtemp1 = x_mag * (xpoint - xc) + i;
-        if (xtemp1 < 0)          xtemp1 += IM_HEIGHT;
-        if (xtemp1 >= IM_HEIGHT) xtemp1 -= IM_HEIGHT;
+        xtemp1 = x_mag * (xpoint - xc) + i - dd;
+        if (xtemp1 < 0)          xtemp1 += im_height;
+        if (xtemp1 >= im_height) xtemp1 -= im_height;
 
-        imx[ytemp1 * IM_HEIGHT + xtemp1] = fr_index;
-        imx[ytemp2 * IM_HEIGHT + xtemp1] = fr_index;
+        imx[ytemp1 * im_height + xtemp1] = fr_index;
+        imx[ytemp2 * im_height + xtemp1] = fr_index;
       }
 
-      xtemp1 = x_mag * (xpoint - xc);
-      if (xtemp1 < 0)          xtemp1 += IM_HEIGHT;
-      if (xtemp1 >= IM_HEIGHT) xtemp1 -= IM_HEIGHT;
+      xtemp1 = x_mag * (xpoint - xc) - dd;
+      if (xtemp1 < 0)          xtemp1 += im_height;
+      if (xtemp1 >= im_height) xtemp1 -= im_height;
 
-      xtemp2 = x_mag * (xpoint - xc + mat - 1) + xm;
-      if (xtemp2 < 0)          xtemp2 += IM_HEIGHT;
-      if (xtemp2 >= IM_HEIGHT) xtemp2 -= IM_HEIGHT;
+      xtemp2 = x_mag * (xpoint - xc + matx - 1) + xm - dd;
+      if (xtemp2 < 0)          xtemp2 += im_height;
+      if (xtemp2 >= im_height) xtemp2 -= im_height;
 
-      for (i=0; i < xmat; i++) {
-         ytemp1 = x_mag * (ypoint + yc) - i + ym;
-         if (ytemp1 < 0)          ytemp1 += IM_HEIGHT;
-         if (ytemp1 >= IM_HEIGHT) ytemp1 -= IM_HEIGHT;
+      for (i=0; i < ymat; i++) {
+         ytemp1 = x_mag * (ypoint + yc) - i + ym - dd;
+         if (ytemp1 < 0)          ytemp1 += im_height;
+         if (ytemp1 >= im_height) ytemp1 -= im_height;
 
-         imx[ytemp1 * IM_HEIGHT + xtemp1] = fr_index;
-         imx[ytemp1 * IM_HEIGHT + xtemp2] = fr_index;
+         imx[ytemp1 * im_height + xtemp1] = fr_index;
+         imx[ytemp1 * im_height + xtemp2] = fr_index;
       }
    } /* end if !RWC_framehide */
 
    if( RWC_do_overfim && !RWC_overhide ){
       short dont_overlay ;
       dont_overlay = fr_index ;
-#ifdef OV_DEBUG1
-   fprintf(stderr,"overlaying image #%d\n",n) ; fflush(stderr) ;
-#endif
-      RWC_short_overlay( IM_HEIGHT,IM_HEIGHT,imx , RWC_nxim,RWC_nyim ,
+      RWC_short_overlay( im_height,im_height,imx , RWC_nxim,RWC_nyim ,
                          RWC_OVFLAG,dont_overlay, RWC_checker , RWC_imover ) ;
    }
 
    if ( !AJ_PseudoColor ) {
-      Load_Next_Arr(theBelt, belt_arr,BELT_W,IM_HEIGHT);
+      Load_Next_Arr(theBelt, belt_arr, BELT_W, im_height);
       MResize(&expBelt,&eW,&eH,theBelt,eW,eH);
-      }XPutImage(theDisp, theWindow, theGC, expBelt, 0, 0, eHIGH, 0, eW, eH);
+   }
+   XPutImage(theDisp, theWindow, theGC, expBelt, 0, 0, eHIGH, 0, eW, eH);
 
-   Load_Next_Arr(theImage, imx,IM_HEIGHT,IM_HEIGHT);
+   Load_Next_Arr(theImage, imx,im_height,im_height);
    MResize(&expImage,&eWIDE,&eHIGH,theImage,eWIDE,eHIGH);
    XPutImage(theDisp, theWindow, theGC, expImage,0, 0, 0, 0, eWIDE, eHIGH);
 }
 
 /* ---------------------------------- */   /* Create Image from the im_arr */
+   void
    Load_Next_Arr(Image, im_arr, x, y)      /* Usage: Load_Next... */
    short int im_arr[];
    int       x, y;
@@ -3662,6 +3725,7 @@ STATUS("ENTER Put_image") ;
 }
 
 /* ---------------------------------- */
+   void
    Load_Next_RGB(Image, im_arr, x, y)
    short int im_arr[];
    int       x, y;
@@ -3671,7 +3735,7 @@ STATUS("ENTER Put_image") ;
    register int   i, k, last;
    byte      *a8, *i8, *m8;
    unsigned short *a16, *i16;
-   unsigned long  *a32, *i32;
+   unsigned int   *a32, *i32;
  
    last  = x * y;
  
@@ -3681,8 +3745,8 @@ STATUS("ENTER Put_image") ;
    k = 0;
    switch( bperpix ) {
       case 32:
-         a32 = (unsigned long *) Image->data;
-         i32 = (unsigned long *) AJ_RGB;
+         a32 = (unsigned int  *) Image->data;
+         i32 = (unsigned int  *) AJ_RGB;
          for (i=0; i < last; i++) {
             *a32++ =  i32[im_arr[k++]];
          }
@@ -3718,6 +3782,7 @@ STATUS("ENTER Put_image") ;
 }
 
 /* ---------------------------------- */   /* Create Image from the im_arr */
+   void
    Load_Next_ind(Image, im_arr, x, y)      /* Usage: Load_Next... */
    short int im_arr[];                     /* Uses own 16 colors for nega- */
    int       x, y;                         /* tive numbers (-1 - -16).     */
@@ -3727,8 +3792,6 @@ STATUS("ENTER Put_image") ;
   register char *ptr;
   register int   i, j, k, iN, iE;
   int        Width, Hight;
-
-STATUS("ENTER Load_Next_ind") ;
 
   iN = (Planes + 7)/8;             /* 1 or 2, pointer increment */
   iE = iN - 1;                     /* 0 or 1 for next pointer */
@@ -3751,6 +3814,7 @@ STATUS("ENTER Load_Next_ind") ;
 }
 
 /* ---------------------------- */
+   void
    Allow_new_name(argc, argv)
    int  argc;
    char *argv[];
@@ -3769,8 +3833,6 @@ STATUS("ENTER Load_Next_ind") ;
    register int i,j, m, temp, index, ix, iy, xtemp, ytemp;
    int lsqnum , lsqfit , base , use_base , bb ;
    float f0;
-
-STATUS("ENTER plot_line") ;
 
    m = ar_size;
 
@@ -3792,11 +3854,11 @@ STATUS("ENTER plot_line") ;
               instead of in main loop.  this allows loading of 'base' **/
 
    base = 40000 ;
-   for (ix=0;ix<mat;ix++) {
+   for (ix=0; ix < matx; ix++) {
       xtemp = xpoint + ix - xc;
       if (xtemp < 0)        xtemp += im_size;
       if (xtemp >= im_size) xtemp -= im_size;
-      for (iy=0;iy<mat;iy++) {
+      for (iy=0; iy < maty; iy++) {
          ytemp = ypoint - iy + yc;
          if (ytemp < 0)        ytemp += im_size;
          if (ytemp >= im_size) ytemp -= im_size;
@@ -3810,11 +3872,11 @@ STATUS("ENTER plot_line") ;
 
    use_base = (RWC_groupbase && lsqnum == 0) ;
 
-   for (ix=0;ix<mat;ix++) {
+   for (ix=0; ix < matx; ix++) {
       xtemp = xpoint + ix - xc;
       if (xtemp < 0)        xtemp += im_size;
       if (xtemp >= im_size) xtemp -= im_size;
-      for (iy=0;iy<mat;iy++) {
+      for (iy=0; iy < maty; iy++) {
          ytemp = ypoint - iy + yc;
          if (ytemp < 0)        ytemp += im_size;
          if (ytemp >= im_size) ytemp -= im_size;
@@ -3828,7 +3890,8 @@ STATUS("ENTER plot_line") ;
                   sum += LSQ_ref[j]->ts[i] * LSQ_fit[j][index] ;
 
                switch( lsqfit ){
-                  case 2: LSQ_val[i] = LSQ_ref[j]->ts[i] * LSQ_fit[j][index] ; /*fall*/
+                  /*fall*/
+                  case 2: LSQ_val[i] = LSQ_ref[j]->ts[i] * LSQ_fit[j][index] ;
                   case 0: val[ix][iy][i] -= sum ;
                           break ;
                   case 1: LSQ_val[i]      = sum ;
@@ -3836,13 +3899,6 @@ STATUS("ENTER plot_line") ;
                }
             }
 
-#ifdef DEBUG
-            if( ix==xc && iy==yc ){
-               printf("*** LSQ: num=%d fit=",lsqnum) ;
-               for( j=0 ; j < lsqnum ; j++ ) printf(" %g",LSQ_fit[j][index]) ;
-               printf("\n") ;
-            }
-#endif
          }
 
          /** scale data **/
@@ -3887,22 +3943,21 @@ STATUS("ENTER plot_line") ;
             }
             for (i=0; i < npoints; i++) {
                a_line[i].x = xorigin[ix][iy] + i*gx/(npoints-1);
-               a_line[i].y = iHIGH - yorigin[ix][iy] - i_plot[i];
+               a_line[i].y = idY - yorigin[ix][iy] - i_plot[i];
             }
          }
          else {
             for (i=0; i < npoints; i++) {
                a_line[i].x = xorigin[ix][iy] + i*gx/(npoints-1);
-               a_line[i].y = iHIGH - yorigin[ix][iy] - plot[ix][iy][i];
+               a_line[i].y = idY - yorigin[ix][iy] - plot[ix][iy][i];
             }
          }
-         XDrawLines(theDisp, GRWIND, theGC, a_line, npoints, CoordModeOrigin);
+         XDrawLines(theDisp, pxWind, theGC, a_line, npoints, CoordModeOrigin);
 
          /*** draw the LSQ_val fit to the data as well **/
 
          if( lsqnum > 0 && lsqfit ){
             float *id = RWC_ideal->ts ;
-            int xx , yy ;
 
             if (iscale > 0) {
               for (i=0; i < npoints; i++)
@@ -3915,12 +3970,12 @@ STATUS("ENTER plot_line") ;
             }
             for (i=0; i < npoints; i++) {
                a_line[i].x = xorigin[ix][iy] + i*gx/(npoints-1);
-               a_line[i].y = iHIGH - yorigin[ix][iy] - LSQ_plot[i];
-               if( mat <= 3 && fabs(id[i]) >= 33333.0 )
+               a_line[i].y = idY - yorigin[ix][iy] - LSQ_plot[i];
+               if( (matx <= 3) && (maty <= 3) && fabs(id[i]) >= 33333.0 )
                   Cpointer_PIXWIN( a_line[i].x , a_line[i].y , "blue" ) ;
             }
             line_color("red3");
-            XDrawLines(theDisp, GRWIND, theGC, a_line, npoints, CoordModeOrigin);
+            XDrawLines(theDisp, pxWind, theGC, a_line, npoints, CoordModeOrigin);
          }
 
       } /* end loop iy */
@@ -3963,7 +4018,7 @@ STATUS("ENTER plot_line") ;
       for (i=0; i < npoints; i++) {
          a_line[i].x = i*gx/(npoints-1);
          val = ( fabs(id[i]) < 33333.0 ) ? (id[i]) : (idmin) ;
-         a_line[i].y = iHIGH - (yoff+yscal*(val-idmin));
+         a_line[i].y = idY - (yoff+yscal*(val-idmin));
       }
 
       /*** for each line, for each plot, put into pixmap ***/
@@ -3984,7 +4039,8 @@ STATUS("ENTER plot_line") ;
            ybot = yc ; ytop = ybot+1 ;
         } else {
            xbot = ybot = 0 ;            /* do all plots */
-           xtop = ytop = mat ;
+           xtop = matx;
+           ytop = maty;
         }
 
         for( yg=ybot ; yg < ytop ; yg++ ){
@@ -3993,8 +4049,9 @@ STATUS("ENTER plot_line") ;
               one_line[1].x = a_line[i+1].x + xorigin[xg][yg] ;
               one_line[0].y = a_line[i].y   - yorigin[xg][yg] ;
               one_line[1].y = a_line[i+1].y - yorigin[xg][yg] ;
-              XDrawLines(theDisp, GRWIND, theGC, one_line, 2, CoordModeOrigin);
-              if( mat <= 3 && kFI3_show_ref == 1 && fabs(id[i]) >= 33333.0 )
+              XDrawLines(theDisp, pxWind, theGC, one_line, 2, CoordModeOrigin);
+              if( (matx <= 3) && (maty <=3) &&
+                  kFI3_show_ref == 1 && fabs(id[i]) >= 33333.0 )
                  Cpointer_PIXWIN( one_line[0].x , one_line[0].y , "blue" ) ;
            }
         }  /* end of loops over boxes */
@@ -4014,21 +4071,21 @@ STATUS("ENTER plot_line") ;
    if (mark) {
      line_color(color[color_index]);
      g = grid_coef * grid_far[grid_index + FT_grid];
-     for (i=0;i<mat;i++) {
+     for (i=0; i < matx; i++) {
         for (j=1;j<=npoints/g;j++) {
-              f0 = ((float) j * g - 1.) * (float) gx / (float) (npoints - 1);
-	      k = xorigin[i][0] + (int) f0;
-          plotx(k,mdy1, 0);
-          plotx(k,mdy1+mat*gy, 1);
-	    }
+           f0 = ((float) j * g - 1.) * (float) gx / (float) (npoints - 1);
+           k = xorigin[i][0] + (int) f0;
+           plotx(k,mdy1, 0);
+           plotx(k,mdy1+maty*gy, 1);
+        }
      }
    }
 
 #ifdef FILL_WITH_CYAN
    line_color("cyan");
    xo = xorigin[xc][yc];
-   yo = iHIGH - yorigin[xc][yc] - gy;
-   XFillRectangle(theDisp, GRWIND, theGC, xo, yo, gx, gy);
+   yo = idY - yorigin[xc][yc] - gy;
+   XFillRectangle(theDisp, pxWind, theGC, xo, yo, gx, gy);
 #else
    xo = xorigin[xc][yc] ; yo = yorigin[xc][yc] ;
    g  = 5 ;
@@ -4042,20 +4099,20 @@ STATUS("ENTER plot_line") ;
 #endif
 
    xo = xorigin[xc][yc];
-   yo = iHIGH - yorigin[xc][yc] - gy;
+   yo = idY - yorigin[xc][yc] - gy;
 
    if (diff_im) {
       line_color("blue");
       x1 = Im_1*gx/(npoints-1);
       dx = (Im_2 - Im_1)*gx/(npoints-1) + 1;
-      XFillRectangle(theDisp, GRWIND, theGC, xo + x1, yo, dx, gy);
+      XFillRectangle(theDisp, pxWind, theGC, xo + x1, yo, dx, gy);
    }
 
    if (avr_grp) {
       line_color("red");
       x1 = Av_1*gx/(npoints-1);
       dx = (Av_2 - Av_1)*gx/(npoints-1) + 1;
-      XFillRectangle(theDisp, GRWIND, theGC, xo + x1, yo, dx, gy);
+      XFillRectangle(theDisp, pxWind, theGC, xo + x1, yo, dx, gy);
    }
 
    if (mark) {
@@ -4093,16 +4150,21 @@ STATUS("ENTER plot_line") ;
 }
 
 /* ----------------------------- */   /* decrease matrix and redraw  */
-   void mat_down()
+   void mat_down(n)
+   int n;
 /* ----------------------------- */
 {
-   int old;
-
-   old = mat;
-   mat--;
-   if (mat < 1) mat = 1;
-   else if (mat > MAT_MAX) mat = MAT_MAX;
-   if (mat!= old) {
+   matx_0 = matx;
+   maty_0 = maty;
+   if ( n == 0 ) {
+      matx--;
+      if      (matx < 1)       matx = 1;
+      else if (matx > MAT_MAX) matx = MAT_MAX;
+   }
+   maty--;
+   if      (maty < 1)       maty = 1;
+   else if (maty > MAT_MAX) maty = MAT_MAX;
+   if ( (matx != matx_0) || (maty != maty_0) ) {
       init_mat();
       RWC_framehide = 0 ;
       Put_image(Im_Nr);
@@ -4112,16 +4174,22 @@ STATUS("ENTER plot_line") ;
 }
 
 /* ----------------------------- */   /* increase matrix and redraw  */
-   void mat_up()
+   void mat_up(n)
+   int n;
 /* ----------------------------- */
 {
-   int old;
+   matx_0 = matx;
+   maty_0 = maty;
+   if ( n == 0 ) {
+      matx++;
+      if      (matx < 1)       matx = 1;
+      else if (matx > MAT_MAX) matx = MAT_MAX;
+   }
+   maty++;
+   if      (maty < 1)       maty = 1;
+   else if (maty > MAT_MAX) maty = MAT_MAX;
 
-   old = mat;
-   mat++;
-   if (mat < 1) mat = 1;
-   else if (mat > MAT_MAX) mat = MAT_MAX;
-   if (mat!= old) {
+   if ( (matx != matx_0) || (maty != maty_0) ) {
       init_mat();
       RWC_framehide = 0 ;
       Put_image(Im_Nr);
@@ -4134,19 +4202,24 @@ STATUS("ENTER plot_line") ;
    void init_mat()
 /* ----------------------------- */
 {
-   gx = RWC_GX_MAX / mat;
-   gy = RWC_GY_MAX / mat;
-   for (i=0;i<mat;i++) {
-     for (j=0;j<mat;j++) {
-	   xorigin[i][j] = mdx1 + i * gx;
-	   yorigin[i][j] = mdy1 + j * gy;
-	 }
+   int i, j;
+
+   gx = gx_max / matx;
+   gy = gy_max / maty;
+   if (gx < 1) { gx = 1; gx_max = matx; }
+   if (gy < 1) { gy = 1; gy_max = maty; }
+   for (i=0; i < matx; i++) {
+      for (j=0; j < maty; j++) {
+         xorigin[i][j] = mdx1 + i * gx;
+         yorigin[i][j] = mdy1 + j * gy;
+      }
    }
-   xc = mat/2;
-   yc = (mat-1)/2;
+   xc = matx/2;
+   yc = (maty-1)/2;
 }
 
 /* ----------- */
+   void
    init_grid()
 /* ----------- */
 {
@@ -4192,6 +4265,7 @@ STATUS("ENTER plot_line") ;
 }
 
 /* ------------ */
+   void
    init_const()
 /* ------------ */
 {
@@ -4206,11 +4280,12 @@ STATUS("ENTER plot_line") ;
    mytxt = 20;
    mdx1   = GL_DLX + 1;
    mdy1   = GB_DLY + 1;
-   idx   = GL_DLX + RWC_GX_MAX + GR_DLX;
-   idy   = GB_DLY + RWC_GY_MAX + GT_DLY;
+   idX   = GL_DLX + gx_max + GR_DLX;
+   idY   = GB_DLY + gy_max + GT_DLY;
    mark = 1;
    color_index = 0;
-   mat = 3;
+   matx = 3;
+   maty = 3;
    init_mat();
 }
 
@@ -4219,16 +4294,13 @@ STATUS("ENTER plot_line") ;
    int xs, ys;
 /* ------------------------------ */
 {
-   iWIDE = xs; iHIGH = ys;
-   idx = xs;   idy = ys;
-   RWC_GX_MAX = idx - GL_DLX - GR_DLX;
-   RWC_GY_MAX = idy - GB_DLY - GT_DLY;
-   if( use_pixmap ) {
-      XFreePixmap(theDisp, pxWind) ;
-      pxWind = XCreatePixmap(theDisp, GWindow, iWIDE, iHIGH, Planes);
-   }
-   XMoveResizeWindow(theDisp, subWindow, 0, RWC_GY_MAX + GT_DLY, idx, GB_DLY);
-   XMoveResizeWindow(theDisp, topWindow, 0, 0, idx, GT_DLY - 2);
+   idX = xs;   idY = ys;
+   gx_max = idX - GL_DLX - GR_DLX;
+   gy_max = idY - GB_DLY - GT_DLY;
+   XFreePixmap(theDisp, pxWind) ;
+   pxWind = XCreatePixmap(theDisp, GWindow, idX, idY, Planes);
+   XMoveResizeWindow(theDisp, subWindow, 0, gy_max + GT_DLY, idX, GB_DLY);
+   XMoveResizeWindow(theDisp, topWindow, 0, 0, idX, GT_DLY - 2);
    init_mat();
    redraw_graph();
 }
@@ -4240,8 +4312,6 @@ STATUS("ENTER plot_line") ;
    int  i, out_loop = 0, tmpx;
 
    XGCValues   gcv;
-
-   iWIDE = idx;	iHIGH = idy;
 
     CreateGraphWindow(NULL, 0);      /* Set theWindow properties */
 /* subWindow, topWindow and keys stuff is here ------- vvvvvvv ------- AJ*/
@@ -4280,7 +4350,6 @@ STATUS("ENTER plot_line") ;
          FatalError("Can't open any text font!\n") ;
      }
      kfont = tfont_hopefuls[ifont] ;
-STATUS(kfont) ;
    }
     keyfont = kfontinfo->fid;
 
@@ -4300,22 +4369,17 @@ STATUS(kfont) ;
     gcv.plane_mask = FKeyFore ^ FKeyBack;
     Fkeyigc = XCreateGC(theDisp, GWindow, GCFunction|GCPlaneMask, &gcv);
 
-STATUS("  calling Setup_subWindow()") ;
     Setup_subWindow();
 
-STATUS("  calling Setup_topWindow()") ;
     Setup_topWindow();
 
-STATUS("  calling Setup_keys()") ;
     Setup_keys();
 
 /* SUbWindow, topWindow and keys stuff is here ------- ^^^^^^^ ------- AJ*/
 
                          /* Make dummy window for text and graphic entry */
 
-STATUS("  making Pixmap") ;
-   if( use_pixmap )
-      pxWind = XCreatePixmap(theDisp, GWindow, iWIDE, iHIGH, Planes);
+   pxWind = XCreatePixmap(theDisp, GWindow, idX, idY, Planes);
 
    New_Cursor(theDisp, GWindow, XC_left_ptr, "blue", "yellow"); /* cursor */
 
@@ -4342,19 +4406,16 @@ STATUS("  making Pixmap") ;
             if (wind ==   GWindow)
                exp_done[N_KEYS] = 1;
             else if (wind == subWindow) {
-STATUS("  calling DrawSubWindow()") ;
                DrawSubWindow();
                exp_done[N_KEYS+1] = 1;
             }
             else if (wind == topWindow) {
-STATUS("  calling DrawTopWindow()") ;
                DrawTopWindow();
                exp_done[N_KEYS+2] = 1;
             }
             else {
                for (i=0; i < N_KEYS; i++) {
                   if (wind == key[i].wid) {
-STATUS("  calling DrawKey(i)") ;
                      DrawKey(i);
                      exp_done[i] = 1;
                   }
@@ -4365,7 +4426,6 @@ STATUS("  calling DrawKey(i)") ;
             for (i = 0; i < N_KEYS; i++)  out_loop *= exp_done[i];
             if (out_loop){
                return;
-STATUS("leaving window_plane()") ;
             }
             Allow_smaller_gr(Argc, Argv);
          }
@@ -4375,22 +4435,22 @@ STATUS("leaving window_plane()") ;
          break;
       }
    }
-STATUS("leaving window_plane()") ;
 }
 
 /* ----------------- */
+   void
    Setup_subWindow()
 /* ----------------- */
 {
-   unsigned long white;
+   unsigned long white; // long is OK here AJJ
 
    if (!(XAllocNamedColor(theDisp, CMap, "white", &any_col, &rgb_col)))
    FatalError ("XAllocNamedColor problem. AJ in Setup_subWindow()");
    white = any_col.pixel;
 
-   sub_W_x = idx;
+   sub_W_x = idX;
    sub_W_y = GB_DLY;
-   subWindow = XCreateSimpleWindow(theDisp, GWindow, 0, RWC_GY_MAX + GT_DLY,
+   subWindow = XCreateSimpleWindow(theDisp, GWindow, 0, gy_max + GT_DLY,
                      sub_W_x, sub_W_y, 1, white, white);
    XSelectInput(theDisp, subWindow, ExposureMask | ButtonPressMask |
                   ButtonReleaseMask);
@@ -4405,7 +4465,7 @@ STATUS("leaving window_plane()") ;
    int     str_x = 5, x, y, loc, i;
 
    line_color("white");
-   XFillRectangle(theDisp, subWindow, theGC, 0, 0, idx, GB_DLY);
+   XFillRectangle(theDisp, subWindow, theGC, 0, 0, idX, GB_DLY);
 
    sprintf (strp,"Im. rot.");
    subW_TXT(str_x, 35, strp);
@@ -4473,14 +4533,14 @@ STATUS("leaving window_plane()") ;
             sprintf(strp, "Averaged pixel: %d",
                     av_ar[ypoint*im_size + xpoint] ) ;
 
-            if( mat > 1 ){  /** RWCox: 2 Aug 1996 **/
+            if( (matx > 1) || (maty > 1) ){  /** RWCox: 2 Aug 1996 **/
                int ix,iy , xtemp,ytemp , index ;
                float sum = 0.0 ;
-               for( ix=0 ; ix < mat ; ix++ ){
+               for( ix=0 ; ix < matx; ix++ ){
                   xtemp = xpoint + ix - xc;
                   if (xtemp < 0)        xtemp += im_size;
                   if (xtemp >= im_size) xtemp -= im_size;
-                  for( iy=0 ; iy < mat ; iy++ ){
+                  for( iy=0 ; iy < maty; iy++ ){
                      ytemp = ypoint - iy + yc;
                      if (ytemp < 0)        ytemp += im_size;
                      if (ytemp >= im_size) ytemp -= im_size;
@@ -4488,7 +4548,7 @@ STATUS("leaving window_plane()") ;
                      sum  += av_ar[index] ;
                   }
                }
-               sum /= (mat*mat) ;
+               sum /= (matx*maty) ;
                ix   = strlen(strp) ;
                sprintf(strp+ix , " [%.1f]" , sum ) ;
             }
@@ -4498,24 +4558,48 @@ STATUS("leaving window_plane()") ;
             txt_color("black");
          } /* end of pure average */
          else {
+            int i, ix, iy;
             f1 = f0 = 0.;
-            for (i=0; i < npoints; i++) f0 += val[xc][yc][i];
-            f0 = f0 / (float) npoints;
-            for (i=0; i < npoints; i++) {
-               f2 = (float) val[xc][yc][i] - f0;
-               f1 += f2 * f2;
+            if ( Time_avr ) {
+               for (i=0; i < npoints; i++) f0 += val[xc][yc][i];
+               f2 = (float) max(npoints, 1);
+               f0 = f0 / f2;
+               for (i=0; i < npoints; i++) {
+                  f2 = (float) val[xc][yc][i] - f0;
+                  f1 += f2 * f2;
+               }
+               f2 = (float) max(npoints, 1);
+               f1 = f1 / f2;
+               f1 = sqrt(f1);
+               sprintf(strp, "Time avr: %.1f, Std dev: %.1f", f0, f1);
+               txt_color("blue");
+               subW_TXT(loc, 5, strp);
+               txt_color("black");
             }
-
-            f1 = f1 / (float) npoints;
-            f1 = sqrt(f1);
-            sprintf(strp, "Avr: %.1f, Std dev: %.1f", f0, f1);
-            txt_color("blue");
-            subW_TXT(loc, 5, strp);
-            txt_color("black");
+            else {
+               for (ix=0;ix<matx;ix++) {
+                  for (iy=0;iy<maty;iy++) {
+                     f0 += val[ix][iy][Im_Nr];
+                  }
+               }
+               f0 = f0 / (float) (matx*maty);
+               for (ix=0;ix<matx;ix++) {
+                  for (iy=0;iy<maty;iy++) {
+                     f2 = (float) val[ix][iy][Im_Nr] - f0;
+                     f1 += f2 * f2;
+                  }
+               }
+               f1 = f1 / (float) (matx*maty);
+               f1 = sqrt(f1);
+               sprintf(strp, "Box avr: %.1f, Std dev: %.1f", f0, f1);
+               txt_color("blue");
+               subW_TXT(loc, 5, strp);
+               txt_color("black");
+            }
          }
 
          x = xorigin[xc][yc] + Im_Nr*gx/(npoints-1);
-         y = iHIGH - yorigin[xc][yc] - plot[xc][yc][Im_Nr];
+         y = idY - yorigin[xc][yc] - plot[xc][yc][Im_Nr];
          v_point_x = x;
          Vpointer(x, 0);
          Cpointer(x, y );
@@ -4526,16 +4610,17 @@ STATUS("leaving window_plane()") ;
 }
 
 /* ----------------- */
+   void
    Setup_topWindow()
 /* ----------------- */
 {
-   unsigned long white;
+   unsigned long white; // long is OK here AJJ
 
    if (!(XAllocNamedColor(theDisp, CMap, "white", &any_col, &rgb_col)))
    FatalError ("XAllocNamedColor problem. AJ in Setup_topWindow()");
    white = any_col.pixel;
 
-   top_W_x = idx;
+   top_W_x = idX;
    top_W_y = GT_DLY - 2;
    topWindow = XCreateSimpleWindow(theDisp, GWindow, 0, 0,
                      top_W_x, top_W_y, 1, white, white);
@@ -4552,23 +4637,18 @@ STATUS("leaving window_plane()") ;
    char str_fim[128] ;
 
    line_color("white");
-   XFillRectangle(theDisp, topWindow, theGC, 0, 0, idx, top_W_y);
+   XFillRectangle(theDisp, topWindow, theGC, 0, 0, idX, top_W_y);
 
    txt_color("black");
-STATUS("   about to draw T_name") ;
    XDrawString(theDisp, topWindow, txtGC, 12,
                top_W_y - 5, T_name, strlen(T_name));
-STATUS("   finished drawing T_name") ;
-#ifdef DEBUG
-  sleep(1) ;
-#endif
 
    xmin = 3 + 12 + XTextWidth(mfinfo,T_name,strlen(T_name)) ;
 
    if ( diff_im ) {
       txt_color("red");
       strwide = XTextWidth(mfinfo,str,strlen(str));
-      xleft   = GL_DLX + (RWC_GX_MAX-strwide)/2 ;
+      xleft   = GL_DLX + (gx_max-strwide)/2 ;
       xleft   = MAX(xmin,xleft) ;
       XDrawString(theDisp, topWindow, txtGC,
                   xleft , top_W_y - 5, str, strlen(str));
@@ -4586,37 +4666,16 @@ STATUS("   finished drawing T_name") ;
       else              txt_color("red");
 
       strwide = XTextWidth(mfinfo,str_fim,strlen(str_fim));
-      xleft   = GL_DLX + (RWC_GX_MAX-strwide)/2 ;
+      xleft   = GL_DLX + (gx_max-strwide)/2 ;
       xleft   = MAX(xmin,xleft) ;
       XDrawString(theDisp, topWindow, txtGC,
                   xleft , top_W_y - 5, str_fim, strlen(str_fim) );
       txt_color("black");
    }
-#ifndef KILL_COPYRIGHT
-   else {
-      char * str_cpy1 = COPYRIGHT_STRING ;
-      char * str_cpy2 = " 1994 Medical College of Wisconsin" ;
-      int wide1 , wide2 ;
-
-      wide1 = XTextWidth( mfinfo , str_cpy1 , strlen(str_cpy1) ) ;
-      wide2 = XTextWidth( mfinfo , str_cpy2 , strlen(str_cpy2) );
-
-      xleft = GL_DLX + (RWC_GX_MAX-(wide1+wide2))/2 ;
-      xleft = MAX(xmin,xleft) ;
-
-      txt_color("cyan");
-
-      XDrawString(theDisp, topWindow, txtGC,
-                  xleft      , top_W_y - 5, str_cpy1, strlen(str_cpy1) );
-      XDrawString(theDisp, topWindow, txtGC,
-                  xleft+wide1, top_W_y - 5, str_cpy2, strlen(str_cpy2) );
-
-      txt_color("black");
-   }
-#endif
 }
 
 /* ------------ */
+   void
    Setup_keys()
 /* ------------ */
 {
@@ -4643,6 +4702,7 @@ STATUS("   finished drawing T_name") ;
 }
 
 /* --------------- */
+   void
    DrawKey(keynum)
    int keynum;
 /* --------------- */
@@ -4652,7 +4712,7 @@ STATUS("   finished drawing T_name") ;
    struct _key *kp;
    GC          AJkeygc; /* AJ new for proper color of the text */
 
-   if( keynum < 0 || keynum >= N_KEYS ) return 0 ;
+   if( keynum < 0 || keynum >= N_KEYS ) return;
 
    kp = &key[keynum];
    str = kp->st;
@@ -4667,6 +4727,7 @@ STATUS("   finished drawing T_name") ;
 }
 
 /* ----------------- */
+   void
    InvertKey(keynum)
    int keynum;
 /* ----------------- */
@@ -4674,7 +4735,7 @@ STATUS("   finished drawing T_name") ;
    struct _key *kp;
    GC           AJkeyigc;
 
-   if( keynum < 0 || keynum >= N_KEYS ) return 0 ;
+   if( keynum < 0 || keynum >= N_KEYS ) return;
 
    AJkeyigc = Fkeyigc;
    kp = &key[keynum];
@@ -4683,16 +4744,18 @@ STATUS("   finished drawing T_name") ;
 }
 
 /* ---------------- */
+   void
    LetGoKey(keynum)
    int keynum;
 /* ---------------- */
 {
-   if( keynum < 0 || keynum >= N_KEYS ) return 0 ;
+   if( keynum < 0 || keynum >= N_KEYS ) return;
    InvertKey(keynum);
    (*(key[keynum].fun))(keynum);
 }
 
 /* ------------- */
+   int
    Ims_rot(ikey)
    int ikey;
 /* ------------- */
@@ -4705,7 +4768,7 @@ STATUS("   finished drawing T_name") ;
       kROT_doall = ! kROT_doall ;
       xtkeys[kROT].st = (kROT_doall) ? (key_kROT_all) : (key_kROT_one) ;
       DrawKey(kROT) ;
-      return 0 ;
+      return 0;
    }
 
    if( rot_direct == 1 || rot_direct == -1 ){
@@ -4715,7 +4778,7 @@ STATUS("   finished drawing T_name") ;
    } else {
       fprintf(stderr,"\n*** illegal rot_direct in Ims_rot() ***\n") ;
       XBell(theDisp,100) ;
-      return 0 ;
+      return 0;
    }
 
    if ( rot_direct == 1 ) {                         /* clockwise rotation */
@@ -4729,7 +4792,7 @@ STATUS("   finished drawing T_name") ;
 
       if( ! kROT_doall ){
          Put_image(Im_Nr ) ;
-         return 0 ;
+         return 0;
       }
 
       if ( diff_im && Im_Nr < npoints ) { /* rotate reference array too */
@@ -4767,7 +4830,7 @@ STATUS("   finished drawing T_name") ;
 
       if( ! kROT_doall ){
          Put_image(Im_Nr ) ;
-         return 0 ;
+         return 0;
       }
 
       if ( diff_im && Im_Nr < npoints ) {  /* rotate reference array too */
@@ -4800,9 +4863,11 @@ STATUS("   finished drawing T_name") ;
 
    redraw_graph();
    DrawSubWindow();
+   return 0;
 }
 
 /* ----------------- */
+   int
    Smooth_line(ikey)
    int ikey;
 /* ----------------- */
@@ -4810,8 +4875,6 @@ STATUS("   finished drawing T_name") ;
    int  i, x, y, hx;
    char *cpt, str[100];
    float fval, fmax, f0, f1, f2;
-   XWindowAttributes  wat;
-   Window             ww;
 
    if ( txtW_ON ) {
       XBell(theDisp, 100); return(2);
@@ -4863,16 +4926,15 @@ STATUS("   finished drawing T_name") ;
 }
 
 /* ----------------- */
+   int
    get_fft_mag(fff)
    float *fff;
 /* ----------------- */
 {
-   int  i, k, x, y, hx;
+   int  i, k, x, y;
    char *cpt, str[100];
    float fval, fmax, fmin, f0, f1, f2, f3;
    int   max1;
-   XWindowAttributes  wat;
-   Window             ww;
 
    fmax = 100.;
    fmin = .01;
@@ -4936,6 +4998,7 @@ STATUS("   finished drawing T_name") ;
    return(0);
 }
 /* ------------ */
+   int
    FFT_action()
 /* ------------ */
 {
@@ -4949,7 +5012,7 @@ STATUS("   finished drawing T_name") ;
       Put_image(Im_Nr);
       DrawSubWindow();
       DrawTopWindow();
-      discard(KeyPressMask, &event);
+      discard(KeyPressMask, event);
    }
 
    if( FFT_pressed ) {                /* second press - back to normal graph */
@@ -5039,6 +5102,7 @@ STATUS("   finished drawing T_name") ;
             XMapWindow  (theDisp,  key[i].wid);  /* first press & no FFT */
       }
    }
+   return 0;
 }
 
 /* ------------------- */
@@ -5047,7 +5111,7 @@ STATUS("   finished drawing T_name") ;
    int ikey;
 /* ------------------- */
 {
-   int  i, j, k, ii, mm, nn, index;
+   int  i, j, k, ii, mm, nn;
    int  fun_modified;
 
    fun_modified = 0;
@@ -5252,8 +5316,7 @@ STATUS("   finished drawing T_name") ;
             }
             mm = act_undo + 1;
             act_undo += (z_imL - z_im1) * ar_size;
-	    undo_buf = AFREALL(undo_buf, struct _undo_buf,
-		              (act_undo+1)*sizeof(struct _undo_buf) ); 
+            undo_buf = realloc(undo_buf, (act_undo+1)*sizeof(struct _undo_buf));
             if ( undo_buf != NULL ) {
                for ( k=z_im1, nn=mm; k < z_imL; k++, nn+=ar_size) { 
                   for ( i=0, j=nn; i < ar_size; j++, i++) {
@@ -5274,8 +5337,8 @@ STATUS("   finished drawing T_name") ;
             if ( RWC_ideal != NULL  && RWC_ideal->len >= npoints ) {
                mm = ref_undo + 1;
                ref_undo += (z_imL - z_im1);
-	       undo_ref = AFREALL(undo_ref, struct _undo_buf,
-		              (ref_undo+1)*sizeof(struct _undo_buf) ); 
+               undo_ref =
+                      realloc(undo_ref, (ref_undo+1)*sizeof(struct _undo_buf));
                if ( undo_ref != NULL ) {
                   for ( k=z_im1, j=mm; k < z_imL; k++, j++) { 
                      undo_ref[j].im  = k;
@@ -5307,11 +5370,8 @@ STATUS("   finished drawing T_name") ;
          /* make inverse FFT */
          if ( (FT1_pressed == 0) && (FT_done == 1) ) {
             MRI_IMAGE **MM;
-            int   mm, min_im = 0, max1;
-            float ff;
+            int   min_im = 0, max1;
             register float f0, f1, f2, f3, f4, fpi2;
-            int Fnx = allim[0]->nx;
-            int Fny = allim[0]->ny;
 
             im_f = min(3, dec_indx(npoints)-1);  /* 2d index in formt[][] */
 
@@ -5406,12 +5466,11 @@ STATUS("   finished drawing T_name") ;
          else if ( FT1_pressed == 1 ) {
             nn = act_undo + 1;
             act_undo += ar_size;
-	    undo_buf = AFREALL(undo_buf, struct _undo_buf,
-		              (act_undo+1)*sizeof(struct _undo_buf) ); 
+            undo_buf = realloc(undo_buf, (act_undo+1)*sizeof(struct _undo_buf));
             if ( RWC_ideal != NULL  && RWC_ideal->len >= npoints ) {
                ref_undo += 1;
-	       undo_ref = AFREALL(undo_ref, struct _undo_buf,
-		              (ref_undo+1)*sizeof(struct _undo_buf) ); 
+               undo_ref =
+                      realloc(undo_ref, (ref_undo+1)*sizeof(struct _undo_buf));
                if ( undo_ref != NULL ) {
                   j = ref_undo;
                   undo_ref[j].im  = Im_Nr;
@@ -5450,12 +5509,6 @@ STATUS("   finished drawing T_name") ;
 
    }  /* end of ikey switch */
 
-#if 0
-   InvertKey(kFFT) ;  /* flash the FFT key */
-   DrawTopWindow() ;  /* update the labels */
-   InvertKey(kFFT) ;
-#endif
-
    if( fun_modified ){
       redraw_graph() ;
       fun_modified = 0;
@@ -5465,6 +5518,7 @@ STATUS("   finished drawing T_name") ;
 }
 
 /* ------------- */
+   int
    Im_diff(ikey)
    int ikey;
 /* ------------- */
@@ -5472,9 +5526,133 @@ STATUS("   finished drawing T_name") ;
    XUnmapWindow(theDisp,  key[kDIF].wid);
    XMapWindow  (theDisp,  key[kIR1].wid);
    XMapWindow  (theDisp,  key[kIR2].wid);
+   return 0;
+}
+
+/* ---------------- */
+   int SCA_action(ikey)
+   int ikey;
+/* ---------------- */
+{
+   int i;
+
+   if ( SCA_pressed == 0 ) SCA_pressed = 1;
+   else SCA_pressed = 0;
+
+   xtkeys[kSCA].st = key_kSCA[SCA_pressed];
+   DrawKey(kSCA);
+//   XMapWindow  (theDisp,  key[kSCA].wid);
+
+   if ( SCA_pressed ) {                /* first press */
+      xtkeys[kSCA].st = key_kSCA[SCA_pressed];
+      DrawKey(kSCA);
+      for(i=SCA_first_key; i <= SCA_last_key; i++)
+         XMapWindow  (theDisp,  key[i].wid);
+   }
+   else {
+      for(i=SCA_first_key; i <= SCA_last_key; i++)
+         XUnmapWindow(theDisp,  key[i].wid);  /* second press */
+   }
+#if 0
+         redraw_graph();   /* draw frame and text in it */
+         DrawSubWindow();
+         DrawTopWindow();
+         old_im = -1;
+         Put_image(0);                      /* put the first image */
+      }
+      else {
+         for(i=FFT_first_key + 1; i <= FFT_last_key; i++)
+            XMapWindow  (theDisp,  key[i].wid);  /* first press & no FFT */
+      }
+
+
+
+
+      FT1_pressed = 0;
+      FFT_pressed = 0 ;
+      FT_graph_on = 0;
+      xtkeys[kFFT].st = key_kFFT_FFT;
+      DrawKey(kFFT) ;                  /* restore key label */
+      FT2_stat = 0;
+      FT3_stat = FT_done;
+      xtkeys[kFT1].st = key_kFT1[FT1_pressed];
+      xtkeys[kFT2].st = key_kFT2[FT2_stat];
+      xtkeys[kFT3].st = key_kFT3[FT3_stat];
+      for(i=FFT_first_key; i <= FFT_last_key; i++)
+         XUnmapWindow(theDisp,  key[i].wid);  /* second press */
+   }
+   else {                            /* first press */
+      FFT_pressed  = 1;
+      xtkeys[kFFT].st = key_kFFT_noFT;
+      DrawKey(kFFT);
+
+
+   else {
+         redraw_graph();   /* draw frame and text in it */
+         DrawSubWindow();
+         DrawTopWindow();
+         old_im = -1;
+         Put_image(0);       
+   }
+#endif
+
+   return 0;
+}
+
+
+/* ------------------- */
+   int
+   SCA_selection(ikey)
+   int ikey ;
+/* ------------------- */
+{
+   int i, k, ix, iy;
+   float f0;
+
+   f0 = 0.;
+   switch( ikey ){
+      case kSC1:
+         for (ix=0;ix<matx;ix++) {
+            for (iy=0;iy<maty;iy++) {
+               f0 += val[ix][iy][Im_Nr];
+            }
+         }
+         f0 = f0 / (float) (matx*maty);
+         SCA_ref_val = f0;
+         printf("AJ REF im %d,  Box avr: %.1f\n", Im_Nr + 1, f0);
+
+      break;
+      case kSC2:
+         if ( SCA_ref_val < 0.000001 ) {
+            printf("!!! No reference image chosen yet (ref val: %g) !!!\n", SCA_ref_val);
+            return -1;
+         }
+         for (ix=0;ix<matx;ix++) {
+            for (iy=0;iy<maty;iy++) {
+               f0 += val[ix][iy][Im_Nr];
+            }
+         }
+         f0 = f0 / (float) (matx*maty);
+         if ( f0 < 0.000001 ) SCA_ratio = 1.;
+         else                 SCA_ratio = SCA_ref_val / f0;
+         printf("AJ IMAGE Box avr: %.1f, coef: %g\n", f0, SCA_ratio);
+
+         nowim = SAR(Im_Nr) ; k = SIZ(Im_Nr) ;
+         for (i=0; i < k; i++) nowim[i] = (int) ( ((float) nowim[i]) *SCA_ratio + .5 );
+
+         XClearWindow(theDisp, GWindow);
+         Put_image(Im_Nr);
+         redraw_graph();
+         DrawSubWindow();
+         DrawTopWindow();
+      break;
+   }
+
+   return 0;
 }
 
 /* ------------- */
+   int
    Im_Aver(ikey)
    int ikey;
 /* ------------- */
@@ -5482,9 +5660,11 @@ STATUS("   finished drawing T_name") ;
    avr_grp = fim_avr = 0;
    XMapWindow(theDisp,  key[kAV1].wid);
    XMapWindow(theDisp,  key[kAV2].wid);
+   return 0;
 }
 
 /* ------------- */
+   int
    Im_norm(ikey)
    int ikey;
 /* ------------- */
@@ -5498,18 +5678,22 @@ STATUS("   finished drawing T_name") ;
    Put_image(Im_Nr);
    redraw_graph();
    DrawSubWindow();
+   return 0;
 }
 
 /* ------------ */
+   int
    Av_im1(ikey)
    int ikey;
 /* ------------ */  /* set first image for average one */
 {
    Av_1 = Im_Nr;
    av1_done = 1;
+   return 0;
 }
 
 /* ------------ */
+   int
    Av_im2(ikey)
    int ikey;
 /* ------------ */  /* set second image for average one */
@@ -5541,18 +5725,22 @@ STATUS("   finished drawing T_name") ;
    Put_image(Im_Nr);
    redraw_graph();
    DrawSubWindow();
+   return 0;
 }
 
 /* ------------- */
+   int
    Ref_im1(ikey)
    int ikey;
 /* ------------- */  /* set first image for average reference one */
 {
    Im_1 = Im_Nr;
    im1_done = 1;
+   return 0;
 }
 
 /* ------------- */
+   int
    Ref_im2(ikey)
    int ikey;
 /* -------------  set second image for average and make refer im for diff */
@@ -5587,32 +5775,36 @@ STATUS("   finished drawing T_name") ;
 /*
    DrawTopWindow();
 */
+   return 0;
 }
 
 /* ------------- */
+   int
    Im_help(ikey)
    int ikey;
 /* ------------- */
 {
    The_Help(0);
+   return 0;
 }
 
 /* ------------ */
+   void
    draw_frame()
 /* ------------ */
 {
    register int i, yyy;
                                /* draw frame */
    line_color("black");
-   for (i=0;i<=mat;i++) {
+   for (i=0; i <= maty; i++) {
      yyy = mdy1+i*gy;
-     if ( yyy > RWC_GY_MAX + GB_DLY ) yyy = RWC_GY_MAX + GB_DLY;
+     if ( yyy > gy_max + GB_DLY ) yyy = gy_max + GB_DLY;
      plotx(mdx1       , yyy, 0);
-     plotx(mdx1+mat*gx, yyy, 1);
+     plotx(mdx1+matx*gx, yyy, 1);
    }
-   for (i=0;i<=mat;i++) {	
+   for (i=0;i<=matx;i++) {	
      plotx(mdx1+i*gx,mdy1       , 0);
-     plotx(mdx1+i*gx,mdy1+mat*gy, 1);
+     plotx(mdx1+i*gx,mdy1+maty*gy, 1);
    }
 }
 
@@ -5620,10 +5812,8 @@ STATUS("   finished drawing T_name") ;
    void graphic_store()
 /* --------------------- */
 {
-   if( use_pixmap ){
-      XSetWindowBackgroundPixmap(theDisp, GWindow, pxWind);
-      XClearWindow(theDisp, GWindow);
-   }
+   XSetWindowBackgroundPixmap(theDisp, GWindow, pxWind);
+   XClearWindow(theDisp, GWindow);
    XFlush(theDisp);
 }
 
@@ -5632,11 +5822,11 @@ STATUS("   finished drawing T_name") ;
    int x, y, mod;               /* All into the pxWind.                     */
 /* ------------------- */
 {
-   int	iy = iHIGH - y;
+   int	iy = idY - y;
 
    if(mod == 0) { x00 = x; y00 = iy; }
    if(mod == 1) {
-     XDrawLine(theDisp, GRWIND, theGC, x00, y00, x, iy);
+     XDrawLine(theDisp, pxWind, theGC, x00, y00, x, iy);
      x00 = x;	y00 = iy;
    }
 }
@@ -5647,8 +5837,8 @@ STATUS("   finished drawing T_name") ;
    char *str;
 /* --------------------- */
 {
-   int	iy = iHIGH - y, n = strlen(str);;
-   XDrawString(theDisp, GRWIND, txtGC, x, iy, str, n);
+   int	iy = idY - y, n = strlen(str);;
+   XDrawString(theDisp, pxWind, txtGC, x, iy, str, n);
 }
 
 /* -------------------------- */ /* Plot text in any window w at x, y */
@@ -5680,14 +5870,16 @@ STATUS("   finished drawing T_name") ;
 }
 
 /* ----------------------- */	/* erase to background color */
+   void
    erase_graph()        /*   */
 /* ----------------------- */
 {
    line_color("white");
-   XFillRectangle(theDisp, GRWIND, theGC, 0, 0, iWIDE, iHIGH);
+   XFillRectangle(theDisp, pxWind, theGC, 0, 0, idX, idY);
 }
 
 /* ----------------------- */	/* redraw entire graph */
+   void
    redraw_graph()
 /* ----------------------- */
 {
@@ -5697,7 +5889,7 @@ STATUS("   finished drawing T_name") ;
    plot_line();
                                       /* draw min & max values in GWindow */
    sprintf(strp, "%05d", pmax[xc][yc]);
-   plx_txt(xspace, GB_DLY + RWC_GY_MAX - mytxt, strp);
+   plx_txt(xspace, GB_DLY + gy_max - mytxt, strp);
    sprintf(strp, "%05d", pmin[xc][yc]);
    plx_txt(xspace, GB_DLY + 5, strp);
 
@@ -5734,6 +5926,7 @@ STATUS("   finished drawing T_name") ;
 }
 
 /* ----------------------- */
+   void
    FatalError (identifier)
    char *identifier;
 /* ----------------------- */
@@ -5743,52 +5936,52 @@ STATUS("   finished drawing T_name") ;
 }
 
 /* ----------------------------------- */
+   void
    CreateGraphWindow(argv, argc)
    int  argc;
    char *argv[];
 /* ----------------------------------- */
 {
-   XClassHint		classKRH;
+   XClassHint		class;
    XSetWindowAttributes attr;
    unsigned int		attrmask;
    XSizeHints		hints;
    int 			x = 0, y = 0;
 
 
-   classKRH.res_name  = "Graph";
-   classKRH.res_class = "Graph";
+   class.res_name  = "Graph";
+   class.res_class = "Graph";
 
-   hints.width = iWIDE;         hints.height = iHIGH;
-   hints.max_width = iWIDE;     hints.max_height = iHIGH;
+   hints.width = idX;         hints.height = idY;
+   hints.max_width = idX;     hints.max_height = idY;
    hints.flags = PMaxSize;
 
-   hints.min_width = iWIDE;     hints.min_height = iHIGH;
+   hints.min_width = idX;     hints.min_height = idY;
    hints.flags |= PMinSize;
 
    attr.background_pixel = bcol;
    attr.border_pixel     = fcol;
    attrmask = CWBackPixel | CWBorderPixel;
 
-   GWindow = XCreateWindow(theDisp, rootW, x, y, iWIDE, iHIGH, 2,
+   GWindow = XCreateWindow(theDisp, rootW, x, y, idX, idY, 2,
 	CopyFromParent, CopyFromParent, CopyFromParent, attrmask, &attr);
 
    if (!GWindow)
       FatalError("Can't open window (are X11 windows running ?). AJ");
 
-   XSetClassHint(theDisp, GWindow, &classKRH);
+   XSetClassHint(theDisp, GWindow, &class);
    XSetStandardProperties(theDisp, GWindow, G_name, I_name, None,
 			  argv, argc, &hints);
 }
 
 /* ---------------------------- */
+   void
    Allow_smaller_gr(argc, argv)
    int  argc;
    char *argv[];
 /* ---------------------------- */
 {
    XSizeHints           hints;
-
-STATUS("ENTER Allow_smaller_im") ;
 
    hints.min_height = 150;
    hints.min_width = 200;
@@ -5803,6 +5996,7 @@ STATUS("ENTER Allow_smaller_im") ;
 }
 
 /* -------------- */     /* discard events x (of ev) to stop faster */
+   void
    discard(x, ev)
    int x;
    XEvent *ev;
@@ -5814,6 +6008,7 @@ STATUS("ENTER Allow_smaller_im") ;
 }
 
 /* ------------------------ */
+   void
    discard_Key(keyW, x, ev)
    int    x;
    XEvent *ev;
@@ -5824,6 +6019,7 @@ STATUS("ENTER Allow_smaller_im") ;
 }
 
 /* -------------------- */
+   void
    Track_Cursor(mx, my)
    int mx, my;
 /* -------------------- */
@@ -5846,6 +6042,7 @@ STATUS("ENTER Allow_smaller_im") ;
    }
 }
 /* -------------- */
+   void
    Vpointer(x, y)
    int x, y;
 /* -------------- */
@@ -5861,6 +6058,7 @@ STATUS("ENTER Allow_smaller_im") ;
 }
 
 /* -------------- */
+   void
    Cpointer(x, y )
    int x, y;
 /* -------------- */
@@ -5878,6 +6076,7 @@ STATUS("ENTER Allow_smaller_im") ;
 }
 
 /* -------------- */
+   void
    Cpointer_PIXWIN(x, y,color )
    int x, y;
    char * color ;
@@ -5892,10 +6091,11 @@ STATUS("ENTER Allow_smaller_im") ;
    }
 
    line_color(color);
-   XDrawPoints(theDisp, GRWIND, theGC, a, 12, CoordModeOrigin);
+   XDrawPoints(theDisp, pxWind, theGC, a, 12, CoordModeOrigin);
 }
 
 /* ---------------- */ /* tracks continuousely v pointer and sets image nr */
+   void
    Track_Vpointer()
 /* ---------------- */
 {
@@ -6032,8 +6232,6 @@ STATUS("ENTER Allow_smaller_im") ;
 /* --------------------- */
 {
    int  i, x, y;
-   XWindowAttributes  wat;
-   Window             ww;
 
    if ( txtW_ON ) {
       XBell(theDisp, 100); return(2);
@@ -6061,21 +6259,20 @@ try_again:
       }
       for (i=0; i < npoints; i++) {
          sprintf(strF, formt[0][im_f], strp, i+1);
-
          /* we have already decided whether to swap */
-         if ( RCR_swap && allim[i]->kind == MRI_short ) {
+         if ( swap_bytes && allim[i]->kind == MRI_short ) {
            swap_2(MRI_SHORT_PTR(allim[i]), allim[i]->nx*allim[i]->ny*2);
          }
-         else if ( RCR_swap && allim[i]->kind == MRI_float ) {
+         else if ( swap_bytes && allim[i]->kind == MRI_float ) {
            swap_4(MRI_FLOAT_PTR(allim[i]), allim[i]->nx*allim[i]->ny*4);
          }
 
          mri_write(strF, allim[i]) ;
 
-         if ( RCR_swap && allim[i]->kind == MRI_short ) {
+         if ( swap_bytes && allim[i]->kind == MRI_short ) {
            swap_2(MRI_SHORT_PTR(allim[i]), allim[i]->nx*allim[i]->ny*2);
          }
-         else if ( RCR_swap && allim[i]->kind == MRI_float ) {
+         else if ( swap_bytes && allim[i]->kind == MRI_float ) {
            swap_4(MRI_FLOAT_PTR(allim[i]), allim[i]->nx*allim[i]->ny*4);
          }
       }
@@ -6090,8 +6287,6 @@ try_again:
 /* -------------------- */
 {
    int  i, x, y;
-   XWindowAttributes  wat;
-   Window             ww;
 
    if ( txtW_ON ) {
       XBell(theDisp, 100); return(2);
@@ -6119,9 +6314,7 @@ try_again:
    int save_act_im()
 /* ----------------- */
 {
-   int  i, x, y;
-   XWindowAttributes  wat;
-   Window             ww;
+   int  x, y;
 
    if ( txtW_ON ) {
       XBell(theDisp, 100); return(2);
@@ -6149,19 +6342,19 @@ try_again:
    if ( strp[0] != ASC_NUL ) {
       /* we have already decided on swapping     27 Aug 2004 [rickr] */
 
-      if ( RCR_swap && im_tmp_ar->kind == MRI_short ) {
+      if ( swap_bytes && im_tmp_ar->kind == MRI_short ) {
         swap_2(MRI_SHORT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*2);
       }
-      else if ( RCR_swap && im_tmp_ar->kind == MRI_float ) {
+      else if ( swap_bytes && im_tmp_ar->kind == MRI_float ) {
         swap_4(MRI_FLOAT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*4);
       }
 
       mri_write( strp , im_tmp_ar ) ;
 
-      if ( RCR_swap && im_tmp_ar->kind == MRI_short ) {
+      if ( swap_bytes && im_tmp_ar->kind == MRI_short ) {
         swap_2(MRI_SHORT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*2);
       }
-      else if ( RCR_swap && im_tmp_ar->kind == MRI_float ) {
+      else if ( swap_bytes && im_tmp_ar->kind == MRI_float ) {
         swap_4(MRI_FLOAT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*4);
       }
    }
@@ -6172,8 +6365,8 @@ try_again:
 
 /* popup window which take a file name of max length str_l */
 /* --------------------------------------- return name of file in name */
-   int take_file_name(theDisp, topW, CMap, txtGC, finf, x, y, name, str_l,
-                      text, check)
+   void
+   take_file_name(theDisp, topW, CMap, txtGC, finf, x, y, name, str_l, text, check)
    Display     *theDisp;
    Window      topW;                    /* top window of this popup one */
    Colormap    CMap;
@@ -6192,8 +6385,8 @@ try_again:
 
    XEvent ev;
    XColor             any_col, rgb_col;
-   unsigned long      Border, back1, back2;
-   Window             txtWindow1, txtWindow2, ww;
+   unsigned long      Border, back1, back2; // long is OK here AJJ
+   Window             txtWindow1, txtWindow2;
    XSizeHints         hints;
 
    eee[0] = eee[1] = 0;
@@ -6381,9 +6574,6 @@ try_again:
 
 #define MAX_NREF (MAX_NUMORT+MAX_POLORT+99)
 
-#if 0
-#define FLAG_PIX (31+29*64)
-#endif
 
 void RWC_setup_fims( imflag )
    int imflag ;
@@ -6401,16 +6591,12 @@ void RWC_setup_fims( imflag )
    static short *     thrar = NULL ;
    static short       imthr ;
 
-   MRI_IMAGE * flim=NULL ;
-   float     * flar=NULL ;
-   double      scl , dkim , pval ;
+   MRI_IMAGE * flim = NULL;
+   float     * flar = NULL;
+   double      scl = 0., dkim , pval ;
    int         make_thrim , good ;
 
    static MRI_IMARR * DFILT_rim  = NULL ;
-
-#ifdef OV_DEBUG1
-   fprintf(stderr,"initializing fim calculations:\n") ; fflush(stderr);
-#endif
 
    /*** check RWC_ideal for legality ***/
 
@@ -6450,11 +6636,9 @@ void RWC_setup_fims( imflag )
 
    nref = RWC_numort + RWC_polort + 2 ;
 
-#if 0
    if( DFILT_code == DFILT_TIME ){
       nref += DFILT_NREF ;     /* number of refs from DFILT      */
    }
-#endif
 
    if( LSQ_ref[0] == NULL ){
       for( ii=0 ; ii < MAX_TOTAL_REF ; ii++ )
@@ -6499,66 +6683,10 @@ void RWC_setup_fims( imflag )
 
 /*** find first "good" image and initialize DFILT, if needed ***/
 
-#if 0
-   if( DFILT_code == DFILT_TIME ){
-      int good ;
-      int ii , jj , nx , ny , joff ;
-      MRI_IMAGE * xim , * yim , * tim , * bim , * flim ;
-      float     * xar , * yar , * tar ;
-      float  hnx , hny , fac ;
-
-      for( kim=0 ; kim < npoints ; kim++ ){
-         good = fabs(id[kim]) < 33333.0 ;            /* check ideal and orts for OK */
-         for( ii=0 ; ii < RWC_numort ; ii++ )
-            good = good && ( fabs(RWC_ort[ii]->ts[kim]) < 33333.0 ) ;
-         if( good ) break ;
-      }
-      if( kim == npoints ){
-         fprintf(stderr,"*** NO good images in FIM time series!? ***\a\n") ;
-         exit(-1) ;
-      }
-
-      flim     = mri_to_float( allim[kim] ) ;  /* first good image */
-      flim->dx = flim->dy = 1.0 ;
-      nx       = flim->nx ;  hnx = 0.5 * nx ;
-      ny       = flim->ny ;  hny = 0.5 * ny ;
-      fac      = 1.0 / MAX(hnx,hny) ;
-
-      bim = mri_filt_fft( flim , DFILT_SIGMA , 0 , 0 , FILT_FFT_WRAPAROUND ) ;  /* smooth */
-      xim = mri_filt_fft( flim , DFILT_SIGMA , 1 , 0 , FILT_FFT_WRAPAROUND ) ;  /* and d/dx */
-      yim = mri_filt_fft( flim , DFILT_SIGMA , 0 , 1 , FILT_FFT_WRAPAROUND ) ;  /* and d/dy */
-
-      tim = mri_new( nx , ny , MRI_float ) ;    /* x * d/dy - y * d/dx */
-      tar = mri_data_pointer( tim ) ;           /* which is d/d(theta) */
-      xar = mri_data_pointer( xim ) ;
-      yar = mri_data_pointer( yim ) ;
-      for( jj=0 ; jj < ny ; jj++ ){
-         joff = jj * nx ;
-         for( ii=0 ; ii < nx ; ii++ ){
-            tar[ii+joff] = fac * (  (ii-hnx) * yar[ii+joff]
-                                  - (jj-hny) * xar[ii+joff] ) ;
-         }
-      }
-
-      INIT_IMARR ( DFILT_rim ) ;
-      ADDTO_IMARR( DFILT_rim , bim ) ;  /* will NOT be an extra ref */
-      ADDTO_IMARR( DFILT_rim , xim ) ;
-      ADDTO_IMARR( DFILT_rim , yim ) ;
-      ADDTO_IMARR( DFILT_rim , tim ) ;
-
-      mri_free( flim ) ;
-   }
-#endif
-
 /*** put images thru the fim wringer ***/
 
    for( kim=0 ; kim < npoints ; kim++ ){
-
-#ifdef OV_DEBUG1
-   fprintf(stderr,"  at kim=%d, reference=%11.4g\n",kim,id[kim]) ;
-#endif
-
-      good = fabs(id[kim]) < 33333.0 ;            /* check ideal and orts for OK */
+      good = fabs(id[kim]) < 33333.0 ;        /* check ideal and orts for OK */
       for( ii=0 ; ii < RWC_numort ; ii++ )
          good = good && ( fabs(RWC_ort[ii]->ts[kim]) < 33333.0 ) ;
 
@@ -6573,27 +6701,6 @@ void RWC_setup_fims( imflag )
 
       for( ii=0 ; ii < RWC_numort ; ii++ )
          current_refs[ii+RWC_polort+1] = RWC_ort[ii]->ts[kim] ;
-
-#if 0
-      if( DFILT_code == DFILT_TIME ){  /* fit current image to ref images */
-         MRI_IMAGE * blim ;
-         float * fit ;
-         int ii , ibase ;
-         float val ;
-
-         blim = mri_filt_fft( allim[kim] , DFILT_SIGMA , 0 , 0 , FILT_FFT_WRAPAROUND ) ;
-         fit  = mri_lsqfit( blim , DFILT_rim , blim ) ;
-         mri_free( blim ) ;
-
-         ibase = RWC_numort + RWC_polort + 1 ;
-
-         for( ii=0 ; ii < DFILT_NREF ; ii++ ){  /* load big fits as refs, except fit[0] */
-            val = fit[ii+1] ;
-            current_refs[ibase+ii] = (fabs(val) > DFILT_THRESH) ? val : 0.0 ;
-         }
-         free(fit) ;
-      }
-#endif
 
       current_refs[nref-1] = id[kim] ;       /* load ideal as last ref */
 
@@ -6630,10 +6737,6 @@ void RWC_setup_fims( imflag )
       mri_free( flim ) ;                             /* old junk */
    }
 
-#ifdef FLAG_PIX
-   fprintf(stderr,"imthr = %d  thrar[flag] = %d\n",imthr,thrar[FLAG_PIX]);
-#endif
-
    /*** compute and threshold on correlation coefficient ***/
 
    get_pcor_thresh_coef( RWC_refs , RWC_voxcor ,
@@ -6650,14 +6753,6 @@ void RWC_setup_fims( imflag )
    }
    get_lsqfit( RWC_refs , RWC_voxcor , LSQ_fit ) ;
 
-#ifdef FLAG_PIX
-   fprintf(stderr,"pc[flag] = %f  alp[flag] = %f\n",pc[FLAG_PIX],alp[FLAG_PIX]) ;
-#endif
-
-#ifdef OV_DEBUG1
-   THR_DUMP(thr,"for overfim") ;
-#endif
-
    if( RWC_imover != NULL ){  /* toss old overlay, if any */
       free(RWC_imover) ;
       RWC_imover = NULL ;
@@ -6672,10 +6767,6 @@ void RWC_setup_fims( imflag )
                                : MAX(alp_max,-alp[ii]) ;
       }
    }
-
-#ifdef FLAG_PIX
-   fprintf(stderr,"alp_max = %f\n",alp_max) ;
-#endif
 
    if( alp_max > 0.0 ){
 
@@ -6710,10 +6801,6 @@ void RWC_setup_fims( imflag )
             }
          } /* end if nowim && pc */
      } /* end for ii (voxel loop) */
-
-#ifdef FLAG_PIX
-   fprintf(stderr,"imover[flag] = %d]\n",RWC_imover[FLAG_PIX]) ;
-#endif
 
      pc[1]  = 1.0     ; pc[2]  = -1.0 ;
      alp[1] = alp_max ; alp[2] = -alp_max ;
@@ -6763,7 +6850,7 @@ int FIM_action(ikey)
 
       if( RWC_do_overfim && FIM_modified ){
 #ifdef USE_MCW
-	 mcw_count++ ; Put_image(-1) ;  /* show the logo */
+         mcw_count++ ; Put_image(-1) ;  /* show the logo */
 #endif
          InvertKey(kFIM) ;
          XFlush(theDisp) ;
@@ -6782,7 +6869,7 @@ int FIM_action(ikey)
      xtkeys[kFIM].st = key_kFIM_GO ;
      DrawKey(kFIM) ;                  /* set key label to "GO" */
    }
-
+   return 0;
 }
 
 /****************************************************************************/
@@ -6881,9 +6968,9 @@ int FIM_selection(ikey)
          if( rot_direct == 1 ){  /* right button => change key */
 
             if( (rot_state & (ShiftMask | ControlMask)) == 0 ){
-               kFI3_status = (kFI3_status+1) % (kFI3_NUM) ;            /* forward */
+               kFI3_status = (kFI3_status+1) % (kFI3_NUM) ;       /* forward */
             } else {
-               kFI3_status = (kFI3_status-1+kFI3_NUM) % (kFI3_NUM) ;   /* backward */
+               kFI3_status = (kFI3_status-1+kFI3_NUM) % (kFI3_NUM) ;/*backward*/
             }
             xtkeys[kFI3].st = key_kFI3[kFI3_status] ;
             DrawKey(kFI3) ;
@@ -7044,12 +7131,15 @@ int FIM_selection(ikey)
             /*** write current reference to a file ***/
 
             case 6:{
-               float idmax , idmin , val , yscal , yoff ;
+               float val , yscal , yoff ;
                float *id ;
                int ii , ival ;
                FILE * fp ;
 
-               if( !RWC_do_overfim || RWC_ideal == NULL ){ XBell(theDisp,100) ; return 0; }
+               if( !RWC_do_overfim || RWC_ideal == NULL ){ 
+                  XBell(theDisp,100) ;
+                  return 0;
+               }
 
                /*** get file name ***/
 
@@ -7089,7 +7179,7 @@ int FIM_selection(ikey)
                  return 0;
 
                yscal = 10000.0 / (idmax-idmin) ;
-	       yoff  = idmin ;
+               yoff  = idmin ;
 #endif
                /*** write plot ***/
 
@@ -7129,7 +7219,6 @@ int FIM_selection(ikey)
             /*** make current ref file an ort also ***/
 
             case 8:{
-               int ii ;
 
                if( RWC_ideal == NULL || RWC_numort == MAX_NUMORT ){
                   XBell(theDisp,100) ; return 0;
@@ -7165,28 +7254,10 @@ int FIM_selection(ikey)
             }
             break ; /* end of status=9 */
 
-#if 0
-            /*** modify DFILT_code ***/
-
-            case 10:{
-               int old_code = DFILT_code ;
-
-               if( RWC_ideal == NULL || !RWC_do_overfim ){
-                  XBell(theDisp,100) ; return 0;
-               }
-
-               if( rot_direct   == -1  ) DFILT_code = DFILT_NONE ;
-               if( rot_direct   ==  0  ) DFILT_code = DFILT_TIME ;
-
-               if( old_code == DFILT_code ){ XBell(theDisp,100) ; return 0; }
-            }
-            break ;  /* end of status=10 */
-#endif
-
             /*** modify LSQ_code ***/
 
             case 10:{
-               int old_code = LSQ_code , old_imed = LSQ_imedit[LSQ_code] ;
+               int old_imed = LSQ_imedit[LSQ_code] ;
 
                if( RWC_ideal == NULL || !RWC_do_overfim || LSQ_fitim == NULL ){
                   XBell(theDisp,100) ; return 0;
@@ -7276,7 +7347,7 @@ void add_extra_image(newim)
 {
    if( N_im >= dim_allim ){
       dim_allim += INC_ALLIM ;
-      allim = AFREALL( allim, MRI_IMAGE*, sizeof(MRI_IMAGE *) * dim_allim ); 
+      allim      = realloc( allim , sizeof(MRI_IMAGE *) * dim_allim ) ;
       if( allim == NULL ){
          fprintf(stderr,"\n*** cannot allocate space for new image!\a\n") ;
          exit(-1) ;
@@ -7321,10 +7392,10 @@ void add_extra_image(newim)
 
    /* we have already decided on swapping     27 Aug 2004 [rickr] */
 
-   if ( RCR_swap && im->kind == MRI_short ) {
+   if ( swap_bytes && im->kind == MRI_short ) {
      swap_2(MRI_SHORT_PTR(im), im->nx*im->ny*2);
    }
-   else if ( RCR_swap && im->kind == MRI_float ) {
+   else if ( swap_bytes && im->kind == MRI_float ) {
      swap_4(MRI_FLOAT_PTR(im), im->nx*im->ny*4);
    }
 
@@ -7332,7 +7403,7 @@ void add_extra_image(newim)
 
    if( (im->nx != im->ny) ||
        ( (im->nx != EPX1) && (im->nx != EPX2) &&
-         (im->nx != EPX3) && (im->nx != EPX4) ) ){
+         (im->nx != EPX3) && (im->nx != EPX4) && (im->nx != EPX5) ) ){
 
       fprintf(stderr,"\n*** input file %s has illegal dimensions!\n",strp) ;
       mri_free( im ) ;
@@ -7362,16 +7433,6 @@ void RWC_init_fim_colors()
    XColor test_color ;
    float xx ;
 
-/*
-#define COLOR_DEBUG
-*/
-
-#ifdef COLOR_DEBUG
-#  define MESG(str) fprintf(stderr,"read string %s; %s\n",xdef,str)
-#else
-#  define MESG(str)
-#endif
-
    if( FIM_opt_colors > 0 ){
       ncol = FIM_opt_colors ;
    } else {
@@ -7380,7 +7441,6 @@ void RWC_init_fim_colors()
          ii = strtol( xdef , NULL , 10 ) ;
          if( ii > 0 && ii <= MAX_FIM_COLORS ){
             ncol = ii ;
-            MESG("for ncol") ;
          } else {
             fprintf(stderr,
                     "\n*** illegal fim_colors in X11 database: %s\n",xdef) ;
@@ -7402,7 +7462,6 @@ void RWC_init_fim_colors()
          xdef = XGetDefault(theDisp,Xdef_Name,stst) ;
       }
       if( xdef != NULL ){
-	 MESG("for pos color") ;
 	 if( check_color(xdef) ) FIM_poscol[ii-1] = xdef ;
 	 else
             fprintf(stderr,"\n*** illegal FIM color %s replaced by %s\n",
@@ -7416,7 +7475,6 @@ void RWC_init_fim_colors()
          xdef = XGetDefault(theDisp,Xdef_Name,stst) ;
       }
       if( xdef != NULL ){
-	 MESG("for neg color") ;
 	 if( check_color(xdef) ) FIM_negcol[ii-1] = xdef ;
 	 else
             fprintf(stderr,"\n*** illegal FIM color %s replaced by %s\n",
@@ -7430,7 +7488,6 @@ void RWC_init_fim_colors()
          sprintf( stst , "fim_thr_%d" , ii ) ;
          xdef = XGetDefault(theDisp,Xdef_Name,stst) ;
          if( xdef != NULL ){
-            MESG("for thresh") ;
             xx = strtod( xdef , NULL ) ;
             if( xx > 0.0 && xx < 1.0 ){
                RWC_fim_thresh[ncol-ii] = xx ;
@@ -7470,10 +7527,6 @@ void RWC_init_fim_colors()
       gg = test_color.green ;
       bb = test_color.blue ;
 
-#ifdef COLOR_DEBUG
-      fprintf(stderr,"FIM %d: pos color = %d %d %d\n" , ii,rr,gg,bb ) ;
-#endif
-
       add_extra_color( rr,gg,bb , NUM_STD_COLORS + ii + 1) ;
       RWC_fim_colors_pos[ii] =  -(NUM_STD_COLORS + ii + 1) ;
 
@@ -7481,11 +7534,6 @@ void RWC_init_fim_colors()
       rr = test_color.red ;
       gg = test_color.green ;
       bb = test_color.blue ;
-
-#ifdef COLOR_DEBUG
-      fprintf(stderr,"      : neg color = %d %d %d\n" , rr,gg,bb ) ;
-      fprintf(stderr,"      : thresh    = %f\n"       , RWC_fim_thresh[ii] ) ;
-#endif
 
       add_extra_color( rr,gg,bb , NUM_STD_COLORS + ncol + ii + 1) ;
       RWC_fim_colors_neg[ii] =  -(NUM_STD_COLORS + ncol + ii + 1) ;
@@ -7507,8 +7555,8 @@ void add_extra_color(r, g, b, ind)
 {
    XColor any_col;
    int    ic ;
-   char *cH=NULL;
-   byte  *a8;
+   char *cH;
+   char  *a8;
    short *a16;
 
    ic = ind - NUM_STD_COLORS ;
@@ -7521,24 +7569,18 @@ void add_extra_color(r, g, b, ind)
    any_col.flags = DoRed | DoGreen | DoBlue;
 
    if ( AJ_PseudoColor ) {
-#ifdef RWCOX_LINUX
-      if( !XAllocColor(theDisp, CMap, &any_col) ){
-         fprintf(stderr,"cannot XAllocColor in add_extra_color(). RWC\n") ;
-         return ;
-   }
-#else
       if( !XAllocColor(theDisp, CMap, &any_col) )
          FatalError ("XAllocColor problem in add_extra_color(). RWC");
-#endif  /* RWCOX_LINUX */
-
       extra_color_x11[ic-1] = any_col.pixel ;
    }
    else {
       switch( bperpix ) {
          case 32:
+         default:
             cH = (char *) &AJ_RGB[ind + NCOLORS - 1];
+         break;
          case 24:
-            a8 = (byte *) AJ_RGB;
+            a8 = (char *) AJ_RGB;
             cH = a8 + (ind + NCOLORS - 1) * 3;
          break;
          case 16:
@@ -7546,7 +7588,7 @@ void add_extra_color(r, g, b, ind)
             cH = (char *) &a16[ind + NCOLORS - 1];
          break;
          case 8:
-            a8 = (byte *) AJ_RGB;
+            a8 = (char *) AJ_RGB;
             cH = (char *) &a8[ind + NCOLORS - 1];
          break;
       }
@@ -7609,7 +7651,8 @@ int check_color( cname )
 }
 
 /* ----------------------- */
-   int swap_2(arR, nr)
+   void
+   swap_2(arR, nr)
    char *arR;
    int nr;
 /* ----------------------- */
@@ -7625,7 +7668,8 @@ int check_color( cname )
 }
 
 /* ----------------------- */
-   int swap_4(arR, nr)
+   void
+   swap_4(arR, nr)
    char *arR;
    int nr;
 /* ----------------------- */
@@ -7644,7 +7688,7 @@ int check_color( cname )
 }
 
 /* ----------------------------------------- */
-   int
+   void
    AJ_StoreColors(Disp, cmap, mc, nc, color)
    Display   *Disp;
    Colormap  cmap;
@@ -7672,14 +7716,14 @@ int check_color( cname )
 }
 
 /* --------------------------------- create machine packed RGB values */
-   int
+   void
    Make_RGB_lookup(in, out, nc)
    AJ_rgb_str *in;
    char *out;
    int nc;
 /* --------------------------------- */
 {
-   unsigned long r, g, b, rmask, gmask, bmask;
+   unsigned int  r, g, b, rmask, gmask, bmask;
    int           rshift, gshift, bshift, i, *xcol;
    byte          *ip;
 
@@ -7753,31 +7797,32 @@ int check_color( cname )
 }
 
 /* ---------------------------------- */
-   int
+   void
    AJ_make_STDcol(mc, nc)
    struct S_16_c  *mc;
    int    nc;
 /* ---------------------------------- */
 {
    int i;
-   char *cH=NULL;
-   byte  *a8;
+   char *cH;
+   unsigned char *a8;
    short *a16;
  
    switch( bperpix ) {
       case 32:
+      default:
          cH = (char *) &AJ_RGB[NCOLORS];
       break;
       case 24:
-         a8 = (byte *) AJ_RGB;
-         cH = a8 + NCOLORS * 3;
+         a8 = (unsigned char *) AJ_RGB;
+         cH = (char *) a8 + NCOLORS * 3;
       break;
       case 16:
          a16 = (short *) AJ_RGB;
          cH = (char *) &a16[NCOLORS];
       break;
       case 8:
-         a8 = (byte *) AJ_RGB;
+         a8 = (unsigned char *) AJ_RGB;
          cH = (char *) &a8[NCOLORS];
       break;
    }
@@ -7817,10 +7862,10 @@ int check_color( cname )
 --------------------------------------------------------------------------*/
 /* ------------------------- */
    static int
-   highbit(unsigned long ul)
+   highbit(unsigned int ul)
 /* ------------------------- */
 {
-  int i;  unsigned long hb;
+  int i;  unsigned int hb;
 
   hb = 0x80;  hb = hb << 24;   /* hb = 0x80000000UL */
   for (i=31; ((ul & hb) == 0) && i>=0;  i--, ul<<=1);

@@ -33,6 +33,10 @@ typedef struct {
 #undef  INCOR_methcode
 #define INCOR_methcode(vp) ( ((vp) != NULL) ? ((INCOR_generic *)vp)->meth : 0 )
 
+#undef  MYatanh
+#define MYatanh(x) ( ((x)<-0.9993293) ? -4.0                \
+                    :((x)>+0.9993293) ? +4.0 : atanh(x) )
+
 /****************************************************************************/
 /*** Histogram-based measurements of dependence between two float arrays. ***/
 /****************************************************************************/
@@ -871,7 +875,7 @@ INCOR_pearson * INCOR_create_incomplete_pearson(void)
 
 float INCOR_incomplete_pearson( INCOR_pearson *inpear )
 {
-   double xv , yv , xy , swi ;
+   double xv , yv , xy , swi , val ;
 
    if( inpear->sw <= 0.0 ) return 0.0f ;
 
@@ -882,7 +886,7 @@ float INCOR_incomplete_pearson( INCOR_pearson *inpear )
    xy = inpear->sxy - inpear->sx * inpear->sy * swi ;
 
    if( xv <= 0.0 || yv <= 0.0 ) return 0.0f ;
-   return (float)(xy/sqrt(xv*yv)) ;
+   val = (xy/sqrt(xv*yv)) ; val = MYatanh(val) ; return (float)val ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -969,7 +973,7 @@ INCOR_pearclp * INCOR_create_incomplete_pearclp(void)
 
 float INCOR_incomplete_pearclp( INCOR_pearclp *inpear )
 {
-   double xv , yv , xy , swi ;
+   double xv , yv , xy , swi , val ;
 
    if( inpear->sw <= 0.0 ) return 0.0f ;
 
@@ -980,7 +984,7 @@ float INCOR_incomplete_pearclp( INCOR_pearclp *inpear )
    xy = inpear->sxy - inpear->sx * inpear->sy * swi ;
 
    if( xv <= 0.0 || yv <= 0.0 ) return 0.0f ;
-   return (float)(xy/sqrt(xv*yv)) ;
+   val = (xy/sqrt(xv*yv)) ; val = MYatanh(val) ; return (float)val ;
 }
 
 /*============================================================================*/

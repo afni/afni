@@ -192,7 +192,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *bset , *sset , *oset ;
    MRI_IMAGE *bim , *wbim , *sim , *oim ;
    IndexWarp3D *oww ; Image_plus_Warp *oiw ;
-   char *prefix = "Qwarp" , ppp[256] ; int nopt , duplo=0 ;
+   char *prefix = "Qwarp" , ppp[256] ; int nopt , duplo=0 , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
@@ -216,6 +216,23 @@ int main( int argc , char *argv[] )
        " -nopenalty   = Don't use a penalty on the cost function;\n"
        "                the purpose of the penalty is to reduce\n"
        "                grid distortions.\n"
+       " -penfac ff   = Use the number 'ff' to weight the penalty.\n"
+       "                The default is 1.  Larger values of 'ff' mean\n"
+       "                the penalty counts more, supposedly reducing\n"
+       "                grid distortions.  '-nopenalty' is the same\n"
+       "                as '-penfac 0'.\n"
+       " -blur bb     = Blur the input images by 'bb' voxels before doing the\n"
+       "                alignment (the output dataset will not be blurred).\n"
+       "                The default is 3.456.  Optionally, you can provide\n"
+       "                2 values for 'bb', and then the first one is applied\n"
+       "                to the base volume, the second to the source volume\n"
+       "                (e.g., '-blur 0 3' to skip blurring the base image).\n"
+       " -emask ee    = Here, 'ee' is a dataset to specify a mask of voxels\n"
+       "                to EXCLUDE from the analysis -- all voxels in 'ee'\n"
+       "                that are nonzero will not be used in the alignment.\n"
+       "               * The base image is also automasked -- the emask is\n"
+       "                 extra.\n"
+       "               * Applications: exclude a tumor or resected region.\n"
        "\n"
        "METHOD\n"
        "------\n"
@@ -231,7 +248,7 @@ int main( int argc , char *argv[] )
 
 #ifdef USE_OMP
    omp_set_nested(0) ;
-   if( omp_get_max_threads() <= 1 ) enable_mcw_malloc() ;
+   INFO_message("OpenMP thread count = %d",omp_get_max_threads()) ;
 #else
    enable_mcw_malloc() ;
 #endif
@@ -239,10 +256,57 @@ int main( int argc , char *argv[] )
    mainENTRY("3dQwarp") ;
 
    nopt = 1 ;
+   Hblur_b = Hblur_s = 3.456f ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
+     if( strcasecmp(argv[nopt],"-emask") == 0 ){
+       THD_3dim_dataset *eset ;
+       if( Hemask != NULL ) ERROR_exit("Can't use -emask twice!") ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after -emask") ;
+       eset = THD_open_dataset(argv[nopt]) ; if( eset == NULL ) ERROR_exit("Can't open -emask") ;
+       DSET_load(eset) ; CHECK_LOAD_ERROR(eset) ;
+       Hemask = THD_makemask( eset , 0 , 1.0f , -1.0f ) ;
+       if( Hemask == NULL ) ERROR_exit("Can't make -emask for some reason :-(") ;
+       nevox = DSET_NVOX(eset) ;
+       DSET_delete(eset) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-blur") == 0 ){
+       float val1,val2 ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after -blur") ;
+       if( ! isdigit(argv[nopt][0]) )
+         ERROR_exit("value after '-blur' must start with a digit") ;
+       val1 = (float)strtod(argv[nopt],NULL) ;
+       if( val1 > 10.0f ){
+         WARNING_message("replacing blur=%g with 10.0",val1) ; val1 = 10.0 ;
+       }
+       if( isdigit(argv[nopt+1][0]) ){
+         val2 = (float)strtod(argv[++nopt],NULL) ;
+         if( val2 > 10.0f ){
+           WARNING_message("replacing blur=%g with 10.0",val1) ; val2 = 10.0 ;
+         }
+       } else {
+         val2 = val1 ;
+       }
+       Hblur_b = val1 ; Hblur_s = val2 ;
+       nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-nopenalty") == 0 ){
-       Hpen_fac = 0.0f ; nopt++ ; continue ;
+       Hpen_fac = 0.0 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-penfac") == 0 ){
+       double val ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after -penfac") ;
+       val = strtod(argv[nopt],NULL) ;
+       if( val <= 0.0 ){
+         INFO_message("-penfac turns the penalty off") ;  Hpen_fac = 0.0 ;
+       } else {
+         Hpen_fac = 0.0001 * val ;
+       }
+       nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-prefix") == 0 ){
@@ -250,7 +314,7 @@ int main( int argc , char *argv[] )
        prefix = strdup(argv[nopt]) ; nopt++ ; continue ;
      }
 
-#if 0
+#if 1
      if( strcasecmp(argv[nopt],"-hel") == 0 ){
        meth = GA_MATCH_HELLINGER_SCALAR ; nopt++ ; continue ;
      }
@@ -291,6 +355,13 @@ int main( int argc , char *argv[] )
    DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ;
    sim = THD_extract_float_brick(0,sset) ; DSET_unload(sset) ;
 
+   if( duplo && nevox > 0 ){
+     WARNING_message("-emask turns -duplo off") ; duplo = 0 ;
+   }
+
+   if( nevox > 0 && nevox != DSET_NVOX(bset) )
+     ERROR_exit("-emask doesn't match base dataset grid :-(") ;
+
 #ifdef USE_SAVER
    sprintf(ppp,"%s_SAVE",prefix) ;
    qset = EDIT_empty_copy(bset) ;
@@ -306,7 +377,12 @@ int main( int argc , char *argv[] )
 
    wbim = mri_weightize(bim,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
 
-   Hblur = 3.45678f ;
+   if( Hblur_b > 0.1f ){
+     MRI_IMAGE *qim ;
+     if( Hverb ) ININFO_message("   blurring base image %.3g voxels FWHM",Hblur_b) ;
+     qim = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_b) , bim ) ;
+     mri_free(bim) ; bim = qim ;
+   }
 
    if( duplo )
      oiw = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
