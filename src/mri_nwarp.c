@@ -3026,7 +3026,8 @@ static float       *Haawt       = NULL ; /* weight iamge (sic) in local patch */
 static float       *Hbval       = NULL ; /* base image in local patch */
 static MRI_IMAGE   *Hsrcim      = NULL ; /* source image to warp (global) */
 static MRI_IMAGE   *Hsrcim_blur = NULL ;
-static float        Hblur       = 0.0f ;
+static float        Hblur_b     = 0.0f ;
+static float        Hblur_s     = 0.0f ;
 static int          Hforce      = 0    ;
 static float        Hfactor     = 0.44f;
 static float        Hshrink     = 0.577350f ;
@@ -3039,6 +3040,7 @@ static MRI_IMAGE   *Hbasim      = NULL ; /* base image (global) */
 static MRI_IMAGE   *Hwtim       = NULL ; /* weight image (global) */
 static float        Hwbar       = 0.0f ; /* average weight value */
 static byte        *Hbmask      = NULL ; /* mask for base image (global) */
+static byte        *Hemask      = NULL ; /* mask of voxels to EXCLUDE */
 
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
@@ -3819,9 +3821,9 @@ ENTRY("IW3D_setup_for_improvement") ;
    Hbasim = mri_to_float(bim) ;
    Hsrcim = mri_to_float(sim);
 
-   if( Hblur > 0.1f ){
-     if( Hverb ) ININFO_message("   blurring source image %.3g voxels FWHM",Hblur) ;
-     Hsrcim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur) , Hsrcim ) ;
+   if( Hblur_s > 0.1f ){
+     if( Hverb ) ININFO_message("   blurring source image %.3g voxels FWHM",Hblur_s) ;
+     Hsrcim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_s) , Hsrcim ) ;
    } else {
      Hsrcim_blur = NULL ;
    }
@@ -3830,14 +3832,17 @@ ENTRY("IW3D_setup_for_improvement") ;
 
    if( wbim != NULL ){               /*-- user supplied weight --*/
 
-     int ii,nwb ; float *wbfar ;
+     int ii,nwb,nexc ; float *wbfar ;
      if( wbim->kind != MRI_float ||
          wbim->nx != Hnx || wbim->ny != Hny || wbim->nz != Hnz )
        ERROR_exit("IW3D_setup_for_improvement: bad wbim input") ;
 
      Hwtim = mri_to_float(wbim) ; wbfar = MRI_FLOAT_PTR(Hwtim) ;
      Hbmask = (byte *)malloc(sizeof(byte)*Hnxyz) ;
-     for( Hwbar=nwb=ii=0 ; ii < Hnxyz ; ii++ ){
+     for( Hwbar=nwb=nexc=ii=0 ; ii < Hnxyz ; ii++ ){
+       if( Hemask != NULL && Hemask[ii] && wbfar[ii] > 0.0f ){  /* 29 Oct 2012 */
+         nexc++ ; wbfar[ii] = 0.0f ;
+       }
        Hbmask[ii] = (wbfar[ii] > 0.0f) ;
        if( Hbmask[ii] ){ Hwbar += wbfar[ii] ; nwb++ ; }
        else            { wbfar[ii] = 0.0f ; }
@@ -3847,17 +3852,23 @@ ENTRY("IW3D_setup_for_improvement") ;
      if( Hverb ) ININFO_message(   "%d voxels in mask (out of %d)",nwb,Hnxyz) ;
      Hwbar /= nwb ;  /* average value of all nonzero weights */
      nmask = nwb ;
+     if( nexc > 0 ) ININFO_message("-emask excluded %d voxels",nexc) ;
 
    } else {                          /*-- make weight up from nowhere --*/
 
-     int ii ; float *wbfar ;
+     int ii,nwb,nexc ; float *wbfar ;
      Hwtim = mri_new_vol(Hnx,Hny,Hnz,MRI_float); wbfar = MRI_FLOAT_PTR(Hwtim);
      Hbmask = (byte *)malloc(sizeof(byte)*Hnxyz) ;
-     for( ii=0 ; ii < Hnxyz ; ii++ ){
-       wbfar[ii] = 1.0f ; Hbmask[ii] = 1 ;
+     for( Hwbar=nwb=nexc=ii=0 ; ii < Hnxyz ; ii++ ){
+       if( Hemask != NULL && Hemask[ii] ){ wbfar[ii] = 0.0f; Hbmask[ii] = 0; nexc++; }
+       else                              { wbfar[ii] = 1.0f; Hbmask[ii] = 1; }
+       if( Hbmask[ii] ){ Hwbar += wbfar[ii] ; nwb++ ; }
      }
-     Hwbar = 1.0f ;
-     nmask = Hnxyz ;
+     if( Hwbar == 0.0f || nwb == 0 )
+       ERROR_exit("IW3D_setup_for_improvement: all zero mask!?") ;
+     Hwbar /= nwb ;  /* average value of all nonzero weights */
+     nmask = nwb ;
+     if( nexc > 0 ) ININFO_message("-emask excluded %d voxels",nexc) ;
 
    }
 
