@@ -217,22 +217,29 @@ int main( int argc , char *argv[] )
        "                the purpose of the penalty is to reduce\n"
        "                grid distortions.\n"
        " -penfac ff   = Use the number 'ff' to weight the penalty.\n"
-       "                The default is 1.  Larger values of 'ff' mean\n"
-       "                the penalty counts more, supposedly reducing\n"
-       "                grid distortions.  '-nopenalty' is the same\n"
-       "                as '-penfac 0'.\n"
+       "                The default is 1.  Larger values of 'ff' mean the\n"
+       "                penalty counts more, reducing grid distortions,\n"
+       "                in sha'Allah. '-nopenalty' is the same as '-penfac 0'.\n"
        " -blur bb     = Blur the input images by 'bb' voxels before doing the\n"
        "                alignment (the output dataset will not be blurred).\n"
        "                The default is 3.456.  Optionally, you can provide\n"
        "                2 values for 'bb', and then the first one is applied\n"
-       "                to the base volume, the second to the source volume\n"
-       "                (e.g., '-blur 0 3' to skip blurring the base image).\n"
+       "                to the base volume, the second to the source volume.\n"
+       "               * e.g., '-blur 0 3' to skip blurring the base image.\n"
        " -emask ee    = Here, 'ee' is a dataset to specify a mask of voxels\n"
        "                to EXCLUDE from the analysis -- all voxels in 'ee'\n"
        "                that are nonzero will not be used in the alignment.\n"
        "               * The base image is also automasked -- the emask is\n"
-       "                 extra.\n"
+       "                 extra, to indicate voxel you definitely don't want\n"
+       "                 included in the matching process.\n"
        "               * Applications: exclude a tumor or resected region.\n"
+       "               * Note that the emask applies to the base dataset,\n"
+       "                 so if you are registering a pre- and post-surgery\n"
+       "                 volume, you would probably use the post-surgery\n"
+       "                 dataset as the base.  If you eventually want the\n"
+       "                 result back in the pre-surgery space, then you\n"
+       "                 would use the inverse warp afterwards, via program\n"
+       "                 3dNwarpCalc.\n"
        "\n"
        "METHOD\n"
        "------\n"
@@ -304,7 +311,7 @@ int main( int argc , char *argv[] )
        if( val <= 0.0 ){
          INFO_message("-penfac turns the penalty off") ;  Hpen_fac = 0.0 ;
        } else {
-         Hpen_fac = 0.0001 * val ;
+         Hpen_fac = 0.0002 * val ;
        }
        nopt++ ; continue ;
      }
