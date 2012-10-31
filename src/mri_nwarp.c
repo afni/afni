@@ -2885,7 +2885,8 @@ ENTRY("NwarpCalcRPN") ;
 
      /*--- compose ---*/
 
-     else if( strcasecmp(cmd,"&compose") == 0 || strcasecmp(cmd,"&*") == 0 ){
+     else if( strcasecmp(cmd,"&compose") == 0 || strcasecmp(cmd,"&*") == 0 ||
+              strcasecmp(cmd,"&mult")    == 0                                ){
         double ct = COX_cpu_time() ;
         if( nstk < 2 ) ERREX("stack too short") ;
         AA = IW3D_compose( iwstk[nstk-1] , iwstk[nstk-2] , icode ) ;
@@ -3675,7 +3676,7 @@ AFNI_OMP_END ;
 /*----------------------------------------------------------------------------*/
 
 static double Hpen_cut = 1.0 ;
-static double Hpen_fac = 0.0001 ;
+static double Hpen_fac = 0.0002 ;
 static double Hpen_pow = 4.0 ;
 static double Hpen_qow = 0.25 ;
 static double Hpen_sum = 0.0 ;
