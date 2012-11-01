@@ -65,7 +65,7 @@ Usage:
  a within-subject variable are also better handled with 3dLME. Computational 
  cost with 3dMVM is very high compared to 3dttest++ or 3dANOVAx, but it has the
  capability to correct for sphericity violations when within-subject variables
- are involved.
+ with more than two levels are involved.
  
  In addition to R installtion, the following two R packages need to be acquired
  in R first before running 3dMVM:
@@ -92,7 +92,7 @@ within-subject (condition and emotion) variables:
    3dMVM  -prefix Example1 -jobs 4            \\
           -model  'genotype*sex+scanner'      \\
           -wsVars \"condition*emotion\"         \\
-          -num-glt 14                         \\
+          -num_glt 14                         \\
           -gltLabel 1 face_pos_vs_neg -gltCode  1 'condition : 1*face emotion : 1*pos -1*neg'        \\
           -gltLabel 2 face_emot_vs_neu -gltCode 1 'condition : 1*face emotion : 1*pos +1*neg -2*neu' \\
           ...            
@@ -110,14 +110,14 @@ within-subject (condition and emotion) variables:
       
    ex2 <-
 "Example 2 --- two between-subjects (genotype and sex), onewithin-subject
-(emotion) factor, plus two quantitative variables (age and IQ).
+(emotion) factor, plus two quantitative variables (age and IQ).f
 -------------------------------------------------------------------------
    3dMVM -prefix Example2 -jobs 4        \\
           -model  \"genotype*sex+age+IQ\"  \\
           -wsVars emotion                \\
           -qVars  \"age+IQ\"               \\
           -qVarCenters '25,105'          \\
-          -num-glt 10                    \\
+          -num_glt 10                    \\
           -gltLabel 1 pos_F_vs_M   -gltCode 1 'sex : 1*F -1*M emotion : 1*pos'        \\
           -gltLabel 2 age_TT_vs_NN -gltCode 2 'geneotype : 1*TT -1*NN age :'          \\
           ...            
@@ -147,7 +147,7 @@ explored with GLTs in 3dMVM.
    3dMVM -prefix Example3 -jobs 4   \\
          -model Group               \\
          -wsVars 'Condition*Time'   \\
-         -num-glt 32                \\
+         -num_glt 32                \\
          -gltLabel 1 old_t0 -gltCode 1 'Group : 1*old Time : 1*t0' \\
          -gltLabel 2 old_t1 -gltCode 2 'Group : 1*old Time : 1*t1' \\
          -gltLabel 3 old_t2 -gltCode 3 'Group : 1*old Time : 1*t2' \\
