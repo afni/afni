@@ -7240,6 +7240,7 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, double range[2])
    Widget w ;
    double dtmp;
    char slabel[100];
+   static int nwarn = 0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -7265,26 +7266,83 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, double range[2])
          range[1] = fabs((double)range[1]); range[0] = 0.0;
       }
    }
-    
-   if (range[1] - range[0] > pow(10.0,SUMAg_CF->SUMA_ThrScalePowerBias)) { /* no need for power */
+   if (range[1] - range[0] > pow(10.0,SUMAg_CF->SUMA_ThrScalePowerBias)) { 
+      /* no need for power */
       dec = 0;
-      min_v = (int)(range[0] ); 
-      max_v = (int)(range[1] ); 
+      if (range[0] > MRI_maxint) min_v=MRI_maxint;
+      else if (range[0] < -MRI_maxint) min_v=-MRI_maxint;
+      else min_v = (int)(range[0] ); 
+      if (range[1] > MRI_maxint) max_v=MRI_maxint;
+      else if (range[1] < -MRI_maxint) max_v=-MRI_maxint;
+      else max_v = (int)(range[1] ); 
+      dtmp = 2.0*(max_v-min_v)/MRI_maxint;
+      if (dtmp >= 0.499) { 
+         /* See comment for similar block below */
+         if (!nwarn) 
+            SUMA_S_Warn( "Data range too big for threshold scale.\n"
+                         "Range will be trimmed.\n"
+                         "Similar messages will be muted");
+          ++nwarn;
+         /* Range cannot be too big. 
+               X11 Warning 1:
+               Name: Thr.
+               Class: XmScale
+               (Maximum - minimum) cannot be greater than INT_MAX / 2;
+               minimum has been set to zero, 
+               maximum may have been set to (INT_MAX/2).
+         */
+         max_v /= (dtmp+0.01);
+         min_v /= (dtmp+0.01);
+      }
       scl = (max_v -min_v) / 10; 
    } else {
       /* what power of 10 is needed (based on Bob's settings in afni_wid.c)? */
       dec = (int)ceil( log((double)(range[1] - range[0] + 0.001)) / log (10) );
       /* Add the scale bias, so that dec is at least = bias*/
-      if (dec < SUMAg_CF->SUMA_ThrScalePowerBias) dec = SUMAg_CF->SUMA_ThrScalePowerBias;
-      min_v = (int)(range[0] * pow(10.0, dec)); 
-      max_v = (int)(range[1] * pow(10.0, dec) + 0.001); 
+      if (dec < SUMAg_CF->SUMA_ThrScalePowerBias) 
+         dec = SUMAg_CF->SUMA_ThrScalePowerBias;
+      dtmp = (range[0] * pow(10.0, dec));
+      if (dtmp > MRI_maxint) min_v=MRI_maxint;
+      else if (dtmp < -MRI_maxint) min_v=-MRI_maxint;
+      else min_v = (int)(dtmp); 
+      dtmp = range[1] * pow(10.0, dec);
+      if (dtmp > MRI_maxint) max_v=MRI_maxint;
+      else if (dtmp < -MRI_maxint) max_v=-MRI_maxint;
+      else max_v = (int)(dtmp + 0.001); 
+      dtmp = 2.0*(max_v-min_v)/MRI_maxint;
+      if (dtmp >= 0.499) { 
+         /* Perhaps I should include a scale value multiplier = 1/dtmp 
+            so that users can still get the full range.
+            Problem is that users will not see the proper value 
+            on the silder bar, unless I start setting it explicitly
+            in the widget. Best to wait and see who'd need it. */
+         if (!nwarn) 
+            SUMA_S_Warn( "Data range too big for threshold scale.\n"
+                         "Range will be trimmed\n"
+                         "Similar messages will be muted");
+          ++nwarn;         
+          /* Range cannot be too big. 
+               X11 Warning 1:
+               Name: Thr.
+               Class: XmScale
+               (Maximum - minimum) cannot be greater than INT_MAX / 2;
+               minimum has been set to zero, 
+               maximum may have been set to (INT_MAX/2).
+         */
+         max_v /= (dtmp+0.01);
+         min_v /= (dtmp+0.01);
+      }
+
       scl = (max_v -min_v) / 10; 
-      
-   }  
-   if (max_v <= min_v || scl < 0) { /* happens when max_v is so large that you get trash when typecast to int.
-                           That's the case when you're using the number of nodes in a surface for example
-                           and you set dec to something demented like 6 ! Need a clever function here */
-      SUMA_SLP_Note("Bad auto scaling \nparameters for threshold bar.\nUsing defaults"); 
+   }
+     
+   if (max_v <= min_v || scl < 0) { 
+      /* happens when max_v is so large that you get trash when typecast to int.
+         That's the case when you're using the number of nodes in a surface 
+         for example and you set dec to something demented like 6 ! 
+         Need a clever function here */
+      SUMA_SLP_Note("Bad auto scaling \nparameters for threshold bar.\n"
+                    "Using defaults"); 
       min_v = (int)(range[0]); 
       max_v = (int)(range[1])+1; 
       scl = (max_v - min_v) / 10;

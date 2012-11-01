@@ -1912,7 +1912,7 @@ int SUMA_assign_classes_eng (THD_3dim_dataset *pset,
    THD_3dim_dataset *cset=*csetp;
    short *p=NULL;
    double max=0.0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -6728,13 +6728,13 @@ SUMA_SurfaceObject *SUMA_ExtractHead_Hull(THD_3dim_dataset *iset,
    double hvol[12], d1[12], d2[12];
    int iv=0, ivolsel;
    SUMA_SurfaceObject *SOv[12], *SO=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    if (!iset) SUMA_RETURN(SO);
    for (iv=0; iv<12; ++iv) SOv[iv]=NULL;
-   
+
    voxvol = SUMA_ABS(DSET_DX(iset)*DSET_DY(iset)*DSET_DZ(iset));
    
    if (!(hh = SUMA_dset_hist( iset, 0, NULL, DSET_PREFIX(iset), NULL,
@@ -6828,6 +6828,7 @@ SUMA_SurfaceObject *SUMA_ExtractHead_Hull(THD_3dim_dataset *iset,
       iv = 0;
       volthr[iv] = hullvolthr *1.0e6; /* volume in micro liters */
       voxthr = SUMA_val_at_count(hh, volthr[iv]/voxvol, 0, 1);
+      SUMA_LHv("Extract Head Hull at voxthr %f\n", voxthr);
       SO = SUMA_Dset_ConvexHull(iset, 0, voxthr, NULL);
    }
    
@@ -6852,16 +6853,55 @@ SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO,
    char sbuf[256]={""};
    byte *mask=NULL;
    int   in=0, vxi_bot[30], vxi_top[30], iter, N_movers, 
-         ndbg=SUMA_getBrainWrap_NodeDbg(), nn,N_um;
+         ndbg=SUMA_getBrainWrap_NodeDbg(), nn,N_um,
+         itermax1 = 50, itermax2 = 10;
    float *fvec=NULL, *xyz, *dir, P2[2][3], travstep, shs_bot[30], shs_top[30];
    float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[2], nodeval,
          area=0.0, larea=0.0, ftr=0.0, darea=0.0;
+   float *fedges=NULL, edge_thr=0.0, *fnz=NULL, *inedges=NULL, inedge_thr=0.0, 
+         *alt=NULL;
+   float maxetop, maxebot, maxtop, maxbot;
+   int maxentop,maxenbot, nmaxtop, nmaxbot;
+   float dirZ[3], *dots=NULL;
+   THD_3dim_dataset *inset=NULL;
    SUMA_Boolean stop = NOPE;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    SUMA_LHv("Begin shrinkage, thr=%f\n", thr);
+   
+
+   /* get the edges on the input set */
+   if (!DSET_ARRAY(iset,0)) {
+      SUMA_S_Err("Very strange, pointer lost");
+      exit(1);
+   }     
+   SUMA_LHv("Getting edges %p %p\n", iset, DSET_ARRAY(iset, 0));
+   fedges = (float *)SUMA_calloc(DSET_NVOX(iset),  sizeof(float));
+   if (!SUMA_3dedge3(iset, fedges, NULL)){
+      SUMA_S_Err("Failed to get edges");
+      SUMA_free(fedges); fedges = NULL;
+   }
+   if (!DSET_ARRAY(iset,0)) {
+      SUMA_S_Err("Very strange, pointer lost after edge");
+      exit(1);
+   }     
+   
+   /* non-zero edges */
+   for (in=0, N_um=0; in<DSET_NVOX(iset); ++in) {
+      if (fedges[in] > 0.0) ++N_um;
+   }
+   fnz = (float*)SUMA_calloc(N_um, sizeof(float));
+   for (in=0, N_um=0; in<DSET_NVOX(iset); ++in) {
+      if (fedges[in] > 0.0) fnz[N_um++]=fedges[in];
+   }
+   qsort(fnz, N_um, sizeof(float), 
+         (int(*) (const void *, const void *)) SUMA_compare_float);
+   /* get the median */
+   edge_thr = fnz[(int)(N_um/2)];
+   SUMA_free(fnz); fnz=NULL;
+   SUMA_LHv("Edge threshold of %f\n", edge_thr);
    
    travstep = SUMA_ABS(DSET_DX(iset));
    if (travstep > SUMA_ABS(DSET_DY(iset))) travstep = SUMA_ABS(DSET_DY(iset));
@@ -6871,16 +6911,44 @@ SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO,
       SUMA_RETURN(NOPE);
    }
    
+   /* For a clean, bust like button, anchor bottom nodes */
+   /* For now, the decision is solely based on the normals
+      being parallel to the Z direction.
+      Perhaps I should add a depth criterion, but that
+      is not necessary it seems */
+      dirZ[0]=0.0; dirZ[1]=0.0; dirZ[2]=1.0;
+      dots = NULL;
+      if (!(SUMA_DotNormals(SO, dirZ, &dots))) {
+         SUMA_S_Err("Failed to get dots");
+      } else {
+         if (LocalHead) SUMA_WRITE_ARRAY_1D(dots, SO->N_Node, 1, "DOTS.1D.dset");
+      }
    
+   SUMA_LH("About to loop");
    stop = NOPE;
    N_movers = 0; iter=0;
    while (!stop) {
+      N_movers = 0;
       memset(mask, 1, sizeof(byte)*SO->N_Node);
+      /* Keep bottom nodes fixed. (consider recomputing dots?)*/
+      if (SO->normdir < 0) { 
+         for (in=0; in<SO->N_Node; ++in) {
+            if (dots[in]>0.8) mask[in]=0;
+         }
+      } else {
+         for (in=0; in<SO->N_Node; ++in) {
+            if (dots[in]<-0.8) mask[in]=0;
+         }
+      }
       for (in=0; in<SO->N_Node; ++in) {
+         if (!mask[in]) { /* skip it, masked by being bottom node */
+            continue;
+         }
+         SUMA_LHv("Node %d\n", in);
          xyz = SO->NodeList+3*in;
          dir = SO->NodeNormList+3*in;
          SUMA_Find_IminImax_2(xyz, dir,
-                            iset, &fvec, travstep, 10*travstep, 2*travstep,
+                            iset, &fvec, travstep, 11*travstep, 11*travstep,
                             0.5*thr, in==ndbg?1:0, 
                             rng_bot, rdist_bot,
                             rng_top, rdist_top,
@@ -6889,31 +6957,113 @@ SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO,
                             vxi_bot, vxi_top);
          nodeval = shs_bot[0];
          if (nodeval >= thr) { /* we're OK, minor adjustment */ 
+            if (in == ndbg) { SUMA_S_Note("Case 1:\n"); }
+            mask[in] = 0; /* anchor node, outside smoothing mask*/
             if (nodeval < rng_top[1]) { /* higher val above, move up one step */
+               if (in == ndbg) { SUMA_S_Note("tiny nudge up\n"); }
                memset(P2,0,6*sizeof(float));
                SUMA_POINT_AT_DISTANCE(dir, xyz, travstep, P2);
                xyz[0] = P2[0][0]; xyz[1] = P2[0][1]; xyz[2] = P2[0][2];
-              
-            }  
-            mask[in] = 0; /* anchor node, outside smoothing mask*/
-         } else {
-            /* look down for better days */
-            if (nodeval < rng_bot[1]) { 
-               if (0) { /* goes down to the brightest, but that is too harsh */
-                  xyz[0] -= rdist_bot[1]*dir[0];
-                  xyz[1] -= rdist_bot[1]*dir[1];
-                  xyz[2] -= rdist_bot[1]*dir[1];
-               } else { /* Go down to the 1st voxel meeting threshold 
-                           You could add an edge condition here too, someday */
-                  nn = 0;
-                  while (nn<10 && shs_bot[nn]<thr) { ++nn; }
+            } else  { /* any edge above without dipping 
+                               too much in intensity? */
+               nn = 0;
+               while (nn<10 && vxi_top[nn]>=0 &&
+                               ((shs_top[nn]> 0.5*thr || avg[1]>0.5*thr) && 
+                                 fedges[vxi_top[nn]]<edge_thr)) {
+                  ++nn;
+               }
+               if (vxi_top[nn]>=0 &&
+                   fedges[vxi_top[nn]]>=edge_thr &&
+                   fedges[vxi_top[nn]]>=fedges[vxi_bot[0]]) { /* go up a  
+                                          little, still anchoring */
+                  if (in == ndbg) { SUMA_S_Note("Going up to better edge\n"); }
                   ftr = travstep*nn;
-                  xyz[0] -= ftr*dir[0];
-                  xyz[1] -= ftr*dir[1];
-                  xyz[2] -= ftr*dir[1];                  
+                  xyz[0] += ftr*dir[0];
+                  xyz[1] += ftr*dir[1];
+                  xyz[2] += ftr*dir[2];
                }
             }
-            ++N_movers;
+         } else {
+            /* strongest edge above*/
+            maxetop = fedges[vxi_top[0]]; maxentop = 0; 
+            maxtop = shs_top[0]; nmaxtop =0;
+            for (nn=1; nn<10 && vxi_top[nn]>=0; ++nn) {
+               if (fedges[vxi_top[nn]]>maxetop) { 
+                  maxetop = fedges[vxi_top[nn]]; maxentop=nn; 
+               }
+               if (shs_top[nn] > maxtop) {
+                  nmaxtop = nn;
+                  maxtop = shs_top[nn];
+               }
+            }
+            /* strongest edge below */
+            maxebot = fedges[vxi_bot[0]]; maxenbot = 0; 
+            maxbot = shs_bot[0]; nmaxbot = 0;
+            for (nn=1; nn<10 && vxi_bot[nn]>=0; ++nn) {
+               if (fedges[vxi_bot[nn]]>maxebot) { 
+                  maxebot = fedges[vxi_bot[nn]]; maxenbot=nn; 
+               }
+               if (shs_bot[nn] > maxbot) {
+                  nmaxbot = nn; maxbot = shs_bot[nn];
+               }
+            }
+            
+            
+            if (maxetop >= maxebot && maxetop >=edge_thr){/* go up for better 
+                                                             edge*/
+               nn = maxentop;
+               if (in == ndbg){
+                  SUMA_S_Notev("Better edge above (%f vs %f) %d steps\n",
+                               maxetop, maxebot, nn); }
+               if (nn==0) { /* anchor it, nothing better above */
+                  mask[in]=0;
+               } else if (fedges[vxi_top[nn]]>=edge_thr) { /* go up  */
+                  if (in == ndbg) { SUMA_S_Note("Moving up\n"); }
+                  ftr = travstep*nn;
+                  xyz[0] += ftr*dir[0];
+                  xyz[1] += ftr*dir[1];
+                  xyz[2] += ftr*dir[2];
+               }
+            } else {
+               /* look down for better option */
+               if (nodeval < rng_bot[1]) { 
+                  { /* Go down to the 1st voxel meeting threshold 
+                              and a good edge */
+                     if (in == ndbg) { 
+                        SUMA_S_Notev("Looking down nodeval %f, edge %f\n",
+                                      nodeval, fedges[vxi_bot[0]]); }
+                     nn = 0;
+                     while (nn<10 && (shs_bot[nn]<thr && 
+                                      fedges[vxi_bot[nn]]<edge_thr)) {
+                        ++nn; 
+                     }
+                     if (fedges[vxi_bot[nn]]>=edge_thr) {
+                        if (in == ndbg){ 
+                           SUMA_S_Notev("Going down %d steps to edge+anchor\n", 
+                                       nn);}
+                        ftr = travstep*nn;
+                        xyz[0] -= ftr*dir[0];
+                        xyz[1] -= ftr*dir[1];
+                        xyz[2] -= ftr*dir[2]; 
+                        if (fedges[vxi_bot[nn]]> fedges[vxi_bot[0]])
+                           mask[in]=0;                  
+                     } else { /* no good edge found, keep going if sitting
+                                 on no edge or no value */
+                        if (fedges[vxi_bot[0]] < edge_thr || nodeval < 0.1*thr) {
+                           if (maxbot > nodeval) {
+                              if (in == ndbg){ SUMA_S_Note("Going down max\n");}
+                              nn = nmaxbot;
+                              ftr = travstep*nn;
+                              xyz[0] -= ftr*dir[0];
+                              xyz[1] -= ftr*dir[1];
+                              xyz[2] -= ftr*dir[2];
+                           }
+                        }
+                     } 
+                  }
+               }
+            }
+               ++N_movers;
          }
       }
       
@@ -6952,7 +7102,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO,
                                  SUMA_GIFTI, SUMA_ASCII, NULL);
       }
       ++iter;
-      if (iter > 10 || SUMA_ABS(darea) < 0.05) stop = YUP;
+      if (iter > itermax1 || SUMA_ABS(darea) < 0.05) stop = YUP;
    }
    
    if (LocalHead) {
@@ -6963,12 +7113,17 @@ SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO,
                               SUMA_GIFTI, SUMA_ASCII, NULL);
    }
    
-   if (iter >= 10) {
+   if (iter >= itermax1) {
       SUMA_S_Note("Convergence criterion not reached. Check results.");
    }
    
+   
+   if (dots) SUMA_free(dots); dots = NULL;   
    if (mask) free(mask); mask = NULL;
    if (fvec) free(fvec); fvec = NULL;
+   if (fedges) SUMA_free(fedges); fedges = NULL;
+   if (inedges) SUMA_free(inedges); inedges = NULL;
+   if (inset) DSET_delete(inset); inset=NULL;
    SUMA_RETURN(YUP);
 }
 
@@ -6991,7 +7146,7 @@ SUMA_SurfaceObject *SUMA_ExtractHead(THD_3dim_dataset *iset,
    SUMA_SurfaceObject *SOh = NULL, *SOi = NULL;
    SUMA_HIST *hh=NULL;
    float newvol = 0.0, voxvol = 0.0, sklthr = 0.0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -7002,6 +7157,7 @@ SUMA_SurfaceObject *SUMA_ExtractHead(THD_3dim_dataset *iset,
       SUMA_RETURN(SOi);
    }
    if (LocalHead) {
+      THD_force_ok_overwrite(1);
       SUMA_Save_Surface_Object_Wrap("hull", NULL, SOh, 
                                  SUMA_GIFTI, SUMA_ASCII, NULL);
    }
@@ -7011,6 +7167,7 @@ SUMA_SurfaceObject *SUMA_ExtractHead(THD_3dim_dataset *iset,
    /* Create a little icosahedron that fits inside the hull */
    SOi = SUMA_CreateIcosahedron(0.99*SOh->MinCentDist, 20, SOh->Center, "n",1);
    if (LocalHead) {
+      THD_force_ok_overwrite(1);
       SUMA_Save_Surface_Object_Wrap("icos", NULL, SOi, 
                                  SUMA_GIFTI, SUMA_ASCII, NULL);
    }
@@ -7019,10 +7176,12 @@ SUMA_SurfaceObject *SUMA_ExtractHead(THD_3dim_dataset *iset,
       SUMA_S_Err("Failed to inflate to anchor");
       SUMA_RETURN(SOi);
    }
-   if (LocalHead) {
+   if (1 || LocalHead) {
+      THD_force_ok_overwrite(1);
       SUMA_Save_Surface_Object_Wrap("icosinfl", NULL, SOi, 
                                  SUMA_GIFTI, SUMA_ASCII, NULL);
    }
+   
    /* Now drive ico mesh inwards until it hits the brightest voxels below 
       To settle on brightest voxels threshold, compute area of icosahedron
       and consider a thickness of 10mm

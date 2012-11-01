@@ -463,7 +463,7 @@ int SUMA_Find_IminImax_2 (float *xyz, float *dir,
       if (fvec[nind] > stop_avg_thr && !stopint) { 
          Means[1] += fvec[nind]; ++ nMeans[1]; }
       else stopint = 1;
-      if (fvecind_under && istep) fvecind_under[istep] = nind;
+      if (fvecind_under) fvecind_under[istep] = nind;
         
       /* find local min */ 
       /* lmin = SUMA_MIN_PAIR(lmin, fvec[nind]); */
@@ -3181,7 +3181,8 @@ float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO,
                fprintf(SUMA_STDERR, "%s: Touchup value for node %d is %fmm\n", FuncName, in, touchup[in]);
             }
          } else {
-            qsort(shft_list, SO->FN->N_Neighb[in], sizeof(float), (int(*) (const void *, const void *)) SUMA_compare_float);
+            qsort(shft_list, SO->FN->N_Neighb[in], sizeof(float), 
+                  (int(*) (const void *, const void *)) SUMA_compare_float);
             /* get the median */
             touchup[in] = shft_list[(int)(SO->FN->N_Neighb[in]/2)];
          
@@ -4409,12 +4410,14 @@ EDIT_options *SUMA_BlankAfniEditOptions(void)
 /*!
    \brief Create an edge dataset
    \param inset (THD_3dim_dataset *) input dataset
-   \param emask (float *) a preallocated vector as big as DSET_NX(inset)*DSET_NY(inset)*DSET_NZ(inset). 
+   \param emask (float *) a preallocated vector as big as 
+                  DSET_NX(inset)*DSET_NY(inset)*DSET_NZ(inset). 
                            This vector will contain the edge values
-   \param poutsetp (THD_3dim_dataset **)If not null, it will point to a dataset that contains
-                                        the edges.
+   \param poutsetp (THD_3dim_dataset **)If not null, it will point to a 
+                  dataset that contains the edges.
 */
-SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_dataset **poutsetp)
+SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, 
+                         float *emask, THD_3dim_dataset **poutsetp)
 {
    static char FuncName[]={"SUMA_3dedge3"};
    THD_3dim_dataset *outset;
@@ -4422,14 +4425,23 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
    int border[3]={0,0,0};
    int indims[3]={0,0,0};
    float filterCoefs[3] = {1.0, 1.0, 1.0}, **sum = NULL;
-   int ii, nx, ny, nz, nval, kk;
+   int ii, nx, ny, nz, nval, kk, nwarn=0;
    int nxyz = DSET_NX(inset)*DSET_NY(inset)*DSET_NZ(inset);
    int fscale=0 , gscale=0 , nscale=0 ;
-   
+   SUMA_Boolean LocalHead = NOPE;
    recursiveFilterType filterType = ALPHA_DERICHE;  /* BAD BOY ZIAD */
    
    SUMA_ENTRY;
-
+   if (!inset) {
+      SUMA_S_Err("NULL dset");
+      SUMA_RETURN(0);
+   }  
+   if (!DSET_ARRAY(inset,0)) {
+      SUMA_S_Err("NULL array");
+      SUMA_RETURN(0);
+   }
+   
+   SUMA_LH("Load/Call Extract Gradient");
    /*-- Edge detect  --*/
    indims[0] = DSET_NX(inset);
    indims[1] = DSET_NY(inset);
@@ -4437,7 +4449,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
    border[0] = 50;
    border[1] = 50;
    border[2] = 50;
-
+   
    switch( DSET_BRICK_TYPE(inset,0) ){
      default:
         fprintf(stderr,"ERROR: illegal input sub-brick datum\n") ;
@@ -4446,7 +4458,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
      case MRI_float:{
        float *pp = (float *) DSET_ARRAY(inset,0) ;
        float fac = DSET_BRICK_FACTOR(inset,0)  ;
-
+       SUMA_LH("Float");
        if( fac ) {
          for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
        }
@@ -4463,14 +4475,17 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
      }
      break ;
 
-      case MRI_short:{
+     case MRI_short:{
          short *pp = (short *) DSET_ARRAY(inset,0) ;
          float fac = DSET_BRICK_FACTOR(inset,0)  ;
-
-         if( fac ) {
-            for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
+         SUMA_LHv("Short %p\n", pp);
+         if( fac && verb) {
+            INFO_message(
+               "Ignoring brick factor of %f for Gradient Extraction", 
+                           fac);
          }
-         if ( Extract_Gradient_Maxima_3D( (void *)pp, USHORT,
+         SUMA_LH("Short Extracting");
+         if ( Extract_Gradient_Maxima_3D( (void *)pp, SSHORT,
 				         emask, FLOAT,
 				         indims,
 				         border,
@@ -4479,15 +4494,18 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
           fprintf( SUMA_STDERR, "ERROR: gradient extraction failed.\n" );
           SUMA_RETURN(0);
          }
+         SUMA_LH("Short Extracted");
       }
       break ;
 
       case MRI_byte:{
          byte *pp = (byte *) DSET_ARRAY(inset,0) ;
          float fac = DSET_BRICK_FACTOR(inset,0)  ;
-
-         if( fac ) {
-            for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
+         SUMA_LH("Byte");
+         if( fac && verb) {
+            INFO_message(
+               "Ignoring brick factor of %f for Gradient Extraction", 
+                           fac);
          }
          if ( Extract_Gradient_Maxima_3D( (void *)pp, UCHAR,
 				         emask, FLOAT,
@@ -4501,15 +4519,17 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
       }
       break ;
    }      
-
+  
    if (poutsetp) {
+      SUMA_LH("Forming output");
       /* user wants an output dset */
       nx   = DSET_NX(inset) ;
       ny   = DSET_NY(inset) ;
       nz   = DSET_NZ(inset) ; nxyz= nx*ny*nz;
-      nval = DSET_NVALS(inset) ; /* emask has enough room for one sub-brik only */ 
+      nval = DSET_NVALS(inset) ; /* emask has enough room for one 
+                                   sub-brik only */ 
 
-      sum = (float **) malloc( sizeof(float *)*nval ) ;    /* array of sub-bricks */
+      sum = (float **) malloc( sizeof(float *)*nval ) ;/* array of sub-bricks */
       for( kk=0 ; kk < nval ; kk++ ){
         sum[kk] = (float *) malloc(sizeof(float)*nxyz) ;  /* kk-th sub-brick */ 
       }

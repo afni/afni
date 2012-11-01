@@ -1,10 +1,14 @@
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include "SUMA_suma.h"
 #include "thd_segtools_fNM.h"
 #include "SUMA_SegOpts.h"
 #include "SUMA_SegFunc.h"
 #include "SUMA_CoordMatch.h"
+#include "SUMA_gts.h"
 
-void usage_SurfMatch (SUMA_GENERIC_ARGV_PARSE *ps)
+void usage_SurfMatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 {
       static char FuncName[]={"usage_SurfMatch"};
       char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL;
@@ -13,20 +17,47 @@ void usage_SurfMatch (SUMA_GENERIC_ARGV_PARSE *ps)
       sio  = SUMA_help_IO_Args(ps);
       printf ( 
    "\n"
-   "Usage: SurfMatch <-i_TYPE BASE> <-i_TYPE INPUT> <-prefix PREFIX> \n"
-   "                 [-sv SURF_VOL] \n"
-   " \n"
-   "Example: SurfMatch -i std.6rh.pial.asc -i std.6lh.pial.asc -warp sro\n"
-   "\n"              
+   "Usage: SurfMatch <-i_TYPE BASE> <-i_TYPE INSURF> <-prefix PREFIX> \n"
+   "                 [-sv SURF_VOL] [-warp WARP]\n"
+   "  -i_TYPE BASE: BASE is the reference surface to which nodes will be\n"
+   "                registered. The BASE surface is the first surface on the\n"
+   "                command line.\n"
+   "  -i_TYPE INSURF: Surface whose nodes will be affine transformed as to\n"
+   "                  minimize their shortest distance to BASE.\n"
+   "  -depthlimit DL: Exclude from cost computations nodes in INSURF that \n"
+   "                  are more than DL from the top node along the principal\n"
+   "                  direction closest to the Z axis.\n"
+   "  -reduce_ref RED: Reduce first mesh to speed up computations.\n"
+   "                   If RED is between 0 and 1.0, then the new surface\n"
+   "                   will approximately have RED * N_Nodes\n"
+   "                   If RED > 1.0 then RED is the approximate number of\n"
+   "                   nodes in the reduced mesh.\n"
+   "  -warp WARP: Set the type of affine warp allowed. \n"
+   "              Choose from the following:\n"
+   "                 sho: For shift only.\n"
+   "                 sro: For shift + rotate\n"
+   "                 srs: For shift + rotate + scale\n"
+   /* "                 aff: For affine general.\n" */
+   "  -city: Use City Block instead of Euclidian distance\n"
+   "\n"
+   /* Need an option that just takes point, not necessarily a second
+      surface.
+      Need an option to provide cmask  */
+   "Example:\n"
+   "         SurfMatch -i std.6rh.pial.asc -i std.6lh.pial.asc -warp sro\n"
+   "         suma -onestate -i std.6rh.pial.asc -i std.6lh.pial.asc \\\n"
+   "                        -i SurfMatch.gii   \n"              
    "\n");
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
-      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; 
+      SUMA_free(sio); sio = NULL;       
+      
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
 }
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *
-   SUMA_SurfMatch_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
+   SUMA_SurfMatch_ParseInput( char *argv[], int argc, 
+                              SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_SurfMatch_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
@@ -37,12 +68,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
    SUMA_ENTRY;
    
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
+   Opt->s=NULL; 
+   Opt->flt1 = 1.0;
+   Opt->b1 = 0;
+   Opt->efrac = 0.0;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SurfMatch(ps);
+			 usage_SurfMatch(ps, strlen(argv[kar])>3?1:0);
           exit (0);
 		}
 
@@ -78,6 +113,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-city") == 0))
+      {
+         Opt->b1 = 1;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc)
@@ -87,6 +128,28 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
          }
          Opt->out_prefix = SUMA_copy_string(argv[++kar]);
          
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-depthlimit") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a number after -depthlimit \n");
+            exit (1);
+         }
+         Opt->flt1 = atof(argv[++kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-reduce_ref") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a number after -reduce_ref \n");
+            exit (1);
+         }
+         Opt->efrac = atof(argv[++kar]);
          brk = YUP;
       }
             
@@ -117,6 +180,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
       Opt->out_prefix = SUMA_copy_string("SurfMatch.gii");
       THD_force_ok_overwrite(1) ;
    }
+   
    if (!Opt->s) {
       Opt->s = SUMA_copy_string("shft");
    }
@@ -129,7 +193,8 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
-   int N_Spec=0;
+   int N_Spec=0, N_inmask;
+   byte *cmask=NULL;
    SUMA_SurfaceObject *SO = NULL, *SOr=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -141,7 +206,7 @@ int main (int argc,char *argv[])
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
    
    if (argc < 2) {
-      usage_SurfMatch(ps);
+      usage_SurfMatch(ps, 0);
       exit (1);
    }
    
@@ -174,32 +239,34 @@ int main (int argc,char *argv[])
          exit(1);
       
    }   
-   SO = SUMA_Load_Spec_Surf_with_Metrics(Spec, 1, ps->sv[0], 1);
    
-   {
-      float *xyzp=NULL;
-      int ii, iimax, iimin;
-      /* PCA of coords, project along plane perp to eig. vector closest to Y axis,
-      then rotate projection plane to match plane Y Z*/
-      xyzp = SUMA_Project_Coords_PCA (SO->NodeList, SO->N_Node, 2, 
-                                      4, 2); 
-      iimax = 0; iimin = 0;
-      for (ii=1; ii<SO->N_Node; ++ii) {
-         if (xyzp[3*ii+2] > xyzp[3*iimax+2]) {
-            iimax = ii;
-         }
-         if (xyzp[3*ii+2] < xyzp[3*iimin+2]) {
-            iimin = ii;
-         }
+   if (Opt->efrac>0.0) {
+      SUMA_SurfaceObject *SOrr=NULL;
+      if (!(SOrr = SUMA_Mesh_Resample_nodes(SOr, Opt->efrac))) {
+         SUMA_S_Errv("Failed to resample initial mesh at %f\n",Opt->efrac);
+         exit(1);
       }
-      SUMA_S_Notev("Highest node %d, lowest node %d\n",
-         iimax, iimin);
-      SUMA_free(xyzp); xyzp = NULL;
+      SUMA_Free_Surface_Object(SOr); SOr=SOrr; SOrr=NULL;
+      SUMA_SurfaceMetrics_eng(SOr, "EdgeList|MemberFace", NULL, 0, 
+                                          SUMAg_CF->DsetList);
+      if (!SOr->Label) SUMA_SurfaceFileName(SOr, NOPE);
    }
-   SUMA_S_Notev("Have Reference %s %d nodes, and input %s, %d nodes\n",
-                  SOr->Label, SOr->N_Node, SO->Label, SO->N_Node);
-   SUMA_AlignCoords(SO->NodeList, SO->N_Node, NULL, 1, 
-                    SOr, Opt->s);
+   
+   SO = SUMA_Load_Spec_Surf_with_Metrics(Spec, 1, ps->sv[0], 1);
+
+   if (Opt->flt1 != 1.0) {
+      SUMA_LHv("Masking out nodes deeper than %f mm", Opt->flt1);
+      N_inmask = SUMA_NodeDepth(SO->NodeList, SO->N_Node, NULL, Opt->flt1, &cmask);
+   } else {
+      N_inmask = SO->N_Node;
+   }
+   
+   SUMA_S_Notev("Have Reference %s %d nodes, input %s, %d nodes (%d in mask)\n",
+                  SOr->Label, SOr->N_Node, SO->Label, SO->N_Node, N_inmask);
+   if (Opt->b1) {
+      Opt->s = SUMA_append_replace_string(Opt->s,"City", " ; ", 1);
+   }
+   SUMA_AlignCoords(SO->NodeList, SO->N_Node, cmask, 1, SOr, Opt->s);
    
    /* write surface */
    if (!SUMA_Save_Surface_Object_Wrap (Opt->out_prefix, NULL, SO, 
@@ -208,10 +275,11 @@ int main (int argc,char *argv[])
       SUMA_S_Err("Failed to write surface of whole head");
       exit (1);
    }
+
    if (SOr) SUMA_Free_Surface_Object(SOr); SOr = NULL;
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
    
-                    
+   if (cmask) SUMA_free(cmask); cmask=NULL;                 
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (N_Spec) {
       int k=0; 

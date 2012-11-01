@@ -92,6 +92,12 @@ Optional Options:
 				-tlrc or -epi2anat (-tlrclast is ok).
 		-epi2anat	:Align epi to anat instead of anat to epi.  
 				This only makes sense when not using -tlrc.
+		-uniformize	:Uniformize anat before alignment.  Sometimes 
+				This helps with skull stripping problems.
+		-anat_has_skull [yes]/no
+				:Set this option to no if the anatomy has
+				already been skull stripped (useful when default
+				skull stripping doesn't work right).
 
 	Regressor Options:
 		-aseg a		:a is the aseg segmentation file from 
@@ -477,7 +483,7 @@ Original version by Rayus Kuplicki.
 University of Tulsa
 Laureate Institute for Brain Research
 Report problems or feature requests to rkuplicki@laureateinstitute.org.
-8-10-12
+10-26-12
 """
 	
 change_string = """
@@ -501,6 +507,15 @@ added -bpassregs
 added -keepuncensored
 -tsnr now detrends with polynomial order polort instead of 4
 
+10-26-12
+fixed a bug where using input files that had already been tshifted would result
+	in a filename error
+added an error message when the user specifies an input file that does not exist 
+fixed comment placement for normalization block
+fixed a naming conflict when using both -tsnr and -localnorm, -globalnorm, or 
+	-modenorm
+added -uniformize
+added -anat_has_skull
 """
 class RestInterface:
    """Rest Processing Interface Class"""
@@ -560,10 +575,12 @@ class RestInterface:
       self.localnorm = False
       self.globalnorm = False
       self.modenorm = False
+      self.uniformize = False
       self.normval = "1000"
       self.noise = None
       self.channels = None
       self.keepuncensored = False
+      self.ss = True
 
 
    def init_options(self):
@@ -594,6 +611,7 @@ class RestInterface:
       self.valid_opts.add_opt('-corrmap', 0, [], req=0, helpstr='use 3dTcorrMap')
       self.valid_opts.add_opt('-corrmapt', 1, [], req=0, helpstr='set threshold for 3dTcorrMap')
       self.valid_opts.add_opt('-align', 1, [], req=0, helpstr='do alignment and tshifting')
+      self.valid_opts.add_opt('-anat_has_skull', 1, [], req=0, helpstr='specify if anatomy has skull')
       self.valid_opts.add_opt('-regressor', 1, [], req=0, helpstr='another regressor to remove')
       self.valid_opts.add_opt('-globalregmask', 1, [], req=0, helpstr='mask to use to extract a global regressor')
       self.valid_opts.add_opt('-localregmask', 2, [], req=0, helpstr='mask to use to extract a local regressor, and size')
@@ -627,6 +645,7 @@ class RestInterface:
       self.valid_opts.add_opt('-localnorm', 0, [], req=0, helpstr = 'normalize epi based on local mean')
       self.valid_opts.add_opt('-globalnorm', 0, [], req=0, helpstr = 'normalize epi based on global mean')
       self.valid_opts.add_opt('-modenorm', 0, [], req=0, helpstr = 'normalize epi based on global mode')
+      self.valid_opts.add_opt('-uniformize', 0, [], req=0, helpstr = 'uniformize input anat')
       self.valid_opts.add_opt('-normval', 1, [], req=0, helpstr = 'normalize selected attribute to be normval')
 
    def process_options(self):
@@ -704,6 +723,8 @@ class RestInterface:
             self.globalnorm = True
          elif opt.name == '-modenorm':
             self.modenorm = True
+         elif opt.name == '-uniformize':
+            self.uniformize = True
          elif opt.name == '-normval':
             val,err = uopts.get_string_opt('', opt=opt)
             if err: return 1
@@ -761,6 +782,16 @@ class RestInterface:
                self.align = False
             else:
                print "ERROR: %s following -align is not on or off" % val
+               return 1
+         elif opt.name == '-anat_has_skull':
+            val,err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            if val == 'yes':
+               self.ss = True
+            elif val == 'no':
+               self.ss = False
+            else:
+               print "ERROR: %s following -anat_has_skull is not yes or no" % val
                return 1
          elif opt.name == '-corrmap':
             self.corrmap = True
@@ -918,12 +949,17 @@ class RestInterface:
       #normalize the epi timeseries, only inside the brain
       if not (self.localnorm or self.globalnorm or self.modenorm):
          return curEPI
+      if self.localnorm:
+         self.info("Normalize based on voxel mean")
+      if self.modenorm:
+         self.info("Normalize based on global mode")
+      if self.globalnorm:
+         self.info("Normalize based on global mean")
       epip,epis = remove_suffix(curEPI)
       cmd = "3dTstat -mean -prefix %s.mean %s" % (epip, curEPI)
       self.write_execute(cmd)
       if self.globalnorm:
          #normalize based on global mean
-         self.info("Normalize based on global mean")
          cmd = "3dmaskave -mask %s -q %s.mean%s > totalmean.1D" % (maskBRAIN, epip, epis)
          self.write_execute(cmd)
          cmd = "3dcalc -a %s -b %s -expr \"(a / `1dcat totalmean.1D\'[0]\'`) * %s * b\" -prefix %s.norm" % \
@@ -931,7 +967,6 @@ class RestInterface:
          self.write_execute(cmd)
       elif self.modenorm:
          #normalize based on global mode
-         self.info("Normalize based on global mode")
          cmd = "3dhistog -nbins 100 -doall -omit 0 -mask %s %s > %s.hist.1D" % (maskBRAIN, curEPI, epip)
          self.write_execute(cmd)
          cmd = "1dTsort -dec -col 1 %s.hist.1D > %s.hist.sort.1D" % (epip, epip)
@@ -941,7 +976,6 @@ class RestInterface:
          self.write_execute(cmd)
       elif self.localnorm:
          #normalize based on individual voxel means
-         self.info("Normalize based on voxel mean")
          cmd = "3dcalc -a %s -b %s.mean%s -c %s -expr \'(a / b) * %s * c\' -prefix %s.norm" % \
             (curEPI, epip, epis, maskBRAIN, self.normval, epip)
          self.write_execute(cmd)
@@ -957,6 +991,17 @@ class RestInterface:
       self.write_execute(cmd)
       return nextEPI + epis
          
+   def uniformize_anat(self, curANAT):
+      #uniformize anatomy
+      if not self.uniformize:
+         return curANAT
+      self.info("Uniformize anatomy")
+      anatp,anats = remove_suffix(curANAT)
+      nextANAT = anatp + '.uniform'
+      cmd = "3dUniformize -anat %s -prefix %s" % (curANAT, nextANAT)
+      self.write_execute(cmd)
+      return nextANAT + anats
+
    def align_etc(self, curEPI, curANAT, curASEG, curALIGN, curREGMASKS):
       if not self.align:
          return curEPI,curANAT,None,curASEG,None,curREGMASKS 
@@ -973,14 +1018,21 @@ class RestInterface:
       #return the names of the motion params and the aligned EPI
       #also transform the aseg file to tlrc space
       self.info("Talairach all input datasets")
-      cmd = "@auto_tlrc -base TT_N27+tlrc -input %s" % curANAT
+      if self.ss:
+         cmd = "@auto_tlrc -base TT_N27+tlrc -input %s" % curANAT
+      else:
+         cmd = "@auto_tlrc -base TT_N27+tlrc -no_ss -input %s" % curANAT
       self.write_execute(cmd)
       epip,epis = remove_suffix(curEPI)
       anatp,anats = remove_suffix(curANAT)
       anatt = anatp + "+tlrc"
       epit = epip + "_tlrc_al+tlrc"
-      cmd = "align_epi_anat.py -epi %s -anat %s -epi_base 0 -epi2anat -tlrc_apar %s -master_tlrc %s" \
-         % (curEPI, curANAT, anatt, self.episize)
+      if self.ss:
+         cmd = "align_epi_anat.py -epi %s -anat %s -epi_base 0 -epi2anat -tlrc_apar %s -master_tlrc %s" \
+            % (curEPI, curANAT, anatt, self.episize)
+      else:
+         cmd = "align_epi_anat.py -epi %s -anat %s -anat_has_skull no -epi_base 0 -epi2anat -tlrc_apar %s -master_tlrc %s" \
+            % (curEPI, curANAT, anatt, self.episize)
       self.write_execute(cmd)
       #tlrc the aseg file, assuming it is aligned with the original anat
       if curASEG != None:
@@ -1008,8 +1060,11 @@ class RestInterface:
             cmd = "@auto_tlrc -onewarp -apar %s -rmode NN -input %s " % (anatt, regmask)
             self.write_execute(cmd)
             curREGMASKS[i] = regmaskt
-           
-      return epit,anatt,epip + "_tsh_vr_motion.1D", asegt, epip + "_al_tlrc_mat.aff12.1D",curREGMASKS
+      if self.tshift:
+         motparams = epip + "_tsh_vr_motion.1D"
+      else:
+         motparams = epip + "_vr_motion.1D"    
+      return epit,anatt,motparams, asegt, epip + "_al_tlrc_mat.aff12.1D",curREGMASKS
       
    def tlrc_anat(self, curANAT):
       cmd = "@auto_tlrc -base TT_N27+tlrc -no_ss -input %s" % curANAT
@@ -1024,11 +1079,15 @@ class RestInterface:
       #also align the aseg file
       epip,epis = remove_suffix(curEPI)
       anatp,anats = remove_suffix(curANAT)
+      if self.ss:
+         has_skull = "yes"
+      else:
+         has_skull = "no"
       if self.epi2anat:
          #align epi 2 anat
          self.info("Align EPI to ANAT")
-         cmd = "align_epi_anat.py -anat %s -epi %s -suffix _al -epi_base 0 -epi2anat -save_vr -volreg on" % \
-            (curANAT, curEPI)
+         cmd = "align_epi_anat.py -anat %s -epi %s -suffix _al -epi_base 0 -epi2anat -save_vr -volreg on -anat_has_skull %s" % \
+            (curANAT, curEPI, has_skull)
          self.write_execute(cmd)
          #no change to aseg because it is already aligned with anat
          aseg_al = curASEG
@@ -1039,12 +1098,12 @@ class RestInterface:
          #align anat 2 epi
          if curALIGN is not None:
             self.info("Align EPI and ANAT to a common EPI base dataset")
-            cmd = "align_epi_anat.py -anat %s -epi %s\'[0]\' -suffix _al -epi_base 0 -save_vr -volreg on -child_epi %s" % \
-               (curANAT, curALIGN, curEPI)
+            cmd = "align_epi_anat.py -anat %s -epi %s\'[0]\' -suffix _al -epi_base 0 -save_vr -volreg on -child_epi %s -anat_has_skull %s" % \
+               (curANAT, curALIGN, curEPI, has_skull)
          else:
             self.info("Align ANAT to EPI")
-            cmd = "align_epi_anat.py -anat %s -epi %s -suffix _al -epi_base 0 -save_vr -volreg on" % \
-               (curANAT, curEPI)
+            cmd = "align_epi_anat.py -anat %s -epi %s -suffix _al -epi_base 0 -save_vr -volreg on -anat_has_skull %s" % \
+               (curANAT, curEPI, has_skull)
          self.write_execute(cmd)
          #align the aseg file, assuming it started in alignment with the anat
          if curASEG != None:
@@ -1073,11 +1132,17 @@ class RestInterface:
                   regmaskp, regmask)
                self.write_execute(cmd)
                curREGMASKS[i] = regmaskp + "_al" + regmasks
-         epi_al = epip + "_tsh_vr" + epis
+         if self.tshift:
+            epi_al = epip + "_tsh_vr" + epis
+         else:
+            epi_al = epip + "_vr" + epis
          anat_al = anatp + "_al" + anats
          xform = None
 
-      mot = epip + "_tsh_vr_motion.1D"
+      if self.tshift:
+         mot = epip + "_tsh_vr_motion.1D"
+      else:
+         mot = epip + "_vr_motion.1D"
       return epi_al, anat_al, mot, aseg_al, xform, curREGMASKS
 
    def tcat(self, curEPI, curMOTION, curRVT):
@@ -1326,6 +1391,8 @@ class RestInterface:
       #convert the aseg file to .BRIK format
       if curASEG == None:
          return None
+      if curASEG[-4:] == ".mgz" or curASEG[-4:] == ".nii":
+         self.info("Convert aseg into .BRIK")
       if curASEG[-4:] == ".mgz":
          asegp = curASEG[:-4]
          cmd = "mri_convert -it mgz -ot nii -i %s -o %s.nii" % (curASEG, asegp)
@@ -1538,13 +1605,13 @@ class RestInterface:
          return None
       self.info("Compute TSNR")
       epip,epis=remove_suffix(curEPI)
-      cmd = "3dTstat -mean -prefix %s.mean %s" % (epip, curEPI)
+      cmd = "3dTstat -mean -prefix %s.tmean %s" % (epip, curEPI)
       self.write_execute(cmd)
       cmd = "3dDetrend -prefix %s.det -polort %s %s" % (epip, self.polort, curEPI)
       self.write_execute(cmd)
       cmd = "3dTstat -stdev -prefix %s.det.stdev %s" % (epip, epip + ".det" + epis)
       self.write_execute(cmd)
-      cmd = "3dcalc -a %s.mean%s -b %s.det.stdev%s -expr \'a / b\' -float -prefix %s.tsnr" % (epip, epis, \
+      cmd = "3dcalc -a %s.tmean%s -b %s.det.stdev%s -expr \'a / b\' -float -prefix %s.tsnr" % (epip, epis, \
          epip, epis, epip)
       self.write_execute(cmd)
       return epip + ".tsnr" + epis
@@ -1605,6 +1672,16 @@ class RestInterface:
          return
       #default polort is 1 + floor(length / 150)
       self.polort = str(int(1 + float(self.tr) * float(self.trs) / 150))
+
+   def set_tshift(self, curEPI):
+      #determine if the input EPI has already been tshifted
+      com = shell_com("3dAttribute TAXIS_OFFSETS %s" % curEPI, self.oexec, capture=1)
+      com.run()
+      if len(com.so):
+         self.tshift = True
+      else:
+         self.tshift = False
+
    def compute_corrmap(self, curEPI, maskGM):
       #compute average correlation maps using 3dTcorrMap
       if not self.corrmap:
@@ -1651,6 +1728,8 @@ class RestInterface:
 
       #set polort automatically if it was not chosen by the user
       self.set_polort(curEPI)
+      #determine if the input dataset has already been tshifted
+      self.set_tshift(curEPI)
       #convert epi to float format to avoid bothersome scaling misfit errors
       curEPI = self.convert_to_float(curEPI)
       #save origional epi name for censoring later 
@@ -1658,6 +1737,8 @@ class RestInterface:
       #despike
       if self.despike:
          curEPI = self.despike_epi(curEPI)
+      #uniformize anatomy
+      curANAT = self.uniformize_anat(curANAT)
       #convert aseg file to .BRIK format
       curASEG = self.convert_aseg(curASEG)
 
@@ -1787,23 +1868,31 @@ def copy_input(infile, origdir):
       #should only be true when processing a localregmask--will have infile and radius
       if infile[0][0] == '/':
          #input is an absolute path
-         shell_com("cp %s* ." % infile[0]).run()
+         copy_or_error("%s*" % infile[0])
          return [remove_path(infile[0]), infile[1]]
       else:
          #input is a relative path
-         shell_com("cp %s/%s* ." % (origdir, infile[0])).run()
+         copy_or_error("%s/%s*" % (origdir, infile[0]))
          return [remove_path(infile[0]), infile[1]]
        
    if infile[0] == '/':
       #input is an absolute path
-      shell_com("cp %s* ." % infile).run()
+      copy_or_error("%s*" % infile)
       return remove_path(infile)
    else:
       #input is a relative path
-      shell_com("cp %s/%s* ." % (origdir, infile)).run()
-      return remove_path(infile)
+      copy_or_error("%s/%s*" % (origdir, infile))
+      return remove_path(infile) 
    print "ERROR: copying input %s.  This should never happen" % infile
    sys.exit(1)
+
+def copy_or_error(infile):
+   #copy an input file if it exists, otherwise throw an error
+   s = shell_com("cp %s ." % infile, capture=1)
+   s.run()
+   if s.se:
+      print "ERROR: Cannot find input file %s.  Exiting." % infile
+      sys.exit(1)
 
 def nstr(s):
    #to convert None to "" conveniently
