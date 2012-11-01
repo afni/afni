@@ -1543,10 +1543,6 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 #undef  INVALIDATE_MAT44
 #define INVALIDATE_MAT44(AA) ((AA).m[3][3] = 0.0f)
 
- ( (a) = AA.m[0][0]*(x) + AA.m[0][1]*(y) + AA.m[0][2]*(z) + AA.m[0][3] , \
-   (b) = AA.m[1][0]*(x) + AA.m[1][1]*(y) + AA.m[1][2]*(z) + AA.m[1][3] , \
-   (c) = AA.m[2][0]*(x) + AA.m[2][1]*(y) + AA.m[2][2]*(z) + AA.m[2][3]  )
-
 #undef  ISZERO_MAT44
 #define ISZERO_MAT44(AA) \
  ((AA.m[0][0] == 0.0f) && \
