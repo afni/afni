@@ -235,7 +235,7 @@ int main( int argc , char * argv[] )
                                  fac);
                }
                if (verb) INFO_message("Going to Extract_Gradient_Maxima_3D\n");
-               if ( Extract_Gradient_Maxima_3D( (void *)pp, USHORT,
+               if ( Extract_Gradient_Maxima_3D( (void *)pp, SSHORT,
 				               sum[kk], FLOAT,
 				               indims,
 				               border,

@@ -17,10 +17,11 @@ typedef struct {
    float *XYZ;
    int N_XYZ;
    double cost;
+   byte city;
 } CMO_UD; /* user data for SUMA_CoordMatch_OptimCost */
 
 static CMO_UD cmoud;
-static int debug = 2;
+static int debug = 1;
 
 void SUMA_free_cmoud() {
    if (cmoud.dist) SUMA_free(cmoud.dist); cmoud.dist = NULL;
@@ -32,7 +33,7 @@ void SUMA_set_cmoud(SUMA_SurfaceObject *SOr,
                     float *xyz, int N_xyz,
                     byte *cmask, 
                     double *aff, byte *affm,
-                    int method) {
+                    int method, byte city) {
    static char FuncName[]={"SUMA_set_cmoud"};
    
    SUMA_ENTRY;
@@ -50,6 +51,7 @@ void SUMA_set_cmoud(SUMA_SurfaceObject *SOr,
    cmoud.XYZ = NULL;
    cmoud.N_XYZ=-1;
    cmoud.cost = 0.0;
+   cmoud.city=city;
    
    if (debug) {
       fprintf(stderr,"Have surface %s and %d points in xyz vector\n",
@@ -62,7 +64,7 @@ void SUMA_set_cmoud(SUMA_SurfaceObject *SOr,
 double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
                        float *xyz, int N_xyz,
                        double *aff, byte *maff,
-                       int method, float *dist)
+                       int method, float *dist, byte city)
 {
    static char FuncName[]={"SUMA_CoordMatchEnergy"};
    double ener=0.0;
@@ -73,7 +75,7 @@ double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
    if (!SUMA_Shortest_Point_To_Triangles_Distance(
             xyz, N_xyz, 
             SOr->NodeList, SOr->FaceSetList, SOr->N_FaceSet,
-            SOr->FaceNormList, &dist, NULL, NULL )) {
+            SOr->FaceNormList, &dist, NULL, NULL, city )) {
          SUMA_S_Err("Failed to get shortys");
          SUMA_RETURN(ener);     
    }
@@ -85,7 +87,9 @@ double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
                         dist[pp], pp);
          dist[pp]=SUMA_ABS(dist[pp]);
       }
-      ener += sqrt(dist[pp]); dist[pp] = -1.0; /* reinitialize for next call */
+      if (city) ener += (dist[pp]); 
+      else ener += sqrt(dist[pp]);
+      dist[pp] = -1.0; /* reinitialize for next call */
    }
    #if 1
       fprintf(stderr,"ener = %f/%d\n", ener, N_xyz);
@@ -247,7 +251,7 @@ int SUMA_par2mat(double *par12, double mat[4][4])
    /* load the shift */
    ADD_SHIFT(par12,mat);
       
-   if (debug) {
+   if (debug > 1) {
       SHOW_MAT(mat, "par2mat");
    }
    SUMA_RETURN(1);
@@ -269,8 +273,10 @@ double SUMA_CoordMatch_OptimCost(int n, double *par)
       if (cmoud.affm[i]) cmoud.aff[i] = par[k++];
       else if (i>=6 && i<9) cmoud.aff[i]=1.0;
       else cmoud.aff[i] = 0.0;
-      fprintf(stderr,"affm[%d]=%d, aff[%d]=%f\n",
+      if (debug > 2) {
+         fprintf(stderr,"affm[%d]=%d, aff[%d]=%f\n",
                      i, cmoud.affm[i], i, cmoud.aff[i]);
+      }
    }
    
    /* form the affine matrix from 12 parameters*/
@@ -282,8 +288,8 @@ double SUMA_CoordMatch_OptimCost(int n, double *par)
    /* transform the coordinates */
    i=0; k=0; cmoud.N_XYZ=0;
    while(i<3*cmoud.N_xyz) {
-      x = cmoud.xyz[i++]; y = cmoud.xyz[i++]; z = cmoud.xyz[i++];
-      if (!cmoud.cmask || cmoud.cmask[i]) {
+      if (!cmoud.cmask || cmoud.cmask[i/3]) {
+         x = cmoud.xyz[i++]; y = cmoud.xyz[i++]; z = cmoud.xyz[i++];
          cmoud.XYZ[k++] = (float) (  mat[0][0] * x + 
                                      mat[0][1] * y + 
                                      mat[0][2] * z +
@@ -297,6 +303,8 @@ double SUMA_CoordMatch_OptimCost(int n, double *par)
                                      mat[2][2] * z +
                                      mat[2][3] );
          ++cmoud.N_XYZ;
+      } else {
+         i += 3;
       }
    }
    
@@ -308,7 +316,7 @@ double SUMA_CoordMatch_OptimCost(int n, double *par)
    cmoud.cost =  SUMA_CoordMatchEnergy(cmoud.SOr,
                        cmoud.XYZ, cmoud.N_XYZ,
                        cmoud.aff, cmoud.affm,
-                       cmoud.method, cmoud.dist);
+                       cmoud.method, cmoud.dist, cmoud.city);
    
    if (debug==1) {
       fprintf(SUMA_STDERR,"%cMethod %d. iter %d, %d points, Coord Cost %f%c", 
@@ -362,7 +370,7 @@ double SUMA_AlignCoords(float *xyz, int N_xyz, byte *cmask, int method,
    }
 
    /* load user data */
-   SUMA_set_cmoud(SOr, xyz, N_xyz, cmask, aff, affm, method);
+   SUMA_set_cmoud(SOr, xyz, N_xyz, cmask, aff, affm, method, strstr(opt, "City")?1:0);
 
    
    /* load parameters into par, bot, top */

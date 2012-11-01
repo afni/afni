@@ -54,7 +54,8 @@ GLw_local/GLwDrawA.o: GLw_local/GLwDrawA.c
  
        
 SUMA_gts.o: SUMA_gts.c
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -c SUMA_gts.c 
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} \
+		    -c SUMA_gts.c 
 
 SUMA_SRCS_MAIN = SUMA_suma.c
 
@@ -314,14 +315,15 @@ ConvexHull: SUMA_ConvexHull.c
 		${SUMALIBLIST} ${SUMASLIB} -lsegtools ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB} \
 		-lgsl -lgslcblas
 
-SurfMatch: SUMA_SurfMatch.c ${SUMALIB} ${SUMASLIB}
+SurfMatch: SUMA_SurfMatch.c ${SUMALIB} ${SUMASLIB} libgts.a ${SUMAGTSLIB}
 	$(RM) $@
 	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_SurfMatch.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
-		-I../3DEdge/src -l3DEdge -I../avovk \
-		${SUMALIBLIST} ${SUMASLIB} -lsegtools ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB} \
-		-lgsl -lgslcblas
+		-I../3DEdge/src -l3DEdge -I../avovk  \
+		libSUMAGTS.a ${SUMALIBLIST} ${SUMASLIB} -lglib${SUMA_GLIB_VER} \
+		${SUMASLIB} -lsegtools ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB} \
+		-lgsl -lgslcblas libgts.a
 
 3dGenPriors: SUMA_3dGenPriors.c ${SUMALIB} ${SUMASLIB}
 	$(RM) $@
@@ -447,7 +449,7 @@ BrainSkin: SUMA_BrainSkin.c ${SUMALIB}
 		${SUMA_INPATH}	${SUMA_LINK_PATH}		\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o		\
 		${AFNI_OBJS} -I../avovk -lf2c			\
-		libSUMAGTS.a ${SUMALIBLIST} -lglib${SUMA_GLIB_VER} \
+		libSUMAGTS.a ${SUMALIBLIST} ${SUMASLIB} -lglib${SUMA_GLIB_VER} \
 		-lsegtools ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB} -lgsl -lgslcblas libgts.a  
 

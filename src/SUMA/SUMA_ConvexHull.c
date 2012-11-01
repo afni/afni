@@ -111,7 +111,7 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(
          SUMA_S_Warn("PCA projection makes no sense for usual convex hull");
       }
       if (!(xyzp = SUMA_Project_Coords_PCA (xyz, npt, 
-                                                 npt/2, 2, 1))) {
+                                                 npt/2, E3_PLN_PRJ, ROT_2_Z))) {
          SUMA_S_Err("Failed to project");
          goto CLEANUP;   
       }

@@ -2862,7 +2862,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    } else { 
       /* a la SUMA */
-      SUMA_LH("Scaling a la SUMA");
+      SUMA_LHv("Scaling a la SUMA %f %f\n", Opt->IntRange[0], Opt->IntRange[1]);
       if (!SUMA_ScaleToMap( V, SDSET_VECFILLED(Sover->dset_link),
                             Opt->IntRange[0], Opt->IntRange[1], 
                             ColMap, Opt,
@@ -3924,6 +3924,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       SUMA_RETURN(NOPE);
    }
    
+   SUMA_LHv("Input Vmin..Vmax=%f..%f\n", Vmin, Vmax);
    /* No negative colormaps here */
    if (ColMap->Sgn < 0) {
       /* proceed, in SUMA options were given to the user to make 
@@ -4018,7 +4019,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       } 
    } else {
       if (top_frac > 0.0f) {
-         SUMA_S_Note("Using top_frac, not fully tested.");
+         SUMA_S_Notev("Using top_frac %f, not fully tested.", top_frac);
          Vmin *= top_frac;
          Vmax *= top_frac;
       }
@@ -4175,7 +4176,8 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
                }
             }
          } else { /* interpolation mode */
-            SUMA_LH("Interp Mode");
+            SUMA_LHv("Interp Mode, Vmin %f, Vmax %f, Vrange %f\n", 
+                     Vmin, Vmax, Vrange);
             SV->N_VCont = 0;
             for (i=0; i < N_V; ++i) {
                i3 = 3*i;
@@ -5271,7 +5273,8 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
       /* need to create my own sorted version */
         Vsort = (float *)SUMA_calloc (N_V, sizeof(float));
       if (!Vsort) {
-         fprintf (SUMA_STDERR, "Error %s: Failed to allocate for Vsort.\n", FuncName);
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Failed to allocate for Vsort.\n", FuncName);
          SUMA_RETURN (NULL);
       }
       /* copy V to Vsort */
@@ -8301,7 +8304,8 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
             NewColPlane->OptScl->IntRange[0] = 
                -fabs(SUMA_MAX_PAIR( NewColPlane->OptScl->IntRange[0],
                                     NewColPlane->OptScl->IntRange[1]));
-            NewColPlane->OptScl->IntRange[1] = -NewColPlane->OptScl->IntRange[0];
+            NewColPlane->OptScl->IntRange[1] = 
+               -NewColPlane->OptScl->IntRange[0];
          }
 
          /* stick a colormap onto that plane ? */

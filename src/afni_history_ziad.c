@@ -65,6 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 1, Nov , 2012 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Fixed problem with very large threshold ranges",
+   "X11 scale cannot range more than MAX_INT/2. SUMA now"
+   "checks for that and warns the user.\n"
+ },
+
+ { 1, Nov , 2012 , ZSS , "suma-general" , MICRO , TYPE_NEW_ENV,
+   "Abide by AFNI's AFNI_FLOATSCAN variable and look for bad values",
+   "SUMA will now scan for bad floats (NAN, and INF) and sets them\n"
+   "to 0, when the dataset is loaded. You can turn this feature off\n"
+   "with AFNI_FLOATSCAN set to NO.\n"
+ },
+
  { 16, Oct , 2012 , ZSS , "3dSurfMask" , MICRO , TYPE_NEW_OPT,
    "Option -no_dist to avoid length distance computations.",
    "Also, the fast method was improved per the comment below."

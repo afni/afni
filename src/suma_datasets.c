@@ -3190,6 +3190,102 @@ SUMA_DSET * SUMA_EmptyCopyofDset (  SUMA_DSET *odset,
     
    SUMA_RETURN(ndset);
 }
+/* 
+   Scan dataset for nans/infs and replace them with 0
+*/
+int SUMA_FloatScanDset ( SUMA_DSET *odset, int doNan, int doInf, int zerout, 
+                         int fixrange )
+{
+   static char FuncName[]={"SUMA_FloatScanDset"};
+   int i, j, nfixed=0, nfixed_total = 0, nwarn=0;
+   NI_rowtype *rt = NULL;   
+   void *ndat=NULL;
+   SUMA_COL_TYPE ctp = SUMA_ERROR_COL_TYPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   SUMA_LH("IN");
+   if (!odset) { SUMA_SL_Err("Null input"); SUMA_RETURN(nfixed_total); }
+   if (!doNan && !doInf) {
+      SUMA_SL_Err("Nothing to do"); SUMA_RETURN(nfixed_total); 
+   }
+   if (fixrange) zerout = 1; /* no point in fixing range without zeroing out */
+   
+   /* scan each column in dset, get a full copy back */
+   nfixed_total = 0;
+   for (i=0; i < SDSET_VECNUM(odset); ++i) {
+         nfixed = 0;
+         ctp = SUMA_TypeOfDsetColNumb(odset, i); 
+         rt = NI_rowtype_find_code(SUMA_ColType2TypeCast(ctp)) ; 
+         if( rt == NULL || ROWTYPE_is_varsize(rt)) {
+            SUMA_S_Warn("Could not recognize rowtype, or rowtype is of "
+                        "variable size. Column will be skipped."); 
+            continue;
+         }
+         
+         /* scan */
+         switch (rt->code) {
+            case NI_BYTE:
+            case NI_SHORT:
+            case NI_INT:
+               /* No illegal bits */
+               break;
+            case NI_FLOAT:
+               { 
+                  float *fv=(float *)odset->dnel->vec[i];
+                  for (j=0; j<SDSET_VECFILLED(odset); ++j) 
+                     if (doNan && isnan(fv[j])) {
+                        ++nfixed;
+                        if (zerout) fv[j]=0.0;
+                     } else if (doInf && isinf(fv[j])) {
+                        ++nfixed;
+                        if (zerout) fv[j]=0.0;
+                     }
+               }
+               break;
+            case NI_DOUBLE:
+               { 
+                  double *dv=(double *)odset->dnel->vec[i];
+                  for (j=0; j<SDSET_VECFILLED(odset); ++j) 
+                     if (doNan && isnan(dv[j])) {
+                        ++nfixed;
+                        if (zerout) dv[j]=0.0;
+                     } else if (doInf && isinf(dv[j])) {
+                        ++nfixed;
+                        if (zerout) dv[j]=0.0;
+                     }
+               }
+               break;
+            case NI_COMPLEX:
+               { 
+                  complex *cxv=(complex *)odset->dnel->vec[i];
+                  for (j=0; j<SDSET_VECFILLED(odset); ++j) 
+                     if (doNan && (isnan(cxv[j].r) || isnan(cxv[j].i))) {
+                        ++nfixed;
+                        if (zerout) { cxv[j].r=0.0; cxv[j].i=0.0; }
+                     } else if (doInf && (isinf(cxv[j].r) || isinf(cxv[j].i))) {
+                        ++nfixed;
+                        if (zerout) { cxv[j].r=0.0; cxv[j].i=0.0; }
+                     }
+               }
+               break;
+            default:
+               /* nothing to check here either */
+               break;
+         }
+         if (nfixed && fixrange) {
+            if (!nwarn) {
+               SUMA_S_Note("Recomputing range for column with inf or nans\n"
+                        "Message muted for other columns");
+            }
+            ++nwarn;
+            SUMA_UpdateDsetColRange(odset, i);
+         }  
+         nfixed_total += nfixed;
+   }
+   SUMA_LH("OUT");
+   SUMA_RETURN(nfixed_total);
+}
 
 /* Return a full and node_index-sorted version of the input dataset.
 */
@@ -3282,6 +3378,9 @@ SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex )
              case NI_DOUBLE:
                ndat = SUMA_calloc(MaxNodeIndex+1, sizeof(double));
                break;
+             case NI_COMPLEX:
+               ndat = SUMA_calloc(MaxNodeIndex+1, sizeof(complex));
+               break;
              default:
                SUMA_SL_Warn(
                   "Type not allowed for padding operation, skipping");
@@ -3340,6 +3439,17 @@ SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex )
                      }
                }
                break;
+            case NI_COMPLEX:
+               { 
+                  complex *cxx=NULL, *cxv=(complex *)odset->dnel->vec[i];
+                  for (j=0; j<SDSET_VECFILLED(odset); ++j) 
+                     if (indold[j] <= MaxNodeIndex) {
+                        cxx = (complex *)ndat;
+                        cxx[indold[j]].r = cxv[j].r;
+                        cxx[indold[j]].i = cxv[j].i;
+                     }
+               }
+               break;
             default:
                SUMA_SL_Warn(
                   "Type not allowed for masking operation, skipping.");
@@ -3352,6 +3462,7 @@ SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex )
             case NI_INT:
             case NI_FLOAT:
             case NI_DOUBLE:
+            case NI_COMPLEX:
                /* add the column */
                SUMA_LH("Getting the label");
                lblcp = SUMA_DsetColLabelCopy(odset, i, 0);
@@ -5567,7 +5678,7 @@ char *SUMA_ShowMeSome ( void *dt, SUMA_VARTYPE tp, int N_dt,
    char *s=NULL;
    complex *dtc = NULL;
    SUMA_STRING *SS=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -9150,11 +9261,12 @@ SUMA_DSET *SUMA_LoadDset_ns (char *Name, SUMA_DSET_FORMAT *form, int verb)
    WorkErrLog_ns();
    return(dset);
 }
+
 SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
 {  
    static char FuncName[]={"SUMA_LoadDset_eng"};
    SUMA_DSET *dset = NULL, *dset_c = NULL;
-   int *RowSel=NULL, *ColSel=NULL, *NodeSel=NULL, i;
+   int *RowSel=NULL, *ColSel=NULL, *NodeSel=NULL, i, nfixed=0;
    char *Name=NULL;
    double range[2];
    int loc[2];
@@ -9238,10 +9350,20 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
       if (verb) SUMA_PushErrLog("SL_Err","Failed to read dset", FuncName);
       goto GOODBYE;    
    }
+   
    if (LocalHead) {
       SUMA_ShowParsedFname(pn, NULL);
       SUMA_ShowDset(dset, 0, NULL);
    } 
+   
+   /* repair floats */
+   if (!SUMA_isEnv("AFNI_FLOATSCAN","NO")) { 
+      if (nfixed = SUMA_FloatScanDset(dset, 1, 1, 1, 0)) {
+         if (1 || verb) fprintf(SUMA_STDOUT,
+             "++    Notice %s: %d NAN or INF values were set to 0 in dset\n\n",
+                        FuncName,  nfixed);
+      }
+   }
    
    /* do we need to substitute with node indices only? */
    if (pn->only_index) {

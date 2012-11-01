@@ -268,6 +268,7 @@ typedef struct {
    char *s; /* just a string, gets freed in the end */
    
    float permask;
+   float flt1, flt2, flt3;
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT; /* also edit defaults in 
                                  SUMA_Alloc_Generic_Prog_Options_Struct and in 
                                  SUMA_Free_Generic_Prog_Options_Struct */

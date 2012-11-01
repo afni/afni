@@ -3373,6 +3373,9 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 " Note that if the surface filename has the proper extension, \n"
 " it is enough to use the -i option and let the programs guess\n"
 " the type from the extension.\n"
+" By default, each -i_* surface has its own state. Precede all -i\n"
+" options with -onestate, if you want all -i_* surfaces to be of \n"
+" the same state.\n"
       );
    }
    if (opt->accept_ipar) {

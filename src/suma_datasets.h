@@ -1542,6 +1542,8 @@ int SUMA_FindDsetColLabeled(SUMA_DSET *dset, char *label);
 char **SUMA_AllDsetColLabels(SUMA_DSET *dset);
 char **SUMA_FreeAllDsetColLabels(char **);
 char *SUMA_ColLabelCopy(NI_element *nel, int i, int addcolnum);
+int SUMA_FloatScanDset ( SUMA_DSET *odset, int doNan, int doInf, 
+                         int zeroout, int fixrange);
 SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex );
 SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index);
 SUMA_DSET * SUMA_MaskedByOrderedNodeIndexCopyofDset(
