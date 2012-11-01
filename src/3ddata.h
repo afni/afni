@@ -1543,16 +1543,39 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 #undef  INVALIDATE_MAT44
 #define INVALIDATE_MAT44(AA) ((AA).m[3][3] = 0.0f)
 
+ ( (a) = AA.m[0][0]*(x) + AA.m[0][1]*(y) + AA.m[0][2]*(z) + AA.m[0][3] , \
+   (b) = AA.m[1][0]*(x) + AA.m[1][1]*(y) + AA.m[1][2]*(z) + AA.m[1][3] , \
+   (c) = AA.m[2][0]*(x) + AA.m[2][1]*(y) + AA.m[2][2]*(z) + AA.m[2][3]  )
+
 #undef  ISZERO_MAT44
 #define ISZERO_MAT44(AA) \
- ((AA.m[0][0] == 0.0) && \
-  (AA.m[0][2] == 0.0) && \
-  (AA.m[1][0] == 0.0) && \
-  (AA.m[1][2] == 0.0) && \
-  (AA.m[2][0] == 0.0) && \
-  (AA.m[2][2] == 0.0) && \
-  (AA.m[3][0] == 0.0) && \
-  (AA.m[3][2] == 0.0) )
+ ((AA.m[0][0] == 0.0f) && \
+  (AA.m[0][1] == 0.0f) && \
+  (AA.m[0][2] == 0.0f) && \
+  (AA.m[0][3] == 0.0f) && \
+  (AA.m[1][0] == 0.0f) && \
+  (AA.m[1][1] == 0.0f) && \
+  (AA.m[1][2] == 0.0f) && \
+  (AA.m[1][3] == 0.0f) && \
+  (AA.m[2][0] == 0.0f) && \
+  (AA.m[2][1] == 0.0f) && \
+  (AA.m[2][2] == 0.0f) && \
+  (AA.m[2][3] == 0.0f)   )
+
+#undef  ISIDENT_MAT44
+#define ISIDENT_MAT44(AA) \
+ ((AA.m[0][0] == 1.0f) && \
+  (AA.m[0][1] == 0.0f) && \
+  (AA.m[0][2] == 0.0f) && \
+  (AA.m[0][3] == 0.0f) && \
+  (AA.m[1][0] == 0.0f) && \
+  (AA.m[1][1] == 1.0f) && \
+  (AA.m[1][2] == 0.0f) && \
+  (AA.m[1][3] == 0.0f) && \
+  (AA.m[2][0] == 0.0f) && \
+  (AA.m[2][1] == 0.0f) && \
+  (AA.m[2][2] == 1.0f) && \
+  (AA.m[2][3] == 0.0f)   )
 
 /* check if 2 mat44 matrices are equal-ish */
 
@@ -4471,7 +4494,7 @@ typedef struct {
   MRI_vectim *mv ;
   char *prefix ; int ndet ;
   float *tseed ;
-  
+
   THD_3dim_dataset *eset ; MRI_vectim *ev ;
 } ICOR_setup ;
 
@@ -5337,7 +5360,7 @@ extern void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
                 float *xrai_orig, float *yrai_orig, float *zrai_orig); /* ZSS */
 extern MRI_IMAGE * mri_watershedize( MRI_IMAGE * , float ) ;
 extern void mri_speciebusiness( int ) ;
-extern void mri_brain_normalize_cuts ( char * ); 
+extern void mri_brain_normalize_cuts ( char * );
 extern void mri_brainormalize_initialize(float dx, float dy, float dz);
 extern float THD_BN_dxyz(void);
 extern int THD_BN_nx(void);
