@@ -53,6 +53,30 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
 }
 
 /*---------------------------------------------------------------------------*/
+
+IndexWarp3D * IW3D_create_vacant( int nx , int ny , int nz )
+{
+   IndexWarp3D *AA ;
+
+   if( nx < NGMIN && ny < NGMIN && nz < NGMIN ) return NULL ;
+
+   AA = (IndexWarp3D *)calloc(1,sizeof(IndexWarp3D)) ;
+   AA->nx = nx ; AA->ny = ny ; AA->nz = nz ;
+   AA->xd = NULL ;
+   AA->yd = NULL ;
+   AA->zd = NULL ;
+   AA->hv = NULL ;
+   AA->je = NULL ;
+   AA->se = NULL ;
+   LOAD_DIAG_MAT44(AA->cmat,1.0f,1.0f,1.0f) ;
+   LOAD_DIAG_MAT44(AA->imat,1.0f,1.0f,1.0f) ;
+   AA->geomstring = NULL ;
+   AA->view = VIEW_ORIGINAL_TYPE ;
+
+   return AA ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Into the valley of death! */
 
 void IW3D_destroy( IndexWarp3D *AA )
@@ -1793,7 +1817,7 @@ ENTRY("IW3D_invert") ;
 
 static float sstepfac = 0.5f ;
 
-static float sstepfac_MAX = 0.456789f ;
+static float sstepfac_MAX = 0.432111f ;
 static float sstepfac_MIN = 0.234567f ;
 
 IndexWarp3D * IW3D_sqrtinv_step( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
@@ -2021,7 +2045,7 @@ ENTRY("IW3D_sqrtinv") ;
        continue ;
      }
 
-     if( nrat < 0.0001f ){
+     if( nrat < 0.0002f ){
        if( verb_nww ) ININFO_message(" -- iteration converged") ;
        RETURN(BB) ;   /* converged */
      }
@@ -2040,7 +2064,7 @@ ENTRY("IW3D_sqrtinv") ;
 
    /* failed to converge, return latest result anyhoo */
 
-   WARNING_message("sqrtinv: iterations failed to converge") ;
+   WARNING_message("sqrtinv: iterations failed to converge beautifully") ;
    RETURN(BB) ;
 }
 
@@ -2154,6 +2178,19 @@ ENTRY("IW3D_from_poly") ;
    /* time to trot, Bwana */
 
    free(zq) ; free(yq) ; free(xq) ; RETURN(AA) ;
+}
+
+IndexWarp3D * IW3D_from_mat44( mat44 mm , IndexWarp3D *WW )
+{
+   float mar[12] ; IndexWarp3D *AA ;
+
+   UNLOAD_MAT44( mm ,
+                 mar[0] , mar[1] , mar[2] , mar[3] , mar[ 4] , mar[ 5] ,
+                 mar[6] , mar[7] , mar[8] , mar[9] , mar[10] , mar[11]  ) ;
+
+   affmode = AFF_MATRIX ;
+   AA = IW3D_from_poly( 12 , mar , WW ) ;
+   return AA ;
 }
 
 /****************************************************************************/
@@ -2278,6 +2315,70 @@ ENTRY("IW3D_warp_floatim") ;
                            0,sim->nx-1 , 0,sim->ny-1 , 0,sim->nz-1 , code ) ;
 
    RETURN(fim) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void IW3D_mat44_into_floatim( mat44 imat , MRI_IMAGE *sim, MRI_IMAGE *fim,
+                              int ibot, int itop ,
+                              int jbot, int jtop ,
+                              int kbot, int ktop , int code )
+{
+   int nx,ny,nz,nxy , nii,njj,nkk , np , ii,jj,kk,ijk , pp ;
+   float *ip,*jp,*kp ;
+   float *far , *xd,*yd,*zd ;
+
+ENTRY("IW3D_mat44_into_floatim") ;
+
+   if( sim == NULL || sim->kind != MRI_float ) EXRETURN ;
+   if( fim == NULL || fim->kind != MRI_float ) EXRETURN ;
+
+   nx = fim->nx ; ny = fim->ny ; nz = fim->nz ; nxy = nx*ny ;
+
+   if( ibot < 0 ) ibot = 0 ; if( itop > nx-1 ) itop = nx-1 ;
+   if( jbot < 0 ) jbot = 0 ; if( jtop > ny-1 ) itop = ny-1 ;
+   if( kbot < 0 ) kbot = 0 ; if( ktop > nz-1 ) itop = nz-1 ;
+
+   nii = itop - ibot + 1 ; if( nii < 1 ) EXRETURN ;
+   njj = jtop - jbot + 1 ; if( njj < 1 ) EXRETURN ;
+   nkk = ktop - kbot + 1 ; if( nkk < 1 ) EXRETURN ;
+
+   np = nii*njj*nkk ;
+   ip = (float *)malloc(sizeof(float)*np) ;
+   jp = (float *)malloc(sizeof(float)*np) ;
+   kp = (float *)malloc(sizeof(float)*np) ;
+
+   for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){
+     for( jj=jbot ; jj <= jtop ; jj++ ){
+       for( ii=ibot ; ii <= itop ; ii++,pp++ ){
+         MAT44_VEC( imat , ii,jj,kk , ip[pp],jp[pp],kp[pp] ) ;
+       }
+     }
+   }
+
+   far = MRI_FLOAT_PTR(fim) ;
+
+   /*-- All of them, Frank? --*/
+
+   if( nii == nx && njj == ny && nkk == nz ){
+
+     THD_interp_floatim( sim , np,ip,jp,kp , code , far ) ;
+
+   } else {  /*-- just some of them, Mother Goose? --*/
+
+     float *val = (float *)malloc(sizeof(float)*np) ;
+
+     THD_interp_floatim( sim , np,ip,jp,kp , code , val ) ;
+
+     for( pp=0,kk=kbot ; kk <= ktop ; kk++ )
+       for( jj=jbot ; jj <= jtop ; jj++ )
+         for( ii=ibot ; ii <= itop ; ii++,pp++ ) far[ii+jj*nx+kk*nxy] = val[pp];
+
+     free(val) ;
+   }
+
+   free(kp) ; free(jp) ; free(ip) ;
+   EXRETURN ;
 }
 
 #if 0
