@@ -5098,7 +5098,7 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float 
    \param N_points (int) number of points in Points
    \param P0, P1, P2 (float *) XYZ coords of each vertex in the triangle
    \param itri (int) an integer representing the triangle's ID
-   \param distp (float **) pointer to array which will contain the distance
+   \param distp (float **) pointer to array which will contain the (squared if city==0)
                            distance from each point to the triangle <P0, P1, P2>
                 if (*distp == NULL) it is allocated for and initialized and
                                     *distp[i] contains SD, the shortest distance 
@@ -5108,6 +5108,7 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float 
    \param closestp (int **) pointer to array wich will contain for each point i
                                     the index of the triangle itri which
                                     resulted in the value of *distp[i]
+   \param city (byte) 1 == City block distance, 0 == Euclidian distance squared
    \return NOPE on FAILURE, YUP on SUCCESS.
    This function is meant to be called repeatedly for each new triangle.
    See SUMA_Shortest_Point_To_Triangles_Distance()         
@@ -5115,7 +5116,8 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float 
 int SUMA_Point_To_Triangle_Distance (float *Points, int N_points, 
                                      float *P0, float *P1, float *P2, int itri,
                                      float *tnorm,
-                                     float **distp, int **closestp, byte **sgnp )
+                                     float **distp, int **closestp, byte **sgnp,
+                                     byte city)
 {
    static char FuncName[]={"SUMA_Point_To_Triangle_Distance"};
    float *dist=NULL, *P=NULL;
@@ -5227,7 +5229,11 @@ int SUMA_Point_To_Triangle_Distance (float *Points, int N_points,
       }
       SUMA_FROM_BARYCENTRIC(s, t, P0, P1, P2, I);
       I[0] = I[0]-P[0]; I[1] = I[1]-P[1]; I[2] = I[2]-P[2];
-      sd = I[0]*I[0]+I[1]*I[1]+I[2]*I[2];
+      if (city) {
+         sd = SUMA_ABS(I[0])+SUMA_ABS(I[1])+SUMA_ABS(I[2]);
+      } else {
+         sd = I[0]*I[0]+I[1]*I[1]+I[2]*I[2];         
+      }
       if (dist[in] < 0) {
          dist[in] = (float)sd;
          if (closest) closest[in] = itri;
@@ -5264,11 +5270,13 @@ void Bad_Optimizer_Bad_Bad() {
    return;
 }
 
+/* Square of distance is computed, if city == 0 */
 SUMA_Boolean SUMA_Shortest_Point_To_Triangles_Distance(
          float *Points, int N_points, 
          float *NodeList, int *FaceSetList, int N_FaceSet,
          float *FaceNormList,
-         float **distp, int **closestp, byte **sgnp ) {
+         float **distp, int **closestp, byte **sgnp,
+         byte city ) {
    static char FuncName[]={"SUMA_Shortest_Point_To_Triangles_Distance"};
    float  *P0, *P1, *P2;
    int i=0;
@@ -5292,12 +5300,11 @@ SUMA_Boolean SUMA_Shortest_Point_To_Triangles_Distance(
       if (!SUMA_Point_To_Triangle_Distance(Points, N_points,
                                            P0, P1, P2, i,
                                            FaceNormList+3*i,
-                                           distp, closestp, sgnp)) {
+                                           distp, closestp, sgnp,
+                                           city)) {
          SUMA_S_Errv("Failed at triangle %d\n", i);
          SUMA_RETURN(NOPE); 
-      }
-
-            
+      }            
    }
    SUMA_RETURN(YUP);        
 }

@@ -282,11 +282,19 @@ void refine( GtsSurface* s, int stop)
       (GtsStopFunc)stop_number, &stop);
 }
 
+/* A convenience function for SUMA_Mesh_Resample. 
+   if new_N_Nodes is between 0 and 1 then it is taken
+   to be the fraction of nodes in the original surface.*/
 SUMA_SurfaceObject *SUMA_Mesh_Resample_nodes(SUMA_SurfaceObject *SO, 
-                                             int new_N_Nodes)
+                                             float new_N_Nodes)
 {
+   static char FuncName[]={"SUMA_Mesh_Resample_nodes"};
    int new_N_Edges = 0;
    float edge_factor = 0;
+   
+   if (new_N_Nodes > 0.0 && new_N_Nodes < 1.0) {
+      new_N_Nodes = (int)(new_N_Nodes*SO->N_Node);
+   } else new_N_Nodes = (int)new_N_Nodes;
    
    /* approximate number of edges */
    new_N_Edges = 3*new_N_Nodes-6;

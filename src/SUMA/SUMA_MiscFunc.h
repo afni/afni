@@ -88,12 +88,14 @@ double **SUMA_dPoint_At_Distance(double *U, double *P1, double d);
 int SUMA_Point_To_Triangle_Distance (float *Points, int N_points, 
                                      float *P0, float *P1, float *P2,int itri,
                                      float *tnorm,
-                                     float **distp, int **closestp, byte **sgnp);
+                                     float **distp, int **closestp, byte **sgnp,
+                                     byte city);
 SUMA_Boolean SUMA_Shortest_Point_To_Triangles_Distance(
          float *Points, int N_points, 
          float *NodeList, int *FaceSetList, int N_FaceSet,
          float *FaceNormList,
-         float **distp, int **closestp, byte **sgnp);
+         float **distp, int **closestp, byte **sgnp,
+         byte city);
 SUMA_Boolean SUMA_Point_To_Line_Distance (float *NodeList, int N_points, float *P1, float *P2, float *d2, float *d2min, int *i2min);
 SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float *P1, float *d2, float *d2min, int *i2min);
 int *SUMA_z_dqsort (int *x , int nx );

@@ -6114,7 +6114,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
    XmString string;
    SUMA_SurfaceObject *oSO;
    SUMA_Boolean SameSurface = NOPE;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    oSO = *(SO->SurfCont->curSOp);
