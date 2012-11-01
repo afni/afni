@@ -8738,7 +8738,7 @@ int SUMA_OrientTriangles (float *NodeList, int N_Node, int *FaceSetList,
 SUMA_Boolean SUMA_DotNormals(SUMA_SurfaceObject *SO, float *dir, float **dots)
 {
    static char FuncName[]={"SUMA_DotNormals"};
-   double Un, U[3];
+   double Un, U[3]={0.0, 0.0, 0.0};
    float *dtp=NULL, *X=NULL, *N=NULL;
    int ii=0;
    SUMA_Boolean LocalHead = NOPE;
@@ -8760,9 +8760,9 @@ SUMA_Boolean SUMA_DotNormals(SUMA_SurfaceObject *SO, float *dir, float **dots)
       SUMA_UNITIZE_VEC(U,3);
    }
    for (ii=0; ii<SO->N_Node; ++ii) {
-      X = SO->NodeList+3*ii;
       N = SO->NodeNormList+3*ii;
       if (!dir) { /* direction X-->Center */
+         X = SO->NodeList+3*ii;
          SUMA_UNIT_VEC(X, SO->Center, U, Un);
       }
       dtp[ii] = SUMA_MT_DOT(N, U);
