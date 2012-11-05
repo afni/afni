@@ -405,6 +405,7 @@ gltConstr <- function(cStr, dataStr) {
 
 #Change options list to 3dMVM variable list 
 process.MVM.opts <- function (lop, verb = 0) {
+   if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
    if(file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) || 
          file.exists(paste(lop$outFN,"+tlrc.HEAD", sep=""))) {
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
@@ -669,9 +670,25 @@ lop$dataStr$Subj <-  as.factor(lop$dataStr$Subj)
 lop$dataStr$InputFile <-  as.character(lop$dataStr$InputFile)
 
 # center on user-speficied value or mean
-if(any(!is.na(lop$qVars))) if(all(is.na(lop$qVarCenters))) lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F) else
+if(any(!is.na(lop$qVars))) if(all(is.na(lop$qVarCenters))) 
+   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F) else
    lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$qVarCenters, scale=F)
 
+
+cat('\n++++++++++++++++++++++++++++++++++++++++++++++++++++\n')
+cat('***** Summary information of data structure *****\n')
+#print(sprintf('%i subjects: ', nlevels(lop$dataStr$Subj)))
+#for(ii in 1:nlevels(lop$dataStr$Subj)) print(sprintf('%s ', levels(lop$dataStr$Subj)[ii]))
+
+cat('##', nlevels(lop$dataStr$Subj), 'subjects: ', levels(lop$dataStr$Subj), '\n')
+cat('##', length(lop$dataStr$InputFile), 'response values\n')
+for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
+   cat('##', nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
+   levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'numeric')
+   cat('##',length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii],':', lop$dataStr[,ii], '\n')
+cat('##', lop$num_glt, 'post hoc tests\n')
+cat('***** End of data structure information *****\n')   
+cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 
 
 # Assume the last column is input files
@@ -689,7 +706,8 @@ inData <- read.AFNI(lop$dataStr[1, FileCol])
 dimx <- inData$dim[1]
 dimy <- inData$dim[2]
 dimz <- inData$dim[3]
-myHist <- inData$header$HISTORY_NOTE; myOrig <- inData$origin; myDelta <- inData$delta
+head <- inData$header
+#myHist <- inData$header$HISTORY_NOTE; myOrig <- inData$origin; myDelta <- inData$delta
 
 inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI), '[[', 1))
 dim(inData) <- c(dimx, dimy, dimz, NoFile)
@@ -731,14 +749,14 @@ while (tag == 1) {
 }
 
 if(tag == 0)  {
-   print("Good, test passed...")
+   print(sprintf("Good, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
    #if (NoConst) NoF <- nrow(anova(fm)) else NoF <- nrow(anova(fm))-1  # Just assume an intercept in the model
         #NoF <- nrow(anova(fm))
    #for (n in 1:lop$num_glt) contrDF[n] <- temp[n]$df
    } else { 
-      errex.AFNI(sprintf("Insoluble model! Formula %s on the 4th line in model.txt \n",
-                "might be inappropriate, or there are incorrect specifications in model.txt \n",
-                "such as contrasts, factor levels, or other obscure problems.", lop$model))
+      errex.AFNI(sprintf("Model testing failed! Multiple reasons could cause the failure.... \n"))
+#                "might be inappropriate, or there are incorrect specifications in model.txt \n",
+#                "such as contrasts, factor levels, or other obscure problems.", lop$model))
       #break; next # won't run the whole brain analysis if the test fails
 }
 
@@ -833,11 +851,8 @@ for(ii in 1:lop$num_glt) statpar <- paste(statpar, " -substatpar ", nF+2*ii-1, "
    ifelse(is.na(lop$wsVars), gltRes[[ii]][2,2], gltRes[[ii]][,6]))    
 statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
 
-write.AFNI(lop$outFN, Stat, outLabel, note=myHist, origin=myOrig, delta=myDelta, idcode="whatever")
+#write.AFNI(lop$outFN, Stat, outLabel, note=myHist, origin=myOrig, delta=myDelta, idcode="whatever")
+write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode="whatever")
+
 system(statpar)
 print(sprintf("Congratulations! You've got output %s+tlrc.*", lop$outFN))
-
-# set save defaults using option:
-#options(save.defaults=list(ascii=TRUE, safe=FALSE))
-#save.image()
-#unlink(".RData")
