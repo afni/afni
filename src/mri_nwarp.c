@@ -46,6 +46,7 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
    AA->se = NULL ;  /* to be filled in later, maybe */
    LOAD_DIAG_MAT44(AA->cmat,1.0f,1.0f,1.0f) ;
    LOAD_DIAG_MAT44(AA->imat,1.0f,1.0f,1.0f) ;
+   LOAD_DIAG_MAT44(AA->amat,1.0f,1.0f,1.0f) ;
    AA->geomstring = NULL ;
    AA->view = VIEW_ORIGINAL_TYPE ;
 
@@ -70,6 +71,7 @@ IndexWarp3D * IW3D_create_vacant( int nx , int ny , int nz )
    AA->se = NULL ;
    LOAD_DIAG_MAT44(AA->cmat,1.0f,1.0f,1.0f) ;
    LOAD_DIAG_MAT44(AA->imat,1.0f,1.0f,1.0f) ;
+   LOAD_DIAG_MAT44(AA->amat,1.0f,1.0f,1.0f) ;
    AA->geomstring = NULL ;
    AA->view = VIEW_ORIGINAL_TYPE ;
 
@@ -189,7 +191,7 @@ IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA )
 
    BB = IW3D_create( AA->nx , AA->ny , AA->nz ) ;
 
-   BB->cmat = AA->cmat ; BB->imat = AA->imat ;
+   BB->cmat = AA->cmat ; BB->imat = AA->imat ; BB->amat = AA->amat ;
 
    if( AA->geomstring != NULL )
      BB->geomstring = strdup(AA->geomstring) ;
@@ -228,6 +230,7 @@ IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac )
    return BB ;
 }
 
+#if 0
 /*---------------------------------------------------------------------------*/
 /* Make a half-size copy (scaling displacements by 0.5 as well). */
 
@@ -308,7 +311,9 @@ IndexWarp3D * IW3D_duplo_up( IndexWarp3D *AA , int xadd,int yadd,int zadd)
 
    return BB ;
 }
+#endif
 
+#if 0
 /*---------------------------------------------------------------------------*/
 /* Cut out a box-shaped piece of pie. */
 
@@ -373,6 +378,7 @@ void IW3D_pasteinbox( IndexWarp3D *AA , IndexWarp3D *BB ,
 
    return ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 /* Scale displacements by fac (in-place). */
