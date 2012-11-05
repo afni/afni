@@ -2203,6 +2203,8 @@ extern int mri_principal_vectors( MRI_IMARR *imar, int nvec, float *sval, float 
 typedef struct {
   int    nx ,  ny ,  nz ;
   float *xd , *yd , *zd , *hv , *je , *se ;
+  mat44 amat ;
+   /* stuff below here is for conversion to/from 3D dataset format */
   mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
   char *geomstring ;
   int view ;
