@@ -3022,6 +3022,18 @@ ENTRY("NwarpCalcRPN") ;
        IW3D_scale( iwstk[nstk-1] , val ) ;
      }
 
+     /*--- sum ---*/
+
+     else if( strncasecmp(cmd,"&sum",4) == 0 ){
+       char *bp=strchr(cmd,'(') ;
+       float alpha=1.0f , beta=1.0f ;
+       if( nstk < 2 ) ERREX("stack is too small") ;
+       if( bp != NULL ) sscanf(bp+1,"%f,%f",&alpha,&beta) ;
+       AA = IW3D_sum( iwstk[nstk-1],alpha , iwstk[nstk-2],beta ) ;
+       IW3D_destroy( iwstk[nstk-2] ) ; IW3D_destroy( iwstk[nstk-1] ) ;
+       nstk-- ; iwstk[nstk-1] = AA ;
+     }
+
      /*--- apply ---*/
 
      else if( strncasecmp(cmd,"&apply(",7) == 0 ){
