@@ -259,6 +259,7 @@ IndexWarp3D * IW3D_duplo_down( IndexWarp3D *AA )
         FSUB(ydb,ii,jj,kk,nxb,nxyb) = 0.5f*FSUB(yda,2*ii,2*jj,2*kk,nxa,nxya) ;
         FSUB(zdb,ii,jj,kk,nxb,nxyb) = 0.5f*FSUB(zda,2*ii,2*jj,2*kk,nxa,nxya) ;
    }}}
+   MAT44_SCALE(BB->emat,0.5f) ;
 
    return BB ;
 }
@@ -309,6 +310,7 @@ IndexWarp3D * IW3D_duplo_up( IndexWarp3D *AA , int xadd,int yadd,int zadd)
                     +FSUB(zda,im,jm,kp,nxa,nxya) + FSUB(zda,ip,jm,kp,nxa,nxya)
                     +FSUB(zda,im,jp,kp,nxa,nxya) + FSUB(zda,ip,jp,kp,nxa,nxya) ) ;
    }}}
+   MAT44_SCALE(BB->emat,2.0f) ;
 
    return BB ;
 }
@@ -397,6 +399,7 @@ void IW3D_scale( IndexWarp3D *AA , float fac )
      AA->yd[qq] *= fac ;
      AA->zd[qq] *= fac ;
    }
+   MAT44_SCALE(AA->emat,fac) ;
 
    return ;
 }
@@ -427,6 +430,7 @@ IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac
      CC->yd[qq] = Afac * AA->yd[qq] + Bfac * BB->yd[qq] ;
      CC->zd[qq] = Afac * AA->zd[qq] + Bfac * BB->zd[qq] ;
    }
+   CC->emat = MAT44_SUM( AA->emat,Afac , BB->emat,Bfac ) ;
 
    return CC ;
 }
@@ -434,6 +438,7 @@ IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac
 /*----------------------------------------------------------------------------*/
 /* smooth locally */
 
+#if 0
 #define M7  0.142857143f
 #define M28 0.035714286f
 #define M84 0.011904762f
@@ -441,6 +446,7 @@ IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac
 void IW3D_7smooth( IndexWarp3D *AA )
 {
 }
+#endif
 
 /*----------------------------------------------------------------------------*/
 /* Make the geometry of a warp match that of a dataset. */
@@ -466,6 +472,14 @@ void IW3D_adopt_dataset( IndexWarp3D *AA , THD_3dim_dataset *dset )
    if( gstr != NULL ) AA->geomstring = strdup(gstr) ;
    AA->view = dset->view_type ;
 
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void IW3D_set_emat( IndexWarp3D *AA , mat44 emm )
+{
+   if( AA != NULL ) AA->emat = emm ;
    return ;
 }
 
@@ -524,6 +538,18 @@ ENTRY("IW3D_from_dataset") ;
  AFNI_OMP_END ;
 
      mri_free(zim) ; mri_free(yim) ; mri_free(xim) ;
+   }
+
+   { ATR_float *atr ;
+     atr = THD_find_float_atr( dset->dblk , "NWARP_EMAT") ;
+     if( atr != NULL && atr->nfl >= 12 ){
+       float *matar = atr->fl ; mat44 qmat,rmat ;
+       LOAD_MAT44( qmat , matar[0] , matar[1] , matar[2] , matar[3] ,
+                          matar[4] , matar[5] , matar[6] , matar[7] ,
+                          matar[8] , matar[9] , matar[10], matar[11] ) ;
+       rmat     = MAT44_MUL( qmat , cmat ) ;
+       AA->emat = MAT44_MUL( imat , rmat ) ;
+     }
    }
 
    RETURN(AA) ;
