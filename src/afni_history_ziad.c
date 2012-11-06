@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 6, Nov , 2012 , ZSS , "3dkmeans" , MINOR , TYPE_NEW_OPT,
+   "Added -write_dists to only output ascii files when users want them",
+   "The changes were made to also cleanup the output of 3dSeg. \n"
+ },
+
  { 6, Nov , 2012 , ZSS , "3dSkullStrip" , MINOR , TYPE_NEW_OPT,
    "Added -head*, and -cut_below options to generate whole head masks",
    "This was needed because 3dAutomask or 3dSkullStrip would fail at"
