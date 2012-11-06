@@ -1603,8 +1603,14 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 #define LOAD_DIAG_MAT44(AA,a,b,c)                                         \
   LOAD_MAT44( AA , (a),0,0,0 , 0,(b),0,0 , 0,0,(c),0 )
 
+#undef  LOAD_IDENT_MAT44
+#define LOAD_IDENT_MAT44(AA)                                              \
+  LOAD_MAT44( AA , 1,0,0,0 , 0,1,0,0 , 0,0,1,0 )
+
 #undef  ZERO_MAT44
-#define ZERO_MAT44(AA) LOAD_DIAG_MAT44(AA,0.0,0.0,0.0)
+#define ZERO_MAT44(AA)  LOAD_DIAG_MAT44(AA,0.0,0.0,0.0)
+#undef  LOAD_ZERO_MAT44
+#define LOAD_ZERO_MAT44 ZERO_MAT44
 
 #undef  LOAD_MAT44_VEC
 #define LOAD_MAT44_VEC(AA,x,y,z) ( AA.m[0][3]=(x) , AA.m[1][3]=(y) , AA.m[2][3]=(z) )
@@ -1820,6 +1826,14 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 
 #undef  MAT44_TRACE
 #define MAT44_TRACE(AA) ( AA.m[0][0] + AA.m[1][1] + AA.m[2][2] )
+
+/* scale */
+
+#undef  MAT44_SCALE
+#define MAT44_SCALE(AA,ff)                                                         \
+ ( AA.m[0][0] *= (ff), AA.m[0][1] *= (ff), AA.m[0][2] *= (ff), AA.m[0][3] *= (ff), \
+   AA.m[1][0] *= (ff), AA.m[1][1] *= (ff), AA.m[1][2] *= (ff), AA.m[1][3] *= (ff), \
+   AA.m[2][0] *= (ff), AA.m[2][1] *= (ff), AA.m[2][2] *= (ff), AA.m[2][3] *= (ff)   )
 
 /*---------------------------------------------------------------------*/
 /*--- data structure for information about time axis of 3D dataset ----*/
