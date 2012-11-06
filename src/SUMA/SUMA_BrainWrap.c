@@ -1936,7 +1936,7 @@ short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO,
                #ifdef Meth1
                   /* works, but slow as a turtle */
                   mti = SUMA_MT_intersect_triangle(p0, p1, tmpXYZ, SO->N_Node, 
-                                          SO->FaceSetList, SO->N_FaceSet, mti);
+                                          SO->FaceSetList, SO->N_FaceSet, mti,0);
                   if (!(mti->N_poshits % 2)) { 
                      /* number of positive direction hits is a multiple of 2 */
                      isin[n] = 1; --N_in; /* 1 marks outside surface but in box*/
@@ -2345,7 +2345,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
                                        p1[0], p1[1], p1[2], ijkseed); 
                }
                mti = SUMA_MT_intersect_triangle(p1, SOCenter, NodeIJKlist, 
-                              SO->N_Node, SO->FaceSetList, SO->N_FaceSet, mti);
+                              SO->N_Node, SO->FaceSetList, SO->N_FaceSet, mti,0);
                if (!(mti->N_poshits % 2)) { 
                   /* number of positive direction hits is a multiple of 2 */
                   /* seed is outside */

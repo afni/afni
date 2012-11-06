@@ -11783,7 +11783,7 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
             }
             XQueryPointer( XtDisplay(New), wind, &root, &child, 
                            &root_x, &root_y, &win_x, &win_y, &keys_buttons);
-            NewX = root_x - (int)Dx*2;
+            NewX = root_x - (int)Dx*13;
             NewY = root_y - (int)NewH + Dx;
          }
          break;

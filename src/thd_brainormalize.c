@@ -1461,24 +1461,24 @@ ENTRY("mri_brainormalize") ;
                       T[2] = ktop;
       CM[0] = icm/sum; CM[1] = jcm/sum; CM[2] = kcm/sum;
       Ba[0] = CM[0]; Ba[1] = CM[1]; Ba[2] = T[2] - hBa/dz; 
-                      if (Ba[2] < 0) Ba[2] = 0;
+                      //if (Ba[2] < 0) Ba[2] = 0;
       Bp[0] = CM[0]; Bp[1] = CM[1]; Bp[2] = T[2] - hBp/dz; 
-                      if (Bp[2] < 0) Bp[2] = 0;
+                      //if (Bp[2] < 0) Bp[2] = 0;
       A[0]  = CM[0]; A[1] = CM[1]-lA/dy; A[2] = T[2]-hCM/dz;
-                      if (A[1] < 0) A[1] = 0; if (A[2]<0) A[2] = 0;
+                      //if (A[1] < 0) A[1] = 0; if (A[2]<0) A[2] = 0;
       P[0]  = CM[0]; P[1] = CM[1]+lP/dy; P[2] = T[2]-hCM/dz;
-                      if (P[1] >= ny) P[1] = ny-1; if (P[2]<0) P[2] = 0;
+                      //if (P[1] >= ny) P[1] = ny-1; if (P[2]<0) P[2] = 0;
       R[0]  = CM[0]-wLR/dx; R[1] = CM[1]; R[2] = T[2]-hLR/dz;
-                      if (R[0] < 0) R[0] = 0; if (R[2]<0) R[2] = 0;
+                      //if (R[0] < 0) R[0] = 0; if (R[2]<0) R[2] = 0;
       L[0]  = CM[0]+wLR/dx; L[1] = CM[1]; L[2] = T[2]-hLR/dz;
-                      if (L[0] >= nx) L[0] = nx-1; if (L[2]<0) L[2] = 0;
+                      //if (L[0] >= nx) L[0] = nx-1; if (L[2]<0) L[2] = 0;
 
       /* Cut in AI region */
       if (strstr(bottom_cuts,"A")) {
          if (verb) INFO_message("AI cut");
          for (kk=0; kk<A[2]; ++kk) {
-            for (jj=0; jj<Ba[1]*(1.0-kk/A[2]); ++jj) {
-               for (ii=0; ii<nx; ++ii) {
+            for (jj=0; kk<nz && jj<Ba[1]*(1.0-kk/A[2]); ++jj) {
+               for (ii=0; jj<ny && ii<nx; ++ii) {
                   ijk=kk*nxy+jj*nx+ii;
                   sar[ijk] = 0;
                }
@@ -1489,8 +1489,8 @@ ENTRY("mri_brainormalize") ;
       if (strstr(bottom_cuts,"P")) {
          if (verb) INFO_message("PI cut");
          for (kk=0; kk<P[2]; ++kk) {
-            for (jj=Bp[1]+(P[1]-Bp[1])*kk/P[2]; jj<ny; ++jj) {
-               for (ii=0; ii<nx; ++ii) {
+            for (jj=Bp[1]+(P[1]-Bp[1])*kk/P[2]; kk<nz && jj<ny; ++jj) {
+               for (ii=0; jj>=0 && ii<nx; ++ii) {
                   ijk=kk*nxy+jj*nx+ii;
                   sar[ijk] = 0;
                }
@@ -1502,8 +1502,8 @@ ENTRY("mri_brainormalize") ;
       if (strstr(bottom_cuts,"R")) {
          if (verb) INFO_message("RI cut");
          for (kk=0; kk<R[2]; ++kk) {
-            for (ii=0; ii<Ba[0]*(1.0-kk/R[2]); ++ii) {
-               for (jj=0; jj<ny; ++jj) {
+            for (ii=0; kk<nz && ii<Ba[0]*(1.0-kk/R[2]); ++ii) {
+               for (jj=0; ii<nx && jj<ny; ++jj) {
                   ijk=kk*nxy+jj*nx+ii;
                   sar[ijk] = 0;
                }
@@ -1515,8 +1515,8 @@ ENTRY("mri_brainormalize") ;
       if (strstr(bottom_cuts,"L")) {
          if (verb) INFO_message("LI cut");
          for (kk=0; kk<R[2]; ++kk) {
-            for (ii=Ba[0]+(L[0]-Ba[0])*kk/R[2]; ii<nx; ++ii) {
-               for (jj=0; jj<ny; ++jj) {
+            for (ii=Ba[0]+(L[0]-Ba[0])*kk/R[2]; kk<nz && ii<nx; ++ii) {
+               for (jj=0; jj<ny && ii>=0; ++jj) {
                   ijk=kk*nxy+jj*nx+ii;
                   sar[ijk] = 0;
                }

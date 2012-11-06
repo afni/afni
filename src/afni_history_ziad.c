@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 6, Nov , 2012 , ZSS , "3dSkullStrip" , MINOR , TYPE_NEW_OPT,
+   "Added -head*, and -cut_below options to generate whole head masks",
+   "This was needed because 3dAutomask or 3dSkullStrip would fail at"
+   "creating whole head masks for cases with coil-array shading problems\n"
+   "and/or lots of noise."
+ },
+
  { 1, Nov , 2012 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Fixed problem with very large threshold ranges",
    "X11 scale cannot range more than MAX_INT/2. SUMA now"
