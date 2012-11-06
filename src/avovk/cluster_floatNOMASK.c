@@ -2073,7 +2073,6 @@ kmeans(int nclusters, int nrows, int ncolumns, float** data,
 
   /* We save the clustering solution periodically and check if it reappears */
   int* saved = malloc(nelements*sizeof(int));
-  int verb = 1;
   
   if (saved==NULL) return -1;
 
@@ -2359,7 +2358,7 @@ number of clusters is larger than the number of elements being clustered,
 { const int nelements = (transpose==0) ? nrows : ncolumns;
   const int ndata = (transpose==0) ? ncolumns : nrows;
 
-  int i,j,ii;
+  int i;
   int ok;
   int* tclusterid;
   int* mapping = NULL;
