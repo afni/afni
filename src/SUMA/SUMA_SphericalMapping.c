@@ -1284,7 +1284,7 @@ SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList,
                      SUMA_MT_INTERSECT_TRIANGLE *MTI;
                      MTI = SUMA_MT_intersect_triangle (P1, P0, nodeList, 
                                                 surf->N_Node, surf->FaceSetList, 
-                                                surf->N_FaceSet, NULL);
+                                                surf->N_FaceSet, NULL, 0);
                      if (MTI) {
                         if (LocalHead)
                            fprintf(SUMA_STDERR, 
@@ -1917,7 +1917,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
             SUMA_MT_INTERSECT_TRIANGLE *MTI;
          
             MTI = SUMA_MT_intersect_triangle(ptHit, zero, ctrNodeList_2, 
-                                 numNodes_2, faceList_2, numFace_2, NULL);
+                                 numNodes_2, faceList_2, numFace_2, NULL, 0);
             if (MTI) {
                if (MTI->N_hits) {
                   if (LocalHead) 

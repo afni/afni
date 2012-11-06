@@ -316,7 +316,7 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1,
       } 
       /* now determine the distance along normal */
       MTI = SUMA_MT_intersect_triangle(P0, P1, SO2->NodeList, SO2->N_Node, 
-                                       SO2->FaceSetList, SO2->N_FaceSet, MTI);
+                                       SO2->FaceSetList, SO2->N_FaceSet, MTI, 0);
       if (LocalHead) 
          fprintf(SUMA_STDERR,"%s: number of hits for node %d : %d\n", 
                              FuncName, nj, MTI->N_hits);  

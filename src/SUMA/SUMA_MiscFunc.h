@@ -154,7 +154,7 @@ SUMA_MT_INTERSECT_TRIANGLE *SUMA_MT_intersect_triangle(
       float *P0, float *P1, 
       float *NodeList, int N_Node, 
       int *FaceSetList, int N_FaceSet, 
-      SUMA_MT_INTERSECT_TRIANGLE * PrevMTI);
+      SUMA_MT_INTERSECT_TRIANGLE * PrevMTI, int posonly);
 void * SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI);
 SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, 
                                              FILE *Out);

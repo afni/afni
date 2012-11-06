@@ -6113,7 +6113,9 @@ SUMA_MT_intersect_triangle(float *P0, float *P1,
                This change appears to save about 18% of the function's 
                execution time. Be careful not to free PrevMTI without setting 
                it to NULL and then send it to SUMA_MT_intersect_triangle.
-
+\param   posonly if 1 then search only in the positive direction. P0 --> P1
+                 if 0 then abs min
+                 if -1 then only in neg direction
 \ret   MTI (SUMA_MT_INTERSECT_TRIANGLE *) pointer to structure containing 
                isHit (SUMA_Boolean *) N_FaceSet x 1 vector. 
                isHit[i] = YUP --> FaceSet i is pierced by ray P0-->P1
@@ -6137,7 +6139,8 @@ SUMA_MT_INTERSECT_TRIANGLE *
 SUMA_MT_intersect_triangle(float *P0, float *P1, 
                            float *NodeList, int N_Node, 
                            int *FaceSetList, int N_FaceSet, 
-                           SUMA_MT_INTERSECT_TRIANGLE *PrevMTI)
+                           SUMA_MT_INTERSECT_TRIANGLE *PrevMTI,
+                           int posonly)
 {
    static char FuncName[]={"SUMA_MT_intersect_triangle"};
    double edge1[3], edge2[3], tvec[3], pvec[3], qvec[3];
@@ -6336,9 +6339,13 @@ SUMA_MT_intersect_triangle(float *P0, float *P1,
                MTI->isHit[iface] = YUP;
                ++MTI->N_hits;
                /* store shortest distance triangle info */
-               if (MTI->t[iface] < 0) disttest = -MTI->t[iface];
-                  else  { disttest = MTI->t[iface]; ++MTI->N_poshits;}
-               
+               if (MTI->t[iface] < 0) {
+                  if (posonly>0) continue; 
+                  disttest = -MTI->t[iface];
+               }   else  { 
+                  if (posonly<0) continue; 
+                  disttest = MTI->t[iface]; ++MTI->N_poshits;
+               }
                if (disttest < tmin) {
                   tmin = disttest;
                   MTI->ifacemin = iface;
@@ -6634,7 +6641,8 @@ SUMA_Boolean SUMA_MT_count_intersect_triangle(void *v0, void *v1,
 /*!
 Show contents of SUMA_MT_INTERSECT_TRIANGLE structure
 */
-SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, FILE *Out)
+SUMA_Boolean SUMA_Show_MT_intersect_triangle(
+               SUMA_MT_INTERSECT_TRIANGLE *MTI, FILE *Out)
 {
    static char FuncName[]={"SUMA_Show_MT_intersect_triangle"};
    int MaxShow = 5, i,j;
@@ -6655,34 +6663,46 @@ SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, FI
    }
    
    if (MTI->isHit == NULL) {
-      fprintf (SUMA_STDERR,"Error SUMA_Show_MT_intersect_triangle: isHit is NULL\n\n");
+      fprintf (SUMA_STDERR,
+         "Error SUMA_Show_MT_intersect_triangle: isHit is NULL\n\n");
       SUMA_RETURN (NOPE);
    }
    else {
       if (MaxShow > MTI->N_el) MaxShow = MTI->N_el; 
-      fprintf (Out, "Intersection results (showing first %d out of %d elements):\n", MaxShow, MTI->N_el);
+      fprintf (Out, 
+         "Intersection results (showing first %d out of %d elements):\n", 
+               MaxShow, MTI->N_el);
       for (i=0; i < MaxShow; ++i)   {
-         fprintf (Out, "\tisHit: %d t %f u %f v %f", MTI->isHit[i], MTI->t[i], MTI->u[i],MTI->v[i]);
+         fprintf (Out, "\tisHit: %d t %f u %f v %f", 
+            MTI->isHit[i], MTI->t[i], MTI->u[i],MTI->v[i]);
       }
          fprintf (Out, "\n");
       
       if (MTI->N_hits) {
-         fprintf (Out, "\n%d hits, (%d hists with positive distance).\n", MTI->N_hits, MTI->N_poshits);
-         fprintf (Out, "Minimum Distance: %d t %f u %f v %f\n", \
-                  MTI->ifacemin, MTI->t[MTI->ifacemin], MTI->u[MTI->ifacemin],MTI->v[MTI->ifacemin]);
-         fprintf (Out, "Intersection point P at Minimum Distance FaceSet:\n%f, %f, %f\n", \
+         fprintf (Out, "\n%d hits, (%d hists with positive distance).\n", 
+                  MTI->N_hits, MTI->N_poshits);
+         fprintf (Out, "Minimum Distance: %d t %f u %f v %f\n",
+                  MTI->ifacemin, MTI->t[MTI->ifacemin], 
+                  MTI->u[MTI->ifacemin],MTI->v[MTI->ifacemin]);
+         fprintf (Out, "Intersection point P at Minimum Distance FaceSet:\n"
+                       "%f, %f, %f\n",
                   MTI->P[0], MTI->P[1], MTI->P[2]);
-         fprintf (Out, "Closest node is number %d in Minimum Distance Faceset (%d in NodeList) at %f distance.\n",\
+         fprintf (Out, "Closest node is number %d in Minimum Distance Faceset "
+                       "(%d in NodeList) at %f distance.\n",
                   MTI->inodeminlocal, MTI->inodemin, MTI->d);                           
-         fprintf (Out, "Maximum Distance: %d t %f u %f v %f\n\n", \
-                  MTI->ifacemax, MTI->t[MTI->ifacemax], MTI->u[MTI->ifacemax],MTI->v[MTI->ifacemax]);
-         fprintf (Out, "Intersection of ray with surface (showing first %d out of %d elements):\n", MaxShow, MTI->N_el);
+         fprintf (Out, "Maximum Distance: %d t %f u %f v %f\n\n", 
+                  MTI->ifacemax, MTI->t[MTI->ifacemax], 
+                  MTI->u[MTI->ifacemax],MTI->v[MTI->ifacemax]);
+         fprintf (Out, "Intersection of ray with surface "
+                       "(showing first %d out of %d elements):\n", 
+                  MaxShow, MTI->N_el);
          i = 0;
          j = 0;
          while (i< MTI->N_el && j < MTI->N_hits) {
             if (MTI->isHit[i]) {
                ++j;
-               fprintf (Out, "\tisHit: %d t %f u %f v %f\n", MTI->isHit[i], MTI->t[i], MTI->u[i],MTI->v[i]);
+               fprintf (Out, "\tisHit: %d t %f u %f v %f\n", 
+                        MTI->isHit[i], MTI->t[i], MTI->u[i],MTI->v[i]);
             }
             ++i;
          }
@@ -8252,24 +8272,32 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int de
    Smooth the attributes of the nodes based on the neighboring values. 
    Nodes are neighbors if they are connected by an edge in the triangulation.
 
-   \param attr (float *) pointer to vector of type tp containing a node's attribute
+   \param attr (float *) pointer to vector of type tp containing a 
+                           node's attribute
    \param N_attr (int) number of elements in attr. 
-   \param attr_sm (float *) pointer to smoothed version of attr. If you pass NULL then
-            the pointer is allocated for and returned from the function. If attr_sm is not
-            null then it is assumed to have the required allocated space for the proper type.
-   \param fn (SUMA_NODE_FIRST_NEIGHB) structure containing the first order neighbors of the nodes. 
-            It is assumed that fn contains the neighbors info for all nodes whose attributes are in attr.
+   \param attr_sm (float *) pointer to smoothed version of attr. 
+            If you pass NULL then the pointer is allocated and returned 
+            from the function. 
+            If attr_sm is not null then it is assumed to have the 
+            required allocated space for the proper type.
+   \param fn (SUMA_NODE_FIRST_NEIGHB) structure containing the first order 
+            neighbors of the nodes. 
+            It is assumed that fn contains the neighbors info for all nodes 
+            whose attributes are in attr.
             That is from 0 to N_attr. 
    \param nr (int) number of values per node in attr (for multiplexed vectors).
                    So, if attr was R0G0Bo R1 G1 B1, ..., RnGnBn then nr = 3
                    Only row major multiplexing is allowed.
-   \param nmask (byte *) if not NULL, then attributes are smoothed ONLY for nodes n where nmask[n] = 1 
+   \param nmask (byte *) if not NULL, then attributes are smoothed ONLY 
+                         for nodes n where nmask[n] = 1 
    \return attr_sm (float *) pointer to smoothed version of attr
    
    \sa   SUMA_SmoothAttr_Neighb_Rec  
    \sa SUMA_SmoothAttr_Neighb_wght (bugs here == bugs there)
 */
-float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn, int nr, byte *nmask, byte strict_mask)
+float * SUMA_SmoothAttr_Neighb ( float *attr, int N_attr, float *attr_sm, 
+                                 SUMA_NODE_FIRST_NEIGHB *fn, int nr, 
+                                 byte *nmask, byte strict_mask)
 {
    static char FuncName[]={"SUMA_SmoothAttr_Neighb"};
    int ni, im, offs, j, nj, wgt;
@@ -8325,7 +8353,8 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
                   for (j=0; j < fn->N_Neighb[ni]; ++j)
                   {
                      nj = fn->FirstNeighb[ni][j];
-                     if (nmask[nj] || !strict_mask) { /* the neighbor is in the mask or we take in all neighbors */
+                     if (nmask[nj] || !strict_mask) { /* the neighbor is in the 
+                                             mask or we take in all neighbors */
                         attr_sm[offs+im] += attr[nr*nj+im]; ++wgt;
                      }
                   }   
@@ -8463,8 +8492,10 @@ float * SUMA_SmoothAttr_Neighb_wght (float *attr, int N_attr, float *wght,
    option is N_Rec the number of repeated smoothing calls.
    
 */
-float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig, 
-                                    SUMA_NODE_FIRST_NEIGHB *fn, int nr, int N_rep)
+float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, 
+                                    float *attr_sm_orig, 
+                                    SUMA_NODE_FIRST_NEIGHB *fn, 
+                                    int nr, int N_rep)
 {
    static char FuncName[]={"SUMA_SmoothAttr_Neighb_Rec"};
    int i;

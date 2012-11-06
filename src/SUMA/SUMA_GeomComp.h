@@ -231,8 +231,9 @@ int SUMA_NN_GeomSmooth2_SO(   SUMA_SurfaceObject *SO,
 int SUMA_NN_GeomSmooth3_SO(   SUMA_SurfaceObject *SO, 
                          byte *nmask, byte strict_mask,
                          int Niter, int anchor_each,
-                              SUMA_SurfaceObject *SOe,
-                         float *anchor_wght, THD_3dim_dataset *voxelize);
+                         SUMA_SurfaceObject *SOe,
+                         float *anchor_wght, THD_3dim_dataset *voxelize,
+                         SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_ApplyAffine (float *NodeList, int N_Node, float M[][4], 
                                float *center);
 float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int Niter, float *fin_orig, 
@@ -294,7 +295,8 @@ THD_ivec3 SUMA_THD_3dmm_to_3dind_warn( SUMA_SurfaceObject *SO  ,
                                        THD_fvec3 fv, int *out );
 THD_fvec3 SUMA_THD_3dmm_to_dicomm( int xxorient, int yyorient, int zzorient , 
                                     THD_fvec3 imv );
-THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO , THD_fvec3 dicv );
+THD_fvec3 SUMA_THD_dicomm_to_3dmm( int xxorient, int yyorient, int zzorient , 
+                                    THD_fvec3 dicv );
 void SUMA_orcode_to_orstring (int xxorient, int yyorient, int zzorient, char *orstr);
 void SUMA_sizeto3d_2_deltaHEAD(THD_ivec3 orient, THD_fvec3 *delta);            
 void SUMA_originto3d_2_originHEAD(THD_ivec3 orient, THD_fvec3 *origin);
@@ -364,6 +366,10 @@ float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
                                 SUMA_PC_PROJ compnum, SUMA_PC_ROT rotate);
 int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth, 
                    float thr, byte **cmaskp);                                
+int SUMA_VoxelDepth(THD_3dim_dataset *dset, float **dpth,
+                    float thr, byte **cmaskp, int applymask);
+int SUMA_VoxelPlaneCut(THD_3dim_dataset *dset, float *Eq,
+                       byte **cmaskp, int applymask);
 int SUMA_is_Flat_Surf_Coords_PCA (float *xyz, int N_xyz, 
                                   float tol, float sampfrac); 
 int SUMA_is_Constant_Z_Coord(float *NodeList, int N_Node, float tol);

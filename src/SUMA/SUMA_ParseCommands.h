@@ -269,6 +269,7 @@ typedef struct {
    
    float permask;
    float flt1, flt2, flt3;
+   float PlEq[4];
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT; /* also edit defaults in 
                                  SUMA_Alloc_Generic_Prog_Options_Struct and in 
                                  SUMA_Free_Generic_Prog_Options_Struct */

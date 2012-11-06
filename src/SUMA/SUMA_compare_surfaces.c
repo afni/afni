@@ -374,7 +374,7 @@ int main (int argc,char *argv[])
    P2[2] = Points[1][2];
 
    /* now determine the distance along normal */
-   triangle = SUMA_MT_intersect_triangle(P0,P1, SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, triangle);
+   triangle = SUMA_MT_intersect_triangle(P0,P1, SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, triangle, 0);
    /* fprintf(SUMA_STDERR,"number of hits for node %d : %d\n", i,triangle->N_hits); */ 
    if (triangle->N_hits ==0) {
    fprintf(SUMA_STDERR, "Could not find hit for node %d in either direction.\n", i);
