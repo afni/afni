@@ -1785,7 +1785,9 @@ int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv, char *ForceGroup)
    view states in the surface viewer's structure
    Essentially, it creates the vector VSv that is a part of the surface viewer structure
 */
-SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *csv, SUMA_DO* dov, int N_dov, int viewopt)
+SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, 
+                                  SUMA_SurfaceViewer *csv, 
+                                  SUMA_DO* dov, int N_dov, int viewopt)
 {
    static char FuncName[]={"SUMA_RegisterSpecSO"};
    int is, i, old_N_VSv = 0;
@@ -1819,7 +1821,8 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
       if (!csv->VSv) { /* first pass */
          csv->VSv = SUMA_Alloc_ViewState (Spec->N_States);
          if (csv->VSv == NULL) {
-            fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VSv.\n", FuncName);
+            fprintf(SUMA_STDERR,
+                    "Error %s: Failed to allocate for VSv.\n", FuncName);
             SUMA_RETURN (NOPE);
          }
          csv->N_VSv = 0;

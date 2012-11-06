@@ -631,11 +631,13 @@ int SUMA_SetDsetLabeltable(THD_3dim_dataset *dset, char **labels,
 SUMA_SurfaceObject *SUMA_Dset_ConvexHull(THD_3dim_dataset *dset, int isb,
                                         float th, byte *umask);
 SUMA_SurfaceObject *SUMA_ExtractHead_hull(THD_3dim_dataset *iset,
-                                     float hullvolthr);
+                                     float hullvolthr, SUMA_COMM_STRUCT *cs);
 SUMA_SurfaceObject *SUMA_ExtractHead(THD_3dim_dataset *iset,
-                                     float hullvolthr);
+                                     float hullvolthr, SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO, 
-                             THD_3dim_dataset *iset, float thr);                  THD_3dim_dataset *SUMA_Dset_FindVoxelsInSurface(
+                             THD_3dim_dataset *iset, float thr,
+                             SUMA_COMM_STRUCT *cs);                  
+THD_3dim_dataset *SUMA_Dset_FindVoxelsInSurface(
                      SUMA_SurfaceObject *SO, THD_3dim_dataset *iset, 
                      SUMA_VOLPAR *vp, char *vpname,
                      char *prefix, int meth, int maskonly);          

@@ -256,7 +256,8 @@ int main (int argc,char *argv[])
 
    if (Opt->flt1 != 1.0) {
       SUMA_LHv("Masking out nodes deeper than %f mm", Opt->flt1);
-      N_inmask = SUMA_NodeDepth(SO->NodeList, SO->N_Node, NULL, Opt->flt1, &cmask);
+      N_inmask = SUMA_NodeDepth(SO->NodeList, SO->N_Node, NULL, 
+                                Opt->flt1, &cmask);
    } else {
       N_inmask = SO->N_Node;
    }

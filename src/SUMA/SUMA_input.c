@@ -5152,7 +5152,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
          SUMA_etime (&tt_tmp, 0);
 
          MTIi = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, 
-                                           SO->FaceSetList, SO->N_FaceSet, NULL);
+                                        SO->FaceSetList, SO->N_FaceSet, NULL, 0);
 
          delta_t_tmp = SUMA_etime (&tt_tmp, 1);
          if (LocalHead) 
@@ -5415,7 +5415,7 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
          SUMA_LH("About to call intersection function");
          
          MTIi = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, 
-                                           SO->FaceSetList, SO->N_FaceSet, NULL);
+                                        SO->FaceSetList, SO->N_FaceSet, NULL, 0);
 
          delta_t_tmp = SUMA_etime (&tt_tmp, 1);
          if (LocalHead) 
@@ -6336,7 +6336,7 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
             MTI = SUMA_MT_intersect_triangle(   bsd->NP, bsd->FP, 
                                                 SO->NodeList, SO->N_Node, 
                                                 SO->FaceSetList, SO->N_FaceSet, 
-                                                MTI);
+                                                MTI,0);
 
             if (!MTI) {
                fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
@@ -6468,7 +6468,7 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
                                                       SO->NodeList, SO->N_Node, 
                                                       SO->FaceSetList, 
                                                       SO->N_FaceSet, 
-                                                      MTI);
+                                                      MTI, 0);
                      fprintf (SUMA_STDERR, 
                         "%s: Intersection would be with triangle %d, node %d\n", 
                               FuncName, MTI->ifacemin, MTI->inodemin);                                 
@@ -6494,7 +6494,7 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
             MTI = SUMA_MT_intersect_triangle(   bsdn->NP, bsdn->FP, 
                                     SO->NodeList, SO->N_Node, 
                                     SO->FaceSetList, SO->N_FaceSet, 
-                                    MTI);
+                                    MTI, 0);
 
             if (!MTI) {
                SUMA_SL_Err ("I tried harder to figure out your trace.\nI failed, do try again.");

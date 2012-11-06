@@ -370,7 +370,8 @@ double SUMA_AlignCoords(float *xyz, int N_xyz, byte *cmask, int method,
    }
 
    /* load user data */
-   SUMA_set_cmoud(SOr, xyz, N_xyz, cmask, aff, affm, method, strstr(opt, "City")?1:0);
+   SUMA_set_cmoud(SOr, xyz, N_xyz, cmask, aff, affm, method, 
+                  strstr(opt, "City")?1:0);
 
    
    /* load parameters into par, bot, top */

@@ -990,7 +990,7 @@ int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt, byte *report)
          t1 = SO->EL->ELps[k][1]; t2 = SO->EL->ELps[SUMA_MIN_PAIR(k+1, SO->EL->N_EL-1)][1];
          ep1 = &(SO->NodeList[3*SO->EL->EL[k][0]]); ep2 = &(SO->NodeList[3*SO->EL->EL[k][1]]);
          /* find out if segment intersects */
-         MTI = SUMA_MT_intersect_triangle(ep1, ep2, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, MTI); 
+         MTI = SUMA_MT_intersect_triangle(ep1, ep2, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, MTI, 0); 
          for (it=0; it<SO->N_FaceSet; ++it) {
             if (MTI->isHit[it] && it != t1 && it != t2 && MTI->u[it] > SUMA_EPSILON && MTI->v[it] > SUMA_EPSILON) {
                /* ray hit triangle, is intersection inside segment ? */
@@ -3930,7 +3930,8 @@ int SUMA_NN_GeomSmooth3_SO(   SUMA_SurfaceObject *SO,
                          byte *nmask, byte strict_mask,
                          int Niter, int anchor_each,
                          SUMA_SurfaceObject *SOe,
-                         float *altw, THD_3dim_dataset *voxelize) 
+                         float *altw, THD_3dim_dataset *voxelize,
+                         SUMA_COMM_STRUCT *cs) 
 {
    static char FuncName[]={"SUMA_NN_GeomSmooth3_SO"};
    float *dsmooth=NULL;
@@ -3946,7 +3947,7 @@ int SUMA_NN_GeomSmooth3_SO(   SUMA_SurfaceObject *SO,
    
    if (!(dsmooth = SUMA_NN_GeomSmooth3( SO, Niter, SO->NodeList,
                                        SO->NodeDim, SUMA_ROW_MAJOR,
-                                       NULL, NULL,
+                                       NULL, cs,
                                        nmask, anchor_each, SOe,
                                        altw, voxelize))) {
       SUMA_S_Err("Failed to NN smooth");
@@ -5369,12 +5370,14 @@ float *SUMA_NN_GeomSmooth2( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
                      MTI = SUMA_MT_intersect_triangle(P0, P1, 
                                              SOe->NodeList, SOe->N_Node, 
                                              SOe->FaceSetList, SOe->N_FaceSet, 
-                                             MTI);
-                     if (MTI->N_hits ==0) { /* go backwards */
+                                             MTI, 1);
+                     if (MTI->N_hits ==0) { 
+                        /* go backwards VERY inefficient, consider writing
+                           intersection function that keeps separate min/max */
                         MTI = SUMA_MT_intersect_triangle(P0, P2, 
                                              SOe->NodeList, SOe->N_Node, 
                                              SOe->FaceSetList, SOe->N_FaceSet, 
-                                             MTI);
+                                             MTI,-1);
                      }
                      if (MTI->N_hits ==0) { /* Nothing */
                         SUMA_S_Warnv("No hits for node %d\n", ii);
@@ -5582,20 +5585,36 @@ float *SUMA_NN_GeomSmooth3( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
                      P2[0] = Points[1][0];
                      P2[1] = Points[1][1];
                      P2[2] = Points[1][2];
+                     if (ii==SUMA_SSidbg) {
+                        SUMA_S_Notev(
+               "Node %d, expanding potential along: [%f %f %f] --> [%f %f %f]\n",
+                        ii, P0[0], P0[1], P0[2], P1[0], P1[1], P1[2]);   
+                     }
                      /* now determine the distance along normal */
                      MTI = SUMA_MT_intersect_triangle(P0, P1, 
                                              SOe->NodeList, SOe->N_Node, 
                                              SOe->FaceSetList, SOe->N_FaceSet, 
-                                             MTI);
-                     if (MTI->N_hits ==0) { /* go backwards */
+                                             MTI, 1);
+                     if (MTI->N_hits ==0) { /* go backwards 
+                                Very inefficient, consider new intersection
+                                function that keeps minima from both directions*/
+                        if (ii==SUMA_SSidbg){
+                           SUMA_S_Warnv("No hit for node %d, going backwards!\n",
+                                    ii);
+                        }
                         MTI = SUMA_MT_intersect_triangle(P0, P2, 
                                              SOe->NodeList, SOe->N_Node, 
                                              SOe->FaceSetList, SOe->N_FaceSet, 
-                                             MTI);
+                                             MTI,-1);
                      }
                      if (MTI->N_hits ==0) { /* Nothing */
                         SUMA_S_Warnv("No hits for node %d\n", ii);
                      } else {
+                        if (ii==SUMA_SSidbg) {
+                           SUMA_S_Notev(
+                        "Node %d, hit at %f %f %f, expansion fraction: %f\n",
+                              ii, MTI->P[0], MTI->P[1], MTI->P[2], frc_mv);
+                        }
                         for (jj=0; jj<vpn; ++jj) 
                            fout[id+jj] = frc_mv*MTI->P[jj] + 
                                          (1.0-frc_mv)*fout[id+jj];
@@ -7635,6 +7654,281 @@ float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
    SUMA_RETURN(xyzp); 
 }
 
+int SUMA_VoxelDepth(THD_3dim_dataset *dset, float **dpth,
+                    float thr, byte **cmaskp, int applymask) 
+{
+   static char FuncName[]={"SUMA_VoxelDepth"};
+   float *sdpth=NULL, *xyz=NULL;
+   int ii, jj, kk, nn, vv, nvox=0;
+   byte *cmask=NULL, *scmask=NULL;
+   int N_inmask = -1;
+   THD_fvec3 mm, di; 
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!dset) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(-1);
+   }
+   if (dpth && *dpth) {
+      SUMA_S_Err("If passing dpth, *dpth must be NULL");
+      SUMA_RETURN(-1);
+   }
+   if (cmaskp && *cmaskp) {
+      SUMA_S_Err("If passing cmaskp, *cmaskp must be NULL");
+      SUMA_RETURN(-1);
+   }
+   
+   /* get xyz of all non-zero voxels in dset */
+   if (!(cmask = THD_makemask( dset , 0 , 1.0, -1.0 ))) {
+      SUMA_S_Err("Failed to get mask");
+      SUMA_RETURN(-1);
+   }
+   for (nvox=0, ii=0; ii<DSET_NVOX(dset); ++ii) {
+      if (cmask[ii]) ++nvox;
+   }
+   if (!(xyz = (float *)SUMA_calloc(3*nvox, sizeof(float)))) {
+      SUMA_S_Errv("Failed to allocate for %d floats\n",
+                  3*nvox);
+      free(cmask);
+      SUMA_RETURN(-1);
+   }
+   vv=0; nn = 0;
+   for (kk=0; kk<DSET_NZ(dset); ++kk) {
+   for (jj=0; jj<DSET_NY(dset); ++jj) {
+   for (ii=0; ii<DSET_NX(dset); ++ii) {
+      if (cmask[vv]) {
+         mm.xyz[0] = DSET_XORG(dset)+ii*DSET_DX(dset);
+         mm.xyz[1] = DSET_YORG(dset)+jj*DSET_DY(dset);
+         mm.xyz[2] = DSET_ZORG(dset)+kk*DSET_DZ(dset);
+         di = SUMA_THD_3dmm_to_dicomm( dset->daxes->xxorient,
+                                       dset->daxes->yyorient,
+                                       dset->daxes->zzorient, mm);
+         xyz[3*nn  ] = di.xyz[0];
+         xyz[3*nn+1] = di.xyz[1];
+         xyz[3*nn+2] = di.xyz[2];
+         ++nn;
+      }
+      ++vv;
+   } } }
+   
+   SUMA_LHv("Calling depth function, thr %f\n", thr);
+   N_inmask = SUMA_NodeDepth(xyz, nvox, 
+                             dpth ? &sdpth:NULL, 
+                             thr, &scmask);
+   SUMA_LHv("%d / %d voxels met threshold\n", N_inmask, nvox);
+   SUMA_free(xyz); xyz = NULL;
+  
+   /* Does the user want voxel depths back ? */
+   if (dpth) {
+      SUMA_LH("Returning depth values");
+      *dpth = (float *)SUMA_calloc(DSET_NVOX(dset), sizeof(float));
+      vv=0; nn = 0;
+      for (kk=0; kk<DSET_NZ(dset); ++kk) {
+      for (jj=0; jj<DSET_NY(dset); ++jj) {
+      for (ii=0; ii<DSET_NX(dset); ++ii) {
+         if (cmask[vv]) {
+            *(*dpth+vv)=sdpth[nn]; ++nn;
+         } 
+         ++vv;
+      } } }
+   }
+   /* Does the user want mask back ? */
+   if (cmaskp) {
+      SUMA_LH("Returning byte mask");
+      *cmaskp = (byte *)SUMA_calloc(DSET_NVOX(dset), sizeof(byte));
+      vv=0; nn = 0;
+      for (kk=0; kk<DSET_NZ(dset); ++kk) {
+      for (jj=0; jj<DSET_NY(dset); ++jj) {
+      for (ii=0; ii<DSET_NX(dset); ++ii) {
+         if (cmask[vv]) {
+            *(*cmaskp+vv)=scmask[nn]; ++nn;
+         }
+         ++vv;
+      } } }
+   }
+   /* Apply the mask ? */
+   if (applymask) {
+      SUMA_LH("Applying mask");
+      switch (DSET_BRICK_TYPE(dset,0)) {
+         case MRI_byte:
+            {  byte *bv = (byte *)DSET_ARRAY(dset,0) ;
+               vv=0; nn = 0;
+               for (kk=0; kk<DSET_NZ(dset); ++kk) {
+               for (jj=0; jj<DSET_NY(dset); ++jj) {
+               for (ii=0; ii<DSET_NX(dset); ++ii) {
+                  if (cmask[vv]) {
+                     if (!scmask[nn]) bv[vv] = 0; 
+                     ++nn;
+                  }
+                  ++vv;
+               } } }
+            }
+            break;
+         case MRI_short:
+            {  short *sv = (short *)DSET_ARRAY(dset,0) ;
+               vv=0; nn = 0;
+               for (kk=0; kk<DSET_NZ(dset); ++kk) {
+               for (jj=0; jj<DSET_NY(dset); ++jj) {
+               for (ii=0; ii<DSET_NX(dset); ++ii) {
+                  if (cmask[vv]) {
+                     if (!scmask[nn]) sv[vv] = 0; 
+                     ++nn;
+                  }
+                  ++vv;
+               } } }
+            }
+            break;
+         case MRI_float:
+            {  float *fv = (float *)DSET_ARRAY(dset,0) ;
+               vv=0; nn = 0;
+               for (kk=0; kk<DSET_NZ(dset); ++kk) {
+               for (jj=0; jj<DSET_NY(dset); ++jj) {
+               for (ii=0; ii<DSET_NX(dset); ++ii) {
+                  if (cmask[vv]) {
+                     if (!scmask[nn]) fv[vv] = 0; 
+                     ++nn;
+                  }
+                  ++vv;
+               } } }
+            }
+            break;
+         default:
+            SUMA_S_Errv("Dset type %d not supported\n", DSET_BRICK_TYPE(dset,0));
+            break;
+      }
+   }
+   
+   SUMA_LH("Liberte");
+   if (cmask) free(cmask); cmask = NULL;
+   if (scmask) SUMA_free(scmask);
+   if (sdpth) SUMA_free(sdpth);
+   SUMA_RETURN(N_inmask);                   
+}
+
+int SUMA_VoxelPlaneCut(THD_3dim_dataset *dset, float *Eq,
+                       byte **cmaskp, int applymask) 
+{
+   static char FuncName[]={"SUMA_VoxelPlaneCut"};
+   int ii, jj, kk, nn, vv;
+   byte *cmask=NULL;
+   int N_inmask = -1;
+   THD_fvec3 mm, di;
+   float dist; 
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!dset) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(-1);
+   }
+   if (cmaskp && *cmaskp) {
+      SUMA_S_Err("If passing cmaskp, *cmaskp must be NULL");
+      SUMA_RETURN(-1);
+   }
+   
+   /* get xyz of all non-zero voxels in dset */
+   if (!(cmask = THD_makemask( dset , 0 , 1.0, -1.0 ))) {
+      SUMA_S_Err("Failed to get mask");
+      SUMA_RETURN(-1);
+   }
+   
+   /* Change plane equation to fit orientation */
+   di.xyz[0] = Eq[0];
+   di.xyz[1] = Eq[1];
+   di.xyz[2] = Eq[2];
+   mm = SUMA_THD_dicomm_to_3dmm( dset->daxes->xxorient,
+                                       dset->daxes->yyorient,
+                                       dset->daxes->zzorient, di);
+   Eq[0] = mm.xyz[0];
+   Eq[1] = mm.xyz[1];
+   Eq[2] = mm.xyz[2];
+   
+   vv=0; nn = 0, N_inmask=0;
+   for (kk=0; kk<DSET_NZ(dset); ++kk) {
+   for (jj=0; jj<DSET_NY(dset); ++jj) {
+   for (ii=0; ii<DSET_NX(dset); ++ii) {
+      if (cmask[vv]) {
+         mm.xyz[0] = DSET_XORG(dset)+ii*DSET_DX(dset);
+         mm.xyz[1] = DSET_YORG(dset)+jj*DSET_DY(dset);
+         mm.xyz[2] = DSET_ZORG(dset)+kk*DSET_DZ(dset);
+         dist = Eq[0]*mm.xyz[0]+Eq[1]*mm.xyz[1]+Eq[2]*mm.xyz[2]-Eq[3];
+         if (dist < 0.0) {
+            cmask[vv] = 0;
+         } else {
+            ++N_inmask;
+         }
+         ++nn;
+      }
+      ++vv;
+   } } }
+   
+   SUMA_LHv("%d / %d nozero voxels pass the cut test\n", N_inmask, nn);
+   
+   /* Apply the mask ? */
+   if (applymask) {
+      SUMA_LH("Applying mask");
+      switch (DSET_BRICK_TYPE(dset,0)) {
+         case MRI_byte:
+            {  byte *bv = (byte *)DSET_ARRAY(dset,0) ;
+               vv=0; 
+               for (kk=0; kk<DSET_NZ(dset); ++kk) {
+               for (jj=0; jj<DSET_NY(dset); ++jj) {
+               for (ii=0; ii<DSET_NX(dset); ++ii) {
+                  if (!cmask[vv]) {
+                     bv[vv] = 0; 
+                  }
+                  ++vv;
+               } } }
+            }
+            break;
+         case MRI_short:
+            {  short *sv = (short *)DSET_ARRAY(dset,0) ;
+               vv=0; 
+               for (kk=0; kk<DSET_NZ(dset); ++kk) {
+               for (jj=0; jj<DSET_NY(dset); ++jj) {
+               for (ii=0; ii<DSET_NX(dset); ++ii) {
+                  if (!cmask[vv]) {
+                     sv[vv] = 0; 
+                  }
+                  ++vv;
+               } } }
+            }
+            break;
+         case MRI_float:
+            {  float *fv = (float *)DSET_ARRAY(dset,0) ;
+               vv=0; 
+               for (kk=0; kk<DSET_NZ(dset); ++kk) {
+               for (jj=0; jj<DSET_NY(dset); ++jj) {
+               for (ii=0; ii<DSET_NX(dset); ++ii) {
+                  if (!cmask[vv]) {
+                     fv[vv] = 0; 
+                  }
+                  ++vv;
+               } } }
+            }
+            break;
+         default:
+            SUMA_S_Errv("Dset type %d not supported\n", DSET_BRICK_TYPE(dset,0));
+            break;
+      }
+   }
+   
+   /* Does the user want mask back ? */
+   if (cmaskp) {
+      SUMA_LH("Returning byte mask");
+      *cmaskp = cmask; cmask = NULL;
+   }
+
+   SUMA_LH("Liberte");
+   if (cmask) free(cmask); cmask = NULL;
+   
+   SUMA_RETURN(N_inmask);                   
+}
+
+
 /*
    Compute the depth (along principal direction closest to z axis)
    of each node relative to the topmost node.
@@ -7655,7 +7949,7 @@ int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth,
    int ii, iimax, iimin;
    byte *cmask=NULL;
    int N_inmask = -1;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -7683,8 +7977,12 @@ int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth,
       }
    }
 
-   SUMA_LHv("Highest node %d, lowest node %d\n",
-                iimax, iimin);
+   SUMA_LHv("Highest node %d PCR(%f,%f,%f), ORIG(%f,%f,%f)\n"
+            "Lowest  node %d PCR(%f,%f,%f), ORIG(%f,%f,%f)\n",
+                iimax, xyzp[3*iimax], xyzp[3*iimax+1], xyzp[3*iimax+2], 
+                    NodeList[3*iimax], NodeList[3*iimax+1], NodeList[3*iimax+2],
+                iimin, xyzp[3*iimin], xyzp[3*iimin+1], xyzp[3*iimin+2], 
+                    NodeList[3*iimin], NodeList[3*iimin+1], NodeList[3*iimin+2]);
    /* Create a mask of nodes more than XXmm from the highest node */
    cmask = (byte *)SUMA_calloc(N_Node, sizeof(byte));
    N_inmask = 0;

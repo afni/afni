@@ -6145,7 +6145,9 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
          SUMA_LHv("Have Dset %s related to SO\n", SDSET_LABEL(dd));
          if (!(colplane = SUMA_Fetch_OverlayPointerByDset (
                            SO->Overlays, SO->N_Overlays, dd, &OverInd))) {
-               SUMA_S_Err("Failed to fetch existing dset's overlay pointer");
+               SUMA_S_Errv(
+                  "Failed to fetch existing %s dset's overlay pointer\n", 
+                  SDSET_LABEL(dd));
                SUMA_RETURN(NOPE);
          }
          /* any contours? */

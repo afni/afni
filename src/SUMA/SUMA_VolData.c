@@ -1892,7 +1892,7 @@ THD_fvec3 SUMA_THD_3dmm_to_dicomm( int xxorient, int yyorient, int zzorient,
    convert to input image oriented x,y,z from Dicom x,y,z
 -----------------------------------------------------------------------*/
 
-THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO ,
+THD_fvec3 SUMA_THD_dicomm_to_3dmm( int xxorient, int yyorient, int zzorient ,
                               THD_fvec3 dicv )
 {
    static char FuncName[]={"SUMA_THD_dicomm_to_3dmm"};
@@ -1903,7 +1903,7 @@ THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO ,
 
    xdic = dicv.xyz[0] ; ydic = dicv.xyz[1] ; zdic = dicv.xyz[2] ;
 
-   switch( SO->VolPar->xxorient ){
+   switch( xxorient ){
       case ORI_R2L_TYPE:
       case ORI_L2R_TYPE: xim = xdic ; break ;
       case ORI_P2A_TYPE:
@@ -1916,7 +1916,7 @@ THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO ,
          exit (1);
    }
 
-   switch( SO->VolPar->yyorient ){
+   switch( yyorient ){
       case ORI_R2L_TYPE:
       case ORI_L2R_TYPE: yim = xdic ; break ;
       case ORI_P2A_TYPE:
@@ -1929,7 +1929,7 @@ THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO ,
          exit (1);
    }
 
-   switch( SO->VolPar->zzorient ){
+   switch( zzorient ){
       case ORI_R2L_TYPE:
       case ORI_L2R_TYPE: zim = xdic ; break ;
       case ORI_P2A_TYPE:
@@ -2242,13 +2242,15 @@ SUMA_Boolean SUMA_vec_3dmm_to_3dfind (float *NodeList, int N_Node, SUMA_VOLPAR *
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean SUMA_vec_dicomm_to_3dfind (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar)
+SUMA_Boolean SUMA_vec_dicomm_to_3dfind (float *NodeList, 
+                                        int N_Node, SUMA_VOLPAR *VolPar)
 {
    static char FuncName[]={"SUMA_vec_dicomm_to_3dfind"};
 
    SUMA_ENTRY;
 
-   if (!NodeList || !VolPar) { SUMA_SL_Err("Null NodeList || Null VolPar"); SUMA_RETURN(NOPE); }
+   if (!NodeList || !VolPar) { 
+      SUMA_SL_Err("Null NodeList || Null VolPar"); SUMA_RETURN(NOPE); }
    
    
    if (!SUMA_vec_dicomm_to_3dmm(NodeList, N_Node, VolPar)) { SUMA_RETURN(NOPE); }
@@ -2257,13 +2259,15 @@ SUMA_Boolean SUMA_vec_dicomm_to_3dfind (float *NodeList, int N_Node, SUMA_VOLPAR
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean SUMA_vec_3dfind_to_dicomm (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar)
+SUMA_Boolean SUMA_vec_3dfind_to_dicomm (float *NodeList, int N_Node, 
+                                        SUMA_VOLPAR *VolPar)
 {
    static char FuncName[]={"SUMA_vec_3dfind_to_dicomm"};
 
    SUMA_ENTRY;
 
-   if (!NodeList || !VolPar) { SUMA_SL_Err("Null NodeList || Null VolPar"); SUMA_RETURN(NOPE); }
+   if (!NodeList || !VolPar) { 
+      SUMA_SL_Err("Null NodeList || Null VolPar"); SUMA_RETURN(NOPE); }
 
    if (!SUMA_vec_3dfind_to_3dmm(NodeList, N_Node, VolPar)) { SUMA_RETURN(NOPE); }
    if (!SUMA_vec_3dmm_to_dicomm(NodeList, N_Node, VolPar)) { SUMA_RETURN(NOPE); }
@@ -2271,63 +2275,64 @@ SUMA_Boolean SUMA_vec_3dfind_to_dicomm (float *NodeList, int N_Node, SUMA_VOLPAR
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean SUMA_vec_3dmm_to_dicomm (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar)
+SUMA_Boolean SUMA_vec_3dmm_to_dicomm (float *NodeList, int N_Node, 
+                                      SUMA_VOLPAR *VolPar)
 {
    static char FuncName[]={"SUMA_vec_3dmm_to_dicomm"};
    THD_fvec3 fv, iv;
-   int i, id;
-   SUMA_SurfaceObject SO;
+   int i, id, NodeDim=3;
    
    SUMA_ENTRY;
 
-   if (!NodeList || !VolPar) { SUMA_SL_Err("Null NodeList || Null VolPar"); SUMA_RETURN(NOPE); }
-   /* create dummy struct */
-   SO.NodeList = NodeList; SO.N_Node = N_Node; SO.VolPar = VolPar; SO.NodeDim = 3;
+   if (!NodeList || !VolPar) { 
+      SUMA_SL_Err("Null NodeList || Null VolPar"); SUMA_RETURN(NOPE); }
 
-   for (i=0; i < SO.N_Node; ++i) {
-      id = i * SO.NodeDim;
-      iv.xyz[0] = SO.NodeList[id] ;
-      iv.xyz[1] = SO.NodeList[id+1] ;
-      iv.xyz[2] = SO.NodeList[id+2] ;
+   for (i=0; i < N_Node; ++i) {
+      id = i * NodeDim;
+      iv.xyz[0] = NodeList[id] ;
+      iv.xyz[1] = NodeList[id+1] ;
+      iv.xyz[2] = NodeList[id+2] ;
 
       /* change mm to RAI coords */
-      fv = SUMA_THD_3dmm_to_dicomm( SO.VolPar->xxorient, SO.VolPar->yyorient, SO.VolPar->zzorient,  iv );
-      SO.NodeList[id] = fv.xyz[0];
-      SO.NodeList[id+1] = fv.xyz[1];
-      SO.NodeList[id+2] = fv.xyz[2];
+      fv = SUMA_THD_3dmm_to_dicomm( VolPar->xxorient, 
+                                    VolPar->yyorient, 
+                                    VolPar->zzorient,  iv );
+      NodeList[id] = fv.xyz[0];
+      NodeList[id+1] = fv.xyz[1];
+      NodeList[id+2] = fv.xyz[2];
    }
 
    SUMA_RETURN(YUP);
 }   
 
-SUMA_Boolean SUMA_vec_dicomm_to_3dmm (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar)
+SUMA_Boolean SUMA_vec_dicomm_to_3dmm (float *NodeList, int N_Node, 
+                                      SUMA_VOLPAR *VolPar)
 {
    static char FuncName[]={"SUMA_vec_dicomm_to_3dmm"};
    THD_fvec3 fv, iv;
-   int i, id;
-   SUMA_SurfaceObject SO;
+   int i, id, NodeDim=3;
 
    SUMA_ENTRY;
 
-   if (!NodeList || !VolPar) { SUMA_SL_Err("Null NodeList || Null VolPar"); SUMA_RETURN(NOPE); }
-   /* create dummy struct */
-   SO.NodeList = NodeList; SO.N_Node = N_Node; SO.VolPar = VolPar; SO.NodeDim = 3;
+   if (!NodeList || !VolPar) { 
+      SUMA_SL_Err("Null NodeList || Null VolPar"); SUMA_RETURN(NOPE); }
+   
+   for (i=0; i < N_Node; ++i) {
+      id = i * NodeDim;
 
-   for (i=0; i < SO.N_Node; ++i) {
-      id = i * SO.NodeDim;
-
-      iv.xyz[0] = SO.NodeList[id] ;
-      iv.xyz[1] = SO.NodeList[id+1] ;
-      iv.xyz[2] = SO.NodeList[id+2] ;
+      iv.xyz[0] = NodeList[id] ;
+      iv.xyz[1] = NodeList[id+1] ;
+      iv.xyz[2] = NodeList[id+2] ;
 
       /* change mm to RAI coords */
-      fv = SUMA_THD_dicomm_to_3dmm( &SO, iv );
+      fv = SUMA_THD_dicomm_to_3dmm( VolPar->xxorient, 
+                                    VolPar->yyorient, VolPar->zzorient,iv );
       /* fprintf(SUMA_STDERR,"%s: In[%f %f %f] Out[%f %f %f]\n", 
                         FuncName, iv.xyz[0], iv.xyz[1], iv.xyz[2], 
                         fv.xyz[0], fv.xyz[1], fv.xyz[2]); */
-      SO.NodeList[id] = fv.xyz[0];
-      SO.NodeList[id+1] = fv.xyz[1];
-      SO.NodeList[id+2] = fv.xyz[2];
+      NodeList[id] = fv.xyz[0];
+      NodeList[id+1] = fv.xyz[1];
+      NodeList[id+2] = fv.xyz[2];
    }
 
    SUMA_RETURN(YUP);

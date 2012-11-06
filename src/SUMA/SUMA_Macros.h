@@ -1253,6 +1253,41 @@ Bruce Kimball, Paul Embree and Bruce Kimble
    } \
 }
 
+#define SUMA_MEAN_VEC(a,nel,amean,nozero) { \
+   int m_I, m_c=0;  double m_mean=0.0; \
+   amean = 0;  \
+   if (nozero) {\
+      for (m_I = 0; m_I < nel; m_I++) { \
+         if (a[m_I]!=0.0f) { ++m_c; m_mean += a[m_I]; }\
+      }\
+      if (m_c) amean = m_mean/m_c;  \
+   } else { \
+      for (m_I = 0; m_I < nel; m_I++) { \
+         m_mean += a[m_I]; \
+      }\
+      if (nel) amean = m_mean/nel;  \
+   }\
+}
+
+#define SUMA_MEAN_STD_VEC(a,nel,amean, astd, nozero) { \
+   int m_I, m_c=0;  double m_std=0.0, m_mmmm=0.0, dd=0.0;\
+   SUMA_MEAN_VEC(a,nel,m_mmmm,nozero); \
+   amean=m_mmmm; astd=0;  \
+   if (nozero) {\
+      for (m_I = 0; m_I < nel; m_I++) { \
+         if (a[m_I]!=0.0f) { ++m_c; dd=(a[m_I]-m_mmmm); m_std += dd*dd; }\
+      }\
+      if (m_c > 1) astd = sqrt(m_std/(m_c-1));  \
+   } else { \
+      for (m_I = 0; m_I < nel; m_I++) { \
+         dd=(a[m_I]-m_mmmm); m_std += dd*dd; \
+      }\
+      if (nel > 1) astd = sqrt(m_std/(nel-1));  \
+   }\
+}
+
+
+
 /*! \def SUMA_MIN_MAX_VEC(a,nel,amin, amax, aminloc, amaxloc)
 \brief SUMA_MIN_MAX_VEC macro for minimum and maximum 
    a pointer to vector
