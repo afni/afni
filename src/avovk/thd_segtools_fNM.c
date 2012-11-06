@@ -6,7 +6,19 @@
 #include "thd_segtools_fNM.h"
 
 static int verb=0;
-void segtools_verb( int ii ){ verb = ii ; }
+static writedists=0;
+void segtools_verb( int ii ){ verb = ii ; if (verb > 1) writedists = 1;}
+void segtools_writedists (int ii) { 
+   /* The files you get with writedists 
+      .kgg.1D : Cluster assignments
+      .dis.1D : Distance between clusters
+      .cen.1D : Cluster centroids
+      .info1.1D: Within cluster sum of distances
+      .info2.1D: Maximum distance within each cluster
+      .vcd.1D: Voxel to centroids distnaces 
+   */
+   writedists = ii; 
+}
 
 OPT_KMEANS new_kmeans_oc(void) 
 {
@@ -20,6 +32,7 @@ OPT_KMEANS new_kmeans_oc(void)
    oc.jobname = NULL;
    oc.distmetric = 'u';
    oc.verb = 0;
+   oc.writedists = 0;
    oc.rand_seed = 1234567;
    oc.remap = NONE;
    oc.user_labeltable=NULL;
@@ -449,6 +462,7 @@ void getvoxlclusterdist(int* count, float** cdata,
    int i, j, n;
    char* filename4;
    FILE *out4=NULL;
+   FILE *out5=NULL;
    float difference, difference1;
    float* max_vcdata = NULL;
    int dummy = 0;
@@ -459,7 +473,6 @@ void getvoxlclusterdist(int* count, float** cdata,
          setmetric(dist);
    float *weight=NULL;
    
-   FILE *out5=NULL;
 
    ENTRY("getvoxlclusterdist");
    /* allocate for answer arrays */
@@ -478,14 +491,12 @@ void getvoxlclusterdist(int* count, float** cdata,
   
   filename4 = malloc(n*sizeof(char));
   sprintf (filename4, "%s_K%d_Gx.vcd.1D", jobname, nclusters);
-
-  out4 = fopen( filename4, "w" );
-
+  if (writedists) { out4 = fopen( filename4, "w" ); }
+  
   filename5 = malloc((n+2)*sizeof(char));
-
   sprintf (filename5, "%s_K%d_Gx.info2.1D", jobname, nclusters);
-  out5 = fopen( filename5, "w" );   /* ZSS: This also was "a" 
-                                    but I don't think it was necessary */
+  if (writedists) {  out5 = fopen( filename5, "w" ); }
+  
   weight = (float *)calloc(ncols, sizeof(float));
   for (i = 0; i < ncols; ++i) weight[i] = 1.0;
   
@@ -515,12 +526,17 @@ void getvoxlclusterdist(int* count, float** cdata,
     }
   }
 
-  if (verb) printf ("------- writing  max distances within clusters to file:\t\t"
-          " %s_K_G%d.info2.1D", jobname, nclusters);
+  if (out5) {
+   if (verb) 
+      printf ("------- writing  max distances within clusters to file:\t\t"
+              " %s_K_G%d.info2.1D", jobname, nclusters);
+   fprintf(out5, "#max distance within cluster (job %s, %d clusters)\n",
+            jobname, nclusters);
+  }
   for (i = 0; i < nclusters; i++){
     if (verb) printf("%7.3f\n",max_vcdata[i]);
-    fprintf(out5, "#cluster %d:\n"
-                  "%d   %7.3f\n",i, i, max_vcdata[i]);
+    if (out5) fprintf(out5, "#cluster %d:\n"
+                            "%d   %7.3f\n",i, i, max_vcdata[i]);
   }
 
   for (i = 0; i < nrows; i++){
@@ -529,16 +545,20 @@ void getvoxlclusterdist(int* count, float** cdata,
   }
   /* avovk JULY29_2008, sept 05 */
 
-  if (verb) printf ("------- writing voxels-centroids distances to file:\t\t"
-          " %s_K_G%d.vcd.1D\n",jobname, nclusters);
-  for (i = 0; i < nrows; i++)
-    fprintf (out4, "%09d\t%7.3f\n", i, vcdata[i][0]);
-  fclose(out4); out4=NULL;
-  fclose(out5); out5=NULL;
+  if (out4) {
+     if (verb) printf ("------- writing voxels-centroids distances to file:\t\t"
+             " %s_K_G%d.vcd.1D\n",jobname, nclusters);
+   fprintf (out4, "#distance from voxel to its centroid (job %s, %d clusters)\n",
+            jobname, nclusters);
+   for (i = 0; i < nrows; i++)
+      fprintf (out4, "%09d\t%7.3f\n", i, vcdata[i][0]);
+  }
+  if (out4) fclose(out4); out4=NULL;
+  if (out5) fclose(out5); out5=NULL;
 
   EXRETURN;
-
 }
+
 /* ========================================================================= */
 
 
@@ -593,10 +613,7 @@ void color_palette(int nclusters, char* jobname)
   char* hexnumbers=NULL;
   int verb = 0;
     
-  hexnumbers = (char *)malloc(32*sizeof(char)); /* ANDREJ: you had 16 here, but that is too short
-                                           because sprintf will add a terminating NULL character
-                                           = '\0' at the end, pushing you to 17 chars .
-                                           I used 32 which is overkill but it is a nice number */
+  hexnumbers = (char *)malloc(32*sizeof(char)); 
   sprintf (hexnumbers, "0123456789abcdef");
 
   n = 512 + strlen(jobname) + strlen(".pal") + 2;
@@ -734,16 +751,16 @@ void example_kmeans( int nrows, int ncols,
    int test=0;
    float error;
    float distance;
-   int** index;
-   int* count;
+   int** index=NULL;
+   int* count=NULL;
    float* weight = malloc(ncols*sizeof(float));
    float** cdata = malloc(nclusters*sizeof(float*));
    
    int n=0;
-   char* filename;
-   char* filename2;
-   char* filename3;
-   char* filename4;
+   char* filename=NULL;
+   char* filename2=NULL;
+   char* filename3=NULL;
+   char* filename4=NULL;
    FILE *out1=NULL;
    FILE *out2=NULL;
    FILE *out3=NULL;
@@ -776,17 +793,15 @@ void example_kmeans( int nrows, int ncols,
 
    /* ZSS:  Put a .1D in the name wherever it is appropriate */
    sprintf (filename, "%s_K02%d_G%c.kgg.1D", jobname, nclusters,dist);
-
-   out1 = fopen( filename, "w" );
+   if (writedists) { out1 = fopen( filename, "w" ); }
 
    sprintf (filename2, "%s_K02%d_G%c.dis.1D", jobname, nclusters,dist);
-
-   out2 = fopen( filename2, "w" );
+   if (writedists) { out2 = fopen( filename2, "w" ); }
 
    sprintf (filename3, "%s_K%02d_G%c.cen.1D", jobname, nclusters,dist);
-   out3 = fopen( filename3, "w" );
+   if (writedists) { out3 = fopen( filename3, "w" ); }
    sprintf (filename4, "%s_K%02d_G%c.info1.1D", jobname, nclusters,dist);
-   out4 = fopen( filename4, "w" );
+   if (writedists) { out4 = fopen( filename4, "w" ); }
 
    if (verb) { 
      printf("======================== k-means clustering"
@@ -875,18 +890,20 @@ void example_kmeans( int nrows, int ncols,
    if (verb) printf ("Solution found %d times; ", ifound);
    if (verb) printf ("within-cluster sum of distances is %f\n", error);
 
-   fprintf (out4,"#within-cluster sum of distances: %f\n",error);
-   fclose(out4); out4=NULL;
-
-   if (verb) printf ("------- writing Cluster assignments to file:\t\t"
-          " %s_K_G%d.kgg.1D\n",jobname, nclusters);
-   for (i = 0; i < nrows; i++)
-    fprintf (out1, "%09d\t %d\n", i, clusterid[i]);
-   fclose(out1); out1=NULL;
-
-   if (verb) printf ("------- writing Distance between clusters to file:\t "
-          "%s_K_G%d.dis.1D \n", jobname, nclusters);
-   fprintf (out2,"#------- Distance between clusters:\n");
+   
+   if (writedists) {
+      fprintf (out4,"#within-cluster sum of distances: %f\n",error);
+      fclose(out4); out4=NULL;
+   }
+   
+   if (writedists) {
+      if (verb) printf ("------- writing Cluster assignments to file:\t\t"
+             " %s_K_G%d.kgg.1D\n",jobname, nclusters);
+      for (i = 0; i < nrows; i++)
+         fprintf (out1, "%09d\t %d\n", i, clusterid[i]);
+      fclose(out1); out1=NULL;
+   }
+   
    index = (int **)malloc(nclusters*sizeof(int*));
    count = (int *)malloc(nclusters*sizeof(int));
    for (i = 0; i < nclusters; i++) count[i] = 0;
@@ -898,40 +915,44 @@ void example_kmeans( int nrows, int ncols,
       index[id][count[id]] = i;
       count[id]++;
    }  
-   
-   for (i = 0; i < nclusters-1; i++)
-     {
-       for (j = 1+i; j < nclusters; j++)
-	 {
-	   distance = clusterdistance(nrows, ncols, data, 
-				      weight, count[i], count[j], index[i], 
-				      index[j], dist , 'a', 0);  /*ZSS: You had 'e' where I put dist
-                                                    I don't know how much, if at
-                                                    all, you used this output. */
-                                                    
-	   fprintf(out2,"#Distance between %d and %d: %7.3f\n", 
-		   i, j, distance);
-	   
-	 }
-     }
 
-   fclose(out2); out2=NULL;
+   if (writedists) {
+      if (verb) printf ("------- writing Distance between clusters to file:\t "
+             "%s_K_G%d.dis.1D \n", jobname, nclusters);
+      fprintf (out2,"#------- Distance between clusters:\n");
 
-   if (verb) printf ("------- writing Cluster centroids to file:\t\t"
-          "%s_K_G%d.cen.1D\n",jobname, nclusters);
+      for (i = 0; i < nclusters-1; i++)
+        {
+          for (j = 1+i; j < nclusters; j++)
+	    {
+	      distance = clusterdistance(nrows, ncols, data, 
+				         weight, count[i], count[j], index[i], 
+				         index[j], dist , 'a', 0);  
 
-   /*fprintf (out3,"------- Cluster centroids:\n");*/
+	      fprintf(out2,"#Distance between %d and %d: %7.3f\n", 
+		      i, j, distance);
+
+	    }
+        }
+
+      fclose(out2); out2=NULL;
+   }
+
+
    getclustercentroids(nclusters, nrows, ncols, data, clusterid,
                       cdata, 0, 'a');
-   /*   fprintf(out3,"   coefficients:");
-	for(i=0; i<ncols; i++) fprintf(out3,"\t%7d", i);
-	fprintf(out3,"\n");*/
-   for (i = 0; i < nclusters; i++){ 
-     /*      fprintf(out3,"Cluster %2d:", i);*/
-      for (j = 0; j < ncols; j++) fprintf(out3,"\t%7.3f", cdata[i][j]);
-      fprintf(out3,"\n");
+   if (writedists) {
+      if (verb) printf ("------- writing Cluster centroids to file:\t\t"
+             "%s_K_G%d.cen.1D\n",jobname, nclusters);
+      for (i = 0; i < nclusters; i++){ 
+        /*      fprintf(out3,"Cluster %2d:", i);*/
+         for (j = 0; j < ncols; j++) fprintf(out3,"\t%7.3f", cdata[i][j]);
+         fprintf(out3,"\n");
+      }
+      fclose(out3); out3=NULL;
+
+      color_palette(nclusters, jobname);
    }
-   fclose(out3); out3=NULL;
    if (verb) printf("Done...\n");
 
    /* call function to calculate distance between each voxel and centroid */
@@ -939,36 +960,18 @@ void example_kmeans( int nrows, int ncols,
       count - number of elements in cluster as we allready have it
       cdata - cluster centroids
       clusterid
-      data */
-
-      /* ZSS:  
-               Double check on your computations with vcdata
-               below the call to color_palette and let us discuss
-               what you are doing with them.
-               
-       */
-      
+      data */      
              
       getvoxlclusterdist(count, cdata, clusterid, data, jobname, 
 		      nclusters, nrows, ncols, vcdata, dist);
       getvoxlclustersdist(count, cdata, clusterid, data, jobname, 
 		      nclusters, nrows, ncols, vcdata, dist);
 
-      color_palette(nclusters, jobname);
       
       /*might want to make some calculations with vcdata*/
 
       /*lets calculate distance to centroid/sum(distance 2 all centroids)*/
 
-   #if 0
-      for (i = 0; i < nrows; i++)
-	{
-	  a = 0;
-	  for (j = 0; j < nclusters; j++)
-	    a += vcdata[i][j+1];
-	  vcdata[i][nclusters+1] = 1000*vcdata[i][0]/a;
-	}
-   #else    /* ZSS: What is the purpose of all this ? */
       for (i = 0; i < nrows; i++)
 	{
 	  a = vcdata[i][0];
@@ -977,12 +980,13 @@ void example_kmeans( int nrows, int ncols,
 	    if (vcdata[i][j+1]>a && vcdata[i][j+1]< b) b = vcdata[i][j+1];
 	  vcdata[i][nclusters+1] = (1.0-a/b)*100.0;
 	}
-   #endif
+      
       /* just a notice: first column is dist to centroid in THE cluster,
 	 then there are columns that describe distance to centroids from
          each cluster centroid 
          - and we are adding another column here*/
 
+   
    for (i = 0; i < nclusters; i++) free(index[i]);
    free(index);
    free(count);
@@ -1422,6 +1426,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                         oc.k, oc.r, oc.distmetric, oc.jobname);
       }
       segtools_verb(oc.verb);
+      segtools_writedists(oc.writedists);
       example_kmeans(   nmask, ncol, D, 
                         oc.k, oc.r, oc.distmetric, 
                         oc.jobname, clusterid, vcdata, 

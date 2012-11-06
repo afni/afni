@@ -5097,7 +5097,7 @@ int SUMA_SegInitCset(THD_3dim_dataset *aseti,
    oc.distmetric = 'e';
    for (i=0; i<oc.k; ++i) oc.clabels[i] = cs->label[i];
    oc.jobname=SUMA_append_replace_string(Opt->proot?Opt->proot:".", 
-                                          FuncName, "/", 0);
+                                         FuncName, "/", 0);
    if (!cset) {
       /* Let clustering do the whole deal*/
       oc.r = 3;
