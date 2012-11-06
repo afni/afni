@@ -44,9 +44,9 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
    AA->hv = NULL ;  /* to be filled in later, maybe */
    AA->je = NULL ;  /* to be filled in later, maybe */
    AA->se = NULL ;  /* to be filled in later, maybe */
-   LOAD_DIAG_MAT44(AA->cmat,1.0f,1.0f,1.0f) ;
-   LOAD_DIAG_MAT44(AA->imat,1.0f,1.0f,1.0f) ;
-   LOAD_DIAG_MAT44(AA->amat,1.0f,1.0f,1.0f) ;
+   LOAD_IDENT_MAT44(AA->cmat) ;
+   LOAD_IDENT_MAT44(AA->imat) ;
+   LOAD_ZERO_MAT44(AA->emat) ;
    AA->geomstring = NULL ;
    AA->view = VIEW_ORIGINAL_TYPE ;
 
@@ -69,9 +69,9 @@ IndexWarp3D * IW3D_create_vacant( int nx , int ny , int nz )
    AA->hv = NULL ;
    AA->je = NULL ;
    AA->se = NULL ;
-   LOAD_DIAG_MAT44(AA->cmat,1.0f,1.0f,1.0f) ;
-   LOAD_DIAG_MAT44(AA->imat,1.0f,1.0f,1.0f) ;
-   LOAD_DIAG_MAT44(AA->amat,1.0f,1.0f,1.0f) ;
+   LOAD_IDENT_MAT44(AA->cmat) ;
+   LOAD_IDENT_MAT44(AA->imat) ;
+   LOAD_ZERO_MAT44(AA->emat) ;
    AA->geomstring = NULL ;
    AA->view = VIEW_ORIGINAL_TYPE ;
 
@@ -191,7 +191,7 @@ IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA )
 
    BB = IW3D_create( AA->nx , AA->ny , AA->nz ) ;
 
-   BB->cmat = AA->cmat ; BB->imat = AA->imat ; BB->amat = AA->amat ;
+   BB->cmat = AA->cmat ; BB->imat = AA->imat ; BB->emat = AA->emat ;
 
    if( AA->geomstring != NULL )
      BB->geomstring = strdup(AA->geomstring) ;
@@ -226,6 +226,7 @@ IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac )
        BB->zd[qq] = fac * AA->zd[qq] ;
      }
    }
+   MAT44_SCALE(BB->emat,fac) ;
 
    return BB ;
 }
@@ -4457,6 +4458,7 @@ ENTRY("IW3D_warp_s2bim") ;
 
 /*----------------------------------------------------------------------------*/
 
+#if 0
 #undef  CALLME
 #define CALLME(inn,out) (out) = mri_duplo_down_3D(inn)
 
@@ -4536,3 +4538,4 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
 
    RETURN(imww) ;
 }
+#endif
