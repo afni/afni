@@ -54,6 +54,7 @@ typedef struct {
    char distmetric;
    int voxdebug[4];
    int verb;
+   int writedists;
    unsigned int rand_seed;
    int remap;
    char *user_labeltable;

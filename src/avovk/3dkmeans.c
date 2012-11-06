@@ -155,6 +155,13 @@ static void display_help(int detail)
           "                SIGS.\n"
           "                With this option, no clustering is done.\n");
   printf ("  -verb         verbose \n");
+  printf ("  -write_dists  Output text files containing various measures.\n"
+          "                FILE.kgg.1D : Cluster assignments \n"
+          "                FILE.dis.1D : Distance between clusters\n"
+          "                FILE.cen.1D : Cluster centroids\n"
+          "                FILE.info1.1D: Within cluster sum of distances\n"
+          "                FILE.info2.1D: Maximum distance within each cluster\n"
+          "                FILE.vcd.1D: Distance from voxel to its centroid\n");
   printf ("  -voxdbg I J K Output debugging info for voxel I J K\n");    
   printf ("  -seed SEED    Seed for the random number generator.\n"
           "                Default is 1234567\n");    
@@ -167,16 +174,10 @@ static void display_help(int detail)
 
 int main(int argc, char **argv)
 { 
-   int ii=0, ncol=0, nrow=0, nl=0, nc=0, posi=0, posj=0, posk=0;
-
+   int ii=0, ncol=0, nrow=0, nl=0, nc=0;
    int i = 1;
    char* filename[256];
    int l = 0;
-   int s = 0;
-   int x = 2;
-   int y = 1;
-   int Rows, Columns;
-   char arraymetric = '\0';
    char method = 'm';
    char cg = '\0';
    char ca = '\0';
@@ -242,6 +243,11 @@ int main(int argc, char **argv)
     if(     !strcmp(argument,"--verb") 
          || !strcmp(argument,"-verb") )
     { oc.verb=1;
+      continue;
+    }
+    if(     !strcmp(argument,"--write_dists") 
+         || !strcmp(argument,"-write_dists") )
+    { oc.writedists=1;
       continue;
     }
     if(     !strcmp(argument,"--remap") 
