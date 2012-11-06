@@ -1830,10 +1830,27 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 /* scale */
 
 #undef  MAT44_SCALE
-#define MAT44_SCALE(AA,ff)                                                         \
- ( AA.m[0][0] *= (ff), AA.m[0][1] *= (ff), AA.m[0][2] *= (ff), AA.m[0][3] *= (ff), \
-   AA.m[1][0] *= (ff), AA.m[1][1] *= (ff), AA.m[1][2] *= (ff), AA.m[1][3] *= (ff), \
-   AA.m[2][0] *= (ff), AA.m[2][1] *= (ff), AA.m[2][2] *= (ff), AA.m[2][3] *= (ff)   )
+#define MAT44_SCALE(AA,ff)                                                                 \
+ ( (AA).m[0][0] *= (ff), (AA).m[0][1] *= (ff), (AA).m[0][2] *= (ff), (AA).m[0][3] *= (ff), \
+   (AA).m[1][0] *= (ff), (AA).m[1][1] *= (ff), (AA).m[1][2] *= (ff), (AA).m[1][3] *= (ff), \
+   (AA).m[2][0] *= (ff), (AA).m[2][1] *= (ff), (AA).m[2][2] *= (ff), (AA).m[2][3] *= (ff)   )
+
+/* add */
+
+#undef  MAT44_SUM
+#define MAT44_SUM(AA,ff,BB,gg)                                    \
+  ( tempA_mat44.m[0][0] = (AA).m[0][0]*(ff) + (BB).m[0][0]*(gg) , \
+    tempA_mat44.m[0][1] = (AA).m[0][1]*(ff) + (BB).m[0][1]*(gg) , \
+    tempA_mat44.m[0][2] = (AA).m[0][2]*(ff) + (BB).m[0][2]*(gg) , \
+    tempA_mat44.m[0][3] = (AA).m[0][3]*(ff) + (BB).m[0][3]*(gg) , \
+    tempA_mat44.m[1][0] = (AA).m[1][0]*(ff) + (BB).m[1][0]*(gg) , \
+    tempA_mat44.m[1][1] = (AA).m[1][1]*(ff) + (BB).m[1][1]*(gg) , \
+    tempA_mat44.m[1][2] = (AA).m[1][2]*(ff) + (BB).m[1][2]*(gg) , \
+    tempA_mat44.m[1][3] = (AA).m[1][3]*(ff) + (BB).m[1][3]*(gg) , \
+    tempA_mat44.m[2][0] = (AA).m[2][0]*(ff) + (BB).m[2][0]*(gg) , \
+    tempA_mat44.m[2][1] = (AA).m[2][1]*(ff) + (BB).m[2][1]*(gg) , \
+    tempA_mat44.m[2][2] = (AA).m[2][2]*(ff) + (BB).m[2][2]*(gg) , \
+    tempA_mat44.m[2][3] = (AA).m[2][3]*(ff) + (BB).m[2][3]*(gg) , tempA_mat44 )
 
 /*---------------------------------------------------------------------*/
 /*--- data structure for information about time axis of 3D dataset ----*/
