@@ -59,6 +59,7 @@ Usage:
  automatically included in the output. In addition, general linear tests (GLTs) 
  can be requested via symbolic coding.
  
+ Input files for 3dMVM can be in AFNI, NIfTI, or surface (niml.dset) format.
  Note that unequal number of subjects across groups are allowed, but scenarios 
  with missing data for a within-subject factor are better modeled with 3dLME. 
  Cases with quantitative variables (covariates) that vary across the levels of 
@@ -198,7 +199,10 @@ explored with GLTs in 3dMVM.
 read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    params <- list (
       '-prefix' = apl(n = 1, d = NA,  h = paste(
-   "-prefix PREFIX: Output prefix (just prefix, no view+suffix needed)\n"
+   "-prefix PREFIX: Output file name. For AFNI format, provide prefix only,",
+   "         no view+suffix needed. Filename for NIfTI format should have",
+   "         .nii attached, while file name for surface data is expected",
+   "         to end with .niml.dset\n", sep = '\n'
                      ) ),
 
       '-mask' = apl(n=1,  d = NA, h = paste(
@@ -296,14 +300,18 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
 
      '-dataTable' = apl(n=c(1, 10000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure with a header as the first line.",
+   "         NOTE: this option has to occur last; that is, no other options are",
+   "         allowed thereafter. Each line should end with a backslash except for",
+   "         the last line.\n",
    "         The first column is fixed with 'Subj', and the last is reserved",
    "         for 'InputFile'. Each row should contain only one effect estimate",
    "         in the table of long format (cf. wide format) as defined in R. The",
    "         level labels of a factor should contain at least one character.",
-   "         Input files can be in NIfTI or AFNI format with sub-brick selector",
-   "         (square brackets [] within quotes) specified with a number of",
-   "         label. Unequal number of subjects across groups is allowed, but",
-   "         situations with missing data for a within-subject factor are better",
+   "         Input files can be in AFNI, NIfTI or surface format. AFNI files",
+   "         can be specified with sub-brick selector(square brackets [] within",
+   "         quotes) specified with a number oflabel. Unequal number of subjects",
+   "         across groups is allowed, butsituations with missing data for a",
+   "         within-subject factor are betterhandled with 3dLME.",
    "         handled with 3dLME.\n", 
              sep = '\n'
                      ) ),
@@ -680,13 +688,13 @@ cat('***** Summary information of data structure *****\n')
 #print(sprintf('%i subjects: ', nlevels(lop$dataStr$Subj)))
 #for(ii in 1:nlevels(lop$dataStr$Subj)) print(sprintf('%s ', levels(lop$dataStr$Subj)[ii]))
 
-cat('##', nlevels(lop$dataStr$Subj), 'subjects: ', levels(lop$dataStr$Subj), '\n')
-cat('##', length(lop$dataStr$InputFile), 'response values\n')
+cat('#', nlevels(lop$dataStr$Subj), 'subjects: ', levels(lop$dataStr$Subj), '\n')
+cat('#', length(lop$dataStr$InputFile), 'response values\n')
 for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
-   cat('##', nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
+   cat('#', nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
    levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'numeric')
-   cat('##',length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii],':', lop$dataStr[,ii], '\n')
-cat('##', lop$num_glt, 'post hoc tests\n')
+   cat('#',length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii],':', lop$dataStr[,ii], '\n')
+cat('#', lop$num_glt, 'post hoc tests\n')
 cat('***** End of data structure information *****\n')   
 cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 
@@ -701,12 +709,16 @@ NoFile <- dim(lop$dataStr[1])[1]
 # Repeated-measures (use lme) or not (use lm)
 #if (length(unique(lop$dataStr$Subj)) != length(lop$dataStr$Subj)) RM <- TRUE else RM <- FALSE
 
+cat('Reading input files now...\n\n')
+
 # Read in the 1st input file so that we have the dimension information
 inData <- read.AFNI(lop$dataStr[1, FileCol])
 dimx <- inData$dim[1]
 dimy <- inData$dim[2]
 dimz <- inData$dim[3]
 head <- inData$header
+
+# ww <- inData$NI_head
 #myHist <- inData$header$HISTORY_NOTE; myOrig <- inData$origin; myDelta <- inData$delta
 
 inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI), '[[', 1))
@@ -723,10 +735,9 @@ if (!is.na(lop$maskFN)) {
 
 ###############################
 
-for(ii in 1:dimx) for(jj in 1:dimy) for(kk in 1:dimz) {
-   if(all(abs(inData[ii,jj,kk,])>10e-7)) {
-      xinit <- ii; yinit <- jj; zinit <- kk; break }
-}
+xinit <- dimx%/%3
+if(dimy==1) yinit <- 1 else yinit <- dimy%/%2
+if(dimz==1) zinit <- 1 else zinit <- dimz%/%2
 
 ii <- xinit; jj <- yinit; kk <- zinit
 
@@ -749,12 +760,12 @@ while (tag == 1) {
 }
 
 if(tag == 0)  {
-   print(sprintf("Good, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
+   print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
    #if (NoConst) NoF <- nrow(anova(fm)) else NoF <- nrow(anova(fm))-1  # Just assume an intercept in the model
         #NoF <- nrow(anova(fm))
    #for (n in 1:lop$num_glt) contrDF[n] <- temp[n]$df
    } else { 
-      errex.AFNI(sprintf("Model testing failed! Multiple reasons could cause the failure.... \n"))
+      errex.AFNI(sprintf("Ouch, model testing failed! Multiple reasons could cause the failure.... \n"))
 #                "might be inappropriate, or there are incorrect specifications in model.txt \n",
 #                "such as contrasts, factor levels, or other obscure problems.", lop$model))
       #break; next # won't run the whole brain analysis if the test fails
@@ -769,9 +780,6 @@ if(tag == 0)  {
 # number of terms (or F-stats): the output structure is different without within-subject variables
 nF <- ifelse(is.na(lop$wsVars), dim(univ(fm[[1]]))[1]-2, dim(univ(fm[[1]])$anova)[1]-1)
 NoBrick <- nF + 2*lop$num_glt
-
-# Initialization
-Stat <- array(0, dim=c(dimx, dimy, dimz, NoBrick))
 
 ###############################
 
@@ -797,9 +805,52 @@ print(format(Sys.time(), "%D %H:%M:%OS3"))
 #for(ii in 1:dimx) for(jj in 1:dimy) 
 #   aa<-runAOV(inData[ii,jj,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars, tag=0)
 
+if(dimy == 1 & dimz == 1) {
+   nSeg <- 20
+   # drop the dimensions with a length of 1
+   inData <- inData[, , ,]
+   # break into 20 segments, leading to 5% increamental in parallel computing
+   dimx_n <- dimx%/%nSeg + 1
+   # number of datasets need to be filled
+   fill <- nSeg-dimx%%nSeg
+   # pad with extra 0s
+   inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+   # declare output receiver
+   Stat <- array(0, dim=c(dimx_n, nSeg, NoBrick))
+   # break input multiple segments for parrel computation
+   dim(inData) <- c(dimx_n, nSeg, NoFile)
+   if (lop$nNodes==1) for(kk in 1:nSeg) {
+      if(NoBrick > 1) Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runAOV, dataframe=lop$dataStr,
+            ModelForm=ModelForm, pars=pars, tag=0), c(2,1)) else
+         Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runAOV, dataframe=lop$dataStr,
+            ModelForm=ModelForm, pars=pars, tag=0), dim=c(dimx_n, 1))
+      cat("Computation done: ", 100*kk/nSeg, "%", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+   }
+   
+   if (lop$nNodes>1) {
+   library(snow)
+   cl <- makeCluster(lop$nNodes, type = "SOCK")
+   clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
+   for(kk in 1:nSeg) {
+      if(NoBrick > 1) Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runAOV, dataframe=lop$dataStr,
+            ModelForm=ModelForm, pars=pars, tag=0), c(2,1)) else
+      Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runAOV, dataframe=lop$dataStr,
+            ModelForm=ModelForm, pars=pars, tag=0), dim=c(dimx_n, 1))
+      cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+   }
+   stopCluster(cl)
+   }
+   # convert to 4D
+   dim(Stat) <- c(dimx_n*nSeg, 1, 1, NoBrick)
+   # remove the trailers (padded 0s)
+   Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
+} else {
+
+# Initialization
+Stat <- array(0, dim=c(dimx, dimy, dimz, NoBrick))
+
 if (lop$nNodes==1) for (kk in 1:dimz) {
-   if(NoBrick > 1)
-      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runAOV, dataframe=lop$dataStr, 
+   if(NoBrick > 1) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runAOV, dataframe=lop$dataStr, 
          ModelForm=ModelForm, pars=pars, tag=0), c(2,3,1)) else
       Stat[,,kk,] <- array(apply(inData[,,kk,], c(1,2), runAOV, dataframe=lop$dataStr, 
          ModelForm=ModelForm, pars=pars, tag=0), dim=c(dimx, dimy, 1))      
@@ -807,7 +858,7 @@ if (lop$nNodes==1) for (kk in 1:dimz) {
 } 
 
 
-if (lop$nNodes>1)    {
+if (lop$nNodes>1) {
    library(snow)
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia)) 
@@ -819,6 +870,7 @@ if (lop$nNodes>1)    {
       cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
    } 
    stopCluster(cl)
+}
 }
 
 # test on Z slice
@@ -855,4 +907,4 @@ statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
 write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode="whatever")
 
 system(statpar)
-print(sprintf("Congratulations! You've got output %s+tlrc.*", lop$outFN))
+print(sprintf("Congratulations! You've got an output %s", lop$outFN))
