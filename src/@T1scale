@@ -8,7 +8,7 @@ goto PARSE
 RET_PARSE:
 
 COPY_DATA:
-      if ( ! -f $odir/PD.amask+orig.HEAD ||   \
+      if ( ! -f $odir/amask+orig.HEAD ||   \
            ! -f $odir/T1+orig.HEAD ||  \
            ! -f $odir/PD+orig.HEAD   ) then
    3dcalc ${overW} -datum short -a $T1 -expr 'a' -prefix $odir/T1
@@ -19,14 +19,25 @@ COPY_DATA:
       set afh = ($afh umask+orig.HEAD)
    else
       3dmerge ${overW} -1blur_fwhm 25 -prefix $odir/PDsm $odir/PD+orig
-      3dAutomask ${overW} -prefix $odir/PD.amask $odir/PDsm+orig
+      3dAutomask ${overW} -prefix $odir/amask $odir/PDsm+orig
       \rm -f $odir/PDsm+orig.* 
-      set afh = ($afh PD.amask+orig.HEAD)
+      set afh = ($afh amask+orig.HEAD)
    endif
       else
          echo "Reusing input data"
       endif
    
+NEWMASK:
+   cd $odir
+   if ( "$menh" != "0.0" && ! -f hmask+orig.HEAD) then
+      3dSkullStrip -head -input T1+orig -prefix SS
+      3dcalc -a SS_head+orig -datum byte -expr 'step(a-1)' -prefix hmask
+      set afh = ($afh hmask+orig.HEAD)
+   else
+      if ( "$menh" != "0.0" ) echo "Reusing hmask+orig.HEAD"
+   endif
+   cd $idir
+
 STATIT:
    cd $odir
       if ( ! -f PD.ls+orig.HEAD ) then
@@ -39,25 +50,20 @@ STATIT:
       endif
    cd $idir
    
-NEWMASK:
-   cd $odir
-   if ( "$menh" != "0.0" && ! -f T1.hull.mask.m+orig.HEAD) then
-      @T1mask ${overW}  -odir ./ -T1 T1+orig -hullmask 0.55
-      set afh = ($afh T1.hull.mask.m+orig.HEAD)
-   else
-      if ( "$menh" != "0.0" ) echo "Reusing T1.hull.mask.m+orig.HEAD+orig"
-   endif
-   cd $idir
       
 SCALEIT:
    cd $odir
-   set med = `3dBrickStat -non-zero -median -mask PD.amask+orig T1+orig.`
+   set med = `3dBrickStat -non-zero -median -mask amask+orig T1+orig.`
    if ("$menh" == 0.0) then
-      set mm = PD.amask+orig.HEAD
+      if ( $imask != '') then
+         set mm = umask+orig.HEAD
+      else
+         set mm = amask+orig.HEAD
+      endif
       set meq = 'step(c)'
    else 
-      set mm = T1.hull.mask.m+orig.HEAD
-      set meq = 'step(c-1)'
+      set mm = hmask+orig.HEAD
+      set meq = 'step(c)'
    endif
    if ($unmasked_output == 1) set meq = '1'
    
@@ -158,15 +164,10 @@ while ($cnt <= $Narg)
       endif
    endif
 
-   if ($donext && "$argv[$cnt]" == "-hullmask") then
-      if ($cnt == $Narg) then
-         echo "Need a value after -hullmask (1.0 is good)"
-         goto END
-      else
-         @ cnt ++
-         set menh = "$argv[$cnt]"
-         set donext = 0   
-      endif
+
+   if ($donext && ("$argv[$cnt]" == "-head_mask")) then
+      set menh = 1
+      set donext = 0   
    endif
 
    if ($donext && ("$argv[$cnt]" == "-unmasked_uni")) then
@@ -255,10 +256,9 @@ HELP:
    echo ""
    echo "         Script will reuse existing  volumes"
    echo ""
-   #echo "   -hullmask VOL: Mask output using the convex hull of the brightest."
-   #echo "                  VOL liters worth of voxels. 1.0 is good start"
+   echo "   -head_mask: Mask output using 3dSkullStrip's -head option."
    echo "   -unmasked_uni: Do not apply masking to uniformized volume"
-   #echo "                  Masks are computed nonetheless"
+   echo "                  Masks are computed nonetheless"
    echo ""
    echo "   -echo: Set echo"
    echo "   -help: this message" 
