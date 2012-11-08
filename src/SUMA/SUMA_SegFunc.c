@@ -7068,6 +7068,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO,
                         if (in == ndbg|| LocalHead){ 
                            SUMA_S_Notev("Going down %d steps to edge+anchor\n", 
                                        nn);}
+                        nn = SUMA_MIN_PAIR(nn,3);/* slowly to avoid folding */
                         ftr = travstep*nn;
                         xyz[0] -= ftr*dir[0];
                         xyz[1] -= ftr*dir[1];
@@ -7080,6 +7081,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO,
                            if (maxbot > nodeval) {
                               if (in == ndbg){ SUMA_S_Note("Going down max\n");}
                               nn = nmaxbot;
+                              nn = SUMA_MIN_PAIR(nn,3);/* slowly, avoid folding*/
                               ftr = travstep*nn;
                               xyz[0] -= ftr*dir[0];
                               xyz[1] -= ftr*dir[1];
