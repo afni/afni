@@ -257,7 +257,7 @@ HELP:
    echo ""
    #echo "   -hullmask VOL: Mask output using the convex hull of the brightest."
    #echo "                  VOL liters worth of voxels. 1.0 is good start"
-   #echo "   -unmasked_uni: Do not apply masking to uniformized volume"
+   echo "   -unmasked_uni: Do not apply masking to uniformized volume"
    #echo "                  Masks are computed nonetheless"
    echo ""
    echo "   -echo: Set echo"
