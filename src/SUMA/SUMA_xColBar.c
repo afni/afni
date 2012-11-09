@@ -2333,7 +2333,7 @@ void SUMA_RangeTableCell_EV ( Widget w , XtPointer cd ,
                      SUMAg_SVv[i].Focus_SO_ID = 
                         SUMA_findSO_inDOv (curSO->idcode_str, 
                                            SUMAg_DOv, SUMAg_N_DOv);
-                     if (SUMA_SURFCONT_CREATED(curSO)) {   
+                     if (SUMA_SURFCONT_REALIZED(curSO)) {   
                         SUMA_Init_SurfCont_SurfParam(curSO);
                      } else {
                         SUMA_S_Err("How did this happen?");
@@ -3351,13 +3351,17 @@ int SUMA_ThreshVal2ScalePos(SUMA_SurfaceObject *SO, float *val)
    w = SO->SurfCont->thr_sc;
    if (!w) { SUMA_SL_Err("Null widget"); SUMA_RETURN(0); }
    
-   XtVaGetValues(w, XmNuserData, &dec, NULL);
-   XtVaGetValues( w,
-                  XmNmaximum, &max_v,
-                  XmNminimum, &min_v,
-                  XmNvalue, &cv,
-                  XmNscaleMultiple, &scl,  
-                  NULL);
+   if (XtIsRealized(w)) {
+      XtVaGetValues(w, XmNuserData, &dec, NULL);
+      XtVaGetValues( w,
+                     XmNmaximum, &max_v,
+                     XmNminimum, &min_v,
+                     XmNvalue, &cv,
+                     XmNscaleMultiple, &scl,  
+                     NULL);
+   } else {
+      SUMA_S_Note("Slider widget not realized"); SUMA_RETURN(0); 
+   }
    if (*val < 0 && 
        SO->SurfCont->curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN) {
       *val = -*val;
@@ -3433,6 +3437,22 @@ double SUMA_Pval2ThreshVal (SUMA_SurfaceObject *SO, double pval) {
 
 /*!
    set the threshold bar when a new value is entered
+
+	Crash note for suma in macosx_10.7_Intel_64 binaries.
+
+With gcc 4.7.0 and 4.7.1, SUMA crashed when two hemispheres are loaded
+and the threshold level is changed for one hemisphere. Because of LR yoking
+the contralateral hemisphere is subject to the threshold change too.
+This works fine on all other binaries but with binaries from SARUMAN which use
+gcc 4.7.1, rather than the older gcc 4.2.1. The stack at the crash reliably pointed
+to SUMA_SetScaleThr_one(), right after the call to SUMA_ThreshVal2ScalePos(). 
+Debugging messages show that SUMA_ThreshVal2ScalePos() returns OK, but not even
+a simple statement can get printed right afterwards. Valgrind showed no relevant
+errors. 
+	To reproduce the problem, use the toy surfaces under std10_toy. Something like
+ suma -spec std.10both.mini.spec , followed by ctrl+s and a few threshold adjustments
+ is enough to cause the crash.
+ 
 */
 int SUMA_SetScaleThr_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
                           float *val, int setmen, int redisplay) 

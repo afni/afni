@@ -4383,14 +4383,8 @@ void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData)
       SUMA_RETURNe;
    }
 
-   if (!SUMA_SURFCONT_CREATED(SO)) {
-      /* Before you open the surface info widget, you'll need to open
-      the surface controller to initialize the Surface Controller first */
-      SUMA_cb_createSurfaceCont( w, (XtPointer)SO, callData);
-      /* NOW CLOSE IT, user need not use it.
-      Could have been a bit more elegant here
-      but that's good enough*/
-      SUMA_cb_closeSurfaceCont ( w, (XtPointer)SO, callData); 
+   if (!SUMA_SURFCONT_REALIZED(SO)) {
+      SUMA_OpenCloseSurfaceCont(NULL, SO, NULL);
    }
    
    /* Now do the info thingy */
@@ -4599,7 +4593,7 @@ void SUMA_cb_viewSumaCont(Widget w, XtPointer data, XtPointer callData)
 }
 
 /* Many times you need the surface controller created but not for 
-display, create it if needed, then close it immediately afterwards*/
+display, create it if needed, then minimize it immediately afterwards*/
 int SUMA_OpenCloseSurfaceCont(Widget w, 
                               SUMA_SurfaceObject *SO, 
                               SUMA_SurfaceViewer *sv) 
@@ -4611,7 +4605,7 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    
    if (!SO || !SO->SurfCont) SUMA_RETURN(0);
    
-   if (SUMA_SURFCONT_CREATED(SO)) SUMA_RETURN(1); /* nothing to do */
+   if (SUMA_SURFCONT_REALIZED(SO)) SUMA_RETURN(1); /* nothing to do */
    
    if (w) {
       SUMA_LH("nism");
@@ -4624,8 +4618,16 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
             SUMA_RETURN(0);
          }
       }
-      SUMA_LH("Creationism");
-      SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)SO, NULL);  
+      if (!SUMA_SURFCONT_CREATED(SO)) {
+      	SUMA_LH("Creationism");
+      	SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)SO, NULL);  
+      } else {
+        /* must have been closed, open it */
+	if (!SUMA_viewSurfaceCont( sv->X->TOPLEVEL, SO, sv)) {
+	   SUMA_S_Err("Failed to open surf cont anew");
+	   SUMA_RETURN(0);
+	}
+      }
    }
    
    SUMA_InitializeColPlaneShell(SO, SO->SurfCont->curColPlane);
@@ -4633,8 +4635,13 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
 
    /* Now close it quick. Maybe should put a delayed closing for nicer effect */
    SUMA_LH("Destructurism")
+   #if 0 /* Not a good idea to do this because widgets get unrealized and
+   	The main reason for calling this function is to be sure that
+	the widgets are alive and well for setting and queries ZSS Nov 9 2012 */
    SUMA_cb_closeSurfaceCont(NULL, (XtPointer) SO, NULL);
-   
+   #else
+   XIconifyWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SO->SurfCont->TLS), 0);
+   #endif
    SUMA_RETURN(1);
 }
  
@@ -8441,7 +8448,7 @@ int SUMA_ColPlaneShowOneFore_Set_one ( SUMA_SurfaceObject *SO,
    SUMA_ENTRY;
 
    if (!SO->SurfCont) SUMA_RETURN(0);
-   if (!SUMA_SURFCONT_CREATED(SO)) SUMA_RETURN(0);
+   if (!SUMA_SURFCONT_REALIZED(SO)) SUMA_RETURN(0);
    
    if (SO->SurfCont->ShowCurForeOnly == state) SUMA_RETURN(1);
    
@@ -8468,7 +8475,7 @@ int SUMA_ColPlaneShowOneFore_Set ( SUMA_SurfaceObject *SO,
    SUMA_ENTRY;
 
    if (!SO->SurfCont) SUMA_RETURN(0);
-   if (!SUMA_SURFCONT_CREATED(SO)) SUMA_RETURN(0);
+   if (!SUMA_SURFCONT_REALIZED(SO)) SUMA_RETURN(0);
    
    if (!SUMA_ColPlaneShowOneFore_Set_one (SO, state, cb_direct)) {
       SUMA_S_Err("Returning on an angry note");
