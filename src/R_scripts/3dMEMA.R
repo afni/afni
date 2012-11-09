@@ -506,7 +506,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.15, Sept 10, 2012
+Version 0.2.0, Nov 9, 2012
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -539,10 +539,10 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 0.1.15 (Sept 10, 2012). If you want to cite the analysis
+ desirable. Version 0.2.0 (Nov 9, 2012). If you want to cite the analysis
  approach, use the following at this moment:
 
- Chen et al., 2012.FMRI Group Analysis Combining Effect Estimates
+ Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
  and Their Variances. NeuroImage. NeuroImage 60: 747-765.
  
  The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
@@ -2402,8 +2402,8 @@ tTop <- 100   # upper bound for t-statistic
          outLabel <- append(outLabel, sprintf("%s:tau^2", lop$testName[[ii]]))
          outLabel <- append(outLabel, sprintf("%s:QE", lop$testName[[ii]]))
       }
-      outLabel <- append(outLabel, "tau1^2>tau2^2")
-      outLabel <- append(outLabel, "tau2^2>tau1^2")
+      outLabel <- append(outLabel, "tau1^2 / tau2^2")
+      outLabel <- append(outLabel, "tau2^2 / tau1^2")
    } else {
       outLabel <- append(outLabel, "tau^2")
       outLabel <- append(outLabel, "QE:Chisq")  
