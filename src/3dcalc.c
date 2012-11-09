@@ -247,7 +247,7 @@ void CALC_read_opts( int argc , char * argv[] )
 #endif
       
       /**** -help ****/
-      if (!strcmp(argv[nopt], "-help") || !strcmp(argv[nopt], "-h")) {
+      if (!strcmp(argv[nopt], "-help")) {
          CALC_Syntax();
          exit(0);
       }
