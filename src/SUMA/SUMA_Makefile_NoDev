@@ -57,6 +57,20 @@ SUMA_gts.o: SUMA_gts.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} \
 		    -c SUMA_gts.c 
 
+#Dropping optimization level for SUMA_xColBar.c because with gcc 4.7 and -O2 
+#SUMA crashes when the threshold bar is moved. Nothing but changing the optimization flag helped.
+#Using older gcc compilers worked fine, but then one worries about the recurrence
+#of the 3dAllineate convergence problem which happened haphazardly.
+#It was enough to change -O2 to -O1 for SUMA_xColBar.o. That is why the
+#special rule is here with the -O1 purposefully positioned to override -O flags
+#from parent Makefile
+#Consider removing this line with future compiler updates on macosx_10.7_Intel_64. 
+#See comment in SUMA_SetScaleThr_one() for instructions
+#on reproducing the crash 		Nov. 9 2012
+SUMA_xColBar.o: SUMA_xColBar.c
+	${CC} -O1 -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} \
+		    -c SUMA_xColBar.c 
+
 SUMA_SRCS_MAIN = SUMA_suma.c
 
 SUMA_OBJS = ${SUMA_SRCS:.c=.o}

@@ -107,7 +107,7 @@ set idir = $PWD
 set T1 = ''
 set PD = ''
 set menh = 0.0
-set unmasked_output = 0
+set unmasked_output = 1
 set afh = ()
 set overW = ''
 
@@ -172,6 +172,11 @@ while ($cnt <= $Narg)
 
    if ($donext && ("$argv[$cnt]" == "-unmasked_uni")) then
       set unmasked_output = 1
+      set donext = 0   
+   endif
+   
+   if ($donext && ("$argv[$cnt]" == "-masked_uni")) then
+      set unmasked_output = 0
       set donext = 0   
    endif
    
@@ -257,8 +262,10 @@ HELP:
    echo "         Script will reuse existing  volumes"
    echo ""
    echo "   -head_mask: Mask output using 3dSkullStrip's -head option."
-   echo "   -unmasked_uni: Do not apply masking to uniformized volume"
-   echo "                  Masks are computed nonetheless"
+   echo "   -unmasked_uni: Do not apply masking to uniformized volume (default)"
+   echo "   -masked_uni: Do apply masking to uniformized volume"
+   echo "      NOTE: Masks are computed regardless of whether or not the mask "
+   echo "            is applied to the uniformized image"
    echo ""
    echo "   -echo: Set echo"
    echo "   -help: this message" 

@@ -1260,7 +1260,7 @@ int main (int argc,char *argv[])
    THD_3dim_dataset *oset = NULL;
    MRI_IMAGE *imin=NULL, *imout=NULL, *imout_orig=NULL  ;
    
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
@@ -1406,7 +1406,7 @@ int main (int argc,char *argv[])
       }
       
       if (0 && Opt->flt1 > 0.0) { /* Should modify functions below
-         to operate with PC rotations, and simply use the Z coordinate
+         to operate without PC rotations, and simply use the Z coordinate
          with the top location controlled by a percentile value (0% == very top,
          5% == from the top 5%) */
          SUMA_LHv("Masking on voxel depth of %f\n",Opt->flt1);

@@ -2208,7 +2208,6 @@ SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
    int OverInd = -1;
    char *namediff=NULL;
    SUMA_SurfaceObject *SOC=NULL;
-   static SUMA_Boolean OpenController = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2265,12 +2264,10 @@ SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
       SUMA_S_Err("Failed oh failed to find overlay for contralateral dset");            SUMA_RETURN(NULL);      
    }
    
-   if (!OpenController) {
+   if (!SUMA_SURFCONT_REALIZED(SOC)) {
       if (!(SUMA_OpenCloseSurfaceCont(NULL, SOC, NULL))) {
          SUMA_S_Err("Could not ensure controller is ready");
          SOC = NULL; overC=NULL;
-      } else {
-         OpenController = YUP; /* no need to do this again */
       } 
    }
    if (SOCp) *SOCp=SOC;
