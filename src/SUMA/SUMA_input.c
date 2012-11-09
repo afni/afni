@@ -5205,7 +5205,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       ip = NP * MTI->ifacemin;
 
       /* if the surface controller is open, update it */
-      if (SUMA_SURFCONT_CREATED(SO))   SUMA_Init_SurfCont_SurfParam(SO);
+      if (SUMA_SURFCONT_REALIZED(SO))   SUMA_Init_SurfCont_SurfParam(SO);
 
       /* print nodes about the closets faceset*/
       fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
