@@ -7812,9 +7812,9 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
                     float peakperc) 
 {
    static char FuncName[]={"SUMA_VoxelDepth_Z"};
-   float *sdpth=NULL, *xyz=NULL;
-   int ii, jj, kk, nn, vv, nvox=0;
-   byte *cmask=NULL, *scmask=NULL;
+   float *zs=NULL, *z=NULL;
+   int ii, jj, kk, nn, vv, nvox=0, itop=0;
+   byte *cmask=NULL;
    int N_inmask = -1;
    THD_fvec3 mm, di; 
    SUMA_Boolean LocalHead = NOPE;
@@ -7842,9 +7842,16 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
    for (nvox=0, ii=0; ii<DSET_NVOX(dset); ++ii) {
       if (cmask[ii]) ++nvox;
    }
-   if (!(xyz = (float *)SUMA_calloc(3*nvox, sizeof(float)))) {
+   
+   if (!(z = (float *)SUMA_calloc(nvox, sizeof(float)))) {
       SUMA_S_Errv("Failed to allocate for %d floats\n",
-                  3*nvox);
+                  nvox);
+      free(cmask);
+      SUMA_RETURN(-1);
+   }
+   if (!(zs = (float *)SUMA_calloc(nvox, sizeof(float)))) {
+      SUMA_S_Errv("Failed to allocate for %d floats\n",
+                  nvox);
       free(cmask);
       SUMA_RETURN(-1);
    }
@@ -7859,21 +7866,24 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
          di = SUMA_THD_3dmm_to_dicomm( dset->daxes->xxorient,
                                        dset->daxes->yyorient,
                                        dset->daxes->zzorient, mm);
-         xyz[3*nn  ] = di.xyz[0];
-         xyz[3*nn+1] = di.xyz[1];
-         xyz[3*nn+2] = di.xyz[2];
+         z[nn] = zs[nn] = di.xyz[2];
          ++nn;
       }
       ++vv;
    } } }
    
-   SUMA_LHv("Calling depth function, thr %f\n", thr);
-   N_inmask = SUMA_NodeDepth(xyz, nvox, 
-                             dpth ? &sdpth:NULL, 
-                             thr, &scmask);
-   SUMA_LHv("%d / %d voxels met threshold\n", N_inmask, nvox);
-   SUMA_free(xyz); xyz = NULL;
-  
+   /* sort the depths */
+   qsort(zs, nvox, sizeof(float), 
+         (int(*) (const void *, const void *)) SUMA_compare_float);
+   /* find the top Z value */
+   itop = (nvox-1)*((100-peakperc)/100.0);
+   if (itop > nvox-1) {
+      itop = nvox-1;
+   } else if (itop < 0) {
+      itop = 0;
+   }
+   SUMA_LHv("Top Z selection at %f %% is %fmm\n", peakperc, zs[itop]);
+   
    /* Does the user want voxel depths back ? */
    if (dpth) {
       SUMA_LH("Returning depth values");
@@ -7883,7 +7893,7 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
       for (jj=0; jj<DSET_NY(dset); ++jj) {
       for (ii=0; ii<DSET_NX(dset); ++ii) {
          if (cmask[vv]) {
-            *(*dpth+vv)=sdpth[nn]; ++nn;
+            *(*dpth+vv)=zs[itop]-z[nn]; ++nn;
          } 
          ++vv;
       } } }
@@ -7897,7 +7907,10 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
       for (jj=0; jj<DSET_NY(dset); ++jj) {
       for (ii=0; ii<DSET_NX(dset); ++ii) {
          if (cmask[vv]) {
-            *(*cmaskp+vv)=scmask[nn]; ++nn;
+            if (zs[itop]-z[nn] <= thr) {
+               *(*cmaskp+vv) = 1;
+            }
+            ++nn;
          }
          ++vv;
       } } }
@@ -7913,7 +7926,7 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
                for (jj=0; jj<DSET_NY(dset); ++jj) {
                for (ii=0; ii<DSET_NX(dset); ++ii) {
                   if (cmask[vv]) {
-                     if (!scmask[nn]) bv[vv] = 0; 
+                     if (zs[itop]-z[nn] > thr) bv[vv] = 0; 
                      ++nn;
                   }
                   ++vv;
@@ -7927,7 +7940,7 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
                for (jj=0; jj<DSET_NY(dset); ++jj) {
                for (ii=0; ii<DSET_NX(dset); ++ii) {
                   if (cmask[vv]) {
-                     if (!scmask[nn]) sv[vv] = 0; 
+                     if (zs[itop]-z[nn] > thr)  sv[vv] = 0; 
                      ++nn;
                   }
                   ++vv;
@@ -7941,7 +7954,7 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
                for (jj=0; jj<DSET_NY(dset); ++jj) {
                for (ii=0; ii<DSET_NX(dset); ++ii) {
                   if (cmask[vv]) {
-                     if (!scmask[nn]) fv[vv] = 0; 
+                     if (zs[itop]-z[nn] > thr)  fv[vv] = 0; 
                      ++nn;
                   }
                   ++vv;
@@ -7956,8 +7969,8 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
    
    SUMA_LH("Liberte");
    if (cmask) free(cmask); cmask = NULL;
-   if (scmask) SUMA_free(scmask);
-   if (sdpth) SUMA_free(sdpth);
+   if (z) SUMA_free(z); z= NULL;
+   if (zs) SUMA_free(zs); zs= NULL;
    SUMA_RETURN(N_inmask);                   
 }
 

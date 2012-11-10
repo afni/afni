@@ -367,12 +367,10 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                      ZCUT is the Z coord (I-S DICOMM) shown in AFNI's top\n"
 "                      left corner. This is useful when you have lots of junk\n"
 "                      under the brains\n"
-/*"     -head_max_height HH: After the mask is created, project all voxel coords\n"
-"                          along the principal direction closest to Z axis \n"
-"                          then mask out voxels that are more than HH mm from\n"
-"                          the very top. The default is 170mm, if you do not \n"
+"     -head_max_height HH: After the mask is created, mask out voxels that are\n"
+"                          more than HH mm from the top 1%% of voxels in\n"
+"                          the mask. The default is 160mm, if you do not \n"
 "                          use option -cut_below. \n" 
-*/
 "     Example: 3dSkullStrip -head -input DemoSubj_SurfVol+orig.HEAD \\\n"
 "                           -prefix toy_head\n"
 "\n"
@@ -507,7 +505,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    Opt->cog[2]=-9000.0f;
    Opt->permask = -1.0;
    memset(Opt->PlEq, 0, 4*sizeof(float));
-   Opt->flt1 = -170.0;
+   Opt->flt1 = -160.0;
    
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -1405,13 +1403,13 @@ int main (int argc,char *argv[])
          SUMA_S_Err("Failed to create output");                 
       }
       
-      if (0 && Opt->flt1 > 0.0) { /* Should modify functions below
+      if (Opt->flt1 > 0.0) { /* Should modify functions below
          to operate without PC rotations, and simply use the Z coordinate
          with the top location controlled by a percentile value (0% == very top,
          5% == from the top 5%) */
          SUMA_LHv("Masking on voxel depth of %f\n",Opt->flt1);
          /* Mask remaining voxels based on depth */
-         SUMA_VoxelDepth(headset,NULL, Opt->flt1, NULL, 1); 
+         SUMA_VoxelDepth_Z(headset,NULL, Opt->flt1, NULL, 1, 1.0); 
       }
                                 
       tross_Make_History( FuncName , argc,argv , headset ) ;
