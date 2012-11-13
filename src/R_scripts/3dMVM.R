@@ -712,7 +712,7 @@ NoFile <- dim(lop$dataStr[1])[1]
 cat('Reading input files now...\n\n')
 
 # Read in the 1st input file so that we have the dimension information
-inData <- read.AFNI(lop$dataStr[1, FileCol])
+inData <- read.AFNI(lop$dataStr[1, FileCol], verb=lop$verb, meth=lop$iometh)
 dimx <- inData$dim[1]
 dimy <- inData$dim[2]
 dimz <- inData$dim[3]
@@ -721,12 +721,13 @@ head <- inData$header
 # ww <- inData$NI_head
 #myHist <- inData$header$HISTORY_NOTE; myOrig <- inData$origin; myDelta <- inData$delta
 
-inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI), '[[', 1))
+inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh), '[[', 1))
 dim(inData) <- c(dimx, dimy, dimz, NoFile)
 
 if (!is.na(lop$maskFN)) {
-	Mask <- read.AFNI(lop$maskFN)$brk[,,,1]
-	inData <- array(apply(inData, 4, function(x) x*read.AFNI(lop$maskFN)$brk[,,,1]), dim=c(dimx,dimy,dimz,NoFile))
+	Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh)$brk[,,,1]
+	inData <- array(apply(inData, 4, function(x) x*read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh)$brk[,,,1]),
+      dim=c(dimx,dimy,dimz,NoFile))
 }
 
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's 
