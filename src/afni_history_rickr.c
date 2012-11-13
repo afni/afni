@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Nov, 2012, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fixed fopen_maybe to check for .1D suffix on file streams",
+   "Suffix might get added by EDIT_dset_items.\n"
+   "Thanks to I Schwabacher for noting the problem."
+ } ,
+
  { 23, OCT, 2012, RCR, "to3d", MINOR, TYPE_BUG_FIX,
    "forgot to leave show_size_n_offset set",
    "Thanks to J Jarcho for noticing the to3d failure."
