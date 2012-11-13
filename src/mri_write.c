@@ -14,17 +14,31 @@
 static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
 {
    FILE *imfile ;
+   char *tname = NULL;
+   int   tlen;
 
    if( fname == NULL || *fname == '\0' ) return NULL ;  /* bad input */
 
    /* special case -- be sure not to fclose() stdout! */
 
-   if( strcmp(fname,"-") == 0 || strcmp(fname,"-.1D")    == 0
-                              || strcmp(fname,"stdout")  == 0
-                              || strcmp(fname,"stdout:") == 0 ) return stdout ;
+   /* ------------------------------------------------------------- */
+   /* test file streams with tname, where any .1D has been stripped */
+   /* note: the .1D suffix might come from EDIT_dset_items()        */
+   /* problem noted by I Schwabacher            13 Nov 2012 [rickr] */
+   tlen = strlen(fname);
+   if( tlen > 3 && !strcmp(fname+tlen-3, ".1D") ) {
+      tname = strdup(fname);
+      tname[tlen-3] = '\0';
+   } else tname = fname;
 
-   if( strcmp(fname,"stderr" ) == 0 ||
-       strcmp(fname,"stderr:") == 0  ) return stderr ;
+   if( strcmp(tname,"-") == 0 || strcmp(tname,"stdout")  == 0
+                              || strcmp(tname,"stdout:") == 0 ) return stdout ;
+
+   if( strcmp(tname,"stderr" ) == 0 ||
+       strcmp(tname,"stderr:") == 0  ) return stderr ;
+
+   if( tname != fname ) free(tname);             /* done with tname */
+   /* ------------------------------------------------------------- */
 
    if( THD_is_ondisk(fname) ){   /* check for existing file */
      if( !THD_ok_overwrite() ){  /* if not allowed to overwrite */
