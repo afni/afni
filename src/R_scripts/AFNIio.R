@@ -28,6 +28,11 @@ if (R_io == -1) {
    }
 }
 
+have_R_io <- function() {
+   if (R_io == 1) return(TRUE);
+   else return(FALSE);
+}
+
 libLoad <- function(myLib) {
    sucLoad <- FALSE
    sucCheck <- FALSE
@@ -2553,7 +2558,13 @@ orcode.AFNI <- function(orstr) {
 #------------------------------------------------------------------
 
 read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0,
-                      meth = 'Rlib') {
+                      meth = 'AUTO') {
+  
+  if (meth == 'AUTO') {
+   if (have_R_io()) meth <- 'clib';
+   else meth <- 'Rlib'
+  }
+  
   an <- parse.AFNI.name(filename);
   
   if (verb > 1) {
