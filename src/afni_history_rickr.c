@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Nov, 2012, RCR, "make_random_timing.py", MINOR, TYPE_BUG_FIX,
+   "fixed check for random space in -max_consec case",
+   "Thanks to Kristina for noting the problem."
+ } ,
+
  { 13, Nov, 2012, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "fixed fopen_maybe to check for .1D suffix on file streams",
    "Suffix might get added by EDIT_dset_items.\n"
