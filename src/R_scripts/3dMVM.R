@@ -653,7 +653,7 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
 
 
 
-if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(lop$qVarCenters, '\\,')[[1]])
+if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 
 
 require("afex")
