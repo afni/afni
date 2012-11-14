@@ -691,9 +691,10 @@ g_history = """
     1.6  May 01, 2012: -ordered_stimuli now works with -max_consec
          - requested by Liat
     1.7  Oct 03, 2012: some options do not allow dashed parameters
+    1.8  Nov 14, 2012: fixed checks for random space in -max_consec case
 """
 
-g_version = "version 1.7, Oct 3, 2012"
+g_version = "version 1.8, Nov 14, 2012"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -1729,6 +1730,7 @@ class RandTiming:
         if rcount > 0:
             rv, clist = self.fill_remaining_limited_space(self.max_consec,
                                                           clist, rtype, rcount)
+            if rv: return 1, None
 
         # next, rewrite as elist   ---> convert to 1-based index list here 
         elist = []
@@ -1844,7 +1846,15 @@ class RandTiming:
         return 0, clist, prev, nremain
 
     def fill_remaining_limited_space(self, max_consec, clist, rtype, rcount):
-        """
+        """Try to add rcount events of type rtype into clist, subject to limits
+           imposed by max_consec.
+
+           Note that there should not be space for rtype at the end of the list
+           (else it would have already been added).
+
+           Note that if inserting an rtype event between two events of other
+           types, then there is actually space for max_consec[rtype] events in
+           that position.
         """
         pmax = max_consec[rtype]
 
@@ -1853,31 +1863,49 @@ class RandTiming:
             return 1, None
 
         # do we have enough space for remaining events?
-        space = self.count_limited_space(clist, rtype, pmax)
+        space, npos = self.count_limited_space(clist, rtype, max_consec)
         if space < rcount:        # we are in trouble
             print '** limited_events: only %d positions for %d inserts' \
                   % (space, rcount)
             return 1, None
-        if self.verb > 2: print '-- space for insert: %d' % space
-        if self.verb > 3: print '   clist %s' % clist
+        if self.verb > 2:
+           print '-- space for insert: %d, positions %d ' % (space, npos)
+           if self.verb > 3: print '   clist %s' % clist
 
         # okay, insert the remaining rcount events of type rtype
         # rely on rcount being small and do linear searches for each insert
         for ind in range(rcount): # rcount times, insert rtype event
-            rind = int(space*random.random())  # insertion index
-            if self.verb > 2: print '-- random insertion index %d' % rind
+            rind = int(npos*random.random())  # insertion index
+            if self.verb > 2:
+               print '-- random insertion index %d of %d' % (rind, npos)
             ecount = 0  # count of all potential events
-            # proceed until rind < nvalid at current index
+
+            # find valid position index rind (check positions per cind)
             for cind in range(1, len(clist)):
                 c0, c1 = clist[cind][0], clist[cind][1]
-                # how many valid positions are at the current index?
-                if c0 == rtype and c1 == pmax: continue  # no space
 
                 # if rind is too big to insert here, move on
                 # (take care if rtype bin is full)
-                if clist[cind-1] == [rtype, pmax] and rind >= c1-1:
-                    rind -= c1-1
-                    continue
+
+                # if rtype, either no postions or c1+1 postions available
+                # (consider after last as one more position)
+                if c0 == rtype:
+                   if c1 >= pmax: continue   # no postions
+
+                   if rind >= c1+1:
+                      rind -= c1+1
+                      continue
+                   # else, this is good
+
+                # if prev is rtype, one fewer position
+                elif clist[cind-1][0] == rtype:
+                   if rind >= c1-1:
+                       rind -= (c1-1)
+                       continue
+                   # else, this is good; add 1 to skip first element
+                   rind += 1
+
+                # else can go before any
                 elif rind >= c1:
                     rind -= c1
                     continue
@@ -1889,33 +1917,29 @@ class RandTiming:
                 print '** LE: failed to find insertion index'
                 return 1, None
 
-            if self.verb > 2: print '++ inserting at index %d' % cind
-
-            # if rtype bin is full, skip one event
-            if clist[cind-1] == [rtype, pmax]: rind += 1
+            if self.verb>3: print '++ inserting at index %d (of %d), rind %d' \
+                                  % (cind, len(clist), rind)
 
             # if adjacent to an 'rtype' event, increment event count
-            # (and adjust space, max event count means subtr pmax)
             if c0 == rtype:
                 clist[cind][1] += 1
-                if clist[cind][1] == pmax: space -= pmax+1
-            elif clist[cind-1][0] == rtype and rind == 0:
-                clist[cind-1][1] += 1
-                if clist[cind-1][1] == pmax: space -= pmax+1
-            # neither matches, so insert 'rtype', and possibly break c0
+            # if at beginning, insert a new event
             elif rind == 0:
                 clist.insert(cind, [rtype, 1])
             else: # must break clist[cind] apart
+                # decrement by rind, insert new event, insert prev rind
+                clist[cind][1] -= rind # decrement and insert by rind
+                clist.insert(cind, [rtype, 1])
                 clist.insert(cind, [c0, rind])
-                clist.insert(cind+1, [rtype, 1])
-                clist[cind+2][1] -= rind
 
             # fill cases subtraced pmax+1, so all can add 1 here
-            space += 1
-            if self.verb > 3: print '   clist %s' % clist # RCR
-            if self.verb > 3: print 'new space: %d' % space
-            if space != self.count_limited_space(clist, rtype, pmax):
-                print "** space count failure"
+            space -= 1
+            if self.verb > 5: print '   clist %s' % clist
+            snew, npos = self.count_limited_space(clist, rtype, max_consec)
+            if space != snew:
+               print "** space count failure, space = %d, count = %d" \
+                     % (space, snew)
+               return 1, None
 
         if not self.limited_events_are_valid(clist, max_consec):
             print '** LE fill remain failure, some events exceed maximum'
@@ -1923,19 +1947,53 @@ class RandTiming:
 
         return 0, clist
 
-    def count_limited_space(self, clist, eind, emax):
-        """given an event class list, and event index and the maximum
-           number of sequential events of that type, return the number of
-           positions available to insert a new event"""
+    def count_limited_space(self, clist, eind, max_consec):
+        """Given an event class list, and event index and the maximum number
+           of sequential events of each type, return the number of such events
+           that could possibly be added, as well as the number of positions
+           available to insert a new event.
+
+           Note: eind must be last event type.
+        """
         space = 0
+        positions = 0
+        emax = max_consec[eind]
+        if self.verb > 5:
+           print '== eind, emax: %d, %d' % (eind, emax)
+           print '== CLS clist: %s' % clist
         for ind in range(1, len(clist)):
-            # if next is full, skip
-            if clist[ind] == [eind, emax]: continue
+            if self.verb > 5: print '  %02d  %s  ' % (ind, clist[ind]),
+            # if next is eind, can go up to max
+            ncur = clist[ind][1] # note number of current entries
+            if clist[ind][0] == eind:
+               space += emax - ncur
+               if emax - ncur > 0: positions += ncur
+               if self.verb > 5: print space, positions
+               continue
     
-            # if previous is full, subtract 1 (can go before all but first)
-            if clist[ind-1] == [eind, emax]: space += clist[ind][1] - 1
-            else:                            space += clist[ind][1]
-        return space
+            # have ncur postions times emax space, unless prev was eind
+            space += ncur*emax
+            positions += ncur
+
+            # now adjust if prev was eind:
+            #   no additional space before first event
+            #   if prev is full, position cannot be before first event
+            if clist[ind-1][0] == eind:
+               space -= emax
+               if clist[ind-1][1] == emax: positions -= 1
+
+            if self.verb > 5: print space, positions
+
+        # maybe there is space at the end
+        ind = len(clist)-1
+        if clist[ind][0] != eind:
+           print '** space at end (index %d of %d), this should not happen' \
+                 % (ind, len(clist))
+           print '== clist: %s' % clist
+           space += emax
+           positions += 1
+        
+        return space, positions
 
     def limited_events_are_valid(self, clist, maxlist):
         """verify that each event type in clist does not have too many
