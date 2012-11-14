@@ -2203,7 +2203,7 @@ extern int mri_principal_vectors( MRI_IMARR *imar, int nvec, float *sval, float 
 typedef struct {
   int    nx ,  ny ,  nz ;
   float *xd , *yd , *zd , *hv , *je , *se ;
-  mat44 emat ;
+  mat33 emat ; int use_emat ;
    /* stuff below here is for conversion to/from 3D dataset format */
   mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
   char *geomstring ;
@@ -2224,6 +2224,11 @@ typedef struct {
   IndexWarp3D *fwarp ;
   IndexWarp3D *iwarp ;
 } IndexWarp3D_pair ;
+
+typedef struct {
+  mat44 fwarp ;
+  mat44 iwarp ;
+} mat44_pair ;
 
 extern IndexWarp3D * IW3D_create( int nx , int ny , int nz ) ;
 extern void IW3D_destroy( IndexWarp3D *AA ) ;
