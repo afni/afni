@@ -357,7 +357,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       opname <- opname[length(opname)];
       switch(opname,
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
-             maskFN = lop$maskFN <- ops[[i]],
+             mask = lop$maskFN <- ops[[i]],
              jobs   = lop$nNodes <- ops[[i]],
              model  = lop$model  <- ops[[i]],
              wsVars = lop$wsVars  <- ops[[i]],
@@ -716,13 +716,12 @@ inData <- read.AFNI(lop$dataStr[1, FileCol], verb=lop$verb, meth=lop$iometh)
 dimx <- inData$dim[1]
 dimy <- inData$dim[2]
 dimz <- inData$dim[3]
-# for the header used when writing out
+# for writing output purpose
 head <- inData
 
 # ww <- inData$NI_head
 #myHist <- inData$header$HISTORY_NOTE; myOrig <- inData$origin; myDelta <- inData$delta
-
-# read in all input files
+# Read in all input files
 inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh), '[[', 1))
 dim(inData) <- c(dimx, dimy, dimz, NoFile)
 
