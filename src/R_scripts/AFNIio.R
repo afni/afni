@@ -2553,6 +2553,28 @@ array2dset <- function (brk=NULL, format='BRIK', meth='AUTO') {
    return(z)   
 }
 
+typecode.AFNI <- function(typestr, def='MRI_short') {
+   if (is.null(typestr)) return(typecode.AFNI(def))
+   if (is.character(typestr)) {
+      if (typestr == 'MRI_byte' || typestr == 'byte') return(0)
+      if (typestr == 'MRI_short' || typestr == 'short') return(1)
+      if (typestr == 'MRI_int' || typestr == 'int') return(2)
+      if (typestr == 'MRI_float' || typestr == 'float') return(3)
+      if (typestr == 'MRI_double' || typestr == 'double') return(4)
+      if (typestr == 'MRI_complex' || typestr == 'complex') return(5)
+      if (typestr == 'MRI_rgb' || typestr == 'rgb') return(6)
+      err.AFNI(paste('Bad typecode ', typestr));
+      return(NULL);
+   } else {
+      if (typestr < 0  || typestr >6) {
+         err.AFNI(paste('Bad typecode ', typestr));
+         return(NULL);
+      }
+      return(typestr);
+   } 
+   err.AFNI(paste('Should not be here ', typestr));
+   return(NULL);
+}
 
 orcode.AFNI <- function(orstr) {
    if (is.character(orstr)) {
@@ -2904,7 +2926,7 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
                         maskinf=0, scale = TRUE, 
                         overwrite=FALSE, addFDR=0,
                         statsym=NULL, view="+tlrc",
-                        com_hist=NULL) {
+                        com_hist=NULL, type=NULL) {
   
    an <- parse.AFNI.name(filename);
    if (verb > 1) {
@@ -2943,29 +2965,46 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
       idcode <- dset.attr(defhead,"IDCODE_STRING")
    if (!is.null(idcode)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "IDCODE_STRING", val=idcode)
+   
    if (is.null(origin) && !is.null(defhead)) 
       origin <- dset.attr(defhead,"ORIGIN")
    if (!is.null(origin)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "ORIGIN", val=origin)
+   
    if (is.null(delta) && !is.null(defhead)) 
       delta <- dset.attr(defhead,"DELTA")
    if (!is.null(delta)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "DELTA", val=delta)
+   
    if (is.null(orient) && !is.null(defhead)) 
       orient <- dset.attr(defhead,"ORIENT_SPECIFIC")
    if (!is.null(orient)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "ORIENT_SPECIFIC",
                                     val = orcode.AFNI(orient))
+   
    if (is.null(label) && !is.null(defhead)) 
       label <- dset.attr(defhead,"BRICK_LABS")
    if (!is.null(label)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "BRICK_LABS",
                                     val = label);
+   
+   if (is.null(type) && !is.null(defhead)) {
+      tps = dset.attr(defhead,"BRICK_TYPES");
+      if (!is.null(tps) && length(tps)>0) type <- tps[1]
+   }   
+   if (!is.null(type)) {
+      if (!is.null(type <- typecode.AFNI(type))) {
+         type <- rep(type,  dset.dimBRKarray(dset)[4])
+         dset$NI_head <- dset.attr(dset$NI_head, "BRICK_TYPES", val=type)
+      }
+   }
+   
    if (is.null(note) && !is.null(defhead)) 
       note <- dset.attr(defhead,"note")
    if (!is.null(note)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "note",
                                     val = note);
+   
    if (is.null(statsym) && !is.null(defhead)) 
       statsym <- dset.attr(defhead,"statsym")
    if (!is.null(statsym)) dset$NI_head <- 
