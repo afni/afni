@@ -101,6 +101,7 @@ typedef struct {
    char *pstCgALLname;
    SUMA_FEAT_DISTS *FDV;
    int debug;
+   int verbose;
    int idbg, jdbg, kdbg;
    float binwidth;
    NI_str_array *feats, *clss, *featsfam;

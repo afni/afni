@@ -852,7 +852,8 @@ int SUMA_Find_IminImax_Avg (SUMA_SurfaceObject *SO,
    }
    
    if (istep < ShishMax) { /* crown the shish */
-      undershish[istep] = -1; if (fvecind_under) fvecind_under[istep] = -1; 
+      if (undershish) undershish[istep] = -1; 
+      if (fvecind_under) fvecind_under[istep] = -1; 
    }
    
    Means[1] /= (float)nMeans[1];
@@ -914,7 +915,8 @@ int SUMA_Find_IminImax_Avg (SUMA_SurfaceObject *SO,
       }
       
       if (istep < ShishMax) { /* crown the shish */
-         overshish[istep] = -1; if (fvecind_over) fvecind_over[istep] = -1; 
+         if (overshish) overshish[istep] = -1; 
+         if (fvecind_over) fvecind_over[istep] = -1; 
       }
 
       Means[2] /= (float)nMeans[2];
@@ -923,6 +925,253 @@ int SUMA_Find_IminImax_Avg (SUMA_SurfaceObject *SO,
       MinMax_over[1] = lmax;
       MinMax_over_dist[1] = lmax_dist;
    }
+   
+   SUMA_RETURN(YUP);
+}
+
+int SUMA_THD_Radial_Stats( THD_3dim_dataset  *dset,
+                           byte *cmask, float *ucm,
+                           THD_3dim_dataset **osetp,
+                           byte zeropad, float under, float over )
+{
+   static char FuncName[]={"SUMA_THD_Radial_Stats"};
+   THD_3dim_dataset *oset=NULL;
+   int ii, jj, kk, vv, trv[2], sb;
+   THD_fvec3 ccc, ncoord;
+   float cm[3], *mo=NULL, *mu=NULL, *fin=NULL, *mr=NULL,
+         xyz_ijk[3], means[3], factor, mvoxd;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!osetp || !dset) SUMA_RETURN(NOPE);
+   if (!ucm) {
+      ccc = THD_cmass(dset, 0, cmask);
+      cm[0] = ccc.xyz[0];
+      cm[1] = ccc.xyz[1];
+      cm[2] = ccc.xyz[2];
+   } else {
+      cm[0] = ucm[0];
+      cm[1] = ucm[1];
+      cm[2] = ucm[2];
+   }
+   /* change cm to mm coords */
+   ccc.xyz[0]=cm[0]; ccc.xyz[1]=cm[1]; ccc.xyz[2]=cm[2]; 
+   ncoord = THD_dicomm_to_3dmm(dset, ccc);
+   ccc = THD_3dmm_to_3dfind(dset, ncoord);
+   cm[0] = ccc.xyz[0];
+   cm[1] = ccc.xyz[1];
+   cm[2] = ccc.xyz[2];
+   
+   /* get voxel values */
+   fin = THD_extract_to_float(0, dset);
+   mu = (float*)SUMA_calloc(DSET_NVOX(dset), sizeof(float));
+   mo = (float*)SUMA_calloc(DSET_NVOX(dset), sizeof(float));
+   mr = (float*)SUMA_calloc(DSET_NVOX(dset), sizeof(float));
+   /* min voxel dim */
+   mvoxd = SUMA_MIN_PAIR(SUMA_ABS(DSET_DX(dset)), SUMA_ABS(DSET_DY(dset)));
+   mvoxd = SUMA_MIN_PAIR(mvoxd, SUMA_ABS(DSET_DZ(dset)));
+   
+   trv[0] = under / mvoxd; trv[1] = over / mvoxd; 
+   vv=0;
+   for (kk=0; kk<DSET_NZ(dset); ++kk) {
+   SUMA_LHv("kk=%d/%d, cmijk=[%f %f %f]\n", 
+            kk, DSET_NZ(dset), cm[0], cm[1], cm[2]);
+   for (jj=0; jj<DSET_NY(dset); ++jj) {
+   for (ii=0; ii<DSET_NX(dset); ++ii) {
+      if (ii==(int)cm[0] && jj==(int)cm[1] && kk==(int)cm[2]) {
+         SUMA_setBrainWrap_NodeDbg(vv);
+      }
+      if (!cmask || cmask[vv]) {
+         xyz_ijk[0]= ii; xyz_ijk[1]= jj; xyz_ijk[2]= kk;
+         if (!SUMA_Vox_Radial_Stats(fin,
+                  DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset),
+                  xyz_ijk, cm, trv,
+                  means, 
+                  NULL, NULL, NULL, NULL, -1, zeropad)) {
+            SUMA_S_Errv("Failed at voxel %d %d %d\n",
+                        ii, jj, kk);
+            SUMA_RETURN(NOPE);
+         }
+         
+         mu[vv] = means[1];
+         mo[vv] = means[2];
+         mr[vv] = (mu[vv]-mo[vv])/(mu[vv]+mo[vv]);
+      } else {
+         mu[vv] = 0.0;
+         mo[vv] = 0.0;
+         mr[vv] = 0.0;
+      }   
+      if (vv == NodeDbg) {
+        SUMA_S_Notev("At cm have means=[%f %f %f]\n", 
+                     means[0], means[1], means[2]);
+      }
+      ++vv;
+   }}}
+   
+   /* stick the results in the output */
+   if (!*osetp) {
+      NEW_SHORTY(dset, 4, FuncName, oset);
+      *osetp = oset;
+   } else {
+      oset = *osetp;
+   }
+   
+   sb = 0;
+   factor = EDIT_coerce_autoscale_new(DSET_NVOX(oset), MRI_float, mu, 
+                          DSET_BRICK_TYPE(oset,sb), DSET_BRICK_ARRAY(oset,sb));
+   if (factor > 0.0f) {
+      factor = 1.0 / factor;
+   } else factor = 0.0;
+   EDIT_BRICK_FACTOR (oset, sb, factor);
+   EDIT_BRICK_LABEL (oset, sb, "UnderMean");
+   
+   sb = 1;
+   factor = EDIT_coerce_autoscale_new(DSET_NVOX(oset), MRI_float, mo, 
+                          DSET_BRICK_TYPE(oset,sb), DSET_BRICK_ARRAY(oset,sb));
+   if (factor > 0.0f) {
+      factor = 1.0 / factor;
+   } else factor = 0.0;
+   EDIT_BRICK_FACTOR (oset, sb, factor);
+   EDIT_BRICK_LABEL (oset, sb, "OverMean");
+   
+   sb = 2;
+   factor = EDIT_coerce_autoscale_new(DSET_NVOX(oset), MRI_float, mr, 
+                          DSET_BRICK_TYPE(oset,sb), DSET_BRICK_ARRAY(oset,sb));
+   if (factor > 0.0f) {
+      factor = 1.0 / factor;
+   } else factor = 0.0;
+   EDIT_BRICK_FACTOR (oset, sb, factor);
+   EDIT_BRICK_LABEL (oset, sb, "(U-O)/(U+O)");
+   
+   if (fin) free(fin);
+   //if (mu) SUMA_free(mu); 
+   //if (mo) SUMA_free(mo);
+   //if (mr) SUMA_free(mr); 
+   SUMA_RETURN(YUP);
+}
+
+int SUMA_Vox_Radial_Stats (float *fvec, int nxx, int nyy, int nzz, 
+                        float *xyz_ijk, float *cen_ijk, int *voxtrav,
+                        float *Means, 
+                        float *undershish, float *overshish, 
+                        int *fvecind_under, int *fvecind_over, 
+                        int ShishMax, byte zeropad)
+{
+   static char FuncName[]={"SUMA_Vox_Radial_Stats"};
+   float travdir[3];
+   float U[3], Un, X[3], vval; 
+   THD_ivec3 nind3;
+   int nind, istep, nxy, nMeans[3], nindin, offu=1, offo=1;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if ((undershish || overshish || fvecind_under || fvecind_over) &&
+         ShishMax < SUMA_MAX_PAIR(voxtrav[0],voxtrav[1])) {
+      SUMA_S_Errv("Not enough slots in shish vectors:\n"
+                  " have %d, need %d\n",
+                  ShishMax, SUMA_MAX_PAIR(voxtrav[0],voxtrav[1]));
+      SUMA_RETURN(0);
+   }
+   
+   Means[0] = Means[1] = Means[2] = 0.0;
+   nMeans[0] = nMeans[1] = nMeans[2] = 0;
+   nxy = nxx*nyy;
+   istep = 0; 
+   SUMA_UNIT_VEC(xyz_ijk, cen_ijk, U, Un);
+   nindin = (int)xyz_ijk[0]+((int)xyz_ijk[1])*nxx+((int)xyz_ijk[2])*nxy;
+   Means[0]=fvec[nindin];
+   while (istep < voxtrav[0]) {
+      /* calculate offset */
+      travdir[0] = (istep+offu) * U[0]; 
+      travdir[1] = (istep+offu) * U[1]; 
+      travdir[2] = (istep+offu) * U[2]; 
+            
+      /* get index coord of point */
+      X[0] = (int)(xyz_ijk[0]+travdir[0]); 
+      X[1] = (int)(xyz_ijk[1]+travdir[1]); 
+      X[2] = (int)(xyz_ijk[2]+travdir[2]);
+      
+      vval = 0.0; nind = -1;
+      if (X[0] < 0 || X[0] > nxx-1 ||
+          X[1] < 0 || X[1] > nyy-1 ||
+          X[2] < 0 || X[2] > nzz-1 ) {
+         if (!zeropad) break;
+      } else {
+         nind = (int)X[0] + ((int)X[1]) * nxx + ((int)X[2]) * nxy;
+         vval = fvec[nind];
+      }
+      if (nindin == NodeDbg) {
+         SUMA_S_Notev("Down from Voxel %d [%d %d %d], step %d\n"
+                              " Xind = [%d %d %d] voxVal = %.3f\n", 
+               NodeDbg, 
+               (int)xyz_ijk[0], (int)xyz_ijk[1], (int)xyz_ijk[2],
+               istep,
+               (int)X[0], (int)X[1], (int)X[2],
+               vval);
+      }
+      
+      if (undershish) undershish[istep] = vval;
+      
+      /* track the brain mean */
+      Means[1] += vval; ++ nMeans[1]; 
+      if (fvecind_under) fvecind_under[istep] = nind;
+      
+      ++istep;
+   }
+   
+   if (istep < ShishMax) { /* crown the shish */
+      if (undershish) undershish[istep] = -1; 
+      if (fvecind_under) fvecind_under[istep] = -1; 
+   }
+   
+   Means[1] /= (float)nMeans[1];
+   
+   /* scan overhead */
+   istep = 0; 
+   while (istep < voxtrav[1]) {
+      /* calculate offset */
+      travdir[0] =  -(istep+offu) * U[0];
+      travdir[1] =  -(istep+offu) * U[1];
+      travdir[2] =  -(istep+offu) * U[2];
+
+      /* get index coord of point */
+      X[0] = (int)(xyz_ijk[0]+travdir[0]); 
+      X[1] = (int)(xyz_ijk[1]+travdir[1]); 
+      X[2] = (int)(xyz_ijk[2]+travdir[2]);
+      vval = 0.0; nind = -1;
+      if (X[0] < 0 || X[0] > nxx-1 ||
+          X[1] < 0 || X[1] > nyy-1 ||
+          X[2] < 0 || X[2] > nzz-1 ) {
+         if (!zeropad) break;
+      } else {
+         nind = (int)X[0] + ((int)X[1]) * nxx + ((int)X[2]) * nxy;
+         vval = fvec[nind];
+      }
+      if (nindin == NodeDbg) {
+         SUMA_S_Notev("Up from Voxel %d [%d %d %d], step %d\n"
+                              " Xind = [%d %d %d] voxVal = %.3f\n", 
+               NodeDbg, 
+               (int)xyz_ijk[0], (int)xyz_ijk[1], (int)xyz_ijk[2],
+               istep,
+               (int)X[0], (int)X[1], (int)X[2],
+               vval);
+      }
+      if (overshish) overshish[istep] = vval;   
+
+      Means[2] += vval; ++ nMeans[2]; 
+      if (fvecind_over) fvecind_over[istep] = nind;
+
+      ++istep;
+   }
+
+   if (istep < ShishMax) { /* crown the shish */
+      if (overshish) overshish[istep] = -1; 
+      if (fvecind_over) fvecind_over[istep] = -1; 
+   }
+
+   Means[2] /= (float)nMeans[2];
    
    SUMA_RETURN(YUP);
 }

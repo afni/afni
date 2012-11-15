@@ -140,6 +140,7 @@ typedef struct {
    int in_vol_exists;
    int MaskMode;
    char *cmask;
+   char *dmask;
    THD_3dim_dataset *in_vol;
    float VolCM[3];   /* input volume's center of mass */
    double *mcdatav; /* the dataset that is passed to the 

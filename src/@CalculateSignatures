@@ -585,6 +585,10 @@ while ($cnt <= $Narg)
       else 
          @ cnt ++
          set Mname = $argv[$cnt]
+         if ("$Mname" != 'AUTO') then
+            echo "Option -TT_Xform not ready for AUTO"
+            goto BEND
+         endif
          if ( ! -f $Mname && "$Mname" != 'AUTO') then
             echo "File $Mname not found"
             goto END

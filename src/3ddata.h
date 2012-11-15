@@ -4422,6 +4422,7 @@ extern float THD_timeof_slice( int , int , THD_3dim_dataset * ) ;  /* BDW */
 extern float * TS_parse_tpattern( int, float, char * ) ;  /* 11 Dec 2007 */
 
 extern THD_fvec3 THD_dataset_center( THD_3dim_dataset * ) ;  /* 01 Feb 2001 */
+extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm );
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);
@@ -4760,6 +4761,7 @@ extern byte * THD_boxballmask( THD_3dim_dataset *, int, float * ) ;
 
 extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_makedsetmask( THD_3dim_dataset *, int,float,float, byte* ) ;
+extern int THD_applydsetmask( THD_3dim_dataset *dset , byte *cmask );
 extern int *THD_unique_vals( THD_3dim_dataset *mask_dset, int miv,
                               int *n_unique, byte*cmask );
 extern int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
