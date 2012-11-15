@@ -1529,7 +1529,7 @@ r.NI_write_str_element<- function(nel, HeadOnly = TRUE) {
                            '\n', sep='')
             }
          } else {
-            ff <- paste(ff,nel$dat,'\n',sep='')
+            ff <- paste(ff,paste(nel$dat, collapse= '', sep=''),'\n',sep='')
          }
       }
    }
@@ -2831,7 +2831,7 @@ unparse.c.AFNI.head <- function (nel) {
    head <- NULL;
    nms <- NULL;
    while (j <= length(nel)) {
-      r.NI_write_str_element(nel[[j]],FALSE)
+      #r.NI_write_str_element(nel[[j]],FALSE)
       nm <- r.NI_get_attribute(nel[[j]],"atr_name")
       if (!is.null(nm)) nms <- c(nms,nm)
       else nms <- c(nms, 'noname');
