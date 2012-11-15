@@ -132,7 +132,6 @@ ENTRY("THD_dblkatr_from_niml") ;
    /*-- loop over parts and extract data from any '<AFNI_atr ...>' elements --*/
 
    for( ip=0 ; ip < ngr->part_num ; ip++ ){
-
      switch( ngr->part_typ[ip] ){
 
        /*-- a sub-group ==> recursion! --*/
@@ -149,7 +148,6 @@ ENTRY("THD_dblkatr_from_niml") ;
          char       *rhs = NI_get_attribute( nel , "atr_name" ) ;
          if( rhs == NULL )
                      rhs = NI_get_attribute( nel , "AFNI_name" ) ;
-
          if( strcasecmp(nel->name,"AFNI_atr") == 0 &&    /* AFNI attribute?   */
              nel->vec_num == 1                     &&    /* with some data?   */
              nel->vec_len >  0                     &&    /* that is nonempty? */
@@ -183,7 +181,8 @@ ENTRY("THD_dblkatr_from_niml") ;
                if (nel->vec) { /* to be expected */
                   char **sar = (char **)nel->vec[0] , *str ;
                   int nch , nstr=nel->vec_len , istr , lll=0 ;
-                  for( istr=0 ; istr < nstr ; istr++) lll += strlen(sar[istr]);
+                  for( istr=0 ; istr < nstr ; istr++) 
+                     if (sar[istr]) lll += strlen(sar[istr]); /* ZSS Nov 2012 */
                   str = malloc(lll+4) ; *str = '\0' ;
 
                /* for( istr=0 ; istr < nstr ; istr++ ) strcat(str,sar[istr]); */
@@ -195,10 +194,12 @@ ENTRY("THD_dblkatr_from_niml") ;
                                                         31 Jul 2012 [rickr] */
                   {  char * cp, * sp = str; int slen;
                      for( istr=0; istr < nstr; istr++ ) {
-                        cp = sar[istr];
-                        slen = strlen(cp);
-                        memcpy(sp, cp, slen*sizeof(char));
-                        sp += slen;
+                        if (sar[istr]) {  /* ZSS Nov 2012 */
+                           cp = sar[istr];
+                           slen = strlen(cp);
+                           memcpy(sp, cp, slen*sizeof(char));
+                           sp += slen;
+                        }
                      }
                      *sp = '\0';
                   }
