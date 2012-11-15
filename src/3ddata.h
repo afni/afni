@@ -1524,12 +1524,17 @@ extern mat44 THD_resample_mat44( mat44 , int,int,int ,
 /******* Function below is not in nifti1_io.c, due to some oversight ******/
 
 extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
-static mat44 tempA_mat44 ;
+
+static mat44 tempA_mat44 ;                   /* temp storage for matrices */
+static mat33 tempZ_mat33 ;
 
 extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 
 #undef  MAT44_MUL
 #define MAT44_MUL THD_mat44_mul
+
+#undef  MAT33_MUL
+#define MAT33_MUL nifti_mat33_mul
 
 #undef  MAT44_SQRT
 #define MAT44_SQRT THD_mat44_sqrt
@@ -1544,7 +1549,7 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 #define INVALIDATE_MAT44(AA) ((AA).m[3][3] = 0.0f)
 
 #undef  ISZERO_MAT44
-#define ISZERO_MAT44(AA) \
+#define ISZERO_MAT44(AA)  \
  ((AA.m[0][0] == 0.0f) && \
   (AA.m[0][1] == 0.0f) && \
   (AA.m[0][2] == 0.0f) && \
@@ -1557,6 +1562,18 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
   (AA.m[2][1] == 0.0f) && \
   (AA.m[2][2] == 0.0f) && \
   (AA.m[2][3] == 0.0f)   )
+
+#undef  ISZERO_MAT33
+#define ISZERO_MAT33(AA)  \
+ ((AA.m[0][0] == 0.0f) && \
+  (AA.m[0][1] == 0.0f) && \
+  (AA.m[0][2] == 0.0f) && \
+  (AA.m[1][0] == 0.0f) && \
+  (AA.m[1][1] == 0.0f) && \
+  (AA.m[1][2] == 0.0f) && \
+  (AA.m[2][0] == 0.0f) && \
+  (AA.m[2][1] == 0.0f) && \
+  (AA.m[2][2] == 0.0f)     )
 
 #undef  ISIDENT_MAT44
 #define ISIDENT_MAT44(AA) \
@@ -1572,6 +1589,18 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
   (AA.m[2][1] == 0.0f) && \
   (AA.m[2][2] == 1.0f) && \
   (AA.m[2][3] == 0.0f)   )
+
+#undef  ISIDENT_MAT33
+#define ISIDENT_MAT33(AA) \
+ ((AA.m[0][0] == 1.0f) && \
+  (AA.m[0][1] == 0.0f) && \
+  (AA.m[0][2] == 0.0f) && \
+  (AA.m[1][0] == 0.0f) && \
+  (AA.m[1][1] == 1.0f) && \
+  (AA.m[1][2] == 0.0f) && \
+  (AA.m[2][0] == 0.0f) && \
+  (AA.m[2][1] == 0.0f) && \
+  (AA.m[2][2] == 1.0f)     )
 
 /* check if 2 mat44 matrices are equal-ish */
 
@@ -1633,6 +1662,17 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 #define LOAD_MAT44_AR(AA,vv)                                       \
  LOAD_MAT44(AA,(vv)[0],(vv)[1],(vv)[2],(vv)[3],(vv)[4 ],(vv)[5 ],  \
                (vv)[6],(vv)[7],(vv)[8],(vv)[9],(vv)[10],(vv)[11] )
+
+#undef  UNLOAD_MAT33
+#define UNLOAD_MAT33(AA,a11,a12,a13,a21,a22,a23,a31,a32,a33) \
+  ( a11=AA.m[0][0] , a12=AA.m[0][1] , a13=AA.m[0][2] ,       \
+    a21=AA.m[1][0] , a22=AA.m[1][1] , a23=AA.m[1][2] ,       \
+    a31=AA.m[2][0] , a32=AA.m[2][1] , a33=AA.m[2][2]  )
+
+#undef  UNLOAD_MAT33_AR
+#define UNLOAD_MAT33_AR(AA,vv)                               \
+ UNLOAD_MAT33(AA,(vv)[0],(vv)[1],(vv)[2],(vv)[3],            \
+                 (vv)[4],(vv)[5],(vv)[6],(vv)[7],(vv)[8] )
 
 /* negate the top 2 rows of a mat44 matrix
    (for transforming between NIfTI-1 and DICOM coord systems) */
@@ -1701,6 +1741,11 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
   ( AA.m[0][0]=a11 , AA.m[0][1]=a12 , AA.m[0][2]=a13 ,      \
     AA.m[1][0]=a21 , AA.m[1][1]=a22 , AA.m[1][2]=a23 ,      \
     AA.m[2][0]=a31 , AA.m[2][1]=a32 , AA.m[2][2]=a33  )
+
+/* fill a mat33 with zeros */
+
+#undef  LOAD_ZERO_MAT33
+#define LOAD_ZERO_MAT33(AA) LOAD_MAT33(AA,0,0,0,0,0,0,0,0,0)
 
 /* copy the upper left corner of a mat44 struct into a mat33 struct */
 
@@ -1835,6 +1880,14 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
    (AA).m[1][0] *= (ff), (AA).m[1][1] *= (ff), (AA).m[1][2] *= (ff), (AA).m[1][3] *= (ff), \
    (AA).m[2][0] *= (ff), (AA).m[2][1] *= (ff), (AA).m[2][2] *= (ff), (AA).m[2][3] *= (ff)   )
 
+/* scale */
+
+#undef  MAT33_SCALE
+#define MAT33_SCALE(AA,ff)                                           \
+ ( (AA).m[0][0] *= (ff), (AA).m[0][1] *= (ff), (AA).m[0][2] *= (ff), \
+   (AA).m[1][0] *= (ff), (AA).m[1][1] *= (ff), (AA).m[1][2] *= (ff), \
+   (AA).m[2][0] *= (ff), (AA).m[2][1] *= (ff), (AA).m[2][2] *= (ff)    )
+
 /* add */
 
 #undef  MAT44_SUM
@@ -1851,6 +1904,20 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
     tempA_mat44.m[2][1] = (AA).m[2][1]*(ff) + (BB).m[2][1]*(gg) , \
     tempA_mat44.m[2][2] = (AA).m[2][2]*(ff) + (BB).m[2][2]*(gg) , \
     tempA_mat44.m[2][3] = (AA).m[2][3]*(ff) + (BB).m[2][3]*(gg) , tempA_mat44 )
+
+/* add */
+
+#undef  MAT33_SUM
+#define MAT33_SUM(AA,ff,BB,gg)                                    \
+  ( tempZ_mat33.m[0][0] = (AA).m[0][0]*(ff) + (BB).m[0][0]*(gg) , \
+    tempZ_mat33.m[0][1] = (AA).m[0][1]*(ff) + (BB).m[0][1]*(gg) , \
+    tempZ_mat33.m[0][2] = (AA).m[0][2]*(ff) + (BB).m[0][2]*(gg) , \
+    tempZ_mat33.m[1][0] = (AA).m[1][0]*(ff) + (BB).m[1][0]*(gg) , \
+    tempZ_mat33.m[1][1] = (AA).m[1][1]*(ff) + (BB).m[1][1]*(gg) , \
+    tempZ_mat33.m[1][2] = (AA).m[1][2]*(ff) + (BB).m[1][2]*(gg) , \
+    tempZ_mat33.m[2][0] = (AA).m[2][0]*(ff) + (BB).m[2][0]*(gg) , \
+    tempZ_mat33.m[2][1] = (AA).m[2][1]*(ff) + (BB).m[2][1]*(gg) , \
+    tempZ_mat33.m[2][2] = (AA).m[2][2]*(ff) + (BB).m[2][2]*(gg) , tempZ_mat33 )
 
 /*---------------------------------------------------------------------*/
 /*--- data structure for information about time axis of 3D dataset ----*/
