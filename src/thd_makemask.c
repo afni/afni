@@ -266,6 +266,91 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
    return (nonzero) ;
 }
 
+/*
+   Zero out voxels vv in dset where cmask[vv]=0
+   Returns the number of voxels edited in dset (across all sub-bricks)
+      -1 if dset was null
+*/
+int THD_applydsetmask( THD_3dim_dataset *dset ,  byte *cmask )
+{
+   int ss, ii, jj, kk, vv, nedited = -1 ;
+   
+   ENTRY("THD_applydsetmask");
+   
+   if (!dset) RETURN(nedited);
+   
+   if (!cmask) RETURN(0);
+   
+   DSET_mallocize(dset); DSET_load(dset);
+   for (ss=0; ss<DSET_NVALS(dset); ++ss) {
+      switch (DSET_BRICK_TYPE(dset,ss)) {
+         case MRI_byte:
+            {  byte *bv = (byte *)DSET_ARRAY(dset,ss) ;
+               vv=0; 
+               for (kk=0; kk<DSET_NZ(dset); ++kk) {
+               for (jj=0; jj<DSET_NY(dset); ++jj) {
+               for (ii=0; ii<DSET_NX(dset); ++ii) {
+                  if (!cmask[vv]) {
+                     bv[vv] = 0; 
+                     ++nedited;
+                  }
+                  ++vv;
+               } } }
+            }
+            break;
+         case MRI_short:
+            {  short *sv = (short *)DSET_ARRAY(dset,ss) ;
+               vv=0; 
+               for (kk=0; kk<DSET_NZ(dset); ++kk) {
+               for (jj=0; jj<DSET_NY(dset); ++jj) {
+               for (ii=0; ii<DSET_NX(dset); ++ii) {
+                  if (!cmask[vv]) {
+                     sv[vv] = 0; 
+                     ++nedited;
+                  }
+                  ++vv;
+               } } }
+            }
+            break;
+         case MRI_float:
+            {  float *fv = (float *)DSET_ARRAY(dset,ss) ;
+               vv=0; 
+               for (kk=0; kk<DSET_NZ(dset); ++kk) {
+               for (jj=0; jj<DSET_NY(dset); ++jj) {
+               for (ii=0; ii<DSET_NX(dset); ++ii) {
+                  if (!cmask[vv]) {
+                     fv[vv] = 0; 
+                     ++nedited;
+                  }
+                  ++vv;
+               } } }
+            }
+            break;
+         case MRI_complex:
+            {  complex *cv = (complex *)DSET_ARRAY(dset,ss) ;
+               vv=0; 
+               for (kk=0; kk<DSET_NZ(dset); ++kk) {
+               for (jj=0; jj<DSET_NY(dset); ++jj) {
+               for (ii=0; ii<DSET_NX(dset); ++ii) {
+                  if (!cmask[vv]) {
+                     cv[vv].i = cv[vv].r = 0.0; 
+                     ++nedited;
+                  }
+                  ++vv;
+               } } }
+            }
+            break;
+         default:
+            ERROR_message(
+               "THD_applydsetmask: Dset type %d for subbrick %d not supported\n",
+                          DSET_BRICK_TYPE(dset,ss), ss);
+            break;
+      }
+   }
+
+   RETURN(nedited);
+}
+
 /*----------------------------------------------------------------------------*/
 extern int * UniqueInt (int *y, int ysz, int *kunq, int Sorted );
 

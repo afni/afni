@@ -1,6 +1,5 @@
 #include "mrilib.h"
 
-THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm ) ;
 
 int main( int argc , char * argv[] )
 {
@@ -158,32 +157,3 @@ int main( int argc , char * argv[] )
   exit(0);
 }
 
-/*----------------------------------------------------------------------*/
-/*! Get the center of mass of this volume, in DICOM coords.
-------------------------------------------------------------------------*/
-
-THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm )
-{
-   THD_fvec3 cmv ;
-   MRI_IMAGE *im ;
-   float *far , icm,jcm,kcm ;
-   int ii , nvox ;
-
-   LOAD_FVEC3(cmv,0,0,0) ;
-
-   nvox = DSET_NVOX(xset) ;
-   im   = mri_to_float( DSET_BRICK(xset,iv) ) ;
-                             if( im  == NULL ) return cmv ;
-   far = MRI_FLOAT_PTR(im) ; if( far == NULL ) return cmv ;
-
-   if( mmm != NULL ){
-     for( ii=0 ; ii < nvox ; ii++ )
-       if( mmm[ii] ) far[ii] = 0.0 ;
-   }
-
-   mri_get_cmass_3D( im , &icm,&jcm,&kcm ) ; mri_free(im) ;
-   LOAD_FVEC3(cmv,icm,jcm,kcm) ;
-   cmv = THD_3dfind_to_3dmm( xset , cmv ) ;
-   cmv = THD_3dmm_to_dicomm( xset , cmv ) ;
-   return cmv ;
-}

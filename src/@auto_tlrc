@@ -37,7 +37,7 @@ PARSE:
    set npass = -twopass
    set prexform = ""
    set OneWarp = 0
-   set just_copy_base = ""
+   set copy_base = ""
    set out_space = ""
    if ("$1" == '') goto HELP
 
@@ -212,14 +212,16 @@ PARSE:
             goto END
          else
             @ cnt ++
-            set just_copy_base = "$argv[$cnt]"
+            set copy_base = "$argv[$cnt]"
             set donext = 0   
          endif   
       endif
+      
       if ($donext && "$argv[$cnt]" == "-base_list") then
-         set just_copy_base = "LIST"
+         set copy_base = "LIST"
          set donext = 0   
       endif
+      
       if ($donext && "$argv[$cnt]" == "-apar") then
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
@@ -1277,14 +1279,14 @@ else
 endif
 
 END_REF_SEARCH:
-if ($just_copy_base ==  "LIST" ) then
+if ($copy_base ==  "LIST" ) then
    echo "$ref_in"
-   goto END
-else if ($just_copy_base != "" ) then
-   3dcopy $ref_in $just_copy_base
-   goto END
+   if ($anat_in == '' && $apar_mode == 0) goto END
+else if ($copy_base != "" ) then
+   3dcopy $ref_in $copy_base
+   if ($anat_in == '' && $apar_mode == 0) goto END
 endif
-echo $just_copy_base
+#echo $copy_base
 
 
 goto SET_REF_PATH_RETURN
@@ -1546,11 +1548,11 @@ echo "              NOTE:  You can now set SUF to 'none' or 'NONE' and enable"
 echo "                     afni's warp on demand features."
 echo "                     With NIFTI input volumes -suffix defaults to _at"
 echo "   -keep_view     :  Do not mark output dataset as +tlrc"
-echo "   -base_copy COPY_PREFIX: Copy base (template) dataset into COPY_PREFIX"
-echo "                           and quit. You can use ./ for COPY_PREFIX if you"
+echo "   -base_copy COPY_PREFIX: Copy base (template) dataset into COPY_PREFIX."
+echo "                           You can use ./ for COPY_PREFIX if you"
 echo "                           want the copy to have the same name as the"
 echo "                           template."
-echo "   -base_list     : List the full path of the base dataset and quit"
+echo "   -base_list     : List the full path of the base dataset"
 echo "   -verb          :  Yakiti yak yak" 
 echo ""
 echo ""

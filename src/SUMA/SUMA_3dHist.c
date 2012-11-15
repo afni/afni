@@ -23,6 +23,9 @@ static char shelp_Hist[] = {
 "   -input DSET: Dset providing values for histogram. Exact 0s are not counted\n"
 "   -dind SB: Use sub-brick SB from the input rather than 0\n"
 "   -mask MSET: Provide mask dataset to select subset of input.\n"
+"   -cmask CMASK: Provide cmask expression. Voxels where expression is 0\n"
+"                 are excluded from computations. For example:\n"
+"            -cmask '-a T1.div.r+orig -b T1.uni.r+orig -expr step(a/b-10)'\n"
 "   -thishist HIST.niml.hist: Read this previously created histogram instead\n"
 "                             of forming one from DSET.\n"
 "                             Obviously, DSET, or -mask options are not needed\n"
@@ -60,6 +63,8 @@ static char shelp_Hist[] = {
 "  -val_at PAR PARVAL: Return the value (magnitude) where histogram property\n"
 "                      PAR is equal to PARVAL\n"
 "                      PAR can only be one of: cdf, rcdf, ncdf, nrcdf\n"
+"  -quiet: Return a concise output to simplify parsing. For the moment, this\n"
+"          option only affects output of option -val_at\n"
 "\n"
 "  Examples:\n"
 "       #A histogram a la 3dhistog:\n"
@@ -70,8 +75,6 @@ static char shelp_Hist[] = {
 "       3dHist -thishist HistOut.niml.hist -val_at ncdf 0.132564\n"    
 "\n"
 /* Untested here
-"   -cmask CMASK: Provide cmask expression. Voxels where expression is 0\n"
-"                 are excluded from computations\n"
 "   -mrange M0 M1: Consider MASK only for values between M0 and M1, inclusive\n"
 "   -debug DBG: Set debug level\n"
 */
@@ -114,6 +117,7 @@ SEG_OPTS *Hist_Default(char *argv[], int argc)
    Opt->pset = NULL;
    Opt->cset = NULL;
    Opt->debug = 0;
+   Opt->verbose = 1;
    Opt->idbg = Opt->kdbg = Opt->jdbg = -1;
    Opt->feats=Opt->clss=NULL;
    Opt->feat_exp=NULL; Opt->featexpmeth=0; Opt->featsfam=NULL;
@@ -210,6 +214,11 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 				exit (1);
 			}
 			Opt->debug = atoi(argv[kar]);
+         brk = 1;
+		}      
+      
+      if (!brk && (strcmp(argv[kar], "-quiet") == 0)) {
+			Opt->verbose = 0;
          brk = 1;
 		}      
       
@@ -544,21 +553,33 @@ int main(int argc, char **argv)
    
    if (Opt->wL != -123456999.0) {
       if (!Opt->this_xset_name || !strcmp(Opt->this_xset_name, "rcdf")) { 
-         fprintf(stdout,"Val: %f at %s: %f\n",
+         if (Opt->verbose) 
+            fprintf(stdout,"Val: %f at %s: %f\n",
                      SUMA_val_at_count(hh, Opt->wL, 0, 1),
                      Opt->this_xset_name, Opt->wL); 
+         else 
+            fprintf(stdout,"%f\n", SUMA_val_at_count(hh, Opt->wL, 0, 1));
       } else if (!strcmp(Opt->this_xset_name, "cdf")) {
-         fprintf(stdout,"Val: %f at %s: %f\n",
+         if (Opt->verbose) 
+            fprintf(stdout,"Val: %f at %s: %f\n",
                      SUMA_val_at_count(hh, Opt->wL, 0, 0),
                      Opt->this_xset_name, Opt->wL); 
+         else 
+            fprintf(stdout,"%f\n", SUMA_val_at_count(hh, Opt->wL, 0, 0));
       } else if (!strcmp(Opt->this_xset_name, "ncdf")) {
-         fprintf(stdout,"Val: %f at %s: %f\n",
+         if (Opt->verbose) 
+            fprintf(stdout,"Val: %f at %s: %f\n",
                      SUMA_val_at_count(hh, Opt->wL, 1, 0),
                      Opt->this_xset_name, Opt->wL); 
+         else 
+            fprintf(stdout,"%f\n", SUMA_val_at_count(hh, Opt->wL, 1, 0));
       } else if (!strcmp(Opt->this_xset_name, "nrcdf")) {
-         fprintf(stdout,"Val: %f at %s: %f\n",
+         if (Opt->verbose) 
+            fprintf(stdout,"Val: %f at %s: %f\n",
                      SUMA_val_at_count(hh, Opt->wL, 1, 1),
                      Opt->this_xset_name, Opt->wL); 
+         else
+            fprintf(stdout,"%f\n", SUMA_val_at_count(hh, Opt->wL, 1, 1));
       }
    }   
    

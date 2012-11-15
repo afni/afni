@@ -12,7 +12,12 @@ COPY_DATA:
            ! -f $odir/T1+orig.HEAD ||  \
            ! -f $odir/PD+orig.HEAD   ) then
    3dcalc ${overW} -datum short -a $T1 -expr 'a' -prefix $odir/T1
-   3dcalc ${overW} -datum short -a $PD -expr 'a' -prefix $odir/PD
+   if ( $do_align == 1) then
+      3dAllineate -base $T1 -input $PD -nmi -onepass -warp shr \
+                  -prefix $odir/PD
+   else
+      3dcalc ${overW} -datum short -a $PD -expr 'a' -prefix $odir/PD
+   endif
    set afh = ($afh $odir/T1+orig.HEAD $odir/PD+orig.HEAD)
    if ($imask != '') then
       3dcalc ${overW} -datum byte -a $imask -expr 'a' -prefix $odir/umask
@@ -77,17 +82,59 @@ SCALEIT:
       echo "Reusing T1.uni+orig.HEAD"
    endif
    
-   #One could also do the regular division by the PD (if there is a real
-   #PD volume. The you can detect the bad apples by looking for those voxels 
-   #who have markedly changed their ranking in the output compared to the input.
-   #Bad apples would be zeroed out.
-   
+   if ( $PD != $T1 ) then
+      if ( ! -f T1.divuni+orig.HEAD) then
+         #Create straight division 
+         if ( ! -f T1.div+orig.HEAD) then
+            3dcalc   -a T1+orig. -b PD+orig \
+                     -c $mm -datum short ${overW} \
+                     -expr "$meq*a/b*$med[2]" \
+                     -prefix T1.div+orig.
+            set afh = ($afh T1.div+orig.HEAD)
+         else
+            echo "Reusing T1.div"
+         endif
+         #Compute change in rankings between two corrected volumes
+         3dRank -prefix T1.div.r -input T1.div+orig
+         3dRank -prefix T1.uni.r -input T1.uni+orig
+         #Create composite image, with a logistic function weighting
+         #  1dRplot -x 'R:r=seq(from=0, to=6, by=0.2)'  \
+         #       -input 'R:r=seq(from=0, to=6, by=0.2); 1-1/(1+exp(-2*5*(r-2)))'
+
+         set k = 5; #steepness of logistic function
+         set rth = 2; #Threshold for rank enhancement
+         3dcalc -a T1.div.r+orig -b T1.uni.r+orig \
+                  -expr "(1-1/(1+exp(-2*$k*(a/b-$rth))))*a + \
+                            1/(1+exp(-2*$k*(a/b-$rth))) *b " \
+                  -prefix T1.divuni
+         #Get estimate of PD.ls threshold from values at locations with 
+         #very high enhancement
+         #Threshold at 25%, don't want to be too aggressive
+         set pdth = `3dHist -input PD.ls+orig'[perc:75.00]' \
+                  -cmask '-a T1.div.r+orig -b T1.uni.r+orig -expr step(a/b-10)'\
+                            -val_at ncdf 0.25 -quiet`
+         #Now provide division mask
+         3dcalc -a PD.ls+orig'[perc:75.00]' \
+                -expr "step(a-$pdth)" -prefix smask
+         if ( $unmasked_output == 0 ) then
+            3dcalc -a T1.divuni+orig -b smask+orig \
+                   -expr 'step(b)*a' -prefix T1.divuni \
+                   -overwrite
+         endif      
+         set afh = ($afh T1.divuni+orig.HEAD smask+orig.HEAD)
+      else
+         echo "Reusing T1.divuni"
+      endif    
+   endif   
    cd $idir
 
 HISTORY:
    cd $odir
    foreach ff ($afh)
-      3dNotes -h "`basename $0` $argv" $ff
+      3dinfo -history $ff | grep -q @T1scale
+      if ($status) then
+         3dNotes -h "`basename $0` $argv" $ff
+      endif
    end
    cd $idir
    
@@ -110,6 +157,7 @@ set menh = 0.0
 set unmasked_output = 1
 set afh = ()
 set overW = ''
+set do_align = 0
 
 if ("$1" == '') goto HELP
 while ($cnt <= $Narg)
@@ -121,6 +169,11 @@ while ($cnt <= $Narg)
    
    if ($donext && ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo")) then
       set echo
+      set donext = 0   
+   endif
+ 
+   if ($donext && ("$argv[$cnt]" == "-align")) then
+      set do_align = 1
       set donext = 0   
    endif
 
@@ -245,15 +298,12 @@ goto RET_PARSE
 HELP:
    echo ""
    echo "Usage: `basename $0` <-T1 T1vol> <-PD PDvol> "
-   echo " "
+   echo ""
    echo "Fix bias field shading in T1 by scaling it with PD image."
-   echo "You can also get a decent result even without the PD volume"
+   echo "You can also get a decent result even without the PD volume."
    echo ""
    echo "   -T1 T1vol: The T1 volume"
-   echo "   -PD PDvol: The PD volume"
-   echo "          (Psst, if you have no PD volume, put the T1 here too.)"
-   echo "   -mask MVOL: Region to exclude"
-   echo "         If not specified, will use 3dAutomask on fattened PDvol."
+   echo "   -PD PDvol: The PD volume (aligned to T1)"
    echo "   -odir ODIR: Directory where output gets dumped. "
    echo "              Default is T1scale/ "
    echo "              ODIR will contain multiple volumes with the one"
@@ -261,11 +311,20 @@ HELP:
    echo ""
    echo "         Script will reuse existing  volumes"
    echo ""
-   echo "   -head_mask: Mask output using 3dSkullStrip's -head option."
+   echo "   -align: Align PD volume to T1. Script assumes volumes are in"
+   echo "           close alignment. With this option, output PD+orig volume"
+   echo "           will be in alignment with T1+orig."
+   echo "        Without this option, PDvol is assumed in alignment with T1vol"
+   echo "   -mask MVOL: Create mask for the output"
+   echo "         If not specified, the script will generate one with"
+   echo "         3dAutomask on fattened PDvol."
+   echo "   -head_mask: Create mask using 3dSkullStrip's -head option."
    echo "   -unmasked_uni: Do not apply masking to uniformized volume (default)"
-   echo "   -masked_uni: Do apply masking to uniformized volume"
-   echo "      NOTE: Masks are computed regardless of whether or not the mask "
-   echo "            is applied to the uniformized image"
+   echo "                  You can mask the output after you decide which mask"
+   echo "                  is best. Here is an example with smask:\n"
+   echo "                  3dcalc -a T1.divuni+orig. -b smask+orig. \"
+   echo "                         -expr 'step(b)*a' -prefix T1.divuni.m"
+   echo "   -masked_uni: Apply masking to uniformized volume"
    echo ""
    echo "   -echo: Set echo"
    echo "   -help: this message" 
