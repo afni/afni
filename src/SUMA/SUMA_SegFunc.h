@@ -150,7 +150,6 @@
                     ADN_nvals, nsb, \
                     ADN_ntt, nsb, \
                     ADN_malloc_type , DATABLOCK_MEM_MALLOC ,   \
-                    ADN_view_type   , VIEW_ORIGINAL_TYPE ,  \
                     ADN_type        , HEAD_ANAT_TYPE ,   \
                     ADN_func_type   , ANAT_BUCK_TYPE ,   \
                     ADN_none ) ; \

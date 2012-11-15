@@ -1,6 +1,28 @@
 #include "SUMA_suma.h"
 #include "../thd_brainormalize.h"
 
+/* 
+   Load mask from file mname and apply it to dataset iset 
+*/
+#define DSET_MASK(iset, mname) {\
+   if (mname) {   \
+      THD_3dim_dataset *mset=NULL;  \
+      byte *mmm = NULL; \
+      if (!(mset=THD_open_dataset(mname))) { \
+         ERROR_message("Could not read mask dset %s\n", mname);   \
+      } else if (THD_dataset_mismatch(mset, iset)) { \
+         ERROR_message("grid mismatch between input set and %s\n", mname);\
+         DSET_delete(mset);   \
+      } else { \
+         if ((mmm = THD_makemask( mset , 0 , 1, -1 ))) { \
+            THD_applydsetmask( iset ,  mmm );   \
+            free(mmm);  \
+         }  \
+         DSET_delete(mset);   \
+      }  \
+   }  \
+}
+
 
 #if 1
 void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
@@ -426,6 +448,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    Opt->N_surf = -1;
    Opt->in_name = NULL;
    Opt->cmask = NULL;
+   Opt->dmask = NULL;
    Opt->MaskMode = 0;
    for (i=0; i<SUMA_GENERIC_PROG_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL;
@@ -473,8 +496,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    Opt->PercInt = 0;
    Opt->UseSkull = 0;
    Opt->send_hull = 1;
-   Opt->bot_lztclip = -1; /* 0.5 is OK but causes too much leakage below cerebellum in 
-                             most dsets, 0.65 seems better. 0 if you do not want to use it*/
+   Opt->bot_lztclip = -1; /* 0.5 is OK but causes too much leakage below 
+                             cerebellum in most dsets, 0.65 seems better. 
+                             0 if you do not want to use it*/
 	Opt->var_lzt = 1.0; /* a flag at the moment, set it to 1 to cause shirnk fac 
                           to vary during iterations. Helps escape certain large 
                            chunks of CSF just below the brain */
@@ -1010,6 +1034,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
          brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-mask") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -mask \n");
+				exit (1);
+			}
+			Opt->dmask = argv[kar];
+         brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-edge_thr") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -1186,6 +1220,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
       fprintf (SUMA_STDERR,"Error %s:\n-input  must be used.\n", FuncName);
       exit(1);
    }
+   
    /* what is the view of the input ?*/
    if (!SUMA_AfniView (Opt->in_name, cview)) {
       SUMA_S_Errv("Could not guess view from input dset %s\n", Opt->in_name);
@@ -1363,6 +1398,7 @@ int main (int argc,char *argv[])
       char *hhullprefix = SUMA_append_string(Opt->out_vol_prefix,"_head");
       char *SO_name_hhull = SUMA_Prefix2SurfaceName(hhullprefix, NULL, NULL,
                                           Opt->SurfFileType, &exists);
+      char *radcon= SUMA_append_string(Opt->out_vol_prefix,"_rc");
       if (Opt->debug) {
          SUMA_S_Notev("Loading dset, extracting head area, volthr=%f\n",
                       Opt->permask);
@@ -1376,7 +1412,23 @@ int main (int argc,char *argv[])
         SUMA_S_Errv("can't open dataset %s\n",Opt->in_name) ;
         exit(1);
       }
-
+      
+      DSET_MASK(Opt->iset, Opt->dmask);
+      
+      #if 0
+      {
+         THD_3dim_dataset *rset=NULL;
+         SUMA_S_Warn("A test for Radial Stats");
+         SUMA_THD_Radial_Stats( Opt->iset,
+                           NULL, NULL,
+                           &rset, 1, 1.0, 1.0 );
+         
+         tross_Make_History( FuncName , argc,argv , rset ) ;
+         EDIT_dset_items( rset, ADN_prefix, radcon, ADN_none ) ;    
+         DSET_write(rset) ; DSET_delete(rset); SUMA_free(radcon); exit(1);
+      }
+      #endif
+      
       if (Opt->PlEq[0] != 0.0f || Opt->PlEq[1] != 0.0f || Opt->PlEq[2] != 0.0f)
       {
          SUMA_LHv("Cutting %+fx %+fy %+fz %+f < 0\n",
@@ -1431,6 +1483,8 @@ int main (int argc,char *argv[])
         fprintf(stderr,"**ERROR: can't open dataset %s\n",Opt->in_name) ;
         exit(1);
       }
+      DSET_MASK(Opt->iset, Opt->dmask);
+
       Opt->iset_hand = SUMA_THD_handedness( Opt->iset );
       if (LocalHead) 
          fprintf(SUMA_STDERR,

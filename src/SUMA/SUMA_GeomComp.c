@@ -8037,50 +8037,7 @@ int SUMA_VoxelPlaneCut(THD_3dim_dataset *dset, float *Eq,
    /* Apply the mask ? */
    if (applymask) {
       SUMA_LH("Applying mask");
-      switch (DSET_BRICK_TYPE(dset,0)) {
-         case MRI_byte:
-            {  byte *bv = (byte *)DSET_ARRAY(dset,0) ;
-               vv=0; 
-               for (kk=0; kk<DSET_NZ(dset); ++kk) {
-               for (jj=0; jj<DSET_NY(dset); ++jj) {
-               for (ii=0; ii<DSET_NX(dset); ++ii) {
-                  if (!cmask[vv]) {
-                     bv[vv] = 0; 
-                  }
-                  ++vv;
-               } } }
-            }
-            break;
-         case MRI_short:
-            {  short *sv = (short *)DSET_ARRAY(dset,0) ;
-               vv=0; 
-               for (kk=0; kk<DSET_NZ(dset); ++kk) {
-               for (jj=0; jj<DSET_NY(dset); ++jj) {
-               for (ii=0; ii<DSET_NX(dset); ++ii) {
-                  if (!cmask[vv]) {
-                     sv[vv] = 0; 
-                  }
-                  ++vv;
-               } } }
-            }
-            break;
-         case MRI_float:
-            {  float *fv = (float *)DSET_ARRAY(dset,0) ;
-               vv=0; 
-               for (kk=0; kk<DSET_NZ(dset); ++kk) {
-               for (jj=0; jj<DSET_NY(dset); ++jj) {
-               for (ii=0; ii<DSET_NX(dset); ++ii) {
-                  if (!cmask[vv]) {
-                     fv[vv] = 0; 
-                  }
-                  ++vv;
-               } } }
-            }
-            break;
-         default:
-            SUMA_S_Errv("Dset type %d not supported\n", DSET_BRICK_TYPE(dset,0));
-            break;
-      }
+      THD_applydsetmask( dset ,  cmask );
    }
    
    /* Does the user want mask back ? */

@@ -166,6 +166,8 @@ THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset *dset , THD_fvec3 fv )
    return iv ;
 }
 
+
+
 /*--------------------------------------------------------------------*/
 
 /* this version is without using wod dataxes     28 Sep 2004 [rickr] */

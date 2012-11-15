@@ -65,6 +65,38 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 15, Nov , 2012 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
+   "Guarded against NULL strings in THD_dblkatr_from_niml()",
+   "These strings came via R_io.c, but could come from elsewhere."
+ },
+
+ { 15, Nov , 2012 , ZSS , "AFNIio.R" , MINOR , TYPE_MODIFY,
+   "Made read.AFNI and write.AFNI more clever",
+   "Changes included: AUTO method selection, dset.attr() improvements\n"
+   "to handle dset structures or their headers from either clib or Rlib\n"
+   "functions. Micro change to THD_dblkatr_from_niml which crashed for\n"
+   "null strings."
+ },
+
+ { 12, Nov , 2012 , ZSS , "3dHist" , MINOR , TYPE_NEW_OPT,
+   "Added -cmask and -quiet to 3dHist",
+   NULL,
+ },
+
+ { 12, Nov , 2012 , ZSS , "@T1scale" , MINOR , TYPE_NEW_OPT,
+   "Straight and weighted divisions of T1 by PD, and initial alignment",
+   "The weighted volume allows one to keep the high-res. aspect of\n"
+   "PD division, while considerably reducing the extreme enhancement.\n"
+ },
+
+ { 9, Nov , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Fixed crash on OSX 10.7_64 apparently caused by gcc's optimization",
+   "The fix entailed adding -O1 to target SUMA_xColBar.o in SUMA's\n"
+   "SUMA_Makefile_NoDev. I also changed the way SurfaceControllers\n"
+   "are put away. They are now minimized thus keeping the widgets\n"
+   "realized."
+ },
+
  { 6, Nov , 2012 , ZSS , "3dkmeans" , MINOR , TYPE_NEW_OPT,
    "Added -write_dists to only output ascii files when users want them",
    "The changes were made to also cleanup the output of 3dSeg. \n"

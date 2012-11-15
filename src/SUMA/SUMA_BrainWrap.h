@@ -25,6 +25,16 @@ int SUMA_Find_IminImax_2 (float *xyz, float *dir,
                         float *undershish, float *overshish, 
                         int *fvecind_under, int *fvecind_over
                         );
+int SUMA_THD_Radial_Stats( THD_3dim_dataset  *dset,
+                           byte *cmask, float *ucm,
+                           THD_3dim_dataset **osetp, byte zeropad, 
+                           float under, float over );
+int SUMA_Vox_Radial_Stats (float *fvec, int nxx, int nyy, int nzz, 
+                        float *xyz_ijk, float *cen_ijk, int *voxtrav,
+                        float *Means, 
+                        float *undershish, float *overshish, 
+                        int *fvecind_under, int *fvecind_over, 
+                        int ShishMax, byte zeropad);
 int SUMA_SkullMask (SUMA_SurfaceObject *SO, 
                     SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
 int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, 
