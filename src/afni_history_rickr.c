@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Nov, 2012, RCR, "3dTqual", MINOR, TYPE_NEW_OPT,
+   "added -mask option",
+   "Requested by evangelou."
+ } ,
+
  { 14, Nov, 2012, RCR, "make_random_timing.py", MINOR, TYPE_BUG_FIX,
    "fixed check for random space in -max_consec case",
    "Thanks to Kristina for noting the problem."
