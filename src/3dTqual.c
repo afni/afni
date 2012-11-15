@@ -8,12 +8,15 @@
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset ;
-   int nopt=1 , method=SPEARMAN , do_range=0 , do_autoclip=0 ;
+   int nopt=1 , method=SPEARMAN , do_range=0 , do_autoclip=0 , do_mask=0;
    int nvox , nvals , ii,iv,jj ;
    float *medar, *var , rv , *corr , cmed,cmad,cbot,ctop , clip_val=0.0 ;
    MRI_IMAGE *tsim , *medim ;
-   int nkeep , *keep=NULL ;
-   float *mkeep , *tkeep=NULL ;
+   int nkeep=0 , *keep=NULL ;
+   float *mkeep=NULL , *tkeep=NULL ;
+   bytevec *bvec=NULL;  /* vars for do_mask    15 Nov 2012 [rickr] */
+   byte  *mask=NULL;
+   int    nmask=-1, nmaskset=0;
 
    /*----*/
 
@@ -64,6 +67,8 @@ int main( int argc , char *argv[] )
              "  -clip val = Clip off values below 'val' in the median sub-brick.\n"
 #endif
              "\n"
+             "  -mask MSET = Compute correlation only across masked voxels.\n"
+             "\n"
              "  -range    = Print the median-3.5*MAD and median+3.5*MAD values\n"
              "               out with EACH quality index, so that they\n"
              "               can be plotted (cf. Example, infra).\n"
@@ -108,6 +113,19 @@ int main( int argc , char *argv[] )
       }
 #endif
 
+      if( strcmp(argv[nopt],"-mask") == 0 ){  /* set mask and nmask */
+         if(++nopt >= argc) ERROR_exit("Need argument after '%s'",argv[nopt-1]);
+         bvec = THD_create_mask_from_string(argv[nopt]);
+         if(! bvec) ERROR_exit("Can't create mask from '-mask' option from %s",
+                               argv[nopt]);
+         mask = bvec->ar; nmask = bvec->nar;
+
+         nmaskset = THD_countmask(nmask, mask);
+         INFO_message("%d voxels in -mask dataset", nmaskset);
+
+         do_mask = 1 ; nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-range") == 0 ){
          do_range = 1 ; nopt++ ; continue ;
       }
@@ -128,6 +146,9 @@ int main( int argc , char *argv[] )
    if( nopt >= argc ){
       fprintf(stderr,"*** No dataset on command line!?\n"); exit(1);
    }
+
+   if( do_mask && do_autoclip )
+      ERROR_exit("Cannot use both mask and clip");
 
    dset = THD_open_dataset( argv[nopt] ) ;
    if( dset == NULL ){
@@ -171,6 +192,26 @@ int main( int argc , char *argv[] )
             }
          mri_free(medim) ;
          fprintf(stderr,"++ %d out of %d voxels survive the clip\n",nkeep,nvox) ;
+      }
+   } else if ( mask ) { /* -mask option for evangelou   15 Nov 2012 [rickr] */
+      if( nmask != nvox )
+         ERROR_exit("dset has %d voxels, but mask has %d\n", nvox, nmask);
+      if( nmaskset == nvox ) {
+         nkeep = nvox ; mkeep = medar ; /* no masking */
+      } else if( nmaskset < 9 ){
+         ERROR_exit("only %d voxels in mask: can't continue\n",nmaskset) ;
+      } else {                    /* nkeep < nvox */
+         nkeep = nmaskset;
+         keep  = (int *)   malloc( sizeof(int)  *nkeep ) ;
+         mkeep = (float *) malloc( sizeof(float)*nkeep ) ;
+         tkeep = (float *) malloc( sizeof(float)*nkeep ) ;
+         for( jj=ii=0 ; ii < nvox ; ii++ )
+            if( mask[ii] ){
+               keep[jj] = ii ; mkeep[jj] = medar[ii] ; jj++ ;
+            }
+         mri_free(medim) ;
+         KILL_bytevec(bvec) ;
+         fprintf(stderr,"++ %d out of %d voxels in mask\n",nkeep,nvox) ;
       }
    } else {
       nkeep = nvox ; mkeep = medar ; /* no clipping */
