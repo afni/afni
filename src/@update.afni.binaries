@@ -133,11 +133,12 @@ if ( $help ) then
 endif
 
 # note any current AFNI location
-set cur_afni = `which afni`
+which afni >& /dev/null
 if ( $status ) then
    echo "-- no current AFNI package..."
    set cur_afni = ""
 else
+   set cur_afni = `which afni`
    set cur_afni = $cur_afni:h
    echo "-- have AFNI binaries under $cur_afni"
 endif
