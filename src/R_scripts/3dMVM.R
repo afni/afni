@@ -95,7 +95,7 @@ within-subject (condition and emotion) variables:
           -wsVars \"condition*emotion\"         \\
           -num_glt 14                         \\
           -gltLabel 1 face_pos_vs_neg -gltCode  1 'condition : 1*face emotion : 1*pos -1*neg'        \\
-          -gltLabel 2 face_emot_vs_neu -gltCode 1 'condition : 1*face emotion : 1*pos +1*neg -2*neu' \\
+          -gltLabel 2 face_emot_vs_neu -gltCode 2 'condition : 1*face emotion : 1*pos +1*neg -2*neu' \\
           ...            
           -dataTable                                                                                 \\
           Subj  genotype   sex    scanner  condition   emotion   InputFile                           \\
