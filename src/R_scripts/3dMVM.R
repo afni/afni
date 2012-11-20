@@ -95,7 +95,7 @@ within-subject (condition and emotion) variables:
           -wsVars \"condition*emotion\"         \\
           -num_glt 14                         \\
           -gltLabel 1 face_pos_vs_neg -gltCode  1 'condition : 1*face emotion : 1*pos -1*neg'        \\
-          -gltLabel 2 face_emot_vs_neu -gltCode 2 'condition : 1*face emotion : 1*pos +1*neg -2*neu' \\
+          -gltLabel 2 face_emot_vs_neu -gltCode 1 'condition : 1*face emotion : 1*pos +1*neg -2*neu' \\
           ...            
           -dataTable                                                                                 \\
           Subj  genotype   sex    scanner  condition   emotion   InputFile                           \\
@@ -514,20 +514,18 @@ scanLine <- function(file, lnNo=1, marker="\\:")
 runAOV <- function(inData, dataframe, ModelForm, pars, tag) {
    Stat <- rep(0, pars[[1]])
    #browser()
-   #options(warn = -1)
+   options(warn = -1)
    if (!all(abs(inData) < 10e-8)) {        
       dataframe$Beta<-inData
-      try(fm <- aov.car(ModelForm, data=dataframe, return='lm'), tag <- 1)
-      if(tag == 0) {
-         #browser()
-         if(pars[[6]]) try(Stat[1:pars[[2]]] <- univ(fm[[1]])[2:(1+pars[[2]]),3], tag<-1) else
-            try(Stat[1:pars[[2]]] <- unname(univ(fm[[1]])[[1]][-1,5]), tag<-1)
-         if(tag == 0) for(ii in 1:pars[[3]]) {
-	         try(glt <- testInteractions(fm[[2]], custom=pars[[4]][[ii]], slope=pars[[5]][[ii]], adjustment="none", idata = fm[["idata"]]), tag<-1) 
-	         if(tag == 0) {
-               Stat[pars[[2]]+2*ii-1] <- glt[1,1]
+      tryCatch(fm <- aov.car(ModelForm, data=dataframe, return='lm'), error=function(e) NULL)
+      if(!is.null(fm)) {
+         if(pars[[6]]) try(Stat[1:pars[[2]]] <- univ(fm[[1]])[2:(1+pars[[2]]),3], silent=TRUE) else
+            try(Stat[1:pars[[2]]] <- unname(univ(fm[[1]])[[1]][-1,5]), silent=TRUE)
+         if(pars[[3]]>=1) for(ii in 1:pars[[3]]) {
+	         tryCatch(glt <- testInteractions(fm[[2]], custom=pars[[4]][[ii]], slope=pars[[5]][[ii]], 
+               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) 
+               if(!is.null(glt)) Stat[pars[[2]]+2*ii-1] <- glt[1,1]
 	            Stat[pars[[2]]+2*ii]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
-            }
          }
       }
    }
@@ -749,7 +747,7 @@ gltRes <- vector('list', lop$num_glt)
 while (tag == 1) {
    tag<-0
    lop$dataStr$Beta<-inData[ii, jj, kk,]
-        
+   options(warn=-1)     
    try(fm <- aov.car(ModelForm, data=lop$dataStr, return='lm'), tag <- 1)
    if(tag == 0) if (lop$num_glt > 0) try(for (n in 1:lop$num_glt) 
       gltRes[[n]] <- testInteractions(fm[[2]], custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
