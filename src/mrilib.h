@@ -2239,7 +2239,7 @@ extern IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA ) ;
 extern IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac ) ;
 extern IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac ) ;
 extern void IW3D_scale( IndexWarp3D *AA , float fac ) ;
-extern IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty ) ;
+extern IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty , int ivs ) ;
 extern THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix ) ;
 extern float_pair IW3D_load_hexvol( IndexWarp3D *AA ) ;
 extern float_pair IW3D_load_energy( IndexWarp3D *AA ) ;
@@ -2262,7 +2262,7 @@ extern THD_3dim_dataset * THD_nwarp_dataset( THD_3dim_dataset *dset_nwarp ,
                                              THD_3dim_dataset *dset_src  ,
                                              THD_3dim_dataset *dset_mast ,
                                              char *prefix , int interp_code ,
-                                             float dxyz_mast , float wfac ) ;
+                                             float dxyz_mast , float wfac , int nvlim ) ;
 
 /*----------------------------------------------------------------------------*/
 

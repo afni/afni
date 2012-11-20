@@ -192,7 +192,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *bset , *sset , *oset ;
    MRI_IMAGE *bim , *wbim , *sim , *oim ;
    IndexWarp3D *oww ; Image_plus_Warp *oiw ;
-   char *prefix = "Qwarp" , ppp[256] ; int nopt , duplo=0 , nevox=0 ;
+   char *prefix = "Qwarp" , ppp[256] ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
@@ -211,8 +211,6 @@ int main( int argc , char *argv[] )
        "-------\n"
        " -prefix ppp  = Sets the prefix for the output datasets.\n"
        " -pear        = Use Pearson correlation for matching.\n"
-       " -duplo       = Starts registration with a scaled-down-by-2 copy\n"
-       "                of the inputs, then continues from there.\n"
        " -nopenalty   = Don't use a penalty on the cost function;\n"
        "                the purpose of the penalty is to reduce\n"
        "                grid distortions.\n"
@@ -343,10 +341,6 @@ int main( int argc , char *argv[] )
        meth = GA_MATCH_PEARSON_SCALAR ; nopt++ ; continue ;
      }
 
-     if( strcasecmp(argv[nopt],"-duplo") == 0 ){
-       duplo = 1 ; nopt++ ; continue ;
-     }
-
      ERROR_exit("Bogus option '%s'",argv[nopt]) ;
    }
 
@@ -361,10 +355,6 @@ int main( int argc , char *argv[] )
 
    DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ;
    sim = THD_extract_float_brick(0,sset) ; DSET_unload(sset) ;
-
-   if( duplo && nevox > 0 ){
-     WARNING_message("-emask turns -duplo off") ; duplo = 0 ;
-   }
 
    if( nevox > 0 && nevox != DSET_NVOX(bset) )
      ERROR_exit("-emask doesn't match base dataset grid :-(") ;
@@ -391,10 +381,7 @@ int main( int argc , char *argv[] )
      mri_free(bim) ; bim = qim ;
    }
 
-   if( duplo )
-     oiw = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
-   else
-     oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
+   oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 
