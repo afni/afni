@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.0, Nov 16, 2012
+Version 0.1.1, Nov 21, 2012
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.0, Nov 16, 2012
+Version 0.1.1, Nov 21, 2012
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -519,13 +519,22 @@ runAOV <- function(inData, dataframe, ModelForm, pars, tag) {
       dataframe$Beta<-inData
       tryCatch(fm <- aov.car(ModelForm, data=dataframe, return='lm'), error=function(e) NULL)
       if(!is.null(fm)) {
-         if(pars[[6]]) try(Stat[1:pars[[2]]] <- univ(fm[[1]])[2:(1+pars[[2]]),3], silent=TRUE) else
-            try(Stat[1:pars[[2]]] <- unname(univ(fm[[1]])[[1]][-1,5]), silent=TRUE)
+         #if(pars[[6]]) try(Stat[1:pars[[2]]] <- univ(fm[[1]])[2:(1+pars[[2]]),3], silent=TRUE) else
+         #   try(Stat[1:pars[[2]]] <- unname(univ(fm[[1]])[[1]][-1,5]), silent=TRUE)
+         
+         tmp <- tryCatch(univ(fm[[1]]), error=function(e) NULL)
+         if(!is.null(tmp)) { if(pars[[6]]) try(Stat[1:pars[[2]]] <- tmp[2:(1+pars[[2]]),3], silent=TRUE) else
+            try(Stat[1:pars[[2]]] <- unname(tmp[[1]][-1,5]), silent=TRUE) }
+         
          if(pars[[3]]>=1) for(ii in 1:pars[[3]]) {
-	         tryCatch(glt <- testInteractions(fm[[2]], custom=pars[[4]][[ii]], slope=pars[[5]][[ii]], 
-               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) 
-               if(!is.null(glt)) Stat[pars[[2]]+2*ii-1] <- glt[1,1]
+	         #tryCatch(glt <- testInteractions(fm[[2]], custom=pars[[4]][[ii]], slope=pars[[5]][[ii]], 
+            #   adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) 
+            glt <- tryCatch(testInteractions(fm[[2]], custom=pars[[4]][[ii]], slope=pars[[5]][[ii]], 
+               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)           
+            if(!is.null(glt)) {
+               Stat[pars[[2]]+2*ii-1] <- glt[1,1]
 	            Stat[pars[[2]]+2*ii]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
+            }
          }
       }
    }
@@ -533,7 +542,7 @@ runAOV <- function(inData, dataframe, ModelForm, pars, tag) {
 }
 
 #################################################################################
-########################## Read information from a file #########################
+########################## Read information from a file #########################tryCatch(print(fm[[1]]), error=function(e) NULL)
 #################################################################################
 
 #A function to parse all user input from a file
@@ -795,7 +804,7 @@ pars[[6]] <- is.na(lop$wsVars)
 #runAOV(inData[ii, jj, kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars, tag=0)
 
 print(sprintf("Start to compute %s slices along Z axis. You can monitor the progress", dimz))
-print("and estimate the total run time by opening this file from time to time.")
+print("and estimate the total run time as shown below.")
 print(format(Sys.time(), "%D %H:%M:%OS3"))
 
 ###############################
