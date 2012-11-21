@@ -99,6 +99,95 @@ ENTRY("THD_dset_to_vectim") ;
    RETURN(mrv) ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+MRI_vectim * THD_dset_to_vectim_stend( THD_3dim_dataset *dset, byte *mask , int start, int end )
+{
+   byte *mmm=mask ;
+   MRI_vectim *mrv=NULL ;
+   int kk,iv , nvals , nvox , nmask ;
+
+ENTRY("THD_dset_to_vectim_stend") ;
+
+                     if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
+   DSET_load(dset) ; if( !DSET_LOADED(dset)  ) RETURN(NULL) ;
+
+   if( start < 0     ) start = 0 ;
+   if( end   < start ) end   = DSET_NVALS(dset)-1 ;
+   nvals = end - start + 1 ; if( nvals <= 0 ) RETURN(NULL) ;
+   nvox  = DSET_NVOX(dset) ;
+
+   if( mmm != NULL ){
+     nmask = THD_countmask( nvox , mmm ) ;  /* number to keep */
+     if( nmask <= 0 ) RETURN(NULL) ;
+   } else {
+     nmask = nvox ;                         /* keep them all */
+#pragma omp critical (MALLOC)
+     mmm   = (byte *)malloc(sizeof(byte)*nmask) ;
+     if( mmm == NULL ){
+       ERROR_message("THD_dset_to_vectim: out of memory") ;
+       RETURN(NULL) ;
+     }
+     memset( mmm , 1 , sizeof(byte)*nmask ) ;
+   }
+
+#pragma omp critical (MALLOC)
+   mrv = (MRI_vectim *)malloc(sizeof(MRI_vectim)) ;
+
+   mrv->nvec   = nmask ;
+   mrv->nvals  = nvals ;
+   mrv->ignore = start ;
+#pragma omp critical (MALLOC)
+   mrv->ivec   = (int *)malloc(sizeof(int)*nmask) ;
+   if( mrv->ivec == NULL ){
+     ERROR_message("THD_dset_to_vectim: out of memory") ;
+     free(mrv) ; if( mmm != mask ) free(mmm) ;
+     RETURN(NULL) ;
+   }
+#pragma omp critical (MALLOC)
+   mrv->fvec  = (float *)malloc(sizeof(float)*nmask*nvals) ;
+   if( mrv->fvec == NULL ){
+     ERROR_message("THD_dset_to_vectim: out of memory") ;
+     free(mrv->ivec) ; free(mrv) ; if( mmm != mask ) free(mmm) ;
+     RETURN(NULL) ;
+   }
+
+   /* store desired voxel time series */
+
+   for( kk=iv=0 ; iv < nvox ; iv++ ){
+     if( mmm[iv] ) mrv->ivec[kk++] = iv ;  /* build index list */
+   }
+
+   if( nvals < DSET_NVALS(dset) ){ /* extract 1 at a time, save what we want */
+
+#pragma omp critical (MALLOC)
+     float *var = (float *)malloc(sizeof(float)*(DSET_NVALS(dset))) ;
+     for( kk=iv=0 ; iv < nvox ; iv++ ){
+       if( mmm[iv] == 0 ) continue ;
+       (void)THD_extract_array( iv , dset , 0 , var ) ;
+       AAmemcpy( VECTIM_PTR(mrv,kk) , var+start , sizeof(float)*nvals ) ;
+       kk++ ;
+     }
+     free(var) ;
+
+   } else {  /* do all at once: this way is a lot faster */
+
+     THD_extract_many_arrays( nmask , mrv->ivec , dset , mrv->fvec ) ;
+
+   }
+
+   mrv->nx = DSET_NX(dset) ; mrv->dx = fabs(DSET_DX(dset)) ;
+   mrv->ny = DSET_NY(dset) ; mrv->dy = fabs(DSET_DY(dset)) ;
+   mrv->nz = DSET_NZ(dset) ; mrv->dz = fabs(DSET_DZ(dset)) ;
+
+   DSET_UNMSEC(dset) ; mrv->dt = DSET_TR(dset) ;
+   if( mrv->dt <= 0.0f ) mrv->dt = 1.0f ;
+
+   if( mmm != mask ) free(mmm) ;
+   VECTIM_scan(mrv) ; /* 09 Nov 2010 */
+   RETURN(mrv) ;
+}
+
 /*--------------------------------------------------------------------------*/
 
 MRI_vectim * THD_dset_to_vectim_byslice( THD_3dim_dataset *dset, byte *mask ,

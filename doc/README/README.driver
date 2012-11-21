@@ -388,6 +388,7 @@ INSTACORR [c] order
   The 'name=value' pairs that follow take the following forms:
      DSET=prefix        ==> specifies the time series dataset
      IGNORE=number      ==> how many time points to ignore           [default=0]
+     STARTEND=num,num   ==> start and stop indexes for analysis      [default=all]
      BLUR=number        ==> blurring radius for data                 [default=0]
      AUTOMASK=yes/no    ==> whether to use Automask                  [yes]
      DESPIKE=yes/no     ==> whether to use Despike                   [no]

@@ -34,12 +34,12 @@ ENTRY("THD_instacorr_tsprep") ;
 
    ININFO_message("Extracting dataset time series: %s",DSET_BRIKNAME(dset)) ;
 
-   mv = THD_dset_to_vectim( dset , iset->mmm , iset->ignore ) ;
+   mv = THD_dset_to_vectim_stend( dset , iset->mmm , iset->start , iset->end ) ;
    if( mv == NULL ){
      EM("Can't extract dataset time series!") ; RETURN(NULL) ;
    }
    nmmm  = mv->nvec ;
-   ntime = mv->nvals ;  /* #dataset time points - ignore */
+   ntime = mv->nvals ;  /* #dataset time points to process */
 
    if( iset->despike ){
      int_pair ip ;
@@ -69,11 +69,11 @@ ENTRY("THD_instacorr_tsprep") ;
        ERROR_message("Global Ort time series length=%d is too short!",iset->gortim->nx);
        ERROR_message(" ==> ignoring Global Ort file") ;
 
-     } else if( iset->gortim->nx >= ntime && iset->gortim->nx < ntime+iset->ignore ){
+     } else if( iset->gortim->nx >= ntime && iset->gortim->nx < ntime+iset->start ){
 
        /* too short to ignore initial points */
 
-       if( iset->ignore > 0 )
+       if( iset->start > 0 )
          ININFO_message("Global Ort time series length=%d: not ignoring initial points",
                         iset->gortim->nx ) ;
        ngvec = iset->gortim->ny ;
@@ -85,13 +85,13 @@ ENTRY("THD_instacorr_tsprep") ;
 
        /* long enough to ignore initial points */
 
-       if( iset->ignore > 0 )
+       if( iset->start > 0 )
          ININFO_message("Global Ort time series length=%d: ignoring first %d points",
-                        iset->gortim->nx , iset->ignore ) ;
+                        iset->gortim->nx , iset->start ) ;
        ngvec = iset->gortim->ny ;
        gvec  = (float **)malloc(sizeof(float *)*ngvec) ;
        for( iv=0 ; iv < ngvec ; iv++ )
-         gvec[iv] = MRI_FLOAT_PTR(iset->gortim) + iv*iset->gortim->nx + iset->ignore ;
+         gvec[iv] = MRI_FLOAT_PTR(iset->gortim) + iv*iset->gortim->nx + iset->start ;
 
      }
    }
@@ -226,7 +226,7 @@ ENTRY("THD_instacorr") ;
 
    /** extract reference time series **/
 
-   tsar = (float *)malloc(sizeof(float)*(iset->mv->nvals+iset->ignore)) ;
+   tsar = (float *)malloc(sizeof(float)*(iset->mv->nvals+iset->start)) ;
    kk   = THD_vectim_ifind( ijk , iset->mv ) ;
 
    if( kk >= 0 ){ /* direct from vectim, if available */
