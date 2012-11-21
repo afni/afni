@@ -4545,6 +4545,8 @@ typedef struct {
  } while(0)
 
 extern MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset, byte *mask, int ignore );
+extern MRI_vectim * THD_dset_to_vectim_stend( THD_3dim_dataset *dset, byte *mask , int start, int end ) ;
+
 MRI_vectim * THD_2dset_to_vectim( THD_3dim_dataset *dset1, byte *mask1 ,
                                   THD_3dim_dataset *dset2, byte *mask2 ,
                                   int ignore );
@@ -4583,7 +4585,7 @@ typedef struct {
   THD_3dim_dataset *dset , *mset ;
   byte *mmm ;
   MRI_IMAGE *gortim ;
-  int ignore , automask , mindex ;
+  int start,end , automask , mindex ;
   float fbot , ftop , blur , sblur ;
   int polort , cmeth , despike , change ;
   MRI_vectim *mv ;

@@ -3046,7 +3046,7 @@ static int AFNI_drive_instacorr( char *cmd )
      for( ii=dadd+4 ; cmd[ii] != '\0' && !isspace(cmd[ii]) ; ii++ ) ; /*nada*/
      if( cmd[ii] == '\0' ) return -1 ;
 
-     /*  break up rest command into set of 'name=value' strings */
+     /*  break up rest of command into set of 'name=value' strings */
 
      sar = NI_decode_string_list(cmd+ii,";") ;
      if( sar == NULL ) return -1 ;
@@ -3056,7 +3056,8 @@ static int AFNI_drive_instacorr( char *cmd )
        iset->dset     = im3d->iset->dset ;
        iset->automask = im3d->iset->automask ;
        iset->mset     = (iset->automask) ? NULL : im3d->iset->mset ;
-       iset->ignore   = im3d->iset->ignore ;
+       iset->start    = im3d->iset->start ;
+       iset->end      = im3d->iset->end ;
        iset->mindex   = im3d->iset->mindex ;
        iset->fbot     = im3d->iset->fbot ;
        iset->ftop     = im3d->iset->ftop ;
@@ -3068,7 +3069,6 @@ static int AFNI_drive_instacorr( char *cmd )
        if( im3d->iset->prefix != NULL ) iset->prefix = strdup  (im3d->iset->prefix) ;
        if( im3d->iset->gortim != NULL ) iset->gortim = mri_copy(im3d->iset->gortim) ;
 
-/** INFO_message("INSTACORR INIT: copied old setup") ; **/
      } else {                              /* set some default params */
        iset->automask = 1 ;
        iset->fbot     = 0.01f ;
@@ -3076,7 +3076,6 @@ static int AFNI_drive_instacorr( char *cmd )
        iset->polort   = 2 ;
        iset->cmeth    = NBISTAT_PEARSON_CORR ;
        mm             = 1 ;
-/** INFO_message("INSTACORR INIT: created new setup") ; **/
      }
 
      if( iset->prefix == NULL ){
@@ -3110,8 +3109,22 @@ static int AFNI_drive_instacorr( char *cmd )
            ERROR_message("INSTACORR INIT: failed to find Extraset %s",dpt) ;
 
        } else if( strcasecmp(cpt,"ignore") == 0 ){                  /* ignore */
-         iset->ignore = strtod(dpt,NULL) ; mm++ ;
-         if( iset->ignore < 0 ) iset->ignore = 0 ;
+         iset->start = strtod(dpt,NULL) ; mm++ ;
+         if( iset->start < 0 ) iset->start = 0 ;
+         iset->end = 0 ;
+
+       } else if( strcasecmp(cpt,"startend")  == 0 ||
+                  strcasecmp(cpt,"start,end") == 0   ){        /* 21 Nov 2012 */
+         int start=0, end=0 ; char *qpt ;
+         start = (int)strtod(dpt,&qpt) ; mm++ ;
+         if( start < 0 ) start = 0 ;
+         if( *qpt != '\0' ){
+           char qc=*qpt ;
+           if( !isdigit(*qpt) ) qpt++ ;
+           end = (int)strtod(qpt,NULL) ;
+           if( qc == '+' && end > 0 ) end = start + end-1 ;
+         }
+         iset->start = start ; iset->end = end ;
 
        } else if( strcasecmp(cpt,"blur") == 0 ){                      /* blur */
          iset->blur = strtod(dpt,NULL) ; mm++ ;
@@ -3161,6 +3174,8 @@ static int AFNI_drive_instacorr( char *cmd )
        ERROR_message("INSTACORR INIT dataset not set -- cannot continue :-(") ;
        return -1 ;
      }
+     if( iset->end <= 0 || iset->end <= iset->start || iset->end >= DSET_NVALS(iset->dset) )
+       iset->end = DSET_NVALS(iset->dset)-1 ;
 
      NI_delete_str_array(sar) ;  /* send it to the graveyard of unwanted data */
 
