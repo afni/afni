@@ -73,7 +73,13 @@ static char i_helpstring[] =
   "* TimeSeries:\n"
   "    Dataset  = time series dataset to auto-correlate\n"
   "                [this dataset does NOT have to be the Underlay]\n"
-  "    Ignore   = number of initial time points to ignore\n"
+  "    Start,End= indexes of start and stop times\n"
+  "                Examples (assume 100 sub-bricks total):\n"
+  "                   0,50  = correlate with first 51 time points\n"
+  "                   10    = correlate with time points 10..99\n"
+  "                   10+30 = correlate with 30 time points, 10..39\n"
+  "                [if End is missing or 0, then it is the last sub-brick]\n"
+  "                [N.B.: 'Start,End' replaces 'Ignore', as of Nov 2012]\n"
   "    Blur     = FWHM in mm of Gaussian blurring to perform\n"
   "                [if a Mask is used, blurring is only inside the mask]\n"
   "\n"
@@ -101,10 +107,10 @@ static char i_helpstring[] =
   "               computing the correlations\n"
   "                [These are also bandpassed to avoid re-introducing any]\n"
   "                [of the frequency components rejected by Bandpass.    ]\n"
-  "             * If Ignore > 0, and if the 1D file is the same length (or more)\n"
-  "               as the input dataset, then the first Ignore points of this 1D\n"
+  "             * If Start > 0, and if the 1D file is the same length (or more)\n"
+  "               as the input dataset, then the first Start points of this 1D\n"
   "               file will also be ignored.\n"
-  "             * If Ignore > 0, but this file is shorter than the input dataset,\n"
+  "             * If Start > 0, but this file is shorter than the input dataset,\n"
   "               then no initial points in this 1D file will be ignored.\n"
   "             * If the Global Ort file is too short, it will be ignored in toto.\n"
   "\n"
@@ -206,7 +212,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_option ( plint , "TimeSeries" , "TimeSeries" , TRUE ) ;
    PLUTO_add_dataset( plint , "Dataset" ,
                       ANAT_ALL_MASK , FUNC_ALL_MASK , DIMEN_4D_MASK | BRICK_ALLREAL_MASK ) ;
-   PLUTO_add_number ( plint , "Ignore" , 0,50,0,0,FALSE ) ;
+   PLUTO_add_string ( plint , "Start,End" , 0,NULL,10 ) ;
    PLUTO_add_number ( plint , "Blur"   , 0,10,0,0,TRUE  ) ;
 
    PLUTO_add_option ( plint , "Mask" , "Mask" , TRUE ) ;
@@ -261,7 +267,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    float fbot=-1.0f , ftop=ICOR_BIG ;
    MRI_IMAGE *gortim=NULL ;
    THD_3dim_dataset *dset=NULL , *mset=NULL , *eset=NULL ;
-   int ignore=0 , mindex=0 , automask=0 , qq ; float blur=0.0f , sblur=0.0f ;
+   int start=0,end=0 , mindex=0 , automask=0 , qq ; float blur=0.0f , sblur=0.0f ;
    ICOR_setup *iset ; char *cpt ;
    Three_D_View *im3d = plint->im3d ;
    double etim ;
@@ -284,12 +290,26 @@ static char * ICOR_main( PLUGIN_interface *plint )
      /** TimeSeries **/
 
      if( strcmp(tag,"TimeSeries") == 0 ){
-       MCW_idcode *idc ;
+       MCW_idcode *idc ; char *stend ;
        idc  = PLUTO_get_idcode(plint) ;
        dset = PLUTO_find_dset(idc) ;
        if( dset == NULL ) ERROR_message("Can't find TimeSeries dataset") ;
-       ignore = PLUTO_get_number(plint) ;
+       stend  = PLUTO_get_string(plint) ;
        blur   = PLUTO_get_number(plint) ;
+
+       start = end = 0 ;
+       if( stend != NULL && *stend != '\0' ){
+         char *cpt ;
+         start = (int)strtod(stend,&cpt) ;
+         if( start < 0 ) start = 0 ;
+         while( isspace(*cpt) ) cpt++ ;
+         if( *cpt != '\0' ){
+           char qc = *cpt ;
+           if( !isdigit(*cpt) ) cpt++ ;
+           end = (int)strtod(cpt,NULL) ;
+           if( qc == '+' && end > 0 ) end = start + end-1 ;
+         }
+       }
        continue ;
      }
 
@@ -368,18 +388,23 @@ static char * ICOR_main( PLUGIN_interface *plint )
 
    if( dset == NULL )
      return "** No TimeSeries dataset? **" ;
-   if( DSET_NVALS(dset)-ignore < 9 ) {
+   if( start >= DSET_NVALS(dset)-2 )
+     return "** 'Start' value is too large **" ;
+
+   if( end <= 0 || end <= start || end >= DSET_NVALS(dset) ) end = DSET_NVALS(dset)-1 ;
+
+   if( end-start+1 < 9 ) {
      WARNING_message("**************************\n"
                      "   Too few samples in time series!\n"
                      "   I hope you know what you are doing.\n");
      if (polort >= 0) {
          /* object even if we can get away with less. Otherwise
-            the < 9 condition has to be ammended in
+            the < 9 condition has to be amended in
             thd_bandpass.c's THD_bandpass_vectors() */
          return "** TimeSeries dataset is way too short for InstaCorr **" ;
      } else { /* allow it to proceed if series is not extremely short */
-      if (  DSET_NVALS(dset) - ignore < 3) {/* too much! */
-         return "** TimeSeries dataset is way too short for InstaCorr **" ;
+      if (  end-start+1 < 3) {/* too much too little! */
+         return "** TimeSeries dataset is WAY too short for InstaCorr **" ;
       }
      }
    }
@@ -390,7 +415,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
      return "** Mask dataset doesn't match up with TimeSeries dataset **" ;
    if( !automask && mset != NULL && mindex >= DSET_NVALS(mset) )
      return "** Mask dataset index is out of range **" ;
-   if( gortim != NULL && gortim->nx < DSET_NVALS(dset)-ignore )
+   if( gortim != NULL && gortim->nx < end-start+1 )
      return "** Global Orts file is too short for TimeSeries dataset **" ;
 
    if( fbot >= ftop ){ fbot = 0.0f ; ftop = ICOR_BIG ; }
@@ -406,7 +431,8 @@ static char * ICOR_main( PLUGIN_interface *plint )
        im3d->iset->eset     == eset     &&
        im3d->iset->mset     == mset     &&
        im3d->iset->gortim   == gortim   &&
-       im3d->iset->ignore   == ignore   &&
+       im3d->iset->start    == start    &&
+       im3d->iset->end      == end      &&
        im3d->iset->automask == automask &&
        im3d->iset->mindex   == mindex   &&
        im3d->iset->fbot     == fbot     &&
@@ -432,7 +458,8 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->eset     = eset ;
    iset->mset     = (automask) ? NULL : mset ;
    iset->gortim   = gortim ;
-   iset->ignore   = ignore ;
+   iset->start    = start ;
+   iset->end      = end ;
    iset->automask = automask ;
    iset->mindex   = mindex ;
    iset->fbot     = fbot ;
@@ -671,9 +698,9 @@ ENTRY("AFNI_icor_setref_xyz") ;
 
    if( im3d->iset->tseed != NULL ){
      MRI_IMAGE *tsim ; float *tsar ;
-     tsim = mri_new( im3d->iset->mv->nvals + im3d->iset->ignore,1,MRI_float ) ;
+     tsim = mri_new( im3d->iset->mv->nvals + im3d->iset->start,1,MRI_float ) ;
      tsar = MRI_FLOAT_PTR(tsim) ;
-     memcpy( tsar + im3d->iset->ignore , im3d->iset->tseed ,
+     memcpy( tsar + im3d->iset->start , im3d->iset->tseed ,
              sizeof(float)*im3d->iset->mv->nvals ) ;
      tsim->name = (char *)malloc(sizeof(char)*16) ;
      strcpy(tsim->name,im3d->iset->prefix) ; strcat(tsim->name,"_seed") ;
