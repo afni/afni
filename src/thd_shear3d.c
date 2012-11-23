@@ -759,16 +759,16 @@ THD_dvecmat DMAT_symeig( THD_dmat33 inmat )
    /* load matrix from inmat into simple array */
 
    for( jj=0 ; jj < 3 ; jj++ )
-      for( ii=0 ; ii < 3 ; ii++ ) a[ii+3*jj] = inmat.mat[ii][jj] ;
+     for( ii=0 ; ii < 3 ; ii++ ) a[ii+3*jj] = inmat.mat[ii][jj] ;
 
-   symeig_double( 3 , a , e ) ;     /* eigensolution of array */
+   symeig_3( a , e , 1 ) ;         /* eigensolution of array */
 
    /* load eigenvectors and eigenvalues into output */
 
    for( jj=0 ; jj < 3 ; jj++ ){
-      out.vv.xyz[jj] = e[jj] ;                 /* eigenvalues */
-      for( ii=0 ; ii < 3 ; ii++ )
-         out.mm.mat[ii][jj] = a[ii+3*jj] ;     /* eigenvectors */
+     out.vv.xyz[jj] = e[jj] ;                 /* eigenvalues */
+     for( ii=0 ; ii < 3 ; ii++ )
+       out.mm.mat[ii][jj] = a[ii+3*jj] ;     /* eigenvectors */
    }
 
    return out ;
@@ -816,6 +816,7 @@ THD_dmat33 DMAT_pow( THD_dmat33 inmat , double pp )
 {
    THD_dmat33 out , mm , dd ;
    THD_dvecmat vm ;
+   double etop=0.0f ;
    int ii ;
 
    /* special case */
@@ -825,11 +826,34 @@ THD_dmat33 DMAT_pow( THD_dmat33 inmat , double pp )
    mm = DMAT_xt_x( inmat ) ;
    vm = DMAT_symeig( mm ) ;  /* get eigensolution [X] and [D] */
 
-   /* raise [D] to the pp power */
+   /* raise diagonal [D] (eigenvalues) to the pp power */
 
-   for( ii=0 ; ii < 3 ; ii++ )
-      vm.vv.xyz[ii] = (vm.vv.xyz[ii] <= 0.0) ? 0.0
-                                             : pow(vm.vv.xyz[ii],pp) ;
+   if( vm.vv.xyz[0] > etop ) etop = vm.vv.xyz[0] ;
+   if( vm.vv.xyz[1] > etop ) etop = vm.vv.xyz[1] ;
+   if( vm.vv.xyz[2] > etop ) etop = vm.vv.xyz[2] ;
+   if( etop > 0.0 ){
+     if( pp < 0.0 ){
+       double ethr = 1.e-5 * etop ;
+       etop = 1.e-14 * etop * etop ; pp = -pp ;
+       if( vm.vv.xyz[0] < ethr )
+         vm.vv.xyz[0] = vm.vv.xyz[0] / ( vm.vv.xyz[0]*vm.vv.xyz[0] + etop ) ;
+       else
+         vm.vv.xyz[0] = 1.0 / vm.vv.xyz[0] ;
+       if( vm.vv.xyz[1] < ethr )
+         vm.vv.xyz[1] = vm.vv.xyz[1] / ( vm.vv.xyz[1]*vm.vv.xyz[1] + etop ) ;
+       else
+         vm.vv.xyz[1] = 1.0 / vm.vv.xyz[1] ;
+       if( vm.vv.xyz[2] < ethr )
+         vm.vv.xyz[2] = vm.vv.xyz[2] / ( vm.vv.xyz[2]*vm.vv.xyz[2] + etop ) ;
+       else
+         vm.vv.xyz[2] = 1.0 / vm.vv.xyz[2] ;
+     }
+     vm.vv.xyz[0] = (vm.vv.xyz[0] <= 0.0) ? 0.0 : pow(vm.vv.xyz[0],pp) ;
+     vm.vv.xyz[1] = (vm.vv.xyz[1] <= 0.0) ? 0.0 : pow(vm.vv.xyz[1],pp) ;
+     vm.vv.xyz[2] = (vm.vv.xyz[2] <= 0.0) ? 0.0 : pow(vm.vv.xyz[2],pp) ;
+   } else {
+     vm.vv.xyz[0] = vm.vv.xyz[1] = vm.vv.xyz[2] = 0.0 ;
+   }
 
    /*                  pp    T  */
    /* result is [X] [D]   [X]   */

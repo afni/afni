@@ -55,6 +55,38 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
 
 /*---------------------------------------------------------------------------*/
 
+IndexWarp3D_pair * IW3D_pair_insert( IndexWarp3D *AA , IndexWarp3D *BB )
+{
+   IndexWarp3D_pair *PP ;
+
+   PP = (IndexWarp3D_pair *)malloc(sizeof(IndexWarp3D_pair)) ;
+   PP->fwarp = AA ;
+   PP->iwarp = BB ;
+   return PP ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void IW3D_pair_invertify( IndexWarp3D_pair *PP )
+{
+   if( PP == NULL || PP->fwarp == NULL ) return ;
+   IW3D_destroy( PP->iwarp ) ;
+   PP->iwarp = IW3D_invert( PP->fwarp , NULL , MRI_QUINTIC ) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void IW3D_pair_swapify( IndexWarp3D_pair *PP )
+{
+   IndexWarp3D *AA ;
+   if( PP == NULL ) return ;
+   AA = PP->fwarp ; PP->fwarp = PP->iwarp ; PP->iwarp = AA ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
 IndexWarp3D * IW3D_create_vacant( int nx , int ny , int nz )
 {
    IndexWarp3D *AA ;
@@ -311,10 +343,10 @@ IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac
    return CC ;
 }
 
+#if 0
 /*----------------------------------------------------------------------------*/
 /* smooth locally */
 
-#if 0
 #define M7  0.142857143f
 #define M28 0.035714286f
 #define M84 0.011904762f
@@ -322,6 +354,7 @@ IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac
 void IW3D_7smooth( IndexWarp3D *AA )
 {
 }
+/*----------------------------------------------------------------------------*/
 #endif
 
 /*----------------------------------------------------------------------------*/
