@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , OCT , 2012 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
+  { 23 , NOV , 2012 , RWC , "afni instacorr" , MINOR , TYPE_MODIFY ,
+   "Allow Start and End indexes, rather than Ignore (=Start)" ,
+   "To allow Instacorr-ing a subset of a time series.  Per the request of\n"
+   "the Exceptional Javier Gonzalez-Castillo" } ,
+
+ { 18 , OCT , 2012 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "AFNI_CREEPTO modifies 'jumpto xyz' behavior" ,
    NULL } ,
 
