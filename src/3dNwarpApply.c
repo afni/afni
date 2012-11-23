@@ -232,7 +232,7 @@ int main( int argc , char *argv[] )
    /*--- the actual work (bow your head in reverence) ---*/
 
    dset_out = THD_nwarp_dataset( dset_nwarp , dset_src , dset_mast ,
-                                 prefix , interp_code , dxyz_mast , wfac ) ;
+                                 prefix , interp_code , dxyz_mast , wfac , 0 ) ;
 
    tross_Copy_History( dset_src , dset_out ) ;        /* hysterical records */
    tross_Make_History( "3dNwarpApply" , argc,argv , dset_out ) ;
