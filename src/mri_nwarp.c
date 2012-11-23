@@ -2758,7 +2758,7 @@ ENTRY("THD_nwarp_dataset") ;
 
    mast_cmat = dset_mast->daxes->ijk_to_dicom ;
 
-   nvals = DSET_NVALS(dset_src) ; if( nvals > nvlim ) nvals = nvlim ;
+   nvals = DSET_NVALS(dset_src) ; if( nvals > nvlim && nvlim > 0 ) nvals = nvlim ;
 
    dset_out = EDIT_empty_copy( dset_mast ) ;  /* create the output dataset! */
    EDIT_dset_items( dset_out ,                /* and patch it up */
