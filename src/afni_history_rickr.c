@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 16, Nov, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
-   "status after 'which afni' should be set if no afni, so do not use in set",
-   NULL
+ { 26, Nov, 2012, RCR, "align_epi_anat.py", MINOR, TYPE_NEW_OPT,
+   "added -save_script option",
+   "added script history in afni_com class"
  } ,
 
  { 15, Nov, 2012, RCR, "3dTqual", MINOR, TYPE_NEW_OPT,

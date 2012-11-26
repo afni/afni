@@ -207,6 +207,16 @@ def exec_tcsh_command(cmd, lines=0, noblank=0):
 
     return status, otext
 
+def write_afni_com_history(fname, length=0, wrap=1):
+   """write the afni_com history to the given file
+
+      if length > 0: limit to that number of entries
+   """
+   com = BASE.shell_com('hi there')
+   hist = com.shell_history()
+   script = '\n'.join(hist)+'\n'
+   write_text_to_file(fname, script, wrap=wrap)
+
 def get_unique_sublist(inlist):
     """return a copy of inlist, but where elements are unique"""
 
