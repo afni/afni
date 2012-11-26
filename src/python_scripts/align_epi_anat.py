@@ -348,6 +348,7 @@ g_help_string = """
       Not included with -save_all (since parameters are required):
 
       -save_orig_skullstrip PREFIX : save original skull-stripped dset
+      -save_script SCRIPT_NAME     : save shell command script to given file
 
    Alternative cost functions and methods:
      The default method used in this script is the LPC (Localized Pearson 
@@ -559,6 +560,7 @@ class RegWrap:
       self.valid_opts = None
       self.user_opts = None
       self.verb = 1    # a little talkative by default
+      self.save_script = '' # save completed script into given file
       self.rewrite = 0 #Do not recreate existing volumes
       self.oexec = "" #dry_run is an option
       self.epi2anat = 0 # align epi to anat optionally
@@ -630,6 +632,10 @@ class RegWrap:
                helpstr="Show version number and exit")
       self.valid_opts.add_opt('-verb', 1, [], \
                helpstr="Be verbose in messages and options" )
+      # 26 Nov 2012 [rickr]
+      self.valid_opts.add_opt('-save_script', 1, [], \
+               helpstr="save executed script in given file" )
+
       self.valid_opts.add_opt('-align_centers', 1, ['no'], ['yes', 'no'],  \
                helpstr="align centers of datasets based on spatial\n"      \
                        "extents of the original volume.\n"                 \
@@ -928,6 +934,9 @@ class RegWrap:
       opt = opt_list.find_opt('-verb')    # set and use verb
       if opt != None: self.verb = int(opt.parlist[0])
       
+      opt = opt_list.find_opt('-save_script') # save executed script
+      if opt != None: self.save_script = opt.parlist[0]
+            
       opt = opt_list.find_opt('-ex_mode')    # set execute mode
       if opt != None: self.oexec = opt.parlist[0]
 
@@ -1125,6 +1134,10 @@ class RegWrap:
          print ""
 
       os.chdir(self.odir)
+
+      if self.save_script:
+         write_afni_com_history(self.save_script)
+
       sys.exit()   
       
    # save the script command arguments to the dataset history
@@ -1934,6 +1947,7 @@ class RegWrap:
                        ps.oexec)
 
                com.run()
+
       return o, ow
 
 # Some notes on this alignment matrix mechanics are sorely needed

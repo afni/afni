@@ -3,6 +3,10 @@ import os, sys, glob, operator, string, afni_base
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 
+# limits for shell_com history
+SAVE_SHELL_HISTORY = 400
+MAX_SHELL_HISTORY  = 600
+
 class afni_name:
    def __init__(self, name=""):
       self.initname = name
@@ -326,7 +330,18 @@ class comopt:
       return 1
 
 class shell_com:
-   def __init__(self, com, eo="", capture=0):
+   history = []         # shell_com history
+   save_hist = 1        # whether to record as we go
+
+   def __init__(self, com, eo="", capture=0, save_hist=1):
+      """create instance of shell command class
+
+            com         command to execute (or echo, etc)
+            eo          echo mode string: echo/dry_run/script/""
+            capture     flag: store output from command?
+            save_hist   flag: store history of commands across class instances?
+      """
+
       self.com = com    # command string to be executed
       self.eo = eo      # echo mode (echo/dry_run/script/"")
       self.dir = os.getcwd()
@@ -337,6 +352,8 @@ class shell_com:
          self.capture = 1
       else:
          self.capture = capture; #Want stdout and stderr captured?
+      self.save_hist = save_hist
+
       #If command line is long, trim it, if possible
       l1 = len(self.com)
       if (l1 > 80):
@@ -372,6 +389,8 @@ class shell_com:
       if self.exc==1:
          print "#    WARNING: that command has been executed already! "
          sys.stdout.flush()
+      else: self.add_to_history()
+
       return
 
    def run(self):
@@ -389,6 +408,18 @@ class shell_com:
    def run_echo(self,eo=""):
       self.eo = eo;
       self.run()
+
+   def add_to_history(self):
+      """append the current command (trimcom) to the history, truncating
+         if it is too long"""
+      if not self.save_hist: return
+      if len(self.history) >= MAX_SHELL_HISTORY:
+         self.history = self.history[-SAVE_SHELL_HISTORY:]
+      self.history.append(self.trimcom)
+
+   def shell_history(self, nhist=0):
+      if nhist == 0 or nhist > len(self.history): return self.history
+      else:                                  return self.history[-nhist]
 
    def stdout(self):
       if (len(self.so)):
@@ -435,7 +466,6 @@ class shell_com:
             return l[j]
       else:
          return self.so[i]
-
 
 # return the attribute list for the given dataset and attribute
 def read_attribute(dset, atr, verb=1):
