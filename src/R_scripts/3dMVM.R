@@ -751,29 +751,32 @@ if(dimz==1) zinit <- 1 else zinit <- dimz%/%2
 
 ii <- xinit; jj <- yinit; kk <- zinit
 
-tag<-1
+fm<-NULL
 gltRes <- vector('list', lop$num_glt)
 
-while (tag == 1) {
-   tag<-0
+while(is.null(fm)) {
+   fm<-NULL
    lop$dataStr$Beta<-inData[ii, jj, kk,]
    options(warn=-1)     
-   try(fm <- aov.car(ModelForm, data=lop$dataStr, return='lm'), tag <- 1)
-   if(tag == 0) if (lop$num_glt > 0) try(for (n in 1:lop$num_glt) 
-      gltRes[[n]] <- testInteractions(fm[[2]], custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
-         adjustment="none", idata = fm[["idata"]]) )
-   if (tag == 1) if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
+   fm <- try(aov.car(ModelForm, data=lop$dataStr, return='lm'), silent=TRUE)
+   if(!is.null(fm)) if (lop$num_glt > 0) {
+      n <- 1
+      while(!is.null(fm) & (n <= lop$num_glt)) {
+         gltRes[[n]] <- tryCatch(testInteractions(fm[[2]], custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
+            adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+         if(is.null(gltRes[[n]])) fm <- NULL
+         n <- n+1
+      }      
+   }
+   if (is.null(fm)) if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
-      errex.AFNI("Something is not quite right during testing!")
+      errex.AFNI("Testing indicates that something is not quite right!")
       #break
    }
 }
 
-if(tag == 0)  {
+if(!is.null(fm))  {
    print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
-   #if (NoConst) NoF <- nrow(anova(fm)) else NoF <- nrow(anova(fm))-1  # Just assume an intercept in the model
-        #NoF <- nrow(anova(fm))
-   #for (n in 1:lop$num_glt) contrDF[n] <- temp[n]$df
    } else { 
       errex.AFNI(sprintf("Ouch, model testing failed! Multiple reasons could cause the failure.... \n"))
 #                "might be inappropriate, or there are incorrect specifications in model.txt \n",
