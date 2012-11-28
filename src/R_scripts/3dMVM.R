@@ -909,7 +909,7 @@ statpar <- "3drefit"
 for(ii in 1:nF) statpar <- paste(statpar, " -substatpar ", ii-1, " fift ",
    ifelse(is.na(lop$wsVars), univ(fm[[1]])[ii+1, 'Df'], unname(univ(fm[[1]])[[1]][ii+1,'num Df'])), " ",
    ifelse(is.na(lop$wsVars), univ(fm[[1]])[2+nF, 'Df'], unname(univ(fm[[1]])[[1]][ii+1,'den Df'])) )
-for(ii in 1:lop$num_glt) statpar <- paste(statpar, " -substatpar ", nF+2*ii-1, " fitt", 
+if(lop$num_glt>0) for(ii in 1:lop$num_glt) statpar <- paste(statpar, " -substatpar ", nF+2*ii-1, " fitt", 
    ifelse(is.na(lop$wsVars), gltRes[[ii]][2,2], gltRes[[ii]][,6]))    
 statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
 
