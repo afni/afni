@@ -67,6 +67,9 @@ void GRINCOR_many_regress( int nvec , int numx , float **xxar ,
                                       int numy , float **yyar ,
                                       int nout , float **dtar  ) ;
 
+void GRINCOR_many_spearman( int nvec, int numx, float **xxar,
+                            MRI_IMAGE *cvim, float **spout   ) ;
+
 /*--------------------------------------------------------------------------*/
 
 static int do_atanh = 1 ;  /* 15 May 2012 */
@@ -1031,7 +1034,8 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *bxxim=NULL , *bxxim_psinv=NULL , *bxxim_xtxinv=NULL ;
    MRI_IMARR *covimar=NULL ;  /* 14 May 2012 */
    float **dtar=NULL ;
-   int no_ttest = 0 ;  /* 02 Nov 2010 */
+   int no_ttest=0 ;  /* 02 Nov 2010 */
+   int do_spcov=0 , nspcov=0 ; float **spcov=NULL ;
 
    NI_element *sclnel=NULL ;         /* scale factors [19 Sep 2012] */
    float *scl_AAA=NULL , *scl_BBB=NULL ;
@@ -1316,6 +1320,7 @@ int main( int argc , char *argv[] )
       "        ++ The '-donocov' option, described later, lets you get the results\n"
       "            calculated without covariates in addition to the results with\n"
       "            covariate regression included, for comparison fun.\n"
+      "            -- Thus adding to the number of output bricks, of course.\n"
       "\n"
       "        ++ EXAMPLE:\n"
       "           If there are 2 groups of datasets (with setA labeled 'Pat', and setB\n"
@@ -1419,6 +1424,13 @@ int main( int argc , char *argv[] )
       "              to the output dataset -- presumably to facilitate comparison.\n"
       "             ++ These extra output sub-bricks have 'NC' attached to their labels.\n"
       "             ++ If covariates are NOT used, this option has no effect at all.\n"
+      "\n"
+      " -dospcov   = If covariates are used, compute the Spearman (rank) correlation\n"
+      "              coefficient of the subject correlation results vs. each covariate.\n"
+      "             ++ These extra sub-bricks are in addition to the standard\n"
+      "                regression analysis with covariates, and are added here at\n"
+      "                the request of the IMoM.\n"
+      "             ++ These sub-bricks will be labeled with '_SP' at the end.\n"
       "\n"
       " -clust PP  = This option lets you input the results from a 3dClustSim run,\n"
       "              to be transmitted to AFNI to aid with the interactive Clusterize.\n"
@@ -1739,6 +1751,10 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-donocov") == 0 ){  /* 17 May 2012 */
        do_nocov++ ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-dospcov") == 0 ){  /* 28 Nov 2012 */
+       do_spcov++ ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-quiet") == 0 ){
@@ -2138,6 +2154,7 @@ int main( int argc , char *argv[] )
    do_lpi = AFNI_yesenv("AFNI_INSTACORR_XYZ_LPI") ;  /* 07 Feb 2011 */
 
    if( do_nocov && mcov == 0 ) do_nocov = 0 ;        /* 17 May 2012 */
+   if( do_spcov && mcov == 0 ) do_spcov = 0 ;        /* 28 Nov 2012 */
 
    if( 0 && bmode && !TalkToAfni ) /* Now wait a doggone minute! */
      ERROR_exit("GIC: Alas, -batch and -suma are not compatible :-(") ;
@@ -2445,7 +2462,7 @@ int main( int argc , char *argv[] )
        break ;
 
        case CENTER_NONE:
-         center_valimA = center_valimB = mri_new(mcov,1,MRI_float) ; /* zeros */
+         center_valimA = center_valimB = mri_new(mcov,1,MRI_float) ; /* zero filled */
        break ;
 
        case CENTER_DIFF:{
@@ -2679,6 +2696,18 @@ int main( int argc , char *argv[] )
      nout += (dosix) ? 6 : 2 ;
    }
 
+   if( mcov > 0 && do_spcov ){  /* Spearman correlation with covariates [28 Nov 2012] */
+     int qq = nelset->vec_num ;
+     nspcov = mcov ; if( ndset_BBB > 0 ) nspcov *= 2 ;
+     spcov  = (float **)malloc(sizeof(float *)*nspcov) ;
+     for( kk=0 ; kk < nspcov ; kk++ ){
+       NI_add_column( nelset , NI_FLOAT , NULL ) ;
+       spcov[kk] = (float *)nelset->vec[kk+qq] ;
+       if( spcov[kk] == NULL )
+         ERROR_exit("GIC: Can't setup output dataset for -dospcov [#%d]?!",kk) ;
+     }
+   }
+
    /* add columns for the individual dataset arctanh(corr) results */
 
    if( do_sendall ){
@@ -2772,9 +2801,9 @@ int main( int argc , char *argv[] )
    if( shd_BBB != NULL )
      NI_set_attribute( nelcmd , "label_BBB" , label_BBB ) ;
 
-   NI_set_attribute_int( nelcmd , "target_nvals" , nout+nsaar ) ;
+   NI_set_attribute_int( nelcmd , "target_nvals" , nout+nsaar+nspcov ) ;
 
-   bricklabels = (char *)calloc(sizeof(char),(5*MAX_LABEL_SIZE+16)*(nout+nsaar+1)) ;
+   bricklabels = (char *)calloc(sizeof(char),(5*MAX_LABEL_SIZE+16)*(nout+nsaar+nspcov+1)) ;
 
    if( mcov > 0 ){ /* labels for the myriad of covariates results [23 May 2010] */
 
@@ -2830,6 +2859,21 @@ int main( int argc , char *argv[] )
 
    kk = strlen(bricklabels) ;
    if( bricklabels[kk-1] == ';' ) bricklabels[kk-1] = '\0' ;  /* truncate last ';' */
+
+   /* add labels for Spearman correlations, if needed [28 Nov 2012] */
+
+   if( do_spcov ){
+     strcat(bricklabels,";") ;
+     for( kk=1 ; kk <= mcov ; kk++ )
+       sprintf( bricklabels+strlen(bricklabels) ,
+                " %s_%s_SP ;" , label_AAA , covlab->str[kk] ) ;
+     if( ndset_BBB > 0 ){
+       for( kk=1 ; kk <= mcov ; kk++ )
+         sprintf( bricklabels+strlen(bricklabels) ,
+                  " %s_%s_SP ;" , label_BBB , covlab->str[kk] ) ;
+     }
+     kk = strlen(bricklabels) ; bricklabels[kk-2] = '\0' ;  /* truncate last ';' */
+   }
 
    /* add labels for the subject-level bricks, if needed */
 
@@ -3565,6 +3609,20 @@ BatchFinalize:
          ctim = NI_clock_time() ;
          ININFO_message("GIC:  finished regression-izing: elapsed=%d ms",ctim-btim) ;
          btim = ctim ;
+       }
+
+       if( do_spcov ){
+         if( verb > 3 ) ININFO_message("GIC:  start Spearman-ization") ;
+
+           GRINCOR_many_spearman( nvec, ndset_AAA, dotprod_AAA, axxim, spcov ) ;
+         if( ndset_BBB > 0 )
+           GRINCOR_many_spearman( nvec, ndset_BBB, dotprod_BBB, bxxim, spcov+mcov ) ;
+
+         if( verb > 2 || (verb==1 && nsend < NSEND_LIMIT) ){
+           ctim = NI_clock_time() ;
+           ININFO_message("GIC:  finished Spearman-izing: elapsed=%d ms",ctim-btim) ;
+           btim = ctim ;
+         }
        }
 
      }
@@ -4471,4 +4529,142 @@ int GRINCOR_output_dataset( GICOR_setup *giset, NI_element *nel, char *pref )
      INFO_message("Output dataset #%d %s",ncall,DSET_BRIKNAME(giset->dset)) ;
 
    return ((int)DSET_TOTALBYTES(giset->dset));
+}
+
+/*****************************************************************************/
+/********** 28 Nov 2012 -- stuff for Spearman-izing with covariates **********/
+
+/*---------------------------------------------------------------------------*/
+/*! Rank-order a float array, with ties getting the average rank.
+   The output overwrites the input.
+   N.B.: b[n] and c[n] are workspaces, should be pre-allocated.
+*//*-------------------------------------------------------------------------*/
+
+static void rank_prepare( int n , float *a , int *bb , float *cc )
+{
+   register int ii , ns , n1 , ib ; float cs , *c ; int *b ;
+
+   /*- handle special cases -*/
+
+   if( a == NULL || n < 1 ) return ;        /* meaningless input */
+   if( n == 1 ){ a[0] = 0.0f ; return ; }    /* only one point!? */
+
+   b = bb ; if( b == NULL ) b = (int   *)malloc(sizeof(int)  *n) ;
+   c = cc ; if( c == NULL ) c = (float *)malloc(sizeof(float)*n) ;
+
+   for( ii=0 ; ii < n ; ii++ ) c[ii] = b[ii] = ii ;
+
+   /*- sort input, carrying b along -*/
+
+   qsort_floatint( n , a , b ) ;  /* see cs_sort_fi.c */
+
+   /* compute ranks into c[] */
+
+   n1 = n-1 ;
+   for( ii=0 ; ii < n1 ; ii++ ){
+     if( a[ii] == a[ii+1] ){                  /* handle ties */
+       cs = 2*ii+1 ; ns = 2 ; ib = ii ; ii++ ;
+       while( ii < n1 && a[ii] == a[ii+1] ){ ii++ ; ns++ ; cs += ii ; }
+       for( cs/=ns ; ib <= ii ; ib++ ) c[ib] = cs ;
+     }
+   }
+
+   /* re-order back into a */
+
+   for( ii=0 ; ii < n ; ii++ ) a[b[ii]] = c[ii] ;
+
+   if( b != bb ) free(b) ; if( c != cc ) free(c) ;
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Rank orders a[], subtracts the mean rank, and returns the sum-of-squares.
+-----------------------------------------------------------------------------*/
+
+static float spearman_prepare( int n , float *a , int *b , float *c )
+{
+   register int ii ; register float rb , rs ;
+
+   rank_prepare( n , a , b,c ) ;
+   rb = 0.5f*(n-1) ; rs=0.0f ;
+   for( ii=0 ; ii < n ; ii++ ){
+     a[ii] -= rb ;                /* remove mean rank */
+     rs    += a[ii]*a[ii] ;       /* sum squares */
+   }
+   return rs ;
+}
+
+/*-----------------------------------------------------------------------------*/
+/*! To Spearman (rank-order) correlate x[] with r[], first do
+      rv = spearman_rank_prepare(n,r) ;
+    then
+      corr = spearman_rank_corr(n,x,rv,r) ;
+    Note that these 2 routines are destructive (r and x are replaced by ranks).
+-------------------------------------------------------------------------------*/
+
+static float spearman_correlate( int n , float *x , float rv , float *r , int *b , float *c )
+{
+   register int ii ; register float ss ; float xv ;
+
+   xv = spearman_prepare( n , x , b,c ) ; if( xv <= 0.0f ) return 0.0f ;
+   for( ii=0,ss=0.0f ; ii < n ; ii++ ) ss += x[ii] * r[ii] ;
+
+   ss /= sqrtf(rv*xv) ; /*** if( do_atanh ) ss = MYatanh(ss) ; ***/
+   return ss ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+static void spearman_many( int nlen , float *avec ,
+                           int nvec , float **bvec , float *svec )
+{
+   float *avv , asum ;
+
+   /* prepare the fixed vector */
+
+   avv = (float *)malloc(sizeof(float)*nlen) ;
+   AAmemcpy( avv , avec , sizeof(float)*nlen ) ;
+   asum = spearman_prepare( nlen , avv , NULL,NULL ) ;
+   if( asum <= 0.0f ) return ;     /* all ranks equal :-( */
+
+   /* parallelize the correlation over the b vectors */
+
+AFNI_OMP_START ;
+#pragma omp parallel
+  { float *bvv , *cws ; int *bws , ii,kk ;
+
+#pragma omp critical (MALLOC)
+    { bvv = (float *)malloc(sizeof(float)*nlen) ;
+      cws = (float *)malloc(sizeof(float)*nlen) ;
+      bws = (int   *)malloc(sizeof(int)  *nlen) ; }
+
+#pragma omp for
+      for( kk=0 ; kk < nvec ; kk++ ){
+        for( ii=0 ; ii < nlen ; ii++ ) bvv[ii] = bvec[ii][kk] ;
+        svec[kk] = spearman_correlate( nlen, bvv , asum,avv , bws,cws ) ;
+      }
+
+#pragma omp critical (MALLOC)
+    { free(bws) ; free(cws) ; free(bvv) ; }
+
+  }
+AFNI_OMP_END ;
+
+  free(avv) ; return ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+void GRINCOR_many_spearman( int nvec, int numx, float **xxar,
+                            MRI_IMAGE *cvim, float **spout   )
+{
+   int nsp , kk ; float *car ;
+
+   nsp = cvim->ny - 1 ; car = MRI_FLOAT_PTR(cvim) ;
+
+   for( kk=1 ; kk <= nsp ; kk++ )
+     spearman_many( numx , car+(kk*numx) , nvec , xxar , spout[kk-1] ) ;
+
+   return ;
 }
