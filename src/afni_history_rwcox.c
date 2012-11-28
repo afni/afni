@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , NOV , 2012 , RWC , "afni instacorr" , MINOR , TYPE_MODIFY ,
+  { 28 , NOV , 2012 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
+   "-dospcov" ,
+   "Compute Spearman correlation of subject results with covariate.  Output\n"
+   "sub-bricks are labeled with '_SP' at the end, as in 'LLL_cov_SP' to\n"
+   "indicate the group with label 'LLL' correlated with the covariate with\n"
+   "label 'cov'.  This is for the IMom (PK)." } ,
+
+ { 23 , NOV , 2012 , RWC , "afni instacorr" , MINOR , TYPE_MODIFY ,
    "Allow Start and End indexes, rather than Ignore (=Start)" ,
    "To allow Instacorr-ing a subset of a time series.  Per the request of\n"
    "the Exceptional Javier Gonzalez-Castillo" } ,
