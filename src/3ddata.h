@@ -1542,6 +1542,9 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 #undef  MAT44_INV
 #define MAT44_INV nifti_mat44_inverse
 
+#undef  MAT33_INV
+#define MAT33_INV nifti_mat33_inverse
+
 #undef  ISVALID_MAT44
 #define ISVALID_MAT44(AA) ((AA).m[3][3] != 0.0f)
 
