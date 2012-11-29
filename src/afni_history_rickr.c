@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Nov, 2012, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "add -f to 'tcsh -c' for getting output from commands",
+   "Thanks to P Molfese for the suggestion to avoid .cshrc text output."
+ } ,
+
  { 26, Nov, 2012, RCR, "align_epi_anat.py", MINOR, TYPE_NEW_OPT,
    "added -save_script option",
    "added script history in afni_com class"

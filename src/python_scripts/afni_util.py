@@ -186,7 +186,7 @@ def show_args_as_command(args, note='command:'):
      )
 
 def exec_tcsh_command(cmd, lines=0, noblank=0):
-    """execute cmd via: tcsh -c "cmd"
+    """execute cmd via: tcsh -cf "cmd"
        return status, output
           if status == 0, output is stdout
           else            output is stderr+stdout
@@ -195,7 +195,8 @@ def exec_tcsh_command(cmd, lines=0, noblank=0):
        if noblank (and lines): omit blank lines
     """
 
-    cstr = 'tcsh -c "%s"' % cmd
+    # do not re-process .cshrc, as some actually output text
+    cstr = 'tcsh -cf "%s"' % cmd
     status, so, se = BASE.simple_shell_exec(cstr, capture=1)
 
     if not status: otext = so
