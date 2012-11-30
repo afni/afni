@@ -199,36 +199,49 @@ int main( int argc , char *argv[] )
      printf("Usage: 3dQwarp [OPTIONS] base_dataset source_dataset\n") ;
      printf(
        "\n"
-       "* Computes a warped version of source_dataset to match base_dataset\n"
-       "* Inputs must be on the same grid!\n"
+       "* Computes a warped version of source_dataset to match base_dataset.\n"
+       "\n"
+       "* Input datasets must be on the same grid!\n"
+       "\n"
        "* Inputs should be reasonably well aligned already\n"
        "  (e.g., as from an affine warping via 3dAllineate).\n"
+       "\n"
        "* Outputs are the warped dataset and the warp that did it.\n"
+       "\n"
        "* Matching by default is the 'clipped Pearson' method, and\n"
        "  can be changed to 'pure Pearson' with the '-pear' option.\n"
        "\n"
        "OPTIONS\n"
        "-------\n"
        " -prefix ppp  = Sets the prefix for the output datasets.\n"
+       "               * The source dataset is warped to match the base\n"
+       "                 and gets prefix 'ppp'.\n"
+       "               * The 3D warp used is saved in a dataset with\n"
+       "                 prefix 'ppp_WARP' -- this dataset can be used\n"
+       "                 with 3dNwarpApply and 3dNwarpCalc.\n"
+       "\n"
        " -pear        = Use Pearson correlation for matching.\n"
-       " -nopenalty   = Don't use a penalty on the cost function;\n"
-       "                the purpose of the penalty is to reduce\n"
-       "                grid distortions.\n"
+       "\n"
+       " -nopenalty   = Don't use a penalty on the cost function; the goal\n"
+       "                of the penalty is to reduce grid distortions.\n"
        " -penfac ff   = Use the number 'ff' to weight the penalty.\n"
        "                The default is 1.  Larger values of 'ff' mean the\n"
        "                penalty counts more, reducing grid distortions,\n"
-       "                in sha'Allah. '-nopenalty' is the same as '-penfac 0'.\n"
+       "                insha'Allah. '-nopenalty' is the same as '-penfac 0'.\n"
+       "\n"
        " -blur bb     = Blur the input images by 'bb' voxels before doing the\n"
        "                alignment (the output dataset will not be blurred).\n"
        "                The default is 3.456.  Optionally, you can provide\n"
        "                2 values for 'bb', and then the first one is applied\n"
        "                to the base volume, the second to the source volume.\n"
-       "               * e.g., '-blur 0 3' to skip blurring the base image.\n"
+       "               * e.g., '-blur 0 3' to skip blurring the base image\n"
+       "                 (if the base is a blurry template, for example).\n"
+       "\n"
        " -emask ee    = Here, 'ee' is a dataset to specify a mask of voxels\n"
        "                to EXCLUDE from the analysis -- all voxels in 'ee'\n"
        "                that are nonzero will not be used in the alignment.\n"
        "               * The base image is also automasked -- the emask is\n"
-       "                 extra, to indicate voxel you definitely don't want\n"
+       "                 extra, to indicate voxels you definitely DON'T want\n"
        "                 included in the matching process.\n"
        "               * Applications: exclude a tumor or resected region.\n"
        "               * Note that the emask applies to the base dataset,\n"
@@ -241,11 +254,14 @@ int main( int argc , char *argv[] )
        "\n"
        "METHOD\n"
        "------\n"
-       "Incremental warping with cubic basic functions, first over the\n"
-       "whole volume, then over steadily shrinking patches.\n"
+       "Incremental warping with cubic basic functions, first over the entire volume,\n"
+       "then over steadily shrinking patches.  For this to work,  the source and base\n"
+       "need to be pretty well aligned already (e.g., 3dAllineate-d).\n"
        "\n"
-       "*** This program is experimental and subject to drastic change! ***\n"
-       "--- AUTHOR = RWCox -- October 2012 Anno Domini ---\n"
+       "*** This program is experimental and subject to sudden drastic change! ***\n"
+       "*** At some point, it will be incorporated into 3dAllineate (I hope)!! ***\n"
+       "\n"
+       "--- AUTHOR = RWCox -- 30 November 2012 Anno Domini ---\n"
      ) ;
      PRINT_AFNI_OMP_USAGE("3dQwarp",NULL) ;
      exit(0) ;
@@ -348,7 +364,7 @@ int main( int argc , char *argv[] )
 
    bset = THD_open_dataset(argv[nopt++]) ; if( bset == NULL ) ERROR_exit("Can't open bset") ;
    sset = THD_open_dataset(argv[nopt++]) ; if( sset == NULL ) ERROR_exit("Can't open sset") ;
-   if( !EQUIV_GRIDS(bset,sset) ) ERROR_exit("Grid mismatch") ;
+   if( !EQUIV_GRIDXYZ(bset,sset) ) ERROR_exit("Dataset grid mismatch") ;
 
    DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
    bim = THD_extract_float_brick(0,bset) ; DSET_unload(bset) ;
@@ -381,7 +397,7 @@ int main( int argc , char *argv[] )
      mri_free(bim) ; bim = qim ;
    }
 
-   oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_LINEAR , meth , 0 ) ;
+   oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_WSINC5 , meth , 0 ) ;
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 
