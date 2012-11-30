@@ -22,10 +22,49 @@ static int verb_nww=0 ;
 void NwarpCalcRPN_verb(int i){ verb_nww = i; }
 
 #undef  NGMIN
-#define NGMIN 17             /* minimum num grid points in a given direction */
+#define NGMIN 15             /* minimum num grid points in a given direction */
 
 #undef  FSUB
 #define FSUB(far,i,j,k,ni,nij) far[(i)+(j)*(ni)+(k)*(nij)]
+
+/*----------------------------------------------------------------------------*/
+
+void IW3D_set_emat_from_xyzmat44( IndexWarp3D *AA , mat44 amm )
+{
+  mat44 cmat , imat , tmat , smat ;
+
+  if( AA == NULL ) return ;
+  cmat = AA->cmat ; imat = AA->imat ;
+  smat = MAT44_MUL( amm  , cmat ) ;
+  tmat = MAT44_MUL( imat , smat ) ;
+  MAT44_TO_MAT33( tmat , AA->emat ) ;
+  AA->emat.m[0][0] -= 1.0f ;
+  AA->emat.m[1][1] -= 1.0f ;
+  AA->emat.m[2][2] -= 1.0f ;
+  AA->use_emat = ( NORM_MAT33(AA->emat) > 0.001f ) ;
+  return ;
+}
+
+mat33 IW3D_compute_inverse_emat( mat33 emm )
+{
+  mat33 imm , qmm ;
+  qmm = emm ; qmm.m[0][0] += 1.0f ; qmm.m[1][1] += 1.0f ; qmm.m[2][2] += 1.0f ;
+  imm = MAT33_INV(qmm) ;
+              imm.m[0][0] -= 1.0f ; imm.m[1][1] -= 1.0f ; imm.m[2][2] -= 1.0f ;
+  return imm ;
+}
+
+void IW3D_set_emat_raw( IndexWarp3D *AA , mat33 emm )
+{
+   if( AA != NULL ){ AA->emat = emm ; AA->use_emat = ! ISZERO_MAT33(emm) ; }
+   return ;
+}
+
+void IW3D_clear_emat( IndexWarp3D *AA )
+{
+   if( AA != NULL ){ LOAD_ZERO_MAT33(AA->emat) ; AA->use_emat = 0 ; }
+   return ;
+}
 
 /*---------------------------------------------------------------------------*/
 /* Creation ex nihilo! */
@@ -46,7 +85,7 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
    AA->se = NULL ;  /* to be filled in later, maybe */
    LOAD_IDENT_MAT44(AA->cmat) ;
    LOAD_IDENT_MAT44(AA->imat) ;
-   LOAD_ZERO_MAT33(AA->emat) ; AA->use_emat = 0 ;
+   IW3D_clear_emat(AA) ;
    AA->geomstring = NULL ;
    AA->view = VIEW_ORIGINAL_TYPE ;
 
@@ -103,7 +142,7 @@ IndexWarp3D * IW3D_create_vacant( int nx , int ny , int nz )
    AA->se = NULL ;
    LOAD_IDENT_MAT44(AA->cmat) ;
    LOAD_IDENT_MAT44(AA->imat) ;
-   LOAD_ZERO_MAT33(AA->emat) ; AA->use_emat = 0 ;
+   IW3D_clear_emat(AA) ;
    AA->geomstring = NULL ;
    AA->view = VIEW_ORIGINAL_TYPE ;
 
@@ -338,7 +377,8 @@ IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac
      CC->zd[qq] = Afac * AA->zd[qq] + Bfac * BB->zd[qq] ;
    }
    CC->emat = MAT33_SUM( AA->emat,Afac , BB->emat,Bfac ) ;
-   CC->use_emat = ! ISZERO_MAT33(CC->emat) ;
+   CC->use_emat = (AA->use_emat || BB->use_emat) && (NORM_MAT33(CC->emat) > 0.001f) ;
+   if( !CC->use_emat ) IW3D_clear_emat(CC) ;
 
    return CC ;
 }
@@ -381,32 +421,6 @@ void IW3D_adopt_dataset( IndexWarp3D *AA , THD_3dim_dataset *dset )
    if( gstr != NULL ) AA->geomstring = strdup(gstr) ;
    AA->view = dset->view_type ;
 
-   return ;
-}
-
-/*----------------------------------------------------------------------------*/
-
-void IW3D_set_emat_xyz( IndexWarp3D *AA , mat33 emm )
-{
-  mat44 cmat , imat ; mat33 tmat , smat ;
-
-  if( AA == NULL ) return ;
-  cmat = AA->cmat ; imat = AA->imat ;
-  MAT44_TO_MAT33(cmat,tmat) ; smat     = MAT33_MUL( emm  , tmat ) ;
-  MAT44_TO_MAT33(imat,tmat) ; AA->emat = MAT33_MUL( tmat , smat ) ;
-  AA->use_emat = ! ISZERO_MAT33(emm) ;
-  return ;
-}
-
-void IW3D_set_emat_raw( IndexWarp3D *AA , mat33 emm )
-{
-   if( AA != NULL ){ AA->emat = emm ; AA->use_emat = ! ISZERO_MAT33(emm) ; }
-   return ;
-}
-
-void IW3D_clear_emat( IndexWarp3D *AA )
-{
-   if( AA != NULL ){ LOAD_ZERO_MAT33(AA->emat) ; AA->use_emat = 0 ; }
    return ;
 }
 
@@ -467,6 +481,7 @@ ENTRY("IW3D_from_dataset") ;
      mri_free(zim) ; mri_free(yim) ; mri_free(xim) ;
    }
 
+#if 0
    { ATR_float *atr ;
      atr = THD_find_float_atr( dset->dblk , "NWARP_EMAT33") ;
      if( atr != NULL && atr->nfl >= 9 ){
@@ -477,6 +492,7 @@ ENTRY("IW3D_from_dataset") ;
        IW3D_set_emat_xyz( AA , emat ) ;
      }
    }
+#endif
 
    RETURN(AA) ;
 }
@@ -3258,7 +3274,7 @@ static float        Hblur_b     = 0.0f ;
 static float        Hblur_s     = 0.0f ;
 static int          Hforce      = 0    ;
 static float        Hfactor     = 0.44f;
-static float        Hshrink     = 0.577350f ;
+static float        Hshrink     = 0.707107f ;
 static IndexWarp3D *Haawarp     = NULL ; /* initial warp we are modifying (global) */
 static void        *Hincor      = NULL ; /* INCOR 'correlation' struct */
 static MRI_IMAGE   *Haasrcim    = NULL ; /* warped source image (global) */
@@ -4408,6 +4424,7 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    char *eee ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
    int dkkk,djjj,diii , ngmin=0 , levdone=0 ;
+   int qthresh=0 , qmode=MRI_CUBIC ;
 
 ENTRY("IW3D_warpomatic") ;
 
@@ -4448,7 +4465,10 @@ ENTRY("IW3D_warpomatic") ;
    else if( ngmin%2 == 0     ) ngmin-- ;
 
    if( Hshrink > 1.0f                       ) Hshrink = 1.0f / Hshrink ;
-   if( Hshrink < 0.444f && Hshrink > 0.888f ) Hshrink = 0.707107f ;
+   if( Hshrink < 0.444f || Hshrink > 0.888f ) Hshrink = 0.707107f ;
+
+   eee = getenv("AFNI_WARPOMATIC_QTHRESH") ;
+   if( eee != NULL ) qthresh = (int)strtod(eee,NULL) ;
 
    /* iterate down to finer and finer patches */
 
@@ -4510,6 +4530,9 @@ ENTRY("IW3D_warpomatic") ;
 
      Hfactor = 0.444f + 0.555f * powf(0.555f,(float)lev) ;  /* max displacement allowed */
 
+     qmode = MAX(xwid,ywid) ; qmode = MAX(qmode,zwid) ;
+     qmode = (qmode <= qthresh) ? MRI_QUINTIC : MRI_CUBIC ;
+
      if( Hverb )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s" ,
                       lev,xwid,ywid,zwid,Hfactor , (levdone ? "FINAL" : "\0") ) ;
@@ -4529,7 +4552,7 @@ ENTRY("IW3D_warpomatic") ;
               itop = ibot+xwid-1;
                    if( itop >= ittt        ){ itop = ittt; ibot = itop+1-xwid; idon=1; }
               else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
-              iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+              iter = IW3D_improve_warp( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
             }
           }
         }

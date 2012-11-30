@@ -1491,8 +1491,24 @@ typedef struct {
     (cax)->yyorient == (dax)->yyorient          && \
     (cax)->zzorient == (dax)->zzorient    )
 
+#define EQUIV_DATAXYZ(cax,dax)                     \
+  ( ISVALID_DATAXES((cax))                      && \
+    ISVALID_DATAXES((dax))                      && \
+    (cax)->nxx == (dax)->nxx                    && \
+    (cax)->nyy == (dax)->nyy                    && \
+    (cax)->nzz == (dax)->nzz                    && \
+    fabs( (cax)->xxdel - (dax)->xxdel ) < 0.001 && \
+    fabs( (cax)->yydel - (dax)->yydel ) < 0.001 && \
+    fabs( (cax)->zzdel - (dax)->zzdel ) < 0.001 && \
+    (cax)->xxorient == (dax)->xxorient          && \
+    (cax)->yyorient == (dax)->yyorient          && \
+    (cax)->zzorient == (dax)->zzorient    )
+
 #define EQUIV_GRIDS(d1,d2) \
  ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATAXES((d1)->daxes,(d2)->daxes) )
+
+#define EQUIV_GRIDXYZ(d1,d2) \
+ ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATAXYZ((d1)->daxes,(d2)->daxes) )
 
 extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
@@ -1577,6 +1593,11 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
   (AA.m[2][0] == 0.0f) && \
   (AA.m[2][1] == 0.0f) && \
   (AA.m[2][2] == 0.0f)     )
+
+#undef  NORM_MAT33
+#define NORM_MAT33(MM) (fabsf(MM.m[0][0])+fabsf(MM.m[0][1])+fabsf(MM.m[0][2]) \
+                       +fabsf(MM.m[1][0])+fabsf(MM.m[1][1])+fabsf(MM.m[1][2]) \
+                       +fabsf(MM.m[2][0])+fabsf(MM.m[2][1])+fabsf(MM.m[2][2]) )
 
 #undef  ISIDENT_MAT44
 #define ISIDENT_MAT44(AA) \
