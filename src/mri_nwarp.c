@@ -3285,6 +3285,9 @@ static float        Hwbar       = 0.0f ; /* average weight value */
 static byte        *Hbmask      = NULL ; /* mask for base image (global) */
 static byte        *Hemask      = NULL ; /* mask of voxels to EXCLUDE */
 
+static float        Hstopcost   = -999999.9f ;
+static int          Hstopped    = 0 ;
+
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
 static float Hcost ;
@@ -4028,6 +4031,9 @@ ENTRY("IW3D_cleanup_improvement") ;
    FREEIFNN(b0y); FREEIFNN(b1y); FREEIFNN(b2y); FREEIFNN(ccy); nby=0;
    FREEIFNN(b0z); FREEIFNN(b1z); FREEIFNN(b2z); FREEIFNN(ccz); nbz=0;
 
+   Hstopcost = -9999999.9f ;
+   Hstopped  = 0 ;
+
    EXRETURN ;
 }
 
@@ -4132,6 +4138,9 @@ ENTRY("IW3D_setup_for_improvement") ;
      case GA_MATCH_PEARCLP_SCALAR:
      case GA_MATCH_PEARSON_SCALAR:      Hnegate = 1 ; break ;
    }
+
+   if( meth_code == GA_MATCH_PEARCLP_SCALAR || meth_code == GA_MATCH_PEARSON_SCALAR )
+     Hstopcost = -3.995f ;
 
    if( iii == 2 || iii == 3 ){  /* uses 2Dhist functions, so setup some parameters */
      float *xar,*yar , *bar,*sar ; int jj,kk ;
@@ -4553,6 +4562,7 @@ ENTRY("IW3D_warpomatic") ;
                    if( itop >= ittt        ){ itop = ittt; ibot = itop+1-xwid; idon=1; }
               else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
               iter = IW3D_improve_warp( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+              if( Hcost < Hstopcost ) goto DoneDoneDone ;
             }
           }
         }
@@ -4570,6 +4580,7 @@ ENTRY("IW3D_warpomatic") ;
                   if( kbot <= kbbb        ){ kbot = kbbb; ktop = kbot+zwid-1; kdon=1; }
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
              iter = IW3D_improve_warp( MRI_CUBIC, ibot,itop , jbot,jtop , kbot,ktop ) ;
+             if( Hcost < Hstopcost ) goto DoneDoneDone ;
            }
          }
        }
@@ -4577,6 +4588,8 @@ ENTRY("IW3D_warpomatic") ;
 
      ITEROUT(lev,ibot,itop,jbot,jtop,kbot,ktop) ;
    }
+
+DoneDoneDone:  /* breakout */
 
    OutWarp = IW3D_copy( Haawarp , 1.0f ) ;
    IW3D_cleanup_improvement() ;
