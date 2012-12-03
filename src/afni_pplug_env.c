@@ -769,12 +769,14 @@ void ENV_add_string( char *vname , char *vhint ,
 static char * ENV_main( PLUGIN_interface *plint )
 {
    char *tag ;
-   int ii,kk , ndone=0 ;
+   int ii,kk , ndone=0 , skip ;
+
+ENTRY("ENV_main") ;
 
    /*--------- loop over input lines ---------*/
 
    while(1){
-      tag = PLUTO_get_optiontag(plint) ;
+      tag = PLUTO_get_optiontag(plint) ; skip = 0 ;
       if( tag == NULL ) break ;
 
       /* find which variable */
@@ -783,12 +785,12 @@ static char * ENV_main( PLUGIN_interface *plint )
          if( strcmp(tag,env_var[ii].vname) == 0 ) break ;
 
       if( ii == NUM_env_var )
-        return "** ENV_main: table corruption! **" ;  /* should not happen */
+        RETURN( "** ENV_main: table corruption! **" );  /* should not happen */
 
       switch( env_var[ii].vtype ){  /* set vvalue for each type */
 
          default:
-           return "** ENV_main: table corruption! **" ;  /* should not happen */
+           RETURN( "** ENV_main: table corruption! **" );  /* should not happen */
 
          /* write a numeric value into the environment */
 
@@ -805,18 +807,22 @@ static char * ENV_main( PLUGIN_interface *plint )
          case ENV_STRING:{
             char *str = PLUTO_get_string(plint) ; int jj ;
 
-            if( env_var[ii].vcount > 0 ){
-               jj = PLUTO_string_index( str , env_var[ii].vcount ,
-                                              env_var[ii].vlist   ) ;
-               if( jj >= 0 )
-                  sprintf(env_var[ii].vvalue,"%s=%s" ,
-                          env_var[ii].vname , str     ) ;
-               else
-                  sprintf(env_var[ii].vvalue,"%s=" , env_var[ii].vname ) ;
+            if( str == NULL || *str == '\0' ){
+              skip = 1 ;
             } else {
-               sprintf(env_var[ii].vvalue,"%s=%s" ,
-                       env_var[ii].vname , str     ) ;
-            }
+              if( env_var[ii].vcount > 0 ){
+                 jj = PLUTO_string_index( str , env_var[ii].vcount ,
+                                                env_var[ii].vlist   ) ;
+                 if( jj >= 0 )
+                    sprintf(env_var[ii].vvalue,"%s=%s" ,
+                            env_var[ii].vname , str     ) ;
+                 else
+                    sprintf(env_var[ii].vvalue,"%s=" , env_var[ii].vname ) ;
+              } else {
+                 sprintf(env_var[ii].vvalue,"%s=%s" ,
+                         env_var[ii].vname , str     ) ;
+              }
+           }
          }
          break ;
 
@@ -824,16 +830,19 @@ static char * ENV_main( PLUGIN_interface *plint )
 
       /* actually set environment variable */
 
-      putenv(env_var[ii].vvalue) ;
+      if( !skip ){
 
-      /* call callback, if there is one */
+        putenv(env_var[ii].vvalue) ;
+
+        /* call callback, if there is one */
 
 #if 0
-      if( env_var[ii].vfunc != NULL ) env_var[ii].vfunc( env_var[ii].vname ) ;
+        if( env_var[ii].vfunc != NULL ) env_var[ii].vfunc( env_var[ii].vname ) ;
 #else
-      if( env_var[ii].vfunc != NULL )
-        AFNI_CALL_VOID_1ARG( env_var[ii].vfunc , char *, env_var[ii].vname ) ;
+        if( env_var[ii].vfunc != NULL )
+          AFNI_CALL_VOID_1ARG( env_var[ii].vfunc , char *, env_var[ii].vname ) ;
 #endif
+      }
 
       /* turn this option off (for the user's convenience) */
 
@@ -849,9 +858,9 @@ static char * ENV_main( PLUGIN_interface *plint )
 
    /*--------- finished -------*/
 
-   if( ndone == 0 ) return " \n*** Don't you want to do anything? ***\n " ;
+   if( ndone == 0 ) RETURN( " \n*** Don't you want to do anything? ***\n ") ;
 
-   return NULL ;
+   RETURN( NULL );
 }
 
 /*-----------------------------------------------------------------------*/

@@ -4562,7 +4562,10 @@ ENTRY("IW3D_warpomatic") ;
                    if( itop >= ittt        ){ itop = ittt; ibot = itop+1-xwid; idon=1; }
               else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
               iter = IW3D_improve_warp( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
-              if( Hcost < Hstopcost ) goto DoneDoneDone ;
+              if( Hcost < Hstopcost ){
+                 ININFO_message("  ######### cost has reached stopping value") ;
+                 goto DoneDoneDone ;
+              }
             }
           }
         }
@@ -4580,7 +4583,10 @@ ENTRY("IW3D_warpomatic") ;
                   if( kbot <= kbbb        ){ kbot = kbbb; ktop = kbot+zwid-1; kdon=1; }
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
              iter = IW3D_improve_warp( MRI_CUBIC, ibot,itop , jbot,jtop , kbot,ktop ) ;
-             if( Hcost < Hstopcost ) goto DoneDoneDone ;
+              if( Hcost < Hstopcost ){
+                 ININFO_message("  ######### cost has reached stopping value") ;
+                 goto DoneDoneDone ;
+              }
            }
          }
        }
