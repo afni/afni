@@ -4537,7 +4537,10 @@ ENTRY("IW3D_warpomatic") ;
      jttt = jmax+ydel/2+1 ; if( jttt >= Hny ) jttt = Hny-1 ;
      kttt = kmax+zdel/2+1 ; if( kttt >= Hnz ) kttt = Hnz-1 ;
 
-     Hfactor = 0.444f + 0.555f * powf(0.555f,(float)lev) ;  /* max displacement allowed */
+#define HHH 0.333f
+#define BBB 0.888f
+
+     Hfactor = (1.0f-HHH) + HHH*powf(BBB,(float)(lev-1)) ;  /* max displacement allowed */
 
      qmode = MAX(xwid,ywid) ; qmode = MAX(qmode,zwid) ;
      qmode = (qmode <= qthresh) ? MRI_QUINTIC : MRI_CUBIC ;
@@ -4549,26 +4552,28 @@ ENTRY("IW3D_warpomatic") ;
      /* alternate the direction of sweeping at different levels */
 
      if( lev%2 ){  /* bot to top, ijk */
-        for( kdon=0,kbot=ibbb ; !kdon ; kbot += dkkk ){
-          ktop = kbot+zwid-1;
-               if( ktop >= kttt )       { ktop = kttt; kbot = ktop+1-zwid; kdon=1; }
-          else if( ktop >= kttt-zwid/4 ){ ktop = kttt; kdon=1; }
-          for( jdon=0,jbot=jbbb ; !jdon ; jbot += djjj ){
-            jtop = jbot+ywid-1;
-                 if( jtop >= jttt        ){ jtop = jttt; jbot = jtop+1-ywid; jdon=1; }
-            else if( jtop >= jttt-ywid/4 ){ jtop = jttt; jdon=1; }
-            for( idon=0,ibot=ibbb ; !idon ; ibot += diii ){
-              itop = ibot+xwid-1;
-                   if( itop >= ittt        ){ itop = ittt; ibot = itop+1-xwid; idon=1; }
-              else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
-              iter = IW3D_improve_warp( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
-              if( Hcost < Hstopcost ){
-                 ININFO_message("  ######### cost has reached stopping value") ;
-                 goto DoneDoneDone ;
-              }
-            }
-          }
-        }
+       for( kdon=0,kbot=ibbb ; !kdon ; kbot += dkkk ){
+         ktop = kbot+zwid-1;
+              if( ktop >= kttt )       { ktop = kttt; kbot = ktop+1-zwid; kdon=1; }
+         else if( ktop >= kttt-zwid/4 ){ ktop = kttt; kdon=1; }
+         for( jdon=0,jbot=jbbb ; !jdon ; jbot += djjj ){
+           jtop = jbot+ywid-1;
+                if( jtop >= jttt        ){ jtop = jttt; jbot = jtop+1-ywid; jdon=1; }
+           else if( jtop >= jttt-ywid/4 ){ jtop = jttt; jdon=1; }
+           for( idon=0,ibot=ibbb ; !idon ; ibot += diii ){
+             itop = ibot+xwid-1;
+                  if( itop >= ittt        ){ itop = ittt; ibot = itop+1-xwid; idon=1; }
+             else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
+             iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             if( qmode == MRI_QUINTIC )
+             iter = IW3D_improve_warp( qmode      , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             if( Hcost < Hstopcost ){
+                ININFO_message("  ######### cost has reached stopping value") ;
+                goto DoneDoneDone ;
+             }
+           }
+         }
+       }
      } else {      /* top to bot, kji */
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
          ibot = itop+1-xwid;
@@ -4582,7 +4587,9 @@ ENTRY("IW3D_warpomatic") ;
              kbot = ktop+1-zwid;
                   if( kbot <= kbbb        ){ kbot = kbbb; ktop = kbot+zwid-1; kdon=1; }
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
-             iter = IW3D_improve_warp( MRI_CUBIC, ibot,itop , jbot,jtop , kbot,ktop ) ;
+             iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             if( qmode == MRI_QUINTIC )
+             iter = IW3D_improve_warp( qmode      , ibot,itop , jbot,jtop , kbot,ktop ) ;
               if( Hcost < Hstopcost ){
                  ININFO_message("  ######### cost has reached stopping value") ;
                  goto DoneDoneDone ;
