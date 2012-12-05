@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, Dec, 2012, RCR, "serial_helper", MICRO, TYPE_GENERAL,
+   "added useless string specifier in snprintf to block compier warnings",
+   "Requested by Y Halchenko."
+ } ,
+
  { 29, Nov, 2012, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "add -f to 'tcsh -c' for getting output from commands",
    "Thanks to P Molfese for the suggestion to avoid .cshrc text output."
