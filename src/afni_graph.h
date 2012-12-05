@@ -514,6 +514,9 @@ typedef struct {
    int dont_redraw ;                                /* 27 Jan 2004 */
    int tschosen ;                                   /* 31 Mar 2004 */
 
+   MCW_arrowval *detrend_av ;
+   int           detrend ;                          /* 05 Dec 2012 */
+
 } MCW_grapher ;
 
 #define GRA_TIMERFUNC_INDEX  701
@@ -679,6 +682,8 @@ extern void GRA_setshift_action_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void GRA_transform_CB     ( MCW_arrowval * , XtPointer ) ;
 extern char * GRA_transform_label( MCW_arrowval * , XtPointer ) ;
+
+extern void GRA_detrend_CB       ( MCW_arrowval * , XtPointer ) ;  /* 05 Dec 2012 */
 
 extern void GRA_ggap_CB( MCW_arrowval * , XtPointer ) ;
 extern void GRA_gthick_CB( MCW_arrowval * , XtPointer ) ;  /* 06 Oct 2004 */
