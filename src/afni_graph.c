@@ -76,6 +76,7 @@ ENTRY("new_MCW_grapher") ;
    grapher->mirror          = 0 ;  /* Jul 2000 */
 
    grapher->tschosen        = 0 ;  /* 31 Mar 2004 */
+   grapher->detrend         = -1;  /* 05 Dec 2012 */
 
    grapher->gx_max = 0 ;
    grapher->gy_max = 0 ;
@@ -871,6 +872,20 @@ ENTRY("new_MCW_grapher") ;
    }
    grapher->transform1D_func  = NULL ;  /* no function to start with */
    grapher->transform1D_index = 0 ;
+
+   /*------ optmenu for Polort [05 Dec 2012] ------*/
+
+   MENU_DLINE(opt_menu) ;
+
+   grapher->detrend_av =
+         new_MCW_optmenu( grapher->opt_menu ,
+                          "Detrend" ,
+                          -1 , 3 , -1 , 0 ,
+                          GRA_detrend_CB , (XtPointer)grapher ,
+                          NULL , NULL ) ;
+
+   MCW_reghint_children( grapher->detrend_av->wrowcol ,
+                         "Order of time series detrending / baseline removal" ) ;
 
    /*------ menu to control the x-axis drawing (09 Jan 1998) ------*/
 
@@ -1826,6 +1841,52 @@ ENTRY("text_graphs") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------------*/
+/*! From the 'Detrend' menu */
+
+void GRA_detrend_CB( MCW_arrowval *av , XtPointer cd ) /* 05 Dec 2012 */
+{
+   MCW_grapher *grapher = (MCW_grapher *)cd ; int avd ;
+
+ENTRY("GRA_detrend_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
+   avd = av->ival ; if( avd == grapher->detrend ) EXRETURN ;
+   grapher->detrend = avd ;
+   redraw_graph( grapher , 0 ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Detrend each column of an image */
+
+static void GRA_detrend_im( int dord , MRI_IMAGE *im ) /* 05 Dec 2012 */
+{
+   int jy , nx,ny ; float *iar ;
+
+   if( dord < 0 || im == NULL || im->kind != MRI_float ) return ;
+   iar = MRI_FLOAT_PTR(im) ; if( iar == NULL ) return ;
+   nx = im->nx ; ny = im->ny ;
+   for( jy=0 ; jy < ny ; jy++ )
+     THD_generic_detrend_L1( nx , iar+(jy*nx) , dord , 0,0,NULL ) ;
+
+   return ;
+}
+
+/*-----------------------------------------------------------------------------*/
+/* Detrend each column of each image */
+
+static void GRA_detrend_imarr( int dord , MRI_IMARR *imar ) /* 05 Dec 2012 */
+{
+   int ii ;
+
+   if( imar == NULL ) return ;
+   for( ii=0 ; ii < IMARR_COUNT(imar) ; ii++ )
+     GRA_detrend_im( dord , IMARR_SUBIM(imar,ii) ) ;
+
+   return ;
+}
+
 /*-----------------------------------------------------------
     Plot real graphs to pixmap
 -------------------------------------------------------------*/
@@ -2080,6 +2141,11 @@ STATUS("about to perform 1D transformation") ;
          ADDTO_IMARR(tsimar,tsim) ;
       }
    }
+
+   /* 05 Dec 2012: detrend? */
+
+   GRA_detrend_imarr( grapher->detrend , tsimar ) ;
+   GRA_detrend_imarr( grapher->detrend , dplot_imar ) ;
 
    /** find the average time series [27 Jan 2004] **/
 
