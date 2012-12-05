@@ -880,7 +880,7 @@ ENTRY("new_MCW_grapher") ;
    grapher->detrend_av =
          new_MCW_optmenu( grapher->opt_menu ,
                           "Detrend" ,
-                          -1 , 3 , -1 , 0 ,
+                          -1 , 7 , -1 , 0 ,
                           GRA_detrend_CB , (XtPointer)grapher ,
                           NULL , NULL ) ;
 
