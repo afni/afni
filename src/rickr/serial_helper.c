@@ -63,9 +63,12 @@ static char g_history[] =
  " 1.9  July 30, 2008 [rickr]\n"
  "    - added handshake interface for HELLO version 1 (old is version 0)\n"
  "    - added -show_times option\n"
+ " 1.10 December 5, 2012 [rickr]\n"
+ "    - use unnecessary %s in snprintf to avoid compiler warning\n"
+ "    - requested by Y Halchenko\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION "1.9 (Jul 30, 2008)"
+#define VERSION "1.10 (December 5, 2012)"
 
 #include <stdio.h>   /* Standard input/output definitions */
 #include <string.h>  /* String function definitions */
@@ -1017,7 +1020,8 @@ int format_output(optiondata * opt, motparm * mp, char ** outstr, int * oslen)
 
     /* motion params - common output*/
     posn = 0;
-    bytes = snprintf(*outstr+posn, len-posn, dhdr1);
+    /* use %s, just to avoid whining from the compiler */
+    bytes = snprintf(*outstr+posn, len-posn, "%s", dhdr1);
     posn += bytes;
     for( ind = 0; ind < mp->nvals; ind++ ) {
         bytes = snprintf(*outstr+posn, len-posn, "  %10f", mp->data[ind]);
