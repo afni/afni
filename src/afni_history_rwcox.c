@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 28 , NOV , 2012 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
+  { 5 , DEC , 2012 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "add Detrend button to Opt menu" ,
+   "Detrends each time series before plotting.  For Javier." } ,
+
+ { 28 , NOV , 2012 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
    "-dospcov" ,
    "Compute Spearman correlation of subject results with covariate.  Output\n"
    "sub-bricks are labeled with '_SP' at the end, as in 'LLL_cov_SP' to\n"
