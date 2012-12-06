@@ -1980,7 +1980,8 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
          /* if the index of the intersected triangle is very cheap to obtain, 
             you could set 
             weight[j+2] = SO->PolyArea[Face] - weight[j+1] - weight[j+0] 
-            Of course, you must first compute PolyArea with SUMA_SurfaceMetrics*/
+            Of course, you must first compute PolyArea with 
+            SUMA_SurfaceMetrics*/
 
       weight_tot = weight[j] + weight[j+1] + weight[j+2];
       if (weight_tot) {

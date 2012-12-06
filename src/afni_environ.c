@@ -620,6 +620,7 @@ int THD_deathcon(void)  /* 06 Jun 2007 */
 
 static int force_ok_overwrite = 0 ;
 void THD_force_ok_overwrite( int ii ){ force_ok_overwrite = ii; }
+int THD_get_ok_overwrite (void) { return(force_ok_overwrite); }
 
 int THD_ok_overwrite(void)  /* Jan 2008 */
 {

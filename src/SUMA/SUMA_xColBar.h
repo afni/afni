@@ -146,8 +146,8 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer call);
 unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb);
 void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO);
 void SUMA_cb_ColMap_Switch(Widget w, XtPointer clientData, XtPointer call);
-int SUMA_SwitchCmap(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM);
-int SUMA_SwitchCmap_one(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM);
+int SUMA_SwitchCmap(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM, int setmenu);
+int SUMA_SwitchCmap_one(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM, int setmenu);
 int SUMA_SelectSwitchCmap_one( SUMA_SurfaceObject *SO, SUMA_LIST_WIDGET *LW,
                                int ichoice, SUMA_Boolean CloseShop, int setmen);
 int SUMA_SelectSwitchCmap( SUMA_SurfaceObject *SO, SUMA_LIST_WIDGET *LW,

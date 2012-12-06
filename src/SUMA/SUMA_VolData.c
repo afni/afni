@@ -2338,6 +2338,56 @@ SUMA_Boolean SUMA_vec_dicomm_to_3dmm (float *NodeList, int N_Node,
    SUMA_RETURN(YUP);
 }
 
+SUMA_Boolean SUMA_THD_3dfind_to_dicomm(THD_3dim_dataset *dset, 
+                                       float ii, float jj, float kk,
+                                       float *xyz) 
+{
+   THD_fvec3 fv0, fv;
+   fv0.xyz[0]=ii;
+   fv0.xyz[1]=jj;
+   fv0.xyz[2]=kk;
+   fv = THD_3dfind_to_3dmm(dset, fv0);
+   fv0 = THD_3dmm_to_dicomm(dset, fv);
+   xyz[0] = fv0.xyz[0]; 
+   xyz[1] = fv0.xyz[1]; 
+   xyz[2] = fv0.xyz[2];
+   return(1); 
+}
+
+SUMA_Boolean SUMA_THD_dicomm_to_3dfind(THD_3dim_dataset *dset, 
+                                       float RR, float AA, float II,
+                                       float *ijk) 
+{
+   THD_fvec3 fv0, fv;
+   fv0.xyz[0]=RR;
+   fv0.xyz[1]=AA;
+   fv0.xyz[2]=II;
+   fv = THD_dicomm_to_3dmm(dset, fv0);
+   fv0 = THD_3dmm_to_3dfind(dset, fv);
+   ijk[0] = fv0.xyz[0]; 
+   ijk[1] = fv0.xyz[1]; 
+   ijk[2] = fv0.xyz[2];
+   return(1); 
+}
+
+int SUMA_THD_dicomm_to_1dind(THD_3dim_dataset *dset, 
+                              float RR, float AA, float II,
+                              int *ijk) 
+{
+   THD_fvec3 fv0, fv;
+   fv0.xyz[0]=RR;
+   fv0.xyz[1]=AA;
+   fv0.xyz[2]=II;
+   fv = THD_dicomm_to_3dmm(dset, fv0);
+   fv0 = THD_3dmm_to_3dfind(dset, fv);
+   if (ijk) {
+      ijk[0] = fv0.xyz[0]; 
+      ijk[1] = fv0.xyz[1]; 
+      ijk[2] = fv0.xyz[2];
+   }
+   return((int)fv0.xyz[0]+(int)fv0.xyz[1]*DSET_NX(dset)+
+                          (int)fv0.xyz[2]*DSET_NX(dset)*DSET_NY(dset));
+}
 
 /*!
    \brief transforms XYZ coordinates from  AFNI'S RAI 

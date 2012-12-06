@@ -65,6 +65,20 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 3, Dec , 2012 , ZSS , "3dSkullStrip" , MICRO , TYPE_MODIFY,
+   "More modifications for head extraction",
+   "Approach now uses 'Radial Stats' for head/non-head separation.\n"
+   "See functions SUMA_THD_Radial_HeadBoundary(), SUMA_ShrinkSkullHull_RS()\n"
+   "and SUMA_ExtractHead_RS()\n"
+ },
+
+ { 3, Dec , 2012 , ZSS , "afni-general" , MICRO , TYPE_MODIFY,
+   "Added temporary overwriting without upsetting initial setting",
+   "See THD_get_ok_overwrite()\n"
+ },
+
+
+
  { 15, Nov , 2012 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
    "Guarded against NULL strings in THD_dblkatr_from_niml()",
    "These strings came via R_io.c, but could come from elsewhere."

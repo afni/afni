@@ -6089,7 +6089,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
                glcolar_Fore_tmp = NULL;
                glcolar_Fore_tmp = SUMA_SmoothAttr_Neighb_Rec (glcolar_Fore, 
                                        4*SO->N_Node, NULL, SO->FN, 4, 
-                                       SUMAg_CF->X->NumForeSmoothing); 
+                                       SUMAg_CF->X->NumForeSmoothing, NULL, 1); 
                if (!glcolar_Fore_tmp) {
                   SUMA_SL_Err("Smoothing failed.\n");
                } else {
@@ -6216,7 +6216,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
          glcolar_Fore_tmp = NULL;
          glcolar_Fore_tmp = SUMA_SmoothAttr_Neighb_Rec (glcolar, 
                                  4*SO->N_Node, NULL, SO->FN, 4, 
-                                 SUMAg_CF->X->NumFinalSmoothing); 
+                                 SUMAg_CF->X->NumFinalSmoothing, NULL,1); 
          if (!glcolar_Fore_tmp) {
             SUMA_SL_Err("Smoothing failed.\n");
          } else {

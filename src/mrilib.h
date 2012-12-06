@@ -2047,6 +2047,8 @@ void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) ) ;
 extern THD_fvec3 mri_nstat_fwhmxyz( int,int,int ,
                                     MRI_IMAGE *, byte *, MCW_cluster * );
 
+extern int mri_nstat_mMP2S( int npt , float *far , float voxval, float *fv5);
+
 extern void mri_blur3D_variable( MRI_IMAGE * , byte * ,
                                  MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
 extern void mri_blur3D_inmask( MRI_IMAGE *, byte *, float,float,float,int );
