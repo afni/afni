@@ -8,6 +8,8 @@
 #define PIo2 (3.141592654/2)
 #define MINEIG (0) // minimum allowed eigenvalue
 
+int ViveLeRoi(THD_3dim_dataset *REF, int **ROILIST, int **INVLIST, 
+				  int *NUMROI, int *INVROI);
 
 int TrackIt(float ****CC, int *IND, float *PHYSIND, 
             float *Edge, int *dim, float minFA, 

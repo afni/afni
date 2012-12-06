@@ -300,13 +300,29 @@ THD_fvec3 SUMA_THD_dicomm_to_3dmm( int xxorient, int yyorient, int zzorient ,
 void SUMA_orcode_to_orstring (int xxorient, int yyorient, int zzorient, char *orstr);
 void SUMA_sizeto3d_2_deltaHEAD(THD_ivec3 orient, THD_fvec3 *delta);            
 void SUMA_originto3d_2_originHEAD(THD_ivec3 orient, THD_fvec3 *origin);
-SUMA_Boolean SUMA_vec_3dfind_to_3dmm (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar);
-SUMA_Boolean SUMA_vec_3dmm_to_3dfind (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar);
-SUMA_Boolean SUMA_vec_dicomm_to_3dfind (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar);
-SUMA_Boolean SUMA_vec_3dfind_to_dicomm (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar);
-SUMA_Boolean SUMA_vec_3dmm_to_dicomm (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar);
-SUMA_Boolean SUMA_vec_dicomm_to_3dmm (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar);
-SUMA_Boolean SUMA_CoordChange (char *orc_in, char *orc_out, float *XYZ, int N_xyz);
+SUMA_Boolean SUMA_vec_3dfind_to_3dmm (float *NodeList, int N_Node, 
+                                       SUMA_VOLPAR *VolPar);
+SUMA_Boolean SUMA_vec_3dmm_to_3dfind (float *NodeList, int N_Node,  
+                                       SUMA_VOLPAR *VolPar);
+SUMA_Boolean SUMA_vec_dicomm_to_3dfind (float *NodeList, int N_Node,  
+                                       SUMA_VOLPAR *VolPar);
+SUMA_Boolean SUMA_vec_3dfind_to_dicomm (float *NodeList, int N_Node,  
+                                       SUMA_VOLPAR *VolPar);
+SUMA_Boolean SUMA_vec_3dmm_to_dicomm (float *NodeList, int N_Node,  
+                                       SUMA_VOLPAR *VolPar);
+SUMA_Boolean SUMA_vec_dicomm_to_3dmm (float *NodeList, int N_Node,  
+                                       SUMA_VOLPAR *VolPar);
+SUMA_Boolean SUMA_THD_3dfind_to_dicomm(THD_3dim_dataset *dset, 
+                                       float ii, float jj, float kk,
+                                       float *xyz);
+SUMA_Boolean SUMA_THD_dicomm_to_3dfind(THD_3dim_dataset *dset, 
+                                       float RR, float AA, float II,
+                                       float *ijk) ;
+int SUMA_THD_dicomm_to_1dind(THD_3dim_dataset *dset, 
+                              float RR, float AA, float II,
+                              int *ijk);
+SUMA_Boolean SUMA_CoordChange (char *orc_in, char *orc_out, 
+                               float *XYZ, int N_xyz);
 int SUMA_flip_orient(int xxorient);
 int SUMA_ok_orstring (char *orstr);
 SUMA_Boolean SUMA_orstring_to_orcode (char *orstr, int *orient);

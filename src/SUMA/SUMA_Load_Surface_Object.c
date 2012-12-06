@@ -4247,10 +4247,10 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
                int N_smooth = (int)strtod(eee, NULL);
                if (N_smooth > 1) {
                   Cx = SUMA_SmoothAttr_Neighb_Rec (Cx, SO->N_Node, Cx, 
-                                                   SO->FN, 1, N_smooth);
+                                                   SO->FN, 1, N_smooth, NULL, 1);
                } else {
                   Cx = SUMA_SmoothAttr_Neighb_Rec (Cx, SO->N_Node, Cx, 
-                                                   SO->FN, 1, 5);
+                                                   SO->FN, 1, 5, NULL, 1);
                }
             }   
          }

@@ -142,6 +142,11 @@
    tross_Copy_History( par , pb ) ; \
 }
 
+#define SET_ALL_BRICK_FACTORS(pb, fac) {\
+   int m_i; \
+   for(m_i=0;m_i<DSET_NVALS(pb);++m_i) EDIT_BRICK_FACTOR(pb, m_i, (fac)); \
+}
+
 #define NEW_FLOATY(par,nsb,nm,pb){  \
    int m_i;   \
    pb = EDIT_empty_copy(par); \
@@ -633,9 +638,11 @@ SUMA_SurfaceObject *SUMA_ExtractHead_hull(THD_3dim_dataset *iset,
                                      float hullvolthr, SUMA_COMM_STRUCT *cs);
 SUMA_SurfaceObject *SUMA_ExtractHead(THD_3dim_dataset *iset,
                                      float hullvolthr, SUMA_COMM_STRUCT *cs);
+SUMA_SurfaceObject *SUMA_ExtractHead_RS(THD_3dim_dataset *iset,
+                               THD_3dim_dataset **urset, SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO, 
                              THD_3dim_dataset *iset, float thr,
-                             SUMA_COMM_STRUCT *cs);                  
+                             int use_rs, SUMA_COMM_STRUCT *cs);                  
 THD_3dim_dataset *SUMA_Dset_FindVoxelsInSurface(
                      SUMA_SurfaceObject *SO, THD_3dim_dataset *iset, 
                      SUMA_VOLPAR *vp, char *vpname,

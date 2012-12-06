@@ -1253,6 +1253,27 @@ Bruce Kimball, Paul Embree and Bruce Kimble
    } \
 }
 
+/* 
+   Replace value in a with forward sum of w values
+   if (avg) then divide resultant vector by w
+   Only nel - w +1 values are set in the output
+      a[k] = S(a[k]+...a[k+w-1])
+*/
+#define SUMA_MOVING_SUM(a,nel,w,avg, seal) {  \
+   int m_I=w; double mbuf0, mbuf1;   \
+   if (w < nel) { \
+      mbuf0 = a[0]; for (m_I=1; m_I<w; ++m_I) a[0]+=a[m_I];    \
+      m_I = 1; \
+      while (m_I+w <= nel) {  \
+         mbuf1 = a[m_I];   \
+         a[m_I] = a[m_I-1] - mbuf0 +a[m_I+w-1]; mbuf0 = mbuf1; \
+         ++m_I;   \
+      }  \
+      if (avg) { for (m_I=0; m_I<nel-w+1; ++m_I) a[m_I] /= (double)w; } \
+      if (seal) for (m_I=nel-w+1; m_I<nel; ++m_I) a[m_I] = 0;   \
+   }\
+} 
+
 #define SUMA_MEAN_VEC(a,nel,amean,nozero) { \
    int m_I, m_c=0;  double m_mean=0.0; \
    amean = 0;  \

@@ -9,6 +9,80 @@
 #include <DoTrackit.h>
 
 
+// Some funniness to deal with possibility of having biggest label of
+// a tractogr ROI be >M, where M is actual number of ROIs.  Before, we
+// required labels to be 1..M, but now we'll free that restriction up.
+// REF is input data set of ROI labels
+// NUMROI starts with max val per brik;  ends with number of ROIs per brik
+//     - dimensions:  N_briks x 1
+//     - stores value of M per brik
+// ROILIST ends with having ordered list of ROILABEL ints
+//     - dimensions:  N_briks x (max ROI label)+1
+//     - data dims:   N_briks x M+1
+//     (where the +1s are because we go 1....value)
+// INVLIST has the ith values at the actual input locations... hence gives
+//     inverse info to ROILIST
+// INVROI keeps track of max input index per brik
+int ViveLeRoi(THD_3dim_dataset *REF, int **ROILIST, int **INVLIST, 
+				  int *NUMROI, int *INVROI)
+{ // NB what index boundaries are for various loops here...
+	int Nbrik=0,Nvox=0;
+	int i,j,k,m;
+	int nrois=0;
+
+	Nbrik = DSET_NVALS(REF);
+	Nvox = DSET_NVOX(REF);
+
+
+	for( m=0 ; m<Nbrik ; m++ ) 
+		for( i=0 ; i<Nvox ; i++ ) 
+			if( THD_get_voxel(REF,i,m) > 0.5 ) {
+				ROILIST[m][(int) THD_get_voxel(REF,i,m)]=1;
+			}
+
+	// So, all M rois per brik are now marked.  Go through them,
+	// condense them into a list by array indices 0..M-1.  NB, in this
+	// case, the actual *value* of the ROI label might be >M.
+	// The value of M is then stored for real in NUMROI.
+	for( m=0 ; m<Nbrik ; m++ ) {
+		j=1;
+		for( i=1 ; i<=INVROI[m] ; i++ ){
+			if( ROILIST[m][i] == 1 ){
+				ROILIST[m][j]=i; 
+				INVLIST[m][i]=j;
+				j++;
+			}
+		}
+
+		if(INVROI[m] < j-1) // should never happen...
+			ERROR_exit("Problem with ROI labels! Badness in reading/counting.");
+		
+		// reset value with real total number, not just max label
+		NUMROI[m] = j-1; 
+	}
+	
+	/*	for( m=0 ; m<Nbrik ; m++ ) {
+		printf("\nTEST:%d, NROI:\t%dINVROI:%d",m,NUMROI[m],NUMROI[m]);
+		for( i=1 ; i<=NUMROI[m] ; i++ ){
+			printf("\n\tROI:%d,\tINVROI:%d",ROILIST[m][i],INVLIST[m][i]);
+
+		}}
+
+	for( m=0 ; m<Nbrik ; m++ ) {
+		printf("\nTEST:%d, NROI:\t%dINVROI:%d",m,NUMROI[m],NUMROI[m]);
+		for( i=1 ; i<=INVROI[m] ; i++ ){
+			printf("\n\tROI:%d,\tINVROI:%d",ROILIST[m][i],INVLIST[m][i]);
+
+		}}
+	*/
+
+
+	RETURN(1);
+};
+
+
+
+
 /*
   we have to check 'plus and minus' eigenvector directions, which is
   controlled with 'FB' variable/switch value; we won't keep rewriting

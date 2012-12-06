@@ -3,6 +3,14 @@
 
 typedef enum { SUMA_3dSS_NO_PAUSE = 0, SUMA_3dSS_DEMO_PAUSE, SUMA_3dSS_INTERACTIVE } SUMA_3DSS_MODES;
 
+typedef struct {
+   int id; /* 1D voxel index */
+   int ii, jj, kk; /* The regular indices */
+   float d2; /* square distance from center */
+   float ca; /* cosine of angle with wedge axis */
+} WegdeNeighbData;
+
+
 void SUMA_setBrainWrap_NodeDbg(int n);
 int  SUMA_getBrainWrap_NodeDbg(void);
 float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
@@ -25,16 +33,32 @@ int SUMA_Find_IminImax_2 (float *xyz, float *dir,
                         float *undershish, float *overshish, 
                         int *fvecind_under, int *fvecind_over
                         );
+int SUMA_THD_WedgeNeighborhood(THD_3dim_dataset *dset, byte *mask,
+                               byte **examinedp,
+                               float *P, float *C,
+                               float t, float adeg,
+                               DList **Hoodu);
 int SUMA_THD_Radial_Stats( THD_3dim_dataset  *dset,
                            byte *cmask, float *ucm,
                            THD_3dim_dataset **osetp, byte zeropad, 
-                           float under, float over );
+                           float under, float over , int avgwin);
 int SUMA_Vox_Radial_Stats (float *fvec, int nxx, int nyy, int nzz, 
-                        float *xyz_ijk, float *cen_ijk, int *voxtrav,
+                        float *xyz_ijk, float *cen_ijk, 
+                        int *voxtrav, int *trvoff,
                         float *Means, 
                         float *undershish, float *overshish, 
                         int *fvecind_under, int *fvecind_over, 
-                        int ShishMax, byte zeropad);
+                        byte zeropad);
+int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
+                           byte *cmask, float *ucm,
+                           THD_3dim_dataset **osetp,
+                           byte zeropad, 
+                           float under, float over, 
+                           float avgwin, int arcfill,
+                           float *Rcmstats, float *Rnzstats);
+int SUMA_CrudeNonHeadMask(THD_3dim_dataset *dset,
+                            float *cm_dicom, byte **cmask,
+                            float *mean, float *stdv);
 int SUMA_SkullMask (SUMA_SurfaceObject *SO, 
                     SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
 int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, 

@@ -1520,7 +1520,7 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
 }
 
 int SUMA_SwitchCmap_one(SUMA_SurfaceObject *SO,
-                         SUMA_COLOR_MAP *CM)
+                         SUMA_COLOR_MAP *CM, int setmenu)
 {
    static char FuncName[]={"SUMA_SwitchCmap_one"};
    SUMA_Boolean LocalHead = NOPE;
@@ -1534,6 +1534,11 @@ int SUMA_SwitchCmap_one(SUMA_SurfaceObject *SO,
          FuncName, CM->Name);
    }
    
+   if (setmenu) {
+      if (!SUMA_SetCmapMenuChoice (SO, CM->Name)) {
+             SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
+      }
+   }  
    if (!SUMA_SwitchColPlaneCmap(SO, CM)) {
       SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
    }
@@ -1556,7 +1561,7 @@ int SUMA_SwitchCmap_one(SUMA_SurfaceObject *SO,
 }
 
 int SUMA_SwitchCmap(SUMA_SurfaceObject *SO,
-                    SUMA_COLOR_MAP *CM)
+                    SUMA_COLOR_MAP *CM, int setmenu)
 {
    static char FuncName[]={"SUMA_SwitchCmap"};
    SUMA_SurfaceObject *SOC=NULL;
@@ -1568,7 +1573,7 @@ int SUMA_SwitchCmap(SUMA_SurfaceObject *SO,
    SUMA_LH("Called");
    if (!SO || !CM) SUMA_RETURN(0);
    
-   if (!SUMA_SwitchCmap_one(SO, CM)) SUMA_RETURN(0);
+   if (!SUMA_SwitchCmap_one(SO, CM, setmenu)) SUMA_RETURN(0);
    
    /* do we have a contralateral SO and overlay? */
    colp = SO->SurfCont->curColPlane;
@@ -1579,7 +1584,7 @@ int SUMA_SwitchCmap(SUMA_SurfaceObject *SO,
                    " %s and %s\n",
                    SO->Label, CHECK_NULL_STR(colp->Label),
                    SOC->Label, CHECK_NULL_STR(colpC->Label));
-      if (!SUMA_SwitchCmap_one(SOC, CM)) {
+      if (!SUMA_SwitchCmap_one(SOC, CM, 1)) {
          SUMA_S_Warn("Failed in contralateralination");
       }
    }
@@ -1606,7 +1611,7 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    SO = (SUMA_SurfaceObject *)datap->ContID;
    CM = (SUMA_COLOR_MAP *)datap->callback_data; 
    
-   SUMA_SwitchCmap(SO, CM);
+   SUMA_SwitchCmap(SO, CM, 0);
    
    SUMA_RETURNe;
 }

@@ -3006,6 +3006,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else {
                   SUMA_COLOR_MAP *ColMap = SUMAg_CF->scm->CMv[itmp];
 
+                  #if 0
                   /* Set the menu button to the current choice */
                   if (!SUMA_SetCmapMenuChoice (SO, ColMap->Name)) {
                      SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
@@ -3018,6 +3019,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
                   /* update Lbl fields */
                   SUMA_UpdateNodeLblField(SO);
+                  #else
+                  SUMA_SwitchCmap(SO, ColMap, 1);
+                  #endif
                }
             }
             

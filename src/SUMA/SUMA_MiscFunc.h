@@ -63,7 +63,11 @@ float SUMA_etime (struct  timeval  *t, int Report);
 int SUMA_etime2(char *name, char *str, char *strloc);
 char *SUMA_time(void);
 char *SUMA_time_stamp(void);
-byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet, int FaceSetDim, int *dims, int *N_in, byte *usethis, byte *mask);
+byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet, 
+                     int FaceSetDim, int *dims, int *N_in, byte *usethis, 
+                     byte *mask);
+int is_in_wedge(float *P, float *C, float rr1, float rr2, float coshalpha,
+                float *Q, float *uCP, float *rrQ, float *cosaQ);
 SUMA_ISINBOX SUMA_isinbox (float * NodeList, int nr, float *S_cent , 
                            float *S_dim , int BoundIn);
 byte *SUMA_isinsphere_bm (float * NodeList, int nr, float *S_cent , 
@@ -183,7 +187,8 @@ float * SUMA_SmoothAttr_Neighb_wght (float *attr, int N_attr, float *wght,
 float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, 
                                     float *attr_sm_orig, 
                                     SUMA_NODE_FIRST_NEIGHB *fn, 
-                                    int nr, int N_rep);
+                                    int nr, int N_rep, 
+                                    byte *nmask, byte strict_mask);
 SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (
                            SUMA_EDGE_LIST *el, int N_Node, 
                            char *ownerid, int verb);

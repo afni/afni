@@ -1394,8 +1394,9 @@ int main (int argc,char *argv[])
    /* head extraction? */
    if (Opt->permask >= 0.0) {
       SUMA_SurfaceObject *SOhh=NULL;
-      THD_3dim_dataset *headset=NULL;
+      THD_3dim_dataset *headset=NULL, *radset=NULL;
       char *hhullprefix = SUMA_append_string(Opt->out_vol_prefix,"_head");
+      char *radprefix = SUMA_append_string(Opt->out_vol_prefix,"_rad");
       char *SO_name_hhull = SUMA_Prefix2SurfaceName(hhullprefix, NULL, NULL,
                                           Opt->SurfFileType, &exists);
       char *radcon= SUMA_append_string(Opt->out_vol_prefix,"_rc");
@@ -1414,29 +1415,15 @@ int main (int argc,char *argv[])
       }
       
       DSET_MASK(Opt->iset, Opt->dmask);
-      
-      #if 0
-      {
-         THD_3dim_dataset *rset=NULL;
-         SUMA_S_Warn("A test for Radial Stats");
-         SUMA_THD_Radial_Stats( Opt->iset,
-                           NULL, NULL,
-                           &rset, 1, 1.0, 1.0 );
-         
-         tross_Make_History( FuncName , argc,argv , rset ) ;
-         EDIT_dset_items( rset, ADN_prefix, radcon, ADN_none ) ;    
-         DSET_write(rset) ; DSET_delete(rset); SUMA_free(radcon); exit(1);
-      }
-      #endif
-      
+            
       if (Opt->PlEq[0] != 0.0f || Opt->PlEq[1] != 0.0f || Opt->PlEq[2] != 0.0f)
       {
          SUMA_LHv("Cutting %+fx %+fy %+fz %+f < 0\n",
             Opt->PlEq[0], Opt->PlEq[1], Opt->PlEq[2], Opt->PlEq[3]);
          SUMA_VoxelPlaneCut(Opt->iset, Opt->PlEq, NULL, 1);
       }
-       
-      if (!(SOhh = SUMA_ExtractHead(Opt->iset, Opt->permask, ps->cs))) {
+      
+      if (!(SOhh = SUMA_ExtractHead_RS(Opt->iset, &radset, ps->cs))) {
          SUMA_S_Err("Failed to extract head");
          exit(1);
       }
@@ -1467,9 +1454,14 @@ int main (int argc,char *argv[])
       tross_Make_History( FuncName , argc,argv , headset ) ;
       DSET_write(headset) ;
       DSET_delete(headset); headset=NULL;
+      EDIT_dset_items(  radset , ADN_prefix,  radprefix, ADN_none);
+      tross_Make_History( FuncName , argc,argv , radset ) ;
+      DSET_write(radset) ;
+      DSET_delete(radset); radset=NULL;
       SUMA_Free_Surface_Object(SOhh); SOhh=NULL;
       SUMA_free(SO_name_hhull); SO_name_hhull=NULL;
       SUMA_free(hhullprefix); hhullprefix=NULL;
+      SUMA_free(radprefix); radprefix=NULL;
       exit(0);
    }
    

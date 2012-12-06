@@ -82,7 +82,8 @@ SCALEIT:
       echo "Reusing T1.uni+orig.HEAD"
    endif
    
-   if ( $PD != $T1 ) then
+   DIVUNI:
+   if ( $PD != $T1 && $divuni > 0) then
       if ( ! -f T1.divuni+orig.HEAD) then
          #Create straight division 
          if ( ! -f T1.div+orig.HEAD) then
@@ -94,18 +95,22 @@ SCALEIT:
          else
             echo "Reusing T1.div"
          endif
+         
          #Compute change in rankings between two corrected volumes
          3dRank -prefix T1.div.r -input T1.div+orig
+         set mra = `3dinfo -max T1.div.r+orig`
          3dRank -prefix T1.uni.r -input T1.uni+orig
+         set mrb = `3dinfo -max T1.uni.r+orig`
+         
          #Create composite image, with a logistic function weighting
          #  1dRplot -x 'R:r=seq(from=0, to=6, by=0.2)'  \
          #       -input 'R:r=seq(from=0, to=6, by=0.2); 1-1/(1+exp(-2*5*(r-2)))'
 
          set k = 5; #steepness of logistic function
          set rth = 2; #Threshold for rank enhancement
-         3dcalc -a T1.div.r+orig -b T1.uni.r+orig \
-                  -expr "(1-1/(1+exp(-2*$k*(a/b-$rth))))*a + \
-                            1/(1+exp(-2*$k*(a/b-$rth))) *b " \
+         3dcalc -a T1.div.r+orig -b T1.uni.r+orig -c T1.div+orig -d T1.uni+orig \
+                  -expr "(1-1/(1+exp(-2*$k*((a/$mra)/(b/$mrb)-$rth))))*c + \
+                            1/(1+exp(-2*$k*((a/$mra)/(b/$mrb)-$rth))) *d " \
                   -prefix T1.divuni
          #Get estimate of PD.ls threshold from values at locations with 
          #very high enhancement
@@ -126,6 +131,8 @@ SCALEIT:
          echo "Reusing T1.divuni"
       endif    
    endif   
+   
+   
    cd $idir
 
 HISTORY:
@@ -158,6 +165,7 @@ set unmasked_output = 1
 set afh = ()
 set overW = ''
 set do_align = 0
+set divuni = 0 #Not ready for primetime
 
 if ("$1" == '') goto HELP
 while ($cnt <= $Narg)
@@ -322,8 +330,8 @@ HELP:
    echo "   -unmasked_uni: Do not apply masking to uniformized volume (default)"
    echo "                  You can mask the output after you decide which mask"
    echo "                  is best. Here is an example with smask:\n"
-   echo "                  3dcalc -a T1.divuni+orig. -b smask+orig. \"
-   echo "                         -expr 'step(b)*a' -prefix T1.divuni.m"
+   echo "                  3dcalc -a T1.uni+orig. -b smask+orig. \"
+   echo "                         -expr 'step(b)*a' -prefix T1.uni.m"
    echo "   -masked_uni: Apply masking to uniformized volume"
    echo ""
    echo "   -echo: Set echo"
