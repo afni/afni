@@ -22,7 +22,13 @@ static int verb_nww=0 ;
 void NwarpCalcRPN_verb(int i){ verb_nww = i; }
 
 #undef  NGMIN
-#define NGMIN 15             /* minimum num grid points in a given direction */
+#define NGMIN 13             /* minimum num grid points in a given direction */
+
+#undef  NQMIN
+#define NQMIN 13
+
+#undef  NQTHRESH
+#define NQTHRESH 19
 
 #undef  FSUB
 #define FSUB(far,i,j,k,ni,nij) far[(i)+(j)*(ni)+(k)*(nij)]
@@ -3274,7 +3280,7 @@ static float        Hblur_b     = 0.0f ;
 static float        Hblur_s     = 0.0f ;
 static int          Hforce      = 0    ;
 static float        Hfactor     = 0.44f;
-static float        Hshrink     = 0.707107f ;
+static float        Hshrink     = 0.749999f ;
 static IndexWarp3D *Haawarp     = NULL ; /* initial warp we are modifying (global) */
 static void        *Hincor      = NULL ; /* INCOR 'correlation' struct */
 static MRI_IMAGE   *Haasrcim    = NULL ; /* warped source image (global) */
@@ -3302,6 +3308,8 @@ static int Hverb = 1 ;
 
 int IW3D_munge_flags( int nx , int ny , int nz , int flags )
 {
+   int iflags = flags ;
+
    if( nx < 1 || ny < 1 || nz < 1 ) return -1 ;     /* bad bad bad */
 
    /* don't allow x-displacments if x size is too small,
@@ -3321,6 +3329,17 @@ int IW3D_munge_flags( int nx , int ny , int nz , int flags )
    /* set flags to -1 (indicating error) if nothing is left */
 
    if( (flags & NWARP_NODISP_FLAG) == NWARP_NODISP_FLAG ) flags = -1 ;
+
+#if 0
+   if( Hverb && iflags != flags )
+     ININFO_message("      Flags:: input: x=%c y=%c z=%c  output: x=%c y=%c z=%c",
+                    (iflags & NWARP_NOXDIS_FLAG) ? 'N' : 'Y' ,
+                    (iflags & NWARP_NOYDIS_FLAG) ? 'N' : 'Y' ,
+                    (iflags & NWARP_NOZDIS_FLAG) ? 'N' : 'Y' ,
+                    ( flags & NWARP_NOXDIS_FLAG) ? 'N' : 'Y' ,
+                    ( flags & NWARP_NOYDIS_FLAG) ? 'N' : 'Y' ,
+                    ( flags & NWARP_NOZDIS_FLAG) ? 'N' : 'Y'  ) ;
+#endif
 
    return flags ;
 }
@@ -4433,7 +4452,7 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    char *eee ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
    int dkkk,djjj,diii , ngmin=0 , levdone=0 ;
-   int qthresh=0 , qmode=MRI_CUBIC ;
+   int qthresh=NQTHRESH , qmode=MRI_CUBIC ;
 
 ENTRY("IW3D_warpomatic") ;
 
@@ -4474,10 +4493,10 @@ ENTRY("IW3D_warpomatic") ;
    else if( ngmin%2 == 0     ) ngmin-- ;
 
    if( Hshrink > 1.0f                       ) Hshrink = 1.0f / Hshrink ;
-   if( Hshrink < 0.444f || Hshrink > 0.888f ) Hshrink = 0.707107f ;
+   if( Hshrink < 0.444f || Hshrink > 0.888f ) Hshrink = 0.749999f ;
 
    eee = getenv("AFNI_WARPOMATIC_QTHRESH") ;
-   if( eee != NULL ) qthresh = (int)strtod(eee,NULL) ;
+   if( eee != NULL && isdigit(*eee) ) qthresh = (int)strtod(eee,NULL) ;
 
    /* iterate down to finer and finer patches */
 
@@ -4543,7 +4562,11 @@ ENTRY("IW3D_warpomatic") ;
      Hfactor = (1.0f-HHH) + HHH*powf(BBB,(float)(lev-1)) ;  /* max displacement allowed */
 
      qmode = MAX(xwid,ywid) ; qmode = MAX(qmode,zwid) ;
-     qmode = (qmode <= qthresh) ? MRI_QUINTIC : MRI_CUBIC ;
+     iter  = 9999 ;
+     if( xwid >= NGMIN && xwid < iter ) iter = xwid ;
+     if( ywid >= NGMIN && ywid < iter ) iter = ywid ;
+     if( zwid >= NGMIN && zwid < iter ) iter = zwid ;
+     qmode = (qmode <= qthresh && iter >= NQMIN) ? MRI_QUINTIC : MRI_CUBIC ;
 
      if( Hverb )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s" ,
@@ -4566,7 +4589,7 @@ ENTRY("IW3D_warpomatic") ;
              else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
              iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
              if( qmode == MRI_QUINTIC )
-             iter = IW3D_improve_warp( qmode      , ibot,itop , jbot,jtop , kbot,ktop ) ;
+               iter = IW3D_improve_warp( qmode      , ibot,itop , jbot,jtop , kbot,ktop ) ;
              if( Hcost < Hstopcost ){
                 ININFO_message("  ######### cost has reached stopping value") ;
                 goto DoneDoneDone ;
@@ -4589,7 +4612,7 @@ ENTRY("IW3D_warpomatic") ;
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
              iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
              if( qmode == MRI_QUINTIC )
-             iter = IW3D_improve_warp( qmode      , ibot,itop , jbot,jtop , kbot,ktop ) ;
+               iter = IW3D_improve_warp( qmode      , ibot,itop , jbot,jtop , kbot,ktop ) ;
               if( Hcost < Hstopcost ){
                  ININFO_message("  ######### cost has reached stopping value") ;
                  goto DoneDoneDone ;
@@ -4624,9 +4647,9 @@ ENTRY("IW3D_warp_s2bim") ;
    WO_iwarp = NULL ;
 
    Hshrink = AFNI_numenv("AFNI_WARPOMATIC_SHRINK") ;
-   if( Hshrink > 1.0f ) Hshrink = 1.0f / Hshrink ;
-   if( Hshrink < 0.444f && Hshrink > 0.888f ) Hshrink = 0.707107f ;
-   else ININFO_message("  -- Hshrink set to %.6f",Hshrink) ;
+   if( Hshrink > 1.0f                       ) Hshrink = 1.0f / Hshrink ;
+   if( Hshrink < 0.444f || Hshrink > 0.888f ) Hshrink = 0.749999f ;
+   else                                       ININFO_message("  -- Hshrink set to %.6f",Hshrink) ;
    Swarp = IW3D_warpomatic( bim , wbim , sim , meth_code , warp_flags ) ;
 
    outim = IW3D_warp_floatim( Swarp, sim , interp_code ) ;
@@ -4882,7 +4905,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
    wbimd = mri_duplo_down_3D(wbim) ;
    simd  = mri_duplo_down_3D(sim) ;
 
-   Hshrink = 0.707107f ;
+   Hshrink = 0.749999f ;
    Dwarp = IW3D_warpomatic( bimd , wbimd , simd , meth_code , warp_flags ) ;
 
    mri_free(simd) ; mri_free(wbimd) ; mri_free(bimd) ;
@@ -4892,7 +4915,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
    WO_iwarp = IW3D_duplo_up( Dwarp, nx%2 , ny%2 , nz%2 ) ;
    IW3D_destroy(Dwarp) ;
 
-   Hshrink = 0.707107f ;
+   Hshrink = 0.749999f ;
    Swarp = IW3D_warpomatic( bim , wbim , sim , meth_code , warp_flags ) ;
    IW3D_destroy(WO_iwarp) ; WO_iwarp = NULL ;
 
