@@ -388,7 +388,7 @@ STATUS("WANT_LOGO_BITMAP") ;
       if( logo_pixmap == XmUNSPECIFIED_PIXMAP ){
 
 #ifndef NO_FRIVOLITIES
-#include "lll.h"  /* contains the colorized image logos */
+#include "lll.h"  /* contains the colorized image logos used below */
 
 #define RGB_TO_PIXMAP(data,pnam)                                           \
  do{ mri_fix_data_pointer( data , bim ) ;                                  \
@@ -406,14 +406,25 @@ STATUS("WANT_LOGO_BITMAP") ;
           MRI_IMAGE *bim ; XImage *xim ;
           bim = mri_new_vol_empty( lll_width,lll_height,1 , MRI_rgb ) ;
 
-          RGB_TO_PIXMAP(lll_rgb  ,logo_pixmap   ) ;
-          RGB_TO_PIXMAP(vvv_rgb  ,vers_pixmap   ) ;  /* 08 Aug 2005 */
-          RGB_TO_PIXMAP(rhdda_rgb,pict_pixmap[0]) ;  /* 19 Oct 2007 */
-          RGB_TO_PIXMAP(sbuck_rgb,pict_pixmap[1]) ;  /* 18 Oct 2007 */
-          RGB_TO_PIXMAP(sscc_rgb ,pict_pixmap[2]) ;  /* 22 Oct 2007 */
-          RGB_TO_PIXMAP(earth_rgb,pict_pixmap[3]) ;  /* 22 Oct 2007 */
-          RGB_TO_PIXMAP(nih_rgb  ,pict_pixmap[4]) ;  /* 25 Oct 2007 */
-          RGB_TO_PIXMAP(burst_rgb,pict_pixmap[5]) ;  /* 18 Oct 2007 */
+          /*** to find places where these logos are used, try this:
+                 grep PICTUR af*.[ch]                               ***/
+
+          /* AFNI sunburst logo */
+
+          RGB_TO_PIXMAP(lll_rgb    ,logo_pixmap   ) ;
+
+          /* version warning logo */
+
+          RGB_TO_PIXMAP(vvv_rgb    ,vers_pixmap   ) ;  /* 08 Aug 2005 */
+
+          /* these logos are what vary by controller index */
+
+          RGB_TO_PIXMAP(rhdda_rgb  ,pict_pixmap[0]) ;  /* 19 Oct 2007 */
+          RGB_TO_PIXMAP(sbuck_rgb  ,pict_pixmap[1]) ;  /* 18 Oct 2007 */
+          RGB_TO_PIXMAP(sscc_rgb   ,pict_pixmap[2]) ;  /* 22 Oct 2007 */
+          RGB_TO_PIXMAP(earth_rgb  ,pict_pixmap[3]) ;  /* 22 Oct 2007 */
+          RGB_TO_PIXMAP(nih_rgb    ,pict_pixmap[4]) ;  /* 25 Oct 2007 */
+          RGB_TO_PIXMAP(burst_rgb  ,pict_pixmap[5]) ;  /* 18 Oct 2007 */
           RGB_TO_PIXMAP(nih2012_rgb,pict_pixmap[6]) ;  /* 07 Dec 2012 */
 
           mri_clear_data_pointer(bim); mri_free(bim);
