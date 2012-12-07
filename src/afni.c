@@ -274,7 +274,7 @@ void AFNI_syntax(void)
      "Global Options (available to all AFNI/SUMA programs)\n"
      "%s"
      , get_np_help() ,
-     THD_MAX_NUM_SESSION , THD_MAX_SESSION_SIZE , 
+     THD_MAX_NUM_SESSION , THD_MAX_SESSION_SIZE ,
      get_gopt_help()
    ) ;
 
@@ -1169,7 +1169,7 @@ ENTRY("AFNI_parse_args") ;
       if( strncmp(argv[narg],"-list_ports", 8) == 0) {
          show_ports_list(); exit(0);
       }
-      
+
       /* -available_npb and quit */
       if( strcmp(argv[narg],"-available_npb") == 0) {
          fprintf(stdout,
@@ -1429,6 +1429,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Divide By Cucumber Error; Please Reinstall Universe and Reboot",
      "Out of Cheese Error; Please Install Wensleydale and Try Again" ,
      "Out of Cheese Error; Please Install Stilton and Try Again"     ,
+     "Have you read Crime and Punishment, by Fido Dogstoyevski?"     ,
+     "More cheese, Gromit!"                                          ,
      "If at first you don't succeed -- call it version 1.0"          ,
      "Never trust a statistic you haven't faked yourself"            ,
      "May your teeth never be replaced by damp woolen socks"         ,
@@ -1452,7 +1454,18 @@ void AFNI_sigfunc_alrm(int sig)
      "What a long strange trip it's been"                            ,
      "Sometime the light shines on me, other times I can barely see" ,
      "Tomorrow we feast with us at home"                             ,
+     "Forgive your enemies; but never forget their names"            ,
+     "Always forgive your enemies - nothing annoys them so much"     ,
+     "A friend is one who has the same enemies as you have"          ,
+     "Am I not destroying my enemies when I make friends of them?"   ,
+     "Go to Heaven for the climate, Hell for the company"            ,
+     "Am I the crazy one, or is it everyone else on Earth?"          ,
 
+     "If you can't explain it simply, you don't understand it well enough"            ,
+     "Even the Universe bends back on itself, but stupidity goes on forever"          ,
+     "Get your statistics first, then you can distort them as you please"             ,
+     "A man who carries a cat by the tail learns something he can learn no other way" ,
+     "Three things cannot long be hidden: the sun, the moon, and the truth"           ,
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
      "It is very user friendly -- we are just selective about who our friends are"    ,
@@ -1463,7 +1476,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember me and smile, for it's better to forget than remember me and cry"      ,
      "So now I say goodbye, but I feel sure we will meet again sometime"              ,
      "If you're anything like me, you're both smart and incredibly good looking"      ,
-     "In battle we may yet meet again, though all the hosts of Mordor stand between"
+     "In battle we may yet meet again, though all the hosts of Mordor stand between"  ,
+     "Let us therefore study the incidents of this as philosophy to learn wisdom from",
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
@@ -2587,23 +2601,23 @@ ENTRY("AFNI_startup_timeout_CB") ;
 }
 
 /*----------------------------------------------------------------------
-   Return the underlay or overlay brick and the sub-brick index that 
+   Return the underlay or overlay brick and the sub-brick index that
    the user had selected in the 'Underlay' and 'Overlay' menus.
-   
-   So whether or not the user has bkgd:ULay or bkgd:OLay is irrelevant 
+
+   So whether or not the user has bkgd:ULay or bkgd:OLay is irrelevant
    to what gets returned.
-   
+
    The returned structure is brr
    brr->dset will contain the dset selected as underlay if
-      type  ==  isqCR_getulayim 
+      type  ==  isqCR_getulayim
               and         the dset selected as overlay if
-      type  ==  isqCR_getolayim 
-   
+      type  ==  isqCR_getolayim
+
    brr = br if type is set to anything other than isqCR_get[uo]ayim
-   
+
    See also Get_UO_Dset
 ----------------------------------------------------------------------*/
-FD_brick *Get_FD_Brick_As_Selected(FD_brick *br, int type, int *rival) 
+FD_brick *Get_FD_Brick_As_Selected(FD_brick *br, int type, int *rival)
 {
    Three_D_View *im3d = (Three_D_View *)br->parent ;
    FD_brick *brr=NULL ;
@@ -2623,7 +2637,7 @@ FD_brick *Get_FD_Brick_As_Selected(FD_brick *br, int type, int *rival)
      ival = im3d->vinfo->fim_index ;
    else
      ival = 0 ;                                     /* shouldn't happen */
-     
+
    if( br->deltival != 0 && DSET_NVALS(brr->dset) > 1 ){  /* 23 Feb 2011 */
             /*    This is for allowing montage to cycle trough sub-bricks */
       ival += br->deltival ;
@@ -2642,35 +2656,35 @@ FD_brick *Get_FD_Brick_As_Selected(FD_brick *br, int type, int *rival)
                   "     banat = %d, ival = %d\n"
                   "     type %d (%s)\n",
                   DSET_PREFIX(br->dset), DSET_PREFIX(brr->dset),
-                  DSET_PREFIX(im3d->anat_now), DSET_PREFIX(im3d->fim_now), 
+                  DSET_PREFIX(im3d->anat_now), DSET_PREFIX(im3d->fim_now),
                   banat, ival,
                   type,
-                  type == isqCR_getulayim ? "getULAY" : 
+                  type == isqCR_getulayim ? "getULAY" :
                            type == isqCR_getolayim ? "getOLAY" : "Other");
    */
    return(brr);
 }
 
-/* 
+/*
    Return the overlay or underaly dset currently selected and set
    the sub-brick number.
-   
+
    Peculiar input:
    UOlay:  'O' --> Return the overlay
            'U'     Return the underlay
    AsSet: 1 --> Return the dataset that is set by the 'Underlay'
                       or 'Overlay' selectors.
-                0 --> Return the 'displayed' overlay or underlay dset. 
-                      This means, take into account the bkgd:ULay or bkgd:OLay 
+                0 --> Return the 'displayed' overlay or underlay dset.
+                      This means, take into account the bkgd:ULay or bkgd:OLay
                       setting.
 */
-THD_3dim_dataset *Get_UO_Dset(FD_brick *br, char UOlay, 
+THD_3dim_dataset *Get_UO_Dset(FD_brick *br, char UOlay,
                               byte AsSet, int *rival)
 {
    Three_D_View *im3d = (Three_D_View *)br->parent ;
    FD_brick *brt=NULL;
    THD_3dim_dataset *dset=NULL;
-   
+
    /* set up with basics */
    if (UOlay=='O') {
       dset = im3d->fim_now;
@@ -2679,32 +2693,32 @@ THD_3dim_dataset *Get_UO_Dset(FD_brick *br, char UOlay,
       dset = im3d->anat_now;
       *rival = im3d->vinfo->anat_index;
    }
-   
+
    /* now allow for things like deltival, and other stuff */
    if (AsSet) { /* as selected in 'Underlay' and 'Overlay' */
-      if (!(brt = Get_FD_Brick_As_Selected(br, 
+      if (!(brt = Get_FD_Brick_As_Selected(br,
                   UOlay=='O' ? isqCR_getolayim : isqCR_getulayim, rival))) {
          ERROR_message("Case 1: Failed to select brick, returning defaults");
-         return(dset);            
+         return(dset);
       }
    } else { /* as displayed, works OK, not well tested for rival below */
       if (EQUIV_DSETS(br->dset,im3d->anat_now)) {
          /* vanilla */
-         if (!(brt = Get_FD_Brick_As_Selected(br, 
+         if (!(brt = Get_FD_Brick_As_Selected(br,
                   UOlay=='O' ? isqCR_getolayim : isqCR_getulayim, rival))) {
             ERROR_message("Case 2: Failed to select brick, returning defaults");
-            return(dset);  
+            return(dset);
          }
       } else {
          /* Olay as Ulay: always return the overlay */
          if (!(brt = Get_FD_Brick_As_Selected(br, isqCR_getolayim, rival))) {
             ERROR_message("Case 3: Failed to select brick, returning defaults");
-            return(dset);  
+            return(dset);
          }
       }
-   }    
+   }
    if (brt) dset = brt->dset;
-   return(dset);           
+   return(dset);
 }
 
 /*!
@@ -2712,24 +2726,24 @@ THD_3dim_dataset *Get_UO_Dset(FD_brick *br, char UOlay,
           1 if Axial montage
           2 if Sagittal montage
           4 if Coronal montage
-*/ 
-int FD_brick_montized(FD_brick *br ) 
+*/
+int FD_brick_montized(FD_brick *br )
 {
    Three_D_View *im3d = (Three_D_View *)br->parent ;
-   
+
    if ( (br == im3d->b123_anat || br == im3d->b123_fim) &&
         (im3d->s123->mont_nx > 1|| im3d->s123->mont_ny > 1) ) {
       return(1); /* Axial brick and in montage */
-   } 
+   }
    if ( (br == im3d->b231_anat || br == im3d->b231_fim) &&
         (im3d->s231->mont_nx > 1|| im3d->s231->mont_ny > 1) ) {
       return(2);  /* Sagittal brick and in montage */
-   } 
+   }
    if ( (br == im3d->b312_anat || br == im3d->b312_fim) &&
         (im3d->s312->mont_nx > 1|| im3d->s312->mont_ny > 1) ) {
       return(4);  /* Coronal brick and in montage */
    }
-   return(0);    
+   return(0);
 }
 
 /*----------------------------------------------------------------------
@@ -3419,8 +3433,8 @@ STATUS("drawing crosshairs") ;
       float dxyz , cc ;
       int ii, ival;
       double dval;
-      THD_3dim_dataset *dset=NULL ;   
-      
+      THD_3dim_dataset *dset=NULL ;
+
 
       if( im3d->type != AFNI_3DDATA_VIEW ) RETURN(NULL) ;
 
@@ -3455,10 +3469,10 @@ STATUS("drawing crosshairs") ;
       for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
       if( str[ii] == '.' ) str[ii] = '\0' ;
       strcat(str, dd) ;
-      
+
       if (!FD_brick_montized(br)){ /* Show labels if any.  ZSS Dec. 2011*/
          dset = Get_UO_Dset(br, 'U', 1, &ival);
-         if ((dval = (double)THD_get_voxel_dicom(dset, 
+         if ((dval = (double)THD_get_voxel_dicom(dset,
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
                               im3d->vinfo->zk, ival))>0.0f) {
@@ -3466,14 +3480,14 @@ STATUS("drawing crosshairs") ;
                                     dval, labstra);
          }
          dset = Get_UO_Dset(br, 'O', 1, &ival);
-         if ((dval = (double)THD_get_voxel_dicom(dset, 
+         if ((dval = (double)THD_get_voxel_dicom(dset,
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
                               im3d->vinfo->zk, ival))>0.0f) {
             AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
                                     dval, labstrf);
          }
-         
+
          if (labstrf[0] != '\0' || labstra[0] != '\0') {
             strcat(str, " \\noesc ");
             if (!strcmp(labstrf, labstra)) {
@@ -3491,20 +3505,20 @@ STATUS("drawing crosshairs") ;
             }
          }
       }
-      
+
       lab = strdup(str) ;
-      
+
       RETURN(lab) ;
    }
 
    /*--- underlay image # n ---*/
    if( type == isqCR_getimage  || type == isqCR_getqimage ||
        type == isqCR_getulayim || type == isqCR_getolayim   ){
-      
+
       Three_D_View *im3d = (Three_D_View *)br->parent ;
       FD_brick *brr=NULL ;
       int ival;
-      
+
       if (!(brr = Get_FD_Brick_As_Selected(br, type, &ival))) RETURN(NULL);
 
 if(PRINT_TRACING)
@@ -6681,7 +6695,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       char *tlab = AFNI_ttatlas_query( im3d ) ;
 
       AFNI_alter_wami_text(im3d, tlab);
-      
+
       if (tlab) free(tlab) ;
    }
 
@@ -6689,7 +6703,6 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 }
 #undef EXRR
 
-                                       
 /*-------------------------------------------------------------------------
    get the n-th overlay as an MRI_IMAGE *
    (return NULL if none;  note that the result must be mri_freed by the user)
@@ -7184,7 +7197,7 @@ STATUS("voxel indexes") ;
    } else {
       char bxyz[3][32] , *cname, obl[8] ;
       float angle=0.0;
-      
+
 STATUS("voxel coordinates") ;
 
       xval = im3d->vinfo->xi ;
@@ -7212,8 +7225,8 @@ STATUS("voxel coordinates") ;
         cname = "=SPM  " ;
       else
         cname = "      " ;
-      
-      
+
+
       if (dset_obliquity(im3d->anat_now, &angle)==1) sprintf(obl," *");
       else obl[0]='\0';
 
@@ -9246,11 +9259,11 @@ ENTRY("AFNI_imag_pop_CB") ;
          if( ISQ_REALZ(seq) && at_labels ){
            if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) MCW_set_browse_select(1) ;
 
-           sprintf(title_str, "Brain Structure (from %s)", 
+           sprintf(title_str, "Brain Structure (from %s)",
                         Current_Atlas_Default_Name());
            MCW_choose_strlist( seq->wbar ,
                        title_str ,
-                       atlas_n_points(Current_Atlas_Default_Name()) , 
+                       atlas_n_points(Current_Atlas_Default_Name()) ,
                        atlas_current_structure ,
                        at_labels ,
                        AFNI_talto_CB , (XtPointer) im3d ) ;
@@ -9346,7 +9359,7 @@ ENTRY("AFNI_imag_pop_CB") ;
          ) ;
       }
       } else { /* web */
-         AFNI_alter_wami_text(im3d, tlab); 
+         AFNI_alter_wami_text(im3d, tlab);
       } /* web */
       if (tlab) free(tlab) ;
    }
@@ -9508,62 +9521,62 @@ void AFNI_pop_whereami_kill( Three_D_View *im3d )
 
 
 /*-------------------------------------------------------------------------
-   A newer output form for whereami 
+   A newer output form for whereami
 ---------------------------------------------------------------------------*/
 static int htmlwami_open        = 0 ;
 
 void AFNI_htmlwami_killfun( XtPointer pp ){
    Three_D_View *im3d = (Three_D_View *)pp;
-   
+
    if (!im3d) return;
 
    im3d->vwid->imag->pop_whereami_htmlwin=NULL;
-   /* not there yet 
+   /* not there yet
    MCW_unregister_hint( im3d->vwid->imag->pop_whereami_twin->wtext ) ;
    MCW_unregister_help( im3d->vwid->imag->pop_whereami_twin->wtext ) ;
    */
 
    htmlwami_open = 0 ; return ;
 }
- 
+
 void AFNI_htmlwami_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    char *uinf=(char *)cbd , *inf=NULL ; int ii ;
    MCW_htmlwin *htmlwami_hw = im3d->vwid->imag->pop_whereami_htmlwin;
-   
+
    ENTRY("AFNI_htmlwami_CB") ;
-   
+
    if( uinf != NULL && *uinf != '\0' ){
       inf = (char *)malloc(sizeof(char)*(strlen(uinf)+16)) ;
-      strcpy(inf,"wami:") ; strcat(inf,uinf) ; 
+      strcpy(inf,"wami:") ; strcat(inf,uinf) ;
    }
-   
+
    if( htmlwami_open && htmlwami_hw != NULL ){
      XMapRaised( XtDisplay(htmlwami_hw->wshell), XtWindow(htmlwami_hw->wshell)) ;
      MCW_htmlwin_alter( htmlwami_hw , inf );
      EXRETURN ;
-   } else {     
+   } else {
      htmlwami_hw = new_MCW_htmlwin( im3d->vwid->imag->topper, inf,
                                AFNI_htmlwami_killfun , im3d  , NULL, 0    ) ;
      im3d->vwid->imag->pop_whereami_htmlwin = htmlwami_hw;
    }
-   free(inf) ; inf = NULL ; htmlwami_open = 1 ; 
+   free(inf) ; inf = NULL ; htmlwami_open = 1 ;
 
    EXRETURN ;
 }
 
-void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab) 
+void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab)
 {
    char *tlab=NULL;
-   
+
    ENTRY("AFNI_alter_wami_text");
-   
+
    if (!im3d || !im3d->vwid || !im3d->vwid->imag) EXRETURN;
-   
+
    if (!utlab) tlab = "\n** Can't compute Talairach coordinates now **\n";
    else tlab = utlab;
-   
+
    if (AFNI_wami_output_mode() == 0) {
       if (!im3d->vwid->imag->pop_whereami_twin) EXRETURN;
       MCW_textwin_alter( im3d->vwid->imag->pop_whereami_twin , tlab ) ;
@@ -9571,7 +9584,7 @@ void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab)
       AFNI_htmlwami_CB( NULL , (XtPointer)im3d , (XtPointer) tlab );
    }
    EXRETURN;
-}  
+}
 
 
 /*-------------------------------------------------------------------------*/
@@ -9784,7 +9797,7 @@ int AFNI_jumpto_dicom( Three_D_View *im3d , float xx, float yy, float zz )
    SAVE_VPT(im3d) ;
    if( AFNI_yesenv("AFNI_CREEPTO") )
      ii = AFNI_creepto_dicom(im3d,xx,yy,zz) ;
-   else 
+   else
      ii = AFNI_jumpto_dicom_OLD(im3d,xx,yy,zz) ;
    return ii ;
 }
