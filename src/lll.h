@@ -1,8 +1,21 @@
+/**************************************************************************
+  The format of these 90x90 images is simple:
+    90*90*3 = 24300 numbers forming the RGB triples for the 8100 pixels.
+  To create another such thing, create an ASCII PPM formatted file
+  of the appropriate size.  Then convert it to comma separated values
+  and add the appropriate C declaration wrapper.
+
+  These logos are used in the RGB_TO_PIXMAP macro in afni_widg.c, and
+  provide the various logos that can appear in the 'picture' widget
+  that is the backdrop for the big blank area to the right of the
+  AFNI GUI 'done' button.
+**************************************************************************/
+
+#define lll_width  90
+#define lll_height 90
 
 /** AFNI Sunburst logo image **/
 
-#define lll_width 90
-#define lll_height 90
 static unsigned char lll_rgb[] = {
   177,161,25,205,186,48,239,219,72,253,233,87,237,214,74,218,195,59,
   205,186,48,194,179,33,189,174,25,204,189,35,215,199,41,200,185,34,
