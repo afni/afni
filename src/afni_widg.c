@@ -414,6 +414,7 @@ STATUS("WANT_LOGO_BITMAP") ;
           RGB_TO_PIXMAP(earth_rgb,pict_pixmap[3]) ;  /* 22 Oct 2007 */
           RGB_TO_PIXMAP(nih_rgb  ,pict_pixmap[4]) ;  /* 25 Oct 2007 */
           RGB_TO_PIXMAP(burst_rgb,pict_pixmap[5]) ;  /* 18 Oct 2007 */
+          RGB_TO_PIXMAP(nih2012_rgb,pict_pixmap[6]) ;  /* 07 Dec 2012 */
 
           mri_clear_data_pointer(bim); mri_free(bim);
         }

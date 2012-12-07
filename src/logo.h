@@ -8,7 +8,7 @@
 #define _AFNI_LOGO_HEADER_
 
 #undef  NPICT
-#define NPICT 6
+#define NPICT 7
 
 #ifndef MAIN
 extern Pixmap logo_pixmap ;
@@ -29,6 +29,7 @@ extern Pixmap afni16_pixmap[26] ;
 Pixmap logo_pixmap = XmUNSPECIFIED_PIXMAP ;
 Pixmap vers_pixmap = XmUNSPECIFIED_PIXMAP ;  /* 08 Aug 2005 */
 Pixmap pict_pixmap[NPICT] = { XmUNSPECIFIED_PIXMAP,
+                              XmUNSPECIFIED_PIXMAP,
                               XmUNSPECIFIED_PIXMAP,
                               XmUNSPECIFIED_PIXMAP,
                               XmUNSPECIFIED_PIXMAP,
