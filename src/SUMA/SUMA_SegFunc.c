@@ -7189,6 +7189,51 @@ SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO,
    is walked back slowly to rest of a local acceptable bright voxel of the 
    anatomy. For now, this is pretty good as is.
 */
+
+/* Macros for function SUMA_ShrinkSkullHull_RS only */
+
+         /* Does the voxel or the one below it have a rat > thr ? */
+#define HI_RAT_EDGE(vxi,mm) ((rat[vxi[mm]]>thr || (mm>0 && rat[vxi[mm-1]]>thr)))
+         /* Does the voxel or the one below it have an OK rat > thr ? */
+#define HI_RATOK_EDGE(vxi,mm) ((rvec[vxi[mm]]>thr || \
+                                 (mm>0 && rvec[vxi[mm-1]]>thr)))
+         /* Is there good signal at that voxel or below it? 
+            A good signal is at location when:
+               A voxel's signal Z is more than -2, or the voxel below it is
+            Or A voxel's signal Z is more than -2.5, but with its noise Z
+               greater than 5, or if the voxel below it satisfies the 
+               condition.*/
+#define HI_SIG_EDGE(vxi,mm) ( ( vxZ[vxi[mm]] > -2.0/vxZfac ||                   \
+                                (mm>0 && \
+                                vxZ[vxi[mm-1]]  > -2.0/vxZfac ))     ||\
+                              ( (vxZ[vxi[mm]]   > -2.5/vxZfac &&                \
+                                        vxNZ[vxi[mm]]   > 5.0/vxNZfac)   ||     \
+                                (mm>0 && \
+                                 vxZ[vxi[mm-1]] > -2.5/vxNZfac &&               \
+                                        vxNZ[vxi[mm-1]] > 5.0/vxNZfac) )  )
+        /* Using some location nn along the top search direction, sum the voxels'
+           signal Z values over nsteps starting at nn */
+#define SUM_Z_BELOW(nsteps, nn, sum) {\
+   int kk;  \
+   sum=0;   \
+   for (kk=0; kk<nsteps; ++kk) { \
+      if (nn-kk > 0) sum += vxZ[vxi_top[nn-kk]];   \
+      else if (kk-nn < 10) sum += vxZ[vxi_bot[kk-nn]];   \
+      sum /= vxZfac; \
+   }    \
+}
+        /* Using some location nn along the top search direction, sum the voxels'
+           noise Z values over nsteps starting at nn */
+#define SUM_NZ_BELOW(nsteps, nn, sum) {\
+   int kk;  \
+   sum=0;   \
+   for (kk=0; kk<nsteps; ++kk) { \
+      if (nn-kk > 0) sum += vxNZ[vxi_top[nn-kk]];   \
+      else if (kk-nn < 10) sum += vxNZ[vxi_bot[kk-nn]];   \
+      sum /= vxNZfac; \
+   }    \
+}
+
 SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO, 
                              THD_3dim_dataset *aset, 
                              THD_3dim_dataset *arset, float thr,
@@ -7200,16 +7245,17 @@ SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
    short *sb=NULL;
    int   in=0, vxi_bot[30], vxi_top[30], iter, N_movers, 
          ndbg=SUMA_getBrainWrap_NodeDbg(), nn,N_um,
-         itermax1 = 50, itermax2 = 10;
+         itermax1 = 50, itermax2 = 10, firstpass;
    float *rvec=NULL, *xyz, *dir, P2[2][3], travstep, shs_bot[30], shs_top[30];
    float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[2], nodeval,
          area=0.0, larea=0.0, ftr=0.0, darea=0.0, fac, *rat=NULL;
    float *fedges=NULL, edge_thr=0.0, *fnz=NULL, *inedges=NULL, inedge_thr=0.0, 
-         *alt=NULL;
+         *alt=NULL, szt=0.0, sNzt=0.0;
    float maxetop, maxebot, maxtop, maxbot, okethr;
    int maxentop,maxenbot, nmaxtop, nmaxbot, *okrat=NULL, smdisp;
+   short *vxZ=NULL, *vxNZ=NULL;
    float dirZ[3], *dots=NULL, *curedge=NULL, curemean, curestd, U3[3], Un,
-         *disp=NULL, *dispsm=NULL, *trv=NULL;
+         *disp=NULL, *dispsm=NULL, *trv=NULL, vxZfac=0.0, vxNZfac=0.0;
    THD_3dim_dataset *inset=NULL, *rset=NULL;
    SUMA_Boolean stop = NOPE;
    SUMA_Boolean LocalHead = NOPE;
@@ -7233,6 +7279,13 @@ SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
    }
    EDIT_BRICK_FACTOR(rset, 0, 1/1000.0);
 
+   /* get vxNZ and vxZ */
+   vxZ  = DSET_BRICK_ARRAY(arset,5); 
+   if ((vxZfac = DSET_BRICK_FACTOR(arset,5))==0.0) vxZfac=1.0;
+    
+   vxNZ = DSET_BRICK_ARRAY(arset,6);
+   if ((vxNZfac = DSET_BRICK_FACTOR(arset,6))==0.0) vxNZfac=1.0;
+   
    /* get the edges on the input set anatomical */
    if (!DSET_ARRAY(aset,0)) {
       SUMA_S_Err("Very strange, pointer lost");
@@ -7306,6 +7359,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
    stop = NOPE;
    N_movers = 0; iter=0;
    smdisp = 2;
+   firstpass = 1;
    while (!stop) {
       N_movers = 0;
       memset(mask, 1, sizeof(byte)*SO->N_Node);
@@ -7341,39 +7395,12 @@ SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
          nodeval = shs_bot[0];
          curedge[in] = SUMA_MAX_PAIR(fedges[vxi_bot[1]],fedges[vxi_bot[0]]);
          curedge[in] = SUMA_MAX_PAIR(curedge[in], fedges[vxi_top[1]]);
-         if (nodeval >= thr) { /* we're OK, minor adjustment */ 
-            if (in == ndbg || LocalHead){ 
-               SUMA_S_Notev("Case 1:Edge threshold %f\n", edge_thr); }
-            mask[in] = 0; /* anchor node, outside smoothing mask*/
-            if (nodeval < rng_top[1] ) { /* higher val above, move up one step */
-               if (in == ndbg) { SUMA_S_Note("tiny nudge up\n"); }
-               trv[0] = travstep*dir[0];
-               trv[1] = travstep*dir[1];
-               trv[2] = travstep*dir[2];
-            } else  { /* any edge above without dipping 
-                               too much in intensity? */
-               nn = 0;
-               while (nn<10 && vxi_top[nn]>=0 &&
-                               ((shs_top[nn]> thr || avg[1]>thr) && 
-                                 fedges[vxi_top[nn]]<edge_thr)) {
-                  ++nn;
-               }
-               if (vxi_top[nn]>=0 &&
-                   fedges[vxi_top[nn]]>=edge_thr &&
-                   fedges[vxi_top[nn]]>=fedges[vxi_bot[0]]) { /* go up   */
-                  if (in == ndbg) { SUMA_S_Note("Going up to better edge\n"); }
-                  ftr = travstep*nn;
-                  trv[0] = ftr*dir[0];
-                  trv[1] = ftr*dir[1];
-                  trv[2] = ftr*dir[2];
-               }
-            }
-         } else {
+         if (1) {
             /* find strongest edge above*/
             maxetop = fedges[vxi_top[0]]; maxentop = 0;
             maxtop = shs_top[0]; nmaxtop =0;
             for (nn=1; nn<10 && vxi_top[nn]>=0; ++nn) {
-               if (  (rat[vxi_top[nn]]>thr || rat[vxi_top[nn-1]]>thr) &&
+               if (  (HI_RAT_EDGE(vxi_top,nn) || HI_SIG_EDGE(vxi_top,nn)) &&
                      (fedges[vxi_top[nn]]>maxetop ||
                       fedges[vxi_top[nn]]>okethr)) {/*also accept higher 
                                                   decent edges*/
@@ -7384,7 +7411,10 @@ SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
                   maxtop = shs_top[nn];
                }
             }
-           /* find strongest edge below */
+            SUM_Z_BELOW(5, maxentop, szt);
+            SUM_NZ_BELOW(5, maxentop, sNzt);
+            
+            /* find strongest edge below */
             maxebot = fedges[vxi_bot[0]]; maxenbot = 0; 
             maxbot = shs_bot[0]; nmaxbot = 0;
             for (nn=1; nn<10 && vxi_bot[nn]>=0; ++nn) {
@@ -7397,9 +7427,13 @@ SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
                }
             }
             
-           if (maxetop >= maxebot || 
-               ( maxentop > 0 && maxetop >=okethr && 
-                 (rat[vxi_top[maxentop]]>thr|| rat[vxi_top[maxentop-1]]>thr))) {
+            
+            if (  (maxetop >= maxebot) || 
+                  ( maxentop > 0 && maxetop >=okethr && 
+                     (  HI_RAT_EDGE(vxi_top, maxentop) || 
+                        HI_SIG_EDGE(vxi_top, maxentop) ) && 
+                     (  szt > -10 || sNzt > 25 ) )
+               ) {
                                     /* go up for better edge*/
                nn = maxentop;
                if (in == ndbg|| LocalHead){
@@ -7413,9 +7447,17 @@ SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
                   trv[0] = ftr*dir[0];
                   trv[1] = ftr*dir[1];
                   trv[2] = ftr*dir[2];
+                  if ((fedges[vxi_top[nn]]>= fedges[vxi_top[0]] ||
+                       fedges[vxi_top[nn]]>= okethr ) &&
+                      ( HI_RATOK_EDGE(vxi_top, nn) && HI_SIG_EDGE(vxi_top, nn) &&
+                        ( szt > 0.0 || (szt > -5 && sNzt > 25) ))
+                     )
+                           mask[in]=0;
                   if (in == ndbg) { 
-                     SUMA_S_Notev("Moving up by %f %f %f\n",
-                                   trv[0], trv[1], trv[2]);  
+                     SUMA_S_Notev("Moving up by %f %f %f, mask[%d]=%d, %d %d\n",
+                                   trv[0], trv[1], trv[2], in, mask[in],
+                                   HI_RATOK_EDGE(vxi_top, nn), 
+                                   HI_SIG_EDGE(vxi_top, nn));  
                   }
                }
             } else {
@@ -7537,8 +7579,18 @@ SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
          }
       }
       ++iter;
-      if (iter > itermax1 || SUMA_ABS(darea) < 0.05) stop = YUP;
-      if (!stop) {
+      
+      if (iter > itermax1 || SUMA_ABS(darea) < 0.01) stop = YUP;
+      
+      /* By turning off firstpass, you'll allow more flexibility
+      in the mesh which can capture noble shapes like the nose.
+      Mais bien sur! If you don't want such things, don't let 
+      firstpass go to 0
+      Also, you need not go to 0.01 if you do not care for the nose
+      and eye sockets. */
+      if (firstpass && SUMA_ABS(darea) < 0.05) firstpass = 0;
+      
+      if (!stop && firstpass) {
          /* A quick smoothing with anchors in place, 
             Use it even if you are smoothing attributes up there.
             Otherwise you could get skirts at the bottom in 
