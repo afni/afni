@@ -1294,7 +1294,8 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
        avgwin;
    THD_fvec3 ccc, ncoord;
    float cm[3], cmdic[3], *mo=NULL, *mu=NULL, *fin=NULL, *mr=NULL, *fedges=NULL,
-         xyz_ijk[3], factor, mvoxd, means[3], cmstats[5], P[3],
+         xyz_ijk[3], factor, mvoxd, means[3], cmstats[5], P[3], 
+         *vxZ=NULL, *vxNZ=NULL,
          *oversh = NULL, *undersh = NULL, voxZ, voxNZ, nzmean, nzstdv;
    byte *ok=NULL;
    char stmp[36];
@@ -1354,6 +1355,8 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    mo = (float*)SUMA_calloc(DSET_NVOX(dset), sizeof(float));
    mr = (float*)SUMA_calloc(DSET_NVOX(dset), sizeof(float));
    ok = (byte*)SUMA_calloc(DSET_NVOX(dset), sizeof(byte));
+    vxZ = (float*)SUMA_calloc(DSET_NVOX(dset), sizeof(float));
+   vxNZ = (float*)SUMA_calloc(DSET_NVOX(dset), sizeof(float));
    undersh = (float*)SUMA_calloc(trv[0]+2, sizeof(float));
    oversh  = (float*)SUMA_calloc(trv[1]+2, sizeof(float));
    iundersh = (int *)SUMA_calloc(trv[0]+2, sizeof(int));
@@ -1400,6 +1403,9 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
                         ii, jj, kk);
             SUMA_RETURN(NOPE);
          }
+          voxZ = (means[0]-cmstats[1])/cmstats[3];
+         voxNZ = (means[0]-nzmean)/nzstdv;
+         vxZ[vv] = voxZ; vxNZ[vv]=voxNZ;
          SUMA_MOVING_SUM(undersh, trv[0], avgwin, 1,1);
          SUMA_MOVING_SUM(oversh, trv[1], avgwin, 1,1);
             /* User threshold, non-zero average and mask belonging 
@@ -1410,8 +1416,6 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
             /* C: Average should not be too small compared to signal average
                   around COM */
          if ( oversh[0] != 0.0f && means[0] >= uthr ) {
-             voxZ = (means[0]-cmstats[1])/cmstats[3];
-            voxNZ = (means[0]-nzmean)/nzstdv;
             if ( (means[0] > cmstats[1]  || (voxZ > -1 && voxNZ > 3)) &&
                  (undersh[doubavgwin]/cmstats[1] > 0.5)  )
             { /* quite bright, and not too far from chunky stuff, accept */
@@ -1618,7 +1622,7 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    
    /* stick the results in the output */
    if (!*osetp) {
-      NEW_SHORTY(dset, 5, FuncName, oset);
+      NEW_SHORTY(dset, 7, FuncName, oset);
       *osetp = oset;
    } else {
       oset = *osetp;
@@ -1676,7 +1680,27 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    EDIT_BRICK_FACTOR (oset, sb, factor);
    EDIT_BRICK_LABEL (oset, sb, "Edges");
    SUMA_free(fedges); fedges=NULL;
-      
+   
+   sb = 5;
+   factor = EDIT_coerce_autoscale_new(DSET_NVOX(oset), MRI_float, vxZ, 
+                          DSET_BRICK_TYPE(oset,sb), DSET_BRICK_ARRAY(oset,sb));
+   if (factor > 0.0f) {
+      factor = 1.0 / factor;
+   } else factor = 0.0;
+   EDIT_BRICK_FACTOR (oset, sb, factor);
+   EDIT_BRICK_LABEL (oset, sb, "BrainZ");
+   SUMA_free(vxZ); vxZ=NULL;
+
+   sb = 6;
+   factor = EDIT_coerce_autoscale_new(DSET_NVOX(oset), MRI_float, vxNZ, 
+                          DSET_BRICK_TYPE(oset,sb), DSET_BRICK_ARRAY(oset,sb));
+   if (factor > 0.0f) {
+      factor = 1.0 / factor;
+   } else factor = 0.0;
+   EDIT_BRICK_FACTOR (oset, sb, factor);
+   EDIT_BRICK_LABEL (oset, sb, "NoizeZ");
+   SUMA_free(vxNZ); vxNZ=NULL;
+
    mri_free(dsim); dsim = NULL; fin = NULL;
    if (undersh) SUMA_free(undersh); undersh=NULL;
    if (iundersh) SUMA_free(iundersh); iundersh=NULL;
