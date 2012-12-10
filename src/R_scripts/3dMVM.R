@@ -758,7 +758,7 @@ while(is.null(fm)) {
    fm<-NULL
    lop$dataStr$Beta<-inData[ii, jj, kk,]
    options(warn=-1)     
-   fm <- try(aov.car(ModelForm, data=lop$dataStr, return='lm'), silent=TRUE)
+   try(fm <- aov.car(ModelForm, data=lop$dataStr, return='lm'), silent=TRUE)
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
