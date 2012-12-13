@@ -484,6 +484,8 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL ;
    MRI_vectim   *inset_mrv=NULL ; /* 05 Nov 2008 */
+   int           virtu_mrv=0 ;    /* 13 Dec 2012 */
+   char         *fname_mrv=NULL ;
    THD_3dim_dataset *abset=NULL ; int abfixed=0 ; float afix,bfix ;
    MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar=NULL, *bar=NULL ;
    MRI_IMAGE *rim=NULL ;            float *rar=NULL ;
@@ -1292,6 +1294,12 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc ){
+
+     /**==========   -virtvec  ==========**/
+
+     if( strcasecmp(argv[iarg],"-virtvec") == 0 ){   /** for Javier -- 13 Dec 2012 **/
+       virtu_mrv = 1 ; iarg++ ; continue ;
+     }
 
      /**==========   -gltsym  ==========**/
 
@@ -2529,21 +2537,34 @@ STATUS("make GLTs from matrix file") ;
       nmask) ;
    }
 #endif
+   if( maxthr == 1 ) virtu_mrv = 0 ;  /* 13 Dec 2012 */
 
    /* 05 Nov 2008: convert input to a vector image struct, if it saves memory */
 
-   if( !AFNI_noenv("AFNI_REML_ALLOW_VECTIM") ){
+   if( virtu_mrv || !AFNI_noenv("AFNI_REML_ALLOW_VECTIM") ){
      double vsiz = (double)THD_vectim_size( inset , mask ) ;
      double dsiz = (double)DSET_TOTALBYTES( inset ) ;
-     if( vsiz < 0.9*dsiz && vsiz > 10.0e+6 ){
+     if( virtu_mrv || (vsiz < 0.9*dsiz && vsiz > 10.0e+6) ){
        if( verb ){
-         INFO_message("Converting dataset to vector image to save memory") ;
+         INFO_message("Converting dataset to vector image") ;
          ININFO_message(" dataset = %s bytes",approximate_number_string(dsiz)) ;
          ININFO_message(" vectim  = %s bytes",approximate_number_string(vsiz)) ;
        }
        inset_mrv = THD_dset_to_vectim( inset , mask , 0 ) ;
-       if( inset_mrv != NULL ) DSET_unload(inset) ;
-       else                    ERROR_message("Can't create vector image!?") ;
+       if( inset_mrv != NULL )  DSET_unload(inset) ;
+       else                   { ERROR_message("Can't create vector image!?"); virtu_mrv = 0; }
+
+       if( virtu_mrv ){
+         fname_mrv = mri_get_tempfilename("JUNK") ;
+         ii = THD_vectim_data_tofile( inset_mrv , fname_mrv ) ;
+         if( ii == 0 ){
+           ERROR_message("Can't write vector image to temp file %s",fname_mrv) ;
+           virtu_mrv = 0 ; free(fname_mrv) ; fname_mrv = NULL ;
+         } else {
+           free(inset_mrv->fvec) ; inset_mrv->fvec = NULL ;
+           ININFO_message(" -virtvec: vector image stored in temp file %s",fname_mrv) ;
+         }
+       }
        MEMORY_CHECK ;
      }
    }
@@ -2687,12 +2708,17 @@ STATUS("make GLTs from matrix file") ;
     int ss,vv,rv,ii,kbest , ithr ;
     float *iv ; vector y ;  /* private arrays for each thread */
     MTYPE *ws ;
+    FILE *mfp=NULL ;
 
 #pragma omp critical (MALLOC)
  {
    iv = (float *)malloc(sizeof(float)*(niv+1)) ;
    vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
    ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
+   if( virtu_mrv ){
+     mfp = fopen(fname_mrv,"r") ;
+     if( mfp == NULL ) ERROR_exit("can't re-open temp file %s",fname_mrv) ;
+   }
  }
    ithr = omp_get_thread_num() ;
 
@@ -2702,7 +2728,8 @@ STATUS("make GLTs from matrix file") ;
 #pragma omp critical (MEMCPY)
  {
        if( inset_mrv != NULL ){
-         VECTIM_extract( inset_mrv , rv , iv ) ;
+         if( virtu_mrv ) THD_vector_fromfile( inset_mrv->nvals , rv , iv , mfp ) ;
+         else            VECTIM_extract( inset_mrv , rv , iv ) ;
        } else
          (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
  }
@@ -2731,7 +2758,7 @@ STATUS("make GLTs from matrix file") ;
      } /* end of REML loop over voxels */
 
 #pragma omp critical (MALLOC)
-   { free(ws) ; free(iv) ; vector_destroy(&y) ; } /* destroy private copies */
+   { free(ws); free(iv); vector_destroy(&y); if(mfp!=NULL) fclose(mfp); } /* destroy private copies */
 
   } /* end OpenMP */
   AFNI_OMP_END ;
@@ -2909,6 +2936,16 @@ STATUS("setting up Rglt") ;
 
    /*---------------------------------------------------------------------*/
    /*---------------- and do the second (GLSQ) voxel loop ----------------*/
+
+   /* reload the vectim? */
+
+   if( virtu_mrv ){
+     INFO_message("reloading data vectors from temp file") ;
+     THD_vectim_reload_fromfile( inset_mrv , fname_mrv ) ;
+     remove(fname_mrv) ;
+     ININFO_message(" - and temp file %s has been deleted",fname_mrv) ;
+     free(fname_mrv) ; fname_mrv = NULL ; virtu_mrv = 0 ;
+   }
 
    if( do_Rstuff ){
      MTYPE *bbar[7] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */

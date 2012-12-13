@@ -4579,6 +4579,10 @@ extern int THD_vectim_ifind( int iv , MRI_vectim *mrv ) ;
 extern int bsearch_int( int tt , int nar , int *ar ) ;
 extern void THD_vectim_to_dset( MRI_vectim *mrv , THD_3dim_dataset *dset ) ;
 
+extern int THD_vectim_data_tofile( MRI_vectim *mrv , char *fnam ) ;
+extern int THD_vectim_reload_fromfile( MRI_vectim *mrv , char *fname ) ;
+extern void THD_vector_fromfile( int nvals , int iv , float *vv , FILE *fp ) ;
+
 extern void mri_blur3D_vectim( MRI_vectim *vim , float fwhm ) ;
 extern void THD_vectim_normalize( MRI_vectim *mrv ) ;
 extern void THD_vectim_dotprod  ( MRI_vectim *mrv, float *vec, float *dp, int ata ) ;
