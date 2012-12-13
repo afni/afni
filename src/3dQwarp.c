@@ -194,6 +194,7 @@ int main( int argc , char *argv[] )
    IndexWarp3D *oww ; Image_plus_Warp *oiw ;
    char *prefix = "Qwarp" , ppp[256] ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
+   int duplo = 0 ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dQwarp [OPTIONS] base_dataset source_dataset\n") ;
@@ -252,6 +253,9 @@ int main( int argc , char *argv[] )
        "                 would use the inverse warp afterwards, via program\n"
        "                 3dNwarpCalc.\n"
        "\n"
+       " -duplo        = Start off with 1/2 scale versions of the volumes,\n"
+       "                 for speed.\n"
+       "\n"
        "METHOD\n"
        "------\n"
        "Incremental warping with cubic basic functions, first over the entire volume,\n"
@@ -279,6 +283,10 @@ int main( int argc , char *argv[] )
    nopt = 1 ;
    Hblur_b = Hblur_s = 3.456f ;
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     if( strcasecmp(argv[nopt],"-duplo") == 0 ){
+       duplo = 1 ; nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-emask") == 0 ){
        THD_3dim_dataset *eset ;
@@ -397,7 +405,10 @@ int main( int argc , char *argv[] )
      mri_free(bim) ; bim = qim ;
    }
 
-   oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_WSINC5 , meth , 0 ) ;
+   if( duplo )
+     oiw = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_WSINC5 , meth , 0 ) ;
+   else
+     oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_WSINC5 , meth , 0 ) ;
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 

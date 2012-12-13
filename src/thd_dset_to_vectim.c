@@ -101,6 +101,45 @@ ENTRY("THD_dset_to_vectim") ;
 
 /*---------------------------------------------------------------------------*/
 
+int THD_vectim_data_tofile( MRI_vectim *mrv , char *fnam )
+{
+   FILE *fp ; size_t nf , nw ;
+
+   if( mrv == NULL || fnam == NULL ) return 0 ;
+
+   fp = fopen( fnam , "w" ) ; if( fp == NULL ) return 0 ;
+   nf = ((size_t)mrv->nvec) * ((size_t)mrv->nvals) ;
+   nw = fwrite( mrv->fvec , sizeof(float) , nf , fp ) ;
+   fclose(fp) ; if( nw == nf ) return 1 ;
+   remove(fnam) ; return 0 ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void THD_vector_fromfile( int nvals , int iv , float *vv , FILE *fp )
+{
+   fseeko( fp , ((off_t)iv) * ((off_t)nvals) * ((off_t)sizeof(float)) , SEEK_SET ) ;
+   fread( vv , sizeof(float) , nvals , fp ) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int THD_vectim_reload_fromfile( MRI_vectim *mrv , char *fnam )
+{
+   FILE *fp ; size_t nf , nw ;
+
+   if( mrv == NULL || fnam == NULL ) return 0 ;
+
+   fp = fopen( fnam , "r" ) ; if( fp == NULL ) return 0 ;
+   nf = mrv->nvec * mrv->nvals ;
+   if( mrv->fvec == NULL ) mrv->fvec = (float *)malloc(sizeof(float)*nf) ;
+   nw = fread( mrv->fvec , sizeof(float) , nf , fp ) ;
+   fclose(fp) ; return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
 MRI_vectim * THD_dset_to_vectim_stend( THD_3dim_dataset *dset, byte *mask , int start, int end )
 {
    byte *mmm=mask ;

@@ -251,6 +251,12 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
    for( ii=0 ; ii < ndim ; ii++ )
      x[ii] = sxmin[ii] + PRED01(x01[ii]) * sxsiz[ii] ;
 
+   if( verb ){
+     fprintf(stderr," +   param:") ;
+     for( ii=0 ; ii < ndim ; ii++ ) fprintf(stderr," %.3f",PRED01(x01[ii])) ;
+     fprintf(stderr,"\n") ;
+   }
+
    free((void *)x01); free((void *)sx); free((void *)sxsiz); free((void *)sxmin);
    sx = sxmin = sxsiz = NULL ; scalx = 0 ;
    free((void *)w) ;
