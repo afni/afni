@@ -100,6 +100,20 @@ IndexWarp3D * IW3D_create( int nx , int ny , int nz )
 
 /*---------------------------------------------------------------------------*/
 
+void IW3D_zero_fill( IndexWarp3D *AA )
+{
+   size_t nbyt  ;
+
+   if( AA == NULL ) return ;
+   nbyt = sizeof(float) * AA->nx * AA->ny * AA->nz ;
+   if( AA->xd != NULL ) AAmemset( AA->xd , 0 , nbyt ) ;
+   if( AA->yd != NULL ) AAmemset( AA->yd , 0 , nbyt ) ;
+   if( AA->zd != NULL ) AAmemset( AA->zd , 0 , nbyt ) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
 IndexWarp3D_pair * IW3D_pair_insert( IndexWarp3D *AA , IndexWarp3D *BB )
 {
    IndexWarp3D_pair *PP ;
@@ -3247,6 +3261,8 @@ ENTRY("NwarpCalcRPN") ;
 
 static int nbx=0, nby=0, nbz=0 ;  /* dimensions of patch */
 
+static int bmode_old = -666 ;
+
 static float *b0x=NULL, *b1x=NULL, *b2x=NULL, *ccx=NULL, dxi=0.0f ;
 static float *b0y=NULL, *b1y=NULL, *b2y=NULL, *ccy=NULL, dyi=0.0f ;
 static float *b0z=NULL, *b1z=NULL, *b2z=NULL, *ccz=NULL, dzi=0.0f ;
@@ -3433,6 +3449,11 @@ ENTRY("HCwarp_setup_basis") ;
 
    /* cleanup old stuff */
 
+   if( nx == nbx && ny == nby && nz == nbz && bmode_old == MRI_CUBIC ){
+     IW3D_zero_fill(Hwarp) ; IW3D_zero_fill(AHwarp) ; return ;
+   }
+   bmode_old = MRI_CUBIC ;
+
    if(  Hwarp != NULL ){ IW3D_destroy( Hwarp);  Hwarp = NULL; }
    if( AHwarp != NULL ){ IW3D_destroy(AHwarp); AHwarp = NULL; }
 
@@ -3570,6 +3591,11 @@ void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
    float_triple ee ; int ii ; float ca,cb ;
 
 ENTRY("HQwarp_setup_basis") ;
+
+   if( nx == nbx && ny == nby && nz == nbz && bmode_old == MRI_QUINTIC ){
+     IW3D_zero_fill(Hwarp) ; IW3D_zero_fill(AHwarp) ; return ;
+   }
+   bmode_old = MRI_QUINTIC ;
 
    if( Hwarp  != NULL ){ IW3D_destroy( Hwarp);  Hwarp = NULL; }
    if( AHwarp != NULL ){ IW3D_destroy(AHwarp); AHwarp = NULL; }
@@ -4133,6 +4159,7 @@ ENTRY("IW3D_cleanup_improvement") ;
    FREEIFNN(b0x); FREEIFNN(b1x); FREEIFNN(b2x); FREEIFNN(ccx); nbx=0;
    FREEIFNN(b0y); FREEIFNN(b1y); FREEIFNN(b2y); FREEIFNN(ccy); nby=0;
    FREEIFNN(b0z); FREEIFNN(b1z); FREEIFNN(b2z); FREEIFNN(ccz); nbz=0;
+   bmode_old = -666 ;
 
    if( nbbbar > 0 && bbbar != NULL ){
      int ii ;
