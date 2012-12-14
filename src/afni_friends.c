@@ -1138,47 +1138,6 @@ static mday holiday[] = {
    {DEC, 30, "National Bicarbonate of Soda Day" } ,
    {DEC, 31, "Celebrate National Egg Nog Month" } ,
 
-
-   {JAN, 05, "Fellowship enters Moria
-   {JAN, 09, "Fellowship reaches Lorien
-   {JAN, 17, "Passing of Gandalf
-   {FEB, 07, "Fellowship leaves Lorien
-   {FEB, 17, "Death of Boromir
-   {FEB, 20, "Meriadoc & Pippin meet Treebeard
-   {FEB, 22, "Passing of King Elessar
-   {FEB, 24, "Ents destroy Isengard
-   {FEB, 26, "Aragorn takes the Paths of the Dead
-   {MAR, 05, "Frodo & Samwise encounter Shelob
-   {MAR, 08, "Deaths of Denethor & Theoden
-   {MAR, 18, "Destruction of the Ring
-   {MAR, 29, "Flowering of the Mallorn
-   {MAR, 04, "Gandalf visits Bilbo
-   {MAR, 17, "An unexpected party
-   {MAR, 23, "Crowning of King Ellesar
-   {MAY, 19, "Arwen leaves Lorian to wed King Ellesar
-   {JUN, 11, "Sauron attacks Osgilliath
-   {JUN, 13, "Bilbo returns to Bag End
-   {JUN, 23, "Wedding of Ellesar & Arwen
-   {JUL, 04, "Gandalf imprisoned by Saruman
-   {JUL, 24, "The ring comes to Bilbo
-   {JUL, 26, "Bilbo rescued from Wargs by Eagles
-   {AUG, 03, "Funeral of King Theoden
-   {AUG, 29, "Saruman enters the Shire
-   {SEP, 10, "Gandalf escapes from Orthanc
-   {SEP, 14, "Frodo & Bilbo's birthday
-   {SEP, 15, "Black riders enter the Shire
-   {SEP, 18, "Frodo and company rescued by Bombadil
-   {SEP, 28, "Frodo wounded at Weathertop
-   {OCT, 05, "Frodo crosses bridge of Mitheithel
-   {OCT, 16, "Boromir reaches Rivendell
-   {OCT, 17, "Council of Elrond
-   {OCT, 25, "End of War of the Ring
-   {NOV, 16, "Bilbo reaches the Lonely Mountain
-   {DEC, 05, "Death of Smaug
-   {DEC, 16, "Fellowship begins Quest
-
-#endif , * !_calendar_lotr_ */
-
  {0,0,NULL} } ;  /* the last element, a flag to stop searching */
 
 /*---------------- Dates of Easter thru the years ---------------*/
