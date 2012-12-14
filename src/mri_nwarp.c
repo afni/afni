@@ -4179,9 +4179,12 @@ ENTRY("IW3D_setup_for_improvement") ;
    Hbasim = mri_to_float(bim) ;
    Hsrcim = mri_to_float(sim);
 
-   if( Hblur_s > 0.1f ){
+   if( Hblur_s >= 0.5f ){
      if( Hverb ) ININFO_message("   blurring source image %.3g voxels FWHM",Hblur_s) ;
      Hsrcim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_s) , Hsrcim ) ;
+   } else if( Hblur_s <= -1.0f ){
+     if( Hverb ) ININFO_message("   median-izing source image %.3g voxels",-Hblur_s) ;
+     Hsrcim_blur = mri_medianfilter( Hsrcim , -Hblur_s , NULL , 0 ) ;
    } else {
      Hsrcim_blur = NULL ;
    }
@@ -4470,14 +4473,18 @@ ENTRY("IW3D_improve_warp") ;
 
    /***** HERE is the actual optimization! *****/
 
-   itmax = (Hduplo) ? 5*Hnparmap+67 : 9*Hnparmap+133 ;
+   itmax = (Hduplo) ? 5*Hnparmap+67 : 8*Hnparmap+107 ;
 
+#if 0
    if( Hverb ) powell_set_verbose(1) ;
+#endif
 
    iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 7 ,
                              prad,0.1*prad , itmax , IW3D_scalar_costfun ) ;
 
+#if 0
    if( Hverb ) powell_set_verbose(0) ;
+#endif
 
    /***** cleanup and exit phase ***/
 
@@ -4532,9 +4539,9 @@ static IndexWarp3D *WO_iwarp = NULL ;
 
 void (*iterfun)(char *,MRI_IMAGE *) = NULL ;
 
-#define ITEROUT(lll,aaa,bbb,ccc,ddd,eee,fff)                               \
+#define ITEROUT(lll)                                                       \
  do{ if( iterfun != NULL ){                                                \
-       MRI_IMAGE *outim = IW3D_warp_floatim(Haawarp,Hsrcim,MRI_LINEAR) ;   \
+       MRI_IMAGE *outim = IW3D_warp_floatim(Haawarp,Hsrcim,MRI_WSINC5) ;   \
        char str[256]; sprintf(str,"lev=%d",lll) ;                          \
        iterfun(str,outim) ; mri_free(outim) ;                              \
        ININFO_message("  ---ITEROUT(%s)",str) ;                            \
@@ -4582,13 +4589,16 @@ ENTRY("IW3D_warpomatic") ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ;
      iter = IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt, jbbb,jttt, kbbb,kttt ) ; /* top level */
      iter = IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt, jbbb,jttt, kbbb,kttt ) ; /* top level */
-     ITEROUT(0,ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
    }
    Hforce = 0 ; Hlev_final = 0 ;
 
+   if( !Hduplo ) ITEROUT(0) ;
+
                      eee = getenv("AFNI_WARPOMATIC_PATCHMIN") ;
    if( eee == NULL ) eee = getenv("AFNI_WARPOMATIC_MINPATCH") ;
-   if( eee != NULL && isdigit(eee[0]) ) ngmin = (int)strtod(eee,NULL) ;
+   if( eee != NULL && isdigit(eee[0]) ){
+     ngmin = (int)strtod(eee,NULL) ; if( Hduplo ) ngmin /= 2 ;
+   }
         if( ngmin   <  NGMIN ) ngmin = NGMIN ;
    else if( ngmin%2 == 0     ) ngmin-- ;
 
@@ -4723,7 +4733,7 @@ ENTRY("IW3D_warpomatic") ;
        }
      }
 
-     ITEROUT(lev,ibot,itop,jbot,jtop,kbot,ktop) ;
+     if( !Hduplo ) ITEROUT(lev) ;
 
    } /*-- end of loop over levels of refinement --*/
 

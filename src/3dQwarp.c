@@ -165,8 +165,8 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
 static THD_3dim_dataset *qset = NULL ;
 
-#undef USE_SAVER
-#ifdef USE_SAVER
+#define USE_SAVER
+#ifdef  USE_SAVER
 void Qsaver(char *lab, MRI_IMAGE *im)
 {
    static int first=1 ;
@@ -194,7 +194,7 @@ int main( int argc , char *argv[] )
    IndexWarp3D *oww ; Image_plus_Warp *oiw ;
    char *prefix = "Qwarp" , ppp[256] ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
-   int duplo = 0 ;
+   int duplo=0 , qsave=0 , nx,ny,nz ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dQwarp [OPTIONS] base_dataset source_dataset\n") ;
@@ -255,6 +255,7 @@ int main( int argc , char *argv[] )
        "\n"
        " -duplo        = Start off with 1/2 scale versions of the volumes,\n"
        "                 for speed.\n"
+       " -qsave        = Save intermediate warped results as well.\n"
        "\n"
        "METHOD\n"
        "------\n"
@@ -288,6 +289,10 @@ int main( int argc , char *argv[] )
        duplo = 1 ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-qsave") == 0 ){
+       qsave = 1 ; nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-emask") == 0 ){
        THD_3dim_dataset *eset ;
        if( Hemask != NULL ) ERROR_exit("Can't use -emask twice!") ;
@@ -304,19 +309,13 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-blur") == 0 ){
        float val1,val2 ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -blur") ;
-       if( ! isdigit(argv[nopt][0]) )
-         ERROR_exit("value after '-blur' must start with a digit") ;
-       val1 = (float)strtod(argv[nopt],NULL) ;
-       if( val1 > 10.0f ){
-         WARNING_message("replacing blur=%g with 10.0",val1) ; val1 = 10.0 ;
-       }
-       if( isdigit(argv[nopt+1][0]) ){
-         val2 = (float)strtod(argv[++nopt],NULL) ;
-         if( val2 > 10.0f ){
-           WARNING_message("replacing blur=%g with 10.0",val1) ; val2 = 10.0 ;
-         }
-       } else {
-         val2 = val1 ;
+       if( !isdigit(argv[nopt][0]) && argv[nopt][0] != '-' )
+         ERROR_exit("value after '-blur' must start with a digit or '-'") ;
+       val2 = val1 = (float)strtod(argv[nopt],NULL) ;
+       if( nopt+1 < argc &&
+           ( isdigit(argv[nopt+1][0]) ||
+             (argv[nopt+1][0] == '-' && isdigit(argv[nopt+1][1])) ) ){
+           val2 = (float)strtod(argv[++nopt],NULL) ;
        }
        Hblur_b = val1 ; Hblur_s = val2 ;
        nopt++ ; continue ;
@@ -383,25 +382,38 @@ int main( int argc , char *argv[] )
    if( nevox > 0 && nevox != DSET_NVOX(bset) )
      ERROR_exit("-emask doesn't match base dataset grid :-(") ;
 
+   nx = DSET_NX(bset) ; ny = DSET_NY(bset) ; nz = DSET_NZ(bset) ;
+   if( duplo && (nx < 4*NGMIN || ny < 4*NGMIN || nz < 4*NGMIN) ){
+     duplo = 0 ;
+     INFO_message("-duplo disabled since dataset is so small: %d x %d x %d",nx,ny,nz) ;
+   }
+
 #ifdef USE_SAVER
-   sprintf(ppp,"%s_SAVE",prefix) ;
-   qset = EDIT_empty_copy(bset) ;
-   EDIT_dset_items( qset ,
-                      ADN_prefix    , ppp ,
-                      ADN_nvals     , 1 ,
-                      ADN_ntt       , 0 ,
-                      ADN_datum_all , MRI_float ,
-                    ADN_none ) ;
-   EDIT_BRICK_FACTOR(qset,0,0.0) ;
-   iterfun = Qsaver ;
+   if( qsave ){
+     sprintf(ppp,"%s_SAVE",prefix) ;
+     qset = EDIT_empty_copy(bset) ;
+     EDIT_dset_items( qset ,
+                        ADN_prefix    , ppp ,
+                        ADN_nvals     , 1 ,
+                        ADN_ntt       , 0 ,
+                        ADN_datum_all , MRI_float ,
+                      ADN_none ) ;
+     EDIT_BRICK_FACTOR(qset,0,0.0) ;
+     iterfun = Qsaver ;
+   }
 #endif
 
    wbim = mri_weightize(bim,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
 
-   if( Hblur_b > 0.1f ){
+   if( Hblur_b >= 0.5f ){
      MRI_IMAGE *qim ;
      if( Hverb ) ININFO_message("   blurring base image %.3g voxels FWHM",Hblur_b) ;
      qim = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_b) , bim ) ;
+     mri_free(bim) ; bim = qim ;
+   } else if( Hblur_b <= -1.0f ){
+     MRI_IMAGE *qim ;
+     if( Hverb ) ININFO_message("   median-izing base image %.3g voxels",-Hblur_b) ;
+     qim = mri_medianfilter( bim , -Hblur_b , NULL , 0 ) ;
      mri_free(bim) ; bim = qim ;
    }
 
@@ -425,7 +437,7 @@ int main( int argc , char *argv[] )
    EDIT_substitute_brick( oset, 0, MRI_float, MRI_FLOAT_PTR(oim) ) ;
    DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
 
-   if( qset != NULL ){
+   if( qset != NULL && DSET_NVALS(qset) > 1 ){
      EDIT_dset_items( qset , ADN_ntt , DSET_NVALS(qset) , ADN_none ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }

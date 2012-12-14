@@ -69,7 +69,7 @@ float adaptive_weighted_mean( int num , float *x )
 
    wsum = xsum = 0.0f ; mad = 0.4567f / mad ;
    for( ii=0 ; ii < num ; ii++ ){
-     wt = fabsf( mad*fabsf(x[ii]-med) ); wt = 1.0f / (1.0f+wt*wt*wt); wsum += wt;
+     wt = mad*fabsf(x[ii]-med); wt = 1.0f / (1.0f+wt*wt*wt); wsum += wt;
      xsum += wt * x[ii] ;
    }
    return (xsum/wsum) ;
