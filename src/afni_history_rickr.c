@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Dec, 2012, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "have THD_subbrick_minmax fall back to THD_slow_minmax_dset if no STAT",
+   "This is a fix for 3dSkullStrip on NIfTI dsets.\n"
+   "Thanks to kelvin for noting the problem."
+ } ,
+
  { 5, Dec, 2012, RCR, "serial_helper", MICRO, TYPE_GENERAL,
    "added useless string specifier in snprintf to block compier warnings",
    "Requested by Y Halchenko."

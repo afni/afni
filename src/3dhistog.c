@@ -67,8 +67,6 @@ static THD_3dim_dataset *HI_roi=NULL;
 static int     HI_pdf = 0;        /* ZSS Sept 2012 */
 
 static int integral_dset(THD_3dim_dataset *dset, int iv_bot, int iv_top);
-static int minmax_dset(THD_3dim_dataset *dset, float *dmin, float *dmax,
-                       int iv_bot, int iv_top);
 
 #define KEEP(x) ( (HI_nomit==0) ? 1 :  \
                   (HI_nomit==1) ? ((x) != HI_omit[0]) : HI_keep(x) )
@@ -255,7 +253,9 @@ int main( int argc , char * argv[] )
       use_ceil = 0 ;
    }
 
-   minmax_dset(dset, &temp_fbot, &temp_ftop, iv_bot, iv_top);
+   /* renamed from minmax_dset to THD_slow_minmax_dset, and moved to */
+   /* thd_info.c                                 18 Dec 2012 [rickr] */
+   THD_slow_minmax_dset(dset, &temp_fbot, &temp_ftop, iv_bot, iv_top);
 
    if(HI_min != BIG_NUMBER) {
      fbot = HI_min;
