@@ -215,19 +215,6 @@ int main( int argc , char * argv[] )
         }
       }
 
-      /* Must update deltas or LRflip(LRflip(aset)) != aset     ZSS Dec. 2012 */
-      switch( dcode ){
-         case 1: 
-            dset->daxes->xxdel *= -1;
-            break;
-         case 2:
-            dset->daxes->yydel *= -1;
-            break;
-         case 3:
-            dset->daxes->zzdel *= -1;
-            break;
-      }
-      THD_make_cardinal(dset);
       
       /* done */
       DSET_write(dset) ; DSET_delete(dset); dset = NULL;
