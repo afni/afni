@@ -1,4 +1,33 @@
 #include "mrilib.h"
+int LRflip_help(int detail) {
+      printf(
+"Usage: 3dLRflip [-LR|-AP|-IS|-X|-Y|-Z] [-prefix ppp] dset dset dset ...\n"
+"Flips the rows of a dataset along one of the three axes.\n"
+"\n"
+"* This program is intended to be used in the case where you\n"
+"  (or some other loser) constructed a dataset with one of the \n"
+"  directions incorrectly labeled. \n"
+"* That is, it is to help you patch up a mistake in the dataset.\n"
+"  It has no other purpose.\n"
+"\n" 
+"Optional options:\n"
+"-----------------\n"
+"\n" 
+" -LR | -AP | -IS: Axis about which to flip the data\n"
+"                  Default is -LR.\n"
+"      or\n"
+" -X | -Y | -Z: Flip about 1st, 2nd or 3rd directions,\n"
+"               respectively. \n"
+" Note: Only one of these 6 options can be used at a time.\n"
+"        \n"
+" -prefix ppp: Prefix to use for output. If you have \n"
+"              multiple datasets as input, you are better\n"
+"              off letting the program choose a prefix for\n"
+"              each output.\n"
+"\n" 
+            ) ;
+      if (detail) PRINT_COMPILE_DATE ; return(0) ;
+}
 
 int main( int argc , char * argv[] )
 {
@@ -9,45 +38,19 @@ int main( int argc , char * argv[] )
    char *p2;
    int nx,ny,nz , ii,jj,kk , dcode , dcodeu, ival, D1, D2 ;
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dLRflip [-LR|-AP|-IS|-X|-Y|-Z] [-prefix ppp] dataset dataset dataset ...\n"
-             "Flips the rows of a dataset along one of the three\n"
-             "axis.\n"
-             "\n"
-             "* This program is intended to be used in the case where you\n"
-             "  (or some other loser) constructed a dataset with one of the \n"
-             "  directions incorrectly labeled. \n"
-             "* That is, it is to help you patch up a mistake in the dataset.\n"
-             "  It has no other purpose.\n"
-             "\n" 
-             "Optional options:\n"
-             "-----------------\n"
-             "\n" 
-             " -LR | -AP | -IS: Axis about which to flip the data\n"
-             "                  Default is -LR.\n"
-             "      or\n"
-             " -X | -Y | -Z: Flip about 1st, 2nd or 3rd directions,\n"
-             "               respectively. \n"
-             " Note: Only one of these 6 options can be used at a time.\n"
-             "        \n"
-             " -prefix ppp: Prefix to use for output. If you have \n"
-             "              multiple datasets as input, you are better\n"
-             "              off letting the program choose a prefix for\n"
-             "              each output.\n"
-             "\n" 
-            ) ;
-      PRINT_COMPILE_DATE ; exit(0) ;
-   }
-
-   mainENTRY("3dLRflip main"); machdep(); AFNI_logger("3dLRflip",argc,argv);
+    mainENTRY("3dLRflip main"); machdep(); AFNI_logger("3dLRflip",argc,argv);
 
     D1 = ORI_R2L_TYPE;
     D2 = ORI_L2R_TYPE;
     sprintf(ax,"L-R");
     sprintf(tx,"Lf");
     dcodeu = -1;
-   while( argv[iarg][0] == '-' ){
-
+   while( iarg < argc && argv[iarg][0] == '-' ){
+     if(strcmp(argv[iarg],"-h") == 0 ||
+         strncmp(argv[iarg],"-help",4) == 0 ) {
+         LRflip_help(strlen(argv[iarg]) > 3 ? 2:1) ;
+         exit (0);
+     }
      if( strcmp(argv[iarg],"-prefix") == 0 ){
        prefix = argv[++iarg] ;
        if( !THD_filename_ok(prefix) ){
@@ -88,10 +91,18 @@ int main( int argc , char * argv[] )
        sprintf(tx,"Zf");
        iarg++ ; continue ;
      }else {
-      fprintf(stderr,"Janez! Ne razumem %s.\n", argv[iarg]); exit(1);
+      ERROR_message("Bad option %s.\n", argv[iarg]); 
+      suggest_best_prog_option(argv[0], argv[iarg]);
+      exit(1);
      }
    }
-
+   
+   if (iarg < 2) {
+      WARNING_message("Too few options. Showing -help output.\n");
+      LRflip_help(1) ;
+      exit (0);
+   }
+   
    idsetarg = iarg;
    while (iarg < argc) {
       /*-- read data --*/
@@ -204,8 +215,21 @@ int main( int argc , char * argv[] )
         }
       }
 
+      /* Must update deltas or LRflip(LRflip(aset)) != aset     ZSS Dec. 2012 */
+      switch( dcode ){
+         case 1: 
+            dset->daxes->xxdel *= -1;
+            break;
+         case 2:
+            dset->daxes->yydel *= -1;
+            break;
+         case 3:
+            dset->daxes->zzdel *= -1;
+            break;
+      }
+      THD_make_cardinal(dset);
+      
       /* done */
-
       DSET_write(dset) ; DSET_delete(dset); dset = NULL;
    
       ++iarg;
