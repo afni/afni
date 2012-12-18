@@ -65,14 +65,6 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 18, Dec , 2012 , ZSS , "3dLRflip" , MINOR , TYPE_BUG_FIX,
-   "Program did not reverse sign of voxel displacement.",
-   "As a result, voxel DELTA field became in conflict with\n"
-   "ORIENT_SPECIFIC. AFNI could still display the dataset but\n"
-   "programs attempting to resample on the new grid produced\n"
-   "nothing. Also, without this fix, LRflip(LRflip(dset)) != dset\n"
- },
-
  { 18, Dec , 2012 , ZSS , "cat_matvec" , MICRO , TYPE_NEW_OPT,
    "option -4x4 to output augmented matrix.",
    NULL
