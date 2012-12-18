@@ -213,19 +213,58 @@ int THD_subbrick_minmax (THD_3dim_dataset *dset, int isb, int scl,
    RELOAD_STATS(dset);  
     
    if( ISVALID_STATISTIC(dset->stats) ) {
-      if (!scl) {
-         tf = DSET_BRICK_FACTOR(dset,isb) ; if (tf == 0.0) tf = 1.0;
-         *min = dset->stats->bstat[isb].min/tf;
-         *max = dset->stats->bstat[isb].max/tf;
-      } else {
-         *min = dset->stats->bstat[isb].min;
-         *max = dset->stats->bstat[isb].max;
-      }
-   } else {
-      return(0); /* lousy */
+      *min = dset->stats->bstat[isb].min;
+      *max = dset->stats->bstat[isb].max;
+   } else { /* the slow way */
+      THD_slow_minmax_dset(dset, min, max, isb, isb);
    }
+
+   /* values are already scaled, remove it */
+   if (!scl) {
+      tf = DSET_BRICK_FACTOR(dset,isb) ; if (tf == 0.0) tf = 1.0;
+      *min /= tf;
+      *max /= tf;
+   }
+
    return(1);
 }
+
+/* get min and max of data in range of sub-bricks of dataset */
+/* - not using STATS, so 3dSkullStrip can use NIfTI datasets */
+/* - renamed from minmax_dset to THD_slow_minmax_dset        */
+/* - moved from 3dhistog.c               18 Dec 2012 [rickr] */
+int THD_slow_minmax_dset(THD_3dim_dataset *dset, float *dmin, float *dmax,
+                         int iv_bot, int iv_top)
+{
+   int iv_fim;
+   float fimfac;
+   float vbot , vtop, temp_fbot=1.0, temp_ftop=0.0 ;
+
+   DSET_load(dset);
+
+   for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
+     /* minimum and maximum for sub-brick */
+     vbot = mri_min( DSET_BRICK(dset,iv_fim) ) ;
+     vtop = mri_max( DSET_BRICK(dset,iv_fim) ) ;
+     fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ;
+     if (fimfac == 0.0)  fimfac = 1.0;
+     vbot *= fimfac ; vtop *= fimfac ;
+
+     /* update global min and max */
+     if ( temp_fbot > temp_ftop ) { /* first time, just copy */
+        temp_fbot = vbot;
+        temp_ftop = vtop;
+     } else {
+        if( vbot < temp_fbot ) temp_fbot = vbot;
+        if( vtop > temp_ftop ) temp_ftop = vtop;
+     }
+   }
+   *dmin = temp_fbot;
+   *dmax = temp_ftop;
+
+   return(0);
+}
+
 
 float THD_subbrick_max(THD_3dim_dataset *dset, int isb, int scl) {
    float max,min;

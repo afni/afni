@@ -4104,6 +4104,8 @@ extern float THD_subbrick_max(THD_3dim_dataset *dset, int isb, int scl);
 extern float THD_subbrick_min(THD_3dim_dataset *dset, int isb, int scl);
 extern int THD_dset_minmax( THD_3dim_dataset *dset, int scl,
                                  float *min, float *max);
+extern int THD_slow_minmax_dset(THD_3dim_dataset *dset,
+                float *dmin, float *dmax, int iv_bot, int iv_top);
 extern float THD_dset_max(THD_3dim_dataset *dset, int scl);
 extern float THD_dset_min(THD_3dim_dataset *dset, int scl);
 
