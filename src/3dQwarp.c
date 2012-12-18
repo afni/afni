@@ -274,9 +274,17 @@ int main( int argc , char *argv[] )
 
 #ifdef USE_OMP
    omp_set_nested(0) ;
-   INFO_message("OpenMP thread count = %d",omp_get_max_threads()) ;
+   nthmax = omp_get_max_threads() ;
+   dhaar  = (double *)malloc(sizeof(double)*nthmax) ;
+   dhbbr  = (double *)malloc(sizeof(double)*nthmax) ;
+   dhccr  = (double *)malloc(sizeof(double)*nthmax) ;
+   dhddr  = (double *)malloc(sizeof(double)*nthmax) ;
+   dheer  = (double *)malloc(sizeof(double)*nthmax) ;
+   dhffr  = (double *)malloc(sizeof(double)*nthmax) ;
+   INFO_message("OpenMP thread count = %d",nthmax) ;
 #else
    enable_mcw_malloc() ;
+   INFO_message("this edition not compiled with OpenMP :-(") ;
 #endif
 
    mainENTRY("3dQwarp") ;

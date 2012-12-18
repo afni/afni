@@ -1,8 +1,10 @@
 #include "mrilib.h"
 
-#ifdef USE_OMP
-#include <omp.h>
-#endif
+/***
+     #ifdef USE_OMP
+     #include <omp.h>
+     #endif
+***/
 
 typedef struct {
   int meth ;
@@ -892,6 +894,10 @@ float INCOR_incomplete_pearson( INCOR_pearson *inpear )
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
+/*** #if !defined(USE_OMP) || !defined(NUM_DHARRAY) || (NUM_DHARRAY < 6) ***/
+
+#if 1
+
 void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
                                             float *w, INCOR_pearclp *inpear )
 {
@@ -943,6 +949,81 @@ void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
 
    return ;
 }
+
+#else /*----------------------------------------------------------------------*/
+
+void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
+                                            float *w, INCOR_pearclp *inpear )
+{
+   int jj ; double sx,sxx , sy,syy,sxy , sw ;
+   double xcb,xct , ycb,yct ;
+   double xdb,xdt , ydb,ydt ;
+
+   if( n <= 0 || x == NULL || y == NULL || inpear == NULL ) return ;
+
+   xcb = inpear->xcbot ; xct = inpear->xctop ;
+   ycb = inpear->ycbot ; yct = inpear->yctop ;
+   xdb = inpear->xdbot ; xdt = inpear->xdtop ;
+   ydb = inpear->ydbot ; ydt = inpear->ydtop ;
+
+   AAmemset( dhaar , 0 , sizeof(double)*nthmax ) ;
+   AAmemset( dhbbr , 0 , sizeof(double)*nthmax ) ;
+   AAmemset( dhccr , 0 , sizeof(double)*nthmax ) ;
+   AAmemset( dhddr , 0 , sizeof(double)*nthmax ) ;
+   AAmemset( dheer , 0 , sizeof(double)*nthmax ) ;
+   AAmemset( dhffr , 0 , sizeof(double)*nthmax ) ;
+
+   if( w == NULL ){
+#pragma omp parallel
+     { double xx , yy , ww ; int cl,ii ; int ith=omp_get_thread_num() ;
+#pragma omp for
+       for( ii=0 ; ii < n ; ii++ ){
+         cl = 1 ;
+         xx = (double)x[ii] ;
+         if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++;}
+         yy = (double)y[ii] ;
+         if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++;}
+         ww = 1.0 / cl ;
+         dhaar[ith] += xx    ; dhbbr[ith] += xx*xx ; dhccr[ith] += yy ;
+         dhddr[ith] += yy*yy ; dheer[ith] += xx*yy ; dhffr[ith] += ww ;
+       }
+     } /* end parallel */
+   } else {
+#pragma omp parallel
+     { double xx , yy , ww ; int cl,ii ; int ith=omp_get_thread_num() ;
+#pragma omp for
+       for( ii=0 ; ii < n ; ii++ ){
+         ww = (double)w[ii] ;
+         if( ww > 0.0 ){
+           cl = 1 ;
+           xx = (double)x[ii] ;
+           if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++;}
+           yy = (double)y[ii] ;
+           if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++;}
+           ww /= cl ;
+           dhaar[ith] += xx    ; dhbbr[ith] += xx*xx ; dhccr[ith] += yy ;
+           dhddr[ith] += yy*yy ; dheer[ith] += xx*yy ; dhffr[ith] += ww ;
+         }
+       }
+     } /* end parallel */
+   }
+
+   sx  = inpear->sx  ; sxx = inpear->sxx ;
+   sy  = inpear->sy  ; syy = inpear->syy ;
+   sxy = inpear->sxy ; sw  = inpear->sw  ;
+   for( jj=0 ; jj < nthmax ; jj++ ){
+     sx  += dhaar[jj] ; sxx += dhbbr[jj] ;
+     sy  += dhccr[jj] ; syy += dhddr[jj] ;
+     sxy += dheer[jj] ; sw  += dhffr[jj] ;
+   }
+
+   inpear->npt += n ;
+   inpear->sx   = sx ; inpear->sxx = sxx ;
+   inpear->sy   = sy ; inpear->syy = syy ; inpear->sxy = sxy ; inpear->sw = sw ;
+
+   return ;
+}
+#endif
 
 /*----------------------------------------------------------------------------*/
 
