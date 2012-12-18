@@ -120,6 +120,8 @@ void usage_cat_matvec(int detail) {
  "      a matrix directly on the command line to program 3dWarp.\n"
  "  -ONELINE: option indicates that the resulting matrix\n"
  "      will simply be written as 12 numbers on one line.\n"
+ "  -4x4: Output matrix in augmented form (last row is 0 0 0 1)\n"
+ "        This option does not work with -MATRIX or -ONELINE\n"
  "N.B.: If only 9 numbers can be read from an mfile, then those\n"
  "      values form the [uij] matrix, and the vector is set to zero.\n"
  "N.B.: If form 1a (.aff12.1D) is used to compute multiple matrices,\n"
@@ -135,7 +137,7 @@ int main( int argc , char * argv[] )
    int iarg=1 , nn , invert,nadd , polar, do_sqrt, i, j;
    THD_dmat33 *tmat , qmat , imat ;
    THD_dfvec3 *tvec , qvec , ivec ;
-   int ntmat ;
+   int ntmat, augmat = 0 ;
    FILE *fp ;
    THD_dvecmat *dvm , qvm ; int ndvm ;
    int matout=0 , oneline=0 ;
@@ -163,7 +165,10 @@ int main( int argc , char * argv[] )
 
 
       if( strcmp(argv[iarg],"-MATRIX") == 0 ){
-        oneline = 0 ; matout = 1 ;  iarg++ ; continue ;
+        oneline = 0 ; matout = 1 ; augmat = 0; iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-4x4") == 0 ){
+        oneline = 0 ; matout = 0 ; ntmat = 1 ; augmat = 1; iarg++ ; continue ;
       }
       if( strcmp(argv[iarg],"-ONELINE") == 0 ){
         oneline = 1 ; matout = 0 ; iarg++ ; continue ;
@@ -302,6 +307,9 @@ int main( int argc , char * argv[] )
        tmat[0].mat[0][0], tmat[0].mat[0][1], tmat[0].mat[0][2], tvec[0].xyz[0],
        tmat[0].mat[1][0], tmat[0].mat[1][1], tmat[0].mat[1][2], tvec[0].xyz[1],
        tmat[0].mat[2][0], tmat[0].mat[2][1], tmat[0].mat[2][2], tvec[0].xyz[2] ) ;
+     if (augmat) {
+      printf("%13.6g %13.6g %13.6g %13.6g\n", 0.0, 0.0, 0.0, 1.0);
+     }
    } else {
      for( dd=0 ; dd < ntmat ; dd++ )
        printf("%13.6g %13.6g %13.6g %13.6g "

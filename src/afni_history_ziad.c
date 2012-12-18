@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18, Dec , 2012 , ZSS , "cat_matvec" , MICRO , TYPE_NEW_OPT,
+   "option -4x4 to output augmented matrix.",
+   NULL
+ },
+
  { 3, Dec , 2012 , ZSS , "3dSkullStrip" , MICRO , TYPE_MODIFY,
    "More modifications for head extraction",
    "Approach now uses 'Radial Stats' for head/non-head separation.\n"
