@@ -902,7 +902,7 @@ void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
                                             float *w, INCOR_pearclp *inpear )
 {
    int ii ; double sx,sxx , sy,syy,sxy , sw ;
-   double xcb,xct , ycb,yct ;
+   double xcb,xct , ycb,yct , xmid,ymid ;
    double xdb,xdt , ydb,ydt ;
 
    if( n <= 0 || x == NULL || y == NULL || inpear == NULL ) return ;
@@ -910,8 +910,8 @@ void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
    sx = inpear->sx ; sxx = inpear->sxx ;
    sy = inpear->sy ; syy = inpear->syy ; sxy = inpear->sxy ; sw = inpear->sw ;
 
-   xcb = inpear->xcbot ; xct = inpear->xctop ;
-   ycb = inpear->ycbot ; yct = inpear->yctop ;
+   xcb = inpear->xcbot ; xct = inpear->xctop ; xmid = 0.5f*(xcb+xct) ;
+   ycb = inpear->ycbot ; yct = inpear->yctop ; ymid = 0.5f*(ycb+yct) ;
    xdb = inpear->xdbot ; xdt = inpear->xdtop ;
    ydb = inpear->ydbot ; ydt = inpear->ydtop ;
 
@@ -923,8 +923,8 @@ void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
        if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++;}
        yy = (double)y[ii] ;
        if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++;}
-       ww = 1.0 / cl ;
-       sx += xx ; sxx += xx*xx ; sy += yy ; syy += yy*yy ; sxy += xx*yy ; sw += ww ;
+       ww = 1.0 / cl ; xx -= xmid ; yy -= ymid ;
+       sx += xx*ww ; sxx += xx*xx*ww ; sy += yy*ww ; syy += yy*yy*ww ; sxy += xx*yy*ww ; sw += ww ;
      }
    } else {
      double xx , yy , ww ; int cl ;
@@ -936,7 +936,7 @@ void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
          if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++;}
          yy = (double)y[ii] ;
          if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++;}
-         ww /= cl ;
+         ww /= cl ; xx -= xmid ; yy -= ymid ;
          sx += xx*ww ; sxx += xx*xx*ww ;
          sy += yy*ww ; syy += yy*yy*ww ; sxy += xx*yy*ww ; sw += ww ;
        }

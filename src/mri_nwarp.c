@@ -3339,6 +3339,7 @@ static int Hduplo     =   0 ;
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
 static float Hcost = 666.0f ;
+static float Hpenn = 0.0f ;
 
 static int Hverb = 1 ;
 
@@ -4166,8 +4167,10 @@ AFNI_OMP_END ;
 
 /*----------------------------------------------------------------------------*/
 
+#define Hpen_fbase 0.00666
+
 static double Hpen_cut = 1.0 ;
-static double Hpen_fac = 0.0008 ;
+static double Hpen_fac = Hpen_fbase ;
 static double Hpen_pow = 4.0 ;
 static double Hpen_qow = 0.25 ;
 static double Hpen_sum = 0.0 ;
@@ -4274,7 +4277,11 @@ double IW3D_scalar_costfun( int npar , double *dpar )
                                   (Haawt != NULL ) ? Haawt : MRI_FLOAT_PTR(Hwtim) ) ;
    if( Hnegate ) cost = -cost ;
 
-   if( Hpen_use ) cost += HPEN_penalty() ;
+   if( Hpen_use ){
+     Hpenn = HPEN_penalty() ; cost += Hpenn ;
+   } else {
+     Hpenn = 0.0f ;
+   }
 
    return cost ;
 }
@@ -4691,9 +4698,9 @@ ENTRY("IW3D_improve_warp") ;
    }
    if( Hverb ){
      ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : energy=%.3f:%.3f %s",
+       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : energy=%.3f:%.3f pen=%g%s",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
-                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st ,
+                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ,
                            Hpen_use ? "*" : "\0" ) ;
    }
 
