@@ -116,6 +116,7 @@ extern int powell_newuoa_constrained(
 extern char * approximate_number_string( double ) ;   /* 16 Jan 2004 */
 extern char * commaized_integer_string( long long );  /* 18 Mar 2010 */
 extern char * string_substitute( char *src , char *targ , char *repl ) ;
+extern char * nice_time_string( int ) ;               /* 18 Dec 2012 */
 
 extern int is_a_number(char *) ; /* 03 Apr 2012 */
 extern int is_an_int  (char *) ;

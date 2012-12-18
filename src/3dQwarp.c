@@ -194,7 +194,7 @@ int main( int argc , char *argv[] )
    IndexWarp3D *oww ; Image_plus_Warp *oiw ;
    char *prefix = "Qwarp" , ppp[256] ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
-   int duplo=0 , qsave=0 , nx,ny,nz ;
+   int duplo=0 , qsave=0 , nx,ny,nz , ct ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dQwarp [OPTIONS] base_dataset source_dataset\n") ;
@@ -340,7 +340,7 @@ int main( int argc , char *argv[] )
        if( val <= 0.0 ){
          INFO_message("-penfac turns the penalty off") ;  Hpen_fac = 0.0 ;
        } else {
-         Hpen_fac = 0.0002 * val ;
+         Hpen_fac = Hpen_fbase * val ;
        }
        nopt++ ; continue ;
      }
@@ -374,6 +374,8 @@ int main( int argc , char *argv[] )
 
      ERROR_exit("Bogus option '%s'",argv[nopt]) ;
    }
+
+   ct = NI_clock_time() ;
 
    if( nopt+1 >= argc ) ERROR_exit("need 2 args for base and source") ;
 
@@ -455,5 +457,6 @@ int main( int argc , char *argv[] )
    qset = IW3D_to_dataset( oww , ppp ) ;
    DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
 
+   INFO_message("===== clock time =%s",nice_time_string(NI_clock_time()-ct)) ;
    exit(0) ;
 }

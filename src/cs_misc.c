@@ -1,6 +1,36 @@
 #include "mrilib.h"
 
 /*-----------------------------------------------------------------------------*/
+/* mm is in msec; output pointer is statically allocated -- do not free!
+   Sample usage:
+      int ct = NI_clock_time() ;
+       ... stuff happens ...
+      printf("stuff clock time =%s",nice_time_string(NI_clock_time()-ct)) ;
+*//*---------------------------------------------------------------------------*/
+
+char * nice_time_string( int mm )
+{
+   static char str[256] ; int ms,nd,nh,nm,ns ;
+
+   if( mm == 0 ){ strcpy(str,"0 s") ; return str ; }
+   ms = (mm < 0 ) ? -mm : mm ;
+
+   nd = ms / 86400000 ; ms = ms % 86400000 ;
+   nh = ms /  3600000 ; ms = ms %  3600000 ;
+   nm = ms /    60000 ; ms = ms %    60000 ;
+   ns = ms /     1000 ; ms = ms %     1000 ;
+
+   if( mm < 0 ) strcpy(str," -(") ; else str[0] = '\0' ;
+   if( nd > 0 ) sprintf( str+strlen(str) , " %dd",nd) ;
+   if( nd > 0 || nh > 0 ) sprintf( str+strlen(str) , " %dh",nh) ;
+   if( nd > 0 || nh > 0 || nm > 0 ) sprintf( str+strlen(str) , " %dm",nm) ;
+   if( nd > 0 || nh > 0 || nm > 0 || ns > 0 ) sprintf( str+strlen(str) , " %ds",ns) ;
+   if( nd > 0 || nh > 0 || nm > 0 || ns > 0 || ms > 0 ) sprintf( str+strlen(str) , " %dms",ms) ;
+   if( mm < 0 ) strcat(str," )") ;
+   return str ;
+}
+
+/*-----------------------------------------------------------------------------*/
 
 int is_a_number( char *str )  /* 03 Apr 2012 */
 {
