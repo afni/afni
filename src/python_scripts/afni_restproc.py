@@ -483,7 +483,7 @@ Original version by Rayus Kuplicki.
 University of Tulsa
 Laureate Institute for Brain Research
 Report problems or feature requests to rkuplicki@laureateinstitute.org.
-10-26-12
+12-18-12
 """
 	
 change_string = """
@@ -516,6 +516,9 @@ fixed a naming conflict when using both -tsnr and -localnorm, -globalnorm, or
 	-modenorm
 added -uniformize
 added -anat_has_skull
+
+12-18-12
+.nii (and .mgz) input files are now handled properly
 """
 class RestInterface:
    """Rest Processing Interface Class"""
@@ -1387,23 +1390,6 @@ class RestInterface:
       self.write_execute(cmd)
       return epip + ".blur" + epis
 
-   def convert_aseg(self, curASEG):
-      #convert the aseg file to .BRIK format
-      if curASEG == None:
-         return None
-      if curASEG[-4:] == ".mgz" or curASEG[-4:] == ".nii":
-         self.info("Convert aseg into .BRIK")
-      if curASEG[-4:] == ".mgz":
-         asegp = curASEG[:-4]
-         cmd = "mri_convert -it mgz -ot nii -i %s -o %s.nii" % (curASEG, asegp)
-         self.write_execute(cmd)
-         curASEG = asegp + ".nii"
-      if curASEG[-4:] == ".nii":
-         asegp = curASEG[:-4]
-         cmd = "3dcalc -a %s -expr \'a\' -prefix %s+orig" % (curASEG, asegp)
-         self.write_execute(cmd)
-         curASEG = asegp + "+orig"
-      return curASEG
    def copy_result_1D(self, dset, dest):
       if dset == None:
          return
@@ -1739,8 +1725,6 @@ class RestInterface:
          curEPI = self.despike_epi(curEPI)
       #uniformize anatomy
       curANAT = self.uniformize_anat(curANAT)
-      #convert aseg file to .BRIK format
-      curASEG = self.convert_aseg(curASEG)
 
       #align, tshift, tlrc, register, save the xform for transforming the SNR later
       curEPI,curANAT,curMOTION,curASEG,epiXFORM,curREGMASKS = self.align_etc(curEPI, curANAT, curASEG, curALIGN, self.regmasks)
@@ -1869,19 +1853,23 @@ def copy_input(infile, origdir):
       if infile[0][0] == '/':
          #input is an absolute path
          copy_or_error("%s*" % infile[0])
+         return [remove_path_and_convert(infile[0]), infile[1]]
          return [remove_path(infile[0]), infile[1]]
       else:
          #input is a relative path
          copy_or_error("%s/%s*" % (origdir, infile[0]))
+         return [remove_path_and_convert(infile[0]), infile[1]]
          return [remove_path(infile[0]), infile[1]]
        
    if infile[0] == '/':
       #input is an absolute path
       copy_or_error("%s*" % infile)
+      return remove_path_and_convert(infile)
       return remove_path(infile)
    else:
       #input is a relative path
       copy_or_error("%s/%s*" % (origdir, infile))
+      return remove_path_and_convert(infile) 
       return remove_path(infile) 
    print "ERROR: copying input %s.  This should never happen" % infile
    sys.exit(1)
@@ -1899,6 +1887,26 @@ def nstr(s):
    if s == None:
       return ""
    return str(s)
+
+def remove_path_and_convert(dset):
+   #remove path and convert any .nii or .mgz files to .BRIK format
+   infile = dset[dset.rfind('/') + 1::]
+   if infile == None:
+      return None
+   if infile[-4:] == ".mgz":
+      inp = infile[:-4]
+      cmd = "mri_convert -it mgz -ot nii -i %s -o %s.nii" % (infile, inp)
+      shell_com(cmd, capture=0).run()
+      #self.write_execute(cmd)
+      infile = inp + ".nii"
+   if infile[-4:] == ".nii":
+      inp = infile[:-4]
+      cmd = "3dcalc -a %s -expr \'a\' -prefix %s+orig" % (infile, inp)
+      shell_com(cmd, capture=0).run()
+      #self.write_execute(cmd)
+      infile = inp + "+orig"
+   return infile
+   
 
 def remove_path(dset):
    return dset[dset.rfind('/') + 1::]
