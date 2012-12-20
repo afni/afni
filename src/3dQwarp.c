@@ -272,6 +272,8 @@ int main( int argc , char *argv[] )
      exit(0) ;
    }
 
+   enable_mcw_malloc() ;
+
 #ifdef USE_OMP
    omp_set_nested(0) ;
    nthmax = omp_get_max_threads() ;
@@ -283,7 +285,6 @@ int main( int argc , char *argv[] )
    dhffr  = (double *)malloc(sizeof(double)*nthmax) ;
    INFO_message("OpenMP thread count = %d",nthmax) ;
 #else
-   enable_mcw_malloc() ;
    INFO_message("this edition not compiled with OpenMP :-(") ;
 #endif
 

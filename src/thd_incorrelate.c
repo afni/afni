@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+/*** This file is intended to be #include-d into mri_nwarp.c ***/
+
 /***
      #ifdef USE_OMP
      #include <omp.h>
@@ -894,18 +896,12 @@ float INCOR_incomplete_pearson( INCOR_pearson *inpear )
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
-/*** #if !defined(USE_OMP) || !defined(NUM_DHARRAY) || (NUM_DHARRAY < 6) ***/
-
-#if 1
-
-void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
-                                            float *w, INCOR_pearclp *inpear )
+void INCOR_addto_incomplete_pearclp_SS( int n, float *x, float *y,
+                                        float *w, INCOR_pearclp *inpear )
 {
    int ii ; double sx,sxx , sy,syy,sxy , sw ;
    double xcb,xct , ycb,yct , xmid,ymid ;
    double xdb,xdt , ydb,ydt ;
-
-   if( n <= 0 || x == NULL || y == NULL || inpear == NULL ) return ;
 
    sx = inpear->sx ; sxx = inpear->sxx ;
    sy = inpear->sy ; syy = inpear->syy ; sxy = inpear->sxy ; sw = inpear->sw ;
@@ -950,63 +946,66 @@ void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
    return ;
 }
 
-#else /*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+#ifdef USE_OMP /*--- Parallel-ized verison of the above ----------------------*/
 
-void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
-                                            float *w, INCOR_pearclp *inpear )
+void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
+                                        float *w, INCOR_pearclp *inpear )
 {
    int jj ; double sx,sxx , sy,syy,sxy , sw ;
-   double xcb,xct , ycb,yct ;
+   double xcb,xct , ycb,yct , xmid,ymid ;
    double xdb,xdt , ydb,ydt ;
 
-   if( n <= 0 || x == NULL || y == NULL || inpear == NULL ) return ;
-
-   xcb = inpear->xcbot ; xct = inpear->xctop ;
-   ycb = inpear->ycbot ; yct = inpear->yctop ;
+   xcb = inpear->xcbot ; xct = inpear->xctop ; xmid = 0.5f*(xcb+xct) ;
+   ycb = inpear->ycbot ; yct = inpear->yctop ; ymid = 0.5f*(ycb+yct) ;
    xdb = inpear->xdbot ; xdt = inpear->xdtop ;
    ydb = inpear->ydbot ; ydt = inpear->ydtop ;
 
-   AAmemset( dhaar , 0 , sizeof(double)*nthmax ) ;
-   AAmemset( dhbbr , 0 , sizeof(double)*nthmax ) ;
-   AAmemset( dhccr , 0 , sizeof(double)*nthmax ) ;
-   AAmemset( dhddr , 0 , sizeof(double)*nthmax ) ;
-   AAmemset( dheer , 0 , sizeof(double)*nthmax ) ;
-   AAmemset( dhffr , 0 , sizeof(double)*nthmax ) ;
-
    if( w == NULL ){
+
 #pragma omp parallel
      { double xx , yy , ww ; int cl,ii ; int ith=omp_get_thread_num() ;
+       double tx=0.0,txx=0.0,ty=0.0,tyy=0.0,txy=0.0,tw=0.0 ;
 #pragma omp for
        for( ii=0 ; ii < n ; ii++ ){
          cl = 1 ;
          xx = (double)x[ii] ;
-         if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++;}
+         if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++; }
          yy = (double)y[ii] ;
-         if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++;}
-         ww = 1.0 / cl ;
-         dhaar[ith] += xx    ; dhbbr[ith] += xx*xx ; dhccr[ith] += yy ;
-         dhddr[ith] += yy*yy ; dheer[ith] += xx*yy ; dhffr[ith] += ww ;
+         if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++; }
+         ww = 1.0 / cl ; xx -= xmid ; yy -= ymid ;
+         tx  += ww*xx    ; txx += ww*xx*xx ; ty += ww*yy ;
+         tyy += ww*yy*yy ; txy += ww*xx*yy ; tw += ww ;
        }
+       dhaar[ith] = tx  ; dhbbr[ith] = txx ; dhccr[ith] = ty ;
+       dhddr[ith] = tyy ; dheer[ith] = txy ; dhffr[ith] = tw ;
      } /* end parallel */
+
    } else {
+
 #pragma omp parallel
      { double xx , yy , ww ; int cl,ii ; int ith=omp_get_thread_num() ;
+       double tx=0.0,txx=0.0,ty=0.0,tyy=0.0,txy=0.0,tw=0.0 ;
 #pragma omp for
        for( ii=0 ; ii < n ; ii++ ){
          ww = (double)w[ii] ;
          if( ww > 0.0 ){
            cl = 1 ;
            xx = (double)x[ii] ;
-           if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++;}
+           if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++; }
            yy = (double)y[ii] ;
-           if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++;}
-           ww /= cl ;
-           dhaar[ith] += xx    ; dhbbr[ith] += xx*xx ; dhccr[ith] += yy ;
-           dhddr[ith] += yy*yy ; dheer[ith] += xx*yy ; dhffr[ith] += ww ;
+           if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++; }
+           ww = 1.0 / cl ; xx -= xmid ; yy -= ymid ;
+           tx  += ww*xx    ; txx += ww*xx*xx ; ty += ww*yy ;
+           tyy += ww*yy*yy ; txy += ww*xx*yy ; tw += ww ;
          }
        }
+       dhaar[ith] = tx  ; dhbbr[ith] = txx ; dhccr[ith] = ty ;
+       dhddr[ith] = tyy ; dheer[ith] = txy ; dhffr[ith] = tw ;
      } /* end parallel */
    }
+
+   /*-- add partial sums from each thread to the results --*/
 
    sx  = inpear->sx  ; sxx = inpear->sxx ;
    sy  = inpear->sy  ; syy = inpear->syy ;
@@ -1024,6 +1023,22 @@ void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
    return ;
 }
 #endif
+
+/*----------------------------------------------------------------------------*/
+
+void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
+                                     float *w, INCOR_pearclp *inpear )
+{
+   if( n <= 0 || x == NULL || y == NULL || inpear == NULL ) return ;
+#ifdef USE_OMP
+   if( nthmax > 1 && n >= 333 ){
+     INCOR_addto_incomplete_pearclp_PP( n , x,y,w , inpear ) ;
+     return ;
+   }
+#endif
+   INCOR_addto_incomplete_pearclp_SS( n , x,y,w , inpear ) ;
+   return ;
+}
 
 /*----------------------------------------------------------------------------*/
 
