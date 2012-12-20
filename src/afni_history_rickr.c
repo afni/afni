@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Dec, 2012, RCR, "uber_subject.py", MINOR, TYPE_BUG_FIX,
+   "remove -volreg_tlrc_warp in case of no tlrc block",
+   "Thanks to P Taylor for noting the problem."
+ } ,
+
  { 19, Dec, 2012, RCR, "afni_restproc.py", MINOR, TYPE_GENERAL,
    "Update from Rayus for handling .nii files.",
    NULL
