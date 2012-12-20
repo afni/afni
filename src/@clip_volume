@@ -39,6 +39,10 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "      -crop : Same as -crop_greedy, kept for backward compatibility"
    echo "      -prefix PRFX  : Use PRFX for output prefix. Default is the "
    echo "                      input prefix with _clp suffixed to it."
+   echo "      -followers DSET1 DSET2 ...: Apply the same treatment to the"
+   echo "                      follower datasets. Note that cropped or clipped"
+   echo "                      versions are all named automatically by affixing"
+   echo "                      _clp to their prefix."
    echo ""    
    echo "Example:"
    echo "@clip_volume -below -30 -above 53 -left 20 -right -13 -anterior -15 \"
@@ -54,7 +58,7 @@ endif
 PARSE:
 	echo "Parsing ..."
 	set Narg = $#
-	
+	set foll = ()
 	set cnt = 1
    set crop = 0
    set cropopt = ""
@@ -210,8 +214,33 @@ PARSE:
             set donext = 0	
          endif	
       endif
+      if ($donext && "$argv[$cnt]" == "-followers") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need  volume(s) after -followers"
+            goto END
+			else
+            @ cnt ++
+            while ( $cnt <= $Narg && "$argv[$cnt]" !~ "-*" ) 
+               set foll = ($foll "$argv[$cnt]")
+               @ cnt ++
+               if ($cnt > $Narg) goto OUT
+            end
+            OUT:
+            if ($cnt > $Narg) then
+               @ cnt --
+            else if ($cnt <= $Narg && "$argv[$cnt]" =~ "-*" ) then
+               @ cnt --
+            endif
+            set donext = 0	
+         endif	
+      endif
       if ($donext && "$argv[$cnt]" == "-verb") then
          set verb = 1;		
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo;		
          set donext = 0		
       endif
       if ($donext == 1) then
@@ -237,11 +266,27 @@ DOIT:
       unset noglob
       3dAutobox $cropopt -prefix $prefix -input ___tmp_clp$in_name[3]
       rm -f ___tmp_clp$in_name[3].???? >& /dev/null
+      if ($#foll > 0) then
+         set master = $prefix$in_name[3]
+         foreach dd ($foll)
+            set pin = `@parse_afni_name $dd`
+            set pout = $pin[2]"_clp"
+            3dresample -master $master -prefix $pout -input $dd
+         end
+      endif
    else
       set noglob
       if ($verb) echo "3dcalc -a "$anat_in" -expr "a * step($eq)" -rai -prefix $prefix"
       unset noglob
       3dcalc -a "$anat_in" -expr "a * step($eq)" -rai -prefix $prefix
+      if ($#foll > 0) then
+         foreach dd ($foll)
+            set pin = `@parse_afni_name $dd`
+            set pout = $pin[2]"_clp"
+            3dcalc -a $dd  -expr "a * step($eq)" -rai -prefix $pout
+         end
+      endif
    endif
+   
    
 END:
