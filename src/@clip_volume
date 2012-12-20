@@ -29,7 +29,14 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "               A '-and' multiplies the mask by what is to be kept from"
    echo "               the next cut, and a '-or' adds to it."
    echo "      -verb         : Verbose, show command"
-   echo "      -crop         : Crop the output volume"
+   echo "      -crop_allzero : Crop the output volume with 3dAutobox -noclust"
+   echo "                      This would keep 3dAutobox from removing any"
+   echo "                      slices unless they are all zeros"
+   echo "      -crop_greedy  : Crop the output volume with 3dAutobox"
+   echo "                      In addition to what you specified for cropping,"
+   echo "                      slices with a few non zero voxels might also get"
+   echo "                      chopped off by 3dAutobox"
+   echo "      -crop : Same as -crop_greedy, kept for backward compatibility"
    echo "      -prefix PRFX  : Use PRFX for output prefix. Default is the "
    echo "                      input prefix with _clp suffixed to it."
    echo ""    
@@ -50,6 +57,7 @@ PARSE:
 	
 	set cnt = 1
    set crop = 0
+   set cropopt = ""
    set anat_in = ''
    set prefix = ''
    set sgn = '*'
@@ -160,8 +168,14 @@ PARSE:
          endif	
       endif
       
-      if ($donext && "$argv[$cnt]" == "-crop") then
-         set crop = 1;		
+      if ($donext && "$argv[$cnt]" == "-crop_allzero") then
+         set crop = 1;    set cropopt = "-noclust"		
+         set donext = 0		
+      endif
+
+      if ($donext && ( "$argv[$cnt]" == "-crop_greedy"  || \
+                       "$argv[$cnt]" == "-crop" ) ) then
+         set crop = 1;    set cropopt = ""		
          set donext = 0		
       endif
       
@@ -219,9 +233,9 @@ DOIT:
       unset noglob
       3dcalc -a "$anat_in" -expr "a * step($eq)" -rai -prefix ___tmp_clp
       set noglob
-      if ($verb) echo "3dAutobox -prefix $prefix -input ___tmp_clp$in_name[3]"
+      if ($verb) echo "3dAutobox $cropopt -prefix $prefix -input ___tmp_clp$in_name[3]"
       unset noglob
-      3dAutobox -prefix $prefix -input ___tmp_clp$in_name[3]
+      3dAutobox $cropopt -prefix $prefix -input ___tmp_clp$in_name[3]
       rm -f ___tmp_clp$in_name[3].???? >& /dev/null
    else
       set noglob
