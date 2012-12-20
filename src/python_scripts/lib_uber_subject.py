@@ -138,9 +138,12 @@ g_history = """
     0.33 Oct 16, 2012 : use new anal_type for init of defaults
          - have 'rest' defaults to differ from 'task' (no 'surface' yet)
          - GUI: added analysis type and domain, and block list
+    0.34 Dec 20, 2012 :
+         - should not have -volreg_tlrc_warp in case of no tlrc block
+         - thanks to P Taylor for noting the problem
 """
 
-g_version = '0.33 (October 16, 2012)'
+g_version = '0.34 (December 20, 2012)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -948,7 +951,9 @@ class AP_Subject(object):
          self.LV.warp = ''      # not going to tlrc space
          return ''
 
-      self.LV.warp = 'warp'     # unless 'get' and manual
+      # if tlrc block, init to warping (clear if 'get' and 'manual')
+      if 'tlrc' in self.svars.blocks: self.LV.warp = 'warp'
+
       aset = BASE.afni_name(self.svars.anat)
       if self.svars.get_tlrc == 'yes': # require existence and +orig extension
          if not aset.exist():
