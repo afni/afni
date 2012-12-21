@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.5, Dec 13, 2012
+Version 0.1.6, Dec 21, 2012
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.5, Dec 13, 2012
+Version 0.1.6, Dec 21, 2012
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -464,12 +464,13 @@ process.MVM.opts <- function (lop, verb = 0) {
       lop$gltList    <- vector('list', lop$num_glt)
       lop$slpList    <- vector('list', lop$num_glt)
       for (n in 1:lop$num_glt) {
-         if(!is.na(lop$qVars)) { if(any(lop$QV %in% lop$gltCode[[n]])) {
+         #if(!is.na(lop$qVars)) { if(any(lop$QV %in% lop$gltCode[[n]])) {
+         if(!is.na(lop$qVars) & any(lop$QV %in% lop$gltCode[[n]])) {
             QVpos <- which(lop$gltCode[[n]] %in% lop$QV)
             lop$gltList[[n]]   <- gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
             lop$slpList[[n]] <- lop$gltCode[[n]][QVpos]   
          } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
-         } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
+         #} else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
       }
    }
    
@@ -771,7 +772,14 @@ while(is.null(fm)) {
    }
    if (is.null(fm)) if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
-      errex.AFNI("Testing indicates that something is not quite right!")
+      cat('~~~~~~~~~~~~~~~~~~~Model test failed~~~~~~~~~~~~~~~~~~~\n')
+      cat('Possible reasons:\n')
+      cat('1) Inappropriate model specification with options -model, -wsVars, or qVars.\n')
+      cat('Note that within-subject or repeated-measures variables have to be declared\n')
+      cat('with -wsVars.\n')
+      cat('2) Mistakes in data table. Check the data structure shown above, and verify\n')
+      cat('whether there are any inconsistencies.\n')
+      errex.AFNI("Quitting due to model test failure...")
       #break
    }
 }
