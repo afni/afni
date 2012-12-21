@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Dec, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
+   "change check for recur download by looking for known string in script",
+   "Thanks to S Lowell for noting the problem."
+ } ,
+
  { 20, Dec, 2012, RCR, "uber_subject.py", MINOR, TYPE_BUG_FIX,
    "remove -volreg_tlrc_warp in case of no tlrc block",
    "Thanks to P Taylor for noting the problem."
