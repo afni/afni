@@ -772,12 +772,13 @@ while(is.null(fm)) {
    }
    if (is.null(fm)) if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
-      cat('~~~~~~~~~~~~~~~~~~~Model test failed~~~~~~~~~~~~~~~~~~~\n')
-      cat('Possible reasons:\n')
+      cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')
+      cat('Possible reasons:\n\n')
       cat('1) Inappropriate model specification with options -model, -wsVars, or qVars.\n')
       cat('Note that within-subject or repeated-measures variables have to be declared\n')
-      cat('with -wsVars.\n')
-      cat('2) Mistakes in data table. Check the data structure shown above, and verify\n')
+      cat('with -wsVars.\\nn')
+      cat('2) Misspecifications in general linear test coding with -gltCode.\n\n')
+      cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
       cat('whether there are any inconsistencies.\n')
       errex.AFNI("Quitting due to model test failure...")
       #break
