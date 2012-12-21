@@ -770,7 +770,9 @@ while(is.null(fm)) {
          n <- n+1
       }      
    }
-   if (is.null(fm)) if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
+   if(!is.null(fm))  {
+      print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
+   } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')
       cat('Possible reasons:\n\n')
@@ -785,14 +787,14 @@ while(is.null(fm)) {
    }
 }
 
-if(!is.null(fm))  {
-   print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
-   } else { 
-      errex.AFNI(sprintf("Ouch, model testing failed! Multiple reasons could cause the failure.... \n"))
+#if(!is.null(fm))  {
+#   print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
+#   } else { 
+#      errex.AFNI(sprintf("Ouch, model testing failed! Multiple reasons could cause the failure.... \n"))
 #                "might be inappropriate, or there are incorrect specifications in model.txt \n",
 #                "such as contrasts, factor levels, or other obscure problems.", lop$model))
       #break; next # won't run the whole brain analysis if the test fails
-}
+#}
 
 
 #fm <- aov.car(ModelForm, data=Model, return='lm')
