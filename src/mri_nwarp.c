@@ -13,6 +13,12 @@
   static double *dhffr=NULL ;
 #else
 # define nthmax 1
+  static double dhaar[1] ;
+  static double dhbbr[1] ;
+  static double dhccr[1] ;
+  static double dhddr[1] ;
+  static double dheer[1] ;
+  static double dhffr[1] ;
 #endif
 
 #include "thd_incorrelate.c"
@@ -22,17 +28,11 @@
 #undef  FREEIFNN
 #define FREEIFNN(x) do{ if((x)!=NULL){ free((void *)(x)); (x)=NULL;} } while(0)
 
-#undef  HVPRINT
-#define HVPRINT(lab,ZZ)                                                      \
- do{ float_pair bt = IW3D_load_hexvol(ZZ) ;                                   \
-     if(bt.b > bt.a) ININFO_message("%s hexvol range %f .. %f",lab,bt.a,bt.b); \
- } while(0)
-
 static int verb_nww=0 ;
 void NwarpCalcRPN_verb(int i){ verb_nww = i; }
 
 #undef  NGMIN
-#define NGMIN 13             /* minimum num grid points in a given direction */
+#define NGMIN 9             /* minimum num grid points in a given direction */
 
 #undef  FSUB
 #define FSUB(far,i,j,k,ni,nij) far[(i)+(j)*(ni)+(k)*(nij)]
@@ -797,9 +797,12 @@ static INLINE float_pair hexahedron_energy( float_triple d000 , float_triple d10
 /*----------------------------------------------------------------------------*/
 /* Load the deformation energies for all voxels */
 
-float_pair IW3D_load_energy( IndexWarp3D *AA )
+#undef  Hpen_cut
+#define Hpen_cut 1.0
+
+float IW3D_load_energy( IndexWarp3D *AA )
 {
-   float_pair enout = {0.0f,0.0f} ;
+   float enout ;
    float *xda, *yda , *zda , *jea,*sea , jetop,setop ;
    int nx,ny,nz , nxy,nxyz , ii ;
 
@@ -812,10 +815,12 @@ float_pair IW3D_load_energy( IndexWarp3D *AA )
    jea = AA->je; if( jea == NULL ) jea = AA->je = (float *)calloc(nxyz,sizeof(float));
    sea = AA->se; if( sea == NULL ) sea = AA->se = (float *)calloc(nxyz,sizeof(float));
 
+   AAmemset( dhaar , 0 , sizeof(double)*nthmax ) ;
+
  AFNI_OMP_START ;
 #pragma omp parallel
  { float_triple x0,x1,x2,x3,x4,x5,x6,x7 ; float_pair en ;
-   int ii,jj,kk , ip,jp,kp , ijk , qq ;
+   int ii,jj,kk , ip,jp,kp , ijk , qq , ith=0 ; float esum=0.0f, ev ;
 #pragma omp for
    for( qq=0 ; qq < nxyz ; qq++ ){
      ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
@@ -830,18 +835,56 @@ float_pair IW3D_load_energy( IndexWarp3D *AA )
      ijk = IJK(ip,jp,kp) ; E2F(ijk,x7) ;
      ijk = qq            ; E2F(ijk,x0) ;
      en  = hexahedron_energy(x0,x1,x2,x3,x4,x5,x6,x7); jea[qq] = en.a; sea[qq] = en.b;
+     ev  = jea[qq]-Hpen_cut ; if( ev > 0.0 ) esum += (ev*ev)*(ev*ev) ;
+     ev  = sea[qq]-Hpen_cut ; if( ev > 0.0 ) esum += (ev*ev)*(ev*ev) ;
    }
+#ifdef USE_OMP
+   ith = omp_get_thread_num() ;
+#endif
+   dhaar[ith] = (double)esum ;
  }
  AFNI_OMP_END ;
 
-  jetop = jea[0] ; setop = sea[0] ;
-  for( ii=1 ; ii < nxyz ; ii++ ){
-    if( jea[ii] > jetop ) jetop = jea[ii] ;
-    if( sea[ii] > setop ) setop = sea[ii] ;
-  }
-  enout.a = jetop ; enout.b = setop ; return enout ;
+  enout = 0.0f ;
+  for( ii=0 ; ii < nthmax ; ii++ ) enout += dhaar[ii] ;
+  return enout ;
 }
 
+/*----------------------------------------------------------------------------*/
+#ifdef USE_OMP
+double HPEN_addup( int njs , float *je , float *se )
+{
+   double esum ; int qq ;
+
+   AAmemset( dhaar , 0 , sizeof(double)*nthmax ) ;
+#pragma omp parallel
+   { int ii , ith ; double ev , dh=0.0 ;
+#pragma omp for
+     for( ii=0 ; ii < njs ; ii++ ){
+       ev = je[ii]-Hpen_cut ; if( ev > 0.0 ) dh += (ev*ev)*(ev*ev) ;
+       ev = se[ii]-Hpen_cut ; if( ev > 0.0 ) dh += (ev*ev)*(ev*ev) ;
+     }
+     ith = omp_get_thread_num() ; dhaar[ith] = dh ;  /* dhaar = temp array */
+   }
+
+   for( esum=0.0,qq=0 ; qq < nthmax ; qq++ ) esum += dhaar[qq] ;
+   return esum ;
+}
+
+#else  /*---------------------------------------------------------------------*/
+
+double HPEN_addup( int njs , float *je , float *se )
+{
+   int ii ; double ev , esum=0.0 ;
+   for( ii=0 ; ii < njs ; ii++ ){
+     ev = je[ii]-Hpen_cut ; if( ev > 0.0 ) esum += (ev*ev)*(ev*ev) ;
+     ev = se[ii]-Hpen_cut ; if( ev > 0.0 ) esum += (ev*ev)*(ev*ev) ;
+   }
+   return esum ;
+}
+#endif
+
+/*----------------------------------------------------------------------------*/
 #ifndef HAVE_HEXVOL
 #define HAVE_HEXVOL
 /*----------------------------------------------------------------------------*/
@@ -884,11 +927,11 @@ static INLINE float hexahedron_volume( float_triple x0 , float_triple x1 ,
 /* Load the volumes of each hexahedral element in the displaced grid.
    An undistorted voxel will get volumen 1, since AA is a unitless warp. */
 
-float_pair IW3D_load_hexvol( IndexWarp3D *AA )
+float IW3D_load_hexvol( IndexWarp3D *AA )
 {
    float *xda, *yda , *zda , *hva , top,bot ;
    int nx,ny,nz , nxy,nxyz , ii ;
-   float_pair hvm = {0.0f,0.0f} ;
+   float hvm = 0.0f ;
 
    if( AA == NULL ) return hvm ;
 
@@ -923,12 +966,7 @@ float_pair IW3D_load_hexvol( IndexWarp3D *AA )
  }
  AFNI_OMP_END ;
 
-  top = bot = hva[0] ;
-  for( ii=1 ; ii < nxyz ; ii++ ){
-         if( hva[ii] > top ) top = hva[ii] ;
-    else if( hva[ii] < bot ) bot = hva[ii] ;
-  }
-  hvm.a = bot ; hvm.b = top ; return hvm ;
+  return hvm ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1884,8 +1922,7 @@ ENTRY("IW3D_invert") ;
 
    /* BB = initial guess at inverse */
 
-   if( verb_nww     ) ININFO_message(" -- invert max|AA|=%f",normAA) ;
-   if( verb_nww > 2 ) HVPRINT("  -",AA) ;
+   if( verb_nww ) ININFO_message(" -- invert max|AA|=%f",normAA) ;
 
    if( BBinit == NULL ){
      int pp = 1+(int)ceil(log2(normAA)) ; float qq ;
@@ -1896,7 +1933,6 @@ ENTRY("IW3D_invert") ;
      for( ii=0 ; ii < pp ; ii++ ){
        if( verb_nww > 1 ) ININFO_message("  - init step %d",ii+1) ;
        CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
-       if( verb_nww > 2 ) HVPRINT("    -",BB) ;
      }
    } else {
      BB = IW3D_copy( BBinit , 1.0f ) ;
@@ -1933,8 +1969,7 @@ ENTRY("IW3D_invert") ;
 
      orat = nrat ; nrat = normBC / normAA ;
 
-     if( verb_nww     ) ININFO_message("  - iterate %d nrat=%f",++nnewt,nrat) ;
-     if( verb_nww > 2 ) HVPRINT("    -",BB) ;
+     if( verb_nww ) ININFO_message("  - iterate %d nrat=%f",++nnewt,nrat) ;
 
      /* check for convergence of B and C */
 
@@ -2145,8 +2180,7 @@ ENTRY("IW3D_sqrtinv") ;
 
    /* BB = initial guess at inverse square root */
 
-   if( verb_nww     ) ININFO_message(" -- sqrtinv max|AA|=%f",normAA) ;
-   if( verb_nww > 2 ) HVPRINT("  -",AA) ;
+   if( verb_nww ) ININFO_message(" -- sqrtinv max|AA|=%f",normAA) ;
 
    if( BBinit == NULL ){
      int pp = (int)ceil(log2(normAA)) ; float qq ;
@@ -2157,7 +2191,6 @@ ENTRY("IW3D_sqrtinv") ;
      for( ii=0 ; ii < pp ; ii++ ){
        if( verb_nww > 1 ) ININFO_message("  - init step %d",ii+1) ;
        CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
-       if( verb_nww > 2 ) HVPRINT("    -",BB) ;
      }
    } else {
      BB = IW3D_copy( BBinit , 1.0f ) ;
@@ -2193,8 +2226,7 @@ ENTRY("IW3D_sqrtinv") ;
 
      orat = nrat ; nrat = normBC / normAA ;
 
-     if( verb_nww     ) ININFO_message("  - iterate %d nrat=%f",++nstep,nrat) ;
-     if( verb_nww > 2 ) HVPRINT("    -",BB) ;
+     if( verb_nww ) ININFO_message("  - iterate %d nrat=%f",++nstep,nrat) ;
 
      /* check for convergence of B and C */
 
@@ -3310,13 +3342,15 @@ static floatvec *Hmpar = NULL ;
 
 /*--- Other stuff for incremental warping ---*/
 
-#undef USE_HLOADER
+#undef USE_HLOADER  /* define this for 'all-at-once' Hwarp load vs. incremental */
+                    /* tests show incremental is about 10% faster, with OpenMP */
 
 #ifdef USE_HLOADER
 static void (*Hloader)(float *) = NULL ; /* function to make warp from params */
 #endif
 
 static int          Hnpar       = 0    ; /* num params for warp */
+static int          Hnpar_sum   = 0    ; /* total num params used */
 static float       *Hpar        = NULL ; /* param vector for warp */
 static float       *Hxpar ;
 static float       *Hypar ;
@@ -4377,67 +4411,18 @@ AFNI_OMP_END ;
 
 #define Hpen_fbase 0.00666
 
-static double Hpen_cut = 1.0 ;
 static double Hpen_fac = Hpen_fbase ;
-static double Hpen_pow = 4.0 ;
-static double Hpen_qow = 0.25 ;
 static double Hpen_sum = 0.0 ;
 static int    Hpen_num = 0 ;
-static int    Hpen_use = 0 ;
-
-#ifdef USE_OMP
-double HPEN_addup( int njs , float *je , float *se )
-{
-   double esum ; int qq ;
-
-   AAmemset( dhaar , 0 , sizeof(double)*nthmax ) ;
-#pragma omp parallel
-   { int ii , ith ; double ev , dh=0.0 ;
-#pragma omp for
-     for( ii=0 ; ii < njs ; ii++ ){
-       ev = je[ii]-Hpen_cut ; if( ev > 0.0 ) dh += (ev*ev)*(ev*ev) ;
-       ev = se[ii]-Hpen_cut ; if( ev > 0.0 ) dh += (ev*ev)*(ev*ev) ;
-     }
-     ith = omp_get_thread_num() ; dhaar[ith] = dh ;  /* dhaar = temp array */
-   }
-
-   for( esum=0.0,qq=0 ; qq < nthmax ; qq++ ) esum += dhaar[qq] ;
-   return esum ;
-}
-
-#else  /*---------------------------------------------------------------------*/
-
-double HPEN_addup( int njs , float *je , float *se )
-{
-   int ii ; double ev , esum=0.0 ;
-   for( ii=0 ; ii < njs ; ii++ ){
-     ev = je[ii]-Hpen_cut ; if( ev > 0.0 ) esum += pow(ev,Hpen_pow) ;
-     ev = se[ii]-Hpen_cut ; if( ev > 0.0 ) esum += pow(ev,Hpen_pow) ;
-   }
-   return esum ;
-}
-#endif
-
-/*----------------------------------------------------------------------------*/
-
-void HPEN_init( int njs , float *je , float *se )
-{
-   if( njs == 0 || je == NULL || se == NULL ){
-     Hpen_num = 0   ; Hpen_sum = 0.0 ;
-   } else {
-     Hpen_num += njs ; Hpen_sum += HPEN_addup( njs , je , se ) ;
-   }
-   return ;
-}
+static int    Hpen_use = 1 ;
 
 /*----------------------------------------------------------------------------*/
 
 double HPEN_penalty(void)
 {
    double hsum ;
-   (void)IW3D_load_energy(AHwarp) ;
-   hsum = Hpen_sum + HPEN_addup( AHwarp->nx*AHwarp->ny*AHwarp->nz , AHwarp->je , AHwarp->se ) ;
-   hsum = Hpen_fac * pow( hsum , Hpen_qow ) ;
+   hsum = Hpen_sum + (double)IW3D_load_energy(AHwarp) ;
+   if( hsum > 0.0 ) hsum = Hpen_fac * pow( hsum , 0.25 ) ;
    return hsum ;
 }
 
@@ -4830,12 +4815,20 @@ ENTRY("IW3D_improve_warp") ;
    FREEIFNN(Haawt) ; FREEIFNN(Hbval) ;
 
    need_AH = Hpen_use ;
-   if( Hpen_use ) HPEN_init(0,NULL,NULL) ;
+   if( Hpen_use ) Hpen_sum = 0.0 ;
+
+#undef  RESTORE_WBFAR
+#define RESTORE_WBFAR                           \
+ do{ for( pp=0,kk=kbot ; kk <= ktop ; kk++ )    \
+      for( jj=jbot ; jj <= jtop ; jj++ )        \
+       for( ii=ibot ; ii <= itop ; ii++,pp++ )  \
+        wbfar[ii+jj*Hnx+kk*Hnxy] = Haawt[pp] ;  \
+ } while(0)
 
    if( Hnval < Hnxyz ){                               /* initialize correlation from   */
-     float *wbfar=malloc(sizeof(float)*Hwtim->nvox) ; /* non-changing part of Haasrcim */
-     float *bar=MRI_FLOAT_PTR(Hbasim) ;
-     memcpy(wbfar,MRI_FLOAT_PTR(Hwtim),sizeof(float)*Hwtim->nvox) ;
+     float *wbfar=MRI_FLOAT_PTR(Hwtim) ;              /* non-changing part of Haasrcim */
+     float *bar  =MRI_FLOAT_PTR(Hbasim) ;
+
      Haawt = (float *)malloc(sizeof(float)*Hnval) ;
      Hbval = (float *)malloc(sizeof(float)*Hnval) ;
      for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){      /* extract weights  */
@@ -4852,7 +4845,7 @@ ENTRY("IW3D_improve_warp") ;
          "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (base=const=%g)" ,
                        (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
                        ibot,itop, jbot,jtop, kbot,ktop , Hbval[0] ) ;
-       free(wbfar) ; RETURN(0) ;
+       RESTORE_WBFAR ; RETURN(0) ;
      }
 
      /* initialize the 'correlation' from the data that won't
@@ -4860,7 +4853,7 @@ ENTRY("IW3D_improve_warp") ;
 
      INCOR_addto( Hincor , Hnxyz ,
                   MRI_FLOAT_PTR(Hbasim) , MRI_FLOAT_PTR(Haasrcim) , wbfar ) ;
-     free(wbfar) ;
+     RESTORE_WBFAR ;
 
      /* also init penalty from non-changing part of Haawarp, if needed */
 
@@ -4871,7 +4864,7 @@ ENTRY("IW3D_improve_warp") ;
         for( jj=jbot ; jj <= jtop ; jj++ )
          for( ii=ibot ; ii <= itop ; ii++ )
           je[ii+jj*Hnx+kk*Hnxy] = se[ii+jj*Hnx+kk*Hnxy] = 0.0f ;
-       HPEN_init(Hnxyz,je,se) ;
+       Hpen_sum = HPEN_addup(Hnxyz,je,se) ;
      }
    }
 
@@ -4898,6 +4891,8 @@ ENTRY("IW3D_improve_warp") ;
 
    iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 7 ,
                              prad,0.1*prad , itmax , IW3D_scalar_costfun ) ;
+
+   if( iter > 0 ) Hnpar_sum += Hnparmap ;
 
 #if 0
    if( Hverb ) powell_set_verbose(0) ;
@@ -4933,15 +4928,11 @@ ENTRY("IW3D_improve_warp") ;
          if( Ase[qq] > st ) st = Ase[qq] ;
    }}}
 
-   if( !Hpen_use && Hpen_fac > 0.0f ){
-     Hpen_use = (jt > Hpen_cut) || (st > Hpen_cut) ;
-   }
    if( Hverb ){
      ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : energy=%.3f:%.3f pen=%g%s",
+       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : energy=%.3f:%.3f pen=%g",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
-                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ,
-                           Hpen_use ? "*" : "\0" ) ;
+                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ) ;
    }
 
    /* ZOMG -- let's vamoose */
@@ -4957,12 +4948,12 @@ static IndexWarp3D *WO_iwarp = NULL ;
 
 void (*iterfun)(char *,MRI_IMAGE *) = NULL ;
 
-#define ITEROUT(lll)                                                       \
- do{ if( iterfun != NULL ){                                                \
-       MRI_IMAGE *outim = IW3D_warp_floatim(Haawarp,Hsrcim,MRI_WSINC5) ;   \
-       char str[256]; sprintf(str,"lev=%d",lll) ;                          \
-       iterfun(str,outim) ; mri_free(outim) ;                              \
-       ININFO_message("  ---ITEROUT(%s)",str) ;                            \
+#define ITEROUT(lll)                                                               \
+ do{ if( iterfun != NULL ){                                                         \
+       MRI_IMAGE *outim = IW3D_warp_floatim(Haawarp,Hsrcim,MRI_WSINC5) ;             \
+       char str[256]; sprintf(str,"lev=%d",lll) ;                                     \
+       iterfun(str,outim) ; mri_free(outim) ;                                          \
+       ININFO_message("  ---ITEROUT(%s) -- %s",str,nice_time_string(NI_clock_time())) ; \
    } } while(0)
 
 IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
@@ -5007,8 +4998,10 @@ ENTRY("IW3D_warpomatic") ;
      Hforce = 1 ; Hfactor = 1.0f ;
      Hpen_use = 0; (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      Hpen_use = 0; (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+   } else {
+     Hcost = 666.666f ;  /* a beastly thing to do */
    }
-   Hforce = 0 ; Hlev_final = 0 ;
+   Hforce = 0 ; Hlev_final = 0 ; Hpen_use = (Hpen_fac > 0.0f) ;
 
    if( !Hduplo ) ITEROUT(0) ;
 
@@ -5016,7 +5009,8 @@ ENTRY("IW3D_warpomatic") ;
    if( eee == NULL ) eee = getenv("AFNI_WARPOMATIC_MINPATCH") ;
    if( eee == NULL ) eee = getenv("AFNI_WARPOMATIC_NGMIN"   ) ;
    if( eee != NULL && isdigit(eee[0]) ){
-     ngmin = (int)strtod(eee,NULL) ; if( Hduplo ) ngmin /= 2 ;
+     ngmin = (int)strtod(eee,NULL) ;
+     if( Hduplo ){ ngmin /= 2 ; if( ngmin < 15 ) ngmin = 15 ; }
    }
         if( ngmin   <  NGMIN ) ngmin = NGMIN ;
    else if( ngmin%2 == 0     ) ngmin-- ;
@@ -5092,12 +5086,13 @@ ENTRY("IW3D_warpomatic") ;
 
      Hfactor = (1.0f-HHH) + HHH*powf(BBB,(float)(lev-1)) ;  /* max displacement allowed */
 
-     iter = MAX(xwid,ywid) ; iter = MAX(iter,zwid) ;
+#if 0
      eee = getenv("AFNI_WARPOMATIC_DFINAL") ;
      if( levdone && !Hduplo && eee != NULL ){
             if( toupper(*eee) == 'C' ) qmode = MRI_CUBIC ;
        else if( toupper(*eee) == 'Q' ) qmode = MRI_QUINTIC ;
      }
+#endif
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
 
@@ -5122,11 +5117,19 @@ ENTRY("IW3D_warpomatic") ;
              else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
              Hcostold = Hcost ;
              iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
-             if( iter > 144 && qmode > 0 && Hcostold-Hcost > 0.00001f )
+#if 0
+             if( Hcost > Hcostold+0.001f ){
+               if( Hverb ) ININFO_message(" -- rerun --") ;
+               iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             }
+#if 0
+             else if( iter > 144 && qmode > 0 && Hcostold-Hcost > 0.00002f )
                iter = IW3D_improve_warp( qmode    , ibot,itop , jbot,jtop , kbot,ktop ) ;
+#endif
+#endif
              if( Hcost < Hstopcost ){
-                ININFO_message("  ######### cost has reached stopping value") ;
-                goto DoneDoneDone ;
+               ININFO_message("  ######### cost has reached stopping value") ;
+               goto DoneDoneDone ;
              }
            }
          }
@@ -5146,11 +5149,19 @@ ENTRY("IW3D_warpomatic") ;
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
              Hcostold = Hcost ;
              iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
-             if( iter > 144 && qmode > 0 && Hcostold-Hcost > 0.00001f )
+#if 0
+             if( Hcost > Hcostold+0.001f ){
+               if( Hverb ) ININFO_message(" -- rerun --") ;
+               iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             }
+#if 0
+             else if( iter > 144 && qmode > 0 && Hcostold-Hcost > 0.00002f )
                iter = IW3D_improve_warp( qmode    , ibot,itop , jbot,jtop , kbot,ktop ) ;
+#endif
+#endif
               if( Hcost < Hstopcost ){
-                 ININFO_message("  ######### cost has reached stopping value") ;
-                 goto DoneDoneDone ;
+                ININFO_message("  ######### cost has reached stopping value") ;
+                goto DoneDoneDone ;
               }
            }
          }
@@ -5186,7 +5197,8 @@ ENTRY("IW3D_warp_s2bim") ;
    if( Hshrink > 1.0f                       ) Hshrink = 1.0f / Hshrink ;
    if( Hshrink < 0.444f || Hshrink > 0.888f ) Hshrink = 0.749999f ;
    else                                       ININFO_message("  -- Hshrink set to %.6f",Hshrink) ;
-   Hlev_start = 0 ;
+   Hlev_start = 0 ; Hnpar_sum = 0 ;
+
    Swarp = IW3D_warpomatic( bim , wbim , sim , meth_code , warp_flags ) ;
 
    outim = IW3D_warp_floatim( Swarp, sim , interp_code ) ;
@@ -5453,7 +5465,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
    Hshrink    = 0.749999f ;
    Hlev_start = 0 ;
    Hpen_fac  *= 10.0f ;
-   Hduplo     = 1 ;
+   Hduplo     = 1 ; Hnpar_sum = 0 ;
 
    Dwarp = IW3D_warpomatic( bimd , wbimd , simd , meth_code , warp_flags ) ;
 
