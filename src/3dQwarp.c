@@ -11,7 +11,7 @@
 static int auto_weight    = 2 ;
 static float auto_wclip   = 0.0f ;
 static float auto_wpow    = 1.0f ;
-static int auto_dilation  = 9 ;
+static int auto_dilation  = 5 ;
 static float wt_medsmooth = 2.25f ;
 static float wt_gausmooth = 4.50f ;
 
@@ -434,6 +434,8 @@ int main( int argc , char *argv[] )
      oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_WSINC5 , meth , 0 ) ;
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
+
+   INFO_message("===== total number of parameters = %d",Hnpar_sum) ;
 
    oim = oiw->im ; oww = oiw->warp ;
 
