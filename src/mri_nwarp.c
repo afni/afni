@@ -4536,7 +4536,6 @@ ENTRY("IW3D_cleanup_improvement") ;
 
    Hstopcost = -9999999.9f ;
    Hstopped  = 0 ;
-   Hduplo    = 0 ;
    Hfinal    = 0 ;
 
    EXRETURN ;
@@ -5210,7 +5209,7 @@ ENTRY("IW3D_warp_s2bim") ;
    if( Hshrink > 1.0f                       ) Hshrink = 1.0f / Hshrink ;
    if( Hshrink < 0.444f || Hshrink > 0.888f ) Hshrink = 0.749999f ;
    else                                       ININFO_message("  -- Hshrink set to %.6f",Hshrink) ;
-   Hlev_start = 0 ; Hnpar_sum = 0 ;
+   Hlev_start = 0 ; Hnpar_sum = 0 ; Hduplo = 0 ;
 
    Swarp = IW3D_warpomatic( bim , wbim , sim , meth_code , warp_flags ) ;
 
