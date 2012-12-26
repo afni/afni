@@ -4769,6 +4769,7 @@ extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
 # define floatfix(x) if( !isfinite(x) ) (x) = 0.0f ; else
 #else
 # define floatfix(x) if( !finite(x) ) (x) = 0.0f ; else
+# define isfinite    finite
 #endif
 
 extern int mri_floatscan  ( MRI_IMAGE * ) ;     /* 22 Feb 2007 */
