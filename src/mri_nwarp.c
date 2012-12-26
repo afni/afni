@@ -3372,6 +3372,7 @@ static float        Hblur_s     = 0.0f ;
 static int          Hforce      = 0    ;
 static float        Hfactor     = 0.44f;
 static float        Hshrink     = 0.749999f ;
+static int          Hngmin      = 25 ;
 static IndexWarp3D *Haawarp     = NULL ; /* initial warp we are modifying (global) */
 static void        *Hincor      = NULL ; /* INCOR 'correlation' struct */
 static MRI_IMAGE   *Haasrcim    = NULL ; /* warped source image (global) */
@@ -3389,6 +3390,7 @@ static int Hlev_start =   0 ;
 static int Hlev_end   = 666 ;
 static int Hlev_final =   0 ;
 static int Hduplo     =   0 ;
+static int Hfinal     =   0 ;
 
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
@@ -4469,10 +4471,10 @@ double IW3D_scalar_costfun( int npar , double *dpar )
 
    /* compute the rest of the cost function */
 
-   cost = (double)INCOR_evaluate( Hincor , Hnval ,
-                                  (Hbval != NULL ) ? Hbval : MRI_FLOAT_PTR(Hbasim),
-                                  Hwval ,
-                                  (Haawt != NULL ) ? Haawt : MRI_FLOAT_PTR(Hwtim) ) ;
+   cost = INCOR_evaluate( Hincor , Hnval ,
+                          (Hbval != NULL ) ? Hbval : MRI_FLOAT_PTR(Hbasim),
+                          Hwval ,
+                          (Haawt != NULL ) ? Haawt : MRI_FLOAT_PTR(Hwtim) ) ;
    if( Hnegate ) cost = -cost ;
 
    if( !isfinite(cost) ){
@@ -4482,7 +4484,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
    }
 
    if( Hpen_use ){
-     Hpenn = HPEN_penalty() ; cost += Hpenn ;
+     Hpenn = HPEN_penalty() ; cost += Hpenn ;  /* penalty is saved in Hpenn */
    } else {
      Hpenn = 0.0f ;
    }
@@ -4534,6 +4536,8 @@ ENTRY("IW3D_cleanup_improvement") ;
 
    Hstopcost = -9999999.9f ;
    Hstopped  = 0 ;
+   Hduplo    = 0 ;
+   Hfinal    = 0 ;
 
    EXRETURN ;
 }
@@ -4879,18 +4883,19 @@ ENTRY("IW3D_improve_warp") ;
      xtop[ii]   =  Hbasis_parmax ;
    }
 
-   powell_set_mfac( 1.01f , 3.0f ) ;
+   powell_set_mfac( 1.001f , 2.001f ) ;
 
    /***** HERE is the actual optimization! *****/
 
-   itmax = (Hduplo) ? 5*Hnparmap+67 : 8*Hnparmap+107 ;
+   itmax = (Hduplo) ? 5*Hnparmap+23 : 8*Hnparmap+37 ;
+   if( Hfinal ) itmax += Hnparmap ;
 
 #if 0
    if( Hverb ) powell_set_verbose(1) ;
 #endif
 
-   iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 7 ,
-                             prad,0.1*prad , itmax , IW3D_scalar_costfun ) ;
+   iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
+                             prad,0.009*prad , itmax , IW3D_scalar_costfun ) ;
 
    if( iter > 0 ) Hnpar_sum += Hnparmap ;
 
@@ -5005,12 +5010,16 @@ ENTRY("IW3D_warpomatic") ;
 
    if( !Hduplo ) ITEROUT(0) ;
 
+   if( Hngmin > 0 ){
+     ngmin = Hngmin ;
+     if( Hduplo ){ ngmin /= 2 ; if( ngmin < 19 ) ngmin = 19 ; }
+   }
                      eee = getenv("AFNI_WARPOMATIC_PATCHMIN") ;
    if( eee == NULL ) eee = getenv("AFNI_WARPOMATIC_MINPATCH") ;
    if( eee == NULL ) eee = getenv("AFNI_WARPOMATIC_NGMIN"   ) ;
    if( eee != NULL && isdigit(eee[0]) ){
      ngmin = (int)strtod(eee,NULL) ;
-     if( Hduplo ){ ngmin /= 2 ; if( ngmin < 15 ) ngmin = 15 ; }
+     if( Hduplo ){ ngmin /= 2 ; if( ngmin < 17 ) ngmin = 17 ; }
    }
         if( ngmin   <  NGMIN ) ngmin = NGMIN ;
    else if( ngmin%2 == 0     ) ngmin-- ;
@@ -5063,6 +5072,7 @@ ENTRY("IW3D_warpomatic") ;
      } else {
        iter = MAX(xwid,ywid) ; iter = MAX(iter,zwid) ; levdone = (iter == ngmin) ;
      }
+     Hfinal = (levdone && !Hduplo) ;
 
      /* step sizes for shifting the patches */
 
@@ -5081,10 +5091,13 @@ ENTRY("IW3D_warpomatic") ;
      jttt = jmax+ydel/2+1 ; if( jttt >= Hny ) jttt = Hny-1 ;
      kttt = kmax+zdel/2+1 ; if( kttt >= Hnz ) kttt = Hnz-1 ;
 
+#if 0
 #define HHH 0.333f
 #define BBB 0.888f
-
      Hfactor = (1.0f-HHH) + HHH*powf(BBB,(float)(lev-1)) ;  /* max displacement allowed */
+#else
+     Hfactor = 1.0f ;
+#endif
 
 #if 0
      eee = getenv("AFNI_WARPOMATIC_DFINAL") ;

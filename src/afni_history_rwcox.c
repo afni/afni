@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 5 , DEC , 2012 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+  { 26 , DEC , 2012 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
+   "-virtvec option for Javier" ,
+   NULL } ,
+
+ { 5 , DEC , 2012 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "add Detrend button to Opt menu" ,
    "Detrends each time series before plotting.  For Javier." } ,
 
