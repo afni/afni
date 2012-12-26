@@ -344,6 +344,11 @@ typedef struct { double a,b ; } double_pair ;
 typedef struct { double a,b,c ; } double_triple ;
 #endif
 
+#ifndef TYPEDEF_double_quad
+#define TYPEDEF_double_quad
+typedef struct { double a,b,c,d ; } double_quad ;
+#endif
+
 /*-------*/
 
 /*! Triple to hold RGB bytes. */
