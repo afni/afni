@@ -335,10 +335,18 @@
 
   static int proc_ind                 ; /* index of THIS job */
 
+  static int         virtu_mrv  = 0   ; /* use a virtual vectim? [26 Dec 2012] */
+  static char       *fname_mrv  = NULL;
+  static MRI_vectim *inset_mrv  = NULL;
+
 #else   /* can't use multiple processes */
 
 # define proc_numjob 1   /* flag that only 1 process is in use */
 # define proc_ind    0   /* index of THIS job */
+
+# define virtu_mrv   0   /* 26 Dec 2012 */
+# define fname_mrv   NULL
+# define inset_mrv   NULL
 
 #endif
 
@@ -1735,6 +1743,13 @@ void display_help_menu(int detail)
             "           http://afni.nimh.nih.gov/afni/doc/misc/afni_parallelize\n"
             "         * Also use -mask or -automask to get more speed; cf. 3dAutomask.\n"
           , PROC_MAX ) ;
+
+    printf( "\n"
+            "-virtvec   To save memory, write the input dataset to a temporary file\n"
+            "           and then read data vectors from it only as needed.  This option\n"
+            "           is for Javier and will probably not be useful for anyone else.\n"
+            "           And it only takes effect if -jobs is greater than 1.\n"
+          ) ;
 #endif
 
     printf("\n"
@@ -3325,6 +3340,12 @@ void get_options
         proc_use_jobs = 1 ;     /* -jobs opt given    2003.08.15 [rickr] */
         nopt++; continue;
       }
+
+#ifdef PROC_MAX
+      if( strcmp(argv[nopt],"-virtvec") == 0 ){  /* 26 Dec 2012 */
+        virtu_mrv = 1 ; nopt++ ; continue ;
+      }
+#endif
 
 #if 0
       /*----- -Dname=val to set environment variable [07 Dec 2007] -----*/
@@ -5860,7 +5881,6 @@ ENTRY("initialize_program") ;
 }
 
 
-#ifndef USE_GET
 /*---------------------------------------------------------------------------*/
 /*
   Get the time series for one voxel from the AFNI 3D+time data set.
@@ -5905,7 +5925,6 @@ void extract_ts_array
   mri_free (im);   im = NULL;
 
 }
-#endif /* USE_GET */
 
 
 /*---------------------------------------------------------------------------*/
@@ -6321,6 +6340,8 @@ void calculate_results
 
 #ifdef USE_GET
   int do_get = 0 ;            /* flag to use multi-gets */
+#else
+# define do_get 0
 #endif
 
   int qp;                     /* number of poly. trend baseline parameters */
@@ -6389,6 +6410,7 @@ void calculate_results
 
   int vstep ;                  /* interval progress meter dots */
   double ct ;                  /* clock time */
+  FILE *mfp=NULL ;             /* 26 Dec 2012 */
 
 ENTRY("calculate_results") ;
 
@@ -6925,7 +6947,7 @@ STATUS("computing message from esum") ;
 
         if( nvox < proc_numjob ){  /* too few voxels for multiple jobs? */
 
-          proc_numjob = 1 ;
+          proc_numjob = 1 ; virtu_mrv = 0 ;
 
         } else {                   /* prepare jobs */
 
@@ -6955,6 +6977,33 @@ STATUS("computing message from esum") ;
           /* make sure dataset is in memory before forks */
 
           DSET_load(dset) ;  /* so dataset will be common */
+
+          if( virtu_mrv ){  /* create a vectim and virtualize it, for Javier */
+            INFO_message("-virtvec: Starting creation of virtual vector image") ;
+            MEM_MESSAGE ;
+            inset_mrv = THD_dset_to_vectim( dset , mask_vol , 0 ) ;
+            if( inset_mrv == NULL ){
+              ERROR_message("Can't create vector image in RAM?!") ; virtu_mrv = 0 ;
+            } else {
+              DSET_unload(dset) ;
+              INFO_message("vector image created in RAM") ;
+              MEM_MESSAGE ;
+              fname_mrv = mri_get_tempfilename("JUNK") ;
+              pp = THD_vectim_data_tofile( inset_mrv , fname_mrv ) ;
+              if( pp == 0 ){
+                ERROR_message("Can't write vector image to temp file %s",fname_mrv) ;
+                virtu_mrv = 0 ; free(fname_mrv) ; VECTIM_destroy(inset_mrv) ;
+                DSET_load(dset) ; MEM_MESSAGE ;
+              } else {
+                free(inset_mrv->fvec) ; inset_mrv->fvec = NULL ;
+                INFO_message("vector image stored in temp file %s",fname_mrv) ;
+                MEM_MESSAGE ;
+#ifdef USE_GET
+                do_get = 0 ;
+#endif
+              }
+            }
+          }
 
           /* start processes */
 
@@ -6997,6 +7046,11 @@ STATUS("computing message from esum") ;
             INFO_message("Job #%d: processing voxels %d to %d; elapsed time=%.3f",
                     proc_ind,ixyz_bot,ixyz_top-1,COX_clock_time()) ;
         }
+      } else {
+
+        WARNING_message("-virtvec: ignoring option since -jobs isn't greater than 1") ;
+        virtu_mrv = 0 ;  /* 26 Dec 2012 */
+
       }
 #endif /* PROC_MAX */
 
@@ -7013,6 +7067,14 @@ STATUS("computing message from esum") ;
           (proc_numjob > 1 && proc_ind != 0) ) vstep = 0 ;
 
       if( vstep > 0 ) fprintf(stderr,"++ voxel loop:") ;
+
+      if( virtu_mrv && fname_mrv != NULL ){  /* 26 Dec 2012 */
+        mfp = fopen(fname_mrv,"r") ;
+        if( mfp == NULL ) ERROR_exit("Job #%d: can't re-open temp file %s",proc_ind,fname_mrv) ;
+        if( ts_array == NULL ){
+          ts_array = (float *) malloc (sizeof(float) * nt);   MTEST (ts_array);
+        }
+      }
 
       /*----- Loop over all voxels -----*/
       for (ixyz = ixyz_bot;  ixyz < ixyz_top;  ixyz++)
@@ -7044,10 +7106,18 @@ STATUS("computing message from esum") ;
           ts_array = fmri_data;
         else {
 #ifdef USE_GET
-            ts_array = MRI_FLOAT_PTR(IMARR_SUBIM(imget,cget));  /* the GET way */
-            cget++ ;  /* take this one next time */
+            if( do_get ){
+              ts_array = MRI_FLOAT_PTR(IMARR_SUBIM(imget,cget));  /* the GET way */
+              cget++ ;  /* take this one next time */
+            } else if( mfp != NULL ){                             /* Javier's way */
+              int ijk = THD_vectim_ifind( ixyz , inset_mrv ) ;
+              if( ijk >= 0 ) THD_vector_fromfile( nt , ijk , ts_array , mfp ) ;
+              else           memset( ts_array , 0 , sizeof(float)*nt ) ;
+            } else {
+              extract_ts_array (dset, ixyz, ts_array);           /* the OLD way */
+            }
 #else
-            extract_ts_array (dset, ixyz, ts_array);            /* the OLD way */
+            extract_ts_array (dset, ixyz, ts_array);             /* the OLD way */
 #endif
           }
 
@@ -7113,6 +7183,8 @@ STATUS("computing message from esum") ;
         }
 #endif
 
+        if( mfp != NULL ) fclose(mfp) ;  /* 26 Dec 2012 */
+
         /*-- if this is a child process, we're done.
              if this is the parent process, wait for the children --*/
 
@@ -7138,6 +7210,12 @@ STATUS("computing message from esum") ;
 
           /* when get to here, only parent process is left alive,
              and all the results are in the shared memory segment arrays */
+
+          if( inset_mrv != NULL ){
+            VECTIM_destroy(inset_mrv) ; remove(fname_mrv) ;
+            INFO_message("-virtvec: temp file %s has been removed",fname_mrv) ;
+            free(fname_mrv) ; fname_mrv = NULL ; virtu_mrv = 0 ;
+          }
         }
 #endif
         if( proc_numjob == 1 && !option_data->quiet )

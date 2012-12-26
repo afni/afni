@@ -194,7 +194,7 @@ int main( int argc , char *argv[] )
    IndexWarp3D *oww ; Image_plus_Warp *oiw ;
    char *prefix = "Qwarp" , ppp[256] ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
-   int duplo=0 , qsave=0 , nx,ny,nz , ct ;
+   int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dQwarp [OPTIONS] base_dataset source_dataset\n") ;
@@ -253,9 +253,18 @@ int main( int argc , char *argv[] )
        "                 would use the inverse warp afterwards, via program\n"
        "                 3dNwarpCalc.\n"
        "\n"
+       " -minpatch mm  = Set the minimum patch size for warp searching to 'mm' voxels.\n"
+       "                * The value of mm should be an odd integer.\n"
+       "   *OR*         * The default value of mm is 25.\n"
+       " -patchmin mm   * For more accurate results than mm=25, try 19.\n"
+       "                * The smallest allowed value is 9 (which will be very slow).\n"
+       "                * If you want to see the warped results at various levels\n"
+       "                * of patch size, use the '-qsave' option.\n"
+       "\n"
        " -duplo        = Start off with 1/2 scale versions of the volumes,\n"
        "                 for speed.\n"
-       " -qsave        = Save intermediate warped results as well.\n"
+       " -qsave        = Save intermediate warped results as well, in a dataset\n"
+       "                 with '_SAVE' appended to the '-prefix' value.\n"
        "\n"
        "METHOD\n"
        "------\n"
@@ -266,7 +275,7 @@ int main( int argc , char *argv[] )
        "*** This program is experimental and subject to sudden drastic change! ***\n"
        "*** At some point, it will be incorporated into 3dAllineate (I hope)!! ***\n"
        "\n"
-       "--- AUTHOR = RWCox -- 30 November 2012 Anno Domini ---\n"
+       "--- AUTHOR = RWCox -- Fall/Winter 2012-13 ---\n"
      ) ;
      PRINT_AFNI_OMP_USAGE("3dQwarp",NULL) ;
      exit(0) ;
@@ -293,6 +302,13 @@ int main( int argc , char *argv[] )
    nopt = 1 ;
    Hblur_b = Hblur_s = 3.456f ;
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     if( strcasecmp(argv[nopt],"-patchmin") == 0 || strcasecmp(argv[nopt],"-minpatch") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+       minpatch = (int)strtod(argv[nopt],NULL) ;
+       if( minpatch < NGMIN ) minpatch = NGMIN ; else if( minpatch%2 == 0 ) minpatch-- ;
+       nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-duplo") == 0 ){
        duplo = 1 ; nopt++ ; continue ;
@@ -394,7 +410,21 @@ int main( int argc , char *argv[] )
      ERROR_exit("-emask doesn't match base dataset grid :-(") ;
 
    nx = DSET_NX(bset) ; ny = DSET_NY(bset) ; nz = DSET_NZ(bset) ;
-   if( duplo && (nx < 4*NGMIN || ny < 4*NGMIN || nz < 4*NGMIN) ){
+
+   nnn = 0 ;
+   if( nx >= NGMIN             ) nnn = nx ;
+   if( ny >= NGMIN && ny > nnn ) nnn = ny ;
+   if( nz >= NGMIN && nz > nnn ) nnn = nz ;
+   if( nnn == 0 )
+     ERROR_exit("dataset grid size %d x %d x %d is to small for warping",nx,ny,nz) ;
+   if( minpatch > 0 && minpatch > nnn/2 ){
+     WARNING_message("-minpatch %d is too large for dataset grid %d x %d x %d",
+                     minpatch , nx,ny,nz ) ;
+     minpatch = nnn/2 ; if( minpatch%2 == 0 ) minpatch-- ;
+   }
+   if( minpatch > 0 ) Hngmin = minpatch ;
+
+   if( duplo && (nx < 3*Hngmin || ny < 3*Hngmin || nz < 3*Hngmin) ){
      duplo = 0 ;
      INFO_message("-duplo disabled since dataset is so small: %d x %d x %d",nx,ny,nz) ;
    }
