@@ -43,6 +43,8 @@ static void poly3D( int px, int py, int pz,
 {
    register int ii ;
 
+ENTRY("poly3D") ;
+
    switch( px ){
      default: for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = 1.0f       ; break ;
      case 1:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = LP1(x[ii]) ; break ;
@@ -80,7 +82,7 @@ static void poly3D( int px, int py, int pz,
      case 9:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= LP9(z[ii]) ; break ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -91,18 +93,21 @@ static void poly3D( int px, int py, int pz,
      meth = 2 for least squares fit, 1 for L1 fit
 *//*--------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_polyfit( MRI_IMAGE *imin, int nord, byte *mask, float mrad, int meth )
+MRI_IMAGE * mri_polyfit( MRI_IMAGE *imin, int nord, MRI_IMARR *exar, byte *mask, float mrad, int meth )
 {
    MRI_IMAGE *fim ;
-   float *far,*fdat , **ref , *xx,*yy,*zz,*vv ; floatvec *fvit ;
-   int *pir , *pjr , *pkr ;
+   float *far,*fdat , **ref=NULL , *xx,*yy,*zz,*vv ; floatvec *fvit ;
+   int *pir=NULL , *pjr=NULL , *pkr=NULL ;
    int nmask , ii,jj,kk,pp,qq , nx,ny,nz,nxyz , ibot,itop,jbot,jtop,kbot,ktop ;
-   int pi,pj,pk , pitop=0,pjtop=0,pktop=0 , nref ;
+   int pi,pj,pk , pitop=0,pjtop=0,pktop=0 , nref=0 , npref=0 ;
    float imid,jmid,kmid , ifac=0.0f,jfac=0.0f,kfac=0.0f , rfac ;
+   int nex=0 ;
 
 ENTRY("mri_polyfit") ;
 
-   if( imin == NULL || nord < 0 || nord > 9 ) RETURN(NULL) ;
+   if( imin == NULL || (nord < 0 && exar == NULL) || nord > 9 ) RETURN(NULL) ;
+
+   if( nord < -1 ) nord = -1 ;
 
    ii = mri_dimensionality(imin) ;
    if( ii < 2 || ii > 3 ){
@@ -110,9 +115,12 @@ ENTRY("mri_polyfit") ;
      RETURN(NULL) ;
    }
 
+   if( exar != NULL ) nex = IMARR_COUNT(exar) ;
+
    if( mask != NULL ) nmask = THD_countmask( imin->nvox , mask ) ;
    else               nmask = imin->nvox ;
-   jj = 8*(int)rint( pow( (double)(nord+1) , (double)ii ) ) ;
+
+   jj = 8*( nex + (int)rint( pow( (double)(nord+1) , (double)ii ) ) ) ;
    if( nmask < jj ){
      if( verb ) ERROR_message("mri_polyfit: #points=%d < %d",nmask,jj) ;
      RETURN(NULL) ;
@@ -144,49 +152,65 @@ ENTRY("mri_polyfit") ;
       if( ((ibot>=itop) + (jbot>=jtop) + (kbot>=ktop)) > 1 ) RETURN(NULL) ;
    }
 
-   imid = 0.5f*(ibot+itop) ; jmid = 0.5f*(jbot+jtop) ; kmid = 0.5f*(kbot+ktop) ;
+   if( nord >= 0 ){
+     imid = 0.5f*(ibot+itop) ; jmid = 0.5f*(jbot+jtop) ; kmid = 0.5f*(kbot+ktop) ;
 
-   if( ibot < itop ){ pitop = nord ; ifac = 2.0f/(itop-ibot) ; }
-   if( jbot < jtop ){ pjtop = nord ; jfac = 2.0f/(jtop-jbot) ; }
-   if( kbot < ktop ){ pktop = nord ; kfac = 2.0f/(ktop-kbot) ; }
+     if( ibot < itop ){ pitop = nord ; ifac = 2.0f/(itop-ibot) ; }
+     if( jbot < jtop ){ pjtop = nord ; jfac = 2.0f/(jtop-jbot) ; }
+     if( kbot < ktop ){ pktop = nord ; kfac = 2.0f/(ktop-kbot) ; }
 
-   xx = (float *)malloc(sizeof(float)*nmask) ;
-   yy = (float *)malloc(sizeof(float)*nmask) ;
-   zz = (float *)malloc(sizeof(float)*nmask) ;
-   for( pp=qq=kk=0 ; kk < nz ; kk++ ){
-    for( jj=0 ; jj < ny ; jj++ ){
-      for( ii=0 ; ii < nx ; ii++,qq++ ){
-        if( GOOD(qq) ){
-          xx[pp] = (ii-imid)*ifac ;
-          yy[pp] = (jj-jmid)*jfac ;
-          zz[pp] = (kk-kmid)*kfac ; pp++ ;
-        }
-   }}}
+     xx = (float *)malloc(sizeof(float)*nmask) ;
+     yy = (float *)malloc(sizeof(float)*nmask) ;
+     zz = (float *)malloc(sizeof(float)*nmask) ;
+     for( pp=qq=kk=0 ; kk < nz ; kk++ ){
+      for( jj=0 ; jj < ny ; jj++ ){
+        for( ii=0 ; ii < nx ; ii++,qq++ ){
+          if( GOOD(qq) ){
+            xx[pp] = (ii-imid)*ifac ;
+            yy[pp] = (jj-jmid)*jfac ;
+            zz[pp] = (kk-kmid)*kfac ; pp++ ;
+          }
+     }}}
 
-   pir = (int *)malloc(sizeof(int)*(pktop+1)*(pjtop+1)*(pitop+1)) ;
-   pjr = (int *)malloc(sizeof(int)*(pktop+1)*(pjtop+1)*(pitop+1)) ;
-   pkr = (int *)malloc(sizeof(int)*(pktop+1)*(pjtop+1)*(pitop+1)) ;
-   for( nref=pk=0 ; pk <= pktop ; pk++ ){
-    for( pj=0 ; pj <= pjtop ; pj++ ){
-     for( pi=0 ; pi <= pitop ; pi++ ){
-       if( pi+pj+pk <= nord ){
-         pir[nref] = pi ; pjr[nref] = pj ; pkr[nref] = pk ; nref++ ;
-       }
-   }}}
+     pir = (int *)malloc(sizeof(int)*(pktop+1)*(pjtop+1)*(pitop+1)) ;
+     pjr = (int *)malloc(sizeof(int)*(pktop+1)*(pjtop+1)*(pitop+1)) ;
+     pkr = (int *)malloc(sizeof(int)*(pktop+1)*(pjtop+1)*(pitop+1)) ;
+     for( nref=pk=0 ; pk <= pktop ; pk++ ){
+      for( pj=0 ; pj <= pjtop ; pj++ ){
+       for( pi=0 ; pi <= pitop ; pi++ ){
+         if( pi+pj+pk <= nord ){
+           pir[nref] = pi ; pjr[nref] = pj ; pkr[nref] = pk ; nref++ ;
+         }
+     }}}
+     npref = nref ;
 
-   if( verb )
-     ININFO_message("create %d polynomial regressors",nref) ;
+     if( verb )
+       ININFO_message("create %d polynomial regressors with %d points each",nref,nmask) ;
 
-   ref = (float **)malloc(sizeof(float *)*nref) ;
-   for( kk=0 ; kk < nref ; kk++ ){
-     ref[kk] = (float *)malloc(sizeof(float)*nmask) ;
-     poly3D( pir[kk],pjr[kk],pkr[kk] , nmask , xx,yy,zz , ref[kk] ) ;
+     ref = (float **)malloc(sizeof(float *)*nref) ;
+     for( kk=0 ; kk < nref ; kk++ ){
+       ref[kk] = (float *)malloc(sizeof(float)*nmask) ;
+       poly3D( pir[kk],pjr[kk],pkr[kk] , nmask , xx,yy,zz , ref[kk] ) ;
+     }
+     free(zz) ; free(yy) ; free(xx) ;
    }
-   free(zz) ; free(yy) ; free(xx) ;
+
+   if( nex > 0 ){            /* 27 Dec 2012 */
+     float *ex, *rr ;
+     if( verb ) ININFO_message("add %d image regressors",nex) ;
+     ref = (float **)realloc(ref,sizeof(float *)*(npref+nex)) ;
+     for( kk=0 ; kk < nex ; kk++ ){
+       ex = MRI_FLOAT_PTR(IMARR_SUBIM(exar,kk)) ;
+       rr = ref[npref+kk] = (float *)malloc(sizeof(float)*nmask) ;
+       for( qq=ii=0 ; ii < nxyz ; ii++ ){ if( GOOD(ii) ) rr[qq++] = ex[ii]; }
+     }
+     nref = npref + nex ;
+   }
 
    fim = mri_to_float(imin) ;  /* convert input to float */
    if( mrad > 0.0f ){
      MRI_IMAGE *qim ;
+     if( verb ) ININFO_message("median filter input image") ;
      qim =  mri_medianfilter(fim,mrad,mask,verb) ;
      if( qim != NULL ){ mri_free(fim) ; fim = qim ; }
    }
@@ -199,9 +223,10 @@ ENTRY("mri_polyfit") ;
      fdat = far ;
    }
 
-   if( verb ) ININFO_message("fit polynomial field to data") ;
         if( meth < 1 ) meth = 1 ;
    else if( meth > 2 ) meth = 2 ;
+   if( verb ) ININFO_message("L%d fit polynomial field to data",meth) ;
+
    fvit = THD_fitter( nmask , fdat , nref , ref , meth , NULL ) ;
 
    if( fdat != far ) free(fdat) ;
@@ -209,33 +234,45 @@ ENTRY("mri_polyfit") ;
    free(ref) ;
 
    if( fvit == NULL ){
-     free(pir) ; free(pjr) ; free(pkr) ;
+     if( pir != NULL ){ free(pir); free(pjr); free(pkr); }
      ERROR_message("Can't calculate fit in mri_polyfit?! :-(") ;
      RETURN(NULL) ;
    }
 
-   if( verb ) ININFO_message("compute final fit polynomial field") ;
-   xx = (float *)malloc(sizeof(float)*nxyz) ;
-   yy = (float *)malloc(sizeof(float)*nxyz) ;
-   zz = (float *)malloc(sizeof(float)*nxyz) ;
-   vv = (float *)malloc(sizeof(float)*nxyz) ;
-   for( qq=kk=0 ; kk < nz ; kk++ ){
-    for( jj=0 ; jj < ny ; jj++ ){
-      for( ii=0 ; ii < nx ; ii++,qq++ ){
-        xx[qq] = (ii-imid)*ifac ;
-        yy[qq] = (jj-jmid)*jfac ;
-        zz[qq] = (kk-kmid)*kfac ;
-   }}}
-
    memset( far , 0 , sizeof(float)*nxyz ) ;
-   for( kk=0 ; kk < nref ; kk++ ){
-     poly3D( pir[kk],pjr[kk],pkr[kk] , nxyz , xx,yy,zz , vv ) ;
-     rfac = fvit->ar[kk] ;
-     for( ii=0 ; ii < nxyz ; ii++ ) far[ii] += rfac * vv[ii] ;
+
+   if( nord >= 0 ){
+     if( verb ) ININFO_message("compute final fit polynomial field") ;
+     xx = (float *)malloc(sizeof(float)*nxyz) ;
+     yy = (float *)malloc(sizeof(float)*nxyz) ;
+     zz = (float *)malloc(sizeof(float)*nxyz) ;
+     vv = (float *)malloc(sizeof(float)*nxyz) ;
+     for( qq=kk=0 ; kk < nz ; kk++ ){
+      for( jj=0 ; jj < ny ; jj++ ){
+        for( ii=0 ; ii < nx ; ii++,qq++ ){
+          xx[qq] = (ii-imid)*ifac ;
+          yy[qq] = (jj-jmid)*jfac ;
+          zz[qq] = (kk-kmid)*kfac ;
+     }}}
+
+     for( kk=0 ; kk < npref ; kk++ ){
+       poly3D( pir[kk],pjr[kk],pkr[kk] , nxyz , xx,yy,zz , vv ) ;
+       rfac = fvit->ar[kk] ;
+       for( ii=0 ; ii < nxyz ; ii++ ) far[ii] += rfac * vv[ii] ;
+     }
+     free(pir); free(pjr); free(pkr); free(vv); free(zz); free(yy); free(xx);
    }
 
-   KILL_floatvec(fvit); free(pir); free(pjr); free(pkr);
-   free(vv); free(zz); free(yy); free(xx);
+   if( nex > 0 ){
+     float *ex ;
+     for( kk=0 ; kk < nex ; kk++ ){
+       ex = MRI_FLOAT_PTR(IMARR_SUBIM(exar,kk)) ;
+       rfac = fvit->ar[kk+npref] ;
+       for( ii=0 ; ii < nxyz ; ii++ ) far[ii] += rfac * ex[ii] ;
+     }
+   }
+
+   KILL_floatvec(fvit);
 
    RETURN(fim) ;
 }
