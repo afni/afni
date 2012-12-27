@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , DEC , 2012 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
+  { 27 , DEC , 2012 , RWC , "3dPolyfit" , MICRO , TYPE_NEW_OPT ,
+   "Add '-base' option" ,
+   "To allow fitting (in space) arbitrary input images, as well as (spatial)\n"
+   "polynomials." } ,
+
+ { 26 , DEC , 2012 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
    "-virtvec option for Javier" ,
    NULL } ,
 
