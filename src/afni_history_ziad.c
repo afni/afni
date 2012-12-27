@@ -65,6 +65,17 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 27, Dec , 2012 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
+   "Increased buffer size for reading one line.",
+   "See LBUF in mri_read.c, also added error message when\n"
+   "line is too long for LBUF in afni_fgets()\n"
+ },
+
+ { 21, Dec , 2012 , ZSS , "@clip_volume" , MICRO , TYPE_NEW_OPT,
+   "Added options -crop_allzero and -crop_greedy.",
+   NULL
+ },
+
  { 18, Dec , 2012 , ZSS , "cat_matvec" , MICRO , TYPE_NEW_OPT,
    "option -4x4 to output augmented matrix.",
    NULL

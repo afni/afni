@@ -2074,7 +2074,8 @@ ENTRY("mri_read_ppm") ;
 
 /*! Length of line buffer for mri_read_ascii() */
 /* rcr - improve this */
-#define LBUF 2524288  /* 08 Jul 2004: increased to 512K from 64K */
+#define LBUF 5048576  /* 08 Jul 2004: increased to 512K from 64K 
+                         27 Dec 2012: increased to 1024K from 512K  */
 
 /*! Free a buffer and set it to NULL */
 #define FRB(b) do{ if( (b)!=NULL ){free((b)); (b)=NULL;} }while(0)
