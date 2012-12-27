@@ -7,10 +7,12 @@ int main( int argc , char * argv[] )
    float mrad=0.0f , fwhm=0.0f ;
    int nrep=1 ;
    char *prefix = "Polyfit" ;
+   char *resid  = NULL ;
    int iarg , verb=0 , do_automask=0 , nord=3 , meth=2 , do_mclip=0 ;
-   THD_3dim_dataset *inset , *outset ;
+   THD_3dim_dataset *inset ;
    MRI_IMAGE *imout , *imin ;
    byte *mask=NULL ; int nvmask=0 , nmask=0 , do_mone=0 ;
+   MRI_IMARR *exar=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dPolyfit [options] dataset\n"
@@ -23,7 +25,8 @@ int main( int argc , char * argv[] )
              "                [default is no blurring of either type; you can]\n"
              "                [do both types (Gaussian and median), but why??]\n"
              "                [N.B.: median blur is much slower than Gaussian]\n"
-             "  -prefix pp = Use 'pp' for prefix of output dataset\n"
+             "  -prefix pp = Use 'pp' for prefix of output dataset (the fit).\n"
+             "  -resid  rr = Use 'rr' for the prefix of the residual dataset.\n"
              "  -automask  = Create a mask (a la 3dAutomask)\n"
              "  -mask mset = Create a mask from nonzero voxels in 'mset'.\n"
              "  -mone      = Scale the mean value of the fit (inside the mask) to 1.\n"
@@ -31,10 +34,16 @@ int main( int argc , char * argv[] )
              "               to the edge of the box, to avoid weird artifacts.\n"
              "  -meth mm   = Set 'mm' to 2 for least squares fit;\n"
              "               set it to 1 for L1 fit [default method=2]\n"
+             "  -base bb   = In addition to the polynomial fit, also use\n"
+             "               the volumes in dataset 'bb' as extra basis functions.\n"
+             "                [If you use a base dataset, then you can set]\n"
+             "                [nord to -1, to skip using a polynomial fit.]\n"
              "  -verb      = Print fun and useful progress reports :-)\n"
              "\n"
-             "Output dataset is always stored in float format.  If the input\n"
-             "dataset has more than 1 sub-brick, only sub-brick #0 is processed.\n"
+             "* Output dataset is always stored in float format.\n"
+             "* If the input dataset has more than 1 sub-brick, only sub-brick #0\n"
+             "  is processed.\n"
+             "* If the -base dataset has multiple sub-bricks, all of them are used.\n"
              "\n"
              "-- Dec 2010 - RWCox - beats workin' for a living\n"
             ) ;
@@ -48,6 +57,22 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-base") == 0 ){
+       THD_3dim_dataset *bset ; int kk ; MRI_IMAGE *bim ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-base'") ;
+       bset = THD_open_dataset(argv[iarg]) ;
+       CHECK_OPEN_ERROR(bset,argv[iarg]) ;
+       DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
+       if( exar == NULL ) INIT_IMARR(exar) ;
+       for( kk=0 ; kk < DSET_NVALS(bset) ; kk++ ){
+         bim = THD_extract_float_brick(kk,bset) ;
+         if( bim != NULL ) ADDTO_IMARR(exar,bim) ;
+         DSET_unload_one(bset,kk) ;
+       }
+       DSET_delete(bset) ;
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-verb") == 0 ){
        verb++ ; iarg++ ; continue ;
@@ -71,14 +96,14 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[iarg],"-nord") == 0 ){
        nord = (int)strtol( argv[++iarg], NULL , 10 ) ;
-       if( nord < 0 || nord > 9 )
+       if( nord < -1 || nord > 9 )
          ERROR_exit("Illegal value after -nord!") ;
        iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-meth") == 0 ){
        meth = (int)strtol( argv[++iarg], NULL , 10 ) ;
-       if( nord < 1 || nord > 2 )
+       if( meth < 1 || meth > 2 )
          ERROR_exit("Illegal value after -meth!") ;
        iarg++ ; continue ;
      }
@@ -112,14 +137,28 @@ int main( int argc , char * argv[] )
        prefix = argv[++iarg] ;
        if( !THD_filename_ok(prefix) )
          ERROR_exit("Illegal value after -prefix!\n");
+       if( strcmp(prefix,"NULL") == 0 ) prefix = NULL ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-resid") == 0 ){
+       resid = argv[++iarg] ;
+       if( !THD_filename_ok(resid) )
+         ERROR_exit("Illegal value after -resid!\n");
+       if( strcmp(resid,"NULL") == 0 ) resid = NULL ;
        iarg++ ; continue ;
      }
 
      ERROR_exit("Unknown option: %s\n",argv[iarg]);
    }
 
+   /*--- check for errors ---*/
+
    if( iarg >= argc )
-     ERROR_exit("No dataset name on command line?\n");
+     ERROR_exit("No dataset name on command line?");
+
+   if( prefix == NULL && resid == NULL )
+     ERROR_exit("-prefix and -resid are both NULL?!") ;
 
    /*-- read input --*/
 
@@ -141,6 +180,32 @@ int main( int argc , char * argv[] )
      nmask = THD_countmask( nvmask , mask ) ;
      if( nmask < 99 ) ERROR_exit("Too few voxels in automask (%d)",nmask) ;
      if( verb ) ININFO_message("Number of voxels in automask = %d",nmask) ;
+   }
+
+#undef  GOOD
+#define GOOD(i) (mask == NULL || mask[i])
+
+   if( exar != NULL ){
+     int ii,kk , nvbad=0 , nvox=DSET_NVOX(inset),nm ; float *ex , exb ;
+     for( kk=0 ; kk < IMARR_COUNT(exar) ; kk++ ){
+       if( nvox != IMARR_SUBIM(exar,kk)->nvox ){
+         if( IMARR_SUBIM(exar,kk)->nvox != nvbad ){
+           ERROR_message("-base volume (%d voxels) doesn't match input dataset grid size (%d voxels)",
+                         IMARR_SUBIM(exar,kk)->nvox , nvox ) ;
+           nvbad = IMARR_SUBIM(exar,kk)->nvox ;
+         }
+       }
+     }
+     if( nvbad != 0 ) ERROR_exit("Cannot continue :-(") ;
+
+     if( nord >= 0 ){
+       for( kk=0 ; kk < IMARR_COUNT(exar) ; kk++ ){
+         exb = 0.0f ; ex = MRI_FLOAT_PTR(IMARR_SUBIM(exar,kk)) ;
+         for( nm=ii=0 ; ii < nvox ; ii++ ){ if( GOOD(ii) ){ exb += ex[ii]; nm++; } }
+         exb /= nm ;
+         for( ii=0 ; ii < nvox ; ii++ ) ex[ii] -= exb ;
+       }
+     }
    }
 
    if( mask != NULL && (fwhm > 0.0f || mrad > 0.0f) ){
@@ -173,11 +238,11 @@ int main( int argc , char * argv[] )
    }
 
    mri_polyfit_verb(verb) ;
-   imout = mri_polyfit( imin , nord , mask , mrad , meth ) ;
+   imout = mri_polyfit( imin , nord , exar , mask , mrad , meth ) ;
 
    if( imout == NULL )
      ERROR_exit("Can't compute polynomial fit :-( !?") ;
-   free(imin) ;
+   if( resid == NULL ) mri_free(imin) ;
 
    if( do_mone ){
      float sum=0.0f ; int nsum=0 , ii,nvox ; float *par=MRI_FLOAT_PTR(imout) ;
@@ -228,16 +293,37 @@ int main( int argc , char * argv[] )
 
    if( mask != NULL ) free(mask) ;
 
-   outset = EDIT_empty_copy( inset )  ;
-   EDIT_dset_items( outset ,
-                      ADN_prefix , prefix ,
-                      ADN_nvals  , 1 ,
-                      ADN_ntt    , 0 ,
-                    ADN_none ) ;
-   EDIT_substitute_brick( outset , 0 , MRI_float , MRI_FLOAT_PTR(imout) ) ;
-   tross_Copy_History( inset , outset ) ;
-   tross_Make_History( "3dPolyfit" , argc,argv , outset ) ;
-   DSET_write(outset) ;
-   WROTE_DSET(outset) ;
+   if( prefix != NULL ){
+     THD_3dim_dataset *outset = EDIT_empty_copy( inset )  ;
+     EDIT_dset_items( outset ,
+                        ADN_prefix , prefix ,
+                        ADN_nvals  , 1 ,
+                        ADN_ntt    , 0 ,
+                      ADN_none ) ;
+     EDIT_substitute_brick( outset , 0 , MRI_float , MRI_FLOAT_PTR(imout) ) ;
+     tross_Copy_History( inset , outset ) ;
+     tross_Make_History( "3dPolyfit" , argc,argv , outset ) ;
+     DSET_write(outset) ;
+     WROTE_DSET(outset) ;
+   }
+
+   if( resid != NULL ){
+     THD_3dim_dataset *outset = EDIT_empty_copy( inset )  ;
+     float *inar=MRI_FLOAT_PTR(imin) , *outar=MRI_FLOAT_PTR(imout) ;
+     int nx,ny,nz , nxyz , kk ;
+     nx = imout->nx ; ny = imout->ny ; nz = imout->nz ; nxyz = nx*ny*nz ;
+     for( kk=0 ; kk < nxyz ; kk++ ) outar[kk] = inar[kk] - outar[kk] ;
+     mri_free(imin) ;
+     EDIT_dset_items( outset ,
+                        ADN_prefix , resid ,
+                        ADN_nvals  , 1 ,
+                        ADN_ntt    , 0 ,
+                      ADN_none ) ;
+     EDIT_substitute_brick( outset , 0 , MRI_float , MRI_FLOAT_PTR(imout) ) ;
+     tross_Copy_History( inset , outset ) ;
+     tross_Make_History( "3dPolyfit" , argc,argv , outset ) ;
+     DSET_write(outset) ;
+     WROTE_DSET(outset) ;
+   }
    exit(0) ;
 }
