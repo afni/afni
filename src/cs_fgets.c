@@ -53,7 +53,10 @@ char * afni_fgets( char *buf , int nbuf , FILE *fp )
        break ;                      /* in either case, am done with loop */
      }
    } while( nin < nbuf-1 ) ;    /* don't run off the end of the world */
-
+   if (nin >= nbuf -1) {
+      ERROR_message("Line too long for buffer of %d chars.", nbuf);
+      return NULL;
+   }
    if( nin == 0 ) return NULL ; /* nothing was read */
 
    buf[nin] = '\0' ;            /* Schwarznegger the string */
