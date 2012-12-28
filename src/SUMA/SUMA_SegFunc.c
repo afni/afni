@@ -3331,7 +3331,8 @@ THD_3dim_dataset *SUMA_estimate_bias_field (SEG_OPTS *Opt,
       mri_blur3D_addfwhm(imin, mm, FWHMbias); 
       /* do the fit */
       mri_polyfit_verb(Opt->debug) ;
-      if (!(imout = mri_polyfit( imin, polorder , mm , 0.0 , Opt->fitmeth )))  {
+      /* now takes 'exar' parameter; pass NULL    29 Dec 2012 [rickr] */
+      if (!(imout = mri_polyfit(imin, polorder, NULL, mm, 0.0, Opt->fitmeth))){
          ERROR_exit("Failed to fit");
       }
       dmv = MRI_FLOAT_PTR(imout) ;   

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Dec, 2012, RCR, "suma-general", MICRO, TYPE_BUG_FIX,
+   "mri_polyfit() now takes exar paramter, pass NULL",
+   NULL
+ } ,
+
  { 21, Dec, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
    "change check for recur download by looking for known string in script",
    "Thanks to S Lowell for noting the problem."
