@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.6, Dec 21, 2012
+Version 0.1.7, Dec 28, 2012
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.6, Dec 21, 2012
+Version 0.1.7, Dec 28, 2012
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -79,6 +79,20 @@ Usage:
  
  install.packages("snow")
  
+ Once the 3dMVM command script is constructed, it can be run by copying and
+ pasting to the terminal. Alternatively (and probably better) you save the 
+ script as a text file, for example, called MVM.txt, and execute it with the 
+ following  (assuming on tc shell),
+ 
+ tcsh -x MVM.txt &
+ 
+ or,
+ 
+ tcsh -x MVM.txt > diary.txt &
+ 
+ The advantage of the latter command is that the progrression is saved into
+ the text file diary.txt and, if anything goes awry, can be examined later.
+ 
  More details about 3dMVM can be found at 
  http://afni.nimh.nih.gov/sscc/gangc/MVM.html
  
@@ -86,10 +100,9 @@ Usage:
  technical support.'
 
    ex1 <- 
-"
+"\n--------------------------------
 Example 1 --- three between-subjects (genotype, sex, and scanner) and two 
 within-subject (condition and emotion) variables:
---------------------------------
    3dMVM  -prefix Example1 -jobs 4            \\
           -model  'genotype*sex+scanner'      \\
           -wsVars \"condition*emotion\"         \\
@@ -107,12 +120,15 @@ within-subject (condition and emotion) variables:
           s68   TN         female scan2   house       pos       s68+tlrc\'[face_pos_beta]\'            \\
           s68   TN         female scan2   house       neg       s68+tlrc\'[face_neg_beta]\'            \\
           s68   TN         female scan2   house       neu       s68+tlrc\'[house_pos_beta]\'                    
-     \n"
+
+   NOTE:  The model for the analysis can also be set up as and is equivalent to 
+          'genotype*sex*condition*emotion+scanner*condition*emotion'.\n"
       
    ex2 <-
-"Example 2 --- two between-subjects (genotype and sex), onewithin-subject
+"--------------------------------
+Example 2 --- two between-subjects (genotype and sex), onewithin-subject
 (emotion) factor, plus two quantitative variables (age and IQ).f
--------------------------------------------------------------------------
+
    3dMVM -prefix Example2 -jobs 4        \\
           -model  \"genotype*sex+age+IQ\"  \\
           -wsVars emotion                \\
@@ -131,12 +147,13 @@ within-subject (condition and emotion) variables:
           s63   NN         female 29   110    pos       s63+tlrc\'[pos_beta]\'          \\
           s63   NN         female 29   110    neg       s63+tlrc\'[neg_beta]\'          \\
           s63   NN         female 29   110    neu       s63+tlrc\'[neu_beta]\'         
+
+   NOTE:  The model for the analysis can be also set up as and is equivalent to 
+          'genotype*sex*emotion+age+IQ'.\n"
      
-   \n"
-   
-   
    ex3 <-
-"Example 3 --- BOLD response was modeled with multiple basis functions at individual
+"---------------------------------
+Example 3 --- BOLD response was modeled with multiple basis functions at individual
 subject level. In addition, there are one between-subjects (Group) and one within-
 subject (Condition) variable. Furthermore, the variable corresponding to the number 
 of basis functions, Time, is also a within-subject variable. In the end, the F-
@@ -144,7 +161,6 @@ statistics for the interactions of Group:Condition:Time, Group:Time, and
 Condition:Time are of specific interest. And these interactions can be further
 explored with GLTs in 3dMVM.
 
----------------------------------
    3dMVM -prefix Example3 -jobs 4   \\
          -model Group               \\
          -wsVars 'Condition*Time'   \\
@@ -174,8 +190,9 @@ explored with GLTs in 3dMVM.
          s40   yng    house     t1   s40+tlrc\'[house#1_beta]\'  \\
          s40   yng    house     t2   s40+tlrc\'[house#2_beta]\'  \\
          s40   yng    house     t3   s40+tlrc\'[house#3_beta]\'      
-   \n"
-   
+
+   NOTE:  The model for the analysis can also be set up as and is equivalent to 
+          'Group*Condition*Time'.\n"   
    
    parnames <- names(params)
    ss <- vector('character')
@@ -225,15 +242,19 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         additive effects of A and B, A:B is the interaction between A",
    "         and B, and A*B = A+B+A:B. The effects of within-subject",
    "         factors, if present under -wsVars are automatically assumed",
-   "         to interact with the ones specified here. Subject should not",
-   "         occur in the model specifiction here.\n", sep = '\n'
+   "         to interact with the ones specified here. Subject as a variable",
+   "         should not occur in the model specifiction here.\n", sep = '\n'
              ) ),
 
       '-wsVars' = apl(n=c(1,100), d=NA, h = paste(
-   "-wsVars FORMULA: Provide within-subject factors only. Coding for",
+   "-wsVars FORMULA: Within-subject factors, if present, have to be listed",
+   "         here; otherwise the program will choke. If no within-subject ",
+   "         exists, don't include this option in the script. Coding for",
    "         additive and interaction effects is the same as in -model. The",
    "         FORMULA with more than one variable has to be surrounded ",
-   "         within (single or double) quotes\n", sep = '\n'
+   "         within (single or double) quotes. Note that the within-subject",
+   "         variables are assumed to interact with those between-subjects",
+   "         variables specified under -model.\n", sep = '\n'
                              ) ),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
@@ -259,7 +280,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         Default (absence of option -qVarsCetners) means centering on the",
    "         average of the variable across ALL subjects regardless their",
    "         grouping. If within-group centering is desirable, center the",
-   "         variable first before the values are fed into -dataTable.\n",
+   "         variable YOURSELF first before the values are fed into -dataTable.\n",
              sep = '\n'
                      ) ),
 
@@ -525,10 +546,29 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
          #if(pars[[6]]) try(Stat[1:pars[[2]]] <- univ(fm[[1]])[2:(1+pars[[2]]),3], silent=TRUE) else
          #   try(Stat[1:pars[[2]]] <- unname(univ(fm[[1]])[[1]][-1,5]), silent=TRUE)
          
-         tmp <- tryCatch(univ(fm[[1]]), error=function(e) NULL)
-         if(!is.null(tmp)) { if(pars[[6]]) try(Stat[1:pars[[2]]] <- tmp[2:(1+pars[[2]]),3], silent=TRUE) else
-            try(Stat[1:pars[[2]]] <- unname(tmp[[1]][-1,5]), silent=TRUE) }
+         # The part can't handle NaN's for F-stat!!!
+         #tmp <- tryCatch(univ(fm[[1]]), error=function(e) NULL)   # univariate model only for now
+         #if(!is.null(tmp)) {
+         #   if(pars[[6]]) try(Stat[1:pars[[2]]] <- tmp[2:(1+pars[[2]]),3], silent=TRUE) else
+         #   try(Stat[1:pars[[2]]] <- unname(tmp[[1]][-1,5]), silent=TRUE) # with within-subject variable(s)
+         #}
          
+         # works, but prints on terminal which is not annoying!
+         #tmp <- tryCatch(print(fm[[1]]), error=function(e) NULL)   # univariate model only for now
+         #if(!is.null(tmp)) {
+         #   if(pars[[6]]) try(Stat[1:pars[[2]]] <- univ(tmp)[2:(1+pars[[2]]),3], silent=TRUE) else
+         #   try(Stat[1:pars[[2]]] <- unname(univ(tmp)[[1]][-1,5]), silent=TRUE) # with within-subject variable(s)
+         #}
+         
+         # univariate model only for now
+         tmp <- tryCatch(univ(fm[[1]]), error=function(e) NULL)   # univariate model 
+         if(!is.null(tmp)) {
+            if(pars[[6]]) tryCatch(tmp0 <- tmp[2:(1+pars[[2]]),3], error=function(e) NULL) else
+            tryCatch(tmp0 <- unname(tmp[[1]][-1,5]), error=function(e) NULL) # contain within-subject variable(s)
+                        
+            if(!is.null(tmp0)) if(!any(is.nan(tmp0))) Stat[1:pars[[2]]] <- tmp0
+         }         
+                           
          if(pars[[3]]>=1) for(ii in 1:pars[[3]]) {
 	         #tryCatch(glt <- testInteractions(fm[[2]], custom=pars[[4]][[ii]], slope=pars[[5]][[ii]], 
             #   adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) 
@@ -698,14 +738,23 @@ cat('***** Summary information of data structure *****\n')
 #print(sprintf('%i subjects: ', nlevels(lop$dataStr$Subj)))
 #for(ii in 1:nlevels(lop$dataStr$Subj)) print(sprintf('%s ', levels(lop$dataStr$Subj)[ii]))
 
-cat('#', nlevels(lop$dataStr$Subj), 'subjects: ', levels(lop$dataStr$Subj), '\n')
-cat('#', length(lop$dataStr$InputFile), 'response values\n')
+cat(nlevels(lop$dataStr$Subj), 'subjects : ', levels(lop$dataStr$Subj), '\n')
+cat(length(lop$dataStr$InputFile), 'response values\n')
 for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
-   cat('#', nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
-   levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'numeric')
-   cat('#',length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii],':', lop$dataStr[,ii], '\n')
-cat('#', lop$num_glt, 'post hoc tests\n')
-cat('***** End of data structure information *****\n')   
+   cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
+   levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'matrix')  # numeric doesn't work
+   cat(length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii], ':', lop$dataStr[,ii], '\n')
+cat(lop$num_glt, 'post hoc tests\n')
+
+cat('\nTabulation of subjects against all categorical variables')
+all_vars <- names(lop$dataStr)
+for(var in all_vars[-c(1, length(all_vars))]) if(!(var %in% lop$QV)) {
+   cat('\n~~~~~~~~~~~~~~')
+   cat('\nSubj vs ', var, ':\n', sep='')
+   print(table(lop$dataStr$Subj, lop$dataStr[,var]))
+}
+
+cat('\n***** End of data structure information *****\n')   
 cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 
 
@@ -776,7 +825,7 @@ while(is.null(fm)) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')
       cat('Possible reasons:\n\n')
-      cat('1) Inappropriate model specification with options -model, -wsVars, or qVars.\n')
+      cat('1) Inappropriate model specification with options -model, -wsVars, or -qVars.\n')
       cat('Note that within-subject or repeated-measures variables have to be declared\n')
       cat('with -wsVars.\\nn')
       cat('2) Misspecifications in general linear test coding with -gltCode.\n\n')
