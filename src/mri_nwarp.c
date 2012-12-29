@@ -3391,6 +3391,7 @@ static int Hlev_end   = 666 ;
 static int Hlev_final =   0 ;
 static int Hduplo     =   0 ;
 static int Hfinal     =   0 ;
+static int Hworkhard  =   0 ;
 
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
@@ -4887,7 +4888,7 @@ ENTRY("IW3D_improve_warp") ;
    /***** HERE is the actual optimization! *****/
 
    itmax = (Hduplo) ? 5*Hnparmap+23 : 8*Hnparmap+37 ;
-   if( Hfinal ) itmax += Hnparmap ;
+   if( 0 && Hfinal ) itmax += Hnparmap ;
 
 #if 0
    if( Hverb ) powell_set_verbose(1) ;
@@ -4970,7 +4971,7 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    char *eee ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
    int dkkk,djjj,diii , ngmin=0 , levdone=0 ;
-   int qmode=-666 ;
+   int qmode=-666 , nlevr ;
 
 ENTRY("IW3D_warpomatic") ;
 
@@ -4999,9 +5000,14 @@ ENTRY("IW3D_warpomatic") ;
    }
 
    if( Hlev_start == 0 ){            /* top level = global warps */
-     Hforce = 1 ; Hfactor = 1.0f ;
-     Hpen_use = 0; (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
-     Hpen_use = 0; (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     nlevr = (Hworkhard) ? 4 : 1 ;
+     Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ;
+     for( iii=0 ; iii < nlevr ; iii++ ){
+       (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+       Hcostold = Hcost ;
+       (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+       if( Hcostold-Hcost < 0.01f ) break ;
+     }
    } else {
      Hcost = 666.666f ;  /* a beastly thing to do */
    }
@@ -5046,7 +5052,7 @@ ENTRY("IW3D_warpomatic") ;
 
      if( !dox && !doy && !doz ){  /* exit immediately if nothing to do (shrank too far) */
        if( Hverb )
-         ININFO_message("  ---------  lev=%d xwid=%d ywid=%d zwid=%d -- break",lev,xwid,ywid,zwid) ;
+         ININFO_message("  ---------  lev=%d xwid=%d ywid=%d zwid=%d -- BREAK",lev,xwid,ywid,zwid) ;
        break ;
      }
 
@@ -5108,13 +5114,16 @@ ENTRY("IW3D_warpomatic") ;
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
 
+     nlevr = (Hworkhard && (lev <= 4 || lev == levs) ) ? 2 : 1 ;
+
      if( Hverb )
-       ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s" ,
-                      lev,xwid,ywid,zwid,Hfactor , (levdone ? "FINAL" : "\0") ) ;
+       ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s" ,
+                      lev,xwid,ywid,zwid,Hfactor , (levdone   ? "FINAL"  : "\0") ,
+                                                   (nlevr > 1 ? "WORKING HARD" : "\0") ) ;
 
      /* alternate the direction of sweeping at different levels */
 
-     if( lev%2 ){  /* bot to top, ijk */
+     if( lev%2 == 1 || nlevr > 1 ){  /* bot to top, ijk */
        for( kdon=0,kbot=ibbb ; !kdon ; kbot += dkkk ){
          ktop = kbot+zwid-1;
               if( ktop >= kttt )       { ktop = kttt; kbot = ktop+1-zwid; kdon=1; }
@@ -5146,7 +5155,9 @@ ENTRY("IW3D_warpomatic") ;
            }
          }
        }
-     } else {      /* top to bot, kji */
+     }
+
+     if( lev%2 == 0 || nlevr > 1 ){ /* top to bot, kji */
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
          ibot = itop+1-xwid;
               if( ibot <= ibbb        ){ ibot = ibbb; itop = ibot+xwid-1; idon=1; }
