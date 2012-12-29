@@ -254,15 +254,20 @@ int main( int argc , char *argv[] )
        "                 3dNwarpCalc.\n"
        "\n"
        " -minpatch mm  = Set the minimum patch size for warp searching to 'mm' voxels.\n"
-       "                * The value of mm should be an odd integer.\n"
-       "   *OR*         * The default value of mm is 25.\n"
-       " -patchmin mm   * For more accurate results than mm=25, try 19.\n"
+       "   *OR*         * The value of mm should be an odd integer.\n"
+       " -patchmin mm   * The default value of mm is 25.\n"
+       "                * For more accurate results than mm=25, try 19.\n"
        "                * The smallest allowed value is 9 (which will be very slow).\n"
        "                * If you want to see the warped results at various levels\n"
-       "                * of patch size, use the '-qsave' option.\n"
+       "                  of patch size, use the '-qsave' option.\n"
        "\n"
        " -duplo        = Start off with 1/2 scale versions of the volumes,\n"
-       "                 for speed.\n"
+       "                 for getting a speedy first alignment.\n"
+       " -workhard     = Iterate more times at the coarser grid levels,\n"
+       "                 which can help when the volumes are hard to align.\n"
+       "                * Slows the program down, of course.\n"
+       "                * Although -workhard will work OK with -duplo, it is better\n"
+       "                  applied without the -duplo option.\n"
        " -qsave        = Save intermediate warped results as well, in a dataset\n"
        "                 with '_SAVE' appended to the '-prefix' value.\n"
        "\n"
@@ -312,6 +317,10 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-duplo") == 0 ){
        duplo = 1 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-workhard") == 0 ){
+       Hworkhard = 1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-qsave") == 0 ){
