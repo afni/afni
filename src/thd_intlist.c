@@ -433,6 +433,7 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
    char *lbln=NULL, sbuf2[500], *slbl=NULL;
    int nused = 0;
    int ii, repeat = 0, check=0, jj=0;
+   int max_used = 0, max_ind = -1;    /* find max match  31 Dec 2012 [rickr] */
 
    *isb = -1;
    if (!labels || N_labels < 1) return(0);
@@ -468,10 +469,19 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
             fprintf(stderr,"ZSS: (rep %d) Checking against >%s< \n", 
                            repeat, slbl);
          */
+         /* note match and keep looking for longer one (tokens might be easier
+            than strings with unknown terminators)      31 Dec 2012 [rickr] */
          if (check && !(strncmp(lbl, slbl, nused))) {
-            *isb = ii;
-            return(nused);
+            if( nused > max_used ){
+               max_used = nused;
+               max_ind = ii;
+            }
          }
+      }
+
+      if( max_used > 0 ) {
+         *isb = max_ind;
+         return(max_used);
       }
 
       repeat = !repeat;
