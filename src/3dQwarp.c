@@ -268,6 +268,7 @@ int main( int argc , char *argv[] )
        "                * Slows the program down, of course.\n"
        "                * Although -workhard will work OK with -duplo, it is better\n"
        "                  applied without the -duplo option.\n"
+       "                * You can also try '-workharder' and '-workhardest'.\n"
        " -qsave        = Save intermediate warped results as well, in a dataset\n"
        "                 with '_SAVE' appended to the '-prefix' value.\n"
        "\n"
@@ -320,7 +321,21 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[nopt],"-workhard") == 0 ){
-       Hworkhard = 1 ; nopt++ ; continue ;
+       if( Hworkhard < 4 ) Hworkhard = 4 ;
+       else                Hworkhard++ ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-workharder") == 0 ){
+       if( Hworkhard < 7 ) Hworkhard  = 7 ;
+       else                Hworkhard += 2 ; ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-workhardest") == 0 ){
+       if( Hworkhard < 10 ) Hworkhard  = 10 ;
+       else                 Hworkhard +=  2 ;
+       nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-qsave") == 0 ){
