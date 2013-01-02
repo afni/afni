@@ -51,7 +51,8 @@ THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm )
 
    if( mmm != NULL ){
      for( ii=0 ; ii < nvox ; ii++ )
-       if( mmm[ii] ) far[ii] = 0.0 ;
+       /* if mask is NOT set, clear it    2 Jan 2013 [rickr/dglen] */
+       if( ! mmm[ii] ) far[ii] = 0.0 ;
    }
 
    mri_get_cmass_3D( im , &icm,&jcm,&kcm ) ; mri_free(im) ;
