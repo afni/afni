@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 2, Jan, 2013, RCR, "3dCM", MICRO, TYPE_BUG_FIX,
+   "in THD_cmass(), if mask is NOT set, clear data value",
+   "Found with dglen.  This is an old bug, ick."
+ } ,
+
  { 31, Dec, 2012, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "is_in_labels(): search for longest match",
    "To fix failure in the case of both label and labelSUFFIX existing."
