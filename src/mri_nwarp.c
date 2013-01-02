@@ -3389,6 +3389,7 @@ static int          Hstopped    = 0 ;
 static int Hlev_start =   0 ;
 static int Hlev_end   = 666 ;
 static int Hlev_final =   0 ;
+static int Hlev_now   =   0 ;
 static int Hduplo     =   0 ;
 static int Hfinal     =   0 ;
 static int Hworkhard  =   0 ;
@@ -4887,8 +4888,8 @@ ENTRY("IW3D_improve_warp") ;
 
    /***** HERE is the actual optimization! *****/
 
-   itmax = (Hduplo) ? 5*Hnparmap+23 : 8*Hnparmap+37 ;
-   if( 0 && Hfinal ) itmax += Hnparmap ;
+   itmax = (Hduplo) ? 5*Hnparmap+21 : 8*Hnparmap+31 ;
+   if( Hworkhard > 0 && Hlev_now <= Hworkhard ) itmax -= Hnparmap ;
 
 #if 0
    if( Hverb ) powell_set_verbose(1) ;
@@ -5005,7 +5006,7 @@ ENTRY("IW3D_warpomatic") ;
 
    if( Hlev_start == 0 ){            /* top level = global warps */
      nlevr = (Hworkhard) ? 4 : 1 ;
-     Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ;
+     Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      for( iii=0 ; iii < nlevr ; iii++ ){
        (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
        Hcostold = Hcost ;
@@ -5026,7 +5027,7 @@ ENTRY("IW3D_warpomatic") ;
 
    if( Hngmin > 0 ){
      ngmin = Hngmin ;
-     if( Hduplo ){ ngmin /= 2 ; if( ngmin < 19 ) ngmin = 19 ; }
+     if( Hduplo ){ ngmin /= 2 ; if( ngmin < 21 ) ngmin = 21 ; }
    }
                      eee = getenv("AFNI_WARPOMATIC_PATCHMIN") ;
    if( eee == NULL ) eee = getenv("AFNI_WARPOMATIC_MINPATCH") ;
@@ -5067,7 +5068,7 @@ ENTRY("IW3D_warpomatic") ;
 
      /* here, we are doing something, so don't let any width go below threshold */
 
-     Hlev_final = lev ;  /* in case we leave this loop somewhere below */
+     Hlev_now = Hlev_final = lev ;  /* in case we leave this loop somewhere below */
 
      if( xwid < ngmin ) xwid = MIN(Hnx,ngmin);
      if( ywid < ngmin ) ywid = MIN(Hny,ngmin);
