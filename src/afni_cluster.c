@@ -505,6 +505,14 @@ ENTRY("AFNI_clus_make_widgets") ;
      MCW_reghint_children( cwid->histsqrt_bbox->wrowcol , "Plot square root of histogram?" ) ;
    }
 
+   { char *blab = "Spearman?" ; int sval ;
+     cwid->spearman_bbox = new_MCW_bbox( cwid->top_menu , 1,&blab ,
+                                         MCW_BB_check , MCW_BB_noframe , NULL,NULL ) ;
+     MCW_reghint_children( cwid->spearman_bbox->wrowcol , "Scatterplot uses Spearman?") ;
+     sval = AFNI_yesenv("AFNI_CLUSTER_SPEARMAN") ;
+     MCW_set_bbox( cwid->spearman_bbox , sval ) ;
+   }
+
    /*---- end of popup menu ----*/
 
 #undef  VLINE
@@ -1810,7 +1818,7 @@ ENTRY("AFNI_clus_action_CB") ;
        } else if( doscat ){  /* scatterplot */
          float *xar=NULL, *yar=NULL ; int nix=0, niy=0, nixy=0, jj,kk ;
          float a=0,b=0,pcor=0,p025=0,p975=0 ;
-         char xlab[256] , ylab[256] , tlab[THD_MAX_NAME+256] ;
+         char xlab[256] , ylab[256] , tlab[THD_MAX_NAME+256] , rlab[4]="?" ;
          if( dosmea ){
            im = mri_meanvector( imar , ibot,itop ) ; xar = MRI_FLOAT_PTR(im) ;
            nix = im->nx ; niy = 1 ; nixy = nix*niy ;
@@ -1852,8 +1860,17 @@ ENTRY("AFNI_clus_action_CB") ;
          }
          if( niy == 1 && nix >= 9 ){
            float_triple aaa,bbb,rrr ;
-           THD_pearson_corr_boot( nix,xar,yar , &rrr,&aaa,&bbb ) ;
-           pcor = rrr.a ; p025 = rrr.b ; p975 = rrr.c ; a = aaa.a ; b = bbb.a ;
+           if( MCW_val_bbox(cwid->spearman_bbox) == 0 ){
+             THD_pearson_corr_boot( nix,xar,yar , &rrr,&aaa,&bbb ) ;
+             pcor = rrr.a ; p025 = rrr.b ; p975 = rrr.c ; a = aaa.a ; b = bbb.a ;
+             strcpy(rlab,"R") ;
+           } else {          /* [02 Jan 2013] -- Spearman bootstrap -- for PK */
+             float fit[2]={0.0f,0.0f} ;
+             THD_spearman_corr_boot( nix,xar,yar , &rrr ) ;
+             pcor = rrr.a ; p025 = rrr.b ; p975 = rrr.c ;
+             THD_generic_detrend_L1( -nix , yar , 0 , 1 , &xar , fit ) ;
+             b = fit[0] ; a = fit[1] ; strcpy(rlab,"S") ;
+           }
          }
          sprintf(ylab,"Cluster #%d = %d voxels",ii+1,IMARR_COUNT(imar)) ;
          sprintf(tlab,"\\noesc %s[%d..%d]",
@@ -1862,7 +1879,7 @@ ENTRY("AFNI_clus_action_CB") ;
            if( p025 < pcor && p975 > pcor ){
              if( strlen(tlab) > 30 )
                sprintf(tlab+strlen(tlab),
-                       "\\esc\\red  R=%.2f\\in[%.2f..%.2f]_{95%%}",pcor,p025,p975) ;
+                       "\\esc\\red  %s=%.2f\\in[%.2f..%.2f]_{95%%}",rlab,pcor,p025,p975) ;
              else
                sprintf(tlab+strlen(tlab),
                        "\\esc\\red  R=%.3f\\in[%.3f..%.3f]_{95%%}",pcor,p025,p975) ;
