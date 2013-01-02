@@ -434,6 +434,7 @@ typedef struct {
   Widget top_lab;           /* overall report text */
   Widget top_menu , histrange_pb ;
   MCW_bbox *histsqrt_bbox ;
+  MCW_bbox *spearman_bbox ; /* 02 Jan 2013 */
 
   MCW_bbox *usemask_bbox ;  /* zero-th row of controls [01 Aug 2011] */
 
