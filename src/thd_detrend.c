@@ -357,21 +357,25 @@ void THD_generic_detrend_LSQ( int npt, float *far ,
 void THD_generic_detrend_L1( int npt, float *far ,
                              int polort, int nort, float **ort , float *fit )
 {
-   int ii,jj , nref ;
+   int ii,jj , nref , nosub=0 ;
    float **ref , *qfit , xmid , xfac , val ;
+
+ENTRY("THD_generic_detrend_L1") ;
 
    /* check inputs */
 
-   if( npt <= 1 || far == NULL ) return ;
+   if( npt < -1 ){ nosub = 1 ; npt = -npt ; }  /* 02 Jan 2013 */
+
+   if( npt <= 1 || far == NULL ) EXRETURN ;
    if( nort > 0 ){
-     if( ort == NULL ) return ;
-     for( jj=0 ; jj < nort ; jj++ ) if( ort[jj] == NULL ) return ;
+     if( ort == NULL ) EXRETURN ;
+     for( jj=0 ; jj < nort ; jj++ ) if( ort[jj] == NULL ) EXRETURN ;
    }
    if( polort <  0 ) polort = -1 ;
    if( nort   <  0 ) nort   =  0 ;
 
    nref = polort+1+nort ;
-   if( nref <= 0 || nref >= npt-1 ) return ;
+   if( nref <= 0 || nref >= npt-1 ) EXRETURN ;
 
    /* assemble all reference vectors */
 
@@ -389,10 +393,12 @@ void THD_generic_detrend_L1( int npt, float *far ,
    val = cl1_solve( npt , nref , far , ref , qfit , 0 ) ;
 
    if( val >= 0.0f ){                                  /* good */
-     for( ii=0 ; ii < npt ; ii++ ){
-       val = far[ii] ;
-       for( jj=0 ; jj < nref ; jj++ ) val -= qfit[jj] * ref[jj][ii] ;
-       far[ii] = val ;
+     if( !nosub ){
+       for( ii=0 ; ii < npt ; ii++ ){
+         val = far[ii] ;
+         for( jj=0 ; jj < nref ; jj++ ) val -= qfit[jj] * ref[jj][ii] ;
+         far[ii] = val ;
+       }
      }
      if( fit != NULL ){ for( ii=0 ; ii < nref ; ii++ ) fit[ii] = qfit[ii] ; }
    } else {
@@ -402,7 +408,7 @@ void THD_generic_detrend_L1( int npt, float *far ,
    free(qfit) ;
 
    for( jj=0 ; jj <= polort ; jj++ ) free(ref[jj]) ;
-   free(ref) ; return ;
+   free(ref) ; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/

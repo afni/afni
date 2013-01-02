@@ -5369,6 +5369,8 @@ extern float_triple THD_bootstrap_confinv( float estim , float alpha ,
                                            int nboot   , float *eboot ) ;
 extern float THD_bootstrap_biascorr( float estim , int nboot , float *eboot ) ;
 
+extern void THD_spearman_corr_boot( int n , float *x , float *y , float_triple *rrr ) ;
+
 extern float THD_bootstrap_vectcorr( int nlen, int nboot, int use_pv, int xtyp,
                                      int xnum, void *xp , int ynum  , void *yp );
 

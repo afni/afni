@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , DEC , 2012 , RWC , "3dPolyfit" , MICRO , TYPE_NEW_OPT ,
+  { 2 , JAN , 2013 , RWC , "afni Clusterize" , MINOR , TYPE_MODIFY ,
+   "Allow use of Spearman rather than Pearson for scatterplot correlation" ,
+   "Set via environment variable AFNI_CLUSTER_SPEARMAN, or by popup menu\n"
+   "attached to top of clusterize report form.  This is for PK." } ,
+
+ { 27 , DEC , 2012 , RWC , "3dPolyfit" , MICRO , TYPE_NEW_OPT ,
    "Add '-base' option" ,
    "To allow fitting (in space) arbitrary input images, as well as (spatial)\n"
    "polynomials." } ,

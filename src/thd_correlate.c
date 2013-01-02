@@ -503,6 +503,64 @@ void THD_pearson_corr_boot( int n , float *x , float *y ,
    return ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+float THD_spearman_indexed( int nix, int *ix, float *x, float *y )
+{
+   float *xt , *yt ; float r ;
+
+   xt = (float *)malloc(sizeof(float)*nix) ;
+   yt = (float *)malloc(sizeof(float)*nix) ;
+   if( ix == NULL ){
+     memcpy(xt,x,sizeof(float)*nix) ;
+     memcpy(yt,y,sizeof(float)*nix) ;
+   } else {
+     int ii , jj ;
+     for( jj=0 ; jj < nix ; jj++ ){
+       ii = ix[jj] ; xt[jj] = x[ii] ; yt[jj] = y[ii] ;
+     }
+   }
+
+   r = THD_spearman_corr( nix , xt , yt ) ;
+   free(yt) ; free(xt) ; return r ;
+}
+
+/*------------------------------------------------------------------------------*/
+
+void THD_spearman_corr_boot( int n , float *x , float *y , float_triple *rrr )
+{
+   int ii,kk ; float rr ; float_triple qqq ;
+   int *ix ; float rx[NBOOT] ;
+
+ENTRY("THD_spearman_corr_boot") ;
+
+   if( n < 5 || x == NULL || y == NULL ) EXRETURN ;
+   if( rrr == NULL ) EXRETURN ;
+
+   /* compute standard result */
+
+   rr = THD_spearman_indexed( n , NULL , x , y ) ; /* non-bootstrapped answer */
+   ix = (int *)malloc(sizeof(int)*n) ;
+
+   /* compute bootstrap results */
+
+   for( kk=0 ; kk < NBOOT ; kk++ ){
+     for( ii=0 ; ii < n ; ii++ ) ix[ii] = lrand48() % n ;
+     rx[kk] = THD_spearman_indexed( n , ix , x , y ) ;
+   }
+   free(ix) ;
+
+   /* sort, then find 2.5% and 97.5% points, save into output structs */
+   /*    [bootstrap confidence intervals are now bias-corrected!]     */
+
+   qqq = THD_bootstrap_confinv( rr , 0.05f , NBOOT , rx ) ;
+   rrr->a = rr ;      /* would use qqq.b for bias-corrected estimate */
+   rrr->b = qqq.a ;   /* lower edge of confidence interval */
+   rrr->c = qqq.c ;   /* upper edge */
+
+   EXRETURN ;
+}
+
 /*----------------------------------------------------------------*/
 
 float THD_pearson_corr_wt( int n, float *x , float *y , float *wt )
@@ -1886,7 +1944,9 @@ float_triple THD_bootstrap_confinv( float estim , float alpha ,
    float_triple rval = {0.0f,0.0f,0.0f} ;
    int ii ; float z0 , zal , pp ;
 
-   if( nboot < 100 || eboot == NULL ) return rval ;             /* bad user */
+ENTRY("THD_bootstrap_confinv") ;
+
+   if( nboot < 100 || eboot == NULL ) RETURN( rval ) ;          /* bad user */
 
    if( alpha <= 0.001f || alpha >= 0.9f ) alpha = 0.05f ;    /* stupid user */
    alpha *= 0.5f ;                                          /* 1-sided tail */
@@ -1896,7 +1956,7 @@ float_triple THD_bootstrap_confinv( float estim , float alpha ,
    qsort_float( nboot , eboot ) ;                       /* increasing order */
 
    for( ii=0 ; ii < nboot && eboot[ii] < estim ; ii++ ) ;             /*nada*/
-   if( ii <= 1 || ii >= nboot-1 ) return rval ;              /* crummy data */
+   if( ii <= 1 || ii >= nboot-1 ) RETURN( rval ) ;           /* crummy data */
    z0 = PHINV( (ii+0.5f) / nboot ) ;                /* ii = #values < estim */
    if( z0 < -ZLIM ) z0 = -ZLIM ; else if( z0 > ZLIM ) z0 = ZLIM ; /* limits */
 
@@ -1912,7 +1972,7 @@ float_triple THD_bootstrap_confinv( float estim , float alpha ,
    ii = (int)pp ; pp = pp - ii ; if( ii >= nboot-1 ) ii = nboot-2 ;
    rval.b = (1.0f-pp)*eboot[ii] + pp*eboot[ii+1] ;
 
-   return rval ;
+   RETURN( rval ) ;
 }
 
 /*----------------------------------------------------------------------------*/
