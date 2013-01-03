@@ -4763,11 +4763,12 @@ ENTRY("IW3D_improve_warp") ;
          if( Hbmask[qq] ){ wsum += wbfar[qq] ; nwb++ ; }
    }}}
    if( !Hforce && nwb < 0.369f*Hnval || wsum < 0.246f*Hnval*Hwbar ){ /* too light for us */
-     ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%.1f%% inmask %.1f%% weight)" ,
-                     (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
-                     ibot,itop, jbot,jtop, kbot,ktop ,
-                     (100.0f*nwb)/Hnval , (100.0f*wsum)/(Hnval*Hwbar) ) ;
+     if( Hverb > 1 )
+       ININFO_message(
+         "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%.1f%% inmask %.1f%% weight)" ,
+                       (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
+                       ibot,itop, jbot,jtop, kbot,ktop ,
+                       (100.0f*nwb)/Hnval , (100.0f*wsum)/(Hnval*Hwbar) ) ;
      RETURN(0) ;
    }
 
@@ -4845,10 +4846,11 @@ ENTRY("IW3D_improve_warp") ;
      }}}
 
      if( is_float_array_constant(Hnval,Hbval) ){
-       ININFO_message(
-         "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (base=const=%g)" ,
-                       (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
-                       ibot,itop, jbot,jtop, kbot,ktop , Hbval[0] ) ;
+       if( Hverb > 1 )
+         ININFO_message(
+           "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (base=const=%g)" ,
+                         (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
+                         ibot,itop, jbot,jtop, kbot,ktop , Hbval[0] ) ;
        RESTORE_WBFAR ; RETURN(0) ;
      }
 
