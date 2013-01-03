@@ -4576,10 +4576,10 @@ ENTRY("IW3D_setup_for_improvement") ;
    Hsrcim = mri_to_float(sim);
 
    if( Hblur_s >= 0.5f ){
-     if( Hverb ) ININFO_message("   blurring source image %.3g voxels FWHM",Hblur_s) ;
+     if( Hverb > 1 ) ININFO_message("   blurring source image %.3g voxels FWHM",Hblur_s) ;
      Hsrcim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_s) , Hsrcim ) ;
    } else if( Hblur_s <= -1.0f ){
-     if( Hverb ) ININFO_message("   median-izing source image %.3g voxels",-Hblur_s) ;
+     if( Hverb > 1 ) ININFO_message("   median-izing source image %.3g voxels",-Hblur_s) ;
      Hsrcim_blur = mri_medianfilter( Hsrcim , -Hblur_s , NULL , 0 ) ;
    } else {
      Hsrcim_blur = NULL ;
@@ -4606,7 +4606,7 @@ ENTRY("IW3D_setup_for_improvement") ;
      }
      if( Hwbar == 0.0f || nwb == 0 )
        ERROR_exit("IW3D_setup_for_improvement: all zero wbim input") ;
-     if( Hverb ) ININFO_message(   "%d voxels in mask (out of %d)",nwb,Hnxyz) ;
+     if( Hverb > 1 ) ININFO_message(   "%d voxels in mask (out of %d)",nwb,Hnxyz) ;
      Hwbar /= nwb ;  /* average value of all nonzero weights */
      nmask = nwb ;
      if( nexc > 0 ) ININFO_message("-emask excluded %d voxels",nexc) ;
@@ -4674,7 +4674,7 @@ ENTRY("IW3D_setup_for_improvement") ;
        Hmpar->ar[3] = xym.c ; Hmpar->ar[4] = xym.d ;  /* ybot  ytop  */
        Hmpar->ar[5] = xyc.a ; Hmpar->ar[6] = xyc.b ;  /* xcbot xctop */
        Hmpar->ar[7] = xyc.c ; Hmpar->ar[8] = xyc.d ;  /* ycbot yctop */
-       if( Hverb ){
+       if( Hverb > 1 ){
          ININFO_message("   2Dhist: nbin=%d",(int)Hmpar->ar[0]) ;
          ININFO_message("           xbot=%g xcbot=%g xctop=%g xtop=%g",
                         Hmpar->ar[1], Hmpar->ar[5], Hmpar->ar[6], Hmpar->ar[2] ) ;
@@ -4692,7 +4692,7 @@ ENTRY("IW3D_setup_for_improvement") ;
        d1 = 0.5f*(xym.d-xyc.d) ; dif = MIN(d1,d2) ; Hmpar->ar[4] = xyc.d+dif ; /* ydtop */
        Hmpar->ar[5] = xyc.a ; Hmpar->ar[6] = xyc.b ;                     /* xcbot xctop */
        Hmpar->ar[7] = xyc.c ; Hmpar->ar[8] = xyc.d ;                     /* ycbot yctop */
-       if( Hverb ){
+       if( Hverb > 1 ){
          ININFO_message("  PEARCLP: xdbot=%g xcbot=%g xctop=%g xdtop=%g",
                         Hmpar->ar[1], Hmpar->ar[5], Hmpar->ar[6], Hmpar->ar[2] ) ;
          ININFO_message("           ydbot=%g ycbot=%g yctop=%g ydtop=%g",
@@ -4890,18 +4890,14 @@ ENTRY("IW3D_improve_warp") ;
    itmax = (Hduplo) ? 5*Hnparmap+21 : 8*Hnparmap+31 ;
    if( Hworkhard > 0 && Hlev_now <= Hworkhard ) itmax -= Hnparmap ;
 
-#if 0
-   if( Hverb ) powell_set_verbose(1) ;
-#endif
+   if( Hverb > 3 ) powell_set_verbose(1) ;
 
    iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
                              prad,0.009*prad , itmax , IW3D_scalar_costfun ) ;
 
    if( iter > 0 ) Hnpar_sum += Hnparmap ;
 
-#if 0
-   if( Hverb ) powell_set_verbose(0) ;
-#endif
+   if( Hverb > 3 ) powell_set_verbose(0) ;
 
    /***** cleanup and exit phase ***/
 
@@ -4933,11 +4929,13 @@ ENTRY("IW3D_improve_warp") ;
          if( Ase[qq] > st ) st = Ase[qq] ;
    }}}
 
-   if( Hverb ){
+   if( Hverb > 1 ){
      ININFO_message(
        "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : energy=%.3f:%.3f pen=%g",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
                            ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ) ;
+   } else if( Hverb == 1 ){
+     fprintf(stderr,".") ;
    }
 
    /* ZOMG -- let's vamoose */
@@ -4999,23 +4997,26 @@ ENTRY("IW3D_warpomatic") ;
    }
 
    if( Hverb ){
-       INFO_message("warpomatic start: %d x %d x %d volume",Hnx,Hny,Hnz) ;
-     ININFO_message("       autobbox = %d..%d %d..%d %d..%d",imin,imax,jmin,jmax,kmin,kmax) ;
+         INFO_message("AFNI warpomatic start: %d x %d x %d volume",Hnx,Hny,Hnz) ;
+     if( Hverb > 1 )
+       ININFO_message("            autobbox = %d..%d %d..%d %d..%d",imin,imax,jmin,jmax,kmin,kmax) ;
    }
 
    if( Hlev_start == 0 ){            /* top level = global warps */
      nlevr = (Hworkhard) ? 4 : 1 ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
+     if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      for( iii=0 ; iii < nlevr ; iii++ ){
        (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
        Hcostold = Hcost ;
        (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
        if( iii > 0 && iii < nlevr-1 && Hcostold-Hcost < 0.01f ){
-         if( Hverb )
+         if( Hverb > 1 )
            ININFO_message("       --> too little improvement: breaking out of WORKHARD iterates") ;
          break ;
        }
      }
+     if( Hverb == 1 ) fprintf(stderr," done\n") ;
    } else {
      Hcost = 666.666f ;  /* a beastly thing to do */
    }
@@ -5060,7 +5061,7 @@ ENTRY("IW3D_warpomatic") ;
      doz = (zwid >= ngmin) && !(Hgflags & NWARP_NOZDEP_FLAG) ;
 
      if( !dox && !doy && !doz ){  /* exit immediately if nothing to do (shrank too far) */
-       if( Hverb )
+       if( Hverb > 1 )
          ININFO_message("  ---------  lev=%d xwid=%d ywid=%d zwid=%d -- BREAK",lev,xwid,ywid,zwid) ;
        break ;
      }
@@ -5125,10 +5126,12 @@ ENTRY("IW3D_warpomatic") ;
 
      nlevr = (Hworkhard && (lev <= Hworkhard || lev == levs) ) ? 2 : 1 ;
 
-     if( Hverb )
+     if( Hverb > 1 )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s" ,
                       lev,xwid,ywid,zwid,Hfactor , (levdone   ? "FINAL"  : "\0") ,
                                                    (nlevr > 1 ? "WORKHARD" : "\0") ) ;
+     else if( Hverb == 1 )
+       fprintf(stderr,"lev=%d  patch=%d x %d x %d: ",lev,xwid,ywid,zwid) ;
 
      /* alternate the direction of sweeping at different levels */
 
@@ -5149,7 +5152,7 @@ ENTRY("IW3D_warpomatic") ;
              iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #if 0
              if( Hcost > Hcostold+0.001f ){
-               if( Hverb ) ININFO_message(" -- rerun --") ;
+               if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
                iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
              }
 #if 0
@@ -5158,6 +5161,7 @@ ENTRY("IW3D_warpomatic") ;
 #endif
 #endif
              if( Hcost < Hstopcost ){
+               if( Hverb == 1 ) fprintf(stderr,"\n") ;
                ININFO_message("  ######### cost has reached stopping value") ;
                goto DoneDoneDone ;
              }
@@ -5184,7 +5188,7 @@ ENTRY("IW3D_warpomatic") ;
              iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #if 0
              if( Hcost > Hcostold+0.001f ){
-               if( Hverb ) ININFO_message(" -- rerun --") ;
+               if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
                iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
              }
 #if 0
@@ -5193,6 +5197,7 @@ ENTRY("IW3D_warpomatic") ;
 #endif
 #endif
               if( Hcost < Hstopcost ){
+                if( Hverb == 1 ) fprintf(stderr,"\n") ;
                 ININFO_message("  ######### cost has reached stopping value") ;
                 goto DoneDoneDone ;
               }
@@ -5201,6 +5206,8 @@ ENTRY("IW3D_warpomatic") ;
        }
        Hcostend = Hcost ;
      }
+
+     if( Hverb == 1 ) fprintf(stderr," done\n") ;
 
      if( !Hduplo ) ITEROUT(lev) ;
 
