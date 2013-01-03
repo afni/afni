@@ -802,7 +802,7 @@ static INLINE float_pair hexahedron_energy( float_triple d000 , float_triple d10
 
 float IW3D_load_energy( IndexWarp3D *AA )
 {
-   float enout ;
+   float enout=0.0f ;
    float *xda, *yda , *zda , *jea,*sea , jetop,setop ;
    int nx,ny,nz , nxy,nxyz , ii ;
 
@@ -845,7 +845,6 @@ float IW3D_load_energy( IndexWarp3D *AA )
  }
  AFNI_OMP_END ;
 
-  enout = 0.0f ;
   for( ii=0 ; ii < nthmax ; ii++ ) enout += dhaar[ii] ;
   return enout ;
 }
