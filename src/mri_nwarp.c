@@ -5131,7 +5131,7 @@ ENTRY("IW3D_warpomatic") ;
                       lev,xwid,ywid,zwid,Hfactor , (levdone   ? "FINAL"  : "\0") ,
                                                    (nlevr > 1 ? "WORKHARD" : "\0") ) ;
      else if( Hverb == 1 )
-       fprintf(stderr,"lev=%d  patch=%d x %d x %d: ",lev,xwid,ywid,zwid) ;
+       fprintf(stderr,"lev=%d patch=%dx%dx%d: ",lev,xwid,ywid,zwid) ;
 
      /* alternate the direction of sweeping at different levels */
 
