@@ -44,7 +44,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    if( 5*xfade >= qim->nx ) xfade = (qim->nx-1)/5 ;
    if( 5*yfade >= qim->ny ) yfade = (qim->ny-1)/5 ;
    if( 5*zfade >= qim->nz ) zfade = (qim->nz-1)/5 ;
-   if( Hverb )
+   if( Hverb > 1 )
      ININFO_message("Weightize: xfade=%d yfade=%d zfade=%d",xfade,yfade,zfade);
    for( jj=0 ; jj < ny ; jj++ )
     for( ii=0 ; ii < nx ; ii++ )
@@ -63,14 +63,14 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
          if( wf[ii] < aclip ){ nclip++; wf[ii] = 0.0f; } else nleft++ ;
        }
      }
-     if( Hverb ) ININFO_message("Weightize: user clip=%g #clipped=%d #left=%d",
+     if( Hverb > 1 ) ININFO_message("Weightize: user clip=%g #clipped=%d #left=%d",
                                    aclip,nclip,nleft) ;
    }
 
    /*-- squash super-large values down to reasonability --*/
 
    clip = 3.0f * THD_cliplevel(qim,0.5f) ;
-   if( Hverb ) ININFO_message("Weightize: (unblurred) top clip=%g",clip) ;
+   if( Hverb > 1 ) ININFO_message("Weightize: (unblurred) top clip=%g",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) wf[ii] = clip ;
 
    /*-- blur a little: median then Gaussian;
@@ -96,7 +96,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    clip  = 0.05f * mri_max(wim) ;
    clip2 = 0.33f * THD_cliplevel(wim,0.33f) ;
    clip  = MAX(clip,clip2) ;
-   if( Hverb ) ININFO_message("Weightize: (blurred) bot clip=%g",clip) ;
+   if( Hverb > 1 ) ININFO_message("Weightize: (blurred) bot clip=%g",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
    THD_mask_erode( nx,ny,nz, mmm, 1 ) ;  /* cf. thd_automask.c */
@@ -116,7 +116,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    /*-- power? --*/
 
    if( apow > 0.0f && apow != 1.0f ){
-     if( Hverb ) ININFO_message("Weightize: raising to %g power",apow) ;
+     if( Hverb > 1 ) ININFO_message("Weightize: raising to %g power",apow) ;
      for( ii=0 ; ii < nxyz ; ii++ )
        if( wf[ii] > 0.0f ) wf[ii] = powf( wf[ii] , apow ) ;
    }
@@ -126,11 +126,11 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 #undef  BPAD
 #define BPAD 4
    if( acod == 2 || acod == 3 ){  /* binary weight: mask=2 or maskbox=3 */
-     if( Hverb ) ININFO_message("Weightize: binarizing") ;
+     if( Hverb > 1 ) ININFO_message("Weightize: binarizing") ;
      for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] != 0.0f ) wf[ii] = 1.0f ;
      if( ndil > 0 ){  /* 01 Mar 2007: dilation */
        byte *mmm = (byte *)malloc(sizeof(byte)*nxyz) ;
-       if( Hverb ) ININFO_message("Weightize: dilating") ;
+       if( Hverb > 1 ) ININFO_message("Weightize: dilating") ;
        for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] != 0.0f) ;
        for( ii=0 ; ii < ndil ; ii++ ){
          THD_mask_dilate     ( nx,ny,nz , mmm , 3 ) ;
@@ -149,7 +149,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
        xp += BPAD ; if( xp > nx-2 ) xp = nx-2 ;
        yp += BPAD ; if( yp > ny-2 ) yp = ny-2 ;
        zp += BPAD ; if( zp > nz-2 ) zp = nz-2 ;
-       if( Hverb )
+       if( Hverb > 1 )
          ININFO_message("Weightize: box=%d..%d X %d..%d X %d..%d = %d voxels",
                         xm,xp , ym,yp , zm,zp , (xp-xm+1)*(yp-ym+1)*(zp-zm+1) ) ;
        for( kk=zm ; kk <= zp ; kk++ )
@@ -283,6 +283,9 @@ int main( int argc , char *argv[] )
        "                  each patch refinement level, and so help you decide\n"
        "                  the size for '-minpatch'.\n"
        "\n"
+       " -verb         = Print verbose progress messages.\n"
+       " -quiet        = Cut out most progress messages.\n"
+       "\n"
        "METHOD\n"
        "------\n"
        "Incremental warping with cubic basic functions, first over the entire volume,\n"
@@ -319,6 +322,13 @@ int main( int argc , char *argv[] )
    nopt = 1 ;
    Hblur_b = Hblur_s = 3.456f ;
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     if( strcasecmp(argv[nopt],"-verb") == 0 ){
+       Hverb++ ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-quiet") == 0 ){
+       Hverb = 0 ; nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-patchmin") == 0 || strcasecmp(argv[nopt],"-minpatch") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
@@ -483,12 +493,12 @@ int main( int argc , char *argv[] )
 
    if( Hblur_b >= 0.5f ){
      MRI_IMAGE *qim ;
-     if( Hverb ) ININFO_message("   blurring base image %.3g voxels FWHM",Hblur_b) ;
+     if( Hverb > 1 ) ININFO_message("   blurring base image %.3g voxels FWHM",Hblur_b) ;
      qim = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_b) , bim ) ;
      mri_free(bim) ; bim = qim ;
    } else if( Hblur_b <= -1.0f ){
      MRI_IMAGE *qim ;
-     if( Hverb ) ININFO_message("   median-izing base image %.3g voxels",-Hblur_b) ;
+     if( Hverb > 1 ) ININFO_message("   median-izing base image %.3g voxels",-Hblur_b) ;
      qim = mri_medianfilter( bim , -Hblur_b , NULL , 0 ) ;
      mri_free(bim) ; bim = qim ;
    }
