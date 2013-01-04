@@ -671,8 +671,9 @@ int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
       RETURN(0);
    }
    if (dset->warp) {
-      fprintf(stderr,"Warp already there!");
-      RETURN(0);
+      /* fprintf(stderr,"Warp already there!"); Used to return(0) DRG,ZSS:01/03/13*/
+      SINGLE_KILL( dset->kl , dset->warp ) ;
+      dset->warp = NULL;
    }
    if (!atr_flt) {
       fprintf(stderr,"No attribute!");
