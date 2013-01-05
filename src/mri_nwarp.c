@@ -4958,7 +4958,7 @@ void (*iterfun)(char *,MRI_IMAGE *) = NULL ;
        MRI_IMAGE *outim = IW3D_warp_floatim(Haawarp,Hsrcim,MRI_WSINC5) ;                  \
        char str[256]; sprintf(str,"lev=%d",lll) ;                                          \
        iterfun(str,outim) ; mri_free(outim) ;                                               \
-       ININFO_message("  ---ITEROUT(%s) -- %s",str,nice_time_string(NI_clock_time())) ;      \
+       ININFO_message("  ---QSAVE(%s) -- %s",str,nice_time_string(NI_clock_time())) ;        \
        if( lll == 0 || nlevr < 2 )                                                            \
          ININFO_message("   --(%s)-- final cost = %g",str,Hcostend) ;                          \
        else                                                                                     \

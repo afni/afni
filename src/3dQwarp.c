@@ -510,7 +510,7 @@ int main( int argc , char *argv[] )
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 
-   INFO_message("===== total number of parameters = %d",Hnpar_sum) ;
+   INFO_message("===== total number of parameters optimized = %d",Hnpar_sum) ;
 
    oim = oiw->im ; oww = oiw->warp ;
 
