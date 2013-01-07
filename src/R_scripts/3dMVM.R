@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.7, Dec 28, 2012
+Version 0.1.8, Jan 7, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.7, Dec 28, 2012
+Version 0.1.8, Jan 7, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -54,10 +54,10 @@ Usage:
 ------ 
  3dMVM is a group-analysis program that performs traditional ANOVA- and ANCOVA-
  style computations. It does not impose any bound on the number of explanatory
- variables, and these variables can be either orcategorical or quantitative 
- (factors or covariates). F-statistics for main effects and interactions are 
- automatically included in the output. In addition, general linear tests (GLTs) 
- can be requested via symbolic coding.
+ variables, and these variables can be either categorical (factor) or numerical 
+ /quantitative (covariate). F-statistics for all main effects and interactions 
+ are automatically included in the output. In addition, general linear tests 
+ (GLTs) can be requested via symbolic coding.
  
  Input files for 3dMVM can be in AFNI, NIfTI, or surface (niml.dset) format.
  Note that unequal number of subjects across groups are allowed, but scenarios 
