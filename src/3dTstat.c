@@ -60,10 +60,11 @@
 #define METH_CVARINVNOD   33
 
 #define METH_ZCOUNT       34
-#define METH_NZMEDIAN     35   /* RCR 27 Jun 2012 */
-#define METH_SIGNED_ABSMAX 36  /* RCR 31 Aug 2012 */
+#define METH_NZMEDIAN     35  /* RCR 27 Jun 2012 */
+#define METH_SIGNED_ABSMAX 36 /* RCR 31 Aug 2012 */
+#define METH_L2_NORM      37  /* RCR 07 Jan 2013 */
 
-#define MAX_NUM_OF_METHS  37
+#define MAX_NUM_OF_METHS  38
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 4
@@ -124,6 +125,7 @@ void usage_3dTstat(int detail)
  " -stdev  = compute standard deviation of input voxels\n"
  "             [N.B.: this is computed after    ]\n"
  "             [      the slope has been removed]\n"
+ " -l2norm = compute L2 norm (sqrt(sum squares))\n"
  " -cvar   = compute coefficient of variation of input\n"
  "             voxels = stdev/fabs(mean)\n"
  " -cvarinv= 1.0/cvar = 'signal to noise ratio' [for Vinai]\n"
@@ -561,6 +563,12 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-l2norm") == 0 ){  /* 07 Jan 2013 [rickr] */
+         meth[nmeths++] = METH_L2_NORM ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
       /*-- prefix --*/
 
       if( strcasecmp(argv[nopt],"-prefix") == 0 ){
@@ -851,12 +859,21 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       }
       break;
 
+      case METH_L2_NORM:                /* 07 Jan 2013 [rickr] */
       case METH_SUM_SQUARES:{           /* 18 Dec 2008 */
         register int ii ;
         register float sum ;
         sum = 0.0;
         for(ii=0; ii< npts; ii++) sum += ts[ii]*ts[ii];
-        val[out_index] = sum;
+
+        /* check multiple methods here */
+        if ( meth[meth_index] == METH_SUM_SQUARES )
+           val[out_index] = sum;
+        else if ( meth[meth_index] == METH_L2_NORM ) {
+           /* theory and practice do not always seem to agree, so... */
+           if( sum >= 0.0 ) val[out_index] = sqrt(sum);
+           else             val[out_index] = 0.0;
+        }
       }
       break;
 
