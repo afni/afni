@@ -2241,6 +2241,7 @@ def db_mod_regress(block, proc, user_opts):
         block.opts.add_opt('-regress_basis', 1, ['GAM'], setpar=1)
         block.opts.add_opt('-regress_censor_prev', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_compute_tsnr', 1, ['yes'], setpar=1)
+        block.opts.add_opt('-regress_compute_gcor', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_cormat_warnings', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_fout', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_polort', 1, [-1], setpar=1)
@@ -2652,26 +2653,15 @@ def db_mod_regress(block, proc, user_opts):
                   '   (consider -regress_est_blur_errts (or _epits))'
             errs += 1
 
-    # check on tsnr
-    uopt = user_opts.find_opt('-regress_compute_tsnr')
-    bopt = block.opts.find_opt('-regress_compute_tsnr')
-    if uopt: bopt.parlist = uopt.parlist
+    # check on tsnr and gcor
+    apply_uopt_to_block('-regress_compute_tsnr', user_opts, block)
+    apply_uopt_to_block('-regress_compute_gcor', user_opts, block)
 
     # possibly update cbucket option
-    oname = '-regress_make_cbucket'
-    uopt = user_opts.find_opt(oname)
-    bopt = block.opts.find_opt(oname)
-    if uopt:
-        if bopt: bopt.parlist = uopt.parlist
-        else:    block.opts.add_opt(oname, 1, uopt.parlist, setpar=1)
+    apply_uopt_to_block('-regress_make_cbucket', user_opts, block)
 
     # possibly update cbucket option
-    oname = '-regress_apply_ricor'
-    uopt = user_opts.find_opt(oname)
-    bopt = block.opts.find_opt(oname)
-    if uopt:
-        if bopt: bopt.parlist = uopt.parlist
-        else:    block.opts.add_opt(oname, 1, uopt.parlist, setpar=1)
+    apply_uopt_to_block('-regress_apply_ricor', user_opts, block)
 
     # maybe do bandpass filtering in the regression
     apply_uopt_to_block('-regress_bandpass', user_opts, block)
@@ -3144,6 +3134,17 @@ def db_cmd_regress(proc, block):
           if tcmd != '': cmd += tcmd
        else: print '-- no errts, will not compute final TSNR'
 
+    # if errts and epi mask, maybe compute GCOR as l2norm of maskave of
+    # unit errts (leave as rm. dataset)
+    opt = block.opts.find_opt('-regress_compute_gcor')
+    if opt.parlist[0] == 'yes':
+       if errts_pre and proc.mask_epi and not proc.surf_anat:
+          tcmd = db_cmd_regress_gcor(proc, block, errts_pre)
+          if tcmd == None: return  # error
+          if tcmd != '': cmd += tcmd
+       elif proc.verb > 1:
+          print '-- no errts or EPI mask (or have surf), will not compute GCOR'
+
     # possibly create computed fitts dataset
     if compute_fitts:
         fstr = feh_str
@@ -3243,6 +3244,33 @@ def db_cmd_reml_exec(proc, block, short=0):
                "    echo '** 3dREMLfit error, failing...'\n"           \
                "    exit\n"                                            \
                "endif\n"
+
+    return cmd
+
+# compute GCOR
+def db_cmd_regress_gcor(proc, block, errts_pre):
+
+    if not errts_pre or not proc.mask_epi: return ''
+    if proc.surf_anat:
+       if proc.verb > 1: print "** no gcor until handle 'both' hemis"
+       return ''
+
+    # Do not handle surface until we have both hemispheres at once.
+
+    gcor_file = 'out.gcor.1D'
+    gu_mean   = 'gmean.errts.unit.1D'
+    uset      = BASE.afni_name('rm.errts.unit%s' % proc.view)
+
+    cmd = '# compute and store GCOR (global correlation average)\n'     \
+          '# - compute as L2_norm of global mean of unit errts\n'       \
+          '3dTnorm -prefix %s %s%s\n'                                   \
+          '3dmaskave -quiet -mask %s %s > %s\n'                         \
+          % (uset.prefix, errts_pre, proc.view, proc.mask_epi.pv(),
+             uset.pv(), gu_mean)
+
+    cmd += "3dTstat -l2norm -prefix - %s\\' > %s\n"                     \
+           'echo "-- GNORM = `cat %s`"\n\n'                             \
+            % (gu_mean, gcor_file, gcor_file)
 
     return cmd
 
@@ -6894,6 +6922,40 @@ g_help_string = """
             
             See '3dToutcount -help' for more details.
             See also -regress_skip_first_outliers, -regress_censor_motion.
+
+        -regress_compute_gcor yes/no : compute GCOR from unit errts
+
+                e.g. -regress_compute_gcor no
+                default: yes
+
+            By default, the GCOR (global correlation) value is computed from
+            the residual time series (errts).  This is a single-valued measure
+            of global correlation.
+
+            The GCOR can be thought of as:
+                A1. for each voxel, compute correlation with every other voxel
+                    --> this can be viewed as an NMASKxNMASK correlation matrix
+                A2. compute the average per voxel (across NMASK "time", say)
+                A3. compute the average of this (masked) volume
+
+            Note that steps A2 and A3 can be thought of as simply:
+                A2'. take the average of this matrix (NMASK^2 values)
+
+            The computation can be done more simply, since step A1 would take
+            a lot of time and disk space.
+                B0. compute errts.unit, each input time series to unit length
+                B1. compute GMU as the global mean of errts.unit
+                B2. compute a single correlation volume at each voxel with GMU
+                B3. compute the average of this volume
+
+            The actual computation is simplified further, as steps B2 and B3
+            combine as the L2 norm of GMU.  The result is:
+                B2'. compute the L2 norm of GMU
+
+            The B0, B1 and B2' steps are performed in the proc script.
+
+            Note: computation of GCOR requires a residual dataset, and EPI
+                  mask, and a volume analysis (at the moment).
 
         -regress_compute_tsnr yes/no : compute TSNR datasets from errts
 

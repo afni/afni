@@ -362,12 +362,13 @@ g_history = """
     3.34 Oct 01, 2012: added 'file' type for -regress_stim_types
     3.35 Oct 03, 2012: make dashed parameters illegal for many options
     3.36 Oct 17, 2012: remove unneeded -set_tr from 1d_tool.py -censor_motion
+    3.37 Jan 08, 2013: added -regress_compute_gcor
 """
 
-g_version = "version 3.36, October 17, 2012"
+g_version = "version 3.37, January 8, 2013"
 
 # version of AFNI required for script execution
-g_requires_afni = "8 May 2012"
+g_requires_afni = "8 Jan 2013"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -793,6 +794,9 @@ class SubjProcSream:
                         helpstr="one basis function per stimulus class")
         self.valid_opts.add_opt('-regress_basis_normall', 1, [],
                         helpstr="specify magnitude of basis functions")
+        self.valid_opts.add_opt('-regress_compute_gcor', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='compute global correlation in residuals')
         self.valid_opts.add_opt('-regress_compute_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr='compute TSNR datasets (yes/no) after regress')
