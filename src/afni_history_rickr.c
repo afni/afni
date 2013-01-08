@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 8, Jan, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added option -regress_compute_gcor",
+   "If errts and EPI mask exist, GCOR is computed by default."
+ } ,
+
  { 7, Jan, 2013, RCR, "3dTstat", MINOR, TYPE_NEW_OPT,
    "added option -l2norm, to compute L2 norm",
    NULL
