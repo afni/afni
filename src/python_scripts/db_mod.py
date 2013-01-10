@@ -3262,14 +3262,14 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
     uset      = BASE.afni_name('rm.errts.unit%s' % proc.view)
 
     cmd = '# compute and store GCOR (global correlation average)\n'     \
-          '# - compute as L2_norm of global mean of unit errts\n'       \
+          '# - compute as sum of squares of global mean of unit errts\n'\
           '3dTnorm -prefix %s %s%s\n'                                   \
           '3dmaskave -quiet -mask %s %s > %s\n'                         \
           % (uset.prefix, errts_pre, proc.view, proc.mask_epi.pv(),
              uset.pv(), gu_mean)
 
-    cmd += "3dTstat -l2norm -prefix - %s\\' > %s\n"                     \
-           'echo "-- GNORM = `cat %s`"\n\n'                             \
+    cmd += "3dTstat -sos -prefix - %s\\' > %s\n"                        \
+           'echo "-- GCOR = `cat %s`"\n\n'                              \
             % (gu_mean, gcor_file, gcor_file)
 
     return cmd
@@ -6928,34 +6928,32 @@ g_help_string = """
                 e.g. -regress_compute_gcor no
                 default: yes
 
-            By default, the GCOR (global correlation) value is computed from
-            the residual time series (errts).  This is a single-valued measure
-            of global correlation.
+            By default, the global correlation (GCOR) is computed from the
+            masked residual time series (errts).
 
-            The GCOR can be thought of as:
-                A1. for each voxel, compute correlation with every other voxel
-                    --> this can be viewed as an NMASKxNMASK correlation matrix
-                A2. compute the average per voxel (across NMASK "time", say)
-                A3. compute the average of this (masked) volume
+            GCOR can be thought of as the result of:
+                A1. compute the correlations of each voxel with every other
+                    --> can be viewed as an NMASK x NMASK correlation matrix
+                A2. compute GCOR: the average of the NMASK^2 values
 
-            Note that steps A2 and A3 can be thought of as simply:
-                A2'. take the average of this matrix (NMASK^2 values)
-
-            The computation can be done more simply, since step A1 would take
-            a lot of time and disk space.
-                B0. compute errts.unit, each input time series to unit length
-                B1. compute GMU as the global mean of errts.unit
-                B2. compute a single correlation volume at each voxel with GMU
+            Since step A1 would take a lot of time and disk space, a more
+            efficient computation is desirable:
+                B0. compute USET: scale each voxel time series to unit length
+                B1. compute GMU: the global mean of this unit dataset
+                B2. compute a correlation volume (of each time series with GMU)
                 B3. compute the average of this volume
 
-            The actual computation is simplified further, as steps B2 and B3
-            combine as the L2 norm of GMU.  The result is:
-                B2'. compute the L2 norm of GMU
+            The actual computation is simplified even further, as steps B2 and
+            B3 combine as the L2 norm of GMU.  The result is:
+                B2'. length(GMU)^2  (or the sum of squares of GMU)
 
-            The B0, B1 and B2' steps are performed in the proc script.
+            The steps B0, B1 and B2' are performed in the proc script.
 
-            Note: computation of GCOR requires a residual dataset, and EPI
-                  mask, and a volume analysis (at the moment).
+            Note: This measure of global correlation is a single number in the
+                  range [0, 1] (not in [-1, 1] as some might expect).
+
+            Note: computation of GCOR requires a residual dataset, an EPI mask,
+                  and a volume analysis (no surface at the moment).
 
         -regress_compute_tsnr yes/no : compute TSNR datasets from errts
 
