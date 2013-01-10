@@ -362,10 +362,10 @@ g_history = """
     3.34 Oct 01, 2012: added 'file' type for -regress_stim_types
     3.35 Oct 03, 2012: make dashed parameters illegal for many options
     3.36 Oct 17, 2012: remove unneeded -set_tr from 1d_tool.py -censor_motion
-    3.37 Jan 08, 2013: added -regress_compute_gcor
+    3.37 Jan 09, 2013: added -regress_compute_gcor
 """
 
-g_version = "version 3.37, January 8, 2013"
+g_version = "version 3.37, January 9, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 Jan 2013"
