@@ -49,7 +49,7 @@
 
 afni_history_struct rickr_history[] = {
 
- { 8, Jan, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+ { 9, Jan, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added option -regress_compute_gcor",
    "If errts and EPI mask exist, GCOR is computed by default."
  } ,
