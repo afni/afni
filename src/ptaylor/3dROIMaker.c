@@ -1,9 +1,18 @@
 /* 
-   Turn ROIs into prep for tractography, written by PA Taylor (Oct/Nov, 2012).
+   Turn ROIs into prep for tractography, written by PA Taylor
+   (Oct/Nov, 2012).
 
 	Main goal: take maps from from ICA, correlation, et al. and
 	threshold to make GM-ROIs; then that latter and make into ROIs for
 	tractography (most likely prob. tractography to define WM-ROIs)
+
+	Inflation/detection for voxels sharing face/edge, but not only
+	vertex.
+
+	Dec. 2012: 
+	     fixed bug about thresholds,
+        include maskability,
+	     rename outputs, `*_WM' -> `*_GMI'.
 
 */
 
@@ -49,12 +58,12 @@ void usage_ROIMaker(int detail)
 "                        correspond most closely to gray matter regions of\n" 
 "                        activation. The values of each voxel are an integer,\n"
 "                        distinct per ROI.\n"
-"   + `WM' map of ROIs  :based on GM map, with the ROIs inflated either by a\n"
-"                        user-designed number of voxels, or also possibly\n" 
-"                        including information of the WM skeleton (so that\n"
-"                        inflation is halted after encountering WM). The \n"
-"                        values of each voxel are the same integers as in the\n"
-"                        GM map.\n"
+"   + `GMI' map of ROIs :map of inflated GM ROIs, based on GM map, with the \n"
+"                        ROIs inflated either by a user-designed number of\n" 
+"                        voxels, or also possibly including information of\n"
+"                        the WM skeleton (so that inflation is halted after\n"
+"                        encountering WM). The values of each voxel are the\n"
+"                        same integers as in the GM map.\n"
 "\n"
 "  + RUNNING, need to provide:\n"
 "     -inset    INSET  :3D volume(s) of values, esp. of functionally-derived\n"
@@ -62,13 +71,13 @@ void usage_ROIMaker(int detail)
 "     -thresh   MINTHR :threshold for values in INSET, used to great ROI\n"
 "                       islands from the 3D volume's sea of values.\n"
 "     -prefix   PREFIX :prefix of output name, with output files being:\n"
-"                       PREFIX_GM* and PREFIX_WM* (see `Outputs', above).\n"
+"                       PREFIX_GM* and PREFIX_GMI* (see `Outputs', above).\n"
 "    and can provide: \n"
 "     -refset   REFSET :3D (or multi-subbrick) volume containing integer \n"
 "                       values with which to label specific GM ROIs after\n"
 "                       thresholding.  This can be useful to assist in having\n"
 "                       similar ROIs across a group labelled with the same \n"
-"                       integer in the output GM and WM maps.\n"
+"                       integer in the output GM and GMI maps.\n"
 "                       If an INSET ROI has no corresponding REFSET label,\n"
 "                       then the former is marked with an integer greater \n"
 "                       than the max refset label. If an INSET ROI overlaps\n"
@@ -81,8 +90,15 @@ void usage_ROIMaker(int detail)
 "                       the values have been thresholded.  Number might be\n"
 "                       estimated with 3dAlphaSim, or otherwise, to reduce\n"
 "                       number of `noisy' clusters.\n"
-"     -inflate  N_INFL :number of voxels which with to pad each found ROI in.\n"
-"                       order to turn GM ROIs into WM ROIs.\n"
+"     -trim_to_gm      :switch to trim the INSET to include only voxels in\n"
+"                       the gray matter, by excluding those which overlap\n"
+"                       an input white matter skeleton, SKEL (see `-wm_skel',\n"
+"                       below).  NB: trimming is done before volume \n"
+"                       thresholding the ROIs, so fewer ROIs might pass, or\n"
+"                       some input regions might be split apart creating\n"
+"                       a greater number of regions.\n"
+"     -inflate  N_INFL :number of voxels which with to pad each found ROI in\n"
+"                       order to turn GM ROIs into inflated (GMI) ROIs.\n"
 "                       ROIs won't overlap with each other, and a WM skeleton\n"
 "                       can also be input to keep ROIs from expanding through\n"
 "                       a large amount of WM ~artificially (see below).\n"
@@ -95,6 +111,12 @@ void usage_ROIMaker(int detail)
 "     -skel_stop       :switch to stop inflation at locations which are \n"
 "                       already on WM skeleton (default: off; and need\n"
 "                       `-wm_skel' to be able to use).\n"
+"     -mask   MASK     :can include a mask within which to apply threshold.\n"
+"                       Otherwise, data should be masked already. Guess this\n"
+"                       would be useful if the MINTHR were a negative value.\n"
+"                       It's also useful to ensure that the output *_GMI*\n"
+"                       ROI masks stay within the brain-- this probably won't\n"
+"                       often matter too much.\n"
 "\n"
 "  + EXAMPLE:\n"
 "      3dROIMaker -inset CORR_VALUES+orig. -thresh 0.6 -prefix ROI_MAP \\\n"
@@ -111,21 +133,26 @@ int main(int argc, char *argv[]) {
 	int iarg=0;
 	THD_3dim_dataset *inset=NULL;
 	char in_name[300];
-	int THR=0.;
+	float THR=0.;
 	char *prefix="NAME_ROIMaker";
 	THD_3dim_dataset *insetREF=NULL;
 	THD_3dim_dataset *insetSKEL=NULL;
-	THD_3dim_dataset *outsetGM=NULL, *outsetWM=NULL;
+	THD_3dim_dataset *outsetGM=NULL, *outsetGMI=NULL;
+
+	THD_3dim_dataset *MASK=NULL;
+	char in_mask[300];
+	int HAVE_MASK=0;
 
 
 	char in_REF[300];
 	char prefix_GM[300];
-	char prefix_WM[300];
+	char prefix_GMI[300];
 	char voxel_order[4]="---";
 
 	int HAVEREF = 0; // switch if an external ref file for ROI labels is present
 	int HAVESKEL = 0; // switch if an external ref file for ROI labels is present
 	int SKEL_STOP=0; // switch if inflation will be stopped in WM skeleton
+	int TRIM_GM=0; // switch if WM_skel will be used to trim initial input map
 	int idx = 0;
 	int VOLTHR = 0; // switch about thresholding GM ROI volume size
 	int val=0,Nvox=0;
@@ -166,7 +193,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 
-	INFO_message("version: LAMBDA");
+	INFO_message("version: MU");
 	Dim = (int *)calloc(4,sizeof(int));
 
 	// scan args
@@ -285,10 +312,28 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-
+		if( strcmp(argv[iarg],"-trim_to_gm") == 0) {
+			TRIM_GM=1;
+			iarg++ ; continue ;
+		}
 
 		if( strcmp(argv[iarg],"-skel_stop") == 0) {
 			SKEL_STOP=1;
+			iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-mask") == 0 ){
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-mask'");
+			HAVE_MASK=1;
+
+			sprintf(in_mask,"%s", argv[iarg]); 
+			MASK = THD_open_dataset(in_mask) ;
+			if( (MASK == NULL ))
+				ERROR_exit("Can't open time series dataset '%s'.",in_mask);
+
+			DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
+			
 			iarg++ ; continue ;
 		}
 
@@ -297,6 +342,7 @@ int main(int argc, char *argv[]) {
 		suggest_best_prog_option(argv[0], argv[iarg]);
 		exit(1);
 	}
+	INFO_message("Value of threshold is: %f",THR);
 
 	// some checks on sizes of arrays/sets
 	if(HAVEREF) {
@@ -323,13 +369,20 @@ int main(int argc, char *argv[]) {
 		if( voxel_order[0] != ORIENT_typestr[insetSKEL->daxes->xxorient][0] ||
 			 voxel_order[1] != ORIENT_typestr[insetSKEL->daxes->yyorient][0] ||
 			 voxel_order[2] != ORIENT_typestr[insetSKEL->daxes->zzorient][0] )
-			ERROR_exit("Skeleton orientation is not %s like the inset.",voxel_order);
+			ERROR_exit("Skeleton orientation is not %s like the inset.",
+						  voxel_order);
 
 	}
 
-	if( (!HAVESKEL) && SKEL_STOP)
-		ERROR_exit("You asked to stop inflation at the WM skeleton, but didn't give a skeleton using `-wm_skel'.");
+	if( (!HAVESKEL) && SKEL_STOP) {
+		INFO_message("*+ You asked to stop inflation at the WM skeleton, but didn't give a skeleton using `-wm_skel'-- will just ignore that.");
+		SKEL_STOP=0; //reset
+	}
 
+	if( (!HAVESKEL) && TRIM_GM) {
+		INFO_message("*+ You asked to trim GM input with WM skeleton, but didn't give a skeleton using `-wm_skel'-- will just ignore that.");
+		TRIM_GM = 0; //reset
+	}
 
 	if (iarg < 3) {
 		ERROR_message("Too few options. Try -help for details.\n");
@@ -342,6 +395,33 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 	
+	// WM SKELETON MAKING
+	SKEL = (short int ***) calloc( Dim[0], sizeof(short int **));
+	for ( i = 0 ; i < Dim[0] ; i++ ) 
+		SKEL[i] = (short int **) calloc( Dim[1], sizeof(short int *));
+	for ( i = 0 ; i < Dim[0] ; i++ ) 
+		for ( j = 0 ; j < Dim[1] ; j++ ) 
+			SKEL[i][j] = (short int *) calloc( Dim[2], sizeof(short int));
+	
+	if( (SKEL == NULL)
+		 ) { 
+		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+		exit(16);
+	}
+
+	// make skeleton: either with file input, or just put 1s everywhere.
+	idx = 0;
+	// should preserve relative ordering of data
+	for( k=0 ; k<Dim[2] ; k++ ) 
+		for( j=0 ; j<Dim[1] ; j++ ) 
+			for( i=0 ; i<Dim[0] ; i++ ) {
+				if( ((THD_get_voxel(insetSKEL,idx,0)>SKEL_THR) && (HAVESKEL==1)) 
+					 || (HAVESKEL==0) ) 
+					SKEL[i][j][k] = 1;
+				idx+= 1; 			
+			}
+
+
 	N_thr = (int *)calloc(Dim[3],sizeof(int)); // num of init vox per brik,const
 	VOX = (int *)calloc(Dim[3],sizeof(int)); // num of vox >thr per brik,var
 	relab_vox = (int *)calloc(Dim[3],sizeof(int)); // num of vox >thr per brik
@@ -359,7 +439,7 @@ int main(int argc, char *argv[]) {
 	for ( i=0 ; i<Dim[0] ; i++ ) 
 		for ( j=0 ; j<Dim[1] ; j++ ) 
 			for ( k= 0 ; k<Dim[2] ; k++ ) 
-				DATA[i][j][k] = (int *) calloc( Dim[3],  sizeof(int) );
+				DATA[i][j][k] = (int *) calloc( Dim[3], sizeof(int) );
 
 	// will be output
 	temp_arr = calloc( Dim[3],sizeof(temp_arr));  // XYZ components
@@ -372,8 +452,6 @@ int main(int argc, char *argv[]) {
 		exit(14);
 	}
 
-
-	
 	// STEP 1: go through brik by brik to apply thresholding -> prod bin mask
 	for( m=0 ; m< Dim[3] ; m++ ) {
 		idx = 0;
@@ -381,10 +459,15 @@ int main(int argc, char *argv[]) {
 		for( k=0 ; k<Dim[2] ; k++ ) 
 			for( j=0 ; j<Dim[1] ; j++ ) 
 				for( i=0 ; i<Dim[0] ; i++ ) {
-					if( THD_get_voxel(inset,idx,m) > THR  ) {
-						DATA[i][j][k][m] = BASE_DVAL;// temporary until ROIs are 1st labelled
-						N_thr[m]+= 1;
-					}
+					if( (HAVE_MASK==0) || 
+						 (HAVE_MASK && ( THD_get_voxel(MASK,idx,0)>0 ) ) )
+						if( THD_get_voxel(inset,idx,m) > THR  ) 
+							if( !TRIM_GM || (TRIM_GM && !SKEL[i][j][k]) )
+								{
+									// temporary until ROIs are 1st labelled
+									DATA[i][j][k][m] = BASE_DVAL;
+									N_thr[m]+= 1;
+								}
 					idx+= 1; 					
 				}
 	}
@@ -418,7 +501,6 @@ int main(int argc, char *argv[]) {
 		exit(15);
 	}		
 	
-
 	// ****************************************************************
 	// ****************************************************************
 	//                    labelling inset
@@ -429,7 +511,6 @@ int main(int argc, char *argv[]) {
 	for( m=0 ; m<Dim[3] ; m++ ) {
 		// make it bigger than any final index possibly could be
 		index1 = N_thr[m]; 
-
 
 		for( k=0 ; k<Dim[2] ; k++ ) 
 			for( j=0 ; j<Dim[1] ; j++ ) 
@@ -452,19 +533,21 @@ int main(int argc, char *argv[]) {
 							for( ii=-DEP ; ii<=DEP ; ii++)
 								for( jj=-DEP ; jj<=DEP ; jj++)
 									for( kk=-DEP ; kk<=DEP ; kk++)
-										// keep in bounds
-										if((0 <= X+ii) && (X+ii < Dim[0]) && 
-											(0 <= Y+jj) && (Y+jj < Dim[1]) && 
-											(0 <= Z+kk) && (Z+kk < Dim[2])) {
-											// if a neighbor has value of -one...
-											if( DATA[X+ii][Y+jj][Z+kk][m] == BASE_DVAL) {
-												DATA[X+ii][Y+jj][Z+kk][m] = index1; // change
-												list1[found][0] = X+ii; // keep the coors
-												list1[found][1] = Y+jj;
-												list1[found][2] = Z+kk;
-												found+= 1; // add to list to investigate,
+										// need to share face or edge, not only vertex
+										if(abs(ii)+abs(jj)+abs(kk)<3)
+											// keep in bounds
+											if((0 <= X+ii) && (X+ii < Dim[0]) && 
+												(0 <= Y+jj) && (Y+jj < Dim[1]) && 
+												(0 <= Z+kk) && (Z+kk < Dim[2])) {
+												// if a neighbor has value of -one...
+												if( DATA[X+ii][Y+jj][Z+kk][m] == BASE_DVAL) {
+													DATA[X+ii][Y+jj][Z+kk][m] = index1; // change
+													list1[found][0] = X+ii; // keep the coors
+													list1[found][1] = Y+jj;
+													list1[found][2] = Z+kk;
+													found+= 1; // add to list to investigate,
+												}
 											}
-										}
 							investigated+=1;
 						}
 						
@@ -494,8 +577,7 @@ int main(int argc, char *argv[]) {
 	
 	// Step 3: do matching, or subtract values back to where they should be
 	if( HAVEREF > 0 ) {
-		
-		
+				
 		// Step 3A-1: SET UP MATRICES FOR THIS STUFF
 		NROI_REF = (int *)calloc(HAVEREF, sizeof(int)); 
 		NROI_REF_b = (int *)calloc(HAVEREF, sizeof(int)); // for counting
@@ -536,7 +618,6 @@ int main(int argc, char *argv[]) {
 			N_olap_IR[i] = calloc(NROI_IN[i]+1,sizeof(int)); 
 		EXTRA_LAB = (int *)calloc(Dim[3], sizeof(int)); 
 
-
 		OLAP_RI = (int ****) calloc( Dim[3], sizeof(int ***) );
 		for ( i=0 ; i<Dim[3] ; i++ ) 
 			OLAP_RI[i] = (int ***) calloc( NROI_REF[i]+1, sizeof(int **) );
@@ -576,7 +657,6 @@ int main(int argc, char *argv[]) {
 							if( DATA[i][j][k][m]>0 ) {
 								Y = DATA[i][j][k][m] - N_thr[m];
 								OLAP_RI[m][X][Y][0]+=1;
-								//printf("\t %d,%d,%d,%d . ",X,Y,DATA[i][j][k][m],N_thr[m]);
 							}
 						}
 						idx++;
@@ -586,7 +666,7 @@ int main(int argc, char *argv[]) {
 		// At this point we should know: Nvox/ROI of the inset; Nvox/ROI
 		// of the refset, Noverlap voxels for any combination of ref and
 		// inset ROIs.  Can calculate percents of olap and dice coeffs
-
+		
 		// Step 3A-4: check and see the situation with overlapping of indices
 		for( m=0 ; m<Dim[3] ; m++ ) {
 			
@@ -619,7 +699,6 @@ int main(int argc, char *argv[]) {
 							else { // to be grown on it
 								OLAP_RI[m][i][j][1] = 4; // label
 								NROI_REF_b[m]++; // accounted.
-								//!!!!!! ??? what to label? NROI_IN_b[m]++; // accounted.
 							}
 						}
 				}
@@ -710,17 +789,20 @@ int main(int argc, char *argv[]) {
 								for( ii=-DEP ; ii<=DEP ; ii++)
 									for( jj=-DEP ; jj<=DEP ; jj++)
 										for( kk=-DEP ; kk<=DEP ; kk++)
-											// keep in bounds
-											if((0 <= i+ii) && (i+ii < Dim[0]) && 
-												(0 <= j+jj) && (j+jj < Dim[1]) && 
-												(0 <= k+kk) && (k+kk < Dim[2])) {
-												// grow if ngb>=N_thr; give temp value
-												// of -[value it will have]
-												if( DATA[i+ii][j+jj][k+kk][m]>=N_thr[m]) {
-													DATA[i+ii][j+jj][k+kk][m] = -DATA[i][j][k][m];
-													found_this_iter++;
+											// need to share face or edge, not only vertex
+											if(abs(ii)+abs(jj)+abs(kk)<3)
+												
+												// keep in bounds
+												if((0 <= i+ii) && (i+ii < Dim[0]) && 
+													(0 <= j+jj) && (j+jj < Dim[1]) && 
+													(0 <= k+kk) && (k+kk < Dim[2])) {
+													// grow if ngb>=N_thr; give temp value
+													// of -[value it will have]
+													if( DATA[i+ii][j+jj][k+kk][m]>=N_thr[m]) {
+														DATA[i+ii][j+jj][k+kk][m] = -DATA[i][j][k][m];
+														found_this_iter++;
+													}
 												}
-											}
 							}
 							idx++;
 						}
@@ -737,8 +819,7 @@ int main(int argc, char *argv[]) {
 									DATA[i][j][k][m]*= -1;
 				}
 				if( relab_vox[m]==N_thr[m] )
-					KEEP_GOING=0;
-				
+					KEEP_GOING=0;				
 			}
 			
 			// final part, relabel the inROIs which are unmatched with the 
@@ -772,6 +853,7 @@ int main(int argc, char *argv[]) {
 	
 	outsetGM = EDIT_empty_copy( inset ) ; 
 	sprintf(prefix_GM,"%s_GM",prefix);
+	
 	EDIT_dset_items( outsetGM,
 						  ADN_datum_all , MRI_short , 
 						  ADN_prefix    , prefix_GM ,
@@ -805,34 +887,9 @@ int main(int argc, char *argv[]) {
 
 	// **************************************************************
 	// **************************************************************
-	//                 Expand WM maps
+	//                 Expand GM maps
 	// **************************************************************
 	// **************************************************************
-
-	SKEL = (short int ***) calloc( Dim[0], sizeof(short int **));
-	for ( i = 0 ; i < Dim[0] ; i++ ) 
-		SKEL[i] = (short int **) calloc( Dim[1], sizeof(short int *));
-	for ( i = 0 ; i < Dim[0] ; i++ ) 
-		for ( j = 0 ; j < Dim[1] ; j++ ) 
-			SKEL[i][j] = (short int *) calloc( Dim[2], sizeof(short int));
-	
-	if( (SKEL == NULL)
-		 ) { 
-		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-		exit(16);
-	}
-
-	// make skeleton: either with file input, or just put 1s everywhere.
-	idx = 0;
-	// should preserve relative ordering of data
-	for( k=0 ; k<Dim[2] ; k++ ) 
-		for( j=0 ; j<Dim[1] ; j++ ) 
-			for( i=0 ; i<Dim[0] ; i++ ) {
-				if( ((THD_get_voxel(insetSKEL,idx,0)>SKEL_THR) && (HAVESKEL==1)) 
-					 || (HAVESKEL==0) ) 
-					SKEL[i][j][k] = 1;
-				idx+= 1; 			
-			}
 
 	
 	// find all index numbers for GM systematically.
@@ -874,8 +931,6 @@ int main(int argc, char *argv[]) {
 						NROI_GM,       INVROI_GM);
 	if( bb != 1)
 		ERROR_exit("Problem loading/assigning GM labels");
-
-		
 	
 	// preliminary setting up of COUNT_GM
 	for( m=0 ; m<Dim[3] ; m++ ) {
@@ -898,7 +953,6 @@ int main(int argc, char *argv[]) {
 
 	for( n=0 ; n<INFL_NUM ; n++) {
 		for( m=0 ; m<Dim[3] ; m++ ) {
-			
 			for( k=0 ; k<Dim[2] ; k++ ) 
 				for( j=0 ; j<Dim[1] ; j++ ) 
 					for( i=0 ; i<Dim[0] ; i++ ) 
@@ -908,18 +962,27 @@ int main(int argc, char *argv[]) {
 								for( ii=-DEP ; ii<=DEP ; ii++)
 									for( jj=-DEP ; jj<=DEP ; jj++)
 										for( kk=-DEP ; kk<=DEP ; kk++)
-											// keep in bounds
-											if((0 <= i+ii) && (i+ii < Dim[0]) && 
-												(0 <= j+jj) && (j+jj < Dim[1]) && 
-												(0 <= k+kk) && (k+kk < Dim[2])) {
-												// grow if ngb=0; give temp value
-												// of -[value it will have]
-												if( DATA[i+ii][j+jj][k+kk][m]==0) {
-													DATA[i+ii][j+jj][k+kk][m] = 
-														-DATA[i][j][k][m];
-													//found_this_iter++;
+											// need to share face or edge, not only vertex
+											if(abs(ii)+abs(jj)+abs(kk)<3)
+												
+												// keep in bounds
+												if((0 <= i+ii) && (i+ii < Dim[0]) && 
+													(0 <= j+jj) && (j+jj < Dim[1]) && 
+													(0 <= k+kk) && (k+kk < Dim[2])) {
+													idx = THREE_TO_IJK(i+ii,j+jj,k+kk,Dim[0],Dim[0]*Dim[1]);
+													if( (HAVE_MASK==0) || 
+														 (HAVE_MASK && 
+														  ( THD_get_voxel(MASK,idx,0)>0 ) ) ) {
+														
+														// grow if ngb=0; give temp value
+														// of -[value it will have]
+														if( DATA[i+ii][j+jj][k+kk][m]==0) {
+															DATA[i+ii][j+jj][k+kk][m] = 
+																-DATA[i][j][k][m];
+															//found_this_iter++;
+														}
+													}
 												}
-											}
 						}
 			
 			// and now convert the layer to being part of the ROI
@@ -940,7 +1003,7 @@ int main(int argc, char *argv[]) {
 
 	// **************************************************************
 	// **************************************************************
-	//                 Store and output WM info
+	//                 Store and output GMI info
 	// **************************************************************
 	// **************************************************************
 
@@ -953,18 +1016,17 @@ int main(int argc, char *argv[]) {
 		exit(14);
 	}
 
-	outsetWM = EDIT_empty_copy( outsetGM ) ; 
-	sprintf(prefix_WM,"%s_WM",prefix);
-	EDIT_dset_items( outsetWM,
+	outsetGMI = EDIT_empty_copy( inset ) ; 
+	sprintf(prefix_GMI,"%s_GMI",prefix);
+	EDIT_dset_items( outsetGMI,
 						  ADN_datum_all , MRI_short , 
-						  ADN_prefix    , prefix_WM ,
+						  ADN_prefix    , prefix_GMI ,
 						  ADN_none ) ;
 	
-	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetWM)) )
+	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetGMI)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
-					  DSET_HEADNAME(outsetWM));
-	
-	
+					  DSET_HEADNAME(outsetGMI));
+		
 	for( m=0 ; m<Dim[3] ; m++ ) {
 		idx=0;
 		for( k=0 ; k<Dim[2] ; k++ ) 
@@ -973,19 +1035,19 @@ int main(int argc, char *argv[]) {
 					temp_arr2[m][idx] = DATA[i][j][k][m];
 					idx+=1;
 				}
-		EDIT_substitute_brick(outsetWM, m, MRI_short, temp_arr2[m]); 
+		EDIT_substitute_brick(outsetGMI, m, MRI_short, temp_arr2[m]); 
 		temp_arr2[m]=NULL; // to not get into trouble...
 	}
 
-	THD_load_statistics(outsetWM);
-	tross_Make_History("3dROIMaker", argc, argv, outsetWM);
-	THD_write_3dim_dataset(NULL, NULL, outsetWM, True);
+	THD_load_statistics(outsetGMI);
+	tross_Make_History("3dROIMaker", argc, argv, outsetGMI);
+	THD_write_3dim_dataset(NULL, NULL, outsetGMI, True);
 
 	for( m=0 ; m<Dim[3] ; m++ )
 		free(temp_arr2[m]);
 	free(temp_arr2);
 	
-	INFO_message("WM map is done.");
+	INFO_message("GMI map is done.");
 	
 	// ************************************************************
 	// ************************************************************
@@ -997,12 +1059,14 @@ int main(int argc, char *argv[]) {
 	free(inset);
 	DSET_delete(insetREF);
 	DSET_delete(outsetGM);
-	DSET_delete(outsetWM);
+	DSET_delete(outsetGMI);
+	DSET_delete(MASK);
 	free(insetREF);
 	free(outsetGM);
-	free(outsetWM);
+	free(outsetGMI);
 	DSET_delete(insetSKEL);
 	free(insetSKEL);
+	free(MASK);
 
 	for( i=0 ; i<Dim[0] ; i++) 
 		for( j=0 ; j<Dim[1] ; j++) 
@@ -1023,10 +1087,10 @@ int main(int argc, char *argv[]) {
 	if(HAVEREF>0) {
 
 		for( i=0 ; i<HAVEREF ; i++) {
-			ROI_LABELS_REF[i];
-			INV_LABELS_REF[i];
-			N_olap_RI[i];
-			N_olap_IR[i];
+			free(ROI_LABELS_REF[i]);
+			free(INV_LABELS_REF[i]);
+			free(N_olap_RI[i]);
+			free(N_olap_IR[i]);
 			for ( j = 0 ; j<NROI_REF[i]+1 ; j++ ) 
 				for ( k = 0 ; k<NROI_IN[i]+1 ; k++ ) 
 					free(OLAP_RI[i][j][k]);
@@ -1050,8 +1114,8 @@ int main(int argc, char *argv[]) {
 		for ( j = 0 ; j<NROI_GM[i]+1 ; j++ ) 
 			free(COUNT_GM[i][j]);
 		free(COUNT_GM[i]);
-		ROI_LABELS_GM[i];
-		INV_LABELS_GM[i];
+		free(ROI_LABELS_GM[i]);
+		free(INV_LABELS_GM[i]);
 	}
 	free(ROI_LABELS_GM);
 	free(INV_LABELS_GM);

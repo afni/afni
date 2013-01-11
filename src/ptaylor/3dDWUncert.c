@@ -78,7 +78,7 @@ void usage_DWUncert(int detail)
 "            [4] bias of FA \n"
 "            [5] stdev of FA\n"
 "\n\n"
-"  + RUNNING, need to provide (and your data should be masked already):\n"
+"  + RUNNING, need to provide:\n"
 "    -inset  FILE     :file with b0 and DWI subbricks \n"
 "                      (e.g., input to 3dDWtoDTI)\n"
 "    -prefix PREFIX   :output file name part.\n"
@@ -104,6 +104,8 @@ void usage_DWUncert(int detail)
 "                      b-values were used to measure DWI data; if TORTOISE\n"
 "                      preprocessing has been employed, then its *.bmtxt\n"
 "                      file can be used directly.\n"
+"    -mask   MASK     :can include a mask within which to calculate uncert.\n"
+"                      Otherwise, data should be masked already.\n"
 "    -iters  NUMBER   :number of jackknife resample iterations,\n"
 "                      e.g. 50.\n"
 "    -csf_fa NUMBER   :number marking FA value of `bad' voxels, such as \n"
@@ -136,7 +138,11 @@ int main(int argc, char *argv[]) {
 	THD_3dim_dataset *dwset1=NULL; 
 	THD_3dim_dataset *UNC_OUT=NULL;
 	char *prefix="tracky" ;
-	
+
+	THD_3dim_dataset *MASK=NULL;
+	char in_mask[300];
+	int HAVE_MASK=0;
+
 	char in_FA[300];
 	char in_V1[300];
 	char in_V2[300];
@@ -486,6 +492,21 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 		
+		if( strcmp(argv[iarg],"-mask") == 0 ){
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-mask'");
+			HAVE_MASK=1;
+			
+			sprintf(in_mask,"%s", argv[iarg]); 
+			MASK = THD_open_dataset(in_mask) ;
+			if( (MASK == NULL ))
+				ERROR_exit("Can't open time series dataset '%s'.",in_mask);
+			
+			DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
+			
+			iarg++ ; continue ;
+		}
+
 		if( strcmp(argv[iarg],"-iters") == 0 ){
 			iarg++ ; 
 			if( iarg >= argc ) 
@@ -591,7 +612,8 @@ int main(int argc, char *argv[]) {
 	}
   
 	for(i=0 ; i<Nvox ; i++) 
-		if(THD_get_voxel(insetL1,i,0)<EPS_V) {
+		if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
+			 ( (HAVE_MASK==0) && (THD_get_voxel(insetL1,i,0)<EPS_V) ) ) {
 			for(j=0 ; j<6 ; j++) 
 				OUT[j][i] = 0.0;
 		}
@@ -1000,7 +1022,8 @@ int main(int argc, char *argv[]) {
 	DSET_delete(insetV2);
 	DSET_delete(insetV3);
 	DSET_delete(dwset1);
-  
+  	DSET_delete(MASK);
+
 	free(prefix);
 	free(insetV1);
 	free(insetV2);
@@ -1008,7 +1031,8 @@ int main(int argc, char *argv[]) {
 	free(insetL1);
 	free(insetFA);
 	free(dwset1);
-  
+  	free(MASK);
+
 	for( i=0; i<6 ; i++) // free all
 		free(OUT[i]);
 	free(OUT);
