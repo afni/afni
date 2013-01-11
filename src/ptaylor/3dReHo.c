@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
 	int *NROI_REF=NULL,*INVROI_REF=NULL;
 	int **ROI_LABELS_REF=NULL, **INV_LABELS_REF=NULL,**ROI_COUNT=NULL;
 	int *LIST_OF_NEIGHS=NULL; // hold list of neighbors for indiv vox.
-	int ***ROI_LISTS;
+	int ***ROI_LISTS=NULL;
 
 	int Nvox=-1;   // tot number vox
 	int *Dim=NULL;
