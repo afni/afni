@@ -47,7 +47,7 @@ int main( int argc , char * argv[] )
    MRI_IMARR *ortar=NULL ; MRI_IMAGE *ortim=NULL ;
    THD_3dim_dataset **ortset=NULL ; int nortset=0 ;
    THD_3dim_dataset *inset=NULL , *outset=NULL;
-   char *prefix="RSFC" ;
+   char *prefix="bandpass" ;
    byte *mask=NULL ;
    int mask_nx=0,mask_ny=0,mask_nz=0,nmask , verb=1 , 
 		nx,ny,nz,nvox , nfft=0 , kk ;
@@ -122,11 +122,9 @@ int main( int argc , char * argv[] )
 "  fALFF --      Zou et al. (2008),\n"
 "  RSFA --       Kannurpatti & Biswal (2008).\n\n\n"
 "****Usage: 3dRSFC [options] fbot ftop dataset\n"
-/*
 "\n"
 "* One function of this program is to prepare datasets for input\n"
 "   to 3dSetupGroupInCorr.  Other uses are left to your imagination.\n"
-*/
 "\n"
 "* 'dataset' is a 3D+time sequence of volumes\n"
 "   ++ This must be a single imaging run -- that is, no discontinuities\n"
@@ -224,7 +222,7 @@ int main( int argc , char * argv[] )
 " -no_rs_out      = Don't output processed time series-- just output parameters\n"
 "                   (not recommended since the point of calculating RSFC params\n"
 "                   here is to have them be quite related to the time series\n"
-"                   themselves which are used for further analysis).\n"
+"                   themselves which are used for further analysis)."
 " -un_bp_out      = Output the un-bandpassed series as well (default is not \n"
 "                   to).  Name would be, e.g., ppp_unBP+orig.* .\n"
 "                   with suffix `_unBP'.\n"
@@ -790,17 +788,15 @@ int main( int argc , char * argv[] )
 				}
 			}
 
-			if (denom != 0.0f) falff[kk] = numer/denom;
-			else falff[kk] = 0.0;
-         alff[kk] = 2*numer/sqnt;// factor of 2 since ampl is even funct
+			falff[kk] = numer/denom;
+			alff[kk] = 2*numer/sqnt;// factor of 2 since ampl is even funct
 			meanALFF+= alff[kk];
 
 			if(DO_RSFA){
 				nu_rsfa = sqrt(2*nu_rsfa); // factor of 2 since ampls 
 				de_rsfa = sqrt(2*de_rsfa); // are even funcs
-				if (de_rsfa != 0.0f) frsfa[kk] = nu_rsfa/de_rsfa;
-				else frsfa[kk] = 0.0;
-            rsfa[kk] = nu_rsfa/nt_fac;
+				frsfa[kk] = nu_rsfa/de_rsfa;
+				rsfa[kk] = nu_rsfa/nt_fac;
 				meanRSFA+= rsfa[kk];
 			}
 			

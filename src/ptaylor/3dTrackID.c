@@ -5,6 +5,10 @@
 
 	updated version (switch for output *.trk file origin info; 
 	                 memory stuff), Sept. 2012
+
+	updated version, Dec. 2012:
+	        + allow non-FA map to define `WM' for tracks,
+
 */
 
 
@@ -46,52 +50,56 @@ void usage_TrackID(int detail)
 "        [unweighted mean of L1]     [st dev of L1]\n"
 "        \n\n"
 "  + TRACTOGRAPHY OPTIONS via {-algopt [file of tractog options}: \n"
-"        MinFA         :FA cutoff value, lower bound\n"
-"        MaxAng        :max angle (in deg) to propagate between vox\n"
-"        MinL          :min physical length (in mm) of tracts to keep\n"
-"        SeedPerV[0]   :Number of seeds per vox in x direc\n"
-"        SeedPerV[1]   :Number of seeds per vox in y direc\n"
-"        SeedPerV[2]   :Number of seeds per vox in z direc\n"
-"        M             :number of grads used to scan (not used yet)\n"
-"        bval          :non-b=0 value (mm^2/s), e.g., 1000 (not used yet)\n"
+"        MinFA       :FA cutoff value, lower bound\n"
+"        MaxAng      :max angle (in deg) to propagate between vox\n"
+"        MinL        :min physical length (in mm) of tracts to keep\n"
+"        SeedPerV[0] :Number of seeds per vox in x direc\n"
+"        SeedPerV[1] :Number of seeds per vox in y direc\n"
+"        SeedPerV[2] :Number of seeds per vox in z direc\n"
+"        M           :number of grads used to scan (not used yet)\n"
+"        bval        :non-b=0 value (mm^2/s), e.g., 1000 (not used yet)\n"
 "  \n\n"
 "  + RUNNING, need to provide:\n"
-"    -mask1  MASK1 :mask of ROI1\n"
-"    -mask2  MASK2 :mask of ROI2\n"
-"    -prefix PREFIX :output file name part\n"
-"    -input  INPREF :Basename of DTI volumes output by, e.g., 3dDWItoDT.\n"
-"                    NB- following volumes are currently expected:\n"
-"                    INPREF_V1, INPREF_MD, INPREF_L1, and INPREF_FA.\n" 
-"    -algopt ALGO :ASCII file with eight numbers defining parameter \n"
-"                  quantities just above.\n"
-"                  ALGO can also be in NIML format, which is clearer\n"
-"                  to read. Use -write_opts to get an idea of the format.\n"
-"                  NB- You do not need to use this option if you want to use\n"
-"                  the built in defaults. If you want the values of the \n"
-"                  defaults, add option -write_opts to your command.\n"
+"    -mask1  MASK1   :mask of ROI1\n"
+"    -mask2  MASK2   :mask of ROI2\n"
+"    -prefix PREFIX  :output file name part\n"
+"    -input  INPREF  :Basename of DTI volumes output by, e.g., 3dDWItoDT.\n"
+"                     NB- following volumes are currently expected:\n"
+"                     INPREF_V1, INPREF_MD, INPREF_L1, and INPREF_FA.\n" 
+"    -algopt ALGO    :ASCII file with eight numbers defining parameter \n"
+"                     quantities just above. ALGO can also be in NIML format,\n"
+"                     which is clearer to read. Use -write_opts to get an\n"
+"                     idea of the format. NB- You do not need to use this\n"
+"                     option if you want to use the built in defaults. If you\n"
+"                     want the values of the defaults, add option -write_opts\n"
+"                     to your command.\n"
 "    -logic [AND, OR, ALL] :Set the combinatorial logic of two ROIs;\n"
-"                           for just one ROI, make both masks the same file\n"
-"                           and use, e.g., AND.  Use ALL to keep all tracks \n"
-"                           meeting minimum length criterion.\n"
-"                           For now, you still have to specify a mask even if\n"
-"                           you use ALL (complain to Paul Taylor about this).\n"
-"    -rec_orig :Record dataset origin in the header of the *.trk file. \n"
-"               As of Sept. 2012, TrackVis doesn't use this info so it wasn't\n"
-"               included, but if you might want to map your *.trk file later,\n"
-"               then use the switch as the datasets's Origin is necessary\n"
-"               info for the mapping (the default image in TrackVis might not\n"
-"               pop up in the center of the viewing window, though, just be\n"
-"               aware).  NB: including the origin might become default at\n"
-"               some point in time.\n"
-"    -write_opts :Write out all the option values into PREFIX.niml.opts.\n" 
-"    -verb VERB :Verbosity level, default is 0.\n"
+"                     for just one ROI, make both masks the same file and\n"
+"                     use, e.g., AND.  Use ALL to keep all tracks meeting\n"
+"                     minimum length criterion.\n"
+"                     For now, you still have to specify a mask even if you\n"
+"                     use ALL (complain to Paul Taylor about this).\n"
+"    -rec_orig       :Record dataset origin in the header of the *.trk file.\n"
+"                     As of Sept. 2012, TrackVis doesn't use this info so it\n"
+"                     wasn't included, but if you might want to map your \n"
+"                     *.trk file later, then use the switch as the datasets's\n"
+"                     Origin is necessary info for the mapping (the default\n"
+"                     image in TrackVis might not pop up in the center of the\n"
+"                     viewing window, though, just be aware).  NB: including\n"
+"                     the origin might become default at some point in time.\n"
+"    -extra_set SET  :if you want to use a non-FA derived definition for the\n"
+"                     WM skeleton in which tracts run, you can input one, and\n"
+"                     then the threshold in the ALGO file refers to values\n"
+"                     in this map.\n"
+"    -write_opts     :Write out all the option values into PREFIX.niml.opts.\n" 
+"    -verb VERB      :Verbosity level, default is 0.\n"
 "    -tract_out_mode MODE :Type of output format. Choose from:\n"
-"                            NI_fast_binary, NI_fast_text,\n"
-"                            NI_slow_binary, NI_slow_text\n"
-"                          At the moment, Trackvis formatted file is\n"
-"                          also written out, regardless of what MODE is\n"
-"                          set to be. Default mode is: NI_fast_binary.\n"
-"                                 \n\n" 
+"                     NI_fast_binary, NI_fast_text,\n"
+"                     NI_slow_binary, NI_slow_text\n"
+"                     At the moment, Trackvis formatted file is also written\n"
+"                     out, regardless of what MODE is set to be. Default mode\n"
+"                     is: NI_fast_binary.\n"
+" \n\n" 
 "  + EXAMPLE:\n"
 "      Download and install this archive:\n"
 "         curl -O http://..../FACTID_draft.tar.gz \n"
@@ -119,15 +127,18 @@ int main(int argc, char *argv[]) {
 	int nmask2=0;
 	THD_3dim_dataset *insetFA = NULL, *insetV1 = NULL, 
 		*insetMD = NULL, *insetL1 = NULL;
+	THD_3dim_dataset *insetEXTRA=NULL; 
 	THD_3dim_dataset *mset2=NULL; 
 	THD_3dim_dataset *mset1=NULL; 
 	THD_3dim_dataset *outsetMAP=NULL, *outsetMASK=NULL;
-	char *prefix="tracky" ;
+	char *prefix="tracky";
 	int LOG_TYPE=0;
 	char in_FA[300];
 	char in_V1[300];
 	char in_MD[300];
 	char in_L1[300];
+	char *in_EXTRA="name";//[300];
+	int EXTRAFILE=0; // switch for whether other file is input as WM map
 
 	char OUT_bin[300];
 	char OUT_tracstat[300];
@@ -221,7 +232,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 
-	INFO_message("version: KAPPA");
+	INFO_message("version: MU");
 
 	/** scan args **/
 	if (argc == 1) { usage_TrackID(1); exit(0); }
@@ -417,6 +428,25 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
     
+		//@@
+		if( strcmp(argv[iarg],"-extra_set") == 0) {
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-extra_set'");
+			EXTRAFILE = 1; // switch on
+			in_EXTRA = argv[iarg];
+
+			insetEXTRA = THD_open_dataset(in_EXTRA);
+			if( (insetEXTRA == NULL ) )
+				ERROR_exit("Can't open dataset '%s': for extra set.",in_EXTRA);
+			DSET_load(insetEXTRA) ; CHECK_LOAD_ERROR(insetEXTRA) ;
+
+			if( !((Dim[0] == DSET_NX(insetEXTRA)) && (Dim[1] == DSET_NY(insetEXTRA)) && (Dim[2] == DSET_NZ(insetEXTRA))))
+				ERROR_exit("Dimensions of extra set '%s' don't match those of the DTI prop ones ('%s', etc.).",in_EXTRA, in_FA);
+			
+			iarg++ ; continue ;
+		}
+
+
 		ERROR_message("Bad option '%s'\n",argv[iarg]) ;
 		suggest_best_prog_option(argv[0], argv[iarg]);
 		exit(1);
@@ -494,6 +524,16 @@ int main(int argc, char *argv[]) {
 		DSET_delete(mset2); 
 		mset2=dsetn;
 		dsetn=NULL;
+
+		if(EXTRAFILE) {
+			dsetn = r_new_resam_dset(insetEXTRA, NULL, 0.0, 0.0, 0.0,
+											 dset_or, RESAM_NN_TYPE, NULL, 1, 0);
+			DSET_delete(insetEXTRA); 
+			insetEXTRA=dsetn;
+			dsetn=NULL;
+		}
+
+
 	}
 	 
 	 
@@ -584,7 +624,10 @@ int main(int argc, char *argv[]) {
 			for( i=0 ; i<Dim[0] ; i++ ) {
 				for( m=0 ; m<3 ; m++ ) 
 					coorded[i][j][k][m] = THD_get_voxel(insetV1, idx, m);
-				coorded[i][j][k][3] = THD_get_voxel(insetFA, idx, 0); 
+				if(EXTRAFILE)
+					coorded[i][j][k][3] = THD_get_voxel(insetEXTRA, idx, 0); 
+				else
+					coorded[i][j][k][3] = THD_get_voxel(insetFA, idx, 0); 
    
 				// make sure that |V1| == 1 for all eigenvects, otherwise it's
 				/// a problem in the tractography; currently, some from
@@ -947,7 +990,7 @@ int main(int argc, char *argv[]) {
 			dsetn=NULL;
 		}
 		EDIT_dset_items( outsetMAP ,
-							  ADN_prefix    , prefix_map ,
+							  ADN_prefix , prefix_map ,
 							  ADN_none ) ;
 		THD_load_statistics(outsetMAP );
 		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetMAP)) )
@@ -967,7 +1010,7 @@ int main(int argc, char *argv[]) {
 			dsetn=NULL;
 		}
 		EDIT_dset_items( outsetMASK ,
-							  ADN_prefix    , prefix_mask ,
+							  ADN_prefix , prefix_mask ,
 							  ADN_none ) ;
 		THD_load_statistics(outsetMASK);
 		if(!THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetMASK)) )
@@ -993,7 +1036,8 @@ int main(int argc, char *argv[]) {
 	DSET_delete(insetMD);
 	DSET_delete(insetL1);
 	DSET_delete(insetV1);
-	//DSET_delete(outsetMAP);  // !!! why not need to free these??
+	DSET_delete(insetEXTRA);
+	//DSET_delete(outsetMAP);  
 	//DSET_delete(outsetMASK);
 	DSET_delete(mset2);
 	DSET_delete(mset1);
@@ -1003,7 +1047,8 @@ int main(int argc, char *argv[]) {
 	free(insetFA);
 	free(mset1);
 	free(mset2);
-  
+  	free(insetEXTRA);
+
 	free(ROI1);
 	free(ROI2);
 	free(temp_byte);
@@ -1046,6 +1091,8 @@ int main(int argc, char *argv[]) {
 		free(Ttot[i]);
 	free(Ttot);
 
+	free(mode);
+	free(in_EXTRA);
 
 	return 0;
 }
