@@ -11,6 +11,8 @@
 int ViveLeRoi(THD_3dim_dataset *REF, int **ROILIST, int **INVLIST, 
 				  int *NUMROI, int *INVROI);
 
+int CheckNotMask(int id, int br, short **amask, int AO);
+
 int ScoreTrackGrid(float ****PG,int idx, int h, int C, int B, 
 						 THD_3dim_dataset *FA, THD_3dim_dataset *MD, 
 						 THD_3dim_dataset *L1);
