@@ -66,6 +66,25 @@ int ViveLeRoi(THD_3dim_dataset *REF, int **ROILIST, int **INVLIST,
 };
 
 
+/*
+  check a given voxel about whether the track running through it is in
+  an entered NOT-mask
+*/
+int CheckNotMask(int id, int br, short **amask, int AO){
+	int out=0;
+	
+	if(AO){ // N_nets==NOTMASK
+		if(amask[id][br])
+			out=1;
+	}
+	else // single NOTMASK for all
+		if(amask[id][0])
+			out=1;
+	
+	return out;
+}
+
+
 /* 
 	in ProbTrackID: store the values in param_grid which eventually
 	become ROI statistics.
