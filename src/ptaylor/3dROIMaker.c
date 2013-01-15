@@ -92,18 +92,18 @@ void usage_ROIMaker(int detail)
 "                       the values have been thresholded.  Number might be\n"
 "                       estimated with 3dAlphaSim, or otherwise, to reduce\n"
 "                       number of `noisy' clusters.\n"
-"     -trim_to_gm      :switch to trim the INSET to include only voxels in\n"
-"                       the gray matter, by excluding those which overlap\n"
-"                       an input white matter skeleton, SKEL (see `-wm_skel',\n"
-"                       below, as well as `-csf_skel').  NB: trimming is done\n"
-"                       before volume thresholding the ROIs, so fewer ROIs\n"
-"                       might pass, or some input regions might be split\n"
-"                       apart creating a greater number of regions.\n"
 "     -inflate  N_INFL :number of voxels which with to pad each found ROI in\n"
 "                       order to turn GM ROIs into inflated (GMI) ROIs.\n"
 "                       ROIs won't overlap with each other, and a WM skeleton\n"
 "                       can also be input to keep ROIs from expanding through\n"
 "                       a large amount of WM ~artificially (see below).\n"
+"     -trim_off_wm     :switch to trim the INSET to exclude voxels in WM,\n"
+"                       by excluding those which overlap an input WM\n"
+"                       skeleton, SKEL (see `-wm_skel', below; to trim off\n"
+"                       CSF, see separate `-csf_skel').  NB: trimming is done\n"
+"                       before volume thresholding the ROIs, so fewer ROIs\n"
+"                       might pass, or some input regions might be split\n"
+"                       apart creating a greater number of regions.\n"
 "     -wm_skel  SKEL   :3D volume containing info of WM, as might be defined\n"
 "                       from an FA map or anatomical segmentation.  Can be\n"
 "                       to guide ROI inflation with `-skel_stop'.\n"
@@ -116,7 +116,11 @@ void usage_ROIMaker(int detail)
 "     -csf_skel CSF_SK :similar to SKEL, a 3D volume containing info of CSF.\n"
 "                       NB: however, with CSF_SK, info must just be a binary\n"
 "                       mask already, and it will only be applied in trimming\n"
-"                       procedure (no affect on inflation).\n"
+"                       procedure (no affect on inflation); if input, INSET\n"
+"                       is automatically trimmed of CSF, independent of\n" 
+"                       using `-trim_off_wm'.  Again, trimming done before\n"
+"                       volume thresholding, so may decrease/separate regions\n"
+"                       (though, that may be useful/more physiological).\n"
 "     -mask   MASK     :can include a mask within which to apply threshold.\n"
 "                       Otherwise, data should be masked already. Guess this\n"
 "                       would be useful if the MINTHR were a negative value.\n"
@@ -160,7 +164,7 @@ int main(int argc, char *argv[]) {
 	int HAVESKEL = 0; // switch if an external ref file for ROI labels is present
 	int HAVE_CSFSKEL = 0; // similar to above...
 	int SKEL_STOP=0; // switch if inflation will be stopped in WM skeleton
-	int TRIM_GM=0; // switch if WM_skel will be used to trim initial input map
+	int TRIM_OFF_WM=0; // switch if WM_skel will be used to trim initial input map
 	int idx = 0;
 	int VOLTHR = 0; // switch about thresholding GM ROI volume size
 	int val=0,Nvox=0;
@@ -321,8 +325,8 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-trim_to_gm") == 0) {
-			TRIM_GM=1;
+		if( strcmp(argv[iarg],"-trim_off_wm") == 0) {
+			TRIM_OFF_WM=1;
 			iarg++ ; continue ;
 		}
 
@@ -340,7 +344,7 @@ int main(int argc, char *argv[]) {
 				ERROR_exit("Can't open time series dataset '%s'.",argv[iarg]);
 			
 			DSET_load(insetCSF_SKEL); CHECK_LOAD_ERROR(insetCSF_SKEL);
-			HAVE_CSFSKEL = 1;// DSET_NVALS(insetSKEL);
+			HAVE_CSFSKEL = 1;
 
 			iarg++ ; continue ;
 		}
@@ -420,9 +424,9 @@ int main(int argc, char *argv[]) {
 		SKEL_STOP=0; //reset
 	}
 
-	if( (!HAVESKEL) && TRIM_GM) {
+	if( (!HAVESKEL) && TRIM_OFF_WM) {
 		INFO_message("*+ You asked to trim GM input with WM skeleton, but didn't give a skeleton using `-wm_skel'-- will just ignore that.");
-		TRIM_GM = 0; //reset
+		TRIM_OFF_WM = 0; //reset
 	}
 
 
@@ -464,10 +468,10 @@ int main(int argc, char *argv[]) {
 	for( k=0 ; k<Dim[2] ; k++ ) 
 		for( j=0 ; j<Dim[1] ; j++ ) 
 			for( i=0 ; i<Dim[0] ; i++ ) {
-				if( ((THD_get_voxel(insetSKEL,idx,0)>SKEL_THR) && (HAVESKEL==1)) 
+				if( ((HAVESKEL==1) && (THD_get_voxel(insetSKEL,idx,0)>SKEL_THR)) 
 					 || (HAVESKEL==0) ) 
 					SKEL[i][j][k] = 1;
-				if( ((THD_get_voxel(insetCSF_SKEL,idx,0)>0.5) && (HAVE_CSFSKEL==1)) 
+				if( ((HAVE_CSFSKEL==1) && (THD_get_voxel(insetCSF_SKEL,idx,0)>0.5)) 
 					 || (HAVE_CSFSKEL==0) ) 
 					CSF_SKEL[i][j][k] = 1;
 				idx+= 1; 			
@@ -514,13 +518,14 @@ int main(int argc, char *argv[]) {
 					if( (HAVE_MASK==0) || 
 						 (HAVE_MASK && ( THD_get_voxel(MASK,idx,0)>0 ) ) )
 						if( THD_get_voxel(inset,idx,m) > THR  ) 
-							if( !TRIM_GM || (TRIM_GM && !SKEL[i][j][k]) 
-								 || (TRIM_GM && !CSF_SKEL[i][j][k]) )
-								{
-									// temporary until ROIs are 1st labelled
-									DATA[i][j][k][m] = BASE_DVAL;
-									N_thr[m]+= 1;
-								}
+							if( !TRIM_OFF_WM || (TRIM_OFF_WM && !SKEL[i][j][k]) )
+								if( !HAVE_CSFSKEL 
+									 || (HAVE_CSFSKEL && !CSF_SKEL[i][j][k]) )
+									{
+										// temporary until ROIs are 1st labelled
+										DATA[i][j][k][m] = BASE_DVAL;
+										N_thr[m]+= 1;
+									}
 					idx+= 1; 					
 				}
 	}
