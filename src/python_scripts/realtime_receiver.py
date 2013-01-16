@@ -48,10 +48,67 @@ realtime_receiver.py - program to receive and display real-time plugin data
 
         realtime_receiver.py -show_demo_gui yes -data_choice diff_ratio
 
+     4. Adjust the defaults of the -data_choice diff_ratio parameters from
+        those for AFNI_data6/realtime.demos/demo.2.fback.1.receiver, to those
+        for the s620 demo:
+        
+        realtime_receiver.py -show_demo_gui yes -data_choice diff_ratio \
+                             -dc_params 0.008 43.5
+
    TESTING NOTE:
 
-        This setup can be tested off-line using Dimon, afni and this
-        realtime_receiver.py program.
+        This following setup can be tested off-line using Dimon, afni and this
+        realtime_receiver.py program.  Note that while data passes from Dimon
+        to afni to realtime_receiver.py, the programs essentially should be
+        started in the reverse order (so that the listener is always ready for
+        the talker, say).
+
+        See the sample scripts:
+
+             AFNI_data6/realtime.demos/demo.2.fback.*
+
+        step 1. start the receiver: demo.2.fback.1.receiver
+
+             realtime_receiver.py -show_data yes -show_demo_gui yes \\
+                                  -data_choice diff_ratio
+
+        step 2. start realtime afni: demo.2.fback.2.afni
+
+             # set many REALTIME env vars or in afni's realtime plugin
+             setenv AFNI_REALTIME_Registration  3D:_realtime
+             setenv AFNI_REALTIME_Base_Image    2
+             setenv AFNI_REALTIME_Graph         Realtime
+             setenv AFNI_REALTIME_MP_HOST_PORT  localhost:53214
+             setenv AFNI_REALTIME_SEND_VER      YES
+             setenv AFNI_REALTIME_SHOW_TIMES    YES
+             setenv AFNI_REALTIME_Mask_Vals     ROI_means
+             setenv AFNI_REALTIME_Function      FIM
+
+             cd ../afni
+             afni -rt -yesplugouts                     \\
+                  -com "SWITCH_UNDERLAY epi_r1+orig"   \\
+                  -com "SWITCH_OVERLAY func_slim+orig" &
+
+             # at this point, the user should open a graph window and
+             # FIM->Ignore->2 and FIM->Pick Ideal->epi_r1_ideal.1D
+
+        step 3. feed data to afni (can be repeated): demo.2.fback.3.feedme
+
+             cd ../afni
+             set episet  = epi_r1+orig
+             set maskset = mask.left.vis.aud+orig
+
+             plugout_drive -com "SETENV AFNI_REALTIME_Mask_Dset $maskset" -quit
+
+             rtfeedme                                                        \\
+               -drive 'DRIVE_AFNI OPEN_WINDOW axialimage geom=285x285+3+533' \\
+               -drive 'DRIVE_AFNI OPEN_WINDOW axialgraph keypress=A'         \\
+               -drive 'DRIVE_AFNI SET_SUBBRICKS 0 1 1'                       \\
+               -drive 'DRIVE_AFNI SET_DICOM_XYZ 52 4 12'                     \\
+               -drive 'DRIVE_AFNI SET_FUNC_RANGE 0.9'                        \\
+               -drive 'DRIVE_AFNI SET_THRESHNEW 0.4'                         \\
+               -dt 200 -3D $episet
+
 
    COMMUNICATION NOTE:
 
@@ -96,6 +153,10 @@ realtime_receiver.py - program to receive and display real-time plugin data
 
    other options
       -data_choice CHOICE       : pick which data to send as feedback
+      -dc_params P1 P2 ...      : set data_choice parameters
+                                  e.g. for diff_ratio, parmas P1 P2
+                                     P1 = dr low limit, P2 = scalar -> [0,1]
+                                     result is (dr-P1)*P2  {applied in [0,1]}
       -serial_port PORT         : specify serial port file for feedback data
       -show_comm_times          : display communication times
       -show_data yes/no         : display incoming data in terminal window
@@ -117,9 +178,10 @@ g_history = """
    0.2  Aug 04, 2009 : added basic demo interface and itemized exception traps
    0.3  Sep 08, 2009 : bind to open host (so /etc/hosts entry is not required)
    0.4  Jul 26, 2012 : added -show_comm_times
+   0.5  Jan 16, 2013 : added -dc_params
 """
 
-g_version = "realtime_receiver.py version 0.4, July 26, 2012"
+g_version = "realtime_receiver.py version 0.5, Jan 16, 2013"
 
 g_RTinterface = None      # global reference to main class (for signal handler)
 
@@ -142,6 +204,9 @@ class ReceiverInterface:
       # lib_realtime.py class instances
       self.RTI             = None          # real-time interface RTInterface
       self.SER             = None          # serial port interface Serial
+
+      # data choice parameters
+      self.dc_params       = []
 
       # demo attributes
       self.show_demo_data  = 0
@@ -171,6 +236,8 @@ class ReceiverInterface:
 
       valid_opts.add_opt('-data_choice', 1, [],
                       helpstr='which data to send (motion, motion_norm,...)')
+      valid_opts.add_opt('-dc_params', -2, [],
+                      helpstr='set parameters for data_choice processing')
       valid_opts.add_opt('-serial_port', 1, [],
                       helpstr='serial port filename (e.g. /dev/ttyS0 or COM1)')
       valid_opts.add_opt('-show_data', 1, [],
@@ -254,8 +321,14 @@ class ReceiverInterface:
          self.SER = RT.SerialInterface(val, verb=self.verb)
          if not self.SER: return 1
 
+      # ==================================================
+      # --- feedback options ---
+
       val, err = uopts.get_string_opt('-data_choice')
       if val != None and not err: self.data_choice = val
+
+      val, err = uopts.get_type_list(float, '-dc_params')
+      if val != None and not err: self.dc_params = val
 
       # ==================================================
       # --- tcp options ---
@@ -375,6 +448,9 @@ class ReceiverInterface:
          if self.SER.open_data_port(): return 1
 
       # process one TR at a time until 
+      if self.verb > 1:
+         print '-- incoming data, data_choice = %s' % self.data_choice
+
       rv = self.process_one_TR()
       while rv == 0: rv = self.process_one_TR()
 
@@ -460,17 +536,30 @@ def compute_TR_data(rec):
             if a == 0 and b == 0: newval = 0.0
             else: newval = (a-b)/float(abs(a)+abs(b))
 
+            # --------------------------------------------------------------
+            # VERY data dependent: convert from diff_ratio to int in {0..10}
+            # assume AFNI_data6 demo                             15 Jan 2013
+
             # now scale [bot,inf) to {0..10}, where val>=top -> 10
-            bot = 0.008
-            top = 0.031 - bot
+            # AD6: min = -0.1717, mean = -0.1605, max = -0.1490
+
+            bot = -0.17         # s620: bot = 0.008, scale = 43.5
+            scale = 55.0        # =~ 1.0/(0.1717-0.149), rounded up
+            if len(rec.dc_params) == 2:
+               bot = rec.dc_params[0]
+               scale = rec.dc_params[1]
+
             val = newval-bot
             if val < 0.0: val = 0.0
-            ival = int((10*val/top))
+            ival = int(10*val*scale)
             if ival > 10: ival = 10
 
             vals[ind] = ival
 
-            if rti.verb > 1: '++ diff_ratio: ival = %d (from %g)'%(ival,newval)
+            if rti.verb > 1:
+               if rti.verb > 2: pstr = ', (params = %s)' % rec.dc_params
+               else:            pstr = ''
+               print '++ diff_ratio: ival = %d (from %s)%s'%(ival,newval,pstr)
 
             return 0, vals[0:npairs]    # return the partial list
 
