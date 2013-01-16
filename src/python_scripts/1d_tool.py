@@ -289,6 +289,18 @@ examples (very basic for now):
         1d_tool.py -infile dfile_rall.1D -set_run_lengths 100 80 120 \
                    -quick_censor_count 0.3
 
+   19. Compute GCOR from some 1D file.
+
+       * Note, time should be in the vertical direction of the file
+         (else put -transpose first).
+
+        1d_tool.py -infile data.1D -show_gcor
+
+       Or get some GCOR documentation and many values.
+        
+        1d_tool.py -infile data.1D -show_gcor_doc
+        1d_tool.py -infile data.1D -show_gcor_all
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -539,11 +551,14 @@ general options:
    -set_tr TR                   : set the TR (in seconds) for the data
    -show_censor_count           : display the total number of censored TRs
    -show_cormat_warnings        : display correlation matrix warnings
-   -show_label_ordering         : display the labels
-   -show_labels                 : display the labels
+   -show_gcor                   : display GCOR: the average correlation
+   -show_gcor_all               : display many ways of computing (a) GCOR
+   -show_gcor_doc               : display descriptions of those ways
    -show_indices_baseline       : display column indices for baseline
    -show_indices_motion         : display column indices for motion regressors
    -show_indices_interest       : display column indices for regs of interest
+   -show_label_ordering         : display the labels
+   -show_labels                 : display the labels
    -show_max_displace           : display max displacement (from motion params)
                                   - the maximum pairwise distance (enorm)
    -show_mmms                   : display min, mean, max, stdev of columns
@@ -685,9 +700,10 @@ g_history = """
    1.08 Jul 30, 2012 - display -show_mmms output to 4 decimal places
    1.09 Oct  3, 2012 - some options do not allow dashed parameters
    1.10 Oct  5, 2012 - added option -quick_censor_count
+   1.11 Jan 16, 2013 - added -show_gcor, and _all and _doc
 """
 
-g_version = "1d_tool.py version 1.10, October 5, 2012"
+g_version = "1d_tool.py version 1.11, January 16, 2013"
 
 
 class A1DInterface:
@@ -733,6 +749,7 @@ class A1DInterface:
       self.show_censor_count= 0         # show count of censored TRs
       self.show_cormat_warn= 0          # show cormat warnings
       self.show_displace   = 0          # max_displacement (0,1,2)
+      self.show_gcor       = 0          # bitmask: GCOR, all, doc
       self.show_indices    = 0          # bitmask for index lists to show
                                         # (base, motion, regs of interest)
       self.show_label_ord  = 0          # show the label ordering
@@ -929,6 +946,15 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
                       helpstr='display warnings for the correlation matrix')
+
+      self.valid_opts.add_opt('-show_gcor', 0, [], 
+                      helpstr='display GCOR : the average correlation')
+
+      self.valid_opts.add_opt('-show_gcor_all', 0, [], 
+                      helpstr='display many ways to compute GCOR')
+
+      self.valid_opts.add_opt('-show_gcor_doc', 0, [], 
+                      helpstr='display documentation of ways to compute GCOR')
 
       self.valid_opts.add_opt('-show_indices_baseline', 0, [], 
                       helpstr='display index list for baseline regressors')
@@ -1254,6 +1280,15 @@ class A1DInterface:
          elif opt.name == '-show_censor_count':
             self.show_censor_count = 1
 
+         elif opt.name == '-show_gcor':         # show_gcor is bit mask
+            self.show_gcor |= 1
+
+         elif opt.name == '-show_gcor_all':
+            self.show_gcor |= 2
+
+         elif opt.name == '-show_gcor_doc':
+            self.show_gcor |= 4
+
          elif opt.name == '-show_indices_baseline':
             self.show_indices |= 1
 
@@ -1457,6 +1492,14 @@ class A1DInterface:
 
       if self.show_displace:
          print self.adata.get_max_displacement_str(verb=self.verb)
+
+      if self.show_gcor:
+         if self.show_gcor & 1:
+            self.adata.show_gcor(verb=self.verb)
+         if self.show_gcor & 2:
+            self.adata.show_gcor_all()
+         if self.show_gcor & 4:
+            self.adata.show_gcor_doc_all()
 
       if self.show_mmms:
          self.adata.show_min_mean_max_stdev(verb=self.verb)

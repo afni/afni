@@ -154,6 +154,7 @@ class Afni1D:
       newnt     = self.nvec
       self.nvec = self.nt
       self.nt   = newnt
+      self.run_len = [self.nt]  # init to 1 run
 
    def demean(self):
       """demean each vector per run (mean of each run will be zero)
@@ -340,11 +341,14 @@ class Afni1D:
             mvec[ind] *= val
 
    def unitize(self):
-      """make every vector unit length"""
+      """make every vector unit length, use existing memory"""
 
       for ind, vec in enumerate(self.mat):
          vlen = UTIL.L2_norm(vec)
-         self.mat[ind] = UTIL.lin_vec_sum(1.0/vlen, vec, 0, None)
+         if vlen == 0.0:
+            for ind in range(self.nt): vec[ind] = 0
+         else:
+            for ind in range(self.nt): vec[ind] /= vlen
 
    def project_out_vec(self, vec=None):
       """project a vector out of the matrix vectors, if None, use mean
@@ -376,7 +380,142 @@ class Afni1D:
       if self.nt == 0: return []
       for ind in range(self.nt):
          v[ind] = UTIL.loc_sum([self.mat[i][ind] for i in range(self.nvec)])
-      return UTIL.lin_vec_sum(1.0/self.nt, v, 0, None)
+      return UTIL.lin_vec_sum(1.0/self.nvec, v, 0, None)
+
+   def show_gcor_all(self):
+      for ind in range(1,6):
+         print '----------------- GCOR test %d --------------------' % ind
+         exec('val = self.gcor%d()' % ind)
+         print "GCOR rv = %s" % val
+
+   def show_gcor_doc_all(self):
+      for ind in range(1,6):
+         print '----------------- GCOR doc %d --------------------' % ind
+         exec('val = self.gcor%d.__doc__' % ind)
+         print "%s" % val
+
+   # basically, a link to the one we really want to call
+   def gcor(self): return self.gcor2()
+
+   def show_gcor(self, verb=-1):
+      gc = self.gcor()
+      nv = self.nvec
+      nt = self.nt
+      if verb < 0: verb = self.verb
+      if verb: print "GCOR for %d time series of length %d = %g" % (nv, nt, gc)
+      else:    print "%g" % gc
+
+   def gcor1(self):
+      """GOLD STANDARD
+
+         compute GCOR via:
+           - fill cormat (correlation matrix)
+           - return average
+      """
+      self.set_cormat()
+      if not self.cormat_ready: return 0
+
+      ss = 0.0
+      for r in range(self.nvec):
+         for c in range(self.nvec):
+            ss += self.cormat[r][c]
+
+      return ss/(self.nvec*self.nvec)
+
+   def gcor2(self):
+      """PLATNUM STANDARD (method applied in afni_proc.py)
+
+         compute GCOR via:
+           - demean
+           - unitize
+           - get average unit time series gu
+           - return sum_of_squares(gu) = length(gu)^2
+      """
+      adcopy = self.copy()
+      adcopy.demean()
+      adcopy.unitize()
+      gu = adcopy.get_mean_vec()
+      
+      en = UTIL.dotprod(gu,gu)
+
+      return en
+
+   def gcor3(self):
+      """compute GCOR via:
+           - demean
+           - unitize
+           - get average unit time series gu
+           - compute average correlation of gu and each unit vector
+           - return |gu| times ave corr with gu
+      """
+
+      adcopy = self.copy()
+      adcopy.demean()
+      adcopy.unitize()
+
+      gu = copy.deepcopy(adcopy.mat[0])
+      for ind in range(1, adcopy.nvec):
+         gu = UTIL.lin_vec_sum(1, gu, 1, adcopy.mat[ind])
+      gu = [val/adcopy.nvec for val in gu]
+
+      ss = 0
+      for r in range(adcopy.nvec):
+         ss += UTIL.correlation_p(gu, adcopy.mat[r])
+
+      ss /= adcopy.nvec
+
+      return UTIL.euclidean_norm(gu)*ss
+
+   def gcor4(self):
+      """compute GMEAN via:
+           - get average time series gmean
+           - get average correlation of gmean and each unit vector
+           - return square (akin to above, but with gmean, not gu)
+      """
+
+      ss = self.get_ave_correlation_w_vec(self.get_mean_vec())
+
+      print "ave corr = %s, square = %s" % (ss, ss*ss)
+
+      return ss*ss
+
+   def gcor5(self):
+      """compute GCOR via:
+           - get average time series mean, gmean
+           - get average unit time series mean, gu
+           - return (gu.gmean/|gmean|)^2
+      """
+
+      adcopy = self.copy()
+      adcopy.demean()
+
+      m0 = adcopy.get_mean_vec()
+
+      adcopy.unitize()
+      m1 = adcopy.get_mean_vec()
+
+      dd = UTIL.dotprod(m0, m1)
+      l0 = UTIL.euclidean_norm(m0)
+      l1 = UTIL.euclidean_norm(m1)
+      c  = UTIL.correlation_p(m0, m1)
+
+      print "len(gmean) = %s, square = %s" % (l0, l0*l0)
+      print "len(gunit) = %s, square = %s" % (l1, l1*l1)
+      print "corr(gm, gu)            = %s" % (c)
+      print "corr(gm, gu)*len(gu)    = %s" % (c*l1)
+      print "squared                 = %s" % (c*c*l1*l1)
+
+      return dd*dd/(l0*l0)
+
+   def get_ave_correlation_w_vec(self, vec):
+      """return the average correlation of each vector with vec"""
+      gu = self.get_mean_vec()
+      ss = 0
+      for r in range(self.nvec):
+         ss += UTIL.correlation_p(vec, self.mat[r])
+      ss /= self.nvec
+
+      return ss
 
    # --- end: functions returning some aspect of the matrix ---
 
@@ -913,6 +1052,7 @@ class Afni1D:
       for v in range(cmat.nvec):
          lmin = min(cmat.mat[v])
          lmax = max(cmat.mat[v])
+         # rcr - why avoid this?
          if lmin != lmax:
             for ind in range(cmat.nt):
                cmat.mat[v][ind] -= means[v]
