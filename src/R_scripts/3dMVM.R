@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.8, Jan 7, 2013
+Version 0.1.9, Jan 17, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.8, Jan 7, 2013
+Version 0.1.9, Jan 17, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -250,7 +250,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "-wsVars FORMULA: Within-subject factors, if present, have to be listed",
    "         here; otherwise the program will choke. If no within-subject ",
    "         exists, don't include this option in the script. Coding for",
-   "         additive and interaction effects is the same as in -model. The",
+   "         additive effects and interactions is the same as in -model. The",
    "         FORMULA with more than one variable has to be surrounded ",
    "         within (single or double) quotes. Note that the within-subject",
    "         variables are assumed to interact with those between-subjects",

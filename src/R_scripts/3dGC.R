@@ -181,7 +181,7 @@ while (anotherLag) {
 nLags <- as.integer(readline("Select order of VAR model (e.g., 1)? "))
 
 outFN <- readline("Output file name (no view+suffix needed, e.g., myOutput): ")
-outFN <- paste(outFN, "+orig", sep="")
+outFN <- paste(outFN, "+", outView, sep="")
 
 # generate intervention dummy variables for across-run/block breaks: nLags dummies per run
 if (nChunks > 1) {
@@ -317,8 +317,7 @@ statpar <- "3drefit"
 	   statpar <- paste(statpar, " -substatpar ", 6*(ii-1)+2*jj-1, 
 	   " fitt ", summary(fm)$varresult[[1]]$df[2])
 	}
-if (outView=="tlrc") statpar <- paste(statpar, " -view tlrc -addFDR -newid -orient ", dataOrient, outFN)
-if (outView=="orig") statpar <- paste(statpar, "-addFDR -newid -orient ", dataOrient, outFN)
+statpar <- paste(statpar, "-addFDR -newid -orient ", dataOrient, outFN)
 system(statpar)
 
 
