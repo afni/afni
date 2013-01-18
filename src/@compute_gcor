@@ -1,0 +1,288 @@
+#!/bin/tcsh
+
+# ----------------------------------------------------------------------
+# compute GCOR (average global correlation)
+#
+# GCOR = average correlation of every voxel with every other voxel
+#        (i.e. average of the correlation matrix)
+#
+#    inputs: an EPI dataset and a mask (on same grid, of course)
+#    output: a single GCOR value
+# ----------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------
+# main variables
+
+# dataset inputs
+set inset       = ''            # input dataset
+set mset        = ''            # mask dataset
+
+set demean      = 1             # whether to demean data (faster if not)
+set nfirst      = 0             # number of first TRs to remove
+set savetmp     = 0             # save temporary files?
+set tmpunit     = tmp.unit      # 3dTnorm output
+set tmpave      = tmp.unit.gmean.1D # 3dmaskave output
+set tmpgc       = tmp.gcor.1D   # GCOR result (stupid stderr)
+set verb        = 1             # verbose level (0 = quiet)
+
+set prog = @compute_gcor
+
+set version = "0.0, 17 Jan, 2013"
+
+if ( $#argv < 1 ) goto SHOW_HELP
+
+# ----------------------------------------------------------------------
+# check for options
+set ac = 1
+while ( $ac <= $#argv )
+   if      ( "$argv[$ac]" == "-help" ) then
+      goto SHOW_HELP
+   else if ( "$argv[$ac]" == "-hist" ) then
+      goto SHOW_HIST
+   else if ( "$argv[$ac]" == "-ver" ) then
+      echo "version $version"
+      exit
+
+   else if ( "$argv[$ac]" == "-input" ) then
+      @ ac += 1
+      if ( $#argv < $ac ) then
+         echo "** missing argument for -input"
+         exit 1
+      endif
+      set inset = $argv[$ac]
+   else if ( "$argv[$ac]" == "-mask" ) then
+      @ ac += 1
+      if ( $#argv < $ac ) then
+         echo "** missing argument for -mask"
+         exit 1
+      endif
+      set mset = $argv[$ac]
+   else if ( "$argv[$ac]" == "-nfirst" ) then
+      @ ac += 1
+      if ( $#argv < $ac ) then
+         echo "** missing argument for -nfirst"
+         exit 1
+      endif
+      set nfirst = $argv[$ac]
+   else if ( "$argv[$ac]" == "-no_demean" ) then
+      set demean = 0
+   else if ( "$argv[$ac]" == "-savetmp" ) then
+      set savetmp = 1
+   else if ( "$argv[$ac]" == "-verb" ) then
+      @ ac += 1
+      if ( $#argv < $ac ) then
+         echo "** missing argument for -verb"
+         exit 1
+      endif
+      set verb = $argv[$ac]
+   else
+      echo "** unknown option: $argv[$ac]"
+      exit 1
+   endif
+   @ ac += 1
+end
+
+# ----------------------------------------------------------------------
+# check for inputs
+if ( $inset == '' ) then
+   echo "** missing input dataset, see -help output for details"
+   exit 1
+endif
+
+# quick test on input dataset (and possibly mask), while setting view
+set view = `3dinfo -av_space $inset`
+if ( $status || $view == NO-DSET ) then
+   echo "** failed to get view of -input $inset, check command"
+   exit 1
+endif
+
+if ( $mset != '' ) then
+   set vv = `3dinfo -av_space $inset`
+   if ( $status || $vv == NO-DSET ) then
+      echo "** failed to get view of -mask $mset, check command"
+      exit 1
+   endif
+endif
+
+# ----------------------------------------------------------------------
+# get to work
+# ----------------------------------------------------------------------
+
+# demean?
+set polopt = ''
+if ( $demean ) set polopt = '-polort 0'
+
+# ----------------------------------------------------------------------
+# if 1D input, just run 1d_tool.py
+if ( $inset:e == 1D || $inset:e == txt ) then
+   if ( $mset != '' ) then
+      echo "** -mask is not currently allowed with 1D input (pester Rick)"
+      exit 1
+   endif
+   if ( $nfirst > 0 ) then
+      echo "** -nfirst is not currently allowed with 1D input (pester Rick)"
+      exit 1
+   endif
+   if ( $verb > 1 ) echo 1d_tool.py -verb $verb -infile $inset -show_gcor
+   1d_tool.py -verb $verb -infile $inset -show_gcor
+   exit $status
+endif
+
+# ----------------------------------------------------------------------
+# create unit dataset
+
+# can separate command, but nfirst might need care...
+set cmd = ( 3dTnorm -overwrite $polopt -prefix $tmpunit )
+if ( $verb > 0 ) then
+   echo $cmd $inset\[$nfirst..\$]
+   $cmd $inset\[$nfirst..\$]
+else
+   ( $cmd $inset\[$nfirst..\$] ) >& /dev/null
+endif
+
+if ( ! -f $tmpunit$view.HEAD ) then
+   echo "** command failure:" $cmd $inset\[$nfirst..\$]
+   exit
+endif
+
+# ----------------------------------------------------------------------
+# get global mean of unit time series
+set mopt = ''
+if ( $mset != "" ) set mopt = ( -mask $mset )
+
+# this time, take care with redirection
+set cmd = ( 3dmaskave -quiet $mopt $tmpunit$view )
+if ( $verb > 0 ) then
+   echo $cmd \> $tmpave
+   $cmd > $tmpave
+else
+   ( $cmd > $tmpave ) >& /dev/null
+endif
+   
+# ----------------------------------------------------------------------
+# and finally GCOR, the squared length of that average unit time series
+# (which is not itself, unit)
+
+set cmd = ( 3dTstat -sos -prefix - )
+if ( $verb > 0 ) then
+   echo $cmd $tmpave\'
+   $cmd $tmpave\' > $tmpgc
+   echo GCOR = `cat $tmpgc`
+else
+   ( $cmd $tmpave\' > $tmpgc ) >& /dev/null
+   cat $tmpgc
+endif
+   
+   
+# ----------------------------------------------------------------------
+# cleanup
+if ( ! $savetmp ) then
+   if ( $verb > 1 ) echo rm -f $tmpunit$view\* $tmpave $tmpgc
+   \rm -f $tmpunit$view* $tmpave $tmpgc
+else if ( $verb > 1 ) then
+   echo "keeping temp files: $tmpunit$view* $tmpave $tmpgc"
+endif
+
+# ======================================================================
+# DONE
+# ======================================================================
+
+exit
+
+
+SHOW_HELP:
+# ----------------------------------------------------------------------
+cat << EOF
+
+-----------------------------------------------------------------
+$prog       - compute GCOR, the global correlation
+
+    usage : $prog [options] -input dataset
+
+This program computes the average correlation between every voxel
+and ever other voxel, over any give mask.  This output GCOR value
+is a single number.
+
+-----------------------------------------------------------------
+
+Common examples:
+
+  0. This program can be used for 1D files:
+
+        $prog -input data.1D
+
+     HOWEVER, if column selection is desired, please use 1d_tool.py, directly.
+
+        1d_tool.py -infile data.1D'[2..17]' -show_gcor
+
+  1. Simple usage, akin to the afni_proc.py processing script.
+
+        $prog -input errts.FT+orig -mask full_mask.FT+orig
+
+     OR, for +tlrc:
+
+        $prog -input errts.FT+tlrc -mask full_mask.FT+tlrc
+
+  2. Speed things up slightly, an errts dataset does not need to be demeaned.
+
+        $prog -no_demean -input errts.FT+tlrc -mask full_mask.FT+tlrc
+
+  3. Be vewy, veeewy, qwiet...
+
+        $prog -verb 0 -input errts.FT+tlrc -mask full_mask.FT+tlrc
+
+     OR, save the result:
+
+        set gcor = \`$prog -verb 0 -input errts.FT+tlrc -mask full_mask.FT+tlrc\`
+-----------------------------------------------------------------
+
+Overview of processing steps: 
+
+0. If the input is a 1D file, cheat and run "1d_tool.py -show_gcor", instead.
+
+otherwise...
+
+1. Scale the input to a unit time series, so that each voxel voxel has a
+   length of 1.
+
+2. Compute the average of these unit time series.
+
+3. Return GCOR = the length of the resulting average, squared.
+
+---------------------------------------------
+
+terminal options:
+
+   -help             : show this help
+   -hist             : show modification history
+   -ver              : show version number
+
+processing options:
+
+   -input DSET       : specify input dataset to compute the GCOR over
+   -mask DSET        : specify mask dataset, for restricting the computation
+   -nfirst NFIRST    : specify number of initial TRs to ignore
+   -no_demean        : do not (need to) demean as first step
+   -savetmp          : save temporary files (do not remove at end)
+   -verb VERB        : set verbose level (0=quiet)
+
+---------------------------------------------
+
+R Reynolds, Jan, 2013
+------------------------------------------------------------
+EOF
+
+exit
+
+SHOW_HIST:
+
+cat << EOF
+-----------------------------------------------------------------
+$prog modification history:
+
+   0.0  : Jan 17, 2013: initial version
+
+EOF
+
+exit
