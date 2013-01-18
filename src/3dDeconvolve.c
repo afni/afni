@@ -7046,7 +7046,7 @@ STATUS("computing message from esum") ;
             INFO_message("Job #%d: processing voxels %d to %d; elapsed time=%.3f",
                     proc_ind,ixyz_bot,ixyz_top-1,COX_clock_time()) ;
         }
-      } else {
+      } else if ( virtu_mrv ) { /* only if virtu_mrv  17 Jan 2013 [rickr] */
 
         WARNING_message("-virtvec: ignoring option since -jobs isn't greater than 1") ;
         virtu_mrv = 0 ;  /* 26 Dec 2012 */
