@@ -1445,7 +1445,7 @@ class Afni1D:
       rcount = [0 for r in runstart]  # count entries per run
       for gval in goodlist:
          # maybe adjust the run index (note that rnext[-1] > goodlist vals)
-         while gval > rnext[run]: run += 1
+         while gval >= rnext[run]: run += 1
          rcount[run] += 1
 
       # and verify that we have accounted for everything
