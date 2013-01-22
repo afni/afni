@@ -94,10 +94,13 @@ static char * g_history[] =
     " 3.12 Aug  8, 2012 [rickr]\n",
     "      - added -use_slice_loc\n"
     "      - fixed application of use_last_elem in library\n"
+    " 3.13 Jan 22, 2013 [rickr]\n",
+    "      - replaced -use_imon with -file_type\n"
+    "      - made many changes in prep for adding AFNI file type\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.11 (March 14, 2012)"
+#define DIMON_VERSION "version 3.13 (January 22, 2013)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -151,6 +154,53 @@ static char * g_history[] =
 #include "mrilib.h"
 #include "realtime.h"
 
+/* ---------------------------------------------------------------------------
+ * file type macros/functions: GEMS, DICOM, AFNI/NIFTI     22 Jan 2013 [rickr]
+ */
+
+static int is_ge_image_type(int ftype)
+{
+   return ( ftype == IFM_IM_FTYPE_GEMS5 );
+}
+
+static int is_dicom_image_type(int ftype)
+{
+   return ( ftype == IFM_IM_FTYPE_DICOM );
+}
+
+static int is_afni_image_type(int ftype)
+{
+   return ( ftype == IFM_IM_FTYPE_AFNI );
+}
+
+#ifdef IM_IS_GEMS
+#undef IM_IS_GEMS
+#endif
+#ifdef IM_IS_DICOM
+#undef IM_IS_DICOM
+#endif
+#ifdef IM_IS_AFNI
+#undef IM_IS_AFNI
+#endif
+
+#define IM_IS_GEMS()  is_ge_image_type(p->ftype)
+#define IM_IS_DICOM() is_dicom_image_type(p->ftype)
+#define IM_IS_AFNI()  is_afni_image_type(p->ftype)
+
+/* set p->ftype based on name, default is DICOM */
+static int set_ftype(param_t * p, char * name)
+{
+   if ( !name || !strcmp(name, "DICOM")) p->ftype = IFM_IM_FTYPE_DICOM;
+   else if ( ! strcmp( name, "GEMS" )  ) p->ftype = IFM_IM_FTYPE_GEMS5;
+   else if ( ! strcmp( name, "AFNI" )  ) p->ftype = IFM_IM_FTYPE_AFNI;
+   else {
+      fprintf(stderr,"** illegal file_type '%s'\n", name);
+      p->ftype = IFM_IM_FTYPE_NONE;
+      return 1;
+   }
+
+   return 0;
+}
 
 /* ---------------------------------------------------------------------------
  * link to libmri for consistent DICOM processing           4 Jan 2010 [rickr]
@@ -211,6 +261,7 @@ static int create_gert_reco    ( stats_t * s, opts_t * opts );
 static int create_gert_dicom   ( stats_t * s, param_t * p );
 static int dir_expansion_form  ( char * sin, char ** sexp );
 static int disp_ftype          ( char * info, int ftype );
+static char * ftype_string     ( int ftype );
 static int empty_string_list   ( string_list * list, int free_mem );
 static int find_first_volume   ( vol_t * v, param_t * p, ART_comm * ac );
 static int find_fl_file_index  ( param_t * p );
@@ -724,7 +775,7 @@ static int volume_search(
         bound = first + maxsl;
 
     if ( ( bound-first < 1) ||      /* from 3              8 Jul 2005 */
-         ((bound-first < 4) && !p->opts.use_dicom) )
+         ((bound-first < 4) && IM_IS_GEMS()) )
         return 0;                   /* not enough data to work with   */
 
     /* maintain the state */
@@ -888,7 +939,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     if ( (fabs(delta) < gD_epsilon) || (run1 != run0) )
     {
         /* consider this a single slice volume */
-        if ( p->opts.use_dicom )
+        if ( IM_IS_DICOM() )
         {
             if( gD.level > 1 ) fprintf(stderr,"+d found single slice volume\n");
             *r_first = *r_last = first;
@@ -1342,7 +1393,7 @@ static int read_ge_files(
     }
 
     /* get files (check for dicom) */
-    if ( p->opts.use_dicom )
+    if ( IM_IS_DICOM() )
     {
         if ( p->opts.infile_list )
         {
@@ -1588,7 +1639,7 @@ static int scan_ge_files (
             need_M    = 1;
         }
 
-        if ( p->opts.use_dicom )
+        if ( IM_IS_DICOM() )
             rv = read_dicom_image( p->fnames[fnum], fp, 1 );
         else 
             rv = read_ge_image( p->fnames[fnum], fp, 1, need_M );
@@ -2007,7 +2058,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     p->opts.ep = IFM_EPSILON;           /* allow user to override     */
     p->opts.max_images = IFM_MAX_VOL_SLICES;   /* allow user override */
     p->opts.sleep_frac = 1.1;           /* fraction of TR to sleep    */
-    p->opts.use_dicom = 1;              /* will delete this later...  */
 
     empty_string_list( &p->opts.drive_list, 0 );
     empty_string_list( &p->opts.wait_list, 0 );
@@ -2455,10 +2505,19 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             A->swap = 1;                /* do byte swapping before sending  */
             p->opts.swap = 1;           /* just note the user option        */
         }
+        else if ( ! strncmp( argv[ac], "-file_type", 7 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -file_type TYPE\n", stderr );
+                return 1;
+            }
+            p->opts.file_type = argv[ac];
+        }
         else if ( ! strncmp( argv[ac], "-use_imon", 7 ) )
         {
             /* still run as Imon */
-            p->opts.use_dicom = 0;
+            p->opts.file_type = "GEMS";
         }
         else if ( ! strncmp( argv[ac], "-use_last_elem", 11 ) )
         {
@@ -2486,22 +2545,25 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         }
     }
 
-    gD_epsilon = p->opts.ep;    /* store new epsilon globally, for dimon_afni */
-
     if ( errors > 0 )          /* check for all minor errors before exiting */
     {
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
         return 1;
     }
 
-    if ( p->opts.start_dir == NULL && !p->opts.use_dicom )
+    gD_epsilon = p->opts.ep;    /* store new epsilon globally, for dimon_afni */
+
+    /* set the p->ftype parameter, based on any file_type option  22 Jan 2013 */
+    if ( set_ftype( p, p->opts.file_type ) ) return 1;
+
+    if ( IM_IS_GEMS() && p->opts.start_dir == NULL )
     {
         fputs( "error: missing '-start_dir DIR' option\n", stderr );
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
         return 1;
     }
 
-    if ( p->opts.use_dicom && p->opts.show_sorted_list && !p->opts.dicom_org )
+    if ( IM_IS_DICOM() && p->opts.show_sorted_list && !p->opts.dicom_org )
     {
         fputs( "error: -dicom_org is required with -show_sorted_list", stderr );
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
@@ -2526,7 +2588,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         }
     }
 
-    if ( p->opts.use_dicom )
+    if ( IM_IS_DICOM() )
     {   
         if( ! p->opts.dicom_glob && ! p->opts.infile_list )
         {
@@ -2547,15 +2609,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     /* done processing argument list */
 
     /* if dicom, start_dir is not used for globbing */
-    if ( p->opts.use_dicom )
+    if ( IM_IS_DICOM() )
     {
         p->glob_dir = p->opts.dicom_glob;
-        p->ftype    = IFM_IM_FTYPE_DICOM;
     }
     else
     {
         if ( dir_expansion_form(p->opts.start_dir, &p->glob_dir) ) return 2;
-        p->ftype = IFM_IM_FTYPE_GEMS5;
     }
 
     /* save command arguments to add as a NOTE to any AFNI datasets */
@@ -3289,6 +3349,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   infile_list        = %s\n"
             "   sp                 = %s\n"
             "   gert_outdir        = %s\n"
+            "   file_type          = %s\n"
             "   (argv, argc)       = (%p, %d)\n"
             "   tr, ep             = %g, %g\n"
             "   nt, num_slices     = %d, %d\n"
@@ -3300,7 +3361,6 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sleep_vol          = %d\n"
             "   debug              = %d\n"
             "   quit, no_wait      = %d, %d\n"
-            "   use_dicom          = %d\n"
             "   use_last_elem      = %d\n"
             "   use_slice_loc      = %d\n"
             "   show_sorted_list   = %d\n"
@@ -3330,11 +3390,12 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->infile_list),
             CHECK_NULL_STR(opt->sp),
             CHECK_NULL_STR(opt->gert_outdir),
+            CHECK_NULL_STR(opt->file_type),
             opt->argv, opt->argc,
             opt->tr, opt->ep, opt->nt, opt->num_slices, opt->max_images,
             opt->max_quiet_trs, opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
-            opt->debug, opt->quit, opt->no_wait, opt->use_dicom,
+            opt->debug, opt->quit, opt->no_wait,
             opt->use_last_elem, opt->use_slice_loc,
             opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
@@ -3358,25 +3419,24 @@ static int idisp_opts_t( char * info, opts_t * opt )
  * print out a string corresponding to the file type
  *------------------------------------------------------------
 */
+static char * ftype_string( int ftype )
+{
+    if( ftype == IFM_IM_FTYPE_GEMS5 )           return "GEMS";
+    else if ( ftype == IFM_IM_FTYPE_DICOM )     return "DICOM";
+
+    return "UNKNOWN";
+}
+
+/*------------------------------------------------------------
+ * print out a string corresponding to the file type
+ *------------------------------------------------------------
+*/
 static int disp_ftype( char * info, int ftype )
 {
     if ( info ) fputs(info, stdout);
 
-    switch( ftype )
-    {
-        case IFM_IM_FTYPE_GEMS5:
-            printf("GEMS 5.x\n");
-            break;
-
-        case IFM_IM_FTYPE_DICOM:
-            printf("DICOM\n");
-            break;
-
-        default:
-            printf("UNKNOWN (%d)\n", ftype);
-            break;
-    }
-
+    printf("%s (%d)\n", ftype_string(ftype), ftype);
+    
     fflush(stdout);
 
     return 0;
@@ -4130,6 +4190,19 @@ static int usage ( char * prog, int level )
           "        for 'equality', a check of (difference < EPSILON) is used.\n"
           "        This option lets the user specify that cutoff value.\n"
           "\n"
+          "    -file_type TYPE    : specify type of image files to be read\n"
+          "\n"
+          "        e.g.  -file_type GEMS\n"
+          "        the default is DICOM\n"
+          "\n"
+          "        Dimon will currently process GEMS 5.x or DICOM files\n"
+          "        (single slice or Siemens mosaic).\n"
+          "\n"
+          "        possible values for TYPE:\n"
+          "\n"
+          "           GEMS      : GE Medical Systems GEMS 5.x format\n"
+          "           DICOM     : DICOM format, possibly Siemens mosaic\n"
+          "\n"
           "    -help              : show this help information\n"
           "\n"
           "    -hist              : display a history of program changes\n"
@@ -4303,6 +4376,9 @@ static int usage ( char * prog, int level )
           "        Here, TR is in seconds.\n"
           "\n"
           "    -use_imon          : revert to Imon functionality\n"
+          "\n"
+          "        ** This option is deprecated.\n"
+          "           Use -file_type GEMS, instead.\n"
           "\n"
           "    -use_last_elem     : use the last elements when reading DICOM\n"
           "\n"
@@ -4575,8 +4651,8 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
 static int create_gert_script( stats_t * s, param_t * p )
 {
     /* for either GEMS I-files or DICOM files */
-    if( p->opts.use_dicom ) return create_gert_dicom(s, p);
-    else                    return create_gert_reco (s, &p->opts);
+    if( IM_IS_DICOM() ) return create_gert_dicom(s, p);
+    else                return create_gert_reco (s, &p->opts);
 }
 
 

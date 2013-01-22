@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jan, 2013, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added -file_type, in prep for reading AFNI/NIfTI images",
+   NULL
+ } ,
+
  { 18, Jan, 2013, RCR, "@compute_gcor", MINOR, TYPE_NEW_PROG,
    "compute GCOR = global correlation of a dataset",
    NULL

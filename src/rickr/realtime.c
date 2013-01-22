@@ -61,17 +61,18 @@ int ART_start_io( ART_comm * ac, int debug )
                ac->host , get_port_named("AFNI_CONTROL_PORT") ) ;
 
       if( debug > 1 )
-         fprintf(stderr,"Opening control channel %s to AFNI.\n",ac->ioc_name) ;
+         fprintf(stderr,"ART: Opening control channel %s to AFNI.\n",
+                 ac->ioc_name) ;
 
       ac->ioc = iochan_init( ac->ioc_name , "w" ) ;
 
       if( ac->ioc == NULL ){
-         fprintf(stderr,"Can't open control channel %s to AFNI!\a\n",
+         fprintf(stderr,"ART: ** Can't open control channel %s to AFNI!\a\n",
                  ac->ioc_name) ;
          return -1;
       } else {
          if( debug > 1 )
-             fprintf(stderr,"Entering AFNI_WAIT_CONTROL_MODE.\n") ;
+             fprintf(stderr,"ART: Entering AFNI_WAIT_CONTROL_MODE.\n") ;
 
          /* begin waiting for AFNI connection */
          ac->mode = AFNI_WAIT_CONTROL_MODE ;
@@ -88,15 +89,15 @@ int ART_start_io( ART_comm * ac, int debug )
           so do nothing; otherwise, take some action.    **/
 
       if( ii < 0 ){
-         fprintf(stderr,"Control channel to AFNI failed!\n") ;
+         fprintf(stderr,"ART: ** Control channel to AFNI failed!\n") ;
          IOCHAN_CLOSENOW(ac->ioc) ;
          ac->mode = 0 ;                    /* disable AFNI */
          return -1;
       } else if( ii > 0 ){
          if( debug > 1 )
          {
-            fprintf(stderr,"Control channel connected to AFNI.");
-            fprintf(stderr,"  Entering AFNI_OPEN_DATA_MODE.\n") ;
+            fprintf(stderr,"ART: Control channel connected to AFNI.");
+            fprintf(stderr,"     Entering AFNI_OPEN_DATA_MODE.\n") ;
          }
 
          ac->mode = AFNI_OPEN_DATA_MODE ;  /* prepare to send data to AFNI */
@@ -118,19 +119,20 @@ int ART_start_io( ART_comm * ac, int debug )
       strcpy(ac->buf, ac->ioc_name) ;     /* tell AFNI where to read data */
 
       if( debug > 1 )
-         fprintf(stderr,"Sending control information to AFNI:\n%s\n",ac->buf) ;
+         fprintf(stderr,"ART: Sending control information to AFNI:\n%s\n",
+                 ac->buf) ;
 
       ii = iochan_sendall( ac->ioc , ac->buf , strlen(ac->buf)+1 ) ;
 
       /** A negative return is bad news **/
 
       if( ii < 0 ){
-         char * ebuf = iochan_error_string();
-         fprintf(stderr,"Transmission of control data to AFNI failed!\a\n") ;
-         fprintf(stderr,"   - iochan error: %s\n", ebuf ? ebuf : "EMPTY" );
-         IOCHAN_CLOSENOW(ac->ioc) ;
-         ac->mode = 0 ;
-         return -1;
+        char * ebuf = iochan_error_string();
+        fprintf(stderr,"ART: Transmission of control data to AFNI failed!\a\n") ;
+        fprintf(stderr,"   - iochan error: %s\n", ebuf ? ebuf : "EMPTY" );
+        IOCHAN_CLOSENOW(ac->ioc) ;
+        ac->mode = 0 ;
+        return -1;
       } else {
          /* wait for control data to clear */
          while( ! iochan_clearcheck(ac->ioc,2) )
@@ -138,16 +140,17 @@ int ART_start_io( ART_comm * ac, int debug )
          IOCHAN_CLOSENOW(ac->ioc) ;                 /* close control channel */
 
          if( debug > 1 )
-            fprintf(stderr,"Opening data channel %s to AFNI.\n",ac->ioc_name) ;
+            fprintf(stderr,"ART: Opening data channel %s to AFNI.\n",
+                    ac->ioc_name) ;
 
          ac->ioc = iochan_init( ac->ioc_name , "w" ) ; /* open data channel */
          if( ac->ioc == NULL ){
-            fprintf(stderr,"Can't open data channel %s to AFNI!\a\n",
+            fprintf(stderr,"ART: ** Can't open data channel %s to AFNI!\a\n",
                     ac->ioc_name) ;
             ac->mode = 0 ;
             return -1;
          } else {
-            if( debug > 1 ) fprintf(stderr,"Entering AFNI_CATCHUP_MODE.\n") ;
+            if(debug > 1) fprintf(stderr,"ART: Entering AFNI_CATCHUP_MODE.\n");
             ac->mode = AFNI_CATCHUP_MODE ;
          }
       }
@@ -161,15 +164,14 @@ int ART_start_io( ART_comm * ac, int debug )
       ii = iochan_writecheck( ac->ioc , 1 ) ;  /* wait at most 1 msec */
       if( ii < 0 ){
          fprintf(stderr,
-                 "AFNI data channel aborted before any data was sent!\a\n") ;
+               "ART: AFNI data channel aborted before any data was sent!\a\n");
          IOCHAN_CLOSENOW(ac->ioc) ;
          ac->mode = 0 ;
          return -1;
       } else if( ii > 0 ){                      /* can now send data to AFNI! */
          ac->mode = AFNI_CONTINUE_MODE ;
 
-        if ( debug > 1 )
-            fprintf(stderr,"Entering AFNI_CONTINUE_MODE.\n");
+        if ( debug > 1 ) fprintf(stderr,"ART: Entering AFNI_CONTINUE_MODE.\n");
       }
    }
 
@@ -202,8 +204,8 @@ int ART_send_end_of_run( ART_comm * ac, int run, int seq, int debug )
 
         if ( image == NULL )
         {
-            fprintf( stderr, "** failure: x_im is NULL\n"
-                             "   - closing afni connection\n" );
+            fprintf( stderr, "ART: ** failure: x_im is NULL\n"
+                             "      - closing afni connection\n" );
 
             ac->state = ART_STATE_NO_USE;
             ART_exit();
@@ -217,16 +219,16 @@ int ART_send_end_of_run( ART_comm * ac, int run, int seq, int debug )
         if ( iochan_sendall( ac->ioc, image, bytes ) < 0 )
         {
             char * ebuf = iochan_error_string();
-            fprintf( stderr, "** failed to transmit EOR to afni @ %s\n"
-                             "   - closing afni connection\n", ac->host );
-            fprintf(stderr, "   - iochan error: %s\n", ebuf ? ebuf : "EMPTY" );
+            fprintf( stderr, "ART: ** failed to transmit EOR to afni @ %s\n"
+                             "      - closing afni connection\n", ac->host );
+            fprintf(stderr,  "      - iochan error: %s\n",ebuf?ebuf:"EMPTY" );
             ac->state = ART_STATE_NO_USE;
             ART_exit();
             return -1;
         }
 
         if ( debug > 1 )
-            fprintf( stderr, "-- EOR: end of run signal (%d,%d)\n", run, seq );
+            fprintf( stderr, "ART: EOR: end of run signal (%d,%d)\n", run,seq);
 
         /* we will need to send new control info to afni */
         ac->state = ART_STATE_TO_SEND_CTRL;
@@ -251,7 +253,7 @@ int ART_send_volume( ART_comm * ac, vol_t * v, int debug )
 
     if ( ac == NULL || v == NULL )
     {
-        fprintf( stderr, "failure: ASV called with invalid arguments!\n" );
+        fprintf(stderr, "ART: failure: ASV called with invalid arguments!\n" );
         return -1;
     }
 
@@ -273,9 +275,9 @@ int ART_send_volume( ART_comm * ac, vol_t * v, int debug )
         if ( iochan_sendall( ac->ioc, image, bytes ) < 0 )
         {
             char * ebuf = iochan_error_string();
-            fprintf( stderr, "** failed to transmit data to afni @ %s\n"
-                             "   - closing afni connection\n", ac->host );
-            fprintf(stderr,  "   - iochan error: %s\n", ebuf ? ebuf : "EMPTY" );
+            fprintf( stderr, "ART: ** failed to transmit data to afni @ %s\n"
+                             "      - closing afni connection\n", ac->host );
+            fprintf(stderr,  "      - iochan error: %s\n", ebuf?ebuf:"EMPTY" );
 
             ac->state = ART_STATE_NO_USE;
             ART_exit();
@@ -284,8 +286,10 @@ int ART_send_volume( ART_comm * ac, vol_t * v, int debug )
     }
 
     if ( debug > 2 )
-        fprintf( stderr, "++ sent images from volume (%d:%d) to host %s\n",
+        fprintf( stderr, "ART: sent images from volume (%d:%d) to host %s\n",
                  v->run, v->seq_num, ac->host );
+    if ( debug > 3 )
+        fprintf( stderr, "ART: %d slice volume has %d bytes\n", v->nim, bytes);
 
     return 0;
 }
@@ -302,8 +306,7 @@ int ART_open_afni_link( ART_comm * ac, int num_tries, int again, int debug )
     if ( ac == NULL )
         return -1;
 
-    if ( debug > 1 )
-        fprintf( stderr, "-- starting I/O to afni\n" );
+    if ( debug > 1 ) fprintf( stderr, "ART: starting I/O to afni\n" );
 
     if ( ac->state != ART_STATE_TO_OPEN )
         return 0;
@@ -319,7 +322,7 @@ int ART_open_afni_link( ART_comm * ac, int num_tries, int again, int debug )
     if ( ac->mode == AFNI_CONTINUE_MODE )       /* afni comm is ready! */
     {
         if ( debug > 0 )
-            fprintf( stderr, "++ comm link to afni established at <%s>\n",
+            fprintf( stderr, "ART: comm link to afni established at <%s>\n",
                      ac->host );
         ac->state = ART_STATE_TO_SEND_CTRL;
     }
@@ -327,13 +330,13 @@ int ART_open_afni_link( ART_comm * ac, int num_tries, int again, int debug )
     {
         if ( debug > 0 )
         {
-            fprintf( stderr, "** failed to connect to afni at '%s' - "
+            fprintf( stderr, "ART: ** failed to connect to afni at '%s' - "
                      "will try again later\n", ac->host );
         }
     }
     else                        /* bad news - give up on afni communication */
     {
-        fprintf( stderr, "\n** failed to connect to afni at '%s' - "
+        fprintf( stderr, "\nART: ** failed to connect to afni at '%s' - "
                  "GIVING UP!\n\n", ac->host );
         fprintf( stderr,
             "   Note that it may be necessary to perform either or both of\n"
@@ -384,7 +387,7 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
     if ( (ac == NULL) || (v == NULL) )
     {
-        fprintf( stderr, "failure: ASCI called with invalid parameters\n" );
+        fprintf( stderr, "ART: ** ASCI called with invalid parameters\n" );
         ac->state = ART_STATE_NO_USE;
         return -1;
     }
@@ -395,7 +398,7 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
     /* note whether we have a mosaic (nim comes from v->minfo.nslices) */
     if( v->minfo.is_mosaic ) {
-        if( debug>0 ) fprintf(stderr, "-- RT COMM: have mosaic of %d slices\n",
+        if( debug>0 ) fprintf(stderr, "ART COMM: have mosaic of %d slices\n",
                               v->minfo.nslices);
         nim = v->minfo.nslices;
     } else
@@ -671,9 +674,10 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     }
 
     if ( debug > 1 )
-        fprintf( stderr, "++ dataset control info for afni:\n   %s", ac->buf );
+        fprintf( stderr,"ART: dataset control info (%d bytes) to afni:\n   %s",
+                 (int)strlen(ac->buf), ac->buf);
     if ( (debug > 0) && (strlen(ac->buf) > (ART_TBUF_LEN * 0.8)) )
-        fprintf(stderr,"** warning: ac->buf len uses %d of %d bytes\n",
+        fprintf(stderr,"ART: ** warning: ac->buf len uses %d of %d bytes\n",
                 (int)strlen(ac->buf), ART_TBUF_LEN);
 
     rv = iochan_sendall( ac->ioc, ac->buf, strlen(ac->buf)+1 );
@@ -681,12 +685,13 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     if ( rv < 0 )
     {
         char * ebuf = iochan_error_string();
-        fprintf( stderr, "** failure to send control info to afni\n" );
-        fprintf( stderr, "   - iochan error: %s\n", ebuf ? ebuf : "EMPTY" );
+        fprintf( stderr, "ART: ** failure to send control info to afni\n" );
+        fprintf( stderr, "      - iochan error: %s\n", ebuf ? ebuf : "EMPTY" );
         ac->state = ART_STATE_NO_USE;
 
         return -1;
-    }
+    } else if ( debug > 2 )
+        fprintf(stderr,"ART: control info sent OK, rv = %d\n", rv);
 
     ac->state = ART_STATE_IN_USE;                 /* declaration of success */
 
@@ -707,7 +712,7 @@ void ART_exit( void )
     if ( been_here == 0 )
     {
         iochan_close(gAC.ioc);
-        fprintf( stderr, "ART_exit: closing afni control channel\n" );
+        fprintf( stderr, "ART: exit: closing afni control channel\n" );
         been_here = 1;
     }
 
@@ -729,7 +734,7 @@ int ART_idisp_ART_comm( char * info, ART_comm * ac )
 
     if ( ac == NULL )
     {
-        fprintf( fp, "ART_idisp_ART_comm: ac == NULL\n" );
+        fprintf( fp, "ART: idisp_ART_comm: ac == NULL\n" );
         return -1;
     }
 

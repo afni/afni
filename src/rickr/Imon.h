@@ -26,6 +26,7 @@
 #define IFM_IM_FTYPE_NONE    0       /* valid image file types:          */
 #define IFM_IM_FTYPE_GEMS5   1       /* GEMS 5.x                         */
 #define IFM_IM_FTYPE_DICOM   4       /* DICOM                            */
+#define IFM_IM_FTYPE_AFNI    10      /* AFNI/NIFTI                       */
 
 #define IFM_DEBUG_DEFAULT    1       /* default debug level: show status */
 #define IFM_MAX_DEBUG        5       /* maximum debug level              */
@@ -110,6 +111,7 @@ typedef struct  /* user options */
     char           * infile_list;   /* file holding input filenames     */
     char           * sp;            /* slice acquisition pattern        */
     char           * gert_outdir;   /* output directory for GERT_Reco2  */
+    char           * file_type;     /* NULL or AFNI/GEMS/DICOM          */
     char          ** argv;          /* passed to the program            */
     int              argc;
     float            tr;            /* user input TR, overrides files   */
@@ -126,7 +128,6 @@ typedef struct  /* user options */
     int              debug;         /* debug level                      */
     int              quit;          /* quit when no new images found    */
     int              no_wait;       /* never wait for more data         */
-    int              use_dicom;     /* flag for dicom (not GE) images   */
     int              use_last_elem; /* use last element in DICOM images */
     int              use_slice_loc; /* use Slice Loc for zoff           */
     int              show_sorted_list; /* display sorted list and quit  */
