@@ -555,7 +555,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.35" # software version (update for changes)
+      self.align_version = "1.36" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1195,7 +1195,11 @@ class RegWrap:
       if(dset1.input()==dset2.input()):
          print "# copy is not necessary"
          return 0
-         
+#      if((os.path.islink(dset1.p())) or (os.path.islink(dset2.p()))):
+      if(dset1.real_input() == dset2.real_input()):
+         print "# copy is not necessary"
+         return 0
+
       dset2.delete(exec_mode)
       com = shell_com(  \
             "3dcopy %s %s" % (dset1.input(), dset2.out_prefix()), exec_mode)
