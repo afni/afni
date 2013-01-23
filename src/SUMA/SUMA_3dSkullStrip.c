@@ -368,6 +368,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "     -skull_outer_xyz_file SKULL_OUTER_XYZ.1D\n"
 "     -help: The help you need\n"
 "\n"
+/*
 "  Special Head Mask Creation:\n"
 "  ---------------------------\n"
 "     Note:    These options are used to generate a mask of the head. They are\n"
@@ -396,7 +397,6 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "     Example: 3dSkullStrip -head -input DemoSubj_SurfVol+orig.HEAD \\\n"
 "                           -prefix toy_head\n"
 "\n"
-/*
 "     -sm_fac SMFAC: Smoothing factor (Default is 1)\n"
 "     -d1 D1: Distance to search inward (Default 20 mm)\n"
 "     -t2 T2: Force t2 to be T2 (Default automated)\n"
@@ -1415,7 +1415,7 @@ int main (int argc,char *argv[])
       }
       
       DSET_MASK(Opt->iset, Opt->dmask);
-            
+      
       if (Opt->PlEq[0] != 0.0f || Opt->PlEq[1] != 0.0f || Opt->PlEq[2] != 0.0f)
       {
          SUMA_LHv("Cutting %+fx %+fy %+fz %+f < 0\n",
@@ -1448,7 +1448,7 @@ int main (int argc,char *argv[])
          5% == from the top 5%) */
          SUMA_LHv("Masking on voxel depth of %f\n",Opt->flt1);
          /* Mask remaining voxels based on depth */
-         SUMA_VoxelDepth_Z(headset,NULL, Opt->flt1, NULL, 1, 1.0); 
+         SUMA_VoxelDepth_Z(headset,NULL, NULL, Opt->flt1, NULL, 1, 1.0, NULL); 
       }
                                 
       tross_Make_History( FuncName , argc,argv , headset ) ;
@@ -1458,10 +1458,10 @@ int main (int argc,char *argv[])
       tross_Make_History( FuncName , argc,argv , radset ) ;
       DSET_write(radset) ;
       DSET_delete(radset); radset=NULL;
-      SUMA_Free_Surface_Object(SOhh); SOhh=NULL;
-      SUMA_free(SO_name_hhull); SO_name_hhull=NULL;
-      SUMA_free(hhullprefix); hhullprefix=NULL;
-      SUMA_free(radprefix); radprefix=NULL;
+      if (SOhh) SUMA_Free_Surface_Object(SOhh); SOhh=NULL;
+      if (SO_name_hhull) SUMA_free(SO_name_hhull); SO_name_hhull=NULL;
+      if (hhullprefix) SUMA_free(hhullprefix); hhullprefix=NULL;
+      if (radprefix) SUMA_free(radprefix); radprefix=NULL;
       exit(0);
    }
    

@@ -133,6 +133,7 @@
 
    
    /* SUMA specific includes*/
+   #include "SUMA_niml_defines.h"
    #include "SUMA_define.h"   
    #include "SUMA_prototype.h"
    #include "SUMA_ParseCommands.h"  

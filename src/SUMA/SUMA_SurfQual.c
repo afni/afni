@@ -208,7 +208,7 @@ int main (int argc,char *argv[])
    SUMA_SurfSpecFile *Spec=NULL; 
    void *SO_name = NULL;
    SUMA_Boolean DoConv = NOPE, DoSphQ = NOPE, DoSelfInt = NOPE;   
-   SUMA_SPHERE_QUALITY SSQ;
+   int N_bad_nodes, N_bad_facesets;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
 	
@@ -216,9 +216,7 @@ int main (int argc,char *argv[])
    SUMA_mainENTRY;
    
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
-   
-   memset(&SSQ, 0, sizeof(SUMA_SPHERE_QUALITY));
-   
+      
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    
@@ -326,7 +324,7 @@ int main (int argc,char *argv[])
             OutName = SUMA_append_string (prefix, "_Conv_detail.1D.dset");
          }
          Cx = SUMA_Convexity_Engine ( SO->NodeList, SO->N_Node, 
-                                      SO->NodeNormList, SO->FN, OutName);
+                                      SO->NodeNormList, SO->FN, OutName, NULL);
          if (Cx) SUMA_free(Cx); Cx = NULL;
          if (OutName) SUMA_free(OutName); OutName = NULL;
       } 
@@ -339,7 +337,7 @@ int main (int argc,char *argv[])
             OutName = SUMA_copy_string (prefix);
          }
          shist = SUMA_HistString (NULL, argc, argv, NULL);
-         SSQ = SUMA_SphereQuality (SO, OutName, shist);   
+         SUMA_SphereQuality (SO, OutName, shist, &N_bad_nodes, &N_bad_faces);   
          if (shist) SUMA_free(shist); shist = NULL;
          if (OutName) SUMA_free(OutName); OutName = NULL;
       }
@@ -460,8 +458,8 @@ int main (int argc,char *argv[])
                   fprintf(stdout,"Euler_Charac. %d\n", eu);
                   fprintf(stdout,"Consistent_Winding %d\n", consistent);
          if (DoSphQ) {
-                  fprintf(stdout,"Folding_Triangles %d\n", SSQ.N_bad_facesets);
-                  fprintf(stdout,"Sketchy_nodes %d\n", SSQ.N_bad_nodes);
+                  fprintf(stdout,"Folding_Triangles %d\n", N_bad_facesets);
+                  fprintf(stdout,"Sketchy_nodes %d\n", N_bad_nodes);
                      }
          if (DoSelfInt) 
                   fprintf(stdout,"Self_Intersections %d\n", nsi);

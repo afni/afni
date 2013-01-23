@@ -47,7 +47,7 @@ int main( int argc , char * argv[] )
    MRI_IMARR *ortar=NULL ; MRI_IMAGE *ortim=NULL ;
    THD_3dim_dataset **ortset=NULL ; int nortset=0 ;
    THD_3dim_dataset *inset=NULL , *outset=NULL;
-   char *prefix="bandpass" ;
+   char *prefix="RSFC" ;
    byte *mask=NULL ;
    int mask_nx=0,mask_ny=0,mask_nz=0,nmask , verb=1 , 
 		nx,ny,nz,nvox , nfft=0 , kk ;

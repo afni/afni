@@ -100,7 +100,7 @@ MRI_IMAGE * mri_polyfit( MRI_IMAGE *imin, int nord, MRI_IMARR *exar, byte *mask,
    int *pir=NULL , *pjr=NULL , *pkr=NULL ;
    int nmask , ii,jj,kk,pp,qq , nx,ny,nz,nxyz , ibot,itop,jbot,jtop,kbot,ktop ;
    int pi,pj,pk , pitop=0,pjtop=0,pktop=0 , nref=0 , npref=0 ;
-   float imid,jmid,kmid , ifac=0.0f,jfac=0.0f,kfac=0.0f , rfac ;
+   float imid=0.0,jmid=0.0,kmid=0.0 , ifac=0.0f,jfac=0.0f,kfac=0.0f , rfac ;
    int nex=0 ;
 
 ENTRY("mri_polyfit") ;

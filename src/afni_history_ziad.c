@@ -65,6 +65,43 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 22, Jan , 2013 , ZSS , "HalloSuma" , MINOR , TYPE_NEW_PROG,
+   "A sample light-weight program to illustrate 2-way communication with AFNI",
+   "The program can be compiled in C or C++ along with the NIML library\n"
+   "without having to link to AFNI/SUMA libraries.\n"
+   "Documentation is the code.\n" 
+ },
+
+ { 22, Jan , 2013 , ZSS , "apsearch" , MINOR , TYPE_NEW_OPT,
+   "Added -bash option for bash filename completion, & -recreate_all_afni_help",
+   "Thanks be to Isaac Schwabacher."
+ },
+
+ { 22, Jan , 2013 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
+   "Added -echo_nel(*) option to show NIML communication elements",
+   NULL
+ },
+
+ { 22, Jan , 2013 , ZSS , "3dinfo" , MINOR , TYPE_NEW_OPT,
+   "Added -hand for handeness of orientation",
+   NULL
+ },
+
+ { 22, Jan , 2013 , ZSS , "3dLocalstat" , MICRO , TYPE_MODIFY,
+   "THD_localstat() was not applying mask to output under resam. mode",
+   NULL
+ },
+
+ { 11, Jan , 2013 , ZSS , "ConvertSurface" , MINOR , TYPE_NEW_OPT,
+   "Added -flip_orient option to change orientation of triangles.",
+   NULL
+ },
+
+ { 7, Jan , 2013 , ZSS , "3dinfill" , MINOR , TYPE_NEW_OPT,
+   "Added -radial_* options to test SUMA_Volume_RadFill() function.",
+   NULL
+ },
+
  { 27, Dec , 2012 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
    "Increased buffer size for reading one line.",
    "See LBUF in mri_read.c, also added error message when\n"

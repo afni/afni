@@ -818,6 +818,8 @@ ENTRY("THD_localstat") ;
          ERROR_exit("Failed to reduce output grid");
       }
       DSET_delete(oset) ; oset = tout; tout = NULL;
+      /* apply mask to resampled output */
+      if (mask) THD_applydsetmask(oset,mask);
    }
    RETURN(oset) ;
 }

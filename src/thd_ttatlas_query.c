@@ -4569,13 +4569,91 @@ void suggest_best_prog_option(char *prog, char *str)
    }
    
    if (logfout) fclose(logfout);
+   if (ws_score) free(ws_score); ws_score=NULL;
    return;
 }
 
-int prog_complete_command (char *prog, char *ofile) {
-   char **ws=NULL, *pvar=NULL;
-   int N_ws=0, i;
+char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
+   char *sout=NULL, sbuf[128];
+   int maxch=0, i, jj;
+   NI_str_array *nisa=NULL;
+   
+   if (!prog || !ws || shtp < 0) {
+      return(NULL);
+   }
+   
+   maxch = 256;
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i]) {
+         maxch+=strlen(ws[i])+10;
+         if (strlen(ws[i]) > 127) {
+            WARNING_message("Truncating atrocious option %s\n", ws[i]);
+            ws[127] = '\0';
+         }
+      }
+   }
+   if (!(sout = (char *)calloc((maxch+1), sizeof(char)))) {
+      ERROR_message("Failed to allocate for %d chars!", maxch+1);
+      return(NULL);
+   }
+   sout[0]='\0';
+   switch (shtp) {
+      default:
+      case 0: /* csh/tcsh */
+         strncat(sout,"set ARGS=(",maxch-1);
+         break;
+      case 1: /* bash */
+         strncat(sout,"ARGS=(",maxch-1);
+         break;
+   }
+   
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i] && (nisa = NI_strict_decode_string_list(ws[i] ,"/"))) {
+         for (jj=0; jj<nisa->num; ++jj) {
+            if (ws[i][0]=='-' && nisa->str[jj][0] != '-') {
+               snprintf(sbuf,127,"'-%s' ", nisa->str[jj]);
+            } else { 
+               snprintf(sbuf,127,"'%s' ", nisa->str[jj]);
+            }
+            strncat(sout,sbuf, maxch-1);
+            NI_free(nisa->str[jj]);
+         }
+         if (nisa->str) NI_free(nisa->str); 
+         NI_free(nisa); nisa=NULL;
+      }
+   }
+   
+   switch (shtp) {
+      default:
+      case 0: /* csh/tcsh */
+         snprintf(sbuf,127,") ; "
+               "complete %s \"C/-/($ARGS)/\" \"p/*/f:/\" ; ##%s##\n",prog, prog);
+         break;
+      case 1: /* bash */
+         snprintf(sbuf,127,") ; "
+               "complete -W \"${ARGS[*]}\" -o bashdefault -o default %s ; "
+               "##%s##\n",prog, prog);
+         break;
+   }
+   if (strlen(sbuf) >= 127) {
+      ERROR_message("Too short a buffer for complete command %s\n");
+      free(sout); sout=NULL;
+      return(sout);
+   }
+   strncat(sout,sbuf, maxch-1);
+   if (strlen(sout)>=maxch) {
+      ERROR_message("Truncated complete string possible");
+      free(sout); sout=NULL;
+      return(sout);
+   }
+
+   return(sout);
+}
+
+int prog_complete_command (char *prog, char *ofileu, int shtp) {
+   char **ws=NULL, *sout=NULL, *ofile=NULL;
    float *ws_score=NULL;
+   int N_ws=0, ishtp=0, shtpmax = 0, i;
    FILE *fout=NULL;
    
    if (!prog || !(ws = approx_str_sort_all_popts(prog, &N_ws,  
@@ -4584,38 +4662,53 @@ int prog_complete_command (char *prog, char *ofile) {
       return 0;
    }
 
-   if (ofile) {
-       if (!(fout = fopen(ofile,"w"))) {
-         ERROR_message("Failed to open %s for writing\n", ofile);
-         return(0);
-       }
+   if (shtp < 0) { shtp=0; shtpmax = 2;}
+   else { shtpmax = shtp+1; }
    
-   } else {
-      fout = stdout;
-   }
-   
-   pvar = strdup(prog);
-   for (i=0; i<strlen(pvar); ++i) {
-      if (pvar[i] == '.' || pvar[i] == '@' || 
-          pvar[i] == '-' || pvar[i] == '+' ||
-          IS_PUNCT(pvar[i])) pvar[i]='_';
-   }
-   fprintf(fout,"set ARGS=(");
-   for (i=0; i<N_ws; ++i) {
-      if (ws[i]) {
-         fprintf(fout,"'%s' ", ws[i]);
-         free(ws[i]); ws[i]=NULL;
-      }
-   }
-   fprintf(fout,") ; "
-         "complete %s \"C/-/($ARGS)/\" \"p/*/f:/\" ; ##%s##\n",prog, prog);
+   for (ishtp=shtp; ishtp<shtpmax; ++ishtp) {
+      if (ofileu) {
+          if (shtpmax != shtp+1) { /* autoname */
+            switch (ishtp) {
+               default:
+               case 0:
+                  ofile = strdup(ofileu);
+                  break;
+               case 1:
+                  ofile = (char*)calloc((strlen(ofileu)+20), sizeof(char));
+                  strcat(ofile, ofileu);
+                  strcat(ofile, ".bash");
+                  break;
+            }
+          } else {
+            ofile = strdup(ofileu);
+          }
+            
+          if (!(fout = fopen(ofile,"w"))) {
+            ERROR_message("Failed to open %s for writing\n", ofile);
+            return(0);
+          }
 
-   if (ofile) fclose(fout); fout=NULL;
-   free(ws); ws = NULL; free(pvar); return 0;
+      } else {
+         fout = stdout;
+      }
+
+      if ((sout = form_complete_command_string(prog, ws, N_ws, ishtp))){
+         fprintf(fout, "%s", sout);
+         free(sout); sout = NULL;
+      }
+      if (ofileu) fclose(fout); fout=NULL;
+      if (ofile) free(ofile); ofile=NULL;
+   }
+   
+   for (i=0; i<N_ws; ++i) if (ws[i]) free(ws[i]);
+   free(ws); ws = NULL;
+   if (ws_score) free(ws_score); ws_score=NULL;
+   return 0;
 }
 
 
-char *get_updated_help_file(int force_recreate, byte verb, char *progname) 
+char *get_updated_help_file(int force_recreate, byte verb, char *progname, 
+                            int shtp) 
 {
       static char hout[512]={""};
       char scomm[1024], *etr=NULL, *hdir=NULL, *etm=NULL, houtc[128];
@@ -4643,8 +4736,9 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname)
                "%s/%s.complete", hdir, etr);
       if (!force_recreate && THD_is_file(hout)) {
          if (verb) fprintf(stderr,"Reusing %s \n", hout); 
-         if (!THD_is_file(houtc)) {
-            prog_complete_command(etr, houtc);
+         if (!THD_is_file(houtc)) { /* this check will fail for bash completion,
+                                       but that's not important */
+            prog_complete_command(etr, houtc, shtp);
          }      
       } else {
          if (verb) fprintf(stderr,"Creating %s \n", hout); 
@@ -4674,7 +4768,7 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname)
          snprintf(scomm, 1000*sizeof(char),
                "chmod a-w %s > /dev/null 2>&1", hout);
          system(scomm); 
-         prog_complete_command(etr, houtc);
+         prog_complete_command(etr, houtc, shtp);
       }
       return(hout);
 }
@@ -4697,7 +4791,7 @@ void view_prog_help(char *prog)
       return;
    }
    
-   hname = get_updated_help_file(0, 0, progname);
+   hname = get_updated_help_file(0, 0, progname, -1);
    if (hname[0]=='\0') { /* failed, no help file ... */
       ERROR_message("No help file for %s\n", progname);
       return;
@@ -4900,6 +4994,8 @@ void print_prog_options(char *prog)
          free(ws[i]); ws[i]=NULL;
       }
    } free(ws); ws = NULL;
+   
+   if (ws_score) free(ws_score); ws_score=NULL;
    return;
 }
 

@@ -114,56 +114,13 @@ int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp,
 }
 
 
-/*! a copy of THD_handedness from ../thd_rotangles.c
-Dunno why the original was giving me pain linking ... */
 int SUMA_THD_handedness( THD_3dim_dataset * dset )
 {
    static char FuncName[]={"SUMA_THD_handedness"};
-   THD_dataxes * dax ;
-   THD_mat33 q ;
-   int col ;
-   float val ;
 
    SUMA_ENTRY;
 
-   if( !ISVALID_DSET(dset) ) SUMA_RETURN(1) ;
-
-   LOAD_ZERO_MAT(q) ;
-   dax = dset->daxes ;
-
-   col = 0 ;
-   switch( dax->xxorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   col = 1 ;
-   switch( dax->yyorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   col = 2 ;
-   switch( dax->zzorient ){
-      case 0: q.mat[0][col] =  1.0 ; break ;
-      case 1: q.mat[0][col] = -1.0 ; break ;
-      case 2: q.mat[1][col] = -1.0 ; break ;
-      case 3: q.mat[1][col] =  1.0 ; break ;
-      case 4: q.mat[2][col] =  1.0 ; break ;
-      case 5: q.mat[2][col] = -1.0 ; break ;
-   }
-
-   val = MAT_DET(q) ;
-   if( val > 0.0 ) SUMA_RETURN( 1) ;  /* right handed */
-   else            SUMA_RETURN(-1) ;  /* left handed */
+   SUMA_RETURN(THD_handedness(dset));
 }
 
 /*!

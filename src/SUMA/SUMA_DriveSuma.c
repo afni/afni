@@ -421,6 +421,14 @@ if (detail > 1) {
 "--------\n"
 "   -echo_edu: Echos the entire command line (without -echo_edu)\n"
 "              for edification purposes\n"
+"   -echo_nel_stdout: Spit out the NIML object being sent to SUMA for \n"
+"   -echo_nel_stderr: edification purposes. These two options are meant\n"
+"                     to help motivate the example in HalloSuma.\n"
+"                     You need to have SUMA up and listening for this option\n"
+"                     to take effect.\n"
+"            Example: DriveSuma -echo_nel_stdout -com viewer_cont '-key:v28' j\n"
+"   -echo_nel FILE: Write the elements to FILE.\n"
+"                   You can also use stdout or stderr for FILE.\n"
 "   -examples: Show all the sample commands and exit\n"
 "   -help: All the help, in detail.\n"
 "       ** NOTE: You should also take a look at scripts @DO.examples and \n"
@@ -1627,6 +1635,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
    Opt->com = NULL;
    Opt->N_com = 0;
    Opt->b1 = 0;
+   Opt->s = NULL;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -1637,6 +1646,32 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
 		}
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      
+      if (strcmp(argv[kar], "-echo_nel_stdout") == 0) {
+         Opt->s = SUMA_copy_string("stdout:");
+         brk = YUP;
+      }
+
+      if (strcmp(argv[kar], "-echo_nel_stderr") == 0) {
+         Opt->s = SUMA_copy_string("stderr:");
+         brk = YUP;
+      }
+      if (strcmp(argv[kar], "-echo_nel") == 0) {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a paramter after -echo_nel \n");
+            exit (1);
+         }
+         ++kar;
+         if (strcmp(argv[kar], "stdout")==0) {
+            Opt->s = SUMA_copy_string("stdout:");
+         } else if (strcmp(argv[kar], "stderr")==0) {
+            Opt->s = SUMA_copy_string("stderr:");
+         } else {
+            Opt->s = SUMA_append_replace_string("file:",argv[kar],"",0);
+         }         
+         brk = YUP;
+      }
       
       if (strcmp(argv[kar], "-help_nido") == 0) {
          char *s = SUMA_NIDO_Info();
@@ -2109,10 +2144,10 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
 
 
   
-int SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
+int SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps, char *EchoNel)
 {
    static char FuncName[]={"SUMA_ProcessCommand"};
-   int i;
+   int i, suc;
    float *far=NULL;
    char *act, *pos, *stp;
    NI_group *ngr = NULL;
@@ -2136,56 +2171,65 @@ int SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
       SO = SUMA_ShowSurfComToSO(com);
       SUMA_LHv("Sending Surface %s\n", SO->Label); /* send the surface */
       SUMA_SendSumaNewSurface(SO, ps->cs);
+      if (EchoNel) 
+         SUMA_S_Warn("Sorry, no echo for show_surf. Complain to author.");
    } else if (strcmp((act), "node_xyz") == 0) {
       SO = SUMA_NodeXYZComToSO(com);
       SUMA_LHv("Sending XYZ to %s", SO->Label);
-      if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
+      if (EchoNel) 
+         SUMA_S_Warn("Sorry, no echo for node_xyz. Complain to author.");
    } else if (strcmp((act), "load_dset") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
       }
       SUMA_LH("Sending LoadDset to suma");
-      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr, SUMA_ENGINE_INSTRUCTION, 1)) {
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL;
    } else if (strcmp((act), "load_col") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
       }
       SUMA_LH("Sending LoadCol to suma");
-      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr, SUMA_ENGINE_INSTRUCTION, 1)) {
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL;
    }else if (strcmp((act), "surf_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
       }
       SUMA_LH("Sending SetSurfCont to suma");
-      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr, SUMA_ENGINE_INSTRUCTION, 1)) {
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL; 
    } else if (strcmp((act), "viewer_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
       }
       SUMA_LH("Sending SetViewerCont to suma");
-      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr, SUMA_ENGINE_INSTRUCTION, 1)) {
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);      
       NI_free_element(ngr); ngr = NULL;
    } else if (strcmp((act), "recorder_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
       }
       SUMA_LH("Sending SetRecorderCont to suma");
-      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr, SUMA_ENGINE_INSTRUCTION, 1)) {
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL;
    } else if (strcmp((act), "sleep") == 0) {
       double slp;
@@ -2207,13 +2251,13 @@ int SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
    } else if (strcmp((act), "pause") == 0) {
       char **argt=NULL, *msg=NULL;
       int argtc = 0;
-      
       /* change com to a bunch of arguments */
       argt = SUMA_com2argv(com, &argtc); 
       if (argtc < 2) {
          SUMA_PAUSE_PROMPT("Pausing DriveSuma.\nDo something to proceed.\n");
       } else {
-        for (i=1; i<argtc; ++i) msg = SUMA_append_replace_string(msg, argt[i], " ", 1);
+        for (i=1; i<argtc; ++i) 
+            msg = SUMA_append_replace_string(msg, argt[i], " ", 1);
         SUMA_PAUSE_PROMPT(msg);
       }
       if (msg) SUMA_free(msg); msg = NULL;
@@ -2223,9 +2267,10 @@ int SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
       }
       SUMA_LH("Sending kill_suma to suma");
-      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr, SUMA_ENGINE_INSTRUCTION, 1)) {
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       SUMA_Wait_Till_Stream_Goes_Bad(ps->cs, 100, 1000, 0);
       NI_free_element(ngr); ngr = NULL;
       ans = -1; 
@@ -2320,7 +2365,7 @@ int main (int argc,char *argv[])
             SUMA_LH("Have the following commands");
             fprintf(SUMA_STDERR,"Command %d: %s\n", i, Opt->com[i]);
          }
-         if (!(exflag = SUMA_ProcessCommand(Opt->com[i], ps))) {
+         if (!(exflag = SUMA_ProcessCommand(Opt->com[i], ps, Opt->s))) {
             fprintf(SUMA_STDERR,"Error %s: Failed in processing command\n%s\n", FuncName, Opt->com[i]); 
             exit(1);
          }   

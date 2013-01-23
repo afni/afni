@@ -101,7 +101,6 @@ int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, doub
 /*!
    \brief A function to test if a spherical surface is indeed spherical
    
-   SUMA_SphereQuality (SUMA_SurfaceObject *SO, char *Froot, char *historynote)
    
    This function reports on a few parameters indicative of
    the quality of a spherical surface:
@@ -120,11 +119,11 @@ int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, doub
    The file <Froot>_dotprod.1D contains the dot product values for all the 
    nodes. The file with colorized results are <Froot>_BadNodes.1D.col and 
    <Froot>_dotprod.1D.col
-   
       
 */
-SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, 
-                                       char *Froot, char *shist)
+SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, 
+                        char *Froot, char *shist, 
+                        int *N_bad_nodesu, int *N_bad_facesetsu)
 {
    static char FuncName[]={"SUMA_SphereQuality"};
    float *dist = NULL, mdist, *dot=NULL, nr, r[3], *bad_dot = NULL;
@@ -140,7 +139,6 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
    float dot_cut = 0.00001;
    double cent[3]={0.0, 0.0, 0.0};
    double centmed[3]={0.0, 0.0, 0.0};
-   SUMA_SPHERE_QUALITY SSQ;
    SUMA_COLOR_MAP *CM;
    SUMA_SCALE_TO_MAP_OPT * OptScl;
    SUMA_COLOR_SCALED_VECT * SV;
@@ -148,12 +146,12 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
    
    SUMA_ENTRY;
    
-   SSQ.N_bad_nodes = -1;
-   SSQ.N_bad_facesets = -1;
+   if (N_bad_nodesu) *N_bad_nodesu = -1;
+   if (N_bad_facesetsu) *N_bad_facesetsu = -1;
    
    if (!SO) {
       SUMA_SL_Err("NULL SO");
-      SUMA_RETURN(SSQ);
+      SUMA_RETURN(0);
    }
    
    /* get the options for creating the scaled color mapping */
@@ -224,7 +222,7 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
    fname = SUMA_append_string(Froot, "_Dist.1D.dset");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
    fid = fopen(fname, "w");
-   fprintf(fid,"#Node distance from estimated geometric center of %f %f %f.\n"
+   fprintf(fid,"#Absolute difference between node distance from estimated geometric center of %f %f %f, and average radius.\n"
                "#col 0: Node Index\n"
                "#col 1: distance\n", centmed[0], centmed[1], centmed[2]);
    if (shist) fprintf(fid,"#History:%s\n", shist);
@@ -236,7 +234,7 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
    fname = SUMA_append_string(Froot, "_Dist.1D.col");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
    fid = fopen(fname, "w");
-   fprintf(fid,"#Color file of node distance from estimated geometric center of %f %f %f.\n"
+   fprintf(fid,"#Color file of absolute difference between node distance from estimated geometric center of %f %f %f,  and average radius.\n"
                "#col 0: Node Index\n"
                "#col 1: R\n"
                "#col 2: G\n"
@@ -291,7 +289,7 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
    fclose(fid);
    SUMA_free(fname); fname = NULL;
    
-   /* New idea:
+   /* 
    If we had a perfect sphere then the normal of each node
    will be colinear with the direction of the vector between the
    sphere's center and the node.
@@ -439,7 +437,7 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
       } 
    }  
  
-   /* Newer idea:
+   /*
    Compare the normal of each facet to the direction of the vector
    between the sphere's center and the center of the facet.  
    Use the center of mass of the triangle as the center of the facet.
@@ -506,8 +504,161 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO,
       Use "(face_ibad)" if want to flag in program when first bad facet occurs.
       Otherwise, use original return variable.  Before was just "(ibad)" */  
    
-   SSQ.N_bad_nodes = ibad;
-   SSQ.N_bad_facesets = face_ibad;
+   if (N_bad_nodesu) *N_bad_nodesu = ibad;
+   if (N_bad_facesetsu) *N_bad_facesetsu = face_ibad;
+   
+   SUMA_RETURN(YUP);
+}
+
+SUMA_SPHERE_QUALITY *SUMA_Free_SphereQuality(SUMA_SPHERE_QUALITY *SSQ)
+{
+   static char FuncName[]={"SUMA_Free_SphereQuality"};
+   SUMA_ENTRY;
+   if (!SSQ) SUMA_RETURN(NULL);
+   if (SSQ->node_DelDist) SUMA_free(SSQ->node_DelDist);
+   if (SSQ->node_DelDot) SUMA_free(SSQ->node_DelDot);
+   if (SSQ->face_DelDot) SUMA_free(SSQ->face_DelDot);
+   if (SSQ->node_Conv) SUMA_free(SSQ->node_Conv);
+   SUMA_free(SSQ); 
+   SUMA_RETURN(NULL);
+}
+
+SUMA_SPHERE_QUALITY *SUMA_Alloc_SphereQuality(int N, int F)
+{
+   static char FuncName[]={"SUMA_Alloc_SphereQuality"};
+   SUMA_SPHERE_QUALITY *SSQ = NULL;
+   
+   SUMA_ENTRY;
+   
+   SSQ = (SUMA_SPHERE_QUALITY *)SUMA_calloc(1,sizeof(SUMA_SPHERE_QUALITY)); 
+   
+   SSQ->N_bad_nodes = -1;
+   SSQ->N_bad_facesets = -1;
+   SSQ->N_node = N;
+   SSQ->N_face = F;
+   
+   SSQ->node_DelDist = (float*)SUMA_calloc(N,sizeof(float)); 
+   SSQ->node_DelDot = (float*)SUMA_calloc(N,sizeof(float)); 
+   SSQ->node_Conv = (float*)SUMA_calloc(N,sizeof(float)); 
+   SSQ->face_DelDot = (float*)SUMA_calloc(F,sizeof(float)); 
+   
+   SSQ->cm[0] = SSQ->cm[1] = SSQ->cm[2] = 0.0;
+   SSQ->AvgDist = 0.0;
+   
+   SUMA_RETURN(SSQ);
+}
+
+SUMA_SPHERE_QUALITY *
+   SUMA_SphericalDeviations(SUMA_SurfaceObject *SO, 
+                            SUMA_SPHERE_QUALITY *SSQ, char *opts)
+{
+   static char FuncName[]={"SUMA_SphericalDeviations"};
+   float nr, r[3], *n1, *n2, *n3;
+   int i, i3;
+   double cent[3]={0.0, 0.0, 0.0};
+   double centmed[3]={0.0, 0.0, 0.0};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (SSQ) { 
+      SSQ->N_bad_nodes = -1;
+      SSQ->N_bad_facesets = -1;
+   }
+   if (!opts) opts = "dist;dot";
+   
+   if (!SO) {
+      SUMA_SL_Err("NULL SO");
+      SUMA_RETURN(SSQ);
+   }
+   if (!SSQ || SSQ->N_node != SO->N_Node || SSQ->N_face != SO->N_FaceSet) {
+      SUMA_Free_SphereQuality(SSQ);
+      SSQ = SUMA_Alloc_SphereQuality(SO->N_Node, SO->N_FaceSet);
+   }
+   
+       
+   if (!SUMA_GetCenterOfSphereSurface(SO, 500, cent, centmed)) {
+      SUMA_S_Err("Failed to get center");
+      SUMA_RETURN(SSQ);
+   }else{
+      SUMA_LHv("Center of mass of surface is:\n"
+                  "  [%f   %f   %f]\n"
+                  "Estimated center of surface is:\n"
+                  "  [%f   %f   %f]\n"
+                  "Median estimated center of surface is:\n"
+                  "  [%f   %f   %f]\n",
+                  SO->Center[0], SO->Center[1], SO->Center[2],
+                  cent[0], cent[1], cent[2],
+                  centmed[0], centmed[1], centmed[2]);
+   }
+   SSQ->cm[0] = centmed[0]; SSQ->cm[1] = centmed[1]; SSQ->cm[2] = centmed[2];
+
+
+   /* compare the distance of each node to the distance to estimated radius */
+   SSQ->AvgDist = 0.0;
+   for (i=0; i<SO->N_Node; ++i) {
+      i3 = 3*i;
+      SSQ->node_DelDist[i] =   
+                  sqrt ( pow((double)(SO->NodeList[i3]   - centmed[0]), 2.0) +
+                         pow((double)(SO->NodeList[i3+1] - centmed[1]), 2.0) +
+                         pow((double)(SO->NodeList[i3+2] - centmed[2]), 2.0) );
+      SSQ->AvgDist += SSQ->node_DelDist[i];
+   }
+   SSQ->AvgDist /= (float)SO->N_Node;
+   
+   /* calculate the difference from mdist */
+   for (i=0; i<SO->N_Node; ++i) 
+      SSQ->node_DelDist[i] = fabs(SSQ->node_DelDist[i] - SSQ->AvgDist);
+   
+   /* calculate 1-abs(dot) for angle between radius and node normal*/ 
+   SSQ->N_bad_nodes = 0;
+   for (i=0; i<SO->N_Node; ++i) {
+      i3 = 3*i;
+      r[0] = SO->NodeList[i3]   - centmed[0];
+      r[1] = SO->NodeList[i3+1] - centmed[1];
+      r[2] = SO->NodeList[i3+2] - centmed[2];
+      nr = sqrt ( r[0] * r[0] + r[1] * r[1] + r[2] * r[2] );
+      r[0] /= nr; r[1] /= nr; r[2] /= nr; 
+      
+      SSQ->node_DelDot[i] = 
+               r[0]*SO->NodeNormList[i3]   + 
+               r[1]*SO->NodeNormList[i3+1] +
+               r[2]*SO->NodeNormList[i3+2] ;
+      
+      SSQ->node_DelDot[i] = 1.0 - fabs(SSQ->node_DelDot[i]);
+      if (SSQ->node_DelDot[i]>0.1) ++SSQ->N_bad_nodes;
+   }
+      
+   
+   /* calculate 1-abs(dot) for angle between faceset nornal and radius */
+   
+   SSQ->N_bad_facesets = 0;
+   for (i=0; i<SO->N_FaceSet; ++i) {
+      i3 = 3*i;
+      n1 = SO->NodeList+3*SO->FaceSetList[3*i  ];
+      n2 = SO->NodeList+3*SO->FaceSetList[3*i+1];
+      n3 = SO->NodeList+3*SO->FaceSetList[3*i+2];
+      r[0] = (n1[0]+n2[0]+n3[0])/3.0 - centmed[0];
+      r[1] = (n1[1]+n2[1]+n3[1])/3.0 - centmed[1];
+      r[2] = (n1[2]+n2[2]+n3[2])/3.0 - centmed[2];
+      nr = sqrt ( r[0] * r[0] + r[1] * r[1] + r[2] * r[2] );
+      r[0] /= nr; r[1] /= nr; r[2] /= nr; 
+      
+      SSQ->face_DelDot[i] = 
+               r[0]*SO->FaceNormList[i3]   + 
+               r[1]*SO->FaceNormList[i3+1] +
+               r[2]*SO->FaceNormList[i3+2] ;
+      
+      SSQ->face_DelDot[i] = 1.0 - fabs(SSQ->face_DelDot[i]);
+      if (SSQ->face_DelDot[i]>0.1) ++SSQ->N_bad_facesets;
+   }
+
+   /* calculate convexity */
+   if (!opts || strstr(opts,"conv")) {
+      SUMA_Convexity( SO->NodeList, SO->N_Node, 
+                      SO->NodeNormList, SO->FN, SSQ->node_Conv);
+   }
+   
    SUMA_RETURN(SSQ);
 }
 

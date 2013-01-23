@@ -285,7 +285,8 @@ int init_ports_list(void) {
       }  
    } else {
       cc = np+ip;
-   }  
+   }
+     
    PL.port_id[ip].port = cc; /* Used to be 53230 by default */
    sprintf(PL.port_id[ip].name,"MATLAB_SUMA_NIML");
    sprintf(PL.port_id[ip].listener,"MATLAB");
@@ -305,7 +306,7 @@ int init_ports_list(void) {
    sprintf(PL.port_id[ip].name,"SUMA_DRIVESUMA_NIML");
    sprintf(PL.port_id[ip].listener,"SUMA");
       ++ip;
-   
+      
    cc = AFNI_numenv("AFNI_PLUGOUT_TCP_BASE");
    if( cc ){
       if( cc < 1024 || cc > 65535 ){     
@@ -400,6 +401,11 @@ int init_ports_list(void) {
    sprintf(PL.port_id[ip].listener,"PLUGOUT_TTA");
       ++ip;
     
+   PL.port_id[ip].port = np+ip; 
+   sprintf(PL.port_id[ip].name,"SUMA_HALLO_SUMA_NIML");
+   sprintf(PL.port_id[ip].listener,"SUMA");
+      ++ip;
+      
    PL.n_ports=ip;
    
    reinit = 0;

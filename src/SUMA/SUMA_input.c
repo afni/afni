@@ -3946,7 +3946,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
                Cx = SUMA_Convexity   ( SO->NodeList, SO->N_Node, 
-                                       SO->NodeNormList, SO->FN);   
+                                       SO->NodeNormList, SO->FN, NULL);   
                if (Cx == NULL) {
                      fprintf(stderr,"Error %s: Failed in SUMA_Convexity\n", 
                                     FuncName);
@@ -5288,8 +5288,9 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       /* check to see if AFNI needs to be notified */
       /* Need to deal with SUMA_TO_MATLAB_STREAM_INDEX too 
          Same for remaining occurrence of SUMA_AFNI_STREAM_INDEX*/
-      if (  SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
-            sv->LinkAfniCrossHair) {
+      if (  ( SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
+              sv->LinkAfniCrossHair )                             ||
+            ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE])    ) {
          if (LocalHead) 
             fprintf(SUMA_STDERR,
                      "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
