@@ -2801,9 +2801,15 @@ class RegWrap:
             self.info_msg( "Removing skull from %s data" % \
                        ps.dset1_generic_name)
 
-            com = shell_com(  \
+            if(ps.skullstrip_method=="3dSkullStrip"):
+               com = shell_com(  \
                   "%s -orig_vol %s -input %s -prefix %s" \
                   % (ps.skullstrip_method, ps.skullstrip_opt, a.input(), n.out_prefix()), ps.oexec)
+            else:
+               com = shell_com(  \
+                  "%s %s -apply_prefix %s %s" \
+                  % (ps.skullstrip_method, ps.skullstrip_opt, n.out_prefix(),a.input()),ps.oexec)
+
             com.run()
             if (not n.exist() and not ps.dry_run()):
                print "** ERROR: Could not strip skull\n"
