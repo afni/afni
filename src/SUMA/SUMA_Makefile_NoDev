@@ -38,7 +38,7 @@ SUMA_EXECS = CreateIcosahedron  MapIcosahedron       \
 	SurfToSurf ROIgrow\
    NikoMap SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma SurfLocalstat SurfFWHM \
    SpharmDeco SpharmReco SurfDist SumaProgramTemplate SurfRetinoMap \
-	ParseName 3dGenPriors 3dSeg SurfExtrema 3dinfill
+	ParseName 3dGenPriors 3dSeg SurfExtrema 3dinfill HalloSuma
    
  
 
