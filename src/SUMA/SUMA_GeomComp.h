@@ -384,9 +384,10 @@ int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth,
                    float thr, byte **cmaskp);                                
 int SUMA_VoxelDepth(THD_3dim_dataset *dset, float **dpth,
                     float thr, byte **cmaskp, int applymask);
-int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
-                    float thr, byte **cmaskp, int applymask,
-                    float peakperc);
+int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, byte *cmasku,
+                     float **dpth,
+                     float thr, byte **cmaskp, int applymask,
+                     float peakperc, float *ztop);
 int SUMA_VoxelPlaneCut(THD_3dim_dataset *dset, float *Eq,
                        byte **cmaskp, int applymask);
 int SUMA_is_Flat_Surf_Coords_PCA (float *xyz, int N_xyz, 

@@ -162,6 +162,23 @@
    tross_Copy_History( par , pb ) ; \
 }
 
+#define NEW_FLOATYV(par,nsb,nm,pb,fv){  \
+   int m_i; \
+   pb = EDIT_empty_copy(par); \
+   EDIT_dset_items( pb ,   \
+                    ADN_prefix , nm ,  \
+                    ADN_nvals, nsb, \
+                    ADN_ntt, nsb, \
+                    ADN_malloc_type , DATABLOCK_MEM_MALLOC ,   \
+                    ADN_type        , HEAD_ANAT_TYPE ,   \
+                    ADN_func_type   , ANAT_BUCK_TYPE ,   \
+                    ADN_none ) ; \
+   for(m_i=0;m_i<nsb;++m_i) \
+      EDIT_substitute_brick( pb, m_i, MRI_float, (m_i==0 && (fv))?(fv):NULL); \
+   tross_Copy_History( par , pb ) ; \
+}
+
+
 #define EPS 0.000001
 #define MINP 0.01   /* I tried 0.05, 0.01, and 0.001: See
                         results of @Run.PROB.12class.1 (at 0.01)
@@ -555,6 +572,9 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
                       THD_3dim_dataset **filledp,
                       int method, int integ, int MxIter,
                       int minhits);
+int SUMA_Volume_RadFill(THD_3dim_dataset *aset, float *ufv, byte *ucmask,
+                      float *ucm, THD_3dim_dataset **filledp,
+                      int nplug, int nlin, int fitord, float smooth, int N_off);
 int SUMA_mri_volume_infill(MRI_IMAGE *imin);
 int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte thorough, 
                                  int integ, int mxiter);

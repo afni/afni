@@ -125,8 +125,6 @@
 #define SUMA_TESSCON_TO_MM       319.7 /*!< The mysterious Tesscon units */
 #define SUMA_TESSCON_DIFF_FLAG    1000   /*!< If aMaxDim - aMinDim > SUMA_TESSCON_DIFF_FLAG in a .iv file, scaling by SUMA_TESSCON_TO_MM is applied */
 
-#define SUMA_WriteCheckWait 400 /*!< Milliseconds to wait for each stream_writecheck call */ 
-#define SUMA_WRITECHECKWAITMAX 2000 /*!< Milliseconds to try and establish a good WriteCheck */
 
 #define SUMA_MAX_N_SURFACE_SPEC 500/*!< Maximum number of surfaces allowed in a spec file */
 
@@ -2597,47 +2595,6 @@ typedef struct {
    char *Source;  /*!< source of message, usually calling function */
 }  SUMA_MessageData;
 
-
-/* *** Niml defines */
-
-#if 0 /*ZSS June 2011. Delete useless code after dust has settled.*/
-#define SUMA_TCP_PORT 53211      /*!< AFNI listens to SUMA on this port */
-#define SUMA_MATLAB_LISTEN_PORT 53230  /* MATLAB listens to SUMA on this port */
-#define SUMA_TCP_LISTEN_PORT0 53220 /*!< SUMA's 1st listening port */
-   /* Replace                    With
-      SUMA_TCP_PORT              get_port_named("AFNI_SUMA_NIML")
-      SUMA_MATLAB_LISTEN_PORT    get_port_named("SUMA_MATLAB_NIML")
-      SUMA_TCP_LISTEN_PORT0      get_port_named("SUMA_DEFAULT_LISTEN_NIML")
-   */
-#endif
-#define SUMA_FLAG_WAITING    1   /*!< Waiting for connection flag */
-#define SUMA_FLAG_CONNECTED  2   /*!< Connected flag */
-#define SUMA_FLAG_SKIP       4   /*!< Skip flag */
-
-typedef enum { SUMA_AFNI_STREAM_INDEX = 0, 
-                     /*!< Index of SUMA<-->AFNI stream , afni listen line 1*/ 
-               SUMA_AFNI_STREAM_INDEX2 ,  
-                     /*!< Index of SUMA<-->AFNI 2nd stream, afni listen line 2 */
-               SUMA_TO_MATLAB_STREAM_INDEX, 
-                     /*!< Index of SUMA<-->MATLAB 2nd stream, matlab listen */
-               SUMA_GENERIC_LISTEN_LINE, 
-                     /*!< Using socket  SUMA_TCP_LISTEN_PORT0, 
-                           generic suma listen line*/
-               SUMA_GEOMCOMP_LINE, 
-                     /*!<  Using socket  SUMA_TCP_LISTEN_PORT0 + 1*/
-               SUMA_BRAINWRAP_LINE, 
-                     /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 2*/
-               SUMA_DRIVESUMA_LINE, 
-                     /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 3*/
-               SUMA_GICORR_LINE,
-                     /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 4*/
-               SUMA_MAX_STREAMS 
-                     /*!< Maximum number of streams, KEEP AT END */
-            } SUMA_STREAM_INDICES; /* If you add a new stream,
-                  create a new port number for it in afni_ports.c's 
-                  init_ports_list function */
-            
-/* *** Niml defines end */
 
               
 /*! structure containing a surface patch */

@@ -67,7 +67,7 @@ int update_help_for_afni_programs(int force_recreate,
          if (verb) 
             fprintf(stderr,"Reusing %s (%d/%d)\n", hout, ii, progs->num );
          if (!THD_is_file(houtc)) {
-            prog_complete_command(etr, houtc);
+            prog_complete_command(etr, houtc, -1);
          }      
       } else {
          if (verb) 
@@ -93,7 +93,7 @@ int update_help_for_afni_programs(int force_recreate,
          snprintf(scomm, 250*sizeof(char),
                "chmod a-w %s", hout);
          system(scomm); 
-         prog_complete_command(etr, houtc);
+         prog_complete_command(etr, houtc, -1);
          ++icomm;
       }
       /* ------------------------------------------------------------*/
@@ -156,7 +156,9 @@ void apsearch_usage(int detail)
    "  -popts_complete_command PROG: Generate a csh command that can be sourced\n"
    "                                to allow option autocompletion for program\n"
    "                                PROG.\n"
-   "                          See also option -update_all_afni_help\n" 
+   "                          See also option -bash and -update_all_afni_help\n" 
+   "  -bash: Use bash format for the complete command. Default is csh/tcsh\n"
+   "         This option MUST PRECEDE option -popts_complete_command\n"
    "  -ci: Case insensitive search (default)\n"
    "  -cs: Case sensitive search\n"
    "  -help: You're looking at it.\n"
@@ -180,7 +182,10 @@ void apsearch_usage(int detail)
    "                  If older help files differ by little they are deleted\n"
    "                  Little differences would be the compile date or the\n"
    "                  version number. See @clean_help_dir code for details.\n"
-   "                  This option also creates autocompletion code.\n"
+   "                  This option also creates autocompletion code for \n"
+   "                  csh/tcsh and bash shells.\n"
+   "  -recreate_all_afni_help: Like -update_all_afni_help but force receration\n"
+   "                           even if nothing changed in the help\n"
    "  -afni_help_dir: Print afni help directory location and quit.\n"
    "  -afni_bin_dir: Print afni's binaries directory location and quit.\n"
    "  -afni_home_dir: Print afni's home directory and quit.\n"
@@ -307,7 +312,7 @@ int main(int argc, char **argv)
    int iarg, N_ws, i, max_hits, test_only, new_score=0,
        i_unique_score=0, min_different_hits=0, unq_only=0,
        show_score=0, N_fnamev=0, MAX_FNAMES = 0, uopts=0,
-       compcom = 0;
+       compcom = 0, shtp = 0;
    float *ws_score=NULL, last_score=-1.0;
    char *fname=NULL, *text=NULL, *prog=NULL, *word="Ma fich haga", **ws=NULL, 
          *all_popts=NULL, *popt=NULL, stdinflag[] = " [+.-STDIN-.+] ";
@@ -575,6 +580,12 @@ int main(int argc, char **argv)
          continue; 
       }
       
+      if (strcmp(argv[iarg],"-bash") == 0) {
+         shtp = 1;
+         ++iarg; 
+         continue;
+      }
+      
       if (strcmp(argv[iarg],"-popts_complete_command") == 0 ) { 
          ++iarg;
          if (iarg >= argc) {
@@ -585,7 +596,7 @@ int main(int argc, char **argv)
 
          all_popts = argv[iarg];
          if (1) {
-            prog_complete_command(all_popts, NULL);
+            prog_complete_command(all_popts, NULL, shtp);
             return(0);
          }         
 
@@ -643,6 +654,12 @@ int main(int argc, char **argv)
       
       if (strcmp(argv[iarg],"-update_all_afni_help") == 0) { 
          update_help_for_afni_programs(0, 1, 1, NULL); return(0);
+         ++iarg;
+         continue; 
+      }
+
+      if (strcmp(argv[iarg],"-recreate_all_afni_help") == 0) { 
+         update_help_for_afni_programs(1, 1, 1, NULL); return(0);
          ++iarg;
          continue; 
       }

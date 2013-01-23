@@ -63,71 +63,13 @@ int SUMA_init_ports_assignments(SUMA_CommonFields *cf)
       cf->TalkMode[i] = NI_BINARY_MODE;   
       switch(i) { /* set port numbers */
          case SUMA_AFNI_STREAM_INDEX: /* AFNI listening */
-            #if 0 /*ZSS June 2011. Delete useless code after dust has settled.*/
-            eee = getenv("SUMA_AFNI_TCP_PORT");
-            if (eee) {
-               pb = atoi(eee);
-               if (pb < 1024 ||  pb > 65535) {
-                  fprintf (SUMA_STDERR, 
-                     "Warning %s:\n"
-                     "Environment variable SUMA_AFNI_TCP_PORT %d is invalid.\n"
-                      "port must be between 1025 and 65534.\n"
-                      "Using default of %d\n", 
-                      FuncName, pb, get_port_named("AFNI_SUMA_NIML"));
-                  
-                  cf->TCP_port[i] = get_port_named("AFNI_SUMA_NIML");
-               }
-               cf->TCP_port[i] = pb;
-            } else {
-               cf->TCP_port[i] = get_port_named("AFNI_SUMA_NIML");
-            }
-            #else
-               cf->TCP_port[i] = get_port_named("AFNI_SUMA_NIML");
-            #endif   
+            cf->TCP_port[i] = get_port_named("AFNI_SUMA_NIML");
             break;
          case SUMA_AFNI_STREAM_INDEX2:  /* AFNI listening */
-            #if 0 /*ZSS June 2011. Delete useless code after dust has settled.*/
-            eee = getenv("SUMA_AFNI_TCP_PORT2");
-            if (eee) {
-               pb = atoi(eee);
-               if (pb < 1024 ||  pb > 65535) {
-                  SUMA_S_Warnv(
-                "Environment variable SUMA_AFNI_TCP_PORT2 %d is invalid.\n"
-                "port must be between 1025 and 65534.\n"
-                "Using default of %d\n", 
-                               pb, get_port_named("AFNI_DEFAULT_LISTEN_NIML"));
-                  
-                  cf->TCP_port[i] = get_port_named("AFNI_DEFAULT_LISTEN_NIML");
-               }
-               cf->TCP_port[i] = pb; 
-            } else {
-               cf->TCP_port[i] = get_port_named("AFNI_DEFAULT_LISTEN_NIML");
-            }
-            #else
-               cf->TCP_port[i] = get_port_named("AFNI_DEFAULT_LISTEN_NIML");
-            #endif
+            cf->TCP_port[i] = get_port_named("AFNI_DEFAULT_LISTEN_NIML");
             break;
          case SUMA_TO_MATLAB_STREAM_INDEX: /*Matlab listening */
-            #if 0 /*ZSS June 2011. Delete useless code after dust has settled.*/
-            eee = getenv("SUMA_MATLAB_LISTEN_PORT");
-            if (eee) {
-               pb = atoi(eee);
-               if (pb < 1024 ||  pb > 65535) {
-                  SUMA_S_Warnv( 
-                "Environment variable SUMA_MATLAB_LISTEN_PORT %d is invalid.\n"
-                "port must be between 1025 and 65534.\n"
-                "Using default of %d\n", 
-                         pb, get_port_named("MATLAB_SUMA_NIML"));
-                  
-                  cf->TCP_port[i] = get_port_named("MATLAB_SUMA_NIML");
-               }
-               cf->TCP_port[i] = pb; 
-            } else {
-               cf->TCP_port[i] = get_port_named("MATLAB_SUMA_NIML");
-            }  
-            #else
-               cf->TCP_port[i] = get_port_named("MATLAB_SUMA_NIML");
-            #endif 
+            cf->TCP_port[i] = get_port_named("MATLAB_SUMA_NIML");
             break;
          case SUMA_GENERIC_LISTEN_LINE: /* SUMA listening */
             cf->TCP_port[i] = get_port_named("SUMA_DEFAULT_LISTEN_NIML");
@@ -143,6 +85,9 @@ int SUMA_init_ports_assignments(SUMA_CommonFields *cf)
             break;
          case SUMA_GICORR_LINE:
             cf->TCP_port[i] = get_port_named("SUMA_GroupInCorr_NIML");
+            break;
+         case SUMA_HALLO_SUMA_LINE:
+            cf->TCP_port[i] = get_port_named("SUMA_HALLO_SUMA_NIML");
             break;
          default:
             SUMA_S_Errv("Bad stream index %d. Ignoring it.\n", i);
@@ -329,6 +274,10 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
                   "++ NIML connection opened from %s on port %d (%dth stream)\n",
                   NI_stream_name(SUMAg_CF->ns_v[cc]), 
                   SUMAg_CF->TCP_port[cc], cc) ;
+         if (cc == SUMA_HALLO_SUMA_LINE) { /* Connected flag for AFNI line 
+                                              handled elsewhere */
+            SUMAg_CF->Connected_v[cc] = YUP;
+         }            
      }
    #if 0
       /* not good enough, checks socket only, not buffer */
@@ -3727,7 +3676,8 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *i
       SUMA_LH("Cleanup for SUMA_Mesh_IJK2Mesh_IJK_nel..."); \
       SUMA_Mesh_IJK2Mesh_IJK_nel (NULL, NULL, 1, SUMA_NEW_MESH_IJK); \
 }
-void SUMA_Wait_Till_Stream_Goes_Bad(SUMA_COMM_STRUCT *cs, int slp, int WaitMax, int verb) 
+void SUMA_Wait_Till_Stream_Goes_Bad(SUMA_COMM_STRUCT *cs, 
+                                    int slp, int WaitMax, int verb) 
 {  
    static char FuncName[]={"SUMA_Wait_Till_Stream_Goes_Bad"};
    SUMA_Boolean good = YUP;
@@ -3749,7 +3699,9 @@ void SUMA_Wait_Till_Stream_Goes_Bad(SUMA_COMM_STRUCT *cs, int slp, int WaitMax, 
    }
 
    if (WaitClose >= WaitMax) { 
-      if (verb) SUMA_S_Warnv("\nFailed to detect closed stream after %d ms.\nClosing shop anyway...", WaitMax);  
+      if (verb) 
+         SUMA_S_Warnv("\nFailed to detect closed stream after %d ms.\n"
+                      "Closing shop anyway...", WaitMax);  
    }else{
       if (verb) fprintf (SUMA_STDERR,"Done.\n");
    }
@@ -3760,30 +3712,36 @@ void SUMA_Wait_Till_Stream_Goes_Bad(SUMA_COMM_STRUCT *cs, int slp, int WaitMax, 
 /*!
    \brief Function to handle send data elements to AFNI
    \param SO (SUMA_SurfaceObject *) pointer to surface object structure
-   \param cs (SUMA_COMM_STRUCT *) Communication structure. (initialized when action is 0)
+   \param cs (SUMA_COMM_STRUCT *) Communication structure. 
+                                 (initialized when action is 0)
    \param data (void *) pointer to data that gets typecast as follows:
                         (float *) if dtype == Node_RGBAb or Node_XYZ
-   \param dtype (SUMA_DSET_TYPE) Type of nel to be produced (this determines the typecasting of data)
+   \param dtype (SUMA_DSET_TYPE) Type of nel to be produced 
+                                 (this determines the typecasting of data)
    \param instanceID (char *) a unique identifier for the instance of data sent.
-                              For data of a particular dtype, use same instanceID for data that is being sent repeatedly
-   \param action (int)  2: Make cleanup call to functions producing nel out of data
-                           Close stream
+                              For data of a particular dtype, use same 
+                              instanceID for data that is being sent repeatedly
+   \param action (int)  2: Make cleanup call to functions producing nel out 
+                           of data Close stream
                         1: Create a nel out of data and send to AFNI
                         0: start connection with AFNI 
                            initialize cs
                            prepare functions producing
                            nels out of data
-   \return errflag (SUMA_Boolean) YUP: All is OK (although connection might get closed)
-                                  NOPE: Some'in bad a happening.
-                                  Connections getting closed in the midst of things are
-                                  not considered as errors because they should not halt 
-                                  the execution of the main program
-   NOTE: The cleanup automatically closes the connection. That is stupid whenever you need to 
-   send multiple types of data for multiple surfaces. Cleanup should be done without closing connections!
-   See comment in function SUMA_SendSumaNewSurface's code.
-   Also, send kth should be more clever, keeping separate counts per datatype and per surface
+   \return errflag (SUMA_Boolean) 
+                     YUP: All is OK (although connection might get closed)
+                      NOPE: Some'in bad a happening.
+                      Connections getting closed in the midst of things are
+                      not considered as errors because they should not halt 
+                      the execution of the main program
    
-   NOTE: For some data (lile                                  
+   NOTE: The cleanup automatically closes the connection. 
+         That is stupid whenever you need to send multiple types of data 
+         for multiple surfaces. Cleanup should be done without closing 
+         connections!
+         See comment in function SUMA_SendSumaNewSurface's code.
+         Also, send kth should be more clever, keeping separate counts per 
+         datatype and per surface
 */
 SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, 
                               void *data, SUMA_DSET_TYPE dtype, int action)
@@ -3878,7 +3836,7 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
             break;
       }
 
-      /* make sure stream is till OK */
+      /* make sure stream is still OK */
       if (NI_stream_goodcheck ( SUMAg_CF->ns_v[cs->istream] , 1 ) < 0) {
          cs->GoneBad = YUP;
          SUMA_SL_Warn("Communication stream gone bad.\n"
