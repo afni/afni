@@ -937,7 +937,7 @@ int main (int argc, char *argv[])
                                    SO_morph->NodeNormList, 
                                    SO_morph->FN, OutName, NULL);
       if (Cx) SUMA_free(Cx); Cx = NULL;
-      SUMA_SphereQuality (SO_morph, SO_morph->Label, NULL);
+      SUMA_SphereQuality (SO_morph, SO_morph->Label, NULL, NULL, NULL);
       fprintf( SUMA_STDERR, 
                "%s:\nExiting after SUMA_SphereQuality\n", FuncName);
 
