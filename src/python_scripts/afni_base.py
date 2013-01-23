@@ -29,11 +29,26 @@ class afni_name:
          return pp
       else:
          return "%s/" % os.path.abspath(self.path)
+   def realp(self):   #Full path following symbolic links 
+      """show path only, no dataset name"""
+      pp = "%s/" % os.path.realpath('./')  #full path at this location
+      fn = string.find(pp,self.path)      #is path at end of abspath?
+      if (fn > 0 and fn+len(self.path) == len(pp)): #path is at end of abs path
+         return pp
+      else:
+         return "%s/" % os.path.realpath(self.path)
    def ppve(self):
       """show path, prefix, view and extension"""
       s = "%s%s%s%s" % (self.p(), self.prefix, \
                          self.view, self.extension)
       return s
+      
+   def rppve(self):
+      """show path, prefix, view and extension"""
+      s = "%s%s%s%s" % (self.realp(), self.prefix, \
+                         self.view, self.extension)
+      return s
+
    def ppves(self):
       """show path, prefix, view, extension and all selectors
          (colsel, rowsel, nodesel, rangesel)"""
@@ -51,6 +66,16 @@ class afni_name:
          return self.ppv()
       else:
          return self.ppve() 
+
+   def real_input(self):
+      """full path to dataset in 'input' format
+         follow symbolic links!!!!
+         e.g. +orig, but no .HEAD
+         e.g. would include .nii"""
+      if self.type == 'BRIK':
+         return self.rppv()
+      else:
+         return self.rppve() 
 
    def rel_input(self):
       """relative path to dataset in 'input' format
@@ -81,6 +106,10 @@ class afni_name:
    def ppv(self):
       """return path, prefix, view formatted name"""
       s = "%s%s%s" % (self.p(), self.prefix, self.view)
+      return s
+   def rppv(self):
+      """return path, prefix, view formatted name resolving symbolic links"""
+      s = "%s%s%s" % (self.realp(), self.prefix, self.view)
       return s
    def rpv(self):
       """return relative path, prefix, view formatted name
