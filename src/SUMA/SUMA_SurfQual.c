@@ -337,7 +337,7 @@ int main (int argc,char *argv[])
             OutName = SUMA_copy_string (prefix);
          }
          shist = SUMA_HistString (NULL, argc, argv, NULL);
-         SUMA_SphereQuality (SO, OutName, shist, &N_bad_nodes, &N_bad_faces);   
+         SUMA_SphereQuality (SO, OutName, shist, &N_bad_nodes, &N_bad_facesets);   
          if (shist) SUMA_free(shist); shist = NULL;
          if (OutName) SUMA_free(OutName); OutName = NULL;
       }
