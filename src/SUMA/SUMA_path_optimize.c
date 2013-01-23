@@ -824,7 +824,6 @@ int SUMA_Apply_Deformation(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
    int nbad, close_neighb = 0, nbad_face, nbad_node;
    byte *RiskyTrigs=NULL;
    SUMA_Boolean exists;
-   SUMA_SPHERE_QUALITY SSQ;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1170,8 +1169,7 @@ int SUMA_Apply_Deformation(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
                SUMA_RECOMPUTE_NORMALS(opt->SO);
 
                shist = SUMA_HistString (FuncName, argc, argv, NULL);
-               SSQ = SUMA_SphereQuality(opt->SO, outfile_SphereQuality, shist);
-               nbad = SSQ.N_bad_facesets;
+               SUMA_SphereQuality(opt->SO, outfile_SphereQuality, shist, NULL, &nbad);
                SUMA_Save_Surface_Object(SO_name, opt->SO, SUMA_VEC, SUMA_ASCII, NULL);   */
             } else {
                if (LocalHead) fprintf(SUMA_STDERR,"iteration %d, %d bad facests: Nema Problema!\n", niter, nbad);
@@ -1330,8 +1328,7 @@ int SUMA_Apply_Deformation(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
          SO_name = SUMA_Prefix2SurfaceName (outfile_SphereQuality, NULL, NULL, SUMA_VEC, &exists);
          SUMA_RECOMPUTE_NORMALS(opt->SO);
 
-         SSQ = SUMA_SphereQuality(opt->SO, outfile_SphereQuality , NULL);
-         nbad = SSQ.N_bad_facesets;
+         SUMA_SphereQuality(opt->SO, outfile_SphereQuality , NULL, NULL, &nbad);
          SUMA_Save_Surface_Object(SO_name, opt->SO, SUMA_VEC, SUMA_ASCII, NULL);
       }
         
@@ -1436,7 +1433,6 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    MyCircleOpt myopt, *opt = NULL;
-   SUMA_SPHERE_QUALITY SSQ;
    vector Wv;
    int i, niter = 0, nbad_face, nbad_node, dims[50], N_dims, i3;
    FILE *SpheresAtNodes = NULL;
@@ -1638,9 +1634,7 @@ int main (int argc,char *argv[])
    SO_name = SUMA_Prefix2SurfaceName (opt->outfile, NULL, NULL, SUMA_VEC, &exists); 
    shist = SUMA_HistString (NULL, argc, argv, NULL);
    fprintf( SUMA_STDERR, "\nNITER = %d", niter );
-   SSQ = SUMA_SphereQuality(opt->SO, opt->outfile , shist);   
-   nbad_face = SSQ.N_bad_facesets;
-   nbad_node = SSQ.N_bad_nodes;
+   SUMA_SphereQuality(opt->SO, opt->outfile , shist, &nbad_node, &nbad_face);   
    
    if (nbad_face) {
       fprintf(SUMA_STDERR,"Shist %s!:\n you have %d bad facets!\n", FuncName, nbad_face);

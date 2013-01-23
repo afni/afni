@@ -52,6 +52,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                      winding). This option will write out a new surface \n"
 "                      even if the mesh was consistent.\n"
 "                      See SurfQual -help for mesh checks.\n"
+"    -flip_orient: Flip the winding of the triangles\n"
 "    -radial_to_sphere rad: Push each node along the center-->node direction\n"
 "                           until |center-->node| = rad.\n"
 "    -acpc: Apply acpc transform (which must be in acpc version of \n"
@@ -146,7 +147,7 @@ int main (int argc,char *argv[])
    char orsurf[6], orcode[6];
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
-   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen;
+   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Do_flip;
    SUMA_Boolean Doxmat, Do_wind, Do_p2s, onemore, Do_native, Do_PolDec;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean exists;
@@ -174,6 +175,7 @@ int main (int argc,char *argv[])
    Do_mni_LPI = NOPE;
    Do_acpc = NOPE;
    Do_wind = NOPE;
+   Do_flip = NOPE;
    Do_p2s = NOPE;
    Do_native = NOPE;
    DoR2S = 0.0;
@@ -249,6 +251,11 @@ int main (int argc,char *argv[])
       
       if (!brk && (strcmp(argv[kar], "-make_consistent") == 0)) {
          Do_wind = YUP;
+			brk = YUP;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-flip_orient") == 0)) {
+         Do_flip = YUP;
 			brk = YUP;
 		}
       
@@ -769,6 +776,12 @@ int main (int argc,char *argv[])
          SUMA_S_Err("Failed in SUMA_SurfaceMetrics.\n");
          exit(1);
       }   
+   }
+
+   if (Do_flip) {
+      fprintf (SUMA_STDOUT,
+         "Flipping triangle winding...\n");
+      SUMA_FlipSOTriangles(SO);   
    }
    
    if (Do_tlrc) {

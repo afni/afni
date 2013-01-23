@@ -5,6 +5,11 @@
 #define SUMA_FLAG_CONNECTED  2   /*!< Connected flag */
 #define SUMA_FLAG_SKIP       4   /*!< Skip flag */
 
+#define SUMA_WriteCheckWait 400 /*!< Milliseconds to wait for each 
+                                     stream_writecheck call */ 
+#define SUMA_WRITECHECKWAITMAX 2000 /*!< Milliseconds to try and establish 
+                                         a good WriteCheck */
+
 typedef enum { SUMA_AFNI_STREAM_INDEX = 0, 
                      /*!< Index of SUMA<-->AFNI stream , afni listen line 1*/ 
                SUMA_AFNI_STREAM_INDEX2 ,  

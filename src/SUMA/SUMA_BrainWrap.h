@@ -38,6 +38,11 @@ int SUMA_THD_WedgeNeighborhood(THD_3dim_dataset *dset, byte *mask,
                                float *P, float *C,
                                float t, float adeg,
                                DList **Hoodu);
+int SUMA_THD_Radial_Avgs( THD_3dim_dataset  *dset, float *ufin,
+                           byte *cmask, float *ucm,
+                           byte zeropad, 
+                           float under, float over, int trvoff[2],
+                           float **umu, float **umo);
 int SUMA_THD_Radial_Stats( THD_3dim_dataset  *dset,
                            byte *cmask, float *ucm,
                            THD_3dim_dataset **osetp, byte zeropad, 
@@ -49,6 +54,10 @@ int SUMA_Vox_Radial_Stats (float *fvec, int nxx, int nyy, int nzz,
                         float *undershish, float *overshish, 
                         int *fvecind_under, int *fvecind_over, 
                         byte zeropad);
+int SUMA_Vox_Radial_Samples (float *fvec, int nxx, int nyy, int nzz, 
+                        float *xyz_ijk, float *cen_ijk, 
+                        float *undershish, 
+                        int *fvecind_under);
 int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
                            byte *cmask, float *ucm,
                            THD_3dim_dataset **osetp,

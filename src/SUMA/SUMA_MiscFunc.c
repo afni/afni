@@ -3943,14 +3943,17 @@ float SUMA_etime (struct  timeval  *t, int Report  )
    
    if (Report)
       {
-         /* fprintf(stderr,"%s: Reporting from %d sec to %d sec\n", FuncName, t->tv_sec, tn.tv_sec);  */
-         delta_t = (((float)(tn.tv_sec - t->tv_sec)*Time_Fact) + (float)(tn.tv_usec - t->tv_usec)) /Time_Fact;
+         /* fprintf(stderr,"%s: Reporting from %d sec to %d sec\n", 
+                        FuncName, t->tv_sec, tn.tv_sec);  */
+         delta_t = (((float)(tn.tv_sec - t->tv_sec)*Time_Fact) + 
+                     (float)(tn.tv_usec - t->tv_usec)) /Time_Fact;
       }
    else
       {
          t->tv_sec = tn.tv_sec;
          t->tv_usec = tn.tv_usec;
-         /*fprintf(stderr,"%s: Initialized to %f sec \n", FuncName, (float)tn.tv_sec); */
+         /*fprintf(stderr,"%s: Initialized to %f sec \n", 
+                           FuncName, (float)tn.tv_sec); */
          delta_t = 0.0;
       }
       
@@ -9682,7 +9685,7 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
    SUMA_RETURN (YUP);   
 }
 /*! 
-   C = SUMA_Convexity (NodeList, N_Node, NodeNormList, FN)
+   C = SUMA_Convexity (NodeList, N_Node, NodeNormList, FN, thisone)
 
    \param NodeList (float *) N_Node x 3 vector containing the coordinates 
                               for each node
@@ -9713,14 +9716,15 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
    for concave ones. It used to be the opposite.
 */
 
-float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN) 
+float * SUMA_Convexity (float *NL, int N_N, float *NNL, 
+                        SUMA_NODE_FIRST_NEIGHB *FN, float *usethis) 
 {
    static char FuncName[]={"SUMA_Convexity"};
    float *C=NULL;
    
    SUMA_ENTRY;
    
-   C = SUMA_Convexity_Engine (NL, N_N, NNL, FN, NULL);
+   C = SUMA_Convexity_Engine (NL, N_N, NNL, FN, NULL, usethis);
    
    SUMA_RETURN(C);
    
@@ -9731,8 +9735,8 @@ float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *
    to an ASCII file for debugging.
    
    See documentation for SUMA_Convexity for all parameters except DetailFile
-   \param DetailFile (char *) if not NULL, then you'll get an output file named by DetailFile
-                              with debugging info:
+   \param DetailFile (char *) if not NULL, then you'll get an output file named
+                              by DetailFile with debugging info:
                               i  n  d1 d1ij d1/d1ij .. dn dnij dn/dnij
                                  where i is node index
                                  n = FN->N_Neighb[i]
@@ -9748,7 +9752,9 @@ float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *
    user's expectation (want fundus to have lower value --> dark color). 
    So to fix this injustice I changed the sign of C
 */             
-float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN, char *DetailFile)
+float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, 
+                               SUMA_NODE_FIRST_NEIGHB *FN, char *DetailFile, 
+                               float *usethis)
 {
    static char FuncName[]={"SUMA_Convexity_Engine"};
    float *C, d, D, dij;
@@ -9758,10 +9764,12 @@ float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_N
    SUMA_ENTRY;
 
    C = NULL;
+   if (usethis) C = usethis;
    
-   /* allocate for C */
-   C = (float *)SUMA_calloc (N_N, sizeof(float));
-   
+   if (!C) {
+      /* allocate for C */
+      C = (float *)SUMA_calloc (N_N, sizeof(float));
+   }
    if (C == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for C.\n", FuncName);
       SUMA_RETURN (C);

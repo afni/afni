@@ -929,6 +929,108 @@ int SUMA_Find_IminImax_Avg (SUMA_SurfaceObject *SO,
    SUMA_RETURN(YUP);
 }
 
+int SUMA_THD_Radial_Avgs( THD_3dim_dataset  *dset, float *ufin,
+                           byte *cmask, float *ucm,
+                           byte zeropad, 
+                           float under, float over, int trvoff[2],
+                           float **umu, float **umo)
+{
+   static char FuncName[]={"SUMA_THD_Radial_Avgs"};
+   int ii, jj, kk, vv, trv[2];
+   THD_fvec3 ccc, ncoord;
+   float cm[3], *mo=NULL, *mu=NULL, *fin=NULL,
+         xyz_ijk[3], means[3], mvoxd;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+
+   if (!dset || (!umu && !umo)) {
+      SUMA_S_Err("Nothing to do");
+      SUMA_RETURN(NOPE);
+   }
+   if (umu && !*umu) {
+      *umu = (float *)SUMA_calloc(DSET_NVOX(dset), sizeof(float));
+   }
+   if (umu) mu = *umu;
+   if (umo && !*umo) {
+      *umo = (float *)SUMA_calloc(DSET_NVOX(dset), sizeof(float));
+   }
+   if (umo) mo = *umo;
+   
+   if (ufin) fin = ufin;
+   else fin = THD_extract_to_float(0, dset);
+
+   if ((!mo && !mu) || !fin) {
+      SUMA_S_Err("Stranger things never happen");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!ucm) {
+      ccc = THD_cmass(dset, 0, cmask);
+      cm[0] = ccc.xyz[0];
+      cm[1] = ccc.xyz[1];
+      cm[2] = ccc.xyz[2];
+   } else {
+      cm[0] = ucm[0];
+      cm[1] = ucm[1];
+      cm[2] = ucm[2];
+   }
+   /* change cm to mm coords */
+   ccc.xyz[0]=cm[0]; ccc.xyz[1]=cm[1]; ccc.xyz[2]=cm[2]; 
+   ncoord = THD_dicomm_to_3dmm(dset, ccc);
+   ccc = THD_3dmm_to_3dfind(dset, ncoord);
+   cm[0] = ccc.xyz[0];
+   cm[1] = ccc.xyz[1];
+   cm[2] = ccc.xyz[2];
+   
+   
+   /* min voxel dim */
+   mvoxd = SUMA_MIN_PAIR(SUMA_ABS(DSET_DX(dset)), SUMA_ABS(DSET_DY(dset)));
+   mvoxd = SUMA_MIN_PAIR(mvoxd, SUMA_ABS(DSET_DZ(dset)));
+   
+   trv[0] = trv[1] = 0;
+   if (mu) trv[0] = under / mvoxd;
+   if (mo) trv[1] = over / mvoxd; 
+   
+   /* get voxel values */
+   vv=0;
+   for (kk=0; kk<DSET_NZ(dset); ++kk) {
+   SUMA_LHv("kk=%d/%d, cmijk=[%f %f %f]\n", 
+            kk, DSET_NZ(dset), cm[0], cm[1], cm[2]);
+   for (jj=0; jj<DSET_NY(dset); ++jj) {
+   for (ii=0; ii<DSET_NX(dset); ++ii) {
+      if (!cmask || cmask[vv]) {
+         xyz_ijk[0]= ii; xyz_ijk[1]= jj; xyz_ijk[2]= kk;
+         if (!SUMA_Vox_Radial_Stats(fin,
+                  DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset),
+                  xyz_ijk, cm, trv, trvoff,
+                  means, 
+                  NULL, NULL, NULL, NULL, zeropad)) {
+            SUMA_S_Errv("Failed at voxel %d %d %d\n",
+                        ii, jj, kk);
+            SUMA_RETURN(NOPE);
+         }
+         if (mu) mu[vv] = means[1];
+         if (mo) mo[vv] = means[2];
+      } else {
+         if (mu) mu[vv] = 0.0;
+         if (mo) mo[vv] = 0.0;
+      }   
+      if (vv == NodeDbg) {
+        SUMA_S_Notev("At cm have means=[%f %f %f]\n", 
+                     means[0], means[1], means[2]);
+      }
+      ++vv;
+   }}}
+   
+   
+   if (!ufin) free(fin);
+   fin = NULL;
+
+   SUMA_RETURN(YUP);
+}
+
 int SUMA_THD_Radial_Stats( THD_3dim_dataset  *dset,
                            byte *cmask, float *ucm,
                            THD_3dim_dataset **osetp,
@@ -1129,9 +1231,9 @@ int SUMA_THD_Radial_Stats( THD_3dim_dataset  *dset,
    if (oversh) SUMA_free(oversh); oversh=NULL;
    if (ioversh) SUMA_free(ioversh); ioversh=NULL;
    if (shs) SUMA_free(shs); shs=NULL;
-   //if (mu) SUMA_free(mu); 
-   //if (mo) SUMA_free(mo);
-   //if (mr) SUMA_free(mr); 
+   if (mu) SUMA_free(mu); 
+   if (mo) SUMA_free(mo);
+   if (mr) SUMA_free(mr); 
    SUMA_RETURN(YUP);
 }
                      
@@ -1291,7 +1393,7 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    THD_3dim_dataset *oset=NULL;
    int ii, jj, kk, vv, trv[2], sb, cmijk, doubavgwin, tripavgwin,
        *ioversh=NULL, *iundersh=NULL, si, trvoff[2],
-       avgwin;
+       avgwin, IJK[3];
    THD_fvec3 ccc, ncoord;
    float cm[3], cmdic[3], *mo=NULL, *mu=NULL, *fin=NULL, *mr=NULL, *fedges=NULL,
          xyz_ijk[3], factor, mvoxd, means[3], cmstats[5], P[3], 
@@ -1452,7 +1554,8 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
            
          mu[vv] = oversh[0];
          mo[vv] = oversh[avgwin];
-         mr[vv] = (mu[vv]-mo[vv])/(mu[vv]);
+         if (mu[vv] != 0.0f) mr[vv] = (mu[vv]-mo[vv])/(mu[vv]);
+         else mr[vv] = 0.0;
       } else {
          mu[vv] = oversh[0];
          mo[vv] = oversh[avgwin];
@@ -1622,7 +1725,7 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    
    /* stick the results in the output */
    if (!*osetp) {
-      NEW_SHORTY(dset, 7, FuncName, oset);
+      NEW_SHORTY(dset, 9, FuncName, oset);
       *osetp = oset;
    } else {
       oset = *osetp;
@@ -1655,7 +1758,7 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    EDIT_coerce_scale_type(DSET_NVOX(oset), 100.0, MRI_float, mr, 
                           DSET_BRICK_TYPE(oset,sb), DSET_BRICK_ARRAY(oset,sb));
    EDIT_BRICK_FACTOR (oset, sb, 1/factor);
-   EDIT_BRICK_LABEL (oset, sb, "(U-O)/(U+O)");
+   EDIT_BRICK_LABEL (oset, sb, "(U-O)/U");
    
    sb = 3;
    EDIT_coerce_scale_type(DSET_NVOX(oset), 0.0, MRI_byte, ok, 
@@ -1689,7 +1792,6 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    } else factor = 0.0;
    EDIT_BRICK_FACTOR (oset, sb, factor);
    EDIT_BRICK_LABEL (oset, sb, "BrainZ");
-   SUMA_free(vxZ); vxZ=NULL;
 
    sb = 6;
    factor = EDIT_coerce_autoscale_new(DSET_NVOX(oset), MRI_float, vxNZ, 
@@ -1699,16 +1801,67 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    } else factor = 0.0;
    EDIT_BRICK_FACTOR (oset, sb, factor);
    EDIT_BRICK_LABEL (oset, sb, "NoizeZ");
-   SUMA_free(vxNZ); vxNZ=NULL;
 
+   SUMA_S_Note("Radial Diff");
+   trvoff[0]=0; trvoff[1]=0;
+   SUMA_THD_Radial_Avgs( oset, mr, cmask, cmdic, zeropad, 
+                         8.0, 8.0, trvoff,
+                         &mu, &mo);
+   for (vv=0; vv<DSET_NVOX(oset); ++vv) {
+      vxZ[vv] = mu[vv] - mo[vv];
+      vxNZ[vv] = -(mu[vv]*mo[vv]);
+      if (vxNZ[vv]>100) vxNZ[vv]=100;
+      else if (vxNZ[vv]<-100) vxNZ[vv]=-100;
+   }
+   sb = 7;
+   factor = EDIT_coerce_autoscale_new(DSET_NVOX(oset), MRI_float, vxZ, 
+                          DSET_BRICK_TYPE(oset,sb), DSET_BRICK_ARRAY(oset,sb));
+   if (factor > 0.0f) {
+      factor = 1.0 / factor;
+   } else factor = 0.0;
+   EDIT_BRICK_FACTOR (oset, sb, factor);
+   EDIT_BRICK_LABEL (oset, sb, "DeltaRat");
+   
+   SUMA_S_Note("Radial Peaks");
+   #if 0
+   trvoff[0]=0; trvoff[1]=0;
+   SUMA_THD_Radial_Avgs( oset, mu, cmask, cmdic, zeropad, 
+                         5.0, 5.0, trvoff,
+                         &mr, &mo);
+   for (vv=0; vv<DSET_NVOX(oset); ++vv) {
+      mr[vv] = -(mr[vv] * mo[vv]);
+      if (mr[vv]>100) mr[vv]=100;
+      else if (mr[vv]<-100) mr[vv]=-100;
+   }
+   sb = 8;
+   factor = EDIT_coerce_autoscale_new(DSET_NVOX(oset), MRI_float, mr, 
+                          DSET_BRICK_TYPE(oset,sb), DSET_BRICK_ARRAY(oset,sb));
+   if (factor > 0.0f) {
+      factor = 1.0 / factor;
+   } else factor = 0.0;
+   EDIT_BRICK_FACTOR (oset, sb, factor);
+   EDIT_BRICK_LABEL (oset, sb, "-ProdDeltaRat");
+   #else
+   sb = 8;
+   factor = EDIT_coerce_autoscale_new(DSET_NVOX(oset), MRI_float, vxNZ, 
+                          DSET_BRICK_TYPE(oset,sb), DSET_BRICK_ARRAY(oset,sb));
+   if (factor > 0.0f) {
+      factor = 1.0 / factor;
+   } else factor = 0.0;
+   EDIT_BRICK_FACTOR (oset, sb, factor);
+   EDIT_BRICK_LABEL (oset, sb, "-ProdRat");
+   #endif
+   
    mri_free(dsim); dsim = NULL; fin = NULL;
    if (undersh) SUMA_free(undersh); undersh=NULL;
    if (iundersh) SUMA_free(iundersh); iundersh=NULL;
    if (oversh) SUMA_free(oversh); oversh=NULL;
    if (ioversh) SUMA_free(ioversh); ioversh=NULL;
-   //if (mu) SUMA_free(mu); 
-   //if (mo) SUMA_free(mo);
-   //if (mr) SUMA_free(mr); 
+   if (vxZ) SUMA_free(vxZ); vxZ=NULL;
+   if (vxNZ) SUMA_free(vxNZ); vxNZ=NULL;
+   if (mu) SUMA_free(mu); 
+   if (mo) SUMA_free(mo);
+   if (mr) SUMA_free(mr); 
    SUMA_RETURN(YUP);
 }
 
@@ -1783,7 +1936,8 @@ int SUMA_Vox_Radial_Stats (float *fvec, int nxx, int nyy, int nzz,
       if (fvecind_under) fvecind_under[istep] = -1; 
    }
    
-   Means[1] /= (float)nMeans[1];
+   if (nMeans[1] > 0) Means[1] /= (float)nMeans[1];
+   else Means[1] = 0.0;
    
    /* scan overhead */
    istep = 0; 
@@ -1828,11 +1982,80 @@ int SUMA_Vox_Radial_Stats (float *fvec, int nxx, int nyy, int nzz,
       if (fvecind_over) fvecind_over[istep] = -1; 
    }
 
-   Means[2] /= (float)nMeans[2];
+   if (nMeans[2] > 0) Means[2] /= (float)nMeans[2];
+   else Means[2] = 0.0;
    
    SUMA_RETURN(YUP);
 }
 
+#define SUMA_INDEX_IN_VOL(X, nxx, nyy, nzz) ( \
+        ( X[0] < 0 || X[0] > (nxx-1) ||  \
+          X[1] < 0 || X[1] > (nyy-1) ||  \
+          X[2] < 0 || X[2] > (nzz-1)  ) ? 0:1   )
+/* Get all the values in a dataset along the segment from the 
+center of mass to the edge of the volume and passing through 
+xyz_ijk. The first value is at the center of mass, the last
+is at edge of the dataset 
+Unless you send in a point outside of the dataset, you'll
+always get one voxel back.
+Note that you should allocate enough space in undershish and 
+fvecind_under to hold enough voxels covering the longest half
+diagonal + 1 
+ */
+int SUMA_Vox_Radial_Samples (float *fvec, int nxx, int nyy, int nzz, 
+                        float *xyz_ijk, float *cen_ijk, 
+                        float *shish, 
+                        int *fvecind)
+{
+   static char FuncName[]={"SUMA_Vox_Radial_Samples"};
+   float travdir[3];
+   float U[3], Un, X[3], vval; 
+   THD_ivec3 nind3;
+   int nind, istep, igood, nxy, nMeans[3], nindin;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   nxy = nxx*nyy;
+   istep = 0; 
+   SUMA_UNIT_VEC(cen_ijk, xyz_ijk, U, Un);
+   
+   if (!SUMA_INDEX_IN_VOL(xyz_ijk, nxx, nyy, nzz)) {
+      SUMA_S_Err("Starting point outside volume!");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* Start from the center and go to the edge */
+   X[0] = (int)(cen_ijk[0]);
+   X[1] = (int)(cen_ijk[1]);
+   X[2] = (int)(cen_ijk[2]);
+   istep = 0; igood = 0;
+   while (SUMA_INDEX_IN_VOL(X, nxx, nyy, nzz)) {
+      nind = (int)X[0] + ((int)X[1]) * nxx + ((int)X[2]) * nxy;
+      if (igood == 0 || nind != fvecind[igood-1]) {
+         if (shish) shish[igood] = fvec[nind];
+         if (fvecind) fvecind[igood] = nind;
+         ++igood;
+      }      
+      /* calculate offset to next one*/
+      travdir[0] = istep * U[0]; 
+      travdir[1] = istep * U[1]; 
+      travdir[2] = istep * U[2]; 
+            
+      /* get index coord of point */
+      X[0] = (int)(cen_ijk[0]+travdir[0]); 
+      X[1] = (int)(cen_ijk[1]+travdir[1]); 
+      X[2] = (int)(cen_ijk[2]+travdir[2]);
+      
+      
+      ++istep;
+   }
+   
+   if (shish) shish[igood] = -1; 
+   if (fvecind) fvecind[igood] = -1; 
+   
+   SUMA_RETURN(igood);
+}
 
 void SUMA_FreeWNDatum(void *wnd) { if (wnd) SUMA_free(wnd); return; }
 
@@ -3339,12 +3562,16 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
    
    if (LocalHead) {
       FILE *fout = NULL;
-      int i;
+      int i, IJK[3];
       fout = fopen("SUMA_SurfGridIntersect_isin1.1D","w");
       if (fout) {
          SUMA_LH("Writing isin for debug...");
          for (i=0; i<nxyz; ++i) {
-            if (isin[i]) fprintf(fout,"%d   %d\n", i, isin[i]);
+            if (isin[i]) {
+               Vox1D2Vox3D(i, VolPar->nx, VolPar->ny*VolPar->nx, IJK);
+               fprintf(fout,"%d %d %d   %d\n", 
+                              IJK[0], IJK[1], IJK[2], isin[i]);
+            }
          }
          fclose(fout);
       } else {
@@ -3428,7 +3655,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
          }
          if (!Found) {
             if (ijkseed_unmask < 0) {
-               SUMA_S_Note("Failed to internal seed.");
+               SUMA_S_Note("Failed to find internal seed.");
                if (isin) SUMA_free(isin); isin = NULL;
                goto CLEAN_EXIT;
             } else {

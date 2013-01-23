@@ -69,7 +69,7 @@ SEG_OPTS *Infill_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
          if (kar+2<argc) { /* see if we have ijk */
             int iii, jjj, kkk;
-            if (argv[kar][0]!='-' && argv[kar][1]!='-' && argv[kar][2]!='-' &&
+           if (argv[kar][0]!='-' && argv[kar+1][0]!='-' && argv[kar+2][0]!='-' &&
                 (iii = atoi(argv[kar  ])) >= 0 &&
                 (jjj = atoi(argv[kar+1])) >= 0 && 
                 (kkk = atoi(argv[kar+2])) >= 0 ) {
@@ -152,6 +152,76 @@ SEG_OPTS *Infill_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
 
+      if (!brk && (strcmp(argv[kar], "-radial_start") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need a positive integer after -radial_start \n");
+				exit (1);
+			}
+			Opt->fmode = (int)strtod(argv[kar],NULL);
+         brk = 1;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-radial_fit_max") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need a positive integer after -radial_fit_max \n");
+				exit (1);
+			}
+			Opt->i1 = (int)strtod(argv[kar],NULL);
+         brk = 1;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-radial_pass") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need a positive integer after -radial_pass \n");
+				exit (1);
+			}
+			Opt->i2 = (int)strtod(argv[kar],NULL);
+         switch (Opt->i2) {
+            case 1:
+               Opt->i2=1;
+               break;
+            case 2: 
+               Opt->i2=5;
+               break;
+            case 3:
+               Opt->i2=9;
+               break;
+            default:
+               SUMA_S_Errv("Bad value (%d) for -radial_pass 1,2, or 3 allowed\n",
+                  Opt->i2);
+               exit(1);
+         }
+         brk = 1;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-radial_fit_order") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need a positive integer after -radial_fit_order \n");
+				exit (1);
+			}
+			Opt->i3 = (int)strtod(argv[kar],NULL);
+         if (Opt->i3 < 0 || Opt->i3 > 6) {
+            SUMA_S_Errv("-radial_fit_order must be between 0 and 6, have %d\n",
+                        Opt->i3);
+            exit (1);
+         }
+         brk = 1;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-radial_smooth") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need FWHM after -radial_smooth \n");
+				exit (1);
+			}
+			Opt->f1 = (float)strtod(argv[kar],NULL);
+         brk = 1;
+		}
+
       if (!brk && (strcmp(argv[kar], "-blend") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -231,6 +301,33 @@ void Infill_usage()
 "                      filling integral valued data such as ROIs or atlases.\n"
 "                AVG: Fill with average of neighboring values.\n"
 "                AUTO: Use MODE if DSET is integral, AVG otherwise.\n"
+/*
+" The following set of options are used to fill the outside of a volume \n"
+" using radial linear interpolation:\n"
+"        For each voxel on the perimeter of the grid, the program \n"
+"        samples the voxels until along the trace to the volume's \n"
+"        center of mass. Once MINVOX consecutive non-zero (in mask)\n"
+"        voxels are encountered, sampling continues until a total\n"
+"        MAXFIT non-zero voxels are found. A linear model is fit to\n"
+"        the MAXFIT voxels and used to extrapolate to voxels \n"
+"        outside the mask.\n"
+"   -radial_start MINVOX: Minimum number of consecutive non-zero voxels \n"
+"                        required to begin sampling.\n"
+"   -radial_fit_max MAXFIT: Maximum number of non-zero voxels used to fit\n"
+"                        the model. Those will include the voxels needed\n"
+"                        to reach MINVOX threshold.\n"
+"   -radial_fit_order ORD:  Set the fit order, 0 = constant, 1 = linear, ...\n"
+"                       Default is 1\n"
+"   -radial_smooth FWHM: Smooth resultant volume by FWHM mm\n"  
+"   -radial_pass NPASS: NPASS controls the number of center offsets\n"
+"                       to ensure fuller coverage of the area outside\n"
+"                       the mask. By default NPASS is 3, but for speed\n"
+"                       you can choose 2, or 1. With 1 you are almost\n"
+"                       assured a few voxels will remain unfilled unless\n"
+"                       you smooth the result. With 9, you'll get the vast\n"
+"                       majority of voxels outside the mask. Voxels inside\n"
+"                       the mask are not filled\n"  
+*/
 "\n"
 "This program will be slow for high res datasets with large holes.\n"
 "\n"
@@ -256,8 +353,15 @@ SEG_OPTS *Infill_Default(char *argv[], int argc)
    Opt->aset = NULL;
    Opt->mset = NULL;
    Opt->debug = 0;
-   Opt->idbg = Opt->kdbg = Opt->jdbg = -1;
+   Opt->VoxDbg = -1;
+   Opt->VoxDbg3[0] = Opt->VoxDbg3[1] = Opt->VoxDbg3[2] = -1;
+   Opt->VoxDbgOut = stderr;
    Opt->Other = -1;
+   Opt->fmode = 0;
+   Opt->i1 = -1;
+   Opt->i2 = 9;
+   Opt->i3 = -1;
+   Opt->f1 = 0.0;
    Opt->VoxDbg = -1;
    Opt->VoxDbg3[0] = Opt->VoxDbg3[1] = Opt->VoxDbg3[2] = -1;
    Opt->VoxDbgOut = NULL;
@@ -290,14 +394,45 @@ int main(int argc, char **argv)
    Opt = Infill_ParseInput (Opt,argv,  argc);
    Opt->hist = tross_commandline( FuncName , argc , argv ) ;
    
+
    /* load the input data */
    if (!(Opt->aset = Seg_load_dset( Opt->aset_name ))) {      
       SUMA_RETURN(1);
    }
    
-   if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, 1, Opt->Other, Opt->N_main, -1)) {
-      SUMA_S_Err("Failed to fill volume");
-      SUMA_RETURN(1);
+   /* Fix VoxDbg */
+   if (Opt->VoxDbg >= 0) {
+      Vox1D2Vox3D(Opt->VoxDbg, 
+                  DSET_NX(Opt->aset), DSET_NX(Opt->aset)*DSET_NY(Opt->aset),
+                  Opt->VoxDbg3);
+   } else if (Opt->VoxDbg3[0]>=0) {
+      Opt->VoxDbg = Opt->VoxDbg3[0] + Opt->VoxDbg3[1]*DSET_NX(Opt->aset) +
+                        Opt->VoxDbg3[2]*DSET_NX(Opt->aset)*DSET_NY(Opt->aset);
+   }
+   SUMA_set_SegFunc_debug( Opt->debug, Opt->VoxDbg, Opt->VoxDbg3, 
+                           Opt->VoxDbgOut);
+   
+   if (Opt->fmode) {
+      if (Opt->f1 == -1.0f) Opt->f1 = Opt->fmode;
+      if (Opt->i1 == -1) Opt->i1 = 6*Opt->fmode;
+      if (Opt->i1 < Opt->fmode) {
+         SUMA_S_Errv("-radial_fit_max (%d) parameter < -radial_start (%d)\n",
+                     Opt->i1, Opt->fmode);
+         exit(1); 
+      }
+      if (Opt->i3 == -1) Opt->i3 = 1;
+      if (!SUMA_Volume_RadFill(Opt->aset, NULL, NULL, NULL, 
+                            &Opt->Bset, Opt->fmode, Opt->i1, Opt->i3,
+                            Opt->f1, Opt->i2)) {
+         SUMA_S_Err("Failed to rad fill volume");
+         SUMA_RETURN(1);
+      }
+   } else {
+      if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, 1,
+                             Opt->Other, Opt->N_main, -1)) {
+         SUMA_S_Err("Failed to fill volume");
+         SUMA_RETURN(1);
+      }
    }
       
    /* write output */

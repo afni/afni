@@ -200,6 +200,12 @@ MapIcosahedron: SUMA_MapIcosahedron.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_MapIcosahedron.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
+#HalloSuma should only depend on niml/ and SUMA's SUMA_niml_defines.h
+#but I can't do much to simplify the compile command without a nice libniml.a 
+HalloSuma: SUMA_HalloSuma.c 
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@  \
+         SUMA_HalloSuma.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ParseName: SUMA_ParseName.c 
 	$(RM) $@

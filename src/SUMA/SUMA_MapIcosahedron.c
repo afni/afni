@@ -935,7 +935,7 @@ int main (int argc, char *argv[])
       Cx = SUMA_Convexity_Engine ( SO_morph->NodeList, 
                                    SO_morph->N_Node, 
                                    SO_morph->NodeNormList, 
-                                   SO_morph->FN, OutName);
+                                   SO_morph->FN, OutName, NULL);
       if (Cx) SUMA_free(Cx); Cx = NULL;
       SUMA_SphereQuality (SO_morph, SO_morph->Label, NULL);
       fprintf( SUMA_STDERR, 

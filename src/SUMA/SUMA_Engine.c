@@ -1549,7 +1549,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMAg_CF->ns_v[EngineData->i] = NULL;
             SUMAg_CF->ns_flags_v[EngineData->i] = 0;
             SUMAg_CF->TrackingId_v[EngineData->i] = 0;
- 
+            if (EngineData->i != SUMA_AFNI_STREAM_INDEX) {  
+               /* Connected for AFNI line handled elsewhere */
+               SUMAg_CF->Connected_v[EngineData->i] = NOPE;
+            }
             break;
             
          case SE_SetForceAfniSurf:
@@ -2352,17 +2355,26 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             /*send it to afni */
             SUMA_LH("Sending cross hair nel: SUMA_crosshair_xyz") ;
-            nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
-                                    nel , NI_TEXT_MODE ) ;
-            /* SUMA_nel_stdout (nel); */
-      
-            if( nn < 0 ){
-               SUMA_S_Err("NI_write_element failed");
+            if (  SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
+                  sv->LinkAfniCrossHair) {
+               if ( (nn = NI_write_element( 
+                        SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
+                                 nel , NI_TEXT_MODE)) < 0) {
+                  SUMA_S_Err("NI_write_element failed");   
+               } 
             }
             
+            if ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE] ) {
+               if ( (nn = NI_write_element( 
+                        SUMAg_CF->ns_v[SUMA_HALLO_SUMA_LINE] , 
+                                 nel , NI_TEXT_MODE)) < 0) {
+                  SUMA_S_Err("NI_write_element failed");   
+               }
+            }
+            /* SUMA_nel_stdout (nel); */
+      
             NI_free_element(nel);
 
-            
             break;
          
          case SE_SetGICORnode:

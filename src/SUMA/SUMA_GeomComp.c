@@ -7807,9 +7807,11 @@ int SUMA_VoxelDepth(THD_3dim_dataset *dset, float **dpth,
    SUMA_RETURN(N_inmask);                   
 }
 
-int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
+
+int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, byte *cmasku, 
+                    float **dpth,
                     float thr, byte **cmaskp, int applymask,
-                    float peakperc) 
+                    float peakperc, float *ztop) 
 {
    static char FuncName[]={"SUMA_VoxelDepth_Z"};
    float *zs=NULL, *z=NULL;
@@ -7835,9 +7837,13 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
    }
    
    /* get xyz of all non-zero voxels in dset */
-   if (!(cmask = THD_makemask( dset , 0 , 1.0, -1.0 ))) {
-      SUMA_S_Err("Failed to get mask");
-      SUMA_RETURN(-1);
+   if (!cmasku) {
+      if (!(cmask = THD_makemask( dset , 0 , 1.0, -1.0 ))) {
+         SUMA_S_Err("Failed to get mask");
+         SUMA_RETURN(-1);
+      }
+   } else {
+      cmask = cmasku;
    }
    for (nvox=0, ii=0; ii<DSET_NVOX(dset); ++ii) {
       if (cmask[ii]) ++nvox;
@@ -7846,13 +7852,13 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
    if (!(z = (float *)SUMA_calloc(nvox, sizeof(float)))) {
       SUMA_S_Errv("Failed to allocate for %d floats\n",
                   nvox);
-      free(cmask);
+      if (!cmasku) free(cmask);
       SUMA_RETURN(-1);
    }
    if (!(zs = (float *)SUMA_calloc(nvox, sizeof(float)))) {
       SUMA_S_Errv("Failed to allocate for %d floats\n",
                   nvox);
-      free(cmask);
+      if (!cmasku) free(cmask);
       SUMA_RETURN(-1);
    }
    vv=0; nn = 0;
@@ -7883,6 +7889,7 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
       itop = 0;
    }
    SUMA_LHv("Top Z selection at %f %% is %fmm\n", peakperc, zs[itop]);
+   if (ztop) *ztop = zs[itop];
    
    /* Does the user want voxel depths back ? */
    if (dpth) {
@@ -7968,7 +7975,7 @@ int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, float **dpth,
    }
    
    SUMA_LH("Liberte");
-   if (cmask) free(cmask); cmask = NULL;
+   if (!cmasku && cmask) free(cmask); cmask = NULL;
    if (z) SUMA_free(z); z= NULL;
    if (zs) SUMA_free(zs); zs= NULL;
    SUMA_RETURN(N_inmask);                   
@@ -13426,7 +13433,8 @@ SUMA_Boolean SUMA_CenterOfSphere(double *p1, double *p2, double *p3,
 }
 
 
-SUMA_Boolean SUMA_GetCenterOfSphereSurface(SUMA_SurfaceObject *SO, int Nquads, double *cs, double *cm)
+SUMA_Boolean SUMA_GetCenterOfSphereSurface(SUMA_SurfaceObject *SO, 
+                                           int Nquads, double *cs, double *cm)
 {
    static char FuncName[]={"SUMA_GetCenterOfSphereSurface"};
    double  p1[3], p2[3], p3[3], p4[3], c[3];
@@ -13481,9 +13489,12 @@ SUMA_Boolean SUMA_GetCenterOfSphereSurface(SUMA_SurfaceObject *SO, int Nquads, d
          cs[ii] /= (double)Ns;
       }
       /* sort coords */
-      qsort(cx, Ns, sizeof(double), (int(*) (const void *, const void *)) SUMA_compare_double);
-      qsort(cy, Ns, sizeof(double), (int(*) (const void *, const void *)) SUMA_compare_double);
-      qsort(cz, Ns, sizeof(double), (int(*) (const void *, const void *)) SUMA_compare_double);
+      qsort(cx, Ns, sizeof(double), 
+            (int(*) (const void *, const void *)) SUMA_compare_double);
+      qsort(cy, Ns, sizeof(double), 
+            (int(*) (const void *, const void *)) SUMA_compare_double);
+      qsort(cz, Ns, sizeof(double), 
+            (int(*) (const void *, const void *)) SUMA_compare_double);
       cm[0] = cx[Ns/2];
       cm[1] = cy[Ns/2];
       cm[2] = cz[Ns/2];

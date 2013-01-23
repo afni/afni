@@ -736,16 +736,18 @@ REGISTER:
                   -mm \
                   -prefix ./$VolRegPrefix ${wdnext}$SurfAnatView
       #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
-      3drefit  -atrcopy ${wdnext}$SurfAnatView \
-               WARPDRIVE_INPUT_IDCODE $VolRegPrefix$SurfAnatView
-      3drefit  -atrcopy ${wdnext}$SurfAnatView \
-               WARPDRIVE_INPUT_NAME $VolRegPrefix$SurfAnatView
-      3drefit  -atrcopy ${wdnext}$SurfAnatView \
-               WARPDRIVE_BASE_IDCODE $VolRegPrefix$SurfAnatView
-      3drefit  -atrcopy ${wdnext}$SurfAnatView \
-               WARPDRIVE_MATVEC_FOR_000000 $VolRegPrefix$SurfAnatView
-      3drefit  -atrcopy ${wdnext}$SurfAnatView \
-               WARPDRIVE_MATVEC_INV_000000 $VolRegPrefix$SurfAnatView
+      set atrlist = (`3dAttribute -all ${wdnext}$SurfAnatView | \
+                        \sort | \grep WARPDRIVE | \cut -f 1 -d ' '`)
+      foreach atr ($atrlist) 
+         if ($atr == WARPDRIVE_INPUT_IDCODE  || \
+             $atr == WARPDRIVE_INPUT_NAME  || \
+             $atr == WARPDRIVE_BASE_IDCODE || \
+             $atr == WARPDRIVE_MATVEC_FOR_000000 || \
+             $atr == WARPDRIVE_MATVEC_INV_000000 ) then
+            3drefit  -atrcopy ${wdnext}$SurfAnatView $atr   \
+                                    $VolRegPrefix$SurfAnatView    
+         endif
+      end
       #differing views?
       if ("$SurfAnatView" != "$ExpAnatView") then
          echo "Changing view from $SurfAnatView to $ExpAnatView."

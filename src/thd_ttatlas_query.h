@@ -340,8 +340,9 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout,
                             int uopts, int verb);
-char *get_updated_help_file(int force_recreate, byte verb, char *progname);
-int prog_complete_command (char *prog, char *ofile);
+char *get_updated_help_file(int force_recreate, byte verb, char *progname, 
+                            int shtp);
+int prog_complete_command (char *prog, char *ofile, int shtp);
 char **approx_str_sort_readmes(char *str, int *N_r);
 char *find_readme_file(char *str);
 int view_text_file(char *progname);

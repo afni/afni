@@ -122,6 +122,7 @@ typedef struct {
    
    char *labeltable_name;
    
+   int fmode;
    int smode;
    float bias_param;
    char *bias_meth;
@@ -167,6 +168,9 @@ typedef struct {
    char *ShowThisDist;
    int fast; /* if 1, use faster - I hope - version of p_C_GIV_A */
    float range[2];
+   
+   int i1, i2, i3;
+   float f1, f2, f3;
 } SEG_OPTS;
 
 void GenPriors_usage(int) ;

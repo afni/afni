@@ -4209,7 +4209,8 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
       /* calculate convexity */
       if (LocalHead) 
          fprintf(SUMA_STDOUT, "%s: Calculating convexity ...\n", FuncName);
-      Cx = SUMA_Convexity   (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->FN);
+      Cx = SUMA_Convexity(SO->NodeList, SO->N_Node, SO->NodeNormList, 
+                          SO->FN, NULL);
       if (Cx == NULL) {
          fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Convexity\n", FuncName);
       }   
