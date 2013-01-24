@@ -441,7 +441,7 @@ gltConstr <- function(cStr, dataStr) {
 process.MVM.opts <- function (lop, verb = 0) {
    if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
    if(file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) || 
-         file.exists(paste(lop$outFN,"+tlrc.HEAD", sep=""))) {
+         file.exists(paste(lop$outFN,"+tlrc.BRIK", sep=""))) {
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
          return(NULL)
    }      
