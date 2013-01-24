@@ -71,7 +71,7 @@ typedef struct                      /* extra stuff from mri_read.c     */
 
 typedef struct
 {
-    int   is_mosaic;                /* mostly from g_image_info */
+    int   im_is_volume;             /* mostly from g_image_info */
     int   nslices;
     int   mos_nx, mos_ny;
 } mosaic_info;

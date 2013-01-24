@@ -189,7 +189,6 @@ int ART_send_end_of_run( ART_comm * ac, int run, int seq, int debug )
 {
     static int   prev_run = -1;
     static int   prev_seq = -1;
-    char       * image;
     int          bytes = ART_COMMAND_MARKER_LEN+1;
 
     if ( ac->state != ART_STATE_IN_USE )
@@ -200,23 +199,8 @@ int ART_send_end_of_run( ART_comm * ac, int run, int seq, int debug )
         prev_run = run;
         prev_seq = seq;
 
-        image = (char *)ac->param->im_store.x_im;
-
-        if ( image == NULL )
-        {
-            fprintf( stderr, "ART: ** failure: x_im is NULL\n"
-                             "      - closing afni connection\n" );
-
-            ac->state = ART_STATE_NO_USE;
-            ART_exit();
-            return -1;
-        }
-
-        strcpy( image, ART_COMMAND_MARKER );
-        image[ART_COMMAND_MARKER_LEN] = '\0';
-
         /* send only the marker */
-        if ( iochan_sendall( ac->ioc, image, bytes ) < 0 )
+        if ( iochan_sendall( ac->ioc, ART_COMMAND_MARKER, bytes ) < 0 )
         {
             char * ebuf = iochan_error_string();
             fprintf( stderr, "ART: ** failed to transmit EOR to afni @ %s\n"
@@ -397,8 +381,8 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
         return 0;
 
     /* note whether we have a mosaic (nim comes from v->minfo.nslices) */
-    if( v->minfo.is_mosaic ) {
-        if( debug>0 ) fprintf(stderr, "ART COMM: have mosaic of %d slices\n",
+    if( v->minfo.im_is_volume ) {
+        if( debug>1 ) fprintf(stderr, "ART COMM: mosaic/volume of %d slices\n",
                               v->minfo.nslices);
         nim = v->minfo.nslices;
     } else
@@ -425,7 +409,7 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
     /* if mosaic with valid timing, apply it                     25 Apr 2011 */
     /* -> set tpattern = explicit and pass times                             */
-    if ( v->minfo.is_mosaic &&
+    if ( v->minfo.im_is_volume &&
          valid_g_siemens_times(v->minfo.nslices, v->geh.tr, 0) )
     {
         int off, nchar, ind;
@@ -499,7 +483,7 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
         ART_ADD_TO_BUF( ac->buf, tbuf );
     }
-    else if( ac->param->ftype == IFM_IM_FTYPE_DICOM )  /* 16 May 2005 */
+    else /* also do this for AFNI   24 Jan 2013         16 May 2005 */
     {
         char o0 = v->geh.orients[0];    /* for ease of typing later */
         char o2 = v->geh.orients[2];
@@ -674,7 +658,7 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     }
 
     if ( debug > 1 )
-        fprintf( stderr,"ART: dataset control info (%d bytes) to afni:\n   %s",
+        fprintf( stderr,"ART: dataset control info (%d bytes) to afni:\n%s",
                  (int)strlen(ac->buf), ac->buf);
     if ( (debug > 0) && (strlen(ac->buf) > (ART_TBUF_LEN * 0.8)) )
         fprintf(stderr,"ART: ** warning: ac->buf len uses %d of %d bytes\n",
