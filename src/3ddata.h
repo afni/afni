@@ -1516,6 +1516,9 @@ extern void THD_set_daxes_bbox     ( THD_dataxes * ) ; /* 20 Dec 2005 */
 extern void THD_set_daxes_to_dicomm( THD_dataxes * ) ;
 
 int THD_get_axis_direction( THD_dataxes *, int ) ; /* 19 Mar 2003 */
+int THD_fill_orient_str_3( THD_dataxes *, char [4] );/* 23 Jan 2013 [rickr] */
+int THD_fill_orient_str_6( THD_dataxes *, char [7] );/* 23 Jan 2013 [rickr] */
+
 
 extern int  THD_daxes_to_mat44  ( THD_dataxes *dax ) ; /* 07 Dec 2005 */
 extern int  THD_daxes_from_mat44( THD_dataxes *dax ) ;

@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jan, 2013, RCR, "Dimon", MINOR, TYPE_ENHANCE,
+   "be able to process a run of AFNI volumes (-file_type AFNI)",
+   "added for Der-Yow Chen and Cecil Yen"
+ } ,
+
+ { 24, Jan, 2013, RCR, "3dinfo", MICRO, TYPE_MODIFY,
+   "get -orient output via new THD_fill_orient_str_3",
+   NULL
+ } ,
+
  { 22, Jan, 2013, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added -file_type, in prep for reading AFNI/NIfTI images",
    NULL

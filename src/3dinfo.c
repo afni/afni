@@ -41,7 +41,6 @@ void Syntax(void)
 "   -is_oblique: 1 if dset is oblique\n"
 "   -obliquity: Angle from plumb direction.\n"
 "               Angles of 0 (or close) are for cardinal orientations\n"
-"   -hand: Handedness of coordinate system (L for left, R for right)\n" 
 "   -prefix: Return the prefix\n"
 "   -prefix_noext: Return the prefix without extensions\n"
 "   -n[i|j|k]: Return the number of voxels in i, j, k dimensions\n"
@@ -203,7 +202,7 @@ typedef enum {
    HISTORY, ORIENT,
    SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER, 
    SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, ID, SMODE,
-   VOXVOL, HAND,
+   VOXVOL,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
@@ -225,7 +224,7 @@ char Field_Names[][32]={
    {"=grid?"}, {"=dim?"}, {"=delt?"}, {"=ornt?"}, {"=cent?"},
    {"=obl?"}, {"sDval"}, {"Dval"}, {"=dim_delta_orient_center_obl"}, 
    {"id"}, {"smode"}, 
-   {"voxvol"}, {"hand"},
+   {"voxvol"},
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
 
 char *PrintForm(INFO_FIELDS sing , int namelen, byte ForHead)
@@ -465,8 +464,6 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = ID; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-smode") == 0) {
          sing[N_sing++] = SMODE; iarg++; continue;
-      } else if( strcasecmp(argv[iarg],"-hand") == 0) { 
-         sing[N_sing++] = HAND; iarg++; continue;
       } else {
          ERROR_message("Option %s unknown", argv[iarg]);
          suggest_best_prog_option(argv[0], argv[iarg]);
@@ -683,10 +680,6 @@ int main( int argc , char *argv[] )
             fprintf(stdout,"%.3f",
                   THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0));
             break;
-         case HAND:
-            fprintf(stdout,"%c",
-                  THD_handedness(dset) == 1 ? 'R':'L');
-            break;
          case PREFIX:
             form = PrintForm(sing[iis], namelen, 1);
             fprintf(stdout,form, DSET_PREFIX(dset));
@@ -892,10 +885,13 @@ int main( int argc , char *argv[] )
             fprintf(stdout,"%f", DSET_TR_SEC(dset));
             break;
          case ORIENT:
-            fprintf(stdout,"%c%c%c", 
-                  ORIENT_typestr[dset->daxes->xxorient][0],
-                  ORIENT_typestr[dset->daxes->yyorient][0],
-                  ORIENT_typestr[dset->daxes->zzorient][0]);
+            {
+               /* fprintf(stdout,"%c%c%c",
+                *         ORIENT_typestr[dset->daxes->xxorient][0], ... ); */
+               char ostr[4];    /* just to show        23 Jan 2013 [rickr] */
+               THD_fill_orient_str_3(dset->daxes, ostr);
+               fprintf(stdout,"%3s", ostr);
+            }
             break;
          case SAME_GRID:
             fprintf(stdout,"%d",
