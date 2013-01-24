@@ -63,7 +63,10 @@ end
    cat *.complete > all_progs.COMP
    cat *.complete.bash > all_progs.COMP.bash
    
-   set shh = $SHELL:t
+   #Get the user's shell type
+   if ($shh == '') then
+      set shh = $SHELL:t   
+   endif
    if ("$shh" == 'csh' || "$shh" == 'tcsh') then
       \grep all_progs.COMP ~/.cshrc > & /dev/null
       set is_set = $status
@@ -100,11 +103,11 @@ end
          echo "Add the following lines to your ~/.bashrc"
          echo ''
          echo ''
-         #echo 'set ahdir = `apsearch -afni_help_dir`'
-         #echo 'if ( -f $ahdir/all_progs.COMP ) then'
-         #echo '   source $ahdir/all_progs.COMP'
-         #echo 'endif'
-         echo ''
+         echo 'ahdir=`apsearch -afni_help_dir`'
+         echo 'if [ -f "$ahdir/all_progs.COMP.bash" ]'
+         echo 'then'
+         echo '   . $ahdir/all_progs.COMP.bash'
+         echo 'fi'
          echo ''
          echo 'Then run from this shell: . ~/.bashrc'
          echo 'or just open a new shell'
@@ -129,6 +132,7 @@ PARSE:
    set Narg = $#
    set quiet = 1
    set uhdir = ''
+   set shh = ''
    set cnt = 1
    while ($cnt <= $Narg)
 		set donext = 1;
