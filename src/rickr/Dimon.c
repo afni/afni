@@ -97,10 +97,12 @@ static char * g_history[] =
     " 3.13 Jan 22, 2013 [rickr]\n",
     "      - replaced -use_imon with -file_type\n"
     "      - made many changes in prep for adding AFNI file type\n"
+    " 3.14 Jan 24, 2013 [rickr]\n",
+    "      - now handles -file_type AFNI\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.13 (January 22, 2013)"
+#define DIMON_VERSION "version 3.14 (January 24, 2013)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -4022,7 +4024,7 @@ static int usage ( char * prog, int level )
       "    \n"
       "       Note that Dimon can be run many times at this point.\n"
       "\n"
-      "    ------------------------------\n"
+      "    --------------------\n"
       "\n"
       "    c2. alternately, set some env vars via Dimon\n"
       "\n"
@@ -4034,11 +4036,24 @@ static int usage ( char * prog, int level )
       "       Note that plugout_drive can also be used to set vars at\n"
       "       run-time, though plugouts must be enabled to use it.\n"
       "\n"
+      "\n"
+      "  -------------------------------------------\n"
+      "  example G: when reading AFNI datasets\n"
+      "\n"
+      "    Note that single-volume AFNI datasets might not contain the.\n"
+      "    TR and slice timing information (since they are not considered\n"
+      "    to be time series).  So it may be necessary to specify such\n"
+      "    information on the command line.\n"
+      "\n"
+      "    %s -rt                                                  \\\n"
+      "       -infile_pattern EPI_run1/vol.*.HEAD                     \\\n"
+      "       -file_type AFNI -sleep_vol 1000 -sp alt+z -tr 2.0 -quit\n"
+      "\n"
       "  ---------------------------------------------------------------\n",
       prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog, prog,
-      prog, prog, prog, prog, prog, prog, prog );
+      prog, prog, prog, prog, prog, prog, prog, prog );
           
       printf(
           "  notes:\n"
