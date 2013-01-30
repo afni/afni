@@ -350,14 +350,18 @@ class Afni1D:
          else:
             for ind in range(self.nt): vec[ind] /= vlen
 
-   def project_out_vec(self, vec=None):
+   def project_out_vec(self, vec=None, unit=0):
       """project a vector out of the matrix vectors, if None, use mean
 
          for each vector y, subtract <vT,y>/<vT.v> * v
 
+         if unit: subtract mean of unit vectors
+
          return 0 on success, else 1
       """
-      if vec == None: vec = self.get_mean_vec()
+      if vec == None:
+          if unit: vec = self.get_mean_unit_vec()
+          else:    vec = self.get_mean_vec()
       if len(vec) != self.nt:
          print '** project_out_vec: bad length %d != %d' % (len(vec), self.nt)
          return 1
@@ -381,6 +385,17 @@ class Afni1D:
       for ind in range(self.nt):
          v[ind] = UTIL.loc_sum([self.mat[i][ind] for i in range(self.nvec)])
       return UTIL.lin_vec_sum(1.0/self.nvec, v, 0, None)
+
+   def get_mean_unit_vec(self, demean=1):
+      """return a single vector as the mean of all matrix vectors
+         AFTER the vectors have been (demeaned? and) scaled to unit lengths
+      """
+      adcopy = self.copy()
+      if demean: adcopy.demean()
+      adcopy.unitize()
+      gu = adcopy.get_mean_vec()
+      del(adcopy)
+      return gu
 
    def show_gcor_all(self):
       for ind in range(1,6):
@@ -516,6 +531,17 @@ class Afni1D:
       ss /= self.nvec
 
       return ss
+
+   def get_gcor_wout_gmean(self, unitize=0):
+      """project out global mean, then compute gcor
+         unitize: unitize before projection
+      """
+      adcopy = self.copy()
+      if unitize: adcopy.unitize()
+      adcopy.project_out_vec()
+      gc = adcopy.gcor()
+      del(adcopy)
+      return gc
 
    # --- end: functions returning some aspect of the matrix ---
 
@@ -1082,6 +1108,46 @@ class Afni1D:
       del(means)
       del(norms)
       del(cnorm)
+
+   def show_cormat_diff_wout_gmean(self, unit=0, dp=3, spaces=2):
+      ccopy = self.get_cormat_diff_wout_gmean(unit=unit, dp=dp, spaces=spaces)
+      ccopy.show_cormat(dp=dp, spaces=spaces)
+      del(ccopy)
+
+   def get_cormat_diff_wout_gmean(self, unit=0, dp=3, spaces=2):
+      adcopy = self.copy()
+      adcopy.project_out_vec(unit=unit)
+      self.set_cormat(update=1)
+      adcopy.set_cormat(update=1)
+
+      for rind, row in enumerate(adcopy.cormat):
+         for ind in range(len(row)):
+            row[ind] = self.cormat[rind][ind] - row[ind]
+      return adcopy
+
+   def show_cormat(self, dp=3, spaces=2):
+      """print the correlation matrix, to the given number of places
+            dp > 0      : use that to right of decimal
+            dp = 0      : use %g
+            dp = -1     : use %f
+      """
+      self.set_cormat()
+      self.show_mat(self.cormat, dp=dp, spaces=spaces)
+
+   def show_mat(self, mat, dp=3, spaces=2):
+      """print the correlation matrix, to the given number of places
+            dp > 0      : use that to right of decimal
+            dp = 0      : use %g
+            dp = -1     : use %f
+      """
+      ss = ' '*spaces
+      for v, vec in enumerate(mat):
+         for val in vec:
+            if dp > 0:    ps = "%.*f%s" % (dp, val, ss)
+            elif dp == 0: ps = "%g%s" % (val, ss)
+            else:         ps = "%f%s" % (val, ss)
+            print ps,
+         print ""
 
    def make_cormat_warnings_string(self, cutoff=0.4, name=''):
       """make a string for any entires at or above cutoffs:
