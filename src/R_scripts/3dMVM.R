@@ -295,13 +295,13 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         -gltLabel.\n", sep = '\n'
              ) ),
                      
-     '-gltLabel' = apl(n=c(2,1000), d=NA, h = paste(
+     '-gltLabel' = apl(n=c(1,1000), d=NA, h = paste(
    "-gltLabel k label: Specify the label for the k-th general linear test",
    "         (GLT). A symbolic coding for the GLT is assumed to follow with",
    "         each -gltLabel.\n", sep = '\n'
                      ) ),
 
-     '-gltCode' = apl(n=c(2,1000), d=NA, h = paste(
+     '-gltCode' = apl(n=c(1,1000), d=NA, h = paste(
    "-gltCode k CODING: Specify the k-th general linear test (GLT) through a",
    "         weighted combination among factor levels. The symbolic coding has",
    "         to be within (single or double) quotes. For example, the following",
