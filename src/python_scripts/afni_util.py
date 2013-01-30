@@ -2321,14 +2321,17 @@ def variance(data):
     if val < 0.0 : return 0.0
     return val
 
-def r(vA, vB):
+def r(vA, vB, unbiased=0):
     """return Pearson's correlation coefficient
 
        for demeaned and unit vectors, r = dot product
+       for unbiased correlation, return r*(1 + (1-r^2)/2N)
 
        note: correlation_p should be faster
     """
-    if len(vB) != len(vA):
+    la = len(vA)
+
+    if len(vB) != la:
         print '** r (correlation): vectors have different lengths'
         return 0.0
     ma = mean(vA)
@@ -2340,7 +2343,10 @@ def r(vA, vB):
     dA = [v/sA for v in dA]
     dB = [v/sB for v in dB]
 
-    return dotprod(dA,dB)
+    r = dotprod(dA,dB)
+
+    if unbiased: return r * (1 + (1-r*r)/2*la)
+    return r
 
 def eta2(vA, vB):
     """return eta^2 (eta squared - Cohen, NeuroImage 2008
@@ -2380,17 +2386,17 @@ def eta2(vA, vB):
         return 0.0
     return 1.0 - num/denom
 
-def correlation_p(vA, vB, demean=1):
+def correlation_p(vA, vB, demean=1, unbiased=0):
     """return the Pearson correlation between the 2 vectors
        (allow no demean for speed)
     """
 
-    length = len(vA)
-    if len(vB) != length:
+    la = len(vA)
+    if len(vB) != la:
         print '** correlation_pearson: vectors have different lengths'
         return 0.0
 
-    if length < 2: return 0.0
+    if la < 2: return 0.0
 
     if demean:
        ma = mean(vA)
@@ -2408,7 +2414,10 @@ def correlation_p(vA, vB, demean=1):
     if demean: del(dA); del(dB)
 
     if ssA <= 0.0 or ssB <= 0.0: return 0.0
-    else:                        return sAB/math.sqrt(ssA*ssB)
+    else:
+       r = sAB/math.sqrt(ssA*ssB)
+       if unbiased: return r * (1 + (1-r*r)/(2*la))
+       return r
 
 def ttest(data0, data1=None):
     """just a top-level function"""
