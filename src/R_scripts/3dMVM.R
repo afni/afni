@@ -3,7 +3,7 @@
 ##!/usr/bin/env afni_run_R
 
 
-# Commannd line to run this script: 3dMVM.R dataStr.txt diary.txt &
+# Command line to run this script: 3dMVM.R dataStr.txt diary.txt &
 # (Output is a file in which the running progress including 
 # error messages will be stored)
 
@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.10, Jan 23, 2013
+Version 0.1.11, Jan 30, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.10, Jan 23, 2013
+Version 0.1.11, Jan 30, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -440,8 +440,13 @@ gltConstr <- function(cStr, dataStr) {
 #Change options list to 3dMVM variable list 
 process.MVM.opts <- function (lop, verb = 0) {
    if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
-   if(file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) || 
-         file.exists(paste(lop$outFN,"+tlrc.BRIK", sep=""))) {
+   an <- parse.AFNI.name(lop$outFN)
+   if(an$type == "NIML") {
+      if(file.exists(lop$outFN)) errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
+   } else if(file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) ||
+      file.exists(paste(lop$outFN,"+tlrc.BRIK", sep="")) ||
+      file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) ||
+      file.exists(paste(lop$outFN,"+orig.BRIK", sep=""))) {
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
          return(NULL)
    }      
@@ -590,7 +595,7 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
 }
 
 #################################################################################
-########################## Read information from a file #########################tryCatch(print(fm[[1]]), error=function(e) NULL)
+########################## Read information from a file #########################
 #################################################################################
 
 #A function to parse all user input from a file
@@ -832,7 +837,7 @@ while(is.null(fm)) {
       cat('Possible reasons:\n\n')
       cat('1) Inappropriate model specification with options -model, -wsVars, or -qVars.\n')
       cat('Note that within-subject or repeated-measures variables have to be declared\n')
-      cat('with -wsVars.\\nn')
+      cat('with -wsVars.\n\n')
       cat('2) Misspecifications in general linear test coding with -gltCode.\n\n')
       cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
       cat('whether there are any inconsistencies.\n')
