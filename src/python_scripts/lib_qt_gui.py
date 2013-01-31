@@ -1427,22 +1427,19 @@ class button_list_widget(object):
          self.bdict[label] = b
          layout.addWidget(b)
 
-   def get_button_text(self, index=-1, button=None):
+   def get_button_text(self, button):
       """return text for button
-            index  : if apppropriate, return text for this button index
-            button : else, locate this button and return text
+            locate this button and return text
 
-        rcr - fix this, no blist, probably just
-              return button.text().toAscii().data()
+         verify that the button is in this widget, then
+         return button.text().toAscii().data()
 
         if no button is found, return 'NO_SUCH_BUTTON'"""
 
-      if index >= 0 and index < len(self.blist):
-         return blist[index].text().toAscii().data()
-      elif button != None:
-         for b in self.blist:
-            if b == button:
-               return b.text().toAscii().data()
+      keys = self.bdict.keys()
+      for key in keys:
+         if self.bdict[key] == button:
+            return button.text().toAscii().data()
  
       return 'NO_SUCH_BUTTON'
 
