@@ -13,7 +13,7 @@ import lib_qt_gui as QLIB
 import gui_uber_subj as GUS    # single subject GUI
 
 U_STATUS_UBER_DIR       = 1     # status bit for valid results directory
-__version__ = "0.0.0"
+__version__ = "0.0.1"
 
 # for each subject (Subject class), store:
 #   - ready flag, SID, local flag, results dir, labels, regress method
@@ -230,7 +230,7 @@ class MainWindow(QtGui.QMainWindow):
       if self.vars.verb > 2:
          print("++ Def button '%s' is set"%self.gvars.SSdef.blist[bind].text())
 
-      self.act_new_subj(self.gvars.SSbuttons.get_button_text(button=button),
+      self.act_new_subj(self.gvars.SSbuttons.get_button_text(button),
                         rbindex=bind)
 
    def act_new_subj(self, label, rbindex=-1):
