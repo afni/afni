@@ -6162,7 +6162,7 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                if (D_ROI->CE && D_ROI->N_CE) {
                   /* Draw the contour */
                   if (!SO->patchNodeMask) {
-                     glLineWidth(1); /* Changed from horrible '6' 
+                     glLineWidth(sv->ContThick); /* Changed from horrible '6' 
                                  now that glPolygonOffset is used to 
                                  allow for proper coplanar line and
                                  polygon rendering.  July 8th 2010 */
@@ -6213,11 +6213,11 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                      #endif
                   } else {
                      if (SO->EmbedDim == 2) {
-                        glLineWidth(1);
+                        glLineWidth(sv->ContThick);
                         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
                                      D_ROI->FillColor);
                      } else {
-                        glLineWidth(1);
+                        glLineWidth(sv->ContThick);
                         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
                                      D_ROI->FillColor);   
                      }
