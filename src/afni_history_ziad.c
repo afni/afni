@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 1, Feb , 2013 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
+   "SUMA_ContourThickness to control the tickness of dset contour lines",
+   "Addition made in response to Valentinos' feedback.\n"
+   "Documentation is in .sumarc file.\n" 
+ },
+
  { 22, Jan , 2013 , ZSS , "HalloSuma" , MINOR , TYPE_NEW_PROG,
    "A sample light-weight program to illustrate 2-way communication with AFNI",
    "The program can be compiled in C or C++ along with the NIML library\n"
