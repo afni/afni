@@ -459,6 +459,15 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
             else SV->KeyNodeJump = 1;
          } else SV->KeyNodeJump = 1;
       }
+      {
+         char *eee = getenv("SUMA_ContourThickness");
+         if (eee) {
+            float th = strtod(eee, NULL);
+            if (th > 0 && th <= 100) 
+               SV->ContThick = th;
+            else SV->ContThick = 1;
+         } else SV->ContThick = 1;
+      }
 
       {
          char *eee = getenv("SUMA_FOV_Original");

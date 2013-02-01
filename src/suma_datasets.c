@@ -12995,8 +12995,8 @@ static ENV_SPEC envlist[] = {
       "0.85" },
    {  "Display mode of  Label Datasest specified in spec file at startup.\n"
       "  'YES' or 'Col': Shows it in color\n"
-      "  'Con': Shows only contours.\n"
-      "  'C&C': Shows both colors and contours\n"
+      "  'Con': Shows only contours (see also env SUMA_ContourThickness).\n"
+      "  'C&C': Shows both colors and contours \n"
       "  'XXX'or 'No': Does not show it.\n",
       "SUMA_ShowLabelDsetAtStartup",
       "XXX" },
@@ -13060,6 +13060,9 @@ static ENV_SPEC envlist[] = {
    {  "Set auto Brightness range by default (YES or NO)\n",
       "SUMA_Auto_B_Range",
       "NO" }, 
+   {  "Set thickness of dataset contours\n",
+      "SUMA_ContourThickness",
+      "1.0" }, 
    {  NULL, NULL, NULL  }
 };
       
