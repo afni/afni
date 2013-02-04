@@ -95,8 +95,8 @@ dim(MData) <- c(dimx, dimy, dimz, NoComp)
 
 MyLabel <- rep("component", NoComp)
 
-#write.AFNI(OutFile, MData, MyLabel, note=NOTE, origin=ORIG, delta=DELTA, idcode="whatever")
-write.AFNI(OutFile, MData, MyLabel, defhead=head, idcode="whatever")
+#write.AFNI(OutFile, MData, MyLabel, note=NOTE, origin=ORIG, delta=DELTA, idcode=newid.AFNI())
+write.AFNI(OutFile, MData, MyLabel, defhead=head, idcode=newid.AFNI())
 
 statpar <- "3drefit"
 

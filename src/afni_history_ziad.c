@@ -65,6 +65,17 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 4, Feb , 2013 , ZSS , "R" , MICRO , TYPE_BUG_FIX,
+   "Properly set IDCODE of new dsets, read .1D.dset as dset not matrix",
+   NULL 
+ },
+
+ { 1, Feb , 2013 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
+   "SUMA_ContourThickness to control the tickness of dset contour lines",
+   "Addition made in response to Valentinos' feedback.\n"
+   "Documentation is in .sumarc file.\n" 
+ },
+
  { 1, Feb , 2013 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
    "SUMA_ContourThickness to control the tickness of dset contour lines",
    "Addition made in response to Valentinos' feedback.\n"

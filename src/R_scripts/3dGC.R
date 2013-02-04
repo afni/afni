@@ -310,7 +310,7 @@ for (ii in 1:nLags) {
    outLabel <- append(outLabel, sprintf("t for target-to-seed lag %i", ii))
 }
  
-write.AFNI(outFN, outData, outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
+write.AFNI(outFN, outData, outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode=newid.AFNI())
 
 statpar <- "3drefit"
    for (ii in 1:nLags) for (jj in 1:3) {

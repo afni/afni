@@ -392,7 +392,7 @@ for(ii in 1:nGrp) {
    outLabel <- paste("D"); outLabel <- append(outLabel, "Z")
    statpar <- "3drefit"
    
-   write.AFNI(outFN, outArr[,,,1:nBrick], outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")   
+   write.AFNI(outFN, outArr[,,,1:nBrick], outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode=newid.AFNI())   
    statpar <- paste(statpar, " -substatpar 1 fizt -view tlrc -addFDR -newid ", outFN)  # assume tlrc space
    system(statpar)
 

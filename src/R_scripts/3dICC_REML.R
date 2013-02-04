@@ -194,7 +194,7 @@ rm(IData)  # retrieve some memory
 MyLabel <- append(fNames, "Residual")
 
 write.AFNI(OutFile, outData, MyLabel, note=Data$header$HISTORY_NOTE, origin=Data$origin, 
-   delta=Data$delta, idcode="whatever")
+   delta=Data$delta, idcode=newid.AFNI())
 
 statpar <- "3drefit"
 statpar <- paste(statpar, " -newid -view ", outView, OutFile)
