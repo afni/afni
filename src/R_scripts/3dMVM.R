@@ -987,8 +987,8 @@ if(lop$num_glt>0) for(ii in 1:lop$num_glt) statpar <- paste(statpar, " -substatp
    ifelse(is.na(lop$wsVars), gltRes[[ii]][2,2], gltRes[[ii]][,6]))    
 statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
 
-#write.AFNI(lop$outFN, Stat, outLabel, note=myHist, origin=myOrig, delta=myDelta, idcode="whatever")
-write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode="whatever")
+#write.AFNI(lop$outFN, Stat, outLabel, note=myHist, origin=myOrig, delta=myDelta, idcode=newid.AFNI())
+write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode=newid.AFNI())
 
 system(statpar)
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
