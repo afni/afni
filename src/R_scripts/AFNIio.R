@@ -2625,13 +2625,15 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0,
    show.AFNI.name(an);
   }
   
-  if (an$type == "1D" || an$type == "Rs" || an$type == "1Ds") {
+  if ( (an$type == "1D"  && an$ext != ".1D.dset") 
+         || an$type == "Rs" || an$type == "1Ds") {
     brk <- read.AFNI.matrix(an$orig_name)
     z <- array2dset(brk, format=an$type)
     return(z)
   }
   
-  if (meth == 'clib' || an$type == 'NIML') {
+  if (meth == 'clib' || an$type == 'NIML' || 
+      (an$type == "1D"  && an$ext == ".1D.dset")) {
     return(read.c.AFNI(filename, verb = verb, ApplyScale = 1, PercMask=0.0))
   }
   #If you have any selectors, use 3dbucket to get what you want, then read

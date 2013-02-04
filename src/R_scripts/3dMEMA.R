@@ -2531,7 +2531,7 @@ tTop <- 100   # upper bound for t-statistic
    #write.AFNI(lop$outFN, outArr[,,,1:nBrick0],
    write.AFNI(lop$outFN, subBRKarray(brk=outArr, sel=1:nBrick0), 
                   outLabel, note=lop$myNote, origin=lop$myOrig, 
-                  delta=lop$myDelta, idcode="whatever", addFDR=1,
+                  delta=lop$myDelta, idcode=newid.AFNI(), addFDR=1,
                   verb=lop$verb, meth=lop$iometh, statsym=statsym,
                   view=dataView, orient=dataOrient, com_hist=lop$com_history)
    if (lop$iometh == 'Rlib') {
@@ -2547,14 +2547,14 @@ tTop <- 100   # upper bound for t-statistic
       write.AFNI(lop$icc_FN, 
                  subBRKarray(outArr, seq((nBrick0+1), nBrick, by=2)), iccLabel,
                  note=lop$myNote, origin=lop$myOrig, delta=lop$myDelta, 
-                 idcode="whatever",
+                 idcode=newid.AFNI(),
                  verb=lop$verb, meth=lop$iometh, view=dataView,
                  orient=dataOrient, com_hist=lop$com_history)
       #write.AFNI(lop$resZ_FN, outArr[,,,seq((nBrick0+2), nBrick, by=2)],
       write.AFNI(lop$resZ_FN, 
                  subBRKarray(outArr, seq((nBrick0+2), nBrick, by=2)), 
                  resZLabel, note=lop$myNote, origin=lop$myOrig, 
-                 delta=lop$myDelta, idcode="whatever",
+                 delta=lop$myDelta, idcode=newid.AFNI(),
                  verb=lop$verb, meth=lop$iometh, statsym=statsymResZ,
                  view=dataView, orient=dataOrient, com_hist=lop$com_history)
       if (lop$iometh == 'Rlib') {

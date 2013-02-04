@@ -379,7 +379,7 @@ for (n in 1:nCovBrick) {
 }
 }
 
-write.AFNI(OutFile, Stat, MyLabel, note=myHist, origin=myOrig, delta=myDelta, idcode="whatever")
+write.AFNI(OutFile, Stat, MyLabel, note=myHist, origin=myOrig, delta=myDelta, idcode=newid.AFNI())
 statpar <- "3drefit"
 if (!as.numeric(ranEff[[1]][1])) glsDF <- as.integer(gsub(" \n", "", gsub("Denom. DF: ", "", attr(anova(fm), "label"))))
 

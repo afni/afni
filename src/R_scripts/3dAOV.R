@@ -238,7 +238,7 @@ if (nNodes>1)    {
 ###############################
 
 MyLabel <- paste(dimnames(fm$anova)[[1]][-1], " F")
-write.AFNI(OutFile, Stat, MyLabel, note=myHist, origin=myOrig, delta=myDelta, idcode="whatever")
+write.AFNI(OutFile, Stat, MyLabel, note=myHist, origin=myOrig, delta=myDelta, idcode=newid.AFNI())
 
 statpar <- "3drefit"
 for(ii in 1:NoBrick) statpar <- paste(statpar, " -substatpar ", ii-1, " fift ",
