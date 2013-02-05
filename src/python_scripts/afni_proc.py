@@ -363,9 +363,10 @@ g_history = """
     3.35 Oct 03, 2012: make dashed parameters illegal for many options
     3.36 Oct 17, 2012: remove unneeded -set_tr from 1d_tool.py -censor_motion
     3.37 Jan 09, 2013: added -regress_compute_gcor
+    3.38 Feb 05, 2013: minor help intro update
 """
 
-g_version = "version 3.37, January 9, 2013"
+g_version = "version 3.38, February 5, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 Jan 2013"

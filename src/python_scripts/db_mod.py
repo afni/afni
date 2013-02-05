@@ -4225,29 +4225,64 @@ g_help_string = """
     ===========================================================================
     afni_proc.py        - generate a tcsh script for an AFNI process stream
 
-    This python script can generate a processing script via a command-line
-    interface, with an optional question/answer session (-ask_me), or by a tk
-    GUI (eventually).
+    Purpose:
 
-    The user should provide at least the input datasets (-dsets) and stimulus
-    files (-regress_stim_*), in order to create an output script.  See the
-    'DEFAULTS' section for a description of the default options for each block.
+       This program is meant to create single subject processing scripts for
+       task, resting state or surface-based analyses.  The processing scripts
+       are written in the tcsh language.
 
-    The output script, when executed will create a results directory, copy
+       The typical goal is to create volumes of aligned resopnse magnitudes
+       (stimulus beta weights) to use as input for a group analysis.
+
+    Inputs (only EPI is required):
+
+       - anatomical dataset
+       - EPI time series datasets
+       - stimulus timing files
+       - processing and design decisions:
+           e.g. TRs to delete, blur size, censoring options, basis functions
+
+    Main outputs (many datasets are created):
+
+       - for task-based analysis: stats dataset (and anat_final)
+       - for resting-state analysis: errts datasets ("cleaned up" EPI)
+
+    Basic script outline:
+
+       - copy all inputs to new 'results' directory
+       - process data: e.g. despike,tshift/align/tlrc/volreg/blur/scale/regress
+       - leave all (well, most) results there, so user can review processing
+       - create @ss_review scripts to help user with basic quality control
+
+    The exact processing steps are controlled by the user, including which main
+    processing blocks to use, and their order.  See the 'DEFAULTS' section for
+    a description of the default options for each block.
+
+    The output script (when executed) would create a results directory, copy
     input files into it, and perform all processing there.  So the user can
-    delete the results directory and re-run the script at their whim.
+    delete the results directory and modify/re-run the script at their whim.
 
     Note that the user need not actually run the output script.  The user
-    should feel free to modify the script for their own evil purposes, before
-    running it.
+    should feel free to modify the script for their own evil purposes, or to
+    just compare the processing steps with those in their own scripts.  Also,
+    even if a user is writing their own processing scripts, it is a good idea
+    to get some independent confirmation of the processing, such as by using
+    afni_proc.py to compare the results on occasion.
 
     The text interface can be accessed via the -ask_me option.  It invokes a
     question & answer session, during which this program sets user options on
     the fly.  The user may elect to enter some of the options on the command
     line, even if using -ask_me.  See "-ask_me EXAMPLES", below.
 
+    ** However, -ask_me has not been touched in many years.  I suggest starting
+       with the 'modern' examples (for task/rest/surface), or by using the
+       uber_subject.py GUI (graphical user interface) to generate an initial
+       afni_proc.py command script.
+
+       See uber_subject.py -help (or just start the GUI) for details.
+
     ==================================================
-    SECTIONS: order of sections in "afni_proc.py -help" output
+    SECTIONS: order of sections in the "afni_proc.py -help" output
 
         program introduction    : (above) basic overview of afni_proc.py
         PROCESSING BLOCKS       : list of possible processing blocks
