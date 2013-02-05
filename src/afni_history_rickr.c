@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Feb, 2013, RCR, "python-general", MICRO, TYPE_BUG_FIX,
+   "fixed (unused) cols_by_label_list functions",
+   "Fix by I Schwabacher, who is actually using the function."
+ } ,
+
  { 31, Jan, 2013, RCR, "uber_proc.py", MICRO, TYPE_BUG_FIX,
    "fixed blist error that had not been converted to bdict",
    "Thanks to Piero C. for noting the problem."
