@@ -1794,7 +1794,8 @@ class Afni1D:
       """return a list of columns, given a list of labels"""
       if not self.labels or not labels: return []
       if not list2_is_in_list1(self.labels, labels, "labels"): return []
-      return [val for val in range(self.nvec) if val in cols]
+      # make a working function, suggested by I Schwabacher
+      return [self.labels.index(lab) for lab in labels]
 
    def init_from_matrix(self, matrix):
       """initialize Afni1D from a 2D (or 1D) array"""
