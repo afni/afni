@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Feb, 2013, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "updates to the help introduction",
+   NULL
+ } ,
+
  {  5, Feb, 2013, RCR, "python-general", MICRO, TYPE_BUG_FIX,
    "fixed (unused) cols_by_label_list functions",
    "Fix by I Schwabacher, who is actually using the function."
