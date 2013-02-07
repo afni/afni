@@ -55,6 +55,8 @@ void IW3D_set_emat_from_xyzmat44( IndexWarp3D *AA , mat44 amm )
   return ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 mat33 IW3D_compute_inverse_emat( mat33 emm )
 {
   mat33 imm , qmm ;
@@ -64,11 +66,15 @@ mat33 IW3D_compute_inverse_emat( mat33 emm )
   return imm ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 void IW3D_set_emat_raw( IndexWarp3D *AA , mat33 emm )
 {
    if( AA != NULL ){ AA->emat = emm ; AA->use_emat = ! ISZERO_MAT33(emm) ; }
    return ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 void IW3D_clear_emat( IndexWarp3D *AA )
 {

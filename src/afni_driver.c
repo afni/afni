@@ -583,7 +583,7 @@ ENTRY("AFNI_switch_anatomy") ;
 
    if( cmd == NULL ) RETURN(-1) ; /* No need to die if strlen(cmd) < 3!
                                      I get in trouble for short names and
-                                     I get in trouble for long names! 
+                                     I get in trouble for long names!
                                      Sheesh.    ZSS Dec 2011 */
 
    ic = AFNI_controller_code_to_index( cmd ) ;
@@ -601,9 +601,9 @@ ENTRY("AFNI_switch_anatomy") ;
 
    if( strlen(dname) == 0 ) RETURN(-1) ;
 
-   if( nuse > 0 &&
-       *(cmd+dadd+nuse)!= '\0' &&
-       *(cmd+dadd+nuse+1) != '\0')
+   if( nuse > 0                   &&
+       *(cmd+dadd+nuse)   != '\0' &&
+       *(cmd+dadd+nuse+1) != '\0'    )
       sscanf( cmd+dadd+nuse+1 , "%d" , &sb ) ;  /* 30 Nov 2005 */
                /* not checking for early string termination
                   before sscanf was causing corruption in some cases.
@@ -3100,6 +3100,20 @@ static int AFNI_drive_instacorr( char *cmd )
          if( iset->dset == NULL )
            ERROR_message("INSTACORR INIT: failed to find Dataset %s",dpt) ;
 
+       } else if( strcasecmp(cpt,"mask") == 0 ){        /* mask [07 Feb 2013] */
+         if( strcasecmp(dpt,"AUTO") == 0 || strcasecmp(dpt,"AUTOMASK") == 0 ){
+           iset->automask = 1 ; iset->mset = NULL ; mm++ ;
+         } else if( strcasecmp(dpt,"NULL") == 0 || strcasecmp(dpt,"NONE") == 0 ){
+           iset->automask = 0 ; iset->mset = NULL ; mm++ ;
+         } else {
+           THD_slist_find ff ; char *ppt ;
+           iset->automask = 0 ;
+           ppt = strchr(dpt,'+') ; if( ppt != NULL ) *ppt = '\0' ;
+           ff = PLUTO_dset_finder(dpt) ; iset->mset = ff.dset ; mm++ ;
+           if( iset->mset == NULL )
+             ERROR_message("INSTACORR INIT: failed to find Mask %s",dpt) ;
+         }
+
        } else if( strcasecmp(cpt,"eset")     == 0 ||
                   strcasecmp(cpt,"extraset") == 0   ){
          THD_slist_find ff ; char *ppt ;
@@ -3187,7 +3201,7 @@ static int AFNI_drive_instacorr( char *cmd )
        return 0 ;
      }
 
-	  /* major changes made ==> re-do complete initialization */
+     /* major changes made ==> re-do complete initialization */
 
      SHOW_AFNI_PAUSE ;
      ii = THD_instacorr_prepare( iset ) ;      /* all the real work is herein */
