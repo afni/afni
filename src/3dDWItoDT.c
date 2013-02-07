@@ -5,6 +5,22 @@
 /* This version includes a more complex algorithm that takes into account*/
 /* noise.*/
 
+
+/* Gregory Baxter (gbaxter@ucsd.edu), 2 Nov 2012                             */
+/* UCSD Center for Scientific Computation in Imaging (csci.ucsd.edu)         */
+/*                                                                           */
+/* Added modifications to allow for reading a b-matrix file directly rather  */
+/* constructing it from gradient directions.                                 */
+/*                                                                           */
+/* When -bmatrix is specified on the command line, the gradient file is      */
+/* read as a bmatrix file instead and expected to have 6 columns (rather     */
+/* than 3), with elements ordered Bxx, Byy, Bzz, Bxy, Bxz, Byz.              */
+/*                                                                           */
+/* For calculations with the -bmatrix option, the diffusion weighted dataset */
+/* is assumed to have a single b0 image first, followed by all the diffusion */
+/* weighted images. The bmatrix file should have the same number of rows as  */
+/* the total number of diffusion weighted images (including the b0 image).   */
+
 #include "thd_shear3d.h"
 /*#ifndef FLOATIZE*/
 # include "matrix.h"
@@ -52,6 +68,7 @@ static int cumulative_flag = 0; /* calculate, display cumulative wts for gradien
 static int debug_briks = 0;     /* put Ed, Ed0 and Converge step sub-briks in output - user option */
 static int verbose = 0;         /* print out info every verbose number of voxels - user option */
 static int afnitalk_flag = 0;   /* show convergence in AFNI graph - user option */
+static int bmatrix_given = 0;   /* user input file is b matrix (instead of gradient direction matrix) with 6 columns: Bxx, Byy, Bzz, Bxy, Bxz, Byz */
 static int opt_method = 2;      /* use gradient descent instead of Powell's new optimize method*/
 static int voxel_opt_method = 0; /* hybridize optimization between Powell and gradient descent */
 static int Powell_npts = 1;     /* number of points in input dataset for Powell optimization function */
@@ -139,6 +156,7 @@ main (int argc, char *argv[])
 	      "    high-intensity (presumably brain) voxels.  The intensity level is\n"
               "    determined the same way that 3dClipLevel works.\n\n"
               "   -mask dset = use dset as mask to include/exclude voxels\n\n"
+	      "   -bmatrix = input dataset is b-matrix, not gradient directions.\n\n"
               "   -nonlinear = compute iterative solution to avoid negative eigenvalues.\n"
               "    This is the default method.\n\n"
               "   -linear = compute simple linear solution.\n\n"
@@ -271,6 +289,12 @@ main (int argc, char *argv[])
          mmvox = DSET_NVOX( mask_dset ) ;
 
          DSET_delete(mask_dset) ; nopt++ ; continue ;
+      }
+
+      if (strcmp(argv[nopt], "-bmatrix") == 0) {
+	bmatrix_given = 1;
+	nopt++;
+	continue;
       }
 
       if (strcmp (argv[nopt], "-linear") == 0)
@@ -506,11 +530,10 @@ main (int argc, char *argv[])
       ERROR_exit("Error reading gradient vector file");
     }
 
-  if (grad1Dptr->ny != 3)
+  if ((grad1Dptr->ny != 3 && !bmatrix_given) || (grad1Dptr->ny != 6 && bmatrix_given))
     {
+      ERROR_message("Error - Only 3 columns of gradient vectors (or 6 columns for b matrices) allowed: %d columns found", grad1Dptr->ny);
       mri_free (grad1Dptr);
-      ERROR_message("Error - Only 3 columns of gradient vectors allowed");
-      ERROR_exit(" %d columns found", grad1Dptr->nx);
       exit (1);
     }
 
@@ -532,7 +555,8 @@ main (int argc, char *argv[])
   CHECK_OPEN_ERROR(old_dset,argv[nopt]) ;
 
   /* expect at least 7 values per voxel - 7 sub-briks as input dataset */
-  if (DSET_NVALS (old_dset) != (grad1Dptr->nx + 1))
+  if (!(!bmatrix_given && DSET_NVALS (old_dset) == (grad1Dptr->nx + 1)) 
+      && !((bmatrix_given && DSET_NVALS (old_dset) == (grad1Dptr->nx))))
     {
       mri_free (grad1Dptr);
       ERROR_message("Error - Dataset must have number of sub-briks equal to one more than number");
@@ -544,8 +568,14 @@ main (int argc, char *argv[])
    }
 
 
-  InitGlobals (grad1Dptr->nx + 1);	/* initialize all the matrices and vectors */
-  Computebmatrix (grad1Dptr);	/* compute bij=GiGj */
+   if (bmatrix_given) {
+     InitGlobals (grad1Dptr->nx);  /* initialize all the matrices and vectors */
+   }
+   else {
+     InitGlobals (grad1Dptr->nx + 1);	/* initialize all the matrices and vectors */
+   }
+
+   Computebmatrix (grad1Dptr);	/* compute bij=GiGj */
 
   if (automask)
     {
@@ -794,36 +824,75 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
   register double sf2;		/* just scale factor * 2 */
   int i, nrows;
   register float *imptr, *Gxptr, *Gyptr, *Gzptr;
+  register float *Bxxptr, *Byyptr, *Bzzptr, *Bxyptr, *Bxzptr, *Byzptr;
   matrix *nullptr = NULL;
-  register double Gx, Gy, Gz;
+  register double Gx, Gy, Gz, Bxx, Byy, Bzz, Bxy, Bxz, Byz;
 
   ENTRY ("Form_R_Matrix");
-  nrows = grad1Dptr->nx;
-  matrix_initialize (&Rmat);
-  matrix_create (nrows, 6, &Rmat);	/* Rmat = Np x 6 matrix */
-  if (Rmat.elts == NULL)
-    {				/* memory allocation error */
-      ERROR_message("Could not allocate memory for Rmat");
-      EXRETURN;
-    }
   sf2 = sf + sf;		/* 2 * scale factor for minor speed improvement */
-  Gxptr = imptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
-  Gyptr = imptr + nrows;
-  Gzptr = Gyptr + nrows;
 
-  for (i = 0; i < nrows; i++)
-    {
-      Gx = *Gxptr++;
-      Gy = *Gyptr++;
-      Gz = *Gzptr++;
-      Rmat.elts[i][0] = sf * Gx * Gx;	/* bxx = Gx*Gx*scalefactor */
-      Rmat.elts[i][1] = sf2 * Gx * Gy;	/* 2bxy = 2GxGy*scalefactor */
-      Rmat.elts[i][2] = sf2 * Gx * Gz;	/* 2bxz = 2GxGz*scalefactor */
-      Rmat.elts[i][3] = sf * Gy * Gy;	/* byy = Gy*Gy*scalefactor */
-      Rmat.elts[i][4] = sf2 * Gy * Gz;	/* 2byz = 2GyGz*scalefactor */
-      Rmat.elts[i][5] = sf * Gz * Gz;	/* bzz = Gz*Gz*scalefactor */
-    }
+  if (grad1Dptr->ny == 6) {
+    /* just read from b-matrix and scale as necessary */
+    nrows = grad1Dptr->nx - 1;
+    matrix_initialize (&Rmat);
+    matrix_create (nrows, 6, &Rmat);	/* Rmat = Np x 6 matrix */
+    if (Rmat.elts == NULL)
+      {				/* memory allocation error */
+	ERROR_message("Could not allocate memory for Rmat");
+	EXRETURN;
+      }
 
+    Bxxptr = imptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
+    Byyptr = imptr + nrows;
+    Bzzptr = Byyptr + nrows;
+    Bxyptr = Bzzptr + nrows;
+    Bxzptr = Bxyptr + nrows;
+    Byzptr = Bxzptr + nrows;
+
+    for (i = 0; i < nrows; i++)
+      {
+	Bxx = *Bxxptr++;
+	Byy = *Byyptr++;
+	Bzz = *Bzzptr++;
+	Bxy = *Bxyptr++;
+	Bxz = *Bxzptr++;
+	Byz = *Byzptr++;
+	Rmat.elts[i][0] = sf * Bxx;	/* bxx = Gx*Gx*scalefactor */
+	Rmat.elts[i][1] = sf2 * Bxy;	/* 2bxy = 2GxGy*scalefactor */
+	Rmat.elts[i][2] = sf2 * Bxz;	/* 2bxz = 2GxGz*scalefactor */
+	Rmat.elts[i][3] = sf * Byy;	/* byy = Gy*Gy*scalefactor */
+	Rmat.elts[i][4] = sf2 * Byz;	/* 2byz = 2GyGz*scalefactor */
+	Rmat.elts[i][5] = sf * Bzz;	/* bzz = Gz*Gz*scalefactor */
+      }
+
+  }
+  else {
+    nrows = grad1Dptr->nx;
+    matrix_initialize (&Rmat);
+    matrix_create (nrows, 6, &Rmat);	/* Rmat = Np x 6 matrix */
+    if (Rmat.elts == NULL)
+      {				/* memory allocation error */
+	ERROR_message("Could not allocate memory for Rmat");
+	EXRETURN;
+      }
+
+    Gxptr = imptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
+    Gyptr = imptr + nrows;
+    Gzptr = Gyptr + nrows;
+
+    for (i = 0; i < nrows; i++)
+      {
+	Gx = *Gxptr++;
+	Gy = *Gyptr++;
+	Gz = *Gzptr++;
+	Rmat.elts[i][0] = sf * Gx * Gx;	/* bxx = Gx*Gx*scalefactor */
+	Rmat.elts[i][1] = sf2 * Gx * Gy;	/* 2bxy = 2GxGy*scalefactor */
+	Rmat.elts[i][2] = sf2 * Gx * Gz;	/* 2bxz = 2GxGz*scalefactor */
+	Rmat.elts[i][3] = sf * Gy * Gy;	/* byy = Gy*Gy*scalefactor */
+	Rmat.elts[i][4] = sf2 * Gy * Gz;	/* 2byz = 2GyGz*scalefactor */
+	Rmat.elts[i][5] = sf * Gz * Gz;	/* bzz = Gz*Gz*scalefactor */
+      }
+  }
   matrix_initialize (&Rtmat);
   matrix_psinv (Rmat, nullptr, &Rtmat);	/* compute pseudo-inverse of Rmat=Rtmat */
   matrix_destroy (&Rmat);	/*  from the other two matrices */
@@ -1586,36 +1655,72 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
   int i, n;
   register double *bptr;
   register float *Gxptr, *Gyptr, *Gzptr;
-  double Gx, Gy, Gz;
+  register float *Bxxptr, *Byyptr, *Bzzptr, *Bxyptr, *Bxzptr, *Byzptr;
+  double Gx, Gy, Gz, Bxx, Byy, Bzz, Bxy, Bxz, Byz;
 
   ENTRY ("Computebmatrix");
   n = grad1Dptr->nx;		/* number of gradients other than I0 */
-  Gxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
-  Gyptr = Gxptr + n;
-  Gzptr = Gyptr + n;
 
-  bptr = bmatrix;
-  for (i = 0; i < 6; i++)
-    *bptr++ = 0.0;		/* initialize first 6 elements to 0.0 for the I0 gradient */
+  if (grad1Dptr->ny == 6) {
+    /* just read in b matrix */
+    Bxxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
+    Byyptr = Bxxptr + n;
+    Bzzptr = Byyptr + n;
+    Bxyptr = Bzzptr + n;
+    Bxzptr = Bxyptr + n;
+    Byzptr = Bxzptr + n;
 
-  B0list[0]= 1;      /* keep a record of which volumes have no gradient */
+    bptr = bmatrix;
 
-  for (i = 0; i < n; i++)
-    {
-      Gx = *Gxptr++;
-      Gy = *Gyptr++;
-      Gz = *Gzptr++;
-      *bptr++ = Gx * Gx;
-      *bptr++ = Gx * Gy;
-      *bptr++ = Gx * Gz;
-      *bptr++ = Gy * Gy;
-      *bptr++ = Gy * Gz;
-      *bptr++ = Gz * Gz;
-      if((Gx==0.0) && (Gy==0.0) && (Gz==0.0))
-         B0list[i+1] = 1;   /* no gradient applied*/
-      else
-         B0list[i+1] = 0;
-    }
+    B0list[0]= 1;  /* keep a record of which volumes have no gradient: first one always assumed */
+
+    for (i = 0; i < n; i++){
+	    Bxx = *Bxxptr++;
+	    Byy = *Byyptr++;
+	    Bzz = *Bzzptr++;
+	    Bxy = *Bxyptr++;
+	    Bxz = *Bxzptr++;
+	    Byz = *Byzptr++;
+	    *bptr++ = Bxx;
+	    *bptr++ = Bxy;
+	    *bptr++ = Bxz;
+	    *bptr++ = Byy;
+	    *bptr++ = Byz;
+	    *bptr++ = Bzz;
+       if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  /* is this a zero gradient volume also? */
+          B0list[i+1] = 1;
+       else
+          B0list[i+1] = 0;
+      }
+  }
+  else {
+    Gxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
+    Gyptr = Gxptr + n;
+    Gzptr = Gyptr + n;
+
+    bptr = bmatrix;
+    for (i = 0; i < 6; i++)
+      *bptr++ = 0.0;		/* initialize first 6 elements to 0.0 for the I0 gradient */
+
+    B0list[0]= 1;      /* keep a record of which volumes have no gradient */
+
+    for (i = 0; i < n; i++)
+      {
+	Gx = *Gxptr++;
+	Gy = *Gyptr++;
+	Gz = *Gzptr++;
+	*bptr++ = Gx * Gx;
+	*bptr++ = Gx * Gy;
+	*bptr++ = Gx * Gz;
+	*bptr++ = Gy * Gy;
+	*bptr++ = Gy * Gz;
+	*bptr++ = Gz * Gz;
+	if((Gx==0.0) && (Gy==0.0) && (Gz==0.0))
+	  B0list[i+1] = 1;   /* no gradient applied*/
+	else
+	  B0list[i+1] = 0;
+      }
+  }
   EXRETURN;
 }
 
