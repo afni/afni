@@ -88,6 +88,10 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "             d:DSET.niml.dset which sets MAX_INDEX to the maximum node found\n"
 "                      in dataset DSET.niml.dset.\n"       
 "\n"
+"     -labelize CMAP: Turn the dataset into a labeled set per the colormap in\n"
+"                     CMAP. A CMAP can easily be generated with MakeColorMap's\n"
+"                     options -usercolorlutfile and -suma_cmap.\n"
+"\n"
 "     -i_TYPE: TYPE of input datasets\n"
 "              where TYPE is one of:\n"
 "           niml: for niml data sets.\n"
@@ -122,6 +126,12 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "1-   Plot a node's time series from a niml dataset:\n"
 "     ConvertDset -input DemoSubj_EccCntavir.niml.dset'#5779#' \\\n"
 "                 -o_1D_stdout | 1dplot -nopush -stdin \n"
+"\n"
+"2-   Change a dataset to a labeled dataset using the colormap generated \n"
+"     in Example 5 of MakeColorMap's help\n"
+"     ConvertDset -i you_look_marvellous.niml.dset \n"
+"                 -o you_look_labeled.niml.dset -labelize toylut.niml.cmap\n"
+"\n"
 "\n",(detail > 1) ? sd : "Use -help for more detail.",
      (detail > 1) ? sm : "",
      (detail > 1) ? s : "");
@@ -146,11 +156,12 @@ int main (int argc,char *argv[])
    float *fv = NULL;
    SUMA_DSET_FORMAT iform, oform;
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
-   char *NameOut, *prfx = NULL, *prefix = NULL;
+   char *NameOut, *prfx = NULL, *prefix = NULL, *cmapfile;
    char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
    int overwrite = 0, exists = 0, N_inmask=-1, pad_to_node = -1;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    int orderednodelist = 1, split=0;
+   SUMA_COLOR_MAP *SM=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -171,6 +182,7 @@ int main (int argc,char *argv[])
    exists = 0;
    split = 0;
    no_hist = 0;
+   cmapfile=NULL;
    kar = 1;
    brk = NOPE;
    while (kar < argc) { /* loop accross command ine options */
@@ -240,6 +252,21 @@ int main (int argc,char *argv[])
          }
          i_input = kar+1;
          ++kar;
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-labelize") == 0))
+      {
+         if (kar+1 >= argc) {
+            SUMA_SL_Err("Need colrmap after -labelize");
+            exit(1);
+         }
+         ++kar;
+         cmapfile = argv[kar];
+         if (!(SM = SUMA_LoadCmapFile_eng(cmapfile))) {
+            SUMA_S_Errv("Failed to load cmap file %s\n", cmapfile);
+            exit(1);
+         }
          brk = YUP;
       }
       
@@ -537,8 +564,23 @@ int main (int argc,char *argv[])
          if (LocalHead) SUMA_ShowDset(dset,0, NULL); 
       }
       
+      if (cmapfile && SM) { /* labelize */
+         SUMA_DSET *idset;
+         if (!SUMA_is_AllConsistentCastType_dset(dset, SUMA_int)) { 
+            idset = SUMA_CoercedCopyofDset(dset, SUMA_int, NULL);
+         } else {
+            idset = dset;
+         }
+         if (!(SUMA_dset_to_Label_dset_cmap(idset, SM))) {
+            SUMA_S_Err("Failed to make change");
+            exit(1);
+         }
       
-         
+         if (idset != dset) {
+            SUMA_FreeDset(dset); dset = idset; idset=NULL;
+         }
+      }
+      
       SUMA_LHv("About to write dset to %s\n", prefix);
       if (!split) {
          NameOut = SUMA_WriteDset_s (prefix, dset, oform, overwrite, 0);
@@ -578,6 +620,7 @@ int main (int argc,char *argv[])
          SUMA_free(colmask); colmask=NULL;
       }
       
+      if (SM) SUMA_Free_ColorMap(SM); SM = NULL;
       if (prefix) SUMA_free(prefix); prefix = NULL;    
       if (dset) SUMA_FreeDset((void *)dset); dset = NULL;
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;

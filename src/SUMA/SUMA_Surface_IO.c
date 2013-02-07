@@ -1868,6 +1868,7 @@ SUMA_Boolean SUMA_readFScolorLUT(char *f_name, SUMA_FS_COLORTABLE **ctp)
    SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
    char *fl=NULL, *fl2=NULL, *colfile=NULL, *florig=NULL, *name=NULL, *fle=NULL;
    double dum;
+   float mxcol;
    int i, r, g, b, v, nalloc, nchar, ok, ans, cnt, ism=0;
    SUMA_Boolean state = YUP;
    SUMA_Boolean LocalHead = NOPE;
@@ -1905,7 +1906,7 @@ SUMA_Boolean SUMA_readFScolorLUT(char *f_name, SUMA_FS_COLORTABLE **ctp)
    ct = SUMA_CreateFS_ColorTable(nalloc, strlen(colfile), NULL);
    snprintf(ct->fname, (strlen(colfile)+1)*sizeof(char),"%s", colfile);
    ok = 1;
-   cnt = 0;
+   cnt = 0; mxcol = 0;
    while (ok && fl < fle) {
       SUMA_SKIP_BLANK(fl, fle);
       do {
@@ -1941,23 +1942,40 @@ SUMA_Boolean SUMA_readFScolorLUT(char *f_name, SUMA_FS_COLORTABLE **ctp)
       SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
       if (!ok) { SUMA_S_Err("Failed to read r"); state = NOPE; goto CLEANUP; }
       SUMA_LHv("r %f\n", dum);
-      ce->r=(int)dum;
+      ce->r=(int)(dum*1000);
       SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
       if (!ok) { SUMA_S_Err("Failed to read g"); state = NOPE; goto CLEANUP; }
       SUMA_LHv("g %f\n", dum);
-      ce->g=(int)dum;
+      ce->g=(int)(dum*1000);
       SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
       if (!ok) { SUMA_S_Err("Failed to read b"); state = NOPE; goto CLEANUP; }
       SUMA_LHv("b %f\n", dum);
-      ce->b=(int)dum;
+      ce->b=(int)(dum*1000);
       SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
       if (!ok) { SUMA_S_Err("Failed to read v"); state = NOPE; goto CLEANUP; }
       SUMA_LHv("v %f\n", dum);
-      ce->flag=(int)dum;
+      ce->flag=(int)(dum*1000);
+      if (ce->r > mxcol) mxcol=ce->r; 
+      if (ce->g > mxcol) mxcol=ce->g; 
+      if (ce->b > mxcol) mxcol=ce->b;
+      if (ce->flag > mxcol) mxcol=ce->flag;
       ++cnt;
    }
       
    DONEREAD:
+   if (mxcol < 1.1*1000) { /* range is 0 -- 1 */
+      mxcol = 255.0/1000.0; /* recycle to scale */
+   } else { /* range is 0 -- 255, just undo 1000 scaling */
+      mxcol = 1.0/1000.0;
+   }
+   for (ism=0; ism<cnt; ++ism) {
+      ce = &ct->bins[ism]; 
+      ce->r = (int)((float)ce->r*mxcol);
+      ce->g = (int)((float)ce->g*mxcol);
+      ce->b = (int)((float)ce->b*mxcol);
+      ce->flag = (int)((float)ce->flag*mxcol);
+   }
+   
    ct = SUMA_CreateFS_ColorTable(cnt,  -1, ct);
 
    /* Hash the colormap */
@@ -1988,7 +2006,7 @@ SUMA_Boolean SUMA_readFScolorLUT(char *f_name, SUMA_FS_COLORTABLE **ctp)
 }
 
 SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, 
-                                       int lbl1, int lbl2, int show) 
+                                       int lbl1, int lbl2, int show, int idISi) 
 {
    static char FuncName[]={"SUMA_FScolutToColorMap"};
    SUMA_FS_COLORTABLE *ct=NULL;
@@ -2002,7 +2020,7 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname,
       SUMA_RETURN(SM);
    }
    
-   SM = SUMA_FScolutToColorMap_eng(ct, lbl1, lbl2, show);
+   SM = SUMA_FScolutToColorMap_eng(ct, lbl1, lbl2, show, idISi);
    
    ct = SUMA_FreeFS_ColorTable(ct);
    
@@ -2011,7 +2029,7 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname,
 }
 
 SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct, 
-                                       int lbl1, int lbl2, int show) 
+                                       int lbl1, int lbl2, int show, int idISi) 
 {
    static char FuncName[]={"SUMA_FScolutToColorMap_eng"};
    SUMA_COLOR_MAP *SM=NULL;
@@ -2116,12 +2134,17 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct,
          SM->M[ism][2] = (float)(ct->bins[cnt].b) / 255.0;
          SM->M[ism][3] = 1.0;
          SM->cname[ism] = SUMA_copy_string(ct->bins[cnt].name);
-         SM->idvec[ism] =  ct->bins[cnt].r | 
-                           ct->bins[cnt].g << 8 | 
-                           ct->bins[cnt].b << 16; 
-                     /* that's how annotation files encode a node's id,
-                     This annotation is OK for surfaces, Not
-                     for FreeSurfer's volumes*/
+         if (idISi) {
+            /* for non-freesurfer maps */
+            SM->idvec[ism] = ct->bins[cnt].i;
+         } else {
+            SM->idvec[ism] =  ct->bins[cnt].r | 
+                              ct->bins[cnt].g << 8 | 
+                              ct->bins[cnt].b << 16; 
+                        /* that's how annotation files encode a node's id,
+                        This annotation is OK for surfaces, Not
+                        for FreeSurfer's volumes*/
+         }
          SUMA_LHv("FSi %d --> SMi %d\n", ct->bins[cnt].i, ism);
          ++ism;
       } else {
@@ -2472,7 +2495,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
          First allocate for cmap then use SUMA_copy_string to fill it with 
          the names */
          SUMA_LH("Changing to SUMA format");
-         CM = SUMA_FScolutToColorMap_eng(ct, lbl1, lbl2, 0); 
+         CM = SUMA_FScolutToColorMap_eng(ct, lbl1, lbl2, 0, 0); 
 
       /* 2- Create a vector from the labels and create a data set from it */ 
          dset = SUMA_CreateDsetPointer(FuncName, SUMA_NODE_LABEL, 

@@ -1787,7 +1787,8 @@ int SUMA_AddDsetColAttr (  SUMA_DSET *dset, char *col_label,
 /*!
    \brief a special version of SUMA_AddDsetColAttr for node index column
 */
-int SUMA_AddDsetNodeIndexColAttr (SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, void *col_attr)
+int SUMA_AddDsetNodeIndexColAttr (SUMA_DSET *dset, char *col_label, 
+                                  SUMA_COL_TYPE ctp, void *col_attr)
 {
    static char FuncName[]={"SUMA_AddDsetNodeIndexColAttr"};
    NI_element *nelb = NULL;
@@ -3489,17 +3490,125 @@ SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex )
    SUMA_RETURN(ndset);
 }
 
+/* Make a new copy of a dataset forcing all the columns to of type vtp */
+SUMA_DSET *SUMA_CoercedCopyofDset( SUMA_DSET *odset, SUMA_VARTYPE vtp,
+                                   byte *colmask)
+{
+   static char FuncName[]={"SUMA_CoercedCopyofDset"};
+   int i = -1;
+   int *coli=NULL;
+   float *colf=NULL;
+   void *colv=NULL;
+   char *lblcp=NULL;
+   SUMA_DSET *ndset=NULL;
+   NI_rowtype *rt=NULL;
+   SUMA_COL_TYPE ctp = SUMA_ERROR_COL_TYPE;
+   int DoThisCol=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!odset) { SUMA_SL_Err("Null input"); SUMA_RETURN(NULL); }
+   if (!odset->dnel) { SUMA_SL_Err("Null dnel"); SUMA_RETURN(NULL); }
+   if (!SUMA_is_AllNumeric_dset(odset)) {
+      SUMA_SL_Err("Function does not deal with data sets containing "
+                  "non-numeric columns");
+      SUMA_RETURN(NULL);
+   }
+   if (vtp != SUMA_int && vtp != SUMA_float) {
+      SUMA_S_Err("Only SUMA_int and SUMA_float supported");
+      SUMA_RETURN(NULL);
+   }
+   if (0 && LocalHead) {
+      SUMA_ShowNel((void*)odset->dnel);
+   }
+   
+   if (!ndset) {
+      ndset = SUMA_EmptyCopyofDset( odset, NULL, 
+                                    0, 1);
+
+      SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset);
+   }
+   for (i=0; i < SDSET_VECNUM(odset); ++i) {
+      if (!colmask) DoThisCol = 1;
+      else DoThisCol = colmask[i];
+      if (DoThisCol) {
+         if (LocalHead) fprintf(SUMA_STDERR,"%s:\nProcessing column %d\n", 
+                                 FuncName, i);
+         ctp = SUMA_TypeOfDsetColNumb(odset, i); 
+         rt = NI_rowtype_find_code(SUMA_ColType2TypeCast(ctp)) ; 
+         if( rt == NULL || ROWTYPE_is_varsize(rt)) {
+            SUMA_SL_Err("Could not recognize rowtype, or rowtype is of "
+                        "variable size."); SUMA_RETURN(NULL);
+         }
+         coli=NULL;
+         colf=NULL;
+         if (ctp == SUMA_NODE_INDEX) {
+            SUMA_S_Err("This should not be anymore. Skipping...");
+         } else {
+             switch(vtp) {
+               case SUMA_int:
+                  if (!(coli = SUMA_DsetCol2Int (odset, i, 1))) {
+                     SUMA_S_Errv("Failed to convert col. %d to int (%d) type", 
+                                 i, vtp);
+                     SUMA_FreeDset(ndset); SUMA_RETURN(NULL);
+                  }
+                  ctp = SUMA_NODE_INT;
+                  colv = (void *)coli;
+                  break;
+               case SUMA_float:
+                  if (!(colf = SUMA_DsetCol2Float (odset, i, 1))) {
+                     SUMA_S_Errv("Failed to convert col. %d to float (%d) type", 
+                                 i, vtp);
+                     SUMA_FreeDset(ndset); SUMA_RETURN(NULL);
+                  }
+                  ctp = SUMA_NODE_FLOAT;
+                  colv = (void *)colf;
+                  break;
+               default:
+                  SUMA_S_Errv("Not ready for type %d\n", vtp);
+                  SUMA_FreeDset(ndset); SUMA_RETURN(NULL);
+                  break;
+            }
+         }
+         if (!colv) {
+            SUMA_SL_Err("No data got copied.");
+            SUMA_FreeDset(ndset); SUMA_RETURN(NULL);
+         }
+         /* add the column */
+         SUMA_LH("Getting the label");
+         lblcp = SUMA_DsetColLabelCopy(odset, i, 0);         
+         SUMA_LH("Inserting the column");
+         if (!SUMA_AddDsetNelCol (ndset, lblcp, ctp, colv, NULL ,1)) {
+            SUMA_SL_Crit("Failed in SUMA_AddDsetNelCol");
+            SUMA_FreeDset((void*)ndset); ndset = NULL;
+            SUMA_RETURN(ndset);
+         } 
+         SUMA_LH("Insertion finished");
+         if (lblcp) SUMA_free(lblcp); lblcp = NULL;
+         /* Adding other columnar attributes */
+         SUMA_COPY_DSET_COL_ATTRIBUTES(odset, ndset, 
+                                       i, SDSET_VECNUM(ndset)-1);
+      } else {
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,"%s:\nSkipping column %d\n", FuncName, i);
+      }
+   }
+   
+   SUMA_RETURN(ndset);
+}
+
 SUMA_DSET * SUMA_MaskedCopyofDset(  SUMA_DSET *odset, 
                                     byte *rowmask, byte *colmask, 
                                     int masked_only, int keep_node_index)
 {
    static char FuncName[]={"SUMA_MaskedCopyofDset"};
    int n_incopy = -1, i=-1;
-   char *new_name=NULL, idcode[SUMA_IDCODE_LENGTH]={"\0"}, *lblcp=NULL;
+   char *lblcp=NULL;
    SUMA_DSET *ndset=NULL;
-   NI_rowtype *rt=NULL, *rti=NULL;
+   NI_rowtype *rt=NULL;
    SUMA_COL_TYPE ctp = SUMA_ERROR_COL_TYPE;
-   void *ncol=NULL, *ncoli=NULL, *ind=NULL;
+   void *ncol=NULL;
    int DoThisCol=0;
    SUMA_Boolean LocalHead = NOPE;
    
