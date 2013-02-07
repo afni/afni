@@ -1672,7 +1672,7 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
 
     bptr = bmatrix;
 
-    B0list[0]= 1;  /* keep a record of which volumes have no gradient: first one always assumed */
+/*    B0list[0]= 1;*/  /* keep a record of which volumes have no gradient: first one always assumed */
 
     for (i = 0; i < n; i++){
 	    Bxx = *Bxxptr++;
@@ -1688,9 +1688,9 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
 	    *bptr++ = Byz;
 	    *bptr++ = Bzz;
        if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  /* is this a zero gradient volume also? */
-          B0list[i+1] = 1;
+          B0list[i] = 1;
        else
-          B0list[i+1] = 0;
+          B0list[i] = 0;
       }
   }
   else {
