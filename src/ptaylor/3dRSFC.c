@@ -788,16 +788,22 @@ int main( int argc , char * argv[] )
 				}
 			}
 
-			falff[kk] = numer/denom;
+			if( denom>0.000001 )
+			  falff[kk] = numer/denom;
+			else
+			  falff[kk] = 0.;
 			alff[kk] = 2*numer/sqnt;// factor of 2 since ampl is even funct
 			meanALFF+= alff[kk];
 
 			if(DO_RSFA){
-				nu_rsfa = sqrt(2*nu_rsfa); // factor of 2 since ampls 
-				de_rsfa = sqrt(2*de_rsfa); // are even funcs
-				frsfa[kk] = nu_rsfa/de_rsfa;
-				rsfa[kk] = nu_rsfa/nt_fac;
-				meanRSFA+= rsfa[kk];
+			  nu_rsfa = sqrt(2*nu_rsfa); // factor of 2 since ampls 
+			  de_rsfa = sqrt(2*de_rsfa); // are even funcs
+			  if( de_rsfa>0.000001 )
+			    frsfa[kk] = nu_rsfa/de_rsfa;
+			  else
+			    frsfa[kk]=0.;
+			  rsfa[kk] = nu_rsfa/nt_fac;
+			  meanRSFA+= rsfa[kk];
 			}
 			
 			ctr+=1;

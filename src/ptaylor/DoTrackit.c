@@ -554,3 +554,377 @@ int TrackItP(float **CC, int *IND, float *PHYSIND,
   RETURN(tracL); 
 }
 
+
+// basic format for writing out tracking results of 3dProbTrackID:
+// + a file of individual ROI intercepts
+// + a file of the pairwise combinations
+int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox, 
+								char *prefix,THD_3dim_dataset *insetFA,
+								int *TV_switch,char *voxel_order,int *NROI,
+								int ****NETROI,int ***mskd,int ***INDEX2,int *Dim,
+								THD_3dim_dataset *dsetn,int argc, char *argv[])
+{
+
+	int i,j,k,bb,hh,kk,rr,idx;
+	char **prefix_netmap=NULL;
+	char **prefix_netmap2=NULL;
+	THD_3dim_dataset *networkMAPS=NULL,*networkMAPS2=NULL;
+
+	// ****** alloc'ing
+	prefix_netmap = calloc( N_nets,sizeof(prefix_netmap));  
+	for(i=0 ; i<N_nets ; i++) 
+		prefix_netmap[i] = calloc( 300,sizeof(char)); 
+	prefix_netmap2 = calloc( N_nets,sizeof(prefix_netmap2));  
+	for(i=0 ; i<N_nets ; i++) 
+		prefix_netmap2[i] = calloc( 300,sizeof(char)); 
+
+	if( ( prefix_netmap== NULL) || ( prefix_netmap2== NULL)) {
+		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+		exit(122);
+	}
+	
+	// ****** calc/do
+	for( hh=0 ; hh<N_nets ; hh++) {
+		
+		sprintf(prefix_netmap[hh],"%s_%03d_PAIRMAP",prefix,hh+1); 
+		// just get one of right dimensions!
+		networkMAPS = EDIT_empty_copy( insetFA ) ; 
+		EDIT_dset_items(networkMAPS,
+							 ADN_datum_all , MRI_short , 
+							 ADN_none ) ;
+		EDIT_add_bricklist(networkMAPS ,
+								 NROI[hh], NULL , NULL , NULL );
+		
+		sprintf(prefix_netmap2[hh],"%s_%03d_INDIMAP",prefix,hh+1); 
+		// just get one of right dimensions!
+		networkMAPS2 = EDIT_empty_copy( insetFA ) ; 
+		EDIT_dset_items(networkMAPS2,
+							 ADN_datum_all , MRI_float , 
+							 ADN_none ) ;
+		EDIT_add_bricklist(networkMAPS2 ,
+								 NROI[hh], NULL , NULL , NULL );
+
+		
+		// first array for all tracks, 2nd for paired ones.
+		// still just need one set of matrices output
+		short int **temp_arr=NULL;
+		float **temp_arr2=NULL;
+		temp_arr = calloc( (NROI[hh]+1),sizeof(temp_arr)); // XYZ comps
+		for(i=0 ; i<(NROI[hh]+1) ; i++) 
+			temp_arr[i] = calloc( Nvox,sizeof(short int)); 
+		temp_arr2 = calloc( (NROI[hh]+1),sizeof(temp_arr2));
+		for(i=0 ; i<(NROI[hh]+1) ; i++) 
+			temp_arr2[i] = calloc( Nvox,sizeof(float)); 
+		
+		if( ( temp_arr== NULL) || ( temp_arr2== NULL)) {
+			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+			exit(122);
+		}
+
+		for( bb=1 ; bb<=NROI[hh] ; bb++) {
+			idx=0;
+			for( k=0 ; k<Dim[2] ; k++ ) 
+				for( j=0 ; j<Dim[1] ; j++ ) 
+					for( i=0 ; i<Dim[0] ; i++ ) {
+						temp_arr[bb][idx] = 0;
+						// allow for more than one `connector' tract
+						if(mskd[i][j][k]) 
+							for( rr=0 ; rr<NROI[hh] ; rr++) 
+								if(NETROI[INDEX2[i][j][k]][hh][bb-1][rr]>0) {
+									// store connectors
+									if(bb-1 != rr){
+										temp_arr[0][idx] = 1; 
+									}
+									
+									// store tracks through any ROI
+									temp_arr2[0][idx] = (float)
+										NETROI[INDEX2[i][j][k]][hh][bb-1][rr]; 
+									
+									// then add value if overlap
+									if(bb-1 != rr)
+										temp_arr[bb][idx]+=pow(2,rr+1);// unique decomp.
+									
+									temp_arr2[bb][idx] = (float)
+										NETROI[INDEX2[i][j][k]][hh][bb-1][rr];
+								}
+						idx+=1;
+					}
+			
+			EDIT_substitute_brick(networkMAPS, bb, MRI_short, temp_arr[bb]);
+			temp_arr[bb]=NULL; // to not get into trouble...
+			
+			EDIT_substitute_brick(networkMAPS2, bb, MRI_float, temp_arr2[bb]);
+			temp_arr2[bb]=NULL; // to not get into trouble...
+		} 
+		
+		// FIRST THE PAIR CONNECTORS
+		EDIT_substitute_brick(networkMAPS, 0, MRI_short, temp_arr[0]);
+		temp_arr[0]=NULL;
+		if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
+			dsetn = r_new_resam_dset(networkMAPS, NULL, 0.0, 0.0, 0.0,
+											 voxel_order, RESAM_NN_TYPE, 
+											 NULL, 1, 0);
+			DSET_delete(networkMAPS); 
+			networkMAPS=dsetn;
+			dsetn=NULL;
+		}      
+		EDIT_dset_items(networkMAPS,
+							 ADN_prefix    , prefix_netmap[hh] ,
+							 ADN_brick_label_one , "ALLROI",
+							 ADN_none ) ;
+		THD_load_statistics(networkMAPS);
+		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(networkMAPS)) )
+			ERROR_exit("Can't overwrite existing dataset '%s'",
+						  DSET_HEADNAME(networkMAPS));
+		tross_Make_History("3dProbTrackID", argc, argv, networkMAPS);
+		THD_write_3dim_dataset(NULL, NULL, networkMAPS, True);
+		DSET_delete(networkMAPS); 
+		for( i=0 ; i<NROI[hh]+1 ; i++) // free all
+			free(temp_arr[i]);
+		free(temp_arr);
+		
+		// THEN THE INDIVID TRACKS
+		EDIT_substitute_brick(networkMAPS2, 0, MRI_float, temp_arr2[0]);
+		temp_arr2[0]=NULL;
+		if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
+			dsetn = r_new_resam_dset(networkMAPS2, NULL, 0.0, 0.0, 0.0,
+											 voxel_order, RESAM_NN_TYPE, 
+											 NULL, 1, 0);
+			DSET_delete(networkMAPS2); 
+			networkMAPS2=dsetn;
+			dsetn=NULL;
+		}      
+		EDIT_dset_items(networkMAPS2,
+							 ADN_prefix    , prefix_netmap2[hh] ,
+							 ADN_brick_label_one , "ALLROI",
+							 ADN_none ) ;
+		THD_load_statistics(networkMAPS2);
+		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(networkMAPS2)) )
+			ERROR_exit("Can't overwrite existing dataset '%s'",
+						  DSET_HEADNAME(networkMAPS2));
+		tross_Make_History("3dProbTrackID", argc, argv, networkMAPS2);
+		THD_write_3dim_dataset(NULL, NULL, networkMAPS2, True);
+		DSET_delete(networkMAPS2); 
+		for( i=0 ; i<NROI[hh]+1 ; i++) // free all
+			free(temp_arr2[i]);
+		free(temp_arr2);
+      
+	}
+	
+  
+	// ****** freeing  **********
+	
+	for( i=0 ; i<N_nets ; i++) {
+		free(prefix_netmap[i]); 
+		free(prefix_netmap2[i]); 
+	}
+	free(prefix_netmap);
+	free(prefix_netmap2);
+	free(networkMAPS);
+	free(networkMAPS2);
+
+	RETURN(1);
+}
+
+// second format for writing out tracking results of 3dProbTrackID:
+// each pairwise map in own file
+// (will be in new directory with prefix name)
+int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
+								char *prefix,THD_3dim_dataset *insetFA,
+								int *TV_switch,char *voxel_order,int *NROI,
+								int ****NETROI,int ***mskd,int ***INDEX2,int *Dim,
+								THD_3dim_dataset *dsetn,int argc, char *argv[],
+								float ****Param_grid, int DUMP_TYPE,
+								int DUMP_ORIG_LABS, int **ROI_LABELS)
+{
+
+	int i,j,k,bb,hh,rr,ii,jj,kk;
+	int idx,idx2,count;
+	char ***prefix_netmap=NULL;
+	char ***prefix_dump=NULL;
+	THD_3dim_dataset *networkMAPS=NULL;
+	int *N_totpair=NULL;
+	int sum_pairs=0;
+	FILE *fout;
+
+
+	N_totpair = (int *)calloc(N_nets, sizeof(int)); 
+
+	// find out how many networks we'll be outputting.
+	// this means going through UHT part of probgrid, looking for nonzeros
+	for( k=0 ; k<N_nets ; k++) 
+		for( i=0 ; i<NROI[k] ; i++ ) 
+			for( j=i ; j<NROI[k] ; j++ ) // include diags
+				if(Prob_grid[k][i][j]>0){
+					N_totpair[k]+=1;
+					sum_pairs+=1;
+				}
+
+	if( sum_pairs==0 )
+		INFO_message("No pairs in any network to output.");
+	else {
+
+		// ****** alloc'ing
+		prefix_netmap = (char ***) calloc( N_nets, sizeof(char **) );
+		for ( i = 0 ; i < N_nets ; i++ ) 
+			prefix_netmap[i] = (char **) calloc( N_totpair[i], sizeof(char *) );
+		for ( i = 0 ; i < N_nets ; i++ ) 
+			for ( j = 0 ; j < N_totpair[i] ; j++ ) 
+				prefix_netmap[i][j] = (char *) calloc( 300, sizeof(char) );
+		prefix_dump = (char ***) calloc( N_nets, sizeof(char **) );
+		for ( i = 0 ; i < N_nets ; i++ ) 
+			prefix_dump[i] = (char **) calloc( N_totpair[i], sizeof(char *) );
+		for ( i = 0 ; i < N_nets ; i++ ) 
+			for ( j = 0 ; j < N_totpair[i] ; j++ ) 
+				prefix_dump[i][j] = (char *) calloc( 300, sizeof(char) );
+
+		if( ( prefix_netmap== NULL) || ( prefix_dump== NULL)) {
+			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+			exit(122);
+		}
+		
+		// ****** calc/do, loop through networks
+		for( hh=0 ; hh<N_nets ; hh++) {
+			count=0;
+			for( i=0 ; i<NROI[hh] ; i++ ) 
+				for( j=i ; j<NROI[hh] ; j++ ) // include diags
+					if(Prob_grid[hh][i][j]>0) {
+						
+						if(DUMP_ORIG_LABS)
+							sprintf(prefix_netmap[hh][count],
+									  "%s/NET_%03d_ROI_%03d_%03d",prefix,hh+1,
+									  ROI_LABELS[hh][i+1],ROI_LABELS[hh][j+1]); 
+						else
+							sprintf(prefix_netmap[hh][count],
+									  "%s/NET_%03d_ROI_%03d_%03d",prefix,hh+1,i+1,j+1); 
+
+						// single brik, byte map
+						networkMAPS = EDIT_empty_copy( insetFA ) ; 
+						EDIT_dset_items(networkMAPS,
+											 ADN_datum_all , MRI_byte , 
+											 ADN_none ) ;
+						
+						sprintf(prefix_dump[hh][count],
+								  "%s/NET_%03d_ROI_%03d_%03d.dump",
+								  prefix,hh+1,i+1,j+1); 
+
+		
+						// first array for all tracks, 2nd for paired ones.
+						// still just need one set of matrices output
+						byte *temp_arr=NULL;
+						int **temp_arr2=NULL;
+
+						// will be single brik output
+						temp_arr = (byte *)calloc(Nvox, sizeof(byte));
+						// we know how many vox per WM ROI, alloc that much 
+						// for the to-be-dumped mask
+						temp_arr2=calloc(Param_grid[hh][i][j][8],sizeof(temp_arr2)); 
+						for(bb=0 ; bb<Param_grid[hh][i][j][8] ; bb++) 
+							temp_arr2[bb] = calloc(4,sizeof(int)); //x,y,z,1
+		
+						if( ( temp_arr== NULL) || ( temp_arr2== NULL)) {
+							fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+							exit(122);
+						}
+
+						idx=0;
+						idx2=0;
+						for( kk=0 ; kk<Dim[2] ; kk++ ) 
+							for( jj=0 ; jj<Dim[1] ; jj++ ) 
+								for( ii=0 ; ii<Dim[0] ; ii++ ) {
+									if(mskd[ii][jj][kk]) 
+										if(NETROI[INDEX2[ii][jj][kk]][hh][i][j]>0) {
+											// store locations
+											temp_arr[idx] = 1; 
+											temp_arr2[idx2][0] = ii;
+											temp_arr2[idx2][1] = jj;
+											temp_arr2[idx2][2] = kk;
+											temp_arr2[idx2][3] = 1;
+											idx2++;
+									}
+									idx++;
+								}
+			
+						if(idx2 != Param_grid[hh][i][j][8])
+							printf("ERROR IN COUNTING! Netw,ROI,ROI= (%d, %d, %d); idx2 %d != %d paramgrid.\n",hh,i,j,idx2,(int) Param_grid[hh][i][j][8]);
+
+						EDIT_substitute_brick(networkMAPS, 0, MRI_byte, temp_arr);
+						temp_arr=NULL; // to not get into trouble...
+					
+						if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
+							dsetn = r_new_resam_dset(networkMAPS, NULL, 0.0, 0.0, 0.0,
+															 voxel_order, RESAM_NN_TYPE, 
+															 NULL, 1, 0);
+							DSET_delete(networkMAPS); 
+							networkMAPS=dsetn;
+							dsetn=NULL;
+							
+							for( bb=0 ; bb<3 ; bb++ )
+								if(TV_switch[bb])
+									for( rr=0 ; rr<idx2 ; rr++)
+										temp_arr2[rr][bb] = Dim[bb]-1-temp_arr2[rr][bb];
+
+						}      
+						EDIT_dset_items(networkMAPS,
+											 ADN_prefix , prefix_netmap[hh][count] ,
+											 ADN_brick_label_one , "ROI_pair",
+											 ADN_none ) ;
+						
+						// output AFNI if D_T=2 or 3
+						if(DUMP_TYPE>1) {
+							THD_load_statistics(networkMAPS);
+							if( !THD_ok_overwrite() && 
+								 THD_is_ondisk(DSET_HEADNAME(networkMAPS)) )
+								ERROR_exit("Can't overwrite existing dataset '%s'",
+											  DSET_HEADNAME(networkMAPS));
+							tross_Make_History("3dProbTrackID", argc, argv, networkMAPS);
+							THD_write_3dim_dataset(NULL, NULL, networkMAPS, True);
+						}
+
+						DSET_delete(networkMAPS); 
+						free(temp_arr);
+		
+						// THEN THE DUMP FILE
+						// if D_T = 1 or 3
+						if( DUMP_TYPE % 2) {
+							if( (fout = fopen(prefix_dump[hh][count], "w")) == NULL) {
+								fprintf(stderr, "Error opening file %s.",
+										  prefix_dump[hh][count]);
+								exit(139);
+							}
+							
+							for( bb=0 ; bb<idx2 ; bb++ ){
+								for( rr=0 ; rr<4 ; rr++ )
+								fprintf(fout,"%d\t",temp_arr2[bb][rr]);
+								fprintf(fout,"\n");
+							}
+							
+							fclose(fout);
+						}
+						for( bb=0 ; bb<(int) Param_grid[hh][i][j][8] ; bb++) // free all
+							free(temp_arr2[bb]);
+						free(temp_arr2);
+					}
+			count++;
+		} // end of network loop
+		
+		// ****** freeing  **********
+		for ( bb = 0 ; bb < N_nets ; bb++ ) 
+			for ( rr = 0 ; rr < N_totpair[bb] ; rr++ ) {
+				free(prefix_dump[bb][rr]);
+				free(prefix_netmap[bb][rr]);
+			}
+		for ( bb = 0 ; bb < N_nets ; bb++ ) {
+			free(prefix_dump[bb]);
+			free(prefix_netmap[bb]);
+		}
+		free(prefix_dump);
+		free(prefix_netmap);
+		
+		free(networkMAPS);
+	}
+	
+	free(N_totpair);
+	
+	RETURN(1);
+}
