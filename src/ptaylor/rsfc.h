@@ -1,8 +1,9 @@
 #ifndef _RSFC_HEADER_
 #define _RSFC_HEADER_
 
-#define EPS_V  (0.001)
-
+#ifndef EPS_V  /* PT, See comment in DoTrackit.h for same constant */
+   #define EPS_V  (0.001)
+#endif
 
 /*
   need to change time series values to ranks, per voxel, and also
