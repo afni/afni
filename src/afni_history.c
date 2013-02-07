@@ -38,7 +38,8 @@ static  char * g_author_list[] = {
     "rickr",    "RCR",  RCR,
     "gangc",    "GC",   GC,
     "christip", "PPC",  PPC,
-    "bpittman", "BGP",  BGP
+    "bpittman", "BGP",  BGP,
+    "ptaylor",  "PT" ,  PT
 };
 
 
@@ -224,6 +225,11 @@ char * convert_author(char * name)
     if( !strcmp(name, "ZSS") )      return ZSS;
     if( !strcmp(name, "Ziad") )     return ZSS;
     if( !strcmp(name, "ziad") )     return ZSS;
+
+    if( !strcmp(name, "PT") )       return PT;
+    if( !strcmp(name, "Paul") )     return PT;
+    if( !strcmp(name, "PTaylor") )  return PT;
+    if( !strcmp(name, "ptaylor") )  return PT;
 
     if( !strcmp(name, "DRG") )      return DRG;
     if( !strcmp(name, "dglen") )    return DRG;
@@ -1450,6 +1456,7 @@ int init_histlist( global_data * gd )
     plist[c].hlist = rickr_history;     plist[c++].author = RCR;
     plist[c].hlist = rwcox_history;     plist[c++].author = RWC;
     plist[c].hlist = ziad_history;      plist[c++].author = ZSS;
+    plist[c].hlist = ptaylor_history;   plist[c++].author = PT;
     gd->plen = c;
 
     if( gd->plen > NUM_HIST_USERS ) {

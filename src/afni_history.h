@@ -31,6 +31,7 @@
 
 #define RWC "RW Cox"
 #define ZSS "ZS Saad"
+#define PT  "P Taylor"
 #define DRG "DR Glen"
 #define RCR "RC Reynolds"
 #define GC  "G Chen"         /* no middle initial (clearly evil) */
@@ -83,6 +84,7 @@ extern afni_history_struct bpittman_history[];
 extern afni_history_struct christip_history[];
 extern afni_history_struct dglen_history[];
 extern afni_history_struct gangc_history[];
+extern afni_history_struct ptaylor_history[];
 extern afni_history_struct rickr_history[];
 extern afni_history_struct rwcox_history[];
 extern afni_history_struct ziad_history[];
