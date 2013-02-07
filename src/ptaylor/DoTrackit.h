@@ -27,6 +27,21 @@ int TrackItP(float **CC, int *IND, float *PHYSIND,
 	     int **T, float **flT, int FB, float *physL,
 	     int ***ID2);
 
+int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox, 
+								char *prefix,THD_3dim_dataset *insetFA,
+								int *TV_switch,char *voxel_order,int *NROI,
+								int ****NETROI,int ***mskd,int ***INDEX2,int *Dim,
+								THD_3dim_dataset *dsetn,int argc, char *argv[]);
+
+int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
+								char *prefix,THD_3dim_dataset *insetFA,
+								int *TV_switch,char *voxel_order,int *NROI,
+								int ****NETROI,int ***mskd,int ***INDEX2,int *Dim,
+								THD_3dim_dataset *dsetn,int argc, char *argv[],
+								float ****Param_grid, int DUMP_TYPE,
+								int DUMP_ORIG_LABS, int **ROI_LABELS);
+
+
 #endif /* _DOTRACKIT_HEADER_ */
 
 
