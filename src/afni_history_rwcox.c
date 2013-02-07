@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 2 , JAN , 2013 , RWC , "afni Clusterize" , MINOR , TYPE_MODIFY ,
+  { 7 , FEB , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Add MASK= to driver for INSTACORR INIT" ,
+   "Per the request of the esteemed Daniel Handwerker, scientist\n"
+   "extraordinaire." } ,
+
+ { 2 , JAN , 2013 , RWC , "afni Clusterize" , MINOR , TYPE_MODIFY ,
    "Allow use of Spearman rather than Pearson for scatterplot correlation" ,
    "Set via environment variable AFNI_CLUSTER_SPEARMAN, or by popup menu\n"
    "attached to top of clusterize report form.  This is for PK." } ,
