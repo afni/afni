@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 6, Feb , 2013 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
+   "Merged Paul Taylor's recent code changes",
+   "Also created afni_history_ptaylor.c\n"
+   "see afni_history -author ptaylor for details on the changes\n"
+ },
+
  { 6, Feb , 2013 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
    "Added special filename '1D:stdin' to make mri_read get 1D from stdin",
    "In this manner, most 3d programs can now accept stdin input in 1D format\n"
