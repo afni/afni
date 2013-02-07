@@ -2919,6 +2919,7 @@ ENTRY("mri_read_1D") ;
    ii = strlen(fname) ;
    if( (ii <= 2 && fname[0] == '-')                  ||
        (ii <= 6 && strncmp(fname,"stdin"   ,5) == 0) ||
+       (ii <= 9 && strncmp(fname,"1D:stdin",8) == 0) || /* Isaac S.'s 02/06/13 */
        (ii <= 9 && strncmp(fname,"/dev/fd0",8) == 0)   ){
      inim = mri_read_1D_stdin() ;
      if( inim != NULL && fname[ii-1] == '\'' ){
