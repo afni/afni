@@ -31,7 +31,7 @@ void usage_niprobe(int detail) {
 "               | 1dplot -sepscl -stdin \n"
 "    niprobe -find_nel_named histogram -f h.mean.20_mm-G-SK04.niml.hist \\\n"
 "               | niprobe -attribute window 'stdin:' \n"
-
+"    niprobe -find_nel_named AFNI_labeltable -f lh.OccROIs.niml.dset\n"
 "\n"
 "Mandatory arguments:\n"
 "   streamspec: A string defining a NIML stream.\n"
@@ -264,8 +264,8 @@ int main( int argc , char *argv[] )
        while( (nini = NI_read_element( ns , 2 )) ) {
          waittime = 0;
          if (select_elmt) {
-            NI_element *thisit = NULL;
-            if ((thisit = SUMA_FindNgrNamedElement(nini, select_elmt))) {
+            void *thisit = NULL;
+            if ((thisit = SUMA_FindNgrNamedAny(nini, select_elmt))) {
                NIML_to_terminal( thisit, mode, dostderr ) ;
             }
             goto NEXT;

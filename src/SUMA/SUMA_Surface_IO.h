@@ -103,9 +103,9 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
                                int lbl1, int lbl2,
                                SUMA_DSET **dset);
 SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, 
-                                       int lbl1, int lbl2, int show); 
+                                       int lbl1, int lbl2, int show,int idISi); 
 SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct, 
-                                       int lbl1, int lbl2, int show); 
+                                       int lbl1, int lbl2, int show,int idISi); 
 SUMA_Boolean SUMA_isnimlSO(NI_group *ngr);
 void SUMA_free_ROI_Extract(void *dd);
 SUMA_Boolean SUMA_MNI_OBJ_Write(char * f_name_in, SUMA_SurfaceObject *SO);

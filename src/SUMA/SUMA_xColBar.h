@@ -299,6 +299,7 @@ void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, XtPointer call_da
 SUMA_Boolean SUMA_SetCmapMode(SUMA_SurfaceObject *SO, int imenu);
 void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data, XtPointer call_data);
 void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data);
+SUMA_COLOR_MAP *SUMA_LoadCmapFile_eng(char *filename);
 void SUMA_LoadCmapFile (char *filename, void *data);
 SUMA_Boolean  SUMA_Insert_Cmap_of_Dset(SUMA_DSET *dset);
 void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO);

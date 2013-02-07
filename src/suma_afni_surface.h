@@ -29,6 +29,7 @@ NI_group *SUMA_NewAfniSurfaceObjectPointset(void);
 NI_group *SUMA_NewAfniSurfaceObjectNormals(void);
 NI_group *SUMA_FreeAfniSurfaceObject(NI_group *aSO);
 NI_element *SUMA_FindNgrNamedElement(NI_group *ngr, char *elname);
+void *SUMA_FindNgrNamedAny(NI_group *ngr, char *elname);
 int SUMA_NI_get_int(NI_element *nel, char *attrname);
 double SUMA_NI_get_double(NI_element *nel, char *attrname);
 void SUMA_NI_set_int(NI_element *nel, char *attrname, int n);

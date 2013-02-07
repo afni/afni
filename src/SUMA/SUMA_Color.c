@@ -3623,6 +3623,12 @@ SUMA_Boolean SUMA_IsCmapOKForLabelDset(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap)
       SUMA_RETURN(NOPE);
    }
    
+   if (!cmap->chd) {
+      if (!SUMA_CreateCmapHash(cmap)) {
+         SUMA_S_Err("Cannot create hash.");
+         SUMA_RETURN(NOPE);
+      }
+   }
    for (i=0; i<N_unq; ++i) {
       if (SUMA_ColMapKeyIndex(unq[i], cmap) < 0) {
          SUMA_S_Errv("Key %d has no entry in cmap %s\n", unq[i], cmap->Name);

@@ -66,6 +66,22 @@ void SUMA_MakeColorMap_usage ()
  "             created for interactive loading into SUMA with the 'New'\n"
  "             button from the 'Surface Controller' you will need\n"
  "             to flip it upside down. \n"
+ "    -usercolutfile USER_COL_LUT: A user's own color lookup file.\n"
+ "             The format of the file is similar to FreeSurfer's ColorLUT.txt\n"
+ "             It is an ascii file whith each line containing the following:\n"
+ "                Key   R  G  B  A  Label\n"
+ "             With Key being an integer color/region identifier,\n"
+ "             Label is the string identifier and R,G,B,A are the colors \n"
+ "             and alpha values either between 0 and 1, or 0 and 255.\n"
+ "             Alpha values are ignored at the moment, but they must be \n"
+ "             in the file.\n"
+ "    -suma_cmap: write colormap in SUMA's format\n"
+ "    -sdset DSET: Add colormap to surface-based dataset DSET, making it a\n"
+ "                 Labeled data set, which gets special treatment in SUMA.\n"
+ "                 A labeled data set can only have one value per node.\n"
+ "    -sdset_prefix DSET_PREF: Prefix of dset for writing labeled version\n"
+ "                             of DSET. Without it, the new name is based on\n"
+ "                             DSET's name\n"
  "\n"
  "Example Usage 1: Creating a colormap of 20 colors that goes from \n"
  "Red to Green to Blue to Yellow to Red.\n"
@@ -94,6 +110,24 @@ void SUMA_MakeColorMap_usage ()
  "Example Usage 4: \n"
  "   MakeColorMap -fscolut 0 255\n"
  "\n"
+ "Example Usage 5: Make your own colormap and add it to a surface-based dset\n"
+ "   Say you have your own color lookup table formatted much like FreeSurfer's\n"
+ "   color lookup files. The content of this sample colut.txt file is:\n"
+ "    #integer label    String Label      R    G    B    A\n"
+ "     1                This              0.3  0.1  1    1\n"
+ "     2                One               1    0.2  0.4  1\n"
+ "     3                for               1    1    0    1\n"
+ "     4                Nick              0.1  1    0.3  1\n"
+ "\n"
+ "   The command to create a SUMA formatted colormap would be:\n"
+ "       MakeColorMap -usercolutfile colut.txt -suma_cmap toylut \n"
+ "\n"
+ "   You can attach the colormap to a surface-based datatset with \n"
+ "   ConvertDset's -labelize option, or you can also do it here in one\n"
+ "   pass with:\n"
+ "       MakeColorMap -usercolutfile colut.txt -suma_cmap toylut \\\n"
+ "                    -sdset you_look_marvellous.niml.dset\n"
+ "\n"
  "To read in a new colormap into AFNI, either paste the contents of \n"
  "TestPalette.pal in your .afnirc file or read the .pal file using \n"
  "AFNI as follows:\n"
@@ -114,16 +148,23 @@ int main (int argc,char *argv[])
    static char  FuncName[]={"MakeColorMap"};
    char  *fscolutname = NULL, *FidName = NULL, 
          *Prfx = NULL, h[9], *StdType=NULL, *dbfile=NULL, *MapName=NULL; 
-   int Ncols = 0, N_Fid = 0, kar, i, ifact, *Nind = NULL, imap = -1, MapSpecified = 0;
-   int fsbl0, fsbl1, showfscolut;
+   int Ncols = 0, N_Fid = 0, kar, i, ifact, *Nind = NULL, 
+       imap = -1, MapSpecified = 0;
+   int fsbl0, fsbl1, showfscolut, exists=0;
    float **Fid=NULL, **M=NULL;
    MRI_IMAGE *im = NULL;
    float *far=NULL;
    int AfniHex=0, freesm;
+   int suc, idISi=0;
+   char stmp[256], *s=NULL, *ooo=NULL, *sdset_prefix;
+   SUMA_PARSED_NAME *sname=NULL;
+   NI_group *ngr=NULL;   
    SUMA_Boolean   brk, SkipLast, PosMap, 
-                  Usage1, Usage2, Usage3, Usage4, flipud, fscolut,
-                  LocalHead = NOPE;
+               Usage1, Usage2, Usage3, Usage4, flipud, fscolut,
+               LocalHead = NOPE;
    SUMA_COLOR_MAP *SM=NULL;
+   SUMA_DSET_FORMAT iform;
+   SUMA_DSET *sdset=NULL;
       
    SUMA_STANDALONE_INIT;
 
@@ -153,6 +194,9 @@ int main (int argc,char *argv[])
    fscolut = NOPE;
    showfscolut = 0;
    MapSpecified = NOPE;
+   idISi=0;
+   iform = SUMA_NO_DSET_FORMAT;
+   sdset_prefix=NULL;
    while (kar < argc) { /* loop accross command ine options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           SUMA_MakeColorMap_usage();
@@ -195,7 +239,23 @@ int main (int argc,char *argv[])
          if (fsbl0 < 0) {
             fsbl0 = 0;
             fsbl1 = 255;
+         }
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-usercolutfile") == 0))
+      {
+         Usage4=YUP;
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need 1 argument after -fscolutfile ");
+            exit (1);
+         }
+         fscolutname = argv[kar];
+         if (fsbl0 < 0) {
+            fsbl0 = 0;
+            fsbl1 = -1;
          }  
+         idISi=1;
          brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-fscolut") == 0))
@@ -214,7 +274,7 @@ int main (int argc,char *argv[])
                         "do not make sense or exceed range 0 to 10000\n",
                         fsbl0, fsbl1);
             exit(1);
-         } 
+         }
          brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-show_fscolut") == 0))
@@ -268,12 +328,25 @@ int main (int argc,char *argv[])
          Prfx = argv[kar];
          AfniHex = 2; 
          brk = YUP;
-      } 
+      }
+      if (!brk && (strcmp(argv[kar], "-suma_cmap") == 0))
+      {
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need argument after -suma_cmap");
+            exit (1);
+         }
+         Prfx = argv[kar];
+         AfniHex = 3; 
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-std") == 0))
       {
          kar ++;
          if (MapSpecified) {
-            fprintf (SUMA_STDERR, "Color map already specified.\n-cmap and -std are mutually exclusive\n");
+            SUMA_S_Err( "Color map already specified.\n"
+                        "-cmap and -std are mutually exclusive\n");
             exit (1);
          }
          if (kar >= argc)  {
@@ -293,14 +366,16 @@ int main (int argc,char *argv[])
               fprintf (SUMA_STDERR, "need argument after -cmapdb ");
             exit (1);
          }
-         SUMAg_CF->isGraphical = YUP; /* WILL NEED X DISPLAY TO RESOLVE COLOR NAMES */
+         SUMAg_CF->isGraphical = YUP; 
+                        /* WILL NEED X DISPLAY TO RESOLVE COLOR NAMES */
          dbfile = argv[kar];
          brk = YUP;
       }
       
       if (!brk && (strcmp(argv[kar], "-cmap") ==0)) {
          if (MapSpecified) {
-            fprintf (SUMA_STDERR, "Color map already specified.\n-cmap and -std are mutually exclusive\n");
+            SUMA_S_Err( "Color map already specified.\n"
+                        "-cmap and -std are mutually exclusive\n");
             exit (1);
          }
          MapSpecified = YUP;
@@ -328,8 +403,32 @@ int main (int argc,char *argv[])
          brk = YUP;
       }      
    
+      if (!brk && (strcmp(argv[kar], "-sdset") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need surface dataset after -sdset \n");
+				exit (1);
+			}
+         iform = SUMA_NO_DSET_FORMAT;
+         if (!(sdset = SUMA_LoadDset_s (argv[kar], &iform, 0))) {
+            SUMA_S_Err("Failed to load surface dset");
+            exit(1);
+         }
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-sdset_prefix") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need prefix dataset after -sdset_prefix \n");
+				exit (1);
+			}
+         sdset_prefix = argv[kar];
+			brk = YUP;
+		}
       if (!brk) {
-         fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+         SUMA_S_Errv("Option %s not understood. Try -help for usage\n", 
+                     argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
       } else {   
          brk = NOPE;
@@ -343,13 +442,13 @@ int main (int argc,char *argv[])
          (Usage2 && (Usage1 || Usage3 || Usage4)) || 
          (Usage3 && (Usage1 || Usage2 || Usage4)) || 
          (Usage4 && (Usage1 || Usage2 || Usage3)) ) {
-      fprintf (SUMA_STDERR,"Error %s: Mixing options from multiple usage modes.\n", FuncName);
+      SUMA_S_Err("Mixing options from multiple usage modes.\n");
       exit(1);
    }
    
    if (!Usage1 && !Usage2 && !Usage3 && !Usage4) {
-      fprintf (SUMA_STDERR,"Error %s: One of these options must be used:\n"
-                           "-f, -fn,  -std, or -fscolut.\n", FuncName);
+      SUMA_S_Err("One of these options must be used:\n"
+                           "-f, -fn,  -std, or -fscolut.\n");
       exit(1);
    }
    
@@ -364,14 +463,14 @@ int main (int argc,char *argv[])
          }
       }
       if (SUMA_AFNI_Extract_Colors ( dbfile, SUMAg_CF->scm ) < 0) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to read %s colormap file.\n", FuncName, dbfile);
+         SUMA_S_Errv("Failed to read %s colormap file.\n", dbfile);
          exit(1);
       }
    }
    
    if (Usage1 || Usage2) {
       if (!SUMA_filexists (FidName)) {
-         fprintf (SUMA_STDERR,"Error %s: File %s could not be found.\n", FuncName, FidName);
+         SUMA_S_Errv("File %s could not be found.\n", FidName);
          exit(1);
       }
       
@@ -483,7 +582,7 @@ int main (int argc,char *argv[])
    
    if (Usage4) { /* 4th usage */
       if (!(SM = SUMA_FScolutToColorMap(fscolutname, fsbl0, 
-                                         fsbl1, showfscolut))) {
+                                         fsbl1, showfscolut, idISi))) {
          SUMA_S_Err("Failed to get FreeSurfer colormap.");
          exit(1);
       }
@@ -552,6 +651,19 @@ int main (int argc,char *argv[])
                   fprintf (stdout, "%s", h);
                }
                 fprintf (stdout, " \"\n};\n") ;
+            } else if (AfniHex == 3){ 
+               SUMA_LHv("Now turn %s to niml\n", SM->Name);
+               sname = SUMA_ParseFname(Prfx, NULL);
+               snprintf(stmp, 128*sizeof(char), 
+                        "file:%s.niml.cmap", sname->FileName_NoExt); 
+               if (SM->Name) SUMA_free(SM->Name); 
+               SM->Name = SUMA_copy_string(sname->FileName_NoExt);
+               ngr = SUMA_CmapToNICmap(SM);
+               NEL_WRITE_TX(ngr, stmp, suc);
+               if (!suc) {
+                  SUMA_S_Errv("Failed to write %s\n", stmp);
+               }
+               SUMA_Free_Parsed_Name(sname); sname = NULL;
             } else {
                SUMA_S_Err("AfniHex should be 0, 1, or 2\n");
                exit(1);
@@ -604,6 +716,30 @@ int main (int argc,char *argv[])
       if (Nind) SUMA_free(Nind);
    }
    
+   /* add colormap to a surface dset ? */
+   if (sdset) {
+      SUMA_DSET *idset;
+      if (!SUMA_is_AllConsistentCastType_dset(sdset, SUMA_int)) { 
+         idset = SUMA_CoercedCopyofDset(sdset, SUMA_int, NULL);
+      } else {
+         idset = sdset;
+      }
+      if (!(SUMA_dset_to_Label_dset_cmap(idset, SM))) {
+         SUMA_S_Err("Failed to make change");
+         exit(1);
+      }
+      s = SUMA_OutputDsetFileStatus(
+         sdset_prefix?sdset_prefix:SDSET_FILENAME(sdset),
+                                 NULL, &iform, 
+                                 NULL, ".lbl", &exists); 
+      SUMA_AddNgrHist(sdset->ngr, FuncName, argc, argv);
+      ooo = SUMA_WriteDset_s(s, idset, iform, 
+                        THD_ok_overwrite(), 0);
+      SUMA_free(ooo); ooo=NULL; SUMA_free(s); s = NULL;
+
+      if (idset != sdset) SUMA_FreeDset(idset); 
+      SUMA_FreeDset(sdset); sdset=NULL;
+   }
    if (SM && !MapName && freesm) SUMA_Free_ColorMap(SM);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) { 
       SUMA_SL_Err("Failed to free commonfields."); 
