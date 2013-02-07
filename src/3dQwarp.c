@@ -342,8 +342,8 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[nopt],"-workhard") == 0 ){
-       if( Hworkhard < 4 ) Hworkhard = 4 ;
-       else                Hworkhard++ ;
+       if( Hworkhard < 4 ) Hworkhard  = 4 ;
+       else                Hworkhard += 2 ;
        nopt++ ; continue ;
      }
 
@@ -486,6 +486,8 @@ int main( int argc , char *argv[] )
                       ADN_none ) ;
      EDIT_BRICK_FACTOR(qset,0,0.0) ;
      iterfun = Qsaver ;
+     tross_Copy_History( bset , qset ) ;
+     tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
    }
 #endif
 
@@ -515,6 +517,8 @@ int main( int argc , char *argv[] )
    oim = oiw->im ; oww = oiw->warp ;
 
    oset = EDIT_empty_copy(bset) ;
+   tross_Copy_History( bset , oset ) ;
+   tross_Make_History( "3dQwarp" , argc,argv , oset ) ;
    EDIT_dset_items( oset ,
                       ADN_prefix    , prefix ,
                       ADN_nvals     , 1 ,
