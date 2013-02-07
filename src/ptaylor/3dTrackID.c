@@ -137,7 +137,6 @@ int main(int argc, char *argv[]) {
 	char in_V1[300];
 	char in_MD[300];
 	char in_L1[300];
-	char *in_EXTRA="name";//[300];
 	int EXTRAFILE=0; // switch for whether other file is input as WM map
 
 	char OUT_bin[300];
@@ -198,26 +197,26 @@ int main(int argc, char *argv[]) {
 	int dump_opts=0;
 
 	tv_io_header header1 = {.id_string = "TRACK\0", 
-									.origin = {0,0,0},   
-									.n_scalars = 3,
-									.scal_n[0] = "FA",
-									.scal_n[1] = "MD",
-									.scal_n[2] = "L1",
-									.n_properties = 0,
-									.vox_to_ras = {{0.,0.,0.,0.},{0.,0.,0.,0.},
-														{0.,0.,0.,0.},{0.,0.,0.,0.}},
-									// reset this later based on actual data set
-									.voxel_order = "RAI\0", 
-									.invert_x = 0,
-									.invert_y = 0,
-									.invert_z = 0,
-									.swap_xy = 0,
-									.swap_yz = 0,
-									.swap_zx = 0,
-									.n_count = 0,
-									.version = 2,
-									.hdr_size = 1000};
-
+				.origin = {0,0,0},   
+				.n_scalars = 3,
+				.scal_n[0] = "FA",
+				.scal_n[1] = "MD",
+				.scal_n[2] = "L1",
+				.n_properties = 0,
+				.vox_to_ras = {{0.,0.,0.,0.},{0.,0.,0.,0.},
+					       {0.,0.,0.,0.},{0.,0.,0.,0.}},
+				// reset this later based on actual data set
+				.voxel_order = "RAI\0", 
+				.invert_x = 0,
+				.invert_y = 0,
+				.invert_z = 0,
+				.swap_xy = 0,
+				.swap_yz = 0,
+				.swap_zx = 0,
+				.n_count = 0,
+				.version = 2,
+				.hdr_size = 1000};
+	
   	// for testing names...
 	char *postfix[4]={"+orig.HEAD\0",".nii.gz\0",".nii\0","+tlrc.HEAD\0"};
   	int FOUND =-1;
@@ -433,15 +432,14 @@ int main(int argc, char *argv[]) {
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-extra_set'");
 			EXTRAFILE = 1; // switch on
-			in_EXTRA = argv[iarg];
 
-			insetEXTRA = THD_open_dataset(in_EXTRA);
+			insetEXTRA = THD_open_dataset(argv[iarg]);
 			if( (insetEXTRA == NULL ) )
-				ERROR_exit("Can't open dataset '%s': for extra set.",in_EXTRA);
+				ERROR_exit("Can't open dataset '%s': for extra set.",argv[iarg]);
 			DSET_load(insetEXTRA) ; CHECK_LOAD_ERROR(insetEXTRA) ;
 
 			if( !((Dim[0] == DSET_NX(insetEXTRA)) && (Dim[1] == DSET_NY(insetEXTRA)) && (Dim[2] == DSET_NZ(insetEXTRA))))
-				ERROR_exit("Dimensions of extra set '%s' don't match those of the DTI prop ones ('%s', etc.).",in_EXTRA, in_FA);
+				ERROR_exit("Dimensions of extra set '%s' don't match those of the DTI prop ones ('%s', etc.).",argv[iarg], in_FA);
 			
 			iarg++ ; continue ;
 		}
@@ -1091,9 +1089,8 @@ int main(int argc, char *argv[]) {
 		free(Ttot[i]);
 	free(Ttot);
 
-	free(mode);
-	free(in_EXTRA);
-
+	//free(mode);
+	
 	return 0;
 }
 

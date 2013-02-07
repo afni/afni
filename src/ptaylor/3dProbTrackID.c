@@ -13,6 +13,11 @@
 	Jan 2013:
 	+ 'NOT' masks
 	+ minimum uncert
+
+	Jan 2013: 
+	+ output ascii format 'dumps' to be turned into masks by 3dUndump,
+	or individ brain mask dumps, or both 
+
 */
 
 
@@ -109,6 +114,17 @@ void usage_ProbTrackID(int detail)
 "                     tracks which run beyond ROIs). Even with this switch\n"
 "                     on, for individual ROI stats and total tracking maps,\n"
 "                     all voxels are kept.\n"
+"    -dump_rois TYPE :can output individual masks of ROI connections.\n"
+"                     Options for TYPE are: {DUMP | AFNI | BOTH}. Using DUMP\n"
+"                     gives a set of 4-column ASCII files, each formatted\n"
+"                     like a 3dmaskdump data set; it can be reconstituted\n"
+"                     using 3dUndump. Using AFNI gives a set of BRIK/HEAD\n"
+"                     (byte) files in a directory called PREFIX; using BOTH\n"
+"                     produces both formats of outputs.\n"
+"    -lab_orig_rois  :if using `-dump_rois', then apply numerical labels of\n"
+"                     original ROIs input to the output names.  This would\n"
+"                     only matter if input ROI labels aren't consecutive and\n"
+"                     starting one (e.g., if instead they were 1,2,3,5,8,..).\n"
 "    -not_mask NM    :a mask of locations through which tracks cannot go.\n"
 "                     A single brik NM can be input, then to be applied to\n"
 "                     each ROIS brik, or an NM with the same number of briks\n"
@@ -116,10 +132,12 @@ void usage_ProbTrackID(int detail)
 "                     sponding ROIS brik. (And you could pad with zero-laden\n"
 "                     NOT-masks, in the latter case.) Mask acts such that if\n"
 "                     a possible track enters it, the whole track is removed.\n"
-"    -write_opts :Write out all the option values into PREFIX.niml.opts.\n" 
-"    -write_rois :Write out all the ROI labels in PREFIX.roi.labs, in 3cols:\n" 
-"                 Input_ROI   Condensed_form_ROI   Power_of_2_label\n"
-"    -verb VERB :Verbosity level, default is 0.\n"
+"    -write_rois     :Write out a file (PREFIX.roi.labs) of all the ROI \n" 
+"                     (re-)labels, for example if the input ROIs aren't\n"
+"                     simply consecutive and starting from 1. File has 3cols:\n"
+"                       Input_ROI   Condensed_form_ROI   Power_of_2_label\n"
+"    -write_opts     :Write out all the option values into PREFIX.niml.opts.\n" 
+"    -verb VERB      :Verbosity level, default is 0.\n"
 "\n\n"
 "  + EXAMPLE:\n"
 "      Download and install this archive:\n"
@@ -160,8 +178,6 @@ int main(int argc, char *argv[]) {
 	THD_3dim_dataset *insetL1 = NULL;
 	THD_3dim_dataset *insetFA = NULL,*insetMD = NULL,*insetUC = NULL;
 	THD_3dim_dataset *mset1=NULL; 
-	THD_3dim_dataset *networkMAPS=NULL;
-	THD_3dim_dataset *networkMAPS2=NULL;
 
 	THD_3dim_dataset *insetEXTRA=NULL; 
 	char *in_EXTRA="name";//[300];
@@ -204,7 +220,7 @@ int main(int argc, char *argv[]) {
 	
 	int Nvox=-1;   // tot number vox
 	int Ndata=-1;
-	int Dim[3]={0,0,0}; // dim in each dir
+	int *Dim=NULL; //[3]={0,0,0}; // dim in each dir
 	int Nseed=5,M=30,bval=1000;
 	float **LocSeed=NULL; // fractional locations within voxel, 
 	float Ledge[3]; // voxel edge lengths
@@ -222,6 +238,9 @@ int main(int argc, char *argv[]) {
 	float phys_forw[1], phys_back[1];
 	int idx,idx2;
 
+	int DUMP_TYPE=-1; // switch about whether to dump ascii/afni/both
+	int DUMP_ORIG_LABS=0;
+
 	int in[3]; // to pass to trackit
 	float physin[3]; // also for trackit, physical loc, 
 	int totlen; 
@@ -235,11 +254,11 @@ int main(int argc, char *argv[]) {
 	int BreakAddCont=0;
 
 	char dset_or[4] = "RAI";
-	char voxel_order[4]="---";
+	char *voxel_order=NULL;//[4]="---";
 	THD_3dim_dataset *dsetn=NULL;
-	int TV_switch[3] = {0,0,0};
+	int *TV_switch=NULL;//[3] = {0,0,0};
 
-	int ***Prob_grid=NULL;// will be a NROIxNROI grid, where NROI is num of ROIs
+	int ***Prob_grid=NULL;// NROIxNROI grid (NROI is num of ROIs)
 	float ****Param_grid=NULL;// same size as Prob_Grid (extra dim for ROI stats)
 	int *list_rois=NULL, *temp_list=NULL;
 	int MAXNROI=0;
@@ -250,9 +269,6 @@ int main(int argc, char *argv[]) {
 	float tempvmagn;
 	float testang;
 
-	char **prefix_netmap=NULL;
-	char **prefix_netmap2=NULL;
-	char **prefix_mapfile=NULL;
 	int *NROI=NULL,*INVROI=NULL;
 	int **ROI_LABELS=NULL, **INV_LABELS=NULL; // allow labels to be non-consec
 	long seed;   
@@ -261,7 +277,6 @@ int main(int argc, char *argv[]) {
 	NI_element *nel=NULL;
 	int dump_opts=0;
 	int ONLY_BT = 0; // don't cut off tracks at ROI endpts
-	int OUT_MAPFILE=0; // output maskdump-like version of each set of ROIs
 	char *postfix[4]={"+orig.HEAD\0",".nii.gz\0",".nii\0","+tlrc.HEAD\0"};
 	int  FOUND = -1;
 
@@ -281,7 +296,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
   
-	//	INFO_message("version: PI");
+	//	INFO_message("version: RHO");
 
 	// scan args 
 	if (argc == 1) { usage_ProbTrackID(1); exit(0); }
@@ -309,6 +324,11 @@ int main(int argc, char *argv[]) {
 			ROIS_OUT=1;
 			iarg++ ; continue ;
 		}
+		
+		if( strcmp(argv[iarg],"-lab_orig_rois") == 0) {
+			DUMP_ORIG_LABS=1;
+			iarg++ ; continue ;
+		}
 
 		if( strcmp(argv[iarg],"-netrois") == 0 ){
 			if( ++iarg >= argc ) 
@@ -320,20 +340,10 @@ int main(int argc, char *argv[]) {
 			nmask1 = DSET_NVOX(mset1) ;
 			N_nets = DSET_NVALS(mset1) ;
       
-			prefix_netmap = calloc( N_nets,sizeof(prefix_netmap));  
-			for(i=0 ; i<N_nets ; i++) 
-				prefix_netmap[i] = calloc( 300,sizeof(char)); 
-			prefix_netmap2 = calloc( N_nets,sizeof(prefix_netmap2));  
-			for(i=0 ; i<N_nets ; i++) 
-				prefix_netmap2[i] = calloc( 300,sizeof(char)); 
-			prefix_mapfile = calloc( N_nets,sizeof(prefix_mapfile));  
-			for(i=0 ; i<N_nets ; i++) 
-				prefix_mapfile[i] = calloc( 300,sizeof(char)); 
 			NROI = (int *)calloc(N_nets, sizeof(int)); 
 			INVROI = (int *)calloc(N_nets, sizeof(int)); 
 
-			if( (NROI == NULL) || (INVROI == NULL) || (prefix_netmap == NULL) ||
-				 (prefix_netmap2 == NULL) || (prefix_mapfile == NULL)) {
+			if( (NROI == NULL) || (INVROI == NULL) ) {
 				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 				exit(122);
 			}
@@ -416,6 +426,8 @@ int main(int argc, char *argv[]) {
 				ERROR_exit("Can't open dataset '%s':FA",in_FA);
 			DSET_load(insetFA) ; CHECK_LOAD_ERROR(insetFA) ;
 			Nvox = DSET_NVOX(insetFA) ;
+
+			Dim = (int *)calloc(3, sizeof(int)); 
 			Dim[0] = DSET_NX(insetFA); Dim[1] = DSET_NY(insetFA); 
 			Dim[2] = DSET_NZ(insetFA); 
 			Ledge[0] = fabs(DSET_DX(insetFA)); Ledge[1] = fabs(DSET_DY(insetFA)); 
@@ -427,6 +439,9 @@ int main(int argc, char *argv[]) {
 			// this stores the original data file orientation for later use,
 			// as well since we convert everything to RAI temporarily, as
 			// described below
+			voxel_order = (char *)calloc(4, sizeof(char)); 
+			TV_switch = (int *)calloc(3, sizeof(int)); 
+
 			voxel_order[0]=ORIENT_typestr[insetFA->daxes->xxorient][0];
 			voxel_order[1]=ORIENT_typestr[insetFA->daxes->yyorient][0];
 			voxel_order[2]=ORIENT_typestr[insetFA->daxes->zzorient][0];
@@ -588,8 +603,19 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-dump_trks") == 0) {
-			OUT_MAPFILE=1;
+		if( strcmp(argv[iarg],"-dump_rois") == 0) {
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-dump_rois'");
+
+			if( strcmp(argv[iarg],"DUMP") == 0 ) 
+				DUMP_TYPE = 1;
+			else if( strcmp(argv[iarg],"AFNI") == 0 ) 
+				DUMP_TYPE = 2;
+			else if( strcmp(argv[iarg],"BOTH") == 0 )
+				DUMP_TYPE = 3;
+			else 
+				ERROR_exit("Illegal after '-dump_rois': need 'DUMP', 'AFNI' or 'BOTH'.");
+
 			iarg++ ; continue ;
 		}
 
@@ -647,6 +673,8 @@ int main(int argc, char *argv[]) {
   
 	// will take stats on voxels with number of tracts >=NmNsThr
 	NmNsThr =  (int) ceil(NmNsFr*Nseed*Nmonte); 
+	if(NmNsThr<1)
+		NmNsThr=1;
 	INFO_message("Effective Monte Iters:%d. Voxel threshold:%d.",
 					 Nseed*Nmonte,NmNsThr);
 
@@ -890,16 +918,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(12);
 	}
-  
-	// this will be what we fill in 
-	for( k=0 ; k<N_nets ; k++ )
-		for( i=0 ; i<(NROI[k]) ; i++ )
-			for( j=0 ; j<(NROI[k]) ; j++ ) {
-				Prob_grid[k][i][j] = 0;  
-				for( ii=0 ; ii<9 ; ii++)
-					Param_grid[k][i][j][ii] = 0.;  
-			}
-  
+    
 	// set up eigvecs in 3D coord sys,
 	// mark off where ROIs are and keep index handy
 	// also make uncert matrix, with min values of del ang and del FA
@@ -1169,17 +1188,16 @@ int main(int argc, char *argv[]) {
 							for( bb=0 ; bb<m ; bb++) {
 								tt = temp_list[bb];
 								NETROI[rr][hh][tt][tt]+=1;
-								if(NETROI[rr][hh][tt][tt]==NmNsThr) 
+								if(NETROI[rr][hh][tt][tt]==NmNsThr)
 									ss=ScoreTrackGrid(Param_grid,
 															INDEX[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]],
 															hh, tt,tt, 
 															insetFA,insetMD,insetL1);
 							}
-							//}
 						}
-					
+						
 						// CONNECTORS: walk through mult times
-
+						
 						// just do unique connectors (we know that m>=2 here...)
 						for( bb=0 ; bb<m ; bb++)
 							for( cc=bb+1 ; cc<m ; cc++) {
@@ -1278,37 +1296,36 @@ int main(int argc, char *argv[]) {
 	//                    Some outputs
 	// **************************************************************
 	// **************************************************************
-  
-  
+	
 	if(Numtract > 0 ) {
 
+		// apply threshold with all output stats.
+		// threshold determined by:  having more than 1 voxel in the WM-ROI
+		// (assuming that preeetty much always there will be either ==0 or >>1)
+		// calc mean and stdevs of different Param_grid entries
 		for( k=0 ; k<N_nets ; k++) 
 			for( i=0 ; i<NROI[k] ; i++ ) 
 				for( j=0 ; j<NROI[k] ; j++ ) 
-					if(Param_grid[k][i][j][8]>0.5) {
+					if(Param_grid[k][i][j][8]>1.5) // need at least 2 vox per ROI
 						for( m=0 ; m<4 ; m++) {
 							// means
 							Param_grid[k][i][j][2*m]/= Param_grid[k][i][j][8];
 							// stdevs
-							if(Param_grid[k][i][j][8]>1.5) {
-								Param_grid[k][i][j][2*m+1]-= 
-									Param_grid[k][i][j][8]*pow(Param_grid[k][i][j][2*m],2);
-								Param_grid[k][i][j][2*m+1]/= Param_grid[k][i][j][8]-1;
-								Param_grid[k][i][j][2*m+1] = sqrt(Param_grid[k][i][j][2*m+1]);
-							}
-							else
-								Param_grid[k][i][j][2*m+1]=0.0;
+							Param_grid[k][i][j][2*m+1]-= 
+								Param_grid[k][i][j][8]*pow(Param_grid[k][i][j][2*m],2);
+							Param_grid[k][i][j][2*m+1]/= Param_grid[k][i][j][8]-1;
+							Param_grid[k][i][j][2*m+1] = sqrt(Param_grid[k][i][j][2*m+1]);
 						}
+					else {
+						for( m=0 ; m<4 ; m++) {
+							Param_grid[k][i][j][2*m]=0.;
+							Param_grid[k][i][j][2*m+1]=0.;
+						}
+						Prob_grid[k][i][j]= 0.;
 					}
-    
+		
 		for( k=0 ; k<N_nets ; k++) { // each netw gets own file
-
-			// apply threshold with all output stats.
-			for( i=0 ; i<NROI[k] ; i++ ) 
-				for( j=0 ; j<NROI[k] ; j++ ) 
-					if(Prob_grid[k][i][j]<NmNsThr)
-						Prob_grid[k][i][j]=0;
-
+			
 			// print out prob grid
 			sprintf(OUT_grid,"%s_%03d.grid",prefix,k+1);
 			if( (fout1 = fopen(OUT_grid, "w")) == NULL) {
@@ -1343,145 +1360,33 @@ int main(int argc, char *argv[]) {
 			fclose(fout1);
 		}
 
-		// output AFNI files mapping WM; do thresholding here
-		for( hh=0 ; hh<N_nets ; hh++) {
-      
-			sprintf(prefix_netmap[hh],"%s_%03d_PAIRMAP",prefix,hh+1); 
-			// just get one of right dimensions!
-			networkMAPS = EDIT_empty_copy( insetFA ) ; 
-			EDIT_dset_items(networkMAPS,
-								 ADN_datum_all , MRI_short , 
-								 ADN_none ) ;
-			EDIT_add_bricklist(networkMAPS ,
-									 NROI[hh], NULL , NULL , NULL );
-			
-			sprintf(prefix_netmap2[hh],"%s_%03d_INDIMAP",prefix,hh+1); 
-			// just get one of right dimensions!
-			networkMAPS2 = EDIT_empty_copy( insetFA ) ; 
-			EDIT_dset_items(networkMAPS2,
-								 ADN_datum_all , MRI_float , 
-								 ADN_none ) ;
-			EDIT_add_bricklist(networkMAPS2 ,
-									 NROI[hh], NULL , NULL , NULL );
-
-
-			// first array for all tracks, 2nd for paired ones.
-			// still just need one set of matrices output
-			short int **temp_arr=NULL;
-			float **temp_arr2=NULL;
-			temp_arr = calloc( (NROI[hh]+1),sizeof(temp_arr));  // XYZ components
-			for(i=0 ; i<(NROI[hh]+1) ; i++) 
-				temp_arr[i] = calloc( Nvox,sizeof(short int)); 
-			temp_arr2 = calloc( (NROI[hh]+1),sizeof(temp_arr2));  // XYZ components
-			for(i=0 ; i<(NROI[hh]+1) ; i++) 
-				temp_arr2[i] = calloc( Nvox,sizeof(float)); 
-
-			if( (temp_arr == NULL) || (temp_arr2 == NULL)) {
-				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-				exit(124);
-			}
-      
-			// threshold the `overall' (`0th') map; individual ones already have
-			// been above, just by how they were created
+		// in order to threshold the `overall' (`0th') map;
+		// individual ones already have
+		// been above, just by how they were created
+		for( k=0 ; k<N_nets ; k++)
 			for( i=0 ; i<=Ndata ; i++ ) 
-				for( j=0 ; j<NROI[hh] ; j++ ) {
-					// apply thresholding by count
-					for( k=0 ; k<NROI[hh] ; k++ ) 
-						if( NETROI[i][hh][j][k] < NmNsThr)
-							NETROI[i][hh][j][k]=0;
-				}
-
-			for( bb=1 ; bb<=NROI[hh] ; bb++) {
-				idx=0;
-				for( k=0 ; k<Dim[2] ; k++ ) 
-					for( j=0 ; j<Dim[1] ; j++ ) 
-						for( i=0 ; i<Dim[0] ; i++ ) {
-							temp_arr[bb][idx] = 0;
-							// allow for more than one `connector' tract
-							if(mskd[i][j][k]) 
-								//if( THD_get_voxel(insetL1,idx,0)>EPS_V) 
-								for( rr=0 ; rr<NROI[hh] ; rr++) 
-									if(NETROI[INDEX2[i][j][k]][hh][bb-1][rr]>0) {
-										// store connectors
-										if(bb-1 != rr){
-											temp_arr[0][idx] = 1; 
-										}
-
-										// store tracks through any ROI
-										temp_arr2[0][idx] = (float)
-											NETROI[INDEX2[i][j][k]][hh][bb-1][rr]; 
-										
-										// then add value if overlap
-										if(bb-1 != rr)
-											temp_arr[bb][idx]+=pow(2,rr+1);// unique decomp.
-										
-										temp_arr2[bb][idx] = (float)
-											NETROI[INDEX2[i][j][k]][hh][bb-1][rr];
-									}
-							idx+=1;
-						}
-   
-				EDIT_substitute_brick(networkMAPS, bb, MRI_short, temp_arr[bb]);
-				temp_arr[bb]=NULL; // to not get into trouble...
-
-				EDIT_substitute_brick(networkMAPS2, bb, MRI_float, temp_arr2[bb]);
-				temp_arr2[bb]=NULL; // to not get into trouble...
-			} 
-
-			// FIRST THE PAIR CONNECTORS
-			EDIT_substitute_brick(networkMAPS, 0, MRI_short, temp_arr[0]);
-			temp_arr[0]=NULL;
-			if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
-				dsetn = r_new_resam_dset(networkMAPS, NULL, 0.0, 0.0, 0.0,
-												 voxel_order, RESAM_NN_TYPE, 
-												 NULL, 1, 0);
-				DSET_delete(networkMAPS); 
-				networkMAPS=dsetn;
-				dsetn=NULL;
-			}      
-			EDIT_dset_items(networkMAPS,
-								 ADN_prefix    , prefix_netmap[hh] ,
-								 ADN_brick_label_one , "ALLROI",
-								 ADN_none ) ;
-			THD_load_statistics(networkMAPS);
-			if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(networkMAPS)) )
-				ERROR_exit("Can't overwrite existing dataset '%s'",
-							  DSET_HEADNAME(networkMAPS));
-			tross_Make_History("3dProbTrackID", argc, argv, networkMAPS);
-			THD_write_3dim_dataset(NULL, NULL, networkMAPS, True);
-			DSET_delete(networkMAPS); 
-			for( i=0 ; i<NROI[hh]+1 ; i++) // free all
-				free(temp_arr[i]);
-			free(temp_arr);
-
-			// THEN THE INDIVID TRACKS
-			EDIT_substitute_brick(networkMAPS2, 0, MRI_float, temp_arr2[0]);
-			temp_arr2[0]=NULL;
-			if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
-				dsetn = r_new_resam_dset(networkMAPS2, NULL, 0.0, 0.0, 0.0,
-												 voxel_order, RESAM_NN_TYPE, 
-												 NULL, 1, 0);
-				DSET_delete(networkMAPS2); 
-				networkMAPS2=dsetn;
-				dsetn=NULL;
-			}      
-			EDIT_dset_items(networkMAPS2,
-								 ADN_prefix    , prefix_netmap2[hh] ,
-								 ADN_brick_label_one , "ALLROI",
-								 ADN_none ) ;
-			THD_load_statistics(networkMAPS2);
-			if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(networkMAPS2)) )
-				ERROR_exit("Can't overwrite existing dataset '%s'",
-							  DSET_HEADNAME(networkMAPS2));
-			tross_Make_History("3dProbTrackID", argc, argv, networkMAPS2);
-			THD_write_3dim_dataset(NULL, NULL, networkMAPS2, True);
-			DSET_delete(networkMAPS2); 
-			for( i=0 ; i<NROI[hh]+1 ; i++) // free all
-				free(temp_arr2[i]);
-			free(temp_arr2);
-      
-		}
+				for( j=0 ; j<NROI[k] ; j++ ) 
+					for( hh=0 ; hh<NROI[k] ; hh++ ) 
+						if( NETROI[i][k][j][hh] < NmNsThr)
+							NETROI[i][k][j][hh]=0;
+		
+		
+		// output AFNI files mapping WM		
 		INFO_message("Writing output. NB: it will be %s.",voxel_order);
+		i = WriteBasicProbFiles(N_nets, Ndata, Nvox, prefix, 
+										insetFA,TV_switch,voxel_order,
+										NROI, NETROI,mskd,INDEX2,Dim,
+										dsetn,argc,argv);
+		if(DUMP_TYPE>=0)
+			i = WriteIndivProbFiles(N_nets,Ndata,Nvox,Prob_grid,
+											prefix,insetFA,
+											TV_switch,voxel_order,NROI,
+											NETROI,mskd,INDEX2,Dim,
+											dsetn,argc,argv,
+											Param_grid,DUMP_TYPE,
+											DUMP_ORIG_LABS,ROI_LABELS);
+		
+	
 
 		//	INFO_message("Brainwide total number of tracts found = %d",Numtract);
 	}
@@ -1507,14 +1412,13 @@ int main(int argc, char *argv[]) {
 		fclose(fout1);
 	}
 
- 
 
 	// ************************************************************
 	// ************************************************************
 	//                    Freeing
 	// ************************************************************
 	// ************************************************************
-
+	
 	DSET_delete(insetFA);
 	DSET_delete(insetMD);
 	DSET_delete(insetL1);
@@ -1535,7 +1439,6 @@ int main(int argc, char *argv[]) {
 	//free(insetUC);
   	free(insetMD);
 	free(mset1);
-	free(networkMAPS);
   	free(insetEXTRA);
   	free(insetNOTMASK);
 
@@ -1603,7 +1506,7 @@ int main(int argc, char *argv[]) {
 	for( i=0 ; i<Dim[0] ; i++) 
 		free(INDEX2[i]);
 	free(INDEX2);
-  
+	
 	for( i=0 ; i<N_nets ; i++) 
 		for( j=0 ; j<NROI[i] ; j++) 
 			for( k=0 ; k<NROI[i] ; k++) 
@@ -1616,16 +1519,10 @@ int main(int argc, char *argv[]) {
 	for( i=0 ; i<N_nets ; i++) {
 		free(Prob_grid[i]);
 		free(Param_grid[i]);
-		free(prefix_netmap[i]); 
-		free(prefix_netmap2[i]); 
-		free(prefix_mapfile[i]);
 	}
 	free(Prob_grid);
 	free(Param_grid);
-	free(prefix_netmap);
-	free(prefix_netmap2);
-	free(prefix_mapfile);
-
+ 
 	free(temp_list);
 	free(list_rois);
   
@@ -1639,6 +1536,11 @@ int main(int argc, char *argv[]) {
 	free(NROI);
 	free(INVROI);
 	gsl_rng_free(r); // free also
+	free(Dim);
+	free(TV_switch);
+	free(voxel_order);
 
 	return 0;
 }
+
+
