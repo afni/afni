@@ -65,6 +65,23 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 6, Feb , 2013 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
+   "Added special filename '1D:stdin' to make mri_read get 1D from stdin",
+   "In this manner, most 3d programs can now accept stdin input in 1D format\n"
+   "This change was suggested by Isaac Schwabacher.\n"
+ },
+
+ { 6, Feb , 2013 , ZSS , "ConvertDset" , MINOR , TYPE_NEW_OPT,
+   "-labelize for assigning a SUMA colormap to an integral valued dset",
+   NULL
+ },
+
+ { 6, Feb , 2013 , ZSS , "MakeColorMap" , MINOR , TYPE_NEW_OPT,
+   "-suma_cmap, -usercolutfile, and -sdset* options for SUMA colormaps",
+   "The new options allow users to create SUMA's colormaps with labels\n"
+   "and turn datasets into labeled datasets with the user's colormap\n" 
+ },
+
  { 4, Feb , 2013 , ZSS , "R" , MICRO , TYPE_BUG_FIX,
    "Properly set IDCODE of new dsets, read .1D.dset as dset not matrix",
    NULL 

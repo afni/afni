@@ -1545,7 +1545,11 @@ char *SUMA_ColLabelCopy(NI_element *nel, int i, int addcolnum);
 int SUMA_FloatScanDset ( SUMA_DSET *odset, int doNan, int doInf, 
                          int zeroout, int fixrange);
 SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex );
-SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index);
+SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, 
+                                  byte *rowmask, byte *colmask, 
+                                  int masked_only, int keep_node_index);
+SUMA_DSET *SUMA_CoercedCopyofDset( SUMA_DSET *odset, SUMA_VARTYPE vtp,
+                                   byte *colmask);
 SUMA_DSET * SUMA_MaskedByOrderedNodeIndexCopyofDset(
       SUMA_DSET *odset, int *indexlist, 
       int N_indexlist, byte *colmask, 

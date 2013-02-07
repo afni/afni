@@ -8252,6 +8252,49 @@ void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data)
    SUMA_RETURNe;
 }
 
+SUMA_COLOR_MAP *SUMA_LoadCmapFile_eng(char *filename)
+{
+   static char FuncName[]={"SUMA_LoadCmapFile_eng"};
+   SUMA_COLOR_MAP *Cmap=NULL;
+   SUMA_DSET_FORMAT form;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   SUMA_ENTRY;
+
+   /* find out if file exists and how many values it contains */
+   if (!SUMA_filexists(filename)) {
+      SUMA_S_Err("File not found");
+      SUMA_RETURN(NULL);
+   }
+
+   /* take a stab at the format */
+   form = SUMA_GuessFormatFromExtension(filename, NULL);
+   
+   /* load the baby */
+   Cmap = NULL;
+   switch (form) {
+      case  SUMA_1D:
+         Cmap = SUMA_Read_Color_Map_1D (filename);
+         if (Cmap == NULL) {
+            SUMA_S_Err("Could not load colormap.");
+            SUMA_RETURN(NULL); 
+         }
+         break;
+      case SUMA_ASCII_NIML:
+      case SUMA_BINARY_NIML:
+      case SUMA_NIML:
+         Cmap = SUMA_Read_Color_Map_NIML(filename);
+         break;
+      default:
+         SUMA_S_Err(  "Format not recognized.\n"
+                       "I won't try to guess.\n"
+                       "Do use the proper extension.");
+         break;
+   }
+   
+   SUMA_RETURN(Cmap);
+}
+
 /*! Loads a colormap file and adds it to the list of colormaps */
 void SUMA_LoadCmapFile (char *filename, void *data)
 {
@@ -8285,39 +8328,17 @@ void SUMA_LoadCmapFile (char *filename, void *data)
                FuncName, filename);
    }
 
-   /* find out if file exists and how many values it contains */
    if (!SUMA_filexists(filename)) {
       SUMA_SLP_Err("File not found");
       SUMA_RETURNe;
    }
-
-   /* take a stab at the format */
-   form = SUMA_GuessFormatFromExtension(filename, NULL);
    
-   /* load the baby */
-   Cmap = NULL;
-   switch (form) {
-      case  SUMA_1D:
-         Cmap = SUMA_Read_Color_Map_1D (filename);
-         if (Cmap == NULL) {
-            SUMA_SLP_Err("Could not load colormap.");
-            SUMA_RETURNe; 
-         }
-         break;
-      case SUMA_ASCII_NIML:
-      case SUMA_BINARY_NIML:
-      case SUMA_NIML:
-         Cmap = SUMA_Read_Color_Map_NIML(filename);
-         break;
-      default:
-         SUMA_SLP_Err(  "Format not recognized.\n"
-                        "I won't try to guess.\n"
-                        "Do use the proper extension.");
-         break;
+   if (!(Cmap=SUMA_LoadCmapFile_eng(filename))) {
+      SUMA_SLP_Err("Failed to load cmap. File format may not have been\n"
+                   "recognized from filename extension.\n"
+                   "Use either .1D.cmap or .niml.cmap for name extension.\n"); 
+      SUMA_RETURNe;
    }
-   
-   if (!Cmap) SUMA_RETURNe;
-
    /* have Cmap, add to dbase */
 
    /* remove path from name for pretty purposes */

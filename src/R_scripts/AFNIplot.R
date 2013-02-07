@@ -253,11 +253,14 @@ plot.1D.unsetupdevice <- function(P) {
 }
 
 plot.1D.save <- function (prefix='plot.pdf', dev=NULL) {
-   if (!is.good.dev(dev)) dev = dev.cur()
+   if (!is.good.dev(dev)) {
+      dev = dev.cur()
+   }
    if (!is.good.dev(dev)) {
       err.AFNI("NO good device");
       return(0)
    }
+   #cat('Working dev ', dev, '\n');
    pp <- parse.name(prefix)
    if (tolower(pp$ext) == '.jpg') dev.copy(jpeg,prefix)
    else if (tolower(pp$ext) == '.png') dev.copy(png,prefix)

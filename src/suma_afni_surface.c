@@ -95,10 +95,11 @@ NI_group *SUMA_FreeAfniSurfaceObject(NI_group *aSO)
 
 void SUMA_FindNgrNamedElementRec(NI_group *ngr, 
                                  char *elname, 
-                                 NI_element **nelp)
+                                 void **nelp)
 {
    static char FuncName[]={"SUMA_FindNgrNamedElementRec"};
    NI_element *nel = NULL;
+   NI_group *nelg = NULL;
    char *rs=NULL;
    int ip;
    int LocalHead = 0;
@@ -114,11 +115,21 @@ void SUMA_FindNgrNamedElementRec(NI_group *ngr,
       switch( ngr->part_typ[ip] ){
          /*-- a sub-group ==> recursion! --*/
          case NI_GROUP_TYPE:
+            nelg = (NI_group *)ngr->part[ip] ;
             if (LocalHead > 1)  {
                      fprintf( SUMA_STDERR,
                               "%s:  Looking for %s   in group %s \n",
                               FuncName, elname, ngr->name);
             }
+            if (!strcmp(elname, nelg->name)) {
+               *nelp=(void *)nelg; 
+               if (LocalHead) {
+                  fprintf( SUMA_STDERR,
+                        "%s: Found %s in group %s\n",
+                        FuncName, nelg->name, ngr->name);
+               }
+               SUMA_RETURNe; 
+            } 
             SUMA_FindNgrNamedElementRec(  (NI_group *)ngr->part[ip], 
                                           elname, 
                                           nelp);
@@ -134,7 +145,7 @@ void SUMA_FindNgrNamedElementRec(NI_group *ngr,
                         nel->vec_num );
             }
             if (!strcmp(elname, nel->name)) { 
-               *nelp=nel; 
+               *nelp=(void *)nel; 
                if (LocalHead) {
                   fprintf( SUMA_STDERR,
                         "%s: Found %s in group %s\n",
@@ -157,7 +168,46 @@ void SUMA_FindNgrNamedElementRec(NI_group *ngr,
 NI_element *SUMA_FindNgrNamedElement(NI_group *ngr, char *elname)
 {
    static char FuncName[]={"SUMA_FindNgrNamedElement"};
-   NI_element *nel = NULL;
+   void *nel = NULL;
+   char *rs=NULL;
+   int ip;
+   int LocalHead = 0;
+   
+   SUMA_ENTRY;
+    
+   if (!ngr || !elname) { 
+      SUMA_S_Err("NULL input "); 
+      SUMA_RETURN(nel); 
+   }
+   
+   SUMA_FindNgrNamedElementRec(ngr, elname, &nel);
+   if (nel && NI_element_type(nel) == NI_GROUP_TYPE) {
+      /* ignore, return NULL */
+      if (LocalHead) {
+         fprintf( SUMA_STDERR,
+                  "%s: Found ngr named %s, returning null\n",
+                  FuncName, elname);
+      }
+      nel=NULL;
+   }
+   if (LocalHead) {
+      if (nel) {
+         fprintf( SUMA_STDERR,
+                  "%s: Found nel %s\n",
+                  FuncName, elname);
+      } else {
+         fprintf( SUMA_STDERR,
+                  "%s: nel %s not found\n",
+                  FuncName, elname);
+      }         
+   }
+   SUMA_RETURN((NI_element *)nel);
+}
+
+void *SUMA_FindNgrNamedAny(NI_group *ngr, char *elname)
+{
+   static char FuncName[]={"SUMA_FindNgrNamedAny"};
+   void *nel = NULL;
    char *rs=NULL;
    int ip;
    int LocalHead = 0;
@@ -173,11 +223,11 @@ NI_element *SUMA_FindNgrNamedElement(NI_group *ngr, char *elname)
    if (LocalHead) {
       if (nel) {
          fprintf( SUMA_STDERR,
-                  "%s: Found nel %s\n",
+                  "%s: Found nel/ngr %s\n",
                   FuncName, elname);
       } else {
          fprintf( SUMA_STDERR,
-                  "%s: nel %s not found\n",
+                  "%s: nel/ngr %s not found\n",
                   FuncName, elname);
       }         
    }
