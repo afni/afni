@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 07 , FEB, 2013 , DRG , "3dDWItoDT" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Added Greg Baxter's (UCSD) change for b-matrix input"
+} ,
 { 04 , JAN, 2013 , DRG , "3drefit" , 
     MINOR , TYPE_BUG_FIX, 
     "Fixed bug that would make 3drefit exit if dataset contains a warpdrive attribute"
