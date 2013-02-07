@@ -1,6 +1,11 @@
 #ifndef _DOTRACKIT_HEADER_
 #define _DOTRACKIT_HEADER_
 
+   /* PT, you've got this variable defined in two .h files 
+      and with differing values, a very bad idea. 
+      It is best you give the constants differing names if
+      they are to have different values or one name defined
+      in one .h file only. */
 #define EPS_V (0.000001) // for eigvec 'vel' to not have badness dividing
 #define CONV (3.141592654/180)
 #define EPS_MASK (0.001) // theshold for masked data to be ignored
