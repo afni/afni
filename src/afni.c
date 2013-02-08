@@ -1429,6 +1429,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Divide By Cucumber Error; Please Reinstall Universe and Reboot",
      "Out of Cheese Error; Please Install Wensleydale and Try Again" ,
      "Out of Cheese Error; Please Install Stilton and Try Again"     ,
+     "Out of Wine Error: Please Install Port and Try Again"          ,
+     "Out of Beer Error: No Further Progress Can Be Expected"        ,
      "Have you read Crime and Punishment, by Fido Dogstoyevski?"     ,
      "More cheese, Gromit!"                                          ,
      "If at first you don't succeed -- call it version 1.0"          ,
