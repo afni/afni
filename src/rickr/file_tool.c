@@ -130,9 +130,10 @@ static char g_history[] =
  " 3.8  June 19, 2008   - removing printing of pointers in disp_ functions\n"
  " 3.9  Oct 27, 2010    - added -show_bad_char and -show_bad_all\n"
  " 3.10 Oct 18, 2012    - option -test is same as -show_bad_all\n"
+ " 3.11 Feb 11, 2013    - added recent options to help\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.10 (October 18, 2012)"
+#define VERSION         "3.11 (February 11, 2013)"
 
 
 /* ----------------------------------------------------------------------
@@ -1594,6 +1595,11 @@ help_full( char * prog )
         "\n"
         "   ----- script file checking examples -----\n"
         "\n"
+        "   0. check for any script issues (Unix, backslashes, chars)\n"
+        "      (-test is the same as -show_bad_all)\n"
+        "\n"
+        "      %s -test -infiles my_scripts_*.txt\n"
+        "\n"
         "   1. in each file, check whether it is a UNIX file type\n"
         "\n"
         "      %s -show_file_type -infiles my_scripts_*.txt\n"
@@ -1695,17 +1701,37 @@ help_full( char * prog )
         "\n"
         "  script file options:\n"
         "\n"
+        "      -show_bad_all : show lines with whitespace after '\\'\n"
+        "\n"
+        "          This is meant to find problems in script files where the\n"
+        "          script programmer has spaces or tabs after a final '\\'\n"
+        "          on the line.  That would break the line continuation.\n"
+        "\n"
+        "          The -test option is a shorthand version of this one.\n"
+        "\n"
         "      -show_bad_backslash : show lines with whitespace after '\\'\n"
         "\n"
         "          This is meant to find problems in script files where the\n"
         "          script programmer has spaces or tabs after a final '\\'\n"
         "          on the line.  That would break the line continuation.\n"
         "\n"
+        "      -show_bad_char   : show any non-printable characters'\\'\n"
+        "\n"
+        "          Sometimes non-visible-but-detrimental characters appear\n"
+        "          in scripts due to editors or email programs.  This option\n"
+        "          helps to point out their presence to the user.\n"
+        "\n"
+        "          See also -show_bad_all or -test.\n"
+        "\n"
         "      -show_file_type  : print file type of UNIX, Mac or DOS\n"
         "\n"
         "          Shell scripts need to be UNIX type files.  This option\n"
         "          will inform the programmer if there are end of line\n"
         "          characters that define an alternate file type.\n"
+        "\n"
+        "      -test  : short for -show_bad_all\n"
+        "\n"
+        "          Check script files for known issues.\n"
         "\n"
         "  raw ascii options:\n"
         "\n"
@@ -1718,7 +1744,7 @@ help_full( char * prog )
         "          each of 3 short integers).\n"
         "\n"
         "       ** Note that if the -length argument is MORE than what is\n"
-        "          needed to write the numbers out, the remaind of the length\n"
+        "          needed to write the numbers out, the remaining length of\n"
         "          bytes will be written with zeros.  If '17' is given for\n"
         "          the length, and 3 short integers are given as data, there \n"
         "          will be 11 bytes of 0 written after the 6 bytes of data.\n"
@@ -1728,7 +1754,7 @@ help_full( char * prog )
         "                       : e.g. -mod_data '2 -17.4 649'\n"
         "                       : e.g. -mod_data \"change to this string\"\n"
         "\n"
-        "          This is the data that will be writting into the modified\n"
+        "          This is the data that will be written into the modified\n"
         "          file.  If the -mod_type is 'str' or 'char', then the\n"
         "          output data will be those characters.  If the -mod_type\n"
         "          is any other (i.e. a binary numerical format), then the\n"
@@ -1766,9 +1792,9 @@ help_full( char * prog )
         "\n"
         "          For any of the others, the list of numbers found in the\n"
         "          -mod_data option will be written in the supplied binary\n"
-        "          format.  LENGTH must be large enough to accomodate this\n"
+        "          format.  LENGTH must be large enough to accommodate this\n"
         "          list.  And if LENGTH is higher, the output will be padded\n"
-        "          with zeros, to fill to the requesed length.\n"
+        "          with zeros, to fill to the requested length.\n"
         "\n"
         "    -offset OFFSET     : use this offset into each file\n"
         "                       : e.g. -offset 100\n"
@@ -1800,7 +1826,7 @@ help_full( char * prog )
         "\n",
         prog, prog,
         prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
-        prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
+        prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
         VERSION, __DATE__
         );
 

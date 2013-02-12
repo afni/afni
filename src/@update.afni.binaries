@@ -161,7 +161,7 @@ endif
 if ( $package == "" ) then
    if ( $cur_afni != "" ) then
       set package = `afni -ver | grep binary | awk '{print $3}' | sed 's/://g'`
-      if ( $status ) then
+      if ( $status || $package == "" ) then
           echo "** failed setting package from 'afni -ver'"
           exit 1
       endif

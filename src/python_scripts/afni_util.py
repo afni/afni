@@ -61,6 +61,23 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\\\n', exe=0):
 
     return 0
 
+def read_text_file(fname, lines=0):
+   """return the text text from the given file as either one string
+      or as an array of lines"""
+
+   try: fp = open(fname, 'r')
+   except:
+     print "** read_text_file: failed to open '%s'" % fname
+     if lines: return []
+     else:     return ''
+
+   if lines: tdata = fp.readlines()
+   else:     tdata = fp.read()
+
+   fp.close()
+
+   return tdata
+
 def write_to_timing_file(data, fname='', nplaces=-1, verb=1):
    """write the data in stim_times format, over rows
       (this is not for use with married timing, but for simple times)"""
@@ -262,7 +279,7 @@ def uniq_list_as_dsets(dsets, whine=0):
           "            e.g.  bad use:    ED_r*+orig*\n"                     \
           "            e.g.  good use:   ED_r*+orig.HEAD\n"                 \
           "-----------------------------------------------------------\n"   \
-          % (i1+1, i2+1, anlist[i1].pve(), anlist[i2].pve())
+          % (ind, ind+1, anlist[ind].pve(), anlist[ind+1].pve())
 
     return uniq
 
