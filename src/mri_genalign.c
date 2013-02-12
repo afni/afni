@@ -2300,6 +2300,8 @@ void mri_genalign_affine( int npar, float *wpar ,
 /*--------------------------------------------------------------------------*/
 /*! Similar to mri_genalign_affine(), but the 12 parameters are the matrix
     directly, with no physical interpretations such as angles, etc.
+  * That is, this is the index-to-index matrix, not the coord-to-coord
+    matrix (befafter stuff doesn't apply here, unlike mri_genalign_affine).
 ----------------------------------------------------------------------------*/
 
 void mri_genalign_mat44( int npar, float *wpar,
