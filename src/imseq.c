@@ -11998,9 +11998,9 @@ MRI_IMAGE * ISQ_snap_to_mri_image( int ww , int hh , byte *pix  )
 
    ENTRY("ISQ_snap_to_mri_image") ;
 
-   if( ww < 2 || pix == NULL ) EXRETURN ;
+   if( ww < 2 || pix == NULL ) RETURN(NULL) ;
    if( hh < 0 ){ hh = -hh ; flip = 1 ; }
-   if( hh < 2 ) EXRETURN ;
+   if( hh < 2 )                RETURN(NULL) ;
 
    tim = mri_new( ww,hh, MRI_rgb ) ; qix = MRI_RGB_PTR(tim) ;
 

@@ -189,11 +189,13 @@ void Qsaver(char *lab, MRI_IMAGE *im)
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *bset , *sset , *oset ;
+   THD_3dim_dataset *bset , *sset , *oset , *iwset=NULL ;
    MRI_IMAGE *bim , *wbim , *sim , *oim ;
-   IndexWarp3D *oww ; Image_plus_Warp *oiw ;
+   NI_float_array *iwvec=NULL ;
+   IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw ;
    char *prefix = "Qwarp" , ppp[256] ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
+   int ilev = 0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
@@ -256,6 +258,28 @@ int main( int argc , char *argv[] )
        "                 result back in the pre-surgery space, then you\n"
        "                 would use the inverse warp afterwards, via program\n"
        "                 3dNwarpCalc.\n"
+       "\n"
+       " -iniwarp ww   = 'ww' is a dataset with an initial nonlinear warp to use.\n"
+       "                * If this option is not used, the initial warp is the identity.\n"
+       "                * You cannot use this option with -duplo !!\n"
+       "                * Special cases allow the creation of an initial affine 'warp'\n"
+       "                  from a list of 12 numbers:\n"
+       "                  * 'MATRIX(a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a44)'\n"
+       "                    provides the coordinate transformation matrix directly\n"
+       "                    as might come from 3dAllineate's '-1Dmatrix_save' option.\n"
+       "                  * 'PARAM(dx,dy,dz,za,xa,ya,sx,sy,sz,xs,ys,zs)'\n"
+       "                    provides the 3 shift, 3 angle, 3 scale, and 3 shear\n"
+       "                    parameters, as would come from 3dAllineate's\n"
+       "                    '-1Dparam_save' option.\n"
+       "                  * The numeric parameters can be separated by commas\n"
+       "                    or blanks.  The closing ')' isn't really required, but\n"
+       "                    the opening '(' after 'MATRIX' or 'PARAM' is needed.\n"
+       "                    For this reason, you will probably need to put this\n"
+       "                    argument in single or double quotes, to \"protect\" it\n"
+       "                    from interpretation by the Unix shell.\n"
+       "\n"
+       " -inilev  lv   = 'lv' is the initial refinement 'level' at which to start.\n"
+       "                * Usually used with -iniwarp; cannot be used with -duplo.\n"
        "\n"
        " -minpatch mm  = Set the minimum patch size for warp searching to 'mm' voxels.\n"
        "   *OR*         * The value of mm should be an odd integer.\n"
@@ -337,7 +361,61 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-inilev") == 0 ){
+       if( duplo          ) ERROR_exit("Cannot use -inilev with -duplo :-(") ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+       ilev = (int)strtod(argv[nopt],NULL) ;
+       if( ilev < 0 ) ilev = 0 ; else if( ilev > 9 ) ilev = 9 ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-iniwarp") == 0 ){
+       char *apt=NULL ;
+       if( duplo )
+         ERROR_exit("Cannot use -iniwarp with -duplo :-(") ;
+       if( iwset != NULL || iwvec != NULL )
+         ERROR_exit("Cannot use -iniwarp twice :-(") ;
+       if( ++nopt >= argc )
+         ERROR_exit("need arg after %s",argv[nopt-1]) ;
+
+       /* see if the name specifies an affine transform */
+
+       if( strncasecmp(argv[nopt],"MATRIX(",7) == 0 ){
+         apt = argv[nopt]+7 ; affmode = AFF_MATRIX ;
+       } else if( strncasecmp(argv[nopt],"PARAM(",6) == 0 ){
+         apt = argv[nopt]+6 ; affmode = AFF_PARAM ;
+       } else if( strchr(argv[nopt],'(') != NULL ){
+         ERROR_exit("don't understand -iniwarp '%s'",argv[nopt]) ;
+       }
+
+       if( apt != NULL ){  /* read list of 12 parameters for affine transform */
+
+         iwvec = NI_decode_float_list(apt,",;:)") ;
+         if( iwvec == NULL )
+           ERROR_exit("Can't decode -iniwarp parameter list :-(") ;
+         if( iwvec->num < 12 )
+           ERROR_exit("-iniwarp parameter list has fewer than 12 values :-(") ;
+         if( iwvec->num > 12 )
+           WARNING_message("-iniwarp parameter list has more than 12 values ?!?") ;
+
+       } else {            /* read dataset for initial warp */
+
+         iwset = THD_open_dataset(argv[nopt]) ;
+         if( iwset == NULL )
+           ERROR_exit("Cannot open -iniwarp %s",argv[nopt]) ;
+         if( DSET_NVALS(iwset) < 3 || DSET_BRICK_TYPE(iwset,0) != MRI_float )
+           ERROR_exit("-iniwarp %s is not in the right format :-(",argv[nopt]) ;
+
+       }
+
+       nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-duplo") == 0 ){
+       if( iwset != NULL || iwvec != NULL )
+         ERROR_exit("Cannot use -duplo with -iniwarp :-(") ;
+       if( ilev  != 0 )
+         ERROR_exit("Cannot use -duplo with -inilev :-(") ;
        duplo = 1 ; nopt++ ; continue ;
      }
 
@@ -441,9 +519,17 @@ int main( int argc , char *argv[] )
 
    if( nopt+1 >= argc ) ERROR_exit("need 2 args for base and source") ;
 
+   if( (iwset != NULL || iwvec != NULL) && duplo )
+     ERROR_exit("You cannot combine -iniwarp and -duplo !! :-((") ;
+   if( ilev != 0 && duplo )
+     ERROR_exit("You cannot combine -inilev and -duplo !! :-((") ;
+
    bset = THD_open_dataset(argv[nopt++]) ; if( bset == NULL ) ERROR_exit("Can't open bset") ;
    sset = THD_open_dataset(argv[nopt++]) ; if( sset == NULL ) ERROR_exit("Can't open sset") ;
-   if( !EQUIV_GRIDXYZ(bset,sset) ) ERROR_exit("Dataset grid mismatch") ;
+   if( !EQUIV_GRIDXYZ(bset,sset) ) ERROR_exit("base-source dataset grid mismatch :-(") ;
+
+   if( iwset != NULL && !EQUIV_GRIDXYZ(bset,iwset) )
+     ERROR_exit("-iniwarp dataset grid mismatch with base dataset :-(") ;
 
    DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
    bim = THD_extract_float_brick(0,bset) ; DSET_unload(bset) ;
@@ -455,6 +541,26 @@ int main( int argc , char *argv[] )
      ERROR_exit("-emask doesn't match base dataset grid :-(") ;
 
    nx = DSET_NX(bset) ; ny = DSET_NY(bset) ; nz = DSET_NZ(bset) ;
+
+   if( iwset != NULL ){
+     DSET_load(iwset) ; CHECK_LOAD_ERROR(iwset) ;
+     S2BIM_iwarp = IW3D_from_dataset(iwset,0,0) ;
+     if( S2BIM_iwarp == NULL )
+       ERROR_exit("Cannot create 3D warp from -iniwarp dataset :-(") ;
+     DSET_delete(iwset) ; iwset = NULL ;
+   } else if( iwvec != NULL ){
+     IndexWarp3D *WW = IW3D_from_dataset(bset,1,0) ;
+     if( WW == NULL )                                 /* should never transpire */
+       ERROR_exit("Cannot create template 3D warp for -iniwarp -- this is a bug!") ;
+     S2BIM_iwarp = IW3D_from_poly(12,iwvec->ar,WW) ;
+     if( S2BIM_iwarp == NULL )
+       ERROR_exit("Cannot create 3D warp from -iniwarp parameters :-(") ;
+     IW3D_destroy(WW) ; NI_delete_float_array(iwvec) ; iwvec = NULL ;
+   } else {
+     S2BIM_iwarp = NULL ;
+   }
+
+   S2BIM_ilev = ilev ;
 
    nnn = 0 ;
    if( nx >= NGMIN             ) nnn = nx ;
@@ -537,6 +643,12 @@ int main( int argc , char *argv[] )
    IW3D_adopt_dataset( oww , bset ) ;
    sprintf(ppp,"%s_WARP",prefix) ;
    qset = IW3D_to_dataset( oww , ppp ) ;
+   DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+
+   owwi = IW3D_invert( oww , NULL , MRI_WSINC5 ) ;
+   IW3D_adopt_dataset( owwi , bset ) ;
+   sprintf(ppp,"%s_WARPINV",prefix) ;
+   qset = IW3D_to_dataset( owwi , ppp ) ;
    DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
 
    INFO_message("===== clock time =%s",nice_time_string(NI_clock_time()-ct)) ;
