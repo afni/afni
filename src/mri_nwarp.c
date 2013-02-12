@@ -454,7 +454,10 @@ void IW3D_adopt_dataset( IndexWarp3D *AA , THD_3dim_dataset *dset )
 }
 
 /*----------------------------------------------------------------------------*/
-/* Convert a 3D dataset of displacments in mm to an index warp. */
+/* Convert a 3D dataset of displacments in mm to an index warp.
+     empty != 0 ==> displacements will be all zero
+     ivs   != 0 ==> extract sub-bricks [ivs..ivs+2] for the displacments
+*//*--------------------------------------------------------------------------*/
 
 IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty , int ivs )
 {
@@ -558,6 +561,8 @@ ENTRY("IW3D_pair_from_dataset") ;
 /*----------------------------------------------------------------------------*/
 /* Convert an index warp to a 3D dataset of spatial displacmements in mm */
 
+static int save_aux_volumes = 0 ;
+
 THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix )
 {
    THD_3dim_dataset *dset ;
@@ -575,19 +580,22 @@ ENTRY("IW3D_to_dataset") ;
      AA->geomstring = strdup(gstr) ;
    }
 
+STATUS("create dataset") ;
    dset = EDIT_geometry_constructor( AA->geomstring , prefix ) ;
 
    EDIT_dset_items( dset ,
-                      ADN_nvals     , 6         ,
+                      ADN_nvals     , (save_aux_volumes) ? 6 : 3 ,
                       ADN_datum_all , MRI_float ,
                       ADN_view_type , AA->view  ,
                     NULL ) ;
    EDIT_BRICK_LABEL( dset , 0 , "x_delta" ) ;
    EDIT_BRICK_LABEL( dset , 1 , "y_delta" ) ;
    EDIT_BRICK_LABEL( dset , 2 , "z_delta" ) ;
-   EDIT_BRICK_LABEL( dset , 3 , "hexvol"  ) ;
-   EDIT_BRICK_LABEL( dset , 4 , "BulkEn"  ) ;
-   EDIT_BRICK_LABEL( dset , 5 , "ShearEn" ) ;
+   if( save_aux_volumes ){
+     EDIT_BRICK_LABEL( dset , 3 , "hexvol"  ) ;
+     EDIT_BRICK_LABEL( dset , 4 , "BulkEn"  ) ;
+     EDIT_BRICK_LABEL( dset , 5 , "ShearEn" ) ;
+   }
 
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
    nxyz = AA->nx * AA->ny * AA->nz ;
@@ -596,41 +604,56 @@ ENTRY("IW3D_to_dataset") ;
    xar = (float *)malloc(sizeof(float)*nxyz) ;
    yar = (float *)malloc(sizeof(float)*nxyz) ;
    zar = (float *)malloc(sizeof(float)*nxyz) ;
-   har = (float *)malloc(sizeof(float)*nxyz) ;
-   jar = (float *)malloc(sizeof(float)*nxyz) ;
-   sar = (float *)malloc(sizeof(float)*nxyz) ;
+   if( save_aux_volumes ){
+     har = (float *)malloc(sizeof(float)*nxyz) ;
+     jar = (float *)malloc(sizeof(float)*nxyz) ;
+     sar = (float *)malloc(sizeof(float)*nxyz) ;
 
-   (void)IW3D_load_hexvol(AA) ;
-   (void)IW3D_load_energy(AA) ;
+STATUS("load hexvol") ;
+     (void)IW3D_load_hexvol(AA) ;
+STATUS("load energy") ;
+     (void)IW3D_load_energy(AA) ;
+STATUS("done with aux volumes") ;
+     jea = AA->je ; sea  = AA->se ;
+   } else {
+     har = jar = sar = jea = sea = NULL ;
+   }
    hva = AA->hv ; hfac = MAT44_DET(cmat) ; hfac = fabsf(hfac) ;
-   jea = AA->je ; sea  = AA->se ;
 
+STATUS("transform to displacements in mm") ;
  AFNI_OMP_START ;
 #pragma omp parallel if( nxyz > 11111 )
  { int ii ;
 #pragma omp for
    for( ii=0 ; ii < nxyz ; ii++ ){
      MAT33_VEC( cmat , xda[ii],yda[ii],zda[ii] , xar[ii],yar[ii],zar[ii] ) ;
-     har[ii] = hfac * hva[ii] ; jar[ii] = jea[ii] ; sar[ii] = sea[ii] ;
+     if( save_aux_volumes ){
+       har[ii] = hfac * hva[ii] ; jar[ii] = jea[ii] ; sar[ii] = sea[ii] ;
+     }
    }
  }
  AFNI_OMP_END ;
 
+STATUS("substitute bricks") ;
    EDIT_substitute_brick( dset , 0 , MRI_float , xar ) ;
    EDIT_substitute_brick( dset , 1 , MRI_float , yar ) ;
    EDIT_substitute_brick( dset , 2 , MRI_float , zar ) ;
-   EDIT_substitute_brick( dset , 3 , MRI_float , har ) ;
-   EDIT_substitute_brick( dset , 4 , MRI_float , jar ) ;
-   EDIT_substitute_brick( dset , 5 , MRI_float , sar ) ;
+   if( save_aux_volumes ){
+     EDIT_substitute_brick( dset , 3 , MRI_float , har ) ;
+     EDIT_substitute_brick( dset , 4 , MRI_float , jar ) ;
+     EDIT_substitute_brick( dset , 5 , MRI_float , sar ) ;
+   }
 
    if( AA->use_emat && ! ISZERO_MAT33(AA->emat) ){
      mat33 dmat,smat,tmat ; float matar[9] ;
+STATUS("setup emat") ;
      MAT44_TO_MAT33(cmat,tmat) ; smat = MAT33_MUL( tmat , AA->emat ) ;
      MAT44_TO_MAT33(imat,tmat) ; dmat = MAT33_MUL( smat , tmat ) ;
      UNLOAD_MAT33_AR(dmat,matar) ;
      THD_set_float_atr( dset->dblk , "NWARP_EMAT33" , 9 , matar ) ;
    }
 
+STATUS("done") ;
    RETURN(dset) ;
 }
 
@@ -812,17 +835,22 @@ float IW3D_load_energy( IndexWarp3D *AA )
    float *xda, *yda , *zda , *jea,*sea , jetop,setop ;
    int nx,ny,nz , nxy,nxyz , ii ;
 
-   if( AA == NULL ) return enout ;
+ENTRY("IW3D_load_energy") ;
+
+   if( AA == NULL ) RETURN(enout) ;
 
    nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
 
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
 
+STATUS("get je/se arrays") ;
    jea = AA->je; if( jea == NULL ) jea = AA->je = (float *)calloc(nxyz,sizeof(float));
    sea = AA->se; if( sea == NULL ) sea = AA->se = (float *)calloc(nxyz,sizeof(float));
 
+STATUS("dhhar -> 0") ;
    AAmemset( dhaar , 0 , sizeof(double)*nthmax ) ;
 
+STATUS("start the work") ;
  AFNI_OMP_START ;
 #pragma omp parallel
  { float_triple x0,x1,x2,x3,x4,x5,x6,x7 ; float_pair en ;
@@ -850,9 +878,10 @@ float IW3D_load_energy( IndexWarp3D *AA )
    dhaar[ith] = (double)esum ;
  }
  AFNI_OMP_END ;
+STATUS("work is done") ;
 
   for( ii=0 ; ii < nthmax ; ii++ ) enout += dhaar[ii] ;
-  return enout ;
+  RETURN(enout) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -2306,11 +2335,16 @@ ENTRY("IW3D_from_poly") ;
        if( affmode == AFF_PARAM ){
          wfunc = mri_genalign_affine ; wname = "affine_param" ;
        } else {
-         mat44 wmat , qmat , amat ;                  /* create index warp  */
+         mat44 wmat, qmat, amat ; float qdet ;       /* create index warp  */
          LOAD_MAT44_AR(amat,par) ;                   /* matrix from coord  */
          wmat = MAT44_MUL(amat,WW->cmat) ;           /* warp matrix, and   */
          qmat = MAT44_MUL(WW->imat,wmat) ;           /* substitute for the */
-         UNLOAD_MAT44_AR(qmat,afpar) ; par = afpar ; /* input parameters   */
+         qdet = MAT44_DET(qmat) ;                    /* input parameters   */
+         if( qdet < 0.025f ){
+           WARNING_message("can't create warp from matrix with determinant=%g",qdet) ;
+           RETURN(NULL) ;
+         }
+         UNLOAD_MAT44_AR(qmat,afpar) ; par = afpar ;
          wfunc = mri_genalign_mat44  ; wname = "affine_matrix" ;
        }
      break ;
@@ -4956,6 +4990,7 @@ ENTRY("IW3D_improve_warp") ;
 /*----------------------------------------------------------------------------*/
 
 static IndexWarp3D *WO_iwarp = NULL ;
+static int         *WO_ilev  = 0 ;
 
 void (*iterfun)(char *,MRI_IMAGE *) = NULL ;
 
@@ -5231,6 +5266,9 @@ DoneDoneDone:  /* breakout */
 
 /*----------------------------------------------------------------------------*/
 
+static void *S2BIM_iwarp = NULL ;
+static int   S2BIM_ilev  = 0 ;
+
 Image_plus_Warp * IW3D_warp_s2bim( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_IMAGE *sim,
                                    int interp_code , int meth_code , int warp_flags  )
 {
@@ -5240,13 +5278,12 @@ Image_plus_Warp * IW3D_warp_s2bim( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_IMAGE 
 
 ENTRY("IW3D_warp_s2bim") ;
 
-   WO_iwarp = NULL ;
+   WO_iwarp = S2BIM_iwarp ; Hlev_start = S2BIM_ilev ; Hnpar_sum = 0 ; Hduplo = 0 ;
 
    Hshrink = AFNI_numenv("AFNI_WARPOMATIC_SHRINK") ;
    if( Hshrink > 1.0f                       ) Hshrink = 1.0f / Hshrink ;
    if( Hshrink < 0.444f || Hshrink > 0.888f ) Hshrink = 0.749999f ;
    else                                       ININFO_message("  -- Hshrink set to %.6f",Hshrink) ;
-   Hlev_start = 0 ; Hnpar_sum = 0 ; Hduplo = 0 ;
 
    Swarp = IW3D_warpomatic( bim , wbim , sim , meth_code , warp_flags ) ;
 
@@ -5260,6 +5297,7 @@ ENTRY("IW3D_warp_s2bim") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/*** NOT READY YET ***/
 
 #define WOMA_NONE  0
 #define WOMA_MAT44 1
