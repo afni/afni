@@ -12,7 +12,7 @@
     Output = statistic's value.
 *//*------------------------------------------------------------------------*/
 
-float mri_nstat( int code , int npt , float *far , float voxval)
+float mri_nstat( int code , int npt , float *far , float voxval )
 {
    register float outval ; float val ;
 
