@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.0, Feb 8, 2013
+Version 0.2.0, Feb 13, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.0, Feb 8, 2013
+Version 0.2.0, Feb 13, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -134,10 +134,10 @@ within-subject (condition and emotion) variables:
 Example 2 --- two between-subjects (genotype and sex), onewithin-subject
 (emotion) factor, plus two quantitative variables (age and IQ).f
 
-   3dMVM -prefix Example2 -jobs 4        \\
+   3dMVM -prefix Example2 -jobs 24        \\
           -model  \"genotype*sex+age+IQ\"  \\
           -wsVars emotion                \\
-          -qVars  \"age+IQ\"               \\
+          -qVars  \"age,IQ\"               \\
           -qVarCenters '25,105'          \\
           -num_glt 10                    \\
           -gltLabel 1 pos_F_vs_M   -gltCode 1 'sex : 1*F -1*M emotion : 1*pos'        \\
@@ -166,7 +166,7 @@ statistics for the interactions of Group:Condition:Time, Group:Time, and
 Condition:Time are of specific interest. And these interactions can be further
 explored with GLTs in 3dMVM.
 
-   3dMVM -prefix Example3 -jobs 4   \\
+   3dMVM -prefix Example3 -jobs 12   \\
          -model Group               \\
          -wsVars 'Condition*Time'   \\
          -num_glt 32                \\
@@ -263,16 +263,17 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
                              ) ),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
-   "-qVars FORMULA: Provide quantitative variables (or covariates) only.",
-   "         Coding for additive and interaction effects is the same as in",
-   "         -model. The expression FORMULA with more than one variable has",
-   "         to be surrounded within (single or double) quotes. Variable",
+   "-qVars variable_list: Identify quantitative variables (or covariates) with",
+   "         this option. The list with more than one variable has to be",
+   "         separaated with comma (,) without any other characters such as",
+   "         spaces and should be surrounded within (single or double) quotes.",
+   "          For example, -qVars \"Age,IQ\"",
    "         WARNINGS:",
    "         1) Centering a quantitative variable through -qVarsCenters is",
    "         very critical when other fixed effects are of interest.",
    "         2) Between-subjects covariates are generally acceptable.",
-   "         However caution should be taken when different average value",
-   "         for a covariate exists across groups.",
+   "         However EXTREME caution should be taken when the groups",
+   "         differ significantly in the average value of the covariate.",
    "         3) Within-subject covariates are better modeled with 3dLME.\n",
              sep = '\n'
              ) ),
@@ -457,7 +458,7 @@ process.MVM.opts <- function (lop, verb = 0) {
       errex.AFNI(c('Must of use -cio option with any input/output ',
                    'format other than BRIK'))
 
-   if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\+')[[1]]
+   if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
 
    if(!is.null(lop$gltLabel)) {
       sq <- as.numeric(unlist(lapply(lop$gltLabel, '[', 1)))
@@ -554,7 +555,7 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
    if (!all(abs(inData) < 10e-8)) {        
       dataframe$Beta<-inData
       fm <- NULL
-      try(fm <- aov.car(ModelForm, data=dataframe, return='lm'), silent=TRUE)
+      try(fm <- aov.car(ModelForm, data=dataframe, return='full'), silent=TRUE)
       if(!is.null(fm)) {
          #if(pars[[6]]) try(Stat[1:pars[[2]]] <- univ(fm[[1]])[2:(1+pars[[2]]),3], silent=TRUE) else
          #   try(Stat[1:pars[[2]]] <- unname(univ(fm[[1]])[[1]][-1,5]), silent=TRUE)
@@ -714,11 +715,8 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
 
 ########################################################################
 
-
-
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
-
-
+                                                
 require("afex")
 require("phia")
 
@@ -755,7 +753,7 @@ cat(nlevels(lop$dataStr$Subj), 'subjects : ', levels(lop$dataStr$Subj), '\n')
 cat(length(lop$dataStr$InputFile), 'response values\n')
 for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
    cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
-   levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'matrix')  # numeric doesn't work
+   levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'matrix' | class(lop$dataStr[,ii]) == 'numeric')  # numeric may not work
    cat(length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii], ':', lop$dataStr[,ii], '\n')
 cat(lop$num_glt, 'post hoc tests\n')
 
@@ -822,7 +820,7 @@ while(is.null(fm)) {
    fm<-NULL
    lop$dataStr$Beta<-inData[ii, jj, kk,]
    options(warn=-1)     
-   try(fm <- aov.car(ModelForm, data=lop$dataStr, return='lm'), silent=TRUE)
+   try(fm <- aov.car(ModelForm, data=lop$dataStr, return='full'), silent=TRUE)
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
