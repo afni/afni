@@ -137,48 +137,7 @@ intercept and RT effect whose correlation is estimated from the data.
    \n"
    
    
-   ex3 <-
-"Example 3 --- BOLD response was modeled with multiple basis functions at individual
-subject level. In addition, there are one between-subjects (Group) and one within-
-subject (Condition) variable. Furthermore, the variable corresponding to the number 
-of basis functions, Time, is also a within-subject variable. In the end, the F-
-statistics for the interactions of Group:Condition:Time, Group:Time, and 
-Condition:Time are of specific interest. And these interactions can be further
-explored with GLTs in 3dLME.
 
----------------------------------
-   3dLME -prefix Example3 -jobs 4   \\
-         -model Group               \\
-         -wsVars 'Condition*Time'   \\
-         -num_glt 32                \\
-         -gltLabel 1 old_t0 -gltCode 1 'Group : 1*old Time : 1*t0' \\
-         -gltLabel 2 old_t1 -gltCode 2 'Group : 1*old Time : 1*t1' \\
-         -gltLabel 3 old_t2 -gltCode 3 'Group : 1*old Time : 1*t2' \\
-         -gltLabel 4 old_t3 -gltCode 4 'Group : 1*old Time : 1*t3' \\
-         -gltLabel 5 yng_t0 -gltCode 5 'Group : 1*yng Time : 1*t0' \\
-         -gltLabel 6 yng_t1 -gltCode 6 'Group : 1*yng Time : 1*t1' \\
-         -gltLabel 7 yng_t2 -gltCode 7 'Group : 1*yng Time : 1*t2' \\
-         -gltLabel 8 yng_t3 -gltCode 8 'Group : 1*yng Time : 1*t3' \\
-         ...
-         -gltLabel 17 old_face_t0 -gltCode 17 'Group : 1*old Condition : 1*face Time : 1*t0' \\
-         -gltLabel 18 old_face_t1 -gltCode 18 'Group : 1*old Condition : 1*face Time : 1*t1' \\
-         -gltLabel 19 old_face_t2 -gltCode 19 'Group : 1*old Condition : 1*face Time : 1*t2' \\
-         -gltLabel 20 old_face_t3 -gltCode 20 'Group : 1*old Condition : 1*face Time : 1*t3' \\
-         ...         
-         -dataTable                                            \\
-         Subj  Group  Condition Time InputFile                 \\
-         s1    old    face      t0   s1+tlrc\'[face#0_beta]\'    \\
-         s1    old    face      t1   s1+tlrc\'[face#1_beta]\'    \\
-         s1    old    face      t2   s1+tlrc\'[face#2_beta]\'    \\
-         s1    old    face      t3   s1+tlrc\'[face#3_beta]\'    \\
-         ...
-         s40   yng    house     t0   s40+tlrc\'[house#0_beta]\'  \\
-         s40   yng    house     t1   s40+tlrc\'[house#1_beta]\'  \\
-         s40   yng    house     t2   s40+tlrc\'[house#2_beta]\'  \\
-         s40   yng    house     t3   s40+tlrc\'[house#3_beta]\'      
-   \n"
-   
-   
    parnames <- names(params)
    ss <- vector('character')
    if(alpha) {
