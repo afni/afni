@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Feb, 2013, RCR, "unix_tutorial", MAJOR, TYPE_NEW_PROG,
+   "added tutorial to CVS tree, with processed files under AFNI_data6",
+   NULL
+ } ,
+
  { 12, Feb, 2013, RCR, "afni_util.py", MICRO, TYPE_BUG_FIX,
    "updated duplicate dataset error message to match older code updates",
    "Thanks to HJ Jo for reporting the error."
