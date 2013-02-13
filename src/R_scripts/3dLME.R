@@ -1,17 +1,6 @@
-#!/usr/bin/env afni_run_R
-#Welcome to 3dLME.R, an AFNI Group Analysis Package!
-#-----------------------------------------------------------
-#Version 1.0.6,  Oct 15, 2012
-#Author: Gang Chen (gangchen@mail.nih.gov)
-#Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
-#SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
-#-----------------------------------------------------------
+#!/usr/bin/env AFNI_Batch_R
 
-# Commannd line to run this script: 3dLME.R MyOutput &
-# (Output is a file in which the running progress including 
-# error messages will be stored)
 
-system("rm -f .RData")
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
    ff<-ff[lapply(ff,file.exists)==TRUE];
@@ -19,503 +8,1055 @@ first.in.path <- function(file) {
    return(gsub('//','/',ff[1], fixed=TRUE)) 
 }
 source(first.in.path('AFNIio.R'))
+ExecName <- '3dLME'
+
+
+#################################################################################
+##################### Begin 3dLME Input functions ################################
+#################################################################################
+
+
+greeting.lme <- function ()
+   return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+          ================== Welcome to 3dlme ==================          
+   AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Version 0.0.1, Feb 13, 2013
+Author: Gang Chen (gangchen@mail.nih.gov)
+Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
+SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      )
+
+
+#The help function for 3dLME batch (AFNI-style script mode)
+help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
+
+   intro <- 
+'
+          ================== Welcome to 3dLME ==================          
+    AFNI Group Analysis Program with Multi-Variate Modeling Approach
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Version 0.0.1, Feb 13, 2013
+Author: Gang Chen (gangchen@mail.nih.gov)
+Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
+SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Usage:
+------ 
+ 3dLME is a group-analysis program that performs linear mixed-effects (LME) 
+ modeling analysis. One simple criterion to decide whether 3dLME is appropriate
+ is that each subject has to have two or more measurements at each spatial 
+ location (except for a small portion of subjects with missing data). In other
+ words, at least one within-subject (or repeated-measures) factor serves as
+ explanatory variable.
+ 
+ F-statistics for main effects and interactions are automatically included in 
+ the output for all variables. In addition, Student t-tests for quantitative 
+ variables are also in the ouput. In addition, general linear tests (GLTs) can 
+ be requested via symbolic coding.
+ 
+ If you want to cite the analysis approach, use the following:
+ 
+ Chen, G., Saad, Z.S., Britton, J.C., Pine, D.S., Cox, R.W. (2013). Linear
+ Mixed-Effects Modeling Approach to FMRI Group Analysis. NeuroImage,
+ http://dx.doi.org/10.1016/j.neuroimage.2013.01.047
+ 
+ Input files for 3dLME can be in AFNI, NIfTI, or surface (niml.dset) format.
+ 
+ In addition to R installtion, the following two R packages need to be acquired
+ in R first before running 3dLME:
+ 
+ install.packages("nlme")
+ install.packages("contrast")
+
+ The snow package is also needed if one wants to take advantage of parallel 
+ computing:
+ 
+ install.packages("snow")
+ 
+ More details about 3dLME can be found at 
+ http://afni.nimh.nih.gov/sscc/gangc/LME.html
+ 
+ Thank the R community for the strong technical support.'
+
+   ex1 <- 
+"
+Example 1 --- one condition modeled with 8 basis functions (e.g., TENT or TENTzero)
+for one group of 13 subjects:
+--------------------------------
+   3dLME -prefix myTest -jobs   4               \\
+         -model '0+Time'                        \\
+         -qVars order                           \\
+         -qVarCenters 0                         \\
+         -ranEff 1                              \\
+         -corStr 'order : AR1'                  \\
+         -SS_type 3                             \\
+         -dataTable                             \\
+         Subj   Time  order InputFile           \\
+         c101   Diff0 0 testData/c101time0+tlrc \\
+         c101   Diff1 1 testData/c101time1+tlrc \\
+         c101   Diff2 2 testData/c101time2+tlrc \\
+         c101   Diff3 3 testData/c101time3+tlrc \\
+         c101   Diff4 4 testData/c101time4+tlrc \\
+         c101   Diff5 5 testData/c101time5+tlrc \\
+         c101   Diff6 6 testData/c101time6+tlrc \\
+         c101   Diff7 7 testData/c101time7+tlrc \\
+         c103   Diff0 0 testData/c103time0+tlrc \\
+         c103   Diff1 1 testData/c103time1+tlrc \\
+         ...
+     \n"
+      
+   ex2 <-
+"Example 2 --- one within-subject factor (conditions: House and Face), one
+within-subject quantitative variable (reaction time, RT) and one between-
+subjects covariate (age). RT values don't differ significantly between the
+two conditions, and thus are centered via grand mean. Random effects are
+intercept and RT effect whose correlation is estimated from the data.
+-------------------------------------------------------------------------
+   3dLME -prefix Example2 -jobs 24                                         \\
+          -model  \"cond*RT+age\"                                            \\
+          -qVars \"RT,age\"                                                  \\
+          -qVarCenters \"105.35,34.7\"                                       \\
+          -ranEff '~1+RT'                                                  \\
+          -SS_type 3                                                       \\
+          -num_glt 2                                                       \\
+          -gltLabel 1 'House-Face' -gltCode  1 'cond : 1*House -1*Face'    \\
+          -gltLabel 2 'Face-House' -gltCode  2 'cond : 1*Face -1*House'    \\
+          -dataTable                                                       \\
+          Subj  cond        RT   age        InputFile                      \\
+          s1    House      124   35  s1+tlrc\'[House#0_Coef]\'               \\
+          s2    House       97   51  s2+tlrc\'[House#0_Coef]\'               \\
+          s3    House      107   25  s3+tlrc\'[House#0_Coef]\'               \\
+          ... 
+          s1    Face       110   35  s1+tlrc\'[Face#0_Coef]\'                \\
+          s2    Face        95   51  s2+tlrc\'[Face#0_Coef]\'                \\
+          s3    Face       120   25  s3+tlrc\'[Face#0_Coef]\'                \\
+          ...                                   
+   \n"
+   
+   
+   ex3 <-
+"Example 3 --- BOLD response was modeled with multiple basis functions at individual
+subject level. In addition, there are one between-subjects (Group) and one within-
+subject (Condition) variable. Furthermore, the variable corresponding to the number 
+of basis functions, Time, is also a within-subject variable. In the end, the F-
+statistics for the interactions of Group:Condition:Time, Group:Time, and 
+Condition:Time are of specific interest. And these interactions can be further
+explored with GLTs in 3dLME.
+
+---------------------------------
+   3dLME -prefix Example3 -jobs 4   \\
+         -model Group               \\
+         -wsVars 'Condition*Time'   \\
+         -num_glt 32                \\
+         -gltLabel 1 old_t0 -gltCode 1 'Group : 1*old Time : 1*t0' \\
+         -gltLabel 2 old_t1 -gltCode 2 'Group : 1*old Time : 1*t1' \\
+         -gltLabel 3 old_t2 -gltCode 3 'Group : 1*old Time : 1*t2' \\
+         -gltLabel 4 old_t3 -gltCode 4 'Group : 1*old Time : 1*t3' \\
+         -gltLabel 5 yng_t0 -gltCode 5 'Group : 1*yng Time : 1*t0' \\
+         -gltLabel 6 yng_t1 -gltCode 6 'Group : 1*yng Time : 1*t1' \\
+         -gltLabel 7 yng_t2 -gltCode 7 'Group : 1*yng Time : 1*t2' \\
+         -gltLabel 8 yng_t3 -gltCode 8 'Group : 1*yng Time : 1*t3' \\
+         ...
+         -gltLabel 17 old_face_t0 -gltCode 17 'Group : 1*old Condition : 1*face Time : 1*t0' \\
+         -gltLabel 18 old_face_t1 -gltCode 18 'Group : 1*old Condition : 1*face Time : 1*t1' \\
+         -gltLabel 19 old_face_t2 -gltCode 19 'Group : 1*old Condition : 1*face Time : 1*t2' \\
+         -gltLabel 20 old_face_t3 -gltCode 20 'Group : 1*old Condition : 1*face Time : 1*t3' \\
+         ...         
+         -dataTable                                            \\
+         Subj  Group  Condition Time InputFile                 \\
+         s1    old    face      t0   s1+tlrc\'[face#0_beta]\'    \\
+         s1    old    face      t1   s1+tlrc\'[face#1_beta]\'    \\
+         s1    old    face      t2   s1+tlrc\'[face#2_beta]\'    \\
+         s1    old    face      t3   s1+tlrc\'[face#3_beta]\'    \\
+         ...
+         s40   yng    house     t0   s40+tlrc\'[house#0_beta]\'  \\
+         s40   yng    house     t1   s40+tlrc\'[house#1_beta]\'  \\
+         s40   yng    house     t2   s40+tlrc\'[house#2_beta]\'  \\
+         s40   yng    house     t3   s40+tlrc\'[house#3_beta]\'      
+   \n"
+   
+   
+   parnames <- names(params)
+   ss <- vector('character')
+   if(alpha) {
+       parnames <- sort(parnames)   
+       ss <- paste('Options in alphabetical order:\n',
+                  '------------------------------\n', sep='')
+   } else ss <- paste('Options:\n', '--------\n', sep='')
+   for(ii in 1:length(parnames)) {
+      op <- params[parnames[ii]][[1]]
+      if(!is.null(op$help)) ss <- c(ss , paste(itspace, op$help, sep='')) else
+         ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep='')) 
+   }
+   ss <- paste(ss, sep='\n')
+   cat(intro, ex1, ex2, ex3, ss, sep='\n')
+   
+   if (adieu) exit.AFNI();
+}
+   
+#Change command line arguments into an options list
+read.LME.opts.batch <- function (args=NULL, verb = 0) {
+   params <- list (
+      '-prefix' = apl(n = 1, d = NA,  h = paste(
+   "-prefix PREFIX: Output file name. For AFNI format, provide prefix only,",
+   "         no view+suffix needed. Filename for NIfTI format should have",
+   "         .nii attached, while file name for surface data is expected",
+   "         to end with .niml.dset\n", sep = '\n'
+                     ) ),
+
+      '-mask' = apl(n=1,  d = NA, h = paste(
+   "-mask MASK: Process voxels inside this mask only.\n",
+   "         Default is no masking.\n"
+                     ) ),
+
+      '-jobs' = apl(n = 1, d = 1, h = paste(
+   "-jobs NJOBS: On a multi-processor machine, parallel computing will speed ",
+   "         up the program significantly.",
+   "         Choose 1 for a single-processor computer.\n", sep = '\n'
+                     ) ),
+
+      '-model' = apl(n = 1, d = 1, h = paste(
+   "-model FORMULA: Specify the terms of fixed effects for all explanatory,",
+   "         including quantitative, variables. The expression FORMULA with more",
+   "         than one variable has to be surrounded within (single or double)",
+   "         quotes. Variable names in the formula should be consistent with",
+   "         the ones used in the header of -dataTable. A+B represents the",
+   "         additive effects of A and B, A:B is the interaction between A",
+   "         and B, and A*B = A+B+A:B. The effects of within-subject",
+   "         factors, if present under -wsVars are automatically assumed",
+   "         to interact with the ones specified here. Subject should not",
+   "         occur in the model specifiction here.\n", sep = '\n'
+             ) ),
+
+      '-ranEff' = apl(n=c(1,100), d=NA, h = paste(
+   "-ranEff FORMULA: Specify the random effects. The simplest and most common",
+   "         one is random intercept, \"~1\", meaning each subject deviates some",
+   "         amount (called random effect) from the group average. \"~RT\" or \"~1+RT\"",
+   "         means that each subject has a unique intercept as well as a slope,",
+   "         and the correlation between the two random effects are estimated, not",
+   "         assumed, from the data. \"~0+RT\" indicates that only a random effect",
+   "         of slope is desired. Compound symmetry for a variance-covariance metric",
+   "         across the levels of factor A can be specified through pdCompSymm(~0+A)",
+   "         The list of random terms should be separated by space within (single or",
+   "         double) quotes.\n", sep = '\n'
+                             ) ),
+
+      '-qVars' = apl(n=c(1,100), d=NA, h = paste(
+   "-qVars variable_list: Identify quantitative variables (or covariates) with",
+   "         this option. The list with more than one variable has to be",
+   "         separaated with comma (,) without any other characters such as",
+   "         spaces and should be surrounded within (single or double) quotes.",
+   "          For example, -qVars \"Age,IQ\"",
+   "         WARNINGS:",
+   "         1) Centering a quantitative variable through -qVarsCenters is",
+   "         very critical when other fixed effects are of interest.",
+   "         2) Between-subjects covariates are generally acceptable.",
+   "         However EXTREME caution should be taken when the groups",
+   "         differ significantly in the average value of the covariate.",
+   "         3) Within-subject covariates are better modeled with 3dLME.\n",
+             sep = '\n'
+             ) ),
+
+     '-qVarCenters' = apl(n=c(1,100), d=NA, h = paste(
+   "-qVarCenters VALUES: Specify centering values for quantitative variables",
+   "         identified under -qVars. Multiple centers are separated by ",
+   "         commas (,) without any other characters such as spaces and should",
+   "         be surrounded within (single or double) quotes. The order of the",
+   "         values should match that of the quantitative variables in -qVars.",
+   "         Default (absence of option -qVarsCetners) means centering on the",
+   "         average of the variable across ALL subjects regardless their",
+   "         grouping. If within-group centering is desirable, center the",
+   "         variable YOURSELF first before the values are fed into -dataTable.\n",
+             sep = '\n'
+                     ) ),
+
+     '-SS_type' = apl(n=1, d=3, h = paste(
+   "-SS_type NUMBER: Specify the type for sums of squares in the F-statistics.",
+   "         Two options are currently supported: sequential (1) and marginal (3).\n ",
+             sep = '\n'
+                     ) ),
+
+     '-corStr' = apl(n=c(1,100), d=NA, h = paste(
+   "-corStr FORMULA: Specify the correlation structure of the residuals. For example,",
+   "         when analyzing the effect estimates from multiple basis functions,",
+   "         one may consider account for the temporal structure of residuals with",
+   "         AR or ARMA.\n ",
+             sep = '\n'
+                     ) ),
+
+     '-num_glt' = apl(n=1, d=0, h = paste(
+   "-num_glt NUMBER: Specify the number of general linear tests (GLTs). A glt",
+   "         is a linear combination of a factor levels. See details in ",
+   "         -gltLabel.\n", sep = '\n'
+                     ) ),
+                     
+     '-gltLabel' = apl(n=c(1,1000), d=NA, h = paste(
+   "-gltLabel k label: Specify the label for the k-th general linear test",
+   "         (GLT). A symbolic coding for the GLT is assumed to follow with",
+   "         each -gltLabel.\n", sep = '\n'
+                     ) ),
+
+     '-gltCode' = apl(n=c(1,1000), d=NA, h = paste(
+   "-gltCode k CODING: Specify the k-th general linear test (GLT) through a",
+   "         weighted combination among factor levels. The symbolic coding has",
+   "         to be within (single or double) quotes. For example, the following",
+   "         'Condition : 2*House -3*Face Emotion : 1*positive '",
+   "         requests for a test of comparing 2 times House condition",
+   "         with 3 times Face condition while Emotion is held at positive",
+   "         valence.\n",
+   "         NOTICE:",
+   "         1) The weights for a variable do not have to add up to 0.",   
+   "         2) When a quantitative variable is present, other effects are",
+   "         tested at the center value of the covariate.",
+   "         3) The effect for a quantitative variable can be specified with,",
+   "         for example, 'Group : 1*Old Age : ', or ",
+   "         'Group : 1*Old - 1*Young Age : '", 
+   "         4) The absence of a categorical variable in a coding means the",
+   "         levels of that factor are averaged (or collapsed) for the GLT.",
+   "         5) The appearance of a categorial variable has to be followed",
+   "         by the linear combination of its levels. Only a quantitative",
+   "         is allowed to have a dangling coding as seen in 'Age :'\n",         
+             sep = '\n'
+             ) ),
+
+     '-dataTable' = apl(n=c(1, 10000), d=NA, h = paste(
+   "-dataTable TABLE: List the data structure with a header as the first line.",
+   "         NOTE: this option has to occur last; that is, no other options are",
+   "         allowed thereafter. Each line should end with a backslash except for",
+   "         the last line.\n",
+   "         The first column is fixed with 'Subj', and the last is reserved",
+   "         for 'InputFile'. Each row should contain only one effect estimate",
+   "         in the table of long format (cf. wide format) as defined in R. The",
+   "         level labels of a factor should contain at least one character.",
+   "         Input files can be in AFNI, NIfTI or surface format. AFNI files",
+   "         can be specified with sub-brick selector(square brackets [] within",
+   "         quotes) specified with a number oflabel. Unequal number of subjects",
+   "         across groups is allowed, butsituations with missing data for a",
+   "         within-subject factor are betterhandled with 3dLME.",
+   "         handled with 3dLME.\n", 
+             sep = '\n'
+                     ) ),
+
+      '-help' = apl(n=0, h = '-help: this help message\n'),
+      '-show_allowed_options' = apl(n=0, h=
+   "-show_allowed_options: list of allowed options\n" ),
+   
+       '-cio' = apl(n=0, h = paste(
+   "-cio: Use AFNI's C io functions, which is default. Alternatively -Rio",
+   "         can be used.\n", sep='\n')),
+       '-Rio' = apl(n=0, h = "-Rio: Use R's io functions. The alternative is -cio.\n")
+      
+         )
+   #browser()                  
+   ops <- parse.AFNI.args(args, params, other_ok=FALSE)
+   if (verb) show.AFNI.args(ops, verb=0, hstr='')
+   if (is.null(ops)) 
+      errex.AFNI('Error parsing arguments. See 3dLME -help for details.')
+
+   #Parse dems options
+   #initialize with defaults
+      com_history<-AFNI.command.history(ExecName, args,NULL)
+      lop <- list (com_history = com_history)
+      lop$nNodes <- 1
+      lop$model  <- 1
+      lop$maskFN <- NA
+
+      lop$ranEff <- NA
+      lop$qVars  <- NA
+      lop$qVarCenters    <- NA
+      lop$corStr <- NA
+      lop$SS_type <- 3
+      lop$num_glt <- 0
+      lop$gltLabel <- NULL
+      lop$gltCode  <- NULL
+      lop$dataTable <- NULL
+      
+      lop$iometh <- 'clib'
+      lop$verb <- 0
+
+   #Get user's input
+   for (i in 1:length(ops)) {
+      opname <- strsplit(names(ops)[i],'^-')[[1]];
+      opname <- opname[length(opname)];
+      switch(opname,
+             prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
+             mask = lop$maskFN <- ops[[i]],
+             jobs   = lop$nNodes <- ops[[i]],
+             model  = lop$model  <- ops[[i]],
+             ranEff = lop$ranEff  <- ops[[i]],
+             qVars  = lop$qVars <- ops[[i]],
+             qVarCenters = lop$qVarCenters <- ops[[i]],
+             corStr  = lop$corStr <- ops[[i]],
+             SS_type = lop$SS_type <- ops[[i]],
+             num_glt = lop$num_glt <- ops[[i]],
+             gltLabel = lop$gltLabel <- ops[[i]],
+             gltCode  = lop$gltCode <- ops[[i]],
+             dataTable  = lop$dataTable <- ops[[i]],
+             
+             help = help.LME.opts(params, adieu=TRUE),
+
+             cio = lop$iometh<-'clib',
+             Rio = lop$iometh<-'Rlib'
+             )
+   }
+
+
+   return(lop)
+}# end of read.LME.opts.batch
+
+# construct a glt list for testInteraction in phia
+# how to deal with basis functions?????????????
+gltConstr <- function(cStr, dataStr) {
+   pos <- which(cStr==":")
+   vars  <- cStr[pos-1]
+   nvar <- length(vars)
+   pos <- c(pos, length(cStr)+2) # add an artificial one for convenient usage below
+   varsOK <- vars %in% colnames(dataStr)
+   if(all(varsOK)) {
+      gltList <- vector('list', nvar)      
+      for(ii in 1:nvar) {
+         #browser()
+         lvl  <- levels(dataStr[,vars[ii]])
+         gltList[[ii]] <- rep(0, length(lvl))
+         sepTerms <- unlist(lapply(cStr[(pos[ii]+1):(pos[ii+1]-2)], strsplit, '\\*'))
+         lvlInv <- sepTerms[seq(2,length(sepTerms),2)]   # levels involved
+         lvlOK <- lvlInv %in% lvl
+         if(all(lvlOK)) {
+            sq <- match(lvlInv, lvl)
+            gltList[[ii]][sq] <- as.numeric(sepTerms[seq(1,length(sepTerms),2)])
+         } else errex.AFNI(paste("Incorrect level coding in variable", vars[ii],
+	         ": ", lvlInv[which(!lvlOK)], " \n   "))
+      }
+      names(gltList) <- vars
+      return(gltList)
+   } else errex.AFNI(paste("Incorrect variable name in GLT coding: ", vars[which(!varsOK)], " \n   "))
+}
+
+# test
+# gltConstr(lop$gltCode[[1]], lop$dataStr)
+
+
+# construct a list for contrast() in contrast: here only deals with factors???
+# If a variable is *not* shown in the coding, it means that variable is collapsed!
+contraConstr <- function(cStr, dataStr, fixedVars, QV) {
+   pos <- which(cStr==":")  # colon positions: could be multiple colons
+   vars  <- cStr[pos-1]     # vector of vars in the glt/contrast: could be multiple variables; if not here, collapse
+   nvar <- length(fixedVars)     # number of variables involved in the model
+   pos <- c(pos, length(cStr)+2) # add an artificial one for convenient usage below
+   varsOK <- vars %in% colnames(dataStr)  # make sure the var names are correct
+   #browser()
+   if(all(varsOK)) {
+      contrList <- vector('list', 2)   # list to store the two conditions for contrast
+      for(ii in 1:2) {
+         contrList[[ii]] <- vector('list', nvar)
+         names(contrList[[ii]]) <- fixedVars
+      }
+      for(vv in fixedVars) {
+         #browser()
+	      if(vv %in% QV) for(ii in 1:2) contrList[[ii]][[vv]] <- 0 else {
+            lvl <- levels(dataStr[,vv])
+            if(vv %in% vars) {
+               #browser()
+               ii <- which(pos==which(cStr==vv)+1) # location of the closest colon
+               sepTerms <- unlist(lapply(cStr[(pos[ii]+1):(pos[ii+1]-2)], strsplit, '\\*'))
+               lvlInv <- sepTerms[seq(2,length(sepTerms),2)]   # levels involved
+               lvlOK <- lvlInv %in% lvl
+               #browser()
+	            if(all(lvlOK)) {
+	               sq <- match(as.numeric(sepTerms[c(1,3)]), c(1, -1))
+                  for(ii in 1:2) contrList[[ii]][[vv]] <- lvlInv[ii]
+	            } else errex.AFNI(paste("Incorrect level coding in variable", vars[ii],
+	               ": ", lvlInv[which(!lvlOK)], " \n   "))
+            } else contrList[[ii]][[vv]] <- lvl
+         } #if(vv %in% QV)        
+      } #for(vv in fixedVars)
+   } else errex.AFNI(paste("Incorrect variable name in GLT coding: ", vars[which(!varsOK)], " \n   "))
+   return(contrList) 
+}
+
+# test
+# contraConstr(lop$gltCode[[1]], lop$dataStr, fixedVars, lop$QV)
+
+
+#Change options list to 3dLME variable list 
+process.LME.opts <- function (lop, verb = 0) {
+   if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
+   an <- parse.AFNI.name(lop$outFN)
+   if(an$type == "NIML") {
+      if(file.exists(lop$outFN)) errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
+   } else if(file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) || 
+     file.exists(paste(lop$outFN,"+tlrc.BRIK", sep="")) || 
+     file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) || 
+     file.exists(paste(lop$outFN,"+orig.BRIK", sep=""))) {
+     errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
+     return(NULL)
+   }      
+   
+   #Make sure new io must be used with anything but BRIK format
+   an <- parse.AFNI.name(lop$outFN)
+   if(an$type != 'BRIK' && lop$iometh != 'clib') 
+      errex.AFNI(c('Must of use -cio option with any input/output ',
+                   'format other than BRIK'))
+
+   # assume the quantitative variables are separated by + here
+   if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\+')[[1]]
+
+   if(!is.null(lop$gltLabel)) {
+      sq <- as.numeric(unlist(lapply(lop$gltLabel, '[', 1)))
+      if(identical(sort(sq), as.numeric(seq(1, lop$num_glt)))) {
+         lop$gltLabel <- unlist(lapply(lop$gltLabel, '[', 2))
+         lop$gltLabel[sq] <- lop$gltLabel
+      } else errex.AFNI(c('The number of -gltLabel is not consistent with that \n',
+         'specified by -num_glt ',  lop$num_glt))
+   }
+
+  if(!is.null(lop$gltCode)) {
+      sq <- as.numeric(unlist(lapply(lop$gltCode, '[', 1)))
+      if(identical(sort(sq), as.numeric(seq(1, lop$num_glt)))) {
+         lop$gltCode <- lapply(lop$gltCode, '[',-1)
+         lop$gltCode[sq] <- lop$gltCode
+      } else errex.AFNI(c('The number of -gltLabel is not consistent with that \n',
+         'specified by -num_glt ',  lop$num_glt))
+   }         
+
+   len <- length(lop$dataTable)
+   wd <- which(lop$dataTable == "InputFile")
+   hi <- len / wd - 1
+   
+   if(len %% wd != 0)
+      errex.AFNI('The content under -dataTable is not rectangular!') else {
+      lop$dataStr <- NULL
+      for(ii in 1:wd) 
+         lop$dataStr <- data.frame(cbind(lop$dataStr, lop$dataTable[seq(wd+ii, len, wd)]))
+      names(lop$dataStr) <- lop$dataTable[1:wd]
+      # wow, terrible mistake here with as.numeric(lop$dataStr[,jj])
+      #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
+      if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
+      # or if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(levels(lop$dataStr[,jj]))[as.integer(lop$dataStr[,jj])]
+   }
+
+   # number of fixed-effects variables involved in the model
+   parseStr <- function(input, sep) unlist(strsplit(input, sep))
+   fixedVars <- unique(parseStr(parseStr(parseStr(lop$model, "\\:"), "\\*"), "\\+"))
+   nFix <- length(fixedVars)
+
+   # contrcuct the glt's for phia, which is currently not so suitable for lme
+   #if (lop$num_glt > 0) {
+   #   lop$gltList    <- vector('list', lop$num_glt)
+   #   lop$slpList    <- vector('list', lop$num_glt)
+   #   for (n in 1:lop$num_glt) {
+   #      if(!is.na(lop$qVars) & any(lop$QV %in% lop$gltCode[[n]])) {
+   #         QVpos <- which(lop$gltCode[[n]] %in% lop$QV)
+   #         lop$gltList[[n]]   <- gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
+   #         lop$slpList[[n]] <- lop$gltCode[[n]][QVpos]   
+   #      } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
+   #   }
+   #}
+   
+   # constrcuct pairwise comparisons for function contrast
+   # now assume quantitative variables are always set to 0 for contrast testing
+   # may change to any value later
+   if (lop$num_glt > 0) {
+      lop$gltList <- vector('list', lop$num_glt)  # list used by contrast()
+      for (n in 1:lop$num_glt) lop$gltList[[n]] <- contraConstr(lop$gltCode[[n]], lop$dataStr, fixedVars, lop$QV)
+   }
+   
+   
+   if(lop$iometh == 'Rlib') 
+      lop$outFN <- paste(lop$outFN, "+tlrc", sep="") else {
+      an <- parse.AFNI.name(lop$outFN)
+      if(an$type == "BRIK" && an$ext == "" && is.na(an$view))
+         lop$outFN <- paste(lop$outFN, "+tlrc", sep="")      
+      if (exists.AFNI.name(lop$outFN) || 
+          exists.AFNI.name(modify.AFNI.name(lop$outFN,"view","+tlrc")))
+         errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
+   }
+
+   if(lop$nNodes < 1) lop$nNodes <- 1
+
+
+   if(!is.na(lop$maskFN)) {
+      if(verb) cat("Will read ", lop$maskFN,'\n')
+      if(is.null(mm <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh))) {
+         warning("Failed to read mask", immediate.=TRUE)
+         return(NULL)
+      }
+      lop$maskData <- mm$brk
+      if(verb) cat("Done read ", lop$maskFN,'\n')
+   }
+   if(!is.na(lop$maskFN)) 
+      if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3])) 
+         stop("Mask dimensions don't match the input files!")
+
+   return(lop)
+}
+
+#################################################################################
+################# LME Computation functions ##############################
+#################################################################################
+
+# used only in read.LME.opts.from.file
+scanLine <- function(file, lnNo=1, marker="\\:")
+   unlist(strsplit(unlist(scan(file, what= list(""), skip=lnNo-1, 
+   strip.white=TRUE, nline=1)), marker))[2]
+
+
+# heavy computation with voxel-wise analysis
+runLME <- function(inData, dataframe, ModelForm, pars) {
+   Stat <- rep(0, pars[[1]])
+   if (!all(abs(inData) < 10e-8)) {        
+      dataframe$Beta<-inData
+      fm <- NULL
+      if(!pars[[7]])
+         try(fm <- lme(ModelForm, random = pars[[8]], dataframe, correlation=corAR1(0.3, form=pars[[9]])), silent=TRUE)
+         # case of basis functions
+      if(is.null(fm)) { # case of basis functions fails or other cases
+         try(fm <- lme(ModelForm, random = pars[[8]], dataframe), silent=TRUE)
+         if(is.null(fm)) try(fm <- lme(ModelForm, random = ~1|Subj, dataframe), silent=TRUE)
+      } 
+      if(is.null(fm) | class(fm$apVar)[1] == "character") {
+         fm <- NULL
+         try(fm <- gls(ModelForm, dataframe), silent=TRUE)
+      }
+
+      if(!is.null(fm)){      
+         Stat[1:pars[[2]]] <- anova(fm, type=pars[[10]])$F[pars[[13]]] # F-stat		
+         if(!pars[[7]]) { # basis functions
+	    Stat[pars[[2]]+2*0.5:pars[[11]]] <- unname(summary(fm)$tTable[, "Value"])
+            # unname(fm$coefficients$fixed) only works for lme, not for gls!!!
+            # but unname(summary(fm)$tTable[, "Value"]) is immune to the type of models, lme or gls!
+ 	    Stat[pars[[2]]+2*1:pars[[11]]] <- unname(summary(fm)$tTable[,"t-value"])
+         }
+         if(pars[[3]] > 0) for(n in 1:pars[[3]]) { # assuming no glts for basis functions
+	    con <- NULL
+            try(con <- contrast(fm, pars[[4]][[n]][[1]], pars[[4]][[n]][[2]], type="average"),silent=TRUE) 
+	    if(!is.null(con)) Stat[(pars[[2]]+2*n-1):(pars[[2]]+2*n)] <- c(con$Contrast, con$testStat)
+         }
+         if(pars[[5]] > 0) for (n in 1:pars[[5]]) {
+            Stat[(pars[[2]]+2*pars[[3]]+2*n-1):(pars[[2]]+2*pars[[3]]+2*n)] <- 
+               c(summary(fm)$tTable[pars[[12]][n], "Value"], summary(fm)$tTable[pars[[12]][n], "t-value"])
+         }
+      }
+   }
+   return(Stat)	
+}
+# test runLME(inData[1,2,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)      
+
+#################################################################################
+########################## Read information from a file #########################tryCatch(print(fm[[1]]), error=function(e) NULL)
+#################################################################################
+
+#A function to parse all user input from a file
+
+read.LME.opts.from.file <- function (modFile='model.txt', verb = 0) {
+   lop <- list()  #List to hold all options from user input
+   lop$verb <- verb
+   lop$iometh <- 'clib'
+   
+   # Line 1: data type - volume or surface
+   #datatype <- scanLine(modFile, lnNo=1)
+   
+   #  Line 2: Output filename
+   lop$outFN <-scanLine(modFile, lnNo=2)
+   lop$outFN <- paste(lop$outFN, "+tlrc", sep="")
+
+   # check if the filename exists already
+   if(any(file.exists(paste(lop$outFN,'.BRIK', sep=''), paste(lop$outFN,'.HEAD', sep=''))))
+      errex.AFNI("Output filename already exists! Please rename it...")
+
+   # Line 3: MASK
+   lop$maskFN <- scanLine(modFile, lnNo=3)
+
+   # Line 4: #jobs
+   lop$nNodes<- as.integer(scanLine(modFile, lnNo=4))
+
+   # Line 5: model formula
+   lop$model <- scanLine(modFile, lnNo=5)
+
+   # Line 6: within-subject variables
+   lop$wsVars <- scanLine(modFile, lnNo=6)
+
+   # Line 7: covariates lop$QV is NA if no covariates
+   lop$qVars <- unlist(strsplit(scanLine(modFile, lnNo=7), "\\*"))
+   lop$QV <- strsplit(lop$qVars, '\\+')[[1]]
+
+   # Line 8: covariates center value: NA means mean
+   lop$qVarCenters <- unlist(strsplit(scanLine(modFile, lnNo=8), "\\*"))
+   #lop$qVarCenters <- as.numeric(strsplit(lop$qVarCenters, '\\,')[[1]])
+
+   # header position (hp) defined by column name InputFile
+   hp <- grep("InputFile", readLines(modFile)) 
+   lop$dataStr <- read.table(modFile, skip=hp[1]-1, header=TRUE)
+
+   # number of contrasts (pair-wise only right now)
+   lop$num_glt   <- (hp-12)%/%2
+
+   if (lop$num_glt > 0) {
+      lop$gltLabel <- array(data=NA, dim=lop$num_glt)
+      clist      <- vector('list', lop$num_glt)
+      lop$gltList    <- vector('list', lop$num_glt)
+      lop$slpList    <- vector('list', lop$num_glt)
+      for (n in 1:lop$num_glt) {
+         lop$gltLabel[n] <- paste(unlist(scan(file=modFile, what= list(""), skip=10+2*n-1, 
+            strip.white=TRUE, nline=1)), collapse="")
+         clist[[n]] <- scan(file=modFile, what= list(""), skip=10+2*n, nline=1)[[1]]
+         if(any(lop$QV %in% clist[[n]])) {
+            QVpos <- which(clist[[n]] %in% lop$QV)
+            lop$gltList[[n]]   <- gltConstr(clist[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
+            lop$slpList[[n]] <- clist[[n]][QVpos]   
+         } else lop$gltList[[n]] <- gltConstr(clist[[n]], lop$dataStr)
+      }
+   }
+   #browser()
+   return(lop)
+} # end of read.LME.from.file
+
+
+#################################################################################
+########################## Begin LME main ######################################
+#################################################################################
+
+   if(!exists('.DBG_args')) { 
+      args = (commandArgs(TRUE))  
+      rfile <- first.in.path(sprintf('%s.R',ExecName))  
+      save(args, rfile, file=".3dLME.dbg.AFNI.args", ascii = TRUE) 
+   } else {
+      note.AFNI("Using .DBG_args resident in workspace")
+      args <- .DBG_args
+   }
+   if(!length(args)) {
+      BATCH_MODE <<- 0
+      cat(greeting.LME(),
+      "Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.\n", 
+      sep='\n')
+      #browser()
+      if(length(args)<6) modFile <- "model.txt" else modFile <- args[6]
+      if (is.null(lop <- read.LME.opts.from.file(modFile, verb=0))) {
+         stop('Error parsing input from file!');
+      }
+
+      if(0) str(lop)
+      
+   } else {
+      if(!exists('.DBG_args')) {
+         BATCH_MODE <<- 1
+      } else {
+         BATCH_MODE <<- 0
+      }
+      if(is.null(lop <- read.LME.opts.batch(args, verb = 0)))
+         stop('Error parsing input')
+      
+      #str(lop);
+      if(is.null(lop <- process.LME.opts(lop, verb = lop$verb))) 
+         stop('Error processing input')
+      
+   }
+   #if(lop$verb > 1) { 
+      #Too much output, big dump of header structs of input dsets..
+   #   str(lop)
+   #}
+
+
+########################################################################
+
+
+
+if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
+
+
 require("nlme")
 require("contrast")
 
-comArgs <- commandArgs()
-if(length(comArgs)<6) modFile <- "model.txt" else
-modFile <- comArgs[6]
+#comArgs <- commandArgs()
+
+#if(length(comArgs)<6) modFile <- "model.txt" else
+#modFile <- comArgs[6]
 #paste(commandArgs())
 
-# Line 1: data type - volume or surface
-datatype <- unlist(strsplit(unlist(scan(file=modFile, what= list(""), 
-   skip=0, strip.white=TRUE, nline=1)), "\\:"))[2]
+
+# even if lop$wsVars is NA (no within-subject factors), it would be still OK for Error(Subj/NA)
+#if(is.na(lop$wsVars)) ModelForm <- as.formula(paste("Beta ~", lop$model)) else
+   ModelForm <- as.formula(paste("Beta ~", lop$model)) 
    
-#  Line 2: Output filename
-#how to check output filename?
-Out <-unlist(strsplit(unlist(scan(file=modFile, what= list(""), 
-   skip=1, strip.white=TRUE, nline=1)), "\\:"))[2]
-OutFile <- paste(Out, "+orig", sep="")
 
-# Line 3: MASK
-mask <- unlist(strsplit(unlist(scan(file=modFile, what= list(""), 
-   skip=2, strip.white=TRUE, nline=1)), "\\:"))[2]
+# Line 12 and the next few: pair-wise contrasts
 
-# Line 4: model formula
-ModelShape <- unlist(strsplit(unlist(scan(file=modFile, what= list(""), 
-   skip=3, strip.white=TRUE, nline=1)), "\\:"))[2]
-#nfixed <- length(strsplit(ModelShape[[1]], "\\*")[[1]])
-nfixed <- length(unique(unlist(strsplit(unlist(strsplit(ModelShape[[1]], 
-   "\\*")), "\\+"))))
+# Maybe not list for these two, or yes?
+lop$dataStr$Subj <-  as.factor(lop$dataStr$Subj)
+lop$dataStr$InputFile <-  as.character(lop$dataStr$InputFile)
 
-ModelForm <- as.formula(paste("Beta~", ModelShape))
-if (length(grep("-1", ModelShape)==1)>0) NoConst <- TRUE else NoConst <- FALSE
+# center on user-speficied value or mean
+if(any(!is.na(lop$qVars))) if(all(is.na(lop$qVarCenters))) 
+   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F)[,,drop=T] else
+   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$qVarCenters, scale=F)[,,drop=T]
 
-# Line 5: covariates Cov is NA if no covariates
-Cov <- unlist(strsplit(unlist(strsplit(unlist(scan(file=modFile, 
-   what= list(""), skip=4, strip.white=TRUE, nline=1)), "\\:"))[2], "\\*"))
-if (is.na(Cov)) nCov <- 0 else nCov <- length(Cov)  # number of covariates
 
-# separate interaction terms
-xterms <- strsplit(ModelShape[[1]], "\\+")[[1]]
-covlist <- vector('list', nCov)  # list of those fixed factors each covariate interacts with
-if (!is.na(Cov[1])) {  # is.na(Cov) doesn't work with more than 1 elements in Cov!
-for (n in 1:nCov) {
-   # grep(Cov[n], xterms): indices of those interactions that contain each covariate	
-	covlist[[n]] <- unique(unlist(strsplit(xterms[grep(Cov[n], xterms)], "\\*"))) 
-	covlist[[n]] <- covlist[[n]][!covlist[[n]] %in% Cov]
-}
+cat('\n++++++++++++++++++++++++++++++++++++++++++++++++++++\n')
+cat('***** Summary information of data structure *****\n')
+
+cat(nlevels(lop$dataStr$Subj), 'subjects : ', levels(lop$dataStr$Subj), '\n')
+cat(length(lop$dataStr$InputFile), 'response values\n')
+for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
+   cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
+   levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'numeric' | class(lop$dataStr[,ii]) == 'matrix')  # numeric doesn't work
+   cat(length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii], ':', lop$dataStr[,ii], '\n')
+cat(lop$num_glt, 'post hoc tests\n')
+
+cat('\nTabulation of subjects against all categorical variables')
+all_vars <- names(lop$dataStr)
+for(var in all_vars[-c(1, length(all_vars))]) if(!(var %in% lop$QV)) {
+   cat('\n~~~~~~~~~~~~~~')
+   cat('\nSubj vs ', var, ':\n', sep='')
+   print(table(lop$dataStr$Subj, lop$dataStr[,var]))
 }
 
-# Line 6: Random effect - lme or gls?
-ranEff <- vector("list", 2)
-ranEff[[1]] <- unlist(strsplit(unlist(strsplit(unlist(scan(file=modFile, what= list(""), 
-   skip=5, strip.white=TRUE, nline=1)), "\\:"))[2], "\\,"))
-#if (ranEff[[1]][1]) ranEff[[1]][1] <- 1  # simple for backward compatibility
+cat('***** End of data structure information *****\n')   
+cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 
-
-nRand <- length(ranEff[[1]])
-if (nRand==1 & as.numeric(ranEff[[1]][1])==1) ranEff[[2]] <- as.formula(~1|Subj)
-if (nRand>1) {
-	ranForm <- vector("list", nRand)		
-	ranEff[[2]][[1]] <- ~1; 
-	for (ii in 2:nRand) ranEff[[2]][[ii]] <- as.formula(sprintf("~%s-1",ranEff[[1]][ii]))
-	ranEff[[2]] <- list(Subj=pdBlocked(lapply(ranEff[[2]], pdIdent)))
-}	
-
-# Line 7: Variance structure for modeling dependence among within-subject errors
-VarStr <- unlist(strsplit(unlist(scan(file=modFile, what= list(""), skip=6, 
-   strip.white=TRUE, nline=1)), "\\:"))[2]
-# 0 - nothing; 1 - different varis21699ances across groups
-VarTmp <- strsplit(unlist(scan(file=modFile, what= list(""), skip=6, 
-   strip.white=TRUE, nline=1)), "\\:|~")
-VarStr <- unlist(VarTmp)[2]
-VarForm <- as.formula(paste("~", unlist(VarTmp)[3]))
-
-# Line 8: Correlation structure for modeling dependence among within-subject errors
-# 0 - nothing; 1 - corAR1; 2 - corARMA(2,0); 3 - corARMA(1,1)
-CorTmp <- strsplit(unlist(scan(file=modFile, what= list(""), skip=7, 
-   strip.white=TRUE, nline=1)), "\\:|~")
-CorStr <- unlist(CorTmp)[2]
-CorForm <- as.formula(paste("~", unlist(CorTmp)[3]))
-
-# Line 9: type of sums of squares - "marginal" or "sequential"
-Ftype <- unlist(strsplit(unlist(scan(file=modFile, what= list(""), skip=8, 
-   strip.white=TRUE, nline=1)), "\\:"))[2]
-
-clusPos<-grep("Clusters", readLines(modFile))
-if (length(clusPos)>0) nNodes<- as.integer(unlist(strsplit(unlist(scan(file=modFile, what= list(""), 
-   skip=clusPos-1, strip.white=TRUE, nline=1)), "\\:"))[2]) else nNodes<-1
-
-
-# Line 10 and the next few: pair-wise contrasts
-
-
-# header position (hp) defined by column name InputFile
-hp <- grep("InputFile", readLines(modFile)) 
-Model <- read.table(modFile, skip=hp[1]-1, header=TRUE)
-# More decent way to do this?
-Model$Subj <-  as.factor(Model$Subj)
-Model$InputFile <-  as.character(Model$InputFile)
-
-# number of contrasts (pair-wise only right now)
-ncontr <- (hp-10)%/%2
-clist      <- vector('list', ncontr)
-
-if (ncontr > 0) {
-contrLabel <- array(data=NA, dim=ncontr)
-contr      <- array(data=NA, dim=ncontr)
-cc         <- array(data=NA, dim=c(ncontr, 2, nfixed))
-
-# CAREFUL: assume contrasts at the same covariate value for multiple groups, 
-# but is this desirable???
-for (n in 1:ncontr) {
-   contrLabel[n] <- paste(unlist(scan(file=modFile, what= list(""), skip=9+2*n-1, 
-	   strip.white=TRUE, nline=1)), collapse="")
-   contr[n]      <- scan(file=modFile, what= list(""), sep="-", skip=9+2*n, 
-	   strip.white=TRUE, nline=1)
-	clist[[n]] <- vector('list', 2)
-	for (ii in 1:2) cc[n, ii,] <- strsplit(contr[n][[1]][ii], "\\*")[[1]] # or unlist(strsplit(contr[n][[1]][ii], "\\*"))
-	for (ii in 1:2) {  # component in n-th contrast
-		# initialize the pair of list in clist
-		sublist <- vector('list', nfixed)  # for the parameters
-		for (jj in 1:nfixed) {  # jj-th fixed effect in ii-th component of n-th contrast  
-         if(cc[n, ii, jj] == "0") { 
-			   covp <- match(names(Model)[jj+1], Cov) # covp: covariate position index in Cov; match returns a vector of the positions of (first) matches
-				if (is.na(covp)) sublist[[jj]] <- levels(Model[, jj+1])  # categorical factor, not a covariate 
-				else {  # jj-th effect is a covariate: this part is so ungainly!
-				   if (!identical(covlist[[covp]], character(0))) { # covariate interacts with some categorical factors. xxif (Cov[covp] %in% covlist[[covp]])
-					   ave_log <- rep(TRUE, dim(Model)[1]) # initialization: TRUE because of logical AND
-					   #ave_idx <- matrix(FALSE, nrow=dim(Model)[1], ncol=nfixed) # initialization: FALSE because of logical OR
-						ave_idx <- matrix(FALSE, nrow=dim(Model)[1])
-					   for (kk in 1:nfixed) {
-							if( cc[n, ii, kk] != "0" ) ave_idx <- ave_idx | (Model[, kk+1]==cc[n, ii, kk])
-					      ave_log <- ave_log & ave_idx
-					   }
-					   sublist[[jj]] <- mean(Model[ave_log, names(Model)[jj+1]])
-					} else sublist[[jj]] <- mean(Model[, jj+1], rm.na=TRUE) # covariate doesn't interact with any categorical factors
-				}         
-			} else sublist[[jj]] <- cc[n, ii, jj]
-      }
-      names(sublist) <- names(Model)[2:(nfixed+1)]
-      clist[[n]][[ii]] <- sublist
-   }
-}
-}
 
 # Assume the last column is input files
-#FileCol <- length(colnames(Model))
-FileCol <- dim(Model)[2]
+#FileCol <- length(colnames(lop$dataStr))
+FileCol <- dim(lop$dataStr)[2]
 
 #Number of input files
-NoFile <- dim(Model[1])[1]
+NoFile <- dim(lop$dataStr[1])[1]
 
 # Repeated-measures (use lme) or not (use lm)
-#if (length(unique(Model$Subj)) != length(Model$Subj)) RM <- TRUE else RM <- FALSE
+#if (length(unique(lop$dataStr$Subj)) != length(lop$dataStr$Subj)) RM <- TRUE else RM <- FALSE
 
-if (datatype == "volume" | datatype == "Volume") {
+cat('Reading input files now...\n\n')
 
 # Read in the 1st input file so that we have the dimension information
-inData <- read.AFNI(Model[1, FileCol])
+inData <- read.AFNI(lop$dataStr[1, FileCol], verb=lop$verb, meth=lop$iometh)
 dimx <- inData$dim[1]
 dimy <- inData$dim[2]
 dimz <- inData$dim[3]
-myHist <- inData$header$HISTORY_NOTE; myOrig <- inData$origin; myDelta <- inData$delta
+# for writing output purpose
+head <- inData
 
-inData <- unlist(lapply(lapply(Model[,FileCol], read.AFNI), '[[', 1))
+# ww <- inData$NI_head
+#myHist <- inData$header$HISTORY_NOTE; myOrig <- inData$origin; myDelta <- inData$delta
+# Read in all input files
+inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh), '[[', 1))
 dim(inData) <- c(dimx, dimy, dimz, NoFile)
 
-if (!is.na(mask)) {
-	Mask <- read.AFNI(mask)$brk[,,,1]
-	inData <- array(apply(inData, 4, function(x) x*read.AFNI(mask)$brk[,,,1]), dim=c(dimx,dimy,dimz,NoFile))
+if (!is.na(lop$maskFN)) {
+	Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh)$brk[,,,1]
+	inData <- array(apply(inData, 4, function(x) x*read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh)$brk[,,,1]),
+      dim=c(dimx,dimy,dimz,NoFile))
 }
 
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's 
 # for t tests (and catch potential problems as well)
-ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
+#ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
 
-if (ncontr > 0) contrDF <- array(data=NA, dim=ncontr)
-tag<-1
-while (tag == 1) {
-   tag<-0
-	Model$Beta<-inData[ii, jj, kk,]
-	if (as.numeric(ranEff[[1]][1])!=0) {
-		if (CorStr == 0) { if (VarStr == 0) {
-		   try(fm <- lme(ModelForm, random = ranEff[[2]], Model), tag <- 1) } else {
-			try(fm <- lme(ModelForm, random = ranEff[[2]], weights=varIdent(VarForm), Model), tag <- 1) } }
-			
-		if (CorStr == 1) { if (VarStr == 0) {
-		   try(fm <- lme(ModelForm, random = ranEff[[2]], 
-		   correlation=corAR1(0.3, form=CorForm), Model), tag <- 1) } else {
-			try(fm <- lme(ModelForm, random = ranEff[[2]], correlation=corAR1(0.3, form=CorForm),
-		   weights=varIdent(VarForm), Model), tag <- 1) } }
-			
-		if (CorStr == 2) { if (VarStr == 0) {
-		   try(fm <- lme(ModelForm, random = ranEff[[2]], 
-		   correlation=corARMA(c(0.3,0.3), p=2, form=CorForm), Model), tag <- 1) } else {
-			try(fm <- lme(ModelForm, random = ranEff[[2]], 
-			correlation=corARMA(c(0.3,0.3), p=2, form=CorForm),
-			weights=varIdent(VarForm), Model), tag <- 1) } }
-			
-		if (CorStr == 3) { if (VarStr == 0) {
-		   try(fm <- lme(ModelForm, random = ranEff[[2]], 
-		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=CorForm), Model), tag <- 1) } else {
-			try(fm <- lme(ModelForm, random = ranEff[[2]], 
-		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=CorForm),
-			weights=varIdent(VarForm), Model), tag <- 1) } }
-	}	
-	if (nRand==1 & as.numeric(ranEff[[1]][1])==0) try(fm <- gls(ModelForm, Model), tag <- 1)
-				
-	if (ncontr > 0) try(for (n in 1:ncontr) { contrDF[n] <- 
-	   contrast(fm, clist[[n]][[1]], clist[[n]][[2]], type="average")$df }, tag <- 1)
-   if (ii<dimx) ii<-ii+1 else {
-      #print("Something is not quite right during testing!")
-      break
+###############################
+
+xinit <- dimx%/%3
+if(dimy==1) yinit <- 1 else yinit <- dimy%/%2
+if(dimz==1) zinit <- 1 else zinit <- dimz%/%2
+
+ii <- xinit; jj <- yinit; kk <- zinit
+
+fm<-NULL
+gltRes <- vector('list', lop$num_glt)
+# need to expand this later
+#ranEff <- list(Subj=as.formula(c('~',lop$ranEff)))
+nRanEff <- length(lop$ranEff)
+ranEff <-  vector('list', nRanEff)
+names(ranEff) <- rep('Subj', nRanEff)
+for(n in 1:nRanEff) ranEff[[n]] <- as.formula(lop$ranEff[[n]])
+
+if(!is.na(lop$corStr[1])) corStr <- as.formula(c('~', lop$corStr[1])) else corStr <- NA
+
+while(is.null(fm)) {
+   fm<-NULL
+   lop$dataStr$Beta<-inData[ii, jj, kk,]
+   options(warn=-1)     
+   if(!is.na(lop$corStr[1])) try(fm <- lme(ModelForm, random=ranEff, data=lop$dataStr, 
+      correlation=corAR1(0.3, form=corStr)), silent=TRUE) else try(fm <- lme(ModelForm, 
+      random=ranEff, data=lop$dataStr), silent=TRUE)
+   if(!is.null(fm)) if (lop$num_glt > 0) {
+      n <- 1
+      require(contrast)
+      gltDF <- array(data=NA, dim=lop$num_glt)
+      while(!is.null(fm) & (n <= lop$num_glt)) {
+         gltDF[n] <- tryCatch(contrast(fm, lop$gltList[[n]][[1]], lop$gltList[[n]][[2]], type="average")$df,
+            error=function(e) NULL)
+         if(is.null(gltDF[[n]])) fm <- NULL
+         n <- n+1
+      }      
+   }
+   if(!is.null(fm))  {
+      print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
+   } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
+      ii<-xinit; jj <- yinit; kk <- kk+1 } else {
+      cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')
+      cat('Possible reasons:\n\n')
+      cat('1) Inappropriate model specification with options -model, -wsVars, or -qVars.\n')
+      cat('Note that within-subject or repeated-measures variables have to be declared\n')
+      cat('with -wsVars.\n\n')
+      cat('2) Misspecifications in general linear test coding with -gltCode.\n\n')
+      cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
+      cat('whether there are any inconsistencies.\n')
+      errex.AFNI("Quitting due to model test failure...")
+      #break
    }
 }
 
-if (tag == 0)  {
-   print("Good, test passed...")
-   if (NoConst) NoF <- nrow(anova(fm)) else NoF <- nrow(anova(fm))-1  # Just assume an intercept in the model
-	#for (n in 1:ncontr) contrDF[n] <- temp[n]$df
-   } else { 
-      print(sprintf("Insoluble model! Formula %s on the 4th line in model.txt", ModelShape))
-		print("might be inappropriate, or there are incorrect specifications in model.txt")
-		print("such as contrasts, factor levels, or other obscure problems.")
-      break; next # won't run the whole brain analysis if the test fails
-}
 
-# F array in anova(fm) contains intercept (1st) in lme (and gls) and residual (last) in lm
-# if (RM) FArr <- 2:(NoF+1) else FArr <- 1:NoF  
-if (NoConst) FArr <- 1:NoF else FArr <- 2:(NoF+1)
+# number of terms (or F-stats): the output structure is different without within-subject variables
+nF      <- ifelse(is.na(lop$corStr[1]), nrow(anova(fm))-1, nrow(anova(fm)))
+nBasis  <- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)
+nCovVal <- sum(!is.na(grep(lop$QV, dimnames(summary(fm)$tTable)[[1]])))
+nT      <- 2*(lop$num_glt + nBasis + nCovVal)
+NoBrick <- nF + nT
 
-# Number of sub-bricks
-#NoBrick <- NoF + 2*ncontr + 2*nCov
-#nCovBrick <- length(grep(Cov, dimnames(summary(fm)$tTable)[[1]]))
-nCovBrick <- sum(!is.na(grep(Cov, dimnames(summary(fm)$tTable)[[1]])))
-NoBrick <- NoF + 2*ncontr + 2*nCovBrick
+###############################
 
-if (NoConst) {
-   if (as.numeric(ranEff[[1]][1])) NoCoef <- length(fm$coefficients$fixed) else {
-	   NoCoef <- length(fm$coefficients)
-	}
-	NoBrick <- NoBrick + 2*NoCoef	
-}	else NoCoef <- NA
-# to avoid the ambiguity with the case of no intercept	
-#BrickCnt <- NoBrick - 2*ncontr - 2*nCov  
-BrickCnt <- NoBrick - 2*ncontr - 2*nCovBrick
- 
-#Modeln <- groupedData(Beta ~ session | Subj, data = Model)
+pars      <- vector("list", 13)
+pars[[1]] <- NoBrick                # total number of output values per voxel/node
+pars[[2]] <- nF                     # total number of F-stat
+pars[[3]] <- lop$num_glt            # total number of GLTs
+pars[[4]] <- lop$gltList
+pars[[5]] <- nCovVal
+#pars[[6]] <- is.na(lop$wsVars)      # any within-subject factors?
+pars[[7]] <- is.na(lop$corStr[1])   # correlationn structure?
+pars[[8]] <- ranEff
+pars[[9]] <- corStr                 # correlation structure for basis function modeling
+pars[[10]]<- ifelse(lop$SS_type==3, 'marginal', 'sequential')
+pars[[11]]<- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)   # number of basis functions
+pars[[12]]<- grep(lop$QV, dimnames(summary(fm)$tTable)[[1]])    # row numbers involving covariate values
+pars[[13]]<- (1:nF)+is.na(lop$corStr[1])                        # row sequence for F-values
+
+
+#runAOV(inData[ii, jj, kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars, tag=0)
+
+print(sprintf("Start to compute %s slices along Z axis. You can monitor the progress", dimz))
+print("and estimate the total run time as shown below.")
+print(format(Sys.time(), "%D %H:%M:%OS3"))
+
+###############################
+#options(warn = -1) # suppress warnings!
+#getOption('warn')
+
+#for(ii in 1:dimx) for(jj in 1:dimy) 
+#   aa<-runAOV(inData[ii,jj,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars, tag=0)
+# test runLME(inData[1,2,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)      
+
+if(dimy == 1 & dimz == 1) {
+   nSeg <- 20
+   # drop the dimensions with a length of 1
+   inData <- inData[, , ,]
+   # break into 20 segments, leading to 5% increamental in parallel computing
+   dimx_n <- dimx%/%nSeg + 1
+   # number of datasets need to be filled
+   fill <- nSeg-dimx%%nSeg
+   # pad with extra 0s
+   inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+   # declare output receiver
+   Stat <- array(0, dim=c(dimx_n, nSeg, NoBrick))
+   # break input multiple segments for parrel computation
+   dim(inData) <- c(dimx_n, nSeg, NoFile)
+   if (lop$nNodes==1) for(kk in 1:nSeg) {
+      if(NoBrick > 1) Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME, dataframe=lop$dataStr,
+            ModelForm=ModelForm, pars=pars), c(2,1)) else
+         Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME, dataframe=lop$dataStr,
+            ModelForm=ModelForm, pars=pars), dim=c(dimx_n, 1))
+      cat("Computation done: ", 100*kk/nSeg, "%", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+   }
+   
+   if (lop$nNodes>1) {
+   library(snow)
+   cl <- makeCluster(lop$nNodes, type = "SOCK")
+   clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
+   for(kk in 1:nSeg) {
+      if(NoBrick > 1) Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, dataframe=lop$dataStr,
+            ModelForm=ModelForm, pars=pars), c(2,1)) else
+      Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, dataframe=lop$dataStr,
+            ModelForm=ModelForm, pars=pars), dim=c(dimx_n, 1))
+      cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+   }
+   stopCluster(cl)
+   }
+   # convert to 4D
+   dim(Stat) <- c(dimx_n*nSeg, 1, 1, NoBrick)
+   # remove the trailers (padded 0s)
+   Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
+} else {
 
 # Initialization
 Stat <- array(0, dim=c(dimx, dimy, dimz, NoBrick))
 
-#time1 <- format(Sys.time(), "%D %H:%M:%OS3")
-
-print(format(Sys.time(), "%D %H:%M:%OS3"))
-print(sprintf("Start to compute %s slices along Z axis. You can monitor the progress", dimz))
-print("and estimate the total run time by opening this file from time to time.")
-
-myRand <- vector("list", 6)
-myRand[[1]]<-ranEff[[1]]; myRand[[2]]<-ranEff[[2]]; myRand[[3]]<-CorStr; myRand[[4]]<-CorForm; myRand[[5]]<-VarStr; myRand[[6]]<-VarForm
-myStuff <- vector("list", 10)
-myStuff[[1]]<-NoBrick; myStuff[[2]]<-BrickCnt; myStuff[[3]]<-NoCoef; myStuff[[4]]<-ncontr
-myStuff[[5]]<-clist; myStuff[[6]]<-nCovBrick; myStuff[[7]]<-Ftype; myStuff[[8]]<-FArr; myStuff[[9]]<-NoF
-myStuff[[10]]<-NoConst; myStuff[[11]]<-grep(Cov, dimnames(summary(fm)$tTable)[[1]])
-
-runAna <- function(inData, dataframe, ModelForm, myRand, myStuff, tag) {
-	Stat <- vector(mode="numeric", length=myStuff[[1]])
-	if (!all(inData == 0)) {	
-	   dataframe$Beta<-inData
-	if (as.numeric(myRand[[1]][1])!=0) {
-		if (myRand[[3]] == 0) { if (myRand[[5]] == 0) {
-		   try(fm <- lme(ModelForm, random = myRand[[2]], dataframe), tag <- 1) } else {
-			try(fm <- lme(ModelForm, random = myRand[[2]], weights=varIdent(myRand[[6]]), dataframe), tag <- 1) } }			
-		if (myRand[[3]] == 1) { if (myRand[[5]] == 0) {
-		   try(fm <- lme(ModelForm, random = myRand[[2]], 
-		   correlation=corAR1(0.3, form=myRand[[4]]), dataframe), tag <- 1) } else {
-			try(fm <- FUNC(ModelForm, random = myRand[[2]], correlation=corAR1(0.3, form=myRand[[4]]),
-		   weights=varIdent(myRand[[6]]), dataframe), tag <- 1) } }			
-		if (myRand[[3]] == 2) { if (myRand[[5]] == 0) {
-		   try(fm <- lme(ModelForm, random = myRand[[2]], 
-		   correlation=corARMA(c(0.3,0.3), p=2, form=myRand[[4]]), dataframe), tag <- 1) } else {
-			try(fm <- lme(ModelForm, random = myRand[[2]], 
-			correlation=corARMA(c(0.3,0.3), p=2, form=myRand[[4]]),
-			weights=varIdent(myRand[[6]]), dataframe), tag <- 1) } }			
-		if (myRand[[3]] == 3) { if (myRand[[5]] == 0) {
-		   try(fm <- lme(ModelForm, random = myRand[[2]], 
-		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=myRand[[4]]), dataframe), tag <- 1) } else {
-			try(fm <- lme(ModelForm, random = myRand[[2]], 
-		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=myRand[[4]]),
-			weights=varIdent(myRand[[6]]), dataframe), tag <- 1) } }
-	}
-	if (length(myRand[[1]])==1 & as.numeric(myRand[[1]][1])==0) try(fm <- gls(ModelForm, dataframe), tag <- 1)    
-	if (tag != 1) {
-	   if (myStuff[[9]] > 0) Stat[1:myStuff[[9]]] <- anova(fm, type=myStuff[[7]])$F[myStuff[[8]]]
-		if (myStuff[[10]]) 
-		   if (as.numeric(myRand[[1]][1])) {
-			   # or unname(summary(fm)$tTable[, "Value"])
-				Stat[myStuff[[9]]+2*0.5:myStuff[[3]]] <- unname(fm$coefficients$fixed) 
-			   Stat[myStuff[[9]]+2*1:myStuff[[3]]] <- unname(summary(fm)$tTable[,"t-value"])
-			} else {
-			   Stat[myStuff[[9]]+2*0.5:myStuff[[3]]] <- unname(fm$coefficients)
-				Stat[myStuff[[9]]+2*1:myStuff[[3]]] <- unname(summary(fm)$tTable[,"t-value"])
-		   }
-
-		if (myStuff[[4]] > 0) {
-		   for (n in 1:myStuff[[4]]) { 
-		   tag <- 0
-                   try(con <- contrast(fm, myStuff[[5]][[n]][[1]], myStuff[[5]][[n]][[2]], type="average"), tag<-1) 
-		   if(tag==0) Stat[(myStuff[[2]]+2*n-1):(myStuff[[2]]+2*n)] <- c(con$Contrast, con$testStat)
-	   }
-		}
-		if (myStuff[[6]] > 0) {
-		   for (n in 1:myStuff[[6]]) {
-			   Stat[(myStuff[[2]]+2*myStuff[[4]]+2*n-1):(myStuff[[2]]+2*myStuff[[4]]+2*n)] <- 
-				c(summary(fm)$tTable[myStuff[[11]][n], "Value"], summary(fm)$tTable[myStuff[[11]][n], "t-value"])
-			}
-		}
-	}
-	}
-	return(Stat)	
-}
-
-if (nNodes==1) for (kk in 1:dimz) {
-#   library(nlme); library(contrast)
-	Stat[,,kk,] <-aperm(apply(inData[,,kk,], c(1,2), runAna, dataframe=Model, ModelForm=ModelForm, myRand=myRand, myStuff=myStuff, tag=0), c(2,3,1))
-   cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+if (lop$nNodes==1) for (kk in 1:dimz) {
+   if(NoBrick > 1) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
+         ModelForm=ModelForm, pars=pars), c(2,3,1)) else
+      Stat[,,kk,] <- array(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
+         ModelForm=ModelForm, pars=pars), dim=c(dimx, dimy, 1))      
+   cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
 } 
 
-if (nNodes>1)	 {
+
+if (lop$nNodes>1) {
    library(snow)
-   cl <- makeCluster(nNodes, type = "SOCK")
-	clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(contrast))
+   cl <- makeCluster(lop$nNodes, type = "SOCK")
+   clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(contrast)) 
    for (kk in 1:dimz) {
-      Stat[,,kk,] <-aperm(parApply(cl, inData[,,kk,], c(1,2), runAna, dataframe=Model, ModelForm=ModelForm, myRand=myRand, myStuff=myStuff, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      if(NoBrick > 1) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, 
+            dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars), c(2,3,1)) else
+         Stat[,,kk,] <- array(parApply(cl, inData[,,kk,], c(1,2), runLME, 
+            dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars), dim=c(dimx, dimy, 1))
+      cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
    } 
    stopCluster(cl)
 }
-
-MyLabel <- paste(rownames(anova(fm))[FArr], " F")
-if (NoConst) {  # RanEff or not
-   for (n in 1:dim(summary(fm)$tTable)[1]) {
-	   MyLabel <- append(MyLabel, rownames(summary(fm)$tTable)[n])
-		MyLabel <- append(MyLabel, paste(rownames(summary(fm)$tTable)[n], "t"))
-	}
-}		
-if (ncontr > 0) {
-for (n in 1:ncontr) {
-   MyLabel <- append(MyLabel, contrLabel[n])
-	MyLabel <- append(MyLabel, paste(contrLabel[n], "t"))
-}
-}
-if (nCov > 0) {
-for (n in 1:nCovBrick) {
-   #MyLabel <- append(MyLabel, Cov[n])
-   MyLabel <- append(MyLabel, dimnames(summary(fm)$tTable)[[1]][myStuff[[11]][n]])
-	#MyLabel <- append(MyLabel, paste(Cov[n], "t"))
-   MyLabel <- append(MyLabel, paste(dimnames(summary(fm)$tTable)[[1]][myStuff[[11]][n]], "t"))
-}
 }
 
-write.AFNI(OutFile, Stat, MyLabel, note=myHist, origin=myOrig, delta=myDelta, idcode=newid.AFNI())
+# test on Z slice
+
+#if (lop$nNodes>1)    {
+#   library(snow)
+#   cl <- makeCluster(lop$nNodes, type = "SOCK")
+#   clusterEvalQ(cl, library(afex)); #clusterEvalQ(cl, library(contrast))
+#   kk<- 32
+#   
+#      Stat[,,kk,] <-aperm(parApply(cl, inData[,,kk,], c(1,2), runAOV, dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars, tag=0), c(2,3,1))
+#      cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+#   stopCluster(cl)
+#}
+
+###############################
+
+outLabel <- paste(rownames(anova(fm))[pars[[13]]], " F")
+if(!is.na(lop$corStr[1])) for(n in 1:dim(summary(fm)$tTable)[1]) {
+   outLabel <- append(outLabel, rownames(summary(fm)$tTable)[n])
+   outLabel <- append(outLabel, paste(rownames(summary(fm)$tTable)[n], "t"))
+}               
+if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
+   outLabel <- append(outLabel, lop$gltLabel[n])
+   outLabel <- append(outLabel, paste(lop$gltLabel[n], "t"))
+
+}
+if(nCovVal > 0) for (n in 1:nCovVal) {
+   outLabel <- append(outLabel, dimnames(summary(fm)$tTable)[[1]][pars[[12]][n]])
+   outLabel <- append(outLabel, paste(dimnames(summary(fm)$tTable)[[1]][pars[[12]][n]], "t"))
+}
+
 statpar <- "3drefit"
-if (!as.numeric(ranEff[[1]][1])) glsDF <- as.integer(gsub(" \n", "", gsub("Denom. DF: ", "", attr(anova(fm), "label"))))
-
-#Index adjustment when no intercept 
-IdxAdj <- as.integer(NoConst)
-for (i in (2-IdxAdj):(NoF+1-IdxAdj)) {  # has an intercept or not
+IdxAdj <- as.integer(!is.na(lop$corStr[1]))
+for (i in (2-IdxAdj):(nF+1-IdxAdj)) {  # has an intercept or not
    # DFs are acquired from the last solvable voxel 
-	if (as.numeric(ranEff[[1]][1])) statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, 
-	   " fift ", anova(fm)$numDF[i], " ", anova(fm)$denDF[i])
-	else statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, " fift ", 1, " ", glsDF)
+        statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, 
+           " fift ", anova(fm)$numDF[i], " ", anova(fm)$denDF[i])
 }  # from 0 to NoF-1
 
-if (NoConst) {
-   if (as.numeric(ranEff[[1]][1])) { 
-		   for (n in 1:dim(summary(fm)$tTable)[1]) {
-		      statpar <- paste(statpar, " -substatpar ", NoF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
-			}
-		} else for (n in 1:dim(summary(fm)$tTable)[1]) {
-		   statpar <- paste(statpar, " -substatpar ", NoF+2*n-1, " fitt ", glsDF)
-		}
-}	# from NoF to BrickCnt-1
+if(lop$num_glt > 0) if (!is.na(lop$gltLabel[1])) for (n in 1:dim(summary(fm)$tTable)[1]) 
+   statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
+statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
 
-if (ncontr > 0) for (n in 1:ncontr) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*n-1, " fitt ", contrDF[n])
-if (nCov > 0) {
-   if (as.numeric(ranEff[[1]][1])) for (n in 1:nCovBrick) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*ncontr+2*n-1, " fitt ",
-	   summary(fm)$tTable[myStuff[[11]][n], "DF"]) else
-	   for (n in 1:nCov) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*ncontr+2*n-2, " fitt ", glsDF)
-}
-statpar <- paste(statpar, " -view tlrc -addFDR -newid ", OutFile)
+write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode="whatever")
 system(statpar)
-print(sprintf("Congratulations! You've got output %s+tlrc.*", Out))
-
-} else {
-
-if (datatype == "surface" | datatype == "Surface") {
-
-# Read in the 1st input file so that we have the dimension information
-# Data <- read.AFNI(Model[1, FileCol])
-Data <- read.table(Model[1, FileCol], skip=0, header=FALSE)
-NoNode <- nrow(Data)
-
-# initialization
-IData <- array(data=NA, dim=c(NoNode, NoFile))
-IData[,1] <- Data$V1
-# Read in the rest input files (beta)
-for (m in 2:NoFile) {
-   IData[,m] <- read.table(Model[m, FileCol], skip=0, header=FALSE)$V1
-}
-
-# try out a solvable voxel, and find out the number of F tests and DF's for t tests (and catch potential problems as well)
-ii <- NoNode%/%3
-Model$Beta<-IData[ii,]
-contrDF <- array(data=NA, dim=ncontr)
-tag<-1
-while (tag == 1) {
-   tag<-0
-   if (as.numeric(ranEff[[1]][1])) try(fm <- lme(ModelForm, random = ranEff[[2]], Model), tag <- 1)
-   else try(fm <- gls(ModelForm, Model), tag <- 1)
-	if (ncontr != 0) try(for (n in 1:ncontr) { contrDF[n] <- contrast(fm, clist[[n]][[1]], clist[[n]][[2]], type="average")$df }, tag <- 1)
-   if (ii<NoNode%/%3+10) ii<-ii+1 else {
-      #print("Something is not quite right during testing!")
-      break
-   }
-}
-
-if (tag == 0)  {
-   print("Good, test passed... Starting to run node-wise analysis...")
-   NoF <- nrow(anova(fm))-1  # Just assume an intercept
-	#for (n in 1:ncontr) contrDF[n] <- temp[n]$df
-   } else { 
-      print("Something is not quite right during testing!") 
-      break; next # won't run the whole brain analysis if the test fails
-}
-
-# F array in anova(fm) contains intercept in lme and residual in lm
-FArr <- 2:(NoF+1)  
-
-# Number of statistics
-NoBrick <- NoF + 2*ncontr + 2*nCov
-
-Stat <- array(0, dim=c(NoNode, NoBrick))
-
-format(Sys.time(), "%D %H:%M:%OS3")
-tag <- 0
-for (i in 1:NoNode) {
-   if (!all(IData[i,] == 0)) {	
-	Model$Beta<-IData[i,]
-	if (as.numeric(ranEff[[1]][1])) try(fm <- lme(ModelForm, random = ranEff[[2]], Model), tag <- 1)
-   else try(fm <- gls(ModelForm, Model), tag <- 1)
-	if (tag != 1) {
-	   Stat[i,1:NoF] <- anova(fm, type=Ftype)$F[FArr]
-		if (ncontr > 0) {
-		   for (n in 1:ncontr) { 
-		   con <- contrast(fm, clist[[n]][[1]], clist[[n]][[2]], type="average") 
-		   Stat[i, (NoF+2*n-1):(NoF+2*n)] <- c(con$Contrast, con$testStat)
-		}
-		}
-		if (nCov > 0) {
-		   for (n in 1:nCov) { 
-		      Stat[i, j, k, (NoF+2*ncontr+2*n-1):(NoF+2*ncontr+2*n)] <- 
-				c(summary(fm)$tTable[Cov[n],][1], summary(fm)$tTable[Cov[n],][3])
-		}
-		}
-	}
-	tag <- 0
-	}
-}
-print(format(Sys.time(), "%D %H:%M:%OS3"))
-dStat <- as.table(Stat)
-hdr <- paste(rownames(anova(fm))[FArr], " F")
-
-if (ncontr != 0) for (ii in 1:ncontr) hdr <- c(hdr, contrLabel[ii], paste(contrLabel[ii], "t"))
-write.table(dStat, file = paste(Out, ".1D", sep=""), row.names = FALSE, col.names = hdr)
-
-print("")
-print("Degrees of freedom for the statistics in the output are:")
-print("========================================================")
-print("F-statistic  numDF  denumDF")
-print("---------------------------")
-if (as.numeric(ranEff[[1]][1])) for (ii in FArr) print(sprintf("%s F     %d    %d", rownames(anova(fm))[ii], anova(fm)$numDF[ii], anova(fm)$denDF[ii]))
-else for (ii in FArr) print(sprintf("%s F     %d    %d", rownames(anova(fm))[ii], anova(fm)$numDf[ii], fm$df.residual))
-print("---------------------------")
-print("t-statistic  DF")
-print("---------------------------")
-if (ncontr > 0) for (ii in 1:ncontr) print(sprintf("%s t     %d", contrLabel[ii], contrDF[ii]))
-if (nCov > 0) for (ii in 1:nCov) print(sprintf("%s t     %d", contrLabel[ii], contrDF[ii]))
-print("========================================================")
-print("")
-print(sprintf("Congratulations! You've got the result %s in text format!", Out))
-
-} else {
-print("Error: unrecognizable option on 1st line!")
-}
-}
-
-# set save defaults using option:
-options(save.defaults=list(ascii=TRUE, safe=FALSE))
-save.image()
-unlink(".RData")
+print(sprintf("Congratulations! You've got an output %s", lop$outFN))
