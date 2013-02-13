@@ -141,9 +141,10 @@ g_history = """
     0.34 Dec 20, 2012 :
          - should not have -volreg_tlrc_warp in case of no tlrc block
          - thanks to P Taylor for noting the problem
+    0.35 Feb 13, 2012: let user know of subj_dir when writing AP command
 """
 
-g_version = '0.34 (December 20, 2012)'
+g_version = '0.35 (February 13, 2013)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -427,7 +428,10 @@ class AP_Subject(object):
       self.rvars.file_ap   = name # store which file we have written to
       self.rvars.output_ap = 'output.%s' % name # file for command output
 
-      if self.cvars.verb>0: print '++ writing afni_proc.py command to %s'%name
+      if self.cvars.verb>0:
+         if UTIL.is_trivial_dir(self.cvars.subj_dir): pstr = ''
+         else: pstr = '%s/' % self.cvars.subj_dir
+         print '++ writing afni_proc.py command to %s%s' % (pstr, name)
 
       # if requested, make an original copy
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
