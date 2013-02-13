@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Feb, 2013, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
+   "inform user of subj_dir when writing AP command",
+   NULL
+ } ,
+
  { 13, Feb, 2013, RCR, "unix_tutorial", MAJOR, TYPE_NEW_PROG,
    "added tutorial to CVS tree, with processed files under AFNI_data6",
    NULL
