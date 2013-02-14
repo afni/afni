@@ -463,6 +463,8 @@ int main( int argc , char *argv[] )
 
    int do_zclip                = 0 ;             /* 29 Oct 2010 */
 
+   bytevec *emask              = NULL ;          /* 14 Feb 2013 */
+
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
 
@@ -920,6 +922,13 @@ int main( int argc , char *argv[] )
 " -wtprefix p = Write the weight volume to disk as a dataset with\n"
 "               prefix name 'p'.  Used with '-autoweight/mask', this option\n"
 "               lets you see what voxels were important in the algorithm.\n"
+" -emask ee   = This option lets you specify a mask of voxels to EXCLUDE from\n"
+"               the analysis. The voxels where the dataset 'ee' is nonzero\n"
+"               will not be included (i.e., their weights will be set to zero).\n"
+"             * Like all the weight options, it applies in the base image\n"
+"               coordinate system.\n"
+"             * Like all the weight options, it means nothing if you are using\n"
+"               one of the 'apply' options.\n"
       ) ;
 
       if( visible_noweights > 0 ){
@@ -2133,6 +2142,16 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[iarg],"-emask") == 0 ){                   /* 14 Feb 2013 */
+       if( emask != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '-emask' :-(") ;
+       emask = THD_create_mask_from_string( argv[iarg] ) ;
+       if( emask == NULL ) ERROR_exit("Can't create emask from '%s'",argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcmp(argv[iarg],"-base") == 0 ){
        if( dset_base != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '-base' :-(") ;
@@ -3005,18 +3024,18 @@ int main( int argc , char *argv[] )
      wtprefix = param_save_1D = matrix_save_1D = NULL ;
      zeropad = 0 ; auto_weight = auto_tmask = 0 ;
      if( dset_weig != NULL ){
-       WARNING_message("-1D*_apply: Ignoring weight dataset") ;
+       INFO_message("-1D*_apply: Ignoring weight dataset") ;
        DSET_delete(dset_weig) ; dset_weig=NULL ;
      }
      if( im_tmask != NULL ){
-       WARNING_message("-1D*_apply: Ignoring -source_mask") ;
+       INFO_message("-1D*_apply: Ignoring -source_mask") ;
        mri_free(im_tmask) ; im_tmask = NULL ;
      }
      if( dset_mast == NULL && dxyz_mast == 0.0 )
        INFO_message("You might want to use '-master' when using '-1D*_apply'") ;
      if( do_allcost ){  /* 19 Sep 2007 */
        do_allcost = 0 ;
-       WARNING_message("-allcost option illegal with -1D*_apply") ;
+       INFO_message("-allcost option illegal with -1D*_apply") ;
      }
    }
 
@@ -3118,12 +3137,21 @@ int main( int argc , char *argv[] )
                                    DSET_BRICK(dset_targ,0)         ) ;
      dx_base = dx_targ; dy_base = dy_targ; dz_base = dz_targ;
      if( do_cmass && apply_mode == 0 ){   /* 30 Jul 2007 */
-       WARNING_message("no base dataset ==> -cmass is disabled"); do_cmass = 0;
+       INFO_message("no base dataset ==> -cmass is disabled"); do_cmass = 0;
      }
    }
    nx_base = im_base->nx ;
    ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
    nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
+
+   /* Check emask for OK-ness [14 Feb 2013] */
+
+   if( apply_mode != 0 && emask != NULL ){
+     INFO_message("-emask is ignored in apply mode") ;
+     KILL_bytevec(emask) ;
+   }
+   if( emask != NULL && emask->nar != nvox_base )
+     ERROR_exit("-emask doesn't match base dataset dimensions :-(") ;
 
    if( nx_base < 9 || ny_base < 9 )
      ERROR_exit("Base volume i- and/or j-axis dimension < 9") ;
@@ -3190,12 +3218,25 @@ int main( int argc , char *argv[] )
      /* zeropad the base image at this point in spacetime? */
 
      if( zeropad ){
+       int nxold=nx_base , nyold=ny_base , nzold=nz_base ;
        qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
                                              pad_zm,pad_zp , im_base ) ;
        mri_free(im_base) ; im_base = qim ;
        nx_base = im_base->nx ;
        ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
        nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
+
+       if( emask != NULL ){             /* also zeropad emask [14 Feb 2013] */
+         byte *ezp = (byte *)EDIT_volpad( pad_xm,pad_xp ,
+                                          pad_ym,pad_yp ,
+                                          pad_zm,pad_zp ,
+                                          nxold,nyold,nzold ,
+                                          MRI_byte , emask->ar ) ;
+         if( ezp == NULL )
+           ERROR_exit("zeropad of emask fails !?!") ;
+         free(emask->ar) ; emask->ar = ezp ; emask->nar = nvox_base ;
+       }
+
      }
    }
 
@@ -3323,7 +3364,27 @@ STATUS("zeropad weight dataset") ;
                                  auto_string , COX_cpu_time()-ctim ) ;
    }
 
-   /* also, make a mask from the weight (not used much, yet) */
+   /* Apply the emask [14 Feb 2013] */
+
+   if( emask != NULL ){
+     float *war ; byte *ear=emask->ar ; int near=0 ;
+     if( im_weig == NULL ){
+       im_weig = mri_new_conforming(im_base,MRI_float) ;  /* all zero */
+       war = MRI_FLOAT_PTR(im_weig) ;
+       for( ii=0 ; ii < nvox_base ; ii++ ){
+         if( ear[ii] == 0 ) war[ii] = 1.0f ; else near++ ;
+       }
+     } else {
+       war = MRI_FLOAT_PTR(im_weig) ;
+       for( ii=0 ; ii < nvox_base ; ii++ ){
+         if( ear[ii] != 0 && war[ii] != 0.0f ){ war[ii] = 0.0f ; near++ ; }
+       }
+     }
+     if( verb ) INFO_message("-emask excludes %d voxels from weight/mask",near) ;
+     KILL_bytevec(emask) ;
+   }
+
+   /* also, make a mask from the weight (not used much, if at all) */
 
    if( im_weig != NULL ){
      float *wf = MRI_FLOAT_PTR(im_weig) ;

@@ -4968,7 +4968,7 @@ void PLUTO_histoplot_f( int nbin, float bot, float top, float *hist ,
    float *xar , *yar , *zar=NULL , **yzar ;
    float dx ;
 
-ENTRY("PLUTO_histoplot") ;
+ENTRY("PLUTO_histoplot_f") ;
 
    if( nbin < 2 || hist == NULL ) EXRETURN ;
    if( bot >= top ){ bot = 0.0f ; top = nbin ; }
