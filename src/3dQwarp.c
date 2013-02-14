@@ -195,7 +195,7 @@ int main( int argc , char *argv[] )
    IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw ;
    char *prefix = "Qwarp" , ppp[256] ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
-   int ilev = 0 ;
+   int ilev = 0 , nowarps = 0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
@@ -222,6 +222,17 @@ int main( int argc , char *argv[] )
        "               * The 3D warp used is saved in a dataset with\n"
        "                 prefix 'ppp_WARP' -- this dataset can be used\n"
        "                 with 3dNwarpApply and 3dNwarpCalc.\n"
+       "                 * To be clear, this is the warp from source dataset\n"
+       "                   coordinates to base dataset coordinates, where the\n"
+       "                   values at each grid point are the xyz displacments\n"
+       "                   needed to move the grid point's xyz values to the\n"
+       "                   corresponding xyz values in the source dataset:\n"
+       "                     base( (x,y,z) + WARP(x,y,z) ) matches source(x,y,z)\n"
+       "               * The inverse to the 3D warp is saved in 'ppp_WARPINV'.\n"
+       "               * If you do not want these warps saved, use the option\n"
+       "                 '-nowarps'.\n"
+       "               * To skip the WARPINV dataset (but keep the WARP dataset),\n"
+       "                 use the option '-nowarpi'.\n"
        "\n"
        " -pear        = Use Pearson correlation for matching (not recommended).\n"
        "\n"
@@ -288,13 +299,16 @@ int main( int argc , char *argv[] )
        "                * The smallest allowed value is 9 (which will be VERY slow).\n"
        "                * If you want to see the warped results at various levels\n"
        "                  of patch size, use the '-qsave' option.\n"
+       "                * To do only global warping (i.e., patch=size of whole dataset,\n"
+       "                  with no refinement), set 'mm' to a value larger than the\n"
+       "                  biggest dataset grid dimension (e.g., '-minpatch 666').\n"
        "\n"
        " -duplo        = Start off with 1/2 scale versions of the volumes,\n"
        "                 for getting a speedy coarse first alignment.\n"
        "                * Then scales back up to register the full volumes.\n"
        "\n"
        " -workhard     = Iterate more times at the coarser grid levels,\n"
-       "                 which can help when the volumes are hard to align.\n"
+       "                 which can help when the volumes are hard to align at all.\n"
        "                * Slows the program down (possibly a lot), of course.\n"
        "                * Although -workhard will work OK with -duplo, it is better\n"
        "                  applied without the -duplo option.\n"
@@ -305,7 +319,7 @@ int main( int argc , char *argv[] )
        "                 with '_SAVE' appended to the '-prefix' value.\n"
        "                * This allows you to see the amount of improvement at\n"
        "                  each patch refinement level, and so help you decide\n"
-       "                  the size for '-minpatch'.\n"
+       "                  the size for '-minpatch' for future work.\n"
        "\n"
        " -verb         = Print verbose progress messages.\n"
        " -quiet        = Cut out most progress messages.\n"
@@ -352,6 +366,12 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[nopt],"-quiet") == 0 ){
        Hverb = 0 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-nowarps") == 0 ){
+       nowarps =  1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-nowarpi") == 0 ){
+       nowarps = -1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-patchmin") == 0 || strcasecmp(argv[nopt],"-minpatch") == 0 ){
@@ -417,6 +437,12 @@ int main( int argc , char *argv[] )
        if( ilev  != 0 )
          ERROR_exit("Cannot use -duplo with -inilev :-(") ;
        duplo = 1 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-whard") == 0 ){                  /** HIDDEN **/
+       if( ++nopt >= argc ) ERROR_exit("need arg after -whard") ;
+       Hworkhard = (int)strtod(argv[nopt],NULL) ;
+       nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-workhard") == 0 ){
@@ -567,12 +593,17 @@ int main( int argc , char *argv[] )
    if( ny >= NGMIN && ny > nnn ) nnn = ny ;
    if( nz >= NGMIN && nz > nnn ) nnn = nz ;
    if( nnn == 0 )
-     ERROR_exit("dataset grid size %d x %d x %d is to small for warping",nx,ny,nz) ;
-   if( minpatch > 0 && minpatch > nnn/3 ){
+     ERROR_exit("dataset grid size %d x %d x %d is too small for warping",nx,ny,nz) ;
+#if 0
+   if( minpatch > 0 && minpatch > nnn/2 && minpatch > NGMIN ){
      WARNING_message("-minpatch %d is too large for dataset grid %d x %d x %d",
                      minpatch , nx,ny,nz ) ;
-     minpatch = nnn/3 ; if( minpatch%2 == 0 ) minpatch-- ;
+     minpatch = nnn/2 ;
+     if( minpatch%2 == 0     ) minpatch-- ;
+     if( minpatch   <  NGMIN ) minpatch = NGMIN ;
+     WARNING_message("minpatch is reduced to %d",minpatch) ;
    }
+#endif
    if( minpatch > 0 ) Hngmin = minpatch ;
 
    if( duplo && (nx < 3*Hngmin || ny < 3*Hngmin || nz < 3*Hngmin) ){
@@ -640,16 +671,23 @@ int main( int argc , char *argv[] )
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
 
-   IW3D_adopt_dataset( oww , bset ) ;
-   sprintf(ppp,"%s_WARP",prefix) ;
-   qset = IW3D_to_dataset( oww , ppp ) ;
-   DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
-
-   owwi = IW3D_invert( oww , NULL , MRI_WSINC5 ) ;
-   IW3D_adopt_dataset( owwi , bset ) ;
-   sprintf(ppp,"%s_WARPINV",prefix) ;
-   qset = IW3D_to_dataset( owwi , ppp ) ;
-   DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+   if( nowarps <= 0 ){
+     IW3D_adopt_dataset( oww , bset ) ;
+     sprintf(ppp,"%s_WARP",prefix) ;
+     qset = IW3D_to_dataset( oww , ppp ) ;
+     tross_Copy_History( bset , qset ) ;
+     tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+   }
+   if( nowarps == 0 ){
+     owwi = IW3D_invert( oww , NULL , MRI_WSINC5 ) ;
+     IW3D_adopt_dataset( owwi , bset ) ;
+     sprintf(ppp,"%s_WARPINV",prefix) ;
+     qset = IW3D_to_dataset( owwi , ppp ) ;
+     tross_Copy_History( bset , qset ) ;
+     tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+     DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+   }
 
    INFO_message("===== clock time =%s",nice_time_string(NI_clock_time()-ct)) ;
    exit(0) ;

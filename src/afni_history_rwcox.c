@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , FEB , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+  { 14 , FEB , 2013 , RWC , "3dAllineate" , MICRO , TYPE_NEW_OPT ,
+   "Add -emask option (exclude certain voxels)" ,
+   "For use in registering pre- and post-surgery volumes (e.g.)." } ,
+
+ { 7 , FEB , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Add MASK= to driver for INSTACORR INIT" ,
    "Per the request of the esteemed Daniel Handwerker, scientist\n"
    "extraordinaire." } ,
