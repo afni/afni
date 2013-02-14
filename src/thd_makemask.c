@@ -1326,7 +1326,7 @@ byte * mask_unbinarize( int nvox , byte *mbin )
 
 bytevec * THD_create_mask_from_string( char *str )  /* Jul 2010 */
 {
-   bytevec *bvec ; int nstr ; char *buf=NULL ;
+   bytevec *bvec=NULL ; int nstr ; char *buf=NULL ;
 
 ENTRY("THD_create_mask") ;
 
@@ -1342,6 +1342,7 @@ ENTRY("THD_create_mask") ;
      if( dset != NULL ){
        bvec->nar = DSET_NVOX(dset) ;
        bvec->ar  = THD_makemask( dset , 0 , 1.0f,0.0f ) ;
+       DSET_delete(dset) ;
        if( bvec->ar == NULL ){
          ERROR_message("Can't make mask from dataset '%s'",str) ;
          free(bvec) ; bvec = NULL ;

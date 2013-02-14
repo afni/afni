@@ -5006,6 +5006,8 @@ void (*iterfun)(char *,MRI_IMAGE *) = NULL ;
          ININFO_message("   --(%s)-- middle cost = %g  final cost = %g",str,Hcostmid,Hcostend) ; \
    } } while(0)
 
+/*----------------------------------------------------------------------------*/
+
 IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
                                int meth_code, int warp_flags                   )
 {
@@ -5046,7 +5048,7 @@ ENTRY("IW3D_warpomatic") ;
    }
 
    if( Hlev_start == 0 ){            /* top level = global warps */
-     nlevr = (Hworkhard) ? 4 : 1 ;
+     nlevr = (Hworkhard) ? 4 : 2 ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      for( iii=0 ; iii < nlevr ; iii++ ){
@@ -5059,7 +5061,7 @@ ENTRY("IW3D_warpomatic") ;
          break ;
        }
      }
-     if( Hverb == 1 ) fprintf(stderr," done\n") ;
+     if( Hverb == 1 ) fprintf(stderr," done [cost=%.3f]\n",Hcost) ;
    } else {
      Hcost = 666.666f ;  /* a beastly thing to do */
    }
@@ -5072,6 +5074,8 @@ ENTRY("IW3D_warpomatic") ;
      ngmin = Hngmin ;
      if( Hduplo ){ ngmin /= 2 ; if( ngmin < 21 ) ngmin = 21 ; }
    }
+
+#if 0
                      eee = getenv("AFNI_WARPOMATIC_PATCHMIN") ;
    if( eee == NULL ) eee = getenv("AFNI_WARPOMATIC_MINPATCH") ;
    if( eee == NULL ) eee = getenv("AFNI_WARPOMATIC_NGMIN"   ) ;
@@ -5079,8 +5083,12 @@ ENTRY("IW3D_warpomatic") ;
      ngmin = (int)strtod(eee,NULL) ;
      if( Hduplo ){ ngmin /= 2 ; if( ngmin < 17 ) ngmin = 17 ; }
    }
+#endif
+
         if( ngmin   <  NGMIN ) ngmin = NGMIN ;
    else if( ngmin%2 == 0     ) ngmin-- ;
+
+   if( ngmin >= Hnx && ngmin >= Hny && ngmin >= Hnz ) goto DoneDoneDone ;
 
    if( Hshrink > 1.0f                       ) Hshrink = 1.0f / Hshrink ;
    if( Hshrink < 0.444f || Hshrink > 0.888f ) Hshrink = 0.749999f ;
@@ -5215,6 +5223,7 @@ ENTRY("IW3D_warpomatic") ;
      }
 
      if( lev%2 == 0 || nlevr > 1 ){ /* top to bot, kji */
+       if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.3f]:",Hcost) ;
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
          ibot = itop+1-xwid;
               if( ibot <= ibbb        ){ ibot = ibbb; itop = ibot+xwid-1; idon=1; }
@@ -5250,7 +5259,7 @@ ENTRY("IW3D_warpomatic") ;
        Hcostend = Hcost ;
      }
 
-     if( Hverb == 1 ) fprintf(stderr," done\n") ;
+     if( Hverb == 1 ) fprintf(stderr," done [cost=%.3f]\n",Hcost) ;
 
      if( !Hduplo ) ITEROUT(lev) ;
 

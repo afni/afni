@@ -23,7 +23,7 @@ static char helpstring[] =
    "            Index Top = last sub-brick to use\n"
    "            * if(Bot > Top) then all sub-bricks will be used\n"
    "            Color     = line color to use\n"
-   " Source#2:  Optional second (etc.) datasets to histogramize\n\n"
+   " Source#2:  Optional second (etc.) datasets to histogramize (etc.)\n\n"
    " Values:  Bottom    = minimum value from dataset to include\n"
    "          Top       = maximum value from dataset to include\n\n"
    " Bins:    Number    = number of bins to use\n"
