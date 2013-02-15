@@ -135,7 +135,37 @@ intercept and RT effect whose correlation is estimated from the data.
           s3    Face       120   25  s3+tlrc\'[Face#0_Coef]\'                \\
           ...                                   
    \n"
-   
+
+   ex3 <-   
+"Example 3 --- one within-subject factor (conditions: positive, negative,
+and neutral), and one between-subjects factors (groups: control and patients).
+Effect estimates for a few subjects are available for only one or two
+conditions. These subjects with missing data would have to be abandoned in
+the traditional ANOVA approach. All subjects can be included with 3dLME, and
+a random intercept is considered.
+-------------------------------------------------------------------------
+   3dLME -prefix Example3 -jobs 24                                     \\
+          -model  \"cond*group\"                                         \\
+          -ranEff '~1'                                                 \\
+          -SS_type 3                                                   \\
+          -num_glt 6                                                   \\
+          -gltLabel 1 'pos-neu' -gltCode  1 'cond : 1*pos -1*neu'      \\
+          -gltLabel 2 'neg-neu' -gltCode  2 'cond : 1*neg -1*neu'      \\
+          -gltLabel 3 'pos-neg' -gltCode  3 'cond : 1*pos -1*neg'      \\
+          -gltLabel 4 'pat_pos-neu' -gltCode  4 'cond : 1*pos -1*neu group : 1*pat'    \\
+          -gltLabel 5 'pat_neg-neu' -gltCode  5 'cond : 1*neg -1*neu group : 1*pat'    \\
+          -gltLabel 6 'pat_pos-neg' -gltCode  6 'cond : 1*pos -1*neg group : 1*pat'    \\
+          -dataTable                                                  \\
+          Subj  cond      group        InputFile                      \\
+          s1    pos        ctr    s1+tlrc\'[pos#0_Coef]\'               \\
+          s1    neg        ctr    s1+tlrc\'[neg#0_Coef]\'               \\
+          s1    neu        ctr    s1+tlrc\'[neu#0_Coef]\'               \\
+          ... 
+          s21   pos        pat   s21+tlrc\'[pos#0_Coef]\'               \\
+          s21   neg        pat   s21+tlrc\'[neg#0_Coef]\'               \\
+          s21   neu        pat   s21+tlrc\'[neu#0_Coef]\'               \\
+          ...                                   
+   \n"
    
 
    parnames <- names(params)
