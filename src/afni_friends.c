@@ -245,7 +245,6 @@ static mday holiday[] = {
    {FEB,12,"Charles Darwin's birthday"                               } ,
    {FEB,13,"Kim Novak's birthday"                                    } ,
    {FEB,14,"Saint Valentine's Day"                                   } ,
-   {FEB,15,"Anniversary of AFNI's release!"                          } ,
    {FEB,15,"Galileo Galilei's birthday"                              } ,
    {FEB,18,"Gambia Independence Day"                                 } ,
    {FEB,19,"Nikolaus Kopernikus' birthday"                           } ,
@@ -1221,6 +1220,16 @@ char * AFNI_get_date_trivia(void)
        tar[ntar++] = holiday[ii].label ;
 
    /**** Special days not on fixed dates ****/
+
+   /* Day of month = 15 and month = 2 */
+
+   if( ntar < NTMAX && lt->tm_mday == 15 && lt->tm_mon+1 == FEB ){
+     static char aniv[64] ; int yy = lt->tm_year-95 ;
+     if( yy > 0 ){
+       sprintf(aniv,"Anniversary of AFNI's release: #%d",yy) ;
+       tar[ntar++] = aniv ;
+     }
+   }
 
    /* Day of month = 13 and weekday = Friday */
 

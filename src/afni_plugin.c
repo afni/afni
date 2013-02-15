@@ -4998,6 +4998,18 @@ ENTRY("PLUTO_histoplot_f") ;
    for( jj=0 ; jj < njist ; jj++ )
      yzar[jj+1][0] = yzar[jj+1][2*nbin+1] = 0.0f ;
 
+#ifdef cumu
+   if( cumu ){
+     int nyy = 2*ny ; float sum ;
+     yzar = (float **)realloc(yzar,sizeof(float *)*nyy) ;
+     for( jj=0 ; jj < ny ; jj++ ){
+       yzar[ny+jj] = (float *)malloc(sizeof(float)*nx) ;
+       yzar[ny+jj][0] = 0.0f ; sum = 0.0f ;
+       for( ii=0 ; ii < nbin ;  ii++ ){
+         sum += yzar[jj][2*ii+1] ;
+   }
+#endif
+
    X11_SET_NEW_PLOT ;
    plot_ts_lab( GLOBAL_library.dc->display ,
                 nx , xar , ny , yzar ,
