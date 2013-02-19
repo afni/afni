@@ -4967,6 +4967,8 @@ void PLUTO_histoplot_f( int nbin, float bot, float top, float *hist ,
    int ii , nx , ny,jj ;
    float *xar , *yar , *zar=NULL , **yzar ;
    float dx ;
+   int cumu = AFNI_yesenv("AFNI_HISTOG_CUMULATIVE")   ||
+              AFNI_yesenv("AFNI_HISTOPLOT_CUMULATIVE")  ;
 
 ENTRY("PLUTO_histoplot_f") ;
 
@@ -4981,10 +4983,10 @@ ENTRY("PLUTO_histoplot_f") ;
    if( jist == NULL || njist < 0 ) njist = 0 ;
    ny = njist + 1 ;
 
-   yzar = (float **) malloc(sizeof(float *)*ny) ;
+   yzar = (float **) calloc(sizeof(float *),ny) ;
    yzar[0] = yar ;
    for( jj=0 ; jj < njist ; jj++ )
-     yzar[jj+1] = (float *) malloc(sizeof(float)*nx) ;
+     yzar[jj+1] = (float *) calloc(sizeof(float),nx) ;
 
    xar[0] = bot ; yar[0] = 0.0f ;
    for( ii=0 ; ii < nbin ; ii++ ){
@@ -4998,25 +5000,35 @@ ENTRY("PLUTO_histoplot_f") ;
    for( jj=0 ; jj < njist ; jj++ )
      yzar[jj+1][0] = yzar[jj+1][2*nbin+1] = 0.0f ;
 
-#ifdef cumu
    if( cumu ){
-     int nyy = 2*ny ; float sum ;
+     int nyy=2*ny ; float sum , ytop=0.0f , yfac ;
+     for( jj=0 ; jj < ny ; jj++ ){
+       for( ii=0 ; ii < nx ; ii++ ) if( yzar[jj][ii] > ytop ) ytop = yzar[jj][ii] ;
+     }
+INFO_message("cumu: ytop = %g",ytop) ;
      yzar = (float **)realloc(yzar,sizeof(float *)*nyy) ;
      for( jj=0 ; jj < ny ; jj++ ){
-       yzar[ny+jj] = (float *)malloc(sizeof(float)*nx) ;
-       yzar[ny+jj][0] = 0.0f ; sum = 0.0f ;
+       yzar[ny+jj] = (float *)calloc(sizeof(float),nx) ;
+       yzar[ny+jj][0] = sum = 0.0f ;
        for( ii=0 ; ii < nbin ;  ii++ ){
          sum += yzar[jj][2*ii+1] ;
+         yzar[ny+jj][2*ii+1] = yzar[ny+jj][2*ii+2] = sum ;
+       }
+       yzar[ny+jj][2*nbin+1] = sum ;
+ININFO_message("  sum[%d] = %g",jj,sum) ;
+       yfac = ytop / sum ;
+       for( ii=0 ; ii < nx ; ii++ ) yzar[ny+jj][ii] *= yfac ;
+     }
+     ny = nyy ;
    }
-#endif
 
    X11_SET_NEW_PLOT ;
    plot_ts_lab( GLOBAL_library.dc->display ,
                 nx , xar , ny , yzar ,
                 xlab,ylab,tlab , NULL , NULL ) ;
 
-   for( jj=0 ; jj < njist ; jj++ ) free(yzar[jj+1]) ;
-   free(yzar) ; free(xar) ; free(yar) ;
+   for( jj=0 ; jj < ny ; jj++ ) free(yzar[jj]) ;
+   free(yzar) ; free(xar) ;
    EXRETURN ;
 }
 

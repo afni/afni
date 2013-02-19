@@ -4732,7 +4732,7 @@ ENTRY("IW3D_setup_for_improvement") ;
        d1 = 0.5f*(xym.d-xyc.d) ; dif = MIN(d1,d2) ; Hmpar->ar[4] = xyc.d+dif ; /* ydtop */
        Hmpar->ar[5] = xyc.a ; Hmpar->ar[6] = xyc.b ;                     /* xcbot xctop */
        Hmpar->ar[7] = xyc.c ; Hmpar->ar[8] = xyc.d ;                     /* ycbot yctop */
-       if( Hverb > 1 ){
+       if( Hverb ){
          ININFO_message("  PEARCLP: xdbot=%g xcbot=%g xctop=%g xdtop=%g",
                         Hmpar->ar[1], Hmpar->ar[5], Hmpar->ar[6], Hmpar->ar[2] ) ;
          ININFO_message("           ydbot=%g ycbot=%g yctop=%g ydtop=%g",

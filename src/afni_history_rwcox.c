@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 14 , FEB , 2013 , RWC , "3dAllineate" , MICRO , TYPE_NEW_OPT ,
+  { 19 , FEB , 2013 , RWC , "afni" , MINOR , TYPE_NEW_ENV ,
+   "Histogram plugins can now do cumulative distributions" ,
+   "set AFNI_HISTOG_CUMULATIVE to YES" } ,
+
+ { 14 , FEB , 2013 , RWC , "3dAllineate" , MICRO , TYPE_NEW_OPT ,
    "Add -emask option (exclude certain voxels)" ,
    "For use in registering pre- and post-surgery volumes (e.g.)." } ,
 
