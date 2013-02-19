@@ -75,9 +75,9 @@ ENTRY("INCOR_clipate") ;
    if( nq < 666 ){ rr.a = 1.0f; rr.b = 0.0f; mri_free(qim); RETURN(rr); }
    mmm  = mri_min( qim ) ;
    if( mmm >= 0.0f ){   /* for positive images */
-     cbot = THD_cliplevel( qim , 0.345f ) ;
-     ctop = mri_quantile ( qim , 0.966f ) ;
-     if( ctop > 4.321f*cbot ) ctop = 4.321f*cbot ;
+     cbot = THD_cliplevel( qim , 0.321f ) ;
+     ctop = mri_quantile ( qim , 0.987f ) ;
+     if( ctop > 6.543f*cbot ) ctop = 6.543f*cbot ;
    } else {  /* for images including negative values: no go */
      cbot = 1.0f; ctop = 0.0f;
    }
@@ -910,9 +910,9 @@ void INCOR_addto_incomplete_pearclp_SS( int n, float *x, float *y,
      for( ii=0 ; ii < n ; ii++ ){
        cl = 1 ;
        xx = (double)x[ii] ;
-       if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++;}
+       if( xx <= xcb ){ xx = xdb; cl*=3; } else if( xx >= xct ){ xx = xdt; cl*=3; }
        yy = (double)y[ii] ;
-       if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++;}
+       if( yy <= ycb ){ yy = ydb; cl*=3; } else if( yy >= yct ){ yy = ydt; cl*=3; }
        ww = 1.0 / cl ; xx -= xmid ; yy -= ymid ;
        sx += xx*ww ; sxx += xx*xx*ww ; sy += yy*ww ; syy += yy*yy*ww ; sxy += xx*yy*ww ; sw += ww ;
      }
@@ -923,9 +923,9 @@ void INCOR_addto_incomplete_pearclp_SS( int n, float *x, float *y,
        if( ww > 0.0 ){
          cl = 1 ;
          xx = (double)x[ii] ;
-         if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++;}
+         if( xx <= xcb ){ xx = xdb; cl*=3; } else if( xx >= xct ){ xx = xdt; cl*=3; }
          yy = (double)y[ii] ;
-         if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++;}
+         if( yy <= ycb ){ yy = ydb; cl*=3; } else if( yy >= yct ){ yy = ydt; cl*=3; }
          ww /= cl ; xx -= xmid ; yy -= ymid ;
          sx += xx*ww ; sxx += xx*xx*ww ;
          sy += yy*ww ; syy += yy*yy*ww ; sxy += xx*yy*ww ; sw += ww ;
@@ -964,9 +964,9 @@ void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
        for( ii=0 ; ii < n ; ii++ ){
          cl = 1 ;
          xx = (double)x[ii] ;
-         if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++; }
+         if( xx <= xcb ){ xx = xdb; cl*=3; } else if( xx >= xct ){ xx = xdt; cl*=3; }
          yy = (double)y[ii] ;
-         if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++; }
+         if( yy <= ycb ){ yy = ydb; cl*=3; } else if( yy >= yct ){ yy = ydt; cl*=3; }
          ww = 1.0 / cl ; xx -= xmid ; yy -= ymid ;
          tx  += ww*xx    ; txx += ww*xx*xx ; ty += ww*yy ;
          tyy += ww*yy*yy ; txy += ww*xx*yy ; tw += ww ;
@@ -986,9 +986,9 @@ void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
          if( ww > 0.0 ){
            cl = 1 ;
            xx = (double)x[ii] ;
-           if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++; }
+           if( xx <= xcb ){ xx = xdb; cl*=3; } else if( xx >= xct ){ xx = xdt; cl*=3; }
            yy = (double)y[ii] ;
-           if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++; }
+           if( yy <= ycb ){ yy = ydb; cl*=3; } else if( yy >= yct ){ yy = ydt; cl*=3; }
            ww = 1.0 / cl ; xx -= xmid ; yy -= ymid ;
            tx  += ww*xx    ; txx += ww*xx*xx ; ty += ww*yy ;
            tyy += ww*yy*yy ; txy += ww*xx*yy ; tw += ww ;
