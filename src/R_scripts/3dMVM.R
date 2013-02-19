@@ -845,7 +845,7 @@ while(is.null(fm)) {
       cat('4) Not enough number of subjects. This may happen when there are two or more\n')
       cat('withi-subject factors. For example, a model with two within-subject factors with\n')
       cat('m and n levels respectively requires more than (m-1)*(n-1) subjects to be able to\n')
-      cat('model the two-way interaction with multivariate approach.\n\n')
+      cat('model the two-way interaction with the multivariate approach.\n\n')
       errex.AFNI("Quitting due to model test failure...")
       #break
    }
