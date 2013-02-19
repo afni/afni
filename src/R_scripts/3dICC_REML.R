@@ -1,10 +1,14 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dICC_REML.R, an AFNI IntraClass Correlation Package!
 #-----------------------------------------------------------
-#Version 0.0.3,  Jul. 26, 2010
+#Version 0.0.4,  Feb 19, 2013
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/icc.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
+# If this program is useful for you, consider cite the following:
+# Chen, G., Saad, Z.S., Britton, J.C., Pine, D.S., Cox, R.W. (2013). 
+# Linear Mixed-Effects Modeling Approach to FMRI Group Analysis. 
+# NeuroImage, 10.1016/j.neuroimage.2013.01.047.
 #-----------------------------------------------------------
 
 # Commannd line to run this script: 3dICC.R MyOutput & (R CMD BATCH 3dICC3.R MyOut &)
@@ -29,7 +33,14 @@ getInfo <- function(key, inFile) {
 band <- function(x, lo, hi) {ifelse((x<=hi)&(x>=lo), x, ifelse(x>hi, hi, lo))}
 
 system("rm -f .RData")
-source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
+
+first.in.path <- function(file) {
+   ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
+   ff<-ff[lapply(ff,file.exists)==TRUE];
+   #cat('Using ', ff[1],'\n');
+   return(gsub('//','/',ff[1], fixed=TRUE)) 
+}
+source(first.in.path('AFNIio.R'))
 #source("~/abin/AFNIio.R")
 
 comArgs <- commandArgs()
@@ -194,7 +205,7 @@ rm(IData)  # retrieve some memory
 MyLabel <- append(fNames, "Residual")
 
 write.AFNI(OutFile, outData, MyLabel, note=Data$header$HISTORY_NOTE, origin=Data$origin, 
-   delta=Data$delta, idcode=newid.AFNI())
+   delta=Data$delta, idcode="whatever")
 
 statpar <- "3drefit"
 statpar <- paste(statpar, " -newid -view ", outView, OutFile)
