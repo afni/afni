@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Feb, 2013, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "handle surface data in -move_preproc_files",
+   "Thanks to P Molfese for reporting the error."
+ } ,
+
  { 13, Feb, 2013, RCR, "uber_subject.py", MICRO, TYPE_ENHANCE,
    "inform user of subj_dir when writing AP command",
    NULL
