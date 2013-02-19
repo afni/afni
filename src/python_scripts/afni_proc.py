@@ -364,9 +364,10 @@ g_history = """
     3.36 Oct 17, 2012: remove unneeded -set_tr from 1d_tool.py -censor_motion
     3.37 Jan 09, 2013: added -regress_compute_gcor
     3.38 Feb 05, 2013: minor help intro update
+    3.39 Feb 14, 2013: update for -move_preproc_files for surfaces
 """
 
-g_version = "version 3.38, February 5, 2013"
+g_version = "version 3.39, February 14, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "8 Jan 2013"
@@ -1752,17 +1753,24 @@ class SubjProcSream:
             self.fp.write('# remove temporary files\n'
                           '\\rm -f%s %s\n\n' % (ropt, delstr))
 
-        # move or remove pre-processing files
+        # move or remove pre-processing files (but not rm files)
+        # (2 sets: removal and move)
+        if self.surf_anat: proc_files = 'pb*.$subj.[lr]*'
+        else:              proc_files = 'pb*.$subj.r*.*'
+
+        rm_files = 'dfile.r*.1D %s' % proc_files
+        mv_files = 'outcount.*'
         if self.user_opts.find_opt('-move_preproc_files'):
             cmd_str = \
               "# move preprocessing files to 'preproc.data' directory\n"   \
               "mkdir preproc.data\n"                                       \
-              "mv dfile.r*.1D outcount* pb*.$subj.r*.* rm.* preproc.data\n\n"
+              "mv %s %s preproc.data\n\n"                                  \
+              % (rm_files, mv_files)
             self.fp.write(add_line_wrappers(cmd_str))
         elif self.user_opts.find_opt('-remove_preproc_files'):
             cmd_str = \
               "# remove preprocessing files to save disk space\n"   \
-              "\\rm dfile.r*.1D pb*.$subj.r*.* rm.*\n\n"
+              "\\rm %s\n\n" % rm_files
             self.fp.write(add_line_wrappers(cmd_str))
 
         # at the end, if the basic review script is here, run it
