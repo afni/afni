@@ -2946,6 +2946,14 @@ then the number of Source datasets in the 'Histogram: Multi' plugin
 will be set to this value.  The default number of Source datasets is 3 --
 this variable allows you to increase that setting.
 
+--------------------------------
+Variable: AFNI_HISTOG_CUMULATIVE
+--------------------------------
+This YES/NO variable lets you control if the 'Histogram: Multi' plugin
+plots the cumulative distribution as well as the density histogram.
+Mostly this was added to subserve the nefarious conspiracies of the
+dreaded Dr Cox, but if you find it useful ....
+
 ----------------------------
 Variable: AFNI_SIGQUIT_DELAY
 ----------------------------
