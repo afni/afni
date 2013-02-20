@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 19 , FEB , 2013 , RWC , "afni" , MINOR , TYPE_NEW_ENV ,
+  { 20 , FEB , 2013 , RWC , "3dUnifize" , MINOR , TYPE_NEW_PROG ,
+   "Quick and dirty approximate spatial uniformization of T1 anats" ,
+   "Mostly for use with 3dQwarp" } ,
+
+ { 19 , FEB , 2013 , RWC , "afni" , MINOR , TYPE_NEW_ENV ,
    "Histogram plugins can now do cumulative distributions" ,
    "set AFNI_HISTOG_CUMULATIVE to YES" } ,
 
