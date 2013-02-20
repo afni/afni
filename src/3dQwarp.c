@@ -242,6 +242,10 @@ int main( int argc , char *argv[] )
        "                The default is 1.  Larger values of 'ff' mean the\n"
        "                penalty counts more, reducing grid distortions,\n"
        "                insha'Allah. '-nopenalty' is the same as '-penfac 0'.\n"
+       " -useweight   = Normally, each voxel in the automask of the base dataset\n"
+       "                counts the same.  With '-useweight', each voxel is weighted\n"
+       "                by the intensity of the (blurred) base image.  This makes\n"
+       "                white matter count more in T1-weighted volumes, for example.\n"
        "\n"
        " -blur bb     = Gaussian blur the input images by 'bb' (FWHM) voxels before\n"
        "                doing the alignment (the output dataset will not be blurred).\n"
@@ -286,8 +290,8 @@ int main( int argc , char *argv[] )
        "                    or blanks.  The closing ')' isn't really required, but\n"
        "                    the opening '(' after 'MATRIX' or 'PARAM' is needed.\n"
        "                    For this reason, you will probably need to put this\n"
-       "                    argument in single or double quotes, to \"protect\" it\n"
-       "                    from interpretation by the Unix shell.\n"
+       "                    argument inside 'single' or \"double\" quotes, to protect\n"
+       "                    it from interpretation by the Unix shell.\n"
        "\n"
        " -inilev  lv   = 'lv' is the initial refinement 'level' at which to start.\n"
        "                * Usually used with -iniwarp; cannot be used with -duplo.\n"
@@ -497,6 +501,10 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-nopenalty") == 0 ){
        Hpen_fac = 0.0 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-useweight") == 0 ){
+       auto_weight = 1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-penfac") == 0 ){
