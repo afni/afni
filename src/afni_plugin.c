@@ -5005,7 +5005,6 @@ ENTRY("PLUTO_histoplot_f") ;
      for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++ ) if( yzar[jj][ii] > ytop ) ytop = yzar[jj][ii] ;
      }
-INFO_message("cumu: ytop = %g",ytop) ;
      yzar = (float **)realloc(yzar,sizeof(float *)*nyy) ;
      for( jj=0 ; jj < ny ; jj++ ){
        yzar[ny+jj] = (float *)calloc(sizeof(float),nx) ;
@@ -5015,7 +5014,6 @@ INFO_message("cumu: ytop = %g",ytop) ;
          yzar[ny+jj][2*ii+1] = yzar[ny+jj][2*ii+2] = sum ;
        }
        yzar[ny+jj][2*nbin+1] = sum ;
-ININFO_message("  sum[%d] = %g",jj,sum) ;
        yfac = ytop / sum ;
        for( ii=0 ; ii < nx ; ii++ ) yzar[ny+jj][ii] *= yfac ;
      }
