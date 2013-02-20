@@ -55,7 +55,7 @@ if(is.na(Out)) {
    print("No output file name provided: a suffix of TEST will be used...")
 	Out <- "TEST"
 }	
-OutFile <- paste(Out, "+orig", sep="") 
+OutFile <- paste(Out, "+tlrc", sep="") 
 
 libLoad("lme4")
 
@@ -92,6 +92,8 @@ Data <- read.AFNI(Model[1, "InputFile"])
 dimx <- Data$dim[1]
 dimy <- Data$dim[2]
 dimz <- Data$dim[3]
+
+head <- Data
 
 if(!is.na(mask)) Mask <- read.AFNI(mask)$brk
 
@@ -204,11 +206,13 @@ rm(IData)  # retrieve some memory
 
 MyLabel <- append(fNames, "Residual")
 
-write.AFNI(OutFile, outData, MyLabel, note=Data$header$HISTORY_NOTE, origin=Data$origin, 
-   delta=Data$delta, idcode="whatever")
+#write.AFNI(OutFile, outData, MyLabel, note=Data$header$HISTORY_NOTE, origin=Data$origin, 
+#   delta=Data$delta, idcode="whatever")
+
+write.AFNI(OutFile, outData, MyLabel, defhead=head, idcode=newid.AFNI())
 
 statpar <- "3drefit"
-statpar <- paste(statpar, " -newid -view ", outView, OutFile)
+statpar <- paste(statpar, " -view ", outView, OutFile)
 system(statpar)
 print(sprintf("Congratulations! You've got output %s+%s.*", Out, outView))
 
