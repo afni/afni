@@ -4532,7 +4532,7 @@ g_help_string = """
 
         5c. RETROICOR example c (modern): censoring and bandpass filtering.
 
-           This is an example of how we would current suggest analyzing
+           This is an example of how we might currently suggest analyzing
            resting state data.  If no RICOR regressors exist, see example 9
            (or just remove any ricor options).
 
@@ -4546,12 +4546,16 @@ g_help_string = """
            regress frequencies within the regression model, where censored is
            simple.
 
+           Note: bandpassing in the face of RETROICOR processing is questionable.
+                 There is no strong opinion on it (at least within our group).
+                 To skip bandpassing, remove the -regress_bandpass option line.
+
            Also, align EPI to anat and warp to standard space.
 
                 afni_proc.py -subj_id sb23.e5a.ricor            \\
                         -dsets sb23/epi_r??+orig.HEAD           \\
-                        -blocks despike ricor align tlrc volreg \\
-                                blur mask regress               \\
+                        -blocks despike ricor tshift align tlrc \\
+                                volreg blur mask regress        \\
                         -tcat_remove_first_trs 3                \\
                         -ricor_regs_nfirst 3                    \\
                         -ricor_regs sb23/RICOR/r*.slibase.1D    \\
