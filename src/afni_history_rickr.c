@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Feb, 2013, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "small help update to include tshift block in example 5c",
+   "Thanks to J Gonzalez bringing it up."
+ } ,
+
  { 14, Feb, 2013, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "handle surface data in -move_preproc_files",
    "Thanks to P Molfese for reporting the error."
