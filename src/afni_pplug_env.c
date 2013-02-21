@@ -566,6 +566,10 @@ PLUGIN_interface * ENV_init(void)
                    "Extra string for image view overlay labels" ,
                    0,NULL , NULL ) ;
 
+   /* 21 Feb 2013 [RWC] */
+   ENV_add_yesno( "AFNI_HISTOG_CUMULATIVE" ,
+                  "Show cumulative histogram in plugins?" ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
