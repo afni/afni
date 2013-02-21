@@ -1,0 +1,113 @@
+#!/bin/tcsh
+
+if( $#argv > 0 ) then
+  echo " "
+  echo "Script to take a collection of datasets and transform them"
+  echo "to MNI space, then collectively re-transform them to produce"
+  echo "a more refined average."
+  echo " "
+  echo "Usage: @toMNI_Qwarp
+  echo " "
+  exit 0
+endif
+
+set basename = MNI152_1mm+tlrc
+set pfac     = 1
+
+set tpath = `@FindAfniDsetPath $basename`
+if( $tpath == '' ) then
+  echo "** @toMNI_Qwarp: Failed to find template $basename -- cannot continue"
+  exit 1
+endif
+
+set dlist = ( *_uni+tlrc.HEAD )
+
+if( $#dlist < 9 ) then
+  echo "** @toMNI_Qwarp: Not enough input datasets (need at least 9) -- cannot continue"
+  exit 1
+endif
+
+# A level
+
+echo " "
+echo "+++++ @toMNI_Qwarp: Compute A level mean (affine) +++++"
+echo " "
+
+3dMean -prefix Qwarp_meanA -datum float $dlist
+
+# B level
+
+echo " "
+echo "+++++ @toMNI_Qwarp: Compute B level (minimum patch = 101) +++++"
+echo " "
+
+foreach fred ( $dlist )
+   set bbb = `basename $fred _uni+tlrc.HEAD`
+   nice 3dQwarp -prefix ${bbb}_uniB  -blur 0 -4 -penfac $pfac   \
+                -minpatch 101  -whard 0   -nowarpi \
+                ${tpath}/${basename} $fred
+end
+
+3dMean -prefix Qwarp_meanB -datum float *_uniB+tlrc.HEAD
+
+# C level
+
+echo " "
+echo "+++++ @toMNI_Qwarp: Compute C level (minimum patch = 49) +++++"
+echo " "
+
+foreach fred ( $dlist )
+   set bbb = `basename $fred _uni+tlrc.HEAD`
+   nice 3dQwarp -prefix ${bbb}_uniC  -blur 0 -3 -penfac $pfac     \
+                -inilev 1  -minpatch 49  -nowarpi   -useweight \
+                -iniwarp ${bbb}_uniB_WARP+tlrc.HEAD  \
+                Qwarp_meanB+tlrc.HEAD $fred
+end
+
+\rm -f *_uniB_WARP*+tlrc.*
+
+3dMean -prefix Qwarp_meanC -datum float *_uniC+tlrc.HEAD
+
+# D level
+
+echo " "
+echo "+++++ @toMNI_Qwarp: Compute D level (minimum patch = 23) +++++"
+echo " "
+
+foreach fred ( $dlist )
+   set bbb = `basename $fred _uni+tlrc.HEAD`
+   nice 3dQwarp -prefix ${bbb}_uniD  -blur 0 -2 -penfac $pfac     \
+                -inilev 4  -minpatch 23  -nowarpi  -useweight  \
+                -iniwarp ${bbb}_uniC_WARP+tlrc.HEAD  \
+                Qwarp_meanC+tlrc.HEAD $fred
+end
+
+\rm -f *_uniC_WARP*+tlrc.*
+
+3dMean -prefix Qwarp_meanD -datum float *_uniD+tlrc.HEAD
+
+# E level
+
+echo " "
+echo "+++++ @toMNI_Qwarp: Compute E level +++++ (minimum patch = 11)"
+echo " "
+
+foreach fred ( $dlist )
+   set bbb = `basename $fred _uni+tlrc.HEAD`
+   nice 3dQwarp -prefix ${bbb}_uniE  -blur 0 -1 -penfac $pfac      \
+                -inilev 6  -minpatch 13 -whard 0  -useweight   \
+                -iniwarp ${bbb}_uniD_WARP+tlrc.HEAD  \
+                Qwarp_meanD+tlrc.HEAD $fred
+end
+
+\rm -f *_uniD_WARP*+tlrc.*
+
+3dMean -prefix Qwarp_meanE -datum float *_uniE+tlrc.HEAD
+
+# finished
+
+echo " "
+echo "+++++ @toMNI_Qwarp: free at last !!!!! +++++"
+echo " "
+
+exit 0
