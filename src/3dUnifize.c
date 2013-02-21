@@ -182,13 +182,23 @@ ENTRY("mri_local_percentile") ;
 
 /*---------------------------------------------------------------------------*/
 
+static void vstep_print(void)
+{
+   static char xx[10] = "0123456789" ; static int vn=0 ;
+   fprintf(stderr , "%c" , xx[vn%10] ) ;
+   if( vn%10 == 9) fprintf(stderr,".") ;
+   vn++ ;
+}
+
+/*---------------------------------------------------------------------------*/
+
 MRI_IMAGE * mri_local_percmean( MRI_IMAGE *fim , float vrad , float p1, float p2 )
 {
    MRI_IMAGE *aim , *bim , *cim , *dim ;
    float     *aar , *bar , *car , *dar , *nbar ;
    byte      *ams , *bms ;
    MCW_cluster *nbhd ;
-   int ii,jj,kk , nbar_num , nx,ny,nz,nxy ;
+   int ii,jj,kk , nbar_num , nx,ny,nz,nxy , vstep,vvv ;
    float val ;
 
 ENTRY("mri_local_percmean") ;
@@ -218,9 +228,14 @@ ENTRY("mri_local_percmean") ;
 
    nx = bim->nx ; ny = bim->ny ; nz = bim->nz ; nxy = nx*ny ;
 
-   for( kk=0 ; kk < nz ; kk++ ){
+   vstep = (nxy*nz)/50 ; if( vstep < 10 ) vstep = 0 ;
+
+   if( vstep ) fprintf(stderr," + Voxel loop: ") ;
+
+   for( vvv=kk=0 ; kk < nz ; kk++ ){
      for( jj=0 ; jj < ny ; jj++ ){
-       for( ii=0 ; ii < nx ; ii++ ){
+       for( ii=0 ; ii < nx ; ii++,vvv++ ){
+         if( vstep && vvv%vstep == vstep-1 ) vstep_print() ;
          nbar_num = mri_get_nbhd_array( bim,bms , ii,jj,kk , nbhd,nbar ) ;
          if( nbar_num < 1 ){
            val = 0.0f ;
@@ -238,6 +253,8 @@ ENTRY("mri_local_percmean") ;
          }
          FSUB(car,ii,jj,kk,nx,nxy) = val ;
    }}}
+
+   if( vstep ) fprintf(stderr,"\n") ;
 
    mri_free(bim) ; free(bms) ; free(nbar) ; KILL_CLUSTER(nbhd) ;
 
@@ -276,7 +293,7 @@ ENTRY("mri_unifize") ;
 
 int main( int argc , char *argv[] )
 {
-   int iarg ;
+   int iarg , ct ;
    char *prefix = "Unifized" ;
    THD_3dim_dataset *inset=NULL , *outset ;
    MRI_IMAGE *imin , *imout ;
@@ -292,7 +309,7 @@ int main( int argc , char *argv[] )
             "  #0 will be processed.\n"
             "* Method: my personal variant of Ziad's sneaky trick.\n"
             "  (If you want to know what his trick is, you'll have to ask him,\n"
-            "  or read the source code.)\n"
+            "  or read my source code, which of course is a world of fun and joy.)\n"
             "* The principal motive for this program is for use in an image\n"
             "  registration script, and it may or may not be useful otherwise.\n"
             "\n"
@@ -337,6 +354,8 @@ int main( int argc , char *argv[] )
      CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
 
+   ct = NI_clock_time() ;
+
    DSET_load( inset ) ; CHECK_LOAD_ERROR(inset) ;
    if( DSET_NVALS(inset) > 1 )
      WARNING_message("Only processing sub-brick #0") ;
@@ -360,5 +379,6 @@ int main( int argc , char *argv[] )
    tross_Make_History( "3dUnifize" , argc,argv , outset ) ;
    DSET_write(outset) ;
    WROTE_DSET(outset) ;
+   INFO_message("===== clock time =%s",nice_time_string(NI_clock_time()-ct)) ;
    exit(0) ;
 }
