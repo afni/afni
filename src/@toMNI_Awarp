@@ -1,0 +1,95 @@
+#!/bin/tcsh
+
+if( $#argv < 2 ) then
+  echo " "
+  echo "Script to take a collection of datasets and transform them"
+  echo "to 1x1x1 mm MNI space with an affine transformation."
+  echo "These datasets should already have been skull-stripped."
+  echo " "
+  echo "Usage: @toMNI_Awarp dirname dataset1 dataset2 ..."
+  echo " "
+  echo "where 'dirname' is the name of the directory which will be created and"
+  echo "then get the results, and 'dataset1 dataset2 ...' is a list of datasets"
+  echo "to be transformed."
+  echo " "
+  exit 0
+endif
+
+set basename = MNI152_1mm+tlrc
+
+set dname = $argv[1]
+if( -e $dname ) then
+  echo "** @toMNI_Awarp: Directory $dname already exists -- cannot continue"
+  exit 1
+endif
+
+set tpath = `@FindAfniDsetPath $basename`
+if( $tpath == '' ) then
+  echo "** @toMNI_Awarp: Failed to find template $basename -- cannot continue"
+  exit 1
+endif
+
+set dlist = ( )
+set nerr  = 0
+foreach fred ( `count -dig 1 2 $#argv` )
+  set dlist = ( $dlist $argv[$fred] )
+  if( ! -f $argv[$fred] ) then
+    echo " * @toMNI_Awarp: Dataset file $argv[$fred] does not exist"
+    @ nerr++
+  endif
+end
+
+if( $nerr > 0 ) then
+  echo "** @toMNI_Awarp: Cannot continue after such flagrant problems"
+  exit 1
+endif
+
+\mkdir -pv $dname
+if( ! -d $dname ) then
+  echo "** @toMNI_Awarp: Failed to create directory $dname -- cannot continue"
+  exit 1
+endif
+
+set ndset = $#dlist
+set flist = ( )
+
+echo "++ @toMNI_Awarp: copying input datasets to $dname"
+
+foreach fred ( `count -dig 1 1 $ndset` )
+  set pan = `@parse_afni_name $dlist[$fred]`
+  set isn = `3dinfo -is_nifti $dlist[$fred]`
+  if( $isn ) then
+    set nip = `echo $pan[2] | sed 's/.nii.gz$//g' | sed 's/.nii$//g'`
+    3dcopy $dlist[$fred] $dname/$nip
+    set fname = `echo $dname/${nip}+????.HEAD`
+  else
+    3dcopy $dlist[$fred] $dname/$pan[2]
+    set fname = `echo $dname/$pan[2]+????.HEAD`
+  endif
+  set flist = ( $flist $fname:t )
+end
+
+cd $dname
+
+echo "++ @toMNI_Awarp: beginning @auto_tlrc loop"
+
+foreach fred ( `count -dig 1 1 $ndset` )
+  set pan = `@parse_afni_name $flist[$fred]`
+  set pre = $pan[2]
+  set vvv = $pan[3]
+  3dUnifize -prefix ${pre}_uni -input $flist[$fred]
+##  3dLocalstat -nbhd 'SPHERE(17)' -stat perc:75 \
+##              -automask -use_nonmask -prefix ${pre}_p75 $flist[$fred]
+##  3dcalc -prefix ${pre}_uni -datum short \
+##         -a $flist[$fred] -b ${pre}_p75${vvv} -expr '1000*a/max(b,1)'
+  @auto_tlrc -base $basename                \
+             -input ${pre}_uni${vvv}        \
+             -no_ss -init_xform AUTO_CENTER \
+             -rmode quintic
+  \rm -f ${pre}_???${vvv}.*
+end
+
+\rm -f pre.* *_shft.1D
+
+cd ..
+exit 0
