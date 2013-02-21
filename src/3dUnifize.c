@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+static int verb = 1 ;
+
 /*---------------------------------------------------------------------------*/
 #undef  SWAP
 #define SWAP(x,y) (temp=x,x=y,y=temp)
@@ -209,9 +211,13 @@ ENTRY("mri_local_percmean") ;
 
    if( p1 == p2 ) RETURN( mri_local_percentile(fim,vrad,p1) ) ;
 
+   if( verb ) fprintf(stderr,"A") ;
+
    aim = mri_to_float(fim) ; aar = MRI_FLOAT_PTR(aim) ;
    ams = mri_automask_image(aim) ;
    if( ams == NULL ){ mri_free(aim) ; RETURN(NULL) ; }
+
+   if( verb ) fprintf(stderr,"B") ;
 
    for( ii=0 ; ii < aim->nvox ; ii++ ) if( ams[ii] == 0 ) aar[ii] = 0.0f ;
    free(ams) ;
@@ -228,7 +234,9 @@ ENTRY("mri_local_percmean") ;
 
    nx = bim->nx ; ny = bim->ny ; nz = bim->nz ; nxy = nx*ny ;
 
-   vstep = (nxy*nz)/50 ; if( vstep < 10 ) vstep = 0 ;
+   vstep = (nxy*nz)/50 ; if( !verb || vstep < 10 ) vstep = 0 ;
+
+   if( verb ) fprintf(stderr,"\n") ;
 
    if( vstep ) fprintf(stderr," + Voxel loop: ") ;
 
@@ -254,11 +262,13 @@ ENTRY("mri_local_percmean") ;
          FSUB(car,ii,jj,kk,nx,nxy) = val ;
    }}}
 
-   if( vstep ) fprintf(stderr,"\n") ;
+   if( vstep ) fprintf(stderr,"*") ;
 
    mri_free(bim) ; free(bms) ; free(nbar) ; KILL_CLUSTER(nbhd) ;
 
    dim = mri_double_up( cim , fim->nx%2 , fim->ny%2 , fim->nz%2 ) ;
+
+   if( verb ) fprintf(stderr,"C") ;
 
    mri_free(cim) ;
 
@@ -266,6 +276,10 @@ ENTRY("mri_local_percmean") ;
 }
 
 /*---------------------------------------------------------------------------*/
+
+static float Upbot = 70.0f ;
+static float Uptop = 80.0f ;
+static float Uprad = 17.0f ;
 
 MRI_IMAGE * mri_unifize( MRI_IMAGE *fim )
 {
@@ -275,7 +289,7 @@ ENTRY("mri_unifize") ;
 
    if( fim == NULL ) RETURN(NULL) ;
 
-   pim = mri_local_percmean( fim , 17.0f , 70.0f,80.0f ) ;
+   pim = mri_local_percmean( fim , Uprad , Upbot,Uptop ) ;
    if( pim == NULL ) RETURN(NULL) ;
    gim = mri_to_float(fim) ;
    par = MRI_FLOAT_PTR(pim) ; gar = MRI_FLOAT_PTR(gim) ;
@@ -284,6 +298,8 @@ ENTRY("mri_unifize") ;
      pval = par[ii] ;
      gar[ii] = ( pval <= 0.0f ) ? 0.0f : 1000.0f * gar[ii] / pval ;
    }
+
+   if( verb ) fprintf(stderr,"D\n") ;
 
    mri_free(pim) ;
    RETURN(gim) ;
@@ -345,6 +361,19 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-param") == 0 ||      /* HIDDEN OPTION */
+         strcmp(argv[iarg],"-rbt"  ) == 0    ){
+       if( ++iarg >= argc-2 ) ERROR_exit("Need 3 arguments (R pb pt) after '%s'",argv[iarg-1]) ;
+       Uprad = (float)strtod(argv[iarg++],NULL) ;
+       Upbot = (float)strtod(argv[iarg++],NULL) ;
+       Uptop = (float)strtod(argv[iarg++],NULL) ;
+       if( Uprad <   5.0f || Uprad > 40.0f ||
+           Upbot <  40.0f || Upbot > 80.0f ||
+           Uptop <= Upbot || Uptop > 90.0f   )
+         ERROR_exit("Illegal values (R pb pt) after '%s'",argv[iarg-4]) ;
+       continue ;
+     }
+
      ERROR_exit("Unknown option: %s\n",argv[iarg]);
    }
 
@@ -355,6 +384,8 @@ int main( int argc , char *argv[] )
    }
 
    ct = NI_clock_time() ;
+
+   if( verb ) fprintf(stderr," + Pre-processing: ") ;
 
    DSET_load( inset ) ; CHECK_LOAD_ERROR(inset) ;
    if( DSET_NVALS(inset) > 1 )
