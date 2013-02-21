@@ -334,8 +334,7 @@ int main( int argc , char *argv[] )
        "then over steadily shrinking patches.  For this to work,  the source and base\n"
        "need to be pretty well aligned already (e.g., 3dAllineate).\n"
        "\n"
-       "*** This program is experimental and subject to sudden drastic change! ***\n"
-       "*** At some point, it will be incorporated into 3dAllineate (I hope)!! ***\n"
+       "***** This program is experimental and subject to sudden drastic change! *****\n"
        "\n"
        "--- AUTHOR = RWCox -- Fall/Winter 2012-13 ---\n"
      ) ;
@@ -359,7 +358,9 @@ int main( int argc , char *argv[] )
    INFO_message("this edition not compiled with OpenMP :-(") ;
 #endif
 
-   mainENTRY("3dQwarp") ;
+   mainENTRY("3dQwarp") ; machdep() ;
+   AFNI_logger("3dQwarp",argc,argv);
+   PRINT_VERSION("3dQwarp"); AUTHOR("Zhark the Cubically Warped");
 
    nopt = 1 ;
    Hblur_b = Hblur_s = 3.456f ;

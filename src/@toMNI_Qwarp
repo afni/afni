@@ -30,7 +30,7 @@ endif
 # A level
 
 echo " "
-echo "+++++ @toMNI_Qwarp: Compute A level mean (affine) +++++"
+echo "========== @toMNI_Qwarp: Compute A level mean (affine) =========="
 echo " "
 
 3dMean -prefix Qwarp_meanA -datum float $dlist
@@ -38,7 +38,7 @@ echo " "
 # B level
 
 echo " "
-echo "+++++ @toMNI_Qwarp: Compute B level (minimum patch = 101) +++++"
+echo "========== @toMNI_Qwarp: Compute B level (minimum patch = 101) =========="
 echo " "
 
 foreach fred ( $dlist )
@@ -53,7 +53,7 @@ end
 # C level
 
 echo " "
-echo "+++++ @toMNI_Qwarp: Compute C level (minimum patch = 49) +++++"
+echo "========== @toMNI_Qwarp: Compute C level (minimum patch = 49) =========="
 echo " "
 
 foreach fred ( $dlist )
@@ -71,7 +71,7 @@ end
 # D level
 
 echo " "
-echo "+++++ @toMNI_Qwarp: Compute D level (minimum patch = 23) +++++"
+echo "========== @toMNI_Qwarp: Compute D level (minimum patch = 23) =========="
 echo " "
 
 foreach fred ( $dlist )
@@ -89,7 +89,7 @@ end
 # E level
 
 echo " "
-echo "+++++ @toMNI_Qwarp: Compute E level +++++ (minimum patch = 11)"
+echo "========== @toMNI_Qwarp: Compute E level (minimum patch = 11) =========="
 echo " "
 
 foreach fred ( $dlist )
@@ -107,7 +107,7 @@ end
 # finished
 
 echo " "
-echo "+++++ @toMNI_Qwarp: free at last !!!!! +++++"
+echo "========== @toMNI_Qwarp: free at last !!!!! =========="
 echo " "
 
 exit 0

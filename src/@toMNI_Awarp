@@ -77,6 +77,13 @@ foreach fred ( `count -dig 1 1 $ndset` )
   set pan = `@parse_afni_name $flist[$fred]`
   set pre = $pan[2]
   set vvv = $pan[3]
+
+  echo " "
+  echo "========================================================================="
+  echo "   3dUnifize-ing dataset $flist[$fred], then @auto_tlrc-ing the result"
+  echo "========================================================================="
+  echo " "
+
   3dUnifize -prefix ${pre}_uni -input $flist[$fred]
 ##  3dLocalstat -nbhd 'SPHERE(17)' -stat perc:75 \
 ##              -automask -use_nonmask -prefix ${pre}_p75 $flist[$fred]
