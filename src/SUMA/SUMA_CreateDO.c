@@ -8556,7 +8556,7 @@ int SUMA_AllowPrying(SUMA_SurfaceViewer *sv, int *RegSO)
    static char FuncName[]={"SUMA_AllowPrying"};
    SUMA_SurfaceObject *SO1, *SO2;
    int N_RegSO, LoL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -8564,7 +8564,7 @@ int SUMA_AllowPrying(SUMA_SurfaceViewer *sv, int *RegSO)
    
    N_RegSO = SUMA_RegisteredSOs (sv, SUMAg_DOv, RegSO);
    if (N_RegSO != 2) {
-      SUMA_LH( "Not set up to pry more than 2 surfaces.\n"
+      SUMA_LH( "Not set up to pry other than 2 surfaces.\n"
                "Deal with this when the need arises.\n");
       SUMA_RETURN(0);
    }
