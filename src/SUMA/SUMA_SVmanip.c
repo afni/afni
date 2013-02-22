@@ -97,8 +97,11 @@ int SUMA_WhichViewerInMomentum(SUMA_SurfaceViewer *SVv, int N_SV,
 float SUMA_sv_fov_original(SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_sv_fov_original"};
-   float mxdim = -1.0, fov = FOV_INITIAL, maxv[3]={-1.0, -1.0, -1.0}, minv[3]={1000000.0, 10000000.0, 1000000.0}, dxv;
+   float mxdim = -1.0, fov = FOV_INITIAL, 
+         maxv[3]={-1.0, -1.0, -1.0}, 
+         minv[3]={1000000.0, 10000000.0, 1000000.0}, avgdim;
    int i, N_vis=0, *Vis_IDs=NULL, k=0;
+   double CurrentDistance;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
@@ -117,29 +120,54 @@ float SUMA_sv_fov_original(SUMA_SurfaceViewer *sv)
          for (k=0;k<2;++k) { 
             if (SO->MaxDims[k] > maxv[k]) maxv[k] = SO->MaxDims[k] ;
             if (SO->MinDims[k] < minv[k]) minv[k] = SO->MinDims[k] ;
-            /* if (SO->MaxDims[k] - SO->MinDims[k] > mxdim) mxdim = SO->MaxDims[k] - SO->MinDims[k]; */
+            /* if (SO->MaxDims[k] - SO->MinDims[k] > mxdim) 
+                        mxdim = SO->MaxDims[k] - SO->MinDims[k]; */
          }
       }
 
-      dxv = 0.0;
+      avgdim = 0.0;
       for (k=0;k<2;++k) { 
          if (maxv[k] - minv[k] > mxdim) mxdim = maxv[k] - minv[k];
-         dxv += maxv[k] - minv[k];
+         avgdim += maxv[k] - minv[k];
       }
-      dxv /= 3.0;
+      avgdim /= 3.0;
    }
    SUMA_free(Vis_IDs); Vis_IDs= NULL;
+   /* Current avg. distance from camera */
+   CurrentDistance = sqrt((sv->GVS[sv->StdView].ViewFrom[0] - 
+                           sv->GVS[sv->StdView].ViewCenter[0]) *
+                          (sv->GVS[sv->StdView].ViewFrom[0] - 
+                           sv->GVS[sv->StdView].ViewCenter[0]) +
+                          (sv->GVS[sv->StdView].ViewFrom[1] - 
+                           sv->GVS[sv->StdView].ViewCenter[1]) * 
+                          (sv->GVS[sv->StdView].ViewFrom[1] - 
+                           sv->GVS[sv->StdView].ViewCenter[1]) +
+                          (sv->GVS[sv->StdView].ViewFrom[2] - 
+                           sv->GVS[sv->StdView].ViewCenter[2]) * 
+                          (sv->GVS[sv->StdView].ViewFrom[2] - 
+                           sv->GVS[sv->StdView].ViewCenter[2]));
+   
    if (mxdim > 0 && mxdim < 1000) {
-      if (mxdim / dxv > 2.2) { fov = 0.3*dxv; } /* just to make homer look better */
-      else { fov = 0.3*mxdim; }
-      SUMA_LHv("rat=%f, using %f\n", mxdim / dxv, fov);
+      SUMA_LHv("sv %p mxdim=%f, avgdim=%f, rat=%f, DimSclFac = %f, "
+               "CurrentDist = %f\n", 
+                sv, mxdim, avgdim, mxdim / avgdim, 
+                sv->GVS[sv->StdView].DimSclFac, CurrentDistance);
+      if (mxdim / avgdim > 2.2) { /* crazy aspect, adopt average size */
+         mxdim = avgdim; 
+      }
+      /* fov is the double of the angle at the camera of the square triangle 
+         with depth = CurrentDistance and width = half the biggest distance 
+         Not sure about the DimSclFac usage here, need to retest it at some
+         point.*/
+      /* make mxdim a little larger for some framing */
+      fov = 2.0*atan((double)(mxdim *1.1* sv->GVS[sv->StdView].DimSclFac)
+                                 / 2.0 / CurrentDistance)*180.0/SUMA_PI;
+      SUMA_LHv("Computed fov to be %f degrees\n",  fov);
    } else {
       fov = FOV_INITIAL;
       SUMA_S_Errv("max dim too strange (%f)\nUsing default (%f).", mxdim, fov);
    }
 
-   fov = fov * sv->GVS[sv->StdView].DimSclFac; 
-   
    SUMA_RETURN(fov);
 }
 
@@ -252,22 +280,12 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
             case SUMA_2D_Z0:
             case SUMA_2D_Z0L:
                /* Default top view, rotate by nothing */
-               #if 0 /* ZSS: Feb 2010 */
-               SV->GVS[j].currentQuat[0] = 0.252199;
-               SV->GVS[j].currentQuat[1] = -0.129341;
-               SV->GVS[j].currentQuat[2] = -0.016295;
-               SV->GVS[j].currentQuat[3] = 0.958854;
-               #else
-               if (j == SUMA_2D_Z0) {
-                  a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
-                  axis_to_quat(a, 0, SV->GVS[j].currentQuat);
-               } else {
-                  a[0] = 0.0; a[1] = 0.0; a[2] = 1.0;
-                  axis_to_quat(a, SUMA_PI, SV->GVS[j].currentQuat);
-               }
-               #endif
+               SUMA_HOME_QUAT(j, SV->GVS[j].currentQuat);
                SV->GVS[j].ApplyMomentum = False;
 
+               SV->GVS[j].LHpry = 0.0;
+               SV->GVS[j].LHlol = 0;
+               SV->GVS[j].LHpry0 = 0.0;
                SV->GVS[j].MinIdleDelta = 1;
                SV->GVS[j].TranslateGain = TRANSLATE_GAIN;
                SV->GVS[j].ArrowtranslateDeltaX = ARROW_TRANSLATE_DELTAX;
@@ -289,14 +307,15 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
                SV->GVS[j].RotaCenter[1] = 0.0;
                SV->GVS[j].RotaCenter[2] = 0.0;
                break;
+            case SUMA_3D_Z0:
             case SUMA_3D:
-               SV->GVS[j].currentQuat[0] = 0.252199;
-               SV->GVS[j].currentQuat[1] = -0.129341;
-               SV->GVS[j].currentQuat[2] = -0.016295;
-               SV->GVS[j].currentQuat[3] = 0.958854;
+               SUMA_HOME_QUAT(j, SV->GVS[j].currentQuat);
 
                SV->GVS[j].ApplyMomentum = False;
 
+               SV->GVS[j].LHpry = 0.0;
+               SV->GVS[j].LHlol = 0;
+               SV->GVS[j].LHpry0 = 0.0;
                SV->GVS[j].MinIdleDelta = 1;
                SV->GVS[j].TranslateGain = TRANSLATE_GAIN;
                SV->GVS[j].ArrowtranslateDeltaX = ARROW_TRANSLATE_DELTAX;
@@ -567,6 +586,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->CurGroupName = NULL;
       
       SV->PolyMode = SRM_Fill;
+      SV->TransMode = STM_0;
+      
       SV->DO_DrawMask = SDODM_All;
       
       #if SUMA_BACKFACE_CULL
@@ -1078,6 +1099,44 @@ SUMA_Boolean SUMA_SetAllRemixFlag (SUMA_SurfaceViewer *SVv, int N_SVv)
    SUMA_RETURN (YUP);
 }
 
+SUMA_Boolean SUMA_SetGLHome(SUMA_SurfaceViewer *sv) 
+{   
+   static char FuncName[]={"SUMA_SetGLHome"};
+
+   SUMA_ENTRY;
+   if (!sv) SUMA_RETURN(NOPE);
+   SUMA_SET_AS_NEEDED_2D_VIEW_ANGLE(sv);
+   sv->GVS[sv->StdView].translateVec[0]=0; 
+   sv->GVS[sv->StdView].translateVec[1]=0;
+   glMatrixMode(GL_PROJECTION);
+
+   sv->GVS[sv->StdView].ViewFrom[0] = 
+      sv->GVS[sv->StdView].ViewFromOrig[0];
+   sv->GVS[sv->StdView].ViewFrom[1] = 
+      sv->GVS[sv->StdView].ViewFromOrig[1];
+   sv->GVS[sv->StdView].ViewFrom[2] = 
+      sv->GVS[sv->StdView].ViewFromOrig[2];
+   sv->GVS[sv->StdView].ViewCenter[0] = 
+      sv->GVS[sv->StdView].ViewCenterOrig[0];
+   sv->GVS[sv->StdView].ViewCenter[1] = 
+      sv->GVS[sv->StdView].ViewCenterOrig[1];
+   sv->GVS[sv->StdView].ViewCenter[2] = 
+      sv->GVS[sv->StdView].ViewCenterOrig[2];
+
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity();
+   gluLookAt ( sv->GVS[sv->StdView].ViewFrom[0], 
+               sv->GVS[sv->StdView].ViewFrom[1], 
+               sv->GVS[sv->StdView].ViewFrom[2], 
+               sv->GVS[sv->StdView].ViewCenter[0], 
+               sv->GVS[sv->StdView].ViewCenter[1], 
+               sv->GVS[sv->StdView].ViewCenter[2], 
+               sv->GVS[sv->StdView].ViewCamUp[0], 
+               sv->GVS[sv->StdView].ViewCamUp[1], 
+               sv->GVS[sv->StdView].ViewCamUp[2]);
+   SUMA_RETURN(YUP);
+}
+
 /*!
 Updates the View Center and view from of SV based on the contents of RegisteredDO
 */
@@ -1109,12 +1168,17 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
                SUMA_COPY_VEC(so_op->patchCenter, UsedCenter, 3, float, float);  
             } else {  
                SUMA_LH("Using center of mass or sphere's center.");
-               if (!SUMA_IS_GEOM_SYMM(so_op->isSphere)) {
+               if (!SUMA_IS_GEOM_SYMM(so_op->isSphere) || so_op->VisX.Applied) {
                   SUMA_COPY_VEC(so_op->Center, UsedCenter, 3, float, float); 
                } else {
                   SUMA_COPY_VEC( so_op->SphereCenter, UsedCenter, 3, 
                                  float, float); 
                }
+            }
+            if (so_op->VisX.Applied && so_op->VisX.XformType > 0 &&
+                                       so_op->VisX.XformType <=2) {
+               SUMA_Apply_Coord_xform( UsedCenter,1,3, 
+                                       so_op->VisX.Xform, 0,NULL);
             }
             if (so_op->ViewCenterWeight) {
                NewCenter[0] += so_op->ViewCenterWeight*UsedCenter[0];
@@ -1174,6 +1238,7 @@ SUMA_Boolean SUMA_UpdateRotaCenter (
    int i, do_id, TotWeight;
    float NewCenter[3], UsedCenter[3];
    SUMA_SurfaceObject *so_op;
+   SUMA_Boolean LocalHead = NOPE;
    static char FuncName[]={"SUMA_UpdateRotaCenter"};
    
    SUMA_ENTRY;
@@ -1190,16 +1255,26 @@ SUMA_Boolean SUMA_UpdateRotaCenter (
       switch (dov[do_id].ObjectType) {
          case SO_type:
             so_op = (SUMA_SurfaceObject *)dov[do_id].OP;
+            
             if (SV->UsePatchDims) { 
                SUMA_COPY_VEC(so_op->patchCenter, UsedCenter, 3, float, float);  
             } else {  
-               if (SUMA_IS_GEOM_SYMM(so_op->isSphere)) {
+               if (SUMA_IS_GEOM_SYMM(so_op->isSphere) && !so_op->VisX.Applied) {
                   SUMA_COPY_VEC(so_op->SphereCenter, UsedCenter, 
                                  3, float, float);
                } else {
                   SUMA_COPY_VEC(so_op->Center, UsedCenter, 3, float, float); 
                }
             }
+            SUMA_LHv("Used Center (%s) Pre Xform: [%f %f %f]\n",
+                     so_op->Label, UsedCenter[0], UsedCenter[1], UsedCenter[2]);
+            if (so_op->VisX.Applied && so_op->VisX.XformType > 0 &&
+                                       so_op->VisX.XformType <=2) {
+               SUMA_Apply_Coord_xform( UsedCenter,1,3, 
+                                       so_op->VisX.Xform, 0,NULL);
+            }  
+            SUMA_LHv("Used Center (%s) Post Xform: [%f %f %f]\n",
+                     so_op->Label, UsedCenter[0], UsedCenter[1], UsedCenter[2]);
             if (so_op->RotationWeight) {
                NewCenter[0] += so_op->RotationWeight*UsedCenter[0];
                NewCenter[1] += so_op->RotationWeight*UsedCenter[1];
@@ -1229,7 +1304,8 @@ SUMA_Boolean SUMA_UpdateRotaCenter (
 /*!
 output the state variable contents of the Surface Viewer 
 */
-void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out, int detail)
+void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out, 
+                                     int detail)
 {
    static char FuncName[]={"SUMA_Show_SurfaceViewer_Struct"};
    char *s = NULL;  
@@ -1355,6 +1431,10 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   translateBeginX/Y = %.4f/%.4f\n", SV->GVS[SV->StdView].translateBeginX, SV->GVS[SV->StdView].translateBeginY);
    SS = SUMA_StringAppend_va(SS,"   translateDeltaX/Y = %f/%f\n", SV->GVS[SV->StdView].translateDeltaX, SV->GVS[SV->StdView].translateDeltaY);
    SS = SUMA_StringAppend_va(SS,"   translateVec = [%f %f 0.0]\n", SV->GVS[SV->StdView].translateVec[0], SV->GVS[SV->StdView].translateVec[1]);
+   SS = SUMA_StringAppend_va(SS,"   LHpry = %f, LHpry0 = %f, LHlol = %d\n",
+                             SV->GVS[SV->StdView].LHpry, 
+                             SV->GVS[SV->StdView].LHpry0,
+                             SV->GVS[SV->StdView].LHlol); 
    SS = SUMA_StringAppend_va(SS,"   Show Mesh Axis %d\n", SV->ShowMeshAxis);
    SS = SUMA_StringAppend_va(SS,"   Show Eye Axis %d\n", SV->ShowEyeAxis);
    SS = SUMA_StringAppend_va(SS,"   Show Cross Hair %d\n", SV->ShowCrossHair);
@@ -2924,13 +3004,17 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
       do { 
          if (!el) el = dlist_head(cf->DsetList);
          else el = dlist_next(el);
-         dset = (SUMA_DSET *)el->data;
-         if (!dset) {
-            SUMA_SLP_Err("Unexpected NULL dset element in list!\n"
+         if (el) {
+            dset = (SUMA_DSET *)el->data;
+            if (!dset) {
+               SUMA_SLP_Err("Unexpected NULL dset element in list!\n"
                          "Please report this occurrence to saadz@mail.nih.gov.");
-         } else {   
-           s = SUMA_DsetInfo (dset,0);
-           SS = SUMA_StringAppend_va(SS, "\n%s\n", s); SUMA_free(s); s = NULL;    
+            } else {   
+              s = SUMA_DsetInfo (dset,0);
+              SS = SUMA_StringAppend_va(SS, "\n%s\n", s); SUMA_free(s); s = NULL;
+            }
+         } else {
+            SUMA_S_Err("Unexpected nullness");
          } 
       } while ( (el != dlist_tail(cf->DsetList))); 
    } else {
@@ -2997,7 +3081,7 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv,
 {
    static char FuncName[] = {"SUMA_BestStandardView"};
    SUMA_STANDARD_VIEWS ans;
-   int i, maxdim = -1, is;
+   int i, maxdim = -1, is, balls;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SO_SIDE side=SUMA_NO_SIDE;
    
@@ -3010,6 +3094,7 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv,
    }
    
    side = SUMA_LEFT;
+   balls = 0;
    for (i=0; i<sv->VSv[is].N_MembSOs; ++i) {   
       SO = (SUMA_SurfaceObject *)(dov[sv->VSv[is].MembSOs[i]].OP);
       if (SO == NULL) {
@@ -3018,6 +3103,7 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv,
       }
       if (SO->EmbedDim > maxdim) maxdim = SO->EmbedDim;
       if (SO->Side != SUMA_LEFT) side = SUMA_RIGHT;
+      if (SUMA_IS_GEOM_SYMM(SO->isSphere)) balls = 1;
    }
    
    switch (maxdim) {
@@ -3028,7 +3114,8 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv,
             SUMA_RETURN (SUMA_2D_Z0);
          }
       case 3:
-         SUMA_RETURN(SUMA_3D);
+         if (!balls) SUMA_RETURN(SUMA_3D);
+         else SUMA_RETURN(SUMA_3D_Z0);
       default:
          fprintf(SUMA_STDERR,
             "Error %s: No provision for a maximum embedding dimension of %d.\n", 
@@ -3142,7 +3229,8 @@ if surface is SureFit, flip lights
 \ret ans (SUMA_Boolean) YUP/NOPE
 */
 
-SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv, SUMA_SurfaceViewer *cSV, int viewopt)
+SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv,
+                                 SUMA_SurfaceViewer *cSV, int viewopt)
 {
    static char FuncName[] = {"SUMA_SetupSVforDOs"};
    int kar, ws, i;
@@ -3186,36 +3274,43 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
 
    #if 1
    /* register all surface specs */
-      /* find out what group the viewer will have and assign the current group to be that of the new surfaces */
+      /* find out what group the viewer will have and assign the current 
+         group to be that of the new surfaces */
       if (LocalHead) {
          fprintf (SUMA_STDERR, "%s: Registering SpecSO with viewer [%d]%p, %d\n",
-             FuncName, SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS), cSV, SUMAg_N_SVv);
+             FuncName, SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS), 
+             cSV, SUMAg_N_SVv);
       }
-      cSV->iCurGroup =  SUMA_WhichGroup(SUMAg_CF, Spec.Group[0]); /* only one group per spec */
+      cSV->iCurGroup =  SUMA_WhichGroup(SUMAg_CF, Spec.Group[0]); 
+                                                   /* only one group per spec */
       if (cSV->iCurGroup < 0) {
          SUMA_SL_Err("Group not found.\n");
          SUMA_RETURN(NOPE);
       } else {
-         cSV->CurGroupName = SUMA_copy_string(SUMAg_CF->GroupList[cSV->iCurGroup]);
+         cSV->CurGroupName = 
+               SUMA_copy_string(SUMAg_CF->GroupList[cSV->iCurGroup]);
       }
       
       
       if (!SUMA_RegisterSpecSO(&Spec, cSV, DOv, N_DOv, viewopt)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterSpecSO.\n", FuncName);
+         SUMA_S_Err("Failed in SUMA_RegisterSpecSO.");
          SUMA_RETURN(NOPE);
       } 
       SUMA_LH("Done.");
 
       /* register all SOs of the first state if no state is current
          or register all surfaces if they are of the current state and group
-         (it is possible that no new surfaces are registered, but overhead is tiny)
+         (it is possible that no new surfaces are registered, but 
+           overhead is tiny)
          
-         The logic fails when you load two different groups with the one surface in each having the same
-         state as in the other.
-         {G1, SO->State='a'} {G2, SO->State='a'} in that case both surfaces will show up at the same
-         time when first loaded. You'll need to switch groups before you see just the one surface from that group.
+         The logic fails when you load two different groups with the one surface 
+         in each having the same state as in the other.
+         {G1, SO->State='a'} {G2, SO->State='a'} in that case both surfaces will 
+         show up at the same time when first loaded. You'll need to switch groups
+         before you see just the one surface from that group.
          
-         For now, I don't care to set this up properly since no one uses multi-group business.
+         For now, I don't care to set this up properly since no one uses 
+         multi-group business.
       */   
       if (cSV->State) { 
          ws =  SUMA_WhichState (cSV->State, cSV, cSV->CurGroupName) ;
@@ -3224,16 +3319,17 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
       }
       if ( ws < 0) { /* first kiss */ ws = 0; }
       {   
-         if (LocalHead) {
-            fprintf(SUMA_STDERR,"%s: Registering All SO of the %dth state ...\n", FuncName, ws);
-            fprintf(SUMA_STDERR,"%s: cSV->VSv[%d].N_MembSOs = %d\n", FuncName, ws, cSV->VSv[ws].N_MembSOs);
-         }
+         SUMA_LHv("Registering All SO of the %dth state ...\n"
+                  "cSV->VSv[%d].N_MembSOs = %d\n", 
+                  ws, ws, cSV->VSv[ws].N_MembSOs);
          cSV->State = cSV->VSv[ws].Name;
          cSV->iState = ws;
          for (kar=0; kar < cSV->VSv[ws].N_MembSOs; ++ kar) {
-             if (LocalHead) fprintf(SUMA_STDERR," About to register DOv[%d] ...\n", cSV->VSv[ws].MembSOs[kar]);
+             SUMA_LHv(" About to register DOv[%d] ...\n", 
+                        cSV->VSv[ws].MembSOs[kar]);
              SO = (SUMA_SurfaceObject *)DOv[cSV->VSv[ws].MembSOs[kar]].OP;
-             SUMA_LHv("SO->Group %s, cSV->CurGroupName %s\n", SO->Group, cSV->CurGroupName); 
+             SUMA_LHv("SO->Group %s, cSV->CurGroupName %s\n", 
+                        SO->Group, cSV->CurGroupName); 
                if (!SUMA_RegisterDO(cSV->VSv[ws].MembSOs[kar], cSV)) {
                   SUMA_error_message (FuncName,"Failed to register DO", 1);
                   SUMA_RETURN(NOPE);
@@ -3286,16 +3382,16 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
 
    if (viewopt & UPDATE_VIEW_POINT_MASK) {
       /* set the viewing points */
-      if (LocalHead) fprintf(SUMA_STDOUT,"%s: setting the viewing points\n", FuncName);
+      SUMA_LH("setting the viewing points");
       if (!SUMA_UpdateViewPoint(cSV, DOv, N_DOv)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed to update view point\n", FuncName);
+         SUMA_S_Err("Failed to update view point");
          SUMA_RETURN(NOPE);
       }
    }
 
    if (viewopt & UPDATE_EYE_AXIS_STD_MASK) {
       /* Change the defaults of the eye axis to fit standard EyeAxis */
-      if (LocalHead) fprintf(SUMA_STDOUT,"%s: Changing defaults of the eye axis to fit standard EyeAxis\n", FuncName);
+      SUMA_LH("Changing defaults of the eye axis to fit standard EyeAxis");
       EyeAxis_ID = SUMA_GetEyeAxis (cSV, DOv);
       if (EyeAxis_ID < 0) {
          fprintf (SUMA_STDERR,"Error %s: Failed to get Eye Axis.\n", FuncName);
@@ -3305,7 +3401,8 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
    }
 
 
-   /* Set the index Current SO pointer to the first surface object read of the first state, tiz NOT (Fri Jan 31 15:18:49 EST 2003) a surface of course*/
+   /* Set the index Current SO pointer to the first surface object read of 
+   the first state, tiz NOT (Fri Jan 31 15:18:49 EST 2003) a surface of course*/
    cSV->Focus_SO_ID = cSV->VSv[ws].MembSOs[0];
    /*set the GroupName info of the viewer correctly */
    SO = (SUMA_SurfaceObject *)(DOv[cSV->Focus_SO_ID].OP);
@@ -3315,18 +3412,18 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
    }
    
    if (!SUMA_SetViewerLightsForSO(cSV, SO)) {
-      SUMA_S_Warn("Failed to set viewer lights.\nUse 'F' key to flip lights in SUMA\nif necessary.");
+      SUMA_S_Warn("Failed to set viewer lights.\n"
+                  "Use 'F' key to flip lights in SUMA\nif necessary.");
    }
    
    /* do the axis setup */
    SUMA_WorldAxisStandard (cSV->WAx, cSV);
 
    /* do the FOV thingy */
-   for (i=0; i < cSV->N_VSv; ++i) {
-      if (cSV->FOV[i] == cSV->FOV_original) { cSV->FOV[i] = SUMA_sv_fov_original(cSV);} 
-   } 
-
-
+   if (cSV->FOV[cSV->iState] == cSV->FOV_original) { 
+      cSV->FOV[cSV->iState] = SUMA_sv_fov_original(cSV);
+   }
+    
    SUMA_RETURN(YUP);
 }
 

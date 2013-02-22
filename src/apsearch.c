@@ -739,13 +739,13 @@ int main(int argc, char **argv)
          sar = approx_str_sort_Ntfile(
                      fnamev->ar, fnamev->num, word, ci, &ws_score,
                             NULL,
-                            &D, 0);
+                            &D, 0, '\0');
          ws = sar->ar; N_ws = sar->num;
       } else if (fname) {
          if (strcmp(fname,stdinflag)) {
             ws = approx_str_sort_tfile(fname, &N_ws, word, 
                          ci, &ws_score,
-                         NULL, &D, 1);
+                         NULL, &D, 1, '\0');
          } else {
             char *stdtext=NULL;
             if (!(stdtext = text_from_stdin(&N_ws))) {
@@ -754,17 +754,17 @@ int main(int argc, char **argv)
             }
             ws = approx_str_sort_text(stdtext, &N_ws, word, 
                             ci, &ws_score,
-                            NULL, &D); 
+                            NULL, &D, '\0'); 
             free(stdtext); stdtext=NULL;
          }
       } else if (text) {
          ws = approx_str_sort_text(text, &N_ws, word, 
                             ci, &ws_score,
-                            NULL, &D);
+                            NULL, &D, '\0');
       } else if (prog) {
          ws = approx_str_sort_phelp(prog, &N_ws, word, 
                             ci, &ws_score,
-                            NULL, &D, 1);
+                            NULL, &D, 1, '\\');
       } else if (popt) {
          suggest_best_prog_option(popt, word);
          return 0;
@@ -772,7 +772,7 @@ int main(int argc, char **argv)
          /* one can also use print_prog_options(all_popts); return(0); */
          ws = approx_str_sort_all_popts(all_popts, &N_ws, 
                             ci, &ws_score,
-                            NULL, &D, uopts, 1);
+                            NULL, &D, uopts, 1, '\\');
       }
       
       i_unique_score = 0; last_score = -1.0; new_score=1;

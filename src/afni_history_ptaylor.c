@@ -65,20 +65,44 @@
 
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
+
+
+{ 22, Feb , 2013 , PT , "3dProbTrackID" , MINOR , TYPE_NEW_OPT,
+   "Instead of just individual ROI masks, can get map of Ntracks/voxel.",
+   "This allows a posteriori thresholding/comparisons/analysis.\n"
+},
+
+{ 22, Feb , 2013 , PT , "3dDWUncert" , MICRO , TYPE_BUG_FIX,
+   "Free as well as DELETE a dset.",
+   "Ultraminor change.\n"
+},
+
+{ 22, Feb , 2013 , PT , "rsfc" , MICRO , TYPE_BUG_FIX,
+   "Fixed potential float/double problem.",
+   "When using 3dReHo to get ReHo for ROIs, could get *very* large numbers\n"
+   "during part of calculations; floats were fine for 27 voxel neighborhood,\n"
+   "but not with large ROIs. Thus, using doubles in the calc now.\n"
+},
+
+{ 22, Feb , 2013 , PT , "3dReHo" , MICRO , TYPE_BUG_FIX,
+   "Fixed mask misread which could cause error in some nonmasked data.",
+   NULL
+},
+
  { 6, Feb , 2013 , PT , "3dRSFC" , MICRO , TYPE_BUG_FIX,
-   "Fixed potential div by zero in 3dRSFC",
+   "Fixed potential div by zero in 3dRSFC.",
    NULL
  },
 
  { 6, Feb , 2013 , PT , "3dTrackID" , MICRO , TYPE_BUG_FIX,
-   "Small bug in 3dTrackID fixed",
-   "A couple of words on what the bug caused?\n"
+   "Small bug in 3dTrackID fixed.",
+   "In post-run freeing of variables, had been error for a char string.\n"
  },
 
  { 6, Feb , 2013 , PT , "3dProbTrackID" , MINOR , TYPE_NEW_OPT,
-   "output each WM-region mask as an individual ROI",
+   "Add ability to output each WM-region mask as an individual ROI.",
    "This should make it simpler to use an ROI as a mask than \n"
-   "with the 2^(ROI number) labelling system within subbrick outputs\n"
+   "with the 2^(ROI number) labelling system within subbrick outputs.\n"
  },
 
  

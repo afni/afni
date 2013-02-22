@@ -497,6 +497,8 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
+   SUMA_LHv("Unleashed on surface %s\n", CHECK_NULL_STR(SO->Label));
+   
    /* Calculate Min, Max, Mean */
    
    if (!SUMA_isSODimInitialized(SO)) { 
@@ -507,6 +509,7 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    } else {
       SUMA_LH("SODim initialized already");
    }
+   
    /* calculate the center and dimensions for the nodes in the patch only */
    PatchNodeMask = SUMA_MaskOfNodesInPatch(SO, &(SO->N_patchNode));
    if (!SO->N_patchNode || SO->N_patchNode == SO->N_Node) { 
@@ -541,7 +544,10 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    }
    
    if (SO->patchNodeMask) {
-      SUMA_S_Err("Hmm, unexpected");
+      SUMA_S_Err( "Hmm, unexpected."
+          "This function is usually called once per surface, "
+          "it is OK to call it more than once, but be sure it is necessary"
+          "before you turn this error message off");
       SUMA_free(SO->patchNodeMask); 
    }
    SO->patchNodeMask = NULL;
@@ -1509,6 +1515,16 @@ SUMA_Boolean SUMA_ParseLHS_RHS (char *s, char *lhs, char *rhs)
    SUMA_RETURN (YUP); 
 }
 
+/* Undo the separation of left/right deformed states
+                  the _lh and _rh are what @SUMA_Make_Spec_FS used
+                  to flag these special states */
+#define SUMA_LH_UNIFY_STATE_FIX(ss) { \
+   SUMA_CropExtension((ss), "_lh_lh"); /* don't ask */\
+   SUMA_CropExtension((ss), "_rh_rh"); /* don't ask */\
+   SUMA_CropExtension((ss), "_lh"); \
+   SUMA_CropExtension((ss), "_rh"); \
+}
+
 /*! 
    Function to read the surface specs file.
    \param fname (char *) name of the specs file
@@ -1521,7 +1537,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
    static char FuncName[]={"SUMA_Read_SpecFile"};
    char  s[SUMA_MAX_DIR_LENGTH], stmp[SUMA_MAX_DIR_LENGTH],
          stmp2[SUMA_MAX_DIR_LENGTH], c;
-   int ex, skp, evl, i, kkk;
+   int ex, skp, evl, i, kkk, LHunify=0;
    FILE *sf_file;
    SUMA_FileName SpecName;
    SUMA_Boolean   OKread_SurfaceFormat, OKread_SurfaceType, 
@@ -1541,7 +1557,10 @@ SUMA_Boolean SUMA_Read_SpecFile (
                         "You must start with NewSurface line "
                         "before any other field."};
    SUMA_Boolean LocalHead = NOPE;   
+
    SUMA_ENTRY;
+
+   if (SUMA_isEnv("SUMA_LHunify","YES")) LHunify = 1;
 
    /*make sure file is there */
    if (!SUMA_filexists(f_name)) {
@@ -1742,6 +1761,12 @@ SUMA_Boolean SUMA_Read_SpecFile (
                         "Error %s: Error in SUMA_ParseLHS_RHS.\n", 
                         FuncName);
                SUMA_RETURN (NOPE);
+            }
+            
+            if (LHunify) { /* remove the separation of left/right deformed states
+                              the _lh and _rh are what @SUMA_Make_Spec_FS used
+                              to flag these special states */
+               SUMA_LH_UNIFY_STATE_FIX(Spec->State[0]);
             }
             if (Spec->N_States == 0) {
                /* first state, add it to the list of states */
@@ -2028,6 +2053,10 @@ SUMA_Boolean SUMA_Read_SpecFile (
                         "Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
+            if (LHunify) {
+               SUMA_LH_UNIFY_STATE_FIX(Spec->State[Spec->N_Surfs-1]);
+            }
+
             /* make sure it is in the StateList */
             if (SUMA_iswordin (Spec->StateList, Spec->State[Spec->N_Surfs-1]) 
                 != 1) {
@@ -3582,7 +3611,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (
    if (LocalHead) debug = 2;
    
    if ( debug )
-       fprintf (SUMA_STDERR, "Expecting to read %d surfaces.\n", Spec->N_Surfs);
+       SUMA_S_Notev("Expecting to read %d surfaces.\n", 
+                     Spec->N_Surfs);
    for (i=0; i<Spec->N_Surfs; ++i) { /* first loop across mappable surfaces */
       /*locate and load all Mappable surfaces */
       if (Spec->LocalDomainParent[i][0] == '\0') {
@@ -3760,7 +3790,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             }
             /* Change the defaults of Mesh axis to fit standard  */
             SUMA_MeshAxisStandard (SO->MeshAxis, SO);
-            /*turn on the viewing for the axis */
+            /*turn off the viewing for the axis */
             SO->ShowMeshAxis = NOPE;
 
             /* Store it into dov */

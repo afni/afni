@@ -1332,6 +1332,14 @@ char * SUMA_help_message_Info(void)
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "     n: bring a node to direct view (does not work AT ALL)\n");
    SS = SUMA_StringAppend (SS, 
+      "     O: Increase opacity of all surfaces in viewer by 4 levels.\n"
+      "        Transparency levels accessible are: \n"
+      "        0 (opaque), 25%, 50%, 75%, 100% (invisible)\n"
+      "\n");
+   SS = SUMA_StringAppend (SS, 
+      "     o: Decrease opacity of all surfaces in viewer by 4 levels.\n"
+      "\n");
+   SS = SUMA_StringAppend (SS, 
       "     Ctrl+o: Set new center of rotation.\n"
       "            Enter nothing to go back to default.\n"
       "\n");
@@ -1655,22 +1663,38 @@ char * SUMA_help_message_Info(void)
       "     Mouse Controls:\n");
    SS = SUMA_StringAppend (SS, 
       "     Button 1-Motion: rotation as if you were using\n"
-      "                      a trackball.\n");
-   SS = SUMA_StringAppend (SS, 
+      "                      a trackball.\n"
       "       Pure vertical motion is equivalent to using \n"
-      "       the up/down arrow keys.\n");
-   SS = SUMA_StringAppend (SS, 
+      "       the up/down arrow keys.\n"
       "       Pure horizontal motion is equivalent to using \n"
-      "       the left/right arrow keys.\n");
-   SS = SUMA_StringAppend (SS, 
+      "       the left/right arrow keys.\n"
       "       Of course, the advantage to using the mouse is \n"
-      "       a continuous range of rotation angles and \n");
-   SS = SUMA_StringAppend (SS, 
+      "       a continuous range of rotation angles and \n"
       "       simultaneous rotations about the screen's \n"
-      "       X & Y axis.\n");
-   SS = SUMA_StringAppend (SS, 
+      "       X & Y axis.\n"
       "       This mode of rotation is similar to SGI's \n"
-      "       ivview interface.\n");
+      "       ivview interface.\n"
+      "     Shift+Button 1-Motion: Rotate surfaces about the Z\n"
+      "       axis. This is useful at times for reorienting flat\n"
+      "       maps.\n"
+      "     Control+Button 1-Motion: Pry open two hemispheres\n"
+      "       so that you can see medial or lateral walls better\n"
+      "       from one angle. Prying is disabled for flat surfaces\n"
+      "       and with spheres the effect is to rotate each sphere\n"
+      "       about the Y axis passing through its center. Also, prying\n"
+      "       is only enabled when the state you are viewing contains two \n"
+      "       surfaces, one on the left and one on the right.\n"
+      "       Control+Button 1-DoubleClick to get back to original setting\n"
+      "       You can select nodes (Button 3) on pried surfaces and still\n"
+      "       have AFNI jump to the proper location, and vice versa. However\n"
+      "       for the moment, you cannot draw in pried mode. If you attempt\n"
+      "       to draw, the surfaces are put back together.\n"
+      "       To make best use of this option, you want to have env. variable\n"
+      "       SUMA_LHunify = YES (see your ~/.sumarc for help)\n"
+      "     Button 1-DoubleClick: Reset to Home vieweing angle, zooming is\n"
+      "       left unchanged. See also 'Home' key\n"
+      "     Control+Button 1-DoubleClick: Reset surface prying.n" 
+      );
    SS = SUMA_StringAppend (SS, 
       "     Button 2-Motion: translation\n"); 
    SS = SUMA_StringAppend (SS, 
@@ -2044,11 +2068,14 @@ char * SUMA_Help_AllSurfCont ()
          "\n"
          "++ more:\n%s\n"
          "\n"
-         "++ RenderMode:\n%s\n"
+         "++ Drw (DrawingMode, RenderMode):\n%s\n"
+         "\n"
+         "++ Trn (Transparency):\n%s\n"
          "\n"
          "++ Dsets:\n%s\n"
          "\n", 
-         SUMA_SurfContHelp_more, SUMA_SurfContHelp_RenderMode, SUMA_SurfContHelp_Dsets);
+         SUMA_SurfContHelp_more, SUMA_SurfContHelp_RenderMode,
+         SUMA_SurfContHelp_TransMode, SUMA_SurfContHelp_Dsets);
    SS = SUMA_StringAppend_va(SS, 
          "+ Xhair Info Block:\n"
          "\n"

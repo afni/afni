@@ -11,6 +11,19 @@ typedef struct {
    byte DoCenter; /* calculate center ? */
    float LargestBoxSize;
 } SUMA_NEW_SO_OPT; 
+
+typedef struct {
+   char state_s[32]; /*!< state name */
+   char now_s[16]; /*!< current value in string format*/
+   char init_s[16]; /*!< initial value in string format*/
+   int now_i;
+   int init_i;
+   float now_f4[4];
+   float init_f4[4];
+   char whodunit[32]; /*!< Who wanted this state tracked */
+} SUMA_GL_STEL;
+
+
 NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
                                           int N_do, SUMA_SurfaceViewer *sv );
 SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void);
@@ -35,6 +48,22 @@ SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM,
 SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void);
 void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM);
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *csv);
+int SUMA_EmptyVisXform(SUMA_VIS_XFORM vx);
+int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, int which, 
+                       int direction, int xform_orig, int recompute_norm);
+float *SUMA_VisX_CoordPointer(SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_VisX_Pointers4Display(SUMA_SurfaceObject *SO, int fordisp);
+int SUMA_AllowPrying(SUMA_SurfaceViewer *sv, int *RegSO);
+SUMA_Boolean SUMA_ResetPrying(SUMA_SurfaceViewer *svu);
+SUMA_Boolean SUMA_ApplyPrying(SUMA_SurfaceViewer *sv, float val, char *units,
+                              int recompute_norm);
+SUMA_Boolean SUMA_RecomputeNormsPrying(SUMA_SurfaceViewer *svu);
+int SUMA_LeftShownOnLeft(SUMA_SurfaceViewer *sv, 
+                         SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
+                         int useParents, int applyViewingXform);
+int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, 
+                     SUMA_SurfaceViewer *csv, int which, int orig,
+                     int recompute_norm);
 char *SUMA_SO_AnatomicalStructurePrimary(SUMA_SurfaceObject *SO);
 char *SUMA_SO_GeometricType(SUMA_SurfaceObject *SO);
 char *SUMA_SO_AnatomicalStructureSecondary(SUMA_SurfaceObject *SO);
@@ -202,6 +231,19 @@ char *SUMA_CoordTypeName (SUMA_DO_CoordType tp);
 SUMA_DO_CoordType SUMA_CoordType (char *atr);
 int SUMA_NodeRange_DrawnROI (SUMA_DRAWN_ROI *ROI, int *min, int *max);
 int SUMA_NIDO_TexEnvMode(NI_element *nel, int def);
+const GLubyte *SUMA_StippleMask(int transp);
+const GLubyte *SUMA_StippleMask_rand(int transp);
+const GLubyte *SUMA_StippleMask_shift(int transp);
+void SUMA_StippleMaskResest(void);
+SUMA_GL_STEL *SUMA_FindStateTrackEl(char *state, DList *stu);
+void SUMA_FreeStateTrackEl(void *stel);
+SUMA_GL_STEL *SUMA_NewStateTrackEl(char *state, char *progenitor);
+int SUMA_SetTrackElVal(SUMA_GL_STEL *stel, void *val, char *act);
+char *SUMA_EnumToGLstate(int glpar);
+int SUMA_GLstateToEnum(char *state);
+int SUMA_GLStateTrack(char *action, DList **stu, char *progenitor,
+                      char *state, void *val);
+
 /*!
    NO Guarantee that certain nodes might 
    get counted twice !

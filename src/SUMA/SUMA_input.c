@@ -1870,6 +1870,14 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_O:
+         if (SUMA_CTRL_KEY(key)) {
+         
+         } else {   
+            sv->TransMode = ((sv->TransMode-4) % (STM_N_TransModes));
+            if (sv->TransMode <= STM_ViewerDefault) sv->TransMode = STM_16;
+           
+            SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         }
          break;
       case XK_o:
          if (SUMA_CTRL_KEY(key)) {
@@ -1886,6 +1894,11 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
             sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, 
                                                           sv->X->SetRot_prmpt);
+         } else {   
+            sv->TransMode = ((sv->TransMode+4) % (STM_N_TransModes));
+            if (sv->TransMode <= STM_ViewerDefault) sv->TransMode = STM_0;
+
+            SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          }
          break;
       default:
@@ -4381,6 +4394,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      }  
                   }
                }
+               if (DoubleClick) {
+                  if (Kev.state & ControlMask) SUMA_ResetPrying(sv);
+                  else {
+                     SUMA_HOME_QUAT(sv->StdView, 
+                                    sv->GVS[sv->StdView].currentQuat);
+                     SUMA_postRedisplay(w, NULL, NULL);
+                  }
+               }
             }
             break;
          case Button4:
@@ -4655,6 +4676,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             } /* if SUMAg_CF->ROImode */
             
          break;
+         case Button1:
+            SUMA_LH("In Button 1 release\n");
+            if (sv->GVS[sv->StdView].LHpry0 != sv->GVS[sv->StdView].LHpry) {
+               /* update the normals just now, this would not be needed if
+                 SUMA_ApplyPrying has set recompute_normals = 1*/
+               SUMA_RecomputeNormsPrying(sv);
+               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+            }
+            sv->GVS[sv->StdView].LHpry0 = sv->GVS[sv->StdView].LHpry;
+         break;
       } /* switch type of button Press */
       break;
       
@@ -4820,6 +4851,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   add_quats ( cQ, 
                               sv->GVS[sv->StdView].currentQuat, 
                               sv->GVS[sv->StdView].currentQuat);
+               } if (Mev.state & ControlMask) {
+                  SUMA_ApplyPrying(sv, sv->GVS[sv->StdView].spinDeltaX, 
+                                   "mouse", 0); /* update normals at release */
                } else {
                   trackball(  sv->GVS[sv->StdView].deltaQuat, 
                               (2*sv->GVS[sv->StdView].spinBeginX - wwid) /
@@ -5063,29 +5097,45 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
    /* find out which Surface viewer the widget belongs to */
    SUMA_ANY_WIDGET2SV((Widget)clientData, sv, isv);
    if (isv < 0) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
+      SUMA_S_Err("Failed in macro SUMA_ANY_WIDGET2SV.");
       SUMA_RETURNe;
    }
 
    
    ReDisp = 0;
-   if ( ((sv->GVS[sv->StdView].spinDeltaX*sv->GVS[sv->StdView].spinDeltaX) > sv->GVS[sv->StdView].MinIdleDelta ) || ((sv->GVS[sv->StdView].spinDeltaY*sv->GVS[sv->StdView].spinDeltaY) > sv->GVS[sv->StdView].MinIdleDelta ) ) 
-      { /* rotate if SUMA_momentum is enabled and spinDeltaX or spinDeltaY are larger than the minimum set */ 
-         /*fprintf(stdout,"SUMA_momentum:  spinDeltaX %f spinDeltaY %f\n",  sv->GVS[sv->StdView].spinDeltaX, sv->GVS[sv->StdView].spinDeltaY);*/
-         add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
+   if ( ((sv->GVS[sv->StdView].spinDeltaX*sv->GVS[sv->StdView].spinDeltaX) > 
+                                          sv->GVS[sv->StdView].MinIdleDelta ) ||
+        ((sv->GVS[sv->StdView].spinDeltaY*sv->GVS[sv->StdView].spinDeltaY) >
+                                          sv->GVS[sv->StdView].MinIdleDelta ) ) 
+      { /* rotate if SUMA_momentum is enabled and spinDeltaX or spinDeltaY 
+           are larger than the minimum set */ 
+         /*fprintf(stdout,"SUMA_momentum:  spinDeltaX %f spinDeltaY %f\n",  
+                  sv->GVS[sv->StdView].spinDeltaX, 
+                  sv->GVS[sv->StdView].spinDeltaY);*/
+         add_quats ( sv->GVS[sv->StdView].deltaQuat, 
+                     sv->GVS[sv->StdView].currentQuat, 
+                     sv->GVS[sv->StdView].currentQuat);
          ReDisp = 1;
       }
-   if ( ((sv->GVS[sv->StdView].translateDeltaX*sv->GVS[sv->StdView].translateDeltaX) > sv->GVS[sv->StdView].MinIdleDelta ) || ((sv->GVS[sv->StdView].translateDeltaY*sv->GVS[sv->StdView].translateDeltaY) > sv->GVS[sv->StdView].MinIdleDelta ) )
+   if ( ((sv->GVS[sv->StdView].translateDeltaX*
+          sv->GVS[sv->StdView].translateDeltaX) >
+                                          sv->GVS[sv->StdView].MinIdleDelta ) ||
+        ((sv->GVS[sv->StdView].translateDeltaY*
+          sv->GVS[sv->StdView].translateDeltaY) >
+                                          sv->GVS[sv->StdView].MinIdleDelta ) )
       { /* translate */
-         sv->GVS[sv->StdView].translateVec[0] += (GLfloat)sv->GVS[sv->StdView].translateDeltaX;
-         sv->GVS[sv->StdView].translateVec[1] += (GLfloat)sv->GVS[sv->StdView].translateDeltaY;
+         sv->GVS[sv->StdView].translateVec[0] += 
+                        (GLfloat)sv->GVS[sv->StdView].translateDeltaX;
+         sv->GVS[sv->StdView].translateVec[1] += 
+                        (GLfloat)sv->GVS[sv->StdView].translateDeltaY;
          ReDisp = 1;
       }
    if (ReDisp) {
       /*fprintf(stdout,"Momentum Redisplay\n");*/
       SUMA_postRedisplay(w, NULL, NULL);
    }
-    sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->X->App, 1, SUMA_momentum, (XtPointer) w); 
+    sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->X->App, 1, 
+                                          SUMA_momentum, (XtPointer) w); 
 
   SUMA_RETURNe;         
 }
@@ -5118,7 +5168,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    char sfield[100], sdestination[100], CommString[SUMA_MAX_COMMAND_LENGTH];
    SUMA_EngineData *ED = NULL;
    DList *list = NULL;
-   DListElmt *SetNodeElem = NULL;
+   DListElmt *SetNodeElem = NULL, *Location=NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean NodeIgnored = NOPE;
    SUMA_Boolean LocalHead = NOPE;
@@ -5142,6 +5192,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                      "%s: working %d/%d shown surfaces ...\n", 
                      FuncName, ii, N_SOlist);
       SO = (SUMA_SurfaceObject *)dov[SOlist[ii]].OP;
+      SUMA_VisX_Pointers4Display(SO, 1); /* using coordinates as displayed */
       if (SO->FaceSetDim != 3) {
          fprintf(SUMA_STDERR,
             "Error %s: "
@@ -5190,6 +5241,8 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
            MTIi = SUMA_Free_MT_intersect_triangle(MTIi); 
         }
       }
+      SUMA_VisX_Pointers4Display(SO, 0); /* put things back young man */
+
     } 
 
    if (LocalHead) 
@@ -5265,14 +5318,19 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       
       /* Now set the cross hair position at the intersection*/
       ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
-      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+      if (!(Location = SUMA_RegisterEngineListCommand (  list, ED, 
                                              SEF_fv3, (void*)MTI->P,
                                              SES_Suma, (void *)sv, NOPE,
-                                             SEI_Head, NULL)) {
+                                             SEI_Head, NULL))) {
          fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
-
+      /* and add the SO with this location, needed for VisX business*/
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                              SEF_vp, (void *)SO,
+                                              SES_Suma, (void *)sv, NOPE,
+                                              SEI_In, Location);
+                                              
       /* attach the cross hair to the selected surface */
       iv3[0] = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
       iv3[1] = MTI->inodemin;
@@ -5375,7 +5433,7 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    char sfield[100], sdestination[100], CommString[SUMA_MAX_COMMAND_LENGTH];
    SUMA_EngineData *ED = NULL;
    DList *list = NULL;
-   DListElmt *SetNodeElem = NULL;
+   DListElmt *SetNodeElem = NULL, *Location=NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SurfaceObject **SOv = NULL;
    SUMA_VolumeObject *VO=NULL;
@@ -5498,13 +5556,18 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       /* Now set the cross hair position at the intersection*/
       if (!list) list = SUMA_CreateList();
       ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
-      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+      if (!(Location=SUMA_RegisterEngineListCommand (  list, ED, 
                                              SEF_fv3, (void*)MTI->P,
                                              SES_Suma, (void *)sv, NOPE,
-                                             SEI_Head, NULL)) {
+                                             SEI_Head, NULL))) {
          fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
+      /* and add the SO with this location, needed for VisX business*/
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                        SEF_vp, (void *)SO,
+                                        SES_Suma, (void *)sv, NOPE,
+                                        SEI_In, Location);
 
       if (!SUMA_Engine (&list)) {
          fprintf( SUMA_STDERR, 
@@ -6674,7 +6737,8 @@ SUMA_ROI_DATUM *SUMA_LinkThisNodeToNodeInStroke (SUMA_SurfaceViewer *sv, int Non
    
    \sa SUMA_LinkThisNodeToNodeInStroke 
 */
-SUMA_ROI_DATUM *SUMA_LinkTailNodeToNodeStroke (SUMA_SurfaceViewer *sv, SUMA_DRAWN_ROI *DrawnROI)
+SUMA_ROI_DATUM *SUMA_LinkTailNodeToNodeStroke ( SUMA_SurfaceViewer *sv, 
+                                                SUMA_DRAWN_ROI *DrawnROI)
 {
  
    static char FuncName[]={"SUMA_LinkTailNodeToNodeStroke"};
@@ -7532,7 +7596,7 @@ void SUMA_JumpIndex (char *s, void *data)
 {
    static char FuncName[]={"SUMA_JumpIndex"};
    DList *list=NULL;
-   DListElmt *el=NULL;
+   DListElmt *el=NULL, *Location=NULL;
    SUMA_EngineData *ED = NULL;
    SUMA_SurfaceViewer *sv = NULL;
    SUMA_SurfaceObject *SO= NULL, *SOc=NULL;
@@ -7607,13 +7671,18 @@ void SUMA_JumpIndex (char *s, void *data)
 
    /* Now set the cross hair position at the selected node*/
    ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
-   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+   if (!(Location=SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_fv3, (void*)&(SO->NodeList[3*it]),
                                           SES_Suma, (void *)sv, NOPE,
-                                          SEI_Head, NULL)) {
+                                          SEI_Head, NULL))) {
       fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
       SUMA_RETURNe;                                          
    } 
+   /* and add the SO with this location, needed for VisX business*/
+   SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_vp, (void *)SO,
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, Location);
 
    /* attach the cross hair to the selected surface */
    iv3[0] = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
@@ -7696,6 +7765,7 @@ void SUMA_JumpXYZ (char *s, void *data)
 {
    static char FuncName[]={"SUMA_JumpXYZ"};
    DList *list=NULL;
+   DListElmt *el=NULL, *Location=NULL;
    SUMA_EngineData *ED = NULL;
    SUMA_SurfaceViewer *sv = NULL;
    float fv3[3];
@@ -7716,14 +7786,20 @@ void SUMA_JumpXYZ (char *s, void *data)
    /* Now set the cross hair position */
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
-   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+   if (!(Location = SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_fv3, (void*)fv3,
                                           SES_Suma, (void *)sv, NOPE,
-                                          SEI_Head, NULL)) {
+                                          SEI_Head, NULL))) {
       fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
       SUMA_RETURNe;                                      
    }
-   
+   /* and add the SO with this location (not possible here), needed for VisX 
+      business*/
+   SUMA_RegisterEngineListCommand (  list, ED, 
+                                     SEF_vp, NULL,
+                                     SES_Suma, (void *)sv, NOPE,
+                                     SEI_In, Location);
+
    /* check to see if AFNI needs to be notified */
    if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
       if (LocalHead) 

@@ -65,6 +65,73 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 22, Feb , 2013 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Fixed FOV problems for auto setting and fixing zoom level across states",
+   NULL
+ },
+
+ { 22, Feb , 2013 , ZSS , "suma" , MAJOR , TYPE_NEW_OPT,
+   "Prying hemispheres apart to see medial or lateral sides simultaneously",
+   "This is controlled via the ctrl+Button 1-Motion. See SUMA's ctrl+h output\n"
+   "for details. The prying behaviour is different for spheres and flat maps\n"
+   "Just try it and see. ctrl+double click to get back to initial view.\n"
+   "See also env: SUMA_LHunify"
+ },
+
+ { 22, Feb , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_ENV,
+   "SUMA_LHunify to automatically merge LR hemispheres in all views",
+   "This is done by discarding the _lh _rh to state names that are \n"
+   "created by @SUMA_Make_Spec_FS"
+ },
+
+ { 22, Feb , 2013 , ZSS , "suma" , MAJOR , TYPE_NEW_OPT,
+   "Automatically adjust position of LR surfaces so that they don't overlap",
+   "This is only done for anatomically incorrect surfaces, the others should\n"
+   "not overlap of course. This allows for simultaneous viewing of inflated\n"
+   "surfaces and flattened ones side by side."
+ },
+
+ { 15, Feb , 2013 , ZSS , "@SUMA_AlignToExperiment" , MINOR , TYPE_NEW_OPT,
+   "Allowed script to work with NIFTI input for both -surf_anat and -exp_anat",
+   NULL
+ },
+
+ { 15, Feb , 2013 , ZSS , "ParseName" , MINOR , TYPE_NEW_OPT,
+   "Added -FNameNoAfniExt to -out option",
+   NULL
+ },
+
+ { 14, Feb , 2013 , ZSS , "apsearch" , MINOR , TYPE_MODIFY,
+   "Improved parsing for options to avoid getting options from sample commands",
+   "Previously, if you used an example in the help that called\n"
+   "a different program and you used options on clean lines as part of that\n"
+   "example command, those options would get attributed to the program\n"
+   "whose help you're reading. Pfew. Not anymore."
+ },
+
+ { 14, Feb , 2013 , ZSS , "@SUMA_Make_Spec_FS" , MAJOR , TYPE_NEW_OPT,
+   "Option -nocor to improve data import from FreeSurfer",
+   "Option avoid COR images, produces NIFTI and GIFTI output that\n"
+   "aligns with the initial volume passed to FreeSurfer. This required\n"
+   "considerable changes to the script and will not be the default for\n"
+   "a while longer."
+ },
+
+ { 14, Feb , 2013 , ZSS , "@SUMA_Make_Spec_FS" , MICRO , TYPE_NEW_OPT,
+   "Option -set_space set space of output volumes",
+   NULL
+ },
+
+ { 14, Feb , 2013 , ZSS , "suma" , MAJOR , TYPE_NEW_OPT,
+   "Added stippling-based transparency to surface viewing.",
+   "Fancier blending-based transparency will have to wait."
+ },
+
+ { 14, Feb , 2013 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
+   "Added -TransMode to control surface transparency.",
+   NULL
+ },
+
  { 6, Feb , 2013 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
    "Merged Paul Taylor's recent code changes",
    "Also created afni_history_ptaylor.c\n"

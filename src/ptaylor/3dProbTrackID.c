@@ -17,6 +17,8 @@
 	Jan 2013: 
 	+ output ascii format 'dumps' to be turned into masks by 3dUndump,
 	or individ brain mask dumps, or both 
+   Feb 2013:
+   + allow for output of unthresholded values for ROI maps
 
 */
 
@@ -121,6 +123,12 @@ void usage_ProbTrackID(int detail)
 "                     using 3dUndump. Using AFNI gives a set of BRIK/HEAD\n"
 "                     (byte) files in a directory called PREFIX; using BOTH\n"
 "                     produces both formats of outputs.\n"
+"    -posteriori     :switch to have a bunch of individual files output, with\n"
+"                     the value in each being the number of tracks per voxel\n"
+"                     for that pair; works with '-dump_rois {AFNI | BOTH }',\n"
+"                     where you get track-path maps instead of masks; makes\n"
+"                     threshold for number of tracks between ROIs to keep to\n"
+"                     be one automatically, regardless of setting in algopt.\n"
 "    -lab_orig_rois  :if using `-dump_rois', then apply numerical labels of\n"
 "                     original ROIs input to the output names.  This would\n"
 "                     only matter if input ROI labels aren't consecutive and\n"
@@ -189,6 +197,7 @@ int main(int argc, char *argv[]) {
 	int ALLorONE=0; // switch for whether NOTMASK==N_nets
 	int NM=0; // switched off, unless mask puts one on
 	int KEEP_GOING=1;
+   int POST=0; // switch about having no min threshold,and dumping ROIs
 
 	THD_3dim_dataset *MASK=NULL;
 	char in_mask[300];
@@ -457,7 +466,6 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 			}
-			//sprintf(in_V1,"%s_V1+orig", argv[iarg]); 
 			insetV1 = THD_open_dataset(in_V1);
 			if( insetV1 == NULL ) 
 				ERROR_exit("Can't open dataset '%s':V1",in_V1);
@@ -472,7 +480,6 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 			}
-			//sprintf(in_V2,"%s_V2+orig", argv[iarg]); 
 			insetV2 = THD_open_dataset(in_V2);
 			if( insetV2 == NULL ) 
 				ERROR_exit("Can't open dataset '%s':V2",in_V2);
@@ -486,7 +493,6 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 			}
-			//sprintf(in_V3,"%s_V3+orig", argv[iarg]); 
 			insetV3 = THD_open_dataset(in_V3);
 			if( insetV3 == NULL ) 
 				ERROR_exit("Can't open dataset '%s':V3",in_V3);
@@ -500,7 +506,6 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 			}
-			//sprintf(in_MD,"%s_MD+orig", argv[iarg]); 
 			insetMD = THD_open_dataset(in_MD);
 			if( insetMD == NULL ) 
 				ERROR_exit("Can't open dataset '%s':MD",in_MD);
@@ -514,7 +519,6 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 			}
-			//sprintf(in_L1,"%s_L1+orig", argv[iarg]); 
 			insetL1 = THD_open_dataset(in_L1);
 			if( insetL1 == NULL ) 
 				ERROR_exit("Can't open dataset '%s':L1",in_L1);
@@ -603,6 +607,11 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
+      if( strcmp(argv[iarg],"-posteriori") == 0) {
+        POST=1;
+        iarg++ ; continue ;
+		} 
+
 		if( strcmp(argv[iarg],"-dump_rois") == 0) {
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-dump_rois'");
@@ -673,10 +682,27 @@ int main(int argc, char *argv[]) {
   
 	// will take stats on voxels with number of tracts >=NmNsThr
 	NmNsThr =  (int) ceil(NmNsFr*Nseed*Nmonte); 
-	if(NmNsThr<1)
+   // lower bound is 1, and also force to be 1 if posteriori is chosen
+	if( (NmNsThr<1) || POST ) 
 		NmNsThr=1;
 	INFO_message("Effective Monte Iters:%d. Voxel threshold:%d.",
 					 Nseed*Nmonte,NmNsThr);
+   if(POST){
+     if(DUMP_TYPE==1) {
+       INFO_message("You asked for '-dump_rois DUMP', but also chose\n"
+                    "\t'-posteriori', so you will get binary mask DUMP,\n"
+                    "\tas well as AFNI files of numbers of tracks/voxel.");
+       DUMP_TYPE=3;
+     }
+     if(DUMP_TYPE== -1){
+       INFO_message("You did NOT ask for individual dump of ROIs by using\n"
+                    "\t'-dump_rois {option}' but then you DID choose\n"
+                    "\t'-posteriori', so you will get a set of AFNI files\n"
+                    "having numbers of tracks/voxel.");
+       DUMP_TYPE=2;
+     }
+   }
+   
 
 
 	// have all be RAI for processing here
@@ -1384,7 +1410,7 @@ int main(int argc, char *argv[]) {
 											NETROI,mskd,INDEX2,Dim,
 											dsetn,argc,argv,
 											Param_grid,DUMP_TYPE,
-											DUMP_ORIG_LABS,ROI_LABELS);
+											DUMP_ORIG_LABS,ROI_LABELS,POST);
 		
 	
 
@@ -1425,7 +1451,6 @@ int main(int argc, char *argv[]) {
 	DSET_delete(insetV1);
 	DSET_delete(insetV2);
 	DSET_delete(insetV3);
-	//DSET_delete(insetUC);
 	DSET_delete(mset1);
   	DSET_delete(insetEXTRA);
   	DSET_delete(insetNOTMASK);
@@ -1436,11 +1461,13 @@ int main(int argc, char *argv[]) {
 	free(insetV3);
 	free(insetL1);
 	free(insetFA);
-	//free(insetUC);
   	free(insetMD);
 	free(mset1);
   	free(insetEXTRA);
   	free(insetNOTMASK);
+
+   DSET_delete(MASK);
+   free(MASK);
 
 	for( i=0 ; i<2*ArrMax ; i++) 
 		free(Ttot[i]);

@@ -509,7 +509,7 @@ int main (int argc,char *argv[])
    if (sv_name) {
       char *head = NULL, view[10];
       head = SUMA_AfniPrefix(sv_name, view, NULL, &volexists);
-      if (!SUMA_AfniExistsView(volexists, view)) {
+      if (!SUMA_AfniExistsView(volexists, view) && !SUMA_filexists(sv_name)) {
          fprintf (SUMA_STDERR,
                   "Error %s: volume %s not found.\n", FuncName, head);
          exit(1);

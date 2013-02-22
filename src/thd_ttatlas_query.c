@@ -4131,13 +4131,15 @@ AFNI_TEXT_SORT *free_text_sort(AFNI_TEXT_SORT *ats)
    return(NULL);
 }
 
+
 char **approx_str_sort_text(char *text, int *N_ws, char *str, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
-                            APPROX_STR_DIFF **Dout)
+                            APPROX_STR_DIFF **Dout, 
+                            char join_breaks)
 {
    char **ws=NULL;
-   int N_lines=0, N_alloc=0; 
+   int N_lines=0, N_alloc=0, line_continue=0; 
    char *brk=NULL, lsep[] = "\n\r", *line=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
    
@@ -4155,16 +4157,29 @@ char **approx_str_sort_text(char *text, int *N_ws, char *str,
       RETURN(ws);
    }
    if (!Dw) Dw = init_str_diff_weights(Dw);
-   /* turn text into multi lines */
+   /* turn text into multi lines. Combine at '\' ? */
    N_lines = 0;
+   line_continue=0;
    for (line=strtok_r(text,lsep, &brk); line; line = strtok_r(NULL, lsep, &brk))
    {
-      ++N_lines;
-      if (N_lines > N_alloc) {
-         N_alloc += 50;
-         ws = (char **)realloc(ws, N_alloc*sizeof(char *));
+      if (*(line+strlen(line)-1) == join_breaks) {
+         line_continue = 1;
+      } else {
+         line_continue = 0;
       }
-      ws[N_lines-1] = strdup(line);
+      
+      if (!line_continue || !N_lines) {
+         ++N_lines;
+         if (N_lines > N_alloc) {
+            N_alloc += 50;
+            ws = (char **)realloc(ws, N_alloc*sizeof(char *));
+         }
+         ws[N_lines-1] = strdup(line);
+      } else {
+         ws[N_lines-1] = (char *)realloc(ws[N_lines-1], 
+                            sizeof(char)*(strlen(ws[N_lines-1])+strlen(line)+1));
+         strcat(ws[N_lines-1], line);
+      }
       deblank_name(ws[N_lines-1]);
       /* fprintf(stderr,"ZSS: %d -->%s<--\n", N_lines, ws[N_lines-1]); */
    }
@@ -4188,7 +4203,7 @@ THD_string_array *approx_str_sort_Ntfile(
                   char **fnames, int N_names, char *str, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
-                            APPROX_STR_DIFF **Doutp, int verb)
+                            APPROX_STR_DIFF **Doutp, int verb, char join_breaks)
 {
    char **ws=NULL, *text=NULL, *fname=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
@@ -4214,7 +4229,7 @@ THD_string_array *approx_str_sort_Ntfile(
    for (inm=0; inm < N_names; ++inm) {
       fname = fnames[inm];
       if (!(ws = approx_str_sort_tfile(fname, &N_ws, str, ci, 
-                                NULL, Dw, &Dout, verb))) {
+                                NULL, Dw, &Dout, verb, join_breaks))) {
          if (verb) WARNING_message("Failed to process %s\n", fname);
          continue;
       }
@@ -4254,7 +4269,7 @@ THD_string_array *approx_str_sort_Ntfile(
 char **approx_str_sort_tfile(char *fname, int *N_ws, char *str, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
-                            APPROX_STR_DIFF **Dout, int verb)
+                            APPROX_STR_DIFF **Dout, int verb, char join_breaks)
 {
    char **ws=NULL, *text=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
@@ -4279,7 +4294,8 @@ char **approx_str_sort_tfile(char *fname, int *N_ws, char *str,
    }
    
    if (!Dw) Dw = init_str_diff_weights(Dw);
-   ws = approx_str_sort_text(text, N_ws, str, ci, sorted_score, Dw, Dout);
+   ws = approx_str_sort_text(text, N_ws, str, ci, 
+                             sorted_score, Dw, Dout, join_breaks);
    if (Dout && *Dout) {   
       ddout = *Dout;
       for (ii=0; ii<*N_ws; ++ii) {
@@ -4297,7 +4313,7 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout,
-                            int uopts, int verb)
+                            int uopts, int verb, char join_breaks)
 {
    int i, inn, c, *isrt=NULL;
    char **ws=NULL, *dpun=NULL, *blnk, *wild;
@@ -4311,7 +4327,7 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
    Dwi->w[MWI]=1000; /* give a lot of weight to the order in the sentence */
    if (!(ws = approx_str_sort_phelp(prog, N_ws, str, 
                       ci, sorted_score,
-                      Dwi, Dout, verb))) {
+                      Dwi, Dout, verb, join_breaks))) {
       if (verb) {
          if (THD_filesize(prog)) {
             ERROR_message("Failed to get phelp for '%s', word '%s'", prog,str);
@@ -4410,7 +4426,7 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
 char **approx_str_sort_phelp(char *prog, int *N_ws, char *str, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
-                            APPROX_STR_DIFF **Dout, int verb)
+                            APPROX_STR_DIFF **Dout, int verb, char join_breaks)
 {
    char **ws=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
@@ -4434,7 +4450,8 @@ char **approx_str_sort_phelp(char *prog, int *N_ws, char *str,
          return 0;
       }
    }
-   ws = approx_str_sort_tfile(tout, N_ws, str, ci, sorted_score, Dw, Dout, verb);
+   ws = approx_str_sort_tfile(tout, N_ws, str, ci, 
+                              sorted_score, Dw, Dout, verb,  join_breaks);
                                  
    snprintf(cmd,500*sizeof(char),"\\rm -f %s", tout);
    system(cmd);
@@ -4508,7 +4525,7 @@ void suggest_best_prog_option(char *prog, char *str)
    }
    ws = approx_str_sort_phelp(prog, &N_ws, str, 
                    1, &ws_score,
-                   NULL, &D, 0);
+                   NULL, &D, 0, '\\');
    isug = 0; isuglog = 6;
    for (i=0; i<N_ws && (isug < 3 || isuglog < 6); ++i) {
       skip=0;
@@ -4658,7 +4675,7 @@ int prog_complete_command (char *prog, char *ofileu, int shtp) {
    
    if (!prog || !(ws = approx_str_sort_all_popts(prog, &N_ws,  
                    1, &ws_score,
-                   NULL, NULL, 1, 0))) {
+                   NULL, NULL, 1, 0, '\\'))) {
       return 0;
    }
 
@@ -4985,7 +5002,7 @@ void print_prog_options(char *prog)
 
    if (!(ws = approx_str_sort_all_popts(prog, &N_ws,  
                    1, &ws_score,
-                   NULL, NULL, 0, 1))) {
+                   NULL, NULL, 0, 1, '\\'))) {
       return;
    }
    for (i=0; i<N_ws; ++i) {
@@ -5082,7 +5099,8 @@ void test_approx_str_match(void)
    
    /* Sort multi-line text string */
    sprintf(key,"dib");
-   slot = approx_str_sort_text(text, &n_lot, key, 1, &slot_score, NULL, &Dv);
+   slot = approx_str_sort_text(text, &n_lot, key, 1, 
+                               &slot_score, NULL, &Dv, '\0');
    for (i=0; i<n_lot; ++i) {
       fprintf(stdout,"%02f- %s\n", slot_score[i], slot[i]);
       free(slot[i]);

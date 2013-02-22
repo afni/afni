@@ -44,7 +44,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
 								int ****NETROI,int ***mskd,int ***INDEX2,int *Dim,
 								THD_3dim_dataset *dsetn,int argc, char *argv[],
 								float ****Param_grid, int DUMP_TYPE,
-								int DUMP_ORIG_LABS, int **ROI_LABELS);
+								int DUMP_ORIG_LABS, int **ROI_LABELS, int POST_IT);
 
 
 #endif /* _DOTRACKIT_HEADER_ */

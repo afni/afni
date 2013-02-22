@@ -28,6 +28,9 @@ printf (
    "        uPrefix : USER_PATH/PREFIX\n"
    "        pPrefix : RELATIVE_PATH/PREFIX\n"
    "        PPrefix : ABSOLUTE_PATH/PREFIX\n"
+   "        OnDisk  : 1 if file is on disk, 0 otherwise\n"
+   "        FNameNoAfniExt : File name without any AFNI extensions\n"
+   "                         e.g.: ParseName -out FNameNoAfniExt test.nii.gz\n"
    "        trim    : Trim the name to 20 characters.\n"
    "                  First the path goes, then extension, then view,\n"
    "                  then characters from the left. '~' indicates clipping.\n"
@@ -203,6 +206,9 @@ int main (int argc,char *argv[])
       } else if (strcmp(out,"OnDisk") == 0) {
          fprintf(SUMA_STDOUT, "%d\n", 
                      Test->OnDisk);
+      } else if (strcmp(out,"FNameNoAfniExt") == 0) {
+         fprintf(SUMA_STDOUT, "%s\n", 
+                     without_afni_filename_extension(Test->FileName));
       } else if (strncmp(out,"trim",4) == 0) {
          int mxlen=20;
          if (strlen(out) == 4) mxlen = 20;

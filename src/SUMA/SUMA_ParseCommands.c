@@ -216,6 +216,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"UpdateLog")) SUMA_RETURN(SE_UpdateLog);
    if (!strcmp(Scom,"Log")) SUMA_RETURN(SE_Log);
    if (!strcmp(Scom,"SetRenderMode")) SUMA_RETURN(SE_SetRenderMode);
+   if (!strcmp(Scom,"SetTransMode")) SUMA_RETURN(SE_SetTransMode);
    if (!strcmp(Scom,"OpenDrawROI")) SUMA_RETURN(SE_OpenDrawROI);
    if (!strcmp(Scom,"RedisplayNow_AllVisible")) 
       SUMA_RETURN(SE_RedisplayNow_AllVisible);
@@ -442,6 +443,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("Log");
       case SE_SetRenderMode:
          SUMA_RETURN("SetRenderMode");
+      case SE_SetTransMode:
+         SUMA_RETURN("SetTransMode");
       case SE_OpenDrawROI:
          SUMA_RETURN("OpenDrawROI"); 
       case SE_RedisplayNow_AllVisible:
@@ -1213,10 +1216,11 @@ fields except FldCode, FldValp, SourcePointer and InsertAt should be SEI_In and 
 returned in the previous call for  SUMA_RegisterEngineListCommand.
 
 */
-DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * EngineData,  
-                                             SUMA_ENGINE_FIELD_CODE Fld, void *FldValp, 
-                                             SUMA_ENGINE_SOURCE Src, void *Srcp, SUMA_Boolean PassByPointer, 
-                                             SUMA_ENGINE_INSERT_LOCATION InsertAt, DListElmt *Element)
+DListElmt * SUMA_RegisterEngineListCommand (
+               DList *list, SUMA_EngineData * EngineData,  
+               SUMA_ENGINE_FIELD_CODE Fld, void *FldValp, 
+               SUMA_ENGINE_SOURCE Src, void *Srcp, SUMA_Boolean PassByPointer, 
+               SUMA_ENGINE_INSERT_LOCATION InsertAt, DListElmt *Element)
 { 
    SUMA_ENGINE_CODE Dest=SES_Empty;
    static char FuncName[]={"SUMA_RegisterEngineListCommand"};
@@ -1231,13 +1235,14 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
    
    if (PassByPointer) {
       if (Fld != SEF_im && Fld != SEF_fm && Fld != SEF_ivec && Fld != SEF_fvec) {
-         SUMA_SL_Err("Cannot use PassByPointer except with SEF_im || SEF_fm || SEF_ivec || SEF_fvec");
+         SUMA_SL_Err("Cannot use PassByPointer except with SEF_im || "
+                     "SEF_fm || SEF_ivec || SEF_fvec");
          SUMA_RETURN (NULL);
       }
    } 
    
    if (!list) {
-      fprintf (SUMA_STDERR, "Error %s: list has not been initialized.\n", FuncName);
+      SUMA_S_Err("list has not been initialized.");
       SUMA_RETURN (NULL);
    }
    
@@ -1251,19 +1256,21 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
       }
       Old_ED = (SUMA_EngineData *)Element->data;
       if (Old_ED != EngineData) {
-         fprintf (SUMA_STDERR, "Error %s: EngineData is different from initializing call for Element.\n", FuncName);
+         SUMA_S_Err(
+            "EngineData is different from initializing call for Element.");
          SUMA_RETURN (NULL);
       }
       if (Old_ED->Src != Src) {
-         fprintf (SUMA_STDERR, "Error %s: Src is different from initializing call for Element.\n", FuncName);
+         SUMA_S_Err("Src is different from initializing call for Element.");
          SUMA_RETURN (NULL);
       }
       if (Old_ED->Srcp != Srcp) {
-         fprintf (SUMA_STDERR, "Error %s: Srcp is different from initializing call for Element.\n", FuncName);
+         SUMA_S_Err("Srcp is different from initializing call for Element.");
          SUMA_RETURN (NULL);
       }
       if (Old_ED->CommandCode != EngineData->CommandCode) {
-         fprintf (SUMA_STDERR, "Error %s: CommandCode is different in EngineData from the one initializing call for Element.\n", FuncName);
+         SUMA_S_Err("CommandCode is different in EngineData from the one"
+                    " initializing call for Element.");
          SUMA_RETURN (NULL);
       }
       

@@ -63,6 +63,7 @@ PARSE_COMMAND:
    set no_center = 1;   
    set prexform = ""
    set OutResOpt = ""
+   set rmlist = ()
    while ($cnt <= $Narg)
       set donext = 1;
       if ($donext && "$argv[$cnt]" == '-h' || "$argv[$cnt]" == '-help') then
@@ -409,6 +410,15 @@ PARSE_COMMAND:
    else
          set ExpAnatPrefix = `@GetAfniPrefix $EA_in`
          set ExpAnatView = `@GetAfniView $EA_in`
+         set SA_in_noaext = `ParseName -out FNameNoAfniExt $SA_in`
+         set SA_in_orig = ''
+         set SA_in_aview = `3dinfo -av_space $SA_in`
+         if ( "`3dinfo -is_nifti $SA_in`" == 1 ) then
+            set SA_in_orig = $SA_in
+            3dcopy $SA_in $SA_in_noaext$SA_in_aview
+            set SA_in = $SA_in_noaext$SA_in_aview
+            set rmlist = ($rmlist $SA_in_noaext$SA_in_aview.????*) 
+         endif
          set SurfAnatPrefix = `@GetAfniPrefix $SA_in` 
          set SurfAnatView = `@GetAfniView $SA_in` 
          set SurfAnatPath = $SA_in:h
@@ -633,7 +643,9 @@ RESAMPLE:
       echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $nxt"
       echo ""
       3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $nxt
-      if (!(-f $ExpAnat_Resamp.BRIK || -f $ExpAnat_Resamp.BRIK.gz || -f $ExpAnat_Resamp.BRIK.Z || -f $ExpAnat_Resamp.BRIK.bz2)) then 
+      if (  ! -f $ExpAnat_Resamp.HEAD && \
+            !(-f $ExpAnat_Resamp.BRIK || -f $ExpAnat_Resamp.BRIK.gz || \
+              -f $ExpAnat_Resamp.BRIK.Z || -f $ExpAnat_Resamp.BRIK.bz2)) then 
          goto NO_RESAMP
       endif
       rm -rf ${tmpref}*.???? >& /dev/null
@@ -1087,7 +1099,7 @@ echo "   [-align_centers]: Adds an additional transformation to align the volume
 echo "                     centers. This is a good option to use when volumes"
 echo "                     are severely out of alignment."
 echo "   [-init_xform XFORM0.1D]: Apply affine transform in XFORM0.1D to"
-echo "                       -surf_vol before beginning registration."
+echo "                       Surface_Anatomy before beginning registration."
 echo "                       After convergence, combine XFORM.1D and the "
 echo "                       the registration matrix to create the output volume"
 echo "                       To verify that XFORM0.1D does what you think"
@@ -1217,5 +1229,8 @@ END:
    cd $CurDir
    if ($cleanup) then
       \rm -f pre.${tmps}.* >& /dev/null
+      foreach ff ($rmlist)
+         \rm -f $ff >& /dev/null
+      end
    endif
    exit $stat
