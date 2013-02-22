@@ -1413,6 +1413,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       SUMA_S_Errv("Very weird to be here with Open flag = %d\n", csv->Open);
       SUMA_RETURNe;
    }
+   
+   /* reset stippling masks */
+   SUMA_StippleMaskResest(); 
 
    /* now you need to set the clear_color since 
       it can be changed per viewer Thu Dec 12 2002 */
@@ -2612,6 +2615,83 @@ SUMA_MenuItem RenderMode_Menu[] = {
         
    {NULL},
 };
+   
+SUMA_MenuItem TransMode_Menu[] = {
+   {  "Vwr", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_TransViewerDefault, NULL},
+      
+   {  "0", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans0, NULL},
+   
+   {  "1", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans1, NULL},
+    
+   {  "2", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans2, NULL},
+    
+   {  "3", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans3, NULL},
+    
+   {  "4", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans4, NULL},
+    
+   {  "5", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans5, NULL},
+    
+   {  "6", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans6, NULL},
+    
+   {  "7", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans7, NULL},
+    
+   {  "8", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans8, NULL},
+    
+   {  "9", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans9, NULL},
+    
+   {  "10", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans10, NULL},
+    
+   {  "11", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans11, NULL},
+    
+   {  "12", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans12, NULL},
+    
+   {  "13", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans13, NULL},
+    
+   {  "14", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans14, NULL},
+    
+   {  "15", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans15, NULL},
+    
+   {  "16", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_Trans16, NULL},
+    
+   {NULL},
+};
+
 
 SUMA_MenuItem DsetViewMode_Menu[] = {
    {  "Col", &xmPushButtonWidgetClass, 
@@ -4016,13 +4096,23 @@ SUMA_Boolean SUMA_World2ScreenCoords (
 }
 
 /* Take normalized x,y screen corrdinates and turn them to world coordinates 
-Based on code from SUMA_GetSelectionLine 
-ASSUMES GL_MODELVIEW_MATRIX and GL_PROJECTION_MATRIX are current! */
+Based on code from SUMA_GetSelectionLine.
+If you need to set GL_MODELVIEW_MATRIX set ApplyXform to 1 and make sure 
+sv is not NULL (otherwise sv is not needed.) See SUMA_World2ScreenCoords()
+for parallels.
+
+if ApplyXform = 0 function ASSUMES GL_MODELVIEW_MATRIX is current.
+
+GL_PROJECTION_MATRIX  is assumed set all the time.
+*/
+
 SUMA_Boolean SUMA_NormScreenToWorld(SUMA_SurfaceViewer *sv, 
                                     double xn, double yn, 
-                                    GLdouble *pfront, GLdouble *pback)
+                                    GLdouble *pfront, GLdouble *pback,
+                                    int ApplyXform)
 {
    static char FuncName[]={"SUMA_NormScreenToWorld"};
+   GLfloat rotationMatrix[4][4];
    GLdouble ox, oy;
    GLint viewport[4];
    GLdouble mvmatrix[16], projmatrix[16];
@@ -4030,7 +4120,45 @@ SUMA_Boolean SUMA_NormScreenToWorld(SUMA_SurfaceViewer *sv,
    SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
-      
+  
+   if (ApplyXform) {
+      if (!sv) SUMA_S_Err("Need sv with ApplyXform");
+      SUMA_LH("Forcing setting of GL_MODELVIEW_MATRIX and GL_PROJECTION_MATRIX");
+      /* go through the ModelView transforms as you would 
+         in display since the modelview matrix is popped
+         after each display call */
+      SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
+      glMatrixMode(GL_MODELVIEW);
+         glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+         if (LocalHead) {
+            int itmp = 0;
+            fprintf (SUMA_STDERR, "%s: Initial Modelview:\nMV=[ ", FuncName);
+            while (itmp < 16) { 
+               fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
+            fprintf (SUMA_STDERR, "]\n");
+         }
+      glPushMatrix();
+      glTranslatef ( sv->GVS[sv->StdView].translateVec[0], 
+                     sv->GVS[sv->StdView].translateVec[1], 0.0);
+      glTranslatef ( sv->GVS[sv->StdView].RotaCenter[0], 
+                     sv->GVS[sv->StdView].RotaCenter[1], 
+                     sv->GVS[sv->StdView].RotaCenter[2]);
+      glMultMatrixf(&rotationMatrix[0][0]);
+      glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+         if (LocalHead) {
+            int itmp = 0;
+            fprintf (SUMA_STDERR, 
+                     "%s: Modelview After Translation & Rotation:\nMVtr=[ ", 
+                     FuncName);
+            while (itmp < 16) { 
+               fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
+            fprintf (SUMA_STDERR, "]\n");
+         }
+      glTranslatef ( -sv->GVS[sv->StdView].RotaCenter[0], 
+                     -sv->GVS[sv->StdView].RotaCenter[1], 
+                     -sv->GVS[sv->StdView].RotaCenter[2]);
+   }
+   
    glGetIntegerv(GL_VIEWPORT, viewport);
    glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
    glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
@@ -4062,7 +4190,8 @@ SUMA_Boolean SUMA_NormScreenToWorld(SUMA_SurfaceViewer *sv,
             pback,  pback  ? pback[0] : 0 , 
                     pback  ? pback[1] : 0 , 
                     pback  ? pback[2] : 0 );
-      
+   
+   if (ApplyXform)  glPopMatrix();
    SUMA_RETURN(YUP);
 }
 /*!
@@ -5599,12 +5728,23 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       SO->SurfCont->RenderModeMenu = 
             SUMA_Alloc_Menu_Widget(SW_N_SurfCont_Render);
       SUMA_BuildMenu (rc, XmMENU_OPTION, 
-                                 "RenderMode", '\0', YUP, RenderMode_Menu, 
+                                 "Drw", '\0', YUP, RenderMode_Menu, 
                                  (void *)(SO->SurfCont->curSOp), 
-                                 "Choose the rendering mode for this surface.",
+                        "Choose the rendering (drawing) mode for this surface.",
                                  SUMA_SurfContHelp_RenderMode, 
                                  SO->SurfCont->RenderModeMenu );
       XtManageChild (SO->SurfCont->RenderModeMenu->mw[SW_SurfCont_Render]);
+
+      SUMA_BuildMenuReset(0);
+      SO->SurfCont->TransModeMenu = 
+            SUMA_Alloc_Menu_Widget(SW_N_SurfCont_Trans);
+      SUMA_BuildMenu (rc, XmMENU_OPTION, 
+                                 "Trn", '\0', YUP, TransMode_Menu, 
+                                 (void *)(SO->SurfCont->curSOp), 
+                        "Choose the transparency for this surface.",
+                                 SUMA_SurfContHelp_TransMode, 
+                                 SO->SurfCont->TransModeMenu );
+      XtManageChild (SO->SurfCont->TransModeMenu->mw[SW_SurfCont_Trans]);
       
       pb = XtVaCreateWidget ("Dsets", 
          xmPushButtonWidgetClass, rc, 
@@ -6220,6 +6360,90 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
          ++i;
       }
       
+      SUMA_LH("Setting TransMode");
+      /* set the transparency for that surface */
+      imenu = -1;
+      switch (SO->TransMode) {
+         case STM_ViewerDefault:
+            imenu = SW_SurfCont_TransViewerDefault;
+            break;
+         case STM_0:
+            imenu = SW_SurfCont_Trans0;
+            break;
+         case STM_1:
+            imenu = SW_SurfCont_Trans1;
+            break;
+         case STM_2:
+            imenu = SW_SurfCont_Trans2;
+            break;
+         case STM_3:
+            imenu = SW_SurfCont_Trans3;
+            break;
+         case STM_4:
+            imenu = SW_SurfCont_Trans4;
+            break;
+         case STM_5:
+            imenu = SW_SurfCont_Trans5;
+            break;
+         case STM_6:
+            imenu = SW_SurfCont_Trans6;
+            break;
+         case STM_7:
+            imenu = SW_SurfCont_Trans7;
+            break;
+         case STM_8:
+            imenu = SW_SurfCont_Trans8;
+            break;
+         case STM_9:
+            imenu = SW_SurfCont_Trans9;
+            break;
+         case STM_10:
+            imenu = SW_SurfCont_Trans10;
+            break;
+         case STM_11:
+            imenu = SW_SurfCont_Trans11;
+            break;
+         case STM_12:
+            imenu = SW_SurfCont_Trans12;
+            break;
+         case STM_13:
+            imenu = SW_SurfCont_Trans13;
+            break;
+         case STM_14:
+            imenu = SW_SurfCont_Trans14;
+            break;
+         case STM_15:
+            imenu = SW_SurfCont_Trans15;
+            break;
+         case STM_16:
+            imenu = SW_SurfCont_Trans16;
+            break;
+         default: 
+            fprintf (SUMA_STDERR, "Error %s: Unexpected something.\n", FuncName);
+            break;
+      }
+      /* look for name of widget with imenu for call data. 
+         This is overkill but its fun */
+      i = 0;
+      Name = NULL;
+      while (&(TransMode_Menu[i])) {
+         if ((INT_CAST)TransMode_Menu[i].callback_data == imenu) {
+            Name = TransMode_Menu[i].label;
+            if (LocalHead) fprintf (SUMA_STDERR,"Looking for %s\n", Name);
+            /* now we know what the name of the button needed is, look for it*/
+            w = SO->SurfCont->TransModeMenu->mw;
+            for (i=0; i< SW_N_SurfCont_Trans; ++i) {
+               if (LocalHead) fprintf (SUMA_STDERR,"I have %s\n", XtName(w[i]));
+               if (strcmp(Name, XtName(w[i])) == 0) {
+                  SUMA_LH("Match!");
+                  XtVaSetValues(  w[0], XmNmenuHistory , w[i] , NULL ) ;  
+                  goto RAISE;
+              }
+            }
+         }
+         ++i;
+      }
+
       RAISE:
       if (SUMAg_CF->X->UseSameSurfCont) { /* works, but grabs focus. 
                   Can be annoying when going across hemis*/
@@ -6650,7 +6874,7 @@ void SUMA_CreateDrawROIWindow(void)
    /*put a toggle button for the DrawROI more */
    /* Turn on the ROI drawing mode, since that is what 
    the users want to do the first time they open this window */
-   SUMAg_CF->ROI_mode = YUP;
+   SUMAg_CF->ROI_mode = YUP; SUMA_ResetPrying(NULL);
    /* make a call to change the cursor */
    SUMA_UpdateAllViewerCursor(); 
    SUMAg_CF->X->DrawROI->DrawROImode_tb = XtVaCreateManagedWidget("Draw", 
@@ -8784,7 +9008,7 @@ void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data)
    SUMA_ENTRY;
    
    SUMAg_CF->ROI_mode = !SUMAg_CF->ROI_mode;
-   
+   if (SUMAg_CF->ROI_mode) SUMA_ResetPrying(NULL);
    /* take care of sensitivity of Pen button */
    if (!SUMAg_CF->ROI_mode) XtSetSensitive (SUMAg_CF->X->DrawROI->Penmode_tb, 0);
    else XtSetSensitive (SUMAg_CF->X->DrawROI->Penmode_tb, 1);
@@ -10831,6 +11055,136 @@ int SUMA_RenderMode2RenderModeMenuItem(int Mode)
        (Mode) <=  SW_SurfCont_Render) {
       SUMA_S_Err("Bad mode, returning FILL");    
       SUMA_RETURN(SW_SurfCont_RenderFill);
+   }
+   
+   SUMA_RETURN(Mode);
+}      
+
+/*!
+   \brief sets the transparency mode of a surface 
+   
+   - expects a SUMA_MenuCallBackData * in  client_data
+   with SO as client_data->ContID and Menubutton in client_data->callback_data
+*/
+void SUMA_cb_SetTransMode(Widget widget, XtPointer client_data, 
+                           XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SetTransMode"};
+   DList *list = NULL;
+   DListElmt *Elmnt = NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   void **curSOp;
+   int imenu = 0;
+   
+   SUMA_ENTRY;
+
+   /* get the surface object that the setting belongs to */
+   datap = (SUMA_MenuCallBackData *)client_data;
+   curSOp = (void **)datap->ContID;
+   SO = (SUMA_SurfaceObject *)(*curSOp);
+   imenu = (INT_CAST)datap->callback_data; 
+   
+   switch (imenu) {
+      case SW_SurfCont_TransViewerDefault:
+         imenu = STM_ViewerDefault;
+         break;
+      case SW_SurfCont_Trans0:
+         imenu = STM_0;
+         break;
+      case SW_SurfCont_Trans1:
+         imenu = STM_1;
+         break;
+      case SW_SurfCont_Trans2:
+         imenu = STM_2;
+         break;
+      case SW_SurfCont_Trans3:
+         imenu = STM_3;
+         break;
+      case SW_SurfCont_Trans4:
+         imenu = STM_4;
+         break;
+      case SW_SurfCont_Trans5:
+         imenu = STM_5;
+         break;
+      case SW_SurfCont_Trans6:
+         imenu = STM_6;
+         break;
+      case SW_SurfCont_Trans7:
+         imenu = STM_7;
+         break;
+      case SW_SurfCont_Trans8:
+         imenu = STM_8;
+         break;
+      case SW_SurfCont_Trans9:
+         imenu = STM_9;
+         break;
+      case SW_SurfCont_Trans10:
+         imenu = STM_10;
+         break;
+      case SW_SurfCont_Trans11:
+         imenu = STM_11;
+         break;
+      case SW_SurfCont_Trans12:
+         imenu = STM_12;
+         break;
+      case SW_SurfCont_Trans13:
+         imenu = STM_13;
+         break;
+      case SW_SurfCont_Trans14:
+         imenu = STM_14;
+         break;
+      case SW_SurfCont_Trans15:
+         imenu = STM_15;
+         break;
+      case SW_SurfCont_Trans16:
+         imenu = STM_16;
+         break;
+      default: 
+         fprintf (SUMA_STDERR, "Error %s: Unexpected widget index.\n", FuncName);
+         break;
+   }
+   
+   
+   /* make a call to SUMA_Engine */
+   if (!list) list = SUMA_CreateList ();
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                       SES_SumaWidget, NULL);   
+   ED = SUMA_InitializeEngineListData (SE_SetTransMode);
+   Elmnt = SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_i, (void *)&imenu,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_Head, NULL);
+   if (!SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_vp, (void *)SO,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_In, Elmnt)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_RegisterEngineListCommand.\n", 
+               FuncName);
+      SUMA_RETURNe;                                     
+   }
+   
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
+      SUMA_RETURNe;    
+   }
+   
+   SUMA_RETURNe;
+}
+
+int SUMA_TransMode2TransModeMenuItem(int Mode)
+{
+   static char FuncName[]={"SUMA_TransMode2TransModeMenuItem"};
+   
+   SUMA_ENTRY;
+   
+   if ((Mode) >= SW_N_SurfCont_Trans || 
+       (Mode) <=  SW_SurfCont_Trans) {
+      SUMA_S_Err("Bad mode, returning 0");    
+      SUMA_RETURN(SW_SurfCont_Trans0);
    }
    
    SUMA_RETURN(Mode);

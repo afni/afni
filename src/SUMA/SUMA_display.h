@@ -135,6 +135,10 @@ sets the select color of the widget to its foreground color */
          fprintf (SUMA_STDOUT,\
                   "%s: Setting up matrix mode and perspective ...\n", \
                   FuncName); \
+      if (csv->FOV[csv->iState] < 0.00001) { \
+         SUMA_S_Warnv("Fov (%f) seems messed up, resetting to %f\n",\
+            csv->FOV[csv->iState], FOV_INITIAL);   \
+      }  \
       glMatrixMode (GL_PROJECTION); \
       glLoadIdentity ();   \
       gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, \
@@ -214,6 +218,26 @@ sets the select color of the widget to its foreground color */
    }  \
 }
 
+/* Get the box corner points from an Axis's range values */
+#define SUMA_BOX_CORNER_POINTS_FROM_AXIS(Ax, P) {   \
+   P[0][0] = Ax->BR[0][0]; P[0][1] = Ax->BR[1][0]; P[0][2] = Ax->BR[2][0];      \
+                                                         /*xmin, ymin, zmin */  \
+   P[1][0] = Ax->BR[0][1]; P[1][1] = Ax->BR[1][0]; P[1][2] = Ax->BR[2][0];      \
+                                                          /*xmax, ymin, zmin */ \
+   P[2][0] = Ax->BR[0][0]; P[2][1] = Ax->BR[1][1]; P[2][2] = Ax->BR[2][0];      \
+                                                          /*xmin, ymax, zmin */ \
+   P[3][0] = Ax->BR[0][1]; P[3][1] = Ax->BR[1][1]; P[3][2] = Ax->BR[2][0];      \
+                                                          /*xmax, ymax, zmin */ \
+   P[4][0] = Ax->BR[0][0]; P[4][1] = Ax->BR[1][0]; P[4][2] = Ax->BR[2][1];      \
+                                                          /*xmin, ymin, zmax */ \
+   P[5][0] = Ax->BR[0][1]; P[5][1] = Ax->BR[1][0]; P[5][2] = Ax->BR[2][1];      \
+                                                          /*xmax, ymin, zmax */ \
+   P[6][0] = Ax->BR[0][0]; P[6][1] = Ax->BR[1][1]; P[6][2] = Ax->BR[2][1];      \
+                                                          /*xmin, ymax, zmax */ \
+   P[7][0] = Ax->BR[0][1]; P[7][1] = Ax->BR[1][1]; P[7][2] = Ax->BR[2][1];      \
+                                                          /*xmax, ymax, zmax */ \
+}
+
 #define SUMA_SURFCONT_CREATED(SO) ( (SO && SO->SurfCont && \
                                      SO->SurfCont->TLS ) ? 1:0 ) 
 				     
@@ -244,7 +268,8 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO* dov);
 void SUMA_context_Init(SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_NormScreenToWorld(SUMA_SurfaceViewer *sv, 
                                     double xn, double yn, 
-                                    GLdouble *pfront, GLdouble *pback);
+                                    GLdouble *pfront, GLdouble *pback, 
+                                    int xform);
 SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, 
                                     GLdouble *Pick0, GLdouble *Pick1, 
                                     int N_List, int *xList, int *yList, 
@@ -315,6 +340,8 @@ void SUMA_cb_helpSUMAGlobal (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpViewerStruct (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+void SUMA_cb_SetTransMode(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
 int SUMA_SetDsetViewMode(SUMA_SurfaceObject *SO, int imenu, int update_menu) ;
 void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data, 
@@ -512,6 +539,7 @@ void SUMA_cb_XformOpts_Apply (Widget w, XtPointer data,
                              XtPointer client_data);
 void SUMA_setIO_notify(int val);
 int SUMA_RenderMode2RenderModeMenuItem(int Mode);
+int SUMA_TransMode2TransModeMenuItem(int Mode);
 int SUMA_ShowMode2ShowModeMenuItem(int Mode);
 int SUMA_ShowModeStr2ShowModeMenuItem(char *str); 
 

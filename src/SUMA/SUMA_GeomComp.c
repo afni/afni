@@ -3,6 +3,37 @@
 extern int *z_rand_order(int bot, int top, long int seed) ;
 
 /*!
+   Fill a 3x4 affine matrix that performs a rotation
+   about an axis Ax passing though point C
+   if C is NULL rotation it is set to 0, 0, 0
+   Ax should be a unit vector
+   rotation angle is in radians
+*/
+SUMA_Boolean SUMA_BuildRotationMatrix(double *C, double *Ax, 
+                                      double alpha, double mat[4][4])
+{
+   static char FuncName[] = {"SUMA_BuildRotationMatrix"};
+   double mm[3], Cr[3];
+   
+   SUMA_ENTRY;
+   
+   if (!mat || !Ax) SUMA_RETURN(NOPE);
+   
+   SUMA_3Dax_Rotation_Matrix(Ax, alpha, mat);
+   if (C) { 
+      SUMA_ROTATE_ABOUT_AXIS(C, Ax, alpha, Cr);
+      mat[0][3] = -Cr[0]+C[0];
+      mat[1][3] = -Cr[1]+C[1];
+      mat[2][3] = -Cr[2]+C[2];
+   } else {
+      mat[0][3] = mat[1][3] = mat[2][3] = 0.0;
+   }
+   mat[3][0] = mat[3][1] = mat[3][2] = 0.0; mat[3][3] = 1.0;
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
    \brief Find boundary triangles, 
    those that have an edge that is shared by less than 2 triangles.
    

@@ -340,6 +340,7 @@ if (detail > 1) {
 "                   the dataset to a particular target surface.\n"
 "       -view_surf y/n: Show or hide surface S_LABEL\n"
 "       -RenderMode V/F/L/P/H: Set the render mode for surface S_LABEL.\n"
+"       -TransMode V/0/../16: Set the transparency mode for surface S_LABEL.\n"
 "       -load_col COL: Load a colorfile named COL.\n"
 "                      Similar to what one loads under\n"
 "                      SUMA-->ctrl+s-->Load Col\n"
@@ -1157,6 +1158,47 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a valid string after -view_surf \n");
             SUMA_RETURN(0);
          }
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-TransMode") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, 
+                     "need a valid string/value after -TransMode \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         if (argt[kar][0] == 'V' || argt[kar][0] == 'v')  
+            NI_set_attribute(ngr, "trans_surf", "Viewer");
+         else if (strstr(argt[kar],"%")) {
+            char stmp[32]={""};
+            for (N=0; (N<strlen(argt[kar]) && argt[kar][N]!='%' && N<16); ++N) {
+               stmp[N] = argt[kar][N];
+            }
+            stmp[N]='\0';
+            N = (int)strtol(stmp, NULL,10);
+            if (N < 0 || N > 100) {
+               fprintf (SUMA_STDERR, 
+                        "Tansparency percentage should be between 0 and 100\n"
+                        "have %d from %s\n", N, argt[kar]);
+               SUMA_RETURN(0);
+            }
+            N = (int)(N*16.0/100);
+            NI_SET_INT(ngr, "trans_surf", N);
+         } else { /* read an int, should be between 0 and 16 */
+            N = (int)strtol(argt[kar], NULL,10);
+            if (N < 0 || N > 100) {
+               fprintf (SUMA_STDERR, 
+                        "Tansparency index should be between 0 and 16\n"
+                        "have %d from %s\n", N, argt[kar]);
+               SUMA_RETURN(0);
+            }
+            NI_SET_INT(ngr, "trans_surf", N);
+         } 
          argt[kar][0] = '\0';
          brk = YUP;
       }

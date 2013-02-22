@@ -335,6 +335,15 @@ SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_SurfaceObject *SO, char *str);
    "   Line:   Mesh rendering mode.\n"    \
    "   Points: Points rendering mode."   
 
+#define  SUMA_SurfContHelp_TransMode  \
+   "Choose the transparency for this surface.\n" \
+   "   Viewer: Surface's transparency is set\n"  \
+   "           by the viewer's setting which can\n"   \
+   "           be changed with the 'o', 'O' options.\n"  \
+   "   0 :   No transparency, opaque.\n"  \
+   "   ...\n"    \
+   "   16:   Maximum transparency, invisibile"   
+
 #define  SUMA_SurfContHelp_DsetViewMode  \
    "Choose the viewing mode for this dataset.\n" \
    "   Col: Colours, only.\n"  \

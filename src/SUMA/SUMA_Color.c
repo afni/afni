@@ -6232,6 +6232,26 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
       }
    }
    
+   /* Set the alpha based on how gray things are. 
+      Might be a useful toy once I get around to doing
+      depth sorting on all transparent objects*/
+      if (0) {
+         float l1, l2, l3, l1m2, l1m3, l2m3;
+         for (i=0; i < N_Node; ++i) {
+            i4 = 4 * i;
+            l1 = glcolar[i4];
+            l2 = glcolar[i4+1];
+            l3 = glcolar[i4+2];
+            l1m2 = (l1-l2); l1m3 = (l1-l3); l2m3 = (l2-l3);
+            glcolar[i4+3] = 0.707*sqrt((l1m2*l1m2+l1m3*l1m3+l2m3*l2m3)/
+                                       (l1*l1+l2*l2+l3*l3));
+            if (i==2601 || i == 1888) {
+               SUMA_S_Notev("Node %d, %f %f %f %f\n",
+                     i, l1, l2, l3, glcolar[i4+3]);
+            }
+         }
+      }
+   
    /* free this mess and get out */   
    if (isColored) SUMA_free(isColored);
    if (isColored_Back) SUMA_free(isColored_Back);

@@ -242,7 +242,7 @@ typedef enum { SE_Empty,
                SE_ToggleLockView, SE_ToggleLockAllViews, 
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Help_Cmap, 
                SE_Help_Plot, SE_Help_Xform, SE_Whereami, SE_Log,
-               SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
+               SE_UpdateLog, SE_SetRenderMode, SE_SetTransMode, SE_OpenDrawROI,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  
                SE_SetLight0Pos, SE_OpenColFileSelection,
                SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, 
@@ -334,6 +334,17 @@ typedef enum { SW_SurfCont_Render,
                SW_N_SurfCont_Render } SUMA_WIDGET_INDEX_SURFCONT_RENDER; 
                               /*!< Indices to widgets in SurfaceController under
                                    RenderMode */
+typedef enum { SW_SurfCont_Trans,
+               SW_SurfCont_TransViewerDefault, 
+               SW_SurfCont_Trans0, SW_SurfCont_Trans1, 
+               SW_SurfCont_Trans2, SW_SurfCont_Trans3, SW_SurfCont_Trans4, 
+               SW_SurfCont_Trans5, SW_SurfCont_Trans6, SW_SurfCont_Trans7,
+               SW_SurfCont_Trans8, SW_SurfCont_Trans9, SW_SurfCont_Trans10,
+               SW_SurfCont_Trans11, SW_SurfCont_Trans12, SW_SurfCont_Trans13,
+               SW_SurfCont_Trans14,SW_SurfCont_Trans15, SW_SurfCont_Trans16,
+               SW_N_SurfCont_Trans } SUMA_WIDGET_INDEX_SURFCONT_TRANS; 
+                              /*!< Indices to widgets in SurfaceController under
+                                   TransMode */
 typedef enum { SW_SurfCont_DsetView,
                SW_SurfCont_DsetViewCol,
                SW_SurfCont_DsetViewCon,
@@ -441,7 +452,14 @@ typedef enum { SUMA_ROI_Undefined,
 
 typedef enum { SXR_default, SXR_Euro, SXR_Afni , SXR_Bonaire} SUMA_XRESOURCES;   /* flags for different X resources */
 
-typedef enum { SRM_ViewerDefault, SRM_Fill, SRM_Line, SRM_Points , SRM_Hide, SRM_N_RenderModes} SUMA_RENDER_MODES; /*!< flags for various rendering modes */
+typedef enum { SRM_ViewerDefault, SRM_Fill, SRM_Line, SRM_Points , SRM_Hide, 
+               SRM_N_RenderModes} SUMA_RENDER_MODES; /*!< flags for various 
+                                                            rendering modes */
+
+typedef enum { STM_ViewerDefault, STM_0, STM_1, STM_2,STM_3,STM_4,STM_5,
+               STM_6, STM_7, STM_8, STM_9, STM_10, STM_11, STM_12, STM_13,
+               STM_14, STM_15, STM_16, STM_N_TransModes} SUMA_TRANS_MODES; 
+                                 /*!< flags for various transparency values */
 
 
 typedef enum { 
@@ -454,13 +472,15 @@ typedef enum {
 
    /*!< number of useful views enumerated in SUMA_STANDARD_VIEWS */
 typedef enum {    SUMA_2D_Z0, SUMA_2D_Z0L, 
-                  SUMA_3D, SUMA_N_STANDARD_VIEWS } SUMA_STANDARD_VIEWS; 
+                  SUMA_3D, SUMA_3D_Z0,
+                  SUMA_N_STANDARD_VIEWS } SUMA_STANDARD_VIEWS; 
                      /*!< Standard viewing modes. These are used to decide what 
                      viewing parameters to carry on when switching states 
                      SUMA_2D_Z0 2D views, with Z = 0 good for flat surfaces
                      SUMA_2D_Z0L 2D views, with Z = 0 
                                           good for left hemi flat surfaces
                      SUMA_3D standard 3D view
+                     SUMA_3D_Z0 straight down the Z, good for balls
                      SUMA_N_STANDARD_VIEWS used to flag errors leave  at the end 
                      */
 typedef enum {   SUMA_No_Lock, SUMA_I_Lock, SUMA_XYZ_Lock, SUMA_N_Lock_Types}  SUMA_LINK_TYPES; /*!< types of viewer linking. Keep SUMA_N_Lock_Types at the end, it is used to keep track of the number of types*/
@@ -1291,6 +1311,8 @@ typedef struct {
                         widgets and options of the surface info text shell */
    SUMA_MENU_WIDGET *RenderModeMenu; /*!<[SW_N_SurfCont_Render] widgets 
                                        controlling the rendering mode menu */
+   SUMA_MENU_WIDGET *TransModeMenu; /*!<[SW_N_SurfCont_Trans] widgets 
+                                       controlling the transparency menu */
    SUMA_MENU_WIDGET *DsetViewModeMenu; /*!<[SW_N_SurfCont_DsetView]  widgets 
                                        controlling the dataset view mode menu */
    Widget ColPlane_fr; /*!< the frame controlling the colorplanes */
@@ -1542,6 +1564,7 @@ typedef struct {
    SUMA_STIPPLE Stipple; /*!< dashed or solid line */
 
    GLfloat c[3]; /*!< Cross Hair center */
+   float c_noVisX[3]; /*!< Cross Hair center without VisX transforms */
    GLfloat r; /*!< Cross Hair radius */
    GLfloat g; /*!< 1/2 of gap between center and ray 
                   (should be less than radius/2) */
@@ -1724,6 +1747,7 @@ typedef struct {
    int N_Node;
    int N_FaceSet;
    SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, SRM_Line, SRM_Points */
+   SUMA_TRANS_MODES TransMode; /*!< polygon transparency  */
 }SUMA_PlaneDO;
 
 /*! Structure containing the communication info and status with AFNI */
@@ -1779,14 +1803,27 @@ typedef struct {
    GLfloat RotaCenter[3];   /*!<Center of Rotation */
    float zoomDelta;       /*!< Zoom increment */
    float zoomBegin;    /*!< Current zoom level*/
-   float spinDeltaX;            /*!< User Input (mouse) X axis position increment for spinning*/
-   float spinDeltaY;            /*!< User Input (mouse) Y axis position increment for spinning*/
-   float spinBeginX;            /*!< User Input (mouse) X axis current position for spinning */
-   float spinBeginY;            /*!< User Input (mouse) Y axis current position for spinning */
-   int MinIdleDelta;       /*!< minimum spinDeltaX or spinDeltaY to initiate momentum rotation */
+   float spinDeltaX;   /*!< User Input (mouse) X axis position increment 
+                            for spinning*/
+   float spinDeltaY;   /*!< User Input (mouse) Y axis position increment 
+                            for spinning*/
+   float spinBeginX;  /*!< User Input (mouse) X axis current position 
+                           for spinning */
+   float spinBeginY;  /*!< User Input (mouse) Y axis current position for 
+                           spinning */
+   int MinIdleDelta;  /*!< minimum spinDeltaX or spinDeltaY to initiate momentum 
+                           rotation */
    float deltaQuat[4];   /*!< Quaternion increment */
    float currentQuat[4]; /*!< Current quaternion */
    Boolean ApplyMomentum;   /*!< Turn momentum ON/OFF */
+   
+   float LHpry;
+   float LHpry0;
+   int LHlol;           /*!< if 1 then the left hemi starts up displayed
+                             on the left side of the screen.
+                             if -1 then left starts on the right.
+                             This flag is only set when both left and 
+                             right surfaces are present */
 } SUMA_GEOMVIEW_STRUCT;
 
 /*! structure holding the pointer the node color assignment and a bit more */
@@ -1813,7 +1850,8 @@ typedef struct {
    GLfloat LineWidth;
    SUMA_STIPPLE Stipple; /*!< dashed or solid line */
    
-   GLfloat XYZspan[3]; /*!< the axis will span +/- span[i] in the three dimensions */
+   GLfloat XYZspan[3]; /*!< the axis will span +/- span[i] 
+                            in the three dimensions */
    GLfloat Center[3]; /*!< origin of axis */
    GLfloat BR[3][2]; /*!< Box Range values */
    double MTspace;   /*!< Major tick spacing */
@@ -1929,6 +1967,7 @@ typedef struct {
             allow independent control for each surface. If the rendering mode
             is specified for a certain surface, it takes precedence over the
             one specified here*/
+   SUMA_TRANS_MODES TransMode; 
    SUMA_DO_DRAW_MASK DO_DrawMask; /*!< What to draw of displayable objects */
    float Back_Modfact; /*!< Factor to apply when modulating foreground 
                color with background intensity
@@ -2196,6 +2235,17 @@ typedef struct {
 } SUMA_OVERLAY_LIST_DATUM;   /*!< a structure used to create linked lists 
                                   of SO->Overlays and co */ 
 
+
+/*! Structure for defining spatial transformations for visualization purposes */
+typedef struct {
+   int XformType; /*!< Is it identity (1), shift (2), or affine (3) */
+   double Xform[4][4]; /*!< The augmented affine transform */
+   int Applied; /*!< Xform has been applied to coords */
+   float *XformedCoords; /*!< Tranformed coords. If NULL and XformApplied, 
+                              it means the results of the transform have
+                              been stored in the surface's NodeList */   
+} SUMA_VIS_XFORM;
+
 /*! structure defining a Surface Object */
 typedef struct {
    /* THE FIRST THREE FIELDS CANNOT BE MOVED FROM HERE */
@@ -2316,6 +2366,7 @@ typedef struct {
                            Used in conjunction with PolyMode*/
    SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, 
                                     SRM_Line, SRM_Points */
+   SUMA_TRANS_MODES TransMode; /*!< transprency */
       
    float *NodeNormList ; /*!< N_Node x 3 vector (used to be matrix prior 
                               to SUMA 1.2) containing normalized normal 
@@ -2427,6 +2478,16 @@ typedef struct {
                            CommonNodeObject where */
                            
    float *NodeAreas; /*!< A way to keep node areas around */
+   
+   SUMA_VIS_XFORM VisX0; /*!< a coordinate transform applied at the moment
+                              the surface is loaded and the resultant 
+                              coordinates are to be stored in the the
+                              surface's NodeList */
+   SUMA_VIS_XFORM VisX; /*!< a coordinate transform generated from interactive
+                              vicissitudes */
+   
+   float *NodeList_swp; /*!< A temporary pointer copy for swapping NodeList with
+                             VisX's transformed coordinates. Use sparingly */
 }SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c

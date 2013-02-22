@@ -145,13 +145,13 @@ float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM,
 				 int ***MASK, int *realHOOD)
 {
   	int i,j,k,ii,jj,kk,m,n;
-	float W = 0.0;
+	double W = 0.0;
 	int M = realHOOD[0];// actual size of 'hood, which is calc earlier
 	int N = DIM[3];
-	float miniR;
-	float bigR = 0.;
-	float fac1,fac2;
-	float Tfac = 0.0;
+	double miniR;
+	double bigR = 0.;
+	double fac1,fac2;
+	double Tfac = 0.0;
 	
 	if( (M<1) || (N<2) )
 		ERROR_exit("WARNING: either neighborhood size (M=%d) or time series\n"
@@ -160,20 +160,20 @@ float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM,
 	for( i=0 ; i<M ; i++)
 		Tfac+= TIED[LIST[i]];
 	
-	fac1 = fac2 = M*M*N;
-	fac1*= 3*(N+1)*(N+1); //fac in numer
-	fac2*= N*N-1; // fac in denom
-
-	// now go back through, and do sums over time series RANKS
+	fac1 = fac2 = (double) M *  M * N;
+	fac1*= (double) 3*(N+1)*(N+1); //fac in numer
+	fac2*= (double) (N*N)-1; // fac in denom
+   
+   // now go back through, and do sums over time series RANKS
 	for( n=0; n<N ; n++) {
 		miniR = 0.;
 		for( i=0 ; i<M ; i++)
 			miniR+= RANKS[LIST[i]][n];
 		bigR+= miniR*miniR;
 	}
-	
+
 	W = 12.*bigR-fac1;
 	W/= fac2 - 1.*M*Tfac;
 	
-	return W;
+	return (float) W;
 }

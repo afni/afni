@@ -793,6 +793,14 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }  
             break;
             
+         case SE_SetTransMode:
+            { /* sets the transparency value of a surface, 
+               expects SO in vp and TransMode in i*/
+               SO = (SUMA_SurfaceObject *)EngineData->vp;
+               SUMA_SET_SO_TRANSMODE(SO,EngineData->i);
+            }  
+            break;
+            
          case SE_SetDsetViewMode:
             { /* sets the viewing mode of a dset, 
                expects SO in vp and rendering mode in i*/
@@ -1280,24 +1288,30 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_SetClip:
             {
                int iplane = -1, Delete = 0;
-               /* expects a clipping plane name in EngineData->s, equation in fv15 and type in i*/
+               /* expects a clipping plane name in EngineData->s, 
+                  equation in fv15 and type in i*/
                if (EngineData->fv15_Dest != NextComCode || 
-                  EngineData->s_Dest != NextComCode  || EngineData->i_Dest != NextComCode ) {
-                  fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+                  EngineData->s_Dest != NextComCode  || 
+                  EngineData->i_Dest != NextComCode ) {
+                  SUMA_S_Errv("Data not destined correctly for %s (%d).\n"
+                              , NextCom, NextComCode);
                   break;
                }
 
                /* find plane in question */
                iplane = -1;
                for (ii=0; ii<SUMAg_CF->N_ClipPlanes; ++ii) {
-                  if (  strcmp(SUMAg_CF->ClipPlanesLabels[ii], EngineData->s) == 0  
-                     && SUMAg_CF->ClipPlaneType[ii] == (SUMA_CLIP_PLANE_TYPES)EngineData->i) {
+                  if (  strcmp(SUMAg_CF->ClipPlanesLabels[ii], 
+                               EngineData->s) == 0  
+                     && SUMAg_CF->ClipPlaneType[ii] == 
+                        (SUMA_CLIP_PLANE_TYPES)EngineData->i) {
                      iplane = ii; break;
                   }
                }
 
                /* stick equation where it belongs */
-               if (EngineData->fv15[0] == 0.0 && EngineData->fv15[1] == 0.0 && EngineData->fv15[2] == 0.0 && EngineData->fv15[3] == 0.0) {
+               if (EngineData->fv15[0] == 0.0 && EngineData->fv15[1] == 0.0 && 
+                   EngineData->fv15[2] == 0.0 && EngineData->fv15[3] == 0.0) {
                   Delete = 1; /* no more clipping */
                } else {
                   Delete = 0; /* a plane to add, modify */
@@ -1308,7 +1322,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   /* delete */
                   SUMAg_CF->ClipPlaneType[iplane] = SUMA_NO_CLIP_PLANE_TYPE;
                   SUMAg_CF->ClipPlanesLabels[iplane][0]='\0';
-                  SUMAg_CF->ClipPlanes[4*iplane] = SUMAg_CF->ClipPlanes[4*iplane+1] = SUMAg_CF->ClipPlanes[4*iplane+2] = SUMAg_CF->ClipPlanes[4*iplane+3]= 0.0;
+                  SUMAg_CF->ClipPlanes[4*iplane] = 
+                     SUMAg_CF->ClipPlanes[4*iplane+1] = 
+                     SUMAg_CF->ClipPlanes[4*iplane+2] = 
+                     SUMAg_CF->ClipPlanes[4*iplane+3]= 0.0;
                   --SUMAg_CF->N_ClipPlanes;
                   glDisable(SUMA_index_to_clip_plane(iplane));
                } else if (Delete) {
@@ -1321,7 +1338,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_SLP_Err("No more clipping planes available.");
                      break;   
                   }
-                  SUMAg_CF->ClipPlaneType[SUMAg_CF->N_ClipPlanes] = (SUMA_CLIP_PLANE_TYPES)EngineData->i;
+                  SUMAg_CF->ClipPlaneType[SUMAg_CF->N_ClipPlanes] = 
+                                    (SUMA_CLIP_PLANE_TYPES)EngineData->i;
                   snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], 8*sizeof(char), "%s", EngineData->s);
                   SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes  ] = (GLdouble)EngineData->fv15[0];
                   SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+1] = (GLdouble)EngineData->fv15[1];
@@ -2022,6 +2040,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                break;
             } 
             SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+            SUMA_VisX_Pointers4Display(SO, 1); /* coordinates as displayed */
             if (EngineData->i < 0 || EngineData->i >= SO->N_FaceSet) {
                if (EngineData->i != -1) { /* ignore -1, used in initialization */
                   SUMA_SLP_Err("Node index < 0 || "
@@ -2049,6 +2068,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SO->FaceSetMarker->NormVect[2] = SO->FaceNormList[ip+2];
             
             SO->SelectedFaceSet = EngineData->i;
+            SUMA_VisX_Pointers4Display(SO, 0); /* revert to surf cooords. */
             SUMA_UpdateTriField(SO);
             break;
             
@@ -2060,13 +2080,16 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
             
          case SE_SetCrossHair:
-            /* Expects Cross Hair coordinates in fv3 */
-            if (EngineData->fv3_Dest != NextComCode) {
+            /* Expects Cross Hair coordinates in fv3, and SO in vp */
+            if (EngineData->fv3_Dest != NextComCode ||
+                EngineData->vp_Dest != NextComCode) {
                fprintf (SUMA_STDERR,
                         "Error %s: Data not destined correctly for %s (%d).\n",
                         FuncName, NextCom, NextComCode);
                break;
             }
+            SO = (SUMA_SurfaceObject *)EngineData->vp;
+
             if (LocalHead) 
                fprintf(SUMA_STDERR,"%s: Setting cross hair at %f %f %f\n", 
                                     FuncName, EngineData->fv3[0], 
@@ -2075,6 +2098,22 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             sv->Ch->c[0]= EngineData->fv3[0]; 
             sv->Ch->c[1]= EngineData->fv3[1]; 
             sv->Ch->c[2]= EngineData->fv3[2];
+
+            /* are we in VisX mode? */
+            if (SO &&
+                SO->VisX.Applied && SO->VisX.XformType > 0 &&
+                                    SO->VisX.XformType <=2) { /* undo the VisX */
+               SUMA_Apply_Coord_xform( EngineData->fv3,1,3, 
+                                       SO->VisX.Xform, 1,NULL);
+               sv->Ch->c_noVisX[0]= EngineData->fv3[0]; 
+               sv->Ch->c_noVisX[1]= EngineData->fv3[1]; 
+               sv->Ch->c_noVisX[2]= EngineData->fv3[2];
+            } else {
+               sv->Ch->c_noVisX[0]=sv->Ch->c[0];
+               sv->Ch->c_noVisX[1]=sv->Ch->c[1];
+               sv->Ch->c_noVisX[2]=sv->Ch->c[2];
+            }
+
             /* Attempt to update crosshair corrdinates 
                in open surface controllers */
             SUMA_UpdateXhairField(sv); 
@@ -2576,13 +2615,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          
          case SE_RedisplayNow_AllOtherVisible:
             /* expects nothing in EngineData, expects sv in srcp*/
-            /* causes an immediate redisplay to all visible viewers other than sv*/
+            /* causes an immediate redisplay to all visible viewers 
+               other than sv*/
             for (ii=0; ii<SUMAg_N_SVv; ++ii) {
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, ii);
-               if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL && &(SUMAg_SVv[ii]) != sv) {
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", 
+                           FuncName, ii);
+               if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL && 
+                     &(SUMAg_SVv[ii]) != sv) {
                   /* you must check for both conditions because by default 
-                  all viewers are initialized to isShaded = NOPE, even before they are ever opened */
-                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Redisplaying viewer %d.\n", FuncName, ii);
+                  all viewers are initialized to isShaded = NOPE, even before 
+                  they are ever opened */
+                  if (LocalHead) 
+                     fprintf (SUMA_STDERR,"%s: Redisplaying viewer %d.\n", 
+                              FuncName, ii);
                   SUMAg_SVv[ii].ResetGLStateVariables = YUP;
                   SUMA_handleRedisplay((XtPointer)SUMAg_SVv[ii].X->GLXAREA);
                }
@@ -2641,53 +2687,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      
          case SE_Home:
             /* expects nothing in EngineData, needs sv */
-            SUMA_SET_AS_NEEDED_2D_VIEW_ANGLE(sv);
-            sv->GVS[sv->StdView].translateVec[0]=0; 
-            sv->GVS[sv->StdView].translateVec[1]=0;
-            glMatrixMode(GL_PROJECTION);
-            /* sv->FOV[sv->iState] = SUMA_sv_fov_original(sv); */
-                  /* Now done in SE_FOVreset *//* reset the zooming */
-            sv->GVS[sv->StdView].ViewFrom[0] = 
-               sv->GVS[sv->StdView].ViewFromOrig[0];
-            sv->GVS[sv->StdView].ViewFrom[1] = 
-               sv->GVS[sv->StdView].ViewFromOrig[1];
-            sv->GVS[sv->StdView].ViewFrom[2] = 
-               sv->GVS[sv->StdView].ViewFromOrig[2];
-            sv->GVS[sv->StdView].ViewCenter[0] = 
-               sv->GVS[sv->StdView].ViewCenterOrig[0];
-            sv->GVS[sv->StdView].ViewCenter[1] = 
-               sv->GVS[sv->StdView].ViewCenterOrig[1];
-            sv->GVS[sv->StdView].ViewCenter[2] = 
-               sv->GVS[sv->StdView].ViewCenterOrig[2];
-            
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
-            gluLookAt ( sv->GVS[sv->StdView].ViewFrom[0], 
-                        sv->GVS[sv->StdView].ViewFrom[1], 
-                        sv->GVS[sv->StdView].ViewFrom[2], 
-                        sv->GVS[sv->StdView].ViewCenter[0], 
-                        sv->GVS[sv->StdView].ViewCenter[1], 
-                        sv->GVS[sv->StdView].ViewCenter[2], 
-                        sv->GVS[sv->StdView].ViewCamUp[0], 
-                        sv->GVS[sv->StdView].ViewCamUp[1], 
-                        sv->GVS[sv->StdView].ViewCamUp[2]);
+            SUMA_SetGLHome(sv);
             break;
          
          case SE_Home_AllVisible:
             /* expects nothing in EngineData, needs no sv */
             {
                for (ii=0; ii<SUMAg_N_SVv; ++ii) {
-                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, ii);
+                  SUMA_LHv("Checking viewer %d.\n", ii);
                   if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
                      /* you must check for both conditions because by default 
-                     all viewers are initialized to isShaded = NOPE, even before they are ever opened */
-                     if (LocalHead) fprintf (SUMA_STDERR,"%s: Home call viewer %d.\n", FuncName, ii);
+                     all viewers are initialized to isShaded = NOPE, 
+                     even before they are ever opened */
+                     SUMA_LHv("Home call viewer %d.\n", ii);
                      if (!list) {
-                        fprintf (SUMA_STDERR, "Error %s: Should not be inside SUMA_Engine: ZSS Feb 02 05.\n", FuncName);
+                        SUMA_S_Err(
+                           "Should not be inside SUMA_Engine: ZSS Feb 02 05.\n");
                         /* list = SUMA_CreateList();*/
                         break;
                      }
-                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, &SUMAg_SVv[ii]);
+                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, 
+                                                      SES_Suma, &SUMAg_SVv[ii]);
                   }
                }
             }
@@ -2722,7 +2742,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                GLfloat *glar_ColorList;
                glar_ColorList = SUMA_GetColorList(sv, SO->idcode_str);
                if (!glar_ColorList) {
-                  fprintf (SUMA_STDERR,"Error %s: NULL color list array. Trouble.\n", FuncName);
+                  SUMA_S_Err("NULL color list array. Trouble.");
                   break;
                }
                for (i=0; i < EngineData->N_rows; ++i){
@@ -3360,6 +3380,35 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Errv("Bad value of %s for view_surf, setting to 'y'\n", 
                               NI_get_attribute(EngineData->ngr, "view_surf"));
                   SO->Show = YUP; SUMA_SET_SO_POLYMODE(SO,SRM_Fill);
+               }
+               /* redisplay */
+               SUMA_SiSi_I_Insist();   /* did not think that was necessary...
+                                          But DriveSuma's -view_surf failed
+                                          to redisplay properly unless you
+                                          called the command twice or
+                                          move the cursor into the GLXAREA.
+                                          This line appears to fix the 
+                                          problem... */
+               SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+            }
+            if (NI_get_attribute(EngineData->ngr, "trans_surf")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                          "trans_surf", "Viewer")) {
+                  SUMA_SET_SO_TRANSMODE(SO,STM_ViewerDefault);
+                  SUMA_S_Warn("Must check on indexing business");
+                  SUMA_Set_Menu_Widget( SO->SurfCont->TransModeMenu,
+                         SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
+               } else {
+                  int N=0;
+                  NI_GET_INT(EngineData->ngr, "trans_surf", N);
+                  if (N < 0 || N > 16) {
+                     SUMA_S_Errv("Bad value for trans_surf of %s\n",
+                              NI_get_attribute(EngineData->ngr, "trans_surf"));
+                  } else {
+                     SUMA_SET_SO_TRANSMODE(SO,(N+STM_0));
+                     SUMA_Set_Menu_Widget( SO->SurfCont->TransModeMenu,
+                         SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
+                  }
                }
                /* redisplay */
                SUMA_SiSi_I_Insist();   /* did not think that was necessary...
@@ -4343,7 +4392,8 @@ int SUMA_NextState(SUMA_SurfaceViewer *sv)
             /* back where we started */
             SUMA_RETURN(inxt);
          } else {
-            if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName)) { /* group match, good, go back */
+            if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName)) { 
+               /* group match, good, go back */
                SUMA_RETURN(inxt);
             }
          }
@@ -4587,8 +4637,9 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    char CommString[100];
    SUMA_EngineData ED;
    int curstateID, i, j, jmax, prec_ID;
-   SUMA_SurfaceObject *SO_nxt, *SO_prec;
-   float *XYZ, *XYZmap;
+   int RegSO[SUMA_MAX_DISPLAYABLE_OBJECTS], N_RegSO;
+   SUMA_SurfaceObject *SO_nxt, *SO_prec, *SO1, *SO2;
+   float *XYZ, *XYZmap, zfac = 0.0;
    DList *list = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -4598,6 +4649,9 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    XYZmap = NULL;
    
    curstateID = SUMA_WhichState(sv->State, sv, sv->CurGroupName);
+   zfac = sv->FOV[curstateID]/SUMA_sv_fov_original(sv);
+   if (zfac > 10) zfac = 10.0;
+   if (zfac < 0.005) zfac = 0.005;
    
    /* unregister all the surfaces for the current view */
    if (LocalHead) 
@@ -4634,77 +4688,21 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
          SUMA_RETURN (NOPE);
       }
    }
-      
-   #if 0
-   {/* trying to keep two surfaces from riding on top of each other - An initial pass*/
-      /* This method works OK but you should not be applying it to 
-      geometrically correct surfaces (like the pial surfaces whose containing
-      boxes intersect although slightly). Since you're modifying the coordinates
-      here, you will be throwing them out of alignment with the volume.
-      Since I have not such field yet, this method will be put on hold for a while
-      */
-      int RegSO[SUMA_MAX_DISPLAYABLE_OBJECTS], N_RegSO, im;
-      float Ep1, Ep2, d1, d2, dc, dd, xShift1=0.0, xShift2=0.0;
-      SUMA_SurfaceObject *SO1, *SO2;
-      /* find out how many SOs are registered in the current view */
-      N_RegSO = SUMA_RegisteredSOs (sv, dov, RegSO);
-      if (N_RegSO > 2) {
-         SUMA_SLP_Note( "Will not attempt\n"
-                        "to separate more than\n"
-                        "2 surfaces.\n");
+   
+   /* if have two surfaces, keep them from overlapping */
+   N_RegSO = SUMA_RegisteredSOs (sv, dov, RegSO);
+   if (N_RegSO > 2) {
+      SUMA_LH( "Will not attempt\n"
+                     "to separate more than\n"
+                     "2 surfaces.\n");
+   } else if (N_RegSO == 2) {
+      SO1 = (SUMA_SurfaceObject *)dov[RegSO[0]].OP;
+      SO2 = (SUMA_SurfaceObject *)dov[RegSO[1]].OP;
+      if (!SUMA_ComputeVisX(SO1, SO2, sv, 0, 1, 1)) {
+         SUMA_S_Err("Failed to compute or apply overlap avoidance xform");
+         SUMA_RETURN(NOPE);
       }
-      if (N_RegSO == 2) {
-         SO1 = (SUMA_SurfaceObject *)dov[RegSO[0]].OP;
-         SO2 = (SUMA_SurfaceObject *)dov[RegSO[1]].OP;
-         
-         /* THIS IS AN EXTREMELY CRUDE TEST */
-         /* check if bounding boxes overlap */
-         /* Usually, problem is in the x direction*/
-         /* what extreme points fall within the two centroids ? */
-         if ( ((SO1->MaxDims[0] - SO1->Center[0]) * (SO1->MaxDims[0] - SO2->Center[0]) ) < 0 ) {
-            Ep1 = SO1->MaxDims[0];
-         }else {
-            Ep1 = SO1->MinDims[0];
-         }
-         
-         if ( ((SO2->MaxDims[0] - SO2->Center[0]) * (SO2->MaxDims[0] - SO1->Center[0]) ) < 0 ) {
-            Ep2 = SO2->MaxDims[0];
-         }else {
-            Ep2 = SO2->MinDims[0];
-         }
-         
-         /* Do the surfaces intersect each other in that direction ? */
-         d1 = (float)fabs(Ep1 - SO1->Center[0]);
-         d2 = (float)fabs(Ep2 - SO2->Center[0]);
-         dc = (float)fabs(SO1->Center[0] -SO2->Center[0]);
-         dd = d1 + d2 - dc;
-         if (dd > 0) {
-            if (SO1->Center[0] > SO2->Center[0]) {
-               xShift1 = 1.1 * dd / 2.0;
-               xShift2 = 1.1 * -dd / 2.0;
-            }else {
-               xShift1 = 1.1 * -dd / 2.0;
-               xShift2 = 1.1 * +dd / 2.0;
-            }
-         } 
-         
-         if (xShift1) {
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: Shifting by +- %f\n", FuncName, xShift1);
-            /* modify the coordinates */
-            for (im=0; im< SO1->N_Node; ++im) SO1->NodeList[3*im] += xShift1;
-            SO1->Center[0] += xShift1;
-            SO1->MaxDims[0] += xShift1;
-            SO1->MinDims[0] += xShift1;
-            for (im=0; im< SO2->N_Node; ++im) SO2->NodeList[3*im] += xShift2;
-            SO2->Center[0] += xShift2;
-            SO2->MaxDims[0] += xShift2;
-            SO2->MinDims[0] += xShift2;
-         } else {
-            SUMA_LH("No shift necessary");
-         }
-      } 
    }
-   #endif
    
    /*set the Color Remix flag */
    if (!SUMA_SetShownLocalRemixFlag (sv)) {
@@ -4885,9 +4883,13 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
 
    /* switch the state accordingly */
    sv->State =  sv->VSv[nxtstateID].Name;
-   if (sv->FreezeZoomXstates) 
-      sv->FOV[nxtstateID] = sv->FOV[sv->iState]; 
    sv->iState = nxtstateID;
+   if (sv->FOV[sv->iState] == sv->FOV_original) { 
+      sv->FOV[sv->iState] = SUMA_sv_fov_original(sv);
+   }
+   if (sv->FreezeZoomXstates) 
+      sv->FOV[sv->iState] = SUMA_sv_fov_original(sv)*zfac; 
+
    /* set the focus ID to the first surface in the next view */
    sv->Focus_SO_ID = sv->VSv[nxtstateID].MembSOs[0];
    
@@ -5107,6 +5109,7 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov,
 
    SUMA_RETURN (YUP);
 }
+
 
 /*!
    EyeAxisID = SUMA_GetEyeAxis (sv, dov);
