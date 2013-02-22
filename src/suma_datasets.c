@@ -13172,6 +13172,10 @@ static ENV_SPEC envlist[] = {
    {  "Set thickness of dataset contours\n",
       "SUMA_ContourThickness",
       "1.0" }, 
+   {  "Merge separated left/right states for inflated/spherical/etc. surfaces\n"
+      "Choose from YES or NO",
+      "SUMA_LHunify",
+      "YES" }, 
    {  NULL, NULL, NULL  }
 };
       

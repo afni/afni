@@ -948,7 +948,8 @@ int main(int argc, char *argv[]) {
 	tross_Make_History("3dDWUncert", argc, argv, UNC_OUT);
 	THD_write_3dim_dataset(NULL, NULL, UNC_OUT, True);
 	DSET_delete(UNC_OUT); 
-  
+  	free(UNC_OUT); 
+
 	
 	// ************************************************************
 	// ************************************************************

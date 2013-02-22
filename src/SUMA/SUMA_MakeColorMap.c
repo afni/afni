@@ -128,6 +128,7 @@ void SUMA_MakeColorMap_usage ()
  "       MakeColorMap -usercolutfile colut.txt -suma_cmap toylut \\\n"
  "                    -sdset you_look_marvellous.niml.dset\n"
  "\n"
+ "Adding a new colormap into AFNI:"
  "To read in a new colormap into AFNI, either paste the contents of \n"
  "TestPalette.pal in your .afnirc file or read the .pal file using \n"
  "AFNI as follows:\n"

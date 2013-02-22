@@ -15,8 +15,11 @@ void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out, int deta
 char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail);
 SUMA_Boolean SUMA_SetViewerLightsForSO(SUMA_SurfaceViewer *cSV, SUMA_SurfaceObject *SO);
 
-SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov);
-SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov);
+SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, 
+                                    SUMA_DO *dov, int N_dov);
+SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, 
+                                    SUMA_DO *dov, int N_dov);
+SUMA_Boolean SUMA_SetGLHome(SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV);
 SUMA_Boolean SUMA_Free_SurfaceViewer_Struct_Vect (SUMA_SurfaceViewer *SVv, int N);
 SUMA_Boolean SUMA_Free_ViewState (SUMA_ViewState *vs);

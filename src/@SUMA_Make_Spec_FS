@@ -34,14 +34,14 @@ goto L_CHECK_FOR_OVERWRITE
 goto L_LOOK_FOR_SURF
      L_LOOK_FOR_SURF_DONE:
 
+goto L_CREATE_BRICK
+     L_CREATE_BRICK_DONE:
+
 goto L_CONVERT_SURFACES
      L_CONVERT_SURFACES_DONE:
 
 goto L_CREATE_SPEC
      L_CREATE_SPEC_DONE:
-
-goto L_CREATE_BRICK
-     L_CREATE_BRICK_DONE:
 
 goto L_ICO
      L_ICO_DONE:
@@ -110,9 +110,13 @@ L_PARSE_COMMAND:
     set fs_dir      = "."
     set subj_id      = ""
     set neuro_ori   = 0
+    set sfieldname  = 'FreeSurferSurface'
+    set sex = 'asc'
+    set stp = 'FreeSurfer'
     set ldu = ()
     set ldpref = ()
     set use_mgz = 0
+    set set_space = ''
     set args     = $#argv
     set count    = 1
 
@@ -166,6 +170,30 @@ L_PARSE_COMMAND:
        case "-neuro":
 
       set neuro_ori = 1
+       breaksw
+
+       # ----------------------------------------------------------
+       # usage : -nocor
+       case "-nocor":
+
+      set neuro_ori = -1
+      set sfieldname = 'SurfaceName'
+      set sex = 'gii'
+      set stp = 'GIFTI'
+      
+       breaksw
+
+       # ----------------------------------------------------------
+       # usage : -set_space SPACE
+       case "-set_space":
+
+      if ( $count >= $args ) then
+          set endstr = "arg usage: -set_space SPACE"
+          goto L_BAD_END
+      endif
+
+      @ count ++
+      set set_space  = $argv[$count]
 
        breaksw
 
@@ -266,8 +294,11 @@ L_PARSE_COMMAND:
 
     set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
     set afni_prefix  = ${subj_id}_SurfVol
+      if ( $neuro_ori != -1 ) then
     set afni_dataset = $afni_prefix+orig
-
+      else
+    set afni_dataset = $afni_prefix 
+      endif
     # set and go to the base directory
     cd $fs_dir
     set start_dir = $cwd
@@ -442,7 +473,13 @@ L_CHECK_FOR_OVERWRITE:
          $suma_dir/$afni_dataset.HEAD   \
          $suma_dir/$afni_dataset.BRIK   \
          $orig_dir/$afni_dataset.HEAD   \
-         $orig_dir/$afni_dataset.BRIK      )
+         $orig_dir/$afni_dataset.BRIK   \
+         $orig_dir/$afni_prefix'+orig.HEAD' \
+         $orig_dir/$afni_prefix'+orig.BRIK' \
+         $suma_dir/$afni_prefix'+orig.HEAD' \
+         $suma_dir/$afni_prefix'+orig.BRIK' \
+         $suma_dir/$afni_prefix'.nii' \
+         $suma_dir/$afni_prefix'.nii.gz')
    if ( -f $test_file ) then
        if ( $test_failures == 0 ) then
       echo "failure: will not overwrite files: "
@@ -515,8 +552,28 @@ L_CONVERT_SURFACES:
        tail ___out ; \rm -f ___out
    endif
 
-   if ( ! -f $surf.asc ) then
-       echo "failure: could not create surface $surf.asc"
+   if ( $neuro_ori == -1 ) then
+      if ( ! -f xmatras.1D ) then
+         set c_ras = (`mri_info --cras --ras_good $start_dir/$orig_mgz`)
+         echo 1 0 0 $c_ras[1] 0 1 0 $c_ras[2] 0 0 1 -$c_ras[3] > xmatras.1D
+      endif
+      #If using new conversion, change surfaces to gifti with proper
+      #coordinate shift.
+      if ( $surf =~ *.white* ||     \
+           $surf =~ *.smoothwm* ||  \
+           $surf =~ *.pial*) then
+         set echo
+         ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
+                        -ixmat_1D xmatras.1D -o $surf.gii
+      else
+         set echo
+         ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
+                        -ixmat_1D xmatras.1D -o $surf.gii
+      endif
+   endif
+
+   if ( ! -f $surf.${sex} ) then
+       echo "failure: could not create surface $surf.${sex}"
 
        if ( ! -w . ) then
       set endstr = "--> no write permissions in this directory"
@@ -528,17 +585,17 @@ L_CONVERT_SURFACES:
    endif
 
    if ( $debug ) then
-       echo "++ $surf.asc created"
-       if ( -f $start_dir/$suma_dir/$surf.asc ) then
-      echo "++ overwriting '$suma_dir/$surf.asc'"
+       echo "++ $surf.${sex} created"
+       if ( -f $start_dir/$suma_dir/$surf.${sex} ) then
+      echo "++ overwriting '$suma_dir/$surf.${sex}'"
        endif
    endif
 
-   \mv -f $surf.asc $start_dir/$suma_dir   # how barbaric!
+   \mv -f $surf.${sex} $start_dir/$suma_dir   # how barbaric!
 
    if ( $status ) then
        set endstr = ( "failure: cannot write"   \
-            "'$suma_dir/$surf.asc'" )
+            "'$suma_dir/$surf.${sex}'" )
        goto L_BAD_END
    endif
     end
@@ -651,7 +708,7 @@ L_CREATE_SPEC:
 
       set label_dset = ""      
        # check for SAME mapping ref
-       if ( "$surf.asc" == "$s_head.smoothwm.asc" ) then
+       if ( "$surf.${sex}" == "$s_head.smoothwm.${sex}" ) then
       set map_ref = SAME
          if ( -f ${hand}.aparc.a2005s.annot.niml.dset ) then
       set label_dset = ${hand}.aparc.a2005s.annot.niml.dset
@@ -660,7 +717,7 @@ L_CREATE_SPEC:
       set label_dset = ${hand}.aparc.a2009s.annot.niml.dset
          endif
        else
-      set map_ref = $s_head.smoothwm.asc
+      set map_ref = $s_head.smoothwm.${sex}
        endif
 
        # EmbedDimension is 2 for .flat surfaces, else 3
@@ -681,8 +738,8 @@ L_CREATE_SPEC:
        
        echo "NewSurface"               >> $spec_file
        echo "        SurfaceFormat = ASCII"      >> $spec_file
-       echo "        SurfaceType = FreeSurfer"      >> $spec_file
-       echo "        FreeSurferSurface = $surf.asc"   >> $spec_file
+       echo "        SurfaceType = ${stp}"      >> $spec_file
+       echo "        ${sfieldname} = $surf.${sex}"   >> $spec_file
        echo "        LocalDomainParent = $map_ref"      >> $spec_file
        echo "        SurfaceState = $s_state"      >> $spec_file
        echo "        EmbedDimension = $embed_ref"      >> $spec_file
@@ -755,7 +812,7 @@ L_CREATE_SPEC:
        
       set label_dset = ""
        # check for SAME mapping ref
-       if ( "$surf.asc" == "$s_head.smoothwm.asc" ) then
+       if ( "$surf.${sex}" == "$s_head.smoothwm.${sex}" ) then
       set map_ref = SAME
          if ( -f ${hand}.aparc.a2005s.annot.niml.dset ) then
       set label_dset = ${hand}.aparc.a2005s.annot.niml.dset
@@ -764,7 +821,7 @@ L_CREATE_SPEC:
       set label_dset = ${hand}.aparc.a2009s.annot.niml.dset
          endif
        else
-      set map_ref = $s_head.smoothwm.asc
+      set map_ref = $s_head.smoothwm.${sex}
        endif
 
        # EmbedDimension is 2 for .flat surfaces, else 3
@@ -785,8 +842,8 @@ L_CREATE_SPEC:
 
        echo "NewSurface"               >> $spec_file
        echo "        SurfaceFormat = ASCII"      >> $spec_file
-       echo "        SurfaceType = FreeSurfer"      >> $spec_file
-       echo "        FreeSurferSurface = $surf.asc"   >> $spec_file
+       echo "        SurfaceType = ${stp}"      >> $spec_file
+       echo "        ${sfieldname} = $surf.${sex}"   >> $spec_file
        echo "        LocalDomainParent = $map_ref"      >> $spec_file
        echo "        SurfaceState = $s_state"      >> $spec_file
        echo "        EmbedDimension = $embed_ref"      >> $spec_file
@@ -830,11 +887,14 @@ L_CREATE_BRICK:
          goto L_BAD_END
       endif
     else
-      if ($orig_mgz != "") then  
+      if ($orig_mgz != "" && $neuro_ori != -1) then  
          echo ""
          echo "Notice: Found COR files and $orig_mgz"
          echo "******** Will use COR files."
          echo ""
+      else if ($orig_mgz == "" && $neuro_ori == -1) then  
+         set endstr = "No orig_mgz found for -nocor option"
+         goto L_BAD_END
       endif
     endif
    
@@ -879,24 +939,6 @@ L_CREATE_BRICK:
       set zSLAB0 = `ccalc -eval '('$i1 - $i0 + 1')' \* $zthick / 2`
       set zSLAB1 = `ccalc -eval $zSLAB0 - $zthick`
 
-      if (0) then
-         echo "COR-.info:"
-         echo "i0,i1 = $i0, $i1, FOV = $FOV"
-         echo "nx,ny = $nx, $ny"
-         echo "pdim = $psize mm, thick = $zthick mm"
-         echo "SLABS: $xSLAB0..$xSLAB1, $ySLAB0..$ySLAB1, $zSLAB0..$zSLAB1"
-         if ( $neuro_ori == 1 ) then
-            echo "to3d -xSLAB $xSLAB0'L'-$xSLAB1'R' \
-                     -ySLAB $ySLAB0'S'-$ySLAB1'I' \
-                     -zSLAB $zSLAB0'P'-$zSLAB1'A' \
-                        '3Db:0:0:'$nx':'$ny':1:COR-???'"
-         else 
-            echo "to3d -xSLAB $xSLAB0'R'-$xSLAB1'L' \
-                     -ySLAB $ySLAB0'S'-$ySLAB1'I' \
-                     -zSLAB $zSLAB0'P'-$zSLAB1'A' \
-                        '3Db:0:0:'$nx':'$ny':1:COR-???'"
-         endif
-      endif
     
     if ( $neuro_ori == 1 ) then
       to3d -prefix $afni_prefix \
@@ -905,19 +947,35 @@ L_CREATE_BRICK:
                -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
       #to3d -prefix $afni_prefix -xSLAB 127L-128R -ySLAB 128S-127I \
       #  -zSLAB 128P-127A $cor_files
-    else
+    else if ( $neuro_ori == 0 ) then
       to3d -prefix $afni_prefix \
                -xSLAB $xSLAB0'R'-$xSLAB1'L' \
                -ySLAB $ySLAB0'S'-$ySLAB1'I' \
                -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
       #to3d -prefix $afni_prefix -xSLAB 128R-127L -ySLAB 128S-127I \
       #  -zSLAB 128P-127A $cor_files
+    else if ( $neuro_ori == -1 ) then
+      if ( "$orig_mgz" == '' ) then
+         set endstr = "Could not locate orig_mgz volume"
+         goto L_BAD_END
+      endif
+      mri_convert -ot nii $start_dir/$orig_mgz \
+                  $start_dir/$suma_dir/${orig_mgz:t:r}".nii"
+    else 
+      set endstr = "Bad value for neuro_ori of $neuro_ori"
+      goto L_BAD_END
     endif
 
-    mv $afni_dataset.HEAD $afni_dataset.BRIK* $start_dir/$suma_dir
+    if ( $neuro_ori == -1 ) then
+       mv $start_dir/$suma_dir/${orig_mgz:t:r}".nii"  \
+            $start_dir/$suma_dir/$afni_dataset.nii
+       echo "++ created AFNI file '$suma_dir/$afni_dataset.nii'"
+    else
+       mv $afni_dataset.HEAD $afni_dataset.BRIK* $start_dir/$suma_dir
 
-    echo "++ created AFNI file '$suma_dir/$afni_dataset.HEAD'"
-    echo "++ created AFNI file '$suma_dir/$afni_dataset.BRIK'"
+       echo "++ created AFNI file '$suma_dir/$afni_dataset.HEAD'"
+       echo "++ created AFNI file '$suma_dir/$afni_dataset.BRIK'"
+    endif
 
     cd $start_dir
     
@@ -930,7 +988,9 @@ L_CREATE_BRICK:
          mri_convert -ot nii $other $start_dir/$suma_dir/${other:t:r}".nii"
          #Now shift the damned volumes to match the surface volumes
          cd $start_dir/$suma_dir/
-         @Align_Centers -base $afni_dataset -dset ${other:t:r}".nii" -no_cp
+         if ($neuro_ori != -1 ) then
+            @Align_Centers -base $afni_dataset -dset ${other:t:r}".nii" -no_cp
+         endif
          if ( "${other:t:r}" == "aparc.a2005s+aseg" ||   \
               "${other:t:r}" == "aparc.a2009s+aseg" ||   \
               "${other:t:r}" == "aseg" ||   \
@@ -955,6 +1015,13 @@ L_CREATE_BRICK:
          endif
          cd - 
        end
+    endif
+    
+    #Change from orig space
+    if ( ${set_space} != '') then
+      cd $start_dir/$suma_dir/
+      3drefit -space ${set_space} *.nii* *.HEAD
+      cd -
     endif
       
 goto L_CREATE_BRICK_DONE
@@ -1077,6 +1144,21 @@ L_HELP_END:
     echo "          In the default radiological orientation, the subject's"
     echo "          right is on the left side of the image.  In the"
     echo "          neurological orientation, left is really left."
+    echo ""
+    echo "    -nocor          : Do not use COR volumes at all."
+    echo "            This option results in volumes and surfaces that"
+    echo "            are in alignment with the original volume that"
+    echo "            was used to create the surface. All volumes are"
+    echo "            written out NIFTI format, and all surfaces are"
+    echo "            in GIFTI format."
+    echo "            This option is incompatible with -neuro or -use_mgz"
+    echo "    -set_space  SPACE: Set the space flag of all volumes to"
+    echo "            SPACE (orig, MNI, TLRC, MNIa). The default is "
+    echo "            orig space."
+    echo "            You should only use this option when the volume you"
+    echo "            passed to FreeSurfer was not in 'orig' space."
+    echo "            Use '3dinfo -space YOUR_DATASET' to find the space "
+    echo "            of a certain dataset." 
     echo ""
     echo "    -sid SUBJECT_ID : required subject ID for file naming"
     echo ""

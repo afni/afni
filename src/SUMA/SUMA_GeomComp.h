@@ -59,6 +59,8 @@ typedef struct {
    int *N_IntersectedVoxels;  /*!< Number of voxels intersected by some triangle */
 } SUMA_VTI; /*!< Voxel Triangle Intersection Structure. Create with SUMA_CreateVTI, Destroy with SUMA_FreeVTI*/
 
+SUMA_Boolean SUMA_BuildRotationMatrix(double *C, double *Ax, 
+                                      double alpha, double mat[4][4]);
 int SUMA_BoundaryTriangles (SUMA_SurfaceObject *SO, int *boundt,
                             int boundt_asmask ); 
 

@@ -1403,6 +1403,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          {/* SUMA_crosshair_xyz */
             int found_type = 0;
             SUMA_SurfaceObject *SOaf=NULL;
+            DListElmt *Location=NULL;
             /* Do it for all viewers */
             for (iview = 0; iview < SUMAg_N_SVv; ++iview) {
                found_type = 0;
@@ -1659,16 +1660,26 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   }
 
                   /* send cross hair coordinates */
+                  if (SO && SO->VisX.Applied &&       /* apply VisX */
+                        SO->VisX.XformType > 0 && SO->VisX.XformType <= 2) { 
+                     SUMA_Apply_Coord_xform(XYZ,1,3, 
+                                       SO->VisX.Xform, 0,NULL);   
+                  }
                   ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
-                  if (!SUMA_RegisterEngineListCommand (  
+                  if (!(Location=SUMA_RegisterEngineListCommand (  
                                        list, ED, 
                                        SEF_fv3, (void*)XYZ,
                                        SES_SumaFromAfni, svi, NOPE,
-                                       SEI_Tail, NULL)) {
+                                       SEI_Tail, NULL))) {
                      fprintf(SUMA_STDERR,
                              "Error %s: Failed to register element\n", FuncName);
                      SUMA_RETURN (NOPE);
                   }
+                  /* and add the SO with this location*/
+                  SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_vp, (void *)SO,
+                                           SES_SumaFromAfni, (void *)svi, NOPE,
+                                           SEI_In, Location);
 
                   svi->ResetGLStateVariables = YUP; 
 
@@ -2082,7 +2093,8 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
 
    SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
    I_C = SO->SelectedNode;
-   XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c, SO, SUMAg_DOv, SUMAg_N_DOv, &I_C, 0);
+   XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c_noVisX, SO, 
+                             SUMAg_DOv, SUMAg_N_DOv, &I_C, 0);
    
    if (XYZmap == NULL){
       fprintf( SUMA_STDERR,

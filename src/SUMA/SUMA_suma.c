@@ -508,16 +508,19 @@ int main (int argc,char *argv[])
       if (strcmp(argv[kar], "-environment") == 0) {
 			 s = SUMA_env_list_help (0);
           fprintf (SUMA_STDOUT,  
-                  "#SUMA ENVIRONMENT \n"
-                  "# If you do not have a ~/.sumarc, \n"
-                  "# or you want to update yours with\n"
-                  "# new variables while keeping your\n"
-                  "# settings intact, you can use: \n"
-                  "#    suma -environment > ~/sumarc && mv ~/sumarc ~/.sumarc \n"
-                  "# \n"
-                  "# or more simply:\n"
-                  "#    suma -update_env\n"
-                  "***ENVIRONMENT\n"
+            "#SUMA ENVIRONMENT \n"
+            "# If you do not have a ~/.sumarc file, cannot find a SUMA\n"
+            "# environment variable that's been mentioned in documentation,\n"
+            "# or fervently desire to update your current ~/.sumarc with  \n"
+            "# all the latest variables that SUMA uses, you should run: \n"
+            "# \n"
+            "#    suma -update_env\n"
+            "# \n"
+            "# Updating your ~/.sumarc file thusly WILL NOT ALTER changes\n"
+            "# you have made to the variables in ~/.sumarc. Your settings will\n"
+            "# remain intact, so do run the update command after each upgrade\n"
+            "# of your AFNI/SUMA binaries.\n" 
+            "***ENVIRONMENT\n"
                   "%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);

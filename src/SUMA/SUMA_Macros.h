@@ -488,6 +488,32 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
+   \brief Reset quaternion values for default 3D view 
+*/
+#define SUMA_HOME_QUAT(vw,qq) { \
+   float m_a[3];  \
+   switch (vw) {\
+      case SUMA_2D_Z0: \
+         m_a[0] = 1.0; m_a[1] = 0.0; m_a[2] = 0.0; \
+         axis_to_quat(m_a, 0, qq);  \
+         break;   \
+      case SUMA_2D_Z0L: \
+         m_a[0] = 1.0; m_a[1] = 0.0; m_a[2] = 0.0; \
+         axis_to_quat(m_a, SUMA_PI, qq);  \
+         break;   \
+      case SUMA_3D_Z0:  \
+         m_a[0] = 1.0; m_a[1] = 0.0; m_a[2] = 0.0; \
+         axis_to_quat(m_a, 0, qq);  \
+         break;   \
+      default: \
+      case SUMA_3D:  \
+         *((qq)  ) =  0.252199; *((qq)+1) = -0.129341;  \
+         *((qq)+2) = -0.016295; *((qq)+3) = 0.958854; \
+         break;   \
+   }  \
+}
+
+/*!
    \brief Intersection of a segment with a plane
    \param p1 x y z of point 1
    \param p2 x y z of point 2
@@ -546,6 +572,80 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
       fprintf (SUMA_STDERR, "Error %s: Wrong Rendering Mode.\n", FuncName);   \
                   break;   \
             }  \
+   }
+
+#define SUMA_SET_GL_RENDER_MODE_TRACK(m_PolyMode, m_ust)  \
+   {  float m_fv[4]={0.0, 0.0, 0.0, 0.0};\
+      DList *m_st=m_ust;   \
+      switch (m_PolyMode) {   \
+               case SRM_Fill: \
+                  SUMA_GLStateTrack("set", &m_st, FuncName, \
+                      "GL_POLYGON_OFFSET_FILL", (void *)1); \
+                                 /* glEnable (GL_POLYGON_OFFSET_FILL);  */\
+                  m_fv[0] = 1.0; m_fv[1] = 1.0; \
+                  SUMA_GLStateTrack("set", &m_st, FuncName, \
+                      "glPolygonOffset", (void *)m_fv); \
+                                 /* glPolygonOffset(1.0, 1.0); */\
+                     /* Polygon offset is needed to deal with rendering
+                     lines that are coplanar with filled polygons.
+                     Without polygon offset, lines can get stripy under 
+                     certain angles, quite ugly. The effect is known as
+                     stitching, bleeding, or Z fighting. 
+             http://www.opengl.org/resources/faq/technical/polygonoffset.htm */ \
+                  m_fv[0] = GL_FRONT_AND_BACK; m_fv[1] = GL_FILL; \
+                  SUMA_GLStateTrack("set", &m_st, FuncName, \
+                      "glPolygonMode", (void *)m_fv); \
+                        /* glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);  */ \
+                  break;   \
+               case SRM_Line:  \
+                  SUMA_GLStateTrack("set", &m_st, FuncName, \
+                      "GL_POLYGON_OFFSET_FILL", (void *)0); \
+                        /* glDisable (GL_POLYGON_OFFSET_FILL); */ \
+                  m_fv[0] = GL_FRONT_AND_BACK; m_fv[1] = GL_LINE; \
+                  SUMA_GLStateTrack("set", &m_st, FuncName, \
+                      "glPolygonMode", (void *)m_fv); \
+                        /* glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); */  \
+                  break;   \
+               case SRM_Points:  \
+                  SUMA_GLStateTrack("set", &m_st, FuncName, \
+                      "GL_POLYGON_OFFSET_FILL", (void *)0); \
+                        /* glDisable (GL_POLYGON_OFFSET_FILL); */ \
+                  m_fv[0] = GL_FRONT_AND_BACK; m_fv[1] = GL_POINT; \
+                  SUMA_GLStateTrack("set", &m_st, FuncName, \
+                      "glPolygonMode", (void *)m_fv); \
+                        /*  glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); */ \
+                  break;   \
+               case SRM_ViewerDefault: \
+                  break;   \
+               case SRM_Hide: \
+                  break;   \
+               default: \
+      fprintf (SUMA_STDERR, "Error %s: Wrong Rendering Mode.\n", FuncName);   \
+                  break;   \
+            }  \
+   }
+         
+#define SUMA_SET_GL_TRANS_MODE(m_TransMode, m_ust)  \
+   {  DList *m_st=m_ust; \
+      if (m_TransMode == STM_0) { \
+         /* classic rendering, no polygon stippling*/ \
+         SUMA_LH("Setting GL_POLYGON_STIPPLE off");\
+         SUMA_GLStateTrack("set", &m_st, FuncName, \
+                      "GL_POLYGON_STIPPLE", (void *)0); \
+                  /* glDisable(GL_POLYGON_STIPPLE);  */ \
+         SUMA_LH("Setting GL_DEPTH_TEST on");   \
+         SUMA_GLStateTrack("set", &m_st, FuncName, \
+                      "GL_DEPTH_TEST", (void *)1); \
+                  /* glEnable(GL_DEPTH_TEST); */  \
+      } else { \
+         SUMA_LH("Setting GL_POLYGON_STIPPLE on");\
+         SUMA_GLStateTrack("set", &m_st, FuncName, \
+                      "GL_POLYGON_STIPPLE", (void *)1); \
+         glPolygonStipple(SUMA_StippleMask_shift(m_TransMode));   \
+         if (0) { SUMA_LH("Setting GL_DEPTH_TEST off");   \
+                  SUMA_GLStateTrack("set", &m_st,  \
+                      FuncName, "GL_DEPTH_TEST", (void *)0); }\
+      }   \
    }         
 
 #define SUMA_GLX_BUF_SWAP(sv) {\
@@ -566,7 +666,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 /*!
    \brief SO->Show is not quite not the end of the story
 */ 
-#define SO_SHOWING(SO,sv) ( SO->Show && SO->PolyMode != SRM_Hide && (SO->PolyMode != SRM_ViewerDefault || sv->PolyMode != SRM_Hide) )
+#define SO_SHOWING(SO,sv) ( SO->Show && SO->PolyMode != SRM_Hide && (SO->PolyMode != SRM_ViewerDefault || sv->PolyMode != SRM_Hide) && (SO->TransMode != STM_ViewerDefault || sv->TransMode != STM_16))
 
 /*!
    \brief set polymode
@@ -576,6 +676,16 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    else { SO->PolyMode = i; } \
    if (SO->PolyMode == SRM_Hide) { SO->Show = NOPE; } \
    else { SO->Show = YUP; }\
+}
+
+/*!
+   \brief set transmode
+*/ 
+#define SUMA_SET_SO_TRANSMODE(SO,i){ \
+   if (i < 0 || i >= STM_N_TransModes) { SO->TransMode = STM_ViewerDefault; }\
+   else { SO->TransMode = i; } \
+   if (SO->TransMode == STM_16) { SO->Show = NOPE; } \
+   else { SO->Show = YUP; } \
 }
 
 /*!
@@ -863,6 +973,9 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
           m_NORM_dest= sqrt(m_NORM_v1[0]*m_NORM_v1[0]+\
                             m_NORM_v1[1]*m_NORM_v1[1]+\
                             m_NORM_v1[2]*m_NORM_v1[2]);
+#define SUMA_NORM3(m_NORM_v1) ( sqrt(*((m_NORM_v1)  ) * *((m_NORM_v1)  )+\
+                                     *((m_NORM_v1)+1) * *((m_NORM_v1)+1)+\
+                                     *((m_NORM_v1)+2) * *((m_NORM_v1)+2) ) )
 #define SUMA_TRI_AREA(m_TRIAREA_n0,m_TRIAREA_n1,m_TRIAREA_n2, m_TRIAREA_A)  {\
       float m_TRIAREA_dv[3], m_TRIAREA_dw[3], m_TRIAREA_cross[3];  \
       SUMA_MT_SUB (m_TRIAREA_dv, m_TRIAREA_n1, m_TRIAREA_n0);  \
@@ -928,6 +1041,34 @@ Equations based on matlab script AxisRotate3D.m
    M[2][1] = m_yz_vera + m_x*m_sina; \
    M[2][2] = m_cosa + m_z * m_z * m_vera; \
 }
+
+/*!
+SUMA_3Dax_Rotation_Matrix(Ax, Alpha, M)
+Generate the rotation matrix for rotating an angle Alpha
+around unit length axis Ax.
+M: 3x3 rotation matrix
+*/
+
+#define SUMA_3Dax_Rotation_Matrix(AX, m_alpha, M)  { \
+   static double m_x, m_y, m_z, m_mag_u; \
+   static double m_xy_vera, m_xz_vera, m_yz_vera; \
+   static double m_cosa, m_sina, m_vera; \
+   m_x = AX[0]; m_y = AX[1]; m_z = AX[2]; \
+   m_cosa = cos(m_alpha); m_sina = sin(m_alpha); m_vera = 1 - m_cosa; \
+   m_xy_vera = m_x * m_y * m_vera; \
+   m_xz_vera = m_x * m_z * m_vera; m_yz_vera = m_y * m_z * m_vera;\
+   \
+   M[0][0] = m_cosa + m_x * m_x * m_vera; \
+   M[0][1] = m_xy_vera - m_z * m_sina; \
+   M[0][2] = m_xz_vera + m_y * m_sina; \
+   M[1][0] = m_xy_vera + m_z * m_sina; \
+   M[1][1] = m_cosa + m_y * m_y * m_vera; \
+   M[1][2] = m_yz_vera - m_x * m_sina; \
+   M[2][0] = m_xz_vera - m_y*m_sina; \
+   M[2][1] = m_yz_vera + m_x*m_sina; \
+   M[2][2] = m_cosa + m_z * m_z * m_vera; \
+}
+
    
 /*! 
 SUMA_ANGLE_DIST(p2,p1,cent,a,nrm)  
