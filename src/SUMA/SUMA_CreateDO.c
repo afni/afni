@@ -8015,7 +8015,11 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    if (SurfObj->PolyMode != SRM_ViewerDefault) {
      SUMA_LHv("Poly Mode %d\n", SurfObj->PolyMode);
      /* not the default, do the deed */
+     #if 0 /* Need to start using MACRO below, but it is not working yet */
      SUMA_SET_GL_RENDER_MODE_TRACK(SurfObj->PolyMode, st); 
+     #else
+     SUMA_SET_GL_RENDER_MODE(SurfObj->PolyMode);
+     #endif
    }
 
    /* check on rendering mode */
