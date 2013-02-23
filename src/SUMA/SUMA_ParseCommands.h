@@ -92,6 +92,7 @@ typedef struct {
    byte accept_s;
    byte accept_i;
    byte onestate; /* if 1, All -i surfaces will have the same state */
+   byte anatomical; /* if 1, All -i, -t surfs will be deemed anat. correct */
    byte accept_ipar;
    byte accept_o;
    byte accept_spec;
