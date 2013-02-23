@@ -3380,9 +3380,13 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 " Note that if the surface filename has the proper extension, \n"
 " it is enough to use the -i option and let the programs guess\n"
 " the type from the extension.\n"
-" By default, each -i_* surface has its own state. Precede all -i\n"
-" options with -onestate, if you want all -i_* surfaces to be of \n"
-" the same state.\n"
+"     -onestate: Make all -i_* surfaces have the same state, i.e.\n"
+"                they all appear at the same time in the viewer.\n"
+"                By default, each -i_* surface has its own state. \n"
+"                For -onestate to take effect, it must precede all -i\n"
+"                options with on the command line. \n"
+"     -anatomical: Label all -i surfaces as anatomically correct.\n"
+"                Again, this option should precede the -i_* options.\n"
       );
    }
    if (opt->accept_ipar) {
@@ -4116,6 +4120,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ++ps->s_N_surfnames;
             brk = YUP;
 	      }  
+      }
+      if (!brk && (strcmp(argv[kar], "-anatomical")==0 )) {
+         ps->arg_checked[kar]=1;
+         ps->anatomical = 1;
+         brk = YUP;
       }
       if (!brk && ps->accept_i) {
          char *tmp_i = NULL;
