@@ -5483,6 +5483,9 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
                spec->N_States = 1;
             }  
          }
+         if (ps->anatomical == 1) sprintf(spec->AnatCorrect[spec->N_Surfs],"Y");
+         else if (ps->anatomical == -1) 
+            sprintf(spec->AnatCorrect[spec->N_Surfs],"N");
          if (ps->i_group[i])  { 
             strcpy(spec->Group[spec->N_Surfs], ps->i_group[i]); 
          } else { strcpy(spec->Group[spec->N_Surfs], defgroup);  }
@@ -5585,6 +5588,9 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
             sprintf(spec->State[spec->N_Surfs], "iS_%d", spec->N_States); 
             ++spec->N_States; 
          }
+         if (ps->anatomical == 1) sprintf(spec->AnatCorrect[spec->N_Surfs],"Y");
+         else if (ps->anatomical == -1) 
+            sprintf(spec->AnatCorrect[spec->N_Surfs],"N");
          if (ps->t_group[i])  { 
             strcpy(spec->Group[spec->N_Surfs], ps->t_group[i]); 
          } else { strcpy(spec->Group[spec->N_Surfs], defgroup);  }

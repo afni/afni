@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 22, Feb , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Option -anatomical labels all -i_* -t_* surfs anatomically correct",
+   NULL
+ },
+
+ { 22, Feb , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Option -onestate put all -i_* surfs on command line in the same state",
+   NULL
+ },
+
  { 22, Feb , 2013 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Fixed FOV problems for auto setting and fixing zoom level across states",
    NULL
@@ -158,12 +168,6 @@ afni_history_struct ziad_history[] = {
  { 4, Feb , 2013 , ZSS , "R" , MICRO , TYPE_BUG_FIX,
    "Properly set IDCODE of new dsets, read .1D.dset as dset not matrix",
    NULL 
- },
-
- { 1, Feb , 2013 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
-   "SUMA_ContourThickness to control the tickness of dset contour lines",
-   "Addition made in response to Valentinos' feedback.\n"
-   "Documentation is in .sumarc file.\n" 
  },
 
  { 1, Feb , 2013 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
