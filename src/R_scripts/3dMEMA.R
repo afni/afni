@@ -1,4 +1,4 @@
-#!/usr/bin/env AFNI_Batch_R
+fqt#!/usr/bin/env AFNI_Batch_R
 #########
 ##  type 4 (two groups with heteroskedasticity) should NOT be used when modeling with different slope across groups
 #########
@@ -2455,12 +2455,14 @@ tTop <- 100   # upper bound for t-statistic
       for(i in 1:lop$myDim[1]) for(j in 1:lop$myDim[2]) for(k in 1:lop$myDim[3])
          outArr[i,j,k,m] <- tConvert(outArr[i,j,k,m], grpDFList[[1]][i,j,k,1], nDF) else {    
       # no covariate is involved with type 4
+      for(i in 1:lop$myDim[1]) for(j in 1:lop$myDim[2]) for(k in 1:lop$myDim[3]) {
       for(m in 1:2) # two individual group t
          #outArr[,,,2*ii] <- tConvert(outArr[,,,2*ii], grpDFList[[ii]][,,,1], lop$nSubj[ii] - 1)
          outArr[i,j,k,2*m] <- tConvert(outArr[i,j,k,2*m], grpDFList[[1]][i,j,k,1], lop$nSubj[m] - 1)
       # group diff t has a different situation about DFs
       #outArr[,,,6] <- tConvert(outArr[,,,6], sum(grpDFList[[1]], grpDFList[[2]])[,,,1]+1, nDF)
-      outArr[i,j,k,6] <- tConvert(outArr[i,j,k,6], sum(grpDFList[[1]], grpDFList[[2]])[i,j,k,1]+1, nDF)
+      outArr[i,j,k,6] <- tConvert(outArr[i,j,k,6], sum(grpDFList[[1]][i,j,k,1], grpDFList[[2]][i,j,k,1])+1, nDF)
+      }
       }
    }
    
