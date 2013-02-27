@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 20 , FEB , 2013 , RWC , "3dUnifize" , MINOR , TYPE_NEW_PROG ,
+  { 27 , FEB , 2013 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
+   "Added -GM option to stretch gray matter to a consistent-ish place" ,
+   NULL } ,
+
+ { 20 , FEB , 2013 , RWC , "3dUnifize" , MINOR , TYPE_NEW_PROG ,
    "Quick and dirty approximate spatial uniformization of T1 anats" ,
    "Mostly for use with 3dQwarp" } ,
 
