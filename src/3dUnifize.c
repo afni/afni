@@ -112,11 +112,14 @@ ENTRY("mri_double_up") ;
       for odd output indexes, use the neighboring indexes in the input. */
 
    for( kk=0 ; kk < nzg ; kk++ ){
-    kp = km = kk/2 ; if( kk%2 ){ kp++; if( kp >= nzf ) kp = nzf-1; }
+    kp = km = kk/2 ;  if( kp >= nzf ) kp = km = nzf-1 ;
+    if( kk%2 ){ kp++; if( kp >= nzf ) kp = nzf-1; }
     for( jj=0 ; jj < nyg ; jj++ ){
-      jp = jm = jj/2 ; if( jj%2 ){ jp++; if( jp >= nyf ) jp = nyf-1; }
+      jp = jm = jj/2 ;  if( jp >= nyf ) jp = jm = nyf-1 ;
+      if( jj%2 ){ jp++; if( jp >= nyf ) jp = nyf-1; }
       for( ii=0 ; ii < nxg ; ii++ ){
-        ip = im = ii/2 ; if( ii%2 ){ ip++; if( ip >= nxf ) ip = nxf-1; }
+        ip = im = ii/2 ;  if( ip >= nxf ) ip = im = nxf-1 ;
+        if( ii%2 ){ ip++; if( ip >= nxf ) ip = nxf-1; }
         FSUB(gar,ii,jj,kk,nxg,nxyg) =
           0.125f * ( FSUB(far,im,jm,km,nxf,nxyf) + FSUB(far,ip,jm,km,nxf,nxyf)
                     +FSUB(far,im,jp,km,nxf,nxyf) + FSUB(far,ip,jp,km,nxf,nxyf)
@@ -317,11 +320,14 @@ static float Upbot = 70.0f ;
 static float Uptop = 80.0f ;
 static float Uprad = 17.0f ;
 
-MRI_IMAGE * mri_unifize( MRI_IMAGE *fim )
+#define PKVAL 1000.0f
+#define PKMID  600.0f
+
+MRI_IMAGE * mri_WMunifize( MRI_IMAGE *fim )
 {
    MRI_IMAGE *pim, *gim ; float *par,*gar , pval ; int ii ;
 
-ENTRY("mri_unifize") ;
+ENTRY("mri_WMunifize") ;
 
    if( fim == NULL ) RETURN(NULL) ;
 
@@ -335,14 +341,57 @@ ENTRY("mri_unifize") ;
    /* scale input by the pim created above */
 
    for( ii=0 ; ii < gim->nvox ; ii++ ){
-     pval = par[ii] ;
-     gar[ii] = ( pval <= 0.0f ) ? 0.0f : 1000.0f * gar[ii] / pval ;
+     pval    = par[ii] ;
+     gar[ii] = (pval <= 0.0f) ? 0.0f : (PKVAL * gar[ii] / pval) ;
    }
 
-   if( verb ) fprintf(stderr,"D\n") ;
+   if( verb ) fprintf(stderr,"D") ;
 
    mri_free(pim) ;
    RETURN(gim) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void mri_GMunifize( MRI_IMAGE *gim )
+{
+   float *gar=MRI_FLOAT_PTR(gim) , *pval , pupper,plower,pmid,pfac ;
+   int ii,jj , npval , nvox=gim->nvox ;
+
+ENTRY("mri_GMunifize") ;
+
+   for( npval=ii=0 ; ii < nvox ; ii++ )
+     if( gar[ii] > PKVAL ) npval++ ;
+   if( npval < 999 ) EXRETURN ;   /* bad */
+
+   pval = (float *)malloc(sizeof(float)*npval) ;
+   for( ii=jj=0 ; ii < nvox ; ii++ )
+     if( gar[ii] >= PKVAL ) pval[jj++] = gar[ii] ;
+
+   pupper = qmed_float(npval,pval) ; free(pval) ;
+   pupper = PKVAL - 1.987654321f * (pupper-PKVAL) ;
+   plower = THD_cliplevel(gim,0.456789f) ;
+
+   for( npval=ii=0 ; ii < nvox ; ii++ )
+     if( gar[ii] >= plower && gar[ii] <= pupper) npval++ ;
+   if( npval < 111 ) EXRETURN ; /* bad */
+
+   pval = (float *)malloc(sizeof(float)*npval) ;
+   for( ii=jj=0 ; ii < nvox ; ii++ )
+     if( gar[ii] >= plower && gar[ii] <= pupper) pval[jj++] = gar[ii] ;
+
+   pmid = qmed_float(npval,pval) ; free(pval) ;
+   pfac = (PKVAL-PKMID) / (PKVAL-pmid) ;
+
+   for( ii=0 ; ii < nvox ; ii++ ){
+     if( gar[ii] < PKVAL ){
+       gar[ii] = pfac * (gar[ii]-PKVAL) + PKVAL ;
+       if( gar[ii] < 0.0f ) gar[ii] = 0.0f ;
+     }
+   }
+
+   if( verb ) fprintf(stderr,"E") ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -350,7 +399,7 @@ ENTRY("mri_unifize") ;
 
 int main( int argc , char *argv[] )
 {
-   int iarg , ct ;
+   int iarg , ct , do_GM=0 ;
    char *prefix = "Unifized" ;
    THD_3dim_dataset *inset=NULL , *outset ;
    MRI_IMAGE *imin , *imout ;
@@ -373,6 +422,7 @@ int main( int argc , char *argv[] )
             "Options:\n"
             "  -prefix pp = Use 'pp' for prefix of output dataset\n"
             "  -input dd  = Alternative way to specify input dataset\n"
+            "  -GM        = Also scale to unifize 'gray matter'\n"
             "\n"
             "-- Feb 2013 - RWCox\n"
            ) ;
@@ -415,6 +465,10 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-GM") == 0 ){
+       do_GM++ ; iarg++ ; continue ;
+     }
+
      ERROR_exit("Unknown option: %s\n",argv[iarg]);
    }
 
@@ -443,10 +497,16 @@ int main( int argc , char *argv[] )
 
    /* do all the actual work */
 
-   imout = mri_unifize(imin) ; free(imin) ;
+   imout = mri_WMunifize(imin) ; free(imin) ;
 
-   if( imout == NULL )
+   if( imout == NULL ){
+     if( verb ) fprintf(stderr,"\n") ;
      ERROR_exit("Can't compute Unifize-d dataset for some reason :-(") ;
+   }
+
+   if( do_GM ) mri_GMunifize(imout) ;
+
+   if( verb ) fprintf(stderr,"\n") ;
 
    /* create output dataset, and write it into the historical record */
 
