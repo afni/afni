@@ -4,8 +4,9 @@
 
 # do we want all of the 
 
-import sys
-import afni_base
+import sys, os
+import afni_base as BASE
+import afni_util as UTIL
 
 # whine about execution as a main program
 if __name__ == '__main__':
@@ -36,6 +37,9 @@ if __name__ == '__main__':
 #   03 Oct 2012 [rickr]:
 #     - add okdash parameter to option instances, to denote whether any
 #       parameters may have dashes
+#
+#   27 Feb 2013 [rickr]:
+#     - added Ziad's apsearch options: -all_opts, -h_find, -h_view
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -64,7 +68,7 @@ class OptionList:
                 okdash  : flag: if set, params are allowed to start with '-'
         """
         
-        com = afni_base.comopt(name, npar, deflist, acplist, helpstr)
+        com = BASE.comopt(name, npar, deflist, acplist, helpstr)
         com.required = req
         com.okdash = okdash
         if setpar: com.parlist = com.deflist
@@ -213,7 +217,15 @@ class OptionList:
 
     # rcr - improve this garbage
     def check_special_opts(self, argv):
-        """process known '-optlist_* options', nuking them from list"""
+        """process known '-optlist_* options' and other global_opts,
+           nuking them from argv
+
+           some options are terminal
+        """
+
+        # global options (some take a parameter)
+        global_opts = [ '-optlist_verbose', '-optlist_no_show_count',
+                        '-all_opts', '-h_find', '-h_view' ]
 
         alen = len(argv)
 
@@ -227,6 +239,36 @@ class OptionList:
             self.show_count = 0
             argv[ind:ind+1] = []
             if self.verb>1: print '++ optlist: clearing show_count'
+
+        # terminal options (all end in exit)
+        if '-all_opts' in argv:
+            oname = '-all_opts'
+            ind = argv.index(oname)
+            prog = os.path.basename(argv[0])
+            self.show(verb=1)
+            sys.exit(0)
+
+        if '-h_find' in argv:
+            oname = '-h_find'
+            ind = argv.index(oname)
+            prog = os.path.basename(argv[0])
+            if ind == alen-1:
+               print '** global opt %s needs %s option as parameter' \
+                     % (oname, prog)
+               sys.exit(1)
+            cmd = 'apsearch -phelp %s -word %s' % (prog, argv[ind+1])
+            if self.verb>1: print '++ optlist: applying %s via: %s'%(oname,cmd)
+            BASE.simple_shell_exec(cmd)
+            sys.exit(0)
+
+        if '-h_view' in argv:
+            oname = '-h_view'
+            ind = argv.index(oname)
+            prog = os.path.basename(argv[0])
+            cmd = 'apsearch -view_prog_help %s' % prog
+            if self.verb>1: print '++ optlist: applying %s via: %s'%(oname,cmd)
+            BASE.simple_shell_exec(cmd)
+            sys.exit(0)
 
         if self.verb > 1:
             print '-- argv: orig len %d, new len %d' % (alen,len(argv))
@@ -279,7 +321,7 @@ def read_options(argv, oplist, verb = -1):
             if verb > 3: print "-d remaining args: %s" % argv[ac:-1]
 
             # create new return option
-            newopt = afni_base.comopt(com.name, com.n_exp, com.deflist)
+            newopt = BASE.comopt(com.name, com.n_exp, com.deflist)
             newopt.i_name = ac          # current index into argv
             newopt.acceptlist = com.acceptlist
             newopt.required = com.required 
@@ -355,7 +397,7 @@ def read_options(argv, oplist, verb = -1):
                 return None
 
             # insert remaining args as trailers
-            newopt = afni_base.comopt('trailers', -1, [])
+            newopt = BASE.comopt('trailers', -1, [])
             newopt.n_found = alen - ac
             newopt.parlist = argv[ac:]
             if verb > 2: print "-- found trailing args: %s" % newopt.parlist
@@ -372,7 +414,7 @@ def read_options(argv, oplist, verb = -1):
                 print "** error: missing option %s" % co.name
                 return None
             elif len(co.deflist) > 0:  # use it
-                newopt = afni_base.comopt(co.name, len(co.deflist), co.deflist)
+                newopt = BASE.comopt(co.name, len(co.deflist), co.deflist)
                 newopt.parlist = newopt.deflist
                 # leave n_found at -1, so calling function knows
                 OL.olist.append(newopt) # insert newopt into our return list

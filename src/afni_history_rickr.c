@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Feb, 2013, RCR, "python-general", MICRO, TYPE_NEW_OPT,
+   "added Ziad's apsearch global options: -all_opts, -h_find, -h_view",
+   NULL
+ } ,
+
  { 21, Feb, 2013, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "small help update to include tshift block in example 5c",
    "Thanks to J Gonzalez bringing it up."
