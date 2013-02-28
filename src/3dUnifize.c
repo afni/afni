@@ -318,10 +318,10 @@ ENTRY("mri_local_percmean") ;
 
 static float Upbot = 70.0f ;
 static float Uptop = 80.0f ;
-static float Uprad = 17.0f ;
+static float Uprad = 18.3f ;
 
 #define PKVAL 1000.0f
-#define PKMID  600.0f
+#define PKMID  666.0f
 
 MRI_IMAGE * mri_WMunifize( MRI_IMAGE *fim )
 {
@@ -370,7 +370,7 @@ ENTRY("mri_GMunifize") ;
 
    pupper = qmed_float(npval,pval) ; free(pval) ;
    pupper = PKVAL - 1.987654321f * (pupper-PKVAL) ;
-   plower = THD_cliplevel(gim,0.456789f) ;
+   plower = THD_cliplevel(gim,0.4321f) ;
 
    for( npval=ii=0 ; ii < nvox ; ii++ )
      if( gar[ii] >= plower && gar[ii] <= pupper) npval++ ;
@@ -381,12 +381,15 @@ ENTRY("mri_GMunifize") ;
      if( gar[ii] >= plower && gar[ii] <= pupper) pval[jj++] = gar[ii] ;
 
    pmid = qmed_float(npval,pval) ; free(pval) ;
+
    pfac = (PKVAL-PKMID) / (PKVAL-pmid) ;
 
    for( ii=0 ; ii < nvox ; ii++ ){
-     if( gar[ii] < PKVAL ){
+     if( gar[ii] > 0.0f ){
        gar[ii] = pfac * (gar[ii]-PKVAL) + PKVAL ;
        if( gar[ii] < 0.0f ) gar[ii] = 0.0f ;
+     } else {
+       gar[ii] = 0.0f ;
      }
    }
 
@@ -423,6 +426,7 @@ int main( int argc , char *argv[] )
             "  -prefix pp = Use 'pp' for prefix of output dataset\n"
             "  -input dd  = Alternative way to specify input dataset\n"
             "  -GM        = Also scale to unifize 'gray matter'\n"
+            "               (to aid in registering images from different scanners)\n"
             "\n"
             "-- Feb 2013 - RWCox\n"
            ) ;
