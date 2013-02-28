@@ -11,7 +11,7 @@ if( $#argv > 0 ) then
   exit 0
 endif
 
-set basename = MNI152_1mm+tlrc
+set basename = MNI152_1mm_uni+tlrc
 set pfac     = 1
 
 set tpath = `@FindAfniDsetPath $basename`
@@ -59,7 +59,7 @@ echo " "
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
    nice 3dQwarp -prefix ${bbb}_uniC  -blur 0 -3 -penfac $pfac     \
-                -inilev 1  -minpatch 49  -nowarpi   -useweight \
+                -inilev 2  -minpatch 49  -nowarpi   -useweight \
                 -iniwarp ${bbb}_uniB_WARP+tlrc.HEAD  \
                 Qwarp_meanB+tlrc.HEAD $fred
 end
@@ -77,7 +77,7 @@ echo " "
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
    nice 3dQwarp -prefix ${bbb}_uniD  -blur 0 -2 -penfac $pfac     \
-                -inilev 4  -minpatch 23  -nowarpi  -useweight  \
+                -inilev 5  -minpatch 23  -nowarpi  -useweight  \
                 -iniwarp ${bbb}_uniC_WARP+tlrc.HEAD  \
                 Qwarp_meanC+tlrc.HEAD $fred
 end
@@ -95,7 +95,7 @@ echo " "
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
    nice 3dQwarp -prefix ${bbb}_uniE  -blur 0 -1 -penfac $pfac      \
-                -inilev 6  -minpatch 13 -whard 0  -useweight   \
+                -inilev 7  -minpatch 13 -whard 0  -useweight   \
                 -iniwarp ${bbb}_uniD_WARP+tlrc.HEAD  \
                 Qwarp_meanD+tlrc.HEAD $fred
 end

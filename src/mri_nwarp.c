@@ -5277,6 +5277,7 @@ DoneDoneDone:  /* breakout */
 
 static void *S2BIM_iwarp = NULL ;
 static int   S2BIM_ilev  = 0 ;
+static int   S2BIM_mlev  = 666 ;
 
 Image_plus_Warp * IW3D_warp_s2bim( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_IMAGE *sim,
                                    int interp_code , int meth_code , int warp_flags  )
@@ -5287,7 +5288,8 @@ Image_plus_Warp * IW3D_warp_s2bim( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_IMAGE 
 
 ENTRY("IW3D_warp_s2bim") ;
 
-   WO_iwarp = S2BIM_iwarp ; Hlev_start = S2BIM_ilev ; Hnpar_sum = 0 ; Hduplo = 0 ;
+   WO_iwarp = S2BIM_iwarp ; Hlev_start = S2BIM_ilev ; Hlev_end = S2BIM_mlev ;
+   Hnpar_sum = 0 ; Hduplo = 0 ;
 
    Hshrink = AFNI_numenv("AFNI_WARPOMATIC_SHRINK") ;
    if( Hshrink > 1.0f                       ) Hshrink = 1.0f / Hshrink ;

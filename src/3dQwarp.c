@@ -195,7 +195,7 @@ int main( int argc , char *argv[] )
    IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw ;
    char *prefix = "Qwarp" , ppp[256] ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
-   int ilev = 0 , nowarps = 0 ;
+   int ilev = 0 , nowarps = 0 , mlev = 666 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
@@ -293,7 +293,7 @@ int main( int argc , char *argv[] )
        "                    argument inside 'single' or \"double\" quotes, to protect\n"
        "                    it from interpretation by the Unix shell.\n"
        "\n"
-       " -inilev  lv   = 'lv' is the initial refinement 'level' at which to start.\n"
+       " -inilev lv    = 'lv' is the initial refinement 'level' at which to start.\n"
        "                * Usually used with -iniwarp; cannot be used with -duplo.\n"
        "\n"
        " -minpatch mm  = Set the minimum patch size for warp searching to 'mm' voxels.\n"
@@ -306,6 +306,13 @@ int main( int argc , char *argv[] )
        "                * To do only global warping (i.e., patch=size of whole dataset,\n"
        "                  with no refinement), set 'mm' to a value larger than the\n"
        "                  biggest dataset grid dimension (e.g., '-minpatch 666').\n"
+       "\n"
+       " -maxlev lv    = Here, 'lv' is the maximum refinement 'level' to use.\n"
+       "                 This is an alternate way to specify when the program should\n"
+       "                 stop. \n"
+       "                * To only do global polynomial warping, use '-maxlev 0'.\n"
+       "                * If you use both '-minpatch' and '-maxlev', then you are\n"
+       "                  living dangerously.\n"
        "\n"
        " -duplo        = Start off with 1/2 scale versions of the volumes,\n"
        "                 for getting a speedy coarse first alignment.\n"
@@ -394,6 +401,14 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-maxlev") == 0 ){
+       if( duplo          ) ERROR_exit("Cannot use -maxlev with -duplo :-(") ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+       mlev = (int)strtod(argv[nopt],NULL) ;
+       if( mlev < 0 ) mlev = 0 ; else if( mlev > 99 ) mlev = 99 ;
+       nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-iniwarp") == 0 ){
        char *apt=NULL ;
        if( duplo )
@@ -439,8 +454,8 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-duplo") == 0 ){
        if( iwset != NULL || iwvec != NULL )
          ERROR_exit("Cannot use -duplo with -iniwarp :-(") ;
-       if( ilev  != 0 )
-         ERROR_exit("Cannot use -duplo with -inilev :-(") ;
+       if( ilev != 0 || mlev != 0 )
+         ERROR_exit("Cannot use -duplo with -inilev or -maxlev :-(") ;
        duplo = 1 ; nopt++ ; continue ;
      }
 
@@ -556,8 +571,8 @@ int main( int argc , char *argv[] )
 
    if( (iwset != NULL || iwvec != NULL) && duplo )
      ERROR_exit("You cannot combine -iniwarp and -duplo !! :-((") ;
-   if( ilev != 0 && duplo )
-     ERROR_exit("You cannot combine -inilev and -duplo !! :-((") ;
+   if( (ilev != 0 || mlev != 0) && duplo )
+     ERROR_exit("You cannot combine -inilev or -maxlev and -duplo !! :-((") ;
 
    bset = THD_open_dataset(argv[nopt++]) ; if( bset == NULL ) ERROR_exit("Can't open bset") ;
    sset = THD_open_dataset(argv[nopt++]) ; if( sset == NULL ) ERROR_exit("Can't open sset") ;
@@ -596,6 +611,7 @@ int main( int argc , char *argv[] )
    }
 
    S2BIM_ilev = ilev ;
+   S2BIM_mlev = MAX(mlev,ilev) ;
 
    nnn = 0 ;
    if( nx >= NGMIN             ) nnn = nx ;
