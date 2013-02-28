@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.1, Feb 19, 2013
+Version 0.2.2, Feb 28, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.1, Feb 19, 2013
+Version 0.2.2, Feb 28, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -824,9 +824,9 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
-         gltRes[[n]] <- tryCatch(testInteractions(fm[[2]], custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
-            adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
-         if(is.null(gltRes[[n]])) fm <- NULL
+        gltRes[[n]] <- tryCatch(testInteractions(fm[[2]], custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
+            adjustment="none", idata = fm[["idata"]]), error=function(e) NA)
+         if(is.na(gltRes[[n]])) fm <- NULL
          n <- n+1
       }      
    }
