@@ -84,11 +84,7 @@ foreach fred ( `count -dig 1 1 $ndset` )
   echo "========================================================================="
   echo " "
 
-  3dUnifize -prefix ${pre}_uni -input $flist[$fred]
-##  3dLocalstat -nbhd 'SPHERE(17)' -stat perc:75 \
-##              -automask -use_nonmask -prefix ${pre}_p75 $flist[$fred]
-##  3dcalc -prefix ${pre}_uni -datum short \
-##         -a $flist[$fred] -b ${pre}_p75${vvv} -expr '1000*a/max(b,1)'
+  3dUnifize -prefix ${pre}_uni -GM -input $flist[$fred]
   @auto_tlrc -base $basename                \
              -input ${pre}_uni${vvv}        \
              -no_ss -init_xform AUTO_CENTER \
