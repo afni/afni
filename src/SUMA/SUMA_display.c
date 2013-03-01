@@ -272,11 +272,25 @@ SUMA_handleRedisplay(XtPointer closure)
             SUMA_RETURN(NOPE);
       }
    } 
-   #if 0 /* trying to fix horrible freeze on 10.5 */
+   #if 0 /* trying to fix horrible freeze on 10.5 
+            Actually this is also needed on 10.7, turning this option 
+            on fixes a crash which happens under the following scenario:
+            from suma_demo/afni, launch afni and run_suma with both hemis.,
+            't', the switch to inflated view, rotate colormap in AFNI,
+            'ctrl+s', load dset v2s.TS.lh.niml.dset, CRASH
+            For the crash to happen the surface controller, when first
+            opened needed to be initialized for FuncAfni dataset, that
+            is why I did the switching to the inflated view and did
+            one colormap rotation in AFNI. Otherwise it would initialize
+            with the convexity dset and it won't crash.
+            In the end I put in a judicious call to SUMA_SiSi_I_Insist()
+            in SUMA_LoadDsetOntoSO() to selectively set the rendering 
+            context instead of doing it at each redraw.*/
    SUMA_S_Note("Forcing Current Making");
    PleaseDoMakeCurrent = YUP;
    #endif
    if (PleaseDoMakeCurrent) {
+      SUMA_LHv("Making context current (GLXAREA %p)\n", sv->X->GLXAREA);
       /* An OpenGL rendering context is a port through which all OpenGL 
          commands pass. */
       /* Before rendering, a rendering context must be bound to the desired 
@@ -1758,12 +1772,11 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       
    glPopMatrix();   
    
-   if (LocalHead) 
-      fprintf (SUMA_STDOUT,
-               "%s: Flushing or swapping ...\n", FuncName);
+   SUMA_LHv("Flushing or swapping on %p\n", csv->X->GLXAREA);
    /* SUMA_HOLD_IT; Not used anymore */
    
    SUMA_GLX_BUF_SWAP(csv);
+   SUMA_LHv("Done Flushing or swapping on %p\n", csv->X->GLXAREA);
 
   /* Avoid indirect rendering latency from queuing. */
   if (!glXIsDirect(csv->X->DPY, csv->X->GLXCONTEXT))
@@ -4758,7 +4771,7 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
 	}
       }
    }
-   
+   SUMA_LH("Initializing ColPaneShell");
    SUMA_InitializeColPlaneShell(SO, SO->SurfCont->curColPlane);
 
 
@@ -4771,6 +4784,7 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    #else
    XIconifyWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SO->SurfCont->TLS), 0);
    #endif
+   SUMA_LH("Returnism")
    SUMA_RETURN(1);
 }
  
@@ -5797,8 +5811,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XtManageChild(rcv);
       XtManageChild(SO->SurfCont->Xhair_fr);
    }  /* Xhair Controls */
-    
-   SUMA_LH("Dset Mapping");
+
+   SUMA_LHv("\nDset Mapping, surface %s\n", SO->Label);
    {  /* Dset Mapping */
       Widget rcv;
       /* put a frame */
@@ -6683,13 +6697,18 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
    SUMA_Init_SurfCont_CrossHair(SO);
    
    /* set the colormap */
+   SUMA_LH("Cmap time");
    if (SO->SurfCont->cmp_ren->cmap_context) {
+      SUMA_LH("Rendering context not null");
       if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") == 0 ||
           SUMA_is_Label_dset(SO->SurfCont->curColPlane->dset_link, NULL)) {
+         SUMA_LH("Checking management");
          if (XtIsManaged(SO->SurfCont->DsetMap_fr)) {
             SUMA_LH("An RGB dset, or label dset no surface controls to be seen");
             XtUnmanageChild(SO->SurfCont->DsetMap_fr);
             XtUnmanageChild(XtParent(SO->SurfCont->DsetMap_fr));
+         }else {
+            SUMA_LH("An RGB dset, or label dset and no controls managed");
          }
       } else {
          if (!XtIsManaged(SO->SurfCont->DsetMap_fr)) {
@@ -6702,8 +6721,10 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
                XtManageChild(SO->SurfCont->DsetMap_fr);
             }
          }
+         SUMA_LH( "Handling redisplay");
          SUMA_cmap_wid_handleRedisplay((XtPointer) SO); 
 
+         SUMA_LH( "cmap options");
          /* set the widgets for dems mapping options */
          SUMA_set_cmap_options(SO, YUP, NOPE);
 
@@ -6721,7 +6742,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
       SUMA_LH("cmap_context was NULL");
    }
    
-   
+   SUMA_LH("Returning");
    SUMA_RETURN (YUP);
 }
 

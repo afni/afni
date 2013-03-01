@@ -2608,6 +2608,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  "%s: Redisplaying viewer %d.\n", FuncName, ii);
                      SUMAg_SVv[ii].ResetGLStateVariables = YUP;
                      SUMA_handleRedisplay((XtPointer)SUMAg_SVv[ii].X->GLXAREA);
+                     SUMA_LHv("Returned redisplaying viewer %d.\n", ii);
                   }
                }
             }

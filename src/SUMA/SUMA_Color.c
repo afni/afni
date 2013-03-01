@@ -8060,6 +8060,12 @@ void SUMA_LoadDsetOntoSO (char *filename, void *data)
       SUMA_S_Err("Failed initializing contraleteral controller"); 
       SUMA_RETURNe;
    }
+   /* insist on a glXMakeCurrent for surface viewer,
+      This is an effort to prevent a crash under certain conditions 
+      in OS X 10.7. See detailed comment SUMA_handleRedisplay().
+      Forcing glXMakeCurrent here is better than doing it always
+      in SUMA_handleRedisplay()*/
+   SUMA_SiSi_I_Insist();
    if (!SUMA_LoadDsetOntoSO_eng(fC, SOC, 1, 1, 1, NULL)) {
       SUMA_free(fC);
       SUMA_S_Err("Failed loading, and colorizing contralateral dset"); 
@@ -8216,6 +8222,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
    }
 
    if (SetupOverlay) {
+      SUMA_LH("Setting up overlay");
       OverInd = -1;
       {
          if (dset != dsetpre) { /* dset was pre-existing in the list */
@@ -8345,6 +8352,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
       if (NewColPlane->OptScl->Clusterize) 
          NewColPlane->OptScl->RecomputeClust = 1;
       /* colorize the plane */
+      SUMA_LH("Colorizing Plane");
       SUMA_ColorizePlane(NewColPlane);
 
       /* SUMA_Show_ColorOverlayPlanes(&NewColPlane, 1, 1); */
@@ -8363,6 +8371,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
    }
    
    if (LaunchDisplay) {
+      SUMA_LHv("Remix Redisplay %s\n", SO->Label);
       /* remix-redisplay  for surface */
       if (!SUMA_RemixRedisplay (SO)) {
          SUMA_RETURN(NOPE);

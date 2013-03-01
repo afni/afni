@@ -6903,6 +6903,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
          NULL);
       
       /* open me a glxarea */
+      SUMA_LH("Forming glxarea");
       #ifdef SUMA_MOTIF_GLXAREA
          SO->SurfCont->cmp_ren->cmap_wid = XtVaCreateManagedWidget("glxarea",
              glwMDrawingAreaWidgetClass, rcc2,
@@ -6923,6 +6924,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
       #endif
       XtManageChild (rcc2);
       
+      SUMA_LH("Callbacks on glxarea");
       /* add me some callbacks */
       XtAddCallback( SO->SurfCont->cmp_ren->cmap_wid, 
                      GLwNginitCallback, SUMA_cmap_wid_graphicsInit, 

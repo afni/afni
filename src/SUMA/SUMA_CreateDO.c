@@ -8502,6 +8502,8 @@ float *SUMA_VisX_CoordPointer(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_VisX_CoordPointer"};
    
+   SUMA_ENTRY;
+   
    if (!SO) SUMA_RETURN(NULL);
    if (SO->VisX.XformedCoords && !SO->VisX.Applied) {
       SUMA_S_Warn("Weird case 1, should not happen.\n"
