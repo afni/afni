@@ -197,6 +197,7 @@ int main( int argc , char *argv[] )
    int meth = GA_MATCH_PEARCLP_SCALAR ;
    int ilev = 0 , nowarps = 0 , mlev = 666 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
+   int flags = 0 ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dQwarp [OPTIONS] base_dataset source_dataset\n") ;
@@ -204,7 +205,7 @@ int main( int argc , char *argv[] )
        "\n"
        "* Computes a warped version of source_dataset to match base_dataset.\n"
        "\n"
-       "* Input datasets must be on the same grid!\n"
+       "* Input datasets must be on the same 3D grid!\n"
        "\n"
        "* Inputs should be reasonably well aligned already\n"
        "  (e.g., as from an affine warping via 3dAllineate).\n"
@@ -213,6 +214,17 @@ int main( int argc , char *argv[] )
        "\n"
        "* Matching by default is the 'clipped Pearson' method, and\n"
        "  can be changed to 'pure Pearson' with the '-pear' option.\n"
+       " ++ For the adventurous, you can also try these matching functions:\n"
+       "      '-hel' for Hellinger distance\n"
+       "      '-mi'  for Mutual Information\n"
+       "      '-nmi' for Normalized Mutual Information\n"
+       "    These options have not been extensively tested.\n"
+       " ++ At this time, the 'local Pearson' statistics have not\n"
+       "    been implemented in this program :-(\n"
+       "\n"
+       "* For aligning T1-weighted anatomical volumes, Zhark recommends that\n"
+       "  you use the 3dUnifize program to (approximately) spatially uniformize\n"
+       "  and normalize their intensities -- this helps in the matching process.\n"
        "\n"
        "OPTIONS\n"
        "-------\n"
@@ -273,6 +285,11 @@ int main( int argc , char *argv[] )
        "                 result back in the pre-surgery space, then you\n"
        "                 would use the inverse warp afterwards, via program\n"
        "                 3dNwarpCalc.\n"
+       "\n"
+       " -noXdis      = These options let you specify that the warp should not\n"
+       " -noYdis      = displace in the given direction.  For example, combining\n"
+       " -noZdis      = -noXdis and -noZdis would mean only warping along the\n"
+       "                y-direction would be allowed.\n"
        "\n"
        " -iniwarp ww   = 'ww' is a dataset with an initial nonlinear warp to use.\n"
        "                * If this option is not used, the initial warp is the identity.\n"
@@ -487,6 +504,16 @@ int main( int argc , char *argv[] )
        qsave = 1 ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-noXdis") == 0 ){
+       flags |= NWARP_NOXDIS_FLAG ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-noYdis") == 0 ){
+       flags |= NWARP_NOYDIS_FLAG ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-noZdis") == 0 ){
+       flags |= NWARP_NOZDIS_FLAG ; nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-emask") == 0 ){
        THD_3dim_dataset *eset ;
        if( Hemask != NULL ) ERROR_exit("Can't use -emask twice!") ;
@@ -540,7 +567,6 @@ int main( int argc , char *argv[] )
        prefix = strdup(argv[nopt]) ; nopt++ ; continue ;
      }
 
-#if 1
      if( strcasecmp(argv[nopt],"-hel") == 0 ){
        meth = GA_MATCH_HELLINGER_SCALAR ; nopt++ ; continue ;
      }
@@ -552,7 +578,6 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-nmi") == 0 ){
        meth = GA_MATCH_NORMUTIN_SCALAR ; nopt++ ; continue ;
      }
-#endif
 
      if( strcasecmp(argv[nopt],"-pcl") == 0 ){
        meth = GA_MATCH_PEARCLP_SCALAR ; nopt++ ; continue ;
@@ -564,6 +589,9 @@ int main( int argc , char *argv[] )
 
      ERROR_exit("Bogus option '%s'",argv[nopt]) ;
    }
+
+   if( flags == NWARP_NODISP_FLAG )
+     ERROR_exit("too many -no?dis flags ==> nothing to warp!") ;
 
    ct = NI_clock_time() ;
 
@@ -668,9 +696,9 @@ int main( int argc , char *argv[] )
    }
 
    if( duplo )
-     oiw = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_WSINC5 , meth , 0 ) ;
+     oiw = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_WSINC5 , meth , flags ) ;
    else
-     oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_WSINC5 , meth , 0 ) ;
+     oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_WSINC5 , meth , flags ) ;
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 

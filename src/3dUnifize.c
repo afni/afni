@@ -8,6 +8,8 @@ static int verb = 1 ;
 #undef  SORT2
 #define SORT2(a,b) if(a>b) SWAP(a,b)
 
+/*----- fast median-of-7 -----*/
+
 static INLINE float median7(float *p)
 {
     register float temp ;
@@ -19,7 +21,8 @@ static INLINE float median7(float *p)
 }
 
 /*---------------------------------------------------------------------------*/
-/* Shrink a 3D image down by a factor of 2 in all dimensions. */
+/* Shrink a 3D image down by a factor of 2 in all dimensions,
+   by taking the median of each point and its 6 nearest neighbors. */
 
 #undef  FSUB
 #define FSUB(far,i,j,k,ni,nij) far[(i)+(j)*(ni)+(k)*(nij)]
@@ -77,7 +80,7 @@ ENTRY("mri_double_down") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Expand a 3D image by a factor of 2 in all directions.
+/* Expand a 3D image by a factor of 2 in all directions, by averaging.
    Plus 1 more in x if xadd is nonzero, etc.
 *//*-------------------------------------------------------------------------*/
 
@@ -131,7 +134,8 @@ ENTRY("mri_double_up") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Find the percentile perc (0..100) in a radius of vrad voxels. */
+/* Find the percentile perc (0..100) in a radius of vrad voxels.
+   (Not really used in this program, but here it is if you want it.) */
 
 MRI_IMAGE * mri_local_percentile( MRI_IMAGE *fim , float vrad , float perc )
 {
@@ -152,7 +156,7 @@ ENTRY("mri_local_percentile") ;
    ams = mri_automask_image(aim) ;
    if( ams == NULL ){ mri_free(aim) ; RETURN(NULL) ; }
 
-   /* apply automask */
+   /* apply automask to image copy */
 
    for( ii=0 ; ii < aim->nvox ; ii++ ) if( ams[ii] == 0 ) aar[ii] = 0.0f ;
    free(ams) ;
@@ -239,15 +243,13 @@ ENTRY("mri_local_percmean") ;
 
    if( verb ) fprintf(stderr,"A") ;
 
-   /* create automask of input image */
+   /* create automask of copy of input image */
 
    aim = mri_to_float(fim) ; aar = MRI_FLOAT_PTR(aim) ;
    ams = mri_automask_image(aim) ;
    if( ams == NULL ){ mri_free(aim) ; RETURN(NULL) ; }
 
-   if( verb ) fprintf(stderr,"B") ;
-
-   /* apply automask to input image */
+   /* apply automask to copy of input image */
 
    for( ii=0 ; ii < aim->nvox ; ii++ ) if( ams[ii] == 0 ) aar[ii] = 0.0f ;
    free(ams) ;
@@ -258,7 +260,9 @@ ENTRY("mri_local_percmean") ;
    bms = (byte *)malloc(sizeof(byte)*bim->nvox) ;
    for( ii=0 ; ii < bim->nvox ; ii++ ) bms[ii] = (bar[ii] != 0.0f) ;
 
-   /* create neighborhood mask */
+   if( verb ) fprintf(stderr,"D") ;
+
+   /* create neighborhood mask (1/2 radius in the shrunken copy) */
 
    nbhd = MCW_spheremask( 1.0f,1.0f,1.0f , 0.5f*vrad+0.001f ) ;
    nbar = (float *)malloc(sizeof(float)*nbhd->num_pt) ;
@@ -275,7 +279,8 @@ ENTRY("mri_local_percmean") ;
    if( vstep ) fprintf(stderr," + Voxel loop: ") ;
 
    /* for each output voxel,
-        extract neighborhood array, sort it, average desired range */
+        extract neighborhood array, sort it, average desired range
+        (if I had the energy, I'd OpenMP-ize this, since it is slow). */
 
    for( vvv=kk=0 ; kk < nz ; kk++ ){
      for( jj=0 ; jj < ny ; jj++ ){
@@ -288,7 +293,7 @@ ENTRY("mri_local_percmean") ;
            qsort_float(nbar_num,nbar) ;
            if( nbar_num == 1 ){
              val = nbar[0] ;
-           } else {
+           } else {             /* average values from p1 to p2 */
              int q1,q2,qq ;
              q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;
              q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;
@@ -299,7 +304,7 @@ ENTRY("mri_local_percmean") ;
          FSUB(car,ii,jj,kk,nx,nxy) = val ;
    }}}
 
-   if( vstep ) fprintf(stderr,"*") ;
+   if( vstep ) fprintf(stderr,"!") ;
 
    mri_free(bim) ; free(bms) ; free(nbar) ; KILL_CLUSTER(nbhd) ;
 
@@ -307,7 +312,7 @@ ENTRY("mri_local_percmean") ;
 
    dim = mri_double_up( cim , fim->nx%2 , fim->ny%2 , fim->nz%2 ) ;
 
-   if( verb ) fprintf(stderr,"C") ;
+   if( verb ) fprintf(stderr,"U") ;
 
    mri_free(cim) ;
 
@@ -316,12 +321,14 @@ ENTRY("mri_local_percmean") ;
 
 /*---------------------------------------------------------------------------*/
 
-static float Upbot = 70.0f ;
+static float Upbot = 70.0f ;  /* percentile bottom and top */
 static float Uptop = 80.0f ;
-static float Uprad = 18.3f ;
+static float Uprad = 18.3f ;  /* sphere radius */
 
 #define PKVAL 1000.0f
 #define PKMID  666.0f
+
+/* White Matter uniformization */
 
 MRI_IMAGE * mri_WMunifize( MRI_IMAGE *fim )
 {
@@ -345,13 +352,14 @@ ENTRY("mri_WMunifize") ;
      gar[ii] = (pval <= 0.0f) ? 0.0f : (PKVAL * gar[ii] / pval) ;
    }
 
-   if( verb ) fprintf(stderr,"D") ;
+   if( verb ) fprintf(stderr,"W") ;
 
    mri_free(pim) ;
    RETURN(gim) ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Gray Matter normalization */
 
 void mri_GMunifize( MRI_IMAGE *gim )
 {
@@ -362,7 +370,7 @@ ENTRY("mri_GMunifize") ;
 
    for( npval=ii=0 ; ii < nvox ; ii++ )
      if( gar[ii] > PKVAL ) npval++ ;
-   if( npval < 999 ) EXRETURN ;   /* bad */
+   if( npval < 666 ) EXRETURN ;   /* beastly bad */
 
    pval = (float *)malloc(sizeof(float)*npval) ;
    for( ii=jj=0 ; ii < nvox ; ii++ )
@@ -374,7 +382,7 @@ ENTRY("mri_GMunifize") ;
 
    for( npval=ii=0 ; ii < nvox ; ii++ )
      if( gar[ii] >= plower && gar[ii] <= pupper) npval++ ;
-   if( npval < 111 ) EXRETURN ; /* bad */
+   if( npval < 111 ) EXRETURN ; /* badly bad */
 
    pval = (float *)malloc(sizeof(float)*npval) ;
    for( ii=jj=0 ; ii < nvox ; ii++ )
@@ -393,7 +401,7 @@ ENTRY("mri_GMunifize") ;
      }
    }
 
-   if( verb ) fprintf(stderr,"E") ;
+   if( verb ) fprintf(stderr,"G") ;
    EXRETURN ;
 }
 
@@ -416,9 +424,9 @@ int main( int argc , char *argv[] )
             "* The output dataset is always stored in float format.\n"
             "* If the input dataset has more than 1 sub-brick, only sub-brick\n"
             "  #0 will be processed.\n"
-            "* Method: my personal variant of Ziad's sneaky trick.\n"
+            "* Method: Zhark's personal variant of Ziad's sneaky trick.\n"
             "  (If you want to know what his trick is, you'll have to ask him,\n"
-            "  or read my source code, which of course is a world of fun and joy.)\n"
+            "  or read Zhark's source code, which is a world of fun and exultation.)\n"
             "* The principal motive for this program is for use in an image\n"
             "  registration script, and it may or may not be useful otherwise.\n"
             "\n"
@@ -426,9 +434,11 @@ int main( int argc , char *argv[] )
             "  -prefix pp = Use 'pp' for prefix of output dataset\n"
             "  -input dd  = Alternative way to specify input dataset\n"
             "  -GM        = Also scale to unifize 'gray matter'\n"
-            "               (to aid in registering images from different scanners)\n"
+            "               (to aid in registering images from different scanners).\n"
+            "               This option is recommended for use with 3dQwarp when\n"
+            "               aligning 2 T1-weighted volumes.\n"
             "\n"
-            "-- Feb 2013 - RWCox\n"
+            "-- Feb 2013 - Zhark the Normalizer\n"
            ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
