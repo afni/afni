@@ -310,6 +310,7 @@ extern void plot_ts_setthik( float thk ) ;                        /* 02 May 2012
 #define plot_ts_setthick plot_ts_setthik /* for clumsy typists */
 #define plot_ts_sethik   plot_ts_setthik
 #define plot_ts_sethick  plot_ts_setthik
+extern void plot_ts_setthik_12( int n1, int n2, float thk ) ;     /* 04 Mar 2013 */
 
 extern void plot_ts_lab( Display *,
                          int,float *, int,float **,
