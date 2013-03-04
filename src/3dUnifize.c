@@ -38,10 +38,14 @@ ENTRY("mri_double_down") ;
 
    if( fim == NULL ) RETURN(NULL) ;
 
+   /* process non-float image? */
+
    if( fim->kind != MRI_float ){
      MRI_IMAGE *qim = mri_to_float(fim) ;
      gim = mri_double_down(qim) ; mri_free(qim) ; RETURN(gim) ;
    }
+
+   /* f=input  g=output */
 
    nxf = fim->nx ; nyf = fim->ny ; nzf = fim->nz ;
    nxg = nxf / 2 ; if( nxg < 1 ) nxg = 1 ;
@@ -66,12 +70,12 @@ ENTRY("mri_double_down") ;
       for( ii=0 ; ii < nxg ; ii++ ){
         iuu = 2*ii ; ium = iuu-1 ; if( ium <  0   ) ium = 0 ;
                      iup = iuu+1 ; if( iup >= nxf ) iup = nxf-1 ;
-        par[0] = FSUB(far,iuu,juu,kuu,nxf,nxyf) ;
-        par[1] = FSUB(far,ium,juu,kuu,nxf,nxyf) ;
-        par[2] = FSUB(far,iup,juu,kuu,nxf,nxyf) ;
-        par[3] = FSUB(far,iuu,jum,kuu,nxf,nxyf) ;
-        par[4] = FSUB(far,iuu,jup,kuu,nxf,nxyf) ;
-        par[5] = FSUB(far,iuu,juu,kum,nxf,nxyf) ;
+        par[0] = FSUB(far,iuu,juu,kuu,nxf,nxyf) ;  /* load par */
+        par[1] = FSUB(far,ium,juu,kuu,nxf,nxyf) ;  /* with the */
+        par[2] = FSUB(far,iup,juu,kuu,nxf,nxyf) ;  /* 7 values */
+        par[3] = FSUB(far,iuu,jum,kuu,nxf,nxyf) ;  /* at and   */
+        par[4] = FSUB(far,iuu,jup,kuu,nxf,nxyf) ;  /* around   */
+        par[5] = FSUB(far,iuu,juu,kum,nxf,nxyf) ;  /* the voxel */
         par[6] = FSUB(far,iuu,juu,kup,nxf,nxyf) ;
         FSUB(gar,ii,jj,kk,nxg,nxyg) = median7(par) ;
    }}}
@@ -94,10 +98,14 @@ ENTRY("mri_double_up") ;
 
    if( fim == NULL ) RETURN(NULL) ;
 
+   /* process a non-float image? */
+
    if( fim->kind != MRI_float ){
      MRI_IMAGE *qim = mri_to_float(fim) ;
      gim = mri_double_up(qim,xadd,yadd,zadd) ; mri_free(qim) ; RETURN(gim) ;
    }
+
+   /* f=input  g=output */
 
    nxf = fim->nx ; nyf = fim->ny ; nzf = fim->nz  ;
 
@@ -213,7 +221,7 @@ ENTRY("mri_local_percentile") ;
 
 /*---------------------------------------------------------------------------*/
 
-static void vstep_print(void)
+static void vstep_print(void)  /* for -verb voxel loop message */
 {
    static char xx[10] = "0123456789" ; static int vn=0 ;
    fprintf(stderr , "%c" , xx[vn%10] ) ;
@@ -239,6 +247,8 @@ ENTRY("mri_local_percmean") ;
 
    if( fim == NULL || vrad < 4.0f || p1 < 0.0f || p2 > 100.0f ) RETURN(NULL) ;
 
+   /* just one percentile? */
+
    if( p1 == p2 ) RETURN( mri_local_percentile(fim,vrad,p1) ) ;
 
    if( verb ) fprintf(stderr,"A") ;
@@ -256,11 +266,11 @@ ENTRY("mri_local_percmean") ;
 
    /* shrink image by 2 for speed */
 
+   if( verb ) fprintf(stderr,"D") ;
+
    bim = mri_double_down(aim) ; bar = MRI_FLOAT_PTR(bim) ; mri_free(aim) ;
    bms = (byte *)malloc(sizeof(byte)*bim->nvox) ;
    for( ii=0 ; ii < bim->nvox ; ii++ ) bms[ii] = (bar[ii] != 0.0f) ;
-
-   if( verb ) fprintf(stderr,"D") ;
 
    /* create neighborhood mask (1/2 radius in the shrunken copy) */
 
@@ -272,11 +282,9 @@ ENTRY("mri_local_percmean") ;
 
    nx = bim->nx ; ny = bim->ny ; nz = bim->nz ; nxy = nx*ny ;
 
-   vstep = (nxy*nz)/50 ; if( !verb || vstep < 10 ) vstep = 0 ;
+   vstep = (verb) ? (nxy*nz)/50 : 0 ;
 
-   if( verb ) fprintf(stderr,"\n") ;
-
-   if( vstep ) fprintf(stderr," + Voxel loop: ") ;
+   if( vstep ) fprintf(stderr,"\n + Voxel loop: ") ;
 
    /* for each output voxel,
         extract neighborhood array, sort it, average desired range
@@ -287,16 +295,16 @@ ENTRY("mri_local_percmean") ;
        for( ii=0 ; ii < nx ; ii++,vvv++ ){
          if( vstep && vvv%vstep == vstep-1 ) vstep_print() ;
          nbar_num = mri_get_nbhd_array( bim,bms , ii,jj,kk , nbhd,nbar ) ;
-         if( nbar_num < 1 ){
+         if( nbar_num < 1 ){              /* no data */
            val = 0.0f ;
          } else {
-           qsort_float(nbar_num,nbar) ;
-           if( nbar_num == 1 ){
+           qsort_float(nbar_num,nbar) ;   /* sort */
+           if( nbar_num == 1 ){           /* stoopid case */
              val = nbar[0] ;
-           } else {             /* average values from p1 to p2 */
+           } else {             /* average values from p1 to p2 percentiles */
              int q1,q2,qq ;
-             q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;
-             q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;
+             q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;  /* p1 location */
+             q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;  /* p2 location */
              for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
              val /= (q2-q1+1.0f) ;
            }
@@ -342,10 +350,11 @@ ENTRY("mri_WMunifize") ;
 
    pim = mri_local_percmean( fim , Uprad , Upbot,Uptop ) ;
    if( pim == NULL ) RETURN(NULL) ;
-   gim = mri_to_float(fim) ;
-   par = MRI_FLOAT_PTR(pim) ; gar = MRI_FLOAT_PTR(gim) ;
+   gim = mri_to_float(fim) ;    /* output = copy of input image */
+   gar = MRI_FLOAT_PTR(gim) ;
+   par = MRI_FLOAT_PTR(pim) ;   /* scaling image */
 
-   /* scale input by the pim created above */
+   /* scale output by the pim created above */
 
    for( ii=0 ; ii < gim->nvox ; ii++ ){
      pval    = par[ii] ;
@@ -368,27 +377,43 @@ void mri_GMunifize( MRI_IMAGE *gim )
 
 ENTRY("mri_GMunifize") ;
 
+   /* extract all values above the WM-unifized peak value */
+
    for( npval=ii=0 ; ii < nvox ; ii++ )
      if( gar[ii] > PKVAL ) npval++ ;
-   if( npval < 666 ) EXRETURN ;   /* beastly bad */
+   if( npval < 111 ) EXRETURN ;   /* 1/6 of being beastly bad */
 
    pval = (float *)malloc(sizeof(float)*npval) ;
    for( ii=jj=0 ; ii < nvox ; ii++ )
      if( gar[ii] >= PKVAL ) pval[jj++] = gar[ii] ;
 
+   /* get the median of these large values */
+
    pupper = qmed_float(npval,pval) ; free(pval) ;
+
+   /* reflect below the peak value to get the upper cutoff for GM */
+
    pupper = PKVAL - 1.987654321f * (pupper-PKVAL) ;
+
+   /* set the lower cutoff for GM from the AFNI auto-clip level */
+
    plower = THD_cliplevel(gim,0.4321f) ;
+
+   /* extract all values between these 2 cutoffs */
 
    for( npval=ii=0 ; ii < nvox ; ii++ )
      if( gar[ii] >= plower && gar[ii] <= pupper) npval++ ;
-   if( npval < 111 ) EXRETURN ; /* badly bad */
+   if( npval < 111 ) EXRETURN ;    /* badly bad */
 
    pval = (float *)malloc(sizeof(float)*npval) ;
    for( ii=jj=0 ; ii < nvox ; ii++ )
      if( gar[ii] >= plower && gar[ii] <= pupper) pval[jj++] = gar[ii] ;
 
+   /* compute the median of these intermediate-value 'GM' voxels */
+
    pmid = qmed_float(npval,pval) ; free(pval) ;
+
+   /* scale globally to put this pmid value at a standard value for GM */
 
    pfac = (PKVAL-PKMID) / (PKVAL-pmid) ;
 
@@ -418,25 +443,28 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dUnifize [options] inputdataset\n"
             "* The input dataset is supposed to be a T1-weighted volume,\n"
-            "  preferably already skull-stripped (via 3dSkullStrip).\n"
-            "* The output dataset has the white matter intensity approximately\n"
-            "  uniformized across space.\n"
-            "* The output dataset is always stored in float format.\n"
+            "  preferably already skull-stripped (e.g., via 3dSkullStrip).\n"
+            "* The output dataset has the white matter (WM) intensity approximately\n"
+            "  uniformized across space, and scaled to peak at about 1000.\n"
+            "* The output dataset is always stored in float format!\n"
             "* If the input dataset has more than 1 sub-brick, only sub-brick\n"
             "  #0 will be processed.\n"
             "* Method: Zhark's personal variant of Ziad's sneaky trick.\n"
             "  (If you want to know what his trick is, you'll have to ask him,\n"
-            "  or read Zhark's source code, which is a world of fun and exultation.)\n"
+            "  or read Zhark's source code, which is a world of fun and exaltation.)\n"
             "* The principal motive for this program is for use in an image\n"
             "  registration script, and it may or may not be useful otherwise.\n"
             "\n"
             "Options:\n"
-            "  -prefix pp = Use 'pp' for prefix of output dataset\n"
-            "  -input dd  = Alternative way to specify input dataset\n"
-            "  -GM        = Also scale to unifize 'gray matter'\n"
+            "  -prefix pp = Use 'pp' for prefix of output dataset.\n"
+            "  -input dd  = Alternative way to specify input dataset.\n"
+            "  -GM        = Also scale to unifize 'gray matter' = lower intensit¥ voxels\n"
             "               (to aid in registering images from different scanners).\n"
-            "               This option is recommended for use with 3dQwarp when\n"
-            "               aligning 2 T1-weighted volumes.\n"
+            "              ++ This option is recommended for use with 3dQwarp when\n"
+            "                 aligning 2 T1-weighted volumes, in order to make the\n"
+            "                 WM-GM contrast about the same for the datasets, even\n"
+            "                 if they don't come from the same scanner/pulse-sequence.\n"
+            "  -quiet     = Don't print so many fun progress messages (but whyyyy?).\n"
             "\n"
             "-- Feb 2013 - Zhark the Normalizer\n"
            ) ;
@@ -445,6 +473,8 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dUnifize main"); machdep(); AFNI_logger("3dUnifize",argc,argv);
    PRINT_VERSION("3dUnifize") ;
+
+   ct = NI_clock_time() ;
 
    /*-- scan command line --*/
 
@@ -483,10 +513,17 @@ int main( int argc , char *argv[] )
        do_GM++ ; iarg++ ; continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-quiet") == 0 ){
+       verb = 0 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-verb") == 0 ){
+       verb++ ; iarg++ ; continue ;
+     }
+
      ERROR_exit("Unknown option: %s\n",argv[iarg]);
    }
 
-   /* read input dataset? */
+   /* read input dataset, if not already there */
 
    if( inset == NULL ){
      if( iarg >= argc ) ERROR_exit("No dataset name on command line?\n") ;
@@ -494,31 +531,30 @@ int main( int argc , char *argv[] )
      CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
 
-   ct = NI_clock_time() ;
-
    if( verb ) fprintf(stderr," + Pre-processing: ") ;
 
-   /* load from disk */
+   /* load input from disk */
 
    DSET_load( inset ) ; CHECK_LOAD_ERROR(inset) ;
    if( DSET_NVALS(inset) > 1 )
-     WARNING_message("Only processing sub-brick #0") ;
+     WARNING_message("Only processing sub-brick #0 (out of %d)",DSET_NVALS(inset)) ;
 
    /* make a float copy for processing */
 
    imin = mri_to_float( DSET_BRICK(inset,0) ) ; DSET_unload(inset) ;
-   if( imin == NULL ) ERROR_exit("Can't copy input dataset brick") ;
+   if( imin == NULL ) ERROR_exit("Can't copy input dataset brick?!") ;
 
-   /* do all the actual work */
+   /* do the actual work */
 
-   imout = mri_WMunifize(imin) ; free(imin) ;
+   imout = mri_WMunifize(imin) ;          /* local WM scaling */
+   free(imin) ;
 
-   if( imout == NULL ){
+   if( imout == NULL ){                   /* this is bad-ositiness */
      if( verb ) fprintf(stderr,"\n") ;
      ERROR_exit("Can't compute Unifize-d dataset for some reason :-(") ;
    }
 
-   if( do_GM ) mri_GMunifize(imout) ;
+   if( do_GM ) mri_GMunifize(imout) ;     /* global GM scaling */
 
    if( verb ) fprintf(stderr,"\n") ;
 
@@ -535,6 +571,7 @@ int main( int argc , char *argv[] )
    tross_Make_History( "3dUnifize" , argc,argv , outset ) ;
    DSET_write(outset) ;
    WROTE_DSET(outset) ;
+   DSET_delete(outset) ; DSET_delete(inset) ;
 
    /* vamoose the ranch */
 
