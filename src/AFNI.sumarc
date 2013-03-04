@@ -1,49 +1,352 @@
-#SUMA DEFAULTS
+#SUMA ENVIRONMENT 
+# If you do not have a ~/.sumarc file, cannot find a SUMA
+# environment variable that's been mentioned in documentation,
+# or fervently desire to update your current ~/.sumarc with  
+# all the latest variables that SUMA uses, you should run: 
+# 
+#    suma -update_env
+# 
+# Unless you have setup SUMA environment variables outside of
+# your ~/.sumarc file, updating your ~/.sumarc file with 
+# 'suma -update_env' WILL NOT ALTER changes you have already
+# made to the variables in your current ~/.sumarc. 
+# For this reason consider running the update command after each 
+# upgrade of your AFNI/SUMA binaries.
 ***ENVIRONMENT
-//1- incremental arrow rotation angle in degrees
- SUMA_ArrowRotAngle = 5
-//2- color pattern (AFNI, EURO, DEFAULT) 
- SUMA_ColorPattern =  EURO
-//3- swap mouse buttons 1 and 3
- SUMA_SwapButtons_1_3 = NO
-//4- background color r g b. No space between values
- SUMA_BackgroundColor = 0.0,0.0,0.0
-//5- ROI color map (bgyr64, roi64, roi128, roi256)
- SUMA_ROIColorMap = roi256
-//6- Number of smoothing operations to run on convexity data, default is 5
- SUMA_NumConvSmooth = 8
-//7- Colormap for convexity (gray02, gray_i02, ngray20, bgyr64, etc.)
- SUMA_ConvColorMap = gray02
-//8- Brightness factor for convexity (default is 0.5)
- SUMA_ConvBrightFactor = 0.5
-//9- Number of smoothing operations to run on mixed foregroung color plane before mixing with background
- SUMA_NumForeSmoothing = 0
-//10- Setup the color mixing mode (ORIG, MOD1) 
- SUMA_ColorMixingMode = ORIG
-//11- Port for communicating with AFNI
-//Listening ports are derived from SUMA_AFNI_TCP_PORT 
-//Listening port i = SUMA_AFNI_TCP_PORT + i (i > 0)
- SUMA_AFNI_TCP_PORT = 53211
-//12- Warn before closing with the Escape key (YES/NO, default is YES)
- SUMA_WarnBeforeClose = YES
-//13- Mask node values = 0 ? YES(default)/NO
-SUMA_MaskZero = YES
-//14- Threshold if Val < thr (NO) or | Val | < | Thr | (YES, default)
-SUMA_AbsThreshold = NO
-//15- Threshold scale precision. 2 is the default and the minimum. This value might be overriden in SUMA.
-SUMA_ThresholdScalePower = 2 
-//16- Center of Rotation is based on nodes used in the mesh and not on all the nodes in NodeList (NOPE, default)
-SUMA_CenterOnPatch = YES
-//17- Use cross ticks on axis ?
-SUMA_UseCrossTicks = NO
-//18- Warn if 1D file looks like it needs a transpose
-SUMA_1D_Transponse_Warn = YES
-//19- Adjust roation and translation factor of mouse with changes in zoom levels (YES, default)
-SUMA_AdjustMouseMotionWithZoom = YES
-//20- Use orthographic projection (NOPE, default)
-SUMA_ViewOrthographicProjection = NOPE
-//21- Percent gain for zooming in and out with the 'z' and 'Z' keys. Typical range from 0 to 50, default is 5
-SUMA_KeyZoomGain = 5
-//22- Original FOV. Set between 1.0 and 100.0. Default is 30.0
-SUMA_FOV_Original = 30.0
+// 000-SUMA_ArrowRotAngle:
+//     Incremental arrow rotation angle in degrees
+//     default:   SUMA_ArrowRotAngle = 5
+   SUMA_ArrowRotAngle = 5
+// 001-SUMA_ColorPattern:
+//     Color pattern (AFNI, EURO, DEFAULT)
+//     default:   SUMA_ColorPattern = EURO
+   SUMA_ColorPattern = EURO
+// 002-SUMA_SwapButtons_1_3:
+//     Swap mouse buttons 1 and 3
+//     default:   SUMA_SwapButtons_1_3 = NO
+   SUMA_SwapButtons_1_3 = NO
+// 003-SUMA_BackgroundColor:
+//     Background color r g b. No space between values
+//     default:   SUMA_BackgroundColor = 0.0,0.0,0.0
+   SUMA_BackgroundColor = 0.0,0.0,0.0
+// 004-SUMA_ROIColorMap:
+//     ROI color map (bgyr64, roi64, roi128, roi256)
+//     default:   SUMA_ROIColorMap = ROI_i256
+   SUMA_ROIColorMap = ROI_i256
+// 005-SUMA_NumConvSmooth:
+//     Number of smoothing operations to run on convexity data
+//     default:   SUMA_NumConvSmooth = 5
+   SUMA_NumConvSmooth = 5
+// 006-SUMA_ConvColorMap:
+//     Colormap for convexity (gray02, gray_i02, ngray20, bgyr64, etc.)
+//     default:   SUMA_ConvColorMap = gray02
+   SUMA_ConvColorMap = gray02
+// 007-SUMA_ConvBrightFactor:
+//     Brightness factor for convexity 
+//     default:   SUMA_ConvBrightFactor = 0.5
+   SUMA_ConvBrightFactor = 0.5
+// 008-SUMA_NumForeSmoothing:
+//     Number of smoothing operations to run on mixed foregroung color plane
+//       before mixing with background
+//     default:   SUMA_NumForeSmoothing = 0
+   SUMA_NumForeSmoothing = 0
+// 009-SUMA_NumFinalSmoothing:
+//     Number of smoothing operations to run on final set of mixed colors.
+//       This would be the mixed foreground and background colors
+//     default:   SUMA_NumFinalSmoothing = 0
+   SUMA_NumFinalSmoothing = 0
+// 010-SUMA_ColorMixingMode:
+//     Setup the color mixing mode (ORIG, MOD1) 
+//     default:   SUMA_ColorMixingMode = ORIG
+   SUMA_ColorMixingMode = ORIG
+// 011-SUMA_AFNI_TCP_PORT:
+//     ** OBSOLETE: Port for communicating with AFNI
+//                    Listening ports are derived from SUMA_AFNI_TCP_PORT
+//                    Listening port i
+//                    SUMA_AFNI_TCP_PORT + i (i > 0)
+//     default:   SUMA_AFNI_TCP_PORT = 0
+   SUMA_AFNI_TCP_PORT = 0
+// 012-SUMA_WarnBeforeClose:
+//     Warn before closing with the Escape key (YES/NO)
+//     default:   SUMA_WarnBeforeClose = YES
+   SUMA_WarnBeforeClose = YES
+// 013-SUMA_MaskZero:
+//     Mask node values
+//       0 ? YES/NO
+//     default:   SUMA_MaskZero = YES
+   SUMA_MaskZero = YES
+// 014-SUMA_AbsThreshold:
+//     Threshold if Val < thr (NO) or | Val | < | Thr | (YES)
+//     default:   SUMA_AbsThreshold = YES
+   SUMA_AbsThreshold = YES
+// 015-SUMA_ThresholdScalePower:
+//     Threshold scale precision. 2 is the minimum allowed. 
+//       This value might be overriden in SUMA.
+//     default:   SUMA_ThresholdScalePower = 2
+   SUMA_ThresholdScalePower = 2
+// 016-SUMA_CenterOnPatch:
+//     Center of Rotation is based on nodes used in the mesh and not 
+//       on all the nodes in NodeList
+//     default:   SUMA_CenterOnPatch = NO
+   SUMA_CenterOnPatch = NO
+// 017-SUMA_UseCrossTicks:
+//     Use cross ticks on axis ?
+//     default:   SUMA_UseCrossTicks = NO
+   SUMA_UseCrossTicks = NO
+// 018-SUMA_1D_Transpose_Warn:
+//     Warn if 1D file looks like it needs a transpose
+//     default:   SUMA_1D_Transpose_Warn = YES
+   SUMA_1D_Transpose_Warn = YES
+// 019-SUMA_AdjustMouseMotionWithZoom:
+//     Adjust roation and translation factor of mouse with changes 
+//       in zoom levels 
+//     default:   SUMA_AdjustMouseMotionWithZoom = YES
+   SUMA_AdjustMouseMotionWithZoom = YES
+// 020-SUMA_ViewOrthographicProjection:
+//     Use orthographic projection 
+//     default:   SUMA_ViewOrthographicProjection = NO
+   SUMA_ViewOrthographicProjection = NO
+// 021-SUMA_KeyZoomGain:
+//     Percent gain for zooming in and out with the 'z' and 'Z' keys. 
+//       Typical range from 0 to 50
+//     default:   SUMA_KeyZoomGain = 5
+   SUMA_KeyZoomGain = 5
+// 022-SUMA_FOV_Original:
+//     Original FOV. Set between 1.0 and 100.0 
+//       Default is 30.0, -1 == auto
+//     default:   SUMA_FOV_Original = -1
+   SUMA_FOV_Original = -1
+// 023-SUMA_Position_Original:
+//     Original windows size and width in pixels 
+//       Allowed values are: 'TopLeft'
+//                           'RightOffset' 
+//                           'X Y' Sets only the position to top left corner
+//                           'X Y Xwidth Ywidth' Set also width of window
+//       Default is top left of the screen
+//     default:   SUMA_Position_Original = TopLeft
+   SUMA_Position_Original = TopLeft
+// 024-SUMA_Light0Color:
+//     light0 color
+//     default:   SUMA_Light0Color = 1.0,1.0,1.0
+   SUMA_Light0Color = 1.0,1.0,1.0
+// 025-SUMA_AmbientLight:
+//     Ambient light 
+//     default:   SUMA_AmbientLight = 1.0,1.0,1.0
+   SUMA_AmbientLight = 1.0,1.0,1.0
+// 026-SUMA_AllowDsetReplacement:
+//     Allow for replacement of pre-loaded dsets
+//     default:   SUMA_AllowDsetReplacement = YES
+   SUMA_AllowDsetReplacement = YES
+// 027-SUMA_AlwaysAssignSurface:
+//     Allow a dataset to be assigned to a surface, even if
+//      domain of dset is specified and different for the surface.
+//      Default is yes
+//     default:   SUMA_AlwaysAssignSurface = YES
+   SUMA_AlwaysAssignSurface = YES
+// 028-SUMA_ShareGrandChildrenOverlays:
+//     Allow for surfaces with same DomainGrandParentID to share overlays
+//     default:   SUMA_ShareGrandChildrenOverlays = NO
+   SUMA_ShareGrandChildrenOverlays = NO
+// 029-SUMA_SnapshotOverSampling:
+//     Increase the resolution of images recorded with 'r' button.
+//       Increase is done by taking multiple shots that once stitched  
+//       together form a high-resolution image.
+//       The maximum resolution is set by the GL_MAX_VIEWPORT_DIMS of your
+//       graphics card. I have 4096 pixels.
+//       If you exceed this number, SUMA will make adjustments automatically.
+//       Assemble images with program imcat.
+//     default:   SUMA_SnapshotOverSampling = 1
+   SUMA_SnapshotOverSampling = 1
+// 030-SUMA_NoDuplicatesInRecorder:
+//     Ignore consecutive duplicate images in recorder
+//     default:   SUMA_NoDuplicatesInRecorder = YES
+   SUMA_NoDuplicatesInRecorder = YES
+// 031-SUMA_START_NIML:
+//     start NIML (can't do this for more than one suma at a time!)
+//     default:   SUMA_START_NIML = YES
+   SUMA_START_NIML = YES
+// 032-SUMA_AllowFilenameDsetMatch:
+//     Allow (YES) datasets with the same filename but differing ID 
+//       to be considered the same.
+//       This is only useful with SUMA_AllowDsetReplacement
+//     default:   SUMA_AllowFilenameDsetMatch = YES
+   SUMA_AllowFilenameDsetMatch = YES
+// 033-SUMA_FreezeFOVAcrossStates:
+//     Freeze zoom across states
+//     default:   SUMA_FreezeFOVAcrossStates = NO
+   SUMA_FreezeFOVAcrossStates = NO
+// 034-SUMA_DsetColorMap:
+//     Dset color map
+//     default:   SUMA_DsetColorMap = Spectrum:red_to_blue
+   SUMA_DsetColorMap = Spectrum:red_to_blue
+// 035-SUMA_ShowOneOnly:
+//     Show only selected dset in suma's surface controller.
+//     default:   SUMA_ShowOneOnly = YES
+   SUMA_ShowOneOnly = YES
+// 036-SUMA_GraphHidden:
+//     Update graphs, even SUMA_ShowOneOnly (or suma's '1 Only') is turned on.
+//     default:   SUMA_GraphHidden = YES
+   SUMA_GraphHidden = YES
+// 037-SUMA_ColorMapRotationFraction:
+//     Fraction of colormap to rotate with up/down arrow keys.
+//     default:   SUMA_ColorMapRotationFraction = 0.05
+   SUMA_ColorMapRotationFraction = 0.05
+// 038-SUMA_SurfContFontSize:
+//     Size of surface controller font. 
+//       Values are SMALL, BIG (old style).
+//     default:   SUMA_SurfContFontSize = SMALL
+   SUMA_SurfContFontSize = SMALL
+// 039-SUMA_StartUpLocation:
+//     Where to position SUMA window when first opened.
+//       Values are POINTER (at the mouse pointer's location)
+//                  DEFAULT (let the window manager decide)
+//      
+//     default:   SUMA_StartUpLocation = DEFAULT
+   SUMA_StartUpLocation = DEFAULT
+// 040-SUMA_KeyNodeJump:
+//     Numer of nodes to jump with the 'alt+arrow' keys. 
+//       Valid range from 1 to 10
+//     default:   SUMA_KeyNodeJump = 1
+   SUMA_KeyNodeJump = 1
+// 041-SUMA_DriveSumaMaxWait:
+//     Numer of seconds to wait for SUMA to respond to DriveSuma. 
+//       Valid range from 0 to 60000
+//     default:   SUMA_DriveSumaMaxWait = 300.0
+   SUMA_DriveSumaMaxWait = 300.0
+// 042-SUMA_LEFT_FILE_DSET_IDENTIFIER:
+//     String to use in creating left hemisphere dataset wildcards.
+//     default:   SUMA_LEFT_FILE_DSET_IDENTIFIER = *lh*.dset
+   SUMA_LEFT_FILE_DSET_IDENTIFIER = *lh*.dset
+// 043-SUMA_RIGHT_FILE_DSET_IDENTIFIER:
+//     String to use in creating left hemisphere dataset wildcards.
+//     default:   SUMA_RIGHT_FILE_DSET_IDENTIFIER = *rh*.dset
+   SUMA_RIGHT_FILE_DSET_IDENTIFIER = *rh*.dset
+// 044-SUMA_LEFT_FILE_ROI_IDENTIFIER:
+//     String to use in creating left hemisphere roi wildcards.
+//     default:   SUMA_LEFT_FILE_ROI_IDENTIFIER = *lh*.roi
+   SUMA_LEFT_FILE_ROI_IDENTIFIER = *lh*.roi
+// 045-SUMA_RIGHT_FILE_ROI_IDENTIFIER:
+//     String to use in creating right hemisphere roi wildcards.
+//     default:   SUMA_RIGHT_FILE_ROI_IDENTIFIER = *rh*.roi
+   SUMA_RIGHT_FILE_ROI_IDENTIFIER = *rh*.roi
+// 046-SUMA_LEFT_FILE_OTHER_IDENTIFIER:
+//     String to use in creating left hemisphere roi wildcards.
+//     default:   SUMA_LEFT_FILE_OTHER_IDENTIFIER = *lh*
+   SUMA_LEFT_FILE_OTHER_IDENTIFIER = *lh*
+// 047-SUMA_RIGHT_FILE_OTHER_IDENTIFIER:
+//     String to use in creating right hemisphere roi wildcards.
+//     default:   SUMA_RIGHT_FILE_OTHER_IDENTIFIER = *rh*
+   SUMA_RIGHT_FILE_OTHER_IDENTIFIER = *rh*
+// 048-SUMA_ConvexityDsetOpacity:
+//     Initial Convexity Datasest opacity.
+//     default:   SUMA_ConvexityDsetOpacity = 0.85
+   SUMA_ConvexityDsetOpacity = 0.85
+// 049-SUMA_ShowLabelDsetAtStartup:
+//     Display mode of  Label Datasest specified in spec file at startup.
+//        'YES' or 'Col': Shows it in color
+//        'Con': Shows only contours (see also env SUMA_ContourThickness).
+//        'C&C': Shows both colors and contours 
+//        'XXX'or 'No': Does not show it.
+//      
+//     default:   SUMA_ShowLabelDsetAtStartup = XXX
+   SUMA_ShowLabelDsetAtStartup = XXX
+// 050-SUMA_ShowLabelsAtCrossHair:
+//     Show label at cross hair in viewer
+//      You can toggle the display at such labels with F9
+//      
+//     default:   SUMA_ShowLabelsAtCrossHair = YES
+   SUMA_ShowLabelsAtCrossHair = YES
+// 051-SUMA_LabelDsetOpacity:
+//     Initial Label Datasest opacity.
+//     default:   SUMA_LabelDsetOpacity = 0.2
+   SUMA_LabelDsetOpacity = 0.2
+// 052-SUMA_AttemptTalkRecover:
+//     Attempt to recover from AFNI <--> SUMA disconnection bug.
+//      
+//     default:   SUMA_AttemptTalkRecover = Yes
+   SUMA_AttemptTalkRecover = Yes
+// 053-SUMA_CmapsDir:
+//     Name of directory containing user's own SUMA color maps (*.cmap)
+//      
+//     default:   SUMA_CmapsDir = None
+   SUMA_CmapsDir = ~/suma_colormaps
+// 054-SUMA_RetinoAngle_DsetColorMap:
+//     Name of color map for datasets of retinotopy angles.
+//      These would be produced by 3dRetinoPhase
+//      
+//     default:   SUMA_RetinoAngle_DsetColorMap = rgybr20
+   SUMA_RetinoAngle_DsetColorMap = rgybr20
+// 055-SUMA_VFR_DsetColorMap:
+//     Name of color map for VFR datasets produced by SurfRetinoMap
+//      
+//     default:   SUMA_VFR_DsetColorMap = afni_n2
+   SUMA_VFR_DsetColorMap = afni_n2
+// 056-SUMA_NodeCoordsUnits:
+//     Coordinate units of surface nodes. Choose from 'mm' or 'cm'
+//      A bad choice can make the surfaces render with many artifacts.
+//      
+//     default:   SUMA_NodeCoordsUnits = mm
+   SUMA_NodeCoordsUnits = mm
+// 057-SUMA_DoNotSendStates:
+//     Which anatomically correct surf. states should not NOT be sent to AFNI?
+//      This is mostly for deciding whether one of 'white' or 'smoothwm'
+//      FreeSurfer states should not be sent to AFNI.
+//      The default is to let them all go.
+//      You can specify multiple states with a , delimited list (no spaces!). 
+//      By default nothing is excluded.
+//      
+//     default:   SUMA_DoNotSendStates = N/A
+   SUMA_DoNotSendStates = N/A
+// 058-SUMA_AutoRecordPrefix:
+//     Prefix for autorecord (suma's Ctrl+R) files. 
+//      FreeSurfer states should not be sent to AFNI.
+//      Add a path if you want the files to endup in a particular directory.
+//      You can also add an extension to prefix to specify the output type.
+//      Choose from .jpg, .ppm, or .1D . The fallback type is .jpg
+//      
+//     default:   SUMA_AutoRecordPrefix = ./SUMA_Recordings/autorecord.jpg
+   SUMA_AutoRecordPrefix = ./SUMA_Recordings/autorecord.jpg
+// 059-SUMA_CrossHairLabelFont:
+//     Font for cross hair label in SUMA viewer
+//      Choose one of: f8 f9 tr10 tr24 he10 he12 he18
+//      
+//     default:   SUMA_CrossHairLabelFont = f9
+   SUMA_CrossHairLabelFont = f9
+// 060-SUMA_IxT_LinkMode:
+//     Linking mode of I and T sub-brick selectors
+//      Choose one of: None, Same, Stat
+//      
+//     default:   SUMA_IxT_LinkMode = Stat
+   SUMA_IxT_LinkMode = Stat
+// 061-SUMA_ArrowFieldSelectorTrigger:
+//     Minimum Number of sub-bricks to trigger use of arrow field for 
+//      sub-brick selectors.
+//      
+//     default:   SUMA_ArrowFieldSelectorTrigger = 200
+   SUMA_ArrowFieldSelectorTrigger = 50
+// 062-SUMA_Sym_I_Range:
+//     Use symmetric Intensity range by default (YES or NO)
+//      
+//     default:   SUMA_Sym_I_Range = YES
+   SUMA_Sym_I_Range = YES
+// 063-SUMA_Auto_I_Range:
+//     Set auto Intensity range by default (YES or NO)
+//      
+//     default:   SUMA_Auto_I_Range = NO
+   SUMA_Auto_I_Range = NO
+// 064-SUMA_Auto_B_Range:
+//     Set auto Brightness range by default (YES or NO)
+//      
+//     default:   SUMA_Auto_B_Range = NO
+   SUMA_Auto_B_Range = NO
+// 065-SUMA_ContourThickness:
+//     Set thickness of dataset contours
+//      
+//     default:   SUMA_ContourThickness = 1.0
+   SUMA_ContourThickness = 1.0
+// 066-SUMA_LHunify:
+//     Merge separated left/right states for inflated/spherical/etc. surfaces
+//      Choose from YES or NO
+//     default:   SUMA_LHunify = YES
+   SUMA_LHunify = YES
 
