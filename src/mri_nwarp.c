@@ -1641,6 +1641,119 @@ void IW3D_interp( int icode ,
 #define NPER 262144  /* 1 Mbyte per float array */
 
 /*---------------------------------------------------------------------------*/
+/* B(A(x)) where B = matrix, A = warp */
+
+IndexWarp3D * IW3D_compose_w1m2( IndexWarp3D *AA , mat44 BB , int icode )
+{
+   int nx,ny,nz,nxy,nxyz ;
+   float *xda,*yda,*zda , *xdc,*ydc,*zdc ;
+   IndexWarp3D *CC=NULL ;
+   mat44 BI , BL ;
+
+ENTRY("IW3D_compose_w1m2") ;
+
+   if( AA == NULL ) RETURN(CC) ;
+
+   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   BL = BB ;          /* BL = local copy of B */
+   BI = BL ;          /* BI = B - I */
+   BI.m[0][0] -= 1.0f ; BI.m[1][1] -= 1.0f ; BI.m[2][2] -= 1.0f ;
+
+   CC = IW3D_empty_copy(AA) ;
+
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+   xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 6666 )
+ { int qq , ii,jj,kk ; float xb,yb,zb , xm,ym,zm ;
+#pragma omp for
+     for( qq=0 ; qq < nxyz ; qq++ ){
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+       MAT44_VEC(BL,xda[qq],yda[qq],zda[qq],xb,yb,zb) ;  /* B * dis(x) */
+       MAT44_VEC(BI,ii     ,jj     ,kk     ,xm,ym,zm) ;  /* (B-I) * x  */
+       xdc[qq] = xb+xm ; ydc[qq] = yb+ym ; zdc[qq] = zb+zm ; /* add up */
+     }
+ }
+ AFNI_OMP_END ;
+
+   RETURN(CC) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* A(B(x)) where B = matrix, A = warp */
+
+IndexWarp3D * IW3D_compose_m1w2( mat44 BB , IndexWarp3D *AA , int icode )
+{
+   int nx,ny,nz,nxy,nxyz , nall , pp,qtop;
+   float *xda,*yda,*zda , *xdc,*ydc,*zdc , *xq,*yq,*zq ;
+   IndexWarp3D *CC=NULL ;
+   mat44 BL ;
+
+ENTRY("IW3D_compose_m1w2") ;
+
+   if( AA == NULL ) RETURN(CC) ;
+
+   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   BL = BB ; /* BL = local copy of B */
+
+   CC = IW3D_empty_copy(AA) ;
+
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+   xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
+
+   nall = MIN(nxyz,NPER) ;
+
+   xq = (float *)malloc(sizeof(float)*nall) ;
+   yq = (float *)malloc(sizeof(float)*nall) ;
+   zq = (float *)malloc(sizeof(float)*nall) ;
+
+   for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
+
+     qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( qtop-pp > 6666 )
+ { int qq , ii,jj,kk ;
+#pragma omp for
+     for( qq=pp ; qq < qtop ; qq++ ){
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+       MAT44_VEC(BL,ii,jj,kk,xq[qq-pp],yq[qq-pp],zq[qq-pp]) ;
+     }
+ }
+ AFNI_OMP_END ;
+
+     /* Interpolate A() warp index displacments at the B(x) locations */
+
+     IW3D_interp( icode, nx,ny,nz , AA->xd, AA->yd, AA->zd ,
+                                    AA->use_emat , AA->emat ,
+                         qtop-pp  , xq    , yq    , zq     ,
+                                    xdc+pp, ydc+pp, zdc+pp  ) ;
+
+     /* Add in the B(x) displacments to get the total
+        index displacment from each original position: B(x)-x + A(x+B(x)) */
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( qtop-pp > 6666 )
+ { int qq, ii,jj,kk ;
+#pragma omp for
+     for( qq=pp ; qq < qtop ; qq++ ){
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+       xdc[qq] += xq[pp-qq] - ii ;
+       ydc[qq] += yq[pp-qq] - jj ;
+       zdc[qq] += zq[pp-qq] - kk ;
+     }
+ }
+ AFNI_OMP_END ;
+
+   } /* end of loop over segments of length NPER (or less) */
+
+   free(zq) ; free(yq) ; free(xq) ; RETURN(CC) ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Compute B(A(x)) */
 
 IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB , int icode )
@@ -1674,7 +1787,7 @@ ENTRY("IW3D_compose") ;
      qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 11111 )
+#pragma omp parallel if( qtop-pp > 6666 )
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
@@ -1697,7 +1810,7 @@ ENTRY("IW3D_compose") ;
         index displacment from each original position: A(x) + B(x+A(x)) */
 
  AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 11111 )
+#pragma omp parallel if( qtop-pp > 6666 )
  { int qq ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){

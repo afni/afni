@@ -3,10 +3,10 @@
 
 #ifdef USE_OMP
 #include <omp.h>
+#endif
 #include "mri_genalign.c"
 #include "mri_genalign_util.c"
 #include "mri_nwarp.c"
-#endif
 
 /*----------------------------------------------------------------------------*/
 
@@ -58,6 +58,9 @@ void CNW_help(void)
     "                     line options appear AFTER these enumerated warps.\n"
     "                     That is, '-warp1 A+tlrc -warp2 B+tlrc C+tlrc'\n"
     "                     is like using '-warp3 C+tlrc'.\n"
+    "                  ++ At most 99 warps can be used.  If you need more,\n"
+    "                     please step away from the computer slowly, and\n"
+    "                     get professional help.\n"
    ) ;
 
    printf(
@@ -79,6 +82,8 @@ static mat44       *awarp[NWMAX] ;
 static int nx=0,ny=0,nz=0 ; char *geomstring=NULL ;
 static mat44 cmat , imat ;
 
+static THD_3dim_dataset *inset=NULL ;
+
 static int verb=0 , interp_code=MRI_WSINC5 ;
 
 /*----------------------------------------------------------------------------*/
@@ -96,7 +101,7 @@ void CNW_load_warp( int nn , char *cp )
      cp += 8 ; do_inv = 1 ;
    }
    wp = strdup(cp) ; ii = strlen(wp) ;
-   if( ii == 0 ) ERROR_exit("too-short input string to CNW_load_warp") ;
+   if( ii < 4 ) ERROR_exit("too-short input string to CNW_load_warp") ;
    if( wp[ii-1] == ')' ) wp[ii-1] = '\0' ;
 
    if( nn > nwtop ) nwtop = nn ;  /* nwtop = largest index thus far */
@@ -139,15 +144,17 @@ void CNW_load_warp( int nn , char *cp )
      if( dset == NULL )
        ERROR_exit("can't open dataset from file '%s'",wp);
      if( verb ) ININFO_message("--- reading dataset") ;
-     AA = IW3D_from_dataset(dset,0,0) ; DSET_delete(dset) ;
+     AA = IW3D_from_dataset(dset,0,0) ;
      if( AA == NULL )
        ERROR_exit("can't make warp from dataset '%s'",wp);
-     if( geomstring == NULL ){
+     if( geomstring == NULL ){       /* first dataset => set geometry globals */
        geomstring = strdup(AA->geomstring) ;
        nx = AA->nx; ny = AA->ny; nz = AA->nz; cmat = AA->cmat; imat = AA->imat;
-     } else if( AA->nx != nx || AA->ny != ny || AA->nz != nz ){
+     } else if( AA->nx != nx || AA->ny != ny || AA->nz != nz ){ /* check them */
        ERROR_exit("warp from dataset '%s' doesn't match earlier inputs in grid size",wp) ;
      }
+     if( inset == NULL ){ DSET_unload(dset) ; inset = dset ; }  /* save as template */
+     else               { DSET_delete(dset) ; }
 
      if( do_inv ){
        IndexWarp3D *BB ;
@@ -164,13 +171,14 @@ void CNW_load_warp( int nn , char *cp )
 }
 
 /*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
    int iarg=1 , ii ;
    char *prefix = "catNwarp" ;
-   mat44        wmat ;
-   IndexWarp3D *warp = NULL ;
+   mat44        wmat      , tmat , smat , qmat ;
+   IndexWarp3D *warp=NULL , *tarp=NULL ;
    THD_3dim_dataset *oset ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) CNW_help() ;
@@ -285,11 +293,37 @@ int main( int argc , char *argv[] )
 
      if( awarp[ii] != NULL ){
 
+       qmat = *(awarp[ii]) ;             /* convert from xyz warp to ijk warp */
+       tmat = MAT44_MUL(qmat,cmat) ;
+       smat = MAT44_MUL(imat,tmat) ;
+
+       if( warp == NULL ){
+         qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;
+       } else {
+         tarp = IW3D_compose_w1m2(warp,smat,interp_code) ;
+         IW3D_destroy(warp) ; warp = tarp ;
+       }
+
+       free(awarp[ii]) ; awarp[ii] = NULL ;
+
      } else if( iwarp[ii] != NULL ){
+
+       if( warp == NULL ){
+         warp = IW3D_compose_m1w2(wmat,iwarp[ii],interp_code) ;
+       } else {
+         tarp = IW3D_compose(warp,iwarp[ii],interp_code) ;
+         IW3D_destroy(warp) ; warp = tarp ;
+       }
+
+       IW3D_destroy(iwarp[ii]) ; iwarp[ii] = NULL ;
 
      }
 
    }
+
+   /*--- write result to disk for future fun fun fun in the sun sun sun ---*/
+
+   if( warp == NULL ) ERROR_exit("This message should never appear!") ;
 
    /*--- run away screaming into the night, never to be seen again ---*/
 
