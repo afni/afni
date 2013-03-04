@@ -183,6 +183,23 @@ void plot_ts_setthik( float thk )  /* for labels */
 
 /*-----------------------------------------------------------------------*/
 
+static int   thik_n1 = -666 , thik_n2 = -999 ;
+static float thik_12 = 0.002f ;
+
+void plot_ts_setthik_12( int n1, int n2, float thk )
+{
+   if( n1 < 0 || n2 < n1 ){
+     thik_n1 = -666 ; thik_n2 = -999 ;
+   } else {
+     thik_n1 = n1 ; thik_n2 = n2 ;
+          if( thk < 0.000f ) thik_12 = 0.000f ;
+     else if( thk > 0.005f ) thik_12 = 0.005f ;
+     else                    thik_12 = thk    ;
+   }
+}
+
+/*-----------------------------------------------------------------------*/
+
 #undef  VBOX
 #define VBOX  1
 
@@ -241,6 +258,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    float *ylo , *yhi , yll,yhh ;
    MEM_plotdata *mp ;
    float xb1,xb2,yb1,yb2 ; int iv ;
+   float thth ;
 
    /*-- sanity check --*/
 
@@ -379,7 +397,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    }
 
    nnaxx = nnayy = -1 ;
-  
+
    /*-- setup to plot --*/
 
    create_memplot_surely( "tsplot" , 1.3 ) ;
@@ -446,7 +464,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
         set_thick_memplot( 0 ) ;
         xb1 = vbox[iv].x1 ; xb2 = vbox[iv].x2 ;
         yb1 = ybot        ; yb2 = ytop        ;
-        zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2); 
+        zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2);
         plotfrect_memplot( xb1,yb1 , xb2,yb2 ) ;
       }
 
@@ -457,7 +475,9 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       /* plot data */
 
       for( jj=0 ; jj < ny ; jj++ ){
-         set_thick_memplot( THIK ) ;
+         thth = THIK ;
+         if( jj >= thik_n1 && jj <= thik_n2 ) thth = thik_12 ;
+         set_thick_memplot( thth ) ;
          set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
 
          if( !noline ){
@@ -543,7 +563,6 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
            else if( mmay == 3 ) mmay = 6 ;
          }
 
-         set_thick_memplot( thik ) ;
          set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
          plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)*(jj==0)+2*(nnay>0)] ) ;
          if( ylo[jj] < 0.0 && yhi[jj] > 0.0 ){
@@ -554,7 +573,9 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          }
 
          set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
-         set_thick_memplot( THIK ) ;
+         thth = THIK ;
+         if( jj >= thik_n1 && jj <= thik_n2 ) thth = thik_12 ;
+         set_thick_memplot( thth ) ;
 
          if( !noline ){
            yy = y[jj] ;

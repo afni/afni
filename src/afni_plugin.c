@@ -5017,6 +5017,7 @@ ENTRY("PLUTO_histoplot_f") ;
        yfac = ytop / sum ;
        for( ii=0 ; ii < nx ; ii++ ) yzar[ny+jj][ii] *= yfac ;
      }
+     plot_ts_setthik_12( ny , nyy , 0.002f ) ;
      ny = nyy ;
    }
 
@@ -5027,6 +5028,7 @@ ENTRY("PLUTO_histoplot_f") ;
 
    for( jj=0 ; jj < ny ; jj++ ) free(yzar[jj]) ;
    free(yzar) ; free(xar) ;
+   plot_ts_setthik_12( -555,-666,0.0f ) ;
    EXRETURN ;
 }
 
