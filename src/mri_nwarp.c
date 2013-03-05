@@ -1641,7 +1641,9 @@ void IW3D_interp( int icode ,
 #define NPER 262144  /* 1 Mbyte per float array */
 
 /*---------------------------------------------------------------------------*/
-/* B(A(x)) where B = matrix, A = warp */
+/* B(A(x)) where B = matrix, A = warp
+   -- no interpolation is needed for this operation
+*//*-------------------------------------------------------------------------*/
 
 IndexWarp3D * IW3D_compose_w1m2( IndexWarp3D *AA , mat44 BB , int icode )
 {
@@ -1727,10 +1729,10 @@ ENTRY("IW3D_compose_m1w2") ;
 
      /* Interpolate A() warp index displacments at the B(x) locations */
 
-     IW3D_interp( icode, nx,ny,nz , AA->xd, AA->yd, AA->zd ,
-                                    AA->use_emat , AA->emat ,
-                         qtop-pp  , xq    , yq    , zq     ,
-                                    xdc+pp, ydc+pp, zdc+pp  ) ;
+     IW3D_interp( icode, nx,ny,nz , xda   , yda   , zda      ,
+                                    AA->use_emat  , AA->emat ,
+                         qtop-pp  , xq    , yq    , zq       ,
+                                    xdc+pp, ydc+pp, zdc+pp    ) ;
 
      /* Add in the B(x) displacments to get the total
         index displacment from each original position: B(x)-x + A(x+B(x)) */
@@ -3545,6 +3547,7 @@ static int Hlev_now   =   0 ;
 static int Hduplo     =   0 ;
 static int Hfinal     =   0 ;
 static int Hworkhard  =   0 ;
+static int Hfirsttime =   0 ;  /* for fun only */
 
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
@@ -4643,6 +4646,8 @@ double IW3D_scalar_costfun( int npar , double *dpar )
      Hpenn = 0.0f ;
    }
 
+   if( Hfirsttime ){ fprintf(stderr,"[first cost=%.3f]",cost); Hfirsttime = 0; }
+
    return cost ;
 }
 
@@ -5134,6 +5139,8 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    int qmode=-666 , nlevr ;
 
 ENTRY("IW3D_warpomatic") ;
+
+   if( Hverb ) Hfirsttime = 1 ;
 
    IW3D_setup_for_improvement( bim, wbim, sim, WO_iwarp, meth_code, warp_flags ) ;
 

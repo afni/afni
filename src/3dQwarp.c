@@ -733,6 +733,7 @@ int main( int argc , char *argv[] )
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
    if( nowarps == 0 ){
+     if( Hverb ) ININFO_message("Inverting warp for output") ;
      owwi = IW3D_invert( oww , NULL , MRI_WSINC5 ) ;
      IW3D_adopt_dataset( owwi , bset ) ;
      sprintf(ppp,"%s_WARPINV",prefix) ;
