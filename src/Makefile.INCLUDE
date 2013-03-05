@@ -92,7 +92,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
            1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch 1dBport   \
            3dNormalityTest 3dmask_tool FIRdesign help_format 2perm 3dClustCount \
-           column_cat 3dUnifize cat_Nwarp $(EXTRAS)
+           column_cat 3dUnifize 3dNwarpCat $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -125,7 +125,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat 3dPolyfit        \
                   3dNwarpApply 1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo    \
                   apsearch 3dNormalityTest 3dmask_tool 2perm 3dClustCount           \
-                  3dUnifize cat_Nwarp $(EXTRAS)
+                  3dUnifize 3dNwarpCat $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -1211,9 +1211,9 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dNwarpApply 3dNwarpApply.o $(LFLAGS) $(LLIBS)
 
-cat_Nwarp:cat_Nwarp.o
+3dNwarpCat:3dNwarpCat.o
 	$(RM) $@
-	$(CCOMP) -o cat_Nwarp cat_Nwarp.o $(LFLAGS) $(LLIBS)
+	$(CCOMP) -o 3dNwarpCat 3dNwarpCat.o $(LFLAGS) $(LLIBS)
 
 3dNwarpCalc:3dNwarpCalc.o
 	$(RM) $@
@@ -1243,9 +1243,9 @@ mri_rbfinterp.o:mri_rbfinterp.c
 	$(RM) $@
 	$(CCOMP) -c 3dNwarpApply.c $(INFLAGS)
 
-cat_Nwarp.o:cat_Nwarp.c mri_nwarp.c
+3dNwarpCat.o:3dNwarpCat.c mri_nwarp.c
 	$(RM) $@
-	$(CCOMP) -c cat_Nwarp.c $(INFLAGS)
+	$(CCOMP) -c 3dNwarpCat.c $(INFLAGS)
 
 3dNwarpCalc.o:3dNwarpCalc.c mri_nwarp.c
 	$(RM) $@
