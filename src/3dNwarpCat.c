@@ -4,6 +4,7 @@
 #ifdef USE_OMP
 #include <omp.h>
 #endif
+
 #include "mri_genalign.c"
 #include "mri_genalign_util.c"
 #include "mri_nwarp.c"
@@ -13,62 +14,72 @@
 void CNW_help(void)
 {
    printf(
-    "Usage: cat_Nwarp [options] warp1 warp2 ...\n"
+    "Usage: 3dNwarpCat [options] warp1 warp2 ...\n"
     "------\n"
     " * This program catenates (composes) 3D warps defined on a grid,\n"
-    "   or via a matrix.\n"
+    "   OR via a matrix.\n"
     "\n"
-    " * At least one of the warps input must be defined on a grid, via\n"
-    "   a 3D dataset (e.g., output from 3dQwarp).\n"
+    " * Matrix warps are in files that end in '.1D' or in '.txt'.  A matrix\n"
+    "   warp file should have 12 numbers in it, as output (for example), by\n"
+    "   '3dAllineate -1Dmatrix_save'.\n"
+    "\n"
+    " * Nonlinear warps are in dataset files (AFNI .HEAD/.BRIK or NIfTI .nii)\n"
+    "   with 3 sub-bricks giving the DICOM order xyz grid displacements in mm.\n"
+    "\n"
+    " * At least one of the warps input must be defined via a dataset!\n"
     "\n"
     " * The order of operations in the final (output) warp is, for the\n"
     "   case of 3 input warps:\n"
     "\n"
     "     OUTPUT(x) = warp3( warp2( warp1(x) ) )\n"
     "\n"
+    "   That is, warp1 is applied first, then warp2, et cetera.\n"
+    "   The 3D x coordinates are taken from each grid location in the\n"
+    "   first dataset defined on a grid.\n"
+    "\n"
     " * For example:\n"
     "\n"
     "     warp1 is a matrix from @auto_tlrc\n"
     "     warp2 is the output of 3dQwarp\n"
     "\n"
-    "   cat_Nwarp -prefix Fred_total_WARP Fred.Xat.1D Fred_WARP+tlrc.HEAD\n"
+    "    3dNwarpCat -prefix Fred_total_WARP Fred.Xat.1D Fred_WARP+tlrc.HEAD\n"
     "\n"
     " * If you wish to invert a warp before it is used here, supply its\n"
     "   input name in the form of\n"
     "     INV(warpfilename)\n"
-    "   Or you could use 3dNwarpCalc, of course.\n"
     "\n"
     "OPTIONS\n"
     "-------\n"
-    " -interp iii   == 'iii' is the interpolation mode:\n"
-    "                  ++ Modes allowed are a subset of those in 3dAllineate:\n"
-    "                       linear  quintic  wsinc5\n"
-    "                  ++ The default interpolation mode is 'wsinc5'.\n"
-    "                  ++ 'linear' is much faster but less accurate.\n"
-    "                  ++ 'quintic' is between 'linear' and 'wsinc5'.\n"
+    " -interp iii == 'iii' is the interpolation mode:\n"
+    "                ++ Modes allowed are a subset of those in 3dAllineate:\n"
+    "                     linear  quintic  wsinc5\n"
+    "                ++ The default interpolation mode is 'wsinc5'.\n"
+    "                ++ 'linear' is much faster but less accurate.\n"
+    "                ++ 'quintic' is between 'linear' and 'wsinc5',\n"
+    "                   in both accuracy and speed.\n"
     "\n"
-    " -verb         == print (to stderr) various fun messages along the road\n"
+    " -verb       == print (to stderr) various fun messages along the road.\n"
     "\n"
-    " -prefix ppp   == prefix name for the output dataset that holds the warp.\n"
+    " -prefix ppp == prefix name for the output dataset that holds the warp.\n"
     "\n"
-    " -warp1 ww1    == alternative way to specify warp#1\n"
-    " -warp2 ww2    == alternative way to specify warp#2 (etc.)\n"
-    "                  ++ If you use any '-warpX' option for X=1..99, then\n"
-    "                     any addition warps specified after all command\n"
-    "                     line options appear AFTER these enumerated warps.\n"
-    "                     That is, '-warp1 A+tlrc -warp2 B+tlrc C+tlrc'\n"
-    "                     is like using '-warp3 C+tlrc'.\n"
-    "                  ++ At most 99 warps can be used.  If you need more,\n"
-    "                     please step away from the computer slowly, and\n"
-    "                     get professional help.\n"
+    " -warp1 ww1  == alternative way to specify warp#1\n"
+    " -warp2 ww2  == alternative way to specify warp#2 (etc.)\n"
+    "                ++ If you use any '-warpX' option for X=1..99, then\n"
+    "                   any addition warps specified after all command\n"
+    "                   line options appear AFTER these enumerated warps.\n"
+    "                   That is, '-warp1 A+tlrc -warp2 B+tlrc C+tlrc'\n"
+    "                   is like using '-warp3 C+tlrc'.\n"
+    "                ++ At most 99 warps can be used.  If you need more,\n"
+    "                   PLEASE back away from the computer slowly, and\n"
+    "                   get professional therapy.\n"
    ) ;
 
    printf(
     "\n"
-    "AUTHOR -- RWCox -- February 2013\n"
+    "AUTHOR -- RWCox -- March 2013\n"
    ) ;
 
-   PRINT_AFNI_OMP_USAGE("cat_Nwarp",NULL) ; PRINT_COMPILE_DATE ;
+   PRINT_AFNI_OMP_USAGE("3dNwarpCat",NULL) ; PRINT_COMPILE_DATE ;
    exit(0) ;
 }
 
@@ -116,12 +127,15 @@ void CNW_load_warp( int nn , char *cp )
      qim = mri_read_1D(wp) ;
      if( qim == NULL || qim->nvox < 9 )
        ERROR_exit("cannot read matrix from file '%s'",wp);
+     if( qim->ny > 1 ){
+       MRI_IMAGE *tim = mri_transpose(qim) ; mri_free(qim) ; qim = tim ;
+     }
      qar = MRI_FLOAT_PTR(qim) ;
-     if( qim->nvox < 12 )
+     if( qim->nvox < 12 )                           /* presumably a rotation */
        LOAD_MAT44(mmm,qar[0],qar[1],qar[2],0,
                       qar[3],qar[4],qar[5],0,
                       qar[6],qar[7],qar[8],0) ;
-     else
+     else                                           /* a full matrix */
        LOAD_MAT44(mmm,qar[0],qar[1],qar[2],qar[3],
                       qar[4],qar[5],qar[6],qar[7],
                       qar[8],qar[9],qar[10],qar[11]) ;
@@ -161,6 +175,7 @@ void CNW_load_warp( int nn , char *cp )
        if( verb ) ININFO_message("--- inverting warp") ;
        BB = IW3D_invert(AA,NULL,interp_code); IW3D_destroy(AA); AA = BB;
      }
+     AA->use_emat = 0 ;
 
      iwarp[nn-1] = AA ; free(wp) ; return ;
    }
@@ -176,7 +191,7 @@ void CNW_load_warp( int nn , char *cp )
 int main( int argc , char *argv[] )
 {
    int iarg=1 , ii ;
-   char *prefix = "catNwarp" ;
+   char *prefix = "NwarpCat" ;
    mat44        wmat      , tmat , smat , qmat ;
    IndexWarp3D *warp=NULL , *tarp=NULL ;
    THD_3dim_dataset *oset ;
@@ -185,9 +200,9 @@ int main( int argc , char *argv[] )
 
    /*-- bureaucracy --*/
 
-   mainENTRY("cat_Nwarp"); machdep();
-   AFNI_logger("cat_Nwarp",argc,argv);
-   PRINT_VERSION("cat_Nwarp"); AUTHOR("Zhark the Warper");
+   mainENTRY("3dNwarpCat"); machdep();
+   AFNI_logger("3dNwarpCat",argc,argv);
+   PRINT_VERSION("3dNwarpCat"); AUTHOR("Zhark the Warper");
    (void)COX_clock_time() ;
 
    ZERO_MAT44(imat) ; ZERO_MAT44(cmat) ;
@@ -289,6 +304,8 @@ int main( int argc , char *argv[] )
 
    LOAD_IDENT_MAT44(wmat) ;
 
+   if( verb ) INFO_message("Initialize to Identity matrix") ;
+
    for( ii=0 ; ii < nwtop ; ii++ ){
 
      if( awarp[ii] != NULL ){
@@ -296,10 +313,17 @@ int main( int argc , char *argv[] )
        qmat = *(awarp[ii]) ;             /* convert from xyz warp to ijk warp */
        tmat = MAT44_MUL(qmat,cmat) ;
        smat = MAT44_MUL(imat,tmat) ;
+DUMP_MAT44("qmat",qmat) ;
+DUMP_MAT44("cmat",cmat) ;
+DUMP_MAT44("imat",imat) ;
+DUMP_MAT44("smat",smat) ;
 
        if( warp == NULL ){
+         ININFO_message("warp #%d = Matrix-Matrix multiply",ii+1) ;
          qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;
+DUMP_MAT44("wmat",wmat) ;
        } else {
+         ININFO_message("warp #%d = Matrix(Nwarp) compose",ii+1) ;
          tarp = IW3D_compose_w1m2(warp,smat,interp_code) ;
          IW3D_destroy(warp) ; warp = tarp ;
        }
@@ -309,13 +333,20 @@ int main( int argc , char *argv[] )
      } else if( iwarp[ii] != NULL ){
 
        if( warp == NULL ){
+         ININFO_message("warp #%d = Nwarp(Matrix) compose",ii+1) ;
+DUMP_MAT44("wmat",wmat) ;
          warp = IW3D_compose_m1w2(wmat,iwarp[ii],interp_code) ;
        } else {
+         ININFO_message("warp #%d = Nwarp(Nwarp) compose",ii+1) ;
          tarp = IW3D_compose(warp,iwarp[ii],interp_code) ;
          IW3D_destroy(warp) ; warp = tarp ;
        }
 
        IW3D_destroy(iwarp[ii]) ; iwarp[ii] = NULL ;
+
+     } else {
+
+       if( verb ) ININFO_message("warp #%d = skipping",ii+1) ;
 
      }
 
@@ -324,6 +355,12 @@ int main( int argc , char *argv[] )
    /*--- write result to disk for future fun fun fun in the sun sun sun ---*/
 
    if( warp == NULL ) ERROR_exit("This message should never appear!") ;
+
+   IW3D_adopt_dataset( warp , inset ) ;
+   oset = IW3D_to_dataset( warp , prefix ) ;
+   tross_Copy_History( inset , oset ) ;
+   tross_Make_History( "3dQwarp" , argc,argv , oset ) ;
+   DSET_write(oset) ; WROTE_DSET(oset) ;
 
    /*--- run away screaming into the night, never to be seen again ---*/
 
