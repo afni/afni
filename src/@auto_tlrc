@@ -362,6 +362,18 @@ PARSE:
    set anat_path = $prs_in[1]
    
    set isNIFTI = `3dinfo -is_nifti "$anat_in"`
+   set isTLRC = `3dinfo -av_space "$anat_in"`
+   if ("$isTLRC" == "+tlrc") then
+      echo ""
+      echo "Notice:"
+      echo "Input dataset is in +tlrc already, `basename $0` might fail."
+     echo "If the space of $anat_in is incorrectly set (check with next command)"
+      echo "   3dinfo -prefix -av_space $anat_in "
+      echo "you can reset it with something like:"
+      echo "   3drefit -space ORIG $anat_in "
+      echo "then remove all temp files, and try again."
+      echo ""
+   endif
    set delete_this = ()
    if ($isNIFTI == 1) then
       set NIpref = `echo "$prs_in[2]" | sed 's/.nii.gz$//g' | sed 's/.nii$//g'`
