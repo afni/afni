@@ -785,10 +785,6 @@ apsearch:apsearch.c
 	$(RM) $@
 	$(CC) -o 3dUniformize 3dUniformize.o $(PLFLAGS) $(LLIBS)
 
-3dUnifize:3dUnifize.o
-	$(RM) $@
-	$(CC) -o 3dUnifize 3dUnifize.o $(PLFLAGS) $(LLIBS)
-
 3dpc:3dpc.o
 	$(RM) $@
 	$(CC) -o 3dpc 3dpc.o $(LFLAGS) $(LLIBS)
@@ -1094,6 +1090,14 @@ mri_nstats.o:mri_nstats.c
 	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS)
 
 ## ------- Things to be compiled or linked with OpenMP -------
+
+3dUnifize.o: 3dUnifize.c
+	$(RM) $@
+	$(CCOMP) -c 3dUnifize.c $(INFLAGS)
+
+3dUnifize:3dUnifize.o
+	$(RM) $@
+	$(CCOMP) -o 3dUnifize 3dUnifize.o $(PLFLAGS) $(LLIBS)
 
 3dDimRed.o: 3dDimRed.c
 	$(RM) $@
