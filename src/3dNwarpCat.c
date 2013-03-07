@@ -37,16 +37,37 @@ void CNW_help(void)
     "   The 3D x coordinates are taken from each grid location in the\n"
     "   first dataset defined on a grid.\n"
     "\n"
-    " * For example:\n"
+    " * For example, if you aligned a dataset to a template with @auto_tlrc,\n"
+    "   then further refined the alignment with 3dQwarp, you would do something\n"
+    "   like this:\n"
+    "       warp1 is the output of 3dQwarp\n"
+    "       warp2 is the matrix from @auto_tlrc\n"
+    "       This is the proper order, since the desired warp takes template xyz\n"
+    "       to original dataset xyz, and we have\n"
+    "         3dQwarp warp:      takes template xyz to affinely aligned xyz, and\n"
+    "         @auto_tlrc matrix: takes affinely aligned xyz to original xyz\n"
     "\n"
-    "     warp1 is a matrix from @auto_tlrc\n"
-    "     warp2 is the output of 3dQwarp\n"
+    "   3dNwarpCat -prefix Fred_total_WARP -warp1 Fred_WARP+tlrc.HEAD -warp2 Fred.Xat.1D \n"
     "\n"
-    "    3dNwarpCat -prefix Fred_total_WARP Fred.Xat.1D Fred_WARP+tlrc.HEAD\n"
+    "   The dataset Fred_total_WARP+tlrc.HEAD could then be used to transform original\n"
+    "   datasets directly to the final template space, as in\n"
+    "\n"
+    "   3dNwarpApply -prefix Wilma_warped        \\\n"
+    "                -nwarp Fred_total_WARP+tlrc \\\n"
+    "                -source Wilma+orig          \\\n"
+    "                -master Fred_total_WARP+tlrc\n"
     "\n"
     " * If you wish to invert a warp before it is used here, supply its\n"
     "   input name in the form of\n"
     "     INV(warpfilename)\n"
+    "   To produce the inverse of the warp in the example above:\n"
+    "\n"
+    "   3dNwarpCat -prefix Fred_total_WARPINV        \\\n"
+    "              -warp2 'INV(Fred_WARP+tlrc.HEAD)' \\\n"
+    "              -warp1 'INV(Fred.Xat.1D)' \n"
+    "\n"
+    "   Note the order of the warps is reversed, in addition to the use of 'INV()'.\n"
+    "\n"
     "\n"
     "OPTIONS\n"
     "-------\n"
@@ -89,6 +110,7 @@ void CNW_help(void)
 
 static int          nwtop=0 ;
 static IndexWarp3D *iwarp[NWMAX] ;
+static float        iwfac[NWMAX] ;
 static mat44       *awarp[NWMAX] ;
 static int nx=0,ny=0,nz=0 ; char *geomstring=NULL ;
 static mat44 cmat , imat ;
@@ -112,7 +134,7 @@ void CNW_load_warp( int nn , char *cp )
      cp += 8 ; do_inv = 1 ;
    }
    wp = strdup(cp) ; ii = strlen(wp) ;
-   if( ii < 4 ) ERROR_exit("too-short input string to CNW_load_warp") ;
+   if( ii < 4 ) ERROR_exit("input string to CNW_load_warp is too short :-((") ;
    if( wp[ii-1] == ')' ) wp[ii-1] = '\0' ;
 
    if( nn > nwtop ) nwtop = nn ;  /* nwtop = largest index thus far */
@@ -206,7 +228,9 @@ int main( int argc , char *argv[] )
    (void)COX_clock_time() ;
 
    ZERO_MAT44(imat) ; ZERO_MAT44(cmat) ;
-   for( ii=0 ; ii < NWMAX ; ii++ ){ iwarp[ii] = NULL ; awarp[ii] = NULL ; }
+   for( ii=0 ; ii < NWMAX ; ii++ ){
+     iwarp[ii] = NULL ; awarp[ii] = NULL ; iwfac[ii] = 1.0f ;
+   }
 
    /*-- scan args --*/
 
@@ -273,6 +297,20 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strncasecmp(argv[iarg],"-wfac",5) == 0 ){
+       int nn ;
+       if( iarg >= argc-1 ) ERROR_exit("no argument after '%s' :-(",argv[iarg]) ;
+       if( !isdigit(argv[iarg][5]) ) ERROR_exit("illegal format for '%s' :-(",argv[iarg]) ;
+       nn = (int)strtod(argv[iarg]+5,NULL) ;
+       if( nn <= 0 || nn > NWMAX )
+         ERROR_exit("illegal warp index in '%s' :-(",argv[iarg]) ;
+
+       iwfac[nn-1] = (float)strtod(argv[++iarg],NULL) ;
+       iarg++ ; continue ;
+     }
+
+     /*---------------*/
+
      if( strncasecmp(argv[iarg],"-warp",5) == 0 ){
        int nn ;
        if( iarg >= argc-1 ) ERROR_exit("no argument after '%s' :-(",argv[iarg]) ;
@@ -280,7 +318,7 @@ int main( int argc , char *argv[] )
        nn = (int)strtod(argv[iarg]+5,NULL) ;
        if( nn <= 0 || nn > NWMAX )
          ERROR_exit("illegal warp index in '%s' :-(",argv[iarg]) ;
-       if( iwarp[nn] != NULL || awarp[nn] != NULL )
+       if( iwarp[nn-1] != NULL || awarp[nn-1] != NULL )
          ERROR_exit("'%s': you can't specify warp #%d more than once :-(",argv[iarg],nn) ;
 
        CNW_load_warp( nn , argv[++iarg] ) ;
@@ -308,36 +346,45 @@ int main( int argc , char *argv[] )
 
    for( ii=0 ; ii < nwtop ; ii++ ){
 
-     if( awarp[ii] != NULL ){
+     if( awarp[ii] != NULL ){  /* matrix to apply */
 
        qmat = *(awarp[ii]) ;             /* convert from xyz warp to ijk warp */
        tmat = MAT44_MUL(qmat,cmat) ;
        smat = MAT44_MUL(imat,tmat) ;
-DUMP_MAT44("qmat",qmat) ;
-DUMP_MAT44("cmat",cmat) ;
-DUMP_MAT44("imat",imat) ;
-DUMP_MAT44("smat",smat) ;
 
-       if( warp == NULL ){
+       if( warp == NULL ){               /* thus far, only matrices */
          ININFO_message("warp #%d = Matrix-Matrix multiply",ii+1) ;
+         if( iwfac[ii] != 1.0f )
+           WARNING_message(" -- wfac%d=%g ==> ignoring this factor",ii+1,iwfac[ii]) ;
          qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;
-DUMP_MAT44("wmat",wmat) ;
-       } else {
+       } else {                          /* apply matrix to nonlinear warp */
          ININFO_message("warp #%d = Matrix(Nwarp) compose",ii+1) ;
+         if( iwfac[ii] != 1.0f )
+           WARNING_message(" -- wfac%d=%g ==> ignoring this factor",ii+1,iwfac[ii]) ;
          tarp = IW3D_compose_w1m2(warp,smat,interp_code) ;
          IW3D_destroy(warp) ; warp = tarp ;
        }
 
        free(awarp[ii]) ; awarp[ii] = NULL ;
 
-     } else if( iwarp[ii] != NULL ){
+     } else if( iwarp[ii] != NULL ){   /* nonlinear warp to apply */
 
-       if( warp == NULL ){
-         ININFO_message("warp #%d = Nwarp(Matrix) compose",ii+1) ;
-DUMP_MAT44("wmat",wmat) ;
-         warp = IW3D_compose_m1w2(wmat,iwarp[ii],interp_code) ;
-       } else {
+       if( iwfac[ii] != 1.0f ) IW3D_scale( iwarp[ii] , iwfac[ii] ) ;
+
+       if( warp == NULL ){            /* create nonlinear warp at this point */
+         if( ii == 0 ){  /* first one ==> don't compose with identity matrix */
+           ININFO_message("warp #%d = input Nwarp",ii+1) ;
+           warp = IW3D_copy(iwarp[ii],1.0f) ;
+         } else {                            /* compose with previous matrix */
+           ININFO_message("warp #%d = Nwarp(Matrix) compose",ii+1) ;
+           warp = IW3D_compose_m1w2(wmat,iwarp[ii],interp_code) ;
+         }
+         if( iwfac[ii] != 1.0f )
+           ININFO_message(" -- Nwarp scaled by wfac=%g",ii+1,iwfac[ii]) ;
+       } else {          /* already have nonlinear warp, apply new one to it */
          ININFO_message("warp #%d = Nwarp(Nwarp) compose",ii+1) ;
+         if( iwfac[ii] != 1.0f )
+           ININFO_message(" -- Nwarp scaled by wfac=%g",ii+1,iwfac[ii]) ;
          tarp = IW3D_compose(warp,iwarp[ii],interp_code) ;
          IW3D_destroy(warp) ; warp = tarp ;
        }
@@ -359,7 +406,7 @@ DUMP_MAT44("wmat",wmat) ;
    IW3D_adopt_dataset( warp , inset ) ;
    oset = IW3D_to_dataset( warp , prefix ) ;
    tross_Copy_History( inset , oset ) ;
-   tross_Make_History( "3dQwarp" , argc,argv , oset ) ;
+   tross_Make_History( "3dNwarpCat" , argc,argv , oset ) ;
    DSET_write(oset) ; WROTE_DSET(oset) ;
 
    /*--- run away screaming into the night, never to be seen again ---*/

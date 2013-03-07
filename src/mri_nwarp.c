@@ -1215,10 +1215,11 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
                          int npp, float *ip, float *jp, float *kp,
                          float *uar , float *var , float *war     )
 {
+ENTRY("IW3D_interp_wsinc5") ;
  AFNI_OMP_START ;
 #pragma omp parallel if( npp > 333 )
  {
-   int nx=nxx , ny=nyy , nz=nzz , nxy=nx*ny , pp , ix,jy,kz ;
+   int nx=nxx, ny=nyy, nz=nzz, nxy=nx*ny, nxyz=nxy*nz,nxyz1=nxyz-1, pp, ix,jy,kz ;
    float xx,yy,zz , fx,fy,fz ;
    float *aarjk , *barjk , *carjk ;
    int nx1=nx-1,ny1=ny-1,nz1=nz-1 ;
@@ -1232,7 +1233,7 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
    float                cjk[2*IRAD][2*IRAD] , ck[2*IRAD]   ;
    int   iqq[2*IRAD]  ;
 
-   int uem=use_emat ;
+   int uem=use_emat , outside=0 ;
    float Exx,Exy,Exz , Eyx,Eyy,Eyz , Ezx,Ezy,Ezz , uex,vex,wex ;
 
    UNLOAD_MAT33(emat,Exx,Exy,Exz,Eyx,Eyy,Eyz,Ezx,Ezy,Ezz) ;
@@ -1244,15 +1245,15 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; yy = jp[pp] ; zz = kp[pp] ;
      if( !uem ){
-            if( xx < 0.0f ){ ix = 0       ; fx = 0.0f ; }
-       else if( xx < nx1  ){ ix = (int)xx ; fx = xx-ix; }
-       else                { ix = nx2     ; fx = 1.0f ; }
-            if( yy < 0.0f ){ jy = 0       ; fy = 0.0f ; }
-       else if( yy < ny1  ){ jy = (int)yy ; fy = yy-jy; }
-       else                { jy = ny2     ; fy = 1.0f ; }
-            if( zz < 0.0f ){ kz = 0       ; fz = 0.0f ; }
-       else if( zz < nz1  ){ kz = (int)zz ; fz = zz-kz; }
-       else                { kz = nz2     ; fz = 1.0f ; }
+            if( xx < 0.0f ){ ix = 0       ; fx = 0.0f ; outside = 1 ; }
+       else if( xx < nx1  ){ ix = (int)xx ; fx = xx-ix; outside = 0 ; }
+       else                { ix = nx2     ; fx = 1.0f ; outside = 1 ; }
+            if( yy < 0.0f ){ jy = 0       ; fy = 0.0f ; outside = 1 ; }
+       else if( yy < ny1  ){ jy = (int)yy ; fy = yy-jy; outside = 0 ; }
+       else                { jy = ny2     ; fy = 1.0f ; outside = 1 ; }
+            if( zz < 0.0f ){ kz = 0       ; fz = 0.0f ; outside = 1 ; }
+       else if( zz < nz1  ){ kz = (int)zz ; fz = zz-kz; outside = 0 ; }
+       else                { kz = nz2     ; fz = 1.0f ; outside = 1 ; }
      } else {
        int aem=0 ; float eex,eey,eez ;
             if( xx < 0.0f ){ eex = xx    ; ix = 0      ; fx = 0.0f; aem++; }
@@ -1272,6 +1273,14 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
          uex = vex = wex = 0.0f ;
        }
      }
+
+#if 0
+     if( outside ){                 /* use value at nearest edge point */
+       qq = ix + jy*nx + kz*nxy ; CLIP(qq,nxyz1) ;
+       uar[pp] = aar[qq] ; var[pp] = bar[qq] ; war[pp] = car[qq] ;
+       continue ;
+     }
+#endif
 
      /*- x interpolations -*/
 
@@ -1347,7 +1356,7 @@ void IW3D_interp_wsinc5( int nxx , int nyy , int nzz ,
  } /* end OpenMP */
  AFNI_OMP_END ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1673,7 +1682,7 @@ ENTRY("IW3D_compose_w1m2") ;
 #pragma omp for
      for( qq=0 ; qq < nxyz ; qq++ ){
        ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       MAT44_VEC(BL,xda[qq],yda[qq],zda[qq],xb,yb,zb) ;  /* B * dis(x) */
+       MAT33_VEC(BL,xda[qq],yda[qq],zda[qq],xb,yb,zb) ;  /* B * dis(x) */
        MAT44_VEC(BI,ii     ,jj     ,kk     ,xm,ym,zm) ;  /* (B-I) * x  */
        xdc[qq] = xb+xm ; ydc[qq] = yb+ym ; zdc[qq] = zb+zm ; /* add up */
      }
@@ -1743,9 +1752,9 @@ ENTRY("IW3D_compose_m1w2") ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
        ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       xdc[qq] += xq[pp-qq] - ii ;
-       ydc[qq] += yq[pp-qq] - jj ;
-       zdc[qq] += zq[pp-qq] - kk ;
+       xdc[qq] += xq[qq-pp] - ii ;
+       ydc[qq] += yq[qq-pp] - jj ;
+       zdc[qq] += zq[qq-pp] - kk ;
      }
  }
  AFNI_OMP_END ;
