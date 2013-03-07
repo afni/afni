@@ -2,6 +2,10 @@
 
 static int verb = 1 ;
 
+#ifdef USE_OMP
+# include <omp.h>
+#endif
+
 /*---------------------------------------------------------------------------*/
 #undef  SWAP
 #define SWAP(x,y) (temp=x,x=y,y=temp)
@@ -235,15 +239,14 @@ static void vstep_print(void)  /* for -verb voxel loop message */
 MRI_IMAGE * mri_local_percmean( MRI_IMAGE *fim , float vrad , float p1, float p2 )
 {
    MRI_IMAGE *aim , *bim , *cim , *dim ;
-   float     *aar , *bar , *car , *dar , *nbar ;
+   float     *aar , *bar , *car , *dar ;
    byte      *ams , *bms ;
    MCW_cluster *nbhd ;
-   int ii,jj,kk , nbar_num , nx,ny,nz,nxy , vstep,vvv ;
-   float val ;
+   int ii , nx,ny,nz,nxy,nxyz ;
 
 ENTRY("mri_local_percmean") ;
 
-   if( p1 > p2 ){ val = p1; p1 = p2; p2 = val; }
+   if( p1 > p2 ){ float val = p1; p1 = p2; p2 = val; }
 
    if( fim == NULL || vrad < 4.0f || p1 < 0.0f || p2 > 100.0f ) RETURN(NULL) ;
 
@@ -275,21 +278,21 @@ ENTRY("mri_local_percmean") ;
    /* create neighborhood mask (1/2 radius in the shrunken copy) */
 
    nbhd = MCW_spheremask( 1.0f,1.0f,1.0f , 0.5f*vrad+0.001f ) ;
-   nbar = (float *)malloc(sizeof(float)*nbhd->num_pt) ;
 
    cim = mri_new_conforming(bim,MRI_float) ; car = MRI_FLOAT_PTR(cim) ;
    SetSearchAboutMaskedVoxel(1) ;
 
-   nx = bim->nx ; ny = bim->ny ; nz = bim->nz ; nxy = nx*ny ;
-
-   vstep = (verb) ? (nxy*nz)/50 : 0 ;
-
-   if( vstep ) fprintf(stderr,"\n + Voxel loop: ") ;
+   nx = bim->nx ; ny = bim->ny ; nz = bim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
 
    /* for each output voxel,
-        extract neighborhood array, sort it, average desired range
-        (if I had the energy, I'd OpenMP-ize this, since it is slow). */
+        extract neighborhood array, sort it, average desired range.
+        Since this is the slowest part of the code, it is now OpenMP-ized. */
 
+#ifndef USE_OMP       /* old serial code */
+ { int vvv,vstep , ii,jj,kk , nbar_num ; float val , *nbar ;
+   nbar = (float *)malloc(sizeof(float)*nbhd->num_pt) ;
+   vstep = (verb) ? nxyz/50 : 0 ;
+   if( vstep ) fprintf(stderr,"\n + Voxel loop: ") ;
    for( vvv=kk=0 ; kk < nz ; kk++ ){
      for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++,vvv++ ){
@@ -311,10 +314,42 @@ ENTRY("mri_local_percmean") ;
          }
          FSUB(car,ii,jj,kk,nx,nxy) = val ;
    }}}
-
+   free(nbar) ;
    if( vstep ) fprintf(stderr,"!") ;
+ }
+#else              /* new parallel code [06 Mar 2013 = Snowquestration Day!] */
+ AFNI_OMP_START ;
+ if( verb ) fprintf(stderr,"V") ;
+#pragma omp parallel
+ { int vvv , ii,jj,kk,qq , nbar_num ; float val , *nbar ;
+   nbar = (float *)malloc(sizeof(float)*nbhd->num_pt) ;
+#pragma omp for
+   for( vvv=0 ; vvv < nxyz ; vvv++ ){
+     ii = vvv % nx ; kk = vvv / nxy ; jj = (vvv-kk*nxy) / nx ;
+     nbar_num = mri_get_nbhd_array( bim,bms , ii,jj,kk , nbhd,nbar ) ;
+     if( nbar_num < 1 ){              /* no data */
+       val = 0.0f ;
+     } else {
+       qsort_float(nbar_num,nbar) ;   /* sort */
+       if( nbar_num == 1 ){           /* stoopid case */
+         val = nbar[0] ;
+       } else {             /* average values from p1 to p2 percentiles */
+         int q1,q2,qq ;
+         q1 = (int)( 0.01f*p1*(nbar_num-1) ) ;  /* p1 location */
+         q2 = (int)( 0.01f*p2*(nbar_num-1) ) ;  /* p2 location */
+         for( qq=q1,val=0.0f ; qq <= q2 ; qq++ ) val += nbar[qq] ;
+         val /= (q2-q1+1.0f) ;
+         if( verb && vvv%66666==0 ) fprintf(stderr,".") ;
+       }
+     }
+     car[vvv] = val ;
+   }
+   free(nbar) ;
+ } /* end parallel code */
+ AFNI_OMP_END ;
+#endif
 
-   mri_free(bim) ; free(bms) ; free(nbar) ; KILL_CLUSTER(nbhd) ;
+   mri_free(bim) ; free(bms) ; KILL_CLUSTER(nbhd) ;
 
    /* expand output image back to original size */
 
@@ -385,7 +420,7 @@ ENTRY("mri_GMunifize") ;
 
    pval = (float *)malloc(sizeof(float)*npval) ;
    for( ii=jj=0 ; ii < nvox ; ii++ )
-     if( gar[ii] >= PKVAL ) pval[jj++] = gar[ii] ;
+     if( gar[ii] > PKVAL ) pval[jj++] = gar[ii] ;
 
    /* get the median of these large values */
 
@@ -467,6 +502,9 @@ int main( int argc , char *argv[] )
             "  -quiet     = Don't print so many fun progress messages (but whyyyy?).\n"
             "\n"
             "-- Feb 2013 - Zhark the Normalizer\n"
+#ifdef USE_OMP
+            "-- This code uses OpenMP to speed up the slowest part.\n"
+#endif
            ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }

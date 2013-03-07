@@ -22,6 +22,9 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *fim , *wim ; float *ip,*jp,*kp ;
    int nx,ny,nz,nxyz , nvals ;
    float wfac=1.0f ;
+#if 0
+   mat44 awarp ; int use_awarp=0 ;
+#endif
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -30,9 +33,8 @@ int main( int argc , char *argv[] )
      printf(
       "Usage: 3dNwarpApply [options] sourcedataset\n"
       "\n"
-      "Program to apply a nonlinear 3D warp saved from 3dAllineate -nwarp_save\n"
-      "(or from 3dNwarpCalc) to a 3D dataset, to produce a warped version of\n"
-      "the source dataset.\n"
+      "Program to apply a nonlinear 3D warp saved from 3dQwarp (or 3dNwarpCat, etc.)\n"
+      "to a 3D dataset, to produce a warped version of the source dataset.\n"
       "\n"
       "OPTIONS:\n"
       "--------\n"
@@ -126,11 +128,39 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strcasecmp(argv[iarg],"-nwarp") == 0 ){
+#if 0
+     if( strcasecmp(arg[iarg],"-awarp") == 0 || strcasecmp(argv[iarg],"-matrix") == 0 ){
+       mat44 mmm ; MRI_IMAGE *qim ; float *qar ;
+       if( use_awarp ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
+       qim = mri_read_1D(argv[iarg]) ;
+       if( qim == NULL || qim->nvox < 9 )
+         ERROR_exit("cannot read matrix from file '%s'",argv[iarg]);
+       if( qim->ny > 1 ){
+         MRI_IMAGE *tim = mri_transpose(qim) ; mri_free(qim) ; qim = tim ;
+       }
+       qar = MRI_FLOAT_PTR(qim) ;
+       if( qim->nvox < 12 )                           /* presumably a rotation */
+         LOAD_MAT44(mmm,qar[0],qar[1],qar[2],0,
+                        qar[3],qar[4],qar[5],0,
+                        qar[6],qar[7],qar[8],0) ;
+       else                                           /* a full matrix */
+         LOAD_MAT44(mmm,qar[0],qar[1],qar[2],qar[3],
+                        qar[4],qar[5],qar[6],qar[7],
+                        qar[8],qar[9],qar[10],qar[11]) ;
+       mri_free(qim) ;
+       awarp = mmm ; use_awarp = 1 ; iarg++ ; continue ;
+     }
+#endif
+
+     /*---------------*/
+
+     if( strcasecmp(argv[iarg],"-nwarp") == 0 || strcasecmp(argv[iarg],"-warp") == 0 ){
        if( dset_nwarp != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        dset_nwarp = THD_open_dataset( argv[iarg] ) ;
-       if( dset_nwarp == NULL ) ERROR_exit("can't open -nwarp dataset '%s' :-(",argv[iarg]);
+       if( dset_nwarp == NULL ) ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg]);
+       if( DSET_NVALS(dset_nwarp) < 3 ) ERROR_exit("dataset '%s' isn't a 3D warp",argv[iarg]);
        iarg++ ; continue ;
      }
 
