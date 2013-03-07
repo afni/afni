@@ -21,7 +21,7 @@ greeting.lme <- function ()
           ================== Welcome to 3dlme ==================          
    AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Feb 13, 2013
+Version 0.0.2, Mar 7, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -37,7 +37,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Feb 13, 2013
+Version 0.0.2, Mar 7, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -441,7 +441,7 @@ contraConstr <- function(cStr, dataStr, fixedVars, QV) {
       }
       for(vv in fixedVars) {
          #browser()
-	      if(vv %in% QV) for(ii in 1:2) contrList[[ii]][[vv]] <- 0 else {
+	 if(vv %in% QV) for(ii in 1:2) contrList[[ii]][[vv]] <- 0 else {
             lvl <- levels(dataStr[,vv])
             if(vv %in% vars) {
                #browser()
@@ -450,8 +450,9 @@ contraConstr <- function(cStr, dataStr, fixedVars, QV) {
                lvlInv <- sepTerms[seq(2,length(sepTerms),2)]   # levels involved
                lvlOK <- lvlInv %in% lvl
                #browser()
-	            if(all(lvlOK)) {
-	               sq <- match(as.numeric(sepTerms[c(1,3)]), c(1, -1))
+	       if(all(lvlOK)) {
+                  if(length(lvlInv)==1) lvlInv <- c(lvlInv, lvlInv) # artificially add one so that it works 2 lines later
+                  sq <- match(as.numeric(sepTerms[c(1,3)]), c(1, -1))
                   for(ii in 1:2) contrList[[ii]][[vv]] <- lvlInv[ii]
 	            } else errex.AFNI(paste("Incorrect level coding in variable", vars[ii],
 	               ": ", lvlInv[which(!lvlOK)], " \n   "))
