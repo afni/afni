@@ -131,9 +131,10 @@ static char g_history[] =
  " 3.9  Oct 27, 2010    - added -show_bad_char and -show_bad_all\n"
  " 3.10 Oct 18, 2012    - option -test is same as -show_bad_all\n"
  " 3.11 Feb 11, 2013    - added recent options to help\n"
+ " 3.12 Mar 07, 2013    - applied -prefix with -show_bad_backslash\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.11 (February 11, 2013)"
+#define VERSION         "3.12 (March 7, 2013)"
 
 
 /* ----------------------------------------------------------------------
@@ -284,6 +285,8 @@ process_script( char * filename, param_t * p )
 
 /*------------------------------------------------------------
  * Scan file for: '\\' then whitespace then '\n'
+ *
+ * If prefix is set, write to a new file.
  *------------------------------------------------------------*/
 int
 scr_show_bad_bs( char * filename, param_t * p )
@@ -294,10 +297,30 @@ scr_show_bad_bs( char * filename, param_t * p )
     int           count, cur, bcount = 0, bad = 0;
     int           lnum = 1;
 
+    FILE        * outfp = NULL; /* for writing "corrected" file */
+    int           bstart, bc;   /* 'bad' fixing vars            */ 
+
     if( read_file( filename, &fdata, &flen ) < 0 ) return -1;
 
     if( p->debug ) fprintf(stderr,"-- show_bad_backslash: file %s ...\n",
                            filename);
+
+    /* maybe try to fix any errors */
+    if ( p->prefix ) {
+       if( ! p->overwrite && file_exists(p->prefix) ){
+          fprintf(stderr,"** output file '%s' already exists\n",p->prefix);
+          return 1;
+       }
+
+       outfp = fopen(p->prefix, "w");
+       if( !outfp ) {
+          fprintf(stderr,"** failed to open '%s' for writing \n",p->prefix);
+          return 1;
+       }
+
+       if( p->debug )
+          fprintf(stderr, "-- will fix any backslash errors in %s",p->prefix);
+    }
 
     line_start = fdata;
     for( count = 0; count < flen; /* in loop */ )
@@ -305,17 +328,31 @@ scr_show_bad_bs( char * filename, param_t * p )
         /* note beginning of line (it's the next char) */
         if( fdata[count] == '\n' ){  line_start = fdata+count+1;  lnum++; }
 
-        if( fdata[count] != '\\' ){ count++; continue; }
+        if( outfp ) fputc(fdata[count], outfp); /* regardless, char is okay */
+
+        if( fdata[count] != '\\' ){
+           count++;
+           continue;
+        }
 
         /* found a '\\' char, count it and look beyond */
         bcount++; count++;
+
+        /* note first char after '\\', and do not write out corrected
+           file, until we know the line is okay */
+        bstart = count;
 
         /* skip any whitespace */
         cur = count;
         while( fdata[count] != '\n' && isspace(fdata[count]) ) count++;
 
-        if( count == cur || fdata[count] != '\n' )  /* we're okay */
+        if( count == cur || fdata[count] != '\n' ) { /* we're okay */
+            /* if correcting, write all current text out */
+            if( outfp ) {
+               for( bc=bstart; bc < count; bc++ ) fputc(fdata[bc], outfp);
+            }
             continue;
+        }
 
         /* this line is bad, and we're looking at '\n' */
         if( !p->quiet )
@@ -326,10 +363,18 @@ scr_show_bad_bs( char * filename, param_t * p )
                 putchar(*cp);
         }
 
+        /* in fixed (either, really) case, the '\n' write is in next loop */
+
         bad++;
     }
 
-    if(p->debug > 0) fprintf(stderr,"file %s: %d bad lines\n",filename,bad);
+    if(p->debug) fprintf(stderr,"file %s: %d bad lines\n", filename,bad);
+    if(!p->quiet && outfp)
+        fprintf(stderr,"   --> FIXED file written to %s\n", p->prefix);
+
+    /* and close any output file pointer */
+    if( outfp ) fclose(outfp);
+
     if(bad > 255) bad = 255;  /* limit on exit status */
 
     return bad;
@@ -1031,7 +1076,7 @@ set_params( param_t * p, int argc, char * argv[] )
 
     if ( argc < 2 )
     {
-        usage( argv[0], USE_SHORT );
+        usage( argv[0], USE_LONG );
         return -1;
     }
 
@@ -1608,6 +1653,10 @@ help_full( char * prog )
         "\n"
         "      %s -show_bad_backslash -infiles my_scripts_*.txt\n"
         "\n"
+        "   3. in ONE file, correct spaces after trailing backslashes '\\'\n"
+        "\n"
+        "      %s -show_bad_backslash -infile scripts.txt -prefix s.fixed.txt\n"
+        "\n"
         "   ----- character modification examples -----\n"
         "\n"
         "   1. in each file, change the 8 characters at 2515 to 'hi there':\n"
@@ -1696,7 +1745,7 @@ help_full( char * prog )
         "      -mod_ana_hdr     : modify ANALYZE headers\n"
         "      -mod_field       : specify a field and value(s) to modify\n"
         "\n"
-        "      -prefix          : specify and output filename\n"
+        "      -prefix          : specify an output filename\n"
         "      -overwrite       : specify to overwrite the input file(s)\n"
         "\n"
         "  script file options:\n"
@@ -1714,6 +1763,13 @@ help_full( char * prog )
         "          This is meant to find problems in script files where the\n"
         "          script programmer has spaces or tabs after a final '\\'\n"
         "          on the line.  That would break the line continuation.\n"
+        "\n"
+        "          ** If the -prefix option is specified, whitespace after\n"
+        "             backslashes will be removed in the given output file.\n"
+        "\n"
+        "             This can also be used in conjunction with -overwrite.\n"
+        "\n"
+        "          See also -prefix and -overwrite.\n"
         "\n"
         "      -show_bad_char   : show any non-printable characters'\\'\n"
         "\n"
@@ -1825,7 +1881,7 @@ help_full( char * prog )
         "  - R Reynolds, version: %s, compiled: %s\n"
         "\n",
         prog, prog,
-        prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
+        prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
         prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
         VERSION, __DATE__
         );
