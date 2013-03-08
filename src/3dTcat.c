@@ -32,6 +32,9 @@ static int                     TCAT_rct   = 0 ;     /* 15 Nov 1999 */
 
 static int                     TCAT_relabel = 0 ;   /* 03 Nov 2010 */
 
+static char *                  TCAT_tpattern = NULL;/* 08 Mar 2013 [rickr] */
+static float                   TCAT_tr    = 0.0 ;   /* 08 Mar 2013 [rickr] */
+
 static char TCAT_output_prefix[THD_MAX_PREFIX] = "tcat" ;
 static char TCAT_session[THD_MAX_NAME]         = "./"   ;
 
@@ -89,6 +92,31 @@ void TCAT_read_opts( int argc , char *argv[] )
            ERROR_exit("need argument after -prefix!") ;
          MCW_strncpy( TCAT_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
          continue ;
+      }
+
+      /**** -tpattern PATTERN ****/
+
+      if( strncmp(argv[nopt],"-tpat",5) == 0 ) {
+         nopt++ ;
+         if( nopt >= argc )
+           ERROR_exit("need argument after -tpattern!") ;
+         TCAT_tpattern = argv[nopt] ;
+         if( TCAT_tpattern[0] == '@' )
+            ERROR_exit("-tpattern not ready for @filename, please complain");
+         nopt++ ; continue ;
+      }
+
+      /**** -TR TR ****/
+
+      if( strcmp(argv[nopt],"-TR") == 0 || strcmp(argv[nopt],"-tr") == 0 ){
+         nopt++ ;
+         if( nopt >= argc )
+           ERROR_exit("need argument after -TR!") ;
+         TCAT_tr = atof(argv[nopt]) ;
+         if( TCAT_tr <= 0.0 ) ERROR_exit("illegal -TR value: %s", argv[nopt]);
+         if( TCAT_tr >= 100.0 )
+            WARNING_message("-TR is in seconds, so %g seems big", TCAT_tr);
+         nopt++ ; continue ;
       }
 
       /**** -session directory ****/
@@ -679,8 +707,9 @@ int main( int argc , char *argv[] )
                     ADN_none ) ;
 
    /* check if we have a valid time axis; if not, make one up */
+   /* (do this as an initialization, even if -TCAT_tr/pattern) */
 
-   if( DSET_TIMESTEP(new_dset) <= 0.0 ){
+   if ( DSET_TIMESTEP(new_dset) <= 0.0 ){
       float TR = 1.0 ;
       float torg = 0.0 , tdur = 0.0 ;
       int tunits = UNITS_SEC_TYPE ;
@@ -702,8 +731,36 @@ int main( int argc , char *argv[] )
                           ADN_ttorg  , torg ,
                           ADN_ttdur  , tdur ,
                        ADN_none ) ;
-      if (DSET_NVALS(new_dset) > 1) {
+      if (DSET_NVALS(new_dset) > 1 && TCAT_tr <= 0.0) {
          WARNING_message("Set TR of output dataset to 1.0 s") ;
+      }
+   }
+
+   /* 8 Mar 2013 [rickr] :                                        */
+   /* now that time axis is set, adjust it for TR or tpat options */
+   if( TCAT_tr > 0.0 ) {
+      EDIT_dset_items( new_dset ,
+                          ADN_tunits , UNITS_SEC_TYPE ,
+                          ADN_ttdel  , TCAT_tr ,
+                       ADN_none ) ;
+      if( TCAT_verb ) printf("-verb: setting TR to %g\n", TCAT_tr);
+   }
+
+   if( TCAT_tpattern ) {
+      int     nz = DSET_NZ(new_dset);
+      float   tr = DSET_TIMESTEP(new_dset);
+      float * tpat = TS_parse_tpattern(nz, tr, TCAT_tpattern);
+      if( !tpat ) ERROR_exit("cannot get timing for nz=%d, tr=%g, tpat=%s",
+                             nz, tr, TCAT_tpattern);
+
+      EDIT_dset_items( new_dset ,
+                          ADN_nsl ,     nz ,
+                          ADN_toff_sl , tpat ,
+                       ADN_none ) ;
+      if( TCAT_verb ) {
+         printf("-verb: setting timing to :");
+         for( kv=0; kv < nz; kv++ ) printf(" %g", tpat[kv]);
+         putchar('\n');
       }
    }
 
