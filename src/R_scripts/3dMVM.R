@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.2, Feb 28, 2013
+Version 0.2.3, March 8, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.2, Feb 28, 2013
+Version 0.2.3, March 8, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -458,7 +458,7 @@ process.MVM.opts <- function (lop, verb = 0) {
       errex.AFNI(c('Must of use -cio option with any input/output ',
                    'format other than BRIK'))
 
-   if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
+   if(!is.na(lop$qVars[1])) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
 
    if(!is.null(lop$gltLabel)) {
       sq <- as.numeric(unlist(lapply(lop$gltLabel, '[', 1)))
@@ -481,7 +481,7 @@ process.MVM.opts <- function (lop, verb = 0) {
    len <- length(lop$dataTable)
    wd <- which(lop$dataTable == "InputFile")
    hi <- len / wd - 1
-   
+   browser()
    if(len %% wd != 0)
       errex.AFNI('The content under -dataTable is not rectangular!') else {
       lop$dataStr <- NULL
@@ -490,7 +490,7 @@ process.MVM.opts <- function (lop, verb = 0) {
       names(lop$dataStr) <- lop$dataTable[1:wd]
       # wow, terrible mistake here with as.numeric(lop$dataStr[,jj])
       #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
-      if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
+      if(!is.na(lop$qVars[1])) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
       # or if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(levels(lop$dataStr[,jj]))[as.integer(lop$dataStr[,jj])]
    }
 
