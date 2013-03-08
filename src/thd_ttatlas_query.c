@@ -9274,4 +9274,5 @@ float get_wami_minprob()
    wami_min_prob = (float) AFNI_numenv_def("AFNI_WHEREAMI_PROB_MIN", TINY_NUMBER);
    if(wami_min_prob<=0)
       wami_min_prob = TINY_NUMBER;
+   return(wami_min_prob);
 }
