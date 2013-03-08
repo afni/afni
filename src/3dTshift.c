@@ -393,6 +393,8 @@ int main( int argc , char *argv[] )
 
      if( TS_tpattern != NULL ){                                    /* set pattern */
        TS_tpat = TS_parse_tpattern( nzz , TS_TR , TS_tpattern ) ;
+       /* move exit() out of TS_parse_tpattern     8 Mar 2013 [rickr] */
+       if ( ! TS_tpat ) exit(1) ;
      } else {
        if( TS_dset->taxis->nsl != nzz ){
          WARNING_message("dataset temporal pattern is malformed!") ; /* should not happen */

@@ -183,7 +183,8 @@ float * TS_parse_tpattern( int nzz , float TR , char *tpattern )
       }
 
    } else {
-      ERROR_exit("Unknown tpattern = %s",tpattern) ;
+      ERROR_message("Unknown tpattern = %s",tpattern) ;
+      return NULL ;
    }
 
    return tpat ;
