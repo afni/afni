@@ -5766,7 +5766,7 @@ static void CW_load_one_warp( int nn , char *cp )
 ENTRY("CW_load_one_warp") ;
 
    if( nn <= 0 || nn > CW_NMAX || cp == NULL || *cp == '\0' ){
-     ERROR_message("bad inputs to CW_load_warp") ;
+     ERROR_message("bad inputs to CW_load_one_warp") ;
      EXRETURN ;
    }
 
@@ -5777,7 +5777,7 @@ ENTRY("CW_load_one_warp") ;
    }
    wp = strdup(cp) ; ii = strlen(wp) ;
    if( ii < 4 ){
-     ERROR_message("input string to CW_load_warp is too short :-((") ;
+     ERROR_message("input string to CW_load_one_warp is too short :-((") ;
      EXRETURN ;
    }
    if( wp[ii-1] == ')' ) wp[ii-1] = '\0' ;
@@ -5869,7 +5869,7 @@ ENTRY("IW3D_read_catenated_warp") ;
    if( csar == NULL || csar->num < 1 ) RETURN(NULL) ;
 
    for( ii=0 ; ii < csar->num ; ii++ )
-     CW_load_warp( ii+1 , csar->str[ii] ) ;
+     CW_load_one_warp( ii+1 , csar->str[ii] ) ;
 
    NI_delete_str_array(csar) ;
 
