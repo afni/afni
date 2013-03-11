@@ -299,7 +299,6 @@ MAKE_ATLAS_TABLE:
       printf ' ni_form="ni_group">\n\n' >> $labeltable
       foreach n (`count -digits 1 1 $ne[1] 1`)
          set lln = `sed -n ${n}p /tmp/${RNS}.___ult.txt`
-echo lln is $lln
          printf '<ATLAS_POINT\n data_type="atlas_point"\n' >> $labeltable
          printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2-]`" $lln[1] \
                               >> $labeltable
@@ -307,7 +306,6 @@ echo lln is $lln
          if ($COG) then
             set cogval = $n
             set cog = `3dCM $target_dset"<$cogval>"`
-            echo "$target_dset cog $cogval = $cog"
             printf ' GYoAR="0"\n COG="%s %s %s"\n' $cog >> $labeltable
          else
             printf ' GYoAR="0"\n COG="0.0 0.0 0.0"\n' >> $labeltable
