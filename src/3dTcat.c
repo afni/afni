@@ -106,16 +106,16 @@ void TCAT_read_opts( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
-      /**** -TR TR ****/
+      /**** -tr TR ****/
 
-      if( strcmp(argv[nopt],"-TR") == 0 || strcmp(argv[nopt],"-tr") == 0 ){
+      if( strcmp(argv[nopt],"-tr") == 0 || strcmp(argv[nopt],"-TR") == 0 ){
          nopt++ ;
          if( nopt >= argc )
-           ERROR_exit("need argument after -TR!") ;
+           ERROR_exit("need argument after -tr!") ;
          TCAT_tr = atof(argv[nopt]) ;
-         if( TCAT_tr <= 0.0 ) ERROR_exit("illegal -TR value: %s", argv[nopt]);
+         if( TCAT_tr <= 0.0 ) ERROR_exit("illegal -tr value: %s", argv[nopt]);
          if( TCAT_tr >= 100.0 )
-            WARNING_message("-TR is in seconds, so %g seems big", TCAT_tr);
+            WARNING_message("-tr is in seconds, so %g seems big", TCAT_tr);
          nopt++ ; continue ;
       }
 
@@ -502,6 +502,12 @@ void TCAT_Syntax(void)
     "     -relabel      = Replace any sub-brick labels in an input dataset\n"
     "                       with the input dataset name -- this might help\n"
     "                       identify the sub-bricks in the output dataset.\n"
+    "\n"
+    "     -tpattern PATTERN = Specify the timing pattern for the output\n"
+    "                       dataset, using patterns described in the\n"
+    "                       'to3d -help' output (alt+z, seq, alt-z2, etc).\n"
+    "\n"
+    "     -tr TR      = Specify the TR (in seconds) for the output dataset.\n"
     "\n"
     "     -DAFNI_GLOB_SELECTORS=YES\n"
     "                     Setting the environment variable AFNI_GLOB_SELECTORS\n"
