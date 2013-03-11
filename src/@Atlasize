@@ -6,6 +6,7 @@ set stat = 0
 set RNS = `3dnewid -fun`
 set log = /tmp/${RNS}.MLT.log
 set ds = `date '+%y%m%d_%H%M'`
+set centeropt = ""
 
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
@@ -58,7 +59,7 @@ if ("$flab" != "IS_ATLAS") then
    @MakeLabelTable -lab_file_delim "$delim"  \
                    -lab_file $flab $iL $iV \
                    -atlas_pointlist keys_${RNS}_ \
-                   -dset $target_dset  $replace \
+                   -dset $target_dset  $replace $centeropt \
                    -atlas_file $atlas_file $aname \
                    -atlas_description "$adesc"
    if ($status) then
@@ -236,6 +237,11 @@ PARSE:
          endif         
          goto CONTINUE
       endif 
+
+      if ("$argv[$cnt]" == "-centers") then
+         set centeropt = "-centers"
+         goto CONTINUE
+      endif
       
       echo "Error: Option or parameter '$argv[$cnt]' not understood"
       apsearch -popt `basename $0` -word $argv[$cnt]
@@ -343,6 +349,7 @@ echo "                 same name exists already, this option will back it up"
 echo "                 and allow an overwrite. You could endup with a lot of"
 echo "                 backed volumes and niml files, so you might want to"
 echo "                 to cleanup now and then."
+echo "   -centers:    Add center of mass coordinates to atlas"
 echo ""
    @global_parse -gopts_help
 echo ""
