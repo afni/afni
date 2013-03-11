@@ -49,6 +49,15 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 11 , MAR, 2013 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Handling input and output directories",
+    "Output follows input directories unless specified with -output_dir\n"
+    "Previously, all input files had to exist in current directory.\n"
+    "Changes allow for output to follow anat or epi dataset directories\n"
+    "or specified output directory. Also minor change to call tcsh without\n"
+    "sourcing startup .cshrc\n"
+} ,
 { 11 , MAR, 2013 , DRG , "@Atlasize center of mass" , 
     MINOR , TYPE_NEW_OPT, 
     "Add -centers for center of mass locations in atlas regions",
