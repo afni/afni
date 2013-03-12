@@ -86,6 +86,9 @@ static float outval = 0.0f ;                   /* value for 'outside' voxels */
 void  GA_set_outval( float v ){ outval = v; }  /* 28 Feb 2007 */
 float GA_get_outval(void){ return outval; }    /* 10 Dec 2008 */
 
+#undef  ISTINY
+#define ISTINY(a) (fabsf(a) < 0.0001f)
+
 /*---------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using NN method. */
 
@@ -235,6 +238,10 @@ ENTRY("GA_interp_cubic") ;
      ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
      jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
      kz = floorf(zz) ;  fz = zz - kz ;
+
+     if( ISTINY(fx) && ISTINY(fy) && ISTINY(fz) ){
+       vv[pp] = FAR(ix,jy,kz) ; continue ;
+     }
 
      ix_m1 = ix-1    ; ix_00 = ix      ; ix_p1 = ix+1    ; ix_p2 = ix+2    ;
      CLIP(ix_m1,nx1) ; CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ; CLIP(ix_p2,nx1) ;
@@ -418,6 +425,8 @@ static int   WSHAP = 0 ;       /* 0 = cubical ; 1 = spherical */
 
 #define IRAD_MAX 21            /* largest IRAD allowed */
 
+/*------------------------------------------------------------------*/
+
 static void setup_wsinc5(void)
 {
    char *eee ; float val ;
@@ -449,9 +458,12 @@ static void setup_wsinc5(void)
    ININFO_message("  taper cut point = %.3f",WCUT) ;
    ININFO_message("  window radius   = %d voxels",IRAD) ;
    ININFO_message("  window shape    = %s",(WSHAP)?"Spherical":"Cubical") ;
+   ININFO_message("  The above can be altered via the AFNI_WSINC5_* environment variables.") ;
 
    return ;
 }
+
+/*------------------------------------------------------------------*/
 
 /* sinc function = sin(PI*x)/(PI*x) [N.B.: x will always be >= 0] */
 
@@ -459,15 +471,21 @@ static void setup_wsinc5(void)
 #define sinc(x) ( ((x)>0.01f) ? sinf(PIF*(x))/(PIF*(x))     \
                               : 1.0f - 1.6449341f*(x)*(x) )
 
+/*------------------------------------------------------------------*/
+
 /* HW(x) = Hamming Window = minimum sidelobe 2 term window */
 
 #undef  HW
 #define HW(x) (0.53836f+0.46164f*cosf(PIF*(x)))
 
+/*------------------------------------------------------------------*/
+
 /* M3(x) = minimum sidelobe 3 term window (has no catchy name, alas) */
 
 #undef  M3
 #define M3(x) (0.4243801f+0.4973406f*cosf(PIF*(x))+0.0782793f*cosf(PIF*(x)*2.0f))
+
+/*------------------------------------------------------------------*/
 
 /* Weight (taper) function, declining from ww(WCUT)=1 to ww(1)=0 */
 /* Note that the input to ww will always be between WCUT and 1. */
@@ -476,6 +494,7 @@ static void setup_wsinc5(void)
 #define ww(x) ( (WFUN) ?  HW( ((x)-WCUT)*WCUTI ) : M3( ((x)-WCUT)*WCUTI ) )
 
 /*---------------------------------------------------------------------------*/
+
 #define UNROLL    /* unroll some loops */
 
 /*---------------------------------------------------------------------------*/
@@ -522,6 +541,10 @@ ENTRY("GA_interp_wsinc5s") ;
      ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
      jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
      kz = floorf(zz) ;  fz = zz - kz ;
+
+     if( ISTINY(fx) && ISTINY(fy) && ISTINY(fz) ){
+       vv[pp] = FAR(ix,jy,kz) ; continue ;
+     }
 
      /*- compute sinc at all points plus/minus 5 indexes from current locale -*/
 
@@ -591,6 +614,10 @@ ENTRY("GA_interp_wsinc5p") ;
      ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
      jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
      kz = floorf(zz) ;  fz = zz - kz ;
+
+     if( ISTINY(fx) && ISTINY(fy) && ISTINY(fz) ){
+       vv[pp] = FAR(ix,jy,kz) ; continue ;
+     }
 
      /*- x interpolations -*/
 
@@ -815,7 +842,7 @@ ENTRY("GA_interp_wsinc5") ;
    if( first ){ setup_wsinc5() ; first = 0 ; }
 
    if( WSHAP ) GA_interp_wsinc5s( fim,npp,ip,jp,kp,vv ) ; /* spherical */
-   else        GA_interp_wsinc5p( fim,npp,ip,jp,kp,vv ) ; /* spherical */
+   else        GA_interp_wsinc5p( fim,npp,ip,jp,kp,vv ) ; /* not spherical */
 
    EXRETURN ;
 }
@@ -875,6 +902,10 @@ ENTRY("GA_interp_quintic") ;
      ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
      jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
      kz = floorf(zz) ;  fz = zz - kz ;
+
+     if( ISTINY(fx) && ISTINY(fy) && ISTINY(fz) ){
+       vv[pp] = FAR(ix,jy,kz) ; continue ;
+     }
 
      /* compute indexes from which to interpolate (-2,-1,0,+1,+2,+3),
         but clipped to lie inside input image volume                 */

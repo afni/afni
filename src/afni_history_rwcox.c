@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , FEB , 2013 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
+  { 12 , MAR , 2013 , RWC , "3dNwarpApply" , MINOR , TYPE_NEW_OPT ,
+   "Various fixes" ,
+   "-ainterp = lets you interpolate data differently from warp\n"
+   "-affter  = lets you use a different affine warp for each sub-brick\n"
+   "-nwarp   = allow catenation and inversion directly on the command line\n"
+   "\n"
+   "These last 2 options make the program 3dNwarpCat pleonastically\n"
+   "redundant." } ,
+
+ { 27 , FEB , 2013 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
    "Added -GM option to stretch gray matter to a consistent-ish place" ,
    NULL } ,
 
