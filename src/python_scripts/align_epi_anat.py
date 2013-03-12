@@ -467,11 +467,9 @@ g_help_string = """
      functions like mutual information or least squares can provide a rough
      alignment of the contours.
 
-     -output_dir dirname : the default output will follow the
-     original epi/anat or dset1/2 directory paths. EPI-derived output will
-     be placed in the same directory as the original EPI data, and
-     anat-derived output will be placed in the same directory as the anat-
-     based dataset. If a directory is specified here, output data including
+     -output_dir dirname : the default output will put the result in
+     the current directory even if the anat and epi datasets are in other 
+     directories. If a directory is specified here, output data including
      temporary output data will be placed in that directory. If a new directory 
      is specified, that directory will be created first.
      
@@ -563,7 +561,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.37" # software version (update for changes)
+      self.align_version = "1.38" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1196,7 +1194,7 @@ class RegWrap:
       self.fresh_start( \
           ("%s" % (e.out_prefix())), \
           ("%s" % (a.out_prefix())), rmold = rmold, \
-          epipath = "%s" % (e.p()), anatpath = "%s" % (a.p()))
+          epipath = ps.output_dir, anatpath = ps.output_dir)
       return 1
 
    def version(self):
@@ -1732,15 +1730,15 @@ class RegWrap:
       if opt != None: 
          self.output_dir = opt.parlist[0]
          self.output_dir = "%s/" % os.path.realpath(self.output_dir)
-         self.anat_dir = self.output_dir
-         self.epi_dir = self.output_dir
          print "User has selected a new output directory %s" % self.output_dir
          com = shell_com(("mkdir %s" % self.output_dir), self.oexec)
          com.run()
          if(not self.dry_run()):
             os.chdir(self.output_dir)
       else :
-         self.output_dir = " "  # just a space
+         self.output_dir = "./"  # just a space
+      self.anat_dir = self.output_dir
+      self.epi_dir = self.output_dir
 
       # all inputs look okay  - this goes after all inputs. ##########
       return 1
@@ -3230,7 +3228,7 @@ if __name__ == '__main__':
             ps.process_child_epi(child_epi)
             if (ps.rmrm):  # cleanup after the children, remove any extra files
                ps.fresh_start(child_epi.out_prefix(), apref="", rmold=0,\
-                  epipath=("%s" % child_epi.p()) )
+                  epipath=("%s" % ps.output_dir) )
 
    #cleanup after the parents too?
    if (ps.rmrm):
