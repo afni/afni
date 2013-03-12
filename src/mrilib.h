@@ -2260,16 +2260,19 @@ extern void NwarpCalcRPN_verb(int i) ;
 extern void THD_interp_floatim( MRI_IMAGE *fim ,
                                 int np , float *ip , float *jp , float *kp ,
                                 int code, float *outar ) ;
-extern MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar, mat44 cmat_bim ,
-                                    int incode      , float wfac     ,
+extern MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar,
+                                    int use_amat    , mat44 amat ,
+                                    mat44 cmat_bim  ,
+                                    int incode      , float wfac ,
                                     mat44 cmat_src  ,
                                     mat44 cmat_out  ,
-                                    int nx_out      , int ny_out     , int nz_out  ) ;
+                                    int nx_out      , int ny_out , int nz_out  ) ;
 extern THD_3dim_dataset * THD_nwarp_dataset( THD_3dim_dataset *dset_nwarp ,
                                              THD_3dim_dataset *dset_src  ,
                                              THD_3dim_dataset *dset_mast ,
-                                             char *prefix , int interp_code ,
-                                             float dxyz_mast , float wfac , int nvlim ) ;
+                                             char *prefix , int wincode , int dincode ,
+                                             float dxyz_mast , float wfac , int nvlim ,
+                                             MRI_IMAGE *amatim ) ;
 
 /*----------------------------------------------------------------------------*/
 
