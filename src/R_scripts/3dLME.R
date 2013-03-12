@@ -21,7 +21,7 @@ greeting.lme <- function ()
           ================== Welcome to 3dlme ==================          
    AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, Mar 7, 2013
+Version 0.0.3, Mar 12, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -37,7 +37,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, Mar 7, 2013
+Version 0.0.3, Mar 12, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -897,7 +897,7 @@ while(is.null(fm)) {
 # number of terms (or F-stats): the output structure is different without within-subject variables
 nF      <- ifelse(is.na(lop$corStr[1]), nrow(anova(fm))-1, nrow(anova(fm)))
 nBasis  <- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)
-nCovVal <- sum(!is.na(grep(lop$QV, dimnames(summary(fm)$tTable)[[1]])))
+if(is.null(lop$QV)) nCovVal <- 0 else nCovVal <- sum(grep(lop$QV, dimnames(summary(fm)$tTable)[[1]]))
 nT      <- 2*(lop$num_glt + nBasis + nCovVal)
 NoBrick <- nF + nT
 
@@ -915,6 +915,7 @@ pars[[8]] <- ranEff
 pars[[9]] <- corStr                 # correlation structure for basis function modeling
 pars[[10]]<- ifelse(lop$SS_type==3, 'marginal', 'sequential')
 pars[[11]]<- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)   # number of basis functions
+if(is.null(lop$QV)) pars[[12]] <- NULL else
 pars[[12]]<- grep(lop$QV, dimnames(summary(fm)$tTable)[[1]])    # row numbers involving covariate values
 pars[[13]]<- (1:nF)+is.na(lop$corStr[1])                        # row sequence for F-values
 
