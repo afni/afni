@@ -3132,7 +3132,7 @@ ENTRY("THD_nwarp_dataset") ;
 
    for( iv=0 ; iv < nvals ; iv++ ){
      fim = THD_extract_float_brick(iv,dset_src) ; DSET_unload_one(dset_src,iv) ;
-     wim = mri_new_conforming( fim , MRI_float ) ;
+     wim = mri_new_vol(nx,ny,nz,MRI_float) ;
      if( nya > 1 ){                     /* warp setup for just this sub-brick */
        int im = nxa * MIN(iv,nya-1) ;
        LOAD_MAT44(amat,amatar[0+im],amatar[1+im],amatar[ 2+im],amatar[ 3+im],
@@ -3145,15 +3145,18 @@ ENTRY("THD_nwarp_dataset") ;
        jp = MRI_FLOAT_PTR( IMARR_SUBIM(im_src,1) ) ;
        kp = MRI_FLOAT_PTR( IMARR_SUBIM(im_src,2) ) ;
      }
+     if( verb_nww && iv == 0 ) fprintf(stderr,"Warping dataset: ") ;
      THD_interp_floatim( fim, nxyz,ip,jp,kp, dincode, MRI_FLOAT_PTR(wim) ) ;
      EDIT_substitute_brick( dset_out , iv , MRI_float , MRI_FLOAT_PTR(wim) ) ;
      mri_clear_and_free(wim) ;
      if( nya > 1 ){ DESTROY_IMARR(im_src) ; }  /* will be re-computed */
+     if( verb_nww ) fprintf(stderr,".") ;
    }
 
    if( imar_nwarp != NULL ) DESTROY_IMARR(imar_nwarp) ;
    if( im_src     != NULL ) DESTROY_IMARR(im_src) ;
    DSET_unload(dset_src) ;
+   if( verb_nww ) fprintf(stderr,"\n") ;
    RETURN(dset_out) ;
 }
 
@@ -3196,7 +3199,7 @@ THD_3dim_dataset * NwarpCalcRPN( char *expr, char *prefix, int icode, int acode 
    THD_3dim_dataset *oset=NULL ;
    int nx=0,ny=0,nz=0 ;
    mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
-   char *geomstring=NULL ;
+   char *geomstring=NULL , *sname=NULL ;
 
 ENTRY("NwarpCalcRPN") ;
 
@@ -3245,6 +3248,7 @@ ENTRY("NwarpCalcRPN") ;
        }
        if( geomstring == NULL ){
          geomstring = strdup(AA->geomstring) ;
+         sname      = strdup(dset->atlas_space) ;
          nx = AA->nx; ny = AA->ny; nz = AA->nz; cmat = AA->cmat; imat = AA->imat;
        } else if( AA->nx != nx || AA->ny != ny || AA->nz != nz ){
          sprintf(mess,"non-conforming warp from '%s'",buf); free(buf); ERREX(mess);
@@ -3331,6 +3335,7 @@ ENTRY("NwarpCalcRPN") ;
        AA = iwstk[nstk-1] ; FREEIFNN(AA->geomstring) ;
        AA->geomstring = strdup(geomstring) ; AA->cmat = cmat ; AA->imat = imat ;
        dset = IW3D_to_dataset( AA , buf ) ;
+       if( sname != NULL ) MCW_strncpy( dset->atlas_space , sname , THD_MAX_NAME ) ;
        DSET_write(dset) ;
        if( verb_nww ) ININFO_message(" -- wrote dataset %s",DSET_BRIKNAME(dset)) ;
        DSET_delete(dset) ; free(buf) ;
@@ -3470,6 +3475,7 @@ ENTRY("NwarpCalcRPN") ;
        oset = THD_nwarp_dataset( wset, iset, NULL, pref, icode,acode, 0.0f, 1.0f, 999999999 , NULL ) ;
                                                tross_Copy_History  (iset,oset) ;
        sprintf(mess,"NwarpCalcRPN '%s'",cmd) ; tross_Append_History(oset,mess) ;
+       if( sname != NULL ) MCW_strncpy(oset->atlas_space,sname,THD_MAX_NAME) ;
        DSET_delete(iset) ; DSET_delete(wset) ; DSET_write(oset) ;
        if( verb_nww ) ININFO_message(" -- wrote dataset %s",DSET_BRIKNAME(oset)) ;
        DSET_delete(oset) ; free(buf) ;
@@ -3492,7 +3498,7 @@ ENTRY("NwarpCalcRPN") ;
      oset = IW3D_to_dataset( AA , prefix ) ;
    }
 
-   KILL_iwstk ; NI_delete_str_array(sar) ; FREEIFNN(geomstring) ;
+   KILL_iwstk ; NI_delete_str_array(sar) ; FREEIFNN(geomstring) ; FREEIFNN(sname) ;
 
    RETURN(oset) ;
 }
