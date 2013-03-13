@@ -21,7 +21,7 @@ int main( int argc , char *argv[] )
    mat44 src_cmat, nwarp_cmat, mast_cmat ;
    THD_3dim_dataset *dset_out ;
    MRI_IMAGE *fim , *wim ; float *ip,*jp,*kp ;
-   int nx,ny,nz,nxyz ;
+   int nx,ny,nz,nxyz , toshort=0 ;
    float wfac=1.0f ;
    MRI_IMAGE *awim=NULL ;
 
@@ -39,6 +39,7 @@ int main( int argc , char *argv[] )
       "--------\n"
       " -nwarp  www  = 'www' is the name of the 3D warp dataset\n"
       "                (this is a mandatory option!)\n"
+      "\n"
       " -affter aaa  = 'aaa' is the name of an optional file containing\n"
       "                an affine matrix to apply to the nonlinear warp,\n"
       "                as in A(N(x)), where N(x) is defined by '-nwarp'\n"
@@ -48,6 +49,9 @@ int main( int argc , char *argv[] )
       "                   then the k-th sub-brick is transformed by the\n"
       "                   warp Ak(N(x)), where Ak is defined by the 12\n"
       "                   numbers on the k-th line of file 'aaa'.\n"
+      "                ++ Note that 'aaa' must be formatted with 12 numbers in\n"
+      "                   ONE line of the file giving a matrix -- that is, in\n"
+      "                   the 'aff12.1D' format, NOT in the 'Xat.1D' 3x4 format!\n"
       "                ++ This ability can be used when warping EPI time\n"
       "                   series datasets, where the affine part would be\n"
       "                   different for each sub-brick (because of motion),\n"
@@ -55,13 +59,16 @@ int main( int argc , char *argv[] )
       "                   be the same.\n"
       "                ++ Typically, 'aaa' would be a '-1Dmatrix_save'\n"
       "                   result from 3dAllineate or 3dWarpDrive or ....\n"
+      "\n"
       " -wfac   fff  = Scale the warp by factor 'fff' [default=1.0]\n"
       "                ++ This option doesn't really have much use, except\n"
       "                   in making movies of how a brain volume deforms.\n"
+      "\n"
       " -source sss  = 'sss' is the name of the source dataset\n"
       "                ++ That is, the dataset to be warped\n"
       "                ++ Or you can provide the source dataset name as the\n"
       "                   last argument on the command line.\n"
+      "\n"
       " -master mmm  = 'mmm  is the name of the master dataset\n"
       "                ++ Which defines the output grid.\n"
       "                ++ If '-master' is not used, then output\n"
@@ -71,8 +78,12 @@ int main( int argc , char *argv[] )
       "                   that is the grid on which the transformation is\n"
       "                   defined.  You can use '-master WARP' or '-master NWARP'\n"
       "                   for this purpose.\n"
+      "\n"
       " -newgrid dd  = 'dd' is the new grid spacing (cubical voxels, in mm)\n"
-      "                ++ This lets you resize the master dataset grid spacing.\n"
+      "   *OR        = ++ This lets you resize the master dataset grid spacing.\n"
+      " -dxyz dd     =    for example, to bring EPI data to a 1 mm template, but at\n"
+      "                   a coarser resolution, use '-dxyz 2'.\n"
+      "\n"
       " -interp iii  = 'iii' is the interpolation mode\n"
       "                ++ Default interpolation mode is 'wsinc5' (slowest, bestest)\n"
       "                ++ Available modes are the same as in 3dAllineate:\n"
@@ -82,11 +93,18 @@ int main( int argc , char *argv[] )
       "                ++ The warp will be interpolated if the output dataset is\n"
       "                   not on the same 3D grid as the warp itself.  Otherwise,\n"
       "                   it won't need to be interpolated.\n"
+      "\n"
       " -ainterp jjj = This option lets you specify a different interpolation mode\n"
       "                for the data than might be used for the warp.  In particular,\n"
       "                '-ainterp NN' would be most logical for atlas datasets, where\n"
       "                the data values being mapped are labels.\n"
+      "\n"
       " -prefix ppp  = 'ppp' is the name of the new output dataset\n"
+#if 0
+      " -short       = Write output dataset using 16-bit short integers, rather than\n"
+      "                the usual 32-bit floats.\n"
+#endif
+      "\n"
       " -quiet       = Don't be verbose :-(\n"
       " -verb        = Be extra verbose :-)\n"
       "\n"
@@ -94,8 +112,8 @@ int main( int argc , char *argv[] )
       "------\n"
       "* At present, this program doesn't work with 2D warps, only with 3D.\n"
       "\n"
-      "* At present, the output is always in float format, no matter what\n"
-      "   absurd data type is in the input.\n"
+      "* At present, the output dataset is stored in float format, no matter what\n"
+      "  absurd data format the input dataset uses.\n"
       "\n"
       "* To make life both simpler and more complex, 3dNwarpApply allows you to\n"
       "  catenate warps directly on the command line, as if you used 3dNwarpCat\n"
@@ -119,11 +137,6 @@ int main( int argc , char *argv[] )
       "                     -source Fred+orig     \\\n"
       "                     -master NWARP         \\\n"
       "                     -nwarp  Fred_WARP+tlrc -affter Fred.Xaff12.1D\n"
-     ) ;
-
-     printf(
-      "\n"
-      "AUTHOR -- RWCox -- Anno Domini Two Thousand Eleven, Twelve, and Thirteen\n"
      ) ;
 
      PRINT_AFNI_OMP_USAGE("3dNwarpApply",NULL) ; PRINT_COMPILE_DATE ;
@@ -150,6 +163,9 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-verb") == 0 ){
        verb++ ; iarg++ ; continue ;
      }
+     if( strcasecmp(argv[iarg],"-short") == 0 ){
+       toshort = 1 ; iarg++ ; continue ;
+     }
 
      /*---------------*/
 
@@ -168,11 +184,16 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-("                ,argv[iarg-1]);
        awim = mri_read_1D(argv[iarg]) ;
        if( awim == NULL )   ERROR_exit("Can't read affine warp data from file '%s'",argv[iarg]  );
-            if( awim->ny < 12 )
-              ERROR_exit("Affine warp file '%s': fewer than 12 values per row"     ,argv[iarg]  );
-       else if( awim->ny > 12 )
-              WARNING_message("Affine warp file '%s': more than 12 values per row" ,argv[iarg]  );
-       qim = mri_transpose(awim) ; mri_free(awim) ; awim = qim ;
+       if( awim->nx == 3 && awim->ny == 4 ){  /* in 3x4 'Xat.1D' format? */
+         qim = mri_transpose(awim) ; mri_free(awim) ; awim = qim ;
+         awim->nx = 12 ; awim->ny = 1 ;       /* make it look like a 1x12 array */
+       } else {                               /* should be in N x 12 format */
+              if( awim->ny < 12 )
+                ERROR_exit("Affine warp file '%s': fewer than 12 values per row"     ,argv[iarg]  );
+         else if( awim->ny > 12 )
+                WARNING_message("Affine warp file '%s': more than 12 values per row" ,argv[iarg]  );
+         qim = mri_transpose(awim) ; mri_free(awim) ; awim = qim ;  /* flip to column major order */
+       }
        iarg++ ; continue ;
      }
 
@@ -233,6 +254,7 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-mast_dxyz") == 0 ||
          strcasecmp(argv[iarg],"-dxyz_mast") == 0 ||
+         strcasecmp(argv[iarg],"-dxyz")      == 0 ||
          strcasecmp(argv[iarg],"-newgrid"  ) == 0   ){
 
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
@@ -332,15 +354,22 @@ int main( int argc , char *argv[] )
 
    if( do_wmast && dset_mast == NULL ) dset_mast = dset_nwarp ;
 
+   verb_nww = verb ;
+
    dset_out = THD_nwarp_dataset( dset_nwarp , dset_src , dset_mast , prefix ,
                                  interp_code,ainter_code , dxyz_mast , wfac , 0 , awim ) ;
+
+   if( dset_mast != NULL )
+     MCW_strncpy( dset_out->atlas_space , dset_mast->atlas_space , THD_MAX_NAME ) ;
+   else
+     MCW_strncpy( dset_out->atlas_space , dset_nwarp->atlas_space , THD_MAX_NAME ) ;
 
    tross_Copy_History( dset_src , dset_out ) ;        /* hysterical records */
    tross_Make_History( "3dNwarpApply" , argc,argv , dset_out ) ;
 
-   DSET_write(dset_out) ; WROTE_DSET(dset_out) ;
+   DSET_write(dset_out) ; if( verb ) WROTE_DSET(dset_out) ;
 
-   INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
-                COX_cpu_time() , COX_clock_time() ) ;
+   if( verb ) INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
+                           COX_cpu_time() , COX_clock_time() ) ;
    exit(0) ;
 }

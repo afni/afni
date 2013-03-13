@@ -112,7 +112,7 @@ static int          nwtop=0 ;
 static IndexWarp3D *iwarp[NWMAX] ;
 static float        iwfac[NWMAX] ;
 static mat44       *awarp[NWMAX] ;
-static int nx=0,ny=0,nz=0 ; char *geomstring=NULL ;
+static int nx=0,ny=0,nz=0 ; char *geomstring=NULL , char *sname=NULL ;
 static mat44 cmat , imat ;
 
 static THD_3dim_dataset *inset=NULL ;
@@ -185,6 +185,7 @@ void CNW_load_warp( int nn , char *cp )
        ERROR_exit("can't make warp from dataset '%s'",wp);
      if( geomstring == NULL ){       /* first dataset => set geometry globals */
        geomstring = strdup(AA->geomstring) ;
+       sname      = strdup(dset->atlas_space) ;
        nx = AA->nx; ny = AA->ny; nz = AA->nz; cmat = AA->cmat; imat = AA->imat;
      } else if( AA->nx != nx || AA->ny != ny || AA->nz != nz ){ /* check them */
        ERROR_exit("warp from dataset '%s' doesn't match earlier inputs in grid size",wp) ;
@@ -407,6 +408,7 @@ int main( int argc , char *argv[] )
    oset = IW3D_to_dataset( warp , prefix ) ;
    tross_Copy_History( inset , oset ) ;
    tross_Make_History( "3dNwarpCat" , argc,argv , oset ) ;
+   if( sname != NULL ) MCW_strncpy( oset->atlas_space , sname , THD_MAX_NAME ) ;
    DSET_write(oset) ; WROTE_DSET(oset) ;
 
    /*--- run away screaming into the night, never to be seen again ---*/
