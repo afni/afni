@@ -4401,7 +4401,7 @@ int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
 
    if (giset->nnode_domain[0] <= 0 && giset->nnode_domain[1] <= 0) {
       ERROR_message("Bad values");
-      return;
+      return(-1);
    }
 
    if (giset->nnode_domain[1] > 0) {
@@ -4472,7 +4472,7 @@ int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
    /* have dsets, populate them */
    if (!SUMA_PopulateDsetsFromGICORnel(nel, giset, sdsetv)) {
       SUMA_S_Err("Failed to populate. Not fun.");
-      return;
+      return(-1);
    }
 
    /* write them and quit */
@@ -4489,7 +4489,7 @@ int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
          sszz += SUMA_sdset_dnel_size(sdsetv[i]);
       }
    }
-   return;
+   return(sszz);
 }
 
 /*---------------------------------------------------------------------------*/

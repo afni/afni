@@ -730,6 +730,7 @@ int main( int argc , char *argv[] )
      qset = IW3D_to_dataset( oww , ppp ) ;
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+     MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
    if( nowarps == 0 ){
@@ -740,6 +741,7 @@ int main( int argc , char *argv[] )
      qset = IW3D_to_dataset( owwi , ppp ) ;
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+     MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
 

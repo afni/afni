@@ -240,6 +240,7 @@ ENTRY("GA_interp_cubic") ;
      kz = floorf(zz) ;  fz = zz - kz ;
 
      if( ISTINY(fx) && ISTINY(fy) && ISTINY(fz) ){
+       CLIP(ix,nx1); CLIP(jy,ny1); CLIP(kz,nz1);
        vv[pp] = FAR(ix,jy,kz) ; continue ;
      }
 
@@ -543,6 +544,7 @@ ENTRY("GA_interp_wsinc5s") ;
      kz = floorf(zz) ;  fz = zz - kz ;
 
      if( ISTINY(fx) && ISTINY(fy) && ISTINY(fz) ){
+       CLIP(ix,nx1); CLIP(jy,ny1); CLIP(kz,nz1);
        vv[pp] = FAR(ix,jy,kz) ; continue ;
      }
 
@@ -605,6 +607,7 @@ ENTRY("GA_interp_wsinc5p") ;
 
    /*----- loop over points -----*/
 
+
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
@@ -616,7 +619,8 @@ ENTRY("GA_interp_wsinc5p") ;
      kz = floorf(zz) ;  fz = zz - kz ;
 
      if( ISTINY(fx) && ISTINY(fy) && ISTINY(fz) ){
-       vv[pp] = FAR(ix,jy,kz) ; continue ;
+       CLIP(ix,nx1); CLIP(jy,ny1); CLIP(kz,nz1);
+       vv[pp] = FAR(ix,jy,kz); continue;
      }
 
      /*- x interpolations -*/
@@ -904,6 +908,7 @@ ENTRY("GA_interp_quintic") ;
      kz = floorf(zz) ;  fz = zz - kz ;
 
      if( ISTINY(fx) && ISTINY(fy) && ISTINY(fz) ){
+       CLIP(ix,nx1); CLIP(jy,ny1); CLIP(kz,nz1);
        vv[pp] = FAR(ix,jy,kz) ; continue ;
      }
 

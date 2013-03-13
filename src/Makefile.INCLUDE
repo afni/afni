@@ -1243,15 +1243,15 @@ mri_rbfinterp.o:mri_rbfinterp.c
 	$(RM) $@
 	$(CCOMP) -c 3dAllineate.c $(INFLAGS)
 
-3dNwarpApply.o:3dNwarpApply.c mri_nwarp.c
+3dNwarpApply.o:3dNwarpApply.c mri_nwarp.c mri_genalign.c mri_genalign_util.c
 	$(RM) $@
 	$(CCOMP) -c 3dNwarpApply.c $(INFLAGS)
 
-3dNwarpCat.o:3dNwarpCat.c mri_nwarp.c
+3dNwarpCat.o:3dNwarpCat.c mri_nwarp.c mri_genalign.c mri_genalign_util.c
 	$(RM) $@
 	$(CCOMP) -c 3dNwarpCat.c $(INFLAGS)
 
-3dNwarpCalc.o:3dNwarpCalc.c mri_nwarp.c
+3dNwarpCalc.o:3dNwarpCalc.c mri_nwarp.c mri_genalign.c mri_genalign_util.c
 	$(RM) $@
 	$(CCOMP) -c 3dNwarpCalc.c $(INFLAGS)
 

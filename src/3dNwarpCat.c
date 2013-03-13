@@ -112,7 +112,7 @@ static int          nwtop=0 ;
 static IndexWarp3D *iwarp[NWMAX] ;
 static float        iwfac[NWMAX] ;
 static mat44       *awarp[NWMAX] ;
-static int nx=0,ny=0,nz=0 ; char *geomstring=NULL , char *sname=NULL ;
+static int nx=0,ny=0,nz=0 ; char *geomstring=NULL , *sname=NULL ;
 static mat44 cmat , imat ;
 
 static THD_3dim_dataset *inset=NULL ;
