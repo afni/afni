@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 12 , MAR, 2013 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Handling input and output directories",
+    "Output now goes to current directory (./) unless otherwise specified\n"
+    "with -output_dir. Thanks a lot, Rick."
+} ,
 { 11 , MAR, 2013 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_NEW_OPT, 
     "Handling input and output directories",
@@ -56,7 +62,7 @@ afni_history_struct dglen_history[] = {
     "Previously, all input files had to exist in current directory.\n"
     "Changes allow for output to follow anat or epi dataset directories\n"
     "or specified output directory. Also minor change to call tcsh without\n"
-    "sourcing startup .cshrc\n"
+    "sourcing startup .cshrc"
 } ,
 { 11 , MAR, 2013 , DRG , "@Atlasize center of mass" , 
     MINOR , TYPE_NEW_OPT, 
