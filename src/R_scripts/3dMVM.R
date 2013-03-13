@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.3, March 8, 2013
+Version 0.2.4, March 13, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.3, March 8, 2013
+Version 0.2.4, March 13, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -836,6 +836,8 @@ while(is.null(fm)) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed! ~~~~~~~~~~~~~~~~~~~\n')
       cat('Possible reasons:\n\n')
+      cat('0) Make sure that R packages afex and phia have been installed. See the 3dMVM\n')
+      cat('help documentation for more details.\n')
       cat('1) Inappropriate model specification with options -model, -wsVars, or -qVars.\n')
       cat('Note that within-subject or repeated-measures variables have to be declared\n')
       cat('with -wsVars.\n\n')
