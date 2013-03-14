@@ -3038,6 +3038,16 @@ ENTRY("mri_read_1D") ;
 }
 
 /*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_rowmajorize_1D( MRI_IMAGE *im )
+{
+   MRI_IMAGE *qim = mri_transpose(im) ;
+   qim->nx *= qim->ny ;
+   qim->ny  = 1 ;
+   return qim ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Read header lines from a 1D file into a newly-malloc()-ed string. */
 
 char * mri_read_1D_headerlines( char *fname )

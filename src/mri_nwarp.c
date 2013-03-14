@@ -3012,7 +3012,7 @@ THD_3dim_dataset * THD_nwarp_dataset( THD_3dim_dataset *dset_nwarp ,
    MRI_IMARR *imar_nwarp=NULL , *im_src=NULL ;
    mat44 src_cmat, nwarp_cmat, mast_cmat ;
    THD_3dim_dataset *dset_out ;
-   MRI_IMAGE *fim , *wim ; float *ip,*jp,*kp ;
+   MRI_IMAGE *fim , *wim ; float *ip=NULL,*jp=NULL,*kp=NULL ;
    int nx,ny,nz,nxyz , nvals , kk,iv ;
    float *amatar=NULL ; int nxa=0,nya=0 ; mat44 amat ;
 
