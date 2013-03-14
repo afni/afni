@@ -2320,10 +2320,14 @@ int main( int argc , char *argv[] )
        apply_nx  = apply_im->nx ;  /* # of values per row */
        apply_ny  = apply_im->ny ;  /* number of rows */
        apply_mode = APPLY_AFF12 ;
+       if( apply_nx < 12 && apply_im->nvox == 12 ){  /* special case of a 3x4 array */
+         apply_nx = 12 ; apply_ny = 1 ;
+         INFO_message("-1Dmatrix_apply: converting input 3x4 array to 1 row of 12 numbers") ;
+       }
        if( apply_nx < 12 )
-         ERROR_exit("Less than 12 numbers per row in -1Dmatrix_apply '%s' :-(",apply_1D) ;
+         ERROR_exit("%d = Less than 12 numbers per row in -1Dmatrix_apply '%s' :-(" ,apply_nx,apply_1D) ;
        else if( apply_nx > 12 )
-         WARNING_message("More than 12 numbers per row in -1Dmatrix_apply '%s'",apply_1D) ;
+         WARNING_message("%d = More than 12 numbers per row in -1Dmatrix_apply '%s'",apply_ny,apply_1D) ;
        iarg++ ; continue ;
      }
 

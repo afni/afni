@@ -1168,7 +1168,7 @@ extern MRI_IMAGE * mri_sobel( int , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_sharpen( float , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_transpose( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_interleave_columns(MRI_IMAGE *, int) ; /* 27 Jul 2009 */
-
+extern MRI_IMAGE * mri_rowmajorize_1D( MRI_IMAGE *im ) ;      /* 14 Mar 2013 */
 
 #define FILT_FFT_WRAPAROUND  1
 

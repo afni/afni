@@ -49,9 +49,6 @@ int main( int argc , char *argv[] )
       "                   then the k-th sub-brick is transformed by the\n"
       "                   warp Ak(N(x)), where Ak is defined by the 12\n"
       "                   numbers on the k-th line of file 'aaa'.\n"
-      "                ++ Note that 'aaa' must be formatted with 12 numbers in\n"
-      "                   ONE line of the file giving a matrix -- that is, in\n"
-      "                   the 'aff12.1D' format, NOT in the 'Xat.1D' 3x4 format!\n"
       "                ++ This ability can be used when warping EPI time\n"
       "                   series datasets, where the affine part would be\n"
       "                   different for each sub-brick (because of motion),\n"
@@ -59,6 +56,11 @@ int main( int argc , char *argv[] )
       "                   be the same.\n"
       "                ++ Typically, 'aaa' would be a '-1Dmatrix_save'\n"
       "                   result from 3dAllineate or 3dWarpDrive or ....\n"
+      "                ++ Note that 'aaa' must be formatted with 12 numbers in\n"
+      "                   ONE line of the file giving a matrix -- that is, in\n"
+      "                   the 'aff12.1D' format, NOT in the 'Xat.1D' 3x4 format!\n"
+      "                ++ However, to palliate your pain, it is allowed to input\n"
+      "                   a single 'Xat.1D' 3x4 matrix in this place.\n"
       "\n"
       " -wfac   fff  = Scale the warp by factor 'fff' [default=1.0]\n"
       "                ++ This option doesn't really have much use, except\n"
@@ -184,9 +186,9 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-("                ,argv[iarg-1]);
        awim = mri_read_1D(argv[iarg]) ;
        if( awim == NULL )   ERROR_exit("Can't read affine warp data from file '%s'",argv[iarg]  );
-       if( awim->nx == 3 && awim->ny == 4 ){  /* in 3x4 'Xat.1D' format? */
-         qim = mri_transpose(awim) ; mri_free(awim) ; awim = qim ;
-         awim->nx = 12 ; awim->ny = 1 ;       /* make it look like a 1x12 array */
+       if( awim->nx == 3 && awim->ny == 4 ){                         /* in 3x4 'Xat.1D' format? */
+         MRI_IMAGE *qim = mri_rowmajorize_1D(awim); mri_free(awim); awim = qim; /* make it 1x12 */
+         awim->nx = 12 ; awim->ny = 1 ;
        } else {                               /* should be in N x 12 format */
               if( awim->ny < 12 )
                 ERROR_exit("Affine warp file '%s': fewer than 12 values per row"     ,argv[iarg]  );
