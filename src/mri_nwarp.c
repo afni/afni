@@ -5830,7 +5830,7 @@ ENTRY("CW_load_one_warp") ;
    }
 
    if( strncasecmp(cp,"INV(",4) == 0 ){                 /* set inversion flag */
-     cp += 4 ; do_inv == 1 ;
+     cp += 4 ; do_inv = 1 ;
    } else if( strncasecmp(cp,"INVERSE(",8) == 0 ){
      cp += 8 ; do_inv = 1 ;
    }
