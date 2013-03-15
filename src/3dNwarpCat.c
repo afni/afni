@@ -129,7 +129,7 @@ void CNW_load_warp( int nn , char *cp )
      ERROR_exit("bad inputs to CNW_load_warp") ;
 
    if( strncasecmp(cp,"INV(",4) == 0 ){
-     cp += 4 ; do_inv == 1 ;
+     cp += 4 ; do_inv = 1 ;
    } else if( strncasecmp(cp,"INVERSE(",8) == 0 ){
      cp += 8 ; do_inv = 1 ;
    }
