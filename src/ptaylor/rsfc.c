@@ -5,6 +5,43 @@
 #include <gsl/gsl_permutation.h>
 
 
+
+float FisherZ( double Rcorr)
+{
+  float Z=0.; 
+  double denom=0.;
+  
+  denom = 1.0-Rcorr;
+  if( (Rcorr>=-1) && (denom>0) )
+    Z = 0.5 * log( (1.+Rcorr)/denom );
+  else
+    Z = 0; // primarily for diag Corr Matr values...
+  
+  return Z;
+}
+
+
+int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T, 
+              int *DIM, int *Nv)
+{
+  int i,n;
+  double *ts=NULL;
+
+  ts = (double *)calloc( DIM[3],sizeof(double));
+
+  for( n=0; n<DIM[3] ; n++)  // for each time pt
+    for( i=0 ; i<Nv[0] ; i++) // for each vox in TS
+      ts[n] += THD_get_voxel(T,LIST[i],n);
+  
+  for( n=0; n<DIM[3] ; n++)
+    RAT[n] = ts[n]/Nv[0];
+      
+  free(ts);
+  
+  RETURN(1);
+}
+
+
 int CalcRanksForReHo(float **IND, THD_3dim_dataset *T, int *NTIE,
 							int ***MASK,int *DIM)
 {

@@ -62,6 +62,7 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                        program CompareSurfaces\n"
 "        ProjectionOnSurf: Output coordinates of projection of nj onto \n"
 "                          triangle t of S2.\n"
+"        NearestNodeCoords: X Y Z coordinates of closest node on S2\n"
 "        Data: Output the data from S2, interpolated onto S1\n"
 "              If no data is specified via the -data option, then\n"
 "              the XYZ coordinates of SO2's nodes are considered\n"
@@ -146,6 +147,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(
    Opt->NearestTriangle = 0;
    Opt->DistanceToMesh = 0;
    Opt->ProjectionOnMesh = 0;
+   Opt->NearestNodeCoords = 0;
    Opt->Data = 0;
    Opt->in_name = NULL;
    Opt->out_prefix = NULL;
@@ -259,6 +261,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(
       if (!brk && accepting_out && 
             (strcmp(argv[kar], "ProjectionOnSurf") == 0)) {
          Opt->ProjectionOnMesh = 1;
+         brk = YUP;
+      }
+      
+      if (!brk && accepting_out && 
+            (strcmp(argv[kar], "NearestNodeCoords") == 0)) {
+         Opt->NearestNodeCoords = 1;
          brk = YUP;
       }
       
@@ -800,6 +808,13 @@ int main (int argc,char *argv[])
          , icol); 
          ++icol;
    }
+   if (Opt->NearestNodeCoords) {
+      SS = SUMA_StringAppend_va(SS, 
+         "#Col. %d .. %d:\n"
+         "#     X Y Z coords of nearest node\n"
+         , icol,  icol+2); 
+      icol += 3; 
+   }
    if (Opt->Data > 0) {
       if (!Opt->in_name) {
          SS = SUMA_StringAppend_va(SS, 
@@ -861,6 +876,19 @@ SS = SUMA_StringAppend_va(SS,
       }
       if (Opt->DistanceToMesh) { 
          fprintf(outptr,"%6s   ", MV_format_fval2(M2M->PD[i], Nchar)); 
+      }
+      if (Opt->NearestNodeCoords) {
+         float x=0.0,y=0.0,z=0.0;
+         int n = M2M->M2ne_M1n[i][0];
+         if (n>0) {
+            n = n * SO2->NodeDim;
+            x = SO2->NodeList[n];
+            y = SO2->NodeList[n+1];
+            z = SO2->NodeList[n+2];
+         }
+         fprintf(outptr,"%6s   ", MV_format_fval2(x, Nchar)); 
+         fprintf(outptr,"%6s   ", MV_format_fval2(y, Nchar)); 
+         fprintf(outptr,"%6s   ", MV_format_fval2(z, Nchar)); 
       }
       if (dt && Opt->Data > 0) {
          if (!Opt->in_name) {

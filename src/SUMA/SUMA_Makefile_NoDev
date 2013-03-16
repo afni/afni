@@ -462,7 +462,7 @@ SampBias: SUMA_SampBias.c ${SUMALIB}
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB} 
 
-BrainSkin: SUMA_BrainSkin.c ${SUMALIB} 
+BrainSkin: SUMA_BrainSkin.c ${SUMALIB} libgts.a libSUMAGTS.a
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
 		${CCOPT} ${WARNOPT} -o $@ SUMA_BrainSkin.c \
