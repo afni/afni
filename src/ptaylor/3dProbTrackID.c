@@ -19,7 +19,9 @@
 	or individ brain mask dumps, or both 
    Feb 2013:
    + allow for output of unthresholded values for ROI maps
-
+   Mar 2013:
+   + output *.grid file now has row of ROI labels in it
+   + floor instead of ceil to calc NmNsThr
 */
 
 
@@ -64,6 +66,7 @@ void usage_ProbTrackID(int detail)
 "         ~15 GM ROIs will form a given network.)\n"
 "    2) GRID file, simple statistics in matrix format (N_ROI by N_ROI per \n"
 "         network).  In file, first there is the N_ROI in that network, and\n"
+"         then a row of integers containing the network's ROI labels, and\n"
 "         the following N_ROI by N_ROI matrices (all have diagonal entries,\n"
 "         where diagonal is for tracts just through (i-1)th ROI alone):\n"
 "         1- Numbers of tracts connecting ROIs (pairwise AND logic)\n"
@@ -681,7 +684,7 @@ int main(int argc, char *argv[]) {
 	MaxAng = cos(CONV*MaxAngDeg); 
   
 	// will take stats on voxels with number of tracts >=NmNsThr
-	NmNsThr =  (int) ceil(NmNsFr*Nseed*Nmonte); 
+	NmNsThr =  (int) floor(NmNsFr*Nseed*Nmonte); 
    // lower bound is 1, and also force to be 1 if posteriori is chosen
 	if( (NmNsThr<1) || POST ) 
 		NmNsThr=1;
@@ -1019,7 +1022,7 @@ int main(int argc, char *argv[]) {
 		// relative location of each seed within voxel for this iter
 		for( k=0 ; k<Nseed ; k++ ) 
 			for( j=0 ; j<3 ; j++ ) 
-				LocSeed[k][j] = rand()*1.0/RAND_MAX;
+           LocSeed[k][j] = rand()*1.0/RAND_MAX;
         
 		if( gg>0) // first time through is no change
 			for( k=0 ; k<Dim[2] ; k++ ) 
@@ -1359,7 +1362,10 @@ int main(int argc, char *argv[]) {
 				exit(19);
 			}
     
-			fprintf(fout1,"%d\n\n",NROI[k]);
+			fprintf(fout1,"%d\n\n",NROI[k]); // Num of ROIs
+         for( i=1 ; i<NROI[k] ; i++ ) // labels of ROIs
+           fprintf(fout1,"%d\t",ROI_LABELS[k][i]); // because at =NROI, -> \n
+         fprintf(fout1,"%d\n\n",ROI_LABELS[k][i]);
 			for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) // b/c we put '\n' after last one.
 					fprintf(fout1,"%d\t",Prob_grid[k][i][j]);

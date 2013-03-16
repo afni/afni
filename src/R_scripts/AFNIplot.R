@@ -1275,6 +1275,74 @@ make.col.map <- function (fids=NULL, ncols=32, hex=FALSE) {
    return(m)
 }
 
+ROIcmap <- function(nc=32, state=0, avoid=c(1,1,1), hex=FALSE) {
+   set.seed(state);
+   M <- matrix(0,nc,3)
+
+   alldiff_lim <- 0.5; #between 0 and 1, controls how different all colors 
+                       #in map are. 
+               #The first few colors can be quite different, high alldiff_lim 
+               #The difference is adjusted as more colors are demanded.
+   g_lim = 0.2; #limit for too gray (0-1)
+   d_lim <- 0.40; #limit for too dim (0-3)
+   b_lim <- 2.2; #limit for too bright  (0-3)              
+   for (i in 1:nc) {
+      M[i,] <- runif(3);
+      cnt <- 0;
+      #reject if too gray or too close to previous color
+      while (  toogray(M[i,], g_lim, d_lim, b_lim) ||  
+               tooclose(M,i, 0.6, alldiff_lim) ||
+               (!is.null(avoid) && (sum(abs(M[i,]-avoid)) < 0.6))) {
+         M[i,] <- runif(3);
+         cnt <- cnt + 1;
+         if (cnt > 2000 && d_lim != 0.01 && alldiff_lim != 0.02 && b_lim != 8) {
+                     #too tight, relax
+            #cat('relaxing\n')
+            alldiff_lim <- 0.9*alldiff_lim
+            if (alldiff_lim < 0.02) alldiff_lim <- 0.02
+            d_lim <- 0.9*d_lim
+            if (d_lim < 0.01) d_lim <- 0.01
+            b_lim <- 1.1*b_lim;
+            if (b_lim > 8) b_lim <- 8              
+            cnt <- 0;
+         }
+      }
+   }
+   
+   if (hex) M <- rgb(M)
+   return(M)
+}
+
+toogray <- function (ccol, g_lim, d_lim, b_lim) {
+   dc <- abs(ccol - mean(ccol));
+   cs <- sum(ccol);
+   if (dc[1] < g_lim && dc[2] < g_lim && dc[3] < g_lim) { return(TRUE); }
+   if (cs < d_lim || cs > b_lim) { return(TRUE); }
+   return(FALSE);
+}
+
+tooclose <- function (M,i,prev_lim, alldiff_lim) {
+
+   if (i==1) { return(FALSE); }
+   
+   
+   #too close to previous ?
+   dc <- abs(M[i,]-M[i-1,]);
+   if (sum(dc) < prev_lim) { return(TRUE); }
+   
+   #too close to one before?
+   if (i > 2) {
+      for (j in 1:(i-2)) {
+         dc = abs(M[i,]-M[j,]);
+         if (dc[1] < alldiff_lim && dc[2] < alldiff_lim && dc[3] < alldiff_lim) {
+          return(TRUE); 
+         }  
+      }
+   }
+   
+   return(FALSE);
+}   
+
 #This function is based on
 #www.phaget4.org/R/mymatrix.AFNI.show.R
 # possibly written by Chris Seidel

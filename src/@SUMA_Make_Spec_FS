@@ -1079,7 +1079,14 @@ L_TEST_SURF_VOL:
     echo ""
     echo "    cd $suma_dir"
     echo "    afni -niml &"
-    echo "    suma -spec $spec_file -sv $afni_dataset"
+    if ( -f ${suma_dir}/${afni_dataset}.nii ) then
+      set ovol = ${afni_dataset}.nii
+    else if ( -f ${suma_dir}/${afni_dataset}.nii.gz ) then
+      set ovol = ${afni_dataset}.nii.gz
+    else 
+      set ovol = $afni_dataset
+    endif
+    echo "    suma -spec $spec_file -sv $ovol"
 
 goto L_TEST_SURF_VOL_DONE
 
@@ -1152,6 +1159,26 @@ L_HELP_END:
     echo "            written out NIFTI format, and all surfaces are"
     echo "            in GIFTI format."
     echo "            This option is incompatible with -neuro or -use_mgz"
+    echo "    NOTE for -nocor:"
+    echo "        If you really care that the volumes in SUMA/ are in exact"
+    echo "        register with the volume you passed to FreeSurfer, you "
+    echo "        should be sure that the volume passed to FreeSurfer has "
+    echo "        an even number of slices in all directions and a voxel"
+    echo "        resolution of 1x1x1, otherwise the resultant volumes in"
+    echo "        SUMA/ might be off by half a voxel or less in directions"
+    echo "        with odd number of slices. The reason has to do (I think)"
+    echo "        with FreeSurfer's resampling and volume centering approach."
+    echo "        In either case, surfaces and volumes under SUMA/ will be in"
+    echo "        proper register."
+    echo "        For example, when creating a surface model of the TT_N27 brain"
+    echo "        I padded the TT_N27+tlrc volume before submitting it to "
+    echo "        FreeSurfer with the following command:"
+    echo "           3dZeropad -L 1 -P 1 -S 1 -prefix anat.nii TT_N27+tlrc.HEAD"
+    echo "        After zeropadding, anat.nii remains in perfect register with"
+    echo "        TT_N27+tlrc by it has an even number of slices in all"
+    echo "        directions: 3dinfo -n4  -d3 -prefix anat.nii"
+    echo "          162  192  152   1    1.0     1.0     1.0     anat.nii"
+    echo ""
     echo "    -set_space  SPACE: Set the space flag of all volumes to"
     echo "            SPACE (orig, MNI, TLRC, MNIa). The default is "
     echo "            orig space."

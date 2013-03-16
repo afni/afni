@@ -36,6 +36,7 @@ PARSE:
    set acpciate = 0
    set npass = -twopass
    set prexform = ""
+   set cen_opt = ""
    set OneWarp = 0
    set copy_base = ""
    set out_space = ""
@@ -404,6 +405,13 @@ PARSE:
    endif 
    
    set preWopt = ''
+   if ($prexform == "AUTO_CENTER_CM") then
+      set cen_opt = '-cm'
+      set prexform = "AUTO_CENTER"
+   else if ($prexform == "CENTER_CM") then
+      set cen_opt = '-cm'
+      set prexform = "CENTER"
+   endif
    if ($prexform == "AUTO_CENTER" || $prexform == "CENTER" ) then
       #Check for center differences and act on it
       set dist_cent = `@Center_Distance -dset ${ref_in} ${anat_in}`
@@ -412,7 +420,7 @@ PARSE:
          echo ""
          echo "Performing center alignment with @Align_Centers"
          echo ""
-         @Align_Centers -base ${ref_in} -1Dmat_only \
+         @Align_Centers -base ${ref_in} ${cen_opt} -1Dmat_only \
                         -dset ${anat_in} 
          set pp = `@GetAfniPrefix ${anat_in}`
          set prexform = (`ls ${pp}_shft.1D`)
@@ -1265,7 +1273,7 @@ if ( "$ref_path" == "$ref_in" ) then
       goto END_REF_SEARCH
    endif
    #if not in apar mode, try to set the path
-   if ( `@CheckForAfniDset ${ref_in}` == 2 ) then
+   if ( `@CheckForAfniDset ${ref_in}` == 2  || -f ${ref_in}) then
       if ($verb) echo "Template dset ${ref_in} found."
       goto END_REF_SEARCH
    endif
@@ -1471,8 +1479,12 @@ echo ""
 echo "          Note: You can also use -init_xform AUTO_CENTER to automatically"
 echo "                run @Align_Centers if the centers are off by more than "
 echo "                40 mm. "
+echo "                AUTO_CENTER_CM would do the centering based on the"
+echo "                center of mass rather than the center of the volume grids."
+echo ""
 echo "                You can force centering with -init_xform CENTER"
-echo "                regardless of the center distance between volumes"
+echo "                or with -init_xform CENTER_CM regardless of the center"
+echo "                distance between volumes"
 echo ""  
 echo "      -out_space spacename: Set output to a particular space"
 echo "                       Usually, output space is determined by the space"

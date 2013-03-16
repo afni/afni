@@ -16,6 +16,7 @@ if ($has_skull) then
    if ($ShowTime) echo "Stripping Anat at `date '+%H:%M:%S'`"
    if (`@CheckForAfniDset nosk.${inpref}+orig` < 2) then
       3dSkullStrip -no_pushout -no_use_edge \
+                        -ld 20 -o_ply nosk.${inpref}\
                         -prefix nosk.${inpref}  -perc_int 0.1 \
                         -overwrite  \
                         -input ${inpref}+orig   >>& log.tlrc.${prefix}

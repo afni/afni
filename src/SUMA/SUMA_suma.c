@@ -516,10 +516,12 @@ int main (int argc,char *argv[])
             "# \n"
             "#    suma -update_env\n"
             "# \n"
-            "# Updating your ~/.sumarc file thusly WILL NOT ALTER changes\n"
-            "# you have made to the variables in ~/.sumarc. Your settings will\n"
-            "# remain intact, so do run the update command after each upgrade\n"
-            "# of your AFNI/SUMA binaries.\n" 
+            "# Unless you have setup SUMA environment variables outside of\n"
+            "# your ~/.sumarc file, updating your ~/.sumarc file with \n"
+            "# 'suma -update_env' WILL NOT ALTER changes you have already\n"
+            "# made to the variables in your current ~/.sumarc. \n"
+            "# For this reason consider running the update command after each \n"
+            "# upgrade of your AFNI/SUMA binaries.\n" 
             "***ENVIRONMENT\n"
                   "%s\n", s); 
           SUMA_free(s); s = NULL;

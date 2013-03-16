@@ -67,6 +67,30 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 14, Mar , 2013 , PT , "3dProbTrackID" , MINOR , TYPE_MODIFY,
+  "List ROI labels near start of *.grid; use floor to get NmNsThr",
+  "This allows for more similarity with 3dNetCorr, and might be useful\n"
+  "as well if the labeling of ROIs in a network is not just 1,..,max.\n"
+  "The flooring vs ceiling is so that people don't have to use 0.00099\n"
+  "as a relative fraction of MC iterations to get the number they want.\n"
+}
+
+{ 14, Mar , 2013 , PT , "3dNetCorr" , SUPER , TYPE_NEW_PROG,
+  "New function: calculate correlat/Z of ROIs in a network.",
+  "This program works on several networks as separate subbricks simultan-\n"
+  "eously.\n"
+}
+
+{ 14, Mar , 2013 , PT , "rsfc" , MINOR , TYPE_MODIFY,
+  "New functions; streamline some other functions.",
+  "For addition of 3dNetCorr, mainly.\n"
+}
+
+{ 14, Mar , 2013 , PT , "3dDWUncert" , MINOR , TYPE_BUG_FIX,
+   "Silly bug in e_{13}^* estimation.",
+   "Mean and std of uncertainty of e1 toward e3 was buggy.\n"
+}
+
 { 22, Feb , 2013 , PT , "3dProbTrackID" , MINOR , TYPE_NEW_OPT,
    "Instead of just individual ROI masks, can get map of Ntracks/voxel.",
    "This allows a posteriori thresholding/comparisons/analysis.\n"

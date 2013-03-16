@@ -856,7 +856,7 @@ int main(int argc, char *argv[]) {
 					+ sortedout[i][4]*THD_get_voxel(insetV2,i,1)
 					+ sortedout[i][5]*THD_get_voxel(insetV2,i,2);
 				E1e3 = sortedout[i][3]*THD_get_voxel(insetV3,i,0) 
-					+ sortedout[i][4]*THD_get_voxel(insetV2,i,1) 
+					+ sortedout[i][4]*THD_get_voxel(insetV3,i,1) 
 					+ sortedout[i][5]*THD_get_voxel(insetV3,i,2);
 		  
 				ang = E1e1/sqrt(E1e1*E1e1+E1e2*E1e2);
