@@ -4,8 +4,8 @@
 #include <omp.h>
 #include "mri_genalign_util.c"
 #include "mri_genalign.c"
-#include "mri_nwarp.c"
 #endif
+#include "mri_nwarp.c"
 
 /*----------------------------------------------------------------------------*/
 
