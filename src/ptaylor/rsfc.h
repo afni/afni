@@ -2,11 +2,24 @@
 #define _RSFC_HEADER_
 
 /*
+  Fisher Z transform of correlation value R
+*/
+float FisherZ( double Rcorr);
+  
+
+/*
   need to change time series values to ranks, per voxel, and also
   calculate any ties that may occur
 */
 int CalcRanksForReHo(float **IND, THD_3dim_dataset *T, int *NTIE,
 							int ***MASK,int *DIM);
+
+/*
+  average time series of an ROI
+*/
+int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T,
+              int *DIM, int *Nv);
+
 
 /*
   Find small neighborhood per voxel, make LIST have list of vox indices

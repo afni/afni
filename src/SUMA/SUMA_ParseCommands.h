@@ -220,6 +220,7 @@ typedef struct {
    int NearestNode;
    int NearestTriangle;
    int DistanceToMesh;
+   int NearestNodeCoords;
    int ProjectionOnMesh;
    int Data;
    

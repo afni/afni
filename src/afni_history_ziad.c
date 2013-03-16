@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 14, Mar , 2013 , ZSS , "SurfToSurf" , MINOR , TYPE_NEW_OPT,
+   "NearestNodeCoords was added to -output_params",
+   NULL
+ },
+
+ { 14, Mar , 2013 , ZSS , "@auto_tlrc" , MICRO , TYPE_NEW_OPT,
+   "-init_xform now takes AUTO_CENTER_CM and CENTER_CM",
+   NULL
+ },
+
  { 22, Feb , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Option -anatomical labels all -i_* -t_* surfs anatomically correct",
    NULL

@@ -4162,12 +4162,6 @@ char **approx_str_sort_text(char *text, int *N_ws, char *str,
    line_continue=0;
    for (line=strtok_r(text,lsep, &brk); line; line = strtok_r(NULL, lsep, &brk))
    {
-      if (*(line+strlen(line)-1) == join_breaks) {
-         line_continue = 1;
-      } else {
-         line_continue = 0;
-      }
-      
       if (!line_continue || !N_lines) {
          ++N_lines;
          if (N_lines > N_alloc) {
@@ -4176,12 +4170,20 @@ char **approx_str_sort_text(char *text, int *N_ws, char *str,
          }
          ws[N_lines-1] = strdup(line);
       } else {
+         /* fprintf(stderr,"ZSS:       Appending -->%s<-->%s<--\n"
+                        , ws[N_lines-1], line); */
          ws[N_lines-1] = (char *)realloc(ws[N_lines-1], 
                             sizeof(char)*(strlen(ws[N_lines-1])+strlen(line)+1));
          strcat(ws[N_lines-1], line);
       }
       deblank_name(ws[N_lines-1]);
-      /* fprintf(stderr,"ZSS: %d -->%s<--\n", N_lines, ws[N_lines-1]); */
+      if (*(ws[N_lines-1]+strlen(ws[N_lines-1])-1) == join_breaks) {
+         line_continue = 1;
+      } else {
+         line_continue = 0;
+      }
+      /* fprintf(stderr,"ZSS: %d -->%s<-- (join_breaks=%c, continue=%d)\n", 
+                     N_lines, ws[N_lines-1], join_breaks, line_continue); */
    }
       
    *N_ws=N_lines;

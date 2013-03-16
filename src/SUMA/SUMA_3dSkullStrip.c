@@ -1204,9 +1204,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
       SUMA_S_Err("Cannot write out surfaces with MARMOSET brain.");
       exit(1);
    }
-   if (ps->cs->talk_suma&& Opt->specie == MARMOSET) {
-      SUMA_S_Err("Cannot talk to suma with MARMOSET brain.");
-      exit(1);
+   if (ps->cs->talk_suma && Opt->specie == MARMOSET) {
+      SUMA_S_Warn("Talk feature might not work well with MARMOSET brain.");
    }
    if (Opt->DoSkulls && !ps->o_N_surfnames) {
       fprintf (SUMA_STDERR,
