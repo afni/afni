@@ -4710,7 +4710,10 @@ double IW3D_scalar_costfun( int npar , double *dpar )
      Hpenn = 0.0f ;
    }
 
-   if( Hfirsttime ){ fprintf(stderr,"[first cost=%.3f]",cost); Hfirsttime = 0; }
+   if( Hfirsttime ){
+     fprintf(stderr,"[first cost=%.3f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
+     Hfirsttime = 0 ;
+   }
 
    return cost ;
 }

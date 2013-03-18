@@ -511,7 +511,6 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dUnifize main"); machdep(); AFNI_logger("3dUnifize",argc,argv);
    PRINT_VERSION("3dUnifize") ;
-
    ct = NI_clock_time() ;
 
    /*-- scan command line --*/
@@ -613,6 +612,7 @@ int main( int argc , char *argv[] )
 
    /* vamoose the ranch */
 
-   INFO_message("===== clock time =%s",nice_time_string(NI_clock_time()-ct)) ;
+   if( verb ) INFO_message("===== CPU time = %.1f sec  Elapsed = %.1f\n",
+                           COX_cpu_time() , 0.001*(NI_clock_time()-ct) ) ;
    exit(0) ;
 }
