@@ -34,6 +34,7 @@ int main( int argc , char * argv[] )
              "               to the edge of the box, to avoid weird artifacts.\n"
              "  -meth mm   = Set 'mm' to 2 for least squares fit;\n"
              "               set it to 1 for L1 fit [default method=2]\n"
+             "                [Note that L1 fitting is much slower than L2 fitting!]\n"
              "  -base bb   = In addition to the polynomial fit, also use\n"
              "               the volumes in dataset 'bb' as extra basis functions.\n"
              "                [If you use a base dataset, then you can set]\n"
