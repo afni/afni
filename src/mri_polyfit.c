@@ -155,9 +155,9 @@ ENTRY("mri_polyfit") ;
    if( nord >= 0 ){
      imid = 0.5f*(ibot+itop) ; jmid = 0.5f*(jbot+jtop) ; kmid = 0.5f*(kbot+ktop) ;
 
-     if( ibot < itop ){ pitop = nord ; ifac = 2.0f/(itop-ibot) ; }
-     if( jbot < jtop ){ pjtop = nord ; jfac = 2.0f/(jtop-jbot) ; }
-     if( kbot < ktop ){ pktop = nord ; kfac = 2.0f/(ktop-kbot) ; }
+     if( ibot < itop ){ kk = (itop-ibot)/3; pitop = MIN(nord,kk); ifac = 2.0f/(itop-ibot); }
+     if( jbot < jtop ){ kk = (jtop-jbot)/3; pjtop = MIN(nord,kk); jfac = 2.0f/(jtop-jbot); }
+     if( kbot < ktop ){ kk = (ktop-kbot)/3; pktop = MIN(nord,kk); kfac = 2.0f/(ktop-kbot); }
 
      xx = (float *)malloc(sizeof(float)*nmask) ;
      yy = (float *)malloc(sizeof(float)*nmask) ;

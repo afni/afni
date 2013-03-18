@@ -41,7 +41,7 @@ static AFNI_friend afni_friends[] = {
   { "A Jesmanowicz"  , (             8 |      32                        ) } ,
   { "MS Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32      | 128             ) } ,
   { "JA Bobholz"     , (             8 | 16 | 32      | 128             ) } ,
-  { "JA Frost"       , (             8 | 16                             ) } ,
+  { "JA Frost"       , (             8 | 16           | 128             ) } ,
   { "J Kummer"       , (         4 | 8      | 32                        ) } ,
   { "BD Ward"        , (         4 | 8           | 64       | 512       ) } ,
   { "S Marrett"      , (             8 | 16                             ) } ,
@@ -95,7 +95,10 @@ static AFNI_friend afni_friends[] = {
   { "W Gaggl"        , (         4 | 8                                  ) } ,
   { "V Hradil"       , (         4 | 8 | 16                             ) } ,
   { "D Handwerker"   , (         4 | 8                                  ) } ,
-  { "J Gonzalez-Castillo" , (    4 | 8                                  ) }
+  { "J Gonzalez-Castillo" , (    4 | 8                | 128             ) } ,
+  { "J Evans"        ,      (    4 | 8                | 128             ) } ,
+  { "S Inati"        ,      (    4 | 8                                  ) } ,
+  { "P Taylor"       ,      (                      64                   ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))

@@ -2,9 +2,10 @@
 
 #ifdef USE_OMP
 #include <omp.h>
+#endif
+
 #include "mri_genalign_util.c"
 #include "mri_genalign.c"
-#endif
 #include "mri_nwarp.c"
 
 /*----------------------------------------------------------------------------*/
