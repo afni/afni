@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 19 , MAR, 2013 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "alignment AddEdge error",
+    "Error in resampling step of AddEdge procedure causes crash.\n"
+    "Problem requires both -giant_move (or -prep_off or -resample off) and\n"
+    "-AddEdge."
+} ,
 { 12 , MAR, 2013 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_NEW_OPT, 
     "Handling input and output directories",
