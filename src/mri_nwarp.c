@@ -474,7 +474,9 @@ ENTRY("IW3D_from_dataset") ;
 
    if( !empty ){
      if( DSET_NVALS(dset) < 3+ivs ) RETURN(NULL) ;
-     DSET_load(dset) ; if( !DSET_LOADED(dset) ) RETURN(NULL) ;
+     if( !DSET_LOADED(dset) ){
+       DSET_load(dset) ; if( !DSET_LOADED(dset) ) RETURN(NULL) ;
+     }
    }
 
    if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )
