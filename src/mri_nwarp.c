@@ -5847,7 +5847,7 @@ ENTRY("CW_load_one_warp") ;
    if( nn > CW_nwtop ) CW_nwtop = nn ;  /* CW_nwtop = largest index thus far */
 
    if( STRING_HAS_SUFFIX_CASE(wp,".1D")  ||
-       STRING_HAS_SUFFIX_CASE(wp,".txt")   ){      /* affine warp */
+       STRING_HAS_SUFFIX_CASE(wp,".txt")   ){      /*--- affine warp ---*/
 
      mat44 mmm ; MRI_IMAGE *qim ; float *qar ;
      qim = mri_read_1D(wp) ;
@@ -5879,10 +5879,92 @@ ENTRY("CW_load_one_warp") ;
    } else {                                        /* dataset warp */
 
      THD_3dim_dataset *dset ; IndexWarp3D *AA ;
-     dset = THD_open_dataset(wp) ;
-     if( dset == NULL ){
-       ERROR_message("Can't open dataset from file '%s'",wp); free(wp); EXRETURN;
+
+     /* check for special case of uni-directional warp from 1 sub-brick [19 Mar 2013] */
+
+     if( strncasecmp(wp,"RL:",3) == 0 || strncasecmp(wp,"LR:",3) == 0 ||
+         strncasecmp(wp,"AP:",3) == 0 || strncasecmp(wp,"PA:",3) == 0 ||
+         strncasecmp(wp,"IS:",3) == 0 || strncasecmp(wp,"SI:",3) == 0 ||
+         strncasecmp(wp,"VEC:",4)== 0 || strncasecmp(wp,"UNI:",4)== 0   ){
+
+       float vx=0.0f,vy=0.0f,vz=0.0f,vm=0.0f ;
+       char *up=strchr(wp,':')+1 , *vp ;
+       MRI_IMAGE *dim ; float *dar , *xar,*yar,*zar ; int nvox ;
+
+       /* set unit vector for direction of warp displacements in 3D */
+
+       switch( toupper(*wp) ){
+         case 'R': case 'L':  vx = 1.0f ; vy = vz = 0.0f ; break ;
+         case 'A': case 'P':  vy = 1.0f ; vx = vz = 0.0f ; break ;
+         case 'I': case 'S':  vz = 1.0f ; vx = vy = 0.0f ; break ;
+         default:
+           sscanf(up,"%f,%f,%f",&vx,&vy,&vz) ;
+           vm = sqrtf(vx*vx+vy*vy+vz*vz) ;
+           if( vm < 1.e-9f ){
+             ERROR_message("uni-directional warp '%s' :-) direction is unclear",wp) ;
+             free(wp) ; EXRETURN ;
+           }
+           vx /= vm ; vy /= vm ; vz /= vm ;
+           vp = strchr(up,':') ;
+           if( vp == NULL ){
+             ERROR_message("uni-directional warp '%s' :-) no dataset?",wp) ;
+             free(wp) ; EXRETURN ;
+           }
+           up = vp+1 ;
+       }
+
+       /* check if there is a scale factor */
+
+       vp = strchr(up,':') ;
+       if( vp != NULL && ( isdigit(*up) || *up == '-') ){
+         float wfac = (float)strtod(up,NULL) ;
+         if( wfac == 0.0f ){
+           ERROR_message("uni-directional warp '%s' :-) scale factor = 0?",wp) ;
+           free(wp) ; EXRETURN ;
+         }
+         up = vp+1 ;
+         vx *= wfac ; vy *= wfac ; vz *= wfac ;
+       }
+
+       /* now read dataset and do surgery on it */
+
+       dset = THD_open_dataset(up) ;
+       if( dset == NULL ){
+         ERROR_message("Can't open dataset from file '%s'",up); free(wp); EXRETURN;
+       }
+       DSET_load(dset) ;
+       if( !DSET_LOADED(dset) ){
+         ERROR_message("Can't load dataset from file '%s'",up); free(wp); DSET_delete(dset); EXRETURN;
+       }
+       dim = THD_extract_float_brick(0,dset); dar = MRI_FLOAT_PTR(dim); DSET_unload(dset);
+       nvox = dim->nvox ;
+       xar = (float *)calloc(sizeof(float),nvox) ; /* bricks for output dataset */
+       yar = (float *)calloc(sizeof(float),nvox) ;
+       zar = (float *)calloc(sizeof(float),nvox) ;
+       EDIT_dset_items( dset ,
+                          ADN_nvals , 3 ,
+                          ADN_ntt   , 0 ,
+                          ADN_datum_all , MRI_float ,
+                        ADN_none ) ;
+       EDIT_BRICK_FACTOR(dset,0,0.0) ; EDIT_substitute_brick(dset,0,MRI_float,xar) ;
+       EDIT_BRICK_FACTOR(dset,1,0.0) ; EDIT_substitute_brick(dset,1,MRI_float,yar) ;
+       EDIT_BRICK_FACTOR(dset,2,0.0) ; EDIT_substitute_brick(dset,2,MRI_float,zar) ;
+       for( ii=0 ; ii < nvox ; ii++ ){
+         xar[ii] = vx * dar[ii]; yar[ii] = vy * dar[ii]; zar[ii] = vz * dar[ii];
+       }
+       mri_free(dim) ;
+
+     } else {  /*--- standard 3-brick warp ---*/
+
+       dset = THD_open_dataset(wp) ;
+       if( dset == NULL ){
+         ERROR_message("Can't open dataset from file '%s'",wp); free(wp); EXRETURN;
+       }
+
      }
+
+     /*--- convert dataset to warp ---*/
+
      AA = IW3D_from_dataset(dset,0,0) ;
      if( AA == NULL ){
        ERROR_message("Can't make warp from dataset '%s'",wp); free(wp); EXRETURN;
@@ -5936,7 +6018,7 @@ ENTRY("IW3D_read_catenated_warp") ;
 
    /*-- simple case of a single dataset input --*/
 
-   if( csar->num == 1 && strncasecmp(csar->str[0],"INV",3) != 0 ){
+   if( csar->num == 1 && strchr(csar->str[0],'(') == NULL && strchr(csar->str[0],':') == NULL ){
      oset = THD_open_dataset(csar->str[0]) ;
      if( oset == NULL ){
        ERROR_message("Can't open warp dataset '%s'",csar->str[0]) ;

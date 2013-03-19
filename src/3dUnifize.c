@@ -499,13 +499,16 @@ int main( int argc , char *argv[] )
             "                 aligning 2 T1-weighted volumes, in order to make the\n"
             "                 WM-GM contrast about the same for the datasets, even\n"
             "                 if they don't come from the same scanner/pulse-sequence.\n"
+            "  -Urad rr   = Sets the radius (in voxels) of the ball used for the sneaky trick.\n"
+            "               ++ Default value is %.1f, and should be changed proportionally\n"
+            "                  if the dataset voxel size differs significantly from 1 mm.\n"
             "  -quiet     = Don't print so many fun progress messages (but whyyyy?).\n"
             "\n"
             "-- Feb 2013 - Zhark the Normalizer\n"
 #ifdef USE_OMP
             "-- This code uses OpenMP to speed up the slowest part.\n"
 #endif
-           ) ;
+            , Uprad ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -533,7 +536,15 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-param") == 0 ||      /* HIDDEN OPTION */
+     if( strcmp(argv[iarg],"-Urad") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       Uprad = (float)strtod(argv[iarg],NULL) ;
+       if( Uprad <   5.0f || Uprad > 40.0f )
+         ERROR_exit("Illegal value %f after option -Urad",Uprad) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-param") == 0 ||      /*--- HIDDEN OPTION ---*/
          strcmp(argv[iarg],"-rbt"  ) == 0    ){
        if( ++iarg >= argc-2 ) ERROR_exit("Need 3 arguments (R pb pt) after '%s'",argv[iarg-1]) ;
        Uprad = (float)strtod(argv[iarg++],NULL) ;
