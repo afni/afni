@@ -16,6 +16,7 @@ ENTRY("THD_extract_float_brick") ;
 
    if( iv < 0 || !ISVALID_DSET(dset) || iv >= DSET_NVALS(dset) ) RETURN(NULL);
 
+STATUS("make new image") ;
    im   = mri_new_conforming( DSET_BRICK(dset,iv) , MRI_float ) ;
    var  = MRI_FLOAT_PTR(im) ;
    nvox = DSET_NVOX(dset) ;
@@ -32,24 +33,28 @@ ENTRY("THD_extract_float_brick") ;
 
       case MRI_short:{
         register short *dar = DSET_ARRAY(dset,iv) ;
+        if( dar == NULL ){ ERROR_message("NULL ptr in THD_extract_float_brick(%d)",iv); RETURN(im); }
         for( ii=0 ; ii < nvox ; ii++ ) var[ii] = dar[ii] ;
       }
       break ;
 
       case MRI_byte:{
         register byte  *dar = DSET_ARRAY(dset,iv) ;
+        if( dar == NULL ){ ERROR_message("NULL ptr in THD_extract_float_brick(%d)",iv); RETURN(im); }
         for( ii=0 ; ii < nvox ; ii++ ) var[ii] = dar[ii] ;
       }
       break ;
 
       case MRI_float:{
         register float *dar = DSET_ARRAY(dset,iv) ;
+        if( dar == NULL ){ ERROR_message("NULL ptr in THD_extract_float_brick(%d)",iv); RETURN(im); }
         for( ii=0 ; ii < nvox ; ii++ ) var[ii] = dar[ii] ;
       }
       break ;
 
       case MRI_complex:{
         register complex *dar = DSET_ARRAY(dset,iv) ;
+        if( dar == NULL ){ ERROR_message("NULL ptr in THD_extract_float_brick(%d)",iv); RETURN(im); }
         for( ii=0 ; ii < nvox ; ii++ ) var[ii] = CABS(dar[ii]) ;
       }
       break ;
@@ -57,12 +62,14 @@ ENTRY("THD_extract_float_brick") ;
 #if 0
       case MRI_int:{
         register int   *dar = DSET_ARRAY(dset,iv) ;
+        if( dar == NULL ){ ERROR_message("NULL ptr in THD_extract_float_brick(%d)",iv); RETURN(im); }
         for( ii=0 ; ii < nvox ; ii++ ) var[ii] = dar[ii] ;
       }
       break ;
 
       case MRI_double:{
         register double *dar = DSET_ARRAY(dset,iv) ;
+        if( dar == NULL ){ ERROR_message("NULL ptr in THD_extract_float_brick(%d)",iv); RETURN(im); }
         for( ii=0 ; ii < nvox ; ii++ ) var[ii] = dar[ii] ;
       }
       break ;
@@ -70,6 +77,7 @@ ENTRY("THD_extract_float_brick") ;
 
       case MRI_rgb:{
         register byte *dar = DSET_ARRAY(dset,iv) ;
+        if( dar == NULL ){ ERROR_message("NULL ptr in THD_extract_float_brick(%d)",iv); RETURN(im); }
         for( ii=0 ; ii < nvox ; ii++ )
           var[ii] = 0.299*dar[3*ii] + 0.587*dar[3*ii+1] + 0.114*dar[3*ii+2] ;
       }
