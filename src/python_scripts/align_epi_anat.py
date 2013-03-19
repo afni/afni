@@ -3162,8 +3162,9 @@ if __name__ == '__main__':
          if(ps.resample_flag):
             ein_rs = e
          else:
-            ein_rs = ps.resample_epi(e, "","%s__tt_%s_rs_in" % \
-              (ps.output_dir, ps.epi.out_prefix()))
+            baseviewext = "%s%s" % (ps.epi.view, ps.epi.extension)
+            ein_rs = ps.resample_epi(e, "","%s__tt_%s_rs_in%s" % \
+              (ps.output_dir, ps.epi.out_prefix(),baseviewext))
 
          if (ps.epi2anat and ps.anat2epi):
             listlog_a2e = "a2e_examine_list.log"
