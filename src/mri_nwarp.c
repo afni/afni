@@ -3612,8 +3612,12 @@ static int Hlev_final =   0 ;
 static int Hlev_now   =   0 ;
 static int Hduplo     =   0 ;
 static int Hfinal     =   0 ;
-static int Hworkhard  =   0 ;
+static int Hworkhard1 =   0 ;
+static int Hworkhard2 =  -1 ;
 static int Hfirsttime =   0 ;  /* for fun only */
+
+#undef  WORKHARD
+#define WORKHARD(lll) ( (lll) >= Hworkhard1 && (lll) <= Hworkhard2 )
 
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
@@ -5117,7 +5121,7 @@ ENTRY("IW3D_improve_warp") ;
    /***** HERE is the actual optimization! *****/
 
    itmax = (Hduplo) ? 5*Hnparmap+21 : 8*Hnparmap+31 ;
-   if( Hworkhard > 0 && Hlev_now <= Hworkhard ) itmax -= Hnparmap ;
+   if( WORKHARD(Hlev_now) ) itmax -= Hnparmap ;
 
    if( Hverb > 3 ) powell_set_verbose(1) ;
 
@@ -5237,7 +5241,7 @@ ENTRY("IW3D_warpomatic") ;
    }
 
    if( Hlev_start == 0 ){            /* top level = global warps */
-     nlevr = (Hworkhard) ? 4 : 2 ;
+     nlevr = WORKHARD(0) ? 4 : 2 ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      for( iii=0 ; iii < nlevr ; iii++ ){
@@ -5364,7 +5368,7 @@ ENTRY("IW3D_warpomatic") ;
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
 
-     nlevr = (Hworkhard && (lev <= Hworkhard || lev == levs) ) ? 2 : 1 ;
+     nlevr = WORKHARD(lev) ? 2 : 1 ;
 
      if( Hverb > 1 )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s" ,
@@ -5856,7 +5860,7 @@ ENTRY("CW_load_one_warp") ;
      if( qim == NULL || qim->nvox < 9 ){
        ERROR_message("cannot read matrix from file '%s'",wp); free(wp); EXRETURN ;
      }
-     if( qim->ny > 1 ){
+     if( qim->nx < 12 && qim->ny > 1 ){
        MRI_IMAGE *tim = mri_transpose(qim) ; mri_free(qim) ; qim = tim ;
      }
      qar = MRI_FLOAT_PTR(qim) ;
