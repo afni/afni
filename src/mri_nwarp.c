@@ -5880,7 +5880,7 @@ ENTRY("CW_load_one_warp") ;
 
    } else {                                        /* dataset warp */
 
-     THD_3dim_dataset *dset ; IndexWarp3D *AA ;
+     THD_3dim_dataset *dset, *eset=NULL ; IndexWarp3D *AA ;
 
      /* check for special case of uni-directional warp from 1 sub-brick [19 Mar 2013] */
 
@@ -5930,19 +5930,20 @@ ENTRY("CW_load_one_warp") ;
 
        /* now read dataset and do surgery on it */
 
-       dset = THD_open_dataset(up) ;
-       if( dset == NULL ){
+       eset = THD_open_dataset(up) ;
+       if( eset == NULL ){
          ERROR_message("Can't open dataset from file '%s'",up); free(wp); EXRETURN;
        }
-       DSET_load(dset) ;
-       if( !DSET_LOADED(dset) ){
-         ERROR_message("Can't load dataset from file '%s'",up); free(wp); DSET_delete(dset); EXRETURN;
+       DSET_load(eset) ;
+       if( !DSET_LOADED(eset) ){
+         ERROR_message("Can't load dataset from file '%s'",up); free(wp); DSET_delete(eset); EXRETURN;
        }
-       dim = THD_extract_float_brick(0,dset); dar = MRI_FLOAT_PTR(dim); DSET_unload(dset);
+       dim = THD_extract_float_brick(0,eset); dar = MRI_FLOAT_PTR(dim); DSET_unload(eset);
        nvox = dim->nvox ;
        xar = (float *)calloc(sizeof(float),nvox) ; /* bricks for output dataset */
        yar = (float *)calloc(sizeof(float),nvox) ;
        zar = (float *)calloc(sizeof(float),nvox) ;
+       dset = EDIT_empty_copy(eset) ;
        EDIT_dset_items( dset ,
                           ADN_nvals , 3 ,
                           ADN_ntt   , 0 ,
@@ -5978,8 +5979,11 @@ ENTRY("CW_load_one_warp") ;
        ERROR_message("warp from dataset '%s' doesn't match earlier inputs in grid size",wp) ;
        free(wp); EXRETURN ;
      }
-     if( CW_inset == NULL ){ DSET_unload(dset) ; CW_inset = dset ; }  /* save as template */
-     else                  { DSET_delete(dset) ; }
+     if( CW_inset == NULL ){
+       if( eset != NULL ){ CW_inset = eset ; DSET_delete(dset) ; }
+       else              { DSET_unload(dset) ; CW_inset = dset ; }  /* save as template */
+     }
+     else                { DSET_delete(dset) ; }
 
      if( do_inv ){
        IndexWarp3D *BB ;
