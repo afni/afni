@@ -420,6 +420,7 @@ int main( int argc , char *argv[] )
    mainENTRY("3dQwarp") ; machdep() ;
    AFNI_logger("3dQwarp",argc,argv);
    PRINT_VERSION("3dQwarp"); AUTHOR("Zhark the Cubically Warped");
+   (void)COX_clock_time() ;
 
    nopt = 1 ;
    Hblur_b = Hblur_s = 3.456f ;
@@ -780,6 +781,7 @@ int main( int argc , char *argv[] )
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
 
-   INFO_message("===== clock time =%s",nice_time_string(NI_clock_time()-ct)) ;
+   INFO_message("===== CPU time = %.1f sec  clock time =%s",
+                COX_cpu_time() , nice_time_string(NI_clock_time()-ct) ) ;
    exit(0) ;
 }
