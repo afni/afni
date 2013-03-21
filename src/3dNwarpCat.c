@@ -18,15 +18,28 @@ void CNW_help(void)
     "------\n"
     " * This program catenates (composes) 3D warps defined on a grid,\n"
     "   OR via a matrix.\n"
+    " ++ All transformations are from DICOM xyz (in mm) to DICOM xyz.\n"
     "\n"
     " * Matrix warps are in files that end in '.1D' or in '.txt'.  A matrix\n"
     "   warp file should have 12 numbers in it, as output (for example), by\n"
     "   '3dAllineate -1Dmatrix_save'.\n"
+    "  ++ The matrix (affine) warp can have either 12 numbers on one row,\n"
+    "     or be in the 3x4 format.\n"
     "\n"
     " * Nonlinear warps are in dataset files (AFNI .HEAD/.BRIK or NIfTI .nii)\n"
     "   with 3 sub-bricks giving the DICOM order xyz grid displacements in mm.\n"
     "\n"
-    " * At least one of the warps input must be defined via a dataset!\n"
+    " * If all the input warps are matrices, then the output is a matrix\n"
+    "   and will be written to the file 'prefix.aff12.1D'.\n"
+    " ++ Unless the prefix already contains the string '.1D', in which case\n"
+    "    the filename is just the prefix.\n"
+    " ++ If 'prefix' is just 'stdout', then the output matrix is written\n"
+    "    to standard output.\n"
+    " ++ In any case, the output format is 12 numbers in one row.\n"
+    "\n"
+    " * If any of the input warps are datasets, they must all be defined on\n"
+    "   the same 3D grid!\n"
+    " ++ And of course, then the output will be a dataset on the same grid.\n"
     "\n"
     " * The order of operations in the final (output) warp is, for the\n"
     "   case of 3 input warps:\n"
@@ -149,7 +162,7 @@ void CNW_load_warp( int nn , char *cp )
      qim = mri_read_1D(wp) ;
      if( qim == NULL || qim->nvox < 9 )
        ERROR_exit("cannot read matrix from file '%s'",wp);
-     if( qim->ny > 1 ){
+     if( qim->nx < 12 && qim->ny > 1 ){
        MRI_IMAGE *tim = mri_transpose(qim) ; mri_free(qim) ; qim = tim ;
      }
      qar = MRI_FLOAT_PTR(qim) ;
@@ -336,9 +349,6 @@ int main( int argc , char *argv[] )
    for( ; iarg < argc ; iarg++ )
      CNW_load_warp( nwtop+1 , argv[iarg] ) ;
 
-   if( geomstring == NULL )
-     ERROR_exit("you must have at least one dataset-defined nonlinear warp") ;
-
    /*-- cat them --*/
 
    LOAD_IDENT_MAT44(wmat) ;
@@ -349,9 +359,13 @@ int main( int argc , char *argv[] )
 
      if( awarp[ii] != NULL ){  /* matrix to apply */
 
-       qmat = *(awarp[ii]) ;             /* convert from xyz warp to ijk warp */
-       tmat = MAT44_MUL(qmat,cmat) ;
-       smat = MAT44_MUL(imat,tmat) ;
+       qmat = *(awarp[ii]) ;
+       if( geomstring != NULL ){             /* convert from xyz warp to ijk warp */
+         tmat = MAT44_MUL(qmat,cmat) ;
+         smat = MAT44_MUL(imat,tmat) ;
+       } else {
+         smat = qmat ;                       /* no conversion */
+       }
 
        if( warp == NULL ){               /* thus far, only matrices */
          ININFO_message("warp #%d = Matrix-Matrix multiply",ii+1) ;
@@ -402,7 +416,27 @@ int main( int argc , char *argv[] )
 
    /*--- write result to disk for future fun fun fun in the sun sun sun ---*/
 
-   if( warp == NULL ) ERROR_exit("This message should never appear!") ;
+   if( warp == NULL ){                      /* just write a matrix [for Ziad] */
+     char *fname = malloc(sizeof(char)*(strlen(prefix)+16)) ; FILE *fp ;
+     float a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ;
+     if( strcmp(prefix,"-") == 0 || strncmp(prefix,"stdout",6) == 0 ){
+       fp = stdout ; strcpy(fname,"stdout") ;
+     } else {
+       strcpy(fname,prefix) ;
+       if( strstr(fname,".1D") == NULL ) strcat(fname,".aff12.1D") ;
+       fp = fopen(fname,"w") ;
+       if( fp == NULL ) ERROR_exit("Can't open output file %s",fname) ;
+     }
+     UNLOAD_MAT44(wmat,a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34) ;
+     fprintf(fp,
+             " %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g\n",
+             a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ) ;
+     if( verb && fp != stdout ) INFO_message("Wrote matrix to %s",fname) ;
+     if( fp != stdout ) fclose(fp) ;
+     exit(0) ;
+   }
+
+   /** write a nonlinear warp dataset **/
 
    IW3D_adopt_dataset( warp , inset ) ;
    oset = IW3D_to_dataset( warp , prefix ) ;
