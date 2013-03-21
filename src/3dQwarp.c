@@ -198,6 +198,7 @@ int main( int argc , char *argv[] )
    int ilev = 0 , nowarps = 0 , mlev = 666 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
    int flags = 0 ;
+   double cput ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dQwarp [OPTIONS] base_dataset source_dataset\n") ;
@@ -268,16 +269,18 @@ int main( int argc , char *argv[] )
        "                 This warp could be used to transform data from base space\n"
        "                 to source space, if there is a reason for such an operation,\n"
        "                 using 3dNwarpApply.\n"
-       "               * If you do not want either of these warps saved, use the option\n"
+       "              ** If you do not want either of these warps saved, use the option\n"
        "                 option '-nowarps'.\n"
-       "               * To skip the WARPINV dataset (but keep the WARP dataset),\n"
+       "              ** To skip the WARPINV dataset (but keep the WARP dataset),\n"
        "                 use the option '-nowarpi'.  If you don't need the WARPINV\n"
        "                 dataset, not computing it at the end will save some CPU time.\n"
        "                 You can easily compute the inverse later, say by a command\n"
        "                 of the form\n"
        "                   3dNwarpCat -prefix Z_WARPINV 'INV(Z_WARP+tlrc)'\n"
        "\n"
-       " -pear        = Use Pearson correlation for matching (not usually recommended).\n"
+       " -pear        = Use Pearson correlation for matching.\n"
+       "               * Not usually recommended, since the 'clipped Pearson' method\n"
+       "                 used by default will reduce the impact of outliers.\n"
        "\n"
        " -nopenalty   = Don't use a penalty on the cost function; the goal\n"
        "                of the penalty is to reduce grid distortions.\n"
@@ -289,6 +292,7 @@ int main( int argc , char *argv[] )
        "                counts the same.  With '-useweight', each voxel is weighted\n"
        "                by the intensity of the (blurred) base image.  This makes\n"
        "                white matter count more in T1-weighted volumes, for example.\n"
+       "               * This option is generally recommended.\n"
        "\n"
        " -blur bb     = Gaussian blur the input images by 'bb' (FWHM) voxels before\n"
        "                doing the alignment (the output dataset will not be blurred).\n"
@@ -299,7 +303,8 @@ int main( int argc , char *argv[] )
        "               * e.g., '-blur 0 3' to skip blurring the base image\n"
        "                 (if the base is a blurry template, for example).\n"
        "               * A negative blur radius means to use 3D median filtering,\n"
-       "                 rather than Gaussian blurring.\n"
+       "                 rather than Gaussian blurring.  This type of filtering will\n"
+       "                 better preserve edges, which can be important in alignment.\n"
        "               * If the base is a template volume that is already blurry,\n"
        "                 you probably don't want to blur it again, but blurring\n"
        "                 the source volume a little is probably a good idea, to\n"
@@ -325,75 +330,87 @@ int main( int argc , char *argv[] )
        " -noYdis      = displace in the given direction.  For example, combining\n"
        " -noZdis      = -noXdis and -noZdis would mean only warping along the\n"
        "                y-direction would be allowed.\n"
+       "               * xyz coordinates herein refer to the DICOM order, where\n"
+       "                   +x = Left  +y = Posterior  +z = Superior\n"
        "\n"
-       " -iniwarp ww   = 'ww' is a dataset with an initial nonlinear warp to use.\n"
-       "                * If this option is not used, the initial warp is the identity.\n"
-       "                * You cannot use this option with -duplo !!\n"
-       "                * Special cases allow the creation of an initial affine 'warp'\n"
-       "                  from a list of 12 numbers:\n"
-       "                  * 'MATRIX(a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a44)'\n"
-       "                    provides the coordinate transformation matrix directly\n"
-       "                    as might come from 3dAllineate's '-1Dmatrix_save' option.\n"
-       "                  * 'PARAM(dx,dy,dz,za,xa,ya,sx,sy,sz,xs,ys,zs)'\n"
-       "                    provides the 3 shift, 3 angle, 3 scale, and 3 shear\n"
-       "                    parameters, as would come from 3dAllineate's\n"
-       "                    '-1Dparam_save' option.\n"
-       "                  * The numeric parameters can be separated by commas\n"
-       "                    or blanks.  The closing ')' isn't really required, but\n"
-       "                    the opening '(' after 'MATRIX' or 'PARAM' is needed.\n"
-       "                    For this reason, you will probably need to put this\n"
-       "                    argument inside 'single' or \"double\" quotes, to protect\n"
-       "                    it from interpretation by the Unix shell.\n"
+       " -iniwarp ww  = 'ww' is a dataset with an initial nonlinear warp to use.\n"
+       "               * If this option is not used, the initial warp is the identity.\n"
+       "               * You cannot use this option with -duplo !!\n"
+#if 0
+       "               * Special cases allow the creation of an initial affine 'warp'\n"
+       "                 from a list of 12 numbers:\n"
+       "                 * 'MATRIX(a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a44)'\n"
+       "                   provides the coordinate transformation matrix directly\n"
+       "                   as might come from 3dAllineate's '-1Dmatrix_save' option.\n"
+       "                 * 'PARAM(dx,dy,dz,za,xa,ya,sx,sy,sz,xs,ys,zs)'\n"
+       "                   provides the 3 shift, 3 angle, 3 scale, and 3 shear\n"
+       "                   parameters, as would come from 3dAllineate's\n"
+       "                   '-1Dparam_save' option.\n"
+       "                 * The numeric parameters can be separated by commas\n"
+       "                   or blanks.  The closing ')' isn't really required, but\n"
+       "                   the opening '(' after 'MATRIX' or 'PARAM' is needed.\n"
+       "                   For this reason, you will probably need to put this\n"
+       "                   argument inside 'single' or \"double\" quotes, to protect\n"
+       "                   it from interpretation by the Unix shell.\n"
+#endif
        "\n"
-       " -inilev lv    = 'lv' is the initial refinement 'level' at which to start.\n"
-       "                * Usually used with -iniwarp; cannot be used with -duplo.\n"
+       " -inilev lv   = 'lv' is the initial refinement 'level' at which to start.\n"
+       "               * Usually used with -iniwarp; cannot be used with -duplo.\n"
        "\n"
-       " -minpatch mm  = Set the minimum patch size for warp searching to 'mm' voxels.\n"
-       "   *OR*         * The value of mm should be an odd integer.\n"
-       " -patchmin mm   * The default value of mm is 25.\n"
-       "                * For more accurate results than mm=25, try 19.\n"
-       "                * The smallest allowed value is 9 (which will be VERY slow).\n"
-       "                * If you want to see the warped results at various levels\n"
-       "                  of patch size, use the '-qsave' option.\n"
-       "                * To do only global warping (i.e., patch=size of whole dataset,\n"
-       "                  with no refinement), set 'mm' to a value larger than the\n"
-       "                  biggest dataset grid dimension (e.g., '-minpatch 666').\n"
+       " -minpatch mm = Set the minimum patch size for warp searching to 'mm' voxels.\n"
+       "   *OR*        * The value of mm should be an odd integer.\n"
+       " -patchmin mm  * The default value of mm is 25.\n"
+       "               * For more accurate results than mm=25, try 19.\n"
+       "               * The smallest allowed value is 9 (which will be VERY slow).\n"
+       "               * If you want to see the warped results at various levels\n"
+       "                 of patch size, use the '-qsave' option.\n"
+       "               * To do only global warping (i.e., patch=size of whole dataset,\n"
+       "                 with no refinement), set 'mm' to a value larger than the\n"
+       "                 biggest dataset grid dimension (e.g., '-minpatch 666').\n"
        "\n"
-       " -maxlev lv    = Here, 'lv' is the maximum refinement 'level' to use.\n"
-       "                 This is an alternate way to specify when the program should\n"
-       "                 stop. \n"
-       "                * To only do global polynomial warping, use '-maxlev 0'.\n"
-       "                * If you use both '-minpatch' and '-maxlev', then you are\n"
-       "                  living dangerously.\n"
+       " -maxlev lv   = Here, 'lv' is the maximum refinement 'level' to use.\n"
+       "                This is an alternate way to specify when the program should\n"
+       "                stop. \n"
+       "               * To only do global polynomial warping, use '-maxlev 0'.\n"
+       "               * If you use both '-minpatch' and '-maxlev', then you are\n"
+       "                 living dangerously.\n"
        "\n"
-       " -duplo        = Start off with 1/2 scale versions of the volumes,\n"
-       "                 for getting a speedy coarse first alignment.\n"
-       "                * Then scales back up to register the full volumes.\n"
+       " -duplo       = Start off with 1/2 scale versions of the volumes,\n"
+       "                for getting a speedy coarse first alignment.\n"
+       "               * Then scales back up to register the full volumes.\n"
        "\n"
-       " -workhard     = Iterate more times at the coarser grid levels,\n"
-       "                 which can help when the volumes are hard to align at all.\n"
-       "                * Slows the program down (possibly a lot), of course.\n"
-       "                * Although -workhard will work OK with -duplo, it is better\n"
-       "                  applied without the -duplo option.\n"
-       "                * You can also try '-workharder' and '-workhardest',\n"
-       "                  which of course are slower and slower.\n"
+       " -workhard    = Iterate more times at the coarser grid levels,\n"
+       "                which can help when the volumes are hard to align at all.\n"
+       "               * Slows the program down (possibly a lot), of course.\n"
+       "               * Although -workhard will work OK with -duplo, it is better\n"
+       "                 applied without the -duplo option.\n"
+       "               * You can also try '-workharder' and '-workhardest',\n"
+       "                 which of course are slower and slower.\n"
+       "               * For finer control over which refinement levels work hard,\n"
+       "                 you can use this option in the form (for example)\n"
+       "                     -workhard:4:7\n"
+       "                 which implies the extra iterations will be done at levels\n"
+       "                 4, 5, 6, and 7, but not otherwise.\n"
        "\n"
-       " -qsave        = Save intermediate warped results as well, in a dataset\n"
-       "                 with '_SAVE' appended to the '-prefix' value.\n"
-       "                * This allows you to see the amount of improvement at\n"
-       "                  each patch refinement level, and so help you decide\n"
-       "                  the size for '-minpatch' for future work.\n"
+       " -qsave       = Save intermediate warped results as well, in a dataset\n"
+       "                with '_SAVE' appended to the '-prefix' value.\n"
+       "               * This allows you to see the amount of improvement at\n"
+       "                 each patch refinement level, and so help you decide\n"
+       "                 the size for '-minpatch' for future work.\n"
        "\n"
-       " -verb         = Print verbose progress messages.\n"
-       " -quiet        = Cut out most progress messages.\n"
+       " -verb        = Print verbose progress messages.\n"
+       " -quiet       = Cut out most progress messages.\n"
        "\n"
        "METHOD\n"
        "------\n"
        "Incremental warping with cubic basic functions, first over the entire volume,\n"
-       "then over steadily shrinking patches.  For this to work,  the source and base\n"
-       "need to be pretty well aligned already (e.g., 3dAllineate).\n"
+       "then over steadily shrinking patches (increasing 'levels': the patches shrink\n"
+       "by a factor of 0.75 at each level).\n"
        "\n"
-       "***** This program is experimental and subject to sudden drastic change! *****\n"
+       "For this to work, the source and base datasets need to be pretty well aligned\n"
+       "already (e.g., 3dAllineate).\n"
+       "\n"
+       "***** This program is experimental and subject to sudden horrific change! *****\n"
        "\n"
        "--- AUTHOR = RWCox -- Fall/Winter 2012-13 ---\n"
      ) ;
@@ -512,27 +529,30 @@ int main( int argc , char *argv[] )
        duplo = 1 ; nopt++ ; continue ;
      }
 
+     if( strncasecmp(argv[nopt],"-workhard",9) == 0 ){
+       char *wpt = argv[nopt]+9 ;
+       Hworkhard1 = 0 ;
+       if( strcasecmp(wpt,"er") == 0 ){
+         Hworkhard2 = 7 ;
+       } else if( strcasecmp(wpt,"est") == 0 ){
+         Hworkhard2 = 10 ;
+       } else if( *wpt == ':' && isdigit(*(wpt+1)) ){
+         char *cpt ;
+         Hworkhard2 = (int)strtod(++wpt,NULL) ;
+         cpt = strchr(wpt,':') ;
+         if( cpt != NULL && isdigit(*(cpt+1)) ){
+           Hworkhard1 = Hworkhard2 ;
+           Hworkhard2 = (int)strtod(++cpt,NULL) ;
+         }
+       } else {
+         Hworkhard2 += 4 ;
+       }
+       nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-whard") == 0 ){                  /** HIDDEN **/
        if( ++nopt >= argc ) ERROR_exit("need arg after -whard") ;
-       Hworkhard = (int)strtod(argv[nopt],NULL) ;
-       nopt++ ; continue ;
-     }
-
-     if( strcasecmp(argv[nopt],"-workhard") == 0 ){
-       if( Hworkhard < 4 ) Hworkhard  = 4 ;
-       else                Hworkhard += 2 ;
-       nopt++ ; continue ;
-     }
-
-     if( strcasecmp(argv[nopt],"-workharder") == 0 ){
-       if( Hworkhard < 7 ) Hworkhard  = 7 ;
-       else                Hworkhard += 2 ; ;
-       nopt++ ; continue ;
-     }
-
-     if( strcasecmp(argv[nopt],"-workhardest") == 0 ){
-       if( Hworkhard < 10 ) Hworkhard  = 10 ;
-       else                 Hworkhard +=  2 ;
+       Hworkhard2 = (int)strtod(argv[nopt],NULL) ;
        nopt++ ; continue ;
      }
 
@@ -781,7 +801,12 @@ int main( int argc , char *argv[] )
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
 
-   INFO_message("===== CPU time = %.1f sec  clock time =%s",
-                COX_cpu_time() , nice_time_string(NI_clock_time()-ct) ) ;
+   cput = COX_cpu_time() ;
+   if( cput > 0.05 )
+     INFO_message("===== CPU time = %.1f sec  clock time =%s",
+                  cput , nice_time_string(NI_clock_time()-ct) ) ;
+   else
+     INFO_message("===== clock time =%s" , nice_time_string(NI_clock_time()-ct) ) ;
+
    exit(0) ;
 }
