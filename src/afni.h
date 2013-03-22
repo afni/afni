@@ -1116,6 +1116,12 @@ typedef struct Three_D_View {
       int cont_perc_thr;       /* ZSS percentile thresholding. April 26 2012 */
 } Three_D_View ;
 
+#define IM3D_CLEAR_TMASK(iq)                                                                   \
+ do{ CLEAR_TMASK((iq)->b123_anat); CLEAR_TMASK((iq)->b231_anat); CLEAR_TMASK((iq)->b312_anat); \
+     CLEAR_TMASK((iq)->b123_fim) ; CLEAR_TMASK((iq)->b231_fim) ; CLEAR_TMASK((iq)->b312_fim) ; \
+     CLEAR_TMASK((iq)->b123_ulay); CLEAR_TMASK((iq)->b231_ulay); CLEAR_TMASK((iq)->b312_ulay); \
+ } while(0)
+
 /*! Force re-volume-editing when this viewer is redisplayed */
 
 #define IM3D_VEDIT_FORCE(iq) (iq)->vedset.flags=1

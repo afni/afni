@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 12 , MAR , 2013 , RWC , "3dNwarpApply" , MINOR , TYPE_NEW_OPT ,
+  { 22 , MAR , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Fading of graph sub-windows with the 'F' key" ,
+   NULL } ,
+
+ { 12 , MAR , 2013 , RWC , "3dNwarpApply" , MINOR , TYPE_NEW_OPT ,
    "Various fixes" ,
    "-ainterp = lets you interpolate data differently from warp\n"
    "-affter  = lets you use a different affine warp for each sub-brick\n"

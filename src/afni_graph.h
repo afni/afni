@@ -141,8 +141,8 @@ typedef struct {
 
       void (* send_CB)() ;   /* callback, if non_NULL */
 
-      MCW_function_list * transforms0D ;
-      MCW_function_list * transforms1D ;
+      MCW_function_list *transforms0D ;
+      MCW_function_list *transforms1D ;
 
       char namecode[32] ;
 
@@ -378,7 +378,7 @@ typedef struct {
 
    get_ptr   getser ;
    XtPointer getaux ;
-   MCW_grapher_status * status ;
+   MCW_grapher_status *status ;
 
    /* sub-graph stuff */
 
@@ -516,6 +516,8 @@ typedef struct {
 
    MCW_arrowval *detrend_av ;
    int           detrend ;                          /* 05 Dec 2012 */
+
+   int           thresh_fade ;                      /* Mar 2013 */
 
 } MCW_grapher ;
 
