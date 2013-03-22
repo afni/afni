@@ -14960,20 +14960,19 @@ int SUMA_StringToNumSide(char *s, void *vv, int N, int prec, int *Side)
 SUMA_SO_SIDE SUMA_giiStringToNumSide(char *cc)
 {
    static char FuncName[]={"SUMA_giiStringToNumSide"};
-   
+   char *hasright=NULL, *hasleft=NULL;
    SUMA_ENTRY;
    
    if (!cc) SUMA_RETURN(SUMA_NO_SIDE);
    
    deblank_name(cc);
-   if ( SUMA_iswordin_ci (cc, "Left")  == 1 &&
-        SUMA_iswordin_ci (cc, "Right") != 1 ) {
+   hasleft = strcasestr(cc,"Left");
+   hasright = strcasestr(cc,"Right");
+   if ( hasleft  && !hasright ) {
       SUMA_RETURN(SUMA_LEFT);
-   } else if ( SUMA_iswordin_ci (cc, "Right") == 1 &&
-               SUMA_iswordin_ci (cc, "Left")  != 1 ) {
+   } else if ( hasright && !hasleft ) {
       SUMA_RETURN(SUMA_RIGHT);
-   } else if (    SUMA_iswordin_ci (cc, "Right") == 1 &&
-                  SUMA_iswordin_ci (cc, "Left")  == 1 ) {
+   } else if (    hasleft && hasright ) {
       SUMA_RETURN(SUMA_LR);
    }
    
