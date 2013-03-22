@@ -1021,6 +1021,9 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
    
    SDO->colv = NULL;
    SDO->thickv = NULL;
+   SDO->stipv = NULL;
+   SDO->Mstip = 1;
+   SDO->stip = 0xAAAA;
    
    SDO->topobj = NULL;
    if (oriented) {
@@ -1045,6 +1048,7 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    if (SDO->idcode_str) SUMA_free(SDO->idcode_str);
    if (SDO->Label) SUMA_free(SDO->Label);
    if (SDO->thickv) SUMA_free(SDO->thickv);
+   if (SDO->stipv) SUMA_free(SDO->stipv);
    if (SDO->colv) SUMA_free(SDO->colv);
    if (SDO->botobj) gluDeleteQuadric(SDO->botobj);
    if (SDO->topobj) gluDeleteQuadric(SDO->topobj);
@@ -1355,14 +1359,35 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
    SUMA_RETURN(SDO);
 }
 
+GLushort SUMA_int_to_stipmask(int i) 
+{
+   switch (i) {
+      case 0:
+         return(0xFFFF); /* solid */
+      case 1:
+         return(0x0101); /* dotted */
+      case 2:
+         return(0xAAAA);
+      case 3:
+         return(0x0C0F);
+      case 4:
+         return(0x00FF);
+      case 5:
+         return(0x1C47); /* dash dot dash */
+      default:
+         return(0x0101);
+   }
+   return(0xFFFF);
+}
+
 SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
 {
    static char FuncName[]={"SUMA_ReadSegDO"};
    SUMA_SegmentDO *SDO = NULL;
    MRI_IMAGE * im = NULL;
    float *far=NULL;
-   int itmp, itmp2, icol_thick = -1, icol_col=-1;
-   int nrow=-1, ncol=-1;
+   int itmp, itmp2, icol_thick = -1, icol_col=-1, icol_stip=-1;
+   int nrow=-1, ncol=-1, same = 0;
    char buf[30];
    SUMA_DO_Types dotp;
    
@@ -1398,6 +1423,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
    
    icol_col = -1;
    icol_thick = -1;
+   icol_stip = -1;
    switch (nrow) {
       case 6:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
@@ -1423,9 +1449,17 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
          icol_col = 6;
          icol_thick = 10;
          break;
+      case 12:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3 th stp\n", 
+                              FuncName, buf, s);
+         icol_col = 6;
+         icol_thick = 10;
+         icol_stip = 11;
+         break;
       default:
          SUMA_SLP_Err("File must have\n"
-                   "6,7,10 or 11 columns.");
+                   "6,7,10, 11, 12 columns.");
          mri_free(im); im = NULL;   /* done with that baby */
          SUMA_RETURN(NULL);
    }
@@ -1433,7 +1467,8 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
    /* allocate for segments DO */
    SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, NULL, 0, dotp);
    if (!SDO) {
-      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
+      fprintf(SUMA_STDERR,
+              "Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
       SUMA_RETURN(NULL);
    }
 
@@ -1480,7 +1515,31 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
          ++itmp;
       } 
    }
-   
+   if (icol_stip > 0) {
+      SDO->stipv = (GLushort *)SUMA_malloc(sizeof(GLushort)*SDO->N_n);
+      if (!SDO->stipv) {
+         SUMA_SL_Crit("Failed in to allocate for colv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual stippliness */
+      itmp = 0; same =  1;
+      while (itmp < SDO->N_n) {
+         SDO->stipv[itmp]     = SUMA_int_to_stipmask(
+                                 (int)far[itmp+(icol_stip  )*ncol]);
+         if (same && SDO->stipv[itmp] != SDO->stipv[0]) same = 0; 
+         ++itmp;
+      }
+      if (same) {
+         SDO->stip = (GLushort)SDO->stipv[0];
+         SUMA_free(SDO->stipv); SDO->stipv=NULL;
+      }
+      if (SDO->stipv || 
+          ( SDO->stip != 0 && SDO->stip != 0xFFFF)) {
+               SDO->Stipple = SUMA_DASHED_LINE;
+      } else {
+         SDO->Stipple = SUMA_SOLID_LINE;
+      }
+   }
    mri_free(im); im = NULL; far = NULL;
 
    SUMA_RETURN(SDO);
@@ -1492,9 +1551,9 @@ SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *parent_SO_id)
    SUMA_SegmentDO *SDO = NULL;
    MRI_IMAGE * im = NULL;
    float *far=NULL;
-   int itmp, itmp2, icol_thick = -1, icol_col=-1;
+   int itmp, itmp2, icol_thick = -1, icol_col=-1, icol_stip=-1;
    int nrow=-1, ncol=-1;
-   int NodeBased = 2;
+   int NodeBased = 2, same=0;
    char buf[30];
    SUMA_DO_Types dotp;
    
@@ -1530,6 +1589,7 @@ SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *parent_SO_id)
    
    icol_col = -1;
    icol_thick = -1;
+   icol_stip = -1;
    switch (nrow) {  
       case 2:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
@@ -1555,9 +1615,17 @@ SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *parent_SO_id)
          icol_col = 2;
          icol_thick = 6;
          break;
+      case 8:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "n0 n1 c0 c1 c2 c3 th st\n", 
+                              FuncName, buf, s);
+         icol_col = 2;
+         icol_thick = 6;
+         icol_stip = 7;
+         break;
       default:
          SUMA_SLP_Err("File must have\n"
-                   "2, 3, 6, or 7 columns.");
+                   "2, 3, 6, 7, or 8 columns.");
          mri_free(im); im = NULL;   /* done with that baby */
          SUMA_RETURN(NULL);
    }
@@ -1610,6 +1678,31 @@ SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *parent_SO_id)
       } 
    }
    
+   if (icol_stip > 0) {
+      SDO->stipv = (GLushort *)SUMA_malloc(sizeof(GLushort)*SDO->N_n);
+      if (!SDO->stipv) {
+         SUMA_SL_Crit("Failed in to allocate for colv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual stipness */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         SDO->stipv[itmp]     = SUMA_int_to_stipmask(
+                                 (int)far[itmp+(icol_stip  )*ncol]);
+         if (same && SDO->stipv[itmp] != SDO->stipv[0]) same = 0; 
+         ++itmp;
+      }
+      if (same) {
+         SDO->stip = (GLushort)SDO->stipv[0];
+         SUMA_free(SDO->stipv); SDO->stipv=NULL;
+      }
+      if (SDO->stipv || 
+          ( SDO->stip != 0 && SDO->stip != 0xFFFF)) {
+               SDO->Stipple = SUMA_DASHED_LINE;
+      } else {
+         SDO->Stipple = SUMA_SOLID_LINE;
+      }
+   }
    mri_free(im); im = NULL; far = NULL;
 
    SUMA_RETURN(SDO);
@@ -3319,6 +3412,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
    static char FuncName[]={"SUMA_DrawSegmentDO"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    int i, N_n3, i3, n3, n, n1=0, n13=0, ncross=-1, ndraw=-1;
+   int gllsm = 0, gllst=0;
    byte *msk=NULL;
    float origwidth=0.0, rad = 0.0, gain = 1.0;
    GLboolean ble=FALSE, dmsk=TRUE, gl_dt=TRUE;
@@ -3355,14 +3449,16 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
    }
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
    if (!SDO->thickv || SDO->NodeBased) glLineWidth(SDO->LineWidth);  
-   
+
    switch (SDO->Stipple) {
       case SUMA_DASHED_LINE:
-         glEnable(GL_LINE_STIPPLE);
-         glLineStipple (1, 0x00FF); /* dashed, see OpenGL Prog guide, page 55 */
+         if (!(gllst = glIsEnabled(GL_LINE_STIPPLE))) glEnable(GL_LINE_STIPPLE);
+         if (!SDO->stipv) {
+            glLineStipple (SDO->Mstip, SDO->stip); 
+         }
          break;
       case SUMA_SOLID_LINE:
-         glEnable (GL_LINE_SMOOTH);
+         if (!(gllsm = glIsEnabled(GL_LINE_SMOOTH))) glEnable(GL_LINE_SMOOTH);
          if (0) glDepthMask(FALSE); /* Disabling depth masking makes lines 
                               coplanar with polygons
                               render without stitching, bleeding, or Z fighting.
@@ -3377,7 +3473,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
    }
    
    if (SDO->NodeBased == 0) {
-      if (SDO->thickv) {/* slow slow slow */
+      if (SDO->thickv || SDO->stipv) {/* slow slow slow */
          SUMA_LH("Drawing xyz to xyz with thickness ");
          if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol);
          glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
@@ -3387,6 +3483,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
          N_n3 = 3*SDO->N_n;
          while (i < N_n3) {
             if (SDO->thickv) glLineWidth(SDO->thickv[i/3]);   
+            if (SDO->stipv) glLineStipple (SDO->Mstip, SDO->stipv[i/3]); 
             glBegin(GL_LINES);
             if (SDO->colv) 
                glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
@@ -3523,13 +3620,13 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
       SUMA_S_Err("Oh no. Bad logic");
       goto GETOUT;
    }
-   
+      
    switch (SDO->Stipple) {
       case SUMA_DASHED_LINE:
-         glDisable(GL_LINE_STIPPLE);
+         if (!gllst) glDisable(GL_LINE_STIPPLE);
          break;
       case SUMA_SOLID_LINE:
-         glDisable(GL_LINE_SMOOTH);
+         if (!gllsm) glDisable(GL_LINE_SMOOTH);
          break;
    }
    
@@ -3817,7 +3914,9 @@ SUMA_Boolean SUMA_DrawImageNIDOnel( NI_element *nel,
    if ((TexOnGenS = glIsEnabled(GL_TEXTURE_GEN_S)))  glDisable(GL_TEXTURE_GEN_S);
                   
    /* have image, go for it */
-   SUMA_LH(  "Drawing the image.");
+   SUMA_LHv("Drawing the image for %s at raster pos: %f %f %f\n",
+            CHECK_NULL_STR(NI_get_attribute(nel, "filename")), 
+            txloc[0], txloc[1], txloc[2]);
 
    glRasterPos3f( txloc[0], txloc[1], txloc[2]);
    
@@ -3936,7 +4035,7 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
    GLboolean valid;
    GLint viewport[4];
    int orthoreset = 0;
-   int id=0, ii = 0, sz[3]={0, 0, 0}, dt = 0;
+   int id=0, ii = 0, sz[3]={0, 0, 0}, dt = 0, pof=0;
    int N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
    SUMA_SurfaceObject *SOt=NULL;
    static GLuint texName;
@@ -3948,7 +4047,7 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
    SUMA_ENTRY;
    
    if (!nel || strcmp(nel->name,"Tex")) SUMA_RETURN(NOPE);
-   
+      
    if (NI_IS_STR_ATTR_EQUAL(nel,"read_status","fail")) {
       /* can't be read */
       SUMA_RETURN(NOPE);
@@ -3988,7 +4087,8 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
       not one is in ortho mode. See comment below about turning off
       depth test.
                                           ZSS Jan 2012 */ 
-      glDisable (GL_POLYGON_OFFSET_FILL);
+      if ((pof = glIsEnabled(GL_POLYGON_OFFSET_FILL))) 
+                        glDisable (GL_POLYGON_OFFSET_FILL);
    }
    
    
@@ -3997,6 +4097,7 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
    if (target && strcmp(target, "FRAME")==0) {
       SUMA_LH(  "Creating texture, see init pp 359 in \n"
                 "OpenGL programming guide, 3rd ed.");
+      #if 0 /* Not needed anymore, March 2013 */
                           /* Frame texture (afniman.jpg in @DO.examples         
                              had been obscuring meshes no matter where
                              it was placed in the Z direction. Not sure
@@ -4004,7 +4105,8 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
                              a background display, undoing GL_DEPTH_TEST
                              seemed to do the trick. Jan 2012 */
       if ((dt = glIsEnabled(GL_DEPTH_TEST))) glDisable(GL_DEPTH_TEST);
-   
+      #endif
+      
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
       NI_GET_INT(nel,"texName",texName);
       if (!NI_GOT) {
@@ -4028,10 +4130,11 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
                   SUMA_NIDO_TexEnvMode(nel, GL_REPLACE));
          /* GL_DECAL, GL_REPLACE, GL_MODULATE, GL_BLEND */
       glBindTexture(GL_TEXTURE_2D, texName); 
-      SUMA_LHv("Texture as image\n"
+      SUMA_LHv("Texture as image, texName=%d, filename=%s\n"
                    "coords:\n"
                    "%.3f %.3f %.3f\n%.3f %.3f %.3f\n"
                    "%.3f %.3f %.3f\n%.3f %.3f %.3f\n",
+                   texName, CHECK_NULL_STR(NI_get_attribute(nel,"filename")),
                    texcoord[0], texcoord[1], texcoord[2],
                    texcoord[3], texcoord[4], texcoord[5],
                    texcoord[6], texcoord[7], texcoord[8],
@@ -4060,7 +4163,7 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
    if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
       SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    } else {
-      glEnable (GL_POLYGON_OFFSET_FILL); /* April 2011  */
+      if (pof) glEnable (GL_POLYGON_OFFSET_FILL); /* April 2011  */
    }
    
    if (dt) glEnable(GL_DEPTH_TEST); /* Jan 2012 */
@@ -4241,9 +4344,9 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
          SUMA_LHv("initial coords: [%f %f %f]\n",
                   txloc[0], txloc[1], txloc[2]);
          for (id=0; id<3;++id) {
-            if (txloc[id] >= 0.999999) txloc[id] = 0.999999;
+            if (txloc[id] >= 0.999) txloc[id] = 0.999;
                /*else it can get clipped*/
-            else if (txloc[id] <= 0.000001) txloc[id] = 0.000001;
+            else if (txloc[id] <= 0.001) txloc[id] = 0.001;
          }         
          if (!sv->ortho) {/*  for screen-based drawing, 
                               you do not want perspective. But no need to do 
@@ -4285,10 +4388,10 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
             for (id=0; id<N_texcoord; ++id) {
                id3=3*id;
                for (k=0;k<3;++k) {
-                  if       (texcoord[id3+k] > 0.999999) 
-                     texcoord[id3+k] = 0.999999;
-                  else if  (texcoord[id3+k] < 0.000001) 
-                     texcoord[id3+k] = 0.000001;
+                  if       (texcoord[id3+k] > 0.999) 
+                     texcoord[id3+k] = 0.999;
+                  else if  (texcoord[id3+k] < 0.001) 
+                     texcoord[id3+k] = 0.001;
                }
                SUMA_NormScreenToWorld( NULL, 
                                        (double)texcoord[id3  ], 
@@ -4365,10 +4468,13 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
    SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
-
+   
+   SUMA_LHv("Called %p\n", nel);
+   
    if (!nel || strcmp(nel->name,"T")) SUMA_RETURN(NOPE); 
 
    SUMA_LHv(  "default_coord_units %d\n", default_coord_units);
+
    string = NI_get_attribute(nel,"text");  
    if (!string || string[0]=='\0') {
       /* nothing to write */
@@ -6054,17 +6160,18 @@ SUMA_Boolean SUMA_Draw_SO_NIDO (  SUMA_SurfaceObject *SO, SUMA_DO* dov,
 NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
                                           int N_do, SUMA_SurfaceViewer *sv )
 {
-   static char FuncName[]={"SUMA_SO_NIDO_Texture"};
+   static char FuncName[]={"SUMA_SO_NIDO_Node_Texture"};
    int i, ip, sz[2]={0, 0};
    float txloc[4]={0,0,0,0};
    char *target=NULL;
-   NI_element *nel=NULL;
+   NI_element *nel=NULL, *nelo=NULL;
    SUMA_NIDO *SDO = NULL;
    SUMA_SurfaceObject *default_SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
+   nelo=NULL;
    for (i=0; i < N_do; ++i) {
       switch (dov[i].ObjectType) { /* case Object Type */
          case NIDO_type:
@@ -6090,6 +6197,7 @@ NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov,
                         if ( ! strcmp(nel->name,"Tex") ) {
                            if (!target || strncmp(target, "ALL_SURF",8)==0 
                                || SUMA_iswordin(SO->Label,target)) {
+                              nelo = nel;
                               goto SET_TEX; 
                            }
                         }
@@ -6107,7 +6215,7 @@ NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov,
    SET_TEX:
    
 
-   SUMA_RETURN(nel);
+   SUMA_RETURN(nelo);
    
 }
 
@@ -8562,7 +8670,7 @@ int SUMA_AllowPrying(SUMA_SurfaceViewer *sv, int *RegSO)
    static char FuncName[]={"SUMA_AllowPrying"};
    SUMA_SurfaceObject *SO1, *SO2;
    int N_RegSO, LoL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -10116,7 +10224,6 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
       SO->N_Node = SUMA_NI_get_int(nelxyz, "N_Node"); 
       SO->NodeDim = SUMA_NI_get_int(nelxyz, "NodeDim"); 
       SO->EmbedDim = SUMA_NI_get_int(nelxyz, "EmbedDim");
-
       if (nelxyz->vec_num) {
          if (!(SO->NodeList = (float *)SUMA_calloc(SO->NodeDim*SO->N_Node,
                                                   sizeof(float)))) {
@@ -10577,6 +10684,16 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */
+
+SUMA_Boolean SUMA_nixSODim(SUMA_SurfaceObject *SO) 
+{
+   if (!SO) return(NOPE);
+   
+   SO->MaxDims[0] = SO->MaxDims[1] = SO->MaxDims[2] = 0.0;
+   SO->MinDims[0] = SO->MinDims[1] = SO->MinDims[2] = 0.0;
+   SO->aMinDims = SO->aMaxDims == 0.0;
+   return(YUP);
+}
 
 SUMA_Boolean SUMA_isSODimInitialized(SUMA_SurfaceObject *SO) 
 {

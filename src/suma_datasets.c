@@ -14957,6 +14957,29 @@ int SUMA_StringToNumSide(char *s, void *vv, int N, int prec, int *Side)
    SUMA_RETURN(SUMA_StringToNum(s,vv,N,prec));         
 }
 
+SUMA_SO_SIDE SUMA_giiStringToNumSide(char *cc)
+{
+   static char FuncName[]={"SUMA_giiStringToNumSide"};
+   
+   SUMA_ENTRY;
+   
+   if (!cc) SUMA_RETURN(SUMA_NO_SIDE);
+   
+   deblank_name(cc);
+   if ( SUMA_iswordin_ci (cc, "Left")  == 1 &&
+        SUMA_iswordin_ci (cc, "Right") != 1 ) {
+      SUMA_RETURN(SUMA_LEFT);
+   } else if ( SUMA_iswordin_ci (cc, "Right") == 1 &&
+               SUMA_iswordin_ci (cc, "Left")  != 1 ) {
+      SUMA_RETURN(SUMA_RIGHT);
+   } else if (    SUMA_iswordin_ci (cc, "Right") == 1 &&
+                  SUMA_iswordin_ci (cc, "Left")  == 1 ) {
+      SUMA_RETURN(SUMA_LR);
+   }
+   
+   SUMA_RETURN(SUMA_NO_SIDE);         
+}
+
 /*!
    \brief forces a string to be of a certain length.
    If truncation is necessary, ... are inserted at 

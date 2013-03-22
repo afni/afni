@@ -5,6 +5,8 @@
 
 #define SUMA_ADD_COORD_BIAS_VECT(SO, ovr, BiasDim, BiasVect) {   \
    int m_i, m_i3, mx_i3 = 3*SO->N_Node; \
+   \
+   SUMA_VisX_Pointers4Display(SO, 1); \
    switch (BiasDim) {   \
       case SW_CoordBias_X: \
          /* Add X bias */  \
@@ -32,15 +34,19 @@
          for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
             m_i3 = 3*ovr->NodeDef[m_i]; \
             if (m_i3 < mx_i3) {  \
-               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3]; ++m_i3;    \
-               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3]; ++m_i3;    \
-               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3];          \
+               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3];  \
+                                                                     ++m_i3;  \
+               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3];  \
+                                                                     ++m_i3;  \
+               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3];  \
             }  \
          }  \
          break;   \
       default: \
          SUMA_SL_Err("This should not be.\nWhy, oh why ?"); \
    }  \
+   \
+   SUMA_VisX_Pointers4Display(SO, 0); \
 }  \
 
 int SUMA_a_good_col(char *name, int i, float *acol);

@@ -10,10 +10,10 @@ extern int SUMAg_N_DOv;
 See also SUMA_GLUT_volumedemo.c*/
 
 
-#define CHECK_ERROR(str)                                           \
+#define SUMA_CHECK_GL_ERROR(str)                                           \
 {                                                                  \
     GLenum error;                                                  \
-    if((error = glGetError()))                                       \
+    while((error = glGetError()) != GL_NO_ERROR)                   \
        fprintf(stderr,"**************GL Error: %s (%s)\n", \
          gluErrorString(error), str);  \
 }
@@ -850,7 +850,7 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
 
    
    /* Now we need to draw the sucker */
-   CHECK_ERROR("OpenGL Error pre texture");
+   SUMA_CHECK_GL_ERROR("OpenGL Error pre texture");
    glEnable(GL_TEXTURE_3D);
 
    /* enable clipping planes. */
@@ -896,7 +896,7 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
          SUMA_GL_MAT_SHOW(GL_TEXTURE_MATRIX,"Tx PreSetup\n");
          SUMA_GL_MAT_SHOW(GL_MODELVIEW_MATRIX,"MV PreSetup\n");
       }
-      CHECK_ERROR("OpenGL Error pre setup");
+      SUMA_CHECK_GL_ERROR("OpenGL Error pre setup");
 
       /* The modelview matrix for drawing the quad vertices should remain the 
       same, the texture matrix will reflect object rotations.
@@ -989,7 +989,7 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
          SUMA_GL_MAT_SHOW(GL_MODELVIEW_MATRIX,"MV PreDraw\n");
       }
 
-      CHECK_ERROR("OpenGL Error pre draw");
+      SUMA_CHECK_GL_ERROR("OpenGL Error pre draw");
       #if 1
       /* slice by slice drawing, doing the deed by hand*/
       for(i = 0; i < DSET_NZ(VO->VE[ive]->dset); i++) {
@@ -1034,7 +1034,7 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
       glDisable(GL_TEXTURE_GEN_T);
       glDisable(GL_TEXTURE_GEN_R);
       #endif
-       CHECK_ERROR("OpenGL Error ddd");
+       SUMA_CHECK_GL_ERROR("OpenGL Error ddd");
 
       glMatrixMode(GL_TEXTURE); glPopMatrix(); /* pop matrix of GL_TEXTURE */
       glMatrixMode(GL_MODELVIEW);  glPopMatrix();/* and Modelview*/

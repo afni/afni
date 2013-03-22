@@ -1240,36 +1240,41 @@ image.corr.1D.eng <- function(P) {
    return(P$dev.this)
 }
 
-make.col.map <- function (fids=NULL, ncols=32, hex=FALSE) {
-   if (is.null(fids)) {
+make.col.map <- function (fids=NULL, ncols=32, hex=FALSE, stdmap=NULL) {
+   if (!is.null(stdmap)) {
+      sys.AFNI(com=paste('MakeColorMap -std ', stdmap),
+               fout=paste(stdmap,'.1D.cmap.R', sep=''), echo=FALSE);
+      m <- read.AFNI.matrix(paste(stdmap,'.1D.cmap.R', sep=''));
+      sys.AFNI(com=paste('\\rm -f ',paste(stdmap,'.1D.cmap.R', sep='')));
+   } else if (is.null(fids)) {
       fids <- matrix(0,3,3)
       for(i in 1:3) fids[i,i]<-1
-   }
-   rr <- ncols%%(nrow(fids)-1)
-   nc <- ncols/(nrow(fids)-1)
-   if (rr) {
-      err.AFNI(paste("Can't create colormap of ", ncols, "colors from ",
-                        nrow(fids), "fiducials. I suggest you use ", 
-                        ncols-rr, "or " , ceiling(nc)*(nrow(fids)-1),
-                        "colors instead"))
-      return(NULL);
-   }
-   m <- matrix(0,ncols,3)
-   for (j in 1:3) {
-      r <- vector()
-      for (i in 1:(nrow(fids)-1)) {
-         nc <- ncols/(nrow(fids)-1)
-         fr <- fids[i,j]
-         ft <- fids[i+1,j]
-         bb <- (ft-fr)/nc
-         if (bb != 0) {
-            r <- c(r,seq(from=fr,to=ft, by = bb))
-         } else {
-            r <- c(r,rep(fr, nc)) 
-         }
+      rr <- ncols%%(nrow(fids)-1)
+      nc <- ncols/(nrow(fids)-1)
+      if (rr) {
+         err.AFNI(paste("Can't create colormap of ", ncols, "colors from ",
+                           nrow(fids), "fiducials. I suggest you use ", 
+                           ncols-rr, "or " , ceiling(nc)*(nrow(fids)-1),
+                           "colors instead"))
+         return(NULL);
       }
-      #browser()
-      m[,j] <- r[ncols:1]
+      m <- matrix(0,ncols,3)
+      for (j in 1:3) {
+         r <- vector()
+         for (i in 1:(nrow(fids)-1)) {
+            nc <- ncols/(nrow(fids)-1)
+            fr <- fids[i,j]
+            ft <- fids[i+1,j]
+            bb <- (ft-fr)/nc
+            if (bb != 0) {
+               r <- c(r,seq(from=fr,to=ft, by = bb))
+            } else {
+               r <- c(r,rep(fr, nc)) 
+            }
+         }
+         #browser()
+         m[,j] <- r[ncols:1]
+      }
    }
    if (hex) m <- rgb(m)
    return(m)
