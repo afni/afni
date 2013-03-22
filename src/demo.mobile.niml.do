@@ -36,3 +36,9 @@ style = 'silhouette'
 stacks = '20'
 slices = '20'
 />
+<Tex
+mix_mode = "decal"
+coord_gen = "sphere"
+target = "ALL_SURFS"
+filename = "funstuff/face_daveperlman.jpg"
+/>

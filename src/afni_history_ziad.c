@@ -65,6 +65,35 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 22, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Added stippling for line segments DOs, see SUMA's ctrl+h for details.",
+   NULL
+ },
+ 
+ { 20, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Texture demos in DriveSuma were failing.",
+   "Problem was a combination of coordinate clipping when frame coords\n"
+   "were at 0 or 1. That is now fixed. Also, demo.*do files needed changing\n"
+   "to move texture on surface into mobile.niml.do\n"
+   "Depth test is no longer disabled with textures.\n"
+ },
+ 
+ { 20, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Text was not appearing at times. Bug was in SUMA_SO_NIDO_Node_Texture()",
+   NULL
+ },
+ 
+ { 19, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Prying was off for new GIFTI standard-mesh surfaces.",
+   "Bug was caused by a failure to identify LR sides of GIFTI\n"
+   "surfaces. SUMA was not preserving the side of a GIFTI surface\n"
+   "at write time in SUMA_GIFTI_Write(). Code was also modified\n"
+   "to guess the side of pre-existing GIFTI surfaces.\n"
+   "Prying was also off when a transform was found in the header\n"
+   "of the surface volume because dimensions were not being recomputed\n"
+   "after applying the VolPar transform. That is now fixed.\n"
+ },
+
  { 14, Mar , 2013 , ZSS , "SurfToSurf" , MINOR , TYPE_NEW_OPT,
    "NearestNodeCoords was added to -output_params",
    NULL

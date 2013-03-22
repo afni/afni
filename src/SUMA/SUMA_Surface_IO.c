@@ -4568,6 +4568,21 @@ SUMA_Boolean SUMA_GIFTI_Write (  char *fileNm, SUMA_SurfaceObject *SO,
       SUMA_S_Crit("Unexpected non NULL coords pointer!");
       SUMA_RETURN(NOPE);
    }
+   switch (SO->Side) {
+      case SUMA_LEFT:
+         NI_set_attribute(nel,"AnatomicalStructurePrimary", "CortexLeft");
+         break;
+      case SUMA_RIGHT:
+         NI_set_attribute(nel,"AnatomicalStructurePrimary", "CortexRight");
+         break;
+      case SUMA_LR:
+         NI_set_attribute(nel,"AnatomicalStructurePrimary","CortexRightAndLeft");
+         break;
+      case SUMA_SIDE_ERROR:
+      case SUMA_NO_SIDE:
+         break;
+   }
+   
    /* Now put the Nodelist in the element.
       No pointer tricks here, keep niml separate */
    

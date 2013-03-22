@@ -1681,6 +1681,7 @@ int SUMA_NumStringUnits (char *s, int marktip);
 int SUMA_strtod(char *n, double *valp);
 int SUMA_StringToNum (char *s, void *vv, int N, int p);
 int SUMA_StringToNumSide (char *s, void *vv, int N, int p, int *sd);
+SUMA_SO_SIDE SUMA_giiStringToNumSide(char *cc);
 int SUMA_isNumString (char *s, void *p);
 int SUMA_CleanNumString (char *s, void *p);
 int SUMA_CleanNumStringSide (char *s, void *p);

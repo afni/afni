@@ -4639,15 +4639,20 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
             cc = SUMA_NI_AttrOfNamedElement( SO->aSO, 
                                              "Node_XYZ",
                                              "AnatomicalStructurePrimary");
-            if ( SUMA_iswordin_ci (cc, "Left")  == 1 &&
-                 SUMA_iswordin_ci (cc, "Right") != 1 ) {
-               SUMA_RETURN(SUMA_LEFT);
-            } else if ( SUMA_iswordin_ci (cc, "Right") == 1 &&
-                        SUMA_iswordin_ci (cc, "Left")  != 1 ) {
-               SUMA_RETURN(SUMA_RIGHT);
-            } else if (    SUMA_iswordin_ci (cc, "Right") == 1 &&
-                           SUMA_iswordin_ci (cc, "Left")  == 1 ) {
-               SUMA_RETURN(SUMA_LR);
+            if (!cc || !strcmp(cc,"Unknown")) {
+               if (SUMA_iswordin (SO->Name.FileName, "lh") == 1 ) {
+                  SUMA_RETURN(SUMA_LEFT);
+               } else if (SUMA_iswordin (SO->Name.FileName, "rh") == 1 ) {
+                  SUMA_RETURN(SUMA_RIGHT);
+               } else if (SUMA_iswordin (SO->Name_coord.FileName, "lh") == 1 ) {
+                  SUMA_RETURN(SUMA_LEFT);
+               } else if (SUMA_iswordin (SO->Name_coord.FileName, "rh") == 1 ) {
+                  SUMA_RETURN(SUMA_RIGHT);
+               } else {
+                  SUMA_RETURN (SUMA_NO_SIDE);
+               }
+            } else {
+               SUMA_RETURN(SUMA_giiStringToNumSide(cc));
             }
          } else {
             SUMA_RETURN(SUMA_NO_SIDE);

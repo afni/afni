@@ -1026,6 +1026,9 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
       SUMA_RETURN (NOPE);
    }
 
+   SUMA_nixSODim(SO); /* Dims need recomputing, this might be overkill if
+                         nothing was done above */
+   SUMA_SetSODims(SO);
    SUMA_RETURN (YUP);
 }
 
@@ -1166,13 +1169,16 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
    }
    
    #if 0
-   /* I don't thin the inverse of that step will be needed .... */
+   /* I don't think the inverse of that step will be needed .... */
    if (!SUMA_Apply_VolReg_Trans (SO)) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Apply_VolReg_Trans.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
    #endif
 
+   SUMA_nixSODim(SO); /* Dims need recomputing, this might be overkill if
+                         nothing was done above */
+   SUMA_SetSODims(SO);
    SUMA_RETURN (YUP);
 }
 
