@@ -692,6 +692,7 @@ void MRG_Syntax(void)
     "                  the responsibility of the user to verify that these \n"
     "                  are appropriate.  Note that sub-brick auxiliary data \n"
     "                  can be modified using program 3drefit. \n"
+    "  -quiet      = Reduce the number of messages shown\n"
     "\n"
     "  -1dindex j  = Uses sub-brick #j as the data source , and uses sub-brick\n"
     "  -1tindex k  = #k as the threshold source.  With these, you can operate\n"
