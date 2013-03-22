@@ -4496,16 +4496,29 @@ typedef struct FD_brick {
    float del2 ;         /*!< voxel dimensions */
    float del3 ;         /*!< voxel dimensions */
 
-   THD_3dim_dataset * dset ;    /*!< pointer to parent dataset */
+   THD_3dim_dataset *dset ;     /*!< pointer to parent dataset */
    int resam_code ;             /*!< how to resample normal sub-bricks */
    int thr_resam_code ;         /*!< how to resample statistical sub-bricks */
    int deltival ;               /*!< how much to shift the sub-brick index */
 
    char namecode[32] ;          /*!< June 1997 */
 
+   int       ntmask ;           /*!< Mar 2013 */
+   MRI_IMAGE *tmask ;           /*!< Mar 2013 */
+
    XtPointer parent ;           /*!< struct owner */
    XtPointer brother;
 } FD_brick ;
+
+#define TMASK_INDEX(fdb) ((fdb)->ntmask)
+
+#define CLEAR_TMASK(fdb)                                        \
+ do{ if( fdb != NULL ){                                         \
+       mri_free(fdb->tmask); fdb->tmask=NULL; fdb->ntmask=-666; \
+ } } while(0)
+
+#define DESTROY_FD_BRICK(fdb) \
+ do{ if( fdb != NULL ){ mri_free(fdb->tmask); myXtFree(fdb); } } while(0)
 
 /*! rotate the three numbers (a,b,c) to (b,c,a) into (na,nb,nc) */
 

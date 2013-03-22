@@ -77,6 +77,7 @@ ENTRY("new_MCW_grapher") ;
 
    grapher->tschosen        = 0 ;  /* 31 Mar 2004 */
    grapher->detrend         = -1;  /* 05 Dec 2012 */
+   grapher->thresh_fade     = 0 ;  /* Mar 2013 */
 
    grapher->gx_max = 0 ;
    grapher->gy_max = 0 ;
@@ -1050,11 +1051,11 @@ MRI_IMAGE * GRA_getseries( MCW_grapher *grapher , int index )
        case 'i':
        case 'I':  qim = mri_complex_imag(tsim) ; break ;
      }
-     mri_free(tsim) ; tsim = qim ;
+     qim->flags = tsim->flags ; mri_free(tsim) ; tsim = qim ;
 
    } else if( tsim->kind != MRI_float ){
      MRI_IMAGE *qim = mri_to_float(tsim) ;
-     mri_free(tsim) ; tsim = qim ;
+     qim->flags = tsim->flags ; mri_free(tsim) ; tsim = qim ;
    }
 
    return tsim ;
@@ -1193,14 +1194,36 @@ ENTRY("erase_fdw") ;
 }
 
 /*-----------------------------------------------------*/
+
+void rectangle_fdX( MCW_grapher *grapher, int xb,int yb, int xw,int yw, int clr )
+{
+ENTRY("rectangle_fdX") ;
+
+   if( grapher->dont_redraw ) EXRETURN ;
+
+   if( xw <= 0 || yw <= 0 ) EXRETURN ;
+
+   if( xb < 0 ) xb = 0 ;
+   if( yb < 0 ) yb = 0 ;
+   yb = grapher->fHIGH - yb - yw ;
+
+   DC_fg_color ( grapher->dc , clr ) ;
+
+   XFillRectangle( grapher->dc->display ,
+                   grapher->fd_pxWind , grapher->dc->myGC , xb,yb , xw,yw ) ;
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------*/
    /* It plots line to point (x,y) for mod = 1 */
    /* or moves to this point for mod = 0.      */
    /* All into the fd_pxWind.                  */
 /*-----------------------------------------------------*/
 
-void plot_fdX( MCW_grapher * grapher , int x , int y , int mod )
+void plot_fdX( MCW_grapher *grapher , int x , int y , int mod )
 {
-   int iy = grapher->fHIGH - y;
+   int iy = grapher->fHIGH - y ;
 
    if( mod > 0 )
      XDrawLine( grapher->dc->display ,
@@ -1920,6 +1943,8 @@ void plot_graphs( MCW_grapher *grapher , int code )
 #define OVI_MAX 19
    int tt, use_ovi, ovi[OVI_MAX] ;  /* 29 Mar 2002: for multi-plots */
 
+   int fade_color=19 ;
+
 ENTRY("plot_graphs") ;
    if( grapher->dont_redraw ) EXRETURN ;  /* 27 Jan 2004 */
 
@@ -2308,6 +2333,24 @@ STATUS("finding common base") ;
      }
    } else if( grapher->common_base == BASELINE_GLOBAL ){ /* 07 Aug 2001 */
      tsbot = grapher->global_base ;
+   }
+
+   /* do something to mark infra-threshold voxels [Mar 2013] */
+
+   if( grapher->thresh_fade ){
+     for( ix=0,its=0 ; ix < grapher->mat ; ix++ ){
+       for( iy=0 ; iy < grapher->mat ; iy++,its++ ){
+         tsim = IMARR_SUBIMAGE(tsimar,its) ;
+         if( tsim == NULL || tsim->flags == 0 ){
+           rectangle_fdX( grapher ,
+                          grapher->xorigin[ix][iy]+1 , grapher->yorigin[ix][iy]+1 ,
+                          grapher->gx-2              , grapher->gy-2 ,
+                          fade_color ) ;
+         }
+       }
+     }
+     DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;  /* must reset */
+     DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
    }
 
    /**** loop over matrix of graphs and plot them all to the pixmap ****/
@@ -3693,6 +3736,11 @@ STATUS(str); }
         } else {
           BEEPIT ; WARNING_message("Can't video current graph window") ;
         }
+      break ;
+
+      case 'F':
+        grapher->thresh_fade = !grapher->thresh_fade ;
+        redraw_graph( grapher , 0 ) ;
       break ;
 
       case 'z':  /* change slice */

@@ -20,8 +20,8 @@
 FD_brick ** THD_setup_bricks( THD_3dim_dataset * dset )
 {
    int r2l=0 , a2p=0 , i2s=0 ;
-   THD_dataxes * daxes ;
-   FD_brick ** br ;
+   THD_dataxes *daxes ;
+   FD_brick **br ;
 
    if( ! ISVALID_3DIM_DATASET(dset) ) return NULL ;
 
@@ -191,11 +191,11 @@ ENTRY("THD_oriented_brick") ;
    a return of NULL means something bad happened
 ------------------------------------------------------------------------*/
 
-FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset * dset ,
+FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset *dset ,
                                       int ax_1, int ax_2, int ax_3 )
 {
-   FD_brick      * br ;    /* will be output */
-   THD_dataxes   * daxes ; /* connection to actual axes */
+   FD_brick      *br ;    /* will be output */
+   THD_dataxes   *daxes ; /* connection to actual axes */
 
    int   xyz_dim[4] , xyz_stp[4] , xyz_dir[4] ;
    float xyz_del[4] , xyz_org[4] ;
@@ -288,6 +288,9 @@ FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset * dset ,
    br->del3 = fabs(xyz_del[aax_3]) ;
 
    br->namecode[0] = '\0' ;
+
+   br->tmask  = NULL ;
+   br->ntmask = -666 ;
 
    return br ;
 }

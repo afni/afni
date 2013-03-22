@@ -449,6 +449,7 @@ typedef struct MRI_IMAGE {
 
          int was_swapped ; /* 07 Mar 2002 */
          int vdim ;        /* 28 Nov 2008 */
+         int flags ;       /* 21 Mar 2013 */
 } MRI_IMAGE ;
 
 #ifdef USE_MRI_LABELS

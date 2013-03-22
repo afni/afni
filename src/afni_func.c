@@ -31,8 +31,9 @@ ENTRY("AFNI_see_func_CB") ;
    new_val = MCW_val_bbox( im3d->vwid->view->see_func_bbox ) ;
 
    if( old_val != new_val ){
+     IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
      im3d->vinfo->func_visible = (new_val == 1) ? True : False ;
-     if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){             /* 29 Apr 1997 */
+     if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){            /* 29 Apr 1997 */
        im3d->vinfo->func_visible = False ;
        MCW_set_bbox( im3d->vwid->view->see_func_bbox , 0 ) ; /* 29 Jan 1999 */
      }
@@ -129,6 +130,7 @@ ENTRY("AFNI_func_thrsign_CB") ;
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    im3d->vinfo->thr_sign = av->ival ;
+   IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    AFNI_redisplay_func( im3d ) ;
    AFNI_set_window_titles( im3d ) ;
    EXRETURN ;
@@ -170,6 +172,7 @@ ENTRY("AFNI_set_threshold") ;
         if( ival < 0    ) ival = 0    ;
    else if( ival > stop ) ival = stop ;
 
+   IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
    AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
    FIX_SCALE_SIZE(im3d) ;
@@ -210,6 +213,7 @@ ENTRY("AFNI_thr_scale_CB") ;
 
    MCW_discard_events_all( w , ButtonPressMask ) ;  /* 20 Mar 2007 */
 
+   IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    if( ! DOING_REALTIME_WORK ) AFNI_redisplay_func( im3d ) ;
 
    AFNI_thresh_lock_carryout(im3d) ;  /* 06 Feb 2004 */
@@ -267,6 +271,7 @@ ENTRY("AFNI_set_thresh_top") ;
 
    im3d->vinfo->func_thresh_top = tval ;
 
+   IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    FIX_SCALE_VALUE(im3d) ;
    FIX_SCALE_SIZE(im3d) ;   /* 09 May 2001 */
    AFNI_set_thr_pval( im3d ) ;
@@ -320,13 +325,13 @@ ENTRY("AFNI_thresh_top_CB") ;
   Used to set the pval (significance) label at the bottom of the
   threshold scale.
 -------------------------------------------------------------------------*/
-float  AFNI_thresh_from_percentile( Three_D_View *im3d, float perc) 
+float  AFNI_thresh_from_percentile( Three_D_View *im3d, float perc)
 {
    float *fv, thresh=0.0;
    int ithr;
 
    if (!(fv = get_3Dview_sort(im3d, "T"))) return(perc);
-      
+
    ithr = (int)(perc*(float)(im3d->vinfo->N_th_sort-1)+0.5);
    if (ithr < 0) {
       thresh = fv[0]-1.0;
@@ -335,7 +340,7 @@ float  AFNI_thresh_from_percentile( Three_D_View *im3d, float perc)
    } else {
       thresh = fv[ithr];
    }
-   
+
    #if 0
    INFO_message(  "Top val %f, bottom val %f\n"
                   "Sorting on set of %d voxels out of %d voxels in grid.\n"
@@ -361,7 +366,7 @@ ENTRY("AFNI_set_thr_pval") ;
 
 
    thresh = get_3Dview_func_thresh(im3d,1);
-   
+
    /* get the p-value that goes with this threshold, for this functional dataset */
 
    pval = THD_stat_to_pval( thresh ,
@@ -500,6 +505,7 @@ ENTRY("AFNI_inten_pbar_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
+   IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
 
    AFNI_hintize_pbar( pbar ,
@@ -671,6 +677,7 @@ void AFNI_inten_av_CB( MCW_arrowval *av , XtPointer cd )
 
    if( !IM3D_OPEN(im3d) ) return ;
 
+   IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    HIDE_SCALE(im3d) ;
    if( av->ival > NPANE_MAX ){
      int npane=pbar->num_panes , jm=pbar->mode ;
@@ -1262,7 +1269,7 @@ MRI_IMAGE * AFNI_func_overlay( int n , FD_brick *br_fim )
    float scale_factor , scale_thr ;
    MCW_pbar *pbar ;
    int simult_thr , need_thr ;
-   int thrsign ; /* 08 Aug 2007 */
+   int thrsign ;  /* 08 Aug 2007 */
 
 ENTRY("AFNI_func_overlay") ;
 
@@ -1437,8 +1444,8 @@ if( PRINT_TRACING && im_thr != NULL )
   sprintf(str,"maxabs(im_thr)=%g scale_thr=%g thresh=%g",tmax,scale_thr,thresh);
   STATUS(str) ;
   sprintf(str,"func_threshold=%g func_thresh_top=%g cont_perc_thr=%d",
-          im3d->vinfo->func_threshold,im3d->vinfo->func_thresh_top, 
-          im3d->cont_perc_thr); 
+          im3d->vinfo->func_threshold,im3d->vinfo->func_thresh_top,
+          im3d->cont_perc_thr);
   STATUS(str);
 }
 
@@ -1985,6 +1992,7 @@ ENTRY("AFNI_resam_av_CB") ;
    }
 
    SHOW_AFNI_PAUSE ;
+   IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    im3d->vinfo->tempflag = 1 ;
    AFNI_modify_viewing( im3d , False ) ;  /* redisplay */
    SHOW_AFNI_READY ;
@@ -2137,6 +2145,7 @@ STATUS("defaulted anatomy underlay") ;
    if( seq_exist ){
 
       im3d->ignore_seq_callbacks = AFNI_IGNORE_EVERYTHING ;
+      IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
 
       if( im3d->s123 != NULL )
          drive_MCW_imseq( im3d->s123 , isqDR_newseq ,
@@ -2633,6 +2642,8 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    old_anat = im3d->vinfo->anat_num ;
    old_func = im3d->vinfo->func_num ;
    old_view = im3d->vinfo->view_type ;
+
+   IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
 
    /*--- switch sessions ---*/
 
@@ -5451,10 +5462,9 @@ ENTRY("AFNI_perc_bbox_CB") ;
 
    im3d->cont_perc_thr = MCW_val_bbox(im3d->vwid->func->perc_bbox);
    flush_3Dview_sort(im3d, "T");
-      
-   AFNI_redisplay_func( im3d ) ;
 
-   AFNI_thresh_lock_carryout(im3d) ;  
+   AFNI_redisplay_func( im3d ) ;
+   AFNI_thresh_lock_carryout(im3d) ;
 
    EXRETURN ;
 }
@@ -5607,6 +5617,8 @@ void AFNI_bucket_CB( MCW_arrowval *av , XtPointer cd )
 ENTRY("AFNI_bucket_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
 
    /** Anat sub-brick [29 Jul 2003: lock to time_index controller as well] **/
 
