@@ -2133,6 +2133,20 @@ SUMA_COLOR_MAP *SUMA_CmapOfPlane (SUMA_OVERLAYS *Sover )
    The last two operations should be carried out once the bias is removed from all surfaces
    to which they'd been applied. In this case it will be in SUMA_RemoveCoordBias
    This function should not be called directly, only from SUMA_RemoveCoordBias
+
+ WARNING: All CoordBias should now be done via the VisX transform. There you 
+ should have the potential for stringing together multiple xforms, a list 
+ perhaps, where you can have explicit warps, as well as affine one that 
+ get applied and reversed in series.
+ 
+ Applying and remove CoordBias would involve modifying the VisX content then
+ recomputing needed coords and applying flags to indicate VisX mode.
+ For now, this is broken
+ 
+ SW_CoordBias_N cannot rely on existing SO->NodeNormList because this one
+ gets recomputed for changing VisX, so you should always recompute the normals
+ from the original NodeList before you add or subtract a bias.
+
 */
 SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
 {
@@ -2145,6 +2159,8 @@ SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
       SUMA_SL_Err("Dim dim diM");
       SUMA_RETURN(NOPE);    
    }
+   
+   SUMA_VisX_Pointers4Display(SO, 1);
    x_i3 = 3*SO->N_Node;
    if (ovr->OptScl->BiasVect) { /* something to be removed */
       switch (ovr->OptScl->DoBias) {
@@ -2192,9 +2208,12 @@ SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
       SUMA_RETURN(NOPE);
    }
 
+   
    /* Update surface geometry properties */
    SUMA_NewSurfaceGeometry(SO);
 
+   SUMA_VisX_Pointers4Display(SO, 0);
+   
    SUMA_RETURN(YUP);
 }
 

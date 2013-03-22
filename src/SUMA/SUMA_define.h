@@ -1649,6 +1649,9 @@ typedef struct {
    GLfloat *thickv; /*!< Vector of segment thincknesses, 
                          1 elements per segment. NULL if using LineWidth */
    SUMA_STIPPLE Stipple; /*!< dashed or solid line */
+   GLushort *stipv;  /* stippling pattern for each seg. */
+   int Mstip;
+   GLushort stip;    /* common stippling pattern */
 }SUMA_SegmentDO;
 
 typedef struct {

@@ -213,6 +213,7 @@ SUMA_SurfaceObject *SUMA_head_01_surface(void);
 NI_group *SUMA_SDO2niSDO(SUMA_SegmentDO *SDO);
 SUMA_SegmentDO *SUMA_niSDO2SDO(NI_group *ngr); 
 SUMA_Boolean SUMA_isSODimInitialized(SUMA_SurfaceObject *SO) ;
+SUMA_Boolean SUMA_nixSODim(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_SetSODims(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_MinMaxNodesInROI (SUMA_DRAWN_ROI *D_ROI, 
                                     int MinMax[]);

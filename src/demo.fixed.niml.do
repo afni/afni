@@ -68,12 +68,6 @@ node = '0'
 text = "Attached to node 0's initial position"
 />
 <Tex
-mix_mode = "decal"
-coord_gen = "sphere"
-target = "ALL_SURFS"
-filename = "funstuff/face_daveperlman.jpg"
-/>
-<Tex
 target = "FRAME"
 frame_coords = "
 0.0 0.0 1

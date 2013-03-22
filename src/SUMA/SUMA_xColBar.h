@@ -767,11 +767,15 @@ SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_SurfaceObject *SO, char *str);
    "Int: Interpolate linearly between\n"   \
    "     colors in colormap\n"   \
    "NN : Use the nearest color in the\n"   \
-   "     colormap. \n"   \
+   "     colormap. The index into the colormap\n"\
+   "     of Ncol colors is given by:\n"\
+   "     icol=floor((V-Vmin)/Vrange * Ncol)\n"   \
+   "     with icol clipped to the range 0 to Ncol-1\n"   \
    "Dir: Use intensity values as indices\n"   \
    "     into the colormap.\n"   \
    "     In Dir mode, the intensity \n"   \
-   "     clipping range is of no use."
+   "     clipping range is of no use.\n" \
+   "     icol=floor(V) with clipping to the range 0 to Ncol-1"
 
 #define SUMA_SurfContHelp_Link \
    "Switch between I, T selectors linking modes.\n"   \

@@ -17,7 +17,7 @@ Make sure no current SUMA is running, then press OK'`
 
 #Launch suma -niml in a new terminal, just to keep terminal clean
 xterm -name SUMA -geometry 80x30+10+450 -bg black -fg white   \
--e 'suma -niml' &
+-e 'suma -dev -niml' &
 
 set l = `prompt_user -pause "Hit enter when SUMA is up and running"`
         if ( $l == '0') goto STEND
@@ -53,8 +53,8 @@ set l = `prompt_user -pause "Hit enter for node-based oriented segments"`
 set pr = '__onbs'
 rm -f $pr.1D.do
 echo "#node-based_oriented_segments" >> $pr.1D.do
-echo "313 160    1 0 0 1" >> $pr.1D.do
-echo "314 331    1 1 0 1" >> $pr.1D.do
+echo "313 160    1 0 0 1 1 3" >> $pr.1D.do
+echo "314 331    1 1 0 1 5 4" >> $pr.1D.do
 DriveSuma   -echo_edu   \
                -com viewer_cont -load_do $pr.1D.do 
 
@@ -76,8 +76,8 @@ set l = `prompt_user -pause "Hit enter for coordinate-based segments"`
 set pr = '__os'
 rm -f $pr.1D.do
 echo "#oriented_segments" >> $pr.1D.do
-echo "230.3 261.1 210.9  240 220.8 198.5  0 1 1 1" >> $pr.1D.do
-echo "240.1 280.2 185.23   240.9 250.1 180     0 1 0 1" >> $pr.1D.do
+echo "230.3 261.1 210.9  240 220.8 198.5  0 1 1 1 2 1" >> $pr.1D.do
+echo "240.1 280.2 185.23   240.9 250.1 180     0 1 0 1 1 3" >> $pr.1D.do
 DriveSuma   -echo_edu   \
                -com viewer_cont -load_do $pr.1D.do 
 
