@@ -101,6 +101,8 @@
 #  define USE_TRACING
 #endif
 
+#undef IMAGEIZE_CROSSHAIRS  /* disable crosshairs drawn into overlay pixels */
+
 /*----------------------------------------------------------------
    Global variables that used to be local variables in main()
 ------------------------------------------------------------------*/
@@ -2792,8 +2794,39 @@ if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(s
    }
 
    if( type == graCR_getseries ){
-      im = FD_brick_to_series( n , br ) ;
-      RETURN( (XtPointer) im ) ;
+      Three_D_View *im3d = (Three_D_View *)br->parent ;
+      MCW_grapher *grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
+
+      im = FD_brick_to_series( n , br ) ; im->flags = 1 ;
+
+      if( grapher->thresh_fade && im3d->vinfo->func_visible ){  /* Mar 2013 */
+        int nsl = n / (br->n1 * br->n2) ;
+#if 0
+INFO_message("thresh_fade: nsl=%d",nsl) ;
+#endif
+        if( br->ntmask != nsl ){
+          FD_brick *br_fim = UNDERLAY_TO_OVERLAY(im3d,br) ;
+          MRI_IMAGE *fov = AFNI_func_overlay(nsl,br_fim) ;
+          CLEAR_TMASK(br) ;
+#if 0
+ININFO_message("  get new tmask") ;
+#endif
+          if( fov != NULL ){
+            br->tmask  = ISQ_binarize_overlay(fov) ;
+            br->ntmask = nsl ; mri_free(fov) ;
+          }
+        }
+        if( br->tmask != NULL ){
+          byte *tar = MRI_BYTE_PTR(br->tmask) ;
+          int ij = n % (br->n1 * br->n2) ;
+          im->flags = (int)tar[ij] ;
+#if 0
+ININFO_message("  set flags = %d",im->flags) ;
+#endif
+        }
+      }
+
+      RETURN( (XtPointer)im ) ;
    }
 
    /*----------------------------------------*/
@@ -2852,7 +2885,11 @@ STATUS("get status") ;
    if( type == isqCR_getmemplot ){
      Three_D_View *im3d = (Three_D_View *)br->parent ;
      THD_3dim_dataset *udset = im3d->anat_now ; /* 07 Jan 2008 */
+#ifdef IMAGEIZE_CROSSHAIRS  /* disable crosshairs drawn into overlay pixels */
      int do_xhar=(im3d->vinfo->crosshair_visible && AFNI_yesenv("AFNI_CROSSHAIR_LINES"));
+#else
+     int do_xhar=(im3d->vinfo->crosshair_visible) ;
+#endif
      int do_surf;
      MEM_plotdata *mp ;
      AFNI_surface_widgets *swid = im3d->vwid->view->swid ;  /* 19 Aug 2002 */
@@ -5513,13 +5550,13 @@ ENTRY("AFNI_closedown_3dview") ;
 
    /* erase FD bricks */
 
-   myXtFree(im3d->b123_anat) ;
-   myXtFree(im3d->b231_anat) ;
-   myXtFree(im3d->b312_anat) ;
+   DESTROY_FD_BRICK(im3d->b123_anat) ;
+   DESTROY_FD_BRICK(im3d->b231_anat) ;
+   DESTROY_FD_BRICK(im3d->b312_anat) ;
 
-   myXtFree(im3d->b123_fim)  ;
-   myXtFree(im3d->b231_fim)  ;
-   myXtFree(im3d->b312_fim)  ;
+   DESTROY_FD_BRICK(im3d->b123_fim)  ;
+   DESTROY_FD_BRICK(im3d->b231_fim)  ;
+   DESTROY_FD_BRICK(im3d->b312_fim)  ;
 
    im3d->b123_ulay = im3d->b231_ulay = im3d->b312_ulay = NULL ;
 
@@ -6610,7 +6647,8 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
 
       if( im3d->g123 != NULL && !doflash &&
-          ( im3d->g123->never_drawn || redisplay_option == REDISPLAY_ALL || new_xyz ) )
+          ( im3d->g123->never_drawn || redisplay_option == REDISPLAY_ALL ||
+            new_xyz                 || im3d->g123->thresh_fade             ) )
          drive_MCW_grapher( im3d->g123 , graDR_redraw , (XtPointer) xyzm ) ;
    }
 
@@ -6634,7 +6672,8 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
 
       if( im3d->g231 != NULL && !doflash &&
-          ( im3d->g231->never_drawn || redisplay_option == REDISPLAY_ALL || new_xyz ) )
+          ( im3d->g231->never_drawn || redisplay_option == REDISPLAY_ALL ||
+            new_xyz                 || im3d->g231->thresh_fade             ) )
          drive_MCW_grapher( im3d->g231 , graDR_redraw , (XtPointer) xyzm ) ;
    }
 
@@ -6658,7 +6697,8 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
 
       if( im3d->g312 != NULL && !doflash &&
-          ( im3d->g312->never_drawn || redisplay_option == REDISPLAY_ALL || new_xyz ) )
+          ( im3d->g312->never_drawn || redisplay_option == REDISPLAY_ALL ||
+            new_xyz                 || im3d->g312->thresh_fade             ) )
          drive_MCW_grapher( im3d->g312 , graDR_redraw , (XtPointer) xyzm ) ;
    }
 
@@ -6705,10 +6745,10 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 }
 #undef EXRR
 
-/*-------------------------------------------------------------------------
+/*----------------------------------------------------------------------------
    get the n-th overlay as an MRI_IMAGE *
-   (return NULL if none;  note that the result must be mri_freed by the user)
----------------------------------------------------------------------------*/
+   (return NULL if none;  the result must be mri_free-d by the user)
+------------------------------------------------------------------------------*/
 
 MRI_IMAGE * AFNI_overlay( int n , FD_brick *br )
 {
@@ -6720,7 +6760,7 @@ MRI_IMAGE * AFNI_overlay( int n , FD_brick *br )
    THD_ivec3 ib ;
    THD_3dim_dataset *dset ;
    FD_brick *br_fim ;
-   int do_xhar ;              /* 22 Mar 2002 */
+   int do_xhar=0 ;            /* 22 Mar 2002 */
    MRI_IMAGE *rgbov = NULL ;  /* 30 Jan 2003 */
 
 ENTRY("AFNI_overlay") ;
@@ -6729,7 +6769,9 @@ ENTRY("AFNI_overlay") ;
 
    /*--- check if crosshairs, markers, or functions are visible ---*/
 
+#ifdef IMAGEIZE_CROSSHAIRS
    do_xhar = (im3d->vinfo->crosshair_visible && !AFNI_yesenv("AFNI_CROSSHAIR_LINES")) ;
+#endif
 
    dset = im3d->anat_now ;
 
@@ -6814,8 +6856,9 @@ STATUS("new overlay is created de novo") ;
    im->dy = br->del2 ;
    im->dz = br->del3 ;
 
-   /*----- put crosshairs on, if desired -----*/
+   /*----- put crosshairs on image directly, if desired (and allowed) -----*/
 
+#ifdef IMAGEIZE_CROSSHAIRS
    if( do_xhar ){
       MCW_grapher *grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
 
@@ -6976,6 +7019,7 @@ if(PRINT_TRACING)
       } /* end of "if correct slice" */
 
    } /* end of crosshairs */
+#endif
 
    /*----- put markers on, if desired -----*/
 
@@ -8064,9 +8108,9 @@ STATUS("setting anatmode_bbox back to 'View ULay Data Brick'") ;
    if( fbr == NULL ){
      fprintf(stderr,"THD_setup_bricks of anat_now fails!\n") ; EXRETURN ;
    }
-   myXtFree(im3d->b123_anat) ; im3d->b123_anat = fbr[0] ;
-   myXtFree(im3d->b231_anat) ; im3d->b231_anat = fbr[1] ;
-   myXtFree(im3d->b312_anat) ; im3d->b312_anat = fbr[2] ;
+   DESTROY_FD_BRICK(im3d->b123_anat) ; im3d->b123_anat = fbr[0] ;
+   DESTROY_FD_BRICK(im3d->b231_anat) ; im3d->b231_anat = fbr[1] ;
+   DESTROY_FD_BRICK(im3d->b312_anat) ; im3d->b312_anat = fbr[2] ;
    myXtFree(fbr) ;
 
    im3d->b123_anat->parent =
@@ -8145,9 +8189,9 @@ STATUS("forcing function WOD") ;
       if( fbr == NULL ){
         fprintf(stderr,"THD_setup_bricks of fim_now fails!\n") ; EXRETURN ;
       }
-      myXtFree(im3d->b123_fim) ; im3d->b123_fim = fbr[0] ;
-      myXtFree(im3d->b231_fim) ; im3d->b231_fim = fbr[1] ;
-      myXtFree(im3d->b312_fim) ; im3d->b312_fim = fbr[2] ;
+      DESTROY_FD_BRICK(im3d->b123_fim) ; im3d->b123_fim = fbr[0] ;
+      DESTROY_FD_BRICK(im3d->b231_fim) ; im3d->b231_fim = fbr[1] ;
+      DESTROY_FD_BRICK(im3d->b312_fim) ; im3d->b312_fim = fbr[2] ;
       myXtFree(fbr) ;
 
       im3d->b123_fim->brother = (XtPointer)im3d->b123_anat ;
@@ -8202,9 +8246,9 @@ STATUS("forcing function WOD") ;
 
 STATUS("no function dataset") ;
 
-      myXtFree(im3d->b123_fim) ; im3d->b123_fim = NULL ;
-      myXtFree(im3d->b231_fim) ; im3d->b231_fim = NULL ;
-      myXtFree(im3d->b312_fim) ; im3d->b312_fim = NULL ;
+      DESTROY_FD_BRICK(im3d->b123_fim) ; im3d->b123_fim = NULL ;
+      DESTROY_FD_BRICK(im3d->b231_fim) ; im3d->b231_fim = NULL ;
+      DESTROY_FD_BRICK(im3d->b312_fim) ; im3d->b312_fim = NULL ;
 
       func_brick_possible = False ;
    }
