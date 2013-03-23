@@ -1454,7 +1454,7 @@ ENTRY("GRA_redraw_overlay") ;
       xxx = MAX( grapher->xx_text_2 ,
                  grapher->xorigin[grapher->xc][grapher->yc]-39 ) ;
 
-      if( grapher->init_ignore > 0 ) xxx = MAX( xxx , grapher->xx_text_2p ) ;
+      if( grapher->init_ignore > 0 || grapher->thresh_fade ) xxx = MAX( xxx , grapher->xx_text_2p ) ;
 
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
       overlay_txt( grapher, xxx , GB_DLY-15 , strp ) ;
@@ -1571,6 +1571,10 @@ ENTRY("redraw_graph") ;
 
    if( grapher->init_ignore > 0 ){                    /* 23 May 2005 */
      sprintf(strp,"Ignore%4d",grapher->init_ignore) ;
+     if( grapher->thresh_fade ) sprintf(strp+strlen(strp)," Fade on") ;
+     fd_txt( grapher , xxx , 35, strp) ;
+   } else if( grapher->thresh_fade ){
+     sprintf(strp,"Fade on") ;
      fd_txt( grapher , xxx , 35, strp) ;
    }
 
@@ -1600,7 +1604,8 @@ ENTRY("redraw_graph") ;
        sprintf(strp,"Num%3d:%-3d" , bb,tt ) ;
    }
    fd_line( grapher ,
-            grapher->xx_text_2+rrr+3 , (grapher->init_ignore > 0) ? 41 : 31 ,
+            grapher->xx_text_2+rrr+3 ,
+            (grapher->init_ignore > 0 || grapher->thresh_fade) ? 41 : 31 ,
             grapher->xx_text_2+rrr+3 , 5 ) ;
 
    grapher->xx_text_2p = grapher->xx_text_2+rrr+7 ;  /* 23 May 2005 */
