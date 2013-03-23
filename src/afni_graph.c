@@ -221,6 +221,7 @@ ENTRY("new_MCW_grapher") ;
                        "1      = move to 1st time point\n"
                        "l      = move to last time point\n"
                        "L      = turn AFNI logo on/off\n"
+                       "F      = turn threshold 'Fading' on/off\n"
                        "v/V    = Video up/down in time\n"
                        "r/R    = Video ricochet up/down in time\n"
                        "F5     = Meltdown!\n"
