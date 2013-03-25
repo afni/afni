@@ -11,7 +11,7 @@ int main( int argc , char * argv[] )
    int iarg , verb=0 , do_automask=0 , nord=3 , meth=2 , do_mclip=0 ;
    THD_3dim_dataset *inset ;
    MRI_IMAGE *imout , *imin ;
-   byte *mask=NULL ; int nvmask=0 , nmask=0 , do_mone=0 ;
+   byte *mask=NULL ; int nvmask=0 , nmask=0 , do_mone=0 , do_byslice=0 ;
    MRI_IMARR *exar=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -77,6 +77,15 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[iarg],"-verb") == 0 ){
        verb++ ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-hermite") == 0 ){ /* 25 Mar 2013 [New Year's Day] */
+       mri_polyfit_set_basis("hermite") ;
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-byslice") == 0 ){ /* 25 Mar 2013 [New Year's Day] */
+       do_byslice++ ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-mask") == 0 ){
@@ -239,7 +248,10 @@ int main( int argc , char * argv[] )
    }
 
    mri_polyfit_verb(verb) ;
-   imout = mri_polyfit( imin , nord , exar , mask , mrad , meth ) ;
+   if( do_byslice )
+     imout = mri_polyfit_byslice( imin , nord , exar , mask , mrad , meth ) ;
+   else
+     imout = mri_polyfit        ( imin , nord , exar , mask , mrad , meth ) ;
 
    if( imout == NULL )
      ERROR_exit("Can't compute polynomial fit :-( !?") ;
