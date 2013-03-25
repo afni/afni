@@ -5167,7 +5167,7 @@ ENTRY("IW3D_improve_warp") ;
        "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : energy=%.3f:%.3f pen=%g",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
                            ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ) ;
-   } else if( Hverb == 1 ){
+   } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%Hlev_now==0) ){
      fprintf(stderr,".") ;
    }
 
