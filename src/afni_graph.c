@@ -1455,7 +1455,8 @@ ENTRY("GRA_redraw_overlay") ;
       xxx = MAX( grapher->xx_text_2 ,
                  grapher->xorigin[grapher->xc][grapher->yc]-39 ) ;
 
-      if( grapher->init_ignore > 0 || grapher->thresh_fade ) xxx = MAX( xxx , grapher->xx_text_2p ) ;
+      if( grapher->init_ignore > 0 || grapher->thresh_fade )
+        xxx = MAX( xxx , grapher->xx_text_2p ) ;
 
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
       overlay_txt( grapher, xxx , GB_DLY-15 , strp ) ;

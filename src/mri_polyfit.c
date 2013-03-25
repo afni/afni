@@ -86,6 +86,89 @@ ENTRY("poly3D") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Evaluate product Hermite functions. */
+
+#define HP1(x) (x)
+#define HP2(x) ((x)*(x)-2.0f)
+#define HP3(x) ((x)*(2.0f*(x)*(x)-3.0f))
+#define HP4(x) ((4.0f*(x)*(x)-12.0f)*(x)*(x)+3.0f)
+#define HP5(x) ((x)*((4.0f*(x)*(x)-20.0f)*(x)*(x)+15.0f))
+#define HP6(x) (((2.0f*(x)*(x)-15.0f)*(x)*(x)+22.5f)*(x)*(x)-3.75f)
+#define HP7(x) (0.5f*(x)*(((8.0f*(x)*(x)-84.0f)*(x)*(x)+210.0f)*(x)*(x)-105.0f))
+#define HP8(x) (((((x)*(x)-14.0f)*(x)*(x)+52.5f)*(x)*(x)-52.5f)*(x)*(x)+6.5625f)
+#define HP9(x) (0.02f*(x)*((((16.0f*(x)*(x)-288.0f)*(x)*(x)+1512.0f)*(x)*(x)-2520.0f)*(x)*(x)+945.0f))
+
+#define HH1(x) HP1(3.0f*(x))*exp(-(x)*(x))
+#define HH2(x) HP2(3.0f*(x))*exp(-2.0f*(x)*(x))
+#define HH3(x) HP3(3.0f*(x))*exp(-3.0f*(x)*(x))
+#define HH4(x) HP4(3.0f*(x))*exp(-5.0f*(x)*(x))
+#define HH5(x) HP5(3.0f*(x))*exp(-6.0f*(x)*(x))
+#define HH6(x) HP6(3.0f*(x))*exp(-6.0f*(x)*(x))
+#define HH7(x) HP7(3.0f*(x))*exp(-7.0f*(x)*(x))
+#define HH8(x) HP8(3.0f*(x))*exp(-7.0f*(x)*(x))
+#define HH9(x) HP9(3.0f*(x))*exp(-7.0f*(x)*(x))
+
+static void herm3D( int px, int py, int pz,
+                    int nxyz, float *x, float *y, float *z, float *val )
+{
+   register int ii ;
+
+ENTRY("herm3D") ;
+
+   switch( px ){
+     default: for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = 1.0f       ; break ;
+     case 1:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = HH1(x[ii]) ; break ;
+     case 2:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = HH2(x[ii]) ; break ;
+     case 3:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = HH3(x[ii]) ; break ;
+     case 4:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = HH4(x[ii]) ; break ;
+     case 5:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = HH5(x[ii]) ; break ;
+     case 6:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = HH6(x[ii]) ; break ;
+     case 7:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = HH7(x[ii]) ; break ;
+     case 8:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = HH8(x[ii]) ; break ;
+     case 9:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] = HH9(x[ii]) ; break ;
+   }
+
+   switch( py ){
+     case 1:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH1(y[ii]) ; break ;
+     case 2:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH2(y[ii]) ; break ;
+     case 3:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH3(y[ii]) ; break ;
+     case 4:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH4(y[ii]) ; break ;
+     case 5:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH5(y[ii]) ; break ;
+     case 6:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH6(y[ii]) ; break ;
+     case 7:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH7(y[ii]) ; break ;
+     case 8:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH8(y[ii]) ; break ;
+     case 9:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH9(y[ii]) ; break ;
+   }
+
+   switch( pz ){
+     case 1:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH1(z[ii]) ; break ;
+     case 2:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH2(z[ii]) ; break ;
+     case 3:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH3(z[ii]) ; break ;
+     case 4:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH4(z[ii]) ; break ;
+     case 5:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH5(z[ii]) ; break ;
+     case 6:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH6(z[ii]) ; break ;
+     case 7:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH7(z[ii]) ; break ;
+     case 8:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH8(z[ii]) ; break ;
+     case 9:  for( ii=0 ; ii < nxyz ; ii++ ) val[ii] *= HH9(z[ii]) ; break ;
+   }
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static void (*BFUN3D)(int,int,int,int,float *,float *,float*,float *) = poly3D ;
+
+void mri_polyfit_set_basis( char *str )
+{
+   if( str != NULL && strcasecmp(str,"Hermite") == 0 )
+      BFUN3D = herm3D ;
+   else
+      BFUN3D = poly3D ;  /* default */
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Fit a polynomial to a 3D image and return the fitted image:
      nord = maximum order of polynomial (0..9)
      mask = optional mask of voxels to actually use
@@ -190,7 +273,7 @@ ENTRY("mri_polyfit") ;
      ref = (float **)malloc(sizeof(float *)*nref) ;
      for( kk=0 ; kk < nref ; kk++ ){
        ref[kk] = (float *)malloc(sizeof(float)*nmask) ;
-       poly3D( pir[kk],pjr[kk],pkr[kk] , nmask , xx,yy,zz , ref[kk] ) ;
+       BFUN3D( pir[kk],pjr[kk],pkr[kk] , nmask , xx,yy,zz , ref[kk] ) ;
      }
      free(zz) ; free(yy) ; free(xx) ;
    }
@@ -256,7 +339,7 @@ ENTRY("mri_polyfit") ;
      }}}
 
      for( kk=0 ; kk < npref ; kk++ ){
-       poly3D( pir[kk],pjr[kk],pkr[kk] , nxyz , xx,yy,zz , vv ) ;
+       BFUN3D( pir[kk],pjr[kk],pkr[kk] , nxyz , xx,yy,zz , vv ) ;
        rfac = fvit->ar[kk] ;
        for( ii=0 ; ii < nxyz ; ii++ ) far[ii] += rfac * vv[ii] ;
      }
@@ -275,4 +358,46 @@ ENTRY("mri_polyfit") ;
    KILL_floatvec(fvit);
 
    RETURN(fim) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_polyfit_byslice( MRI_IMAGE *imin, int nord, MRI_IMARR *exar,
+                                 byte *mask, float mrad, int meth )
+{
+   MRI_IMAGE *sl_imin , *sl_exim , *sl_out , *out_im ;
+   MRI_IMARR *sl_exar=NULL , *out_imar=NULL ;
+   byte *sl_mask=NULL ;
+   int nx=imin->nx , ny=imin->ny , nz=imin->nz , nex=0 ;
+   int kk ;
+
+ENTRY("mri_polyfit_byslice") ;
+
+   if( nz == 1 ){
+     out_im = mri_polyfit( imin,nord,exar , mask,mrad,meth ) ;
+     RETURN(out_im) ;
+   }
+
+   INIT_IMARR(out_imar) ;
+
+   for( kk=0 ; kk < nz ; kk++ ){
+     sl_imin = mri_cut_3D( imin , 0,nx-1 , 0,ny-1 , kk,kk ) ;
+     if( mask != NULL ) sl_mask = mask + kk*nx*ny ;
+     if( exar != NULL ){
+       int nex=IMARR_COUNT(exar) , ee ; MRI_IMAGE *eim ;
+       INIT_IMARR(sl_exar) ;
+       for( ee=0 ; ee < nex ; ee++ ){
+         eim = mri_cut_3D( IMARR_SUBIM(exar,ee) , 0,nx-1 , 0,ny-1 , kk,kk ) ;
+         ADDTO_IMARR(sl_exar,eim) ;
+       }
+     }
+     sl_out = mri_polyfit( sl_imin,nord,sl_exar , sl_mask,mrad,meth ) ;
+     ADDTO_IMARR(out_imar,sl_out) ;
+     if( sl_exar != NULL ) DESTROY_IMARR(sl_exar) ;
+     mri_free(sl_imin) ;
+   }
+
+   out_im = mri_catvol_1D( out_imar , 3 ) ;
+   DESTROY_IMARR(out_imar) ;
+   RETURN(out_im) ;
 }

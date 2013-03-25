@@ -1160,6 +1160,7 @@ extern float * delayed_lsqfit( int , float * , int , float *ref[] , double * ) ;
 
 extern void mri_polyfit_verb( int ) ;
 MRI_IMAGE * mri_polyfit( MRI_IMAGE *, int, MRI_IMARR *, byte *, float, int ) ;
+MRI_IMAGE * mri_polyfit_byslice( MRI_IMAGE *, int, MRI_IMARR *, byte *, float, int ) ;
 
 extern MRI_IMAGE * mri_pcvector  ( MRI_IMARR *imar , int,int ) ;
 extern MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int,int ) ;
