@@ -1497,6 +1497,14 @@ For a font that is larger than the default, try 9x15bold or even
 The entire list of fonts that will be tried can be found in the
 source code file display.h, in the string array tfont_hopefuls[].
 
+-------------------------
+Variable: AFNI_GRAPH_FADE
+-------------------------
+If this variable is set to YES, then the 'threshold fade' feature
+of the AFNI graph window is turned on for all graph viewers when
+they open.  Otherwise, you have to turn this feature on via the
+'F' key or the toggle control in the Opt menu.
+
 --------------------------
 Variable: AFNI_VALUE_LABEL (editable)
 --------------------------
