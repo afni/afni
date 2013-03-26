@@ -65,17 +65,40 @@ void usage_ReHo(int detail)
 "  \n\n"
 "  + RUNNING, need to provide:\n"
 "    -prefix PREFIX   :output file name part.\n"
-"    -nneigh NUMBER   :number of voxels in neighborhood, inclusive; can be: \n"
-"                      7   (for facewise neighbors, only),\n"
-"                      19  (for face- and edge-wise neighbors),\n"
-"                      27  (for face-, edge-, and node-wise neighbors).\n"
-"                      The default is: 27.\n"
 "    -inset  FILE     :time series file. \n\n"
 "    -chi_sq          :switch to output Friedman chi-sq value per voxel\n"
 "                      as a subbrick.\n"
 "    -mask   MASK     :can include a whole brain mask within which to\n"
 "                      calculate ReHo. Otherwise, data should be masked\n"
 "                      already.\n"
+"    -nneigh NUMBER   :number of voxels in neighborhood, inclusive; can be: \n"
+"                      7   (for facewise neighbors, only),\n"
+"                      19  (for face- and edge-wise neighbors),\n"
+"                      27  (for face-, edge-, and node-wise neighbors).\n"
+"                      The default is: 27.\n"
+"    -neigh_RAD   R   :for additional voxelwise neighborhood contrl, the radius R\n"
+"                      of a desired neighborhood can be put in; R is a floating\n"
+"                      point number, and must be >1. Examples of the numbers of\n"
+"                      voxels in a given radius are as follows (you can roughly\n"
+"                      approximate with the ol' 4*PI*(R^3)/3 thing): \n"
+"                              R=2.0 -> V=33,\n"
+"                              R=2.3 -> V=57, \n"
+"                              R=2.9 -> V=93, \n"
+"                              R=3.1 -> V=123, \n"
+"                              R=3.9 -> V=251, \n"
+"                              R=4.5 -> V=389, \n"
+"                              R=6.1 -> V=949,\n"
+"                      but you can choose most any value.\n"
+"    -neigh_X   A     \n"
+"    -neigh_Y   B     :as if *that* weren't enough freedom, you can even have\n"
+"    -neigh_Z   C      ellipsoidal volumes of voxelwise neighbors.  This is done\n"
+"                      by inputing the set of semi-radius lengths you want, again\n"
+"                      as floats/decimals\,. The 'hood is then made according to\n"
+"                      the following relation:\n"
+"                          (i/A)^2 + (j/B)^2 + (k/C)^2 <=1.\n"
+"                      which will have approx. V=4*PI*A*B*C/3. The impetus for\n"
+"                      this freedom was for use with data having anisotropic \n" 
+"                      voxel edge lengths.\n"
 "    -in_rois INROIS  :can input a set of ROIs, each labelled with distinct\n"
 "                      integers. ReHo will be calculated per ROI. The output\n"
 "                      will be similar to the format of 3dROIstats: one row\n"
@@ -95,6 +118,12 @@ void usage_ReHo(int detail)
 "                  note that the number of degrees of freedom of this value\n"
 "                  is the length of time series minus 1.\n"
 "         [B] can get list of ROI ReHo values, as well (optional).\n\n"
+"  + EXAMPLE:\n"
+"       3dReHo -mask MASK+orig. \\\n"
+"              -inset REST+orig \\\n"
+"              -prefix REST_REHO \\\n"
+"              -neigh_RAD 2.9 \\\n"
+"              -chi_sq\n"
 "  \n" );
   return;
 }
@@ -108,7 +137,6 @@ int main(int argc, char *argv[]) {
   THD_3dim_dataset *MASK=NULL;
   THD_3dim_dataset *ROIS=NULL;
   char *prefix="REHO" ;
-  int Nneigh=27,N_TYPE=0;
   char in_name[300];
   char in_name0[300];
   char out_pref[300];
@@ -134,7 +162,13 @@ int main(int argc, char *argv[]) {
   int *Dim=NULL;
   int *here=NULL;
   int *ndof=NULL;
+  int DUM=0;
 
+  float NEIGH_R[3]={1.9,1.9,1.9}; //neighborhood radii
+  int Rdim[3] = {0,0,0};
+  int Vneigh=0;
+  int **HOOD_SHAPE=NULL;
+  
   int idx;
   FILE *fout1;
 
@@ -146,7 +180,7 @@ int main(int argc, char *argv[]) {
   // ****************************************************************
   // ****************************************************************
 
-  // INFO_message("version: LAMBDA");
+  // INFO_message("version: NU");
 	
   /** scan args **/
   if (argc == 1) { usage_ReHo(1); exit(0); }
@@ -231,19 +265,61 @@ int main(int argc, char *argv[]) {
       iarg++ ; if( iarg >= argc ) 
                  ERROR_exit("Need argument after '-nneigh'");
 			
-      //INFO_message("Size of neighborhood is: %s",argv[iarg]);
-      Nneigh = atoi(argv[iarg]);
-      if( Nneigh == 27 ) 
-        N_TYPE = 0;
-      else if( Nneigh == 19 )
-        N_TYPE = 1;
-      else if( Nneigh == 7 )
-        N_TYPE = 2;
+      if( 27 == atoi(argv[iarg]) )
+        NEIGH_R[0] = 1.9;
+      else if( 19 == atoi(argv[iarg]) )
+        NEIGH_R[0] = 1.7;
+      else if( 7 == atoi(argv[iarg]) )
+        NEIGH_R[0] = 1.1;
       else 
         ERROR_exit("Illegal after '-nneigh': need '27', '19' or '7'");
+
+      NEIGH_R[2] = NEIGH_R[1] = NEIGH_R[0]; // sphere
+
       iarg++ ; continue ;
     }
 		
+    if( strcmp(argv[iarg],"-neigh_RAD") == 0 ){
+      iarg++ ; if( iarg >= argc ) 
+                 ERROR_exit("Need argument after '-nneigh'");
+      
+      //INFO_message("Size of neighborhood is: %s",argv[iarg]);
+      NEIGH_R[0] = atof(argv[iarg]);
+      NEIGH_R[2] = NEIGH_R[1] = NEIGH_R[0]; // sphere
+
+      iarg++ ; continue ;
+    }
+
+    if( strcmp(argv[iarg],"-neigh_X") == 0 ){
+      iarg++ ; if( iarg >= argc ) 
+                 ERROR_exit("Need argument after '-nneigh'");
+      
+      //INFO_message("Size of neighborhood is: %s",argv[iarg]);
+      NEIGH_R[0] = atof(argv[iarg]);
+
+      iarg++ ; continue ;
+    }
+
+    if( strcmp(argv[iarg],"-neigh_Y") == 0 ){
+      iarg++ ; if( iarg >= argc ) 
+                 ERROR_exit("Need argument after '-nneigh'");
+      
+      //INFO_message("Size of neighborhood is: %s",argv[iarg]);
+      NEIGH_R[1] = atof(argv[iarg]);
+
+      iarg++ ; continue ;
+    }
+
+    if( strcmp(argv[iarg],"-neigh_Z") == 0 ){
+      iarg++ ; if( iarg >= argc ) 
+                 ERROR_exit("Need argument after '-nneigh'");
+      
+      //INFO_message("Size of neighborhood is: %s",argv[iarg]);
+      NEIGH_R[2] = atof(argv[iarg]);
+
+      iarg++ ; continue ;
+    }
+
     ERROR_message("Bad option '%s'\n",argv[iarg]) ;
     suggest_best_prog_option(argv[0], argv[iarg]);
     exit(1);
@@ -264,14 +340,38 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  if( (NEIGH_R[0]<=1) ) {
+    ERROR_message("Something bad with neighbor setting: trying to set radii \n"
+                  "to (%f,%f,%f) voxels won't work; can't have any radius<1. \n"
+                  "Please read `-help' if necessary \n",
+                  NEIGH_R[0],NEIGH_R[1],NEIGH_R[2]);
+    exit(1);
+  }
+  else if( (NEIGH_R[2]<=1) || (NEIGH_R[1]<=1) ) {
+    INFO_message("Something odd with neighborhood size; trying to set radii to:\n"
+                 "(%f,%f,%f), can't have any <=1. They will be isotropically: %f",
+                 NEIGH_R[0],NEIGH_R[1],NEIGH_R[2],NEIGH_R[0]);
+    NEIGH_R[1]=NEIGH_R[2]=NEIGH_R[0];
+  }
+
 	
   // ****************************************************************
   // ****************************************************************
   //                    make storage
   // ****************************************************************
   // ****************************************************************
-	
-  LIST_OF_NEIGHS = (int *)calloc(27,sizeof(int)); // max of 27 per vox
+
+  // getting radius    
+  Vneigh = IntSpherVol(Rdim, NEIGH_R);
+
+  INFO_message("Final vox neighbood: ellipsoid with Nneigh=%d and radii (%.3f,%.3f,%.3f).",Vneigh,NEIGH_R[0],NEIGH_R[1],NEIGH_R[2]);
+
+  // indices of sphere/ellipsoid
+  HOOD_SHAPE = calloc( Vneigh,sizeof(HOOD_SHAPE));  
+  for(i=0 ; i<Vneigh ; i++) 
+    HOOD_SHAPE[i] = calloc(3,sizeof(int)); 
+
+  LIST_OF_NEIGHS = (int *)calloc(Vneigh,sizeof(int)); // max of per vox
 
   KW = (float *)calloc(Nvox,sizeof(float)); 
   chisq = (float *)calloc(Nvox,sizeof(float)); 
@@ -287,13 +387,8 @@ int main(int argc, char *argv[]) {
 
   Nties = (int *)calloc(Nvox,sizeof(int)); 
 
-  // hold ranks
-  INDEX = calloc( Nvox,sizeof(INDEX));  
-  for(i=0 ; i<Nvox ; i++) 
-    INDEX[i] = calloc(Dim[3],sizeof(float)); 
-	
   // this statement will never be executed if allocation fails above
-  if( (INDEX == NULL) || (mskd == NULL) || (KW == NULL) 
+  if( (HOOD_SHAPE == NULL) || (mskd == NULL) || (KW == NULL) 
       || (here == NULL) || (Nties == NULL) || (ndof == NULL)
       || (LIST_OF_NEIGHS == NULL) ) { 
     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
@@ -306,7 +401,10 @@ int main(int argc, char *argv[]) {
   // *************************************************************
   // *************************************************************
 	
-  // go through once: define data vox, and calc rank for each
+  // make list of indices in spher shape
+  i = IntSpherSha(HOOD_SHAPE, Rdim, NEIGH_R);
+
+  // go through once: define data vox
   idx = 0;
   for( k=0 ; k<Dim[2] ; k++ ) 
     for( j=0 ; j<Dim[1] ; j++ ) 
@@ -324,7 +422,27 @@ int main(int argc, char *argv[]) {
             mskd[i][j][k] = 1;
         idx+= 1; // skip, and mskd and KW are both still 0 from calloc
       }
-	
+
+  // save space by having ragged index only for mask
+  // INDEX holds ranks
+  idx = 0;
+  INDEX = calloc( Nvox,sizeof(INDEX));
+  for( k=0 ; k<Dim[2] ; k++ ) 
+    for( j=0 ; j<Dim[1] ; j++ ) 
+      for( i=0 ; i<Dim[0] ; i++ ) {
+        if(mskd[i][j][k])
+          INDEX[idx] = calloc(Dim[3],sizeof(float));
+        else
+          INDEX[idx] = calloc(1,sizeof(float));
+        idx+= 1;
+      }
+
+  if( INDEX == NULL ) { 
+    fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+    exit(122);
+  }
+
+
   if(HAVE_ROIS>0) {
      
     NROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int)); 
@@ -421,10 +539,22 @@ int main(int argc, char *argv[]) {
           }
     }
   }	
-	
-  // calculate ranks
-  i = CalcRanksForReHo(INDEX,insetTIME,Nties,mskd,Dim);
 
+  // calculate ranks
+  idx=0;
+  for( k=0 ; k<Dim[2] ; k++ ) 
+    for( j=0 ; j<Dim[1] ; j++ ) 
+      for( i=0 ; i<Dim[0] ; i++ ) {
+        if( mskd[i][j][k] ) {
+          DUM = CalcRanksForReHo(INDEX[idx],idx,insetTIME,Nties,Dim[3]);
+        }
+        idx++;
+      }
+  
+  DSET_delete(insetTIME); // free here to save some space
+  free(insetTIME);
+
+  
   idx = 0;
   // calculate KendallW for each voxel
   for( k=0 ; k<Dim[2] ; k++ ) 
@@ -432,9 +562,9 @@ int main(int argc, char *argv[]) {
       for( i=0 ; i<Dim[0] ; i++ ) {
         if(mskd[i][j][k]) {
           here[0] = i; here[1] = j; here[2] = k; 
-          m = FindVoxHood(LIST_OF_NEIGHS,here,Dim,mskd,N_TYPE,ndof);
+          m = FindVoxHood(LIST_OF_NEIGHS,HOOD_SHAPE,here,Dim,mskd,Vneigh,ndof);
           KW[idx] = ReHoIt(LIST_OF_NEIGHS,INDEX,Nties,Dim,
-                           mskd,ndof);
+                           ndof);
           chisq[idx] = ndof[0]*(Dim[3]-1)* KW[idx];
         }
         idx+=1;
@@ -447,11 +577,11 @@ int main(int argc, char *argv[]) {
       for( j=0 ; j<NROI_REF[i] ; j++ ) {
         ndof[0]=ROI_COUNT[i][j];
         ROI_KW[i][j] = ReHoIt(ROI_LISTS[i][j],INDEX,Nties,Dim,
-                              mskd,ndof);
+                              ndof);
         ROI_chisq[i][j] = ndof[0]*(Dim[3]-1)* ROI_KW[i][j];
       }
   }
-	
+  
   // **************************************************************
   // **************************************************************
   //                 Store and output
@@ -511,7 +641,8 @@ int main(int argc, char *argv[]) {
 
   INFO_message("ReHo (Kendall's W) calculated.");
   if(CHI_ON)
-    INFO_message("Friedman chi-sq of W calculated (%d deg of freedom per vox)",Dim[3]-1);
+    INFO_message("Friedman chi-sq of W calculated (%d deg of freedom per vox)",
+                 Dim[3]-1);
 
   // ************************************************************
   // ************************************************************
@@ -519,7 +650,8 @@ int main(int argc, char *argv[]) {
   // ************************************************************
   // ************************************************************
 	
-  DSET_delete(insetTIME);
+  // insetTIME gets freed earlier to save some space
+
   DSET_delete(inset0);
   DSET_delete(outsetREHO);
   DSET_delete(MASK);
@@ -530,6 +662,11 @@ int main(int argc, char *argv[]) {
   free(MASK);
   free(ROIS);
 	
+  for(i=0 ; i<Vneigh ; i++) 
+    free(HOOD_SHAPE[i]);
+  free(HOOD_SHAPE);
+
+
   for( i=0 ; i<Dim[0] ; i++) 
     for( j=0 ; j<Dim[1] ; j++) {
       free(mskd[i][j]);
@@ -546,7 +683,6 @@ int main(int argc, char *argv[]) {
   free(ndof);
 
   free(Dim); // need to free last because it's used for other arrays...
-  free(insetTIME);
   free(inset0);
   free(outsetREHO);
   free(prefix);
