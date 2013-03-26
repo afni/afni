@@ -35,6 +35,7 @@ extern void qsort_double    ( int , double * ) ;            /* 06 Jul 2010 */
 /***** Quicksort-ish median *****/
 
 extern float qmed_float     ( int , float * ) ;
+extern float qmean_float    ( int , float * ) ;               /* 26 Mar 2013 */
 extern void  qmedmad_float  ( int,float *,float *,float * ) ; /* 08 Mar 2001 */
 extern void  meansigma_float( int,float *,float *,float * ) ; /* 07 Dec 2006 */
 
