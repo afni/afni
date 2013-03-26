@@ -128,6 +128,7 @@ ENTRY("AFNI_cluster_choose_CB") ;
 
    im3d->vwid->func->clu_nnlev = (int)(-rmm) ;
 
+   IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
    EXRETURN ;
 }
@@ -169,6 +170,7 @@ ENTRY("AFNI_clu_CB") ;
      AFNI_vedit_clear( im3d->fim_now ) ;
      set_vedit_cluster_label(im3d,0) ; VEDIT_unhelpize(im3d) ;
      AFNI_cluster_dispkill(im3d) ;
+     IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
      if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
      EXRETURN ;
    }
