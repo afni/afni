@@ -1660,10 +1660,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   }
 
                   /* send cross hair coordinates */
-                  if (SO && SO->VisX.Applied &&       /* apply VisX */
-                        SO->VisX.XformType > 0 && SO->VisX.XformType <= 2) { 
-                     SUMA_Apply_Coord_xform(XYZ,1,3, 
-                                       SO->VisX.Xform, 0,NULL);   
+                  if (SO && SO->VisX.Applied ) {       /* apply VisX */
+                     SUMA_Apply_VisX_Chain(XYZ, 1, SO->VisX.Xchain, 0);
                   }
                   ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
                   if (!(Location=SUMA_RegisterEngineListCommand (  

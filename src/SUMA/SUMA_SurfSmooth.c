@@ -282,6 +282,9 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "      -match_sphere rad: Project nodes of smoothed surface to a sphere\n"
 "                   of radius rad. Projection is carried out along the \n"
 "                   direction formed by the surface's center and the node.\n"
+"      -match_center: Center the smoothed surface to match the original's\n"
+"                     You can combine -match_center with any of the \n"
+"                     other -match_* options above.\n"
 "      -surf_out surfname: Writes the surface with smoothed coordinates\n"
 "                          to disk. For SureFit and 1D formats, only the\n"
 "                          coord file is written out.\n"
@@ -472,6 +475,7 @@ typedef struct {
    char *surf_names[SURFSMOOTH_MAX_SURF];
    char *spec_file;
    int MatchMethod;
+   int MatchCenter;
    byte *nmask;
    byte strict_mask;
    unsigned int rseed;
@@ -525,6 +529,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
    kar = 1;
    Opt->OffsetLim = -1.0;
    Opt->MatchMethod = 0;
+   Opt->MatchCenter = 0;
    Opt->lim = 1000000.0;
    Opt->fwhm = -1;
    Opt->tfwhm = -1;
@@ -839,6 +844,11 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 				exit (1);
 			}
 			Opt->lim = atof(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-match_center") == 0)) {
+         Opt->MatchCenter = 1;
 			brk = YUP;
 		}
       
@@ -2712,7 +2722,10 @@ int main (int argc,char *argv[])
                                  "Trying to finish ...");
                }
 
-               /* send the unshrunk bunk */
+               if (Opt->MatchCenter) { /* match center? */
+                  SUMA_EquateSurfaceCenters(SOnew, SO, 1);
+               }
+               /* send the unshrunk surface */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
                   if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, 
@@ -2735,6 +2748,9 @@ int main (int argc,char *argv[])
                                "Trying to finish ...");
                }
 
+               if (Opt->MatchCenter) { /* match center? */
+                  SUMA_EquateSurfaceCenters(SOnew, SO, 1);
+               }
                /* send the unshrunk surface */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
@@ -2757,6 +2773,9 @@ int main (int argc,char *argv[])
                                "Trying to finish ...");
                }
 
+               if (Opt->MatchCenter) { /* match center? */
+                  SUMA_EquateSurfaceCenters(SOnew, SO, 1);
+               }
                /* send the unshrunk surface */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
@@ -2778,7 +2797,10 @@ int main (int argc,char *argv[])
                                "Trying to finish ...");
                }
 
-               /* send the unshrunk bunk */
+               if (Opt->MatchCenter) { /* match center? */
+                  SUMA_EquateSurfaceCenters(SOnew, SO, 1);
+               }
+               /* send the unshrunk surf */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
                   if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, 

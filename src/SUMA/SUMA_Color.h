@@ -3,51 +3,6 @@
 
 #define SUMA_DUNNO_GRAY 0.54321
 
-#define SUMA_ADD_COORD_BIAS_VECT(SO, ovr, BiasDim, BiasVect) {   \
-   int m_i, m_i3, mx_i3 = 3*SO->N_Node; \
-   \
-   SUMA_VisX_Pointers4Display(SO, 1); \
-   switch (BiasDim) {   \
-      case SW_CoordBias_X: \
-         /* Add X bias */  \
-         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
-            m_i3 = 3*ovr->NodeDef[m_i]; \
-            if (m_i3 < mx_i3) SO->NodeList[m_i3] += BiasVect[m_i];   \
-         }  \
-         break;   \
-      case SW_CoordBias_Y: \
-         /* Add Y bias */  \
-         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
-            m_i3 = 3*ovr->NodeDef[m_i]+1;  \
-            if (m_i3 < mx_i3) SO->NodeList[m_i3] += BiasVect[m_i];   \
-         }  \
-         break;   \
-      case SW_CoordBias_Z: \
-         /* Add Z bias */  \
-         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
-            m_i3 = 3*ovr->NodeDef[m_i]+2;  \
-            if (m_i3 < mx_i3) SO->NodeList[m_i3] += BiasVect[m_i];   \
-         }  \
-         break;   \
-      case SW_CoordBias_N: \
-         /* Add Normal bias */   \
-         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
-            m_i3 = 3*ovr->NodeDef[m_i]; \
-            if (m_i3 < mx_i3) {  \
-               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3];  \
-                                                                     ++m_i3;  \
-               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3];  \
-                                                                     ++m_i3;  \
-               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3];  \
-            }  \
-         }  \
-         break;   \
-      default: \
-         SUMA_SL_Err("This should not be.\nWhy, oh why ?"); \
-   }  \
-   \
-   SUMA_VisX_Pointers4Display(SO, 0); \
-}  \
 
 int SUMA_a_good_col(char *name, int i, float *acol);
 SUMA_COLOR_MAP * SUMA_MakeColorMap (float **Fiducials, int Nfid, byte rgba,
@@ -165,8 +120,13 @@ SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, fl
 SUMA_Boolean SUMA_SetCoordBias(SUMA_OVERLAYS *ovr, float *NewBias, SUMA_WIDGET_INDEX_COORDBIAS BiasDim);
 SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr);
 SUMA_Boolean SUMA_RemoveCoordBias(SUMA_OVERLAYS *ovr); 
-SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, SUMA_WIDGET_INDEX_COORDBIAS BiasDim);
-SUMA_Boolean SUMA_TransferCoordBias(SUMA_OVERLAYS *ovr, SUMA_WIDGET_INDEX_COORDBIAS BiasDim);
+SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
+                                    *ovr, SUMA_WIDGET_INDEX_COORDBIAS BiasDim);
+SUMA_Boolean SUMA_AddVisX_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr,
+                                      SUMA_WIDGET_INDEX_COORDBIAS BiasDim, 
+                                      float *BiasVect);
+SUMA_Boolean SUMA_TransferCoordBias(SUMA_OVERLAYS *ovr,
+                                    SUMA_WIDGET_INDEX_COORDBIAS BiasDim);
 SUMA_Boolean SUMA_NewSurfaceGeometry(SUMA_SurfaceObject *SO);
 int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node);
 SUMA_Boolean SUMA_isDsetColumn_inferred(SUMA_DSET *dset, int icol);

@@ -17,6 +17,10 @@ SUMA_Boolean SUMA_SetViewerLightsForSO(SUMA_SurfaceViewer *cSV, SUMA_SurfaceObje
 
 SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, 
                                     SUMA_DO *dov, int N_dov);
+SUMA_Boolean SUMA_Apply_VisX_Chain(float *xyz, int N, DList *dl, int inv);
+DListElmt *SUMA_Fetch_VisX_Element(char *label, DList *dl);
+SUMA_VIS_XFORM_DATUM *SUMA_Fetch_VisX_Datum (char *label, DList *dl, 
+                                  SUMA_VISX_ADD_POSITIONS add, char *ref_label);
 SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, 
                                     SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_SetGLHome(SUMA_SurfaceViewer *sv);

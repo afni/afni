@@ -1137,6 +1137,189 @@ SUMA_Boolean SUMA_SetGLHome(SUMA_SurfaceViewer *sv)
    SUMA_RETURN(YUP);
 }
 
+DListElmt *SUMA_Fetch_VisX_Element(char *label, DList *dl)
+{
+   static char FuncName[]={"SUMA_Fetch_VisX_Element"};
+   DListElmt *el=NULL, *ref=NULL;
+   SUMA_VIS_XFORM_DATUM *uu=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!label || !dl) {
+     SUMA_S_Err("NULL label or NULL list");
+     SUMA_RETURN(ref);
+   }
+   if (!dlist_size(dl)) SUMA_RETURN(ref);
+   
+   el = NULL;
+   do {
+      if (!el) el = dlist_head(dl);
+      else el = dlist_next(el);
+      uu = (SUMA_VIS_XFORM_DATUM *)el->data;
+      if (uu && !strcmp(uu->label, label)) {
+         ref = el;
+      }      
+   } while(!ref && el != dlist_tail(dl));
+   SUMA_RETURN(ref); 
+}
+
+SUMA_VIS_XFORM_DATUM *SUMA_Fetch_VisX_Datum (char *label, DList *dl, 
+                             SUMA_VISX_ADD_POSITIONS add, char *ref_pos_label)
+{
+   static char FuncName[]={"SUMA_Fetch_VisX_Datum"};
+   SUMA_VIS_XFORM_DATUM *xx=NULL, *uu=NULL;
+   DListElmt *el=NULL, *ref=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!label || !dl) {
+     SUMA_S_Err("NULL label or NULL list");
+     SUMA_RETURN(xx);
+   }
+   if (!dlist_size(dl)) {
+      if (add != ADD_NOT) {
+         xx = SUMA_NewVisXdatum(label);
+         dlist_ins_next(dl, dlist_tail(dl), xx);
+      } else {
+         SUMA_RETURN(xx);
+      } 
+   } else {
+      if ((el=SUMA_Fetch_VisX_Element(label, dl))) {
+         if ((xx = (SUMA_VIS_XFORM_DATUM *)el->data)) {
+            SUMA_RETURN(xx);
+         } 
+      }
+      
+      /* should we add, and if so, where ? */
+      if (add != ADD_NOT) {
+         if (ref_pos_label) {
+            ref = SUMA_Fetch_VisX_Element(ref_pos_label, dl);
+         }
+         xx = SUMA_NewVisXdatum(label);
+         if (ref) {
+            switch (add) {
+               case ADD_AFTER:
+                  dlist_ins_next(dl, ref, xx);
+                  break;
+               case ADD_BEFORE:
+                  dlist_ins_prev(dl, ref, xx);
+                  break;
+               default:
+                  SUMA_S_Errv("Bad add=%d\n", add);
+                  break;
+            }
+         } else {
+            switch (add) {
+               case ADD_AFTER:
+                  dlist_ins_next(dl, dlist_tail(dl), xx);  
+                  break;
+               case ADD_BEFORE:
+                  dlist_ins_prev(dl, dlist_head(dl), xx);
+                  break;
+               default:
+                  SUMA_S_Errv("Bad add=%d\n", add);
+                  break;
+            }
+         }
+      }
+      SUMA_RETURN(xx); 
+   }
+   
+   /* should not get here...*/   
+   SUMA_RETURN(xx);
+}
+
+SUMA_Boolean SUMA_Apply_VisX_Chain(float *xyz, int N, DList *dl, int inv)
+{
+   static char FuncName[]={"SUMA_Apply_VisX_Chain"};
+   SUMA_VIS_XFORM_DATUM *xx=NULL;
+   DListElmt *el=NULL;
+   int ii, iii, N3;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dl || !xyz) {
+      SUMA_S_Errv("No list (%p) or coords (%p)\n", dl, xyz);
+      SUMA_RETURN(NOPE);
+   }
+   if (!dlist_size(dl)) {
+      SUMA_S_Err("Empty list");
+      SUMA_RETURN(NOPE);
+   }
+   
+   N3 = 3*N;
+   if (!inv) {
+      do {
+         if (!el) el = dlist_head(dl);
+         else el = dlist_next(el);
+         xx = (SUMA_VIS_XFORM_DATUM *)el->data;
+         switch (xx->XformType) {
+            case ID:
+               break;
+            case SHIFT:
+               SUMA_LHv("Applying shift %s\n", xx->label);
+               for (ii=0, iii=0; ii<N; ++ii) {
+                  xyz[iii] += xx->Xform[0][3]; ++iii;
+                  xyz[iii] += xx->Xform[1][3]; ++iii;
+                  xyz[iii] += xx->Xform[2][3]; ++iii;
+               }
+               break;
+            case AFFINE:
+               SUMA_LHv("Applying affine %s\n", xx->label);
+               SUMA_Apply_Coord_xform( xyz,N,3, 
+                                    xx->Xform, 0, NULL);
+               break;
+            case DISP:
+               SUMA_LHv("Applying disp (%p) %s\n", xx->dxyz, xx->label);
+               if (!xx->dxyz) SUMA_RETURN(NOPE);
+               for (iii=0; iii<N3; ++iii) {
+                  xyz[iii] += xx->dxyz[iii]; 
+               }
+               break;
+            default:
+               SUMA_RETURN(NOPE);
+               break;
+         }
+      } while (el != dlist_tail(dl)) ;
+   } else {
+      do {
+         if (!el) el = dlist_tail(dl);
+         else el = dlist_prev(el);
+         xx = (SUMA_VIS_XFORM_DATUM *)el->data;
+         switch (xx->XformType) {
+            case ID:
+               break;
+            case SHIFT:
+               SUMA_LHv("Removing shift %s\n", xx->label);
+               for (ii=0, iii=0; ii<N; ++ii) {
+                  xyz[iii] -= xx->Xform[0][3]; ++iii;
+                  xyz[iii] -= xx->Xform[1][3]; ++iii;
+                  xyz[iii] -= xx->Xform[2][3]; ++iii;
+               }
+               break;
+            case AFFINE:
+               SUMA_LHv("Removing affine %s\n", xx->label);
+               SUMA_Apply_Coord_xform( xyz,N,3, 
+                                    xx->Xform, 1, NULL);
+               break;
+            case DISP:
+               SUMA_LHv("Removing displacement (%p) %s\n", xx->dxyz, xx->label);
+               if (!xx->dxyz) SUMA_RETURN(NOPE);
+               for (iii=0; iii<N3; ++iii) {
+                  xyz[iii] -= xx->dxyz[iii]; 
+               }
+               break;
+            default:
+               SUMA_RETURN(NOPE);
+               break;
+         }
+      } while (el != dlist_head(dl)) ;
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
 /*!
 Updates the View Center and view from of SV based on the contents of RegisteredDO
 */
@@ -1175,10 +1358,10 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
                                  float, float); 
                }
             }
-            if (so_op->VisX.Applied && so_op->VisX.XformType > 0 &&
-                                       so_op->VisX.XformType <=2) {
-               SUMA_Apply_Coord_xform( UsedCenter,1,3, 
-                                       so_op->VisX.Xform, 0,NULL);
+            if (so_op->VisX.Applied) {
+               if (!SUMA_Apply_VisX_Chain( UsedCenter,1,so_op->VisX.Xchain, 0)) {
+                  SUMA_S_Warn("Sir! Have you no decency left?");
+               }
             }
             if (so_op->ViewCenterWeight) {
                NewCenter[0] += so_op->ViewCenterWeight*UsedCenter[0];
@@ -1268,10 +1451,10 @@ SUMA_Boolean SUMA_UpdateRotaCenter (
             }
             SUMA_LHv("Used Center (%s) Pre Xform: [%f %f %f]\n",
                      so_op->Label, UsedCenter[0], UsedCenter[1], UsedCenter[2]);
-            if (so_op->VisX.Applied && so_op->VisX.XformType > 0 &&
-                                       so_op->VisX.XformType <=2) {
-               SUMA_Apply_Coord_xform( UsedCenter,1,3, 
-                                       so_op->VisX.Xform, 0,NULL);
+            if (so_op->VisX.Applied) {
+               if (!SUMA_Apply_VisX_Chain( UsedCenter,1,so_op->VisX.Xchain, 0)) {
+                  SUMA_S_Warn("Oh please don't break my heart.");
+               }
             }  
             SUMA_LHv("Used Center (%s) Post Xform: [%f %f %f]\n",
                      so_op->Label, UsedCenter[0], UsedCenter[1], UsedCenter[2]);

@@ -63,6 +63,7 @@ L_INIT_VARS:
     set ldlist = (141 60)
     #set fsdsets = (thickness.gii.dset)
     set fsdsets = (thickness curv sulc) 
+    set inflates = ()
     
     set surf_attribs = (smoothwm      \
          pial         \
@@ -223,6 +224,25 @@ L_PARSE_COMMAND:
        breaksw
 
        # ----------------------------------------------------------
+       # usage : -inflate VAL
+       case "-inflate":
+
+      if ( $count >= $args ) then
+          set endstr = "arg usage: -inflate INF"
+          goto L_BAD_END
+      endif
+
+      @ count ++
+       set ff = 0
+       foreach inf ($inflates)
+         if ($inf == "$argv[$count]") set ff = 1
+       end
+       if ($ff == 0) set inflates = ($inflates $argv[$count])
+
+       breaksw
+
+
+       # ----------------------------------------------------------
        # usage : -ld VAL
        case "-ld":
 
@@ -277,6 +297,8 @@ L_PARSE_COMMAND:
    set endstr = "missing required option: -sid"
    goto L_BAD_END
     endif
+
+    if ($#inflates == 0 && $neuro_ori == -1) set inflates = ($inflates 200) 
 
     if ( $debug ) echo "-- usage okay"
     if ( $debug > 1 ) set echo
@@ -562,11 +584,9 @@ L_CONVERT_SURFACES:
       if ( $surf =~ *.white* ||     \
            $surf =~ *.smoothwm* ||  \
            $surf =~ *.pial*) then
-         set echo
          ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
                         -ixmat_1D xmatras.1D -o $surf.gii
       else
-         set echo
          ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
                         -ixmat_1D xmatras.1D -o $surf.gii
       endif
@@ -649,6 +669,35 @@ L_CONVERT_SURFACES:
       endif
       end
    end
+   cd $start_dir
+   
+   #and make semi inflated surfaces
+   cd $suma_dir
+   if ($#inflates > 0) then
+      foreach inf ($inflates)
+         set surf_attribs = ($surf_attribs inf_${inf})
+      end
+      foreach hand ( lh rh )
+         foreach inf ($inflates) 
+            if ( -f ${hand}.white.asc ) then
+               set iis = ${hand}.white.asc
+            else if ( -f ${hand}.white.gii ) then
+               set iis = ${hand}.white.gii
+            else
+               set endstr = ( "failure: Could not find white for inflation" )
+               goto L_BAD_END
+            endif
+            SurfSmooth  -i ${iis}    -met NN_geom \
+                        -Niter $inf  -o_gii   -surf_out ${hand}.inf_${inf} \
+                        -match_vol 0.01
+            if ( $hand == lh ) then
+               set list_lh = ($list_lh ${hand}.inf_${inf})
+            else
+               set list_rh = ($list_rh ${hand}.inf_${inf})
+            endif
+         end
+      end
+   endif
    cd $start_dir
    
 goto L_CONVERT_SURFACES_DONE
@@ -1179,6 +1228,15 @@ L_HELP_END:
     echo "        directions: 3dinfo -n4  -d3 -prefix anat.nii"
     echo "          162  192  152   1    1.0     1.0     1.0     anat.nii"
     echo ""
+    echo "    -inflate INF: Create modereately inflated surfaces using"
+    echo "                  SurfSmooth. INF controls the amount of smoothness"
+    echo "                  in the final image. It is the number of iterations"
+    echo "                  in the command such as: "
+    echo "             SurfSmooth  -i lh.white.asc    -met NN_geom \"
+    echo "                    -Niter 200  -o_gii  -surf_out lh.inf_200 \"
+    echo "                    -match_vol 0.01"
+    echo "                  You can use multiple instances of -inflate to create"
+    echo "                  inflations of various levels."
     echo "    -set_space  SPACE: Set the space flag of all volumes to"
     echo "            SPACE (orig, MNI, TLRC, MNIa). The default is "
     echo "            orig space."

@@ -8426,59 +8426,100 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_RETURNe;
 } /* SUMA_DrawMesh */
 
+void SUMA_FreeVisXdatum (void *vxd)
+{
+   static char FuncName[]={"SUMA_FreeVisXdatum"};
+   SUMA_VIS_XFORM_DATUM *xd = (SUMA_VIS_XFORM_DATUM*)vxd ;
+  
+   SUMA_ENTRY;
+   
+   if (xd) {
+      if (xd->dxyz) SUMA_free(xd->dxyz); xd->dxyz = NULL;
+      SUMA_free(xd); xd = NULL;
+   }
+   
+   SUMA_RETURNe;
+}
 
-int SUMA_EmptyVisXform(SUMA_VIS_XFORM vx) 
+SUMA_VIS_XFORM_DATUM *SUMA_NewVisXdatum(char *label)
+{
+   static char FuncName[]={"SUMA_NewVisXdatum "};
+   SUMA_VIS_XFORM_DATUM *xd = NULL;
+   
+   SUMA_ENTRY;
+   
+   xd = (SUMA_VIS_XFORM_DATUM *)SUMA_calloc(1, sizeof(SUMA_VIS_XFORM_DATUM)); 
+   if (!label) label = "unlabeled";
+   strncpy(xd->label, label, 63*sizeof(char)); xd->label[63]='\0';
+
+   /* no longer needed */
+      #if 0
+      memset(&(xd->Xform), 0, 16*sizeof(double));
+      vx.XformType = ID;
+      #endif
+      
+   SUMA_RETURN(xd);
+}
+
+int SUMA_EmptyVisXform(SUMA_VIS_XFORM *vx) 
 {
    static char FuncName[]={"SUMA_EmptyVisXform"};
    
    SUMA_ENTRY;
    
-   if (vx.XformedCoords) {
-      SUMA_free(vx.XformedCoords); 
-      vx.XformedCoords = NULL;
+   if (vx->XformedCoords) {
+      SUMA_free(vx->XformedCoords); 
+      vx->XformedCoords = NULL;
    }
-   vx.Applied = 0;
-   memset(&(vx.Xform), 0, 16*sizeof(double));
-   vx.XformType = 0;
+   vx->Applied = 0;
+   if (vx->Xchain) {
+      dlist_destroy(vx->Xchain);
+      SUMA_free(vx->Xchain); vx->Xchain = NULL;
+   }
+   vx->Xchain = (DList *)SUMA_calloc(1, sizeof(DList));
+   dlist_init(vx->Xchain, SUMA_FreeVisXdatum);
    
    SUMA_RETURN(1);
 }
 
-int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, int which, 
-                       int direction, int xform_orig, int recompute_norm) 
+int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, char *which, 
+                       SUMA_VISX_XFORM_DIRECTIONS direction, 
+                       int recompute_norm) 
 {
    static char FuncName[]={"SUMA_ApplyVisXform"};
    SUMA_VIS_XFORM *vx;
    float *xx=NULL;
-   int n, nn;
+   int n, nn, xform_orig=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
+   if (!SO || !which) {
+      SUMA_S_Errv("NULL input %p, %s\n", SO, CHECK_NULL_STR(which));
+      SUMA_RETURN(0); 
+   }
+   SUMA_LHv("SO %s, which %s, direction %d, recompute_norm %d\n", 
+            SO->Label, CHECK_NULL_STR(which), direction, recompute_norm);
+   if (LocalHead) {
+      SUMA_DUMP_TRACE(FuncName);
+   }
    /* select transform to apply */
-   if (which == 0) vx = &(SO->VisX0);
-   else vx = &(SO->VisX);
-   
-   /* The following 2 if statements are meant to keep distinction
-      between VisX0 and VisX clear. There is no need for xform_orig
-      but I kept it to remind me never to allow VisX to transform
-      orig coords and VisX0 to create new coordinate arrays */
-   if (which == 0 && !xform_orig) {
-      SUMA_S_Err("Transforms in VisX0 always apply to orig coordinates\n");
+   if (!strcmp(which,"VisX0")) {
+      xform_orig = 1;
+      vx = &(SO->VisX0);
+      SUMA_LH("Transforms in VisX0 always apply to orig coordinates");
+   } else if (!strcmp(which,"VisX")) {
+      xform_orig = 0;
+      vx = &(SO->VisX);
+      SUMA_LH("Transforms in VisX never apply to orig coordinates\n");
+   } else {
+      SUMA_S_Errv("Bad string form which %s\n",which);
       SUMA_RETURN(0);
    }
-   if (which == 1 && xform_orig) {
-      SUMA_S_Err("Transforms in VisX never apply to orig coordinates\n");
-      SUMA_RETURN(0);
-   }
-   
-   if (vx->XformType == 0 || vx->XformType >2) {
-      SUMA_S_Err("Xform type not set or of bad bearing");
-      SUMA_RETURN(0);  
-   }
-   
+      
    /* check if application is needed */
-   if (direction == 1) { /* forward xform */
+   if (direction == FORWARD_XFORM) { /* forward xform */
+      SUMA_LHv("Going Forward, Applied=%d\n", vx->Applied);
       if(vx->Applied) { /* already done */
          SUMA_LH("Transform already applied, nothing to do");
          SUMA_RETURN(1);
@@ -8493,38 +8534,27 @@ int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, int which,
                SUMA_RETURN(0);  
             }
          }
+         memcpy(vx->XformedCoords, SO->NodeList,
+                SO->N_Node*SO->NodeDim*sizeof(float));
          xx = vx->XformedCoords;
       } else xx = SO->NodeList;
       
-      if (vx->XformType == 0) { /* identity, copy values, if needed */
-         if (vx->XformedCoords) {
-            memcpy(vx->XformedCoords, SO->NodeList,
-                   SO->N_Node*SO->NodeDim*sizeof(float));
-         }
-      } else if (vx->XformType == 1) { /* just translation, do it on the cheap */
-         nn=0;
-         for (n=0; n<SO->N_Node; ++n) {
-            xx[nn] += vx->Xform[0][3]; ++nn;
-            xx[nn] += vx->Xform[1][3]; ++nn;
-            xx[nn] += vx->Xform[2][3]; ++nn;
-         }
-      } else if (vx->XformType == 2) {
-         if (vx->XformedCoords) {
-            memcpy(vx->XformedCoords, SO->NodeList,
-                   SO->N_Node*SO->NodeDim*sizeof(float));
-         }
-         SUMA_LHv("Applying affine xform:\n"
+      SUMA_LHv("Applying VisX Chain xform, surf %s:\n"
                   "Nodelist[0] = %.3f %.3f, %.3f (%p)\n"
                   "xx      [0] = %.3f %.3f, %.3f (%p)\n",
+               SO->Label,
                SO->NodeList[0], SO->NodeList[1], SO->NodeList[2], SO->NodeList,
-               xx[0], xx[1], xx[2], xx);   
-         SUMA_Apply_Coord_xform(xx,SO->N_Node,SO->NodeDim, vx->Xform, 0,NULL);
-         SUMA_LHv("xxpost    [0] = %.3f %.3f, %.3f (%p)\n",
-                  xx[0], xx[1], xx[2], xx);   
-      } else { 
-         SUMA_S_Err("Life is suffering and memory now leaky"); 
+               xx[0], xx[1], xx[2], xx);         
+      if (!SUMA_Apply_VisX_Chain(xx, SO->N_Node, vx->Xchain, 0)) {
+         SUMA_S_Err("Mille millions de mille sabords!");
          SUMA_RETURN(0); 
       }
+      SUMA_LHv("Applied VisX Chain xform, surf %s:\n"
+                  "Nodelist[0] = %.3f %.3f, %.3f (%p)\n"
+                  "xx      [0] = %.3f %.3f, %.3f (%p)\n",
+               SO->Label,
+               SO->NodeList[0], SO->NodeList[1], SO->NodeList[2], SO->NodeList,
+               xx[0], xx[1], xx[2], xx);         
       vx->Applied = 1;
       
       /* recompute dimensions if any change was done to the original nodelist */
@@ -8555,24 +8585,18 @@ int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, int which,
       /* job is done */
       SUMA_LH("Appied xform");
       SUMA_RETURN(1);
-   } else if (direction == 0) { /* undo xform, not just apply the reverse  */
+   } else if (direction == UNDO_XFORM) { 
+                        /* undo xform, not just apply the reverse  */
+      SUMA_LHv("Undoing Applied=%d\n", vx->Applied);
       if (!vx->Applied) { /* already not applied */
          SUMA_RETURN(1);
       }
       if (!vx->XformedCoords) { /* the transform was applied to original coords,
                                   undo it */
          xx = SO->NodeList;
-         if (vx->XformType == 1) { /* just translation, do it on the cheap */
-            nn=0;
-            for (n=0; n<SO->N_Node; ++n) {
-               xx[nn] -= vx->Xform[0][3]; ++nn;
-               xx[nn] -= vx->Xform[1][3]; ++nn;
-               xx[nn] -= vx->Xform[2][3]; ++nn;
-            }
-         } else if (vx->XformType == 2){
-            SUMA_Apply_Coord_xform(xx,SO->N_Node,SO->NodeDim, vx->Xform, 1,NULL);
-         } else { /* identity, do nothing */
-            
+         if (!SUMA_Apply_VisX_Chain(xx, SO->N_Node, vx->Xchain, 1)) {
+            SUMA_S_Err("Tonnerre de Brest!");
+            SUMA_RETURN(0); 
          }
       } else { /*transfrom results were stored in vx->XformedCoords, just kill */
          SUMA_free(vx->XformedCoords); vx->XformedCoords = NULL;   
@@ -8670,7 +8694,7 @@ int SUMA_AllowPrying(SUMA_SurfaceViewer *sv, int *RegSO)
    static char FuncName[]={"SUMA_AllowPrying"};
    SUMA_SurfaceObject *SO1, *SO2;
    int N_RegSO, LoL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -8737,10 +8761,18 @@ SUMA_Boolean SUMA_ApplyPrying(SUMA_SurfaceViewer *sv, float val, char *units,
       SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[0]].OP;
       SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[1]].OP;   
       /* reset applied flag, then reapply transform*/
-      SO1->VisX.Applied = 0; SO2->VisX.Applied = 0;
-      if (!SUMA_ComputeVisX(SO1, SO2, sv, 1, 0, recompute_norm)) {
+      if (!SUMA_ApplyVisXform(SO1, "VisX", UNDO_XFORM, recompute_norm)) {
+         SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
+         SUMA_RETURN(0);
+      } 
+      if (!SUMA_ApplyVisXform(SO2, "VisX", UNDO_XFORM, recompute_norm)) {
+         SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
+         SUMA_RETURN(0);
+      }
+      if (!SUMA_ComputeVisX(SO1, SO2, sv, "VisX", recompute_norm)) {
          SUMA_S_Err("Failed to compute or apply prying xform");
       }
+      
       SUMA_UpdateRotaCenter (sv, SUMAg_DOv, SUMAg_N_DOv);
       SUMA_UpdateViewPoint(sv, SUMAg_DOv, SUMAg_N_DOv);
       SUMA_SetGLHome(sv);
@@ -8809,10 +8841,18 @@ SUMA_Boolean SUMA_ResetPrying(SUMA_SurfaceViewer *svu)
          SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[0]].OP;
          SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[1]].OP;   
          /* reset applied flag, then reapply transform*/
-         SO1->VisX.Applied = 0; SO2->VisX.Applied = 0;
-         if (!SUMA_ComputeVisX(SO1, SO2, sv, 1, 0, 1)) {
+         if (!SUMA_ApplyVisXform(SO1, "VisX", UNDO_XFORM, 1)) {
+            SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
+            SUMA_RETURN(0);
+         } 
+         if (!SUMA_ApplyVisXform(SO2, "VisX", UNDO_XFORM, 1)) {
+            SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
+            SUMA_RETURN(0);
+         }
+         if (!SUMA_ComputeVisX(SO1, SO2, sv, "VisX", 1)) {
             SUMA_S_Err("Failed to compute or apply prying xform");
          }
+         
          SUMA_UpdateRotaCenter (sv, SUMAg_DOv, SUMAg_N_DOv);
          SUMA_UpdateViewPoint(sv, SUMAg_DOv, SUMAg_N_DOv);
          SUMA_SetGLHome(sv);
@@ -8946,14 +8986,17 @@ SUMA_Boolean SUMA_XformAxis(SUMA_Axis *MA, double Xform[4][4], int inv,
 /* Compute the transform needed to properly position two 
    surfaces in the display */
 int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, 
-                     SUMA_SurfaceViewer *sv, int which, int orig, 
-                     int recompute_norm) 
+                     SUMA_SurfaceViewer *sv, char *which, int recompute_norm) 
 {
    static char FuncName[]={"SUMA_ComputeVisX"};
    SUMA_SurfaceObject *SOv[2];
-   float dx=0.0;
+   SUMA_VIS_XFORM_DATUM *x0=NULL, *x1=NULL;
+   float dx=0.0, dx2;
    int splitx = 0;
-   double Pt[3], Pb[3], C[3], C1[3], rotax[3], rotmag, rot=25;
+   int i, state;
+   double A[3], B[3], C[3], D[3], AC[3], AD[3], BC[3], BD[3];
+   double dot1, dot2, doti;
+   double Pt[3], Pb[3], C1[3], rotax[3], rotmag, rot=25;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -8983,10 +9026,11 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
    
    splitx = 0;
       
-   if (which == 0) {
+   if (!strcmp(which,"VisX0")) {
+      
    /* Making sure surfaces don't ride on each other 
       Assume we're only working on the RL, X axis   */
-      if (orig && (SO1->AnatCorrect || SO2->AnatCorrect)) {
+      if ((SO1->AnatCorrect || SO2->AnatCorrect)) {
          SUMA_LHv("Out of principle,  won't transform VisX0\n"
                   " for anatomically correct surfaces (%d %d)\n"
                   " Nothing to be done here\n",
@@ -8994,13 +9038,78 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
          SUMA_RETURN(1);
       }
       
+      if (!(x0 = SUMA_Fetch_VisX_Datum ("Arrange_At_Load", SOv[0]->VisX0.Xchain, 
+                                        ADD_AFTER, NULL))) {
+         SUMA_S_Err("Should not have failed to fetch VisX0 with addition!");
+         SUMA_RETURN(0);
+      }
+      if (!(x1 = SUMA_Fetch_VisX_Datum ("Arrange_At_Load", SOv[1]->VisX0.Xchain, 
+                                        ADD_AFTER, NULL))) {
+         SUMA_S_Err("Should not have failed to fetch VisX1 with addition!");
+         SUMA_RETURN(0);
+      }
       /* How much do the surfaces overlap along X? 
-         SOv[0] is the left side surface */
+         SOv[0] is the left side surface , see NIH-6 pp 223*/
       dx = SOv[1]->MeshAxis->BR[0][0] - SOv[0]->MeshAxis->BR[0][1];
                                                 /* xminRIGHT - xmaxLEFT */
+      dx2 = SOv[1]->MeshAxis->BR[0][1] - SOv[0]->MeshAxis->BR[0][0];
+                                                /* xmaxRIGHT - xminLEFT */
+      /* Rightmost of Right side surface, RAI assumed for coords */
+      A[0] = SOv[1]->MeshAxis->BR[0][0]; A[1]=0.0; A[2]=0.0; /* ignore Y & Z */
+      /* Leftmost of Right side */
+      B[0] = SOv[1]->MeshAxis->BR[0][1]; B[1]=0.0; B[2]=0.0; 
       
-      /* split the difference, if need be */
-      if (dx < 0) { /* need separation */
+      /* same for the Left side surface */
+      C[0] = SOv[0]->MeshAxis->BR[0][0]; C[1]=0.0; C[2]=0.0; 
+      D[0] = SOv[0]->MeshAxis->BR[0][1]; D[1]=0.0; D[2]=0.0; 
+
+      for (i=0; i<3; ++i) {
+         AC[i] = C[i]-A[i];
+         BC[i] = C[i]-B[i];
+         AD[i] = D[i]-A[i];
+         BD[i] = D[i]-B[i];
+      }
+      dot1 = SUMA_MT_DOT(AC, BC);
+      dot2 = SUMA_MT_DOT(AD, BD);
+      doti = BC[0];
+      
+      state = -1;
+      if (dot1 >= 0.0 && dot2 >= 0.0) {
+         if (doti >= 0) {
+            state = 0;
+         } else {
+            state = 4;
+         }
+      } else if (dot1 >= 0.0 && dot2 < 0.0) {
+         state = 3;
+      } else if (dot1 < 0.0 && dot2 >= 0.0) {
+         state = 1;
+      } else if (dot1 < 0.0 && dot2 < 0.0) {
+         state = 2;
+      }
+      if (state < 0) {
+         SUMA_S_Warnv("Case not accounted for: dot1 = %f dot2 = %f doti = %f\n"
+                      "No separation attempted\n",
+               dot1, dot2, doti);
+      }
+      SUMA_LHv("Have Left surface %s: %.3f %.3f\n"
+               "    right surface %s  %.3f %.3f\n"
+               ", dx = %f, dx2=%f\n"
+               "dot1 = %.3f dot2 = %.3f doti = %.3f, state = %d\n",
+               SOv[0]->Label, 
+                  SOv[0]->MeshAxis->BR[0][0], SOv[0]->MeshAxis->BR[0][1],
+               SOv[1]->Label, 
+                  SOv[1]->MeshAxis->BR[0][0], SOv[1]->MeshAxis->BR[0][1],
+                  dx, dx2,
+               dot1, dot2, doti, state);
+               
+      /* split the difference, if need be 
+         If this fails at time, the separation amount
+         should be rewritten in terms of the vectors defined above
+         and for each of the states separately. For now we leave
+         well enough alone.*/
+      if (state == 1 || state == 2 || state == 3 || state == 4) { 
+                                                      /* need separation */
          /* Augment the distance by 10% of the surface sizes 
             Don't bother for flat maps */
          if (SOv[0]->EmbedDim == 3 && SOv[1]->EmbedDim == 3) {
@@ -9010,10 +9119,10 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
                      (SOv[1]->MeshAxis->BR[0][1] - SOv[1]->MeshAxis->BR[0][0]) );
             if (sv->GVS[sv->StdView].LHlol == -1) dx = -dx;
             /* move left surface to the left and right surface to the right */
-            SOv[0]->VisX0.Xform[0][3] = dx/2.0;
-            SOv[1]->VisX0.Xform[0][3] = -dx/2.0;
-            SOv[0]->VisX0.XformType = 1; /* translation */
-            SOv[1]->VisX0.XformType = 1; /* translation */
+            x0->Xform[0][3] = dx/2.0;
+            x1->Xform[0][3] = -dx/2.0;
+            x0->XformType = SHIFT; /* translation */
+            x1->XformType = SHIFT; /* translation */
          } else if (SOv[0]->EmbedDim == 2 && SOv[1]->EmbedDim == 2) {
             /* you'll want to rotate one flat map about its Z axis
                You should really compute the needed x axis separation
@@ -9028,40 +9137,47 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
             C[1] = SOv[1]->Center[1]; 
             C[2] = SOv[1]->Center[2]; 
             if (!SUMA_BuildRotationMatrix(C, rotax, SUMA_PI, 
-                                          SOv[1]->VisX0.Xform)) {
+                                          x1->Xform)) {
                SUMA_S_Err("Failed to build rotation for surface 1");
                SUMA_RETURN(0);
             }
-            SOv[0]->VisX0.Xform[0][3] = dx/2.0;
-            SOv[1]->VisX0.Xform[0][3] = -dx/2.0;
-            SOv[0]->VisX0.XformType = 1; /* translation */
-            SOv[1]->VisX0.XformType = 2; /* affine */
+            x0->Xform[0][3] = dx/2.0;
+            x1->Xform[0][3] = -dx/2.0;
+            x0->XformType = SHIFT; /* translation */
+            x1->XformType = AFFINE; /* affine */
          } else { /* would you ever get here? */
             SUMA_LH("Did not expect this");
             if (sv->GVS[sv->StdView].LHlol == -1) dx = -dx;
             /* move left surface to the left and right surface to the right */
-            SOv[0]->VisX0.Xform[0][3] = dx/2.0;
-            SOv[1]->VisX0.Xform[0][3] = -dx/2.0;
-            SOv[0]->VisX0.XformType = 1; /* translation */
-            SOv[1]->VisX0.XformType = 1; /* translation */
+            x0->Xform[0][3] = dx/2.0;
+            x1->Xform[0][3] = -dx/2.0;
+            x0->XformType = SHIFT; /* translation */
+            x1->XformType = SHIFT; /* translation */
+         }
+         if (!SUMA_ApplyVisXform(SOv[0], "VisX0", 
+                                 FORWARD_XFORM, recompute_norm)) {
+               SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
+               SUMA_RETURN(0);
+         } 
+         if (!SUMA_ApplyVisXform(SOv[1], "VisX0", 
+                                 FORWARD_XFORM, recompute_norm)) {
+            SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
+            SUMA_RETURN(0);
          }
       }
-      /* apply the transform */
-      if (!SUMA_ApplyVisXform(SOv[0], which, 1, orig, recompute_norm)) {
-         SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
-         SUMA_RETURN(0);
-      } 
-      if (!SUMA_ApplyVisXform(SOv[1], which, 1, orig, recompute_norm)) {
-         SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
-         SUMA_RETURN(0);
-      }
-   } else { 
-      
+   } else if (!strcmp(which,"VisX")){ 
+      /* if Prying is to be added, it should be after CoordBias */
+      x0 = SUMA_Fetch_VisX_Datum ("Prying", SOv[0]->VisX.Xchain, 
+                                  ADD_AFTER,"CoordBias");
+      x1 = SUMA_Fetch_VisX_Datum ("Prying", SOv[1]->VisX.Xchain, 
+                                  ADD_AFTER, "CoordBias");
+
       /* open up the gap */
       rot = sv->GVS[sv->StdView].LHpry;
       if (!(SUMA_IS_GEOM_SYMM(SOv[0]->isSphere) && 
             SUMA_IS_GEOM_SYMM(SOv[1]->isSphere))   &&
           !(SOv[0]->EmbedDim == 2 && SOv[1]->EmbedDim == 2) ) {
+         SUMA_LH("Regular deal");
          if (rot*sv->GVS[sv->StdView].LHlol >= 0) {/*rot. about posterior axes */
             /* Compute average medial Y axis (Box segment 12 from left hemi +
                                                   segment 11 from right hemi )
@@ -9109,6 +9225,7 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
                                      C[2]  = SOv[0]->Center[2]; 
          C1[0] = SOv[1]->Center[0];  C1[1] = SOv[1]->Center[1]; 
                                      C1[2] = SOv[1]->Center[2]; 
+         SUMA_LH("Spheres!");
                /* transform screen Y axis to world axis */
          SUMA_NormScreenToWorld(sv, 0, 0, Pb, NULL, 1);   
          SUMA_NormScreenToWorld(sv, 0, 1, Pt, NULL, 1);   
@@ -9116,6 +9233,7 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
          rot = rot*2.0; /* go to +/- 180 */
       } else if ( SOv[0]->EmbedDim == 2 && SOv[1]->EmbedDim == 2) { 
                                                       /* for flatties */
+         SUMA_LH("Flats!");
          C[0]  = SOv[0]->Center[0];  C[1]  = SOv[0]->Center[1]; 
                                      C[2]  = SOv[0]->Center[2]; 
          C1[0] = SOv[1]->Center[0];  C1[1] = SOv[1]->Center[1]; 
@@ -9125,18 +9243,17 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
          
          splitx = 1;/* need to split them apart too */
       }
-      
          SUMA_LHv("Rotation of %f degrees about [%f %f %f] on "
-                  "[%f %f %f] and [%f %f %f]\n",
+                  "[%f %f %f] and [%f %f %f], splitx = %d\n",
                   rot, rotax[0], rotax[1], rotax[2],
-                  C[0], C[1], C[2], C1[0], C1[1], C1[2]);
+                  C[0], C[1], C[2], C1[0], C1[1], C1[2], splitx);
          if (!SUMA_BuildRotationMatrix(C, rotax, rot*SUMA_PI/180.0, 
-                                       SOv[0]->VisX.Xform)) {
+                                       x0->Xform)) {
             SUMA_S_Err("Failed to build rotation for surface 0");
             SUMA_RETURN(0);
          } 
          if (!SUMA_BuildRotationMatrix(C1, rotax, -rot*SUMA_PI/180.0, 
-                                       SOv[1]->VisX.Xform)) {
+                                       x1->Xform)) {
             SUMA_S_Err("Failed to build rotation for surface 0");
             SUMA_RETURN(0);
          }
@@ -9146,30 +9263,34 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
             float dxi = SOv[1]->MeshAxis->BR[0][0] - SOv[0]->MeshAxis->BR[0][1];;
             /* compute the new x axis overlap */
             
-            SUMA_XformAxis(SOv[0]->MeshAxis, SOv[0]->VisX.Xform, 0, &mxfrm0);
-            SUMA_XformAxis(SOv[1]->MeshAxis, SOv[1]->VisX.Xform, 0, &mxfrm1);
+            SUMA_XformAxis(SOv[0]->MeshAxis, x0->Xform, 0, &mxfrm0);
+            SUMA_XformAxis(SOv[1]->MeshAxis, x1->Xform, 0, &mxfrm1);
             dx  = mxfrm1.BR[0][0] - mxfrm0.BR[0][1];
             dxi = mxfrm0.BR[0][0] - mxfrm1.BR[0][1]; 
             
             if (SUMA_ABS(dx) > SUMA_ABS(dxi)) dx = dxi; /* inverted layout */                                    
             if (dx < 0) {
                if (sv->GVS[sv->StdView].LHlol == -1) dx = -dx;
-               SOv[0]->VisX.Xform[0][3] += dx/2.0;
-               SOv[1]->VisX.Xform[0][3] += -dx/2.0;
+               x0->Xform[0][3] += dx/2.0;
+               x1->Xform[0][3] += -dx/2.0;
             }
          }
-         SOv[0]->VisX.XformType = 2; /* affine */
-         SOv[1]->VisX.XformType = 2; /* affine */
-         /* apply the transform */
-         if (!SUMA_ApplyVisXform(SOv[0], which, 1, orig, recompute_norm)) {
-            SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
-            SUMA_RETURN(0);
+         x0->XformType = AFFINE; /* affine */
+         x1->XformType = AFFINE; /* affine */
+         if (!SUMA_ApplyVisXform(SOv[0], "VisX", 
+                                 FORWARD_XFORM, recompute_norm)) {
+               SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
+               SUMA_RETURN(0);
          } 
-         if (!SUMA_ApplyVisXform(SOv[1], which, 1, orig, recompute_norm)) {
+         if (!SUMA_ApplyVisXform(SOv[1], "VisX", 
+                                 FORWARD_XFORM, recompute_norm)) {
             SUMA_S_Err("Failed to apply SUMA_ApplyVisXform");
             SUMA_RETURN(0);
          }
-   }          
+   } else {
+      SUMA_S_Errv("Bad Witch! %s\n", which);
+      SUMA_RETURN(0);
+   }            
    SUMA_RETURN(1);
 }
 
@@ -9345,8 +9466,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    
    if (SO->NodeAreas) SUMA_free(SO->NodeAreas); 
    
-   SUMA_EmptyVisXform(SO->VisX0);
-   SUMA_EmptyVisXform(SO->VisX);
+   SUMA_EmptyVisXform(&(SO->VisX0));
+   SUMA_EmptyVisXform(&(SO->VisX));
    
    if (SO) SUMA_free(SO);
    
@@ -9397,6 +9518,96 @@ SUMA_SO_SIDE SUMA_SideType(char *ss) {
    if (!strcmp(ss,"R")) return(SUMA_RIGHT);
    if (!strcmp(ss,"L")) return(SUMA_LEFT);
    return(SUMA_SIDE_ERROR);
+}
+
+char *SUMA_VisX_XformType2Name(SUMA_VISX_XFORM_TYPE tt)
+{
+   switch (tt) {
+      case ID:
+         return("Identity");
+      case SHIFT:
+         return("Translation");
+      case AFFINE:
+         return("Affine");
+      case DISP:
+         return("Displacement");
+      default:
+         return("Transform Type Unknown");
+   }
+   return("NichtGoot");
+}
+
+char *SUMA_VisX_Info(SUMA_VIS_XFORM VisX, int N_Node, char *mumble) 
+{
+   static char FuncName[]={"SUMA_VisX_Info"};
+   int nn=0;
+   char *s = NULL;
+   DListElmt *el = NULL;
+   SUMA_VIS_XFORM_DATUM *xx=NULL;
+   SUMA_STRING *SS = NULL;
+
+   SUMA_ENTRY;
+   
+   if (!mumble) mumble = "";
+
+   SS = SUMA_StringAppend (NULL, NULL);
+   SS = SUMA_StringAppend_va(SS, 
+                        "%s%d xforms (%p), Applied %d, XformedCoords %p\n",
+                        mumble,
+                           VisX.Xchain?dlist_size(VisX.Xchain):0,
+                           VisX.Xchain, 
+                           VisX.Applied, VisX.XformedCoords);
+   if (VisX.Xchain && dlist_size(VisX.Xchain)) {
+      do {
+         if (!el) el = dlist_head(VisX.Xchain);
+         else el = dlist_next(el);
+         xx = (SUMA_VIS_XFORM_DATUM *)el->data;
+         if (xx->XformType==AFFINE || xx->XformType==SHIFT) {
+            SS = SUMA_StringAppend_va(SS, 
+                                    "   Xform #%d, %s, Type %s\n"
+                                    "       Xform: %.3f %.3f %.3f %.3f \n"
+                                    "              %.3f %.3f %.3f %.3f \n"
+                                    "              %.3f %.3f %.3f %.3f \n"
+                                    "              %.3f %.3f %.3f %.3f \n",
+                        nn, xx->label, SUMA_VisX_XformType2Name(xx->XformType), 
+                        xx->Xform[0][0], xx->Xform[0][1],
+                           xx->Xform[0][2], xx->Xform[0][3],
+                        xx->Xform[1][0], xx->Xform[1][1],
+                           xx->Xform[1][2], xx->Xform[1][3],
+                        xx->Xform[2][0], xx->Xform[2][1],
+                           xx->Xform[2][2], xx->Xform[2][3],
+                        xx->Xform[3][0], xx->Xform[3][1],
+                           xx->Xform[3][2], xx->Xform[3][3]);
+         } else if (xx->XformType==DISP) {
+            SS = SUMA_StringAppend_va(SS, 
+                                    "   Xform #%d, %s, Type %s\n"
+                                    "       Disp: %.3f %.3f %.3f \n"
+                                    "             ... \n"
+                                    "             %.3f %.3f %.3f \n",
+                        nn, xx->label, SUMA_VisX_XformType2Name(xx->XformType), 
+                        N_Node>3 ? xx->dxyz[0]:0.0, 
+                        N_Node>3 ? xx->dxyz[1]:0.0,
+                        N_Node>3 ? xx->dxyz[2]:0.0,
+                        N_Node>3 ? xx->dxyz[3*(N_Node-1)]:0.0, 
+                        N_Node>3 ? xx->dxyz[3*(N_Node-1)+1]:0.0,
+                        N_Node>3 ? xx->dxyz[3*(N_Node-1)+2]:0.0
+                        );
+         } else if (xx->XformType==ID) {
+            SS = SUMA_StringAppend_va(SS, 
+                                    "   Xform #%d, %s, Type %s\n"
+                                    "   Identity\n",
+                        nn, xx->label, SUMA_VisX_XformType2Name(xx->XformType));
+         } else {
+            SS = SUMA_StringAppend_va(SS, 
+                                    "   Xform #%d, %s, Type %s\n"
+                                    "   Bad news\n",
+                        nn, xx->label, SUMA_VisX_XformType2Name(xx->XformType));
+         }
+         ++nn; 
+      } while (el != dlist_tail(VisX.Xchain));
+   }
+   SUMA_SS2S(SS,s);
+   SUMA_RETURN(s);
 }
 
 /*!
@@ -9656,38 +9867,13 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       sprintf (stmp,"RotationWeight: %d, ViewCenterWeight %d\n",  
                      SO->RotationWeight, SO->ViewCenterWeight);
       SS = SUMA_StringAppend (SS,stmp);
-      SS = SUMA_StringAppend_va(SS, "VisX0: Type %d, Applied %d, "
-                                    "XformedCoords %p\n"
-                                    "       Xform: %.3f %.3f %.3f %.3f \n"
-                                    "              %.3f %.3f %.3f %.3f \n"
-                                    "              %.3f %.3f %.3f %.3f \n"
-                                    "              %.3f %.3f %.3f %.3f \n",
-                                     SO->VisX0.XformType, SO->VisX0.Applied,
-                                     SO->VisX0.XformedCoords, 
-                        SO->VisX0.Xform[0][0], SO->VisX0.Xform[0][1],
-                           SO->VisX0.Xform[0][2], SO->VisX0.Xform[0][3],
-                        SO->VisX0.Xform[1][0], SO->VisX0.Xform[1][1],
-                           SO->VisX0.Xform[1][2], SO->VisX0.Xform[1][3],
-                        SO->VisX0.Xform[2][0], SO->VisX0.Xform[2][1],
-                           SO->VisX0.Xform[2][2], SO->VisX0.Xform[2][3],
-                        SO->VisX0.Xform[3][0], SO->VisX0.Xform[3][1],
-                           SO->VisX0.Xform[3][2], SO->VisX0.Xform[3][3]);
-      SS = SUMA_StringAppend_va(SS, "VisX : Type %d, Applied %d, "
-                                    "XformedCoords %p\n"
-                                    "       Xform: %.3f %.3f %.3f %.3f \n"
-                                    "              %.3f %.3f %.3f %.3f \n"
-                                    "              %.3f %.3f %.3f %.3f \n"
-                                    "              %.3f %.3f %.3f %.3f \n",
-                                     SO->VisX.XformType, SO->VisX.Applied,
-                                     SO->VisX.XformedCoords, 
-                        SO->VisX.Xform[0][0], SO->VisX.Xform[0][1],
-                           SO->VisX.Xform[0][2], SO->VisX.Xform[0][3],
-                        SO->VisX.Xform[1][0], SO->VisX.Xform[1][1],
-                           SO->VisX.Xform[1][2], SO->VisX.Xform[1][3],
-                        SO->VisX.Xform[2][0], SO->VisX.Xform[2][1],
-                           SO->VisX.Xform[2][2], SO->VisX.Xform[2][3],
-                        SO->VisX.Xform[3][0], SO->VisX.Xform[3][1],
-                           SO->VisX.Xform[3][2], SO->VisX.Xform[3][3]);
+      s = SUMA_VisX_Info(SO->VisX0, SO->N_Node, "VisX0: ");
+      SS = SUMA_StringAppend_va(SS, s);
+      SUMA_free(s); s = NULL;
+      s = SUMA_VisX_Info(SO->VisX, SO->N_Node, "VisX: ");
+      SS = SUMA_StringAppend_va(SS, s);
+      SUMA_free(s); s = NULL;
+      
       sprintf (stmp,"N_FaceSet: %d, FaceSetDim %d\n", SO->N_FaceSet, 
                      SO->FaceSetDim);
       SS = SUMA_StringAppend (SS,stmp);
@@ -10679,8 +10865,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].NodeNIDOObjects = NULL;
       SO[i].NodeAreas = NULL;
       
-      memset(&(SO[i].VisX0), 0, sizeof(SUMA_VIS_XFORM));
-      memset(&(SO[i].VisX),  0, sizeof(SUMA_VIS_XFORM));
+      SUMA_EmptyVisXform(&(SO[i].VisX0));
+      SUMA_EmptyVisXform(&(SO[i].VisX));
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

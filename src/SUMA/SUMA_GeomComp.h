@@ -258,6 +258,9 @@ SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO,
                SUMA_SurfaceObject *SOref, float max_off, SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, 
                SUMA_SurfaceObject *SOref, float perc_tol, SUMA_COMM_STRUCT *cs);
+SUMA_Boolean SUMA_EquateSurfaceCenters (SUMA_SurfaceObject *SO, 
+                                        SUMA_SurfaceObject *SOref,
+                                        int recompute);
 SUMA_Boolean SUMA_EquateSurfaceAreas(SUMA_SurfaceObject *SO, 
                SUMA_SurfaceObject *SOref, float perc_tol, SUMA_COMM_STRUCT *cs);
 double SUMA_Mesh_Volume(SUMA_SurfaceObject *SO, int *FSI, int N_FaceSet, 
