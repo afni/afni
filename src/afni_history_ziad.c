@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 26, Mar , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Loop variable error in 3DEdge/src/convert.c variable s32buf",
+   "Affected regions in some locations under: case UCHAR and case SSHORT\n"
+ },
+ 
  { 26, Mar , 2013 , ZSS , "suma" , MICRO , TYPE_MODIFY,
    "AlignToExperiment transforms no longer applied to spherical surfaces ",
    "This makes spheres show up better by default in SUMA for prying.\n"
