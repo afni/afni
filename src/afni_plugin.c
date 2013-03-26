@@ -3856,6 +3856,7 @@ ENTRY("PLUTO_dset_redisplay_mode") ;
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
       im3d = GLOBAL_library.controllers[ii] ;
       if( ! IM3D_OPEN(im3d) ) continue ;
+      IM3D_CLEAR_TMASK(im3d) ;
 
       if( ! ISVALID_DSET(dset) ){
          im3d->anat_voxwarp->type = ILLEGAL_TYPE ;
@@ -5289,6 +5290,7 @@ ENTRY("PLUTO_force_redisplay") ;
       if( IM3D_OPEN(im3d) ){
          im3d->anat_voxwarp->type =                       /* 11 Jul 1997 */
             im3d->fim_voxwarp->type = ILLEGAL_TYPE ;
+         IM3D_CLEAR_TMASK(im3d) ;
          AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
       }
    }
