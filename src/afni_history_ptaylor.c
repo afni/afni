@@ -67,6 +67,12 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 25, Mar , 2013 , PT , "3dReHo" , MINOR , TYPE_NEW_OPT,
+   "More voxelwise neighborhood shapes available.",
+   "Voxelwise neighborhoods can be any sphere/radius size, and even\n"
+   "ellipsoidal. Some memory stuff should be better as well.\n"
+},
+
 { 14, Mar , 2013 , PT , "3dProbTrackID" , MINOR , TYPE_MODIFY,
   "List ROI labels near start of *.grid; use floor to get NmNsThr",
   "This allows for more similarity with 3dNetCorr, and might be useful\n"
