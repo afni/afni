@@ -91,6 +91,7 @@ ENTRY("AFNI_func_autothresh_CB") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
+   IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    new_thresh = AFNI_get_autothresh(im3d) ;
    if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
    EXRETURN ;
