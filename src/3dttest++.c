@@ -67,9 +67,13 @@ static unsigned int testA, testB, testAB ;
 #define CENTER_DIFF 1
 #define CENTER_SAME 2
 
+#define CMETH_MEDIAN 1
+#define CMETH_MEAN   2
+
 static int mcov  = 0 ;
 static int nvout = 0 ;
 static int center_code = CENTER_DIFF ;
+static int center_meth = CMETH_MEAN ;    /* 26 Mar 2013 */
 MRI_IMAGE *Axxim=NULL , *Bxxim=NULL ;
 static float *Axx=NULL , *Axx_psinv=NULL , *Axx_xtxinv=NULL ;
 static float *Bxx=NULL , *Bxx_psinv=NULL , *Bxx_xtxinv=NULL ;
@@ -389,6 +393,11 @@ void display_help_menu(void)
       " -center DIFF = Each set will have the means removed separately.\n"
       " -center SAME = The means across both sets will be computed and removed.\n"
       "                (This option only applies to a 2-sample test, obviously.)\n"
+      "\n"
+      " ++ These operations (DIFF or SAME) can be altered slightly by the following:\n"
+      "      -cmeth MEAN   = When centering, subtract the mean.\n"
+      "      -cmeth MEDIAN = When centering, subtract the median.\n"
+      "    (Per the request of the Musical Neuroscientist, AKA Steve Gotts.)\n"
       "\n"
       " ++ The default operation is '-center DIFF'.\n"
       "\n"
@@ -844,6 +853,18 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[nopt],"-debug") == 0 ){  /* 22 Sep 2010 */
        debug++ ; nopt++ ; continue ;
+     }
+
+     /*----- cmeth -----*/
+
+     if( strcmp(argv[nopt],"-cmeth") == 0 ){  /* 26 Mar 2013 */
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+            if( strcasecmp(argv[nopt],"median") == 0 ) center_meth = CMETH_MEDIAN;
+       else if( strcasecmp(argv[nopt],"mean"  ) == 0 ) center_meth = CMETH_MEAN  ;
+       else
+         WARNING_message("Unknown -cmeth option '%s'",argv[nopt]) ;
+       nopt++ ; continue ;
      }
 
      /*----- center -----*/
@@ -2218,8 +2239,12 @@ double GIC_student_t2z( double tt , double dof )
 void TT_centerize(void)
 {
    int jj,kk ; float sum ;
+   int nvv , iv ; float *vv ;
 
    if( center_code == CENTER_NONE ) return ;
+
+   nvv = nval_AAA + nval_BBB ;
+   vv  = (float *)malloc(sizeof(float)*nvv) ;
 
 ENTRY("TT_centerize") ;
 
@@ -2228,15 +2253,17 @@ ENTRY("TT_centerize") ;
    if( center_code != CENTER_SAME || Bxx == NULL || Bxx == Axx ){
 
      for( jj=1 ; jj <= mcov ; jj++ ){
-       for( sum=0.0f,kk=0 ; kk < nval_AAA ; kk++ ) sum += AXX(kk,jj) ;
-       sum /= nval_AAA ;  /* remove mean */
+       for( kk=0 ; kk < nval_AAA ; kk++ ) vv[kk] = AXX(kk,jj) ;
+       if( center_meth == CMETH_MEDIAN ) sum = qmed_float (nval_AAA,vv) ;
+       else                              sum = qmean_float(nval_AAA,vv) ;
        for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,jj) -= sum ;
      }
 
      if( Bxx != NULL & Bxx != Axx ){
        for( jj=1 ; jj <= mcov ; jj++ ){
-         for( sum=0.0f,kk=0 ; kk < nval_BBB ; kk++ ) sum += BXX(kk,jj) ;
-         sum /= nval_BBB ;  /* remove mean */
+         for( kk=0 ; kk < nval_BBB ; kk++ ) vv[kk] = BXX(kk,jj) ;
+         if( center_meth == CMETH_MEDIAN ) sum = qmed_float (nval_BBB,vv) ;
+         else                              sum = qmean_float(nval_BBB,vv) ;
          for( kk=0 ; kk < nval_BBB ; kk++ ) BXX(kk,jj) -= sum ;
        }
      }
@@ -2244,15 +2271,17 @@ ENTRY("TT_centerize") ;
    } else {  /*-- process them together --*/
 
      for( jj=1 ; jj <= mcov ; jj++ ){
-       for( sum=0.0f,kk=0 ; kk < nval_AAA ; kk++ ) sum += AXX(kk,jj) ;
-       for(          kk=0 ; kk < nval_BBB ; kk++ ) sum += BXX(kk,jj) ;
-       sum /= (nval_AAA+nval_BBB) ;
+       for( kk=iv=0 ; kk < nval_AAA ; kk++,iv++ ) vv[iv] = AXX(kk,jj) ;
+       for( kk=0    ; kk < nval_BBB ; kk++,iv++ ) vv[iv] = BXX(kk,jj) ;
+       if( center_meth == CMETH_MEDIAN ) sum = qmed_float (iv,vv) ;
+       else                              sum = qmean_float(iv,vv) ;
        for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,jj) -= sum ;
        for( kk=0 ; kk < nval_BBB ; kk++ ) BXX(kk,jj) -= sum ;
      }
 
    }
 
+   free(vv) ;
    EXRETURN ;
 }
 
