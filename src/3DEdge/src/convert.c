@@ -270,15 +270,15 @@ void ConvertBuffer( void *bufferIn,
       break;
     case FLOAT :
       r32buf = (r32*)bufferIn;
-      for (i=bufferLength; i>0; i--, s32buf++, r32buf++ ) {
-	if ( *r32buf <= 0.0 ) *s32buf = (int)0;
+      for (i=bufferLength; i>0; i--, u32buf++, r32buf++ ) {
+	if ( *r32buf <= 0.0 ) *u32buf = (int)0;
 	else *u32buf = (int)(*r32buf + 0.5);
       }
       break;
     case DOUBLE :
       r64buf = (r64*)bufferIn;
-      for (i=bufferLength; i>0; i--, s32buf++, r64buf++ ) {
-	if ( *r64buf <= 0.0 ) *s32buf = (int)0;
+      for (i=bufferLength; i>0; i--, u32buf++, r64buf++ ) {
+	if ( *r64buf <= 0.0 ) *u32buf = (int)0;
 	else *u32buf = (int)(*r64buf + 0.5);
       }
       break;
