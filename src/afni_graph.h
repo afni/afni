@@ -466,7 +466,7 @@ typedef struct {
           opt_baseline_global_label  ;
    float global_base ;
 
-   MCW_bbox * opt_textgraph_bbox , * opt_baseline_bbox ;    /* 22 Sep 2000 */
+   MCW_bbox *opt_textgraph_bbox , *opt_baseline_bbox ;    /* 22 Sep 2000 */
    int textgraph ;
 
 #ifdef USE_OPTMENUS
@@ -518,6 +518,7 @@ typedef struct {
    int           detrend ;                          /* 05 Dec 2012 */
 
    int           thresh_fade ;                      /* Mar 2013 */
+   MCW_bbox  *opt_tfade_bbox ;
 
 } MCW_grapher ;
 
@@ -709,6 +710,8 @@ extern void GRA_mapmenu_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void GRA_textgraph_CB( Widget , XtPointer , XtPointer ) ;  /* 22 Sep 2000 */
 extern void GRA_baseline_CB ( Widget , XtPointer , XtPointer ) ;  /* 22 Sep 2000 */
+
+extern void GRA_tfade_CB( Widget , XtPointer , XtPointer ) ;  /* Mar 2013 */
 
  /* 07 Aug 2001 */
 extern void GRA_finalize_global_baseline_CB( Widget,
