@@ -305,7 +305,7 @@ if(PRINT_TRACING){
    { XGCValues gcv;
      int ifont ;
      XFontStruct *mfinfo = NULL ;
-     char *xdef ;
+     char *xdef , dashlist[2] = {6,4} ;
 
      gcv.function = GXcopy ;
      dc->myGC     = XCreateGC( dc->display,
@@ -331,6 +331,7 @@ if(PRINT_TRACING){
      }
      XSetForeground(dc->display , dc->myGC , dc->ovc->pixov_darkest ) ;
      XSetBackground(dc->display , dc->myGC , dc->ovc->pixov_brightest ) ;
+     XSetDashes(    dc->display , dc->myGC , 0 , dashlist , 2 ) ;
      dc->myFontStruct = mfinfo ;
    }
 
