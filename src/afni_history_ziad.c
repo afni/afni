@@ -65,6 +65,27 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 26, Mar , 2013 , ZSS , "suma" , MICRO , TYPE_MODIFY,
+   "AlignToExperiment transforms no longer applied to spherical surfaces ",
+   "This makes spheres show up better by default in SUMA for prying.\n"
+ },
+ 
+ { 26, Mar , 2013 , ZSS , "SurfSmooth" , MICRO , TYPE_NEW_OPT,
+   "Added -match_center to force recentering of smoothed surfaces.",
+   "SurfSmooth -help for details\n"
+ },
+ 
+ { 26, Mar , 2013 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
+   "Added option -inflate for automatic creation of semi-inflated surfaces",
+   "See @SUMA_Make_Spec_FS -help for details\n"
+ },
+ 
+ { 25, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Merged handling of CoordBias with Prying, all in VisX",
+   "Lots of annoying little details there. See functions like:\n"
+   "  SUMA_*CoordBias*, SUMA_ApplyVisXform(), and SUMA_Apply_VisX_Chain()\n"
+ },
+ 
  { 22, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Added stippling for line segments DOs, see SUMA's ctrl+h for details.",
    NULL

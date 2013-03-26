@@ -2133,25 +2133,12 @@ SUMA_COLOR_MAP *SUMA_CmapOfPlane (SUMA_OVERLAYS *Sover )
    The last two operations should be carried out once the bias is removed from all surfaces
    to which they'd been applied. In this case it will be in SUMA_RemoveCoordBias
    This function should not be called directly, only from SUMA_RemoveCoordBias
-
- WARNING: All CoordBias should now be done via the VisX transform. There you 
- should have the potential for stringing together multiple xforms, a list 
- perhaps, where you can have explicit warps, as well as affine one that 
- get applied and reversed in series.
- 
- Applying and remove CoordBias would involve modifying the VisX content then
- recomputing needed coords and applying flags to indicate VisX mode.
- For now, this is broken
- 
- SW_CoordBias_N cannot rely on existing SO->NodeNormList because this one
- gets recomputed for changing VisX, so you should always recompute the normals
- from the original NodeList before you add or subtract a bias.
-
 */
 SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
 {
    static char FuncName[]={"SUMA_RemoveSO_CoordBias"};
    int i, i3, x_i3;
+   SUMA_VIS_XFORM_DATUM *x0=NULL;
       
    SUMA_ENTRY;
    
@@ -2160,62 +2147,23 @@ SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
       SUMA_RETURN(NOPE);    
    }
    
-   SUMA_VisX_Pointers4Display(SO, 1);
-   x_i3 = 3*SO->N_Node;
-   if (ovr->OptScl->BiasVect) { /* something to be removed */
-      switch (ovr->OptScl->DoBias) {
-         case SW_CoordBias_X:
-            /* Remove X bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i];
-               if (i3 < x_i3) SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
-            }
-            break;
-         case SW_CoordBias_Y:
-            /* Remove Y bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i]+1;
-               if (i3 < x_i3) SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
-            }
-            break;
-         case SW_CoordBias_Z:
-            /* Remove Z bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i]+2;
-               if (i3 < x_i3) SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
-            }
-            break;
-         case SW_CoordBias_N:
-            /* Remove Normal bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i];
-               if (i3 < x_i3) {
-                  SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
-                                       SO->NodeNormList[i3]; ++i3; 
-                  SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
-                                       SO->NodeNormList[i3]; ++i3; 
-                  SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
-                                       SO->NodeNormList[i3];  
-               }
-            }
-            break;
-         default:
-            SUMA_SL_Err("This should not be");
-            SUMA_RETURN(NOPE);
-      }
-   } else {
-      SUMA_SL_Err("DO not call me with no bias!");
-      SUMA_RETURN(NOPE);
-   }
-
+   /* get the coord bias displacement transform */
+         /*This function gets called by default before there is a change in 
+           CoordBias, so make sure you add one if none existed */ 
+   x0 = SUMA_Fetch_VisX_Datum ("CoordBias", SO->VisX.Xchain, 
+                               ADD_BEFORE, "Prying");
    
-   /* Update surface geometry properties */
-   SUMA_NewSurfaceGeometry(SO);
-
-   SUMA_VisX_Pointers4Display(SO, 0);
+   /* free the displacement vector if it is allocated */
+   if (x0->XformType != DISP) {
+      SUMA_S_Warn("Did not expect CoordBias xform to be != displacement");
+   }
+   x0->XformType = ID; 
+   if (x0->dxyz) SUMA_free(x0->dxyz);
+   x0->dxyz = NULL;
    
    SUMA_RETURN(YUP);
 }
+
 
 /* Removes pre-existing bias to old dimension 
    Add same bias to BiasDim dimension
@@ -2236,17 +2184,93 @@ SUMA_Boolean SUMA_TransferCoordBias(SUMA_OVERLAYS *ovr,
       if (SUMA_isSO(SUMAg_DOv[iso])) {
          SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
          if (SUMA_isOverlayOfSO(SO, ovr)) {
+            SUMA_LH("Setting bias flag");
+            ovr->OptScl->DoBias = BiasDim;
             SUMA_TransferSO_CoordBias(SO, ovr, BiasDim);   
          } 
       }
    }
 
-   SUMA_LH("Setting bias flag");
-   ovr->OptScl->DoBias = BiasDim;
 
    SUMA_RETURN(YUP);
 
 }
+
+SUMA_Boolean SUMA_AddVisX_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr,
+                                      SUMA_WIDGET_INDEX_COORDBIAS BiasDim, 
+                                      float *BiasVect) 
+{   
+   static char FuncName[]={"SUMA_AddVisX_CoordBias"};
+   int m_i, m_i3, mx_i3 = 3*SO->N_Node; 
+   SUMA_VIS_XFORM_DATUM *x0=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+
+   /* if CoordBias is to be added, it should be before Prying */
+   x0 = SUMA_Fetch_VisX_Datum ("CoordBias", SO->VisX.Xchain, 
+                               ADD_BEFORE, "Prying");
+   if (!x0) {
+      SUMA_S_Err("Did not expect to fail here");
+      SUMA_RETURN(NOPE);
+   }
+
+   /* Now compute the bias, I expect normals to be correctly
+      set at this stage */
+   if (!x0->dxyz) {
+      if (!(x0->dxyz = 
+            (float *)SUMA_calloc(SO->N_Node*SO->NodeDim, sizeof(float)))){
+         SUMA_S_Crit("Failed to allocate for coord bias!");
+         SUMA_RETURN(NOPE);
+      }  
+   }
+   x0->XformType = DISP;
+   
+   
+   switch (BiasDim) {   
+      case SW_CoordBias_X: 
+         /* Add X bias */  
+         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   
+            m_i3 = 3*ovr->NodeDef[m_i]; 
+            if (m_i3 < mx_i3) x0->dxyz[m_i3] = BiasVect[m_i];   
+         }  
+         break;   
+      case SW_CoordBias_Y: 
+         /* Add Y bias */  
+         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   
+            m_i3 = 3*ovr->NodeDef[m_i]+1;  
+            if (m_i3 < mx_i3) x0->dxyz[m_i3] = BiasVect[m_i];   
+         }  
+         break;   
+      case SW_CoordBias_Z: 
+         /* Add Z bias */  
+         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   
+            m_i3 = 3*ovr->NodeDef[m_i]+2;  
+            if (m_i3 < mx_i3) x0->dxyz[m_i3] = BiasVect[m_i];   
+         }  
+         break;   
+      case SW_CoordBias_N: 
+         /* Add Normal bias */   
+         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   
+            m_i3 = 3*ovr->NodeDef[m_i]; 
+            if (m_i3 < mx_i3) {  
+               x0->dxyz[m_i3] = BiasVect[m_i] * SO->NodeNormList[m_i3];  
+                                                                     ++m_i3;  
+               x0->dxyz[m_i3] = BiasVect[m_i] * SO->NodeNormList[m_i3];  
+                                                                     ++m_i3;  
+               x0->dxyz[m_i3] = BiasVect[m_i] * SO->NodeNormList[m_i3];  
+            }  
+         }  
+         break;  
+      default: 
+         SUMA_SL_Err("This should not be.\nWhy, oh why ?"); 
+   }  
+      
+   
+   SUMA_RETURN(YUP);
+}  
+
 
 /*!
    Single surface version of SUMA_TransferCoordBias DO NOT CALL THIS FUNCTION OUTSIDE OF SUMA_TransferCoordBias
@@ -2260,105 +2284,28 @@ SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO,
       
    SUMA_ENTRY;
    
-   SUMA_LH("Called");
+   SUMA_LHv("Called overlay %p, (%p)\n", ovr, ovr->OptScl->BiasVect);
    
    
    if (ovr->OptScl->BiasVect) {
       SUMA_LH("Removing old bias"); 
-      /* Remove old bias */
-      switch (ovr->OptScl->DoBias) {
-         case SW_CoordBias_X:
-            /* Remove X bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i];
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
-            }
-            break;
-         case SW_CoordBias_Y:
-            /* Remove Y bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i]+1;
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
-            }
-            break;
-         case SW_CoordBias_Z:
-            /* Remove Z bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i]+2;
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
-            }
-            break;
-         case SW_CoordBias_N:
-            /* Remove Normal bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i];
-               SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
-                                    SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
-                                    SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] -=  ovr->OptScl->BiasVect[i] * 
-                                    SO->NodeNormList[i3];  
-            }
-            break;
-         default:
-            SUMA_SL_Err("This should not be");
-            SUMA_RETURN(NOPE);
-      }
+      
+      SUMA_RemoveSO_CoordBias(SO, ovr);
+      
       SUMA_LH("Adding new bias");
       
-      #if 0
       /* Add same bias to other direction */
-      switch (BiasDim) {
-         case SW_CoordBias_X:
-            /* Add X bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i];
-               SO->NodeList[i3] += ovr->OptScl->BiasVect[i];
-            }
-            break;
-         case SW_CoordBias_Y:
-            /* Add Y bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i]+1;
-               SO->NodeList[i3] += ovr->OptScl->BiasVect[i];
-            }
-            break;
-         case SW_CoordBias_Z:
-            /* Add Z bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i]+2;
-               SO->NodeList[i3] += ovr->OptScl->BiasVect[i];
-            }
-            break;
-         case SW_CoordBias_N:
-            /* Add Normal bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i];
-               SO->NodeList[i3] +=  ovr->OptScl->BiasVect[i] * 
-                                    SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] +=  ovr->OptScl->BiasVect[i] * 
-                                    SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] +=  ovr->OptScl->BiasVect[i] *    
-                                    SO->NodeNormList[i3];  
-            }
-            break;
-         default:
-            SUMA_SL_Err("This should not be.\nWhy, oh why ?");
-            SUMA_RETURN(NOPE);
-      }
-      #else 
-      /* Add same bias to other direction */
-      SUMA_ADD_COORD_BIAS_VECT(SO, ovr, BiasDim, ovr->OptScl->BiasVect);
-      #endif
+      SUMA_AddVisX_CoordBias(SO, ovr, BiasDim, ovr->OptScl->BiasVect);
    }
    
-   /* Update surface geometry properties */
-   SUMA_NewSurfaceGeometry(SO);
    SUMA_RETURN(YUP);
 }
 
+
 /*!
-   Function called when a surface's geometry is changed (currently due to a change in the CoordBias)
+   Function called when a surface's geometry is changed 
+   (Used to be called due to a change in the CoordBias,
+   that is no longer needed with CoordBias handled through VisX)
 */
 SUMA_Boolean SUMA_NewSurfaceGeometry(SUMA_SurfaceObject *SO)
 {
@@ -2370,7 +2317,6 @@ SUMA_Boolean SUMA_NewSurfaceGeometry(SUMA_SurfaceObject *SO)
    
    /* first recompute the bounding box of the surface */
    /* Calculate Min, Max, Mean */
-   
    SUMA_MIN_MAX_SUM_VECMAT_COL ( SO->NodeList, SO->N_Node, SO->NodeDim, 
                                  SO->MinDims, SO->MaxDims, SO->Center);
      
@@ -2432,60 +2378,16 @@ SUMA_Boolean SUMA_SetSO_CoordBias(  SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, 
    }
    /* Now add the new one */
    if (NewBias) {
-      #if 0
-      switch (BiasDim) {
-         case SW_CoordBias_X:
-            /* Add X bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i];
-               SO->NodeList[i3] += NewBias[i];
-            }
-            break;
-         case SW_CoordBias_Y:
-            /* Add Y bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i]+1;
-               SO->NodeList[i3] += NewBias[i];
-            }
-            break;
-         case SW_CoordBias_Z:
-            /* Add Z bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i]+2;
-               SO->NodeList[i3] += NewBias[i];
-            }
-            break;
-         case SW_CoordBias_N:
-            /* Add Normal bias */
-            for (i=0; i < ovr->N_NodeDef; ++i) {
-               i3 = 3*ovr->NodeDef[i];
-               SO->NodeList[i3] += NewBias[i] * SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] += NewBias[i] * SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] += NewBias[i] * SO->NodeNormList[i3];  
-            }
-            break;
-         case SW_CoordBias_None:
-            /* That should not be if NewBias is not NULL */
-            SUMA_SL_Err("Why are you calling me with SW_CoordBias_None and a non-null NewBias?");
-            SUMA_RETURN(NOPE);
-            break;
-         default:
-            SUMA_SL_Err("This should not be.\nNot at all.");
-            SUMA_RETURN(NOPE); 
-      }
-      #else
       /* Add bias to  direction */
-      SUMA_ADD_COORD_BIAS_VECT(SO, ovr, BiasDim, NewBias);
-      #endif  
-
+      SUMA_LH("Adding VisX  NewBias");
+      SUMA_AddVisX_CoordBias(SO, ovr, BiasDim, NewBias);
    } else {/* nothing to add (0 bias)*/
-
+      SUMA_LH("NULL NewBias");
    }
 
-   /* Update surface geometry properties */
-   SUMA_NewSurfaceGeometry(SO);
    SUMA_RETURN(YUP);   
 }
+
 
 /*!
    Sets the coordinate bias for surfaces using a particular overlay plane
@@ -2493,14 +2395,17 @@ SUMA_Boolean SUMA_SetSO_CoordBias(  SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, 
    DO NOT CALL THIS FUNCTION IF ovr->NodeDef has been modified, otherwise  SUMA_RemoveSO_CoordBias will fail
 */
 
-SUMA_Boolean SUMA_SetCoordBias(SUMA_OVERLAYS *ovr, float *NewBias, SUMA_WIDGET_INDEX_COORDBIAS BiasDim)
+SUMA_Boolean SUMA_SetCoordBias(SUMA_OVERLAYS *ovr, 
+                        float *NewBias, SUMA_WIDGET_INDEX_COORDBIAS BiasDim)
 {
    static char FuncName[]={"SUMA_SetCoordBias"};
    int i, i3, iso;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
    
+   SUMA_LH("Called");
    if (!ovr) SUMA_RETURN(YUP);
    
    if (ovr->OptScl->BiasVect ) {
@@ -2509,18 +2414,20 @@ SUMA_Boolean SUMA_SetCoordBias(SUMA_OVERLAYS *ovr, float *NewBias, SUMA_WIDGET_I
          SUMA_RETURN(NOPE);
    }
    
+   ovr->OptScl->BiasVect = NewBias;   
+   ovr->OptScl->DoBias = BiasDim;
    for (iso=0; iso<SUMAg_N_DOv; ++iso) {
       if (SUMA_isSO(SUMAg_DOv[iso])) {
          SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
          if (SUMA_isOverlayOfSO(SO, ovr)) {
             SUMA_LH(SO->Label);
+            SUMA_ApplyVisXform(SO, "VisX", UNDO_XFORM, 1);
             SUMA_SetSO_CoordBias(SO, ovr, NewBias, BiasDim);   
+            SUMA_ApplyVisXform(SO, "VisX", FORWARD_XFORM, 1);
          } 
       }
    }
 
-   ovr->OptScl->BiasVect = NewBias;   
-   ovr->OptScl->DoBias = BiasDim;
 
    SUMA_RETURN(YUP);
 }
@@ -2540,7 +2447,8 @@ SUMA_Boolean SUMA_RemoveCoordBias(SUMA_OVERLAYS *ovr)
             SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
             if (SUMA_isOverlayOfSO(SO, ovr)) {
                SUMA_LH(SO->Label);
-               SUMA_RemoveSO_CoordBias(SO, ovr);     
+               SUMA_ApplyVisXform(SO, "VisX", UNDO_XFORM, 1);
+               SUMA_RemoveSO_CoordBias(SO, ovr); 
             } 
          }
       }
@@ -7242,10 +7150,10 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay,
          SUMA_SL_Err("New overlay plane cannot have coordinate bias.\n"
                      "Not yet at least.\n");
          /* If you want to support this feature, 
-            you'll have to call SUMA_ADD_COORD_BIAS_VECT
+            you'll have to call SUMA_AddVisX_CoordBias
             on any surface the plane gets assigned to. 
             That means SO and SO2 below.
-            Search for macro SUMA_ADD_COORD_BIAS_VECT in 
+            Search for SUMA_AddVisX_CoordBias in 
             SUMA_SwitchState in file SUMA_Engine.c
             for the example */
          SUMA_RETURN(NOPE);

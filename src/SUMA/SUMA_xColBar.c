@@ -2097,15 +2097,20 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
    SUMA_MenuCallBackData *datap=NULL;
    int imenu;
    SUMA_SurfaceObject *SO = NULL;
+   SUMA_VIS_XFORM_DATUM *x0=NULL;
    SUMA_Boolean NewDisp = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
    SO = (SUMA_SurfaceObject *)datap->ContID;
    imenu = (INT_CAST)datap->callback_data; 
+
+   /* if CoordBias is to be added, it should be before Prying */
+   x0 = SUMA_Fetch_VisX_Datum ("CoordBias", SO->VisX.Xchain, 
+                               ADD_BEFORE, "Prying");
+
    NewDisp = NOPE;
    switch (imenu) {
       case SW_CoordBias_None:

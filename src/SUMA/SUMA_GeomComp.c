@@ -2664,7 +2664,9 @@ SUMA_Boolean SUMA_EquateSurfaceAreas(
    - This function does not update the normals and other coordinate related properties for SO.
    \sa SUMA_RECOMPUTE_NORMALS 
 */
-SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float tol, SUMA_COMM_STRUCT *cs)
+SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, 
+                                       SUMA_SurfaceObject *SOref, 
+                                       float tol, SUMA_COMM_STRUCT *cs)
 {
    static char FuncName[]={"SUMA_EquateSurfaceVolumes"};
    int iter, i, iter_max, ndiv;
@@ -2687,7 +2689,7 @@ SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObjec
                            " SOref Center: %f, %f, %f\n"
                            , FuncName, 
                            SO->Center[0], SO->Center[1], SO->Center[2],
-                           SOref->Center[0], SOref->Center[1], SOref->Center[2]);  
+                           SOref->Center[0], SOref->Center[1], SOref->Center[2]);
    }
      
    /* fill up fdata */
@@ -2712,6 +2714,54 @@ SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObjec
    /* now make the new node list be SO's thingy*/
    SUMA_free(SO->NodeList); SO->NodeList = fdata.tmpList; fdata.tmpList = NULL;
        
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_EquateSurfaceCenters (SUMA_SurfaceObject *SO, 
+                                        SUMA_SurfaceObject *SOref,
+                                        int recompute)
+{
+   static char FuncName[]={"SUMA_EquateSurfaceCenters"};
+   float d[3];
+   int i, i3;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO || !SOref) { SUMA_SL_Err("NULL surfaces"); SUMA_RETURN(NOPE); }
+   if (recompute > 0) {/* recompute center of SO */
+      SUMA_MIN_MAX_SUM_VECMAT_COL ( SO->NodeList, SO->N_Node, 
+                                    SO->NodeDim,  SO->MinDims, 
+                                    SO->MaxDims,  SO->Center );
+      SO->Center[0] /= SO->N_Node;
+      SO->Center[1] /= SO->N_Node;
+      SO->Center[2] /= SO->N_Node;
+   }
+   if (recompute > 1) {/* recompute center of SOref */
+      SUMA_MIN_MAX_SUM_VECMAT_COL ( SOref->NodeList, SOref->N_Node, 
+                                    SOref->NodeDim,  SOref->MinDims, 
+                                    SOref->MaxDims,  SOref->Center );
+      SOref->Center[0] /= SOref->N_Node;
+      SOref->Center[1] /= SOref->N_Node;
+      SOref->Center[2] /= SOref->N_Node;
+   }
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, "%s:\n"
+                           " SO    Center: %f, %f, %f\n"
+                           " SOref Center: %f, %f, %f\n"
+                           , FuncName, 
+                           SO->Center[0], SO->Center[1], SO->Center[2],
+                           SOref->Center[0], SOref->Center[1], SOref->Center[2]);
+   }
+   for (i=0; i<3; ++i) d[i] = SO->Center[i] - SOref->Center[i];
+   for (i=0; i<SO->N_Node; ++i) {
+      i3 = SO->NodeDim*i;
+      SO->NodeList[i3  ] -= d[0];
+      SO->NodeList[i3+2] -= d[1];
+      SO->NodeList[i3+3] -= d[2];
+   }
+   for (i=0; i<3; ++i) SO->Center[i] = SOref->Center[i];
+   
    SUMA_RETURN(YUP);
 }
 

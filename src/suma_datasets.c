@@ -12508,9 +12508,10 @@ char *SUMA_help_basics()
    
    SS = SUMA_StringAppend(NULL, NULL);
    SS = SUMA_StringAppend_va(SS,
-      "   [-novolreg|-noxform]: Ignore any Rotate, Volreg, Tagalign, \n"
+      "   [-novolreg]: Ignore any Rotate, Volreg, Tagalign, \n"
       "                or WarpDrive transformations present in \n"
       "                the Surface Volume.\n"
+      "   [-noxform]: Same as -novolreg\n"
       "   [-setenv \"'ENVname=ENVvalue'\"]: Set environment variable ENVname\n"
       "                to be ENVvalue. Quotes are necessary.\n"
       "             Example: suma -setenv \"'SUMA_BackgroundColor = 1 0 1'\"\n"
