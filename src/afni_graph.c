@@ -772,7 +772,7 @@ ENTRY("new_MCW_grapher") ;
 
    /* 22 Sep 2000: Text toggle */
 
-   { static char * bbox_label[1] = { "Show Text? [t]" } ;
+   { static char *bbox_label[1] = { "Show Text?   [t]" } ;
 
     grapher->opt_textgraph_bbox =
          new_MCW_bbox( grapher->opt_menu ,
@@ -783,6 +783,21 @@ ENTRY("new_MCW_grapher") ;
                           "Display text, not graphs" ) ;
 
     grapher->textgraph = 0 ;
+   }
+
+   /* Mar 2013: thresh fade toggle  */
+
+   { static char *bbox_label[1] = { "Thresh Fade? [F]" } ;
+
+    grapher->opt_tfade_bbox =
+         new_MCW_bbox( grapher->opt_menu ,
+                       1 , bbox_label , MCW_BB_check , MCW_BB_noframe ,
+                       GRA_tfade_CB , (XtPointer)grapher ) ;
+
+    MCW_reghint_children( grapher->opt_tfade_bbox->wrowcol ,
+                          "Fade out below-threshold voxel sub-graphs" ) ;
+
+    grapher->thresh_fade = 0 ;
    }
 
    MENU_SLINE(opt_menu) ;
@@ -1122,6 +1137,7 @@ STATUS("destroying bboxes") ;
 
    myXtFree( grapher->opt_baseline_bbox ) ;      /* 07 Aug 2001 */
    myXtFree( grapher->opt_textgraph_bbox ) ;
+   myXtFree( grapher->opt_tfade_bbox ) ;
 
 STATUS("freeing cen_tsim") ;
    mri_free( grapher->cen_tsim ) ;
@@ -3747,6 +3763,7 @@ STATUS(str); }
 
       case 'F':
         grapher->thresh_fade = !grapher->thresh_fade ;
+        MCW_set_bbox( grapher->opt_tfade_bbox , grapher->thresh_fade ) ;
         redraw_graph( grapher , 0 ) ;
       break ;
 
@@ -6018,6 +6035,27 @@ ENTRY("GRA_textgraph_CB") ;
    bbb = MCW_val_bbox( grapher->opt_textgraph_bbox ) ;
    if( bbb != grapher->textgraph ){
      grapher->textgraph = bbb ;
+     redraw_graph( grapher , 0 ) ;
+   }
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------
+   Mar 2013: thresh fade toggle
+------------------------------------------------------------------------------*/
+
+void GRA_tfade_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   MCW_grapher *grapher = (MCW_grapher *)client_data ;
+   int bbb ;
+
+ENTRY("GRA_tfade_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
+
+   bbb = MCW_val_bbox( grapher->opt_tfade_bbox ) ;
+   if( bbb != grapher->thresh_fade ){
+     grapher->thresh_fade = bbb ;
      redraw_graph( grapher , 0 ) ;
    }
    EXRETURN ;
