@@ -2100,11 +2100,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             sv->Ch->c[2]= EngineData->fv3[2];
 
             /* are we in VisX mode? */
-            if (SO &&
-                SO->VisX.Applied && SO->VisX.XformType > 0 &&
-                                    SO->VisX.XformType <=2) { /* undo the VisX */
-               SUMA_Apply_Coord_xform( EngineData->fv3,1,3, 
-                                       SO->VisX.Xform, 1,NULL);
+            if (SO && SO->VisX.Applied) { /* undo the VisX */
+               SUMA_Apply_VisX_Chain(EngineData->fv3, 1, SO->VisX.Xchain, 1);
                sv->Ch->c_noVisX[0]= EngineData->fv3[0]; 
                sv->Ch->c_noVisX[1]= EngineData->fv3[1]; 
                sv->Ch->c_noVisX[2]= EngineData->fv3[2];
@@ -4592,30 +4589,38 @@ SUMA_Boolean SUMA_GetOverlaysFromParent(SUMA_SurfaceObject *SO_nxt, SUMA_Surface
       SUMA_RETURN(NOPE);
    }
 
-   /* Create a link to each overlay plane in the precursor unless such a plane exists already  */
+   /* Create a link to each overlay plane in the precursor unless 
+      such a plane exists already  */
    for (j=0; j < SO_prec->N_Overlays; ++j) {
-      if (!SUMA_Fetch_OverlayPointer (SO_nxt->Overlays, SO_nxt->N_Overlays, SO_prec->Overlays[j]->Name, &OverInd)) {
+      if (!SUMA_Fetch_OverlayPointer (SO_nxt->Overlays, 
+               SO_nxt->N_Overlays, SO_prec->Overlays[j]->Name, &OverInd)) {
          /* plane not found, create a link to it */
-         if (LocalHead) fprintf (SUMA_STDERR,"Local Debug %s: Overlay plane %s not found, creating the link.\n", FuncName, SO_prec->Overlays[j]->Name);
-         SO_nxt->Overlays[SO_nxt->N_Overlays] = (SUMA_OVERLAYS *)SUMA_LinkToPointer((void*)SO_prec->Overlays[j]);
+         SUMA_LHv("Overlay plane %s not found, creating the link.\n", 
+                  SO_prec->Overlays[j]->Name);
+         SO_nxt->Overlays[SO_nxt->N_Overlays] = 
+               (SUMA_OVERLAYS *)SUMA_LinkToPointer((void*)SO_prec->Overlays[j]);
          /* it happens at times, that an overlay carries coordinate bias with it. 
          When that happens, the bias should be added immediately */
          if (SO_nxt->Overlays[SO_nxt->N_Overlays]->OptScl) {
             if (SO_nxt->Overlays[SO_nxt->N_Overlays]->OptScl->BiasVect) {
                SUMA_LH("Adding coordbias");
-               SUMA_ADD_COORD_BIAS_VECT(  SO_nxt,
-                                          SO_nxt->Overlays[SO_nxt->N_Overlays], 
-                                          SO_nxt->Overlays[SO_nxt->N_Overlays]->OptScl->DoBias, 
-                                          SO_nxt->Overlays[SO_nxt->N_Overlays]->OptScl->BiasVect);
-               /* Update surface geometry properties */
-               SUMA_NewSurfaceGeometry(SO_nxt);
+               SUMA_AddVisX_CoordBias(  SO_nxt,
+                     SO_nxt->Overlays[SO_nxt->N_Overlays],
+                     SO_nxt->Overlays[SO_nxt->N_Overlays]->OptScl->DoBias,
+                     SO_nxt->Overlays[SO_nxt->N_Overlays]->OptScl->BiasVect);
+               /* Apply the business */
+               if (!SUMA_ApplyVisXform(SO_nxt, "VisX", 
+                                       FORWARD_XFORM, 1)) {
+                  SUMA_S_Warn("Failed to apply VisX transform");
+               }
             }
          }
          /*increment the number of overlay planes */
          ++SO_nxt->N_Overlays;
       } else {
          /* plane found, do nothing */
-         if (LocalHead) fprintf (SUMA_STDERR,"Local Debug %s: Overlay plane %s found. Index#%d\n.", FuncName, SO_prec->Overlays[j]->Name, OverInd);
+         SUMA_LHv("Overlay plane %s found. Index#%d\n.", 
+                  SO_prec->Overlays[j]->Name, OverInd);
       }
    }   
 
@@ -4699,9 +4704,13 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    } else if (N_RegSO == 2) {
       SO1 = (SUMA_SurfaceObject *)dov[RegSO[0]].OP;
       SO2 = (SUMA_SurfaceObject *)dov[RegSO[1]].OP;
-      if (!SUMA_ComputeVisX(SO1, SO2, sv, 0, 1, 1)) {
-         SUMA_S_Err("Failed to compute or apply overlap avoidance xform");
-         SUMA_RETURN(NOPE);
+      SUMA_LHv("Computing separation for %s and %s\n",
+         SO1->Label, SO2->Label);
+      if (!SO1->VisX0.Applied || !SO2->VisX0.Applied) {
+         if (!SUMA_ComputeVisX(SO1, SO2, sv, "VisX0",1)) {
+            SUMA_S_Err("Failed to compute or apply overlap avoidance xform");
+            SUMA_RETURN(NOPE);
+         }
       }
    }
    

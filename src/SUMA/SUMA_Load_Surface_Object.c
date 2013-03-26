@@ -4736,12 +4736,23 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
             break;
          case SUMA_GIFTI:
             if (SO->aSO) {
-               cc = SUMA_NI_AttrOfNamedElement( SO->aSO, 
-                                                "Node_XYZ", "GeometricType");
-               if (SUMA_iswordsame_ci(cc,"spherical")) {
-                  isSphere = SUMA_GEOM_SPHERE;
+               if ((cc = SUMA_NI_AttrOfNamedElement( SO->aSO, 
+                                                "Node_XYZ", "GeometricType"))) {
+                  if (SUMA_iswordsame_ci(cc,"spherical")) {
+                     isSphere = SUMA_GEOM_SPHERE;
+                  }
+               } else {
+                  if (  SUMA_iswordin_ci (SO->Name.FileName, "sphere.reg") == 1 
+                      ||SUMA_iswordin (SO->Name.FileName, "sphere") == 1   ) {
+                     isSphere = SUMA_GEOM_SPHERE;
+                  } 
                }
-            } 
+            } else {
+               if (  SUMA_iswordin_ci (SO->Name.FileName, "sphere.reg") == 1 
+                      ||SUMA_iswordin (SO->Name.FileName, "sphere") == 1   ) {
+                     isSphere = SUMA_GEOM_SPHERE;
+               } 
+            }
             break; 
      } 
       

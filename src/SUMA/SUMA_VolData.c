@@ -856,7 +856,13 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
       /* you can also use the more generic :
          SUMA_is_Flat_Surf_Coords_PCA(SO->NodeList, SO->N_Node, 0.001, 0.01)
          but that one's slower */
-      SUMA_LH("This one's flat\n");
+      SUMA_LH("This one is flat\n");
+      SO->APPLIED_A2Exp_XFORM = NO_WARP;
+      SUMA_RETURN(YUP);
+   }
+   if (SO->isSphere == SUMA_GEOM_NOT_SET) SUMA_SetSphereParams(SO, -0.1); 
+   if (SUMA_IS_GEOM_SYMM(SO->isSphere)) { /* March 2013 */
+      SUMA_LH("This one is a ball\n");
       SO->APPLIED_A2Exp_XFORM = NO_WARP;
       SUMA_RETURN(YUP);
    }

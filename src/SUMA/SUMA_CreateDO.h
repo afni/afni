@@ -48,9 +48,12 @@ SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM,
 SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void);
 void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM);
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *csv);
-int SUMA_EmptyVisXform(SUMA_VIS_XFORM vx);
-int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, int which, 
-                       int direction, int xform_orig, int recompute_norm);
+SUMA_VIS_XFORM_DATUM *SUMA_NewVisXdatum(char *label);
+void SUMA_FreeVisXdatum (void *vxd);
+
+int SUMA_EmptyVisXform(SUMA_VIS_XFORM *vx);
+int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, char *which, 
+       SUMA_VISX_XFORM_DIRECTIONS direction, int recompute_norm);
 float *SUMA_VisX_CoordPointer(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_VisX_Pointers4Display(SUMA_SurfaceObject *SO, int fordisp);
 int SUMA_AllowPrying(SUMA_SurfaceViewer *sv, int *RegSO);
@@ -62,8 +65,7 @@ int SUMA_LeftShownOnLeft(SUMA_SurfaceViewer *sv,
                          SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
                          int useParents, int applyViewingXform);
 int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, 
-                     SUMA_SurfaceViewer *csv, int which, int orig,
-                     int recompute_norm);
+                     SUMA_SurfaceViewer *csv, char *which, int recompute_norm );
 char *SUMA_SO_AnatomicalStructurePrimary(SUMA_SurfaceObject *SO);
 char *SUMA_SO_GeometricType(SUMA_SurfaceObject *SO);
 char *SUMA_SO_AnatomicalStructureSecondary(SUMA_SurfaceObject *SO);
@@ -77,7 +79,8 @@ SUMA_SO_SIDE SUMA_SideType(char *s);
 SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
 SUMA_VolumeObject *SUMA_FreeVolumeObject(SUMA_VolumeObject *VO);
 void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
-
+char *SUMA_VisX_XformType2Name(SUMA_VISX_XFORM_TYPE tt);
+char *SUMA_VisX_Info(SUMA_VIS_XFORM VisX, int N_Node, char *mumble);
 char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList);
 SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N);
 int SUMA_NumVE(SUMA_VolumeObject *VO);

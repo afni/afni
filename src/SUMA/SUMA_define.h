@@ -153,6 +153,7 @@ SUMA_INSIDE_SURFACE } SUMA_SURF_GRID_INTERSECT_OPTIONS;
 typedef enum { SUMA_GEOM_NOT_SET=-1, SUMA_GEOM_IRREGULAR = 0,    
                SUMA_GEOM_SPHERE = 1, SUMA_GEOM_ICOSAHEDRON, 
                SUMA_N_GEOM } SUMA_GEOM_TYPE;
+
 #define SUMA_IS_GEOM_SYMM(gt) ( ( (gt) == SUMA_GEOM_SPHERE || (gt) == SUMA_GEOM_ICOSAHEDRON ) ? 1:0 ) 
 
 typedef enum  { SUMA_NO_ANSWER, SUMA_YES, SUMA_NO, SUMA_HELP, SUMA_CANCEL, SUMA_YES_ALL, SUMA_NO_ALL, SUMA_WHAT_THE_HELL } SUMA_QUESTION_DIALOG_ANSWER; /* DO NOT CHANGE THE ORDER OF THE FIRST 4 */
@@ -2238,11 +2239,22 @@ typedef struct {
 } SUMA_OVERLAY_LIST_DATUM;   /*!< a structure used to create linked lists 
                                   of SO->Overlays and co */ 
 
+typedef enum {  ADD_BEFORE=-1, ADD_NOT=0, ADD_AFTER=1 } SUMA_VISX_ADD_POSITIONS;
+typedef enum {  UNDO_XFORM=0, FORWARD_XFORM=1 } SUMA_VISX_XFORM_DIRECTIONS;
+typedef enum {  ID=0, SHIFT=1, AFFINE=2, DISP=3 } SUMA_VISX_XFORM_TYPE;
+
+typedef struct {
+   SUMA_VISX_XFORM_TYPE XformType; 
+                     /*!< Is it identity (0), shift (1), or affine (2), 
+                        (3) displacement field*/
+   double Xform[4][4]; /*!< The augmented affine transform */
+   float *dxyz;   /* displacement field, only set with XformType == 4 */
+   char label[64]; /* some string identifier */
+} SUMA_VIS_XFORM_DATUM;
 
 /*! Structure for defining spatial transformations for visualization purposes */
 typedef struct {
-   int XformType; /*!< Is it identity (1), shift (2), or affine (3) */
-   double Xform[4][4]; /*!< The augmented affine transform */
+   DList *Xchain;
    int Applied; /*!< Xform has been applied to coords */
    float *XformedCoords; /*!< Tranformed coords. If NULL and XformApplied, 
                               it means the results of the transform have
