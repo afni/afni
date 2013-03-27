@@ -39,6 +39,25 @@ examples (very basic for now):
                     -write t2.1D
          diff t1.1D t2.1D
 
+   2b. Select or remove columns by label prefixes.
+
+       Keep only bandpass columns:
+
+         1d_tool.py -infile X.xmat.1D -write X.bandpass.1D    \\
+                    -label_prefix_keep bandpass
+
+       Remove only bandpass columns (maybe for 3dRFSC):
+
+         1d_tool.py -infile X.xmat.1D -write X.no.bandpass.1D \\
+                    -label_prefix_drop bandpass
+
+       Keep polort columns (start with 'Run') motion shifts ('d') and labels
+       starting with 'a' and 'b'.  But drop 'bandpass' columns:
+
+         1d_tool.py -infile X.xmat.1D -write X.weird.1D   \\
+                    -label_prefix_keep Run d a b          \\
+                    -label_prefix_drop bandpass
+
    3.  Transpose a dataset, akin to 1dtranspose.
 
          1d_tool.py -infile t3.1D -transpose -write ttr.1D
@@ -65,6 +84,10 @@ examples (very basic for now):
        b. Display indices of regressors of interest.
 
          1d_tool.py -infile X.xmat.1D -show_indices_interest
+
+       c. Display labels by group.
+
+         1d_tool.py -infile X.xmat.1D -show_group_labels
 
    6.  Show correlation matrix warnings for this matrix.
 
@@ -449,6 +472,36 @@ general options:
 
         See also -extreme_mask.
 
+   -label_prefix_drop prefix1 prefix2 ... : remove labels matching prefix list
+
+        e.g. to remove motion shift (starting with 'd') and bandpass labels:
+
+             -label_prefix_drop d bandpass
+
+        This is a type of column selection.
+
+        Use this option to remove columns from a matrix that have labels starting
+        with any from the given prefix list.
+
+        This option can be applied along with -label_prefix_keep.
+
+        See also -label_prefix_keep and example 2b.
+
+   -label_prefix_keep prefix1 prefix2 ... : keep labels matching prefix list
+
+        e.g. to keep only motion shift (starting with 'd') and bandpass labels:
+
+             -label_prefix_keep d bandpass
+
+        This is a type of column selection.
+
+        Use this option to keep columns from a matrix that have labels starting
+        with any from the given prefix list.
+
+        This option can be applied along with -label_prefix_drop.
+
+        See also -label_prefix_drop and example 2b.
+
    "Looks like" options:
 
         These are terminal options that check whether the input file seems to
@@ -554,6 +607,7 @@ general options:
    -show_gcor                   : display GCOR: the average correlation
    -show_gcor_all               : display many ways of computing (a) GCOR
    -show_gcor_doc               : display descriptions of those ways
+   -show_group_labels           : display group and label, per column
    -show_indices_baseline       : display column indices for baseline
    -show_indices_motion         : display column indices for motion regressors
    -show_indices_interest       : display column indices for regs of interest
@@ -701,9 +755,12 @@ g_history = """
    1.09 Oct  3, 2012 - some options do not allow dashed parameters
    1.10 Oct  5, 2012 - added option -quick_censor_count
    1.11 Jan 16, 2013 - added -show_gcor, and _all and _doc
+   1.12 Mar 27, 2013
+        - added -show_group_labels (for xmat.1D format)
+        - added -label_prefix_keep/_drop (e.g. for removing bandpass regressors)
 """
 
-g_version = "1d_tool.py version 1.11, January 16, 2013"
+g_version = "1d_tool.py version 1.12, March 27, 2013"
 
 
 class A1DInterface:
@@ -738,6 +795,8 @@ class A1DInterface:
       self.reverse         = 0          # reverse data over time
       self.select_cols     = ''         # column selection string
       self.select_rows     = ''         # row selection string
+      self.label_pre_drop  = []         # columns to drop - label prefix list
+      self.label_pre_keep  = []         # columns to keep - label prefix list
       self.set_extremes    = 0          # make mask of extreme TRs
       self.set_moderates   = 0          # make mask of moderate TRs
       self.set_nruns       = 0          # assume input is over N runs
@@ -750,6 +809,7 @@ class A1DInterface:
       self.show_cormat_warn= 0          # show cormat warnings
       self.show_displace   = 0          # max_displacement (0,1,2)
       self.show_gcor       = 0          # bitmask: GCOR, all, doc
+      self.show_group_labels = 0        # show the groups and labels
       self.show_indices    = 0          # bitmask for index lists to show
                                         # (base, motion, regs of interest)
       self.show_label_ord  = 0          # show the label ordering
@@ -893,6 +953,12 @@ class A1DInterface:
       self.valid_opts.add_opt('-moderate_mask', 2, [], 
                       helpstr='create mask for values within [MIN,MAX]')
 
+      self.valid_opts.add_opt('-label_prefix_drop', -1, [], 
+                      helpstr='label prefix list for columns to drop')
+
+      self.valid_opts.add_opt('-label_prefix_keep', -1, [], 
+                      helpstr='label prefix list for columns to keep')
+
       self.valid_opts.add_opt('-looks_like_1D', 0, [], 
                       helpstr='show whether file has 1D format')
 
@@ -955,6 +1021,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_gcor_doc', 0, [], 
                       helpstr='display documentation of ways to compute GCOR')
+
+      self.valid_opts.add_opt('-show_group_labels', 0, [], 
+                      helpstr='display group and label for each column')
 
       self.valid_opts.add_opt('-show_indices_baseline', 0, [], 
                       helpstr='display index list for baseline regressors')
@@ -1195,6 +1264,16 @@ class A1DInterface:
                print '** -extreme_mask: must have min <= max'
                return 1
 
+         elif opt.name == '-label_prefix_drop':
+            val, err = uopts.get_string_list('', opt=opt)
+            if err: return 1
+            self.label_pre_drop = val
+
+         elif opt.name == '-label_prefix_keep':
+            val, err = uopts.get_string_list('', opt=opt)
+            if err: return 1
+            self.label_pre_keep = val
+
          # looks_like options, to test AfniData (not Afni1D)
          elif opt.name == '-looks_like_1D':
             self.looks_like |= 2
@@ -1288,6 +1367,9 @@ class A1DInterface:
 
          elif opt.name == '-show_gcor_doc':
             self.show_gcor |= 4
+
+         elif opt.name == '-show_group_labels':
+            self.show_group_labels = 1
 
          elif opt.name == '-show_indices_baseline':
             self.show_indices |= 1
@@ -1411,6 +1493,11 @@ class A1DInterface:
          if ilist == None: return 1
          if self.adata.reduce_by_tlist(ilist): return 1
 
+      if self.label_pre_drop or self.label_pre_keep:
+         if self.adata.reduce_by_label_prefix(keep_pre=self.label_pre_keep,
+                                              drop_pre=self.label_pre_drop):
+            return 1
+
       # ---- processing options -----
 
       if self.set_nruns > 0:
@@ -1485,6 +1572,7 @@ class A1DInterface:
 
       if self.show_label_ord: self.adata.show_major_order_of_labels()
       if self.show_labels: self.adata.show_labels()
+      if self.show_group_labels: self.adata.show_group_labels()
 
       if self.show_indices:
          istr = self.adata.get_indices_str(self.show_indices)
