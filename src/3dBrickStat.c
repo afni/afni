@@ -6,7 +6,7 @@
 static int datum                   = MRI_float ;
 static void Print_Header_MinMax(int Minflag, int Maxflag, THD_3dim_dataset * dset);
 static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
-    int Posflag, int Negflag, int Zeroflag, int nan_flag, int Sumflag,
+    int Posflag, int Negflag, int Zeroflag, int Absflag, int nan_flag, int Sumflag,
     int Varflag, int Volflag,  THD_3dim_dataset * dset, byte *mmm, int mmvox);
 
 void usage_3dBrickStat(int detail) {
@@ -36,6 +36,10 @@ void usage_3dBrickStat(int detail) {
 "  -non-positive = include only voxel values 0 or negative \n"
 "  -non-negative = include only voxel values 0 or greater \n"
 "  -non-zero = include only voxel values not equal to 0 \n"
+"  -absolute = use absolute value of voxel values for all calculations\n"
+"              can be combined with restrictive non-positive, non-negative,\n"
+"              etc. even if not practical. Ignored for percentile and\n"
+"              median computations.\n"
 "  -nan = include only voxel values that are finite numbers, \n"
 "         not NaN, or inf. -nan forces -slow mode.\n"
 "  -nonan =exclude voxel values that are not numbers\n"
@@ -74,8 +78,9 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    int nopt, nbriks;
    int slow_flag, quick_flag, min_flag, max_flag, mean_flag, 
-       automask,count_flag, sum_flag, var_flag;
+       automask,count_flag, sum_flag, var_flag, absolute_flag;
    int positive_flag, negative_flag, zero_flag, nan_flag, perc_flag, vol_flag;
+
    byte * mmm=NULL ;
    int    mmvox=0 ;
    int nxyz, i;
@@ -104,6 +109,7 @@ int main( int argc , char * argv[] )
    vol_flag = 0;
    positive_flag = -1;
    negative_flag = -1;
+   absolute_flag = 0;
    zero_flag = -1;
    nan_flag = -1;
    perc_flag = 0;
@@ -261,6 +267,11 @@ int main( int argc , char * argv[] )
         nopt++; continue;
       }
 
+      if( strcmp(argv[nopt],"-absolute") == 0 ){
+        absolute_flag = 1;
+        nopt++; continue;
+      }
+
       if( strcmp(argv[nopt],"-nan") == 0 ){
         if(nan_flag!=-1) {
           ERROR_exit( "Can not use both -nan -nonan options");
@@ -365,7 +376,7 @@ int main( int argc , char * argv[] )
 	max_flag = 1;                  /* otherwise check only for max */
      }
 
-   if((var_flag==1)||(mean_flag==1)||(count_flag==1)||(vol_flag==1)
+   if((var_flag==1)||(mean_flag==1)||(count_flag==1)||(vol_flag==1)||(absolute_flag==1)
      ||(positive_flag!=-1)||(nan_flag!=-1)||(sum_flag == 1)||(perc_flag == 1))  /* mean flag or count_flag implies slow */
      slow_flag = 1;
 
@@ -378,8 +389,9 @@ int main( int argc , char * argv[] )
    if((max_flag==0)&&(min_flag==0))   /* if the user only asked for mean */
      quick_flag = 0;                  /*  no need to do quick way */
 
-   if((quick_flag) && ((positive_flag==1)||(negative_flag==1)||(zero_flag==1)))
-     WARNING_message( " Warning - ignoring +/-/0 flags for quick computations");
+   if((quick_flag) && 
+      ((absolute_flag==1)||(positive_flag==1)||(negative_flag==1)||(zero_flag==1)))
+     WARNING_message( " Warning - ignoring +/-/0/abs flags for quick computations");
 
    if(positive_flag==-1) {   /* if no +/-/0 options set, allow all voxels */
      positive_flag = 1;
@@ -469,7 +481,7 @@ int main( int argc , char * argv[] )
    }
 
    Max_func(min_flag, max_flag, mean_flag,count_flag,
-        positive_flag, negative_flag, zero_flag,
+        positive_flag, negative_flag, zero_flag, absolute_flag,
         nan_flag, sum_flag, var_flag, vol_flag,old_dset, mmm, mmvox);
 
    
@@ -570,7 +582,7 @@ THD_3dim_dataset * dset;
 /*! search whole dataset for minimum and maximum */
 /* load all at one time */
 static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
-    int Posflag, int Negflag, int Zeroflag, int nan_flag, int Sumflag,
+    int Posflag, int Negflag, int Zeroflag, int Absflag, int nan_flag, int Sumflag,
     int Varflag, int Volflag,  THD_3dim_dataset * dset, byte *mmm, int mmvox)
 {
    double overallmin, overallmax, overallmean;
@@ -667,6 +679,9 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
                   continue;
                 }
               }
+              /* use only absolute values */
+              if(Absflag) voxval = abs(voxval);
+              /* limit data by sign */
               if(((voxval<0)&&Negflag)||((voxval==0)&&Zeroflag)||((voxval>0)&&Posflag)) {
 	         sum += voxval;
             if (Varflag) sum2 += voxval*voxval;

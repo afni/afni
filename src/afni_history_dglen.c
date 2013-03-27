@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 27 , MAR, 2013 , DRG , "3dBrickStat" , 
+    MINOR , TYPE_NEW_OPT, 
+    "absolute value of voxels for statistics"
+} ,
 { 19 , MAR, 2013 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "alignment AddEdge error",
