@@ -235,13 +235,41 @@ def write_afni_com_history(fname, length=0, wrap=1):
    script = '\n'.join(hist)+'\n'
    write_text_to_file(fname, script, wrap=wrap)
 
-def get_unique_sublist(inlist):
-    """return a copy of inlist, but where elements are unique"""
+def get_unique_sublist(inlist, keep_order=1):
+    """return a copy of inlist, but where elements are unique
 
-    newlist = []
+       if keep_order, the order is not altered (first one found is kept)
+          (easy to code, but maybe slow)
+       else, sort (if needed), and do a linear pass
 
-    for val in inlist:
-        if not val in newlist: newlist.append(val)
+       tested with:
+          llist = [3, 4, 7, 4, 5,5,5, 4, 7, 9]
+          get_unique_sublist()
+          get_unique_sublist(keep_order=0)
+          llist.sort()
+          get_unique_sublist(keep_order=0)
+    """
+
+    if len(inlist) == 0: return []
+
+    # if keep_order, be slow
+    if keep_order:
+       newlist = []
+       for val in inlist:
+           if not val in newlist: newlist.append(val)
+       return newlist
+
+    # else, sort only if needed
+    if vals_are_sorted(inlist):
+       slist = inlist
+    else:
+       slist = inlist[:]
+       slist.sort()
+
+    newlist = slist[0:1]
+    for ind in range(len(slist)-1):
+       # look for new values
+       if slist[ind+1] != slist[ind]: newlist.append(slist[ind+1])
 
     return newlist
 
@@ -1433,7 +1461,7 @@ def vals_are_increasing(vlist, reverse=0):
       
    return rval
 
-def vals_are_unique(vlist):
+def vals_are_unique(vlist, dosort=1):
    """determine whether (possibly unsorted) values are unique
       - use memory to go for N*log(N) speed"""
 
@@ -1442,7 +1470,7 @@ def vals_are_unique(vlist):
 
    # copy and sort
    dupe = vlist[:]
-   dupe.sort()
+   if dosort: dupe.sort()
 
    rval = 1
    try:
@@ -1594,6 +1622,15 @@ def section_divider(hname, maxlen=74, hchar='=', endchar=''):
     postlen = maxlen - rmlen - prelen   # other 'half'
 
     return endchar + prelen*hchar + name + postlen*hchar + endchar
+
+def max_len_in_list(vlist):
+    mval = 0
+    try:
+       for v in vlist:
+          if len(v) > mval: mval = len(v)
+    except:
+       print '** max_len_in_list: cannot compute lengths'
+    return mval
 
 # ----------------------------------------------------------------------
 # wildcard construction functions

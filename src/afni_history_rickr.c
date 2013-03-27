@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Mar, 2013, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -show_group_labels, -label_prefix_keep/_drop",
+   "Option -label_prefix_drop can be used to remove bandpass regs for 3dRSFC."
+ } ,
+
  {  8, Mar, 2013, RCR, "3dTcat", MINOR, TYPE_NEW_OPT,
    "added -TR and -tpattern options",
    NULL

@@ -111,7 +111,7 @@ class Afni1D:
          return 0 on success"""
 
       if not self.ready:
-         print '** copy vec: Afni1D is not ready'
+         print '** reduce_by_vec_list: Afni1D is not ready'
          return 1
       if not UTIL.is_valid_int_list(vlist, 0, self.nvec-1, whine=1): return 1
       if len(vlist) < 1: return 1
@@ -126,6 +126,61 @@ class Afni1D:
       if self.groups: self.groups = [self.groups[i] for i in vlist]
 
       return 0
+
+   def reduce_by_label_prefix(self, keep_pre=[], drop_pre=[]):
+
+      rv, newlist = self.label_prefix_to_ints(keep_pre, drop_pre)
+      if rv: return 1
+
+      self.reduce_by_vec_list(newlist)
+
+      if self.verb>1: print '-- reduce_by_label_prefix, labels: %s'%self.labels
+
+      return 0
+
+   def label_prefix_to_ints(self, keep_pre=[], drop_pre=[]):
+      """return a list of label indices, based on what is kept or dropped
+            keep labels in their original order
+
+            if keep_pre and one of keep_pre matches, keep
+            if drop_pre and one of drop_pre matches, remove
+
+         return 0 on success, along with the int list"""
+
+      if not self.ready:
+         print '** reduce_by_label_prefix: Afni1D is not ready'
+         return 1, []
+
+      if len(self.labels) == 0:
+         print '** no dataset labels to reduce by...'
+         return 0, range(self.nvec)
+
+      # make a list of label indices to keep, first, before removing
+      if len(keep_pre) > 0:
+         newlist = []
+         for ind, lab in enumerate(self.labels):
+            for pre in keep_pre:
+               if UTIL.starts_with(lab, pre):
+                  newlist.append(ind)
+                  break
+         newlist = UTIL.get_unique_sublist(newlist)
+         if self.verb > 2: print '++ applied keep_pre to produce: %s' % newlist
+      else:
+         newlist = range(len(self.labels))
+
+      if len(drop_pre) > 0:
+         new2 = []
+         for ind in newlist:
+            keep = 1
+            for pre in drop_pre:
+               if UTIL.starts_with(self.labels[ind], pre):
+                  keep = 0
+                  break
+            if keep: new2.append(ind)
+         newlist = new2
+         if self.verb > 2: print '++ applied drop_pre to produce %s' % newlist
+
+      return 0, newlist
 
    def run_info_is_consistent(self, whine=1):
       """verify consistency of nruns/run_len/nt"""
@@ -1009,6 +1064,22 @@ class Afni1D:
 
    def simplecopy(self):
       return Afni1D(from_mat=1, matrix=self.mat, verb=self.verb)
+
+   def show_group_labels(self):
+      show_groups = (len(self.groups) == self.nvec)
+      show_labs = (len(self.labels) == self.nvec)
+      if not show_groups and not show_labs:
+         print '** no label info to show'
+         return
+
+      for ind in range(self.nvec):
+         if self.verb:
+            if show_groups: gstr = ', group %-3s' % self.groups[ind]
+            else:           gstr = ''
+            if show_labs:   lstr = ', label %s' % self.labels[ind]
+            else:           lstr = ''
+            print 'index %3d%s%s' % (ind, gstr, lstr)
+         elif show_labs: print '%s' % self.labels[ind]
 
    def show_labels(self):
       print '++ labels are:', self.labels
