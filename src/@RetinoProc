@@ -1047,14 +1047,17 @@ PARSE:
             @ cnt ++
             set on_ecc[2] = `printf '%g' $argv[$cnt]` 
             set on_pol[2] = `printf '%g' $argv[$cnt]`
-            if (  $on_ecc[2] <= 0 || $on_ecc[1] <= 0 || \
-                  $on_ecc[1] > 50 ) then
+            if (  `ccalc -i "1-ispositive($on_ecc[2])"` || \
+                  `ccalc -i "1-ispositive($on_ecc[1])"` || \
+                  `ccalc -i "ispositive($on_ecc[1]-50)"` ) then
+                  #on_ecc[2] <= 0 or on_ecc[1] <= 0 or on_ecc[1] > 50
                echo "Something is wrong with -on_ecc $on_ecc[1] $on_ecc[2]"
                echo "First value should be > 0, second > 0 and < 50 "
                goto END
             endif
-            if (  $on_pol[2] <= 0 || $on_pol[1] <= 0 || \
-                  $on_pol[1] > 50 ) then
+            if (  `ccalc -i "1-ispositive($on_pol[2])"` || \
+                  `ccalc -i "1-ispositive($on_pol[1])"` || \
+                  `ccalc -i "ispositive($on_pol[1]-50)"`) then
                echo "Something is wrong with -on_pol $on_pol[1] $on_pol[2]"
                echo "First value should be > 0 and < 50, other > 0"
                goto END
@@ -1104,8 +1107,9 @@ PARSE:
             endif
             @ cnt ++
             set on_ecc[2] = `printf '%g' $argv[$cnt]`
-            if (  $on_ecc[2] <= 0 || $on_ecc[1] <= 0 || \
-                  $on_ecc[1] > 50 ) then
+            if (  `ccalc -i "1-ispositive($on_ecc[2])"` || \
+                  `ccalc -i "1-ispositive($on_ecc[1])"` || \
+                  `ccalc -i "ispositive($on_ecc[1]-50)"`  ) then
                echo "Something is wrong with -on_ecc $on_ecc[1] $on_ecc[2]"
                echo "First value should be > 0 and < 50, other > 0"
                goto END
@@ -1115,7 +1119,8 @@ PARSE:
                set on_ecc[3] = `printf '%g' $argv[$cnt]`
                @ cnt ++
                set on_ecc[4] = `printf '%g' $argv[$cnt]`
-               if (  $on_ecc[3] <= 0 || $on_ecc[4] <= 0 ) then
+               if (  `ccalc -i "1-ispositive($on_ecc[3])"` || \
+                     `ccalc -i "1-ispositive($on_ecc[4])"` ) then
                   echo "Something is wrong with -var_on_ecc $on_ecc"
                   echo "First value should be > 0 and < 50, other > 0"
                   goto END
@@ -1142,8 +1147,9 @@ PARSE:
             endif
             @ cnt ++
             set on_pol[2] = `printf '%g' $argv[$cnt]`
-            if (  $on_pol[2] <= 0 || $on_pol[1] <= 0 || \
-                  $on_pol[1] > 50 ) then
+            if (  `ccalc -i "1-ispositive($on_pol[2])"` || \
+                  `ccalc -i "1-ispositive($on_pol[1])"` || \
+                  `ccalc -i "ispositive($on_pol[1]-50)"` ) then
                echo "Something is wrong with -on_pol $on_pol[1] $on_pol[2]"
                echo "First value should be > 0 and < 50, other > 0"
                goto END
@@ -1153,7 +1159,8 @@ PARSE:
                set on_pol[3] = `printf '%g' $argv[$cnt]`
                @ cnt ++
                set on_pol[4] = `printf '%g' $argv[$cnt]`
-               if (  $on_pol[3] <= 0 || $on_pol[4] <= 0 ) then
+               if (  `ccalc -i "1-ispositive($on_pol[3])"` || \
+                     `ccalc -i "1-ispositive($on_pol[4])"` ) then
                   echo "Something is wrong with -var_on_pol $on_pol"
                   echo "First value should be > 0 and < 50, other > 0"
                   goto END
