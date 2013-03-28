@@ -3848,7 +3848,7 @@ ENTRY("HCwarp_setup_basis") ;
      }
    }
 
-   /* 3D versions? */
+   /* 3D versions for small enough warp fields (will be faster) */
 
    nbbcxyz = nbcx * nbcy * nbcz ;
    if( nbbcxyz <= 1048576 ){
@@ -4296,6 +4296,9 @@ static void HCwarp_eval_A( int qq , float *xx , float *yy , float *zz )
    float b0zb0yb0x,b1zb0yb0x, b0zb1yb0x,b1zb1yb0x,
          b0zb0yb1x,b1zb0yb1x, b0zb1yb1x,b1zb1yb1x ;
 
+   /* in this function, the 'b' values (3D warp components) are
+      evaluated as tensor products of the underlying 1D functions */
+
    ii = qq % nbcx ; kk = qq / nbcxy ; jj = (qq-kk*nbcxy) / nbcx ;
    b0zb0yb0x = bc0z[kk]*bc0y[jj]*bc0x[ii]; b1zb0yb0x = bc1z[kk]*bc0y[jj]*bc0x[ii];
    b0zb1yb0x = bc0z[kk]*bc1y[jj]*bc0x[ii]; b1zb1yb0x = bc1z[kk]*bc1y[jj]*bc0x[ii];
@@ -4323,6 +4326,10 @@ static void HCwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 {
    float b0zb0yb0x,b1zb0yb0x, b0zb1yb0x,b1zb1yb0x,
          b0zb0yb1x,b1zb0yb1x, b0zb1yb1x,b1zb1yb1x ;
+
+   /* in this function, the 'b' values (warp components) were
+      pre-evaluated in the bbbcar arrays, and so just need to
+      be extracted; this method is faster, but obviously takes more memory */
 
    b0zb0yb0x = bbbcar[0][qq] ; b1zb0yb0x = bbbcar[1][qq] ;
    b0zb1yb0x = bbbcar[2][qq] ; b1zb1yb0x = bbbcar[3][qq] ;
