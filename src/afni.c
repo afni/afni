@@ -1457,6 +1457,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Ever returning spring, trinity sure to me you bring"           ,
      "What a long strange trip it's been"                            ,
      "Sometime the light shines on me, other times I can barely see" ,
+     "When life looks like easy street, there is danger at the door" ,
+     "What I want to know is, where does the time go?"               ,
      "Tomorrow we feast with us at home"                             ,
      "Forgive your enemies; but never forget their names"            ,
      "Always forgive your enemies - nothing annoys them so much"     ,
@@ -1464,6 +1466,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Am I not destroying my enemies when I make friends of them?"   ,
      "Go to Heaven for the climate, Hell for the company"            ,
      "Am I the crazy one, or is it everyone else on Earth?"          ,
+     "Be sure to put your feet in the right place, then stand firm"  ,
 
      "If you can't explain it simply, you don't understand it well enough"            ,
      "Even the Universe bends back on itself, but stupidity goes on forever"          ,

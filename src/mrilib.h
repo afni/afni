@@ -1921,6 +1921,11 @@ typedef struct {
      }                                                                      \
  } while(0)
 
+#define GA_LEGENDRE 1
+#define GA_HERMITE  2
+
+extern void GA_setup_polywarp(int) ;
+
 extern void mri_genalign_scalar_setup( MRI_IMAGE *, MRI_IMAGE *,
                                        MRI_IMAGE *, GA_setup  * ) ;
 extern int mri_genalign_scalar_optim( GA_setup *, double, double, int) ;

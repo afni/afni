@@ -1708,6 +1708,13 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcasecmp(argv[iarg],"-nwarp_HERMITE") == 0 ){  /** 28 Mar 2013: SUPER-SECRET **/
+       GA_setup_polywarp(GA_HERMITE) ; nwarp_parmax = 0.0444f ;
+       iarg++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcmp(argv[iarg],"-nwarp") == 0 ){     /* 03 Apr 2008 = SECRET */
        nwarp_pass = 1 ; iarg++ ;
 
