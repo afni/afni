@@ -2512,8 +2512,79 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 #define GP8(x) (-0.0390625f+(1.09375f+(-4.921875f+(7.21875f-3.3515625f*(x)*(x))*(x)*(x))*(x)*(x))*(x)*(x))
 #define GP9(x) ((-0.2734375f+(3.28125f+(-10.828125f+(13.40625f-5.5859375f*(x)*(x))*(x)*(x))*(x)*(x))*(x)*(x))*(x))
 
-#undef USE_GEGEN
+/* Hermite polynomials */
 
+#define HP1(x) (x)
+#define HP2(x) 0.4f*((x)*(x)-2.0f)
+#define HP3(x) 0.2f*((x)*(2.0f*(x)*(x)-3.0f))
+#define HP4(x) 0.05f*((4.0f*(x)*(x)-12.0f)*(x)*(x)+3.0f)
+#define HP5(x) 0.15f*((x)*((4.0f*(x)*(x)-20.0f)*(x)*(x)+15.0f))
+#define HP6(x) 0.2f*(((2.0f*(x)*(x)-15.0f)*(x)*(x)+22.5f)*(x)*(x)-3.75f)
+#define HP7(x) 0.06f*(0.5f*(x)*(((8.0f*(x)*(x)-84.0f)*(x)*(x)+210.0f)*(x)*(x)-105.0f))
+#define HP8(x) 0.1f*(((((x)*(x)-14.0f)*(x)*(x)+52.5f)*(x)*(x)-52.5f)*(x)*(x)+6.5625f)
+#define HP9(x) 0.004f*((x)*((((16.0f*(x)*(x)-288.0f)*(x)*(x)+1512.0f)*(x)*(x)-2520.0f)*(x)*(x)+945.0f))
+
+#define HH1(x) (x)
+#define HH2(x) HP2(3.0f*(x))*exp(-2.0f*(x)*(x))
+#define HH3(x) HP3(3.0f*(x))*exp(-3.0f*(x)*(x))
+#define HH4(x) HP4(3.0f*(x))*exp(-5.0f*(x)*(x))
+#define HH5(x) HP5(3.0f*(x))*exp(-6.0f*(x)*(x))
+#define HH6(x) HP6(3.0f*(x))*exp(-6.0f*(x)*(x))
+#define HH7(x) HP7(3.0f*(x))*exp(-7.0f*(x)*(x))
+#define HH8(x) HP8(3.0f*(x))*exp(-7.0f*(x)*(x))
+#define HH9(x) HP9(3.0f*(x))*exp(-7.0f*(x)*(x))
+
+#undef USE_GEGEN
+#undef USE_HERMITE
+
+/*----------------------------------------------------------------------------*/
+#define PP1(x) (x)
+
+static float LEG2(float x){ return LP2(x); }  /* 28 Mar 2013: */
+static float LEG3(float x){ return LP3(x); }  /* switch the PPn(x) from */
+static float LEG4(float x){ return LP4(x); }  /* being macros to functions */
+static float LEG5(float x){ return LP5(x); }
+static float LEG6(float x){ return LP6(x); }
+static float LEG7(float x){ return LP7(x); }
+static float LEG8(float x){ return LP8(x); }
+static float LEG9(float x){ return LP9(x); }
+
+static float HER2(float x){ return HH2(x); }
+static float HER3(float x){ return HH3(x); }
+static float HER4(float x){ return HH4(x); }
+static float HER5(float x){ return HH5(x); }
+static float HER6(float x){ return HH6(x); }
+static float HER7(float x){ return HH7(x); }
+static float HER8(float x){ return HH8(x); }
+static float HER9(float x){ return HH9(x); }
+
+static float (*PP2)(float) = LEG2 ;
+static float (*PP3)(float) = LEG3 ;
+static float (*PP4)(float) = LEG4 ;
+static float (*PP5)(float) = LEG5 ;
+static float (*PP6)(float) = LEG6 ;
+static float (*PP7)(float) = LEG7 ;
+static float (*PP8)(float) = LEG8 ;
+static float (*PP9)(float) = LEG9 ;
+
+void GA_setup_polywarp( int pcode )  /* 28 Mar 2013 */
+{
+   switch( pcode ){
+     default:
+       PP2 = LEG2 ; PP3 = LEG3 ; PP4 = LEG4 ; PP5 = LEG5 ;
+       PP6 = LEG6 ; PP7 = LEG7 ; PP8 = LEG8 ; PP9 = LEG9 ;
+     break ;
+
+     case GA_HERMITE:
+       PP2 = HER2 ; PP3 = HER3 ; PP4 = HER4 ; PP5 = HER5 ;
+       PP6 = HER6 ; PP7 = HER7 ; PP8 = HER8 ; PP9 = HER9 ;
+     break ;
+   }
+   return ;
+}
+
+/*********************************/
+#if 0
 #ifdef USE_GEGEN
 # define PP1 GP1
 # define PP2 GP2
@@ -2524,6 +2595,17 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 # define PP7 GP7
 # define PP8 GP8
 # define PP9 GP9
+#endif
+#ifdef USE_HERMITE
+# define PP1 HH1
+# define PP2 HH2
+# define PP3 HH3
+# define PP4 HH4
+# define PP5 HH5
+# define PP6 HH6
+# define PP7 HH7
+# define PP8 HH8
+# define PP9 HH9
 #else
 # define PP1 LP1
 # define PP2 LP2
@@ -2535,6 +2617,8 @@ INFO_message("bilinear warp %s diagonal: %.7g %.7g %.3g",
 # define PP8 LP8
 # define PP9 LP9
 #endif
+#endif
+/*********************************/
 
 /* 3D product functions of various orders 2..9 */
 
