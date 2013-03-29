@@ -3034,7 +3034,7 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
                         maskinf=0, scale = TRUE, 
                         meth='AUTO', addFDR=FALSE, 
                         statsym=NULL, view="+tlrc",
-                        com_hist=NULL) {
+                        com_hist=NULL, type=NULL) {
 
   if (meth == 'AUTO') {
    if (class(brk) == 'AFNI_R_dataset') {
@@ -3064,7 +3064,8 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
                         idcode=idcode, defhead=defhead,
                         verb = verb,
                         maskinf=maskinf, scale = scale, addFDR=addFDR,
-                        statsym=statsym, view=view, com_hist=com_hist))
+                        statsym=statsym, view=view, com_hist=com_hist,
+                        type=type))
   }
 
   if (is.na(an$view)) {
@@ -3184,7 +3185,9 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
   writeChar(AFNIheaderpart("integer-attribute","DATASET_DIMENSIONS",
                            c(ddb[1:3],0,0)),
             conhead,eos=NULL)  
-  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",rep(1,ddb[4])),
+  if (is.null(type)) type <- 1
+  writeChar(AFNIheaderpart("integer-attribute","BRICK_TYPES",
+                  rep(typecode.AFNI(type),ddb[4])),
             conhead,eos=NULL)  
 
   if (scale) {
