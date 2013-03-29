@@ -2835,7 +2835,7 @@ void get_options
                            sopt,ival,argv[nopt-2],mss) ;
               for( ccc=mss,iss=0 ; iss < vmod ; iss++ ){
                 for( ; isspace(*ccc) ; ccc++ ) ; /*nada*/
-                if( isdigit(*ccc) || *ccc == '-' || *ccc == '+' || *ccc == '.' ){
+                if( isnumeric(*ccc) ){
                   basis_stim[k]->modsub[iss] = (float)strtod(ccc,&ddd) ;
                   ccc = ddd ;
                   ININFO_message("'%s %d %s' will subtract %g from input modulation parameter #%d",

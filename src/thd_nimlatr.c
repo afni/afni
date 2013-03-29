@@ -405,7 +405,7 @@ ENTRY("THD_add_bricks") ;
    fac = 0.0 ;
                      str = NI_get_attribute( nel , "scale_factor" ) ;
    if( str == NULL ) str = NI_get_attribute( nel , "AFNI_factor"  ) ;
-   if( str != NULL && ( *str== '-' || isdigit(*str) ) )
+   if( str != NULL && isnumeric(*str) )
      fac = (float)strtod( str , NULL ) ;
 
    if(PRINT_TRACING){
@@ -586,7 +586,7 @@ ENTRY("THD_add_sparse_bricks") ;
    fac = 0.0 ;
                      str = NI_get_attribute( nel , "scale_factor" ) ;
    if( str == NULL ) str = NI_get_attribute( nel , "AFNI_factor"  ) ;
-   if( str != NULL && ( *str== '-' || isdigit(*str) ) )
+   if( str != NULL && isnumeric(*str) )
      fac = (float)strtod( str , NULL ) ;
 
    /* check if doing infill or if we should set brick to all zero first */
