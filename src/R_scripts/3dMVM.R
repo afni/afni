@@ -883,7 +883,7 @@ pars[[5]] <- lop$slpList
 pars[[6]] <- is.na(lop$wsVars)
 
 
-#runAOV(inData[ii, jj, kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars, tag=0)
+#runAOV(inData[ii, jj, kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)
 
 print(sprintf("Start to compute %s slices along Z axis. You can monitor the progress", dimz))
 print("and estimate the total run time as shown below.")
@@ -940,6 +940,9 @@ if(dimy == 1 & dimz == 1) {
 # Initialization
 Stat <- array(0, dim=c(dimx, dimy, dimz, NoBrick))
 
+# set up a voxel @ ii jj kk to test
+#runAOV(inData[ii, jj, kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)
+
 if (lop$nNodes==1) for (kk in 1:dimz) {
    if(NoBrick > 1) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runAOV, dataframe=lop$dataStr, 
          ModelForm=ModelForm, pars=pars), c(2,3,1)) else
@@ -995,7 +998,7 @@ if(lop$num_glt>0) for(ii in 1:lop$num_glt) statpar <- paste(statpar, " -substatp
 statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
 
 #write.AFNI(lop$outFN, Stat, outLabel, note=myHist, origin=myOrig, delta=myDelta, idcode=newid.AFNI())
-write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode=newid.AFNI())
+write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode=newid.AFNI(), type='MRI_short')
 
 system(statpar)
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
