@@ -5837,7 +5837,7 @@ static void CW_clear_data(void)
 
 static void CW_load_one_warp( int nn , char *cp )
 {
-   char *wp ; int do_inv=0 , ii ;
+   char *wp ; int do_inv=0 , do_sqrt=0 , ii ;
 
 ENTRY("CW_load_one_warp") ;
 
@@ -5849,6 +5849,10 @@ ENTRY("CW_load_one_warp") ;
      cp += 4 ; do_inv = 1 ;
    } else if( strncasecmp(cp,"INVERSE(",8) == 0 ){
      cp += 8 ; do_inv = 1 ;
+   } else if( strncasecmp(cp,"SQRT(",5) == 0 ){
+     cp += 5 ; do_sqrt = 1 ;
+   } else if( strncasecmp(cp,"SQRTINV(",8) == 0 || strncasecmp(cp,"INVSQRT(",8) == 0 ){
+     cp += 8 ; do_inv = do_sqrt = 1 ;
    }
    wp = strdup(cp) ; ii = strlen(wp) ;
    if( ii < 4 ){
@@ -5884,6 +5888,9 @@ ENTRY("CW_load_one_warp") ;
      if( do_inv ){
        mat44 imm = MAT44_INV(mmm) ; mmm = imm ;
      }
+     if( do_sqrt ){
+       mat44 smm = THD_mat44_sqrt(mmm) ; mmm = smm ;
+     }
 
      CW_awarp[nn-1] = (mat44 *)malloc(sizeof(mat44)) ;
      AAmemcpy(CW_awarp[nn-1],&mmm,sizeof(mat44)) ;
@@ -5891,7 +5898,7 @@ ENTRY("CW_load_one_warp") ;
 
    } else {                                        /* dataset warp */
 
-     THD_3dim_dataset *dset, *eset=NULL ; IndexWarp3D *AA ;
+     THD_3dim_dataset *dset, *eset=NULL ; IndexWarp3D *AA , *BB ;
 
      /* check for special case of uni-directional warp from 1 sub-brick [19 Mar 2013] */
 
@@ -5929,7 +5936,7 @@ ENTRY("CW_load_one_warp") ;
        /* check if there is a scale factor */
 
        vp = strchr(up,':') ;
-       if( vp != NULL && ( isdigit(*up) || *up == '-') ){
+       if( vp != NULL && isnumeric(*up) ){
          float wfac = (float)strtod(up,NULL) ;
          if( wfac == 0.0f ){
            ERROR_message("uni-directional warp '%s' :-) scale factor = 0?",wp) ;
@@ -5996,8 +6003,14 @@ ENTRY("CW_load_one_warp") ;
      }
      else                { DSET_delete(dset) ; }
 
-     if( do_inv ){
-       IndexWarp3D *BB ;
+     if( do_sqrt ){
+       BB = IW3D_sqrtinv(AA,NULL,MRI_LINEAR) ;  /* inverse AND sqrt */
+       if( do_inv ){
+         IW3D_destroy(AA) ; AA = BB ;
+       } else {                                 /* must re-invert */
+         AA = IW3D_invert(BB,NULL,MRI_LINEAR) ; IW3D_destroy(BB) ;
+       }
+     } else if( do_inv ){
        BB = IW3D_invert(AA,NULL,MRI_WSINC5); IW3D_destroy(AA); AA = BB;
      }
      AA->use_emat = 0 ;

@@ -510,7 +510,7 @@ int main( int argc , char *argv[] )
 
        } else {            /* read dataset for initial warp */
 
-         iwset = THD_open_dataset(argv[nopt]) ;
+         iwset = IW3D_read_catenated_warp(argv[nopt]) ;
          if( iwset == NULL )
            ERROR_exit("Cannot open -iniwarp %s",argv[nopt]) ;
          if( DSET_NVALS(iwset) < 3 || DSET_BRICK_TYPE(iwset,0) != MRI_float )
@@ -586,14 +586,11 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-blur") == 0 ){
        float val1,val2 ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -blur") ;
-       if( !isdigit(argv[nopt][0]) && argv[nopt][0] != '-' )
-         ERROR_exit("value after '-blur' must start with a digit or '-'") ;
+       if( !isnumeric(argv[nopt][0]) )
+         ERROR_exit("value after '-blur' must be a number: '%s'",argv[nopt]) ;
        val2 = val1 = (float)strtod(argv[nopt],NULL) ;
-       if( nopt+1 < argc &&
-           ( isdigit(argv[nopt+1][0]) ||
-             (argv[nopt+1][0] == '-' && isdigit(argv[nopt+1][1])) ) ){
-           val2 = (float)strtod(argv[++nopt],NULL) ;
-       }
+       if( nopt+1 < argc && isnumeric(argv[nopt+1][0]) )
+         val2 = (float)strtod(argv[++nopt],NULL) ;
        Hblur_b = val1 ; Hblur_s = val2 ;
        nopt++ ; continue ;
      }

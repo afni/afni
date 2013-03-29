@@ -1467,6 +1467,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Go to Heaven for the climate, Hell for the company"            ,
      "Am I the crazy one, or is it everyone else on Earth?"          ,
      "Be sure to put your feet in the right place, then stand firm"  ,
+     "May your cupcakes always have lots of rich creamy frosting"    ,
 
      "If you can't explain it simply, you don't understand it well enough"            ,
      "Even the Universe bends back on itself, but stupidity goes on forever"          ,
