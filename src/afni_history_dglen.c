@@ -53,7 +53,7 @@ afni_history_struct dglen_history[] = {
     MINOR , TYPE_NEW_ENV, 
     "pigz for faster gzip-like compression"
     "pigz is a gzip utility that makes use of multiple CPU's.\n"
-    "It produces and uses .gz files. To use, set AFNI_COMPRESSOR to pigz."
+    "It produces and uses .gz files. To use, set AFNI_COMPRESSOR to PIGZ."
 } ,
 { 27 , MAR, 2013 , DRG , "3dBrickStat" , 
     MINOR , TYPE_NEW_OPT, 
