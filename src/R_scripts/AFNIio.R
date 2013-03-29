@@ -2900,7 +2900,7 @@ minmax <- function(y) {
 }
 
 
-newid.AFNI <- function(ext=0) {
+newid.AFNI.old <- function(ext=0) {
    if (ext) { #in house
       return(
          paste('GCR_',paste(
@@ -2963,8 +2963,8 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
                         default = c(AFNI.view2viewtype(view),11,3, rep(0,5))) 
 
          #The user options
-   if (is.null(idcode) && !is.null(defhead)) 
-      idcode <- dset.attr(defhead,"IDCODE_STRING")
+   if (is.null(idcode)) idcode <- newid.AFNI();
+ 
    if (!is.null(idcode)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "IDCODE_STRING", val=idcode)
    
@@ -3088,7 +3088,7 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
   
   #Set the defaults. 
   if (is.null(note)) note <- '';
-  if (is.null(idcode)) idcode <- newid.AFNI(0);
+  if (is.null(idcode)) idcode <- newid.AFNI();
   if (is.null(brk)) {
    err.AFNI("NULL input");
    return(0)
