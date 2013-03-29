@@ -163,6 +163,9 @@ extern "C" {
 # define RPMAX MAXPATHLEN
 #endif
 
+#undef  isnumeric
+#define isnumeric(c) (isdigit(c) || (c) == '-' || (c) == '+' || (c) == '.')
+
 /***************  generic function with no return value  **********************/
 
 /*! Generic function type returning void. */

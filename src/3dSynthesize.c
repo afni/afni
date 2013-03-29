@@ -14,8 +14,7 @@ static int is_numeric( char *str )
 {
    char *spt ;
    if( str == NULL ) return 0 ;
-   for( spt=str ; *spt != '\0' ; spt++ )
-     if( !isdigit(*spt) && *spt != '-' && *spt != '.' ) return 0 ;
+   for( spt=str ; *spt != '\0' ; spt++ ) if( !isnumeric(*spt) ) return 0 ;
    return 1 ;
 }
 

@@ -158,9 +158,7 @@ static void errex( char * str )
 
 /*--------------------------------------------------------------------------*/
 
-#define NBUF 1024
-#define isnumeric(c) (isdigit(c) || c == '-' || c == '+' || c == '.')
-
+#define NBUF    1024
 #define SUREFIT   33
 #define AFNI_1D   44
 

@@ -1168,7 +1168,7 @@ static int AFNI_drive_quit( char *cmd )
   fprintf(stderr,"\n******* AFNI is commanded to quit! ") ; fflush(stderr) ;
   for( ii=0 ; ii < 7 ; ii++ ){ RWC_sleep(123); fprintf(stderr,"*"); fflush(stderr); }
   fprintf(stderr,"\n\n") ;
-  AFexit(0) ;
+  AFexit(0) ; return 0 ;
 }
 
 /*===============================================================
