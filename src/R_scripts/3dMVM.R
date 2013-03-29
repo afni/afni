@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.4, March 13, 2013
+Version 0.2.5, March 29, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.4, March 13, 2013
+Version 0.2.5, March 29, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -481,7 +481,7 @@ process.MVM.opts <- function (lop, verb = 0) {
    len <- length(lop$dataTable)
    wd <- which(lop$dataTable == "InputFile")
    hi <- len / wd - 1
-   browser()
+   #browser()
    if(len %% wd != 0)
       errex.AFNI('The content under -dataTable is not rectangular!') else {
       lop$dataStr <- NULL
@@ -663,7 +663,7 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
          } else lop$gltList[[n]] <- gltConstr(clist[[n]], lop$dataStr)
       }
    }
-   browser()
+   #browser()
    return(lop)
 } # end of read.MVM.from.file
 
