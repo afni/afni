@@ -72,7 +72,7 @@ if ($SurfInput == 1) then
             set pndset = $tp.`printf %02d $i`
             if ( ! -f $rdir/$pndset.$sd.niml.dset) then
                echo "Copying "$dset" to $pndset.$sd.niml.dset"
-               ConvertDset -o_niml_bi -input "$dset" \
+               ConvertDset $eu -o_niml_bi -input "$dset" \
                            -prefix $rdir/$pndset.$sd.niml.dset
             else
                echo "Reusing $rdir/$pndset.$sd.niml.dset"
@@ -106,12 +106,12 @@ COPY_EPI_RUNS:
          if ( ! -f $rdir/$pndset+orig.HEAD) then
             if ( $tshift >= 0) then
          echo "Tshifting and copying epi run$dset\[$Nignore-\] to $rdir/$pndset"
-               3dTshift -tzero $tshift -overwrite \
+               3dTshift $eu -tzero $tshift -overwrite \
                      -prefix $rdir/$pndset+orig \
                      $dset'['$Nignore'-$]'
             else
                echo "Copying epi run $dset\[$Nignore-\] to $rdir/$pndset"
-               3dTcat -prefix $rdir/$pndset+orig $dset'['$Nignore'-$]'
+               3dTcat $eu -prefix $rdir/$pndset+orig $dset'['$Nignore'-$]'
             endif
          else
             echo "Reusing $rdir/$pndset"
@@ -131,14 +131,14 @@ COPY_EPI_REF:
       endif
       if ( ! -f $rdir/EpiRef+orig.HEAD) then
          echo "Creating $rdir/EpiRef"
-         3dTcat -prefix $rdir/EpiRef "$u_EpiRef" >& /dev/null
+         3dTcat $eu -prefix $rdir/EpiRef "$u_EpiRef" >& /dev/null
       else
          echo "Reusing existing $rdir/EpiRef"
       endif  
    else
       if ( ! -f $rdir/EpiRef+orig.HEAD) then
          echo "Setting $rdir/EpiRef to be 4th subbrick of $FirstEpi"
-         3dTcat -prefix $rdir/EpiRef $rdir/$FirstEpi'[3]' >& /dev/null
+         3dTcat $eu -prefix $rdir/EpiRef $rdir/$FirstEpi'[3]' >& /dev/null
       else
          echo "Reusing default $rdir/EpiRef"
       endif
@@ -159,7 +159,7 @@ COPY_AVOLS:
    if ("$u_AVol" != '') then
       if ( ! -f $rdir/AVol+orig.HEAD) then
          echo "Copying ${u_AVol} to $rdir/AVol"
-         3dcopy ${u_AVol}  $rdir/AVol
+         3dcopy $eu ${u_AVol}  $rdir/AVol
       else
          echo "Reusing $rdir/AVol"
       endif  
@@ -168,7 +168,7 @@ COPY_AVOLS:
    if ("$u_SVolAtEpi" != '') then
       if ( ! -f $rdir/SVol@Epi+orig.HEAD) then
          echo "Copying $u_SVolAtEpi to $rdir/SVol@Epi"
-         3dcopy "$u_SVolAtEpi" $rdir/SVol@Epi  
+         3dcopy $eu "$u_SVolAtEpi" $rdir/SVol@Epi  
       else
          echo "Reusing $rdir/SVol@Epi"
       endif  
@@ -177,12 +177,17 @@ COPY_AVOLS:
     if ("$u_AVolAtEpi" != '') then
       if ( ! -f $rdir/AVol@Epi+orig.HEAD) then
          echo "Copying $u_AVolAtEpi to $rdir/AVol@Epi"
-         3dcopy "$u_AVolAtEpi" $rdir/AVol@Epi  
+         3dcopy $eu "$u_AVolAtEpi" $rdir/AVol@Epi  
       else
          echo "Reusing $rdir/AVol@Epi"
       endif  
    endif
-     
+COPY_DORTS:
+   if ("$dorts" != '') then
+      1dcat "$dorts" > $rdir/dorts.1D
+      set dorts = "dorts.1D"
+   endif
+   
 REGISTER_EPI_REFS:
    if ("$u_SVolAtEpi" != '') then
       echo "Have SurfVol aligned to EPI, skipping EPI Anat reference process"
@@ -197,14 +202,14 @@ REGISTER_EPI_REFS:
       if ( ! -f EpiAnatRef+orig.HEAD) then
          if (1) then
             echo "Registering $idir/$u_EpiAnatRef to EpiRef to create EpiAnatRef"
-            3dvolreg -base EpiRef+orig \
+            3dvolreg $eu -base EpiRef+orig \
                      -cubic -overwrite \
                      -prefix EpiAnatRef   \
                      -1Dfile EpiAnatRef.1D   \
                      $idir/"$u_EpiAnatRef"      
          else
             echo "Just copying $idir/$u_EpiAnatRef to EpiAnatRef"
-            3dTcat -prefix EpiAnatRef $idir/$u_EpiAnatRef 
+            3dTcat $eu -prefix EpiAnatRef $idir/$u_EpiAnatRef 
          endif
       else
          echo "Reusing EpiAnatRef"
@@ -212,7 +217,7 @@ REGISTER_EPI_REFS:
    else
       if ( ! -f EpiAnatRef+orig.HEAD) then
          echo "Copying EpiRef to EpiAnatRef"
-         3dcopy EpiRef+orig EpiAnatRef+orig
+         3dcopy $eu EpiRef+orig EpiAnatRef+orig
       else
          echo "Reusing existing EpiAnatRef"
       endif
@@ -228,7 +233,7 @@ REGISTER_TS:
       set sp = `@GetAfniPrefix $s`
       if ( ! -f ${sp}.vr+orig.HEAD) then
          echo "Registering epi run $s to create ${sp}.vr"
-         3dvolreg -base EpiRef+orig \
+         3dvolreg $eu -base EpiRef+orig \
                   -cubic   \
                   -overwrite \
                   -prefix ${sp}.vr  \
@@ -259,7 +264,7 @@ ALIGN_EXPANAT_TO_EPI:
                         -AddEdge -anat2epi \
                         -epi_base 0 ${AEA_opt} \
                         -suffix RetinoProc 
-      3drename *RetinoProc*HEAD AVol@Epi
+      3drename $eu *RetinoProc*HEAD AVol@Epi
    else
       echo "AVol@Epi already present"
    endif
@@ -268,7 +273,7 @@ ALIGN_EXPANAT_TO_EPI:
 ALIGN_SURFVOL_TO_EXPANAT:
    cd $rdir
    if ( ! -f SVol@Epi+orig.HEAD ) then
-      @SUMA_AlignToExperiment    -exp_anat AVol@Epi+orig  \
+      @SUMA_AlignToExperiment    $eu -exp_anat AVol@Epi+orig  \
                                  -surf_anat $sdir/${u_SVol:t}  \
                                  ${A2E_opt} -prefix SVol@Epi \
                                  -wd   
@@ -301,7 +306,10 @@ DETREND:
          else
             set vopt = "-vector ${p}.vr.1D"
          endif
-         3dDetrend   -polort $polort    \
+         if ("$dorts" != '') then
+            set vopt = "$vopt -vector $dorts"
+         endif
+         3dDetrend   $eu -polort $polort    \
                      $vopt \
                      -prefix ${p}.b01  \
                      $s
@@ -311,6 +319,10 @@ DETREND:
       
       set nvr = 0
       if ( -f ${p}.vr.1D ) set nvr = `3dinfo -nv ${p}.vr.1D` 
+      if ( "$dorts" != '' ) then
+         set nplus = `3dinfo -nv $dorts`
+         set nvr = `ccalc -i $nvr + $nplus`
+      endif
       set ort_adjust = `ccalc -form int -eval "$polort+$nvr"`
    end
    cd $idir         
@@ -332,7 +344,7 @@ foreach sd ($sides)
             set p = $p:r
             if ( ! -f {$p}.${sd}.niml.dset ) then
                echo "Mapping $s to surface to create {$p}.${sd}.niml.dset"
-               3dVol2Surf     -spec          ${specs[$sdc]} \
+               3dVol2Surf     $eu -spec          ${specs[$sdc]} \
                               -sv            SVol@Epi+orig   \
                               -surf_A        ${sd}.smoothwm.asc \
                               -surf_B        ${sd}.pial.asc  \
@@ -363,7 +375,7 @@ foreach sd ($sides)
             if ($#runcls > 0) then
                if ( ! -f $stim_direc[$tp].${sd}.niml.dset) then
             echo "Averaging $#runcls datasets in $stim_direc[$tp] direction"
-                  3dMean   -overwrite    \
+                  3dMean   $eu -overwrite    \
                            -prefix $stim_direc[$tp].${sd}.niml.dset  \
                            $runcls
                else
@@ -418,7 +430,7 @@ foreach sd ($sides)
             if ( ! -f $stim_direc[$tp].sm.$sd.niml.dset ) then
          echo "Smoothing $dset to $sfwhm mm FWHM per $class.sm.SmPar.1D"
                set pars = `1dcat $class.sm.SmPar.1D`
-               SurfSmooth  -spec          ${specs[$sdc]} \
+               SurfSmooth  $eu -spec          ${specs[$sdc]} \
                            -surf_A        ${sd}.smoothwm.asc \
                            -input         $dset \
                            -met           HEAT_07   \
@@ -516,7 +528,7 @@ foreach sd ($sides)
             #Can get field angles  
             if ( ! -f $ec${sss}.$sd.pol.field.niml.dset) then
          echo "Estimating ${cc} vis. field angle from two directions ${ec}${sss}"
-               3dRetinoPhase  -$stim_direc[1] $cls[1]  \
+               3dRetinoPhase  $eu -$stim_direc[1] $cls[1]  \
                               -$stim_direc[2] $cls[2]  \
                               -Tpol $period_pol \
                               -nwedges $nwedges   \
@@ -531,7 +543,7 @@ foreach sd ($sides)
             if ($cc == 'ccw' || $cc == 'con') set sg = '-'
             if ( ! -f $ec${sss}.$sd.pol$sg.niml.dset) then
                echo "Estimating ${cc} hemodynamic angle from one direction"
-               3dRetinoPhase  -$cc $cls[1]  \
+               3dRetinoPhase  $eu -$cc $cls[1]  \
                               -Tpol $period_pol \
                               -nwedges $nwedges   \
                               -pre_stim $pre_pol $RetOpt \
@@ -559,7 +571,7 @@ foreach sd ($sides)
             #Can get field angles  
             if ( ! -f $ec${sss}.$sd.ecc.field.niml.dset) then
          echo "Estimating ${cc} vis. field angle from two directions ${ec}${sss}"
-               3dRetinoPhase  -$stim_direc[3] $cls[1]  \
+               3dRetinoPhase  $eu -$stim_direc[3] $cls[1]  \
                               -$stim_direc[4] $cls[2]  \
                               -Tecc $period_ecc \
                               -nrings $nrings   \
@@ -574,7 +586,7 @@ foreach sd ($sides)
             if ($cc == 'ccw' || $cc == 'con') set sg = '-'
             if ( ! -f $ec${sss}.$sd.ecc$sg.niml.dset) then
                echo "Estimating ${cc} hemodynamic angle from one direction"
-               3dRetinoPhase  -$cc $cls[1]  \
+               3dRetinoPhase  $eu -$cc $cls[1]  \
                               -Tecc $period_ecc \
                               -nrings $nrings   \
                               -pre_stim $pre_ecc $RetOpt \
@@ -633,7 +645,7 @@ foreach sd ($sides)
          endif
          if ( ! -f $ec${sss}.vfr.$sd.niml.dset) then
             echo "Creating $ec${sss}.vfr.$sd.niml.dset"
-            SurfRetinoMap  -spec          ${specs[$sdc]} \
+            SurfRetinoMap  $eu -spec          ${specs[$sdc]} \
                            -surf_A   $sd.pial \
                            -input    $polin $eccin \
                            -prefix   $ec${sss}.vfr.$sd.niml.dset 
@@ -717,6 +729,7 @@ PARSE:
    
    #continue parsing for new options
    set Narg = $#
+   set dorts = ''
    set noVR = 0
    set ec = 'ZZ'
    set rdir = ''
@@ -760,6 +773,7 @@ PARSE:
    set Nts_ecc = 0
    set Nts_pol = 0
    set install_demo = 0
+   set eu = ''
    set cnt = 1
    
    
@@ -767,6 +781,11 @@ PARSE:
 
       if ( "$argv[$cnt]" == "-echo") then
          set echo		
+         goto NEXT		
+      endif
+      
+      if ( "$argv[$cnt]" == "-echo_edu") then
+         set eu = '-echo_edu'		
          goto NEXT		
       endif
       
@@ -845,6 +864,24 @@ PARSE:
          endif	
       endif
       
+      if ( "$argv[$cnt]" == "-dorts") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need 1D file after -dorts"
+            goto END
+			else
+            @ cnt ++
+            set dorts = "$argv[$cnt]"
+            1dcat "$dorts" > __ORTS.1D
+            if ( ! -f __ORTS.1D ) then
+               echo "Orts file $dorts not found or could not be cat-ed by 1dcat"
+               goto END
+            endif
+            \rm -f __ORTS.1D
+            goto NEXT	
+         endif	
+      endif
+
       if ( "$argv[$cnt]" == "-ignore") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -1673,9 +1710,17 @@ echo "    It makes no sense to use these options along with -ccw, -clw, -exp, "
 echo "    or -con."
 echo ""
 echo "+++ Misc Parameters:"
+echo " -dorts ORT1D: Detrend time series using columns in ORT1D file"
+echo "               The length of the time series in ORT1D should match"
+echo "               that of the time series being fed to 3dDetrend"
+echo "               Also, the this option applies to all the time series"
+echo "               being processed so that assumes they all have the same"
+echo "               lengths."
 echo " -sid SID: SID is a flag identifying the subject"
 echo " -out_dir DIR: Directory where processing results are to be stored"
 echo " -echo: Turn on the command echoing to help with debugging script failure"
+echo " -echo_edu: Turn on command echoing for certain programs only "
+echo "            as opposed to the shell's echoing"
 echo " -A2E_opts 'A2E_OPTS': Pass options A2E_OPTS to @SUMA_AlignToExperiment"
 echo "                       You might use for example,"
 echo "                       -A2E_opts '-strip_skull surf_anat' since SVol"
