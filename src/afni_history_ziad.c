@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 1, Apr , 2013 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
+   "AFNIio.R's newid.AFNI() was duplicated and the more compact one was broken",
+   NULL
+ },
+ 
+ { 1, Apr , 2013 , ZSS , "3dAutoTcorrelate" , MICRO , TYPE_NEW_OPT,
+   "Added option -mask_source",
+   NULL
+ },
+ 
+ { 28, Mar , 2013 , ZSS , "@RetinoProc" , MICRO , TYPE_BUG_FIX,
+   "Parsing of -on* and -off* options failed for non-integral values",
+   NULL
+ },
+ 
  { 26, Mar , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Loop variable error in 3DEdge/src/convert.c variable s32buf",
    "Affected regions in some locations under: case UCHAR and case SSHORT\n"
