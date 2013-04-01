@@ -917,8 +917,8 @@ memory.hogs <- function (n=10, top_frac=0.9, test=FALSE, msg=NULL) {
 
 newid.AFNI <-function(len=26) {  
    return(paste("XYZ_",
-            sample(c(rep(0:9,each=5),LETTERS, letters),
-            len-4, replace=TRUE), collapse=''))
+            paste(sample(c(rep(0:9,each=5),LETTERS, letters),
+            len-4, replace=TRUE), collapse='', sep=''), sep='',collapse=''))
 }
 
 sys.AFNI <- function(com=NULL, fout=NULL, ferr=NULL, echo=FALSE,
