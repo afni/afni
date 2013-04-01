@@ -31,7 +31,7 @@ examples.1dRplot.getdata <- function () {
    return("
 To download demo data from AFNI's website run this command:
 -----------------------------------------------------------
-curl -o demo.xmat.1D afni.nimh.nih.gov/pub/dist/edu/data/samples/X.xmat.1D
+curl -o demo.X.xmat.1D afni.nimh.nih.gov/pub/dist/edu/data/samples/X.xmat.1D
 curl -o demo.motion.1D afni.nimh.nih.gov/pub/dist/edu/data/samples/motion.1D
 ")
 }
@@ -40,7 +40,7 @@ run.1dRplot.examples <- function () {
    ii <- 1
    while (!is.null(s <- examples.1dRplot(ii))) {
       s <- strsplit(s,'1dRplot')[[1]][2]
-      #str(s)
+      str(s)
       sys.AFNI(paste('1dRplot ', s, '&'), echo=TRUE)
       if (prompt.AFNI("Continue ?", c('y','n'))==1) {
          ii <- ii + 1
