@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 1 , APR, 2013 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "motion file renamed",
+    "Some output files like the motion files were accidentally renamed."
+} ,
 { 29 , MAR, 2013 , DRG , "general compression" , 
     MINOR , TYPE_NEW_ENV, 
     "pigz for faster gzip-like compression"
