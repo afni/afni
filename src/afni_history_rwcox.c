@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , MAR , 2013 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
+  { 2 , APR , 2013 , RWC , "Nwarp" , MICRO , TYPE_GENERAL ,
+   "Replace sqrt(nwarp) algorithm" ,
+   "Schulz method gives unpleasant ringing artifacts in the square root. \n"
+   "Use the Denman-Beavers methods instead, which is slower and maybe a\n"
+   "little less accurate, but doesn't do the ringing weirdness." } ,
+
+ { 26 , MAR , 2013 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
    "Add option -cmeth (MEAN or MEDIAN) for Steve Gotts" ,
    NULL } ,
 
