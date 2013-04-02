@@ -561,7 +561,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.39" # software version (update for changes)
+      self.align_version = "1.40" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1730,11 +1730,13 @@ class RegWrap:
       if opt != None: 
          self.output_dir = opt.parlist[0]
          self.output_dir = "%s/" % os.path.realpath(self.output_dir)
-         print "User has selected a new output directory %s" % self.output_dir
+         print "# User has selected a new output directory %s" % self.output_dir
          com = shell_com(("mkdir %s" % self.output_dir), self.oexec)
          com.run()
+         print "cd %s" % self.output_dir
          if(not self.dry_run()):
             os.chdir(self.output_dir)
+            
       else :
          self.output_dir = "./"  # just a space
       self.anat_dir = self.output_dir
@@ -2459,7 +2461,7 @@ class RegWrap:
          o.delete(ps.oexec)
          # save the volreg output to file names based on original epi name
          #  (not temporary __tt_ names)
-         self.mot_1D = "%s%s_motion.1D" % (o.p(), motion_prefix)    # motion parameters output
+         self.mot_1D = "%s_motion.1D" % (motion_prefix)    # motion parameters output
          self.reg_mat = "%s%s_mat.aff12.1D" % (o.p(), o.out_prefix())  # volreg transformation matrix
          self.info_msg( "Volume registration for %s data" % \
                     ps.dset2_generic_name)
@@ -2761,7 +2763,7 @@ class RegWrap:
                 % (basepath,basename,basesuff,baseviewext)
              # if aligning epi to anat or saving volreg output, save motion parameters
              if(ps.epi2anat):
-                motion_prefix = "%s%s%s%s" % (basepath,basename,basesuff,baseviewext)
+                motion_prefix = "%s%s%s" % (basepath,basename,basesuff)
              else:
                 motion_prefix = prefix
              o = self.register_epi( o, ps.reg_opt, prefix, motion_prefix,
@@ -2936,7 +2938,7 @@ class RegWrap:
       # Yikes! Rick noticed the saved skullstrip was the obliqued one
       # and not the original. Should be original ps.anat_ns0, not ps.anat_ns
       if(ps.skullstrip and ps.save_skullstrip):
-         ao_ns = afni_name("%s%s_ns%s" % (ain.p(),ain.out_prefix(),ain.view()))
+         ao_ns = afni_name("%s%s_ns%s" % (ps.anat_ns0.p(),ain.prefix,ain.view))
          self.copy_dset( ps.anat_ns0, ao_ns, 
           "Creating final output: skullstripped %s data" % \
                           self.dset1_generic_name, ps.oexec)
@@ -2944,7 +2946,7 @@ class RegWrap:
       # maybe save pre-obliqued skull stripped anat before alignment
       # 3 Aug 2011 [rickr]
       if(ps.skullstrip and ps.save_origstrip):
-         ao_ons = ain.new(ps.save_origstrip)
+         ao_ons = afni_name("%s%s_ns%s" % (ps.anat_ns0.p(),ps.save_origstrip,ain.view))
          self.copy_dset( ps.anat_ns0, ao_ons, 
           "Creating final output: skullstripped original %s data" % \
                           self.dset1_generic_name, ps.oexec)
@@ -2952,7 +2954,7 @@ class RegWrap:
       # save anatomy aligned to epi 
       if (aae):
          # save aligned anatomy
-         o = afni_name("%s%s%s%s" % (aae.p(),ain.out_prefix(), suf,aae.view))
+         o = afni_name("%s%s%s%s" % (aae.p(),ain.prefix, suf,aae.view))
          self.copy_dset( aae, o, 
           "Creating final output: %s data aligned to %s" % \
                (self.dset1_generic_name, self.dset2_generic_name) , ps.oexec)
@@ -2962,7 +2964,7 @@ class RegWrap:
             # save the timeshifted EPI data
             if (self.epi_ts and self.tshift_flag) :
                eo = afni_name("%s%s_tshft%s" % \
-                  (ein.p(),ein.out_prefix(),ein.view))
+                  (epi_ts.p(),ein.prefix,epi_ts.view))
                self.copy_dset( self.epi_ts, eo,
                 "Creating final output: time-shifted %s" % \
                           self.dset2_generic_name, ps.oexec)
@@ -2970,7 +2972,7 @@ class RegWrap:
          # save the volume registered EPI data
          if (ps.save_vr):
             if (self.epi_vr and self.volreg_flag):
-               eo = afni_name("%s%s_vr%s" % (ein.p(),ein.out_prefix(),ein.view))
+               eo = afni_name("%s%s_vr%s" % (epi_vr.p(),ein.prefix,epi_vr.view))
                self.copy_dset( self.epi_vr, eo, 
                  "Creating final output: time series volume-registered %s" % \
                           self.dset2_generic_name, ps.oexec)
@@ -2980,14 +2982,14 @@ class RegWrap:
          # save weight used in 3dAllineate
          if w:
             ow = afni_name("%s%s_wt_in_3dAl%s%s" % \
-            (ein.p(),ein.out_prefix(),suf,ein.view))
+            (w.p(),ein.prefix,suf,w.view))
             self.copy_dset( w, ow, 
              "Creating final output: weighting data", ps.oexec)
 
          #save a version of the epi as it went into 3dAllineate         
          if epi_in:
             eo = afni_name("%s%s_epi_in_3dAl%s%s" % \
-            (ein.p(),ein.out_prefix(), suf,ein.view))
+            (epi_in.p(),ein.prefix, suf,epi_in.view))
             self.copy_dset( epi_in, eo,     \
              "Creating final output: "
              "%s representative data as used by 3dAllineate" % \
@@ -2996,7 +2998,7 @@ class RegWrap:
          #save a version of the anat as it went into 3dAllineate
          if anat_in:  
             ao = afni_name("%s%s_anat_in_3dAl%s%s" % \
-            (ain.p(), ain.out_prefix(), suf, ain.view))
+            (ps.anat_ns0.p(), ain.prefix, suf, anat_in.view))
             self.copy_dset( anat_in, ao, 
             "Creating final output: %s data as used by 3dAllineate" % \
                           self.dset1_generic_name, ps.oexec)
@@ -3005,8 +3007,7 @@ class RegWrap:
       if (eaa):
          #save the epi aligned to anat
          o = afni_name("%s%s%s%s" % \
-         (ein.p(), ein.out_prefix(), suf,ein.view))
-         o.view = eaa.view
+         (eaa.p(), ein.prefix, suf,eaa.view))
          self.copy_dset( eaa, o,
           "Creating final output: %s data aligned to %s" % \
                    (self.dset2_generic_name, self.dset1_generic_name), ps.oexec)
