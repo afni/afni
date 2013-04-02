@@ -978,7 +978,7 @@ static mday holiday[] = {
    {MAR, 30, "Celebrate National Peanut Month" } ,
    {MAR, 31, "National Tater Day" } ,
    {APR, 1, "National Sourdough Bread Day" } ,
-   {APR, 2, "National Peanut butter and Jelly Day" } ,
+   {APR, 2, "National Peanut Butter and Jelly Day" } ,
    {APR, 3, "National Chocolate Mousse Day" } ,
    {APR, 4, "National Cordon Bleu Day" } ,
    {APR, 5, "National Raisin and Spice Bar Day" } ,

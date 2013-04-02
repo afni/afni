@@ -1435,6 +1435,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Out of Beer Error: No Further Progress Can Be Expected"        ,
      "Have you read Crime and Punishment, by Fido Dogstoyevski?"     ,
      "More cheese, Gromit!"                                          ,
+     "Life can be tough sometimes -- so have a chocolate (or two)"   ,
      "If at first you don't succeed -- call it version 1.0"          ,
      "Never trust a statistic you haven't faked yourself"            ,
      "May your teeth never be replaced by damp woolen socks"         ,

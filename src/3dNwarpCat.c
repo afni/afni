@@ -81,6 +81,31 @@ void CNW_help(void)
     "\n"
     "   Note the order of the warps is reversed, in addition to the use of 'INV()'.\n"
     "\n"
+    " * Other functions you can apply to modify a 3D dataset warp are:\n"
+    "    SQRT(datasetname) to get the square root of a warp\n"
+    "    SQRTINV(datasetname) to get the inverse square root of a warp\n"
+    "\n"
+    " * You can also manufacture a 3D warp from a 1-brick dataset with displacments\n"
+    "   in a single direction.  For example:\n"
+    "      AP:0.44:disp+tlrc.HEAD  (note there are no blanks here!)\n"
+    "   means to take the 1-brick dataset disp+tlrc.HEAD, scale the values inside\n"
+    "   by 0.44, then load them into the y-direction displacements of a 3-brick 3D\n"
+    "   warp, and fill the other 2 directions with zeros.  The prefixes you can use\n"
+    "   here for the 1-brick to 3-brick displacment trick are\n"
+    "     RL: for x-displacements (Right-to-Left)\n"
+    "     AP: for y-displacements (Anterior-to-Posterior)\n"
+    "     IS: for z-displacements (Inferior-to-Superior)\n"
+    "     VEC:a,b,c: for displacements in the vector direction (a,b,c),\n"
+    "                which vector will be scaled to be unit length.\n"
+    "     Following the prefix's colon, you can put in a scale factor followed\n"
+    "     by another colon (as in '0.44:' in the example above).  Then the name\n"
+    "     of the dataset with the 1D displacments follows.\n"
+    " * You might reasonably ask of what possible value is this peculiar format?\n"
+    "   This was implemented to use Bz fieldmaps for correction of EPI datasets,\n"
+    "   which are distorted only along the phase-encoding direction.  This format\n"
+    "   for specifying the input dataset (the fieldmap) is built to make the\n"
+    "   scripting a little easier.  Its principal use is in the program 3dNwarpApply.\n"
+    "\n"
     "\n"
     "OPTIONS\n"
     "-------\n"
@@ -136,7 +161,7 @@ static int verb=0 , interp_code=MRI_WSINC5 ;
 
 void CNW_load_warp( int nn , char *cp )
 {
-   char *wp ; int do_inv=0 , ii ;
+   char *wp ; int do_inv=0 , do_sqrt=0 , ii ;
 
    if( nn <= 0 || nn > NWMAX || cp == NULL || *cp == '\0' )
      ERROR_exit("bad inputs to CNW_load_warp") ;
@@ -145,7 +170,12 @@ void CNW_load_warp( int nn , char *cp )
      cp += 4 ; do_inv = 1 ;
    } else if( strncasecmp(cp,"INVERSE(",8) == 0 ){
      cp += 8 ; do_inv = 1 ;
+   } else if( strncasecmp(cp,"SQRT(",5) == 0 ){
+     cp += 5 ; do_sqrt = 1 ;
+   } else if( strncasecmp(cp,"SQRTINV(",8) == 0 || strncasecmp(cp,"INVSQRT(",8) == 0 ){
+     cp += 8 ; do_inv = do_sqrt = 1 ;
    }
+
    wp = strdup(cp) ; ii = strlen(wp) ;
    if( ii < 4 ) ERROR_exit("input string to CNW_load_warp is too short :-((") ;
    if( wp[ii-1] == ')' ) wp[ii-1] = '\0' ;
@@ -181,6 +211,10 @@ void CNW_load_warp( int nn , char *cp )
        if( verb ) ININFO_message("--- inverting matrix") ;
        imm = MAT44_INV(mmm) ; mmm = imm ;
      }
+     if( do_sqrt ){
+       if( verb ) ININFO_message("--- square-rooting matrix") ;
+       mat44 smm = THD_mat44_sqrt(mmm) ; mmm = smm ;
+     }
 
      awarp[nn-1] = (mat44 *)malloc(sizeof(mat44)) ;
      AAmemcpy(awarp[nn-1],&mmm,sizeof(mat44)) ;
@@ -188,14 +222,97 @@ void CNW_load_warp( int nn , char *cp )
 
    } else {                                        /* dataset warp */
 
-     THD_3dim_dataset *dset ; IndexWarp3D *AA ;
-     dset = THD_open_dataset(wp) ;
-     if( dset == NULL )
-       ERROR_exit("can't open dataset from file '%s'",wp);
+     THD_3dim_dataset *dset , *eset=NULL ; IndexWarp3D *AA , *BB ;
+
+     /* check for special case of uni-directional warp from 1 sub-brick [19 Mar 2013] */
+
+     if( strncasecmp(wp,"RL:",3) == 0 || strncasecmp(wp,"LR:",3) == 0 ||
+         strncasecmp(wp,"AP:",3) == 0 || strncasecmp(wp,"PA:",3) == 0 ||
+         strncasecmp(wp,"IS:",3) == 0 || strncasecmp(wp,"SI:",3) == 0 ||
+         strncasecmp(wp,"VEC:",4)== 0 || strncasecmp(wp,"UNI:",4)== 0   ){
+
+       float vx=0.0f,vy=0.0f,vz=0.0f,vm=0.0f ;
+       char *up=strchr(wp,':')+1 , *vp ;
+       MRI_IMAGE *dim ; float *dar , *xar,*yar,*zar ; int nvox ;
+
+       /* set unit vector for direction of warp displacements in 3D */
+
+       switch( toupper(*wp) ){
+         case 'R': case 'L':  vx = 1.0f ; vy = vz = 0.0f ; break ;
+         case 'A': case 'P':  vy = 1.0f ; vx = vz = 0.0f ; break ;
+         case 'I': case 'S':  vz = 1.0f ; vx = vy = 0.0f ; break ;
+         default:
+           sscanf(up,"%f,%f,%f",&vx,&vy,&vz) ;
+           vm = sqrtf(vx*vx+vy*vy+vz*vz) ;
+           if( vm < 1.e-9f ){
+             ERROR_message("uni-directional warp '%s' :-) direction is unclear",wp) ;
+             free(wp) ; EXRETURN ;
+           }
+           vx /= vm ; vy /= vm ; vz /= vm ;
+           vp = strchr(up,':') ;
+           if( vp == NULL ){
+             ERROR_message("uni-directional warp '%s' :-) no dataset?",wp) ;
+             free(wp) ; EXRETURN ;
+           }
+           up = vp+1 ;
+       }
+
+       /* check if there is a scale factor */
+
+       vp = strchr(up,':') ;
+       if( vp != NULL && isnumeric(*up) ){
+         float wfac = (float)strtod(up,NULL) ;
+         if( wfac == 0.0f ){
+           ERROR_message("uni-directional warp '%s' :-) scale factor = 0?",wp) ;
+           free(wp) ; EXRETURN ;
+         }
+         up = vp+1 ;
+         vx *= wfac ; vy *= wfac ; vz *= wfac ;
+       }
+
+       /* now read dataset and do surgery on it */
+
+       eset = THD_open_dataset(up) ;
+       if( eset == NULL ){
+         ERROR_message("Can't open dataset from file '%s'",up); free(wp); EXRETURN;
+       }
+       DSET_load(eset) ;
+       if( !DSET_LOADED(eset) ){
+         ERROR_message("Can't load dataset from file '%s'",up); free(wp); DSET_delete(eset); EXRETURN;
+       }
+       dim = THD_extract_float_brick(0,eset); dar = MRI_FLOAT_PTR(dim); DSET_unload(eset);
+       nvox = dim->nvox ;
+       xar = (float *)calloc(sizeof(float),nvox) ; /* bricks for output dataset */
+       yar = (float *)calloc(sizeof(float),nvox) ;
+       zar = (float *)calloc(sizeof(float),nvox) ;
+       dset = EDIT_empty_copy(eset) ;
+       EDIT_dset_items( dset ,
+                          ADN_nvals , 3 ,
+                          ADN_ntt   , 0 ,
+                          ADN_datum_all , MRI_float ,
+                        ADN_none ) ;
+       EDIT_BRICK_FACTOR(dset,0,0.0) ; EDIT_substitute_brick(dset,0,MRI_float,xar) ;
+       EDIT_BRICK_FACTOR(dset,1,0.0) ; EDIT_substitute_brick(dset,1,MRI_float,yar) ;
+       EDIT_BRICK_FACTOR(dset,2,0.0) ; EDIT_substitute_brick(dset,2,MRI_float,zar) ;
+       for( ii=0 ; ii < nvox ; ii++ ){
+         xar[ii] = vx * dar[ii]; yar[ii] = vy * dar[ii]; zar[ii] = vz * dar[ii];
+       }
+       mri_free(dim) ;
+
+     } else {  /*--- standard 3-brick warp ---*/
+
+       dset = THD_open_dataset(wp) ;
+       if( dset == NULL )
+         ERROR_exit("can't open dataset from file '%s'",wp);
+     }
+
+     /*-- convert dataset to warp --*/
+
      if( verb ) ININFO_message("--- reading dataset") ;
      AA = IW3D_from_dataset(dset,0,0) ;
      if( AA == NULL )
        ERROR_exit("can't make warp from dataset '%s'",wp);
+
      if( geomstring == NULL ){       /* first dataset => set geometry globals */
        geomstring = strdup(AA->geomstring) ;
        sname      = strdup(dset->atlas_space) ;
@@ -203,14 +320,28 @@ void CNW_load_warp( int nn , char *cp )
      } else if( AA->nx != nx || AA->ny != ny || AA->nz != nz ){ /* check them */
        ERROR_exit("warp from dataset '%s' doesn't match earlier inputs in grid size",wp) ;
      }
+
      if( inset == NULL ){ DSET_unload(dset) ; inset = dset ; }  /* save as template */
      else               { DSET_delete(dset) ; }
 
-     if( do_inv ){
-       IndexWarp3D *BB ;
-       if( verb ) ININFO_message("--- inverting warp") ;
-       BB = IW3D_invert(AA,NULL,interp_code); IW3D_destroy(AA); AA = BB;
+     if( do_sqrt ){
+#ifndef USE_SQRTPAIR
+       BB = IW3D_sqrtinv(AA,NULL,MRI_LINEAR) ;  /* inverse AND sqrt */
+       if( do_inv ){
+         IW3D_destroy(AA) ; AA = BB ;
+       } else {                                 /* must re-invert */
+         AA = IW3D_invert(BB,NULL,MRI_LINEAR) ; IW3D_destroy(BB) ;
+       }
+#else
+       IndexWarp3D_pair *YZ = IW3D_sqrtpair(AA,MRI_LINEAR) ;
+       if( do_inv ){ AA = YZ->iwarp ; IW3D_destroy(YZ->fwarp) ; }
+       else        { AA = YZ->fwarp ; IW3D_destroy(YZ->iwarp) ; }
+       free(YZ) ;
+#endif
+     } else if( do_inv ){
+       BB = IW3D_invert(AA,NULL,MRI_WSINC5); IW3D_destroy(AA); AA = BB;
      }
+
      AA->use_emat = 0 ;
 
      iwarp[nn-1] = AA ; free(wp) ; return ;
@@ -222,6 +353,7 @@ void CNW_load_warp( int nn , char *cp )
 }
 
 /*----------------------------------------------------------------------------*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
