@@ -801,6 +801,17 @@ STATUS("making imag->rowcol") ;
                      AFNI_imag_pop_CB , im3d ) ;
       XtSetSensitive( imag->pop_instacorr_pb , False ) ;
 
+      imag->pop_icorrapair_pb =  /* Apr 2013: for 3dGroupInCorr */
+         XtVaCreateWidget(
+            "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+               LABEL_ARG("GrpInCorr SetApair") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( imag->pop_icorrapair_pb , XmNactivateCallback ,
+                     AFNI_imag_pop_CB , im3d ) ;
+
       imag->pop_icorrjump_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
