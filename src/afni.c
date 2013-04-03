@@ -9479,6 +9479,13 @@ ENTRY("AFNI_imag_pop_CB") ;
      }
    }
 
+   /*---- Apr 2013: set 3dGroupInCorr Apair point ----*/
+
+   else if( w == im3d->vwid->imag->pop_icorrapair_pb && w != NULL ){
+     AFNI_gicor_setapair_xyz( im3d , im3d->vinfo->xi ,
+                                     im3d->vinfo->yj , im3d->vinfo->zk ) ;
+   }
+
    /*--- unmap of the popup itself [elided] ---*/
 
    /*--- exit ---*/

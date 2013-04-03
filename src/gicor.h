@@ -5,6 +5,7 @@ typedef struct {
   int       ready ;
   int       ndset_A , ndset_B , nvec ;
   int       ttest_opcode , vmul ;
+  int       do_apair ;
   float     seedrad ;
   NI_stream ns ;
   int       busy ;   /* 18 Mar 2010 */
