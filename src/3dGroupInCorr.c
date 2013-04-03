@@ -1056,8 +1056,11 @@ int main( int argc , char *argv[] )
    char *clust_NN1=NULL, *clust_NN2=NULL, *clust_NN3=NULL, *clust_mask=NULL ;
    char *clatr[4] = { NULL , NULL , NULL , NULL } ;
 
+   int voxindB=-666 , voxijkB=-666 , redoB=1 ; /* Apr 2013 */
+   int do_apair=0 ;
+
 #ifdef COVTEST
-   float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;
+   float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;  /* debugging covariates */
 #endif
 
    /*-- enlighten the ignorant and brutish sauvages with our wisdom? --*/
@@ -1146,7 +1149,7 @@ int main( int argc , char *argv[] )
       "  10 Gbytes of data from a slow disk.  After that, if your computer\n"
       "  has enough RAM, then the program should run pretty quickly.\n"
       " ++ If your computer DOESN'T have enough RAM to hold all the data,\n"
-      "    then this program will be very slow -- buy more memory!\n"
+      "    then this program will be painfully slow -- buy more memory!\n"
       " ++ Note that the .data file(s) are mapped directly into memory (mmap),\n"
       "    rather than being read with standard file input methods (fread).\n"
       " ++ This memory-mapping operation may not work well on network-mounted\n"
@@ -1165,11 +1168,11 @@ int main( int argc , char *argv[] )
       "* One reason this program is a server (rather than being built in\n"
       "  to AFNI) is that it can be compiled to use OpenMP, which will let\n"
       "  it make use of multiple CPU cores on the computer system.\n"
-      " ++ However, this binary version is not compiled with OpenMP :-(\n"
+      " ++ However, this binary version is NOT compiled with OpenMP :-(\n"
       " ++ OpenMP is supported in gcc 4.2 and above (included on Mac OS X),\n"
       "    and in some commercial C compilers (e.g., Sun's, Intel's).\n"
-      " ++ If at all possible, use a version/compilation of 3dGroupInCorr\n"
-      "    with OpenMP; the speed difference is very appreciable!\n"
+      " ++ If at all possible, use a version/compilation of 3dGroupInCorr with\n"
+      "    OpenMP; the speed difference is very significant and noticeable!\n"
 #endif
       ) ;
 
@@ -1729,7 +1732,10 @@ int main( int argc , char *argv[] )
      PRINT_AFNI_OMP_USAGE("3dGroupInCorr",NULL) ;
      printf("++ Authors: Bob Cox and Ziad Saad\n") ;
      PRINT_COMPILE_DATE ; exit(0) ;
-   }
+
+   }  /*-- end of the enlightenment --*/
+
+   /*--- startup bureaucracy ---*/
 
    mainENTRY("3dGroupInCorr"); machdep();
    AFNI_logger("3dGroupInCorr",argc,argv);
@@ -2128,14 +2134,41 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-apair") == 0 ){  /* Apr 2013 */
+       do_apair = 1 ; nopt++ ; continue ;
+     }
+
+     /*-- pitifully clueless user --*/
+
      ERROR_message("GIC: Unknown option: '%s'",argv[nopt]) ;
      suggest_best_prog_option(argv[0], argv[nopt]);
      exit(1);
+
+   } /*--- end of processing options ---*/
+
+   /*-- check for the worst possible news (i.e., clueless user) --*/
+
+   if( shd_AAA == NULL )
+     ERROR_exit("GIC:  !! You must use the '-setA' option !!") ;
+
+   if( do_apair && shd_BBB != NULL )
+     ERROR_exit("GIC:  !! You can't use '-Apair' and '-setB' together !!") ;
+
+   if( do_apair && bmode )
+     ERROR_exit("GIC:  !! You can't use '-Apair' and '-batch' together !!") ;
+
+   /*-- Apr 2013: manufacture setB from setA for the -Apair option --*/
+
+   if( do_apair ){
+     if( ttest_opcode != 2 ){
+       INFO_message("use of '-Apair' turns paired t-testing on") ;
+       ttest_opcode = 2 ;       /* paired test is forced */
+     }
+     shd_BBB = shd_AAA ;
+     ii = strlen(qlab_AAA) ;
+     qlab_BBB = (char *)malloc(sizeof(char)*(ii+8)) ;
+     strcpy(qlab_BBB,qlab_AAA) ; strcat(qlab_BBB,":AP") ;
    }
-
-   /* check for the worst possible news (i.e., clueless user) */
-
-   if( shd_AAA == NULL ) ERROR_exit("GIC:  !! You must use the '-setA' option !!") ;
 
    /** store some info about the datasets we will be constructing **/
 
@@ -2154,7 +2187,7 @@ int main( int argc , char *argv[] )
    nz = DSET_NZ(shd_AAA->tdset) ; dz = fabsf(DSET_DZ(shd_AAA->tdset)) ;
    dmin = MIN(dx,dy) ; dmin = MIN(dmin,dz) ; nxy = nx*ny ;
 
-   /*-- check inputs for OK-ness --*/
+   /*-- check inputs for OK-ness, and fix them if needed --*/
 
    do_lpi = AFNI_yesenv("AFNI_INSTACORR_XYZ_LPI") ;  /* 07 Feb 2011 */
 
@@ -2254,7 +2287,7 @@ int main( int argc , char *argv[] )
    if( shd_BBB != NULL && shd_AAA->nvec != shd_BBB->nvec )
      ERROR_exit("GIC: -setA and -setB don't have same number of voxels") ;
 
-   if( shd_BBB != NULL && strcmp(shd_AAA->dfname,shd_BBB->dfname) == 0 )
+   if( shd_BBB != NULL && strcmp(shd_AAA->dfname,shd_BBB->dfname) == 0 && !do_apair )
      ERROR_exit("GIC: -setA and -setB can't use the same datafile!") ;
 
         if( shd_BBB        == NULL           ) ttest_opcode_max = 0 ;
@@ -2270,6 +2303,8 @@ int main( int argc , char *argv[] )
      WARNING_message("GIC: -covariates does not support unpooled variance (yet)") ;
      ttest_opcode = 0 ;
    }
+
+   /* mangle centering code to make it coherent with data we have */
 
    if( shd_BBB == NULL && center_code == CENTER_SAME )  /* 15 Jul 2011 */
      center_code = CENTER_DIFF ;
@@ -2627,7 +2662,7 @@ int main( int argc , char *argv[] )
        if( verb && (pp/BSTEP)%vstep == vstep-1 ) vstep_print() ;
      }
      if( verb ){ fprintf(stderr,"!\n") ; vstep_n = 0 ; }
-     if( shd_BBB != NULL ){
+     if( shd_BBB != NULL && !do_apair ){
        if( shd_BBB->datum == 1 ) qv = (char *)shd_BBB->bv[0] ;
        else                      qv = (char *)shd_BBB->sv[0] ;
        if( verb ){
@@ -2645,7 +2680,7 @@ int main( int argc , char *argv[] )
 
    if( verb ){
      long long nbtot = shd_AAA->nbytes ;
-     if( shd_BBB != NULL ) nbtot += shd_BBB->nbytes ;
+     if( shd_BBB != NULL && !do_apair ) nbtot += shd_BBB->nbytes ;
      INFO_message("GIC: total bytes input = %s (about %s)" ,
                    commaized_integer_string(nbtot) ,
                    approximate_number_string((double)nbtot) ) ;
@@ -2747,9 +2782,9 @@ int main( int argc , char *argv[] )
 
    /* name of NIML stream (socket) to open */
 
-   if( !bmode ){
-     if( nport <= 0 ) {
-      nport = (TalkToAfni) ?  get_port_named("AFNI_GroupInCorr_NIML") :
+   if( !bmode ){           /* not in batch mode */
+     if( nport <= 0 ){
+       nport = (TalkToAfni) ? get_port_named("AFNI_GroupInCorr_NIML") :
                               get_port_named("SUMA_GroupInCorr_NIML") ;
      }
      sprintf( nsname , "tcp:%s:%d" , afnihost , nport ) ;
@@ -2926,6 +2961,9 @@ int main( int argc , char *argv[] )
      if( clust_mask != NULL ) free(clust_mask) ;
    }
 
+   if( do_apair )      /* Apr 2013 */
+     NI_set_attribute( nelcmd , "apair" , "YES" ) ;
+
    /* ZSS: set surface attributes [note Ziad's TERRIBLE use of spaces]
             Perhaps, but   at least      he wraps at 80             . */
 
@@ -2982,10 +3020,10 @@ int main( int argc , char *argv[] )
      }
    }
 
-   NI_free_element(nelcmd) ;  /* setup is done (here or there) */
+   NI_free_element(nelcmd) ;  /* setup is done (here, there, everywhere) */
    nelcmd = NULL ;
 
-   /** make neighborhood struct for seedrad usage **/
+   /**-- make neighborhood struct for seedrad usage --**/
 
    if( seedrad >= dmin ){
      nbhd = MCW_spheremask( dx,dy,dz , seedrad ) ;
@@ -3036,7 +3074,7 @@ int main( int argc , char *argv[] )
 #endif
    }
 
-#ifdef COVTEST
+#ifdef COVTEST                        /* debugging */
    ctnam = getenv("GI_AAA_add") ;
    if( ctnam != NULL && strncmp(ctnam,"1D:",3) == 0 ){
      MRI_IMAGE *ctimm = mri_1D_fromstring(ctnam) ;
@@ -3053,13 +3091,13 @@ int main( int argc , char *argv[] )
 
    while(1){  /*----- loop forever? -----*/
 
-     if( !bmode ){   /* read command from AFNI or SUMA */
+     if( !bmode ){   /*-- read command from AFNI or SUMA --*/
 
        nelcmd = NI_read_element( GI_stream , 333 ) ;
 
        atim = btim = NI_clock_time() ;  /* start timer, for user info */
 
-       /* nada?  check if something is bad */
+       /*-- nada?  check if something is bad --*/
 
        if( nelcmd == NULL ){
          kk = NI_stream_goodcheck( GI_stream , 1 ) ;
@@ -3080,7 +3118,7 @@ int main( int argc , char *argv[] )
          continue ; /* loop back */
        }
 
-     } else {   /* create command internally in batch mode [Feb 2011] */
+     } else {   /*-- create command internally in batch mode [Feb 2011] --*/
 
        char cline[6666], buf[666] , *cpt ; static int nbatch=0 ;
        static NI_str_array *bsar=NULL ;
@@ -3285,18 +3323,18 @@ BatchFinalize:
 
        if( verb > 2 ) INFO_message("GIC: generated %s command",nelcmd->name) ;
 
-     }
+     } /*-- end of batch mode creating the command --*/
 
-     /* the following should never happen */
+     /*-- the following should never happen --*/
 
      if( NI_element_type(nelcmd) != NI_ELEMENT_TYPE ){
        WARNING_message("GIC: Badly formatted command from %s!",pname) ;
        NI_free_element(nelcmd) ; continue ;
      }
 
-     /* do something with the command, based on the element name */
+     /*-- do something with the command, based on the element name --*/
 
-     /** Command = AFNI said 'TaTa for Now' **/
+     /** Command = AFNI said 'TaTa for Now' (or something like it) **/
 
      if( strcmp(nelcmd->name,"AuRevoir") == 0 ){
        INFO_message("GIC: Message from %s: ** Au Revoir **",pname) ;
@@ -3308,6 +3346,26 @@ BatchFinalize:
 
      if( verb > 1 || (verb==1 && nsend < NSEND_LIMIT) )
        INFO_message("GIC: Received command %s from %s",nelcmd->name,pname) ;
+
+     /**--- Apr 2013: command to set Apair base (nothing else happens) ---**/
+
+     if( strncmp(nelcmd->name,"SETAPAIR_ijk",12) == 0 ){
+                         atr = NI_get_attribute(nelcmd,"index") ;
+       if( atr == NULL ) atr = NI_get_attribute(nelcmd,"node" ) ;
+       if( atr == NULL ) atr = NI_get_attribute(nelcmd,"ijk"  ) ;
+       if( atr == NULL ){   /* should never happen */
+         ERROR_message("GIC: %s: no index given!?",nelcmd->name) ;
+         NI_free_element(nelcmd) ; goto LoopBack ;
+       }
+       voxijkB = (int)strtod(atr,NULL) ;
+       voxindB = IJK_TO_INDEX(shd_AAA,voxijk) ;
+       redoB   = 1 ;
+       if( verb > 1 )
+         ININFO_message("GIC:  dataset index=%d  node index=%d ** Apair **",voxijkB,voxindB) ;
+       if( voxindB < 0 )
+         ERROR_message("GIC: %s: index=%d is not in mask!? ** Apair **",nelcmd->name,voxijkB) ;
+       NI_free_element(nelcmd) ; goto LoopBack ;
+     }
 
      /**----- Command = set seed voxel index (and maybe radius) -----**/
 
@@ -3332,6 +3390,20 @@ BatchFinalize:
          NI_free_element(nelcmd) ; goto LoopBack ;
        }
 
+       if( do_apair ){ /* Apr 2013: allow change of Apair location at same time */
+                           atr = NI_get_attribute(nelcmd,"index_apair") ;
+         if( atr == NULL ) atr = NI_get_attribute(nelcmd,"node_apair") ;
+         if( atr == NULL ) atr = NI_get_attribute(nelcmd,"ijk_apair") ;
+         if( atr != NULL ){
+           voxijkB = (int)strtod(atr,NULL) ;
+           voxindB = IJK_TO_INDEX(shd_AAA,voxijk) ; redoB = 1 ;
+           if( voxindB < 0 ){
+             ERROR_message("GIC: %s: index=%d is not in mask!? ** Apair **",nelcmd->name,voxijkB) ;
+             NI_free_element(nelcmd) ; goto LoopBack ;
+           }
+         }
+       }
+
        /* change radius over which to average? */
 
        atr = NI_get_attribute(nelcmd,"seedrad") ;
@@ -3351,28 +3423,42 @@ BatchFinalize:
        }
 
 #if 0
-       /* t-test method (for 2-sample case only) */
+       /* change t-test method? (for 2-sample case only) */
 
-       atr = NI_get_attribute(nelcmd,"ttest_opcode") ;
-       if( atr != NULL ){
-         int nto = (int)strtod(atr,NULL) ;
-         if( nto < 0 || nto > ttest_opcode_max ) ttest_opcode = 0 ;
-         else                                    ttest_opcode = nto ;
-         if( verb > 2 )
-           ININFO_message("GIC:  ttest_opcode set to %d",ttest_opcode) ;
+       if( !do_apair && ndset_BBB > 0 ){
+         atr = NI_get_attribute(nelcmd,"ttest_opcode") ;
+         if( atr != NULL ){
+           int nto = (int)strtod(atr,NULL) ;
+           if( nto < 0 || nto > ttest_opcode_max ) ttest_opcode = 0 ;
+           else                                    ttest_opcode = nto ;
+           if( verb > 2 )
+             ININFO_message("GIC:  ttest_opcode set to %d",ttest_opcode) ;
+         }
        }
 #endif
 
+       /*----- !! begin processing !! -----*/
+
        /* actually get the seed vectors from this voxel */
+
+       if( !do_apair ){                                    /* Apr 2013 */
+         voxindB = voxind ; voxijkB = voxijk ; redoB = 1 ;
+       } else if( do_apair && voxijkB == voxijk ){
+         ERROR_message("GIC: Apair voxel and seed voxel coincide :-(") ;
+         redoB = 1 ; NI_free_element(nelcmd) ; goto LoopBack ;
+       } else if( do_apair && voxijkB < 0 ){
+         ERROR_message("GIC: Apair voxel not set properly :-(") ;
+         redoB = 1 ; NI_free_element(nelcmd) ; goto LoopBack ;
+       }
 
        if( do_pv ){
          GRINCOR_seedvec_ijk_pvec( shd_AAA , nbhd , voxijk , seedvec_AAA ) ;
-         if( shd_BBB != NULL )
-           GRINCOR_seedvec_ijk_pvec( shd_BBB , nbhd , voxijk , seedvec_BBB ) ;
+         if( shd_BBB != NULL && redoB )
+           GRINCOR_seedvec_ijk_pvec( shd_BBB , nbhd , voxijkB , seedvec_BBB ) ;
        } else {
          GRINCOR_seedvec_ijk_aver( shd_AAA , nbhd , voxijk , seedvec_AAA ) ;
-         if( shd_BBB != NULL )
-           GRINCOR_seedvec_ijk_aver( shd_BBB , nbhd , voxijk , seedvec_BBB ) ;
+         if( shd_BBB != NULL && redoB )
+           GRINCOR_seedvec_ijk_aver( shd_BBB , nbhd , voxijkB , seedvec_BBB ) ;
        }
 
      /**----- command contains all the seed vectors directly [Feb 2011] -----**/
@@ -3491,18 +3577,18 @@ BatchFinalize:
 
      }
 
-     /** boomerang message **/
+     /** set boomerang message **/
      {
        char *boomerang = NI_get_attribute(nelcmd,"boomerang_msg");
        if( nelset && boomerang )
          NI_set_attribute(nelset, "boomerang_msg", boomerang);
      }
 
-     /**--- throw away the message from AFNI ---**/
+     /**------ throw away the message from AFNI ------**/
 
      NI_free_element( nelcmd ) ;
 
-     /***** compute the result *****/
+     /********** compute the result **********/
 
      if( verb > 2 || (verb==1 && nsend < NSEND_LIMIT) ){
        ctim = NI_clock_time() ;
@@ -3514,7 +3600,7 @@ BatchFinalize:
 
      if( verb > 3 ) ININFO_message("GIC:  start correlation-izing for %s",label_AAA) ;
      GRINCOR_many_dotprod( shd_AAA , seedvec_AAA , dotprod_AAA ) ;
-     if( shd_BBB != NULL ){
+     if( shd_BBB != NULL && redoB ){
        if( verb > 3 ) ININFO_message("GIC:  start correlation-izing for %s",label_BBB) ;
        GRINCOR_many_dotprod( shd_BBB , seedvec_BBB , dotprod_BBB ) ;
      }
@@ -3528,7 +3614,7 @@ BatchFinalize:
          for( ii=0 ; ii < nvec ; ii++ ) vv[ii] *= ff ;
        }
      }
-     if( scl_BBB != NULL ){
+     if( scl_BBB != NULL && redoB ){
        float *vv , ff ;
        for( kk=0 ; kk < ndset_BBB ; kk++ ){
          vv = dotprod_BBB[kk] ; ff = scl_BBB[kk] ;
@@ -3707,6 +3793,8 @@ BatchFinalize:
 
      if( verb > 1 || (verb==1 && nsend < NSEND_LIMIT) )
        ININFO_message("GIC:  Total elapsed time = %d msec",ctim-atim) ;
+
+     if( do_apair ) redoB = 0 ;  /* Apr 2013 -- don't redo setB unless needed */
 
      nsend++ ;  /* number of results sent back so far */
 
@@ -4480,7 +4568,7 @@ int GRINCOR_output_srf_dataset(GICOR_setup *giset, NI_element *nel,
       if (targetv[i]) {
          SUMA_NewDsetID2(sdsetv[i],targetv[i]);
          if (!(oname = SUMA_WriteDset_ns (targetv[i], sdsetv[i],
-                                       oform, 1, 1))) {
+                                       (SUMA_DSET_FORMAT)oform, 1, 1))) {
             ERROR_message("Failed to write %s\n", targetv[i]);
          } else {
             SUMA_free(oname); oname = NULL;

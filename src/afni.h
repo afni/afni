@@ -305,7 +305,7 @@ typedef struct {
 
       int   i1_icor , j2_icor , k3_icor;  /* for InstaCorr -- 08 May 2009 */
       float xi_icor , yj_icor , zk_icor ; /* DICOM coords -- 17 Mar 2010 */
-      
+
       float *th_sort;  /* sorted values of overlay threshold */
       int N_th_sort; /* number of values stored in th_sort */
       char  th_sortid[256]; /* indentifier of provenance of th_sort */
@@ -402,7 +402,7 @@ typedef struct {
       Widget pop_whereami_pb , pop_ttren_pb ;
       MCW_textwin *pop_whereami_twin ;
       MCW_htmlwin *pop_whereami_htmlwin ;
-      
+
       Widget pop_sumato_pb ;
       Widget pop_mnito_pb ;  /* 01 May 2002 */
 
@@ -411,6 +411,7 @@ typedef struct {
 
       Widget pop_instacorr_pb ;   /* 06 May 2009 */
       Widget pop_icorrjump_pb ;
+      Widget pop_icorrapair_pb;   /* Apr 2013 */
 } AFNI_imaging_widgets ;
 
 /*--- 19 Aug 2002: Switch Surface control box ---*/
@@ -572,7 +573,7 @@ extern void AFNI_sesslab_EV( Widget, XtPointer, XEvent *, Boolean * ) ; /* 30 Ap
 extern void flush_vinfo_sort(AFNI_view_info *vinfo, char *sel);/*ZSS: 04/26/12*/
 extern void flush_3Dview_sort(struct Three_D_View *im3d, char *sel);
 extern float *get_3Dview_sort(struct Three_D_View *im3d, char *sel);
-extern float  get_3Dview_func_thresh(struct Three_D_View *im3d, 
+extern float  get_3Dview_func_thresh(struct Three_D_View *im3d,
                                      int apply_power);
 extern float AFNI_thresh_from_percentile(struct Three_D_View *im3d, float perc);
 
@@ -1172,9 +1173,13 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
 
 /*! Change InstaCorr popup buttons status */
 
-#define SENSITIZE_INSTACORR(iq,bb)                           \
- do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,bb) ; \
-     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,bb) ; \
+#define SENSITIZE_INSTACORR(iq,bb)                            \
+ do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,bb) ;   \
+     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,bb) ;    \
+     if( (bb) && (iq)->giset != NULL && (iq)->giset->do_apair )  \
+       XtManageChild((iq)->vwid->imag->pop_icorrapair_pb) ;     \
+     else                                                      \
+       XtUnmanageChild((iq)->vwid->imag->pop_icorrapair_pb) ; \
  } while(0)
 
 /*! Allow InstaCorr in this viewer */
@@ -1458,7 +1463,7 @@ typedef struct {
 
    int ijk_lock ;                                /* 11 Sep 2000 */
    int thr_lock ;
-   
+
    THD_session *session ;                        /* 20 Dec 2001 */
 
    MCW_function_list registered_slice_proj ;     /* 31 Jan 2002 */
@@ -1605,7 +1610,7 @@ extern int AFNI_clus_find_xyz( Three_D_View *im3d , float x,float y,float z ) ;
 extern void AFNI_clus_action_CB( Widget w , XtPointer cd , XtPointer cbs ) ;
 
 extern void AFNI_update_dataset_viewing( THD_3dim_dataset * ); /* 21 Jul 2009 */
-extern void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab); 
+extern void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab);
 
 #define AFNI_SEE_FUNC_ON(iq) ( MCW_set_bbox( (iq)->vwid->view->see_func_bbox, 1 ), \
                                AFNI_see_func_CB( NULL , (XtPointer)(iq) , NULL )  )
@@ -1665,7 +1670,7 @@ extern int  AFNI_jumpto_ijk          ( Three_D_View * , int, int, int  ) ;
 extern void AFNI_jumpto_ijk_CB       ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_sumato_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_mnito_CB            ( Widget , XtPointer , MCW_choose_cbs * ) ;
-extern void AFNI_check_obliquity     ( Widget , THD_3dim_dataset * , 
+extern void AFNI_check_obliquity     ( Widget , THD_3dim_dataset * ,
                                                 THD_3dim_dataset * ) ;
 
 extern void AFNI_crosshair_pop_CB    ( Widget , XtPointer , XtPointer ) ; /* 12 Mar 2004 */
@@ -1759,6 +1764,7 @@ extern void   AFNI_icor_setref_locked( Three_D_View *im3d ) ;      /* 15 May 200
 extern int    AFNI_icor_setref_anatijk( Three_D_View *, int,int,int ) ;      /* 17 Mar 2010 */
 extern int    AFNI_icor_setref_xyz    ( Three_D_View *, float,float,float );
 extern int    AFNI_gicor_setref_xyz   ( Three_D_View *, float,float,float ); /* 23 Dec 2009 */
+extern void   AFNI_gicor_setapair_xyz ( Three_D_View *, float,float,float );    /* Apr 2013 */
 
 extern Boolean AFNI_refashion_dataset( Three_D_View * ,
                                        THD_3dim_dataset *, THD_dataxes * , int ) ;

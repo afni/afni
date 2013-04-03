@@ -847,6 +847,8 @@ ENTRY("GICOR_setup_func") ;
    giset->ready = 0 ;    /* not ready yet */
    giset->busy  = 0 ;    /* not busy yet, either [18 Mar 2010] */
 
+   giset->do_apair = 0 ; /* Apr 2013 */
+
    /* set various parameters from the NIML header */
 
    atr = NI_get_attribute( nel , "ndset_A" ) ; if( atr == NULL )        GIQUIT;
@@ -865,6 +867,9 @@ ENTRY("GICOR_setup_func") ;
    atr = NI_get_attribute( nel , "ttest_opcode" ) ;
    if( atr != NULL ) giset->ttest_opcode = (int)strtod(atr,NULL) ;
 #endif
+
+   atr = NI_get_attribute( nel , "apair") ;
+   if( YESSISH(atr) ) giset->do_apair = 1 ;
 
    /* create output dataset, to be filled in from 3dGroupInCorr data later */
 
@@ -1176,6 +1181,57 @@ INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
    giset->busy = 0 ; /* Not busy waiting anymore [18 Mar 2010] */
    GRPINCORR_LABEL_ON(im3d) ;                  /* 07 Apr 2010 */
    EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void AFNI_gicor_setapair_xyz( Three_D_View *im3d , float xx,float yy,float zz )
+{
+   NI_element *nel ;
+   char buf[256] ;
+   GICOR_setup *giset = im3d->giset ;
+   THD_fvec3 iv,jv; THD_ivec3 kv; int ijk,ii ;
+
+   if( !IM3D_OPEN(im3d) || giset == NULL || !giset->ready ) return ; /* bad */
+
+   if( NI_stream_goodcheck(giset->ns,1) < 1 ) return ;   /* socket not good */
+
+   if( giset->busy ) return ;                       /* it's busy over there */
+
+   LOAD_FVEC3( iv , xx,yy,zz ) ;
+   jv = THD_dicomm_to_3dmm( giset->dset, iv ) ;
+
+   if( jv.xyz[0] < giset->dset->daxes->xxmin ||
+       jv.xyz[0] > giset->dset->daxes->xxmax ||
+       jv.xyz[1] < giset->dset->daxes->yymin ||
+       jv.xyz[1] > giset->dset->daxes->yymax ||
+       jv.xyz[2] < giset->dset->daxes->zzmin ||
+       jv.xyz[2] > giset->dset->daxes->zzmax   ){
+
+     WARNING_message("GrpInCorr set Apair point outside dataset box") ;
+     return ;
+   }
+
+   kv  = THD_3dmm_to_3dind_no_wod( giset->dset, jv ) ;
+   ijk = DSET_ixyz_to_index( giset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] ) ;
+
+   if( giset->ivec != NULL ){
+     ii = bsearch_int( ijk , giset->nvec , giset->ivec ) ;
+     if( ii < 0 ){
+       WARNING_message("AFNI: GrpInCorr set Apair point not in mask from 3dGroupInCorr :-(") ;
+       return ;
+     }
+   }
+
+   nel = NI_new_data_element( "SETAPAIR_ijk" , 0 ) ;
+
+   sprintf( buf , "%d" , ijk ) ;
+   NI_set_attribute( nel , "index" , buf ) ;
+
+   ii = NI_write_element( giset->ns , nel , NI_TEXT_MODE ) ;
+   NI_free_element( nel ) ;
+
+   return ;
 }
 
 /*--------------------------------------------------------------------------*/
