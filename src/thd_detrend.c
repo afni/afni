@@ -345,6 +345,7 @@ void THD_generic_detrend_LSQ( int npt, float *far ,
 /*! Detrend a vector with a given polort level, plus some others, using
     L1 regression.
      - npt    = length of vector
+                 (if < 0, then abs(npt) is used, and the fit isn't subtracted)
      - far    = vector of data (will be modified)
      - polort = polynomial order
      - nort   = number of extra orts in ort[] (can be 0)
