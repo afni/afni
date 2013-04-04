@@ -847,7 +847,7 @@ ENTRY("GICOR_setup_func") ;
    giset->ready = 0 ;    /* not ready yet */
    giset->busy  = 0 ;    /* not busy yet, either [18 Mar 2010] */
 
-   giset->do_apair = 0 ; /* Apr 2013 */
+   giset->apair = 0 ;    /* Apr 2013 */
 
    /* set various parameters from the NIML header */
 
@@ -868,8 +868,8 @@ ENTRY("GICOR_setup_func") ;
    if( atr != NULL ) giset->ttest_opcode = (int)strtod(atr,NULL) ;
 #endif
 
-   atr = NI_get_attribute( nel , "apair") ;
-   if( YESSISH(atr) ) giset->do_apair = 1 ;
+   atr = NI_get_attribute( nel , "apair") ;  /* Apr 2013 */
+   if( YESSISH(atr) ) GICOR_set_apair_allow_bit(giset) ;
 
    /* create output dataset, to be filled in from 3dGroupInCorr data later */
 
@@ -1041,6 +1041,19 @@ ENTRY("GICOR_setup_func") ;
 }
 
 /*----------------------------------------------------------------------------*/
+
+void GICOR_process_message( NI_element *nel )  /* Apr 2013 */
+{
+   Three_D_View *im3d = A_CONTROLLER ;
+
+ENTRY("GICOR_process_message") ;
+   if( !IM3D_OPEN(im3d) || im3d->giset == NULL ) EXRETURN ;
+   im3d->giset->busy = 0 ;
+   process_NIML_textmessage(nel) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Called from afni_niml.c to process the received dataset from 3dGroupInCorr */
 
 void GICOR_process_dataset( NI_element *nel , int ct_start )
@@ -1192,10 +1205,12 @@ void AFNI_gicor_setapair_xyz( Three_D_View *im3d , float xx,float yy,float zz )
    GICOR_setup *giset = im3d->giset ;
    THD_fvec3 iv,jv; THD_ivec3 kv; int ijk,ii ;
 
-   if( !IM3D_OPEN(im3d) || giset == NULL || !giset->ready ) return ; /* bad */
-   if( giset->do_apair == 0 ) return ;              /* not even a good idea */
-   if( giset->busy ) return ;                       /* it's busy over there */
-   if( NI_stream_goodcheck(giset->ns,1) < 1 ) return ;   /* socket not good */
+ENTRY("AFNI_gicor_setapair_xyz") ;
+
+   if( !IM3D_OPEN(im3d) || giset == NULL || !giset->ready ) EXRETURN ; /* bad */
+   if( !GICOR_apair_allow_bit(giset) ) EXRETURN ;     /* not even a good idea */
+   if( giset->busy ) EXRETURN ;                       /* it's busy over there */
+   if( NI_stream_goodcheck(giset->ns,1) < 1 ) EXRETURN ;   /* socket not good */
 
    LOAD_FVEC3( iv , xx,yy,zz ) ;
    jv = THD_dicomm_to_3dmm( giset->dset, iv ) ;
@@ -1207,8 +1222,8 @@ void AFNI_gicor_setapair_xyz( Three_D_View *im3d , float xx,float yy,float zz )
        jv.xyz[2] < giset->dset->daxes->zzmin ||
        jv.xyz[2] > giset->dset->daxes->zzmax   ){
 
-     ERROR_message("GrpInCorr set Apair point outside dataset box") ;
-     return ;
+     ERROR_message("GrpInCorr set Apair point outside dataset box -- ignored") ;
+     EXRETURN ;
    }
 
    kv  = THD_3dmm_to_3dind_no_wod( giset->dset, jv ) ;
@@ -1217,8 +1232,8 @@ void AFNI_gicor_setapair_xyz( Three_D_View *im3d , float xx,float yy,float zz )
    if( giset->ivec != NULL ){
      ii = bsearch_int( ijk , giset->nvec , giset->ivec ) ;
      if( ii < 0 ){
-       ERROR_message("AFNI: GrpInCorr set Apair point not in mask from 3dGroupInCorr :-(") ;
-       return ;
+       ERROR_message("AFNI: GrpInCorr set Apair point not in mask from 3dGroupInCorr -- ignored") ;
+       EXRETURN ;
      }
    }
 
@@ -1230,9 +1245,9 @@ void AFNI_gicor_setapair_xyz( Three_D_View *im3d , float xx,float yy,float zz )
    ii = NI_write_element( giset->ns , nel , NI_TEXT_MODE ) ;
    NI_free_element( nel ) ;
 
-   giset->do_apair = 2 ;  /* apair is ready for business */
+   GICOR_set_apair_ready_bit(giset) ;   /* apair is ready for beeswax */
    SENSITIZE_INSTACORR_GROUP(im3d,1) ;
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1281,8 +1296,11 @@ STATUS("check if already busy") ;
      RETURN(0) ;
    }
 
-   if( giset->do_apair == 1 ){
-     ERROR_message("AFNI: can't set InstaCorr seed before set Apair") ;
+   if( GICOR_apair_allow_bit(giset) &&     /* Apr 2013 */
+      !GICOR_apair_ready_bit(giset) &&
+      !GICOR_apair_mirror_bit(giset)  ){
+
+     ERROR_message("AFNI: can't set InstaCorr seed before Set Apair") ;
      RETURN(0) ;
    }
 
@@ -1320,7 +1338,14 @@ STATUS("search for index in mask") ;
      }
    }
 
-   /* send ijk node index to 3dGroupInCorr */
+   /** Apr 2013: before sending the SETREF_ijk element,
+                 send the mirror point, if relevant to our lives **/
+
+   if( GICOR_apair_allow_bit(giset) && GICOR_apair_mirror_bit(giset) )
+     AFNI_gicor_setapair_xyz( im3d , -xx, yy, zz ) ;
+
+   /* NOW send ijk node index to 3dGroupInCorr,
+      which starts the glorious chain of calculations */
 
 STATUS("create NIML element to send info") ;
 

@@ -392,7 +392,7 @@ MRI_shindss * GRINCOR_read_input( char *fname )
       ninmask = NI_decode_int_list(atr,",") ;
    }
 
-   NI_free_element(nel) ;  /* don't need this anymore */
+   NI_free_element(nel) ;  nel = NULL ; /* don't need this anymore */
 
    /* create output struct */
 
@@ -946,6 +946,25 @@ void GI_exit(void)                   /* Function to be called to make sure */
 
 /*-----------------------------------------------------------------------------*/
 
+void GI_message(char *mess,int ecode)  /* Apr 2013 */
+{
+   NI_element *nel=NULL ;
+   if( GI_stream != NULL )
+     nel = NI_new_data_element( "3dGroupInCorr_message" , 0 ) ;
+   if( mess != NULL && *mess != '\0' ){
+     if( nel != NULL ) NI_set_attribute( nel , "text" , mess ) ;
+     switch( ecode ){
+        case 0: INFO_message(mess) ;    break ;
+        case 1: WARNING_message(mess) ; break ;
+        case 2: ERROR_message(mess) ;   break ;
+     }
+   }
+   NI_write_element( GI_stream , nel , NI_TEXT_MODE ) ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
 #include <signal.h>
 
 void GI_sigfunc(int sig)   /** signal handler for fatal errors **/
@@ -1007,9 +1026,9 @@ static int   oform = SUMA_NO_DSET_FORMAT; /* output format for surface-based */
 int main( int argc , char *argv[] )
 {
    int nopt , kk , nn , ii,jj, TalkToAfni=1 , do_nocov=0 ;
-   char nsname[2048]  ; /* NIML socket name */
-   NI_element *nelset ; /* NIML element with dataset to send to AFNI */
-   NI_element *nelcmd ; /* NIML element with command from AFNI */
+   char nsname[2048]  ;      /* NIML socket name */
+   NI_element *nelset=NULL ; /* NIML element with dataset to send to AFNI */
+   NI_element *nelcmd=NULL ; /* NIML element with command from AFNI */
    float *neldar=NULL     , *nelzar=NULL          ;
    float *neldar_AAA=NULL , *nelzar_AAA=NULL ;
    float *neldar_BBB=NULL , *nelzar_BBB=NULL ; int dosix=0 , nosix=0 ;
@@ -3101,6 +3120,7 @@ int main( int argc , char *argv[] )
 
      if( !bmode ){   /*-- read command from AFNI or SUMA --*/
 
+       if( nelcmd != NULL ) NI_free_element(nelcmd) ;
        nelcmd = NI_read_element( GI_stream , 333 ) ;
 
        atim = btim = NI_clock_time() ;  /* start timer, for user info */
@@ -3337,7 +3357,7 @@ BatchFinalize:
 
      if( NI_element_type(nelcmd) != NI_ELEMENT_TYPE ){
        WARNING_message("GIC: Badly formatted command from %s!",pname) ;
-       NI_free_element(nelcmd) ; continue ;
+       continue ;
      }
 
      /*-- do something with the command, based on the element name --*/
@@ -3346,7 +3366,6 @@ BatchFinalize:
 
      if( strcmp(nelcmd->name,"AuRevoir") == 0 ){
        INFO_message("GIC: Message from %s: ** Au Revoir **",pname) ;
-       NI_free_element(nelcmd) ;
        goto GetOutOfDodge ;  /* failed */
      }
 
@@ -3359,15 +3378,15 @@ BatchFinalize:
 
      if( strncmp(nelcmd->name,"SETAPAIR_ijk",12) == 0 ){
        if( !do_apair ){
-         ERROR_message("SETAPAIR_ijk command received without '-Apair' option?") ;
-         NI_free_element(nelcmd) ; goto LoopBack ;
+         GI_message("SETAPAIR_ijk command received without '-Apair' option?",2) ;
+         goto LoopBack ;
        }
                          atr = NI_get_attribute(nelcmd,"index") ;
        if( atr == NULL ) atr = NI_get_attribute(nelcmd,"node" ) ;
        if( atr == NULL ) atr = NI_get_attribute(nelcmd,"ijk"  ) ;
        if( atr == NULL ){   /* should never happen */
-         ERROR_message("GIC: %s: no index given!?",nelcmd->name) ;
-         NI_free_element(nelcmd) ; goto LoopBack ;
+         GI_message("GIC: SETAPAIR_ijk: no index given!?",2) ;
+         goto LoopBack ;
        }
        voxijkB = (int)strtod(atr,NULL) ;
        voxindB = IJK_TO_INDEX(shd_AAA,voxijkB) ;
@@ -3375,8 +3394,8 @@ BatchFinalize:
        if( verb > 1 )
          ININFO_message("GIC:  dataset index=%d  node index=%d ** Apair **",voxijkB,voxindB) ;
        if( voxindB < 0 )
-         ERROR_message("GIC: %s: index=%d is not in mask!? ** Apair **",nelcmd->name,voxijkB) ;
-       NI_free_element(nelcmd) ; goto LoopBack ;
+         GI_message("GIC: SETAPAIR_ijk index is not in mask!?",2) ;
+       goto LoopBack ;
      }
 
      /**----- Command = set seed voxel index (and maybe radius) -----**/
@@ -3390,16 +3409,16 @@ BatchFinalize:
        if( atr == NULL ) atr = NI_get_attribute(nelcmd,"node" ) ;
        if( atr == NULL ) atr = NI_get_attribute(nelcmd,"ijk"  ) ;
        if( atr == NULL ){   /* should never happen */
-         ERROR_message("GIC: %s: no index given!?",nelcmd->name) ;
-         NI_free_element(nelcmd) ; goto LoopBack ;
+         GI_message("GIC: SETREF_ijk: no index given!?",2) ;
+         goto LoopBack ;
        }
        voxijk = (int)strtod(atr,NULL) ;
        voxind = IJK_TO_INDEX(shd_AAA,voxijk) ;
        if( verb > 2 )
          ININFO_message("GIC:  dataset index=%d  node index=%d",voxijk,voxind) ;
        if( voxind < 0 ){
-         ERROR_message("GIC: %s: %d is not in mask!?",nelcmd->name,voxijk) ;
-         NI_free_element(nelcmd) ; goto LoopBack ;
+         GI_message("GIC: SETREF_ijk index is not in mask!?",2) ;
+         goto LoopBack ;
        }
 
        if( do_apair ){ /* Apr 2013: allow change of Apair location at same time */
@@ -3410,8 +3429,8 @@ BatchFinalize:
            voxijkB = (int)strtod(atr,NULL) ;
            voxindB = IJK_TO_INDEX(shd_AAA,voxijkB) ; redoB = 1 ;
            if( voxindB < 0 ){
-             ERROR_message("GIC: %s: index=%d is not in mask!? ** Apair **",nelcmd->name,voxijkB) ;
-             NI_free_element(nelcmd) ; goto LoopBack ;
+             GI_message("GIC: SETREF_ijk Apair index is not in mask!?",2) ;
+             goto LoopBack ;
            }
          }
        }
@@ -3449,23 +3468,25 @@ BatchFinalize:
        }
 #endif
 
-       /*!! actually get the seed vectors from this voxel !!*/
+       /** Apr 2013: setup and check voxel indexes for various cases **/
 
-       if( !do_apair ){                                    /* Apr 2013 */
+       if( !do_apair ){                                     /* normal case */
          voxindB = voxind ; voxijkB = voxijk ; redoB = 1 ;
-       } else if( do_apair && voxijkB == voxijk ){
-         ERROR_message("GIC: Apair voxel and seed voxel coincide :-(") ;
-         redoB = 1 ; NI_free_element(nelcmd) ; goto LoopBack ;
-       } else if( do_apair && voxijkB < 0 ){
-         ERROR_message("GIC: Apair voxel not set properly :-(") ;
-         redoB = 1 ; NI_free_element(nelcmd) ; goto LoopBack ;
+       } else if( do_apair && voxijkB == voxijk ){                  /* bad */
+         GI_message("GIC: Apair voxel and seed voxel coincide :-(",2) ;
+         redoB = 1 ; goto LoopBack ;
+       } else if( do_apair && voxijkB < 0 ){                        /* bad */
+         GI_message("GIC: Apair voxel not yet set properly :-(",2) ;
+         redoB = 1 ; goto LoopBack ;
        }
 
-       if( do_pv ){
+       /*!!--- actually get the seed vectors from this voxel ---!!*/
+
+       if( do_pv ){  /* principal vector */
          GRINCOR_seedvec_ijk_pvec( shd_AAA , nbhd , voxijk , seedvec_AAA ) ;
          if( shd_BBB != NULL && (redoB || !do_apair) )
            GRINCOR_seedvec_ijk_pvec( shd_BBB , nbhd , voxijkB , seedvec_BBB ) ;
-       } else {
+       } else {      /* average vector */
          GRINCOR_seedvec_ijk_aver( shd_AAA , nbhd , voxijk , seedvec_AAA ) ;
          if( shd_BBB != NULL && (redoB || !do_apair) )
            GRINCOR_seedvec_ijk_aver( shd_BBB , nbhd , voxijkB , seedvec_BBB ) ;
@@ -3478,11 +3499,11 @@ BatchFinalize:
 
        if( nelcmd->vec_num < 1 ){
          ERROR_message("GIC: SETREF_vectors: no vectors attached!?") ;
-         NI_free_element(nelcmd) ; goto LoopBack ;
+         goto LoopBack ;
        }
        if( nelcmd->vec_typ[0] != NI_FLOAT ){
          ERROR_message("GIC: SETREF_vectors: not in float format!?") ;
-         NI_free_element(nelcmd) ; goto LoopBack ;
+         goto LoopBack ;
        }
 
        /*--- load data from nelcmd to seedvec arrays ---*/
@@ -3492,7 +3513,7 @@ BatchFinalize:
          if( nelcmd->vec_len < nvals_tot ){
            ERROR_message("GIC: SETREF_vectors: 1 vector length=%d but should be %d",
                          nelcmd->vec_len , nvals_tot ) ;
-           NI_free_element(nelcmd) ; goto LoopBack ;
+           goto LoopBack ;
          }
 
          cv = (float *)nelcmd->vec[0] ;
@@ -3508,7 +3529,7 @@ BatchFinalize:
          if( nelcmd->vec_len < nvals_max ){
            ERROR_message("GIC: SETREF_vectors: vector length=%d but should be %d",
                          nelcmd->vec_len , nvals_max ) ;
-           NI_free_element(nelcmd) ; goto LoopBack ;
+           goto LoopBack ;
          }
 
          for( kk=0 ; kk < ndset_AAA ; kk++ ){
@@ -3524,7 +3545,7 @@ BatchFinalize:
 
          ERROR_message("GIC: SETREF_vectors: have %d vectors but need at least %d",
                        nelcmd->vec_num , ndset_tot ) ;
-         NI_free_element(nelcmd) ; goto LoopBack ;
+         goto LoopBack ;
 
        }
 
@@ -3543,11 +3564,11 @@ BatchFinalize:
 
        if( nelcmd->vec_num < 1 || nelcmd->vec_len < 1 ){
          ERROR_message("GIC: %s: no list attached!?",nelcmd->name) ;
-         NI_free_element(nelcmd) ; goto LoopBack ;
+         goto LoopBack ;
        }
        if( nelcmd->vec_typ[0] != NI_INT ){
          ERROR_message("GIC: %s: not in int format!?",nelcmd->name) ;
-         NI_free_element(nelcmd) ; goto LoopBack ;
+         goto LoopBack ;
        }
 
        /* convert voxel indexes to node indexes (in place) */
@@ -3560,7 +3581,7 @@ BatchFinalize:
 
        if( nijk == 0 ){
          ERROR_message("GIC: %s: no good indexes found!",nelcmd->name) ;
-         NI_free_element(nelcmd) ; goto LoopBack ;
+         goto LoopBack ;
        }
 
        if( verb > 2 ) ININFO_message("GIC:  %s: %d good vectors in list",bname,nijk) ;
@@ -3582,7 +3603,7 @@ BatchFinalize:
      } else {
 
        ERROR_message("GIC: Don't know command %s",nelcmd->name) ;
-       NI_free_element(nelcmd) ;
+       GI_message("GIC: received unknown command",-1) ;
        goto LoopBack ;
 
      }
@@ -3595,8 +3616,6 @@ BatchFinalize:
      }
 
      /**------ throw away the message from AFNI ------**/
-
-     NI_free_element( nelcmd ) ;
 
      /********** compute the result **********/
 
@@ -3808,7 +3827,7 @@ BatchFinalize:
 
      nsend++ ;  /* number of results sent back so far */
 
-  LoopBack: ; /* loop back for another command from AFNI */
+  LoopBack: ;; /* loop back for another command from AFNI */
    }
 
    /*-- bow out gracefully --*/

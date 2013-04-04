@@ -412,6 +412,7 @@ typedef struct {
       Widget pop_instacorr_pb ;   /* 06 May 2009 */
       Widget pop_icorrjump_pb ;
       Widget pop_icorrapair_pb;   /* Apr 2013 */
+      Widget pop_icorramirr_pb;
 } AFNI_imaging_widgets ;
 
 /*--- 19 Aug 2002: Switch Surface control box ---*/
@@ -1177,16 +1178,27 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
  do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,bb) ; \
      XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,bb) ; \
      XtUnmanageChild((iq)->vwid->imag->pop_icorrapair_pb) ;  \
+     XtUnmanageChild((iq)->vwid->imag->pop_icorramirr_pb) ;  \
  } while(0)
 
-#define SENSITIZE_INSTACORR_GROUP(iq,bb)                      \
- do{ int ap=(iq)->giset->do_apair , bp=(ap!=1)&&(bb) ;         \
-     if( ap && (bb) )                                         \
-       XtManageChild  ((iq)->vwid->imag->pop_icorrapair_pb) ; \
-     else                                                     \
-       XtUnmanageChild((iq)->vwid->imag->pop_icorrapair_pb) ; \
-     XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,bp) ;  \
-     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,bp) ;  \
+#define SENSITIZE_INSTACORR_GROUP(iq,bb)                        \
+ do{ GICOR_setup *gs = (iq)->giset ;                            \
+     int ap_allow  = GICOR_apair_allow_bit(gs) ;                \
+     int ap_ready  = GICOR_apair_ready_bit(gs) ;                \
+     int ap_mirror = GICOR_apair_mirror_bit(gs);                \
+     int bp = (bb) && (!ap_allow || ap_ready || ap_mirror) ;    \
+     if( ap_allow ){                                            \
+       int ba = (bb) && ap_allow && !ap_mirror ;                \
+       XtManageChild((iq)->vwid->imag->pop_icorrapair_pb) ;     \
+       XtManageChild((iq)->vwid->imag->pop_icorramirr_pb) ;     \
+       XtSetSensitive((iq)->vwid->imag->pop_icorrapair_pb,ba) ; \
+       XtSetSensitive((iq)->vwid->imag->pop_icorramirr_pb,bb) ; \
+     } else {                                                   \
+       XtUnmanageChild((iq)->vwid->imag->pop_icorrapair_pb) ;   \
+       XtUnmanageChild((iq)->vwid->imag->pop_icorramirr_pb) ;   \
+     }                                                          \
+     XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,bp) ;    \
+     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,bp) ;    \
  } while(0)
 
 #define SENSITIZE_INSTACORR(iq,bb)                                  \
@@ -1407,6 +1419,9 @@ extern "C" {
 
 extern void GICOR_setup_func(NI_stream, NI_element *) ;        /* 22 Dec 2009 */
 extern void GICOR_process_dataset( NI_element *nel, int ct ) ; /* 23 Dec 2009 */
+extern void GICOR_process_message( NI_element *nel ) ;            /* Apr 2013 */
+extern void process_NIML_textmessage( NI_element * ) ;            /* Apr 2013 */
+
 
 extern void ICALC_make_widgets( Three_D_View *im3d ) ;   /* 18 Sep 2009 */
 

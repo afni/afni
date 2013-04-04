@@ -203,8 +203,6 @@ static void    process_NIML_AFNI_dataset   ( NI_group *   , int ) ;
 static void    process_NIML_AFNI_volumedata( void *       , int ) ;
 static void    process_NIML_MRI_IMAGE      ( NI_element * , int ) ;
 
-static void    process_NIML_textmessage( NI_element * ) ;  /* Apr 2013 */
-
 /************************************************************************/
 
 /*-----------------------------------------------------------------------*/
@@ -644,6 +642,10 @@ ENTRY("AFNI_process_NIML_data") ;
    } else if( strcmp(nel->name,"3dGroupInCorr_dataset") == 0 ){ /* 23 Dec 2009 */
 
      GICOR_process_dataset( nel , ct_start ) ;
+
+   } else if( strcmp(nel->name,"3dGroupInCorr_message") == 0 ){ /* Apr 2013 */
+
+     GICOR_process_message( nel ) ;
 
    } else if( strcmp(nel->name,"TextMessage") == 0 ){  /* Apr 2013 */
 
@@ -2688,7 +2690,7 @@ ENTRY("process_NIML_MRI_IMAGE") ;
 /*! Process a '<TextMessage text=...>'  [Apr 2013]
 ----------------------------------------------------------------------*/
 
-static void process_NIML_textmessage( NI_element *nel )
+void process_NIML_textmessage( NI_element *nel )
 {
    static int last_time = -6666 ; int new_time ;
    Three_D_View *im3d = AFNI_find_open_controller() ;
