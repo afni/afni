@@ -789,6 +789,8 @@ STATUS("making imag->rowcol") ;
    /*--- instacorr set button in menu [06 May 2009] ---*/
 
    if( im3d->type == AFNI_3DDATA_VIEW ){
+      static char *bbox_label[1] = { "GIC: Apair MirrorLR" } ;
+
       imag->pop_instacorr_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
@@ -804,12 +806,23 @@ STATUS("making imag->rowcol") ;
       imag->pop_icorrapair_pb =  /* Apr 2013: for 3dGroupInCorr */
          XtVaCreateWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-               LABEL_ARG("GrpInCorr SetApair") ,
+               LABEL_ARG("GIC: Apair Set") ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
       XtAddCallback( imag->pop_icorrapair_pb , XmNactivateCallback ,
+                     AFNI_imag_pop_CB , im3d ) ;
+
+      imag->pop_icorramirr_pb =
+         XtVaCreateWidget(
+            "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+               LABEL_ARG("GIC: Apair MirrorOFF") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( imag->pop_icorramirr_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
 
       imag->pop_icorrjump_pb =
@@ -823,9 +836,16 @@ STATUS("making imag->rowcol") ;
       XtAddCallback( imag->pop_icorrjump_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
       XtSetSensitive( imag->pop_icorrjump_pb , False ) ;
+
+      (void) XtVaCreateManagedWidget(  /* Apr 2013 */
+               "dialog" , xmSeparatorWidgetClass , imag->popmenu ,
+                          XmNseparatorType , XmSINGLE_LINE ,
+               NULL ) ;
    } else {
-      imag->pop_instacorr_pb = NULL ;
-      imag->pop_icorrjump_pb = NULL ;
+      imag->pop_instacorr_pb   = NULL ;
+      imag->pop_icorrjump_pb   = NULL ;
+      imag->pop_icorrapair_pb  = NULL ;  /* Apr 2013 */
+      imag->pop_icorramirr_pb  = NULL ;
    }
 
    /*--- jumpback button in menu ---*/
