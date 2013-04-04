@@ -4140,7 +4140,7 @@ if(PRINT_TRACING)
           UNLOAD_IVEC3(id,ii,jj,kk) ;
 
           qq = AFNI_icor_setref_anatijk(im3d,ii,jj,kk) ;
-          if( qq > 0 ) AFNI_icor_setref_locked(im3d) ;
+          if( qq > 0 && im3d->giset == NULL ) AFNI_icor_setref_locked(im3d) ;
         }
       }
       MPROBE ;
@@ -4209,7 +4209,7 @@ if(PRINT_TRACING)
 
                   if( xev->state&ShiftMask && xev->state&ControlMask ){
                     int qq = AFNI_icor_setref(im3d) ;
-                    if( qq > 0 ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
+                    if( qq > 0 && im3d->giset == NULL ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
                   }
                }
             } /* end of button 1 */
@@ -9461,7 +9461,7 @@ ENTRY("AFNI_imag_pop_CB") ;
 
    else if( w == im3d->vwid->imag->pop_instacorr_pb && w != NULL ){
      int qq = AFNI_icor_setref(im3d) ;
-     if( qq > 0 ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
+     if( qq > 0 && im3d->giset == NULL ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
    }
 
    /*---- 08 May 2009: jump to InstaCorr point ----*/
@@ -9484,6 +9484,16 @@ ENTRY("AFNI_imag_pop_CB") ;
    else if( w == im3d->vwid->imag->pop_icorrapair_pb && w != NULL ){
      AFNI_gicor_setapair_xyz( im3d , im3d->vinfo->xi ,
                                      im3d->vinfo->yj , im3d->vinfo->zk ) ;
+   }
+
+   else if( w == im3d->vwid->imag->pop_icorramirr_pb && w != NULL ){
+     if( im3d->giset != NULL && GICOR_apair_allow_bit(im3d->giset) ){
+       GICOR_flip_apair_mirror_bit(im3d->giset) ;
+       MCW_set_widget_label( w , GICOR_apair_mirror_bit(im3d->giset)
+                                 ? "GIC: Apair MirrorON*"
+                                 : "GIC: Apair MirrorOFF" ) ;
+       SENSITIZE_INSTACORR_GROUP(im3d,im3d->giset->ready) ;
+     }
    }
 
    /*--- unmap of the popup itself [elided] ---*/

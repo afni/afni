@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 2 , APR , 2013 , RWC , "Nwarp" , MICRO , TYPE_GENERAL ,
+  { 4 , APR , 2013 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
+   "Add -Apair option" ,
+   "For testing differences in correlations in 1 group from 2 different\n"
+   "seeds -- the regular seed minus the 'Apair' seed.  Also changes to AFNI\n"
+   "to set the Apair seed, etc." } ,
+
+ { 2 , APR , 2013 , RWC , "Nwarp" , MICRO , TYPE_GENERAL ,
    "Replace sqrt(nwarp) algorithm" ,
    "Schulz method gives unpleasant ringing artifacts in the square root. \n"
    "Use the Denman-Beavers methods instead, which is slower and maybe a\n"
