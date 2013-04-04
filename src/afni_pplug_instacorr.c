@@ -1007,7 +1007,7 @@ ENTRY("GICOR_setup_func") ;
        aatr->ch   = (char *)XtMalloc( sizeof(char) * aatr->nch ) ;
        memcpy( aatr->ch , cpt , sizeof(char) * aatr->nch ) ;
        THD_insert_atr( dset->dblk , (ATR_any *)aatr ) ;
-     } 
+     }
    }
 
    giset->ready = 1 ;          /* that is, ready to ROCK AND ROLL */
@@ -1193,10 +1193,9 @@ void AFNI_gicor_setapair_xyz( Three_D_View *im3d , float xx,float yy,float zz )
    THD_fvec3 iv,jv; THD_ivec3 kv; int ijk,ii ;
 
    if( !IM3D_OPEN(im3d) || giset == NULL || !giset->ready ) return ; /* bad */
-
-   if( NI_stream_goodcheck(giset->ns,1) < 1 ) return ;   /* socket not good */
-
+   if( giset->do_apair == 0 ) return ;              /* not even a good idea */
    if( giset->busy ) return ;                       /* it's busy over there */
+   if( NI_stream_goodcheck(giset->ns,1) < 1 ) return ;   /* socket not good */
 
    LOAD_FVEC3( iv , xx,yy,zz ) ;
    jv = THD_dicomm_to_3dmm( giset->dset, iv ) ;
@@ -1208,7 +1207,7 @@ void AFNI_gicor_setapair_xyz( Three_D_View *im3d , float xx,float yy,float zz )
        jv.xyz[2] < giset->dset->daxes->zzmin ||
        jv.xyz[2] > giset->dset->daxes->zzmax   ){
 
-     WARNING_message("GrpInCorr set Apair point outside dataset box") ;
+     ERROR_message("GrpInCorr set Apair point outside dataset box") ;
      return ;
    }
 
@@ -1218,7 +1217,7 @@ void AFNI_gicor_setapair_xyz( Three_D_View *im3d , float xx,float yy,float zz )
    if( giset->ivec != NULL ){
      ii = bsearch_int( ijk , giset->nvec , giset->ivec ) ;
      if( ii < 0 ){
-       WARNING_message("AFNI: GrpInCorr set Apair point not in mask from 3dGroupInCorr :-(") ;
+       ERROR_message("AFNI: GrpInCorr set Apair point not in mask from 3dGroupInCorr :-(") ;
        return ;
      }
    }
@@ -1231,6 +1230,8 @@ void AFNI_gicor_setapair_xyz( Three_D_View *im3d , float xx,float yy,float zz )
    ii = NI_write_element( giset->ns , nel , NI_TEXT_MODE ) ;
    NI_free_element( nel ) ;
 
+   giset->do_apair = 2 ;  /* apair is ready for business */
+   SENSITIZE_INSTACORR_GROUP(im3d,1) ;
    return ;
 }
 
@@ -1277,6 +1278,11 @@ STATUS("check if already busy") ;
 #if 0
      MCW_flash_widget( 2 , im3d->vwid->func->gicor_label ) ; /* 07 Apr 2010 */
 #endif
+     RETURN(0) ;
+   }
+
+   if( giset->do_apair == 1 ){
+     ERROR_message("AFNI: can't set InstaCorr seed before set Apair") ;
      RETURN(0) ;
    }
 

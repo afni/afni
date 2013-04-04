@@ -1213,6 +1213,14 @@ int main( int argc , char *argv[] )
       "    -- One reason for using Z-scores is that the DOF parameter varies between\n"
       "       voxels when you choose the -unpooled option for a 2-sample t-test.\n"
       "\n"
+      " -Apair = Instead of using '-setB', this option tells the program to use\n"
+      "          the '-setA' collection in its place; however, the seed location\n"
+      "          for this second copy of setA is a different voxel/node.  The result\n"
+      "          is to contrast (via a paired t-test) the correlation maps from the\n"
+      "          different seeds.\n"
+      "         ++ For Alex Martin and his myrmidons.\n"
+      "         ++ You cannot use '-Apair' with '-setB' or with '-batch'.\n"
+      "\n"
       " -labelA aaa = Label to attach (in AFNI) to sub-bricks corresponding to setA.\n"
       "               If you don't give this option, the label used will be the prefix\n"
       "               from the -setA filename.\n"
@@ -3350,6 +3358,10 @@ BatchFinalize:
      /**--- Apr 2013: command to set Apair base (nothing else happens) ---**/
 
      if( strncmp(nelcmd->name,"SETAPAIR_ijk",12) == 0 ){
+       if( !do_apair ){
+         ERROR_message("SETAPAIR_ijk command received without '-Apair' option?") ;
+         NI_free_element(nelcmd) ; goto LoopBack ;
+       }
                          atr = NI_get_attribute(nelcmd,"index") ;
        if( atr == NULL ) atr = NI_get_attribute(nelcmd,"node" ) ;
        if( atr == NULL ) atr = NI_get_attribute(nelcmd,"ijk"  ) ;
@@ -3358,7 +3370,7 @@ BatchFinalize:
          NI_free_element(nelcmd) ; goto LoopBack ;
        }
        voxijkB = (int)strtod(atr,NULL) ;
-       voxindB = IJK_TO_INDEX(shd_AAA,voxijk) ;
+       voxindB = IJK_TO_INDEX(shd_AAA,voxijkB) ;
        redoB   = 1 ;
        if( verb > 1 )
          ININFO_message("GIC:  dataset index=%d  node index=%d ** Apair **",voxijkB,voxindB) ;
@@ -3396,7 +3408,7 @@ BatchFinalize:
          if( atr == NULL ) atr = NI_get_attribute(nelcmd,"ijk_apair") ;
          if( atr != NULL ){
            voxijkB = (int)strtod(atr,NULL) ;
-           voxindB = IJK_TO_INDEX(shd_AAA,voxijk) ; redoB = 1 ;
+           voxindB = IJK_TO_INDEX(shd_AAA,voxijkB) ; redoB = 1 ;
            if( voxindB < 0 ){
              ERROR_message("GIC: %s: index=%d is not in mask!? ** Apair **",nelcmd->name,voxijkB) ;
              NI_free_element(nelcmd) ; goto LoopBack ;
@@ -3437,9 +3449,7 @@ BatchFinalize:
        }
 #endif
 
-       /*----- !! begin processing !! -----*/
-
-       /* actually get the seed vectors from this voxel */
+       /*!! actually get the seed vectors from this voxel !!*/
 
        if( !do_apair ){                                    /* Apr 2013 */
          voxindB = voxind ; voxijkB = voxijk ; redoB = 1 ;
@@ -3453,11 +3463,11 @@ BatchFinalize:
 
        if( do_pv ){
          GRINCOR_seedvec_ijk_pvec( shd_AAA , nbhd , voxijk , seedvec_AAA ) ;
-         if( shd_BBB != NULL && redoB )
+         if( shd_BBB != NULL && (redoB || !do_apair) )
            GRINCOR_seedvec_ijk_pvec( shd_BBB , nbhd , voxijkB , seedvec_BBB ) ;
        } else {
          GRINCOR_seedvec_ijk_aver( shd_AAA , nbhd , voxijk , seedvec_AAA ) ;
-         if( shd_BBB != NULL && redoB )
+         if( shd_BBB != NULL && (redoB || !do_apair) )
            GRINCOR_seedvec_ijk_aver( shd_BBB , nbhd , voxijkB , seedvec_BBB ) ;
        }
 
