@@ -1173,13 +1173,25 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
 
 /*! Change InstaCorr popup buttons status */
 
-#define SENSITIZE_INSTACORR(iq,bb)                            \
- do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,bb) ;   \
-     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,bb) ;    \
-     if( (bb) && (iq)->giset != NULL && (iq)->giset->do_apair )  \
-       XtManageChild((iq)->vwid->imag->pop_icorrapair_pb) ;     \
-     else                                                      \
+#define SENSITIZE_INSTACORR_INDIV(iq,bb)                     \
+ do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,bb) ; \
+     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,bb) ; \
+     XtUnmanageChild((iq)->vwid->imag->pop_icorrapair_pb) ;  \
+ } while(0)
+
+#define SENSITIZE_INSTACORR_GROUP(iq,bb)                      \
+ do{ int ap=(iq)->giset->do_apair , bp=(ap!=1)&&(bb) ;         \
+     if( ap && (bb) )                                         \
+       XtManageChild  ((iq)->vwid->imag->pop_icorrapair_pb) ; \
+     else                                                     \
        XtUnmanageChild((iq)->vwid->imag->pop_icorrapair_pb) ; \
+     XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,bp) ;  \
+     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,bp) ;  \
+ } while(0)
+
+#define SENSITIZE_INSTACORR(iq,bb)                                  \
+ do{ if( (iq)->giset != NULL ){ SENSITIZE_INSTACORR_GROUP(iq,bb); } \
+     else                     { SENSITIZE_INSTACORR_INDIV(iq,bb); } \
  } while(0)
 
 /*! Allow InstaCorr in this viewer */
