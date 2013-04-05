@@ -1472,6 +1472,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Never take a cupcake from an eel"                              ,
      "Do you prefer white chocolate or dark chocolate?"              ,
 
+     "One martini is just right; two are too many; three is never enough"             ,
      "If you can't explain it simply, you don't understand it well enough"            ,
      "Even the Universe bends back on itself, but stupidity goes on forever"          ,
      "Get your statistics first, then you can distort them as you please"             ,
