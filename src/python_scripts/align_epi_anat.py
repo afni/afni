@@ -561,7 +561,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.40" # software version (update for changes)
+      self.align_version = "1.41" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2946,7 +2946,7 @@ class RegWrap:
       # maybe save pre-obliqued skull stripped anat before alignment
       # 3 Aug 2011 [rickr]
       if(ps.skullstrip and ps.save_origstrip):
-         ao_ons = afni_name("%s%s_ns%s" % (ps.anat_ns0.p(),ps.save_origstrip,ain.view))
+         ao_ons = afni_name("%s%s%s%s" % (ps.anat_ns0.p(), ain.prefix, ps.save_origstrip,ain.view))
          self.copy_dset( ps.anat_ns0, ao_ons, 
           "Creating final output: skullstripped original %s data" % \
                           self.dset1_generic_name, ps.oexec)
