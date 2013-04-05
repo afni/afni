@@ -147,6 +147,7 @@ class afni_name:
             return 1
          else: return 0
       elif (self.type == 'BRIK'):
+         #  print "dataset ppv is %s" % self.ppv()
          if (     os.path.isfile("%s.HEAD" % self.ppv()) \
                and  \
                (  os.path.isfile("%s.BRIK" % self.ppv()) or \
