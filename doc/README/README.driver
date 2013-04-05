@@ -372,6 +372,7 @@ INSTACORR [c] order
   commands, the optional '[c]' is a single letter specifying to which AFNI
   controller the 'order' that follows applies.  If this single letter code
   is NOT present, the default controller is 'A'.
+
   The first INSTACORR 'order' that is implemented [20 Oct 2010] is
      SET
   which sets the InstaCorr seed (in controller 'c', default A) to the current
@@ -382,7 +383,19 @@ INSTACORR [c] order
   the crosshairs will also Jump to that new seed location.  Note that SET
   can be used with individual or group InstaCorr.
 
-  The second INSTACORR 'order' that is implemented [22 Jun 2011] is
+  The second INSTACORR 'order' that is implemented [Apr 2013] pertains to
+  the new 3dGroupInCorr '-Apair' option.  This order sets the 'Apair' seed:
+     APSET x y z
+  By itself, this order does nothing until the next 'SET' order happens.
+  At present, there is no order to turn on automatic Apair mirroring.
+  Instead, you'll have to send two (2) orders to have the same effect:
+     APSET -x y z
+       SET  x y z
+  Since 3dGroupInCorr can only be attached to the A controller, APSET can
+  only apply to this controller.  APSET will be ignored for other controllers
+  or if single-subject InstaCorr is being run instead of 3dGroupInCorr.
+
+  The third INSTACORR 'order' that is implemented [22 Jun 2011] is
      INIT name=value name=value ...
   which will initialize the individual InstaCorr setup for controller 'c'.
   The 'name=value' pairs that follow take the following forms:
