@@ -1001,6 +1001,13 @@ STATUS("making imag->rowcol") ;
       imag->pop_whereami_htmlwin = NULL;
    }
 
+   /*-- separator --*/
+
+   (void) XtVaCreateManagedWidget(  /* Apr 2013 */
+            "dialog" , xmSeparatorWidgetClass , imag->popmenu ,
+                       XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
    /*--- imageonly button in menu ---*/
 
    imag->pop_imageonly_pb =
