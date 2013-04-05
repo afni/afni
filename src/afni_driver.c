@@ -3048,6 +3048,28 @@ static int AFNI_drive_instacorr( char *cmd )
      }
      return 0 ;
 
+   /** APSET (for 3dGroupInCorr) */
+
+   } else if( strncasecmp(cmd+dadd,"APSET",5) == 0 ){  /* Apr 2013 */
+     float x,y,z ; int good=0 ; char cj='N' ;
+
+     if( im3d->giset == NULL                ||
+        !im3d->giset->ready                 ||
+        !GICOR_apair_allow_bit(im3d->giset) ||
+         GICOR_apair_mirror_bit(im3d->giset)  ) return -1 ;  /* bad choice */
+
+     IM3D_CLEAR_TMASK(im3d) ;
+     if( cmd[dadd+5] != '\0' ) good = sscanf(cmd+dadd+5,"%f %f %f %c",&x,&y,&z,&cj) ;
+     if( good < 3 ){
+        AFNI_gicor_setapair_xyz(im3d,
+                                im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk) ;
+     } else {
+        AFNI_gicor_setapair_xyz(im3d,x,y,z) ; /* have x,y,z */
+        cj = toupper(cj) ;
+        if( cj == 'J' || cj == 'Y' ) AFNI_jumpto_dicom( im3d , x,y,z ) ;
+     }
+     return 0 ;
+
    /** INITialize **/
 
    } else if( strncasecmp(cmd+dadd,"INIT",4) == 0 ){
