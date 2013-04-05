@@ -321,7 +321,7 @@ def db_cmd_align(proc, block):
     astr   = '' # maybe to save skullstrip dset
     if e2a: # if the option was passed, the output is junk
         suffix = '_al_junk'
-        if has_skull: astr='-save_orig_skullstrip %s_strip '%proc.anat.prefix
+        if has_skull: astr='-save_skullstrip '
     else:   # otherwise, we will use it
         suffix = '_al_keep'
 
@@ -347,7 +347,7 @@ def db_cmd_align(proc, block):
     if e2a:
         adwarp = (proc.find_block_opt('volreg', '-volreg_tlrc_adwarp') != None)
         if has_skull and not adwarp:
-            suffix = '_strip'
+            suffix = '_ns'
             proc.anat.prefix = "%s%s" % (proc.anat.prefix, suffix)
             if proc.tlrcanat:
                 if not proc.tlrcanat.exist():

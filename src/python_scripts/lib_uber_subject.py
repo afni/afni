@@ -142,9 +142,10 @@ g_history = """
          - should not have -volreg_tlrc_warp in case of no tlrc block
          - thanks to P Taylor for noting the problem
     0.35 Feb 13, 2012: let user know of subj_dir when writing AP command
+    0.36 Apr  5, 2013: added help web link for class handouts
 """
 
-g_version = '0.35 (February 13, 2013)'
+g_version = '0.36 (April 5, 2013)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks

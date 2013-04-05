@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Apr, 2013, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
+   "added Help web link to class handouts",
+   NULL
+ } ,
+
+ {  5, Apr, 2013, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "revert -save_orig_skullstrip to -save_skullstrip",
+   "This should have no effect on results, except for rename of anat_strip\n"
+   "to anat_ns.  It also gets around a temporary name change from AEA.py."
+ } ,
+
  { 27, Mar, 2013, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -show_group_labels, -label_prefix_keep/_drop",
    "Option -label_prefix_drop can be used to remove bandpass regs for 3dRSFC."
