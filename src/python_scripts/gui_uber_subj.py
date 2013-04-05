@@ -2141,20 +2141,24 @@ class SingleSubjectWindow(QtGui.QMainWindow):
           slot=self.cb_help_browse, tip="browse AFNI program help")
       act2 = self.createAction("web: afni_proc.py help",
           slot=self.cb_help_browse, tip="browse afni_proc.py help")
-      act3 = self.createAction("web: tutorial-single subject analysis",
+      act3 = self.createAction("web: current class handouts",
+          slot=self.cb_help_browse, tip="browse current AFNI bootcamp handouts")
+      act4 = self.createAction("web: tutorial-single subject analysis",
           slot=self.cb_help_browse, tip="browse AFNI_data6 tutorial")
-      act4 = self.createAction("web: AFNI Message Board",
+      act5 = self.createAction("web: AFNI Message Board",
           slot=self.cb_help_browse, tip="browse Message Board")
-      act5 = self.createAction("web: gltsym and stim times",
+      act6 = self.createAction("web: gltsym and stim times",
           slot=self.cb_help_browse, tip="2004 update describing GLT usage")
 
-      self.addActions(self.gvars.Menu_browse, [act1, act2, act3, act4, act5])
+      self.addActions(self.gvars.Menu_browse, [act1, act2, act3, act4, act5,
+                                               act6])
 
       self.gvars.act_browse_all_progs = act1
       self.gvars.act_browse_AP_help   = act2
-      self.gvars.act_browse_SS_tutor  = act3
-      self.gvars.act_browse_MB        = act4
-      self.gvars.act_browse_D2004_glt = act5
+      self.gvars.act_browse_class_notes = act3
+      self.gvars.act_browse_SS_tutor  = act4
+      self.gvars.act_browse_MB        = act5
+      self.gvars.act_browse_D2004_glt = act6
 
       actHelpAbout = self.createAction("about uber_subject.py",
           slot=self.cb_help_about, tip="about uber_subject.py")
@@ -2300,6 +2304,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif obj == self.gvars.act_browse_SS_tutor:
          self.open_web_site('http://afni.nimh.nih.gov/pub/dist/edu/data' \
                             '/CD.expanded/AFNI_data6/FT_analysis/tutorial')
+      elif obj == self.gvars.act_browse_class_notes:
+         self.open_web_site('http://afni.nimh.nih.gov/pub/dist/edu' \
+                            '/latest/afni_handouts')
       elif obj == self.gvars.act_browse_MB:
          self.open_web_site('http://afni.nimh.nih.gov/afni/community/board')
       elif obj == self.gvars.act_browse_D2004_glt:

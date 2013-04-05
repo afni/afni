@@ -366,12 +366,14 @@ g_history = """
     3.38 Feb 05, 2013: minor help intro update
     3.39 Feb 14, 2013: update for -move_preproc_files for surfaces
     3.40 Feb 21, 2013: minor help update
+    3.41 Apr 05, 2013: aea.py: revert -save_orig_skullstrip to -save_skullstrip
+                       (requires align_epi_anat.py from 1 Apr 2013)
 """
 
-g_version = "version 3.40, February 21, 2013"
+g_version = "version 3.41, April 5, 2013"
 
 # version of AFNI required for script execution
-g_requires_afni = "8 Jan 2013"
+g_requires_afni = "1 Apr 2013"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
