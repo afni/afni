@@ -1193,6 +1193,8 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
        XtManageChild((iq)->vwid->imag->pop_icorramirr_pb) ;     \
        XtSetSensitive((iq)->vwid->imag->pop_icorrapair_pb,ba) ; \
        XtSetSensitive((iq)->vwid->imag->pop_icorramirr_pb,bb) ; \
+       MCW_set_widget_bg((iq)->vwid->imag->pop_icorramirr_pb,   \
+                         (ap_mirror) ? "white" : "black" , 0 ); \
      } else {                                                   \
        XtUnmanageChild((iq)->vwid->imag->pop_icorrapair_pb) ;   \
        XtUnmanageChild((iq)->vwid->imag->pop_icorramirr_pb) ;   \
