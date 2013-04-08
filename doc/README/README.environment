@@ -3197,6 +3197,8 @@ since interpolation option works.  See the output of the command
   3dAllineate -HELP
 for the details.  You can control the width of the sinc window, the
 tapering function, and a couple of other useless options.
+** N.B.: You can turn off the message that the wsinc5 code prints out
+detailing the parameter setup by setting AFNI_WSINC5_SILENT to YES.
 
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
