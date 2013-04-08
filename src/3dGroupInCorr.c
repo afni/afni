@@ -1276,7 +1276,6 @@ int main( int argc , char *argv[] )
       "-----------------------*** Two-Sample Options ***-----------------------\n"
       "\n"
       " -pooled   = For a two-sample un-paired t-test, use a pooled variance estimator\n"
-      "            ++ This is the default, but it can be changed from the AFNI GUI.\n"
       " -unpooled = For a two-sample un-paired t-test, use an unpooled variance estimator\n"
       "            ++ Statistical power declines a little, and in return,\n"
       "               the test becomes a little more robust.\n"
@@ -1299,8 +1298,8 @@ int main( int argc , char *argv[] )
       "               sub-bricks so you can see the separate maps from the positive\n"
       "               and negative seeds, to make sure your results make sense.\n"
       "\n"
-      " **++ None of these 'two-sample' options means anything for a 1-sample\n"
-      "      t-test (i.e., where you don't use -setB).\n"
+      " **-->> None of these 'two-sample' options means anything for a 1-sample\n"
+      "        t-test (i.e., where you don't use -setB or -Apair).\n"
 #if 0
       "\n"
       "---------------** Special Option for Ziad Saad (and His Ilk) ***--------------\n"
