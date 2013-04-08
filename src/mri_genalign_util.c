@@ -454,12 +454,15 @@ static void setup_wsinc5(void)
    eee = getenv("AFNI_WSINC5_SPHERICAL") ;
    WSHAP = (eee != NULL && toupper(*eee) == 'Y' ) ;
 
-   INFO_message("wsinc5 interpolation setup:") ;
-   ININFO_message("  taper function  = %s",(WFUN)?"Hamming":"Min sidelobe 3 term");
-   ININFO_message("  taper cut point = %.3f",WCUT) ;
-   ININFO_message("  window radius   = %d voxels",IRAD) ;
-   ININFO_message("  window shape    = %s",(WSHAP)?"Spherical":"Cubical") ;
-   ININFO_message("  The above can be altered via the AFNI_WSINC5_* environment variables.") ;
+   eee = getenv("AFNI_WSINC5_SILENT") ;
+   if( eee == NULL || toupper(*eee) != 'Y' ){
+     INFO_message("wsinc5 interpolation setup:") ;
+     ININFO_message("  taper function  = %s",(WFUN)?"Hamming":"Min sidelobe 3 term");
+     ININFO_message("  taper cut point = %.3f",WCUT) ;
+     ININFO_message("  window radius   = %d voxels",IRAD) ;
+     ININFO_message("  window shape    = %s",(WSHAP)?"Spherical":"Cubical") ;
+     ININFO_message("  The above can be altered via the AFNI_WSINC5_* environment variables.") ;
+   }
 
    return ;
 }
@@ -512,12 +515,15 @@ ENTRY("GA_interp_wsinc5s") ;
    /*----- first time in: build spherical mask  -----*/
 
    if( smask == NULL ){
+     char *eee ;
      smask = MCW_spheremask( 1.0f,1.0f,1.0f , WRAD ) ;
      nmask = smask->num_pt ;
      di    = smask->i ;
      dj    = smask->j ;
      dk    = smask->k ;
-     ININFO_message("  wsinc5 SPHERE(%d) mask has %d points",IRAD,nmask) ;
+     eee = getenv("AFNI_WSINC5_SILENT") ;
+     if( eee == NULL || toupper(*eee) != 'Y' )
+       ININFO_message("  wsinc5 SPHERE(%d) mask has %d points",IRAD,nmask) ;
    }
 
    /*----- loop over points -----*/
@@ -586,7 +592,9 @@ void GA_interp_wsinc5p( MRI_IMAGE *fim ,
 ENTRY("GA_interp_wsinc5p") ;
 
  if( first ){
-   ININFO_message("  wsinc5 CUBE(%d) mask has %d points",IRAD,8*IRAD*IRAD*IRAD) ;
+   char *eee = getenv("AFNI_WSINC5_SILENT") ;
+   if( eee == NULL || toupper(*eee) != 'Y' )
+     ININFO_message("  wsinc5 CUBE(%d) mask has %d points",IRAD,8*IRAD*IRAD*IRAD) ;
    first = 0 ;
  }
 

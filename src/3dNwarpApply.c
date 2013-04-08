@@ -39,7 +39,7 @@ int main( int argc , char *argv[] )
       "OPTIONS:\n"
       "--------\n"
       " -nwarp  www  = 'www' is the name of the 3D warp dataset\n"
-      "                (this is a one-time-only mandatory option!)\n"
+      "                (this is a mandatory option!)\n"
       "\n"
       " -affter aaa  = 'aaa' is the name of an optional file containing\n"
       "                an affine matrix to apply to the nonlinear warp,\n"
@@ -161,6 +161,14 @@ int main( int argc , char *argv[] )
       "      blip-up and blip-down EPI datasets, and then the SQRT warp is applied to\n"
       "      warp them into the 'intermediate location' which should be better aligned\n"
       "      with the subject's anatomical datasets.\n"
+      "\n"
+      "  ++ You can also use 'IDENT(dataset)' to define a \"nonlinear\" 3D warp whose\n"
+      "     grid is defined by the dataset header -- nothing else from the dataset will\n"
+      "     be used.  This warp will be filled with all zero displacements, which represents\n"
+      "     the identity warp.  The purpose of such an object is to let you apply a pure\n"
+      "     affine warp -- since this program requires a '-nwarp' option, you can use\n"
+      "     -nwarp 'IDENT(dataset)' to define the 3D grid for the 'nonlinear' 3D warp and\n"
+      "     then catenate the affine warp (e.g., via '-affter').\n"
      ) ;
 
      PRINT_AFNI_OMP_USAGE("3dNwarpApply",NULL) ; PRINT_COMPILE_DATE ;
