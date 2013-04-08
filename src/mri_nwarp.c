@@ -6113,7 +6113,7 @@ static void CW_clear_data(void)
 
 static void CW_load_one_warp( int nn , char *cp )
 {
-   char *wp ; int do_inv=0 , do_sqrt=0 , ii ;
+   char *wp ; int do_inv=0 , do_sqrt=0 , do_empty=0 , ii ;
 
 ENTRY("CW_load_one_warp") ;
 
@@ -6129,6 +6129,8 @@ ENTRY("CW_load_one_warp") ;
      cp += 5 ; do_sqrt = 1 ;
    } else if( strncasecmp(cp,"SQRTINV(",8) == 0 || strncasecmp(cp,"INVSQRT(",8) == 0 ){
      cp += 8 ; do_inv = do_sqrt = 1 ;
+   } else if( strncasecmp(cp,"IDENT(",6) == 0 ){
+     cp += 6 ; do_empty = 1 ;
    }
    wp = strdup(cp) ; ii = strlen(wp) ;
    if( ii < 4 ){
@@ -6262,7 +6264,7 @@ ENTRY("CW_load_one_warp") ;
 
      /*--- convert dataset to warp ---*/
 
-     AA = IW3D_from_dataset(dset,0,0) ;
+     AA = IW3D_from_dataset(dset,do_empty,0) ;
      if( AA == NULL ){
        ERROR_message("Can't make warp from dataset '%s'",wp); free(wp); EXRETURN;
      }

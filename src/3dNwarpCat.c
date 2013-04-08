@@ -84,6 +84,8 @@ void CNW_help(void)
     " * Other functions you can apply to modify a 3D dataset warp are:\n"
     "    SQRT(datasetname) to get the square root of a warp\n"
     "    SQRTINV(datasetname) to get the inverse square root of a warp\n"
+    "   However, you can't do more complex expressions, such as 'SQRT(SQRT(warp))'.\n"
+    "   If you need something so rococo, use 3dNwarpCalc.\n"
     "\n"
     " * You can also manufacture a 3D warp from a 1-brick dataset with displacments\n"
     "   in a single direction.  For example:\n"
@@ -161,7 +163,7 @@ static int verb=0 , interp_code=MRI_WSINC5 ;
 
 void CNW_load_warp( int nn , char *cp )
 {
-   char *wp ; int do_inv=0 , do_sqrt=0 , ii ;
+   char *wp ; int do_inv=0 , do_sqrt=0 , do_empty=0 , ii ;
 
    if( nn <= 0 || nn > NWMAX || cp == NULL || *cp == '\0' )
      ERROR_exit("bad inputs to CNW_load_warp") ;
@@ -174,6 +176,8 @@ void CNW_load_warp( int nn , char *cp )
      cp += 5 ; do_sqrt = 1 ;
    } else if( strncasecmp(cp,"SQRTINV(",8) == 0 || strncasecmp(cp,"INVSQRT(",8) == 0 ){
      cp += 8 ; do_inv = do_sqrt = 1 ;
+   } else if( strncasecmp(cp,"IDENT(",6) == 0 ){
+     cp += 6 ; do_empty = 1 ;
    }
 
    wp = strdup(cp) ; ii = strlen(wp) ;
@@ -309,7 +313,7 @@ void CNW_load_warp( int nn , char *cp )
      /*-- convert dataset to warp --*/
 
      if( verb ) ININFO_message("--- reading dataset") ;
-     AA = IW3D_from_dataset(dset,0,0) ;
+     AA = IW3D_from_dataset(dset,do_empty,0) ;
      if( AA == NULL )
        ERROR_exit("can't make warp from dataset '%s'",wp);
 
