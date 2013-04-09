@@ -368,9 +368,11 @@ g_history = """
     3.40 Feb 21, 2013: minor help update
     3.41 Apr 05, 2013: aea.py: revert -save_orig_skullstrip to -save_skullstrip
                        (requires align_epi_anat.py from 1 Apr 2013)
+    3.42 Apr 09, 2013: fixed computed fitts for REML case
+                       (thanks to G Pagnoni for noting the problem)
 """
 
-g_version = "version 3.41, April 5, 2013"
+g_version = "version 3.42, April 9, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2013"
