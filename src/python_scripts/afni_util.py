@@ -2251,6 +2251,12 @@ def proj_out_vec(v1, v2, unit_v2=0):
       unit_v2: flag denoting whether v2 is a unit vector
 
       return v1 - (v1 projected onto v2)
+
+      Note: y - proj(y,p)
+          = y - <y,p>/<p,p> * pT        = y - yTp/pTp * pT
+          = y - <y,p>/|p|^2 * pT
+          = y - <y,p>*(pTp)^-1 * pT     (where (pTp)^-1*pT = pseudo-inverse)
+          = (I - p (pTp)^-1 * pT) * y
    """
 
    return lin_vec_sum(1, v1, -1, proj_onto_vec(v1, v2, unit_v2))
