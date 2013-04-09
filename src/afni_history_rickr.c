@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Apr, 2013, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fixed computed fitts for REML case (was from 3dDeconvolve)",
+   "Thanks to G Pagnoni for noting the problem."
+ } ,
+
  {  5, Apr, 2013, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
    "added Help web link to class handouts",
    NULL
