@@ -88,18 +88,24 @@ endif
 COPY_EPI_RUNS:
    set FirstEpi = ''
    foreach tp ($stim_direc)
+         set noglob
       if ($tp == 'ccw') then
-         set u_runs = ($u_runs_ccw) 
+         set u_runs = ($u_runs_ccw)
+         set u_runs_orts = ($u_runs_ccw_orts) 
       else if ($tp == 'clw') then
          set u_runs = ($u_runs_clw)
+         set u_runs_orts = ($u_runs_clw_orts) 
       else if ($tp == 'exp') then
          set u_runs = ($u_runs_exp)
+         set u_runs_orts = ($u_runs_exp_orts) 
       else if ($tp == 'con') then 
          set u_runs = ($u_runs_con)
+         set u_runs_orts = ($u_runs_con_orts) 
       else
          echo "Bad direction"
          goto BEND
       endif
+         unset noglob
       set i = 1
       foreach dset ($u_runs)
          set pndset = $tp.`printf %02d $i`
@@ -115,6 +121,11 @@ COPY_EPI_RUNS:
             endif
          else
             echo "Reusing $rdir/$pndset"
+         endif
+         if ($#u_runs_orts != 0) then
+            if ("$u_runs_orts[$i]" != "NONE") then
+               1dcat "$u_runs_orts[$i]" > $rdir/$tp.`printf %02d $i`.ort.1D
+            endif
          endif
          if ("$FirstEpi" == "") set FirstEpi = $pndset+orig.HEAD
          @ i ++
@@ -182,11 +193,6 @@ COPY_AVOLS:
          echo "Reusing $rdir/AVol@Epi"
       endif  
    endif
-COPY_DORTS:
-   if ("$dorts" != '') then
-      1dcat "$dorts" > $rdir/dorts.1D
-      set dorts = "dorts.1D"
-   endif
    
 REGISTER_EPI_REFS:
    if ("$u_SVolAtEpi" != '') then
@@ -228,7 +234,18 @@ REGISTER_TS:
    cd $rdir
       if ($noVR == 1) then
          set vrsets = (???.??+orig.HEAD)
+         set dortsets = ()
+         foreach s ($vrsets)
+            set sp = `@GetAfniPrefix $s`
+            if ( -f ${sp}.ort.1D ) then
+               set dortsets = ( $dortsets ${sp}.ort.1D )
+            else
+               set dortsets = ( $dortsets NONE )
+            endif
+         end
       else
+         set vrsets = ()
+         set dortsets = ()
    foreach s (???.??+orig.HEAD)
       set sp = `@GetAfniPrefix $s`
       if ( ! -f ${sp}.vr+orig.HEAD) then
@@ -242,9 +259,19 @@ REGISTER_TS:
       else
          echo "Reusing ${sp}.vr"
       endif
-   end
-         set vrsets = (???.??.vr+orig.HEAD)
+      set vrsets = ($vrsets ${sp}.vr+orig.HEAD)
+      if ( -f ${sp}.ort.1D ) then
+         set dortsets = ( $dortsets ${sp}.ort.1D )
+      else
+         set dortsets = ( $dortsets NONE )
       endif
+   end
+      endif
+   
+   if ($#dortsets != 0 && $#dortsets != $#vrsets) then
+ echo "Mismatch between numbers of ortfiles ($#dortsets) and vrsets ($#vrsets)"
+      goto BEND
+   endif
    cd $idir
 
 ALIGN_EXPANAT_TO_EPI:
@@ -296,7 +323,9 @@ SET_POLORT:
 
 DETREND:
    cd $rdir
+   set i = 0
    foreach s ($vrsets)
+      @ i ++
       set p = `@GetAfniPrefix $s`
       if ($noVR == 0) set p = $p:r
       if ( ! -f ${p}.b01+orig.HEAD ) then
@@ -306,8 +335,8 @@ DETREND:
          else
             set vopt = "-vector ${p}.vr.1D"
          endif
-         if ("$dorts" != '') then
-            set vopt = "$vopt -vector $dorts"
+         if ($#dortsets != 0 && "$dortsets[$i]" != "NONE" ) then
+            set vopt = "$vopt -vector $dortsets[$i]"
          endif
          3dDetrend   $eu -polort $polort    \
                      $vopt \
@@ -319,8 +348,8 @@ DETREND:
       
       set nvr = 0
       if ( -f ${p}.vr.1D ) set nvr = `3dinfo -nv ${p}.vr.1D` 
-      if ( "$dorts" != '' ) then
-         set nplus = `3dinfo -nv $dorts`
+      if ( $#dortsets != 0 ) then
+         set nplus = `3dinfo -nv $dortsets[$i]`
          set nvr = `ccalc -i $nvr + $nplus`
       endif
       set ort_adjust = `ccalc -form int -eval "$polort+$nvr"`
@@ -729,7 +758,7 @@ PARSE:
    
    #continue parsing for new options
    set Narg = $#
-   set dorts = ''
+   set dorts = ()
    set noVR = 0
    set ec = 'ZZ'
    set rdir = ''
@@ -753,6 +782,10 @@ PARSE:
    set u_runs_clw = (  )   #clw, always
    set u_runs_exp = (  )   #exp, always
    set u_runs_con = (  )   #con, always
+   set u_runs_ccw_orts = (  )   #ccw, always
+   set u_runs_clw_orts = (  )   #clw, always
+   set u_runs_exp_orts = (  )   #exp, always
+   set u_runs_con_orts = (  )   #con, always
    set SurfInput = 0
    set u_lh_runs_ccw = (  )   #ccw, always
    set u_lh_runs_clw = (  )   #clw, always
@@ -871,7 +904,7 @@ PARSE:
             goto END
 			else
             @ cnt ++
-            set dorts = "$argv[$cnt]"
+            set dorts = ("$argv[$cnt]")
             1dcat "$dorts" > __ORTS.1D
             if ( ! -f __ORTS.1D ) then
                echo "Orts file $dorts not found or could not be cat-ed by 1dcat"
@@ -1351,7 +1384,12 @@ PARSE:
             ("$argv[$cnt]" == "-ccw" )  || \
             ("$argv[$cnt]" == "-cw"  )  || ("$argv[$cnt]" == "-clw"  ) || \
             ("$argv[$cnt]" == "-exp"  )  || \
-            ("$argv[$cnt]" == "-con")     ) then
+            ("$argv[$cnt]" == "-con")     ||\
+            ("$argv[$cnt]" == "-ccw_orts" )  || \
+            ("$argv[$cnt]" == "-cw_orts"  )  || \
+               ("$argv[$cnt]" == "-clw_orts"  ) || \
+            ("$argv[$cnt]" == "-exp_orts"  )  || \
+            ("$argv[$cnt]" == "-con_orts")     ) then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need volumes after -ccw, or -clw, or -exp, or -con"
@@ -1360,7 +1398,18 @@ PARSE:
             @ cnt ++
             set runcls = ()
             while ($cnt < $Narg && "$argv[$cnt]" !~ '-*') 
-               set runcls = ($runcls $argv[$cnt])
+               if ("$argv[$pLoc]" =~ "*_orts" && "$argv[$cnt]" != "NONE") then
+                  set ddd = "$argv[$cnt]"
+                  1dcat "$ddd" > __ORTS.1D
+                  if ( ! -f __ORTS.1D ) then
+              echo "Orts file $ddd not found or could not be cat-ed by 1dcat"
+                  goto END
+                  endif
+                  \rm -f __ORTS.1D
+               endif
+               set noglob
+               set runcls = ($runcls "$argv[$cnt]")
+               unset noglob
                @ cnt ++
             end
             if ($#runcls < 1) then
@@ -1369,6 +1418,7 @@ PARSE:
             else
                if ($cnt <= $Narg) @ cnt -- 
             endif
+               set noglob
             if ("$argv[$pLoc]" == "-ccw" ) then
                set u_runs_ccw = ($runcls)
             else if ("$argv[$pLoc]" == "-cw" || "$argv[$pLoc]" == "-clw") then
@@ -1377,7 +1427,18 @@ PARSE:
                set u_runs_exp = ($runcls)
             else if ("$argv[$pLoc]" == "-con" ) then
                set u_runs_con = ($runcls)
+            else if ("$argv[$pLoc]" == "-ccw_orts" ) then
+               set u_runs_ccw_orts = ($runcls)
+            else if ("$argv[$pLoc]" == "-cw_orts" || \
+                     "$argv[$pLoc]" == "-clw_orts") then
+               set u_runs_clw_orts = ($runcls)
+            else if ("$argv[$pLoc]" == "-exp_orts" ) then
+               set u_runs_exp_orts = ($runcls)
+            else if ("$argv[$pLoc]" == "-con_orts" ) then
+               set u_runs_con_orts = ($runcls)
             endif
+               unset noglob
+            
             goto NEXT	
          endif	
       endif
@@ -1493,6 +1554,54 @@ PARSE:
    if ($on_pol[3] == 0) set on_pol[3] = $on_pol[2]
    if ($on_pol[4] == 0) set on_pol[4] = $TR
 
+   if ($#dorts != 0) then
+      if ($#u_runs_ccw_orts != 0 ||\
+          $#u_runs_clw_orts != 0 ||\
+          $#u_runs_exp_orts != 0 ||\
+          $#u_runs_con_orts != 0) then
+         echo "Should not combine -dorts with -*_orts"
+         goto BEND
+      endif
+      if ($#u_runs_ccw != 0) then
+         foreach kk ($#u_runs_ccw)
+            set u_runs_ccw_orts = ($u_runs_ccw_orts "$dorts")
+         end
+      endif
+      if ($#u_runs_clw != 0) then
+         foreach kk ($#u_runs_clw)
+            set u_runs_clw_orts = ($u_runs_clw_orts "$dorts")
+         end
+      endif
+      if ($#u_runs_exp != 0) then
+         foreach kk ($#u_runs_exp)
+            set u_runs_exp_orts = ($u_runs_exp_orts "$dorts")
+         end
+      endif
+      if ($#u_runs_con != 0) then
+         foreach kk ($#u_runs_con)
+            set u_runs_con_orts = ($u_runs_con_orts "$dorts")
+         end
+      endif
+      set dorts = ()
+   endif
+   
+   if ($#u_runs_ccw_orts != 0 && $#u_runs_ccw_orts != $#u_runs_ccw) then
+      echo "Have $#u_runs_ccw CCW time series but $#u_runs_ccw_orts ort files"
+      goto BEND
+   endif
+   if ($#u_runs_clw_orts != 0 && $#u_runs_clw_orts != $#u_runs_clw) then
+      echo "Have $#u_runs_clw CCW time series but $#u_runs_clw_orts ort files"
+      goto BEND
+   endif
+   if ($#u_runs_con_orts != 0 && $#u_runs_con_orts != $#u_runs_con) then
+      echo "Have $#u_runs_con CCW time series but $#u_runs_con_orts ort files"
+      goto BEND
+   endif
+   if ($#u_runs_exp_orts != 0 && $#u_runs_exp_orts != $#u_runs_exp) then
+      echo "Have $#u_runs_exp CCW time series but $#u_runs_exp_orts ort files"
+      goto BEND
+   endif
+   
    goto RET_PARSE
 
 SANITY:
@@ -1716,6 +1825,23 @@ echo "               that of the time series being fed to 3dDetrend"
 echo "               Also, the this option applies to all the time series"
 echo "               being processed so that assumes they all have the same"
 echo "               lengths."
+echo "   Alternately, you can specify a separate ORT file for each dataset on"
+echo "   the command line with:"
+echo " -ccw_orts CCW_1_ORT.1D CCW_2_ORT.1D ...: These options should parallel"
+echo " -clw_orts CLW_1_ORT.1D CLW_2_ORT.1D ...: -ccw, -clw, -exp, -con options"
+echo " -exp_orts EXP_1_ORT.1D EXP_2_ORT.1D ...: from above. "
+echo " -con_orts CON_1_ORT.1D CON_2_ORT.1D ...: "
+echo "       You don't have to specify all or none of *_orts options."
+echo "       However, any *_orts option should have as many ORT files"
+echo "       as its equivalent time series option."
+echo "       For example, if you used:"
+echo "          -ccw       CCW1.nii CCW2.nii CCW3.nii"
+echo "       to specify orts for these three datasets you need:"
+echo "          -ccw_orts   ORT_CCW1.1D ORT_CCW2.1D ORT_CCW3.1D"
+echo "       If for some reason you don't need orts for CCW2.nii, "
+echo "       use the string NONE to indicate that:"
+echo "           -ccw_orts   ORT_CCW1.1D NONE ORT_CCW3.1D"
+echo ""
 echo " -sid SID: SID is a flag identifying the subject"
 echo " -out_dir DIR: Directory where processing results are to be stored"
 echo " -echo: Turn on the command echoing to help with debugging script failure"

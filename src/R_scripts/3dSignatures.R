@@ -357,7 +357,7 @@ read.SigsClassify.opts.batch <- function (args=NULL, verb = 0) {
    }
    if (lop$no_X11 == FALSE) {
       #Make sure that is possible or turn option off. 
-      if (!length(kk <- capabilities(what='x11')) || kk[1] == FALSE) {
+      if (!length(kk <- capabilities(what='X11')) || kk[1] == FALSE) {
          lop$no_X11 <- TRUE
       }
    }
