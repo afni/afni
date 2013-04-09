@@ -195,7 +195,25 @@ plot.1D.setupdevice <- function (P) {
    }
    if (is.null(P$img.width)) { P$img.width<- 2000 }
    if (is.null(P$img.height)) { P$img.height<- 2000 }
-   
+   if (is.null(P$udev)) { 
+      P$udev <- NULL
+      if (is.null(P$udev)) {
+         ccpp <- capabilities(what='aqua')
+         if (length(ccpp) == 1 && ccpp) P$udev <- 'quartz'
+      }
+      if (is.null(P$udev)) {
+         ccpp <- capabilities(what='X11')
+         if (length(ccpp) == 1 && ccpp) P$udev <- 'X11'
+      }
+      if (is.null(P$udev)) {
+         warning.AFNI("Setting device to pdf, no interactive ones found.");
+         if (is.null(P$prefix)) {
+            P$prefix <- 'AFNI_plot_bailing_out.pdf'
+         }
+         P$nodisp <- TRUE
+      }
+   }
+
    #Note, there are other ways to control graph size, see 
    #?par for pin and fin
    if (!is.null(P$prefix) && P$nodisp) { #render to device directly
@@ -223,10 +241,22 @@ plot.1D.setupdevice <- function (P) {
          dev.set(P$dev.this)
       } else if (P$dev.new) {
          #give me new one
-         x11()
+         if (P$udev == 'X11') x11()
+         else if (P$udev == 'quartz') quartz()
+         else {
+            warn.AFNI("No proper device selected");
+            x11()
+         }
       } else {
          #Only get new if list is empty
-         if (is.null(dev.list())) x11()
+         if (is.null(dev.list())) {
+            if (P$udev == 'X11') x11()
+            else if (P$udev == 'quartz') quartz()
+            else {
+               warn.AFNI("No proper device selected");
+               x11()
+            }   
+         }
       }
    }
    return(dev.cur())
@@ -348,7 +378,7 @@ plot.1D.optlist <- function(...) {
             img.width=2000, img.height=2000, img.qual = 98, 
             img.dpi = 300, img.def.fontsize=12,
             dev.this=NULL, dev.new=FALSE,
-            showcond = FALSE,
+            showcond = FALSE, udev = NULL,
             verb = 0);
    
    #Same list, but all flagged with NA as not user initialized

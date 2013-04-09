@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 9, Apr , 2013 , ZSS , "@RetinoProc" , MINOR , TYPE_NEW_OPT,
+   "Added options for providing orts for each input time series",
+   "See options -*_orts in the help output."
+ },
+ 
  { 1, Apr , 2013 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
    "AFNIio.R's newid.AFNI() was duplicated and the more compact one was broken",
    NULL
