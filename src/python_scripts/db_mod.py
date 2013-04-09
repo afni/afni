@@ -3162,7 +3162,7 @@ def db_cmd_regress(proc, block):
         if block.opts.find_opt('-regress_reml_exec'):
             if stop_opt: fstr += '\n'
             fstr += "%s# create fitts from REML errts\n" % istr
-            fstr += "%s3dcalc -a %s%s -b %s%s -expr a-b \\\n" \
+            fstr += "%s3dcalc -a %s%s -b %s\_REML%s -expr a-b \\\n" \
                     "%s       -prefix %s\_REML%s\n"                \
                     % (istr, all_runs, vstr, errts_pre, vstr,
                        istr, fitts_pre, suff)
