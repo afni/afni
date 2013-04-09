@@ -4590,6 +4590,18 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
          } else if (SUMA_iswordin (SO->Name.FileName, "rh") == 1) {
                      SUMA_RETURN(SUMA_RIGHT);
                   }
+         /* try some more */
+         if (SUMA_iswordin_ci (SO->Name.FileName, "_lh") == 1 || 
+             SUMA_iswordin_ci (SO->Name.FileName, ".lh") == 1 || 
+             SUMA_iswordin_ci (SO->Name.FileName, "lh_") == 1 || 
+             SUMA_iswordin_ci (SO->Name.FileName, "lh.") == 1) {
+            SUMA_RETURN(SUMA_LEFT);
+         } else if (SUMA_iswordin_ci (SO->Name.FileName, "_rh") == 1|| 
+                    SUMA_iswordin_ci (SO->Name.FileName, ".rh") == 1 || 
+                    SUMA_iswordin_ci (SO->Name.FileName, "rh_") == 1 || 
+                    SUMA_iswordin_ci (SO->Name.FileName, "rh.") == 1) {
+                     SUMA_RETURN(SUMA_RIGHT);
+         }
          break;
       case SUMA_BRAIN_VOYAGER:
          if (SUMA_iswordin (SO->Name.FileName, "_LH") == 1) {
