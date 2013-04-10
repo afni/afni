@@ -488,7 +488,7 @@ process.LME.opts <- function (lop, verb = 0) {
                    'format other than BRIK'))
 
    # assume the quantitative variables are separated by + here
-   if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\+')[[1]]
+   if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
 
    if(!is.null(lop$gltLabel)) {
       sq <- as.numeric(unlist(lapply(lop$gltLabel, '[', 1)))
@@ -515,6 +515,7 @@ process.LME.opts <- function (lop, verb = 0) {
    if(len %% wd != 0)
       errex.AFNI('The content under -dataTable is not rectangular!') else {
       lop$dataStr <- NULL
+      #browser()
       for(ii in 1:wd) 
          lop$dataStr <- data.frame(cbind(lop$dataStr, lop$dataTable[seq(wd+ii, len, wd)]))
       names(lop$dataStr) <- lop$dataTable[1:wd]
