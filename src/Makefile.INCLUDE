@@ -557,6 +557,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dmaskSVD 3dmaskSVD.o $(LFLAGS) $(LLIBS)
 
+3dLocalHistog:3dLocalHistog.o
+	$(RM) $@
+	$(CC) -o 3dLocalHistog 3dLocalHistog.o $(LFLAGS) $(LLIBS)
+
 3dBlurToFWHM:3dBlurToFWHM.o
 	$(RM) $@
 	$(CCFAST) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS)
