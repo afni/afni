@@ -160,6 +160,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
    Opt->NodeDbg = -1;
    Opt->debug=0;
    Opt->b1=0;
+   Opt->n_fvec=0;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
