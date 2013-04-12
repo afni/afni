@@ -84,11 +84,13 @@ ENTRY("MCW_build_mask") ;
 
 MCW_cluster * MCW_spheremask( float dx, float dy, float dz, float radius )
 {
-   MCW_cluster *mask;
+   MCW_cluster *mask=NULL;
    int ii , nn ;
    float x,y,z ;
 
-   mask = MCW_build_mask(dx,dy,dz,radius) ;
+   if( radius != 0.0f )
+     mask = MCW_build_mask(dx,dy,dz,radius) ;
+
    if( mask == NULL ){ INIT_CLUSTER(mask) ; }
    ADDTO_CLUSTER(mask,0,0,0,0) ;
 

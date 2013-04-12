@@ -4074,6 +4074,7 @@ extern char * THD_dataset_headname( char * , char * , int ) ;
 
 extern NI_element * THD_simple_table_read( char *fname ) ; /* 19 May 2010 */
 extern NI_element * THD_mixed_table_read ( char *fname ) ; /* 26 Jul 2010 */
+extern NI_element * THD_string_table_read( char *fname ) ;    /* Apr 2013 */
 
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;

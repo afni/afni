@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , APR , 2013 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
+  { 12 , APR , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "detach from terminal and graph fading are now the defaults" ,
+   NULL } ,
+
+ { 12 , APR , 2013 , RWC , "3dLocalHistog" , MINOR , TYPE_NEW_PROG ,
+   "Collecting counts of labels in nbhd of each voxel" ,
+   "For building atlases that allow for uncertainty in position" } ,
+
+ { 4 , APR , 2013 , RWC , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT ,
    "Add -Apair option" ,
    "For testing differences in correlations in 1 group from 2 different\n"
    "seeds -- the regular seed minus the 'Apair' seed.  Also changes to AFNI\n"

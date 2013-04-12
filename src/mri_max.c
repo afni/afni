@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include <math.h>
 
@@ -221,4 +221,115 @@ ENTRY("mri_min") ;
          fprintf( stderr , "mri_min:  unknown image kind\n" ) ;
    }
    RETURN( 0 );
+}
+
+double_pair mri_minmax( MRI_IMAGE *im )
+{
+   register int ii , npix ;
+   byte   byte_min   = 255 ;
+   short  short_min  = 32767 ;
+   int    int_min    = 2147483647 ;
+   float  float_min  = 1.e+38 ;
+   double double_min = 1.e+38 ;
+   byte   byte_max   = 0 ;
+   short  short_max  = -32767 ;
+   int    int_max    = -2147483647 ;
+   float  float_max  = -1.e+38 ;
+   double double_max = -1.e+38 ;
+   double_pair dp = {0.0,0.0} ;
+
+ENTRY("mri_minmax") ;
+
+   npix = im->nvox ;
+
+   switch( im->kind ){
+
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            byte_min = MIN( byte_min , qar[ii] ) ;
+            byte_max = MAX( byte_max , qar[ii] ) ;
+         }
+         dp.a = (double)byte_min ; dp.b = (double)byte_max ; RETURN(dp) ;
+      }
+
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            short_min = MIN( short_min , qar[ii] ) ;
+            short_max = MAX( short_max , qar[ii] ) ;
+         }
+         dp.a = (double)short_min ; dp.b = (double)short_max ; RETURN(dp) ;
+      }
+
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            float_min = MIN( float_min , qar[ii] ) ;
+            float_max = MAX( float_max , qar[ii] ) ;
+         }
+         dp.a = (double)float_min ; dp.b = (double)float_max ; RETURN(dp) ;
+      }
+
+      default:
+         fprintf( stderr , "mri_minmax:  unknown image kind\n" ) ;
+   }
+   RETURN( dp );
+}
+
+double_pair mri_minmax_nz( MRI_IMAGE *im )
+{
+   register int ii , npix ;
+   byte   byte_min   = 255 ;
+   short  short_min  = 32767 ;
+   int    int_min    = 2147483647 ;
+   float  float_min  = 1.e+38 ;
+   double double_min = 1.e+38 ;
+   byte   byte_max   = 0 ;
+   short  short_max  = -32767 ;
+   int    int_max    = -2147483647 ;
+   float  float_max  = -1.e+38 ;
+   double double_max = -1.e+38 ;
+   double_pair dp = {0.0,0.0} ;
+
+ENTRY("mri_minmax_nz") ;
+
+   npix = im->nvox ;
+
+   switch( im->kind ){
+
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0 ) continue ;
+            byte_min = MIN( byte_min , qar[ii] ) ;
+            byte_max = MAX( byte_max , qar[ii] ) ;
+         }
+         dp.a = (double)byte_min ; dp.b = (double)byte_max ; RETURN(dp) ;
+      }
+
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0 ) continue ;
+            short_min = MIN( short_min , qar[ii] ) ;
+            short_max = MAX( short_max , qar[ii] ) ;
+         }
+         dp.a = (double)short_min ; dp.b = (double)short_max ; RETURN(dp) ;
+      }
+
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0 ) continue ;
+            float_min = MIN( float_min , qar[ii] ) ;
+            float_max = MAX( float_max , qar[ii] ) ;
+         }
+         dp.a = (double)float_min ; dp.b = (double)float_max ; RETURN(dp) ;
+      }
+
+      default:
+         fprintf( stderr , "mri_minmax_nz:  unknown image kind\n" ) ;
+   }
+   RETURN( dp );
 }
