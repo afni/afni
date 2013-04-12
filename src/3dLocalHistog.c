@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #undef  UINT32
 #define UINT32 unsigned int
 
@@ -10,8 +14,10 @@
 #define T15MM 32767
 #define TWO16 65536
 
+#define ALLOW_PROB
+
 THD_3dim_dataset * THD_localhistog( int , THD_3dim_dataset ** ,
-                                    int , int * , MCW_cluster * ) ;
+                                    int , int * , MCW_cluster * , int,int ) ;
 
 /*----------------------------------------------------------------------------*/
 
@@ -52,12 +58,6 @@ void usage_3dLocalHistog(int detail)
 "                 have 2 columns:   value  count\n"
 "                 Values with zero count will not be shown in this file.\n"
 "\n"
-" -mincount mm  = Do not include values which appear in the overall histogram\n"
-"                 fewer than 'mm' times.  Such values will be treated as if they\n"
-"                 are zero (and so appear in the '0:Other' output sub-brick).\n"
-"                 * The overall histogram output by '-hsave' is NOT altered\n"
-"                   by the use of '-mincount'.\n"
-"\n"
 " -lab_file LL  = Use file 'LL' as a label file.  The first column contains\n"
 "                 the numbers, the second column the corresponding labels.\n"
 "                 * You can use a column selector to choose the columns you\n"
@@ -69,20 +69,19 @@ void usage_3dLocalHistog(int detail)
 "                 * You can use '-exclude' more than once.\n"
 " -excNONLAB    = If '-lab_file' is used, then exclude all values that are NOT\n"
 "                 in the label file (except for 0, of course).\n"
-#if 0
+" -mincount mm  = Exclude values which appear in the overall histogram\n"
+"                 fewer than 'mm' times.\n"
+"                 * Excluded  values will be treated as if they are zero\n"
+"                   (and so appear in the '0:Other' output sub-brick).\n"
+"                 * The overall histogram output by '-hsave' is NOT altered\n"
+"                   by the use of '-mincount' or '-exclude' or '-excNONLAB'.\n"
+#ifdef ALLOW_PROB
 "\n"
 " -prob         = Normally, the output dataset is a set of counts.  This\n"
 "                 option converts each count to a 'probability' by dividing\n"
 "                 by the total number of counts at each voxel.\n"
-#endif
-#if 0
-"\n"
-" -range a b    = Normally, all values are counted.  Use this option\n"
-"                 to limit counts to the range a..b (inclusive).\n"
-"                 * If the range a..b is LARGER than the range of the data,\n"
-"                   the program will still create all-zero sub-bricks for those\n"
-"                   superfluous values -- the goal is to be able to take the\n"
-"                   output from multiple runs of 3dLocalHistog and merge them easily.\n"
+"                 * The resulting dataset is stored as bytes, in units of\n"
+"                   0.01, so that p=1 corresponds to 1/0.01=100.\n"
 #endif
 "\n"
 " -quiet        = Stop the highly informative progress reports.\n"
@@ -113,7 +112,6 @@ int main( int argc , char *argv[] )
    char *prefix="./localhistog" ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
    int verb=1 , do_prob=0 ;
-   int botval=-32767 , topval=32767 , force_range=0 ;
    int nx,ny,nz,nvox , rbot,rtop ;
    char *labfile=NULL ; NI_element *labnel=NULL ;
    int nlab=0 , *labval=NULL ; char **lablab=NULL ; char buf[THD_MAX_SBLABEL] ;
@@ -133,8 +131,8 @@ int main( int argc , char *argv[] )
 #endif
 
    PRINT_VERSION("3dLocalHistog"); mainENTRY("3dLocalHistog main"); machdep();
-   AFNI_logger("3dLocalHistog",argc,argv); AUTHOR("Bilbo Baggins");
-   THD_check_AFNI_version("3dLocalHistog") ;
+   AFNI_logger("3dLocalHistog",argc,argv);
+   if( getpid()%2 ) AUTHOR("Bilbo Baggins"); else AUTHOR("Thorin Oakenshield");
 
    /*---- loop over options ----*/
 
@@ -149,19 +147,9 @@ int main( int argc , char *argv[] )
        verb = 0 ; iarg++ ; continue ;
      }
 
-#if 0
+#ifdef ALLOW_PROB
      if( strncmp(argv[iarg],"-prob",5) == 0 ){
        do_prob = 1 ; iarg++ ; continue ;
-     }
-
-     if( strncmp(argv[iarg],"-range",5) == 0 ){
-       if( iarg+2 >= argc ) ERROR_exit("Need 2 arguments after '-range'") ;
-       botval = (int)strtod(argv[++iarg],NULL) ;
-       topval = (int)strtod(argv[++iarg],NULL) ;
-       if( botval < -32767 ) botval = -32767; else if( botval == 0 ) botval =  1;
-       if( topval >  32767 ) topval =  32767; else if( topval == 0 ) topval = -1;
-       if( botval > topval ){ botval = -32767; topval = 32767; } else force_range = 1;
-       iarg++ ; continue ;
      }
 #endif
 
@@ -271,16 +259,16 @@ int main( int argc , char *argv[] )
    if( ohist_name == NULL && strcmp(prefix,"NULL") == 0 )
      ERROR_exit("-prefix NULL is only meaningful if you also use -hsave :-(") ;
 
-   /*---- scan input datasets, built overall histogram ----*/
+   /*------------ scan input datasets, built overall histogram ------------*/
 
    nsar  = argc - iarg ;
    insar = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*nsar) ;
 
-   if( verb ) INFO_message("Scanning datasets to determine range of values present") ;
+   if( verb ) fprintf(stderr,"Scanning datasets ") ;
 
    ohist = (UINT32 *)calloc(sizeof(UINT32),TWO16) ;
 
-   for( ids=iarg ; ids < argc ; ids++ ){
+   for( ids=iarg ; ids < argc ; ids++ ){                      /* dataset loop */
      insar[ids-iarg] = inset = THD_open_dataset(argv[ids]) ;
      CHECK_OPEN_ERROR(inset,argv[ids]) ;
      if( ids == iarg ){
@@ -299,7 +287,8 @@ int main( int argc , char *argv[] )
        ERROR_exit("Dataset %s is not byte- or short-valued! :-(",argv[ids]) ;
      DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
-     for( ii=0 ; ii < DSET_NVALS(inset) ; ii++ ){  /* add to overall histogram */
+     for( ii=0 ; ii < DSET_NVALS(inset) ; ii++ ){ /* add to overall histogram */
+       if( verb ) fprintf(stderr,".") ;
        switch( DSET_BRICK_TYPE(inset,ii) ){
          case MRI_short:{
            short *sar = (short *)DSET_BRICK_ARRAY(inset,ii) ;
@@ -317,10 +306,15 @@ int main( int argc , char *argv[] )
          }
          break ;
        }
-     }
+     } /* end of sub-brick loop */
 
-     DSET_unload(inset) ;  /* will re-load later */
-   }
+     DSET_unload(inset) ;  /* will re-load later, as needed */
+
+   } /* end of dataset loop */
+
+   if( verb ) fprintf(stderr,"\n") ;
+
+   /*-------------- process overall histogram for fun and profit -------------*/
 
    /* if we didn't actually find 0, put it in the histogram now */
 
@@ -337,7 +331,7 @@ int main( int argc , char *argv[] )
      free(klist) ;
    }
 
-   /* make a copy and edit it for mincount */
+   /* make a copy of ohist and edit it for mincount, etc */
 
    mhist = (UINT32 *)malloc(sizeof(UINT32)*TWO16) ;
    memcpy(mhist,ohist,sizeof(UINT32)*TWO16) ;
@@ -407,7 +401,7 @@ int main( int argc , char *argv[] )
 
    if( strcmp(prefix,"NULL") == 0 ) exit(0) ;   /* special case */
 
-   /*--- build the neighborhood mask ---*/
+   /*----------- build the neighborhood mask -----------*/
 
    if( ntype <= 0 ){         /* default neighborhood */
      ntype = NTYPE_SPHERE ; na = 0.0f ;
@@ -460,11 +454,11 @@ int main( int argc , char *argv[] )
 
    if( verb ) INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
 
-   /*---- actually do some work for a change (is it lunchtime yet?) ----*/
+   /*------- actually do some work for a change (is it lunchtime yet?) -------*/
 
-   if( verb ) INFO_message("Begin voxel-wise histogrammarizationing") ;
+   if( verb ) fprintf(stderr,"Voxel-wise histograms ") ;
 
-   outset = THD_localhistog( nsar,insar , numval,rlist , nbhd ) ;
+   outset = THD_localhistog( nsar,insar , numval,rlist , nbhd , do_prob,verb ) ;
 
    if( outset == NULL ) ERROR_exit("Function THD_localhistog() fails?!") ;
 
@@ -498,18 +492,18 @@ int main( int argc , char *argv[] )
 /*----------------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_localhistog( int nsar , THD_3dim_dataset **insar ,
-                                    int numval , int *rlist , MCW_cluster *nbhd )
+                                    int numval , int *rlist , MCW_cluster *nbhd ,
+                                    int do_prob , int verb )
 {
    THD_3dim_dataset *outset=NULL , *inset ;
    int nvox=DSET_NVOX(insar[0]) ;
-   int qq, ids, iv, ib,nb, val, bb, nnpt=nbhd->num_pt ;
-   int ii,jj,kk ;
-   MRI_IMAGE *nbim , *bbim ;
+   int ids, iv, bb, nnpt=nbhd->num_pt ;
+   MRI_IMAGE *bbim ; int btyp ;
    float **outar , **listar ;
 
 ENTRY("THD_localhistog") ;
 
-   /* create output dataset */
+   /*---- create output dataset ----*/
 
    outset = EDIT_empty_copy(insar[0]) ;
    EDIT_dset_items( outset ,
@@ -524,21 +518,23 @@ ENTRY("THD_localhistog") ;
      outar[bb] = DSET_BRICK_ARRAY(outset,bb) ;
    }
 
-   /* make mapping between values and arrays to get those values */
+   /*---- make mapping between values and arrays to get those values ----*/
 
    listar = (float **)malloc(sizeof(float *)*TWO16) ;
-   for( ii=0 ; ii < TWO16 ; ii++ ) listar[ii] = outar[0] ;
+   for( bb=0 ; bb < TWO16 ; bb++ ) listar[bb] = outar[0] ;
    for( bb=1 ; bb < numval ; bb++ ){
      listar[ rlist[bb] + TWO15 ] = outar[bb] ;
    }
 
-   /* loop over datasets, add in counts for all voxels */
+   /*----------- loop over datasets, add in counts for all voxels -----------*/
 
-   for( ids=0 ; ids < nsar ; ids++ ){
+   for( ids=0 ; ids < nsar ; ids++ ){              /* dataset loop */
      inset = insar[ids] ; DSET_load(inset) ;
      for( iv=0 ; iv < DSET_NVALS(inset) ; iv++ ){  /* sub-brick loop */
-       bbim = DSET_BRICK(inset,iv) ;
-       if( nnpt == 1 ){
+       if( verb ) fprintf(stderr,".") ;
+       bbim = DSET_BRICK(inset,iv) ; btyp = bbim->kind ;
+       if( nnpt == 1 ){                            /* only 1 voxel in nbhd */
+         int qq,ii,jj,kk,ib,nb ;
          switch( bbim->kind ){
            case MRI_short:{
              short *sar = MRI_SHORT_PTR(bbim) ;
@@ -556,38 +552,76 @@ ENTRY("THD_localhistog") ;
            }
            break ;
          }
-       } else {
-         for( qq=0 ; qq < nvox ; qq++ ){    /* qq=voxel index */
+       } else {                                    /* multiple voxels in nbhd */
+ AFNI_OMP_START ;
+#pragma omp parallel
+ { int qq,ii,jj,kk,ib,nb ; void *nar ; short *sar,ss ; byte *bar ; float *far ;
+   nar = malloc(sizeof(float)*nnpt) ;
+   sar = (short *)nar ; bar = (byte *)nar ; far = (float *)nar ;
+#pragma omp for
+         for( qq=0 ; qq < nvox ; qq++ ){           /* qq=voxel index */
            ii = DSET_index_to_ix(inset,qq) ;
            jj = DSET_index_to_jy(inset,qq) ;
            kk = DSET_index_to_kz(inset,qq) ;
-           nbim = mri_get_nbhd( bbim , NULL , ii,jj,kk , nbhd ) ;
-           if( nbim == NULL ) continue ;
-           switch( nbim->kind ){
-             case MRI_short:{
-               short *sar = MRI_SHORT_PTR(nbim) ; nb = nbim->nx ;
+           nb = mri_get_nbhd_array( bbim , NULL , ii,jj,kk , nbhd , nar ) ;
+           if( nb == 0 ) continue ;
+           switch( btyp ){
+             case MRI_short:
                for( ib=0 ; ib < nb ; ib++ ) listar[sar[ib]+TWO15][qq]++ ;
-             }
              break ;
-             case MRI_byte:{
-               byte *bar = MRI_BYTE_PTR(nbim) ; nb = nbim->nx ;
+             case MRI_byte:
                for( ib=0 ; ib < nb ; ib++ ) listar[bar[ib]+TWO15][qq]++ ;
-             }
              break ;
-             case MRI_float:{
-               float *far = MRI_FLOAT_PTR(nbim) ; short ss ; nb = nbim->nx ;
+             case MRI_float:
                for( ib=0 ; ib < nb ; ib++ ){ ss = SHORTIZE(far[ib]); listar[ss+TWO15][qq]++; }
-             }
              break ;
            }
-           mri_free(nbim) ;
-         }
+         } /* end of voxel loop */
+   free(nar) ;
+ } /* end of OpenMP */
+ AFNI_OMP_END ;
        }
      } /* end of sub-brick loop */
      DSET_unload(inset) ;
    } /* end of dataset loop */
 
-   free(listar) ; free(outar) ;
+   if( verb ) fprintf(stderr,"\n") ;
 
+   free(listar) ;
+
+   /*---- post-process output ---*/
+
+   if( do_prob ){
+     byte **bbar ; int pp ;
+ 
+     if( verb ) INFO_message("Conversion to probabilities") ;
+
+ AFNI_OMP_START ;
+#pragma omp parallel
+ { int qq , ib ; float pfac , val ; byte **bbar ;
+#pragma omp for
+     for( qq=0 ; qq < nvox ; qq++ ){
+       pfac = 0.01f ;
+       for( ib=0 ; ib < numval ; ib++ ) pfac += outar[ib][qq] ;
+       pfac = 100.0f / pfac ;
+       for( ib=0 ; ib < numval ; ib++ ){
+         val = outar[ib][qq]*pfac ; outar[ib][qq] = BYTEIZE(val) ;
+       }
+     }
+ } /* end OpenMP */
+ AFNI_OMP_END ;
+
+     bbar = (byte **)malloc(sizeof(byte *)*numval) ;
+     for( bb=0 ; bb < numval ; bb++ ){
+       bbar[bb] = (byte *)malloc(sizeof(byte)*nvox) ;
+       for( pp=0 ; pp < nvox ; pp++ ) bbar[bb][pp] = (byte)outar[bb][pp] ;
+       EDIT_substitute_brick(outset,bb,MRI_byte,bbar[bb]) ;
+       EDIT_BRICK_FACTOR(outset,bb,0.01f) ;
+     }
+     free(bbar) ;
+
+   } /* end of do_prob */
+
+   free(outar) ;
    RETURN(outset) ;
 }

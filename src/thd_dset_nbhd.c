@@ -221,18 +221,15 @@ ENTRY("mri_get_nbhd") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* At present, only works for MRI_float input images [17 Jul 2009] */
 
-int mri_get_nbhd_array( MRI_IMAGE *inim , byte *mask ,
-                        int xx, int yy, int zz, MCW_cluster *nbhd , float *nar )
+static int mri_get_nbhd_array_float( MRI_IMAGE *inim , byte *mask ,
+                                     int xx, int yy, int zz, MCW_cluster *nbhd , float *nar )
 {
    int kind , nx,ny,nz,nxy,nxyz , npt , nout , aa,bb,cc,kk,ii ;
    MRI_IMAGE *im ;
    float *brick ;
 
-ENTRY("mri_get_nbhd_array") ;
-
-   if( inim == NULL || nbhd == NULL || nar == NULL ) RETURN(0) ;
+   if( inim == NULL || nbhd == NULL || nar == NULL ) return(0) ;
 
    nx = inim->nx ;
    ny = inim->ny ; nxy  = nx*ny  ;
@@ -240,12 +237,12 @@ ENTRY("mri_get_nbhd_array") ;
 
    kk = xx + yy*nx + zz*nxy ;    /* voxel index in inim array */
    if (SearchAboutMaskedVoxel) {
-     if( npt == 0 || kk < 0 || kk >= nxyz                ) RETURN(0) ;
+     if( npt == 0 || kk < 0 || kk >= nxyz                ) return(0) ;
    } else {
-     if( npt == 0 || kk < 0 || kk >= nxyz || !INMASK(kk) ) RETURN(0) ;
+     if( npt == 0 || kk < 0 || kk >= nxyz || !INMASK(kk) ) return(0) ;
    }
-   kind  = inim->kind ;            if( kind != MRI_float ) RETURN(0) ;
-   brick = MRI_FLOAT_PTR(inim) ;       if( brick == NULL ) RETURN(0) ;
+   kind  = inim->kind ;            if( kind != MRI_float ) return(0) ;
+   brick = MRI_FLOAT_PTR(inim) ;       if( brick == NULL ) return(0) ;
 
    /*-- extract data, based on kind of data in sub-brick --*/
 
@@ -257,7 +254,99 @@ ENTRY("mri_get_nbhd_array") ;
      if( INMASK(kk) ) nar[nout++] = brick[kk] ;
    }
 
-   RETURN(nout) ;
+   return(nout) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int mri_get_nbhd_array_short( MRI_IMAGE *inim , byte *mask ,
+                                     int xx, int yy, int zz, MCW_cluster *nbhd , short *nar )
+{
+   int kind , nx,ny,nz,nxy,nxyz , npt , nout , aa,bb,cc,kk,ii ;
+   MRI_IMAGE *im ;
+   short *brick ;
+
+   if( inim == NULL || nbhd == NULL || nar == NULL ) return(0) ;
+
+   nx = inim->nx ;
+   ny = inim->ny ; nxy  = nx*ny  ;
+   nz = inim->nz ; nxyz = nxy*nz ; npt = nbhd->num_pt ; nout = 0 ;
+
+   kk = xx + yy*nx + zz*nxy ;    /* voxel index in inim array */
+   if (SearchAboutMaskedVoxel) {
+     if( npt == 0 || kk < 0 || kk >= nxyz                ) return(0) ;
+   } else {
+     if( npt == 0 || kk < 0 || kk >= nxyz || !INMASK(kk) ) return(0) ;
+   }
+   kind  = inim->kind ;            if( kind != MRI_short ) return(0) ;
+   brick = MRI_SHORT_PTR(inim) ;       if( brick == NULL ) return(0) ;
+
+   /*-- extract data, based on kind of data in sub-brick --*/
+
+   for( ii=0 ; ii < npt ; ii++ ){
+     aa = xx + nbhd->i[ii] ; if( aa < 0 || aa >= nx ) continue ;
+     bb = yy + nbhd->j[ii] ; if( bb < 0 || bb >= ny ) continue ;
+     cc = zz + nbhd->k[ii] ; if( cc < 0 || cc >= nz ) continue ;
+     kk = aa + bb*nx + cc*nxy ;
+     if( INMASK(kk) ) nar[nout++] = brick[kk] ;
+   }
+
+   return(nout) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int mri_get_nbhd_array_byte( MRI_IMAGE *inim , byte *mask ,
+                                    int xx, int yy, int zz, MCW_cluster *nbhd , byte *nar )
+{
+   int kind , nx,ny,nz,nxy,nxyz , npt , nout , aa,bb,cc,kk,ii ;
+   MRI_IMAGE *im ;
+   byte *brick ;
+
+   if( inim == NULL || nbhd == NULL || nar == NULL ) return(0) ;
+
+   nx = inim->nx ;
+   ny = inim->ny ; nxy  = nx*ny  ;
+   nz = inim->nz ; nxyz = nxy*nz ; npt = nbhd->num_pt ; nout = 0 ;
+
+   kk = xx + yy*nx + zz*nxy ;    /* voxel index in inim array */
+   if (SearchAboutMaskedVoxel) {
+     if( npt == 0 || kk < 0 || kk >= nxyz                ) return(0) ;
+   } else {
+     if( npt == 0 || kk < 0 || kk >= nxyz || !INMASK(kk) ) return(0) ;
+   }
+   kind  = inim->kind ;            if( kind != MRI_byte  ) return(0) ;
+   brick = MRI_BYTE_PTR(inim) ;        if( brick == NULL ) return(0) ;
+
+   /*-- extract data, based on kind of data in sub-brick --*/
+
+   for( ii=0 ; ii < npt ; ii++ ){
+     aa = xx + nbhd->i[ii] ; if( aa < 0 || aa >= nx ) continue ;
+     bb = yy + nbhd->j[ii] ; if( bb < 0 || bb >= ny ) continue ;
+     cc = zz + nbhd->k[ii] ; if( cc < 0 || cc >= nz ) continue ;
+     kk = aa + bb*nx + cc*nxy ;
+     if( INMASK(kk) ) nar[nout++] = brick[kk] ;
+   }
+
+   return(nout) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int mri_get_nbhd_array( MRI_IMAGE *inim , byte *mask ,
+                        int xx, int yy, int zz, MCW_cluster *nbhd , void *nar )
+{
+   if( inim == NULL || nbhd == NULL || nar == NULL ) return 0 ;
+
+   switch( inim->kind ){
+     case MRI_float:
+       return mri_get_nbhd_array_float(inim,mask,xx,yy,zz,nbhd,(float *)nar) ;
+     case MRI_short:
+       return mri_get_nbhd_array_short(inim,mask,xx,yy,zz,nbhd,(short *)nar) ;
+     case MRI_byte:
+       return mri_get_nbhd_array_byte (inim,mask,xx,yy,zz,nbhd,(byte *) nar) ;
+   }
+   return 0 ;
 }
 
 /*---------------------------------------------------------------------------*/
