@@ -1471,8 +1471,17 @@ void AFNI_sigfunc_alrm(int sig)
      "May your cupcakes always have lots of rich creamy frosting"    ,
      "Never take a cupcake from an eel"                              ,
      "Do you prefer white chocolate or dark chocolate?"              ,
+     "Is it lunchtime yet?"                                          ,
+     "Meet me down the pub later"                                    ,
+     "Are you ready for a coffee break? I am"                        ,
+     "What's your favorite kind of cookie?"                          ,
+     "Step slowly away from the keyboard, and remain calm"           ,
+     "Time for a nice walk, don't you think?"                        ,
+     "Meet me in Namche Bazaar next Thursday"                        ,
+     "I'll see you at Angkor Wat at midnight next Saturday"          ,
+     "Buy property on Neptune now, and avoid the rush"               ,
 
-     "One martini is just right; two are too many; three is never enough"             ,
+     "One martini is just right; two is too many; three is never enough"              ,
      "If you can't explain it simply, you don't understand it well enough"            ,
      "Even the Universe bends back on itself, but stupidity goes on forever"          ,
      "Get your statistics first, then you can distort them as you please"             ,
@@ -1625,11 +1634,12 @@ int main( int argc , char *argv[] )
 
    /*** if ordered, die right now ***/
 
-   if( dienow) exit(0) ;
+   if( dienow ) exit(0) ;
 
    /*** otherwise, perhaps become all detached from reality ***/
 
-   { char *eee = getenv("AFNI_FORK") ;    /* 31 May 2011 */
+   PUTENV("AFNI_DETACH","YES") ;            /* Apr 2013 */
+   { char *eee = getenv("AFNI_DETACH") ;    /* 31 May 2011 */
      if( YESSISH(eee) ){
        ii = (int)fork();
        if( ii != 0 ){         /* parent process dies now */
@@ -1774,6 +1784,7 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_X11_REDECORATE","NO") ;
    PUTENV("AFNI_RESCAN_AT_SWITCH","YES") ; /* 16 Nov 2007 */
    PUTENV("AFNI_VIDEO_DELAY","66") ;       /* 20 Aug 2009 */
+   PUTENV("AFNI_GRAPH_FADE","YES") ;          /* Apr 2013 */
 
 #if 0
    PUTENV("AFNI_IMAGE_LABEL_MODE","1") ;
@@ -2596,11 +2607,24 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /*- 12 May 2010: As the last printout, say when this version was created -*/
 
-   fprintf(stderr,"\n++ This version of AFNI was built " __DATE__ " ++\n" ) ;
+   fprintf(stderr,"\n++ NOTE: This version of AFNI was built " __DATE__ " ++\n" ) ;
 
    if( MAIN_im3d->type == AFNI_3DDATA_VIEW &&
       !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )
-     fprintf(stderr,"++ 'Define Markers' is hidden: right-click 'DataDir' to see it\n") ;
+     fprintf(stderr,"++ NOTE: 'Define Markers' is hidden: right-click 'DataDir' to see it\n") ;
+
+   /** Apr 2013: delete this message in a few months **/
+
+   if( __DATE__[10] == '3' && (__DATE__[0] == 'A' || __DATE__[0] == 'M') )
+     fprintf(stderr,
+       "++ NOTE: Graph viewer threshold 'fading' is now on by default.  To turn it off,\n"
+       "         press the 'F' key in a graph viewer window, or set environment variable\n"
+       "         AFNI_GRAPH_FADE to NO.  -- [Apr 2013]\n"
+       "++ NOTE: The AFNI GUI now detaches itself from the terminal at startup, so that\n"
+       "         it is no longer necessary or useful to start the program with the '&'\n"
+       "         key at the end of the command line.  To disable this feature, set\n"
+       "         environment variable AFNI_DETACH to NO.  -- [Apr 2013]\n"
+     ) ;
 
    if( AFNI_check_environ_done() == 0 )
      fprintf(stderr,

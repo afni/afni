@@ -13,7 +13,7 @@
 #define TRBUF(bb) \
   do{ int lb=strlen(bb) ; if( bb[lb-1] == '\n' ) bb[lb-1] = '\0' ; } while(0)
 
-/*** Modified 20-21 Jul 2011 to all column selectors []
+/*** Modified 20-21 Jul 2011 to allow column selectors []
      for the table.  Column #0 must be the first one!
      Row selectors {} don't really make sense, given that
      the actual rows used are supposed to be taken using
@@ -515,6 +515,148 @@ ENTRY("THD_mixed_table_read") ;
                          dname,ii+1,jj+1,cpt) ;
      }
    }
+
+   if( verb ){
+     ININFO_message("Table element follows::") ;
+     NI_write_element_tofile( "stdout:" , nel , NI_TEXT_MODE ) ;
+   }
+
+   free(dname) ; RETURN(nel) ;
+}
+
+/*------------------------------------------------------------------------*/
+/* This table has only strings, and no header labels.
+*//*----------------------------------------------------------------------*/
+
+NI_element * THD_string_table_read( char *fname )
+{
+   NI_str_array *sar ;
+   char *dname , *cpt , *dpt , *qpt , lbuf[NLL] ;
+   int ii,jj , ibot , ncol=0 , row=0 , *ivlist=NULL , niv=0 ;
+   NI_element *nel ;
+   FILE *fts ;
+   float val ;
+   int verb = AFNI_yesenv("AFNI_DEBUG_TABLE") ;
+
+ENTRY("THD_string_table_read") ;
+
+   /*--  check for bad-ositiness --*/
+
+   if( fname == NULL || *fname == '\0' )                 ERREX("Table: bad filename") ;
+   ii = strlen(fname) ;
+   if( (ii <= 2 && fname[0] == '-')                  ||
+       (ii <= 6 && strncmp(fname,"stdin"   ,5) == 0) ||
+       (ii <= 9 && strncmp(fname,"/dev/fd0",8) == 0)   ) ERREX("Table: stdin not allowed") ;
+   if( strncmp(fname,"1D:",3) == 0 )                     ERREX("Table: 1D: not allowed") ;
+
+   /* copy filename to local variable for editing purposes */
+
+   dname = strdup(fname) ; if( dname[ii-1] == '\'' ) dname[ii-1] = '\0' ;
+
+   /*-- split filename and subvector list --*/
+
+   cpt = strstr(fname,"[") ;  /* column list */
+   dpt = strstr(fname,"{") ;  /* we don't use this row list */
+
+   if( cpt == fname || dpt == fname ){  /* can't be at start of filename! */
+     free(dname) ; ERREX("Table: '[{' selector at start of filename") ;
+   } else {                             /* got a subvector list */
+     if( cpt != NULL ){ ii = cpt-fname; dname[ii] = '\0'; }
+     if( dpt != NULL ){ ii = dpt-fname; dname[ii] = '\0'; }
+   }
+
+   /* open input file */
+
+   if( verb ) INFO_message("String Table: processing file %s",dname) ;
+
+   fts = fopen(dname,"r") ; if( fts == NULL ){ free(dname); ERREX("Table: can't open file"); }
+
+   /* 21 Jul 2011 -- get column list, if present */
+
+   if( cpt != NULL ){
+     if( verb ) ININFO_message("  processing column selector '%s'",cpt) ;
+     ivlist = MCW_get_intlist( 6666 , cpt ) ;
+     if( ivlist != NULL ){
+       if( ivlist[0] < 1 ){
+         free(ivlist) ; ivlist=NULL ;
+         WARNING_message("Ignoring selector '%s' for table file '%s'",cpt,dname) ;
+       } else {
+         niv = ivlist[0] ;
+       }
+     }
+   }
+
+   /* setup output data structure */
+
+   nel = NI_new_data_element( "AFNI_table" , LVEC ) ;
+
+   /* now read lines and process them */
+
+   while(1){
+
+     /* scan ahead for next good input line */
+
+     while(1){
+       lbuf[0] = '\0' ; ibot = -1 ;
+       dpt = afni_fgets( lbuf , NLL , fts ) ;          /* read a line of data */
+       if( dpt == NULL ) break ;                                     /* error */
+       ii = strlen(lbuf) ; if( ii == 0 ) continue ;       /* nada => loopback */
+       if( lbuf[0] == '#' ) continue ;                 /* comment => loopback */
+       ibot = 0 ;                                        /* start of scanning */
+       for( ii=ibot ; isspace(lbuf[ii]) ; ii++ ) continue ;    /* skip blanks */
+       if( lbuf[ii] == '\0' ) continue ;            /* all blanks => loopback */
+       ibot = ii ; break ;                           /* can process this line */
+     } /* loop to get next line */
+
+     if( ibot < 0 ) break ;           /* end of input ==> done with this file */
+
+     TRBUF(lbuf) ;
+     if( verb ) ININFO_message("  processing row #%d = '%s'",row,lbuf+ibot) ;
+
+     sar = NI_decode_string_list( lbuf+ibot , ";" ) ;
+     if( sar == NULL ) continue ;                      /* nuthin ==> loopback */
+
+     if( row == 0 ){   /* first row ==> format element */
+       ncol = (niv <= 0) ? sar->num : niv ;
+       for( ii=1 ; ii <= ncol ; ii++ )
+         NI_add_column( nel , NI_STRING , NULL ) ;
+     }
+
+     if( row >= nel->vec_len )
+       NI_alter_veclen( nel , nel->vec_len + LVEC ) ; /* need more data space */
+
+     /* put values from this line into this row of the table */
+
+     NI_insert_string( nel , row , 0 , sar->str[0] ) ;
+     if( niv <= 0 ){
+       for( ii=0 ; ii < ncol ; ii++ ){
+         if( ii < sar->num ) dpt = sar->str[ii] ;
+         else                dpt = "N/A" ;
+         string_ectomy( dpt , "\"'" ) ;
+         NI_insert_string( nel , row , ii , dpt ) ;
+       }
+     } else {
+       for( jj=1 ; jj <= niv ; jj++ ){
+         ii = ivlist[jj] ;
+         if( ii < sar->num ) dpt = sar->str[ii] ;
+         else                dpt = "N/A" ;
+         string_ectomy( dpt , "\"'" ) ;
+         NI_insert_string( nel , row , jj-1 , dpt ) ;
+       }
+     }
+
+     row++ ;  /* have one more row! */
+     NI_delete_str_array(sar) ;
+
+   } /* loop to get next row */
+
+   /* cleanup and exit */
+
+   fclose(fts) ;
+   if( ivlist != NULL ) free(ivlist) ;
+   if( row == 0 ){ NI_free_element(nel); free(dname); ERREX("Table: no data in file"); }
+
+   NI_alter_veclen(nel,row) ;
 
    if( verb ){
      ININFO_message("Table element follows::") ;

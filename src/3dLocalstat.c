@@ -468,7 +468,7 @@ int main( int argc , char *argv[] )
      }
      
 
-      ERROR_message("** 3dZeropad: Illegal option: '%s'",argv[iarg]) ;
+      ERROR_message("** 3dLocalstat: Illegal option: '%s'",argv[iarg]) ;
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1) ;
 
