@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Apr, 2013, RCR, "3dSurf2Vol", MICRO, TYPE_BUG_FIX,
+   "fixed crash when a surface was not found (struct init)",
+   "Thanks to H Yang for noting the problem."
+ } ,
+
  {  9, Apr, 2013, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fixed computed fitts for REML case (was from 3dDeconvolve)",
    "Thanks to G Pagnoni for noting the problem."

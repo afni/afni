@@ -165,7 +165,7 @@ extern void machdep( void );
 int main( int argc , char * argv[] )
 {
     SUMA_SurfSpecFile  spec;
-    node_list_t        node_list;
+    node_list_t        node_list = { NULL, 0, 0, NULL, NULL, 0 };
     param_t            params;
     s2v_opts_t         sopt;
     opts_t             opts;
