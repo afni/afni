@@ -4289,7 +4289,7 @@ g_help_string = """
         DEFAULTS                : basic default operations, per block
         EXAMPLES                : various examples of running this program
         NOTE sections           : details on various topics
-            TIMING FILE NOTE, MASKING NOTE,
+            RESTING STATE NOTE, TIMING FILE NOTE, MASKING NOTE,
             ANAT/EPI ALIGNMENT CASES NOTE, ANAT/EPI ALIGNMENT CORRECTIONS NOTE,
             WARP TO TLRC NOTE, RETROICOR NOTE, RUNS OF DIFFERENT LENGTHS NOTE,
             SCRIPT EXECUTION NOTE
@@ -4859,6 +4859,169 @@ g_help_string = """
     Many NOTE sections:
     ==================================================
 
+    --------------------------------------------------
+    RESTING STATE NOTE:
+
+    Resting state data should be processed with physio recordings (for typical
+    single-echo EPI data).  Without such recordings, bandpassing is currently
+    considered as the default.
+
+    Comment on bandpassing:
+
+        Bandpassing is the norm right now.  However most TRs may be too long
+        for this process to be able to remove the desired components of no
+        interest.  Perhaps bandpassing will eventually go away.  But it is the
+        norm right now.
+
+        Also, there is a danger with bandpassing and censoring in that subjects
+        with a lot of motion may run out of degrees of freedom (for baseline,
+        censoring, bandpassing and removal of other signals of no interest).
+        Many papers have been published where a lot of censoring was done,
+        followed up by bandpassing.  It is likely that many subjects ended up
+        with negative degrees of freedom, making the resulting signals useless
+        (or worse, misleading garbage).  But without keeping track of it,
+        researchers may not even know.
+
+        In afni_proc.py, this is all done in a single regression model (removal
+        of noise and baseline signals, bandpassing and censoring).  If some
+        subject were to lose too many TRs due to censoring, this step would
+        fail, as it should.
+
+    There are 3 main steps (generate ricor regs, pre-process, group analysis):
+
+        step 0: If physio recordings were made, generate slice-based regressors
+                using RetroTS.  Such regressors can be used by afni_proc.py via
+                the 'ricor' processing block.
+
+                RetroTS is Ziad Saad's MATLAB routine to convert the 2 time 
+                series into 13 slice-based regressors.  RetroTS requires the
+                signal processing toolkit for MATLAB.
+
+        step 1: analyze with afni_proc.py
+
+                Consider these afni_proc.py -help examples:
+                   5b. case of ricor and no bandpassing
+                   5c. ricor and bandpassing and full registration
+                   9.  no ricor, but with bandpassing
+                   10. also with tissue-based regressors
+                   soon: with WMeLocal (local white-matter, eroded) - ANATICOR
+                         extra motion regs via motion simulated time series
+                         (either locally or not)
+
+            processing blocks:
+
+                despike (shrink large spikes in time series)
+                ricor   (if applicable, remove the RetroTS regressors)
+                tshift  (correct for slice timing)
+                volreg  (align anat and EPI together, and to standard template)
+                blur    (apply desired FWHM blur to EPI data)
+                regress (polort, motion, mot deriv, bandpass, censor)
+                        (depending on chosen options)
+                        soon: ANATICOR/WMeLocal
+                              extra motion regressors (via motion simulation)
+
+                ==> "result" is errts dataset, "cleaned" of known noise sources
+
+        step 2: correlation analysis, hopefully with 3dGroupInCorr
+
+            The inputs to this stage are the single subject errts datasets.
+
+            Ignoring 3dGroupInCorr, the basic steps in a correlation analysis
+            (and corresponding programs) are as follows.  This may be helpful
+            for understanding the process, even when using 3dGroupInCorr.
+
+                a. choose a seed voxel (or many) and maybe a seed radius
+
+                for each subject:
+
+                   b. compute time series from seed
+                      (3dmaskave or 3dROIstats)
+                   c. generate correlation map from seed TS
+                      (3dTcorr1D (or 3dDeconvolve or 3dfim+))
+                   d. normalize R->"Z-score" via Fisher's z-transform
+                      (3dcalc -expr atanh)
+
+                e. perform group test, maybe with covariates
+                   (3dttest++: 1-sample, 2-sample or paired)
+
+            To play around with a single subject via InstaCorr:
+
+                a. start afni (maybe show images of both anat and EPI)
+                b. start InstaCorr plugin from menu at top right of afni's
+                   Define Overlay panel
+                c. Setup Icorr:
+                    c1. choose errts dataset
+                       (no Start,End; no Blur (already done in pre-processing))
+                    c2. Automask -> No; choose mask dataset: full_mask
+                    c3. turn off Bandpassing (already done, if desired)
+                d. in image window, show correlations
+                    d1. go to seed location, right-click, InstaCorr Set
+                    OR
+                    d1. hold ctrl-shift, hold left mouse button, drag
+                e. have endless fun
+
+            To use 3dGroupInCorr:
+
+                a. run 3dSetupGroupIncorr with mask, labels, subject datasets
+                   (run once per group of subjects), e.g.
+
+                        3dSetupGroupInCorr                \\
+                            -labels subj.ID.list.txt      \\
+                            -prefix sic.GROUP             \\
+                            -mask EPI_mask+tlrc           \\
+                            errts_subj1+tlrc              \\
+                            errts_subj2+tlrc              \\
+                            errts_subj3+tlrc              \\
+                                ...                       \\
+                            errts_subjN+tlrc
+
+                    ==> sic.GROUP.grpincorr.niml (and .grpincorr.data)
+
+                b. run 3dGroupInCorr on 1 or 2 sic.GROUP datasets, e.g.
+
+                   Here are steps for running 3dGroupInCorr via the afni GUI.
+                   To deal with computers that have multiple users, consider
+                   specifying some NIML port block that others are not using.
+                   Here we use port 2 (-npb 2), just to choose one.
+
+                   b1. start afni:
+
+                        afni -niml -npb 2
+
+                   b2. start 3dGroupInCorr
+
+                        3dGroupInCorr -npb 2                    \\
+                            -setA sic.horses.grpincorr.niml     \\
+                            -setB sic.moths.grpincorr.niml      \\
+                            -labelA horses -labelB moths        \\
+                            -covaries my.covariates.txt         \\
+                            -center SAME -donocov -seedrad 5
+
+                   b3. play with right-click -> InstaCorr Set or
+                      hold ctrl-shift/hold left mouse and drag slowly
+
+                   b4. maybe save any useful dataset via
+                      Define Datamode -> SaveAs OLay (and give a useful name)
+
+                b'. alternative, generate result dataset in batch mode, by
+                    adding -batch and some parameters to the 3dGIC command
+
+                    e.g.  -batch XYZAVE GIC.HvsM.PFC 4 55 26
+
+                    In such a case, afni is not needed at all.  The resulting
+                    GIC.HvsM.PFC+tlrc dataset would be written out without any
+                    need to start the afni GUI.  This works well since seed
+                    coordinates for group tests are generally known in advance.
+
+                    See the -batch option under "3dGroupInCorr -help" for many
+                    details and options.
+
+                c. threshold/clusterize resulting datasets, just as with a
+                   task analysis
+
+                   (afni GUI, 3dclust, or 3dmerge)
+            
+    --------------------------------------------------
     TIMING FILE NOTE:
 
     One issue that the user must be sure of is the timing of the stimulus
