@@ -3893,7 +3893,7 @@ static int Hworkhard2 =  -1 ;
 static int Hfirsttime =   0 ;  /* for fun only */
 
 #undef  WORKHARD
-#define WORKHARD(lll) ( (lll) >= Hworkhard1 && (lll) <= Hworkhard2 )
+#define WORKHARD(lll) ( !Hduplo && (lll) >= Hworkhard1 && (lll) <= Hworkhard2 )
 
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
@@ -5403,7 +5403,11 @@ ENTRY("IW3D_improve_warp") ;
 
    /***** HERE is the actual optimization! *****/
 
-   itmax = (Hduplo) ? 5*Hnparmap+21 : 8*Hnparmap+31 ;
+#if 1
+   itmax = (Hduplo) ? 6*Hnparmap+29 : 8*Hnparmap+31 ;
+#else
+   itmax = 8*Hnparmap+31 ;
+#endif
    if( WORKHARD(Hlev_now) ) itmax -= Hnparmap ;
 
    if( Hverb > 3 ) powell_set_verbose(1) ;
@@ -5524,7 +5528,7 @@ ENTRY("IW3D_warpomatic") ;
    }
 
    if( Hlev_start == 0 ){            /* top level = global warps */
-     nlevr = WORKHARD(0) ? 4 : 2 ;
+     nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      for( iii=0 ; iii < nlevr ; iii++ ){
@@ -5548,18 +5552,8 @@ ENTRY("IW3D_warpomatic") ;
 
    if( Hngmin > 0 ){
      ngmin = Hngmin ;
-     if( Hduplo ){ ngmin /= 2 ; if( ngmin < 21 ) ngmin = 21 ; }
+     if( Hduplo ){ ngmin = ngmin/2 + 1 ; if( ngmin < 11 ) ngmin = 11 ; }
    }
-
-#if 0
-                     eee = getenv("AFNI_WARPOMATIC_PATCHMIN") ;
-   if( eee == NULL ) eee = getenv("AFNI_WARPOMATIC_MINPATCH") ;
-   if( eee == NULL ) eee = getenv("AFNI_WARPOMATIC_NGMIN"   ) ;
-   if( eee != NULL && isdigit(eee[0]) ){
-     ngmin = (int)strtod(eee,NULL) ;
-     if( Hduplo ){ ngmin /= 2 ; if( ngmin < 17 ) ngmin = 17 ; }
-   }
-#endif
 
         if( ngmin   <  NGMIN ) ngmin = NGMIN ;
    else if( ngmin%2 == 0     ) ngmin-- ;
@@ -6025,37 +6019,42 @@ Image_plus_Warp * IW3D_warp_s2bim_duplo( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_
    IndexWarp3D *Swarp , *Dwarp ;
    MRI_IMAGE *outim ;
    MRI_IMAGE *bimd , *wbimd , *simd ;
-   int nx,ny,nz ;
+   int nx,ny,nz , temp ;
    Image_plus_Warp *imww ;
 
 ENTRY("IW3D_warp_s2bim_duplo") ;
 
+   if( Hverb ) INFO_message("Duplo down") ;
+
    WO_iwarp = NULL ;
    nx = bim->nx ; ny = bim->ny ; nz = bim->nz ;
-   bimd  = mri_duplo_down_3D(bim) ;   blur_inplace( bimd , 2.0f ) ;
+   bimd  = mri_duplo_down_3D(bim) ;   blur_inplace( bimd , 1.111f ) ;
    wbimd = mri_duplo_down_3D(wbim) ;
-   simd  = mri_duplo_down_3D(sim) ;   blur_inplace( bimd , 2.0f ) ;
+   simd  = mri_duplo_down_3D(sim) ;   blur_inplace( bimd , 1.111f ) ;
 
    Hshrink    = 0.749999f ;
    Hlev_start = 0 ;
-   Hpen_fac  *= 10.0f ;
+   Hpen_fac  *= 8.0f ;
    Hduplo     = 1 ; Hnpar_sum = 0 ;
 
    Dwarp = IW3D_warpomatic( bimd , wbimd , simd , meth_code , warp_flags ) ;
 
-   Hpen_fac  *= 0.10f ;
+   Hpen_fac  /= 8.0f ;
    Hduplo     = 0 ;
 
    mri_free(simd) ; mri_free(wbimd) ; mri_free(bimd) ;
 
    if( Dwarp == NULL ) RETURN(NULL) ;
 
+   if( Hverb ) INFO_message("Duplo up") ;
+
    WO_iwarp = IW3D_duplo_up( Dwarp, nx%2 , ny%2 , nz%2 ) ;
    IW3D_destroy(Dwarp) ;
 
-   Hshrink = 0.749999f ; Hlev_start = Hlev_final ;
+   Hshrink = 0.749999f ; Hlev_start = Hlev_final-1 ; if( Hlev_start < 0 ) Hlev_start = 0 ;
+   temp = Hworkhard2 ; Hworkhard2 = 666 ;
    Swarp = IW3D_warpomatic( bim , wbim , sim , meth_code , warp_flags ) ;
-   IW3D_destroy(WO_iwarp) ; WO_iwarp = NULL ; Hlev_start = 0 ;
+   IW3D_destroy(WO_iwarp) ; WO_iwarp = NULL ; Hlev_start = 0 ; Hworkhard2 = temp ;
 
    outim = IW3D_warp_floatim( Swarp, sim , interp_code ) ;
 
