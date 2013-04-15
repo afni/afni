@@ -370,9 +370,10 @@ g_history = """
                        (requires align_epi_anat.py from 1 Apr 2013)
     3.42 Apr 09, 2013: fixed computed fitts for REML case
                        (thanks to G Pagnoni for noting the problem)
+    3.43 Apr 15, 2013: added RESTING STATE NOTE to help
 """
 
-g_version = "version 3.42, April 9, 2013"
+g_version = "version 3.43, April 15, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2013"

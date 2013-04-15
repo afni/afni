@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Apr, 2013, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "added RESTING STATE NOTE to help",
+   NULL
+ } ,
+
  { 15, Apr, 2013, RCR, "3dSurf2Vol", MICRO, TYPE_BUG_FIX,
    "fixed crash when a surface was not found (struct init)",
    "Thanks to H Yang for noting the problem."
