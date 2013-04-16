@@ -105,6 +105,9 @@ void usage_3dmaskave(int detail) {
 "  -sigma       Means to compute the standard deviation in addition\n"
 "                 to the mean.\n"
 "  -sum         Means to compute the sum instead of the mean.\n"
+"  -sumsq       Means to compute the sum of squares instead of the mean.\n"
+"  -enorm       Means to compute the Euclidean norm instead of the mean.\n"
+"               This is the sqrt() of the sumsq result.\n"
 "  -median      Means to compute the median instead of the mean.\n"
 "  -max         Means to compute the max instead of the mean.\n"
 "  -min         Means to compute the min instead of the mean.\n"
@@ -170,6 +173,7 @@ int main( int argc , char * argv[] )
    int maxit    = 0 ;                         /* 24 Feb 2005 */
    int minit    = 0 ;                         /* 25 Feb 2005 */
    int sumit    = 0 ;                         /* 15 Jun 2011 */
+   int sumsqit  = 0 , enormit  = 0 ;          /* 16 Apr 2013 */
    float *exar ;                              /* 06 Jul 2003 */
    char *sname = "Average" ;                  /* 06 Jul 2003 */
    int self_mask = 0 ;                        /* 06 Dec 2004 */
@@ -319,21 +323,35 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[narg],"-median",5) == 0 ){
          medianit = 1 ; maxit = 0 ; minit = 0 ; sumit = 0 ;
+                        sumsqit = 0 ; enormit = 0 ;
          narg++ ; continue ;
       }
 
       if( strncmp(argv[narg],"-max",4) == 0 ){  /* 24 Feb 2005 */
          maxit = 1 ; medianit = 0 ; minit = 0 ; sumit = 0 ;
+                     sumsqit = 0 ; enormit = 0 ;
          narg++ ; continue ;
       }
 
-      if( strncmp(argv[narg],"-sum",4) == 0 ){  /* 15 Jun 2011 */
+      if( strcmp(argv[narg],"-sum") == 0 ){  /* 15 Jun 2011, P.S. no strncmp */
         sumit = 1 ; maxit = medianit = minit = 0 ;
+        narg++ ; continue ;
+      }
+
+      if( strcmp(argv[narg],"-sumsq") == 0 ){  /* 16 Apr 2013 [rickr] */
+        sumsqit = 1 ; sumit = maxit = medianit = minit = 0 ;
+        narg++ ; continue ;
+      }
+
+      if( strcmp(argv[narg],"-enorm") == 0 ){  /* 16 Apr 2013 [rickr] */
+        /* enorm implies sumsq, since enorm just takes sqrt */
+        enormit = sumsqit = 1 ; sumit = maxit = medianit = minit = 0 ;
         narg++ ; continue ;
       }
 
       if( strncmp(argv[narg],"-min",4) == 0 ){  /* 25 Feb 2005 */
          maxit = 0 ; medianit = 0 ; minit = 1 ; sumit = 0 ;
+                     sumsqit = 0 ; enormit = 0 ;
          narg++ ; continue ;
       }
 
@@ -351,6 +369,8 @@ int main( int argc , char * argv[] )
    if( maxit    ){ sigmait = 0; sname = "Max"   ; } /* 24 Feb 2005 */
    if( minit    ){ sigmait = 0; sname = "Min"   ; } /* 25 Feb 2005 */
    if( sumit    ){ sigmait = 0; sname = "Sum"   ; } /* 15 Jun 2011 */
+   if( sumsqit  ){ sigmait = 0; sname = "Sumsq" ; } /* 16 Apr 2013 */
+   if( enormit  ){ sigmait = 0; sname = "Enorm" ; } /* 16 Apr 2013 */
 
    /* should have one more argument */
 
@@ -598,18 +618,26 @@ int main( int argc , char * argv[] )
             }
 
             for( ii=mc=0 ; ii < nvox ; ii++ )
-               if( GOOD(ii) ){ sum += bar[ii] ; exar[mc++] = bar[ii] ; }
+               if( GOOD(ii) ){
+                  if( sumsqit ) sum += bar[ii]*bar[ii] ;
+                  else          sum += bar[ii] ;
+                  exar[mc++] = bar[ii] ;
+               }
             if( mc > 0 ) sum = sum / mc ;
 
             if( sigmait && mc > 1 ){
                for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ) sigma += SQR(bar[ii]-sum) ;
                sigma = mfac * sqrt( sigma/(mc-1) ) ;
             }
+
                  if( medianit ) sum = qmed_float( mc , exar ) ;
             else if( maxit    ) sum = max_float ( mc , exar ) ;
             else if( minit    ) sum = min_float ( mc , exar ) ;
             else if( sumit    ) sum *= mc ;
+            else if( sumsqit  ) sum *= mc*mfac ; /* and include extra mfac */
             sum = mfac * sum ;
+
+            if( enormit ) sum = sqrt( sum ) ;
 
             if( dumpit ) printf("+++ %s = %g",sname,sum) ;
             else         printf("%g",sum) ;
@@ -646,7 +674,11 @@ int main( int argc , char * argv[] )
             }
 
             for( ii=mc=0 ; ii < nvox ; ii++ )
-               if( GOOD(ii) ){ sum += bar[ii] ; exar[mc++] = bar[ii] ; }
+               if( GOOD(ii) ){
+                  if( sumsqit ) sum += bar[ii]*bar[ii] ;
+                  else          sum += bar[ii] ;
+                  exar[mc++] = bar[ii] ;
+               }
             if( mc > 0 ) sum = sum / mc ;
 
             if( sigmait && mc > 1 ){
@@ -657,7 +689,10 @@ int main( int argc , char * argv[] )
             else if( maxit    ) sum = max_float ( mc , exar ) ;
             else if( minit    ) sum = min_float ( mc , exar ) ;
             else if( sumit    ) sum *= mc ;
+            else if( sumsqit  ) sum *= mc*mfac ; /* and include extra mfac */
             sum = mfac * sum ;
+
+            if( enormit ) sum = sqrt( sum ) ;
 
             if( dumpit ) printf("+++ %s = %g",sname,sum) ;
             else         printf("%g",sum) ;
@@ -694,7 +729,11 @@ int main( int argc , char * argv[] )
             }
 
             for( ii=mc=0 ; ii < nvox ; ii++ )
-               if( GOOD(ii) ){ sum += bar[ii] ; exar[mc++] = bar[ii] ; }
+               if( GOOD(ii) ){
+                  if( sumsqit ) sum += bar[ii]*bar[ii] ;
+                  else          sum += bar[ii] ;
+                  exar[mc++] = bar[ii] ;
+               }
             if( mc > 0 ) sum = sum / mc ;
 
             if( sigmait && mc > 1 ){
@@ -705,7 +744,10 @@ int main( int argc , char * argv[] )
             else if( maxit    ) sum = max_float ( mc , exar ) ;
             else if( minit    ) sum = min_float ( mc , exar ) ;
             else if( sumit    ) sum *= mc ;
+            else if( sumsqit  ) sum *= mc*mfac ; /* and include extra mfac */
             sum = mfac * sum ;
+
+            if( enormit ) sum = sqrt( sum ) ;
 
             if( dumpit ) printf("+++ %s = %g",sname,sum) ;
             else         printf("%g",sum) ;
