@@ -233,18 +233,19 @@ int main( int argc , char *argv[] )
        "\n"
        "* For aligning T1-weighted anatomical volumes, Zhark recommends that\n"
        "  you use the 3dUnifize program to (approximately) spatially uniformize\n"
-       "  and normalize their intensities -- this helps in the matching process.\n"
+       "  and normalize their intensities -- this helps in the matching process,\n"
+       "  especially when using datasets from different scanners.\n"
        " ++ Skull stripping a la 3dSkullStrip is also a good idea (prior to 3dUnifize).\n"
        " ++ If you ultimately want a non-3dUnifize-d transformed dataset, you can use\n"
        "    the output WARP dataset and 3dNwarpApply to transform the un-3dUnifize-d\n"
        "    source dataset.\n"
        "\n"
        "** Please note that this program is both CPU and memory intensive, and is\n"
-       "   what computer scientists call a 'hog'.\n"
+       "   what computer scientists call a 'pig' or a 'hog'.\n"
 #ifndef USE_OMP
        " ++ It would be best to run 3dQwarp on a multi-CPU computer, using a binary\n"
        "    compiled with the OpenMP library. Unfortunately, this particular version is\n"
-       "    NOT built with OpenMP, and you will probably find it to be unbearably slow.\n"
+       "    NOT built with OpenMP, and you will probably find it to be unbearably slow :-(\n"
 #endif
        "\n"
        "-------\n"
@@ -273,21 +274,18 @@ int main( int argc , char *argv[] )
        "                 use the option '-iwarp'.  This inverse warp will then be\n"
        "                 saved in a dataset with prefix 'ppp_WARPINV'.\n"
        "               * This inverse warp could be used to transform data from base\n"
-       "                 space to source space, if there is a reason for such an\n"
-       "                 operation, using 3dNwarpApply.\n"
-       "               * If you don't need the WARPINV dataset, not computing it at\n"
-       "                 the end will save a little CPU time. You can easily compute\n"
-       "                 the inverse later, say by a command like\n"
+       "                 space to source space, if you need to do such an operation.\n"
+       "               * You can easily compute the inverse later, say by a command like\n"
        "                   3dNwarpCat -prefix Z_WARPINV 'INV(Z_WARP+tlrc)'\n"
        "\n"
-       " -pear        = Use Pearson correlation for matching.\n"
+       " -pear        = Use strict Pearson correlation for matching.\n"
        "               * Not usually recommended, since the 'clipped Pearson' method\n"
        "                 used by default will reduce the impact of outliers.\n"
        "\n"
        " -nopenalty   = Don't use a penalty on the cost function; the goal\n"
        "                of the penalty is to reduce grid distortions.\n"
        " -penfac ff   = Use the number 'ff' to weight the penalty.\n"
-       "                The default is 1.  Larger values of 'ff' mean the\n"
+       "                The default value is 1.  Larger values of 'ff' mean the\n"
        "                penalty counts more, reducing grid distortions,\n"
        "                insha'Allah. '-nopenalty' is the same as '-penfac 0'.\n"
        " -useweight   = Normally, each voxel in the automask of the base dataset\n"
@@ -325,15 +323,15 @@ int main( int argc , char *argv[] )
        "                 volume, you would probably use the post-surgery\n"
        "                 dataset as the base.  If you eventually want the\n"
        "                 result back in the pre-surgery space, then you\n"
-       "                 would use the inverse warp afterwards, via program\n"
-       "                 3dNwarpCalc.\n"
+       "                 would use the inverse warp afterwards.\n"
        "\n"
        " -noXdis      = These options let you specify that the warp should not\n"
        " -noYdis      = displace in the given direction.  For example, combining\n"
        " -noZdis      = -noXdis and -noZdis would mean only warping along the\n"
        "                y-direction would be allowed.\n"
        "               * xyz coordinates herein refer to the DICOM order, where\n"
-       "                   +x = Left  +y = Posterior  +z = Superior\n"
+       "                   -x = Right  -y = Anterior   -z = Inferior\n"
+       "                   +x = Left   +y = Posterior  +z = Superior\n"
        "\n"
        " -iniwarp ww  = 'ww' is a dataset with an initial nonlinear warp to use.\n"
        "               * If this option is not used, the initial warp is the identity.\n"
@@ -376,6 +374,8 @@ int main( int argc , char *argv[] )
        " -duplo       = Start off with 1/2 scale versions of the volumes,\n"
        "                for getting a speedy coarse first alignment.\n"
        "               * Then scales back up to register the full volumes.\n"
+       "                 The goal is greater speed, and it seems to help this\n"
+       "                 somewhat piggish program be more expeditious.\n"
        "\n"
        " -workhard    = Iterate more times, which can help when the volumes are\n"
        "                hard to align at all, or when you hope to get a more precise\n"
@@ -400,28 +400,32 @@ int main( int argc , char *argv[] )
        "\n"
        "METHOD\n"
        "------\n"
-       "Incremental warping with cubic basic functions, first over the entire volume,\n"
-       "then over steadily shrinking patches (increasing 'levels': the patches shrink\n"
-       "by a factor of 0.75 at each level).\n"
+       "Composition of increment warps defined by cubic basic functions, first over\n"
+       "the entire volume, then over steadily shrinking patches (increasing 'levels':\n"
+       "the patches shrink by a factor of 0.75 at each level).\n"
        "\n"
-       "For this to work, the source and base datasets need to be pretty well aligned\n"
-       "already (e.g., 3dAllineate).\n"
+       "For this procedure to work, the source and base datasets need to be pretty\n"
+       "well aligned already (e.g., 3dAllineate).\n"
        "\n"
        "***** This program is experimental and subject to sudden horrific change! *****\n"
        "\n"
-       "--- AUTHOR = RWCox -- Fall/Winter 2012-13 ---\n"
+       "--- AUTHOR = RWCox -- Fall/Winter/Spring 2012-13 ---\n"
      ) ;
      PRINT_AFNI_OMP_USAGE("3dQwarp",NULL) ;
      exit(0) ;
    }
 
+   /*---------- startup bureaucracy --------*/
+
+#if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
+#endif
 
 #ifdef USE_OMP
    omp_set_nested(0) ;
    nthmax = omp_get_max_threads() ;
-   dhaar  = (double *)malloc(sizeof(double)*nthmax) ;
-   dhbbr  = (double *)malloc(sizeof(double)*nthmax) ;
+   dhaar  = (double *)malloc(sizeof(double)*nthmax) ;  /* 6 workspaces */
+   dhbbr  = (double *)malloc(sizeof(double)*nthmax) ;  /* for each thread */
    dhccr  = (double *)malloc(sizeof(double)*nthmax) ;
    dhddr  = (double *)malloc(sizeof(double)*nthmax) ;
    dheer  = (double *)malloc(sizeof(double)*nthmax) ;
@@ -433,8 +437,10 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dQwarp") ; machdep() ;
    AFNI_logger("3dQwarp",argc,argv);
-   PRINT_VERSION("3dQwarp"); AUTHOR("Zhark the Cubically Warped");
-   (void)COX_clock_time() ;
+   PRINT_VERSION("3dQwarp"); AUTHOR("Zhark the Hermite Cubically Warped");
+   (void)COX_clock_time() ;  /* initialize the clock timer */
+
+   /*--- options ---*/
 
    nopt = 1 ;
    Hblur_b = Hblur_s = 3.456f ;
@@ -637,6 +643,8 @@ int main( int argc , char *argv[] )
      ERROR_exit("Bogus option '%s'",argv[nopt]) ;
    }
 
+   /*----- check for errorororors -----*/
+
    if( flags == NWARP_NODISP_FLAG )
      ERROR_exit("too many -no?dis flags ==> nothing to warp!") ;
 
@@ -648,6 +656,8 @@ int main( int argc , char *argv[] )
      ERROR_exit("You cannot combine -iniwarp and -duplo !! :-((") ;
    if( (ilev != 0 || mlev < 99 ) && duplo )
      ERROR_exit("You cannot combine -inilev or -maxlev and -duplo !! :-((") ;
+
+   /*--- get the input datasts  ---*/
 
    bset = THD_open_dataset(argv[nopt++]) ; if( bset == NULL ) ERROR_exit("Can't open bset") ;
    sset = THD_open_dataset(argv[nopt++]) ; if( sset == NULL ) ERROR_exit("Can't open sset") ;
@@ -666,6 +676,8 @@ int main( int argc , char *argv[] )
      ERROR_exit("-emask doesn't match base dataset grid :-(") ;
 
    nx = DSET_NX(bset) ; ny = DSET_NY(bset) ; nz = DSET_NZ(bset) ;
+
+   /*--- initial warp? ---*/
 
    if( iwset != NULL ){
      DSET_load(iwset) ; CHECK_LOAD_ERROR(iwset) ;
@@ -742,6 +754,8 @@ int main( int argc , char *argv[] )
      mri_free(bim) ; bim = qim ;
    }
 
+   /*--- do some actual work! ---*/
+
    if( duplo )
      oiw = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_WSINC5 , meth , flags ) ;
    else
@@ -752,6 +766,8 @@ int main( int argc , char *argv[] )
    INFO_message("===== total number of parameters optimized = %d",Hnpar_sum) ;
 
    oim = oiw->im ; oww = oiw->warp ;
+
+   /*----- output some results to pacify the user -----*/
 
    oset = EDIT_empty_copy(bset) ;
    tross_Copy_History( bset , oset ) ;
@@ -791,6 +807,8 @@ int main( int argc , char *argv[] )
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
+
+   /*--- go back to watching Matlock reruns ---*/
 
    cput = COX_cpu_time() ;
    if( cput > 0.05 )
