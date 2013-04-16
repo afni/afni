@@ -6019,11 +6019,12 @@ Image_plus_Warp * IW3D_warp_s2bim_duplo( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_
    IndexWarp3D *Swarp , *Dwarp ;
    MRI_IMAGE *outim ;
    MRI_IMAGE *bimd , *wbimd , *simd ;
-   int nx,ny,nz , Htemp1, Htemp2 ;
+   int nx,ny,nz , Htemp1, Htemp2 , ct ;
    Image_plus_Warp *imww ;
 
 ENTRY("IW3D_warp_s2bim_duplo") ;
 
+   ct = NI_clock_time() ;
    if( Hverb ) INFO_message("Duplo down") ;
 
    WO_iwarp = NULL ;
@@ -6046,7 +6047,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
 
    if( Dwarp == NULL ) RETURN(NULL) ;
 
-   if( Hverb ) INFO_message("Duplo up") ;
+   if( Hverb ) INFO_message("Duplo up: clock = %s",nice_time_string(NI_clock_time()-ct)) ;
 
    WO_iwarp = IW3D_duplo_up( Dwarp, nx%2 , ny%2 , nz%2 ) ;
    IW3D_destroy(Dwarp) ;
