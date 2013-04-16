@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Apr, 2013, RCR, "3dmaxima", MINOR, TYPE_BUG_FIX,
+   "modernize dataset coordinate reporting, using proper signs",
+   "Thanks to G Pagnoni for reporting the issue."
+ } ,
+
  { 15, Apr, 2013, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "added RESTING STATE NOTE to help",
    NULL

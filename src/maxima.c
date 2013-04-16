@@ -696,7 +696,7 @@ int disp_str_list( char * list[], int len )
 */
 int display_coords( r_afni_s * A, maxima_s * M )
 {
-    THD_fvec3 f3;
+    THD_fvec3 f3, t3;
     THD_ivec3 i3;
     float   prod, factor = A->factor[0];
     short * optr;
@@ -704,9 +704,22 @@ int display_coords( r_afni_s * A, maxima_s * M )
     int   * iptr;
     int     X, Y, Z, count;
 
-    point_list_s * P = &M->P;
+    THD_coorder cord;           /* 16 Apr 2013 */
+    char        orcode[4];
 
 ENTRY("display_coords");
+
+    /* For dset based coordinates (including signs), use THD_coorder struct
+       and THD_dicom_to_coorder().  Previously (i.e. for past 15 years), the
+       dataset coord order just permuted the axes, but did not apply signs.
+       This issue was reported by G Pagnoni.            16 Apr 2013 [rickr]*/
+    orcode[0] = ORIENT_first[M->dset->daxes->xxorient];
+    orcode[1] = ORIENT_first[M->dset->daxes->yyorient];
+    orcode[2] = ORIENT_first[M->dset->daxes->zzorient];
+    orcode[3] = '\0';
+    THD_coorder_fill(orcode, &cord);
+
+    point_list_s * P = &M->P;
 
     if( !M->coords_only )  /* 18 Aug 2006 [rickr] */
     {
@@ -714,10 +727,7 @@ ENTRY("display_coords");
         if ( M->dicom_coords )
             printf( "RAI mm coordinates:\n\n" );
         else
-            printf( "%c%c%c mm coordinates:\n\n",
-                    ORIENT_typestr[M->dset->daxes->xxorient][0],
-                    ORIENT_typestr[M->dset->daxes->yyorient][0],
-                    ORIENT_typestr[M->dset->daxes->zzorient][0] );
+            printf( "%3s mm coordinates:\n\n", orcode);
     }
 
     for ( count = 0, iptr = P->plist; count < P->used; count++, iptr++ )
@@ -726,9 +736,9 @@ ENTRY("display_coords");
 	Y = (*iptr % M->nxy) / M->nx;
 	Z =  *iptr / M->nxy;
 	i3.ijk[0] = X;  i3.ijk[1] = Y;  i3.ijk[2] = Z;
-	f3 = THD_3dind_to_3dmm_no_wod(M->dset, i3);
-        if ( M->dicom_coords )
-            f3 = THD_3dmm_to_dicomm(M->dset, f3);
+	f3 = THD_3dind_to_dicomm_no_wod(M->dset, i3);
+        if ( ! M->dicom_coords ) /* first dicom, then invert  16 Apr 2013 */
+           THD_dicom_to_coorder(&cord, f3.xyz, f3.xyz+1, f3.xyz+2);
 
 	optr = M->sdata  + *iptr;
 	mptr = M->result + *iptr;

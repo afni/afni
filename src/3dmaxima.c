@@ -12,9 +12,11 @@ static char * g_history[] =
     "    - for now, no improvements over plug_maxima",
     "  1.1  18 Aug 2006 [rickr]  - added -coords_only option",
     "  1.2  17 Jul 2007 [rickr]  - fixed -n_style_sort option use",
+    "  1.3  16 Apr 2013 [rickr]  - apply modern dset coordinate signs",
+    "                              reported by G Pagnoni"
 };
 
-#define MAXIMA_VERSION "1.2 (July 17, 2007)"
+#define MAXIMA_VERSION "1.3 (April 16, 2013)"
 
 static char * g_help[] =
 {
