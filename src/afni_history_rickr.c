@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Apr, 2013, RCR, "3dmaskave", MINOR, TYPE_NEW_OPT,
+   "added -sumsq (sum squares) and -enorm (Euclidean norm) options",
+   NULL
+ } ,
+
  { 16, Apr, 2013, RCR, "3dmaxima", MINOR, TYPE_BUG_FIX,
    "modernize dataset coordinate reporting, using proper signs",
    "Thanks to G Pagnoni for reporting the issue."
