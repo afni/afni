@@ -6019,7 +6019,7 @@ Image_plus_Warp * IW3D_warp_s2bim_duplo( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_
    IndexWarp3D *Swarp , *Dwarp ;
    MRI_IMAGE *outim ;
    MRI_IMAGE *bimd , *wbimd , *simd ;
-   int nx,ny,nz , temp ;
+   int nx,ny,nz , Htemp1, Htemp2 ;
    Image_plus_Warp *imww ;
 
 ENTRY("IW3D_warp_s2bim_duplo") ;
@@ -6052,9 +6052,11 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
    IW3D_destroy(Dwarp) ;
 
    Hshrink = 0.749999f ; Hlev_start = Hlev_final-1 ; if( Hlev_start < 0 ) Hlev_start = 0 ;
-   temp = Hworkhard2 ; Hworkhard2 = 666 ;
+   Htemp1 = Hworkhard1 ; Hworkhard1 = 0 ;
+   Htemp2 = Hworkhard2 ; Hworkhard2 = MAX(Htemp2,Hlev_start) ;
    Swarp = IW3D_warpomatic( bim , wbim , sim , meth_code , warp_flags ) ;
-   IW3D_destroy(WO_iwarp) ; WO_iwarp = NULL ; Hlev_start = 0 ; Hworkhard2 = temp ;
+   IW3D_destroy(WO_iwarp) ; WO_iwarp = NULL ; Hlev_start = 0 ;
+   Hworkhard1 = Htemp1 ; Hworkhard2 = Htemp2 ;
 
    outim = IW3D_warp_floatim( Swarp, sim , interp_code ) ;
 
