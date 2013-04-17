@@ -126,7 +126,10 @@ int main( int argc , char *argv[] )
    if( strstr(fname,".nii") == NULL && strstr(fname,".hdr") == NULL )
      strcat(fname,".nii") ;
 
-   options.infile_name = nifti_strdup(fname) ;
+   /* we cannot strdup if we will later use strcat()  17 Apr 2013 [rickr]
+      plus, fname already has space for suffix padding
+     options.infile_name = nifti_strdup(fname) ; */
+   options.infile_name = fname ;
    options.debug_level = verb ;
 
    /*--- 14 Jul 2005: floatization ---*/
