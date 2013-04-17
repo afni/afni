@@ -998,7 +998,7 @@ static mday holiday[] = {
    {APR, 14, "National Pecan Day" } ,
    {APR, 15, "National Glazed Spiral Ham Day" } ,
    {APR, 16, "National Eggs Benedict Day" } ,
-   {APR, 17, "National Cheese ball Day" } ,
+   {APR, 17, "National Cheese Ball Day" } ,
    {APR, 18, "Animal Crackers Birthday" } ,
    {APR, 19, "National Garlic Day" } ,
    {APR, 20, "National Pineapple Upside-down Cake Day" } ,
