@@ -3844,8 +3844,9 @@ static float **bbbqar = NULL ;
 static IndexWarp3D *Hwarp   = NULL ;
 static IndexWarp3D *AHwarp  = NULL ;
 static int          need_AH = 1 ;
-static int          Hflags  = 0 ;       /* flags for this patch */
-static int          Hgflags = 0 ;       /* flags for global warp */
+static int          Hflags  = 0 ;          /* flags for this patch */
+static int          Hgflags = 0 ;          /* flags for global warp */
+static int          Himeth  = MRI_LINEAR ; /* interpolation method for data */
 
 static int Hibot,Hitop , Hjbot,Hjtop , Hkbot,Hktop ;  /* patch region indexes */
 
@@ -4910,25 +4911,33 @@ AFNI_OMP_START ;
          so the above formula for xq includes not just the interpolated
          values from Axd (the first 2 terms) but the Hwarp stuff again, also */
 
-     /* linearly interpolate at (xq,yq,zq) indexes in sar to get val output */
+     /* interpolate at (xq,yq,zq) indexes in sar to get val output */
 
      if( xq < -0.499f ) xq = -0.499f; else if( xq > nAxh ) xq = nAxh;
      if( yq < -0.499f ) yq = -0.499f; else if( yq > nAyh ) yq = nAyh;
      if( zq < -0.499f ) zq = -0.499f; else if( zq > nAzh ) zq = nAzh;
-     ix = floorf(xq) ;  fx = xq - ix ;
-     jy = floorf(yq) ;  fy = yq - jy ;
-     kz = floorf(zq) ;  fz = zq - kz ;
-     ix_00 = ix ; ix_p1 = ix_00+1 ; CLIP(ix_00,nAx1) ; CLIP(ix_p1,nAx1) ;
-     jy_00 = jy ; jy_p1 = jy_00+1 ; CLIP(jy_00,nAy1) ; CLIP(jy_p1,nAy1) ;
-     kz_00 = kz ; kz_p1 = kz_00+1 ; CLIP(kz_00,nAz1) ; CLIP(kz_p1,nAz1) ;
 
-     wt_00 = 1.0f-fx ; wt_p1 = fx ;             /* x interpolations */
-     f_j00_k00 = XINT(sar,jy_00,kz_00) ; f_jp1_k00 = XINT(sar,jy_p1,kz_00) ;
-     f_j00_kp1 = XINT(sar,jy_00,kz_p1) ; f_jp1_kp1 = XINT(sar,jy_p1,kz_p1) ;
-     wt_00 = 1.0f-fy ;                          /* y interpolations */
-     f_k00 = wt_00 * f_j00_k00 + fy * f_jp1_k00 ;
-     f_kp1 = wt_00 * f_j00_kp1 + fy * f_jp1_kp1 ;
-     val[qq] = (1.0f-fz) * f_k00 + fz * f_kp1 ; /* z interpolation to result */
+     if( Himeth == MRI_NN ){             /* special case of NN interp of data */
+       ix_00   = (int)(xq+0.5f) ;
+       jy_00   = (int)(yq+0.5f) ;
+       kz_00   = (int)(zq+0.5f) ;
+       val[qq] = sar[IJK(ix_00,jy_00,kz_00)] ;
+     } else {                                 /* normal case of linear interp */
+       ix = floorf(xq) ;  fx = xq - ix ;
+       jy = floorf(yq) ;  fy = yq - jy ;
+       kz = floorf(zq) ;  fz = zq - kz ;
+       ix_00 = ix ; ix_p1 = ix_00+1 ; CLIP(ix_00,nAx1) ; CLIP(ix_p1,nAx1) ;
+       jy_00 = jy ; jy_p1 = jy_00+1 ; CLIP(jy_00,nAy1) ; CLIP(jy_p1,nAy1) ;
+       kz_00 = kz ; kz_p1 = kz_00+1 ; CLIP(kz_00,nAz1) ; CLIP(kz_p1,nAz1) ;
+
+       wt_00 = 1.0f-fx ; wt_p1 = fx ;                     /* x interpolations */
+       f_j00_k00 = XINT(sar,jy_00,kz_00) ; f_jp1_k00 = XINT(sar,jy_p1,kz_00) ;
+       f_j00_kp1 = XINT(sar,jy_00,kz_p1) ; f_jp1_kp1 = XINT(sar,jy_p1,kz_p1) ;
+       wt_00 = 1.0f-fy ;                                  /* y interpolations */
+       f_k00 = wt_00 * f_j00_k00 + fy * f_jp1_k00 ;
+       f_kp1 = wt_00 * f_j00_kp1 + fy * f_jp1_kp1 ;
+       val[qq] = (1.0f-fz) * f_k00 + fz * f_kp1 ; /* z interpolation = output */
+     }
 
    } /* end of for loop */
  } /* end of parallel stuff */
@@ -5246,7 +5255,7 @@ ENTRY("IW3D_setup_for_improvement") ;
        ERROR_exit("IW3D_setup_for_improvement: bad Iwarp input") ;
 
      Haawarp = IW3D_copy(Iwarp,1.0f) ;     /* copy it */
-     Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, MRI_LINEAR ) ;
+     Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, Himeth ) ;
    } else {
      Haawarp = IW3D_create(Hnx,Hny,Hnz) ;  /* initialize to 0 displacements */
      Haasrcim = mri_to_float(SRCIM) ;     /* 'warped' source image */
@@ -5885,7 +5894,7 @@ ENTRY("THD_warpomatic") ;
    } else {
      THD_3dim_dataset *wset , *oset ;
      wset = IW3D_to_dataset( iniwww, "Qadqop" ) ;
-     oset = THD_nwarp_dataset( wset, sset, bset, "Mercotan", MRI_LINEAR,MRI_LINEAR, 0.0f, 1.0f, 1 , NULL ) ;
+     oset = THD_nwarp_dataset( wset, sset, bset, "Mercotan", MRI_LINEAR,Himeth, 0.0f, 1.0f, 1 , NULL ) ;
      DSET_delete(wset) ;
      sim = mri_copy(DSET_BRICK(oset,0)) ;
      DSET_delete(oset) ;
@@ -5981,6 +5990,16 @@ IndexWarp3D * IW3D_duplo_up( IndexWarp3D *AA , int xadd,int yadd,int zadd)
    return BB ;
 }
 
+/*----------------------------------------------------------------------------*/
+
+static void blur_inplace( MRI_IMAGE *fim , float fwhm )
+{
+   float sig = FWHM_TO_SIGMA(fwhm) ;
+   FIR_blur_volume_3d( fim->nx,fim->ny,fim->nz , 1.0f,1.0f,1.0f ,
+                       MRI_FLOAT_PTR(fim)  , sig,sig,sig         ) ;
+   return ;
+}
+
 /*---------------------------------------------------------------------------*/
 
 #undef  CALLME
@@ -5988,7 +6007,7 @@ IndexWarp3D * IW3D_duplo_up( IndexWarp3D *AA , int xadd,int yadd,int zadd)
 
 MRI_IMAGE * mri_duplo_down_3D( MRI_IMAGE *fim )
 {
-   MRI_IMAGE *gim=NULL ;
+   MRI_IMAGE *gim=NULL , *qim ;
    float *far , *gar ;
    int nxf,nyf,nzf , nxg,nyg,nzg , nxyf,nxyg , ii,jj,kk ;
 
@@ -5996,10 +6015,47 @@ MRI_IMAGE * mri_duplo_down_3D( MRI_IMAGE *fim )
 
    if( ISVECTIM(fim) ){ VECTORME(fim,gim) ; return gim ; }
 
-   if( fim->kind != MRI_float ){
-     MRI_IMAGE *qim = mri_to_float(fim) ;
-     gim = mri_duplo_down_3D(qim) ; mri_free(qim) ; return gim ;
-   }
+   qim = mri_to_float(fim) ;       /* make a copy */
+   blur_inplace( qim , 1.666f ) ;  /* blur it before sub-sampling */
+
+   nxf = qim->nx ; nyf = qim->ny ; nzf = qim->nz ;
+   nxg = nxf / 2 ; if( nxg < 1 ) nxg = 1 ;
+   nyg = nyf / 2 ; if( nyg < 1 ) nyg = 1 ;
+   nzg = nzf / 2 ; if( nzg < 1 ) nzg = 1 ;
+
+   nxyf = nxf*nyf ; nxyg = nxg*nyg ;
+
+   gim = mri_new_vol(nxg,nyg,nzg,MRI_float) ;
+   gar = MRI_FLOAT_PTR(gim) ;
+   far = MRI_FLOAT_PTR(qim) ;
+
+   for( kk=0 ; kk < nzg ; kk++ ){
+    for( jj=0 ; jj < nyg ; jj++ ){
+      for( ii=0 ; ii < nxg ; ii++ ){
+        FSUB(gar,ii,jj,kk,nxg,nxyg) = FSUB(far,2*ii,2*jj,2*kk,nxf,nxyf) ;
+   }}}
+
+   return gim ;
+}
+
+#if 0
+/*---------------------------------------------------------------------------*/
+
+#undef  CALLME
+#define CALLME(inn,out) (out) = mri_duplo_down_3D_NN(inn)
+
+MRI_IMAGE * mri_duplo_down_3D_NN( MRI_IMAGE *fim )
+{
+   MRI_IMAGE *gim=NULL ;
+   float *far , *gar ;
+   int nxf,nyf,nzf , nxg,nyg,nzg , nxyf,nxyg , ii,jj,kk ;
+   int ip,jp,kp , id,jd,kd , im,jm,km ;
+   float f00 , fxp,fxm , fyp,fym , fzp,fzm , val=0.0f ;
+   int   n00 , nxp,nxm , nyp,nym , nzp,nzm ;
+
+   if( fim == NULL ) return NULL ;
+
+   if( ISVECTIM(fim) ){ VECTORME(fim,gim) ; return gim ; }
 
    nxf = fim->nx ; nyf = fim->ny ; nzf = fim->nz ;
    nxg = nxf / 2 ; if( nxg < 1 ) nxg = 1 ;
@@ -6013,23 +6069,31 @@ MRI_IMAGE * mri_duplo_down_3D( MRI_IMAGE *fim )
    far = MRI_FLOAT_PTR(fim) ;
 
    for( kk=0 ; kk < nzg ; kk++ ){
+    kd = 2*kk ; kp = kd+1 ; if( kp >= nzf ) kp = nzf-1 ;
+                km = kd-1 ; if( km <  0   ) km = 0 ;
     for( jj=0 ; jj < nyg ; jj++ ){
+      jd = 2*jj ; jp = jd+1 ; if( jp >= nyf ) jp = nyf-1 ;
+                  jm = jd-1 ; if( jm <  0   ) jm = 0 ;
       for( ii=0 ; ii < nxg ; ii++ ){
-        FSUB(gar,ii,jj,kk,nxg,nxyg) = FSUB(far,2*ii,2*jj,2*kk,nxf,nxyf) ;
+        id = 2*ii ; ip = id+1 ; if( ip >= nxf ) ip = nxf-1 ;
+                    im = id-1 ; if( im <  0   ) im = 0 ;
+        f00 = FSUB(far,id,jd,kd,nxf,nxyf);
+        fxp = FSUB(far,ip,jd,kd,nxf,nxyf); fxm = FSUB(far,im,jd,kd,nxf,nxyf);
+        fyp = FSUB(far,id,jp,kd,nxf,nxyf); fym = FSUB(far,id,jm,kd,nxf,nxyf);
+        fzp = FSUB(far,id,jd,km,nxf,nxyf); fzm = FSUB(far,id,jd,km,nxf,nxyf);
+        n000 = 1 ;
+        if( fxp == f00 ) n00++ ; if( fxm == f00 ) n00++ ;
+        if( fyp == f00 ) n00++ ; if( fym == f00 ) n00++ ;
+        if( fzp == f00 ) n00++ ; if( fzm == f00 ) n00++ ;
+        if( n000 > 3 ){ val = f00 ; }
+        else {
+        }
+        FSUB(gar,ii,jj,kk,nxg,nxyg) = 
    }}}
 
    return gim ;
 }
-
-/*----------------------------------------------------------------------------*/
-
-static void blur_inplace( MRI_IMAGE *fim , float fwhm )
-{
-   float sig = FWHM_TO_SIGMA(fwhm) ;
-   FIR_blur_volume_3d( fim->nx,fim->ny,fim->nz , 1.0f,1.0f,1.0f ,
-                       MRI_FLOAT_PTR(fim)  , sig,sig,sig         ) ;
-   return ;
-}
+#endif
 
 /*----------------------------------------------------------------------------*/
 
@@ -6045,13 +6109,13 @@ Image_plus_Warp * IW3D_warp_s2bim_duplo( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_
 ENTRY("IW3D_warp_s2bim_duplo") ;
 
    ct = NI_clock_time() ;
-   if( Hverb ) INFO_message("Duplo down") ;
+   if( Hverb ) INFO_message("=== Duplo down") ;
 
-   WO_iwarp = NULL ;
+   WO_iwarp = NULL ;               /* can't start with initial warp for duplo */
    nx = bim->nx ; ny = bim->ny ; nz = bim->nz ;
-   bimd  = mri_duplo_down_3D(bim) ;   blur_inplace( bimd , 1.111f ) ;
+   bimd  = mri_duplo_down_3D(bim) ;   blur_inplace( bimd , 1.234f ) ;
    wbimd = mri_duplo_down_3D(wbim) ;
-   simd  = mri_duplo_down_3D(sim) ;   blur_inplace( bimd , 1.111f ) ;
+   simd  = mri_duplo_down_3D(sim) ;   blur_inplace( simd , 1.234f ) ;
 
    Hshrink    = 0.749999f ;
    Hlev_start = 0 ;
@@ -6067,7 +6131,8 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
 
    if( Dwarp == NULL ) RETURN(NULL) ;
 
-   if( Hverb ) INFO_message("Duplo up: clock = %s",nice_time_string(NI_clock_time()-ct)) ;
+   if( Hverb )
+     INFO_message("=== Duplo up: clock = %s",nice_time_string(NI_clock_time()-ct)) ;
 
    WO_iwarp = IW3D_duplo_up( Dwarp, nx%2 , ny%2 , nz%2 ) ;
    IW3D_destroy(Dwarp) ;
