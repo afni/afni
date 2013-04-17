@@ -2964,7 +2964,7 @@ class RegWrap:
             # save the timeshifted EPI data
             if (self.epi_ts and self.tshift_flag) :
                eo = afni_name("%s%s_tshft%s" % \
-                  (epi_ts.p(),ein.prefix,epi_ts.view))
+                  (self.epi_ts.p(),ein.prefix,self.epi_ts.view))
                self.copy_dset( self.epi_ts, eo,
                 "Creating final output: time-shifted %s" % \
                           self.dset2_generic_name, ps.oexec)
