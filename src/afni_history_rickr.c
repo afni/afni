@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Apr, 2013, RCR, "3dAFNItoNIFTI", MINOR, TYPE_BUG_FIX,
+   "fixed old use of use of strcat() after strdup()",
+   "Thanks to B Benson and J Stoddard for noting the problem."
+ } ,
+
  { 16, Apr, 2013, RCR, "3dmaskave", MINOR, TYPE_NEW_OPT,
    "added -sumsq (sum squares) and -enorm (Euclidean norm) options",
    NULL
