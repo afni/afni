@@ -225,9 +225,12 @@ void NWC_help(void)
     "                         Ynew(x) = 0.5*(Yold(x)+inv(Zold(x)))\n"
     "                         Znew(x) = 0.5*(Zold(x)+inv(Yold(x)))\n"
     "                       which converges to Y=sqrt(A) and Z=invsqrt(A).\n"
-    "                  ++ For speed, the square root operations are always done\n"
+    "                  ++ For speed, these square root iterations are always done\n"
     "                     with linear interpolation, no matter what '-interp' is.\n"
 #endif
+    "\n"
+    "&sqrtpair      == Compute both &sqrtinv and &sqrt, and leave both of them\n"
+    "                  on the stack -- &sqrt on top, &sqrtinv 'below' it.\n"
     "\n"
     "&sqr           == Replace the top element of the stack with its 'square':\n"
     "                   the warp S(x) = A(A(x)).  Equivalent to '&dup &compose'.\n"
