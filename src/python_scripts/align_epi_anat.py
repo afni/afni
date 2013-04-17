@@ -561,7 +561,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.41" # software version (update for changes)
+      self.align_version = "1.42" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2972,7 +2972,8 @@ class RegWrap:
          # save the volume registered EPI data
          if (ps.save_vr):
             if (self.epi_vr and self.volreg_flag):
-               eo = afni_name("%s%s_vr%s" % (epi_vr.p(),ein.prefix,epi_vr.view))
+               eo = afni_name("%s%s_vr%s" %
+                    (self.epi_vr.p(),ein.prefix,self.epi_vr.view))
                self.copy_dset( self.epi_vr, eo, 
                  "Creating final output: time series volume-registered %s" % \
                           self.dset2_generic_name, ps.oexec)

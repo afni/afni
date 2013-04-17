@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+
+{ 17 , APR, 2013 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "save_vr result causes crash"
+} ,
+
 { 1 , APR, 2013 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "motion file renamed",
