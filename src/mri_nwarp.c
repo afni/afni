@@ -3681,6 +3681,26 @@ ENTRY("NwarpCalcRPN") ;
           ININFO_message(" -- square root CPU time = %.1f s",COX_cpu_time()-ct) ;
      }
 
+     /*--- sqrtpair ---*/
+
+     else if( strcasecmp(cmd,"&sqrtpair") == 0 ){
+        double ct = COX_cpu_time() ;
+        if( nstk < 1 ) ERREX("nothing on stack") ;
+#ifndef USE_SQRTPAIR
+        AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
+        if( AA == NULL ) ERREX("inverse square root failed :-(") ;
+        BB = IW3D_invert( AA , NULL , icode ) ;
+        if( BB == NULL ) ERREX("inversion after sqrtinv failed :-(") ;
+#else
+        { IndexWarp3D_pair *YZ = IW3D_sqrtpair(iwstk[nstk-1],icode) ;
+          BB = YZ->fwarp ; AA = YZ->iwarp ; free(YZ) ;
+        }
+#endif
+        IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ; ADDTO_iwstk(BB) ;
+        if( verb_nww )
+          ININFO_message(" -- square root pair CPU time = %.1f s",COX_cpu_time()-ct) ;
+     }
+
      /*--- compose ---*/
 
      else if( strcasecmp(cmd,"&compose") == 0 || strcasecmp(cmd,"&*") == 0 ||

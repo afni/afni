@@ -1,5 +1,12 @@
 #include "mrilib.h"
 
+/*---------------------------------------------------------------------------*/
+/* Features to ruminate about:
+    - NN interpolation of data, for matching label datasets      [not hard]
+    - symmetric mapping,                                         [hard]
+      with Src(W(x)) = Bas(INV(W(x))) instead of Src(W(x))=B(x)
+*//*-------------------------------------------------------------------------*/
+
 #ifdef USE_OMP
 # include <omp.h>
 #endif
