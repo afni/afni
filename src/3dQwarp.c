@@ -3,6 +3,7 @@
 /*---------------------------------------------------------------------------*/
 /* Features to ruminate about:
     - NN interpolation of data, for matching label datasets      [not hard]
+    - allow user-input weight volume                             [not hard]
     - symmetric mapping,                                         [hard]
       with Src(W(x)) = Bas(INV(W(x))) instead of Src(W(x))=B(x)
 *//*-------------------------------------------------------------------------*/
