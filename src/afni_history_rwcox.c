@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 12 , APR , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+  { 18 , APR , 2013 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+   "-useweight didn't actually do anything inside OpenMP" ,
+   "Obviously, this can't be my fault.  I blame evil spirits." } ,
+
+ { 12 , APR , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "detach from terminal and graph fading are now the defaults" ,
    NULL } ,
 
