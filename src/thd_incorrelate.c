@@ -989,7 +989,7 @@ void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
            if( xx <= xcb ){ xx = xdb; cl++; } else if( xx >= xct ){ xx = xdt; cl++; }
            yy = (double)y[ii] ;
            if( yy <= ycb ){ yy = ydb; cl++; } else if( yy >= yct ){ yy = ydt; cl++; }
-           ww = 1.0 / cl ; xx -= xmid ; yy -= ymid ;
+           ww /= cl ; xx -= xmid ; yy -= ymid ;
            tx  += ww*xx    ; txx += ww*xx*xx ; ty += ww*yy ;
            tyy += ww*yy*yy ; txy += ww*xx*yy ; tw += ww ;
          }
