@@ -1483,7 +1483,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Buy property on Neptune now, and avoid the rush"               ,
      "Never buy a 3 humped camel in Samarkand"                       ,
      "Never buy a 7 hump Wump from Gump"                             ,
+     "May the odds be ever in your favor"                            ,
+     "I weep for Adonais -- he is dead! Oh, weep for Adonais"        ,
+     "An echo and a light unto eternity"                             ,
 
+     "Meet me at the Torre Pendente di Pisa on the feast of St Rainerius"             ,
      "One martini is just right; two is too many; three is never enough"              ,
      "If you can't explain it simply, you don't understand it well enough"            ,
      "Even the Universe bends back on itself, but stupidity goes on forever"          ,

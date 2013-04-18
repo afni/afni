@@ -44,7 +44,7 @@ echo " "
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
    nice 3dQwarp -prefix ${bbb}_uniB  -blur 0 -4 -penfac $pfac   \
-                -minpatch 101  -whard 0   -nowarpi \
+                -minpatch 101                      \
                 ${tpath}/${basename} $fred
 end
 
@@ -59,7 +59,7 @@ echo " "
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
    nice 3dQwarp -prefix ${bbb}_uniC  -blur 0 -3 -penfac $pfac     \
-                -inilev 2  -minpatch 49  -nowarpi   -useweight \
+                -inilev 2  -minpatch 49             -useweight \
                 -iniwarp ${bbb}_uniB_WARP+tlrc.HEAD  \
                 Qwarp_meanB+tlrc.HEAD $fred
 end
@@ -77,7 +77,7 @@ echo " "
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
    nice 3dQwarp -prefix ${bbb}_uniD  -blur 0 -2 -penfac $pfac     \
-                -inilev 5  -minpatch 23  -nowarpi  -useweight  \
+                -inilev 5  -minpatch 23            -useweight  \
                 -iniwarp ${bbb}_uniC_WARP+tlrc.HEAD  \
                 Qwarp_meanC+tlrc.HEAD $fred
 end
@@ -89,13 +89,13 @@ end
 # E level
 
 echo " "
-echo "========== @toMNI_Qwarp: Compute E level (minimum patch = 11) =========="
+echo "========== @toMNI_Qwarp: Compute E level (minimum patch = 13) =========="
 echo " "
 
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
    nice 3dQwarp -prefix ${bbb}_uniE  -blur 0 -1 -penfac $pfac      \
-                -inilev 7  -minpatch 13 -whard 0  -useweight   \
+                -inilev 7  -minpatch 13           -useweight   \
                 -iniwarp ${bbb}_uniD_WARP+tlrc.HEAD  \
                 Qwarp_meanD+tlrc.HEAD $fred
 end
