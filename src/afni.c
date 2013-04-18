@@ -1478,9 +1478,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Step slowly away from the keyboard, and remain calm"           ,
      "Time for a nice walk, don't you think?"                        ,
      "Meet me in Namche Bazaar next Thursday"                        ,
+     "Meet me at Dashashwamedh Ghat in Varanasi for Agni Puja"       ,
      "I'll see you at Angkor Wat at midnight next Saturday"          ,
      "Buy property on Neptune now, and avoid the rush"               ,
      "Never buy a 3 humped camel in Samarkand"                       ,
+     "Never buy a 7 hump Wump from Gump"                             ,
 
      "One martini is just right; two is too many; three is never enough"              ,
      "If you can't explain it simply, you don't understand it well enough"            ,
