@@ -4344,8 +4344,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    break;
    
    case ButtonPress:
+      SUMAg_CF->X->ButtonDown=1;
       pButton = Bev.button;
-      if (LocalHead) fprintf(stdout,"In ButtonPress Button %d\n", pButton);      
+      SUMA_LHv("In ButtonPress Button %d, %d @ x,y=%d,%d\n", 
+                              pButton, SUMAg_CF->X->ButtonDown, Bev.x, Bev.y);  
       if (  SUMAg_CF->SwapButtons_1_3 || 
             (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
          if (pButton == Button1) pButton = Button3;
@@ -4476,11 +4478,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case Button3:
-               if (LocalHead) 
-                     fprintf( SUMA_STDERR,
-                              "%s: Button 3 downplain jane, "
-                              "viewer #%d : X=%f, Y = %f\n", 
-                              FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
+               SUMA_S_Notev("Button 3 downplain jane, "
+                            "viewer #%d : X=%f, Y = %f\n", 
+                            SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
                               (float)Bev.x, (float)Bev.y);
                               
                /* Bev.state does work in the line below, 
@@ -4531,9 +4531,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      }
                   }  
                   
-                  
+                  SUMA_LH("Checking on registered surfaces");
                   ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
                   if (ii == 0) { /* no surfaces, break */
+                     SUMA_LH("No registrants");
                      break;
                   }
 
@@ -4547,7 +4548,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_OpenGLStateReset(SUMAg_DOv, SUMAg_N_DOv, sv);
                   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
                   #endif
-                  
+                  SUMA_LH("Get the selection line, bitte");
                   if (!SUMA_GetSelectionLine (  sv, (int)Bev.x, (int)Bev.y, 
                                                 sv->Pick0, sv->Pick1, 0, 
                                                 NULL, NULL, NULL)) {
@@ -4559,6 +4560,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
 
                   /* perform the intersection calcluation and mark the surface */
+                  SUMA_LHv("Finding hit: %d %d,\n"
+                           "Pick0: %f %f %f, Pick1: %f %f %f\n",
+                           (int)Bev.x, (int)Bev.y, 
+                           sv->Pick0[0], sv->Pick0[1], sv->Pick0[2], 
+                           sv->Pick1[0], sv->Pick1[1], sv->Pick1[2]);
                   hit = SUMA_MarkLineSurfaceIntersect (sv, SUMAg_DOv, 0);
                   if (hit < 0) {
                      fprintf( SUMA_STDERR,
@@ -4567,6 +4573,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                               FuncName);
                      break;
                   } else if (hit == 0) { /* nothing hit, try cut planes  */
+                     SUMA_LH("No hit");
                      if (SUMAg_CF->Dev ) {
                         hit = SUMA_MarkLineCutplaneIntersect (sv, SUMAg_DOv, 0);
                         if (hit < 0) {
@@ -4601,7 +4608,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
                
                
-               
+               SUMA_LH("Calling redisplay");
                /* redisplay */
                sv->ResetGLStateVariables = YUP;
                SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);            
@@ -4613,11 +4620,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       break;
       
    case ButtonRelease:
+      SUMAg_CF->X->ButtonDown=0;
       M1time = 0;
       rButton = Bev.button;
-      if (LocalHead) 
-         fprintf(SUMA_STDERR,
-                  "%s: In ButtonRelease Button %d\n", FuncName, rButton); 
+      SUMA_LHv("In ButtonRelease Button %d %d @ x,y=%d,%d\n", 
+                   rButton, SUMAg_CF->X->ButtonDown, Bev.x, Bev.y); 
       if (SUMAg_CF->Echo_KeyPress) {
          fprintf (SUMA_STDERR,"Button Release: %d (%d,%d,%d,%d,%d)\n"
                               , rButton, Button1, Button2, Button3, Button4,
@@ -4635,7 +4642,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName); 
             if (SUMAg_CF->ROI_mode) {
                SUMA_DRAWN_ROI *DrawnROI = NULL;
-               SUMA_SurfaceObject *SO = NULL;
                SUMA_BRUSH_STROKE_ACTION BsA=SUMA_BSA_Undefined;
                
                if (sv->BS) { 
@@ -4675,6 +4681,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }/* if sv->BS */
             } /* if SUMAg_CF->ROImode */
             
+            if (sv->Focus_SO_ID > 0){/* Get surface controller page in sync */
+               SUMA_SurfaceObject *SO = NULL;
+               SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+               SUMA_S_Notev("Will call Init for %s if %d\n", 
+                            SO->Label, SUMA_SURFCONT_REALIZED(SO));
+               if (SUMA_SURFCONT_REALIZED(SO))
+                  SUMA_Init_SurfCont_SurfParam(SO);
+            }
          break;
          case Button1:
             SUMA_LH("In Button 1 release\n");

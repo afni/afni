@@ -760,3 +760,82 @@ ENTRY("without_afni_filename_extension");
     }
     RETURN(fname);   /* not found */
 }
+
+/* Add prefix and/or suffix to filename fname taking care
+   to leave the path undisturbed and known extensions preserved */
+char * modify_afni_prefix( char * fname , char *pref, char *suf)
+{
+    char ** eptr;
+    static char onames[9][THD_MAX_NAME+1];
+    static int icall=0;
+    int c, isl, icp, flen, num_ext;
+
+ENTRY("modify_afni_prefix");
+    
+    if( !fname || !*fname ) RETURN(NULL);
+    ++icall;
+    if (icall > 8) icall = 0;
+    onames[icall][0]='\0';
+    
+    
+    if (!suf && !pref) {
+      /* nothing to do */
+      RETURN(fname);
+    }
+    
+    if (pref && strlen(pref)) {
+      flen = strlen(fname);
+      if (flen+strlen(pref) >= THD_MAX_NAME) {
+         WARNING_message("Filename too long for modify_afni_prefix()"
+                         "Returing fname");
+         RETURN(fname);
+      }
+      
+      /* find last '/' */
+      isl=flen-1;
+      while(isl>=0) {
+         if (fname[isl] == '/') break;
+         --isl;
+      }
+      for (icp=0; icp<=isl; ++icp) onames[icall][icp]=fname[icp];
+      onames[icall][icp]='\0';
+      strcat(onames[icall], pref);
+      strcat(onames[icall],fname+isl+1); 
+      
+      fname = onames[icall]; 
+      ++icall; if (icall > 8) icall = 0;
+      onames[icall][0]='\0';
+    }
+    
+    if (suf && strlen(suf)) {
+      flen = strlen(fname);
+      if (flen+strlen(suf) >= THD_MAX_NAME) {
+         WARNING_message("Filename too long for modify_afni_prefix()"
+                         "Returing fname");
+         RETURN(fname);
+      }
+      
+      /* remove the extension */
+      num_ext = sizeof(file_extension_list)/sizeof(char *);
+      for( c = 0, eptr = file_extension_list; c < num_ext; c++, eptr++ ) {
+        if( STRING_HAS_SUFFIX(fname, *eptr) ) {
+            flen = flen - strlen(*eptr);
+            strncpy(onames[icall], fname, flen); onames[icall][flen]='\0';
+            strcat(onames[icall], suf);
+            strcat(onames[icall], *eptr);
+            break;
+        }
+      }
+      if (onames[icall][0] == '\0') {
+         /* no extensions, just append */
+         strcat(onames[icall],fname);
+         strcat(onames[icall], suf);
+      }
+      
+      RETURN(onames[icall]);
+   }
+   
+   /* should not get here, but be nice anyway */
+   RETURN(fname);   /* not found */
+
+}

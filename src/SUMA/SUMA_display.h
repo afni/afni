@@ -279,6 +279,8 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
                               SUMA_SurfaceViewer *sv);
 int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, 
                          SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_MarkSurfContOpen(int Open, SUMA_SurfaceObject *SO);
+SUMA_SurfaceObject **SUMA_SurfacesInSurfContNotebook(Widget NB);
 void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData);
@@ -513,6 +515,8 @@ void SUMA_LoadSegDO (char *s, void *csvp);
 void SUMA_SiSi_I_Insist(void);
 void SUMA_BuildMenuReset(int nchar);
 void SUMA_MenuArrowFieldCallback (void *CB);
+int SUMA_PageWidgetToNumber(Widget NB, Widget page);
+int SUMA_isCurrentContPage(Widget NB, Widget page);
 SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO);
 int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
                                           SUMA_SurfaceObject *SO,

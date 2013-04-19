@@ -4272,7 +4272,9 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y,
       after each display call */
    SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
    glMatrixMode(GL_MODELVIEW);
-   /* The next line appears to fix some bug with GL_MODELVIEW's matrix. 
+   /* BEFORE April 2013 
+      The next line (which was glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix)) 
+      appears to fix some bug with GL_MODELVIEW's matrix. 
       When you clicked button3 for the first time in a viewer, 
       the chosen point was off. The next click in the identical position would 
       select the correct point and subsequent clicks are OK.
@@ -4284,8 +4286,24 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y,
       viewer and the next fixed the clicking problem. So, we keep
       it here as a fix until a better one comes along. 
       PS: This was also the source of the Z (blue) eye axis showing up when 
-      it should have not. */  
-      glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+      it should have not. 
+         glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+      
+      AFTER April 2013,
+      The glGetDoublev is now replaced with the call to glXMakeCurrent
+      I was having a similar first selection problem (the  GL_MODELVIEW)
+      was getting screwed up as I clicked right after the surface controller
+      notebook page was changed. For some reason, the context was no longer
+      current or correct when the window manager had to manage widgets
+      outside of the GLX area.   
+   */  
+      if (!glXMakeCurrent (sv->X->DPY, XtWindow(sv->X->GLXAREA), 
+                           sv->X->GLXCONTEXT)) {
+               fprintf (SUMA_STDERR, 
+                        "Error %s: Failed in glXMakeCurrent.\n"
+                        " \tContinuing ...\n", FuncName);
+               SUMA_GL_ERRS;
+      }
       if (LocalHead) {
          int itmp = 0;
          fprintf (SUMA_STDERR, 
@@ -4787,6 +4805,109 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    SUMA_LH("Returnism")
    SUMA_RETURN(1);
 }
+
+/*!
+   Get a listing of all surfaces in the surface controller notebook pages
+   You'll have to change the returned pointer someday to allow 
+   for other objects that may have a page in Notebook... 
+*/
+SUMA_SurfaceObject **SUMA_SurfacesInSurfContNotebook(Widget NB)
+{
+   static char FuncName[]={"SUMA_SurfacesInSurfContNotebook"};
+   int i, lp, j, iso;
+   static SUMA_SurfaceObject *SOv[100];
+   SUMA_SurfaceObject *SOt=NULL, *curSO=NULL;
+   XmNotebookPageStatus ns;
+   XmNotebookPageInfo pi;
+   char *allids = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   iso=0;
+   SOv[0]=NULL;
+   if (!NB) SUMA_RETURN(SOv);
+   
+   XtVaGetValues(NB, XmNlastPageNumber, &lp, NULL);
+   for (i=0; i<lp; ++i) {
+      ns = XmNotebookGetPageInfo(NB, i+1, &pi);
+      if (ns != XmPAGE_FOUND) {
+         SUMA_LH("Could not find page!");
+         SUMA_RETURN(SOv);
+      }
+      SUMA_LHv("Page %d, widget %p, page name=%s\n",
+                   i+1, pi.page_widget,
+                   XtName(pi.page_widget));
+      
+      for (j=0; j<SUMAg_N_DOv; ++j) {
+         if (SUMAg_DOv[j].ObjectType == SO_type) {
+            SOt = (SUMA_SurfaceObject *)SUMAg_DOv[j].OP;
+            if (SOt && SOt->SurfCont) {
+               curSO = (SUMA_SurfaceObject *)*(SOt->SurfCont->curSOp);
+               if (curSO) {
+                  if (!allids || !strstr(allids, curSO->idcode_str)) {
+                     if (pi.page_widget == curSO->SurfCont->Page) {
+                        if (iso < 99) {
+                           SOv[iso] = curSO; ++iso; SOv[iso]=NULL;
+                           allids = SUMA_append_replace_string(allids,
+                                                   curSO->idcode_str,"**",1);
+                           SUMA_LHv("Got surface %s\n", curSO->Label);
+                        } else {
+                           SUMA_S_Errv("Too many surface controllers (%d)\n"
+                                       "Will need to increase limit\n",
+                                       iso);
+                           if (allids) SUMA_free(allids); allids=NULL;
+                           SUMA_RETURN(SOv);
+                        }
+                     }
+                  } else {
+                     /* surface sharing controller */
+                     if (curSO != SOt) {
+                        SUMA_LHv(
+                           "Surface %s should be sharing a controller with %s\n",
+                           SOt->Label, curSO->Label);
+                     }
+                  }
+               } else {
+                  SUMA_LHv("Surface %s has no current SO in its controller\n"
+                        "This should mean its controller has never been open\n",
+                          SOt->Label);
+               }
+            } else {
+               SUMA_LHv("Surface %s has no controller open yet\n", 
+                        SOt?SOt->Label:NULL);
+            }
+         }
+      }
+   }
+
+   if (allids) SUMA_free(allids); allids=NULL;
+   SUMA_RETURN(SOv);
+}
+
+SUMA_Boolean SUMA_MarkSurfContOpen(int Open, SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_MarkSurfContOpen"};
+   int i;
+   SUMA_SurfaceObject **SOv=NULL;
+   
+   SUMA_ENTRY;
+   if (SUMAg_CF->X->UseSameSurfCont) {
+      SUMAg_CF->X->SameSurfContOpen = Open;
+      /* apply to all other surfaces */
+      SOv = SUMA_SurfacesInSurfContNotebook(SUMAg_CF->X->SC_Notebook);      
+      i = 0;
+      while (SOv[i]) {
+         SOv[i]->SurfCont->Open=Open;
+         ++i;
+      }
+   } else {
+      if (SO) {
+         SO->SurfCont->Open = Open;
+      }
+   }
+   SUMA_RETURN(YUP);
+}
  
 /*! if calling this function from outside interface, set w to NULL 
 */
@@ -4848,8 +4969,9 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
       }
 
    }
-   SO->SurfCont->Open = 1;
-   if (SUMAg_CF->X->UseSameSurfCont) SUMAg_CF->X->SameSurfContOpen=1;
+   
+   SUMA_MarkSurfContOpen(1,SO); 
+
 
    SUMA_LH("Init SurfParam");
    SUMA_Init_SurfCont_SurfParam(SO);
@@ -5591,7 +5713,23 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          XmInternAtom( dpy , "WM_DELETE_WINDOW" , False ) ,
          SUMA_cb_closeSurfaceCont, (XtPointer) SO) ;
       
-      if (SUMAg_CF->X->UseSameSurfCont) SUMAg_CF->X->CommonSurfContTLW = tls;
+      if (SUMAg_CF->X->UseSameSurfCont) {
+         SUMAg_CF->X->CommonSurfContTLW = tls;
+         SUMAg_CF->X->SC_Notebook = 
+            XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
+                             SUMAg_CF->X->CommonSurfContTLW, 
+                             XmNbindingWidth, XmNONE,
+                             XmNbackPageNumber, 0, 
+                             XmNmajorTabSpacing, 0, 
+                             XmNminorTabSpacing, 0, 
+                             NULL);
+            /*XmCreateNotebook (SUMAg_CF->X->CommonSurfContTLW, "ControllerBook",
+                              NULL, 0);
+              XtVaSetValues(SUMAg_CF->X->SC_Notebook,
+                          XmNbindingWidth, XmNONE,
+                          NULL); */
+            
+      }
    }
    
    if (SUMAg_CF->X->UseSameSurfCont) {
@@ -5606,9 +5744,17 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    }
    
    SUMA_LH("Widgets...");
+   if (SUMAg_CF->X->UseSameSurfCont) {
+      /* add the page */
+      SO->SurfCont->Page = XmCreateRowColumn (SUMAg_CF->X->SC_Notebook, 
+                                              SO->Label?SO->Label:"page", 
+                                              NULL, 0);
+   }
+   
    /* create a form widget, manage it at the end ...*/
    SO->SurfCont->Mainform = XtVaCreateWidget ("dialog", 
-      xmFormWidgetClass, SO->SurfCont->TLS,
+      xmFormWidgetClass, SO->SurfCont->Page ? 
+                              SO->SurfCont->Page:SO->SurfCont->TLS,
       XmNborderWidth , 0 ,
       XmNmarginHeight , SUMA_MARGIN ,
       XmNmarginWidth  , SUMA_MARGIN ,
@@ -6137,7 +6283,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    XtManageChild (rc_left);
    XtManageChild (rc_mamma);
    XtManageChild (SO->SurfCont->Mainform);
-
+   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SO->SurfCont->Page);
+   
    #if SUMA_CONTROLLER_AS_DIALOG    
    #else
    /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, 
@@ -6147,16 +6294,14 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    #endif
    
    /* realize the widget */
+   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
    XtRealizeWidget (SO->SurfCont->TLS);
    
    SUMA_free (slabel);
 
    /* Mark as open */
-   SO->SurfCont->Open = 1;
-   if (SUMAg_CF->X->UseSameSurfCont) {
-      SUMAg_CF->X->TopSurfContWidget = SO->SurfCont->Mainform;
-      SUMAg_CF->X->SameSurfContOpen= 1;
-   }
+   SUMA_MarkSurfContOpen(1,SO);
+   
    SUMA_LHv("Marked %s's controller as open.\n", SO->Label);
    
    /* initialize the left side 
@@ -6205,7 +6350,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
    SUMA_LH("going home.");
 
-   SO->SurfCont->Open = 1;
+   SUMA_MarkSurfContOpen(1, SO);
 
    SUMA_RETURNe;
 }
@@ -6222,7 +6367,9 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)data;
-    
+   SUMA_LHv("Have TLS %p Open %d Same %d SameOpen %d\n",
+            SO->SurfCont->TLS, SO->SurfCont->Open,
+            SUMAg_CF->X->UseSameSurfCont, SUMAg_CF->X->SameSurfContOpen) 
    if (!SO->SurfCont->TLS || !SO->SurfCont->Open ||
        (SUMAg_CF->X->UseSameSurfCont && !SUMAg_CF->X->SameSurfContOpen) )
       SUMA_RETURNe;
@@ -6257,10 +6404,58 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          break;
    }
 
-   SO->SurfCont->Open = 0;
-   if (SUMAg_CF->X->UseSameSurfCont) SUMAg_CF->X->SameSurfContOpen=0;
+   SUMA_MarkSurfContOpen(0,SO);
    SUMA_RETURNe;
+}
 
+/*! 
+   Find number for page widget in notebook 
+*/
+int SUMA_PageWidgetToNumber(Widget NB, Widget page)
+{
+   static char FuncName[]={"SUMA_PageWidgetToNumber"};
+   int i, lp;
+   XmNotebookPageStatus ns;
+   XmNotebookPageInfo pi;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   XtVaGetValues(NB, XmNlastPageNumber, &lp, NULL);
+   for (i=0; i<lp; ++i) {
+      ns = XmNotebookGetPageInfo(NB, i+1, &pi);
+      if (ns != XmPAGE_FOUND) {
+         SUMA_LH("Could not find page!");
+         SUMA_RETURN(0);
+      }
+      SUMA_LHv("Page %d, widget %p, have page %p, match=%d, "
+                   "page name=%s\n",
+                   i+1, pi.page_widget, page,
+                   (pi.page_widget==page)?1:0,
+                   XtName(pi.page_widget));
+      if (pi.page_widget==page) SUMA_RETURN(i+1);  
+   }
+   SUMA_RETURN(0);
+}
+
+int SUMA_isCurrentContPage(Widget NB, Widget page)
+{
+   static char FuncName[]={"SUMA_isCurrentContPage"};
+   int lp;
+   XmNotebookPageStatus ns;
+   XmNotebookPageInfo pi;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   XtVaGetValues(NB, XmNcurrentPageNumber, &lp, NULL);
+   ns = XmNotebookGetPageInfo(NB, lp, &pi);
+   if (ns != XmPAGE_FOUND) {
+         SUMA_LH("Could not find current page!");
+         SUMA_RETURN(0);
+   }
+   if (pi.page_widget==page) SUMA_RETURN(1);
+   SUMA_RETURN(0);
 }
 
 /*!
@@ -6285,13 +6480,14 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
       SameSurface = NOPE;
    }
     
+   SUMA_LHv("Called for %s, current %s, buttdown = %d\n", 
+            SO->Label, oSO->Label, SUMAg_CF->X->ButtonDown);
    /* set the new current surface pointer */
    *(SO->SurfCont->curSOp) = (void *)SO;
-   
    if (!SameSurface || 
-       ( SUMAg_CF->X->UseSameSurfCont &&
-         SO->SurfCont->Mainform != SUMAg_CF->X->TopSurfContWidget)) {
-      SUMAg_CF->X->TopSurfContWidget = SO->SurfCont->Mainform;
+       ( SUMAg_CF->X->UseSameSurfCont && 
+         !SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook, 
+                                 SO->SurfCont->Page))) {
       /* initialize the title of the window */
       slabel = (char *)SUMA_malloc (sizeof(char) * (strlen(SO->Label) + 100));
       if (strlen(SO->Label) > 40) {
@@ -6459,23 +6655,21 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
       }
 
       RAISE:
-      if (SUMAg_CF->X->UseSameSurfCont) { /* works, but grabs focus. 
-                  Can be annoying when going across hemis*/
-         SUMA_LH("Raising Arizona");
-         
-         XRaiseWindow (SUMAg_CF->X->DPY_controller1, 
-                    XtWindow(SO->SurfCont->Mainform));
-         /* first feeble attempt to keep input focus where it
-         belongs... Does not quite work. Needs further consideration.
-         I tried adding this at the very end of call 
-         in SUMA_MarkLineSurfaceIntersect but it did not do much.
-         */
-         XRaiseWindow (SUMAg_CF->X->DPY_controller1, 
-                    XtWindow(SUMAg_SVv[0].X->GLXAREA));
-         XSetInputFocus(SUMAg_CF->X->DPY_controller1, 
-                        PointerRoot, RevertToPointerRoot, CurrentTime);
-      } 
-      
+      if (SUMAg_CF->X->UseSameSurfCont) { 
+         if (!(i = SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook, 
+                                          SO->SurfCont->Page))) {
+            SUMA_S_Errv("Failed to find controller page for surface %s\n",
+                        CHECK_NULL_STR(SO->Label));
+         } else {
+            SUMA_LHv("Setting notebook page to page %d, button down is %d\n",
+                     i,SUMAg_CF->X->ButtonDown);
+            if (LocalHead) SUMA_DUMP_TRACE("You rang?");
+            if (!SUMAg_CF->X->ButtonDown) {
+               XtVaSetValues(SUMAg_CF->X->SC_Notebook,
+                          XmNcurrentPageNumber, i, NULL);
+            }
+         }
+      }
    } 
    
    /* do even if this is the old surface */ 

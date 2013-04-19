@@ -166,6 +166,31 @@ class afni_name:
          if (     os.path.isfile(self.ppve()) ):
             return 1
          else: return 0
+   
+   def locate(self, oexec=""):
+      """Attempt to locate the file and if found, update its info"""
+      if (self.exist()):
+         return 1
+      else:
+         #could it be in abin, etc.
+         cmd = '@FindAfniDsetPath %s' % self.pv()
+         com=shell_com(cmd,oexec, capture=1)
+         com.run()
+
+         if com.status or not com.so or len(com.so[0]) < 2:
+           # call this a non-fatal error for now
+           if 0:
+              print '   status = %s' % com.status
+              print '   stdout = %s' % com.so
+              print '   stderr = %s' % com.se
+           return 0
+
+         self.path = com.so[0]
+         # nuke any newline character
+         newline = self.path.find('\n')
+         if newline > 1: self.path = self.path[0:newline]
+      return 0
+      
    def delete(self, oexec=""): #delete files on disk!
       """delete the files via a shell command"""
       if (self.type == 'BRIK'):
@@ -270,7 +295,8 @@ class afni_name:
       an = afni_name()
       an.path = self.path
       if len(new_pref):
-         an.prefix = new_pref
+         ant = parse_afni_name(new_pref)
+         an.prefix = ant['prefix']
       else:
          an.prefix = self.prefix
       if len(new_view):
@@ -391,13 +417,13 @@ class shell_com:
          #if (len(self.com) < l1):
          #print "Command trimmed to: %s" % (self.com)
       else:
-         self.trimcom = self.com
+         self.trimcom = string.join(string.split(self.com))
    def trim(self):
-      #try to remove absolute path
+      #try to remove absolute path and numerous blanks
       if self.dir[-1] != '/':
-         tcom = string.replace(self.com, "%s/" % (self.dir), './')
+         tcom = string.replace(string.join(string.split(self.com)), "%s/" % (self.dir), './')
       else:
-         tcom = string.replace(self.com, self.dir, './')
+         tcom = string.replace(string.join(string.split(self.com)), self.dir, './')
       return tcom
    def echo(self): 
       if (len(self.trimcom) < len(self.com)):
