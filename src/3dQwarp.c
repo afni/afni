@@ -201,7 +201,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *bim , *wbim , *sim , *oim ;
    NI_float_array *iwvec=NULL ;
    IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw ;
-   char *prefix = "Qwarp" , ppp[256] ; int nopt , nevox=0 ;
+   char *prefix = "Qwarp" ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
    int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
@@ -737,10 +737,9 @@ int main( int argc , char *argv[] )
 
 #ifdef USE_SAVER
    if( qsave ){
-     sprintf(ppp,"%s_SAVE",prefix) ;
      qset = EDIT_empty_copy(bset) ;
      EDIT_dset_items( qset ,
-                        ADN_prefix    , ppp ,
+                        ADN_prefix    , modify_afni_prefix(prefix,NULL,"_SAVE") ,
                         ADN_nvals     , 1 ,
                         ADN_ntt       , 0 ,
                         ADN_datum_all , MRI_float ,
@@ -801,8 +800,7 @@ int main( int argc , char *argv[] )
 
    if( !nowarp ){
      IW3D_adopt_dataset( oww , bset ) ;
-     sprintf(ppp,"%s_WARP",prefix) ;
-     qset = IW3D_to_dataset( oww , ppp ) ;
+     qset = IW3D_to_dataset( oww , modify_afni_prefix(prefix,NULL,"_WARP") ) ;
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
@@ -810,10 +808,10 @@ int main( int argc , char *argv[] )
    }
    if( !nowarpi ){
      if( Hverb ) ININFO_message("Inverting warp for output") ;
+    
      owwi = IW3D_invert( oww , NULL , MRI_WSINC5 ) ;
      IW3D_adopt_dataset( owwi , bset ) ;
-     sprintf(ppp,"%s_WARPINV",prefix) ;
-     qset = IW3D_to_dataset( owwi , ppp ) ;
+     qset = IW3D_to_dataset( owwi , modify_afni_prefix(prefix,NULL,"_WARPINV")) ;
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
