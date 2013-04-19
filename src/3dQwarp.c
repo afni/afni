@@ -208,7 +208,7 @@ int main( int argc , char *argv[] )
    int flags = 0 ;
    double cput ;
 
-   /*--- enlighten the ignorant ---*/
+   /*---------- enlighten the supplicant ----------*/
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dQwarp [OPTIONS] base_dataset source_dataset\n") ;
@@ -419,7 +419,11 @@ int main( int argc , char *argv[] )
        "\n"
        "--- AUTHOR = RWCox -- Fall/Winter/Spring 2012-13 ---\n"
      ) ;
-     PRINT_AFNI_OMP_USAGE("3dQwarp",NULL) ;
+     PRINT_AFNI_OMP_USAGE("3dQwarp",
+                          "* Tests show that using more 10-12 CPUs with 3dQwarp doesn't help.\n"
+                          "  If you have more CPUs on one system, it's faster to run two or three\n"
+                          "  separate registration jobs in parallel than to use all the CPUs on\n"
+                          "  one 3dQwarp task.\n" ) ;
      exit(0) ;
    }
 

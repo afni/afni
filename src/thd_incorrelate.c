@@ -955,6 +955,10 @@ void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
    xdb = inpear->xdbot ; xdt = inpear->xdtop ;
    ydb = inpear->ydbot ; ydt = inpear->ydtop ;
 
+   for( jj=0 ; jj < nthmax ; jj++ ){
+     dhaar[jj] = dhbbr[jj] = dhccr[jj] = dhddr[jj] = dheer[jj] = dhffr[jj] = 0.0 ;
+   }
+
    if( w == NULL ){
 
 #pragma omp parallel
@@ -971,8 +975,9 @@ void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
          tx  += ww*xx    ; txx += ww*xx*xx ; ty += ww*yy ;
          tyy += ww*yy*yy ; txy += ww*xx*yy ; tw += ww ;
        }
-       dhaar[ith] = tx  ; dhbbr[ith] = txx ; dhccr[ith] = ty ;
-       dhddr[ith] = tyy ; dheer[ith] = txy ; dhffr[ith] = tw ;
+#pragma omp critical
+       { dhaar[ith] = tx  ; dhbbr[ith] = txx ; dhccr[ith] = ty ;
+         dhddr[ith] = tyy ; dheer[ith] = txy ; dhffr[ith] = tw ; }
      } /* end parallel */
 
    } else {
@@ -994,8 +999,9 @@ void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
            tyy += ww*yy*yy ; txy += ww*xx*yy ; tw += ww ;
          }
        }
-       dhaar[ith] = tx  ; dhbbr[ith] = txx ; dhccr[ith] = ty ;
-       dhddr[ith] = tyy ; dheer[ith] = txy ; dhffr[ith] = tw ;
+#pragma omp critical
+       { dhaar[ith] = tx  ; dhbbr[ith] = txx ; dhccr[ith] = ty ;
+         dhddr[ith] = tyy ; dheer[ith] = txy ; dhffr[ith] = tw ; }
      } /* end parallel */
    }
 
