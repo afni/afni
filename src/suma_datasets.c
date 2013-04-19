@@ -13177,6 +13177,10 @@ static ENV_SPEC envlist[] = {
       "Choose from YES or NO",
       "SUMA_LHunify",
       "YES" }, 
+   {  "Put surface controllers in same window\n"
+      "Choose from YES or NO",
+      "SUMA_SameSurfCont",
+      "NO" }, 
    {  NULL, NULL, NULL  }
 };
       

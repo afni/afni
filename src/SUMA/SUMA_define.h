@@ -1305,7 +1305,9 @@ typedef struct {
                   OS X 10.5 and 10.6*/
    Widget TLS;/*!< Top level shell for a Surface's controller */
    Widget PosRef; /*!< reference position widget */
-   Widget Mainform; /*!< main form, child of TopLevelShell */
+   Widget Page; /*!< parent of Mainform, child of Notebook 
+                         if using one controller */
+   Widget Mainform; /*!< main form, child of TopLevelShell, or NoteBook*/
    Widget SurfInfo_pb; /*!< More info push button */
    Widget SurfInfo_label; /*!< Le label */
    SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing 
@@ -1552,7 +1554,8 @@ typedef struct {
    SUMA_Boolean SameSurfContOpen;
    Widget CommonSurfContTLW; /* If not null, then surface controller will
                                    all be sharing this top level widget */
-   Widget TopSurfContWidget;
+   Widget SC_Notebook;  /* Surface Controllers Notebook */
+   int ButtonDown; /* Is mouse button pressed? */
 }SUMA_X_AllView;
 
 /*! structure defining a cross hair */

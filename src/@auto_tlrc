@@ -40,6 +40,8 @@ PARSE:
    set OneWarp = 0
    set copy_base = ""
    set out_space = ""
+   set delete_pre = 0
+   
    if ("$1" == '') goto HELP
 
    while ($cnt <= $Narg)
@@ -321,6 +323,12 @@ PARSE:
          goto CLEANUP      
          set donext = 0      
       endif
+      
+      if ($donext && "$argv[$cnt]" == "-no_pre") then
+         set delete_pre = 1
+         set donext = 0      
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-verb") then
          set verb = 1;      
          set donext = 0      
@@ -389,6 +397,8 @@ PARSE:
       set delete_this = ($delete_this $prs_in[1]/${NIpref}_${RNS}+????.HEAD  \
                                       $prs_in[1]/${NIpref}_${RNS}+????.BRIK* ) 
       set prs_in = `@parse_afni_name "$anat_in"`
+   else
+      set RNS = ''
    endif 
    
    #Make a copy of anat_in if we are given sub-brick selectors
@@ -449,7 +459,7 @@ PARSE:
       #            -prefix Horse2 struct+orig.
       # The 3dAllineate is the way users should verify
       # if their init_xform is good.
-      set anat_in = pre.${anat_in}
+      set anat_in = pre.${anat_in:t}
       set prs_in = `@parse_afni_name "$anat_in"`
    endif
 
@@ -1232,12 +1242,25 @@ if ($KeepTmp != 1) then
    set Ret_Clean = END
    echo "Cleanup ..."
    #Don't move this IF into CLEANUP, it is only to
-   #be execute at exit.
+   #be executed at exit.
    if ($#delete_this) then
       foreach ff ($delete_this)
          if ( -f "$ff") \rm -f "$ff" >& /dev/null 
       end
    endif
+   if ("${RNS}" != '') then
+      set kl = (*_${RNS}+????.HEAD *_${RNS}_shft+????.HEAD)
+      foreach kk ($kl)
+         set k = `echo $kk | sed "s/_${RNS}//"`
+         3drename $kk $k
+      end
+      set kl = (*_${RNS}_shft.1D)
+      foreach kk ($kl)
+         set k = `echo $kk | sed "s/_${RNS}//"`
+         mv $kk $k
+      end
+   endif
+   if ($delete_pre == 1) \rm -f pre.*+????.[HB]??? >& /dev/null
    goto CLEANUP
 else
    goto END
@@ -1261,7 +1284,6 @@ CLEANUP:
 \rm -f ${tmppref}*upad*.????*  >& /dev/null
 \rm -f ${tmppref}*warp_grid*.????*  >& /dev/null
 \rm -f ${tmppref}*_shft*.????*  >& /dev/null
-
 goto $Ret_Clean
 
 SET_REF_PATH:
@@ -1485,6 +1507,8 @@ echo ""
 echo "                You can force centering with -init_xform CENTER"
 echo "                or with -init_xform CENTER_CM regardless of the center"
 echo "                distance between volumes"
+echo ""
+echo "      -no_pre: Delete temporary dataset created by -init_xform"
 echo ""  
 echo "      -out_space spacename: Set output to a particular space"
 echo "                       Usually, output space is determined by the space"
