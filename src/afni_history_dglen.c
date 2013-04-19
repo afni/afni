@@ -49,7 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
-
+{ 19 , APR, 2013 , DRG , "3dmaskdump" , 
+    MINOR , TYPE_NEW_OPT, 
+    "lpi xyz output option"
+} ,
 { 17 , APR, 2013 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "save_vr result causes crash"

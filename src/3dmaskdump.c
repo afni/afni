@@ -22,7 +22,7 @@ int main( int argc , char * argv[] )
    FILE *ofile ;
    MRI_IMAGE *flim ;
    float *flar ;
-   int no_ijk=0 , yes_xyz=0 ;
+   int no_ijk=0 , yes_xyz=0, lpi_xyz = 0 ;
    int yes_index=0 ;                    /*-- 09 May 2003 [rickr] --*/
    byte *cmask=NULL ; int ncmask=0 ;
    int verb=1 ;
@@ -306,6 +306,11 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[narg],"-xyz") == 0 ){   /* 23 Mar 2003 */
          yes_xyz = 1 ;
+         narg++ ; continue ;
+      }
+
+      if( strcmp(argv[narg],"-lpi") == 0 ){   /* 19 Apr 2013 */
+         lpi_xyz = 1 ;
          narg++ ; continue ;
       }
 
@@ -680,6 +685,9 @@ int main( int argc , char * argv[] )
         LOAD_IVEC3(ind,i,j,k) ;
         vec = THD_3dind_to_3dmm ( input_dset[0] , ind ) ;
         vec = THD_3dmm_to_dicomm( input_dset[0] , vec ) ;
+        if(lpi_xyz) {  /* for LPI output, negate RAI's x and y */
+           vec.xyz[0] = - vec.xyz[0]; vec.xyz[1] = -vec.xyz[1];
+        }
         otemp = MV_format_fval(vec.xyz[0]); strcat(obuf,otemp); strcat(obuf," ");
         otemp = MV_format_fval(vec.xyz[1]); strcat(obuf,otemp); strcat(obuf," ");
         otemp = MV_format_fval(vec.xyz[2]); strcat(obuf,otemp); strcat(obuf," ");
