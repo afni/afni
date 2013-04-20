@@ -7603,25 +7603,28 @@ float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
    if (compnum >= E1_DIR_PRJ) lineproj = 1;
    else lineproj = 0;
    
-          if (compnum == EZ_PLN_PRJ || compnum == EZ_DIR_PRJ) {
-      /* find direction closest to Z */
-            if (pc_m[0] == 'Z') compnum = E1_PLN_PRJ;
-      else  if (pc_m[1] == 'Z') compnum = E2_PLN_PRJ;
-      else  if (pc_m[2] == 'Z') compnum = E3_PLN_PRJ; 
-   } else if (compnum == EY_PLN_PRJ || compnum == EY_DIR_PRJ) {
-      /* find direction closest to Y */
-            if (pc_m[0] == 'Y') compnum = E1_PLN_PRJ;
-      else  if (pc_m[1] == 'Y') compnum = E2_PLN_PRJ;
-      else  if (pc_m[2] == 'Y') compnum = E3_PLN_PRJ; 
-   } else if (compnum == EX_PLN_PRJ || compnum == EX_DIR_PRJ) {
-      /* find direction closest to X */
-            if (pc_m[0] == 'X') compnum = E1_PLN_PRJ;
-      else  if (pc_m[1] == 'X') compnum = E2_PLN_PRJ;
-      else  if (pc_m[2] == 'X') compnum = E3_PLN_PRJ;
-   } else {
-      SUMA_S_Errv("Bad value for compnum %d, setting to 0\n",
-                  compnum);
-      compnum = 0;
+   if (compnum != E1_PLN_PRJ && compnum != E2_PLN_PRJ &&
+       compnum != E3_PLN_PRJ) {
+             if (compnum == EZ_PLN_PRJ || compnum == EZ_DIR_PRJ) {
+         /* find direction closest to Z */
+               if (pc_m[0] == 'Z') compnum = E1_PLN_PRJ;
+         else  if (pc_m[1] == 'Z') compnum = E2_PLN_PRJ;
+         else  if (pc_m[2] == 'Z') compnum = E3_PLN_PRJ; 
+      } else if (compnum == EY_PLN_PRJ || compnum == EY_DIR_PRJ) {
+         /* find direction closest to Y */
+               if (pc_m[0] == 'Y') compnum = E1_PLN_PRJ;
+         else  if (pc_m[1] == 'Y') compnum = E2_PLN_PRJ;
+         else  if (pc_m[2] == 'Y') compnum = E3_PLN_PRJ; 
+      } else if (compnum == EX_PLN_PRJ || compnum == EX_DIR_PRJ) {
+         /* find direction closest to X */
+               if (pc_m[0] == 'X') compnum = E1_PLN_PRJ;
+         else  if (pc_m[1] == 'X') compnum = E2_PLN_PRJ;
+         else  if (pc_m[2] == 'X') compnum = E3_PLN_PRJ;
+      } else {
+         SUMA_S_Errv("Bad value for compnum %d, setting to 0\n",
+                     compnum);
+         compnum = 0;
+      }
    }
    
    if (!lineproj) {
