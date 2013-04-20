@@ -4478,7 +4478,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case Button3:
-               SUMA_S_Notev("Button 3 downplain jane, "
+               SUMA_LHv("Button 3 downplain jane, "
                             "viewer #%d : X=%f, Y = %f\n", 
                             SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
                               (float)Bev.x, (float)Bev.y);
@@ -4684,7 +4684,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (sv->Focus_SO_ID > 0){/* Get surface controller page in sync */
                SUMA_SurfaceObject *SO = NULL;
                SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-               SUMA_S_Notev("Will call Init for %s if %d\n", 
+               SUMA_LHv("Will call Init for %s if %d\n", 
                             SO->Label, SUMA_SURFCONT_REALIZED(SO));
                if (SUMA_SURFCONT_REALIZED(SO))
                   SUMA_Init_SurfCont_SurfParam(SO);
