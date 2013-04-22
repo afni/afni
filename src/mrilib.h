@@ -156,7 +156,7 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
     "   ++ However, on some systems (such as the NIH Biowulf), it seems to be\n"   \
     "      necessary to set OMP_NUM_THREADS explicitly, or you only get one CPU.\n"\
     "   ++ On other systems with many CPUS, you probably want to limit the CPU\n"  \
-    "      count, since using more than (say) 32 threads is probably useless.\n"   \
+    "      count, since using more than (say) 16 threads is probably useless.\n"   \
     "* You must set OMP_NUM_THREADS in the shell BEFORE running the program,\n"    \
     "   since OpenMP queries this variable BEFORE the program actually starts.\n"  \
     "   ++ You can't usefully set this variable in your ~/.afnirc file or on the\n"\

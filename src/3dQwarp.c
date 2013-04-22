@@ -203,7 +203,7 @@ int main( int argc , char *argv[] )
    IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw ;
    char *prefix = "Qwarp" ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
-   int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 ;
+   int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 , nodset = 0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
    int flags = 0 ;
    double cput ;
@@ -285,6 +285,10 @@ int main( int argc , char *argv[] )
        "                 space to source space, if you need to do such an operation.\n"
        "               * You can easily compute the inverse later, say by a command like\n"
        "                   3dNwarpCat -prefix Z_WARPINV 'INV(Z_WARP+tlrc)'\n"
+       "\n"
+       " -nowarp      = Don't save the WARP file.\n"
+       " -iwarp       = Do save the WARPINV file.\n"
+       " -nodset      = Don't save the warped dataset file.\n"
        "\n"
        " -pear        = Use strict Pearson correlation for matching.\n"
        "               * Not usually recommended, since the 'clipped Pearson' method\n"
@@ -402,6 +406,7 @@ int main( int argc , char *argv[] )
        "               * This allows you to see the amount of improvement at\n"
        "                 each patch refinement level, and may help you decide\n"
        "                 the size for '-minpatch' for future work.\n"
+       "               * Otherwise, this optio is mostly for debugging.\n"
        "\n"
        " -verb        = Print very verbose progress messages.\n"
        " -quiet       = Cut out most progress messages.\n"
@@ -469,6 +474,9 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[nopt],"-iwarp") == 0 ){
        nowarpi = 0 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-nodset") == 0 ){
+       nodset =  1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-nowarps") == 0 ){  /* these 2 options */
@@ -780,18 +788,20 @@ int main( int argc , char *argv[] )
 
    /*----- output some results to pacify the user -----*/
 
-   oset = EDIT_empty_copy(bset) ;
-   tross_Copy_History( bset , oset ) ;
-   tross_Make_History( "3dQwarp" , argc,argv , oset ) ;
-   EDIT_dset_items( oset ,
-                      ADN_prefix    , prefix ,
-                      ADN_nvals     , 1 ,
-                      ADN_ntt       , 0 ,
-                      ADN_datum_all , MRI_float ,
-                    ADN_none ) ;
-   EDIT_BRICK_FACTOR(oset,0,0.0) ;
-   EDIT_substitute_brick( oset, 0, MRI_float, MRI_FLOAT_PTR(oim) ) ;
-   DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
+   if( !nodset ){
+     oset = EDIT_empty_copy(bset) ;
+     tross_Copy_History( bset , oset ) ;
+     tross_Make_History( "3dQwarp" , argc,argv , oset ) ;
+     EDIT_dset_items( oset ,
+                        ADN_prefix    , prefix ,
+                        ADN_nvals     , 1 ,
+                        ADN_ntt       , 0 ,
+                        ADN_datum_all , MRI_float ,
+                      ADN_none ) ;
+     EDIT_BRICK_FACTOR(oset,0,0.0) ;
+     EDIT_substitute_brick( oset, 0, MRI_float, MRI_FLOAT_PTR(oim) ) ;
+     DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
+   }
 
    if( qset != NULL && DSET_NVALS(qset) > 1 ){
      EDIT_dset_items( qset , ADN_ntt , DSET_NVALS(qset) , ADN_none ) ;

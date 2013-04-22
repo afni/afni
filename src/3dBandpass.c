@@ -31,6 +31,13 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
+       "\n"
+       "** NOTA BENE:  For the purpose of preparing resting-state FMRI datasets **\n"
+       "** for analysis (e.g., with 3dGroupInCorr),  this program is now mostly **\n"
+       "** superseded by the afni_proc.py script.  See the 'afni_proc.py -help' **\n"
+       "** section 'Resting state analysis (modern)' to get our current rs-FMRI **\n"
+       "** pre-processing recommended sequence of steps. -- RW Cox, et alii.    **\n"
+       "\n"
        "Usage: 3dBandpass [options] fbot ftop dataset\n"
        "\n"
        "* One function of this program is to prepare datasets for input\n"
