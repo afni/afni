@@ -4369,6 +4369,7 @@ extern int TRUST_host(char *) ;
 extern void TRUST_addhost(char *) ;      /* 21 Feb 2001 */
 
 extern Boolean THD_load_datablock( THD_datablock * ) ;
+extern void    THD_load_no_mmap(void) ;                         /* Apr 2013 */
 extern void    THD_load_datablock_verbose(int) ;             /* 21 Aug 2002 */
 extern void    THD_set_freeup( generic_func * ) ;            /* 18 Oct 2001 */
 extern Boolean THD_purge_datablock( THD_datablock * , int ) ;
@@ -4388,6 +4389,8 @@ extern int     THD_load_niml   ( THD_datablock * ) ;         /* 12 Jun 2006 */
 extern int     THD_load_gifti  ( THD_datablock * ) ;         /* 13 Feb 2008 */
 
 extern int     THD_count_potential_databricks( THD_datablock *dblk );
+
+extern THD_3dim_dataset * THD_mean_dataset( int nds, THD_3dim_dataset **dsin, int ivbot, int ivtop, int verb ) ;
 
 extern void    THD_zerofill_dataset( THD_3dim_dataset * ) ;  /* 18 Mar 2005 */
 extern int     THD_apply_master_subrange( THD_datablock * ); /* 14 Apr 2006 */

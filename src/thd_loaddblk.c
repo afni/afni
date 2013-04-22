@@ -17,7 +17,10 @@ static int floatscan    = -1 ;  /* 30 Jul 1999 */
 static int verbose = 0 ;
 
 void THD_load_datablock_verbose( int v ){ verbose = v; }
-int THD_alloc_datablock( THD_datablock *blk ) ;
+
+void THD_load_no_mmap(void){ no_mmap = 2 ; }
+
+int THD_alloc_datablock( THD_datablock *blk ) ;       /* prototype */
 
 /*-----------------------------------------------------------------*/
 /*! Check if all sub-bricks have the same datum type. [14 Mar 2002]
@@ -134,8 +137,10 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
    floatscan = AFNI_yesenv("AFNI_FLOATSCAN") ;  /* check float bricks? */
 
-   if( floatscan ) no_mmap = 1 ;                          /* perhaps disable */
-   else            no_mmap = AFNI_yesenv("AFNI_NOMMAP") ; /* use of mmap()  */
+   if( no_mmap < 2 ){
+     if( floatscan ) no_mmap = 1 ;                          /* perhaps disable */
+     else            no_mmap = AFNI_yesenv("AFNI_NOMMAP") ; /* use of mmap()  */
+   }
 
    /*-- sanity checks --*/
 
@@ -169,7 +174,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      fprintf(stderr,"\n*** Cannot read non 3D datablocks ***\n"); RETURN(False);
    }
 
-   if( dkptr->storage_mode == STORAGE_BY_VOLUMES ) no_mmap = 1 ;  /* 20 Jun 2002 */
+   if( !no_mmap && dkptr->storage_mode == STORAGE_BY_VOLUMES ) no_mmap = 1 ;  /* 20 Jun 2002 */
 
    /*-- 29 Oct 2001: MINC input (etc.) --*/
 
