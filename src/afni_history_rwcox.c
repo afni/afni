@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , APR , 2013 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+  { 22 , APR , 2013 , RWC , "3dNwarpAdjust" , MINOR , TYPE_NEW_PROG ,
+   "For template-building via @toMNI_Qwarp" ,
+   "Computes the mean warp, and adjusts the individual warps to get rid of\n"
+   "this mean warp (under the presumption that it is some kind of bias)." } ,
+
+ { 18 , APR , 2013 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
    "-useweight didn't actually do anything inside OpenMP" ,
    "Obviously, this can't be my fault.  I blame evil spirits." } ,
 
