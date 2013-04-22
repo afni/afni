@@ -161,7 +161,8 @@ int main( int argc , char *argv[] )
    char str[32] , *cpt ;
    int *imap ; MRI_vectim *xvectim ;
    float (*corfun)(int,float *,float*) = NULL ;
-
+   FILE *fout1D=NULL;
+   
    /*----*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -235,6 +236,24 @@ int main( int argc , char *argv[] )
 "\n"
 "  -prefix p = Save output into dataset with prefix 'p'\n"
 "               [default prefix is 'ATcorr'].\n"
+"  -out1D FILE.1D = Save output in a text file formatted thusly:\n"
+"                   Row 1 contains the 1D indices of non zero voxels in the \n"
+"                         mask from option -mask.\n"
+"                   Column 1 contains the 1D indices of non zero voxels in the\n"
+"                         mask from option -mask_source\n"
+"                   The rest of the matrix contains the correlation/eta2 \n"
+"                   values. Each column k corresponds to sub-brick k in \n"
+"                   the output volume p.\n"
+"                   To see 1D indices in AFNI, right click on the top left\n"
+"                   corner of the AFNI controller - where coordinates are\n"
+"                   shown - and chose voxel indices.\n"
+"                   A 1D index (ijk) is computed from the 3D (i,j,k) indices:\n"
+"                       ijk = i + j*Ni + k*Ni*Nj , with Ni and Nj being the\n"
+"                   number of voxels in the slice orientation and given by:\n"
+"                       3dinfo -ni -nj YOUR_VOLUME_HERE\n"
+"                   This option can only be used in conjunction with \n"
+"                   options -mask and -mask_source. Otherwise it makes little\n"
+"                   sense to write a potentially enormous text file.\n"
 "\n"
 "  -time     = Mark output as a 3D+time dataset instead of an anat bucket.\n"
    #ifdef ALLOW_MMAP
@@ -321,6 +340,14 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
+      if( strcmp(argv[nopt],"-out1D") == 0 ){
+         if (!(fout1D = fopen(argv[++nopt], "w"))) {
+            ERROR_message("Failed to open %s for writing", argv[nopt]);
+            exit(1);
+         }
+         nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-mask_only_targets") == 0 ){
          all_source = 1 ; nopt++ ; continue ;
       }
@@ -373,6 +400,12 @@ int main( int argc , char *argv[] )
    /*-- open dataset, check for legality --*/
 
    if( nopt >= argc ) ERROR_exit("Need a dataset on command line!?") ;
+
+   if (fout1D && (!mset || !msetinner)) {
+      fclose(fout1D);
+      ERROR_message("Must use -mask and -mask_source with -out1D");
+      exit(1);
+   }
 
    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
    if( DSET_NVALS(xset) < 3 )
@@ -617,12 +650,6 @@ AFNI_OMP_START ;
 AFNI_OMP_END ;
 
    /*----------  Finish up ---------*/
-   /* free inner mask if not a copy of mask */
-   if ( maskinner && maskinner != mask) {
-      free(maskinner); 
-   }
-   nmaskinner = 0;
-   maskinner=NULL;
 
    /* write mask info (if any) to output dataset header */
 
@@ -640,9 +667,9 @@ AFNI_OMP_END ;
    }
    
    
-   /* toss the remaining trash */
+   /* toss some trash */
 
-   free(imap) ; VECTIM_destroy(xvectim) ;
+   VECTIM_destroy(xvectim) ;
 
    /* if did mmap(), finish that off as well */
 
@@ -663,6 +690,45 @@ AFNI_OMP_END ;
 #endif
    }
 
+   if (fout1D) { /* write results to ASCII file, hopefully when masked */
+      if (fout1D && (!mask || !maskinner)) {
+         ERROR_message("Option -1Dout restricted to commands using"
+                       "-mask and -mask_source options."); 
+      } else {
+         float *far = (float *)calloc(nmask, sizeof(float));
+         int jj;
+         fprintf(fout1D,"#Text output of:\n#");
+         for (ii=0; ii<argc; ++ii) fprintf(fout1D,"%s ", argv[ii]);
+         fprintf(fout1D,"\n"
+              "#First row contains 1D indices of voxels from -mask\n"
+              "#First column contains 1D indices of voxels from -mask_source\n");
+         /* write the matrix */
+         fprintf(fout1D,"           ");
+         for( ii=0 ; ii < nmask ; ii++ ) {
+            fprintf(fout1D,"%08d ", imap[ii]);
+         }
+         fprintf(fout1D," #Mask Voxel Indices (from -mask)");
+         for( jj=0 ; jj < nvox ; jj++ ){
+            if (maskinner[jj]) {
+               fprintf(fout1D,"\n%08d   ", jj);
+               THD_extract_float_array( jj, cset, far );
+               for (ii=0; ii < nmask; ++ii)
+                  fprintf(fout1D,"%f ", far[ii]);
+            } 
+         }
+         free(far); far=NULL;
+         fclose(fout1D); fout1D = NULL;  
+      }
+   }
+   
+   /* free inner mask if not a copy of mask */
+   if ( maskinner && maskinner != mask) {
+      free(maskinner); 
+   }
+   nmaskinner = 0;
+   maskinner=NULL;
+   if (imap) free(imap) ; imap = NULL;
+   
    /* finito */
 
    if( !do_mmap ){
