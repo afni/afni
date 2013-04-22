@@ -898,7 +898,8 @@ while(is.null(fm)) {
 # number of terms (or F-stats): the output structure is different without within-subject variables
 nF      <- ifelse(is.na(lop$corStr[1]), nrow(anova(fm))-1, nrow(anova(fm)))
 nBasis  <- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)
-if(is.null(lop$QV)) nCovVal <- 0 else nCovVal <- sum(grep(lop$QV, dimnames(summary(fm)$tTable)[[1]]))
+if(is.null(lop$QV)) nCovVal <- 0 else nCovVal <- length(unique(unlist(sapply(lop$QV, grep, dimnames(summary(fm)$tTable)[[1]]))))
+# nCovVal <- sum(grep(lop$QV, dimnames(summary(fm)$tTable)[[1]]))
 nT      <- 2*(lop$num_glt + nBasis + nCovVal)
 NoBrick <- nF + nT
 
@@ -917,11 +918,12 @@ pars[[9]] <- corStr                 # correlation structure for basis function m
 pars[[10]]<- ifelse(lop$SS_type==3, 'marginal', 'sequential')
 pars[[11]]<- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)   # number of basis functions
 if(is.null(lop$QV)) pars[[12]] <- NULL else
-pars[[12]]<- grep(lop$QV, dimnames(summary(fm)$tTable)[[1]])    # row numbers involving covariate values
+pars[[12]]<- unique(unlist(sapply(lop$QV, grep, dimnames(summary(fm)$tTable)[[1]])))    # row numbers involving covariate values
 pars[[13]]<- (1:nF)+is.na(lop$corStr[1])                        # row sequence for F-values
 
+# test if it works
+#runLME(inData[1,2,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)
 
-#runAOV(inData[ii, jj, kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars, tag=0)
 
 print(sprintf("Start to compute %s slices along Z axis. You can monitor the progress", dimz))
 print("and estimate the total run time as shown below.")
@@ -1041,8 +1043,11 @@ for (i in (2-IdxAdj):(nF+1-IdxAdj)) {  # has an intercept or not
            " fift ", anova(fm)$numDF[i], " ", anova(fm)$denDF[i])
 }  # from 0 to NoF-1
 
-if(lop$num_glt > 0) if (!is.na(lop$gltLabel[1])) for (n in 1:dim(summary(fm)$tTable)[1]) 
-   statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
+if(lop$num_glt > 0) for (n in 1:lop$num_glt) 
+   statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fitt ",gltDF[n])
+
+if(!is.null(lop$QV)) for (n in 1:nCovVal) 
+   statpar <- paste(statpar, " -substatpar ", nF+2*lop$num_glt+2*n-1, " fitt ", summary(fm)$tTable[pars[[12]][n],"DF"])
 statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
 
 write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode=newid.AFNI(), type='MRI_short')
