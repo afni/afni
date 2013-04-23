@@ -4,12 +4,27 @@ if( $#argv > 0 ) then
   echo " "
   echo "Script to take a collection of datasets and transform them"
   echo "to MNI space, then collectively re-transform them to produce"
-  echo "a more refined average."
+  echo "a more refined average.  This script is usually used AFTER"
+  echo "running @toMNI_Awarp to do the affine alignments, and that"
+  echo "script is run after skull-stripping the original volumes."
   echo " "
-  echo "Usage: @toMNI_Qwarp
+  echo "Usage: @toMNI_Qwarp"
+  echo " "
+  echo "This script no longer produces the indiviual output warped"
+  echo "datasets -- just the average datasets at each refinement"
+  echo "level, named Qwarp_mean?+tlrc.HEAD, for '?' = A B C D E"
+  echo "from the lowest (affine) level of alignment (A) to the"
+  echo "highest (E) level of alignment."
+  echo " "
+  echo "To get the individual datasets, you can use the saved warps"
+  echo "with 3dNwarpApply, transforming from the original datasets."
   echo " "
   exit 0
 endif
+
+## setenv OMP_NUM_THREADS 6
+
+# Find the MNI template (which has been 3dUnifize-d)
 
 set basename = MNI152_1mm_uni+tlrc
 set pfac     = 1
@@ -20,6 +35,8 @@ if( $tpath == '' ) then
   exit 1
 endif
 
+# Create the list of 3dUnifize-d and affine MNI-ized datasets to process
+
 set dlist = ( *_uni+tlrc.HEAD )
 
 if( $#dlist < 9 ) then
@@ -27,7 +44,7 @@ if( $#dlist < 9 ) then
   exit 1
 endif
 
-# A level
+# A level (affine)
 
 echo " "
 echo "========== @toMNI_Qwarp: Compute A level mean (affine) =========="
@@ -35,7 +52,7 @@ echo " "
 
 3dMean -prefix Qwarp_meanA -datum float $dlist
 
-# B level
+# B level (coarse scale nonlinear)
 
 echo " "
 echo "========== @toMNI_Qwarp: Compute B level (minimum patch = 101) =========="
@@ -44,11 +61,13 @@ echo " "
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
    nice 3dQwarp -prefix ${bbb}_uniB  -blur 0 -4 -penfac $pfac   \
-                -minpatch 101                      \
+                -minpatch 101 -useweight -nodset                \
                 ${tpath}/${basename} $fred
 end
 
-3dMean -prefix Qwarp_meanB -datum float *_uniB+tlrc.HEAD
+# We 'adjust' each warp to remove the mean warp, then make the average dataset
+
+3dNwarpAdjust -nwarp *_uniB_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanB
 
 # C level
 
@@ -59,14 +78,12 @@ echo " "
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
    nice 3dQwarp -prefix ${bbb}_uniC  -blur 0 -3 -penfac $pfac     \
-                -inilev 2  -minpatch 49             -useweight \
+                -inilev 2  -minpatch 49 -nodset     -useweight \
                 -iniwarp ${bbb}_uniB_WARP+tlrc.HEAD  \
                 Qwarp_meanB+tlrc.HEAD $fred
 end
 
-\rm -f *_uniB_WARP*+tlrc.*
-
-3dMean -prefix Qwarp_meanC -datum float *_uniC+tlrc.HEAD
+3dNwarpAdjust -nwarp *_uniC_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanC
 
 # D level
 
@@ -77,14 +94,12 @@ echo " "
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
    nice 3dQwarp -prefix ${bbb}_uniD  -blur 0 -2 -penfac $pfac     \
-                -inilev 5  -minpatch 23            -useweight  \
+                -inilev 5  -minpatch 23 -nodset    -useweight  \
                 -iniwarp ${bbb}_uniC_WARP+tlrc.HEAD  \
                 Qwarp_meanC+tlrc.HEAD $fred
 end
 
-\rm -f *_uniC_WARP*+tlrc.*
-
-3dMean -prefix Qwarp_meanD -datum float *_uniD+tlrc.HEAD
+3dNwarpAdjust -nwarp *_uniD_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanD
 
 # E level
 
@@ -94,15 +109,29 @@ echo " "
 
 foreach fred ( $dlist )
    set bbb = `basename $fred _uni+tlrc.HEAD`
-   nice 3dQwarp -prefix ${bbb}_uniE  -blur 0 -1 -penfac $pfac      \
-                -inilev 7  -minpatch 13           -useweight   \
+   nice 3dQwarp -prefix ${bbb}_uniE  -blur 0 -2 -penfac $pfac      \
+                -inilev 7  -minpatch 13 -nodset   -useweight   \
                 -iniwarp ${bbb}_uniD_WARP+tlrc.HEAD  \
                 Qwarp_meanD+tlrc.HEAD $fred
 end
 
-\rm -f *_uniD_WARP*+tlrc.*
+3dNwarpAdjust -nwarp *_uniE_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanE
 
-3dMean -prefix Qwarp_meanE -datum float *_uniE+tlrc.HEAD
+# F level
+
+### echo " "
+### echo "========== @toMNI_Qwarp: Compute F level (minimum patch = 9) =========="
+### echo " "
+
+### foreach fred ( $dlist )
+###    set bbb = `basename $fred _uni+tlrc.HEAD`
+###    nice 3dQwarp -prefix ${bbb}_uniF  -blur 0 -2 -penfac $pfac      \
+###                 -inilev 9  -minpatch 9  -nodset   -useweight   \
+###                 -iniwarp ${bbb}_uniE_WARP+tlrc.HEAD  \
+###                 Qwarp_meanE+tlrc.HEAD $fred
+### end
+
+### 3dNwarpAdjust -nwarp *_uniF_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanF
 
 # finished
 
