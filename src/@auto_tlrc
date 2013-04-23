@@ -1249,12 +1249,12 @@ if ($KeepTmp != 1) then
       end
    endif
    if ("${RNS}" != '') then
-      set kl = (*_${RNS}+????.HEAD *_${RNS}_shft+????.HEAD)
+      set kl = (`\ls *_${RNS}+????.HEAD *_${RNS}_shft+????.HEAD`)
       foreach kk ($kl)
          set k = `echo $kk | sed "s/_${RNS}//"`
          3drename $kk $k
       end
-      set kl = (*_${RNS}_shft.1D)
+      set kl = (`\ls *_${RNS}_shft.1D`)
       foreach kk ($kl)
          set k = `echo $kk | sed "s/_${RNS}//"`
          mv $kk $k
