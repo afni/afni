@@ -258,7 +258,9 @@ def fitmodels2__(catd,mmix,mask,t2s,tes,fout=None,reindex=False):
 	#Compute per-voxel weights for Kappa and Rho (inverse variance normalization)
 	WTS = tsoc_B/tsoc_resid.std(axis=-1)[:,np.newaxis]
 	#Compute skews to determine signs, fix mmix signs
-	from scipy.stats import skew
+	try: from scipy.stats import skew
+	except:
+		from scipy.stats import skew
 	signs = skew(WTS,axis=0)
 	signs /= np.abs(signs)
 	mmix = mmix.copy()
@@ -378,7 +380,8 @@ def fitmodels2(catd,mmix,mask,t2s,tes,fout=None,reindex=False,mmixN=None):
 	WTS = computefeats2(unmask(tsoc,mask),mmixN,mask,normalize=False)
 
 	#Compute skews to determine signs based on unnormalized weights, correct mmix & WTS signs based on spatial distribution tails
-	from scipy.stats import skew
+	try: from scipy.stats import skew
+	except: from scipy.stats import skew
 	signs = skew(WTS,axis=0)
 	signs /= np.abs(signs)
 	mmix = mmix.copy()
