@@ -15,7 +15,7 @@ if( $#argv < 2 ) then
   exit 0
 endif
 
-set basename = MNI152_1mm+tlrc
+set basename = MNI152_1mm_uni+tlrc
 
 set dname = $argv[1]
 if( -e $dname ) then
