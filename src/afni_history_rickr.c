@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Apr, 2013, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "added eroded ROIs for -regress_ROI: WMe, GMe, CSFe",
+   NULL
+ } ,
+
  { 22, Apr, 2013, RCR, "auto_warp.py", MINOR, TYPE_GENERAL,
    "modified afni_base.afni_name.new() with 2 cases of parse_pref=1",
    "This is currently the only application of that parameter."
