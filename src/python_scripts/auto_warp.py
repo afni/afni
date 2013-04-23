@@ -16,7 +16,7 @@ g_help_string = """
     auto_warp.py     - Non-linear regisration 
     
     Basic Usage:
-      auto_warp.py -base TT_N27+tlrc -input anat.nii  \
+      auto_warp.py -base TT_N27+tlrc -input anat.nii  \\
                    -skull_strip_input yes
       
         
@@ -610,7 +610,7 @@ class RegWrap:
                         #m is the weight brick
       self.info_msg( "Aligning %s data to %s data" % \
            (b.input(), a.input() ))
-      n = a.new(new_pref="%s%s" % (a.prefix, suf))
+      n = a.new(new_pref="%s%s" % (a.prefix, suf), parse_pref=1)
       if (not n.exist() or ps.rewrite or ps.dry_run()):
          n.delete(ps.oexec)
          if (xmat==None):
@@ -647,7 +647,7 @@ class RegWrap:
            (b.input(), a.input() ))
       if (prefix==None):
          prefix = "%s.qw" % a.prefix   
-      n = a.new(new_pref=prefix)
+      n = a.new(new_pref=prefix, parse_pref=1)
       if (not n.exist() or ps.rewrite or ps.dry_run()):
          n.delete(ps.oexec)
          com = shell_com(  \

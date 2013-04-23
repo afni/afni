@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Apr, 2013, RCR, "auto_warp.py", MINOR, TYPE_GENERAL,
+   "modified afni_base.afni_name.new() with 2 cases of parse_pref=1",
+   "This is currently the only application of that parameter."
+ } ,
+
  { 17, Apr, 2013, RCR, "3dAFNItoNIFTI", MINOR, TYPE_BUG_FIX,
    "fixed old use of use of strcat() after strdup()",
    "Thanks to B Benson and J Stoddard for noting the problem."
