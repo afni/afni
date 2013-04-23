@@ -290,13 +290,18 @@ class afni_name:
       print "   Node Sel: %s" % self.nodesel
       print "   RangeSel: %s" % self.rangesel
       
-   def new(self,new_pref='', new_view=''):  
-      """return a copy with optional new_prefix and new_view"""
+   def new(self, new_pref='', new_view='', parse_pref=0):  
+      """return a copy with optional new_prefix and new_view
+         if parse_pref, parse prefix as afni_name
+      """
       an = afni_name()
       an.path = self.path
       if len(new_pref):
-         ant = parse_afni_name(new_pref)
-         an.prefix = ant['prefix']
+         # maybe parse prefix as afni_name
+         if parse_pref:
+            ant = parse_afni_name(new_pref)
+            an.prefix = ant['prefix']
+         else: an.prefix = new_pref
       else:
          an.prefix = self.prefix
       if len(new_view):
