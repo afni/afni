@@ -624,11 +624,12 @@ def valid_as_identifier(text, name, warn=0, wparent=None, empty_ok=1):
       valid = 0
    else:
       # check for valid characters
-      # replace '_' with alpha, then check s[0].isalpha and rest isalphanum
+      # replace [._] with alpha, then check s[0].isalpha and rest isalphanum
       # scopy = copy.deepcopy(text)
       scopy = str(text)
       if scopy[0].isalpha():                    # first character is good
          scopy = scopy.replace('_', 'x')        # swap out '_' to use isalnum()
+         scopy = scopy.replace('.', 'x')        # swap out '.' to use isalnum()
          if scopy.isalnum(): return 1           # then VALID
       
       if ' ' in text or '\t' in text: extext = '     <contains whitespace>'
