@@ -371,9 +371,11 @@ g_history = """
     3.42 Apr 09, 2013: fixed computed fitts for REML case
                        (thanks to G Pagnoni for noting the problem)
     3.43 Apr 15, 2013: added RESTING STATE NOTE to help
+    3.44 Apr 23, 2013: added eroded ROIs for -regress_ROI: WMe, GMe, CSFe
+        - 
 """
 
-g_version = "version 3.43, April 15, 2013"
+g_version = "version 3.44, April 23, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2013"

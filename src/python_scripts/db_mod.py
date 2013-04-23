@@ -17,6 +17,14 @@ WARP_EPI_TLRC_WARP      = 2
 WARP_EPI_ALIGN_A2E      = 4
 WARP_EPI_ALIGN_E2A      = 8
 
+# rcr - common steps
+#
+# - apply_uopt_to_block('-tcat_remove_last_trs', user_opts, block)
+# - if proc.surf_anat: treat as surface analysis
+# - if new dir to remove: proc.rm_list.append('dir') ; proc.rm_dirs = 1
+# - apply proc.sep_char?  (maybe it's time to forget that...)
+# - if OL.opt_is_yes(block.opts.find_opt(oname)): ...
+
 def apply_uopt_to_block(opt_name, user_opts, block):
     """just pass any parameters for opt_name along to the block
        return 0/1, based on whether the option was found
@@ -1980,32 +1988,71 @@ def mask_segment_anat(proc, block):
         return ''
     # and proc.anat_has_skull:
 
+    cin  = BASE.afni_name('Segsy/Classes%s' % proc.view)
+    cres = BASE.afni_name('Classes_resam%s' % proc.view)
+    mset = proc.prev_prefix_form(1, view=1)
+
     # maybe we will take more classes in some option...
     sclasses = ['CSF', 'GM', 'WM']
     cmd  = "# ---- segment anatomy into classes %s ----\n" % '/'.join(sclasses)
 
     cmd += "3dSeg -anat %s -mask AUTO -classes '%s'\n\n" \
                % (proc.anat_final.pv(), ' ; '.join(sclasses))
-    cmd += '# copy resulting Classes dataset to current directory\n'
-    cmd += '3dcopy Segsy/Classes%s .\n\n' % proc.view
-
-    result = BASE.afni_name('Classes_resam%s' % proc.view)
-    cmd += '# resample to match EPI data grid\n'            \
-            '3dresample -master %s -input Classes%s \\\n'   \
-            '           -prefix %s\n\n'                     \
-               % (proc.prev_prefix_form(1, view=1), proc.view, result.prefix)
-
-    cmd += '# and copy label table\n' \
-            '3drefit -copytables Classes%s %s\n\n' % (proc.view, result.pv())
-
-    proc.mask_classes = result
-    
-    for sc in sclasses:
-       proc.roi_dict[sc] = BASE.afni_name('Classes_resam%s' % proc.view)
 
     if OL.opt_is_yes(block.opts.find_opt('-mask_rm_segsy')):
        proc.rm_list.append('Segsy')
        proc.rm_dirs = 1
+
+    cmd += '# copy resulting Classes dataset to current directory\n'
+    cmd += '3dcopy %s .\n\n' % cin.rpv()
+
+    # ==== if not doing ROI regression, we are done ====
+    if not proc.user_opts.find_opt('-regress_ROI'): return cmd
+
+    ### else continue and make ROI masks
+
+    # make erosion ROIs?  (default = yes)
+    erode = not OL.opt_is_no(block.opts.find_opt('-mask_segment_erode'))
+
+    # list ROI labels for comments
+    baseliststr = '%s' % ' '.join(sclasses)
+    if erode: liststr = '(%s and %s)' % (baseliststr, 'e '.join(sclasses))
+    else:     liststr = '(%s)' % baseliststr
+
+    # make ROIs per class, and erode them by default
+    roiprefix = 'mask_${class}'
+    cc = '# make individual ROI masks for regression %s\n' \
+         'foreach class ( %s )\n' % (liststr, baseliststr)
+
+    # make non-eroded masks in either case
+    cc += '   # unitize and resample individual class mask from composite\n' \
+          '   3dmask_tool -input %s"<$class>" \\\n'                          \
+          '               -prefix rm.mask_${class}\n' % (cin.rpv())
+    cc += '   3dresample -master %s -rmode NN \\\n'                          \
+          '              -input rm.mask_${class}%s -prefix %s_resam\n'       \
+          % (mset, proc.view, roiprefix)
+
+    # start with the default: erode by 1 voxel
+    if erode:
+       # generate eroded copes 
+       cc += '   # also, generate eroded masks\n'
+       cc += '   3dmask_tool -input %s"<$class>" -dilate_input -1 \\\n' \
+             '               -prefix rm.mask_${class}e\n' % (cin.rpv())
+       cc += '   3dresample -master %s -rmode NN \\\n'  \
+             '              -input rm.mask_${class}e%s -prefix %se_resam\n'\
+             % (mset, proc.view, roiprefix)
+
+    cc += 'end\n\n'
+
+    cmd += cc
+
+    proc.mask_classes = cres    # store, just in case
+    
+    for sc in sclasses:
+       proc.roi_dict[sc] = BASE.afni_name('mask_%s_resam%s' % (sc, proc.view))
+       if erode:
+          ec = '%se' % sc
+          proc.roi_dict[ec] = BASE.afni_name('mask_%s_resam%s'%(ec,proc.view))
 
     return cmd
 
@@ -3584,12 +3631,17 @@ def db_cmd_regress_ROI(proc, block):
     # report errors for any unknown ROIs (not in roi_dict)
     keystr = ', '.join(proc.roi_dict.keys())
     nerrs = 0
+    segstr = 'requires -mask_segment_anat'
+    erdstr = 'requires -mask_segment_anat and -mask_seg_erode yes'
     for roi in rois:
         if not proc.roi_dict.has_key(roi):
             if   roi == 'brain': estr='EPI automask requires mask block'
-            elif roi == 'GM'   : estr='gray matter requires -mask_segment_anat'
-            elif roi == 'WM'   : estr='white matter requires -mask_segment_anat'
-            elif roi == 'CSF'  : estr='requires -mask_segment_anat'
+            elif roi == 'GM'   : estr='gray matter %s'  % segstr
+            elif roi == 'WM'   : estr='white matter %s' % segstr
+            elif roi == 'CSF'  : estr='CSF %s'          % segstr
+            elif roi == 'GMe'  : estr='eroded gray %s'  % erdstr
+            elif roi == 'WMe'  : estr='white matter %s' % erdstr
+            elif roi == 'CSFe' : estr='CSF %s'          % erdstr
             else               : estr = 'not a known ROI'
             print "** ROI '%s' : %s" % (roi, estr)
             nerrs += 1
@@ -3599,25 +3651,32 @@ def db_cmd_regress_ROI(proc, block):
         return 1, ''
 
     if len(rois) > 1:
-          cmd = '# create %d ROI regressors: %s\n' % (len(rois), keystr)
-    else: cmd = '# create ROI regressor: %s\n' % keystr
+          cmd = '# create %d ROI regressors: %s\n' % (len(rois),', '.join(rois))
+    else: cmd = '# create ROI regressor: %s\n' % rois[0]
 
     cmd += 'foreach run ( $runs )\n'
+    cmd += '    # get each ROI average time series and remove resulting mean\n'
     for roi in rois:
         mset = proc.roi_dict[roi]
+        # -- no more label table, masks are now unit            22 Apr 2013
         # maybe we need a label table value selector
-        if roi in ['GM', 'WM', 'CSF']: substr = '"<%s>"' % roi
-        else:                          substr = ''
-        cmd += '    3dmaskave -quiet -mask %s%s %s%s > rm.ROI.%s.r$run.1D\n' \
-               % (mset.pv(), substr, proc.volreg_prefix, proc.view, roi)
+        # if roi in ['GM', 'WM', 'CSF']: substr = '"<%s>"' % roi
+        # else:                          substr = ''
+        ofile = 'rm.ROI.%s.r$run.1D' % roi
+        cmd += '    3dmaskave -quiet -mask %s %s%s \\\n'                   \
+               '              | 1d_tool.py -infile - -demean -write %s \n' \
+               % (mset.pv(), proc.volreg_prefix, proc.view, ofile)
     cmd += 'end\n'
 
+    cmd += '# and catenate the demeaned ROI averages across runs\n'
     for roi in rois:
         rname = 'ROI.%s' % roi
         rfile = '%s_rall.1D' % rname
         cmd += 'cat rm.%s.r*.1D > %s\n' % (rname, rfile)
         proc.regress_orts.append([rfile, rname])
     cmd += '\n'
+
+    print '++ have %d ROIs to regress: %s' % (len(rois), ', '.join(rois))
 
     return 0, cmd
 
@@ -4797,18 +4856,10 @@ g_help_string = """
 
        10. Resting state analysis, with tissue-based regressors.
 
-           Like example #9, but also regress global mean, white mater and
-           CSF averages.  The GM regressor comes from the full_mask dataset,
-           while WM and CSF signals come from Classes, created by 3dSeg via
-           the -mask_segment_anat option.
+           Like example #9, but also regress eroded white matter and CSF
+           averages.  The WMe and CSFe signals come from the Classes dataset,
+           created by 3dSeg via the -mask_segment_anat option.
 
-           So the GM regressor (called 'brain' for its mask) only requires the
-           mask processing block, while WM, CSF (and optionally GM) require
-           the additional -mask_segment_anat option.
-
-           To specify tissue-based regressors, use -regress_ROI with known
-           mask classes (currently brain, GM, WM,CSF).
-                
                 afni_proc.py -subj_id subj123                               \\
                         -dsets epi_run1+orig.HEAD                           \\
                         -copy_anat anat+orig                                \\
@@ -4821,7 +4872,7 @@ g_help_string = """
                         -regress_censor_outliers 0.1                        \\
                         -regress_bandpass 0.01 0.1                          \\
                         -regress_apply_mot_types demean deriv               \\
-                        -regress_ROI brain WM CSF                           \\
+                        -regress_ROI WMe CSFe                               \\
                         -regress_run_clustsim no                            \\
                         -regress_est_blur_errts
 
@@ -7592,20 +7643,24 @@ g_help_string = """
 
         -regress_ROI R1 R2 ... : specify a list of mask averages to regress out
 
-                e.g. -regress_RONI brain WM CSF
+                e.g. -regress_ROI WMe
+                e.g. -regress_ROI brain WMe CSF
 
-            Use this option to regress out one more more tissue-based ROI
-            averages.  Currently known ROIs include:
+            Use this option to regress out one more more known ROI averages.
+            Currently known ROIs include:
 
                 name    description     source dataset    creation program
                 -----   --------------  --------------    ----------------
                 brain   EPI brain mask  full_mask         3dAutomask
-                CSF     CSF             Classes_resam     3dSeg
-                GM      gray matter     Classes_resam     3dSeg
-                WM      white matter    Classes_resam     3dSeg
+                CSF     CSF             mask_CSF_resam    3dSeg -> Classes
+                CSFe    CSF (eroded)    mask_CSFe_resam   3dSeg -> Classes
+                GM      gray matter     mask_GM_resam     3dSeg -> Classes
+                GMe     gray (eroded)   mask_GMe_resam    3dSeg -> Classes
+                WM      white matter    mask_WM_resam     3dSeg -> Classes
+                WMe     white (eroded)  mask_WMe_resam    3dSeg -> Classes
 
             Note: use of this option requires the 'mask' processing block
-            Note: use of CSF, GM, or WM additionally require -mask_segment_anat
+            Note: use of any non-brain cases requires -mask_segment_anat.
 
             See also -mask_segment_anat.
             Please see '3dSeg -help' for motion information on the masks.
@@ -7727,7 +7782,7 @@ g_help_string = """
 
             Corresponding labels can be given with -regress_extra_stim_labels.
 
-            See also -regress_extra_stim_labels, -regress_RONI.
+            See also -regress_extra_stim_labels, -regress_ROI, -regress_RONI.
 
         -regress_extra_stim_labels LAB1 ... : specify extra stim file labels
 
