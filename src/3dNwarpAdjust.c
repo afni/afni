@@ -18,7 +18,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_sbar , *dset_wbar , *dset_twarp ;
    int nx,ny,nz,nxyz , nxs,nys,nzs ;
    IndexWarp3D *AA,*BB , *WWbin ;
-   float *sbar , fac ;
+   float *sbar , fac , Anorm,Bnorm ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -106,7 +106,6 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strncasecmp(argv[iarg],"-prefix",5) == 0 ){
-       if( prefix != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: '%s' '%s' :-(",argv[iarg-1],argv[iarg]) ;
@@ -199,11 +198,15 @@ int main( int argc , char *argv[] )
 
    if( verb ) fprintf(stderr,"++ Invert mean warp") ;
 
-   AA    = IW3D_from_dataset( dset_wbar , 0,0 ) ;
-   WWbin = IW3D_invert( AA , NULL , MRI_WSINC5 ) ;
+   AA    = IW3D_from_dataset( dset_wbar , 0,0 ); Anorm = IW3D_normL1(AA   ,NULL);
+   WWbin = IW3D_invert( AA, NULL , MRI_WSINC5 ); Bnorm = IW3D_normL1(WWbin,NULL);
    IW3D_destroy( AA ) ;
 
-   if( verb ) fprintf(stderr,"\n") ;
+   if( verb ){
+     fprintf(stderr,"\n") ;
+     ININFO_message("Mean warp L1 norm = %.1g voxel displacement",Anorm) ;
+     ININFO_message("Inverse   L1 norm = %.1g voxel displacement",Bnorm) ;
+   }
 
    /* now adjust and re-write all input warps */
 
