@@ -88,26 +88,29 @@ foreach series ( $slist )
       continue
    endif
 
-   echo "-- series $series, $#sfiles files (starting from $sfiles[1])"
-
    set sdir = series.$series
    if ( -d $sdir ) then
       echo "** already have series dir 'series.$series', failing"
       exit
    endif
 
-   if ( ! $testing ) then
+   if ( $testing ) then
+      echo "== testing: would '$act_cmd' $#sfiles files into $sdir"
+      echo "            files are $sfiles[1] .. $sfiles[$#sfiles]"
+      echo ""
+   else
       mkdir $sdir
       if ( $status ) then
          echo "** failed to create series dir $sdir, do you have permission?"
          exit
       endif
 
-      echo "++ moving $#sfiles files to $sdir..."
+      echo "++ $action $#sfiles files to $sdir...  (first = $sfiles[1])"
       $act_cmd $sfiles $sdir
+      echo "   try: Dimon -infile_pat 'series.$series/*' -gert_create_dataset"
+      echo ""
    endif
 
-   echo "   consider: Dimon -infile_pat 'series.$series/*' -gert_create_dataset"
 end
 
 exit
