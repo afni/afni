@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Apr, 2013, RCR, "@move.to.series.dirs", MINOR, TYPE_NEW_PROG,
+   "partition a list of DICOM files by series number",
+   "Done for I Shapira."
+ } ,
+
  { 24, Apr, 2013, RCR, "3dinfo", MINOR, TYPE_BUG_FIX,
    "allow -space for nifti; actually exit if -view and result exists",
    "Thanks to I Schwabacher for noting the problem and fix."
