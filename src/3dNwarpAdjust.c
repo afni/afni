@@ -204,8 +204,8 @@ int main( int argc , char *argv[] )
 
    if( verb ){
      fprintf(stderr,"\n") ;
-     ININFO_message("Mean warp L1 norm = %.1g voxel displacement",Anorm) ;
-     ININFO_message("Inverse   L1 norm = %.1g voxel displacement",Bnorm) ;
+     ININFO_message("Mean warp L1 norm = %.2f voxel displacement",Anorm) ;
+     ININFO_message("Inverse   L1 norm = %.2f voxel displacement",Bnorm) ;
    }
 
    /* now adjust and re-write all input warps */
