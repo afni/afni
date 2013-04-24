@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Apr, 2013, RCR, "@2dwarper.Allin", MINOR, TYPE_BUG_FIX,
+   "did not set 'ver' before goto START",
+   "Thanks to I Schwabacher for noting the problem and fix."
+ } ,
+
  { 24, Apr, 2013, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
    "added -censor_next_TR",
    "Sticking with backward diff for deriv, as it makes sense for censoring."
