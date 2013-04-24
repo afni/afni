@@ -674,7 +674,7 @@ class Afni1D:
          print '** set_first_TRs: Afni1D is not ready'
          return 1
 
-      # apply derivative to each vector as one run, then clear run breaks
+      # apply 'newval' to first 'nfirst' in each run
       for ind in range(self.nvec):
          offset = 0
          for run, rlen in enumerate(self.run_len):
@@ -700,6 +700,21 @@ class Afni1D:
       for v in range(self.nvec):
          for t in range(self.nt-1):
             if self.mat[v][t+1] and not self.mat[v][t]: self.mat[v][t] = 1
+
+      return 0
+
+   def clear_next_TRs(self):
+      """if one TR is clear, also clear the next one"""
+
+      if self.verb > 3: print '-- clearing next TRs...'
+
+      if not self.ready:
+         print '** clear_next_TRs: Afni1D is not ready'
+         return 1
+
+      for v in range(self.nvec):
+         for t in range(self.nt-2, -1, -1):
+            if not self.mat[v][t] and self.mat[v][t+1]: self.mat[v][t+1] = 0
 
       return 0
 

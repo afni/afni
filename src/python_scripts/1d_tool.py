@@ -145,6 +145,8 @@ examples (very basic for now):
 
   10.  Given motion.1D, create censor files to use in 3dDeconvolve, where a
        TR is censored if the derivative values have a Euclidean Norm above 1.2.
+       It is common to also censor each previous TR, as motion may span both
+       (previous because "derivative" is actually a backward difference).
 
        The file created by -write_censor can be used with 3dD's -censor option.
        The file created by -write_CENSORTR can be used with -CENSORTR.  They
@@ -153,11 +155,12 @@ examples (very basic for now):
  
        a. general example
 
-          1d_tool.py -infile motion.1D -set_nruns 9                 \\
-                     -derivative -collapse_cols euclidean_norm      \\
-                     -moderate_mask -1.2 1.2                        \\
-                     -show_censor_count                             \\
-                     -write_censor subjA_censor.1D                  \\
+          1d_tool.py -infile motion.1D -set_nruns 9     \\
+                     -derivative -censor_prev_TR        \\
+                     -collapse_cols euclidean_norm      \\
+                     -moderate_mask -1.2 1.2            \\
+                     -show_censor_count                 \\
+                     -write_censor subjA_censor.1D      \\
                      -write_CENSORTR subjA_CENSORTR.txt
 
        b. using -censor_motion
@@ -170,14 +173,16 @@ examples (very basic for now):
 
           1d_tool.py -infile motion.1D -set_nruns 9     \\
                      -show_censor_count                 \\
-                     -censor_motion 1.2 subjA
+                     -censor_motion 1.2 subjA           \\
+                     -censor_prev_TR
 
        c. allow the run lengths to vary
 
           1d_tool.py -infile motion.1D                           \\
                      -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
                      -show_censor_count                          \\
-                     -censor_motion 1.2 subjA_rlens
+                     -censor_motion 1.2 subjA_rlens              \\
+                     -censor_prev_TR
 
        Consider also '-censor_prev_TR' and '-censor_first_trs'.
 
@@ -305,7 +310,7 @@ examples (very basic for now):
    18. Just output censor count for default method.
 
        This will output nothing but the number of TRs that would be censored,
-       akin to using -censor_motion.
+       akin to using -censor_motion and -censor_prev_TR.
 
         1d_tool.py -infile dfile_rall.1D -set_nruns 3 -quick_censor_count 0.3
 
@@ -342,7 +347,7 @@ general options:
 
    -add_cols NEW_DSET.1D        : extend dset to include these columns
 
-   -backward_diff               : take derivative as backward difference
+   -backward_diff               : take derivative as first backward difference
 
         Take the backward differences at each time point.  For each index > 0,
         value[index] = value[index] - value[index-1], and value[0] = 0.
@@ -428,12 +433,14 @@ general options:
 
    -censor_first_trs N          : when censoring motion, also censor the first
                                   N TRs of each run
+   -censor_next_TR              : for each censored TR, also censor next one
+                                  (probably for use with -forward_diff)
    -censor_prev_TR              : for each censored TR, also censor previous
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
    -demean                      : demean each run (new mean of each run = 0.0)
 
    -derivative                  : take the temporal derivative of each vector
-                                  (done as backward difference)
+                                  (done as first backward difference)
 
         Take the backward differences at each time point.  For each index > 0,
         value[index] = value[index] - value[index-1], and value[0] = 0.
@@ -452,9 +459,9 @@ general options:
 
         Note: this was originally described incorrectly in the help.
 
-   -forward_diff                : take the temporal derivative of each vector
+   -forward_diff                : take first forward difference of each vector
 
-        Take the forward differences at each time point.  For index < last,
+        Take the first forward differences at each time point.  For index<last,
         value[index] = value[index+1] - value[index], and value[last] = 0.
 
         The difference between -forward_diff and -backward_diff is a time shift
@@ -758,9 +765,10 @@ g_history = """
    1.12 Mar 27, 2013
         - added -show_group_labels (for xmat.1D format)
         - added -label_prefix_keep/_drop (e.g. for removing bandpass regressors)
+   1.13 Apr 24, 2013 - added -censor_next_TR
 """
 
-g_version = "1d_tool.py version 1.12, March 27, 2013"
+g_version = "1d_tool.py version 1.13, April 24, 2013"
 
 
 class A1DInterface:
@@ -783,6 +791,7 @@ class A1DInterface:
       self.censor_fill     = 0          # zero-fill censored TRs
       self.censor_fill_par = ''         # same, but via this parent dset
       self.censor_first_trs= 0          # number of first TRs to also censor
+      self.censor_next_TR  = 0          # if censor, also censor next TR
       self.censor_prev_TR  = 0          # if censor, also censor previous TR
       self.collapse_method = ''         # method for collapsing columns
       self.demean          = 0          # demean the data
@@ -910,7 +919,7 @@ class A1DInterface:
                       helpstr='extend dataset with columns from new file')
 
       self.valid_opts.add_opt('-backward_diff', 0, [], 
-                      helpstr='take derivative using backward differences')
+                      helpstr='compute first backward differences')
 
       self.valid_opts.add_opt('-censor_fill', 0, [], 
                       helpstr='zero-fill previously censored TRs')
@@ -926,6 +935,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-censor_motion', 2, [], 
                       helpstr='censor motion data with LIMIT and PREFIX')
+
+      self.valid_opts.add_opt('-censor_next_TR', 0, [], 
+                      helpstr='if censoring a TR, also censor next one')
 
       self.valid_opts.add_opt('-censor_prev_TR', 0, [], 
                       helpstr='if censoring a TR, also censor previous one')
@@ -948,7 +960,7 @@ class A1DInterface:
                       helpstr='create mask for values outside (MIN,MAX)')
 
       self.valid_opts.add_opt('-forward_diff', 0, [], 
-                      helpstr='take derivative using forward differences')
+                      helpstr='compute first forward differences')
 
       self.valid_opts.add_opt('-moderate_mask', 2, [], 
                       helpstr='create mask for values within [MIN,MAX]')
@@ -1208,6 +1220,9 @@ class A1DInterface:
             if err: return 1
             self.censor_first_trs = val
 
+         elif opt.name == '-censor_next_TR':
+            self.censor_next_TR = 1
+
          elif opt.name == '-censor_prev_TR':
             self.censor_prev_TR = 1
 
@@ -1307,14 +1322,15 @@ class A1DInterface:
                return 1
             # check for redundant options
             errors = 0
-            olist = ['-derivative', '-demean', '-collapse_cols', '-verb',
-                     '-extreme_mask', 'moderate_mask', '-show_censor_count']
+            olist = ['-derivative', '-demean', '-collapse_cols',
+                     'moderate_mask', '-show_censor_count',
+                     '-show_censor_count', '-verb']
             for oname in olist:
                if uopts.find_opt(oname):
                   print "** option %s is redundant with -quick_censor_count" \
                         % oname
                   errors += 1
-            olist = ['-censor_motion', '-write_censor']
+            olist = ['-censor_motion', '-write_censor', '-extreme_mask']
             for oname in olist:
                if uopts.find_opt(oname):
                   print "** option %s is not allowed with -quick_censor_count" \
@@ -1561,6 +1577,9 @@ class A1DInterface:
       if self.censor_fill_par:
          parent = LAD.Afni1D(self.censor_fill_par, verb=self.verb)
          if self.adata.apply_goodlist(padbad=1, parent=parent): return 1
+
+      if self.censor_next_TR:
+         if self.adata.clear_next_TRs(): return 1
 
       if self.censor_prev_TR:
          if self.adata.clear_prior_TRs(): return 1
