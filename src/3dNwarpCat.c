@@ -376,6 +376,7 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dNwarpCat",argc,argv);
    PRINT_VERSION("3dNwarpCat"); AUTHOR("Zhark the Warper");
    (void)COX_clock_time() ;
+   putenv("AFNI_WSINC5_SILENT=YES") ;
 
    ZERO_MAT44(imat) ; ZERO_MAT44(cmat) ;
    for( ii=0 ; ii < NWMAX ; ii++ ){
