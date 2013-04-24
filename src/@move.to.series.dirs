@@ -1,0 +1,166 @@
+#!/bin/tcsh
+
+# ----------------------------------------------------------------------
+# @move.to.series.dirs          - partition DICOM files into series dirs
+#
+# Given a list of DICOM files, partition them into files per series.
+#
+# consider:     @move.to.series.dirs -help
+# ----------------------------------------------------------------------
+
+set testing = 0         # set for just a test, clear to actually move
+
+set prog = `basename $0`
+set fprefix = tmp
+set infiles = ()
+set series_tag = 0020,0011
+set action = copy                # copy or move
+set version = '0.0, 24 Apr 2013'
+
+if ( $#argv < 1 ) goto SHOW_HELP
+
+# ----------------------------------------------------------------------
+# check options
+set ac = 1
+while ( $ac <= $#argv )
+   if      ( "$argv[$ac]" == "-help" ) then
+      goto SHOW_HELP
+   else if ( "$argv[$ac]" == "-hist" ) then
+      goto SHOW_HIST
+   else if ( "$argv[$ac]" == "-ver" ) then
+      echo "version $version"
+      exit
+
+   else if ( "$argv[$ac]" == "-action" ) then
+      @ ac += 1
+      if ( $#argv < $ac ) then
+         echo "** missing argument for -action"
+         exit 1
+      endif
+      set action = $argv[$ac]
+
+   else if ( "$argv[$ac]" == "-tag" ) then
+      @ ac += 1
+      if ( $#argv < $ac ) then
+         echo "** missing argument for -tag"
+         exit 1
+      endif
+      set tag = $argv[$ac]
+
+   else if ( "$argv[$ac]" == "-test" ) then
+      set testing = 1
+
+   else         # anything else is file
+      set infiles = ( $argv[$ac-] )
+      break
+   endif
+
+   @ ac += 1
+end
+
+if ( $#infiles < 1 ) then
+   echo "** missing input files..."
+   exit
+endif
+
+# set the file manipulation command
+if ( $action == move ) then
+   set act_cmd = 'mv'
+else
+   set act_cmd = 'cp -p'
+endif
+
+# get all series numbers
+set slist_file = $fprefix.series.list.txt
+dicom_hinfo -tag $series_tag $infiles > $slist_file
+
+# parse down to unique list
+set slist = ( `awk '{print $2}' $slist_file | sort | uniq` )
+
+echo found $#slist series numbers: $slist
+echo ""
+
+foreach series ( $slist )
+   set sfiles = ( `awk '$2 == '$series' {print $1}' $slist_file` )
+
+   if ( $#sfiles == 0 ) then
+      echo "** empty series $series???"
+      continue
+   endif
+
+   echo "-- series $series, $#sfiles files (starting from $sfiles[1])"
+
+   set sdir = series.$series
+   if ( -d $sdir ) then
+      echo "** already have series dir 'series.$series', failing"
+      exit
+   endif
+
+   if ( ! $testing ) then
+      mkdir $sdir
+      if ( $status ) then
+         echo "** failed to create series dir $sdir, do you have permission?"
+         exit
+      endif
+
+      echo "++ moving $#sfiles files to $sdir..."
+      $act_cmd $sfiles $sdir
+   endif
+
+   echo "   consider: Dimon -infile_pat 'series.$series/*' -gert_create_dataset"
+end
+
+exit
+
+SHOW_HELP:
+# ----------------------------------------------------------------------
+cat << EOF
+
+-----------------------------------------------------------------
+$prog           - partition DICOM files into series directories
+
+Given a set of DICOM files copy or move the files into new series directories.
+Generate a list of series numbers, and for each one, make a directory and copy
+or move the files.
+
+usage: $prog [options] DICOM_FILES ...
+
+examples:
+
+    $prog -test IMG*
+    $prog -action move IMG*
+
+terminal option:
+
+   -help        : show hist help
+   -hist        : show modification history
+   -ver         : show version number
+
+processing option:
+
+   -action ACTION       : ACTION can be copy or move
+                          default = copy
+   -tag TAG             : specify tag to use for partitioning
+                          default = 0020,0011   (REL Series Number)
+   -test                : do not move any file, just show what would be done
+
+---------------------------------------------
+
+R Reynolds, April, 2013
+------------------------------------------------------------
+EOF
+
+exit
+
+SHOW_HIST:
+
+cat << EOF
+-----------------------------------------------------------------
+$prog modification history:
+
+   0.0  : Apr 24, 2013: initial version
+
+EOF
+
+exit
+
