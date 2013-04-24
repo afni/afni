@@ -456,6 +456,7 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dQwarp",argc,argv);
    PRINT_VERSION("3dQwarp"); AUTHOR("Zhark the Hermite Cubically Warped");
    (void)COX_clock_time() ;  /* initialize the clock timer */
+   putenv("AFNI_WSINC5_SILENT=YES") ;
 
    /*--- options ---*/
 
