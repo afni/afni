@@ -1898,7 +1898,11 @@ int main( int argc , char *argv[] )
             dset->view_type = old_vtype ;
             THD_init_diskptr_names( dset->dblk->diskptr ,
                                     NULL , NULL , NULL , old_vtype , True ) ;
-            ERROR_message("Can't change view: would overwrite existing files!\n") ;
+            /* if not changing the current file, fail
+               (i.e. accept in case of NIfTI or similar in -space)
+               (suggested by I Schwabacher)         24 Apr 2013 [rickr] */
+            if( strcmp(old_head, new_head) )
+             ERROR_exit("Can't change view: would overwrite existing files!\n");
          } else {
             rename( old_head , new_head ) ;
             { char * fff = COMPRESS_filename(old_brik) ;
