@@ -1,0 +1,258 @@
+#!/bin/tcsh
+
+if( $#argv > 0 ) then
+  echo " "
+  echo "** This script is similar to @toMNI_Qwarp -- but it spawns"
+  echo "** jobs in parallel (on the same system).  To use it, you"
+  echo "** must edit the script and set the 2 variables"
+  echo "**   set numcpu = TOTAL NUMBER OF CPUS TO USE"
+  echo "**   set numjob = NUMBER OF JOBS TO USE"
+  echo "** Each job will get numcpu/numjob CPUs."
+  echo " "
+  echo "Script to take a collection of datasets and transform them"
+  echo "to MNI space, then collectively re-transform them to produce"
+  echo "a more refined average.  This script is usually used AFTER"
+  echo "running @toMNI_Awarp to do the affine alignments, and that"
+  echo "script is run after skull-stripping the original volumes."
+  echo " "
+  echo "Usage: @toMNI_Qwarp"
+  echo " "
+  echo "This script no longer produces the indiviual output warped"
+  echo "datasets -- just the average datasets at each refinement"
+  echo "level, named Qwarp_mean?+tlrc.HEAD, for '?' = A B C D E"
+  echo "from the lowest (affine) level of alignment (A) to the"
+  echo "highest (E) level of alignment."
+  echo " "
+  echo "To get the individual datasets, you can use the saved warps"
+  echo "with 3dNwarpApply, transforming from the original datasets."
+  echo " "
+  exit 0
+endif
+
+##### Set these 2 variables for your system #####
+
+set numcpu = 24
+set numjob = 6
+
+##### Don't alter the script below this line! #####
+
+##### Find the MNI template (which has been 3dUnifize-d)
+
+set basename = MNI152_1mm_uni+tlrc
+
+set tpath = `@FindAfniDsetPath $basename`
+if( $tpath == '' ) then
+  echo "** @toMNI_Qwarp: Failed to find template $basename -- cannot continue"
+  exit 1
+endif
+
+##### Create the list of 3dUnifize-d and affine MNI-ized datasets to process
+
+set dlist = ( *_uni+tlrc.HEAD )
+
+if( $#dlist < 9 ) then
+  echo "** @toMNI_Qwarp: Not enough input datasets (need at least 9) -- cannot continue"
+  exit 1
+endif
+
+##### break dlist into numjob sub-lists of (about) the same length
+
+@ nper  = $#dlist / $numjob
+@ next  = $#dlist % $numjob
+@ jcpu  = $numcpu / $numjob
+@ jplus = $numjob + 1
+
+set top = 0
+set botlist = ( )
+set toplist = ( )
+foreach part ( `count -dig 1 1 $numjob` )
+  @ bot = $top + 1
+  @ top = $top + $nper
+  if ( $next > 0 ) then
+    @ top++ ; @ next--
+  endif
+  set botlist = ( $botlist $bot )
+  set toplist = ( $toplist $top )
+end
+
+echo "=== Processing $#dlist datasets in $numjob jobs"
+echo "=== Bottom index list = $botlist"
+echo "=== Top    index list = $toplist"
+
+##### A level (affine) #####
+
+echo " "
+echo "========== @toMNI_Qwarp: Compute A level mean (affine) =========="
+echo " "
+
+3dMean -prefix Qwarp_meanA -datum float $dlist
+
+##### B level (coarsest scale nonlinear) #####
+
+echo " "
+echo "========== @toMNI_Qwarp: Compute B level (minimum patch = 101) =========="
+echo " "
+
+echo "setenv OMP_NUM_THREADS $jcpu"                         >  BBwarp_script
+echo 'set basename = MNI152_1mm_uni+tlrc'                   >> BBwarp_script
+echo 'set tpath = `@FindAfniDsetPath $basename`'            >> BBwarp_script
+echo 'foreach fred ( $argv )'                               >> BBwarp_script
+echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'         >> BBwarp_script
+echo '   nice 3dQwarp -prefix ${bbb}_uniB  -blur 0 4    \'  >> BBwarp_script
+echo '                -minpatch 101 -useweight -nodset  \'  >> BBwarp_script
+echo '                ${tpath}/${basename} $fred'           >> BBwarp_script
+echo 'end'                                                  >> BBwarp_script
+echo 'touch BBwarp_$argv[1]_Done'                           >> BBwarp_script
+echo 'exit 0'                                               >> BBwarp_script
+
+foreach part ( `count -dig 1 1 $numjob` )
+  tcsh ./BBwarp_script $dlist[$botlist[$part]-$toplist[$part]] &
+  sleep 1
+end
+
+while(1)
+  sleep 60
+  set fdone = ( BBwarp_* )
+  if( $#fdone == $jplus ) break
+end
+
+\rm BBwarp_*
+
+3dNwarpAdjust -nwarp *_uniB_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanB
+
+##### C level (next level nonlinear) #####
+
+echo " "
+echo "========== @toMNI_Qwarp: Compute C level (minimum patch = 49) =========="
+echo " "
+
+
+echo "setenv OMP_NUM_THREADS $jcpu"                                    >  CCwarp_script
+echo 'foreach fred ( $argv )'                                          >> CCwarp_script
+echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'                    >> CCwarp_script
+echo '   nice 3dQwarp -prefix ${bbb}_uniC  -blur 0 3               \'  >> CCwarp_script
+echo '                -inilev 2  -minpatch 49 -nodset  -useweight  \'  >> CCwarp_script
+echo '                -iniwarp ${bbb}_uniB_WARP+tlrc.HEAD          \'  >> CCwarp_script
+echo '                Qwarp_meanB+tlrc.HEAD $fred'                     >> CCwarp_script
+echo 'end'                                                             >> CCwarp_script
+echo 'touch CCwarp_$argv[1]_Done'                                      >> CCwarp_script
+echo 'exit 0'                                                          >> CCwarp_script
+
+foreach part ( `count -dig 1 1 $numjob` )
+  tcsh ./CCwarp_script $dlist[$botlist[$part]-$toplist[$part]] &
+  sleep 1
+end
+
+while(1)
+  sleep 60
+  set fdone = ( CCwarp_* )
+  if( $#fdone == $jplus ) break
+end
+
+\rm CCwarp_*
+
+3dNwarpAdjust -nwarp *_uniC_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanC
+
+##### D level (next level finer nonlinear) #####
+
+echo " "
+echo "========== @toMNI_Qwarp: Compute D level (minimum patch = 23) =========="
+echo " "
+
+echo "setenv OMP_NUM_THREADS $jcpu"                                       >  DDwarp_script
+echo 'foreach fred ( $argv )'                                             >> DDwarp_script
+echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'                       >> DDwarp_script
+echo '   nice 3dQwarp -prefix ${bbb}_uniD  -blur 0 -2                \'   >> DDwarp_script
+echo '                -inilev 5  -minpatch 23 -nodset    -useweight  \'   >> DDwarp_script
+echo '                -iniwarp ${bbb}_uniC_WARP+tlrc.HEAD            \'   >> DDwarp_script
+echo '                Qwarp_meanC+tlrc.HEAD $fred'                        >> DDwarp_script
+echo 'end'                                                                >> DDwarp_script
+echo 'touch DDwarp_$argv[1]_Done'                                         >> DDwarp_script
+echo 'exit 0'                                                             >> DDwarp_script
+
+foreach part ( `count -dig 1 1 $numjob` )
+  tcsh ./DDwarp_script $dlist[$botlist[$part]-$toplist[$part]] &
+  sleep 1
+end
+
+while(1)
+  sleep 60
+  set fdone = ( DDwarp_* )
+  if( $#fdone == $jplus ) break
+end
+
+\rm DDwarp_*
+
+3dNwarpAdjust -nwarp *_uniD_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanD
+
+##### E level (even finer nonlinear) #####
+
+echo " "
+echo "========== @toMNI_Qwarp: Compute E level (minimum patch = 13) =========="
+echo " "
+
+echo "setenv OMP_NUM_THREADS $jcpu"                                      >  EEwarp_script
+echo 'foreach fred ( $argv )'                                            >> EEwarp_script
+echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'                      >> EEwarp_script
+echo '   nice 3dQwarp -prefix ${bbb}_uniE  -blur 0 -2                \'  >> EEwarp_script
+echo '                -inilev 7  -minpatch 13 -nodset   -useweight   \'  >> EEwarp_script
+echo '                -iniwarp ${bbb}_uniD_WARP+tlrc.HEAD            \'  >> EEwarp_script
+echo '                Qwarp_meanD+tlrc.HEAD $fred'                       >> EEwarp_script
+echo 'end'                                                               >> EEwarp_script
+echo 'touch EEwarp_$argv[1]_Done'                                        >> EEwarp_script
+echo 'exit 0'                                                            >> EEwarp_script
+
+foreach part ( `count -dig 1 1 $numjob` )
+  tcsh ./EEwarp_script $dlist[$botlist[$part]-$toplist[$part]] &
+  sleep 1
+end
+
+while(1)
+  sleep 60
+  set fdone = ( EEwarp_* )
+  if( $#fdone == $jplus ) break
+end
+
+\rm EEwarp_*
+
+3dNwarpAdjust -nwarp *_uniE_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanE
+
+##### F level (optional) #####
+
+### echo " "
+### echo "========== @toMNI_Qwarp: Compute F level (minimum patch = 9) =========="
+### echo " "
+
+### echo "setenv OMP_NUM_THREADS $jcpu"                                     >  FFwarp_script
+### echo 'foreach fred ( $argv )'                                           >> FFwarp_script
+### echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'                     >> FFwarp_script
+### echo '   nice 3dQwarp -prefix ${bbb}_uniF  -blur 0 -2              \'   >> FFwarp_script
+### echo '                -inilev 9  -minpatch 9  -nodset   -useweight \'   >> FFwarp_script
+### echo '                -iniwarp ${bbb}_uniE_WARP+tlrc.HEAD          \'   >> FFwarp_script
+### echo '                Qwarp_meanE+tlrc.HEAD $fred'                      >> FFwarp_script
+### echo 'end'                                                              >> FFwarp_script
+### echo 'touch FFwarp_$argv[1]_Done'                                       >> FFwarp_script
+### echo 'exit 0'                                                           >> FFwarp_script
+
+### foreach part ( `count -dig 1 1 $numjob` )
+###   tcsh ./FFwarp_script $dlist[$botlist[$part]-$toplist[$part]] &
+###   sleep 1
+### end
+
+### while(1)
+###   sleep 60
+###   set fdone = ( FFwarp_* )
+###   if( $#fdone == $jplus ) break
+### end
+
+### \rm FFwarp_*
+
+### 3dNwarpAdjust -nwarp *_uniF_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanF
+
+################ finished ################
+
+echo " "
+echo "========== @toMNI_Qwarpar: free at last !!!!! =========="
+echo " "
+
+exit 0
