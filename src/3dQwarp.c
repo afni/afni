@@ -776,6 +776,10 @@ int main( int argc , char *argv[] )
 
    /*--- do some actual work! ---*/
 
+   if( Hverb )
+     INFO_message("Begin warp optimization:  base=%s  source=%s" ,
+                  DSET_HEADNAME(bset) , DSET_HEADNAME(sset)  ) ;
+
    if( duplo )
      oiw = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_WSINC5 , meth , flags ) ;
    else
