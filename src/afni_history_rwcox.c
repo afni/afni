@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , APR , 2013 , RWC , "3dNwarpAdjust" , MINOR , TYPE_NEW_PROG ,
+  { 25 , APR , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "strlist chooser stays in same place if re-opened - for Allison" ,
+   NULL } ,
+
+ { 22 , APR , 2013 , RWC , "3dNwarpAdjust" , MINOR , TYPE_NEW_PROG ,
    "For template-building via @toMNI_Qwarp" ,
    "Computes the mean warp, and adjusts the individual warps to get rid of\n"
    "this mean warp (under the presumption that it is some kind of bias)." } ,
