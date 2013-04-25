@@ -136,7 +136,6 @@ echo "setenv OMP_NUM_THREADS $qcpu"                         >  BBwarp_script
 echo 'echo $argv'                                           >> BBwarp_script
 echo 'foreach lucy ( $argv )'                               >> BBwarp_script
 echo '   set bbb = `basename $lucy _uni+tlrc.HEAD`'         >> BBwarp_script
-echo 'echo $lucy $bbb'                                      >> BBwarp_script
 echo '   nice 3dQwarp -prefix ${bbb}_uniB  -blur 0 4    \'  >> BBwarp_script
 echo '                -minpatch 101 -useweight -nodset  \'  >> BBwarp_script
 echo "                $AAbasename" '$lucy'                  >> BBwarp_script
