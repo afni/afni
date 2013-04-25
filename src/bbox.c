@@ -18,15 +18,18 @@ void BBOX_set_wtype( char *wt ){ wtype = wt ; }
 #undef  MENU
 #define MENU   ( (wtype==NULL) ? "menu" : wtype )
 
+static Widget old_wpar=NULL ; /* Apr 2013 -- for Allison */
+static int old_xx=-666,old_yy=-666;
+
 /*------------------------------------------------------------------------*/
 /*
-   This function was meant to find the top parent of a widget and later 
+   This function was meant to find the top parent of a widget and later
    test if that parent was one that allowed rowcolumns. This was function
    was to be called from new_MCW_bbox. However, none of the tests shown
-   below identified such forbidding widgets. 
-   Code is left here for documentation purposes. 
-   
-   Lesstif patrol          Jan 09 
+   below identified such forbidding widgets.
+   Code is left here for documentation purposes.
+
+   Lesstif patrol          Jan 09
 */
 Widget top_parent( Widget w)
 {
@@ -34,13 +37,13 @@ Widget top_parent( Widget w)
    int iw = 0;
    char str[500]={""}, strb[500]={""};
 
-ENTRY("top_parent");   
+ENTRY("top_parent");
 
    while (pa) {
       str[iw] = '-'; str[iw+1]='\0';
       strb[iw] = ' '; strb[iw+1]='\0';
       fprintf( stderr,
-               "%sWidget name %s      ancestor(%d)\n", 
+               "%sWidget name %s      ancestor(%d)\n",
                str, XtName(pa), iw);
       if (XtIsTransientShell(pa)) {
          fprintf(stderr,"%sTransient (%d)!!!\n",strb, iw);
@@ -70,9 +73,9 @@ ENTRY("top_parent");
    RETURN(w);
 }
 /*------------------------------------------------------------------------*/
-/* 
-   A simple way to determine if a widget has a popup_menu for a parent. 
-   
+/*
+   A simple way to determine if a widget has a popup_menu for a parent.
+
    Lesstif Partol,         Jan 09
 */
 int is_daddy_popup(Widget w)
@@ -82,7 +85,7 @@ int is_daddy_popup(Widget w)
    char str[500]={""}, strb[500]={""};
 
 ENTRY("is_daddy_popup");
-   
+
    while (pa) {
       str[iw] = '-'; str[iw+1]='\0';
       strb[iw] = ' '; strb[iw+1]='\0';
@@ -97,10 +100,10 @@ ENTRY("is_daddy_popup");
 /*
    A structure to hold widget and callback information
    for the callback wrapper used by new_MCW_bbox
-   
-   Lesstif Patrol,      Jan 09 
+
+   Lesstif Patrol,      Jan 09
 */
-   
+
 typedef struct {
    MCW_bbox *bb;
    XtCallbackProc cb;
@@ -112,7 +115,7 @@ typedef struct {
 } cb_wrap_struct;
 
 /*------------------------------------------------------------------------*/
-/* set all buttons in a button box, given that button ikeep 
+/* set all buttons in a button box, given that button ikeep
    has been pressed on */
 void MCW_enforce_radio_bbox( MCW_bbox *bb, int ikeep  )
 {
@@ -137,11 +140,11 @@ ENTRY("MCW_enforce_radio_bbox") ;
 
 
 /*------------------------------------------------------------------------*/
-/* 
-   Manually handle radio buttons where rowcolumn widgets are not allowed 
-   
+/*
+   Manually handle radio buttons where rowcolumn widgets are not allowed
+
    See new_MCW_bbox for help
-   
+
    Lesstif Patrol,   Jan 2009
 */
 void new_MCW_bbox_cbwrap ( Widget w, XtPointer client_data, XtPointer call_data )
@@ -151,9 +154,9 @@ void new_MCW_bbox_cbwrap ( Widget w, XtPointer client_data, XtPointer call_data 
    cb_wrap_struct *cbws = (cb_wrap_struct *)client_data;
    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data ;
    int dbg = 0;
-   
+
 ENTRY("new_MCW_bbox_cbwrap") ;
-   
+
    if (cbws->is_popup) {
       if (dbg) {  /* some debugging */
          fprintf(stderr,"Potential for work\n");
@@ -164,7 +167,7 @@ ENTRY("new_MCW_bbox_cbwrap") ;
          for (ib=0; ib<cbws->bb->nbut; ++ib) {
             if (cbws->bb->wbut[ib] == w) {
                fprintf(stderr,
-                        "A call from widget (%p) %s at ib = %d, reason: %d\n", 
+                        "A call from widget (%p) %s at ib = %d, reason: %d\n",
                         cbws->bb->wbut[ib], XtName(w), ib, cbs->reason);
                if (cbs->event) {
                   fprintf(stderr,
@@ -176,21 +179,21 @@ ENTRY("new_MCW_bbox_cbwrap") ;
             }
          }
       }
-         
+
       if (cbs->event) {
          for (ib=0; ib<cbws->bb->nbut && icaller < 0; ++ib) {
             if (cbws->bb->wbut[ib] == w) icaller = ib;
          }
-         
+
          /* what --was-- the state the calling widget? */
          oset = !XmToggleButtonGetState( cbws->bb->wbut[icaller] );
          if (oset && cbws->bb_type == MCW_BB_radio_one) {
-            /* widget was already set, and we're in radio one mode 
+            /* widget was already set, and we're in radio one mode
               turn it back on and vamoose */
             XmToggleButtonSetState(cbws->bb->wbut[icaller], oset, False);
             EXRETURN;
-         } 
-         
+         }
+
          /* flip everything but the calling widget */
          MCW_enforce_radio_bbox(cbws->bb, icaller);
       } else {
@@ -211,7 +214,7 @@ ENTRY("new_MCW_bbox_cbwrap") ;
          for (ib=0; ib<cbws->bb->nbut; ++ib) {
             if (cbws->bb->wbut[ib] == w) {
                fprintf(stderr,
-                        "A call from widget (%p) %s at ib = %d, reason: %d\n", 
+                        "A call from widget (%p) %s at ib = %d, reason: %d\n",
                         cbws->bb->wbut[ib], XtName(w), ib, cbs->reason);
                if (cbs->event) {
                   fprintf(stderr,
@@ -223,12 +226,12 @@ ENTRY("new_MCW_bbox_cbwrap") ;
             }
          }
       }
-      
-   }  
-   
+
+   }
+
    /* Now call the intended callback */
-   (cbws->cb)(w, cbws->cb_data, call_data); 
-   
+   (cbws->cb)(w, cbws->cb_data, call_data);
+
    EXRETURN;
 }
 
@@ -249,10 +252,10 @@ ENTRY("new_MCW_bbox_cbwrap") ;
    ----------------------------
    Rowcolumn widgets are not allowed in popup menus. Motif allowed them
    to work, in most cases, but Lesstif does not. To fix this, new_MCW_bbox
-   was modified to check whether MCW_bbox has a popup parent. The check is 
-   done with function 'is_daddy_popup'. If the parent is a popup, then 
-   a rowcolumn widget is NOT created and the widget wtop is set to the 
-   parent Widget. For MCW_bbox with a popup parent, allowing 'frame' to 
+   was modified to check whether MCW_bbox has a popup parent. The check is
+   done with function 'is_daddy_popup'. If the parent is a popup, then
+   a rowcolumn widget is NOT created and the widget wtop is set to the
+   parent Widget. For MCW_bbox with a popup parent, allowing 'frame' to
    be wtop if a frame is requested is bad news.
    With this modification however, radio buttons must be managed manually.
    To do so, new_MCW_bbox always calls a wrapper callback named
@@ -273,7 +276,7 @@ MCW_bbox * new_MCW_bbox( Widget parent ,
    int is_popup=0;
    cb_wrap_struct *cbws=NULL;
    int dbg = 0;
-   
+
 ENTRY("new_MCW_bbox") ;
 
    if( num_but <= 0 || num_but >= 32 ){
@@ -284,10 +287,10 @@ ENTRY("new_MCW_bbox") ;
    /* study the parent     Lesstif Patrol*/
 
    /* finding out if a parent was 'transient' failed.
-      the function that was to do that is called 
+      the function that was to do that is called
       gp = top_parent(parent); and is left here for documentation
       purposes. */
-      
+
    /* this simpler approach worked fine */
    is_popup = is_daddy_popup(parent);
    if (dbg) {
@@ -301,7 +304,7 @@ ENTRY("new_MCW_bbox") ;
          }
       }
    }
-   
+
    bb = (MCW_bbox *) XtMalloc( sizeof(MCW_bbox) ) ;
    memset(bb, 0, sizeof(MCW_bbox)) ;  /* 12 Feb 2009 [lesstif patrol] */
 
@@ -373,13 +376,13 @@ ENTRY("new_MCW_bbox") ;
          if( bb->wframe == NULL ) bb->wtop = parent;
          If you do so, the recorder window does not respond to mouse
          input */
-      
-      bb->wtop = parent; 
+
+      bb->wtop = parent;
    }
    if( bb_type == MCW_BB_radio_one ){
       initial_value = 1 ;
    }
-   
+
    XtVaGetValues( bb->wtop , XmNforeground , &fg_pix , NULL ) ;
 
    /***--- create the buttons ---***/
@@ -387,7 +390,7 @@ ENTRY("new_MCW_bbox") ;
    STATUS("create toggle buttons") ;
    for( ib=0 ; ib < num_but ; ib++ ){
       bb->wbut[ib] = XtVaCreateManagedWidget(
-                        DIALOG , xmToggleButtonWidgetClass , 
+                        DIALOG , xmToggleButtonWidgetClass ,
                            is_popup ?  parent : bb->wrowcol ,
                            LABEL_ARG(label_but[ib]) ,
                            XmNmarginHeight  , 0 ,
@@ -408,10 +411,10 @@ ENTRY("new_MCW_bbox") ;
         cbws->bb_type = bb_type;
         if (dbg) fprintf(stderr,
                         "Registering callback for\n"
-                        "   widget (%p) %s at ib = %d, labeled %s\n", 
+                        "   widget (%p) %s at ib = %d, labeled %s\n",
                         bb->wbut[ib], XtName(bb->wbut[ib]), ib, label_but[ib]);
-        XtAddCallback(  bb->wbut[ib] , 
-                        XmNdisarmCallback , 
+        XtAddCallback(  bb->wbut[ib] ,
+                        XmNdisarmCallback ,
                         new_MCW_bbox_cbwrap, (XtPointer)cbws);
       }
    }
@@ -818,7 +821,7 @@ graph-->click Opt, RELEASE -->click Tran 0D = Hazah!
 The problem is either in Lesstif or Xt.
 
 What we do is capture the button release over such
-menus and dispatch a button press immediately. So 
+menus and dispatch a button press immediately. So
 every time there is a button release atop such menus,
 there is an additional button press call done.
 
@@ -838,7 +841,7 @@ const char *text_EV(int v)
       case ButtonRelease:
          return("release");
       default:
-         return("dunno"); 
+         return("dunno");
    }
    return("weird");
 }
@@ -852,10 +855,10 @@ void enter_EV( Widget w , XtPointer client_data ,
    static Widget widlist[10000];
    int N_widlist=0;
    int dbg =0;
-   
+
    #ifdef USING_LESSTIF
    if (CPU_IS_64_BIT() ){
-      is_popup = is_daddy_popup(w); 
+      is_popup = is_daddy_popup(w);
       if (dbg > 1) {
          fprintf(stderr,
                      "\n"
@@ -870,12 +873,12 @@ void enter_EV( Widget w , XtPointer client_data ,
                      "\n",
                      is_popup, text_EV(lev->type), bev->button,
                      av->wdown, av->wlabel, w, w, av->wrowcol,
-                     lev->type,  
-                     XtIsRealized(w), 
+                     lev->type,
+                     XtIsRealized(w),
                      XEventsQueued(XtDisplay(w), QueuedAlready ),
                      XEventsQueued(XtDisplay(w), QueuedAfterFlush ),
                      XEventsQueued(XtDisplay(w), QueuedAfterReading ),
-                     EnterNotify, LeaveNotify, ButtonPress, ButtonRelease); 
+                     EnterNotify, LeaveNotify, ButtonPress, ButtonRelease);
       } else if (dbg) {
          fprintf(stderr,
                      "\n"
@@ -883,18 +886,18 @@ void enter_EV( Widget w , XtPointer client_data ,
                      text_EV(lev->type), w, bev->button);
 
       }
-   
+
       /* NOTICE: This last ditch fix only for an option menu inside a pulldown
-         window.  */ 
-      if (is_popup && bev->button == 1 && ev->type == ButtonRelease) { 
+         window.  */
+      if (is_popup && bev->button == 1 && ev->type == ButtonRelease) {
                      /* Button release over menu button: DUCK! */
          if (dbg) fprintf(stderr,"Holy Toledo!\n");
          ev->type = ButtonPress;  /* Make that be a button press first */
          XtDispatchEvent(ev); /* pray real hard now */
          /* DO NOT reset ev->type to ButtonRelease; don't ask. */
-      } 
+      }
    }
-   #endif  
+   #endif
 }
 
 /* create a chooser list of text strings */
@@ -912,7 +915,7 @@ void enter_EV( Widget w , XtPointer client_data ,
 */
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
                                 char *label ,
-                                int   minval , int maxval , int inival , 
+                                int   minval , int maxval , int inival ,
                                 int decim ,
                                 gen_func *delta_value, XtPointer delta_data,
                                 str_func *text_proc  , XtPointer text_data
@@ -922,18 +925,18 @@ ENTRY("new_MCW_optmenu") ;
 
    #ifdef USING_LESSTIF_NOT_DOING_THIS_CRAP
       if (CPU_IS_64_BIT() ){
-         RETURN(new_MCW_optmenu_64fix( 
+         RETURN(new_MCW_optmenu_64fix(
                   parent , label ,
-                  minval , maxval , inival , 
+                  minval , maxval , inival ,
                   decim ,
                   delta_value, delta_data,
                   text_proc  , text_data));
-      }  
+      }
    #endif
-   
-   RETURN(new_MCW_optmenu_orig( 
+
+   RETURN(new_MCW_optmenu_orig(
                   parent , label ,
-                  minval , maxval , inival , 
+                  minval , maxval , inival ,
                   decim ,
                   delta_value, delta_data,
                   text_proc  , text_data));
@@ -941,7 +944,7 @@ ENTRY("new_MCW_optmenu") ;
 
 MCW_arrowval * new_MCW_optmenu_orig( Widget parent ,
                                 char *label ,
-                                int   minval , int maxval , int inival , 
+                                int   minval , int maxval , int inival ,
                                 int decim ,
                                 gen_func *delta_value, XtPointer delta_data,
                                 str_func *text_proc  , XtPointer text_data
@@ -954,11 +957,11 @@ MCW_arrowval * new_MCW_optmenu_orig( Widget parent ,
    XmString xstr ;
    char *butlabel , *blab ;
    int dbg = 0;
-   
+
 ENTRY("new_MCW_optmenu_orig") ;
 
    /** create the menu window **/
-   
+
    av->wmenu = wmenu = XmCreatePulldownMenu( parent , MENU , NULL , 0 ) ;
    av->optmenu_call_if_unchanged = 0 ;  /* 10 Oct 2007 */
 
@@ -1099,7 +1102,7 @@ ENTRY("new_MCW_optmenu_orig") ;
 
 MCW_arrowval * new_MCW_optmenu_64fix( Widget parent ,
                                 char *label ,
-                                int   minval , int maxval , int inival , 
+                                int   minval , int maxval , int inival ,
                                 int decim ,
                                 gen_func *delta_value, XtPointer delta_data,
                                 str_func *text_proc  , XtPointer text_data
@@ -1112,17 +1115,17 @@ MCW_arrowval * new_MCW_optmenu_64fix( Widget parent ,
    XmString xstr ;
    char *butlabel , *blab ;
    int dbg = 0;
-   
+
 ENTRY("new_MCW_optmenu_64fix") ;
 
 rcparent = XtVaCreateWidget ("rowcolumn",
          xmRowColumnWidgetClass, parent,
-         XmNpacking, XmPACK_TIGHT, 
+         XmNpacking, XmPACK_TIGHT,
          XmNorientation , XmHORIZONTAL ,
          XmNmarginHeight, 0 ,
          XmNmarginWidth , 0 ,
          NULL);   /** create the menu window **/
-   
+
    av->wmenu = wmenu = XmCreatePulldownMenu( rcparent , MENU , NULL , 0 ) ;
    av->optmenu_call_if_unchanged = 0 ;  /* 10 Oct 2007 */
 
@@ -1141,7 +1144,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
 
    rcholder = XtVaCreateWidget ("rowcolumn",
          xmRowColumnWidgetClass, rcparent,
-         XmNpacking, XmPACK_TIGHT, 
+         XmNpacking, XmPACK_TIGHT,
          XmNorientation , XmHORIZONTAL ,
                   XmNmarginWidth  , 0 ,
                   XmNmarginHeight , 0 ,
@@ -1151,7 +1154,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
                   XmNmarginLeft   , 0 ,
                      XmNspacing      , 0 ,
          NULL);
-   lb = XtVaCreateManagedWidget (label, 
+   lb = XtVaCreateManagedWidget (label,
                                xmLabelWidgetClass, rcholder,
                                XmNmarginHeight, 0 ,
                                XmNmarginWidth , 0 ,
@@ -1163,7 +1166,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
                   XmNmarginLeft   , 0 ,
                               NULL) ;
    LABELIZE(lb) ;
-                                     
+
    xstr = XmStringCreateLtoR( "" , XmFONTLIST_DEFAULT_TAG ) ;
    XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
    av->wrowcol = XmCreateOptionMenu( rcholder , DIALOG , args , nargs ) ;
@@ -1177,32 +1180,32 @@ rcparent = XtVaCreateWidget ("rowcolumn",
 
    #ifdef USING_LESSTIF
    if (CPU_IS_64_BIT() ){
-      XtInsertEventHandler( av->wrowcol ,        
-                               ButtonReleaseMask ,  
-                               FALSE ,            
+      XtInsertEventHandler( av->wrowcol ,
+                               ButtonReleaseMask ,
+                               FALSE ,
                                enter_EV,
                                (XtPointer) av,
-                               XtListHead) ; 
+                               XtListHead) ;
       /*
-      XtInsertEventHandler( av->wrowcol ,       
-                               ButtonPressMask ,  
-                               FALSE ,           
+      XtInsertEventHandler( av->wrowcol ,
+                               ButtonPressMask ,
+                               FALSE ,
                                enter_EV,
                                (XtPointer) av ,
-                               XtListHead) ; 
-      XtInsertEventHandler( av->wrowcol ,        
-                               EnterWindowMask ,  
-                               FALSE ,            
+                               XtListHead) ;
+      XtInsertEventHandler( av->wrowcol ,
+                               EnterWindowMask ,
+                               FALSE ,
                                enter_EV,
                                (XtPointer) av,
-                               XtListHead) ; 
-                               
-      XtInsertEventHandler( av->wrowcol ,        
-                               LeaveWindowMask ,  
-                               FALSE ,            
+                               XtListHead) ;
+
+      XtInsertEventHandler( av->wrowcol ,
+                               LeaveWindowMask ,
+                               FALSE ,
                                enter_EV,
                                (XtPointer) av,
-                               XtListHead) ; 
+                               XtListHead) ;
       */
    }
    #endif
@@ -1331,7 +1334,7 @@ void refit_MCW_optmenu( MCW_arrowval *av ,
    XmString xstr ;
    int maxbut ;   /* 23 Aug 2003 */
    static int iwarn=0;
-   
+
 ENTRY("refit_MCW_optmenu") ;
 
    /** sanity check **/
@@ -1375,7 +1378,7 @@ ENTRY("refit_MCW_optmenu") ;
    "\n"
    "This message is shown intermittently.\n"
    "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-            , maxbut, maxbut); 
+            , maxbut, maxbut);
       }
       ++iwarn;
       maxval = minval+maxbut ;  /* 23 Mar 2003 */
@@ -2176,6 +2179,7 @@ void MCW_destroy_chooser_CB( Widget wpop ,
 {
    Widget *wpointer = (Widget *) client_data ;
 ENTRY("MCW_destroy_chooser_CB") ;
+   MCW_widget_geom( wpop , NULL,NULL , &old_xx,&old_yy ) ;  /* Apr 2013 */
    *wpointer = NULL ;
    EXRETURN ;
 }
@@ -2185,6 +2189,7 @@ void MCW_kill_chooser_CB( Widget w ,
 {
    Widget wpop = (Widget) client_data ;
 ENTRY("MCW_kill_chooser_CB") ;
+   MCW_widget_geom( wpop , NULL,NULL , &old_xx,&old_yy ) ;  /* Apr 2013 */
    XtDestroyWidget(wpop) ;
 EXRETURN ;
 }
@@ -3140,7 +3145,7 @@ void MCW_choose_multi_strlist( Widget wpar , char *label , int mode ,
    XmString xms ;
    char *lbuf ;
    int nvisible ;
-   MCW_arrowval *wav ;     /* 12 Oct 2007 */
+   MCW_arrowval *wav ;        /* 12 Oct 2007 */
 
 ENTRY("MCW_choose_multi_strlist") ;
 
@@ -3150,14 +3155,19 @@ ENTRY("MCW_choose_multi_strlist") ;
    browse_select = 0 ;  /* 21 Feb 2007 */
    str_wlist = NULL ;   /* 12 Oct 2007 */
 
+   if( wpop != NULL && old_wpar != NULL ){   /* Apr 2013: save current location */
+     MCW_widget_geom( wpop , NULL,NULL , &old_xx,&old_yy ) ;
+   }
+
    if( wpar == NULL ){
      if( wpop != NULL ){
+       STATUS("destroying chooser") ;
        XtUnmapWidget( wpop ) ;
        XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
        XtDestroyWidget( wpop ) ;
+       wpop = NULL ;
      }
-     STATUS("destroying chooser") ;
-     wpop = NULL ; EXRETURN ;
+     EXRETURN ;
    }
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
@@ -3323,14 +3333,25 @@ ENTRY("MCW_choose_multi_strlist") ;
       XtAddCallback(wlist,XmNbrowseSelectionCallback,MCW_strlist_select_CB,NULL);
    }
 
-   XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
-   XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
+   if( old_xx < 0 || old_yy < 0 || old_wpar != wpar ){
+     XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
+     XtVaSetValues( wpop , XmNx , (int)xx , XmNy , (int)yy , NULL ) ;
+   } else {
+#ifdef DARWIN
+# define YDEL 20
+#else
+# define YDEL 0
+#endif
+     XtVaSetValues( wpop , XmNx , old_xx  , XmNy , old_yy-YDEL  , NULL ) ;  /* Apr 2013 */
+   }
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
 
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
+
+   old_wpar = wpar ;                 /* Apr 2013 */
 
    EXRETURN ;
 }
