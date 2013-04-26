@@ -325,7 +325,7 @@ int main( int argc , char *argv[] )
        " -emask ee    = Here, 'ee' is a dataset to specify a mask of voxels\n"
        "                to EXCLUDE from the analysis -- all voxels in 'ee'\n"
        "                that are NONZERO will not be used in the alignment.\n"
-       "               * The base image is also automasked -- the emask is\n"
+       "               * The base image always automasked -- the emask is\n"
        "                 extra, to indicate voxels you definitely DON'T want\n"
        "                 included in the matching process.\n"
        "               * Applications: exclude a tumor or resected region\n"
@@ -441,15 +441,16 @@ int main( int argc , char *argv[] )
 #ifdef USE_OMP
    omp_set_nested(0) ;
    nthmax = omp_get_max_threads() ;
-   dhaar  = (double *)malloc(sizeof(double)*nthmax) ;  /* 6 workspaces */
-   dhbbr  = (double *)malloc(sizeof(double)*nthmax) ;  /* for each thread */
-   dhccr  = (double *)malloc(sizeof(double)*nthmax) ;
-   dhddr  = (double *)malloc(sizeof(double)*nthmax) ;
-   dheer  = (double *)malloc(sizeof(double)*nthmax) ;
-   dhffr  = (double *)malloc(sizeof(double)*nthmax) ;
+   dhaar  = (double *)malloc(sizeof(double)*nthmax*2) ;  /* 6 workspaces */
+   dhbbr  = (double *)malloc(sizeof(double)*nthmax*2) ;  /* for each thread */
+   dhccr  = (double *)malloc(sizeof(double)*nthmax*2) ;
+   dhddr  = (double *)malloc(sizeof(double)*nthmax*2) ;
+   dheer  = (double *)malloc(sizeof(double)*nthmax*2) ;
+   dhffr  = (double *)malloc(sizeof(double)*nthmax*2) ;
    INFO_message("OpenMP thread count = %d",nthmax) ;
 #else
-   INFO_message("this edition not compiled with OpenMP :-(") ;
+   INFO_message  ("This edition not compiled with OpenMP.") ;
+   ININFO_message("It will be slooooowwwwww ....  :-(") ;
 #endif
 
    mainENTRY("3dQwarp") ; machdep() ;
