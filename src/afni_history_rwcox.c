@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 25 , APR , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+  { 26 , APR , 2013 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Make -emask option work correctly with -duplo" ,
+   NULL } ,
+
+ { 25 , APR , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "strlist chooser stays in same place if re-opened - for Allison" ,
    NULL } ,
 
