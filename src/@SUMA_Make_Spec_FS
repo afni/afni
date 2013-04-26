@@ -577,7 +577,8 @@ L_CONVERT_SURFACES:
    if ( $neuro_ori == -1 ) then
       if ( ! -f xmatras.1D ) then
          set c_ras = (`mri_info --cras --ras_good $start_dir/$orig_mgz`)
-         echo 1 0 0 $c_ras[1] 0 1 0 $c_ras[2] 0 0 1 -$c_ras[3] > xmatras.1D
+         set minus = `ccalc "$c_ras[3]*-1"` 
+         echo 1 0 0 $c_ras[1] 0 1 0 $c_ras[2] 0 0 1 $minus > xmatras.1D
       endif
       #If using new conversion, change surfaces to gifti with proper
       #coordinate shift.
