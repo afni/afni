@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.5, March 29, 2013
+Version 1.0.0, April 26, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.5, March 29, 2013
+Version 1.0.0, April 26, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -112,22 +112,30 @@ within-subject (condition and emotion) variables:
           -model  'genotype*sex+scanner'      \\
           -wsVars \"condition*emotion\"         \\
           -num_glt 14                         \\
-          -gltLabel 1 face_pos_vs_neg -gltCode  1 'condition : 1*face emotion : 1*pos -1*neg'        \\
-          -gltLabel 2 face_emot_vs_neu -gltCode 1 'condition : 1*face emotion : 1*pos +1*neg -2*neu' \\
+          -gltLabel 1 face_pos_vs_neg -gltCode  1 'condition : 1*face emotion : 1*pos -1*neg'            \\
+          -gltLabel 2 face_emot_vs_neu -gltCode 2 'condition : 1*face emotion : 1*pos +1*neg -2*neu'     \\
+          -gltLabel 3 sex_by_condition_interaction -gltCode 3 'sex : 1*male -1*female condition : 1*face -1*house' \\
+          -gltLabel 4 3way_interaction -gltCode 4 'sex : 1*male -1*female condition : 1*face -1*house emotion : 1*pos -1*neg' \\
           ...            
-          -dataTable                                                                                 \\
-          Subj  genotype   sex    scanner  condition   emotion   InputFile                           \\
-          s1    TT         male   scan1   face        pos       s1+tlrc\'[face_pos_beta]\'             \\
-          s1    TT         male   scan1   face        neg       s1+tlrc\'[face_neg_beta]\'             \\
-          s1    TT         male   scan1   face        neu       s1+tlrc\'[face_neu_beta]\'             \\
-          s1    TT         male   scan1   house       pos       s1+tlrc\'[house_pos_beta]\'            \\
+          -dataTable                                                                                     \\
+          Subj  genotype   sex    scanner  condition   emotion   InputFile                               \\
+          s1    TT         male   scan1   face        pos       s1+tlrc\'[face_pos_beta]\'                 \\
+          s1    TT         male   scan1   face        neg       s1+tlrc\'[face_neg_beta]\'                 \\
+          s1    TT         male   scan1   face        neu       s1+tlrc\'[face_neu_beta]\'                 \\
+          s1    TT         male   scan1   house       pos       s1+tlrc\'[house_pos_beta]\'                \\
           ...
-          s68   TN         female scan2   house       pos       s68+tlrc\'[face_pos_beta]\'            \\
-          s68   TN         female scan2   house       neg       s68+tlrc\'[face_neg_beta]\'            \\
+          s68   TN         female scan2   house       pos       s68+tlrc\'[face_pos_beta]\'                \\
+          s68   TN         female scan2   house       neg       s68+tlrc\'[face_neg_beta]\'                \\
           s68   TN         female scan2   house       neu       s68+tlrc\'[house_pos_beta]\'                    
 
-   NOTE:  The model for the analysis can also be set up as and is equivalent to 
-          'genotype*sex*condition*emotion+scanner*condition*emotion'.\n"
+   NOTE:  1) The model for the analysis can also be set up as and is equivalent to 
+          'genotype*sex*condition*emotion+scanner*condition*emotion'.
+          2) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
+          is essentially a t-test (or one degree of freedom for the numerator of F-statatistic).
+          Multiple degrees of freedom for the numerator of F-statistic is currently unavailable.
+          3) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
+          interaction between the three factors because 'emotion' has three levels. The F-test for
+          the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.\n"
       
    ex2 <-
 "--------------------------------
@@ -140,21 +148,29 @@ Example 2 --- two between-subjects (genotype and sex), onewithin-subject
           -qVars  \"age,IQ\"               \\
           -qVarCenters '25,105'          \\
           -num_glt 10                    \\
-          -gltLabel 1 pos_F_vs_M   -gltCode 1 'sex : 1*F -1*M emotion : 1*pos'        \\
-          -gltLabel 2 age_TT_vs_NN -gltCode 2 'geneotype : 1*TT -1*NN age :'          \\
+          -gltLabel 1 pos_F_vs_M   -gltCode 1 'sex : 1*female -1*male emotion : 1*pos' \\
+          -gltLabel 2 age_TT_vs_NN -gltCode 2 'genotype : 1*TT -1*NN age :'           \\
+          -gltLabel 3 genotype_by_sex -gltCode 3 'genotype : 1*TT -1*NN sex : 1*male -1*female' \\
+          -gltLabel 4 genotype_by_sex_emotion -gltCode 4 'genotype : 1*TT -1*NN sex : 1*male -1*female emotion : 1*pos -1*neg' \\
           ...            
-          -dataTable                                                                  \\
-          Subj  geneotype  sex    age  IQ     emotion   InputFile                     \\
-          s1    TT         male   24   107    pos       s1+tlrc\'[pos_beta]\'           \\
-          s1    TT         male   24   107    neg       s1+tlrc\'[neg_beta]\'           \\
-          s1    TT         male   24   107    neu       s1+tlrc\'[neu_beta]\'           \\
+          -dataTable                                                                   \\
+          Subj  genotype  sex    age  IQ     emotion   InputFile                       \\
+          s1    TT         male   24   107    pos       s1+tlrc\'[pos_beta]\'            \\
+          s1    TT         male   24   107    neg       s1+tlrc\'[neg_beta]\'            \\
+          s1    TT         male   24   107    neu       s1+tlrc\'[neu_beta]\'            \\
           ... 
-          s63   NN         female 29   110    pos       s63+tlrc\'[pos_beta]\'          \\
-          s63   NN         female 29   110    neg       s63+tlrc\'[neg_beta]\'          \\
+          s63   NN         female 29   110    pos       s63+tlrc\'[pos_beta]\'           \\
+          s63   NN         female 29   110    neg       s63+tlrc\'[neg_beta]\'           \\
           s63   NN         female 29   110    neu       s63+tlrc\'[neu_beta]\'         
 
-   NOTE:  The model for the analysis can be also set up as and is equivalent to 
-          'genotype*sex*emotion+age+IQ'.\n"
+   NOTE:  1) The model for the analysis can be also set up as and is equivalent to 
+          'genotype*sex*emotion+age+IQ'.
+          2) The 3rd GLT is for the 2-way 2 x 2 interaction between genotype and sex, which
+          is essentially a t-test (or one degree of freedom for the numerator of F-statatistic).
+          Multiple degrees of freedom for the numerator of F-statistic is currently unavailable.
+          3) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
+          interaction between the three factors because 'emotion' has three levels. The F-test for
+          the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.\n"
      
    ex3 <-
 "---------------------------------
