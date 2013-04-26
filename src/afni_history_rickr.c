@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Apr, 2013, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -show_trs_censored/_uncensored (mostly for X-matrix datasets)",
+   NULL
+ } ,
+
  { 24, Apr, 2013, RCR, "@move.to.series.dirs", MINOR, TYPE_NEW_PROG,
    "partition a list of DICOM files by series number",
    "Done for I Shapira."
