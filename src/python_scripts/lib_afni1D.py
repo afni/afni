@@ -836,6 +836,42 @@ class Afni1D:
 
       return 0
 
+   def get_censored_trs(self):
+      """return a list of TRs that were censored
+         (basically, return an inverted goodlist)
+
+         return status (0=success) and the TR index list
+      """
+
+      rv, ilist = self.get_uncensored_trs()
+      if rv: return 1, []
+
+      return 0, UTIL.invert_int_list(ilist, top=self.nt-1)
+
+   def get_uncensored_trs(self):
+      """return a list of TRs that were used, i.e. we not censored
+         (basically, return goodlist)
+
+         there are 2 valid types of inputs:
+
+           1. X-matrix format
+                len(goodlist) > 0 and nrowfull >= len(goodlist)
+           2. binary format
+                nvec == 1 and UTIL.vals_are_0_1(mat[0])
+
+         return status (0=success) and the TR index list
+      """
+
+      if not self.ready:
+         print "** Afni1D not ready for get_uncensored_trs"
+         return 1, []
+
+      # handle xmat case separately
+      if len(self.goodlist) > 0: return 0, self.goodlist
+
+      # otherwise, return indices from mat[0] as mask
+      return 0, [i for i,v in enumerate(self.mat[0]) if v]
+
    def show_censor_count(self, invert=0, column=0):
       """display the total number of TRs censored (clear) in the given column
 
@@ -853,11 +889,11 @@ class Afni1D:
          print "** Afni1D not ready for write_timing to '%s'" % fname
          return 1
 
-      total = self.mat[0].count(0)              # start with censor count
-      if invert: total = self.nt - total
+      ccount = self.mat[0].count(0)             # start with censor count
+      if invert: ccount = self.nt - ccount
 
-      if self.verb: print 'total number of censored TRs = %d' % total
-      else:         print total
+      if self.verb: print 'total number of censored TRs = %d' % ccount
+      else:         print ccount
 
       return 0
 
