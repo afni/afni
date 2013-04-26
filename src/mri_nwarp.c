@@ -6038,6 +6038,51 @@ MRI_IMAGE * mri_duplo_down_3D( MRI_IMAGE *fim )
    return gim ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_duplo_down_3Dmask( MRI_IMAGE *fim )
+{
+   MRI_IMAGE *gim=NULL ;
+   byte *far , *gar ;
+   int nxf,nyf,nzf , nxg,nyg,nzg , nxyf,nxyg , ii,jj,kk ;
+   int ip,jp,kp , id,jd,kd , im,jm,km ;
+   byte f00 , fxp,fxm , fyp,fym , fzp,fzm , val=0 ;
+   int  n00 , nxp,nxm , nyp,nym , nzp,nzm ;
+
+   if( fim == NULL || fim->kind != MRI_byte ) return NULL ;
+
+   nxf = fim->nx ; nyf = fim->ny ; nzf = fim->nz ;
+   nxg = nxf / 2 ; if( nxg < 1 ) nxg = 1 ;
+   nyg = nyf / 2 ; if( nyg < 1 ) nyg = 1 ;
+   nzg = nzf / 2 ; if( nzg < 1 ) nzg = 1 ;
+
+   nxyf = nxf*nyf ; nxyg = nxg*nyg ;
+
+   gim = mri_new_vol(nxg,nyg,nzg,MRI_byte) ;
+   gar = MRI_BYTE_PTR(gim) ;
+   far = MRI_BYTE_PTR(fim) ;
+
+   for( kk=0 ; kk < nzg ; kk++ ){
+    kd = 2*kk ; kp = kd+1 ; if( kp >= nzf ) kp = nzf-1 ;
+                km = kd-1 ; if( km <  0   ) km = 0 ;
+    for( jj=0 ; jj < nyg ; jj++ ){
+      jd = 2*jj ; jp = jd+1 ; if( jp >= nyf ) jp = nyf-1 ;
+                  jm = jd-1 ; if( jm <  0   ) jm = 0 ;
+      for( ii=0 ; ii < nxg ; ii++ ){
+        id = 2*ii ; ip = id+1 ; if( ip >= nxf ) ip = nxf-1 ;
+                    im = id-1 ; if( im <  0   ) im = 0 ;
+        f00 = FSUB(far,id,jd,kd,nxf,nxyf);
+        fxp = FSUB(far,ip,jd,kd,nxf,nxyf); fxm = FSUB(far,im,jd,kd,nxf,nxyf);
+        fyp = FSUB(far,id,jp,kd,nxf,nxyf); fym = FSUB(far,id,jm,kd,nxf,nxyf);
+        fzp = FSUB(far,id,jd,km,nxf,nxyf); fzm = FSUB(far,id,jd,km,nxf,nxyf);
+        val = (f00 > 0) + (fxp > 0) + (fxm > 0)
+                        + (fyp > 0) + (fym > 0) + (fzp > 0) + (fzm > 0) ;
+        FSUB(gar,ii,jj,kk,nxg,nxyg) = (val > 2) ;
+   }}}
+
+   return gim ;
+}
+
 #if 0
 /*---------------------------------------------------------------------------*/
 
@@ -6105,6 +6150,7 @@ Image_plus_Warp * IW3D_warp_s2bim_duplo( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_
    MRI_IMAGE *bimd , *wbimd , *simd ;
    int nx,ny,nz , Htemp1, Htemp2 , ct ;
    Image_plus_Warp *imww ;
+   byte *emask_big=NULL ; MRI_IMAGE *embim=NULL , *emsim=NULL ;
 
 ENTRY("IW3D_warp_s2bim_duplo") ;
 
@@ -6122,12 +6168,22 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
    Hpen_fac  *= 8.0f ;
    Hduplo     = 1 ; Hnpar_sum = 0 ;
 
+   if( Hemask != NULL ){
+     embim = mri_new_vol_empty(nx,ny,nz,MRI_byte) ; emask_big = Hemask ;
+     mri_fix_data_pointer(emask_big,embim) ;
+     emsim = mri_duplo_down_3Dmask(embim) ;
+     Hemask = MRI_BYTE_PTR(emsim) ;
+     mri_clear_data_pointer(embim) ; mri_free(embim) ;
+   }
+
    Dwarp = IW3D_warpomatic( bimd , wbimd , simd , meth_code , warp_flags ) ;
 
    Hpen_fac  /= 8.0f ;
    Hduplo     = 0 ;
 
    mri_free(simd) ; mri_free(wbimd) ; mri_free(bimd) ;
+
+   if( Hemask != NULL ){ mri_free(emsim) ; Hemask = emask_big ; }
 
    if( Dwarp == NULL ) RETURN(NULL) ;
 
