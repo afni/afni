@@ -1546,7 +1546,7 @@ def gen_float_list_string(vals, mesg='', nchar=0, left=0):
 
    return istr
 
-def int_list_string(ilist, mesg='', nchar=0):
+def int_list_string(ilist, mesg='', nchar=0, sepstr=' '):
    """like float list string, but use general printing
       (mesg is printed first, if nchar>0, it is min char width)"""
 
@@ -1554,9 +1554,20 @@ def int_list_string(ilist, mesg='', nchar=0):
 
    if nchar > 0: slist = ['%*d' % (nchar, val) for val in ilist]
    else:         slist = ['%d' % val for val in ilist]
-   istr += ' '.join(slist)
+   istr += sepstr.join(slist)
 
    return istr
+
+def invert_int_list(ilist, top=-1, bot=0):
+   """invert the integer list with respect to bot and top
+      i.e. return a list of integers from bot to top that are not in
+           the passed list
+   """
+   if top < bot:
+      print '** invert_int_list requires bot<=top (have %d, %d)' % (bot, top)
+      return []
+
+   return [ind for ind in range(bot, top+1) if not ind in ilist]
 
 def is_valid_int_list(ldata, imin=0, imax=-1, whine=0):
    """check whether:

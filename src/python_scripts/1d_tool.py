@@ -624,6 +624,13 @@ general options:
                                   - the maximum pairwise distance (enorm)
    -show_mmms                   : display min, mean, max, stdev of columns
    -show_rows_cols              : display the number of rows and columns
+   -show_trs_censored STYLE     : display a list of TRs which were censored
+   -show_trs_uncensored STYLE   : display a list of TRs which were not censored
+                                  STYLE can be one of:
+                                     comma      : comma delimited
+                                     space      : space delimited
+                                     encoded    : succinct selector list
+                                     verbose    : chatty
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
                                   - consider the -reverse option
@@ -766,6 +773,7 @@ g_history = """
         - added -show_group_labels (for xmat.1D format)
         - added -label_prefix_keep/_drop (e.g. for removing bandpass regressors)
    1.13 Apr 24, 2013 - added -censor_next_TR
+   1.14 Apr 26, 2013 - added options -show_trs_censored/uncensored
 """
 
 g_version = "1d_tool.py version 1.13, April 24, 2013"
@@ -825,8 +833,9 @@ class A1DInterface:
       self.show_labels     = 0          # show the labels
       self.show_mmms       = 0          # show min, mean, max, stdev
       self.show_rows_cols  = 0          # show the number of rows and columns
-                                
-
+      self.show_trs_censored = ''       # style variable can be in:
+      self.show_trs_uncensored = ''     # style variable can be in:
+                               # {'', 'comma', 'space', 'encoded', 'verbose'}
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the matrix
       self.censor_file     = None       # output as 1D censor file
@@ -911,11 +920,11 @@ class A1DInterface:
                       helpstr='display the current version number')
 
       # required parameter
-      self.valid_opts.add_opt('-infile', 1, [], req=1,
+      self.valid_opts.add_opt('-infile', 1, [], req=1, okdash=0,
                       helpstr='read the given 1D file')
 
       # general options
-      self.valid_opts.add_opt('-add_cols', 1, [],
+      self.valid_opts.add_opt('-add_cols', 1, [], okdash=0,
                       helpstr='extend dataset with columns from new file')
 
       self.valid_opts.add_opt('-backward_diff', 0, [], 
@@ -924,16 +933,16 @@ class A1DInterface:
       self.valid_opts.add_opt('-censor_fill', 0, [], 
                       helpstr='zero-fill previously censored TRs')
 
-      self.valid_opts.add_opt('-censor_fill_parent', 1, [], 
+      self.valid_opts.add_opt('-censor_fill_parent', 1, [], okdash=0,
                       helpstr='-censor_fill, but via this parent dataset')
 
       self.valid_opts.add_opt('-censor_first_trs', 1, [], 
                       helpstr='number of initial TRs to censor, per run')
 
-      self.valid_opts.add_opt('-censor_infile', 1, [],
+      self.valid_opts.add_opt('-censor_infile', 1, [], okdash=0,
                       helpstr='apply censor file to input file')
 
-      self.valid_opts.add_opt('-censor_motion', 2, [], 
+      self.valid_opts.add_opt('-censor_motion', 2, [], okdash=0,
                       helpstr='censor motion data with LIMIT and PREFIX')
 
       self.valid_opts.add_opt('-censor_next_TR', 0, [], 
@@ -942,7 +951,7 @@ class A1DInterface:
       self.valid_opts.add_opt('-censor_prev_TR', 0, [], 
                       helpstr='if censoring a TR, also censor previous one')
 
-      self.valid_opts.add_opt('-collapse_cols', 1, [], 
+      self.valid_opts.add_opt('-collapse_cols', 1, [],
                       acplist=['min','max','minabs','maxabs',
                                'euclidean_norm', 'weighted_enorm'],
                       helpstr='collapse into one column via supplied METHOD')
@@ -965,10 +974,10 @@ class A1DInterface:
       self.valid_opts.add_opt('-moderate_mask', 2, [], 
                       helpstr='create mask for values within [MIN,MAX]')
 
-      self.valid_opts.add_opt('-label_prefix_drop', -1, [], 
+      self.valid_opts.add_opt('-label_prefix_drop', -1, [], okdash=0, 
                       helpstr='label prefix list for columns to drop')
 
-      self.valid_opts.add_opt('-label_prefix_keep', -1, [], 
+      self.valid_opts.add_opt('-label_prefix_keep', -1, [], okdash=0, 
                       helpstr='label prefix list for columns to keep')
 
       self.valid_opts.add_opt('-looks_like_1D', 0, [], 
@@ -1061,6 +1070,14 @@ class A1DInterface:
       self.valid_opts.add_opt('-show_rows_cols', 0, [], 
                       helpstr='display the number of rows and columns')
 
+      self.valid_opts.add_opt('-show_trs_censored', 1, [], 
+                   acplist=['comma', 'space', 'encoded', 'describe', 'verbose'],
+                   helpstr='display TRs censored from Xmat in given STYLE')
+
+      self.valid_opts.add_opt('-show_trs_uncensored', 1, [], 
+                   acplist=['comma', 'space', 'encoded', 'describe', 'verbose'],
+                   helpstr='display TRs applied from Xmat in given STYLE')
+
       self.valid_opts.add_opt('-sort', 0, [], 
                       helpstr='sort the data per column (over time)')
 
@@ -1073,13 +1090,13 @@ class A1DInterface:
       self.valid_opts.add_opt('-weight_vec', -1, [], 
                       helpstr='specify weights (for enorm computation)')
 
-      self.valid_opts.add_opt('-write', 1, [], 
+      self.valid_opts.add_opt('-write', 1, [], okdash=0,
                       helpstr='write 1D data to the given file')
 
-      self.valid_opts.add_opt('-write_censor', 1, [], 
+      self.valid_opts.add_opt('-write_censor', 1, [], okdash=0,
                       helpstr='write as 1D censor file')
 
-      self.valid_opts.add_opt('-write_CENSORTR', 1, [], 
+      self.valid_opts.add_opt('-write_CENSORTR', 1, [], okdash=0,
                       helpstr='write CENSORTR format string to file')
 
       self.valid_opts.add_opt('-verb', 1, [], 
@@ -1411,6 +1428,16 @@ class A1DInterface:
          elif opt.name == '-show_rows_cols':
             self.show_rows_cols = 1
 
+         elif opt.name == '-show_trs_censored':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.show_trs_censored = val
+
+         elif opt.name == '-show_trs_uncensored':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.show_trs_uncensored = val
+
          elif opt.name == '-sort':
             self.sort = 1
 
@@ -1613,6 +1640,9 @@ class A1DInterface:
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
+      if self.show_trs_censored   != '': self.show_TR_censor_list(1)
+      if self.show_trs_uncensored != '': self.show_TR_censor_list(0)
+
       if self.show_censor_count: self.adata.show_censor_count()
 
       if self.show_cormat_warn:
@@ -1637,6 +1667,39 @@ class A1DInterface:
          if self.write_1D(self.write_file): return 1
 
       return
+
+   def show_TR_censor_list(self, censored=0):
+      """output either the cencored or uncensored TR index list in the
+         specified style
+      """
+      if censored: action = 'censored'
+      else:        action = 'kept'
+
+      if censored:
+         rv, tlist = self.adata.get_censored_trs()
+         style = self.show_trs_censored
+      else:
+         rv, tlist = self.adata.get_uncensored_trs()
+         style = self.show_trs_uncensored
+
+      # check bad style or failure
+      if style == '': return
+      if rv: return 1
+
+      if   style == 'comma':   print UTIL.int_list_string(tlist, sepstr=',')
+      elif style == 'space':   print UTIL.int_list_string(tlist, sepstr=' ')
+      elif style == 'encoded': print UTIL.encode_1D_ints(tlist)
+      elif style == 'describe':
+         if len(self.adata.goodlist) > 0: ntot = self.adata.nrowfull
+         else:                            ntot = self.adata.nt
+         print '%s %d of %d TR indices: %s' \
+               % (action, len(tlist), ntot, UTIL.encode_1D_ints(tlist))
+      else: # assume verbose = describe + actual list
+         if len(self.adata.goodlist) > 1: ntot = self.adata.nrowfull
+         else:                            ntot = self.adata.nt
+         print '%s %d of %d TR indices: %s' \
+               % (action, len(tlist), ntot, UTIL.encode_1D_ints(tlist))
+         print UTIL.int_list_string(tlist, mesg='TRs = ',sepstr=', ')
 
 def test(self, verb=3):
       # init
