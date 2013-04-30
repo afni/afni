@@ -411,6 +411,7 @@ ENTRY("GA_interp_varp1") ;
      AFNI_WSINC5_RADIUS    = integer from 3 to 21 (bigger = slower)
      AFNI_WSINC5_TAPERFUN  = 'H' for Hamming (2 terms); otherwise, uses 3 terms
      AFNI_WSINC5_SPHERICAL = 'Y' for spherical mask ; otherwise uses cubical
+     AFNI_WSINC5_SILENT    = 'Y' to avoid the message
 *//*--------------------------------------------------------------------------*/
 
 #undef  PIF
@@ -462,6 +463,7 @@ static void setup_wsinc5(void)
      ININFO_message("  window radius   = %d voxels",IRAD) ;
      ININFO_message("  window shape    = %s",(WSHAP)?"Spherical":"Cubical") ;
      ININFO_message("  The above can be altered via the AFNI_WSINC5_* environment variables.") ;
+     ININFO_message(" (To avoid this message, 'setenv AFNI_WSINC5_SILENT YES'.)") ;
    }
 
    return ;

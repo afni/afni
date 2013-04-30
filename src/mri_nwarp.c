@@ -3911,6 +3911,7 @@ static int Hduplo     =   0 ;
 static int Hfinal     =   0 ;
 static int Hworkhard1 =   0 ;
 static int Hworkhard2 =  -1 ;
+static int Hsuperhard =   0 ;
 static int Hfirsttime =   0 ;  /* for fun only */
 
 #undef  WORKHARD
@@ -5525,7 +5526,7 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    char *eee ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
    int dkkk,djjj,diii , ngmin=0 , levdone=0 ;
-   int qmode=-666 , nlevr ;
+   int qmode=-666 , nlevr , nsup,isup ;
 
 ENTRY("IW3D_warpomatic") ;
 
@@ -5557,7 +5558,7 @@ ENTRY("IW3D_warpomatic") ;
    }
 
    if( Hlev_start == 0 ){            /* top level = global warps */
-     nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ;
+     nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( Hsuperhard ) nlevr++ ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      for( iii=0 ; iii < nlevr ; iii++ ){
@@ -5675,6 +5676,7 @@ ENTRY("IW3D_warpomatic") ;
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
 
      nlevr = WORKHARD(lev) ? 2 : 1 ;
+     nsup  = (Hsuperhard)  ? 2 : 1 ;
 
      if( Hverb > 1 )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s" ,
@@ -5686,6 +5688,7 @@ ENTRY("IW3D_warpomatic") ;
      /* alternate the direction of sweeping at different levels */
 
      if( lev%2 == 1 || nlevr > 1 ){  /* bot to top, ijk */
+      for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
        for( kdon=0,kbot=ibbb ; !kdon ; kbot += dkkk ){
          ktop = kbot+zwid-1;
               if( ktop >= kttt )       { ktop = kttt; kbot = ktop+1-zwid; kdon=1; }
@@ -5718,11 +5721,13 @@ ENTRY("IW3D_warpomatic") ;
            }
          }
        }
+      } /* isup loop */
        Hcostmid = Hcostend = Hcost ;
      }
 
      if( lev%2 == 0 || nlevr > 1 ){ /* top to bot, kji */
        if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.3f]:",Hcost) ;
+      for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
          ibot = itop+1-xwid;
               if( ibot <= ibbb        ){ ibot = ibbb; itop = ibot+xwid-1; idon=1; }
@@ -5755,6 +5760,7 @@ ENTRY("IW3D_warpomatic") ;
            }
          }
        }
+      } /* isup loop */
        Hcostend = Hcost ;
      }
 
