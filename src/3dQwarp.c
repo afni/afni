@@ -248,8 +248,8 @@ int main( int argc , char *argv[] )
        "    the output WARP dataset and 3dNwarpApply to transform the un-3dUnifize-d\n"
        "    source dataset.\n"
        "\n"
-       "** Please note that this program is both CPU and memory intensive, and is\n"
-       "   what computer scientists call a 'pig' or a 'hog'.\n"
+       "** Please note that this program is very CPU intensive, and is what computer\n"
+       "   scientists call a 'pig' or a 'hog'.\n"
 #ifndef USE_OMP
        " ++ It would be best to run 3dQwarp on a multi-CPU computer, using a binary\n"
        "    compiled with the OpenMP library. Unfortunately, this particular version is\n"
@@ -277,7 +277,7 @@ int main( int argc , char *argv[] )
        "                 aligned with the source dataset to be aligned with the\n"
        "                 base dataset.\n"
        "              ** If you do NOT want this warp saved, use the option '-nowarp'.\n"
-       "                 (However, this warp is the most valuable possible output!)\n"
+       "            -->> (However, this warp is the most valuable possible output!)\n"
        "               * If you want to calculate and save the inverse 3D warp,\n"
        "                 use the option '-iwarp'.  This inverse warp will then be\n"
        "                 saved in a dataset with prefix 'ppp_WARPINV'.\n"
@@ -286,13 +286,13 @@ int main( int argc , char *argv[] )
        "               * You can easily compute the inverse later, say by a command like\n"
        "                   3dNwarpCat -prefix Z_WARPINV 'INV(Z_WARP+tlrc)'\n"
        "\n"
-       " -nowarp      = Don't save the WARP file.\n"
-       " -iwarp       = Do save the WARPINV file.\n"
-       " -nodset      = Don't save the warped dataset file.\n"
+       " -nowarp      = Don't save the _WARP file.\n"
+       " -iwarp       = Do save the _WARPINV file.\n"
+       " -nodset      = Don't save the warped source dataset (i.e., if you only need the _WARP).\n"
        "\n"
        " -pear        = Use strict Pearson correlation for matching.\n"
        "               * Not usually recommended, since the 'clipped Pearson' method\n"
-       "                 used by default will reduce the impact of outliers.\n"
+       "                 used by default will reduce the impact of outlier values.\n"
        "\n"
        " -nopenalty   = Don't use a penalty on the cost function; the goal\n"
        "                of the penalty is to reduce grid distortions.\n"
@@ -304,7 +304,7 @@ int main( int argc , char *argv[] )
        "                counts the same.  With '-useweight', each voxel is weighted\n"
        "                by the intensity of the (blurred) base image.  This makes\n"
        "                white matter count more in T1-weighted volumes, for example.\n"
-       "               * This option is generally recommended.\n"
+       "           -->>* This option is generally recommended.\n"
        "\n"
        " -blur bb     = Gaussian blur the input images by 'bb' (FWHM) voxels before\n"
        "                doing the alignment (the output dataset will not be blurred).\n"
@@ -327,7 +327,11 @@ int main( int argc , char *argv[] )
        "                that are NONZERO will not be used in the alignment.\n"
        "               * The base image always automasked -- the emask is\n"
        "                 extra, to indicate voxels you definitely DON'T want\n"
-       "                 included in the matching process.\n"
+       "                 included in the matching process, even if they are\n"
+       "                 inside the brain.\n"
+       "               * Note that 3dAllineate has the same option. Since you\n"
+       "                 usually have to use 3dAllineate before 3dQwarp, you\n"
+       "                 will probably want to use -emask in both programs.\n"
        "               * Applications: exclude a tumor or resected region\n"
        "                 (e.g., draw a mask in the AFNI Drawing plugin).\n"
        "               * Note that the emask applies to the base dataset,\n"
@@ -347,7 +351,7 @@ int main( int argc , char *argv[] )
        "\n"
        " -iniwarp ww  = 'ww' is a dataset with an initial nonlinear warp to use.\n"
        "               * If this option is not used, the initial warp is the identity.\n"
-       "               * You cannot use this option with -duplo !!\n"
+       "               * You CANNOT use this option with -duplo !!\n"
 #if 0
        "               * Special cases allow the creation of an initial affine 'warp'\n"
        "                 from a list of 12 numbers:\n"
@@ -367,7 +371,7 @@ int main( int argc , char *argv[] )
 #endif
        "\n"
        " -inilev lv   = 'lv' is the initial refinement 'level' at which to start.\n"
-       "               * Usually used with -iniwarp; cannot be used with -duplo.\n"
+       "               * Usually used with -iniwarp; CANNOT be used with -duplo.\n"
        "\n"
        " -minpatch mm = Set the minimum patch size for warp searching to 'mm' voxels.\n"
        "   *OR*        * The value of mm should be an odd integer.\n"
@@ -400,6 +404,9 @@ int main( int argc , char *argv[] )
        "                     -workhard:4:7\n"
        "                 which implies the extra iterations will be done at levels\n"
        "                 4, 5, 6, and 7, but not otherwise.\n"
+       "               * You can also use '-superhard' to iterate even more, but\n"
+       "                 this extra option will REALLY slow things down.  It should\n"
+       "                 be used with -workhard.\n"
        "\n"
        " -qsave       = Save intermediate warped results as well, in a dataset\n"
        "                with '_SAVE' appended to the '-prefix' value.\n"
@@ -408,8 +415,8 @@ int main( int argc , char *argv[] )
        "                 the size for '-minpatch' for future work.\n"
        "               * Otherwise, this option is mostly for debugging.\n"
        "\n"
-       " -verb        = Print very very verbose progress messages.\n"
-       " -quiet       = Cut out most progress messages.\n"
+       " -verb        = Print out very very verbose progress messages (to stderr).\n"
+       " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"
        "\n"
        "METHOD\n"
        "------\n"
@@ -450,7 +457,7 @@ int main( int argc , char *argv[] )
    INFO_message("OpenMP thread count = %d",nthmax) ;
 #else
    INFO_message  ("This edition not compiled with OpenMP.") ;
-   ININFO_message("It will be slooooowwwwww ....  :-(") ;
+   ININFO_message("It will be very slooooowwwwww .... :-(") ;
 #endif
 
    mainENTRY("3dQwarp") ; machdep() ;
@@ -576,6 +583,10 @@ int main( int argc , char *argv[] )
          }
        }
        nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-superhard") == 0 ){  /* 30 Apr 2013 */
+       Hsuperhard = 1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-qsave") == 0 ){
