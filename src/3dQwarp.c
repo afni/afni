@@ -775,7 +775,7 @@ int main( int argc , char *argv[] )
 
    ct = NI_clock_time() ;
 
-   if( nopt+1 >= argc ) ERROR_exit("need 2 args for base and source") ;
+   if( bset == NULL && sset == NULL && nopt+1 >= argc ) ERROR_exit("need 2 args for base and source") ;
 
    if( (iwset != NULL || iwvec != NULL) && duplo )
      ERROR_exit("You cannot combine -iniwarp and -duplo !! :-((") ;
