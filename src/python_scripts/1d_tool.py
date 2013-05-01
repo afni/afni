@@ -329,6 +329,16 @@ examples (very basic for now):
         1d_tool.py -infile data.1D -show_gcor_doc
         1d_tool.py -infile data.1D -show_gcor_all
 
+   20. Display censored or uncensored TRs lists (maybe for use in 3dTcat).
+
+       TRs which were censored:
+
+          1d_tool.py -infile X.xmat.1D -show_trs_censored encoded
+
+       TRs which were applied in analysis (those NOT censored):
+
+          1d_tool.py -infile X.xmat.1D -show_trs_uncensored encoded
+
 ---------------------------------------------------------------------------
 basic informational options:
 
