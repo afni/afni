@@ -181,6 +181,7 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dNwarpApply",argc,argv);
    PRINT_VERSION("3dNwarpApply"); AUTHOR("Zhark the Warped");
    (void)COX_clock_time() ;
+   putenv("AFNI_WSINC5_SILENT=YES") ;
 
    /**--- process command line options ---**/
 
