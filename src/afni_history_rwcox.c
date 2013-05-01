@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , APR , 2013 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+  { 1 , MAY , 2013 , RWC , "3dQwarp" , MINOR , TYPE_MODIFY ,
+   "Minor updates" ,
+   "Make -emask work with -duplo.\n"
+   "Add SAMPLE USAGE section to help to show how to combine 3dAllineate with\n"
+   "3dQwarp, and/or align_epi_anat.py also.\n"
+   "Add -base and -source options, to make program look more like 3dAllineate." } ,
+
+ { 26 , APR , 2013 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
    "Make -emask option work correctly with -duplo" ,
    NULL } ,
 

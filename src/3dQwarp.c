@@ -197,7 +197,7 @@ void Qsaver(char *lab, MRI_IMAGE *im)
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *bset , *sset , *oset , *iwset=NULL ;
+   THD_3dim_dataset *bset=NULL , *sset=NULL , *oset , *iwset=NULL ;
    MRI_IMAGE *bim , *wbim , *sim , *oim ;
    NI_float_array *iwvec=NULL ;
    IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw ;
@@ -222,6 +222,8 @@ int main( int argc , char *argv[] )
        "  (e.g., as from an affine warping via 3dAllineate).\n"
        "\n"
        "* Outputs are the warped dataset and the warp that did it.\n"
+       " ++ These datasets are stored in float format, no matter what the\n"
+       "    data type of the source dataset.\n"
        "\n"
        "* Matching by default is the 'clipped Pearson' method, and\n"
        "  can be changed to 'pure Pearson' with the '-pear' option.\n"
@@ -248,6 +250,16 @@ int main( int argc , char *argv[] )
        "    the output WARP dataset and 3dNwarpApply to transform the un-3dUnifize-d\n"
        "    source dataset.\n"
        "\n"
+       "* If for some deranged reason you have datasets with very non-cubical voxels,\n"
+       "  they should be resampled to a cubical grid before trying 3dQwarp.  That is,\n"
+       "  if you have acquired 1x1x4 mm T1-weighted structural volumes (why?), then\n"
+       "  resample them to 1x1x1 mm before doing any other registration processing.\n"
+       "  For example:\n"
+       "\n"
+       "    3dAllineate -input anatT1_crude+orig -newgrid 1.0 \\\n"
+       "                -prefix anatT1_fine -final wsinc5     \\\n"
+       "                -1Dparam_apply '1D: 12@0'\\'\n"
+       "\n"
        "** Please note that this program is very CPU intensive, and is what computer\n"
        "   scientists call a 'pig' or a 'hog'.\n"
 #ifndef USE_OMP
@@ -256,9 +268,71 @@ int main( int argc , char *argv[] )
        "    NOT built with OpenMP, and you will probably find it to be unbearably slow :-(\n"
 #endif
        "\n"
+       "------------\n"
+       "SAMPLE USAGE\n"
+       "------------\n"
+       "* For registering a T1-weighted anat to a blurry template at about\n"
+       "  a 1x1x1 mm resolution (note that the 3dAllineate step, to give the\n"
+       "  preliminary alignment, will also produce a dataset on the same 3D\n"
+       "  grid as the TEMPLATE+tlrc dataset, which 3dQwarp requires):\n"
+       "\n"
+       "    3dUnifize -prefix anatT1_U -input anatT1+orig\n"
+       "    3dSkullStrip -input anatT1_U+orig -prefix anatT1_US -niter 400 -ld 40\n"
+       "    3dAllineate -prefix anatT1_USA -base TEMPLATE+tlrc    \\\n"
+       "                -source anatT1_US+orig -twopass -cost lpa \\\n"
+       "                -1Dmatrix_save anatT1_USA.aff12.1D        \\\n"
+       "                -autoweight -fineblur 3 -cmass\n"
+       "    3dQwarp -prefix anatT1_USAQ -duplo -useweight -blur 0 3 \\\n"
+       "            -base TEMPLATE+tlrc -source anatT1_USA+tlrc\n"
+       "\n"
+       "  You can then use the anatT1_USAQ_WARP+tlrc dataset to transform other\n"
+       "  datasets (that were aligned with the input anatT1+orig) in the same way\n"
+       "  using program 3dNwarpApply, as in\n"
+       "\n"
+       "    3dNwarpApply -nwarp 'anatT1_USAQ_WARPtlrc anatT1_USA.aff12.1D' \\\n"
+       "                 -source NEWSOURCE+orig -prefix NEWSOURCE_warped\n"
+       "\n"
+       "  For example, if you want a warped copy of the original anatT1+orig dataset\n"
+       "  (without the 3dUnifize and 3dSkullStrip modifications), put 'anatT1' in\n"
+       "  place of 'NEWSOURCE' in the above command.\n"
+       "\n"
+       "  If the NEWSOURCE+orig dataset is integer-valued (e.g., anatomical labels),\n"
+       "  then you would use the '-ainterp NN' with 3dNwarpApply, to keep the program\n"
+       "  from interpolating the voxel values.\n"
+       "\n"
+       "  If you use align_epi_anat.py to affinely transform several EPI datasets to\n"
+       "  match a T1 anat, and then want to nonlinearly warp the EPIs to the template,\n"
+       "  the procedure is something like this:\n"
+       "\n"
+       "    align_epi_anat.py -anat anatT1+orig -epi epi_r1+orig \\\n"
+       "                      -epi_base 3 -epi2anat -big_move    \\\n"
+       "                      -child_epi epi_r2+orig epi_r3+orig\n"
+       "\n"
+       "    3dNwarpApply -source epi_r1+orig                                \\\n"
+       "                 -nwarp 'anatT1_USAQ_WARP+tlrc anatT1_USA.aff12.1D' \\\n"
+       "                 -affter epi_r1_al_reg_mat.aff12.1D                 \\\n"
+       "                 -master WARP -newgrid 2.0                          \\\n"
+       "                 -prefix epi_r1_AQ\n"
+       "\n"
+       "    (mutatis mutandis for 'child' datasets epi_r2, epi_r3, etc.).\n"
+       "\n"
+       "  The above procedure transforms the data directly from the un-registered\n"
+       "  original epi_r1+orig dataset, catenating the EPI volume registration\n"
+       "  transformations (epi_r1_al_reg_mat.aff12.1D) with the affine anat to\n"
+       "  template transformation (anatT1_USA.aff12.1D) and with the nonlinear\n"
+       "  anat to template transformation (anatT1_USAQ_WARP+tlrc).  3dNwarpApply\n"
+       "  will use the default 'wsinc5' interpolation method, which does not blur\n"
+       "  the results much.\n"
+       "\n"
        "-------\n"
        "OPTIONS\n"
        "-------\n"
+       " -base   base_dataset   = Alternative way to specify the base dataset.\n"
+       " -source source_dataset = Alternative way to specify the source dataset.\n"
+       "                         * You can either use both '-base' and '-source',\n"
+       "                           OR you can put the base and source dataset\n"
+       "                           names last on the command line.\n"
+       "\n"
        " -prefix ppp  = Sets the prefix for the output datasets.\n"
        "               * The source dataset is warped to match the base\n"
        "                 and gets prefix 'ppp'.\n"
@@ -407,6 +481,10 @@ int main( int argc , char *argv[] )
        "               * You can also use '-superhard' to iterate even more, but\n"
        "                 this extra option will REALLY slow things down.  It should\n"
        "                 be used with -workhard.\n"
+       "           -->>* Under most circumstances, you should not need to use either\n"
+       "                 -workhard or -superhard.\n"
+       "           -->>* The fastest way to register to a template image is via the\n"
+       "                 -duplo option.\n"
        "\n"
        " -qsave       = Save intermediate warped results as well, in a dataset\n"
        "                with '_SAVE' appended to the '-prefix' value.\n"
@@ -603,6 +681,20 @@ int main( int argc , char *argv[] )
        flags |= NWARP_NOZDIS_FLAG ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-base") == 0 ){
+       if( bset   != NULL ) ERROR_exit("Can't use -base twice!") ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after -base") ;
+       bset = THD_open_dataset(argv[nopt]) ; if( bset == NULL ) ERROR_exit("Can't open -base") ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-source") == 0 ){
+       if( sset   != NULL ) ERROR_exit("Can't use -source twice!") ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after -source") ;
+       sset = THD_open_dataset(argv[nopt]) ; if( sset == NULL ) ERROR_exit("Can't open -source") ;
+       nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-emask") == 0 ){
        THD_3dim_dataset *eset ;
        if( Hemask != NULL ) ERROR_exit("Can't use -emask twice!") ;
@@ -690,10 +782,20 @@ int main( int argc , char *argv[] )
    if( (ilev != 0 || mlev < 99 ) && duplo )
      ERROR_exit("You cannot combine -inilev or -maxlev and -duplo !! :-((") ;
 
-   /*--- get the input datasts  ---*/
+   /*--- get the input datasts, check for errors ---*/
 
-   bset = THD_open_dataset(argv[nopt++]) ; if( bset == NULL ) ERROR_exit("Can't open bset") ;
-   sset = THD_open_dataset(argv[nopt++]) ; if( sset == NULL ) ERROR_exit("Can't open sset") ;
+   if( bset != NULL && sset == NULL )
+     ERROR_exit("You can't use -base without -source!") ;
+   else if( bset == NULL && sset != NULL )
+     ERROR_exit("You can't use -source without -base!") ;
+
+   if( bset == NULL ){
+     bset = THD_open_dataset(argv[nopt++]) ; if( bset == NULL ) ERROR_exit("Can't open base dataset") ;
+   }
+   if( sset == NULL ){
+     sset = THD_open_dataset(argv[nopt++]) ; if( sset == NULL ) ERROR_exit("Can't open source dataset") ;
+   }
+
    if( !EQUIV_GRIDXYZ(bset,sset) ) ERROR_exit("base-source dataset grid mismatch :-(") ;
 
    if( iwset != NULL && !EQUIV_GRIDXYZ(bset,iwset) )
@@ -701,9 +803,13 @@ int main( int argc , char *argv[] )
 
    DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
    bim = THD_extract_float_brick(0,bset) ; DSET_unload(bset) ;
+   if( DSET_NVALS(bset) > 1 )
+     WARNING_message("base dataset has more than 1 sub-brick: ignoring all but the first") ;
 
    DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ;
    sim = THD_extract_float_brick(0,sset) ; DSET_unload(sset) ;
+   if( DSET_NVALS(sset) > 1 )
+     WARNING_message("source dataset has more than 1 sub-brick: ignoring all but the first") ;
 
    if( nevox > 0 && nevox != DSET_NVOX(bset) )
      ERROR_exit("-emask doesn't match base dataset grid :-(") ;
@@ -835,7 +941,7 @@ int main( int argc , char *argv[] )
    }
    if( !nowarpi ){
      if( Hverb ) ININFO_message("Inverting warp for output") ;
-    
+
      owwi = IW3D_invert( oww , NULL , MRI_WSINC5 ) ;
      IW3D_adopt_dataset( owwi , bset ) ;
      qset = IW3D_to_dataset( owwi , modify_afni_prefix(prefix,NULL,"_WARPINV")) ;
