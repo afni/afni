@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Apr, 2013, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "set AFNI_NO_OBLIQUE_WARNING in scripts",
+   NULL
+ } ,
+
  { 26, Apr, 2013, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -show_trs_censored/_uncensored (mostly for X-matrix datasets)",
    NULL

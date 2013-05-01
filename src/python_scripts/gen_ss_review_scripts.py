@@ -403,6 +403,12 @@ g_drive_init_str = """#!/bin/tcsh
 
 """
 
+g_no_oblique_warn_str = \
+"""# ------------------------------------------------------------
+# try to avoid any oblique warnings throughout script
+setenv AFNI_NO_OBLIQUE_WARNING YES
+
+"""
 
 g_eg_uvar = SUBJ.VarsObject('sample user vars')
 g_eg_uvar.subj            = 'FT'
@@ -515,9 +521,10 @@ g_history = """
         - probably init view from volreg
    0.25 Aug 23, 2012: allow passing of -censor_dset
    0.26 Sep 06, 2012: print missing xmat message w/out debug as it is fatal
+   0.27 Apr 29, 2013: set AFNI_NO_OBLIQUE_WARNING in scripts
 """
 
-g_version = "gen_ss_review_scripts.py version 0.26, September 6, 2012"
+g_version = "gen_ss_review_scripts.py version 0.27, April 29, 2013"
 
 g_todo_str = """
    - figure out template_space
@@ -1663,7 +1670,7 @@ class MyInterface:
 
    def basic_init(self):
       """write header and set applied variables"""
-      self.text_basic += g_basic_header_str
+      self.text_basic += g_basic_header_str + g_no_oblique_warn_str
 
       # now append variable assignments
       txt  = '# ' + '-'*70 + '\n' + \
@@ -1775,7 +1782,7 @@ class MyInterface:
       return 0
 
    def drive_init(self):
-      txt = g_drive_init_str
+      txt = g_drive_init_str + g_no_oblique_warn_str
 
       scr = self.cvars.val('scr_basic')
 
