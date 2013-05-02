@@ -14,7 +14,7 @@ if( $#argv > 0 ) then
   echo " "
   echo "This script spawns jobs to run in parallel (on the same system)."
   echo "Before using it, copy it into the data directory, and edit it"
-  echo "to set the 2 variables:
+  echo "to set the 2 variables:"
   echo "     set numcpu = TOTAL NUMBER OF CPUS TO USE"
   echo "     set numjob = MAX NUMBER OF JOBS TO USE"
   echo "numcpu should not exceed the number of CPUs (cores) on the system;"
