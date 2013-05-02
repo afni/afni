@@ -766,7 +766,9 @@ if __name__ == '__main__':
    a, ps.warp_input_xform = ps.qwarping(a=a, b=b)
    
    #apply warps
-   ps.qwarp_applying(a=ps.input, aff=ps.affine_input_xmat, wrp=ps.warp_input_xform)
+   aw = ps.qwarp_applying(a=ps.input, aff=ps.affine_input_xmat, wrp=ps.warp_input_xform)
+   
+   ps.save_history(aw, ps.oexec)
    
    #apply warps for all followers
    if (len(ps.followers)):
