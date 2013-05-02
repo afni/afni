@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, sys, glob, operator, string, afni_base
+import os, sys, glob, operator, string, re, afni_base
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 
@@ -422,13 +422,14 @@ class shell_com:
          #if (len(self.com) < l1):
          #print "Command trimmed to: %s" % (self.com)
       else:
-         self.trimcom = string.join(string.split(self.com))
+         self.trimcom = re.sub(r"[ ]{2,}", ' ', self.com)
+         #  string.join(string.split(self.com)) is bad for commands like 3dNotes
    def trim(self):
       #try to remove absolute path and numerous blanks
       if self.dir[-1] != '/':
-         tcom = string.replace(string.join(string.split(self.com)), "%s/" % (self.dir), './')
+         tcom = string.replace(re.sub(r"[ ]{2,}", ' ', self.com), "%s/" % (self.dir), './')
       else:
-         tcom = string.replace(string.join(string.split(self.com)), self.dir, './')
+         tcom = string.replace(re.sub(r"[ ]{2,}", ' ', self.com), self.dir, './')
       return tcom
    def echo(self): 
       if (len(self.trimcom) < len(self.com)):
