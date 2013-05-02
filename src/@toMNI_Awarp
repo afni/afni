@@ -12,6 +12,8 @@ if( $#argv < 2 ) then
   echo "then get the results, and 'dataset1 dataset2 ...' is a list of datasets"
   echo "to be transformed."
   echo " "
+  echo "The results can further be nonlinearly registered to form a template"
+  echo "using script @toMNI_Qwarpar (which will take a long time)."
   exit 0
 endif
 
