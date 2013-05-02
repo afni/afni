@@ -5,8 +5,6 @@ if( $#argv > 0 ) then
   echo "** This script is similar to @toMNI_Qwarp -- but it spawns **"
   echo "** jobs in parallel (on the same system).  To use it, you  **"
   echo "** must edit the script and set the 2 variables            **"
-  echo "**   set numcpu = TOTAL NUMBER OF CPUS TO USE              **"
-  echo "**   set numjob = MAX NUMBER OF JOBS TO USE                **"
   echo " "
   echo "Script to take a collection of datasets and transform them"
   echo "to MNI space, then collectively re-transform them to produce"
@@ -14,17 +12,20 @@ if( $#argv > 0 ) then
   echo "running @toMNI_Awarp to do the affine alignments, and that"
   echo "script is run AFTER skull-stripping the original volumes."
   echo " "
-  echo "Usage: @toMNI_Qwarp"
+  echo "This script spawns jobs to run in parallel (on the same system)."
+  echo "Before using it, copy it into the data directory, and edit it"
+  echo "to set the 2 variables:
+  echo "     set numcpu = TOTAL NUMBER OF CPUS TO USE"
+  echo "     set numjob = MAX NUMBER OF JOBS TO USE"
+  echo "numcpu should not exceed the number of CPUs (cores) on the system;"
+  echo "it is often simplest to set numjob to the same value as numcpu,"
+  echo "so that 1 dataset is processed in 1 core, and numcpu jobs are"
+  echo "run at a time."
   echo " "
-  echo "This script no longer produces the indiviual output warped"
-  echo "datasets -- just the average datasets at each refinement"
-  echo "level, named Qwarp_mean?+tlrc.HEAD, for '?' = A B C D E"
-  echo "from the lowest (affine) level of alignment (A) to the"
-  echo "highest (E) level of alignment."
+  echo "Usage: @toMNI_Qwarpar    (... and then wait a long time)"
   echo " "
-  echo "To get the individual datasets, you can use the saved warps"
-  echo "with 3dNwarpApply, transforming from the original datasets."
-  echo " "
+  echo "It should be run inside the directory created by @toMNI_Awarp, and"
+  echo "will process the *_uni+tlrc.HEAD datasets created by that script."
   exit 0
 endif
 
@@ -46,6 +47,7 @@ set doFFF = NO
 set basename = MNI152_1mm_uni+tlrc
 
 ################### Don't alter the script below this line! ###################
+###################  (unless you are Zhark or a myrmidon)   ###################
 
 ##### Find the A level template
 
