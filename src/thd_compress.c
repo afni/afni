@@ -3,9 +3,52 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
-#include "thd_compress.h"
-#include "Amalloc.h"
+
+#include "mrilib.h"
+
+/*--------------------------------------------------------------*/
+/* Check if pigz can be used in place of gzip for compression,
+   and if pbzip2 can be used in place of bzip2.
+*//*------------------------------------------------------------*/
+
+static void COMPRESS_setup_programs(void)  /* 03 May 2013 */
+{
+   char *pgname ;
+   static char *cprog_gzip , *cprog_bzip2 ;
+   static char *uprog_gzip , *uprog_bzip2 ;
+   static int first=1 ;
+
+   if( !first ) return ;
+   first = 0 ;
+                        pgname = THD_find_executable("pigz") ;
+   if( pgname == NULL ) pgname = THD_find_executable("gzip") ;
+   if( pgname == NULL ){
+     COMPRESS_program_ok[0] = COMPRESS_program_ok[3] = 0 ;
+   } else {
+     cprog_gzip = (char *)malloc(sizeof(char)*(strlen(pgname)+32)) ;
+     sprintf(cprog_gzip,"%s -1c > '%%s'",pgname) ;
+     COMPRESS_program[0] = COMPRESS_program[3] = cprog_gzip ;
+     uprog_gzip = (char *)malloc(sizeof(char)*(strlen(pgname)+32)) ;
+     sprintf(uprog_gzip,"%s -dc '%%s'",pgname) ;
+     COMPRESS_unprogram[0] = COMPRESS_unprogram[3] = uprog_gzip ;
+   }
+                        pgname = THD_find_executable("pbzip2") ;
+   if( pgname == NULL ) pgname = THD_find_executable("bzip2") ;
+   if( pgname == NULL ){
+     COMPRESS_program_ok[1] = 0 ;
+   } else {
+     cprog_bzip2 = (char *)malloc(sizeof(char)*(strlen(pgname)+32)) ;
+     sprintf(cprog_bzip2,"%s -1c > '%%s'",pgname) ;
+     COMPRESS_program[1] = cprog_bzip2 ;
+     uprog_bzip2 = (char *)malloc(sizeof(char)*(strlen(pgname)+32)) ;
+     sprintf(uprog_bzip2,"%s -dc '%%s'",pgname) ;
+     COMPRESS_unprogram[1] = uprog_bzip2 ;
+   }
+
+   return ;
+}
+
+/*--------------------------------------------------------------*/
 
 /*** check if the file exists on disk
      -- returns 1 if it does, 0 if it does not ***/
@@ -237,6 +280,8 @@ FILE * COMPRESS_fopen_write( char * fname , int mm )
    char * buf , * cmd ;
 
    if( fname == NULL || fname[0] == '\0' ) return NULL ;
+
+   COMPRESS_setup_programs() ;  /* 03 May 2013 */
 
    /* Don't compress if the compression program isn't marked as OK   */
    /* [For modes that can only be compressed offline, like BRIKCOMP] */
