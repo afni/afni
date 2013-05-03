@@ -377,7 +377,9 @@ char * AFNI_make_update_script(void)
 
    pg_ftp  = THD_find_executable("ftp" ); if( pg_ftp  == NULL ) return NULL;
    pg_afni = THD_find_executable("afni"); if( pg_afni == NULL ) return NULL;
-   pg_gzip = THD_find_executable("gzip"); if( pg_gzip == NULL ) return NULL;
+   pg_gzip = THD_find_executable("gzip");
+      if( pg_gzip == NULL ) pg_gzip = THD_find_executable("pigz") ;
+      if( pg_gzip == NULL ) return NULL;
    pg_tar  = THD_find_executable("tar" ); if( pg_tar  == NULL ) return NULL;
 
    strcpy(adir,pg_afni) ;                /* extract name of AFNI directory */

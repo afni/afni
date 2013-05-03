@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , MAY , 2013 , RWC , "3dQwarp" , MINOR , TYPE_MODIFY ,
+  { 3 , MAY , 2013 , RWC , "thd_compress.c" , MICRO , TYPE_MODIFY ,
+   "Substitute pigz for gzip and pbzip2 for bzip2 if present in path" ,
+   NULL } ,
+
+ { 1 , MAY , 2013 , RWC , "3dQwarp" , MINOR , TYPE_MODIFY ,
    "Minor updates" ,
    "Make -emask work with -duplo.\n"
    "Add SAMPLE USAGE section to help to show how to combine 3dAllineate with\n"
