@@ -237,6 +237,8 @@ FILE * COMPRESS_fopen_read( char * fname )
 
    if( fname == NULL || fname[0] == '\0' ) return NULL ;
 
+   COMPRESS_setup_programs() ;  /* 03 May 2013 */
+
    mm = COMPRESS_filecode( fname ) ;  /* find compression mode */
 
    if( mm == COMPRESS_NOFILE ) return NULL ;  /* can't do nothin */
