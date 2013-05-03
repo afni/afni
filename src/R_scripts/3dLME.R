@@ -872,8 +872,8 @@ while(is.null(fm)) {
       gltDF <- array(data=NA, dim=lop$num_glt)
       while(!is.null(fm) & (n <= lop$num_glt)) {
          gltDF[n] <- tryCatch(contrast(fm, lop$gltList[[n]][[1]], lop$gltList[[n]][[2]], type="average")$df,
-            error=function(e) NULL)
-         if(is.null(gltDF[[n]])) fm <- NULL
+            error=function(e) NA)
+         if(is.na(gltDF[[n]])) fm <- NULL
          n <- n+1
       }      
    }
