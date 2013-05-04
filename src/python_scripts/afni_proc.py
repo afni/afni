@@ -372,10 +372,10 @@ g_history = """
                        (thanks to G Pagnoni for noting the problem)
     3.43 Apr 15, 2013: added RESTING STATE NOTE to help
     3.44 Apr 23, 2013: added eroded ROIs for -regress_ROI: WMe, GMe, CSFe
-        - 
+    3.45 May 03, 2013: added options -regress_anaticor and -mask_segment_erode
 """
 
-g_version = "version 3.44, April 23, 2013"
+g_version = "version 3.45, May 3, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2013"
@@ -458,6 +458,7 @@ class SubjProcSream:
         self.script     = None          # script name, default proc.SUBJ
         self.overwrite  = 0             # overwrite script file?
         self.fp         = None          # file object
+        self.all_runs   = ''            # prefix for final all_runs dataset
         self.anat       = None          # anatomoy to copy (afni_name class)
         self.anat_has_skull = 1         # does the input anat have a skull
                                         # also updated in db_cmd_align
@@ -518,6 +519,7 @@ class SubjProcSream:
         self.origview   = '+orig'       # view could also be '+tlrc'
         self.view       = '+orig'       # (starting and 'current' views)
         self.xmat       = 'X.xmat.1D'   # X-matrix file (might go uncensored)
+        self.xmat_nocen = 'X.xmat.1D'   # X-matrix file (without censoring)
 
         # options for surface based script
         self.surf_spec  = []            # left and/or right spec files
@@ -777,6 +779,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-mask_segment_anat', 1, [],
                         acplist=['yes', 'no'],
                         helpstr="automatic segmentation using 3dSeg (yes/no)")
+        self.valid_opts.add_opt('-mask_segment_erode', 1, [],
+                        acplist=['yes', 'no'],
+                        helpstr="also create eroded segmentation masks")
         self.valid_opts.add_opt('-mask_test_overlap', 1, [],
                         acplist=['yes','no'],
                         helpstr='test anat/EPI mask overlap (yes/no)')
@@ -791,6 +796,8 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-regress_3dD_stop', 0, [],
                         helpstr="stop 3dDeconvolve after matrix generation")
+        self.valid_opts.add_opt('-regress_anaticor', 0, [],
+                        helpstr="apply ANATICOR: regress WMeLocal time series")
         self.valid_opts.add_opt('-regress_apply_mask', 0, [],
                         helpstr="apply the mask in regression")
         self.valid_opts.add_opt('-regress_apply_ricor', 1, [],
@@ -1932,10 +1939,11 @@ class SubjProcSream:
 
     # like prefix, but list the whole dset form, in wildcard format
     def dset_form_wild(self, blabel, view=None, surf_names=-1):
-        bind = self.find_block_index(blabel)
-        if bind == None:
+        block = self.find_block(blabel)
+        if not block:
             print "** DFW: failed to find block for label '%s'" % blabel
             return ''
+        bind = block.index
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:

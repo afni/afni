@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, May, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added options -regress_anaticor and -mask_segment_erode",
+   "Use the -regress_anaticor option to regress the WMeLocal time series.\n"
+   "This is the ANATICOR method of HJ Jo."
+ } ,
+
  {  1, May, 2013, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
    "added -help example for -show_trs_uncensored",
    NULL
