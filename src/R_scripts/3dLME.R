@@ -21,7 +21,7 @@ greeting.lme <- function ()
           ================== Welcome to 3dlme ==================          
    AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.6, May 3, 2013
+Version 0.0.7, May 6, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -37,7 +37,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.5, May 3, 2013
+Version 0.0.6, May 6, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1019,6 +1019,10 @@ if (lop$nNodes>1) {
 #}
 
 ###############################
+tTop <- 100
+
+Stat[Stat > tTop] <- tTop  # Avoid outflow!!!!
+Stat[Stat < (-tTop)] <- -tTop  # Avoid outflow!!!!
 
 outLabel <- paste(rownames(anova(fm))[pars[[13]]], " F")
 if(!is.na(lop$corStr[1])) for(n in 1:dim(summary(fm)$tTable)[1]) {
