@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 3 , MAY , 2013 , RWC , "thd_compress.c" , MICRO , TYPE_MODIFY ,
+  { 6 , MAY , 2013 , RWC , "3dNwarpApply" , MICRO , TYPE_NEW_OPT ,
+   "Add -short option == save results as shorts" ,
+   "For use in warping label datasets." } ,
+
+ { 3 , MAY , 2013 , RWC , "thd_compress.c" , MICRO , TYPE_MODIFY ,
    "Substitute pigz for gzip and pbzip2 for bzip2 if present in path" ,
    NULL } ,
 

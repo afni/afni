@@ -514,6 +514,8 @@ void Qhelp(void)
     "Composition of incremental warps defined by Hermite cubic basis functions, first\n"
     "over the entire volume, then over steadily shrinking and overlapping patches\n"
     "(increasing 'levels': the patches shrink by a factor of 0.75 at each level).\n"
+    "At 'level 0' (over the entire volume), Hermite quintic basis functions are also\n"
+    "employed, but these are not used at the more refined levels.\n"
     "\n"
     "For this procedure to work, the source and base datasets need to be pretty\n"
     "well aligned already (e.g., via 3dAllineate).\n"
@@ -749,7 +751,7 @@ int main( int argc , char *argv[] )
        if( !isnumeric(argv[nopt][0]) )
          ERROR_exit("value after '-blur' must be a number: '%s'",argv[nopt]) ;
        val2 = val1 = (float)strtod(argv[nopt],NULL) ;
-       if( nopt+1 < argc && isnumeric(argv[nopt+1][0]) )
+       if( nopt+1 < argc && isnumeric(argv[nopt+1][0]) && !isalpha(argv[nopt+1][1]) )
          val2 = (float)strtod(argv[++nopt],NULL) ;
        Hblur_b = val1 ; Hblur_s = val2 ;
        nopt++ ; continue ;
@@ -759,8 +761,11 @@ int main( int argc , char *argv[] )
        Hpen_fac = 0.0 ; nopt++ ; continue ;
      }
 
-     if( strcasecmp(argv[nopt],"-useweight") == 0 ){
-       auto_weight = 1 ; nopt++ ; continue ;
+     if( strncasecmp(argv[nopt],"-useweight",10) == 0 ){
+       auto_weight = 1 ;
+       if( argv[nopt][10] == '*' && argv[nopt][11] == '*' && isnumeric(argv[nopt][12]) )
+         auto_wpow = (float)strtod(argv[nopt]+12,NULL) ;
+       nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-penfac") == 0 ){
@@ -832,6 +837,7 @@ int main( int argc , char *argv[] )
    }
 
    if( !EQUIV_GRIDXYZ(bset,sset) ) ERROR_exit("base-source dataset grid mismatch :-(") ;
+   if(  EQUIV_IDCODES(bset,sset) ) ERROR_exit("base and source datasets have identical ID codes :-(") ;
 
    if( iwset != NULL && !EQUIV_GRIDXYZ(bset,iwset) )
      ERROR_exit("-iniwarp dataset grid mismatch with base dataset :-(") ;
