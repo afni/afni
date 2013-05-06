@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, May, 2013, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "added option -slice_timing",
+   NULL
+ } ,
+
  {  6, May, 2013, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added option -transpose_write",
    NULL

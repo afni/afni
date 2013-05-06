@@ -94,6 +94,7 @@ void Syntax(void)
 "   -labeltable_as_atlas_points: Show label table in atlas point format.\n"
 "   -atlas_points: Show atlas points list, if any\n"
 "   -history: History note. \n"
+"   -slice_timing: Show slice timing. \n"
 "\n"
 "  === Options affection output format ===\n"
 "   -header_line: Output as the first line the names of attributes\n"
@@ -195,6 +196,7 @@ typedef enum {
    OI, OJ, OK, O3,
    ADI, ADJ, ADK, AD3,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST, ATLAS_POINTS,
+   SLICE_TIMING,
    FAC, DATUM, LABEL,
    MIN, MAX, MINUS, MAXUS,
    DMIN, DMAX, DMINUS, DMAXUS,
@@ -216,6 +218,7 @@ char Field_Names[][32]={
    {"Oi"}, {"Oj"}, {"Ok"}, {"Oi_Oj_Ok"},
    {"ADi"}, {"ADj"}, {"ADk"}, {"ADi_ADj_ADk"},
    {"label_table"}, {"LT_as_atlas_point_list"}, {"atlas_point_list"}, 
+   {"slice_timing"},
    {"factor"}, {"datum"}, {"label"}, 
    {"min"}, {"max"}, {"minus"}, {"maxus"},
    {"dmin"}, {"dmax"}, {"dminus"}, {"dmaxus"},
@@ -450,6 +453,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = SAME_CENTER; needpair = 1; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-same_obl") == 0) {
          sing[N_sing++] = SAME_OBL; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-slice_timing") == 0) {
+         sing[N_sing++] = SLICE_TIMING; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-sval_diff") == 0) {
          sing[N_sing++] = SVAL_DIFF; needpair = 1; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-val_diff") == 0) {
@@ -916,6 +921,22 @@ int main( int argc , char *argv[] )
          case SAME_OBL:
             fprintf(stdout,"%d",
                !(THD_dataset_mismatch( dset , dsetp ) & MISMATCH_OBLIQ));
+            break;
+         case SLICE_TIMING:     /* 6 May 2013 [rickr] */
+            {
+               if( DSET_HAS_SLICE_TIMING(dset) ) {
+                  DSET_UNMSEC(dset); /* make sure times are in seconds */
+                  for (isb=0; isb<dset->taxis->nsl; ++isb) {
+                     fprintf(stdout,"%s%f",
+                           (isb > 0) ? sbdelim : "",
+                           dset->taxis->toff_sl[isb]);
+                  }
+               } else { /* all slices times are at t=0.0 */
+                  for (isb=0; isb<DSET_NZ(dset); ++isb) {
+                     fprintf(stdout,"%s%f", (isb > 0) ? sbdelim : "", 0.0);
+                  }
+               }
+            }
             break;
          case SVAL_DIFF:
             fprintf(stdout,"%f",THD_diff_vol_vals(dset, dsetp, 1));

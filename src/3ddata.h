@@ -3288,6 +3288,9 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
     for time-dependent datasets
 */
 #define DSET_NUM_TTOFF(ds)    ( ((ds)->taxis == NULL) ? 0 : (ds)->taxis->nsl )
+/*! Return whether the dataset has slice timing.    6 May 2013 [rickr] */
+#define DSET_HAS_SLICE_TIMING(ds) \
+ (((ds) != NULL) && (DSET_NUM_TTOFF(ds) > 0) && ((ds)->taxis->toff_sl != NULL))
 
 /** 30 Nov 1997 **/
 
