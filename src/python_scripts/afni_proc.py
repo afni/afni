@@ -373,9 +373,12 @@ g_history = """
     3.43 Apr 15, 2013: added RESTING STATE NOTE to help
     3.44 Apr 23, 2013: added eroded ROIs for -regress_ROI: WMe, GMe, CSFe
     3.45 May 03, 2013: added options -regress_anaticor and -mask_segment_erode
+    3.46 May 03, 2013:
+        - added help example 9b, recommended resting state with ANATICOR
+        - -regress_anaticor implies -mask_segment_anat and -mask_segment_erode
 """
 
-g_version = "version 3.45, May 3, 2013"
+g_version = "version 3.46, May 6, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2013"
@@ -1001,6 +1004,15 @@ class SubjProcSream:
             print '** option -surf_blur_fwhm is no longer valid\n' \
                   '   (please stick with -blur_size)\n'
             return 1
+
+        # end terminal options
+
+        # options that imply other options
+        if opt_list.find_opt('-regress_anaticor'):
+           opt_list.add_opt("-mask_segment_anat", 1, ["yes"], setpar=1)
+           opt_list.add_opt("-mask_segment_erode", 1, ["yes"], setpar=1)
+
+        # end options that imply other options
 
         # end terminal options
 

@@ -4996,6 +4996,31 @@ g_help_string = """
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
+       9b. Resting state analysis with ANATICOR.
+
+           Like example #9, but also regress out the signal from locally
+           averaged white matter.  The only change is adding the option
+           -regress_anaticor.
+
+           Note that -regress_anaticor implies options -mask_segment_anat and
+           -mask_segment_erode.
+
+                afni_proc.py -subj_id subj123                                \\
+                  -dsets epi_run1+orig.HEAD                                  \\
+                  -copy_anat anat+orig                                       \\
+                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -tcat_remove_first_trs 3                                   \\
+                  -volreg_align_e2a                                          \\
+                  -volreg_tlrc_warp                                          \\
+                  -regress_anaticor                                          \\
+                  -regress_censor_motion 0.2                                 \\
+                  -regress_censor_outliers 0.1                               \\
+                  -regress_bandpass 0.01 0.1                                 \\
+                  -regress_apply_mot_types demean deriv                      \\
+                  -regress_run_clustsim no                                   \\
+                  -regress_est_blur_errts
+
+
        10. Resting state analysis, with tissue-based regressors.
 
            Like example #9, but also regress eroded white matter and CSF
@@ -7110,6 +7135,8 @@ g_help_string = """
 
             Note that other 4-D time series might be regressed out via the
             3dTfitter step, as well.
+
+            This option implies -mask_segment_anat and -mask_segment_erode.
 
             See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
 
