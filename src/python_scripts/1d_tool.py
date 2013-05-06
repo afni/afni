@@ -320,7 +320,7 @@ examples (very basic for now):
    19. Compute GCOR from some 1D file.
 
        * Note, time should be in the vertical direction of the file
-         (else put -transpose first).
+         (else use -transpose).
 
         1d_tool.py -infile data.1D -show_gcor
 
@@ -665,7 +665,8 @@ general options:
 
         See example 14.
 
-   -transpose                   : transpose the matrix (rows for columns)
+   -transpose                   : transpose the input matrix (rows for columns)
+   -transpose_write             : transpose the output matrix before writing
    -write FILE                  : write the current 1D data to FILE
 
    -weight_vec v1 v2 ...        : supply weighting vector
@@ -784,9 +785,10 @@ g_history = """
         - added -label_prefix_keep/_drop (e.g. for removing bandpass regressors)
    1.13 Apr 24, 2013 - added -censor_next_TR
    1.14 Apr 26, 2013 - added options -show_trs_censored/uncensored
+   1.15 May  6, 2013 - added option -transpose_write
 """
 
-g_version = "1d_tool.py version 1.13, April 24, 2013"
+g_version = "1d_tool.py version 1.15, May 6, 2013"
 
 
 class A1DInterface:
@@ -847,7 +849,8 @@ class A1DInterface:
       self.show_trs_uncensored = ''     # style variable can be in:
                                # {'', 'comma', 'space', 'encoded', 'verbose'}
       self.sort            = 0          # sort data over time
-      self.transpose       = 0          # transpose the matrix
+      self.transpose       = 0          # transpose the input matrix
+      self.transpose_w     = 0          # transpose the output matrix
       self.censor_file     = None       # output as 1D censor file
       self.censortr_file   = None       # output as CENSORTR string
       self.collapse_file   = None       # output as 1D collapse file
@@ -930,11 +933,11 @@ class A1DInterface:
                       helpstr='display the current version number')
 
       # required parameter
-      self.valid_opts.add_opt('-infile', 1, [], req=1, okdash=0,
+      self.valid_opts.add_opt('-infile', 1, [], req=1, 
                       helpstr='read the given 1D file')
 
       # general options
-      self.valid_opts.add_opt('-add_cols', 1, [], okdash=0,
+      self.valid_opts.add_opt('-add_cols', 1, [], 
                       helpstr='extend dataset with columns from new file')
 
       self.valid_opts.add_opt('-backward_diff', 0, [], 
@@ -943,16 +946,16 @@ class A1DInterface:
       self.valid_opts.add_opt('-censor_fill', 0, [], 
                       helpstr='zero-fill previously censored TRs')
 
-      self.valid_opts.add_opt('-censor_fill_parent', 1, [], okdash=0,
+      self.valid_opts.add_opt('-censor_fill_parent', 1, [], 
                       helpstr='-censor_fill, but via this parent dataset')
 
       self.valid_opts.add_opt('-censor_first_trs', 1, [], 
                       helpstr='number of initial TRs to censor, per run')
 
-      self.valid_opts.add_opt('-censor_infile', 1, [], okdash=0,
+      self.valid_opts.add_opt('-censor_infile', 1, [], 
                       helpstr='apply censor file to input file')
 
-      self.valid_opts.add_opt('-censor_motion', 2, [], okdash=0,
+      self.valid_opts.add_opt('-censor_motion', 2, [], 
                       helpstr='censor motion data with LIMIT and PREFIX')
 
       self.valid_opts.add_opt('-censor_next_TR', 0, [], 
@@ -1095,18 +1098,21 @@ class A1DInterface:
                       helpstr='write input as one zero-padded file per run')
 
       self.valid_opts.add_opt('-transpose', 0, [], 
-                      helpstr='transpose the data')
+                      helpstr='transpose the input matrix')
+
+      self.valid_opts.add_opt('-transpose_write', 0, [], 
+                      helpstr='transpose the output matrix before writing')
 
       self.valid_opts.add_opt('-weight_vec', -1, [], 
                       helpstr='specify weights (for enorm computation)')
 
-      self.valid_opts.add_opt('-write', 1, [], okdash=0,
+      self.valid_opts.add_opt('-write', 1, [], 
                       helpstr='write 1D data to the given file')
 
-      self.valid_opts.add_opt('-write_censor', 1, [], okdash=0,
+      self.valid_opts.add_opt('-write_censor', 1, [], 
                       helpstr='write as 1D censor file')
 
-      self.valid_opts.add_opt('-write_CENSORTR', 1, [], okdash=0,
+      self.valid_opts.add_opt('-write_CENSORTR', 1, [], 
                       helpstr='write CENSORTR format string to file')
 
       self.valid_opts.add_opt('-verb', 1, [], 
@@ -1459,6 +1465,9 @@ class A1DInterface:
          elif opt.name == '-transpose':
             self.transpose = 1
 
+         elif opt.name == '-transpose_write':
+            self.transpose_w = 1
+
          elif opt.name == '-write':
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
@@ -1551,6 +1560,9 @@ class A1DInterface:
                                               drop_pre=self.label_pre_drop):
             return 1
 
+      if self.transpose: # possibly transpose on read
+         if self.adata.transpose(): return 1
+
       # ---- processing options -----
 
       if self.set_nruns > 0:
@@ -1587,9 +1599,6 @@ class A1DInterface:
                   % (val[1], rlens)
             return 1
          if self.adata.pad_into_many_runs(val[0], val[1], rlens): return 1
-
-      if self.transpose:
-         if self.adata.transpose(): return 1
 
       if self.collapse_method:
          if self.adata.collapse_cols(self.collapse_method, self.weight_vec):
@@ -1656,11 +1665,14 @@ class A1DInterface:
       if self.show_censor_count: self.adata.show_censor_count()
 
       if self.show_cormat_warn:
-         err, str = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
+         err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
                                                            name=self.infile)
-         print str
+         print wstr
 
       # ---- possibly write: last option -----
+
+      if self.transpose_w: # if transpose on write, do it now
+         if self.adata.transpose(): return 1
 
       if self.censortr_file:
          bdata = self.adata.copy()
