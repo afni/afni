@@ -3626,9 +3626,17 @@ ENTRY("NwarpCalcRPN") ;
      /*--- swap-eroni ---*/
 
      else if( strcasecmp(cmd,"&swap") == 0 ){
-        if( nstk < 2 ) ERREX("stack too short") ;
-        AA = iwstk[nstk-2] ; BB = iwstk[nstk-1] ;
-        iwstk[nstk-2] = BB ; iwstk[nstk-1] = AA ;
+       char *bp=strchr(cmd,'(') ;
+       int nAA=1 , nBB=0 ;
+       if( bp != NULL ){
+         nAA = nBB = -666 ;
+         sscanf(bp+1,"%d,%d",&nAA,&nBB) ;
+         if( nAA < 0 || nBB < 0 || nAA == nBB ) ERREX("illegal values in &swap") ;
+       }
+       nAA++ ; nBB++ ;
+       if( nstk < MAX(nAA,nBB) ) ERREX("stack too short for &swap") ;
+       AA = iwstk[nstk-nAA] ; BB = iwstk[nstk-nBB] ;
+       iwstk[nstk-nAA] = BB ; iwstk[nstk-nBB] = AA ;
      }
 
      /*--- go to Australia (viz., invert) ---*/

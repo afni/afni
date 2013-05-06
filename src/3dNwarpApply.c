@@ -105,10 +105,12 @@ int main( int argc , char *argv[] )
       "                the data values being mapped are labels.\n"
       "\n"
       " -prefix ppp  = 'ppp' is the name of the new output dataset\n"
-#if 0
+      "\n"
       " -short       = Write output dataset using 16-bit short integers, rather than\n"
       "                the usual 32-bit floats.\n"
-#endif
+      "                ++ Intermediate values are rounded to the nearest integer.\n"
+      "                ++ This option is intended for use with '-ainterp' and for\n"
+      "                   source datasets that contain integral values.\n"
       "\n"
       " -quiet       = Don't be verbose :-(\n"
       " -verb        = Be extra verbose :-)\n"
@@ -118,7 +120,7 @@ int main( int argc , char *argv[] )
       "* At present, this program doesn't work with 2D warps, only with 3D.\n"
       "\n"
       "* At present, the output dataset is stored in float format, no matter what\n"
-      "  absurd data format the input dataset uses.\n"
+      "  absurd data format the input dataset uses (but cf. the '-short' option).\n"
       "\n"
       "* To make life both simpler and more complex, 3dNwarpApply allows you to\n"
       "  catenate warps directly on the command line, as if you used 3dNwarpCat\n"
@@ -391,6 +393,18 @@ int main( int argc , char *argv[] )
 
    dset_out = THD_nwarp_dataset( dset_nwarp , dset_src , dset_mast , prefix ,
                                  interp_code,ainter_code , dxyz_mast , wfac , 0 , awim ) ;
+
+   if( dset_out == NULL ) ERROR_exit("Warping failed for some reason :-(((") ;
+
+   if( toshort ){
+     int iv,nxyz=DSET_NVOX(dset_out) ; short *sar ; float *far ;
+     for( iv=0 ; iv < DSET_NVALS(dset_out) ; iv++ ){
+       far = (float *)DSET_ARRAY(dset_out,iv) ;
+       sar = (short *)malloc(sizeof(short)*nxyz) ;
+       EDIT_coerce_type( nxyz , MRI_float,far , MRI_short,sar ) ;
+       EDIT_substitute_brick( dset_out , iv , MRI_short,sar ) ;
+     }
+   }
 
    if( dset_mast != NULL )
      MCW_strncpy( dset_out->atlas_space , dset_mast->atlas_space , THD_MAX_NAME ) ;
