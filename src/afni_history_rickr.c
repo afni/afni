@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, May, 2013, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "added -regress_anaticor example; opt implies -mask_segment_anat/_erode",
+   NULL
+ } ,
+
  {  6, May, 2013, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
    "added option -slice_timing",
    NULL
