@@ -837,7 +837,7 @@ int main( int argc , char *argv[] )
    }
 
    if( !EQUIV_GRIDXYZ(bset,sset) ) ERROR_exit("base-source dataset grid mismatch :-(") ;
-   if(  EQUIV_IDCODES(bset,sset) ) ERROR_exit("base and source datasets have identical ID codes :-(") ;
+   if(  EQUIV_DSETS  (bset,sset) ) ERROR_exit("base and source datasets are identical :-(") ;
 
    if( iwset != NULL && !EQUIV_GRIDXYZ(bset,iwset) )
      ERROR_exit("-iniwarp dataset grid mismatch with base dataset :-(") ;
