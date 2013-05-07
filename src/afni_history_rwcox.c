@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 6 , MAY , 2013 , RWC , "3dNwarpApply" , MICRO , TYPE_NEW_OPT ,
+  { 7 , MAY , 2013 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "Add -Qfinal option (experimental)" ,
+   NULL } ,
+
+ { 6 , MAY , 2013 , RWC , "3dNwarpApply" , MICRO , TYPE_NEW_OPT ,
    "Add -short option == save results as shorts" ,
    "For use in warping label datasets." } ,
 
