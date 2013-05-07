@@ -2672,11 +2672,13 @@ IndexWarp3D_pair * IW3D_sqrtpair( IndexWarp3D *AA , int icode )
      tsum = IW3D_sqrtpair_step( YYZZ , MRI_LINEAR ) ;
 
      nrat = tsum / normAA ;
-     if( verb_nww > 1 ) ININFO_message("*** sqrtpair: nite=%d  nrat=%g",nite,nrat) ;
+     if( verb_nww ) ININFO_message("*** sqrtpair: nite=%d  nrat=%g",nite,nrat) ;
 
      if( nrat < 0.001666f              ) break ;
      if( nite > 2 && nrat > orat*0.99f ) break ;
    }
+
+   if( verb_nww ) INFO_message("*** sqrtpair: exit after %d iterations",nite+1) ;
 
    inewtfix = 0 ;
    return YYZZ ;
@@ -3625,8 +3627,8 @@ ENTRY("NwarpCalcRPN") ;
 
      /*--- swap-eroni ---*/
 
-     else if( strcasecmp(cmd,"&swap") == 0 ){
-       char *bp=strchr(cmd,'(') ;
+     else if( strncasecmp(cmd,"&swap",5) == 0 ){  /* modified 06 May 2013 */
+       char *bp=strchr(cmd,'(') ;                 /* to allow (a,b) args */
        int nAA=1 , nBB=0 ;
        if( bp != NULL ){
          nAA = nBB = -666 ;
@@ -3921,6 +3923,13 @@ static int Hworkhard1 =   0 ;
 static int Hworkhard2 =  -1 ;
 static int Hsuperhard =   0 ;
 static int Hfirsttime =   0 ;  /* for fun only */
+
+#define ALLOW_QFINAL
+#ifdef ALLOW_QFINAL
+static int Hqfinal    =   0 ;  /* 07 May 2013 */
+#else
+# define Hqfinal 0
+#endif
 
 #undef  WORKHARD
 #define WORKHARD(lll) ( !Hduplo && (lll) >= Hworkhard1 && (lll) <= Hworkhard2 )
@@ -5531,10 +5540,9 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    int ibot,itop,idon , jbot,jtop,jdon , kbot,ktop,kdon , dox,doy,doz , iii ;
    IndexWarp3D *OutWarp ;
    float flev , glev , Hcostold , Hcostmid=0.0f,Hcostend=0.0f ;
-   char *eee ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
    int dkkk,djjj,diii , ngmin=0 , levdone=0 ;
-   int qmode=-666 , nlevr , nsup,isup ;
+   int qmode=MRI_CUBIC , nlevr , nsup,isup ;
 
 ENTRY("IW3D_warpomatic") ;
 
@@ -5673,12 +5681,9 @@ ENTRY("IW3D_warpomatic") ;
      Hfactor = 1.0f ;
 #endif
 
-#if 0
-     eee = getenv("AFNI_WARPOMATIC_DFINAL") ;
-     if( levdone && !Hduplo && eee != NULL ){
-            if( toupper(*eee) == 'C' ) qmode = MRI_CUBIC ;
-       else if( toupper(*eee) == 'Q' ) qmode = MRI_QUINTIC ;
-     }
+     qmode = MRI_CUBIC ;
+#ifdef ALLOW_QFINAL
+     if( levdone && !Hduplo && Hqfinal ) qmode = MRI_QUINTIC ;
 #endif
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
@@ -5710,7 +5715,7 @@ ENTRY("IW3D_warpomatic") ;
                   if( itop >= ittt        ){ itop = ittt; ibot = itop+1-xwid; idon=1; }
              else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
              Hcostold = Hcost ;
-             iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             iter = IW3D_improve_warp( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #if 0
              if( Hcost > Hcostold+0.001f ){
                if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
@@ -5749,7 +5754,7 @@ ENTRY("IW3D_warpomatic") ;
                   if( kbot <= kbbb        ){ kbot = kbbb; ktop = kbot+zwid-1; kdon=1; }
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
              Hcostold = Hcost ;
-             iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             iter = IW3D_improve_warp( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #if 0
              if( Hcost > Hcostold+0.001f ){
                if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
