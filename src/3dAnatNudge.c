@@ -178,29 +178,29 @@ int main( int argc , char *argv[] )
    /* see if we got anything back */
 
    if( fv.xyz[0] == 0.0 && fv.xyz[1] == 0.0 && fv.xyz[2] == 0.0 ){
-      fprintf(stderr,"# Best nudge is nothing.\n") ; exit(0) ;
+      fprintf(stderr,"# Best nudge is nothing.\n") ; /* don't exit - 05/13 */
    }
+   else {
+      fprintf(stderr,"++ Best nudge is %.4f%c %.4f%c %.4f%c\n" ,
+              -fv.xyz[0] , ORIENT_typestr[dsant->daxes->xxorient][0] ,
+              -fv.xyz[1] , ORIENT_typestr[dsant->daxes->yyorient][0] ,
+              -fv.xyz[2] , ORIENT_typestr[dsant->daxes->zzorient][0]  ) ;
 
-   fprintf(stderr,"++ Best nudge is %.4f%c %.4f%c %.4f%c\n" ,
-           -fv.xyz[0] , ORIENT_typestr[dsant->daxes->xxorient][0] ,
-           -fv.xyz[1] , ORIENT_typestr[dsant->daxes->yyorient][0] ,
-           -fv.xyz[2] , ORIENT_typestr[dsant->daxes->zzorient][0]  ) ;
+      /* print 3drefit command */
 
-   /* print 3drefit command */
-
-   strcpy(str,"3drefit") ; ii = strlen(str) ;
-   if( fv.xyz[0] != 0.0 ){
-      sprintf(str+ii," -dxorigin %.4f",fv.xyz[0]); ii = strlen(str);
+      strcpy(str,"3drefit") ; ii = strlen(str) ;
+      if( fv.xyz[0] != 0.0 ){
+         sprintf(str+ii," -dxorigin %.4f",fv.xyz[0]); ii = strlen(str);
+      }
+      if( fv.xyz[1] != 0.0 ){
+         sprintf(str+ii," -dyorigin %.4f",fv.xyz[1]); ii = strlen(str);
+      }
+      if( fv.xyz[2] != 0.0 ){
+         sprintf(str+ii," -dzorigin %.4f",fv.xyz[2]); ii = strlen(str);
+      }
+      sprintf(str+ii," %s",DSET_HEADNAME(dsant)) ;
+      printf("%s\n",str) ;
    }
-   if( fv.xyz[1] != 0.0 ){
-      sprintf(str+ii," -dyorigin %.4f",fv.xyz[1]); ii = strlen(str);
-   }
-   if( fv.xyz[2] != 0.0 ){
-      sprintf(str+ii," -dzorigin %.4f",fv.xyz[2]); ii = strlen(str);
-   }
-   sprintf(str+ii," %s",DSET_HEADNAME(dsant)) ;
-   printf("%s\n",str) ;
-
    /* produce new dataset */
 
    if( prefix != NULL ){
