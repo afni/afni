@@ -648,8 +648,6 @@ int main( int argc , char *argv[] )
          apt = argv[nopt]+7 ; affmode = AFF_MATRIX ;
        } else if( strncasecmp(argv[nopt],"PARAM(",6) == 0 ){
          apt = argv[nopt]+6 ; affmode = AFF_PARAM ;
-       } else if( strchr(argv[nopt],'(') != NULL ){
-         ERROR_exit("don't understand -iniwarp '%s'",argv[nopt]) ;
        }
 
        if( apt != NULL ){  /* read list of 12 parameters for affine transform */
@@ -664,7 +662,7 @@ int main( int argc , char *argv[] )
 
        } else {            /* read dataset for initial warp */
 
-         iwset = IW3D_read_catenated_warp(argv[nopt]) ;
+         iwset = IW3D_read_catenated_warp(argv[nopt]) ;  /* the fancy way to read */
          if( iwset == NULL )
            ERROR_exit("Cannot open -iniwarp %s",argv[nopt]) ;
          if( DSET_NVALS(iwset) < 3 || DSET_BRICK_TYPE(iwset,0) != MRI_float )
