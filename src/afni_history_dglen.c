@@ -49,10 +49,16 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 7 , MAY, 2013 , DRG , "3dAnatNudge" , 
+    MINOR , TYPE_MODIFY, 
+    "always produce output with -prefix even if no shift"
+} ,
+
 { 19 , APR, 2013 , DRG , "3dmaskdump" , 
     MINOR , TYPE_NEW_OPT, 
     "lpi xyz output option"
 } ,
+
 { 17 , APR, 2013 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "save_vr result causes crash"
