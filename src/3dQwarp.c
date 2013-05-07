@@ -203,6 +203,8 @@ void Qhelp(void)
     "\n"
     "* Computes a nonlinearly warped version of source_dataset to match base_dataset.\n"
     " ++ The detail allowed in the warping is set by the '-minpatch' option.\n"
+    " ++ The discrete warp computed herein is a representation of an underlying\n"
+    "    piecewise polynomial C1 diffeomorphism.\n"
     "\n"
     "* Input datasets must be on the same 3D grid!\n"
     " ++ If necessary, you can use 3dAllineate or 3dresample to make a\n"
@@ -496,6 +498,19 @@ void Qhelp(void)
     "                 -workhard or -superhard.\n"
     "           -->>* The fastest way to register to a template image is via the\n"
     "                 -duplo option, and without the -workhard or -superhard options.\n"
+#ifdef ALLOW_QFINAL
+    "\n"
+    " -Qfinal      = At the finest patch size (the final level), use Hermite\n"
+    "                quintic polynomials for the warp instead of cubic polynomials.\n"
+    "               * In a 3D 'patch', there are 2x2x2x3=24 cubic polynomial basis\n"
+    "                 function parameters over which to optimize (2 polynomials\n"
+    "                 dependent on each of the x,y,z directions, and 3 different\n"
+    "                 directions of displacement).\n"
+    "               * There are 3x3x3x3=81 quintic polynomial parameters per patch.\n"
+    "               * With -Qfinal, the final level will have more detail in\n"
+    "                 the allowed warps, at the cost of yet more CPU time.\n"
+    "               * This option is also not usually needed, and is experimental.\n"
+#endif
 #ifdef USE_SAVER
     "\n"
     " -qsave       = Save intermediate warped results as well, in a dataset\n"
@@ -509,20 +524,45 @@ void Qhelp(void)
     " -verb        = Print out very very verbose progress messages (to stderr).\n"
     " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"
     "\n"
-    "METHOD\n"
-    "------\n"
+    "-----------------\n"
+    "OUTLINE OF METHOD\n"
+    "-----------------\n"
     "Composition of incremental warps defined by Hermite cubic basis functions, first\n"
     "over the entire volume, then over steadily shrinking and overlapping patches\n"
     "(increasing 'levels': the patches shrink by a factor of 0.75 at each level).\n"
     "At 'level 0' (over the entire volume), Hermite quintic basis functions are also\n"
-    "employed, but these are not used at the more refined levels.\n"
+    "employed, but these are not used at the more refined levels.  All basis functions\n"
+    "herein are (at least) continuously differentiable, so the discrete warp computed\n"
+    "will be a representation of an underlying C1 diffeomorphism.  The basis functions\n"
+    "go to zero at the edge of each patch, so the overall warp will decay to the identity\n"
+    "warp (displacements=0) at the edge of the base volume.\n"
     "\n"
-    "For this procedure to work, the source and base datasets need to be pretty\n"
-    "well aligned already (e.g., via 3dAllineate).\n"
+    "For this procedure to work, the source and base datasets need to be reasonably\n"
+    "well aligned already (e.g., via 3dAllineate, if necessary). Multiple warps can\n"
+    "later be composed and applied via programs 3dNwarpApply and/or 3dNwarpCalc.\n"
+    "\n"
+    "Note that it is not correct to say that the resulting warp is a piecewise cubic\n"
+    "(or quintic) polynomial.  The first warp created (at level 0) is such a warp;\n"
+    "call that W0(x).  Then the incremental warp W1(x) applied at the next iteration\n"
+    "is also a cubic polynomial warp (say), and the result is W0(W1(x)), which is\n"
+    "more complicated than a cubic polynomial -- and so on.  The incremental warps\n"
+    "aren't added, but composed, so that the mathematical form of the final warp\n"
+    "would be very unwieldy to express in polynomial form.  Of course, the program\n"
+    "just keeps track of the displacements, not the polynomial coefficients, so it\n"
+    "doesn't 'care' about the underlying polynomials at all.\n"
+    "\n"
+    "One reason for incremental improvement by composition, rather than by addition,\n"
+    "is the simple fact that if W0(x) is invertible and W1(x) is invertible, then\n"
+    "W0(W1(x)) is also invertible -- but W0(x)+W1(x) might not be.  The incremental\n"
+    "polynomial warps are kept invertible by constraints on their coefficients.\n"
+    "\n"
+    "The penalty is a Neo-Hookean elastic energy function, based on a combination\n"
+    "of bulk and shear distortions; cf. http://en.wikipedia.org/wiki/Neo-Hookean_solid\n"
+    "The goal is to keep the warps from becoming too 'weird'.\n"
     "\n"
     "***** This program is experimental and subject to sudden horrific change! *****\n"
     "\n"
-    "----- AUTHOR = Zhark the Hideously Warped -- Fall/Winter/Spring 2012-13   -----\n"
+    "----- AUTHOR = Zhark the Grotesquely Warped -- Fall/Winter/Spring 2012-13 -----\n"
   ) ;
 
   PRINT_AFNI_OMP_USAGE("3dQwarp",
@@ -699,6 +739,12 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-superhard") == 0 ){  /* 30 Apr 2013 */
        Hsuperhard = 1 ; nopt++ ; continue ;
      }
+
+#ifdef ALLOW_QFINAL
+     if( strcasecmp(argv[nopt],"-Qfinal") == 0 ){     /* 07 May 2013 */
+       Hqfinal = 1 ; nopt++ ; continue ;
+     }
+#endif
 
 #ifdef USE_SAVER
      if( strcasecmp(argv[nopt],"-qsave") == 0 ){
