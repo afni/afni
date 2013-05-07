@@ -173,7 +173,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
 static THD_3dim_dataset *qset = NULL ;
 
-#define USE_SAVER
+#undef  USE_SAVER
 #ifdef  USE_SAVER
 void Qsaver(char *lab, MRI_IMAGE *im)
 {
