@@ -339,6 +339,22 @@ examples (very basic for now):
 
           1d_tool.py -infile X.xmat.1D -show_trs_uncensored encoded
 
+
+   21. Convert to rank order.
+
+       a. show rank order of slice times from a 1D file
+
+         1d_tool.py -infile slice_times.1D -rank -write -
+
+       b. show rank order of slice times piped directly from 3dinfo
+
+         3dinfo -slice_timing epi+orig | 1d_tool.py -infile - -rank -write -
+
+       c. show rank order using 'competition' rank, instead of default 'dense'
+
+         3dinfo -slice_timing epi+orig \\
+                | 1d_tool.py -infile - -rank_style competition -write -
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -497,8 +513,8 @@ general options:
 
         This is a type of column selection.
 
-        Use this option to remove columns from a matrix that have labels starting
-        with any from the given prefix list.
+        Use this option to remove columns from a matrix that have labels
+        starting with any from the given prefix list.
 
         This option can be applied along with -label_prefix_keep.
 
@@ -597,6 +613,33 @@ general options:
            -derivative -demean -collapse_cols euclidean_norm
            -censor_prev_TR -verb 0 -show_censor_count 
            -moderate_mask 0 LIMIT
+
+   -rank                        : convert data to rank order
+                                  0-based index order of small to large values
+                                  The default rank STYLE is 'dense'.
+
+        See also -rank_style.
+
+   -rank_style STYLE            : convert to rank using the given style
+
+        The STYLE refers to what to do in the case of repeated values.
+        Assuming inputs 4 5 5 9...
+
+            dense      - repeats get same rank, no gaps in rank
+                        - same a "3dmerge -1rank"
+                        - result: 0 1 1 2
+
+            competition - repeats get same rank, leading to gaps in rank
+                        - same a "3dmerge -1rank"
+                        - result: 0 1 1 3
+                          (case '2' is counted, though no such rank occurs)
+
+        Option '-rank' uses style 'dense'.
+
+        See also -rank.
+
+   -reverse_rank                : convert data to reverse rank order
+                                  (large values come first)
 
    -reverse                     : reverse data over time
    -randomize_trs               : randomize the data over time
@@ -786,9 +829,10 @@ g_history = """
    1.13 Apr 24, 2013 - added -censor_next_TR
    1.14 Apr 26, 2013 - added options -show_trs_censored/uncensored
    1.15 May  6, 2013 - added option -transpose_write
+   1.16 May  8, 2013 - added options -rank, -rank_style
 """
 
-g_version = "1d_tool.py version 1.15, May 6, 2013"
+g_version = "1d_tool.py version 1.16, May 8, 2013"
 
 
 class A1DInterface:
@@ -805,6 +849,9 @@ class A1DInterface:
 
       # action variables
       self.add_cols_file   = None       # filename to add cols from
+      self.rank            = ''         # convert data to rank order
+                                        # method '', 'dense', or 'competition'
+      self.reverse_rank    = 0          # convert data to reverse rank order
       self.censor_dset     = None       # censor dataset from censor_infile
       self.censor_infile   = None       # for -censor_infile
 
@@ -939,6 +986,16 @@ class A1DInterface:
       # general options
       self.valid_opts.add_opt('-add_cols', 1, [], 
                       helpstr='extend dataset with columns from new file')
+
+      self.valid_opts.add_opt('-rank', 0, [], 
+                      helpstr='conver input to rank order')
+
+      self.valid_opts.add_opt('-rank_style', 1, [], 
+                      acplist=['dense', 'competition'],
+                      helpstr='conver input to rank order using given STYLE')
+
+      self.valid_opts.add_opt('-reverse_rank', 0, [], 
+                      helpstr='conver input to reverse rank order')
 
       self.valid_opts.add_opt('-backward_diff', 0, [], 
                       helpstr='compute first backward differences')
@@ -1202,6 +1259,17 @@ class A1DInterface:
                return 1
 
          # ----- general options -----
+
+         elif opt.name == '-rank':
+            self.rank = 'dense'
+
+         elif opt.name == '-rank_style':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.rank = val
+
+         elif opt.name == '-reverse_rank':
+            self.reverse_rank = 1
 
          if opt.name == '-censor_infile':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -1638,6 +1706,14 @@ class A1DInterface:
       if self.show_label_ord: self.adata.show_major_order_of_labels()
       if self.show_labels: self.adata.show_labels()
       if self.show_group_labels: self.adata.show_group_labels()
+
+      # treat reverse as a toggl
+      if self.reverse_rank:
+         if self.rank: style = self.rank
+         else:         style = 'dense'
+         if self.adata.rank(style=style, reverse=1, verb=self.verb): return 1
+      elif self.rank:
+         if self.adata.rank(style=self.rank, verb=self.verb): return 1
 
       if self.show_indices:
          istr = self.adata.get_indices_str(self.show_indices)

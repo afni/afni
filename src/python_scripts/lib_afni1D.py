@@ -1836,6 +1836,56 @@ class Afni1D:
             form = "%7.4f %7.4f %7.4f %7.4f"
          print ps + form % UTIL.min_mean_max_stdev(col)
 
+   def add_offset(self, offset):
+      """add offset value to every value in matrix"""
+
+      if not self.ready:
+         print '** add_affset: data not ready'
+         return 1
+
+      for row in self.mat:
+         for ind in range(len(row)): row[ind] += offset
+
+      return 0
+
+   def rank(self, style='dense', reverse=0, base1=0, verb=1):
+      """convert to the min to max rank
+         i.e. for each value, apply its ordered index
+         e.g. 3.4 -0.3 4.9 2.0   ==>   2 0 3 1
+
+         style :  rank style ('dense' or 'competition')
+         reverse: sort largest to smallest
+         base1:   apply 1-based ranks
+
+         If there is one row or col, use it.  Otherwise, use column 0.
+
+         return status (0=success)
+      """
+
+      if not self.ready:
+         print '** rank: data not ready'
+         return 1, []
+
+      if self.nvec == 0 or self.nt == 0: return 0       # nothing to do
+
+      # if nt == 1, use first value per vector (apply as transpose)
+      if self.nt == 1 and self.nvec > 1:
+         data = [self.mat[ind][0] for ind in range(self.nvec)]
+         rv, data = UTIL.get_rank(data, style=style, reverse=reverse)
+         if rv: return 1
+         for ind in range(self.nvec):
+            self.mat[ind][0] = data[ind]
+
+      # else nt > 1, process all vectors
+      else:
+         for ind, row in enumerate(self.mat):
+            rv, data = UTIL.get_rank(row, style=style, reverse=reverse)
+            if rv: return 1
+            self.mat[ind] = data
+
+      if base1: return self.add_offset(1)
+      else:     return 0
+
    def get_indices_str(self, ind_types):
       """return an index list (sub-brick selector form) for the
          following groups:
