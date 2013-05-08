@@ -1643,6 +1643,62 @@ def max_len_in_list(vlist):
        print '** max_len_in_list: cannot compute lengths'
     return mval
 
+def get_rank(data, style='dense', reverse=0, uniq=0):
+   """return the rank order of indices given values,
+      i.e. for each value, show its ordered index
+      e.g. 3.4 -0.3 4.9 2.0   ==>   2 0 3 1
+
+      Sort the data, along with indices, then repeat on the newly
+      sorted indices.  If not uniq, set vals to minimum for repeated set.
+      Note that sorting lists sorts on both elements, so first is smallest.
+
+      styles:  (e.g. given input -3 5 5 6, result is ...)
+
+         competition:  competition ranking (result 1 2 2 4 )
+         dense:        dense ranking (result 1 2 2 3 )
+                       {also default from 3dmerge and 3dRank}
+
+      return status (0=success) and the index order
+   """
+
+   dlen = len(data)
+
+   # maybe reverse the sort order
+   if reverse:
+      maxval = max(data)
+      dd = [maxval-val for val in data]
+   else: dd = data
+
+   # sort data and original position
+   dd = [[dd[ind], ind] for ind in range(dlen)]
+   dd.sort()
+
+   # invert postion list by repeating above, but with index list as data
+   # (bring original data along for non-uniq case)
+   dd = [[dd[ind][1], ind, dd[ind][0]] for ind in range(dlen)]
+
+   # deal with repeats: maybe modify d[1] from ind, depending on style
+   if not uniq:
+      if style == 'dense':
+         cind = dd[0][1] # must be 0
+         for ind in range(dlen-1):      # compare next to current
+            if dd[ind+1][2] == dd[ind][2]:
+               dd[ind+1][1] = cind
+            else:
+               cind += 1
+               dd[ind+1][1] = cind
+      elif style == 'competition':
+         for ind in range(dlen-1):      # compare next to current
+            if dd[ind+1][2] == dd[ind][2]:
+               dd[ind+1][1] = dd[ind][1]
+      else:
+         print "** UTIL.GR: invalid style '%s'" % style
+         return 1, []
+
+   dd.sort()
+
+   return 0, [dd[ind][1] for ind in range(dlen)]
+
 # ----------------------------------------------------------------------
 # wildcard construction functions
 # ----------------------------------------------------------------------
