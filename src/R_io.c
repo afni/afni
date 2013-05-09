@@ -89,17 +89,29 @@ SEXP R_THD_load_dset(SEXP Sfname, SEXP Opts)
    
    NI_free_element(ngr); 
    
+   if (debug > 1) fprintf(stderr,"Forming data array of %d elements\n",
+                                 DSET_NVOX(dset)*DSET_NVALS(dset));
    /* form one long array of data */
    PROTECT(brik = NEW_NUMERIC(DSET_NVOX(dset)*DSET_NVALS(dset)));
    dv = NUMERIC_POINTER(brik);
    EDIT_floatize_dataset(dset);
    for (cnt=0, sb=0; sb<DSET_NVALS(dset); ++sb) {
-      fv = (float *)DSET_BRICK_ARRAY(dset,sb);
+      if (!(fv = (float *)DSET_BRICK_ARRAY(dset,sb))) {
+         ERROR_message("NULL brick array %d!\n", sb);
+         UNPROTECT(4);
+         return(R_NilValue);
+      }
+      if (debug > 1) fprintf(stderr,"Filling sb %d\n", sb);
       for (i=0; i<DSET_NVOX(dset); ++i) {
          dv[cnt++] = fv[i]; 
-         if (debug > 2) fprintf(stderr,"%f\t", fv[i]);
+         if (debug > 1) {
+            if (debug > 2 || i<10) {
+	 	         fprintf(stderr,"%f\t", fv[i]);
+            }
+         }
       }
-      if (debug > 2) fprintf(stderr,"\n");
+      if (debug == 2) fprintf(stderr,"...\n");
+      else if (debug > 2) fprintf(stderr,"\n");
    }
    
    /* done with dset, dump it */
@@ -115,6 +127,7 @@ SEXP R_THD_load_dset(SEXP Sfname, SEXP Opts)
    SET_VECTOR_ELT(Rdset, 1, brik);
    setAttrib(Rdset, R_NamesSymbol, names);
    
+   if (debug > 1) fprintf(stderr,"Unprotecting...\n");
    UNPROTECT(6);
    
    return(Rdset);
