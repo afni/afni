@@ -2766,6 +2766,10 @@ def db_cmd_regress(proc, block):
        opt = block.opts.find_opt('-regress_apply_ricor')
        if OL.opt_is_yes(opt): proc.ricor_apply = 'yes'
 
+    # maybe we want a special prefix
+    if proc.script_3dD: tmp_prefix = "${prefix_3dd}"
+    else:               tmp_prefix = ''
+
     # options for surface analysis
     if proc.surf_anat:
         # string for foreach hemi loop
@@ -2974,8 +2978,8 @@ def db_cmd_regress(proc, block):
         for index in range(len(labels)):
             if not UTIL.basis_has_known_response(basis[index]) and \
                not stim_types[index] == 'file':
-                Liresp.append("    -iresp %d %s_%s.$subj" % \
-                              (index+1, opt.parlist[0], labels[index]))
+                Liresp.append("    -iresp %d %s%s_%s.$subj" % \
+                        (index+1, tmp_prefix, opt.parlist[0], labels[index]))
 
     # write out stim lines (add -stim_base to any RONI)
     # (also, accumulates files with TENT functions)
@@ -3059,7 +3063,7 @@ def db_cmd_regress(proc, block):
     if not opt or not opt.parlist: fitts = ''
     else:
         fitts_pre = opt.parlist[0]
-        fitts = '    -fitts %s%s' % (fitts_pre, suff)
+        fitts = '    -fitts %s%s%s' % (tmp_prefix, fitts_pre, suff)
 
     # -- see if the user wants the error time series --
     opt = block.opts.find_opt('-regress_errts_prefix')
@@ -3074,7 +3078,7 @@ def db_cmd_regress(proc, block):
     if not opt or not opt.parlist: errts = ''
     else:
         errts_pre = opt.parlist[0]
-        errts = '    -errts %s' % errts_pre
+        errts = '    -errts %s%s' % (tmp_prefix, errts_pre)
     # -- end errts --
 
     # if the user wants to compute fitts, save the prefix
@@ -3108,18 +3112,19 @@ def db_cmd_regress(proc, block):
     # do we want a cbucket dataset?
     opt = block.opts.find_opt('-regress_make_cbucket')
     if opt.parlist[0] == 'yes':
-        cbuck_str = "    -cbucket all_betas.$subj%s" % suff
+        cbuck_str = "    -cbucket %sall_betas.$subj%s" % (tmp_prefix, suff)
     else: cbuck_str = ""
 
     # add misc options
     O3dd.extend(Liresp) # Liresp is a list
     O3dd.append(other_opts)
-    O3dd.append("    %s-tout -x1D %s -xjpeg X.jpg" % (fout_str, proc.xmat))
+    O3dd.append("    %s-tout -x1D %s%s -xjpeg %sX.jpg" \
+                % (fout_str, tmp_prefix, proc.xmat, tmp_prefix))
     if proc.censor_file:
         newmat = 'X.nocensor.xmat.1D'
-        O3dd.append("    -x1D_uncensored %s" % newmat)
+        O3dd.append("    -x1D_uncensored %s%s" % (tmp_prefix, newmat))
     O3dd.extend([fitts, errts, stop_opt, cbuck_str])
-    O3dd.append("    -bucket stats.$subj%s\n" % suff)
+    O3dd.append("    -bucket %sstats.$subj%s\n" % (tmp_prefix, suff))
 
     # possibly run the REML script (only here in the case of surfaces)
     if block.opts.find_opt('-regress_reml_exec') and proc.surf_anat:
@@ -3140,11 +3145,13 @@ def db_cmd_regress(proc, block):
     cmd += c3d
 
     # maybe user just wants a 3dDeconvolve command script
-    if 0:
-       cfile = 'command.3dd.txt'
-       header = '#!/bin/tcsh\n\nset subj = %s\n\n' % proc.subj_id
-       UTIL.write_text_to_file(cfile, header+c3d, wrap=1, exe=1)
-       print '++ writing separate 3dDeconvolve script %s ...' % cfile
+    if proc.script_3dD:
+       header = '#!/bin/tcsh\n\n'               \
+                'set subj = %s\n\n'             \
+                'set prefix_3dd = %s\n\n' % (proc.subj_id, proc.prefix_3dD)
+       UTIL.write_text_to_file(proc.script_3dD, header+c3d, wrap=1, exe=1)
+       print '++ writing 3dDeconvolve script %s ...' % proc.script_3dD
+       sys.exit(0)
 
     # if 3dDeconvolve fails, terminate the script
     # (rcr - maybe just skip this in case of surfaces)
@@ -3241,7 +3248,7 @@ def db_cmd_regress(proc, block):
             if stop_opt: fstr += '\n'
             fstr += "%s# create fitts from REML errts\n" % istr
             fstr += "%s3dcalc -a %s%s -b %s\_REML%s -expr a-b \\\n" \
-                    "%s       -prefix %s\_REML%s\n"                \
+                    "%s       -prefix %s\_REML%s\n"                 \
                     % (istr, proc.all_runs, vstr, errts_pre, vstr,
                        istr, fitts_pre, suff)
         cmd = cmd + fstr + feh_end + '\n'
@@ -6202,6 +6209,35 @@ g_help_string = """
                 default: 1
 
             Print out extra information during execution.
+
+        -write_3dD_prefix PREFIX : specify prefix for outputs from 3dd_script
+
+                e.g. -write_3dD_prefix basis.tent.
+                default: test.
+
+            If a separate 3dDeconvolve command script is generated via the
+            option -write_3dD_script, then the given PREFIX will be used for
+            relevant output files. in the script.
+
+            See also -write_3dD_script.
+
+        -write_3dD_script SCRIPT : specify SCRIPT only for 3dDeconvolve command
+
+                e.g. -write_3dD_script run.3dd.tent
+
+            This option is intended to be used with the EXACT same afni_proc.py
+            command (aside from any -write_3dD_* options).  The purpose is to
+            generate a corresponding 3dDeconvolve command script which could
+            be run in the same results directory.
+
+            Alternatively, little things could be changed that would only 
+            affect the 3dDeconvolve command in the new script, such as the
+            basis function(s).
+
+            The new script should include a prefix to distinguish output files
+            from those created by the original proc script.
+
+            See also -write_3dD_prefix.
 
         ------------ block options (in default block order) ------------
 

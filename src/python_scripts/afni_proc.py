@@ -376,10 +376,11 @@ g_history = """
     3.46 May 03, 2013:
         - added help example 9b, recommended resting state with ANATICOR
         - -regress_anaticor implies -mask_segment_anat and -mask_segment_erode
-    3.47 May 09, 2013: no effective change
+    3.47 May 09, 2013: small code reorg in prep for ...
+    3.48 May 09, 2013: added options -write_3dD_script, -write_3dD_prefix
 """
 
-g_version = "version 3.47, May 9, 2013"
+g_version = "version 3.48, May 9, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "1 Apr 2013"
@@ -460,6 +461,9 @@ class SubjProcSream:
         self.out_dir    = ''            # output directory for use by script
         self.od_var     = ''            # output dir variable: $output_dir
         self.script     = None          # script name, default proc.SUBJ
+        self.script_3dD = ''            # name of 3dDecon script, if desired
+        self.prefix_3dD = 'test.'       # prefix for 3dD script output files
+        self.make_main_script = 1       # do we actually create main script?
         self.overwrite  = 0             # overwrite script file?
         self.fp         = None          # file object
         self.all_runs   = ''            # prefix for final all_runs dataset
@@ -664,6 +668,10 @@ class SubjProcSream:
         self.valid_opts.add_opt('-test_stim_files', 1, [],
                         acplist=['yes','no'],
                         helpstr="test stim_files for validity (default=yes)")
+        self.valid_opts.add_opt('-write_3dD_prefix', 1, [],
+                       helpstr="prefix for output files via -write_3dD_script")
+        self.valid_opts.add_opt('-write_3dD_script', 1, [],
+                       helpstr="only write 3dDeconvolve script (to given file)")
         self.valid_opts.add_opt('-verb', 1, [],
                         helpstr="set the verbose level")
 
@@ -1065,6 +1073,15 @@ class SubjProcSream:
         opt = opt_list.find_opt('-script')
         if opt != None: self.script = opt.parlist[0]
         else:           self.script = 'proc.%s' % self.subj_id
+
+        opt = opt_list.find_opt('-write_3dD_prefix')
+        if opt != None:
+           self.prefix_3dD = opt.parlist[0]
+
+        opt = opt_list.find_opt('-write_3dD_script')
+        if opt != None:
+           self.script_3dD = opt.parlist[0]
+           self.make_main_script = 0
 
         opt = opt_list.find_opt('-scr_overwrite')
         if opt != None: self.overwrite = 1
@@ -1760,7 +1777,7 @@ class SubjProcSream:
                             "    exit\n"
                             "endif\n\n")
 
-        self.fp.flush()
+        self.flush_script()
 
     # and last steps
     def finalize_script(self):
@@ -1843,15 +1860,25 @@ class SubjProcSream:
     def write_text(self, tstr):
         """control write to output file
 
-           This might be affected by trying to write a 3dD command, for example.
+           If not actually creating a main script (e.g. just 3dD), return.
         """
+
+        if not self.make_main_script: return 0
 
         self.fp.write(tstr)
 
         return 0
 
     def open_script(self):
-        """close self.fp, if it is open"""
+        """open script for writing
+
+           - if we are not actually creating a script, return
+           - if bad overwrite, fail
+           - try to open
+        """
+
+        if not self.make_main_script: return 0
+
         if not self.overwrite and os.path.isfile(self.script):
             print "error: script file '%s' already exists, exiting..." % \
                   self.script
@@ -1865,14 +1892,28 @@ class SubjProcSream:
         return 0
 
     def close_script(self):
-        """close self.fp, if it is open"""
+        """close self.fp, if it is open (and if we are making one)"""
+
+        if not self.make_main_script: return 0
+
         if self.fp != None:
             self.fp.close()
             self.fp = None
 
         return 0
 
+    def flush_script(self):
+        """close self.fp, if it is open (and if we are making one)"""
+
+        if not self.make_main_script: return 0
+
+        if self.fp != None: self.fp.flush()
+
+        return 0
+
     def make_exec(self):
+        if not self.make_main_script: return 0
+
         if self.script and os.path.isfile(self.script):
             os.chmod(self.script, 0755)
 
