@@ -65,6 +65,20 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 9, May , 2013 , ZSS , "R_io" , MINOR , TYPE_BUG_FIX,
+   "Temporary fix of segfault happening in R from R_io.so",
+   "Source of problem is a call to COMPRESS_setup_programs()\n"
+   "Not sure why the following crash was happening:\n"
+   "*** caught segfault ***\n"
+   "address 0x3800000100, cause 'memory not mapped'\n"
+   "However a temporary env. SKIP_COMPRESS_SETUP will get around it."
+ },
+ 
+ { 22, Apr , 2013 , ZSS , "3dAutoTcorrelate" , MINOR , TYPE_NEW_OPT,
+   "Added -out1D option to output correlations in text format.",
+   NULL
+ },
+ 
  { 9, Apr , 2013 , ZSS , "@RetinoProc" , MINOR , TYPE_NEW_OPT,
    "Added options for providing orts for each input time series",
    "See options -*_orts in the help output."
