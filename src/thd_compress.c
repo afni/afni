@@ -6,16 +6,32 @@
 
 #include "mrilib.h"
 
-/*--------------------------------------------------------------*/
+/*---- editable configuration variables [moved here 10 May 2013 -- RWcox] ----*/
+
+static char *COMPRESS_program[]    = { "gzip -1c > '%s'"  ,
+                                       "bzip2 -1c > '%s'" ,
+                                       "compress > '%s'"  ,
+                                       "pigz -1c > '%s'"  ,
+                                       "cat > '%s'"} ;         /* shouldn't be called */
+
+static int   COMPRESS_program_ok[] = { 1 , 1 , 1 , 1 , 0 } ;     /* RWCox 03 Aug 1998 */
+
+static char *COMPRESS_unprogram[]  = { "gzip -dc '%s'"  ,
+                                       "bzip2 -dc '%s'" ,
+                                       "uncompress -c '%s'",
+                                       "pigz -dc '%s'"  ,
+                                       "brikcomp -c '%s'" } ;
+
+/*----------------------------------------------------------------------------*/
 /* Check if pigz can be used in place of gzip for compression,
    and if pbzip2 can be used in place of bzip2.
-*//*------------------------------------------------------------*/
+*//*--------------------------------------------------------------------------*/
 
 static void COMPRESS_setup_programs(void)  /* 03 May 2013 */
 {
-   char *pgname ;
-   static char *cprog_gzip , *cprog_bzip2 ;
-   static char *uprog_gzip , *uprog_bzip2 ;
+   char *pgname=NULL ;
+   static char *cprog_gzip=NULL , *cprog_bzip2=NULL ;
+   static char *uprog_gzip=NULL , *uprog_bzip2=NULL ;
    static int first=1 ;
 
    if( !first ) return ;
