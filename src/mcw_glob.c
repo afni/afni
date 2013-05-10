@@ -314,8 +314,12 @@ compare(const ptr_t p, const ptr_t q)
  * if things went well, nonzero if errors occurred.  It is not an error
  * to find no matches.
  */
+
+/* as a shared object under R, glob() and globfree() seem to be called
+ * as system functions rather than the local ones, so rename as afni_*
+ *                                                 10 May 2013 [rickr] */
 int
-glob(const char *pattern, int flags, int(*errfunc)(char *,int), glob_t *pglob)
+afni_glob(const char *pattern, int flags, int(*errfunc)(char *,int), glob_t *pglob)
 {
     int     err, oldpathc;
     Char *bufnext, *bufend, *compilebuf, m_not;
@@ -790,7 +794,7 @@ match(Char *name, Char *pat, Char *patend, int m_not)
 
 /* free allocated data belonging to a glob_t structure */
 void
-globfree(glob_t *pglob)
+afni_globfree(glob_t *pglob)
 {
     register int i;
     register char **pp;
@@ -956,7 +960,7 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
 
       /** the olden way (via glob function) **/
 
-      (void) glob( fname , 0 , NULL , &gl ) ;
+      (void) afni_glob( fname , 0 , NULL , &gl ) ;
 
       /** put each matched string into the output array **/
 
@@ -1001,7 +1005,7 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
            fprintf(stderr,"** Can't find file %s\n", (ig>0) ? fname : fn ) ;
       }
 
-      globfree( &gl ) ;
+      afni_globfree( &gl ) ;
 
     NEXT_STRING: continue ;
    }
