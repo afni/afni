@@ -76,8 +76,8 @@ typedef struct {
 #define	GLOB_NOSPACE	(-1)	/* malloc call failed */
 #define	GLOB_ABEND	(-2)	/* unignored error */
 
-int glob (const char *, int, int (*)(char *, int), glob_t *);
-void globfree (glob_t *);
+int afni_glob (const char *, int, int (*)(char *, int), glob_t *);
+void afni_globfree (glob_t *);
 int rglob_set_sort_dir(int dir);        /*  4 Jan 2010 [rickr] */
 
 #ifdef  __cplusplus
