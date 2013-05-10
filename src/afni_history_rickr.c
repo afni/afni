@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, May, 2013, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "named glob functions as afni_*; R was using sys funcs, rather than local",
+   NULL
+ } ,
+
  {  9, May, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added options -write_3dD_script and -write_3dD_prefix",
    NULL
