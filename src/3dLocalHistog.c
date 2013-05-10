@@ -601,9 +601,9 @@ ENTRY("THD_localhistog") ;
  { int qq , ib ; float pfac , val ; byte **bbar ;
 #pragma omp for
      for( qq=0 ; qq < nvox ; qq++ ){
-       pfac = 0.01f ;
+       pfac = 0.0001f ;
        for( ib=0 ; ib < numval ; ib++ ) pfac += outar[ib][qq] ;
-       pfac = 100.0f / pfac ;
+       pfac = 250.0f / pfac ;
        for( ib=0 ; ib < numval ; ib++ ){
          val = outar[ib][qq]*pfac ; outar[ib][qq] = BYTEIZE(val) ;
        }
@@ -616,7 +616,7 @@ ENTRY("THD_localhistog") ;
        bbar[bb] = (byte *)malloc(sizeof(byte)*nvox) ;
        for( pp=0 ; pp < nvox ; pp++ ) bbar[bb][pp] = (byte)outar[bb][pp] ;
        EDIT_substitute_brick(outset,bb,MRI_byte,bbar[bb]) ;
-       EDIT_BRICK_FACTOR(outset,bb,0.01f) ;
+       EDIT_BRICK_FACTOR(outset,bb,0.004f) ;
      }
      free(bbar) ;
 
