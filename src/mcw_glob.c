@@ -121,11 +121,11 @@ typedef unsigned short Char;
 #undef  __P
 #define __P(a) a
 
-static	int	 glob1 		__P((Char *, glob_t *, int));
-static	int	 glob2		__P((Char *, Char *, Char *, glob_t *, int));
+static	int	 glob1 		__P((Char *, afni_glob_t *, int));
+static	int	 glob2		__P((Char *, Char *, Char *, afni_glob_t *, int));
 static	int	 glob3		__P((Char *, Char *, Char *, Char *,
-				     glob_t *, int));
-static	int	 globextend	__P((Char *, glob_t *));
+				     afni_glob_t *, int));
+static	int	 globextend	__P((Char *, afni_glob_t *));
 static	int	 match		__P((Char *, Char *, Char *, int));
 #ifndef __clipper__
 static	int	 compare	__P((const ptr_t, const ptr_t));
@@ -319,7 +319,7 @@ compare(const ptr_t p, const ptr_t q)
  * as system functions rather than the local ones, so rename as afni_*
  *                                                 10 May 2013 [rickr] */
 int
-afni_glob(const char *pattern, int flags, int(*errfunc)(char *,int), glob_t *pglob)
+afni_glob(const char *pattern, int flags, int(*errfunc)(char *,int), afni_glob_t *pglob)
 {
     int     err, oldpathc;
     Char *bufnext, *bufend, *compilebuf, m_not;
@@ -473,7 +473,7 @@ afni_glob(const char *pattern, int flags, int(*errfunc)(char *,int), glob_t *pgl
 }
 
 static int
-glob1(Char *pattern, glob_t *pglob, int no_match)
+glob1(Char *pattern, afni_glob_t *pglob, int no_match)
 {
     Char pathbuf[MAXPATHLEN + 1];
 
@@ -491,7 +491,7 @@ glob1(Char *pattern, glob_t *pglob, int no_match)
  * more meta characters.
  */
 static int
-glob2( Char *pathbuf,Char *pathend, Char *pattern, glob_t *pglob, int no_match)
+glob2( Char *pathbuf,Char *pathend, Char *pattern, afni_glob_t *pglob, int no_match)
 {
     struct stat sbuf;
     int anymeta;
@@ -551,7 +551,7 @@ glob2( Char *pathbuf,Char *pathend, Char *pattern, glob_t *pglob, int no_match)
 static int mcw_glob_whine = 1;          /* 7 Feb 2012 [rickr] */
 
 static int
-glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pglob, int no_match)
+glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, afni_glob_t *pglob, int no_match)
 {
 #if 0
     extern int errno;
@@ -687,7 +687,7 @@ glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pg
 
 
 /*
- * Extend the gl_pathv member of a glob_t structure to accomodate a new item,
+ * Extend the gl_pathv member of a afni_glob_t structure to accomodate a new item,
  * add the new item, and update gl_pathc.
  *
  * This assumes the BSD realloc, which only copies the block when its size
@@ -696,12 +696,12 @@ glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pg
  *
  * Return 0 if new item added, error code if memory couldn't be allocated.
  *
- * Invariant of the glob_t structure:
+ * Invariant of the afni_glob_t structure:
  *	Either gl_pathc is zero and gl_pathv is NULL; or gl_pathc > 0 and
  *	 gl_pathv points to (gl_offs + gl_pathc + 1) items.
  */
 static int
-globextend(Char *path, glob_t *pglob)
+globextend(Char *path, afni_glob_t *pglob)
 {
     register char **pathv;
     register int i;
@@ -792,9 +792,9 @@ match(Char *name, Char *pat, Char *patend, int m_not)
     return (*name == EOS);
 }
 
-/* free allocated data belonging to a glob_t structure */
+/* free allocated data belonging to a afni_glob_t structure */
 void
-afni_globfree(glob_t *pglob)
+afni_globfree(afni_glob_t *pglob)
 {
     register int i;
     register char **pp;
@@ -829,7 +829,7 @@ void MCW_set_glob_whine( int www ){ mcw_glob_whine = www; return; }
 
 void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
 {
-   glob_t gl ;
+   afni_glob_t gl ;
    int    ii , gnum, gold , ilen ;
    char **gout ;
    char *fn , *ehome ;
