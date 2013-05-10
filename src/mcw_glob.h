@@ -59,7 +59,7 @@ typedef struct {
 	int gl_flags;		/* copy of flags parameter to glob() */
 	int (*gl_errfunc)();	/* copy of errfunc parameter to glob() */
 	char **gl_pathv;	/* list of paths matching pattern */
-} glob_t;
+} afni_glob_t;
 
 #define	GLOB_APPEND	0x001	/* append to output from previous call */
 #define	GLOB_DOOFFS	0x002	/* use gl_offs */
@@ -76,8 +76,8 @@ typedef struct {
 #define	GLOB_NOSPACE	(-1)	/* malloc call failed */
 #define	GLOB_ABEND	(-2)	/* unignored error */
 
-int afni_glob (const char *, int, int (*)(char *, int), glob_t *);
-void afni_globfree (glob_t *);
+int afni_glob (const char *, int, int (*)(char *, int), afni_glob_t *);
+void afni_globfree (afni_glob_t *);
 int rglob_set_sort_dir(int dir);        /*  4 Jan 2010 [rickr] */
 
 #ifdef  __cplusplus
