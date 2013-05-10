@@ -20,7 +20,7 @@ set_R_io <- function() {
    ll <- find.in.path('R_io.so')
    if (!is.null(ll)) {
       dd <- try(dyn.load(ll), silent=TRUE)
-      if (!exists('dd')) {
+      if (!dd[[1]]=="R_io") {
          note.AFNI(paste("Failed to load R_io.so."));
       } else {
          rio <- 1
