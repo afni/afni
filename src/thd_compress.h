@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _MCW_COMPRESSOR_
 #define _MCW_COMPRESSOR_
 
@@ -33,13 +33,15 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 
 /* PJR 07/22/98- adding brikcomp decompression to afni.
    Compression with brikcomp is not supported because it needs the header information. */
-#define COMPRESS_BRIKCOMP   4
 
+#define COMPRESS_BRIKCOMP   4
 #define COMPRESS_LASTCODE   4
+#define NUM_COMPRESS_elist  4
 
 static char * COMPRESS_suffix[]     = { ".gz" , ".bz2" , ".Z", ".gz", ".briz" } ;
 static int    COMPRESS_suffix_len[] = { 3     , 4      , 2     , 3,   5} ;
 
+#if 0  /*----------- moved to thd_compress.c [10 May 2013] -----------------------*/
 static char * COMPRESS_program[]    = { "gzip -1c > '%s'"  ,
                                         "bzip2 -1c > '%s'" ,
                                         "compress > '%s'"  ,
@@ -53,10 +55,10 @@ static char * COMPRESS_unprogram[]  = { "gzip -dc '%s'"  ,
                                         "uncompress -c '%s'",
                                         "pigz -dc '%s'"  ,
                                         "brikcomp -c '%s'" } ;
+#endif /*-------------------------------------------------------------------------*/
 
 static char * COMPRESS_enviro[] = { "GZIP" , "BZIP2" , "COMPRESS" , "PIGZ" , "BRIKCOMP" } ;
 
-#define   NUM_COMPRESS_elist 4
 static char * COMPRESS_elist[] = { "GZIP" , "BZIP2" , "COMPRESS",  "PIGZ" } ;
 
 /*---------- prototypes ----------*/
