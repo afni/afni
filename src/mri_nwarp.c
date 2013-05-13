@@ -3922,8 +3922,10 @@ static int Hduplo     =   0 ;
 static int Hfinal     =   0 ;
 static int Hworkhard1 =   0 ;
 static int Hworkhard2 =  -1 ;
-static int Hsuperhard =   0 ;
 static int Hfirsttime =   0 ;  /* for fun only */
+
+static int Hsuperhard1 =  0 ;
+static int Hsuperhard2 = -1 ;
 
 #define ALLOW_QFINAL
 #ifdef ALLOW_QFINAL
@@ -3934,6 +3936,9 @@ static int Hqfinal    =   0 ;  /* 07 May 2013 */
 
 #undef  WORKHARD
 #define WORKHARD(lll) ( !Hduplo && (lll) >= Hworkhard1 && (lll) <= Hworkhard2 )
+
+#undef  SUPERHARD
+#define SUPERHARD(lll) ( !Hduplo && (lll) >= Hsuperhard1 && (lll) <= Hsuperhard2 )
 
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
@@ -5580,7 +5585,7 @@ ENTRY("IW3D_warpomatic") ;
    }
 
    if( Hlev_start == 0 ){            /* top level = global warps */
-     nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( Hsuperhard ) nlevr++ ;
+     nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( SUPERHARD(0) ) nlevr++ ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      for( iii=0 ; iii < nlevr ; iii++ ){
@@ -5694,8 +5699,8 @@ ENTRY("IW3D_warpomatic") ;
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
 
-     nlevr = WORKHARD(lev) ? 2 : 1 ;
-     nsup  = (Hsuperhard)  ? 2 : 1 ;
+     nlevr = WORKHARD(lev)  ? 2 : 1 ;
+     nsup  = SUPERHARD(lev) ? 2 : 1 ;
 
      if( Hverb > 1 )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s" ,
@@ -7392,7 +7397,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    }
 
    if( Hlev_start == 0 ){            /* top level = global warps */
-     nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( Hsuperhard ) nlevr++ ;
+     nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( SUPERHARD(0) ) nlevr++ ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      for( iii=0 ; iii < nlevr ; iii++ ){
@@ -7506,8 +7511,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
 
-     nlevr = WORKHARD(lev) ? 2 : 1 ;
-     nsup  = (Hsuperhard)  ? 2 : 1 ;
+     nlevr = WORKHARD(lev)  ? 2 : 1 ;
+     nsup  = SUPERHARD(lev) ? 2 : 1 ;
 
      if( Hverb > 1 )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s" ,
