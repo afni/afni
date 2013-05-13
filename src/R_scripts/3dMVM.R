@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.0, April 26, 2013
+Version 1.0.1, May 13, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.0, April 26, 2013
+Version 1.0.1, May 13, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -290,7 +290,9 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         2) Between-subjects covariates are generally acceptable.",
    "         However EXTREME caution should be taken when the groups",
    "         differ significantly in the average value of the covariate.",
-   "         3) Within-subject covariates are better modeled with 3dLME.\n",
+   "         3) Within-subject covariates vary across the levels of a",
+   "         within-subject factor, and can be analyzed with 3dLME,",
+   "         but not 3dLME.\n",
              sep = '\n'
              ) ),
 
