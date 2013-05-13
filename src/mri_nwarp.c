@@ -2665,7 +2665,7 @@ IndexWarp3D_pair * IW3D_sqrtpair( IndexWarp3D *AA , int icode )
 
    spini = 1 ; inewtfix = 1 ; inewtfac = 0.666666f ;
 
-   for( nite=0 ; nite < 49 ; nite++ ){
+   for( nite=0 ; nite < 39 ; nite++ ){
 
      orat = nrat ;
 
@@ -3812,8 +3812,16 @@ ENTRY("NwarpCalcRPN") ;
 }
 
 /******************************************************************************/
-/********** Functions for optimizing an nwarp for image registration **********/
+/*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 /******************************************************************************/
+#ifdef ALLOW_QWARP
+/******************************************************************************/
+/*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
+/******************************************************************************/
+
+/*============================================================================*/
+/********** Functions for optimizing an nwarp for image registration **********/
+/*============================================================================*/
 
 /*----------------------------------------------------------------------------*/
 
@@ -3929,9 +3937,9 @@ static int Hsuperhard2 = -1 ;
 
 #define ALLOW_QFINAL
 #ifdef ALLOW_QFINAL
-static int Hqfinal    =   0 ;  /* 07 May 2013 */
+static int Hqfinal  = 0 ;  /* 07 May 2013 */
 #else
-# define Hqfinal 0
+# define   Hqfinal    0
 #endif
 
 #undef  WORKHARD
@@ -6596,8 +6604,7 @@ ENTRY("IW3D_read_catenated_warp") ;
 /*****--------------------------------------------------------------------*****/
 /*****||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||*****/
 /*****--------------------------------------------------------------------*****/
-#undef  ALLOW_PLUSMINUS
-#ifdef  ALLOW_PLUSMINUS
+#ifdef ALLOW_PLUSMINUS
 /*****--------------------------------------------------------------------*****/
 /*****||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||*****/
 /*****--------------------------------------------------------------------*****/
@@ -7042,7 +7049,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
    /* load optimized warped image and warp into their patches */
 
    need_AH = 1 ;
-   Hcost = IW3D_scalar_costfun( Hnparmap , parvec ) ;  /* evaluate at current results */
+   Hcost = IW3D_scalar_costfun_plusminus( Hnparmap , parvec ) ;  /* evaluate at current results */
    (void)IW3D_load_energy(AHwarp) ;
 
    /* AHwarp gets loaded into Haawarp and Hwval_plus into Haasrcim_plus
@@ -7317,9 +7324,13 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Create an initial warp to the middle by coarse level warping
+   of source to base, then by a quick warp square-root-ization.
+*//*--------------------------------------------------------------------------*/
 
-IndexWarp3D * IW3D_initialwarp_plusminus( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
-                                          int meth_code , int warp_flags   )
+IndexWarp3D * IW3D_initialwarp_plusminus( MRI_IMAGE *bim ,
+                                          MRI_IMAGE *wbim, MRI_IMAGE *sim,
+                                          int meth_code  , int warp_flags  )
 {
    IndexWarp3D *Owarp ; IndexWarp3D_pair *Spair ;
    int lstart,lend ; double pfac ;
@@ -7327,9 +7338,9 @@ IndexWarp3D * IW3D_initialwarp_plusminus( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_I
 
 ENTRY("IW3D_initialwarp_plusminus") ;
 
-   if( wbim == NULL ) qwbim = mri_to_float(bim) ;
-   else               qwbim = mri_to_float(wbim) ;
-   blur_inplace(qwbim,2.3456f); mask = mri_automask_image(qwbim); wbar = MRI_FLOAT_PTR(qwbim);
+   qwbim = mri_to_float( (wbim==NULL) ? bim : wbim ) ;
+   blur_inplace(qwbim,2.3456f); mask = mri_automask_image(qwbim);
+   wbar = MRI_FLOAT_PTR(qwbim);
    for( ii=0 ; ii < wbim->nvox ; ii++ ) if( !mask[ii] ) wbar[ii] = 0.0f ;
    free(mask) ;
 
@@ -7341,7 +7352,7 @@ ENTRY("IW3D_initialwarp_plusminus") ;
 
    Hlev_start = lstart ; Hlev_end = lend ; Hpen_fac = pfac ;
 
-   Spair = IW3D_sqrtpair( Owarp , MRI_linear ) ;
+   Spair = IW3D_sqrtpair( Owarp , MRI_LINEAR ) ;
 
    IW3D_destroy(Owarp) ; Owarp = Spair->fwarp ;
    IW3D_destroy(Spair->iwarp) ; free(Spair) ;
@@ -7367,7 +7378,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    if( Hverb ) Hfirsttime = 1 ;
 
    if( WO_iwarp == NULL ){
-     WO_iwarp = IW3D_initialwarp_plusminus( bim, wbim, sim, int meth_code, int warp_flags ) ;
+     WO_iwarp = IW3D_initialwarp_plusminus( bim, wbim, sim, meth_code, warp_flags ) ;
      myIwarp  = 1 ;
    }
 
@@ -7391,9 +7402,9 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    }
 
    if( Hverb ){
-         INFO_message("AFNI warpomatic start: %d x %d x %d volume",Hnx,Hny,Hnz) ;
+         INFO_message("AFNI warpomatic+- start: %d x %d x %d volume",Hnx,Hny,Hnz) ;
      if( Hverb > 1 )
-       ININFO_message("            autobbox = %d..%d %d..%d %d..%d",imin,imax,jmin,jmax,kmin,kmax) ;
+       ININFO_message("              autobbox = %d..%d %d..%d %d..%d",imin,imax,jmin,jmax,kmin,kmax) ;
    }
 
    if( Hlev_start == 0 ){            /* top level = global warps */
@@ -7401,9 +7412,9 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      for( iii=0 ; iii < nlevr ; iii++ ){
-       (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+       (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
        Hcostold = Hcost ;
-       (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+       (void)IW3D_improve_warp_plusminus( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
        if( iii > 0 && iii < nlevr-1 && Hcostold-Hcost < 0.01f ){
          if( Hverb > 1 )
            ININFO_message("       --> too little improvement: breaking out of WORKHARD iterates") ;
@@ -7515,7 +7526,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      nsup  = SUPERHARD(lev) ? 2 : 1 ;
 
      if( Hverb > 1 )
-       ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s" ,
+       ININFO_message("  ........ +-lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s" ,
                       lev,xwid,ywid,zwid,Hfactor , (levdone   ? "FINAL"  : "\0") ,
                                                    (nlevr > 1 ? "WORKHARD" : "\0") ) ;
      else if( Hverb == 1 )
@@ -7538,15 +7549,15 @@ ENTRY("IW3D_warpomatic_plusminus") ;
                   if( itop >= ittt        ){ itop = ittt; ibot = itop+1-xwid; idon=1; }
              else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
              Hcostold = Hcost ;
-             iter = IW3D_improve_warp( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             iter = IW3D_improve_warp_plusminus( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #if 0
              if( Hcost > Hcostold+0.001f ){
                if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
-               iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+               iter = IW3D_improve_warp_plusminus( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
              }
 #if 0
              else if( iter > 144 && qmode > 0 && Hcostold-Hcost > 0.00002f )
-               iter = IW3D_improve_warp( qmode    , ibot,itop , jbot,jtop , kbot,ktop ) ;
+               iter = IW3D_improve_warp_plusminus( qmode    , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #endif
 #endif
              if( Hcost < Hstopcost ){
@@ -7577,15 +7588,15 @@ ENTRY("IW3D_warpomatic_plusminus") ;
                   if( kbot <= kbbb        ){ kbot = kbbb; ktop = kbot+zwid-1; kdon=1; }
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
              Hcostold = Hcost ;
-             iter = IW3D_improve_warp( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             iter = IW3D_improve_warp_plusminus( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #if 0
              if( Hcost > Hcostold+0.001f ){
                if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
-               iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+               iter = IW3D_improve_warp_plusminus( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
              }
 #if 0
              else if( iter > 144 && qmode > 0 && Hcostold-Hcost > 0.00002f )
-               iter = IW3D_improve_warp( qmode    , ibot,itop , jbot,jtop , kbot,ktop ) ;
+               iter = IW3D_improve_warp_plusminus( qmode    , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #endif
 #endif
               if( Hcost < Hstopcost ){
@@ -7609,9 +7620,52 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 DoneDoneDone:  /* breakout */
 
    OutWarp = IW3D_copy( Haawarp , 1.0f ) ;
-   IW3D_cleanup_improvement() ;
+   IW3D_cleanup_improvement_plusminus() ;
    if( myIwarp ){ IW3D_destroy(WO_iwarp) ; WO_iwarp = NULL ; }
 
    RETURN(OutWarp) ;
 }
+
+/*----------------------------------------------------------------------------*/
+
+Image_plus_Warp ** IW3D_warp_s2bim_plusminus(
+                                    MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_IMAGE *sim,
+                                    int interp_code , int meth_code , int warp_flags  )
+{
+   IndexWarp3D *Swarp ;
+   Image_plus_Warp *pww , *mww , **sbww ;
+
+ENTRY("IW3D_warp_s2bim_plusminus") ;
+
+   WO_iwarp = S2BIM_iwarp ; Hlev_start = S2BIM_ilev ; Hlev_end = S2BIM_mlev ;
+   Hnpar_sum = 0 ; Hduplo = 0 ;
+
+   Hshrink = AFNI_numenv("AFNI_WARPOMATIC_SHRINK") ;
+   if( Hshrink > 1.0f                       ) Hshrink = 1.0f / Hshrink ;
+   if( Hshrink < 0.444f || Hshrink > 0.888f ) Hshrink = 0.749999f ;
+   else                                       ININFO_message("  -- Hshrink set to %.6f",Hshrink) ;
+
+   Swarp = IW3D_warpomatic_plusminus( bim , wbim , sim , meth_code , warp_flags ) ;
+
+   pww       = (Image_plus_Warp *)malloc(sizeof(Image_plus_Warp)) ;
+   pww->im   = IW3D_warp_floatim( Swarp, sim , interp_code , 1.0f ) ;
+   pww->warp = Swarp ;
+
+   mww       = (Image_plus_Warp *)malloc(sizeof(Image_plus_Warp)) ;
+   mww->warp = IW3D_copy( Swarp , -1.0f ) ;
+   mww->im   = IW3D_warp_floatim( Swarp, bim , interp_code , -1.0f ) ;
+
+   sbww = (Image_plus_Warp **)malloc(sizeof(Image_plus_Warp *)*2) ;
+   sbww[0] = pww ; sbww[1] = mww ;
+
+   RETURN(sbww) ;
+}
 #endif /* ALLOW_PLUSMINUS */
+/*****--------------------------------------------------------------------*****/
+/*****||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||*****/
+/*****--------------------------------------------------------------------*****/
+
+#endif /* ALLOW_QWARP */
+/******************************************************************************/
+/*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
+/******************************************************************************/
