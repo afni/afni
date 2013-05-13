@@ -14,7 +14,14 @@
 
 #include "mri_genalign.c"
 #include "mri_genalign_util.c"
+
+/** include the warping functions, and enable the warp-optimizing functions **/
+
+#define ALLOW_QWARP
+#define ALLOW_PLUSMINUS
 #include "mri_nwarp.c"
+
+/** constants for the mri_weightize() function (liberated from 3dAllineate) **/
 
 static int auto_weight    = 2 ;
 static float auto_wclip   = 0.0f ;
@@ -519,6 +526,18 @@ void Qhelp(void)
     "                 the size for '-minpatch' for future work.\n"
     "               * Otherwise, this option is mostly for debugging.\n"
 #endif
+#ifdef ALLOW_PLUSMINUS
+    "\n"
+    " -plusminus   = Normally, the warp displacements dis(x) are defined to match\n"
+    "                base(x) to source(x+dis(x)).  With this option, the match\n"
+    "                is between base(x-dis(x)) and source(x+dis(x)) -- the two\n"
+    "                images 'meet in the middle'.  The goal is to mimic the\n"
+    "                warping done to MRI EPI data by field inhomogeneities,\n"
+    "                when registering between a 'blip up' and a 'blip down'\n"
+    "                down image, which will have opposite distortions.\n"
+    "               * At this time, -plusminus does not work with -duplo.\n"
+    "               * If -plusminus is used, -iwarp is ignored.\n"
+#endif
     "\n"
     " -verb        = Print out very very verbose progress messages (to stderr).\n"
     " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"
@@ -579,13 +598,14 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *bset=NULL , *sset=NULL , *oset , *iwset=NULL ;
    MRI_IMAGE *bim , *wbim , *sim , *oim ;
    NI_float_array *iwvec=NULL ;
-   IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw ;
+   IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw=NULL ;
    char *prefix = "Qwarp" ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
    int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 , nodset = 0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
    int flags = 0 ;
    double cput ;
+   int do_plusminus=0 ; Image_plus_Warp **sbww=NULL , *qiw=NULL ;
 
    /*---------- enlighten the supplicant ----------*/
 
@@ -638,6 +658,14 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[nopt],"-nodset") == 0 ){
        nodset =  1 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-plusminus") == 0 ){
+#ifdef ALLOW_PLUSMINUS
+       do_plusminus++ ; nopt++ ; continue ;
+#else
+       ERROR_exit("Option '%s' is not currently available :-(",argv[nopt]) ;
+#endif
      }
 
      if( strcasecmp(argv[nopt],"-nowarps") == 0 ){  /* these 2 options */
@@ -869,7 +897,11 @@ int main( int argc , char *argv[] )
 
    ct = NI_clock_time() ;
 
-   if( bset == NULL && sset == NULL && nopt+1 >= argc ) ERROR_exit("need 2 args for base and source") ;
+   if( bset == NULL && sset == NULL && nopt+1 >= argc )
+     ERROR_exit("need 2 args for base and source") ;
+
+   if( do_plusminus && duplo )
+     ERROR_exit("Alas, -plusminus does not work with -duplo !! :-((") ;
 
    if( (iwset != NULL || iwvec != NULL) && duplo )
      ERROR_exit("You cannot combine -iniwarp and -duplo !! :-((") ;
@@ -884,14 +916,16 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -source without -base!") ;
 
    if( bset == NULL ){
-     bset = THD_open_dataset(argv[nopt++]) ; if( bset == NULL ) ERROR_exit("Can't open base dataset") ;
+     bset = THD_open_dataset(argv[nopt++]) ;
+     if( bset == NULL ) ERROR_exit("Can't open base dataset") ;
    }
    if( sset == NULL ){
-     sset = THD_open_dataset(argv[nopt++]) ; if( sset == NULL ) ERROR_exit("Can't open source dataset") ;
+     sset = THD_open_dataset(argv[nopt++]) ;
+     if( sset == NULL ) ERROR_exit("Can't open source dataset") ;
    }
 
    if( !EQUIV_GRIDXYZ(bset,sset) ) ERROR_exit("base-source dataset grid mismatch :-(") ;
-   if(  EQUIV_DSETS  (bset,sset) ) ERROR_exit("base and source datasets are identical :-(") ;
+   if(  EQUIV_DSETS  (bset,sset) ) ERROR_exit("base & source datasets are identical :-(");
 
    if( iwset != NULL && !EQUIV_GRIDXYZ(bset,iwset) )
      ERROR_exit("-iniwarp dataset grid mismatch with base dataset :-(") ;
@@ -975,12 +1009,12 @@ int main( int argc , char *argv[] )
 
    wbim = mri_weightize(bim,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
 
-   if( Hblur_b >= 0.5f ){
+   if( Hblur_b >= 0.5f && !do_plusminus ){
      MRI_IMAGE *qim ;
      if( Hverb > 1 ) ININFO_message("   blurring base image %.3g voxels FWHM",Hblur_b) ;
      qim = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_b) , bim ) ;
      mri_free(bim) ; bim = qim ;
-   } else if( Hblur_b <= -1.0f ){
+   } else if( Hblur_b <= -1.0f && !do_plusminus ){
      MRI_IMAGE *qim ;
      if( Hverb > 1 ) ININFO_message("   median-izing base image %.3g voxels",-Hblur_b) ;
      qim = mri_medianfilter( bim , -Hblur_b , NULL , 0 ) ;
@@ -993,10 +1027,21 @@ int main( int argc , char *argv[] )
      INFO_message("Begin warp optimization:  base=%s  source=%s" ,
                   DSET_HEADNAME(bset) , DSET_HEADNAME(sset)  ) ;
 
-   if( duplo )
-     oiw = IW3D_warp_s2bim_duplo( bim,wbim , sim , MRI_WSINC5 , meth , flags ) ;
-   else
-     oiw = IW3D_warp_s2bim( bim,wbim , sim , MRI_WSINC5 , meth , flags ) ;
+   if( do_plusminus ){   /* special case of plusminus warp */
+#ifndef ALLOW_PLUSMINUS
+     ERROR_exit("This message should never appear!") ;
+#else
+     sbww = IW3D_warp_s2bim_plusminus( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
+     oiw  = sbww[0] ;
+     qiw  = sbww[1] ;
+#endif
+   } else {              /* the standard case */
+     qiw = NULL ;
+     if( duplo )
+       oiw = IW3D_warp_s2bim_duplo( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
+     else
+       oiw = IW3D_warp_s2bim( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
+   }
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 
@@ -1007,11 +1052,13 @@ int main( int argc , char *argv[] )
    /*----- output some results to pacify the user -----*/
 
    if( !nodset ){
+     char *qprefix = prefix ;
+     if( do_plusminus ) qprefix = modify_afni_prefix(prefix,NULL,"_PLUS") ;
      oset = EDIT_empty_copy(bset) ;
      tross_Copy_History( bset , oset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , oset ) ;
      EDIT_dset_items( oset ,
-                        ADN_prefix    , prefix ,
+                        ADN_prefix    , qprefix ,
                         ADN_nvals     , 1 ,
                         ADN_ntt       , 0 ,
                         ADN_datum_all , MRI_float ,
@@ -1019,22 +1066,54 @@ int main( int argc , char *argv[] )
      EDIT_BRICK_FACTOR(oset,0,0.0) ;
      EDIT_substitute_brick( oset, 0, MRI_float, MRI_FLOAT_PTR(oim) ) ;
      DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
-   }
 
+     if( do_plusminus && qiw != NULL ){
+       qprefix = modify_afni_prefix(prefix,NULL,"_MINUS") ;
+       oset = EDIT_empty_copy(bset) ;
+       tross_Copy_History( bset , oset ) ;
+       tross_Make_History( "3dQwarp" , argc,argv , oset ) ;
+       EDIT_dset_items( oset ,
+                          ADN_prefix    , qprefix ,
+                          ADN_nvals     , 1 ,
+                          ADN_ntt       , 0 ,
+                          ADN_datum_all , MRI_float ,
+                        ADN_none ) ;
+       EDIT_BRICK_FACTOR(oset,0,0.0) ;
+       EDIT_substitute_brick( oset, 0, MRI_float, MRI_FLOAT_PTR(qiw->im) ) ;
+       DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
+     }
+   } /* end of writing warped datasets */
+
+#ifdef  USE_SAVER
    if( qset != NULL && DSET_NVALS(qset) > 1 ){
      EDIT_dset_items( qset , ADN_ntt , DSET_NVALS(qset) , ADN_none ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
+#endif
 
    if( !nowarp ){
+     char *qprefix ;
+     if( do_plusminus) qprefix = modify_afni_prefix(prefix,NULL,"_PLUS_WARP") ;
+     else              qprefix = modify_afni_prefix(prefix,NULL,"_WARP") ;
      IW3D_adopt_dataset( oww , bset ) ;
-     qset = IW3D_to_dataset( oww , modify_afni_prefix(prefix,NULL,"_WARP") ) ;
+     qset = IW3D_to_dataset( oww , qprefix ) ;
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
-   }
-   if( !nowarpi ){
+
+     if( do_plusminus && qiw != NULL ){
+       qprefix = modify_afni_prefix(prefix,NULL,"_MINUS_WARP") ;
+       IW3D_adopt_dataset( qiw->warp , bset ) ;
+       qset = IW3D_to_dataset( qiw->warp , qprefix ) ;
+       tross_Copy_History( bset , qset ) ;
+       tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+       MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
+       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+     }
+   } /* end of output of warp dataset */
+
+   if( !nowarpi && !do_plusminus ){
      if( Hverb ) ININFO_message("Inverting warp for output") ;
 
      owwi = IW3D_invert( oww , NULL , MRI_WSINC5 ) ;
