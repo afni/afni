@@ -264,7 +264,7 @@ int main( int argc , char *argv[] )
    nsar  = argc - iarg ;
    insar = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*nsar) ;
 
-   if( verb ) fprintf(stderr,"Scanning datasets ") ;
+   if( verb ) fprintf(stderr,"Scanning %d datasets ",nsar) ;
 
    ohist = (UINT32 *)calloc(sizeof(UINT32),TWO16) ;
 
