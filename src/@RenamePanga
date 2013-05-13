@@ -163,7 +163,9 @@ RENAMING:
       if ($Nwhatapain > 999) then
 			#echo 'Full'
 			#echo "in $sDir from $Nloc to 999"
-			count -digit 3 -root $sDir/I. $Nloc 999 >> $listfile
+                        # add -column since addto_args() has 4096 byte limit
+			count -column -digit 3 -root $sDir/I. $Nloc 999 \
+                              >> $listfile
 			set Nimage = `expr $Nimage + 999 - $Nloc + 1`
 			set Nremain = `expr $Ntot - $Nimage`
 			set Nloc = 1
@@ -179,7 +181,8 @@ RENAMING:
 			@ Nend --  
 			#echo "in $sDir from $Nloc to $Nend"
 			set NendPad = `count -digits 3 $Nend $Nend`
-			count -digit 3 -root $sDir/I. $Nloc $Nend >> $listfile
+			count -column -digit 3 -root $sDir/I. $Nloc $Nend \
+                              >> $listfile
 			set Nimage = `expr $Nimage + $Nend`
 			set Nremain = `expr $Ntot - $Nimage`
 			#echo $Nimage $Nremain
