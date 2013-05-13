@@ -492,8 +492,7 @@ void Qhelp(void)
     "                 which implies the extra iterations will be done at levels\n"
     "                 4, 5, 6, and 7, but not otherwise.\n"
     "               * You can also use '-superhard' to iterate even more, but\n"
-    "                 this extra option will REALLY slow things down.  It should\n"
-    "                 be used with -workhard.\n"
+    "                 this extra option will REALLY slow things down.\n"
     "           -->>* Under most circumstances, you should not need to use either\n"
     "                 -workhard or -superhard.\n"
     "           -->>* The fastest way to register to a template image is via the\n"
@@ -737,7 +736,18 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[nopt],"-superhard") == 0 ){  /* 30 Apr 2013 */
-       Hsuperhard = 1 ; nopt++ ; continue ;
+       char *wpt = argv[nopt]+9 ;
+       Hsuperhard1 = 0 ; Hsuperhard2 = 66 ;
+       if( *wpt == ':' && isdigit(*(wpt+1)) ){
+         char *cpt ;
+         Hsuperhard2 = (int)strtod(++wpt,NULL) ;
+         cpt = strchr(wpt,':') ;
+         if( cpt != NULL && isdigit(*(cpt+1)) ){
+           Hsuperhard1 = Hsuperhard2 ;
+           Hsuperhard2 = (int)strtod(++cpt,NULL) ;
+         }
+       }
+       nopt++ ; continue ;
      }
 
 #ifdef ALLOW_QFINAL
