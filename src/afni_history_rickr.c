@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, May, 2013, RCR, "@RenamePange", MINOR, TYPE_BUG_FIX,
+   "added -column to count commands writing listfile",
+   "There is a 4096 byte limit in addto_args(), which could be made dynamic."
+ } ,
+
  { 10, May, 2013, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "named glob functions as afni_*; R was using sys funcs, rather than local",
    NULL
