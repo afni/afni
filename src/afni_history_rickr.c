@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, May, 2013, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added options -show_argmin/max",
+   NULL
+ } ,
+
  { 13, May, 2013, RCR, "@RenamePange", MINOR, TYPE_BUG_FIX,
    "added -column to count commands writing listfile",
    "There is a 4096 byte limit in addto_args(), which could be made dynamic."
