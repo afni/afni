@@ -531,15 +531,23 @@ void Qhelp(void)
     " -plusminus   = Normally, the warp displacements dis(x) are defined to match\n"
     "                base(x) to source(x+dis(x)).  With this option, the match\n"
     "                is between base(x-dis(x)) and source(x+dis(x)) -- the two\n"
-    "                images 'meet in the middle'.  The goal is to mimic the\n"
-    "                warping done to MRI EPI data by field inhomogeneities,\n"
-    "                when registering between a 'blip up' and a 'blip down'\n"
-    "                down image, which will have opposite distortions.\n"
-    "               * At this time, -plusminus does not work with -duplo.\n"
-    "               * If -plusminus is used, -iwarp is ignored.\n"
+    "                images 'meet in the middle'.\n"
+    "               * One goal is to mimic the warping done to MRI EPI data by\n"
+    "                 field inhomogeneities, when registering between a 'blip up'\n"
+    "                 and a 'blip down' down volume, which will have opposite\n"
+    "                 distortions.\n"
+    "               * -plusminus does not work with -duplo :-(\n"
+    "               * If -plusminus is used, -iniwarp is ignored; instead, the\n"
+    "                 -plusminus warp is initialized by a coarse warping of\n"
+    "                 the source to the base, then the displacements are\n"
+    "                 scaled by 0.5, and then actual 'meet in the middle'\n"
+    "                 warp optimization begins.\n"
+    "               * The outputs have _PLUS (from the source dataset) and _MINUS\n"
+    "                 (from the base dataset) in their filenames, in addition to\n"
+    "                 the prefix.  The -iwarp option, if present, will be ignored.\n"
 #endif
     "\n"
-    " -verb        = Print out very very verbose progress messages (to stderr).\n"
+    " -verb        = Print out very very verbose progress messages (to stderr) :-)\n"
     " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"
     "\n"
     "-----------------\n"
@@ -900,8 +908,10 @@ int main( int argc , char *argv[] )
    if( bset == NULL && sset == NULL && nopt+1 >= argc )
      ERROR_exit("need 2 args for base and source") ;
 
-   if( do_plusminus && duplo )
-     ERROR_exit("Alas, -plusminus does not work with -duplo !! :-((") ;
+   if( do_plusminus && duplo ){
+     ERROR_message("Alas, -plusminus does not work with -duplo -- turning -duplo off") ;
+     duplo = 0 ;
+   }
 
    if( (iwset != NULL || iwvec != NULL) && duplo )
      ERROR_exit("You cannot combine -iniwarp and -duplo !! :-((") ;
@@ -1031,6 +1041,7 @@ int main( int argc , char *argv[] )
 #ifndef ALLOW_PLUSMINUS
      ERROR_exit("This message should never appear!") ;
 #else
+     if( Hworkhard1 > Hworkhard2 ) Hworkhard1 = Hworkhard2 = 2 ;
      sbww = IW3D_warp_s2bim_plusminus( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
      oiw  = sbww[0] ;
      qiw  = sbww[1] ;
