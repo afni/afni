@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 14 , MAY, 2013 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "motion file renamed",
+    "Renamed motion files for -save_vr without -epi2anat"
+} ,
 { 7 , MAY, 2013 , DRG , "3dAnatNudge" , 
     MINOR , TYPE_MODIFY, 
     "always produce output with -prefix even if no shift"
