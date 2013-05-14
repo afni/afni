@@ -1041,7 +1041,7 @@ int main( int argc , char *argv[] )
 #ifndef ALLOW_PLUSMINUS
      ERROR_exit("This message should never appear!") ;
 #else
-     if( Hworkhard1 > Hworkhard2 ) Hworkhard1 = Hworkhard2 = 2 ;
+     if( Hworkhard1 < 2 ) Hworkhard1 = 2 ;
      sbww = IW3D_warp_s2bim_plusminus( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
      oiw  = sbww[0] ;
      qiw  = sbww[1] ;
