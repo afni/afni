@@ -561,7 +561,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.42" # software version (update for changes)
+      self.align_version = "1.43" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2762,10 +2762,10 @@ class RegWrap:
                 prefix = "%s__tt_%s%s%s" \
                 % (basepath,basename,basesuff,baseviewext)
              # if aligning epi to anat or saving volreg output, save motion parameters
-             if(ps.epi2anat):
-                motion_prefix = "%s%s%s" % (basepath,basename,basesuff)
-             else:
-                motion_prefix = prefix
+             # if(ps.epi2anat):
+             motion_prefix = "%s%s%s" % (basepath,basename,basesuff)
+             # else:
+             #   motion_prefix = prefix
              o = self.register_epi( o, ps.reg_opt, prefix, motion_prefix,
                                     childflag=childflag)
          else:
