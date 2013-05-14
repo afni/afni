@@ -484,13 +484,15 @@ int main( int argc , char *argv[] )
             "* The output dataset is always stored in float format!\n"
             "* If the input dataset has more than 1 sub-brick, only sub-brick\n"
             "  #0 will be processed.\n"
-            "* Method: Zhark's personal variant of Ziad's sneaky trick.\n"
-            "  (If you want to know what his trick is, you'll have to ask him,\n"
-            "  or read Zhark's source code, which is a world of fun and exaltation.)\n"
+            "* Method: Obi-Wan's personal variant of Ziad's sneaky trick.\n"
+            "  (If you want to know what his trick is, you'll have to ask him, or\n"
+            "   read Obi-Wan's source code, which is a world of fun and exaltation.)\n"
             "* The principal motive for this program is for use in an image\n"
             "  registration script, and it may or may not be useful otherwise.\n"
             "\n"
+            "--------\n"
             "Options:\n"
+            "--------\n"
             "  -prefix pp = Use 'pp' for prefix of output dataset.\n"
             "  -input dd  = Alternative way to specify input dataset.\n"
             "  -GM        = Also scale to unifize 'gray matter' = lower intensit¥ voxels\n"
@@ -504,11 +506,20 @@ int main( int argc , char *argv[] )
             "                  if the dataset voxel size differs significantly from 1 mm.\n"
             "  -quiet     = Don't print so many fun progress messages (but whyyyy?).\n"
             "\n"
-            "-- Feb 2013 - Zhark the Normalizer\n"
+            "-------------------------------------\n"
+            "Special option for Jedi Masters ONLY:\n"
+            "-------------------------------------\n"
+            "  -rbt R b t = Specify the 3 parameters for the algorithm, as 3 numbers\n"
+            "               following the '-rbt':\n"
+            "                 R = radius; same as given by option '-Urad'     [default=%.1f]\n"
+            "                 b = bottom percentile of normalizing data range [default=%.1f]\n"
+            "                 r = top percentile of normalizing data range    [default=%.1f]\n"
+            "\n"
+            "-- Feb 2013 - by Obi-Wan Unifobi\n"
 #ifdef USE_OMP
-            "-- This code uses OpenMP to speed up the slowest part.\n"
+            "-- This code uses OpenMP to speed up the slowest part (voxel-wise histograms).\n"
 #endif
-            , Uprad ) ;
+            , Uprad , Uprad , Upbot , Uptop ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -551,7 +562,7 @@ int main( int argc , char *argv[] )
        Upbot = (float)strtod(argv[iarg++],NULL) ;
        Uptop = (float)strtod(argv[iarg++],NULL) ;
        if( Uprad <   5.0f || Uprad > 40.0f ||
-           Upbot <  40.0f || Upbot > 80.0f ||
+           Upbot <  30.0f || Upbot > 80.0f ||
            Uptop <= Upbot || Uptop > 90.0f   )
          ERROR_exit("Illegal values (R pb pt) after '%s'",argv[iarg-4]) ;
        continue ;
