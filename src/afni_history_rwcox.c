@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , MAY , 2013 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+  { 14 , MAY , 2013 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "New -plusminus option" ,
+   "'Meet-in-the-middle' matching: base(x-dis(x)) = source(x+dis(x)).\n"
+   "For application to unwarping blip-up and blip-down EPI datasets.\n"
+   "\n"
+   "Also, fix bug when -no?dis options are used -- when the code for\n"
+   "parameter sub-vector mapping was moved around, the 'free' call to get\n"
+   "rid of any old mapping wasn't moved with it -- bad Bob, bad bad bad." } ,
+
+ { 7 , MAY , 2013 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
    "Add -Qfinal option (experimental)" ,
    NULL } ,
 

@@ -4079,10 +4079,11 @@ ENTRY("HCwarp_setup_basis") ;
         Hparmap[j] = index into list 0..23 of the 'true' parameter location */
 
    Hflags = IW3D_munge_flags(nx,ny,nz,flags) ;
+   FREEIFNN(Hparmap) ;
 
    if( (Hflags & NWARP_NODISP_FLAG) != 0 ){
      int pm = 0 ;
-     Hparmap = (int *)malloc(sizeof(int)*24) ;
+     Hparmap = (int *)calloc(sizeof(int),24) ;
      if( !(Hflags & NWARP_NOXDIS_FLAG) ){
        for( ii=0 ; ii < 8 ; ii++ ) Hparmap[pm++] = ii ;     /* x params */
      }
@@ -4112,7 +4113,6 @@ ENTRY("HCwarp_setup_basis") ;
    FREEIFNN(bc0x); FREEIFNN(bc1x); nbcx=0;
    FREEIFNN(bc0y); FREEIFNN(bc1y); nbcy=0;
    FREEIFNN(bc0z); FREEIFNN(bc1z); nbcz=0;
-   FREEIFNN(Hparmap) ;
 
    if( bbbcar != NULL ){
      for( ii=0 ; ii < 8 ; ii++ ) FREEIFNN(bbbcar[ii]) ;
@@ -4221,10 +4221,11 @@ void HQwarp_setup_basis( int nx , int ny , int nz , int flags )
 ENTRY("HQwarp_setup_basis") ;
 
    Hflags = IW3D_munge_flags(nx,ny,nz,flags) ;
+   FREEIFNN(Hparmap) ;
 
    if( (Hflags & NWARP_NODISP_FLAG) != 0 ){
      int pm = 0 ;
-     Hparmap = (int *)malloc(sizeof(int)*81) ;
+     Hparmap = (int *)calloc(sizeof(int),81) ;
      if( !(Hflags & NWARP_NOXDIS_FLAG) ){
        for( ii=0 ; ii < 27 ; ii++ ) Hparmap[pm++] = ii ;
      }
@@ -4253,7 +4254,6 @@ ENTRY("HQwarp_setup_basis") ;
    FREEIFNN(bq0x); FREEIFNN(bq1x); FREEIFNN(bq2x); nbqx=0;
    FREEIFNN(bq0y); FREEIFNN(bq1y); FREEIFNN(bq2y); nbqy=0;
    FREEIFNN(bq0z); FREEIFNN(bq1z); FREEIFNN(bq2z); nbqz=0;
-   FREEIFNN(Hparmap) ;
 
    if( bbbqar != NULL ){
      for( ii=0 ; ii < 27 ; ii++ ) FREEIFNN(bbbqar[ii]) ;
@@ -5026,7 +5026,10 @@ double IW3D_scalar_costfun( int npar , double *dpar )
    } else {
      for( ii=0 ; ii < Hnpar ; ii++ ){
        Hpar[ii] = (float)dpar[ii] ;
-       if( !isfinite(Hpar[ii]) ) ERROR_message("bad Hpar[%d]=%g dpar=%g",ii,Hpar[ii],dpar[ii]) ;
+       if( !isfinite(Hpar[ii]) ){
+         ERROR_message("bad Hpar[%d]=%g dpar=%g",ii,Hpar[ii],dpar[ii]) ;
+         Hpar[ii] = dpar[ii] = 0.0 ;
+       }
      }
    }
 
@@ -5384,6 +5387,7 @@ ENTRY("IW3D_improve_warp") ;
    Hdoz = !(Hflags & NWARP_NOZDIS_FLAG) ;  /* z? */
 
    Hpar  = (float *)realloc(Hpar,sizeof(float)*Hnpar) ;
+   for( ii=0 ; ii < Hnpar ; ii++ ) Hpar[ii] = 0.0f ;
    Hxpar = Hpar ;
    Hypar = Hxpar + (Hnpar/3) ;
    Hzpar = Hypar + (Hnpar/3) ;
@@ -5474,7 +5478,7 @@ ENTRY("IW3D_improve_warp") ;
 #else
    itmax = 8*Hnparmap+31 ;
 #endif
-   if( WORKHARD(Hlev_now) ) itmax -= Hnparmap ;
+   if( WORKHARD(Hlev_now) || SUPERHARD(Hlev_now) ) itmax -= Hnparmap ;
 
    if( Hverb > 3 ) powell_set_verbose(1) ;
 
@@ -5588,7 +5592,6 @@ ENTRY("IW3D_warpomatic") ;
 
    if( Hverb ){
          INFO_message("AFNI warpomatic start: %d x %d x %d volume",Hnx,Hny,Hnz) ;
-     if( Hverb > 1 )
        ININFO_message("            autobbox = %d..%d %d..%d %d..%d",imin,imax,jmin,jmax,kmin,kmax) ;
    }
 
@@ -6830,7 +6833,10 @@ double IW3D_scalar_costfun_plusminus( int npar , double *dpar )
    } else {
      for( ii=0 ; ii < Hnpar ; ii++ ){
        Hpar[ii] = (float)dpar[ii] ;
-       if( !isfinite(Hpar[ii]) ) ERROR_message("bad Hpar[%d]=%g dpar=%g",ii,Hpar[ii],dpar[ii]) ;
+       if( !isfinite(Hpar[ii]) ){
+         ERROR_message("bad Hpar[%d]=%g dpar=%g",ii,Hpar[ii],dpar[ii]) ;
+         Hpar[ii] = dpar[ii] = 0.0 ;
+       }
      }
    }
 
@@ -6949,6 +6955,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
    Hdoz = !(Hflags & NWARP_NOZDIS_FLAG) ;  /* z? */
 
    Hpar  = (float *)realloc(Hpar,sizeof(float)*Hnpar) ;
+   for( ii=0 ; ii < Hnpar ; ii++ ) Hpar[ii] = 0.0f ;
    Hxpar = Hpar ;
    Hypar = Hxpar + (Hnpar/3) ;
    Hzpar = Hypar + (Hnpar/3) ;
@@ -7029,7 +7036,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 #else
    itmax = 8*Hnparmap+31 ;
 #endif
-   if( WORKHARD(Hlev_now) ) itmax -= Hnparmap ;
+   if( WORKHARD(Hlev_now) || SUPERHARD(Hlev_now) ) itmax -= Hnparmap ;
 
    if( Hverb > 3 ) powell_set_verbose(1) ;
 
@@ -7334,6 +7341,7 @@ IndexWarp3D * IW3D_initialwarp_plusminus( MRI_IMAGE *bim ,
 {
    IndexWarp3D *Owarp ; IndexWarp3D_pair *Spair ;
    int lstart,lend ; double pfac ;
+   int hw1,hw2 , hs1,hs2 ;
    MRI_IMAGE *qwbim ; byte *mask ; int ii ; float *wbar ;
 
 ENTRY("IW3D_initialwarp_plusminus") ;
@@ -7344,19 +7352,21 @@ ENTRY("IW3D_initialwarp_plusminus") ;
    for( ii=0 ; ii < wbim->nvox ; ii++ ) if( !mask[ii] ) wbar[ii] = 0.0f ;
    free(mask) ;
 
-   lstart     = Hlev_start ; lend = Hlev_end ; pfac     = Hpen_fac ;
-   Hlev_start = 0          ; Hlev_end = 2    ; Hpen_fac = 0.0      ;
+   lstart     = Hlev_start ; lend     = Hlev_end ; pfac     = Hpen_fac ;
+   Hlev_start = 0          ; Hlev_end = 1        ; Hpen_fac = 0.0      ;
+
+   hw1 = Hworkhard1 ; hs1 = Hsuperhard1 ;
+   hw2 = Hworkhard2 ; hs2 = Hsuperhard2 ;
+   Hworkhard1 = Hsuperhard1 = 0 ; Hworkhard2 = Hsuperhard2 = -666 ;
 
    Owarp = IW3D_warpomatic( bim , qwbim , sim , meth_code , warp_flags ) ;
    mri_free(qwbim) ;
 
    Hlev_start = lstart ; Hlev_end = lend ; Hpen_fac = pfac ;
+   Hworkhard1 = hw1 ; Hsuperhard1 = hs1 ;
+   Hworkhard2 = hw2 ; Hsuperhard2 = hs2 ;
 
-   Spair = IW3D_sqrtpair( Owarp , MRI_LINEAR ) ;
-
-   IW3D_destroy(Owarp) ; Owarp = Spair->fwarp ;
-   IW3D_destroy(Spair->iwarp) ; free(Spair) ;
-
+   IW3D_scale(Owarp,0.5f) ;
    RETURN(Owarp) ;
 }
 
@@ -7378,6 +7388,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    if( Hverb ) Hfirsttime = 1 ;
 
    if( WO_iwarp == NULL ){
+     if( Hverb ) INFO_message("Initializing +- warp") ;
      WO_iwarp = IW3D_initialwarp_plusminus( bim, wbim, sim, meth_code, warp_flags ) ;
      myIwarp  = 1 ;
    }
@@ -7402,8 +7413,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    }
 
    if( Hverb ){
-         INFO_message("AFNI warpomatic+- start: %d x %d x %d volume",Hnx,Hny,Hnz) ;
-     if( Hverb > 1 )
+         INFO_message("AFNI +-warpomatic start: %d x %d x %d volume",Hnx,Hny,Hnz) ;
        ININFO_message("              autobbox = %d..%d %d..%d %d..%d",imin,imax,jmin,jmax,kmin,kmax) ;
    }
 
