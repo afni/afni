@@ -117,7 +117,7 @@ def read_married_file(filename, nlines = -1, verb = 1):
            if verb > 0: print "failed to open 1D file %s" % filename
            return None, None
 
-    if verb > 1: print "+d opened file %s" % filename
+    if verb > 1: print "+d reading file %s" % filename
 
     retmat = []
     clines = []

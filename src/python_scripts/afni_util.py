@@ -2665,6 +2665,34 @@ def p2q(plist, do_min=1, verb=1):
 
     return q
 
+def argmax(vlist, absval=0):
+   if len(vlist) < 2: return 0
+   if absval: vcopy = [abs(val) for val in vlist]
+   else:      vcopy = vlist
+
+   mval = vcopy[0]
+   mind = 0
+   for ind, val in enumerate(vlist):
+      if val > mval:
+         mval = val
+         mind = ind
+
+   return mind
+
+def argmin(vlist, absval=0):
+   if len(vlist) < 2: return 0
+   if absval: vcopy = [abs(val) for val in vlist]
+   else:      vcopy = vlist
+
+   mval = vcopy[0]
+   mind = 0
+   for ind, val in enumerate(vlist):
+      if val < mval:
+         mval = val
+         mind = ind
+
+   return mind
+
 # ----------------------------------------------------------------------
 # random list routines: shuffle, merge, swap, extreme checking
 # ----------------------------------------------------------------------

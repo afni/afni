@@ -339,7 +339,6 @@ examples (very basic for now):
 
           1d_tool.py -infile X.xmat.1D -show_trs_uncensored encoded
 
-
    21. Convert to rank order.
 
        a. show rank order of slice times from a 1D file
@@ -354,6 +353,11 @@ examples (very basic for now):
 
          3dinfo -slice_timing epi+orig \\
                 | 1d_tool.py -infile - -rank_style competition -write -
+
+   22. Guess volreg base index from motion parameters.
+
+         1d_tool.py -infile dfile_rall.1D -collapse_cols euclidean_norm \\
+                    -show_argmin
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -662,6 +666,7 @@ general options:
         See examples 7b, 10c and 14.
 
    -set_tr TR                   : set the TR (in seconds) for the data
+   -show_argmin                 : display the index of min arg (of first column)
    -show_censor_count           : display the total number of censored TRs
    -show_cormat_warnings        : display correlation matrix warnings
    -show_gcor                   : display GCOR: the average correlation
@@ -830,9 +835,10 @@ g_history = """
    1.14 Apr 26, 2013 - added options -show_trs_censored/uncensored
    1.15 May  6, 2013 - added option -transpose_write
    1.16 May  8, 2013 - added options -rank, -rank_style
+   1.17 May 14, 2013 - added -show_argmin/argmax
 """
 
-g_version = "1d_tool.py version 1.16, May 8, 2013"
+g_version = "1d_tool.py version 1.17, May 14, 2013"
 
 
 class A1DInterface:
@@ -881,6 +887,8 @@ class A1DInterface:
       self.split_into_pad_runs = ''     # prefix, for splitting into many runs
 
       self.cormat_cutoff   = -1         # if > 0, apply to show_cormat_warns
+      self.show_argmax     = 0          # show index of max arg
+      self.show_argmin     = 0          # show index of min arg
       self.show_censor_count= 0         # show count of censored TRs
       self.show_cormat_warn= 0          # show cormat warnings
       self.show_displace   = 0          # max_displacement (0,1,2)
@@ -931,7 +939,7 @@ class A1DInterface:
 
       if not adata.ready: return 1
 
-      if self.verb > 1: print "++ read 1D data from file '%s'" % fname
+      if self.verb > 2: print "++ read 1D data from file '%s'" % fname
 
       self.fname = fname
       self.adata = adata
@@ -986,16 +994,6 @@ class A1DInterface:
       # general options
       self.valid_opts.add_opt('-add_cols', 1, [], 
                       helpstr='extend dataset with columns from new file')
-
-      self.valid_opts.add_opt('-rank', 0, [], 
-                      helpstr='conver input to rank order')
-
-      self.valid_opts.add_opt('-rank_style', 1, [], 
-                      acplist=['dense', 'competition'],
-                      helpstr='conver input to rank order using given STYLE')
-
-      self.valid_opts.add_opt('-reverse_rank', 0, [], 
-                      helpstr='conver input to reverse rank order')
 
       self.valid_opts.add_opt('-backward_diff', 0, [], 
                       helpstr='compute first backward differences')
@@ -1077,6 +1075,16 @@ class A1DInterface:
       self.valid_opts.add_opt('-randomize_trs', 0, [], 
                       helpstr='randomize the data over time (fixed per TR)')
 
+      self.valid_opts.add_opt('-rank', 0, [], 
+                      helpstr='conver input to rank order')
+
+      self.valid_opts.add_opt('-rank_style', 1, [], 
+                      acplist=['dense', 'competition'],
+                      helpstr='conver input to rank order using given STYLE')
+
+      self.valid_opts.add_opt('-reverse_rank', 0, [], 
+                      helpstr='conver input to reverse rank order')
+
       self.valid_opts.add_opt('-reverse', 0, [], 
                       helpstr='reverse the data per column (over time)')
 
@@ -1097,6 +1105,12 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-set_tr', 1, [], 
                       helpstr='specify the TR (in seconds) of the data')
+
+      self.valid_opts.add_opt('-show_argmax', 0, [], 
+                      helpstr='show index of max element in column 0')
+
+      self.valid_opts.add_opt('-show_argmin', 0, [], 
+                      helpstr='show index of min element in column 0')
 
       self.valid_opts.add_opt('-show_censor_count', 0, [], 
                       helpstr='display the total number of censored TRs')
@@ -1368,6 +1382,12 @@ class A1DInterface:
          elif opt.name == '-forward_diff':
             self.derivative = 1
             self.direct = 1
+
+         elif opt.name == '-show_argmax':
+            self.show_argmax = 1
+
+         elif opt.name == '-show_argmin':
+            self.show_argmin = 1
 
          elif opt.name == '-moderate_mask':
             val, err = uopts.get_type_list(float, '', opt=opt)
@@ -1701,7 +1721,7 @@ class A1DInterface:
       if self.censor_first_trs:
          if self.adata.set_first_TRs(self.censor_first_trs, newval=0): return 1
 
-      # ---- 'show' options come after all other processing ----
+      # ---- show options come after all other processing ----
 
       if self.show_label_ord: self.adata.show_major_order_of_labels()
       if self.show_labels: self.adata.show_labels()
@@ -1714,6 +1734,18 @@ class A1DInterface:
          if self.adata.rank(style=style, reverse=1, verb=self.verb): return 1
       elif self.rank:
          if self.adata.rank(style=self.rank, verb=self.verb): return 1
+
+      if self.show_argmax:
+         amax = UTIL.argmax(self.adata.mat[0])
+         if self.verb > 1:
+            print '-- val[%d] = %s' % (amax, self.adata.mat[0][amax])
+         print '%d' % amax
+
+      if self.show_argmin:
+         amin = UTIL.argmin(self.adata.mat[0])
+         if self.verb > 1:
+            print '-- val[%d] = %s' % (amin, self.adata.mat[0][amin])
+         print '%d' % amin
 
       if self.show_indices:
          istr = self.adata.get_indices_str(self.show_indices)
