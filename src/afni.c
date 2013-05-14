@@ -1486,6 +1486,7 @@ void AFNI_sigfunc_alrm(int sig)
      "May the odds be ever in your favor"                            ,
      "I weep for Adonais -- he is dead! Oh, weep for Adonais"        ,
      "An echo and a light unto eternity"                             ,
+     "Did I mention that we're doomed? Horribly horribly doomed?"    ,
 
      "Meet me at the Torre Pendente di Pisa on the feast of St Rainerius"             ,
      "One martini is just right; two is too many; three is never enough"              ,
