@@ -329,6 +329,7 @@ class Afni1D:
              method = 'max'             : max across nvec
              method = 'maxabs'          : max abs across nvec
              method = 'euclidean_norm'  : sqrt(sum squares)
+                 or = 'enorm'
              method = 'weighted_enorm'  : sqrt(sum weighted squares)
 
          Note: the result will still be a trivial 2-D array, where element 0
@@ -357,7 +358,7 @@ class Afni1D:
       elif method == 'maxabs':  # take abs and recur
          if self.abs(): return 1
          return self.collapse_cols('max')
-      elif method == 'euclidean_norm':
+      elif method == 'enorm' or method == 'euclidean_norm':
          mat = [UTIL.euclidean_norm([self.mat[v][t] for v in range(self.nvec)])\
                                                     for t in range(self.nt)]
       elif method == 'weighted_enorm':

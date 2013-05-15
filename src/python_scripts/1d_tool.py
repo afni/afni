@@ -356,8 +356,7 @@ examples (very basic for now):
 
    22. Guess volreg base index from motion parameters.
 
-         1d_tool.py -infile dfile_rall.1D -collapse_cols euclidean_norm \\
-                    -show_argmin
+         1d_tool.py -infile dfile_rall.1D -collapse_cols enorm -show_argmin
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -409,6 +408,8 @@ general options:
            The point of these numbers is to suggest that equating degrees and
            mm should be fine.  The average distance caused by a 1 degree
            rotation is very close to 1 mm (in an adult human).
+
+         * 'enorm' is short for 'euclidean_norm'.
 
          * Use of weighted_enorm requires the -weight_vec option.
 
@@ -1021,7 +1022,7 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-collapse_cols', 1, [],
                       acplist=['min','max','minabs','maxabs',
-                               'euclidean_norm', 'weighted_enorm'],
+                               'euclidean_norm', 'enorm', 'weighted_enorm'],
                       helpstr='collapse into one column via supplied METHOD')
 
       self.valid_opts.add_opt('-cormat_cutoff', 1, [], 
