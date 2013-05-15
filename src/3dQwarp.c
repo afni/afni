@@ -6,12 +6,15 @@
     - allow user-input weight volume                             [not hard]
     - symmetric mapping,                                         [hard]
       with Src(W(x)) = Bas(INV(W(x))) instead of Src(W(x))=B(x)
+    - plusminus mapping                                          [done]
+      with Src(x-w(x)) = Bas(x+w(x)) instead of Src(x+w(x))=B(x)
 *//*-------------------------------------------------------------------------*/
 
-#ifdef USE_OMP
+#ifdef USE_OMP       /* OpenMP */
 # include <omp.h>
 #endif
 
+/** included here to be compiled with OpenMP, unlike the versions in libmri **/
 #include "mri_genalign.c"
 #include "mri_genalign_util.c"
 
@@ -19,6 +22,7 @@
 
 #define ALLOW_QWARP
 #define ALLOW_PLUSMINUS
+#undef  USE_PLUSMINUS_INITIALWARP   /* don't do this */
 #include "mri_nwarp.c"
 
 /** constants for the mri_weightize() function (liberated from 3dAllineate) **/
@@ -388,7 +392,7 @@ void Qhelp(void)
     "\n"
     " -blur bb     = Gaussian blur the input images by 'bb' (FWHM) voxels before\n"
     "                doing the alignment (the output dataset will not be blurred).\n"
-    "                The default is 3.456 (for no good reason).\n"
+    "                The default is 2.345 (for no good reason).\n"
     "               * Optionally, you can provide 2 values for 'bb', and then\n"
     "                 the first one is applied to the base volume, the second\n"
     "                 to the source volume.\n"
@@ -537,14 +541,29 @@ void Qhelp(void)
     "                 and a 'blip down' down volume, which will have opposite\n"
     "                 distortions.\n"
     "               * -plusminus does not work with -duplo :-(\n"
-    "               * If -plusminus is used, -iniwarp is ignored; instead, the\n"
-    "                 -plusminus warp is initialized by a coarse warping of\n"
-    "                 the source to the base, then the displacements are\n"
-    "                 scaled by 0.5, and then actual 'meet in the middle'\n"
-    "                 warp optimization begins.\n"
+#ifdef USE_PLUSMINUS_INITIALWARP
+    "               * If -plusminus is used, the -plusminus warp is initialized by\n"
+    "                 a coarse warping of the source to the base, then these warp\n"
+    "                 displacements are scaled by 0.5, and then the actual\n"
+    "                 'meet in the middle' warp optimization begins from that point.\n"
+#endif
     "               * The outputs have _PLUS (from the source dataset) and _MINUS\n"
     "                 (from the base dataset) in their filenames, in addition to\n"
     "                 the prefix.  The -iwarp option, if present, will be ignored.\n"
+    "\n"
+    " -pmNAMES p m = This option lets you change the PLUS and MINUS prefix appendages\n"
+    "                alluded to directly above to something else that might be more\n"
+    "                easy for you to grok.  For example, if you are warping EPI volumes\n"
+    "                with phase-encoding in the LR-direction with volumes that had\n"
+    "                phase-encoding in the RL-direction, you might do something like\n"
+    "        -base EPI_LR+orig -source EPI_RL+orig -plusminus -pmNAMES RL LR -prefix EPIuw\n"
+    "                recalling the the PLUS name goes with the source (RL) and the\n"
+    "                MINUS name goes with the base (RL).  Then you'd end up with datasets\n"
+    "                  EPIuw_LR+orig and EPIuw_LR_WARP+orig from the base\n"
+    "                  EPIuw_RL+orig and EPIuw_RL_WARP+orig from the source\n"
+    "                The EPIuw_LR_WARP+orig file could then be used to unwarp (e.g.,\n"
+    "                using 3dNwarpApply) other LR-encoded EPI datasets from the same\n"
+    "                scanning session.\n"
 #endif
     "\n"
     " -verb        = Print out very very verbose progress messages (to stderr) :-)\n"
@@ -613,7 +632,9 @@ int main( int argc , char *argv[] )
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
    int flags = 0 ;
    double cput ;
-   int do_plusminus=0 ; Image_plus_Warp **sbww=NULL , *qiw=NULL ;
+   int do_plusminus=0; Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
+   char *plusname = "PLUS" , *minusname = "MINUS" ;
+   char appendage[THD_MAX_NAME] ;
 
    /*---------- enlighten the supplicant ----------*/
 
@@ -649,7 +670,7 @@ int main( int argc , char *argv[] )
    /*--- options ---*/
 
    nopt = 1 ;
-   Hblur_b = Hblur_s = 3.456f ;
+   Hblur_b = Hblur_s = 2.345f ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
      if( strcasecmp(argv[nopt],"-verb") == 0 ){
@@ -668,12 +689,17 @@ int main( int argc , char *argv[] )
        nodset =  1 ; nopt++ ; continue ;
      }
 
-     if( strcasecmp(argv[nopt],"-plusminus") == 0 ){
+     if( strcasecmp(argv[nopt],"-plusminus") == 0 || strcmp(argv[nopt],"+-") == 0 ){
 #ifdef ALLOW_PLUSMINUS
        do_plusminus++ ; nopt++ ; continue ;
 #else
        ERROR_exit("Option '%s' is not currently available :-(",argv[nopt]) ;
 #endif
+     }
+
+     if( strcasecmp(argv[nopt],"-pmNAMES") == 0 ){
+       if( ++nopt >= argc-1 ) ERROR_exit("need 2 args after %s",argv[nopt-1]) ;
+       plusname = argv[nopt++] ; minusname = argv[nopt++] ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-nowarps") == 0 ){  /* these 2 options */
@@ -909,7 +935,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("need 2 args for base and source") ;
 
    if( do_plusminus && duplo ){
-     ERROR_message("Alas, -plusminus does not work with -duplo -- turning -duplo off") ;
+     WARNING_message("Alas, -plusminus does not work with -duplo -- turning -duplo off") ;
      duplo = 0 ;
    }
 
@@ -1019,6 +1045,8 @@ int main( int argc , char *argv[] )
 
    wbim = mri_weightize(bim,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
 
+   /* blur base here if so ordered */
+
    if( Hblur_b >= 0.5f && !do_plusminus ){
      MRI_IMAGE *qim ;
      if( Hverb > 1 ) ININFO_message("   blurring base image %.3g voxels FWHM",Hblur_b) ;
@@ -1037,22 +1065,23 @@ int main( int argc , char *argv[] )
      INFO_message("Begin warp optimization:  base=%s  source=%s" ,
                   DSET_HEADNAME(bset) , DSET_HEADNAME(sset)  ) ;
 
-   if( do_plusminus ){   /* special case of plusminus warp */
+   if( do_plusminus ){   /*--- special case of plusminus warp ---*/
 #ifndef ALLOW_PLUSMINUS
-     ERROR_exit("This message should never appear!") ;
+     ERROR_exit("-plusminus: This message should never appear!") ;
 #else
-     if( Hworkhard1 < 2 ) Hworkhard1 = 2 ;
      sbww = IW3D_warp_s2bim_plusminus( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
-     oiw  = sbww[0] ;
-     qiw  = sbww[1] ;
+     oiw  = sbww[0] ;  /* plus warp and image */
+     qiw  = sbww[1] ;  /* minus warp and image */
 #endif
-   } else {              /* the standard case */
+   } else {              /*--- the standard case ---*/
      qiw = NULL ;
      if( duplo )
        oiw = IW3D_warp_s2bim_duplo( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
      else
        oiw = IW3D_warp_s2bim( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
    }
+
+   /** check for errorosities **/
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 
@@ -1064,7 +1093,10 @@ int main( int argc , char *argv[] )
 
    if( !nodset ){
      char *qprefix = prefix ;
-     if( do_plusminus ) qprefix = modify_afni_prefix(prefix,NULL,"_PLUS") ;
+     if( do_plusminus ){
+       sprintf(appendage,"_%s",plusname) ;
+       qprefix = modify_afni_prefix(prefix,NULL,appendage) ;
+     }
      oset = EDIT_empty_copy(bset) ;
      tross_Copy_History( bset , oset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , oset ) ;
@@ -1079,7 +1111,8 @@ int main( int argc , char *argv[] )
      DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
 
      if( do_plusminus && qiw != NULL ){
-       qprefix = modify_afni_prefix(prefix,NULL,"_MINUS") ;
+       sprintf(appendage,"_%s",minusname) ;
+       qprefix = modify_afni_prefix(prefix,NULL,appendage) ;
        oset = EDIT_empty_copy(bset) ;
        tross_Copy_History( bset , oset ) ;
        tross_Make_History( "3dQwarp" , argc,argv , oset ) ;
@@ -1104,8 +1137,12 @@ int main( int argc , char *argv[] )
 
    if( !nowarp ){
      char *qprefix ;
-     if( do_plusminus) qprefix = modify_afni_prefix(prefix,NULL,"_PLUS_WARP") ;
-     else              qprefix = modify_afni_prefix(prefix,NULL,"_WARP") ;
+     if( do_plusminus){
+       sprintf(appendage,"_%s_WARP",plusname) ;
+       qprefix = modify_afni_prefix(prefix,NULL,appendage) ;
+     } else {
+       qprefix = modify_afni_prefix(prefix,NULL,"_WARP") ;
+     }
      IW3D_adopt_dataset( oww , bset ) ;
      qset = IW3D_to_dataset( oww , qprefix ) ;
      tross_Copy_History( bset , qset ) ;
@@ -1114,7 +1151,8 @@ int main( int argc , char *argv[] )
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
 
      if( do_plusminus && qiw != NULL ){
-       qprefix = modify_afni_prefix(prefix,NULL,"_MINUS_WARP") ;
+       sprintf(appendage,"_%s_WARP",minusname) ;
+       qprefix = modify_afni_prefix(prefix,NULL,appendage) ;
        IW3D_adopt_dataset( qiw->warp , bset ) ;
        qset = IW3D_to_dataset( qiw->warp , qprefix ) ;
        tross_Copy_History( bset , qset ) ;
