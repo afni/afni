@@ -224,7 +224,7 @@ endif
 
 # default to wget, else use curl
 set get_prog = ( "wget" )
-if ( $use_curl || $missing_wget ) set get_prog = ( "curl" "-O" )
+if ( $use_curl || $missing_wget ) set get_prog = ( curl -O -f )
 
 # make sure package is set to the base name
 if ( $package =~ *.tgz ) set package = $package:r

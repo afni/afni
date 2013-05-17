@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, May, 2013, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "added -f to curl, so that failures propagate to $status",
+   NULL
+ } ,
+
  { 14, May, 2013, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added options -show_argmin/max",
    NULL
