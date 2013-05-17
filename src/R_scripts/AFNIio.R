@@ -15,12 +15,35 @@ find.in.path <- function(file) { #Pretty much same as first.in.path
    return(aa) 
 }
 
+note.AFNI <- function (str='May I speak frankly?',
+                       callstr=NULL, newline=TRUE, tic=1,
+                       trimtrace=30) {
+   if (is.null(callstr)) {
+      if (SHOW_TRC)  callstr <- who.called.me(TRUE, trim=trimtrace)
+      else callstr <- ''
+   }
+   nnn<-''
+   if (newline) nnn <- '\n'
+   if (BATCH_MODE) ff <- stderr()
+   else ff <- ''
+   if (tic == 1) {
+      tm <- format(Sys.time(), " @ %H:%M:%S")
+   } else if (tic==2) {
+      tm <- format(Sys.time(), " @ %a %b %d %H:%M:%S %Y")
+   } else tm <- ''
+   
+   cat(  '\n', '++ Note: ',  callstr,
+         sprintf('%s\n   ', tm), 
+         paste(str, collapse=''),nnn, 
+       sep='', file = ff);
+}
+
 set_R_io <- function() {
    rio <- 0
    ll <- find.in.path('R_io.so')
    if (!is.null(ll)) {
       dd <- try(dyn.load(ll), silent=TRUE)
-      if (!dd[[1]]=="R_io") {
+      if (dd[[1]]!="R_io") {
          note.AFNI(paste("Failed to load R_io.so."));
       } else {
          rio <- 1
@@ -1064,29 +1087,6 @@ err.AFNI <- function (str='Danger Danger Will Robinson',
    else ff <- ''
    cat(  '\n', '** Error: ',  callstr,'\n   ', 
          paste(str, collapse=''), nnn, 
-       sep='', file = ff);
-}
-
-note.AFNI <- function (str='May I speak frankly?',
-                       callstr=NULL, newline=TRUE, tic=1,
-                       trimtrace=30) {
-   if (is.null(callstr)) {
-      if (SHOW_TRC)  callstr <- who.called.me(TRUE, trim=trimtrace)
-      else callstr <- ''
-   }
-   nnn<-''
-   if (newline) nnn <- '\n'
-   if (BATCH_MODE) ff <- stderr()
-   else ff <- ''
-   if (tic == 1) {
-      tm <- format(Sys.time(), " @ %H:%M:%S")
-   } else if (tic==2) {
-      tm <- format(Sys.time(), " @ %a %b %d %H:%M:%S %Y")
-   } else tm <- ''
-   
-   cat(  '\n', '++ Note: ',  callstr,
-         sprintf('%s\n   ', tm), 
-         paste(str, collapse=''),nnn, 
        sep='', file = ff);
 }
 
