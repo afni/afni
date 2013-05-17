@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.1, May 13, 2013
+Version 1.0.2, May 17, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.1, May 13, 2013
+Version 1.0.2, May 17, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -855,14 +855,17 @@ while(is.null(fm)) {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed! ~~~~~~~~~~~~~~~~~~~\n')
       cat('Possible reasons:\n\n')
       cat('0) Make sure that R packages afex and phia have been installed. See the 3dMVM\n')
-      cat('help documentation for more details.\n')
+      cat('help documentation for more details.\n\n')
       cat('1) Inappropriate model specification with options -model, -wsVars, or -qVars.\n')
       cat('Note that within-subject or repeated-measures variables have to be declared\n')
       cat('with -wsVars.\n\n')
       cat('2) Misspecifications in general linear test coding with -gltCode.\n\n')
       cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
       cat('whether there are any inconsistencies.\n\n')
-      cat('4) Not enough number of subjects. This may happen when there are two or more\n')
+      cat('4) Inconsistent variable names which are case sensitive. For example, factor\n')
+      cat('named Group in model specifiction and then listed as group in the table hader\n')
+      cat('would cause grief for 3dMVM.\n')
+      cat('5) Not enough number of subjects. This may happen when there are two or more\n')
       cat('withi-subject factors. For example, a model with two within-subject factors with\n')
       cat('m and n levels respectively requires more than (m-1)*(n-1) subjects to be able to\n')
       cat('model the two-way interaction with the multivariate approach.\n\n')
