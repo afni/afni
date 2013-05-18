@@ -5,7 +5,10 @@
 #endif
 
 #undef  VECTIM_scan
-#define VECTIM_scan(vv) thd_floatscan((vv)->nvals*(vv)->nvec,(vv)->fvec)
+#define VECTIM_scan(vv)                                                     \
+ do{ int nbad = thd_floatscan((vv)->nvals*(vv)->nvec,(vv)->fvec) ;          \
+     if( nbad > 0 ) WARNING_message("found %d bad values in vectim",nbad) ; \
+ } while(0)
 
 /*--------------------------------------------------------------------------*/
 /*! Convert a dataset to the MRI_vectim format, where each time
@@ -135,7 +138,7 @@ int THD_vectim_reload_fromfile( MRI_vectim *mrv , char *fnam )
    nf = mrv->nvec * mrv->nvals ;
    if( mrv->fvec == NULL ) mrv->fvec = (float *)malloc(sizeof(float)*nf) ;
    nw = fread( mrv->fvec , sizeof(float) , nf , fp ) ;
-   fclose(fp) ; return ;
+   fclose(fp) ; return (int)nw ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -524,6 +527,8 @@ void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp , int ata )
  } /* end OpenMP */
  AFNI_OMP_END ;
 
+  thd_floatscan(mrv->nvec,dp) ;  /* 16 May 2013 */
+
   return ;
 }
 
@@ -542,6 +547,8 @@ void THD_vectim_vectim_dot( MRI_vectim *arv, MRI_vectim *brv, float *dp )
      for( sum=0.0f,ii=0 ; ii < nvals ; ii++ ) sum += av[ii]*bv[ii] ;
      dp[iv] = sum ;
    }
+
+   thd_floatscan(nvec,dp) ;  /* 16 May 2013 */
 
    return ;
 }
@@ -570,6 +577,8 @@ void THD_vectim_spearman( MRI_vectim *mrv , float *vec , float *dp )
      dp[iv] = spearman_rank_corr( nvals , bv , sav , av ) ;
    }
 
+   thd_floatscan(nvec,dp) ;  /* 16 May 2013 */
+
    free(bv) ; free(av) ; return ;
 }
 
@@ -596,6 +605,8 @@ void THD_vectim_quadrant( MRI_vectim *mrv , float *vec , float *dp )
      AAmemcpy( bv , VECTIM_PTR(mrv,iv) , sizeof(float)*nvals ) ;
      dp[iv] = quadrant_corr( nvals , bv , sav , av ) ;
    }
+
+   thd_floatscan(nvec,dp) ;  /* 16 May 2013 */
 
    free(bv) ; free(av) ; return ;
 }
@@ -629,6 +640,8 @@ void THD_vectim_tictactoe( MRI_vectim *mrv , float *vec , float *dp )
      AAmemcpy( bv , VECTIM_PTR(mrv,iv) , sizeof(float)*nvals ) ;
      dp[iv] = tictactoe_corr( nvals , bv , sav , av ) ;
    }
+
+   thd_floatscan(nvec,dp) ;  /* 16 May 2013 */
 
    free(bv) ; free(av) ; return ;
 }
@@ -668,6 +681,8 @@ STATUS("loop") ;
      dp[iv] = kendallNlogN( aav , bv , nvals ) ;
    }
 
+   thd_floatscan(nvec,dp) ;  /* 16 May 2013 */
+
    free(qv) ; free(bv) ; free(aav) ; free(av) ; EXRETURN ;
 }
 
@@ -695,6 +710,8 @@ void THD_vectim_quantile( MRI_vectim *mrv , float *vec , float *dp )
      dp[iv] = quantile_corr( nvals , bv , sav , av ) ;
    }
 
+   thd_floatscan(nvec,dp) ;  /* 16 May 2013 */
+
    free(bv) ; free(av) ; return ;
 }
 
@@ -708,15 +725,15 @@ void THD_vectim_quantile( MRI_vectim *mrv , float *vec , float *dp )
             of values (dimensions) at each voxel
             If string contains "inv", return the inverse of the distance
 */
-void THD_vectim_distance( MRI_vectim *mrv , float *vec , 
+void THD_vectim_distance( MRI_vectim *mrv , float *vec ,
                           float *dp, int abs, char *xform)
 {
-   
+
    if( mrv == NULL || vec == NULL || dp == NULL ) return ;
 
  AFNI_OMP_START ;
 #pragma omp parallel if( mrv->nvec > 1 && mrv->nvec * mrv->nvals > 999999 )
-   {  int nvec=mrv->nvec, nvals=mrv->nvals, nv1=nvals-1, iv, ii ; 
+   {  int nvec=mrv->nvec, nvals=mrv->nvals, nv1=nvals-1, iv, ii ;
       float sum, *fv, a1, a2;
 #pragma omp for
       for( iv=0 ; iv < nvec ; iv++ ){
@@ -743,18 +760,20 @@ void THD_vectim_distance( MRI_vectim *mrv , float *vec ,
       if (strstr(xform,"inv")) {
          for( iv=0 ; iv < nvec ; iv++ ) {
             if (dp[iv] != 0.0) {
-               dp[iv] = a1/dp[iv]; 
-            } 
+               dp[iv] = a1/dp[iv];
+            }
          }
       } else if (a1 != 1.0) {
          for( iv=0 ; iv < nvec ; iv++ ) {
             if (dp[iv] != 0.0) {
                dp[iv] = dp[iv]/a1;
-            } 
+            }
          }
-      } 
+      }
    }
- 
+
+   thd_floatscan(mrv->nvec,dp) ;  /* 16 May 2013 */
+
   return ;
 }
 

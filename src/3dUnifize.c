@@ -489,6 +489,8 @@ int main( int argc , char *argv[] )
             "   read Obi-Wan's source code, which is a world of fun and exaltation.)\n"
             "* The principal motive for this program is for use in an image\n"
             "  registration script, and it may or may not be useful otherwise.\n"
+            "* If you have trouble getting 3dSkullStrip to run because of a large\n"
+            "  shading artifact, 3dUnifize may help there.\n"
             "\n"
             "--------\n"
             "Options:\n"
