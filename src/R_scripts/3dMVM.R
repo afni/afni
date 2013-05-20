@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.2, May 17, 2013
+Version 1.0.3, May 20, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.2, May 17, 2013
+Version 1.0.3, May 20, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -149,7 +149,7 @@ Example 2 --- two between-subjects (genotype and sex), onewithin-subject
           -qVarCenters '25,105'          \\
           -num_glt 10                    \\
           -gltLabel 1 pos_F_vs_M   -gltCode 1 'sex : 1*female -1*male emotion : 1*pos' \\
-          -gltLabel 2 age_TT_vs_NN -gltCode 2 'genotype : 1*TT -1*NN age :'           \\
+          -gltLabel 2 age_pos_vs_neg -gltCode 2 'emotion : 1*pos -1*neg age :'           \\
           -gltLabel 3 genotype_by_sex -gltCode 3 'genotype : 1*TT -1*NN sex : 1*male -1*female' \\
           -gltLabel 4 genotype_by_sex_emotion -gltCode 4 'genotype : 1*TT -1*NN sex : 1*male -1*female emotion : 1*pos -1*neg' \\
           ...            
