@@ -6550,7 +6550,7 @@ Image_plus_Warp * IW3D_warp_s2bim_duplo( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_
 ENTRY("IW3D_warp_s2bim_duplo") ;
 
    ct = NI_clock_time() ;
-   if( Hverb ) INFO_message("=== Duplo down") ;
+   if( Hverb ) INFO_message("=== Duplo down (blurring volumes & resampling)") ;
 
    WO_iwarp = NULL ;               /* can't start with initial warp for duplo */
    nx = bim->nx ; ny = bim->ny ; nz = bim->nz ;
@@ -6583,7 +6583,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
    if( Dwarp == NULL ) RETURN(NULL) ;
 
    if( Hverb )
-     INFO_message("=== Duplo up: clock = %s",nice_time_string(NI_clock_time()-ct)) ;
+     INFO_message("=== Duplo up (clock = %s)",nice_time_string(NI_clock_time()-ct)) ;
 
    WO_iwarp = IW3D_duplo_up( Dwarp, nx%2 , ny%2 , nz%2 ) ;
    IW3D_destroy(Dwarp) ;
