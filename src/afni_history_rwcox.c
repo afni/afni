@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 14 , MAY , 2013 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+  { 22 , MAY , 2013 , RWC , "3dUnifize" , MICRO , TYPE_MODIFY ,
+   "Change default clip fraction for automask to 0.1 from 0.5" ,
+   "For Juen -- to deal with heavily faded images." } ,
+
+ { 14 , MAY , 2013 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
    "New -plusminus option" ,
    "'Meet-in-the-middle' matching: base(x-dis(x)) = source(x+dis(x)).\n"
    "For application to unwarping blip-up and blip-down EPI datasets.\n"

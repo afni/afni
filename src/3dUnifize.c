@@ -508,14 +508,24 @@ int main( int argc , char *argv[] )
             "                  if the dataset voxel size differs significantly from 1 mm.\n"
             "  -quiet     = Don't print so many fun progress messages (but whyyyy?).\n"
             "\n"
-            "-------------------------------------\n"
-            "Special option for Jedi Masters ONLY:\n"
-            "-------------------------------------\n"
+            "--------------------------------------\n"
+            "Special options for Jedi Masters ONLY:\n"
+            "--------------------------------------\n"
             "  -rbt R b t = Specify the 3 parameters for the algorithm, as 3 numbers\n"
             "               following the '-rbt':\n"
             "                 R = radius; same as given by option '-Urad'     [default=%.1f]\n"
             "                 b = bottom percentile of normalizing data range [default=%.1f]\n"
             "                 r = top percentile of normalizing data range    [default=%.1f]\n"
+            "\n"
+            "  -clfrac cc = Set the automask 'clip level fraction' to 'cc', which\n"
+            "               must be a number between 0.1 and 0.9.\n"
+            "               A small 'cc' means to make the initial threshold\n"
+            "               for clipping (a la 3dClipLevel) smaller, which\n"
+            "               will tend to make the mask larger.  [default=0.1]\n"
+            "               ++ [22 May 2013] The previous version of this program used a\n"
+            "                  clip level fraction of 0.5, which proved to be too large\n"
+            "                  for some users.  Thus, the default value was lowered to 0.1.\n"
+            "                  If you strongly desire the old behavior, use '-clfrac 0.5'.\n"
             "\n"
             "-- Feb 2013 - by Obi-Wan Unifobi\n"
 #ifdef USE_OMP
@@ -531,8 +541,18 @@ int main( int argc , char *argv[] )
 
    /*-- scan command line --*/
 
+   THD_automask_set_clipfrac(0.1f) ;  /* 22 May 2013 */
+
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-clfrac") == 0 || strcmp(argv[iarg],"-mfrac") == 0 ){    /* 22 May 2013 */
+       float clfrac = (float)strtod( argv[++iarg] , NULL ) ;
+       if( clfrac < 0.1f || clfrac > 0.9f )
+         ERROR_exit("-clfrac value %f is illegal!",clfrac) ;
+       THD_automask_set_clipfrac(clfrac) ;
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
