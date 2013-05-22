@@ -534,7 +534,7 @@ class RegWrap:
       if (ps.skullstrip_input): 
          skullstrip_o = self.skullstrip_data(self.input, use_ss, ps.skullstrip_opt, prefix)
       else:
-         skullstrip_o = self.input
+         skullstrip_o = self.copy_dset (self.input, prefix="%s/anat.nii" % (ps.output_dir))
       if (ps.unifize_input):
          prefix = "%s/anat.un.nii" % (ps.output_dir)
          skullstrip_o = self.unifize_data(skullstrip_o, prefix)
