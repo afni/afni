@@ -117,7 +117,7 @@ ENTRY("THD_open_nifti") ;
 #endif
    }
 
-   if( xform_data ) {
+   if( xform_data && !AFNI_noenv("AFNI_NIFTI_TYPE_WARN")) {
       if (!n_xform_warn || AFNI_yesenv("AFNI_NIFTI_TYPE_WARN")) {/* ZSS 04/11 */
          fprintf(stderr,
              "** AFNI converts NIFTI_datatype=%d (%s) in file %s to FLOAT32\n",
@@ -125,7 +125,7 @@ ENTRY("THD_open_nifti") ;
          if (!AFNI_yesenv("AFNI_NIFTI_TYPE_WARN")) {
             fprintf(stderr,
                "     Warnings of this type will be muted for this session.\n"
-               "     Set AFNI_NIFTI_TYPE_WARN to YES to see them all.\n");
+      "     Set AFNI_NIFTI_TYPE_WARN to YES to see them all, NO to see none.\n");
          }
       }
       ++n_xform_warn;
