@@ -6588,7 +6588,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
    WO_iwarp = IW3D_duplo_up( Dwarp, nx%2 , ny%2 , nz%2 ) ;
    IW3D_destroy(Dwarp) ;
 
-   Hshrink = 0.749999f ; Hlev_start = Hlev_final-1 ; if( Hlev_start < 0 ) Hlev_start = 0 ;
+   Hshrink = 0.749999f ; Hlev_start = Hlev_final /*-1*/ ; if( Hlev_start < 0 ) Hlev_start = 0 ;
    Htemp1 = Hworkhard1 ; Hworkhard1 = 0 ;
    Htemp2 = Hworkhard2 ; Hworkhard2 = MAX(Htemp2,Hlev_start) ;
    Swarp = IW3D_warpomatic( bim , wbim , sim , meth_code , warp_flags ) ;
