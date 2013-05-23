@@ -47,6 +47,7 @@ ENTRY("THD_write_nifti") ;
   if( needs_convertion_to_float(din, 1) ) {
      dset = EDIT_full_copy(din, NULL);
      EDIT_floatize_dataset(dset);
+     tross_Copy_History(din, dset); /* ZSS May 23 2013 */
 
      if( ! ISVALID_DSET(dset) ) {
        ERROR_message("failed to copy dset for NIfTI write\n");
