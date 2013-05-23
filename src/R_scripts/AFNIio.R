@@ -3,6 +3,7 @@
 #------------------------------------------------------------------
 BATCH_MODE <<- 0  #Initialize batch mode flag to 0
 R_io <<- -1
+SHOW_TRC <<- FALSE
 
 #------------------------------------------------------------------
 # Functions for library loading
@@ -1053,8 +1054,6 @@ prompt.AFNI <- function (str='I await', choices=c('y','n'), vals=NULL) {
    }
    return(0)
 }
-
-SHOW_TRC <<- FALSE
 
 set.AFNI.msg.trace <- function (vv=FALSE) { SHOW_TRC <<- vv }
 
