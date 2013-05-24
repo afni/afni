@@ -378,6 +378,11 @@ void Qhelp(void)
     "               * Not usually recommended, since the 'clipped Pearson' method\n"
     "                 used by default will reduce the impact of outlier values.\n"
     "\n"
+    " -noneg       = Replace negative values in either input volume with 0.\n"
+    "               * If there ARE negative input values, and you do NOT use -noneg,\n"
+    "                 then strict Pearson correlation will be used, since the 'clipped'\n"
+    "                 method only is implemented for non-negative volumes.\n"
+    "\n"
     " -nopenalty   = Don't use a penalty on the cost function; the goal\n"
     "                of the penalty is to reduce grid distortions.\n"
     " -penfac ff   = Use the number 'ff' to weight the penalty.\n"
@@ -623,15 +628,15 @@ void Qhelp(void)
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *bset=NULL , *sset=NULL , *oset , *iwset=NULL ;
-   MRI_IMAGE *bim , *wbim , *sim , *oim ;
+   MRI_IMAGE *bim , *wbim , *sim , *oim ; float bmin,smin ;
    NI_float_array *iwvec=NULL ;
    IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw=NULL ;
    char *prefix = "Qwarp" ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
    int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 , nodset = 0 ;
-   int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn ;
+   int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg = 0 ;
    int flags = 0 ;
-   double cput ;
+   double cput = 0.0 ;
    int do_plusminus=0; Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
    char *plusname = "PLUS" , *minusname = "MINUS" ;
    char appendage[THD_MAX_NAME] ;
@@ -687,6 +692,9 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[nopt],"-nodset") == 0 ){
        nodset =  1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-noneg") == 0 ){  /* 24 May 2013 */
+       noneg =  1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-plusminus") == 0 || strcmp(argv[nopt],"+-") == 0 ){
@@ -969,15 +977,38 @@ int main( int argc , char *argv[] )
    DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
    bim = THD_extract_float_brick(0,bset) ; DSET_unload(bset) ;
    if( DSET_NVALS(bset) > 1 )
-     WARNING_message("base dataset has more than 1 sub-brick: ignoring all but the first") ;
+     INFO_message("base dataset has more than 1 sub-brick: ignoring all but the first") ;
 
    DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ;
    sim = THD_extract_float_brick(0,sset) ; DSET_unload(sset) ;
    if( DSET_NVALS(sset) > 1 )
-     WARNING_message("source dataset has more than 1 sub-brick: ignoring all but the first") ;
+     INFO_message("source dataset has more than 1 sub-brick: ignoring all but the first") ;
 
    if( nevox > 0 && nevox != DSET_NVOX(bset) )
      ERROR_exit("-emask doesn't match base dataset grid :-(") ;
+
+   /*- deal with negative values [24 May 2013] -*/
+
+   bmin = mri_min(bim) ;
+   if( bmin < 0.0f && noneg ){
+     float *bar = MRI_FLOAT_PTR(bim) ; int ii , nneg=0 ;
+     for( ii=0 ; ii < bim->nvox ; ii++ ){ if( bar[ii] < 0.0f ){ bar[ii] = 0.0; nneg++; } }
+     INFO_message("-noneg converted %d base voxels to 0",nneg) ; bmin = 0.0f ;
+   }
+   smin = mri_min(sim) ;
+   if( smin < 0.0f && noneg ){
+     float *sar = MRI_FLOAT_PTR(sim) ; int ii , nneg=0 ;
+     for( ii=0 ; ii < sim->nvox ; ii++ ){ if( sar[ii] < 0.0f ){ sar[ii] = 0.0; nneg++; } }
+     INFO_message("-noneg converted %d source voxels to 0",nneg) ; smin = 0.0f ;
+   }
+   if( (bmin < 0.0f || smin < 0.0f) && meth == GA_MATCH_PEARCLP_SCALAR ){
+     meth = GA_MATCH_PEARSON_SCALAR ;
+     INFO_message("negative values in %s ==> using strict Pearson correlation",
+                     (bmin < 0.0f && smin < 0.0f) ? "base and source"
+                   : (bmin < 0.0f)                ? "base"            : "source" ) ;
+   }
+
+   /*- dimensions of the universe -*/
 
    nx = DSET_NX(bset) ; ny = DSET_NY(bset) ; nz = DSET_NZ(bset) ;
 
@@ -1024,7 +1055,8 @@ int main( int argc , char *argv[] )
 
    if( duplo && (nx < 3*Hngmin || ny < 3*Hngmin || nz < 3*Hngmin) ){
      duplo = 0 ;
-     INFO_message("-duplo disabled since dataset is so small: %d x %d x %d",nx,ny,nz) ;
+       INFO_message("-duplo disabled since dataset is small: %d x %d x %d",nx,ny,nz) ;
+     ININFO_message(" smallest size allowed for -duplo is    %d x %d x %d",3*Hngmin,3*Hngmin,3*Hngmin) ;
    }
 
 #ifdef USE_SAVER
@@ -1085,7 +1117,7 @@ int main( int argc , char *argv[] )
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 
-   INFO_message("===== total number of parameters optimized = %d",Hnpar_sum) ;
+   INFO_message("===== total number of parameters 'optimized' = %d",Hnpar_sum) ;
 
    oim = oiw->im ; oww = oiw->warp ;
 
