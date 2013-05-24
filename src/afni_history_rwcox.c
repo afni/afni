@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , MAY , 2013 , RWC , "3dUnifize" , MICRO , TYPE_MODIFY ,
+  { 24 , MAY , 2013 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "Add -noneg option, to crush negative values in input datasets." ,
+   NULL } ,
+
+ { 22 , MAY , 2013 , RWC , "3dUnifize" , MICRO , TYPE_MODIFY ,
    "Change default clip fraction for automask to 0.1 from 0.5" ,
    "For Juen -- to deal with heavily faded images." } ,
 
