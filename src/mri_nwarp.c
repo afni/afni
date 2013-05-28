@@ -5717,7 +5717,7 @@ ENTRY("IW3D_improve_warp") ;
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
        Hbasis_parmax = 0.033*Hfactor ;    /* max displacement from 1 function */
        Hnpar         = 24 ;                /* number of params for local warp */
-       prad          = 0.333 ;                       /* NEWUOA initial radius */
+       prad          = 0.444 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
 #ifdef USE_HLOADER
        Hloader       = HCwarp_load ;   /* func to make local warp from params */
@@ -5728,7 +5728,7 @@ ENTRY("IW3D_improve_warp") ;
        Hbasis_code   = MRI_QUINTIC ;                 /* 5th order polynomials */
        Hbasis_parmax = 0.007*Hfactor ;
        Hnpar         = 81 ;
-       prad          = 0.222 ;
+       prad          = 0.333 ;
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;
 #ifdef USE_HLOADER
        Hloader       = HQwarp_load ;
@@ -5823,15 +5823,14 @@ ENTRY("IW3D_improve_warp") ;
      xtop[ii]   =  Hbasis_parmax ;
    }
 
-   powell_set_mfac( 1.001f , 2.001f ) ;
+   if( Hnval > 6666 )
+     powell_set_mfac( 1.001f , 2.001f ) ;
+   else
+     powell_set_mfac( 2.001f , 1.001f ) ;
 
    /***** HERE is the actual optimization! *****/
 
-#if 1
    itmax = (Hduplo) ? 6*Hnparmap+29 : 8*Hnparmap+31 ;
-#else
-   itmax = 8*Hnparmap+31 ;
-#endif
    if( WORKHARD(Hlev_now) || SUPERHARD(Hlev_now) ) itmax -= Hnparmap ;
 
    if( Hverb > 3 ) powell_set_verbose(1) ;
