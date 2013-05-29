@@ -391,6 +391,7 @@ static mday holiday[] = {
    {MAY,28,"Ian Fleming's birthday"                                  } ,
    {MAY,29,"John F Kennedy's birthday"                               } ,
    {MAY,29,"Harry Bateman's birthday"                                } ,
+   {MAY,29,"Anniversary of first Everest summit"                     } ,
    {MAY,30,"St. Jeanne d'Arc's day"                                  } ,
    {MAY,31,"Walt Whitman's birthday"                                 } ,
    {MAY,31,"South Africa Republic Day"                               } ,

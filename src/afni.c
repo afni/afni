@@ -1929,7 +1929,7 @@ STATUS("start XtAppMainLoop") ;
 static Boolean MAIN_workprocess( XtPointer fred )
 {
    static int MAIN_calls = 0 ;  /* controls what happens */
-   static int nosplash = 0 , nodown = 0 ;
+   static int nosplash = 0 ;
    static double eltime=0.0 , max_splash=3.0 ;
    int ii ;
 
@@ -1946,12 +1946,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
       default:{
 STATUS("default call") ;
 
-         if( nosplash || nodown ) RETURN(True) ;
-         if( !nodown &&
-             COX_clock_time()-eltime >= max_splash ){
-
-           AFNI_splashdown(); STATUS("splashed down"); RETURN(True);
-         }
+         RETURN(True) ;
       }
       break ;
 
@@ -2206,12 +2201,10 @@ STATUS("call 14") ;
           (void) XtAppAddTimeOut( MAIN_app , 123 ,
                                   AFNI_startup_layout_CB , GLOBAL_argopt.layout_fname ) ;
 
-          nodown = 1 ;  /* splashdown will be done in AFNI_startup_layout_CB */
         } else if (MAIN_im3d->type == AFNI_3DDATA_VIEW){ /* ZSS Dec 02 2010. */
           (void) XtAppAddTimeOut( MAIN_app , 123 ,
                                   AFNI_startup_layout_CB ,
                                   "GIMME_SOMETHING" ) ;
-          nodown = 1 ;
         }
 
         /* 21 Jan 2003: this function will be called 0.246 seconds
@@ -2224,11 +2217,11 @@ STATUS("call 14") ;
                                   AFNI_startup_script_CB , GLOBAL_argopt.script_fname ) ;
         }
 
-        /* this function will be called 1.234 seconds from now to finalize
+        /* this function will be called 1.666 seconds from now to finalize
            anything else that needs fixing up once AFNI is fully started   */
 
         PICTURE_ON(MAIN_im3d) ;
-        (void) XtAppAddTimeOut( MAIN_app, 1234, AFNI_startup_timeout_CB, MAIN_im3d ) ;
+        (void) XtAppAddTimeOut( MAIN_app, 1666, AFNI_startup_timeout_CB, MAIN_im3d ) ;
 
         (void) TRUST_host(NULL) ; /* 21 Feb 2001: initialize trust mechanism */
 
@@ -2643,6 +2636,11 @@ ENTRY("AFNI_startup_timeout_CB") ;
        "++ NOTE: you may want to consider creating a '.afnirc' file in your home\n"
        "         directory, to control AFNI's setup.  For more details, see\n"
        "   http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n") ;
+
+
+   /* splash window down -- moved here 29 May 2013 */
+
+   AFNI_splashdown(); STATUS("splashed down");
 
    MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;
