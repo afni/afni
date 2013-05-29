@@ -1474,6 +1474,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Is it lunchtime yet?"                                          ,
      "Meet me down the pub later"                                    ,
      "Are you ready for a coffee break? I am"                        ,
+     "I'd like a nice cup of lapsang souchong about now"             ,
+     "What's your favorite kind of bagel?"                           ,
      "What's your favorite kind of cookie?"                          ,
      "Step slowly away from the keyboard, and remain calm"           ,
      "Time for a nice walk, don't you think?"                        ,
