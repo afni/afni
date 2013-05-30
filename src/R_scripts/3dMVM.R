@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.4, May 21, 2013
+Version 1.0.5, May 30, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.4, May 21, 2013
+Version 1.0.5, May 30, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -798,6 +798,9 @@ NoFile <- dim(lop$dataStr[1])[1]
 #if (length(unique(lop$dataStr$Subj)) != length(lop$dataStr$Subj)) RM <- TRUE else RM <- FALSE
 
 cat('Reading input files now...\n\n')
+cat('If the program hangs here for more than, for example, half an hour,\n')
+cat('kill the process because the model specification or the GLT coding\n')
+cat('is likely inappropriate.\n\n')
 
 # Read in the 1st input file so that we have the dimension information
 inData <- read.AFNI(lop$dataStr[1, FileCol], verb=lop$verb, meth=lop$iometh)
