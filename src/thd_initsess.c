@@ -15,7 +15,7 @@
                  datasets are in one array (no anat/func distinction).
 -----------------------------------------------------------------------*/
 
-THD_session * THD_init_session( char * sessname )
+THD_session * THD_init_session( char *sessname )
 {
    THD_session            *sess ;
    XtPointer_array        *dblk_arrarr ;
@@ -23,7 +23,7 @@ THD_session * THD_init_session( char * sessname )
    THD_3dim_dataset       *dset=NULL , *temp_dset;
    THD_3dim_dataset_array *dset_arr ;
 
-   int ibar , idset , iview  , nds ;
+   int ibar , idset , iview  , nds , qview=-666 ;
 
 ENTRY("THD_init_session") ;
 
@@ -55,7 +55,7 @@ fprintf(stderr, "blanking session\n");
 
    /* save last name from sessname */
 #if 1
-   { char * env = my_getenv( "AFNI_SESSTRAIL" ) ; int tt = 0 ;
+   { char *env = my_getenv( "AFNI_SESSTRAIL" ) ; int tt = 0 ;
      if( env != NULL ) tt = strtol(env,NULL,10) ;
      env = THD_trailname(sess->sessname,tt) ;
      tt = 1+strlen(env) - THD_MAX_NAME ; if( tt < 0 ) tt = 0 ;
@@ -66,6 +66,17 @@ fprintf(stderr, "blanking session\n");
        if( sess->sessname[iview] == '/' ) break ;
      MCW_strncpy( sess->lastname, &(sess->sessname[iview+1]), THD_MAX_NAME ) ;
 #endif
+
+   /*-- override dataset 'view'??  [30 May 2013] --*/
+
+   { char *env = my_getenv("AFNI_OVERRIDE_VIEW") ;
+     if( env != NULL ){
+            if( toupper(*env) == 'T' ) qview = VIEW_TALAIRACH_TYPE ;
+       else if( toupper(*env) == 'O' ) qview = VIEW_ORIGINAL_TYPE  ;
+       else
+         WARNING_message("AFNI_OVERRIDE_VIEW=%s is not understood",env) ;
+     }
+   }
 
    /*-- read all datablocks --*/
 
@@ -104,8 +115,9 @@ fprintf(stderr, "blanking session\n");
       for( idset=0 ; idset < dset_arr->num ; idset++ ){
         dset  = dset_arr->ar[idset] ;
         iview = dset->view_type ;
-        
-        if( GET_SESSION_DSET(sess, nds, iview) != NULL ){  /* should never happen */
+        if( qview >= 0 ) iview = qview ;  /* 30 May 2013 */
+
+        if( GET_SESSION_DSET(sess,nds,iview) != NULL ){  /* should never happen */
           fprintf(stderr,
            "\n*** Session %s has duplicate dataset views of %s ***\n",
            sessname , dset->self_name) ;
@@ -198,7 +210,7 @@ fprintf(stderr,"\nputting datasets into initial view \n");
            break ; /* out of for loop */
          }
          iview = dset->view_type ;
-         SET_SESSION_DSET(dset, sess, nds, iview); 
+         SET_SESSION_DSET(dset, sess, nds, iview);
 /*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
@@ -604,7 +616,7 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
 
      STATUS("looking for MPEG files") ;
 
-     sprintf(ename,"%s*.mpg %s*.mpeg %s*.MPEG %s*.MPG" , 
+     sprintf(ename,"%s*.mpg %s*.mpeg %s*.MPEG %s*.MPG" ,
              sess->sessname, sess->sessname, sess->sessname, sess->sessname ) ;
      MCW_wildcards( ename , &num_mpeg , &fn_mpeg ) ;   /* find files */
 
@@ -688,7 +700,7 @@ ENTRY("THD_order_session") ;
      if( ! dset )            continue;
      else if( ISANAT(dset) ) continue;   /* already found above */
      /* else, add ... */
-     
+
      if( iview <= LAST_VIEW_TYPE ){
        for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ )
           qset[nds][iview] = GET_SESSION_DSET(sess, ids, iview);
