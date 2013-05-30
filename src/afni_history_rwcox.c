@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 24 , MAY , 2013 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+  { 30 , MAY , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "AFNI_OVERRIDE_VIEW lets you force all datasets into one view" ,
+   "Should be set to TLRC or ORIG" } ,
+
+ { 24 , MAY , 2013 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
    "Add -noneg option, to crush negative values in input datasets." ,
    NULL } ,
 
