@@ -1,0 +1,550 @@
+#!/bin/tcsh
+
+# input data vars
+set epi_in = ""                 # required
+set vrb_in = -1                 # optional
+set mot_in = ""                 # required
+set epi_timing_in = ""          # optional (default to alt+z?)
+set verb   = 1
+set tr     = -1
+
+
+
+# --------------- internal vars --------------
+
+set ebase       = epi_base      # +view applied later
+set motfile     = 'motion.neg.1D'
+
+set use_timing  = 0             # whether to apply slice times
+set slice_times = ()            # slices times to apply
+set slice_inds  = ()            # slice times -> index offsets
+
+set prefix      = 'motion_sim'  # let the user specify a prefix
+
+set testing     = 0
+set topdir      = `pwd`
+set workclean   = 1
+
+set prog = `basename $0`
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+# ----------------------------- process options ---------------------------
+set ac = 1
+while ( $ac <= $#argv )
+   # terminal options
+   if ( "$argv[$ac]" == "-help" ) then
+      goto SHOW_HELP
+   else if ( "$argv[$ac]" == "-hist" ) then
+      goto SHOW_HISTORY
+   else if ( "$argv[$ac]" == "-todo" ) then
+      goto SHOW_TODO
+   else if ( "$argv[$ac]" == "-ver" ) then
+      goto SHOW_VERSION
+
+   else if ( "$argv[$ac]" == "-epi" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set epi_in = "$argv[$ac]"
+   else if ( "$argv[$ac]" == "-epi_timing" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set epi_timing_in = "$argv[$ac]"
+   else if ( "$argv[$ac]" == "-motion_file" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set mot_in = "$argv[$ac]"
+   else if ( "$argv[$ac]" == "-save_workdir" ) then
+      set workclean = 0
+   else if ( "$argv[$ac]" == "-prefix" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set prefix = $argv[$ac]
+   else if ( "$argv[$ac]" == "-vr_base" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set vrb_in = "$argv[$ac]"
+   else if ( "$argv[$ac]" == "-test" ) then
+      set testing = 1
+   else if ( "$argv[$ac]" == "-tr" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set tr = "$argv[$ac]"
+   else if ( "$argv[$ac]" == "-verb" ) then
+      if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+      @ ac += 1
+      set verb = "$argv[$ac]"
+   else
+      echo "** unexpected option #$ac = '$argv[$ac]'"
+      exit
+   endif
+
+   @ ac += 1
+end
+
+
+# on any interrupt, EXIT
+onintr EXIT
+
+# set output levels based on $verb
+if ( $verb > 3 ) set echo
+if ( $verb > 2 ) then
+   set redir = ''
+else
+   set redir = '>& /dev/null'
+endif
+
+# --------------- check afni version --------------
+set afni_date = "06 05 2013"
+set cmd = ( afni_history -check_date $afni_date )
+if ( $verb > 1 ) then
+   $cmd
+   set res = $status
+else
+   $cmd >& /dev/null
+   set res = $status
+endif
+if ( $res ) goto FAIL_OLD_AFNI
+
+# ------------------------------ get to work ------------------------------
+
+set workdir = $prefix.work
+
+# maybe clear work directory
+if ( -d $workdir ) then
+   if ( $verb ) echo "-- nuking old $workdir..."
+   if ( ! $testing ) \rm -fr $workdir
+endif
+
+if ( ! $testing ) mkdir $workdir
+if ( $status ) then
+   echo "** could not create $workdir, do you have permissions here?"
+   goto EXIT
+endif
+
+# --------------- check input datasets --------------
+
+# check required datasets
+set dsetlist = ( "$epi_in" $mot_in )
+set namelist = ( -epi -motion_file )
+foreach index ( `count -digits 1 1 $#dsetlist` )
+   set dset = "$dsetlist[$index]"
+   set dname = "$namelist[$index]"
+   if ( "$dset" == "" ) goto FAIL_NO_OPTION
+   set found = `3dinfo -exists "$dset"`
+   if ( ! $found ) goto FAIL_NO_DSET
+end
+
+# --------------- set nt vars from EPI and motion --------------
+
+set epi_nt = `3dinfo -nt "$epi_in"`
+set mot_nt = `3dinfo -nt $mot_in\'`
+set epi_ntm1 = `ccalc -i $epi_nt-1`
+set mot_ntm1 = `ccalc -i $mot_nt-1`
+
+# --------------- set EPI volreg base --------------
+
+# note vrb_mot either way
+set cmd = ( 1d_tool.py -infile $mot_in -collapse_cols enorm -show_argmin )
+set vrb_mot = `$cmd`
+if ( $status ) goto FAIL_CMD
+
+# if not set, try to guess it or whine and fail
+if ( $vrb_in < 0 ) then
+   # if EPI has more than 1 TR, try to guess from motion file
+   if ( $epi_nt > 1 ) then
+      if ( $vrb_mot >= 0 && $vrb_mot < $epi_nt ) then
+         if ( $verb ) echo "-- detected volreg base $vrb_mot"
+         set vrb_in = $vrb_mot
+      else
+         echo "** motion volreg base $vrb_mot outside EPI range, {0..$epi_ntm1}"
+         goto FAIL_NO_VB
+      endif
+   endif
+else
+   # check volreg base against motion
+   if ( $vrb_mot != $vrb_in && $verb > 1 ) then
+      echo "** warning: motion vr base $vrb_mot different from input $vrb_in"
+   endif
+endif
+
+# last volreg base check against EPI NT
+if ( $vrb_in >= $epi_nt ) then
+   echo "** volreg base $vrb_in is too big for NT=$epi_nt"
+   goto EXIT
+endif
+
+# --------------- set TR --------------
+if ( $tr == -1 ) then
+   set dset = "$epi_in"
+   set tr = `3dinfo -tr "$dset"`
+   if ( $status ) goto FAIL_TR
+   set tr = `ccalc -n $tr`
+   if ( $tr == 0 && "$epi_timing_in" != "" ) then
+      set dset = "$epi_timing_in"
+      set tr = `3dinfo -tr "$dset"`
+      set tr = `ccalc -n $tr`
+   endif
+endif
+
+# --------------- set nz --------------
+set dset = "$epi_in"
+set nz = `3dinfo -nk "$dset"`
+@ nzm1 = $nz - 1
+
+# --------------- note base EPI volume --------------
+if ( $epi_nt > 1 ) then
+   set epi_base_input = "${epi_in}[$vrb_in]"
+else
+   set epi_base_input = "$epi_in"
+endif
+
+# status update
+if ( $verb ) then
+   echo ""
+   echo "-- motion_base = $epi_base_input"
+   echo "   param_file = $mot_in, nz = $nz"
+   echo "   tr = $tr, epi_nt = $epi_nt, mot_nt = $mot_nt"
+   echo ""
+endif
+
+# --------------- set timing --------------
+set mvals = ( -1 -1 )
+set slice_times = ( )
+if ( $tr <= 0 ) then
+   echo "-- TR = 0, skipping slice timing"
+else
+   set dset = "$epi_timing_in"
+   if ( "$dset" == "" ) set dset = "$epi_in"
+   set slice_times = ( `3dinfo -slice_timing -sb_delim ' ' "$dset"` )
+   if ( $status ) goto FAIL_TIMING
+   # hide status garbage about reading stdin
+   ( echo $slice_times | 3dBrickStat -slow -min -max 1D:stdin \
+        > $workdir/minmax.1D ) >& /dev/null
+   set mvals = ( `cat $workdir/minmax.1D` )
+
+   set bad0 = `ccalc -i "isnegative($mvals[1])"`
+   set good1 = `ccalc -i "ispositive($tr-$mvals[2])"`
+   if ( $status || $bad0 || ! $good1 ) then
+      echo "** slice times for $dset outside range [0..TR)"
+      echo "   TR = $tr, min_time = $mvals[1], max_time = $mvals[2]"
+      goto EXIT
+   endif
+
+   set use_timing = `ccalc -i "ispositive($mvals[2])"`
+endif
+
+
+# set slice_inds by scaling slice_times
+if ( $use_timing ) then
+   if ( $#slice_times != $nz ) then
+      echo "** num slice times ($#slice_times) != nz ($nz)"
+      exit
+   endif
+   set slice_inds = ( )
+   foreach stime ( $slice_times )
+      set slice_inds = ( $slice_inds `ccalc -i "$stime/$tr*$nz"` )
+   end
+endif
+
+if ( $verb > 1 ) then
+   echo "-- use_timing=$use_timing, timing : $mvals[1] .. $mvals[2]"
+   if ( $use_timing ) then
+      echo "\n   full timing: $slice_times\n"
+      echo "   slice indices: $slice_inds\n"
+   endif
+endif
+
+
+# --------------- and get the view --------------
+set view = `3dinfo -av_space "$epi_in"`
+set ebase = $ebase$view
+
+# --------------- if testing, we are done --------------
+if ( $testing ) then
+   if ( $verb ) echo "-- done testing..."
+   goto EXIT
+endif
+
+
+# =========================== start processing ===========================
+
+# --------------- copy inputs and update paths --------------
+
+# get EPI base volume
+3dbucket -prefix $workdir/$ebase "$epi_base_input" >& /dev/null
+
+# copy negated motion parameters
+3dcalc -a $mot_in\' -expr -a -prefix $workdir/tr.neg.mot.1D >& /dev/null
+( 1dtranspose $workdir/tr.neg.mot.1D | 1dcat 1D:stdin > $workdir/$motfile ) \
+       >& /dev/null
+
+set warpfile = warp.aff12.1D
+
+# --------------- enter and get to work --------------
+cd $workdir
+
+if ( $use_timing ) then
+   if ( $verb ) echo "-- have slice timing: warping individual slices..."
+   # upsample motion file
+   3dUpsample -linear -prefix m.up.1D $nz $motfile\' >& /dev/null
+   1dtranspose m.up.1D > motion.up.$nz.1D
+   set motfile = motion.up.$nz.1D
+else
+   if ( $verb ) echo "-- no slice timing, warping volumes at a time..."
+endif
+
+# ----------------------------------------------------------------------
+#               3dvolreg vs. 3dAllineate parameter notes:
+#
+# params (3dvolreg -1Dfile):    roll, pitch, yaw,    dS,     dL,   dP
+#        (3dAllineate 1Dapply): dS,   dL,    dP     -pitch, -yaw, -roll
+# 
+# applying 3dAllineate on a static dset with:
+#       A  B  C   D  E  F   0 ... 0
+# produces 3dvolreg params (when inverting xform):
+#      -D -E -F   B  C  A
+#
+# so given 3dvolreg params
+#       A  B  C   D  E  F
+# simulate motion by applying
+# (1)  -E -F -D   A  B  C       == -dL -dP -dS    roll   pitch  yaw
+# or, after negating motion parameters, by applying
+# (2)   E  F  D  -A -B -C       ==  dL  dP  dS   -roll  -pitch -yaw
+# (where roll and yaw are reversed from textbook)
+# ----------------------------------------------------------------------
+
+set trind = 0
+while ( $trind < $mot_nt )
+   set vind = `ccalc -form "%04d" $trind`
+
+   if ( $use_timing ) then
+      # --- warp at slice times, extract slices, Zcat
+      if ( -f zslice.000$view.HEAD ) \rm zslice.*
+
+      foreach zind ( `count -digits 3 0 $nzm1` )
+         set zp1 = `ccalc -n $zind+1`
+         @ rotind = $trind * $nz + $slice_inds[$zp1]
+
+         # shuffle and then negate parameters, according to (2)
+         set params = ( `1dcat $motfile"{$rotind}"` )
+         set params = ( $params[5] $params[6] $params[4] $params[1-3] )
+         set params[1] = `ccalc -n "-1*$params[1]"`
+         set params[2] = `ccalc -n "-1*$params[2]"`
+         set params[3] = `ccalc -n "-1*$params[3]"`
+
+         echo $params 0 0 0 0 0 0 > $warpfile
+         set cmd = ( 3dAllineate -overwrite -1Dparam_apply $warpfile    \
+                     -prefix tvol $ebase )
+         if ( $verb > 2 ) echo $cmd
+         eval $cmd $redir
+         set cmd = ( 3dZcutup -keep $zind $zind -prefix zslice.$zind tvol$view )
+         if ( $verb > 2 ) echo $cmd
+         eval $cmd $redir
+
+         if ( $verb > 1 ) then
+            echo "++ vol $vind, sl $zind, rotind $rotind"
+            echo "   warp: `cat $warpfile`"
+         endif
+      end
+
+      set cmd = "3dZcat -prefix warp.$vind zslice.*$view.HEAD"
+      if ( $verb > 2 ) echo "$cmd"
+      eval $cmd $redir
+
+   else
+      # --------------- simply apply motion params --------------
+
+      # shuffle and then negate parameters, according to (2)
+      set params = ( `1dcat $motfile"{$trind}"` )
+      set params = ( $params[5] $params[6] $params[4] $params[1-3] )
+      set params[1] = `ccalc -n "-1*$params[1]"`
+      set params[2] = `ccalc -n "-1*$params[2]"`
+      set params[3] = `ccalc -n "-1*$params[3]"`
+
+      echo $params 0 0 0 0 0 0 > $warpfile
+
+      if ( $verb > 2 ) echo "++ volume $vind, warp: `cat $warpfile`"
+
+      set cmd = ( 3dAllineate -overwrite -1Dparam_apply $warpfile \
+                              -prefix warp.$vind $ebase )
+      if ( $verb > 2 ) echo "$cmd"
+      eval $cmd $redir
+   endif
+
+   if ( $verb == 1 ) then
+      set fr = `ccalc -form "%4.2f" "100.0*$trind/$mot_nt"`
+      echo -n "\r$fr%"
+   endif
+
+   @ trind += 1
+end
+
+if ( $verb == 1 ) echo "\r100%  "
+
+if ( $tr != 0 ) then
+   set tr_text = "-TR $tr "
+else
+   set tr_text = ""
+endif
+3dTcat $tr_text-prefix final.warp warp.*.HEAD >& /dev/null
+if ( $status ) then
+   echo "** failed to create final.warp dataset"
+   goto EXIT
+endif
+
+
+# --------------- finally, run 3dvolreg on warped data --------------
+set new1D = $prefix.rereg.1D
+set cmd = ( 3dvolreg -base $vrb_mot -prefix $prefix  \
+                     -1Dfile $new1D final.warp$view )
+if ( $verb ) then
+    echo "\n-- final registration:"
+    echo "   $cmd\n"
+endif
+eval $cmd $redir
+if ( $verb ) then
+   echo "-- resulting 1Dfile:           $new1D"
+   echo "   should be similar to input: $mot_in\n"
+endif
+if ( $workclean ) mv -v $prefix.rereg.1D $topdir
+
+# move results
+mv $prefix* $topdir
+
+# do not save slice or warp files in either case
+if ( $use_timing && -f zslice.000$view.HEAD ) \rm zslice.*
+if ( -f warp.0000$view.HEAD ) \rm warp.*$view.*
+
+if ( $workclean ) then
+   cd -
+   if ( $verb ) echo -n "\ncleaning up..."
+   \rm -fr $workdir
+   echo " done\n"
+endif
+
+if ( $verb ) echo "++ created $prefix dataset\n"
+
+# and nuke workdir
+
+goto EXIT
+
+# various exit conditions follow (as GOTO labels)
+
+FAIL_MISSING_ARG:
+   echo "** missing parameter for option $argv[$ac]"
+   goto EXIT
+
+FAIL_TR:
+   echo "** failed to get TR from EPI dataset $dset"
+   goto EXIT
+
+FAIL_TIMING:
+   echo "** failed to get slice timing from EPI dataset $dset"
+   echo "   NOTE: -slice_timing option was added to 3dinfo 06 May, 2013"
+   goto EXIT
+
+FAIL_CMD:
+   echo "** failed command: $cmd"
+   goto EXIT
+
+FAIL_NO_DSET:
+   echo "** $dname dataset $dset does not seem to exist"
+   goto EXIT
+
+FAIL_NO_OPTION:
+   echo "** parameter $dname is required"
+   goto EXIT
+
+FAIL_NO_VB:
+   echo "** missing volreg base"
+   goto EXIT
+
+SHOW_HELP:
+cat << EOF
+---------------------------------------------------------------------------
+$prog          - create simulated motion time series
+
+   This program is meant to simulate an EPI time series based only on the
+   motion parameters and an input volume.
+
+   The main action is to take the EPI (motion base) volume and warp it
+   according to the motion parameters.  In theory, the result could be run
+   through 3dvolreg to generate a similar set of motion parameters.
+
+   Note: if slice timing is provided (via the -epi or -epi_timing datasets),
+         then slices will be generated individually at the interpolated offset
+         into each TR.
+
+   This result can 
+
+      needed inputs: EPI volume, motion parameters
+      output:        motion simulated EPI time series
+
+examples:
+
+   $prog -epi pb02.FT.r01.volreg+tlrc -motion_file dfile.r01.1D
+   $prog -epi pb02.FT.r01.volreg+tlrc"[2]" -motion_file dfile_rall.1D
+   $prog -epi pb02.FT.r01.volreg+tlrc -motion_file dfile_rall.1D \\
+                    -epi_timing pb00.FT.r01.tcat+orig -prefix sim.mot.FT
+
+informational options:
+
+   -help                : show this help
+   -hist                : show program modification history
+   -ver                 : show program version
+
+required parameters:
+
+   -epi EPI             : provide input volume or time series
+                          (only a volreg base is needed, though more is okay)
+
+   -motion_file MOTFILE : specify motion parameter file (as output by 3dvolreg)
+
+options:
+
+   -epi_timing DSET     : provide EPI dataset with slice timing
+                          (maybe -epi no longer has slice times)
+
+   -save_workdir        : do not remove 'work' directory
+
+   -prefix PREFIX       : prefix for data results
+                          (default = motion_sim.NUM_TRS)
+
+   -vr_base INDEX       : 0-based index of volreg base in EPI dataset
+
+   -test                : only test running the program, do not actually
+                          create a simulated motion dataset
+
+   -verb LEVEL          : specify a verbose level (default = 1)
+
+-------------------------------------------------------
+R Reynolds  May, 2013
+---------------------------------------------------------------------------
+EOF
+   goto EXIT
+
+SHOW_VERSION:
+   echo "version  0.00 May 30, 2013"
+   goto EXIT
+
+SHOW_TODO:
+   cat << EOF
+
+todo list:
+   - maybe add -timing_style (e.g. alt+z)
+   - add -warp_aff12: use instead of volreg output, to be in std space
+
+EOF
+   goto EXIT
+
+SHOW_HISTORY:
+   echo "$prog modification history"
+   echo ""
+   echo "  0.00 May 31, 2013 - initial version"
+   echo ""
+   goto EXIT
+
+# send everyone here, in case there is any cleanup to do
+EXIT:
+   exit
