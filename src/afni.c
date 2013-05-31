@@ -2628,7 +2628,8 @@ ENTRY("AFNI_startup_timeout_CB") ;
        "++ NOTE: The AFNI GUI now detaches itself from the terminal at startup, so that\n"
        "         it is no longer necessary or useful to start the program with the '&'\n"
        "         key at the end of the command line.  To disable this feature, set\n"
-       "         environment variable AFNI_DETACH to NO.  -- [Apr 2013]\n"
+       "         environment variable AFNI_DETACH to NO.  To kill all running copies\n"
+       "         of AFNI, you could use the Unix command 'killall afni'. -- [Apr 2013]\n"
      ) ;
 
    if( AFNI_check_environ_done() == 0 )
