@@ -5700,7 +5700,7 @@ ENTRY("IW3D_improve_warp") ;
          if( Hbmask[qq] ){ wsum += wbfar[qq] ; nwb++ ; }
    }}}
    if( !Hforce && nwb < 0.369f*Hnval || wsum < 0.246f*Hnval*Hwbar ){ /* too light for us */
-     if( Hverb > 1 )
+     if( Hverb > 2 )
        ININFO_message(
          "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%.1f%% inmask %.1f%% weight)" ,
                        (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
@@ -5784,7 +5784,7 @@ ENTRY("IW3D_improve_warp") ;
      }}}
 
      if( is_float_array_constant(Hnval,Hbval) ){
-       if( Hverb > 1 )
+       if( Hverb > 2 )
          ININFO_message(
            "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (base=const=%g)" ,
                          (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
@@ -5823,8 +5823,8 @@ ENTRY("IW3D_improve_warp") ;
      xtop[ii]   =  Hbasis_parmax ;
    }
 
-   if( Hnval > 6666 )
-     powell_set_mfac( 1.001f , 2.001f ) ;
+   if( 1 || Hnval > 6666 )                  /* at present, this is always on */
+     powell_set_mfac( 1.001f , 2.001f ) ;   /* since it gives slightly better results */
    else
      powell_set_mfac( 2.001f , 1.001f ) ;
 
@@ -5877,7 +5877,7 @@ ENTRY("IW3D_improve_warp") ;
        "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : energy=%.3f:%.3f pen=%g",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
                            ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ) ;
-   } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%Hlev_now==0) ){
+   } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%(Hlev_now*Hlev_now*Hlev_now/9)==0) ){
      fprintf(stderr,".") ;
    }
 
@@ -6068,11 +6068,12 @@ ENTRY("IW3D_warpomatic") ;
      nsup  = SUPERHARD(lev) ? 2 : 1 ;
 
      if( Hverb > 1 )
-       ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s" ,
+       ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s [clock=%s]" ,
                       lev,xwid,ywid,zwid,Hfactor , (levdone   ? "FINAL"  : "\0") ,
-                                                   (nlevr > 1 ? "WORKHARD" : "\0") ) ;
+                                                   (nlevr > 1 ? "WORKHARD" : "\0") ,
+                      nice_time_string(NI_clock_time()) ) ;
      else if( Hverb == 1 )
-       fprintf(stderr,"lev=%d patch=%dx%dx%d: ",lev,xwid,ywid,zwid) ;
+       fprintf(stderr,"lev=%d patch=%dx%dx%d [clock=%s]",lev,xwid,ywid,zwid,nice_time_string(NI_clock_time()) ) ;
 
      /* alternate the direction of sweeping at different levels */
 
@@ -6543,13 +6544,12 @@ Image_plus_Warp * IW3D_warp_s2bim_duplo( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_
    IndexWarp3D *Swarp , *Dwarp ;
    MRI_IMAGE *outim ;
    MRI_IMAGE *bimd , *wbimd , *simd ;
-   int nx,ny,nz , Htemp1, Htemp2 , ct ;
+   int nx,ny,nz , Htemp1, Htemp2 ;
    Image_plus_Warp *imww ;
    byte *emask_big=NULL ; MRI_IMAGE *embim=NULL , *emsim=NULL ;
 
 ENTRY("IW3D_warp_s2bim_duplo") ;
 
-   ct = NI_clock_time() ;
    if( Hverb ) INFO_message("=== Duplo down -- blurring volumes & down-sampling") ;
 
    WO_iwarp = NULL ;               /* can't start with initial warp for duplo */
@@ -6583,7 +6583,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
    if( Dwarp == NULL ) RETURN(NULL) ;
 
    if( Hverb )
-     INFO_message("=== Duplo up (clock = %s) -- up-sampling warp",nice_time_string(NI_clock_time()-ct)) ;
+     INFO_message("=== Duplo up [clock=%s] -- up-sampling warp",nice_time_string(NI_clock_time())) ;
 
    WO_iwarp = IW3D_duplo_up( Dwarp, nx%2 , ny%2 , nz%2 ) ;
    IW3D_destroy(Dwarp) ;
@@ -6914,7 +6914,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
          if( Hbmask[qq] ){ wsum += wbfar[qq] ; nwb++ ; }
    }}}
    if( !Hforce && nwb < 0.369f*Hnval || wsum < 0.246f*Hnval*Hwbar ){ /* too light for us */
-     if( Hverb > 1 )
+     if( Hverb > 2 )
        ININFO_message(
          "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%.1f%% inmask %.1f%% weight)" ,
                        (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
@@ -7085,7 +7085,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
        "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : energy=%.3f:%.3f pen=%g",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
                            ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ) ;
-   } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%Hlev_now==0) ){
+   } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%(Hlev_now*Hlev_now*Hlev_now/9)==0) ){
      fprintf(stderr,".") ;
    }
 
