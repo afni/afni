@@ -8,6 +8,8 @@ set epi_timing_in = ""          # optional (default to alt+z?)
 set verb   = 1
 set tr     = -1
 
+set warp_1D = ''                # transformation in leau of volreg
+set warp_master = ''            # grid master for warp_1D
 
 
 # --------------- internal vars --------------
@@ -476,7 +478,42 @@ $prog          - create simulated motion time series
          then slices will be generated individually at the interpolated offset
          into each TR.
 
-   This result can 
+   Purpose:
+
+        The resulting time series can be used to create regressors of no
+        interest, when trying to regress out motion artifacts (from either
+        task or resting state analysis).  Ways it can be used:
+
+        a. Grab the first N (e.g. 6) principle components, and use them along
+           with other motion paramters.  To do this, just run 3dpc with the
+           simulated time series and an appropriate mask.
+
+        b. First make the time series orthogonal to the motion parameters, and
+           only then take the first N principle components.  For example, run
+           3dDeconvolve to remove the original motion parameters, and use the
+           resulting errts dataset as input to 3dpc.
+
+        c. Akin to ANATICOR, use locally averaged time series via 3dTfitter.
+
+           Run 3dLocalstat to generate a new volumetric time series from local
+           averages.
+
+           Alternatively and more easily, just blur the simulated time series.
+
+        d. Use the time series as is, using 3dTfitter.
+
+           Note that if censoring is being done, such TRs would have to be
+           removed, as 3dTfitter does not have a -censor option.
+
+             i) run '1d_tool.py -show_trs_uncensored ...' and extract those TRs
+            ii) pass the X-matrix and this time series to 3dTfitter
+
+
+        Eventually these methods will be put into afni_proc.py.  Please pester
+        Rick if you have interest in any method that has not been implemented.
+
+
+usage: $prog [options] -epi EPI_DSET -motion_file MOTION_PARAMS
 
       needed inputs: EPI volume, motion parameters
       output:        motion simulated EPI time series
@@ -499,6 +536,11 @@ required parameters:
    -epi EPI             : provide input volume or time series
                           (only a volreg base is needed, though more is okay)
 
+                          If slice timing is to be used, the number of slices
+                          must match that of the -epi_timing dataset.  So it
+                          should not be the case where one view is +orig and
+                          the other +tlrc, for example.
+
    -motion_file MOTFILE : specify motion parameter file (as output by 3dvolreg)
 
 options:
@@ -517,6 +559,22 @@ options:
                           create a simulated motion dataset
 
    -verb LEVEL          : specify a verbose level (default = 1)
+
+WILL BE IMPLEMENTED SOON:
+
+   -warp_1D             : specify a 12 parameter affine transformation,
+                          presumably to go from orig space to standard space
+
+                            e.g. -warp_1D mat_rall.warp.aff12.1D
+
+                          This command must be paired with -warp_master.
+
+   -warp_master DSET    : specify a grid master dataset for the -warp_1D xform
+
+                            e.g. -warp_master pb02.FT.r01.volreg+tlrc
+
+                          This DSET should probably be one of the volreg+tlrc
+                          results from an afni_proc.py script.
 
 -------------------------------------------------------
 R Reynolds  May, 2013
