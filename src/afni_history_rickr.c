@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, May, 2013, RCR, "@simulate.motion", MAJOR, TYPE_NEW_PROG,
+   "program to create time series simulated by motion parameters",
+   NULL
+ } ,
+
  { 17, May, 2013, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "added -f to curl, so that failures propagate to $status",
    NULL
