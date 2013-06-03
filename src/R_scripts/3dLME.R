@@ -21,7 +21,7 @@ greeting.lme <- function ()
           ================== Welcome to 3dlme ==================          
    AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.7, May 6, 2013
+Version 0.0.8, Jun 3, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -37,7 +37,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.6, May 6, 2013
+Version 0.0.8, Jun 3, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -749,10 +749,7 @@ read.LME.opts.from.file <- function (modFile='model.txt', verb = 0) {
 
 ########################################################################
 
-
-
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
-
 
 require("nlme")
 require("contrast")
@@ -962,7 +959,7 @@ if(dimy == 1 & dimz == 1) {
    if (lop$nNodes>1) {
    library(snow)
    cl <- makeCluster(lop$nNodes, type = "SOCK")
-   clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
+   clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(contrast)) 
    for(kk in 1:nSeg) {
       if(NoBrick > 1) Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, dataframe=lop$dataStr,
             ModelForm=ModelForm, pars=pars), c(2,1)) else
@@ -978,31 +975,30 @@ if(dimy == 1 & dimz == 1) {
    Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
 } else {
 
-# Initialization
-Stat <- array(0, dim=c(dimx, dimy, dimz, NoBrick))
+   # Initialization
+   Stat <- array(0, dim=c(dimx, dimy, dimz, NoBrick))
 
-if (lop$nNodes==1) for (kk in 1:dimz) {
-   if(NoBrick > 1) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
-         ModelForm=ModelForm, pars=pars), c(2,3,1)) else
-      Stat[,,kk,] <- array(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
-         ModelForm=ModelForm, pars=pars), dim=c(dimx, dimy, 1))      
-   cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-} 
-
-
-if (lop$nNodes>1) {
-   library(snow)
-   cl <- makeCluster(lop$nNodes, type = "SOCK")
-   clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(contrast)) 
-   for (kk in 1:dimz) {
-      if(NoBrick > 1) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, 
-            dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars), c(2,3,1)) else
-         Stat[,,kk,] <- array(parApply(cl, inData[,,kk,], c(1,2), runLME, 
-            dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars), dim=c(dimx, dimy, 1))
+   if (lop$nNodes==1) for (kk in 1:dimz) {
+      if(NoBrick > 1) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
+            ModelForm=ModelForm, pars=pars), c(2,3,1)) else
+         Stat[,,kk,] <- array(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
+            ModelForm=ModelForm, pars=pars), dim=c(dimx, dimy, 1))      
       cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
    } 
-   stopCluster(cl)
-}
+
+   if (lop$nNodes>1) {
+      library(snow)
+      cl <- makeCluster(lop$nNodes, type = "SOCK")
+      clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(contrast)) 
+      for (kk in 1:dimz) {
+         if(NoBrick > 1) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, 
+               dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars), c(2,3,1)) else
+            Stat[,,kk,] <- array(parApply(cl, inData[,,kk,], c(1,2), runLME, 
+               dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars), dim=c(dimx, dimy, 1))
+         cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      } 
+      stopCluster(cl)
+   }
 }
 
 # test on Z slice
