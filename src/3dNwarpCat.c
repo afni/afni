@@ -164,6 +164,7 @@ static int verb=0 , interp_code=MRI_WSINC5 ;
 void CNW_load_warp( int nn , char *cp )
 {
    char *wp ; int do_inv=0 , do_sqrt=0 , do_empty=0 , ii ;
+   int do_fac=0 ; float xfac=1.0f , yfac=1.0f , zfac=1.0f ;
 
    if( nn <= 0 || nn > NWMAX || cp == NULL || *cp == '\0' )
      ERROR_exit("bad inputs to CNW_load_warp") ;
@@ -303,6 +304,25 @@ void CNW_load_warp( int nn , char *cp )
        }
        mri_free(dim) ;
 
+     } else if( strncasecmp(wp,"FAC:",4) == 0 ){  /* special case of 3D scale factors */
+
+       char *up=strchr(wp,':')+1 , *vp ;
+       sscanf(up,"%f,%f,%f",&xfac,&yfac,&zfac) ;
+       if( fabsf(xfac)+fabsf(yfac)+fabsf(zfac) < 0.001f ){
+         ERROR_message("warp '%s': factors are too small",wp) ;
+         free(wp) ; EXRETURN ;
+       }
+       vp = strchr(up,':') ;
+       if( vp == NULL ){
+         ERROR_message("warp '%s': no dataset to read?",wp) ;
+         free(wp) ; EXRETURN ;
+       }
+       dset = THD_open_dataset(vp+1) ;
+       if( dset == NULL ){
+         ERROR_message("Can't open dataset from file '%s'",wp); free(wp); EXRETURN;
+       }
+       do_fac = 1 ;
+
      } else {  /*--- standard 3-brick warp ---*/
 
        dset = THD_open_dataset(wp) ;
@@ -315,7 +335,8 @@ void CNW_load_warp( int nn , char *cp )
      if( verb ) ININFO_message("--- reading dataset") ;
      AA = IW3D_from_dataset(dset,do_empty,0) ;
      if( AA == NULL )
-       ERROR_exit("can't make warp from dataset '%s'",wp);
+       ERROR_exit("can't make warp from dataset '%s'",wp) ;
+     if( do_fac ) IW3D_3scale(AA,xfac,yfac,zfac) ;
 
      if( geomstring == NULL ){       /* first dataset => set geometry globals */
        geomstring = strdup(AA->geomstring) ;
