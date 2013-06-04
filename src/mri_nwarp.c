@@ -380,6 +380,28 @@ void IW3D_scale( IndexWarp3D *AA , float fac )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Scale displacements by factors (in-place). */
+
+void IW3D_3scale( IndexWarp3D *AA , float xfac, float yfac, float zfac )
+{
+   int nxyz , qq ; float fac ;
+
+   if( AA == NULL ) return ;
+
+   nxyz = AA->nx * AA->ny * AA->nz ;
+
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     AA->xd[qq] *= xfac ;
+     AA->yd[qq] *= yfac ;
+     AA->zd[qq] *= zfac ;
+   }
+   fac = cbrtf(xfac*yfac*zfac) ;
+   MAT33_SCALE(AA->emat,fac) ;
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Sum displacements, with factors. */
 
 IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac )
@@ -3859,6 +3881,7 @@ static void CW_clear_data(void)
 static void CW_load_one_warp( int nn , char *cp )
 {
    char *wp ; int do_inv=0 , do_sqrt=0 , do_empty=0 , ii ;
+   int do_fac=0 ; float xfac=1.0f , yfac=1.0f , zfac=1.0f ;
 
 ENTRY("CW_load_one_warp") ;
 
@@ -3940,20 +3963,22 @@ ENTRY("CW_load_one_warp") ;
          case 'R': case 'L':  vx = 1.0f ; vy = vz = 0.0f ; break ;
          case 'A': case 'P':  vy = 1.0f ; vx = vz = 0.0f ; break ;
          case 'I': case 'S':  vz = 1.0f ; vx = vy = 0.0f ; break ;
-         default:
+
+         case 'V': default:
            sscanf(up,"%f,%f,%f",&vx,&vy,&vz) ;
            vm = sqrtf(vx*vx+vy*vy+vz*vz) ;
            if( vm < 1.e-9f ){
-             ERROR_message("uni-directional warp '%s' :-) direction is unclear",wp) ;
+             ERROR_message("warp '%s' :-) direction/factors unclear",wp) ;
              free(wp) ; EXRETURN ;
            }
-           vx /= vm ; vy /= vm ; vz /= vm ;
+           if( toupper(*wp) == 'V' ){ vx /= vm ; vy /= vm ; vz /= vm ; }
            vp = strchr(up,':') ;
            if( vp == NULL ){
-             ERROR_message("uni-directional warp '%s' :-) no dataset?",wp) ;
+             ERROR_message("warp '%s' :-) no dataset to read?",wp) ;
              free(wp) ; EXRETURN ;
            }
            up = vp+1 ;
+         break ;
        }
 
        /* check if there is a scale factor */
@@ -3998,6 +4023,25 @@ ENTRY("CW_load_one_warp") ;
        }
        mri_free(dim) ;
 
+     } else if( strncasecmp(wp,"FAC:",4) == 0 ){  /* special case of 3D scale factors */
+
+       char *up=strchr(wp,':')+1 , *vp ;
+       sscanf(up,"%f,%f,%f",&xfac,&yfac,&zfac) ;
+       if( fabsf(xfac)+fabsf(yfac)+fabsf(zfac) < 0.001f ){
+         ERROR_message("warp '%s': factors are too small",wp) ;
+         free(wp) ; EXRETURN ;
+       }
+       vp = strchr(up,':') ;
+       if( vp == NULL ){
+         ERROR_message("warp '%s': no dataset to read?",wp) ;
+         free(wp) ; EXRETURN ;
+       }
+       dset = THD_open_dataset(vp+1) ;
+       if( dset == NULL ){
+         ERROR_message("Can't open dataset from file '%s'",wp); free(wp); EXRETURN;
+       }
+       do_fac = 1 ;
+
      } else {  /*--- standard 3-brick warp ---*/
 
        dset = THD_open_dataset(wp) ;
@@ -4013,6 +4057,7 @@ ENTRY("CW_load_one_warp") ;
      if( AA == NULL ){
        ERROR_message("Can't make warp from dataset '%s'",wp); free(wp); EXRETURN;
      }
+     if( do_fac ) IW3D_3scale(AA,xfac,yfac,zfac) ;
      if( CW_geomstring == NULL ){       /* first dataset => set geometry globals */
        CW_geomstring = strdup(AA->geomstring) ;
        CW_nx = AA->nx; CW_ny = AA->ny; CW_nz = AA->nz; CW_cmat = AA->cmat; CW_imat = AA->imat;
