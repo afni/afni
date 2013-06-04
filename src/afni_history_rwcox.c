@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 30 , MAY , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+  { 4 , JUN , 2013 , RWC , "Nwarp programs" , MICRO , TYPE_MODIFY ,
+   "Added 'FAC:x,y,z:dataset' input format for warps" ,
+   "To allow separate scaling of each direction of a warp." } ,
+
+ { 30 , MAY , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "AFNI_OVERRIDE_VIEW lets you force all datasets into one view" ,
    "Should be set to TLRC or ORIG" } ,
 
