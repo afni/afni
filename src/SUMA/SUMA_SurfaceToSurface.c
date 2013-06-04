@@ -314,13 +314,15 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1,
          /* Find the closest node in S02 to node in SO1 */
          SUMA_CLOSEST_NODE_VEC(SO2, PP, n2closest, n2closestd, n2closestvec); 
       } 
-      /* now determine the distance along normal */
-      MTI = SUMA_MT_intersect_triangle(P0, P1, SO2->NodeList, SO2->N_Node, 
+      if (ClosestPossible != 3) { 
+         /* now determine the distance along normal */
+         MTI = SUMA_MT_intersect_triangle(P0, P1, SO2->NodeList, SO2->N_Node, 
                                        SO2->FaceSetList, SO2->N_FaceSet, MTI, 0);
-      if (LocalHead) 
-         fprintf(SUMA_STDERR,"%s: number of hits for node %d : %d\n", 
-                             FuncName, nj, MTI->N_hits);  
-      if (MTI->N_hits ==0) {
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,"%s: number of hits for node %d : %d\n", 
+                                FuncName, nj, MTI->N_hits);
+      }  
+      if (ClosestPossible ==3 || MTI->N_hits ==0) {
          if (n2closest < 0) {/* no other option */
             if (LocalHead) 
                fprintf(SUMA_STDERR, 
@@ -340,6 +342,7 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1,
             if (LocalHead) 
                fprintf(SUMA_STDERR, 
                     "%s: Could not find hit for node %d in either direction.\n"
+                    "    Or user chose closest node always\n"
                     "Adopting closest node %d in S2\n", 
                        FuncName, nj, n2closest);
             M2M->M2Nne_M1n[j] = 1;
