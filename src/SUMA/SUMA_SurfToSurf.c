@@ -98,6 +98,7 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                        0: Don't do that, direction results only.\n"
 "                        1: Use closest node if projection fails to hit target\n"
 "                        2: Use closest node if it is at a closer distance.\n"
+"                        3: Use closest and don't bother with projections.\n"
 "  -make_consistent: Force a consistency check and correct triangle \n"
 "                    orientation of S1 if needed. Triangles are also\n"
 "                    oriented such that the majority of normals point\n"
@@ -215,8 +216,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(
          }
          
          Opt->iopt = atoi(argv[++kar]);
-         if (Opt->iopt != 0 && Opt->iopt != 1 && Opt->iopt != 2) {
-            SUMA_S_Errv("Must choose from 0, 1, or 2 for -closest_possible."
+         if (Opt->iopt != 0 && Opt->iopt != 1 && Opt->iopt != 2 && 
+             Opt->iopt != 3) {
+            SUMA_S_Errv("Must choose from 0, 1, 2, or 3 for -closest_possible."
                         " Have %d\n",
                          Opt->iopt);
             exit (1);
