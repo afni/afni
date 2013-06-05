@@ -6555,6 +6555,36 @@ ENTRY("AFNI_hidden_CB") ;
                                  MCW_USER_KILL ) ;
    }
 
+   else if( w == im3d->vwid->prog->hidden_hbmjust_pb ){
+     (void)MCW_popup_message( im3d->vwid->imag->topper ,
+             "  Why I Must Attend HBM - RWCox\n"
+             "---------------------------------\n"
+             "I have been asked to state\n"
+             "why HBM is great,\n"
+             "and why it is a must\n"
+             "that I incur this cost.\n"
+             "Brain Mappers all converge\n"
+             "to show their best new work,\n"
+             "exactly in my field:\n"
+             "ways to make data yield\n"
+             "news about brain function,\n"
+             "providing a conjunction\n"
+             "of doers and of thinkers --\n"
+             "ideal for science drinkers.\n"
+             "This meet is Number One:\n"
+             "the best come here to run\n"
+             "their latest, their greatest\n"
+             "past the world's most smartest.\n"
+             "There is where I can see\n"
+             "what's new and important to me\n"
+             "in my work for the NIMH\n"
+             "and to show them my batch\n"
+             "of newly warped brains\n"
+             "and how this entrains\n"
+             "a new way to make\n"
+             "FMRI a piece of (nonlinear) cake.\n" , MCW_USER_KILL ) ;
+   }
+
    else if( w == im3d->vwid->prog->hidden_ranpoem_pb ){
      static int *dold=NULL, ndold=0 ; int qq,dd ;
      char *poem ;
