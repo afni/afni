@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , JUN , 2013 , RWC , "Nwarp programs" , MICRO , TYPE_MODIFY ,
+  { 7 , JUN , 2013 , RWC , "3dhistog" , MICRO , TYPE_NEW_OPT ,
+   "Add -igfac option" ,
+   "To ignore scale factors -- to histogram-ize the underlying shorts or\n"
+   "bytes in a dataset." } ,
+
+ { 4 , JUN , 2013 , RWC , "Nwarp programs" , MICRO , TYPE_MODIFY ,
    "Added 'FAC:x,y,z:dataset' input format for warps" ,
    "To allow separate scaling of each direction of a warp." } ,
 
