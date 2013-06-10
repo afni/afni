@@ -127,6 +127,59 @@ class Afni1D:
 
       return 0
 
+   def reduce_by_group_list(self, glist):
+      """reduce the dataset according to the list of groups
+         return 0 on success"""
+
+      if not self.ready:
+         print '** reduce_by_group_list: Afni1D is not ready'
+         return 1
+
+      glen = len(glist)
+      if glen < 1: return 0
+
+      if len(self.groups) < 1:
+         print '** no groups to select in %s' % self.name
+         return 1
+
+      # do not all repeats in group list
+      groups = UTIL.get_unique_sublist(self.groups)
+
+      gnew = glist[:]
+
+      # convert to an integral group list
+      for ind in range(glen-1,-1,-1):
+         if gnew[ind] == 'POS':
+            gnew[ind:ind+1] = [g for g in groups if g > 0]
+         elif gnew[ind] == 'NEG':
+            gnew[ind:ind+1] = [g for g in groups if g < 0]
+         else:
+            try: gnew[ind] = int(gnew[ind])
+            except:
+                print "** invalid selection group '%s'" % gnew[ind]
+                return 1
+
+      if self.verb > 2: print '-- red. by glist: groups %s' % gnew
+      cols = self.ordered_cols_by_group_list(gnew)
+      if self.verb > 1: print '-- red. by glist: cols %s' % cols
+      return self.reduce_by_vec_list(cols)
+
+   def show_group_labels(self):
+      show_groups = (len(self.groups) == self.nvec)
+      show_labs = (len(self.labels) == self.nvec)
+      if not show_groups and not show_labs:
+         print '** no label info to show'
+         return
+
+      for ind in range(self.nvec):
+         if self.verb:
+            if show_groups: gstr = ', group %-3s' % self.groups[ind]
+            else:           gstr = ''
+            if show_labs:   lstr = ', label %s' % self.labels[ind]
+            else:           lstr = ''
+            print 'index %3d%s%s' % (ind, gstr, lstr)
+         elif show_labs: print '%s' % self.labels[ind]
+
    def reduce_by_label_prefix(self, keep_pre=[], drop_pre=[]):
 
       rv, newlist = self.label_prefix_to_ints(keep_pre, drop_pre)
@@ -316,6 +369,42 @@ class Afni1D:
             else:              self.mat[v][t] = 1
 
       if self.verb > 3: print '-- negate: new zeros = %d' % self.mat[0].count(0)
+
+      return 0
+
+   def volreg_2_allineate(self):
+      """convert a 6-parameter time series from 3dvolreg to a 12-parameter
+         time series for 3dAllineate
+
+         params (3dvolreg -1Dfile):    roll, pitch, yaw,    dS,     dL,   dP
+                (3dAllineate 1Dapply):
+           
+         3dvolreg params:    v0  v1  v2   v3  v4  v5
+         3dAllieate params: -v4 -v5 -v3   v0  v1  v2
+         
+         Permute and negate vectors, and append [0] vectors.
+
+         return 0 on success
+      """
+      if self.verb > 3: print '-- volreg_2_allineate...'
+      if not self.ready:
+         print "** matrix '%s' is not ready for volreg2allin" % self.name
+         return 1
+      if self.nvec != 6:
+         print "** matrix '%s' does not have 6 columns" % self.name
+         return 1
+
+      mm = self.mat     # for convenience
+
+      # negate second triplet of vectors
+      for col in range(3,6):
+         mm[col] = [-val for val in mm[col]]
+
+      # permute and append 6 [0] vectors
+      zvec = [0] * self.nt
+      self.mat  = [mm[4], mm[5], mm[3], mm[0], mm[1], mm[2],
+                   zvec,  zvec,  zvec,  zvec,  zvec,  zvec ]
+      self.nvec = 12
 
       return 0
 
@@ -1201,7 +1290,7 @@ class Afni1D:
       for v in range(cmat.nvec):
          lmin = min(cmat.mat[v])
          lmax = max(cmat.mat[v])
-         # rcr - why avoid this?
+         # rcr - why avoid this and leave constant terms?
          if lmin != lmax:
             for ind in range(cmat.nt):
                cmat.mat[v][ind] -= means[v]
@@ -1960,8 +2049,23 @@ class Afni1D:
              return []
          groups.extend([g for g in self.groups if g > 0])
       if len(groups) < 1 or len(self.groups) < 1: return []
-      # if not list2_is_in_list1(self.groups, groups, "groups"): return []
       return [val for val in range(self.nvec) if self.groups[val] in groups]
+      
+   def ordered_cols_by_group_list(self, groups):
+      """return a list of columns, given a list of groups
+
+         for each group, insert all columns from that group
+         (i.e. keep group order)
+      """
+      if not self.groups: return []
+
+      if len(groups) < 1 or len(self.groups) < 1: return []
+
+      clist = []
+      for g in groups:
+         clist.extend([v for v in range(self.nvec) if self.groups[v] == g])
+
+      return clist
       
    def cols_by_label_list(self, labels):
       """return a list of columns, given a list of labels"""
@@ -2423,11 +2527,10 @@ class AfniData(object):
       rstr = ''
       if self.verb > 2 and not flag_empty: rstr += 'run %02d : ' % (row+1)
 
-      # rcr - fix
+      # rcr - fix?
       # if flagging an empty run, use '*' characters
-      if len(data) == 0 and flag_empty:
-         if row == 0: rstr += '* *'
-         else:        rstr += '*'
+      if len(data) == 0 and flag_empty: rstr += '* *'
+      # little gain in trying to usually put one '*'
 
       for val in data:
          if simple:

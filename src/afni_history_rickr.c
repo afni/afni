@@ -49,7 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
- { 31, May, 2013, RCR, "@simulate.motion", MAJOR, TYPE_NEW_PROG,
+ { 10,  Jun, 2013, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "added -select_groups, -show_cormat, -volreg2allineate",
+   NULL
+ } ,
+
+ { 10,  Jun, 2013, RCR, "@simulate_motion", MINOR, TYPE_ENHANCE,
+   "added warp_methods, etc.",
+   NULL
+ } ,
+
+ { 31, May, 2013, RCR, "@simulate_motion", MAJOR, TYPE_NEW_PROG,
    "program to create time series simulated by motion parameters",
    NULL
  } ,
