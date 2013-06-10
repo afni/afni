@@ -418,7 +418,13 @@ int main( int argc , char *argv[] )
 
    DSET_write(dset_out) ; if( verb ) WROTE_DSET(dset_out) ;
 
-   if( verb ) INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
-                           COX_cpu_time() , COX_clock_time() ) ;
+   if( verb ){
+     double cput=COX_cpu_time() , clkt=COX_clock_time() ;
+     if( cput >= 0.1 && clkt >= 0.1 )
+       INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",cput,clkt) ;
+     else if( clkt >= 0.1 )
+       INFO_message("total Elapsed time = %.1f sec\n",clkt) ;
+   }
+
    exit(0) ;
 }
