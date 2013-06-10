@@ -4027,10 +4027,8 @@ ENTRY("CW_load_one_warp") ;
 
        char *up=strchr(wp,':')+1 , *vp ;
        sscanf(up,"%f,%f,%f",&xfac,&yfac,&zfac) ;
-       if( fabsf(xfac)+fabsf(yfac)+fabsf(zfac) < 0.001f ){
-         ERROR_message("warp '%s': factors are too small",wp) ;
-         free(wp) ; EXRETURN ;
-       }
+       if( fabsf(xfac)+fabsf(yfac)+fabsf(zfac) < 0.001f )
+         WARNING_message("warp '%s': factors are small",wp) ;
        vp = strchr(up,':') ;
        if( vp == NULL ){
          ERROR_message("warp '%s': no dataset to read?",wp) ;
