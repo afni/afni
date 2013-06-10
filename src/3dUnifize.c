@@ -500,7 +500,7 @@ int main( int argc , char *argv[] )
             "--------\n"
             "  -prefix pp = Use 'pp' for prefix of output dataset.\n"
             "  -input dd  = Alternative way to specify input dataset.\n"
-            "  -GM        = Also scale to unifize 'gray matter' = lower intensit¥ voxels\n"
+            "  -GM        = Also scale to unifize 'gray matter' = lower intensity voxels\n"
             "               (to aid in registering images from different scanners).\n"
             "              ++ This option is recommended for use with 3dQwarp when\n"
             "                 aligning 2 T1-weighted volumes, in order to make the\n"
