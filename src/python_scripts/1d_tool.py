@@ -58,6 +58,24 @@ examples (very basic for now):
                     -label_prefix_keep Run d a b          \\
                     -label_prefix_drop bandpass
 
+   2c. Select columns by group values, 3 examples.
+
+       First be sure of what the group labels represent.
+
+         1d_tool.py -infile X.xmat.1D -show_group_labels
+
+       i) Select polort (group -1) and other baseline (group 0) terms.
+
+         1d_tool.py -infile X.xmat.1D -select_groups -1 0 -write baseline.1D
+
+       ii) Select everything but baseline groups (anything positive).
+
+         1d_tool.py -infile X.xmat.1D -select_groups POS -write regs.of.int.1D
+
+       iii) Reorder to have rests of interest, then motion, then polort.
+
+         1d_tool.py -infile X.xmat.1D -select_groups POS 0, -1 -write order.1D
+
    3.  Transpose a dataset, akin to 1dtranspose.
 
          1d_tool.py -infile t3.1D -transpose -write ttr.1D
@@ -89,9 +107,13 @@ examples (very basic for now):
 
          1d_tool.py -infile X.xmat.1D -show_group_labels
 
-   6.  Show correlation matrix warnings for this matrix.
+   6a.  Show correlation matrix warnings for this matrix.
 
          1d_tool.py -infile X.xmat.1D -show_cormat_warnings
+
+   6b.  Show entire correlation matrix.
+
+         1d_tool.py -infile X.xmat.1D -show_cormat
 
    7a. Output temporal derivative of motion regressors.  There are 9 runs in
        dfile.rall.1D, and derivatives are applied per run.
@@ -357,6 +379,11 @@ examples (very basic for now):
    22. Guess volreg base index from motion parameters.
 
          1d_tool.py -infile dfile_rall.1D -collapse_cols enorm -show_argmin
+
+   23. Convert volreg parameters to those suitable for 3dAllineate.
+
+         1d_tool.py -infile dfile_rall.1D -volreg2allineate \\
+                    -write allin_rall_aff12.1D
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -649,6 +676,23 @@ general options:
    -reverse                     : reverse data over time
    -randomize_trs               : randomize the data over time
    -seed SEED                   : set random number seed (integer)
+   -select_groups g0 g1 ...     : select columns by group numbers
+
+        e.g. -select groups 0
+        e.g. -select groups POS 0
+
+        An X-matrix dataset (e.g. X.xmat.1D) often has columns partitioned by
+        groups, such as:
+                -1  : polort regressors
+                 0  : motion regressors and other (non-polort) baseline terms
+                 N>0: regressors of interest
+
+        This option can be used to select columns by integer groups, with
+        special cases of POS (regs of interest), NEG (probably polort).
+        Note that NONNEG is unneeded as it is the pair POS 0.
+
+        See also -show_group_labels.
+
    -select_cols SELECTOR        : apply AFNI column selectors, [] is optional
                                   e.g. '[5,0,7..21(2)]'
    -select_rows SELECTOR        : apply AFNI row selectors, {} is optional
@@ -669,6 +713,7 @@ general options:
    -set_tr TR                   : set the TR (in seconds) for the data
    -show_argmin                 : display the index of min arg (of first column)
    -show_censor_count           : display the total number of censored TRs
+   -show_cormat                 : display correlation matrix
    -show_cormat_warnings        : display correlation matrix warnings
    -show_gcor                   : display GCOR: the average correlation
    -show_gcor_all               : display many ways of computing (a) GCOR
@@ -716,6 +761,21 @@ general options:
 
    -transpose                   : transpose the input matrix (rows for columns)
    -transpose_write             : transpose the output matrix before writing
+   -volreg2allineate            : convert 3dvolreg parameters to 3dAllineate
+
+        This option should be used when the -input file is a 6 column file
+        of motion parameters (roll, pitch, yaw, dS, dL, dP).  The output would
+        be converted to a 12 parameter file, suitable for input to 3dAllineate
+        via the -1Dparam_apply option.
+
+        volreg:     roll, pitch, yaw,   dS,    dL,     dP
+        3dAllinate: -dL,  -dP,   -dS,   roll,  pitch,  yaw,  0,0,0,  0,0,0
+
+        These parameters would be to correct the motion, akin to what 3dvolreg
+        did (i.e. they are the negative estimates of how the subject moved).
+
+        See example 23.
+
    -write FILE                  : write the current 1D data to FILE
 
    -weight_vec v1 v2 ...        : supply weighting vector
@@ -837,9 +897,10 @@ g_history = """
    1.15 May  6, 2013 - added option -transpose_write
    1.16 May  8, 2013 - added options -rank, -rank_style
    1.17 May 14, 2013 - added -show_argmin/argmax
+   1.18 Jun 10, 2013 - added -select_groups, -show_cormat, -volreg2allineate
 """
 
-g_version = "1d_tool.py version 1.17, May 14, 2013"
+g_version = "1d_tool.py version 1.18, June 10, 2013"
 
 
 class A1DInterface:
@@ -876,6 +937,7 @@ class A1DInterface:
       self.rand_trs        = 0          # randomize order of data over time
       self.rand_seed       = 0          # randomization seed, set if positive
       self.reverse         = 0          # reverse data over time
+      self.select_groups   = []         # column selection list
       self.select_cols     = ''         # column selection string
       self.select_rows     = ''         # row selection string
       self.label_pre_drop  = []         # columns to drop - label prefix list
@@ -891,6 +953,7 @@ class A1DInterface:
       self.show_argmax     = 0          # show index of max arg
       self.show_argmin     = 0          # show index of min arg
       self.show_censor_count= 0         # show count of censored TRs
+      self.show_cormat     = 0          # show cormat
       self.show_cormat_warn= 0          # show cormat warnings
       self.show_displace   = 0          # max_displacement (0,1,2)
       self.show_gcor       = 0          # bitmask: GCOR, all, doc
@@ -907,6 +970,7 @@ class A1DInterface:
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the input matrix
       self.transpose_w     = 0          # transpose the output matrix
+      self.vr2allin        = 0          # -volreg2allineate
       self.censor_file     = None       # output as 1D censor file
       self.censortr_file   = None       # output as CENSORTR string
       self.collapse_file   = None       # output as 1D collapse file
@@ -1098,6 +1162,9 @@ class A1DInterface:
       self.valid_opts.add_opt('-select_rows', 1, [], 
                       helpstr='select the list of rows from the dataset')
 
+      self.valid_opts.add_opt('-select_groups', -1, [], 
+                      helpstr='select columns by the given list of groups')
+
       self.valid_opts.add_opt('-set_nruns', 1, [], 
                       helpstr='specify the number of runs in the input')
 
@@ -1115,6 +1182,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_censor_count', 0, [], 
                       helpstr='display the total number of censored TRs')
+
+      self.valid_opts.add_opt('-show_cormat', 0, [], 
+                      helpstr='display the correlation matrix (all pairs)')
 
       self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
                       helpstr='display warnings for the correlation matrix')
@@ -1174,6 +1244,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-transpose_write', 0, [], 
                       helpstr='transpose the output matrix before writing')
+
+      self.valid_opts.add_opt('-volreg2allineate', 0, [], 
+                      helpstr='convert volreg parameters to 3dAllineate')
 
       self.valid_opts.add_opt('-weight_vec', -1, [], 
                       helpstr='specify weights (for enorm computation)')
@@ -1491,6 +1564,14 @@ class A1DInterface:
             if err: return 1
             self.select_rows = val
 
+         elif opt.name == '-select_groups':
+            val, err = uopts.get_string_list('', opt=opt)
+            if err: return 1
+            self.select_groups = val
+
+         elif opt.name == '-show_cormat':
+            self.show_cormat = 1
+
          elif opt.name == '-show_cormat_warnings':
             self.show_cormat_warn = 1
 
@@ -1556,6 +1637,9 @@ class A1DInterface:
 
          elif opt.name == '-transpose_write':
             self.transpose_w = 1
+
+         elif opt.name == '-volreg2allineate':
+            self.vr2allin = 1
 
          elif opt.name == '-write':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -1644,6 +1728,9 @@ class A1DInterface:
          if ilist == None: return 1
          if self.adata.reduce_by_tlist(ilist): return 1
 
+      if len(self.select_groups) > 0:
+         if self.adata.reduce_by_group_list(self.select_groups): return 1
+
       if self.label_pre_drop or self.label_pre_keep:
          if self.adata.reduce_by_label_prefix(keep_pre=self.label_pre_keep,
                                               drop_pre=self.label_pre_drop):
@@ -1722,6 +1809,9 @@ class A1DInterface:
       if self.censor_first_trs:
          if self.adata.set_first_TRs(self.censor_first_trs, newval=0): return 1
 
+      if self.vr2allin:
+         if self.adata.volreg_2_allineate(): return 1
+
       # ---- show options come after all other processing ----
 
       if self.show_label_ord: self.adata.show_major_order_of_labels()
@@ -1772,6 +1862,8 @@ class A1DInterface:
       if self.show_trs_uncensored != '': self.show_TR_censor_list(0)
 
       if self.show_censor_count: self.adata.show_censor_count()
+
+      if self.show_cormat: self.adata.show_cormat()
 
       if self.show_cormat_warn:
          err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
