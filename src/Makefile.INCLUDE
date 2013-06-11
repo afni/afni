@@ -185,7 +185,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @Install_TSrestMovieDemo @Install_AfniRetinoDemo                        \
           @Install_PTaylor_TractDemo @Install_RSFMRI_Motion_Group_Demo            \
           @Install_MEICA_Demo @T1scale 3dMVM @compute_gcor 3dLME                  \
-          @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate.motion
+          @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate_motion
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
