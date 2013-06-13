@@ -334,7 +334,7 @@ cd $workdir
 if ( $status ) goto FAIL_BAD_MOT
 ( 1dtranspose tr.neg.mot.1D | 1dcat 1D:stdin > $motfile ) >& /dev/null
 
-set warpfile = warp.aff12.1D
+set warpfile = sim.warp.aff12.1D
 
 if ( $use_timing ) then
    if ( $verb ) echo "-- have slice timing: warping individual slices..."
@@ -536,7 +536,7 @@ else if ( $warp_method == "VOLREG_AND_WARP" ) then
    eval $cmd $redir
 
    # catenate the matrix with that passed in
-   set warpfile = $prefix.vr.n.warp.aff12.1D
+   set warpfile = $prefix.vrw.aff12.1D
    set cmd = ( cat_matvec -ONELINE $warp_1D $new1D )
    if ( $verb ) then
        echo "\n-- combining transformations into $warpfile :"
