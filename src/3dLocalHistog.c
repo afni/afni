@@ -146,6 +146,9 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-qu",3) == 0 ){
        verb = 0 ; iarg++ ; continue ;
      }
+     if( strncmp(argv[iarg],"-verb",5) == 0 ){
+       verb++ ; iarg++ ; continue ;
+     }
 
 #ifdef ALLOW_PROB
      if( strncmp(argv[iarg],"-prob",5) == 0 ){
@@ -327,7 +330,7 @@ int main( int argc , char *argv[] )
      for(     ii=0 ; ii < nlab  ; ii++ ){ if( labval[ii] != 0 ) klist[labval[ii]+TWO15] = 1 ; }
      for( nee=ii=0 ; ii < TWO16 ; ii++ ){ if( !klist[ii] ) nee++ ; }
      exlist = (int *)realloc(exlist,sizeof(int)*(numex+nee+1)) ;
-     for(     ii=0 ; ii < TWO16 ; ii++ ){ if( !klist[ii] ) exlist[numex++] = ii-TWO15 ; }
+     for(     ii=0 ; ii < TWO16 ; ii++ ){ if( ii != TWO15 && !klist[ii] ) exlist[numex++] = ii-TWO15 ; }
      free(klist) ;
    }
 
@@ -364,7 +367,14 @@ int main( int argc , char *argv[] )
    /* make list of all values with nonzero (edited) count */
 
    rlist = (int *)malloc(sizeof(int)*numval) ;
-   for( ii=kk=0 ; ii < TWO16 ; ii++ ) if( mhist[ii] != 0 ) rlist[kk++] = ii-TWO15 ;
+   if( verb > 1 ) fprintf(stderr,"++ Include list:") ;
+   for( ii=kk=0 ; ii < TWO16 ; ii++ ){
+     if( mhist[ii] != 0 ){
+       rlist[kk++] = ii-TWO15 ;
+       if( verb > 1 ) fprintf(stderr," %d[%u]",ii-TWO15,mhist[ii]) ;
+     }
+   }
+   if( verb > 1 ) fprintf(stderr,"\n") ;
 
    rbot = rlist[0] ; rtop = rlist[numval-1] ; /* smallest and largest values found */
 
