@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , JUN , 2013 , RWC , "3dhistog" , MICRO , TYPE_NEW_OPT ,
+  { 13 , JUN , 2013 , RWC , "3dLocalHistog" , MICRO , TYPE_BUG_FIX ,
+   "Fixed bug that caused first value from label table to be lost" ,
+   "Or actually, subsumed into the 0=Other histogram.  stupid stupid stupid" } ,
+
+ { 7 , JUN , 2013 , RWC , "3dhistog" , MICRO , TYPE_NEW_OPT ,
    "Add -igfac option" ,
    "To ignore scale factors -- to histogram-ize the underlying shorts or\n"
    "bytes in a dataset." } ,
