@@ -31,6 +31,8 @@ int main( int argc , char *argv[] )
      strcat(expr,argv[ii]) ; strcat(expr," ") ;
    }
 
-   (void)mri_matrix_evalrpn(expr) ;
+   if (!mri_matrix_evalrpn(expr)) {
+      exit(1); /* ZSS June 2013 */
+   }
    exit(0) ;
 }

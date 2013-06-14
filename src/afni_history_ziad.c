@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 14, Jun , 2013 , ZSS , "1dmatcalc" , MICRO , TYPE_MODIFY,
+   "Set status to 1 on failure",
+   NULL
+ },
+ 
  { 4, Jun , 2013 , ZSS , "SurfToSurf" , MINOR , TYPE_NEW_OPT,
    "Added nearest neighbor search option",
    "There is no need to search along a certain direction when\n"
