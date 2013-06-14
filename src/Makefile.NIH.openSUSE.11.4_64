@@ -50,7 +50,7 @@ OMPFLAG = -fopenmp -DUSE_OMP
 
 # CCFAST = /usr/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 $(CEXTRA)
 
-CCMIN  = /usr/bin/gcc -m64 $(CPROF)
+CCMIN  = /usr/bin/gcc -m64 -fPIC $(CPROF)
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. $(XROOT_I) -I/usr/include
 LFLAGS = -L. -L/usr/lib64

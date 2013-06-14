@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14,  Jun, 2013, RCR, "Makefile.NIH.openSUSE.11.4_64", MICRO, TYPE_ENHANCE,
+   "added -fPIC to CCMIN (-fPIC is all over now, basically for R_io.so)",
+   NULL
+ } ,
+
  { 10,  Jun, 2013, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
    "added -select_groups, -show_cormat, -volreg2allineate",
    NULL
