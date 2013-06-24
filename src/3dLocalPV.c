@@ -45,6 +45,8 @@ int main( int argc , char *argv[] )
    unsigned int gseed ;
    int despike=0 ;  /* 14 Oct 2010 */
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
        "Usage: 3dLocalPV [options] inputdataset\n"

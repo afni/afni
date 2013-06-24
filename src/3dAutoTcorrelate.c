@@ -165,6 +165,8 @@ int main( int argc , char *argv[] )
    
    /*----*/
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
 "Usage: 3dAutoTcorrelate [options] dset\n"

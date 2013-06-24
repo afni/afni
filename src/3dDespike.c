@@ -46,6 +46,8 @@ int main( int argc , char *argv[] )
 
    /*----- Read command line -----*/
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dDespike [options] dataset\n"
              "Removes 'spikes' from the 3D+time input dataset and writes\n"

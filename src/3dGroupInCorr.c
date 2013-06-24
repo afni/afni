@@ -1084,6 +1084,8 @@ int main( int argc , char *argv[] )
 
    /*-- enlighten the ignorant and brutish sauvages with our wisdom? --*/
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
       "Usage: 3dGroupInCorr [options]\n"

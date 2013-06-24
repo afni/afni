@@ -648,6 +648,8 @@ int main( int argc , char *argv[] )
 
    /*---------- enlighten the supplicant ----------*/
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){ Qhelp(); exit(0); }
 
    /*---------- startup bureaucracy --------*/

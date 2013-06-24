@@ -23,6 +23,8 @@ int main( int argc , char *argv[] )
 
    /*----*/
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dTcorr1D [options] xset y1D\n"
              "Computes the correlation coefficient between each voxel time series\n"
@@ -230,7 +232,7 @@ int main( int argc , char *argv[] )
 
  AFNI_OMP_START ;
 #pragma omp parallel if( ny > 1 )
- { float *ysar, *xsar, *fcar = NULL, *ydar, val ; 
+ { float *ysar, *xsar, *fcar = NULL, *ydar, val ;
    int ii, kk, jj ; short *scar = NULL;
 
 #ifdef USE_OMP
