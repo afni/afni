@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 24 , JUN , 2013 , RWC , "distsend (script)" , MICRO , TYPE_GENERAL ,
+  { 24 , JUN , 2013 , RWC , "AFNI_HISTORY_NAME" , MICRO , TYPE_NEW_ENV ,
+   "Lets user change username@machine in History notes" ,
+   "Because super-heroes need to have a secret identity, right?" } ,
+
+ { 24 , JUN , 2013 , RWC , "distsend (script)" , MICRO , TYPE_GENERAL ,
    "Modify to recursively mv contents of subdirectories properly" ,
    NULL } ,
 
