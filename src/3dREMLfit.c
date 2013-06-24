@@ -562,6 +562,8 @@ int main( int argc , char *argv[] )
 
    Argc = argc ; Argv = argv ;
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf(
       "Usage: 3dREMLfit [options]\n"

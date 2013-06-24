@@ -133,6 +133,7 @@ int main( int argc , char *argv[] )
    PRINT_VERSION("3dLocalHistog"); mainENTRY("3dLocalHistog main"); machdep();
    AFNI_logger("3dLocalHistog",argc,argv);
    if( getpid()%2 ) AUTHOR("Bilbo Baggins"); else AUTHOR("Thorin Oakenshield");
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
    /*---- loop over options ----*/
 

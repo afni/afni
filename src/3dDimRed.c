@@ -186,6 +186,7 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dDimRed",argc,argv);
    PRINT_VERSION("3dDimRed"); AUTHOR("Uncle John's Band");
    enable_mcw_malloc() ;
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
    INIT_XTARR(dsar) ; INIT_IMARR(imarc) ;
    while( nopt < argc && argv[nopt][0] == '-' ){

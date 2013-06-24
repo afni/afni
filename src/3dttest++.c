@@ -783,6 +783,8 @@ int main( int argc , char *argv[] )
 
    /*--- help the piteous luser? ---*/
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ) display_help_menu() ;
 
    /*--- record things for posterity, et cetera ---*/

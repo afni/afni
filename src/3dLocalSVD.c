@@ -40,6 +40,8 @@ int main( int argc , char *argv[] )
    int do_vnorm=0 , do_vproj=0 , polort=-1 ;
    float **polyref=NULL ; int rebase=0 , nmask=0 , domean=0 , use_nonmask=0 ;
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
        "Usage: 3dLocalSVD [options] inputdataset\n"
