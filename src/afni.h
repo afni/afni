@@ -268,7 +268,7 @@ typedef struct {
       int        func_resam_mode , anat_resam_mode , pts_color ;
       int        thr_resam_mode ;               /* 09 Dec 1997 */
       int        thr_onoff ;                    /* 28 Jun 2007 */
-      int        thr_olay1 ;                    /* 13 Aug 2010 */
+      int        thr_olayx ;                    /* 13 Aug 2010 */
       int        thr_sign ;                     /* 08 Aug 2007 */
 
       /* 3/24/95: range data for conversion of pbar
@@ -665,7 +665,7 @@ typedef struct {
 
       Widget thr_menu ;
       MCW_bbox *thr_onoff_bbox ;
-      MCW_bbox *thr_olay1_bbox ;
+      MCW_bbox *thr_olayx_bbox ;
       Widget thr_autothresh_pb ;
       MCW_arrowval *thr_sign_av ;  /* 08 Aug 2007 */
       Widget thr_fdr_pb ;          /* 29 Jan 2008 */
@@ -703,8 +703,8 @@ typedef struct {
 
       Widget gicor_rowcol , gicor_pb , gicor_label ; /* 22 Dec 2009 */
 
-      Widget         buck_frame , buck_rowcol ;
-      MCW_arrowval * anat_buck_av , *fim_buck_av , *thr_buck_av ;  /* 30 Nov 1997 */
+      Widget        buck_frame , buck_rowcol ;
+      MCW_arrowval *anat_buck_av , *fim_buck_av , *thr_buck_av ;  /* 30 Nov 1997 */
 
       Widget range_frame , range_rowcol , range_label ;
       MCW_bbox     *range_bbox ;

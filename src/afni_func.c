@@ -5642,7 +5642,7 @@ ENTRY("AFNI_bucket_CB") ;
        doit = (iv != im3d->vinfo->fim_index) ;
        im3d->vinfo->fim_index = iv ;
        redisplay = REDISPLAY_OVERLAY ;
-       AFNI_enforce_throlay1(im3d) ; /* 13 Aug 2010 */
+       AFNI_enforce_throlayx(im3d) ; /* 13 Aug 2010 */
        if( doit && im3d->vinfo->time_on && DSET_NUM_TIMES(im3d->anat_now) == 1 )
          AV_assign_ival( im3d->vwid->imag->time_index_av , iv ) ;
      }
