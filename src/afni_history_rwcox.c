@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 24 , JUN , 2013 , RWC , "all OpenMP progs" , MICRO , TYPE_GENERAL ,
+  { 24 , JUN , 2013 , RWC , "distsend (script)" , MICRO , TYPE_GENERAL ,
+   "Modify to recursively mv contents of subdirectories properly" ,
+   NULL } ,
+
+ { 24 , JUN , 2013 , RWC , "all OpenMP progs" , MICRO , TYPE_GENERAL ,
    "Add AFNI_SETUP_OMP(0) macro at startup" ,
    "To limit number of threads to 12 if the system has more CPUs.  Will be\n"
    "over-ridden by OMP_NUM_THREADS, if it is set." } ,
