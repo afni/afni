@@ -26,6 +26,8 @@ int main( int argc , char *argv[] )
    float wfac=1.0f ;
    MRI_IMAGE *awim=NULL ;
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
 

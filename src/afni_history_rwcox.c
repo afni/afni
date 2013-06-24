@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 13 , JUN , 2013 , RWC , "3dLocalHistog" , MICRO , TYPE_BUG_FIX ,
+  { 24 , JUN , 2013 , RWC , "all OpenMP progs" , MICRO , TYPE_GENERAL ,
+   "Add AFNI_SETUP_OMP(0) macro at startup" ,
+   "To limit number of threads to 12 if the system has more CPUs.  Will be\n"
+   "over-ridden by OMP_NUM_THREADS, if it is set." } ,
+
+ { 13 , JUN , 2013 , RWC , "3dLocalHistog" , MICRO , TYPE_BUG_FIX ,
    "Fixed bug that caused first value from label table to be lost" ,
    "Or actually, subsumed into the 0=Other histogram.  stupid stupid stupid" } ,
 

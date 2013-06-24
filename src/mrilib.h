@@ -136,6 +136,23 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 # define AFNI_OMP_END     /*nada*/
 #endif
 
+/* Set max number of threads to be at most thn */
+
+#ifdef USE_OMP
+# define AFNI_SETUP_OMP(thn)                            \
+  do{ int mm=omp_get_max_threads() , nn=thn , ee;       \
+      ee = (int)AFNI_numenv("OMP_NUM_THREADS") ;        \
+      if( ee <= 0 ){                                    \
+        if( nn < 1 ) nn = 12 ; if( mm > nn ) mm = nn ;  \
+        omp_set_num_threads(mm) ;                       \
+      }                                                 \
+  } while(0)
+#else
+# define AFNI_SETUP_OMP(thn) /*nada*/
+#endif
+
+/* Macro to use in -help output */
+
 #ifdef USE_OMP
 # define PRINT_AFNI_OMP_USAGE(pnam,extra)                                          \
   printf(                                                                          \

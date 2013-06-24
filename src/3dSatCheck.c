@@ -8,6 +8,8 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset ; int aa,ll ; char *cpt ; float val ;
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 ){
      printf("Usage: 3dSatCheck dataset [...]\n"
             "\n"

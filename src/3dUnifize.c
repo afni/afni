@@ -475,6 +475,8 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *inset=NULL , *outset ;
    MRI_IMAGE *imin , *imout ;
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("\n"
             "Usage: 3dUnifize [options] inputdataset\n\n"

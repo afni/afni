@@ -387,6 +387,8 @@ int main( int argc , char *argv[] )
    IndexWarp3D *warp=NULL , *tarp=NULL ;
    THD_3dim_dataset *oset ;
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) CNW_help() ;
 
    /*-- bureaucracy --*/

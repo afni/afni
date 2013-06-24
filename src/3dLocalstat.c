@@ -237,6 +237,7 @@ int main( int argc , char *argv[] )
    PRINT_VERSION("3dLocalstat"); mainENTRY("3dLocalstat main"); machdep();
    AFNI_logger("3dLocalstat",argc,argv); AUTHOR("Emperor Zhark");
    THD_check_AFNI_version("3dLocalstat") ;
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
    /* initialize codeparams */
    for (ii=0; ii<MAX_NCODE; ++ii) codeparams[ii][0] = -1.0;

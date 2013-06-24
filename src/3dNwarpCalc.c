@@ -312,6 +312,8 @@ int main( int argc , char *argv[] )
    char *expr ; int nexpr , narg ;
    THD_3dim_dataset *oset ;
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) NWC_help() ;
 
    mainENTRY("3dNwarpCalc"); machdep();

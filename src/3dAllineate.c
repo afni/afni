@@ -468,6 +468,8 @@ int main( int argc , char *argv[] )
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
 
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
    if( argc < 2 || strcmp(argv[1],"-help")==0 ||
                    strcmp(argv[1],"-HELP")==0 || strcmp(argv[1],"-POMOC")==0 ){
 
