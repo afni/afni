@@ -2801,7 +2801,7 @@ STATUS("making func->rowcol") ;
 
 #if 1
    { static char *onofflabel[]    = { "Use Threshold?" } ;
-     static char *throlay1label[] = { "Thr = OLay+1 ?" } ;
+     static char *throlayxlabel[] = { "Thr = OLay ?" , "Thr = Olay+1 ?" } ;
 
 #ifdef BAD_BUTTON3_POPUPS
    func->thr_menu = XmCreatePopupMenu( func->thr_rowcol, "menu", NULL, 0 ) ;
@@ -2854,15 +2854,15 @@ STATUS("making func->rowcol") ;
 
    /*-- Thr=OLay+1? button [13 Aug 2010] --*/
 
-   func->thr_olay1_bbox = new_MCW_bbox( func->thr_menu ,
-                                        1 , throlay1label ,
-                                        MCW_BB_check , MCW_BB_noframe ,
-                                        AFNI_throlay1_change_CB ,
+   func->thr_olayx_bbox = new_MCW_bbox( func->thr_menu ,
+                                        2 , throlayxlabel ,
+                                        MCW_BB_radio_zero , MCW_BB_noframe ,
+                                        AFNI_throlayx_change_CB ,
                                         (XtPointer)im3d ) ;
-   im3d->vinfo->thr_olay1 = 0 ;
-   MCW_set_bbox( func->thr_olay1_bbox , 0 ) ;
-   MCW_reghint_children( func->thr_olay1_bbox->wrowcol ,
-                         "Lock Thr to be sub-brick after OLay?" ) ;
+   im3d->vinfo->thr_olayx = 0 ;
+   MCW_set_bbox( func->thr_olayx_bbox , 0 ) ;
+   MCW_reghint_children( func->thr_olayx_bbox->wrowcol ,
+                         "Lock Thr to depend on OLay sub-brick?" ) ;
 
    /*-- AutoThreshold button --*/
 
