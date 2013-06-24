@@ -5897,7 +5897,7 @@ ENTRY("AFNI_time_index_CB") ;
          im3d->vinfo->thr_index = DSET_NVALS(im3d->fim_now) - 1 ;
        AV_assign_ival( im3d->vwid->func->thr_buck_av , im3d->vinfo->thr_index ) ;
      } else {
-       AFNI_enforce_throlay1(im3d) ;  /* 13 Aug 2010 */
+       AFNI_enforce_throlayx(im3d) ;  /* 13 Aug 2010 */
      }
    }
 

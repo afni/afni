@@ -94,8 +94,8 @@ extern void AFNI_thr_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 extern void AFNI_clu_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_thronoff_change_CB( Widget, XtPointer, XtPointer ) ;
-extern void AFNI_throlay1_change_CB( Widget, XtPointer, XtPointer ) ;
-extern void AFNI_enforce_throlay1( Three_D_View * ) ;
+extern void AFNI_throlayx_change_CB( Widget, XtPointer, XtPointer ) ;
+extern void AFNI_enforce_throlayx( Three_D_View * ) ;
 
 extern void set_vedit_cluster_label( Three_D_View *, int ) ; /* 26 Mar 2007 */
 
