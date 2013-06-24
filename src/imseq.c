@@ -5379,7 +5379,6 @@ STATUS("making sized_xbar");
       seq->sized_xbar = resize_XImage( seq->dc, seq->given_xbar, nx, ny ) ;
    }
 
-
    if( seq->sized_xbar != NULL ){
 STATUS("putting sized_xbar to screen");
 

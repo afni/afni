@@ -2852,7 +2852,11 @@ STATUS("making func->rowcol") ;
    MCW_reghint_children( func->thr_onoff_bbox->wrowcol ,
                          "Temporarily ignore threshold?" ) ;
 
-   /*-- Thr=OLay+1? button [13 Aug 2010] --*/
+   /*-- Thr=OLay+1? button [13 Aug 2010] -- modified 24 Jun 2013 --*/
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , func->thr_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
    func->thr_olayx_bbox = new_MCW_bbox( func->thr_menu ,
                                         2 , throlayxlabel ,
@@ -2863,6 +2867,10 @@ STATUS("making func->rowcol") ;
    MCW_set_bbox( func->thr_olayx_bbox , 0 ) ;
    MCW_reghint_children( func->thr_olayx_bbox->wrowcol ,
                          "Lock Thr to depend on OLay sub-brick?" ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , func->thr_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
    /*-- AutoThreshold button --*/
 
@@ -2875,7 +2883,8 @@ STATUS("making func->rowcol") ;
          NULL ) ;
    XtAddCallback( func->thr_autothresh_pb , XmNactivateCallback ,
                   AFNI_func_autothresh_CB , im3d ) ;
-   MCW_register_hint( func->thr_autothresh_pb , "Compute threshold automatically NOW" ) ;
+   MCW_register_hint( func->thr_autothresh_pb ,
+                      "Compute ad hoc threshold automatically NOW" ) ;
 
    /* Threshold sign arrowval [08 Aug 2007] */
 
