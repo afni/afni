@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
                          /**************************
                           * 3dNotes - T. Ross 8/99 *
@@ -68,7 +68,7 @@ char * tross_datetime(void)
 {
    time_t tnow = time(NULL) ; int i ; char * qh , * ch ;
 
-   ch=ctime(&tnow); i=strlen(ch); qh=AFMALL(char, i+2); 
+   ch=ctime(&tnow); i=strlen(ch); qh=AFMALL(char, i+2);
    strcpy(qh,ch); qh[i-1]='\0';
    return qh ;
 }
@@ -328,28 +328,40 @@ void tross_Replace_History( THD_3dim_dataset * dset , char * ch )
 void tross_Append_History( THD_3dim_dataset *dset, char *cn )
 {
    ATR_string * hist ;
-   char * ch , * chold , * cdate , * cname , * cuser ;
+   char *ch , *chold , *cdate , *cname , *cuser , *cenv ;
    int idate , iname , iuser ;
 
    if( !ISVALID_DSET(dset) || cn == NULL || cn[0] == '\0' ) return ;
 
    hist = THD_find_string_atr(dset->dblk,"HISTORY_NOTE") ;
+
    cdate = tross_datetime() ; idate = strlen(cdate) ;
-   cname = tross_hostname() ; iname = strlen(cname) ;  /* 19 Sep 1999 */
-   cuser = tross_username() ; iuser = strlen(cuser) ;  /* 19 Sep 1999 */
+
+                      cenv = getenv("AFNI_HISTORY_NAME") ;
+   if( cenv == NULL ) cenv = getenv("AFNI_HISTORY_USERNAME") ;
+
+   if( cenv != NULL ){                                   /* 24 Jun 2013 */
+     cuser = strdup(cenv) ; iuser = strlen(cuser) ;
+     cname = strdup("\0") ; iname = 0             ;
+   } else {
+     cname = tross_hostname() ; iname = strlen(cname) ;  /* 19 Sep 1999 */
+     cuser = tross_username() ; iuser = strlen(cuser) ;  /* 19 Sep 1999 */
+   }
 
    /*- add to the history -*/
 
    if( hist != NULL ){
 
       chold = tross_Expand_String(hist->ch) ; if( chold == NULL ) return ;
-      chold = AFREALL( chold, char, 
-		       strlen(chold)+idate+iuser+iname+strlen(cn)+12 ) ;
+      chold = AFREALL( chold, char,
+		       strlen(chold)+idate+iuser+iname+strlen(cn)+16 ) ;
 
       strcat(chold,"\n") ;
-      strcat(chold,"[") ; strcat(chold,cuser) ; strcat(chold,"@") ;
-                          strcat(chold,cname) ; strcat(chold,": ") ;
-                          strcat(chold,cdate) ;
+      strcat(chold,"[") ;
+         if( iuser > 0      ){ strcat(chold,cuser);                       }
+         if( iname > 0      ){ strcat(chold,"@")  ; strcat(chold,cname) ; }
+         if( *cuser != '\0' ){ strcat(chold,": ") ;                       }
+                               strcat(chold,cdate);
       strcat(chold,"] ") ;
       strcat(chold,cn) ;
       ch = tross_Encode_String(chold) ; if( ch == NULL ){ free(chold); return; }
