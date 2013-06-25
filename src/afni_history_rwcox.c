@@ -6,9 +6,9 @@
 /*  basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
                   (optional) long descrption with intermediate newlines
-  
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see .h file)
 
            - levels are :
@@ -45,7 +45,7 @@ afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
   { 25 , JUN , 2013 , RWC , "AFNI_PBAR_TICK" , MICRO , TYPE_NEW_ENV ,
    "Ability to disable new tick marks for colorscales and image bars." ,
-   NULL } ,
+   "Can set this to NO, or to the number of tick marks desired." } ,
 
  { 24 , JUN , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Add 'Thr=OLay?' to 'Thr=OLay+1?' repertoire" ,
