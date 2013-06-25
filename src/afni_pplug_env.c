@@ -573,7 +573,7 @@ PLUGIN_interface * ENV_init(void)
    /* 25 Jun 2013 [RWC] */
    ENV_add_numeric( "AFNI_PBAR_TICK" ,
                     "Number of tick marks for colorscale" ,
-                    0,64,0,10 , NULL ) ;
+                    0,63,0,9 , NULL ) ;
 
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
