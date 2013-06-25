@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 24 , JUN , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+  { 25 , JUN , 2013 , RWC , "AFNI_PBAR_TICK" , MICRO , TYPE_NEW_ENV ,
+   "Ability to disable new tick marks for colorscales and image bars." ,
+   NULL } ,
+
+ { 24 , JUN , 2013 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Add 'Thr=OLay?' to 'Thr=OLay+1?' repertoire" ,
    "Mostly because I wanted to do this a lot.  This is on the popup menu\n"
    "over the threshold slider bar in the 'Define OverLay' control panel." } ,

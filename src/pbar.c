@@ -896,6 +896,14 @@ ENTRY("PBAR_bigexpose_CB") ;
      { MRI_IMAGE *dim = mri_resize( cim , ww,hh ) ;
        pbar->bigxim = mri_to_XImage( pbar->dc , dim ) ;
        mri_free(dim) ;
+       if( !AFNI_noenv("AFNI_PBAR_TICK") ){
+         int jj,kk ;
+         for( kk=1 ; kk <= 9 ; kk++ ){
+           jj = (int)rintf( 0.1f*kk*hh ) ;
+           rectzero_XImage( pbar->dc , pbar->bigxim , 0   ,jj , 2   , jj ) ;
+           rectzero_XImage( pbar->dc , pbar->bigxim , ww-3,jj , ww-1, jj ) ;
+         }
+       }
      }
 #endif
      mri_free(cim) ;
