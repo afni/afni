@@ -570,6 +570,11 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_yesno( "AFNI_HISTOG_CUMULATIVE" ,
                   "Show cumulative histogram in plugins?" ) ;
 
+   /* 25 Jun 2013 [RWC] */
+   ENV_add_numeric( "AFNI_PBAR_TICK" ,
+                    "Number of tick marks for colorscale" ,
+                    0,64,0,10 , NULL ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
@@ -802,7 +807,7 @@ ENTRY("ENV_main") ;
          case ENV_NUMBER_EDITABLE:{
             float val = PLUTO_get_number(plint) ;
             sprintf(env_var[ii].vvalue,"%s=%s" ,
-                    env_var[ii].vname , AV_format_fval(val) ) ;
+                    env_var[ii].vname , AV_uformat_fval(val) ) ;
          }
          break ;
 
