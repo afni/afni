@@ -378,12 +378,13 @@ g_history = """
         - -regress_anaticor implies -mask_segment_anat and -mask_segment_erode
     3.47 May 09, 2013: small code reorg in prep for ...
     3.48 May 09, 2013: added options -write_3dD_script, -write_3dD_prefix
+    3.49 Jun 25, 2013: added options -volreg_mosim, -volreg_opts_ms
 """
 
-g_version = "version 3.48, May 9, 2013"
+g_version = "version 3.49, June 25, 2013"
 
 # version of AFNI required for script execution
-g_requires_afni = "1 Apr 2013"
+g_requires_afni = "10 Jun 2013"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -449,6 +450,7 @@ class SubjProcSream:
         self.mot_extern = ''            # from -regress_motion_file
         self.mot_demean = ''            # from demeaned motion file
         self.mot_deriv  = ''            # motion derivatives
+        self.mot_simset = None          # motion simulation dset (afni_name)
 
         self.mot_cen_lim= 0             # motion censor limit, if applied
         self.out_cen_lim= 0             # outlier censor limit, if applied
@@ -476,6 +478,8 @@ class SubjProcSream:
         self.tlrc_ss    = 1             # whether to do skull strip in tlrc
         self.warp_epi   = 0             # xform bitmap: tlrc, adwarp, a2e, e2a
         self.a2e_mat    = None          # anat2epi transform matrix file
+        self.e2final_mv = []            # matvec list takes epi base to final
+        self.e2final    = ''            # aff12.1D file for e2final_mv
         self.align_ebase= None          # external EPI for align_epi_anat.py
         self.align_epre = 'ext_align_epi' # copied align epi base prefix
         self.rm_rm      = 1             # remove rm.* files (user option)
@@ -747,8 +751,12 @@ class SubjProcSream:
                         helpstr='compute TSNR datasets (yes/no) of volreg run1')
         self.valid_opts.add_opt('-volreg_interp', 1, [],
                         helpstr='interpolation method used in volreg')
+        self.valid_opts.add_opt('-volreg_motsim', 0, [],
+                        helpstr='create a motion simulated time series')
         self.valid_opts.add_opt('-volreg_no_extent_mask', 0, [],
                         helpstr='do not restrict warped EPI to extents')
+        self.valid_opts.add_opt('-volreg_opts_ms', -1, [],
+                        helpstr='add options directly to @simulate_motion')
         self.valid_opts.add_opt('-volreg_opts_vr', -1, [],
                         helpstr='additional options directly for 3dvolreg')
         self.valid_opts.add_opt('-volreg_regress_per_run', 0, [],
