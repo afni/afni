@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 25 , JUN , 2013 , RWC , "AFNI_PBAR_TICK" , MICRO , TYPE_NEW_ENV ,
+  { 25 , JUN , 2013 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
+   "Add -ssave option, to save scaling dataset for perusal" ,
+   NULL } ,
+
+ { 25 , JUN , 2013 , RWC , "AFNI_PBAR_TICK" , MICRO , TYPE_NEW_ENV ,
    "Ability to disable new tick marks for colorscales and image bars." ,
    "Can set this to NO, or to the number of tick marks desired." } ,
 
