@@ -897,7 +897,7 @@ ENTRY("PBAR_bigexpose_CB") ;
        MRI_IMAGE *dim = mri_resize( cim , ww,hh ) ;
        pbar->bigxim = mri_to_XImage( pbar->dc , dim ) ;
        mri_free(dim) ;
-       eee = getenv("AFNI_PBAR_TICK") ;
+       eee = getenv("AFNI_PBAR_TICK") ;          /* tick marks [25 Jun 2013] */
        if( eee == NULL || toupper(*eee) != 'N' ){
          int jj,kk , ntic=9 ; float ftic ;
          if( eee != NULL && isdigit(*eee) ){
