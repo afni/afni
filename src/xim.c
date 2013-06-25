@@ -53,8 +53,8 @@ ENTRY("mri_to_XImage") ;
    if( !im || !dc) {
      fprintf(stderr,"\n*** Most ILLEGAL image input to mri_to_XImage\n") ;
      EXIT(1) ;
-   }  
-   
+   }
+
    if( im->kind == MRI_rgb ) RETURN( rgb_to_XImage(dc,im) ) ;  /* 11 Feb 1999 */
 
    if( im->kind != MRI_short ){
@@ -644,7 +644,7 @@ static INLINE Pixel tc_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
                        : (bb>>cd->bbshift)   ; b = b & cd->bbmask ;
 
    pold = r | g | b ;  /* assemble color from components */
-   return (Pixel) pold ;
+   return (Pixel)pold ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -747,6 +747,50 @@ ENTRY("rgb_to_XImage_clever") ;
    xim = pixar_to_XImage( dc , im->nx , im->ny , par ) ;
 
    free(par) ; RETURN( xim ) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Fill a rectangle with zeroes (black) in an XImage [25 Jun 2013]. */
+/*--------------------------------------------------------------------------*/
+
+void rectzero_XImage( MCW_DC *dc , XImage *image ,
+                      int x1, int y1, int x2, int y2 )
+{
+   int jj , iW , iH , iR ;
+   size_t bx ;
+   char *iD , *jL ;
+
+ENTRY("rectzero_XImage") ;
+
+   if( dc == NULL || image == NULL ) EXRETURN ;
+
+   iW = image->width ; iH = image->height ;
+
+   /* munge so that rect limits are reasonable */
+
+   if( x1 <   0 && x2 <   0 ) EXRETURN ;  /* outside the image? */
+   if( y1 <   0 && y2 <   0 ) EXRETURN ;
+   if( x1 >= iW && x2 >= iW ) EXRETURN ;
+   if( y1 >= iH && y2 >= iH ) EXRETURN ;
+
+   if( x1 <   0 ) x1 = 0    ; if( x2 < 0   ) x2 = 0    ;
+   if( x1 >= iW ) x1 = iW-1 ; if( x2 >= iW ) x2 = iW-1 ;
+   if( x1 >  x2 ){ jj = x1 ; x1 = x2 ; x2 = jj ; }
+
+   if( y1 <   0 ) y1 = 0    ; if( y2 < 0   ) y2 = 0    ;
+   if( y1 >= iH ) y1 = iH-1 ; if( y2 >= iH ) y2 = iW-1 ;
+   if( y1 >  y2 ){ jj = y1 ; y1 = y2 ; y2 = jj ; }
+
+   iD = (char *)image->data ;     /* data inside image */
+   iR = image->bytes_per_line ;   /* number of bytes in an image row */
+   bx = (x2-x1+1)*dc->byper ;     /* number of bytes to zero in one row */
+
+   for( jj=y1 ; jj <= y2 ; jj++ ){
+     jL = iD + iR * jj ;                 /* ptr to image data in jj-th row */
+     memset( jL + x1*dc->byper , 0 , bx ) ;
+   }
+
+   EXRETURN ;
 }
 
 /**************************************************************************/

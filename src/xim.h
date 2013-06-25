@@ -29,6 +29,9 @@ extern MRI_IMAGE * XImage_to_mri( MCW_DC * , XImage * , int ) ;
 extern XImage * pixar_to_XImage( MCW_DC * , int,int , Pixel * ) ;
 extern XImage * rgb_to_XImage( MCW_DC * , MRI_IMAGE * ) ;
 
+extern void rectzero_XImage( MCW_DC *dc , XImage *image ,
+                      int x1, int y1, int x2, int y2 )    ;   /* 25 Jun 2013 */
+
 #define X2M_USE_CMAP  (1<<0)  /* masks for XImage_to_mri() 3rd arg */
 #define X2M_FORCE_RGB (1<<1)
 
