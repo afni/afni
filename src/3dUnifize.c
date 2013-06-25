@@ -371,6 +371,8 @@ static float Uprad = 18.3f ;  /* sphere radius */
 #define PKVAL 1000.0f
 #define PKMID  666.0f
 
+MRI_IMAGE *sclim = NULL ;     /* 25 Jun 2013 */
+
 /* White Matter uniformization */
 
 MRI_IMAGE * mri_WMunifize( MRI_IMAGE *fim )
@@ -392,13 +394,14 @@ ENTRY("mri_WMunifize") ;
    /* scale output by the pim created above */
 
    for( ii=0 ; ii < gim->nvox ; ii++ ){
-     pval    = par[ii] ;
-     gar[ii] = (pval <= 0.0f) ? 0.0f : (PKVAL * gar[ii] / pval) ;
+     pval = par[ii] = (par[ii] <= 0.0f) ? 0.0f : PKVAL / par[ii] ;
+     gar[ii] = gar[ii] * pval ;
    }
 
    if( verb ) fprintf(stderr,"W") ;
 
-   mri_free(pim) ;
+   if( sclim != NULL ) mri_free(sclim) ;  /* 25 Jun 2013: save scale image */
+   sclim = pim ;
    RETURN(gim) ;
 }
 
@@ -472,7 +475,8 @@ int main( int argc , char *argv[] )
 {
    int iarg , ct , do_GM=0 ;
    char *prefix = "Unifized" ;
-   THD_3dim_dataset *inset=NULL , *outset ;
+   char *sspref = NULL ;
+   THD_3dim_dataset *inset=NULL , *outset=NULL ;
    MRI_IMAGE *imin , *imout ;
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
@@ -515,6 +519,7 @@ int main( int argc , char *argv[] )
             "  -Urad rr   = Sets the radius (in voxels) of the ball used for the sneaky trick.\n"
             "               ++ Default value is %.1f, and should be changed proportionally\n"
             "                  if the dataset voxel size differs significantly from 1 mm.\n"
+            "  -ssave ss  = Save the scale factor used at each voxel into a dataset 'ss'.\n"
             "  -quiet     = Don't print the fun fun fun progress messages (but whyyyy?).\n"
             "\n"
             "------------------------------------------\n"
@@ -568,6 +573,13 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        prefix = argv[iarg] ;
        if( !THD_filename_ok(prefix) ) ERROR_exit("Illegal value after -prefix!") ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-ssave") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       sspref = argv[iarg] ;
+       if( !THD_filename_ok(sspref) ) ERROR_exit("Illegal value after -ssave!") ;
        iarg++ ; continue ;
      }
 
@@ -639,6 +651,20 @@ int main( int argc , char *argv[] )
 
    imout = mri_WMunifize(imin) ;          /* local WM scaling */
    free(imin) ;
+
+   if( sspref != NULL && sclim != NULL ){  /* 25 Jun 2013 */
+     outset = EDIT_empty_copy( inset )  ;
+     EDIT_dset_items( outset ,
+                         ADN_prefix , sspref ,
+                         ADN_nvals  , 1 ,
+                         ADN_ntt    , 0 ,
+                      ADN_none ) ;
+     EDIT_substitute_brick( outset , 0 , MRI_float , MRI_FLOAT_PTR(sclim) ) ;
+     tross_Copy_History( inset , outset ) ;
+     tross_Make_History( "3dUnifize" , argc,argv , outset ) ;
+     DSET_write(outset) ; DSET_delete(outset) ; outset = NULL ;
+   }
+   mri_free(sclim) ;
 
    if( imout == NULL ){                   /* this is bad-ositiness */
      if( verb ) fprintf(stderr,"\n") ;
