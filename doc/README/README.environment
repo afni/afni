@@ -2509,6 +2509,14 @@ size of the middle pane can be moved to separately set the top and bottom
 of the color-ization scale (rather than make bottom = -top or bottom = 0,
 as with the 1 pane color bar).
 
+------------------------
+Variable: AFNI_PBAR_TICK
+------------------------
+If this variable is set to NO, then the tick marks in the continuous
+colorscale bar in the AFNI GUI will not have tick marks added on the
+left and right edges.  (Also applies to the intensity scale bar in
+the image windows).
+
 -------------------------
 Variable: AFNI_RANGE_LOCK (editable)
 -------------------------
