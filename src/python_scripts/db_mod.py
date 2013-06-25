@@ -938,10 +938,8 @@ def db_mod_volreg(block, proc, user_opts):
                   % aopt.parlist[0]
             return 1
 
-    uopt = user_opts.find_opt('-volreg_interp')
-    if uopt:
-        bopt = block.opts.find_opt('-volreg_interp')
-        bopt.parlist = uopt.parlist
+    apply_uopt_to_block('-volreg_interp', user_opts, block)
+    apply_uopt_to_block('-volreg_motsim', user_opts, block)
 
     zopt = user_opts.find_opt('-volreg_zpad')
     if zopt:
@@ -951,10 +949,8 @@ def db_mod_volreg(block, proc, user_opts):
             print "** -volreg_zpad requires an int (have '%s')"%zopt.parlist[0]
             return 1
 
-    uopt = user_opts.find_opt('-volreg_opts_vr')
-    if uopt:
-        bopt = block.opts.find_opt('-volreg_opts_vr')
-        bopt.parlist = uopt.parlist
+    apply_uopt_to_block('-volreg_opts_ms', user_opts, block)
+    apply_uopt_to_block('-volreg_opts_vr', user_opts, block)
 
     # check for warp to tlrc space, from either auto or manual xform
     uopt = user_opts.find_opt('-volreg_tlrc_adwarp')
@@ -1154,6 +1150,7 @@ def db_cmd_volreg(proc, block):
                 return
 
     # if warping, multiply matrices and apply
+    # (store cat_matvec entries in case of later use)
     if dowarp or doe2a:
         # warn the user of output grid change
         print '++ volreg:',
@@ -1171,11 +1168,15 @@ def db_cmd_volreg(proc, block):
             '    # catenate %s transformations\n'       \
             '    cat_matvec -ONELINE \\\n' % cstr
 
-        if dowarp: cmd = cmd +                                 \
-                   '               %s::WARP_DATA -I \\\n' % proc.tlrcanat.pv()
+        if dowarp:
+            wstr = '%s::WARP_DATA -I' % proc.tlrcanat.pv()
+            cmd = cmd + '               %s \\\n' % wstr
+            proc.e2final_mv.append(wstr)
 
-        if doe2a:  cmd = cmd +                         \
-                   '               %s -I \\\n' % proc.a2e_mat
+        if doe2a:
+            wstr = '%s -I ' % proc.a2e_mat
+            cmd = cmd + '               %s \\\n' % wstr
+            proc.e2final_mv.append(wstr)
 
         # if tlrc, use that for 3dAllineate base and change view
         if dowarp:
@@ -1282,6 +1283,7 @@ def db_cmd_volreg(proc, block):
         if not proc.tlrcanat:
             print '** need -copy_anat with tlrc for -volreg_tlrc_adwarp'
             return
+
         cmd = cmd +                                                      \
             "# ----------------------------------------\n"               \
             "# apply manual Talairach transformation as separate step\n" \
@@ -1313,12 +1315,29 @@ def db_cmd_volreg(proc, block):
     if do_extents: emask = proc.mask_extents.prefix
     else:          emask = ''
 
+    # ---------------
     # if requested, make TSNR dataset from run 1 of volreg output
     opt = block.opts.find_opt('-volreg_compute_tsnr')
     if opt.parlist[0] == 'yes':
        tcmd = db_cmd_volreg_tsnr(proc, block, emask)
        if tcmd == None: return
        if tcmd != '': cmd += tcmd
+
+    # ---------------
+    # if requested, make motion simulation dataset
+    if block.opts.find_opt('-volreg_motsim'):
+        if block.opts.find_opt('-volreg_tlrc_adwarp'):
+            print '** -volreg_motsim not valid with -volreg_tlrc_adwarp'
+            return
+        if proc.surf_anat:
+            print '** -volreg_motsim not valid with surface analysis'
+            return
+        # mot base: if external, use 0[0], else use bstr
+        if basevol: bvol = '%s"[0]"' % proc.prev_prefix_form(1, view=1)
+        else:       bvol = bstr
+        rv, tcmd = db_cmd_volreg_motsim(proc, block, bstr)
+        if rv: return
+        cmd += tcmd
 
     # used 3dvolreg, so have these labels
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
@@ -1327,6 +1346,44 @@ def db_cmd_volreg(proc, block):
     proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
+
+# create @simulate_motion commands
+def db_cmd_volreg_motsim(proc, block, basevol):
+    """generate a @simulate_motion command
+          - use proc.mot_default and proc.e2final_mv
+       return 0 on success, along with any command string
+    """
+    proc.mot_simset = BASE.afni_name('motsim_$subj%s' % proc.view)
+    # first generate any needed cat_matvec command using proc.e2final_mv
+    cmd = "# ----------------------------------------\n"      \
+          "# generate simulated motion dataset: %s\n" % proc.mot_simset.pv()
+    if len(proc.e2final_mv) > 0:
+       proc.e2final = 'warp.e2final.aff12.1D'
+       xforms = ' \\\n           '.join(proc.e2final_mv)
+       cmd += "\n# first generate post volreg transformation matrix file\n" \
+              "cat_matvec -ONELINE \\\n"                      \
+              "           %s > %s\n\n" % (xforms, proc.e2final)
+
+    # maybe there are extra options to add to the command
+    olist, rv = block.opts.get_string_list('-volreg_opts_ms')
+    if olist and len(olist) > 0:
+        other_opts = '%17s%s \\\n' % (' ', ' '.join(olist))
+    else: other_opts = ''
+
+    cmd += "@simulate_motion -epi %s -prefix %s \\\n"   \
+           "                 -motion_file %s \\\n"      \
+           "%s"                                         \
+           % (basevol, proc.mot_simset.prefix, proc.mot_default, other_opts)
+
+    if proc.e2final == '':
+        cmd += "                 -warp_method VOLREG\n\n"
+    else:
+        cmd += "                 -warp_method VOLREG_AND_WARP \\\n"     \
+               "                 -warp_1D %s \\\n"                      \
+               "                 -warp_master %s\n\n"                   \
+               % (proc.e2final, proc.prefix_form(block,1,view=1))
+
+    return 0, cmd
 
 # compute temporal signal to noise before the blur (just run 1?)
 def db_cmd_volreg_tsnr(proc, block, emask=''):
@@ -3204,7 +3261,7 @@ def db_cmd_regress(proc, block):
 
     # maybe add the 3dTfitter block
     if block.opts.find_opt('-regress_anaticor') or \
-       block.opts.find_opt('-regress_sim_motion') :
+       block.opts.find_opt('-regress_motsim') :
        rv, tcmd = db_cmd_regress_tfitter(proc, block)
        if rv: return
        cmd += tcmd
@@ -5112,6 +5169,10 @@ g_help_string = """
         subject were to lose too many TRs due to censoring, this step would
         fail, as it should.
 
+        There is an additional option of using simulated motion time series
+        in the regression model, which should be more effective than higher
+        order motion parameters, say.  This is done via @simulate_motion.
+
     There are 3 main steps (generate ricor regs, pre-process, group analysis):
 
         step 0: If physio recordings were made, generate slice-based regressors
@@ -6678,9 +6739,32 @@ g_help_string = """
 
                 e.g. -volreg_interp -quintic
                 e.g. -volreg_interp -Fourier
-                default -cubic
+                default: -cubic
 
             Please see '3dvolreg -help' for more information.
+
+        -volreg_motsim          : generate motion simulated time series
+
+            Use of this option will result in a 'motsim' (motion simulation)
+            time series dataset that is akin to an EPI dataset altered only
+            by motion and registration (no BOLD, no signal drift, etc).
+
+            This dataset can be used to generate regressors of no interest to
+            be used in the regression block.
+
+            rcr - note relevant option once they are in
+
+            Please see '@simulate_motion -help' for more information.
+
+        -volreg_opts_ms OPTS ... : specify extra options for @simulate_motion
+
+                e.g. -volreg_opts_ms -save_workdir
+
+            This option can be used to pass extra options directly to the
+            @simulate_motion command.
+
+            See also -volreg_motsim.
+            Please see '@simulate_motion -help' for more information.
 
         -volreg_opts_vr OPTS ... : specify extra options for 3dvolreg
 

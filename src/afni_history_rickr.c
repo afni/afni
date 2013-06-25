@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  Jun, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -volreg_motsim and -volreg_opts_ms",
+   NULL
+ } ,
+
  { 14,  Jun, 2013, RCR, "Makefile.NIH.openSUSE.11.4_64", MICRO, TYPE_ENHANCE,
    "added -fPIC to CCMIN (-fPIC is all over now, basically for R_io.so)",
    NULL
@@ -79,7 +84,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 13, May, 2013, RCR, "@RenamePange", MINOR, TYPE_BUG_FIX,
+ { 13, May, 2013, RCR, "@RenamePanga", MINOR, TYPE_BUG_FIX,
    "added -column to count commands writing listfile",
    "There is a 4096 byte limit in addto_args(), which could be made dynamic."
  } ,
