@@ -2515,8 +2515,12 @@ Variable: AFNI_PBAR_TICK (editable)
 If this variable is set to NO, then the tick marks in the continuous
 colorscale bar in the AFNI GUI will not have tick marks added on the
 left and right edges. You can also set the number of tick marks this
-way, if you don't want the default number (10).  The maximum number
-of tick marks allowed is 64, which should be enough.
+way, if you don't want the default number (9).  The maximum number
+of tick marks allowed is 63, which should be enough.
+* If this variable is NOT set to NO (or 0), then 9 tick marks will
+  be drawn in the image window intensity bar as well (dividing it
+  into 10 intervals).  For this bar, the number of tick marks is
+  fixed: it is either 0 or 9.
 
 -------------------------
 Variable: AFNI_RANGE_LOCK (editable)
