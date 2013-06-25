@@ -901,7 +901,7 @@ ENTRY("PBAR_bigexpose_CB") ;
        if( eee == NULL || toupper(*eee) != 'N' ){
          int jj,kk , ntic=9 ; float ftic ;
          if( eee != NULL && isdigit(*eee) ){
-           ntic = (int)strtod(eee,NULL) ; if( ntic > 64 ) ntic = 64 ;
+           ntic = (int)strtod(eee,NULL) ; if( ntic > 63 ) ntic = 63 ;
          }
          ftic = 1.0f/(ntic+1) ; 
          for( kk=1 ; kk <= ntic ; kk++ ){
