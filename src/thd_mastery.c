@@ -204,12 +204,12 @@ static int THD_setup_mastery( THD_3dim_dataset *dset , int *ivlist )
    THD_datablock *dblk ;
    int *btype , *ivl ;
 
-   float * old_brick_fac  ;
-   int *   old_brick_bytes ;
-   char ** old_brick_lab  ;
-   char ** old_brick_keywords ;
-   int *   old_brick_statcode ;
-   float **old_brick_stataux ;
+   float   *old_brick_fac  ;
+   int64_t *old_brick_bytes ;
+   char   **old_brick_lab  ;
+   char   **old_brick_keywords ;
+   int     *old_brick_statcode ;
+   float  **old_brick_stataux ;
    floatvec **old_brick_fdrcurve ;  /* 23 Jan 2008 */
    floatvec **old_brick_mdfcurve ;  /* 22 Oct 2008 */
 

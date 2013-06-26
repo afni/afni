@@ -1225,7 +1225,7 @@ ENTRY("THD_init_datablock_brick") ;
 
    if( dblk->brick_bytes == NULL ){
 STATUS("making dblk->brick_bytes") ;
-     dblk->brick_bytes = (int *) XtMalloc( sizeof(int) * nvals ) ;
+     dblk->brick_bytes = (int64_t *) XtMalloc( sizeof(int64_t) * nvals ) ;
    }
 
    if( dblk->brick_fac == NULL ){
@@ -1260,7 +1260,7 @@ STATUS("starting sub-brick creations") ;
       qim = mri_new_vol_empty( nx,ny,nz , typ ) ;  /* image with no data */
       ADDTO_IMARR( dblk->brick , qim ) ;
 
-      dblk->brick_bytes[ibr] = qim->pixel_size * qim->nvox ;
+      dblk->brick_bytes[ibr] = (int64_t)qim->pixel_size * (int64_t)qim->nvox ;
       dblk->total_bytes     += dblk->brick_bytes[ibr] ;
    }
 

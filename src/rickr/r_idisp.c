@@ -400,7 +400,7 @@ int r_idisp_thd_datablock( char * info, THD_datablock * dp )
                 printf( "         " );
 
             if ( dp->brick_bytes )
-                printf( " %10d    ", dp->brick_bytes[c] );
+                printf( " %10lld    ", dp->brick_bytes[c] );
             else
                 printf( "%15s", "" );
 
