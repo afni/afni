@@ -228,7 +228,7 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
 
          if( blk->malloc_type == DATABLOCK_MEM_MMAP ){
             char *bnew , *bold ;
-            int offset ;
+            int64_t offset ;
 
             bnew = (char *) malloc( (size_t)nb ) ;  /* work space */
             bold = DBLK_ARRAY(blk,0) ;              /* start of mapped file */
@@ -237,7 +237,7 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
               WRITE_ERR("cannot rewrite due to malloc failure - is memory exhausted?") ;
 
             memcpy( bnew , bold , (size_t)nb ) ;    /* make a copy,    */
-            munmap( (void *) bold , (size_t)nb ) ;  /* then unmap file */
+            munmap( (void *)bold , (size_t)nb ) ;  /* then unmap file */
 
             /* fix sub-brick pointers */
 

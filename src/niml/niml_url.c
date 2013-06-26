@@ -184,9 +184,9 @@ static int read_URL_http( char *url , int msec , char **data )
       ii = NI_stream_readcheck( ns , msec ) ;  /* wait for data to be ready */
       if( ii <= 0 ) break ;                    /* quit if no data */
       ii = NI_stream_read( ns , qbuf , QBUF ) ;
-      if( ii <= 0 ) break ;                  /* quit if no data */
+      if( ii <= 0 ) break ;                    /* quit if no data */
 
-      if( first ){                           /* check for "not found" */
+      if( first ){                             /* check for "not found" */
          if( buf == NULL ){ buf = (char *)malloc(ii) ; }
          memcpy( buf , qbuf , ii ) ;
          for( jj=0 ; jj < ii ; jj++ ) buf[jj] = toupper(buf[jj]) ;

@@ -46,8 +46,8 @@ ENTRY("EDIT_add_bricklist") ;
    /**-- reallocate the brick control information --**/
 
    new_nvals = nvals + nbr ;
-   dblk->brick_bytes = (int *) XtRealloc( (char *) dblk->brick_bytes ,
-                                          sizeof(int) * new_nvals ) ;
+   dblk->brick_bytes = (int64_t *) XtRealloc( (char *) dblk->brick_bytes ,
+                                          sizeof(int64_t) * new_nvals ) ;
 
    dblk->brick_fac = (float *) XtRealloc( (char *) dblk->brick_fac ,
                                           sizeof(float) * new_nvals ) ;
@@ -66,7 +66,7 @@ ENTRY("EDIT_add_bricklist") ;
       ADDTO_IMARR( dblk->brick , qim ) ;           /* attach image to dset */
 
       dblk->brick_fac[nvals+ibr]   = (fbr != NULL) ? fbr[ibr] : 0.0 ;
-      dblk->brick_bytes[nvals+ibr] = qim->pixel_size * qim->nvox ;
+      dblk->brick_bytes[nvals+ibr] = (int64_t)qim->pixel_size * (int64_t)qim->nvox ;
       dblk->total_bytes           += dblk->brick_bytes[ibr] ;
    }
 

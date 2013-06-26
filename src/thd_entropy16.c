@@ -6,15 +6,15 @@
 #undef SNUM
 #define SNUM 65536  /* one for every possible 16 bit pattern */
 
-static int * scount=NULL ;  /* holds count of unsigned shorts */
-static int   snum=0 ;       /* total number of unsigned shorts processed */
+static int64_t *scount=NULL ;  /* holds count of unsigned shorts */
+static int64_t  snum=0 ;       /* total number of unsigned shorts processed */
 
 /*-----------------------------------------------------------------------*/
 
 void ENTROPY_setup(void)
 {
-   if( scount == NULL ) scount = (int *) malloc(sizeof(int)*SNUM) ;
-   memset( scount , 0 , sizeof(int)*SNUM ) ;
+   if( scount == NULL ) scount = (int64_t *) malloc(sizeof(int64_t)*SNUM) ;
+   memset( scount , 0 , sizeof(int64_t)*SNUM ) ;
    snum = 0 ;
 }
 
@@ -27,9 +27,9 @@ void ENTROPY_setdown(void)
 
 /*-----------------------------------------------------------------------*/
 
-void ENTROPY_accumulate( int nbytes , void * var )
+void ENTROPY_accumulate( int64_t nbytes , void * var )
 {
-   int nn = nbytes/2 , ii ;
+   int64_t nn = nbytes/2 , ii ;
    unsigned short * sar = (unsigned short *) var ;
 
    if( scount == NULL ) ENTROPY_setup() ;
@@ -44,8 +44,8 @@ void ENTROPY_accumulate( int nbytes , void * var )
 
 double ENTROPY_compute(void)
 {
-   register int ii ;
-   register double sum ;
+   int64_t ii ;
+   double sum ;
 
    if( scount == NULL || snum == 0 ) return 0.0 ;
 
@@ -59,7 +59,7 @@ double ENTROPY_compute(void)
 
 /*-----------------------------------------------------------------------*/
 
-double ENTROPY_dataset( THD_3dim_dataset * dset )
+double ENTROPY_dataset( THD_3dim_dataset *dset )
 {
    if( !ISVALID_DSET(dset) ) return(0.0) ;
    DSET_load(dset) ;
@@ -69,7 +69,7 @@ double ENTROPY_dataset( THD_3dim_dataset * dset )
 
 /*-----------------------------------------------------------------------*/
 
-double ENTROPY_datablock( THD_datablock * blk )
+double ENTROPY_datablock( THD_datablock *blk )
 {
    int iv ;
    double sum ;

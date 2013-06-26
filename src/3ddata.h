@@ -1161,7 +1161,7 @@ typedef struct {
 
       MRI_IMARR * brick  ;    /*!< array of pointers to each 3D brick */
       float * brick_fac  ;    /*!< array of scale factors to convert sub-bricks to floats */
-      int *  brick_bytes ;    /*!< array of data size of each sub-brick */
+      int64_t *brick_bytes ;  /*!< array of data size of each sub-brick */
 
                                 /* These fields added for "bucket" datasets: */
 
@@ -1177,7 +1177,7 @@ typedef struct {
                                 /* Jan 1999: for datasets that are extracted from a master dataset */
       int    master_nvals ;   /*!< Number of nvals in master dataset */
       int *  master_ival ;    /*!< master_ival[i] = sub-brick index in master of sub-brick #i here */
-      int *  master_bytes ;   /*!< master_bytes[i] = size of sub-brick #i in master */
+      int64_t *master_bytes ; /*!< master_bytes[i] = size of sub-brick #i in master */
 
       float master_bot ;      /*!< range of data values to keep from master - bottom */
       float master_top ;      /*!< range of data values to keep from master - top */
@@ -5232,7 +5232,7 @@ extern THD_3dim_dataset * THD_warp3D_tta2mni( THD_3dim_dataset *, void *,
 
 extern void   ENTROPY_setup     (void) ;
 extern void   ENTROPY_setdown   (void) ;
-extern void   ENTROPY_accumulate(int , void *) ;
+extern void   ENTROPY_accumulate(int64_t , void *) ;
 extern double ENTROPY_compute   (void) ;
 extern double ENTROPY_dataset   (THD_3dim_dataset *) ;
 extern double ENTROPY_datablock (THD_datablock *) ;
