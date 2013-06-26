@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 25 , JUN , 2013 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
+  { 26 , JUN , 2013 , RWC , "various files" , MINOR , TYPE_GENERAL ,
+   "Allow individual sub-bricks over 2 GB in size" ,
+   "By changing the brick_bytes[] array to int64_t from int, and then\n"
+   "modifying all places that use it." } ,
+
+ { 25 , JUN , 2013 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
    "Add -ssave option, to save scaling dataset for perusal" ,
    NULL } ,
 

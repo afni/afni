@@ -27,7 +27,8 @@ void EDIT_substitute_brick(THD_3dim_dataset *dset, int ival, int ftype,void *fim
 {
    THD_datablock *dblk ;
    MRI_IMAGE *newim , *oldim ;
-   int nbytes , nullfim = (fim == NULL) ;
+   int nullfim = (fim==NULL) ;
+   int64_t nbytes ;
 
 ENTRY("EDIT_substitute_brick") ;
 
@@ -42,7 +43,8 @@ ENTRY("EDIT_substitute_brick") ;
    oldim = DSET_BRICK(dset,ival) ; if( oldim == NULL )  EXRETURN; /* ditto! */
 
    newim  = mri_empty_conforming( oldim , ftype ) ;      /* new sub-brick */
-   nbytes = newim->nvox * newim->pixel_size ;            /* how big it is */
+   nbytes = (int64_t)newim->nvox
+               * (int64_t)newim->pixel_size ;            /* how big it is */
    mri_free( oldim ) ;                                   /* kill old one  */
 
    if( nullfim ){                                        /* if needed, */

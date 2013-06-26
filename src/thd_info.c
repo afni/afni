@@ -355,8 +355,8 @@ ENTRY("THD_dataset_info") ;
    tb = dset->dblk->total_bytes ;
    if( tb > 0 )
      outbuf = THD_zzprintf(outbuf,"Storage Space:   %s (%s) bytes\n",
-                           commaized_integer_string(tb) ,
-                           approximate_number_string(tb) ) ;
+                           commaized_integer_string(dset->dblk->total_bytes) ,
+                           approximate_number_string(dset->dblk->total_bytes) ) ;
 
    /*-- keywords --*/
 

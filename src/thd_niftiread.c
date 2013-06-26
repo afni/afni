@@ -819,6 +819,7 @@ ENTRY("THD_load_nifti") ;
 
        if( DBLK_ARRAY(dblk,ibr) == NULL ){                     /* make space */
          ptr = AFMALL(void, DBLK_BRICK_BYTES(dblk,ibr) ) ;     /* for this   */
+         if( ptr == NULL ) ERROR_message("malloc fails for NIfTI sub-brick #%d",ibr) ;
          mri_fix_data_pointer( ptr ,  DBLK_BRICK(dblk,ibr) ) ; /* sub-brick! */
        }
        ptr = DBLK_ARRAY(dblk,ibr) ; if( ptr == NULL ) break ;  /* bad news!! */
@@ -834,6 +835,8 @@ ENTRY("THD_load_nifti") ;
 
        /* load from nbuf into brick array (will be float or complex) */
 
+       STATUS(" converting sub-brick") ;
+
        switch( nim->datatype ){
          case DT_UINT8:    CPF(unsigned char)  ; break ;
          case DT_INT8:     CPF(signed char)    ; break ;
@@ -847,9 +850,13 @@ ENTRY("THD_load_nifti") ;
 #endif
        }
 
+       STATUS(" free-ing NIfTI volume") ;
+
        free(NBL.bricks[ibr]) ; NBL.bricks[ibr] = NULL ;
      }
    }
+
+   STATUS("free-ing NBL") ;
 
    nifti_free_NBL( &NBL ) ;  /* done with this */
 
