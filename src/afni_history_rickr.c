@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Jun, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_mot_as_ort",
+   "Applies motion regressors via -ortvec, a potential future change."
+ } ,
+
  { 25,  Jun, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -volreg_motsim and -volreg_opts_ms",
    NULL

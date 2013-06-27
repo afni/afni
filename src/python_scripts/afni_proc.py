@@ -379,9 +379,10 @@ g_history = """
     3.47 May 09, 2013: small code reorg in prep for ...
     3.48 May 09, 2013: added options -write_3dD_script, -write_3dD_prefix
     3.49 Jun 25, 2013: added options -volreg_mosim, -volreg_opts_ms
+    3.50 Jun 27, 2013: added option -regress_mot_as_ort
 """
 
-g_version = "version 3.49, June 25, 2013"
+g_version = "version 3.50, June 27, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "10 Jun 2013"
@@ -445,6 +446,7 @@ class SubjProcSream:
         # for regression, maybe just mot_file, maybe per run, external
         # or might include demean and/or derivatives
         self.mot_regs   = []            # motion files to use in regression
+        self.mot_names  = []            # short names for motion files
         self.mot_per_run= 0             # motion regression per run
         self.mot_default= ''            # probably 'dfile_rall.1D', if set
         self.mot_extern = ''            # from -regress_motion_file
@@ -879,6 +881,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_apply_mot_types', -1, [],
                         acplist=['basic','demean','deriv'],
                         helpstr="specify which motion parameters to apply")
+        self.valid_opts.add_opt('-regress_mot_as_ort', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="apply motion params via -ortvec")
         self.valid_opts.add_opt('-regress_motion_file', 1, [],
                         helpstr="external file to apply as motion regressors")
         self.valid_opts.add_opt('-regress_motion_per_run', 0, [],
