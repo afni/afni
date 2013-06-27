@@ -385,7 +385,7 @@ static char * HISTO_main( PLUGIN_interface * plint )
          return "*** Can't use source dataset -- illegal data type! ***" ;
 
       case MRI_short:{
-         short * bar = (short *) DSET_ARRAY(input_dset,iv) ;
+         short *bar = (short *) DSET_ARRAY(input_dset,iv) ;
          float mfac = DSET_BRICK_FACTOR(input_dset,iv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( do_mval ){
@@ -405,7 +405,7 @@ static char * HISTO_main( PLUGIN_interface * plint )
       break ;
 
       case MRI_byte:{
-         byte * bar = (byte *) DSET_ARRAY(input_dset,iv) ;
+         byte *bar = (byte *) DSET_ARRAY(input_dset,iv) ;
          float mfac = DSET_BRICK_FACTOR(input_dset,iv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( do_mval ){
@@ -425,7 +425,7 @@ static char * HISTO_main( PLUGIN_interface * plint )
       break ;
 
       case MRI_float:{
-         float * bar = (float *) DSET_ARRAY(input_dset,iv) ;
+         float *bar = (float *) DSET_ARRAY(input_dset,iv) ;
          float mfac = DSET_BRICK_FACTOR(input_dset,iv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( do_mval ){
@@ -525,7 +525,7 @@ static char * HISTO_main( PLUGIN_interface * plint )
    if( hrad <= 0.0f || hrad >= 0.02f ) hrad = 0.004f ;
    plot_ts_setTHIK(hrad) ; plot_ts_setthik(0.0015f) ;
    plot_ts_xypush(0,-1) ;
-   sprintf(buf,"\\noesc %s[%d] %d voxels",DSET_FILECODE(input_dset),iv,mcount);
+   sprintf(buf,"\\noesc %s[%d] %s voxels",DSET_FILECODE(input_dset),iv,commaized_integer_string(mcount));
    PLUTO_histoplot( nbin,hbot,htop,hbin , NULL , NULL ,  buf , 0,NULL ) ;
 
    /*-- 05 Feb 2002: Output - VR --*/
