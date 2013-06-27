@@ -79,9 +79,13 @@ ENTRY("THD_open_nifti") ;
    if( !finite(nim->scl_slope) || !finite(nim->scl_inter) ){
       fprintf(stderr,"** bad scl_slope and inter = %f, %f, ignoring...\n",
               nim->scl_slope, nim->scl_inter);
-   } else
+   } else {
        scale_data = nim->scl_slope != 0.0 &&
                         (nim->scl_slope != 1.0 || nim->scl_inter != 0.0) ;
+   }
+   { char *eee = getenv("AFNI_NIFTI_SCALE") ;
+     if( eee != NULL && toupper(*eee) == 'N' ) scale_data = 0 ;
+   }
 
    switch( nim->datatype ){
      default:
