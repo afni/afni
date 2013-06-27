@@ -2561,6 +2561,8 @@ def db_mod_regress(block, proc, user_opts):
         for file in proc.stims_orig:
             proc.stims.append('stimuli/%s' % os.path.basename(file))
 
+    apply_uopt_to_block('-regress_mot_as_ort', user_opts, block)
+
     # check for per-run regression of motion parameters
     uopt = user_opts.find_opt('-regress_motion_per_run')
     if uopt and not block.opts.find_opt('-regress_motion_per_run'):
@@ -2961,11 +2963,16 @@ def db_cmd_regress(proc, block):
     # and check any extras against 1D only
     if not married_types_match(proc, proc.stims_orig, stim_types, basis): return
 
-    nmotion = len(proc.mot_labs) * len(proc.mot_regs)
+    # note whether motion regs will be done via -ortvec
+    opt = block.opts.find_opt('-regress_mot_as_ort')
+    mot_as_ort = OL.opt_is_yes(opt)
+
+    # count stim, motion counts if not as_ort
+    if mot_as_ort: nmotion = 0
+    else:          nmotion = len(proc.mot_labs) * len(proc.mot_regs)
     if proc.ricor_apply == 'yes': nricor = proc.ricor_nreg
     else:                         nricor = 0
-    total_nstim =  len(proc.stims) + len(proc.extra_stims) + \
-                   nmotion + nricor
+    total_nstim =  len(proc.stims) + len(proc.extra_stims) + nmotion + nricor
     
     # maybe we will censor
     if proc.censor_file: censor_str = '    -censor %s' % proc.censor_file
@@ -2975,6 +2982,15 @@ def db_cmd_regress(proc, block):
     reg_orts = []
     for ort in proc.regress_orts:
        reg_orts.append('    -ortvec %s %s' % (ort[0], ort[1]))
+    if mot_as_ort and len(proc.mot_regs) > 0:
+       if len(proc.mot_regs) != len(proc.mot_names):
+           print '** mis-match between mot_regs and mot_names\n' \
+                 '   regs = %s\n'                                \
+                 '   names = %s\n\n' % (proc.mot_regs, proc.mot_names)
+           return
+       for ind in range(len(proc.mot_regs)):
+           reg_orts.append('    -ortvec %s %s' % (proc.mot_regs[ind],
+                                                  proc.mot_names[ind]))
 
     # make actual 3dDeconvolve command as string c3d:
     #    init c3d, add O3dd elements, finalize c3d
@@ -3964,6 +3980,7 @@ def db_cmd_regress_motion_stuff(proc, block):
            runopt = '-set_nruns %d' % proc.runs
         mfiles = proc.mot_regs
         proc.mot_regs = []
+        proc.mot_names = []
         for mfile in mfiles:
             if   mfile == proc.mot_extern: mtype = 'extern'
             elif mfile == proc.mot_demean: mtype = 'demean'
@@ -3972,10 +3989,12 @@ def db_cmd_regress_motion_stuff(proc, block):
             # note the output prefix and expected output file list
             mprefix = 'mot_%s' % mtype
             outfiles = ['%s.r%02d.1D'%(mprefix,r+1) for r in range(proc.runs)]
+            names = ['%s_r%02d'%(mprefix,r+1) for r in range(proc.runs)]
             pcmd += '1d_tool.py -infile %s %s \\\n'          \
                     '           -split_into_pad_runs %s\n\n' \
                     % (mfile, runopt, mprefix)
             proc.mot_regs.extend(outfiles)
+            proc.mot_names.extend(names)
 
         cmd += pcmd     # and add to the current command
 
@@ -4024,7 +4043,9 @@ def db_cmd_regress_mot_types(proc, block):
     # handle 3 cases of motion parameters: 'basic', 'demean' and 'deriv'
 
     # 1. update mot_regs for 'basic' case
-    if 'basic' in apply_types: proc.mot_regs.append(proc.mot_file)
+    if 'basic' in apply_types:
+        proc.mot_regs.append(proc.mot_file)
+        proc.mot_names.append('mot_%s' % 'basic')
 
     # 2. possibly compute de-meaned motion params
     if not block.opts.find_opt('-regress_no_motion_demean'):
@@ -4038,6 +4059,7 @@ def db_cmd_regress_mot_types(proc, block):
              print "   (would lead to multi-collinearity)"
              return 1, ''
           proc.mot_regs.append(motfile)
+          proc.mot_names.append('mot_%s' % mtype)
           pcmd = '# compute de-meaned motion parameters %s\n' \
                  % '(for use in regression)'
        else:
@@ -4058,6 +4080,7 @@ def db_cmd_regress_mot_types(proc, block):
        # if requested for regression, add this file
        if mtype in apply_types:
           proc.mot_regs.append(motfile)
+          proc.mot_names.append('mot_%s' % mtype)
           pcmd = '# compute motion parameter derivatives %s\n' \
                  % '(for use in regression)'
        else:
@@ -7573,6 +7596,19 @@ g_help_string = """
             added to the 3dDeconvolve command.
 
             Please see '3dDeconvolve -help' for more details.
+
+        -regress_mot_as_ort yes/no : regress motion parameters using -ortvec
+
+                default: no
+
+            By default, motion parameters are applied to 3dvolreg using
+            -stim_file and -stim_base.  Use this option to apply them using
+            -ortvec, instead.
+
+            One difference is in having a "cleaner" 3dDeconvolve command,
+            without the many extra -stim_file options.  Another is a change in
+            the labels associated with the individual parameters.  Otherwise,
+            all results should be the same.
 
         -regress_motion_per_run : regress motion parameters from each run
 
