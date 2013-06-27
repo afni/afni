@@ -518,7 +518,7 @@ void Qhelp(void)
     "                 -workhard or -superhard.\n"
     "           -->>* The fastest way to register to a template image is via the\n"
     "                 -duplo option, and without the -workhard or -superhard options.\n"
-#ifdef ALLOW_QFINAL
+#ifdef ALLOW_MODE
     "\n"
     " -Qfinal      = At the finest patch size (the final level), use Hermite\n"
     "                quintic polynomials for the warp instead of cubic polynomials.\n"
@@ -530,6 +530,9 @@ void Qhelp(void)
     "               * With -Qfinal, the final level will have more detail in\n"
     "                 the allowed warps, at the cost of yet more CPU time.\n"
     "               * This option is also not usually needed, and is experimental.\n"
+    "
+    " -Qonly       = Use Hermite quintic polynomials at all levels (very slow).\n"
+    "               * Very experimental.\n"
 #endif
 #ifdef USE_SAVER
     "\n"
@@ -827,9 +830,12 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
-#ifdef ALLOW_QFINAL
+#ifdef ALLOW_QMODE
      if( strcasecmp(argv[nopt],"-Qfinal") == 0 ){     /* 07 May 2013 */
        Hqfinal = 1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-Qonly") == 0 ){      /* 27 Jun 2013 */
+       Hqonly = 1 ; nopt++ ; continue ;
      }
 #endif
 
