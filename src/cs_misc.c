@@ -58,7 +58,7 @@ int is_an_int( char *str )
 
 char * commaized_integer_string( long long val )
 {
-   static char svals[5][128] ;   /* ZSS Aug. 2010 */
+   static char svals[9][128] ;   /* ZSS Aug. 2010 */
    char *sval;
    char qval[128] ;
    int qq,ss , qpos , qlen , pval = (val >= 0) ;
@@ -69,7 +69,7 @@ char * commaized_integer_string( long long val )
                commaized_integer_string(100),
                commaized_integer_string(500));
       would fail to write out both numbers.  ZSS Aug. 2010*/
-   k = k % 5;
+   k = k % 9;
    sval = svals[k];
    ++k;
 
@@ -97,13 +97,13 @@ char * commaized_integer_string( long long val )
 
 char * approximate_number_string( double val )
 {
-   static char svals[5][128] ;
+   static char svals[9][128] ;
    char *sval;
    double aval=fabs(val) , tval ;
    int    lv , qv ;
    static int k=0;
 
-   k = k % 5;     /* ZSS Aug. 2010 (same fix as commaized_integer_string)*/
+   k = k % 9;     /* ZSS Aug. 2010 (same fix as commaized_integer_string)*/
    sval = svals[k];
    ++k;
 
@@ -125,15 +125,17 @@ char * approximate_number_string( double val )
 
      case 0: break ;
 
-     case 1: strcat(sval+strlen(sval)," thousand")    ; break ;
-     case 2: strcat(sval+strlen(sval)," million" )    ; break ;
-     case 3: strcat(sval+strlen(sval)," billion" )    ; break ;
-     case 4: strcat(sval+strlen(sval)," trillion")    ; break ;
-     case 5: strcat(sval+strlen(sval)," quadrillion") ; break ;
-     case 6: strcat(sval+strlen(sval)," quintillion") ; break ;
-     case 7: strcat(sval+strlen(sval)," sextillion")  ; break ;
-     case 8: strcat(sval+strlen(sval)," septillion")  ; break ;
-     case 9: strcat(sval+strlen(sval)," octillion")   ; break ;
+     /** also see http://www.isthe.com/chongo/tech/math/number/tenpower.html **/
+
+     case 1: strcat(sval+strlen(sval)," thousand [kilo]")     ; break ;
+     case 2: strcat(sval+strlen(sval)," million [mega]" )     ; break ;
+     case 3: strcat(sval+strlen(sval)," billion [giga]" )     ; break ;
+     case 4: strcat(sval+strlen(sval)," trillion [tera]")     ; break ;
+     case 5: strcat(sval+strlen(sval)," quadrillion [peta]")  ; break ;
+     case 6: strcat(sval+strlen(sval)," quintillion [exa]")   ; break ;
+     case 7: strcat(sval+strlen(sval)," sextillion [zetta]")  ; break ;
+     case 8: strcat(sval+strlen(sval)," septillion [yotta]")  ; break ;
+     case 9: strcat(sval+strlen(sval)," octillion")         ; break ;
      case 10: strcat(sval+strlen(sval)," nonillion")        ; break ;
      case 11: strcat(sval+strlen(sval)," decillion")        ; break ;
      case 12: strcat(sval+strlen(sval)," undecillion")      ; break ;
@@ -146,20 +148,37 @@ char * approximate_number_string( double val )
      case 19: strcat(sval+strlen(sval)," octodecillion")    ; break ;
      case 20: strcat(sval+strlen(sval)," novemdecillion")   ; break ;
      case 21: strcat(sval+strlen(sval)," vigintillion")     ; break ;
+     case 31: strcat(sval+strlen(sval)," trigintillion")    ; break ;
+     case 33: strcat(sval+strlen(sval)," duotrigintillion") ; break ;
      case 101: strcat(sval+strlen(sval)," centillion")      ; break ;
 
-     case -1: strcat(sval+strlen(sval)," thousand-ths")   ; break ;
-     case -2: strcat(sval+strlen(sval)," million-ths")    ; break ;
-     case -3: strcat(sval+strlen(sval)," billion-ths")    ; break ;
-     case -4: strcat(sval+strlen(sval)," trillion-ths")   ; break ;
-     case -5: strcat(sval+strlen(sval)," quadrillion-ths"); break ;
-     case -6: strcat(sval+strlen(sval)," quintillion-ths"); break ;
-     case -7: strcat(sval+strlen(sval)," sextillion-ths") ; break ;
-     case -8: strcat(sval+strlen(sval)," septillion-ths") ; break ;
-     case -9: strcat(sval+strlen(sval)," octillion-ths")  ; break ;
+     case -1: strcat(sval+strlen(sval)," thousand-ths [milli]")   ; break ;
+     case -2: strcat(sval+strlen(sval)," million-ths [micro]")    ; break ;
+     case -3: strcat(sval+strlen(sval)," billion-ths [nano]")     ; break ;
+     case -4: strcat(sval+strlen(sval)," trillion-ths [pico]")    ; break ;
+     case -5: strcat(sval+strlen(sval)," quadrillion-ths [femto]"); break ;
+     case -6: strcat(sval+strlen(sval)," quintillion-ths [atto]") ; break ;
+     case -7: strcat(sval+strlen(sval)," sextillion-ths [zepto]") ; break ;
+     case -8: strcat(sval+strlen(sval)," septillion-ths [yocto]") ; break ;
+     case -9: strcat(sval+strlen(sval)," octillion-ths")          ; break ;
+     case -10: strcat(sval+strlen(sval)," nonillion-ths")         ; break ;
+     case -11: strcat(sval+strlen(sval)," decillion-ths")         ; break ;
+     case -12: strcat(sval+strlen(sval)," undecillion-ths")       ; break ;
+     case -13: strcat(sval+strlen(sval)," duodecillion-ths")      ; break ;
+     case -14: strcat(sval+strlen(sval)," tredecillion-ths")      ; break ;
+     case -15: strcat(sval+strlen(sval)," quattuordecillion-ths") ; break ;
+     case -16: strcat(sval+strlen(sval)," quindecillion-ths")     ; break ;
+     case -17: strcat(sval+strlen(sval)," sexdecillion-ths")      ; break ;
+     case -18: strcat(sval+strlen(sval)," septendecillion-ths")   ; break ;
+     case -19: strcat(sval+strlen(sval)," octodecillion-ths")     ; break ;
+     case -20: strcat(sval+strlen(sval)," novemdecillion-ths")    ; break ;
+     case -21: strcat(sval+strlen(sval)," vigintillion-ths")      ; break ;
+     case -31: strcat(sval+strlen(sval)," trigintillion-ths")     ; break ;
+     case -33: strcat(sval+strlen(sval)," duotrigintillion-ths")  ; break ;
+     case -101: strcat(sval+strlen(sval)," centillion-ths")       ; break ;
 
      default:
-       strcat(sval+strlen(sval)," gazillion") ;
+       strcat(sval+strlen(sval)," GAZILLION") ;
        if( lv < 0 ) strcat(sval+strlen(sval),"-ths") ;
      break ;
    }
