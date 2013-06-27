@@ -4332,11 +4332,13 @@ static int Hfirsttime =   0 ;  /* for fun only */
 static int Hsuperhard1 =  0 ;
 static int Hsuperhard2 = -1 ;
 
-#define ALLOW_QFINAL
-#ifdef ALLOW_QFINAL
+#define ALLOW_QMODE
+#ifdef  ALLOW_QMODE
 static int Hqfinal  = 0 ;  /* 07 May 2013 */
+static int Hqonly   = 0 ;  /* 27 Jun 2013 */
 #else
 # define   Hqfinal    0
+# define   Hqonly     0
 #endif
 
 #undef  WORKHARD
@@ -6101,8 +6103,8 @@ ENTRY("IW3D_warpomatic") ;
 #endif
 
      qmode = MRI_CUBIC ;
-#ifdef ALLOW_QFINAL
-     if( levdone && !Hduplo && Hqfinal ) qmode = MRI_QUINTIC ;
+#ifdef ALLOW_QMODE
+     if( (levdone && !Hduplo && Hqfinal) || Hqonly ) qmode = MRI_QUINTIC ;
 #endif
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
@@ -7580,8 +7582,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 #endif
 
      qmode = MRI_CUBIC ;
-#ifdef ALLOW_QFINAL
-     if( levdone && !Hduplo && Hqfinal ) qmode = MRI_QUINTIC ;
+#ifdef ALLOW_QMODE
+     if( (levdone && !Hduplo && Hqfinal) || Hqonly ) qmode = MRI_QUINTIC ;
 #endif
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
