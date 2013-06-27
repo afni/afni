@@ -506,7 +506,7 @@ if(DEBUG)fprintf(stderr,"++ about to plot\n") ;
    }
    plot_ts_setcolors( 2*num_dset , ovc_rrr , ovc_ggg , ovc_bbb ) ;
    plot_ts_xypush(0,-1) ;
-   sprintf(buf,"#mask=%d #values=%d",mcount,tval);
+   sprintf(buf,"#mask=%s #values=%s",commaized_integer_string(mcount),commaized_integer_string(tval));
    PLUTO_histoplot( nbin,hbot,htop,hbin[0] , NULL , NULL ,  buf , num_dset-1,hbin+1 ) ;
 
    /*-- go home to mama --*/
