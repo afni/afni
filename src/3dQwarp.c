@@ -531,8 +531,9 @@ void Qhelp(void)
     "                 the allowed warps, at the cost of yet more CPU time.\n"
     "               * This option is also not usually needed, and is experimental.\n"
     "
-    " -Qonly       = Use Hermite quintic polynomials at all levels (very slow).\n"
-    "               * Very experimental.\n"
+    " -Qonly       = Use Hermite quintic polynomials at all levels.\n"
+    "               * Very slow (about 4 times longer).  Also experimental.\n"
+    "               * Will produce a (discrete representation of a) C2 warp.\n"
 #endif
 #ifdef USE_SAVER
     "\n"
