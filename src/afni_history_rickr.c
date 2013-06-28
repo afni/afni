@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Jun, 2013, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "added get/show_process_stack(), get/show_login_shell()",
+   "Can use these from command line, e.g. :\n"
+   "   afni_util.py -eval 'show_login_shell()'\n"
+   "   afni_util.py -eval 'show_login_shell(verb=1)'\n"
+   "   afni_util.py -eval 'show_process_stack()'"
+ } ,
+
  { 27,  Jun, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_mot_as_ort",
    "Applies motion regressors via -ortvec, a potential future change."
