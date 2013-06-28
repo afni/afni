@@ -235,6 +235,134 @@ def write_afni_com_history(fname, length=0, wrap=1):
    script = '\n'.join(hist)+'\n'
    write_text_to_file(fname, script, wrap=wrap)
 
+# get/show_process_stack(), get/show_login_shell()   28 Jun 2013 [rickr]
+def get_process_stack():
+   """the stack of processes up to init
+
+      return an array of [pid, ppid, user, command] elements
+      --> element 0 should always be init
+  """
+   def get_pid_index(pids, plist, pid):
+      try:
+         pind = pids.index(pid)
+      except:
+         print '** GPS pid %s not in pid list:\n%s' % (pid, plist)
+         sys.exit(1)
+      return pind
+   def get_ancestry_indlist(pids, ppids, plist):
+      pid = os.getpid()
+      pind = get_pid_index(pids, plist, pid)
+      indtree = [pind]
+      while pid > 1:
+         pid = ppids[pind]
+         pind = get_pid_index(pids, plist, pid)
+         indtree.append(pind)
+      return indtree
+
+   cmd = 'ps -eo pid,ppid,user,comm'
+   ac = BASE.shell_com(cmd, capture=1)
+   ac.run()
+   if ac.status:
+      print '** GPS command failure for: %s\n' % cmd
+      print 'error output:\n%s' % '\n'.join(ac.se)
+      return []
+
+   plist = [ll.split() for ll in ac.so]
+   names = plist[0]
+   plist = plist[1:]
+
+   try:
+      pids = [int(psinfo[0]) for psinfo in plist]
+      ppids = [int(psinfo[1]) for psinfo in plist]
+   except:
+      print '** GPS type failure in plist\n%s' % plist
+      return []
+
+   indlist = get_ancestry_indlist(pids, ppids, plist)
+
+   stack = [plist[i] for i in indlist]
+   stack.reverse()
+   return stack
+
+def show_process_stack():
+   """print stack of processes up to init"""
+   pstack = get_process_stack()
+   if len(pstack) == 0:
+      print '** empty process stack'
+      return
+   ulist = [pp[2] for pp in pstack]
+   ml = max_len_in_list(ulist)
+   header = '   PID   PPID  [USER]'
+   dashes = '  ----   ----  ------'
+   form = '%6s %6s  [%s]'
+   ilen = len(form)+4+ml
+
+   print '%-*s : %s' % (ilen, header, 'COMMAND')
+   print '%-*s   %s' % (ilen, dashes, '-------')
+   for row in pstack:
+      ss = form % (row[0], row[1], row[2])
+      print '%-*s : %s' % (ilen, ss, row[3])
+
+def get_login_shell():
+   """return the apparent login shell
+      from get_process_stack(), search down s[3] until a shell is found
+   """
+   shells = ['csh','tcsh','sh','bash','zsh']
+   dshells = ['-%s' % s for s in shells]
+
+   pstack = get_process_stack()
+   if len(pstack) == 0:
+      print '** cannot detect shell: empty process stack'
+      return
+
+   # start from init and work down to find first valid shell
+   for pline in pstack:
+      if pline[3] not in shells and pline[3] not in dshells: continue
+      shell = pline[3]
+      if shell[0] == '-': shell = shell[1:]      # strip any leading '-'
+      return shell
+
+   return 'SHELL_NOT_DETECTED'
+
+def show_login_shell(verb=0):
+   """print the apparent login shell
+
+      from get_process_stack(), search down s[3] until a shell is found
+   """
+   shells = ['csh','tcsh','sh','bash','zsh']
+   dshells = ['-%s' % s for s in shells]
+
+   pstack = get_process_stack()
+   if len(pstack) == 0:
+      print '** cannot detect shell: empty process stack'
+      return
+
+   # start from init and work down to find first valid shell
+   shell = ''
+   for pline in pstack:
+      if pline[3] not in shells and pline[3] not in dshells: continue
+      shell = pline[3]
+      if shell[0] == '-': shell = shell[1:]      # strip any leading '-'
+      if verb: print 'apparent login shell: %s' % shell
+      else: print '%s' % shell
+      break
+
+   if shell == '':
+      if verb:
+         print '** failed to determine login shell, see process stack...\n'
+         show_process_stack()
+         return
+
+   # in verbose mode, see if parent shell is different from login
+   if verb:
+      pstack.reverse()
+      for pline in pstack:
+         if pline[3] not in shells and pline[3] not in dshells: continue
+         sh = pline[3]
+         if sh[0] == '-': sh = sh[1:]      # strip any leading '-'
+         if sh != shell: print 'differs from current shell: %s' % sh
+         break
+
 def get_unique_sublist(inlist, keep_order=1):
     """return a copy of inlist, but where elements are unique
 
@@ -2881,6 +3009,9 @@ def main():
    argv = sys.argv
    if len(argv) > 2:
       if argv[1] == '-eval':
+         eval(' '.join(argv[2:]))
+         return 0
+      elif argv[1] == '-print':
          print eval(' '.join(argv[2:]))
          return 0
       elif argv[1] == '-listfunc':
