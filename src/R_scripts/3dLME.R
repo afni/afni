@@ -21,7 +21,7 @@ greeting.lme <- function ()
           ================== Welcome to 3dlme ==================          
    AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.8, Jun 3, 2013
+Version 1.0.0, Jun 28, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -37,7 +37,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.8, Jun 3, 2013
+Version 1.0.0, Jun 28, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -880,9 +880,7 @@ while(is.null(fm)) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')
       cat('Possible reasons:\n\n')
-      cat('1) Inappropriate model specification with options -model, -wsVars, or -qVars.\n')
-      cat('Note that within-subject or repeated-measures variables have to be declared\n')
-      cat('with -wsVars.\n\n')
+      cat('1) Inappropriate model specification with options -model, or -qVars.\n')
       cat('2) Misspecifications in general linear test coding with -gltCode.\n\n')
       cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
       cat('whether there are any inconsistencies.\n')
