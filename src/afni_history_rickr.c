@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Jul, 2013, RCR, "afni-general", MICRO, TYPE_NEW_OPT,
+   "added AFNI_INCLUDE_HISTORY: set to No to omit history from output",
+   NULL
+ } ,
+
  { 28,  Jun, 2013, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
    "added get/show_process_stack(), get/show_login_shell()",
    "Can use these from command line, e.g. :\n"
