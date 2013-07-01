@@ -561,7 +561,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.43" # software version (update for changes)
+      self.align_version = "1.44" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1965,7 +1965,7 @@ class RegWrap:
                   child_anat_out = afni_name("%s%s_child%s%s" % \
                     (child_anat.p(),child_anat.out_prefix(),suf,child_anat.view))
                else:
-                  child_anat_out=afni_name("%s%s%s" % \
+                  child_anat_out=afni_name("%s%s%s%s" % \
                     (child_anat.p(),child_anat.out_prefix(),suf,child_anat.view))
                
                child_anat_out.view = anatview     # child_anat.view
@@ -1977,11 +1977,11 @@ class RegWrap:
                else :
                   overwritestr = ""
                com = shell_com(  \
-                     "3dAllineate -base %s%s -1Dmatrix_apply %s "          \
-                     "-prefix %s%s -input %s%s  %s %s %s"   %              \
-                     ( e.p(), e.input(), e2a_mat,                          \
+                     "3dAllineate -base %s -1Dmatrix_apply %s "          \
+                     "-prefix %s%s -input %s  %s %s %s"   %              \
+                     ( e.input(), e2a_mat,                          \
                        child_anat_out.p(), child_anat_out.out_prefix(),    \
-                       child_anat.p(), child_anat.input(),                 \
+                       child_anat.input(),                 \
                        self.master_anat_3dAl_option, alopt, overwritestr), \
                        ps.oexec)
 
