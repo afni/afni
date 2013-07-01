@@ -335,6 +335,12 @@ void tross_Append_History( THD_3dim_dataset *dset, char *cn )
 
    hist = THD_find_string_atr(dset->dblk,"HISTORY_NOTE") ;
 
+   /* maybe the user does not want any history      28 Jun 2013 [rickr] */
+   if( AFNI_noenv("AFNI_INCLUDE_HISTORY") ) {
+      if( hist ) THD_erase_one_atr(dset->dblk, "HISTORY_NOTE") ;
+      return ;
+   }
+
    cdate = tross_datetime() ; idate = strlen(cdate) ;
 
                       cenv = getenv("AFNI_HISTORY_NAME") ;
