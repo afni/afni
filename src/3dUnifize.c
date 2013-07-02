@@ -705,7 +705,7 @@ int main( int argc , char *argv[] )
        INFO_message("===== CPU time = %.1f sec  Elapsed = %.1f\n",
                              COX_cpu_time() , 0.001*(NI_clock_time()-ct) ) ;
      else
-       INFO_message("===== Elapsed = %.1f\n", 0.001*(NI_clock_time()-ct) ) ;
+       INFO_message("===== Elapsed = %.1f sec\n", 0.001*(NI_clock_time()-ct) ) ;
    }
    exit(0) ;
 }
